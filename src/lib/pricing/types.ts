@@ -162,6 +162,40 @@ export interface Settlement {
 }
 
 // ---------------------------------------------------------------------------
+// 보증금 (계좌이체 확인 방식 — 실제 PG 연동 전 임시 운영 방식)
+// ---------------------------------------------------------------------------
+
+export type DepositStatus = "PENDING" | "REPORTED" | "CONFIRMED";
+
+export interface Deposit {
+  id: string;
+  quoteId: string;
+  requiredAmount: number;
+  depositRate: number; // 계약금액 대비 보증금 비율 (%)
+  status: DepositStatus;
+  depositorName: string | null; // 신청자가 입금신청 시 입력한 입금자명
+  reportedAt: string | null;
+  confirmedAt: string | null;
+  confirmedBy: string | null;
+  createdAt: string;
+}
+
+// ---------------------------------------------------------------------------
+// 첨부서류
+// ---------------------------------------------------------------------------
+
+export interface Attachment {
+  id: string;
+  quoteId: string;
+  storedName: string; // 디스크에 저장된 파일명 (충돌/경로탐색 방지용 난수)
+  originalName: string;
+  mimeType: string;
+  size: number;
+  uploadedBy: string;
+  createdAt: string;
+}
+
+// ---------------------------------------------------------------------------
 // 사용자 / 감사 로그
 // ---------------------------------------------------------------------------
 

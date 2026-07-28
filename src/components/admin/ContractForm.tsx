@@ -13,10 +13,12 @@ interface AdjustmentRow {
 export function ContractForm({ quoteId, baseTotal }: { quoteId: string; baseTotal: number }) {
   const router = useRouter();
   const [rows, setRows] = useState<AdjustmentRow[]>([]);
+  const [depositRate, setDepositRate] = useState(10);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const contractTotal = baseTotal + rows.reduce((sum, r) => sum + (r.amount || 0), 0);
+  const requiredDeposit = Math.round((contractTotal * depositRate) / 100);
 
   function addRow() {
     setRows((prev) => [...prev, { label: "", amount: 0, reason: "" }]);
@@ -35,7 +37,7 @@ export function ContractForm({ quoteId, baseTotal }: { quoteId: string; baseTota
       const res = await fetch(`/api/quotes/${quoteId}/contract`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ adjustments: rows.filter((r) => r.label) }),
+        body: JSON.stringify({ adjustments: rows.filter((r) => r.label), depositRate }),
       });
       const data = await res.json();
       if (!res.ok) {
@@ -95,10 +97,31 @@ export function ContractForm({ quoteId, baseTotal }: { quoteId: string; baseTota
         </button>
       </div>
 
-      <div className="mt-5 flex items-center justify-between border-t border-border pt-4">
+      <div className="mt-5 grid grid-cols-[1fr_140px] items-center gap-3 border-t border-border pt-4">
+        <div>
+          <div className="text-[13px] font-medium">보증금 비율</div>
+          <div className="text-[11.5px] text-muted">계약금액 대비 보증금 비율 (계좌이체 확인 방식)</div>
+        </div>
+        <div className="flex items-center gap-2">
+          <input
+            type="number"
+            min={0}
+            max={100}
+            value={depositRate}
+            onChange={(e) => setDepositRate(Number(e.target.value) || 0)}
+            className="w-20 rounded-lg border border-border bg-background px-3 py-2 text-right text-[13px] outline-none focus:border-accent"
+          />
+          <span className="text-[13px] text-muted">%</span>
+        </div>
+      </div>
+
+      <div className="mt-4 flex items-center justify-between border-t border-border pt-4">
         <div>
           <div className="text-[11px] text-muted">계약금액 (신청 예상금액 {won(baseTotal)} ± 조정)</div>
           <div className="text-[20px] font-semibold tabular-nums">{won(contractTotal)}</div>
+          <div className="mt-0.5 text-[11.5px] text-muted">
+            보증금 요청액: <span className="font-medium text-foreground">{won(requiredDeposit)}</span>
+          </div>
         </div>
         <button
           type="button"

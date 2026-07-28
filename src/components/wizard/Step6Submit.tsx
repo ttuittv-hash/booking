@@ -86,6 +86,14 @@ export function Step6Submit({
           신청서가 생성되었습니다. 신청번호{" "}
           <b className="font-semibold">{submittedId}</b> · 상태: 예상견적
           (ESTIMATE). 관리자 심사 → 계약 → 정산 순으로 진행됩니다.
+          <div className="mt-2 flex gap-4">
+            <Link href={`/mypage/${submittedId}`} className="font-semibold underline">
+              신청 상세·첨부서류 관리
+            </Link>
+            <Link href={`/print/${submittedId}`} target="_blank" className="font-semibold underline">
+              인쇄 / PDF 저장
+            </Link>
+          </div>
         </div>
       ) : !isLoggedIn ? (
         <div className="mt-5 rounded-xl border border-warn/30 bg-warn-soft px-4 py-3.5 text-[13.5px] text-warn">

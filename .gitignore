@@ -41,6 +41,9 @@ yarn-error.log*
 /data/*.db
 /data/*.db-*
 
+# 업로드된 첨부서류 (로컬 개발용 — 커밋하지 않음)
+/data/uploads/
+
 # typescript
 *.tsbuildinfo
 next-env.d.ts

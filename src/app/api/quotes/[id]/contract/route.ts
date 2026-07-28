@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import crypto from "node:crypto";
 import { getCurrentUser } from "@/lib/auth";
-import { addAuditLog, getQuoteById, setQuoteContract } from "@/lib/db";
+import { addAuditLog, createDeposit, getQuoteById, setQuoteContract } from "@/lib/db";
 import type { ContractAdjustment } from "@/lib/pricing/types";
 
 export async function POST(request: Request, ctx: { params: Promise<{ id: string }> }) {
@@ -24,6 +24,9 @@ export async function POST(request: Request, ctx: { params: Promise<{ id: string
       )
     : [];
 
+  const depositRateInput = Number(body?.depositRate);
+  const depositRate = Number.isFinite(depositRateInput) && depositRateInput >= 0 ? depositRateInput : 10;
+
   const contractTotal = quote.total + adjustments.reduce((sum, a) => sum + a.amount, 0);
   const contract: ContractAdjustment = {
     quoteId: id,
@@ -43,5 +46,13 @@ export async function POST(request: Request, ctx: { params: Promise<{ id: string
     createdAt: contract.decidedAt,
   });
 
-  return NextResponse.json({ quote: updated });
+  const deposit = createDeposit({
+    id: crypto.randomUUID(),
+    quoteId: id,
+    requiredAmount: Math.round((contractTotal * depositRate) / 100),
+    depositRate,
+    createdAt: contract.decidedAt,
+  });
+
+  return NextResponse.json({ quote: updated, deposit });
 }

@@ -49,12 +49,13 @@ export default async function MyPage() {
                 <th className="px-4 py-3 text-right">계약금액</th>
                 <th className="px-4 py-3 text-right">정산금액</th>
                 <th className="px-4 py-3">상태</th>
+                <th className="px-4 py-3" />
               </tr>
             </thead>
             <tbody>
               {quotes.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="px-4 py-8 text-center text-muted">
+                  <td colSpan={8} className="px-4 py-8 text-center text-muted">
                     아직 신청 내역이 없습니다.{" "}
                     <Link href="/apply" className="text-accent hover:underline">
                       견적 산출 시작하기
@@ -82,6 +83,11 @@ export default async function MyPage() {
                       <span className="rounded-full bg-accent-soft px-2.5 py-1 text-[11.5px] font-medium text-accent">
                         {STATUS_LABEL[q.status]}
                       </span>
+                    </td>
+                    <td className="px-4 py-3 text-right">
+                      <Link href={`/mypage/${q.id}`} className="font-medium text-accent hover:underline">
+                        상세 →
+                      </Link>
                     </td>
                   </tr>
                 ))

@@ -6,8 +6,11 @@ import path from "node:path";
 import { buildSeedRateTable } from "./pricing/seed";
 import type {
   AppUser,
+  Attachment,
   AuditLogEntry,
   ContractAdjustment,
+  Deposit,
+  DepositStatus,
   Quote,
   QuoteStatus,
   RateTable,
@@ -71,6 +74,32 @@ function createConnection(): DatabaseSync {
       snapshot_json TEXT NOT NULL,
       actor_id TEXT NOT NULL,
       created_at TEXT NOT NULL
+    );
+
+    CREATE TABLE IF NOT EXISTS deposits (
+      id TEXT PRIMARY KEY,
+      quote_id TEXT NOT NULL UNIQUE,
+      required_amount REAL NOT NULL,
+      deposit_rate REAL NOT NULL,
+      status TEXT NOT NULL,
+      depositor_name TEXT,
+      reported_at TEXT,
+      confirmed_at TEXT,
+      confirmed_by TEXT,
+      created_at TEXT NOT NULL,
+      FOREIGN KEY (quote_id) REFERENCES quotes(id)
+    );
+
+    CREATE TABLE IF NOT EXISTS attachments (
+      id TEXT PRIMARY KEY,
+      quote_id TEXT NOT NULL,
+      stored_name TEXT NOT NULL,
+      original_name TEXT NOT NULL,
+      mime_type TEXT NOT NULL,
+      size INTEGER NOT NULL,
+      uploaded_by TEXT NOT NULL,
+      created_at TEXT NOT NULL,
+      FOREIGN KEY (quote_id) REFERENCES quotes(id)
     );
   `);
 
@@ -374,4 +403,153 @@ export function listAuditLogsForQuote(quoteId: string): AuditLogEntry[] {
     actorId: row.actor_id,
     createdAt: row.created_at,
   }));
+}
+
+// ---------------------------------------------------------------------------
+// 보증금 (계좌이체 확인 방식)
+// ---------------------------------------------------------------------------
+
+interface DepositRow {
+  id: string;
+  quote_id: string;
+  required_amount: number;
+  deposit_rate: number;
+  status: DepositStatus;
+  depositor_name: string | null;
+  reported_at: string | null;
+  confirmed_at: string | null;
+  confirmed_by: string | null;
+  created_at: string;
+}
+
+function toDeposit(row: DepositRow): Deposit {
+  return {
+    id: row.id,
+    quoteId: row.quote_id,
+    requiredAmount: row.required_amount,
+    depositRate: row.deposit_rate,
+    status: row.status,
+    depositorName: row.depositor_name,
+    reportedAt: row.reported_at,
+    confirmedAt: row.confirmed_at,
+    confirmedBy: row.confirmed_by,
+    createdAt: row.created_at,
+  };
+}
+
+export function createDeposit(input: {
+  id: string;
+  quoteId: string;
+  requiredAmount: number;
+  depositRate: number;
+  createdAt: string;
+}): Deposit {
+  const db = getDb();
+  db.prepare(
+    `INSERT INTO deposits (id, quote_id, required_amount, deposit_rate, status, created_at)
+     VALUES (?, ?, ?, ?, 'PENDING', ?)`,
+  ).run(input.id, input.quoteId, input.requiredAmount, input.depositRate, input.createdAt);
+  return getDepositByQuoteId(input.quoteId)!;
+}
+
+export function getDepositByQuoteId(quoteId: string): Deposit | undefined {
+  const db = getDb();
+  const row = db.prepare("SELECT * FROM deposits WHERE quote_id = ?").get(quoteId) as
+    | DepositRow
+    | undefined;
+  return row ? toDeposit(row) : undefined;
+}
+
+export function reportDeposit(quoteId: string, depositorName: string, reportedAt: string): Deposit {
+  const db = getDb();
+  db.prepare(
+    "UPDATE deposits SET status = 'REPORTED', depositor_name = ?, reported_at = ? WHERE quote_id = ?",
+  ).run(depositorName, reportedAt, quoteId);
+  return getDepositByQuoteId(quoteId)!;
+}
+
+export function confirmDeposit(quoteId: string, confirmedBy: string, confirmedAt: string): Deposit {
+  const db = getDb();
+  db.prepare(
+    "UPDATE deposits SET status = 'CONFIRMED', confirmed_by = ?, confirmed_at = ? WHERE quote_id = ?",
+  ).run(confirmedBy, confirmedAt, quoteId);
+  return getDepositByQuoteId(quoteId)!;
+}
+
+// ---------------------------------------------------------------------------
+// 첨부서류
+// ---------------------------------------------------------------------------
+
+interface AttachmentRow {
+  id: string;
+  quote_id: string;
+  stored_name: string;
+  original_name: string;
+  mime_type: string;
+  size: number;
+  uploaded_by: string;
+  created_at: string;
+}
+
+function toAttachment(row: AttachmentRow): Attachment {
+  return {
+    id: row.id,
+    quoteId: row.quote_id,
+    storedName: row.stored_name,
+    originalName: row.original_name,
+    mimeType: row.mime_type,
+    size: row.size,
+    uploadedBy: row.uploaded_by,
+    createdAt: row.created_at,
+  };
+}
+
+export function createAttachment(input: {
+  id: string;
+  quoteId: string;
+  storedName: string;
+  originalName: string;
+  mimeType: string;
+  size: number;
+  uploadedBy: string;
+  createdAt: string;
+}): Attachment {
+  const db = getDb();
+  db.prepare(
+    `INSERT INTO attachments (id, quote_id, stored_name, original_name, mime_type, size, uploaded_by, created_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+  ).run(
+    input.id,
+    input.quoteId,
+    input.storedName,
+    input.originalName,
+    input.mimeType,
+    input.size,
+    input.uploadedBy,
+    input.createdAt,
+  );
+  return toAttachment(
+    db.prepare("SELECT * FROM attachments WHERE id = ?").get(input.id) as unknown as AttachmentRow,
+  );
+}
+
+export function listAttachments(quoteId: string): Attachment[] {
+  const db = getDb();
+  const rows = db
+    .prepare("SELECT * FROM attachments WHERE quote_id = ? ORDER BY created_at ASC")
+    .all(quoteId) as unknown as AttachmentRow[];
+  return rows.map(toAttachment);
+}
+
+export function getAttachmentById(id: string): Attachment | undefined {
+  const db = getDb();
+  const row = db.prepare("SELECT * FROM attachments WHERE id = ?").get(id) as
+    | AttachmentRow
+    | undefined;
+  return row ? toAttachment(row) : undefined;
+}
+
+export function deleteAttachment(id: string) {
+  const db = getDb();
+  db.prepare("DELETE FROM attachments WHERE id = ?").run(id);
 }

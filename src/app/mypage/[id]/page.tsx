@@ -1,33 +1,30 @@
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { getCurrentUser } from "@/lib/auth";
-import { getDepositByQuoteId, getQuoteById, listAttachments, listAuditLogsForQuote } from "@/lib/db";
+import { getDepositByQuoteId, getQuoteById, listAttachments } from "@/lib/db";
 import { won } from "@/lib/format";
-import { ContractForm } from "@/components/admin/ContractForm";
-import { SettlementForm } from "@/components/admin/SettlementForm";
 import { DepositPanel } from "@/components/DepositPanel";
 import { AttachmentsPanel } from "@/components/AttachmentsPanel";
 
 const STAGE_LABEL: Record<string, string> = {
-  ESTIMATE: "신청 접수",
+  ESTIMATE: "신청 접수 (예상 견적)",
   CONTRACTED: "계약 확정",
   SETTLED: "정산 확정",
 };
 
-export default async function AdminQuoteDetailPage({
+export default async function MyQuoteDetailPage({
   params,
 }: {
   params: Promise<{ id: string }>;
 }) {
   const user = await getCurrentUser();
   if (!user) redirect("/login");
-  if (user.role !== "ADMIN") redirect("/apply");
 
   const { id } = await params;
   const quote = getQuoteById(id);
   if (!quote) notFound();
+  if (user.role !== "ADMIN" && quote.applicantId !== user.id) notFound();
 
-  const auditLog = listAuditLogsForQuote(id);
   const deposit = getDepositByQuoteId(id) ?? null;
   const attachments = listAttachments(id);
 
@@ -35,11 +32,11 @@ export default async function AdminQuoteDetailPage({
     <div className="flex flex-1 flex-col">
       <header className="sticky top-0 z-20 border-b border-border/70 bg-background/80 backdrop-blur-md">
         <div className="mx-auto flex max-w-4xl items-center gap-4 px-6 py-4">
-          <Link href="/admin" className="text-[15px] font-semibold tracking-tight">
+          <Link href="/" className="text-[15px] font-semibold tracking-tight">
             SEOUL ARENA
           </Link>
-          <Link href="/admin" className="text-[13px] text-muted hover:text-foreground">
-            ← 신청 현황
+          <Link href="/mypage" className="text-[13px] text-muted hover:text-foreground">
+            ← 내 신청 내역
           </Link>
         </div>
       </header>
@@ -56,7 +53,7 @@ export default async function AdminQuoteDetailPage({
               인쇄 / PDF 저장
             </Link>
             <span className="text-[12.5px] text-muted">
-              신청일시 {new Date(quote.createdAt).toLocaleString("ko-KR")}
+              {STAGE_LABEL[quote.status]}
             </span>
           </div>
         </div>
@@ -102,80 +99,53 @@ export default async function AdminQuoteDetailPage({
           </div>
         </section>
 
-        <div className="mt-6">
-          {quote.status === "ESTIMATE" && <ContractForm quoteId={quote.id} baseTotal={quote.total} />}
-
-          {quote.contract && (
-            <div className="rounded-2xl border border-border bg-panel/60 p-6">
-              <h3 className="text-[15px] font-semibold">② 계약금액 확정됨</h3>
-              <ul className="mt-3 space-y-1.5 text-[13px]">
-                {quote.contract.adjustments.map((a, i) => (
-                  <li key={i} className="flex justify-between text-muted">
-                    <span>
-                      {a.label} {a.reason && `(${a.reason})`}
-                    </span>
-                    <span className="tabular-nums">{won(a.amount)}</span>
-                  </li>
-                ))}
-              </ul>
-              <div className="mt-3 flex items-center justify-between border-t border-border pt-3">
-                <span className="text-[13px] text-muted">
-                  확정일시 {new Date(quote.contract.decidedAt).toLocaleString("ko-KR")}
-                </span>
-                <span className="text-[18px] font-semibold tabular-nums">
-                  {won(quote.contract.contractTotal)}
-                </span>
-              </div>
+        {quote.contract && (
+          <section className="mt-6 rounded-2xl border border-border bg-panel/60 p-6">
+            <h2 className="text-[15px] font-semibold">② 계약금액 확정됨</h2>
+            <ul className="mt-3 space-y-1.5 text-[13px]">
+              {quote.contract.adjustments.map((a, i) => (
+                <li key={i} className="flex justify-between text-muted">
+                  <span>
+                    {a.label} {a.reason && `(${a.reason})`}
+                  </span>
+                  <span className="tabular-nums">{won(a.amount)}</span>
+                </li>
+              ))}
+            </ul>
+            <div className="mt-3 flex items-center justify-between border-t border-border pt-3">
+              <span className="text-[13px] text-muted">
+                확정일시 {new Date(quote.contract.decidedAt).toLocaleString("ko-KR")}
+              </span>
+              <span className="text-[18px] font-semibold tabular-nums">
+                {won(quote.contract.contractTotal)}
+              </span>
             </div>
-          )}
+          </section>
+        )}
 
-          {quote.status === "CONTRACTED" && quote.contract && (
-            <div className="mt-6">
-              <SettlementForm quoteId={quote.id} contractTotal={quote.contract.contractTotal} />
+        {quote.settlement && (
+          <section className="mt-6 rounded-2xl border border-good/30 bg-good-soft p-6">
+            <h2 className="text-[15px] font-semibold text-good">③ 최종 정산 완료</h2>
+            <div className="mt-3 flex items-center justify-between">
+              <span className="text-[13px] text-good/80">
+                확정일시 {new Date(quote.settlement.decidedAt).toLocaleString("ko-KR")}
+              </span>
+              <span className="text-[20px] font-semibold tabular-nums text-good">
+                {won(quote.settlement.finalTotal)}
+              </span>
             </div>
-          )}
-
-          {quote.settlement && (
-            <div className="mt-6 rounded-2xl border border-good/30 bg-good-soft p-6">
-              <h3 className="text-[15px] font-semibold text-good">③ 최종 정산 완료</h3>
-              <div className="mt-3 flex items-center justify-between">
-                <span className="text-[13px] text-good/80">
-                  확정일시 {new Date(quote.settlement.decidedAt).toLocaleString("ko-KR")}
-                </span>
-                <span className="text-[20px] font-semibold tabular-nums text-good">
-                  {won(quote.settlement.finalTotal)}
-                </span>
-              </div>
-            </div>
-          )}
-        </div>
+          </section>
+        )}
 
         <div className="mt-6 grid grid-cols-1 gap-6 sm:grid-cols-2">
-          <DepositPanel quoteId={quote.id} deposit={deposit} viewerRole="ADMIN" />
+          <DepositPanel quoteId={quote.id} deposit={deposit} viewerRole="APPLICANT" />
           <AttachmentsPanel
             quoteId={quote.id}
             attachments={attachments}
             currentUserId={user.id}
-            isAdmin
+            isAdmin={user.role === "ADMIN"}
           />
         </div>
-
-        {auditLog.length > 0 && (
-          <section className="mt-8">
-            <h2 className="text-[14px] font-semibold text-muted">감사 로그</h2>
-            <ul className="mt-3 space-y-2">
-              {auditLog.map((entry) => (
-                <li
-                  key={entry.id}
-                  className="flex justify-between rounded-lg border border-border/70 px-4 py-2.5 text-[12.5px] text-muted"
-                >
-                  <span>{STAGE_LABEL[entry.stage] ?? entry.stage}</span>
-                  <span>{new Date(entry.createdAt).toLocaleString("ko-KR")}</span>
-                </li>
-              ))}
-            </ul>
-          </section>
-        )}
       </main>
     </div>
   );
