@@ -1,0 +1,55 @@
+import { NextResponse } from "next/server";
+import crypto from "node:crypto";
+import { getCurrentUser } from "@/lib/auth";
+import { addAuditLog, createQuote, getCurrentRateTable, listQuotes } from "@/lib/db";
+import { calculateQuote } from "@/lib/pricing/calculateQuote";
+import type { QuoteSelection } from "@/lib/pricing/types";
+
+export async function GET() {
+  const user = await getCurrentUser();
+  if (!user) return NextResponse.json({ error: "로그인이 필요합니다." }, { status: 401 });
+
+  const quotes = user.role === "ADMIN" ? listQuotes() : listQuotes({ applicantId: user.id });
+  return NextResponse.json({ quotes });
+}
+
+export async function POST(request: Request) {
+  const user = await getCurrentUser();
+  if (!user || user.role !== "APPLICANT") {
+    return NextResponse.json({ error: "신청자 로그인이 필요합니다." }, { status: 401 });
+  }
+
+  const body = await request.json().catch(() => null);
+  const selection = body?.selection as QuoteSelection | undefined;
+  if (!selection || typeof selection.packageId !== "number") {
+    return NextResponse.json({ error: "패키지를 선택해주세요." }, { status: 400 });
+  }
+
+  // 클라이언트가 보낸 금액은 신뢰하지 않고, 서버에서 현재 요금표로 재계산한다.
+  const rateTable = getCurrentRateTable();
+  const computed = calculateQuote(selection, rateTable);
+
+  const quote = createQuote({
+    id: `SA-${crypto.randomUUID().slice(0, 8).toUpperCase()}`,
+    applicantId: user.id,
+    rateTableVersion: computed.rateTableVersion,
+    selection: computed.selection,
+    lineItems: computed.lineItems,
+    subtotal: computed.subtotal,
+    vat: computed.vat,
+    total: computed.total,
+    meteredNotice: computed.meteredNotice,
+    createdAt: new Date().toISOString(),
+  });
+
+  addAuditLog({
+    id: crypto.randomUUID(),
+    quoteId: quote.id,
+    stage: "ESTIMATE",
+    snapshot: quote,
+    actorId: user.id,
+    createdAt: quote.createdAt,
+  });
+
+  return NextResponse.json({ quote });
+}

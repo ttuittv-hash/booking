@@ -1,9 +1,9 @@
 "use client";
 
 import { won } from "@/lib/format";
-import type { Quote } from "@/lib/pricing/types";
+import type { EstimatedQuote } from "@/lib/pricing/types";
 
-export function SummaryPanel({ quote }: { quote: Quote }) {
+export function SummaryPanel({ quote }: { quote: EstimatedQuote }) {
   return (
     <aside className="lg:sticky lg:top-24 lg:self-start">
       <div className="rounded-2xl border border-border bg-panel/70 p-6">

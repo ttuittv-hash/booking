@@ -1,6 +1,10 @@
 import Link from "next/link";
+import { getCurrentUser } from "@/lib/auth";
+import { LogoutButton } from "@/components/LogoutButton";
 
-export default function Home() {
+export default async function Home() {
+  const user = await getCurrentUser();
+
   return (
     <div className="flex flex-1 flex-col">
       <header className="sticky top-0 z-20 border-b border-border/70 bg-background/80 backdrop-blur-md">
@@ -12,9 +16,20 @@ export default function Home() {
             <Link href="/apply" className="hover:text-foreground">
               대관 견적·신청
             </Link>
-            <Link href="/admin" className="hover:text-foreground">
-              운영자 백오피스
-            </Link>
+            {user?.role === "ADMIN" ? (
+              <Link href="/admin" className="hover:text-foreground">
+                운영자 백오피스
+              </Link>
+            ) : user ? (
+              <Link href="/mypage" className="hover:text-foreground">
+                내 신청 내역
+              </Link>
+            ) : (
+              <Link href="/login" className="hover:text-foreground">
+                로그인
+              </Link>
+            )}
+            {user && <LogoutButton className="hover:text-foreground" />}
           </nav>
         </div>
       </header>
@@ -40,7 +55,7 @@ export default function Home() {
             견적 산출 시작하기
           </Link>
           <Link
-            href="/admin"
+            href="/login"
             className="rounded-full border border-border px-7 py-3 text-[15px] font-medium text-foreground transition-colors hover:bg-panel"
           >
             운영자 로그인

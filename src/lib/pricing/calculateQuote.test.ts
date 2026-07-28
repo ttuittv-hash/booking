@@ -1,7 +1,10 @@
 import { describe, expect, it } from "vitest";
 import { calculateQuote } from "./calculateQuote";
-import { getAddon, getPackage, includedQuantity, RATE_TABLE } from "./seed";
+import { extraWeekPrice, findAddon, findPackage, includedQuantity } from "./rateTableUtils";
+import { buildSeedRateTable } from "./seed";
 import type { QuoteSelection } from "./types";
+
+const RATE_TABLE = buildSeedRateTable();
 
 function baseSelection(overrides: Partial<QuoteSelection> = {}): QuoteSelection {
   return {
@@ -16,8 +19,8 @@ function baseSelection(overrides: Partial<QuoteSelection> = {}): QuoteSelection 
 }
 
 describe("calculateQuote — 명세서 7장 검증 케이스", () => {
-  const pkg2 = getPackage(2)!;
-  const cleaning = getAddon("cleaning")!;
+  const pkg2 = findPackage(RATE_TABLE, 2)!;
+  const cleaning = findAddon(RATE_TABLE, "cleaning")!;
 
   it("케이스 A: 기본만 — 기본료 + 청소비", () => {
     const quote = calculateQuote(baseSelection(), RATE_TABLE);
@@ -29,8 +32,8 @@ describe("calculateQuote — 명세서 7장 검증 케이스", () => {
 
   it("케이스 B: 초과분 과금 — 대기실 초과분 + 스마트스테이지 추가분만 과금", () => {
     const waitingRoomIncluded = includedQuantity(pkg2, "waiting_room"); // 2
-    const waitingRoom = getAddon("waiting_room")!;
-    const smartStage = getAddon("smart_stage")!;
+    const waitingRoom = findAddon(RATE_TABLE, "waiting_room")!;
+    const smartStage = findAddon(RATE_TABLE, "smart_stage")!;
 
     const quote = calculateQuote(
       baseSelection({
@@ -62,15 +65,15 @@ describe("calculateQuote — 명세서 7장 검증 케이스", () => {
     expect(extraWeekLine.requested).toBe(2);
     expect(extraWeekLine.included).toBe(1);
     expect(extraWeekLine.billable).toBe(1);
-    expect(extraWeekLine.amount).toBe(RATE_TABLE.extraWeekPrice(pkg2));
+    expect(extraWeekLine.amount).toBe(extraWeekPrice(RATE_TABLE, pkg2));
 
     const expectedSubtotal =
-      pkg2.baseFeePerWeek + 8000 * cleaning.unitPrice + RATE_TABLE.extraWeekPrice(pkg2);
+      pkg2.baseFeePerWeek + 8000 * cleaning.unitPrice + extraWeekPrice(RATE_TABLE, pkg2);
     expect(quote.subtotal).toBe(expectedSubtotal);
   });
 
   it("케이스 D: 규칙 차단 — 패키지3은 마더트러스A가 기본 포함이므로 IF_NOT_INCLUDED 규칙상 선택 불가", () => {
-    const pkg3 = getPackage(3)!;
+    const pkg3 = findPackage(RATE_TABLE, 3)!;
     const included = includedQuantity(pkg3, "mother_truss_a");
     expect(included).toBeGreaterThan(0);
 
@@ -97,7 +100,7 @@ describe("calculateQuote — 명세서 7장 검증 케이스", () => {
   });
 
   it("REVENUE_PERCENT(온라인 송출 수수료)는 예상매출 × 요율로 계산된다", () => {
-    const fee = getAddon("online_streaming_fee")!;
+    const fee = findAddon(RATE_TABLE, "online_streaming_fee")!;
     const quote = calculateQuote(
       baseSelection({
         expectedRevenue: 100_000_000,

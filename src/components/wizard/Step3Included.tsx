@@ -1,6 +1,7 @@
 "use client";
 
-import { getAddon, getPackage } from "@/lib/pricing/seed";
+import { findAddon, findPackage } from "@/lib/pricing/rateTableUtils";
+import type { RateTable } from "@/lib/pricing/types";
 
 const MEDIA_TIER_LABEL: Record<string, string> = {
   BASIC: "기본",
@@ -8,8 +9,14 @@ const MEDIA_TIER_LABEL: Record<string, string> = {
   FULL: "풀팩",
 };
 
-export function Step3Included({ packageId }: { packageId: number | null }) {
-  const pkg = getPackage(packageId ?? undefined);
+export function Step3Included({
+  rateTable,
+  packageId,
+}: {
+  rateTable: RateTable;
+  packageId: number | null;
+}) {
+  const pkg = findPackage(rateTable, packageId);
 
   if (!pkg) {
     return <EmptyState />;
@@ -40,7 +47,7 @@ export function Step3Included({ packageId }: { packageId: number | null }) {
           </li>
         ) : (
           pkg.includedItems.map((item) => {
-            const addon = getAddon(item.addonId);
+            const addon = findAddon(rateTable, item.addonId);
             return (
               <li
                 key={item.addonId}

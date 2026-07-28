@@ -83,9 +83,10 @@ export interface AddonItem {
 export interface RateTable {
   version: string;
   vatRate: number; // 0.1
-  extraWeekPrice: (pkg: RentalPackage) => number;
+  extraWeekRatio: number; // 초과 주차 단가 = 패키지 기본 대관료 × 이 비율 (미확정 항목 임시 규칙)
   packages: RentalPackage[];
   addons: AddonItem[];
+  updatedAt: string;
 }
 
 // ---------------------------------------------------------------------------
@@ -122,6 +123,7 @@ export interface LineItem {
 
 export interface Quote {
   id: string;
+  applicantId: string;
   selection: QuoteSelection;
   rateTableVersion: string; // 계산 시점 요금표 버전 (재현성)
   lineItems: LineItem[]; // 산출내역
@@ -131,18 +133,54 @@ export interface Quote {
   meteredNotice: string; // 유틸리티 실사용 안내 문구
   status: QuoteStatus;
   createdAt: string;
+  contract: ContractAdjustment | null;
+  settlement: Settlement | null;
 }
+
+// 제출 전 클라이언트/서버가 실시간으로 계산만 하는 견적 미리보기 (계정/DB 필드 없음)
+export type EstimatedQuote = Omit<
+  Quote,
+  "id" | "applicantId" | "createdAt" | "contract" | "settlement"
+>;
 
 export interface ContractAdjustment {
   quoteId: string;
   adjustments: { label: string; amount: number; reason: string }[]; // 특약·할인(음수 가능)
   contractTotal: number; // 계약금액
+  decidedAt: string;
+  decidedBy: string;
 }
 
 export interface Settlement {
   quoteId: string;
-  onSiteAdditions: LineItem[]; // 현장 추가
-  unusedDeductions: LineItem[]; // 미사용 차감
-  meteredActuals: LineItem[]; // 유틸리티 실사용 확정
+  onSiteAdditions: { label: string; amount: number }[]; // 현장 추가
+  unusedDeductions: { label: string; amount: number }[]; // 미사용 차감
+  meteredActuals: { label: string; amount: number }[]; // 유틸리티 실사용 확정
   finalTotal: number; // 최종 정산금액
+  decidedAt: string;
+  decidedBy: string;
+}
+
+// ---------------------------------------------------------------------------
+// 사용자 / 감사 로그
+// ---------------------------------------------------------------------------
+
+export type UserRole = "APPLICANT" | "ADMIN";
+
+export interface AppUser {
+  id: string;
+  email: string;
+  name: string;
+  companyName: string | null;
+  role: UserRole;
+  createdAt: string;
+}
+
+export interface AuditLogEntry {
+  id: string;
+  quoteId: string;
+  stage: QuoteStatus;
+  snapshot: unknown;
+  actorId: string;
+  createdAt: string;
 }

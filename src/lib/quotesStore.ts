@@ -1,36 +1,32 @@
-import type { Quote } from "./pricing/types";
+import type { QuoteSelection } from "./pricing/types";
 
-const STORAGE_KEY = "seoularena.applications.v1";
+const DRAFT_KEY = "seoularena.wizard-draft.v1";
 
-function generateId(): string {
-  return `SA-${Math.random().toString(36).slice(2, 8).toUpperCase()}`;
+interface WizardDraft {
+  step: number;
+  selection: QuoteSelection;
 }
 
 /**
- * 1차 구현: 신청서 스냅샷을 브라우저 localStorage에 저장한다.
- * 추후 백엔드(DB) 연동 시 이 함수 내부만 API 호출로 교체하면 된다.
+ * 로그인 리다이렉트 등으로 페이지를 벗어나도 작성 중인 견적 입력값을 잃지 않도록
+ * 브라우저에 임시 저장한다. 제출된 신청서는 서버(DB)에 저장되며 여기 저장하지 않는다.
  */
-export function saveQuoteSnapshot(quote: Omit<Quote, "id" | "createdAt">): Quote {
-  const saved: Quote = {
-    ...quote,
-    id: generateId(),
-    createdAt: new Date().toISOString(),
-  };
-
-  if (typeof window !== "undefined") {
-    const existing = listQuoteSnapshots();
-    window.localStorage.setItem(STORAGE_KEY, JSON.stringify([...existing, saved]));
-  }
-
-  return saved;
+export function saveWizardDraft(draft: WizardDraft) {
+  if (typeof window === "undefined") return;
+  window.localStorage.setItem(DRAFT_KEY, JSON.stringify(draft));
 }
 
-export function listQuoteSnapshots(): Quote[] {
-  if (typeof window === "undefined") return [];
+export function loadWizardDraft(): WizardDraft | null {
+  if (typeof window === "undefined") return null;
   try {
-    const raw = window.localStorage.getItem(STORAGE_KEY);
-    return raw ? (JSON.parse(raw) as Quote[]) : [];
+    const raw = window.localStorage.getItem(DRAFT_KEY);
+    return raw ? (JSON.parse(raw) as WizardDraft) : null;
   } catch {
-    return [];
+    return null;
   }
+}
+
+export function clearWizardDraft() {
+  if (typeof window === "undefined") return;
+  window.localStorage.removeItem(DRAFT_KEY);
 }

@@ -1,17 +1,19 @@
 "use client";
 
 import { won } from "@/lib/format";
-import { getPackage } from "@/lib/pricing/seed";
-import type { Quote, QuoteSelection } from "@/lib/pricing/types";
+import { findPackage } from "@/lib/pricing/rateTableUtils";
+import type { EstimatedQuote, QuoteSelection, RateTable } from "@/lib/pricing/types";
 
 export function Step5Estimate({
+  rateTable,
   quote,
   selection,
 }: {
-  quote: Quote;
+  rateTable: RateTable;
+  quote: EstimatedQuote;
   selection: QuoteSelection;
 }) {
-  const pkg = getPackage(selection.packageId ?? undefined);
+  const pkg = findPackage(rateTable, selection.packageId);
 
   if (!pkg) {
     return (

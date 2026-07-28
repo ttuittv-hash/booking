@@ -1,20 +1,23 @@
 "use client";
 
 import { won } from "@/lib/format";
-import { PACKAGES, recommendPackage } from "@/lib/pricing/seed";
+import { recommendPackage } from "@/lib/pricing/rateTableUtils";
+import type { RateTable } from "@/lib/pricing/types";
 
 export function Step1Package({
+  rateTable,
   packageId,
   expectedAudience,
   onSelectPackage,
   onChangeAudience,
 }: {
+  rateTable: RateTable;
   packageId: number | null;
   expectedAudience: number;
   onSelectPackage: (id: number) => void;
   onChangeAudience: (value: number) => void;
 }) {
-  const recommended = recommendPackage(expectedAudience);
+  const recommended = recommendPackage(rateTable, expectedAudience);
 
   return (
     <section className="rounded-2xl border border-border bg-background p-7">
@@ -39,7 +42,7 @@ export function Step1Package({
       </div>
 
       <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        {PACKAGES.map((pkg) => {
+        {rateTable.packages.map((pkg) => {
           const isSelected = packageId === pkg.id;
           const isRecommended = recommended === pkg.id;
           return (

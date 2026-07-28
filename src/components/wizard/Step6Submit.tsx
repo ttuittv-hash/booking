@@ -1,8 +1,9 @@
 "use client";
 
+import Link from "next/link";
 import { won } from "@/lib/format";
-import { getPackage } from "@/lib/pricing/seed";
-import type { Quote, QuoteSelection } from "@/lib/pricing/types";
+import { findPackage } from "@/lib/pricing/rateTableUtils";
+import type { EstimatedQuote, QuoteSelection, RateTable } from "@/lib/pricing/types";
 
 const STAGES = [
   {
@@ -23,17 +24,25 @@ const STAGES = [
 ];
 
 export function Step6Submit({
+  rateTable,
   quote,
   selection,
+  isLoggedIn,
+  submitting,
   submittedId,
+  error,
   onSubmit,
 }: {
-  quote: Quote;
+  rateTable: RateTable;
+  quote: EstimatedQuote;
   selection: QuoteSelection;
+  isLoggedIn: boolean;
+  submitting: boolean;
   submittedId: string | null;
+  error: string | null;
   onSubmit: () => void;
 }) {
-  const pkg = getPackage(selection.packageId ?? undefined);
+  const pkg = findPackage(rateTable, selection.packageId);
 
   if (!pkg) {
     return (
@@ -78,14 +87,30 @@ export function Step6Submit({
           <b className="font-semibold">{submittedId}</b> · 상태: 예상견적
           (ESTIMATE). 관리자 심사 → 계약 → 정산 순으로 진행됩니다.
         </div>
+      ) : !isLoggedIn ? (
+        <div className="mt-5 rounded-xl border border-warn/30 bg-warn-soft px-4 py-3.5 text-[13.5px] text-warn">
+          신청서를 제출하려면 로그인이 필요합니다. 지금까지 입력한 내용은
+          그대로 유지되니, 로그인 후 이어서 제출할 수 있습니다.{" "}
+          <Link href="/login" className="font-semibold underline">
+            로그인
+          </Link>{" "}
+          ·{" "}
+          <Link href="/register" className="font-semibold underline">
+            회원가입
+          </Link>
+        </div>
       ) : (
-        <button
-          type="button"
-          onClick={onSubmit}
-          className="mt-5 rounded-full bg-accent px-7 py-3 text-[14px] font-semibold text-white transition-colors hover:bg-accent-hover"
-        >
-          신청서 생성
-        </button>
+        <>
+          <button
+            type="button"
+            disabled={submitting}
+            onClick={onSubmit}
+            className="mt-5 rounded-full bg-accent px-7 py-3 text-[14px] font-semibold text-white transition-colors hover:bg-accent-hover disabled:opacity-50"
+          >
+            {submitting ? "제출 중..." : "신청서 생성"}
+          </button>
+          {error && <p className="mt-3 text-[13px] text-red-600">{error}</p>}
+        </>
       )}
 
       <h3 className="mt-10 text-[16px] font-semibold">대관료 확정 3단계</h3>

@@ -1,10 +1,10 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { calculateQuote } from "@/lib/pricing/calculateQuote";
-import { getAddon, getPackage, isAddonAvailable, RATE_TABLE } from "@/lib/pricing/seed";
-import type { QuoteSelection } from "@/lib/pricing/types";
-import { saveQuoteSnapshot } from "@/lib/quotesStore";
+import { findAddon, findPackage, isAddonAvailable } from "@/lib/pricing/rateTableUtils";
+import type { AppUser, QuoteSelection, RateTable } from "@/lib/pricing/types";
+import { clearWizardDraft, loadWizardDraft, saveWizardDraft } from "@/lib/quotesStore";
 import { StepNav } from "./StepNav";
 import { SummaryPanel } from "./SummaryPanel";
 import { Step1Package } from "./Step1Package";
@@ -26,23 +26,48 @@ const INITIAL_SELECTION: QuoteSelection = {
 };
 
 function pruneUnavailableAddons(
+  rateTable: RateTable,
   selection: QuoteSelection,
   packageId: number | null,
 ): QuoteSelection["addons"] {
-  const pkg = getPackage(packageId ?? undefined);
+  const pkg = findPackage(rateTable, packageId);
   if (!pkg) return [];
   return selection.addons.filter((selected) => {
-    const addon = getAddon(selected.addonId);
+    const addon = findAddon(rateTable, selected.addonId);
     return addon ? isAddonAvailable(addon, pkg) : false;
   });
 }
 
-export function WizardShell() {
+export function WizardShell({
+  rateTable,
+  currentUser,
+}: {
+  rateTable: RateTable;
+  currentUser: AppUser | null;
+}) {
   const [step, setStep] = useState(1);
   const [selection, setSelection] = useState<QuoteSelection>(INITIAL_SELECTION);
   const [submittedId, setSubmittedId] = useState<string | null>(null);
+  const [submitting, setSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
 
-  const quote = useMemo(() => calculateQuote(selection, RATE_TABLE), [selection]);
+  // 로그인 리다이렉트 등으로 페이지를 이탈했다가 돌아와도 입력값을 복원한다.
+  useEffect(() => {
+    // localStorage는 리액트 외부 저장소이므로 마운트 시 1회만 복원한다.
+    const draft = loadWizardDraft();
+    if (draft) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setSelection(draft.selection);
+      setStep(draft.step);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (submittedId) return;
+    saveWizardDraft({ step, selection });
+  }, [step, selection, submittedId]);
+
+  const quote = useMemo(() => calculateQuote(selection, rateTable), [selection, rateTable]);
 
   function goTo(target: number) {
     if (target < 1 || target > TOTAL_STEPS) return;
@@ -55,7 +80,7 @@ export function WizardShell() {
     setSelection((prev) => ({
       ...prev,
       packageId: id,
-      addons: pruneUnavailableAddons(prev, id),
+      addons: pruneUnavailableAddons(rateTable, prev, id),
     }));
     setSubmittedId(null);
   }
@@ -71,18 +96,28 @@ export function WizardShell() {
     setSubmittedId(null);
   }
 
-  function submit() {
-    const saved = saveQuoteSnapshot({
-      selection: quote.selection,
-      rateTableVersion: quote.rateTableVersion,
-      lineItems: quote.lineItems,
-      subtotal: quote.subtotal,
-      vat: quote.vat,
-      total: quote.total,
-      meteredNotice: quote.meteredNotice,
-      status: "ESTIMATE",
-    });
-    setSubmittedId(saved.id);
+  async function submit() {
+    if (!currentUser) return;
+    setSubmitting(true);
+    setSubmitError(null);
+    try {
+      const res = await fetch("/api/quotes", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ selection }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setSubmitError(data.error || "신청서 제출에 실패했습니다.");
+        return;
+      }
+      setSubmittedId(data.quote.id);
+      clearWizardDraft();
+    } catch {
+      setSubmitError("네트워크 오류로 제출에 실패했습니다. 다시 시도해주세요.");
+    } finally {
+      setSubmitting(false);
+    }
   }
 
   const addonQuantities = Object.fromEntries(
@@ -96,6 +131,7 @@ export function WizardShell() {
 
         {step === 1 && (
           <Step1Package
+            rateTable={rateTable}
             packageId={selection.packageId}
             expectedAudience={selection.expectedAudience}
             onSelectPackage={selectPackage}
@@ -114,9 +150,10 @@ export function WizardShell() {
             }
           />
         )}
-        {step === 3 && <Step3Included packageId={selection.packageId} />}
+        {step === 3 && <Step3Included rateTable={rateTable} packageId={selection.packageId} />}
         {step === 4 && (
           <Step4Addons
+            rateTable={rateTable}
             packageId={selection.packageId}
             addonQuantities={addonQuantities}
             expectedRevenue={selection.expectedRevenue ?? 0}
@@ -126,12 +163,16 @@ export function WizardShell() {
             }
           />
         )}
-        {step === 5 && <Step5Estimate quote={quote} selection={selection} />}
+        {step === 5 && <Step5Estimate rateTable={rateTable} quote={quote} selection={selection} />}
         {step === 6 && (
           <Step6Submit
+            rateTable={rateTable}
             quote={quote}
             selection={selection}
+            isLoggedIn={!!currentUser}
+            submitting={submitting}
             submittedId={submittedId}
+            error={submitError}
             onSubmit={submit}
           />
         )}

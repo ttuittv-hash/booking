@@ -1,28 +1,30 @@
 "use client";
 
 import { won } from "@/lib/format";
+import { findPackage, includedQuantity, isAddonAvailable } from "@/lib/pricing/rateTableUtils";
 import {
-  ADDONS,
-  getPackage,
-  includedQuantity,
-  isAddonAvailable,
-} from "@/lib/pricing/seed";
-import { ADDON_CATEGORY_LABEL, type AddonCategory, type AddonItem } from "@/lib/pricing/types";
+  ADDON_CATEGORY_LABEL,
+  type AddonCategory,
+  type AddonItem,
+  type RateTable,
+} from "@/lib/pricing/types";
 
 export function Step4Addons({
+  rateTable,
   packageId,
   addonQuantities,
   expectedRevenue,
   onChangeQuantity,
   onChangeRevenue,
 }: {
+  rateTable: RateTable;
   packageId: number | null;
   addonQuantities: Record<string, number>;
   expectedRevenue: number;
   onChangeQuantity: (addonId: string, quantity: number) => void;
   onChangeRevenue: (value: number) => void;
 }) {
-  const pkg = getPackage(packageId ?? undefined);
+  const pkg = findPackage(rateTable, packageId);
 
   if (!pkg) {
     return (
@@ -35,7 +37,7 @@ export function Step4Addons({
   }
 
   const grouped = new Map<AddonCategory, AddonItem[]>();
-  for (const addon of ADDONS) {
+  for (const addon of rateTable.addons) {
     if (!isAddonAvailable(addon, pkg)) continue;
     const list = grouped.get(addon.category) ?? [];
     list.push(addon);
