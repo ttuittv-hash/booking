@@ -1,0 +1,17 @@
+services:
+  - type: web
+    name: seoul-arena-booking
+    runtime: node
+    plan: free
+    branch: claude/seoul-arena-booking-system-k6ivh4
+    buildCommand: npm install && npm run build
+    startCommand: npm run start
+    envVars:
+      - key: NODE_VERSION
+        value: 22.11.0
+      - key: AUTH_SECRET
+        generateValue: true
+      - key: SEED_ADMIN_EMAIL
+        value: admin@seoularena.kr
+      - key: SEED_ADMIN_PASSWORD
+        value: admin1234!
