@@ -1,8 +1,8 @@
-import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/lib/auth";
 import { getCurrentRateTable } from "@/lib/db";
 import { RatesForm } from "@/components/admin/RatesForm";
+import { AdminNav } from "@/components/admin/AdminNav";
 
 export default async function AdminRatesPage() {
   const user = await getCurrentUser();
@@ -13,16 +13,7 @@ export default async function AdminRatesPage() {
 
   return (
     <div className="flex flex-1 flex-col">
-      <header className="sticky top-0 z-20 border-b border-border/70 bg-background/80 backdrop-blur-md">
-        <div className="mx-auto flex max-w-4xl items-center gap-4 px-6 py-4">
-          <Link href="/admin" className="text-[15px] font-semibold tracking-tight">
-            SEOUL ARENA
-          </Link>
-          <Link href="/admin" className="text-[13px] text-muted hover:text-foreground">
-            ← 신청 현황
-          </Link>
-        </div>
-      </header>
+      <AdminNav active="/admin/rates" />
 
       <main className="mx-auto w-full max-w-4xl flex-1 px-6 py-10">
         <h1 className="text-[22px] font-semibold">요금표 관리</h1>

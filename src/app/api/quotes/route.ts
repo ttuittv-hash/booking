@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import crypto from "node:crypto";
 import { getCurrentUser } from "@/lib/auth";
-import { addAuditLog, createQuote, getCurrentRateTable, listQuotes } from "@/lib/db";
+import { addAuditLog, createQuote, getCurrentRateTable, listQuotes, notifyAdmins } from "@/lib/db";
 import { calculateQuote } from "@/lib/pricing/calculateQuote";
 import type { QuoteSelection } from "@/lib/pricing/types";
 
@@ -48,6 +48,12 @@ export async function POST(request: Request) {
     stage: "ESTIMATE",
     snapshot: quote,
     actorId: user.id,
+    createdAt: quote.createdAt,
+  });
+
+  notifyAdmins({
+    quoteId: quote.id,
+    message: `새 대관 신청서 ${quote.id}가 접수되었습니다.`,
     createdAt: quote.createdAt,
   });
 

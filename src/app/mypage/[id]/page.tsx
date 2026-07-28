@@ -5,6 +5,7 @@ import { getDepositByQuoteId, getQuoteById, listAttachments } from "@/lib/db";
 import { won } from "@/lib/format";
 import { DepositPanel } from "@/components/DepositPanel";
 import { AttachmentsPanel } from "@/components/AttachmentsPanel";
+import { ApplicantHeader } from "@/components/ApplicantHeader";
 
 const STAGE_LABEL: Record<string, string> = {
   ESTIMATE: "신청 접수 (예상 견적)",
@@ -30,16 +31,7 @@ export default async function MyQuoteDetailPage({
 
   return (
     <div className="flex flex-1 flex-col">
-      <header className="sticky top-0 z-20 border-b border-border/70 bg-background/80 backdrop-blur-md">
-        <div className="mx-auto flex max-w-4xl items-center gap-4 px-6 py-4">
-          <Link href="/" className="text-[15px] font-semibold tracking-tight">
-            SEOUL ARENA
-          </Link>
-          <Link href="/mypage" className="text-[13px] text-muted hover:text-foreground">
-            ← 내 신청 내역
-          </Link>
-        </div>
-      </header>
+      <ApplicantHeader label="← 내 신청 내역" backHref="/mypage" role={user.role} />
 
       <main className="mx-auto w-full max-w-4xl flex-1 px-6 py-10">
         <div className="flex flex-wrap items-center justify-between gap-3">

@@ -3,6 +3,7 @@ import type { Metadata } from "next";
 import { getCurrentUser } from "@/lib/auth";
 import { getCurrentRateTable } from "@/lib/db";
 import { LogoutButton } from "@/components/LogoutButton";
+import { NotificationBell } from "@/components/NotificationBell";
 import { WizardShell } from "@/components/wizard/WizardShell";
 
 export const metadata: Metadata = {
@@ -32,6 +33,7 @@ export default async function ApplyPage() {
                 <Link href="/mypage" className="hover:text-foreground">
                   내 신청 내역
                 </Link>
+                <NotificationBell role={currentUser.role} />
                 <LogoutButton className="hover:text-foreground" />
               </>
             ) : (

@@ -4,7 +4,7 @@ import { getCurrentUser } from "@/lib/auth";
 import { listQuotes } from "@/lib/db";
 import { won } from "@/lib/format";
 import type { Quote } from "@/lib/pricing/types";
-import { LogoutButton } from "@/components/LogoutButton";
+import { AdminNav } from "@/components/admin/AdminNav";
 
 const STATUS_LABEL: Record<Quote["status"], string> = {
   ESTIMATE: "예상견적 (심사 대기)",
@@ -27,25 +27,7 @@ export default async function AdminPage() {
 
   return (
     <div className="flex flex-1 flex-col">
-      <header className="sticky top-0 z-20 border-b border-border/70 bg-background/80 backdrop-blur-md">
-        <div className="mx-auto flex max-w-6xl items-center gap-4 px-6 py-4">
-          <Link href="/" className="text-[15px] font-semibold tracking-tight">
-            SEOUL ARENA
-          </Link>
-          <span className="rounded-full border border-border px-2.5 py-1 text-[11px] text-muted">
-            운영자 백오피스
-          </span>
-          <nav className="ml-auto flex items-center gap-5 text-[13px] text-muted">
-            <Link href="/admin" className="text-foreground">
-              신청 현황
-            </Link>
-            <Link href="/admin/rates" className="hover:text-foreground">
-              요금표 관리
-            </Link>
-            <LogoutButton className="hover:text-foreground" />
-          </nav>
-        </div>
-      </header>
+      <AdminNav active="/admin" />
 
       <main className="mx-auto w-full max-w-6xl flex-1 px-6 py-10">
         <h1 className="text-[22px] font-semibold">신청 현황</h1>

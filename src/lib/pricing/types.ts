@@ -218,3 +218,16 @@ export interface AuditLogEntry {
   actorId: string;
   createdAt: string;
 }
+
+// ---------------------------------------------------------------------------
+// 인앱 알림 (이메일 발송 인프라가 없어 앱 내 알림으로 대체)
+// ---------------------------------------------------------------------------
+
+export interface AppNotification {
+  id: string;
+  recipientId: string;
+  quoteId: string;
+  message: string;
+  isRead: boolean;
+  createdAt: string;
+}

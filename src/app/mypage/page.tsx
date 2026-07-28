@@ -4,6 +4,7 @@ import { getCurrentUser } from "@/lib/auth";
 import { listQuotes } from "@/lib/db";
 import { won } from "@/lib/format";
 import type { Quote } from "@/lib/pricing/types";
+import { ApplicantHeader } from "@/components/ApplicantHeader";
 
 const STATUS_LABEL: Record<Quote["status"], string> = {
   ESTIMATE: "예상견적 (심사 대기)",
@@ -20,16 +21,7 @@ export default async function MyPage() {
 
   return (
     <div className="flex flex-1 flex-col">
-      <header className="sticky top-0 z-20 border-b border-border/70 bg-background/80 backdrop-blur-md">
-        <div className="mx-auto flex max-w-6xl items-center gap-4 px-6 py-4">
-          <Link href="/" className="text-[15px] font-semibold tracking-tight">
-            SEOUL ARENA
-          </Link>
-          <span className="rounded-full border border-border px-2.5 py-1 text-[11px] text-muted">
-            내 신청 내역
-          </span>
-        </div>
-      </header>
+      <ApplicantHeader label="내 신청 내역" />
 
       <main className="mx-auto w-full max-w-6xl flex-1 px-6 py-10">
         <h1 className="text-[22px] font-semibold">{user.name} 님의 신청 내역</h1>

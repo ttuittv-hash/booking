@@ -1,6 +1,14 @@
 import { NextResponse } from "next/server";
+import crypto from "node:crypto";
 import { getCurrentUser } from "@/lib/auth";
-import { confirmDeposit, getDepositByQuoteId, getQuoteById, reportDeposit } from "@/lib/db";
+import {
+  confirmDeposit,
+  createNotification,
+  getDepositByQuoteId,
+  getQuoteById,
+  notifyAdmins,
+  reportDeposit,
+} from "@/lib/db";
 
 export async function POST(request: Request, ctx: { params: Promise<{ id: string }> }) {
   const user = await getCurrentUser();
@@ -28,7 +36,13 @@ export async function POST(request: Request, ctx: { params: Promise<{ id: string
       return NextResponse.json({ error: "입금자명을 입력하세요." }, { status: 400 });
     }
 
-    const updated = reportDeposit(id, depositorName, new Date().toISOString());
+    const createdAt = new Date().toISOString();
+    const updated = reportDeposit(id, depositorName, createdAt);
+    notifyAdmins({
+      quoteId: id,
+      message: `${id}의 보증금 입금신청이 접수되었습니다. (입금자명: ${depositorName})`,
+      createdAt,
+    });
     return NextResponse.json({ deposit: updated });
   }
 
@@ -37,13 +51,24 @@ export async function POST(request: Request, ctx: { params: Promise<{ id: string
       return NextResponse.json({ error: "운영자 로그인이 필요합니다." }, { status: 401 });
     }
 
+    const quote = getQuoteById(id);
+    if (!quote) return NextResponse.json({ error: "신청서를 찾을 수 없습니다." }, { status: 404 });
+
     const deposit = getDepositByQuoteId(id);
     if (!deposit) return NextResponse.json({ error: "보증금 안내가 없습니다." }, { status: 404 });
     if (deposit.status !== "REPORTED") {
       return NextResponse.json({ error: "입금신청 상태가 아닙니다." }, { status: 409 });
     }
 
-    const updated = confirmDeposit(id, user.id, new Date().toISOString());
+    const createdAt = new Date().toISOString();
+    const updated = confirmDeposit(id, user.id, createdAt);
+    createNotification({
+      id: crypto.randomUUID(),
+      recipientId: quote.applicantId,
+      quoteId: id,
+      message: `${id}의 보증금 입금이 확인되었습니다.`,
+      createdAt,
+    });
     return NextResponse.json({ deposit: updated });
   }
 

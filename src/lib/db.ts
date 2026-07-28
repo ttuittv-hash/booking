@@ -5,6 +5,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { buildSeedRateTable } from "./pricing/seed";
 import type {
+  AppNotification,
   AppUser,
   Attachment,
   AuditLogEntry,
@@ -100,6 +101,16 @@ function createConnection(): DatabaseSync {
       uploaded_by TEXT NOT NULL,
       created_at TEXT NOT NULL,
       FOREIGN KEY (quote_id) REFERENCES quotes(id)
+    );
+
+    CREATE TABLE IF NOT EXISTS notifications (
+      id TEXT PRIMARY KEY,
+      recipient_id TEXT NOT NULL,
+      quote_id TEXT NOT NULL,
+      message TEXT NOT NULL,
+      is_read INTEGER NOT NULL DEFAULT 0,
+      created_at TEXT NOT NULL,
+      FOREIGN KEY (recipient_id) REFERENCES users(id)
     );
   `);
 
@@ -252,6 +263,16 @@ export function findUserByEmailWithPasswordHash(
     | undefined;
   if (!row) return undefined;
   return { ...toAppUser(row), passwordHash: row.password_hash };
+}
+
+export function listUsers(filter?: { role?: UserRole }): AppUser[] {
+  const db = getDb();
+  const rows = filter?.role
+    ? (db
+        .prepare("SELECT * FROM users WHERE role = ? ORDER BY created_at ASC")
+        .all(filter.role) as unknown as UserRow[])
+    : (db.prepare("SELECT * FROM users ORDER BY created_at ASC").all() as unknown as UserRow[]);
+  return rows.map(toAppUser);
 }
 
 export function findUserById(id: string): AppUser | undefined {
@@ -552,4 +573,83 @@ export function getAttachmentById(id: string): Attachment | undefined {
 export function deleteAttachment(id: string) {
   const db = getDb();
   db.prepare("DELETE FROM attachments WHERE id = ?").run(id);
+}
+
+// ---------------------------------------------------------------------------
+// 인앱 알림
+// ---------------------------------------------------------------------------
+
+interface NotificationRow {
+  id: string;
+  recipient_id: string;
+  quote_id: string;
+  message: string;
+  is_read: number;
+  created_at: string;
+}
+
+function toNotification(row: NotificationRow): AppNotification {
+  return {
+    id: row.id,
+    recipientId: row.recipient_id,
+    quoteId: row.quote_id,
+    message: row.message,
+    isRead: row.is_read === 1,
+    createdAt: row.created_at,
+  };
+}
+
+export function createNotification(input: {
+  id: string;
+  recipientId: string;
+  quoteId: string;
+  message: string;
+  createdAt: string;
+}) {
+  const db = getDb();
+  db.prepare(
+    `INSERT INTO notifications (id, recipient_id, quote_id, message, is_read, created_at)
+     VALUES (?, ?, ?, ?, 0, ?)`,
+  ).run(input.id, input.recipientId, input.quoteId, input.message, input.createdAt);
+}
+
+export function notifyAdmins(input: { quoteId: string; message: string; createdAt: string }) {
+  for (const admin of listUsers({ role: "ADMIN" })) {
+    createNotification({
+      id: crypto.randomUUID(),
+      recipientId: admin.id,
+      quoteId: input.quoteId,
+      message: input.message,
+      createdAt: input.createdAt,
+    });
+  }
+}
+
+export function listNotifications(recipientId: string, limit = 30): AppNotification[] {
+  const db = getDb();
+  const rows = db
+    .prepare("SELECT * FROM notifications WHERE recipient_id = ? ORDER BY created_at DESC LIMIT ?")
+    .all(recipientId, limit) as unknown as NotificationRow[];
+  return rows.map(toNotification);
+}
+
+export function countUnreadNotifications(recipientId: string): number {
+  const db = getDb();
+  const row = db
+    .prepare("SELECT COUNT(*) as n FROM notifications WHERE recipient_id = ? AND is_read = 0")
+    .get(recipientId) as { n: number };
+  return row.n;
+}
+
+export function markNotificationRead(id: string, recipientId: string) {
+  const db = getDb();
+  db.prepare("UPDATE notifications SET is_read = 1 WHERE id = ? AND recipient_id = ?").run(
+    id,
+    recipientId,
+  );
+}
+
+export function markAllNotificationsRead(recipientId: string) {
+  const db = getDb();
+  db.prepare("UPDATE notifications SET is_read = 1 WHERE recipient_id = ?").run(recipientId);
 }

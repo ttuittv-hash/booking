@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import crypto from "node:crypto";
 import { getCurrentUser } from "@/lib/auth";
-import { addAuditLog, createDeposit, getQuoteById, setQuoteContract } from "@/lib/db";
+import { addAuditLog, createDeposit, createNotification, getQuoteById, setQuoteContract } from "@/lib/db";
 import type { ContractAdjustment } from "@/lib/pricing/types";
 
 export async function POST(request: Request, ctx: { params: Promise<{ id: string }> }) {
@@ -51,6 +51,14 @@ export async function POST(request: Request, ctx: { params: Promise<{ id: string
     quoteId: id,
     requiredAmount: Math.round((contractTotal * depositRate) / 100),
     depositRate,
+    createdAt: contract.decidedAt,
+  });
+
+  createNotification({
+    id: crypto.randomUUID(),
+    recipientId: quote.applicantId,
+    quoteId: id,
+    message: `${id}의 계약금액이 ₩${contractTotal.toLocaleString("ko-KR")}으로 확정되었습니다.`,
     createdAt: contract.decidedAt,
   });
 

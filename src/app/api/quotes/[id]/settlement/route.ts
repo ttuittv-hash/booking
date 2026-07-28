@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import crypto from "node:crypto";
 import { getCurrentUser } from "@/lib/auth";
-import { addAuditLog, getQuoteById, setQuoteSettlement } from "@/lib/db";
+import { addAuditLog, createNotification, getQuoteById, setQuoteSettlement } from "@/lib/db";
 import type { Settlement } from "@/lib/pricing/types";
 
 function toEntries(input: unknown): { label: string; amount: number }[] {
@@ -53,6 +53,14 @@ export async function POST(request: Request, ctx: { params: Promise<{ id: string
     stage: "SETTLED",
     snapshot: updated,
     actorId: user.id,
+    createdAt: settlement.decidedAt,
+  });
+
+  createNotification({
+    id: crypto.randomUUID(),
+    recipientId: quote.applicantId,
+    quoteId: id,
+    message: `${id}의 최종 정산금액이 ₩${finalTotal.toLocaleString("ko-KR")}으로 확정되었습니다.`,
     createdAt: settlement.decidedAt,
   });
 
