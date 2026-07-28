@@ -1,8 +1,8 @@
 "use client";
 
 const STEP_NAMES = [
-  "규모/패키지",
   "주차 선택",
+  "규모/패키지",
   "기본 포함사항",
   "추가 옵션",
   "예상 대관료",
@@ -11,11 +11,11 @@ const STEP_NAMES = [
 
 export function StepNav({
   step,
-  canJump,
+  maxUnlockedStep,
   onJump,
 }: {
   step: number;
-  canJump: boolean;
+  maxUnlockedStep: number;
   onJump: (step: number) => void;
 }) {
   return (
@@ -24,7 +24,7 @@ export function StepNav({
         const s = i + 1;
         const isActive = s === step;
         const isDone = s < step;
-        const disabled = !canJump && s > step;
+        const disabled = s > maxUnlockedStep;
         return (
           <button
             key={name}
@@ -32,7 +32,7 @@ export function StepNav({
             disabled={disabled}
             onClick={() => onJump(s)}
             className={[
-              "flex items-center gap-2 rounded-full border px-3.5 py-2 text-[13px] font-medium transition-colors",
+              "flex items-center gap-2 rounded-md border px-3.5 py-2 text-[13px] font-medium transition-colors",
               isActive
                 ? "border-accent bg-accent-soft text-accent"
                 : isDone

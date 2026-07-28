@@ -57,11 +57,11 @@ export function RatesForm({ rateTable }: { rateTable: RateTable }) {
 
   return (
     <div className="mt-8 space-y-8">
-      <section className="rounded-2xl border border-border bg-background p-6">
+      <section className="rounded-lg border border-border bg-background p-6">
         <h2 className="text-[15px] font-semibold">패키지 기본 대관료 (원/주)</h2>
         <div className="mt-4 space-y-2.5">
           {packages.map((pkg, i) => (
-            <div key={pkg.id} className="grid grid-cols-[1fr_200px] items-center gap-3">
+            <div key={pkg.id} className="grid grid-cols-1 items-center gap-2 sm:grid-cols-[1fr_200px] sm:gap-3">
               <span className="text-[13.5px]">{pkg.name}</span>
               <input
                 type="number"
@@ -78,7 +78,7 @@ export function RatesForm({ rateTable }: { rateTable: RateTable }) {
           ))}
         </div>
 
-        <div className="mt-5 grid grid-cols-[1fr_200px] items-center gap-3 border-t border-border pt-4">
+        <div className="mt-5 grid grid-cols-1 items-center gap-2 border-t border-border pt-4 sm:grid-cols-[1fr_200px] sm:gap-3">
           <div>
             <div className="text-[13.5px] font-medium">초과 주차 단가 비율</div>
             <div className="text-[11.5px] text-muted">기본 대관료 × 이 비율 = 초과 주차 단가 (미확정 임시 규칙)</div>
@@ -94,7 +94,7 @@ export function RatesForm({ rateTable }: { rateTable: RateTable }) {
         </div>
       </section>
 
-      <section className="rounded-2xl border border-border bg-background p-6">
+      <section className="rounded-lg border border-border bg-background p-6">
         <h2 className="text-[15px] font-semibold">부대시설 단가</h2>
         <div className="mt-4 space-y-6">
           {[...grouped.entries()].map(([category, items]) => (
@@ -106,7 +106,7 @@ export function RatesForm({ rateTable }: { rateTable: RateTable }) {
                 {items.map((addon) => {
                   const globalIndex = addons.findIndex((a) => a.id === addon.id);
                   return (
-                    <div key={addon.id} className="grid grid-cols-[1fr_160px] items-center gap-3">
+                    <div key={addon.id} className="grid grid-cols-1 items-center gap-2 sm:grid-cols-[1fr_160px] sm:gap-3">
                       <span className="text-[13px]">
                         {addon.name} <span className="text-[11px] text-muted">({addon.unitLabel})</span>
                       </span>
@@ -141,7 +141,7 @@ export function RatesForm({ rateTable }: { rateTable: RateTable }) {
           type="button"
           disabled={saving}
           onClick={save}
-          className="rounded-full bg-accent px-7 py-3 text-[14px] font-semibold text-white transition-colors hover:bg-accent-hover disabled:opacity-50"
+          className="rounded-md bg-accent px-7 py-3 text-[14px] font-semibold text-white transition-colors hover:bg-accent-hover disabled:opacity-50"
         >
           {saving ? "저장 중..." : "요금표 저장 (새 버전 생성)"}
         </button>

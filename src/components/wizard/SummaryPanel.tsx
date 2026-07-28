@@ -6,7 +6,7 @@ import type { EstimatedQuote } from "@/lib/pricing/types";
 export function SummaryPanel({ quote }: { quote: EstimatedQuote }) {
   return (
     <aside className="lg:sticky lg:top-24 lg:self-start">
-      <div className="rounded-2xl border border-border bg-panel/70 p-6">
+      <div className="rounded-lg border border-border bg-panel/70 p-6">
         <h3 className="text-[15px] font-semibold">실시간 견적 요약</h3>
         <p className="mt-1 text-[11.5px] font-medium text-warn">
           ※ 예상 금액 — 확정 아님 (신청 → 계약 → 정산 단계에서 확정)

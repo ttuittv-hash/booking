@@ -28,7 +28,7 @@ export function Step4Addons({
 
   if (!pkg) {
     return (
-      <section className="rounded-2xl border border-border bg-background p-7">
+      <section className="rounded-lg border border-border bg-background p-7">
         <p className="text-[13.5px] text-muted">
           먼저 1단계에서 패키지를 선택하세요.
         </p>
@@ -45,7 +45,7 @@ export function Step4Addons({
   }
 
   return (
-    <section className="rounded-2xl border border-border bg-background p-7">
+    <section className="rounded-lg border border-border bg-background p-7">
       <h2 className="text-[19px] font-semibold">4. 추가 옵션 선택</h2>
       <p className="mt-1.5 text-[13.5px] text-muted">
         기본 포함분은 초과분만 과금됩니다:{" "}
@@ -117,20 +117,20 @@ function AddonRow({
   return (
     <div
       className={[
-        "grid grid-cols-[1fr_auto_auto] items-center gap-4 rounded-xl border px-4 py-3",
+        "flex flex-col gap-3 rounded-lg border px-4 py-3 sm:flex-row sm:items-center sm:justify-between sm:gap-4",
         isUtil ? "border-border/70 bg-panel/50 opacity-60" : "border-border bg-panel/60",
       ].join(" ")}
     >
-      <div>
+      <div className="min-w-0">
         <div className="flex flex-wrap items-center gap-1.5">
           <span className="text-[13.5px] font-medium">{addon.name}</span>
           {included > 0 && (
-            <span className="rounded-md bg-good-soft px-1.5 py-0.5 text-[10.5px] font-semibold text-good">
+            <span className="rounded bg-good-soft px-1.5 py-0.5 text-[10.5px] font-semibold text-good">
               {included} 기본포함
             </span>
           )}
           {ruleTag && (
-            <span className="rounded-md bg-warn-soft px-1.5 py-0.5 text-[10.5px] font-semibold text-warn">
+            <span className="rounded bg-warn-soft px-1.5 py-0.5 text-[10.5px] font-semibold text-warn">
               {ruleTag}
             </span>
           )}
@@ -141,45 +141,47 @@ function AddonRow({
         </div>
       </div>
 
-      <div className="whitespace-nowrap text-[12px] text-muted">{priceLabel}</div>
+      <div className="flex shrink-0 items-center justify-between gap-3 sm:justify-end">
+        <span className="whitespace-nowrap text-[12px] text-muted">{priceLabel}</span>
 
-      {isUtil ? (
-        <span className="text-[12.5px] text-muted">정산 단계 부과</span>
-      ) : isRevenue ? (
-        <div className="flex items-center gap-2">
-          <label className="flex items-center gap-1.5 text-[12px] text-muted">
+        {isUtil ? (
+          <span className="whitespace-nowrap text-[12.5px] text-muted">정산 단계 부과</span>
+        ) : isRevenue ? (
+          <div className="flex items-center gap-2">
+            <label className="flex items-center gap-1.5 whitespace-nowrap text-[12px] text-muted">
+              <input
+                type="checkbox"
+                checked={quantity > 0}
+                onChange={(e) => onChangeQuantity(addon.id, e.target.checked ? 1 : 0)}
+                className="h-4 w-4 accent-[var(--accent)]"
+              />
+              적용
+            </label>
             <input
-              type="checkbox"
-              checked={quantity > 0}
-              onChange={(e) => onChangeQuantity(addon.id, e.target.checked ? 1 : 0)}
-              className="h-4 w-4 accent-[var(--accent)]"
+              type="number"
+              min={0}
+              step={1_000_000}
+              placeholder="예상매출"
+              value={expectedRevenue || ""}
+              disabled={quantity <= 0}
+              onChange={(e) => onChangeRevenue(Math.max(0, Number(e.target.value) || 0))}
+              className="w-24 shrink-0 rounded-md border border-border bg-background px-2.5 py-1.5 text-right text-[13px] outline-none focus:border-accent disabled:opacity-40 sm:w-28"
             />
-            적용
-          </label>
+          </div>
+        ) : (
           <input
             type="number"
             min={0}
-            step={1_000_000}
-            placeholder="예상매출"
-            value={expectedRevenue || ""}
-            disabled={quantity <= 0}
-            onChange={(e) => onChangeRevenue(Math.max(0, Number(e.target.value) || 0))}
-            className="w-28 rounded-lg border border-border bg-background px-2.5 py-1.5 text-right text-[13px] outline-none focus:border-accent disabled:opacity-40"
+            max={maxTotal}
+            value={quantity || ""}
+            placeholder="0"
+            onChange={(e) =>
+              onChangeQuantity(addon.id, Math.max(0, Number(e.target.value) || 0))
+            }
+            className="w-16 shrink-0 rounded-md border border-border bg-background px-2.5 py-1.5 text-right text-[13px] outline-none focus:border-accent"
           />
-        </div>
-      ) : (
-        <input
-          type="number"
-          min={0}
-          max={maxTotal}
-          value={quantity || ""}
-          placeholder="0"
-          onChange={(e) =>
-            onChangeQuantity(addon.id, Math.max(0, Number(e.target.value) || 0))
-          }
-          className="w-20 rounded-lg border border-border bg-background px-2.5 py-1.5 text-right text-[13px] outline-none focus:border-accent"
-        />
-      )}
+        )}
+      </div>
     </div>
   );
 }

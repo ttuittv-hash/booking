@@ -51,7 +51,7 @@ export function ContractForm({ quoteId, baseTotal }: { quoteId: string; baseTota
   }
 
   return (
-    <div className="rounded-2xl border border-border bg-panel/60 p-6">
+    <div className="rounded-lg border border-border bg-panel/60 p-6">
       <h3 className="text-[15px] font-semibold">② 심사·계약 — 조정 항목 입력</h3>
       <p className="mt-1 text-[12.5px] text-muted">
         특약·할인 등 조정 항목을 추가하세요. 할인은 음수 금액으로 입력합니다.
@@ -59,7 +59,7 @@ export function ContractForm({ quoteId, baseTotal }: { quoteId: string; baseTota
 
       <div className="mt-4 space-y-2.5">
         {rows.map((row, i) => (
-          <div key={i} className="grid grid-cols-[1fr_140px_1fr_auto] items-center gap-2">
+          <div key={i} className="grid grid-cols-1 items-center gap-2 sm:grid-cols-[1fr_140px_1fr_auto]">
             <input
               placeholder="조정 항목명 (예: 장기 계약 할인)"
               value={row.label}
@@ -97,7 +97,7 @@ export function ContractForm({ quoteId, baseTotal }: { quoteId: string; baseTota
         </button>
       </div>
 
-      <div className="mt-5 grid grid-cols-[1fr_140px] items-center gap-3 border-t border-border pt-4">
+      <div className="mt-5 grid grid-cols-1 items-center gap-3 border-t border-border pt-4 sm:grid-cols-[1fr_140px]">
         <div>
           <div className="text-[13px] font-medium">보증금 비율</div>
           <div className="text-[11.5px] text-muted">계약금액 대비 보증금 비율 (계좌이체 확인 방식)</div>
@@ -115,7 +115,7 @@ export function ContractForm({ quoteId, baseTotal }: { quoteId: string; baseTota
         </div>
       </div>
 
-      <div className="mt-4 flex items-center justify-between border-t border-border pt-4">
+      <div className="mt-4 flex flex-col gap-3 border-t border-border pt-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <div className="text-[11px] text-muted">계약금액 (신청 예상금액 {won(baseTotal)} ± 조정)</div>
           <div className="text-[20px] font-semibold tabular-nums">{won(contractTotal)}</div>
@@ -127,7 +127,7 @@ export function ContractForm({ quoteId, baseTotal }: { quoteId: string; baseTota
           type="button"
           disabled={submitting}
           onClick={submit}
-          className="rounded-full bg-accent px-6 py-2.5 text-[13.5px] font-semibold text-white transition-colors hover:bg-accent-hover disabled:opacity-50"
+          className="rounded-md bg-accent px-6 py-2.5 text-[13.5px] font-semibold text-white transition-colors hover:bg-accent-hover disabled:opacity-50"
         >
           {submitting ? "처리 중..." : "계약금액 확정"}
         </button>

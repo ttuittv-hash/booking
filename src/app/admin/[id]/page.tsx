@@ -34,11 +34,11 @@ export default async function AdminQuoteDetailPage({
   return (
     <div className="flex flex-1 flex-col">
       <header className="sticky top-0 z-20 border-b border-border/70 bg-background/80 backdrop-blur-md">
-        <div className="mx-auto flex max-w-4xl items-center gap-4 px-6 py-4">
-          <Link href="/admin" className="text-[15px] font-semibold tracking-tight">
+        <div className="mx-auto flex max-w-4xl flex-wrap items-center gap-x-4 gap-y-2 px-4 py-3 sm:px-6 sm:py-4">
+          <Link href="/admin" className="whitespace-nowrap text-[15px] font-semibold tracking-tight">
             SEOUL ARENA
           </Link>
-          <Link href="/admin" className="text-[13px] text-muted hover:text-foreground">
+          <Link href="/admin" className="whitespace-nowrap text-[13px] text-muted hover:text-foreground">
             ← 신청 현황
           </Link>
         </div>
@@ -67,7 +67,7 @@ export default async function AdminQuoteDetailPage({
           {quote.selection.expectedAudience.toLocaleString()}명
         </p>
 
-        <section className="mt-6 rounded-2xl border border-border bg-background p-6">
+        <section className="mt-6 rounded-lg border border-border bg-background p-6">
           <h2 className="text-[15px] font-semibold">① 신청 예상금액 · 산출내역</h2>
           <div className="mt-4 overflow-x-auto">
             <table className="w-full border-collapse text-[13px]">
@@ -106,7 +106,7 @@ export default async function AdminQuoteDetailPage({
           {quote.status === "ESTIMATE" && <ContractForm quoteId={quote.id} baseTotal={quote.total} />}
 
           {quote.contract && (
-            <div className="rounded-2xl border border-border bg-panel/60 p-6">
+            <div className="rounded-lg border border-border bg-panel/60 p-6">
               <h3 className="text-[15px] font-semibold">② 계약금액 확정됨</h3>
               <ul className="mt-3 space-y-1.5 text-[13px]">
                 {quote.contract.adjustments.map((a, i) => (
@@ -136,7 +136,7 @@ export default async function AdminQuoteDetailPage({
           )}
 
           {quote.settlement && (
-            <div className="mt-6 rounded-2xl border border-good/30 bg-good-soft p-6">
+            <div className="mt-6 rounded-lg border border-good/30 bg-good-soft p-6">
               <h3 className="text-[15px] font-semibold text-good">③ 최종 정산 완료</h3>
               <div className="mt-3 flex items-center justify-between">
                 <span className="text-[13px] text-good/80">

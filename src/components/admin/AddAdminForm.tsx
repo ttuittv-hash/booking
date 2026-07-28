@@ -34,7 +34,7 @@ export function AddAdminForm() {
   }
 
   return (
-    <div className="rounded-2xl border border-border bg-panel/60 p-6">
+    <div className="rounded-lg border border-border bg-panel/60 p-6">
       <h2 className="text-[15px] font-semibold">운영자 계정 추가</h2>
       <p className="mt-1 text-[12.5px] text-muted">
         이메일/임시 비밀번호를 직접 전달해 새 운영자를 등록하세요. (이메일 발송 기능은
@@ -69,7 +69,7 @@ export function AddAdminForm() {
         type="button"
         disabled={submitting}
         onClick={submit}
-        className="mt-4 rounded-full bg-accent px-6 py-2.5 text-[13.5px] font-semibold text-white transition-colors hover:bg-accent-hover disabled:opacity-50"
+        className="mt-4 rounded-md bg-accent px-6 py-2.5 text-[13.5px] font-semibold text-white transition-colors hover:bg-accent-hover disabled:opacity-50"
       >
         {submitting ? "처리 중..." : "운영자 계정 생성"}
       </button>

@@ -79,7 +79,7 @@ export function NotificationBell({ role }: { role: "ADMIN" | "APPLICANT" }) {
       </button>
 
       {open && (
-        <div className="absolute right-0 z-30 mt-2 w-80 rounded-2xl border border-border bg-background shadow-lg">
+        <div className="absolute right-0 z-30 mt-2 w-80 rounded-lg border border-border bg-background shadow-lg">
           <div className="flex items-center justify-between border-b border-border px-4 py-3">
             <span className="text-[13px] font-semibold">알림</span>
             {unreadCount > 0 && (

@@ -23,7 +23,7 @@ export function Step3Included({
   }
 
   return (
-    <section className="rounded-2xl border border-border bg-background p-7">
+    <section className="rounded-lg border border-border bg-background p-7">
       <h2 className="text-[19px] font-semibold">3. 기본 포함사항</h2>
       <p className="mt-1.5 text-[13.5px] text-muted">
         {pkg.name}에 기본 포함된 구성입니다. 초과분만 4단계에서 추가
@@ -69,7 +69,7 @@ export function Step3Included({
 
 function EmptyState() {
   return (
-    <section className="rounded-2xl border border-border bg-background p-7">
+    <section className="rounded-lg border border-border bg-background p-7">
       <p className="text-[13.5px] text-muted">
         먼저 1단계에서 패키지를 선택하세요.
       </p>

@@ -51,7 +51,7 @@ export default function LoginPage() {
               required
               value={form.email}
               onChange={(e) => setForm({ ...form, email: e.target.value })}
-              className="w-full rounded-xl border border-border bg-panel px-3.5 py-2.5 text-[14px] outline-none focus:border-accent"
+              className="w-full rounded-md border border-border bg-panel px-3.5 py-2.5 text-[14px] outline-none focus:border-accent"
             />
           </label>
           <label className="block">
@@ -61,7 +61,7 @@ export default function LoginPage() {
               required
               value={form.password}
               onChange={(e) => setForm({ ...form, password: e.target.value })}
-              className="w-full rounded-xl border border-border bg-panel px-3.5 py-2.5 text-[14px] outline-none focus:border-accent"
+              className="w-full rounded-md border border-border bg-panel px-3.5 py-2.5 text-[14px] outline-none focus:border-accent"
             />
           </label>
 
@@ -70,7 +70,7 @@ export default function LoginPage() {
           <button
             type="submit"
             disabled={loading}
-            className="w-full rounded-full bg-accent px-6 py-3 text-[14px] font-semibold text-white transition-colors hover:bg-accent-hover disabled:opacity-50"
+            className="w-full rounded-md bg-accent px-6 py-3 text-[14px] font-semibold text-white transition-colors hover:bg-accent-hover disabled:opacity-50"
           >
             {loading ? "처리 중..." : "로그인"}
           </button>

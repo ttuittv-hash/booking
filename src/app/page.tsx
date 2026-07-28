@@ -8,28 +8,28 @@ export default async function Home() {
   return (
     <div className="flex flex-1 flex-col">
       <header className="sticky top-0 z-20 border-b border-border/70 bg-background/80 backdrop-blur-md">
-        <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-4">
-          <span className="text-[15px] font-semibold tracking-tight">
+        <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-x-4 gap-y-2 px-4 py-3 sm:px-6 sm:py-4">
+          <span className="shrink-0 whitespace-nowrap text-[15px] font-semibold tracking-tight">
             SEOUL ARENA
           </span>
-          <nav className="flex items-center gap-6 text-[13px] text-muted">
-            <Link href="/apply" className="hover:text-foreground">
+          <nav className="flex flex-wrap items-center gap-x-6 gap-y-2 text-[13px] text-muted">
+            <Link href="/apply" className="whitespace-nowrap hover:text-foreground">
               대관 견적·신청
             </Link>
             {user?.role === "ADMIN" ? (
-              <Link href="/admin" className="hover:text-foreground">
+              <Link href="/admin" className="whitespace-nowrap hover:text-foreground">
                 운영자 백오피스
               </Link>
             ) : user ? (
-              <Link href="/mypage" className="hover:text-foreground">
+              <Link href="/mypage" className="whitespace-nowrap hover:text-foreground">
                 내 신청 내역
               </Link>
             ) : (
-              <Link href="/login" className="hover:text-foreground">
+              <Link href="/login" className="whitespace-nowrap hover:text-foreground">
                 로그인
               </Link>
             )}
-            {user && <LogoutButton className="hover:text-foreground" />}
+            {user && <LogoutButton className="whitespace-nowrap hover:text-foreground" />}
           </nav>
         </div>
       </header>
@@ -50,13 +50,13 @@ export default async function Home() {
         <div className="mt-10 flex flex-wrap items-center justify-center gap-3">
           <Link
             href="/apply"
-            className="rounded-full bg-accent px-7 py-3 text-[15px] font-medium text-white transition-colors hover:bg-accent-hover"
+            className="rounded-md bg-accent px-7 py-3 text-[15px] font-medium text-white transition-colors hover:bg-accent-hover"
           >
             견적 산출 시작하기
           </Link>
           <Link
             href="/login"
-            className="rounded-full border border-border px-7 py-3 text-[15px] font-medium text-foreground transition-colors hover:bg-panel"
+            className="rounded-md border border-border px-7 py-3 text-[15px] font-medium text-foreground transition-colors hover:bg-panel"
           >
             운영자 로그인
           </Link>
@@ -82,7 +82,7 @@ export default async function Home() {
           ].map((s) => (
             <div
               key={s.step}
-              className="rounded-2xl border border-border bg-panel/60 p-6"
+              className="rounded-lg border border-border bg-panel/60 p-6"
             >
               <div className="text-[11px] font-semibold tracking-wide text-accent">
                 {s.step}

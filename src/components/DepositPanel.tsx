@@ -23,7 +23,7 @@ export function DepositPanel({
 
   if (!deposit) {
     return (
-      <div className="rounded-2xl border border-border bg-panel/60 p-6">
+      <div className="rounded-lg border border-border bg-panel/60 p-6">
         <h3 className="text-[15px] font-semibold">보증금</h3>
         <p className="mt-1.5 text-[13px] text-muted">계약 확정 후 보증금 안내가 제공됩니다.</p>
       </div>
@@ -71,7 +71,7 @@ export function DepositPanel({
   }
 
   return (
-    <div className="rounded-2xl border border-border bg-panel/60 p-6">
+    <div className="rounded-lg border border-border bg-panel/60 p-6">
       <div className="flex items-center justify-between">
         <h3 className="text-[15px] font-semibold">보증금</h3>
         <StatusBadge status={deposit.status} />
@@ -149,6 +149,6 @@ function StatusBadge({ status }: { status: Deposit["status"] }) {
     CONFIRMED: "bg-good-soft text-good",
   }[status];
   return (
-    <span className={`rounded-full px-2.5 py-1 text-[11.5px] font-medium ${style}`}>{label}</span>
+    <span className={`rounded-md px-2.5 py-1 text-[11.5px] font-medium ${style}`}>{label}</span>
   );
 }

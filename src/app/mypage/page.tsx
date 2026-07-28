@@ -30,7 +30,7 @@ export default async function MyPage() {
           {user.email}
         </p>
 
-        <div className="mt-8 overflow-x-auto rounded-2xl border border-border">
+        <div className="mt-8 overflow-x-auto rounded-lg border border-border">
           <table className="w-full min-w-[720px] border-collapse text-[13px]">
             <thead>
               <tr className="border-b border-border bg-panel text-left text-[11.5px] font-medium text-muted">
@@ -72,7 +72,7 @@ export default async function MyPage() {
                       {q.settlement ? won(q.settlement.finalTotal) : "-"}
                     </td>
                     <td className="px-4 py-3">
-                      <span className="rounded-full bg-accent-soft px-2.5 py-1 text-[11.5px] font-medium text-accent">
+                      <span className="rounded-md bg-accent-soft px-2.5 py-1 text-[11.5px] font-medium text-accent">
                         {STATUS_LABEL[q.status]}
                       </span>
                     </td>

@@ -56,7 +56,7 @@ export function AttachmentsPanel({
   }
 
   return (
-    <div className="rounded-2xl border border-border bg-panel/60 p-6">
+    <div className="rounded-lg border border-border bg-panel/60 p-6">
       <h3 className="text-[15px] font-semibold">첨부서류</h3>
       <p className="mt-1 text-[12.5px] text-muted">
         사업자등록증, 공연기획서 등 관련 서류를 첨부하세요. (PDF/이미지/문서, 최대 20MB)

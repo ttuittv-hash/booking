@@ -36,7 +36,7 @@ function RowEditor({
       <p className="mt-0.5 text-[11.5px] text-muted">{hint}</p>
       <div className="mt-2.5 space-y-2">
         {rows.map((row, i) => (
-          <div key={i} className="grid grid-cols-[1fr_140px_auto] items-center gap-2">
+          <div key={i} className="grid grid-cols-1 items-center gap-2 sm:grid-cols-[1fr_140px_auto]">
             <input
               placeholder="항목명"
               value={row.label}
@@ -115,7 +115,7 @@ export function SettlementForm({
   }
 
   return (
-    <div className="rounded-2xl border border-border bg-panel/60 p-6">
+    <div className="rounded-lg border border-border bg-panel/60 p-6">
       <h3 className="text-[15px] font-semibold">③ 정산 — 현장 반영</h3>
       <p className="mt-1 text-[12.5px] text-muted">
         행사 후 현장 추가·미사용분과 유틸리티 실사용을 반영해 최종 정산금액을 확정합니다.
@@ -142,7 +142,7 @@ export function SettlementForm({
         />
       </div>
 
-      <div className="mt-5 flex items-center justify-between border-t border-border pt-4">
+      <div className="mt-5 flex flex-col gap-3 border-t border-border pt-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <div className="text-[11px] text-muted">
             최종 정산금액 (계약 {won(contractTotal)} + 현장추가 − 미사용 + 유틸리티)
@@ -153,7 +153,7 @@ export function SettlementForm({
           type="button"
           disabled={submitting}
           onClick={submit}
-          className="rounded-full bg-accent px-6 py-2.5 text-[13.5px] font-semibold text-white transition-colors hover:bg-accent-hover disabled:opacity-50"
+          className="rounded-md bg-accent px-6 py-2.5 text-[13.5px] font-semibold text-white transition-colors hover:bg-accent-hover disabled:opacity-50"
         >
           {submitting ? "처리 중..." : "최종 정산금액 확정"}
         </button>

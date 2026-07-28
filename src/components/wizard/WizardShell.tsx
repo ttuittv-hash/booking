@@ -7,8 +7,8 @@ import type { AppUser, QuoteSelection, RateTable } from "@/lib/pricing/types";
 import { clearWizardDraft, loadWizardDraft, saveWizardDraft } from "@/lib/quotesStore";
 import { StepNav } from "./StepNav";
 import { SummaryPanel } from "./SummaryPanel";
+import { Step1Calendar } from "./Step1Calendar";
 import { Step1Package } from "./Step1Package";
-import { Step2Week } from "./Step2Week";
 import { Step3Included } from "./Step3Included";
 import { Step4Addons } from "./Step4Addons";
 import { Step5Estimate } from "./Step5Estimate";
@@ -68,10 +68,11 @@ export function WizardShell({
   }, [step, selection, submittedId]);
 
   const quote = useMemo(() => calculateQuote(selection, rateTable), [selection, rateTable]);
+  const maxUnlockedStep = selection.packageId ? TOTAL_STEPS : 2;
 
   function goTo(target: number) {
     if (target < 1 || target > TOTAL_STEPS) return;
-    if (target > 1 && !selection.packageId) return;
+    if (target > maxUnlockedStep) return;
     setStep(target);
     if (typeof window !== "undefined") window.scrollTo({ top: 0, behavior: "smooth" });
   }
@@ -125,11 +126,21 @@ export function WizardShell({
   );
 
   return (
-    <div className="mx-auto grid max-w-6xl grid-cols-1 gap-8 px-6 py-10 lg:grid-cols-[1fr_360px]">
+    <div className="mx-auto grid max-w-6xl grid-cols-1 gap-8 px-4 py-8 sm:px-6 sm:py-10 lg:grid-cols-[1fr_360px]">
       <div>
-        <StepNav step={step} canJump={!!selection.packageId} onJump={goTo} />
+        <StepNav step={step} maxUnlockedStep={maxUnlockedStep} onJump={goTo} />
 
         {step === 1 && (
+          <Step1Calendar
+            week={selection.week}
+            extraWeeks={selection.extraWeeks}
+            onChangeWeek={(week) => setSelection((prev) => ({ ...prev, week }))}
+            onChangeExtraWeeks={(extraWeeks) =>
+              setSelection((prev) => ({ ...prev, extraWeeks }))
+            }
+          />
+        )}
+        {step === 2 && (
           <Step1Package
             rateTable={rateTable}
             packageId={selection.packageId}
@@ -137,16 +148,6 @@ export function WizardShell({
             onSelectPackage={selectPackage}
             onChangeAudience={(value) =>
               setSelection((prev) => ({ ...prev, expectedAudience: value }))
-            }
-          />
-        )}
-        {step === 2 && (
-          <Step2Week
-            week={selection.week}
-            extraWeeks={selection.extraWeeks}
-            onChangeWeek={(week) => setSelection((prev) => ({ ...prev, week }))}
-            onChangeExtraWeeks={(extraWeeks) =>
-              setSelection((prev) => ({ ...prev, extraWeeks }))
             }
           />
         )}
@@ -182,16 +183,16 @@ export function WizardShell({
             type="button"
             disabled={step === 1}
             onClick={() => goTo(step - 1)}
-            className="rounded-full border border-border px-5 py-2.5 text-[13.5px] font-medium text-foreground transition-colors hover:bg-panel disabled:cursor-not-allowed disabled:opacity-40"
+            className="rounded-md border border-border px-5 py-2.5 text-[13.5px] font-medium text-foreground transition-colors hover:bg-panel disabled:cursor-not-allowed disabled:opacity-40"
           >
             ← 이전
           </button>
           {step < TOTAL_STEPS && (
             <button
               type="button"
-              disabled={!selection.packageId}
+              disabled={step >= 2 && !selection.packageId}
               onClick={() => goTo(step + 1)}
-              className="rounded-full bg-accent px-6 py-2.5 text-[13.5px] font-semibold text-white transition-colors hover:bg-accent-hover disabled:cursor-not-allowed disabled:opacity-40"
+              className="rounded-md bg-accent px-6 py-2.5 text-[13.5px] font-semibold text-white transition-colors hover:bg-accent-hover disabled:cursor-not-allowed disabled:opacity-40"
             >
               다음 →
             </button>
