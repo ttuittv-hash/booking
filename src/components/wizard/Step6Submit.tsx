@@ -8,18 +8,28 @@ import type { EstimatedQuote, QuoteSelection, RateTable } from "@/lib/pricing/ty
 const STAGES = [
   {
     no: "STEP ①",
-    title: "신청 예상금액",
-    desc: "지금 계산된 금액. 패키지+옵션 자동 산출. \"예상\"임을 명시.",
+    title: "패키지 선택",
+    desc: "공연 일정과 관객 규모에 맞는 대관 패키지를 선택합니다.",
   },
   {
     no: "STEP ②",
-    title: "계약금액",
-    desc: "관리자 심사·협의·특약 반영 후 확정. 조정 내역 표기.",
+    title: "구성과 대관료 확인",
+    desc: "포함 항목과 부대시설을 구성하고, 예상 대관료를 확인합니다.",
   },
   {
     no: "STEP ③",
-    title: "최종 정산금액",
-    desc: "행사 후 현장 추가·미사용·유틸리티 실사용 반영한 실청구액.",
+    title: "신청 제출",
+    desc: "입력한 내용으로 대관 신청서를 접수합니다.",
+  },
+  {
+    no: "STEP ④",
+    title: "심사",
+    desc: "운영자가 일정·공연 내용·시설 적합성 등을 종합적으로 검토합니다.",
+  },
+  {
+    no: "STEP ⑤",
+    title: "심사 결과 안내",
+    desc: "승인·보류·거절 결과와 사유를 알림으로 안내해 드립니다.",
   },
 ];
 
@@ -126,7 +136,7 @@ export function Step6Submit({
         </>
       )}
 
-      <h3 className="mt-10 text-[16px] font-semibold">대관료 확정 3단계</h3>
+      <h3 className="mt-10 text-[16px] font-semibold">신청 절차</h3>
       <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-3">
         {STAGES.map((s) => (
           <div key={s.no} className="rounded-sm border border-border bg-panel/60 p-4">
