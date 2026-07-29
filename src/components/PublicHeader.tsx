@@ -117,14 +117,14 @@ export function PublicHeader({
             onMouseEnter={cancelClose}
             onMouseLeave={() => closeSoon()}
             style={{ top: openMenu.top, left: openMenu.left }}
-            className="fixed z-30 w-44 border border-border bg-background py-1.5 shadow-sm"
+            className="fixed z-30 w-52 animate-[dropdown-in_0.16s_ease-out] rounded-xl bg-background/85 p-1.5 shadow-[0_20px_45px_-14px_rgba(0,0,0,0.22),0_2px_10px_-3px_rgba(0,0,0,0.08)] backdrop-blur-xl"
           >
             {activeChildren.map((child) => (
               <Link
                 key={child.href}
                 href={child.href}
                 onClick={() => setOpenMenu(null)}
-                className="block whitespace-nowrap px-4 py-2 text-[13px] text-muted hover:bg-panel hover:text-foreground"
+                className="block whitespace-nowrap rounded-lg px-3.5 py-2.5 text-[13px] text-muted transition-colors hover:bg-panel/70 hover:text-foreground"
               >
                 {child.label}
               </Link>
