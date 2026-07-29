@@ -290,3 +290,23 @@ export interface AppNotification {
   isRead: boolean;
   createdAt: string;
 }
+
+// ---------------------------------------------------------------------------
+// 공지사항 / FAQ (운영자가 등록·수정하는 게시형 콘텐츠)
+// ---------------------------------------------------------------------------
+
+export interface Notice {
+  id: string;
+  title: string;
+  body: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface Faq {
+  id: string;
+  question: string;
+  answer: string;
+  createdAt: string;
+  updatedAt: string;
+}

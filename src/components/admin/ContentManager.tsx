@@ -1,0 +1,320 @@
+"use client";
+
+import { useState } from "react";
+import { useRouter } from "next/navigation";
+import type { Faq, Notice } from "@/lib/pricing/types";
+
+type Tab = "notices" | "faq";
+
+export function ContentManager({
+  notices: initialNotices,
+  faqs: initialFaqs,
+}: {
+  notices: Notice[];
+  faqs: Faq[];
+}) {
+  const router = useRouter();
+  const [tab, setTab] = useState<Tab>("notices");
+  const [notices, setNotices] = useState(initialNotices);
+  const [faqs, setFaqs] = useState(initialFaqs);
+
+  return (
+    <div className="mt-8">
+      <div className="sticky top-14 z-10 -mx-6 flex h-11 items-center gap-1 overflow-x-auto whitespace-nowrap border-b border-border bg-background px-6 sm:top-16">
+        {(
+          [
+            ["notices", `공지사항 (${notices.length})`],
+            ["faq", `FAQ (${faqs.length})`],
+          ] as const
+        ).map(([key, label]) => (
+          <button
+            key={key}
+            type="button"
+            onClick={() => setTab(key)}
+            className={[
+              "shrink-0 border-b-2 px-3 py-3 text-[13px] font-medium outline-none transition-colors",
+              tab === key
+                ? "border-accent text-accent"
+                : "border-transparent text-muted hover:text-foreground",
+            ].join(" ")}
+          >
+            {label}
+          </button>
+        ))}
+      </div>
+
+      <div className="mt-6">
+        {tab === "notices" ? (
+          <NoticesTab notices={notices} setNotices={setNotices} router={router} />
+        ) : (
+          <FaqTab faqs={faqs} setFaqs={setFaqs} router={router} />
+        )}
+      </div>
+    </div>
+  );
+}
+
+function NoticesTab({
+  notices,
+  setNotices,
+  router,
+}: {
+  notices: Notice[];
+  setNotices: (n: Notice[]) => void;
+  router: ReturnType<typeof useRouter>;
+}) {
+  const [title, setTitle] = useState("");
+  const [body, setBody] = useState("");
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  function startEdit(notice: Notice) {
+    setEditingId(notice.id);
+    setTitle(notice.title);
+    setBody(notice.body);
+  }
+
+  function resetForm() {
+    setEditingId(null);
+    setTitle("");
+    setBody("");
+    setError(null);
+  }
+
+  async function save() {
+    setSaving(true);
+    setError(null);
+    try {
+      const res = await fetch(editingId ? `/api/admin/notices/${editingId}` : "/api/admin/notices", {
+        method: editingId ? "PUT" : "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ title, body }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setError(data.error || "저장에 실패했습니다.");
+        return;
+      }
+      if (editingId) {
+        setNotices(notices.map((n) => (n.id === editingId ? data.notice : n)));
+      } else {
+        setNotices([data.notice, ...notices]);
+      }
+      resetForm();
+      router.refresh();
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function remove(id: string) {
+    await fetch(`/api/admin/notices/${id}`, { method: "DELETE" });
+    setNotices(notices.filter((n) => n.id !== id));
+    if (editingId === id) resetForm();
+    router.refresh();
+  }
+
+  return (
+    <div>
+      <div className="border border-border bg-panel/60 p-5">
+        <h3 className="text-[14px] font-semibold">{editingId ? "공지사항 수정" : "새 공지사항 등록"}</h3>
+        <div className="mt-3 space-y-3">
+          <input
+            type="text"
+            placeholder="제목"
+            value={title}
+            onChange={(e) => setTitle(e.target.value)}
+            className="w-full rounded-sm border border-border bg-panel px-3 py-2 text-[13px] outline-none focus:border-accent"
+          />
+          <textarea
+            placeholder="내용"
+            rows={5}
+            value={body}
+            onChange={(e) => setBody(e.target.value)}
+            className="w-full rounded-sm border border-border bg-panel px-3 py-2 text-[13px] outline-none focus:border-accent"
+          />
+          {error && <p className="text-[12.5px] text-red-600">{error}</p>}
+          <div className="flex items-center gap-3">
+            <button
+              type="button"
+              disabled={saving || !title.trim() || !body.trim()}
+              onClick={save}
+              className="rounded-sm bg-accent px-5 py-2 text-[13px] font-semibold text-white transition-colors hover:bg-accent-hover disabled:opacity-50"
+            >
+              {saving ? "저장 중..." : editingId ? "수정 저장" : "등록"}
+            </button>
+            {editingId && (
+              <button
+                type="button"
+                onClick={resetForm}
+                className="text-[12.5px] text-muted hover:text-foreground"
+              >
+                취소
+              </button>
+            )}
+          </div>
+        </div>
+      </div>
+
+      <ul className="mt-6 space-y-2">
+        {notices.length === 0 ? (
+          <li className="text-[13px] text-muted">등록된 공지사항이 없습니다.</li>
+        ) : (
+          notices.map((notice) => (
+            <li key={notice.id} className="border border-border bg-background p-4">
+              <div className="flex items-start justify-between gap-4">
+                <div>
+                  <div className="text-[13.5px] font-semibold">{notice.title}</div>
+                  <p className="mt-1 whitespace-pre-wrap text-[12.5px] leading-5 text-muted">{notice.body}</p>
+                  <div className="mt-2 text-[11px] text-muted">
+                    {new Date(notice.createdAt).toLocaleString("ko-KR")}
+                  </div>
+                </div>
+                <div className="flex shrink-0 gap-3 text-[12.5px]">
+                  <button type="button" onClick={() => startEdit(notice)} className="text-accent hover:underline">
+                    수정
+                  </button>
+                  <button type="button" onClick={() => remove(notice.id)} className="text-muted hover:text-red-600">
+                    삭제
+                  </button>
+                </div>
+              </div>
+            </li>
+          ))
+        )}
+      </ul>
+    </div>
+  );
+}
+
+function FaqTab({
+  faqs,
+  setFaqs,
+  router,
+}: {
+  faqs: Faq[];
+  setFaqs: (f: Faq[]) => void;
+  router: ReturnType<typeof useRouter>;
+}) {
+  const [question, setQuestion] = useState("");
+  const [answer, setAnswer] = useState("");
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  function startEdit(faq: Faq) {
+    setEditingId(faq.id);
+    setQuestion(faq.question);
+    setAnswer(faq.answer);
+  }
+
+  function resetForm() {
+    setEditingId(null);
+    setQuestion("");
+    setAnswer("");
+    setError(null);
+  }
+
+  async function save() {
+    setSaving(true);
+    setError(null);
+    try {
+      const res = await fetch(editingId ? `/api/admin/faq/${editingId}` : "/api/admin/faq", {
+        method: editingId ? "PUT" : "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ question, answer }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setError(data.error || "저장에 실패했습니다.");
+        return;
+      }
+      if (editingId) {
+        setFaqs(faqs.map((f) => (f.id === editingId ? data.faq : f)));
+      } else {
+        setFaqs([...faqs, data.faq]);
+      }
+      resetForm();
+      router.refresh();
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function remove(id: string) {
+    await fetch(`/api/admin/faq/${id}`, { method: "DELETE" });
+    setFaqs(faqs.filter((f) => f.id !== id));
+    if (editingId === id) resetForm();
+    router.refresh();
+  }
+
+  return (
+    <div>
+      <div className="border border-border bg-panel/60 p-5">
+        <h3 className="text-[14px] font-semibold">{editingId ? "FAQ 수정" : "새 FAQ 등록"}</h3>
+        <div className="mt-3 space-y-3">
+          <input
+            type="text"
+            placeholder="질문"
+            value={question}
+            onChange={(e) => setQuestion(e.target.value)}
+            className="w-full rounded-sm border border-border bg-panel px-3 py-2 text-[13px] outline-none focus:border-accent"
+          />
+          <textarea
+            placeholder="답변"
+            rows={4}
+            value={answer}
+            onChange={(e) => setAnswer(e.target.value)}
+            className="w-full rounded-sm border border-border bg-panel px-3 py-2 text-[13px] outline-none focus:border-accent"
+          />
+          {error && <p className="text-[12.5px] text-red-600">{error}</p>}
+          <div className="flex items-center gap-3">
+            <button
+              type="button"
+              disabled={saving || !question.trim() || !answer.trim()}
+              onClick={save}
+              className="rounded-sm bg-accent px-5 py-2 text-[13px] font-semibold text-white transition-colors hover:bg-accent-hover disabled:opacity-50"
+            >
+              {saving ? "저장 중..." : editingId ? "수정 저장" : "등록"}
+            </button>
+            {editingId && (
+              <button
+                type="button"
+                onClick={resetForm}
+                className="text-[12.5px] text-muted hover:text-foreground"
+              >
+                취소
+              </button>
+            )}
+          </div>
+        </div>
+      </div>
+
+      <ul className="mt-6 space-y-2">
+        {faqs.length === 0 ? (
+          <li className="text-[13px] text-muted">등록된 FAQ가 없습니다.</li>
+        ) : (
+          faqs.map((faq) => (
+            <li key={faq.id} className="border border-border bg-background p-4">
+              <div className="flex items-start justify-between gap-4">
+                <div>
+                  <div className="text-[13.5px] font-semibold">Q. {faq.question}</div>
+                  <p className="mt-1 whitespace-pre-wrap text-[12.5px] leading-5 text-muted">A. {faq.answer}</p>
+                </div>
+                <div className="flex shrink-0 gap-3 text-[12.5px]">
+                  <button type="button" onClick={() => startEdit(faq)} className="text-accent hover:underline">
+                    수정
+                  </button>
+                  <button type="button" onClick={() => remove(faq.id)} className="text-muted hover:text-red-600">
+                    삭제
+                  </button>
+                </div>
+              </div>
+            </li>
+          ))
+        )}
+      </ul>
+    </div>
+  );
+}

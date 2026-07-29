@@ -6,6 +6,8 @@ import { NotificationBell } from "@/components/NotificationBell";
 const NAV_LINKS = [
   { href: "/venue", label: "서울아레나 소개" },
   { href: "/guide", label: "대관 안내" },
+  { href: "/notices", label: "공지사항" },
+  { href: "/faq", label: "FAQ" },
   { href: "/apply", label: "대관 신청" },
 ];
 

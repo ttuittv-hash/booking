@@ -1,8 +1,16 @@
 "use client";
 
-import { WEEKDAYS, WEEKDAY_LABEL, type QuoteSelection, type WeekDay, type WeekDemand } from "@/lib/pricing/types";
+import { resolveSelectedDates } from "@/lib/pricing/dateRange";
+import { defaultDayTags, effectiveDayTag } from "@/lib/pricing/rateTableUtils";
+import { WEEKDAYS, WEEKDAY_LABEL, type DayTag, type QuoteSelection, type WeekDay, type WeekDemand } from "@/lib/pricing/types";
 
 const DOW_LABELS = ["월", "화", "수", "목", "금", "토", "일"]; // 달력은 월요일부터 시작, 대관 단위는 화~일 (월요일은 대관 불가 기본값)
+const WEEKDAY_SHORT = ["일", "월", "화", "수", "목", "금", "토"];
+
+function formatDateLabel(iso: string): string {
+  const [, m, d] = iso.split("-").map(Number);
+  return `${m}/${d}(${WEEKDAY_SHORT[new Date(iso).getDay()]})`;
+}
 
 // JS Date.getDay(): 0=일 1=월 ... 6=토 → 월(1)을 0번 컬럼으로 매핑
 function toColumnIndex(jsDay: number): number {
@@ -54,23 +62,36 @@ export function Step1Calendar({
   week,
   excludedDays,
   extraDays,
+  dayTags,
+  defaultPerformanceDays,
   weekDemand,
   onChangeWeek,
   onChangeExcludedDays,
   onChangeExtraDays,
+  onChangeDayTags,
 }: {
   week: QuoteSelection["week"];
   excludedDays: WeekDay[];
   extraDays: number;
+  dayTags: Record<string, DayTag>;
+  defaultPerformanceDays: number;
   weekDemand: WeekDemand[];
   onChangeWeek: (week: QuoteSelection["week"]) => void;
   onChangeExcludedDays: (days: WeekDay[]) => void;
   onChangeExtraDays: (value: number) => void;
+  onChangeDayTags: (dayTags: Record<string, DayTag>) => void;
 }) {
   const calendarWeeks = buildCalendarWeeks(week.year, week.month);
   const today = new Date();
   const usedDayCount = 6 - excludedDays.length;
   const totalDays = usedDayCount + extraDays;
+  const selectedDates = resolveSelectedDates({ week, excludedDays, extraDays });
+  const dayTagDefaults = defaultDayTags(selectedDates, defaultPerformanceDays);
+
+  function toggleDayTag(date: string) {
+    const current = effectiveDayTag(date, dayTags, dayTagDefaults);
+    onChangeDayTags({ ...dayTags, [date]: current === "PERFORMANCE" ? "PREP" : "PERFORMANCE" });
+  }
 
   // 선택된 주의 화요일(기준일)을 찾아 실제 대관 예정 날짜 범위(제외 요일 제거 + 추가 일수 포함)를 계산한다.
   const selectedTuesday = calendarWeeks.find((w) => w.weekOfMonth === week.weekOfMonth)?.days[1] ?? null;
@@ -264,6 +285,39 @@ export function Step1Calendar({
         {excludedDays.length > 0 && ` (기본 6일 − 제외 ${excludedDays.length}일${extraDays > 0 ? ` + 추가 ${extraDays}일` : ""})`}
         {excludedDays.length === 0 && extraDays > 0 && ` (기본 6일 + 추가 ${extraDays}일)`}
       </div>
+
+      {selectedDates.length > 0 && (
+        <div className="mt-5 border-t border-border pt-5">
+          <label className="text-[12.5px] font-medium text-muted">준비일 / 공연일 설정</label>
+          <p className="mt-1.5 text-[12px] leading-5 text-muted">
+            선택하신 {selectedDates.length}일 중 기본 {defaultPerformanceDays}일이 공연일로
+            지정됩니다. 날짜를 눌러 조정할 수 있으며, 기본 공연일수보다 늘리거나 줄이면 대관료가
+            함께 조정됩니다.
+          </p>
+          <div className="mt-3 flex flex-wrap gap-2">
+            {selectedDates.map((date) => {
+              const tag = effectiveDayTag(date, dayTags, dayTagDefaults);
+              const isPerformance = tag === "PERFORMANCE";
+              return (
+                <button
+                  key={date}
+                  type="button"
+                  onClick={() => toggleDayTag(date)}
+                  className={[
+                    "flex flex-col items-center gap-0.5 rounded-sm border px-3 py-2 text-[12px] font-medium transition-colors",
+                    isPerformance
+                      ? "border-accent bg-accent-soft text-accent"
+                      : "border-border bg-panel text-muted hover:border-accent/50",
+                  ].join(" ")}
+                >
+                  <span>{formatDateLabel(date)}</span>
+                  <span>{isPerformance ? "공연일" : "준비일"}</span>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      )}
     </section>
   );
 }

@@ -15,6 +15,8 @@ import type {
   ContractAdjustment,
   Deposit,
   DepositStatus,
+  Faq,
+  Notice,
   Quote,
   QuoteStatus,
   RateTable,
@@ -124,6 +126,22 @@ function createConnection(): DatabaseSync {
       is_read INTEGER NOT NULL DEFAULT 0,
       created_at TEXT NOT NULL,
       FOREIGN KEY (recipient_id) REFERENCES users(id)
+    );
+
+    CREATE TABLE IF NOT EXISTS notices (
+      id TEXT PRIMARY KEY,
+      title TEXT NOT NULL,
+      body TEXT NOT NULL,
+      created_at TEXT NOT NULL,
+      updated_at TEXT NOT NULL
+    );
+
+    CREATE TABLE IF NOT EXISTS faqs (
+      id TEXT PRIMARY KEY,
+      question TEXT NOT NULL,
+      answer TEXT NOT NULL,
+      created_at TEXT NOT NULL,
+      updated_at TEXT NOT NULL
     );
   `);
 
@@ -791,4 +809,108 @@ export function markNotificationRead(id: string, recipientId: string) {
 export function markAllNotificationsRead(recipientId: string) {
   const db = getDb();
   db.prepare("UPDATE notifications SET is_read = 1 WHERE recipient_id = ?").run(recipientId);
+}
+
+// ---------------------------------------------------------------------------
+// 공지사항
+// ---------------------------------------------------------------------------
+
+interface NoticeRow {
+  id: string;
+  title: string;
+  body: string;
+  created_at: string;
+  updated_at: string;
+}
+
+function toNotice(row: NoticeRow): Notice {
+  return { id: row.id, title: row.title, body: row.body, createdAt: row.created_at, updatedAt: row.updated_at };
+}
+
+export function listNotices(): Notice[] {
+  const db = getDb();
+  const rows = db.prepare("SELECT * FROM notices ORDER BY created_at DESC").all() as unknown as NoticeRow[];
+  return rows.map(toNotice);
+}
+
+export function getNoticeById(id: string): Notice | undefined {
+  const db = getDb();
+  const row = db.prepare("SELECT * FROM notices WHERE id = ?").get(id) as NoticeRow | undefined;
+  return row ? toNotice(row) : undefined;
+}
+
+export function createNotice(input: { id: string; title: string; body: string; createdAt: string }): Notice {
+  const db = getDb();
+  db.prepare(
+    "INSERT INTO notices (id, title, body, created_at, updated_at) VALUES (?, ?, ?, ?, ?)",
+  ).run(input.id, input.title, input.body, input.createdAt, input.createdAt);
+  return getNoticeById(input.id)!;
+}
+
+export function updateNotice(id: string, input: { title: string; body: string; updatedAt: string }): Notice | undefined {
+  const db = getDb();
+  db.prepare("UPDATE notices SET title = ?, body = ?, updated_at = ? WHERE id = ?").run(
+    input.title,
+    input.body,
+    input.updatedAt,
+    id,
+  );
+  return getNoticeById(id);
+}
+
+export function deleteNotice(id: string) {
+  const db = getDb();
+  db.prepare("DELETE FROM notices WHERE id = ?").run(id);
+}
+
+// ---------------------------------------------------------------------------
+// FAQ
+// ---------------------------------------------------------------------------
+
+interface FaqRow {
+  id: string;
+  question: string;
+  answer: string;
+  created_at: string;
+  updated_at: string;
+}
+
+function toFaq(row: FaqRow): Faq {
+  return { id: row.id, question: row.question, answer: row.answer, createdAt: row.created_at, updatedAt: row.updated_at };
+}
+
+export function listFaqs(): Faq[] {
+  const db = getDb();
+  const rows = db.prepare("SELECT * FROM faqs ORDER BY created_at ASC").all() as unknown as FaqRow[];
+  return rows.map(toFaq);
+}
+
+export function getFaqById(id: string): Faq | undefined {
+  const db = getDb();
+  const row = db.prepare("SELECT * FROM faqs WHERE id = ?").get(id) as FaqRow | undefined;
+  return row ? toFaq(row) : undefined;
+}
+
+export function createFaq(input: { id: string; question: string; answer: string; createdAt: string }): Faq {
+  const db = getDb();
+  db.prepare(
+    "INSERT INTO faqs (id, question, answer, created_at, updated_at) VALUES (?, ?, ?, ?, ?)",
+  ).run(input.id, input.question, input.answer, input.createdAt, input.createdAt);
+  return getFaqById(input.id)!;
+}
+
+export function updateFaq(id: string, input: { question: string; answer: string; updatedAt: string }): Faq | undefined {
+  const db = getDb();
+  db.prepare("UPDATE faqs SET question = ?, answer = ?, updated_at = ? WHERE id = ?").run(
+    input.question,
+    input.answer,
+    input.updatedAt,
+    id,
+  );
+  return getFaqById(id);
+}
+
+export function deleteFaq(id: string) {
+  const db = getDb();
+  db.prepare("DELETE FROM faqs WHERE id = ?").run(id);
 }

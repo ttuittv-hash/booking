@@ -73,6 +73,8 @@ export function WizardShell({
 
   const quote = useMemo(() => calculateQuote(selection, rateTable), [selection, rateTable]);
   const maxUnlockedStep = selection.packageId ? TOTAL_STEPS : 2;
+  // 패키지 선택 전에도 기본 공연일수를 보여줘야 하므로, 모든 패키지가 공유하는 기본값(2일)을 임시로 사용한다.
+  const defaultPerformanceDays = findPackage(rateTable, selection.packageId)?.defaultPerformanceDays ?? 2;
 
   function goTo(target: number) {
     if (target < 1 || target > TOTAL_STEPS) return;
@@ -139,6 +141,8 @@ export function WizardShell({
             week={selection.week}
             excludedDays={selection.excludedDays}
             extraDays={selection.extraDays}
+            dayTags={selection.dayTags}
+            defaultPerformanceDays={defaultPerformanceDays}
             weekDemand={weekDemand}
             onChangeWeek={(week) => setSelection((prev) => ({ ...prev, week }))}
             onChangeExcludedDays={(excludedDays) =>
@@ -147,22 +151,18 @@ export function WizardShell({
             onChangeExtraDays={(extraDays) =>
               setSelection((prev) => ({ ...prev, extraDays }))
             }
+            onChangeDayTags={(dayTags) => setSelection((prev) => ({ ...prev, dayTags }))}
           />
         )}
         {step === 2 && (
           <Step1Package
             rateTable={rateTable}
             packageId={selection.packageId}
-            week={selection.week}
-            excludedDays={selection.excludedDays}
-            extraDays={selection.extraDays}
-            dayTags={selection.dayTags}
             expectedAudience={selection.expectedAudience}
             onSelectPackage={selectPackage}
             onChangeAudience={(value) =>
               setSelection((prev) => ({ ...prev, expectedAudience: value }))
             }
-            onChangeDayTags={(dayTags) => setSelection((prev) => ({ ...prev, dayTags }))}
           />
         )}
         {step === 3 && <Step3Included rateTable={rateTable} packageId={selection.packageId} />}

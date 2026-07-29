@@ -26,16 +26,6 @@ const NOTICES = [
   "세부 일정은 대관 담당자의 안내에 따라 진행됩니다.",
 ];
 
-const NOTICE_TOPICS = [
-  "대관 공고 및 신청 일정",
-  "정기 및 수시 대관 모집 안내",
-  "대관규약 및 운영정책 변경 안내",
-  "대관료 및 이용요금 변경 안내",
-  "시스템 점검 및 서비스 중단 안내",
-  "공연장 시설 운영 관련 공지",
-  "기타 대관 운영에 필요한 안내사항",
-];
-
 function Section({
   id,
   title,
@@ -129,33 +119,6 @@ export default async function GuidePage() {
           </div>
         </Section>
 
-        <Section id="notices" title="공지사항">
-          <p className="text-[13.5px] leading-7 text-muted">
-            대관과 관련된 주요 공지사항, 운영정책 변경, 시스템 점검, 대관
-            일정 및 기타 안내사항을 확인하실 수 있습니다. 대관 신청 전 반드시
-            최신 공지사항을 확인하시기 바라며, 공지된 내용은 대관 신청 및
-            운영 시 적용될 수 있습니다.
-          </p>
-          <ul className="mt-4 grid grid-cols-1 gap-x-6 gap-y-1.5 text-[12.5px] text-muted sm:grid-cols-2">
-            {NOTICE_TOPICS.map((t) => (
-              <li key={t} className="flex gap-1.5">
-                <span className="text-accent">·</span>
-                {t}
-              </li>
-            ))}
-          </ul>
-          <p className="mt-4 text-[12px] text-muted">
-            ※ 공지사항은 등록일 기준 최신순으로 제공되며, 중요 공지는 상단에
-            고정되어 안내됩니다. (게시판 준비 중)
-          </p>
-        </Section>
-
-        <Section id="faq" title="FAQ">
-          <p className="text-[13.5px] leading-7 text-muted">
-            대관 관련 자주 묻는 질문과 교통·주차 등 일반 안내는 준비 중입니다.
-            문의사항은 운영자에게 직접 연락해주세요.
-          </p>
-        </Section>
       </main>
     </div>
   );

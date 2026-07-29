@@ -1,0 +1,25 @@
+import { NextResponse } from "next/server";
+import crypto from "node:crypto";
+import { getCurrentUser } from "@/lib/auth";
+import { createFaq, listFaqs } from "@/lib/db";
+
+export async function GET() {
+  return NextResponse.json({ faqs: listFaqs() });
+}
+
+export async function POST(request: Request) {
+  const user = await getCurrentUser();
+  if (!user || user.role !== "ADMIN") {
+    return NextResponse.json({ error: "운영자 로그인이 필요합니다." }, { status: 401 });
+  }
+
+  const body = await request.json().catch(() => null);
+  const question = typeof body?.question === "string" ? body.question.trim() : "";
+  const answer = typeof body?.answer === "string" ? body.answer.trim() : "";
+  if (!question || !answer) {
+    return NextResponse.json({ error: "질문과 답변을 입력하세요." }, { status: 400 });
+  }
+
+  const faq = createFaq({ id: crypto.randomUUID(), question, answer, createdAt: new Date().toISOString() });
+  return NextResponse.json({ faq });
+}
