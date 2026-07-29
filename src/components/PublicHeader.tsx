@@ -42,7 +42,8 @@ export function PublicHeader({
             <>
               <Link
                 href={currentUser.role === "ADMIN" ? "/admin/users" : "/mypage/profile"}
-                className="hidden whitespace-nowrap hover:text-foreground sm:inline"
+                className="hidden whitespace-nowrap underline decoration-border underline-offset-2 hover:text-foreground hover:decoration-foreground sm:inline"
+                title="회원정보 수정"
               >
                 {currentUser.name} 님
               </Link>

@@ -106,13 +106,18 @@ export function PackagesForm({ rateTable }: { rateTable: RateTable }) {
     setNewItemPrice(0);
   }
 
-  const includedItemsValue = active.includedItems.reduce((sum, item) => {
-    const addon = addons.find((a) => a.id === item.addonId);
-    return sum + (addon ? addon.unitPrice * item.quantity : 0);
-  }, 0);
-  const packageTotalValue = active.baseFeePerWeek + includedItemsValue;
-  const discountAmount = Math.round(active.baseFeePerWeek * active.discountRatio);
-  const discountedTotalValue = packageTotalValue - discountAmount;
+  function computeTotals(pkg: EditablePackage) {
+    const includedValue = pkg.includedItems.reduce((sum, item) => {
+      const addon = addons.find((a) => a.id === item.addonId);
+      return sum + (addon ? addon.unitPrice * item.quantity : 0);
+    }, 0);
+    const total = pkg.baseFeePerWeek + includedValue;
+    const discount = Math.round(pkg.baseFeePerWeek * pkg.discountRatio);
+    return { total, discount, discountedTotal: total - discount };
+  }
+
+  const { total: packageTotalValue, discount: discountAmount, discountedTotal: discountedTotalValue } =
+    computeTotals(active);
 
   function confirmNewItem() {
     if (!newItemCategory || !newItemName.trim()) return;
@@ -178,6 +183,42 @@ export function PackagesForm({ rateTable }: { rateTable: RateTable }) {
         >
           + 새 패키지
         </button>
+      </div>
+
+      <div className="mt-6 overflow-x-auto rounded border border-border">
+        <table className="w-full min-w-[560px] border-collapse text-[13px]">
+          <thead>
+            <tr className="border-b border-border bg-panel text-left text-[11.5px] font-medium text-muted">
+              <th className="px-4 py-3">패키지</th>
+              <th className="px-4 py-3 text-right">기본 대관료</th>
+              <th className="px-4 py-3 text-right">총 패키지 가격</th>
+              <th className="px-4 py-3 text-right">할인 적용가</th>
+            </tr>
+          </thead>
+          <tbody>
+            {packages.map((p) => {
+              const t = computeTotals(p);
+              return (
+                <tr
+                  key={p.id}
+                  className={`cursor-pointer border-b border-border/70 last:border-b-0 hover:bg-panel/60 ${p.id === activeId ? "bg-accent-soft/40" : ""}`}
+                  onClick={() => setActiveId(p.id)}
+                >
+                  <td className="px-4 py-3 font-medium">{p.name}</td>
+                  <td className="px-4 py-3 text-right tabular-nums">{won(p.baseFeePerWeek)}</td>
+                  <td className="px-4 py-3 text-right tabular-nums">{won(t.total)}</td>
+                  <td className="px-4 py-3 text-right tabular-nums">
+                    {p.discountRatio > 0 ? (
+                      <span className="text-accent">{won(t.discountedTotal)}</span>
+                    ) : (
+                      <span className="text-muted">-</span>
+                    )}
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
       </div>
 
       <div className="mt-6 space-y-8">
