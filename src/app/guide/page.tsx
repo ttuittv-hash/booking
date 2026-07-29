@@ -63,7 +63,7 @@ export default async function GuidePage() {
 
       <main className="mx-auto w-full max-w-4xl flex-1 px-6 py-16 sm:px-8">
         <p className="text-[13px] font-semibold uppercase tracking-[0.14em] text-accent">
-          BOOK AN EVENT
+          STAGE
         </p>
         <h1 className="mt-3 text-[30px] font-semibold tracking-tight sm:text-[36px]">
           대관 안내

@@ -82,7 +82,7 @@ export function Step6Submit({
       </div>
 
       {submittedId ? (
-        <div className="mt-5 rounded-sm border border-good/30 bg-good-soft px-5 py-4 text-[13.5px] text-good">
+        <div className="mt-5 rounded-sm border border-accent/30 bg-accent-soft px-5 py-4 text-[13.5px] text-accent">
           <p className="font-semibold">신청이 접수되었습니다.</p>
           <p className="mt-1.5 leading-6">
             운영자 심사 → 계약 → 정산 순으로 진행되며, 각 단계가 완료되면

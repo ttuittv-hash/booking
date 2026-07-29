@@ -67,7 +67,7 @@ export function PackagesForm({ rateTable }: { rateTable: RateTable }) {
 
   return (
     <div className="mt-8">
-      <div className="flex h-11 items-center gap-1 overflow-x-auto whitespace-nowrap border-b border-border">
+      <div className="sticky top-14 z-10 -mx-6 flex h-11 items-center gap-1 overflow-x-auto whitespace-nowrap border-b border-border bg-background px-6 sm:top-16">
         {packages.map((p) => (
           <button
             key={p.id}
