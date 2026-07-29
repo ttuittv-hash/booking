@@ -31,6 +31,17 @@ export default function RegisterPage() {
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
+
+    if (!form.email.trim()) return setError("이메일을 입력하세요.");
+    if (form.password.length < 8) return setError("비밀번호는 8자 이상이어야 합니다.");
+    if (!form.name.trim()) return setError("담당자명을 입력하세요.");
+    if (accountType === "CORPORATE") {
+      if (!form.companyName.trim()) return setError("회사/기획사명을 입력하세요.");
+      if (!form.businessRegistrationNumber.trim()) return setError("사업자등록번호를 입력하세요.");
+    } else if (!form.companyId) {
+      return setError("소속된 회사/기획사를 선택하세요.");
+    }
+
     setLoading(true);
     try {
       const res = await fetch("/api/auth/register", {
@@ -62,7 +73,7 @@ export default function RegisterPage() {
           완료되어야 대관 패키지 안내와 견적 산출을 이용할 수 있습니다.
         </p>
 
-        <form onSubmit={handleSubmit} className="mt-8 space-y-4">
+        <form onSubmit={handleSubmit} noValidate className="mt-8 space-y-4">
           <Field label="이메일">
             <input
               type="email"

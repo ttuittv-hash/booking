@@ -43,7 +43,7 @@ export default function LoginPage() {
           대관 신청 계정으로 로그인하세요.
         </p>
 
-        <form onSubmit={handleSubmit} className="mt-8 space-y-4">
+        <form onSubmit={handleSubmit} noValidate className="mt-8 space-y-4">
           <label className="block">
             <span className="mb-1.5 block text-[12.5px] font-medium text-muted">이메일</span>
             <input
