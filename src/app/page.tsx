@@ -2,14 +2,6 @@ import Link from "next/link";
 import { getCurrentUser } from "@/lib/auth";
 import { PublicHeader } from "@/components/PublicHeader";
 
-const MARQUEE_ITEMS = [
-  "SEOUL K-POP ARENA",
-  "MAIN ARENA · MEDIUM HALL · CONVENTION",
-  "최대 약 20,000명 수용",
-  "글로벌 TOP 수준 음향 인프라",
-  "제작비 30% 절감",
-];
-
 const HIGHLIGHTS = [
   {
     no: "01",
@@ -66,10 +58,6 @@ export default async function Home() {
       <main className="flex flex-1 flex-col">
         <section className="relative isolate overflow-hidden px-6 pt-24 pb-20 text-center sm:pt-32 sm:pb-24">
           <div className="hero-grid pointer-events-none absolute inset-0 -z-20" aria-hidden />
-          <div
-            className="pointer-events-none absolute left-1/2 top-0 -z-10 h-[420px] w-[720px] -translate-x-1/2 rounded-full bg-accent-soft/80 blur-[110px]"
-            aria-hidden
-          />
 
           <div className="flex animate-[fade-up_0.7s_ease_both] items-center justify-center gap-3">
             <span className="h-px w-8 bg-accent" />
@@ -111,22 +99,6 @@ export default async function Home() {
                 →
               </span>
             </Link>
-          </div>
-        </section>
-
-        <section className="relative overflow-hidden border-y border-border/70 bg-panel/50 py-3.5">
-          <div className="flex w-max animate-[marquee_32s_linear_infinite] gap-12 whitespace-nowrap">
-            {[0, 1].map((dup) =>
-              MARQUEE_ITEMS.map((item, i) => (
-                <span
-                  key={`${dup}-${i}`}
-                  className="flex items-center gap-12 text-[12px] font-semibold uppercase tracking-[0.18em] text-muted"
-                >
-                  {item}
-                  <span className="text-accent">✦</span>
-                </span>
-              )),
-            )}
           </div>
         </section>
 
