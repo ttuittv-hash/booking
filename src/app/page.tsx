@@ -63,40 +63,21 @@ export default async function Home() {
       <PublicHeader active="/" currentUser={user} />
 
       <main className="flex flex-1 flex-col">
-        {/* 슬롯 1: 이미지 + 카피 + 버튼 */}
-        <section className="relative isolate overflow-hidden px-6 pt-24 pb-20 text-center sm:pt-32 sm:pb-24">
-          {heroImage && (
-            <>
-              <div
-                className="absolute inset-0 -z-20 scale-105 bg-cover bg-center blur-sm"
-                style={{ backgroundImage: `url(${heroImage})` }}
-                aria-hidden
-              />
-              <div className="absolute inset-0 -z-10 bg-black/55" aria-hidden />
-            </>
-          )}
-
+        {/* 슬롯 1: 카피 + 버튼 + 이미지 */}
+        <section className="px-6 pt-24 pb-20 text-center sm:pt-32 sm:pb-24">
           <div className="flex animate-[fade-up_0.7s_ease_both] items-center justify-center gap-3">
             <span className="h-px w-8 bg-accent" />
             <span className="text-[13px] font-semibold uppercase tracking-[0.2em] text-accent">HOST IT.</span>
             <span className="h-px w-8 bg-accent" />
           </div>
 
-          <h1
-            className={`mx-auto mt-7 max-w-2xl animate-[fade-up_0.7s_ease_both] text-4xl font-semibold tracking-tight [animation-delay:80ms] sm:text-5xl ${
-              heroImage ? "text-white" : "text-foreground"
-            }`}
-          >
+          <h1 className="mx-auto mt-7 max-w-2xl animate-[fade-up_0.7s_ease_both] text-4xl font-semibold tracking-tight text-foreground [animation-delay:80ms] sm:text-5xl">
             한계 없는 무대,
             <br />
             당신의 상상력대로.
           </h1>
 
-          <p
-            className={`mx-auto mt-7 max-w-xl animate-[fade-up_0.7s_ease_both] text-[16px] leading-8 [animation-delay:160ms] sm:text-[17px] ${
-              heroImage ? "text-white/85" : "text-muted"
-            }`}
-          >
+          <p className="mx-auto mt-7 max-w-xl animate-[fade-up_0.7s_ease_both] text-[16px] leading-8 text-muted [animation-delay:160ms] sm:text-[17px]">
             서울아레나는 K-컬처와 첨단 기술을 융합해 새로운 경험을 창조하는
             복합 문화 공간입니다. 세계 최고 수준의 음향·리깅·무대 시스템이
             당신의 비전을 가장 온전하게 담아냅니다.
@@ -113,15 +94,56 @@ export default async function Home() {
             </Link>
             <Link
               href="/venue"
-              className={`group inline-flex items-center gap-1.5 whitespace-nowrap text-[14px] font-semibold uppercase tracking-[0.06em] transition-colors hover:text-accent ${
-                heroImage ? "text-white" : "text-foreground"
-              }`}
+              className="group inline-flex items-center gap-1.5 whitespace-nowrap text-[14px] font-semibold uppercase tracking-[0.06em] text-foreground transition-colors hover:text-accent"
             >
               About Seoul Arena
-              <span aria-hidden className="transition-transform group-hover:translate-x-1">
-                &gt;
-              </span>
+              <svg
+                aria-hidden
+                viewBox="0 0 16 16"
+                fill="none"
+                className="h-3 w-3 shrink-0 transition-transform group-hover:translate-x-1"
+              >
+                <path
+                  d="M5.5 3L10.5 8L5.5 13"
+                  stroke="currentColor"
+                  strokeWidth="1.6"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                />
+              </svg>
             </Link>
+          </div>
+
+          {heroImage && (
+            <div className="mx-auto mt-16 max-w-5xl animate-[fade-up_0.7s_ease_both] [animation-delay:320ms]">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={heroImage}
+                alt="서울아레나"
+                className="aspect-video w-full rounded-lg border border-border object-cover shadow-[0_24px_48px_-24px_rgba(0,0,0,0.25)]"
+              />
+            </div>
+          )}
+        </section>
+
+        {/* 미션 / 비전 */}
+        <section className="border-t border-border/70 px-6 py-20 sm:py-24">
+          <div className="mx-auto grid max-w-5xl grid-cols-1 gap-14 lg:grid-cols-[1fr_1px_1fr]">
+            <div>
+              <p className="text-[12px] font-semibold uppercase tracking-[0.2em] text-accent">MISSION</p>
+              <p className="mt-5 text-[17px] font-semibold leading-8 text-foreground">
+                K-컬처와 첨단 기술을 융합해 새로운 경험을 창조하고, 지역과 세계를
+                연결하는 혁신적인 복합 문화 공간을 제공합니다.
+              </p>
+            </div>
+            <div className="hidden bg-border/70 lg:block" aria-hidden />
+            <div>
+              <p className="text-[12px] font-semibold uppercase tracking-[0.2em] text-accent">VISION</p>
+              <p className="mt-5 text-[17px] font-semibold leading-8 text-foreground">
+                글로벌 문화 중심지로 자리매김하여, 예술과 기술, 지역과 세계를
+                연결하는 가장 혁신적이고 미래지향적인 복합 문화 공간이 됩니다.
+              </p>
+            </div>
           </div>
         </section>
 
@@ -134,15 +156,7 @@ export default async function Home() {
                 href={f.href}
                 className="group block rounded border border-border bg-background p-6 text-left transition-all hover:-translate-y-1 hover:border-accent hover:shadow-[0_16px_32px_-20px_rgba(0,0,0,0.25)]"
               >
-                <div className="flex items-center justify-between">
-                  <span className="text-[14.5px] font-semibold">{f.title}</span>
-                  <span
-                    aria-hidden
-                    className="text-accent transition-transform group-hover:translate-x-1"
-                  >
-                    →
-                  </span>
-                </div>
+                <span className="text-[14.5px] font-semibold">{f.title}</span>
                 <p className="mt-2 text-[12.5px] leading-6 text-muted">{f.desc}</p>
               </Link>
             ))}

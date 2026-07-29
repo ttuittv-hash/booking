@@ -57,7 +57,7 @@ export function HomeContentForm({ content: initial }: { content: HomeContent }) 
       <section>
         <h3 className="text-[14px] font-semibold">히어로 배경 이미지</h3>
         <p className="mt-1 text-[12px] text-muted">
-          홈 화면 최상단에 흐림 처리되어 배경으로 표시됩니다. 비워두면 기본 배경이 표시됩니다.
+          홈 화면 카피·버튼 아래에 표시됩니다. 비워두면 이미지 없이 텍스트만 표시됩니다.
         </p>
         <div className="mt-3">
           {content.heroImage ? (
