@@ -67,15 +67,17 @@ export function PackagesForm({ rateTable }: { rateTable: RateTable }) {
 
   return (
     <div className="mt-8">
-      <div className="flex flex-wrap gap-2 border-b border-border pb-3">
+      <div className="flex h-11 items-center gap-1 overflow-x-auto whitespace-nowrap border-b border-border">
         {packages.map((p) => (
           <button
             key={p.id}
             type="button"
             onClick={() => setActiveId(p.id)}
             className={[
-              "rounded-sm px-4 py-2 text-[13px] font-medium",
-              p.id === activeId ? "bg-accent text-white" : "bg-panel text-muted hover:text-foreground",
+              "shrink-0 border-b-2 px-3 py-3 text-[13px] font-medium transition-colors",
+              p.id === activeId
+                ? "border-accent text-accent"
+                : "border-transparent text-muted hover:text-foreground",
             ].join(" ")}
           >
             {p.name}
