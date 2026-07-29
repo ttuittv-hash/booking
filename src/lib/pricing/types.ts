@@ -148,10 +148,8 @@ export interface WeekDemand {
   companyCount: number; // 해당 주에 대관 신청서를 낸 회사(신청자) 수
 }
 
-export interface WeekBlock {
-  year: number;
-  month: number;
-  weekOfMonth: number;
+export interface DateBlock {
+  date: string; // ISO yyyy-mm-dd
   reason: string | null; // 예: "정기 대관", "내부 행사"
 }
 

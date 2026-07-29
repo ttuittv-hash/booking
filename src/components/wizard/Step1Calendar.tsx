@@ -1,13 +1,13 @@
 "use client";
 
-import { resolveSelectedDates } from "@/lib/pricing/dateRange";
+import { isoDate, resolveSelectedDates } from "@/lib/pricing/dateRange";
 import { defaultDayTags, effectiveDayTag } from "@/lib/pricing/rateTableUtils";
 import {
   WEEKDAYS,
   WEEKDAY_LABEL,
+  type DateBlock,
   type DayTag,
   type QuoteSelection,
-  type WeekBlock,
   type WeekDay,
   type WeekDemand,
 } from "@/lib/pricing/types";
@@ -73,7 +73,7 @@ export function Step1Calendar({
   dayTags,
   defaultPerformanceDays,
   weekDemand,
-  weekBlocks,
+  dateBlocks,
   onChangeWeek,
   onChangeExcludedDays,
   onChangeExtraDays,
@@ -85,13 +85,14 @@ export function Step1Calendar({
   dayTags: Record<string, DayTag>;
   defaultPerformanceDays: number;
   weekDemand: WeekDemand[];
-  weekBlocks: WeekBlock[];
+  dateBlocks: DateBlock[];
   onChangeWeek: (week: QuoteSelection["week"]) => void;
   onChangeExcludedDays: (days: WeekDay[]) => void;
   onChangeExtraDays: (value: number) => void;
   onChangeDayTags: (dayTags: Record<string, DayTag>) => void;
 }) {
   const calendarWeeks = buildCalendarWeeks(week.year, week.month);
+  const blockedByDate = new Map(dateBlocks.map((b) => [b.date, b]));
   const today = new Date();
   const usedDayCount = 6 - excludedDays.length;
   const totalDays = usedDayCount + extraDays;
@@ -128,10 +129,15 @@ export function Step1Calendar({
     onChangeWeek({ ...week, year: nextYear, month: nextMonth });
   }
 
-  function blockedFor(weekOfMonth: number): WeekBlock | undefined {
-    return weekBlocks.find(
-      (b) => b.year === week.year && b.month === week.month && b.weekOfMonth === weekOfMonth,
-    );
+  // 해당 주차의 화~일(기본 6일) 중 막힌 날짜가 하나라도 있으면 그 주 전체를 선택 불가로 표시한다.
+  function blockedFor(weekOfMonth: number): DateBlock | undefined {
+    const calWeek = calendarWeeks.find((w) => w.weekOfMonth === weekOfMonth);
+    if (!calWeek) return undefined;
+    for (let i = 1; i <= 6; i++) {
+      const block = blockedByDate.get(isoDate(calWeek.days[i]));
+      if (block) return block;
+    }
+    return undefined;
   }
 
   function selectWeek(weekOfMonth: number) {

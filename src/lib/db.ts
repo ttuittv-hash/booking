@@ -26,9 +26,9 @@ import type {
   RateTable,
   Review,
   Settlement,
+  DateBlock,
   StaticPage,
   UserRole,
-  WeekBlock,
   WeekDemand,
 } from "./pricing/types";
 
@@ -189,14 +189,10 @@ function createConnection(): DatabaseSync {
       updated_at TEXT NOT NULL
     );
 
-    CREATE TABLE IF NOT EXISTS week_blocks (
-      id TEXT PRIMARY KEY,
-      year INTEGER NOT NULL,
-      month INTEGER NOT NULL,
-      week_of_month INTEGER NOT NULL,
+    CREATE TABLE IF NOT EXISTS date_blocks (
+      date TEXT PRIMARY KEY,
       reason TEXT,
-      created_at TEXT NOT NULL,
-      UNIQUE(year, month, week_of_month)
+      created_at TEXT NOT NULL
     );
   `);
 
@@ -785,54 +781,53 @@ export function listWeekDemand(): WeekDemand[] {
 }
 
 // ---------------------------------------------------------------------------
-// 일정 관리 — 관리자가 특정 주차를 대관 신청 불가로 막아둘 수 있다 (정기 대관 등).
+// 일정 관리 — 관리자가 특정 날짜를 대관 신청 불가로 막아둘 수 있다 (정기 대관 등).
 // ---------------------------------------------------------------------------
 
-interface WeekBlockRow {
-  year: number;
-  month: number;
-  week_of_month: number;
+interface DateBlockRow {
+  date: string;
   reason: string | null;
 }
 
-function toWeekBlock(row: WeekBlockRow): WeekBlock {
-  return { year: row.year, month: row.month, weekOfMonth: row.week_of_month, reason: row.reason };
+function toDateBlock(row: DateBlockRow): DateBlock {
+  return { date: row.date, reason: row.reason };
 }
 
-export function listWeekBlocks(year?: number): WeekBlock[] {
+export function listDateBlocks(): DateBlock[] {
   const db = getDb();
-  const rows = (
-    year
-      ? db.prepare("SELECT * FROM week_blocks WHERE year = ? ORDER BY month ASC, week_of_month ASC").all(year)
-      : db.prepare("SELECT * FROM week_blocks ORDER BY year ASC, month ASC, week_of_month ASC").all()
-  ) as unknown as WeekBlockRow[];
-  return rows.map(toWeekBlock);
+  const rows = db.prepare("SELECT * FROM date_blocks ORDER BY date ASC").all() as unknown as DateBlockRow[];
+  return rows.map(toDateBlock);
 }
 
-export function isWeekBlocked(year: number, month: number, weekOfMonth: number): WeekBlock | undefined {
+export function isDateBlocked(date: string): DateBlock | undefined {
   const db = getDb();
-  const row = db
-    .prepare("SELECT * FROM week_blocks WHERE year = ? AND month = ? AND week_of_month = ?")
-    .get(year, month, weekOfMonth) as WeekBlockRow | undefined;
-  return row ? toWeekBlock(row) : undefined;
+  const row = db.prepare("SELECT * FROM date_blocks WHERE date = ?").get(date) as DateBlockRow | undefined;
+  return row ? toDateBlock(row) : undefined;
 }
 
-export function blockWeek(block: WeekBlock): WeekBlock {
+// 신청서가 실제로 차지하는 날짜 목록(제외 요일 반영, 추가 일수 포함) 중 막힌 날짜가 있는지 확인한다.
+export function findBlockedDatesAmong(dates: string[]): DateBlock[] {
+  if (dates.length === 0) return [];
+  const db = getDb();
+  const placeholders = dates.map(() => "?").join(",");
+  const rows = db
+    .prepare(`SELECT * FROM date_blocks WHERE date IN (${placeholders})`)
+    .all(...dates) as unknown as DateBlockRow[];
+  return rows.map(toDateBlock);
+}
+
+export function blockDate(date: string, reason: string | null): DateBlock {
   const db = getDb();
   db.prepare(
-    `INSERT INTO week_blocks (id, year, month, week_of_month, reason, created_at) VALUES (?, ?, ?, ?, ?, ?)
-     ON CONFLICT(year, month, week_of_month) DO UPDATE SET reason = excluded.reason`,
-  ).run(crypto.randomUUID(), block.year, block.month, block.weekOfMonth, block.reason, new Date().toISOString());
-  return block;
+    `INSERT INTO date_blocks (date, reason, created_at) VALUES (?, ?, ?)
+     ON CONFLICT(date) DO UPDATE SET reason = excluded.reason`,
+  ).run(date, reason, new Date().toISOString());
+  return { date, reason };
 }
 
-export function unblockWeek(year: number, month: number, weekOfMonth: number) {
+export function unblockDate(date: string) {
   const db = getDb();
-  db.prepare("DELETE FROM week_blocks WHERE year = ? AND month = ? AND week_of_month = ?").run(
-    year,
-    month,
-    weekOfMonth,
-  );
+  db.prepare("DELETE FROM date_blocks WHERE date = ?").run(date);
 }
 
 // ESTIMATE 단계 신청서를 신청자가 직접 수정할 때 사용 — 심사 전 재계산된 산출내역으로 덮어쓴다.

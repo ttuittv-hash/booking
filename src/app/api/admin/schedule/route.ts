@@ -1,15 +1,15 @@
 import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
-import { blockWeek, listWeekBlocks, unblockWeek } from "@/lib/db";
+import { blockDate, listDateBlocks, unblockDate } from "@/lib/db";
 
-export async function GET(request: Request) {
+const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
+
+export async function GET() {
   const user = await getCurrentUser();
   if (!user || user.role !== "ADMIN") {
     return NextResponse.json({ error: "운영자 로그인이 필요합니다." }, { status: 401 });
   }
-  const yearParam = new URL(request.url).searchParams.get("year");
-  const year = yearParam ? Number(yearParam) : undefined;
-  return NextResponse.json({ blocks: listWeekBlocks(year) });
+  return NextResponse.json({ blocks: listDateBlocks() });
 }
 
 export async function POST(request: Request) {
@@ -19,16 +19,14 @@ export async function POST(request: Request) {
   }
 
   const body = await request.json().catch(() => null);
-  const year = Number(body?.year);
-  const month = Number(body?.month);
-  const weekOfMonth = Number(body?.weekOfMonth);
+  const date = typeof body?.date === "string" ? body.date : "";
   const reason = typeof body?.reason === "string" ? body.reason.trim() || null : null;
 
-  if (!Number.isFinite(year) || !Number.isFinite(month) || !Number.isFinite(weekOfMonth)) {
+  if (!DATE_RE.test(date)) {
     return NextResponse.json({ error: "잘못된 요청입니다." }, { status: 400 });
   }
 
-  const block = blockWeek({ year, month, weekOfMonth, reason });
+  const block = blockDate(date, reason);
   return NextResponse.json({ block });
 }
 
@@ -39,13 +37,11 @@ export async function DELETE(request: Request) {
   }
 
   const body = await request.json().catch(() => null);
-  const year = Number(body?.year);
-  const month = Number(body?.month);
-  const weekOfMonth = Number(body?.weekOfMonth);
-  if (!Number.isFinite(year) || !Number.isFinite(month) || !Number.isFinite(weekOfMonth)) {
+  const date = typeof body?.date === "string" ? body.date : "";
+  if (!DATE_RE.test(date)) {
     return NextResponse.json({ error: "잘못된 요청입니다." }, { status: 400 });
   }
 
-  unblockWeek(year, month, weekOfMonth);
+  unblockDate(date);
   return NextResponse.json({ ok: true });
 }

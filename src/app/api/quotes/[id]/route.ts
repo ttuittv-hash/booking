@@ -3,13 +3,14 @@ import crypto from "node:crypto";
 import { canAccessQuote, getCurrentUser } from "@/lib/auth";
 import {
   addAuditLog,
+  findBlockedDatesAmong,
   getCurrentRateTable,
   getQuoteById,
-  isWeekBlocked,
   listAuditLogsForQuote,
   updateQuoteSelection,
 } from "@/lib/db";
 import { calculateQuote } from "@/lib/pricing/calculateQuote";
+import { resolveSelectedDates } from "@/lib/pricing/dateRange";
 import type { QuoteSelection } from "@/lib/pricing/types";
 
 export async function GET(_request: Request, ctx: { params: Promise<{ id: string }> }) {
@@ -48,20 +49,13 @@ export async function PUT(request: Request, ctx: { params: Promise<{ id: string 
     return NextResponse.json({ error: "패키지를 선택해주세요." }, { status: 400 });
   }
 
-  const weekChanged =
-    selection.week.year !== quote.selection.week.year ||
-    selection.week.month !== quote.selection.week.month ||
-    selection.week.weekOfMonth !== quote.selection.week.weekOfMonth;
-  if (weekChanged) {
-    const block = isWeekBlocked(selection.week.year, selection.week.month, selection.week.weekOfMonth);
-    if (block) {
-      return NextResponse.json(
-        {
-          error: `${block.year}년 ${block.month}월 ${block.weekOfMonth}주차는 현재 대관 신청이 불가능합니다${block.reason ? ` (사유: ${block.reason})` : ""}.`,
-        },
-        { status: 409 },
-      );
-    }
+  const blockedDates = findBlockedDatesAmong(resolveSelectedDates(selection));
+  if (blockedDates.length > 0) {
+    const list = blockedDates.map((b) => `${b.date}${b.reason ? ` (${b.reason})` : ""}`).join(", ");
+    return NextResponse.json(
+      { error: `선택하신 일정 중 대관 신청이 불가능한 날짜가 있습니다: ${list}` },
+      { status: 409 },
+    );
   }
 
   const rateTable = getCurrentRateTable();

@@ -5,13 +5,21 @@ import {
   addAuditLog,
   createNotification,
   createQuote,
+  findBlockedDatesAmong,
   getCurrentRateTable,
-  isWeekBlocked,
   listQuotes,
   notifyAdmins,
 } from "@/lib/db";
 import { calculateQuote } from "@/lib/pricing/calculateQuote";
+import { resolveSelectedDates } from "@/lib/pricing/dateRange";
 import type { QuoteSelection } from "@/lib/pricing/types";
+
+function formatBlockedDatesError(blocked: { date: string; reason: string | null }[]): string {
+  const list = blocked
+    .map((b) => `${b.date}${b.reason ? ` (${b.reason})` : ""}`)
+    .join(", ");
+  return `선택하신 일정 중 대관 신청이 불가능한 날짜가 있습니다: ${list}`;
+}
 
 export async function GET() {
   const user = await getCurrentUser();
@@ -38,14 +46,9 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "패키지를 선택해주세요." }, { status: 400 });
   }
 
-  const block = isWeekBlocked(selection.week.year, selection.week.month, selection.week.weekOfMonth);
-  if (block) {
-    return NextResponse.json(
-      {
-        error: `${block.year}년 ${block.month}월 ${block.weekOfMonth}주차는 현재 대관 신청이 불가능합니다${block.reason ? ` (사유: ${block.reason})` : ""}.`,
-      },
-      { status: 409 },
-    );
+  const blockedDates = findBlockedDatesAmong(resolveSelectedDates(selection));
+  if (blockedDates.length > 0) {
+    return NextResponse.json({ error: formatBlockedDatesError(blockedDates) }, { status: 409 });
   }
 
   // 클라이언트가 보낸 금액은 신뢰하지 않고, 서버에서 현재 요금표로 재계산한다.
