@@ -386,8 +386,15 @@ export function VenueContentForm({ content: initial }: { content: VenueContent }
           </button>
         </div>
 
-        <h3 className="mt-6 text-[14px] font-semibold">핵심 인프라 강조 카드</h3>
-        <p className="mt-1 text-[12px] text-muted">아티스트/관객/제작사 관점의 강점을 어두운 배경 카드로 강조합니다.</p>
+        <h3 className="mt-6 text-[14px] font-semibold">주요 제공 시설</h3>
+        <div className="mt-2">
+          <TextListEditor items={content.providedFacilities} onChange={(providedFacilities) => patch({ providedFacilities })} />
+        </div>
+      </section>
+
+      <section>
+        <h3 className="text-[14px] font-semibold">무대 특장</h3>
+        <p className="mt-1 text-[12px] text-muted">아티스트/관객/제작사 관점의 강점을 카드 형태로 소개합니다.</p>
         <div className="mt-2 space-y-4">
           {content.specHighlights.map((hl, hi) => (
             <div key={hi} className={cardCls}>
@@ -490,11 +497,6 @@ export function VenueContentForm({ content: initial }: { content: VenueContent }
           <button type="button" onClick={addHighlight} className={addBtnCls}>
             + 강조 카드 블록 추가
           </button>
-        </div>
-
-        <h3 className="mt-6 text-[14px] font-semibold">주요 제공 시설</h3>
-        <div className="mt-2">
-          <TextListEditor items={content.providedFacilities} onChange={(providedFacilities) => patch({ providedFacilities })} />
         </div>
       </section>
 

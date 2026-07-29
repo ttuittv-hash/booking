@@ -17,6 +17,7 @@ const NAV_LINKS: {
     children: [
       { href: "/venue#overview", label: "시설 개요" },
       { href: "/venue#specs", label: "시설 제원" },
+      { href: "/venue#stage-features", label: "무대 특장" },
       { href: "/venue#amenities", label: "부대시설" },
     ],
   },
