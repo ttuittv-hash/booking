@@ -2,7 +2,15 @@
 
 import { resolveSelectedDates } from "@/lib/pricing/dateRange";
 import { defaultDayTags, effectiveDayTag } from "@/lib/pricing/rateTableUtils";
-import { WEEKDAYS, WEEKDAY_LABEL, type DayTag, type QuoteSelection, type WeekDay, type WeekDemand } from "@/lib/pricing/types";
+import {
+  WEEKDAYS,
+  WEEKDAY_LABEL,
+  type DayTag,
+  type QuoteSelection,
+  type WeekBlock,
+  type WeekDay,
+  type WeekDemand,
+} from "@/lib/pricing/types";
 
 const DOW_LABELS = ["월", "화", "수", "목", "금", "토", "일"]; // 달력은 월요일부터 시작, 대관 단위는 화~일 (월요일은 대관 불가 기본값)
 const WEEKDAY_SHORT = ["일", "월", "화", "수", "목", "금", "토"];
@@ -65,6 +73,7 @@ export function Step1Calendar({
   dayTags,
   defaultPerformanceDays,
   weekDemand,
+  weekBlocks,
   onChangeWeek,
   onChangeExcludedDays,
   onChangeExtraDays,
@@ -76,6 +85,7 @@ export function Step1Calendar({
   dayTags: Record<string, DayTag>;
   defaultPerformanceDays: number;
   weekDemand: WeekDemand[];
+  weekBlocks: WeekBlock[];
   onChangeWeek: (week: QuoteSelection["week"]) => void;
   onChangeExcludedDays: (days: WeekDay[]) => void;
   onChangeExtraDays: (value: number) => void;
@@ -118,7 +128,14 @@ export function Step1Calendar({
     onChangeWeek({ ...week, year: nextYear, month: nextMonth });
   }
 
+  function blockedFor(weekOfMonth: number): WeekBlock | undefined {
+    return weekBlocks.find(
+      (b) => b.year === week.year && b.month === week.month && b.weekOfMonth === weekOfMonth,
+    );
+  }
+
   function selectWeek(weekOfMonth: number) {
+    if (blockedFor(weekOfMonth)) return;
     onChangeWeek({ year: week.year, month: week.month, weekOfMonth });
   }
 
@@ -180,15 +197,16 @@ export function Step1Calendar({
         {calendarWeeks.map((calWeek, wi) => {
           const isSelectable = calWeek.weekOfMonth !== null;
           const demand = calWeek.weekOfMonth !== null ? demandFor(calWeek.weekOfMonth) : 0;
+          const blocked = calWeek.weekOfMonth !== null ? blockedFor(calWeek.weekOfMonth) : undefined;
           return (
             <div key={wi}>
               <button
                 type="button"
-                disabled={!isSelectable}
+                disabled={!isSelectable || !!blocked}
                 onClick={() => calWeek.weekOfMonth !== null && selectWeek(calWeek.weekOfMonth)}
                 className={[
                   "grid w-full grid-cols-7 gap-1 rounded-sm p-0.5 text-left sm:gap-1.5",
-                  isSelectable ? "cursor-pointer hover:bg-panel" : "cursor-default",
+                  blocked ? "cursor-not-allowed opacity-40" : isSelectable ? "cursor-pointer hover:bg-panel" : "cursor-default",
                 ].join(" ")}
               >
                 {calWeek.days.map((date, di) => {
@@ -201,13 +219,15 @@ export function Step1Calendar({
                       key={di}
                       className={[
                         "flex h-9 items-center justify-center rounded-sm text-[12.5px] sm:h-11 sm:text-[13px]",
-                        isActive
-                          ? "bg-accent-soft font-semibold text-accent"
-                          : !inMonth
-                            ? "text-muted/40"
-                            : isMonday
-                              ? "text-muted/70"
-                              : "text-foreground",
+                        blocked
+                          ? "text-muted line-through"
+                          : isActive
+                            ? "bg-accent-soft font-semibold text-accent"
+                            : !inMonth
+                              ? "text-muted/40"
+                              : isMonday
+                                ? "text-muted/70"
+                                : "text-foreground",
                         isToday ? "underline decoration-2 underline-offset-4" : "",
                       ].join(" ")}
                     >
@@ -216,12 +236,18 @@ export function Step1Calendar({
                   );
                 })}
               </button>
-              {demand > 0 && (
-                <div className="px-0.5 pt-0.5 text-right text-[10.5px] text-muted">
-                  {demand > 1 && <span>경합 중 · </span>}
-                  <span className="font-bold text-accent">{demand}</span>
-                  <span>개사 신청</span>
+              {blocked ? (
+                <div className="px-0.5 pt-0.5 text-right text-[10.5px] font-medium text-red-600">
+                  대관 불가{blocked.reason ? ` · ${blocked.reason}` : ""}
                 </div>
+              ) : (
+                demand > 0 && (
+                  <div className="px-0.5 pt-0.5 text-right text-[10.5px] text-muted">
+                    {demand > 1 && <span>경합 중 · </span>}
+                    <span className="font-bold text-accent">{demand}</span>
+                    <span>개사 신청</span>
+                  </div>
+                )
               )}
             </div>
           );

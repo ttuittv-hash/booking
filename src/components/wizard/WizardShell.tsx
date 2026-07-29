@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { calculateQuote } from "@/lib/pricing/calculateQuote";
 import { findAddon, findPackage, isAddonAvailable } from "@/lib/pricing/rateTableUtils";
-import type { AppUser, QuoteSelection, RateTable, WeekDemand } from "@/lib/pricing/types";
+import type { AppUser, QuoteSelection, RateTable, WeekBlock, WeekDemand } from "@/lib/pricing/types";
 import { clearWizardDraft, loadWizardDraft, saveWizardDraft } from "@/lib/quotesStore";
 import { StepNav } from "./StepNav";
 import { SummaryPanel } from "./SummaryPanel";
@@ -52,12 +52,14 @@ export function WizardShell({
   rateTable,
   currentUser,
   weekDemand,
+  weekBlocks,
   editingQuoteId,
   initialSelection,
 }: {
   rateTable: RateTable;
   currentUser: AppUser | null;
   weekDemand: WeekDemand[];
+  weekBlocks: WeekBlock[];
   editingQuoteId?: string;
   initialSelection?: QuoteSelection;
 }) {
@@ -167,6 +169,7 @@ export function WizardShell({
             dayTags={selection.dayTags}
             defaultPerformanceDays={defaultPerformanceDays}
             weekDemand={weekDemand}
+            weekBlocks={weekBlocks}
             onChangeWeek={(week) => setSelection((prev) => ({ ...prev, week }))}
             onChangeExcludedDays={(excludedDays) =>
               setSelection((prev) => ({ ...prev, excludedDays }))

@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { notFound, redirect } from "next/navigation";
 import { canAccessQuote, getCurrentUser, isPendingApplicant } from "@/lib/auth";
-import { getCurrentRateTable, getQuoteById, listWeekDemand } from "@/lib/db";
+import { getCurrentRateTable, getQuoteById, listWeekBlocks, listWeekDemand } from "@/lib/db";
 import { PublicHeader } from "@/components/PublicHeader";
 import { WizardShell } from "@/components/wizard/WizardShell";
 
@@ -24,9 +24,10 @@ export default async function EditQuotePage({
   if (!canAccessQuote(currentUser, quote)) notFound();
   if (quote.status !== "ESTIMATE") redirect(`/mypage/${id}`);
 
-  const [rateTable, weekDemand] = await Promise.all([
+  const [rateTable, weekDemand, weekBlocks] = await Promise.all([
     getCurrentRateTable(),
     Promise.resolve(listWeekDemand()),
+    Promise.resolve(listWeekBlocks()),
   ]);
 
   return (
@@ -36,6 +37,7 @@ export default async function EditQuotePage({
         rateTable={rateTable}
         currentUser={currentUser}
         weekDemand={weekDemand}
+        weekBlocks={weekBlocks}
         editingQuoteId={quote.id}
         initialSelection={quote.selection}
       />

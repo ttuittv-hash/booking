@@ -28,6 +28,7 @@ import type {
   Settlement,
   StaticPage,
   UserRole,
+  WeekBlock,
   WeekDemand,
 } from "./pricing/types";
 
@@ -186,6 +187,16 @@ function createConnection(): DatabaseSync {
       page TEXT PRIMARY KEY,
       data TEXT NOT NULL,
       updated_at TEXT NOT NULL
+    );
+
+    CREATE TABLE IF NOT EXISTS week_blocks (
+      id TEXT PRIMARY KEY,
+      year INTEGER NOT NULL,
+      month INTEGER NOT NULL,
+      week_of_month INTEGER NOT NULL,
+      reason TEXT,
+      created_at TEXT NOT NULL,
+      UNIQUE(year, month, week_of_month)
     );
   `);
 
@@ -771,6 +782,57 @@ export function listWeekDemand(): WeekDemand[] {
     const [year, month, weekOfMonth] = key.split("-").map(Number);
     return { year, month, weekOfMonth, companyCount: companies.size };
   });
+}
+
+// ---------------------------------------------------------------------------
+// 일정 관리 — 관리자가 특정 주차를 대관 신청 불가로 막아둘 수 있다 (정기 대관 등).
+// ---------------------------------------------------------------------------
+
+interface WeekBlockRow {
+  year: number;
+  month: number;
+  week_of_month: number;
+  reason: string | null;
+}
+
+function toWeekBlock(row: WeekBlockRow): WeekBlock {
+  return { year: row.year, month: row.month, weekOfMonth: row.week_of_month, reason: row.reason };
+}
+
+export function listWeekBlocks(year?: number): WeekBlock[] {
+  const db = getDb();
+  const rows = (
+    year
+      ? db.prepare("SELECT * FROM week_blocks WHERE year = ? ORDER BY month ASC, week_of_month ASC").all(year)
+      : db.prepare("SELECT * FROM week_blocks ORDER BY year ASC, month ASC, week_of_month ASC").all()
+  ) as unknown as WeekBlockRow[];
+  return rows.map(toWeekBlock);
+}
+
+export function isWeekBlocked(year: number, month: number, weekOfMonth: number): WeekBlock | undefined {
+  const db = getDb();
+  const row = db
+    .prepare("SELECT * FROM week_blocks WHERE year = ? AND month = ? AND week_of_month = ?")
+    .get(year, month, weekOfMonth) as WeekBlockRow | undefined;
+  return row ? toWeekBlock(row) : undefined;
+}
+
+export function blockWeek(block: WeekBlock): WeekBlock {
+  const db = getDb();
+  db.prepare(
+    `INSERT INTO week_blocks (id, year, month, week_of_month, reason, created_at) VALUES (?, ?, ?, ?, ?, ?)
+     ON CONFLICT(year, month, week_of_month) DO UPDATE SET reason = excluded.reason`,
+  ).run(crypto.randomUUID(), block.year, block.month, block.weekOfMonth, block.reason, new Date().toISOString());
+  return block;
+}
+
+export function unblockWeek(year: number, month: number, weekOfMonth: number) {
+  const db = getDb();
+  db.prepare("DELETE FROM week_blocks WHERE year = ? AND month = ? AND week_of_month = ?").run(
+    year,
+    month,
+    weekOfMonth,
+  );
 }
 
 // ESTIMATE 단계 신청서를 신청자가 직접 수정할 때 사용 — 심사 전 재계산된 산출내역으로 덮어쓴다.

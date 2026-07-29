@@ -1,7 +1,15 @@
 import { NextResponse } from "next/server";
 import crypto from "node:crypto";
 import { getCurrentUser } from "@/lib/auth";
-import { addAuditLog, createNotification, createQuote, getCurrentRateTable, listQuotes, notifyAdmins } from "@/lib/db";
+import {
+  addAuditLog,
+  createNotification,
+  createQuote,
+  getCurrentRateTable,
+  isWeekBlocked,
+  listQuotes,
+  notifyAdmins,
+} from "@/lib/db";
 import { calculateQuote } from "@/lib/pricing/calculateQuote";
 import type { QuoteSelection } from "@/lib/pricing/types";
 
@@ -28,6 +36,16 @@ export async function POST(request: Request) {
   const selection = body?.selection as QuoteSelection | undefined;
   if (!selection || typeof selection.packageId !== "number") {
     return NextResponse.json({ error: "패키지를 선택해주세요." }, { status: 400 });
+  }
+
+  const block = isWeekBlocked(selection.week.year, selection.week.month, selection.week.weekOfMonth);
+  if (block) {
+    return NextResponse.json(
+      {
+        error: `${block.year}년 ${block.month}월 ${block.weekOfMonth}주차는 현재 대관 신청이 불가능합니다${block.reason ? ` (사유: ${block.reason})` : ""}.`,
+      },
+      { status: 409 },
+    );
   }
 
   // 클라이언트가 보낸 금액은 신뢰하지 않고, 서버에서 현재 요금표로 재계산한다.

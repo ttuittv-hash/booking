@@ -7,6 +7,7 @@ const LINKS = [
   { href: "/admin/applicants", label: "회원 관리" },
   { href: "/admin/packages", label: "패키지 관리" },
   { href: "/admin/rates", label: "요금표 관리" },
+  { href: "/admin/schedule", label: "일정 관리" },
   { href: "/admin/content", label: "콘텐츠 관리" },
   { href: "/admin/users", label: "운영자 계정" },
 ];

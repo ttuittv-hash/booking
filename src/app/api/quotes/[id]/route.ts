@@ -1,7 +1,14 @@
 import { NextResponse } from "next/server";
 import crypto from "node:crypto";
 import { canAccessQuote, getCurrentUser } from "@/lib/auth";
-import { addAuditLog, getCurrentRateTable, getQuoteById, listAuditLogsForQuote, updateQuoteSelection } from "@/lib/db";
+import {
+  addAuditLog,
+  getCurrentRateTable,
+  getQuoteById,
+  isWeekBlocked,
+  listAuditLogsForQuote,
+  updateQuoteSelection,
+} from "@/lib/db";
 import { calculateQuote } from "@/lib/pricing/calculateQuote";
 import type { QuoteSelection } from "@/lib/pricing/types";
 
@@ -39,6 +46,22 @@ export async function PUT(request: Request, ctx: { params: Promise<{ id: string 
   const selection = body?.selection as QuoteSelection | undefined;
   if (!selection || typeof selection.packageId !== "number") {
     return NextResponse.json({ error: "패키지를 선택해주세요." }, { status: 400 });
+  }
+
+  const weekChanged =
+    selection.week.year !== quote.selection.week.year ||
+    selection.week.month !== quote.selection.week.month ||
+    selection.week.weekOfMonth !== quote.selection.week.weekOfMonth;
+  if (weekChanged) {
+    const block = isWeekBlocked(selection.week.year, selection.week.month, selection.week.weekOfMonth);
+    if (block) {
+      return NextResponse.json(
+        {
+          error: `${block.year}년 ${block.month}월 ${block.weekOfMonth}주차는 현재 대관 신청이 불가능합니다${block.reason ? ` (사유: ${block.reason})` : ""}.`,
+        },
+        { status: 409 },
+      );
+    }
   }
 
   const rateTable = getCurrentRateTable();

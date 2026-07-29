@@ -148,6 +148,13 @@ export interface WeekDemand {
   companyCount: number; // 해당 주에 대관 신청서를 낸 회사(신청자) 수
 }
 
+export interface WeekBlock {
+  year: number;
+  month: number;
+  weekOfMonth: number;
+  reason: string | null; // 예: "정기 대관", "내부 행사"
+}
+
 export interface SelectedAddon {
   addonId: string;
   requestedQuantity: number; // 신청 수량 (초과분 계산 전 총량)
