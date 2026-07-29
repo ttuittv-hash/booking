@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import { getCurrentUser, isPendingApplicant } from "@/lib/auth";
 import { listNotices } from "@/lib/db";
 import { PublicHeader } from "@/components/PublicHeader";
+import { TagBadge } from "@/components/TagBadge";
 
 export const metadata: Metadata = {
   title: "공지사항 | 서울아레나",
@@ -38,6 +39,7 @@ export default async function NoticesPage() {
                 className="group flex items-baseline justify-between gap-6 border-b border-border py-6 transition-colors hover:bg-panel/50"
               >
                 <h2 className="text-[16px] font-semibold tracking-tight group-hover:text-accent">
+                  <TagBadge tag={notice.tag} />
                   {notice.title}
                 </h2>
                 <span className="shrink-0 text-[12.5px] text-muted tabular-nums">

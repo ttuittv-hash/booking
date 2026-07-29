@@ -13,6 +13,13 @@
     "test": "vitest run"
   },
   "dependencies": {
+    "@tiptap/extension-color": "^3.29.2",
+    "@tiptap/extension-image": "^3.29.2",
+    "@tiptap/extension-text-align": "^3.29.2",
+    "@tiptap/extension-text-style": "^3.29.2",
+    "@tiptap/pm": "^3.29.2",
+    "@tiptap/react": "^3.29.2",
+    "@tiptap/starter-kit": "^3.29.2",
     "bcryptjs": "^3.0.3",
     "jose": "^6.2.4",
     "next": "16.2.12",

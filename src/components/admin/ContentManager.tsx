@@ -3,8 +3,19 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import type { Faq, Notice } from "@/lib/pricing/types";
+import { TagBadge } from "@/components/TagBadge";
+import { NoticeEditor } from "./NoticeEditor";
 
 type Tab = "notices" | "faq";
+
+function isHtmlBodyEmpty(html: string): boolean {
+  return html.replace(/<[^>]+>/g, "").trim().length === 0 && !html.includes("<img");
+}
+
+function stripHtml(html: string, max = 100): string {
+  const text = html.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim();
+  return text.length > max ? `${text.slice(0, max)}…` : text || "(이미지만 포함된 공지)";
+}
 
 export function ContentManager({
   notices: initialNotices,
@@ -63,6 +74,7 @@ function NoticesTab({
   setNotices: (n: Notice[]) => void;
   router: ReturnType<typeof useRouter>;
 }) {
+  const [tag, setTag] = useState("");
   const [title, setTitle] = useState("");
   const [body, setBody] = useState("");
   const [imageUrl, setImageUrl] = useState<string | null>(null);
@@ -73,6 +85,7 @@ function NoticesTab({
 
   function startEdit(notice: Notice) {
     setEditingId(notice.id);
+    setTag(notice.tag ?? "");
     setTitle(notice.title);
     setBody(notice.body);
     setImageUrl(notice.imageUrl);
@@ -80,6 +93,7 @@ function NoticesTab({
 
   function resetForm() {
     setEditingId(null);
+    setTag("");
     setTitle("");
     setBody("");
     setImageUrl(null);
@@ -111,7 +125,7 @@ function NoticesTab({
       const res = await fetch(editingId ? `/api/admin/notices/${editingId}` : "/api/admin/notices", {
         method: editingId ? "PUT" : "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ title, body, imageUrl }),
+        body: JSON.stringify({ tag, title, body, imageUrl }),
       });
       const data = await res.json();
       if (!res.ok) {
@@ -142,23 +156,29 @@ function NoticesTab({
       <div className="border border-border bg-panel/60 p-5">
         <h3 className="text-[14px] font-semibold">{editingId ? "공지사항 수정" : "새 공지사항 등록"}</h3>
         <div className="mt-3 space-y-3">
-          <input
-            type="text"
-            placeholder="제목"
-            value={title}
-            onChange={(e) => setTitle(e.target.value)}
-            className="w-full rounded-sm border border-border bg-panel px-3 py-2 text-[13px] outline-none focus:border-accent"
-          />
-          <textarea
-            placeholder="내용"
-            rows={5}
-            value={body}
-            onChange={(e) => setBody(e.target.value)}
-            className="w-full rounded-sm border border-border bg-panel px-3 py-2 text-[13px] outline-none focus:border-accent"
-          />
+          <div className="flex gap-2">
+            <input
+              type="text"
+              placeholder="말머리 (예: 공지, 점검)"
+              value={tag}
+              onChange={(e) => setTag(e.target.value)}
+              className="w-32 shrink-0 rounded-sm border border-border bg-panel px-3 py-2 text-[13px] outline-none focus:border-accent"
+            />
+            <input
+              type="text"
+              placeholder="제목"
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+              className="w-full rounded-sm border border-border bg-panel px-3 py-2 text-[13px] outline-none focus:border-accent"
+            />
+          </div>
+          <div>
+            <span className="mb-1.5 block text-[12px] text-muted">내용</span>
+            <NoticeEditor value={body} onChange={setBody} />
+          </div>
 
           <div>
-            <span className="mb-1.5 block text-[12px] text-muted">이미지 (선택)</span>
+            <span className="mb-1.5 block text-[12px] text-muted">대표 이미지 (목록에 표시, 선택)</span>
             {imageUrl ? (
               <div className="flex items-center gap-3">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -190,7 +210,7 @@ function NoticesTab({
           <div className="flex items-center gap-3">
             <button
               type="button"
-              disabled={saving || uploading || !title.trim() || !body.trim()}
+              disabled={saving || uploading || !title.trim() || isHtmlBodyEmpty(body)}
               onClick={save}
               className="rounded-sm bg-accent px-5 py-2 text-[13px] font-semibold text-white transition-colors hover:bg-accent-hover disabled:opacity-50"
             >
@@ -226,8 +246,11 @@ function NoticesTab({
                     />
                   )}
                   <div>
-                    <div className="text-[13.5px] font-semibold">{notice.title}</div>
-                    <p className="mt-1 whitespace-pre-wrap text-[12.5px] leading-5 text-muted">{notice.body}</p>
+                    <div className="flex items-center text-[13.5px] font-semibold">
+                      <TagBadge tag={notice.tag} />
+                      {notice.title}
+                    </div>
+                    <p className="mt-1 text-[12.5px] leading-5 text-muted">{stripHtml(notice.body)}</p>
                     <div className="mt-2 text-[11px] text-muted">
                       {new Date(notice.createdAt).toLocaleString("ko-KR")}
                     </div>
@@ -259,6 +282,7 @@ function FaqTab({
   setFaqs: (f: Faq[]) => void;
   router: ReturnType<typeof useRouter>;
 }) {
+  const [tag, setTag] = useState("");
   const [question, setQuestion] = useState("");
   const [answer, setAnswer] = useState("");
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -267,12 +291,14 @@ function FaqTab({
 
   function startEdit(faq: Faq) {
     setEditingId(faq.id);
+    setTag(faq.tag ?? "");
     setQuestion(faq.question);
     setAnswer(faq.answer);
   }
 
   function resetForm() {
     setEditingId(null);
+    setTag("");
     setQuestion("");
     setAnswer("");
     setError(null);
@@ -285,7 +311,7 @@ function FaqTab({
       const res = await fetch(editingId ? `/api/admin/faq/${editingId}` : "/api/admin/faq", {
         method: editingId ? "PUT" : "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ question, answer }),
+        body: JSON.stringify({ tag, question, answer }),
       });
       const data = await res.json();
       if (!res.ok) {
@@ -316,13 +342,22 @@ function FaqTab({
       <div className="border border-border bg-panel/60 p-5">
         <h3 className="text-[14px] font-semibold">{editingId ? "FAQ 수정" : "새 FAQ 등록"}</h3>
         <div className="mt-3 space-y-3">
-          <input
-            type="text"
-            placeholder="질문"
-            value={question}
-            onChange={(e) => setQuestion(e.target.value)}
-            className="w-full rounded-sm border border-border bg-panel px-3 py-2 text-[13px] outline-none focus:border-accent"
-          />
+          <div className="flex gap-2">
+            <input
+              type="text"
+              placeholder="말머리 (예: 신청, 정산)"
+              value={tag}
+              onChange={(e) => setTag(e.target.value)}
+              className="w-32 shrink-0 rounded-sm border border-border bg-panel px-3 py-2 text-[13px] outline-none focus:border-accent"
+            />
+            <input
+              type="text"
+              placeholder="질문"
+              value={question}
+              onChange={(e) => setQuestion(e.target.value)}
+              className="w-full rounded-sm border border-border bg-panel px-3 py-2 text-[13px] outline-none focus:border-accent"
+            />
+          </div>
           <textarea
             placeholder="답변"
             rows={4}
@@ -361,7 +396,10 @@ function FaqTab({
             <li key={faq.id} className="border border-border bg-background p-4">
               <div className="flex items-start justify-between gap-4">
                 <div>
-                  <div className="text-[13.5px] font-semibold">Q. {faq.question}</div>
+                  <div className="flex items-center text-[13.5px] font-semibold">
+                    <TagBadge tag={faq.tag} />
+                    Q. {faq.question}
+                  </div>
                   <p className="mt-1 whitespace-pre-wrap text-[12.5px] leading-5 text-muted">A. {faq.answer}</p>
                 </div>
                 <div className="flex shrink-0 gap-3 text-[12.5px]">

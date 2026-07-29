@@ -178,6 +178,7 @@ export interface Quote {
   meteredNotice: string; // 유틸리티 실사용 안내 문구
   status: QuoteStatus;
   createdAt: string;
+  review: Review | null;
   contract: ContractAdjustment | null;
   settlement: Settlement | null;
 }
@@ -185,8 +186,20 @@ export interface Quote {
 // 제출 전 클라이언트/서버가 실시간으로 계산만 하는 견적 미리보기 (계정/DB 필드 없음)
 export type EstimatedQuote = Omit<
   Quote,
-  "id" | "applicantId" | "createdAt" | "contract" | "settlement"
+  "id" | "applicantId" | "createdAt" | "review" | "contract" | "settlement"
 >;
+
+// 계약 전 심사 단계 — 운영자가 신청서를 검토하고 승인/보류/거절을 기록한다.
+export type ReviewDecision = "APPROVED" | "HOLD" | "REJECTED";
+
+export interface Review {
+  quoteId: string;
+  decision: ReviewDecision;
+  score: number | null; // 0~100, 선택
+  rationale: string; // 심사 근거/코멘트
+  decidedAt: string;
+  decidedBy: string;
+}
 
 export interface ContractAdjustment {
   quoteId: string;
@@ -297,6 +310,7 @@ export interface AppNotification {
 
 export interface Notice {
   id: string;
+  tag: string | null; // 말머리 (예: "공지", "점검", "이벤트")
   title: string;
   body: string;
   imageUrl: string | null;
@@ -306,6 +320,7 @@ export interface Notice {
 
 export interface Faq {
   id: string;
+  tag: string | null; // 말머리 (예: "신청", "정산", "시설")
   question: string;
   answer: string;
   createdAt: string;

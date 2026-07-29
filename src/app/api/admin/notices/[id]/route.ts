@@ -13,11 +13,12 @@ export async function PUT(request: Request, ctx: { params: Promise<{ id: string 
   const title = typeof body?.title === "string" ? body.title.trim() : "";
   const noticeBody = typeof body?.body === "string" ? body.body.trim() : "";
   const imageUrl = typeof body?.imageUrl === "string" && body.imageUrl.trim() ? body.imageUrl.trim() : null;
+  const tag = typeof body?.tag === "string" && body.tag.trim() ? body.tag.trim() : null;
   if (!title || !noticeBody) {
     return NextResponse.json({ error: "제목과 내용을 입력하세요." }, { status: 400 });
   }
 
-  const notice = updateNotice(id, { title, body: noticeBody, imageUrl, updatedAt: new Date().toISOString() });
+  const notice = updateNotice(id, { tag, title, body: noticeBody, imageUrl, updatedAt: new Date().toISOString() });
   if (!notice) return NextResponse.json({ error: "공지사항을 찾을 수 없습니다." }, { status: 404 });
   return NextResponse.json({ notice });
 }

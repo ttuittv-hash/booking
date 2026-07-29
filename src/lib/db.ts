@@ -20,6 +20,7 @@ import type {
   Quote,
   QuoteStatus,
   RateTable,
+  Review,
   Settlement,
   UserRole,
   WeekDemand,
@@ -87,6 +88,7 @@ function createConnection(): DatabaseSync {
       metered_notice TEXT NOT NULL,
       status TEXT NOT NULL,
       created_at TEXT NOT NULL,
+      review_json TEXT,
       contract_json TEXT,
       settlement_json TEXT,
       FOREIGN KEY (applicant_id) REFERENCES users(id)
@@ -139,6 +141,7 @@ function createConnection(): DatabaseSync {
 
     CREATE TABLE IF NOT EXISTS notices (
       id TEXT PRIMARY KEY,
+      tag TEXT,
       title TEXT NOT NULL,
       body TEXT NOT NULL,
       image_url TEXT,
@@ -148,6 +151,7 @@ function createConnection(): DatabaseSync {
 
     CREATE TABLE IF NOT EXISTS faqs (
       id TEXT PRIMARY KEY,
+      tag TEXT,
       question TEXT NOT NULL,
       answer TEXT NOT NULL,
       created_at TEXT NOT NULL,
@@ -161,6 +165,9 @@ function createConnection(): DatabaseSync {
   ensureColumn(db, "users", "approval_status", "TEXT NOT NULL DEFAULT 'APPROVED'");
   ensureColumn(db, "rate_tables", "day_exclusion_discount_ratio", "REAL NOT NULL DEFAULT 0.1667");
   ensureColumn(db, "notices", "image_url", "TEXT");
+  ensureColumn(db, "notices", "tag", "TEXT");
+  ensureColumn(db, "faqs", "tag", "TEXT");
+  ensureColumn(db, "quotes", "review_json", "TEXT");
 
   const rateTableCount = db.prepare("SELECT COUNT(*) as n FROM rate_tables").get() as { n: number };
   if (rateTableCount.n === 0) {
@@ -442,6 +449,7 @@ interface QuoteRow {
   metered_notice: string;
   status: QuoteStatus;
   created_at: string;
+  review_json: string | null;
   contract_json: string | null;
   settlement_json: string | null;
 }
@@ -459,6 +467,7 @@ function toQuote(row: QuoteRow): Quote {
     meteredNotice: row.metered_notice,
     status: row.status,
     createdAt: row.created_at,
+    review: row.review_json ? JSON.parse(row.review_json) : null,
     contract: row.contract_json ? JSON.parse(row.contract_json) : null,
     settlement: row.settlement_json ? JSON.parse(row.settlement_json) : null,
   };
@@ -479,8 +488,8 @@ export function createQuote(input: {
   const db = getDb();
   db.prepare(
     `INSERT INTO quotes
-      (id, applicant_id, rate_table_version, selection_json, line_items_json, subtotal, vat, total, metered_notice, status, created_at, contract_json, settlement_json)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'ESTIMATE', ?, NULL, NULL)`,
+      (id, applicant_id, rate_table_version, selection_json, line_items_json, subtotal, vat, total, metered_notice, status, created_at, review_json, contract_json, settlement_json)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'ESTIMATE', ?, NULL, NULL, NULL)`,
   ).run(
     input.id,
     input.applicantId,
@@ -573,6 +582,12 @@ export function updateQuoteSelection(
     input.total,
     id,
   );
+  return getQuoteById(id)!;
+}
+
+export function setQuoteReview(id: string, review: Review): Quote {
+  const db = getDb();
+  db.prepare("UPDATE quotes SET review_json = ? WHERE id = ?").run(JSON.stringify(review), id);
   return getQuoteById(id)!;
 }
 
@@ -869,6 +884,7 @@ export function markAllNotificationsRead(recipientId: string) {
 
 interface NoticeRow {
   id: string;
+  tag: string | null;
   title: string;
   body: string;
   image_url: string | null;
@@ -879,6 +895,7 @@ interface NoticeRow {
 function toNotice(row: NoticeRow): Notice {
   return {
     id: row.id,
+    tag: row.tag,
     title: row.title,
     body: row.body,
     imageUrl: row.image_url,
@@ -901,6 +918,7 @@ export function getNoticeById(id: string): Notice | undefined {
 
 export function createNotice(input: {
   id: string;
+  tag?: string | null;
   title: string;
   body: string;
   imageUrl?: string | null;
@@ -908,17 +926,18 @@ export function createNotice(input: {
 }): Notice {
   const db = getDb();
   db.prepare(
-    "INSERT INTO notices (id, title, body, image_url, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?)",
-  ).run(input.id, input.title, input.body, input.imageUrl ?? null, input.createdAt, input.createdAt);
+    "INSERT INTO notices (id, tag, title, body, image_url, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?)",
+  ).run(input.id, input.tag ?? null, input.title, input.body, input.imageUrl ?? null, input.createdAt, input.createdAt);
   return getNoticeById(input.id)!;
 }
 
 export function updateNotice(
   id: string,
-  input: { title: string; body: string; imageUrl?: string | null; updatedAt: string },
+  input: { tag?: string | null; title: string; body: string; imageUrl?: string | null; updatedAt: string },
 ): Notice | undefined {
   const db = getDb();
-  db.prepare("UPDATE notices SET title = ?, body = ?, image_url = ?, updated_at = ? WHERE id = ?").run(
+  db.prepare("UPDATE notices SET tag = ?, title = ?, body = ?, image_url = ?, updated_at = ? WHERE id = ?").run(
+    input.tag ?? null,
     input.title,
     input.body,
     input.imageUrl ?? null,
@@ -939,6 +958,7 @@ export function deleteNotice(id: string) {
 
 interface FaqRow {
   id: string;
+  tag: string | null;
   question: string;
   answer: string;
   created_at: string;
@@ -946,7 +966,14 @@ interface FaqRow {
 }
 
 function toFaq(row: FaqRow): Faq {
-  return { id: row.id, question: row.question, answer: row.answer, createdAt: row.created_at, updatedAt: row.updated_at };
+  return {
+    id: row.id,
+    tag: row.tag,
+    question: row.question,
+    answer: row.answer,
+    createdAt: row.created_at,
+    updatedAt: row.updated_at,
+  };
 }
 
 export function listFaqs(): Faq[] {
@@ -961,17 +988,27 @@ export function getFaqById(id: string): Faq | undefined {
   return row ? toFaq(row) : undefined;
 }
 
-export function createFaq(input: { id: string; question: string; answer: string; createdAt: string }): Faq {
+export function createFaq(input: {
+  id: string;
+  tag?: string | null;
+  question: string;
+  answer: string;
+  createdAt: string;
+}): Faq {
   const db = getDb();
   db.prepare(
-    "INSERT INTO faqs (id, question, answer, created_at, updated_at) VALUES (?, ?, ?, ?, ?)",
-  ).run(input.id, input.question, input.answer, input.createdAt, input.createdAt);
+    "INSERT INTO faqs (id, tag, question, answer, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?)",
+  ).run(input.id, input.tag ?? null, input.question, input.answer, input.createdAt, input.createdAt);
   return getFaqById(input.id)!;
 }
 
-export function updateFaq(id: string, input: { question: string; answer: string; updatedAt: string }): Faq | undefined {
+export function updateFaq(
+  id: string,
+  input: { tag?: string | null; question: string; answer: string; updatedAt: string },
+): Faq | undefined {
   const db = getDb();
-  db.prepare("UPDATE faqs SET question = ?, answer = ?, updated_at = ? WHERE id = ?").run(
+  db.prepare("UPDATE faqs SET tag = ?, question = ?, answer = ?, updated_at = ? WHERE id = ?").run(
+    input.tag ?? null,
     input.question,
     input.answer,
     input.updatedAt,

@@ -1,10 +1,11 @@
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { getCurrentUser } from "@/lib/auth";
-import { getDepositByQuoteId, getQuoteById, listAttachments, listAuditLogsForQuote } from "@/lib/db";
+import { findUserById, getDepositByQuoteId, getQuoteById, listAttachments, listAuditLogsForQuote } from "@/lib/db";
 import { won } from "@/lib/format";
 import { totalRentalDays } from "@/lib/pricing/rateTableUtils";
 import { ContractForm } from "@/components/admin/ContractForm";
+import { ReviewForm } from "@/components/admin/ReviewForm";
 import { SettlementForm } from "@/components/admin/SettlementForm";
 import { DepositPanel } from "@/components/DepositPanel";
 import { AttachmentsPanel } from "@/components/AttachmentsPanel";
@@ -28,6 +29,7 @@ export default async function AdminQuoteDetailPage({
   const quote = getQuoteById(id);
   if (!quote) notFound();
 
+  const applicant = findUserById(quote.applicantId);
   const auditLog = listAuditLogsForQuote(id);
   const deposit = getDepositByQuoteId(id) ?? null;
   const attachments = listAttachments(id);
@@ -67,6 +69,11 @@ export default async function AdminQuoteDetailPage({
           {quote.selection.week.weekOfMonth}주차 · 총 {totalRentalDays(quote.selection)}일 · 관객{" "}
           {quote.selection.expectedAudience.toLocaleString()}명
         </p>
+        <p className="mt-1 text-[13.5px] text-muted">
+          신청자 <span className="font-medium text-foreground">{applicant?.name ?? "-"}</span>
+          {" "}({applicant?.email ?? "-"}) · 회사{" "}
+          <span className="font-medium text-foreground">{applicant?.companyName ?? "-"}</span>
+        </p>
 
         <section className="mt-6 rounded border border-border bg-background p-6">
           <h2 className="text-[15px] font-semibold">① 신청 예상금액 · 산출내역</h2>
@@ -103,9 +110,25 @@ export default async function AdminQuoteDetailPage({
           </div>
         </section>
 
-        <div className="mt-6">
-          {quote.status === "ESTIMATE" && <ContractForm quoteId={quote.id} baseTotal={quote.total} />}
+        <div className="mt-6 space-y-6">
+          {quote.status === "ESTIMATE" && <ReviewForm quoteId={quote.id} review={quote.review} />}
 
+          {quote.status === "ESTIMATE" && quote.review?.decision === "REJECTED" && (
+            <p className="rounded-sm border border-red-200 bg-red-50 px-4 py-3 text-[13px] text-red-600">
+              심사에서 거절된 신청서입니다. 계약을 진행하려면 심사 결과를 승인으로 변경하세요.
+            </p>
+          )}
+          {quote.status === "ESTIMATE" && quote.review?.decision !== "APPROVED" && quote.review?.decision !== "REJECTED" && (
+            <p className="rounded-sm border border-border bg-panel/60 px-4 py-3 text-[13px] text-muted">
+              심사를 승인해야 계약 단계로 진행할 수 있습니다.
+            </p>
+          )}
+          {quote.status === "ESTIMATE" && quote.review?.decision === "APPROVED" && (
+            <ContractForm quoteId={quote.id} baseTotal={quote.total} />
+          )}
+        </div>
+
+        <div className="mt-6">
           {quote.contract && (
             <div className="rounded border border-border bg-panel/60 p-6">
               <h3 className="text-[15px] font-semibold">② 계약금액 확정됨</h3>

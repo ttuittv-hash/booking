@@ -3,20 +3,8 @@ import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/lib/auth";
 import { findUserById, listCompanies, listQuotes } from "@/lib/db";
 import { won } from "@/lib/format";
-import type { Quote } from "@/lib/pricing/types";
 import { AdminNav } from "@/components/admin/AdminNav";
-
-const STATUS_LABEL: Record<Quote["status"], string> = {
-  ESTIMATE: "예상견적 (심사 대기)",
-  CONTRACTED: "계약 확정 (정산 대기)",
-  SETTLED: "정산 완료",
-};
-
-const STATUS_STYLE: Record<Quote["status"], string> = {
-  ESTIMATE: "bg-warn-soft text-warn",
-  CONTRACTED: "bg-accent-soft text-accent",
-  SETTLED: "bg-good-soft text-good",
-};
+import { AdminQuoteTable } from "@/components/admin/AdminQuoteTable";
 
 export default async function AdminPage({
   searchParams,
@@ -30,7 +18,21 @@ export default async function AdminPage({
   const { companyId } = await searchParams;
   const quotes = companyId ? listQuotes({ companyId }) : listQuotes();
   const companies = listCompanies();
-  const rows = quotes.map((q) => ({ quote: q, applicant: findUserById(q.applicantId) }));
+  // 날짜/통화 포맷은 로케일에 따라 서버·브라우저 렌더링 결과가 달라져 하이드레이션 불일치를
+  // 일으킬 수 있으므로, 클라이언트 컴포넌트로 넘기기 전에 서버에서 미리 문자열로 포맷한다.
+  const rows = quotes.map((q) => {
+    const applicant = findUserById(q.applicantId);
+    return {
+      id: q.id,
+      createdAtLabel: new Date(q.createdAt).toLocaleString("ko-KR"),
+      applicantName: applicant?.name ?? "-",
+      companyName: applicant?.companyName ?? "-",
+      weekLabel: `${q.selection.week.year}.${q.selection.week.month} ${q.selection.week.weekOfMonth}주차`,
+      audienceLabel: `${q.selection.expectedAudience.toLocaleString()}명`,
+      totalLabel: won(q.total),
+      status: q.status,
+    };
+  });
 
   return (
     <div className="flex flex-1 flex-col">
@@ -73,61 +75,8 @@ export default async function AdminPage({
           )}
         </form>
 
-        <div className="mt-6 overflow-x-auto rounded border border-border">
-          <table className="w-full min-w-[920px] border-collapse text-[13px]">
-            <thead>
-              <tr className="border-b border-border bg-panel text-left text-[11.5px] font-medium text-muted">
-                <th className="px-4 py-3">신청번호</th>
-                <th className="px-4 py-3">신청일시</th>
-                <th className="px-4 py-3">신청자</th>
-                <th className="px-4 py-3">회사</th>
-                <th className="px-4 py-3">주차</th>
-                <th className="px-4 py-3">관객</th>
-                <th className="px-4 py-3 text-right">신청 예상금액</th>
-                <th className="px-4 py-3">상태</th>
-                <th className="px-4 py-3" />
-              </tr>
-            </thead>
-            <tbody>
-              {rows.length === 0 ? (
-                <tr>
-                  <td colSpan={9} className="px-4 py-8 text-center text-muted">
-                    아직 접수된 신청서가 없습니다.
-                  </td>
-                </tr>
-              ) : (
-                rows.map(({ quote: q, applicant }) => (
-                  <tr key={q.id} className="border-b border-border/70">
-                    <td className="px-4 py-3 font-medium">{q.id}</td>
-                    <td className="px-4 py-3 text-muted">
-                      {new Date(q.createdAt).toLocaleString("ko-KR")}
-                    </td>
-                    <td className="px-4 py-3">{applicant?.name ?? "-"}</td>
-                    <td className="px-4 py-3 text-muted">{applicant?.companyName ?? "-"}</td>
-                    <td className="px-4 py-3">
-                      {q.selection.week.year}.{q.selection.week.month} {q.selection.week.weekOfMonth}주차
-                    </td>
-                    <td className="px-4 py-3">{q.selection.expectedAudience.toLocaleString()}명</td>
-                    <td className="px-4 py-3 text-right font-semibold tabular-nums">
-                      {won(q.total)}
-                    </td>
-                    <td className="px-4 py-3">
-                      <span
-                        className={`rounded-sm px-2.5 py-1 text-[11.5px] font-medium ${STATUS_STYLE[q.status]}`}
-                      >
-                        {STATUS_LABEL[q.status]}
-                      </span>
-                    </td>
-                    <td className="px-4 py-3 text-right">
-                      <Link href={`/admin/${q.id}`} className="font-medium text-accent hover:underline">
-                        상세 →
-                      </Link>
-                    </td>
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
+        <div className="mt-6">
+          <AdminQuoteTable rows={rows} />
         </div>
       </main>
     </div>

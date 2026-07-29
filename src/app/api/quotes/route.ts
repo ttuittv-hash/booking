@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import crypto from "node:crypto";
 import { getCurrentUser } from "@/lib/auth";
-import { addAuditLog, createQuote, getCurrentRateTable, listQuotes, notifyAdmins } from "@/lib/db";
+import { addAuditLog, createNotification, createQuote, getCurrentRateTable, listQuotes, notifyAdmins } from "@/lib/db";
 import { calculateQuote } from "@/lib/pricing/calculateQuote";
 import type { QuoteSelection } from "@/lib/pricing/types";
 
@@ -59,6 +59,14 @@ export async function POST(request: Request) {
   notifyAdmins({
     quoteId: quote.id,
     message: `새 대관 신청서 ${quote.id}가 접수되었습니다.`,
+    createdAt: quote.createdAt,
+  });
+
+  createNotification({
+    id: crypto.randomUUID(),
+    recipientId: user.id,
+    quoteId: quote.id,
+    message: `신청서 ${quote.id}가 정상 접수되었습니다. 운영자 심사 후 결과를 안내해 드립니다.`,
     createdAt: quote.createdAt,
   });
 

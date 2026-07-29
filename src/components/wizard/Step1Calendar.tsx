@@ -88,8 +88,9 @@ export function Step1Calendar({
   const selectedDates = resolveSelectedDates({ week, excludedDays, extraDays });
   const dayTagDefaults = defaultDayTags(selectedDates, defaultPerformanceDays);
 
-  function setDayTag(date: string, tag: DayTag) {
-    onChangeDayTags({ ...dayTags, [date]: tag });
+  function toggleDayTag(date: string) {
+    const current = effectiveDayTag(date, dayTags, dayTagDefaults);
+    onChangeDayTags({ ...dayTags, [date]: current === "PERFORMANCE" ? "PREP" : "PERFORMANCE" });
   }
 
   // 선택된 주의 화요일(기준일)을 찾아 실제 대관 예정 날짜 범위(제외 요일 제거 + 추가 일수 포함)를 계산한다.
@@ -302,30 +303,18 @@ export function Step1Calendar({
                   className="flex flex-col items-center gap-1.5 rounded-sm border border-border bg-panel/60 px-2.5 py-2.5"
                 >
                   <span className="text-[13px] font-semibold text-foreground">{formatDateLabel(date)}</span>
-                  <div className="flex h-6 overflow-hidden rounded-full border border-border bg-background">
-                    <button
-                      type="button"
-                      onClick={() => setDayTag(date, "PREP")}
-                      aria-label="준비일로 설정"
-                      className={[
-                        "px-2.5 text-[10.5px] font-medium transition-colors",
-                        tag === "PREP" ? "bg-accent text-white" : "text-muted hover:text-foreground",
-                      ].join(" ")}
-                    >
-                      준비
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setDayTag(date, "PERFORMANCE")}
-                      aria-label="공연일로 설정"
-                      className={[
-                        "px-2.5 text-[10.5px] font-medium transition-colors",
-                        tag === "PERFORMANCE" ? "bg-accent text-white" : "text-muted hover:text-foreground",
-                      ].join(" ")}
-                    >
-                      공연
-                    </button>
-                  </div>
+                  <button
+                    type="button"
+                    onClick={() => toggleDayTag(date)}
+                    className={[
+                      "rounded-sm px-2 py-0.5 text-[10.5px] font-medium transition-colors",
+                      tag === "PERFORMANCE"
+                        ? "bg-accent-soft text-accent"
+                        : "bg-panel-strong text-muted hover:text-foreground",
+                    ].join(" ")}
+                  >
+                    {tag === "PERFORMANCE" ? "공연일" : "준비일"}
+                  </button>
                 </div>
               );
             })}

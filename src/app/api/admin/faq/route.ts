@@ -16,10 +16,11 @@ export async function POST(request: Request) {
   const body = await request.json().catch(() => null);
   const question = typeof body?.question === "string" ? body.question.trim() : "";
   const answer = typeof body?.answer === "string" ? body.answer.trim() : "";
+  const tag = typeof body?.tag === "string" && body.tag.trim() ? body.tag.trim() : null;
   if (!question || !answer) {
     return NextResponse.json({ error: "질문과 답변을 입력하세요." }, { status: 400 });
   }
 
-  const faq = createFaq({ id: crypto.randomUUID(), question, answer, createdAt: new Date().toISOString() });
+  const faq = createFaq({ id: crypto.randomUUID(), tag, question, answer, createdAt: new Date().toISOString() });
   return NextResponse.json({ faq });
 }

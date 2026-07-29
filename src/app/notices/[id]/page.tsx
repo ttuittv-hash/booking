@@ -4,6 +4,7 @@ import { notFound, redirect } from "next/navigation";
 import { getCurrentUser, isPendingApplicant } from "@/lib/auth";
 import { getNoticeById } from "@/lib/db";
 import { PublicHeader } from "@/components/PublicHeader";
+import { TagBadge } from "@/components/TagBadge";
 
 export async function generateMetadata({
   params,
@@ -36,7 +37,10 @@ export default async function NoticeDetailPage({
           ← 공지사항 목록
         </Link>
 
-        <h1 className="mt-4 text-[26px] font-semibold tracking-tight sm:text-[30px]">{notice.title}</h1>
+        <h1 className="mt-4 text-[26px] font-semibold tracking-tight sm:text-[30px]">
+          <TagBadge tag={notice.tag} />
+          {notice.title}
+        </h1>
         <p className="mt-2 text-[12px] text-muted">
           {new Date(notice.createdAt).toLocaleString("ko-KR")}
         </p>
@@ -50,7 +54,10 @@ export default async function NoticeDetailPage({
           />
         )}
 
-        <p className="mt-6 whitespace-pre-wrap text-[14.5px] leading-8 text-muted">{notice.body}</p>
+        <div
+          className="prose-notice mt-6 whitespace-pre-wrap text-[14.5px] leading-8 text-muted [&_img]:mt-3 [&_img]:max-w-full [&_img]:rounded-sm [&_p]:my-3"
+          dangerouslySetInnerHTML={{ __html: notice.body }}
+        />
       </main>
     </div>
   );

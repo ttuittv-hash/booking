@@ -16,9 +16,17 @@ import { Step6Submit } from "./Step6Submit";
 
 const TOTAL_STEPS = 6;
 
+// 오늘 기준 다음 달을 기본값으로 — 과거 임의의 연도로 고정돼 있으면 신청자가 매번
+// 달력을 여러 달 넘겨야 하고, 자신이 신청한 주차의 경합 현황도 바로 보이지 않는다.
+function defaultWeek(): QuoteSelection["week"] {
+  const now = new Date();
+  const next = new Date(now.getFullYear(), now.getMonth() + 1, 1);
+  return { year: next.getFullYear(), month: next.getMonth() + 1, weekOfMonth: 1 };
+}
+
 const INITIAL_SELECTION: QuoteSelection = {
   packageId: null,
-  week: { year: 2027, month: 8, weekOfMonth: 1 },
+  week: defaultWeek(),
   excludedDays: [],
   extraDays: 0,
   dayTags: {},

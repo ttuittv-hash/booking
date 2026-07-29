@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import type { Faq } from "@/lib/pricing/types";
+import { TagBadge } from "@/components/TagBadge";
 
 export function FaqAccordion({ faqs }: { faqs: Faq[] }) {
   const [openId, setOpenId] = useState<string | null>(faqs[0]?.id ?? null);
@@ -18,6 +19,7 @@ export function FaqAccordion({ faqs }: { faqs: Faq[] }) {
               className="flex w-full items-center justify-between gap-6 py-6 text-left outline-none"
             >
               <span className="text-[15px] font-semibold">
+                <TagBadge tag={faq.tag} />
                 <span className="mr-2 text-accent">Q.</span>
                 {faq.question}
               </span>
