@@ -149,6 +149,8 @@ function createConnection(): DatabaseSync {
       title TEXT NOT NULL,
       body TEXT NOT NULL,
       image_url TEXT,
+      attachment_url TEXT,
+      attachment_name TEXT,
       created_at TEXT NOT NULL,
       updated_at TEXT NOT NULL
     );
@@ -186,6 +188,8 @@ function createConnection(): DatabaseSync {
   ensureColumn(db, "faqs", "tag", "TEXT");
   ensureColumn(db, "quotes", "review_json", "TEXT");
   ensureColumn(db, "companies", "business_registration_number", "TEXT");
+  ensureColumn(db, "notices", "attachment_url", "TEXT");
+  ensureColumn(db, "notices", "attachment_name", "TEXT");
 
   const rateTableCount = db.prepare("SELECT COUNT(*) as n FROM rate_tables").get() as { n: number };
   if (rateTableCount.n === 0) {
@@ -934,6 +938,8 @@ interface NoticeRow {
   title: string;
   body: string;
   image_url: string | null;
+  attachment_url: string | null;
+  attachment_name: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -945,6 +951,8 @@ function toNotice(row: NoticeRow): Notice {
     title: row.title,
     body: row.body,
     imageUrl: row.image_url,
+    attachmentUrl: row.attachment_url,
+    attachmentName: row.attachment_name,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
   };
@@ -968,25 +976,49 @@ export function createNotice(input: {
   title: string;
   body: string;
   imageUrl?: string | null;
+  attachmentUrl?: string | null;
+  attachmentName?: string | null;
   createdAt: string;
 }): Notice {
   const db = getDb();
   db.prepare(
-    "INSERT INTO notices (id, tag, title, body, image_url, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?)",
-  ).run(input.id, input.tag ?? null, input.title, input.body, input.imageUrl ?? null, input.createdAt, input.createdAt);
+    "INSERT INTO notices (id, tag, title, body, image_url, attachment_url, attachment_name, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+  ).run(
+    input.id,
+    input.tag ?? null,
+    input.title,
+    input.body,
+    input.imageUrl ?? null,
+    input.attachmentUrl ?? null,
+    input.attachmentName ?? null,
+    input.createdAt,
+    input.createdAt,
+  );
   return getNoticeById(input.id)!;
 }
 
 export function updateNotice(
   id: string,
-  input: { tag?: string | null; title: string; body: string; imageUrl?: string | null; updatedAt: string },
+  input: {
+    tag?: string | null;
+    title: string;
+    body: string;
+    imageUrl?: string | null;
+    attachmentUrl?: string | null;
+    attachmentName?: string | null;
+    updatedAt: string;
+  },
 ): Notice | undefined {
   const db = getDb();
-  db.prepare("UPDATE notices SET tag = ?, title = ?, body = ?, image_url = ?, updated_at = ? WHERE id = ?").run(
+  db.prepare(
+    "UPDATE notices SET tag = ?, title = ?, body = ?, image_url = ?, attachment_url = ?, attachment_name = ?, updated_at = ? WHERE id = ?",
+  ).run(
     input.tag ?? null,
     input.title,
     input.body,
     input.imageUrl ?? null,
+    input.attachmentUrl ?? null,
+    input.attachmentName ?? null,
     input.updatedAt,
     id,
   );

@@ -54,6 +54,15 @@ export default async function NoticeDetailPage({
           />
         )}
 
+        {notice.attachmentUrl && (
+          <a
+            href={`${notice.attachmentUrl}?name=${encodeURIComponent(notice.attachmentName ?? "첨부파일")}`}
+            className="mt-6 flex items-center gap-2 rounded-sm border border-border bg-panel/60 px-4 py-3 text-[13px] font-medium text-accent hover:border-accent"
+          >
+            ⬇ {notice.attachmentName ?? "첨부파일"} 다운로드
+          </a>
+        )}
+
         <div
           className="mt-6 whitespace-pre-wrap border-t border-border pt-8 text-[14.5px] leading-8 text-muted
             [&_h3]:mt-7 [&_h3]:text-[16px] [&_h3]:font-semibold [&_h3]:text-foreground [&_h3]:first:mt-0

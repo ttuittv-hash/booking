@@ -78,9 +78,12 @@ function NoticesTab({
   const [title, setTitle] = useState("");
   const [body, setBody] = useState("");
   const [imageUrl, setImageUrl] = useState<string | null>(null);
+  const [attachmentUrl, setAttachmentUrl] = useState<string | null>(null);
+  const [attachmentName, setAttachmentName] = useState<string | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
+  const [uploadingAttachment, setUploadingAttachment] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   function startCreate() {
@@ -89,6 +92,8 @@ function NoticesTab({
     setTitle("");
     setBody("");
     setImageUrl(null);
+    setAttachmentUrl(null);
+    setAttachmentName(null);
     setError(null);
   }
 
@@ -98,6 +103,8 @@ function NoticesTab({
     setTitle(notice.title);
     setBody(notice.body);
     setImageUrl(notice.imageUrl);
+    setAttachmentUrl(notice.attachmentUrl);
+    setAttachmentName(notice.attachmentName);
   }
 
   function resetForm() {
@@ -106,6 +113,8 @@ function NoticesTab({
     setTitle("");
     setBody("");
     setImageUrl(null);
+    setAttachmentUrl(null);
+    setAttachmentName(null);
     setError(null);
   }
 
@@ -127,6 +136,25 @@ function NoticesTab({
     }
   }
 
+  async function uploadAttachment(file: File) {
+    setUploadingAttachment(true);
+    setError(null);
+    try {
+      const formData = new FormData();
+      formData.append("file", file);
+      const res = await fetch("/api/admin/notices/attachment", { method: "POST", body: formData });
+      const data = await res.json();
+      if (!res.ok) {
+        setError(data.error || "파일 업로드에 실패했습니다.");
+        return;
+      }
+      setAttachmentUrl(data.url);
+      setAttachmentName(data.name);
+    } finally {
+      setUploadingAttachment(false);
+    }
+  }
+
   async function save() {
     const isNew = editingId === "__new__";
     setSaving(true);
@@ -135,7 +163,7 @@ function NoticesTab({
       const res = await fetch(isNew ? "/api/admin/notices" : `/api/admin/notices/${editingId}`, {
         method: isNew ? "POST" : "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ tag, title, body, imageUrl }),
+        body: JSON.stringify({ tag, title, body, imageUrl, attachmentUrl, attachmentName }),
       });
       const data = await res.json();
       if (!res.ok) {
@@ -189,8 +217,9 @@ function NoticesTab({
                       {notice.title}
                     </div>
                     <p className="mt-1 text-[12.5px] leading-5 text-muted">{stripHtml(notice.body)}</p>
-                    <div className="mt-2 text-[11px] text-muted">
+                    <div className="mt-2 flex items-center gap-2 text-[11px] text-muted">
                       {new Date(notice.createdAt).toLocaleString("ko-KR")}
+                      {notice.attachmentUrl && <span className="text-accent">· 첨부파일</span>}
                     </div>
                   </div>
                 </button>
@@ -260,6 +289,41 @@ function NoticesTab({
                 />
               )}
               {uploading && <p className="mt-1 text-[11.5px] text-muted">업로드 중...</p>}
+            </div>
+
+            <div>
+              <span className="mb-1.5 block text-[12px] text-muted">
+                첨부파일 (규약/상세문서 등, 선택 · PDF/Word/한글/Excel/PowerPoint/ZIP, 20MB 이하)
+              </span>
+              {attachmentUrl ? (
+                <div className="flex items-center gap-3">
+                  <span className="rounded-sm border border-border bg-panel px-3 py-1.5 text-[12.5px]">
+                    {attachmentName}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setAttachmentUrl(null);
+                      setAttachmentName(null);
+                    }}
+                    className="text-[12.5px] text-muted hover:text-red-600"
+                  >
+                    파일 제거
+                  </button>
+                </div>
+              ) : (
+                <input
+                  type="file"
+                  accept=".pdf,.doc,.docx,.hwp,.hwpx,.xls,.xlsx,.ppt,.pptx,.zip"
+                  disabled={uploadingAttachment}
+                  onChange={(e) => {
+                    const file = e.target.files?.[0];
+                    if (file) uploadAttachment(file);
+                  }}
+                  className="w-full text-[12.5px] text-muted file:mr-3 file:rounded-sm file:border file:border-border file:bg-background file:px-3 file:py-1.5 file:text-[12.5px] file:font-medium"
+                />
+              )}
+              {uploadingAttachment && <p className="mt-1 text-[11.5px] text-muted">업로드 중...</p>}
             </div>
 
             {error && <p className="text-[12.5px] text-red-600">{error}</p>}

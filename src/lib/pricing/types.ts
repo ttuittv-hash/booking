@@ -316,6 +316,8 @@ export interface Notice {
   title: string;
   body: string;
   imageUrl: string | null;
+  attachmentUrl: string | null; // 첨부파일(규약/상세문서 등) 다운로드 링크
+  attachmentName: string | null; // 첨부파일 원본 파일명
   createdAt: string;
   updatedAt: string;
 }

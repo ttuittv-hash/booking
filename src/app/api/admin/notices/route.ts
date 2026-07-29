@@ -18,6 +18,10 @@ export async function POST(request: Request) {
   const noticeBody = typeof body?.body === "string" ? body.body.trim() : "";
   const imageUrl = typeof body?.imageUrl === "string" && body.imageUrl.trim() ? body.imageUrl.trim() : null;
   const tag = typeof body?.tag === "string" && body.tag.trim() ? body.tag.trim() : null;
+  const attachmentUrl =
+    typeof body?.attachmentUrl === "string" && body.attachmentUrl.trim() ? body.attachmentUrl.trim() : null;
+  const attachmentName =
+    typeof body?.attachmentName === "string" && body.attachmentName.trim() ? body.attachmentName.trim() : null;
   if (!title || !noticeBody) {
     return NextResponse.json({ error: "제목과 내용을 입력하세요." }, { status: 400 });
   }
@@ -28,6 +32,8 @@ export async function POST(request: Request) {
     title,
     body: noticeBody,
     imageUrl,
+    attachmentUrl,
+    attachmentName,
     createdAt: new Date().toISOString(),
   });
   return NextResponse.json({ notice });
