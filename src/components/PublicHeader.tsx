@@ -11,7 +11,15 @@ const NAV_LINKS: {
   label: string;
   children?: { href: string; label: string }[];
 }[] = [
-  { href: "/venue", label: "SEOUL ARENA" },
+  {
+    href: "/venue",
+    label: "SEOUL ARENA",
+    children: [
+      { href: "/venue#overview", label: "시설 개요" },
+      { href: "/venue#specs", label: "시설 제원" },
+      { href: "/venue#amenities", label: "부대시설" },
+    ],
+  },
   {
     href: "/guide",
     label: "대관 안내",
