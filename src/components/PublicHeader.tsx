@@ -18,7 +18,7 @@ export function PublicHeader({
 }) {
   return (
     <header className="sticky top-0 z-20 border-b border-border/70 bg-background/80 backdrop-blur-md">
-      <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-x-4 gap-y-2 px-4 py-3 sm:px-6 sm:py-4">
+      <div className="mx-auto flex max-w-6xl flex-wrap items-center gap-x-8 gap-y-2 px-4 py-3 sm:px-6 sm:py-4">
         <Link href="/" className="shrink-0 whitespace-nowrap text-[15px] font-semibold tracking-tight">
           SEOUL ARENA
         </Link>
@@ -35,7 +35,7 @@ export function PublicHeader({
           ))}
         </nav>
 
-        <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-[13px] text-muted">
+        <div className="ml-auto flex flex-wrap items-center gap-x-4 gap-y-2 text-[13px] text-muted">
           {currentUser ? (
             <>
               <span className="hidden whitespace-nowrap sm:inline">{currentUser.name} 님</span>
