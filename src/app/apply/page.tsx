@@ -1,56 +1,51 @@
-import Link from "next/link";
 import type { Metadata } from "next";
+import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/lib/auth";
 import { getCurrentRateTable, listWeekDemand } from "@/lib/db";
-import { LogoutButton } from "@/components/LogoutButton";
-import { NotificationBell } from "@/components/NotificationBell";
+import { PublicHeader } from "@/components/PublicHeader";
 import { WizardShell } from "@/components/wizard/WizardShell";
 
 export const metadata: Metadata = {
   title: "대관 견적·신청 | 서울아레나",
 };
 
+const APPROVAL_NOTICE: Record<"PENDING" | "REJECTED", { title: string; desc: string }> = {
+  PENDING: {
+    title: "가입 승인 대기 중입니다",
+    desc: "운영자 승인이 완료되면 대관 패키지 안내와 견적 산출을 이용하실 수 있습니다. 승인 결과는 알림으로 안내됩니다.",
+  },
+  REJECTED: {
+    title: "가입이 승인되지 않았습니다",
+    desc: "자세한 사항은 운영자에게 문의해주세요.",
+  },
+};
+
 export default async function ApplyPage() {
-  const [rateTable, currentUser] = await Promise.all([
+  const currentUser = await getCurrentUser();
+  if (!currentUser) redirect("/login");
+
+  const [rateTable, weekDemand] = await Promise.all([
     getCurrentRateTable(),
-    getCurrentUser(),
+    Promise.resolve(listWeekDemand()),
   ]);
-  const weekDemand = listWeekDemand();
+
+  const notice =
+    currentUser.role === "APPLICANT" && currentUser.approvalStatus !== "APPROVED"
+      ? APPROVAL_NOTICE[currentUser.approvalStatus]
+      : null;
 
   return (
     <div className="flex flex-1 flex-col">
-      <header className="sticky top-0 z-20 border-b border-border/70 bg-background/80 backdrop-blur-md">
-        <div className="mx-auto flex max-w-6xl flex-wrap items-center gap-x-4 gap-y-2 px-4 py-3 sm:px-6 sm:py-4">
-          <Link href="/" className="shrink-0 whitespace-nowrap text-[15px] font-semibold tracking-tight">
-            SEOUL ARENA
-          </Link>
-          <span className="shrink-0 whitespace-nowrap rounded border border-border px-2.5 py-1 text-[11px] text-muted">
-            대관 견적·신청
-          </span>
-          <div className="ml-auto flex flex-wrap items-center gap-x-4 gap-y-2 text-[13px] text-muted">
-            {currentUser ? (
-              <>
-                <span className="hidden whitespace-nowrap sm:inline">{currentUser.name} 님</span>
-                <Link href="/mypage" className="whitespace-nowrap hover:text-foreground">
-                  내 신청 내역
-                </Link>
-                <NotificationBell role={currentUser.role} />
-                <LogoutButton className="whitespace-nowrap hover:text-foreground" />
-              </>
-            ) : (
-              <>
-                <Link href="/login" className="whitespace-nowrap hover:text-foreground">
-                  로그인
-                </Link>
-                <Link href="/register" className="whitespace-nowrap hover:text-foreground">
-                  회원가입
-                </Link>
-              </>
-            )}
-          </div>
-        </div>
-      </header>
-      <WizardShell rateTable={rateTable} currentUser={currentUser} weekDemand={weekDemand} />
+      <PublicHeader active="/apply" currentUser={currentUser} />
+
+      {notice ? (
+        <main className="mx-auto w-full max-w-lg flex-1 px-6 py-24 text-center">
+          <h1 className="text-[20px] font-semibold">{notice.title}</h1>
+          <p className="mt-3 text-[13.5px] leading-6 text-muted">{notice.desc}</p>
+        </main>
+      ) : (
+        <WizardShell rateTable={rateTable} currentUser={currentUser} weekDemand={weekDemand} />
+      )}
     </div>
   );
 }

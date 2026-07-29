@@ -25,7 +25,7 @@ export function ApplicantHeader({
             {label}
           </Link>
         ) : (
-          <span className="shrink-0 whitespace-nowrap rounded border border-border px-2.5 py-1 text-[11px] text-muted">
+          <span className="shrink-0 whitespace-nowrap rounded-sm border border-border px-2.5 py-1 text-[11px] text-muted">
             {label}
           </span>
         )}

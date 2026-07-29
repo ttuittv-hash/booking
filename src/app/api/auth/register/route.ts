@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import crypto from "node:crypto";
 import { createSession, hashPassword } from "@/lib/auth";
-import { createUser, findUserByEmailWithPasswordHash } from "@/lib/db";
+import { createUser, findUserByEmailWithPasswordHash, notifyAdmins } from "@/lib/db";
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -25,6 +25,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "이미 가입된 이메일입니다." }, { status: 409 });
   }
 
+  const createdAt = new Date().toISOString();
   const user = createUser({
     id: crypto.randomUUID(),
     email,
@@ -32,7 +33,14 @@ export async function POST(request: Request) {
     name,
     companyName: companyName || null,
     role: "APPLICANT",
-    createdAt: new Date().toISOString(),
+    approvalStatus: "PENDING",
+    createdAt,
+  });
+
+  notifyAdmins({
+    quoteId: "applicants",
+    message: `신규 가입 승인 요청: ${name}${companyName ? ` (${companyName})` : ""}`,
+    createdAt,
   });
 
   await createSession(user.id, user.role);

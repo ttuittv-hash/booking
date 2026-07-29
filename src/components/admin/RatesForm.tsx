@@ -61,7 +61,7 @@ export function RatesForm({ rateTable }: { rateTable: RateTable }) {
 
   return (
     <div className="mt-8 space-y-8">
-      <section className="rounded-md border border-border bg-background p-6">
+      <section className="rounded border border-border bg-background p-6">
         <h2 className="text-[15px] font-semibold">패키지 기본 대관료 (원/주)</h2>
         <div className="mt-4 space-y-2.5">
           {packages.map((pkg, i) => (
@@ -76,7 +76,7 @@ export function RatesForm({ rateTable }: { rateTable: RateTable }) {
                     prev.map((p, idx) => (idx === i ? { ...p, baseFeePerWeek: Number(e.target.value) || 0 } : p)),
                   )
                 }
-                className="rounded-md border border-border bg-panel px-3 py-2 text-right text-[13px] outline-none focus:border-accent"
+                className="rounded border border-border bg-panel px-3 py-2 text-right text-[13px] outline-none focus:border-accent"
               />
             </div>
           ))}
@@ -95,7 +95,7 @@ export function RatesForm({ rateTable }: { rateTable: RateTable }) {
             step={0.05}
             value={extraWeekRatio}
             onChange={(e) => setExtraWeekRatio(Number(e.target.value) || 0)}
-            className="rounded-md border border-border bg-panel px-3 py-2 text-right text-[13px] outline-none focus:border-accent"
+            className="rounded border border-border bg-panel px-3 py-2 text-right text-[13px] outline-none focus:border-accent"
           />
         </div>
 
@@ -112,12 +112,12 @@ export function RatesForm({ rateTable }: { rateTable: RateTable }) {
             step={0.01}
             value={dayExclusionDiscountRatio}
             onChange={(e) => setDayExclusionDiscountRatio(Number(e.target.value) || 0)}
-            className="rounded-md border border-border bg-panel px-3 py-2 text-right text-[13px] outline-none focus:border-accent"
+            className="rounded border border-border bg-panel px-3 py-2 text-right text-[13px] outline-none focus:border-accent"
           />
         </div>
       </section>
 
-      <section className="rounded-md border border-border bg-background p-6">
+      <section className="rounded border border-border bg-background p-6">
         <h2 className="text-[15px] font-semibold">부대시설 단가</h2>
         <div className="mt-4 space-y-6">
           {[...grouped.entries()].map(([category, items]) => (
@@ -145,7 +145,7 @@ export function RatesForm({ rateTable }: { rateTable: RateTable }) {
                               ),
                             )
                           }
-                          className="rounded-md border border-border bg-panel px-3 py-2 text-right text-[13px] outline-none focus:border-accent"
+                          className="rounded border border-border bg-panel px-3 py-2 text-right text-[13px] outline-none focus:border-accent"
                         />
                       ) : (
                         <span className="text-right text-[12.5px] text-muted">실사용 정산 (편집 불가)</span>
@@ -164,7 +164,7 @@ export function RatesForm({ rateTable }: { rateTable: RateTable }) {
           type="button"
           disabled={saving}
           onClick={save}
-          className="rounded bg-accent px-7 py-3 text-[14px] font-semibold text-white transition-colors hover:bg-accent-hover disabled:opacity-50"
+          className="rounded-sm bg-accent px-7 py-3 text-[14px] font-semibold text-white transition-colors hover:bg-accent-hover disabled:opacity-50"
         >
           {saving ? "저장 중..." : "요금표 저장 (새 버전 생성)"}
         </button>

@@ -40,7 +40,8 @@ export default function RegisterPage() {
         </Link>
         <h1 className="mt-6 text-[22px] font-semibold">신청자 회원가입</h1>
         <p className="mt-1.5 text-[13.5px] text-muted">
-          대관 신청을 위해 계정을 생성하세요.
+          대관사(엔터테인먼트사·기획사) 전용 가입입니다. 가입 후 운영자 승인이
+          완료되어야 대관 패키지 안내와 견적 산출을 이용할 수 있습니다.
         </p>
 
         <form onSubmit={handleSubmit} className="mt-8 space-y-4">
@@ -86,7 +87,7 @@ export default function RegisterPage() {
           <button
             type="submit"
             disabled={loading}
-            className="w-full rounded bg-accent px-6 py-3 text-[14px] font-semibold text-white transition-colors hover:bg-accent-hover disabled:opacity-50"
+            className="w-full rounded-sm bg-accent px-6 py-3 text-[14px] font-semibold text-white transition-colors hover:bg-accent-hover disabled:opacity-50"
           >
             {loading ? "처리 중..." : "회원가입"}
           </button>

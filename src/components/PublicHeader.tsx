@@ -1,0 +1,68 @@
+import Link from "next/link";
+import type { AppUser } from "@/lib/pricing/types";
+import { LogoutButton } from "@/components/LogoutButton";
+import { NotificationBell } from "@/components/NotificationBell";
+
+const NAV_LINKS = [
+  { href: "/venue", label: "서울아레나 소개" },
+  { href: "/guide", label: "대관 안내" },
+  { href: "/apply", label: "대관 신청" },
+];
+
+export function PublicHeader({
+  active,
+  currentUser,
+}: {
+  active: string;
+  currentUser: AppUser | null;
+}) {
+  return (
+    <header className="sticky top-0 z-20 border-b border-border/70 bg-background/80 backdrop-blur-md">
+      <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-x-4 gap-y-2 px-4 py-3 sm:px-6 sm:py-4">
+        <Link href="/" className="shrink-0 whitespace-nowrap text-[15px] font-semibold tracking-tight">
+          SEOUL ARENA
+        </Link>
+
+        <nav className="flex flex-wrap items-center gap-x-6 gap-y-2 text-[13px] text-muted">
+          {NAV_LINKS.map((link) => (
+            <Link
+              key={link.href}
+              href={link.href}
+              className={`whitespace-nowrap ${link.href === active ? "font-medium text-foreground" : "hover:text-foreground"}`}
+            >
+              {link.label}
+            </Link>
+          ))}
+        </nav>
+
+        <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-[13px] text-muted">
+          {currentUser ? (
+            <>
+              <span className="hidden whitespace-nowrap sm:inline">{currentUser.name} 님</span>
+              {currentUser.role === "ADMIN" ? (
+                <Link href="/admin" className="whitespace-nowrap hover:text-foreground">
+                  운영자 백오피스
+                </Link>
+              ) : (
+                <Link href="/mypage" className="whitespace-nowrap hover:text-foreground">
+                  내 신청 내역
+                </Link>
+              )}
+              <NotificationBell role={currentUser.role} />
+              <LogoutButton className="whitespace-nowrap hover:text-foreground" />
+            </>
+          ) : (
+            <>
+              <Link href="/login" className="whitespace-nowrap hover:text-foreground">
+                로그인
+              </Link>
+              <Link href="/register" className="whitespace-nowrap hover:text-foreground">
+                회원가입
+              </Link>
+            </>
+          )}
+        </div>
+      </div>
+    </header>
+  );
+}

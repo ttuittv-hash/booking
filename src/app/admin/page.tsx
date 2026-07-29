@@ -36,7 +36,7 @@ export default async function AdminPage() {
           행사 종료 후 정산을 진행하세요.
         </p>
 
-        <div className="mt-8 overflow-x-auto rounded-md border border-border">
+        <div className="mt-8 overflow-x-auto rounded border border-border">
           <table className="w-full min-w-[820px] border-collapse text-[13px]">
             <thead>
               <tr className="border-b border-border bg-panel text-left text-[11.5px] font-medium text-muted">
@@ -72,7 +72,7 @@ export default async function AdminPage() {
                     </td>
                     <td className="px-4 py-3">
                       <span
-                        className={`rounded px-2.5 py-1 text-[11.5px] font-medium ${STATUS_STYLE[q.status]}`}
+                        className={`rounded-sm px-2.5 py-1 text-[11.5px] font-medium ${STATUS_STYLE[q.status]}`}
                       >
                         {STATUS_LABEL[q.status]}
                       </span>

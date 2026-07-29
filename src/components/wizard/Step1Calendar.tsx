@@ -2,15 +2,15 @@
 
 import { WEEKDAYS, WEEKDAY_LABEL, type QuoteSelection, type WeekDay, type WeekDemand } from "@/lib/pricing/types";
 
-const DOW_LABELS = ["화", "수", "목", "금", "토", "일", "월"]; // 화~일 대관, 월 제외
+const DOW_LABELS = ["월", "화", "수", "목", "금", "토", "일"]; // 달력은 월요일부터 시작, 대관 단위는 화~일 (월요일은 대관 불가 기본값)
 
-// JS Date.getDay(): 0=일 1=월 ... 6=토 → 화(2)를 0번 컬럼으로 매핑
+// JS Date.getDay(): 0=일 1=월 ... 6=토 → 월(1)을 0번 컬럼으로 매핑
 function toColumnIndex(jsDay: number): number {
-  return (jsDay + 5) % 7;
+  return (jsDay + 6) % 7;
 }
 
 interface CalendarWeek {
-  days: Date[];
+  days: Date[]; // [월,화,수,목,금,토,일]
   weekOfMonth: number | null; // 해당 월에 속하지 않는 행이면 null
 }
 
@@ -28,9 +28,8 @@ function buildCalendarWeeks(year: number, month: number): CalendarWeek[] {
       date.setDate(gridStart.getDate() + w * 7 + d);
       days.push(date);
     }
-    // 주(화~일)의 기준일은 화요일(days[0]). 화요일이 해당 월에 속할 때만 그 달의 "N주차"로 센다.
-    // (전월 화요일에서 시작해 이번 달로 며칠 넘어오는 주는 이번 달 N주차로 세지 않음)
-    const startsInMonth = days[0].getMonth() === month - 1;
+    // 주(화~일)의 기준일은 화요일(days[1]). 화요일이 해당 월에 속할 때만 그 달의 "N주차"로 센다.
+    const startsInMonth = days[1].getMonth() === month - 1;
     if (startsInMonth) counter++;
     weeks.push({ days, weekOfMonth: startsInMonth ? counter : null });
   }
@@ -39,6 +38,16 @@ function buildCalendarWeeks(year: number, month: number): CalendarWeek[] {
 
 function isSameDate(a: Date, b: Date): boolean {
   return a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate();
+}
+
+function dateKey(d: Date): string {
+  return `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`;
+}
+
+function addDays(date: Date, n: number): Date {
+  const d = new Date(date);
+  d.setDate(d.getDate() + n);
+  return d;
 }
 
 export function Step1Calendar({
@@ -62,6 +71,18 @@ export function Step1Calendar({
   const today = new Date();
   const usedDayCount = 6 - excludedDays.length;
   const totalDays = usedDayCount + extraDays;
+
+  // 선택된 주의 화요일(기준일)을 찾아 실제 대관 예정 날짜 범위(제외 요일 제거 + 추가 일수 포함)를 계산한다.
+  const selectedTuesday = calendarWeeks.find((w) => w.weekOfMonth === week.weekOfMonth)?.days[1] ?? null;
+  const activeDateKeys = new Set<string>();
+  if (selectedTuesday) {
+    for (let i = 0; i < 6; i++) {
+      if (!excludedDays.includes(WEEKDAYS[i])) activeDateKeys.add(dateKey(addDays(selectedTuesday, i)));
+    }
+    for (let i = 0; i < extraDays; i++) {
+      activeDateKeys.add(dateKey(addDays(selectedTuesday, 6 + i))); // 일요일(offset 5) 다음날부터 연장
+    }
+  }
 
   function goToMonth(delta: number) {
     let nextMonth = week.month + delta;
@@ -100,8 +121,8 @@ export function Step1Calendar({
       <h2 className="text-[19px] font-semibold">1. 주차(기간) 선택</h2>
       <p className="mt-1.5 text-[13.5px] text-muted">
         달력에서 원하는 주를 눌러 선택하세요. 기본 단위는{" "}
-        <b className="text-foreground">1주(화~일, 6일)</b>이며, 아래에서 요일별로
-        빼거나 일수를 더할 수 있습니다.
+        <b className="text-foreground">1주(화~일, 6일)</b>이며, 월요일은 기본적으로 대관하지
+        않습니다. 아래에서 요일별로 빼거나 일수를 더할 수 있습니다.
       </p>
 
       <div className="mt-6 flex items-center justify-between">
@@ -109,7 +130,7 @@ export function Step1Calendar({
           type="button"
           onClick={() => goToMonth(-1)}
           aria-label="이전 달"
-          className="rounded border border-border px-3 py-1.5 text-[13px] text-muted hover:border-accent hover:text-accent"
+          className="rounded-sm border border-border px-3 py-1.5 text-[13px] text-muted hover:border-accent hover:text-accent"
         >
           ‹
         </button>
@@ -120,7 +141,7 @@ export function Step1Calendar({
           type="button"
           onClick={() => goToMonth(1)}
           aria-label="다음 달"
-          className="rounded border border-border px-3 py-1.5 text-[13px] text-muted hover:border-accent hover:text-accent"
+          className="rounded-sm border border-border px-3 py-1.5 text-[13px] text-muted hover:border-accent hover:text-accent"
         >
           ›
         </button>
@@ -128,7 +149,7 @@ export function Step1Calendar({
 
       <div className="mt-4 grid grid-cols-7 gap-1 text-center text-[11px] font-medium text-muted sm:gap-1.5">
         {DOW_LABELS.map((label, i) => (
-          <div key={label} className={i === 6 ? "opacity-50" : ""}>
+          <div key={label} className={i === 0 ? "opacity-50" : ""}>
             {label}
           </div>
         ))}
@@ -136,13 +157,12 @@ export function Step1Calendar({
 
       <div className="mt-1.5 space-y-1 sm:space-y-1.5">
         {calendarWeeks.map((calWeek, wi) => {
-          const isSelected = calWeek.weekOfMonth !== null && calWeek.weekOfMonth === week.weekOfMonth;
           const isSelectable = calWeek.weekOfMonth !== null;
           const demand = calWeek.weekOfMonth !== null ? demandFor(calWeek.weekOfMonth) : 0;
           return (
             <div key={wi} className="relative">
               {demand > 0 && (
-                <span className="absolute -top-1.5 right-1 z-10 rounded bg-panel-strong px-1.5 py-0.5 text-[10px] font-medium text-muted">
+                <span className="absolute -top-1.5 right-1 z-10 rounded-sm bg-panel-strong px-1.5 py-0.5 text-[10px] font-medium text-muted">
                   대관 신청 {demand}개사
                 </span>
               )}
@@ -151,22 +171,27 @@ export function Step1Calendar({
                 disabled={!isSelectable}
                 onClick={() => calWeek.weekOfMonth !== null && selectWeek(calWeek.weekOfMonth)}
                 className={[
-                  "grid w-full grid-cols-7 gap-1 rounded p-0.5 text-left sm:gap-1.5",
-                  isSelectable ? "cursor-pointer" : "cursor-default",
-                  isSelected ? "bg-accent-soft ring-1 ring-accent" : isSelectable ? "hover:bg-panel" : "",
+                  "grid w-full grid-cols-7 gap-1 rounded-sm p-0.5 text-left sm:gap-1.5",
+                  isSelectable ? "cursor-pointer hover:bg-panel" : "cursor-default",
                 ].join(" ")}
               >
                 {calWeek.days.map((date, di) => {
                   const inMonth = date.getMonth() === week.month - 1;
-                  const isMonday = di === 6;
+                  const isMonday = di === 0;
                   const isToday = isSameDate(date, today);
+                  const isActive = activeDateKeys.has(dateKey(date));
                   return (
                     <div
                       key={di}
                       className={[
-                        "flex h-9 items-center justify-center text-[12.5px] sm:h-11 sm:text-[13px]",
-                        !inMonth ? "text-muted/40" : isMonday ? "text-muted/70" : "text-foreground",
-                        isSelected && !isMonday ? "font-semibold text-accent" : "",
+                        "flex h-9 items-center justify-center rounded-sm text-[12.5px] sm:h-11 sm:text-[13px]",
+                        isActive
+                          ? "bg-accent-soft font-semibold text-accent"
+                          : !inMonth
+                            ? "text-muted/40"
+                            : isMonday
+                              ? "text-muted/70"
+                              : "text-foreground",
                         isToday ? "underline decoration-2 underline-offset-4" : "",
                       ].join(" ")}
                     >
@@ -191,7 +216,7 @@ export function Step1Calendar({
                 type="button"
                 onClick={() => toggleDay(day)}
                 className={[
-                  "h-9 w-9 rounded border text-[13px] font-medium transition-colors",
+                  "h-9 w-9 rounded-sm border text-[13px] font-medium transition-colors",
                   isExcluded
                     ? "border-border bg-panel text-muted/50 line-through"
                     : "border-accent bg-accent-soft text-accent",
@@ -215,7 +240,7 @@ export function Step1Calendar({
           <button
             type="button"
             onClick={() => onChangeExtraDays(Math.max(0, extraDays - 1))}
-            className="h-8 w-8 rounded border border-border text-[15px] text-muted hover:border-accent hover:text-accent"
+            className="h-8 w-8 rounded-sm border border-border text-[15px] text-muted hover:border-accent hover:text-accent"
             aria-label="추가 일수 감소"
           >
             −
@@ -224,7 +249,7 @@ export function Step1Calendar({
           <button
             type="button"
             onClick={() => onChangeExtraDays(Math.min(30, extraDays + 1))}
-            className="h-8 w-8 rounded border border-border text-[15px] text-muted hover:border-accent hover:text-accent"
+            className="h-8 w-8 rounded-sm border border-border text-[15px] text-muted hover:border-accent hover:text-accent"
             aria-label="추가 일수 증가"
           >
             +

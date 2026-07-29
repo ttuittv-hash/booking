@@ -57,7 +57,7 @@ export default async function MyQuoteDetailPage({
           {quote.selection.expectedAudience.toLocaleString()}명
         </p>
 
-        <section className="mt-6 rounded-md border border-border bg-background p-6">
+        <section className="mt-6 rounded border border-border bg-background p-6">
           <h2 className="text-[15px] font-semibold">① 신청 예상금액 · 산출내역</h2>
           <div className="mt-4 overflow-x-auto">
             <table className="w-full border-collapse text-[13px]">
@@ -93,7 +93,7 @@ export default async function MyQuoteDetailPage({
         </section>
 
         {quote.contract && (
-          <section className="mt-6 rounded-md border border-border bg-panel/60 p-6">
+          <section className="mt-6 rounded border border-border bg-panel/60 p-6">
             <h2 className="text-[15px] font-semibold">② 계약금액 확정됨</h2>
             <ul className="mt-3 space-y-1.5 text-[13px]">
               {quote.contract.adjustments.map((a, i) => (
@@ -117,7 +117,7 @@ export default async function MyQuoteDetailPage({
         )}
 
         {quote.settlement && (
-          <section className="mt-6 rounded-md border border-good/30 bg-good-soft p-6">
+          <section className="mt-6 rounded border border-good/30 bg-good-soft p-6">
             <h2 className="text-[15px] font-semibold text-good">③ 최종 정산 완료</h2>
             <div className="mt-3 flex items-center justify-between">
               <span className="text-[13px] text-good/80">

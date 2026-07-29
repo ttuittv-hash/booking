@@ -20,7 +20,7 @@ export function Step1Package({
   const recommended = recommendPackage(rateTable, expectedAudience);
 
   return (
-    <section className="rounded-md border border-border bg-background p-7">
+    <section className="rounded border border-border bg-background p-7">
       <h2 className="text-[19px] font-semibold">2. 규모 / 패키지 선택</h2>
       <p className="mt-1.5 text-[13.5px] text-muted">
         예상 관객 규모를 입력하면 패키지가 추천됩니다. 패키지는 정찰제
@@ -37,7 +37,7 @@ export function Step1Package({
           step={500}
           value={expectedAudience}
           onChange={(e) => onChangeAudience(Math.max(0, Number(e.target.value) || 0))}
-          className="w-full rounded border border-border bg-panel px-4 py-2.5 text-[15px] outline-none focus:border-accent focus:ring-2 focus:ring-accent/20"
+          className="w-full rounded-sm border border-border bg-panel px-4 py-2.5 text-[15px] outline-none focus:border-accent focus:ring-2 focus:ring-accent/20"
         />
       </div>
 
@@ -51,14 +51,14 @@ export function Step1Package({
               type="button"
               onClick={() => onSelectPackage(pkg.id)}
               className={[
-                "relative flex flex-col rounded-md border p-5 text-left transition-colors",
+                "relative flex flex-col rounded border p-5 text-left transition-colors",
                 isSelected
                   ? "border-accent bg-accent-soft"
                   : "border-border bg-panel hover:border-accent/50",
               ].join(" ")}
             >
               {isRecommended && (
-                <span className="absolute right-4 top-4 rounded bg-accent px-2.5 py-1 text-[10px] font-semibold text-white">
+                <span className="absolute right-4 top-4 rounded-sm bg-accent px-2.5 py-1 text-[10px] font-semibold text-white">
                   추천
                 </span>
               )}

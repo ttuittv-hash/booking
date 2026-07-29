@@ -5,6 +5,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { buildSeedRateTable } from "./pricing/seed";
 import type {
+  ApprovalStatus,
   AppNotification,
   AppUser,
   Attachment,
@@ -40,6 +41,7 @@ function createConnection(): DatabaseSync {
       name TEXT NOT NULL,
       company_name TEXT,
       role TEXT NOT NULL,
+      approval_status TEXT NOT NULL DEFAULT 'APPROVED',
       created_at TEXT NOT NULL
     );
 
@@ -213,6 +215,7 @@ interface UserRow {
   name: string;
   company_name: string | null;
   role: UserRole;
+  approval_status: ApprovalStatus;
   created_at: string;
 }
 
@@ -223,6 +226,7 @@ function toAppUser(row: UserRow): AppUser {
     name: row.name,
     companyName: row.company_name,
     role: row.role,
+    approvalStatus: row.approval_status,
     createdAt: row.created_at,
   };
 }
@@ -234,12 +238,14 @@ export function createUser(input: {
   name: string;
   companyName: string | null;
   role: UserRole;
+  approvalStatus?: ApprovalStatus;
   createdAt: string;
 }): AppUser {
   const db = getDb();
+  const approvalStatus = input.approvalStatus ?? "APPROVED";
   db.prepare(
-    `INSERT INTO users (id, email, password_hash, name, company_name, role, created_at)
-     VALUES (?, ?, ?, ?, ?, ?, ?)`,
+    `INSERT INTO users (id, email, password_hash, name, company_name, role, approval_status, created_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
   ).run(
     input.id,
     input.email.toLowerCase(),
@@ -247,6 +253,7 @@ export function createUser(input: {
     input.name,
     input.companyName,
     input.role,
+    approvalStatus,
     input.createdAt,
   );
   return {
@@ -255,6 +262,7 @@ export function createUser(input: {
     name: input.name,
     companyName: input.companyName,
     role: input.role,
+    approvalStatus,
     createdAt: input.createdAt,
   };
 }
@@ -270,14 +278,29 @@ export function findUserByEmailWithPasswordHash(
   return { ...toAppUser(row), passwordHash: row.password_hash };
 }
 
-export function listUsers(filter?: { role?: UserRole }): AppUser[] {
+export function listUsers(filter?: { role?: UserRole; approvalStatus?: ApprovalStatus }): AppUser[] {
   const db = getDb();
-  const rows = filter?.role
-    ? (db
-        .prepare("SELECT * FROM users WHERE role = ? ORDER BY created_at ASC")
-        .all(filter.role) as unknown as UserRow[])
-    : (db.prepare("SELECT * FROM users ORDER BY created_at ASC").all() as unknown as UserRow[]);
+  const conditions: string[] = [];
+  const params: string[] = [];
+  if (filter?.role) {
+    conditions.push("role = ?");
+    params.push(filter.role);
+  }
+  if (filter?.approvalStatus) {
+    conditions.push("approval_status = ?");
+    params.push(filter.approvalStatus);
+  }
+  const where = conditions.length ? `WHERE ${conditions.join(" AND ")}` : "";
+  const rows = db
+    .prepare(`SELECT * FROM users ${where} ORDER BY created_at ASC`)
+    .all(...params) as unknown as UserRow[];
   return rows.map(toAppUser);
+}
+
+export function setUserApprovalStatus(id: string, approvalStatus: ApprovalStatus): AppUser {
+  const db = getDb();
+  db.prepare("UPDATE users SET approval_status = ? WHERE id = ?").run(approvalStatus, id);
+  return findUserById(id)!;
 }
 
 export function findUserById(id: string): AppUser | undefined {

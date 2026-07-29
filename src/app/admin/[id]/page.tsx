@@ -68,7 +68,7 @@ export default async function AdminQuoteDetailPage({
           {quote.selection.expectedAudience.toLocaleString()}명
         </p>
 
-        <section className="mt-6 rounded-md border border-border bg-background p-6">
+        <section className="mt-6 rounded border border-border bg-background p-6">
           <h2 className="text-[15px] font-semibold">① 신청 예상금액 · 산출내역</h2>
           <div className="mt-4 overflow-x-auto">
             <table className="w-full border-collapse text-[13px]">
@@ -107,7 +107,7 @@ export default async function AdminQuoteDetailPage({
           {quote.status === "ESTIMATE" && <ContractForm quoteId={quote.id} baseTotal={quote.total} />}
 
           {quote.contract && (
-            <div className="rounded-md border border-border bg-panel/60 p-6">
+            <div className="rounded border border-border bg-panel/60 p-6">
               <h3 className="text-[15px] font-semibold">② 계약금액 확정됨</h3>
               <ul className="mt-3 space-y-1.5 text-[13px]">
                 {quote.contract.adjustments.map((a, i) => (
@@ -137,7 +137,7 @@ export default async function AdminQuoteDetailPage({
           )}
 
           {quote.settlement && (
-            <div className="mt-6 rounded-md border border-good/30 bg-good-soft p-6">
+            <div className="mt-6 rounded border border-good/30 bg-good-soft p-6">
               <h3 className="text-[15px] font-semibold text-good">③ 최종 정산 완료</h3>
               <div className="mt-3 flex items-center justify-between">
                 <span className="text-[13px] text-good/80">
@@ -168,7 +168,7 @@ export default async function AdminQuoteDetailPage({
               {auditLog.map((entry) => (
                 <li
                   key={entry.id}
-                  className="flex justify-between rounded-md border border-border/70 px-4 py-2.5 text-[12.5px] text-muted"
+                  className="flex justify-between rounded border border-border/70 px-4 py-2.5 text-[12.5px] text-muted"
                 >
                   <span>{STAGE_LABEL[entry.stage] ?? entry.stage}</span>
                   <span>{new Date(entry.createdAt).toLocaleString("ko-KR")}</span>

@@ -242,12 +242,17 @@ export interface Attachment {
 
 export type UserRole = "APPLICANT" | "ADMIN";
 
+// 신청자(대관사) 계정은 일반인이 자유 가입할 수 없도록 운영자 승인이 필요하다.
+// 운영자(ADMIN) 계정은 항상 APPROVED로 생성된다.
+export type ApprovalStatus = "PENDING" | "APPROVED" | "REJECTED";
+
 export interface AppUser {
   id: string;
   email: string;
   name: string;
   companyName: string | null;
   role: UserRole;
+  approvalStatus: ApprovalStatus;
   createdAt: string;
 }
 

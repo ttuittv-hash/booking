@@ -4,6 +4,7 @@ import { NotificationBell } from "@/components/NotificationBell";
 
 const LINKS = [
   { href: "/admin", label: "신청 현황" },
+  { href: "/admin/applicants", label: "회원 승인" },
   { href: "/admin/rates", label: "요금표 관리" },
   { href: "/admin/users", label: "운영자 계정" },
 ];
@@ -15,7 +16,7 @@ export function AdminNav({ active }: { active: string }) {
         <Link href="/" className="shrink-0 whitespace-nowrap text-[15px] font-semibold tracking-tight">
           SEOUL ARENA
         </Link>
-        <span className="shrink-0 whitespace-nowrap rounded border border-border px-2.5 py-1 text-[11px] text-muted">
+        <span className="shrink-0 whitespace-nowrap rounded-sm border border-border px-2.5 py-1 text-[11px] text-muted">
           운영자 백오피스
         </span>
         <nav className="ml-auto flex flex-wrap items-center gap-x-5 gap-y-2 text-[13px] text-muted">

@@ -1,38 +1,13 @@
 import Link from "next/link";
 import { getCurrentUser } from "@/lib/auth";
-import { LogoutButton } from "@/components/LogoutButton";
+import { PublicHeader } from "@/components/PublicHeader";
 
 export default async function Home() {
   const user = await getCurrentUser();
 
   return (
     <div className="flex flex-1 flex-col">
-      <header className="sticky top-0 z-20 border-b border-border/70 bg-background/80 backdrop-blur-md">
-        <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-x-4 gap-y-2 px-4 py-3 sm:px-6 sm:py-4">
-          <span className="shrink-0 whitespace-nowrap text-[15px] font-semibold tracking-tight">
-            SEOUL ARENA
-          </span>
-          <nav className="flex flex-wrap items-center gap-x-6 gap-y-2 text-[13px] text-muted">
-            <Link href="/apply" className="whitespace-nowrap hover:text-foreground">
-              대관 신청하기
-            </Link>
-            {user?.role === "ADMIN" ? (
-              <Link href="/admin" className="whitespace-nowrap hover:text-foreground">
-                운영자 백오피스
-              </Link>
-            ) : user ? (
-              <Link href="/mypage" className="whitespace-nowrap hover:text-foreground">
-                내 신청 내역
-              </Link>
-            ) : (
-              <Link href="/login" className="whitespace-nowrap hover:text-foreground">
-                로그인
-              </Link>
-            )}
-            {user && <LogoutButton className="whitespace-nowrap hover:text-foreground" />}
-          </nav>
-        </div>
-      </header>
+      <PublicHeader active="/" currentUser={user} />
 
       <main className="flex flex-1 flex-col items-center px-6 py-20 text-center sm:py-24">
         <p className="mb-4 text-[13px] font-semibold uppercase tracking-[0.14em] text-accent">
@@ -51,13 +26,10 @@ export default async function Home() {
 
         <Link
           href="/apply"
-          className="mt-10 rounded bg-accent px-9 py-3.5 text-[15.5px] font-semibold text-white shadow-[0_8px_24px_-8px_rgba(0,113,227,0.55)] transition-colors hover:bg-accent-hover"
+          className="mt-10 rounded-sm bg-accent px-9 py-3.5 text-[15.5px] font-semibold text-white shadow-[0_8px_24px_-8px_rgba(0,113,227,0.55)] transition-colors hover:bg-accent-hover"
         >
           대관 신청하기 →
         </Link>
-        <p className="mt-3 text-[12.5px] text-muted">
-          규모만 입력하면 예상 대관료가 바로 계산됩니다
-        </p>
 
         <div className="mt-20 w-full max-w-5xl border-t border-border/70 pt-16 sm:mt-24 sm:pt-20">
           <p className="text-[12px] font-semibold uppercase tracking-[0.14em] text-accent">
@@ -67,7 +39,7 @@ export default async function Home() {
             신청 절차는 단 3단계입니다
           </h2>
 
-          <div className="mt-10 grid grid-cols-1 gap-px overflow-hidden rounded-md border border-border bg-border text-left sm:grid-cols-3">
+          <div className="mt-10 grid grid-cols-1 gap-px overflow-hidden rounded border border-border bg-border text-left sm:grid-cols-3">
             {[
               {
                 no: "01",

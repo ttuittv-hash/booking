@@ -191,7 +191,7 @@ export function WizardShell({
             type="button"
             disabled={step === 1}
             onClick={() => goTo(step - 1)}
-            className="rounded border border-border px-5 py-2.5 text-[13.5px] font-medium text-foreground transition-colors hover:bg-panel disabled:cursor-not-allowed disabled:opacity-40"
+            className="rounded-sm border border-border px-5 py-2.5 text-[13.5px] font-medium text-foreground transition-colors hover:bg-panel disabled:cursor-not-allowed disabled:opacity-40"
           >
             ← 이전
           </button>
@@ -200,7 +200,7 @@ export function WizardShell({
               type="button"
               disabled={step >= 2 && !selection.packageId}
               onClick={() => goTo(step + 1)}
-              className="rounded bg-accent px-6 py-2.5 text-[13.5px] font-semibold text-white transition-colors hover:bg-accent-hover disabled:cursor-not-allowed disabled:opacity-40"
+              className="rounded-sm bg-accent px-6 py-2.5 text-[13.5px] font-semibold text-white transition-colors hover:bg-accent-hover disabled:cursor-not-allowed disabled:opacity-40"
             >
               다음 →
             </button>

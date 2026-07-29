@@ -28,7 +28,7 @@ export function Step4Addons({
 
   if (!pkg) {
     return (
-      <section className="rounded-md border border-border bg-background p-7">
+      <section className="rounded border border-border bg-background p-7">
         <p className="text-[13.5px] text-muted">
           먼저 1단계에서 패키지를 선택하세요.
         </p>
@@ -45,7 +45,7 @@ export function Step4Addons({
   }
 
   return (
-    <section className="rounded-md border border-border bg-background p-7">
+    <section className="rounded border border-border bg-background p-7">
       <h2 className="text-[19px] font-semibold">4. 추가 옵션 선택</h2>
       <p className="mt-1.5 text-[13.5px] text-muted">
         기본 포함분은 초과분만 과금됩니다:{" "}
@@ -117,7 +117,7 @@ function AddonRow({
   return (
     <div
       className={[
-        "flex flex-col gap-3 rounded-md border px-4 py-3 sm:flex-row sm:items-center sm:justify-between sm:gap-4",
+        "flex flex-col gap-3 rounded border px-4 py-3 sm:flex-row sm:items-center sm:justify-between sm:gap-4",
         isUtil ? "border-border/70 bg-panel/50 opacity-60" : "border-border bg-panel/60",
       ].join(" ")}
     >
@@ -125,12 +125,12 @@ function AddonRow({
         <div className="flex flex-wrap items-center gap-1.5">
           <span className="text-[13.5px] font-medium">{addon.name}</span>
           {included > 0 && (
-            <span className="rounded bg-good-soft px-1.5 py-0.5 text-[10.5px] font-semibold text-good">
+            <span className="rounded-sm bg-good-soft px-1.5 py-0.5 text-[10.5px] font-semibold text-good">
               {included} 기본포함
             </span>
           )}
           {ruleTag && (
-            <span className="rounded bg-warn-soft px-1.5 py-0.5 text-[10.5px] font-semibold text-warn">
+            <span className="rounded-sm bg-warn-soft px-1.5 py-0.5 text-[10.5px] font-semibold text-warn">
               {ruleTag}
             </span>
           )}
@@ -165,7 +165,7 @@ function AddonRow({
               value={expectedRevenue || ""}
               disabled={quantity <= 0}
               onChange={(e) => onChangeRevenue(Math.max(0, Number(e.target.value) || 0))}
-              className="w-24 shrink-0 rounded border border-border bg-background px-2.5 py-1.5 text-right text-[13px] outline-none focus:border-accent disabled:opacity-40 sm:w-28"
+              className="w-24 shrink-0 rounded-sm border border-border bg-background px-2.5 py-1.5 text-right text-[13px] outline-none focus:border-accent disabled:opacity-40 sm:w-28"
             />
           </div>
         ) : (
@@ -178,7 +178,7 @@ function AddonRow({
             onChange={(e) =>
               onChangeQuantity(addon.id, Math.max(0, Number(e.target.value) || 0))
             }
-            className="w-16 shrink-0 rounded border border-border bg-background px-2.5 py-1.5 text-right text-[13px] outline-none focus:border-accent"
+            className="w-16 shrink-0 rounded-sm border border-border bg-background px-2.5 py-1.5 text-right text-[13px] outline-none focus:border-accent"
           />
         )}
       </div>

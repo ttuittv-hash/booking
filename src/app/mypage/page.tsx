@@ -30,7 +30,15 @@ export default async function MyPage() {
           {user.email}
         </p>
 
-        <div className="mt-8 overflow-x-auto rounded-md border border-border">
+        {user.approvalStatus !== "APPROVED" && (
+          <p className="mt-4 rounded border border-warn/30 bg-warn-soft px-4 py-3 text-[13px] text-warn">
+            {user.approvalStatus === "PENDING"
+              ? "가입 승인 대기 중입니다. 운영자 승인이 완료되면 대관 신청을 진행할 수 있습니다."
+              : "가입이 승인되지 않았습니다. 자세한 사항은 운영자에게 문의해주세요."}
+          </p>
+        )}
+
+        <div className="mt-8 overflow-x-auto rounded border border-border">
           <table className="w-full min-w-[720px] border-collapse text-[13px]">
             <thead>
               <tr className="border-b border-border bg-panel text-left text-[11.5px] font-medium text-muted">
@@ -50,7 +58,7 @@ export default async function MyPage() {
                   <td colSpan={8} className="px-4 py-8 text-center text-muted">
                     아직 신청 내역이 없습니다.{" "}
                     <Link href="/apply" className="text-accent hover:underline">
-                      견적 산출 시작하기
+                      대관 신청하기
                     </Link>
                   </td>
                 </tr>
@@ -72,7 +80,7 @@ export default async function MyPage() {
                       {q.settlement ? won(q.settlement.finalTotal) : "-"}
                     </td>
                     <td className="px-4 py-3">
-                      <span className="rounded bg-accent-soft px-2.5 py-1 text-[11.5px] font-medium text-accent">
+                      <span className="rounded-sm bg-accent-soft px-2.5 py-1 text-[11.5px] font-medium text-accent">
                         {STATUS_LABEL[q.status]}
                       </span>
                     </td>

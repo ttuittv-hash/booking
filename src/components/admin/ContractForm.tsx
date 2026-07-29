@@ -51,7 +51,7 @@ export function ContractForm({ quoteId, baseTotal }: { quoteId: string; baseTota
   }
 
   return (
-    <div className="rounded-md border border-border bg-panel/60 p-6">
+    <div className="rounded border border-border bg-panel/60 p-6">
       <h3 className="text-[15px] font-semibold">② 심사·계약 — 조정 항목 입력</h3>
       <p className="mt-1 text-[12.5px] text-muted">
         특약·할인 등 조정 항목을 추가하세요. 할인은 음수 금액으로 입력합니다.
@@ -64,25 +64,25 @@ export function ContractForm({ quoteId, baseTotal }: { quoteId: string; baseTota
               placeholder="조정 항목명 (예: 장기 계약 할인)"
               value={row.label}
               onChange={(e) => updateRow(i, { label: e.target.value })}
-              className="rounded-md border border-border bg-background px-3 py-2 text-[13px] outline-none focus:border-accent"
+              className="rounded border border-border bg-background px-3 py-2 text-[13px] outline-none focus:border-accent"
             />
             <input
               type="number"
               placeholder="금액 (할인은 음수)"
               value={row.amount || ""}
               onChange={(e) => updateRow(i, { amount: Number(e.target.value) || 0 })}
-              className="rounded-md border border-border bg-background px-3 py-2 text-right text-[13px] outline-none focus:border-accent"
+              className="rounded border border-border bg-background px-3 py-2 text-right text-[13px] outline-none focus:border-accent"
             />
             <input
               placeholder="사유"
               value={row.reason}
               onChange={(e) => updateRow(i, { reason: e.target.value })}
-              className="rounded-md border border-border bg-background px-3 py-2 text-[13px] outline-none focus:border-accent"
+              className="rounded border border-border bg-background px-3 py-2 text-[13px] outline-none focus:border-accent"
             />
             <button
               type="button"
               onClick={() => removeRow(i)}
-              className="rounded-md border border-border px-2.5 py-2 text-[12px] text-muted hover:text-red-600"
+              className="rounded border border-border px-2.5 py-2 text-[12px] text-muted hover:text-red-600"
             >
               삭제
             </button>
@@ -91,7 +91,7 @@ export function ContractForm({ quoteId, baseTotal }: { quoteId: string; baseTota
         <button
           type="button"
           onClick={addRow}
-          className="rounded-md border border-dashed border-border px-3 py-2 text-[12.5px] text-muted hover:border-accent hover:text-accent"
+          className="rounded border border-dashed border-border px-3 py-2 text-[12.5px] text-muted hover:border-accent hover:text-accent"
         >
           + 조정 항목 추가
         </button>
@@ -109,7 +109,7 @@ export function ContractForm({ quoteId, baseTotal }: { quoteId: string; baseTota
             max={100}
             value={depositRate}
             onChange={(e) => setDepositRate(Number(e.target.value) || 0)}
-            className="w-20 rounded-md border border-border bg-background px-3 py-2 text-right text-[13px] outline-none focus:border-accent"
+            className="w-20 rounded border border-border bg-background px-3 py-2 text-right text-[13px] outline-none focus:border-accent"
           />
           <span className="text-[13px] text-muted">%</span>
         </div>
@@ -127,7 +127,7 @@ export function ContractForm({ quoteId, baseTotal }: { quoteId: string; baseTota
           type="button"
           disabled={submitting}
           onClick={submit}
-          className="rounded bg-accent px-6 py-2.5 text-[13.5px] font-semibold text-white transition-colors hover:bg-accent-hover disabled:opacity-50"
+          className="rounded-sm bg-accent px-6 py-2.5 text-[13.5px] font-semibold text-white transition-colors hover:bg-accent-hover disabled:opacity-50"
         >
           {submitting ? "처리 중..." : "계약금액 확정"}
         </button>

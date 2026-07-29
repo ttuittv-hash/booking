@@ -46,7 +46,7 @@ export function Step6Submit({
 
   if (!pkg) {
     return (
-      <section className="rounded-md border border-border bg-background p-7">
+      <section className="rounded border border-border bg-background p-7">
         <p className="text-[13.5px] text-muted">
           먼저 1단계에서 패키지를 선택하세요.
         </p>
@@ -55,14 +55,14 @@ export function Step6Submit({
   }
 
   return (
-    <section className="rounded-md border border-border bg-background p-7">
+    <section className="rounded border border-border bg-background p-7">
       <h2 className="text-[19px] font-semibold">6. 신청서 제출</h2>
       <p className="mt-1.5 text-[13.5px] text-muted">
         아래 산출내역으로 대관 신청서가 생성됩니다. 신청금액은 예상금액이며,
         이후 심사·계약에서 확정됩니다.
       </p>
 
-      <div className="mt-6 flex flex-wrap items-center justify-between gap-4 rounded-md border border-border bg-panel/60 p-6">
+      <div className="mt-6 flex flex-wrap items-center justify-between gap-4 rounded border border-border bg-panel/60 p-6">
         <div>
           <div className="text-[15px] font-semibold">
             {pkg.name} · {pkg.audienceTier.label}
@@ -82,7 +82,7 @@ export function Step6Submit({
       </div>
 
       {submittedId ? (
-        <div className="mt-5 rounded border border-good/30 bg-good-soft px-4 py-3.5 text-[13.5px] text-good">
+        <div className="mt-5 rounded-sm border border-good/30 bg-good-soft px-4 py-3.5 text-[13.5px] text-good">
           신청서가 생성되었습니다. 신청번호{" "}
           <b className="font-semibold">{submittedId}</b> · 상태: 예상견적
           (ESTIMATE). 관리자 심사 → 계약 → 정산 순으로 진행됩니다.
@@ -96,7 +96,7 @@ export function Step6Submit({
           </div>
         </div>
       ) : !isLoggedIn ? (
-        <div className="mt-5 rounded border border-warn/30 bg-warn-soft px-4 py-3.5 text-[13.5px] text-warn">
+        <div className="mt-5 rounded-sm border border-warn/30 bg-warn-soft px-4 py-3.5 text-[13.5px] text-warn">
           신청서를 제출하려면 로그인이 필요합니다. 지금까지 입력한 내용은
           그대로 유지되니, 로그인 후 이어서 제출할 수 있습니다.{" "}
           <Link href="/login" className="font-semibold underline">
@@ -113,7 +113,7 @@ export function Step6Submit({
             type="button"
             disabled={submitting}
             onClick={onSubmit}
-            className="mt-5 rounded bg-accent px-7 py-3 text-[14px] font-semibold text-white transition-colors hover:bg-accent-hover disabled:opacity-50"
+            className="mt-5 rounded-sm bg-accent px-7 py-3 text-[14px] font-semibold text-white transition-colors hover:bg-accent-hover disabled:opacity-50"
           >
             {submitting ? "제출 중..." : "신청서 생성"}
           </button>
@@ -124,7 +124,7 @@ export function Step6Submit({
       <h3 className="mt-10 text-[16px] font-semibold">대관료 확정 3단계</h3>
       <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-3">
         {STAGES.map((s) => (
-          <div key={s.no} className="rounded border border-border bg-panel/60 p-4">
+          <div key={s.no} className="rounded-sm border border-border bg-panel/60 p-4">
             <div className="text-[11px] font-semibold text-accent">{s.no}</div>
             <div className="mt-1.5 text-[13.5px] font-semibold">{s.title}</div>
             <p className="mt-1.5 text-[12px] leading-5 text-muted">{s.desc}</p>

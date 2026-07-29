@@ -23,7 +23,7 @@ export function Step3Included({
   }
 
   return (
-    <section className="rounded-md border border-border bg-background p-7">
+    <section className="rounded border border-border bg-background p-7">
       <h2 className="text-[19px] font-semibold">3. 기본 포함사항</h2>
       <p className="mt-1.5 text-[13.5px] text-muted">
         {pkg.name}에 기본 포함된 구성입니다. 초과분만 4단계에서 추가
@@ -40,7 +40,7 @@ export function Step3Included({
             value: pkg.mediaTier ? MEDIA_TIER_LABEL[pkg.mediaTier] : "미포함",
           },
         ].map((info) => (
-          <div key={info.label} className="rounded-md border border-border bg-panel/60 p-3">
+          <div key={info.label} className="rounded border border-border bg-panel/60 p-3">
             <div className="text-[11px] text-muted">{info.label}</div>
             <div className="mt-1 text-[13px] font-semibold">{info.value}</div>
           </div>
@@ -89,7 +89,7 @@ export function Step3Included({
 
 function EmptyState() {
   return (
-    <section className="rounded-md border border-border bg-background p-7">
+    <section className="rounded border border-border bg-background p-7">
       <p className="text-[13.5px] text-muted">
         먼저 1단계에서 패키지를 선택하세요.
       </p>

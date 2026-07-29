@@ -1,0 +1,34 @@
+import { redirect } from "next/navigation";
+import { getCurrentUser } from "@/lib/auth";
+import { listUsers } from "@/lib/db";
+import { AdminNav } from "@/components/admin/AdminNav";
+import { ApplicantApprovalTable } from "@/components/admin/ApplicantApprovalTable";
+
+export default async function AdminApplicantsPage() {
+  const user = await getCurrentUser();
+  if (!user) redirect("/admin/login");
+  if (user.role !== "ADMIN") redirect("/apply");
+
+  const pending = listUsers({ role: "APPLICANT", approvalStatus: "PENDING" });
+  const decided = listUsers({ role: "APPLICANT" }).filter((a) => a.approvalStatus !== "PENDING");
+
+  return (
+    <div className="flex flex-1 flex-col">
+      <AdminNav active="/admin/applicants" />
+
+      <main className="mx-auto w-full max-w-4xl flex-1 px-6 py-10">
+        <h1 className="text-[22px] font-semibold">회원 승인</h1>
+        <p className="mt-2 max-w-2xl text-[13.5px] leading-6 text-muted">
+          일반인은 자유 가입할 수 없으며, 신청자(대관사) 계정은 운영자 승인이 있어야 대관
+          패키지 안내와 견적 산출을 이용할 수 있습니다.
+        </p>
+
+        <h2 className="mt-8 text-[14px] font-semibold">승인 대기 ({pending.length})</h2>
+        <ApplicantApprovalTable applicants={pending} pending />
+
+        <h2 className="mt-10 text-[14px] font-semibold">처리 완료</h2>
+        <ApplicantApprovalTable applicants={decided} pending={false} />
+      </main>
+    </div>
+  );
+}
