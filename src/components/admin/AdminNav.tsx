@@ -5,6 +5,7 @@ import { NotificationBell } from "@/components/NotificationBell";
 const LINKS = [
   { href: "/admin", label: "신청 현황" },
   { href: "/admin/applicants", label: "회원 승인" },
+  { href: "/admin/packages", label: "패키지 관리" },
   { href: "/admin/rates", label: "요금표 관리" },
   { href: "/admin/users", label: "운영자 계정" },
 ];

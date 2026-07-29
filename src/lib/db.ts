@@ -139,6 +139,29 @@ function createConnection(): DatabaseSync {
     );
   }
 
+  // 내부 테스트용 — 승인 절차 없이 바로 대관 신청까지 이용 가능한 신청자 계정
+  const testApplicantEmail = (process.env.SEED_TEST_APPLICANT_EMAIL || "test@seoularena.kr").toLowerCase();
+  const existingTestApplicant = db
+    .prepare("SELECT id FROM users WHERE email = ?")
+    .get(testApplicantEmail);
+  if (!existingTestApplicant) {
+    const testPassword = process.env.SEED_TEST_APPLICANT_PASSWORD || "test1234!";
+    db.prepare(
+      `INSERT INTO users (id, email, password_hash, name, company_name, role, created_at)
+       VALUES (?, ?, ?, ?, ?, 'APPLICANT', ?)`,
+    ).run(
+      crypto.randomUUID(),
+      testApplicantEmail,
+      bcrypt.hashSync(testPassword, 10),
+      "테스트 담당자",
+      "테스트용 계정",
+      new Date().toISOString(),
+    );
+    console.log(
+      `[seoularena] 내부 테스트용 신청자 계정이 생성되었습니다 (승인 완료 상태) — email: ${testApplicantEmail} / password: ${testPassword}`,
+    );
+  }
+
   return db;
 }
 
