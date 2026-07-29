@@ -190,18 +190,18 @@ export default async function Home() {
               {processSteps.map((s) => (
                 <div
                   key={s.no}
-                  className="group rounded border border-border bg-background p-7 transition-all hover:-translate-y-1 hover:border-accent hover:shadow-[0_16px_32px_-20px_rgba(0,0,0,0.25)]"
+                  className="group rounded border border-border bg-background p-5 transition-all hover:-translate-y-1 hover:border-accent hover:shadow-[0_16px_32px_-20px_rgba(0,0,0,0.25)]"
                 >
-                  <div className="text-[26px] font-semibold tabular-nums text-border transition-colors group-hover:text-accent">
+                  <div className="text-[22px] font-semibold tabular-nums text-border transition-colors group-hover:text-accent">
                     {s.no}
                   </div>
-                  <div className="mt-3 text-[15px] font-semibold">{s.title}</div>
-                  <p className="mt-2 text-[13px] leading-6 text-muted">{s.desc}</p>
+                  <div className="mt-2 text-[15px] font-semibold">{s.title}</div>
+                  <p className="mt-1.5 text-[13px] leading-6 text-muted">{s.desc}</p>
                 </div>
               ))}
               <Link
                 href={heroPrimaryHref}
-                className="group flex flex-col items-start justify-center rounded border border-accent bg-accent-soft p-7 transition-all hover:-translate-y-1 hover:shadow-[0_16px_32px_-20px_rgba(0,0,0,0.25)]"
+                className="group flex flex-col items-start justify-center rounded border border-accent bg-accent-soft p-5 transition-all hover:-translate-y-1 hover:shadow-[0_16px_32px_-20px_rgba(0,0,0,0.25)]"
               >
                 <span className="text-[15px] font-semibold text-accent">대관 신청하기</span>
                 <span className="mt-2 inline-flex items-center gap-1.5 text-[13px] text-accent">

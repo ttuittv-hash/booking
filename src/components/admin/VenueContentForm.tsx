@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import type { VenueAmenity, VenueContent, VenueHall, VenueHighlight, VenueKeyMap, VenueSpec } from "@/lib/content/types";
+import { DEFAULT_VENUE_CONTENT } from "@/lib/content/seed";
 import { VenueContentView } from "@/components/VenueContentView";
 import { NoticeEditor } from "./NoticeEditor";
 
@@ -528,7 +529,31 @@ export function VenueContentForm({ content: initial }: { content: VenueContent }
       </section>
 
       <section>
-        <h3 className="text-[14px] font-semibold">부대 시설</h3>
+        <div className="flex items-center justify-between gap-3">
+          <h3 className="text-[14px] font-semibold">부대 시설</h3>
+          <button
+            type="button"
+            onClick={() => {
+              if (
+                window.confirm(
+                  "부대 시설 항목을 최신 기본값(스카이박스·라운지·광장·로비 등 포함)으로 되돌립니다. 현재 저장된 부대 시설 내용은 사라집니다. 계속할까요?",
+                )
+              ) {
+                patch({
+                  arenaAmenities: DEFAULT_VENUE_CONTENT.arenaAmenities,
+                  mediumHallAmenities: DEFAULT_VENUE_CONTENT.mediumHallAmenities,
+                });
+              }
+            }}
+            className="shrink-0 text-[12px] text-accent hover:underline"
+          >
+            최신 기본값으로 불러오기
+          </button>
+        </div>
+        <p className="mt-1 text-[12px] text-muted">
+          이전에 저장된 내용이 있으면 새로 추가된 항목(스카이박스·라운지 등)이 자동으로 보이지 않습니다. 위 버튼으로 최신
+          기본값을 불러온 뒤 저장하면 반영됩니다.
+        </p>
 
         <div className="mt-2">
           <span className={labelCls}>공간 사진 갤러리 (라운지·로비 등, 부대 시설 목록 위에 표시)</span>
