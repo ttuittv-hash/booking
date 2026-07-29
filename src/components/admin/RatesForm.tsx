@@ -20,6 +20,9 @@ export function RatesForm({ rateTable }: { rateTable: RateTable }) {
     })),
   );
   const [extraWeekRatio, setExtraWeekRatio] = useState(rateTable.extraWeekRatio);
+  const [dayExclusionDiscountRatio, setDayExclusionDiscountRatio] = useState(
+    rateTable.dayExclusionDiscountRatio,
+  );
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
 
@@ -39,6 +42,7 @@ export function RatesForm({ rateTable }: { rateTable: RateTable }) {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           extraWeekRatio,
+          dayExclusionDiscountRatio,
           packages: packages.map((p) => ({ id: p.id, baseFeePerWeek: p.baseFeePerWeek })),
           addons: addons.map((a) => ({ id: a.id, unitPrice: a.unitPrice })),
         }),
@@ -80,8 +84,10 @@ export function RatesForm({ rateTable }: { rateTable: RateTable }) {
 
         <div className="mt-5 grid grid-cols-1 items-center gap-2 border-t border-border pt-4 sm:grid-cols-[1fr_200px] sm:gap-3">
           <div>
-            <div className="text-[13.5px] font-medium">초과 주차 단가 비율</div>
-            <div className="text-[11.5px] text-muted">기본 대관료 × 이 비율 = 초과 주차 단가 (미확정 임시 규칙)</div>
+            <div className="text-[13.5px] font-medium">추가 일수 단가 비율</div>
+            <div className="text-[11.5px] text-muted">
+              기본 대관료 × 이 비율 ÷ 6일 = 일요일 이후 하루 추가 단가 (미확정 임시 규칙)
+            </div>
           </div>
           <input
             type="number"
@@ -89,6 +95,23 @@ export function RatesForm({ rateTable }: { rateTable: RateTable }) {
             step={0.05}
             value={extraWeekRatio}
             onChange={(e) => setExtraWeekRatio(Number(e.target.value) || 0)}
+            className="rounded-md border border-border bg-panel px-3 py-2 text-right text-[13px] outline-none focus:border-accent"
+          />
+        </div>
+
+        <div className="mt-5 grid grid-cols-1 items-center gap-2 border-t border-border pt-4 sm:grid-cols-[1fr_200px] sm:gap-3">
+          <div>
+            <div className="text-[13.5px] font-medium">제외 요일 할인 비율</div>
+            <div className="text-[11.5px] text-muted">
+              기본 대관료 × 이 비율 = 화~일 중 제외한 요일 1일당 할인액 (미확정 임시 규칙)
+            </div>
+          </div>
+          <input
+            type="number"
+            min={0}
+            step={0.01}
+            value={dayExclusionDiscountRatio}
+            onChange={(e) => setDayExclusionDiscountRatio(Number(e.target.value) || 0)}
             className="rounded-md border border-border bg-panel px-3 py-2 text-right text-[13px] outline-none focus:border-accent"
           />
         </div>

@@ -1,7 +1,7 @@
 import Link from "next/link";
 import type { Metadata } from "next";
 import { getCurrentUser } from "@/lib/auth";
-import { getCurrentRateTable } from "@/lib/db";
+import { getCurrentRateTable, listWeekDemand } from "@/lib/db";
 import { LogoutButton } from "@/components/LogoutButton";
 import { NotificationBell } from "@/components/NotificationBell";
 import { WizardShell } from "@/components/wizard/WizardShell";
@@ -15,6 +15,7 @@ export default async function ApplyPage() {
     getCurrentRateTable(),
     getCurrentUser(),
   ]);
+  const weekDemand = listWeekDemand();
 
   return (
     <div className="flex flex-1 flex-col">
@@ -49,7 +50,7 @@ export default async function ApplyPage() {
           </div>
         </div>
       </header>
-      <WizardShell rateTable={rateTable} currentUser={currentUser} />
+      <WizardShell rateTable={rateTable} currentUser={currentUser} weekDemand={weekDemand} />
     </div>
   );
 }

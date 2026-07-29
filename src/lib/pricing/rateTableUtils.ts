@@ -1,4 +1,4 @@
-import type { AddonItem, RateTable, RentalPackage } from "./types";
+import type { AddonItem, QuoteSelection, RateTable, RentalPackage } from "./types";
 
 export function findPackage(
   rateTable: RateTable,
@@ -35,4 +35,14 @@ export function isAddonAvailable(addonItem: AddonItem, pkg: RentalPackage | unde
 
 export function extraWeekPrice(rateTable: RateTable, pkg: RentalPackage): number {
   return Math.round(pkg.baseFeePerWeek * rateTable.extraWeekRatio);
+}
+
+// 일요일 이후 연장하는 하루당 단가 = 초과 주차 단가 ÷ 6일(화~일)
+export function extraDayPrice(rateTable: RateTable, pkg: RentalPackage): number {
+  return Math.round(extraWeekPrice(rateTable, pkg) / 6);
+}
+
+// 신청 총 대관일수 = 기본 6일(화~일) − 제외 요일 수 + 추가 일수
+export function totalRentalDays(selection: QuoteSelection): number {
+  return 6 - selection.excludedDays.length + selection.extraDays;
 }

@@ -1,4 +1,4 @@
-import { extraWeekPrice, findAddon, findPackage, includedQuantity } from "./rateTableUtils";
+import { extraDayPrice, findAddon, findPackage, includedQuantity } from "./rateTableUtils";
 import type { EstimatedQuote, LineItem, PricingType, QuoteSelection, RateTable } from "./types";
 
 const METERED_NOTICE =
@@ -32,21 +32,37 @@ export function calculateQuote(selection: QuoteSelection, rateTable: RateTable):
       makeLine("BASE_FEE", "기본 대관료", "FIXED_PER_WEEK", 1, 0, 1, pkg.baseFeePerWeek, pkg.baseFeePerWeek),
     );
 
-    // (2) 초과 주차 — MAX(신청주 - 포함주, 0)
-    const requestedWeeks = 1 + selection.extraWeeks;
-    const billableWeeks = Math.max(requestedWeeks - pkg.includedWeeks, 0);
-    if (billableWeeks > 0) {
-      const price = extraWeekPrice(rateTable, pkg);
+    // (2) 제외 요일 할인 — 화~일 6일 중 실제 사용하지 않는 요일만큼 정액 할인
+    if (selection.excludedDays.length > 0) {
+      const perDayDiscount = Math.round(pkg.baseFeePerWeek * rateTable.dayExclusionDiscountRatio);
+      const excludedDayCount = selection.excludedDays.length;
       items.push(
         makeLine(
-          "extra_week",
-          "초과 주차",
-          "PER_WEEK",
-          requestedWeeks,
-          pkg.includedWeeks,
-          billableWeeks,
+          "day_exclusion_discount",
+          `제외 요일 할인 (${excludedDayCount}일)`,
+          "PER_DAY",
+          excludedDayCount,
+          0,
+          excludedDayCount,
+          perDayDiscount,
+          -(perDayDiscount * excludedDayCount),
+        ),
+      );
+    }
+
+    // (2-1) 추가 일수 — 일요일 이후로 연장하는 일수를 일 단위로 과금 (초과 주차 단가 ÷ 6일)
+    if (selection.extraDays > 0) {
+      const price = extraDayPrice(rateTable, pkg);
+      items.push(
+        makeLine(
+          "extra_days",
+          "추가 일수",
+          "PER_DAY",
+          selection.extraDays,
+          0,
+          selection.extraDays,
           price,
-          billableWeeks * price,
+          selection.extraDays * price,
         ),
       );
     }

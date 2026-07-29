@@ -1,6 +1,6 @@
 "use client";
 
-import type { QuoteSelection } from "@/lib/pricing/types";
+import { WEEKDAYS, WEEKDAY_LABEL, type QuoteSelection, type WeekDay, type WeekDemand } from "@/lib/pricing/types";
 
 const DOW_LABELS = ["화", "수", "목", "금", "토", "일", "월"]; // 화~일 대관, 월 제외
 
@@ -43,17 +43,25 @@ function isSameDate(a: Date, b: Date): boolean {
 
 export function Step1Calendar({
   week,
-  extraWeeks,
+  excludedDays,
+  extraDays,
+  weekDemand,
   onChangeWeek,
-  onChangeExtraWeeks,
+  onChangeExcludedDays,
+  onChangeExtraDays,
 }: {
   week: QuoteSelection["week"];
-  extraWeeks: number;
+  excludedDays: WeekDay[];
+  extraDays: number;
+  weekDemand: WeekDemand[];
   onChangeWeek: (week: QuoteSelection["week"]) => void;
-  onChangeExtraWeeks: (value: number) => void;
+  onChangeExcludedDays: (days: WeekDay[]) => void;
+  onChangeExtraDays: (value: number) => void;
 }) {
   const calendarWeeks = buildCalendarWeeks(week.year, week.month);
   const today = new Date();
+  const usedDayCount = 6 - excludedDays.length;
+  const totalDays = usedDayCount + extraDays;
 
   function goToMonth(delta: number) {
     let nextMonth = week.month + delta;
@@ -72,12 +80,28 @@ export function Step1Calendar({
     onChangeWeek({ year: week.year, month: week.month, weekOfMonth });
   }
 
+  function toggleDay(day: WeekDay) {
+    const isExcluded = excludedDays.includes(day);
+    if (!isExcluded && usedDayCount <= 1) return; // 최소 1일은 남겨야 함
+    onChangeExcludedDays(
+      isExcluded ? excludedDays.filter((d) => d !== day) : [...excludedDays, day],
+    );
+  }
+
+  function demandFor(weekOfMonth: number): number {
+    const match = weekDemand.find(
+      (d) => d.year === week.year && d.month === week.month && d.weekOfMonth === weekOfMonth,
+    );
+    return match?.companyCount ?? 0;
+  }
+
   return (
     <section className="border border-border bg-background p-5 sm:p-7">
       <h2 className="text-[19px] font-semibold">1. 주차(기간) 선택</h2>
       <p className="mt-1.5 text-[13.5px] text-muted">
-        달력에서 원하는 주를 눌러 선택하세요. 최소 단위는 1일이 아니라{" "}
-        <b className="text-foreground">1주(화~일)</b>입니다.
+        달력에서 원하는 주를 눌러 선택하세요. 기본 단위는{" "}
+        <b className="text-foreground">1주(화~일, 6일)</b>이며, 아래에서 요일별로
+        빼거나 일수를 더할 수 있습니다.
       </p>
 
       <div className="mt-6 flex items-center justify-between">
@@ -114,58 +138,94 @@ export function Step1Calendar({
         {calendarWeeks.map((calWeek, wi) => {
           const isSelected = calWeek.weekOfMonth !== null && calWeek.weekOfMonth === week.weekOfMonth;
           const isSelectable = calWeek.weekOfMonth !== null;
+          const demand = calWeek.weekOfMonth !== null ? demandFor(calWeek.weekOfMonth) : 0;
           return (
-            <button
-              key={wi}
-              type="button"
-              disabled={!isSelectable}
-              onClick={() => calWeek.weekOfMonth !== null && selectWeek(calWeek.weekOfMonth)}
-              className={[
-                "grid w-full grid-cols-7 gap-1 rounded p-0.5 text-left sm:gap-1.5",
-                isSelectable ? "cursor-pointer" : "cursor-default",
-                isSelected ? "bg-accent-soft ring-1 ring-accent" : isSelectable ? "hover:bg-panel" : "",
-              ].join(" ")}
-            >
-              {calWeek.days.map((date, di) => {
-                const inMonth = date.getMonth() === week.month - 1;
-                const isMonday = di === 6;
-                const isToday = isSameDate(date, today);
-                return (
-                  <div
-                    key={di}
-                    className={[
-                      "flex h-9 items-center justify-center text-[12.5px] sm:h-11 sm:text-[13px]",
-                      !inMonth ? "text-muted/40" : isMonday ? "text-muted/70" : "text-foreground",
-                      isSelected && !isMonday ? "font-semibold text-accent" : "",
-                      isToday ? "underline decoration-2 underline-offset-4" : "",
-                    ].join(" ")}
-                  >
-                    {date.getDate()}
-                  </div>
-                );
-              })}
-            </button>
+            <div key={wi} className="relative">
+              {demand > 0 && (
+                <span className="absolute -top-1.5 right-1 z-10 rounded bg-panel-strong px-1.5 py-0.5 text-[10px] font-medium text-muted">
+                  대관 신청 {demand}개사
+                </span>
+              )}
+              <button
+                type="button"
+                disabled={!isSelectable}
+                onClick={() => calWeek.weekOfMonth !== null && selectWeek(calWeek.weekOfMonth)}
+                className={[
+                  "grid w-full grid-cols-7 gap-1 rounded p-0.5 text-left sm:gap-1.5",
+                  isSelectable ? "cursor-pointer" : "cursor-default",
+                  isSelected ? "bg-accent-soft ring-1 ring-accent" : isSelectable ? "hover:bg-panel" : "",
+                ].join(" ")}
+              >
+                {calWeek.days.map((date, di) => {
+                  const inMonth = date.getMonth() === week.month - 1;
+                  const isMonday = di === 6;
+                  const isToday = isSameDate(date, today);
+                  return (
+                    <div
+                      key={di}
+                      className={[
+                        "flex h-9 items-center justify-center text-[12.5px] sm:h-11 sm:text-[13px]",
+                        !inMonth ? "text-muted/40" : isMonday ? "text-muted/70" : "text-foreground",
+                        isSelected && !isMonday ? "font-semibold text-accent" : "",
+                        isToday ? "underline decoration-2 underline-offset-4" : "",
+                      ].join(" ")}
+                    >
+                      {date.getDate()}
+                    </div>
+                  );
+                })}
+              </button>
+            </div>
           );
         })}
       </div>
 
-      <div className="mt-6 flex flex-wrap items-center gap-3 border-t border-border pt-5">
-        <label className="text-[12.5px] font-medium text-muted">초과 주차 (추가)</label>
+      <div className="mt-6 border-t border-border pt-5">
+        <label className="text-[12.5px] font-medium text-muted">사용 요일 (화~일 중 제외할 요일 선택)</label>
+        <div className="mt-2.5 flex flex-wrap gap-2">
+          {WEEKDAYS.map((day) => {
+            const isExcluded = excludedDays.includes(day);
+            return (
+              <button
+                key={day}
+                type="button"
+                onClick={() => toggleDay(day)}
+                className={[
+                  "h-9 w-9 rounded border text-[13px] font-medium transition-colors",
+                  isExcluded
+                    ? "border-border bg-panel text-muted/50 line-through"
+                    : "border-accent bg-accent-soft text-accent",
+                ].join(" ")}
+              >
+                {WEEKDAY_LABEL[day]}
+              </button>
+            );
+          })}
+        </div>
+        {excludedDays.length > 0 && (
+          <p className="mt-2 text-[11.5px] text-muted">
+            제외 요일은 대관료가 아닌 요일당 정액 할인으로 반영됩니다.
+          </p>
+        )}
+      </div>
+
+      <div className="mt-5 flex flex-wrap items-center gap-3 border-t border-border pt-5">
+        <label className="text-[12.5px] font-medium text-muted">추가 일수 (일요일 이후 연장)</label>
         <div className="flex items-center gap-2">
           <button
             type="button"
-            onClick={() => onChangeExtraWeeks(Math.max(0, extraWeeks - 1))}
+            onClick={() => onChangeExtraDays(Math.max(0, extraDays - 1))}
             className="h-8 w-8 rounded border border-border text-[15px] text-muted hover:border-accent hover:text-accent"
-            aria-label="초과 주차 감소"
+            aria-label="추가 일수 감소"
           >
             −
           </button>
-          <span className="w-6 text-center text-[13px] font-medium tabular-nums">{extraWeeks}</span>
+          <span className="w-6 text-center text-[13px] font-medium tabular-nums">{extraDays}</span>
           <button
             type="button"
-            onClick={() => onChangeExtraWeeks(Math.min(8, extraWeeks + 1))}
+            onClick={() => onChangeExtraDays(Math.min(30, extraDays + 1))}
             className="h-8 w-8 rounded border border-border text-[15px] text-muted hover:border-accent hover:text-accent"
-            aria-label="초과 주차 증가"
+            aria-label="추가 일수 증가"
           >
             +
           </button>
@@ -173,7 +233,9 @@ export function Step1Calendar({
       </div>
 
       <div className="mt-4 text-[14px] font-medium text-accent">
-        {week.year}년 {week.month}월 {week.weekOfMonth}주차 · 총 {1 + extraWeeks}주 적용
+        {week.year}년 {week.month}월 {week.weekOfMonth}주차 · 총 {totalDays}일 적용
+        {excludedDays.length > 0 && ` (기본 6일 − 제외 ${excludedDays.length}일${extraDays > 0 ? ` + 추가 ${extraDays}일` : ""})`}
+        {excludedDays.length === 0 && extraDays > 0 && ` (기본 6일 + 추가 ${extraDays}일)`}
       </div>
     </section>
   );

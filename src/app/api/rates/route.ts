@@ -20,6 +20,8 @@ export async function PUT(request: Request) {
     ? (body.addons as { id: string; unitPrice: number }[])
     : [];
   const extraWeekRatio = typeof body?.extraWeekRatio === "number" ? body.extraWeekRatio : undefined;
+  const dayExclusionDiscountRatio =
+    typeof body?.dayExclusionDiscountRatio === "number" ? body.dayExclusionDiscountRatio : undefined;
 
   const current = getCurrentRateTable();
 
@@ -41,6 +43,10 @@ export async function PUT(request: Request) {
     vatRate: current.vatRate,
     extraWeekRatio:
       extraWeekRatio !== undefined && extraWeekRatio >= 0 ? extraWeekRatio : current.extraWeekRatio,
+    dayExclusionDiscountRatio:
+      dayExclusionDiscountRatio !== undefined && dayExclusionDiscountRatio >= 0
+        ? dayExclusionDiscountRatio
+        : current.dayExclusionDiscountRatio,
     packages,
     addons,
   });

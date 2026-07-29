@@ -17,6 +17,7 @@ import type {
   RateTable,
   Settlement,
   UserRole,
+  WeekDemand,
 } from "./pricing/types";
 
 const DB_PATH = path.join(process.cwd(), "data", "app.db");
@@ -46,6 +47,7 @@ function createConnection(): DatabaseSync {
       version TEXT PRIMARY KEY,
       vat_rate REAL NOT NULL,
       extra_week_ratio REAL NOT NULL,
+      day_exclusion_discount_ratio REAL NOT NULL DEFAULT 0.1667,
       packages_json TEXT NOT NULL,
       addons_json TEXT NOT NULL,
       updated_at TEXT NOT NULL
@@ -146,12 +148,13 @@ export function getDb(): DatabaseSync {
 
 function insertRateTable(db: DatabaseSync, rateTable: RateTable) {
   db.prepare(
-    `INSERT INTO rate_tables (version, vat_rate, extra_week_ratio, packages_json, addons_json, updated_at)
-     VALUES (?, ?, ?, ?, ?, ?)`,
+    `INSERT INTO rate_tables (version, vat_rate, extra_week_ratio, day_exclusion_discount_ratio, packages_json, addons_json, updated_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?)`,
   ).run(
     rateTable.version,
     rateTable.vatRate,
     rateTable.extraWeekRatio,
+    rateTable.dayExclusionDiscountRatio,
     JSON.stringify(rateTable.packages),
     JSON.stringify(rateTable.addons),
     rateTable.updatedAt,
@@ -171,6 +174,7 @@ export function getCurrentRateTable(): RateTable {
         version: string;
         vat_rate: number;
         extra_week_ratio: number;
+        day_exclusion_discount_ratio: number;
         packages_json: string;
         addons_json: string;
         updated_at: string;
@@ -181,6 +185,7 @@ export function getCurrentRateTable(): RateTable {
     version: row.version,
     vatRate: row.vat_rate,
     extraWeekRatio: row.extra_week_ratio,
+    dayExclusionDiscountRatio: row.day_exclusion_discount_ratio,
     packages: JSON.parse(row.packages_json),
     addons: JSON.parse(row.addons_json),
     updatedAt: row.updated_at,
@@ -365,6 +370,31 @@ export function listQuotes(filter?: { applicantId?: string }): Quote[] {
         .all(filter.applicantId) as unknown as QuoteRow[])
     : (db.prepare("SELECT * FROM quotes ORDER BY created_at DESC").all() as unknown as QuoteRow[]);
   return rows.map(toQuote);
+}
+
+// 캘린더 경합 현황 — 주차별로 신청서를 낸 회사(신청자) 수를 집계한다.
+export function listWeekDemand(): WeekDemand[] {
+  const db = getDb();
+  const rows = db
+    .prepare(
+      `SELECT q.selection_json as selection_json, u.company_name as company_name, u.id as user_id
+       FROM quotes q JOIN users u ON u.id = q.applicant_id`,
+    )
+    .all() as { selection_json: string; company_name: string | null; user_id: string }[];
+
+  const groups = new Map<string, Set<string>>();
+  for (const row of rows) {
+    const selection = JSON.parse(row.selection_json) as Quote["selection"];
+    const key = `${selection.week.year}-${selection.week.month}-${selection.week.weekOfMonth}`;
+    const companies = groups.get(key) ?? new Set<string>();
+    companies.add(row.company_name || row.user_id);
+    groups.set(key, companies);
+  }
+
+  return [...groups.entries()].map(([key, companies]) => {
+    const [year, month, weekOfMonth] = key.split("-").map(Number);
+    return { year, month, weekOfMonth, companyCount: companies.size };
+  });
 }
 
 export function setQuoteContract(id: string, contract: ContractAdjustment): Quote {

@@ -3,6 +3,7 @@ import { notFound, redirect } from "next/navigation";
 import { getCurrentUser } from "@/lib/auth";
 import { getDepositByQuoteId, getQuoteById, listAttachments } from "@/lib/db";
 import { won } from "@/lib/format";
+import { totalRentalDays } from "@/lib/pricing/rateTableUtils";
 import { DepositPanel } from "@/components/DepositPanel";
 import { AttachmentsPanel } from "@/components/AttachmentsPanel";
 import { ApplicantHeader } from "@/components/ApplicantHeader";
@@ -52,7 +53,7 @@ export default async function MyQuoteDetailPage({
 
         <p className="mt-1.5 text-[13.5px] text-muted">
           {quote.selection.week.year}년 {quote.selection.week.month}월{" "}
-          {quote.selection.week.weekOfMonth}주차 · {1 + quote.selection.extraWeeks}주 · 관객{" "}
+          {quote.selection.week.weekOfMonth}주차 · 총 {totalRentalDays(quote.selection)}일 · 관객{" "}
           {quote.selection.expectedAudience.toLocaleString()}명
         </p>
 

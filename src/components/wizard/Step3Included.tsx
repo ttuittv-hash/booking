@@ -30,13 +30,33 @@ export function Step3Included({
         과금됩니다.
       </p>
 
+      <div className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-4">
+        {[
+          { label: "대관시간", value: pkg.rentalHours },
+          { label: "세부 구성", value: pkg.dayBreakdown },
+          { label: "주차 기본 제공", value: pkg.parkingPerDay },
+          {
+            label: "홍보 매체",
+            value: pkg.mediaTier ? MEDIA_TIER_LABEL[pkg.mediaTier] : "미포함",
+          },
+        ].map((info) => (
+          <div key={info.label} className="rounded-md border border-border bg-panel/60 p-3">
+            <div className="text-[11px] text-muted">{info.label}</div>
+            <div className="mt-1 text-[13px] font-semibold">{info.value}</div>
+          </div>
+        ))}
+      </div>
+
+      <div className="mt-3 flex flex-wrap gap-x-6 gap-y-1.5 text-[12.5px] text-muted">
+        <span>대기실 {pkg.waitingRoomNote}</span>
+        <span>부속공간 {pkg.sideFacilities}</span>
+        {pkg.outdoorPlazaIncluded && <span>야외광장 · 티켓박스 포함</span>}
+      </div>
+
       <div className="mt-6 flex items-center justify-between border-b border-border pb-3">
-        <span className="text-[14px] font-semibold">{pkg.name} 기본 구성</span>
+        <span className="text-[14px] font-semibold">{pkg.name} 기본 포함 항목</span>
         <span className="text-[12.5px] text-muted">
-          홍보 매체 등급:{" "}
-          <span className="font-medium text-accent">
-            {pkg.mediaTier ? MEDIA_TIER_LABEL[pkg.mediaTier] : "미정"}
-          </span>
+          화~일 1주 정찰제 대관료에 아래 항목이 모두 포함됩니다
         </span>
       </div>
 

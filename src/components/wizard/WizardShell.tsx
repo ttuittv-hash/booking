@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { calculateQuote } from "@/lib/pricing/calculateQuote";
 import { findAddon, findPackage, isAddonAvailable } from "@/lib/pricing/rateTableUtils";
-import type { AppUser, QuoteSelection, RateTable } from "@/lib/pricing/types";
+import type { AppUser, QuoteSelection, RateTable, WeekDemand } from "@/lib/pricing/types";
 import { clearWizardDraft, loadWizardDraft, saveWizardDraft } from "@/lib/quotesStore";
 import { StepNav } from "./StepNav";
 import { SummaryPanel } from "./SummaryPanel";
@@ -19,7 +19,8 @@ const TOTAL_STEPS = 6;
 const INITIAL_SELECTION: QuoteSelection = {
   packageId: null,
   week: { year: 2027, month: 8, weekOfMonth: 1 },
-  extraWeeks: 0,
+  excludedDays: [],
+  extraDays: 0,
   expectedAudience: 8000,
   expectedRevenue: 0,
   addons: [],
@@ -41,9 +42,11 @@ function pruneUnavailableAddons(
 export function WizardShell({
   rateTable,
   currentUser,
+  weekDemand,
 }: {
   rateTable: RateTable;
   currentUser: AppUser | null;
+  weekDemand: WeekDemand[];
 }) {
   const [step, setStep] = useState(1);
   const [selection, setSelection] = useState<QuoteSelection>(INITIAL_SELECTION);
@@ -133,10 +136,15 @@ export function WizardShell({
         {step === 1 && (
           <Step1Calendar
             week={selection.week}
-            extraWeeks={selection.extraWeeks}
+            excludedDays={selection.excludedDays}
+            extraDays={selection.extraDays}
+            weekDemand={weekDemand}
             onChangeWeek={(week) => setSelection((prev) => ({ ...prev, week }))}
-            onChangeExtraWeeks={(extraWeeks) =>
-              setSelection((prev) => ({ ...prev, extraWeeks }))
+            onChangeExcludedDays={(excludedDays) =>
+              setSelection((prev) => ({ ...prev, excludedDays }))
+            }
+            onChangeExtraDays={(extraDays) =>
+              setSelection((prev) => ({ ...prev, extraDays }))
             }
           />
         )}

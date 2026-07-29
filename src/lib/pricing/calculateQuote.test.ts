@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { calculateQuote } from "./calculateQuote";
-import { extraWeekPrice, findAddon, findPackage, includedQuantity } from "./rateTableUtils";
+import { extraDayPrice, findAddon, findPackage, includedQuantity } from "./rateTableUtils";
 import { buildSeedRateTable } from "./seed";
 import type { QuoteSelection } from "./types";
 
@@ -10,7 +10,8 @@ function baseSelection(overrides: Partial<QuoteSelection> = {}): QuoteSelection 
   return {
     packageId: 2,
     week: { year: 2027, month: 8, weekOfMonth: 1 },
-    extraWeeks: 0,
+    excludedDays: [],
+    extraDays: 0,
     expectedAudience: 8000,
     expectedRevenue: 0,
     addons: [],
@@ -31,15 +32,16 @@ describe("calculateQuote — 명세서 7장 검증 케이스", () => {
   });
 
   it("케이스 B: 초과분 과금 — 대기실 초과분 + 스마트스테이지 추가분만 과금", () => {
-    const waitingRoomIncluded = includedQuantity(pkg2, "waiting_room"); // 2
+    const waitingRoomIncluded = includedQuantity(pkg2, "waiting_room");
+    const smartStageIncluded = includedQuantity(pkg2, "smart_stage");
     const waitingRoom = findAddon(RATE_TABLE, "waiting_room")!;
     const smartStage = findAddon(RATE_TABLE, "smart_stage")!;
 
     const quote = calculateQuote(
       baseSelection({
         addons: [
-          { addonId: "waiting_room", requestedQuantity: waitingRoomIncluded + 1 }, // 3개 신청, 2개 포함 → 1개 과금
-          { addonId: "smart_stage", requestedQuantity: 1 }, // 기본 포함 0개 → 1개 전량 과금
+          { addonId: "waiting_room", requestedQuantity: waitingRoomIncluded + 1 }, // 포함분+1개 신청 → 1개만 과금
+          { addonId: "smart_stage", requestedQuantity: smartStageIncluded + 1 }, // 포함분+1개 신청 → 1개만 과금
         ],
       }),
       RATE_TABLE,
@@ -58,18 +60,40 @@ describe("calculateQuote — 명세서 7장 검증 케이스", () => {
     expect(quote.subtotal).toBe(expectedSubtotal);
   });
 
-  it("케이스 C: 초과 주차 — 1주 추가 시 초과주차 1주 과금", () => {
-    const quote = calculateQuote(baseSelection({ extraWeeks: 1 }), RATE_TABLE);
-    const extraWeekLine = quote.lineItems.find((i) => i.addonId === "extra_week")!;
+  it("케이스 C: 추가 일수 — 일요일 이후 2일 연장 시 일 단가 × 2일 과금", () => {
+    const quote = calculateQuote(baseSelection({ extraDays: 2 }), RATE_TABLE);
+    const extraDaysLine = quote.lineItems.find((i) => i.addonId === "extra_days")!;
+    const dayPrice = extraDayPrice(RATE_TABLE, pkg2);
 
-    expect(extraWeekLine.requested).toBe(2);
-    expect(extraWeekLine.included).toBe(1);
-    expect(extraWeekLine.billable).toBe(1);
-    expect(extraWeekLine.amount).toBe(extraWeekPrice(RATE_TABLE, pkg2));
+    expect(extraDaysLine.requested).toBe(2);
+    expect(extraDaysLine.billable).toBe(2);
+    expect(extraDaysLine.amount).toBe(2 * dayPrice);
 
-    const expectedSubtotal =
-      pkg2.baseFeePerWeek + 8000 * cleaning.unitPrice + extraWeekPrice(RATE_TABLE, pkg2);
+    const expectedSubtotal = pkg2.baseFeePerWeek + 8000 * cleaning.unitPrice + 2 * dayPrice;
     expect(quote.subtotal).toBe(expectedSubtotal);
+  });
+
+  it("제외 요일 할인: 화~일 중 1일 제외 시 요금표 비율만큼 정액 할인된다", () => {
+    const quote = calculateQuote(baseSelection({ excludedDays: ["FRI"] }), RATE_TABLE);
+    const discountLine = quote.lineItems.find((i) => i.addonId === "day_exclusion_discount")!;
+    const perDayDiscount = Math.round(pkg2.baseFeePerWeek * RATE_TABLE.dayExclusionDiscountRatio);
+
+    expect(discountLine.billable).toBe(1);
+    expect(discountLine.amount).toBe(-perDayDiscount);
+
+    const expectedSubtotal = pkg2.baseFeePerWeek + 8000 * cleaning.unitPrice - perDayDiscount;
+    expect(quote.subtotal).toBe(expectedSubtotal);
+  });
+
+  it("제외 요일 할인 + 추가 일수는 함께 적용된다", () => {
+    const quote = calculateQuote(
+      baseSelection({ extraDays: 1, excludedDays: ["FRI", "SAT"] }),
+      RATE_TABLE,
+    );
+    const discountLine = quote.lineItems.find((i) => i.addonId === "day_exclusion_discount")!;
+    const extraDaysLine = quote.lineItems.find((i) => i.addonId === "extra_days")!;
+    expect(discountLine.billable).toBe(2);
+    expect(extraDaysLine.billable).toBe(1);
   });
 
   it("케이스 D: 규칙 차단 — 패키지3은 마더트러스A가 기본 포함이므로 IF_NOT_INCLUDED 규칙상 선택 불가", () => {

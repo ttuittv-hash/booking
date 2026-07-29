@@ -2,13 +2,7 @@
 
 import { won } from "@/lib/format";
 import { findAddon, recommendPackage } from "@/lib/pricing/rateTableUtils";
-import type { RateTable } from "@/lib/pricing/types";
-
-const MEDIA_TIER_LABEL: Record<string, string> = {
-  BASIC: "기본",
-  EXTENDED: "확장",
-  FULL: "풀팩",
-};
+import { MEDIA_TIER_LABEL, type RateTable } from "@/lib/pricing/types";
 
 export function Step1Package({
   rateTable,
@@ -57,9 +51,9 @@ export function Step1Package({
               type="button"
               onClick={() => onSelectPackage(pkg.id)}
               className={[
-                "relative flex flex-col rounded-md border p-5 text-left transition-all",
+                "relative flex flex-col rounded-md border p-5 text-left transition-colors",
                 isSelected
-                  ? "border-accent bg-accent-soft shadow-[0_0_0_3px_rgba(0,113,227,0.14)]"
+                  ? "border-accent bg-accent-soft"
                   : "border-border bg-panel hover:border-accent/50",
               ].join(" ")}
             >
@@ -103,7 +97,7 @@ export function Step1Package({
                   <li className="flex items-center justify-between text-[12.5px]">
                     <span>홍보 디지털 매체</span>
                     <span className="font-medium text-good">
-                      {pkg.mediaTier ? MEDIA_TIER_LABEL[pkg.mediaTier] : "미정"}
+                      {pkg.mediaTier ? MEDIA_TIER_LABEL[pkg.mediaTier] : "미포함"}
                     </span>
                   </li>
                 </ul>

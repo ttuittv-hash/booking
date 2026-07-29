@@ -2,6 +2,7 @@ import { notFound, redirect } from "next/navigation";
 import { getCurrentUser } from "@/lib/auth";
 import { findUserById, getQuoteById } from "@/lib/db";
 import { won } from "@/lib/format";
+import { totalRentalDays } from "@/lib/pricing/rateTableUtils";
 import { PrintButton } from "@/components/PrintButton";
 
 export default async function PrintQuotePage({
@@ -55,7 +56,7 @@ export default async function PrintQuotePage({
               label="주차"
               value={`${quote.selection.week.year}년 ${quote.selection.week.month}월 ${quote.selection.week.weekOfMonth}주차`}
             />
-            <Row label="총 주차 수" value={`${1 + quote.selection.extraWeeks}주`} />
+            <Row label="총 대관일수" value={`${totalRentalDays(quote.selection)}일`} />
             <Row label="예상 관객" value={`${quote.selection.expectedAudience.toLocaleString()}명`} />
           </dl>
         </div>

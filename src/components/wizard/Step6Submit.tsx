@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { won } from "@/lib/format";
-import { findPackage } from "@/lib/pricing/rateTableUtils";
+import { findPackage, totalRentalDays } from "@/lib/pricing/rateTableUtils";
 import type { EstimatedQuote, QuoteSelection, RateTable } from "@/lib/pricing/types";
 
 const STAGES = [
@@ -69,7 +69,7 @@ export function Step6Submit({
           </div>
           <div className="mt-1 text-[13px] text-muted">
             {selection.week.year}년 {selection.week.month}월{" "}
-            {selection.week.weekOfMonth}주차 · {1 + selection.extraWeeks}주 ·
+            {selection.week.weekOfMonth}주차 · 총 {totalRentalDays(selection)}일 ·
             관객 {selection.expectedAudience.toLocaleString()}명
           </div>
         </div>
