@@ -88,9 +88,8 @@ export function Step1Calendar({
   const selectedDates = resolveSelectedDates({ week, excludedDays, extraDays });
   const dayTagDefaults = defaultDayTags(selectedDates, defaultPerformanceDays);
 
-  function toggleDayTag(date: string) {
-    const current = effectiveDayTag(date, dayTags, dayTagDefaults);
-    onChangeDayTags({ ...dayTags, [date]: current === "PERFORMANCE" ? "PREP" : "PERFORMANCE" });
+  function setDayTag(date: string, tag: DayTag) {
+    onChangeDayTags({ ...dayTags, [date]: tag });
   }
 
   // 선택된 주의 화요일(기준일)을 찾아 실제 대관 예정 날짜 범위(제외 요일 제거 + 추가 일수 포함)를 계산한다.
@@ -290,29 +289,43 @@ export function Step1Calendar({
         <div className="mt-5 border-t border-border pt-5">
           <label className="text-[12.5px] font-medium text-muted">준비일 / 공연일 설정</label>
           <p className="mt-1.5 text-[12px] leading-5 text-muted">
-            선택하신 {selectedDates.length}일 중 기본 {defaultPerformanceDays}일이 공연일로
-            지정됩니다. 날짜를 눌러 조정할 수 있으며, 기본 공연일수보다 늘리거나 줄이면 대관료가
+            선택하신 {selectedDates.length}일 각각을 준비일/공연일 중에서 직접 선택하세요. 기본값은
+            {" "}{defaultPerformanceDays}일이 공연일이며, 기본 공연일수보다 늘리거나 줄이면 대관료가
             함께 조정됩니다.
           </p>
-          <div className="mt-3 flex flex-wrap gap-2">
+          <div className="mt-3 flex flex-wrap gap-3">
             {selectedDates.map((date) => {
               const tag = effectiveDayTag(date, dayTags, dayTagDefaults);
-              const isPerformance = tag === "PERFORMANCE";
               return (
-                <button
-                  key={date}
-                  type="button"
-                  onClick={() => toggleDayTag(date)}
-                  className={[
-                    "flex flex-col items-center gap-0.5 rounded-sm border px-3 py-2 text-[12px] font-medium transition-colors",
-                    isPerformance
-                      ? "border-accent bg-accent-soft text-accent"
-                      : "border-border bg-panel text-muted hover:border-accent/50",
-                  ].join(" ")}
-                >
-                  <span>{formatDateLabel(date)}</span>
-                  <span>{isPerformance ? "공연일" : "준비일"}</span>
-                </button>
+                <div key={date} className="flex flex-col items-center gap-1">
+                  <span className="text-[11.5px] font-medium text-muted">{formatDateLabel(date)}</span>
+                  <div className="flex overflow-hidden rounded-sm border border-border">
+                    <button
+                      type="button"
+                      onClick={() => setDayTag(date, "PREP")}
+                      className={[
+                        "px-2.5 py-1.5 text-[12px] font-medium transition-colors",
+                        tag === "PREP"
+                          ? "bg-accent text-white"
+                          : "bg-panel text-muted hover:text-foreground",
+                      ].join(" ")}
+                    >
+                      준비일
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setDayTag(date, "PERFORMANCE")}
+                      className={[
+                        "border-l border-border px-2.5 py-1.5 text-[12px] font-medium transition-colors",
+                        tag === "PERFORMANCE"
+                          ? "bg-accent text-white"
+                          : "bg-panel text-muted hover:text-foreground",
+                      ].join(" ")}
+                    >
+                      공연일
+                    </button>
+                  </div>
+                </div>
               );
             })}
           </div>

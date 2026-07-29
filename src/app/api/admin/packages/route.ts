@@ -5,6 +5,27 @@ import type { MediaTier, PackageInclusion, RentalPackage } from "@/lib/pricing/t
 
 const MEDIA_TIERS: (MediaTier | null)[] = ["BASIC", "EXTENDED", "FULL", null];
 
+function blankPackage(id: number): RentalPackage {
+  return {
+    id,
+    name: `패키지 ${id}`,
+    audienceTier: { min: 0, max: 0, label: "" },
+    baseFeePerWeek: 0,
+    includedWeeks: 1,
+    includedItems: [],
+    mediaTier: null,
+    dayBreakdown: "준비 4일 + 공연 2일",
+    defaultPerformanceDays: 2,
+    rentalHours: "09:00 ~ 22:00",
+    outdoorPlazaIncluded: false,
+    parkingPerDay: "",
+    waitingRoomNote: "",
+    sideFacilities: "",
+    seatingType: "",
+    stageType: "",
+  };
+}
+
 function sanitizePackage(current: RentalPackage, input: unknown): RentalPackage {
   if (!input || typeof input !== "object") return current;
   const p = input as Record<string, unknown>;
@@ -40,8 +61,17 @@ function sanitizePackage(current: RentalPackage, input: unknown): RentalPackage 
 
   const str = (key: string) => (typeof p[key] === "string" ? (p[key] as string) : current[key as keyof RentalPackage]);
 
+  const name = typeof p.name === "string" && p.name.trim() ? p.name.trim() : current.name;
+  const baseFeePerWeek = Number.isFinite(Number(p.baseFeePerWeek)) ? Math.max(0, Number(p.baseFeePerWeek)) : current.baseFeePerWeek;
+  const defaultPerformanceDays = Number.isFinite(Number(p.defaultPerformanceDays))
+    ? Math.max(0, Math.round(Number(p.defaultPerformanceDays)))
+    : current.defaultPerformanceDays;
+
   return {
     ...current,
+    name,
+    baseFeePerWeek,
+    defaultPerformanceDays,
     audienceTier,
     includedItems,
     mediaTier,
@@ -67,12 +97,23 @@ export async function PUT(request: Request) {
   const overrides = Array.isArray(body?.packages) ? (body.packages as unknown[]) : [];
 
   const current = getCurrentRateTable();
-  const packages = current.packages.map((pkg) => {
+  const currentIds = new Set(current.packages.map((pkg) => pkg.id));
+
+  const updatedExisting = current.packages.map((pkg) => {
     const override = overrides.find(
       (p) => p && typeof p === "object" && (p as Record<string, unknown>).id === pkg.id,
     );
     return sanitizePackage(pkg, override);
   });
+
+  const newOnes = overrides
+    .filter(
+      (p): p is Record<string, unknown> =>
+        !!p && typeof p === "object" && Number.isFinite(Number((p as Record<string, unknown>).id)) && !currentIds.has(Number((p as Record<string, unknown>).id)),
+    )
+    .map((p) => sanitizePackage(blankPackage(Number(p.id)), p));
+
+  const packages = [...updatedExisting, ...newOnes];
 
   const next = saveNewRateTableVersion({
     vatRate: current.vatRate,

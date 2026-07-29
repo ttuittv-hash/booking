@@ -65,21 +65,43 @@ function NoticesTab({
 }) {
   const [title, setTitle] = useState("");
   const [body, setBody] = useState("");
+  const [imageUrl, setImageUrl] = useState<string | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+  const [uploading, setUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   function startEdit(notice: Notice) {
     setEditingId(notice.id);
     setTitle(notice.title);
     setBody(notice.body);
+    setImageUrl(notice.imageUrl);
   }
 
   function resetForm() {
     setEditingId(null);
     setTitle("");
     setBody("");
+    setImageUrl(null);
     setError(null);
+  }
+
+  async function uploadImage(file: File) {
+    setUploading(true);
+    setError(null);
+    try {
+      const formData = new FormData();
+      formData.append("file", file);
+      const res = await fetch("/api/admin/notices/upload", { method: "POST", body: formData });
+      const data = await res.json();
+      if (!res.ok) {
+        setError(data.error || "이미지 업로드에 실패했습니다.");
+        return;
+      }
+      setImageUrl(data.url);
+    } finally {
+      setUploading(false);
+    }
   }
 
   async function save() {
@@ -89,7 +111,7 @@ function NoticesTab({
       const res = await fetch(editingId ? `/api/admin/notices/${editingId}` : "/api/admin/notices", {
         method: editingId ? "PUT" : "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ title, body }),
+        body: JSON.stringify({ title, body, imageUrl }),
       });
       const data = await res.json();
       if (!res.ok) {
@@ -134,11 +156,41 @@ function NoticesTab({
             onChange={(e) => setBody(e.target.value)}
             className="w-full rounded-sm border border-border bg-panel px-3 py-2 text-[13px] outline-none focus:border-accent"
           />
+
+          <div>
+            <span className="mb-1.5 block text-[12px] text-muted">이미지 (선택)</span>
+            {imageUrl ? (
+              <div className="flex items-center gap-3">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={imageUrl} alt="" className="h-20 w-32 rounded-sm border border-border object-cover" />
+                <button
+                  type="button"
+                  onClick={() => setImageUrl(null)}
+                  className="text-[12.5px] text-muted hover:text-red-600"
+                >
+                  이미지 제거
+                </button>
+              </div>
+            ) : (
+              <input
+                type="file"
+                accept="image/png,image/jpeg,image/webp,image/gif"
+                disabled={uploading}
+                onChange={(e) => {
+                  const file = e.target.files?.[0];
+                  if (file) uploadImage(file);
+                }}
+                className="w-full text-[12.5px] text-muted file:mr-3 file:rounded-sm file:border file:border-border file:bg-background file:px-3 file:py-1.5 file:text-[12.5px] file:font-medium"
+              />
+            )}
+            {uploading && <p className="mt-1 text-[11.5px] text-muted">업로드 중...</p>}
+          </div>
+
           {error && <p className="text-[12.5px] text-red-600">{error}</p>}
           <div className="flex items-center gap-3">
             <button
               type="button"
-              disabled={saving || !title.trim() || !body.trim()}
+              disabled={saving || uploading || !title.trim() || !body.trim()}
               onClick={save}
               className="rounded-sm bg-accent px-5 py-2 text-[13px] font-semibold text-white transition-colors hover:bg-accent-hover disabled:opacity-50"
             >
@@ -164,11 +216,21 @@ function NoticesTab({
           notices.map((notice) => (
             <li key={notice.id} className="border border-border bg-background p-4">
               <div className="flex items-start justify-between gap-4">
-                <div>
-                  <div className="text-[13.5px] font-semibold">{notice.title}</div>
-                  <p className="mt-1 whitespace-pre-wrap text-[12.5px] leading-5 text-muted">{notice.body}</p>
-                  <div className="mt-2 text-[11px] text-muted">
-                    {new Date(notice.createdAt).toLocaleString("ko-KR")}
+                <div className="flex gap-3">
+                  {notice.imageUrl && (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img
+                      src={notice.imageUrl}
+                      alt=""
+                      className="h-14 w-20 shrink-0 rounded-sm border border-border object-cover"
+                    />
+                  )}
+                  <div>
+                    <div className="text-[13.5px] font-semibold">{notice.title}</div>
+                    <p className="mt-1 whitespace-pre-wrap text-[12.5px] leading-5 text-muted">{notice.body}</p>
+                    <div className="mt-2 text-[11px] text-muted">
+                      {new Date(notice.createdAt).toLocaleString("ko-KR")}
+                    </div>
                   </div>
                 </div>
                 <div className="flex shrink-0 gap-3 text-[12.5px]">

@@ -299,6 +299,7 @@ export interface Notice {
   id: string;
   title: string;
   body: string;
+  imageUrl: string | null;
   createdAt: string;
   updatedAt: string;
 }

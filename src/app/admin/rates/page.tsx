@@ -20,6 +20,7 @@ export default async function AdminRatesPage() {
         <p className="mt-2 max-w-2xl text-[13.5px] leading-6 text-muted">
           현재 버전: <span className="font-medium text-foreground">{rateTable.version}</span> · 저장하면
           새 버전이 생성되며, 이미 제출된 신청서의 금액에는 영향을 주지 않습니다(재현성 보장).
+          패키지별 기본 대관료는 &ldquo;패키지 관리&rdquo;에서 편집하세요.
         </p>
 
         <RatesForm rateTable={rateTable} />

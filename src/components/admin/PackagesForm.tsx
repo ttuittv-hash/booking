@@ -13,6 +13,27 @@ const MEDIA_OPTIONS: { value: MediaTier; label: string }[] = [
   { value: "FULL", label: MEDIA_TIER_LABEL.FULL },
 ];
 
+function blankPackage(id: number): EditablePackage {
+  return {
+    id,
+    name: `패키지 ${id}`,
+    audienceTier: { min: 0, max: 0, label: "" },
+    baseFeePerWeek: 0,
+    includedWeeks: 1,
+    includedItems: [],
+    mediaTier: null,
+    dayBreakdown: "준비 4일 + 공연 2일",
+    defaultPerformanceDays: 2,
+    rentalHours: "09:00 ~ 22:00",
+    outdoorPlazaIncluded: false,
+    parkingPerDay: "",
+    waitingRoomNote: "",
+    sideFacilities: "",
+    seatingType: "",
+    stageType: "",
+  };
+}
+
 export function PackagesForm({ rateTable }: { rateTable: RateTable }) {
   const router = useRouter();
   const [packages, setPackages] = useState<EditablePackage[]>(rateTable.packages);
@@ -31,6 +52,12 @@ export function PackagesForm({ rateTable }: { rateTable: RateTable }) {
 
   function update(patch: Partial<EditablePackage>) {
     setPackages((prev) => prev.map((p) => (p.id === activeId ? { ...p, ...patch } : p)));
+  }
+
+  function addPackage() {
+    const nextId = Math.max(0, ...packages.map((p) => p.id)) + 1;
+    setPackages((prev) => [...prev, blankPackage(nextId)]);
+    setActiveId(nextId);
   }
 
   function includedQty(addonId: string): number {
@@ -83,12 +110,38 @@ export function PackagesForm({ rateTable }: { rateTable: RateTable }) {
             {p.name}
           </button>
         ))}
+        <button
+          type="button"
+          onClick={addPackage}
+          className="ml-1 shrink-0 whitespace-nowrap px-3 py-3 text-[13px] font-medium text-accent outline-none hover:underline"
+        >
+          + 새 패키지
+        </button>
       </div>
 
       <div className="mt-6 space-y-8">
         <section>
           <h2 className="text-[14px] font-semibold">기본 정보</h2>
           <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2">
+            <label className="block">
+              <span className="mb-1 block text-[12px] text-muted">패키지 이름</span>
+              <input
+                type="text"
+                value={active.name}
+                onChange={(e) => update({ name: e.target.value })}
+                className="w-full rounded-sm border border-border bg-panel px-3 py-2 text-[13px] outline-none focus:border-accent"
+              />
+            </label>
+            <label className="block">
+              <span className="mb-1 block text-[12px] text-muted">기본 대관료 (원/주, 화~일)</span>
+              <input
+                type="number"
+                min={0}
+                value={active.baseFeePerWeek}
+                onChange={(e) => update({ baseFeePerWeek: Number(e.target.value) || 0 })}
+                className="w-full rounded-sm border border-border bg-panel px-3 py-2 text-[13px] outline-none focus:border-accent"
+              />
+            </label>
             <label className="block">
               <span className="mb-1 block text-[12px] text-muted">객석 규모 최소</span>
               <input
@@ -169,6 +222,16 @@ export function PackagesForm({ rateTable }: { rateTable: RateTable }) {
                 />
               </label>
             ))}
+            <label className="block">
+              <span className="mb-1 block text-[12px] text-muted">기본 공연일수 (세부 구성의 숫자값 — 준비일/공연일 조정 과금 기준)</span>
+              <input
+                type="number"
+                min={0}
+                value={active.defaultPerformanceDays}
+                onChange={(e) => update({ defaultPerformanceDays: Math.max(0, Math.round(Number(e.target.value) || 0)) })}
+                className="w-full rounded-sm border border-border bg-panel px-3 py-2 text-[13px] outline-none focus:border-accent"
+              />
+            </label>
           </div>
         </section>
 
@@ -248,7 +311,7 @@ export function PackagesForm({ rateTable }: { rateTable: RateTable }) {
           onClick={save}
           className="rounded-sm bg-accent px-7 py-3 text-[14px] font-semibold text-white transition-colors hover:bg-accent-hover disabled:opacity-50"
         >
-          {saving ? "저장 중..." : "패키지 구성 저장 (새 버전 생성)"}
+          {saving ? "저장 중..." : "패키지 구성 · 가격 저장 (새 버전 생성)"}
         </button>
         {message && <span className="text-[13px] text-muted">{message}</span>}
       </div>

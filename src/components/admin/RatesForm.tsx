@@ -6,9 +6,6 @@ import { ADDON_CATEGORY_LABEL, type RateTable } from "@/lib/pricing/types";
 
 export function RatesForm({ rateTable }: { rateTable: RateTable }) {
   const router = useRouter();
-  const [packages, setPackages] = useState(
-    rateTable.packages.map((p) => ({ id: p.id, name: p.name, baseFeePerWeek: p.baseFeePerWeek })),
-  );
   const [addons, setAddons] = useState(
     rateTable.addons.map((a) => ({
       id: a.id,
@@ -43,7 +40,6 @@ export function RatesForm({ rateTable }: { rateTable: RateTable }) {
         body: JSON.stringify({
           extraWeekRatio,
           dayExclusionDiscountRatio,
-          packages: packages.map((p) => ({ id: p.id, baseFeePerWeek: p.baseFeePerWeek })),
           addons: addons.map((a) => ({ id: a.id, unitPrice: a.unitPrice })),
         }),
       });
@@ -62,25 +58,11 @@ export function RatesForm({ rateTable }: { rateTable: RateTable }) {
   return (
     <div className="mt-8 space-y-8">
       <section className="rounded border border-border bg-background p-6">
-        <h2 className="text-[15px] font-semibold">패키지 기본 대관료 (원/주)</h2>
-        <div className="mt-4 space-y-2.5">
-          {packages.map((pkg, i) => (
-            <div key={pkg.id} className="grid grid-cols-1 items-center gap-2 sm:grid-cols-[1fr_200px] sm:gap-3">
-              <span className="text-[13.5px]">{pkg.name}</span>
-              <input
-                type="number"
-                min={0}
-                value={pkg.baseFeePerWeek}
-                onChange={(e) =>
-                  setPackages((prev) =>
-                    prev.map((p, idx) => (idx === i ? { ...p, baseFeePerWeek: Number(e.target.value) || 0 } : p)),
-                  )
-                }
-                className="rounded border border-border bg-panel px-3 py-2 text-right text-[13px] outline-none focus:border-accent"
-              />
-            </div>
-          ))}
-        </div>
+        <h2 className="text-[15px] font-semibold">공통 요율</h2>
+        <p className="mt-1 text-[12.5px] text-muted">
+          패키지별 기본 대관료는 &ldquo;패키지 관리&rdquo;에서 함께 편집합니다. 여기서는 모든
+          패키지에 공통 적용되는 비율과 부대시설 단가만 관리합니다.
+        </p>
 
         <div className="mt-5 grid grid-cols-1 items-center gap-2 border-t border-border pt-4 sm:grid-cols-[1fr_200px] sm:gap-3">
           <div>

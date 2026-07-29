@@ -1,3 +1,4 @@
+import Link from "next/link";
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { getCurrentUser, isPendingApplicant } from "@/lib/auth";
@@ -7,6 +8,11 @@ import { PublicHeader } from "@/components/PublicHeader";
 export const metadata: Metadata = {
   title: "공지사항 | 서울아레나",
 };
+
+function excerpt(body: string, max = 80): string {
+  const oneLine = body.replace(/\s+/g, " ").trim();
+  return oneLine.length > max ? `${oneLine.slice(0, max)}…` : oneLine;
+}
 
 export default async function NoticesPage() {
   const currentUser = await getCurrentUser();
@@ -31,13 +37,27 @@ export default async function NoticesPage() {
             <p className="py-8 text-[13.5px] text-muted">등록된 공지사항이 없습니다.</p>
           ) : (
             notices.map((notice) => (
-              <article key={notice.id} className="py-7">
-                <h2 className="text-[16px] font-semibold">{notice.title}</h2>
-                <p className="mt-1.5 text-[11.5px] text-muted">
-                  {new Date(notice.createdAt).toLocaleDateString("ko-KR")}
-                </p>
-                <p className="mt-3 whitespace-pre-wrap text-[13.5px] leading-7 text-muted">{notice.body}</p>
-              </article>
+              <Link
+                key={notice.id}
+                href={`/notices/${notice.id}`}
+                className="flex items-center gap-5 py-6 transition-colors hover:bg-panel/60"
+              >
+                {notice.imageUrl && (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img
+                    src={notice.imageUrl}
+                    alt=""
+                    className="h-16 w-24 shrink-0 rounded-sm border border-border object-cover"
+                  />
+                )}
+                <div className="min-w-0">
+                  <h2 className="text-[15.5px] font-semibold">{notice.title}</h2>
+                  <p className="mt-1 truncate text-[12.5px] text-muted">{excerpt(notice.body)}</p>
+                  <p className="mt-1.5 text-[11px] text-muted">
+                    {new Date(notice.createdAt).toLocaleDateString("ko-KR")}
+                  </p>
+                </div>
+              </Link>
             ))
           )}
         </div>

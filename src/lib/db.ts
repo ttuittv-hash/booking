@@ -31,6 +31,15 @@ declare global {
   var __seoulArenaDb: DatabaseSync | undefined;
 }
 
+// CREATE TABLE IF NOT EXISTS는 이미 존재하는(운영 중인) 테이블에는 새 컬럼을 추가해주지 않으므로,
+// 스키마에 컬럼을 추가할 때는 반드시 이 헬퍼로 기존 DB에도 마이그레이션해야 한다.
+function ensureColumn(db: DatabaseSync, table: string, column: string, definition: string) {
+  const cols = db.prepare(`PRAGMA table_info(${table})`).all() as { name: string }[];
+  if (!cols.some((c) => c.name === column)) {
+    db.exec(`ALTER TABLE ${table} ADD COLUMN ${column} ${definition}`);
+  }
+}
+
 function createConnection(): DatabaseSync {
   fs.mkdirSync(path.dirname(DB_PATH), { recursive: true });
   const db = new DatabaseSync(DB_PATH);
@@ -132,6 +141,7 @@ function createConnection(): DatabaseSync {
       id TEXT PRIMARY KEY,
       title TEXT NOT NULL,
       body TEXT NOT NULL,
+      image_url TEXT,
       created_at TEXT NOT NULL,
       updated_at TEXT NOT NULL
     );
@@ -144,6 +154,13 @@ function createConnection(): DatabaseSync {
       updated_at TEXT NOT NULL
     );
   `);
+
+  // 이미 배포되어 있던 DB(기존 users/rate_tables 등)에는 CREATE TABLE IF NOT EXISTS가 새 컬럼을
+  // 추가해주지 않으므로, 이후 세션에서 추가된 컬럼들을 여기서 한 번에 마이그레이션한다.
+  ensureColumn(db, "users", "company_id", "TEXT REFERENCES companies(id)");
+  ensureColumn(db, "users", "approval_status", "TEXT NOT NULL DEFAULT 'APPROVED'");
+  ensureColumn(db, "rate_tables", "day_exclusion_discount_ratio", "REAL NOT NULL DEFAULT 0.1667");
+  ensureColumn(db, "notices", "image_url", "TEXT");
 
   const rateTableCount = db.prepare("SELECT COUNT(*) as n FROM rate_tables").get() as { n: number };
   if (rateTableCount.n === 0) {
@@ -290,6 +307,12 @@ export function findCompanyById(id: string): Company | undefined {
   const db = getDb();
   const row = db.prepare("SELECT * FROM companies WHERE id = ?").get(id) as CompanyRow | undefined;
   return row ? toCompany(row) : undefined;
+}
+
+export function listCompanies(): Company[] {
+  const db = getDb();
+  const rows = db.prepare("SELECT * FROM companies ORDER BY name ASC").all() as unknown as CompanyRow[];
+  return rows.map(toCompany);
 }
 
 // ---------------------------------------------------------------------------
@@ -819,12 +842,20 @@ interface NoticeRow {
   id: string;
   title: string;
   body: string;
+  image_url: string | null;
   created_at: string;
   updated_at: string;
 }
 
 function toNotice(row: NoticeRow): Notice {
-  return { id: row.id, title: row.title, body: row.body, createdAt: row.created_at, updatedAt: row.updated_at };
+  return {
+    id: row.id,
+    title: row.title,
+    body: row.body,
+    imageUrl: row.image_url,
+    createdAt: row.created_at,
+    updatedAt: row.updated_at,
+  };
 }
 
 export function listNotices(): Notice[] {
@@ -839,19 +870,29 @@ export function getNoticeById(id: string): Notice | undefined {
   return row ? toNotice(row) : undefined;
 }
 
-export function createNotice(input: { id: string; title: string; body: string; createdAt: string }): Notice {
+export function createNotice(input: {
+  id: string;
+  title: string;
+  body: string;
+  imageUrl?: string | null;
+  createdAt: string;
+}): Notice {
   const db = getDb();
   db.prepare(
-    "INSERT INTO notices (id, title, body, created_at, updated_at) VALUES (?, ?, ?, ?, ?)",
-  ).run(input.id, input.title, input.body, input.createdAt, input.createdAt);
+    "INSERT INTO notices (id, title, body, image_url, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?)",
+  ).run(input.id, input.title, input.body, input.imageUrl ?? null, input.createdAt, input.createdAt);
   return getNoticeById(input.id)!;
 }
 
-export function updateNotice(id: string, input: { title: string; body: string; updatedAt: string }): Notice | undefined {
+export function updateNotice(
+  id: string,
+  input: { title: string; body: string; imageUrl?: string | null; updatedAt: string },
+): Notice | undefined {
   const db = getDb();
-  db.prepare("UPDATE notices SET title = ?, body = ?, updated_at = ? WHERE id = ?").run(
+  db.prepare("UPDATE notices SET title = ?, body = ?, image_url = ?, updated_at = ? WHERE id = ?").run(
     input.title,
     input.body,
+    input.imageUrl ?? null,
     input.updatedAt,
     id,
   );
