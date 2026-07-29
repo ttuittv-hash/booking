@@ -123,7 +123,7 @@ function Section({
   children: React.ReactNode;
 }) {
   return (
-    <section id={id} className="scroll-mt-24 border-t border-border py-14 first:border-t-0 first:pt-0">
+    <section id={id} className="scroll-mt-24 border-t border-border py-14 first-of-type:border-t-0 first-of-type:pt-0">
       <h2 className="text-[22px] font-semibold tracking-tight">{title}</h2>
       <div className="mt-6">{children}</div>
     </section>

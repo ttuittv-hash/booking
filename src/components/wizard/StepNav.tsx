@@ -19,7 +19,7 @@ export function StepNav({
   onJump: (step: number) => void;
 }) {
   return (
-    <div className="sticky top-14 z-10 -mx-4 mb-8 flex gap-1 overflow-x-auto border-b border-border bg-background px-4 sm:top-16 sm:-mx-6 sm:px-6">
+    <div className="sticky top-14 z-10 -mx-4 mb-8 flex h-11 items-center gap-1 overflow-x-auto border-b border-border bg-background px-4 sm:top-16 sm:-mx-6 sm:px-6">
       {STEP_NAMES.map((name, i) => {
         const s = i + 1;
         const isActive = s === step;

@@ -5,7 +5,7 @@ import type { EstimatedQuote } from "@/lib/pricing/types";
 
 export function SummaryPanel({ quote }: { quote: EstimatedQuote }) {
   return (
-    <aside className="lg:sticky lg:top-24 lg:self-start">
+    <aside className="lg:sticky lg:top-[108px] lg:self-start">
       <div className="rounded border border-border bg-panel/70 p-6">
         <h3 className="text-[15px] font-semibold">실시간 견적 요약</h3>
         <p className="mt-1 text-[11.5px] font-medium text-warn">
