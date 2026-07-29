@@ -162,8 +162,13 @@ export function Step1Calendar({
           return (
             <div key={wi} className="relative">
               {demand > 0 && (
-                <span className="absolute -top-1.5 right-1 z-10 rounded-sm bg-panel-strong px-1.5 py-0.5 text-[10px] font-medium text-muted">
-                  대관 신청 {demand}개사
+                <span
+                  className={[
+                    "absolute -top-1.5 right-1 z-10 rounded-sm px-1.5 py-0.5 text-[10px] font-medium",
+                    demand > 1 ? "bg-accent-soft text-accent" : "bg-panel-strong text-muted",
+                  ].join(" ")}
+                >
+                  {demand > 1 ? `경합 중 · ${demand}개사 신청` : `${demand}개사 신청`}
                 </span>
               )}
               <button

@@ -31,7 +31,16 @@ export default async function Home() {
           대관 신청하기 →
         </Link>
 
-        <div className="mt-20 w-full max-w-5xl border-t border-border/70 pt-16 sm:mt-24 sm:pt-20">
+        <div className="mt-16 w-full max-w-5xl overflow-hidden rounded-sm border border-border sm:mt-20">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src="/images/arena-day.webp"
+            alt="서울아레나 전경"
+            className="h-auto w-full object-cover"
+          />
+        </div>
+
+        <div className="mt-16 w-full max-w-5xl border-t border-border/70 pt-16 sm:mt-20 sm:pt-20">
           <p className="text-[12px] font-semibold uppercase tracking-[0.14em] text-accent">
             APPLICATION PROCESS
           </p>
