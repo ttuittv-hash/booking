@@ -103,9 +103,9 @@ export default async function Home() {
         {/* 미션 / 비전 */}
         <section className="border-t border-border/70 px-6 py-20 sm:py-24">
           <div className="mx-auto grid max-w-5xl grid-cols-1 gap-14 lg:grid-cols-[1fr_1px_1fr]">
-            <div className="-m-5 rounded-lg p-5 transition-all duration-300 hover:-translate-y-0.5 hover:bg-panel/50">
+            <div className="group">
               <p className="text-[12px] font-semibold uppercase tracking-[0.2em] text-accent">{missionLabel}</p>
-              <p className="mt-5 text-[17px] font-semibold leading-8 text-foreground">
+              <p className="mt-5 text-[17px] font-semibold leading-8 text-foreground transition-colors group-hover:text-accent">
                 {mission.split("\n").map((line, i) => (
                   <span key={i}>
                     {i > 0 && <br />}
@@ -115,9 +115,9 @@ export default async function Home() {
               </p>
             </div>
             <div className="hidden bg-border/70 lg:block" aria-hidden />
-            <div className="-m-5 rounded-lg p-5 transition-all duration-300 hover:-translate-y-0.5 hover:bg-panel/50">
+            <div className="group">
               <p className="text-[12px] font-semibold uppercase tracking-[0.2em] text-accent">{visionLabel}</p>
-              <p className="mt-5 text-[17px] font-semibold leading-8 text-foreground">
+              <p className="mt-5 text-[17px] font-semibold leading-8 text-foreground transition-colors group-hover:text-accent">
                 {vision.split("\n").map((line, i) => (
                   <span key={i}>
                     {i > 0 && <br />}
