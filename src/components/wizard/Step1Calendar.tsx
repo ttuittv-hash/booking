@@ -196,15 +196,10 @@ export function Step1Calendar({
                 })}
               </button>
               {demand > 0 && (
-                <div className="px-0.5 pt-0.5 text-right">
-                  <span
-                    className={[
-                      "text-[10.5px] font-medium",
-                      demand > 1 ? "text-accent" : "text-muted",
-                    ].join(" ")}
-                  >
-                    {demand > 1 ? `경합 중 · ${demand}개사 신청` : `${demand}개사 신청`}
-                  </span>
+                <div className="px-0.5 pt-0.5 text-right text-[10.5px] text-muted">
+                  {demand > 1 && <span>경합 중 · </span>}
+                  <span className="font-bold text-accent">{demand}</span>
+                  <span>개사 신청</span>
                 </div>
               )}
             </div>
