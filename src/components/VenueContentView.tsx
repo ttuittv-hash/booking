@@ -180,7 +180,7 @@ export function VenueContentView({ content }: { content: VenueContent }) {
           return (
             <div className="mb-10 grid grid-cols-2 gap-4 sm:grid-cols-4">
               {featured.map((f, i) => (
-                <div key={`${f.hall}-${f.name}-${i}`}>
+                <div key={`${f.hall}-${f.name}-${i}`} className="rounded-sm border border-border bg-panel/50 p-4">
                   <ImagePlaceholder src={f.image} alt={f.name} />
                   <div className="mt-3 text-[11px] font-semibold uppercase tracking-wide text-accent">{f.hall}</div>
                   <div className="mt-1 text-[13.5px] font-semibold">{f.name}</div>

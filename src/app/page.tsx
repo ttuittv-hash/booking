@@ -121,21 +121,41 @@ export default async function Home() {
             <p className="text-[12px] font-semibold uppercase tracking-[0.14em] text-accent">{featuresLabel}</p>
             <h2 className="mt-2 text-[22px] font-semibold tracking-tight sm:text-[26px]">{featuresTitle}</h2>
 
-            <div className="mt-10 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            <div className="mt-10 grid grid-cols-1 border-t border-border/70 sm:grid-cols-2 sm:gap-x-12">
               {features.map((f) => (
                 <Link
                   key={f.title}
                   href={f.href}
-                  className="group block rounded border border-border bg-background p-6 text-left transition-all hover:-translate-y-1 hover:border-accent hover:shadow-[0_16px_32px_-20px_rgba(0,0,0,0.25)]"
+                  className="group flex items-start justify-between gap-4 border-b border-border/70 py-6 text-left"
                 >
-                  {f.image && (
-                    <div className="mb-3 aspect-video overflow-hidden rounded-sm border border-border">
-                      {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img src={f.image} alt={f.title} className="h-full w-full object-cover" />
+                  <div className="flex items-start gap-4">
+                    {f.image && (
+                      <div className="mt-0.5 h-14 w-20 shrink-0 overflow-hidden rounded-sm border border-border">
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img src={f.image} alt={f.title} className="h-full w-full object-cover" />
+                      </div>
+                    )}
+                    <div>
+                      <div className="text-[15px] font-semibold text-foreground transition-colors group-hover:text-accent">
+                        {f.title}
+                      </div>
+                      <p className="mt-1.5 max-w-sm text-[13px] leading-6 text-muted">{f.desc}</p>
                     </div>
-                  )}
-                  <span className="text-[14.5px] font-semibold">{f.title}</span>
-                  <p className="mt-2 text-[12.5px] leading-6 text-muted">{f.desc}</p>
+                  </div>
+                  <svg
+                    aria-hidden
+                    viewBox="0 0 16 16"
+                    fill="none"
+                    className="mt-1.5 h-3 w-3 shrink-0 text-muted transition-all group-hover:translate-x-1 group-hover:text-accent"
+                  >
+                    <path
+                      d="M5.5 3L10.5 8L5.5 13"
+                      stroke="currentColor"
+                      strokeWidth="1.6"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    />
+                  </svg>
                 </Link>
               ))}
             </div>
