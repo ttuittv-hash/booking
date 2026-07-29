@@ -28,6 +28,7 @@ export function Step6Submit({
   quote,
   selection,
   isLoggedIn,
+  isEditing = false,
   submitting,
   submittedId,
   error,
@@ -37,6 +38,7 @@ export function Step6Submit({
   quote: EstimatedQuote;
   selection: QuoteSelection;
   isLoggedIn: boolean;
+  isEditing?: boolean;
   submitting: boolean;
   submittedId: string | null;
   error: string | null;
@@ -56,10 +58,11 @@ export function Step6Submit({
 
   return (
     <section className="rounded border border-border bg-background p-7">
-      <h2 className="text-[19px] font-semibold">6. 신청서 제출</h2>
+      <h2 className="text-[19px] font-semibold">6. {isEditing ? "신청서 수정" : "신청서 제출"}</h2>
       <p className="mt-1.5 text-[13.5px] text-muted">
-        아래 산출내역으로 대관 신청서가 생성됩니다. 신청금액은 예상금액이며,
-        이후 심사·계약에서 확정됩니다.
+        {isEditing
+          ? "아래 산출내역으로 신청서 내용이 수정됩니다. 신청금액은 예상금액이며, 이후 심사·계약에서 확정됩니다."
+          : "아래 산출내역으로 대관 신청서가 생성됩니다. 신청금액은 예상금액이며, 이후 심사·계약에서 확정됩니다."}
       </p>
 
       <div className="mt-6 flex flex-wrap items-center justify-between gap-4 rounded border border-border bg-panel/60 p-6">
@@ -83,7 +86,7 @@ export function Step6Submit({
 
       {submittedId ? (
         <div className="mt-5 rounded-sm border border-accent/30 bg-accent-soft px-5 py-4 text-[13.5px] text-accent">
-          <p className="font-semibold">신청이 접수되었습니다.</p>
+          <p className="font-semibold">{isEditing ? "신청 내용이 수정되었습니다." : "신청이 접수되었습니다."}</p>
           <p className="mt-1.5 leading-6">
             운영자 심사 → 계약 → 정산 순으로 진행되며, 각 단계가 완료되면
             알림으로 안내해 드립니다.
@@ -117,7 +120,7 @@ export function Step6Submit({
             onClick={onSubmit}
             className="mt-5 rounded-sm bg-accent px-7 py-3 text-[14px] font-semibold text-white transition-colors hover:bg-accent-hover disabled:opacity-50"
           >
-            {submitting ? "제출 중..." : "신청서 생성"}
+            {submitting ? "저장 중..." : isEditing ? "수정 내용 저장" : "신청서 생성"}
           </button>
           {error && <p className="mt-3 text-[13px] text-red-600">{error}</p>}
         </>

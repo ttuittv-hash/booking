@@ -38,6 +38,14 @@ export default async function MyQuoteDetailPage({
         <div className="flex flex-wrap items-center justify-between gap-3">
           <h1 className="text-[22px] font-semibold">{quote.id}</h1>
           <div className="flex items-center gap-3">
+            {quote.status === "ESTIMATE" && user.role !== "ADMIN" && (
+              <Link
+                href={`/apply/edit/${quote.id}`}
+                className="text-[12.5px] font-medium text-accent hover:underline"
+              >
+                신청 내용 수정
+              </Link>
+            )}
             <Link
               href={`/print/${quote.id}`}
               target="_blank"

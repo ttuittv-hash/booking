@@ -9,11 +9,6 @@ export const metadata: Metadata = {
   title: "공지사항 | 서울아레나",
 };
 
-function excerpt(body: string, max = 80): string {
-  const oneLine = body.replace(/\s+/g, " ").trim();
-  return oneLine.length > max ? `${oneLine.slice(0, max)}…` : oneLine;
-}
-
 export default async function NoticesPage() {
   const currentUser = await getCurrentUser();
   if (currentUser && isPendingApplicant(currentUser)) redirect("/pending");
@@ -32,7 +27,7 @@ export default async function NoticesPage() {
           확인하실 수 있습니다. 대관 신청 전 반드시 최신 공지사항을 확인하시기 바랍니다.
         </p>
 
-        <div className="mt-10 divide-y divide-border border-t border-border">
+        <div className="mt-10 border-t border-border">
           {notices.length === 0 ? (
             <p className="py-8 text-[13.5px] text-muted">등록된 공지사항이 없습니다.</p>
           ) : (
@@ -40,23 +35,14 @@ export default async function NoticesPage() {
               <Link
                 key={notice.id}
                 href={`/notices/${notice.id}`}
-                className="flex items-center gap-5 py-6 transition-colors hover:bg-panel/60"
+                className="group flex items-baseline justify-between gap-6 border-b border-border py-6 transition-colors hover:bg-panel/50"
               >
-                {notice.imageUrl && (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img
-                    src={notice.imageUrl}
-                    alt=""
-                    className="h-16 w-24 shrink-0 rounded-sm border border-border object-cover"
-                  />
-                )}
-                <div className="min-w-0">
-                  <h2 className="text-[15.5px] font-semibold">{notice.title}</h2>
-                  <p className="mt-1 truncate text-[12.5px] text-muted">{excerpt(notice.body)}</p>
-                  <p className="mt-1.5 text-[11px] text-muted">
-                    {new Date(notice.createdAt).toLocaleDateString("ko-KR")}
-                  </p>
-                </div>
+                <h2 className="text-[16px] font-semibold tracking-tight group-hover:text-accent">
+                  {notice.title}
+                </h2>
+                <span className="shrink-0 text-[12.5px] text-muted tabular-nums">
+                  {new Date(notice.createdAt).toLocaleDateString("ko-KR")}
+                </span>
               </Link>
             ))
           )}

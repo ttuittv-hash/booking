@@ -547,6 +547,35 @@ export function listWeekDemand(): WeekDemand[] {
   });
 }
 
+// ESTIMATE 단계 신청서를 신청자가 직접 수정할 때 사용 — 심사 전 재계산된 산출내역으로 덮어쓴다.
+export function updateQuoteSelection(
+  id: string,
+  input: {
+    rateTableVersion: string;
+    selection: Quote["selection"];
+    lineItems: Quote["lineItems"];
+    subtotal: number;
+    vat: number;
+    total: number;
+  },
+): Quote {
+  const db = getDb();
+  db.prepare(
+    `UPDATE quotes
+     SET rate_table_version = ?, selection_json = ?, line_items_json = ?, subtotal = ?, vat = ?, total = ?
+     WHERE id = ?`,
+  ).run(
+    input.rateTableVersion,
+    JSON.stringify(input.selection),
+    JSON.stringify(input.lineItems),
+    input.subtotal,
+    input.vat,
+    input.total,
+    id,
+  );
+  return getQuoteById(id)!;
+}
+
 export function setQuoteContract(id: string, contract: ContractAdjustment): Quote {
   const db = getDb();
   db.prepare("UPDATE quotes SET status = 'CONTRACTED', contract_json = ? WHERE id = ?").run(

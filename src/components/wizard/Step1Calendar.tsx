@@ -293,36 +293,37 @@ export function Step1Calendar({
             {" "}{defaultPerformanceDays}일이 공연일이며, 기본 공연일수보다 늘리거나 줄이면 대관료가
             함께 조정됩니다.
           </p>
-          <div className="mt-3 flex flex-wrap gap-3">
+          <div className="mt-3 flex flex-wrap gap-2">
             {selectedDates.map((date) => {
               const tag = effectiveDayTag(date, dayTags, dayTagDefaults);
               return (
-                <div key={date} className="flex flex-col items-center gap-1">
-                  <span className="text-[11.5px] font-medium text-muted">{formatDateLabel(date)}</span>
-                  <div className="flex overflow-hidden rounded-sm border border-border">
+                <div
+                  key={date}
+                  className="flex flex-col items-center gap-1.5 rounded-sm border border-border bg-panel/60 px-2.5 py-2.5"
+                >
+                  <span className="text-[13px] font-semibold text-foreground">{formatDateLabel(date)}</span>
+                  <div className="flex h-6 overflow-hidden rounded-full border border-border bg-background">
                     <button
                       type="button"
                       onClick={() => setDayTag(date, "PREP")}
+                      aria-label="준비일로 설정"
                       className={[
-                        "px-2.5 py-1.5 text-[12px] font-medium transition-colors",
-                        tag === "PREP"
-                          ? "bg-accent text-white"
-                          : "bg-panel text-muted hover:text-foreground",
+                        "px-2.5 text-[10.5px] font-medium transition-colors",
+                        tag === "PREP" ? "bg-accent text-white" : "text-muted hover:text-foreground",
                       ].join(" ")}
                     >
-                      준비일
+                      준비
                     </button>
                     <button
                       type="button"
                       onClick={() => setDayTag(date, "PERFORMANCE")}
+                      aria-label="공연일로 설정"
                       className={[
-                        "border-l border-border px-2.5 py-1.5 text-[12px] font-medium transition-colors",
-                        tag === "PERFORMANCE"
-                          ? "bg-accent text-white"
-                          : "bg-panel text-muted hover:text-foreground",
+                        "px-2.5 text-[10.5px] font-medium transition-colors",
+                        tag === "PERFORMANCE" ? "bg-accent text-white" : "text-muted hover:text-foreground",
                       ].join(" ")}
                     >
-                      공연일
+                      공연
                     </button>
                   </div>
                 </div>

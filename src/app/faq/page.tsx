@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { getCurrentUser, isPendingApplicant } from "@/lib/auth";
 import { listFaqs } from "@/lib/db";
+import { FaqAccordion } from "@/components/FaqAccordion";
 import { PublicHeader } from "@/components/PublicHeader";
 
 export const metadata: Metadata = {
@@ -26,24 +27,13 @@ export default async function FaqPage() {
           드립니다. 찾으시는 답변이 없다면 운영자에게 직접 문의해주세요.
         </p>
 
-        <div className="mt-10 divide-y divide-border border-t border-border">
-          {faqs.length === 0 ? (
-            <p className="py-8 text-[13.5px] text-muted">등록된 FAQ가 없습니다.</p>
-          ) : (
-            faqs.map((faq) => (
-              <article key={faq.id} className="py-7">
-                <h2 className="text-[15px] font-semibold">
-                  <span className="mr-2 text-accent">Q.</span>
-                  {faq.question}
-                </h2>
-                <p className="mt-2.5 whitespace-pre-wrap text-[13.5px] leading-7 text-muted">
-                  <span className="mr-2 font-semibold text-foreground">A.</span>
-                  {faq.answer}
-                </p>
-              </article>
-            ))
-          )}
-        </div>
+        {faqs.length === 0 ? (
+          <p className="mt-10 border-t border-border py-8 text-[13.5px] text-muted">
+            등록된 FAQ가 없습니다.
+          </p>
+        ) : (
+          <FaqAccordion faqs={faqs} />
+        )}
       </main>
     </div>
   );

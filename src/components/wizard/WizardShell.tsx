@@ -44,19 +44,26 @@ export function WizardShell({
   rateTable,
   currentUser,
   weekDemand,
+  editingQuoteId,
+  initialSelection,
 }: {
   rateTable: RateTable;
   currentUser: AppUser | null;
   weekDemand: WeekDemand[];
+  editingQuoteId?: string;
+  initialSelection?: QuoteSelection;
 }) {
+  const isEditing = !!editingQuoteId;
   const [step, setStep] = useState(1);
-  const [selection, setSelection] = useState<QuoteSelection>(INITIAL_SELECTION);
+  const [selection, setSelection] = useState<QuoteSelection>(initialSelection ?? INITIAL_SELECTION);
   const [submittedId, setSubmittedId] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
 
   // 로그인 리다이렉트 등으로 페이지를 이탈했다가 돌아와도 입력값을 복원한다.
+  // (기존 신청서 수정 중에는 새 신청서용 임시저장 내용을 불러오지 않는다.)
   useEffect(() => {
+    if (isEditing) return;
     // localStorage는 리액트 외부 저장소이므로 마운트 시 1회만 복원한다.
     const draft = loadWizardDraft();
     if (draft) {
@@ -64,12 +71,13 @@ export function WizardShell({
       setSelection({ ...INITIAL_SELECTION, ...draft.selection, dayTags: draft.selection.dayTags ?? {} });
       setStep(draft.step);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {
-    if (submittedId) return;
+    if (isEditing || submittedId) return;
     saveWizardDraft({ step, selection });
-  }, [step, selection, submittedId]);
+  }, [step, selection, submittedId, isEditing]);
 
   const quote = useMemo(() => calculateQuote(selection, rateTable), [selection, rateTable]);
   const maxUnlockedStep = selection.packageId ? TOTAL_STEPS : 2;
@@ -108,20 +116,20 @@ export function WizardShell({
     setSubmitting(true);
     setSubmitError(null);
     try {
-      const res = await fetch("/api/quotes", {
-        method: "POST",
+      const res = await fetch(isEditing ? `/api/quotes/${editingQuoteId}` : "/api/quotes", {
+        method: isEditing ? "PUT" : "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ selection }),
       });
       const data = await res.json();
       if (!res.ok) {
-        setSubmitError(data.error || "신청서 제출에 실패했습니다.");
+        setSubmitError(data.error || (isEditing ? "신청서 수정에 실패했습니다." : "신청서 제출에 실패했습니다."));
         return;
       }
       setSubmittedId(data.quote.id);
-      clearWizardDraft();
+      if (!isEditing) clearWizardDraft();
     } catch {
-      setSubmitError("네트워크 오류로 제출에 실패했습니다. 다시 시도해주세요.");
+      setSubmitError("네트워크 오류로 처리에 실패했습니다. 다시 시도해주세요.");
     } finally {
       setSubmitting(false);
     }
@@ -185,6 +193,7 @@ export function WizardShell({
             quote={quote}
             selection={selection}
             isLoggedIn={!!currentUser}
+            isEditing={isEditing}
             submitting={submitting}
             submittedId={submittedId}
             error={submitError}
