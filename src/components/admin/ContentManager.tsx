@@ -83,6 +83,15 @@ function NoticesTab({
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  function startCreate() {
+    setEditingId("__new__");
+    setTag("");
+    setTitle("");
+    setBody("");
+    setImageUrl(null);
+    setError(null);
+  }
+
   function startEdit(notice: Notice) {
     setEditingId(notice.id);
     setTag(notice.tag ?? "");
@@ -119,11 +128,12 @@ function NoticesTab({
   }
 
   async function save() {
+    const isNew = editingId === "__new__";
     setSaving(true);
     setError(null);
     try {
-      const res = await fetch(editingId ? `/api/admin/notices/${editingId}` : "/api/admin/notices", {
-        method: editingId ? "PUT" : "POST",
+      const res = await fetch(isNew ? "/api/admin/notices" : `/api/admin/notices/${editingId}`, {
+        method: isNew ? "POST" : "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ tag, title, body, imageUrl }),
       });
@@ -132,10 +142,10 @@ function NoticesTab({
         setError(data.error || "저장에 실패했습니다.");
         return;
       }
-      if (editingId) {
-        setNotices(notices.map((n) => (n.id === editingId ? data.notice : n)));
-      } else {
+      if (isNew) {
         setNotices([data.notice, ...notices]);
+      } else {
+        setNotices(notices.map((n) => (n.id === editingId ? data.notice : n)));
       }
       resetForm();
       router.refresh();
@@ -153,90 +163,18 @@ function NoticesTab({
 
   return (
     <div>
-      <div className="border border-border bg-panel/60 p-5">
-        <h3 className="text-[14px] font-semibold">{editingId ? "공지사항 수정" : "새 공지사항 등록"}</h3>
-        <div className="mt-3 space-y-3">
-          <div className="flex gap-2">
-            <input
-              type="text"
-              placeholder="말머리 (예: 공지, 점검)"
-              value={tag}
-              onChange={(e) => setTag(e.target.value)}
-              className="w-32 shrink-0 rounded-sm border border-border bg-panel px-3 py-2 text-[13px] outline-none focus:border-accent"
-            />
-            <input
-              type="text"
-              placeholder="제목"
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-              className="w-full rounded-sm border border-border bg-panel px-3 py-2 text-[13px] outline-none focus:border-accent"
-            />
-          </div>
-          <div>
-            <span className="mb-1.5 block text-[12px] text-muted">내용</span>
-            <NoticeEditor value={body} onChange={setBody} />
-          </div>
-
-          <div>
-            <span className="mb-1.5 block text-[12px] text-muted">대표 이미지 (목록에 표시, 선택)</span>
-            {imageUrl ? (
-              <div className="flex items-center gap-3">
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={imageUrl} alt="" className="h-20 w-32 rounded-sm border border-border object-cover" />
-                <button
-                  type="button"
-                  onClick={() => setImageUrl(null)}
-                  className="text-[12.5px] text-muted hover:text-red-600"
-                >
-                  이미지 제거
-                </button>
-              </div>
-            ) : (
-              <input
-                type="file"
-                accept="image/png,image/jpeg,image/webp,image/gif"
-                disabled={uploading}
-                onChange={(e) => {
-                  const file = e.target.files?.[0];
-                  if (file) uploadImage(file);
-                }}
-                className="w-full text-[12.5px] text-muted file:mr-3 file:rounded-sm file:border file:border-border file:bg-background file:px-3 file:py-1.5 file:text-[12.5px] file:font-medium"
-              />
-            )}
-            {uploading && <p className="mt-1 text-[11.5px] text-muted">업로드 중...</p>}
-          </div>
-
-          {error && <p className="text-[12.5px] text-red-600">{error}</p>}
-          <div className="flex items-center gap-3">
-            <button
-              type="button"
-              disabled={saving || uploading || !title.trim() || isHtmlBodyEmpty(body)}
-              onClick={save}
-              className="rounded-sm bg-accent px-5 py-2 text-[13px] font-semibold text-white transition-colors hover:bg-accent-hover disabled:opacity-50"
-            >
-              {saving ? "저장 중..." : editingId ? "수정 저장" : "등록"}
-            </button>
-            {editingId && (
-              <button
-                type="button"
-                onClick={resetForm}
-                className="text-[12.5px] text-muted hover:text-foreground"
-              >
-                취소
-              </button>
-            )}
-          </div>
-        </div>
-      </div>
-
-      <ul className="mt-6 space-y-2">
+      <ul className="space-y-2">
         {notices.length === 0 ? (
           <li className="text-[13px] text-muted">등록된 공지사항이 없습니다.</li>
         ) : (
           notices.map((notice) => (
             <li key={notice.id} className="border border-border bg-background p-4">
               <div className="flex items-start justify-between gap-4">
-                <div className="flex gap-3">
+                <button
+                  type="button"
+                  onClick={() => startEdit(notice)}
+                  className="flex flex-1 gap-3 text-left outline-none"
+                >
                   {notice.imageUrl && (
                     // eslint-disable-next-line @next/next/no-img-element
                     <img
@@ -255,7 +193,7 @@ function NoticesTab({
                       {new Date(notice.createdAt).toLocaleString("ko-KR")}
                     </div>
                   </div>
-                </div>
+                </button>
                 <div className="flex shrink-0 gap-3 text-[12.5px]">
                   <button type="button" onClick={() => startEdit(notice)} className="text-accent hover:underline">
                     수정
@@ -269,6 +207,86 @@ function NoticesTab({
           ))
         )}
       </ul>
+
+      {editingId ? (
+        <div className="mt-6 border border-border bg-panel/60 p-5">
+          <h3 className="text-[14px] font-semibold">{editingId === "__new__" ? "새 공지사항 등록" : "공지사항 수정"}</h3>
+          <div className="mt-3 space-y-3">
+            <div className="flex gap-2">
+              <input
+                type="text"
+                placeholder="말머리 (예: 공지, 점검)"
+                value={tag}
+                onChange={(e) => setTag(e.target.value)}
+                className="w-32 shrink-0 rounded-sm border border-border bg-panel px-3 py-2 text-[13px] outline-none focus:border-accent"
+              />
+              <input
+                type="text"
+                placeholder="제목"
+                value={title}
+                onChange={(e) => setTitle(e.target.value)}
+                className="w-full rounded-sm border border-border bg-panel px-3 py-2 text-[13px] outline-none focus:border-accent"
+              />
+            </div>
+            <div>
+              <span className="mb-1.5 block text-[12px] text-muted">내용</span>
+              <NoticeEditor value={body} onChange={setBody} />
+            </div>
+
+            <div>
+              <span className="mb-1.5 block text-[12px] text-muted">대표 이미지 (목록에 표시, 선택)</span>
+              {imageUrl ? (
+                <div className="flex items-center gap-3">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={imageUrl} alt="" className="h-20 w-32 rounded-sm border border-border object-cover" />
+                  <button
+                    type="button"
+                    onClick={() => setImageUrl(null)}
+                    className="text-[12.5px] text-muted hover:text-red-600"
+                  >
+                    이미지 제거
+                  </button>
+                </div>
+              ) : (
+                <input
+                  type="file"
+                  accept="image/png,image/jpeg,image/webp,image/gif"
+                  disabled={uploading}
+                  onChange={(e) => {
+                    const file = e.target.files?.[0];
+                    if (file) uploadImage(file);
+                  }}
+                  className="w-full text-[12.5px] text-muted file:mr-3 file:rounded-sm file:border file:border-border file:bg-background file:px-3 file:py-1.5 file:text-[12.5px] file:font-medium"
+                />
+              )}
+              {uploading && <p className="mt-1 text-[11.5px] text-muted">업로드 중...</p>}
+            </div>
+
+            {error && <p className="text-[12.5px] text-red-600">{error}</p>}
+            <div className="flex items-center gap-3">
+              <button
+                type="button"
+                disabled={saving || uploading || !title.trim() || isHtmlBodyEmpty(body)}
+                onClick={save}
+                className="rounded-sm bg-accent px-5 py-2 text-[13px] font-semibold text-white transition-colors hover:bg-accent-hover disabled:opacity-50"
+              >
+                {saving ? "저장 중..." : "저장"}
+              </button>
+              <button type="button" onClick={resetForm} className="text-[12.5px] text-muted hover:text-foreground">
+                취소
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : (
+        <button
+          type="button"
+          onClick={startCreate}
+          className="mt-6 border border-dashed border-border px-4 py-3 text-[12.5px] text-muted hover:border-accent hover:text-accent"
+        >
+          + 새 공지사항 등록
+        </button>
+      )}
     </div>
   );
 }
@@ -289,6 +307,14 @@ function FaqTab({
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  function startCreate() {
+    setEditingId("__new__");
+    setTag("");
+    setQuestion("");
+    setAnswer("");
+    setError(null);
+  }
+
   function startEdit(faq: Faq) {
     setEditingId(faq.id);
     setTag(faq.tag ?? "");
@@ -305,11 +331,12 @@ function FaqTab({
   }
 
   async function save() {
+    const isNew = editingId === "__new__";
     setSaving(true);
     setError(null);
     try {
-      const res = await fetch(editingId ? `/api/admin/faq/${editingId}` : "/api/admin/faq", {
-        method: editingId ? "PUT" : "POST",
+      const res = await fetch(isNew ? "/api/admin/faq" : `/api/admin/faq/${editingId}`, {
+        method: isNew ? "POST" : "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ tag, question, answer }),
       });
@@ -318,10 +345,10 @@ function FaqTab({
         setError(data.error || "저장에 실패했습니다.");
         return;
       }
-      if (editingId) {
-        setFaqs(faqs.map((f) => (f.id === editingId ? data.faq : f)));
-      } else {
+      if (isNew) {
         setFaqs([...faqs, data.faq]);
+      } else {
+        setFaqs(faqs.map((f) => (f.id === editingId ? data.faq : f)));
       }
       resetForm();
       router.refresh();
@@ -339,69 +366,20 @@ function FaqTab({
 
   return (
     <div>
-      <div className="border border-border bg-panel/60 p-5">
-        <h3 className="text-[14px] font-semibold">{editingId ? "FAQ 수정" : "새 FAQ 등록"}</h3>
-        <div className="mt-3 space-y-3">
-          <div className="flex gap-2">
-            <input
-              type="text"
-              placeholder="말머리 (예: 신청, 정산)"
-              value={tag}
-              onChange={(e) => setTag(e.target.value)}
-              className="w-32 shrink-0 rounded-sm border border-border bg-panel px-3 py-2 text-[13px] outline-none focus:border-accent"
-            />
-            <input
-              type="text"
-              placeholder="질문"
-              value={question}
-              onChange={(e) => setQuestion(e.target.value)}
-              className="w-full rounded-sm border border-border bg-panel px-3 py-2 text-[13px] outline-none focus:border-accent"
-            />
-          </div>
-          <textarea
-            placeholder="답변"
-            rows={4}
-            value={answer}
-            onChange={(e) => setAnswer(e.target.value)}
-            className="w-full rounded-sm border border-border bg-panel px-3 py-2 text-[13px] outline-none focus:border-accent"
-          />
-          {error && <p className="text-[12.5px] text-red-600">{error}</p>}
-          <div className="flex items-center gap-3">
-            <button
-              type="button"
-              disabled={saving || !question.trim() || !answer.trim()}
-              onClick={save}
-              className="rounded-sm bg-accent px-5 py-2 text-[13px] font-semibold text-white transition-colors hover:bg-accent-hover disabled:opacity-50"
-            >
-              {saving ? "저장 중..." : editingId ? "수정 저장" : "등록"}
-            </button>
-            {editingId && (
-              <button
-                type="button"
-                onClick={resetForm}
-                className="text-[12.5px] text-muted hover:text-foreground"
-              >
-                취소
-              </button>
-            )}
-          </div>
-        </div>
-      </div>
-
-      <ul className="mt-6 space-y-2">
+      <ul className="space-y-2">
         {faqs.length === 0 ? (
           <li className="text-[13px] text-muted">등록된 FAQ가 없습니다.</li>
         ) : (
           faqs.map((faq) => (
             <li key={faq.id} className="border border-border bg-background p-4">
               <div className="flex items-start justify-between gap-4">
-                <div>
+                <button type="button" onClick={() => startEdit(faq)} className="flex-1 text-left outline-none">
                   <div className="flex items-center text-[13.5px] font-semibold">
                     <TagBadge tag={faq.tag} />
                     Q. {faq.question}
                   </div>
                   <p className="mt-1 whitespace-pre-wrap text-[12.5px] leading-5 text-muted">A. {faq.answer}</p>
-                </div>
+                </button>
                 <div className="flex shrink-0 gap-3 text-[12.5px]">
                   <button type="button" onClick={() => startEdit(faq)} className="text-accent hover:underline">
                     수정
@@ -415,6 +393,59 @@ function FaqTab({
           ))
         )}
       </ul>
+
+      {editingId ? (
+        <div className="mt-6 border border-border bg-panel/60 p-5">
+          <h3 className="text-[14px] font-semibold">{editingId === "__new__" ? "새 FAQ 등록" : "FAQ 수정"}</h3>
+          <div className="mt-3 space-y-3">
+            <div className="flex gap-2">
+              <input
+                type="text"
+                placeholder="말머리 (예: 신청, 정산)"
+                value={tag}
+                onChange={(e) => setTag(e.target.value)}
+                className="w-32 shrink-0 rounded-sm border border-border bg-panel px-3 py-2 text-[13px] outline-none focus:border-accent"
+              />
+              <input
+                type="text"
+                placeholder="질문"
+                value={question}
+                onChange={(e) => setQuestion(e.target.value)}
+                className="w-full rounded-sm border border-border bg-panel px-3 py-2 text-[13px] outline-none focus:border-accent"
+              />
+            </div>
+            <textarea
+              placeholder="답변"
+              rows={4}
+              value={answer}
+              onChange={(e) => setAnswer(e.target.value)}
+              className="w-full rounded-sm border border-border bg-panel px-3 py-2 text-[13px] outline-none focus:border-accent"
+            />
+            {error && <p className="text-[12.5px] text-red-600">{error}</p>}
+            <div className="flex items-center gap-3">
+              <button
+                type="button"
+                disabled={saving || !question.trim() || !answer.trim()}
+                onClick={save}
+                className="rounded-sm bg-accent px-5 py-2 text-[13px] font-semibold text-white transition-colors hover:bg-accent-hover disabled:opacity-50"
+              >
+                {saving ? "저장 중..." : "저장"}
+              </button>
+              <button type="button" onClick={resetForm} className="text-[12.5px] text-muted hover:text-foreground">
+                취소
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : (
+        <button
+          type="button"
+          onClick={startCreate}
+          className="mt-6 border border-dashed border-border px-4 py-3 text-[12.5px] text-muted hover:border-accent hover:text-accent"
+        >
+          + 새 FAQ 등록
+        </button>
+      )}
     </div>
   );
 }

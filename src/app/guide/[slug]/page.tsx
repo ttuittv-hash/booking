@@ -1,21 +1,33 @@
 import type { Metadata } from "next";
-import { redirect } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import { getCurrentUser, isPendingApplicant } from "@/lib/auth";
-import { listPages } from "@/lib/db";
+import { getPageBySlug, listPages } from "@/lib/db";
 import { PublicHeader } from "@/components/PublicHeader";
 import { PageTreeNav } from "@/components/PageTreeNav";
 import { StaticPageBody } from "@/components/StaticPageBody";
 
-export const metadata: Metadata = {
-  title: "대관 안내 | 서울아레나",
-};
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ slug: string }>;
+}): Promise<Metadata> {
+  const { slug } = await params;
+  const page = getPageBySlug("GUIDE", slug);
+  return { title: page ? `${page.title} | 대관 안내` : "대관 안내 | 서울아레나" };
+}
 
-export default async function GuidePage() {
+export default async function GuideSubPage({
+  params,
+}: {
+  params: Promise<{ slug: string }>;
+}) {
   const currentUser = await getCurrentUser();
   if (currentUser && isPendingApplicant(currentUser)) redirect("/pending");
 
+  const { slug } = await params;
   const pages = listPages("GUIDE");
-  const current = pages[0];
+  const current = getPageBySlug("GUIDE", slug);
+  if (!current) notFound();
 
   return (
     <div className="flex flex-1 flex-col">
@@ -25,13 +37,9 @@ export default async function GuidePage() {
         <p className="text-[13px] font-semibold uppercase tracking-[0.14em] text-accent">STAGE</p>
         <h1 className="mt-3 text-[30px] font-semibold tracking-tight sm:text-[36px]">대관 안내</h1>
 
-        <PageTreeNav pages={pages} basePath="/guide" activeSlug={current?.slug ?? ""} />
+        <PageTreeNav pages={pages} basePath="/guide" activeSlug={current.slug} />
 
-        {current ? (
-          <StaticPageBody title={current.title} body={current.body} />
-        ) : (
-          <p className="mt-8 text-[13.5px] text-muted">준비 중입니다.</p>
-        )}
+        <StaticPageBody title={current.title} body={current.body} />
       </main>
     </div>
   );

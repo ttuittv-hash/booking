@@ -6,6 +6,10 @@ import Image from "@tiptap/extension-image";
 import { TextStyle } from "@tiptap/extension-text-style";
 import Color from "@tiptap/extension-color";
 import TextAlign from "@tiptap/extension-text-align";
+import { Table } from "@tiptap/extension-table";
+import { TableRow } from "@tiptap/extension-table-row";
+import { TableHeader } from "@tiptap/extension-table-header";
+import { TableCell } from "@tiptap/extension-table-cell";
 import { useRef, useState } from "react";
 
 // 기본 TextStyle 확장은 font-size 속성을 지원하지 않아 별도로 추가한다.
@@ -36,9 +40,11 @@ const COLORS = ["#1d1d1f", "#0071e3", "#d70015", "#1a7f37", "#86868b"];
 export function NoticeEditor({
   value,
   onChange,
+  uploadUrl = "/api/admin/notices/upload",
 }: {
   value: string;
   onChange: (html: string) => void;
+  uploadUrl?: string;
 }) {
   const fileInput = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState(false);
@@ -51,13 +57,17 @@ export function NoticeEditor({
       Color,
       Image.configure({ inline: false }),
       TextAlign.configure({ types: ["heading", "paragraph", "image"] }),
+      Table.configure({ resizable: false }),
+      TableRow,
+      TableHeader,
+      TableCell,
     ],
     content: value,
     onUpdate: ({ editor }) => onChange(editor.getHTML()),
     editorProps: {
       attributes: {
         class:
-          "min-h-[180px] rounded-b-sm border border-t-0 border-border bg-panel px-3 py-2.5 text-[13px] leading-6 outline-none focus:border-accent [&_img]:mt-2 [&_img]:max-w-full [&_img]:rounded-sm",
+          "min-h-[180px] rounded-b-sm border border-t-0 border-border bg-panel px-3 py-2.5 text-[13px] leading-6 outline-none focus:border-accent [&_img]:mt-2 [&_img]:max-w-full [&_img]:rounded-sm [&_table]:mt-3 [&_table]:w-full [&_table]:border-collapse [&_td]:border [&_td]:border-border [&_td]:px-2.5 [&_td]:py-1.5 [&_th]:border [&_th]:border-border [&_th]:bg-panel-strong [&_th]:px-2.5 [&_th]:py-1.5 [&_th]:text-left",
       },
     },
   });
@@ -67,7 +77,7 @@ export function NoticeEditor({
     try {
       const formData = new FormData();
       formData.append("file", file);
-      const res = await fetch("/api/admin/notices/upload", { method: "POST", body: formData });
+      const res = await fetch(uploadUrl, { method: "POST", body: formData });
       const data = await res.json();
       if (res.ok && editor) {
         editor.chain().focus().setImage({ src: data.url }).run();
@@ -160,6 +170,16 @@ export function NoticeEditor({
           className={btnClass(editor.isActive({ textAlign: "right" }))}
         >
           오른쪽
+        </button>
+
+        <span className="mx-1 h-4 w-px bg-border" />
+
+        <button
+          type="button"
+          onClick={() => editor.chain().focus().insertTable({ rows: 3, cols: 3, withHeaderRow: true }).run()}
+          className="rounded-sm px-2 py-1 text-[12px] font-medium text-muted transition-colors hover:bg-panel-strong hover:text-foreground"
+        >
+          + 표 삽입
         </button>
 
         <span className="mx-1 h-4 w-px bg-border" />

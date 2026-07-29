@@ -5,6 +5,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { DATA_DIR } from "./dataDir";
 import { buildSeedRateTable } from "./pricing/seed";
+import { SEED_PAGES } from "./pricing/pageSeed";
 import type {
   ApprovalStatus,
   AppNotification,
@@ -17,11 +18,13 @@ import type {
   DepositStatus,
   Faq,
   Notice,
+  PageGroup,
   Quote,
   QuoteStatus,
   RateTable,
   Review,
   Settlement,
+  StaticPage,
   UserRole,
   WeekDemand,
 } from "./pricing/types";
@@ -157,6 +160,19 @@ function createConnection(): DatabaseSync {
       created_at TEXT NOT NULL,
       updated_at TEXT NOT NULL
     );
+
+    CREATE TABLE IF NOT EXISTS pages (
+      id TEXT PRIMARY KEY,
+      page_group TEXT NOT NULL,
+      slug TEXT NOT NULL,
+      nav_label TEXT NOT NULL,
+      title TEXT NOT NULL,
+      body TEXT NOT NULL,
+      sort_order INTEGER NOT NULL DEFAULT 0,
+      created_at TEXT NOT NULL,
+      updated_at TEXT NOT NULL,
+      UNIQUE(page_group, slug)
+    );
   `);
 
   // 이미 배포되어 있던 DB(기존 users/rate_tables 등)에는 CREATE TABLE IF NOT EXISTS가 새 컬럼을
@@ -210,6 +226,19 @@ function createConnection(): DatabaseSync {
     console.log(
       `[seoularena] 내부 테스트용 신청자 계정이 생성되었습니다 (승인 완료 상태) — email: ${testApplicantEmail} / password: ${testPassword}`,
     );
+  }
+
+  // 서울아레나 소개 / 대관 안내 하위 페이지 — 최초 1회만 기본 콘텐츠로 시드한다.
+  const pageCount = db.prepare("SELECT COUNT(*) as n FROM pages").get() as { n: number };
+  if (pageCount.n === 0) {
+    const now = new Date().toISOString();
+    const insertPage = db.prepare(
+      `INSERT INTO pages (id, page_group, slug, nav_label, title, body, sort_order, created_at, updated_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    );
+    SEED_PAGES.forEach((p, i) => {
+      insertPage.run(crypto.randomUUID(), p.group, p.slug, p.navLabel, p.title, p.body, i, now, now);
+    });
   }
 
   return db;
@@ -1020,4 +1049,102 @@ export function updateFaq(
 export function deleteFaq(id: string) {
   const db = getDb();
   db.prepare("DELETE FROM faqs WHERE id = ?").run(id);
+}
+
+// ---------------------------------------------------------------------------
+// 정적 안내 페이지 (서울아레나 소개 / 대관 안내)
+// ---------------------------------------------------------------------------
+
+interface PageRow {
+  id: string;
+  page_group: PageGroup;
+  slug: string;
+  nav_label: string;
+  title: string;
+  body: string;
+  sort_order: number;
+  created_at: string;
+  updated_at: string;
+}
+
+function toStaticPage(row: PageRow): StaticPage {
+  return {
+    id: row.id,
+    group: row.page_group,
+    slug: row.slug,
+    navLabel: row.nav_label,
+    title: row.title,
+    body: row.body,
+    sortOrder: row.sort_order,
+    createdAt: row.created_at,
+    updatedAt: row.updated_at,
+  };
+}
+
+export function listPages(group?: PageGroup): StaticPage[] {
+  const db = getDb();
+  const rows = group
+    ? (db
+        .prepare("SELECT * FROM pages WHERE page_group = ? ORDER BY sort_order ASC")
+        .all(group) as unknown as PageRow[])
+    : (db.prepare("SELECT * FROM pages ORDER BY page_group ASC, sort_order ASC").all() as unknown as PageRow[]);
+  return rows.map(toStaticPage);
+}
+
+export function getPageById(id: string): StaticPage | undefined {
+  const db = getDb();
+  const row = db.prepare("SELECT * FROM pages WHERE id = ?").get(id) as PageRow | undefined;
+  return row ? toStaticPage(row) : undefined;
+}
+
+export function getPageBySlug(group: PageGroup, slug: string): StaticPage | undefined {
+  const db = getDb();
+  const row = db.prepare("SELECT * FROM pages WHERE page_group = ? AND slug = ?").get(group, slug) as
+    | PageRow
+    | undefined;
+  return row ? toStaticPage(row) : undefined;
+}
+
+export function createPage(input: {
+  id: string;
+  group: PageGroup;
+  slug: string;
+  navLabel: string;
+  title: string;
+  body: string;
+  sortOrder: number;
+  createdAt: string;
+}): StaticPage {
+  const db = getDb();
+  db.prepare(
+    `INSERT INTO pages (id, page_group, slug, nav_label, title, body, sort_order, created_at, updated_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+  ).run(
+    input.id,
+    input.group,
+    input.slug,
+    input.navLabel,
+    input.title,
+    input.body,
+    input.sortOrder,
+    input.createdAt,
+    input.createdAt,
+  );
+  return getPageById(input.id)!;
+}
+
+export function updatePage(
+  id: string,
+  input: { slug: string; navLabel: string; title: string; body: string; sortOrder: number; updatedAt: string },
+): StaticPage | undefined {
+  const db = getDb();
+  db.prepare(
+    "UPDATE pages SET slug = ?, nav_label = ?, title = ?, body = ?, sort_order = ?, updated_at = ? WHERE id = ?",
+  ).run(input.slug, input.navLabel, input.title, input.body, input.sortOrder, input.updatedAt, id);
+  return getPageById(id);
+}
+
+export function deletePage(id: string) {
+  const db = getDb();
+  db.prepare("DELETE FROM pages WHERE id = ?").run(id);
 }

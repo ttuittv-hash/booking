@@ -326,3 +326,21 @@ export interface Faq {
   createdAt: string;
   updatedAt: string;
 }
+
+// ---------------------------------------------------------------------------
+// 정적 안내 페이지 (서울아레나 소개 / 대관 안내 하위 페이지 트리, 운영자 편집)
+// ---------------------------------------------------------------------------
+
+export type PageGroup = "VENUE" | "GUIDE";
+
+export interface StaticPage {
+  id: string;
+  group: PageGroup;
+  slug: string; // 그룹 내 고유 — URL에 사용 (/venue/[slug], /guide/[slug])
+  navLabel: string; // 하위 탭에 표시되는 짧은 이름
+  title: string;
+  body: string; // 리치 에디터 HTML
+  sortOrder: number;
+  createdAt: string;
+  updatedAt: string;
+}
