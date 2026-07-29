@@ -4,7 +4,7 @@ import { getCurrentUser, isPendingApplicant } from "@/lib/auth";
 import { listQuotes } from "@/lib/db";
 import { won } from "@/lib/format";
 import type { Quote } from "@/lib/pricing/types";
-import { ApplicantHeader } from "@/components/ApplicantHeader";
+import { PublicHeader } from "@/components/PublicHeader";
 
 const STATUS_LABEL: Record<Quote["status"], string> = {
   ESTIMATE: "예상견적 (심사 대기)",
@@ -22,7 +22,7 @@ export default async function MyPage() {
 
   return (
     <div className="flex flex-1 flex-col">
-      <ApplicantHeader label="내 신청 내역" />
+      <PublicHeader active="/mypage" currentUser={user} />
 
       <main className="mx-auto w-full max-w-6xl flex-1 px-6 py-10">
         <h1 className="text-[22px] font-semibold">{user.name} 님의 신청 내역</h1>

@@ -6,7 +6,7 @@ import { won } from "@/lib/format";
 import { totalRentalDays } from "@/lib/pricing/rateTableUtils";
 import { DepositPanel } from "@/components/DepositPanel";
 import { AttachmentsPanel } from "@/components/AttachmentsPanel";
-import { ApplicantHeader } from "@/components/ApplicantHeader";
+import { PublicHeader } from "@/components/PublicHeader";
 
 const STAGE_LABEL: Record<string, string> = {
   ESTIMATE: "신청 접수 (예상 견적)",
@@ -32,10 +32,14 @@ export default async function MyQuoteDetailPage({
 
   return (
     <div className="flex flex-1 flex-col">
-      <ApplicantHeader label="← 내 신청 내역" backHref="/mypage" role={user.role} />
+      <PublicHeader active="/mypage" currentUser={user} />
 
       <main className="mx-auto w-full max-w-4xl flex-1 px-6 py-10">
-        <div className="flex flex-wrap items-center justify-between gap-3">
+        <Link href="/mypage" className="text-[12.5px] font-medium text-accent hover:underline">
+          ← 내 신청 내역
+        </Link>
+
+        <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
           <h1 className="text-[22px] font-semibold">{quote.id}</h1>
           <div className="flex items-center gap-3">
             {quote.status === "ESTIMATE" && user.role !== "ADMIN" && (
