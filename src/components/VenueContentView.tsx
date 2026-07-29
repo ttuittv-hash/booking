@@ -56,7 +56,7 @@ export function VenueContentView({ content }: { content: VenueContent }) {
             <div key={h.title}>
               <ImagePlaceholder src={null} alt={h.title} />
               <div className="mt-3 flex items-baseline gap-2">
-                <span className="text-[11px] font-semibold text-border">{h.no}</span>
+                {h.no && <span className="text-[11px] font-semibold text-border">{h.no}</span>}
                 <span className="text-[13.5px] font-semibold">{h.title}</span>
                 <span className="text-[11px] text-muted">{h.titleEn}</span>
               </div>
