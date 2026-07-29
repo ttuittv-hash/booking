@@ -23,6 +23,20 @@ export interface VenueKeyMap {
   label: string;
 }
 
+export interface VenueHighlightCard {
+  title: string;
+  desc: string;
+  image: string | null;
+}
+
+export interface VenueHighlight {
+  badges: string[];
+  highlightBadge: string;
+  title: string;
+  subtitle: string;
+  cards: VenueHighlightCard[];
+}
+
 export interface VenueContent {
   intro: string;
   overviewIntro: string;
@@ -30,6 +44,7 @@ export interface VenueContent {
   features: string[];
   specsIntro: string;
   specs: VenueSpec[];
+  specHighlights: VenueHighlight[];
   providedFacilities: string[];
   arenaAmenities: VenueAmenity[];
   mediumHallAmenities: VenueAmenity[];

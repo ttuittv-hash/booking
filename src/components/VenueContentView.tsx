@@ -37,6 +37,7 @@ export function VenueContentView({ content }: { content: VenueContent }) {
     features,
     specsIntro,
     specs,
+    specHighlights,
     providedFacilities,
     arenaAmenities,
     mediumHallAmenities,
@@ -99,6 +100,51 @@ export function VenueContentView({ content }: { content: VenueContent }) {
             </div>
           ))}
         </div>
+
+        {specHighlights.length > 0 && (
+          <div className="mt-12 space-y-6">
+            {specHighlights.map((hl) => (
+              <div key={hl.title} className="rounded-sm bg-[#18191d] p-6 text-white sm:p-8">
+                <div className="flex flex-wrap gap-2">
+                  {hl.badges.map((b) => (
+                    <span
+                      key={b}
+                      className={`rounded-full border px-3 py-1 text-[11px] font-semibold tracking-wide ${
+                        b === hl.highlightBadge
+                          ? "border-white bg-white text-[#18191d]"
+                          : "border-white/25 text-white/55"
+                      }`}
+                    >
+                      {b}
+                    </span>
+                  ))}
+                </div>
+                <h3 className="mt-4 text-[18px] font-bold text-amber-300 sm:text-[20px]">{hl.title}</h3>
+                <p className="mt-1.5 text-[12.5px] text-white/60">{hl.subtitle}</p>
+                <div className="mt-6 grid grid-cols-1 gap-3 sm:grid-cols-2">
+                  {hl.cards.map((c) => (
+                    <div
+                      key={c.title}
+                      className="relative aspect-[4/3] overflow-hidden rounded-sm border border-white/10 bg-white/5"
+                    >
+                      {c.image ? (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img src={c.image} alt={c.title} className="absolute inset-0 h-full w-full object-cover" />
+                      ) : (
+                        <div className="absolute inset-0 bg-gradient-to-br from-white/10 to-transparent" />
+                      )}
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/75 via-black/10 to-transparent" />
+                      <div className="absolute inset-x-0 bottom-0 p-3.5">
+                        <div className="text-[13.5px] font-semibold">{c.title}</div>
+                        {c.desc && <div className="mt-1 text-[11.5px] leading-5 text-white/70">{c.desc}</div>}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
 
         <div className="mt-10">
           <div className="text-[13px] font-semibold">주요 제공 시설</div>

@@ -2,7 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-import type { VenueAmenity, VenueContent, VenueHall, VenueKeyMap, VenueSpec } from "@/lib/content/types";
+import type { VenueAmenity, VenueContent, VenueHall, VenueHighlight, VenueKeyMap, VenueSpec } from "@/lib/content/types";
 import { VenueContentView } from "@/components/VenueContentView";
 import { NoticeEditor } from "./NoticeEditor";
 
@@ -139,6 +139,33 @@ export function VenueContentForm({ content: initial }: { content: VenueContent }
   }
   function removeSpecRow(specIdx: number, rowIdx: number) {
     updateSpec(specIdx, { rows: content.specs[specIdx].rows.filter((_, j) => j !== rowIdx) });
+  }
+
+  function updateHighlight(i: number, patchH: Partial<VenueHighlight>) {
+    patch({ specHighlights: content.specHighlights.map((h, j) => (j === i ? { ...h, ...patchH } : h)) });
+  }
+  function addHighlight() {
+    patch({
+      specHighlights: [
+        ...content.specHighlights,
+        { badges: ["ARTIST", "AUDIENCE", "PRODUCER"], highlightBadge: "AUDIENCE", title: "", subtitle: "", cards: [] },
+      ],
+    });
+  }
+  function removeHighlight(i: number) {
+    patch({ specHighlights: content.specHighlights.filter((_, j) => j !== i) });
+  }
+  function addHighlightCard(hi: number) {
+    const hl = content.specHighlights[hi];
+    updateHighlight(hi, { cards: [...hl.cards, { title: "", desc: "", image: null }] });
+  }
+  function updateHighlightCard(hi: number, ci: number, patchC: Partial<VenueHighlight["cards"][number]>) {
+    const hl = content.specHighlights[hi];
+    updateHighlight(hi, { cards: hl.cards.map((c, j) => (j === ci ? { ...c, ...patchC } : c)) });
+  }
+  function removeHighlightCard(hi: number, ci: number) {
+    const hl = content.specHighlights[hi];
+    updateHighlight(hi, { cards: hl.cards.filter((_, j) => j !== ci) });
   }
 
   function updateAmenityList(
@@ -356,6 +383,112 @@ export function VenueContentForm({ content: initial }: { content: VenueContent }
           ))}
           <button type="button" onClick={addSpec} className={addBtnCls}>
             + 시설 제원 카드 추가
+          </button>
+        </div>
+
+        <h3 className="mt-6 text-[14px] font-semibold">핵심 인프라 강조 카드</h3>
+        <p className="mt-1 text-[12px] text-muted">아티스트/관객/제작사 관점의 강점을 어두운 배경 카드로 강조합니다.</p>
+        <div className="mt-2 space-y-4">
+          {content.specHighlights.map((hl, hi) => (
+            <div key={hi} className={cardCls}>
+              <div className="flex items-center justify-between gap-2">
+                <span className="text-[12.5px] font-semibold text-accent">강조 카드 {hi + 1}</span>
+                <button type="button" onClick={() => removeHighlight(hi)} className={removeBtnCls}>
+                  삭제
+                </button>
+              </div>
+              <label className="mt-2 block">
+                <span className={labelCls}>제목</span>
+                <input value={hl.title} onChange={(e) => updateHighlight(hi, { title: e.target.value })} className={inputCls} />
+              </label>
+              <label className="mt-2 block">
+                <span className={labelCls}>부제</span>
+                <input value={hl.subtitle} onChange={(e) => updateHighlight(hi, { subtitle: e.target.value })} className={inputCls} />
+              </label>
+              <div className="mt-2">
+                <span className={labelCls}>뱃지 (콤마로 구분, 예: ARTIST,AUDIENCE,PRODUCER)</span>
+                <input
+                  value={hl.badges.join(",")}
+                  onChange={(e) =>
+                    updateHighlight(hi, {
+                      badges: e.target.value
+                        .split(",")
+                        .map((v) => v.trim())
+                        .filter(Boolean),
+                    })
+                  }
+                  className={inputCls}
+                />
+              </div>
+              <label className="mt-2 block">
+                <span className={labelCls}>강조 표시할 뱃지</span>
+                <input
+                  value={hl.highlightBadge}
+                  onChange={(e) => updateHighlight(hi, { highlightBadge: e.target.value })}
+                  className={inputCls}
+                />
+              </label>
+
+              <div className="mt-3">
+                <span className={labelCls}>세부 카드</span>
+                <div className="space-y-2">
+                  {hl.cards.map((c, ci) => (
+                    <div key={ci} className="rounded border border-border bg-background p-3">
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="flex-1 space-y-1.5">
+                          <input
+                            value={c.title}
+                            placeholder="카드 제목"
+                            onChange={(e) => updateHighlightCard(hi, ci, { title: e.target.value })}
+                            className={inputCls}
+                          />
+                          <input
+                            value={c.desc}
+                            placeholder="카드 설명 (선택)"
+                            onChange={(e) => updateHighlightCard(hi, ci, { desc: e.target.value })}
+                            className={inputCls}
+                          />
+                        </div>
+                        <button type="button" onClick={() => removeHighlightCard(hi, ci)} className={removeBtnCls}>
+                          삭제
+                        </button>
+                      </div>
+                      <div className="mt-2">
+                        {c.image && (
+                          <div className="mb-2 flex items-center gap-2">
+                            {/* eslint-disable-next-line @next/next/no-img-element */}
+                            <img src={c.image} alt={c.title} className="h-16 w-28 rounded-sm border border-border object-cover" />
+                            <button type="button" onClick={() => updateHighlightCard(hi, ci, { image: null })} className={removeBtnCls}>
+                              이미지 삭제
+                            </button>
+                          </div>
+                        )}
+                        <label className="inline-block">
+                          <span className={addBtnCls}>
+                            {imageUploading === `highlight-${hi}-${ci}` ? "업로드 중..." : c.image ? "이미지 변경" : "+ 이미지 업로드"}
+                          </span>
+                          <input
+                            type="file"
+                            accept="image/*"
+                            disabled={imageUploading === `highlight-${hi}-${ci}`}
+                            onChange={(e) =>
+                              uploadSingleImage(e, `highlight-${hi}-${ci}`, (url) => updateHighlightCard(hi, ci, { image: url }))
+                            }
+                            className="hidden"
+                          />
+                        </label>
+                      </div>
+                    </div>
+                  ))}
+                  <button type="button" onClick={() => addHighlightCard(hi)} className={addBtnCls}>
+                    + 세부 카드 추가
+                  </button>
+                </div>
+              </div>
+            </div>
+          ))}
+          <button type="button" onClick={addHighlight} className={addBtnCls}>
+            + 강조 카드 블록 추가
           </button>
         </div>
 

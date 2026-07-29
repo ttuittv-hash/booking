@@ -1440,7 +1440,9 @@ function saveSiteContent<T>(page: string, data: T): T {
 }
 
 export function getVenueContent(): VenueContent {
-  return getSiteContent<VenueContent>("venue", DEFAULT_VENUE_CONTENT);
+  const stored = getSiteContent<Partial<VenueContent> | null>("venue", null);
+  if (!stored) return DEFAULT_VENUE_CONTENT;
+  return { ...DEFAULT_VENUE_CONTENT, ...stored };
 }
 
 export function saveVenueContent(data: VenueContent): VenueContent {

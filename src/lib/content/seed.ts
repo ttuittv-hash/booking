@@ -67,6 +67,69 @@ export const DEFAULT_VENUE_CONTENT: VenueContent = {
       image: null,
     },
   ],
+  specHighlights: [
+    {
+      badges: ["ARTIST", "AUDIENCE", "PRODUCER"],
+      highlightBadge: "AUDIENCE",
+      title: "글로벌 최고 수준 몰입형 시청각 인프라",
+      subtitle: "전 좌석 최고 품질의 사운드와 시야 확보, 한계없는 공연 연출 구현",
+      cards: [
+        {
+          title: "글로벌 TOP 수준 음향 설계",
+          desc: "건축 단계에만 반영 가능한 음향 설계, 전 좌석 동일한 최고 품질 사운드 제공",
+          image: null,
+        },
+        {
+          title: "객석 시야거리 최단 개선",
+          desc: "최대 시야거리 및 시야방해석 절감",
+          image: null,
+        },
+        {
+          title: "IT 기술 접목 인프라",
+          desc: "AR, VR, AI 기반 공연 연출 가능",
+          image: null,
+        },
+        {
+          title: "글로벌 최초 객석 인터렉티브 조명",
+          desc: "",
+          image: null,
+        },
+        {
+          title: "가변형 무대 시스템",
+          desc: "스마트 자동 이송/리프팅",
+          image: null,
+        },
+      ],
+    },
+    {
+      badges: ["ARTIST", "AUDIENCE", "PRODUCER"],
+      highlightBadge: "PRODUCER",
+      title: "국내 최초 혁신적 제작 효율화 (제작비 30% 절감)",
+      subtitle: "최첨단 제작 인프라 도입, 초대형 규모 및 최첨단 기술 접목 가능",
+      cards: [
+        {
+          title: "최첨단 리깅 인프라",
+          desc: "상부 구조물 자동 하강 시스템으로 무대 설치 시간의 획기적 감소 & 안정성 확보",
+          image: null,
+        },
+        {
+          title: "초대형 세트 반입 가능",
+          desc: "대형 차량이 공연장 내부까지 진입 가능, 글로벌 투어 제작 환경 완벽 지원",
+          image: null,
+        },
+        {
+          title: "180톤 이상 국내 최대 상부 하중",
+          desc: '플라잉·회전·다중 세트 등 고난도 연출 무제한 확장성 (사례) 태민 "Metamorph" 360° 회전 무대',
+          image: null,
+        },
+        {
+          title: "압도적 전력 인프라",
+          desc: "대규모 공연·특수효과를 위한 안정적 전력 공급",
+          image: null,
+        },
+      ],
+    },
+  ],
   providedFacilities: [
     "공연 무대 시스템",
     "공연 조명 시스템",
