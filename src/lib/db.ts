@@ -6,6 +6,8 @@ import path from "node:path";
 import { DATA_DIR } from "./dataDir";
 import { buildSeedRateTable } from "./pricing/seed";
 import { SEED_PAGES } from "./pricing/pageSeed";
+import { DEFAULT_GUIDE_CONTENT, DEFAULT_VENUE_CONTENT } from "./content/seed";
+import type { GuideContent, VenueContent } from "./content/types";
 import type {
   ApprovalStatus,
   AppNotification,
@@ -178,6 +180,12 @@ function createConnection(): DatabaseSync {
       created_at TEXT NOT NULL,
       updated_at TEXT NOT NULL,
       UNIQUE(page_group, slug)
+    );
+
+    CREATE TABLE IF NOT EXISTS site_content (
+      page TEXT PRIMARY KEY,
+      data TEXT NOT NULL,
+      updated_at TEXT NOT NULL
     );
   `);
 
@@ -1259,4 +1267,37 @@ export function updatePage(
 export function deletePage(id: string) {
   const db = getDb();
   db.prepare("DELETE FROM pages WHERE id = ?").run(id);
+}
+
+function getSiteContent<T>(page: string, fallback: T): T {
+  const db = getDb();
+  const row = db.prepare("SELECT data FROM site_content WHERE page = ?").get(page) as
+    | { data: string }
+    | undefined;
+  return row ? (JSON.parse(row.data) as T) : fallback;
+}
+
+function saveSiteContent<T>(page: string, data: T): T {
+  const db = getDb();
+  db.prepare(
+    `INSERT INTO site_content (page, data, updated_at) VALUES (?, ?, ?)
+     ON CONFLICT(page) DO UPDATE SET data = excluded.data, updated_at = excluded.updated_at`,
+  ).run(page, JSON.stringify(data), new Date().toISOString());
+  return data;
+}
+
+export function getVenueContent(): VenueContent {
+  return getSiteContent<VenueContent>("venue", DEFAULT_VENUE_CONTENT);
+}
+
+export function saveVenueContent(data: VenueContent): VenueContent {
+  return saveSiteContent("venue", data);
+}
+
+export function getGuideContent(): GuideContent {
+  return getSiteContent<GuideContent>("guide", DEFAULT_GUIDE_CONTENT);
+}
+
+export function saveGuideContent(data: GuideContent): GuideContent {
+  return saveSiteContent("guide", data);
 }

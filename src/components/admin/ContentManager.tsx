@@ -3,10 +3,13 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import type { Faq, Notice } from "@/lib/pricing/types";
+import type { GuideContent, VenueContent } from "@/lib/content/types";
 import { TagBadge } from "@/components/TagBadge";
 import { NoticeEditor } from "./NoticeEditor";
+import { VenueContentForm } from "./VenueContentForm";
+import { GuideContentForm } from "./GuideContentForm";
 
-type Tab = "notices" | "faq";
+type Tab = "notices" | "faq" | "venue" | "guide";
 
 function isHtmlBodyEmpty(html: string): boolean {
   return html.replace(/<[^>]+>/g, "").trim().length === 0 && !html.includes("<img");
@@ -20,9 +23,13 @@ function stripHtml(html: string, max = 100): string {
 export function ContentManager({
   notices: initialNotices,
   faqs: initialFaqs,
+  venueContent,
+  guideContent,
 }: {
   notices: Notice[];
   faqs: Faq[];
+  venueContent: VenueContent;
+  guideContent: GuideContent;
 }) {
   const router = useRouter();
   const [tab, setTab] = useState<Tab>("notices");
@@ -36,6 +43,8 @@ export function ContentManager({
           [
             ["notices", `공지사항 (${notices.length})`],
             ["faq", `FAQ (${faqs.length})`],
+            ["venue", "서울아레나 소개"],
+            ["guide", "대관 안내"],
           ] as const
         ).map(([key, label]) => (
           <button
@@ -55,11 +64,10 @@ export function ContentManager({
       </div>
 
       <div className="mt-6">
-        {tab === "notices" ? (
-          <NoticesTab notices={notices} setNotices={setNotices} router={router} />
-        ) : (
-          <FaqTab faqs={faqs} setFaqs={setFaqs} router={router} />
-        )}
+        {tab === "notices" && <NoticesTab notices={notices} setNotices={setNotices} router={router} />}
+        {tab === "faq" && <FaqTab faqs={faqs} setFaqs={setFaqs} router={router} />}
+        {tab === "venue" && <VenueContentForm content={venueContent} />}
+        {tab === "guide" && <GuideContentForm content={guideContent} />}
       </div>
     </div>
   );
