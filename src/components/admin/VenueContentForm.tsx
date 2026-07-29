@@ -421,8 +421,29 @@ export function VenueContentForm({ content: initial }: { content: VenueContent }
       </section>
 
       <section>
-        <h3 className="text-[14px] font-semibold">무대 특장</h3>
+        <div className="flex items-center justify-between gap-3">
+          <h3 className="text-[14px] font-semibold">무대 특장</h3>
+          <button
+            type="button"
+            onClick={() => {
+              if (
+                window.confirm(
+                  "무대 특장 항목을 최신 기본값(강조 카드 5종, 세부 설명 포함)으로 되돌립니다. 현재 저장된 무대 특장 내용은 사라집니다. 계속할까요?",
+                )
+              ) {
+                patch({ specHighlights: DEFAULT_VENUE_CONTENT.specHighlights });
+              }
+            }}
+            className="shrink-0 text-[12px] text-accent hover:underline"
+          >
+            최신 기본값으로 불러오기
+          </button>
+        </div>
         <p className="mt-1 text-[12px] text-muted">아티스트/관객/제작사 관점의 강점을 카드 형태로 소개합니다.</p>
+        <p className="mt-1 text-[12px] text-muted">
+          이전에 저장된 내용이 있으면 새로 추가된 세부 카드/설명이 자동으로 보이지 않습니다. 위 버튼으로 최신 기본값을
+          불러온 뒤 저장하면 반영됩니다.
+        </p>
         <div className="mt-2 space-y-4">
           {content.specHighlights.map((hl, hi) => (
             <div key={hi} className={cardCls}>

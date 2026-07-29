@@ -70,11 +70,15 @@ export function VenueContentView({ content }: { content: VenueContent }) {
         <ul className="mt-8 grid grid-cols-1 divide-y divide-border/60 border-t border-border/60 sm:grid-cols-2 sm:gap-x-8 sm:divide-y-0 sm:border-t-0">
           {features.map((f) => (
             <li key={f} className="flex items-center gap-3 py-3 text-[13.5px] text-foreground sm:border-b sm:border-border/60">
-              <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-accent-soft text-accent">
-                <svg viewBox="0 0 20 20" fill="none" className="h-3 w-3">
-                  <path d="M4 10.5L8 14.5L16 6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-                </svg>
-              </span>
+              <svg aria-hidden viewBox="0 0 20 20" fill="none" className="h-[15px] w-[15px] shrink-0 text-accent">
+                <path
+                  d="M4 10.5L8 14.5L16 6"
+                  stroke="currentColor"
+                  strokeWidth="1.75"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                />
+              </svg>
               {f}
             </li>
           ))}
