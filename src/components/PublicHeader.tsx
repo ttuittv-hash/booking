@@ -16,11 +16,12 @@ const NAV_LINKS: {
     href: "/guide",
     label: "대관 안내",
     children: [
-      { href: "/guide#process", label: "대관 절차" },
-      { href: "/packages", label: "대관 패키지 구성" },
-      { href: "/guide#rules", label: "대관 규약" },
-      { href: "/notices", label: "공지사항" },
-      { href: "/faq", label: "FAQ" },
+      { href: "/notices", label: "대관공지" },
+      { href: "/guide#process", label: "대관절차" },
+      { href: "/packages", label: "대관료" },
+      { href: "/guide#rules", label: "대관규약" },
+      { href: "/guide/forms", label: "대관양식함" },
+      { href: "/guide/image-guide", label: "이미지가이드" },
     ],
   },
   { href: "/notices", label: "공지사항" },
@@ -35,13 +36,18 @@ export function PublicHeader({
   active: string;
   currentUser: AppUser | null;
 }) {
-  const [openMenu, setOpenMenu] = useState<string | null>(null);
+  // 상단 nav는 모바일에서 가로 스크롤(overflow-x-auto)이 필요한데, CSS 스펙상 한쪽 축만
+  // auto로 지정해도 다른 축이 함께 auto로 승격되어 세로로 펼치는 드롭다운이 잘려버린다.
+  // 그래서 드롭다운은 nav 내부에 absolute로 두지 않고, 트리거 위치를 계산해 position:fixed로
+  // 렌더링해 nav의 overflow 밖으로 완전히 빼낸다.
+  const [openMenu, setOpenMenu] = useState<{ href: string; top: number; left: number } | null>(null);
   const closeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const navRef = useRef<HTMLElement>(null);
 
-  function openNow(href: string) {
+  function openNow(href: string, target: HTMLElement) {
     if (closeTimer.current) clearTimeout(closeTimer.current);
-    setOpenMenu(href);
+    const rect = target.getBoundingClientRect();
+    setOpenMenu({ href, top: rect.bottom + 8, left: rect.left });
   }
   function closeSoon() {
     if (closeTimer.current) clearTimeout(closeTimer.current);
@@ -56,6 +62,8 @@ export function PublicHeader({
     return () => document.removeEventListener("click", onClickOutside);
   }, []);
 
+  const activeChildren = NAV_LINKS.find((link) => link.href === openMenu?.href)?.children;
+
   return (
     <header className="sticky top-0 z-20 border-b border-border/70 bg-background/80 backdrop-blur-md">
       <div className="mx-auto flex h-14 max-w-6xl items-center gap-x-8 px-4 sm:h-16 sm:px-6">
@@ -67,17 +75,16 @@ export function PublicHeader({
           {NAV_LINKS.map((link) => (
             <div
               key={link.href}
-              className="relative"
-              onMouseEnter={() => link.children && openNow(link.href)}
+              onMouseEnter={(e) => link.children && openNow(link.href, e.currentTarget)}
               onMouseLeave={() => link.children && closeSoon()}
             >
               <Link
                 href={link.href}
                 onClick={(e) => {
                   if (link.children) {
-                    if (openMenu === link.href) return;
+                    if (openMenu?.href === link.href) return;
                     e.preventDefault();
-                    openNow(link.href);
+                    openNow(link.href, e.currentTarget.parentElement as HTMLElement);
                   }
                 }}
                 className={`flex items-center gap-1 whitespace-nowrap ${link.href === active ? "font-medium text-foreground" : "hover:text-foreground"}`}
@@ -89,28 +96,29 @@ export function PublicHeader({
                   </span>
                 )}
               </Link>
-
-              {link.children && openMenu === link.href && (
-                <div
-                  onMouseEnter={() => openNow(link.href)}
-                  onMouseLeave={() => closeSoon()}
-                  className="absolute left-full top-1/2 z-30 ml-2 w-44 -translate-y-1/2 border border-border bg-background py-1.5 shadow-sm"
-                >
-                  {link.children.map((child) => (
-                    <Link
-                      key={child.href}
-                      href={child.href}
-                      onClick={() => setOpenMenu(null)}
-                      className="block whitespace-nowrap px-4 py-2 text-[13px] text-muted hover:bg-panel hover:text-foreground"
-                    >
-                      {child.label}
-                    </Link>
-                  ))}
-                </div>
-              )}
             </div>
           ))}
         </nav>
+
+        {openMenu && activeChildren && (
+          <div
+            onMouseEnter={() => setOpenMenu(openMenu)}
+            onMouseLeave={() => closeSoon()}
+            style={{ top: openMenu.top, left: openMenu.left }}
+            className="fixed z-30 w-44 border border-border bg-background py-1.5 shadow-sm"
+          >
+            {activeChildren.map((child) => (
+              <Link
+                key={child.href}
+                href={child.href}
+                onClick={() => setOpenMenu(null)}
+                className="block whitespace-nowrap px-4 py-2 text-[13px] text-muted hover:bg-panel hover:text-foreground"
+              >
+                {child.label}
+              </Link>
+            ))}
+          </div>
+        )}
 
         <div className="ml-auto flex shrink-0 items-center gap-x-4 text-[13px] text-muted">
           {currentUser ? (
