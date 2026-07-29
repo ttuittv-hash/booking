@@ -499,6 +499,25 @@ export function findUserById(id: string): AppUser | undefined {
   return row ? toAppUser(row) : undefined;
 }
 
+export function updateUserProfile(id: string, input: { name: string; phone: string | null }): AppUser {
+  const db = getDb();
+  db.prepare("UPDATE users SET name = ?, phone = ? WHERE id = ?").run(input.name, input.phone, id);
+  return findUserById(id)!;
+}
+
+export function updateUserPassword(id: string, passwordHash: string) {
+  const db = getDb();
+  db.prepare("UPDATE users SET password_hash = ? WHERE id = ?").run(passwordHash, id);
+}
+
+export function findUserPasswordHash(id: string): string | undefined {
+  const db = getDb();
+  const row = db.prepare("SELECT password_hash FROM users WHERE id = ?").get(id) as
+    | { password_hash: string }
+    | undefined;
+  return row?.password_hash;
+}
+
 // ---------------------------------------------------------------------------
 // Quotes
 // ---------------------------------------------------------------------------

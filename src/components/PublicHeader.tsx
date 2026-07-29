@@ -40,7 +40,12 @@ export function PublicHeader({
         <div className="ml-auto flex shrink-0 items-center gap-x-4 text-[13px] text-muted">
           {currentUser ? (
             <>
-              <span className="hidden whitespace-nowrap sm:inline">{currentUser.name} 님</span>
+              <Link
+                href={currentUser.role === "ADMIN" ? "/admin/users" : "/mypage/profile"}
+                className="hidden whitespace-nowrap hover:text-foreground sm:inline"
+              >
+                {currentUser.name} 님
+              </Link>
               {currentUser.role === "ADMIN" ? (
                 <Link href="/admin" className="whitespace-nowrap hover:text-foreground">
                   운영자 백오피스
