@@ -41,6 +41,7 @@ export function VenueContentView({ content }: { content: VenueContent }) {
     providedFacilities,
     arenaAmenities,
     mediumHallAmenities,
+    amenityGallery,
     keyMaps,
   } = content;
 
@@ -156,6 +157,19 @@ export function VenueContentView({ content }: { content: VenueContent }) {
       )}
 
       <Section id="amenities" title="부대 시설">
+        {amenityGallery.length > 0 && (
+          <div className="mb-8 grid grid-cols-2 gap-3 sm:grid-cols-3">
+            {amenityGallery.map((g, i) => (
+              <div key={i}>
+                <div className="aspect-[4/3] overflow-hidden rounded-sm border border-border">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={g.url} alt={g.label || "부대시설"} className="h-full w-full object-cover" />
+                </div>
+                {g.label && <div className="mt-1.5 text-[12px] text-muted">{g.label}</div>}
+              </div>
+            ))}
+          </div>
+        )}
         <div className="grid grid-cols-1 gap-8 sm:grid-cols-2">
           <div>
             <div className="text-[13.5px] font-semibold text-accent">아레나 부대시설</div>

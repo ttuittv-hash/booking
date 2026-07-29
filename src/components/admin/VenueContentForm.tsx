@@ -52,6 +52,7 @@ export function VenueContentForm({ content: initial }: { content: VenueContent }
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const [keyMapUploading, setKeyMapUploading] = useState(false);
+  const [amenityGalleryUploading, setAmenityGalleryUploading] = useState(false);
   const [previewOpen, setPreviewOpen] = useState(false);
   const [imageUploading, setImageUploading] = useState<string | null>(null);
 
@@ -206,6 +207,32 @@ export function VenueContentForm({ content: initial }: { content: VenueContent }
   }
   function removeKeyMap(i: number) {
     patch({ keyMaps: content.keyMaps.filter((_, j) => j !== i) });
+  }
+
+  async function uploadAmenityGallery(e: React.ChangeEvent<HTMLInputElement>) {
+    const files = Array.from(e.target.files ?? []);
+    if (files.length === 0) return;
+    setAmenityGalleryUploading(true);
+    try {
+      const uploaded: VenueKeyMap[] = [];
+      for (const file of files) {
+        const formData = new FormData();
+        formData.append("file", file);
+        const res = await fetch("/api/admin/notices/upload", { method: "POST", body: formData });
+        const data = await res.json();
+        if (res.ok) uploaded.push({ url: data.url, label: "" });
+      }
+      patch({ amenityGallery: [...content.amenityGallery, ...uploaded] });
+    } finally {
+      setAmenityGalleryUploading(false);
+      e.target.value = "";
+    }
+  }
+  function updateAmenityGalleryItem(i: number, patchG: Partial<VenueKeyMap>) {
+    patch({ amenityGallery: content.amenityGallery.map((g, j) => (j === i ? { ...g, ...patchG } : g)) });
+  }
+  function removeAmenityGalleryItem(i: number) {
+    patch({ amenityGallery: content.amenityGallery.filter((_, j) => j !== i) });
   }
 
   return (
@@ -502,6 +529,41 @@ export function VenueContentForm({ content: initial }: { content: VenueContent }
 
       <section>
         <h3 className="text-[14px] font-semibold">부대 시설</h3>
+
+        <div className="mt-2">
+          <span className={labelCls}>공간 사진 갤러리 (라운지·로비 등, 부대 시설 목록 위에 표시)</span>
+          <div className="mt-2 grid grid-cols-2 gap-3 sm:grid-cols-3">
+            {content.amenityGallery.map((g, i) => (
+              <div key={i} className={cardCls}>
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={g.url} alt={g.label || `사진 ${i + 1}`} className="aspect-[4/3] w-full rounded-sm border border-border object-cover" />
+                <div className="mt-2 flex items-center gap-2">
+                  <input
+                    value={g.label}
+                    placeholder="설명 (선택)"
+                    onChange={(e) => updateAmenityGalleryItem(i, { label: e.target.value })}
+                    className={inputCls}
+                  />
+                  <button type="button" onClick={() => removeAmenityGalleryItem(i)} className={removeBtnCls}>
+                    삭제
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+          <label className="mt-2 inline-block">
+            <span className={addBtnCls}>{amenityGalleryUploading ? "업로드 중..." : "+ 사진 업로드"}</span>
+            <input
+              type="file"
+              accept="image/*"
+              multiple
+              onChange={uploadAmenityGallery}
+              disabled={amenityGalleryUploading}
+              className="hidden"
+            />
+          </label>
+        </div>
+
         {(
           [
             ["arenaAmenities", "아레나 부대시설"],

@@ -2,6 +2,77 @@ import type { GuideContent, HomeContent, VenueContent } from "./types";
 
 export const DEFAULT_HOME_CONTENT: HomeContent = {
   heroImage: null,
+  heroEyebrow: "HOST IT.",
+  heroTitle: "Your Vision.\nOur Stage.",
+  heroSubtitle:
+    "서울아레나는 K-컬처와 첨단 기술을 융합해 새로운 경험을 창조하는 복합 문화 공간입니다. 세계 최고 수준의 음향·리깅·무대 시스템이 당신의 비전을 가장 온전하게 담아냅니다.",
+  heroPrimaryLabel: "Apply Now",
+  heroPrimaryHref: "/apply",
+  heroSecondaryLabel: "About Seoul Arena",
+  heroSecondaryHref: "/venue",
+  missionLabel: "MISSION",
+  mission:
+    "지역 주민과 전 세계 관객 모두가 혁신적이고 몰입적인 문화 체험을 할 수 있도록, K-컬처와 첨단 기술을 융합한 복합 예술 공간을 제공합니다.",
+  visionLabel: "VISION",
+  vision:
+    "K-팝을 비롯한 한국의 대중문화와 미래형 기술로 세계와 소통하며, 지역 사회를 활성화하고 글로벌 무대에서 새로운 문화를 선도하는 공간으로 성장해 나갑니다.",
+  featuresLabel: "STRATEGY",
+  featuresTitle: "서울아레나의 방향성",
+  features: [
+    {
+      title: "K-컬처 × 첨단기술",
+      desc: "한국의 대중문화와 AR·VR·AI를 결합한 몰입형 문화 공간입니다.",
+      href: "/venue#stage-features",
+      image: null,
+    },
+    {
+      title: "글로벌 문화 허브",
+      desc: "전 세계 관광객과 팬을 잇는 글로벌 문화 명소로 도약합니다.",
+      href: "/venue",
+      image: null,
+    },
+    {
+      title: "몰입형 시청각 인프라",
+      desc: "글로벌 스탠다드 이상의 사운드와 무대 연출 환경을 갖췄습니다.",
+      href: "/venue#specs",
+      image: null,
+    },
+    {
+      title: "지역사회와의 상생",
+      desc: "도봉·노원 지역과 함께 성장하는 문화 허브가 됩니다.",
+      href: "/venue",
+      image: null,
+    },
+  ],
+  processLabel: "APPLICATION PROCESS",
+  processTitle: "신청 절차 안내",
+  processSteps: [
+    {
+      no: "01",
+      title: "규모에 맞는 패키지 선택",
+      desc: "예상 관객 규모를 입력하면 가장 적합한 패키지가 자동으로 추천됩니다.",
+    },
+    {
+      no: "02",
+      title: "구성과 예상 대관료 확인",
+      desc: "패키지 포함 사항과 추가 옵션을 반영한 예상 대관료를 한눈에 확인합니다.",
+    },
+    {
+      no: "03",
+      title: "신청서 제출",
+      desc: "입력한 내용으로 대관 신청서를 접수합니다.",
+    },
+    {
+      no: "04",
+      title: "심사",
+      desc: "운영자가 일정·공연 내용·시설 적합성 등을 종합적으로 검토합니다.",
+    },
+    {
+      no: "05",
+      title: "결과 안내",
+      desc: "승인·보류·거절 결과를 알림으로 안내해 드립니다.",
+    },
+  ],
 };
 
 export const DEFAULT_VENUE_CONTENT: VenueContent = {
@@ -166,6 +237,57 @@ export const DEFAULT_VENUE_CONTENT: VenueContent = {
         },
       ],
     },
+    {
+      badges: ["ARTIST", "AUDIENCE", "PRODUCER"],
+      highlightBadge: "PRODUCER",
+      title: "다양한 형태 및 규모의 공간 활용",
+      subtitle: "다양한 프로그램을 동시에 안정적으로 운영할 수 있는 실내·외 복합 스테이지/이벤트 공간 구조",
+      cards: [
+        {
+          title: "아레나",
+          desc: "메인 스테이지, 다중 무대 등 대규모 공연 이벤트를 수용할 수 있는 공간입니다.",
+          image: null,
+        },
+        {
+          title: "중형공연장",
+          desc: "서브 스테이지, 음악 컨퍼런스 등 소~중규모 공연 이벤트를 수용할 수 있는 공간입니다.",
+          image: null,
+        },
+        {
+          title: "상업시설·야외광장",
+          desc: "스폰서/이벤트 부스, MD판매, 팝업, 전시 등 관객 참여형 이벤트를 수용할 수 있는 공간입니다.",
+          image: null,
+        },
+      ],
+    },
+    {
+      badges: ["ARTIST", "AUDIENCE", "PRODUCER"],
+      highlightBadge: "PRODUCER",
+      title: "연출·제작·현장운영·미디어 인프라",
+      subtitle: "콘텐츠별 특성에 맞춰 대규모 연출·다중 중계·운영 프로세스를 리스크 없이 수행하는 기술, 운영 인프라",
+      cards: [
+        {
+          title: "대형 프로덕션 기술 지원",
+          desc: "다중 무대·대형세트·리프트 전환 등 어워드급 연출을 실현할 수 있는 무대 기술을 지원합니다.",
+          image: null,
+        },
+        {
+          title: "중계 인프라",
+          desc: "무대와 인접한 중계 시스템(접근성), 신호 직접 연결 구조(안정성), 다양한 포맷과 호환되는 표준화 인프라(범용성)를 갖췄습니다.",
+          image: null,
+        },
+        {
+          title: "연출 확장 플랫폼",
+          desc: "대형 플라잉·특수 연출을 자유롭게 구현할 수 있는 기술 플랫폼입니다.",
+          image: null,
+        },
+        {
+          title: "모듈형 백스테이지 허브",
+          desc: "대기실·연습실을 모듈형으로 구성해 필요 시 분리·확장하고, 식당·사무실·프레스룸 등과 연계해 페스티벌 운영을 극대화합니다.",
+          image: null,
+        },
+      ],
+    },
   ],
   providedFacilities: [
     "공연 무대 시스템",
@@ -209,6 +331,7 @@ export const DEFAULT_VENUE_CONTENT: VenueContent = {
     { name: "화장실 및 장애인 화장실", desc: "전층 운영" },
     { name: "운영지원 공간 (BOH Support Area)", desc: "" },
   ],
+  amenityGallery: [],
   keyMaps: [],
 };
 

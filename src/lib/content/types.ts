@@ -48,6 +48,7 @@ export interface VenueContent {
   providedFacilities: string[];
   arenaAmenities: VenueAmenity[];
   mediumHallAmenities: VenueAmenity[];
+  amenityGallery: VenueKeyMap[];
   keyMaps: VenueKeyMap[];
 }
 
@@ -66,6 +67,36 @@ export interface GuideContent {
   rulesIntro: string;
 }
 
+export interface HomeFeature {
+  title: string;
+  desc: string;
+  href: string;
+  image: string | null;
+}
+
+export interface HomeProcessStep {
+  no: string;
+  title: string;
+  desc: string;
+}
+
 export interface HomeContent {
   heroImage: string | null;
+  heroEyebrow: string;
+  heroTitle: string;
+  heroSubtitle: string;
+  heroPrimaryLabel: string;
+  heroPrimaryHref: string;
+  heroSecondaryLabel: string;
+  heroSecondaryHref: string;
+  missionLabel: string;
+  mission: string;
+  visionLabel: string;
+  vision: string;
+  featuresLabel: string;
+  featuresTitle: string;
+  features: HomeFeature[];
+  processLabel: string;
+  processTitle: string;
+  processSteps: HomeProcessStep[];
 }
