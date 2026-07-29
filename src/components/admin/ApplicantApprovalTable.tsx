@@ -19,9 +19,11 @@ const STATUS_STYLE: Record<AppUser["approvalStatus"], string> = {
 export function ApplicantApprovalTable({
   applicants,
   pending,
+  businessRegistrationNumbers = {},
 }: {
   applicants: AppUser[];
   pending: boolean;
+  businessRegistrationNumbers?: Record<string, string | null>;
 }) {
   const router = useRouter();
   const [busyId, setBusyId] = useState<string | null>(null);
@@ -47,6 +49,7 @@ export function ApplicantApprovalTable({
           <tr className="border-b border-border bg-panel text-left text-[11.5px] font-medium text-muted">
             <th className="px-4 py-3">담당자명</th>
             <th className="px-4 py-3">회사명</th>
+            <th className="px-4 py-3">사업자등록번호</th>
             <th className="px-4 py-3">이메일</th>
             <th className="px-4 py-3">가입일</th>
             <th className="px-4 py-3">상태</th>
@@ -56,7 +59,7 @@ export function ApplicantApprovalTable({
         <tbody>
           {applicants.length === 0 ? (
             <tr>
-              <td colSpan={pending ? 6 : 5} className="px-4 py-6 text-center text-muted">
+              <td colSpan={pending ? 7 : 6} className="px-4 py-6 text-center text-muted">
                 {pending ? "승인 대기 중인 신청이 없습니다." : "처리 내역이 없습니다."}
               </td>
             </tr>
@@ -65,6 +68,9 @@ export function ApplicantApprovalTable({
               <tr key={a.id} className="border-b border-border/70">
                 <td className="px-4 py-3 font-medium">{a.name}</td>
                 <td className="px-4 py-3 text-muted">{a.companyName || "-"}</td>
+                <td className="px-4 py-3 text-muted">
+                  {(a.companyId && businessRegistrationNumbers[a.companyId]) || "-"}
+                </td>
                 <td className="px-4 py-3 text-muted">{a.email}</td>
                 <td className="px-4 py-3 text-muted">
                   {new Date(a.createdAt).toLocaleDateString("ko-KR")}

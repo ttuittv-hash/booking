@@ -9,7 +9,14 @@ type AccountType = "CORPORATE" | "INDIVIDUAL";
 export default function RegisterPage() {
   const router = useRouter();
   const [accountType, setAccountType] = useState<AccountType>("CORPORATE");
-  const [form, setForm] = useState({ email: "", password: "", name: "", companyName: "", companyId: "" });
+  const [form, setForm] = useState({
+    email: "",
+    password: "",
+    name: "",
+    companyName: "",
+    companyId: "",
+    businessRegistrationNumber: "",
+  });
   const [companies, setCompanies] = useState<{ id: string; name: string }[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
@@ -115,15 +122,27 @@ export default function RegisterPage() {
           </Field>
 
           {accountType === "CORPORATE" ? (
-            <Field label="회사/기획사명 (신규 등록)">
-              <input
-                type="text"
-                required
-                value={form.companyName}
-                onChange={(e) => setForm({ ...form, companyName: e.target.value })}
-                className="input"
-              />
-            </Field>
+            <>
+              <Field label="회사/기획사명 (신규 등록)">
+                <input
+                  type="text"
+                  required
+                  value={form.companyName}
+                  onChange={(e) => setForm({ ...form, companyName: e.target.value })}
+                  className="input"
+                />
+              </Field>
+              <Field label="사업자등록번호 (10자리, - 없이 또는 포함하여)">
+                <input
+                  type="text"
+                  required
+                  placeholder="000-00-00000"
+                  value={form.businessRegistrationNumber}
+                  onChange={(e) => setForm({ ...form, businessRegistrationNumber: e.target.value })}
+                  className="input"
+                />
+              </Field>
+            </>
           ) : (
             <Field label="소속 회사/기획사">
               <select

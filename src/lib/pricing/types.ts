@@ -269,6 +269,7 @@ export type ApprovalStatus = "PENDING" | "APPROVED" | "REJECTED";
 export interface Company {
   id: string;
   name: string;
+  businessRegistrationNumber: string | null;
   createdAt: string;
 }
 

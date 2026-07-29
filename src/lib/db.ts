@@ -54,6 +54,7 @@ function createConnection(): DatabaseSync {
     CREATE TABLE IF NOT EXISTS companies (
       id TEXT PRIMARY KEY,
       name TEXT UNIQUE NOT NULL,
+      business_registration_number TEXT,
       created_at TEXT NOT NULL
     );
 
@@ -184,6 +185,7 @@ function createConnection(): DatabaseSync {
   ensureColumn(db, "notices", "tag", "TEXT");
   ensureColumn(db, "faqs", "tag", "TEXT");
   ensureColumn(db, "quotes", "review_json", "TEXT");
+  ensureColumn(db, "companies", "business_registration_number", "TEXT");
 
   const rateTableCount = db.prepare("SELECT COUNT(*) as n FROM rate_tables").get() as { n: number };
   if (rateTableCount.n === 0) {
@@ -319,15 +321,22 @@ export function saveNewRateTableVersion(
 interface CompanyRow {
   id: string;
   name: string;
+  business_registration_number: string | null;
   created_at: string;
 }
 
 function toCompany(row: CompanyRow): Company {
-  return { id: row.id, name: row.name, createdAt: row.created_at };
+  return {
+    id: row.id,
+    name: row.name,
+    businessRegistrationNumber: row.business_registration_number,
+    createdAt: row.created_at,
+  };
 }
 
 // 회사명으로 기존 기획사를 찾거나 없으면 새로 만든다 (대소문자·공백 무시하고 매칭).
-export function findOrCreateCompany(name: string): Company {
+// 이미 등록된 회사라면 사업자등록번호는 최초 등록 값을 그대로 유지한다.
+export function findOrCreateCompany(name: string, businessRegistrationNumber?: string): Company {
   const db = getDb();
   const trimmed = name.trim();
   const existing = db
@@ -335,12 +344,15 @@ export function findOrCreateCompany(name: string): Company {
     .get(trimmed) as CompanyRow | undefined;
   if (existing) return toCompany(existing);
 
-  const row: CompanyRow = { id: crypto.randomUUID(), name: trimmed, created_at: new Date().toISOString() };
-  db.prepare("INSERT INTO companies (id, name, created_at) VALUES (?, ?, ?)").run(
-    row.id,
-    row.name,
-    row.created_at,
-  );
+  const row: CompanyRow = {
+    id: crypto.randomUUID(),
+    name: trimmed,
+    business_registration_number: businessRegistrationNumber?.trim() || null,
+    created_at: new Date().toISOString(),
+  };
+  db.prepare(
+    "INSERT INTO companies (id, name, business_registration_number, created_at) VALUES (?, ?, ?, ?)",
+  ).run(row.id, row.name, row.business_registration_number, row.created_at);
   return toCompany(row);
 }
 

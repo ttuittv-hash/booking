@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/lib/auth";
-import { listUsers } from "@/lib/db";
+import { listCompanies, listUsers } from "@/lib/db";
 import { AdminNav } from "@/components/admin/AdminNav";
 import { ApplicantApprovalTable } from "@/components/admin/ApplicantApprovalTable";
 
@@ -11,6 +11,9 @@ export default async function AdminApplicantsPage() {
 
   const pending = listUsers({ role: "APPLICANT", approvalStatus: "PENDING" });
   const decided = listUsers({ role: "APPLICANT" }).filter((a) => a.approvalStatus !== "PENDING");
+  const businessRegistrationNumbers = Object.fromEntries(
+    listCompanies().map((c) => [c.id, c.businessRegistrationNumber]),
+  );
 
   return (
     <div className="flex flex-1 flex-col">
@@ -24,10 +27,10 @@ export default async function AdminApplicantsPage() {
         </p>
 
         <h2 className="mt-8 text-[14px] font-semibold">승인 대기 ({pending.length})</h2>
-        <ApplicantApprovalTable applicants={pending} pending />
+        <ApplicantApprovalTable applicants={pending} pending businessRegistrationNumbers={businessRegistrationNumbers} />
 
         <h2 className="mt-10 text-[14px] font-semibold">처리 완료</h2>
-        <ApplicantApprovalTable applicants={decided} pending={false} />
+        <ApplicantApprovalTable applicants={decided} pending={false} businessRegistrationNumbers={businessRegistrationNumbers} />
       </main>
     </div>
   );

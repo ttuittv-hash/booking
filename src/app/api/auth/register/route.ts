@@ -13,6 +13,8 @@ export async function POST(request: Request) {
   const accountType = body?.accountType === "INDIVIDUAL" ? "INDIVIDUAL" : "CORPORATE";
   const companyName = typeof body?.companyName === "string" ? body.companyName.trim() : "";
   const companyId = typeof body?.companyId === "string" ? body.companyId.trim() : "";
+  const businessRegistrationNumber =
+    typeof body?.businessRegistrationNumber === "string" ? body.businessRegistrationNumber.trim() : "";
 
   if (!EMAIL_RE.test(email)) {
     return NextResponse.json({ error: "올바른 이메일을 입력하세요." }, { status: 400 });
@@ -42,7 +44,13 @@ export async function POST(request: Request) {
     if (!companyName) {
       return NextResponse.json({ error: "회사/기획사명을 입력하세요." }, { status: 400 });
     }
-    company = findOrCreateCompany(companyName);
+    if (!/^\d{3}-?\d{2}-?\d{5}$/.test(businessRegistrationNumber)) {
+      return NextResponse.json(
+        { error: "사업자등록번호를 올바른 형식(10자리 숫자)으로 입력하세요." },
+        { status: 400 },
+      );
+    }
+    company = findOrCreateCompany(companyName, businessRegistrationNumber);
   }
 
   const createdAt = new Date().toISOString();
