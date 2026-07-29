@@ -160,17 +160,7 @@ export function Step1Calendar({
           const isSelectable = calWeek.weekOfMonth !== null;
           const demand = calWeek.weekOfMonth !== null ? demandFor(calWeek.weekOfMonth) : 0;
           return (
-            <div key={wi} className="relative">
-              {demand > 0 && (
-                <span
-                  className={[
-                    "absolute -top-1.5 right-1 z-10 rounded-sm px-1.5 py-0.5 text-[10px] font-medium",
-                    demand > 1 ? "bg-accent-soft text-accent" : "bg-panel-strong text-muted",
-                  ].join(" ")}
-                >
-                  {demand > 1 ? `경합 중 · ${demand}개사 신청` : `${demand}개사 신청`}
-                </span>
-              )}
+            <div key={wi}>
               <button
                 type="button"
                 disabled={!isSelectable}
@@ -205,6 +195,18 @@ export function Step1Calendar({
                   );
                 })}
               </button>
+              {demand > 0 && (
+                <div className="px-0.5 pt-0.5 text-right">
+                  <span
+                    className={[
+                      "text-[10.5px] font-medium",
+                      demand > 1 ? "text-accent" : "text-muted",
+                    ].join(" ")}
+                  >
+                    {demand > 1 ? `경합 중 · ${demand}개사 신청` : `${demand}개사 신청`}
+                  </span>
+                </div>
+              )}
             </div>
           );
         })}
