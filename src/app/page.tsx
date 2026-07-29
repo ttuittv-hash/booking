@@ -56,9 +56,7 @@ export default async function Home() {
       <PublicHeader active="/" currentUser={user} />
 
       <main className="flex flex-1 flex-col">
-        <section className="relative isolate overflow-hidden px-6 pt-24 pb-20 text-center sm:pt-32 sm:pb-24">
-          <div className="hero-grid pointer-events-none absolute inset-0 -z-20" aria-hidden />
-
+        <section className="relative px-6 pt-24 pb-20 text-center sm:pt-32 sm:pb-24">
           <div className="flex animate-[fade-up_0.7s_ease_both] items-center justify-center gap-3">
             <span className="h-px w-8 bg-accent" />
             <span className="text-[13px] font-semibold uppercase tracking-[0.2em] text-accent">HOST IT.</span>

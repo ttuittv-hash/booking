@@ -84,19 +84,6 @@ input[type="number"]::-webkit-inner-spin-button {
   }
 }
 
-.hero-grid {
-  background-image:
-    linear-gradient(to right, rgba(29, 29, 31, 0.06) 1px, transparent 1px),
-    linear-gradient(to bottom, rgba(29, 29, 31, 0.06) 1px, transparent 1px);
-  background-size: 56px 56px;
-  -webkit-mask-image: radial-gradient(
-    ellipse 65% 55% at 50% 28%,
-    black 30%,
-    transparent 85%
-  );
-  mask-image: radial-gradient(ellipse 65% 55% at 50% 28%, black 30%, transparent 85%);
-}
-
 @media (prefers-reduced-motion: reduce) {
   [class*="animate-[fade-up"] {
     animation: none !important;
