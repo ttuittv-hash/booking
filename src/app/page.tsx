@@ -26,9 +26,9 @@ export default async function Home() {
 
         <Link
           href="/apply"
-          className="mt-10 rounded-sm bg-accent px-9 py-3.5 text-[15.5px] font-semibold text-white shadow-[0_8px_24px_-8px_rgba(0,113,227,0.55)] transition-colors hover:bg-accent-hover"
+          className="mt-10 rounded-sm bg-accent px-9 py-3.5 text-[15px] font-semibold uppercase tracking-[0.06em] text-white shadow-[0_8px_24px_-8px_rgba(0,113,227,0.55)] transition-colors hover:bg-accent-hover"
         >
-          대관 신청하기 →
+          Apply Now
         </Link>
 
         <div className="mt-20 w-full max-w-5xl border-t border-border/70 pt-16 sm:mt-24 sm:pt-20">
