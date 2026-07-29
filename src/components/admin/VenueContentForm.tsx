@@ -177,7 +177,7 @@ export function VenueContentForm({ content: initial }: { content: VenueContent }
     patch({ [key]: content[key].map((a, j) => (j === i ? { ...a, ...patchA } : a)) } as Partial<VenueContent>);
   }
   function addAmenity(key: "arenaAmenities" | "mediumHallAmenities") {
-    patch({ [key]: [...content[key], { name: "", desc: "", image: null }] } as Partial<VenueContent>);
+    patch({ [key]: [...content[key], { name: "", desc: "", image: null, featured: false }] } as Partial<VenueContent>);
   }
   function removeAmenity(key: "arenaAmenities" | "mediumHallAmenities", i: number) {
     patch({ [key]: content[key].filter((_, j) => j !== i) } as Partial<VenueContent>);
@@ -592,6 +592,14 @@ export function VenueContentForm({ content: initial }: { content: VenueContent }
                       삭제
                     </button>
                   </div>
+                  <label className="mt-2 flex items-center gap-1.5 text-[12px] text-muted">
+                    <input
+                      type="checkbox"
+                      checked={a.featured}
+                      onChange={(e) => updateAmenityList(key, i, { featured: e.target.checked })}
+                    />
+                    강조 표시 (큰 썸네일로 상단에 노출)
+                  </label>
                   <div className="mt-2">
                     {a.image ? (
                       <div className="flex items-center gap-2">

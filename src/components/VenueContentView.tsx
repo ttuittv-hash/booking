@@ -170,43 +170,52 @@ export function VenueContentView({ content }: { content: VenueContent }) {
             ))}
           </div>
         )}
+
+        {(() => {
+          const featured = [
+            ...arenaAmenities.filter((f) => f.featured).map((f) => ({ ...f, hall: "아레나" })),
+            ...mediumHallAmenities.filter((f) => f.featured).map((f) => ({ ...f, hall: "중형공연장" })),
+          ];
+          if (featured.length === 0) return null;
+          return (
+            <div className="mb-10 grid grid-cols-2 gap-4 sm:grid-cols-4">
+              {featured.map((f, i) => (
+                <div key={`${f.hall}-${f.name}-${i}`}>
+                  <ImagePlaceholder src={f.image} alt={f.name} />
+                  <div className="mt-3 text-[11px] font-semibold uppercase tracking-wide text-accent">{f.hall}</div>
+                  <div className="mt-1 text-[13.5px] font-semibold">{f.name}</div>
+                  {f.desc && <p className="mt-1 text-[12.5px] leading-6 text-muted">{f.desc}</p>}
+                </div>
+              ))}
+            </div>
+          );
+        })()}
+
         <div className="grid grid-cols-1 gap-8 sm:grid-cols-2">
           <div>
             <div className="text-[13.5px] font-semibold text-accent">아레나 부대시설</div>
             <ul className="mt-3 divide-y divide-border/50">
-              {arenaAmenities.map((f) => (
-                <li key={f.name} className="flex items-start gap-3 py-2.5 text-[12.5px]">
-                  {f.image && (
-                    <div className="h-12 w-16 shrink-0 overflow-hidden rounded-sm border border-border">
-                      {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img src={f.image} alt={f.name} className="h-full w-full object-cover" />
-                    </div>
-                  )}
-                  <div>
+              {arenaAmenities
+                .filter((f) => !f.featured)
+                .map((f) => (
+                  <li key={f.name} className="py-2.5 text-[12.5px]">
                     <div className="font-semibold">{f.name}</div>
                     {f.desc && <div className="mt-0.5 text-muted">{f.desc}</div>}
-                  </div>
-                </li>
-              ))}
+                  </li>
+                ))}
             </ul>
           </div>
           <div>
             <div className="text-[13.5px] font-semibold text-accent">중형공연장 부대시설</div>
             <ul className="mt-3 divide-y divide-border/50">
-              {mediumHallAmenities.map((f) => (
-                <li key={f.name} className="flex items-start gap-3 py-2.5 text-[12.5px]">
-                  {f.image && (
-                    <div className="h-12 w-16 shrink-0 overflow-hidden rounded-sm border border-border">
-                      {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img src={f.image} alt={f.name} className="h-full w-full object-cover" />
-                    </div>
-                  )}
-                  <div>
+              {mediumHallAmenities
+                .filter((f) => !f.featured)
+                .map((f) => (
+                  <li key={f.name} className="py-2.5 text-[12.5px]">
                     <div className="font-semibold">{f.name}</div>
                     {f.desc && <div className="mt-0.5 text-muted">{f.desc}</div>}
-                  </div>
-                </li>
-              ))}
+                  </li>
+                ))}
             </ul>
           </div>
         </div>

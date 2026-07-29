@@ -17,6 +17,7 @@ export interface VenueAmenity {
   name: string;
   desc: string;
   image: string | null;
+  featured: boolean;
 }
 
 export interface VenueKeyMap {
