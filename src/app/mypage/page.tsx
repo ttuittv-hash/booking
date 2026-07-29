@@ -18,7 +18,7 @@ export default async function MyPage() {
   if (user.role !== "APPLICANT") redirect("/admin");
   if (isPendingApplicant(user)) redirect("/pending");
 
-  const quotes = listQuotes({ applicantId: user.id });
+  const quotes = user.companyId ? listQuotes({ companyId: user.companyId }) : listQuotes({ applicantId: user.id });
 
   return (
     <div className="flex flex-1 flex-col">

@@ -1,5 +1,5 @@
 import { notFound, redirect } from "next/navigation";
-import { getCurrentUser } from "@/lib/auth";
+import { canAccessQuote, getCurrentUser } from "@/lib/auth";
 import { findUserById, getQuoteById } from "@/lib/db";
 import { won } from "@/lib/format";
 import { totalRentalDays } from "@/lib/pricing/rateTableUtils";
@@ -16,7 +16,7 @@ export default async function PrintQuotePage({
   const { id } = await params;
   const quote = getQuoteById(id);
   if (!quote) notFound();
-  if (user.role !== "ADMIN" && quote.applicantId !== user.id) notFound();
+  if (!canAccessQuote(user, quote)) notFound();
 
   const applicant = findUserById(quote.applicantId);
 

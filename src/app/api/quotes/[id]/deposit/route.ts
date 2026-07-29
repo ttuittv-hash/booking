@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import crypto from "node:crypto";
-import { getCurrentUser } from "@/lib/auth";
+import { canAccessQuote, getCurrentUser } from "@/lib/auth";
 import {
   confirmDeposit,
   createNotification,
@@ -21,7 +21,7 @@ export async function POST(request: Request, ctx: { params: Promise<{ id: string
   if (action === "report") {
     const quote = getQuoteById(id);
     if (!quote) return NextResponse.json({ error: "신청서를 찾을 수 없습니다." }, { status: 404 });
-    if (quote.applicantId !== user.id) {
+    if (!canAccessQuote(user, quote)) {
       return NextResponse.json({ error: "접근 권한이 없습니다." }, { status: 403 });
     }
 

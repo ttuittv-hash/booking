@@ -13,13 +13,9 @@ function formatSize(bytes: number): string {
 export function AttachmentsPanel({
   quoteId,
   attachments,
-  currentUserId,
-  isAdmin,
 }: {
   quoteId: string;
   attachments: Attachment[];
-  currentUserId: string;
-  isAdmin: boolean;
 }) {
   const router = useRouter();
   const fileInput = useRef<HTMLInputElement>(null);
@@ -82,15 +78,13 @@ export function AttachmentsPanel({
               <div className="flex items-center gap-3 text-[11.5px] text-muted">
                 <span>{formatSize(file.size)}</span>
                 <span>{new Date(file.createdAt).toLocaleDateString("ko-KR")}</span>
-                {(isAdmin || file.uploadedBy === currentUserId) && (
-                  <button
-                    type="button"
-                    onClick={() => remove(file.id)}
-                    className="hover:text-red-600"
-                  >
-                    삭제
-                  </button>
-                )}
+                <button
+                  type="button"
+                  onClick={() => remove(file.id)}
+                  className="hover:text-red-600"
+                >
+                  삭제
+                </button>
               </div>
             </li>
           ))

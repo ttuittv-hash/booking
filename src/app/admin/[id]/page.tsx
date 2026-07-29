@@ -153,12 +153,7 @@ export default async function AdminQuoteDetailPage({
 
         <div className="mt-6 grid grid-cols-1 gap-6 sm:grid-cols-2">
           <DepositPanel quoteId={quote.id} deposit={deposit} viewerRole="ADMIN" />
-          <AttachmentsPanel
-            quoteId={quote.id}
-            attachments={attachments}
-            currentUserId={user.id}
-            isAdmin
-          />
+          <AttachmentsPanel quoteId={quote.id} attachments={attachments} />
         </div>
 
         {auditLog.length > 0 && (

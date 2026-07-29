@@ -73,13 +73,17 @@ export default function RegisterPage() {
               className="input"
             />
           </Field>
-          <Field label="회사/기획사명 (선택)">
+          <Field label="회사/기획사명">
             <input
               type="text"
+              required
               value={form.companyName}
               onChange={(e) => setForm({ ...form, companyName: e.target.value })}
               className="input"
             />
+            <p className="mt-1.5 text-[11.5px] text-muted">
+              같은 회사명으로 가입한 담당자끼리는 서로의 신청 내역을 함께 조회·관리할 수 있습니다.
+            </p>
           </Field>
 
           {error && <p className="text-[13px] text-red-600">{error}</p>}
@@ -106,7 +110,7 @@ export default function RegisterPage() {
           width: 100%;
           border: 1px solid var(--border);
           background: var(--panel);
-          border-radius: 0.75rem;
+          border-radius: 2px;
           padding: 0.65rem 0.9rem;
           font-size: 14px;
           outline: none;

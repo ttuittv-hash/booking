@@ -2,7 +2,7 @@ import bcrypt from "bcryptjs";
 import { jwtVerify, SignJWT } from "jose";
 import { cookies } from "next/headers";
 import { findUserById } from "./db";
-import type { AppUser, UserRole } from "./pricing/types";
+import type { AppUser, Quote, UserRole } from "./pricing/types";
 
 const SESSION_COOKIE = "sa_session";
 const SESSION_TTL_SECONDS = 60 * 60 * 24 * 7; // 7일
@@ -86,4 +86,13 @@ export async function requireRole(role: UserRole): Promise<AppUser | null> {
 // 승인 대기·거절 상태의 신청자(대관사) 계정 여부 — 대관 안내/신청 관련 화면 접근 제한에 사용
 export function isPendingApplicant(user: AppUser): boolean {
   return user.role === "APPLICANT" && user.approvalStatus !== "APPROVED";
+}
+
+// 신청서 열람/관리 권한 — 운영자, 본인, 또는 같은 회사(기획사) 소속 실무자까지 허용
+export function canAccessQuote(user: AppUser, quote: Quote): boolean {
+  if (user.role === "ADMIN") return true;
+  if (quote.applicantId === user.id) return true;
+  if (!user.companyId) return false;
+  const applicant = findUserById(quote.applicantId);
+  return applicant?.companyId === user.companyId;
 }

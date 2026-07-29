@@ -246,11 +246,20 @@ export type UserRole = "APPLICANT" | "ADMIN";
 // 운영자(ADMIN) 계정은 항상 APPROVED로 생성된다.
 export type ApprovalStatus = "PENDING" | "APPROVED" | "REJECTED";
 
+// 공연 기획사(법인) — 같은 회사 실무자(개인) 여러 명이 이 기획사에 연결되어
+// 서로의 대관 신청 내역을 함께 조회·관리할 수 있다.
+export interface Company {
+  id: string;
+  name: string;
+  createdAt: string;
+}
+
 export interface AppUser {
   id: string;
   email: string;
   name: string;
   companyName: string | null;
+  companyId: string | null;
   role: UserRole;
   approvalStatus: ApprovalStatus;
   createdAt: string;

@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { getCurrentUser } from "@/lib/auth";
+import { canAccessQuote, getCurrentUser } from "@/lib/auth";
 import { getQuoteById, listAuditLogsForQuote } from "@/lib/db";
 
 export async function GET(_request: Request, ctx: { params: Promise<{ id: string }> }) {
@@ -9,7 +9,7 @@ export async function GET(_request: Request, ctx: { params: Promise<{ id: string
   const { id } = await ctx.params;
   const quote = getQuoteById(id);
   if (!quote) return NextResponse.json({ error: "신청서를 찾을 수 없습니다." }, { status: 404 });
-  if (user.role !== "ADMIN" && quote.applicantId !== user.id) {
+  if (!canAccessQuote(user, quote)) {
     return NextResponse.json({ error: "접근 권한이 없습니다." }, { status: 403 });
   }
 

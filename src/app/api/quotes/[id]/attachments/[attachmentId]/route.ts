@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import fs from "node:fs/promises";
 import path from "node:path";
-import { getCurrentUser } from "@/lib/auth";
+import { canAccessQuote, getCurrentUser } from "@/lib/auth";
 import { deleteAttachment, getAttachmentById, getQuoteById } from "@/lib/db";
 
 const UPLOAD_ROOT = path.join(process.cwd(), "data", "uploads");
@@ -12,7 +12,7 @@ async function authorize(quoteId: string, attachmentId: string) {
 
   const quote = getQuoteById(quoteId);
   if (!quote) return { error: NextResponse.json({ error: "신청서를 찾을 수 없습니다." }, { status: 404 }) };
-  if (user.role !== "ADMIN" && quote.applicantId !== user.id) {
+  if (!canAccessQuote(user, quote)) {
     return { error: NextResponse.json({ error: "접근 권한이 없습니다." }, { status: 403 }) };
   }
 
@@ -53,10 +53,6 @@ export async function DELETE(
   const { id, attachmentId } = await ctx.params;
   const result = await authorize(id, attachmentId);
   if ("error" in result) return result.error;
-
-  if (result.user.role !== "ADMIN" && result.attachment.uploadedBy !== result.user.id) {
-    return NextResponse.json({ error: "본인이 업로드한 파일만 삭제할 수 있습니다." }, { status: 403 });
-  }
 
   const filePath = path.join(UPLOAD_ROOT, id, result.attachment.storedName);
   await fs.unlink(filePath).catch(() => {});

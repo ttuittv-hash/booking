@@ -11,6 +11,7 @@ import type {
   AppUser,
   Attachment,
   AuditLogEntry,
+  Company,
   ContractAdjustment,
   Deposit,
   DepositStatus,
@@ -35,12 +36,19 @@ function createConnection(): DatabaseSync {
   db.exec("PRAGMA foreign_keys = ON;");
 
   db.exec(`
+    CREATE TABLE IF NOT EXISTS companies (
+      id TEXT PRIMARY KEY,
+      name TEXT UNIQUE NOT NULL,
+      created_at TEXT NOT NULL
+    );
+
     CREATE TABLE IF NOT EXISTS users (
       id TEXT PRIMARY KEY,
       email TEXT UNIQUE NOT NULL,
       password_hash TEXT NOT NULL,
       name TEXT NOT NULL,
       company_name TEXT,
+      company_id TEXT REFERENCES companies(id),
       role TEXT NOT NULL,
       approval_status TEXT NOT NULL DEFAULT 'APPROVED',
       created_at TEXT NOT NULL
@@ -229,6 +237,44 @@ export function saveNewRateTableVersion(
 }
 
 // ---------------------------------------------------------------------------
+// 기획사(법인)
+// ---------------------------------------------------------------------------
+
+interface CompanyRow {
+  id: string;
+  name: string;
+  created_at: string;
+}
+
+function toCompany(row: CompanyRow): Company {
+  return { id: row.id, name: row.name, createdAt: row.created_at };
+}
+
+// 회사명으로 기존 기획사를 찾거나 없으면 새로 만든다 (대소문자·공백 무시하고 매칭).
+export function findOrCreateCompany(name: string): Company {
+  const db = getDb();
+  const trimmed = name.trim();
+  const existing = db
+    .prepare("SELECT * FROM companies WHERE lower(name) = lower(?)")
+    .get(trimmed) as CompanyRow | undefined;
+  if (existing) return toCompany(existing);
+
+  const row: CompanyRow = { id: crypto.randomUUID(), name: trimmed, created_at: new Date().toISOString() };
+  db.prepare("INSERT INTO companies (id, name, created_at) VALUES (?, ?, ?)").run(
+    row.id,
+    row.name,
+    row.created_at,
+  );
+  return toCompany(row);
+}
+
+export function findCompanyById(id: string): Company | undefined {
+  const db = getDb();
+  const row = db.prepare("SELECT * FROM companies WHERE id = ?").get(id) as CompanyRow | undefined;
+  return row ? toCompany(row) : undefined;
+}
+
+// ---------------------------------------------------------------------------
 // Users
 // ---------------------------------------------------------------------------
 
@@ -238,6 +284,7 @@ interface UserRow {
   password_hash: string;
   name: string;
   company_name: string | null;
+  company_id: string | null;
   role: UserRole;
   approval_status: ApprovalStatus;
   created_at: string;
@@ -249,6 +296,7 @@ function toAppUser(row: UserRow): AppUser {
     email: row.email,
     name: row.name,
     companyName: row.company_name,
+    companyId: row.company_id,
     role: row.role,
     approvalStatus: row.approval_status,
     createdAt: row.created_at,
@@ -261,21 +309,24 @@ export function createUser(input: {
   passwordHash: string;
   name: string;
   companyName: string | null;
+  companyId?: string | null;
   role: UserRole;
   approvalStatus?: ApprovalStatus;
   createdAt: string;
 }): AppUser {
   const db = getDb();
   const approvalStatus = input.approvalStatus ?? "APPROVED";
+  const companyId = input.companyId ?? null;
   db.prepare(
-    `INSERT INTO users (id, email, password_hash, name, company_name, role, approval_status, created_at)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+    `INSERT INTO users (id, email, password_hash, name, company_name, company_id, role, approval_status, created_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
   ).run(
     input.id,
     input.email.toLowerCase(),
     input.passwordHash,
     input.name,
     input.companyName,
+    companyId,
     input.role,
     approvalStatus,
     input.createdAt,
@@ -285,6 +336,7 @@ export function createUser(input: {
     email: input.email.toLowerCase(),
     name: input.name,
     companyName: input.companyName,
+    companyId,
     role: input.role,
     approvalStatus,
     createdAt: input.createdAt,
@@ -409,13 +461,23 @@ export function getQuoteById(id: string): Quote | undefined {
   return row ? toQuote(row) : undefined;
 }
 
-export function listQuotes(filter?: { applicantId?: string }): Quote[] {
+export function listQuotes(filter?: { applicantId?: string; companyId?: string }): Quote[] {
   const db = getDb();
-  const rows = filter?.applicantId
-    ? (db
-        .prepare("SELECT * FROM quotes WHERE applicant_id = ? ORDER BY created_at DESC")
-        .all(filter.applicantId) as unknown as QuoteRow[])
-    : (db.prepare("SELECT * FROM quotes ORDER BY created_at DESC").all() as unknown as QuoteRow[]);
+  let rows: QuoteRow[];
+  if (filter?.companyId) {
+    rows = db
+      .prepare(
+        `SELECT q.* FROM quotes q JOIN users u ON u.id = q.applicant_id
+         WHERE u.company_id = ? ORDER BY q.created_at DESC`,
+      )
+      .all(filter.companyId) as unknown as QuoteRow[];
+  } else if (filter?.applicantId) {
+    rows = db
+      .prepare("SELECT * FROM quotes WHERE applicant_id = ? ORDER BY created_at DESC")
+      .all(filter.applicantId) as unknown as QuoteRow[];
+  } else {
+    rows = db.prepare("SELECT * FROM quotes ORDER BY created_at DESC").all() as unknown as QuoteRow[];
+  }
   return rows.map(toQuote);
 }
 

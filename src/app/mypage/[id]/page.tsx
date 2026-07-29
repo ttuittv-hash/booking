@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
-import { getCurrentUser } from "@/lib/auth";
+import { canAccessQuote, getCurrentUser } from "@/lib/auth";
 import { getDepositByQuoteId, getQuoteById, listAttachments } from "@/lib/db";
 import { won } from "@/lib/format";
 import { totalRentalDays } from "@/lib/pricing/rateTableUtils";
@@ -25,7 +25,7 @@ export default async function MyQuoteDetailPage({
   const { id } = await params;
   const quote = getQuoteById(id);
   if (!quote) notFound();
-  if (user.role !== "ADMIN" && quote.applicantId !== user.id) notFound();
+  if (!canAccessQuote(user, quote)) notFound();
 
   const deposit = getDepositByQuoteId(id) ?? null;
   const attachments = listAttachments(id);
@@ -132,12 +132,7 @@ export default async function MyQuoteDetailPage({
 
         <div className="mt-6 grid grid-cols-1 gap-6 sm:grid-cols-2">
           <DepositPanel quoteId={quote.id} deposit={deposit} viewerRole="APPLICANT" />
-          <AttachmentsPanel
-            quoteId={quote.id}
-            attachments={attachments}
-            currentUserId={user.id}
-            isAdmin={user.role === "ADMIN"}
-          />
+          <AttachmentsPanel quoteId={quote.id} attachments={attachments} />
         </div>
       </main>
     </div>

@@ -9,7 +9,12 @@ export async function GET() {
   const user = await getCurrentUser();
   if (!user) return NextResponse.json({ error: "로그인이 필요합니다." }, { status: 401 });
 
-  const quotes = user.role === "ADMIN" ? listQuotes() : listQuotes({ applicantId: user.id });
+  const quotes =
+    user.role === "ADMIN"
+      ? listQuotes()
+      : user.companyId
+        ? listQuotes({ companyId: user.companyId })
+        : listQuotes({ applicantId: user.id });
   return NextResponse.json({ quotes });
 }
 
