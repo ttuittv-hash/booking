@@ -179,7 +179,7 @@ export function HomeContentForm({ content: initial }: { content: HomeContent }) 
               <input value={content.missionLabel} onChange={(e) => patch({ missionLabel: e.target.value })} className={inputCls} />
             </label>
             <label className="mt-2 block">
-              <span className={labelCls}>미션 문구</span>
+              <span className={labelCls}>미션 문구 (줄바꿈 가능)</span>
               <textarea rows={3} value={content.mission} onChange={(e) => patch({ mission: e.target.value })} className={inputCls} />
             </label>
           </div>
@@ -189,7 +189,7 @@ export function HomeContentForm({ content: initial }: { content: HomeContent }) 
               <input value={content.visionLabel} onChange={(e) => patch({ visionLabel: e.target.value })} className={inputCls} />
             </label>
             <label className="mt-2 block">
-              <span className={labelCls}>비전 문구</span>
+              <span className={labelCls}>비전 문구 (줄바꿈 가능)</span>
               <textarea rows={3} value={content.vision} onChange={(e) => patch({ vision: e.target.value })} className={inputCls} />
             </label>
           </div>

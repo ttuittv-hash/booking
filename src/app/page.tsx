@@ -105,12 +105,26 @@ export default async function Home() {
           <div className="mx-auto grid max-w-5xl grid-cols-1 gap-14 lg:grid-cols-[1fr_1px_1fr]">
             <div>
               <p className="text-[12px] font-semibold uppercase tracking-[0.2em] text-accent">{missionLabel}</p>
-              <p className="mt-5 text-[17px] font-semibold leading-8 text-foreground">{mission}</p>
+              <p className="mt-5 text-[17px] font-semibold leading-8 text-foreground">
+                {mission.split("\n").map((line, i) => (
+                  <span key={i}>
+                    {i > 0 && <br />}
+                    {line}
+                  </span>
+                ))}
+              </p>
             </div>
             <div className="hidden bg-border/70 lg:block" aria-hidden />
             <div>
               <p className="text-[12px] font-semibold uppercase tracking-[0.2em] text-accent">{visionLabel}</p>
-              <p className="mt-5 text-[17px] font-semibold leading-8 text-foreground">{vision}</p>
+              <p className="mt-5 text-[17px] font-semibold leading-8 text-foreground">
+                {vision.split("\n").map((line, i) => (
+                  <span key={i}>
+                    {i > 0 && <br />}
+                    {line}
+                  </span>
+                ))}
+              </p>
             </div>
           </div>
         </section>
