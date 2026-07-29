@@ -390,7 +390,7 @@ export function VenueContentForm({ content: initial }: { content: VenueContent }
                       value={row[0]}
                       placeholder="항목명"
                       onChange={(e) => updateSpecRow(si, ri, 0, e.target.value)}
-                      className={`w-32 shrink-0 ${inputCls}`}
+                      className={`w-32 shrink-0 ${inputCls.replace("w-full ", "")}`}
                     />
                     <input
                       value={row[1]}
@@ -626,7 +626,7 @@ export function VenueContentForm({ content: initial }: { content: VenueContent }
                       value={a.name}
                       placeholder="시설명"
                       onChange={(e) => updateAmenityList(key, i, { name: e.target.value })}
-                      className={`w-56 shrink-0 ${inputCls}`}
+                      className={`w-56 shrink-0 ${inputCls.replace("w-full ", "")}`}
                     />
                     <input
                       value={a.desc}
