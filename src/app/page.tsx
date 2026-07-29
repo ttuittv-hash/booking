@@ -97,11 +97,11 @@ export default async function Home() {
           </div>
 
           <h1
-            className="mx-auto mt-7 max-w-4xl animate-[fade-up_0.7s_ease_both] text-[42px] font-bold leading-[1.05] tracking-tight text-foreground [animation-delay:80ms] sm:text-[64px] md:text-[78px]"
+            className="mx-auto mt-7 max-w-2xl animate-[fade-up_0.7s_ease_both] text-4xl font-semibold tracking-tight text-foreground [animation-delay:80ms] sm:text-5xl"
           >
             한계 없는 무대,
             <br />
-            당신의 <span className="text-accent">상상력</span>대로.
+            당신의 상상력대로.
           </h1>
 
           <p
