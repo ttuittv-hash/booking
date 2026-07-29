@@ -10,6 +10,7 @@ export async function POST(request: Request) {
   const email = typeof body?.email === "string" ? body.email.trim() : "";
   const password = typeof body?.password === "string" ? body.password : "";
   const name = typeof body?.name === "string" ? body.name.trim() : "";
+  const phone = typeof body?.phone === "string" ? body.phone.trim() : "";
   const accountType = body?.accountType === "INDIVIDUAL" ? "INDIVIDUAL" : "CORPORATE";
   const companyName = typeof body?.companyName === "string" ? body.companyName.trim() : "";
   const companyId = typeof body?.companyId === "string" ? body.companyId.trim() : "";
@@ -24,6 +25,9 @@ export async function POST(request: Request) {
   }
   if (!name) {
     return NextResponse.json({ error: "이름(담당자명)을 입력하세요." }, { status: 400 });
+  }
+  if (!phone) {
+    return NextResponse.json({ error: "휴대폰 번호를 입력하세요." }, { status: 400 });
   }
   if (findUserByEmailWithPasswordHash(email)) {
     return NextResponse.json({ error: "이미 가입된 이메일입니다." }, { status: 409 });
@@ -61,6 +65,7 @@ export async function POST(request: Request) {
   const user = createUser({
     id: crypto.randomUUID(),
     email,
+    phone,
     passwordHash: hashPassword(password),
     name,
     companyName: company?.name ?? null,

@@ -64,6 +64,14 @@ export default async function AdminApplicantDetailPage({
 
         <div className="mt-6 grid grid-cols-1 gap-4 rounded border border-border bg-background p-6 sm:grid-cols-2">
           <div>
+            <div className="text-[11px] text-muted">이메일</div>
+            <div className="mt-1 text-[13.5px] font-medium">{target.email}</div>
+          </div>
+          <div>
+            <div className="text-[11px] text-muted">휴대폰 번호</div>
+            <div className="mt-1 text-[13.5px] font-medium">{target.phone || "-"}</div>
+          </div>
+          <div>
             <div className="text-[11px] text-muted">회사/기획사</div>
             <div className="mt-1 text-[13.5px] font-medium">{target.companyName || "-"}</div>
           </div>

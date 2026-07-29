@@ -9,6 +9,7 @@ export function AddApplicantForm() {
     email: "",
     password: "",
     name: "",
+    phone: "",
     companyName: "",
     businessRegistrationNumber: "",
   });
@@ -32,7 +33,7 @@ export function AddApplicantForm() {
         return;
       }
       setSuccess(`${data.user.email} 계정이 승인 완료 상태로 생성되었습니다.`);
-      setForm({ email: "", password: "", name: "", companyName: "", businessRegistrationNumber: "" });
+      setForm({ email: "", password: "", name: "", phone: "", companyName: "", businessRegistrationNumber: "" });
       router.refresh();
     } finally {
       setSubmitting(false);
@@ -67,6 +68,13 @@ export function AddApplicantForm() {
           placeholder="임시 비밀번호 (8자 이상)"
           value={form.password}
           onChange={(e) => setForm({ ...form, password: e.target.value })}
+          className="rounded border border-border bg-background px-3 py-2 text-[13px] outline-none focus:border-accent"
+        />
+        <input
+          type="tel"
+          placeholder="휴대폰 번호 (선택)"
+          value={form.phone}
+          onChange={(e) => setForm({ ...form, phone: e.target.value })}
           className="rounded border border-border bg-background px-3 py-2 text-[13px] outline-none focus:border-accent"
         />
         <input

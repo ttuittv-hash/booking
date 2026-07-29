@@ -13,6 +13,7 @@ export default function RegisterPage() {
     email: "",
     password: "",
     name: "",
+    phone: "",
     companyName: "",
     companyId: "",
     businessRegistrationNumber: "",
@@ -35,6 +36,7 @@ export default function RegisterPage() {
     if (!form.email.trim()) return setError("이메일을 입력하세요.");
     if (form.password.length < 8) return setError("비밀번호는 8자 이상이어야 합니다.");
     if (!form.name.trim()) return setError("담당자명을 입력하세요.");
+    if (!form.phone.trim()) return setError("휴대폰 번호를 입력하세요.");
     if (accountType === "CORPORATE") {
       if (!form.companyName.trim()) return setError("회사/기획사명을 입력하세요.");
       if (!form.businessRegistrationNumber.trim()) return setError("사업자등록번호를 입력하세요.");
@@ -97,6 +99,16 @@ export default function RegisterPage() {
               required
               value={form.name}
               onChange={(e) => setForm({ ...form, name: e.target.value })}
+              className="input"
+            />
+          </Field>
+          <Field label="휴대폰 번호">
+            <input
+              type="tel"
+              required
+              placeholder="010-0000-0000"
+              value={form.phone}
+              onChange={(e) => setForm({ ...form, phone: e.target.value })}
               className="input"
             />
           </Field>

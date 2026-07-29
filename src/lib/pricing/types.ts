@@ -276,6 +276,7 @@ export interface Company {
 export interface AppUser {
   id: string;
   email: string;
+  phone: string | null;
   name: string;
   companyName: string | null;
   companyId: string | null;

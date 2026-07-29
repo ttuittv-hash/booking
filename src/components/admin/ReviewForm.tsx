@@ -58,7 +58,7 @@ export function ReviewForm({ quoteId, review }: { quoteId: string; review: Revie
         승인해야 계약 단계로 진행할 수 있습니다.
       </p>
 
-      <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-[120px_1fr]">
+      <div className="mt-4 space-y-3">
         <label className="block">
           <span className="mb-1 block text-[12px] text-muted">심사 점수 (0~100, 선택)</span>
           <input
@@ -67,7 +67,7 @@ export function ReviewForm({ quoteId, review }: { quoteId: string; review: Revie
             max={100}
             value={score}
             onChange={(e) => setScore(e.target.value)}
-            className="w-full rounded-sm border border-border bg-background px-3 py-2 text-[13px] outline-none focus:border-accent"
+            className="w-24 rounded-sm border border-border bg-background px-3 py-2 text-[13px] outline-none focus:border-accent"
           />
         </label>
         <label className="block">

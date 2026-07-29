@@ -61,6 +61,7 @@ function createConnection(): DatabaseSync {
     CREATE TABLE IF NOT EXISTS users (
       id TEXT PRIMARY KEY,
       email TEXT UNIQUE NOT NULL,
+      phone TEXT,
       password_hash TEXT NOT NULL,
       name TEXT NOT NULL,
       company_name TEXT,
@@ -190,6 +191,7 @@ function createConnection(): DatabaseSync {
   ensureColumn(db, "companies", "business_registration_number", "TEXT");
   ensureColumn(db, "notices", "attachment_url", "TEXT");
   ensureColumn(db, "notices", "attachment_name", "TEXT");
+  ensureColumn(db, "users", "phone", "TEXT");
 
   const rateTableCount = db.prepare("SELECT COUNT(*) as n FROM rate_tables").get() as { n: number };
   if (rateTableCount.n === 0) {
@@ -379,6 +381,7 @@ export function listCompanies(): Company[] {
 interface UserRow {
   id: string;
   email: string;
+  phone: string | null;
   password_hash: string;
   name: string;
   company_name: string | null;
@@ -392,6 +395,7 @@ function toAppUser(row: UserRow): AppUser {
   return {
     id: row.id,
     email: row.email,
+    phone: row.phone,
     name: row.name,
     companyName: row.company_name,
     companyId: row.company_id,
@@ -404,6 +408,7 @@ function toAppUser(row: UserRow): AppUser {
 export function createUser(input: {
   id: string;
   email: string;
+  phone?: string | null;
   passwordHash: string;
   name: string;
   companyName: string | null;
@@ -415,12 +420,14 @@ export function createUser(input: {
   const db = getDb();
   const approvalStatus = input.approvalStatus ?? "APPROVED";
   const companyId = input.companyId ?? null;
+  const phone = input.phone ?? null;
   db.prepare(
-    `INSERT INTO users (id, email, password_hash, name, company_name, company_id, role, approval_status, created_at)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    `INSERT INTO users (id, email, phone, password_hash, name, company_name, company_id, role, approval_status, created_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
   ).run(
     input.id,
     input.email.toLowerCase(),
+    phone,
     input.passwordHash,
     input.name,
     input.companyName,
@@ -432,6 +439,7 @@ export function createUser(input: {
   return {
     id: input.id,
     email: input.email.toLowerCase(),
+    phone,
     name: input.name,
     companyName: input.companyName,
     companyId,

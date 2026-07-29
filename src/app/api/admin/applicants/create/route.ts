@@ -15,6 +15,7 @@ export async function POST(request: Request) {
   const email = typeof body?.email === "string" ? body.email.trim() : "";
   const password = typeof body?.password === "string" ? body.password : "";
   const name = typeof body?.name === "string" ? body.name.trim() : "";
+  const phone = typeof body?.phone === "string" ? body.phone.trim() : "";
   const companyName = typeof body?.companyName === "string" ? body.companyName.trim() : "";
   const businessRegistrationNumber =
     typeof body?.businessRegistrationNumber === "string" ? body.businessRegistrationNumber.trim() : "";
@@ -38,6 +39,7 @@ export async function POST(request: Request) {
   const user = createUser({
     id: crypto.randomUUID(),
     email,
+    phone: phone || null,
     passwordHash: hashPassword(password),
     name,
     companyName: company?.name ?? null,
