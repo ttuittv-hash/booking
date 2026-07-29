@@ -103,7 +103,7 @@ export default async function Home() {
         {/* 미션 / 비전 */}
         <section className="border-t border-border/70 px-6 py-20 sm:py-24">
           <div className="mx-auto grid max-w-5xl grid-cols-1 gap-14 lg:grid-cols-[1fr_1px_1fr]">
-            <div>
+            <div className="-m-5 rounded-lg p-5 transition-all duration-300 hover:-translate-y-0.5 hover:bg-panel/50">
               <p className="text-[12px] font-semibold uppercase tracking-[0.2em] text-accent">{missionLabel}</p>
               <p className="mt-5 text-[17px] font-semibold leading-8 text-foreground">
                 {mission.split("\n").map((line, i) => (
@@ -115,7 +115,7 @@ export default async function Home() {
               </p>
             </div>
             <div className="hidden bg-border/70 lg:block" aria-hidden />
-            <div>
+            <div className="-m-5 rounded-lg p-5 transition-all duration-300 hover:-translate-y-0.5 hover:bg-panel/50">
               <p className="text-[12px] font-semibold uppercase tracking-[0.2em] text-accent">{visionLabel}</p>
               <p className="mt-5 text-[17px] font-semibold leading-8 text-foreground">
                 {vision.split("\n").map((line, i) => (
