@@ -132,16 +132,18 @@ export default async function Home() {
             <div>
               <p className="text-[12px] font-semibold uppercase tracking-[0.2em] text-accent">MISSION</p>
               <p className="mt-5 text-[17px] font-semibold leading-8 text-foreground">
-                K-컬처와 첨단 기술을 융합해 새로운 경험을 창조하고, 지역과 세계를
-                연결하는 혁신적인 복합 문화 공간을 제공합니다.
+                지역 주민과 전 세계 관객 모두가 혁신적이고 몰입적인 문화 체험을
+                할 수 있도록, K-컬처와 첨단 기술을 융합한 복합 예술 공간을
+                제공합니다.
               </p>
             </div>
             <div className="hidden bg-border/70 lg:block" aria-hidden />
             <div>
               <p className="text-[12px] font-semibold uppercase tracking-[0.2em] text-accent">VISION</p>
               <p className="mt-5 text-[17px] font-semibold leading-8 text-foreground">
-                글로벌 문화 중심지로 자리매김하여, 예술과 기술, 지역과 세계를
-                연결하는 가장 혁신적이고 미래지향적인 복합 문화 공간이 됩니다.
+                K-팝을 비롯한 한국의 대중문화와 미래형 기술로 세계와 소통하며,
+                지역 사회를 활성화하고 글로벌 무대에서 새로운 문화를 선도하는
+                공간으로 성장해 나갑니다.
               </p>
             </div>
           </div>
