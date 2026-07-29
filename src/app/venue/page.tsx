@@ -142,13 +142,23 @@ export default async function VenuePage() {
           합니다.
         </p>
 
-        <div className="mt-8 overflow-hidden rounded-sm border border-border">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
-            src="/images/arena-night.webp"
-            alt="서울아레나 야경 전경"
-            className="h-auto w-full object-cover"
-          />
+        <div className="mt-8 grid grid-cols-1 gap-3 sm:grid-cols-2">
+          <div className="overflow-hidden rounded-sm border border-border">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src="/images/arena-day.webp"
+              alt="서울아레나 전경"
+              className="h-full w-full object-cover"
+            />
+          </div>
+          <div className="overflow-hidden rounded-sm border border-border">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src="/images/arena-night.webp"
+              alt="서울아레나 야경 전경"
+              className="h-full w-full object-cover"
+            />
+          </div>
         </div>
 
         <Section id="overview" title="시설 개요">
