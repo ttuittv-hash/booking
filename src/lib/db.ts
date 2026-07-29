@@ -68,6 +68,8 @@ function createConnection(): DatabaseSync {
       company_id TEXT REFERENCES companies(id),
       role TEXT NOT NULL,
       approval_status TEXT NOT NULL DEFAULT 'APPROVED',
+      terms_agreed_at TEXT,
+      privacy_agreed_at TEXT,
       created_at TEXT NOT NULL
     );
 
@@ -192,6 +194,8 @@ function createConnection(): DatabaseSync {
   ensureColumn(db, "notices", "attachment_url", "TEXT");
   ensureColumn(db, "notices", "attachment_name", "TEXT");
   ensureColumn(db, "users", "phone", "TEXT");
+  ensureColumn(db, "users", "terms_agreed_at", "TEXT");
+  ensureColumn(db, "users", "privacy_agreed_at", "TEXT");
 
   const rateTableCount = db.prepare("SELECT COUNT(*) as n FROM rate_tables").get() as { n: number };
   if (rateTableCount.n === 0) {
@@ -415,6 +419,8 @@ export function createUser(input: {
   companyId?: string | null;
   role: UserRole;
   approvalStatus?: ApprovalStatus;
+  termsAgreedAt?: string | null;
+  privacyAgreedAt?: string | null;
   createdAt: string;
 }): AppUser {
   const db = getDb();
@@ -422,8 +428,8 @@ export function createUser(input: {
   const companyId = input.companyId ?? null;
   const phone = input.phone ?? null;
   db.prepare(
-    `INSERT INTO users (id, email, phone, password_hash, name, company_name, company_id, role, approval_status, created_at)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    `INSERT INTO users (id, email, phone, password_hash, name, company_name, company_id, role, approval_status, terms_agreed_at, privacy_agreed_at, created_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
   ).run(
     input.id,
     input.email.toLowerCase(),
@@ -434,6 +440,8 @@ export function createUser(input: {
     companyId,
     input.role,
     approvalStatus,
+    input.termsAgreedAt ?? null,
+    input.privacyAgreedAt ?? null,
     input.createdAt,
   );
   return {

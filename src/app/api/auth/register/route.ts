@@ -16,6 +16,8 @@ export async function POST(request: Request) {
   const companyId = typeof body?.companyId === "string" ? body.companyId.trim() : "";
   const businessRegistrationNumber =
     typeof body?.businessRegistrationNumber === "string" ? body.businessRegistrationNumber.trim() : "";
+  const agreedTerms = body?.agreedTerms === true;
+  const agreedPrivacy = body?.agreedPrivacy === true;
 
   if (!EMAIL_RE.test(email)) {
     return NextResponse.json({ error: "올바른 이메일을 입력하세요." }, { status: 400 });
@@ -28,6 +30,12 @@ export async function POST(request: Request) {
   }
   if (!phone) {
     return NextResponse.json({ error: "휴대폰 번호를 입력하세요." }, { status: 400 });
+  }
+  if (!agreedTerms) {
+    return NextResponse.json({ error: "이용약관에 동의해주세요." }, { status: 400 });
+  }
+  if (!agreedPrivacy) {
+    return NextResponse.json({ error: "개인정보 수집·이용에 동의해주세요." }, { status: 400 });
   }
   if (findUserByEmailWithPasswordHash(email)) {
     return NextResponse.json({ error: "이미 가입된 이메일입니다." }, { status: 409 });
@@ -72,6 +80,8 @@ export async function POST(request: Request) {
     companyId: company?.id ?? null,
     role: "APPLICANT",
     approvalStatus: "PENDING",
+    termsAgreedAt: createdAt,
+    privacyAgreedAt: createdAt,
     createdAt,
   });
 

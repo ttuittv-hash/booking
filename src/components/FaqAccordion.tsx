@@ -23,11 +23,7 @@ export function FaqAccordion({ faqs }: { faqs: Faq[] }) {
                 <span className="mr-2 text-accent">Q.</span>
                 {faq.question}
               </span>
-              <span
-                className={`shrink-0 text-[18px] font-light text-muted transition-transform ${isOpen ? "rotate-45" : ""}`}
-              >
-                +
-              </span>
+              <span className="shrink-0 text-[18px] font-light text-muted">{isOpen ? "−" : "+"}</span>
             </button>
             {isOpen && (
               <p className="whitespace-pre-wrap pb-6 text-[13.5px] leading-7 text-muted">

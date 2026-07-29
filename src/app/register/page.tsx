@@ -19,6 +19,8 @@ export default function RegisterPage() {
     businessRegistrationNumber: "",
   });
   const [companies, setCompanies] = useState<{ id: string; name: string }[]>([]);
+  const [agreedTerms, setAgreedTerms] = useState(false);
+  const [agreedPrivacy, setAgreedPrivacy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
@@ -41,13 +43,15 @@ export default function RegisterPage() {
       if (!form.companyName.trim()) return setError("회사/기획사명을 입력하세요.");
       if (!form.businessRegistrationNumber.trim()) return setError("사업자등록번호를 입력하세요.");
     }
+    if (!agreedTerms) return setError("이용약관에 동의해주세요.");
+    if (!agreedPrivacy) return setError("개인정보 수집·이용에 동의해주세요.");
 
     setLoading(true);
     try {
       const res = await fetch("/api/auth/register", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ...form, accountType }),
+        body: JSON.stringify({ ...form, accountType, agreedTerms, agreedPrivacy }),
       });
       const data = await res.json();
       if (!res.ok) {
@@ -190,6 +194,35 @@ export default function RegisterPage() {
               />
             </Field>
           )}
+
+          <div className="space-y-2 border-t border-border pt-4">
+            <label className="flex items-center gap-2 text-[12.5px]">
+              <input
+                type="checkbox"
+                checked={agreedTerms}
+                onChange={(e) => setAgreedTerms(e.target.checked)}
+              />
+              <span>
+                <Link href="/terms" target="_blank" className="font-medium text-accent hover:underline">
+                  이용약관
+                </Link>
+                에 동의합니다. (필수)
+              </span>
+            </label>
+            <label className="flex items-center gap-2 text-[12.5px]">
+              <input
+                type="checkbox"
+                checked={agreedPrivacy}
+                onChange={(e) => setAgreedPrivacy(e.target.checked)}
+              />
+              <span>
+                <Link href="/privacy" target="_blank" className="font-medium text-accent hover:underline">
+                  개인정보 수집·이용
+                </Link>
+                에 동의합니다. (필수)
+              </span>
+            </label>
+          </div>
 
           {error && <p className="text-[13px] text-red-600">{error}</p>}
 
