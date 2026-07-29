@@ -6,7 +6,7 @@ import { PublicHeader } from "@/components/PublicHeader";
 import { VenueContentView } from "@/components/VenueContentView";
 
 export const metadata: Metadata = {
-  title: "서울아레나 소개 | 서울아레나",
+  title: "SEOUL ARENA | 서울아레나",
 };
 
 export default async function VenuePage() {

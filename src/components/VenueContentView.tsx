@@ -46,7 +46,7 @@ export function VenueContentView({ content }: { content: VenueContent }) {
   return (
     <div className="mx-auto w-full max-w-4xl flex-1 px-6 py-16 sm:px-8">
       <p className="text-[13px] font-semibold uppercase tracking-[0.14em] text-accent">THE VENUE</p>
-      <h1 className="mt-3 text-[30px] font-semibold tracking-tight sm:text-[36px]">서울아레나 소개</h1>
+      <h1 className="mt-3 text-[30px] font-semibold tracking-tight sm:text-[36px]">SEOUL ARENA</h1>
       <div className={`mt-6 max-w-3xl text-[15px] leading-8 text-muted ${RICH_TEXT_CLS}`} dangerouslySetInnerHTML={{ __html: intro }} />
 
       <Section id="overview" title="시설 개요">

@@ -11,7 +11,7 @@ const NAV_LINKS: {
   label: string;
   children?: { href: string; label: string }[];
 }[] = [
-  { href: "/venue", label: "서울아레나 소개" },
+  { href: "/venue", label: "SEOUL ARENA" },
   {
     href: "/guide",
     label: "대관 안내",
@@ -70,7 +70,7 @@ export function PublicHeader({
   return (
     <header className="sticky top-0 z-20 border-b border-border/70 bg-background/80 backdrop-blur-md">
       <div className="mx-auto flex h-14 max-w-6xl items-center gap-x-8 px-4 sm:h-16 sm:px-6">
-        <Link href="/" className="shrink-0 whitespace-nowrap text-[15px] font-semibold tracking-tight">
+        <Link href="/" className="shrink-0 whitespace-nowrap text-[20px] font-bold tracking-tight sm:text-[22px]">
           SEOUL ARENA
         </Link>
 
