@@ -171,53 +171,42 @@ export function VenueContentView({ content }: { content: VenueContent }) {
           </div>
         )}
 
-        {(() => {
-          const featured = [
-            ...arenaAmenities.filter((f) => f.featured).map((f) => ({ ...f, hall: "아레나" })),
-            ...mediumHallAmenities.filter((f) => f.featured).map((f) => ({ ...f, hall: "중형공연장" })),
-          ];
-          if (featured.length === 0) return null;
-          return (
-            <div className="mb-10 grid grid-cols-2 gap-4 sm:grid-cols-4">
-              {featured.map((f, i) => (
-                <div key={`${f.hall}-${f.name}-${i}`} className="rounded-sm border border-border bg-panel/50 p-4">
-                  <ImagePlaceholder src={f.image} alt={f.name} />
-                  <div className="mt-3 text-[11px] font-semibold uppercase tracking-wide text-accent">{f.hall}</div>
-                  <div className="mt-1 text-[13.5px] font-semibold">{f.name}</div>
-                  {f.desc && <p className="mt-1 text-[12.5px] leading-6 text-muted">{f.desc}</p>}
-                </div>
-              ))}
-            </div>
-          );
-        })()}
+        <div className="grid grid-cols-1 gap-10 sm:grid-cols-2">
+          {(
+            [
+              ["아레나 부대시설", arenaAmenities],
+              ["중형공연장 부대시설", mediumHallAmenities],
+            ] as const
+          ).map(([label, list]) => {
+            const featured = list.filter((f) => f.featured);
+            const rest = list.filter((f) => !f.featured);
+            return (
+              <div key={label}>
+                <div className="text-[13.5px] font-semibold text-accent">{label}</div>
 
-        <div className="grid grid-cols-1 gap-8 sm:grid-cols-2">
-          <div>
-            <div className="text-[13.5px] font-semibold text-accent">아레나 부대시설</div>
-            <ul className="mt-3 divide-y divide-border/50">
-              {arenaAmenities
-                .filter((f) => !f.featured)
-                .map((f) => (
-                  <li key={f.name} className="py-2.5 text-[12.5px]">
-                    <div className="font-semibold">{f.name}</div>
-                    {f.desc && <div className="mt-0.5 text-muted">{f.desc}</div>}
-                  </li>
-                ))}
-            </ul>
-          </div>
-          <div>
-            <div className="text-[13.5px] font-semibold text-accent">중형공연장 부대시설</div>
-            <ul className="mt-3 divide-y divide-border/50">
-              {mediumHallAmenities
-                .filter((f) => !f.featured)
-                .map((f) => (
-                  <li key={f.name} className="py-2.5 text-[12.5px]">
-                    <div className="font-semibold">{f.name}</div>
-                    {f.desc && <div className="mt-0.5 text-muted">{f.desc}</div>}
-                  </li>
-                ))}
-            </ul>
-          </div>
+                {featured.length > 0 && (
+                  <div className="mt-4 grid grid-cols-2 gap-3">
+                    {featured.map((f) => (
+                      <div key={f.name} className="rounded-sm border border-border bg-panel/50 p-3">
+                        <ImagePlaceholder src={f.image} alt={f.name} />
+                        <div className="mt-2 text-[13px] font-semibold">{f.name}</div>
+                        {f.desc && <p className="mt-1 text-[11.5px] leading-5 text-muted">{f.desc}</p>}
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                <ul className="mt-3 divide-y divide-border/50">
+                  {rest.map((f) => (
+                    <li key={f.name} className="py-2.5 text-[12.5px]">
+                      <div className="font-semibold">{f.name}</div>
+                      {f.desc && <div className="mt-0.5 text-muted">{f.desc}</div>}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            );
+          })}
         </div>
         <p className="mt-4 text-[12px] text-muted">※ 시설별 제공 범위는 공연 규모 및 계약 조건에 따라 달라질 수 있습니다.</p>
       </Section>
