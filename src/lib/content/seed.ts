@@ -71,7 +71,7 @@ export const DEFAULT_VENUE_CONTENT: VenueContent = {
     {
       badges: ["ARTIST", "AUDIENCE", "PRODUCER"],
       highlightBadge: "AUDIENCE",
-      title: "글로벌 최고 수준 몰입형 시청각 인프라",
+      title: "음악 공연 전문 인프라",
       subtitle: "전 좌석 최고 품질의 사운드와 시야 확보, 한계없는 공연 연출 구현",
       cards: [
         {
@@ -104,7 +104,7 @@ export const DEFAULT_VENUE_CONTENT: VenueContent = {
     {
       badges: ["ARTIST", "AUDIENCE", "PRODUCER"],
       highlightBadge: "PRODUCER",
-      title: "국내 최초 혁신적 제작 효율화 (제작비 30% 절감)",
+      title: "제작 효율화",
       subtitle: "최첨단 제작 인프라 도입, 초대형 규모 및 최첨단 기술 접목 가능",
       cards: [
         {
