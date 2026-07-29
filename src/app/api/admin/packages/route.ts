@@ -54,6 +54,7 @@ function blankPackage(id: number): RentalPackage {
   return {
     id,
     name: `패키지 ${id}`,
+    tagline: "",
     audienceTier: { min: 0, max: 0, label: "" },
     baseFeePerWeek: 0,
     includedWeeks: 1,
@@ -119,6 +120,7 @@ function sanitizePackage(current: RentalPackage, input: unknown): RentalPackage 
   return {
     ...current,
     name,
+    tagline: str("tagline") as string,
     baseFeePerWeek,
     defaultPerformanceDays,
     discountRatio,

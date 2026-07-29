@@ -12,6 +12,7 @@ export const SEED_PACKAGES: RentalPackage[] = [
   {
     id: 1,
     name: "패키지 1",
+    tagline: "합리적인 규모의 콘서트를 위한 스탠더드 패키지",
     audienceTier: { min: 0, max: 12_000, label: "~12,000석 규모" },
     baseFeePerWeek: 30_000_000,
     includedWeeks: 1,
@@ -41,6 +42,7 @@ export const SEED_PACKAGES: RentalPackage[] = [
   {
     id: 2,
     name: "패키지 2",
+    tagline: "확장된 홍보 효과가 필요한 중대형 공연을 위한 패키지",
     audienceTier: { min: 12_001, max: 15_000, label: "~15,000석 규모" },
     baseFeePerWeek: 55_000_000,
     includedWeeks: 1,
@@ -71,6 +73,7 @@ export const SEED_PACKAGES: RentalPackage[] = [
   {
     id: 3,
     name: "패키지 3",
+    tagline: "대형 스탠딩 공연을 위한 풀프로덕션 패키지",
     audienceTier: { min: 15_001, max: 18_000, label: "~18,000석 규모" },
     baseFeePerWeek: 85_000_000,
     includedWeeks: 1,
@@ -103,6 +106,7 @@ export const SEED_PACKAGES: RentalPackage[] = [
   {
     id: 4,
     name: "패키지 4",
+    tagline: "최대 규모 공연을 위한 프리미엄 올인원 패키지",
     audienceTier: { min: 18_001, max: 99_999, label: "20,000석+ 규모" },
     baseFeePerWeek: 120_000_000,
     includedWeeks: 1,

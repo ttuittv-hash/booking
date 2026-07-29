@@ -43,6 +43,7 @@ export default async function PackagesPage() {
                 <span className="text-[16px] font-semibold">{pkg.name}</span>
                 <span className="text-[12.5px] font-medium text-accent">{pkg.audienceTier.label}</span>
               </div>
+              {pkg.tagline && <p className="mt-1.5 text-[13px] leading-6 text-muted">{pkg.tagline}</p>}
 
               <div className="mt-5 flex items-baseline gap-1.5">
                 <span className="text-[26px] font-semibold tabular-nums tracking-tight">

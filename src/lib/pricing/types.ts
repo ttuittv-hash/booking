@@ -52,6 +52,7 @@ export const MEDIA_TIER_LABEL: Record<Exclude<MediaTier, null>, string> = {
 export interface RentalPackage {
   id: number; // 1~4
   name: string; // "패키지 1"
+  tagline: string; // 한 줄 소개 문구 — "OOO을 위한 OOO" 형태로 패키지별 핵심 특징을 요약
   audienceTier: {
     min: number;
     max: number;

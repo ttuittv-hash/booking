@@ -34,6 +34,7 @@ function blankPackage(id: number): EditablePackage {
   return {
     id,
     name: `패키지 ${id}`,
+    tagline: "",
     audienceTier: { min: 0, max: 0, label: "" },
     baseFeePerWeek: 0,
     includedWeeks: 1,
@@ -231,6 +232,18 @@ export function PackagesForm({ rateTable }: { rateTable: RateTable }) {
                 type="text"
                 value={active.name}
                 onChange={(e) => update({ name: e.target.value })}
+                className="w-full rounded-sm border border-border bg-panel px-3 py-2 text-[13px] outline-none focus:border-accent"
+              />
+            </label>
+            <label className="block sm:col-span-2">
+              <span className="mb-1 block text-[12px] text-muted">
+                패키지 한 줄 소개 (예: &quot;OOO을 위한 OOO&quot; — 패키지별 핵심 특징 요약, 패키지 선택 화면과 안내 페이지에 표시됩니다)
+              </span>
+              <input
+                type="text"
+                value={active.tagline}
+                onChange={(e) => update({ tagline: e.target.value })}
+                placeholder="예: 합리적인 규모의 콘서트를 위한 스탠더드 패키지"
                 className="w-full rounded-sm border border-border bg-panel px-3 py-2 text-[13px] outline-none focus:border-accent"
               />
             </label>

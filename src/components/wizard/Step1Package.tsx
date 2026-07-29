@@ -66,6 +66,9 @@ export function Step1Package({
               <div className="mt-1 text-[12.5px] font-medium text-accent">
                 {pkg.audienceTier.label}
               </div>
+              {pkg.tagline && (
+                <p className="mt-1.5 text-[12px] leading-5 text-muted">{pkg.tagline}</p>
+              )}
               <div className="mt-4 text-[19px] font-semibold tabular-nums">
                 {won(pkg.baseFeePerWeek)}
               </div>
