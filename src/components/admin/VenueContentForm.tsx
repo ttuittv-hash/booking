@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import type { VenueAmenity, VenueContent, VenueHall, VenueKeyMap, VenueSpec } from "@/lib/content/types";
+import { VenueContentView } from "@/components/VenueContentView";
 import { NoticeEditor } from "./NoticeEditor";
 
 const inputCls =
@@ -51,6 +52,7 @@ export function VenueContentForm({ content: initial }: { content: VenueContent }
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const [keyMapUploading, setKeyMapUploading] = useState(false);
+  const [previewOpen, setPreviewOpen] = useState(false);
 
   function patch(p: Partial<VenueContent>) {
     setContent((prev) => ({ ...prev, ...p }));
@@ -157,6 +159,28 @@ export function VenueContentForm({ content: initial }: { content: VenueContent }
 
   return (
     <div className="space-y-8">
+      <div className="sticky top-14 z-10 -mx-6 flex items-center justify-between border-b border-border bg-background px-6 py-3 sm:top-16">
+        <span className="text-[12.5px] text-muted">수정 중인 내용은 저장 전까지 실제 페이지에 반영되지 않습니다.</span>
+        <button
+          type="button"
+          onClick={() => setPreviewOpen((v) => !v)}
+          className="shrink-0 rounded-sm border border-border px-4 py-1.5 text-[12.5px] font-medium text-foreground hover:border-accent hover:text-accent"
+        >
+          {previewOpen ? "미리보기 닫기" : "미리보기"}
+        </button>
+      </div>
+
+      {previewOpen && (
+        <div className="border border-border">
+          <div className="border-b border-border bg-panel px-4 py-2 text-[12px] font-medium text-muted">
+            미리보기 — 현재 입력값 기준 (저장되지 않음)
+          </div>
+          <div className="max-h-[70vh] overflow-y-auto bg-background">
+            <VenueContentView content={content} />
+          </div>
+        </div>
+      )}
+
       <section>
         <h3 className="text-[14px] font-semibold">상단 소개 문구</h3>
         <div className="mt-2">
