@@ -1,9 +1,54 @@
 import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
 import { getCurrentRateTable, saveNewRateTableVersion } from "@/lib/db";
-import type { MediaTier, PackageInclusion, RentalPackage } from "@/lib/pricing/types";
+import type { AddonCategory, AddonItem, MediaTier, PackageInclusion, RentalPackage } from "@/lib/pricing/types";
 
 const MEDIA_TIERS: (MediaTier | null)[] = ["BASIC", "EXTENDED", "FULL", null];
+
+const ADDON_CATEGORIES: AddonCategory[] = [
+  "SCHEDULE",
+  "SERVICE",
+  "FACILITY",
+  "SPACE",
+  "PREMIUM",
+  "PRODUCTION",
+  "FEE",
+  "UTILITY",
+  "PROMOTION",
+];
+
+function sanitizeAddonUpdate(current: AddonItem, input: unknown): AddonItem {
+  if (!input || typeof input !== "object") return current;
+  const a = input as Record<string, unknown>;
+  return {
+    ...current,
+    name: typeof a.name === "string" && a.name.trim() ? a.name.trim() : current.name,
+    unitLabel: typeof a.unitLabel === "string" && a.unitLabel.trim() ? a.unitLabel.trim() : current.unitLabel,
+    unitPrice:
+      Number.isFinite(Number(a.unitPrice)) && Number(a.unitPrice) >= 0
+        ? Number(a.unitPrice)
+        : current.unitPrice,
+  };
+}
+
+function sanitizeNewAddon(input: Record<string, unknown>): AddonItem | null {
+  const id = typeof input.id === "string" && input.id.trim() ? input.id.trim() : null;
+  const name = typeof input.name === "string" && input.name.trim() ? input.name.trim() : null;
+  const category = ADDON_CATEGORIES.includes(input.category as AddonCategory)
+    ? (input.category as AddonCategory)
+    : null;
+  if (!id || !name || !category) return null;
+  return {
+    id,
+    category,
+    name,
+    pricingType: "PER_DAY",
+    unitPrice: Number.isFinite(Number(input.unitPrice)) ? Math.max(0, Number(input.unitPrice)) : 0,
+    unitLabel: typeof input.unitLabel === "string" && input.unitLabel.trim() ? input.unitLabel.trim() : "원",
+    availability: { mode: "ALWAYS" },
+    billingPhase: "ESTIMATE",
+  };
+}
 
 function blankPackage(id: number): RentalPackage {
   return {
@@ -95,6 +140,7 @@ export async function PUT(request: Request) {
 
   const body = await request.json().catch(() => null);
   const overrides = Array.isArray(body?.packages) ? (body.packages as unknown[]) : [];
+  const addonOverrides = Array.isArray(body?.addons) ? (body.addons as unknown[]) : [];
 
   const current = getCurrentRateTable();
   const currentIds = new Set(current.packages.map((pkg) => pkg.id));
@@ -115,12 +161,28 @@ export async function PUT(request: Request) {
 
   const packages = [...updatedExisting, ...newOnes];
 
+  const currentAddonIds = new Set(current.addons.map((a) => a.id));
+  const updatedExistingAddons = current.addons.map((addon) => {
+    const override = addonOverrides.find(
+      (a) => a && typeof a === "object" && (a as Record<string, unknown>).id === addon.id,
+    );
+    return override ? sanitizeAddonUpdate(addon, override) : addon;
+  });
+  const newAddons = addonOverrides
+    .filter(
+      (a): a is Record<string, unknown> =>
+        !!a && typeof a === "object" && typeof (a as Record<string, unknown>).id === "string" && !currentAddonIds.has((a as Record<string, unknown>).id as string),
+    )
+    .map(sanitizeNewAddon)
+    .filter((a): a is AddonItem => a !== null);
+  const addons = [...updatedExistingAddons, ...newAddons];
+
   const next = saveNewRateTableVersion({
     vatRate: current.vatRate,
     extraWeekRatio: current.extraWeekRatio,
     dayExclusionDiscountRatio: current.dayExclusionDiscountRatio,
     packages,
-    addons: current.addons,
+    addons,
   });
 
   return NextResponse.json({ rateTable: next });

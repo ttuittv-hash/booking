@@ -81,17 +81,36 @@ export default async function GuidePage() {
           </div>
         </Section>
 
-        <Section id="rates" title="대관료">
+        <Section id="rates" title="대관 패키지 구성">
           <p className="text-[13.5px] leading-7 text-muted">
-            패키지별 대관료는 관객 규모에 따른 정찰제로 운영되며, 부대시설
-            사용료를 포함한 상세 구성은 대관 신청 화면에서 실시간으로 확인할
-            수 있습니다.
+            서울아레나의 대관료는 객석 규모별 패키지 단위의 정찰제로 운영됩니다.
+            각 패키지에는 기본 대관료와 함께 대기실·프로덕션 장비 등 기본
+            포함 항목이 정해져 있으며, 필요한 부대시설은 항목별로 선택하여
+            추가할 수 있습니다.
           </p>
+          <ul className="mt-4 space-y-1.5 text-[13px] text-muted">
+            <li className="flex gap-1.5">
+              <span className="text-accent">·</span>
+              객석 규모에 따라 4단계 패키지 중 선택하며, 패키지별 기본
+              대관료는 화~일 1주 기준 고정가로 운영됩니다.
+            </li>
+            <li className="flex gap-1.5">
+              <span className="text-accent">·</span>
+              대기실·연습실 등 공간과 프로덕션 장비 일부는 패키지에 기본
+              포함되며, 초과 사용분만 추가 과금됩니다.
+            </li>
+            <li className="flex gap-1.5">
+              <span className="text-accent">·</span>
+              세팅/공연 일수 조정, 청소비, 홍보 매체 등은 신청 화면에서
+              실시간으로 반영되어 예상 대관료를 바로 확인할 수 있습니다.
+            </li>
+          </ul>
           <Link
             href="/apply"
-            className="mt-5 inline-block rounded bg-accent px-6 py-3 text-[14px] font-semibold text-white transition-colors hover:bg-accent-hover"
+            className="mt-5 inline-flex items-center gap-1 rounded bg-accent px-6 py-3 text-[14px] font-semibold text-white transition-colors hover:bg-accent-hover"
           >
-            패키지별 대관료 확인하기 →
+            패키지 구성 확인하기
+            <span aria-hidden>›</span>
           </Link>
         </Section>
 

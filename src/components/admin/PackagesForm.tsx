@@ -2,9 +2,25 @@
 
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-import { ADDON_CATEGORY_LABEL, MEDIA_TIER_LABEL, type MediaTier, type RateTable } from "@/lib/pricing/types";
+import {
+  ADDON_CATEGORY_LABEL,
+  MEDIA_TIER_LABEL,
+  type AddonCategory,
+  type AddonItem,
+  type MediaTier,
+  type RateTable,
+} from "@/lib/pricing/types";
 
 type EditablePackage = RateTable["packages"][number];
+
+function slugify(name: string): string {
+  const base = name
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9가-힣]+/g, "_")
+    .replace(/^_+|_+$/g, "");
+  return (base || "item") + "_" + Math.random().toString(36).slice(2, 6);
+}
 
 const MEDIA_OPTIONS: { value: MediaTier; label: string }[] = [
   { value: null, label: "미포함" },
@@ -41,9 +57,15 @@ export function PackagesForm({ rateTable }: { rateTable: RateTable }) {
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
 
+  const [addons, setAddons] = useState<AddonItem[]>(rateTable.addons);
+  const [newItemCategory, setNewItemCategory] = useState<AddonCategory | null>(null);
+  const [newItemName, setNewItemName] = useState("");
+  const [newItemUnitLabel, setNewItemUnitLabel] = useState("");
+  const [newItemPrice, setNewItemPrice] = useState(0);
+
   const active = packages.find((p) => p.id === activeId)!;
-  const grouped = new Map<string, typeof rateTable.addons>();
-  for (const addon of rateTable.addons) {
+  const grouped = new Map<string, AddonItem[]>();
+  for (const addon of addons) {
     if (addon.pricingType === "METERED") continue;
     const list = grouped.get(addon.category) ?? [];
     list.push(addon);
@@ -71,6 +93,35 @@ export function PackagesForm({ rateTable }: { rateTable: RateTable }) {
     });
   }
 
+  function updateAddonPrice(addonId: string, unitPrice: number) {
+    setAddons((prev) => prev.map((a) => (a.id === addonId ? { ...a, unitPrice } : a)));
+  }
+
+  function openNewItemForm(category: AddonCategory) {
+    setNewItemCategory(category);
+    setNewItemName("");
+    setNewItemUnitLabel("원/일");
+    setNewItemPrice(0);
+  }
+
+  function confirmNewItem() {
+    if (!newItemCategory || !newItemName.trim()) return;
+    const id = slugify(newItemName);
+    const item: AddonItem = {
+      id,
+      category: newItemCategory,
+      name: newItemName.trim(),
+      pricingType: "PER_DAY",
+      unitPrice: Math.max(0, newItemPrice || 0),
+      unitLabel: newItemUnitLabel.trim() || "원",
+      availability: { mode: "ALWAYS" },
+      billingPhase: "ESTIMATE",
+    };
+    setAddons((prev) => [...prev, item]);
+    setIncludedQty(id, 1);
+    setNewItemCategory(null);
+  }
+
   async function save() {
     setSaving(true);
     setMessage(null);
@@ -78,7 +129,7 @@ export function PackagesForm({ rateTable }: { rateTable: RateTable }) {
       const res = await fetch("/api/admin/packages", {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ packages }),
+        body: JSON.stringify({ packages, addons }),
       });
       const data = await res.json();
       if (!res.ok) {
@@ -258,15 +309,25 @@ export function PackagesForm({ rateTable }: { rateTable: RateTable }) {
         </section>
 
         <section>
-          <h2 className="text-[14px] font-semibold">기본 포함 항목</h2>
+          <h2 className="text-[14px] font-semibold">기본 포함 항목 · 요금</h2>
           <p className="mt-1 text-[12px] text-muted">
             체크한 항목은 아래 입력한 수량만큼 이 패키지에 기본 포함되며, 초과분만 4단계에서 추가 과금됩니다.
+            항목별 단가는 요금표 관리와 동일한 값이며, 여기서 수정하면 요금표에도 함께 반영됩니다.
           </p>
           <div className="mt-4 space-y-5">
             {[...grouped.entries()].map(([category, items]) => (
               <div key={category}>
-                <div className="mb-2 text-[11px] font-semibold uppercase tracking-wide text-accent">
-                  {ADDON_CATEGORY_LABEL[category as keyof typeof ADDON_CATEGORY_LABEL] ?? category}
+                <div className="mb-2 flex items-center justify-between">
+                  <span className="text-[11px] font-semibold uppercase tracking-wide text-accent">
+                    {ADDON_CATEGORY_LABEL[category as keyof typeof ADDON_CATEGORY_LABEL] ?? category}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => openNewItemForm(category as AddonCategory)}
+                    className="rounded-sm px-2 py-1 text-[11.5px] font-medium text-accent hover:underline"
+                  >
+                    + 항목 추가
+                  </button>
                 </div>
                 <div className="space-y-1.5">
                   {items.map((addon) => {
@@ -284,20 +345,76 @@ export function PackagesForm({ rateTable }: { rateTable: RateTable }) {
                             onChange={(e) => setIncludedQty(addon.id, e.target.checked ? 1 : 0)}
                           />
                           {addon.name}
+                          <span className="text-[11px] text-muted">({addon.unitLabel})</span>
                         </label>
-                        {checked && (
+                        <div className="flex items-center gap-2">
                           <input
                             type="number"
-                            min={1}
-                            value={qty}
-                            onChange={(e) => setIncludedQty(addon.id, Math.max(1, Number(e.target.value) || 1))}
-                            className="w-28 rounded-sm border border-border bg-panel px-3 py-1.5 text-right text-[13px] outline-none focus:border-accent"
+                            min={0}
+                            value={addon.unitPrice}
+                            onChange={(e) => updateAddonPrice(addon.id, Math.max(0, Number(e.target.value) || 0))}
+                            className="w-32 rounded-sm border border-border bg-panel px-3 py-1.5 text-right text-[13px] outline-none focus:border-accent"
                           />
-                        )}
+                          {checked && (
+                            <input
+                              type="number"
+                              min={1}
+                              value={qty}
+                              onChange={(e) => setIncludedQty(addon.id, Math.max(1, Number(e.target.value) || 1))}
+                              title="기본 포함 수량"
+                              className="w-20 rounded-sm border border-border bg-panel px-3 py-1.5 text-right text-[13px] outline-none focus:border-accent"
+                            />
+                          )}
+                        </div>
                       </div>
                     );
                   })}
                 </div>
+
+                {newItemCategory === category && (
+                  <div className="mt-3 flex flex-col gap-2 rounded-sm border border-dashed border-accent/40 bg-accent-soft/40 p-3 sm:flex-row sm:items-center">
+                    <input
+                      type="text"
+                      autoFocus
+                      placeholder="항목 이름"
+                      value={newItemName}
+                      onChange={(e) => setNewItemName(e.target.value)}
+                      className="flex-1 rounded-sm border border-border bg-background px-3 py-1.5 text-[13px] outline-none focus:border-accent"
+                    />
+                    <input
+                      type="text"
+                      placeholder="단위 (예: 원/일)"
+                      value={newItemUnitLabel}
+                      onChange={(e) => setNewItemUnitLabel(e.target.value)}
+                      className="w-32 rounded-sm border border-border bg-background px-3 py-1.5 text-[13px] outline-none focus:border-accent"
+                    />
+                    <input
+                      type="number"
+                      min={0}
+                      placeholder="단가"
+                      value={newItemPrice}
+                      onChange={(e) => setNewItemPrice(Math.max(0, Number(e.target.value) || 0))}
+                      className="w-28 rounded-sm border border-border bg-background px-3 py-1.5 text-right text-[13px] outline-none focus:border-accent"
+                    />
+                    <div className="flex gap-2">
+                      <button
+                        type="button"
+                        onClick={confirmNewItem}
+                        disabled={!newItemName.trim()}
+                        className="rounded-sm bg-accent px-3 py-1.5 text-[12.5px] font-semibold text-white disabled:opacity-50"
+                      >
+                        추가
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setNewItemCategory(null)}
+                        className="rounded-sm border border-border px-3 py-1.5 text-[12.5px] text-muted"
+                      >
+                        취소
+                      </button>
+                    </div>
+                  </div>
+                )}
               </div>
             ))}
           </div>
