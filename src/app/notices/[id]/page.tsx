@@ -32,7 +32,7 @@ export default async function NoticeDetailPage({
     <div className="flex flex-1 flex-col">
       <PublicHeader active="/notices" currentUser={currentUser} />
 
-      <main className="mx-auto w-full max-w-3xl flex-1 px-6 py-16 sm:px-8">
+      <main className="mx-auto w-full max-w-5xl flex-1 px-6 py-16 sm:px-8">
         <Link href="/notices" className="text-[12.5px] font-medium text-accent hover:underline">
           ← 공지사항 목록
         </Link>
