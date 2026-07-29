@@ -2,7 +2,16 @@
 
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-import { ADDON_CATEGORY_LABEL, type RateTable } from "@/lib/pricing/types";
+import { ADDON_CATEGORY_LABEL, type AddonCategory, type RateTable } from "@/lib/pricing/types";
+
+function slugify(name: string): string {
+  const base = name
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9가-힣]+/g, "_")
+    .replace(/^_+|_+$/g, "");
+  return (base || "item") + "_" + Math.random().toString(36).slice(2, 6);
+}
 
 export function RatesForm({ rateTable }: { rateTable: RateTable }) {
   const router = useRouter();
@@ -22,6 +31,10 @@ export function RatesForm({ rateTable }: { rateTable: RateTable }) {
   );
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
+  const [newItemCategory, setNewItemCategory] = useState<AddonCategory | null>(null);
+  const [newItemName, setNewItemName] = useState("");
+  const [newItemUnitLabel, setNewItemUnitLabel] = useState("");
+  const [newItemPrice, setNewItemPrice] = useState(0);
 
   const grouped = new Map<string, typeof addons>();
   for (const addon of addons) {
@@ -30,10 +43,38 @@ export function RatesForm({ rateTable }: { rateTable: RateTable }) {
     grouped.set(addon.category, list);
   }
 
+  function openNewItemForm(category: AddonCategory) {
+    setNewItemCategory(category);
+    setNewItemName("");
+    setNewItemUnitLabel("원/일");
+    setNewItemPrice(0);
+  }
+
+  function confirmNewItem() {
+    if (!newItemCategory || !newItemName.trim()) return;
+    const id = slugify(newItemName);
+    setAddons((prev) => [
+      ...prev,
+      {
+        id,
+        name: newItemName.trim(),
+        category: newItemCategory,
+        unitLabel: newItemUnitLabel.trim() || "원",
+        unitPrice: Math.max(0, newItemPrice || 0),
+        editable: true,
+      },
+    ]);
+    setNewItemCategory(null);
+  }
+
   async function save() {
     setSaving(true);
     setMessage(null);
     try {
+      const originalIds = new Set(rateTable.addons.map((a) => a.id));
+      const newAddons = addons
+        .filter((a) => !originalIds.has(a.id))
+        .map((a) => ({ id: a.id, name: a.name, category: a.category, unitLabel: a.unitLabel, unitPrice: a.unitPrice }));
       const res = await fetch("/api/rates", {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
@@ -41,6 +82,7 @@ export function RatesForm({ rateTable }: { rateTable: RateTable }) {
           extraWeekRatio,
           dayExclusionDiscountRatio,
           addons: addons.map((a) => ({ id: a.id, unitPrice: a.unitPrice })),
+          newAddons,
         }),
       });
       const data = await res.json();
@@ -104,14 +146,26 @@ export function RatesForm({ rateTable }: { rateTable: RateTable }) {
         <div className="mt-4 space-y-6">
           {[...grouped.entries()].map(([category, items]) => (
             <div key={category}>
-              <div className="mb-2 text-[11.5px] font-semibold uppercase tracking-wide text-accent">
-                {ADDON_CATEGORY_LABEL[category as keyof typeof ADDON_CATEGORY_LABEL] ?? category}
+              <div className="mb-2 flex items-center justify-between">
+                <span className="text-[11.5px] font-semibold uppercase tracking-wide text-accent">
+                  {ADDON_CATEGORY_LABEL[category as keyof typeof ADDON_CATEGORY_LABEL] ?? category}
+                </span>
+                <button
+                  type="button"
+                  onClick={() => openNewItemForm(category as AddonCategory)}
+                  className="rounded-sm px-2 py-1 text-[11.5px] font-medium text-accent hover:underline"
+                >
+                  + 항목 추가
+                </button>
               </div>
-              <div className="space-y-2">
+              <div className="divide-y divide-border/50">
                 {items.map((addon) => {
                   const globalIndex = addons.findIndex((a) => a.id === addon.id);
                   return (
-                    <div key={addon.id} className="grid grid-cols-1 items-center gap-2 sm:grid-cols-[1fr_160px] sm:gap-3">
+                    <div
+                      key={addon.id}
+                      className="grid grid-cols-1 items-center gap-2 py-2 sm:grid-cols-[1fr_160px] sm:gap-3"
+                    >
                       <span className="text-[13px]">
                         {addon.name} <span className="text-[11px] text-muted">({addon.unitLabel})</span>
                       </span>
@@ -136,6 +190,51 @@ export function RatesForm({ rateTable }: { rateTable: RateTable }) {
                   );
                 })}
               </div>
+
+              {newItemCategory === category && (
+                <div className="mt-2 flex flex-col gap-2 rounded-sm border border-dashed border-accent/40 bg-accent-soft/40 p-3 sm:flex-row sm:items-center">
+                  <input
+                    type="text"
+                    autoFocus
+                    placeholder="항목 이름"
+                    value={newItemName}
+                    onChange={(e) => setNewItemName(e.target.value)}
+                    className="flex-1 rounded-sm border border-border bg-background px-3 py-1.5 text-[13px] outline-none focus:border-accent"
+                  />
+                  <input
+                    type="text"
+                    placeholder="단위 (예: 원/일)"
+                    value={newItemUnitLabel}
+                    onChange={(e) => setNewItemUnitLabel(e.target.value)}
+                    className="w-32 rounded-sm border border-border bg-background px-3 py-1.5 text-[13px] outline-none focus:border-accent"
+                  />
+                  <input
+                    type="number"
+                    min={0}
+                    placeholder="단가"
+                    value={newItemPrice}
+                    onChange={(e) => setNewItemPrice(Math.max(0, Number(e.target.value) || 0))}
+                    className="w-28 rounded-sm border border-border bg-background px-3 py-1.5 text-right text-[13px] outline-none focus:border-accent"
+                  />
+                  <div className="flex gap-2">
+                    <button
+                      type="button"
+                      onClick={confirmNewItem}
+                      disabled={!newItemName.trim()}
+                      className="rounded-sm bg-accent px-3 py-1.5 text-[12.5px] font-semibold text-white disabled:opacity-50"
+                    >
+                      추가
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setNewItemCategory(null)}
+                      className="rounded-sm border border-border px-3 py-1.5 text-[12.5px] text-muted"
+                    >
+                      취소
+                    </button>
+                  </div>
+                </div>
+              )}
             </div>
           ))}
         </div>
