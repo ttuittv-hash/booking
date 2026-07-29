@@ -32,7 +32,7 @@ export default async function Home() {
 
       <main className="flex flex-1 flex-col">
         {/* 슬롯 1: 카피 + 버튼 + 이미지 */}
-        <section className="px-6 pt-24 pb-20 text-center sm:pt-32 sm:pb-24">
+        <section className="px-6 pt-20 pb-16 text-center sm:pt-28 sm:pb-20">
           <div className="flex animate-[fade-up_0.7s_ease_both] items-center justify-center gap-3">
             <span className="h-px w-8 bg-accent" />
             <span className="text-[13px] font-semibold uppercase tracking-[0.2em] text-accent">{heroEyebrow}</span>
@@ -101,7 +101,7 @@ export default async function Home() {
         </section>
 
         {/* 미션 / 비전 */}
-        <section className="border-t border-border/70 px-6 py-20 sm:py-24">
+        <section className="border-t border-border/70 px-6 py-16 sm:py-20">
           <div className="mx-auto grid max-w-5xl grid-cols-1 gap-14 lg:grid-cols-[1fr_1px_1fr]">
             <div className="group">
               <p className="text-[12px] font-semibold uppercase tracking-[0.2em] text-accent">{missionLabel}</p>
@@ -130,7 +130,7 @@ export default async function Home() {
         </section>
 
         {/* 슬롯 2: 특징 버튼 */}
-        <section className="border-t border-border/70 px-6 py-20 sm:py-24">
+        <section className="border-t border-border/70 px-6 py-16 sm:py-20">
           <div className="mx-auto max-w-5xl">
             <p className="text-[12px] font-semibold uppercase tracking-[0.14em] text-accent">{featuresLabel}</p>
             <h2 className="mt-2 text-[22px] font-semibold tracking-tight sm:text-[26px]">{featuresTitle}</h2>
@@ -177,7 +177,7 @@ export default async function Home() {
         </section>
 
         {/* 슬롯 3: 신청 절차 */}
-        <section className="border-t border-border/70 px-6 py-20 sm:py-24">
+        <section className="border-t border-border/70 px-6 py-16 sm:py-20">
           <div className="mx-auto max-w-5xl">
             <p className="text-[12px] font-semibold uppercase tracking-[0.14em] text-accent">
               {processLabel}
