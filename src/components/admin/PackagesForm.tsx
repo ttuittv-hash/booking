@@ -2,6 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { won } from "@/lib/format";
 import {
   ADDON_CATEGORY_LABEL,
   MEDIA_TIER_LABEL,
@@ -38,6 +39,7 @@ function blankPackage(id: number): EditablePackage {
     includedWeeks: 1,
     includedItems: [],
     mediaTier: null,
+    discountRatio: 0,
     dayBreakdown: "준비 4일 + 공연 2일",
     defaultPerformanceDays: 2,
     rentalHours: "09:00 ~ 22:00",
@@ -103,6 +105,14 @@ export function PackagesForm({ rateTable }: { rateTable: RateTable }) {
     setNewItemUnitLabel("원/일");
     setNewItemPrice(0);
   }
+
+  const includedItemsValue = active.includedItems.reduce((sum, item) => {
+    const addon = addons.find((a) => a.id === item.addonId);
+    return sum + (addon ? addon.unitPrice * item.quantity : 0);
+  }, 0);
+  const packageTotalValue = active.baseFeePerWeek + includedItemsValue;
+  const discountAmount = Math.round(active.baseFeePerWeek * active.discountRatio);
+  const discountedTotalValue = packageTotalValue - discountAmount;
 
   function confirmNewItem() {
     if (!newItemCategory || !newItemName.trim()) return;
@@ -194,6 +204,27 @@ export function PackagesForm({ rateTable }: { rateTable: RateTable }) {
               />
             </label>
             <label className="block">
+              <span className="mb-1 block text-[12px] text-muted">할인율 적용 (%, 기본 대관료 기준)</span>
+              <div className="flex items-center gap-2">
+                <input
+                  type="checkbox"
+                  checked={active.discountRatio > 0}
+                  onChange={(e) => update({ discountRatio: e.target.checked ? 0.1 : 0 })}
+                />
+                <input
+                  type="number"
+                  min={0}
+                  max={90}
+                  disabled={active.discountRatio === 0}
+                  value={Math.round(active.discountRatio * 100)}
+                  onChange={(e) =>
+                    update({ discountRatio: Math.min(90, Math.max(0, Number(e.target.value) || 0)) / 100 })
+                  }
+                  className="w-full rounded-sm border border-border bg-panel px-3 py-2 text-[13px] outline-none focus:border-accent disabled:opacity-40"
+                />
+              </div>
+            </label>
+            <label className="block">
               <span className="mb-1 block text-[12px] text-muted">객석 규모 최소</span>
               <input
                 type="number"
@@ -248,6 +279,27 @@ export function PackagesForm({ rateTable }: { rateTable: RateTable }) {
               />
               <span className="text-[13px]">야외광장 · 티켓박스 포함</span>
             </label>
+          </div>
+
+          <div className="mt-5 flex flex-wrap items-center justify-between gap-3 rounded-sm border border-border bg-panel/60 px-4 py-3">
+            <div>
+              <div className="text-[12px] text-muted">
+                총 패키지 가격 (기본 대관료 + 기본 포함 항목 단가 합계)
+              </div>
+              <div className="mt-1 text-[16px] font-semibold tabular-nums">
+                {won(packageTotalValue)}
+                {active.discountRatio > 0 && (
+                  <span className="ml-2 text-[13px] font-medium text-accent">
+                    할인 적용 시 {won(discountedTotalValue)}
+                  </span>
+                )}
+              </div>
+            </div>
+            {active.discountRatio > 0 && (
+              <div className="text-[12px] text-muted">
+                할인 {Math.round(active.discountRatio * 100)}% (−{won(discountAmount)})
+              </div>
+            )}
           </div>
         </section>
 
@@ -347,24 +399,29 @@ export function PackagesForm({ rateTable }: { rateTable: RateTable }) {
                           {addon.name}
                           <span className="text-[11px] text-muted">({addon.unitLabel})</span>
                         </label>
-                        <div className="flex items-center gap-2">
-                          <input
-                            type="number"
-                            min={0}
-                            value={addon.unitPrice}
-                            onChange={(e) => updateAddonPrice(addon.id, Math.max(0, Number(e.target.value) || 0))}
-                            className="w-32 rounded-sm border border-border bg-panel px-3 py-1.5 text-right text-[13px] outline-none focus:border-accent"
-                          />
-                          {checked && (
+                        <div className="flex items-center gap-3">
+                          <label className="flex items-center gap-1.5">
+                            <span className="text-[11px] text-muted">기본 수량</span>
                             <input
                               type="number"
                               min={1}
-                              value={qty}
+                              disabled={!checked}
+                              value={checked ? qty : ""}
+                              placeholder="-"
                               onChange={(e) => setIncludedQty(addon.id, Math.max(1, Number(e.target.value) || 1))}
-                              title="기본 포함 수량"
-                              className="w-20 rounded-sm border border-border bg-panel px-3 py-1.5 text-right text-[13px] outline-none focus:border-accent"
+                              className="w-16 rounded-sm border border-border bg-panel px-3 py-1.5 text-right text-[13px] outline-none focus:border-accent disabled:opacity-40"
                             />
-                          )}
+                          </label>
+                          <label className="flex items-center gap-1.5">
+                            <span className="text-[11px] text-muted">단가</span>
+                            <input
+                              type="number"
+                              min={0}
+                              value={addon.unitPrice}
+                              onChange={(e) => updateAddonPrice(addon.id, Math.max(0, Number(e.target.value) || 0))}
+                              className="w-32 rounded-sm border border-border bg-panel px-3 py-1.5 text-right text-[13px] outline-none focus:border-accent"
+                            />
+                          </label>
                         </div>
                       </div>
                     );

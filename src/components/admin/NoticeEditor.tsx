@@ -28,12 +28,7 @@ const FontSize = TextStyle.extend({
   },
 });
 
-const FONT_SIZES = [
-  { label: "본문", value: "" },
-  { label: "작게", value: "12px" },
-  { label: "크게", value: "20px" },
-  { label: "제목", value: "28px" },
-];
+const DEFAULT_FONT_SIZE = 14;
 
 const COLORS = ["#1d1d1f", "#0071e3", "#d70015", "#1a7f37", "#86868b"];
 
@@ -48,6 +43,7 @@ export function NoticeEditor({
 }) {
   const fileInput = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState(false);
+  const [fontSizeInput, setFontSizeInput] = useState(String(DEFAULT_FONT_SIZE));
 
   const editor = useEditor({
     immediatelyRender: false,
@@ -116,24 +112,39 @@ export function NoticeEditor({
 
         <span className="mx-1 h-4 w-px bg-border" />
 
-        <select
-          onChange={(e) => {
-            const size = e.target.value;
-            if (size) {
-              editor.chain().focus().setMark("textStyle", { fontSize: size }).run();
-            } else {
-              editor.chain().focus().unsetMark("textStyle").run();
+        <input
+          type="number"
+          min={8}
+          max={72}
+          value={fontSizeInput}
+          onChange={(e) => setFontSizeInput(e.target.value)}
+          onBlur={() => {
+            const size = Math.round(Number(fontSizeInput));
+            if (Number.isFinite(size) && size > 0) {
+              editor.chain().focus().setMark("textStyle", { fontSize: `${size}px` }).run();
             }
           }}
-          defaultValue=""
-          className="rounded-sm border border-border bg-background px-1.5 py-1 text-[11.5px] outline-none"
+          onKeyDown={(e) => {
+            if (e.key !== "Enter") return;
+            e.preventDefault();
+            const size = Math.round(Number(fontSizeInput));
+            if (Number.isFinite(size) && size > 0) {
+              editor.chain().focus().setMark("textStyle", { fontSize: `${size}px` }).run();
+            }
+          }}
+          className="w-14 rounded-sm border border-border bg-background px-1.5 py-1 text-[11.5px] outline-none focus:border-accent"
+        />
+        <span className="text-[11px] text-muted">px</span>
+        <button
+          type="button"
+          onClick={() => {
+            editor.chain().focus().unsetMark("textStyle").run();
+            setFontSizeInput(String(DEFAULT_FONT_SIZE));
+          }}
+          className="rounded-sm px-2 py-1 text-[12px] font-medium text-muted transition-colors hover:bg-panel-strong hover:text-foreground"
         >
-          {FONT_SIZES.map((s) => (
-            <option key={s.label} value={s.value}>
-              {s.label}
-            </option>
-          ))}
-        </select>
+          기본
+        </button>
 
         <span className="mx-1 h-4 w-px bg-border" />
 

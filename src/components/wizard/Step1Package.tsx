@@ -89,14 +89,14 @@ export function Step1Package({
                           className="flex items-center justify-between text-[12.5px]"
                         >
                           <span>{addon?.name ?? item.addonId}</span>
-                          <span className="font-medium text-good">{item.quantity}</span>
+                          <span className="font-medium text-accent">{item.quantity}</span>
                         </li>
                       );
                     })
                   )}
                   <li className="flex items-center justify-between text-[12.5px]">
                     <span>홍보 디지털 매체</span>
-                    <span className="font-medium text-good">
+                    <span className="font-medium text-accent">
                       {pkg.mediaTier ? MEDIA_TIER_LABEL[pkg.mediaTier] : "미포함"}
                     </span>
                   </li>

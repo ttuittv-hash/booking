@@ -286,12 +286,17 @@ export function getCurrentRateTable(): RateTable {
       }
     | undefined;
   if (!row) throw new Error("요금표가 초기화되지 않았습니다.");
+  // 과거 버전(할인율 필드 추가 이전)에 저장된 패키지는 discountRatio가 없을 수 있으므로 기본값 0으로 보정한다.
+  const rawPackages = JSON.parse(row.packages_json) as Array<
+    RateTable["packages"][number] & { discountRatio?: number }
+  >;
+  const packages = rawPackages.map((pkg) => ({ ...pkg, discountRatio: pkg.discountRatio ?? 0 }));
   return {
     version: row.version,
     vatRate: row.vat_rate,
     extraWeekRatio: row.extra_week_ratio,
     dayExclusionDiscountRatio: row.day_exclusion_discount_ratio,
-    packages: JSON.parse(row.packages_json),
+    packages,
     addons: JSON.parse(row.addons_json),
     updatedAt: row.updated_at,
   };

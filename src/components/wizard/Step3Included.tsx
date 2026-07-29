@@ -74,7 +74,7 @@ export function Step3Included({
                 className="flex items-center justify-between py-3 text-[13.5px]"
               >
                 <span>{addon?.name ?? item.addonId}</span>
-                <span className="font-semibold text-good">
+                <span className="font-semibold text-accent">
                   {item.quantity.toLocaleString()}
                   {addon?.unitLabel.includes("일") ? "개" : ""} 포함
                 </span>

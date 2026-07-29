@@ -33,6 +33,23 @@ export function calculateQuote(selection: QuoteSelection, rateTable: RateTable):
       makeLine("BASE_FEE", "기본 대관료", "FIXED_PER_WEEK", 1, 0, 1, pkg.baseFeePerWeek, pkg.baseFeePerWeek),
     );
 
+    // (1-1) 패키지 할인 — 관리자가 설정한 경우에만 기본 대관료에 적용
+    if (pkg.discountRatio > 0) {
+      const discountAmount = Math.round(pkg.baseFeePerWeek * pkg.discountRatio);
+      items.push(
+        makeLine(
+          "package_discount",
+          `패키지 할인 (${Math.round(pkg.discountRatio * 100)}%)`,
+          "FIXED_PER_WEEK",
+          1,
+          0,
+          1,
+          discountAmount,
+          -discountAmount,
+        ),
+      );
+    }
+
     // (2) 제외 요일 할인 — 화~일 6일 중 실제 사용하지 않는 요일만큼 정액 할인
     if (selection.excludedDays.length > 0) {
       const perDayDiscount = Math.round(pkg.baseFeePerWeek * rateTable.dayExclusionDiscountRatio);

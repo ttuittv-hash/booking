@@ -61,6 +61,7 @@ export interface RentalPackage {
   includedWeeks: number; // 기본 포함 주차 (통상 1)
   includedItems: PackageInclusion[]; // 기본 포함사항 (3단계에 표시)
   mediaTier: MediaTier; // 홍보 디지털 매체(구좌) 등급 개방
+  discountRatio: number; // 0=할인 없음, 0.1=기본 대관료 10% 할인 — 견적 계산 시 기본 대관료에 적용
 
   // 아래 항목은 "패키지 구성" 명세(대관시스템 노출)를 반영한 설명 정보입니다.
   // 과금 대상이 아니며(정찰제 대관료에 포함), 패키지 비교/안내용으로만 표시됩니다.

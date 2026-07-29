@@ -59,6 +59,7 @@ function blankPackage(id: number): RentalPackage {
     includedWeeks: 1,
     includedItems: [],
     mediaTier: null,
+    discountRatio: 0,
     dayBreakdown: "준비 4일 + 공연 2일",
     defaultPerformanceDays: 2,
     rentalHours: "09:00 ~ 22:00",
@@ -111,12 +112,16 @@ function sanitizePackage(current: RentalPackage, input: unknown): RentalPackage 
   const defaultPerformanceDays = Number.isFinite(Number(p.defaultPerformanceDays))
     ? Math.max(0, Math.round(Number(p.defaultPerformanceDays)))
     : current.defaultPerformanceDays;
+  const discountRatio = Number.isFinite(Number(p.discountRatio))
+    ? Math.min(0.9, Math.max(0, Number(p.discountRatio)))
+    : current.discountRatio;
 
   return {
     ...current,
     name,
     baseFeePerWeek,
     defaultPerformanceDays,
+    discountRatio,
     audienceTier,
     includedItems,
     mediaTier,
