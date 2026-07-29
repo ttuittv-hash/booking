@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import crypto from "node:crypto";
 import { getCurrentUser } from "@/lib/auth";
-import { addAuditLog, createNotification, getQuoteById, setQuoteReview } from "@/lib/db";
+import { addAuditLog, createNotification, findApprovedWeekConflict, getQuoteById, setQuoteReview } from "@/lib/db";
 import type { Review, ReviewDecision } from "@/lib/pricing/types";
 
 const DECISIONS: ReviewDecision[] = ["APPROVED", "HOLD", "REJECTED"];
@@ -32,6 +32,19 @@ export async function POST(request: Request, ctx: { params: Promise<{ id: string
   const scoreInput = Number(body?.score);
   const score = Number.isFinite(scoreInput) && scoreInput >= 0 && scoreInput <= 100 ? Math.round(scoreInput) : null;
   const rationale = typeof body?.rationale === "string" ? body.rationale.trim() : "";
+
+  if (decision === "APPROVED") {
+    const conflict = findApprovedWeekConflict(quote);
+    if (conflict) {
+      const { year, month, weekOfMonth } = quote.selection.week;
+      return NextResponse.json(
+        {
+          error: `같은 주차(${year}년 ${month}월 ${weekOfMonth}주차)에 이미 승인된 다른 업체(${conflict.companyName ?? "알 수 없음"})가 있어 승인할 수 없습니다.`,
+        },
+        { status: 409 },
+      );
+    }
+  }
 
   const review: Review = {
     quoteId: id,

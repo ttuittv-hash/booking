@@ -616,6 +616,34 @@ export function listQuotes(filter?: { applicantId?: string; companyId?: string }
   return rows.map(toQuote);
 }
 
+// 같은 주차에 이미 심사 승인된 "다른 회사"의 신청서가 있는지 확인한다.
+// 한 주차는 하나의 대관사만 사용할 수 있으므로, 이미 승인된 건이 있으면 같은 주차의
+// 다른 회사 신청서는 승인할 수 없다 (같은 회사 소속 신청서끼리는 충돌로 보지 않는다).
+export function findApprovedWeekConflict(
+  quote: Quote,
+): { quote: Quote; companyName: string | null } | undefined {
+  const applicant = findUserById(quote.applicantId);
+  const companyId = applicant?.companyId ?? null;
+
+  for (const other of listQuotes()) {
+    if (other.id === quote.id) continue;
+    if (other.review?.decision !== "APPROVED") continue;
+    const sameWeek =
+      other.selection.week.year === quote.selection.week.year &&
+      other.selection.week.month === quote.selection.week.month &&
+      other.selection.week.weekOfMonth === quote.selection.week.weekOfMonth;
+    if (!sameWeek) continue;
+
+    const otherApplicant = findUserById(other.applicantId);
+    const otherCompanyId = otherApplicant?.companyId ?? null;
+    const sameCompany = companyId && otherCompanyId ? companyId === otherCompanyId : quote.applicantId === other.applicantId;
+    if (sameCompany) continue;
+
+    return { quote: other, companyName: otherApplicant?.companyName ?? null };
+  }
+  return undefined;
+}
+
 // 캘린더 경합 현황 — 주차별로 신청서를 낸 회사(신청자) 수를 집계한다.
 export function listWeekDemand(): WeekDemand[] {
   const db = getDb();

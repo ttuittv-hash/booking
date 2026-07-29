@@ -16,7 +16,15 @@ const DECISION_STYLE: Record<ReviewDecision, string> = {
   REJECTED: "bg-red-50 text-red-600",
 };
 
-export function ReviewForm({ quoteId, review }: { quoteId: string; review: Review | null }) {
+export function ReviewForm({
+  quoteId,
+  review,
+  conflict,
+}: {
+  quoteId: string;
+  review: Review | null;
+  conflict?: { companyName: string | null } | null;
+}) {
   const router = useRouter();
   const [score, setScore] = useState(review?.score?.toString() ?? "");
   const [rationale, setRationale] = useState(review?.rationale ?? "");
@@ -88,12 +96,19 @@ export function ReviewForm({ quoteId, review }: { quoteId: string; review: Revie
         </p>
       )}
 
+      {conflict && review?.decision !== "APPROVED" && (
+        <p className="mt-3 rounded-sm border border-red-200 bg-red-50 px-3 py-2.5 text-[12.5px] text-red-600">
+          같은 주차에 이미 승인된 다른 업체(
+          {conflict.companyName ?? "알 수 없음"})가 있어 승인할 수 없습니다. 먼저 기존 승인 건을 보류/거절로 변경해주세요.
+        </p>
+      )}
+
       {error && <p className="mt-3 text-[13px] text-red-600">{error}</p>}
 
       <div className="mt-4 flex flex-wrap gap-2">
         <button
           type="button"
-          disabled={!!submitting}
+          disabled={!!submitting || (!!conflict && review?.decision !== "APPROVED")}
           onClick={() => decide("APPROVED")}
           className="rounded-sm bg-accent px-5 py-2 text-[13px] font-semibold text-white transition-colors hover:bg-accent-hover disabled:opacity-50"
         >

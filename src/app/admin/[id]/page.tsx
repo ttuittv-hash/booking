@@ -1,7 +1,14 @@
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { getCurrentUser } from "@/lib/auth";
-import { findUserById, getDepositByQuoteId, getQuoteById, listAttachments, listAuditLogsForQuote } from "@/lib/db";
+import {
+  findApprovedWeekConflict,
+  findUserById,
+  getDepositByQuoteId,
+  getQuoteById,
+  listAttachments,
+  listAuditLogsForQuote,
+} from "@/lib/db";
 import { won } from "@/lib/format";
 import { totalRentalDays } from "@/lib/pricing/rateTableUtils";
 import { ContractForm } from "@/components/admin/ContractForm";
@@ -33,6 +40,7 @@ export default async function AdminQuoteDetailPage({
   const auditLog = listAuditLogsForQuote(id);
   const deposit = getDepositByQuoteId(id) ?? null;
   const attachments = listAttachments(id);
+  const weekConflict = quote.status === "ESTIMATE" ? findApprovedWeekConflict(quote) ?? null : null;
 
   return (
     <div className="flex flex-1 flex-col">
@@ -111,7 +119,13 @@ export default async function AdminQuoteDetailPage({
         </section>
 
         <div className="mt-6 space-y-6">
-          {quote.status === "ESTIMATE" && <ReviewForm quoteId={quote.id} review={quote.review} />}
+          {quote.status === "ESTIMATE" && (
+            <ReviewForm
+              quoteId={quote.id}
+              review={quote.review}
+              conflict={weekConflict ? { companyName: weekConflict.companyName } : null}
+            />
+          )}
 
           {quote.status === "ESTIMATE" && quote.review?.decision === "REJECTED" && (
             <p className="rounded-sm border border-red-200 bg-red-50 px-4 py-3 text-[13px] text-red-600">
