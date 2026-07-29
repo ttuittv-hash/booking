@@ -8,16 +8,28 @@ export const metadata: Metadata = {
 
 const HALLS = [
   {
-    title: "① 메인 아레나 (Arena)",
-    desc: "서울아레나의 대표 공연시설로, 국내외 대형 콘서트와 라이브 공연을 위한 전문 공연장입니다. 최대 약 20,000명의 관객을 수용할 수 있으며, 공연 연출에 따라 다양한 좌석 배치와 무대 구성이 가능합니다. 최신 공연 제작 환경을 고려한 무대·음향·조명·반입반출 시스템을 갖추고 있어 국내외 투어 공연은 물론 대규모 시상식, 방송 행사, 기업 이벤트까지 폭넓게 운영할 수 있습니다.",
+    no: "01",
+    title: "메인 아레나",
+    titleEn: "Arena",
+    stat: "최대 약 20,000명 수용",
+    desc: "국내외 대형 콘서트와 라이브 공연을 위한 전문 공연장. 공연 연출에 따라 다양한 좌석 배치와 무대 구성이 가능하며, 최신 무대·음향·조명·반입반출 시스템을 갖춰 투어 공연은 물론 대규모 시상식, 방송 행사, 기업 이벤트까지 폭넓게 운영합니다.",
+    image: null,
   },
   {
-    title: "② 중형공연장 (Medium Hall)",
-    desc: "약 2,000석 규모의 공연장으로 콘서트, 뮤지컬, 팬미팅, 쇼케이스, 기업행사 등 다양한 중형 규모의 콘텐츠 운영에 적합합니다. 관객과 아티스트 간의 높은 몰입감을 제공하는 공간으로, 공연 특성에 맞는 유연한 운영이 가능합니다.",
+    no: "02",
+    title: "중형공연장",
+    titleEn: "Medium Hall",
+    stat: "약 2,000석 규모",
+    desc: "콘서트, 뮤지컬, 팬미팅, 쇼케이스, 기업행사 등 중형 규모 콘텐츠에 적합한 공연장. 관객과 아티스트 간 높은 몰입감을 제공하는 공간으로, 공연 특성에 맞는 유연한 운영이 가능합니다.",
+    image: null,
   },
   {
-    title: "③ 컨벤션 시설 (Convention)",
-    desc: "회의, 전시, 세미나, 브랜드 행사, 기업 프로모션 등 다양한 MICE 행사를 운영할 수 있는 공간입니다. 공연과 연계한 기자간담회, VIP 리셉션, 팬 이벤트 등 복합 프로그램 운영에도 활용할 수 있습니다.",
+    no: "03",
+    title: "컨벤션 시설",
+    titleEn: "Convention",
+    stat: "MICE 복합 운영",
+    desc: "회의, 전시, 세미나, 브랜드 행사, 기업 프로모션 등 다양한 MICE 행사를 운영할 수 있는 공간. 공연과 연계한 기자간담회, VIP 리셉션, 팬 이벤트 등 복합 프로그램 운영에도 활용할 수 있습니다.",
+    image: null,
   },
 ];
 
@@ -71,33 +83,33 @@ const PROVIDED_FACILITIES = [
 ];
 
 const ARENA_AMENITIES = [
-  "프로덕션 오피스(Production Office) — 공연 제작 및 운영 스태프 업무공간",
-  "대기실(Dressing Room) — 출연진 분장 및 대기 공간 (수량: 추후 확정 예정)",
-  "그린룸(Green Room) — 출연진 휴게 공간 (수량: 추후 확정 예정)",
-  "샤워실(Shower Room) — 총 18개소(공용 12개소, 대기실 내부 6개소)",
-  "의무실(Medical Room) — 최대 3개소 운영 가능",
-  "하역장(Loading Dock) — 대형 공연장비 반입·반출 전용",
-  "화물용 엘리베이터(Freight Elevator) — 공연 장비 운반 전용",
-  "FOH 컨트롤 포지션 — 음향·조명·영상 운영 공간",
-  "관계자 주차(Production Parking) — 최대 200대 제공(패키지별 상이)",
-  "대형버스 주차 — 최대 7대 / 중형버스 주차 — 최대 5대",
-  "휠체어석 — 20석(동반석 20석 별도)",
-  "화장실 및 장애인 화장실 — 전층 운영",
-  "운영지원 공간(BOH Support Area)",
+  { name: "프로덕션 오피스 (Production Office)", desc: "공연 제작 및 운영 스태프 업무공간" },
+  { name: "대기실 (Dressing Room)", desc: "출연진 분장 및 대기 공간 (수량: 추후 확정 예정)" },
+  { name: "그린룸 (Green Room)", desc: "출연진 휴게 공간 (수량: 추후 확정 예정)" },
+  { name: "샤워실 (Shower Room)", desc: "총 18개소 (공용 12개소, 대기실 내부 6개소)" },
+  { name: "의무실 (Medical Room)", desc: "최대 3개소 운영 가능" },
+  { name: "하역장 (Loading Dock)", desc: "대형 공연장비 반입·반출 전용" },
+  { name: "화물용 엘리베이터 (Freight Elevator)", desc: "공연 장비 운반 전용" },
+  { name: "FOH 컨트롤 포지션", desc: "음향·조명·영상 운영 공간" },
+  { name: "관계자 주차 (Production Parking)", desc: "최대 200대 제공 (패키지별 상이)" },
+  { name: "대형·중형버스 주차", desc: "대형버스 최대 7대 / 중형버스 최대 5대" },
+  { name: "휠체어석", desc: "20석 (동반석 20석 별도)" },
+  { name: "화장실 및 장애인 화장실", desc: "전층 운영" },
+  { name: "운영지원 공간 (BOH Support Area)", desc: null },
 ];
 
 const MEDIUM_HALL_AMENITIES = [
-  "프로덕션 오피스(Production Office)",
-  "대기실(Dressing Room) — 수량 추후 확정 예정",
-  "그린룸(Green Room) — 수량 추후 확정 예정",
-  "의무실(Medical Room) — 2개소",
-  "하역장(Loading Dock) — 공연 장비 반입·반출 전용",
-  "화물용 엘리베이터(Freight Elevator)",
-  "FOH 컨트롤 포지션",
-  "관계자 주차(Production Parking) — 제공 대수 추후 확정 예정",
-  "휠체어석 — 총 20석(1층 6석, 2층 14석 / 동반석 별도)",
-  "화장실 및 장애인 화장실 — 전층 운영",
-  "운영지원 공간(BOH Support Area)",
+  { name: "프로덕션 오피스 (Production Office)", desc: null },
+  { name: "대기실 (Dressing Room)", desc: "수량 추후 확정 예정" },
+  { name: "그린룸 (Green Room)", desc: "수량 추후 확정 예정" },
+  { name: "의무실 (Medical Room)", desc: "2개소" },
+  { name: "하역장 (Loading Dock)", desc: "공연 장비 반입·반출 전용" },
+  { name: "화물용 엘리베이터 (Freight Elevator)", desc: null },
+  { name: "FOH 컨트롤 포지션", desc: null },
+  { name: "관계자 주차 (Production Parking)", desc: "제공 대수 추후 확정 예정" },
+  { name: "휠체어석", desc: "총 20석 (1층 6석, 2층 14석 / 동반석 별도)" },
+  { name: "화장실 및 장애인 화장실", desc: "전층 운영" },
+  { name: "운영지원 공간 (BOH Support Area)", desc: null },
 ];
 
 function Section({
@@ -117,6 +129,22 @@ function Section({
   );
 }
 
+function ImagePlaceholder({ src, alt }: { src: string | null; alt: string }) {
+  if (src) {
+    return (
+      <div className="aspect-video overflow-hidden rounded-sm border border-border">
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src={src} alt={alt} className="h-full w-full object-cover" />
+      </div>
+    );
+  }
+  return (
+    <div className="flex aspect-video items-center justify-center rounded-sm border border-dashed border-border bg-panel/60">
+      <span className="text-[11.5px] text-muted">이미지 준비 중</span>
+    </div>
+  );
+}
+
 export default async function VenuePage() {
   const currentUser = await getCurrentUser();
 
@@ -132,51 +160,36 @@ export default async function VenuePage() {
           서울아레나 소개
         </h1>
         <p className="mt-6 max-w-3xl text-[15px] leading-8 text-muted">
-          서울아레나는 K-POP을 비롯한 글로벌 대형 공연과 다양한 문화 콘텐츠를
-          수용하기 위해 조성되는 대한민국 최초의 K-POP 전문 아레나입니다.
+          서울아레나는 <strong className="font-semibold text-foreground">대한민국 최초의 K-POP 전문 아레나</strong>입니다.
           공연 제작과 관객 경험을 중심으로 설계된 메인 아레나와 중형공연장,
           컨벤션 시설을 하나의 복합 문화공간으로 운영하며, 공연·전시·컨벤션·기업행사
-          등 다양한 형태의 이벤트를 개최할 수 있습니다. 최신 공연 제작 환경과
-          운영 시스템을 기반으로 국내외 공연기획사와 아티스트에게 안정적인 공연
-          환경을 제공하고, 관객에게는 수준 높은 문화 경험을 제공하는 것을 목표로
-          합니다.
+          등 다양한 형태의 이벤트를 개최할 수 있습니다. 국내외 공연기획사와
+          아티스트에게 안정적인 공연 환경을, 관객에게는 수준 높은 문화 경험을
+          제공하는 것을 목표로 합니다.
         </p>
-
-        <div className="mt-8 grid grid-cols-1 gap-3 sm:grid-cols-2">
-          <div className="overflow-hidden rounded-sm border border-border">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
-              src="/images/arena-day.webp"
-              alt="서울아레나 전경"
-              className="h-full w-full object-cover"
-            />
-          </div>
-          <div className="overflow-hidden rounded-sm border border-border">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
-              src="/images/arena-night.webp"
-              alt="서울아레나 야경 전경"
-              className="h-full w-full object-cover"
-            />
-          </div>
-        </div>
 
         <Section id="overview" title="시설 개요">
           <p className="text-[13.5px] leading-7 text-muted">
-            서울아레나는 메인 아레나, 중형공연장, 컨벤션 시설로 구성된 복합
-            공연문화시설입니다. 공연의 규모와 목적에 따라 다양한 공간을 선택하여
-            운영할 수 있으며, 각 시설은 독립적인 운영은 물론 행사 특성에 따라
-            연계 사용도 가능합니다.
+            서울아레나는 <strong className="font-semibold text-accent">메인 아레나·중형공연장·컨벤션</strong>으로
+            구성된 복합 공연문화시설입니다. 공연의 규모와 목적에 따라 다양한
+            공간을 선택하여 운영할 수 있으며, 각 시설은 독립적인 운영은 물론
+            행사 특성에 따라 연계 사용도 가능합니다.
           </p>
-          <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-3">
+          <div className="mt-6 grid grid-cols-1 gap-5 sm:grid-cols-3">
             {HALLS.map((h) => (
-              <div key={h.title} className="border border-border bg-panel/60 p-5">
-                <div className="text-[13.5px] font-semibold">{h.title}</div>
+              <div key={h.title}>
+                <ImagePlaceholder src={h.image} alt={h.title} />
+                <div className="mt-3 flex items-baseline gap-2">
+                  <span className="text-[11px] font-semibold text-border">{h.no}</span>
+                  <span className="text-[13.5px] font-semibold">{h.title}</span>
+                  <span className="text-[11px] text-muted">{h.titleEn}</span>
+                </div>
+                <div className="mt-1 text-[12.5px] font-semibold text-accent">{h.stat}</div>
                 <p className="mt-2 text-[12.5px] leading-6 text-muted">{h.desc}</p>
               </div>
             ))}
           </div>
-          <ul className="mt-6 space-y-1.5 text-[13px] text-muted">
+          <ul className="mt-8 grid grid-cols-1 gap-x-6 gap-y-2 text-[13px] text-muted sm:grid-cols-2">
             {FEATURES.map((f) => (
               <li key={f} className="flex gap-2">
                 <span className="text-accent">·</span>
@@ -191,27 +204,23 @@ export default async function VenuePage() {
             공연 규모와 목적에 따라 적합한 공연장을 선택하여 운영할 수 있습니다.
             상세 기술자료는 Technical Package를 통해 확인하실 수 있습니다.
           </p>
-          <div className="mt-6 space-y-6">
+          <div className="mt-6 grid grid-cols-1 gap-10 sm:grid-cols-2">
             {SPECS.map((s) => (
-              <div key={s.name} className="overflow-hidden border border-border">
-                <div className="border-b border-border bg-panel px-4 py-2.5 text-[13px] font-semibold">
-                  {s.name}
-                </div>
-                <table className="w-full border-collapse text-[13px]">
-                  <tbody>
-                    {s.rows.map(([k, v]) => (
-                      <tr key={k} className="border-b border-border/70 last:border-b-0">
-                        <td className="w-40 px-4 py-2.5 text-muted">{k}</td>
-                        <td className="px-4 py-2.5">{v}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
+              <div key={s.name}>
+                <div className="text-[14px] font-semibold text-accent">{s.name}</div>
+                <dl className="mt-3 divide-y divide-border/60">
+                  {s.rows.map(([k, v]) => (
+                    <div key={k} className="flex flex-col gap-0.5 py-2.5 text-[13px] sm:flex-row sm:gap-4">
+                      <dt className="shrink-0 text-muted sm:w-24">{k}</dt>
+                      <dd className="font-medium">{v}</dd>
+                    </div>
+                  ))}
+                </dl>
               </div>
             ))}
           </div>
 
-          <div className="mt-6 border border-border bg-panel/60 p-5">
+          <div className="mt-10">
             <div className="text-[13px] font-semibold">주요 제공 시설</div>
             <ul className="mt-3 grid grid-cols-2 gap-x-4 gap-y-1.5 text-[12.5px] text-muted sm:grid-cols-3">
               {PROVIDED_FACILITIES.map((f) => (
@@ -223,7 +232,7 @@ export default async function VenuePage() {
             </ul>
           </div>
 
-          <div className="mt-4 flex items-center justify-between border border-dashed border-border px-4 py-3 text-[12.5px] text-muted">
+          <div className="mt-6 flex items-center justify-between border border-dashed border-border px-4 py-3 text-[12.5px] text-muted">
             <span>기술자료 (아레나·중형공연장 무대 장비/인프라 리스트)</span>
             <span className="rounded bg-panel-strong px-2 py-1 text-[11px] font-medium">
               자료 준비 중
@@ -232,25 +241,25 @@ export default async function VenuePage() {
         </Section>
 
         <Section id="amenities" title="부대 시설">
-          <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
-            <div className="border border-border bg-panel/60 p-5">
-              <div className="text-[13.5px] font-semibold">아레나 부대시설</div>
-              <ul className="mt-3 space-y-1.5 text-[12.5px] leading-5 text-muted">
+          <div className="grid grid-cols-1 gap-8 sm:grid-cols-2">
+            <div>
+              <div className="text-[13.5px] font-semibold text-accent">아레나 부대시설</div>
+              <ul className="mt-3 divide-y divide-border/50">
                 {ARENA_AMENITIES.map((f) => (
-                  <li key={f} className="flex gap-1.5">
-                    <span className="shrink-0 text-accent">·</span>
-                    {f}
+                  <li key={f.name} className="py-2.5 text-[12.5px]">
+                    <div className="font-semibold">{f.name}</div>
+                    {f.desc && <div className="mt-0.5 text-muted">{f.desc}</div>}
                   </li>
                 ))}
               </ul>
             </div>
-            <div className="border border-border bg-panel/60 p-5">
-              <div className="text-[13.5px] font-semibold">중형공연장 부대시설</div>
-              <ul className="mt-3 space-y-1.5 text-[12.5px] leading-5 text-muted">
+            <div>
+              <div className="text-[13.5px] font-semibold text-accent">중형공연장 부대시설</div>
+              <ul className="mt-3 divide-y divide-border/50">
                 {MEDIUM_HALL_AMENITIES.map((f) => (
-                  <li key={f} className="flex gap-1.5">
-                    <span className="shrink-0 text-accent">·</span>
-                    {f}
+                  <li key={f.name} className="py-2.5 text-[12.5px]">
+                    <div className="font-semibold">{f.name}</div>
+                    {f.desc && <div className="mt-0.5 text-muted">{f.desc}</div>}
                   </li>
                 ))}
               </ul>
