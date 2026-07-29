@@ -49,6 +49,9 @@ export function PublicHeader({
     const rect = target.getBoundingClientRect();
     setOpenMenu({ href, top: rect.bottom + 8, left: rect.left });
   }
+  function cancelClose() {
+    if (closeTimer.current) clearTimeout(closeTimer.current);
+  }
   function closeSoon() {
     if (closeTimer.current) clearTimeout(closeTimer.current);
     closeTimer.current = setTimeout(() => setOpenMenu(null), 150);
@@ -102,7 +105,7 @@ export function PublicHeader({
 
         {openMenu && activeChildren && (
           <div
-            onMouseEnter={() => setOpenMenu(openMenu)}
+            onMouseEnter={cancelClose}
             onMouseLeave={() => closeSoon()}
             style={{ top: openMenu.top, left: openMenu.left }}
             className="fixed z-30 w-44 border border-border bg-background py-1.5 shadow-sm"
