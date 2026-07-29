@@ -6,6 +6,7 @@ import { useState } from "react";
 export function AddApplicantForm() {
   const router = useRouter();
   const [form, setForm] = useState({
+    username: "",
     email: "",
     password: "",
     name: "",
@@ -32,8 +33,8 @@ export function AddApplicantForm() {
         setError(data.error || "계정 생성에 실패했습니다.");
         return;
       }
-      setSuccess(`${data.user.email} 계정이 승인 완료 상태로 생성되었습니다.`);
-      setForm({ email: "", password: "", name: "", phone: "", companyName: "", businessRegistrationNumber: "" });
+      setSuccess(`${data.user.username} 계정이 승인 완료 상태로 생성되었습니다.`);
+      setForm({ username: "", email: "", password: "", name: "", phone: "", companyName: "", businessRegistrationNumber: "" });
       router.refresh();
     } finally {
       setSubmitting(false);
@@ -49,6 +50,13 @@ export function AddApplicantForm() {
       </p>
 
       <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2">
+        <input
+          type="text"
+          placeholder="아이디 (영문 소문자/숫자, 4~20자)"
+          value={form.username}
+          onChange={(e) => setForm({ ...form, username: e.target.value })}
+          className="rounded border border-border bg-background px-3 py-2 text-[13px] outline-none focus:border-accent"
+        />
         <input
           type="email"
           placeholder="이메일"

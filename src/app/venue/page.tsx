@@ -68,10 +68,16 @@ export default async function VenuePage() {
         <h1 className="mt-3 text-[30px] font-semibold tracking-tight sm:text-[36px]">
           서울아레나 소개
         </h1>
-        <p className="mt-6 max-w-3xl text-[15px] leading-8 text-muted">{intro}</p>
+        <div
+          className="mt-6 max-w-3xl text-[15px] leading-8 text-muted [&_a]:text-accent [&_a]:underline [&_li]:mt-1 [&_p]:my-2 [&_p]:first:mt-0 [&_p]:last:mb-0 [&_strong]:text-foreground [&_ul]:list-disc [&_ul]:pl-5"
+          dangerouslySetInnerHTML={{ __html: intro }}
+        />
 
         <Section id="overview" title="시설 개요">
-          <p className="text-[13.5px] leading-7 text-muted">{overviewIntro}</p>
+          <div
+            className="text-[13.5px] leading-7 text-muted [&_a]:text-accent [&_a]:underline [&_li]:mt-1 [&_p]:my-2 [&_p]:first:mt-0 [&_p]:last:mb-0 [&_strong]:text-foreground [&_ul]:list-disc [&_ul]:pl-5"
+            dangerouslySetInnerHTML={{ __html: overviewIntro }}
+          />
           <div className="mt-6 grid grid-cols-1 gap-5 sm:grid-cols-3">
             {HALLS.map((h) => (
               <div key={h.title}>
@@ -97,7 +103,10 @@ export default async function VenuePage() {
         </Section>
 
         <Section id="specs" title="아레나 / 중형공연장 시설 제원">
-          <p className="text-[13.5px] leading-7 text-muted">{specsIntro}</p>
+          <div
+            className="text-[13.5px] leading-7 text-muted [&_a]:text-accent [&_a]:underline [&_li]:mt-1 [&_p]:my-2 [&_p]:first:mt-0 [&_p]:last:mb-0 [&_strong]:text-foreground [&_ul]:list-disc [&_ul]:pl-5"
+            dangerouslySetInnerHTML={{ __html: specsIntro }}
+          />
           <div className="mt-6 grid grid-cols-1 gap-10 sm:grid-cols-2">
             {SPECS.map((s) => (
               <div key={s.name}>

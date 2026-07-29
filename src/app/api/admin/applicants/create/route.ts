@@ -1,9 +1,10 @@
 import { NextResponse } from "next/server";
 import crypto from "node:crypto";
 import { getCurrentUser, hashPassword } from "@/lib/auth";
-import { createUser, findOrCreateCompany, findUserByEmailWithPasswordHash } from "@/lib/db";
+import { createUser, findOrCreateCompany, findUserByEmailWithPasswordHash, findUserByUsername } from "@/lib/db";
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const USERNAME_RE = /^[a-z0-9][a-z0-9_]{3,19}$/;
 
 export async function POST(request: Request) {
   const admin = await getCurrentUser();
@@ -12,6 +13,7 @@ export async function POST(request: Request) {
   }
 
   const body = await request.json().catch(() => null);
+  const username = typeof body?.username === "string" ? body.username.trim().toLowerCase() : "";
   const email = typeof body?.email === "string" ? body.email.trim() : "";
   const password = typeof body?.password === "string" ? body.password : "";
   const name = typeof body?.name === "string" ? body.name.trim() : "";
@@ -20,6 +22,12 @@ export async function POST(request: Request) {
   const businessRegistrationNumber =
     typeof body?.businessRegistrationNumber === "string" ? body.businessRegistrationNumber.trim() : "";
 
+  if (!USERNAME_RE.test(username)) {
+    return NextResponse.json(
+      { error: "아이디는 영문 소문자/숫자로 시작하는 4~20자여야 합니다." },
+      { status: 400 },
+    );
+  }
   if (!EMAIL_RE.test(email)) {
     return NextResponse.json({ error: "올바른 이메일을 입력하세요." }, { status: 400 });
   }
@@ -29,15 +37,21 @@ export async function POST(request: Request) {
   if (!name) {
     return NextResponse.json({ error: "담당자명을 입력하세요." }, { status: 400 });
   }
+  if (findUserByUsername(username)) {
+    return NextResponse.json({ error: "이미 사용 중인 아이디입니다." }, { status: 409 });
+  }
   if (findUserByEmailWithPasswordHash(email)) {
     return NextResponse.json({ error: "이미 가입된 이메일입니다." }, { status: 409 });
   }
 
-  const company = companyName ? findOrCreateCompany(companyName, businessRegistrationNumber || undefined) : null;
+  const company = companyName
+    ? findOrCreateCompany(companyName, { businessRegistrationNumber: businessRegistrationNumber || undefined })
+    : null;
 
   const createdAt = new Date().toISOString();
   const user = createUser({
     id: crypto.randomUUID(),
+    username,
     email,
     phone: phone || null,
     passwordHash: hashPassword(password),

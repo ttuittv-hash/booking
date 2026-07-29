@@ -270,11 +270,17 @@ export interface Company {
   id: string;
   name: string;
   businessRegistrationNumber: string | null;
+  representativeName: string | null;
+  postalCode: string | null;
+  address: string | null;
+  businessCertUrl: string | null;
+  businessCertName: string | null;
   createdAt: string;
 }
 
 export interface AppUser {
   id: string;
+  username: string;
   email: string;
   phone: string | null;
   name: string;

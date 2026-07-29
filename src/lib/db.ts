@@ -204,6 +204,15 @@ function createConnection(): DatabaseSync {
   ensureColumn(db, "users", "phone", "TEXT");
   ensureColumn(db, "users", "terms_agreed_at", "TEXT");
   ensureColumn(db, "users", "privacy_agreed_at", "TEXT");
+  ensureColumn(db, "users", "username", "TEXT");
+  ensureColumn(db, "companies", "representative_name", "TEXT");
+  ensureColumn(db, "companies", "postal_code", "TEXT");
+  ensureColumn(db, "companies", "address", "TEXT");
+  ensureColumn(db, "companies", "business_cert_url", "TEXT");
+  ensureColumn(db, "companies", "business_cert_name", "TEXT");
+  db.exec(
+    "CREATE UNIQUE INDEX IF NOT EXISTS idx_users_username ON users(username) WHERE username IS NOT NULL",
+  );
 
   const rateTableCount = db.prepare("SELECT COUNT(*) as n FROM rate_tables").get() as { n: number };
   if (rateTableCount.n === 0) {
@@ -216,12 +225,20 @@ function createConnection(): DatabaseSync {
   if (adminCount.n === 0) {
     const email = process.env.SEED_ADMIN_EMAIL || "admin@seoularena.kr";
     const password = process.env.SEED_ADMIN_PASSWORD || "admin1234!";
+    const username = process.env.SEED_ADMIN_USERNAME || "admin";
     db.prepare(
-      `INSERT INTO users (id, email, password_hash, name, company_name, role, created_at)
-       VALUES (?, ?, ?, ?, NULL, 'ADMIN', ?)`,
-    ).run(crypto.randomUUID(), email.toLowerCase(), bcrypt.hashSync(password, 10), "운영자", new Date().toISOString());
+      `INSERT INTO users (id, username, email, password_hash, name, company_name, role, created_at)
+       VALUES (?, ?, ?, ?, ?, NULL, 'ADMIN', ?)`,
+    ).run(
+      crypto.randomUUID(),
+      username,
+      email.toLowerCase(),
+      bcrypt.hashSync(password, 10),
+      "운영자",
+      new Date().toISOString(),
+    );
     console.log(
-      `[seoularena] 초기 운영자 계정이 생성되었습니다 — email: ${email} / password: ${password} (배포 전 반드시 변경하세요)`,
+      `[seoularena] 초기 운영자 계정이 생성되었습니다 — 아이디: ${username} / password: ${password} (배포 전 반드시 변경하세요)`,
     );
   }
 
@@ -232,11 +249,13 @@ function createConnection(): DatabaseSync {
     .get(testApplicantEmail);
   if (!existingTestApplicant) {
     const testPassword = process.env.SEED_TEST_APPLICANT_PASSWORD || "test1234!";
+    const testUsername = process.env.SEED_TEST_APPLICANT_USERNAME || "test";
     db.prepare(
-      `INSERT INTO users (id, email, password_hash, name, company_name, role, created_at)
-       VALUES (?, ?, ?, ?, ?, 'APPLICANT', ?)`,
+      `INSERT INTO users (id, username, email, password_hash, name, company_name, role, created_at)
+       VALUES (?, ?, ?, ?, ?, ?, 'APPLICANT', ?)`,
     ).run(
       crypto.randomUUID(),
+      testUsername,
       testApplicantEmail,
       bcrypt.hashSync(testPassword, 10),
       "테스트 담당자",
@@ -244,7 +263,7 @@ function createConnection(): DatabaseSync {
       new Date().toISOString(),
     );
     console.log(
-      `[seoularena] 내부 테스트용 신청자 계정이 생성되었습니다 (승인 완료 상태) — email: ${testApplicantEmail} / password: ${testPassword}`,
+      `[seoularena] 내부 테스트용 신청자 계정이 생성되었습니다 (승인 완료 상태) — 아이디: ${testUsername} / password: ${testPassword}`,
     );
   }
 
@@ -340,6 +359,11 @@ interface CompanyRow {
   id: string;
   name: string;
   business_registration_number: string | null;
+  representative_name: string | null;
+  postal_code: string | null;
+  address: string | null;
+  business_cert_url: string | null;
+  business_cert_name: string | null;
   created_at: string;
 }
 
@@ -348,13 +372,28 @@ function toCompany(row: CompanyRow): Company {
     id: row.id,
     name: row.name,
     businessRegistrationNumber: row.business_registration_number,
+    representativeName: row.representative_name,
+    postalCode: row.postal_code,
+    address: row.address,
+    businessCertUrl: row.business_cert_url,
+    businessCertName: row.business_cert_name,
     createdAt: row.created_at,
   };
 }
 
 // 회사명으로 기존 기획사를 찾거나 없으면 새로 만든다 (대소문자·공백 무시하고 매칭).
-// 이미 등록된 회사라면 사업자등록번호는 최초 등록 값을 그대로 유지한다.
-export function findOrCreateCompany(name: string, businessRegistrationNumber?: string): Company {
+// 이미 등록된 회사라면 사업자등록번호 등 법인 정보는 최초 등록 값을 그대로 유지한다.
+export function findOrCreateCompany(
+  name: string,
+  extra?: {
+    businessRegistrationNumber?: string;
+    representativeName?: string;
+    postalCode?: string;
+    address?: string;
+    businessCertUrl?: string;
+    businessCertName?: string;
+  },
+): Company {
   const db = getDb();
   const trimmed = name.trim();
   const existing = db
@@ -365,12 +404,29 @@ export function findOrCreateCompany(name: string, businessRegistrationNumber?: s
   const row: CompanyRow = {
     id: crypto.randomUUID(),
     name: trimmed,
-    business_registration_number: businessRegistrationNumber?.trim() || null,
+    business_registration_number: extra?.businessRegistrationNumber?.trim() || null,
+    representative_name: extra?.representativeName?.trim() || null,
+    postal_code: extra?.postalCode?.trim() || null,
+    address: extra?.address?.trim() || null,
+    business_cert_url: extra?.businessCertUrl || null,
+    business_cert_name: extra?.businessCertName || null,
     created_at: new Date().toISOString(),
   };
   db.prepare(
-    "INSERT INTO companies (id, name, business_registration_number, created_at) VALUES (?, ?, ?, ?)",
-  ).run(row.id, row.name, row.business_registration_number, row.created_at);
+    `INSERT INTO companies
+      (id, name, business_registration_number, representative_name, postal_code, address, business_cert_url, business_cert_name, created_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+  ).run(
+    row.id,
+    row.name,
+    row.business_registration_number,
+    row.representative_name,
+    row.postal_code,
+    row.address,
+    row.business_cert_url,
+    row.business_cert_name,
+    row.created_at,
+  );
   return toCompany(row);
 }
 
@@ -392,6 +448,7 @@ export function listCompanies(): Company[] {
 
 interface UserRow {
   id: string;
+  username: string | null;
   email: string;
   phone: string | null;
   password_hash: string;
@@ -406,6 +463,7 @@ interface UserRow {
 function toAppUser(row: UserRow): AppUser {
   return {
     id: row.id,
+    username: row.username ?? row.email,
     email: row.email,
     phone: row.phone,
     name: row.name,
@@ -419,6 +477,7 @@ function toAppUser(row: UserRow): AppUser {
 
 export function createUser(input: {
   id: string;
+  username: string;
   email: string;
   phone?: string | null;
   passwordHash: string;
@@ -436,10 +495,11 @@ export function createUser(input: {
   const companyId = input.companyId ?? null;
   const phone = input.phone ?? null;
   db.prepare(
-    `INSERT INTO users (id, email, phone, password_hash, name, company_name, company_id, role, approval_status, terms_agreed_at, privacy_agreed_at, created_at)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    `INSERT INTO users (id, username, email, phone, password_hash, name, company_name, company_id, role, approval_status, terms_agreed_at, privacy_agreed_at, created_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
   ).run(
     input.id,
+    input.username,
     input.email.toLowerCase(),
     phone,
     input.passwordHash,
@@ -454,6 +514,7 @@ export function createUser(input: {
   );
   return {
     id: input.id,
+    username: input.username,
     email: input.email.toLowerCase(),
     phone,
     name: input.name,
@@ -472,6 +533,36 @@ export function findUserByEmailWithPasswordHash(
   const row = db.prepare("SELECT * FROM users WHERE email = ?").get(email.toLowerCase()) as
     | UserRow
     | undefined;
+  if (!row) return undefined;
+  return { ...toAppUser(row), passwordHash: row.password_hash };
+}
+
+// 승인 대기 중인 신청도 포함해 동일 전화번호로 이미 가입된 계정이 있는지 확인한다
+// (승인 전에 이메일만 바꿔 중복 신청하는 것을 막기 위함).
+export function findUserByPhone(phone: string): AppUser | undefined {
+  const db = getDb();
+  const row = db.prepare("SELECT * FROM users WHERE phone = ?").get(phone.trim()) as UserRow | undefined;
+  return row ? toAppUser(row) : undefined;
+}
+
+export function findUserByUsername(username: string): AppUser | undefined {
+  const db = getDb();
+  const row = db.prepare("SELECT * FROM users WHERE username = ?").get(username.trim()) as
+    | UserRow
+    | undefined;
+  return row ? toAppUser(row) : undefined;
+}
+
+// 로그인 식별자로 아이디 또는 이메일을 모두 허용한다 (아이디 필드 도입 이전 계정과의 호환을 위함).
+export function findUserByLoginIdWithPasswordHash(
+  loginId: string,
+): (AppUser & { passwordHash: string }) | undefined {
+  const db = getDb();
+  const trimmed = loginId.trim();
+  const row = db.prepare("SELECT * FROM users WHERE username = ? OR email = ?").get(
+    trimmed,
+    trimmed.toLowerCase(),
+  ) as UserRow | undefined;
   if (!row) return undefined;
   return { ...toAppUser(row), passwordHash: row.password_hash };
 }
@@ -630,16 +721,21 @@ export function listQuotes(filter?: { applicantId?: string; companyId?: string }
 export function findApprovedWeekConflict(
   quote: Quote,
 ): { quote: Quote; companyName: string | null } | undefined {
+  const week = quote.selection?.week;
+  if (!week) return undefined;
+
   const applicant = findUserById(quote.applicantId);
   const companyId = applicant?.companyId ?? null;
 
   for (const other of listQuotes()) {
     if (other.id === quote.id) continue;
     if (other.review?.decision !== "APPROVED") continue;
+    const otherWeek = other.selection?.week;
+    if (!otherWeek) continue;
     const sameWeek =
-      other.selection.week.year === quote.selection.week.year &&
-      other.selection.week.month === quote.selection.week.month &&
-      other.selection.week.weekOfMonth === quote.selection.week.weekOfMonth;
+      otherWeek.year === week.year &&
+      otherWeek.month === week.month &&
+      otherWeek.weekOfMonth === week.weekOfMonth;
     if (!sameWeek) continue;
 
     const otherApplicant = findUserById(other.applicantId);

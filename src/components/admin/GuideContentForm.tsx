@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import type { GuideContent, GuideStep } from "@/lib/content/types";
+import { NoticeEditor } from "./NoticeEditor";
 
 const inputCls =
   "w-full rounded-sm border border-border bg-background px-3 py-2 text-[13px] outline-none focus:border-accent";
@@ -86,12 +87,9 @@ export function GuideContentForm({ content: initial }: { content: GuideContent }
     <div className="space-y-8">
       <section>
         <h3 className="text-[14px] font-semibold">상단 소개 문구</h3>
-        <textarea
-          rows={3}
-          value={content.intro}
-          onChange={(e) => patch({ intro: e.target.value })}
-          className={`mt-2 ${inputCls}`}
-        />
+        <div className="mt-2">
+          <NoticeEditor value={content.intro} onChange={(intro) => patch({ intro })} />
+        </div>
       </section>
 
       <section>
@@ -133,12 +131,9 @@ export function GuideContentForm({ content: initial }: { content: GuideContent }
 
       <section>
         <h3 className="text-[14px] font-semibold">대관 패키지 구성 — 소개 문단</h3>
-        <textarea
-          rows={3}
-          value={content.packageIntro}
-          onChange={(e) => patch({ packageIntro: e.target.value })}
-          className={`mt-2 ${inputCls}`}
-        />
+        <div className="mt-2">
+          <NoticeEditor value={content.packageIntro} onChange={(packageIntro) => patch({ packageIntro })} />
+        </div>
         <h3 className="mt-4 text-[14px] font-semibold">대관 패키지 구성 — 세부 항목</h3>
         <div className="mt-2">
           <TextListEditor items={content.packageBullets} onChange={(packageBullets) => patch({ packageBullets })} />
@@ -147,12 +142,9 @@ export function GuideContentForm({ content: initial }: { content: GuideContent }
 
       <section>
         <h3 className="text-[14px] font-semibold">대관 규약 — 소개 문단</h3>
-        <textarea
-          rows={3}
-          value={content.rulesIntro}
-          onChange={(e) => patch({ rulesIntro: e.target.value })}
-          className={`mt-2 ${inputCls}`}
-        />
+        <div className="mt-2">
+          <NoticeEditor value={content.rulesIntro} onChange={(rulesIntro) => patch({ rulesIntro })} />
+        </div>
       </section>
 
       {message && <p className="text-[13px] text-good">{message}</p>}

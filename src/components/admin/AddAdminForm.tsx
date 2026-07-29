@@ -5,7 +5,7 @@ import { useState } from "react";
 
 export function AddAdminForm() {
   const router = useRouter();
-  const [form, setForm] = useState({ email: "", password: "", name: "" });
+  const [form, setForm] = useState({ username: "", email: "", password: "", name: "" });
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
@@ -25,8 +25,8 @@ export function AddAdminForm() {
         setError(data.error || "계정 생성에 실패했습니다.");
         return;
       }
-      setSuccess(`${data.user.email} 계정이 생성되었습니다.`);
-      setForm({ email: "", password: "", name: "" });
+      setSuccess(`${data.user.username} 계정이 생성되었습니다.`);
+      setForm({ username: "", email: "", password: "", name: "" });
       router.refresh();
     } finally {
       setSubmitting(false);
@@ -41,7 +41,14 @@ export function AddAdminForm() {
         아직 없어 비밀번호를 안전한 채널로 별도 전달해야 합니다.)
       </p>
 
-      <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-3">
+      <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-4">
+        <input
+          type="text"
+          placeholder="아이디 (영문 소문자/숫자, 4~20자)"
+          value={form.username}
+          onChange={(e) => setForm({ ...form, username: e.target.value })}
+          className="rounded border border-border bg-background px-3 py-2 text-[13px] outline-none focus:border-accent"
+        />
         <input
           type="email"
           placeholder="이메일"

@@ -42,7 +42,10 @@ export default async function GuidePage() {
         <h1 className="mt-3 text-[30px] font-semibold tracking-tight sm:text-[36px]">
           대관 안내
         </h1>
-        <p className="mt-6 max-w-3xl text-[15px] leading-8 text-muted">{intro}</p>
+        <div
+          className="mt-6 max-w-3xl text-[15px] leading-8 text-muted [&_a]:text-accent [&_a]:underline [&_li]:mt-1 [&_p]:my-2 [&_p]:first:mt-0 [&_p]:last:mb-0 [&_strong]:text-foreground [&_ul]:list-disc [&_ul]:pl-5"
+          dangerouslySetInnerHTML={{ __html: intro }}
+        />
 
         <Section id="process" title="대관 절차">
           <div className="space-y-3">
@@ -70,7 +73,10 @@ export default async function GuidePage() {
         </Section>
 
         <Section id="rates" title="대관 패키지 구성">
-          <p className="text-[13.5px] leading-7 text-muted">{packageIntro}</p>
+          <div
+            className="text-[13.5px] leading-7 text-muted [&_a]:text-accent [&_a]:underline [&_li]:mt-1 [&_p]:my-2 [&_p]:first:mt-0 [&_p]:last:mb-0 [&_strong]:text-foreground [&_ul]:list-disc [&_ul]:pl-5"
+            dangerouslySetInnerHTML={{ __html: packageIntro }}
+          />
           <ul className="mt-4 space-y-1.5 text-[13px] text-muted">
             {packageBullets.map((b) => (
               <li key={b} className="flex gap-1.5">
@@ -89,7 +95,10 @@ export default async function GuidePage() {
         </Section>
 
         <Section id="rules" title="대관 규약">
-          <p className="text-[13.5px] leading-7 text-muted">{rulesIntro}</p>
+          <div
+            className="text-[13.5px] leading-7 text-muted [&_a]:text-accent [&_a]:underline [&_li]:mt-1 [&_p]:my-2 [&_p]:first:mt-0 [&_p]:last:mb-0 [&_strong]:text-foreground [&_ul]:list-disc [&_ul]:pl-5"
+            dangerouslySetInnerHTML={{ __html: rulesIntro }}
+          />
           <div className="mt-4 flex items-center justify-between border border-dashed border-border px-4 py-3 text-[12.5px] text-muted">
             <span>서울아레나 대관규약 전문</span>
             <span className="rounded bg-panel-strong px-2 py-1 text-[11px] font-medium">

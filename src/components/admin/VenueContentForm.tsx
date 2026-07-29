@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import type { VenueAmenity, VenueContent, VenueHall, VenueSpec } from "@/lib/content/types";
+import { NoticeEditor } from "./NoticeEditor";
 
 const inputCls =
   "w-full rounded-sm border border-border bg-background px-3 py-2 text-[13px] outline-none focus:border-accent";
@@ -131,22 +132,16 @@ export function VenueContentForm({ content: initial }: { content: VenueContent }
     <div className="space-y-8">
       <section>
         <h3 className="text-[14px] font-semibold">상단 소개 문구</h3>
-        <textarea
-          rows={3}
-          value={content.intro}
-          onChange={(e) => patch({ intro: e.target.value })}
-          className={`mt-2 ${inputCls}`}
-        />
+        <div className="mt-2">
+          <NoticeEditor value={content.intro} onChange={(intro) => patch({ intro })} />
+        </div>
       </section>
 
       <section>
         <h3 className="text-[14px] font-semibold">시설 개요 — 소개 문단</h3>
-        <textarea
-          rows={3}
-          value={content.overviewIntro}
-          onChange={(e) => patch({ overviewIntro: e.target.value })}
-          className={`mt-2 ${inputCls}`}
-        />
+        <div className="mt-2">
+          <NoticeEditor value={content.overviewIntro} onChange={(overviewIntro) => patch({ overviewIntro })} />
+        </div>
 
         <h3 className="mt-6 text-[14px] font-semibold">시설 카드 (아레나/중형공연장/컨벤션)</h3>
         <div className="mt-2 space-y-3">
@@ -194,12 +189,9 @@ export function VenueContentForm({ content: initial }: { content: VenueContent }
 
       <section>
         <h3 className="text-[14px] font-semibold">시설 제원 — 소개 문단</h3>
-        <textarea
-          rows={2}
-          value={content.specsIntro}
-          onChange={(e) => patch({ specsIntro: e.target.value })}
-          className={`mt-2 ${inputCls}`}
-        />
+        <div className="mt-2">
+          <NoticeEditor value={content.specsIntro} onChange={(specsIntro) => patch({ specsIntro })} />
+        </div>
 
         <h3 className="mt-6 text-[14px] font-semibold">시설별 제원표</h3>
         <div className="mt-2 space-y-3">
