@@ -2,7 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-import type { VenueAmenity, VenueContent, VenueHall, VenueSpec } from "@/lib/content/types";
+import type { VenueAmenity, VenueContent, VenueHall, VenueKeyMap, VenueSpec } from "@/lib/content/types";
 import { NoticeEditor } from "./NoticeEditor";
 
 const inputCls =
@@ -50,6 +50,7 @@ export function VenueContentForm({ content: initial }: { content: VenueContent }
   const [content, setContent] = useState<VenueContent>(initial);
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
+  const [keyMapUploading, setKeyMapUploading] = useState(false);
 
   function patch(p: Partial<VenueContent>) {
     setContent((prev) => ({ ...prev, ...p }));
@@ -126,6 +127,32 @@ export function VenueContentForm({ content: initial }: { content: VenueContent }
   }
   function removeAmenity(key: "arenaAmenities" | "mediumHallAmenities", i: number) {
     patch({ [key]: content[key].filter((_, j) => j !== i) } as Partial<VenueContent>);
+  }
+
+  async function uploadKeyMap(e: React.ChangeEvent<HTMLInputElement>) {
+    const files = Array.from(e.target.files ?? []);
+    if (files.length === 0) return;
+    setKeyMapUploading(true);
+    try {
+      const uploaded: VenueKeyMap[] = [];
+      for (const file of files) {
+        const formData = new FormData();
+        formData.append("file", file);
+        const res = await fetch("/api/admin/notices/upload", { method: "POST", body: formData });
+        const data = await res.json();
+        if (res.ok) uploaded.push({ url: data.url, label: "" });
+      }
+      patch({ keyMaps: [...content.keyMaps, ...uploaded] });
+    } finally {
+      setKeyMapUploading(false);
+      e.target.value = "";
+    }
+  }
+  function updateKeyMap(i: number, patchK: Partial<VenueKeyMap>) {
+    patch({ keyMaps: content.keyMaps.map((k, j) => (j === i ? { ...k, ...patchK } : k)) });
+  }
+  function removeKeyMap(i: number) {
+    patch({ keyMaps: content.keyMaps.filter((_, j) => j !== i) });
   }
 
   return (
@@ -279,6 +306,36 @@ export function VenueContentForm({ content: initial }: { content: VenueContent }
             </div>
           </div>
         ))}
+      </section>
+
+      <section>
+        <h3 className="text-[14px] font-semibold">키맵 (시설 배치도)</h3>
+        <p className="mt-1 text-[12px] text-muted">
+          층별 배치도 이미지를 업로드하면 시설 개요 하단에 갤러리로 표시됩니다.
+        </p>
+        <div className="mt-3 grid grid-cols-1 gap-4 sm:grid-cols-2">
+          {content.keyMaps.map((k, i) => (
+            <div key={i} className={cardCls}>
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={k.url} alt={k.label || `키맵 ${i + 1}`} className="w-full rounded-sm border border-border" />
+              <div className="mt-2 flex items-center gap-2">
+                <input
+                  value={k.label}
+                  placeholder="라벨 (예: 1F, 2F)"
+                  onChange={(e) => updateKeyMap(i, { label: e.target.value })}
+                  className={inputCls}
+                />
+                <button type="button" onClick={() => removeKeyMap(i)} className={removeBtnCls}>
+                  삭제
+                </button>
+              </div>
+            </div>
+          ))}
+        </div>
+        <label className="mt-3 inline-block">
+          <span className={addBtnCls}>{keyMapUploading ? "업로드 중..." : "+ 키맵 이미지 업로드"}</span>
+          <input type="file" accept="image/*" multiple onChange={uploadKeyMap} disabled={keyMapUploading} className="hidden" />
+        </label>
       </section>
 
       {message && <p className="text-[13px] text-good">{message}</p>}

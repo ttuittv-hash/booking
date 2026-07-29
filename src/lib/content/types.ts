@@ -16,6 +16,11 @@ export interface VenueAmenity {
   desc: string;
 }
 
+export interface VenueKeyMap {
+  url: string;
+  label: string;
+}
+
 export interface VenueContent {
   intro: string;
   overviewIntro: string;
@@ -26,6 +31,7 @@ export interface VenueContent {
   providedFacilities: string[];
   arenaAmenities: VenueAmenity[];
   mediumHallAmenities: VenueAmenity[];
+  keyMaps: VenueKeyMap[];
 }
 
 export interface GuideStep {

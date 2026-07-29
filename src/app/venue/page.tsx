@@ -55,6 +55,7 @@ export default async function VenuePage() {
     providedFacilities: PROVIDED_FACILITIES,
     arenaAmenities: ARENA_AMENITIES,
     mediumHallAmenities: MEDIUM_HALL_AMENITIES,
+    keyMaps: KEY_MAPS,
   } = getVenueContent();
 
   return (
@@ -100,6 +101,25 @@ export default async function VenuePage() {
               </li>
             ))}
           </ul>
+
+          {KEY_MAPS.length > 0 && (
+            <div className="mt-10">
+              <div className="text-[13px] font-semibold">키맵</div>
+              <div className="mt-4 grid grid-cols-1 gap-5 sm:grid-cols-2">
+                {KEY_MAPS.map((k, i) => (
+                  <div key={i}>
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src={k.url}
+                      alt={k.label || `키맵 ${i + 1}`}
+                      className="w-full rounded-sm border border-border"
+                    />
+                    {k.label && <div className="mt-2 text-[12.5px] font-medium text-muted">{k.label}</div>}
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
         </Section>
 
         <Section id="specs" title="아레나 / 중형공연장 시설 제원">

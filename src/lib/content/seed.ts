@@ -104,6 +104,7 @@ export const DEFAULT_VENUE_CONTENT: VenueContent = {
     { name: "화장실 및 장애인 화장실", desc: "전층 운영" },
     { name: "운영지원 공간 (BOH Support Area)", desc: "" },
   ],
+  keyMaps: [],
 };
 
 export const DEFAULT_GUIDE_CONTENT: GuideContent = {
