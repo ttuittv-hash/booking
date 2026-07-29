@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { getCurrentUser } from "@/lib/auth";
+import { getCurrentUser, isPendingApplicant } from "@/lib/auth";
 import { listQuotes } from "@/lib/db";
 import { won } from "@/lib/format";
 import type { Quote } from "@/lib/pricing/types";
@@ -16,6 +16,7 @@ export default async function MyPage() {
   const user = await getCurrentUser();
   if (!user) redirect("/login");
   if (user.role !== "APPLICANT") redirect("/admin");
+  if (isPendingApplicant(user)) redirect("/pending");
 
   const quotes = listQuotes({ applicantId: user.id });
 
@@ -29,14 +30,6 @@ export default async function MyPage() {
           {user.companyName ? `${user.companyName} · ` : ""}
           {user.email}
         </p>
-
-        {user.approvalStatus !== "APPROVED" && (
-          <p className="mt-4 rounded border border-warn/30 bg-warn-soft px-4 py-3 text-[13px] text-warn">
-            {user.approvalStatus === "PENDING"
-              ? "가입 승인 대기 중입니다. 운영자 승인이 완료되면 대관 신청을 진행할 수 있습니다."
-              : "가입이 승인되지 않았습니다. 자세한 사항은 운영자에게 문의해주세요."}
-          </p>
-        )}
 
         <div className="mt-8 overflow-x-auto rounded border border-border">
           <table className="w-full min-w-[720px] border-collapse text-[13px]">

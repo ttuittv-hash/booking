@@ -18,12 +18,12 @@ export function PublicHeader({
 }) {
   return (
     <header className="sticky top-0 z-20 border-b border-border/70 bg-background/80 backdrop-blur-md">
-      <div className="mx-auto flex h-14 max-w-6xl items-center gap-x-8 overflow-x-auto whitespace-nowrap px-4 sm:h-16 sm:px-6">
-        <Link href="/" className="shrink-0 text-[15px] font-semibold tracking-tight">
+      <div className="mx-auto flex h-14 max-w-6xl items-center gap-x-8 px-4 sm:h-16 sm:px-6">
+        <Link href="/" className="shrink-0 whitespace-nowrap text-[15px] font-semibold tracking-tight">
           SEOUL ARENA
         </Link>
 
-        <nav className="flex shrink-0 items-center gap-x-6 text-[13px] text-muted">
+        <nav className="flex min-w-0 shrink items-center gap-x-6 overflow-x-auto whitespace-nowrap text-[13px] text-muted">
           {NAV_LINKS.map((link) => (
             <Link
               key={link.href}

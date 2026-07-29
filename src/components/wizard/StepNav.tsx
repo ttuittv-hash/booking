@@ -31,7 +31,7 @@ export function StepNav({
             disabled={disabled}
             onClick={() => onJump(s)}
             className={[
-              "shrink-0 whitespace-nowrap border-b-2 px-3 py-3 text-[13px] font-medium transition-colors",
+              "shrink-0 whitespace-nowrap border-b-2 px-3 py-3 text-[13px] font-medium outline-none transition-colors",
               isActive
                 ? "border-accent text-accent"
                 : "border-transparent text-muted hover:text-foreground",

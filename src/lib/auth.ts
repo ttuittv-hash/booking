@@ -82,3 +82,8 @@ export async function requireRole(role: UserRole): Promise<AppUser | null> {
   if (!user || user.role !== role) return null;
   return user;
 }
+
+// 승인 대기·거절 상태의 신청자(대관사) 계정 여부 — 대관 안내/신청 관련 화면 접근 제한에 사용
+export function isPendingApplicant(user: AppUser): boolean {
+  return user.role === "APPLICANT" && user.approvalStatus !== "APPROVED";
+}

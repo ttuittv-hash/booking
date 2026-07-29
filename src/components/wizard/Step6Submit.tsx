@@ -82,13 +82,15 @@ export function Step6Submit({
       </div>
 
       {submittedId ? (
-        <div className="mt-5 rounded-sm border border-good/30 bg-good-soft px-4 py-3.5 text-[13.5px] text-good">
-          신청서가 생성되었습니다. 신청번호{" "}
-          <b className="font-semibold">{submittedId}</b> · 상태: 예상견적
-          (ESTIMATE). 관리자 심사 → 계약 → 정산 순으로 진행됩니다.
-          <div className="mt-2 flex gap-4">
+        <div className="mt-5 rounded-sm border border-good/30 bg-good-soft px-5 py-4 text-[13.5px] text-good">
+          <p className="font-semibold">신청이 접수되었습니다.</p>
+          <p className="mt-1.5 leading-6">
+            운영자 심사 → 계약 → 정산 순으로 진행되며, 각 단계가 완료되면
+            알림으로 안내해 드립니다.
+          </p>
+          <div className="mt-3 flex gap-4">
             <Link href={`/mypage/${submittedId}`} className="font-semibold underline">
-              신청 상세·첨부서류 관리
+              신청 내역 확인
             </Link>
             <Link href={`/print/${submittedId}`} target="_blank" className="font-semibold underline">
               인쇄 / PDF 저장
