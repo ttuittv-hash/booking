@@ -86,7 +86,7 @@ export default async function GuidePage() {
             ))}
           </ul>
           <Link
-            href="/apply"
+            href="/packages"
             className="mt-5 inline-flex items-center gap-1 rounded bg-accent px-6 py-3 text-[14px] font-semibold text-white transition-colors hover:bg-accent-hover"
           >
             패키지 구성 확인하기
