@@ -36,10 +36,10 @@ export default async function Home() {
             APPLICATION PROCESS
           </p>
           <h2 className="mt-2 text-[22px] font-semibold tracking-tight sm:text-[26px]">
-            신청 절차는 단 3단계입니다
+            신청 절차 안내
           </h2>
 
-          <div className="mt-10 grid grid-cols-1 gap-px overflow-hidden rounded border border-border bg-border text-left sm:grid-cols-3">
+          <div className="mt-10 grid grid-cols-1 gap-4 text-left sm:grid-cols-3">
             {[
               {
                 no: "01",
@@ -53,11 +53,21 @@ export default async function Home() {
               },
               {
                 no: "03",
-                title: "신청서 제출로 절차 시작",
-                desc: "제출한 신청서는 운영자 심사를 거쳐 계약과 정산으로 이어집니다.",
+                title: "신청서 제출",
+                desc: "입력한 내용으로 대관 신청서를 접수합니다.",
+              },
+              {
+                no: "04",
+                title: "심사",
+                desc: "운영자가 일정·공연 내용·시설 적합성 등을 종합적으로 검토합니다.",
+              },
+              {
+                no: "05",
+                title: "결과 안내",
+                desc: "승인·보류·거절 결과를 알림으로 안내해 드립니다.",
               },
             ].map((s) => (
-              <div key={s.no} className="bg-background p-7">
+              <div key={s.no} className="rounded border border-border bg-background p-7">
                 <div className="text-[26px] font-semibold tabular-nums text-border">
                   {s.no}
                 </div>
