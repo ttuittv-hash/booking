@@ -20,7 +20,7 @@ export default async function NoticesPage() {
     <div className="flex flex-1 flex-col">
       <PublicHeader active="/notices" currentUser={currentUser} />
 
-      <main className="mx-auto w-full max-w-4xl flex-1 px-6 py-16 sm:px-8">
+      <main className="mx-auto w-full max-w-5xl flex-1 px-6 py-16 sm:px-8">
         <p className="text-[13px] font-semibold uppercase tracking-[0.14em] text-accent">NOTICE</p>
         <h1 className="mt-3 text-[30px] font-semibold tracking-tight sm:text-[36px]">공지사항</h1>
         <p className="mt-6 max-w-3xl text-[15px] leading-8 text-muted">
