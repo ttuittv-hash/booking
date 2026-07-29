@@ -18,12 +18,12 @@ export function PublicHeader({
 }) {
   return (
     <header className="sticky top-0 z-20 border-b border-border/70 bg-background/80 backdrop-blur-md">
-      <div className="mx-auto flex max-w-6xl flex-wrap items-center gap-x-8 gap-y-2 px-4 py-3 sm:px-6 sm:py-4">
-        <Link href="/" className="shrink-0 whitespace-nowrap text-[15px] font-semibold tracking-tight">
+      <div className="mx-auto flex h-14 max-w-6xl items-center gap-x-8 overflow-x-auto whitespace-nowrap px-4 sm:h-16 sm:px-6">
+        <Link href="/" className="shrink-0 text-[15px] font-semibold tracking-tight">
           SEOUL ARENA
         </Link>
 
-        <nav className="flex flex-wrap items-center gap-x-6 gap-y-2 text-[13px] text-muted">
+        <nav className="flex shrink-0 items-center gap-x-6 text-[13px] text-muted">
           {NAV_LINKS.map((link) => (
             <Link
               key={link.href}
@@ -35,7 +35,7 @@ export function PublicHeader({
           ))}
         </nav>
 
-        <div className="ml-auto flex flex-wrap items-center gap-x-4 gap-y-2 text-[13px] text-muted">
+        <div className="ml-auto flex shrink-0 items-center gap-x-4 text-[13px] text-muted">
           {currentUser ? (
             <>
               <span className="hidden whitespace-nowrap sm:inline">{currentUser.name} 님</span>
