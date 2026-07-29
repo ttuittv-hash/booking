@@ -1,4 +1,8 @@
-import type { GuideContent, VenueContent } from "./types";
+import type { GuideContent, HomeContent, VenueContent } from "./types";
+
+export const DEFAULT_HOME_CONTENT: HomeContent = {
+  heroImage: null,
+};
 
 export const DEFAULT_VENUE_CONTENT: VenueContent = {
   intro:
@@ -76,12 +80,12 @@ export const DEFAULT_VENUE_CONTENT: VenueContent = {
       cards: [
         {
           title: "글로벌 TOP 수준 음향 설계",
-          desc: "건축 단계에만 반영 가능한 음향 설계, 전 좌석 동일한 최고 품질 사운드 제공",
+          desc: "내부 마감재·구조 설계·음향 시뮬레이션으로 잔향과 에코를 최소화(잔향시간 2.8초, 글로벌 평균 3.2초 대비 우수)했으며, 전체 관객석에 고른 음향 분포도를 확보했습니다.",
           image: null,
         },
         {
           title: "객석 시야거리 최단 개선",
-          desc: "최대 시야거리 및 시야방해석 절감",
+          desc: "'C' Value 평균값 208.94로 어느 위치에서도 무대 시야가 확보되며, End-Stage 기준 무대·객석 후미 간 거리 최대 90m(고척스카이돔 150m, 인스파이어 아레나 75m)로 친밀한 공간감을 구현했습니다.",
           image: null,
         },
         {
@@ -109,12 +113,12 @@ export const DEFAULT_VENUE_CONTENT: VenueContent = {
       cards: [
         {
           title: "최첨단 리깅 인프라",
-          desc: "상부 구조물 자동 하강 시스템으로 무대 설치 시간의 획기적 감소 & 안정성 확보",
+          desc: "플로어 전 영역을 커버하는 마더트러스 기반 자동하강(윈치·호이스트) 시스템으로 대형 구조물 설치 시간을 반나절 이상 단축합니다.",
           image: null,
         },
         {
           title: "초대형 세트 반입 가능",
-          desc: "대형 차량이 공연장 내부까지 진입 가능, 글로벌 투어 제작 환경 완벽 지원",
+          desc: "플로어 직진입형 Truck Dock(9.9m x 4.5m, 40ft 컨테이너 진입 가능)과 604㎡ 규모 실내 하역 공간으로 기상 영향 없이 안정적으로 상하차·적재할 수 있습니다.",
           image: null,
         },
         {
@@ -123,8 +127,41 @@ export const DEFAULT_VENUE_CONTENT: VenueContent = {
           image: null,
         },
         {
+          title: "부대 제작·운영 편의 시설",
+          desc: "대기실·연습실 포함 총 40개실 이상의 운영 부속 공간과 프레스룸·녹음실·회의실·스탭식당 등 공연 준비부터 운영까지 전 단계를 지원하는 시설을 갖췄습니다.",
+          image: null,
+        },
+        {
           title: "압도적 전력 인프라",
           desc: "대규모 공연·특수효과를 위한 안정적 전력 공급",
+          image: null,
+        },
+      ],
+    },
+    {
+      badges: ["ARTIST", "AUDIENCE", "PRODUCER"],
+      highlightBadge: "ARTIST",
+      title: "연출 다각화 인프라",
+      subtitle: "무대·연출·관객 경험을 유기적으로 연결하는 통합 연출 플랫폼",
+      cards: [
+        {
+          title: "이동식 스마트 스테이지",
+          desc: "자동 이송 무대 시스템을 통해 아티스트가 관객과 직접 소통하는 연출을 구현합니다.",
+          image: null,
+        },
+        {
+          title: "센터 리프트",
+          desc: "무대 중앙 등퇴장 연출을 지원하며, 대기실과 인접한 지하 동선으로 이동 전환을 최소화합니다.",
+          image: null,
+        },
+        {
+          title: "객석 연동형 LED",
+          desc: "실시간 인터랙티브 객석 LED와 응원봉 연동으로 공연장 전체를 하나의 비주얼 캔버스로 확장합니다.",
+          image: null,
+        },
+        {
+          title: "온·오프라인 통합 송출",
+          desc: "멀티캠·라이브 편집이 가능한 방송급 신호 체계로 고화질 중계와 글로벌 실시간 스트리밍을 지원합니다.",
           image: null,
         },
       ],

@@ -65,3 +65,7 @@ export interface GuideContent {
   packageBullets: string[];
   rulesIntro: string;
 }
+
+export interface HomeContent {
+  heroImage: string | null;
+}

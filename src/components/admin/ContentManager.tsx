@@ -3,13 +3,14 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import type { Faq, Notice } from "@/lib/pricing/types";
-import type { GuideContent, VenueContent } from "@/lib/content/types";
+import type { GuideContent, HomeContent, VenueContent } from "@/lib/content/types";
 import { TagBadge } from "@/components/TagBadge";
 import { NoticeEditor } from "./NoticeEditor";
 import { VenueContentForm } from "./VenueContentForm";
 import { GuideContentForm } from "./GuideContentForm";
+import { HomeContentForm } from "./HomeContentForm";
 
-type Tab = "notices" | "faq" | "venue" | "guide";
+type Tab = "notices" | "faq" | "home" | "venue" | "guide";
 
 function isHtmlBodyEmpty(html: string): boolean {
   return html.replace(/<[^>]+>/g, "").trim().length === 0 && !html.includes("<img");
@@ -23,11 +24,13 @@ function stripHtml(html: string, max = 100): string {
 export function ContentManager({
   notices: initialNotices,
   faqs: initialFaqs,
+  homeContent,
   venueContent,
   guideContent,
 }: {
   notices: Notice[];
   faqs: Faq[];
+  homeContent: HomeContent;
   venueContent: VenueContent;
   guideContent: GuideContent;
 }) {
@@ -43,6 +46,7 @@ export function ContentManager({
           [
             ["notices", `공지사항 (${notices.length})`],
             ["faq", `FAQ (${faqs.length})`],
+            ["home", "홈 화면"],
             ["venue", "서울아레나 소개"],
             ["guide", "대관 안내"],
           ] as const
@@ -66,6 +70,7 @@ export function ContentManager({
       <div className="mt-6">
         {tab === "notices" && <NoticesTab notices={notices} setNotices={setNotices} router={router} />}
         {tab === "faq" && <FaqTab faqs={faqs} setFaqs={setFaqs} router={router} />}
+        {tab === "home" && <HomeContentForm content={homeContent} />}
         {tab === "venue" && <VenueContentForm content={venueContent} />}
         {tab === "guide" && <GuideContentForm content={guideContent} />}
       </div>

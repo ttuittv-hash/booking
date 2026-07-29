@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/lib/auth";
-import { getGuideContent, getVenueContent, listFaqs, listNotices } from "@/lib/db";
+import { getGuideContent, getHomeContent, getVenueContent, listFaqs, listNotices } from "@/lib/db";
 import { AdminNav } from "@/components/admin/AdminNav";
 import { ContentManager } from "@/components/admin/ContentManager";
 
@@ -11,6 +11,7 @@ export default async function AdminContentPage() {
 
   const notices = listNotices();
   const faqs = listFaqs();
+  const homeContent = getHomeContent();
   const venueContent = getVenueContent();
   const guideContent = getGuideContent();
 
@@ -25,7 +26,13 @@ export default async function AdminContentPage() {
           저장하면 해당 화면에 바로 반영됩니다.
         </p>
 
-        <ContentManager notices={notices} faqs={faqs} venueContent={venueContent} guideContent={guideContent} />
+        <ContentManager
+          notices={notices}
+          faqs={faqs}
+          homeContent={homeContent}
+          venueContent={venueContent}
+          guideContent={guideContent}
+        />
       </main>
     </div>
   );

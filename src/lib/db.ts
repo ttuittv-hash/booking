@@ -6,8 +6,8 @@ import path from "node:path";
 import { DATA_DIR } from "./dataDir";
 import { buildSeedRateTable } from "./pricing/seed";
 import { SEED_PAGES } from "./pricing/pageSeed";
-import { DEFAULT_GUIDE_CONTENT, DEFAULT_VENUE_CONTENT } from "./content/seed";
-import type { GuideContent, VenueContent } from "./content/types";
+import { DEFAULT_GUIDE_CONTENT, DEFAULT_HOME_CONTENT, DEFAULT_VENUE_CONTENT } from "./content/seed";
+import type { GuideContent, HomeContent, VenueContent } from "./content/types";
 import type {
   ApprovalStatus,
   AppNotification,
@@ -1455,4 +1455,14 @@ export function getGuideContent(): GuideContent {
 
 export function saveGuideContent(data: GuideContent): GuideContent {
   return saveSiteContent("guide", data);
+}
+
+export function getHomeContent(): HomeContent {
+  const stored = getSiteContent<Partial<HomeContent> | null>("home", null);
+  if (!stored) return DEFAULT_HOME_CONTENT;
+  return { ...DEFAULT_HOME_CONTENT, ...stored };
+}
+
+export function saveHomeContent(data: HomeContent): HomeContent {
+  return saveSiteContent("home", data);
 }
