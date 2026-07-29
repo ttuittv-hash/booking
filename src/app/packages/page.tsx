@@ -14,7 +14,8 @@ export const metadata: Metadata = {
 
 export default async function PackagesPage() {
   const currentUser = await getCurrentUser();
-  if (currentUser && isPendingApplicant(currentUser)) redirect("/pending");
+  if (!currentUser) redirect("/login");
+  if (isPendingApplicant(currentUser)) redirect("/pending");
 
   const rateTable = getCurrentRateTable();
   const packages = [...rateTable.packages].sort((a, b) => a.audienceTier.min - b.audienceTier.min);
