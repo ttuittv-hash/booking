@@ -175,51 +175,42 @@ export function VenueContentView({ content }: { content: VenueContent }) {
           </div>
         )}
 
-        {(
-          [
-            ["아레나", arenaAmenities],
-            ["중형공연장", mediumHallAmenities],
-          ] as const
-        ).map(([hallLabel, list]) => {
-          const featured = list.filter((f) => f.featured);
-          if (featured.length === 0) return null;
-          return (
-            <div key={hallLabel} className="mb-10">
-              <div className="text-[13.5px] font-semibold text-accent">{hallLabel} 주요 시설</div>
-              <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2">
-                {featured.map((f) => (
-                  <div key={f.name} className="rounded-sm border border-border bg-panel/50 p-4">
-                    <ImagePlaceholder src={f.image} alt={f.name} />
-                    <div className="mt-3 text-[13.5px] font-semibold">{f.name}</div>
-                    {f.desc && <p className="mt-1 text-[12.5px] leading-6 text-muted">{f.desc}</p>}
-                  </div>
-                ))}
-              </div>
-            </div>
-          );
-        })}
-
-        <div className="grid grid-cols-1 gap-8 sm:grid-cols-2">
+        <div className="grid grid-cols-1 gap-10 sm:grid-cols-2">
           {(
             [
               ["아레나 부대시설", arenaAmenities],
               ["중형공연장 부대시설", mediumHallAmenities],
             ] as const
-          ).map(([label, list]) => (
-            <div key={label}>
-              <div className="text-[13.5px] font-semibold text-accent">{label}</div>
-              <ul className="mt-3 divide-y divide-border/50">
-                {list
-                  .filter((f) => !f.featured)
-                  .map((f) => (
+          ).map(([label, list]) => {
+            const featured = list.filter((f) => f.featured);
+            const rest = list.filter((f) => !f.featured);
+            return (
+              <div key={label}>
+                <div className="text-[13.5px] font-semibold text-accent">{label}</div>
+
+                {featured.length > 0 && (
+                  <div className="mt-4 space-y-4">
+                    {featured.map((f) => (
+                      <div key={f.name} className="rounded-sm border border-border bg-panel/50 p-4">
+                        <ImagePlaceholder src={f.image} alt={f.name} />
+                        <div className="mt-3 text-[13.5px] font-semibold">{f.name}</div>
+                        {f.desc && <p className="mt-1 text-[12.5px] leading-6 text-muted">{f.desc}</p>}
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                <ul className="mt-3 divide-y divide-border/50">
+                  {rest.map((f) => (
                     <li key={f.name} className="py-2.5 text-[12.5px]">
                       <div className="font-semibold">{f.name}</div>
                       {f.desc && <div className="mt-0.5 text-muted">{f.desc}</div>}
                     </li>
                   ))}
-              </ul>
-            </div>
-          ))}
+                </ul>
+              </div>
+            );
+          })}
         </div>
         <p className="mt-4 text-[12px] text-muted">※ 시설별 제공 범위는 공연 규모 및 계약 조건에 따라 달라질 수 있습니다.</p>
       </Section>
