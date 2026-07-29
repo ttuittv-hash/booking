@@ -48,8 +48,13 @@ export default async function Home() {
             ))}
           </h1>
 
-          <p className="mx-auto mt-7 max-w-xl animate-[fade-up_0.7s_ease_both] text-balance text-[16px] leading-8 text-muted [animation-delay:160ms] sm:text-[17px]">
-            {heroSubtitle}
+          <p className="mx-auto mt-7 max-w-2xl animate-[fade-up_0.7s_ease_both] text-[15px] leading-8 text-muted [animation-delay:160ms] sm:max-w-4xl sm:text-[17px]">
+            {heroSubtitle.split("\n").map((line, i) => (
+              <span key={i}>
+                {i > 0 && <br />}
+                {line}
+              </span>
+            ))}
           </p>
 
           <div
@@ -160,6 +165,29 @@ export default async function Home() {
                   <p className="mt-2 text-[13px] leading-6 text-muted">{s.desc}</p>
                 </div>
               ))}
+              <Link
+                href={heroPrimaryHref}
+                className="group flex flex-col items-start justify-center rounded border border-accent bg-accent-soft p-7 transition-all hover:-translate-y-1 hover:shadow-[0_16px_32px_-20px_rgba(0,0,0,0.25)]"
+              >
+                <span className="text-[15px] font-semibold text-accent">대관 신청하기</span>
+                <span className="mt-2 inline-flex items-center gap-1.5 text-[13px] text-accent">
+                  지금 바로 신청서를 작성해 보세요
+                  <svg
+                    aria-hidden
+                    viewBox="0 0 16 16"
+                    fill="none"
+                    className="h-3 w-3 shrink-0 transition-transform group-hover:translate-x-1"
+                  >
+                    <path
+                      d="M5.5 3L10.5 8L5.5 13"
+                      stroke="currentColor"
+                      strokeWidth="1.6"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    />
+                  </svg>
+                </span>
+              </Link>
             </div>
           </div>
         </section>

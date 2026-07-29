@@ -119,7 +119,7 @@ export function HomeContentForm({ content: initial }: { content: HomeContent }) 
           <textarea rows={2} value={content.heroTitle} onChange={(e) => patch({ heroTitle: e.target.value })} className={inputCls} />
         </label>
         <label className="mt-3 block">
-          <span className={labelCls}>본문 문구</span>
+          <span className={labelCls}>본문 문구 (줄바꿈 가능)</span>
           <textarea rows={3} value={content.heroSubtitle} onChange={(e) => patch({ heroSubtitle: e.target.value })} className={inputCls} />
         </label>
         <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2">

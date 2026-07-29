@@ -177,7 +177,7 @@ export function VenueContentForm({ content: initial }: { content: VenueContent }
     patch({ [key]: content[key].map((a, j) => (j === i ? { ...a, ...patchA } : a)) } as Partial<VenueContent>);
   }
   function addAmenity(key: "arenaAmenities" | "mediumHallAmenities") {
-    patch({ [key]: [...content[key], { name: "", desc: "" }] } as Partial<VenueContent>);
+    patch({ [key]: [...content[key], { name: "", desc: "", image: null }] } as Partial<VenueContent>);
   }
   function removeAmenity(key: "arenaAmenities" | "mediumHallAmenities", i: number) {
     patch({ [key]: content[key].filter((_, j) => j !== i) } as Partial<VenueContent>);
@@ -574,22 +574,54 @@ export function VenueContentForm({ content: initial }: { content: VenueContent }
             <div className="text-[13px] font-medium text-accent">{label}</div>
             <div className="mt-2 space-y-2">
               {content[key].map((a, i) => (
-                <div key={i} className="flex items-center gap-2">
-                  <input
-                    value={a.name}
-                    placeholder="시설명"
-                    onChange={(e) => updateAmenityList(key, i, { name: e.target.value })}
-                    className={`w-56 shrink-0 ${inputCls}`}
-                  />
-                  <input
-                    value={a.desc}
-                    placeholder="설명 (선택)"
-                    onChange={(e) => updateAmenityList(key, i, { desc: e.target.value })}
-                    className={inputCls}
-                  />
-                  <button type="button" onClick={() => removeAmenity(key, i)} className={removeBtnCls}>
-                    삭제
-                  </button>
+                <div key={i} className={cardCls}>
+                  <div className="flex items-center gap-2">
+                    <input
+                      value={a.name}
+                      placeholder="시설명"
+                      onChange={(e) => updateAmenityList(key, i, { name: e.target.value })}
+                      className={`w-56 shrink-0 ${inputCls}`}
+                    />
+                    <input
+                      value={a.desc}
+                      placeholder="설명 (선택)"
+                      onChange={(e) => updateAmenityList(key, i, { desc: e.target.value })}
+                      className={inputCls}
+                    />
+                    <button type="button" onClick={() => removeAmenity(key, i)} className={removeBtnCls}>
+                      삭제
+                    </button>
+                  </div>
+                  <div className="mt-2">
+                    {a.image ? (
+                      <div className="flex items-center gap-2">
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img src={a.image} alt={a.name} className="h-14 w-24 rounded-sm border border-border object-cover" />
+                        <button
+                          type="button"
+                          onClick={() => updateAmenityList(key, i, { image: null })}
+                          className={removeBtnCls}
+                        >
+                          이미지 삭제
+                        </button>
+                      </div>
+                    ) : (
+                      <label className="inline-block">
+                        <span className={addBtnCls}>
+                          {imageUploading === `${key}-${i}` ? "업로드 중..." : "+ 이미지 업로드"}
+                        </span>
+                        <input
+                          type="file"
+                          accept="image/*"
+                          disabled={imageUploading === `${key}-${i}`}
+                          onChange={(e) =>
+                            uploadSingleImage(e, `${key}-${i}`, (url) => updateAmenityList(key, i, { image: url }))
+                          }
+                          className="hidden"
+                        />
+                      </label>
+                    )}
+                  </div>
                 </div>
               ))}
               <button type="button" onClick={() => addAmenity(key)} className={addBtnCls}>

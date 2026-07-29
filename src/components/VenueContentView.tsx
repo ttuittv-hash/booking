@@ -175,9 +175,17 @@ export function VenueContentView({ content }: { content: VenueContent }) {
             <div className="text-[13.5px] font-semibold text-accent">아레나 부대시설</div>
             <ul className="mt-3 divide-y divide-border/50">
               {arenaAmenities.map((f) => (
-                <li key={f.name} className="py-2.5 text-[12.5px]">
-                  <div className="font-semibold">{f.name}</div>
-                  {f.desc && <div className="mt-0.5 text-muted">{f.desc}</div>}
+                <li key={f.name} className="flex items-start gap-3 py-2.5 text-[12.5px]">
+                  {f.image && (
+                    <div className="h-12 w-16 shrink-0 overflow-hidden rounded-sm border border-border">
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img src={f.image} alt={f.name} className="h-full w-full object-cover" />
+                    </div>
+                  )}
+                  <div>
+                    <div className="font-semibold">{f.name}</div>
+                    {f.desc && <div className="mt-0.5 text-muted">{f.desc}</div>}
+                  </div>
                 </li>
               ))}
             </ul>
@@ -186,9 +194,17 @@ export function VenueContentView({ content }: { content: VenueContent }) {
             <div className="text-[13.5px] font-semibold text-accent">중형공연장 부대시설</div>
             <ul className="mt-3 divide-y divide-border/50">
               {mediumHallAmenities.map((f) => (
-                <li key={f.name} className="py-2.5 text-[12.5px]">
-                  <div className="font-semibold">{f.name}</div>
-                  {f.desc && <div className="mt-0.5 text-muted">{f.desc}</div>}
+                <li key={f.name} className="flex items-start gap-3 py-2.5 text-[12.5px]">
+                  {f.image && (
+                    <div className="h-12 w-16 shrink-0 overflow-hidden rounded-sm border border-border">
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img src={f.image} alt={f.name} className="h-full w-full object-cover" />
+                    </div>
+                  )}
+                  <div>
+                    <div className="font-semibold">{f.name}</div>
+                    {f.desc && <div className="mt-0.5 text-muted">{f.desc}</div>}
+                  </div>
                 </li>
               ))}
             </ul>
