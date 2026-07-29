@@ -175,21 +175,21 @@ export function VenueContentView({ content }: { content: VenueContent }) {
           </div>
         )}
 
-        <div className="grid grid-cols-1 gap-10 sm:grid-cols-2">
+        <div className="space-y-12">
           {(
             [
               ["아레나 부대시설", arenaAmenities],
               ["중형공연장 부대시설", mediumHallAmenities],
             ] as const
-          ).map(([label, list]) => {
+          ).map(([label, list], i) => {
             const featured = list.filter((f) => f.featured);
             const rest = list.filter((f) => !f.featured);
             return (
-              <div key={label}>
+              <div key={label} className={i > 0 ? "border-t border-border/60 pt-12" : ""}>
                 <div className="text-[13.5px] font-semibold text-accent">{label}</div>
 
                 {featured.length > 0 && (
-                  <div className="mt-4 space-y-4">
+                  <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2">
                     {featured.map((f) => (
                       <div key={f.name} className="rounded-sm border border-border bg-panel/50 p-4">
                         <ImagePlaceholder src={f.image} alt={f.name} />
@@ -200,9 +200,9 @@ export function VenueContentView({ content }: { content: VenueContent }) {
                   </div>
                 )}
 
-                <ul className="mt-3 divide-y divide-border/50">
+                <ul className="mt-3 grid grid-cols-1 gap-x-8 divide-y divide-border/50 sm:grid-cols-2">
                   {rest.map((f) => (
-                    <li key={f.name} className="py-2.5 text-[12.5px]">
+                    <li key={f.name} className="py-2.5 text-[12.5px] sm:border-b sm:border-border/50 sm:odd:pr-6">
                       <div className="font-semibold">{f.name}</div>
                       {f.desc && <div className="mt-0.5 text-muted">{f.desc}</div>}
                     </li>

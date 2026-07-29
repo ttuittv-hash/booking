@@ -27,7 +27,7 @@ const NAV_LINKS: {
     children: [
       { href: "/notices", label: "대관공지" },
       { href: "/guide#process", label: "대관절차" },
-      { href: "/packages", label: "대관료" },
+      { href: "/packages", label: "대관 패키지" },
       { href: "/guide#rules", label: "대관규약" },
       { href: "/guide/forms", label: "대관양식함" },
       { href: "/guide/image-guide", label: "이미지가이드" },

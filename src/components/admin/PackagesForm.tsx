@@ -537,7 +537,7 @@ export function PackagesForm({ rateTable }: { rateTable: RateTable }) {
           type="button"
           disabled={saving}
           onClick={save}
-          className="rounded-sm bg-accent px-7 py-3 text-[14px] font-semibold text-white transition-colors hover:bg-accent-hover disabled:opacity-50"
+          className="inline-flex min-w-[260px] shrink-0 items-center justify-center whitespace-nowrap rounded-sm bg-accent px-7 py-3 text-[14px] font-semibold text-white transition-colors hover:bg-accent-hover disabled:opacity-50"
         >
           {saving ? "저장 중..." : "패키지 구성 · 가격 저장 (새 버전 생성)"}
         </button>
