@@ -288,10 +288,10 @@ export function Step1Calendar({
 
       {selectedDates.length > 0 && (
         <div className="mt-5 border-t border-border pt-5">
-          <label className="text-[12.5px] font-medium text-muted">준비일 / 공연일 설정</label>
+          <label className="text-[12.5px] font-medium text-muted">공연 / 세팅 설정</label>
           <p className="mt-1.5 text-[12px] leading-5 text-muted">
-            선택하신 {selectedDates.length}일 각각을 준비일/공연일 중에서 직접 선택하세요. 기본값은
-            {" "}{defaultPerformanceDays}일이 공연일이며, 기본 공연일수보다 늘리거나 줄이면 대관료가
+            선택하신 {selectedDates.length}일 각각을 공연/세팅 중에서 직접 선택하세요. 기본값은
+            {" "}{defaultPerformanceDays}일이 공연이며, 기본 공연일수보다 늘리거나 줄이면 대관료가
             함께 조정됩니다.
           </p>
           <div className="mt-3 flex flex-wrap gap-2">
@@ -313,7 +313,7 @@ export function Step1Calendar({
                         : "bg-panel-strong text-muted hover:text-foreground",
                     ].join(" ")}
                   >
-                    {tag === "PERFORMANCE" ? "공연일" : "준비일"}
+                    {tag === "PERFORMANCE" ? "공연" : "세팅"}
                   </button>
                 </div>
               );

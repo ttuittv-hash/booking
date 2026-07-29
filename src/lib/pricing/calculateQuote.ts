@@ -77,7 +77,7 @@ export function calculateQuote(selection: QuoteSelection, rateTable: RateTable):
       items.push(
         makeLine(
           "performance_day_adjustment",
-          `공연일 조정 (기본 ${pkg.defaultPerformanceDays}일 대비 ${performanceDelta > 0 ? "+" : ""}${performanceDelta}일)`,
+          `공연 일수 조정 (기본 ${pkg.defaultPerformanceDays}일 대비 ${performanceDelta > 0 ? "+" : ""}${performanceDelta}일)`,
           "PER_DAY",
           performanceDayCount,
           pkg.defaultPerformanceDays,
