@@ -1,23 +1,50 @@
 "use client";
 
+import { resolveSelectedDates } from "@/lib/pricing/dateRange";
+import { defaultDayTags, effectiveDayTag, findAddon, findPackage, recommendPackage } from "@/lib/pricing/rateTableUtils";
+import { MEDIA_TIER_LABEL, type DayTag, type QuoteSelection, type RateTable } from "@/lib/pricing/types";
 import { won } from "@/lib/format";
-import { findAddon, recommendPackage } from "@/lib/pricing/rateTableUtils";
-import { MEDIA_TIER_LABEL, type RateTable } from "@/lib/pricing/types";
+
+const WEEKDAY_SHORT = ["일", "월", "화", "수", "목", "금", "토"];
+
+function formatDateLabel(iso: string): string {
+  const [, m, d] = iso.split("-").map(Number);
+  const date = new Date(iso);
+  return `${m}/${d}(${WEEKDAY_SHORT[date.getDay()]})`;
+}
 
 export function Step1Package({
   rateTable,
   packageId,
+  week,
+  excludedDays,
+  extraDays,
+  dayTags,
   expectedAudience,
   onSelectPackage,
   onChangeAudience,
+  onChangeDayTags,
 }: {
   rateTable: RateTable;
   packageId: number | null;
+  week: QuoteSelection["week"];
+  excludedDays: QuoteSelection["excludedDays"];
+  extraDays: number;
+  dayTags: Record<string, DayTag>;
   expectedAudience: number;
   onSelectPackage: (id: number) => void;
   onChangeAudience: (value: number) => void;
+  onChangeDayTags: (dayTags: Record<string, DayTag>) => void;
 }) {
   const recommended = recommendPackage(rateTable, expectedAudience);
+  const selectedPkg = findPackage(rateTable, packageId);
+  const selectedDates = resolveSelectedDates({ week, excludedDays, extraDays });
+  const defaults = selectedPkg ? defaultDayTags(selectedDates, selectedPkg.defaultPerformanceDays) : {};
+
+  function toggleDayTag(date: string) {
+    const current = effectiveDayTag(date, dayTags, defaults);
+    onChangeDayTags({ ...dayTags, [date]: current === "PERFORMANCE" ? "PREP" : "PERFORMANCE" });
+  }
 
   return (
     <section className="rounded border border-border bg-background p-7">
@@ -106,6 +133,39 @@ export function Step1Package({
           );
         })}
       </div>
+
+      {selectedPkg && selectedDates.length > 0 && (
+        <div className="mt-8 border-t border-border pt-6">
+          <h3 className="text-[14px] font-semibold">준비일 / 공연일 설정</h3>
+          <p className="mt-1.5 text-[12.5px] leading-5 text-muted">
+            선택하신 {selectedDates.length}일 중 기본 {selectedPkg.defaultPerformanceDays}일이
+            공연일로 지정됩니다. 날짜를 눌러 준비일/공연일을 조정할 수 있으며, 기본 공연일수보다
+            늘리거나 줄이면 대관료가 함께 조정됩니다.
+          </p>
+          <div className="mt-4 flex flex-wrap gap-2">
+            {selectedDates.map((date) => {
+              const tag = effectiveDayTag(date, dayTags, defaults);
+              const isPerformance = tag === "PERFORMANCE";
+              return (
+                <button
+                  key={date}
+                  type="button"
+                  onClick={() => toggleDayTag(date)}
+                  className={[
+                    "flex flex-col items-center gap-0.5 rounded-sm border px-3 py-2 text-[12px] font-medium transition-colors",
+                    isPerformance
+                      ? "border-accent bg-accent-soft text-accent"
+                      : "border-border bg-panel text-muted hover:border-accent/50",
+                  ].join(" ")}
+                >
+                  <span>{formatDateLabel(date)}</span>
+                  <span>{isPerformance ? "공연일" : "준비일"}</span>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      )}
     </section>
   );
 }

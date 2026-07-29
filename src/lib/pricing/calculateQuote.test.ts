@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { calculateQuote } from "./calculateQuote";
+import { resolveSelectedDates } from "./dateRange";
 import { extraDayPrice, findAddon, findPackage, includedQuantity } from "./rateTableUtils";
 import { buildSeedRateTable } from "./seed";
 import type { QuoteSelection } from "./types";
@@ -12,6 +13,7 @@ function baseSelection(overrides: Partial<QuoteSelection> = {}): QuoteSelection 
     week: { year: 2027, month: 8, weekOfMonth: 1 },
     excludedDays: [],
     extraDays: 0,
+    dayTags: {},
     expectedAudience: 8000,
     expectedRevenue: 0,
     addons: [],
@@ -134,6 +136,37 @@ describe("calculateQuote — 명세서 7장 검증 케이스", () => {
     );
     const line = quote.lineItems.find((i) => i.addonId === "online_streaming_fee")!;
     expect(line.amount).toBe(Math.round((100_000_000 * fee.unitPrice) / 100));
+  });
+
+  it("준비일/공연일 기본값(패키지 dayBreakdown) 그대로면 조정 항목이 생기지 않는다", () => {
+    const quote = calculateQuote(baseSelection(), RATE_TABLE);
+    expect(quote.lineItems.find((i) => i.addonId === "performance_day_adjustment")).toBeUndefined();
+  });
+
+  it("공연일을 기본값보다 늘리면 초과분만큼 할증된다", () => {
+    const dates = resolveSelectedDates(baseSelection());
+    const prepDate = dates[0]; // 기본값상 준비일(맨 앞 날짜)을 공연일로 재지정
+    const quote = calculateQuote(
+      baseSelection({ dayTags: { [prepDate]: "PERFORMANCE" } }),
+      RATE_TABLE,
+    );
+    const line = quote.lineItems.find((i) => i.addonId === "performance_day_adjustment")!;
+    const unitPrice = extraDayPrice(RATE_TABLE, pkg2);
+    expect(line.requested).toBe(pkg2.defaultPerformanceDays + 1);
+    expect(line.amount).toBe(unitPrice);
+  });
+
+  it("공연일을 기본값보다 줄이면 그만큼 차감된다", () => {
+    const dates = resolveSelectedDates(baseSelection());
+    const performanceDate = dates[dates.length - 1]; // 기본값상 공연일(맨 뒤 날짜)을 준비일로 재지정
+    const quote = calculateQuote(
+      baseSelection({ dayTags: { [performanceDate]: "PREP" } }),
+      RATE_TABLE,
+    );
+    const line = quote.lineItems.find((i) => i.addonId === "performance_day_adjustment")!;
+    const unitPrice = extraDayPrice(RATE_TABLE, pkg2);
+    expect(line.requested).toBe(pkg2.defaultPerformanceDays - 1);
+    expect(line.amount).toBe(-unitPrice);
   });
 
   it("패키지 미선택 시 라인아이템 없이 0원", () => {

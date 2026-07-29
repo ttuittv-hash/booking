@@ -21,6 +21,7 @@ const INITIAL_SELECTION: QuoteSelection = {
   week: { year: 2027, month: 8, weekOfMonth: 1 },
   excludedDays: [],
   extraDays: 0,
+  dayTags: {},
   expectedAudience: 8000,
   expectedRevenue: 0,
   addons: [],
@@ -60,7 +61,7 @@ export function WizardShell({
     const draft = loadWizardDraft();
     if (draft) {
       // eslint-disable-next-line react-hooks/set-state-in-effect
-      setSelection(draft.selection);
+      setSelection({ ...INITIAL_SELECTION, ...draft.selection, dayTags: draft.selection.dayTags ?? {} });
       setStep(draft.step);
     }
   }, []);
@@ -152,11 +153,16 @@ export function WizardShell({
           <Step1Package
             rateTable={rateTable}
             packageId={selection.packageId}
+            week={selection.week}
+            excludedDays={selection.excludedDays}
+            extraDays={selection.extraDays}
+            dayTags={selection.dayTags}
             expectedAudience={selection.expectedAudience}
             onSelectPackage={selectPackage}
             onChangeAudience={(value) =>
               setSelection((prev) => ({ ...prev, expectedAudience: value }))
             }
+            onChangeDayTags={(dayTags) => setSelection((prev) => ({ ...prev, dayTags }))}
           />
         )}
         {step === 3 && <Step3Included rateTable={rateTable} packageId={selection.packageId} />}

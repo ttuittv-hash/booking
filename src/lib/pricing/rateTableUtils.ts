@@ -1,4 +1,4 @@
-import type { AddonItem, QuoteSelection, RateTable, RentalPackage } from "./types";
+import type { AddonItem, DayTag, QuoteSelection, RateTable, RentalPackage } from "./types";
 
 export function findPackage(
   rateTable: RateTable,
@@ -45,4 +45,28 @@ export function extraDayPrice(rateTable: RateTable, pkg: RentalPackage): number 
 // 신청 총 대관일수 = 기본 6일(화~일) − 제외 요일 수 + 추가 일수
 export function totalRentalDays(selection: QuoteSelection): number {
   return 6 - selection.excludedDays.length + selection.extraDays;
+}
+
+// 준비일/공연일 기본값 — 패키지 기본 공연일수(dayBreakdown)만큼 날짜 뒤쪽(화요일에서 먼 날짜)을 공연일로 본다.
+export function defaultDayTags(dates: string[], defaultPerformanceDays: number): Record<string, DayTag> {
+  const performanceCount = Math.max(0, Math.min(defaultPerformanceDays, dates.length));
+  const performanceSet = new Set(dates.slice(dates.length - performanceCount));
+  const tags: Record<string, DayTag> = {};
+  for (const date of dates) tags[date] = performanceSet.has(date) ? "PERFORMANCE" : "PREP";
+  return tags;
+}
+
+// 날짜별 실제 적용 태그 — 사용자가 지정하지 않은 날짜는 패키지 기본값을 따른다.
+export function effectiveDayTag(
+  date: string,
+  dayTags: Record<string, DayTag>,
+  defaults: Record<string, DayTag>,
+): DayTag {
+  return dayTags?.[date] ?? defaults[date] ?? "PREP";
+}
+
+// 실제 공연일로 지정된 날짜 수 (기본값 미지정분은 패키지 기본값 적용)
+export function countPerformanceDays(dates: string[], dayTags: Record<string, DayTag>, defaultPerformanceDays: number): number {
+  const defaults = defaultDayTags(dates, defaultPerformanceDays);
+  return dates.filter((date) => effectiveDayTag(date, dayTags, defaults) === "PERFORMANCE").length;
 }

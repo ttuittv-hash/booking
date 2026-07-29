@@ -1,4 +1,5 @@
-import { extraDayPrice, findAddon, findPackage, includedQuantity } from "./rateTableUtils";
+import { resolveSelectedDates } from "./dateRange";
+import { countPerformanceDays, extraDayPrice, findAddon, findPackage, includedQuantity } from "./rateTableUtils";
 import type { EstimatedQuote, LineItem, PricingType, QuoteSelection, RateTable } from "./types";
 
 const METERED_NOTICE =
@@ -63,6 +64,26 @@ export function calculateQuote(selection: QuoteSelection, rateTable: RateTable):
           selection.extraDays,
           price,
           selection.extraDays * price,
+        ),
+      );
+    }
+
+    // (2-2) 준비일/공연일 조정 — 패키지 기본 공연일수 대비 실제 지정한 공연일수 차이만큼 가감
+    const selectedDates = resolveSelectedDates(selection);
+    const performanceDayCount = countPerformanceDays(selectedDates, selection.dayTags, pkg.defaultPerformanceDays);
+    const performanceDelta = performanceDayCount - pkg.defaultPerformanceDays;
+    if (performanceDelta !== 0) {
+      const unitPrice = extraDayPrice(rateTable, pkg);
+      items.push(
+        makeLine(
+          "performance_day_adjustment",
+          `공연일 조정 (기본 ${pkg.defaultPerformanceDays}일 대비 ${performanceDelta > 0 ? "+" : ""}${performanceDelta}일)`,
+          "PER_DAY",
+          performanceDayCount,
+          pkg.defaultPerformanceDays,
+          Math.abs(performanceDelta),
+          unitPrice,
+          performanceDelta * unitPrice,
         ),
       );
     }

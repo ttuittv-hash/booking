@@ -65,6 +65,7 @@ export interface RentalPackage {
   // 아래 항목은 "패키지 구성" 명세(대관시스템 노출)를 반영한 설명 정보입니다.
   // 과금 대상이 아니며(정찰제 대관료에 포함), 패키지 비교/안내용으로만 표시됩니다.
   dayBreakdown: string; // 세부 구성 — "준비 4일 + 공연 2일" (전 패키지 공통)
+  defaultPerformanceDays: number; // dayBreakdown의 공연일수(숫자) — 준비일/공연일 조정 과금의 기준값
   rentalHours: string; // 대관시간 — "09:00~22:00" (전 패키지 공통)
   outdoorPlazaIncluded: boolean; // 야외광장 + 티켓박스 포함 여부 (전 패키지 공통)
   parkingPerDay: string; // 주차 기본 제공 — "100대/일" (패키지별 상이)
@@ -126,11 +127,14 @@ export const WEEKDAY_LABEL: Record<WeekDay, string> = {
   SUN: "일",
 };
 
+export type DayTag = "PREP" | "PERFORMANCE";
+
 export interface QuoteSelection {
   packageId: number | null; // 1단계
   week: { year: number; month: number; weekOfMonth: number }; // 2단계 (화~일 시작 주)
   excludedDays: WeekDay[]; // 화~일 6일 중 실제 사용하지 않는 요일 (요일당 정액 할인, 최소 1일은 남겨야 함)
   extraDays: number; // 일요일 이후로 연장하는 추가 일수 (일 단위 과금, 0 이상)
+  dayTags: Record<string, DayTag>; // 실제 대관일(ISO 날짜)별 준비일/공연일 지정 — 미지정 시 패키지 기본값 적용
   expectedAudience: number; // 관객수 (청소비 등 자동 산출 입력값)
   expectedRevenue?: number; // 온라인 송출 수수료 계산용 (선택)
   addons: SelectedAddon[]; // 4단계 선택 항목
