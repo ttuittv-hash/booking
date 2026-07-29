@@ -22,7 +22,7 @@ export default async function AdminSchedulePage() {
           신청받을 수 있습니다.
         </p>
 
-        <ScheduleManager initialYear={now.getFullYear()} />
+        <ScheduleManager initialYear={now.getFullYear()} initialMonth={now.getMonth() + 1} />
       </main>
     </div>
   );
