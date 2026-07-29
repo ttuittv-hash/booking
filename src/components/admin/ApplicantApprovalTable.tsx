@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import type { AppUser } from "@/lib/pricing/types";
@@ -66,7 +67,11 @@ export function ApplicantApprovalTable({
           ) : (
             applicants.map((a) => (
               <tr key={a.id} className="border-b border-border/70">
-                <td className="px-4 py-3 font-medium">{a.name}</td>
+                <td className="px-4 py-3 font-medium">
+                  <Link href={`/admin/applicants/${a.id}`} className="text-accent hover:underline">
+                    {a.name}
+                  </Link>
+                </td>
                 <td className="px-4 py-3 text-muted">{a.companyName || "-"}</td>
                 <td className="px-4 py-3 text-muted">
                   {(a.companyId && businessRegistrationNumbers[a.companyId]) || "-"}
