@@ -3,6 +3,7 @@ import bcrypt from "bcryptjs";
 import crypto from "node:crypto";
 import fs from "node:fs";
 import path from "node:path";
+import { DATA_DIR } from "./dataDir";
 import { buildSeedRateTable } from "./pricing/seed";
 import type {
   ApprovalStatus,
@@ -21,7 +22,7 @@ import type {
   WeekDemand,
 } from "./pricing/types";
 
-const DB_PATH = path.join(process.cwd(), "data", "app.db");
+const DB_PATH = path.join(DATA_DIR, "app.db");
 
 declare global {
   var __seoulArenaDb: DatabaseSync | undefined;

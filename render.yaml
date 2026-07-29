@@ -2,13 +2,19 @@ services:
   - type: web
     name: seoul-arena-booking
     runtime: node
-    plan: free
+    plan: starter
     branch: claude/seoul-arena-booking-system-k6ivh4
     buildCommand: npm install && npm run build
     startCommand: npm run start
+    disk:
+      name: seoul-arena-data
+      mountPath: /var/data
+      sizeGB: 1
     envVars:
       - key: NODE_VERSION
         value: "22"
+      - key: DATA_DIR
+        value: /var/data
       - key: AUTH_SECRET
         generateValue: true
       - key: SEED_ADMIN_EMAIL

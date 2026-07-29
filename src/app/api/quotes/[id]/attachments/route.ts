@@ -3,9 +3,10 @@ import crypto from "node:crypto";
 import fs from "node:fs/promises";
 import path from "node:path";
 import { getCurrentUser } from "@/lib/auth";
+import { DATA_DIR } from "@/lib/dataDir";
 import { createAttachment, getQuoteById } from "@/lib/db";
 
-const UPLOAD_ROOT = path.join(process.cwd(), "data", "uploads");
+const UPLOAD_ROOT = path.join(DATA_DIR, "uploads");
 const MAX_SIZE = 20 * 1024 * 1024; // 20MB
 const ALLOWED_MIME = new Set([
   "application/pdf",

@@ -207,7 +207,8 @@ export default async function VenuePage() {
           <div className="mt-6 grid grid-cols-1 gap-10 sm:grid-cols-2">
             {SPECS.map((s) => (
               <div key={s.name}>
-                <div className="text-[14px] font-semibold text-accent">{s.name}</div>
+                <ImagePlaceholder src={null} alt={s.name} />
+                <div className="mt-3 text-[14px] font-semibold text-accent">{s.name}</div>
                 <dl className="mt-3 divide-y divide-border/60">
                   {s.rows.map(([k, v]) => (
                     <div key={k} className="flex flex-col gap-0.5 py-2.5 text-[13px] sm:flex-row sm:gap-4">
