@@ -123,9 +123,9 @@ export default async function Home() {
             </Link>
             <Link
               href="/venue"
-              className="group inline-flex items-center gap-1.5 whitespace-nowrap text-[14px] font-medium text-foreground transition-colors hover:text-accent"
+              className="group inline-flex items-center gap-1.5 whitespace-nowrap text-[14px] font-semibold uppercase tracking-[0.06em] text-foreground transition-colors hover:text-accent"
             >
-              SEOUL ARENA 살펴보기
+              About Seoul Arena
               <span aria-hidden className="transition-transform group-hover:translate-x-1">
                 →
               </span>
