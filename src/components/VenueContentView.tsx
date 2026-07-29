@@ -54,7 +54,7 @@ export function VenueContentView({ content }: { content: VenueContent }) {
         <div className="mt-6 grid grid-cols-1 gap-5 sm:grid-cols-3">
           {halls.map((h) => (
             <div key={h.title}>
-              <ImagePlaceholder src={null} alt={h.title} />
+              <ImagePlaceholder src={h.image} alt={h.title} />
               <div className="mt-3 flex items-baseline gap-2">
                 {h.no && <span className="text-[11px] font-semibold text-border">{h.no}</span>}
                 <span className="text-[13.5px] font-semibold">{h.title}</span>
@@ -86,7 +86,7 @@ export function VenueContentView({ content }: { content: VenueContent }) {
         <div className="mt-6 grid grid-cols-1 gap-10 sm:grid-cols-2">
           {specs.map((s) => (
             <div key={s.name}>
-              <ImagePlaceholder src={null} alt={s.name} />
+              <ImagePlaceholder src={s.image} alt={s.name} />
               <div className="mt-3 text-[14px] font-semibold text-accent">{s.name}</div>
               <dl className="mt-3 divide-y divide-border/60">
                 {s.rows.map(([k, v]) => (

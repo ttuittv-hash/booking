@@ -4,11 +4,13 @@ export interface VenueHall {
   titleEn: string;
   stat: string;
   desc: string;
+  image: string | null;
 }
 
 export interface VenueSpec {
   name: string;
   rows: [string, string][];
+  image: string | null;
 }
 
 export interface VenueAmenity {

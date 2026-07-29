@@ -12,6 +12,7 @@ export const DEFAULT_VENUE_CONTENT: VenueContent = {
       titleEn: "Arena",
       stat: "최대 약 20,000명 수용",
       desc: "국내외 대형 콘서트와 라이브 공연을 위한 전문 공연장. 공연 연출에 따라 다양한 좌석 배치와 무대 구성이 가능하며, 최신 무대·음향·조명·반입반출 시스템을 갖춰 투어 공연은 물론 대규모 시상식, 방송 행사, 기업 이벤트까지 폭넓게 운영합니다.",
+      image: null,
     },
     {
       no: "02",
@@ -19,6 +20,7 @@ export const DEFAULT_VENUE_CONTENT: VenueContent = {
       titleEn: "Medium Hall",
       stat: "약 2,000석 규모",
       desc: "콘서트, 뮤지컬, 팬미팅, 쇼케이스, 기업행사 등 중형 규모 콘텐츠에 적합한 공연장. 관객과 아티스트 간 높은 몰입감을 제공하는 공간으로, 공연 특성에 맞는 유연한 운영이 가능합니다.",
+      image: null,
     },
     {
       no: "03",
@@ -26,6 +28,7 @@ export const DEFAULT_VENUE_CONTENT: VenueContent = {
       titleEn: "Convention",
       stat: "MICE 복합 운영",
       desc: "회의, 전시, 세미나, 브랜드 행사, 기업 프로모션 등 다양한 MICE 행사를 운영할 수 있는 공간. 공연과 연계한 기자간담회, VIP 리셉션, 팬 이벤트 등 복합 프로그램 운영에도 활용할 수 있습니다.",
+      image: null,
     },
   ],
   features: [
@@ -49,6 +52,7 @@ export const DEFAULT_VENUE_CONTENT: VenueContent = {
         ["반입·반출", "대형 공연 제작을 위한 전용 Loading Dock 및 반입·반출 시스템 운영"],
         ["운영 공간", "FOH 및 BOH 운영시설 제공"],
       ],
+      image: null,
     },
     {
       name: "중형공연장",
@@ -60,6 +64,7 @@ export const DEFAULT_VENUE_CONTENT: VenueContent = {
         ["무대 구성", "다양한 공연 형태에 대응 가능한 무대 운영"],
         ["운영 공간", "FOH 및 BOH 운영시설 제공"],
       ],
+      image: null,
     },
   ],
   providedFacilities: [

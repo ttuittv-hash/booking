@@ -53,6 +53,27 @@ export function VenueContentForm({ content: initial }: { content: VenueContent }
   const [message, setMessage] = useState<string | null>(null);
   const [keyMapUploading, setKeyMapUploading] = useState(false);
   const [previewOpen, setPreviewOpen] = useState(false);
+  const [imageUploading, setImageUploading] = useState<string | null>(null);
+
+  async function uploadSingleImage(
+    e: React.ChangeEvent<HTMLInputElement>,
+    key: string,
+    onDone: (url: string) => void,
+  ) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setImageUploading(key);
+    try {
+      const formData = new FormData();
+      formData.append("file", file);
+      const res = await fetch("/api/admin/notices/upload", { method: "POST", body: formData });
+      const data = await res.json();
+      if (res.ok) onDone(data.url);
+    } finally {
+      setImageUploading(null);
+      e.target.value = "";
+    }
+  }
 
   function patch(p: Partial<VenueContent>) {
     setContent((prev) => ({ ...prev, ...p }));
@@ -84,7 +105,10 @@ export function VenueContentForm({ content: initial }: { content: VenueContent }
   }
   function addHall() {
     patch({
-      halls: [...content.halls, { no: String(content.halls.length + 1).padStart(2, "0"), title: "", titleEn: "", stat: "", desc: "" }],
+      halls: [
+        ...content.halls,
+        { no: String(content.halls.length + 1).padStart(2, "0"), title: "", titleEn: "", stat: "", desc: "", image: null },
+      ],
     });
   }
   function removeHall(i: number) {
@@ -95,7 +119,7 @@ export function VenueContentForm({ content: initial }: { content: VenueContent }
     patch({ specs: content.specs.map((s, j) => (j === i ? { ...s, ...patchS } : s)) });
   }
   function addSpec() {
-    patch({ specs: [...content.specs, { name: "", rows: [] }] });
+    patch({ specs: [...content.specs, { name: "", rows: [], image: null }] });
   }
   function removeSpec(i: number) {
     patch({ specs: content.specs.filter((_, j) => j !== i) });
@@ -225,6 +249,30 @@ export function VenueContentForm({ content: initial }: { content: VenueContent }
                 <span className={labelCls}>설명</span>
                 <textarea rows={2} value={h.desc} onChange={(e) => updateHall(i, { desc: e.target.value })} className={inputCls} />
               </label>
+              <div className="mt-2">
+                <span className={labelCls}>대표 이미지</span>
+                {h.image && (
+                  <div className="mb-2 flex items-center gap-2">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src={h.image} alt={h.title} className="h-16 w-28 rounded-sm border border-border object-cover" />
+                    <button type="button" onClick={() => updateHall(i, { image: null })} className={removeBtnCls}>
+                      이미지 삭제
+                    </button>
+                  </div>
+                )}
+                <label className="inline-block">
+                  <span className={addBtnCls}>
+                    {imageUploading === `hall-${i}` ? "업로드 중..." : h.image ? "이미지 변경" : "+ 이미지 업로드"}
+                  </span>
+                  <input
+                    type="file"
+                    accept="image/*"
+                    disabled={imageUploading === `hall-${i}`}
+                    onChange={(e) => uploadSingleImage(e, `hall-${i}`, (url) => updateHall(i, { image: url }))}
+                    className="hidden"
+                  />
+                </label>
+              </div>
             </div>
           ))}
           <button type="button" onClick={addHall} className={addBtnCls}>
@@ -256,6 +304,29 @@ export function VenueContentForm({ content: initial }: { content: VenueContent }
                 <button type="button" onClick={() => removeSpec(si)} className={removeBtnCls}>
                   삭제
                 </button>
+              </div>
+              <div className="mt-2">
+                {s.image && (
+                  <div className="mb-2 flex items-center gap-2">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src={s.image} alt={s.name} className="h-16 w-28 rounded-sm border border-border object-cover" />
+                    <button type="button" onClick={() => updateSpec(si, { image: null })} className={removeBtnCls}>
+                      이미지 삭제
+                    </button>
+                  </div>
+                )}
+                <label className="inline-block">
+                  <span className={addBtnCls}>
+                    {imageUploading === `spec-${si}` ? "업로드 중..." : s.image ? "이미지 변경" : "+ 이미지 업로드"}
+                  </span>
+                  <input
+                    type="file"
+                    accept="image/*"
+                    disabled={imageUploading === `spec-${si}`}
+                    onChange={(e) => uploadSingleImage(e, `spec-${si}`, (url) => updateSpec(si, { image: url }))}
+                    className="hidden"
+                  />
+                </label>
               </div>
               <div className="mt-2 space-y-1.5">
                 {s.rows.map((row, ri) => (
