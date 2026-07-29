@@ -6,7 +6,7 @@ import { AdminNav } from "@/components/admin/AdminNav";
 
 export default async function AdminRatesPage() {
   const user = await getCurrentUser();
-  if (!user) redirect("/login");
+  if (!user) redirect("/admin/login");
   if (user.role !== "ADMIN") redirect("/apply");
 
   const rateTable = getCurrentRateTable();

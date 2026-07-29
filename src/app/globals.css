@@ -12,8 +12,8 @@
   --accent-soft: #e8f1fd;
   --good: #1d7a46;
   --good-soft: #e6f4ea;
-  --warn: #a15c00;
-  --warn-soft: #fdf1de;
+  --warn: #515154;
+  --warn-soft: #eeeef0;
 }
 
 @theme inline {

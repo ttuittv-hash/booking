@@ -28,9 +28,11 @@ function buildCalendarWeeks(year: number, month: number): CalendarWeek[] {
       date.setDate(gridStart.getDate() + w * 7 + d);
       days.push(date);
     }
-    const hasCurrentMonthDay = days.some((d) => d.getMonth() === month - 1);
-    if (hasCurrentMonthDay) counter++;
-    weeks.push({ days, weekOfMonth: hasCurrentMonthDay ? counter : null });
+    // 주(화~일)의 기준일은 화요일(days[0]). 화요일이 해당 월에 속할 때만 그 달의 "N주차"로 센다.
+    // (전월 화요일에서 시작해 이번 달로 며칠 넘어오는 주는 이번 달 N주차로 세지 않음)
+    const startsInMonth = days[0].getMonth() === month - 1;
+    if (startsInMonth) counter++;
+    weeks.push({ days, weekOfMonth: startsInMonth ? counter : null });
   }
   return weeks;
 }
@@ -119,7 +121,7 @@ export function Step1Calendar({
               disabled={!isSelectable}
               onClick={() => calWeek.weekOfMonth !== null && selectWeek(calWeek.weekOfMonth)}
               className={[
-                "grid w-full grid-cols-7 gap-1 rounded-md p-0.5 text-left sm:gap-1.5",
+                "grid w-full grid-cols-7 gap-1 rounded p-0.5 text-left sm:gap-1.5",
                 isSelectable ? "cursor-pointer" : "cursor-default",
                 isSelected ? "bg-accent-soft ring-1 ring-accent" : isSelectable ? "hover:bg-panel" : "",
               ].join(" ")}

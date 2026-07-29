@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 
-export default function LoginPage() {
+export default function AdminLoginPage() {
   const router = useRouter();
   const [form, setForm] = useState({ email: "", password: "" });
   const [error, setError] = useState<string | null>(null);
@@ -25,7 +25,12 @@ export default function LoginPage() {
         setError(data.error || "로그인에 실패했습니다.");
         return;
       }
-      router.push(data.user.role === "ADMIN" ? "/admin" : "/apply");
+      if (data.user.role !== "ADMIN") {
+        await fetch("/api/auth/logout", { method: "POST" });
+        setError("운영자 계정이 아닙니다.");
+        return;
+      }
+      router.push("/admin");
       router.refresh();
     } finally {
       setLoading(false);
@@ -35,12 +40,12 @@ export default function LoginPage() {
   return (
     <div className="flex flex-1 items-center justify-center px-6 py-16">
       <div className="w-full max-w-sm">
-        <Link href="/" className="text-[15px] font-semibold tracking-tight">
+        <span className="text-[15px] font-semibold tracking-tight">
           SEOUL ARENA
-        </Link>
-        <h1 className="mt-6 text-[22px] font-semibold">로그인</h1>
+        </span>
+        <h1 className="mt-6 text-[22px] font-semibold">운영자 로그인</h1>
         <p className="mt-1.5 text-[13.5px] text-muted">
-          대관 신청 계정으로 로그인하세요.
+          서울아레나 운영자 계정으로 로그인하세요.
         </p>
 
         <form onSubmit={handleSubmit} className="mt-8 space-y-4">
@@ -77,9 +82,8 @@ export default function LoginPage() {
         </form>
 
         <p className="mt-6 text-center text-[13px] text-muted">
-          신청자 계정이 없으신가요?{" "}
-          <Link href="/register" className="font-medium text-accent hover:underline">
-            회원가입
+          <Link href="/" className="hover:text-foreground">
+            ← 메인으로
           </Link>
         </p>
       </div>

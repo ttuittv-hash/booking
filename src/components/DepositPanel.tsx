@@ -23,7 +23,7 @@ export function DepositPanel({
 
   if (!deposit) {
     return (
-      <div className="rounded-lg border border-border bg-panel/60 p-6">
+      <div className="rounded-md border border-border bg-panel/60 p-6">
         <h3 className="text-[15px] font-semibold">보증금</h3>
         <p className="mt-1.5 text-[13px] text-muted">계약 확정 후 보증금 안내가 제공됩니다.</p>
       </div>
@@ -71,7 +71,7 @@ export function DepositPanel({
   }
 
   return (
-    <div className="rounded-lg border border-border bg-panel/60 p-6">
+    <div className="rounded-md border border-border bg-panel/60 p-6">
       <div className="flex items-center justify-between">
         <h3 className="text-[15px] font-semibold">보증금</h3>
         <StatusBadge status={deposit.status} />
@@ -83,7 +83,7 @@ export function DepositPanel({
 
       {deposit.status === "PENDING" && viewerRole === "APPLICANT" && (
         <div className="mt-4 space-y-3">
-          <p className="rounded-lg border border-warn/30 bg-warn-soft px-3 py-2.5 text-[12.5px] text-warn">
+          <p className="rounded-md border border-warn/30 bg-warn-soft px-3 py-2.5 text-[12.5px] text-warn">
             {PLACEHOLDER_BANK_INFO}
           </p>
           <div className="flex gap-2">
@@ -91,13 +91,13 @@ export function DepositPanel({
               placeholder="입금자명"
               value={depositorName}
               onChange={(e) => setDepositorName(e.target.value)}
-              className="flex-1 rounded-lg border border-border bg-background px-3 py-2 text-[13px] outline-none focus:border-accent"
+              className="flex-1 rounded-md border border-border bg-background px-3 py-2 text-[13px] outline-none focus:border-accent"
             />
             <button
               type="button"
               disabled={submitting || !depositorName.trim()}
               onClick={report}
-              className="rounded-lg bg-accent px-4 py-2 text-[13px] font-semibold text-white transition-colors hover:bg-accent-hover disabled:opacity-50"
+              className="rounded-md bg-accent px-4 py-2 text-[13px] font-semibold text-white transition-colors hover:bg-accent-hover disabled:opacity-50"
             >
               {submitting ? "처리 중..." : "입금 신청"}
             </button>
@@ -120,7 +120,7 @@ export function DepositPanel({
               type="button"
               disabled={submitting}
               onClick={confirm}
-              className="rounded-lg bg-accent px-4 py-2 text-[13px] font-semibold text-white transition-colors hover:bg-accent-hover disabled:opacity-50"
+              className="rounded-md bg-accent px-4 py-2 text-[13px] font-semibold text-white transition-colors hover:bg-accent-hover disabled:opacity-50"
             >
               {submitting ? "처리 중..." : "입금 확인"}
             </button>
@@ -149,6 +149,6 @@ function StatusBadge({ status }: { status: Deposit["status"] }) {
     CONFIRMED: "bg-good-soft text-good",
   }[status];
   return (
-    <span className={`rounded-md px-2.5 py-1 text-[11.5px] font-medium ${style}`}>{label}</span>
+    <span className={`rounded px-2.5 py-1 text-[11.5px] font-medium ${style}`}>{label}</span>
   );
 }

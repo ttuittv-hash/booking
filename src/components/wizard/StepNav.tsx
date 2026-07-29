@@ -32,7 +32,7 @@ export function StepNav({
             disabled={disabled}
             onClick={() => onJump(s)}
             className={[
-              "flex items-center gap-2 rounded-md border px-3.5 py-2 text-[13px] font-medium transition-colors",
+              "flex items-center gap-2 rounded border px-3.5 py-2 text-[13px] font-medium transition-colors",
               isActive
                 ? "border-accent bg-accent-soft text-accent"
                 : isDone

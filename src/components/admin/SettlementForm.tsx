@@ -41,7 +41,7 @@ function RowEditor({
               placeholder="항목명"
               value={row.label}
               onChange={(e) => updateRow(i, { label: e.target.value })}
-              className="rounded-lg border border-border bg-background px-3 py-2 text-[13px] outline-none focus:border-accent"
+              className="rounded-md border border-border bg-background px-3 py-2 text-[13px] outline-none focus:border-accent"
             />
             <input
               type="number"
@@ -49,12 +49,12 @@ function RowEditor({
               placeholder="금액"
               value={row.amount || ""}
               onChange={(e) => updateRow(i, { amount: Number(e.target.value) || 0 })}
-              className="rounded-lg border border-border bg-background px-3 py-2 text-right text-[13px] outline-none focus:border-accent"
+              className="rounded-md border border-border bg-background px-3 py-2 text-right text-[13px] outline-none focus:border-accent"
             />
             <button
               type="button"
               onClick={() => removeRow(i)}
-              className="rounded-lg border border-border px-2.5 py-2 text-[12px] text-muted hover:text-red-600"
+              className="rounded-md border border-border px-2.5 py-2 text-[12px] text-muted hover:text-red-600"
             >
               삭제
             </button>
@@ -63,7 +63,7 @@ function RowEditor({
         <button
           type="button"
           onClick={addRow}
-          className="rounded-lg border border-dashed border-border px-3 py-1.5 text-[12px] text-muted hover:border-accent hover:text-accent"
+          className="rounded-md border border-dashed border-border px-3 py-1.5 text-[12px] text-muted hover:border-accent hover:text-accent"
         >
           + 항목 추가
         </button>
@@ -115,7 +115,7 @@ export function SettlementForm({
   }
 
   return (
-    <div className="rounded-lg border border-border bg-panel/60 p-6">
+    <div className="rounded-md border border-border bg-panel/60 p-6">
       <h3 className="text-[15px] font-semibold">③ 정산 — 현장 반영</h3>
       <p className="mt-1 text-[12.5px] text-muted">
         행사 후 현장 추가·미사용분과 유틸리티 실사용을 반영해 최종 정산금액을 확정합니다.
@@ -153,7 +153,7 @@ export function SettlementForm({
           type="button"
           disabled={submitting}
           onClick={submit}
-          className="rounded-md bg-accent px-6 py-2.5 text-[13.5px] font-semibold text-white transition-colors hover:bg-accent-hover disabled:opacity-50"
+          className="rounded bg-accent px-6 py-2.5 text-[13.5px] font-semibold text-white transition-colors hover:bg-accent-hover disabled:opacity-50"
         >
           {submitting ? "처리 중..." : "최종 정산금액 확정"}
         </button>

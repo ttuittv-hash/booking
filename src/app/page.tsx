@@ -14,7 +14,7 @@ export default async function Home() {
           </span>
           <nav className="flex flex-wrap items-center gap-x-6 gap-y-2 text-[13px] text-muted">
             <Link href="/apply" className="whitespace-nowrap hover:text-foreground">
-              대관 견적·신청
+              대관 신청하기
             </Link>
             {user?.role === "ADMIN" ? (
               <Link href="/admin" className="whitespace-nowrap hover:text-foreground">
@@ -36,29 +36,24 @@ export default async function Home() {
 
       <main className="flex flex-1 flex-col items-center justify-center px-6 py-28 text-center">
         <p className="mb-4 text-[13px] font-semibold uppercase tracking-[0.14em] text-accent">
-          정찰제 대관 견적 시스템
+          HOST IT.
         </p>
         <h1 className="max-w-2xl text-4xl font-semibold tracking-tight text-foreground sm:text-5xl">
-          규모를 고르면,
+          한계 없는 무대,
           <br />
-          견적은 바로 나옵니다.
+          당신의 상상력대로.
         </h1>
         <p className="mt-6 max-w-xl text-[17px] leading-8 text-muted">
-          관객 규모로 패키지를 선택하고 대관 주차를 정하면 기본 대관료가
-          즉시 확정됩니다. 초과분과 추가 옵션만 별도로 계산해 드립니다.
+          서울아레나는 베뉴를 넘어, 물리적 제약 없이 상상력을 현실로
+          구현하는 캔버스입니다. 세계 최고 수준의 음향·리깅·무대 시스템이
+          당신의 비전을 가장 온전하게 담아냅니다.
         </p>
         <div className="mt-10 flex flex-wrap items-center justify-center gap-3">
           <Link
             href="/apply"
-            className="rounded-md bg-accent px-7 py-3 text-[15px] font-medium text-white transition-colors hover:bg-accent-hover"
+            className="rounded bg-accent px-7 py-3 text-[15px] font-medium text-white transition-colors hover:bg-accent-hover"
           >
-            견적 산출 시작하기
-          </Link>
-          <Link
-            href="/login"
-            className="rounded-md border border-border px-7 py-3 text-[15px] font-medium text-foreground transition-colors hover:bg-panel"
-          >
-            운영자 로그인
+            대관 신청하기
           </Link>
         </div>
 
@@ -82,7 +77,7 @@ export default async function Home() {
           ].map((s) => (
             <div
               key={s.step}
-              className="rounded-lg border border-border bg-panel/60 p-6"
+              className="rounded-md border border-border bg-panel/60 p-6"
             >
               <div className="text-[11px] font-semibold tracking-wide text-accent">
                 {s.step}

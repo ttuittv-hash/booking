@@ -6,7 +6,7 @@ import { AddAdminForm } from "@/components/admin/AddAdminForm";
 
 export default async function AdminUsersPage() {
   const user = await getCurrentUser();
-  if (!user) redirect("/login");
+  if (!user) redirect("/admin/login");
   if (user.role !== "ADMIN") redirect("/apply");
 
   const admins = listUsers({ role: "ADMIN" });
@@ -22,7 +22,7 @@ export default async function AdminUsersPage() {
           관리에 접근할 수 있습니다.
         </p>
 
-        <div className="mt-8 overflow-hidden rounded-lg border border-border">
+        <div className="mt-8 overflow-hidden rounded-md border border-border">
           <table className="w-full border-collapse text-[13px]">
             <thead>
               <tr className="border-b border-border bg-panel text-left text-[11.5px] font-medium text-muted">

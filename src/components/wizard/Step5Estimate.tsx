@@ -17,7 +17,7 @@ export function Step5Estimate({
 
   if (!pkg) {
     return (
-      <section className="rounded-lg border border-border bg-background p-7">
+      <section className="rounded-md border border-border bg-background p-7">
         <p className="text-[13.5px] text-muted">
           먼저 1단계에서 패키지를 선택하세요.
         </p>
@@ -26,7 +26,7 @@ export function Step5Estimate({
   }
 
   return (
-    <section className="rounded-lg border border-border bg-background p-7">
+    <section className="rounded-md border border-border bg-background p-7">
       <h2 className="text-[19px] font-semibold">5. 예상 대관료 · 산출내역서</h2>
       <p className="mt-1.5 text-[13.5px] text-muted">
         {pkg.name} · {selection.week.year}.{selection.week.month}{" "}
@@ -95,7 +95,7 @@ export function Step5Estimate({
         </table>
       </div>
 
-      <p className="mt-6 rounded-lg border-l-2 border-warn bg-warn-soft px-4 py-3 text-[12.5px] leading-5 text-warn">
+      <p className="mt-6 rounded-md border-l-2 border-warn bg-warn-soft px-4 py-3 text-[12.5px] leading-5 text-warn">
         {quote.meteredNotice} 본 금액은 <b>예상</b>이며 확정 금액이 아닙니다.
       </p>
     </section>

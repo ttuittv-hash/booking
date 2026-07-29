@@ -56,7 +56,7 @@ export function AttachmentsPanel({
   }
 
   return (
-    <div className="rounded-lg border border-border bg-panel/60 p-6">
+    <div className="rounded-md border border-border bg-panel/60 p-6">
       <h3 className="text-[15px] font-semibold">첨부서류</h3>
       <p className="mt-1 text-[12.5px] text-muted">
         사업자등록증, 공연기획서 등 관련 서류를 첨부하세요. (PDF/이미지/문서, 최대 20MB)
@@ -69,7 +69,7 @@ export function AttachmentsPanel({
           attachments.map((file) => (
             <li
               key={file.id}
-              className="flex items-center justify-between rounded-lg border border-border bg-background px-3.5 py-2.5"
+              className="flex items-center justify-between rounded-md border border-border bg-background px-3.5 py-2.5"
             >
               <a
                 href={`/api/quotes/${quoteId}/attachments/${file.id}`}
@@ -101,13 +101,13 @@ export function AttachmentsPanel({
         <input
           ref={fileInput}
           type="file"
-          className="flex-1 text-[12.5px] text-muted file:mr-3 file:rounded-lg file:border file:border-border file:bg-background file:px-3 file:py-1.5 file:text-[12.5px] file:font-medium"
+          className="flex-1 text-[12.5px] text-muted file:mr-3 file:rounded-md file:border file:border-border file:bg-background file:px-3 file:py-1.5 file:text-[12.5px] file:font-medium"
         />
         <button
           type="button"
           disabled={uploading}
           onClick={upload}
-          className="rounded-lg bg-accent px-4 py-2 text-[13px] font-semibold text-white transition-colors hover:bg-accent-hover disabled:opacity-50"
+          className="rounded-md bg-accent px-4 py-2 text-[13px] font-semibold text-white transition-colors hover:bg-accent-hover disabled:opacity-50"
         >
           {uploading ? "업로드 중..." : "업로드"}
         </button>
