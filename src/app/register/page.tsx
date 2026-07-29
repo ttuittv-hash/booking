@@ -38,8 +38,6 @@ export default function RegisterPage() {
     if (accountType === "CORPORATE") {
       if (!form.companyName.trim()) return setError("회사/기획사명을 입력하세요.");
       if (!form.businessRegistrationNumber.trim()) return setError("사업자등록번호를 입력하세요.");
-    } else if (!form.companyId) {
-      return setError("소속된 회사/기획사를 선택하세요.");
     }
 
     setLoading(true);
@@ -155,25 +153,29 @@ export default function RegisterPage() {
               </Field>
             </>
           ) : (
-            <Field label="소속 회사/기획사">
+            <Field label="소속 회사/기획사 (선택)">
               <select
-                required
                 value={form.companyId}
-                onChange={(e) => setForm({ ...form, companyId: e.target.value })}
+                onChange={(e) => setForm({ ...form, companyId: e.target.value, companyName: "" })}
                 className="input"
               >
-                <option value="">회사를 선택하세요</option>
+                <option value="">목록에서 선택하지 않음</option>
                 {companies.map((c) => (
                   <option key={c.id} value={c.id}>
                     {c.name}
                   </option>
                 ))}
               </select>
-              {companies.length === 0 && (
-                <p className="mt-1.5 text-[11.5px] text-muted">
-                  아직 등록된 회사가 없습니다. 회사를 처음 등록하려면 &ldquo;법인회원&rdquo;을 선택하세요.
-                </p>
-              )}
+              <p className="mt-2 mb-1 text-[11.5px] text-muted">
+                회사가 목록에 없나요? 이름을 직접 입력하세요. 비워두면 회사 없이 가입됩니다.
+              </p>
+              <input
+                type="text"
+                placeholder="회사/기획사명 (직접 입력, 선택)"
+                value={form.companyName}
+                onChange={(e) => setForm({ ...form, companyName: e.target.value, companyId: "" })}
+                className="input"
+              />
             </Field>
           )}
 

@@ -29,16 +29,20 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "이미 가입된 이메일입니다." }, { status: 409 });
   }
 
-  // 법인회원 = 회사를 새로 등록(또는 동일명 회사에 합류), 개인회원 = 이미 등록된 회사 중에서 선택해 연결.
-  // 두 경우 모두 최종적으로 같은 company_id를 공유하는 사용자끼리 서로의 신청 내역을 함께 관리할 수 있다.
+  // 법인회원 = 회사를 새로 등록(또는 동일명 회사에 합류).
+  // 개인회원 = 목록에서 기존 회사를 선택하거나, 목록에 없으면 이름을 직접 입력(신규 등록)하거나, 소속 회사 없이 가입 가능.
+  // 어느 경우든 같은 company_id를 공유하는 사용자끼리 서로의 신청 내역을 함께 관리할 수 있다.
   let company;
   if (accountType === "INDIVIDUAL") {
-    if (!companyId) {
-      return NextResponse.json({ error: "소속된 회사/기획사를 선택하세요." }, { status: 400 });
-    }
-    company = findCompanyById(companyId);
-    if (!company) {
-      return NextResponse.json({ error: "선택한 회사를 찾을 수 없습니다. 목록을 새로고침해주세요." }, { status: 400 });
+    if (companyId) {
+      company = findCompanyById(companyId);
+      if (!company) {
+        return NextResponse.json({ error: "선택한 회사를 찾을 수 없습니다. 목록을 새로고침해주세요." }, { status: 400 });
+      }
+    } else if (companyName) {
+      company = findOrCreateCompany(companyName);
+    } else {
+      company = null;
     }
   } else {
     if (!companyName) {
@@ -59,8 +63,8 @@ export async function POST(request: Request) {
     email,
     passwordHash: hashPassword(password),
     name,
-    companyName: company.name,
-    companyId: company.id,
+    companyName: company?.name ?? null,
+    companyId: company?.id ?? null,
     role: "APPLICANT",
     approvalStatus: "PENDING",
     createdAt,
@@ -68,7 +72,7 @@ export async function POST(request: Request) {
 
   notifyAdmins({
     quoteId: "applicants",
-    message: `신규 가입 승인 요청: ${name} (${company.name}, ${accountType === "INDIVIDUAL" ? "개인회원" : "법인회원"})`,
+    message: `신규 가입 승인 요청: ${name} (${company?.name ?? "소속 없음"}, ${accountType === "INDIVIDUAL" ? "개인회원" : "법인회원"})`,
     createdAt,
   });
 
