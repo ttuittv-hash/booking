@@ -35,7 +35,7 @@ export default async function Home() {
         <section className="px-6 pt-20 pb-16 text-center sm:pt-28 sm:pb-20">
           <div className="flex animate-[fade-up_0.7s_ease_both] items-center justify-center gap-3">
             <span className="h-px w-8 bg-accent" />
-            <span className="text-[13px] font-semibold uppercase tracking-[0.2em] text-accent">{heroEyebrow}</span>
+            <span className="text-[13px] font-semibold uppercase tracking-[0.12em] text-accent">{heroEyebrow}</span>
             <span className="h-px w-8 bg-accent" />
           </div>
 
@@ -104,7 +104,7 @@ export default async function Home() {
         <section className="border-t border-border/70 px-6 py-16 sm:py-20">
           <div className="mx-auto grid max-w-5xl grid-cols-1 gap-14 lg:grid-cols-[1fr_1px_1fr]">
             <div className="group">
-              <p className="text-[12px] font-semibold uppercase tracking-[0.2em] text-accent">{missionLabel}</p>
+              <p className="text-[12px] font-semibold uppercase tracking-[0.12em] text-accent">{missionLabel}</p>
               <p className="mt-5 text-[17px] font-semibold leading-8 text-foreground transition-colors group-hover:text-accent">
                 {mission.split("\n").map((line, i) => (
                   <span key={i}>
@@ -116,7 +116,7 @@ export default async function Home() {
             </div>
             <div className="hidden bg-border/70 lg:block" aria-hidden />
             <div className="group">
-              <p className="text-[12px] font-semibold uppercase tracking-[0.2em] text-accent">{visionLabel}</p>
+              <p className="text-[12px] font-semibold uppercase tracking-[0.12em] text-accent">{visionLabel}</p>
               <p className="mt-5 text-[17px] font-semibold leading-8 text-foreground transition-colors group-hover:text-accent">
                 {vision.split("\n").map((line, i) => (
                   <span key={i}>
@@ -132,7 +132,7 @@ export default async function Home() {
         {/* 슬롯 2: 특징 버튼 */}
         <section className="border-t border-border/70 px-6 py-16 sm:py-20">
           <div className="mx-auto max-w-5xl">
-            <p className="text-[12px] font-semibold uppercase tracking-[0.14em] text-accent">{featuresLabel}</p>
+            <p className="text-[12px] font-semibold uppercase tracking-[0.12em] text-accent">{featuresLabel}</p>
             <h2 className="mt-2 text-[22px] font-semibold tracking-tight sm:text-[26px]">{featuresTitle}</h2>
 
             <div className="mt-10 grid grid-cols-1 sm:grid-cols-2 sm:gap-x-12">
@@ -179,7 +179,7 @@ export default async function Home() {
         {/* 슬롯 3: 신청 절차 */}
         <section className="border-t border-border/70 px-6 py-16 sm:py-20">
           <div className="mx-auto max-w-5xl">
-            <p className="text-[12px] font-semibold uppercase tracking-[0.14em] text-accent">
+            <p className="text-[12px] font-semibold uppercase tracking-[0.12em] text-accent">
               {processLabel}
             </p>
             <h2 className="mt-2 text-[22px] font-semibold tracking-tight sm:text-[26px]">
