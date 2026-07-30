@@ -135,7 +135,7 @@ export default async function Home() {
             <p className="text-[12px] font-semibold uppercase tracking-[0.14em] text-accent">{featuresLabel}</p>
             <h2 className="mt-2 text-[22px] font-semibold tracking-tight sm:text-[26px]">{featuresTitle}</h2>
 
-            <div className="mt-10 grid grid-cols-1 border-t border-border/70 sm:grid-cols-2 sm:gap-x-12">
+            <div className="mt-10 grid grid-cols-1 sm:grid-cols-2 sm:gap-x-12">
               {features.map((f) => (
                 <Link
                   key={f.title}
