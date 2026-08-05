@@ -53,6 +53,8 @@ export function Step6Submit({
   submitting,
   submittedId,
   error,
+  attachmentError,
+  fileCount = 0,
   onSubmit,
 }: {
   rateTable: RateTable;
@@ -63,6 +65,8 @@ export function Step6Submit({
   submitting: boolean;
   submittedId: string | null;
   error: string | null;
+  attachmentError?: string | null;
+  fileCount?: number;
   onSubmit: () => void;
 }) {
   const pkg = findPackage(rateTable, selection.packageId);
@@ -113,7 +117,12 @@ export function Step6Submit({
       </div>
 
       <div className="mt-4 rounded border border-border bg-panel/60 p-6">
-        <div className="text-[13px] font-semibold">공연 정보</div>
+        <div className="flex items-center justify-between">
+          <div className="text-[13px] font-semibold">공연 정보</div>
+          {fileCount > 0 && (
+            <div className="text-[12px] text-muted">첨부파일 {fileCount}개가 함께 제출됩니다</div>
+          )}
+        </div>
         <dl className="mt-3 grid grid-cols-1 gap-x-6 gap-y-2 text-[12.5px] sm:grid-cols-2">
           <div className="flex justify-between gap-3 sm:justify-start">
             <dt className="text-muted">공연(행사)명</dt>
@@ -173,6 +182,9 @@ export function Step6Submit({
               인쇄 / PDF 저장
             </Link>
           </div>
+          {attachmentError && (
+            <p className="mt-3 border-t border-accent/30 pt-3 text-[12.5px] text-warn">{attachmentError}</p>
+          )}
         </div>
       ) : !isLoggedIn ? (
         <div className="mt-5 rounded-sm border border-warn/30 bg-warn-soft px-4 py-3.5 text-[13.5px] text-warn">

@@ -81,6 +81,9 @@ export function WizardShell({
 }) {
   const isEditing = !!editingQuoteId;
   const [step, setStep] = useState(1);
+  // File은 JSON 직렬화가 안 되므로 selection과 분리해 별도 상태로 두고
+  // localStorage 임시저장 대상에서도 제외한다 (새로고침 시 다시 선택 필요).
+  const [pendingFiles, setPendingFiles] = useState<File[]>([]);
   const [selection, setSelection] = useState<QuoteSelection>(
     initialSelection
       ? {
@@ -94,6 +97,7 @@ export function WizardShell({
   const [submittedId, setSubmittedId] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
+  const [attachmentError, setAttachmentError] = useState<string | null>(null);
   // 위저드 진행 중(입력에 시간이 걸리는 동안) 세션이 만료될 수 있으므로,
   // 최초 렌더의 currentUser 값과 별개로 제출 시점에 401을 감지해 로그인 안내로 전환한다.
   const [sessionExpired, setSessionExpired] = useState(false);
@@ -164,10 +168,36 @@ export function WizardShell({
     setSubmittedId(null);
   }
 
+  async function uploadPendingFiles(quoteId: string) {
+    if (pendingFiles.length === 0) return;
+    const failed: string[] = [];
+    for (const file of pendingFiles) {
+      try {
+        const formData = new FormData();
+        formData.append("file", file);
+        const res = await fetch(`/api/quotes/${quoteId}/attachments`, {
+          method: "POST",
+          body: formData,
+        });
+        if (!res.ok) failed.push(file.name);
+      } catch {
+        failed.push(file.name);
+      }
+    }
+    if (failed.length > 0) {
+      setAttachmentError(
+        `다음 파일은 업로드에 실패했습니다: ${failed.join(", ")}. 신청 내역 상세에서 다시 첨부해주세요.`,
+      );
+    } else {
+      setPendingFiles([]);
+    }
+  }
+
   async function submit() {
     if (!currentUser) return;
     setSubmitting(true);
     setSubmitError(null);
+    setAttachmentError(null);
     try {
       const res = await fetch(isEditing ? `/api/quotes/${editingQuoteId}` : "/api/quotes", {
         method: isEditing ? "PUT" : "POST",
@@ -184,6 +214,7 @@ export function WizardShell({
         return;
       }
       setSubmittedId(data.quote.id);
+      await uploadPendingFiles(data.quote.id);
       if (!isEditing) clearWizardDraft();
     } catch {
       setSubmitError("네트워크 오류로 처리에 실패했습니다. 다시 시도해주세요.");
@@ -253,6 +284,8 @@ export function WizardShell({
           <StepPerformanceInfo
             info={selection.performanceInfo}
             onChange={(performanceInfo) => setSelection((prev) => ({ ...prev, performanceInfo }))}
+            files={pendingFiles}
+            onFilesChange={setPendingFiles}
           />
         )}
         {step === 8 && (
@@ -265,6 +298,8 @@ export function WizardShell({
             submitting={submitting}
             submittedId={submittedId}
             error={submitError}
+            attachmentError={attachmentError}
+            fileCount={pendingFiles.length}
             onSubmit={submit}
           />
         )}

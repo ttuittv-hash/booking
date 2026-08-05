@@ -17,6 +17,29 @@ const STAGE_TYPES = Object.keys(STAGE_TYPE_LABEL) as StageType[];
 const SEATING_TYPES = Object.keys(SEATING_TYPE_LABEL) as SeatingType[];
 const RETRACTABLE_USES = Object.keys(RETRACTABLE_SEAT_USE_LABEL) as RetractableSeatUse[];
 
+// 신청서 제출(POST /api/quotes)이 성공한 뒤 /api/quotes/[id]/attachments로 업로드되므로,
+// 서버 쪽 검증 기준(src/app/api/quotes/[id]/attachments/route.ts)과 동일하게 맞춘다.
+const MAX_FILE_SIZE = 20 * 1024 * 1024;
+const ALLOWED_MIME = new Set([
+  "application/pdf",
+  "image/png",
+  "image/jpeg",
+  "image/webp",
+  "application/msword",
+  "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+  "application/vnd.ms-excel",
+  "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+  "application/haansofthwp",
+  "application/x-hwp",
+  "application/zip",
+]);
+
+function formatSize(bytes: number): string {
+  if (bytes < 1024) return `${bytes}B`;
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)}KB`;
+  return `${(bytes / (1024 * 1024)).toFixed(1)}MB`;
+}
+
 function toggleInArray<T>(list: T[], value: T): T[] {
   return list.includes(value) ? list.filter((v) => v !== value) : [...list, value];
 }
@@ -71,12 +94,41 @@ function TextField({
 export function StepPerformanceInfo({
   info,
   onChange,
+  files,
+  onFilesChange,
 }: {
   info: PerformanceInfo;
   onChange: (info: PerformanceInfo) => void;
+  files: File[];
+  onFilesChange: (files: File[]) => void;
 }) {
   function set<K extends keyof PerformanceInfo>(key: K, value: PerformanceInfo[K]) {
     onChange({ ...info, [key]: value });
+  }
+
+  function addFiles(selected: FileList | null) {
+    if (!selected || selected.length === 0) return;
+    const accepted: File[] = [];
+    const rejected: string[] = [];
+    for (const file of Array.from(selected)) {
+      if (file.size > MAX_FILE_SIZE) {
+        rejected.push(`${file.name} (20MB 초과)`);
+        continue;
+      }
+      if (file.type && !ALLOWED_MIME.has(file.type)) {
+        rejected.push(`${file.name} (지원하지 않는 형식)`);
+        continue;
+      }
+      accepted.push(file);
+    }
+    if (accepted.length > 0) onFilesChange([...files, ...accepted]);
+    if (rejected.length > 0) {
+      window.alert(`다음 파일은 첨부할 수 없습니다:\n${rejected.join("\n")}`);
+    }
+  }
+
+  function removeFile(index: number) {
+    onFilesChange(files.filter((_, i) => i !== index));
   }
 
   return (
@@ -147,6 +199,43 @@ export function StepPerformanceInfo({
             />
           ))}
         </div>
+      </div>
+
+      <div className="mt-7">
+        <div className="mb-2.5 text-[12.5px] font-medium text-muted">자료 첨부</div>
+        <p className="mb-2.5 text-[12px] text-muted">
+          공연기획서, 무대 도면 등 참고자료를 첨부하세요. (PDF/이미지/문서, 파일당 최대 20MB) 신청서
+          제출 시 함께 업로드됩니다.
+        </p>
+
+        {files.length > 0 && (
+          <ul className="mb-3 space-y-2">
+            {files.map((file, i) => (
+              <li
+                key={`${file.name}-${i}`}
+                className="flex items-center justify-between rounded border border-border bg-panel px-3.5 py-2.5"
+              >
+                <span className="truncate text-[13px] font-medium">{file.name}</span>
+                <div className="flex shrink-0 items-center gap-3 text-[11.5px] text-muted">
+                  <span>{formatSize(file.size)}</span>
+                  <button type="button" onClick={() => removeFile(i)} className="hover:text-red-600">
+                    삭제
+                  </button>
+                </div>
+              </li>
+            ))}
+          </ul>
+        )}
+
+        <input
+          type="file"
+          multiple
+          onChange={(e) => {
+            addFiles(e.target.files);
+            e.target.value = "";
+          }}
+          className="text-[12.5px] text-muted file:mr-3 file:rounded file:border file:border-border file:bg-background file:px-3 file:py-1.5 file:text-[12.5px] file:font-medium"
+        />
       </div>
     </section>
   );
