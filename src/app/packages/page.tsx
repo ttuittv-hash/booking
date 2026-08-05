@@ -4,7 +4,7 @@ import { redirect } from "next/navigation";
 import { getCurrentUser, isPendingApplicant } from "@/lib/auth";
 import { getCurrentRateTable } from "@/lib/db";
 import { won } from "@/lib/format";
-import { findAddon } from "@/lib/pricing/rateTableUtils";
+import { findAddon, packagePrice } from "@/lib/pricing/rateTableUtils";
 import { MEDIA_TIER_LABEL } from "@/lib/pricing/types";
 import { PublicHeader } from "@/components/PublicHeader";
 
@@ -47,7 +47,7 @@ export default async function PackagesPage() {
 
               <div className="mt-5 flex items-baseline gap-1.5">
                 <span className="text-[26px] font-semibold tabular-nums tracking-tight">
-                  {won(pkg.baseFeePerWeek)}
+                  {won(packagePrice(rateTable, pkg))}
                 </span>
                 <span className="text-[12.5px] text-muted">/ 주 (화~일), VAT 별도</span>
               </div>

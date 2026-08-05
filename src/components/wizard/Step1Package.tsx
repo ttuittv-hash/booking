@@ -1,7 +1,7 @@
 "use client";
 
 import { won } from "@/lib/format";
-import { findAddon, packagesForVenue, recommendPackage } from "@/lib/pricing/rateTableUtils";
+import { findAddon, packagePrice, packagesForVenue, recommendPackage } from "@/lib/pricing/rateTableUtils";
 import { MEDIA_TIER_LABEL, type RateTable } from "@/lib/pricing/types";
 
 export function Step1Package({
@@ -76,7 +76,7 @@ export function Step1Package({
                 <p className="mt-1.5 text-[12px] leading-5 text-muted">{pkg.tagline}</p>
               )}
               <div className="mt-4 text-[19px] font-semibold tabular-nums">
-                {won(pkg.baseFeePerWeek)}
+                {won(packagePrice(rateTable, pkg))}
               </div>
               <div className="mt-0.5 text-[11.5px] text-muted">
                 / 주 (화~일) · VAT 별도

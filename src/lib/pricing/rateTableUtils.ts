@@ -22,6 +22,16 @@ export function recommendPackage(rateTable: RateTable, expectedAudience: number,
   return match ? match.id : null;
 }
 
+// 패키지 가격 = 기본 대관료 + 기본 포함 항목의 단가 합계.
+// 대관 신청 시 실제로 청구되는 금액은 이 "패키지 가격"이며, 기본 대관료 단독 금액이 아니다.
+export function packagePrice(rateTable: RateTable, pkg: RentalPackage): number {
+  const includedValue = pkg.includedItems.reduce((sum, item) => {
+    const addon = findAddon(rateTable, item.addonId);
+    return sum + (addon ? addon.unitPrice * item.quantity : 0);
+  }, 0);
+  return pkg.baseFeePerWeek + includedValue;
+}
+
 export function includedQuantity(pkg: RentalPackage | undefined, addonId: string): number {
   const item = pkg?.includedItems.find((i) => i.addonId === addonId);
   return item ? item.quantity : 0;
