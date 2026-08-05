@@ -1,7 +1,15 @@
 import { NextResponse } from "next/server";
 import crypto from "node:crypto";
 import { getCurrentUser } from "@/lib/auth";
-import { addAuditLog, createDeposit, createNotification, getQuoteById, setQuoteContract } from "@/lib/db";
+import {
+  addAuditLog,
+  createDeposit,
+  createNotification,
+  ensureContractSignature,
+  ensureTaxInvoice,
+  getQuoteById,
+  setQuoteContract,
+} from "@/lib/db";
 import type { ContractAdjustment } from "@/lib/pricing/types";
 
 export async function POST(request: Request, ctx: { params: Promise<{ id: string }> }) {
@@ -53,6 +61,9 @@ export async function POST(request: Request, ctx: { params: Promise<{ id: string
     depositRate,
     createdAt: contract.decidedAt,
   });
+
+  ensureContractSignature(id, contract.decidedAt);
+  ensureTaxInvoice(id, "CONTRACT", contractTotal, contract.decidedAt);
 
   createNotification({
     id: crypto.randomUUID(),

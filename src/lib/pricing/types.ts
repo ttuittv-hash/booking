@@ -289,6 +289,8 @@ export interface Settlement {
   finalTotal: number; // 최종 정산금액
   decidedAt: string;
   decidedBy: string;
+  mutualConfirmedAt?: string | null; // 신청자가 정산 내역을 확인한 시점 (상호 확인)
+  mutualConfirmedBy?: string | null;
 }
 
 // ---------------------------------------------------------------------------
@@ -311,8 +313,65 @@ export interface Deposit {
 }
 
 // ---------------------------------------------------------------------------
+// 대관 현황 — 계약 이후 진행 단계 (전자 날인 / 세금계산서 / 티켓오픈 / 시설회의)
+// 명세상 정식 연동 서비스(전자서명·세금계산서 발행 API) 도입 전까지는, 보증금과 동일하게
+// 운영자가 수동으로 상태를 체크하는 방식으로 운영한다.
+// ---------------------------------------------------------------------------
+
+export interface ContractSignature {
+  id: string;
+  quoteId: string;
+  venueSignedAt: string | null; // 공연장(운영자) 측 날인
+  venueSignedBy: string | null;
+  applicantSignedAt: string | null; // 대관사(신청자) 측 날인
+  applicantSignedBy: string | null;
+  createdAt: string;
+}
+
+// 세금계산서 — 계약금액(CONTRACT)·정산금액(SETTLEMENT) 공용. 발행 → 입금신청 → 입금확인,
+// 발행 후 미입금 상태가 5일 이상 지속되면 알림이 재발송된다(lastReminderAt 기준 lazy 체크).
+export type InvoicePurpose = "CONTRACT" | "SETTLEMENT";
+export type InvoiceStatus = "PENDING" | "ISSUED" | "REPORTED" | "PAID";
+
+export interface TaxInvoice {
+  id: string;
+  quoteId: string;
+  purpose: InvoicePurpose;
+  amount: number;
+  status: InvoiceStatus;
+  issuedAt: string | null;
+  issuedBy: string | null;
+  payerName: string | null; // 신청자가 입금신청 시 입력
+  reportedAt: string | null;
+  paidAt: string | null;
+  paidConfirmedBy: string | null;
+  lastReminderAt: string | null;
+  createdAt: string;
+}
+
+export interface TicketOpen {
+  id: string;
+  quoteId: string;
+  openDate: string | null; // ISO yyyy-mm-dd — 보증금 입금 확인 후 운영자가 등록
+  materialsUploadedAt: string | null; // 포스터/상세페이지/좌석배치도 등 자료 업로드 시점
+  lastReminderAt: string | null; // 오픈일 D-30 미업로드 알림 최근 발송 시점
+  createdAt: string;
+}
+
+export interface FacilityMeeting {
+  id: string;
+  quoteId: string;
+  meetingDate: string | null; // ISO yyyy-mm-dd — 티켓오픈 등록 후 운영자가 등록
+  materialsUploadedAt: string | null; // 운영 매뉴얼/프로덕션 노트 등 자료 업로드 시점
+  lastReminderAt: string | null; // 회의일 D-7 미업로드 알림 최근 발송 시점
+  createdAt: string;
+}
+
+// ---------------------------------------------------------------------------
 // 첨부서류
 // ---------------------------------------------------------------------------
+
+export type AttachmentCategory = "TICKET_OPEN" | "FACILITY_MEETING" | null;
 
 export interface Attachment {
   id: string;
@@ -322,6 +381,7 @@ export interface Attachment {
   mimeType: string;
   size: number;
   uploadedBy: string;
+  category: AttachmentCategory; // null = 일반 신청서류, 그 외 = 티켓오픈/시설회의 전용 자료
   createdAt: string;
 }
 
@@ -381,6 +441,24 @@ export interface AppNotification {
   quoteId: string;
   message: string;
   isRead: boolean;
+  createdAt: string;
+}
+
+// ---------------------------------------------------------------------------
+// 1:1 문의
+// ---------------------------------------------------------------------------
+
+export type InquiryStatus = "OPEN" | "ANSWERED";
+
+export interface Inquiry {
+  id: string;
+  userId: string;
+  title: string;
+  content: string;
+  status: InquiryStatus;
+  answer: string | null;
+  answeredAt: string | null;
+  answeredBy: string | null;
   createdAt: string;
 }
 

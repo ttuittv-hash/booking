@@ -25,7 +25,15 @@ export default async function MyPage() {
       <PublicHeader active="/mypage" currentUser={user} />
 
       <main className="mx-auto w-full max-w-6xl flex-1 px-6 py-10">
-        <h1 className="text-[22px] font-semibold">{user.name} 님의 신청 내역</h1>
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <h1 className="text-[22px] font-semibold">{user.name} 님의 신청 내역</h1>
+          <Link
+            href="/mypage/inquiries"
+            className="rounded-sm border border-border px-4 py-2 text-[12.5px] font-medium transition-colors hover:bg-panel"
+          >
+            1:1 문의
+          </Link>
+        </div>
         <p className="mt-2 text-[13.5px] text-muted">
           {user.companyName ? `${user.companyName} · ` : ""}
           {user.email}

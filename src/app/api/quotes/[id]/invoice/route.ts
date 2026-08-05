@@ -1,0 +1,98 @@
+import { NextResponse } from "next/server";
+import crypto from "node:crypto";
+import { canAccessQuote, getCurrentUser } from "@/lib/auth";
+import {
+  confirmTaxInvoicePayment,
+  createNotification,
+  getQuoteById,
+  getTaxInvoice,
+  issueTaxInvoice,
+  notifyAdmins,
+  reportTaxInvoicePayment,
+} from "@/lib/db";
+import type { InvoicePurpose } from "@/lib/pricing/types";
+
+const PURPOSE_LABEL: Record<InvoicePurpose, string> = {
+  CONTRACT: "계약금",
+  SETTLEMENT: "정산금",
+};
+
+// 세금계산서 발행/입금신청/입금확인 — 계약(CONTRACT)·정산(SETTLEMENT) 공용 엔드포인트.
+// 정식 세금계산서 발행 서비스 연동 전까지는 보증금과 동일한 운영자 수동 확인 방식으로 운영한다.
+export async function POST(request: Request, ctx: { params: Promise<{ id: string }> }) {
+  const user = await getCurrentUser();
+  if (!user) return NextResponse.json({ error: "로그인이 필요합니다." }, { status: 401 });
+
+  const { id } = await ctx.params;
+  const quote = getQuoteById(id);
+  if (!quote) return NextResponse.json({ error: "신청서를 찾을 수 없습니다." }, { status: 404 });
+  if (!canAccessQuote(user, quote)) {
+    return NextResponse.json({ error: "접근 권한이 없습니다." }, { status: 403 });
+  }
+
+  const body = await request.json().catch(() => null);
+  const purpose = body?.purpose as InvoicePurpose;
+  if (purpose !== "CONTRACT" && purpose !== "SETTLEMENT") {
+    return NextResponse.json({ error: "잘못된 요청입니다." }, { status: 400 });
+  }
+  const invoice = getTaxInvoice(id, purpose);
+  if (!invoice) {
+    return NextResponse.json({ error: "세금계산서 대상이 없습니다." }, { status: 404 });
+  }
+
+  const now = new Date().toISOString();
+  const label = PURPOSE_LABEL[purpose];
+
+  if (body.action === "issue") {
+    if (user.role !== "ADMIN") {
+      return NextResponse.json({ error: "운영자만 발행할 수 있습니다." }, { status: 403 });
+    }
+    if (invoice.status !== "PENDING") {
+      return NextResponse.json({ error: "이미 발행된 세금계산서입니다." }, { status: 409 });
+    }
+    const updated = issueTaxInvoice(id, purpose, user.id, now);
+    createNotification({
+      id: crypto.randomUUID(),
+      recipientId: quote.applicantId,
+      quoteId: id,
+      message: `${id}의 ${label} 세금계산서가 발행되었습니다. 입금 후 입금신청을 진행해주세요.`,
+      createdAt: now,
+    });
+    return NextResponse.json({ invoice: updated });
+  }
+
+  if (body.action === "report") {
+    if (invoice.status !== "ISSUED") {
+      return NextResponse.json({ error: "발행된 세금계산서만 입금신청할 수 있습니다." }, { status: 409 });
+    }
+    const payerName = typeof body.payerName === "string" ? body.payerName.trim() : "";
+    if (!payerName) return NextResponse.json({ error: "입금자명을 입력하세요." }, { status: 400 });
+    const updated = reportTaxInvoicePayment(id, purpose, payerName, now);
+    notifyAdmins({
+      quoteId: id,
+      message: `${id}의 ${label} 세금계산서 입금신청이 접수되었습니다. (입금자: ${payerName})`,
+      createdAt: now,
+    });
+    return NextResponse.json({ invoice: updated });
+  }
+
+  if (body.action === "confirm") {
+    if (user.role !== "ADMIN") {
+      return NextResponse.json({ error: "운영자만 확인할 수 있습니다." }, { status: 403 });
+    }
+    if (invoice.status !== "REPORTED") {
+      return NextResponse.json({ error: "입금신청된 건만 확인할 수 있습니다." }, { status: 409 });
+    }
+    const updated = confirmTaxInvoicePayment(id, purpose, user.id, now);
+    createNotification({
+      id: crypto.randomUUID(),
+      recipientId: quote.applicantId,
+      quoteId: id,
+      message: `${id}의 ${label} 입금이 확인되었습니다.`,
+      createdAt: now,
+    });
+    return NextResponse.json({ invoice: updated });
+  }
+
+  return NextResponse.json({ error: "잘못된 요청입니다." }, { status: 400 });
+}

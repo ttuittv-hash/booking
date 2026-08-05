@@ -28,6 +28,14 @@ export default async function ProfilePage() {
         <h1 className="mt-4 text-[22px] font-semibold">회원정보 수정</h1>
 
         <ProfileForm user={user} />
+
+        {user.role !== "ADMIN" && (
+          <div className="mt-10 border-t border-border pt-6">
+            <Link href="/mypage/withdraw" className="text-[12.5px] text-muted hover:text-red-600">
+              회원 탈퇴
+            </Link>
+          </div>
+        )}
       </main>
     </div>
   );

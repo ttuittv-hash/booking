@@ -4,7 +4,15 @@ import fs from "node:fs/promises";
 import path from "node:path";
 import { canAccessQuote, getCurrentUser } from "@/lib/auth";
 import { DATA_DIR } from "@/lib/dataDir";
-import { createAttachment, getQuoteById } from "@/lib/db";
+import {
+  createAttachment,
+  getQuoteById,
+  markFacilityMeetingMaterialsUploaded,
+  markTicketOpenMaterialsUploaded,
+} from "@/lib/db";
+import type { AttachmentCategory } from "@/lib/pricing/types";
+
+const VALID_CATEGORIES: AttachmentCategory[] = ["TICKET_OPEN", "FACILITY_MEETING"];
 
 const UPLOAD_ROOT = path.join(DATA_DIR, "uploads");
 const MAX_SIZE = 20 * 1024 * 1024; // 20MB
@@ -53,6 +61,11 @@ export async function POST(request: Request, ctx: { params: Promise<{ id: string
     );
   }
 
+  const categoryInput = formData?.get("category");
+  const category = VALID_CATEGORIES.includes(categoryInput as AttachmentCategory)
+    ? (categoryInput as AttachmentCategory)
+    : null;
+
   const attachmentId = crypto.randomUUID();
   const storedName = `${attachmentId}${safeExtension(file.name)}`;
   const quoteDir = path.join(UPLOAD_ROOT, id);
@@ -60,6 +73,7 @@ export async function POST(request: Request, ctx: { params: Promise<{ id: string
   const buffer = Buffer.from(await file.arrayBuffer());
   await fs.writeFile(path.join(quoteDir, storedName), buffer);
 
+  const now = new Date().toISOString();
   const attachment = createAttachment({
     id: attachmentId,
     quoteId: id,
@@ -68,8 +82,12 @@ export async function POST(request: Request, ctx: { params: Promise<{ id: string
     mimeType: file.type || "application/octet-stream",
     size: file.size,
     uploadedBy: user.id,
-    createdAt: new Date().toISOString(),
+    category,
+    createdAt: now,
   });
+
+  if (category === "TICKET_OPEN") markTicketOpenMaterialsUploaded(id, now);
+  if (category === "FACILITY_MEETING") markFacilityMeetingMaterialsUploaded(id, now);
 
   return NextResponse.json({ attachment });
 }

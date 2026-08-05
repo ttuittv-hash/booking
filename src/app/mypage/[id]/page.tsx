@@ -1,12 +1,26 @@
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { canAccessQuote, getCurrentUser } from "@/lib/auth";
-import { getDepositByQuoteId, getQuoteById, listAttachments } from "@/lib/db";
+import {
+  getContractSignatureByQuoteId,
+  getDepositByQuoteId,
+  getFacilityMeetingByQuoteId,
+  getQuoteById,
+  getTaxInvoice,
+  getTicketOpenByQuoteId,
+  listAttachments,
+} from "@/lib/db";
 import { won } from "@/lib/format";
 import { totalRentalDays } from "@/lib/pricing/rateTableUtils";
+import { checkAndFireReminders } from "@/lib/reminders";
 import { DEFAULT_VENUE_ID, VENUES } from "@/lib/pricing/types";
 import { DepositPanel } from "@/components/DepositPanel";
 import { AttachmentsPanel } from "@/components/AttachmentsPanel";
+import { ContractSignaturePanel } from "@/components/ContractSignaturePanel";
+import { TaxInvoicePanel } from "@/components/TaxInvoicePanel";
+import { TicketOpenPanel } from "@/components/TicketOpenPanel";
+import { FacilityMeetingPanel } from "@/components/FacilityMeetingPanel";
+import { SettlementMutualConfirm } from "@/components/SettlementMutualConfirm";
 import { PublicHeader } from "@/components/PublicHeader";
 
 const STAGE_LABEL: Record<string, string> = {
@@ -28,8 +42,17 @@ export default async function MyQuoteDetailPage({
   if (!quote) notFound();
   if (!canAccessQuote(user, quote)) notFound();
 
+  checkAndFireReminders(quote);
+
   const deposit = getDepositByQuoteId(id) ?? null;
-  const attachments = listAttachments(id);
+  const attachments = listAttachments(id, null);
+  const signature = getContractSignatureByQuoteId(id) ?? null;
+  const contractInvoice = getTaxInvoice(id, "CONTRACT") ?? null;
+  const settlementInvoice = getTaxInvoice(id, "SETTLEMENT") ?? null;
+  const ticketOpen = getTicketOpenByQuoteId(id) ?? null;
+  const facilityMeeting = getFacilityMeetingByQuoteId(id) ?? null;
+  const ticketOpenMaterials = listAttachments(id, "TICKET_OPEN");
+  const facilityMeetingMaterials = listAttachments(id, "FACILITY_MEETING");
 
   return (
     <div className="flex flex-1 flex-col">
@@ -130,6 +153,38 @@ export default async function MyQuoteDetailPage({
           </section>
         )}
 
+        {quote.contract && (
+          <div className="mt-6 grid grid-cols-1 gap-6 sm:grid-cols-2">
+            <ContractSignaturePanel quoteId={quote.id} signature={signature} viewerRole="APPLICANT" />
+            <TaxInvoicePanel
+              quoteId={quote.id}
+              purpose="CONTRACT"
+              title="세금계산서 (계약금)"
+              invoice={contractInvoice}
+              viewerRole="APPLICANT"
+            />
+          </div>
+        )}
+
+        {quote.contract && (
+          <div className="mt-6 grid grid-cols-1 gap-6 sm:grid-cols-2">
+            <TicketOpenPanel
+              quoteId={quote.id}
+              depositConfirmed={deposit?.status === "CONFIRMED"}
+              ticketOpen={ticketOpen}
+              materials={ticketOpenMaterials}
+              viewerRole="APPLICANT"
+            />
+            <FacilityMeetingPanel
+              quoteId={quote.id}
+              ticketOpenRegistered={!!ticketOpen?.openDate}
+              facilityMeeting={facilityMeeting}
+              materials={facilityMeetingMaterials}
+              viewerRole="APPLICANT"
+            />
+          </div>
+        )}
+
         {quote.settlement && (
           <section className="mt-6 rounded border border-good/30 bg-good-soft p-6">
             <h2 className="text-[15px] font-semibold text-good">③ 최종 정산 완료</h2>
@@ -141,7 +196,20 @@ export default async function MyQuoteDetailPage({
                 {won(quote.settlement.finalTotal)}
               </span>
             </div>
+            <SettlementMutualConfirm quoteId={quote.id} settlement={quote.settlement} viewerRole="APPLICANT" />
           </section>
+        )}
+
+        {quote.settlement && (
+          <div className="mt-6">
+            <TaxInvoicePanel
+              quoteId={quote.id}
+              purpose="SETTLEMENT"
+              title="세금계산서 (정산금)"
+              invoice={settlementInvoice}
+              viewerRole="APPLICANT"
+            />
+          </div>
         )}
 
         <div className="mt-6 grid grid-cols-1 gap-6 sm:grid-cols-2">

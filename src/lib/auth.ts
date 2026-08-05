@@ -1,7 +1,7 @@
 import bcrypt from "bcryptjs";
 import { jwtVerify, SignJWT } from "jose";
 import { cookies } from "next/headers";
-import { findUserById } from "./db";
+import { findUserById, isUserWithdrawn } from "./db";
 import type { AppUser, Quote, UserRole } from "./pricing/types";
 
 const SESSION_COOKIE = "sa_session";
@@ -73,6 +73,7 @@ export async function getCurrentUser(): Promise<AppUser | null> {
   if (!token) return null;
   const session = await verifySession(token);
   if (!session) return null;
+  if (isUserWithdrawn(session.sub)) return null;
   const user = findUserById(session.sub);
   return user ?? null;
 }

@@ -4,13 +4,18 @@ import { getCurrentUser } from "@/lib/auth";
 import {
   findApprovedWeekConflict,
   findUserById,
+  getContractSignatureByQuoteId,
   getDepositByQuoteId,
+  getFacilityMeetingByQuoteId,
   getQuoteById,
+  getTaxInvoice,
+  getTicketOpenByQuoteId,
   listAttachments,
   listAuditLogsForQuote,
 } from "@/lib/db";
 import { won } from "@/lib/format";
 import { totalRentalDays } from "@/lib/pricing/rateTableUtils";
+import { checkAndFireReminders } from "@/lib/reminders";
 import {
   DEFAULT_VENUE_ID,
   EVENT_TYPE_LABEL,
@@ -24,6 +29,11 @@ import { ReviewForm } from "@/components/admin/ReviewForm";
 import { SettlementForm } from "@/components/admin/SettlementForm";
 import { DepositPanel } from "@/components/DepositPanel";
 import { AttachmentsPanel } from "@/components/AttachmentsPanel";
+import { ContractSignaturePanel } from "@/components/ContractSignaturePanel";
+import { TaxInvoicePanel } from "@/components/TaxInvoicePanel";
+import { TicketOpenPanel } from "@/components/TicketOpenPanel";
+import { FacilityMeetingPanel } from "@/components/FacilityMeetingPanel";
+import { SettlementMutualConfirm } from "@/components/SettlementMutualConfirm";
 
 const STAGE_LABEL: Record<string, string> = {
   ESTIMATE: "신청 접수",
@@ -44,11 +54,20 @@ export default async function AdminQuoteDetailPage({
   const quote = getQuoteById(id);
   if (!quote) notFound();
 
+  checkAndFireReminders(quote);
+
   const applicant = findUserById(quote.applicantId);
   const auditLog = listAuditLogsForQuote(id);
   const deposit = getDepositByQuoteId(id) ?? null;
-  const attachments = listAttachments(id);
+  const attachments = listAttachments(id, null);
   const weekConflict = quote.status === "ESTIMATE" ? findApprovedWeekConflict(quote) ?? null : null;
+  const signature = getContractSignatureByQuoteId(id) ?? null;
+  const contractInvoice = getTaxInvoice(id, "CONTRACT") ?? null;
+  const settlementInvoice = getTaxInvoice(id, "SETTLEMENT") ?? null;
+  const ticketOpen = getTicketOpenByQuoteId(id) ?? null;
+  const facilityMeeting = getFacilityMeetingByQuoteId(id) ?? null;
+  const ticketOpenMaterials = listAttachments(id, "TICKET_OPEN");
+  const facilityMeetingMaterials = listAttachments(id, "FACILITY_MEETING");
 
   return (
     <div className="flex flex-1 flex-col">
@@ -232,6 +251,38 @@ export default async function AdminQuoteDetailPage({
             </div>
           )}
 
+          {quote.contract && (
+            <div className="mt-6 grid grid-cols-1 gap-6 sm:grid-cols-2">
+              <ContractSignaturePanel quoteId={quote.id} signature={signature} viewerRole="ADMIN" />
+              <TaxInvoicePanel
+                quoteId={quote.id}
+                purpose="CONTRACT"
+                title="세금계산서 (계약금)"
+                invoice={contractInvoice}
+                viewerRole="ADMIN"
+              />
+            </div>
+          )}
+
+          {quote.contract && (
+            <div className="mt-6 grid grid-cols-1 gap-6 sm:grid-cols-2">
+              <TicketOpenPanel
+                quoteId={quote.id}
+                depositConfirmed={deposit?.status === "CONFIRMED"}
+                ticketOpen={ticketOpen}
+                materials={ticketOpenMaterials}
+                viewerRole="ADMIN"
+              />
+              <FacilityMeetingPanel
+                quoteId={quote.id}
+                ticketOpenRegistered={!!ticketOpen?.openDate}
+                facilityMeeting={facilityMeeting}
+                materials={facilityMeetingMaterials}
+                viewerRole="ADMIN"
+              />
+            </div>
+          )}
+
           {quote.status === "CONTRACTED" && quote.contract && (
             <div className="mt-6">
               <SettlementForm quoteId={quote.id} contractTotal={quote.contract.contractTotal} />
@@ -249,6 +300,19 @@ export default async function AdminQuoteDetailPage({
                   {won(quote.settlement.finalTotal)}
                 </span>
               </div>
+              <SettlementMutualConfirm quoteId={quote.id} settlement={quote.settlement} viewerRole="ADMIN" />
+            </div>
+          )}
+
+          {quote.settlement && (
+            <div className="mt-6">
+              <TaxInvoicePanel
+                quoteId={quote.id}
+                purpose="SETTLEMENT"
+                title="세금계산서 (정산금)"
+                invoice={settlementInvoice}
+                viewerRole="ADMIN"
+              />
             </div>
           )}
         </div>
