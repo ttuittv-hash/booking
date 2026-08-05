@@ -11,6 +11,14 @@ import {
 } from "@/lib/db";
 import { won } from "@/lib/format";
 import { totalRentalDays } from "@/lib/pricing/rateTableUtils";
+import {
+  DEFAULT_VENUE_ID,
+  EVENT_TYPE_LABEL,
+  RETRACTABLE_SEAT_USE_LABEL,
+  SEATING_TYPE_LABEL,
+  STAGE_TYPE_LABEL,
+  VENUES,
+} from "@/lib/pricing/types";
 import { ContractForm } from "@/components/admin/ContractForm";
 import { ReviewForm } from "@/components/admin/ReviewForm";
 import { SettlementForm } from "@/components/admin/SettlementForm";
@@ -73,6 +81,7 @@ export default async function AdminQuoteDetailPage({
         </div>
 
         <p className="mt-1.5 text-[13.5px] text-muted">
+          {VENUES.find((v) => v.id === (quote.selection.venueId ?? DEFAULT_VENUE_ID))?.name ?? "-"} ·{" "}
           {quote.selection.week.year}년 {quote.selection.week.month}월{" "}
           {quote.selection.week.weekOfMonth}주차 · 총 {totalRentalDays(quote.selection)}일 · 관객{" "}
           {quote.selection.expectedAudience.toLocaleString()}명
@@ -82,6 +91,62 @@ export default async function AdminQuoteDetailPage({
           {" "}({applicant?.email ?? "-"}) · 회사{" "}
           <span className="font-medium text-foreground">{applicant?.companyName ?? "-"}</span>
         </p>
+
+        {quote.selection.performanceInfo && (
+          <section className="mt-6 rounded border border-border bg-background p-6">
+            <h2 className="text-[15px] font-semibold">공연 정보</h2>
+            <dl className="mt-3 grid grid-cols-1 gap-x-6 gap-y-2 text-[12.5px] sm:grid-cols-2">
+              <div className="flex justify-between gap-3 sm:justify-start">
+                <dt className="text-muted">공연(행사)명</dt>
+                <dd className="font-medium">{quote.selection.performanceInfo.eventName || "-"}</dd>
+              </div>
+              <div className="flex justify-between gap-3 sm:justify-start">
+                <dt className="text-muted">아티스트</dt>
+                <dd className="font-medium">{quote.selection.performanceInfo.artist || "-"}</dd>
+              </div>
+              <div className="flex justify-between gap-3 sm:justify-start">
+                <dt className="text-muted">주최·주관·기획</dt>
+                <dd className="font-medium">{quote.selection.performanceInfo.organizer || "-"}</dd>
+              </div>
+              <div className="flex justify-between gap-3 sm:justify-start">
+                <dt className="text-muted">행사규모</dt>
+                <dd className="font-medium">{quote.selection.performanceInfo.eventScale || "-"}</dd>
+              </div>
+              <div className="flex justify-between gap-3 sm:justify-start">
+                <dt className="text-muted">행사유형</dt>
+                <dd className="font-medium">
+                  {quote.selection.performanceInfo.eventTypes.length
+                    ? quote.selection.performanceInfo.eventTypes.map((t) => EVENT_TYPE_LABEL[t]).join(", ")
+                    : "-"}
+                </dd>
+              </div>
+              <div className="flex justify-between gap-3 sm:justify-start">
+                <dt className="text-muted">무대형태</dt>
+                <dd className="font-medium">
+                  {quote.selection.performanceInfo.stageTypes.length
+                    ? quote.selection.performanceInfo.stageTypes.map((t) => STAGE_TYPE_LABEL[t]).join(", ")
+                    : "-"}
+                </dd>
+              </div>
+              <div className="flex justify-between gap-3 sm:justify-start">
+                <dt className="text-muted">객석형태</dt>
+                <dd className="font-medium">
+                  {quote.selection.performanceInfo.seatingTypes.length
+                    ? quote.selection.performanceInfo.seatingTypes.map((t) => SEATING_TYPE_LABEL[t]).join(", ")
+                    : "-"}
+                </dd>
+              </div>
+              <div className="flex justify-between gap-3 sm:justify-start">
+                <dt className="text-muted">수납식 객석 사용여부</dt>
+                <dd className="font-medium">
+                  {quote.selection.performanceInfo.retractableSeatUse
+                    ? RETRACTABLE_SEAT_USE_LABEL[quote.selection.performanceInfo.retractableSeatUse]
+                    : "-"}
+                </dd>
+              </div>
+            </dl>
+          </section>
+        )}
 
         <section className="mt-6 rounded border border-border bg-background p-6">
           <h2 className="text-[15px] font-semibold">① 신청 예상금액 · 산출내역</h2>

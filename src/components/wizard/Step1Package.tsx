@@ -1,27 +1,30 @@
 "use client";
 
 import { won } from "@/lib/format";
-import { findAddon, recommendPackage } from "@/lib/pricing/rateTableUtils";
+import { findAddon, packagesForVenue, recommendPackage } from "@/lib/pricing/rateTableUtils";
 import { MEDIA_TIER_LABEL, type RateTable } from "@/lib/pricing/types";
 
 export function Step1Package({
   rateTable,
+  venueId,
   packageId,
   expectedAudience,
   onSelectPackage,
   onChangeAudience,
 }: {
   rateTable: RateTable;
+  venueId: string;
   packageId: number | null;
   expectedAudience: number;
   onSelectPackage: (id: number) => void;
   onChangeAudience: (value: number) => void;
 }) {
-  const recommended = recommendPackage(rateTable, expectedAudience);
+  const recommended = recommendPackage(rateTable, expectedAudience, venueId);
+  const venuePackages = packagesForVenue(rateTable, venueId);
 
   return (
     <section className="rounded border border-border bg-background p-7">
-      <h2 className="text-[19px] font-semibold">2. 규모 / 패키지 선택</h2>
+      <h2 className="text-[19px] font-semibold">3. 규모 / 패키지 선택</h2>
       <p className="mt-1.5 text-[13.5px] text-muted">
         예상 관객 규모를 입력하면 패키지가 추천됩니다. 패키지는 정찰제
         고정가이며, 각 패키지에 기본 포함된 구성을 비교해서 선택하세요.
@@ -42,7 +45,10 @@ export function Step1Package({
       </div>
 
       <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2">
-        {rateTable.packages.map((pkg) => {
+        {venuePackages.length === 0 && (
+          <p className="text-[13.5px] text-muted">이 공간의 패키지 정보가 아직 준비되지 않았습니다.</p>
+        )}
+        {venuePackages.map((pkg) => {
           const isSelected = packageId === pkg.id;
           const isRecommended = recommended === pkg.id;
           return (

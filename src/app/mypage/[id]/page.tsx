@@ -4,6 +4,7 @@ import { canAccessQuote, getCurrentUser } from "@/lib/auth";
 import { getDepositByQuoteId, getQuoteById, listAttachments } from "@/lib/db";
 import { won } from "@/lib/format";
 import { totalRentalDays } from "@/lib/pricing/rateTableUtils";
+import { DEFAULT_VENUE_ID, VENUES } from "@/lib/pricing/types";
 import { DepositPanel } from "@/components/DepositPanel";
 import { AttachmentsPanel } from "@/components/AttachmentsPanel";
 import { PublicHeader } from "@/components/PublicHeader";
@@ -64,6 +65,7 @@ export default async function MyQuoteDetailPage({
         </div>
 
         <p className="mt-1.5 text-[13.5px] text-muted">
+          {VENUES.find((v) => v.id === (quote.selection.venueId ?? DEFAULT_VENUE_ID))?.name ?? "-"} ·{" "}
           {quote.selection.week.year}년 {quote.selection.week.month}월{" "}
           {quote.selection.week.weekOfMonth}주차 · 총 {totalRentalDays(quote.selection)}일 · 관객{" "}
           {quote.selection.expectedAudience.toLocaleString()}명

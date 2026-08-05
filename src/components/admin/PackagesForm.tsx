@@ -5,7 +5,9 @@ import { useState } from "react";
 import { won } from "@/lib/format";
 import {
   ADDON_CATEGORY_LABEL,
+  DEFAULT_VENUE_ID,
   MEDIA_TIER_LABEL,
+  VENUES,
   type AddonCategory,
   type AddonItem,
   type MediaTier,
@@ -33,6 +35,7 @@ const MEDIA_OPTIONS: { value: MediaTier; label: string }[] = [
 function blankPackage(id: number): EditablePackage {
   return {
     id,
+    venueId: DEFAULT_VENUE_ID,
     name: `패키지 ${id}`,
     tagline: "",
     audienceTier: { min: 0, max: 0, label: "" },
@@ -175,6 +178,9 @@ export function PackagesForm({ rateTable }: { rateTable: RateTable }) {
             ].join(" ")}
           >
             {p.name}
+            <span className="ml-1.5 text-[11px] text-muted">
+              {VENUES.find((v) => v.id === (p.venueId ?? DEFAULT_VENUE_ID))?.name}
+            </span>
           </button>
         ))}
         <button
@@ -226,6 +232,20 @@ export function PackagesForm({ rateTable }: { rateTable: RateTable }) {
         <section>
           <h2 className="text-[14px] font-semibold">기본 정보</h2>
           <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2">
+            <label className="block">
+              <span className="mb-1 block text-[12px] text-muted">공간</span>
+              <select
+                value={active.venueId ?? DEFAULT_VENUE_ID}
+                onChange={(e) => update({ venueId: e.target.value })}
+                className="w-full rounded-sm border border-border bg-panel px-3 py-2 text-[13px] outline-none focus:border-accent"
+              >
+                {VENUES.map((v) => (
+                  <option key={v.id} value={v.id}>
+                    {v.name}
+                  </option>
+                ))}
+              </select>
+            </label>
             <label className="block">
               <span className="mb-1 block text-[12px] text-muted">패키지 이름</span>
               <input

@@ -162,7 +162,7 @@ export function Step1Calendar({
 
   return (
     <section className="border border-border bg-background p-5 sm:p-7">
-      <h2 className="text-[19px] font-semibold">1. 주차(기간) 선택</h2>
+      <h2 className="text-[19px] font-semibold">2. 주차(기간) 선택</h2>
       <p className="mt-1.5 text-[13.5px] text-muted">
         달력에서 원하는 주를 눌러 선택하세요. 기본 단위는{" "}
         <b className="text-foreground">1주(화~일, 6일)</b>이며, 월요일은 기본적으로 대관하지

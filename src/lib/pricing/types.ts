@@ -49,8 +49,26 @@ export const MEDIA_TIER_LABEL: Record<Exclude<MediaTier, null>, string> = {
   FULL: "C세트",
 };
 
+// ---------------------------------------------------------------------------
+// 공간(대관 공연장) — 아레나/중형공연장 등, 추후 계속 확대 예정이므로 배열에
+// 항목만 추가하면 위저드·요금표 전체에 반영된다.
+// ---------------------------------------------------------------------------
+
+export interface Venue {
+  id: string;
+  name: string;
+}
+
+export const VENUES: Venue[] = [
+  { id: "arena", name: "아레나" },
+  { id: "medium-hall", name: "중형공연장" },
+];
+
+export const DEFAULT_VENUE_ID = "arena"; // venueId 미지정(기존) 데이터의 하위호환 기본값
+
 export interface RentalPackage {
   id: number; // 1~4
+  venueId: string; // VENUES 중 하나 — 이 패키지가 속한 공간
   name: string; // "패키지 1"
   tagline: string; // 한 줄 소개 문구 — "OOO을 위한 OOO" 형태로 패키지별 핵심 특징을 요약
   audienceTier: {
@@ -132,6 +150,7 @@ export const WEEKDAY_LABEL: Record<WeekDay, string> = {
 export type DayTag = "PREP" | "PERFORMANCE";
 
 export interface QuoteSelection {
+  venueId: string | null; // 0단계: 공간 선택
   packageId: number | null; // 1단계
   week: { year: number; month: number; weekOfMonth: number }; // 2단계 (화~일 시작 주)
   excludedDays: WeekDay[]; // 화~일 6일 중 실제 사용하지 않는 요일 (요일당 정액 할인, 최소 1일은 남겨야 함)
@@ -140,6 +159,52 @@ export interface QuoteSelection {
   expectedAudience: number; // 관객수 (청소비 등 자동 산출 입력값)
   expectedRevenue?: number; // 온라인 송출 수수료 계산용 (선택)
   addons: SelectedAddon[]; // 4단계 선택 항목
+  performanceInfo: PerformanceInfo; // 공연 정보 입력 단계
+}
+
+// ---------------------------------------------------------------------------
+// 공연 정보 입력 — 예상 대관료 확인 이후, 신청서 제출 전 공통 프로세스
+// ---------------------------------------------------------------------------
+
+export type EventType = "CONCERT" | "FANMEETING_CONCERT" | "CORPORATE" | "PUBLIC";
+
+export const EVENT_TYPE_LABEL: Record<EventType, string> = {
+  CONCERT: "콘서트",
+  FANMEETING_CONCERT: "팬미팅·콘서트",
+  CORPORATE: "기업행사",
+  PUBLIC: "공공행사",
+};
+
+export type StageType = "END_STAGE" | "CENTER_STAGE";
+
+export const STAGE_TYPE_LABEL: Record<StageType, string> = {
+  END_STAGE: "앤드스테이지",
+  CENTER_STAGE: "센터스테이지",
+};
+
+export type SeatingType = "SEATED" | "STANDING";
+
+export const SEATING_TYPE_LABEL: Record<SeatingType, string> = {
+  SEATED: "객석",
+  STANDING: "스탠딩",
+};
+
+export type RetractableSeatUse = "USE" | "NOT_USE";
+
+export const RETRACTABLE_SEAT_USE_LABEL: Record<RetractableSeatUse, string> = {
+  USE: "사용",
+  NOT_USE: "미사용",
+};
+
+export interface PerformanceInfo {
+  eventName: string; // 공연(행사)명
+  artist: string; // 아티스트
+  organizer: string; // 주최·주관·기획
+  eventScale: string; // 행사규모
+  eventTypes: EventType[]; // 행사유형
+  stageTypes: StageType[]; // 무대형태
+  seatingTypes: SeatingType[]; // 객석형태
+  retractableSeatUse: RetractableSeatUse | null; // 수납식 객석 사용여부
 }
 
 export interface WeekDemand {

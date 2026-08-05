@@ -46,7 +46,7 @@ export function Step4Addons({
 
   return (
     <section className="rounded border border-border bg-background p-7">
-      <h2 className="text-[19px] font-semibold">4. 추가 옵션 선택</h2>
+      <h2 className="text-[19px] font-semibold">5. 추가 옵션 선택</h2>
       <p className="mt-1.5 text-[13.5px] text-muted">
         기본 포함분은 초과분만 과금됩니다:{" "}
         <b className="text-foreground">MAX(신청−기본, 0) × 단가</b>. 유틸리티는

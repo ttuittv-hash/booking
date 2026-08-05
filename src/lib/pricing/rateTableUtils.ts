@@ -11,8 +11,12 @@ export function findAddon(rateTable: RateTable, id: string): AddonItem | undefin
   return rateTable.addons.find((a) => a.id === id);
 }
 
-export function recommendPackage(rateTable: RateTable, expectedAudience: number): number | null {
-  const match = rateTable.packages.find(
+export function packagesForVenue(rateTable: RateTable, venueId: string): RentalPackage[] {
+  return rateTable.packages.filter((p) => (p.venueId ?? "arena") === venueId);
+}
+
+export function recommendPackage(rateTable: RateTable, expectedAudience: number, venueId: string): number | null {
+  const match = packagesForVenue(rateTable, venueId).find(
     (p) => expectedAudience >= p.audienceTier.min && expectedAudience <= p.audienceTier.max,
   );
   return match ? match.id : null;

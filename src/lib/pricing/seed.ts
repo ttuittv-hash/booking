@@ -11,6 +11,7 @@ export const SEED_RATE_TABLE_VERSION = "2026-07-seed-v1";
 export const SEED_PACKAGES: RentalPackage[] = [
   {
     id: 1,
+    venueId: "arena",
     name: "패키지 1",
     tagline: "합리적인 규모의 콘서트를 위한 스탠더드 패키지",
     audienceTier: { min: 0, max: 12_000, label: "~12,000석 규모" },
@@ -41,6 +42,7 @@ export const SEED_PACKAGES: RentalPackage[] = [
   },
   {
     id: 2,
+    venueId: "arena",
     name: "패키지 2",
     tagline: "확장된 홍보 효과가 필요한 중대형 공연을 위한 패키지",
     audienceTier: { min: 12_001, max: 15_000, label: "~15,000석 규모" },
@@ -72,6 +74,7 @@ export const SEED_PACKAGES: RentalPackage[] = [
   },
   {
     id: 3,
+    venueId: "arena",
     name: "패키지 3",
     tagline: "대형 스탠딩 공연을 위한 풀프로덕션 패키지",
     audienceTier: { min: 15_001, max: 18_000, label: "~18,000석 규모" },
@@ -105,6 +108,7 @@ export const SEED_PACKAGES: RentalPackage[] = [
   },
   {
     id: 4,
+    venueId: "arena",
     name: "패키지 4",
     tagline: "최대 규모 공연을 위한 프리미엄 올인원 패키지",
     audienceTier: { min: 18_001, max: 99_999, label: "20,000석+ 규모" },
@@ -134,6 +138,30 @@ export const SEED_PACKAGES: RentalPackage[] = [
       { addonId: "center_lift", quantity: 2 },
       { addonId: "production_power", quantity: 6 },
       { addonId: "delay_speaker", quantity: 1 },
+    ],
+  },
+  {
+    id: 5,
+    venueId: "medium-hall",
+    name: "중형공연장 패키지",
+    tagline: "약 2,000석 규모의 중형 공연·행사를 위한 기본 패키지",
+    audienceTier: { min: 0, max: 2_000, label: "~2,000석 규모" },
+    baseFeePerWeek: 15_000_000,
+    includedWeeks: 1,
+    mediaTier: null,
+    discountRatio: 0,
+    dayBreakdown: "준비 2일 + 공연 1일",
+    defaultPerformanceDays: 1,
+    rentalHours: "09:00 ~ 22:00",
+    outdoorPlazaIncluded: false,
+    parkingPerDay: "50대/일",
+    waitingRoomNote: "지상 2실",
+    sideFacilities: "운영관리실",
+    seatingType: "지정 좌석형",
+    stageType: "엔드스테이지",
+    includedItems: [
+      { addonId: "waiting_room", quantity: 2 },
+      { addonId: "intercom_wireless", quantity: 4 },
     ],
   },
 ];

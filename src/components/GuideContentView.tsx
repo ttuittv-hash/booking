@@ -18,9 +18,11 @@ export function GuideContentView({ content, disableLinks }: { content: GuideCont
 
   return (
     <div className="mx-auto w-full max-w-5xl flex-1 px-6 py-16 sm:px-8">
-      <p className="text-[13px] font-semibold uppercase tracking-[0.14em] text-accent">STAGE</p>
-      <h1 className="mt-3 text-[30px] font-semibold tracking-tight sm:text-[36px]">대관 안내</h1>
-      <div className={`mt-6 max-w-3xl text-[15px] leading-8 text-muted ${RICH_TEXT_CLS}`} dangerouslySetInnerHTML={{ __html: intro }} />
+      <div id="overview" className="scroll-mt-24">
+        <p className="text-[13px] font-semibold uppercase tracking-[0.14em] text-accent">STAGE</p>
+        <h1 className="mt-3 text-[30px] font-semibold tracking-tight sm:text-[36px]">대관 안내</h1>
+        <div className={`mt-6 max-w-3xl text-[15px] leading-8 text-muted ${RICH_TEXT_CLS}`} dangerouslySetInnerHTML={{ __html: intro }} />
+      </div>
 
       <Section id="process" title="대관 절차">
         <div className="space-y-3">

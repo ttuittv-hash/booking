@@ -1,9 +1,20 @@
 "use client";
 
 import Link from "next/link";
+import { useState } from "react";
 import { won } from "@/lib/format";
 import { findPackage, totalRentalDays } from "@/lib/pricing/rateTableUtils";
-import type { EstimatedQuote, QuoteSelection, RateTable } from "@/lib/pricing/types";
+import {
+  DEFAULT_VENUE_ID,
+  EVENT_TYPE_LABEL,
+  RETRACTABLE_SEAT_USE_LABEL,
+  SEATING_TYPE_LABEL,
+  STAGE_TYPE_LABEL,
+  VENUES,
+  type EstimatedQuote,
+  type QuoteSelection,
+  type RateTable,
+} from "@/lib/pricing/types";
 
 const STAGES = [
   {
@@ -55,6 +66,11 @@ export function Step6Submit({
   onSubmit: () => void;
 }) {
   const pkg = findPackage(rateTable, selection.packageId);
+  const [confirmed, setConfirmed] = useState(false);
+  const [pledged, setPledged] = useState(false);
+  const venueName =
+    VENUES.find((v) => v.id === (selection.venueId ?? DEFAULT_VENUE_ID))?.name ?? "-";
+  const info = selection.performanceInfo;
 
   if (!pkg) {
     return (
@@ -66,9 +82,11 @@ export function Step6Submit({
     );
   }
 
+  const canSubmit = confirmed && pledged;
+
   return (
     <section className="rounded border border-border bg-background p-7">
-      <h2 className="text-[19px] font-semibold">6. {isEditing ? "신청서 수정" : "신청서 제출"}</h2>
+      <h2 className="text-[19px] font-semibold">8. {isEditing ? "신청서 수정" : "신청서 제출"}</h2>
       <p className="mt-1.5 text-[13.5px] text-muted">
         {isEditing
           ? "아래 산출내역으로 신청서 내용이 수정됩니다. 신청금액은 예상금액이며, 이후 심사·계약에서 확정됩니다."
@@ -78,7 +96,7 @@ export function Step6Submit({
       <div className="mt-6 flex flex-wrap items-center justify-between gap-4 rounded border border-border bg-panel/60 p-6">
         <div>
           <div className="text-[15px] font-semibold">
-            {pkg.name} · {pkg.audienceTier.label}
+            {venueName} · {pkg.name} · {pkg.audienceTier.label}
           </div>
           <div className="mt-1 text-[13px] text-muted">
             {selection.week.year}년 {selection.week.month}월{" "}
@@ -92,6 +110,52 @@ export function Step6Submit({
             {won(quote.total)}
           </div>
         </div>
+      </div>
+
+      <div className="mt-4 rounded border border-border bg-panel/60 p-6">
+        <div className="text-[13px] font-semibold">공연 정보</div>
+        <dl className="mt-3 grid grid-cols-1 gap-x-6 gap-y-2 text-[12.5px] sm:grid-cols-2">
+          <div className="flex justify-between gap-3 sm:justify-start">
+            <dt className="text-muted">공연(행사)명</dt>
+            <dd className="font-medium">{info.eventName || "-"}</dd>
+          </div>
+          <div className="flex justify-between gap-3 sm:justify-start">
+            <dt className="text-muted">아티스트</dt>
+            <dd className="font-medium">{info.artist || "-"}</dd>
+          </div>
+          <div className="flex justify-between gap-3 sm:justify-start">
+            <dt className="text-muted">주최·주관·기획</dt>
+            <dd className="font-medium">{info.organizer || "-"}</dd>
+          </div>
+          <div className="flex justify-between gap-3 sm:justify-start">
+            <dt className="text-muted">행사규모</dt>
+            <dd className="font-medium">{info.eventScale || "-"}</dd>
+          </div>
+          <div className="flex justify-between gap-3 sm:justify-start">
+            <dt className="text-muted">행사유형</dt>
+            <dd className="font-medium">
+              {info.eventTypes.length ? info.eventTypes.map((t) => EVENT_TYPE_LABEL[t]).join(", ") : "-"}
+            </dd>
+          </div>
+          <div className="flex justify-between gap-3 sm:justify-start">
+            <dt className="text-muted">무대형태</dt>
+            <dd className="font-medium">
+              {info.stageTypes.length ? info.stageTypes.map((t) => STAGE_TYPE_LABEL[t]).join(", ") : "-"}
+            </dd>
+          </div>
+          <div className="flex justify-between gap-3 sm:justify-start">
+            <dt className="text-muted">객석형태</dt>
+            <dd className="font-medium">
+              {info.seatingTypes.length ? info.seatingTypes.map((t) => SEATING_TYPE_LABEL[t]).join(", ") : "-"}
+            </dd>
+          </div>
+          <div className="flex justify-between gap-3 sm:justify-start">
+            <dt className="text-muted">수납식 객석 사용여부</dt>
+            <dd className="font-medium">
+              {info.retractableSeatUse ? RETRACTABLE_SEAT_USE_LABEL[info.retractableSeatUse] : "-"}
+            </dd>
+          </div>
+        </dl>
       </div>
 
       {submittedId ? (
@@ -124,9 +188,29 @@ export function Step6Submit({
         </div>
       ) : (
         <>
+          <div className="mt-5 space-y-2.5">
+            <label className="flex cursor-pointer items-start gap-2.5 text-[13px]">
+              <input
+                type="checkbox"
+                checked={confirmed}
+                onChange={(e) => setConfirmed(e.target.checked)}
+                className="mt-0.5 accent-accent"
+              />
+              위에 표시된 공연기간/일정 및 공연정보 입력 내용을 확인하였으며, 이대로 신청서를 제출합니다.
+            </label>
+            <label className="flex cursor-pointer items-start gap-2.5 text-[13px]">
+              <input
+                type="checkbox"
+                checked={pledged}
+                onChange={(e) => setPledged(e.target.checked)}
+                className="mt-0.5 accent-accent"
+              />
+              입력한 내용이 사실과 틀림없으며, 이를 이행할 것을 서약합니다.
+            </label>
+          </div>
           <button
             type="button"
-            disabled={submitting}
+            disabled={submitting || !canSubmit}
             onClick={onSubmit}
             className="mt-5 rounded-sm bg-accent px-7 py-3 text-[14px] font-semibold text-white transition-colors hover:bg-accent-hover disabled:opacity-50"
           >

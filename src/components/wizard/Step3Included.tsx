@@ -24,7 +24,7 @@ export function Step3Included({
 
   return (
     <section className="rounded border border-border bg-background p-7">
-      <h2 className="text-[19px] font-semibold">3. 기본 포함사항</h2>
+      <h2 className="text-[19px] font-semibold">4. 기본 포함사항</h2>
       <p className="mt-1.5 text-[13.5px] text-muted">
         {pkg.name}에 기본 포함된 구성입니다. 초과분만 4단계에서 추가
         과금됩니다.

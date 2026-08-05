@@ -9,6 +9,7 @@ const RATE_TABLE = buildSeedRateTable();
 
 function baseSelection(overrides: Partial<QuoteSelection> = {}): QuoteSelection {
   return {
+    venueId: "arena",
     packageId: 2,
     week: { year: 2027, month: 8, weekOfMonth: 1 },
     excludedDays: [],
@@ -17,6 +18,16 @@ function baseSelection(overrides: Partial<QuoteSelection> = {}): QuoteSelection 
     expectedAudience: 8000,
     expectedRevenue: 0,
     addons: [],
+    performanceInfo: {
+      eventName: "",
+      artist: "",
+      organizer: "",
+      eventScale: "",
+      eventTypes: [],
+      stageTypes: [],
+      seatingTypes: [],
+      retractableSeatUse: null,
+    },
     ...overrides,
   };
 }
