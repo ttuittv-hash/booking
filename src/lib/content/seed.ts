@@ -1,49 +1,51 @@
 import type { GuideContent, HomeContent, VenueContent } from "./types";
 
+/**
+ * 홈 기본 콘텐츠.
+ * 카피 기준: 카카오 브랜드 가이드라인 0.1
+ *   · 3.4 브랜드 선언문 BUSINESS › HOST IT. (본문 전문을 내러티브로 사용)
+ *   · 3.1 Tone of Voice — Clear / Confident / Engaging
+ *   · 1.2 Brand essence: Business — LIVE MOMENTS, LIVE PLATFORM
+ * 히어로 디스플레이는 Notion "(웹사이트) 대관·비즈니스 사이트 구조 기획" 후보안.
+ */
 export const DEFAULT_HOME_CONTENT: HomeContent = {
   heroImage: null,
   heroEyebrow: "HOST IT.",
-  heroTitle: "Your Vision.\nOur Stage.",
-  heroSubtitle:
-    "서울아레나는 K-컬처와 기술을 융합해, 경험하지 못한 새로운 경험을 창조하는 공연 문화 플랫폼입니다.\n세계 최고 수준의 음향·리깅·무대 시스템이 당신의 비전을 가장 온전하게 담아냅니다.",
-  heroPrimaryLabel: "Apply Now",
+  heroTitle: "BRING THE VISION,\nWE BUILD THE STAGE",
+  heroSubDisplay: "LIMITLESS SPACE, ABSOLUTE CONTROL",
+  heroSubtitle: "한계 없는 인프라 위에서\n당신만의 무대를 지휘하세요.",
+  heroPrimaryLabel: "대관 신청",
   heroPrimaryHref: "/apply",
-  heroSecondaryLabel: "About Seoul Arena",
-  heroSecondaryHref: "/venue",
-  missionLabel: "MISSION",
-  mission:
-    "지역 주민과 전 세계 관객 모두가 혁신적이고 몰입적인 문화 체험을 할 수 있도록, K-컬처와 첨단 기술을 융합한 복합 예술 공간을 제공합니다.",
-  visionLabel: "VISION",
-  vision:
-    "K-팝을 비롯한 한국의 대중문화와 미래형 기술로 세계와 소통하며, 지역 사회를 활성화하고 글로벌 무대에서 새로운 문화를 선도하는 공간으로 성장해 나갑니다.",
-  featuresLabel: "STRATEGY",
-  featuresTitle: "서울아레나의 방향성",
-  features: [
+  heroSecondaryLabel: "시설 제원 보기",
+  heroSecondaryHref: "/venue#specs",
+  narrativeLabel: "Manifesto",
+  narrativeTitle: "서울아레나는\n단순한 베뉴가 아닙니다.",
+  narrativeLead:
+    "아티스트와 기획사의 상상력을 물리적 제약 없이 현실로 구현해 내는 캔버스입니다.",
+  narrativeStatements: [
     {
-      title: "K-컬처 × 첨단기술",
-      desc: "한국의 대중문화와 AR·VR·AI를 결합한 몰입형 문화 공간입니다.",
-      href: "/venue#stage-features",
-      image: null,
-    },
-    {
-      title: "글로벌 문화 허브",
-      desc: "전 세계 관광객과 팬을 잇는 글로벌 문화 명소로 도약합니다.",
-      href: "/venue",
-      image: null,
-    },
-    {
-      title: "몰입형 시청각 인프라",
-      desc: "글로벌 스탠다드 이상의 사운드와 무대 연출 환경을 갖췄습니다.",
+      title: "어떠한 스케일과 포맷도",
+      desc: "세계 최고 수준의 음향, 리깅, 무대 시스템은 어떠한 스케일과 포맷의 연출도 완벽하게 수용할 준비가 되어 있습니다.",
       href: "/venue#specs",
+      linkLabel: "시설 제원",
       image: null,
     },
     {
-      title: "지역사회와의 상생",
-      desc: "도봉·노원 지역과 함께 성장하는 문화 허브가 됩니다.",
-      href: "/venue",
+      title: "가장 완성도 높은 라이브를 위해",
+      desc: "공간의 모든 인프라와 기민한 운영 시스템은 오직 단 하나, ‘가장 완성도 높은 라이브’를 위해 움직입니다.",
+      href: "/venue#stage-features",
+      linkLabel: "무대 특장",
+      image: null,
+    },
+    {
+      title: "연출을 타협하지 마세요",
+      desc: "기술의 한계로 연출을 타협하지 마세요. 당신의 비전이 가장 온전하고 강력하게 관객에게 닿을 때까지.",
+      href: "/venue#amenities",
+      linkLabel: "부대시설",
       image: null,
     },
   ],
+  narrativeClosing: "LIVE MOMENTS, LIVE PLATFORM",
   processLabel: "APPLICATION PROCESS",
   processTitle: "신청 절차 안내",
   processSteps: [

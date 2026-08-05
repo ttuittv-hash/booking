@@ -1,35 +1,193 @@
 @import "tailwindcss";
 
+/* ============================================================================
+   Seoul Arena — Business layer design tokens
+   출처: Kakao Arena Brand Guidelines 0.1 + Figma "2607 서울아레나 웹사이트 Full"
+         › WORKSPACE › Style Guide (Variables / Typography / Radius / Shadows)
+   ========================================================================= */
+
 :root {
-  --background: #ffffff;
-  --foreground: #1d1d1f;
-  --muted: #6e6e73;
-  --panel: #f5f5f7;
-  --panel-strong: #e8e8ed;
-  --border: #d2d2d7;
-  --accent: #0071e3;
-  --accent-hover: #0077ed;
-  --accent-soft: #e8f1fd;
-  --good: #1d7a46;
-  --good-soft: #e6f4ea;
-  --warn: #515154;
-  --warn-soft: #eeeef0;
+  /* --- Primitive: Neutrals (Figma Style Guide › Variables) --------------- */
+  --n-white: #ffffff;
+  --n-lightest: #f2f0ef;
+  --n-lighter: #cccccc;
+  --n-light: #aaaaaa;
+  --n-mid: #666666;
+  --n-dark: #444444;
+  --n-darker: #222222;
+  --n-darkest: #000000;
+
+  /* --- Primitive: Accent ------------------------------------------------ */
+  --brand-yellow: #ffcd00;
+
+  /* --- Color scheme ----------------------------------------------------- */
+  --background: var(--n-lightest);
+  --surface: var(--n-white);
+  --foreground: var(--n-darkest);
+  --muted: var(--n-mid);
+  --muted-strong: var(--n-dark);
+  /* 편집형 헤어라인(섹션·리스트 구분)은 검정, 밀도 높은 UI(폼·테이블)는 소프트 */
+  --border: var(--n-darkest);
+  --border-soft: var(--n-lighter);
+  --accent: var(--brand-yellow);
+  /* 접근성: #FFCD00 on #F2F0EF = 약 1.5:1. 옐로는 절대 텍스트 색으로 쓰지 않고
+     면(배경)·강조 요소·구분선에만 쓰고, 그 위 텍스트는 항상 검정(약 14:1). */
+  --on-accent: var(--n-darkest);
+  --inverse-bg: var(--n-darkest);
+  --inverse-fg: var(--n-lightest);
+  --inverse-muted: var(--n-light);
+
+  /* --- 상태 (백오피스·신청 상태 배지) ------------------------------------ */
+  --good: #0f5c33;
+  --good-soft: #e3f1e8;
+  --warn: var(--n-dark);
+  --warn-soft: #e8e6e4;
+  --danger: #a8200d;
+  --danger-soft: #f6e3df;
+
+  /* --- 기존 토큰 별칭 (마이그레이션 중 화면 깨짐 방지) -------------------- */
+  --panel: var(--n-white);
+  --panel-strong: #e8e6e4;
+  --accent-hover: #e6b900;
+  --accent-soft: #fff2c2;
+
+  /* --- Radius (Figma Style Guide › Radius) ------------------------------ */
+  --radius-none: 0px;
+  --radius-sm: 2px;
+  --radius-md: 4px;
+  --radius-lg: 8px;
+
+  /* --- Shadows (Figma Style Guide › Shadows, 7단) ----------------------- */
+  --shadow-xxs: 0 1px 2px rgba(0, 0, 0, 0.06);
+  --shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.06), 0 1px 3px rgba(0, 0, 0, 0.1);
+  --shadow-sm: 0 2px 4px rgba(0, 0, 0, 0.06), 0 4px 8px rgba(0, 0, 0, 0.08);
+  --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.05), 0 12px 16px rgba(0, 0, 0, 0.08);
+  --shadow-lg: 0 8px 8px rgba(0, 0, 0, 0.04), 0 20px 24px rgba(0, 0, 0, 0.1);
+  --shadow-xl: 0 24px 48px rgba(0, 0, 0, 0.12);
+  --shadow-xxl: 0 32px 64px rgba(0, 0, 0, 0.14);
+
+  /* --- Layout (Figma: 캔버스 1512 / 컨테이너 1384 / 헤더 72 / 브레드크럼 48) */
+  --container: 1384px;
+  --header-h: 72px;
+  --breadcrumb-h: 48px;
 }
 
 @theme inline {
   --color-background: var(--background);
+  --color-surface: var(--surface);
   --color-foreground: var(--foreground);
   --color-muted: var(--muted);
-  --color-panel: var(--panel);
-  --color-panel-strong: var(--panel-strong);
+  --color-muted-strong: var(--muted-strong);
   --color-border: var(--border);
+  --color-border-soft: var(--border-soft);
   --color-accent: var(--accent);
-  --color-accent-hover: var(--accent-hover);
-  --color-accent-soft: var(--accent-soft);
+  --color-on-accent: var(--on-accent);
+  --color-inverse-bg: var(--inverse-bg);
+  --color-inverse-fg: var(--inverse-fg);
+  --color-inverse-muted: var(--inverse-muted);
+
+  --color-n-white: var(--n-white);
+  --color-n-lightest: var(--n-lightest);
+  --color-n-lighter: var(--n-lighter);
+  --color-n-light: var(--n-light);
+  --color-n-mid: var(--n-mid);
+  --color-n-dark: var(--n-dark);
+  --color-n-darker: var(--n-darker);
+  --color-n-darkest: var(--n-darkest);
+
   --color-good: var(--good);
   --color-good-soft: var(--good-soft);
   --color-warn: var(--warn);
   --color-warn-soft: var(--warn-soft);
+  --color-danger: var(--danger);
+  --color-danger-soft: var(--danger-soft);
+  --color-panel: var(--panel);
+  --color-panel-strong: var(--panel-strong);
+  --color-accent-hover: var(--accent-hover);
+  --color-accent-soft: var(--accent-soft);
+
+  --font-display: "Archivo", "Helvetica Neue", Arial, sans-serif;
+  --font-kr-display: "KakaoBig", "Gothic A1", "Apple SD Gothic Neo", sans-serif;
+  --font-sans: "KakaoBig", "Gothic A1", "Apple SD Gothic Neo",
+    "Malgun Gothic", -apple-system, BlinkMacSystemFont, sans-serif;
+  --font-sans-sm: "KakaoSmall", "Gothic A1", "Apple SD Gothic Neo",
+    "Malgun Gothic", -apple-system, BlinkMacSystemFont, sans-serif;
+
+  /* --- Type scale (Figma Style Guide › Typography) ---------------------- */
+  /* Display */
+  --text-d1: 10rem; /* 160 */
+  --text-d1--line-height: 0.9;
+  --text-d1--letter-spacing: -0.03em;
+  --text-d1-m: 4.5rem; /* 72 */
+  --text-d1-m--line-height: 0.9;
+  --text-d1-m--letter-spacing: -0.03em;
+  --text-d2: 6rem; /* 96 */
+  --text-d2--line-height: 0.9;
+  --text-d2--letter-spacing: -0.03em;
+  --text-d2-m: 3.25rem; /* 52 */
+  --text-d2--line-height: 0.9;
+  --text-d2-m--line-height: 0.9;
+  --text-d2-m--letter-spacing: -0.03em;
+
+  /* Headings — desktop */
+  --text-h1: 3.5rem; /* 56 */
+  --text-h1--line-height: 1.2;
+  --text-h1--letter-spacing: -0.04em; /* 국문 -2.24px @56 */
+  --text-h2: 3rem; /* 48 */
+  --text-h2--line-height: 1.2;
+  --text-h2--letter-spacing: -0.04em; /* 국문 -1.92px @48 */
+  --text-h3: 2.5rem; /* 40 */
+  --text-h3--line-height: 1.2;
+  --text-h4: 2rem; /* 32 */
+  --text-h4--line-height: 1.3;
+  --text-h5: 1.5rem; /* 24 */
+  --text-h5--line-height: 1.4;
+  --text-h6: 1.25rem; /* 20 */
+  --text-h6--line-height: 1.4;
+
+  /* Headings — mobile */
+  --text-h1-m: 2.5rem; /* 40 */
+  --text-h1-m--line-height: 1.2;
+  --text-h1-m--letter-spacing: -0.04em;
+  --text-h2-m: 2.25rem; /* 36 */
+  --text-h2-m--line-height: 1.2;
+  --text-h2-m--letter-spacing: -0.04em;
+  --text-h3-m: 2rem; /* 32 */
+  --text-h3-m--line-height: 1.2;
+  --text-h4-m: 1.5rem; /* 24 */
+  --text-h4-m--line-height: 1.4;
+  --text-h5-m: 1.25rem; /* 20 */
+  --text-h5-m--line-height: 1.4;
+  --text-h6-m: 1.125rem; /* 18 */
+  --text-h6-m--line-height: 1.4;
+
+  /* Body */
+  --text-tagline: 1rem;
+  --text-tagline--line-height: 1.5;
+  --text-l: 1.25rem; /* 20 */
+  --text-l--line-height: 1.5;
+  --text-m: 1.125rem; /* 18 */
+  --text-m--line-height: 1.5;
+  --text-r: 1rem; /* 16 */
+  --text-r--line-height: 1.5;
+  --text-s: 0.875rem; /* 14 */
+  --text-s--line-height: 1.5;
+  --text-xs: 0.75rem; /* 12 */
+  --text-xs--line-height: 1.5;
+
+  --shadow-xxs: var(--shadow-xxs);
+  --shadow-xs: var(--shadow-xs);
+  --shadow-sm: var(--shadow-sm);
+  --shadow-md: var(--shadow-md);
+  --shadow-lg: var(--shadow-lg);
+  --shadow-xl: var(--shadow-xl);
+  --shadow-xxl: var(--shadow-xxl);
+
+  --radius-sm: var(--radius-sm);
+  --radius-md: var(--radius-md);
+  --radius-lg: var(--radius-lg);
+
+  --container-site: var(--container);
 }
 
 html {
@@ -42,20 +200,19 @@ html {
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family:
-    -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro KR",
-    "Apple SD Gothic Neo", "Malgun Gothic", "Segoe UI", Helvetica, Arial,
-    sans-serif;
+  font-family: "KakaoBig", "Gothic A1", "Apple SD Gothic Neo",
+    "Malgun Gothic", -apple-system, BlinkMacSystemFont, sans-serif;
   -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
 }
 
 * {
-  scrollbar-color: var(--border) transparent;
+  scrollbar-color: var(--border-soft) transparent;
 }
 
 ::selection {
-  background: var(--accent-soft);
-  color: var(--accent);
+  background: var(--accent);
+  color: var(--on-accent);
 }
 
 input[type="number"] {
@@ -67,6 +224,80 @@ input[type="number"]::-webkit-inner-spin-button {
   margin: 0;
 }
 
+/* ============================================================================
+   Utilities
+   ========================================================================= */
+
+@utility container-site {
+  width: 100%;
+  max-width: var(--container);
+  margin-inline: auto;
+  padding-inline: 1.5rem;
+  @media (min-width: 1024px) {
+    padding-inline: 4rem; /* Figma: 1512 - 1384 = 128 / 2 */
+  }
+}
+
+/* 영문 디스플레이 — Archivo Extrabold, 대문자 */
+@utility type-display {
+  font-family: "Archivo", "Helvetica Neue", Arial, sans-serif;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: -0.02em;
+}
+
+/* 섹션 라벨 (Archivo Extrabold 소형 대문자) */
+@utility type-label {
+  font-family: "Archivo", "Helvetica Neue", Arial, sans-serif;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+/* 국문 헤딩 — 음수 자간 */
+@utility type-kr-heading {
+  font-family: "KakaoBig", "Gothic A1", "Apple SD Gothic Neo", sans-serif;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+}
+
+/* Iconic 그라디언트 — Black·Yellow·White 절제된 전환. 공식·인지 중심.
+   "이미지 준비 중" 슬롯의 브랜드 플레이스홀더로 사용. */
+@utility bg-iconic {
+  background-image:
+    radial-gradient(120% 90% at 18% 108%, #ffcd00 0%, rgba(255, 205, 0, 0.35) 38%, rgba(0, 0, 0, 0) 68%),
+    radial-gradient(100% 120% at 88% -12%, rgba(255, 255, 255, 0.28) 0%, rgba(0, 0, 0, 0) 60%),
+    linear-gradient(168deg, #141414 0%, #000000 62%);
+}
+
+@utility bg-iconic-light {
+  background-image:
+    radial-gradient(110% 90% at 12% 105%, rgba(255, 205, 0, 0.9) 0%, rgba(255, 205, 0, 0.18) 42%, rgba(255, 255, 255, 0) 72%),
+    linear-gradient(168deg, #ffffff 0%, var(--n-lightest) 100%);
+}
+
+/* Expressive 그라디언트 — 옐로 기반 유사색 전환. 히어로 1회로 제한. */
+@utility bg-expressive {
+  background-image:
+    radial-gradient(85% 120% at 8% 12%, #ffb400 0%, rgba(255, 180, 0, 0) 55%),
+    radial-gradient(70% 95% at 34% 88%, #ffcd00 0%, rgba(255, 205, 0, 0) 62%),
+    radial-gradient(95% 130% at 92% 6%, #ff7a1a 0%, rgba(255, 122, 26, 0) 58%),
+    linear-gradient(140deg, #ffd83d 0%, var(--n-lightest) 72%, var(--n-lightest) 100%);
+}
+
+/* 그레인 오버레이 — 브랜드 KV의 텍스처감 */
+@utility grain {
+  position: relative;
+}
+@utility grain-layer {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0.28;
+  mix-blend-mode: multiply;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='3'/%3E%3C/filter%3E%3Crect width='140' height='140' filter='url(%23n)' opacity='0.5'/%3E%3C/svg%3E");
+}
+
 @media print {
   @page {
     margin: 1.5cm;
@@ -76,11 +307,11 @@ input[type="number"]::-webkit-inner-spin-button {
 @keyframes dropdown-in {
   from {
     opacity: 0;
-    transform: translateY(-6px) scale(0.98);
+    transform: translateY(-6px);
   }
   to {
     opacity: 1;
-    transform: translateY(0) scale(1);
+    transform: translateY(0);
   }
 }
 
@@ -96,7 +327,8 @@ input[type="number"]::-webkit-inner-spin-button {
 }
 
 @media (prefers-reduced-motion: reduce) {
-  [class*="animate-[fade-up"] {
+  [class*="animate-[fade-up"],
+  [class*="animate-[dropdown-in"] {
     animation: none !important;
   }
 }

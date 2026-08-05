@@ -69,10 +69,18 @@ export interface GuideContent {
   rulesIntro: string;
 }
 
-export interface HomeFeature {
+/**
+ * 브랜드 내러티브 진술.
+ * 카카오 브랜드 가이드라인 3.4 "브랜드 선언문: BUSINESS › HOST IT." 본문을
+ * 근거 페이지로 연결되는 블록 단위로 나눈 것.
+ * 기존 MISSION / VISION / STRATEGY(MVC) 구조를 대체한다.
+ */
+export interface HomeNarrativeStatement {
   title: string;
   desc: string;
+  /** 이 진술을 뒷받침하는 제원·안내 페이지 */
   href: string;
+  linkLabel: string;
   image: string | null;
 }
 
@@ -85,19 +93,21 @@ export interface HomeProcessStep {
 export interface HomeContent {
   heroImage: string | null;
   heroEyebrow: string;
+  /** 영문 디스플레이 (Notion 대관 사이트 기획 히어로 후보안) */
   heroTitle: string;
+  /** 영문 서브 디스플레이 */
+  heroSubDisplay: string;
+  /** 국문 리드 — 브랜드 가이드라인 문장 */
   heroSubtitle: string;
   heroPrimaryLabel: string;
   heroPrimaryHref: string;
   heroSecondaryLabel: string;
   heroSecondaryHref: string;
-  missionLabel: string;
-  mission: string;
-  visionLabel: string;
-  vision: string;
-  featuresLabel: string;
-  featuresTitle: string;
-  features: HomeFeature[];
+  narrativeLabel: string;
+  narrativeTitle: string;
+  narrativeLead: string;
+  narrativeStatements: HomeNarrativeStatement[];
+  narrativeClosing: string;
   processLabel: string;
   processTitle: string;
   processSteps: HomeProcessStep[];

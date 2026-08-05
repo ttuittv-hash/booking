@@ -2,6 +2,16 @@ import Link from "next/link";
 import { getCurrentUser } from "@/lib/auth";
 import { getHomeContent } from "@/lib/db";
 import { PublicHeader } from "@/components/PublicHeader";
+import { SiteFooter } from "@/components/ui/SiteFooter";
+import {
+  ArrowRight,
+  Band,
+  ButtonLink,
+  Label,
+  Media,
+  Multiline,
+  btnClass,
+} from "@/components/ui/kit";
 
 export default async function Home() {
   const user = await getCurrentUser();
@@ -9,18 +19,17 @@ export default async function Home() {
     heroImage,
     heroEyebrow,
     heroTitle,
+    heroSubDisplay,
     heroSubtitle,
     heroPrimaryLabel,
     heroPrimaryHref,
     heroSecondaryLabel,
     heroSecondaryHref,
-    missionLabel,
-    mission,
-    visionLabel,
-    vision,
-    featuresLabel,
-    featuresTitle,
-    features,
+    narrativeLabel,
+    narrativeTitle,
+    narrativeLead,
+    narrativeStatements,
+    narrativeClosing,
     processLabel,
     processTitle,
     processSteps,
@@ -31,206 +40,149 @@ export default async function Home() {
       <PublicHeader active="/" currentUser={user} />
 
       <main className="flex flex-1 flex-col">
-        {/* 슬롯 1: 카피 + 버튼 + 이미지 */}
-        <section className="px-6 pt-20 pb-16 text-center sm:pt-28 sm:pb-20">
-          <div className="flex animate-[fade-up_0.7s_ease_both] items-center justify-center gap-3">
-            <span className="h-px w-8 bg-accent" />
-            <span className="text-[13px] font-semibold uppercase tracking-[0.12em] text-accent">{heroEyebrow}</span>
-            <span className="h-px w-8 bg-accent" />
-          </div>
+        {/* ── 히어로 ────────────────────────────────────────────────────────
+            Expressive 그라디언트는 브랜드 가이드 2.4 Key visual 기준상
+            "한 캠페인 안에서는 하나의 컨셉"이므로 사이트 전체에서 진입부 1회만. */}
+        <section className="grain relative overflow-hidden bg-expressive">
+          <span className="grain-layer" />
+          <div className="container-site relative pt-20 pb-16 sm:pt-28 sm:pb-24 lg:pt-32 lg:pb-28">
+            <div className="flex animate-[fade-up_0.7s_ease_both] items-center gap-3">
+              <span className="h-px w-10 bg-foreground" />
+              <Label className="text-foreground">{heroEyebrow}</Label>
+            </div>
 
-          <h1 className="mx-auto mt-7 max-w-2xl animate-[fade-up_0.7s_ease_both] text-4xl font-semibold tracking-tight text-foreground [animation-delay:80ms] sm:text-5xl">
-            {heroTitle.split("\n").map((line, i) => (
-              <span key={i}>
-                {i > 0 && <br />}
-                {line}
-              </span>
-            ))}
-          </h1>
+            <h1 className="type-display mt-8 max-w-4xl animate-[fade-up_0.7s_ease_both] text-d2-m [animation-delay:80ms] sm:text-h1 lg:text-d2">
+              <Multiline text={heroTitle} />
+            </h1>
 
-          <p className="mx-auto mt-7 max-w-2xl animate-[fade-up_0.7s_ease_both] text-[15px] leading-8 text-muted [animation-delay:160ms] sm:max-w-4xl sm:text-[17px]">
-            {heroSubtitle.split("\n").map((line, i) => (
-              <span key={i}>
-                {i > 0 && <br />}
-                {line}
-              </span>
-            ))}
-          </p>
+            <p className="type-label mt-6 max-w-2xl animate-[fade-up_0.7s_ease_both] text-s text-muted-strong [animation-delay:140ms]">
+              {heroSubDisplay}
+            </p>
 
-          <div
-            className="mt-10 flex animate-[fade-up_0.7s_ease_both] flex-col items-center justify-center gap-4 [animation-delay:240ms] sm:flex-row sm:gap-7"
-          >
-            <Link
-              href={heroPrimaryHref}
-              className="whitespace-nowrap rounded-sm bg-accent px-9 py-3.5 text-[15px] font-semibold uppercase tracking-[0.06em] text-white shadow-[0_8px_24px_-8px_rgba(0,113,227,0.55)] transition-colors hover:bg-accent-hover"
-            >
-              {heroPrimaryLabel}
-            </Link>
-            <Link
-              href={heroSecondaryHref}
-              className="group inline-flex items-center gap-1.5 whitespace-nowrap text-[14px] font-semibold uppercase tracking-[0.06em] text-foreground transition-colors hover:text-accent"
-            >
-              {heroSecondaryLabel}
-              <svg
-                aria-hidden
-                viewBox="0 0 16 16"
-                fill="none"
-                className="h-3 w-3 shrink-0 transition-transform group-hover:translate-x-1"
-              >
-                <path
-                  d="M5.5 3L10.5 8L5.5 13"
-                  stroke="currentColor"
-                  strokeWidth="1.6"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                />
-              </svg>
-            </Link>
+            <p className="type-kr-heading mt-10 max-w-2xl animate-[fade-up_0.7s_ease_both] text-h4-m [animation-delay:200ms] sm:text-h4">
+              <Multiline text={heroSubtitle} />
+            </p>
+
+            <div className="mt-12 flex animate-[fade-up_0.7s_ease_both] flex-col items-stretch gap-3 [animation-delay:260ms] sm:flex-row sm:items-center sm:gap-4">
+              <ButtonLink href={heroPrimaryHref} variant="primary" size="lg">
+                {heroPrimaryLabel}
+                <ArrowRight />
+              </ButtonLink>
+              <ButtonLink href={heroSecondaryHref} variant="outline" size="lg">
+                {heroSecondaryLabel}
+              </ButtonLink>
+            </div>
           </div>
 
           {heroImage && (
-            <div className="mx-auto mt-16 max-w-5xl animate-[fade-up_0.7s_ease_both] [animation-delay:320ms]">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
-                src={heroImage}
-                alt="서울아레나"
-                className="aspect-video w-full rounded-lg border border-border object-cover shadow-[0_24px_48px_-24px_rgba(0,0,0,0.25)]"
-              />
+            <div className="container-site relative pb-20">
+              <Media src={heroImage} alt="서울아레나" ratio="21 / 9" />
             </div>
           )}
         </section>
 
-        {/* 미션 / 비전 */}
-        <section className="border-t border-border/70 px-6 py-16 sm:py-20">
-          <div className="mx-auto grid max-w-5xl grid-cols-1 gap-14 lg:grid-cols-[1fr_1px_1fr]">
-            <div className="group">
-              <p className="text-[12px] font-semibold uppercase tracking-[0.12em] text-accent">{missionLabel}</p>
-              <p className="mt-5 text-[17px] font-semibold leading-8 text-foreground transition-colors group-hover:text-accent">
-                {mission.split("\n").map((line, i) => (
-                  <span key={i}>
-                    {i > 0 && <br />}
-                    {line}
-                  </span>
-                ))}
-              </p>
+        {/* ── 브랜드 내러티브 ──────────────────────────────────────────────
+            카카오 브랜드 가이드라인 3.4 브랜드 선언문 BUSINESS › HOST IT.
+            기존 MISSION / VISION / STRATEGY(MVC) 구조를 대체한다. */}
+        <Band tone="dark" size="lg">
+          <div className="grid gap-10 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.2fr)] lg:gap-20">
+            <div>
+              <Label className="text-inverse-muted">{narrativeLabel}</Label>
+              <h2 className="type-kr-heading mt-5 text-h2-m sm:text-h2">
+                <Multiline text={narrativeTitle} />
+              </h2>
             </div>
-            <div className="hidden bg-border/70 lg:block" aria-hidden />
-            <div className="group">
-              <p className="text-[12px] font-semibold uppercase tracking-[0.12em] text-accent">{visionLabel}</p>
-              <p className="mt-5 text-[17px] font-semibold leading-8 text-foreground transition-colors group-hover:text-accent">
-                {vision.split("\n").map((line, i) => (
-                  <span key={i}>
-                    {i > 0 && <br />}
-                    {line}
-                  </span>
-                ))}
-              </p>
-            </div>
+            <p className="text-l text-inverse-fg/85 lg:pt-16">{narrativeLead}</p>
           </div>
-        </section>
 
-        {/* 슬롯 2: 특징 버튼 */}
-        <section className="border-t border-border/70 px-6 py-16 sm:py-20">
-          <div className="mx-auto max-w-5xl">
-            <p className="text-[12px] font-semibold uppercase tracking-[0.12em] text-accent">{featuresLabel}</p>
-            <h2 className="mt-2 text-[22px] font-semibold tracking-tight sm:text-[26px]">{featuresTitle}</h2>
-
-            <div className="mt-10 grid grid-cols-1 sm:grid-cols-2 sm:gap-x-12">
-              {features.map((f) => (
+          <ul className="mt-16 border-t border-inverse-fg/25">
+            {narrativeStatements.map((s, i) => (
+              <li key={s.title} className="border-b border-inverse-fg/25">
                 <Link
-                  key={f.title}
-                  href={f.href}
-                  className="group flex items-start justify-between gap-4 border-b border-border/70 py-6 text-left"
+                  href={s.href}
+                  className="group grid gap-4 py-8 transition-colors hover:bg-inverse-fg/[0.06] sm:grid-cols-[4rem_minmax(0,1fr)_auto] sm:items-start sm:gap-8 sm:px-2"
                 >
-                  <div className="flex items-start gap-4">
-                    {f.image && (
-                      <div className="mt-0.5 h-14 w-20 shrink-0 overflow-hidden rounded-sm border border-border">
-                        {/* eslint-disable-next-line @next/next/no-img-element */}
-                        <img src={f.image} alt={f.title} className="h-full w-full object-cover" />
-                      </div>
-                    )}
-                    <div>
-                      <div className="text-[15px] font-semibold text-foreground transition-colors group-hover:text-accent">
-                        {f.title}
-                      </div>
-                      <p className="mt-1.5 max-w-sm text-[13px] leading-6 text-muted">{f.desc}</p>
-                    </div>
+                  <span className="type-display text-h5 tabular-nums text-accent">
+                    {String(i + 1).padStart(2, "0")}
+                  </span>
+                  <div className="min-w-0">
+                    <h3 className="type-kr-heading text-h5-m sm:text-h5">{s.title}</h3>
+                    <p className="mt-3 max-w-2xl text-m text-inverse-fg/80">{s.desc}</p>
                   </div>
-                  <svg
-                    aria-hidden
-                    viewBox="0 0 16 16"
-                    fill="none"
-                    className="mt-1.5 h-3 w-3 shrink-0 text-muted transition-all group-hover:translate-x-1 group-hover:text-accent"
-                  >
-                    <path
-                      d="M5.5 3L10.5 8L5.5 13"
-                      stroke="currentColor"
-                      strokeWidth="1.6"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                    />
-                  </svg>
+                  <span className="type-label inline-flex shrink-0 items-center gap-2 text-xs text-inverse-muted transition-colors group-hover:text-accent sm:pt-2">
+                    {s.linkLabel}
+                    <ArrowRight className="transition-transform group-hover:translate-x-1" />
+                  </span>
                 </Link>
-              ))}
+              </li>
+            ))}
+          </ul>
+
+          <p className="type-display mt-16 text-h4-m text-accent sm:text-h3">{narrativeClosing}</p>
+        </Band>
+
+        {/* ── 신청 절차 ───────────────────────────────────────────────────── */}
+        <Band tone="light">
+          <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.35fr)] lg:gap-16">
+            <div>
+              <Label className="mb-4 text-muted">{processLabel}</Label>
+              <h2 className="type-kr-heading text-h3-m sm:text-h3">{processTitle}</h2>
             </div>
-          </div>
-        </section>
-
-        {/* 슬롯 3: 신청 절차 */}
-        <section className="border-t border-border/70 px-6 py-16 sm:py-20">
-          <div className="mx-auto max-w-5xl">
-            <p className="text-[12px] font-semibold uppercase tracking-[0.12em] text-accent">
-              {processLabel}
+            <p className="text-m text-muted lg:pt-14">
+              예상 관객 규모를 입력하면 적합한 패키지가 추천되고, 추가 옵션을 반영한 예상 대관료를
+              바로 확인할 수 있습니다. 신청서 제출부터 심사 결과 안내까지 한곳에서 진행됩니다.
             </p>
-            <h2 className="mt-2 text-[22px] font-semibold tracking-tight sm:text-[26px]">
-              {processTitle}
-            </h2>
+          </div>
 
-            <div className="mt-10 grid grid-cols-1 gap-4 text-left sm:grid-cols-3">
-              {processSteps.map((s) => (
-                <div
-                  key={s.no}
-                  className="group rounded border border-border bg-background p-5 transition-all hover:-translate-y-1 hover:border-accent hover:shadow-[0_16px_32px_-20px_rgba(0,0,0,0.25)]"
-                >
-                  <div className="text-[22px] font-semibold tabular-nums text-border transition-colors group-hover:text-accent">
-                    {s.no}
-                  </div>
-                  <div className="mt-2 text-[15px] font-semibold">{s.title}</div>
-                  <p className="mt-1.5 text-[13px] leading-6 text-muted">{s.desc}</p>
-                </div>
-              ))}
-              <Link
-                href={heroPrimaryHref}
-                className="group flex flex-col items-start justify-center rounded border border-accent bg-accent-soft p-5 transition-all hover:-translate-y-1 hover:shadow-[0_16px_32px_-20px_rgba(0,0,0,0.25)]"
+          <ol className="mt-14 border-t border-border/25">
+            {processSteps.map((s) => (
+              <li
+                key={s.no}
+                className="grid gap-2 border-b border-border/25 py-7 sm:grid-cols-[4rem_minmax(0,20rem)_minmax(0,1fr)] sm:items-baseline sm:gap-8"
               >
-                <span className="text-[15px] font-semibold text-accent">대관 신청하기</span>
-                <span className="mt-2 inline-flex items-center gap-1.5 text-[13px] text-accent">
-                  지금 바로 신청서를 작성해 보세요
-                  <svg
-                    aria-hidden
-                    viewBox="0 0 16 16"
-                    fill="none"
-                    className="h-3 w-3 shrink-0 transition-transform group-hover:translate-x-1"
-                  >
-                    <path
-                      d="M5.5 3L10.5 8L5.5 13"
-                      stroke="currentColor"
-                      strokeWidth="1.6"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                    />
-                  </svg>
-                </span>
+                <span className="type-display text-h5 tabular-nums text-muted">{s.no}</span>
+                <h3 className="type-kr-heading text-h6-m sm:text-h6">{s.title}</h3>
+                <p className="text-s text-muted">{s.desc}</p>
+              </li>
+            ))}
+          </ol>
+
+          <div className="mt-10 flex flex-wrap gap-3">
+            <ButtonLink href="/guide#process" variant="outline">
+              대관 절차 자세히
+            </ButtonLink>
+            <ButtonLink href="/packages" variant="outline">
+              대관 패키지 보기
+            </ButtonLink>
+          </div>
+        </Band>
+
+        {/* ── 전환 CTA (옐로 밴드 · 옐로 위 텍스트는 항상 검정) ───────────── */}
+        <Band tone="accent" size="md">
+          <div className="flex flex-col gap-8 lg:flex-row lg:items-end lg:justify-between">
+            <div>
+              <Label>Host It</Label>
+              <h2 className="type-kr-heading mt-4 text-h3-m sm:text-h3">
+                당신의 무대를 지금 설계하세요.
+              </h2>
+              <p className="mt-4 max-w-xl text-m">
+                대관 규모와 일정을 입력하면 예상 대관료를 즉시 확인할 수 있습니다.
+              </p>
+            </div>
+            <div className="flex shrink-0 flex-col gap-3 sm:flex-row">
+              <Link href="/apply" className={btnClass("outline", "lg")}>
+                대관 신청하기
+                <ArrowRight />
+              </Link>
+              <Link href="/faq" className={btnClass("ghost", "lg")}>
+                대관 문의
               </Link>
             </div>
           </div>
-        </section>
+        </Band>
       </main>
 
-      <footer className="border-t border-border/70 px-6 py-8 text-center text-[12px] text-muted">
-        © 서울아레나. 모든 금액은 부가세 별도이며, 표시 금액은 확정 전
-        예상치입니다.
-      </footer>
+      <SiteFooter />
     </div>
   );
 }

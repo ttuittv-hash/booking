@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import type { HomeContent } from "@/lib/content/types";
+import { DEFAULT_HOME_CONTENT } from "@/lib/content/seed";
 
 const inputCls =
   "w-full rounded-sm border border-border bg-background px-3 py-2 text-[13px] outline-none focus:border-accent";
@@ -60,14 +61,43 @@ export function HomeContentForm({ content: initial }: { content: HomeContent }) 
     }
   }
 
-  function updateFeature(i: number, patchF: Partial<HomeContent["features"][number]>) {
-    patch({ features: content.features.map((f, j) => (j === i ? { ...f, ...patchF } : f)) });
+  function updateStatement(i: number, patchS: Partial<HomeContent["narrativeStatements"][number]>) {
+    patch({
+      narrativeStatements: content.narrativeStatements.map((s, j) =>
+        j === i ? { ...s, ...patchS } : s,
+      ),
+    });
   }
-  function addFeature() {
-    patch({ features: [...content.features, { title: "", desc: "", href: "/venue", image: null }] });
+  function addStatement() {
+    patch({
+      narrativeStatements: [
+        ...content.narrativeStatements,
+        { title: "", desc: "", href: "/venue#specs", linkLabel: "시설 제원", image: null },
+      ],
+    });
   }
-  function removeFeature(i: number) {
-    patch({ features: content.features.filter((_, j) => j !== i) });
+  function removeStatement(i: number) {
+    patch({ narrativeStatements: content.narrativeStatements.filter((_, j) => j !== i) });
+  }
+
+  /** 스키마가 개정되어 저장된 구버전 데이터에 신규 항목이 없을 때 대응 */
+  function loadDefaults() {
+    patch({
+      heroEyebrow: DEFAULT_HOME_CONTENT.heroEyebrow,
+      heroTitle: DEFAULT_HOME_CONTENT.heroTitle,
+      heroSubDisplay: DEFAULT_HOME_CONTENT.heroSubDisplay,
+      heroSubtitle: DEFAULT_HOME_CONTENT.heroSubtitle,
+      heroPrimaryLabel: DEFAULT_HOME_CONTENT.heroPrimaryLabel,
+      heroPrimaryHref: DEFAULT_HOME_CONTENT.heroPrimaryHref,
+      heroSecondaryLabel: DEFAULT_HOME_CONTENT.heroSecondaryLabel,
+      heroSecondaryHref: DEFAULT_HOME_CONTENT.heroSecondaryHref,
+      narrativeLabel: DEFAULT_HOME_CONTENT.narrativeLabel,
+      narrativeTitle: DEFAULT_HOME_CONTENT.narrativeTitle,
+      narrativeLead: DEFAULT_HOME_CONTENT.narrativeLead,
+      narrativeStatements: DEFAULT_HOME_CONTENT.narrativeStatements.map((s) => ({ ...s })),
+      narrativeClosing: DEFAULT_HOME_CONTENT.narrativeClosing,
+    });
+    setMessage("브랜드 내러티브 기본값을 불러왔습니다. 확인 후 저장하세요.");
   }
 
   function updateProcessStep(i: number, patchS: Partial<HomeContent["processSteps"][number]>) {
@@ -115,11 +145,15 @@ export function HomeContentForm({ content: initial }: { content: HomeContent }) 
           <input value={content.heroEyebrow} onChange={(e) => patch({ heroEyebrow: e.target.value })} className={inputCls} />
         </label>
         <label className="mt-3 block">
-          <span className={labelCls}>헤드라인 (줄바꿈 가능)</span>
+          <span className={labelCls}>영문 디스플레이 (줄바꿈 가능)</span>
           <textarea rows={2} value={content.heroTitle} onChange={(e) => patch({ heroTitle: e.target.value })} className={inputCls} />
         </label>
         <label className="mt-3 block">
-          <span className={labelCls}>본문 문구 (줄바꿈 가능)</span>
+          <span className={labelCls}>영문 서브 디스플레이 (한 줄)</span>
+          <input value={content.heroSubDisplay} onChange={(e) => patch({ heroSubDisplay: e.target.value })} className={inputCls} />
+        </label>
+        <label className="mt-3 block">
+          <span className={labelCls}>국문 리드 (줄바꿈 가능)</span>
           <textarea rows={3} value={content.heroSubtitle} onChange={(e) => patch({ heroSubtitle: e.target.value })} className={inputCls} />
         </label>
         <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2">
@@ -171,86 +205,84 @@ export function HomeContentForm({ content: initial }: { content: HomeContent }) 
       </section>
 
       <section>
-        <h3 className="text-[14px] font-semibold">미션 / 비전</h3>
-        <div className="mt-3 grid grid-cols-1 gap-4 sm:grid-cols-2">
-          <div>
-            <label className="block">
-              <span className={labelCls}>라벨 (예: MISSION)</span>
-              <input value={content.missionLabel} onChange={(e) => patch({ missionLabel: e.target.value })} className={inputCls} />
-            </label>
-            <label className="mt-2 block">
-              <span className={labelCls}>미션 문구 (줄바꿈 가능)</span>
-              <textarea rows={3} value={content.mission} onChange={(e) => patch({ mission: e.target.value })} className={inputCls} />
-            </label>
-          </div>
-          <div>
-            <label className="block">
-              <span className={labelCls}>라벨 (예: VISION)</span>
-              <input value={content.visionLabel} onChange={(e) => patch({ visionLabel: e.target.value })} className={inputCls} />
-            </label>
-            <label className="mt-2 block">
-              <span className={labelCls}>비전 문구 (줄바꿈 가능)</span>
-              <textarea rows={3} value={content.vision} onChange={(e) => patch({ vision: e.target.value })} className={inputCls} />
-            </label>
-          </div>
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <h3 className="text-[14px] font-semibold">브랜드 내러티브 (HOST IT. 선언문)</h3>
+          <button type="button" onClick={loadDefaults} className={addBtnCls}>
+            최신 기본값 불러오기
+          </button>
         </div>
-      </section>
+        <p className="mt-1 text-[12px] text-muted">
+          카카오 브랜드 가이드라인 3.4 &ldquo;브랜드 선언문: BUSINESS&rdquo;를 기준으로 작성합니다. 각 진술은
+          이를 뒷받침하는 제원·안내 페이지로 연결됩니다.
+        </p>
 
-      <section>
-        <h3 className="text-[14px] font-semibold">특징 버튼</h3>
         <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2">
           <label>
-            <span className={labelCls}>상단 라벨 (예: STRATEGY)</span>
-            <input value={content.featuresLabel} onChange={(e) => patch({ featuresLabel: e.target.value })} className={inputCls} />
+            <span className={labelCls}>상단 라벨 (예: Manifesto)</span>
+            <input value={content.narrativeLabel} onChange={(e) => patch({ narrativeLabel: e.target.value })} className={inputCls} />
           </label>
           <label>
-            <span className={labelCls}>제목 (예: 서울아레나의 방향성)</span>
-            <input value={content.featuresTitle} onChange={(e) => patch({ featuresTitle: e.target.value })} className={inputCls} />
+            <span className={labelCls}>마무리 문구 (예: LIVE MOMENTS, LIVE PLATFORM)</span>
+            <input value={content.narrativeClosing} onChange={(e) => patch({ narrativeClosing: e.target.value })} className={inputCls} />
           </label>
         </div>
+        <label className="mt-3 block">
+          <span className={labelCls}>제목 (줄바꿈 가능)</span>
+          <textarea rows={2} value={content.narrativeTitle} onChange={(e) => patch({ narrativeTitle: e.target.value })} className={inputCls} />
+        </label>
+        <label className="mt-3 block">
+          <span className={labelCls}>리드 문구</span>
+          <textarea rows={2} value={content.narrativeLead} onChange={(e) => patch({ narrativeLead: e.target.value })} className={inputCls} />
+        </label>
 
-        <div className="mt-3 space-y-3">
-          {content.features.map((f, i) => (
+        <div className="mt-4 space-y-3">
+          {content.narrativeStatements.map((s, i) => (
             <div key={i} className={cardCls}>
               <div className="flex items-start justify-between gap-2">
                 <div className="grid flex-1 grid-cols-1 gap-2 sm:grid-cols-3">
                   <label>
                     <span className={labelCls}>제목</span>
-                    <input value={f.title} onChange={(e) => updateFeature(i, { title: e.target.value })} className={inputCls} />
+                    <input value={s.title} onChange={(e) => updateStatement(i, { title: e.target.value })} className={inputCls} />
                   </label>
                   <label className="sm:col-span-2">
-                    <span className={labelCls}>설명</span>
-                    <input value={f.desc} onChange={(e) => updateFeature(i, { desc: e.target.value })} className={inputCls} />
+                    <span className={labelCls}>본문</span>
+                    <textarea rows={2} value={s.desc} onChange={(e) => updateStatement(i, { desc: e.target.value })} className={inputCls} />
                   </label>
                 </div>
-                <button type="button" onClick={() => removeFeature(i)} className={removeBtnCls}>
+                <button type="button" onClick={() => removeStatement(i)} className={removeBtnCls}>
                   삭제
                 </button>
               </div>
-              <label className="mt-2 block">
-                <span className={labelCls}>연결 링크</span>
-                <input value={f.href} onChange={(e) => updateFeature(i, { href: e.target.value })} className={inputCls} />
-              </label>
+              <div className="mt-2 grid grid-cols-1 gap-2 sm:grid-cols-2">
+                <label>
+                  <span className={labelCls}>근거 페이지 링크</span>
+                  <input value={s.href} onChange={(e) => updateStatement(i, { href: e.target.value })} className={inputCls} />
+                </label>
+                <label>
+                  <span className={labelCls}>링크 라벨 (예: 시설 제원)</span>
+                  <input value={s.linkLabel} onChange={(e) => updateStatement(i, { linkLabel: e.target.value })} className={inputCls} />
+                </label>
+              </div>
               <div className="mt-2">
                 <span className={labelCls}>이미지 (선택)</span>
-                {f.image ? (
+                {s.image ? (
                   <div className="flex items-center gap-2">
                     {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img src={f.image} alt={f.title} className="h-16 w-28 rounded-sm border border-border object-cover" />
-                    <button type="button" onClick={() => updateFeature(i, { image: null })} className={removeBtnCls}>
+                    <img src={s.image} alt={s.title} className="h-16 w-28 border border-border object-cover" />
+                    <button type="button" onClick={() => updateStatement(i, { image: null })} className={removeBtnCls}>
                       이미지 삭제
                     </button>
                   </div>
                 ) : (
                   <label className="inline-block">
                     <span className={addBtnCls}>
-                      {imageUploading === `feature-${i}` ? "업로드 중..." : "+ 이미지 업로드"}
+                      {imageUploading === `statement-${i}` ? "업로드 중..." : "+ 이미지 업로드"}
                     </span>
                     <input
                       type="file"
                       accept="image/*"
-                      disabled={imageUploading === `feature-${i}`}
-                      onChange={(e) => uploadSingleImage(e, `feature-${i}`, (url) => updateFeature(i, { image: url }))}
+                      disabled={imageUploading === `statement-${i}`}
+                      onChange={(e) => uploadSingleImage(e, `statement-${i}`, (url) => updateStatement(i, { image: url }))}
                       className="hidden"
                     />
                   </label>
@@ -258,8 +290,8 @@ export function HomeContentForm({ content: initial }: { content: HomeContent }) 
               </div>
             </div>
           ))}
-          <button type="button" onClick={addFeature} className={addBtnCls}>
-            + 특징 버튼 추가
+          <button type="button" onClick={addStatement} className={addBtnCls}>
+            + 내러티브 진술 추가
           </button>
         </div>
       </section>

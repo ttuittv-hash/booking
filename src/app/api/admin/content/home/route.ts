@@ -18,7 +18,7 @@ export async function PUT(request: Request) {
   if (
     !content ||
     typeof content !== "object" ||
-    !Array.isArray(content.features) ||
+    !Array.isArray(content.narrativeStatements) ||
     !Array.isArray(content.processSteps)
   ) {
     return NextResponse.json({ error: "잘못된 요청입니다." }, { status: 400 });
@@ -28,18 +28,17 @@ export async function PUT(request: Request) {
     heroImage: content.heroImage ?? null,
     heroEyebrow: content.heroEyebrow ?? "",
     heroTitle: content.heroTitle ?? "",
+    heroSubDisplay: content.heroSubDisplay ?? "",
     heroSubtitle: content.heroSubtitle ?? "",
     heroPrimaryLabel: content.heroPrimaryLabel ?? "",
     heroPrimaryHref: content.heroPrimaryHref ?? "/apply",
     heroSecondaryLabel: content.heroSecondaryLabel ?? "",
     heroSecondaryHref: content.heroSecondaryHref ?? "/venue",
-    missionLabel: content.missionLabel ?? "",
-    mission: content.mission ?? "",
-    visionLabel: content.visionLabel ?? "",
-    vision: content.vision ?? "",
-    featuresLabel: content.featuresLabel ?? "",
-    featuresTitle: content.featuresTitle ?? "",
-    features: content.features,
+    narrativeLabel: content.narrativeLabel ?? "",
+    narrativeTitle: content.narrativeTitle ?? "",
+    narrativeLead: content.narrativeLead ?? "",
+    narrativeStatements: content.narrativeStatements,
+    narrativeClosing: content.narrativeClosing ?? "",
     processLabel: content.processLabel ?? "",
     processTitle: content.processTitle ?? "",
     processSteps: content.processSteps,
