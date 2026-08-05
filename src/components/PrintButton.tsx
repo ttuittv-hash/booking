@@ -1,11 +1,14 @@
 "use client";
 
+import { btnClass } from "@/components/ui/kit";
+
 export function PrintButton() {
   return (
     <button
       type="button"
       onClick={() => window.print()}
-      className="print:hidden rounded-sm bg-accent px-6 py-2.5 text-[13.5px] font-semibold text-white transition-colors hover:bg-accent-hover"
+      // 옐로 면 위 텍스트는 항상 검정 — primary 버튼 토큰을 그대로 쓴다.
+      className={`${btnClass("primary", "md")} print:hidden`}
     >
       인쇄 / PDF로 저장
     </button>

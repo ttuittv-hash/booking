@@ -12,6 +12,7 @@ import { TableRow } from "@tiptap/extension-table-row";
 import { TableHeader } from "@tiptap/extension-table-header";
 import { TableCell } from "@tiptap/extension-table-cell";
 import { useRef, useState } from "react";
+import { FIELD_SM } from "./adminUi";
 
 // 기본 TextStyle 확장은 font-size 속성을 지원하지 않아 별도로 추가한다.
 const FontSize = TextStyle.extend({
@@ -88,7 +89,7 @@ export function NoticeEditor({
     editorProps: {
       attributes: {
         class:
-          "min-h-[180px] rounded-b-sm border border-t-0 border-border bg-panel px-3 py-2.5 text-[13px] leading-6 outline-none focus:border-accent [&_img]:mt-2 [&_img]:max-w-full [&_img]:rounded-sm [&_table]:mt-3 [&_table]:w-full [&_table]:border-collapse [&_td]:border [&_td]:border-border [&_td]:px-2.5 [&_td]:py-1.5 [&_th]:border [&_th]:border-border [&_th]:bg-panel-strong [&_th]:px-2.5 [&_th]:py-1.5 [&_th]:text-left",
+          "min-h-[180px] border border-t-0 border-border-soft bg-surface px-3 py-2.5 text-s leading-6 focus:border-foreground focus:outline-2 focus:outline-accent [&_img]:mt-2 [&_img]:max-w-full [&_table]:mt-3 [&_table]:w-full [&_table]:border-collapse [&_td]:border [&_td]:border-border-soft [&_td]:px-2.5 [&_td]:py-1.5 [&_th]:border [&_th]:border-border-soft [&_th]:bg-background [&_th]:px-2.5 [&_th]:py-1.5 [&_th]:text-left",
       },
     },
   });
@@ -115,32 +116,35 @@ export function NoticeEditor({
 
   if (!editor) return null;
 
-  function btnClass(active: boolean) {
+  /** 툴바 버튼 — 활성 상태는 옐로 면 + 검정 텍스트 (옐로 위 텍스트는 항상 검정) */
+  function toolBtn(active: boolean) {
     return [
-      "rounded-sm px-2 py-1 text-[12px] font-medium transition-colors",
-      active ? "bg-accent text-white" : "text-muted hover:bg-panel-strong hover:text-foreground",
+      "border px-2 py-1 text-xs font-bold transition-colors",
+      active
+        ? "border-foreground bg-accent text-on-accent"
+        : "border-transparent text-muted hover:border-border-soft hover:text-foreground",
     ].join(" ");
   }
 
   return (
     <div>
-      <div className="flex flex-wrap items-center gap-1 rounded-t-sm border border-border bg-panel-strong px-2 py-1.5">
+      <div className="flex flex-wrap items-center gap-1 border border-border-soft bg-background px-2 py-1.5">
         <button
           type="button"
           onClick={() => editor.chain().focus().toggleBold().run()}
-          className={btnClass(editor.isActive("bold"))}
+          className={toolBtn(editor.isActive("bold"))}
         >
           <b>B</b>
         </button>
         <button
           type="button"
           onClick={() => editor.chain().focus().toggleItalic().run()}
-          className={btnClass(editor.isActive("italic"))}
+          className={toolBtn(editor.isActive("italic"))}
         >
           <i>I</i>
         </button>
 
-        <span className="mx-1 h-4 w-px bg-border" />
+        <span className="mx-1 h-4 w-px bg-border/30" />
 
         <input
           type="number"
@@ -162,74 +166,74 @@ export function NoticeEditor({
               editor.chain().focus().setMark("textStyle", { fontSize: `${size}px` }).run();
             }
           }}
-          className="w-14 rounded-sm border border-border bg-background px-1.5 py-1 text-[11.5px] outline-none focus:border-accent"
+          className={`w-14 ${FIELD_SM} text-right tabular-nums`}
         />
-        <span className="text-[11px] text-muted">px</span>
+        <span className="text-xs text-muted">px</span>
         <button
           type="button"
           onClick={() => {
             editor.chain().focus().unsetMark("textStyle").run();
             setFontSizeInput(String(DEFAULT_FONT_SIZE));
           }}
-          className="rounded-sm px-2 py-1 text-[12px] font-medium text-muted transition-colors hover:bg-panel-strong hover:text-foreground"
+          className={toolBtn(false)}
         >
           기본
         </button>
 
-        <span className="mx-1 h-4 w-px bg-border" />
+        <span className="mx-1 h-4 w-px bg-border/30" />
 
         {COLORS.map((c) => (
           <button
             key={c}
             type="button"
             onClick={() => editor.chain().focus().setColor(c).run()}
-            className="h-5 w-5 rounded-full border border-border"
+            className="h-5 w-5 border border-border/30"
             style={{ backgroundColor: c }}
             aria-label={`글자색 ${c}`}
           />
         ))}
 
-        <span className="mx-1 h-4 w-px bg-border" />
+        <span className="mx-1 h-4 w-px bg-border/30" />
 
         <button
           type="button"
           onClick={() => editor.chain().focus().setTextAlign("left").run()}
-          className={btnClass(editor.isActive({ textAlign: "left" }))}
+          className={toolBtn(editor.isActive({ textAlign: "left" }))}
         >
           왼쪽
         </button>
         <button
           type="button"
           onClick={() => editor.chain().focus().setTextAlign("center").run()}
-          className={btnClass(editor.isActive({ textAlign: "center" }))}
+          className={toolBtn(editor.isActive({ textAlign: "center" }))}
         >
           가운데
         </button>
         <button
           type="button"
           onClick={() => editor.chain().focus().setTextAlign("right").run()}
-          className={btnClass(editor.isActive({ textAlign: "right" }))}
+          className={toolBtn(editor.isActive({ textAlign: "right" }))}
         >
           오른쪽
         </button>
 
-        <span className="mx-1 h-4 w-px bg-border" />
+        <span className="mx-1 h-4 w-px bg-border/30" />
 
         <button
           type="button"
           onClick={() => editor.chain().focus().insertTable({ rows: 3, cols: 3, withHeaderRow: true }).run()}
-          className="rounded-sm px-2 py-1 text-[12px] font-medium text-muted transition-colors hover:bg-panel-strong hover:text-foreground"
+          className={toolBtn(false)}
         >
           + 표 삽입
         </button>
 
-        <span className="mx-1 h-4 w-px bg-border" />
+        <span className="mx-1 h-4 w-px bg-border/30" />
 
         <button
           type="button"
           disabled={uploading}
           onClick={() => fileInput.current?.click()}
-          className="rounded-sm px-2 py-1 text-[12px] font-medium text-muted transition-colors hover:bg-panel-strong hover:text-foreground disabled:opacity-50"
+          className={`${toolBtn(false)} disabled:opacity-50`}
         >
           {uploading ? "업로드 중..." : "+ 이미지 삽입"}
         </button>
@@ -247,14 +251,14 @@ export function NoticeEditor({
       </div>
 
       {isImageActive && (
-        <div className="flex flex-wrap items-center gap-1 border-x border-b border-border bg-panel-strong/60 px-2 py-1.5">
-          <span className="mr-1 text-[11px] text-muted">이미지 크기</span>
+        <div className="flex flex-wrap items-center gap-1 border-x border-b border-border-soft bg-background px-2 py-1.5">
+          <span className="mr-1 text-xs text-muted">이미지 크기</span>
           {IMAGE_WIDTHS.map((w) => (
             <button
               key={w.label}
               type="button"
               onClick={() => editor.chain().focus().updateAttributes("image", { width: w.value }).run()}
-              className="rounded-sm px-2 py-1 text-[12px] font-medium text-muted transition-colors hover:bg-panel-strong hover:text-foreground"
+              className={toolBtn(false)}
             >
               {w.label}
             </button>

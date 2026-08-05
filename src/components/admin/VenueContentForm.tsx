@@ -5,15 +5,26 @@ import { useState } from "react";
 import type { VenueAmenity, VenueContent, VenueHall, VenueHighlight, VenueKeyMap, VenueSpec } from "@/lib/content/types";
 import { DEFAULT_VENUE_CONTENT } from "@/lib/content/seed";
 import { VenueContentView } from "@/components/VenueContentView";
+import { btnClass } from "@/components/ui/kit";
 import { NoticeEditor } from "./NoticeEditor";
+import {
+  ADD_BTN,
+  CARD,
+  CARD_NESTED,
+  FIELD,
+  FIELD_BASE,
+  FIELD_LABEL,
+  HELP,
+  OK_NOTE,
+  REMOVE_BTN,
+  SUB_TITLE,
+} from "./adminUi";
 
-const inputCls =
-  "w-full rounded-sm border border-border bg-background px-3 py-2 text-[13px] outline-none focus:border-accent";
-const labelCls = "mb-1 block text-[12px] text-muted";
-const cardCls = "rounded border border-border bg-panel/60 p-4";
-const removeBtnCls = "shrink-0 text-[12px] text-red-600 hover:underline";
-const addBtnCls =
-  "mt-2 rounded-sm border border-dashed border-border px-3 py-1.5 text-[12.5px] text-muted hover:border-accent hover:text-accent";
+const inputCls = FIELD;
+const labelCls = FIELD_LABEL;
+const cardCls = CARD;
+const removeBtnCls = REMOVE_BTN;
+const addBtnCls = ADD_BTN;
 
 function TextListEditor({
   items,
@@ -238,20 +249,20 @@ export function VenueContentForm({ content: initial }: { content: VenueContent }
 
   return (
     <div className="space-y-8">
-      <div className="sticky top-14 z-10 -mx-6 flex items-center justify-between border-b border-border bg-background px-6 py-3 sm:top-16">
-        <span className="text-[12.5px] text-muted">수정 중인 내용은 저장 전까지 실제 페이지에 반영되지 않습니다.</span>
+      <div className="sticky top-14 z-10 -mx-6 flex items-center justify-between gap-3 border-b border-border/20 bg-background px-6 py-3 sm:top-16">
+        <span className={HELP}>수정 중인 내용은 저장 전까지 실제 페이지에 반영되지 않습니다.</span>
         <button
           type="button"
           onClick={() => setPreviewOpen((v) => !v)}
-          className="shrink-0 rounded-sm border border-border px-4 py-1.5 text-[12.5px] font-medium text-foreground hover:border-accent hover:text-accent"
+          className={btnClass("outline", "sm")}
         >
           {previewOpen ? "미리보기 닫기" : "미리보기"}
         </button>
       </div>
 
       {previewOpen && (
-        <div className="border border-border">
-          <div className="border-b border-border bg-panel px-4 py-2 text-[12px] font-medium text-muted">
+        <div className="border border-border-soft">
+          <div className="type-label border-b border-border-soft bg-surface px-4 py-2 text-xs text-muted">
             미리보기 — 현재 입력값 기준 (저장되지 않음)
           </div>
           <div className="max-h-[70vh] overflow-y-auto bg-background">
@@ -261,19 +272,19 @@ export function VenueContentForm({ content: initial }: { content: VenueContent }
       )}
 
       <section>
-        <h3 className="text-[14px] font-semibold">상단 소개 문구</h3>
+        <h3 className={SUB_TITLE}>상단 소개 문구</h3>
         <div className="mt-2">
           <NoticeEditor value={content.intro} onChange={(intro) => patch({ intro })} />
         </div>
       </section>
 
       <section>
-        <h3 className="text-[14px] font-semibold">시설 개요 — 소개 문단</h3>
+        <h3 className={SUB_TITLE}>시설 개요 — 소개 문단</h3>
         <div className="mt-2">
           <NoticeEditor value={content.overviewIntro} onChange={(overviewIntro) => patch({ overviewIntro })} />
         </div>
 
-        <h3 className="mt-6 text-[14px] font-semibold">시설 카드 (아레나/중형공연장/컨벤션)</h3>
+        <h3 className={`mt-8 ${SUB_TITLE}`}>시설 카드 (아레나/중형공연장/컨벤션)</h3>
         <div className="mt-2 space-y-3">
           {content.halls.map((h, i) => (
             <div key={i} className={cardCls}>
@@ -309,7 +320,7 @@ export function VenueContentForm({ content: initial }: { content: VenueContent }
                 {h.image && (
                   <div className="mb-2 flex items-center gap-2">
                     {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img src={h.image} alt={h.title} className="h-16 w-28 rounded-sm border border-border object-cover" />
+                    <img src={h.image} alt={h.title} className="h-16 w-28 border border-border-soft object-cover" />
                     <button type="button" onClick={() => updateHall(i, { image: null })} className={removeBtnCls}>
                       이미지 삭제
                     </button>
@@ -335,19 +346,19 @@ export function VenueContentForm({ content: initial }: { content: VenueContent }
           </button>
         </div>
 
-        <h3 className="mt-6 text-[14px] font-semibold">특징 목록</h3>
+        <h3 className={`mt-8 ${SUB_TITLE}`}>특징 목록</h3>
         <div className="mt-2">
           <TextListEditor items={content.features} onChange={(features) => patch({ features })} />
         </div>
       </section>
 
       <section>
-        <h3 className="text-[14px] font-semibold">시설 제원 — 소개 문단</h3>
+        <h3 className={SUB_TITLE}>시설 제원 — 소개 문단</h3>
         <div className="mt-2">
           <NoticeEditor value={content.specsIntro} onChange={(specsIntro) => patch({ specsIntro })} />
         </div>
 
-        <h3 className="mt-6 text-[14px] font-semibold">시설별 제원표</h3>
+        <h3 className={`mt-8 ${SUB_TITLE}`}>시설별 제원표</h3>
         <div className="mt-2 space-y-3">
           {content.specs.map((s, si) => (
             <div key={si} className={cardCls}>
@@ -364,7 +375,7 @@ export function VenueContentForm({ content: initial }: { content: VenueContent }
                 {s.image && (
                   <div className="mb-2 flex items-center gap-2">
                     {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img src={s.image} alt={s.name} className="h-16 w-28 rounded-sm border border-border object-cover" />
+                    <img src={s.image} alt={s.name} className="h-16 w-28 border border-border-soft object-cover" />
                     <button type="button" onClick={() => updateSpec(si, { image: null })} className={removeBtnCls}>
                       이미지 삭제
                     </button>
@@ -390,7 +401,7 @@ export function VenueContentForm({ content: initial }: { content: VenueContent }
                       value={row[0]}
                       placeholder="항목명"
                       onChange={(e) => updateSpecRow(si, ri, 0, e.target.value)}
-                      className={`w-32 shrink-0 ${inputCls.replace("w-full ", "")}`}
+                      className={`w-32 shrink-0 ${FIELD_BASE}`}
                     />
                     <input
                       value={row[1]}
@@ -414,7 +425,7 @@ export function VenueContentForm({ content: initial }: { content: VenueContent }
           </button>
         </div>
 
-        <h3 className="mt-6 text-[14px] font-semibold">주요 제공 시설</h3>
+        <h3 className={`mt-8 ${SUB_TITLE}`}>주요 제공 시설</h3>
         <div className="mt-2">
           <TextListEditor items={content.providedFacilities} onChange={(providedFacilities) => patch({ providedFacilities })} />
         </div>
@@ -422,7 +433,7 @@ export function VenueContentForm({ content: initial }: { content: VenueContent }
 
       <section>
         <div className="flex items-center justify-between gap-3">
-          <h3 className="text-[14px] font-semibold">무대 특장</h3>
+          <h3 className={SUB_TITLE}>무대 특장</h3>
           <button
             type="button"
             onClick={() => {
@@ -434,13 +445,13 @@ export function VenueContentForm({ content: initial }: { content: VenueContent }
                 patch({ specHighlights: DEFAULT_VENUE_CONTENT.specHighlights });
               }
             }}
-            className="shrink-0 text-[12px] text-accent hover:underline"
+            className="shrink-0 text-xs font-bold underline decoration-accent decoration-2 underline-offset-4 transition-colors hover:text-muted-strong"
           >
             최신 기본값으로 불러오기
           </button>
         </div>
-        <p className="mt-1 text-[12px] text-muted">아티스트/관객/제작사 관점의 강점을 카드 형태로 소개합니다.</p>
-        <p className="mt-1 text-[12px] text-muted">
+        <p className={`mt-2 ${HELP}`}>아티스트/관객/제작사 관점의 강점을 카드 형태로 소개합니다.</p>
+        <p className={`mt-2 ${HELP}`}>
           이전에 저장된 내용이 있으면 새로 추가된 세부 카드/설명이 자동으로 보이지 않습니다. 위 버튼으로 최신 기본값을
           불러온 뒤 저장하면 반영됩니다.
         </p>
@@ -448,7 +459,7 @@ export function VenueContentForm({ content: initial }: { content: VenueContent }
           {content.specHighlights.map((hl, hi) => (
             <div key={hi} className={cardCls}>
               <div className="flex items-center justify-between gap-2">
-                <span className="text-[12.5px] font-semibold text-accent">강조 카드 {hi + 1}</span>
+                <span className="text-s font-bold">강조 카드 {hi + 1}</span>
                 <button type="button" onClick={() => removeHighlight(hi)} className={removeBtnCls}>
                   삭제
                 </button>
@@ -489,7 +500,7 @@ export function VenueContentForm({ content: initial }: { content: VenueContent }
                 <span className={labelCls}>세부 카드</span>
                 <div className="space-y-2">
                   {hl.cards.map((c, ci) => (
-                    <div key={ci} className="rounded border border-border bg-background p-3">
+                    <div key={ci} className={CARD_NESTED}>
                       <div className="flex items-start justify-between gap-2">
                         <div className="flex-1 space-y-1.5">
                           <input
@@ -513,7 +524,7 @@ export function VenueContentForm({ content: initial }: { content: VenueContent }
                         {c.image && (
                           <div className="mb-2 flex items-center gap-2">
                             {/* eslint-disable-next-line @next/next/no-img-element */}
-                            <img src={c.image} alt={c.title} className="h-16 w-28 rounded-sm border border-border object-cover" />
+                            <img src={c.image} alt={c.title} className="h-16 w-28 border border-border-soft object-cover" />
                             <button type="button" onClick={() => updateHighlightCard(hi, ci, { image: null })} className={removeBtnCls}>
                               이미지 삭제
                             </button>
@@ -551,7 +562,7 @@ export function VenueContentForm({ content: initial }: { content: VenueContent }
 
       <section>
         <div className="flex items-center justify-between gap-3">
-          <h3 className="text-[14px] font-semibold">부대 시설</h3>
+          <h3 className={SUB_TITLE}>부대 시설</h3>
           <button
             type="button"
             onClick={() => {
@@ -566,12 +577,12 @@ export function VenueContentForm({ content: initial }: { content: VenueContent }
                 });
               }
             }}
-            className="shrink-0 text-[12px] text-accent hover:underline"
+            className="shrink-0 text-xs font-bold underline decoration-accent decoration-2 underline-offset-4 transition-colors hover:text-muted-strong"
           >
             최신 기본값으로 불러오기
           </button>
         </div>
-        <p className="mt-1 text-[12px] text-muted">
+        <p className={`mt-2 ${HELP}`}>
           이전에 저장된 내용이 있으면 새로 추가된 항목(스카이박스·라운지 등)이 자동으로 보이지 않습니다. 위 버튼으로 최신
           기본값을 불러온 뒤 저장하면 반영됩니다.
         </p>
@@ -582,7 +593,7 @@ export function VenueContentForm({ content: initial }: { content: VenueContent }
             {content.amenityGallery.map((g, i) => (
               <div key={i} className={cardCls}>
                 {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={g.url} alt={g.label || `사진 ${i + 1}`} className="aspect-[4/3] w-full rounded-sm border border-border object-cover" />
+                <img src={g.url} alt={g.label || `사진 ${i + 1}`} className="aspect-[4/3] w-full border border-border-soft object-cover" />
                 <div className="mt-2 flex items-center gap-2">
                   <input
                     value={g.label}
@@ -617,7 +628,7 @@ export function VenueContentForm({ content: initial }: { content: VenueContent }
           ] as const
         ).map(([key, label]) => (
           <div key={key} className="mt-3">
-            <div className="text-[13px] font-medium text-accent">{label}</div>
+            <div className="text-s font-bold">{label}</div>
             <div className="mt-2 space-y-2">
               {content[key].map((a, i) => (
                 <div key={i} className={cardCls}>
@@ -626,7 +637,7 @@ export function VenueContentForm({ content: initial }: { content: VenueContent }
                       value={a.name}
                       placeholder="시설명"
                       onChange={(e) => updateAmenityList(key, i, { name: e.target.value })}
-                      className={`w-56 shrink-0 ${inputCls.replace("w-full ", "")}`}
+                      className={`w-56 shrink-0 ${FIELD_BASE}`}
                     />
                     <input
                       value={a.desc}
@@ -638,9 +649,10 @@ export function VenueContentForm({ content: initial }: { content: VenueContent }
                       삭제
                     </button>
                   </div>
-                  <label className="mt-2 flex items-center gap-1.5 text-[12px] text-muted">
+                  <label className="mt-2 flex items-center gap-1.5 text-xs text-muted">
                     <input
                       type="checkbox"
+                      className="accent-accent"
                       checked={a.featured}
                       onChange={(e) => updateAmenityList(key, i, { featured: e.target.checked })}
                     />
@@ -650,7 +662,7 @@ export function VenueContentForm({ content: initial }: { content: VenueContent }
                     {a.image ? (
                       <div className="flex items-center gap-2">
                         {/* eslint-disable-next-line @next/next/no-img-element */}
-                        <img src={a.image} alt={a.name} className="h-14 w-24 rounded-sm border border-border object-cover" />
+                        <img src={a.image} alt={a.name} className="h-14 w-24 border border-border-soft object-cover" />
                         <button
                           type="button"
                           onClick={() => updateAmenityList(key, i, { image: null })}
@@ -687,15 +699,15 @@ export function VenueContentForm({ content: initial }: { content: VenueContent }
       </section>
 
       <section>
-        <h3 className="text-[14px] font-semibold">키맵 (시설 배치도)</h3>
-        <p className="mt-1 text-[12px] text-muted">
+        <h3 className={SUB_TITLE}>키맵 (시설 배치도)</h3>
+        <p className={`mt-2 ${HELP}`}>
           층별 배치도 이미지를 업로드하면 시설 개요 하단에 갤러리로 표시됩니다.
         </p>
         <div className="mt-3 grid grid-cols-1 gap-4 sm:grid-cols-2">
           {content.keyMaps.map((k, i) => (
             <div key={i} className={cardCls}>
               {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={k.url} alt={k.label || `키맵 ${i + 1}`} className="w-full rounded-sm border border-border" />
+              <img src={k.url} alt={k.label || `키맵 ${i + 1}`} className="w-full border border-border-soft" />
               <div className="mt-2 flex items-center gap-2">
                 <input
                   value={k.label}
@@ -716,12 +728,12 @@ export function VenueContentForm({ content: initial }: { content: VenueContent }
         </label>
       </section>
 
-      {message && <p className="text-[13px] text-good">{message}</p>}
+      {message && <p className={OK_NOTE}>{message}</p>}
       <button
         type="button"
         disabled={saving}
         onClick={save}
-        className="rounded-sm bg-accent px-6 py-2.5 text-[13.5px] font-semibold text-white transition-colors hover:bg-accent-hover disabled:opacity-50"
+        className={btnClass("primary", "md")}
       >
         {saving ? "저장 중..." : "저장"}
       </button>

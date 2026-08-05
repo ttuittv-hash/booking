@@ -3,6 +3,8 @@
 import { useEffect, useState } from "react";
 import { isoDate } from "@/lib/pricing/dateRange";
 import type { DateBlock } from "@/lib/pricing/types";
+import { btnClass } from "@/components/ui/kit";
+import { FIELD_LABEL, FIELD_SM, HELP, PANEL, SUB_TITLE } from "./adminUi";
 
 const DOW_LABELS = ["월", "화", "수", "목", "금", "토", "일"];
 
@@ -55,11 +57,11 @@ function MonthCalendar({
   }
 
   return (
-    <div className="rounded border border-border bg-panel/60 p-4">
-      <div className="text-[14px] font-semibold">
+    <div className={PANEL}>
+      <div className={`${SUB_TITLE} tabular-nums`}>
         {year}년 {month}월
       </div>
-      <div className="mt-3 grid grid-cols-7 gap-1 text-center text-[11px] font-medium text-muted">
+      <div className="mt-4 grid grid-cols-7 gap-1 border-b border-border-soft pb-2 text-center text-xs font-bold text-muted">
         {DOW_LABELS.map((label, i) => (
           <div key={label} className={i === 6 ? "opacity-50" : ""}>
             {label}
@@ -67,7 +69,7 @@ function MonthCalendar({
         ))}
       </div>
 
-      <div className="mt-1 space-y-0.5">
+      <div className="mt-2 space-y-1">
         {calendarWeeks.map((calWeek, wi) => (
           <div key={wi} className="grid grid-cols-7 gap-1">
             {calWeek.days.map((date, di) => {
@@ -91,14 +93,16 @@ function MonthCalendar({
                   }
                   onClick={() => inMonth && onToggle(dateStr)}
                   className={[
-                    "flex h-9 items-center justify-center rounded-sm text-[12.5px] transition-colors",
+                    "flex h-9 items-center justify-center border text-s tabular-nums transition-colors",
+                    "focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-foreground",
                     !inMonth
-                      ? "cursor-default text-muted/30"
+                      ? "cursor-default border-transparent text-muted/30"
                       : isBlocked
-                        ? "cursor-pointer bg-red-50 font-medium text-red-500 line-through hover:bg-red-100"
-                        : "cursor-pointer text-foreground hover:bg-panel-strong",
-                    isToday ? "underline decoration-2 underline-offset-4" : "",
-                    isSunday && inMonth && !isBlocked ? "text-muted/70" : "",
+                        ? "cursor-pointer border-danger/40 bg-danger-soft font-bold text-danger line-through hover:border-danger"
+                        : `cursor-pointer border-border-soft bg-surface hover:border-foreground ${
+                            isSunday ? "text-muted" : "text-foreground"
+                          }`,
+                    isToday ? "underline decoration-accent decoration-2 underline-offset-4" : "",
                   ].join(" ")}
                 >
                   {date.getDate()}
@@ -109,14 +113,14 @@ function MonthCalendar({
         ))}
       </div>
 
-      <label className="mt-3 block">
-        <span className="mb-1 block text-[11px] text-muted">막을 때 적용할 사유 (선택)</span>
+      <label className="mt-4 block border-t border-border-soft pt-3">
+        <span className={FIELD_LABEL}>막을 때 적용할 사유 (선택)</span>
         <input
           type="text"
           placeholder="예: 정기 대관, 내부 행사"
           value={reasonDrafts[`${year}-${month}`] ?? ""}
           onChange={(e) => setReasonDrafts((prev) => ({ ...prev, [`${year}-${month}`]: e.target.value }))}
-          className="w-full rounded-sm border border-border bg-panel px-2 py-1.5 text-[12px] outline-none focus:border-accent"
+          className={`w-full ${FIELD_SM}`}
         />
       </label>
     </div>
@@ -188,25 +192,17 @@ export function ScheduleManager({ initialYear, initialMonth }: { initialYear: nu
 
   return (
     <div className="mt-8">
-      <div className="flex items-center justify-between">
-        <button
-          type="button"
-          onClick={() => goToMonth(-1)}
-          className="rounded-sm border border-border px-3 py-1.5 text-[13px] text-muted hover:border-accent hover:text-accent"
-        >
+      <div className="flex items-center justify-between gap-3">
+        <button type="button" onClick={() => goToMonth(-1)} className={btnClass("outline", "sm")}>
           ‹ 이전 달
         </button>
-        <span className="text-[12px] text-muted">{loading && "불러오는 중..."}</span>
-        <button
-          type="button"
-          onClick={() => goToMonth(1)}
-          className="rounded-sm border border-border px-3 py-1.5 text-[13px] text-muted hover:border-accent hover:text-accent"
-        >
+        <span className={HELP}>{loading && "불러오는 중..."}</span>
+        <button type="button" onClick={() => goToMonth(1)} className={btnClass("outline", "sm")}>
           다음 달 ›
         </button>
       </div>
 
-      <p className="mt-3 text-[12.5px] leading-6 text-muted">
+      <p className="mt-4 text-s text-muted">
         날짜를 클릭해 대관 신청 가능/불가를 날짜 단위로 전환하세요. 막힌 날짜가 하나라도 포함된
         주는 대관 신청 화면 달력에서 선택할 수 없고, 신청 제출도 서버에서 차단됩니다.
       </p>

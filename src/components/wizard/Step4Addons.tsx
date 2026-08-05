@@ -8,6 +8,11 @@ import {
   type AddonItem,
   type RateTable,
 } from "@/lib/pricing/types";
+import { Badge, Label } from "@/components/ui/kit";
+
+/** 수량 입력 — ProfileForm 의 FIELD 규격을 좁은 숫자 입력용으로 맞춘 변형 */
+const NUM_FIELD =
+  "shrink-0 border border-border-soft bg-surface px-2.5 py-2 text-right text-s tabular-nums text-foreground transition-colors placeholder:text-muted focus:border-foreground focus:outline-2 focus:outline-accent disabled:opacity-40";
 
 export function Step4Addons({
   rateTable,
@@ -28,10 +33,10 @@ export function Step4Addons({
 
   if (!pkg) {
     return (
-      <section className="rounded border border-border bg-background p-7">
-        <p className="text-[13.5px] text-muted">
-          먼저 1단계에서 패키지를 선택하세요.
-        </p>
+      <section>
+        <Label className="text-muted">Step 04</Label>
+        <h2 className="type-kr-heading mt-3 text-h4-m sm:text-h4">추가 옵션 선택</h2>
+        <p className="mt-3 text-s text-muted">먼저 2단계에서 패키지를 선택하세요.</p>
       </section>
     );
   }
@@ -45,21 +50,23 @@ export function Step4Addons({
   }
 
   return (
-    <section className="rounded border border-border bg-background p-7">
-      <h2 className="text-[19px] font-semibold">4. 추가 옵션 선택</h2>
-      <p className="mt-1.5 text-[13.5px] text-muted">
+    <section>
+      <Label className="text-muted">Step 04</Label>
+      <h2 className="type-kr-heading mt-3 text-h4-m sm:text-h4">추가 옵션 선택</h2>
+      <p className="mt-3 max-w-2xl text-s text-muted">
         기본 포함분은 초과분만 과금됩니다:{" "}
-        <b className="text-foreground">MAX(신청−기본, 0) × 단가</b>. 유틸리티는
-        정산 시 실사용 부과됩니다.
+        <b className="text-foreground">MAX(신청−기본, 0) × 단가</b>. 유틸리티는 정산 시 실사용
+        부과됩니다.
       </p>
 
-      <div className="mt-6 space-y-7">
+      <div className="mt-8 space-y-9">
         {[...grouped.entries()].map(([category, items]) => (
           <div key={category}>
-            <div className="mb-2.5 text-[11.5px] font-semibold uppercase tracking-wide text-accent">
-              {ADDON_CATEGORY_LABEL[category]}
+            <div className="flex items-baseline justify-between gap-4 border-b-2 border-foreground pb-2.5">
+              <h3 className="type-label text-xs">{ADDON_CATEGORY_LABEL[category]}</h3>
+              <span className="text-xs tabular-nums text-muted">{items.length}개 항목</span>
             </div>
-            <div className="space-y-2">
+            <ul>
               {items.map((addon) => (
                 <AddonRow
                   key={addon.id}
@@ -71,7 +78,7 @@ export function Step4Addons({
                   onChangeRevenue={onChangeRevenue}
                 />
               ))}
-            </div>
+            </ul>
           </div>
         ))}
       </div>
@@ -114,41 +121,37 @@ function AddonRow({
       ? `매출 ${addon.unitPrice}%`
       : `${won(addon.unitPrice)} / ${addon.unitLabel.replace("원/", "")}`;
 
+  // 수량 조절 스테퍼 — 샤프 1px 보더
+  const stepBtn =
+    "inline-flex h-9 w-9 shrink-0 items-center justify-center border border-border-soft bg-surface text-r text-foreground outline-none transition-colors hover:border-foreground hover:bg-accent hover:text-on-accent focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-foreground disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:border-border-soft disabled:hover:bg-surface disabled:hover:text-foreground";
+
   return (
-    <div
+    <li
       className={[
-        "flex flex-col gap-3 rounded border px-4 py-3 sm:flex-row sm:items-center sm:justify-between sm:gap-4",
-        isUtil ? "border-border/70 bg-panel/50 opacity-60" : "border-border bg-panel/60",
+        "flex flex-col gap-3 border-b border-border/15 py-4 sm:flex-row sm:items-center sm:justify-between sm:gap-6",
+        isUtil ? "opacity-60" : "",
       ].join(" ")}
     >
       <div className="min-w-0">
-        <div className="flex flex-wrap items-center gap-1.5">
-          <span className="text-[13.5px] font-medium">{addon.name}</span>
-          {included > 0 && (
-            <span className="rounded-sm bg-good-soft px-1.5 py-0.5 text-[10.5px] font-semibold text-good">
-              {included} 기본포함
-            </span>
-          )}
-          {ruleTag && (
-            <span className="rounded-sm bg-warn-soft px-1.5 py-0.5 text-[10.5px] font-semibold text-warn">
-              {ruleTag}
-            </span>
-          )}
+        <div className="flex flex-wrap items-center gap-x-2 gap-y-1.5">
+          <span className="text-s font-bold">{addon.name}</span>
+          {included > 0 && <Badge tone="good">{included} 기본포함</Badge>}
+          {ruleTag && <Badge tone="warn">{ruleTag}</Badge>}
         </div>
-        <div className="mt-0.5 text-[11.5px] text-muted">
+        <div className="mt-1 text-xs text-muted">
           {addon.unitLabel}
           {addon.note ? ` · ${addon.note}` : ""}
         </div>
       </div>
 
       <div className="flex shrink-0 items-center justify-between gap-3 sm:justify-end">
-        <span className="whitespace-nowrap text-[12px] text-muted">{priceLabel}</span>
+        <span className="whitespace-nowrap text-xs tabular-nums text-muted">{priceLabel}</span>
 
         {isUtil ? (
-          <span className="whitespace-nowrap text-[12.5px] text-muted">정산 단계 부과</span>
+          <span className="whitespace-nowrap text-xs text-muted">정산 단계 부과</span>
         ) : isRevenue ? (
           <div className="flex items-center gap-2">
-            <label className="flex items-center gap-1.5 whitespace-nowrap text-[12px] text-muted">
+            <label className="flex items-center gap-1.5 whitespace-nowrap text-xs text-muted">
               <input
                 type="checkbox"
                 checked={quantity > 0}
@@ -165,23 +168,50 @@ function AddonRow({
               value={expectedRevenue || ""}
               disabled={quantity <= 0}
               onChange={(e) => onChangeRevenue(Math.max(0, Number(e.target.value) || 0))}
-              className="w-24 shrink-0 rounded-sm border border-border bg-background px-2.5 py-1.5 text-right text-[13px] outline-none focus:border-accent disabled:opacity-40 sm:w-28"
+              aria-label={`${addon.name} 예상매출`}
+              className={`${NUM_FIELD} w-24 sm:w-28`}
             />
           </div>
         ) : (
-          <input
-            type="number"
-            min={0}
-            max={maxTotal}
-            value={quantity || ""}
-            placeholder="0"
-            onChange={(e) =>
-              onChangeQuantity(addon.id, Math.max(0, Number(e.target.value) || 0))
-            }
-            className="w-16 shrink-0 rounded-sm border border-border bg-background px-2.5 py-1.5 text-right text-[13px] outline-none focus:border-accent"
-          />
+          <div className="flex items-center gap-1.5">
+            <button
+              type="button"
+              onClick={() => onChangeQuantity(addon.id, Math.max(0, quantity - 1))}
+              disabled={quantity <= 0}
+              aria-label={`${addon.name} 수량 감소`}
+              className={stepBtn}
+            >
+              −
+            </button>
+            <input
+              type="number"
+              min={0}
+              max={maxTotal}
+              value={quantity || ""}
+              placeholder="0"
+              onChange={(e) =>
+                onChangeQuantity(addon.id, Math.max(0, Number(e.target.value) || 0))
+              }
+              aria-label={`${addon.name} 신청 수량`}
+              className={`${NUM_FIELD} w-14`}
+            />
+            <button
+              type="button"
+              onClick={() =>
+                onChangeQuantity(
+                  addon.id,
+                  maxTotal !== undefined ? Math.min(maxTotal, quantity + 1) : quantity + 1,
+                )
+              }
+              disabled={maxTotal !== undefined && quantity >= maxTotal}
+              aria-label={`${addon.name} 수량 증가`}
+              className={stepBtn}
+            >
+              +
+            </button>
+          </div>
         )}
       </div>
-    </div>
+    </li>
   );
 }

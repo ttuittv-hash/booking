@@ -1,9 +1,16 @@
 import type { AddonItem, RateTable, RentalPackage } from "./types";
 
-// 모든 금액은 확정 전 플레이스홀더입니다. 실제 요금표 확정 시 운영자 백오피스(요금표 관리)에서
+// 모든 금액은 확정 전 값입니다. Rate Card 확정 시 운영자 백오피스(요금표 관리)에서
 // 교체하면 됩니다. 이 파일은 DB가 비어 있을 때 최초 1회 시드하는 기본값입니다.
+//
+// 패키지 기본 대관료 정본: Notion "(웹사이트) 대관·비즈니스 사이트 구조 기획" › BOOK IT › 대관료
+//   P1 1.2만명 이하 약 4.29억 / P2 1.2–1.49만 약 4.89억
+//   P3 1.5–1.79만 약 5.57억 / P4 1.8–2.2만 약 6.09억
+// 산출 근거: 실시협약 고정 기본 대관료(준비일 2,580만원/일 · 공연일 5,770만원/일, 2018 불변가,
+//   2027 경상가 전환 예정) 기준 공연 1건 약 2.2억(셋업 4일 + 공연 2일)에 시설·장비·매체를 더한 값.
+//   내부 검토안이므로 공개 전 정본 재확인 필요.
 
-export const SEED_RATE_TABLE_VERSION = "2026-07-seed-v1";
+export const SEED_RATE_TABLE_VERSION = "2026-08-notion-v1";
 
 // 아래 4개 패키지의 기본정보/기본 포함사항은 "패키지 구성" 명세(엑셀) 기준입니다.
 // 대관 구성(화~일)·세부 구성(준비 4일+공연 2일)·대관시간(09:00~22:00)·야외광장 포함 여부는
@@ -14,7 +21,7 @@ export const SEED_PACKAGES: RentalPackage[] = [
     name: "패키지 1",
     tagline: "합리적인 규모의 콘서트를 위한 스탠더드 패키지",
     audienceTier: { min: 0, max: 12_000, label: "~12,000석 규모" },
-    baseFeePerWeek: 30_000_000,
+    baseFeePerWeek: 429_000_000,
     includedWeeks: 1,
     mediaTier: null,
     discountRatio: 0,
@@ -43,8 +50,8 @@ export const SEED_PACKAGES: RentalPackage[] = [
     id: 2,
     name: "패키지 2",
     tagline: "확장된 홍보 효과가 필요한 중대형 공연을 위한 패키지",
-    audienceTier: { min: 12_001, max: 15_000, label: "~15,000석 규모" },
-    baseFeePerWeek: 55_000_000,
+    audienceTier: { min: 12_001, max: 14_900, label: "12,000~14,900석 규모" },
+    baseFeePerWeek: 489_000_000,
     includedWeeks: 1,
     mediaTier: "BASIC",
     discountRatio: 0,
@@ -74,8 +81,8 @@ export const SEED_PACKAGES: RentalPackage[] = [
     id: 3,
     name: "패키지 3",
     tagline: "대형 스탠딩 공연을 위한 풀프로덕션 패키지",
-    audienceTier: { min: 15_001, max: 18_000, label: "~18,000석 규모" },
-    baseFeePerWeek: 85_000_000,
+    audienceTier: { min: 14_901, max: 17_900, label: "15,000~17,900석 규모" },
+    baseFeePerWeek: 557_000_000,
     includedWeeks: 1,
     mediaTier: "EXTENDED",
     discountRatio: 0,
@@ -107,8 +114,8 @@ export const SEED_PACKAGES: RentalPackage[] = [
     id: 4,
     name: "패키지 4",
     tagline: "최대 규모 공연을 위한 프리미엄 올인원 패키지",
-    audienceTier: { min: 18_001, max: 99_999, label: "20,000석+ 규모" },
-    baseFeePerWeek: 120_000_000,
+    audienceTier: { min: 17_901, max: 99_999, label: "18,000~22,000석 규모" },
+    baseFeePerWeek: 609_000_000,
     includedWeeks: 1,
     mediaTier: "FULL",
     discountRatio: 0,

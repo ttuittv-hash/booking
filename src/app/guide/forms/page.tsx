@@ -1,8 +1,10 @@
-import Link from "next/link";
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { getCurrentUser, isPendingApplicant } from "@/lib/auth";
 import { PublicHeader } from "@/components/PublicHeader";
+import { Breadcrumb } from "@/components/ui/Breadcrumb";
+import { SiteFooter } from "@/components/ui/SiteFooter";
+import { ArrowRight, Band, ButtonLink, EmptyState, Label } from "@/components/ui/kit";
 
 export const metadata: Metadata = {
   title: "대관 양식함 | 서울아레나",
@@ -15,24 +17,40 @@ export default async function GuideFormsPage() {
   return (
     <div className="flex flex-1 flex-col">
       <PublicHeader active="/guide" currentUser={currentUser} />
+      <Breadcrumb items={[{ label: "Book It", href: "/guide" }, { label: "대관 양식함" }]} />
 
-      <main className="mx-auto w-full max-w-5xl flex-1 px-6 py-16 sm:px-8">
-        <p className="text-[13px] font-semibold uppercase tracking-[0.14em] text-accent">STAGE</p>
-        <h1 className="mt-3 text-[30px] font-semibold tracking-tight sm:text-[36px]">대관 양식함</h1>
-        <p className="mt-6 max-w-3xl text-[15px] leading-8 text-muted">
-          대관 신청·계약·공연 준비 과정에서 필요한 각종 서식(계획서, 안전관리계획서, 반입반출
-          신청서 등)을 이곳에서 내려받을 수 있도록 준비 중입니다.
-        </p>
+      <main className="flex flex-1 flex-col">
+        <Band tone="light" size="lg">
+          <Label className="mb-6 text-muted">Book It</Label>
+          <h1 className="type-display text-d2-m sm:text-h1 lg:text-d2">Book It</h1>
+          <p className="type-kr-heading mt-6 text-h4-m sm:text-h4">대관 양식함</p>
+          <p className="mt-8 max-w-3xl text-m text-muted">
+            대관 신청·계약·공연 준비 과정에서 필요한 각종 서식(계획서, 안전관리계획서, 반입반출
+            신청서 등)을 이곳에서 내려받을 수 있도록 준비 중입니다.
+          </p>
+        </Band>
 
-        <div className="mt-8 flex items-center justify-between border border-dashed border-border px-4 py-3 text-[12.5px] text-muted">
-          <span>대관 관련 서식 자료</span>
-          <span className="rounded bg-panel-strong px-2 py-1 text-[11px] font-medium">자료 준비 중</span>
-        </div>
+        <Band tone="white">
+          <EmptyState
+            title="대관 관련 서식 자료"
+            desc="자료 준비 중입니다. 필요한 서식은 대관 담당자를 통해 받을 수 있습니다."
+            action={
+              <ButtonLink href="/guide#process" variant="outline">
+                대관 절차 확인
+                <ArrowRight />
+              </ButtonLink>
+            }
+          />
 
-        <Link href="/guide" className="mt-8 inline-block text-[13px] font-medium text-accent hover:underline">
-          ← 대관 안내로 돌아가기
-        </Link>
+          <div className="mt-10">
+            <ButtonLink href="/guide" variant="ghost">
+              대관 안내로 돌아가기
+            </ButtonLink>
+          </div>
+        </Band>
       </main>
+
+      <SiteFooter />
     </div>
   );
 }

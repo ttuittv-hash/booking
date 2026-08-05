@@ -1,7 +1,9 @@
 import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/lib/auth";
+import { Label } from "@/components/ui/kit";
 import { AdminNav } from "@/components/admin/AdminNav";
 import { ScheduleManager } from "@/components/admin/ScheduleManager";
+import { PAGE_LEAD, PAGE_TITLE } from "@/components/admin/adminUi";
 
 export default async function AdminSchedulePage() {
   const user = await getCurrentUser();
@@ -14,13 +16,16 @@ export default async function AdminSchedulePage() {
     <div className="flex flex-1 flex-col">
       <AdminNav active="/admin/schedule" />
 
-      <main className="mx-auto w-full max-w-6xl flex-1 px-6 py-10">
-        <h1 className="text-[22px] font-semibold">일정 관리</h1>
-        <p className="mt-2 text-[13.5px] leading-6 text-muted">
-          연도별로 각 월의 주차를 대관 신청 가능/불가로 설정합니다. 막아둔 주차는 대관 신청
-          화면의 달력에서 선택할 수 없고, 이미 열려 있는 주차는 별도 설정 없이 자유롭게(수시)
-          신청받을 수 있습니다.
-        </p>
+      <main className="mx-auto w-full max-w-6xl flex-1 px-6 py-8 sm:py-10">
+        <header className="border-b border-border/20 pb-6">
+          <Label className="mb-3 text-muted">Schedule</Label>
+          <h1 className={PAGE_TITLE}>일정 관리</h1>
+          <p className={PAGE_LEAD}>
+            연도별로 각 월의 주차를 대관 신청 가능/불가로 설정합니다. 막아둔 주차는 대관 신청
+            화면의 달력에서 선택할 수 없고, 이미 열려 있는 주차는 별도 설정 없이 자유롭게(수시)
+            신청받을 수 있습니다.
+          </p>
+        </header>
 
         <ScheduleManager initialYear={now.getFullYear()} initialMonth={now.getMonth() + 1} />
       </main>

@@ -4,14 +4,24 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import type { HomeContent } from "@/lib/content/types";
 import { DEFAULT_HOME_CONTENT } from "@/lib/content/seed";
+import { btnClass } from "@/components/ui/kit";
+import {
+  ADD_BTN,
+  CARD,
+  FIELD,
+  FIELD_LABEL,
+  HELP,
+  OK_NOTE,
+  REMOVE_BTN,
+  SUB_TITLE,
+} from "./adminUi";
 
-const inputCls =
-  "w-full rounded-sm border border-border bg-background px-3 py-2 text-[13px] outline-none focus:border-accent";
-const labelCls = "mb-1 block text-[12px] text-muted";
-const cardCls = "rounded border border-border bg-panel/60 p-4";
-const addBtnCls =
-  "mt-2 rounded-sm border border-dashed border-border px-3 py-1.5 text-[12.5px] text-muted hover:border-accent hover:text-accent";
-const removeBtnCls = "shrink-0 text-[12px] text-red-600 hover:underline";
+/* 필드 구조는 브랜드 내러티브 스키마 그대로 두고 시각 토큰만 교체한다 */
+const inputCls = FIELD;
+const labelCls = FIELD_LABEL;
+const cardCls = CARD;
+const addBtnCls = ADD_BTN;
+const removeBtnCls = REMOVE_BTN;
 
 export function HomeContentForm({ content: initial }: { content: HomeContent }) {
   const router = useRouter();
@@ -139,7 +149,7 @@ export function HomeContentForm({ content: initial }: { content: HomeContent }) 
   return (
     <div className="space-y-8">
       <section>
-        <h3 className="text-[14px] font-semibold">히어로 (상단 이미지 + 카피 + 버튼)</h3>
+        <h3 className={SUB_TITLE}>히어로 (상단 이미지 + 카피 + 버튼)</h3>
         <label className="mt-3 block">
           <span className={labelCls}>상단 라벨 (예: HOST IT.)</span>
           <input value={content.heroEyebrow} onChange={(e) => patch({ heroEyebrow: e.target.value })} className={inputCls} />
@@ -183,7 +193,7 @@ export function HomeContentForm({ content: initial }: { content: HomeContent }) 
               <img
                 src={content.heroImage}
                 alt="히어로 배경"
-                className="h-24 w-40 rounded-sm border border-border object-cover"
+                className="h-24 w-40 border border-border-soft object-cover"
               />
               <button type="button" onClick={() => patch({ heroImage: null })} className={removeBtnCls}>
                 이미지 삭제
@@ -204,14 +214,14 @@ export function HomeContentForm({ content: initial }: { content: HomeContent }) 
         </div>
       </section>
 
-      <section>
+      <section className="border-t border-border/15 pt-7">
         <div className="flex flex-wrap items-center justify-between gap-2">
-          <h3 className="text-[14px] font-semibold">브랜드 내러티브 (HOST IT. 선언문)</h3>
+          <h3 className={SUB_TITLE}>브랜드 내러티브 (HOST IT. 선언문)</h3>
           <button type="button" onClick={loadDefaults} className={addBtnCls}>
             최신 기본값 불러오기
           </button>
         </div>
-        <p className="mt-1 text-[12px] text-muted">
+        <p className={`mt-2 ${HELP}`}>
           카카오 브랜드 가이드라인 3.4 &ldquo;브랜드 선언문: BUSINESS&rdquo;를 기준으로 작성합니다. 각 진술은
           이를 뒷받침하는 제원·안내 페이지로 연결됩니다.
         </p>
@@ -268,7 +278,7 @@ export function HomeContentForm({ content: initial }: { content: HomeContent }) 
                 {s.image ? (
                   <div className="flex items-center gap-2">
                     {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img src={s.image} alt={s.title} className="h-16 w-28 border border-border object-cover" />
+                    <img src={s.image} alt={s.title} className="h-16 w-28 border border-border-soft object-cover" />
                     <button type="button" onClick={() => updateStatement(i, { image: null })} className={removeBtnCls}>
                       이미지 삭제
                     </button>
@@ -296,8 +306,8 @@ export function HomeContentForm({ content: initial }: { content: HomeContent }) 
         </div>
       </section>
 
-      <section>
-        <h3 className="text-[14px] font-semibold">신청 절차</h3>
+      <section className="border-t border-border/15 pt-7">
+        <h3 className={SUB_TITLE}>신청 절차</h3>
         <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2">
           <label>
             <span className={labelCls}>상단 라벨 (예: APPLICATION PROCESS)</span>
@@ -339,12 +349,12 @@ export function HomeContentForm({ content: initial }: { content: HomeContent }) 
         </div>
       </section>
 
-      {message && <p className="text-[13px] text-good">{message}</p>}
+      {message && <p className={OK_NOTE}>{message}</p>}
       <button
         type="button"
         disabled={saving}
         onClick={save}
-        className="rounded-sm bg-accent px-6 py-2.5 text-[13.5px] font-semibold text-white transition-colors hover:bg-accent-hover disabled:opacity-50"
+        className={btnClass("primary", "md")}
       >
         {saving ? "저장 중..." : "저장"}
       </button>

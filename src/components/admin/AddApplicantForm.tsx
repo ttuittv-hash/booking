@@ -2,6 +2,8 @@
 
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { btnClass } from "@/components/ui/kit";
+import { ERROR_NOTE, FIELD, HELP, OK_NOTE, PANEL, SECTION_TITLE } from "./adminUi";
 
 export function AddApplicantForm() {
   const router = useRouter();
@@ -42,62 +44,62 @@ export function AddApplicantForm() {
   }
 
   return (
-    <div className="rounded border border-border bg-panel/60 p-6">
-      <h2 className="text-[15px] font-semibold">회원 추가 (테스트/직원 계정)</h2>
-      <p className="mt-1 text-[12.5px] text-muted">
+    <div className={PANEL}>
+      <h2 className={SECTION_TITLE}>회원 추가 (테스트/직원 계정)</h2>
+      <p className={`mt-2 ${HELP}`}>
         운영자가 직접 신청자(대관사) 계정을 생성합니다. 별도 승인 절차 없이 즉시 승인 완료 상태로
         만들어지며, 비밀번호는 안전한 채널로 직접 전달해야 합니다.
       </p>
 
-      <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2">
+      <div className="mt-5 grid grid-cols-1 gap-3 sm:grid-cols-2">
         <input
           type="text"
           placeholder="아이디 (영문 소문자/숫자, 4~20자)"
           value={form.username}
           onChange={(e) => setForm({ ...form, username: e.target.value })}
-          className="rounded border border-border bg-background px-3 py-2 text-[13px] outline-none focus:border-accent"
+          className={FIELD}
         />
         <input
           type="email"
           placeholder="이메일"
           value={form.email}
           onChange={(e) => setForm({ ...form, email: e.target.value })}
-          className="rounded border border-border bg-background px-3 py-2 text-[13px] outline-none focus:border-accent"
+          className={FIELD}
         />
         <input
           type="text"
           placeholder="담당자명"
           value={form.name}
           onChange={(e) => setForm({ ...form, name: e.target.value })}
-          className="rounded border border-border bg-background px-3 py-2 text-[13px] outline-none focus:border-accent"
+          className={FIELD}
         />
         <input
           type="text"
           placeholder="임시 비밀번호 (8자 이상)"
           value={form.password}
           onChange={(e) => setForm({ ...form, password: e.target.value })}
-          className="rounded border border-border bg-background px-3 py-2 text-[13px] outline-none focus:border-accent"
+          className={FIELD}
         />
         <input
           type="tel"
           placeholder="휴대폰 번호 (선택)"
           value={form.phone}
           onChange={(e) => setForm({ ...form, phone: e.target.value })}
-          className="rounded border border-border bg-background px-3 py-2 text-[13px] outline-none focus:border-accent"
+          className={FIELD}
         />
         <input
           type="text"
           placeholder="회사/기획사명 (선택, 비워두면 소속 없음)"
           value={form.companyName}
           onChange={(e) => setForm({ ...form, companyName: e.target.value })}
-          className="rounded border border-border bg-background px-3 py-2 text-[13px] outline-none focus:border-accent"
+          className={FIELD}
         />
         <input
           type="text"
           placeholder="사업자등록번호 (회사명 입력 시, 선택)"
           value={form.businessRegistrationNumber}
           onChange={(e) => setForm({ ...form, businessRegistrationNumber: e.target.value })}
-          className="rounded border border-border bg-background px-3 py-2 text-[13px] outline-none focus:border-accent"
+          className={FIELD}
         />
       </div>
 
@@ -105,12 +107,12 @@ export function AddApplicantForm() {
         type="button"
         disabled={submitting}
         onClick={submit}
-        className="mt-4 rounded-sm bg-accent px-6 py-2.5 text-[13.5px] font-semibold text-white transition-colors hover:bg-accent-hover disabled:opacity-50"
+        className={`mt-5 ${btnClass("primary", "md")}`}
       >
         {submitting ? "처리 중..." : "회원 계정 생성"}
       </button>
-      {error && <p className="mt-3 text-[13px] text-red-600">{error}</p>}
-      {success && <p className="mt-3 text-[13px] text-good">{success}</p>}
+      {error && <p className={`mt-3 ${ERROR_NOTE}`}>{error}</p>}
+      {success && <p className={`mt-3 ${OK_NOTE}`}>{success}</p>}
     </div>
   );
 }

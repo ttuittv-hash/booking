@@ -4,6 +4,17 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import type { QuoteStatus } from "@/lib/pricing/types";
+import { ArrowRight, Badge, btnClass } from "@/components/ui/kit";
+import {
+  TABLE,
+  TABLE_WRAP,
+  TD,
+  TD_NUM,
+  TH,
+  TH_NUM,
+  THEAD_ROW,
+  TR,
+} from "./adminUi";
 
 const STATUS_LABEL: Record<QuoteStatus, string> = {
   ESTIMATE: "예상견적 (심사 대기)",
@@ -11,10 +22,11 @@ const STATUS_LABEL: Record<QuoteStatus, string> = {
   SETTLED: "정산 완료",
 };
 
-const STATUS_STYLE: Record<QuoteStatus, string> = {
-  ESTIMATE: "bg-warn-soft text-warn",
-  CONTRACTED: "bg-accent-soft text-accent",
-  SETTLED: "bg-good-soft text-good",
+/** 상태 색은 kit 의 Badge tone 만 쓴다 (임의 색 금지) */
+const STATUS_TONE: Record<QuoteStatus, "warn" | "accent" | "good"> = {
+  ESTIMATE: "warn",
+  CONTRACTED: "accent",
+  SETTLED: "good",
 };
 
 export interface AdminQuoteRow {
@@ -48,77 +60,93 @@ export function AdminQuoteTable({ rows }: { rows: AdminQuoteRow[] }) {
   return (
     <div>
       {selected.size > 0 && (
-        <div className="mb-3 flex items-center justify-between rounded-sm border border-accent/30 bg-accent-soft px-4 py-2.5 text-[13px] text-accent">
-          <span>{selected.size}건 선택됨</span>
-          <div className="flex items-center gap-3">
+        /* 옐로 면 + 검정 텍스트 (대비 약 14:1) */
+        <div className="mb-3 flex flex-wrap items-center justify-between gap-3 border border-foreground bg-accent px-4 py-2.5 text-s text-on-accent">
+          <span className="font-bold tabular-nums">{selected.size}건 선택됨</span>
+          <div className="flex items-center gap-4">
             <button
               type="button"
               disabled={selected.size < 2}
               onClick={compare}
-              className="rounded-sm bg-accent px-4 py-1.5 text-[12.5px] font-semibold text-white transition-colors hover:bg-accent-hover disabled:cursor-not-allowed disabled:opacity-40"
+              className={btnClass("outline", "sm")}
             >
               선택 항목 비교 ({selected.size})
             </button>
-            <button type="button" onClick={() => setSelected(new Set())} className="hover:underline">
+            <button
+              type="button"
+              onClick={() => setSelected(new Set())}
+              className="text-xs font-bold hover:underline"
+            >
               선택 해제
             </button>
           </div>
         </div>
       )}
 
-      <div className="overflow-x-auto rounded border border-border">
-        <table className="w-full min-w-[960px] border-collapse text-[13px]">
+      <div className={TABLE_WRAP}>
+        <table className={`${TABLE} min-w-[960px]`}>
           <thead>
-            <tr className="border-b border-border bg-panel text-left text-[11.5px] font-medium text-muted">
-              <th className="w-10 px-4 py-3" />
-              <th className="px-4 py-3">신청번호</th>
-              <th className="px-4 py-3">신청일시</th>
-              <th className="px-4 py-3">신청자</th>
-              <th className="px-4 py-3">회사</th>
-              <th className="px-4 py-3">주차</th>
-              <th className="px-4 py-3">관객</th>
-              <th className="px-4 py-3 text-right">신청 예상금액</th>
-              <th className="px-4 py-3">상태</th>
-              <th className="px-4 py-3" />
+            <tr className={THEAD_ROW}>
+              <th className={`${TH} w-10`} />
+              <th className={TH}>신청번호</th>
+              <th className={TH}>신청일시</th>
+              <th className={TH}>신청자</th>
+              <th className={TH}>회사</th>
+              <th className={TH}>주차</th>
+              <th className={TH_NUM}>관객</th>
+              <th className={TH_NUM}>신청 예상금액</th>
+              <th className={TH}>상태</th>
+              <th className={TH} />
             </tr>
           </thead>
           <tbody>
             {rows.length === 0 ? (
               <tr>
-                <td colSpan={10} className="px-4 py-8 text-center text-muted">
+                <td colSpan={10} className="px-3 py-10 text-center text-s text-muted">
                   아직 접수된 신청서가 없습니다.
                 </td>
               </tr>
             ) : (
-              rows.map((row) => (
-                <tr key={row.id} className="border-b border-border/70">
-                  <td className="px-4 py-3">
-                    <input
-                      type="checkbox"
-                      checked={selected.has(row.id)}
-                      onChange={() => toggle(row.id)}
-                      aria-label={`${row.id} 비교 선택`}
-                    />
-                  </td>
-                  <td className="px-4 py-3 font-medium">{row.id}</td>
-                  <td className="px-4 py-3 text-muted">{row.createdAtLabel}</td>
-                  <td className="px-4 py-3">{row.applicantName}</td>
-                  <td className="px-4 py-3 text-muted">{row.companyName}</td>
-                  <td className="px-4 py-3">{row.weekLabel}</td>
-                  <td className="px-4 py-3">{row.audienceLabel}</td>
-                  <td className="px-4 py-3 text-right font-semibold tabular-nums">{row.totalLabel}</td>
-                  <td className="px-4 py-3">
-                    <span className={`rounded-sm px-2.5 py-1 text-[11.5px] font-medium ${STATUS_STYLE[row.status]}`}>
-                      {STATUS_LABEL[row.status]}
-                    </span>
-                  </td>
-                  <td className="px-4 py-3 text-right">
-                    <Link href={`/admin/${row.id}`} className="font-medium text-accent hover:underline">
-                      상세 →
-                    </Link>
-                  </td>
-                </tr>
-              ))
+              rows.map((row) => {
+                const isSelected = selected.has(row.id);
+                return (
+                  <tr
+                    key={row.id}
+                    className={`${TR} transition-colors ${
+                      isSelected ? "bg-accent/15" : "hover:bg-foreground/[0.03]"
+                    }`}
+                  >
+                    <td className={TD}>
+                      <input
+                        type="checkbox"
+                        checked={isSelected}
+                        onChange={() => toggle(row.id)}
+                        aria-label={`${row.id} 비교 선택`}
+                        className="accent-accent"
+                      />
+                    </td>
+                    <td className={`${TD} font-bold tabular-nums`}>{row.id}</td>
+                    <td className={`${TD} tabular-nums text-muted`}>{row.createdAtLabel}</td>
+                    <td className={TD}>{row.applicantName}</td>
+                    <td className={`${TD} text-muted`}>{row.companyName}</td>
+                    <td className={`${TD} tabular-nums`}>{row.weekLabel}</td>
+                    <td className={TD_NUM}>{row.audienceLabel}</td>
+                    <td className={`${TD_NUM} font-bold`}>{row.totalLabel}</td>
+                    <td className={TD}>
+                      <Badge tone={STATUS_TONE[row.status]}>{STATUS_LABEL[row.status]}</Badge>
+                    </td>
+                    <td className={`${TD} text-right`}>
+                      <Link
+                        href={`/admin/${row.id}`}
+                        className="inline-flex items-center gap-1.5 text-xs font-bold transition-colors hover:text-muted-strong"
+                      >
+                        상세
+                        <ArrowRight />
+                      </Link>
+                    </td>
+                  </tr>
+                );
+              })
             )}
           </tbody>
         </table>

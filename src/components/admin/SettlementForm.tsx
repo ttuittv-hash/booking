@@ -3,6 +3,18 @@
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { won } from "@/lib/format";
+import { btnClass } from "@/components/ui/kit";
+import {
+  ADD_BTN,
+  ERROR_NOTE,
+  FIELD,
+  FIELD_NUM,
+  HELP,
+  PANEL,
+  REMOVE_BTN,
+  SECTION_TITLE,
+  SUB_TITLE,
+} from "./adminUi";
 
 interface Row {
   label: string;
@@ -32,16 +44,16 @@ function RowEditor({
 
   return (
     <div>
-      <div className="text-[13px] font-semibold">{title}</div>
-      <p className="mt-0.5 text-[11.5px] text-muted">{hint}</p>
-      <div className="mt-2.5 space-y-2">
+      <div className={SUB_TITLE}>{title}</div>
+      <p className={`mt-1 ${HELP}`}>{hint}</p>
+      <div className="mt-3 space-y-2">
         {rows.map((row, i) => (
           <div key={i} className="grid grid-cols-1 items-center gap-2 sm:grid-cols-[1fr_140px_auto]">
             <input
               placeholder="항목명"
               value={row.label}
               onChange={(e) => updateRow(i, { label: e.target.value })}
-              className="rounded border border-border bg-background px-3 py-2 text-[13px] outline-none focus:border-accent"
+              className={FIELD}
             />
             <input
               type="number"
@@ -49,22 +61,14 @@ function RowEditor({
               placeholder="금액"
               value={row.amount || ""}
               onChange={(e) => updateRow(i, { amount: Number(e.target.value) || 0 })}
-              className="rounded border border-border bg-background px-3 py-2 text-right text-[13px] outline-none focus:border-accent"
+              className={FIELD_NUM}
             />
-            <button
-              type="button"
-              onClick={() => removeRow(i)}
-              className="rounded border border-border px-2.5 py-2 text-[12px] text-muted hover:text-red-600"
-            >
+            <button type="button" onClick={() => removeRow(i)} className={REMOVE_BTN}>
               삭제
             </button>
           </div>
         ))}
-        <button
-          type="button"
-          onClick={addRow}
-          className="rounded border border-dashed border-border px-3 py-1.5 text-[12px] text-muted hover:border-accent hover:text-accent"
-        >
+        <button type="button" onClick={addRow} className={ADD_BTN}>
           + 항목 추가
         </button>
       </div>
@@ -115,9 +119,9 @@ export function SettlementForm({
   }
 
   return (
-    <div className="rounded border border-border bg-panel/60 p-6">
-      <h3 className="text-[15px] font-semibold">③ 정산 — 현장 반영</h3>
-      <p className="mt-1 text-[12.5px] text-muted">
+    <div className={PANEL}>
+      <h3 className={SECTION_TITLE}>③ 정산 — 현장 반영</h3>
+      <p className={`mt-2 ${HELP}`}>
         행사 후 현장 추가·미사용분과 유틸리티 실사용을 반영해 최종 정산금액을 확정합니다.
       </p>
 
@@ -142,23 +146,23 @@ export function SettlementForm({
         />
       </div>
 
-      <div className="mt-5 flex flex-col gap-3 border-t border-border pt-4 sm:flex-row sm:items-center sm:justify-between">
+      <div className="mt-6 flex flex-col gap-4 border-t border-border/15 pt-5 sm:flex-row sm:items-end sm:justify-between">
         <div>
-          <div className="text-[11px] text-muted">
+          <div className={HELP}>
             최종 정산금액 (계약 {won(contractTotal)} + 현장추가 − 미사용 + 유틸리티)
           </div>
-          <div className="text-[20px] font-semibold tabular-nums">{won(finalTotal)}</div>
+          <div className="type-display mt-1 text-h5-m tabular-nums sm:text-h5">{won(finalTotal)}</div>
         </div>
         <button
           type="button"
           disabled={submitting}
           onClick={submit}
-          className="rounded-sm bg-accent px-6 py-2.5 text-[13.5px] font-semibold text-white transition-colors hover:bg-accent-hover disabled:opacity-50"
+          className={btnClass("primary", "md")}
         >
           {submitting ? "처리 중..." : "최종 정산금액 확정"}
         </button>
       </div>
-      {error && <p className="mt-3 text-[13px] text-red-600">{error}</p>}
+      {error && <p className={`mt-4 ${ERROR_NOTE}`}>{error}</p>}
     </div>
   );
 }

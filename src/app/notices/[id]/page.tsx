@@ -1,10 +1,12 @@
-import Link from "next/link";
 import type { Metadata } from "next";
 import { notFound, redirect } from "next/navigation";
 import { getCurrentUser, isPendingApplicant } from "@/lib/auth";
 import { getNoticeById } from "@/lib/db";
 import { PublicHeader } from "@/components/PublicHeader";
 import { TagBadge } from "@/components/TagBadge";
+import { Breadcrumb } from "@/components/ui/Breadcrumb";
+import { SiteFooter } from "@/components/ui/SiteFooter";
+import { ArrowRight, Band, ButtonLink, Label, Media } from "@/components/ui/kit";
 
 export async function generateMetadata({
   params,
@@ -15,6 +17,28 @@ export async function generateMetadata({
   const notice = getNoticeById(id);
   return { title: notice ? `${notice.title} | 서울아레나 공지사항` : "공지사항 | 서울아레나" };
 }
+
+function formatDateTime(iso: string): string {
+  const d = new Date(iso);
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}.${pad(d.getMonth() + 1)}.${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
+}
+
+/* 본문(운영자 리치 에디터 HTML) 타이포 — 전부 디자인 토큰으로. 라운딩 없음. */
+const PROSE = [
+  "whitespace-pre-wrap text-r leading-8 text-muted-strong",
+  "[&_h2]:type-kr-heading [&_h2]:mt-12 [&_h2]:text-h5-m [&_h2]:text-foreground sm:[&_h2]:text-h5",
+  "[&_h3]:type-kr-heading [&_h3]:mt-10 [&_h3]:text-h6-m [&_h3]:text-foreground [&_h3]:first:mt-0 sm:[&_h3]:text-h6",
+  "[&_p]:my-4 [&_p]:first:mt-0 [&_p]:last:mb-0",
+  "[&_strong]:font-bold [&_strong]:text-foreground",
+  "[&_a]:underline [&_a]:decoration-1 [&_a]:underline-offset-4 [&_a]:text-foreground hover:[&_a]:text-muted",
+  "[&_ul]:mt-4 [&_ul]:list-disc [&_ul]:pl-5 [&_ol]:mt-4 [&_ol]:list-decimal [&_ol]:pl-5",
+  "[&_li]:mt-2",
+  "[&_img]:mt-6 [&_img]:max-w-full",
+  "[&_table]:mt-6 [&_table]:w-full [&_table]:border-collapse [&_table]:text-s",
+  "[&_th]:border [&_th]:border-border-soft [&_th]:bg-background [&_th]:px-3 [&_th]:py-2.5 [&_th]:text-left [&_th]:font-bold [&_th]:text-foreground",
+  "[&_td]:border [&_td]:border-border-soft [&_td]:px-3 [&_td]:py-2.5",
+].join(" ");
 
 export default async function NoticeDetailPage({
   params,
@@ -31,50 +55,66 @@ export default async function NoticeDetailPage({
   return (
     <div className="flex flex-1 flex-col">
       <PublicHeader active="/notices" currentUser={currentUser} />
+      <Breadcrumb
+        items={[
+          { label: "Know It" },
+          { label: "Notice", href: "/notices" },
+          { label: notice.title },
+        ]}
+      />
 
-      <main className="mx-auto w-full max-w-5xl flex-1 px-6 py-16 sm:px-8">
-        <Link href="/notices" className="text-[12.5px] font-medium text-accent hover:underline">
-          ← 공지사항 목록
-        </Link>
+      <main className="flex flex-1 flex-col">
+        {/* 제목 · 메타 — 본문 폭 유지 */}
+        <Band tone="light" size="md">
+          <div className="max-w-3xl">
+            <Label className="text-muted">Notice</Label>
+            <h1 className="type-kr-heading mt-5 text-h3-m sm:text-h3">{notice.title}</h1>
+            <div className="mt-7 flex flex-wrap items-center gap-3 border-t border-border/25 pt-5 text-xs text-muted">
+              <TagBadge tag={notice.tag} spacing={false} />
+              <time className="tabular-nums" dateTime={notice.createdAt}>
+                {formatDateTime(notice.createdAt)}
+              </time>
+            </div>
+          </div>
+        </Band>
 
-        <h1 className="mt-5 text-[26px] font-semibold tracking-tight sm:text-[30px]">
-          <TagBadge tag={notice.tag} />
-          {notice.title}
-        </h1>
-        <p className="mt-2.5 text-[12px] text-muted">
-          {new Date(notice.createdAt).toLocaleString("ko-KR")}
-        </p>
+        {/* 본문 · 첨부 */}
+        <Band tone="white" size="md">
+          <div className="max-w-3xl">
+            {notice.imageUrl && (
+              <Media src={notice.imageUrl} alt={notice.title} ratio="auto" className="mb-10" />
+            )}
 
-        {notice.imageUrl && (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img
-            src={notice.imageUrl}
-            alt=""
-            className="mt-6 w-full rounded-sm border border-border object-cover"
-          />
-        )}
+            <div className={PROSE} dangerouslySetInnerHTML={{ __html: notice.body }} />
 
-        {notice.attachmentUrl && (
-          <a
-            href={`${notice.attachmentUrl}?name=${encodeURIComponent(notice.attachmentName ?? "첨부파일")}`}
-            className="mt-6 flex items-center gap-2 rounded-sm border border-border bg-panel/60 px-4 py-3 text-[13px] font-medium text-accent hover:border-accent"
-          >
-            ⬇ {notice.attachmentName ?? "첨부파일"} 다운로드
-          </a>
-        )}
+            {notice.attachmentUrl && (
+              <div className="mt-12 border-t border-border/25 pt-8">
+                <Label className="mb-4 text-muted">Attachment</Label>
+                <a
+                  href={`${notice.attachmentUrl}?name=${encodeURIComponent(notice.attachmentName ?? "첨부파일")}`}
+                  className="group flex items-center justify-between gap-6 border border-border/25 px-5 py-4 transition-colors hover:border-foreground"
+                >
+                  <span className="min-w-0 truncate text-s font-bold">
+                    {notice.attachmentName ?? "첨부파일"}
+                  </span>
+                  <span className="type-label shrink-0 text-xs text-muted transition-colors group-hover:text-foreground">
+                    Download
+                  </span>
+                </a>
+              </div>
+            )}
 
-        <div
-          className="mt-6 whitespace-pre-wrap border-t border-border pt-8 text-[14.5px] leading-8 text-muted
-            [&_h3]:mt-7 [&_h3]:text-[16px] [&_h3]:font-semibold [&_h3]:text-foreground [&_h3]:first:mt-0
-            [&_img]:mt-3 [&_img]:max-w-full [&_img]:rounded-sm
-            [&_li]:mt-1.5 [&_p]:my-3 [&_p]:first:mt-0 [&_strong]:text-foreground
-            [&_ul]:mt-3 [&_ul]:list-disc [&_ul]:pl-5
-            [&_table]:mt-4 [&_table]:w-full [&_table]:border-collapse [&_table]:text-[13.5px]
-            [&_td]:border [&_td]:border-border [&_td]:px-3 [&_td]:py-2
-            [&_th]:border [&_th]:border-border [&_th]:bg-panel [&_th]:px-3 [&_th]:py-2 [&_th]:text-left [&_th]:font-semibold [&_th]:text-foreground"
-          dangerouslySetInnerHTML={{ __html: notice.body }}
-        />
+            <div className="mt-14 border-t border-border/25 pt-8">
+              <ButtonLink href="/notices" variant="outline">
+                공지사항 목록
+                <ArrowRight />
+              </ButtonLink>
+            </div>
+          </div>
+        </Band>
       </main>
+
+      <SiteFooter />
     </div>
   );
 }

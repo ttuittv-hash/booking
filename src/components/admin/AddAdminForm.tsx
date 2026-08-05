@@ -2,6 +2,8 @@
 
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { btnClass } from "@/components/ui/kit";
+import { ERROR_NOTE, FIELD, HELP, OK_NOTE, PANEL, SECTION_TITLE } from "./adminUi";
 
 export function AddAdminForm() {
   const router = useRouter();
@@ -34,41 +36,41 @@ export function AddAdminForm() {
   }
 
   return (
-    <div className="rounded border border-border bg-panel/60 p-6">
-      <h2 className="text-[15px] font-semibold">운영자 계정 추가</h2>
-      <p className="mt-1 text-[12.5px] text-muted">
+    <div className={PANEL}>
+      <h2 className={SECTION_TITLE}>운영자 계정 추가</h2>
+      <p className={`mt-2 ${HELP}`}>
         이메일/임시 비밀번호를 직접 전달해 새 운영자를 등록하세요. (이메일 발송 기능은
         아직 없어 비밀번호를 안전한 채널로 별도 전달해야 합니다.)
       </p>
 
-      <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-4">
+      <div className="mt-5 grid grid-cols-1 gap-3 sm:grid-cols-4">
         <input
           type="text"
           placeholder="아이디 (영문 소문자/숫자, 4~20자)"
           value={form.username}
           onChange={(e) => setForm({ ...form, username: e.target.value })}
-          className="rounded border border-border bg-background px-3 py-2 text-[13px] outline-none focus:border-accent"
+          className={FIELD}
         />
         <input
           type="email"
           placeholder="이메일"
           value={form.email}
           onChange={(e) => setForm({ ...form, email: e.target.value })}
-          className="rounded border border-border bg-background px-3 py-2 text-[13px] outline-none focus:border-accent"
+          className={FIELD}
         />
         <input
           type="text"
           placeholder="이름"
           value={form.name}
           onChange={(e) => setForm({ ...form, name: e.target.value })}
-          className="rounded border border-border bg-background px-3 py-2 text-[13px] outline-none focus:border-accent"
+          className={FIELD}
         />
         <input
           type="text"
           placeholder="임시 비밀번호 (8자 이상)"
           value={form.password}
           onChange={(e) => setForm({ ...form, password: e.target.value })}
-          className="rounded border border-border bg-background px-3 py-2 text-[13px] outline-none focus:border-accent"
+          className={FIELD}
         />
       </div>
 
@@ -76,12 +78,12 @@ export function AddAdminForm() {
         type="button"
         disabled={submitting}
         onClick={submit}
-        className="mt-4 rounded-sm bg-accent px-6 py-2.5 text-[13.5px] font-semibold text-white transition-colors hover:bg-accent-hover disabled:opacity-50"
+        className={`mt-5 ${btnClass("primary", "md")}`}
       >
         {submitting ? "처리 중..." : "운영자 계정 생성"}
       </button>
-      {error && <p className="mt-3 text-[13px] text-red-600">{error}</p>}
-      {success && <p className="mt-3 text-[13px] text-good">{success}</p>}
+      {error && <p className={`mt-3 ${ERROR_NOTE}`}>{error}</p>}
+      {success && <p className={`mt-3 ${OK_NOTE}`}>{success}</p>}
     </div>
   );
 }

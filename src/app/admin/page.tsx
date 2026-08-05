@@ -3,8 +3,10 @@ import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/lib/auth";
 import { findUserById, listCompanies, listQuotes } from "@/lib/db";
 import { won } from "@/lib/format";
+import { Label, btnClass } from "@/components/ui/kit";
 import { AdminNav } from "@/components/admin/AdminNav";
 import { AdminQuoteTable } from "@/components/admin/AdminQuoteTable";
+import { FIELD_BASE, PAGE_LEAD, PAGE_TITLE, QUIET_BTN } from "@/components/admin/adminUi";
 
 export default async function AdminPage({
   searchParams,
@@ -38,22 +40,25 @@ export default async function AdminPage({
     <div className="flex flex-1 flex-col">
       <AdminNav active="/admin" />
 
-      <main className="mx-auto w-full max-w-6xl flex-1 px-6 py-10">
-        <h1 className="text-[22px] font-semibold">신청 현황</h1>
-        <p className="mt-2 max-w-2xl text-[13.5px] leading-6 text-muted">
-          신청서를 열어 심사 후 계약금액을 확정하고, 계약 확정 건에 대해서는
-          행사 종료 후 정산을 진행하세요.
-        </p>
+      <main className="mx-auto w-full max-w-6xl flex-1 px-6 py-8 sm:py-10">
+        <header className="border-b border-border/20 pb-6">
+          <Label className="mb-3 text-muted">Applications</Label>
+          <h1 className={PAGE_TITLE}>신청 현황</h1>
+          <p className={PAGE_LEAD}>
+            신청서를 열어 심사 후 계약금액을 확정하고, 계약 확정 건에 대해서는
+            행사 종료 후 정산을 진행하세요.
+          </p>
+        </header>
 
-        <form method="GET" className="mt-6 flex items-center gap-2">
-          <label className="text-[12.5px] font-medium text-muted" htmlFor="companyId">
+        <form method="GET" className="mt-6 flex flex-wrap items-center gap-3">
+          <label className="text-xs font-bold text-muted" htmlFor="companyId">
             회사별 보기
           </label>
           <select
             id="companyId"
             name="companyId"
             defaultValue={companyId ?? ""}
-            className="rounded-sm border border-border bg-panel px-3 py-1.5 text-[13px] outline-none focus:border-accent"
+            className={`${FIELD_BASE} py-1.5`}
           >
             <option value="">전체 회사</option>
             {companies.map((c) => (
@@ -62,14 +67,11 @@ export default async function AdminPage({
               </option>
             ))}
           </select>
-          <button
-            type="submit"
-            className="rounded-sm border border-border px-3 py-1.5 text-[12.5px] font-medium text-muted transition-colors hover:border-accent hover:text-accent"
-          >
+          <button type="submit" className={btnClass("outline", "sm")}>
             적용
           </button>
           {companyId && (
-            <Link href="/admin" className="text-[12.5px] text-muted hover:text-foreground">
+            <Link href="/admin" className={QUIET_BTN}>
               필터 해제
             </Link>
           )}

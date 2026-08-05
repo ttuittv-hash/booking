@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useRef, useState } from "react";
 import type { Attachment } from "@/lib/pricing/types";
+import { btnClass } from "@/components/ui/kit";
 
 function formatSize(bytes: number): string {
   if (bytes < 1024) return `${bytes}B`;
@@ -52,36 +53,40 @@ export function AttachmentsPanel({
   }
 
   return (
-    <div className="rounded border border-border bg-panel/60 p-6">
-      <h3 className="text-[15px] font-semibold">첨부서류</h3>
-      <p className="mt-1 text-[12.5px] text-muted">
+    <div>
+      <h3 className="type-kr-heading border-t-2 border-foreground pt-4 text-h6-m sm:text-h6">
+        첨부서류
+      </h3>
+      <p className="mt-3 text-xs text-muted">
         사업자등록증, 공연기획서 등 관련 서류를 첨부하세요. (PDF/이미지/문서, 최대 20MB)
       </p>
 
-      <ul className="mt-4 space-y-2">
+      <ul className="mt-6 border-t border-border/25">
         {attachments.length === 0 ? (
-          <li className="text-[13px] text-muted">첨부된 서류가 없습니다.</li>
+          <li className="border-b border-border/25 py-4 text-s text-muted">
+            첨부된 서류가 없습니다.
+          </li>
         ) : (
           attachments.map((file) => (
             <li
               key={file.id}
-              className="flex items-center justify-between rounded border border-border bg-background px-3.5 py-2.5"
+              className="flex flex-col gap-2 border-b border-border/25 py-4 sm:flex-row sm:items-center sm:justify-between sm:gap-4"
             >
               <a
                 href={`/api/quotes/${quoteId}/attachments/${file.id}`}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="text-[13px] font-medium text-accent hover:underline"
+                className="min-w-0 truncate text-s font-bold text-foreground underline decoration-accent decoration-2 underline-offset-4"
               >
                 {file.originalName}
               </a>
-              <div className="flex items-center gap-3 text-[11.5px] text-muted">
+              <div className="flex shrink-0 items-center gap-4 text-xs text-muted tabular-nums">
                 <span>{formatSize(file.size)}</span>
                 <span>{new Date(file.createdAt).toLocaleDateString("ko-KR")}</span>
                 <button
                   type="button"
                   onClick={() => remove(file.id)}
-                  className="hover:text-red-600"
+                  className="cursor-pointer transition-colors hover:text-danger"
                 >
                   삭제
                 </button>
@@ -91,22 +96,26 @@ export function AttachmentsPanel({
         )}
       </ul>
 
-      <div className="mt-4 flex items-center gap-2">
+      <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:items-stretch">
         <input
           ref={fileInput}
           type="file"
-          className="flex-1 text-[12.5px] text-muted file:mr-3 file:rounded file:border file:border-border file:bg-background file:px-3 file:py-1.5 file:text-[12.5px] file:font-medium"
+          className="min-w-0 flex-1 border border-border-soft bg-surface px-3.5 py-2.5 text-s text-muted transition-colors file:mr-3 file:border file:border-foreground file:bg-transparent file:px-3 file:py-1 file:text-xs file:font-bold file:text-foreground focus:border-foreground focus:outline-2 focus:outline-accent"
         />
         <button
           type="button"
           disabled={uploading}
           onClick={upload}
-          className="shrink-0 whitespace-nowrap rounded bg-accent px-4 py-2 text-[13px] font-semibold text-white transition-colors hover:bg-accent-hover disabled:opacity-50"
+          className={`${btnClass("primary")} shrink-0`}
         >
           {uploading ? "업로드 중..." : "업로드"}
         </button>
       </div>
-      {error && <p className="mt-2 text-[12.5px] text-red-600">{error}</p>}
+      {error && (
+        <p className="mt-3 border-l-2 border-danger bg-danger-soft px-3 py-2 text-s text-danger">
+          {error}
+        </p>
+      )}
     </div>
   );
 }

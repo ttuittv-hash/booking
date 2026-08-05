@@ -11,11 +11,27 @@ import {
 } from "@/lib/db";
 import { won } from "@/lib/format";
 import { totalRentalDays } from "@/lib/pricing/rateTableUtils";
+import { Label } from "@/components/ui/kit";
 import { ContractForm } from "@/components/admin/ContractForm";
 import { ReviewForm } from "@/components/admin/ReviewForm";
 import { SettlementForm } from "@/components/admin/SettlementForm";
 import { DepositPanel } from "@/components/DepositPanel";
 import { AttachmentsPanel } from "@/components/AttachmentsPanel";
+import {
+  ERROR_NOTE,
+  INFO_NOTE,
+  LINK_BTN,
+  PANEL,
+  SECTION_TITLE,
+  SUB_TITLE,
+  TABLE,
+  TD,
+  TD_NUM,
+  TH,
+  TH_NUM,
+  THEAD_ROW,
+  TR,
+} from "@/components/admin/adminUi";
 
 const STAGE_LABEL: Record<string, string> = {
   ESTIMATE: "신청 접수",
@@ -44,77 +60,83 @@ export default async function AdminQuoteDetailPage({
 
   return (
     <div className="flex flex-1 flex-col">
-      <header className="sticky top-0 z-20 border-b border-border/70 bg-background/80 backdrop-blur-md">
-        <div className="mx-auto flex max-w-4xl flex-wrap items-center gap-x-4 gap-y-2 px-4 py-3 sm:px-6 sm:py-4">
-          <Link href="/admin" className="whitespace-nowrap text-[15px] font-semibold tracking-tight">
-            SEOUL ARENA
+      <header className="sticky top-0 z-20 h-14 border-b border-border/20 bg-background/95 backdrop-blur-md sm:h-16">
+        <div className="mx-auto flex h-full max-w-4xl items-center gap-x-5 px-4 sm:px-6">
+          <Link
+            href="/admin"
+            className="type-display shrink-0 whitespace-nowrap text-h6-m leading-none"
+            aria-label="Seoul Arena 백오피스"
+          >
+            Seoul Arena
           </Link>
-          <Link href="/admin" className="whitespace-nowrap text-[13px] text-muted hover:text-foreground">
+          <Link
+            href="/admin"
+            className="whitespace-nowrap text-xs font-bold text-muted transition-colors hover:text-foreground"
+          >
             ← 신청 현황
           </Link>
         </div>
       </header>
 
-      <main className="mx-auto w-full max-w-4xl flex-1 px-6 py-10">
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <h1 className="text-[22px] font-semibold">{quote.id}</h1>
-          <div className="flex items-center gap-3">
-            <Link
-              href={`/print/${quote.id}`}
-              target="_blank"
-              className="text-[12.5px] font-medium text-accent hover:underline"
-            >
-              인쇄 / PDF 저장
-            </Link>
-            <span className="text-[12.5px] text-muted">
-              신청일시 {new Date(quote.createdAt).toLocaleString("ko-KR")}
-            </span>
+      <main className="mx-auto w-full max-w-4xl flex-1 px-6 py-8 sm:py-10">
+        <header className="border-b border-border/20 pb-6">
+          <Label className="mb-3 text-muted">Application</Label>
+          <div className="flex flex-wrap items-baseline justify-between gap-x-6 gap-y-3">
+            <h1 className="type-display text-h4-m tabular-nums sm:text-h4">{quote.id}</h1>
+            <div className="flex flex-wrap items-center gap-x-5 gap-y-2">
+              <Link href={`/print/${quote.id}`} target="_blank" className={LINK_BTN}>
+                인쇄 / PDF 저장
+              </Link>
+              <span className="text-xs tabular-nums text-muted">
+                신청일시 {new Date(quote.createdAt).toLocaleString("ko-KR")}
+              </span>
+            </div>
           </div>
-        </div>
 
-        <p className="mt-1.5 text-[13.5px] text-muted">
-          {quote.selection.week.year}년 {quote.selection.week.month}월{" "}
-          {quote.selection.week.weekOfMonth}주차 · 총 {totalRentalDays(quote.selection)}일 · 관객{" "}
-          {quote.selection.expectedAudience.toLocaleString()}명
-        </p>
-        <p className="mt-1 text-[13.5px] text-muted">
-          신청자 <span className="font-medium text-foreground">{applicant?.name ?? "-"}</span>
-          {" "}({applicant?.email ?? "-"}) · 회사{" "}
-          <span className="font-medium text-foreground">{applicant?.companyName ?? "-"}</span>
-        </p>
+          <p className="mt-4 text-s text-muted">
+            {quote.selection.week.year}년 {quote.selection.week.month}월{" "}
+            {quote.selection.week.weekOfMonth}주차 · 총 {totalRentalDays(quote.selection)}일 · 관객{" "}
+            {quote.selection.expectedAudience.toLocaleString()}명
+          </p>
+          <p className="mt-1.5 text-s text-muted">
+            신청자 <span className="font-bold text-foreground">{applicant?.name ?? "-"}</span>
+            {" "}({applicant?.email ?? "-"}) · 회사{" "}
+            <span className="font-bold text-foreground">{applicant?.companyName ?? "-"}</span>
+          </p>
+        </header>
 
-        <section className="mt-6 rounded border border-border bg-background p-6">
-          <h2 className="text-[15px] font-semibold">① 신청 예상금액 · 산출내역</h2>
+        <section className={`mt-6 ${PANEL}`}>
+          <h2 className={SECTION_TITLE}>① 신청 예상금액 · 산출내역</h2>
           <div className="mt-4 overflow-x-auto">
-            <table className="w-full border-collapse text-[13px]">
+            <table className={TABLE}>
               <thead>
-                <tr className="border-b border-border text-[11.5px] font-medium text-muted">
-                  <th className="py-2 text-left">항목</th>
-                  <th className="py-2 text-right">신청</th>
-                  <th className="py-2 text-right">기본포함</th>
-                  <th className="py-2 text-right">과금수량</th>
-                  <th className="py-2 text-right">단가</th>
-                  <th className="py-2 text-right">금액</th>
+                <tr className={THEAD_ROW}>
+                  <th className={TH}>항목</th>
+                  <th className={TH_NUM}>신청</th>
+                  <th className={TH_NUM}>기본포함</th>
+                  <th className={TH_NUM}>과금수량</th>
+                  <th className={TH_NUM}>단가</th>
+                  <th className={TH_NUM}>금액</th>
                 </tr>
               </thead>
               <tbody>
                 {quote.lineItems.map((item) => (
-                  <tr key={item.addonId} className="border-b border-border/70 tabular-nums">
-                    <td className="py-2 text-left font-medium">{item.label}</td>
-                    <td className="py-2 text-right">{item.requested.toLocaleString()}</td>
-                    <td className="py-2 text-right">{item.included || "-"}</td>
-                    <td className="py-2 text-right">{item.billable.toLocaleString()}</td>
-                    <td className="py-2 text-right">{won(item.unitPrice)}</td>
-                    <td className="py-2 text-right font-semibold">{won(item.amount)}</td>
+                  <tr key={item.addonId} className={TR}>
+                    <td className={`${TD} font-bold`}>{item.label}</td>
+                    <td className={TD_NUM}>{item.requested.toLocaleString()}</td>
+                    <td className={TD_NUM}>{item.included || "-"}</td>
+                    <td className={TD_NUM}>{item.billable.toLocaleString()}</td>
+                    <td className={TD_NUM}>{won(item.unitPrice)}</td>
+                    <td className={`${TD_NUM} font-bold`}>{won(item.amount)}</td>
                   </tr>
                 ))}
               </tbody>
             </table>
           </div>
-          <div className="mt-4 flex justify-end gap-8 text-[13px]">
+          <div className="mt-4 flex flex-wrap justify-end gap-x-8 gap-y-2 border-t border-border/15 pt-4 text-s tabular-nums">
             <span className="text-muted">소계 {won(quote.subtotal)}</span>
             <span className="text-muted">VAT {won(quote.vat)}</span>
-            <span className="font-semibold">합계 {won(quote.total)}</span>
+            <span className="font-bold">합계 {won(quote.total)}</span>
           </div>
         </section>
 
@@ -128,14 +150,12 @@ export default async function AdminQuoteDetailPage({
           )}
 
           {quote.status === "ESTIMATE" && quote.review?.decision === "REJECTED" && (
-            <p className="rounded-sm border border-red-200 bg-red-50 px-4 py-3 text-[13px] text-red-600">
+            <p className={ERROR_NOTE}>
               심사에서 거절된 신청서입니다. 계약을 진행하려면 심사 결과를 승인으로 변경하세요.
             </p>
           )}
           {quote.status === "ESTIMATE" && quote.review?.decision !== "APPROVED" && quote.review?.decision !== "REJECTED" && (
-            <p className="rounded-sm border border-border bg-panel/60 px-4 py-3 text-[13px] text-muted">
-              심사를 승인해야 계약 단계로 진행할 수 있습니다.
-            </p>
+            <p className={INFO_NOTE}>심사를 승인해야 계약 단계로 진행할 수 있습니다.</p>
           )}
           {quote.status === "ESTIMATE" && quote.review?.decision === "APPROVED" && (
             <ContractForm quoteId={quote.id} baseTotal={quote.total} />
@@ -144,11 +164,11 @@ export default async function AdminQuoteDetailPage({
 
         <div className="mt-6">
           {quote.contract && (
-            <div className="rounded border border-border bg-panel/60 p-6">
-              <h3 className="text-[15px] font-semibold">② 계약금액 확정됨</h3>
-              <ul className="mt-3 space-y-1.5 text-[13px]">
+            <div className={PANEL}>
+              <h3 className={SECTION_TITLE}>② 계약금액 확정됨</h3>
+              <ul className="mt-4 space-y-2 text-s">
                 {quote.contract.adjustments.map((a, i) => (
-                  <li key={i} className="flex justify-between text-muted">
+                  <li key={i} className="flex justify-between gap-4 text-muted">
                     <span>
                       {a.label} {a.reason && `(${a.reason})`}
                     </span>
@@ -156,11 +176,11 @@ export default async function AdminQuoteDetailPage({
                   </li>
                 ))}
               </ul>
-              <div className="mt-3 flex items-center justify-between border-t border-border pt-3">
-                <span className="text-[13px] text-muted">
+              <div className="mt-4 flex flex-wrap items-baseline justify-between gap-3 border-t border-border/15 pt-4">
+                <span className="text-xs tabular-nums text-muted">
                   확정일시 {new Date(quote.contract.decidedAt).toLocaleString("ko-KR")}
                 </span>
-                <span className="text-[18px] font-semibold tabular-nums">
+                <span className="type-display text-h5-m tabular-nums sm:text-h5">
                   {won(quote.contract.contractTotal)}
                 </span>
               </div>
@@ -174,13 +194,13 @@ export default async function AdminQuoteDetailPage({
           )}
 
           {quote.settlement && (
-            <div className="mt-6 rounded border border-good/30 bg-good-soft p-6">
-              <h3 className="text-[15px] font-semibold text-good">③ 최종 정산 완료</h3>
-              <div className="mt-3 flex items-center justify-between">
-                <span className="text-[13px] text-good/80">
+            <div className="mt-6 border-l-2 border-good bg-good-soft p-4 sm:p-5">
+              <h3 className={`${SECTION_TITLE} text-good`}>③ 최종 정산 완료</h3>
+              <div className="mt-3 flex flex-wrap items-baseline justify-between gap-3">
+                <span className="text-xs tabular-nums text-good">
                   확정일시 {new Date(quote.settlement.decidedAt).toLocaleString("ko-KR")}
                 </span>
-                <span className="text-[20px] font-semibold tabular-nums text-good">
+                <span className="type-display text-h5-m tabular-nums text-good sm:text-h5">
                   {won(quote.settlement.finalTotal)}
                 </span>
               </div>
@@ -194,16 +214,16 @@ export default async function AdminQuoteDetailPage({
         </div>
 
         {auditLog.length > 0 && (
-          <section className="mt-8">
-            <h2 className="text-[14px] font-semibold text-muted">감사 로그</h2>
-            <ul className="mt-3 space-y-2">
+          <section className="mt-10 border-t border-border/20 pt-6">
+            <h2 className={`${SUB_TITLE} text-muted`}>감사 로그</h2>
+            <ul className="mt-3 border-t border-border-soft">
               {auditLog.map((entry) => (
                 <li
                   key={entry.id}
-                  className="flex justify-between rounded border border-border/70 px-4 py-2.5 text-[12.5px] text-muted"
+                  className="flex justify-between gap-4 border-b border-border-soft px-1 py-2.5 text-xs text-muted"
                 >
                   <span>{STAGE_LABEL[entry.stage] ?? entry.stage}</span>
-                  <span>{new Date(entry.createdAt).toLocaleString("ko-KR")}</span>
+                  <span className="tabular-nums">{new Date(entry.createdAt).toLocaleString("ko-KR")}</span>
                 </li>
               ))}
             </ul>

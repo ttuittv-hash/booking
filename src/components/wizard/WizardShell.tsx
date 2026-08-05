@@ -5,6 +5,7 @@ import { calculateQuote } from "@/lib/pricing/calculateQuote";
 import { findAddon, findPackage, isAddonAvailable } from "@/lib/pricing/rateTableUtils";
 import type { AppUser, DateBlock, QuoteSelection, RateTable, WeekDemand } from "@/lib/pricing/types";
 import { clearWizardDraft, loadWizardDraft, saveWizardDraft } from "@/lib/quotesStore";
+import { ArrowRight, btnClass } from "@/components/ui/kit";
 import { StepNav } from "./StepNav";
 import { SummaryPanel } from "./SummaryPanel";
 import { Step1Calendar } from "./Step1Calendar";
@@ -157,7 +158,11 @@ export function WizardShell({
   );
 
   return (
-    <div className="mx-auto grid w-full max-w-6xl grid-cols-1 gap-8 px-4 py-8 sm:px-6 sm:py-10 lg:grid-cols-[minmax(0,1fr)_360px]">
+    // 좌: 스텝 콘텐츠 / 우: sticky 요약 패널.
+    // container-site 는 width:100% 를 명시하므로 5cfc178 의 w-full 요건을 만족한다.
+    // (그래도 의도를 남기기 위해 w-full 을 유지한다) 콘텐츠 트랙은 반드시
+    // minmax(0,1fr) + min-w-0 로 묶어 스텝 전환 시 폭이 변하지 않게 한다. (310e689)
+    <div className="container-site grid w-full grid-cols-1 gap-10 py-10 sm:py-12 lg:grid-cols-[minmax(0,1fr)_360px] lg:gap-14">
       <div className="min-w-0">
         <StepNav step={step} maxUnlockedStep={maxUnlockedStep} onJump={goTo} />
 
@@ -219,23 +224,25 @@ export function WizardShell({
           />
         )}
 
-        <div className="mt-6 flex items-center justify-between">
+        <div className="mt-10 flex items-center justify-between gap-4 border-t border-border/25 pt-6">
           <button
             type="button"
             disabled={step === 1}
             onClick={() => goTo(step - 1)}
-            className="rounded-sm border border-border px-5 py-2.5 text-[13.5px] font-medium text-foreground transition-colors hover:bg-panel disabled:cursor-not-allowed disabled:opacity-40"
+            className={btnClass("outline", "md")}
           >
-            ← 이전
+            <ArrowRight className="rotate-180" />
+            이전
           </button>
           {step < TOTAL_STEPS && (
             <button
               type="button"
               disabled={step >= 2 && !selection.packageId}
               onClick={() => goTo(step + 1)}
-              className="rounded-sm bg-accent px-6 py-2.5 text-[13.5px] font-semibold text-white transition-colors hover:bg-accent-hover disabled:cursor-not-allowed disabled:opacity-40"
+              className={btnClass("primary", "md")}
             >
-              다음 →
+              다음
+              <ArrowRight />
             </button>
           )}
         </div>

@@ -3,6 +3,24 @@
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { won } from "@/lib/format";
+import { Label, btnClass } from "@/components/ui/kit";
+import {
+  FIELD,
+  FIELD_BASE,
+  FIELD_LABEL,
+  HELP,
+  SUB_TITLE,
+  TABLE,
+  TABLE_WRAP,
+  TD,
+  TD_NUM,
+  TH,
+  TH_NUM,
+  THEAD_ROW,
+  TR,
+  TAB_BAR,
+  tabCls,
+} from "./adminUi";
 import {
   ADDON_CATEGORY_LABEL,
   MEDIA_TIER_LABEL,
@@ -161,39 +179,29 @@ export function PackagesForm({ rateTable }: { rateTable: RateTable }) {
 
   return (
     <div className="mt-8">
-      <div className="sticky top-14 z-10 -mx-6 flex h-11 items-center gap-1 overflow-x-auto whitespace-nowrap border-b border-border bg-background px-6 sm:top-16">
+      <div className={TAB_BAR}>
         {packages.map((p) => (
-          <button
-            key={p.id}
-            type="button"
-            onClick={() => setActiveId(p.id)}
-            className={[
-              "shrink-0 border-b-2 px-3 py-3 text-[13px] font-medium outline-none transition-colors",
-              p.id === activeId
-                ? "border-accent text-accent"
-                : "border-transparent text-muted hover:text-foreground",
-            ].join(" ")}
-          >
+          <button key={p.id} type="button" onClick={() => setActiveId(p.id)} className={tabCls(p.id === activeId)}>
             {p.name}
           </button>
         ))}
         <button
           type="button"
           onClick={addPackage}
-          className="ml-1 shrink-0 whitespace-nowrap px-3 py-3 text-[13px] font-medium text-accent outline-none hover:underline"
+          className="ml-1 shrink-0 whitespace-nowrap px-3 py-3 text-xs font-bold underline decoration-accent decoration-2 underline-offset-4 transition-colors hover:text-muted-strong"
         >
           + 새 패키지
         </button>
       </div>
 
-      <div className="mt-6 overflow-x-auto rounded border border-border">
-        <table className="w-full min-w-[560px] border-collapse text-[13px]">
+      <div className={`mt-6 ${TABLE_WRAP}`}>
+        <table className={`${TABLE} min-w-[560px]`}>
           <thead>
-            <tr className="border-b border-border bg-panel text-left text-[11.5px] font-medium text-muted">
-              <th className="px-4 py-3">패키지</th>
-              <th className="px-4 py-3 text-right">기본 대관료</th>
-              <th className="px-4 py-3 text-right">총 패키지 가격</th>
-              <th className="px-4 py-3 text-right">할인 적용가</th>
+            <tr className={THEAD_ROW}>
+              <th className={TH}>패키지</th>
+              <th className={TH_NUM}>기본 대관료</th>
+              <th className={TH_NUM}>총 패키지 가격</th>
+              <th className={TH_NUM}>할인 적용가</th>
             </tr>
           </thead>
           <tbody>
@@ -202,15 +210,17 @@ export function PackagesForm({ rateTable }: { rateTable: RateTable }) {
               return (
                 <tr
                   key={p.id}
-                  className={`cursor-pointer border-b border-border/70 last:border-b-0 hover:bg-panel/60 ${p.id === activeId ? "bg-accent-soft/40" : ""}`}
+                  className={`${TR} cursor-pointer transition-colors ${
+                    p.id === activeId ? "bg-accent/15" : "hover:bg-foreground/[0.03]"
+                  }`}
                   onClick={() => setActiveId(p.id)}
                 >
-                  <td className="px-4 py-3 font-medium">{p.name}</td>
-                  <td className="px-4 py-3 text-right tabular-nums">{won(p.baseFeePerWeek)}</td>
-                  <td className="px-4 py-3 text-right tabular-nums">{won(t.total)}</td>
-                  <td className="px-4 py-3 text-right tabular-nums">
+                  <td className={`${TD} font-bold`}>{p.name}</td>
+                  <td className={TD_NUM}>{won(p.baseFeePerWeek)}</td>
+                  <td className={TD_NUM}>{won(t.total)}</td>
+                  <td className={TD_NUM}>
                     {p.discountRatio > 0 ? (
-                      <span className="text-accent">{won(t.discountedTotal)}</span>
+                      <span className="font-bold">{won(t.discountedTotal)}</span>
                     ) : (
                       <span className="text-muted">-</span>
                     )}
@@ -224,19 +234,19 @@ export function PackagesForm({ rateTable }: { rateTable: RateTable }) {
 
       <div className="mt-6 space-y-8">
         <section>
-          <h2 className="text-[14px] font-semibold">기본 정보</h2>
+          <h2 className={SUB_TITLE}>기본 정보</h2>
           <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2">
             <label className="block">
-              <span className="mb-1 block text-[12px] text-muted">패키지 이름</span>
+              <span className={FIELD_LABEL}>패키지 이름</span>
               <input
                 type="text"
                 value={active.name}
                 onChange={(e) => update({ name: e.target.value })}
-                className="w-full rounded-sm border border-border bg-panel px-3 py-2 text-[13px] outline-none focus:border-accent"
+                className={FIELD}
               />
             </label>
             <label className="block sm:col-span-2">
-              <span className="mb-1 block text-[12px] text-muted">
+              <span className={FIELD_LABEL}>
                 패키지 한 줄 소개 (예: &quot;OOO을 위한 OOO&quot; — 패키지별 핵심 특징 요약, 패키지 선택 화면과 안내 페이지에 표시됩니다)
               </span>
               <input
@@ -244,24 +254,25 @@ export function PackagesForm({ rateTable }: { rateTable: RateTable }) {
                 value={active.tagline}
                 onChange={(e) => update({ tagline: e.target.value })}
                 placeholder="예: 합리적인 규모의 콘서트를 위한 스탠더드 패키지"
-                className="w-full rounded-sm border border-border bg-panel px-3 py-2 text-[13px] outline-none focus:border-accent"
+                className={FIELD}
               />
             </label>
             <label className="block">
-              <span className="mb-1 block text-[12px] text-muted">기본 대관료 (원/주, 화~일)</span>
+              <span className={FIELD_LABEL}>기본 대관료 (원/주, 화~일)</span>
               <input
                 type="number"
                 min={0}
                 value={active.baseFeePerWeek}
                 onChange={(e) => update({ baseFeePerWeek: Number(e.target.value) || 0 })}
-                className="w-full rounded-sm border border-border bg-panel px-3 py-2 text-[13px] outline-none focus:border-accent"
+                className={FIELD}
               />
             </label>
             <label className="block">
-              <span className="mb-1 block text-[12px] text-muted">할인율 적용 (%, 기본 대관료 기준)</span>
+              <span className={FIELD_LABEL}>할인율 적용 (%, 기본 대관료 기준)</span>
               <div className="flex items-center gap-2">
                 <input
                   type="checkbox"
+                  className="accent-accent"
                   checked={active.discountRatio > 0}
                   onChange={(e) => update({ discountRatio: e.target.checked ? 0.1 : 0 })}
                 />
@@ -274,12 +285,12 @@ export function PackagesForm({ rateTable }: { rateTable: RateTable }) {
                   onChange={(e) =>
                     update({ discountRatio: Math.min(90, Math.max(0, Number(e.target.value) || 0)) / 100 })
                   }
-                  className="w-full rounded-sm border border-border bg-panel px-3 py-2 text-[13px] outline-none focus:border-accent disabled:opacity-40"
+                  className={FIELD}
                 />
               </div>
             </label>
             <label className="block">
-              <span className="mb-1 block text-[12px] text-muted">객석 규모 최소</span>
+              <span className={FIELD_LABEL}>객석 규모 최소</span>
               <input
                 type="number"
                 min={0}
@@ -287,11 +298,11 @@ export function PackagesForm({ rateTable }: { rateTable: RateTable }) {
                 onChange={(e) =>
                   update({ audienceTier: { ...active.audienceTier, min: Number(e.target.value) || 0 } })
                 }
-                className="w-full rounded-sm border border-border bg-panel px-3 py-2 text-[13px] outline-none focus:border-accent"
+                className={FIELD}
               />
             </label>
             <label className="block">
-              <span className="mb-1 block text-[12px] text-muted">객석 규모 최대</span>
+              <span className={FIELD_LABEL}>객석 규모 최대</span>
               <input
                 type="number"
                 min={0}
@@ -299,24 +310,24 @@ export function PackagesForm({ rateTable }: { rateTable: RateTable }) {
                 onChange={(e) =>
                   update({ audienceTier: { ...active.audienceTier, max: Number(e.target.value) || 0 } })
                 }
-                className="w-full rounded-sm border border-border bg-panel px-3 py-2 text-[13px] outline-none focus:border-accent"
+                className={FIELD}
               />
             </label>
             <label className="block sm:col-span-2">
-              <span className="mb-1 block text-[12px] text-muted">규모 표시 라벨 (예: ~12,000석 규모)</span>
+              <span className={FIELD_LABEL}>규모 표시 라벨 (예: ~12,000석 규모)</span>
               <input
                 type="text"
                 value={active.audienceTier.label}
                 onChange={(e) => update({ audienceTier: { ...active.audienceTier, label: e.target.value } })}
-                className="w-full rounded-sm border border-border bg-panel px-3 py-2 text-[13px] outline-none focus:border-accent"
+                className={FIELD}
               />
             </label>
             <label className="block">
-              <span className="mb-1 block text-[12px] text-muted">홍보 매체 등급</span>
+              <span className={FIELD_LABEL}>홍보 매체 등급</span>
               <select
                 value={active.mediaTier ?? ""}
                 onChange={(e) => update({ mediaTier: (e.target.value || null) as MediaTier })}
-                className="w-full rounded-sm border border-border bg-panel px-3 py-2 text-[13px] outline-none focus:border-accent"
+                className={FIELD}
               >
                 {MEDIA_OPTIONS.map((o) => (
                   <option key={o.label} value={o.value ?? ""}>
@@ -328,29 +339,28 @@ export function PackagesForm({ rateTable }: { rateTable: RateTable }) {
             <label className="flex items-center gap-2 pt-6">
               <input
                 type="checkbox"
+                className="accent-accent"
                 checked={active.outdoorPlazaIncluded}
                 onChange={(e) => update({ outdoorPlazaIncluded: e.target.checked })}
               />
-              <span className="text-[13px]">야외광장 · 티켓박스 포함</span>
+              <span className="text-s">야외광장 · 티켓박스 포함</span>
             </label>
           </div>
 
-          <div className="mt-5 flex flex-wrap items-center justify-between gap-3 rounded-sm border border-border bg-panel/60 px-4 py-3">
+          <div className="mt-5 flex flex-wrap items-center justify-between gap-3 border-l-2 border-accent bg-surface px-4 py-3">
             <div>
-              <div className="text-[12px] text-muted">
-                총 패키지 가격 (기본 대관료 + 기본 포함 항목 단가 합계)
-              </div>
-              <div className="mt-1 text-[16px] font-semibold tabular-nums">
+              <div className={HELP}>총 패키지 가격 (기본 대관료 + 기본 포함 항목 단가 합계)</div>
+              <div className="type-display mt-1 text-h6-m tabular-nums">
                 {won(packageTotalValue)}
                 {active.discountRatio > 0 && (
-                  <span className="ml-2 text-[13px] font-medium text-accent">
+                  <span className="ml-3 text-s font-bold text-muted-strong">
                     할인 적용 시 {won(discountedTotalValue)}
                   </span>
                 )}
               </div>
             </div>
             {active.discountRatio > 0 && (
-              <div className="text-[12px] text-muted">
+              <div className={`${HELP} tabular-nums`}>
                 할인 {Math.round(active.discountRatio * 100)}% (−{won(discountAmount)})
               </div>
             )}
@@ -358,7 +368,7 @@ export function PackagesForm({ rateTable }: { rateTable: RateTable }) {
         </section>
 
         <section>
-          <h2 className="text-[14px] font-semibold">패키지 안내 문구 (대관시스템 노출)</h2>
+          <h2 className={SUB_TITLE}>패키지 안내 문구 (대관시스템 노출)</h2>
           <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2">
             {(
               [
@@ -370,30 +380,30 @@ export function PackagesForm({ rateTable }: { rateTable: RateTable }) {
               ] as const
             ).map(([key, label]) => (
               <label key={key} className="block">
-                <span className="mb-1 block text-[12px] text-muted">{label}</span>
+                <span className={FIELD_LABEL}>{label}</span>
                 <input
                   type="text"
                   value={active[key]}
                   onChange={(e) => update({ [key]: e.target.value })}
-                  className="w-full rounded-sm border border-border bg-panel px-3 py-2 text-[13px] outline-none focus:border-accent"
+                  className={FIELD}
                 />
               </label>
             ))}
             <label className="block">
-              <span className="mb-1 block text-[12px] text-muted">기본 공연일수 (세부 구성의 숫자값 — 준비일/공연일 조정 과금 기준)</span>
+              <span className={FIELD_LABEL}>기본 공연일수 (세부 구성의 숫자값 — 준비일/공연일 조정 과금 기준)</span>
               <input
                 type="number"
                 min={0}
                 value={active.defaultPerformanceDays}
                 onChange={(e) => update({ defaultPerformanceDays: Math.max(0, Math.round(Number(e.target.value) || 0)) })}
-                className="w-full rounded-sm border border-border bg-panel px-3 py-2 text-[13px] outline-none focus:border-accent"
+                className={FIELD}
               />
             </label>
           </div>
         </section>
 
         <section>
-          <h2 className="text-[14px] font-semibold">내부 참고 정보 (대관시스템 미노출)</h2>
+          <h2 className={SUB_TITLE}>내부 참고 정보 (대관시스템 미노출)</h2>
           <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2">
             {(
               [
@@ -402,12 +412,12 @@ export function PackagesForm({ rateTable }: { rateTable: RateTable }) {
               ] as const
             ).map(([key, label]) => (
               <label key={key} className="block">
-                <span className="mb-1 block text-[12px] text-muted">{label}</span>
+                <span className={FIELD_LABEL}>{label}</span>
                 <input
                   type="text"
                   value={active[key]}
                   onChange={(e) => update({ [key]: e.target.value })}
-                  className="w-full rounded-sm border border-border bg-panel px-3 py-2 text-[13px] outline-none focus:border-accent"
+                  className={FIELD}
                 />
               </label>
             ))}
@@ -415,22 +425,22 @@ export function PackagesForm({ rateTable }: { rateTable: RateTable }) {
         </section>
 
         <section>
-          <h2 className="text-[14px] font-semibold">기본 포함 항목 · 요금</h2>
-          <p className="mt-1 text-[12px] text-muted">
+          <h2 className={SUB_TITLE}>기본 포함 항목 · 요금</h2>
+          <p className={`mt-2 ${HELP}`}>
             체크한 항목은 아래 입력한 수량만큼 이 패키지에 기본 포함되며, 초과분만 4단계에서 추가 과금됩니다.
             항목별 단가는 요금표 관리와 동일한 값이며, 여기서 수정하면 요금표에도 함께 반영됩니다.
           </p>
           <div className="mt-4 space-y-5">
             {[...grouped.entries()].map(([category, items]) => (
               <div key={category}>
-                <div className="mb-2 flex items-center justify-between">
-                  <span className="text-[11px] font-semibold uppercase tracking-wide text-accent">
+                <div className="mb-2 flex items-center justify-between gap-3 border-b border-border/25 pb-1.5">
+                  <Label className="text-muted">
                     {ADDON_CATEGORY_LABEL[category as keyof typeof ADDON_CATEGORY_LABEL] ?? category}
-                  </span>
+                  </Label>
                   <button
                     type="button"
                     onClick={() => openNewItemForm(category as AddonCategory)}
-                    className="rounded-sm px-2 py-1 text-[11.5px] font-medium text-accent hover:underline"
+                    className="text-xs font-bold underline decoration-accent decoration-2 underline-offset-4 transition-colors hover:text-muted-strong"
                   >
                     + 항목 추가
                   </button>
@@ -442,20 +452,21 @@ export function PackagesForm({ rateTable }: { rateTable: RateTable }) {
                     return (
                       <div
                         key={addon.id}
-                        className="flex flex-col gap-2 border-b border-border/50 pb-1.5 sm:flex-row sm:items-center sm:justify-between"
+                        className="flex flex-col gap-2 border-b border-border-soft py-1.5 sm:flex-row sm:items-center sm:justify-between"
                       >
-                        <label className="flex items-center gap-2 text-[13px]">
+                        <label className="flex items-center gap-2 text-s">
                           <input
                             type="checkbox"
+                            className="accent-accent"
                             checked={checked}
                             onChange={(e) => setIncludedQty(addon.id, e.target.checked ? 1 : 0)}
                           />
                           {addon.name}
-                          <span className="text-[11px] text-muted">({addon.unitLabel})</span>
+                          <span className="text-xs text-muted">({addon.unitLabel})</span>
                         </label>
                         <div className="flex items-center gap-3">
                           <label className="flex items-center gap-1.5">
-                            <span className="text-[11px] text-muted">기본 수량</span>
+                            <span className="text-xs text-muted">기본 수량</span>
                             <input
                               type="number"
                               min={1}
@@ -463,17 +474,17 @@ export function PackagesForm({ rateTable }: { rateTable: RateTable }) {
                               value={checked ? qty : ""}
                               placeholder="-"
                               onChange={(e) => setIncludedQty(addon.id, Math.max(1, Number(e.target.value) || 1))}
-                              className="w-16 rounded-sm border border-border bg-panel px-3 py-1.5 text-right text-[13px] outline-none focus:border-accent disabled:opacity-40"
+                              className={`w-16 ${FIELD_BASE} text-right tabular-nums`}
                             />
                           </label>
                           <label className="flex items-center gap-1.5">
-                            <span className="text-[11px] text-muted">단가</span>
+                            <span className="text-xs text-muted">단가</span>
                             <input
                               type="number"
                               min={0}
                               value={addon.unitPrice}
                               onChange={(e) => updateAddonPrice(addon.id, Math.max(0, Number(e.target.value) || 0))}
-                              className="w-32 rounded-sm border border-border bg-panel px-3 py-1.5 text-right text-[13px] outline-none focus:border-accent"
+                              className={`w-32 ${FIELD_BASE} text-right tabular-nums`}
                             />
                           </label>
                         </div>
@@ -483,21 +494,21 @@ export function PackagesForm({ rateTable }: { rateTable: RateTable }) {
                 </div>
 
                 {newItemCategory === category && (
-                  <div className="mt-3 flex flex-col gap-2 rounded-sm border border-dashed border-accent/40 bg-accent-soft/40 p-3 sm:flex-row sm:items-center">
+                  <div className="mt-3 flex flex-col gap-2 border-l-2 border-accent bg-background p-3 sm:flex-row sm:items-center">
                     <input
                       type="text"
                       autoFocus
                       placeholder="항목 이름"
                       value={newItemName}
                       onChange={(e) => setNewItemName(e.target.value)}
-                      className="flex-1 rounded-sm border border-border bg-background px-3 py-1.5 text-[13px] outline-none focus:border-accent"
+                      className={`flex-1 ${FIELD_BASE}`}
                     />
                     <input
                       type="text"
                       placeholder="단위 (예: 원/일)"
                       value={newItemUnitLabel}
                       onChange={(e) => setNewItemUnitLabel(e.target.value)}
-                      className="w-32 rounded-sm border border-border bg-background px-3 py-1.5 text-[13px] outline-none focus:border-accent"
+                      className={`w-32 ${FIELD_BASE}`}
                     />
                     <input
                       type="number"
@@ -505,21 +516,21 @@ export function PackagesForm({ rateTable }: { rateTable: RateTable }) {
                       placeholder="단가"
                       value={newItemPrice}
                       onChange={(e) => setNewItemPrice(Math.max(0, Number(e.target.value) || 0))}
-                      className="w-28 rounded-sm border border-border bg-background px-3 py-1.5 text-right text-[13px] outline-none focus:border-accent"
+                      className={`w-28 ${FIELD_BASE} text-right tabular-nums`}
                     />
                     <div className="flex gap-2">
                       <button
                         type="button"
                         onClick={confirmNewItem}
                         disabled={!newItemName.trim()}
-                        className="rounded-sm bg-accent px-3 py-1.5 text-[12.5px] font-semibold text-white disabled:opacity-50"
+                        className={btnClass("primary", "sm")}
                       >
                         추가
                       </button>
                       <button
                         type="button"
                         onClick={() => setNewItemCategory(null)}
-                        className="rounded-sm border border-border px-3 py-1.5 text-[12.5px] text-muted"
+                        className={btnClass("ghost", "sm")}
                       >
                         취소
                       </button>
@@ -532,16 +543,16 @@ export function PackagesForm({ rateTable }: { rateTable: RateTable }) {
         </section>
       </div>
 
-      <div className="mt-8 flex items-center gap-4 border-t border-border pt-6">
+      <div className="mt-8 flex flex-wrap items-center gap-4 border-t border-border/20 pt-6">
         <button
           type="button"
           disabled={saving}
           onClick={save}
-          className="inline-flex min-w-[260px] shrink-0 items-center justify-center whitespace-nowrap rounded-sm bg-accent px-7 py-3 text-[14px] font-semibold text-white transition-colors hover:bg-accent-hover disabled:opacity-50"
+          className={btnClass("primary", "lg")}
         >
           {saving ? "저장 중..." : "패키지 구성 · 가격 저장 (새 버전 생성)"}
         </button>
-        {message && <span className="text-[13px] text-muted">{message}</span>}
+        {message && <span className="text-s text-muted">{message}</span>}
       </div>
     </div>
   );

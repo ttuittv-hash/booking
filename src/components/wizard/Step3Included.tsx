@@ -2,6 +2,7 @@
 
 import { findAddon, findPackage } from "@/lib/pricing/rateTableUtils";
 import type { RateTable } from "@/lib/pricing/types";
+import { Label, SpecTable } from "@/components/ui/kit";
 
 const MEDIA_TIER_LABEL: Record<string, string> = {
   BASIC: "기본",
@@ -22,77 +23,66 @@ export function Step3Included({
     return <EmptyState />;
   }
 
+  const specRows: [string, string][] = [
+    ["대관시간", pkg.rentalHours],
+    ["세부 구성", pkg.dayBreakdown],
+    ["주차 기본 제공", pkg.parkingPerDay],
+    ["홍보 매체", pkg.mediaTier ? MEDIA_TIER_LABEL[pkg.mediaTier] : "미포함"],
+    ["대기실", pkg.waitingRoomNote],
+    ["부속공간", pkg.sideFacilities],
+  ];
+  if (pkg.outdoorPlazaIncluded) specRows.push(["야외광장", "야외광장 · 티켓박스 포함"]);
+
   return (
-    <section className="rounded border border-border bg-background p-7">
-      <h2 className="text-[19px] font-semibold">3. 기본 포함사항</h2>
-      <p className="mt-1.5 text-[13.5px] text-muted">
-        {pkg.name}에 기본 포함된 구성입니다. 초과분만 4단계에서 추가
-        과금됩니다.
+    <section>
+      <Label className="text-muted">Step 03</Label>
+      <h2 className="type-kr-heading mt-3 text-h4-m sm:text-h4">기본 포함사항</h2>
+      <p className="mt-3 max-w-2xl text-s text-muted">
+        {pkg.name}에 기본 포함된 구성입니다. 초과분만 4단계에서 추가 과금됩니다.
       </p>
 
-      <div className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-4">
-        {[
-          { label: "대관시간", value: pkg.rentalHours },
-          { label: "세부 구성", value: pkg.dayBreakdown },
-          { label: "주차 기본 제공", value: pkg.parkingPerDay },
-          {
-            label: "홍보 매체",
-            value: pkg.mediaTier ? MEDIA_TIER_LABEL[pkg.mediaTier] : "미포함",
-          },
-        ].map((info) => (
-          <div key={info.label} className="rounded border border-border bg-panel/60 p-3">
-            <div className="text-[11px] text-muted">{info.label}</div>
-            <div className="mt-1 text-[13px] font-semibold">{info.value}</div>
-          </div>
-        ))}
-      </div>
+      <SpecTable className="mt-7" rows={specRows} />
 
-      <div className="mt-3 flex flex-wrap gap-x-6 gap-y-1.5 text-[12.5px] text-muted">
-        <span>대기실 {pkg.waitingRoomNote}</span>
-        <span>부속공간 {pkg.sideFacilities}</span>
-        {pkg.outdoorPlazaIncluded && <span>야외광장 · 티켓박스 포함</span>}
-      </div>
-
-      <div className="mt-6 flex items-center justify-between border-b border-border pb-3">
-        <span className="text-[14px] font-semibold">{pkg.name} 기본 포함 항목</span>
-        <span className="text-[12.5px] text-muted">
+      <div className="mt-9 flex flex-wrap items-baseline justify-between gap-x-6 gap-y-2 border-b-2 border-foreground pb-3">
+        <h3 className="type-kr-heading text-h6-m sm:text-h6">{pkg.name} 기본 포함 항목</h3>
+        <p className="text-xs text-muted">
           화~일 1주 정찰제 대관료에 아래 항목이 모두 포함됩니다
-        </span>
+        </p>
       </div>
 
-      <ul className="mt-1 divide-y divide-dashed divide-border/80">
+      <dl>
         {pkg.includedItems.length === 0 ? (
-          <li className="py-4 text-[13px] text-muted">
+          <div className="border-b border-border/25 py-4 text-s text-muted">
             별도 기본 포함 항목 없음
-          </li>
+          </div>
         ) : (
           pkg.includedItems.map((item) => {
             const addon = findAddon(rateTable, item.addonId);
             return (
-              <li
+              <div
                 key={item.addonId}
-                className="flex items-center justify-between py-3 text-[13.5px]"
+                className="flex items-baseline justify-between gap-6 border-b border-border/15 py-3.5"
               >
-                <span>{addon?.name ?? item.addonId}</span>
-                <span className="font-semibold text-accent">
+                <dt className="min-w-0 text-s">{addon?.name ?? item.addonId}</dt>
+                <dd className="shrink-0 text-s font-bold tabular-nums">
                   {item.quantity.toLocaleString()}
                   {addon?.unitLabel.includes("일") ? "개" : ""} 포함
-                </span>
-              </li>
+                </dd>
+              </div>
             );
           })
         )}
-      </ul>
+      </dl>
     </section>
   );
 }
 
 function EmptyState() {
   return (
-    <section className="rounded border border-border bg-background p-7">
-      <p className="text-[13.5px] text-muted">
-        먼저 1단계에서 패키지를 선택하세요.
-      </p>
+    <section>
+      <Label className="text-muted">Step 03</Label>
+      <h2 className="type-kr-heading mt-3 text-h4-m sm:text-h4">기본 포함사항</h2>
+      <p className="mt-3 text-s text-muted">먼저 2단계에서 패키지를 선택하세요.</p>
     </section>
   );
 }

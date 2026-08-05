@@ -11,9 +11,14 @@ import {
   type WeekDay,
   type WeekDemand,
 } from "@/lib/pricing/types";
+import { Label } from "@/components/ui/kit";
 
 const DOW_LABELS = ["월", "화", "수", "목", "금", "토", "일"]; // 달력은 월요일부터 시작, 대관 단위는 화~일 (월요일은 대관 불가 기본값)
 const WEEKDAY_SHORT = ["일", "월", "화", "수", "목", "금", "토"];
+
+/** 샤프 1px 아이콘/스테퍼 버튼 */
+const ICON_BTN =
+  "inline-flex h-9 w-9 shrink-0 items-center justify-center border border-border-soft bg-surface text-r text-foreground outline-none transition-colors hover:border-foreground hover:bg-accent hover:text-on-accent focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-foreground";
 
 function formatDateLabel(iso: string): string {
   const [, m, d] = iso.split("-").map(Number);
@@ -161,58 +166,59 @@ export function Step1Calendar({
   }
 
   return (
-    <section className="border border-border bg-background p-5 sm:p-7">
-      <h2 className="text-[19px] font-semibold">1. 주차(기간) 선택</h2>
-      <p className="mt-1.5 text-[13.5px] text-muted">
+    <section>
+      <Label className="text-muted">Step 01</Label>
+      <h2 className="type-kr-heading mt-3 text-h4-m sm:text-h4">주차(기간) 선택</h2>
+      <p className="mt-3 max-w-2xl text-s text-muted">
         달력에서 원하는 주를 눌러 선택하세요. 기본 단위는{" "}
         <b className="text-foreground">1주(화~일, 6일)</b>이며, 월요일은 기본적으로 대관하지
         않습니다. 아래에서 요일별로 빼거나 일수를 더할 수 있습니다.
       </p>
 
-      <div className="mt-6 flex items-center justify-between">
-        <button
-          type="button"
-          onClick={() => goToMonth(-1)}
-          aria-label="이전 달"
-          className="rounded-sm border border-border px-3 py-1.5 text-[13px] text-muted hover:border-accent hover:text-accent"
-        >
+      <div className="mt-7 flex items-center justify-between border-b border-border/25 pb-4">
+        <button type="button" onClick={() => goToMonth(-1)} aria-label="이전 달" className={ICON_BTN}>
           ‹
         </button>
-        <div className="text-[15px] font-semibold">
-          {week.year}년 {week.month}월
+        <div className="type-display text-h6-m tabular-nums sm:text-h6">
+          {week.year}. {String(week.month).padStart(2, "0")}
         </div>
-        <button
-          type="button"
-          onClick={() => goToMonth(1)}
-          aria-label="다음 달"
-          className="rounded-sm border border-border px-3 py-1.5 text-[13px] text-muted hover:border-accent hover:text-accent"
-        >
+        <button type="button" onClick={() => goToMonth(1)} aria-label="다음 달" className={ICON_BTN}>
           ›
         </button>
       </div>
 
-      <div className="mt-4 grid grid-cols-7 gap-1 text-center text-[11px] font-medium text-muted sm:gap-1.5">
+      <div className="mt-4 grid grid-cols-7 gap-1 text-center sm:gap-1.5">
         {DOW_LABELS.map((label, i) => (
-          <div key={label} className={i === 0 ? "opacity-50" : ""}>
+          <div
+            key={label}
+            className={`type-label text-xs ${i === 0 ? "text-muted/50" : "text-muted"}`}
+          >
             {label}
           </div>
         ))}
       </div>
 
-      <div className="mt-1.5 space-y-1 sm:space-y-1.5">
+      <div className="mt-2 space-y-1 sm:space-y-1.5">
         {calendarWeeks.map((calWeek, wi) => {
           const isSelectable = calWeek.weekOfMonth !== null;
           const demand = calWeek.weekOfMonth !== null ? demandFor(calWeek.weekOfMonth) : 0;
           const blocked = calWeek.weekOfMonth !== null ? blockedFor(calWeek.weekOfMonth) : undefined;
+          const isSelectedWeek = calWeek.weekOfMonth === week.weekOfMonth;
           return (
             <div key={wi}>
               <button
                 type="button"
                 disabled={!isSelectable || !!blocked}
                 onClick={() => calWeek.weekOfMonth !== null && selectWeek(calWeek.weekOfMonth)}
+                aria-pressed={isSelectable ? isSelectedWeek : undefined}
                 className={[
-                  "grid w-full grid-cols-7 gap-1 rounded-sm p-0.5 text-left sm:gap-1.5",
-                  blocked ? "cursor-not-allowed opacity-40" : isSelectable ? "cursor-pointer hover:bg-panel" : "cursor-default",
+                  "grid w-full grid-cols-7 gap-1 text-left outline-none sm:gap-1.5",
+                  "focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-foreground",
+                  blocked
+                    ? "cursor-not-allowed opacity-40"
+                    : isSelectable
+                      ? "cursor-pointer transition-colors hover:bg-foreground/[0.04]"
+                      : "cursor-default",
                 ].join(" ")}
               >
                 {calWeek.days.map((date, di) => {
@@ -223,18 +229,20 @@ export function Step1Calendar({
                   return (
                     <div
                       key={di}
+                      aria-current={isToday ? "date" : undefined}
                       className={[
-                        "flex h-9 items-center justify-center rounded-sm text-[12.5px] sm:h-11 sm:text-[13px]",
+                        // 셀은 샤프. 보더 폭을 항상 1px로 유지해 오늘 표시가 레이아웃을 밀지 않게 한다.
+                        "flex h-9 items-center justify-center border text-s tabular-nums sm:h-11",
+                        isToday ? "border-foreground" : "border-transparent",
                         blocked
                           ? "text-muted line-through"
                           : isActive
-                            ? "bg-accent-soft font-semibold text-accent"
+                            ? "bg-accent font-bold text-on-accent"
                             : !inMonth
                               ? "text-muted/40"
                               : isMonday
-                                ? "text-muted/70"
+                                ? "text-muted/60"
                                 : "text-foreground",
-                        isToday ? "underline decoration-2 underline-offset-4" : "",
                       ].join(" ")}
                     >
                       {date.getDate()}
@@ -243,14 +251,14 @@ export function Step1Calendar({
                 })}
               </button>
               {blocked ? (
-                <div className="px-0.5 pt-0.5 text-right text-[10.5px] font-medium text-red-600">
+                <div className="pt-1 text-right text-xs font-bold text-danger">
                   대관 불가{blocked.reason ? ` · ${blocked.reason}` : ""}
                 </div>
               ) : (
                 demand > 0 && (
-                  <div className="px-0.5 pt-0.5 text-right text-[10.5px] text-muted">
+                  <div className="pt-1 text-right text-xs text-muted">
                     {demand > 1 && <span>경합 중 · </span>}
-                    <span className="font-bold text-accent">{demand}</span>
+                    <b className="tabular-nums text-foreground">{demand}</b>
                     <span>개사 신청</span>
                   </div>
                 )
@@ -260,9 +268,10 @@ export function Step1Calendar({
         })}
       </div>
 
-      <div className="mt-6 border-t border-border pt-5">
-        <label className="text-[12.5px] font-medium text-muted">사용 요일 (화~일 중 제외할 요일 선택)</label>
-        <div className="mt-2.5 flex flex-wrap gap-2">
+      <div className="mt-8 border-t border-border/25 pt-6">
+        <Label className="text-muted">사용 요일</Label>
+        <p className="mt-2 text-s text-muted">화~일 중 제외할 요일을 선택하세요.</p>
+        <div className="mt-3 flex flex-wrap gap-2">
           {WEEKDAYS.map((day) => {
             const isExcluded = excludedDays.includes(day);
             return (
@@ -270,11 +279,13 @@ export function Step1Calendar({
                 key={day}
                 type="button"
                 onClick={() => toggleDay(day)}
+                aria-pressed={!isExcluded}
                 className={[
-                  "h-9 w-9 rounded-sm border text-[13px] font-medium transition-colors",
+                  "h-9 w-9 border text-s font-bold outline-none transition-colors",
+                  "focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-foreground",
                   isExcluded
-                    ? "border-border bg-panel text-muted/50 line-through"
-                    : "border-accent bg-accent-soft text-accent",
+                    ? "border-border-soft bg-surface text-muted line-through"
+                    : "border-foreground bg-accent text-on-accent",
                 ].join(" ")}
               >
                 {WEEKDAY_LABEL[day]}
@@ -283,28 +294,31 @@ export function Step1Calendar({
           })}
         </div>
         {excludedDays.length > 0 && (
-          <p className="mt-2 text-[11.5px] text-muted">
+          <p className="mt-3 text-xs text-muted">
             제외 요일은 대관료가 아닌 요일당 정액 할인으로 반영됩니다.
           </p>
         )}
       </div>
 
-      <div className="mt-5 flex flex-wrap items-center gap-3 border-t border-border pt-5">
-        <label className="text-[12.5px] font-medium text-muted">추가 일수 (일요일 이후 연장)</label>
+      <div className="mt-6 flex flex-wrap items-center justify-between gap-4 border-t border-border/25 pt-6">
+        <div>
+          <Label className="text-muted">추가 일수</Label>
+          <p className="mt-2 text-s text-muted">일요일 이후로 연장할 일수입니다.</p>
+        </div>
         <div className="flex items-center gap-2">
           <button
             type="button"
             onClick={() => onChangeExtraDays(Math.max(0, extraDays - 1))}
-            className="h-8 w-8 rounded-sm border border-border text-[15px] text-muted hover:border-accent hover:text-accent"
+            className={ICON_BTN}
             aria-label="추가 일수 감소"
           >
             −
           </button>
-          <span className="w-6 text-center text-[13px] font-medium tabular-nums">{extraDays}</span>
+          <span className="w-8 text-center text-r font-bold tabular-nums">{extraDays}</span>
           <button
             type="button"
             onClick={() => onChangeExtraDays(Math.min(30, extraDays + 1))}
-            className="h-8 w-8 rounded-sm border border-border text-[15px] text-muted hover:border-accent hover:text-accent"
+            className={ICON_BTN}
             aria-label="추가 일수 증가"
           >
             +
@@ -312,37 +326,43 @@ export function Step1Calendar({
         </div>
       </div>
 
-      <div className="mt-4 text-[14px] font-medium text-accent">
-        {week.year}년 {week.month}월 {week.weekOfMonth}주차 · 총 {totalDays}일 적용
+      <p className="mt-6 border-l-2 border-accent bg-warn-soft px-4 py-3 text-s text-muted-strong">
+        <b className="text-foreground">
+          {week.year}년 {week.month}월 {week.weekOfMonth}주차 · 총 {totalDays}일 적용
+        </b>
         {excludedDays.length > 0 && ` (기본 6일 − 제외 ${excludedDays.length}일${extraDays > 0 ? ` + 추가 ${extraDays}일` : ""})`}
         {excludedDays.length === 0 && extraDays > 0 && ` (기본 6일 + 추가 ${extraDays}일)`}
-      </div>
+      </p>
 
       {selectedDates.length > 0 && (
-        <div className="mt-5 border-t border-border pt-5">
-          <label className="text-[12.5px] font-medium text-muted">공연 / 세팅 설정</label>
-          <p className="mt-1.5 text-[12px] leading-5 text-muted">
+        <div className="mt-6 border-t border-border/25 pt-6">
+          <Label className="text-muted">공연 / 세팅 설정</Label>
+          <p className="mt-2 max-w-2xl text-s text-muted">
             선택하신 {selectedDates.length}일 각각을 공연/세팅 중에서 직접 선택하세요. 기본값은
             {" "}{defaultPerformanceDays}일이 공연이며, 기본 공연일수보다 늘리거나 줄이면 대관료가
             함께 조정됩니다.
           </p>
-          <div className="mt-3 flex flex-wrap gap-2">
+          <div className="mt-4 flex flex-wrap gap-2">
             {selectedDates.map((date) => {
               const tag = effectiveDayTag(date, dayTags, dayTagDefaults);
               return (
                 <div
                   key={date}
-                  className="flex flex-col items-center gap-1.5 rounded-sm border border-border bg-panel/60 px-2.5 py-2.5"
+                  className="flex flex-col items-center gap-2 border border-border-soft bg-surface px-3 py-3"
                 >
-                  <span className="text-[13px] font-semibold text-foreground">{formatDateLabel(date)}</span>
+                  <span className="text-s font-bold tabular-nums text-foreground">
+                    {formatDateLabel(date)}
+                  </span>
                   <button
                     type="button"
                     onClick={() => toggleDayTag(date)}
+                    aria-pressed={tag === "PERFORMANCE"}
                     className={[
-                      "rounded-sm px-2 py-0.5 text-[10.5px] font-medium transition-colors",
+                      "type-label border px-2 py-1 text-xs outline-none transition-colors",
+                      "focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-foreground",
                       tag === "PERFORMANCE"
-                        ? "bg-accent-soft text-accent"
-                        : "bg-panel-strong text-muted hover:text-foreground",
+                        ? "border-foreground bg-accent text-on-accent"
+                        : "border-border-soft bg-surface text-muted hover:border-foreground hover:text-foreground",
                     ].join(" ")}
                   >
                     {tag === "PERFORMANCE" ? "공연" : "세팅"}

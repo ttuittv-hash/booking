@@ -4,6 +4,7 @@ import Link from "next/link";
 import { won } from "@/lib/format";
 import { findPackage, totalRentalDays } from "@/lib/pricing/rateTableUtils";
 import type { EstimatedQuote, QuoteSelection, RateTable } from "@/lib/pricing/types";
+import { Label, btnClass } from "@/components/ui/kit";
 
 const STAGES = [
   {
@@ -58,67 +59,69 @@ export function Step6Submit({
 
   if (!pkg) {
     return (
-      <section className="rounded border border-border bg-background p-7">
-        <p className="text-[13.5px] text-muted">
-          먼저 1단계에서 패키지를 선택하세요.
-        </p>
+      <section>
+        <Label className="text-muted">Step 06</Label>
+        <h2 className="type-kr-heading mt-3 text-h4-m sm:text-h4">신청서 제출</h2>
+        <p className="mt-3 text-s text-muted">먼저 2단계에서 패키지를 선택하세요.</p>
       </section>
     );
   }
 
   return (
-    <section className="rounded border border-border bg-background p-7">
-      <h2 className="text-[19px] font-semibold">6. {isEditing ? "신청서 수정" : "신청서 제출"}</h2>
-      <p className="mt-1.5 text-[13.5px] text-muted">
+    <section>
+      <Label className="text-muted">Step 06</Label>
+      <h2 className="type-kr-heading mt-3 text-h4-m sm:text-h4">
+        {isEditing ? "신청서 수정" : "신청서 제출"}
+      </h2>
+      <p className="mt-3 max-w-2xl text-s text-muted">
         {isEditing
           ? "아래 산출내역으로 신청서 내용이 수정됩니다. 신청금액은 예상금액이며, 이후 심사·계약에서 확정됩니다."
           : "아래 산출내역으로 대관 신청서가 생성됩니다. 신청금액은 예상금액이며, 이후 심사·계약에서 확정됩니다."}
       </p>
 
-      <div className="mt-6 flex flex-wrap items-center justify-between gap-4 rounded border border-border bg-panel/60 p-6">
-        <div>
-          <div className="text-[15px] font-semibold">
+      {/* 신청 요약 — 카드 박스 대신 상단 2px 룰 + 헤어라인 */}
+      <div className="mt-7 flex flex-col gap-5 border-t-2 border-foreground pt-5 sm:flex-row sm:items-end sm:justify-between sm:gap-8">
+        <div className="min-w-0">
+          <p className="type-kr-heading text-h6-m sm:text-h6">
             {pkg.name} · {pkg.audienceTier.label}
-          </div>
-          <div className="mt-1 text-[13px] text-muted">
-            {selection.week.year}년 {selection.week.month}월{" "}
-            {selection.week.weekOfMonth}주차 · 총 {totalRentalDays(selection)}일 ·
-            관객 {selection.expectedAudience.toLocaleString()}명
-          </div>
+          </p>
+          <p className="mt-2 text-s text-muted">
+            {selection.week.year}년 {selection.week.month}월 {selection.week.weekOfMonth}주차 · 총{" "}
+            {totalRentalDays(selection)}일 · 관객 {selection.expectedAudience.toLocaleString()}명
+          </p>
         </div>
-        <div className="text-right">
-          <div className="text-[11px] text-muted">신청 예상금액 (VAT 포함)</div>
-          <div className="text-[26px] font-semibold tabular-nums">
-            {won(quote.total)}
-          </div>
+        <div className="shrink-0 sm:text-right">
+          <Label className="text-muted">신청 예상금액 · VAT 포함</Label>
+          <p className="type-display mt-2 text-h4-m tabular-nums sm:text-h3">{won(quote.total)}</p>
         </div>
       </div>
 
       {submittedId ? (
-        <div className="mt-5 rounded-sm border border-accent/30 bg-accent-soft px-5 py-4 text-[13.5px] text-accent">
-          <p className="font-semibold">{isEditing ? "신청 내용이 수정되었습니다." : "신청이 접수되었습니다."}</p>
-          <p className="mt-1.5 leading-6">
-            운영자 심사 → 계약 → 정산 순으로 진행되며, 각 단계가 완료되면
-            알림으로 안내해 드립니다.
+        <div className="mt-7 border-l-2 border-foreground bg-accent px-5 py-4 text-s text-on-accent">
+          <p className="font-bold">
+            {isEditing ? "신청 내용이 수정되었습니다." : "신청이 접수되었습니다."}
           </p>
-          <div className="mt-3 flex gap-4">
-            <Link href={`/mypage/${submittedId}`} className="font-semibold underline">
+          <p className="mt-2 leading-6">
+            운영자 심사 → 계약 → 정산 순으로 진행되며, 각 단계가 완료되면 알림으로 안내해 드립니다.
+          </p>
+          <div className="mt-4 flex flex-wrap gap-4">
+            <Link href={`/mypage/${submittedId}`} className="font-bold underline">
               신청 내역 확인
             </Link>
-            <Link href={`/print/${submittedId}`} target="_blank" className="font-semibold underline">
+            <Link href={`/print/${submittedId}`} target="_blank" className="font-bold underline">
               인쇄 / PDF 저장
             </Link>
           </div>
         </div>
       ) : !isLoggedIn ? (
-        <div className="mt-5 rounded-sm border border-warn/30 bg-warn-soft px-4 py-3.5 text-[13.5px] text-warn">
-          신청서를 제출하려면 로그인이 필요합니다. 지금까지 입력한 내용은
-          그대로 유지되니, 로그인 후 이어서 제출할 수 있습니다.{" "}
-          <Link href="/login" className="font-semibold underline">
+        <div className="mt-7 border-l-2 border-accent bg-warn-soft px-4 py-3.5 text-s leading-6 text-muted-strong">
+          신청서를 제출하려면 로그인이 필요합니다. 지금까지 입력한 내용은 그대로 유지되니, 로그인 후
+          이어서 제출할 수 있습니다.{" "}
+          <Link href="/login" className="font-bold text-foreground underline">
             로그인
           </Link>{" "}
           ·{" "}
-          <Link href="/register" className="font-semibold underline">
+          <Link href="/register" className="font-bold text-foreground underline">
             회원가입
           </Link>
         </div>
@@ -128,24 +131,31 @@ export function Step6Submit({
             type="button"
             disabled={submitting}
             onClick={onSubmit}
-            className="mt-5 rounded-sm bg-accent px-7 py-3 text-[14px] font-semibold text-white transition-colors hover:bg-accent-hover disabled:opacity-50"
+            className={`${btnClass("primary", "lg")} mt-7`}
           >
             {submitting ? "저장 중..." : isEditing ? "수정 내용 저장" : "신청서 생성"}
           </button>
-          {error && <p className="mt-3 text-[13px] text-red-600">{error}</p>}
+          {error && (
+            <p className="mt-3 border-l-2 border-danger bg-danger-soft px-4 py-2.5 text-s text-danger">
+              {error}
+            </p>
+          )}
         </>
       )}
 
-      <h3 className="mt-10 text-[16px] font-semibold">신청 절차</h3>
-      <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-3">
+      <h3 className="type-kr-heading mt-12 text-h6-m sm:text-h6">신청 절차</h3>
+      <ol className="mt-5 border-t border-border/25">
         {STAGES.map((s) => (
-          <div key={s.no} className="rounded-sm border border-border bg-panel/60 p-4">
-            <div className="text-[11px] font-semibold text-accent">{s.no}</div>
-            <div className="mt-1.5 text-[13.5px] font-semibold">{s.title}</div>
-            <p className="mt-1.5 text-[12px] leading-5 text-muted">{s.desc}</p>
-          </div>
+          <li
+            key={s.no}
+            className="grid gap-2 border-b border-border/25 py-4 sm:grid-cols-[5rem_minmax(0,14rem)_minmax(0,1fr)] sm:items-baseline sm:gap-6"
+          >
+            <span className="type-label text-xs text-muted">{s.no}</span>
+            <span className="text-s font-bold">{s.title}</span>
+            <p className="text-s text-muted">{s.desc}</p>
+          </li>
         ))}
-      </div>
+      </ol>
     </section>
   );
 }

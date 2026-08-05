@@ -4,15 +4,15 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import type { GuideContent, GuideStep } from "@/lib/content/types";
 import { GuideContentView } from "@/components/GuideContentView";
+import { btnClass } from "@/components/ui/kit";
 import { NoticeEditor } from "./NoticeEditor";
+import { ADD_BTN, CARD, FIELD, FIELD_LABEL, HELP, OK_NOTE, REMOVE_BTN, SUB_TITLE } from "./adminUi";
 
-const inputCls =
-  "w-full rounded-sm border border-border bg-background px-3 py-2 text-[13px] outline-none focus:border-accent";
-const labelCls = "mb-1 block text-[12px] text-muted";
-const cardCls = "rounded border border-border bg-panel/60 p-4";
-const removeBtnCls = "shrink-0 text-[12px] text-red-600 hover:underline";
-const addBtnCls =
-  "mt-2 rounded-sm border border-dashed border-border px-3 py-1.5 text-[12.5px] text-muted hover:border-accent hover:text-accent";
+const inputCls = FIELD;
+const labelCls = FIELD_LABEL;
+const cardCls = CARD;
+const removeBtnCls = REMOVE_BTN;
+const addBtnCls = ADD_BTN;
 
 function TextListEditor({
   items,
@@ -87,20 +87,20 @@ export function GuideContentForm({ content: initial }: { content: GuideContent }
 
   return (
     <div className="space-y-8">
-      <div className="sticky top-14 z-10 -mx-6 flex items-center justify-between border-b border-border bg-background px-6 py-3 sm:top-16">
-        <span className="text-[12.5px] text-muted">수정 중인 내용은 저장 전까지 실제 페이지에 반영되지 않습니다.</span>
+      <div className="sticky top-14 z-10 -mx-6 flex items-center justify-between gap-3 border-b border-border/20 bg-background px-6 py-3 sm:top-16">
+        <span className={HELP}>수정 중인 내용은 저장 전까지 실제 페이지에 반영되지 않습니다.</span>
         <button
           type="button"
           onClick={() => setPreviewOpen((v) => !v)}
-          className="shrink-0 rounded-sm border border-border px-4 py-1.5 text-[12.5px] font-medium text-foreground hover:border-accent hover:text-accent"
+          className={btnClass("outline", "sm")}
         >
           {previewOpen ? "미리보기 닫기" : "미리보기"}
         </button>
       </div>
 
       {previewOpen && (
-        <div className="border border-border">
-          <div className="border-b border-border bg-panel px-4 py-2 text-[12px] font-medium text-muted">
+        <div className="border border-border-soft">
+          <div className="type-label border-b border-border-soft bg-surface px-4 py-2 text-xs text-muted">
             미리보기 — 현재 입력값 기준 (저장되지 않음)
           </div>
           <div className="max-h-[70vh] overflow-y-auto bg-background">
@@ -110,14 +110,14 @@ export function GuideContentForm({ content: initial }: { content: GuideContent }
       )}
 
       <section>
-        <h3 className="text-[14px] font-semibold">상단 소개 문구</h3>
+        <h3 className={SUB_TITLE}>상단 소개 문구</h3>
         <div className="mt-2">
           <NoticeEditor value={content.intro} onChange={(intro) => patch({ intro })} />
         </div>
       </section>
 
-      <section>
-        <h3 className="text-[14px] font-semibold">대관 절차 단계</h3>
+      <section className="border-t border-border/15 pt-7">
+        <h3 className={SUB_TITLE}>대관 절차 단계</h3>
         <div className="mt-2 space-y-3">
           {content.steps.map((s, i) => (
             <div key={i} className={cardCls}>
@@ -147,36 +147,36 @@ export function GuideContentForm({ content: initial }: { content: GuideContent }
           </button>
         </div>
 
-        <h3 className="mt-6 text-[14px] font-semibold">유의사항 목록</h3>
+        <h3 className={`mt-8 ${SUB_TITLE}`}>유의사항 목록</h3>
         <div className="mt-2">
           <TextListEditor items={content.notices} onChange={(notices) => patch({ notices })} />
         </div>
       </section>
 
-      <section>
-        <h3 className="text-[14px] font-semibold">대관 패키지 구성 — 소개 문단</h3>
+      <section className="border-t border-border/15 pt-7">
+        <h3 className={SUB_TITLE}>대관 패키지 구성 — 소개 문단</h3>
         <div className="mt-2">
           <NoticeEditor value={content.packageIntro} onChange={(packageIntro) => patch({ packageIntro })} />
         </div>
-        <h3 className="mt-4 text-[14px] font-semibold">대관 패키지 구성 — 세부 항목</h3>
+        <h3 className={`mt-6 ${SUB_TITLE}`}>대관 패키지 구성 — 세부 항목</h3>
         <div className="mt-2">
           <TextListEditor items={content.packageBullets} onChange={(packageBullets) => patch({ packageBullets })} />
         </div>
       </section>
 
-      <section>
-        <h3 className="text-[14px] font-semibold">대관 규약 — 소개 문단</h3>
+      <section className="border-t border-border/15 pt-7">
+        <h3 className={SUB_TITLE}>대관 규약 — 소개 문단</h3>
         <div className="mt-2">
           <NoticeEditor value={content.rulesIntro} onChange={(rulesIntro) => patch({ rulesIntro })} />
         </div>
       </section>
 
-      {message && <p className="text-[13px] text-good">{message}</p>}
+      {message && <p className={OK_NOTE}>{message}</p>}
       <button
         type="button"
         disabled={saving}
         onClick={save}
-        className="rounded-sm bg-accent px-6 py-2.5 text-[13.5px] font-semibold text-white transition-colors hover:bg-accent-hover disabled:opacity-50"
+        className={btnClass("primary", "md")}
       >
         {saving ? "저장 중..." : "저장"}
       </button>

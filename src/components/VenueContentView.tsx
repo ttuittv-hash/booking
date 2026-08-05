@@ -1,30 +1,91 @@
-import type { VenueContent } from "@/lib/content/types";
-import { KeyMapGallery } from "@/components/KeyMapGallery";
+import type { ReactNode } from "react";
+import type { VenueAmenity, VenueContent } from "@/lib/content/types";
+import { KeyMapGallery, StageFeatureTabs } from "@/components/KeyMapGallery";
+import {
+  ArrowRight,
+  Band,
+  ButtonLink,
+  EmptyState,
+  Label,
+  Media,
+  SpecTable,
+} from "@/components/ui/kit";
 
+/* ============================================================================
+   Your Stage — 시설 소개 (/venue)
+   섹션 앵커(#overview · #specs · #stage-features · #amenities)는 헤더/푸터 내비게이션이
+   참조하므로 그대로 유지하고, 구분은 Band 톤 교대로만 만든다.
+   light → white → dark → light → white → dark → light → accent
+   ========================================================================= */
+
+/** 관리자 리치텍스트(dangerouslySetInnerHTML) 공통 서식.
+ *  링크는 옐로 대신 굵은 밑줄로 — 옐로는 밝은 배경 위 텍스트로 쓰지 않는다. */
 const RICH_TEXT_CLS =
-  "[&_a]:text-accent [&_a]:underline [&_li]:mt-1 [&_p]:my-2 [&_p]:first:mt-0 [&_p]:last:mb-0 [&_strong]:text-foreground [&_ul]:list-disc [&_ul]:pl-5";
+  "[&_a]:font-bold [&_a]:text-foreground [&_a]:underline [&_li]:mt-1 [&_p]:my-3 [&_p]:first:mt-0 [&_p]:last:mb-0 [&_strong]:font-bold [&_strong]:text-foreground [&_ul]:list-disc [&_ul]:pl-5";
 
-function Section({ id, title, children }: { id: string; title: string; children: React.ReactNode }) {
+const SECTION_NAV = [
+  { href: "#overview", label: "시설 개요" },
+  { href: "#specs", label: "시설 제원" },
+  { href: "#stage-features", label: "무대 특장" },
+  { href: "#amenities", label: "부대시설" },
+] as const;
+
+const no2 = (i: number) => String(i + 1).padStart(2, "0");
+
+/** 섹션 헤드 — 좌: 라벨 + 국문 타이틀 / 우: 리드. 국문 타이틀은 type-kr-heading. */
+function Head({
+  label,
+  title,
+  lead,
+  tone = "light",
+}: {
+  label: string;
+  title: string;
+  lead?: ReactNode;
+  tone?: "light" | "dark";
+}) {
+  const labelCls = tone === "dark" ? "text-inverse-muted" : "text-muted";
+  const leadCls = tone === "dark" ? "text-inverse-fg/80" : "text-muted";
   return (
-    <section id={id} className="scroll-mt-24 border-t border-border py-14 first-of-type:border-t-0 first-of-type:pt-10">
-      <h2 className="text-[22px] font-semibold tracking-tight">{title}</h2>
-      <div className="mt-6">{children}</div>
-    </section>
+    <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.35fr)] lg:gap-16">
+      <div>
+        <Label className={`mb-4 ${labelCls}`}>{label}</Label>
+        <h2 className="type-kr-heading text-h3-m sm:text-h3">{title}</h2>
+      </div>
+      {lead && <div className={`text-m ${leadCls} lg:pt-14`}>{lead}</div>}
+    </div>
   );
 }
 
-function ImagePlaceholder({ src, alt }: { src: string | null; alt: string }) {
-  if (src) {
-    return (
-      <div className="aspect-video overflow-hidden rounded-sm border border-border">
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src={src} alt={alt} className="h-full w-full object-cover" />
-      </div>
-    );
-  }
+/** 부대시설 한 묶음 — 대표 시설은 이미지 + 텍스트, 나머지는 제원 표(헤어라인) */
+function AmenityGroup({
+  title,
+  items,
+}: {
+  title: string;
+  items: VenueAmenity[];
+}) {
+  const featured = items.filter((f) => f.featured);
+  const rest = items.filter((f) => !f.featured);
   return (
-    <div className="flex aspect-video items-center justify-center rounded-sm border border-dashed border-border bg-panel/60">
-      <span className="text-[11.5px] text-muted">이미지 준비 중</span>
+    <div>
+      <h3 className="type-kr-heading text-h5-m sm:text-h5">{title}</h3>
+
+      {featured.length > 0 && (
+        <ul className="mt-8 grid gap-10 sm:grid-cols-2 sm:gap-8 lg:grid-cols-3">
+          {featured.map((f) => (
+            <li key={f.name}>
+              <Media src={f.image} alt={f.name} ratio="4 / 3" />
+              <h4 className="type-kr-heading mt-4 text-h6-m sm:text-h6">{f.name}</h4>
+              {f.desc && <p className="mt-2 text-s text-muted">{f.desc}</p>}
+            </li>
+          ))}
+        </ul>
+      )}
+
+      {rest.length > 0 && (
+        <SpecTable className="mt-10" rows={rest.map((f) => [f.name, f.desc] as [string, string])} />
+      )}
     </div>
   );
 }
@@ -46,174 +107,214 @@ export function VenueContentView({ content }: { content: VenueContent }) {
   } = content;
 
   return (
-    <div className="mx-auto w-full max-w-5xl flex-1 px-6 py-16 sm:px-8">
-      <p className="text-[13px] font-semibold uppercase tracking-[0.14em] text-accent">THE VENUE</p>
-      <h1 className="mt-3 text-[30px] font-semibold tracking-tight sm:text-[36px]">SEOUL ARENA</h1>
-      <div className={`mt-6 max-w-3xl text-[15px] leading-8 text-muted ${RICH_TEXT_CLS}`} dangerouslySetInnerHTML={{ __html: intro }} />
+    <>
+      {/* ── 페이지 타이틀 ─────────────────────────────────────────────────── */}
+      <Band tone="light" size="lg">
+        <Label className="mb-6 text-muted">Your Stage</Label>
+        <h1 className="type-display text-d2-m sm:text-h1 lg:text-d2">Your Stage</h1>
+        <p className="type-kr-heading mt-8 max-w-3xl text-h4-m sm:text-h4">
+          K-POP 전문 아레나에서 당신의 무대를 설계하세요.
+        </p>
+        <div
+          className={`mt-8 max-w-3xl text-m text-muted ${RICH_TEXT_CLS}`}
+          dangerouslySetInnerHTML={{ __html: intro }}
+        />
 
-      <Section id="overview" title="시설 개요">
-        <div className={`text-[13.5px] leading-7 text-muted ${RICH_TEXT_CLS}`} dangerouslySetInnerHTML={{ __html: overviewIntro }} />
-        <div className="mt-6 grid grid-cols-1 gap-5 sm:grid-cols-3">
+        <nav aria-label="시설 소개 섹션" className="mt-14 border-t border-border/25">
+          <ul className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
+            {SECTION_NAV.map((s, i) => (
+              <li key={s.href} className="border-b border-border/25">
+                <a
+                  href={s.href}
+                  className="group flex items-center justify-between gap-4 py-5 pr-4 transition-colors hover:text-muted"
+                >
+                  <span className="flex items-baseline gap-3">
+                    <span className="type-display text-xs tabular-nums text-muted">{no2(i)}</span>
+                    <span className="type-kr-heading text-h6-m sm:text-h6">{s.label}</span>
+                  </span>
+                  <ArrowRight className="transition-transform group-hover:translate-x-1" />
+                </a>
+              </li>
+            ))}
+          </ul>
+        </nav>
+      </Band>
+
+      {/* ── 시설 개요 ─────────────────────────────────────────────────────── */}
+      <Band id="overview" tone="white" className="scroll-mt-20">
+        <Head
+          label="Overview"
+          title="시설 개요"
+          lead={
+            <div className={RICH_TEXT_CLS} dangerouslySetInnerHTML={{ __html: overviewIntro }} />
+          }
+        />
+
+        <div className="mt-16 grid gap-12 sm:grid-cols-3 sm:gap-8">
           {halls.map((h) => (
             <div key={h.title}>
-              <ImagePlaceholder src={h.image} alt={h.title} />
-              <div className="mt-3 flex items-baseline gap-2">
-                {h.no && <span className="text-[11px] font-semibold text-border">{h.no}</span>}
-                <span className="text-[13.5px] font-semibold">{h.title}</span>
-                <span className="text-[11px] text-muted">{h.titleEn}</span>
+              <Media src={h.image} alt={h.title} ratio="4 / 3" />
+              <div className="mt-5 flex items-center gap-3">
+                {h.no && (
+                  <span className="type-display inline-flex h-6 items-center justify-center bg-accent px-2 text-xs tabular-nums text-on-accent">
+                    {h.no}
+                  </span>
+                )}
+                <span className="type-label text-xs text-muted">{h.titleEn}</span>
               </div>
-              <div className="mt-1 text-[12.5px] font-semibold text-accent">{h.stat}</div>
-              <p className="mt-2 text-[12.5px] leading-6 text-muted">{h.desc}</p>
+              <h3 className="type-kr-heading mt-3 text-h5-m sm:text-h5">{h.title}</h3>
+              <p className="mt-3 text-s font-bold">{h.stat}</p>
+              <p className="mt-3 text-s text-muted">{h.desc}</p>
             </div>
           ))}
         </div>
-        <ul className="mt-8 grid grid-cols-1 divide-y divide-border/60 border-t border-border/60 sm:grid-cols-2 sm:gap-x-8 sm:divide-y-0 sm:border-t-0">
-          {features.map((f) => (
-            <li key={f} className="flex items-center gap-3 py-3 text-[13.5px] text-foreground sm:border-b sm:border-border/60">
-              <svg aria-hidden viewBox="0 0 20 20" fill="none" className="h-[15px] w-[15px] shrink-0 text-accent">
-                <path
-                  d="M4 10.5L8 14.5L16 6"
-                  stroke="currentColor"
-                  strokeWidth="1.75"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                />
-              </svg>
-              {f}
-            </li>
-          ))}
-        </ul>
+      </Band>
 
-        <KeyMapGallery keyMaps={keyMaps} />
-      </Section>
+      {/* ── 시설 구성의 강점 (옐로 번호는 블랙 밴드에서만) ─────────────────── */}
+      {features.length > 0 && (
+        <Band tone="dark">
+          <Head
+            tone="dark"
+            label="Highlights"
+            title="시설 구성의 강점"
+            lead="공연 규모와 목적이 달라도 하나의 단지 안에서 해결하세요."
+          />
+          <ol className="mt-14 border-t border-inverse-fg/25">
+            {features.map((f, i) => (
+              <li
+                key={f}
+                className="grid gap-2 border-b border-inverse-fg/25 py-7 sm:grid-cols-[4rem_minmax(0,1fr)] sm:items-baseline sm:gap-8"
+              >
+                <span className="type-display text-h5 tabular-nums text-accent">{no2(i)}</span>
+                <p className="text-m text-inverse-fg/85">{f}</p>
+              </li>
+            ))}
+          </ol>
+        </Band>
+      )}
 
-      <Section id="specs" title="아레나 / 중형공연장 시설 제원">
-        <div className={`text-[13.5px] leading-7 text-muted ${RICH_TEXT_CLS}`} dangerouslySetInnerHTML={{ __html: specsIntro }} />
-        <div className="mt-6 grid grid-cols-1 gap-10 sm:grid-cols-2">
+      {/* ── 층별 키맵 ─────────────────────────────────────────────────────── */}
+      <Band tone="light">
+        <Head
+          label="Key Map"
+          title="층별 키맵"
+          lead="층별 좌석 배치와 관객·스태프 동선을 확인하세요."
+        />
+        <div className="mt-12">
+          <KeyMapGallery keyMaps={keyMaps} />
+        </div>
+      </Band>
+
+      {/* ── 시설 제원 ─────────────────────────────────────────────────────── */}
+      <Band id="specs" tone="white" className="scroll-mt-20">
+        <Head
+          label="Specs"
+          title="아레나 / 중형공연장 시설 제원"
+          lead={<div className={RICH_TEXT_CLS} dangerouslySetInnerHTML={{ __html: specsIntro }} />}
+        />
+
+        <div className="mt-16 grid gap-14 lg:grid-cols-2 lg:gap-16">
           {specs.map((s) => (
             <div key={s.name}>
-              <ImagePlaceholder src={s.image} alt={s.name} />
-              <div className="mt-3 text-[14px] font-semibold text-accent">{s.name}</div>
-              <dl className="mt-3 divide-y divide-border/60">
-                {s.rows.map(([k, v]) => (
-                  <div key={k} className="flex flex-col gap-0.5 py-2.5 text-[13px] sm:flex-row sm:gap-4">
-                    <dt className="shrink-0 text-muted sm:w-24">{k}</dt>
-                    <dd className="font-medium">{v}</dd>
-                  </div>
-                ))}
-              </dl>
+              <Media src={s.image} alt={s.name} ratio="16 / 9" />
+              <h3 className="type-kr-heading mt-5 text-h5-m sm:text-h5">{s.name}</h3>
+              <SpecTable className="mt-6" rows={s.rows} />
             </div>
           ))}
         </div>
 
-        <div className="mt-10">
-          <div className="text-[13px] font-semibold">주요 제공 시설</div>
-          <ul className="mt-3 grid grid-cols-2 gap-x-4 gap-y-1.5 text-[12.5px] text-muted sm:grid-cols-3">
-            {providedFacilities.map((f) => (
-              <li key={f} className="flex gap-1.5">
-                <span className="text-accent">·</span>
-                {f}
+        <div className="mt-16">
+          <h3 className="type-kr-heading text-h5-m sm:text-h5">주요 제공 시설</h3>
+          <ul className="mt-6 grid border-t border-border/25 sm:grid-cols-2 lg:grid-cols-3">
+            {providedFacilities.map((f, i) => (
+              <li key={f} className="flex items-baseline gap-3 border-b border-border/25 py-4">
+                <span className="type-display text-xs tabular-nums text-muted">{no2(i)}</span>
+                <span className="text-s">{f}</span>
               </li>
             ))}
           </ul>
         </div>
 
-        <div className="mt-6 flex items-center justify-between border border-dashed border-border px-4 py-3 text-[12.5px] text-muted">
-          <span>기술자료 (아레나·중형공연장 무대 장비/인프라 리스트)</span>
-          <span className="rounded bg-panel-strong px-2 py-1 text-[11px] font-medium">자료 준비 중</span>
+        <div className="mt-14">
+          <EmptyState
+            title="기술자료 준비 중"
+            desc="아레나·중형공연장 무대 장비 및 인프라 리스트를 담은 Technical Package는 정본 확정 후 제공합니다."
+            action={
+              <ButtonLink href="/faq" variant="outline" size="sm">
+                기술자료 문의
+              </ButtonLink>
+            }
+          />
         </div>
-      </Section>
+      </Band>
 
+      {/* ── 무대 특장 (ARTIST / AUDIENCE / PRODUCER 탭) ───────────────────── */}
       {specHighlights.length > 0 && (
-        <Section id="stage-features" title="무대 특장">
-          <div className="space-y-10">
-            {specHighlights.map((hl) => (
-              <div key={hl.title}>
-                <div className="flex flex-wrap gap-2">
-                  {hl.badges.map((b) => (
-                    <span
-                      key={b}
-                      className={`rounded-full border px-3 py-1 text-[11px] font-semibold tracking-wide ${
-                        b === hl.highlightBadge
-                          ? "border-accent bg-accent-soft text-accent"
-                          : "border-border text-muted"
-                      }`}
-                    >
-                      {b}
-                    </span>
-                  ))}
-                </div>
-                <h3 className="mt-4 text-[17px] font-semibold tracking-tight text-foreground sm:text-[19px]">{hl.title}</h3>
-                <p className="mt-1.5 text-[13px] text-muted">{hl.subtitle}</p>
-                <div className="mt-5 grid grid-cols-1 gap-4 sm:grid-cols-2">
-                  {hl.cards.map((c) => (
-                    <div key={c.title} className="rounded-sm border border-border bg-panel/50 p-4">
-                      <ImagePlaceholder src={c.image} alt={c.title} />
-                      <div className="mt-3 text-[13.5px] font-semibold">{c.title}</div>
-                      {c.desc && <p className="mt-1 text-[12.5px] leading-6 text-muted">{c.desc}</p>}
-                    </div>
-                  ))}
-                </div>
-              </div>
-            ))}
+        <Band id="stage-features" tone="dark" className="scroll-mt-20">
+          <Head
+            tone="dark"
+            label="Stage Features"
+            title="무대 특장"
+            lead="아티스트·관객·제작진 각각의 관점에서 무대가 무엇을 가능하게 하는지 확인하세요."
+          />
+          <div className="mt-14">
+            <StageFeatureTabs highlights={specHighlights} />
           </div>
-        </Section>
+        </Band>
       )}
 
-      <Section id="amenities" title="부대 시설">
+      {/* ── 부대 시설 ─────────────────────────────────────────────────────── */}
+      <Band id="amenities" tone="light" className="scroll-mt-20">
+        <Head
+          label="Amenities"
+          title="부대 시설"
+          lead="공연 준비부터 관객 응대까지, 운영에 필요한 공간을 함께 제공합니다."
+        />
+
         {amenityGallery.length > 0 && (
-          <div className="mb-8 grid grid-cols-2 gap-3 sm:grid-cols-3">
+          <ul className="mt-14 grid grid-cols-2 gap-6 sm:grid-cols-3">
             {amenityGallery.map((g, i) => (
-              <div key={i}>
-                <div className="aspect-[4/3] overflow-hidden rounded-sm border border-border">
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={g.url} alt={g.label || "부대시설"} className="h-full w-full object-cover" />
-                </div>
-                {g.label && <div className="mt-1.5 text-[12px] text-muted">{g.label}</div>}
-              </div>
+              <li key={`${g.url}-${i}`}>
+                <Media src={g.url} alt={g.label || "부대시설"} ratio="4 / 3" />
+                {g.label && <p className="mt-3 text-s text-muted">{g.label}</p>}
+              </li>
             ))}
-          </div>
+          </ul>
         )}
 
-        <div className="space-y-12">
-          {(
-            [
-              ["아레나 부대시설", arenaAmenities],
-              ["중형공연장 부대시설", mediumHallAmenities],
-            ] as const
-          ).map(([label, list], i) => {
-            const featured = list.filter((f) => f.featured);
-            const rest = list.filter((f) => !f.featured);
-            return (
-              <div key={label} className={i > 0 ? "border-t border-border/60 pt-12" : ""}>
-                <div className="text-[13.5px] font-semibold text-accent">{label}</div>
-
-                {featured.length > 0 && (
-                  <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2">
-                    {featured.map((f) => (
-                      <div key={f.name} className="rounded-sm border border-border bg-panel/50 p-4">
-                        <ImagePlaceholder src={f.image} alt={f.name} />
-                        <div className="mt-3 text-[13.5px] font-semibold">{f.name}</div>
-                        {f.desc && <p className="mt-1 text-[12.5px] leading-6 text-muted">{f.desc}</p>}
-                      </div>
-                    ))}
-                  </div>
-                )}
-
-                <ul className="mt-3 grid grid-cols-1 gap-x-8 divide-y divide-border/50 sm:grid-cols-2">
-                  {rest.map((f) => (
-                    <li key={f.name} className="py-2.5 text-[12.5px] sm:border-b sm:border-border/50 sm:odd:pr-6">
-                      <div className="font-semibold">{f.name}</div>
-                      {f.desc && <div className="mt-0.5 text-muted">{f.desc}</div>}
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            );
-          })}
+        <div className="mt-16 space-y-16">
+          <AmenityGroup title="아레나 부대시설" items={arenaAmenities} />
+          <AmenityGroup title="중형공연장 부대시설" items={mediumHallAmenities} />
         </div>
-        <p className="mt-4 text-[12px] text-muted">※ 시설별 제공 범위는 공연 규모 및 계약 조건에 따라 달라질 수 있습니다.</p>
-      </Section>
-    </div>
+
+        <p className="mt-12 text-s text-muted">
+          ※ 시설별 제공 범위는 공연 규모 및 계약 조건에 따라 달라질 수 있습니다.
+        </p>
+      </Band>
+
+      {/* ── 전환 CTA (옐로 면 위 텍스트는 항상 검정) ───────────────────────── */}
+      <Band tone="accent" size="md">
+        <div className="flex flex-col gap-8 lg:flex-row lg:items-end lg:justify-between">
+          <div>
+            <Label>Host It</Label>
+            <h2 className="type-kr-heading mt-4 text-h3-m sm:text-h3">
+              이 무대에서 공연을 준비하세요.
+            </h2>
+            <p className="mt-4 max-w-xl text-m">
+              대관 규모와 일정을 입력하면 예상 대관료를 즉시 확인할 수 있습니다.
+            </p>
+          </div>
+          <div className="flex shrink-0 flex-col gap-3 sm:flex-row">
+            <ButtonLink href="/apply" variant="outline" size="lg">
+              대관 신청하기
+              <ArrowRight />
+            </ButtonLink>
+            <ButtonLink href="/packages" variant="ghost" size="lg">
+              대관 패키지 보기
+            </ButtonLink>
+          </div>
+        </div>
+      </Band>
+    </>
   );
 }

@@ -5,10 +5,30 @@ import { useRouter } from "next/navigation";
 import type { Faq, Notice } from "@/lib/pricing/types";
 import type { GuideContent, HomeContent, VenueContent } from "@/lib/content/types";
 import { TagBadge } from "@/components/TagBadge";
+import { btnClass } from "@/components/ui/kit";
 import { NoticeEditor } from "./NoticeEditor";
 import { VenueContentForm } from "./VenueContentForm";
 import { GuideContentForm } from "./GuideContentForm";
 import { HomeContentForm } from "./HomeContentForm";
+import {
+  ADD_BTN_LG,
+  CARD,
+  ERROR_NOTE,
+  FIELD,
+  FIELD_BASE,
+  FIELD_LABEL,
+  HELP,
+  PANEL,
+  QUIET_BTN,
+  REMOVE_BTN,
+  SUB_TITLE,
+  TAB_BAR,
+  tabCls,
+} from "./adminUi";
+
+/** 파일 선택 input — 샤프 코너 · border-soft */
+const FILE_INPUT =
+  "w-full text-xs text-muted file:mr-3 file:border file:border-border-soft file:bg-surface file:px-3 file:py-1.5 file:text-xs file:font-bold file:text-foreground";
 
 type Tab = "notices" | "faq" | "home" | "venue" | "guide";
 
@@ -41,7 +61,7 @@ export function ContentManager({
 
   return (
     <div className="mt-8">
-      <div className="sticky top-14 z-10 -mx-6 flex h-11 items-center gap-1 overflow-x-auto whitespace-nowrap border-b border-border bg-background px-6 sm:top-16">
+      <div className={TAB_BAR}>
         {(
           [
             ["notices", `공지사항 (${notices.length})`],
@@ -51,17 +71,7 @@ export function ContentManager({
             ["guide", "대관 안내"],
           ] as const
         ).map(([key, label]) => (
-          <button
-            key={key}
-            type="button"
-            onClick={() => setTab(key)}
-            className={[
-              "shrink-0 border-b-2 px-3 py-3 text-[13px] font-medium outline-none transition-colors",
-              tab === key
-                ? "border-accent text-accent"
-                : "border-transparent text-muted hover:text-foreground",
-            ].join(" ")}
-          >
+          <button key={key} type="button" onClick={() => setTab(key)} className={tabCls(tab === key)}>
             {label}
           </button>
         ))}
@@ -206,41 +216,45 @@ function NoticesTab({
     <div>
       <ul className="space-y-2">
         {notices.length === 0 ? (
-          <li className="text-[13px] text-muted">등록된 공지사항이 없습니다.</li>
+          <li className="text-s text-muted">등록된 공지사항이 없습니다.</li>
         ) : (
           notices.map((notice) => (
-            <li key={notice.id} className="border border-border bg-background p-4">
+            <li key={notice.id} className={CARD}>
               <div className="flex items-start justify-between gap-4">
                 <button
                   type="button"
                   onClick={() => startEdit(notice)}
-                  className="flex flex-1 gap-3 text-left outline-none"
+                  className="flex min-w-0 flex-1 gap-3 text-left"
                 >
                   {notice.imageUrl && (
                     // eslint-disable-next-line @next/next/no-img-element
                     <img
                       src={notice.imageUrl}
                       alt=""
-                      className="h-14 w-20 shrink-0 rounded-sm border border-border object-cover"
+                      className="h-14 w-20 shrink-0 border border-border-soft object-cover"
                     />
                   )}
-                  <div>
-                    <div className="flex items-center text-[13.5px] font-semibold">
+                  <div className="min-w-0">
+                    <div className="flex items-center text-s font-bold">
                       <TagBadge tag={notice.tag} />
                       {notice.title}
                     </div>
-                    <p className="mt-1 text-[12.5px] leading-5 text-muted">{stripHtml(notice.body)}</p>
-                    <div className="mt-2 flex items-center gap-2 text-[11px] text-muted">
+                    <p className={`mt-1.5 ${HELP}`}>{stripHtml(notice.body)}</p>
+                    <div className="mt-2 flex items-center gap-2 text-xs tabular-nums text-muted">
                       {new Date(notice.createdAt).toLocaleString("ko-KR")}
-                      {notice.attachmentUrl && <span className="text-accent">· 첨부파일</span>}
+                      {notice.attachmentUrl && <span className="font-bold text-foreground">· 첨부파일</span>}
                     </div>
                   </div>
                 </button>
-                <div className="flex shrink-0 gap-3 text-[12.5px]">
-                  <button type="button" onClick={() => startEdit(notice)} className="text-accent hover:underline">
+                <div className="flex shrink-0 gap-4">
+                  <button
+                    type="button"
+                    onClick={() => startEdit(notice)}
+                    className="text-xs font-bold underline decoration-accent decoration-2 underline-offset-4 transition-colors hover:text-muted-strong"
+                  >
                     수정
                   </button>
-                  <button type="button" onClick={() => remove(notice.id)} className="text-muted hover:text-red-600">
+                  <button type="button" onClick={() => remove(notice.id)} className={REMOVE_BTN}>
                     삭제
                   </button>
                 </div>
@@ -251,41 +265,37 @@ function NoticesTab({
       </ul>
 
       {editingId ? (
-        <div className="mt-6 border border-border bg-panel/60 p-5">
-          <h3 className="text-[14px] font-semibold">{editingId === "__new__" ? "새 공지사항 등록" : "공지사항 수정"}</h3>
-          <div className="mt-3 space-y-3">
+        <div className={`mt-6 ${PANEL}`}>
+          <h3 className={SUB_TITLE}>{editingId === "__new__" ? "새 공지사항 등록" : "공지사항 수정"}</h3>
+          <div className="mt-4 space-y-4">
             <div className="flex gap-2">
               <input
                 type="text"
                 placeholder="말머리 (예: 공지, 점검)"
                 value={tag}
                 onChange={(e) => setTag(e.target.value)}
-                className="w-32 shrink-0 rounded-sm border border-border bg-panel px-3 py-2 text-[13px] outline-none focus:border-accent"
+                className={`w-32 shrink-0 ${FIELD_BASE}`}
               />
               <input
                 type="text"
                 placeholder="제목"
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
-                className="w-full rounded-sm border border-border bg-panel px-3 py-2 text-[13px] outline-none focus:border-accent"
+                className={FIELD}
               />
             </div>
             <div>
-              <span className="mb-1.5 block text-[12px] text-muted">내용</span>
+              <span className={FIELD_LABEL}>내용</span>
               <NoticeEditor value={body} onChange={setBody} />
             </div>
 
             <div>
-              <span className="mb-1.5 block text-[12px] text-muted">대표 이미지 (목록에 표시, 선택)</span>
+              <span className={FIELD_LABEL}>대표 이미지 (목록에 표시, 선택)</span>
               {imageUrl ? (
                 <div className="flex items-center gap-3">
                   {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={imageUrl} alt="" className="h-20 w-32 rounded-sm border border-border object-cover" />
-                  <button
-                    type="button"
-                    onClick={() => setImageUrl(null)}
-                    className="text-[12.5px] text-muted hover:text-red-600"
-                  >
+                  <img src={imageUrl} alt="" className="h-20 w-32 border border-border-soft object-cover" />
+                  <button type="button" onClick={() => setImageUrl(null)} className={REMOVE_BTN}>
                     이미지 제거
                   </button>
                 </div>
@@ -298,19 +308,19 @@ function NoticesTab({
                     const file = e.target.files?.[0];
                     if (file) uploadImage(file);
                   }}
-                  className="w-full text-[12.5px] text-muted file:mr-3 file:rounded-sm file:border file:border-border file:bg-background file:px-3 file:py-1.5 file:text-[12.5px] file:font-medium"
+                  className={FILE_INPUT}
                 />
               )}
-              {uploading && <p className="mt-1 text-[11.5px] text-muted">업로드 중...</p>}
+              {uploading && <p className={`mt-1 ${HELP}`}>업로드 중...</p>}
             </div>
 
             <div>
-              <span className="mb-1.5 block text-[12px] text-muted">
+              <span className={FIELD_LABEL}>
                 첨부파일 (규약/상세문서 등, 선택 · PDF/Word/한글/Excel/PowerPoint/ZIP, 20MB 이하)
               </span>
               {attachmentUrl ? (
                 <div className="flex items-center gap-3">
-                  <span className="rounded-sm border border-border bg-panel px-3 py-1.5 text-[12.5px]">
+                  <span className="border border-border-soft bg-surface px-3 py-1.5 text-xs">
                     {attachmentName}
                   </span>
                   <button
@@ -319,7 +329,7 @@ function NoticesTab({
                       setAttachmentUrl(null);
                       setAttachmentName(null);
                     }}
-                    className="text-[12.5px] text-muted hover:text-red-600"
+                    className={REMOVE_BTN}
                   >
                     파일 제거
                   </button>
@@ -333,34 +343,30 @@ function NoticesTab({
                     const file = e.target.files?.[0];
                     if (file) uploadAttachment(file);
                   }}
-                  className="w-full text-[12.5px] text-muted file:mr-3 file:rounded-sm file:border file:border-border file:bg-background file:px-3 file:py-1.5 file:text-[12.5px] file:font-medium"
+                  className={FILE_INPUT}
                 />
               )}
-              {uploadingAttachment && <p className="mt-1 text-[11.5px] text-muted">업로드 중...</p>}
+              {uploadingAttachment && <p className={`mt-1 ${HELP}`}>업로드 중...</p>}
             </div>
 
-            {error && <p className="text-[12.5px] text-red-600">{error}</p>}
-            <div className="flex items-center gap-3">
+            {error && <p className={ERROR_NOTE}>{error}</p>}
+            <div className="flex items-center gap-4">
               <button
                 type="button"
                 disabled={saving || uploading || !title.trim() || isHtmlBodyEmpty(body)}
                 onClick={save}
-                className="rounded-sm bg-accent px-5 py-2 text-[13px] font-semibold text-white transition-colors hover:bg-accent-hover disabled:opacity-50"
+                className={btnClass("primary", "md")}
               >
                 {saving ? "저장 중..." : "저장"}
               </button>
-              <button type="button" onClick={resetForm} className="text-[12.5px] text-muted hover:text-foreground">
+              <button type="button" onClick={resetForm} className={QUIET_BTN}>
                 취소
               </button>
             </div>
           </div>
         </div>
       ) : (
-        <button
-          type="button"
-          onClick={startCreate}
-          className="mt-6 border border-dashed border-border px-4 py-3 text-[12.5px] text-muted hover:border-accent hover:text-accent"
-        >
+        <button type="button" onClick={startCreate} className={`mt-6 ${ADD_BTN_LG}`}>
           + 새 공지사항 등록
         </button>
       )}
@@ -445,23 +451,27 @@ function FaqTab({
     <div>
       <ul className="space-y-2">
         {faqs.length === 0 ? (
-          <li className="text-[13px] text-muted">등록된 FAQ가 없습니다.</li>
+          <li className="text-s text-muted">등록된 FAQ가 없습니다.</li>
         ) : (
           faqs.map((faq) => (
-            <li key={faq.id} className="border border-border bg-background p-4">
+            <li key={faq.id} className={CARD}>
               <div className="flex items-start justify-between gap-4">
-                <button type="button" onClick={() => startEdit(faq)} className="flex-1 text-left outline-none">
-                  <div className="flex items-center text-[13.5px] font-semibold">
+                <button type="button" onClick={() => startEdit(faq)} className="min-w-0 flex-1 text-left">
+                  <div className="flex items-center text-s font-bold">
                     <TagBadge tag={faq.tag} />
                     Q. {faq.question}
                   </div>
-                  <p className="mt-1 whitespace-pre-wrap text-[12.5px] leading-5 text-muted">A. {faq.answer}</p>
+                  <p className={`mt-1.5 whitespace-pre-wrap ${HELP}`}>A. {faq.answer}</p>
                 </button>
-                <div className="flex shrink-0 gap-3 text-[12.5px]">
-                  <button type="button" onClick={() => startEdit(faq)} className="text-accent hover:underline">
+                <div className="flex shrink-0 gap-4">
+                  <button
+                    type="button"
+                    onClick={() => startEdit(faq)}
+                    className="text-xs font-bold underline decoration-accent decoration-2 underline-offset-4 transition-colors hover:text-muted-strong"
+                  >
                     수정
                   </button>
-                  <button type="button" onClick={() => remove(faq.id)} className="text-muted hover:text-red-600">
+                  <button type="button" onClick={() => remove(faq.id)} className={REMOVE_BTN}>
                     삭제
                   </button>
                 </div>
@@ -472,23 +482,23 @@ function FaqTab({
       </ul>
 
       {editingId ? (
-        <div className="mt-6 border border-border bg-panel/60 p-5">
-          <h3 className="text-[14px] font-semibold">{editingId === "__new__" ? "새 FAQ 등록" : "FAQ 수정"}</h3>
-          <div className="mt-3 space-y-3">
+        <div className={`mt-6 ${PANEL}`}>
+          <h3 className={SUB_TITLE}>{editingId === "__new__" ? "새 FAQ 등록" : "FAQ 수정"}</h3>
+          <div className="mt-4 space-y-4">
             <div className="flex gap-2">
               <input
                 type="text"
                 placeholder="말머리 (예: 신청, 정산)"
                 value={tag}
                 onChange={(e) => setTag(e.target.value)}
-                className="w-32 shrink-0 rounded-sm border border-border bg-panel px-3 py-2 text-[13px] outline-none focus:border-accent"
+                className={`w-32 shrink-0 ${FIELD_BASE}`}
               />
               <input
                 type="text"
                 placeholder="질문"
                 value={question}
                 onChange={(e) => setQuestion(e.target.value)}
-                className="w-full rounded-sm border border-border bg-panel px-3 py-2 text-[13px] outline-none focus:border-accent"
+                className={FIELD}
               />
             </div>
             <textarea
@@ -496,30 +506,26 @@ function FaqTab({
               rows={4}
               value={answer}
               onChange={(e) => setAnswer(e.target.value)}
-              className="w-full rounded-sm border border-border bg-panel px-3 py-2 text-[13px] outline-none focus:border-accent"
+              className={FIELD}
             />
-            {error && <p className="text-[12.5px] text-red-600">{error}</p>}
-            <div className="flex items-center gap-3">
+            {error && <p className={ERROR_NOTE}>{error}</p>}
+            <div className="flex items-center gap-4">
               <button
                 type="button"
                 disabled={saving || !question.trim() || !answer.trim()}
                 onClick={save}
-                className="rounded-sm bg-accent px-5 py-2 text-[13px] font-semibold text-white transition-colors hover:bg-accent-hover disabled:opacity-50"
+                className={btnClass("primary", "md")}
               >
                 {saving ? "저장 중..." : "저장"}
               </button>
-              <button type="button" onClick={resetForm} className="text-[12.5px] text-muted hover:text-foreground">
+              <button type="button" onClick={resetForm} className={QUIET_BTN}>
                 취소
               </button>
             </div>
           </div>
         </div>
       ) : (
-        <button
-          type="button"
-          onClick={startCreate}
-          className="mt-6 border border-dashed border-border px-4 py-3 text-[12.5px] text-muted hover:border-accent hover:text-accent"
-        >
+        <button type="button" onClick={startCreate} className={`mt-6 ${ADD_BTN_LG}`}>
           + 새 FAQ 등록
         </button>
       )}

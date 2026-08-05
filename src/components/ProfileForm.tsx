@@ -3,6 +3,13 @@
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import type { AppUser } from "@/lib/pricing/types";
+import { btnClass } from "@/components/ui/kit";
+
+/** 입력 필드 공통 스타일 — 샤프 코너 · border-soft 1px · surface 배경 · 포커스 옐로 아웃라인 */
+const FIELD =
+  "w-full border border-border-soft bg-surface px-3.5 py-2.5 text-s text-foreground transition-colors placeholder:text-muted focus:border-foreground focus:outline-2 focus:outline-accent";
+const FIELD_DISABLED =
+  "w-full border border-border-soft bg-background px-3.5 py-2.5 text-s text-muted";
 
 export function ProfileForm({ user }: { user: AppUser }) {
   const router = useRouter();
@@ -64,95 +71,118 @@ export function ProfileForm({ user }: { user: AppUser }) {
   }
 
   return (
-    <div className="mt-8 space-y-8">
-      <section className="rounded border border-border bg-background p-6">
-        <h2 className="text-[15px] font-semibold">기본 정보</h2>
-        <div className="mt-4 space-y-3">
+    <div className="space-y-12">
+      <section className="border-t border-border/25 pt-6">
+        <div className="flex items-baseline gap-3">
+          <span className="type-display text-xs tabular-nums text-muted">01</span>
+          <h2 className="type-kr-heading text-h6-m sm:text-h6">기본 정보</h2>
+        </div>
+
+        <div className="mt-6 space-y-4">
           <label className="block">
-            <span className="mb-1.5 block text-[12.5px] font-medium text-muted">이메일</span>
-            <input
-              type="email"
-              value={user.email}
-              disabled
-              className="w-full rounded-sm border border-border bg-panel-strong px-3.5 py-2.5 text-[14px] text-muted outline-none"
-            />
+            <span className="mb-2 block text-xs text-muted">이메일</span>
+            <input type="email" value={user.email} disabled className={FIELD_DISABLED} />
           </label>
           <label className="block">
-            <span className="mb-1.5 block text-[12.5px] font-medium text-muted">소속 회사/기획사</span>
+            <span className="mb-2 block text-xs text-muted">소속 회사/기획사</span>
             <input
               type="text"
               value={user.companyName || "소속 없음"}
               disabled
-              className="w-full rounded-sm border border-border bg-panel-strong px-3.5 py-2.5 text-[14px] text-muted outline-none"
+              className={FIELD_DISABLED}
             />
           </label>
           <label className="block">
-            <span className="mb-1.5 block text-[12.5px] font-medium text-muted">담당자명</span>
+            <span className="mb-2 block text-xs text-muted">담당자명</span>
             <input
               type="text"
               autoComplete="name"
               value={name}
               onChange={(e) => setName(e.target.value)}
-              className="w-full rounded-sm border border-border bg-panel px-3.5 py-2.5 text-[14px] outline-none focus:border-accent"
+              className={FIELD}
             />
           </label>
           <label className="block">
-            <span className="mb-1.5 block text-[12.5px] font-medium text-muted">휴대폰 번호</span>
+            <span className="mb-2 block text-xs text-muted">휴대폰 번호</span>
             <input
               type="tel"
               autoComplete="tel"
               placeholder="010-0000-0000"
               value={phone}
               onChange={(e) => setPhone(e.target.value)}
-              className="w-full rounded-sm border border-border bg-panel px-3.5 py-2.5 text-[14px] outline-none focus:border-accent"
+              className={FIELD}
             />
           </label>
-          <p className="text-[12px] text-muted">이메일과 소속 회사 변경은 운영자에게 문의해주세요.</p>
+          <p className="text-xs text-muted">이메일과 소속 회사 변경은 운영자에게 문의해주세요.</p>
         </div>
-        {profileError && <p className="mt-3 text-[13px] text-red-600">{profileError}</p>}
-        {profileMessage && <p className="mt-3 text-[13px] text-good">{profileMessage}</p>}
+
+        {profileError && (
+          <p className="mt-4 border-l-2 border-danger bg-danger-soft px-3 py-2 text-s text-danger">
+            {profileError}
+          </p>
+        )}
+        {profileMessage && (
+          <p className="mt-4 border-l-2 border-good bg-good-soft px-3 py-2 text-s text-good">
+            {profileMessage}
+          </p>
+        )}
+
         <button
           type="button"
           disabled={savingProfile}
           onClick={saveProfile}
-          className="mt-4 rounded-sm bg-accent px-6 py-2.5 text-[13.5px] font-semibold text-white transition-colors hover:bg-accent-hover disabled:opacity-50"
+          className={`${btnClass("primary")} mt-6`}
         >
           {savingProfile ? "저장 중..." : "정보 저장"}
         </button>
       </section>
 
-      <section className="rounded border border-border bg-background p-6">
-        <h2 className="text-[15px] font-semibold">비밀번호 변경</h2>
-        <div className="mt-4 space-y-3">
+      <section className="border-t border-border/25 pt-6">
+        <div className="flex items-baseline gap-3">
+          <span className="type-display text-xs tabular-nums text-muted">02</span>
+          <h2 className="type-kr-heading text-h6-m sm:text-h6">비밀번호 변경</h2>
+        </div>
+
+        <div className="mt-6 space-y-4">
           <label className="block">
-            <span className="mb-1.5 block text-[12.5px] font-medium text-muted">현재 비밀번호</span>
+            <span className="mb-2 block text-xs text-muted">현재 비밀번호</span>
             <input
               type="password"
               autoComplete="current-password"
               value={currentPassword}
               onChange={(e) => setCurrentPassword(e.target.value)}
-              className="w-full rounded-sm border border-border bg-panel px-3.5 py-2.5 text-[14px] outline-none focus:border-accent"
+              className={FIELD}
             />
           </label>
           <label className="block">
-            <span className="mb-1.5 block text-[12.5px] font-medium text-muted">새 비밀번호 (8자 이상)</span>
+            <span className="mb-2 block text-xs text-muted">새 비밀번호 (8자 이상)</span>
             <input
               type="password"
               autoComplete="new-password"
               minLength={8}
               value={newPassword}
               onChange={(e) => setNewPassword(e.target.value)}
-              className="w-full rounded-sm border border-border bg-panel px-3.5 py-2.5 text-[14px] outline-none focus:border-accent"
+              className={FIELD}
             />
           </label>
         </div>
-        {passwordError && <p className="mt-3 text-[13px] text-red-600">{passwordError}</p>}
-        {passwordMessage && <p className="mt-3 text-[13px] text-good">{passwordMessage}</p>}
+
+        {passwordError && (
+          <p className="mt-4 border-l-2 border-danger bg-danger-soft px-3 py-2 text-s text-danger">
+            {passwordError}
+          </p>
+        )}
+        {passwordMessage && (
+          <p className="mt-4 border-l-2 border-good bg-good-soft px-3 py-2 text-s text-good">
+            {passwordMessage}
+          </p>
+        )}
+
         <button
           type="button"
           disabled={savingPassword || !currentPassword || newPassword.length < 8}
           onClick={savePassword}
-          className="mt-4 rounded-sm border border-border px-6 py-2.5 text-[13.5px] font-semibold text-foreground transition-colors hover:bg-panel disabled:opacity-50"
+          className={`${btnClass("outline")} mt-6`}
         >
           {savingPassword ? "변경 중..." : "비밀번호 변경"}
         </button>

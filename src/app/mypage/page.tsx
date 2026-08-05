@@ -1,15 +1,33 @@
-import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getCurrentUser, isPendingApplicant } from "@/lib/auth";
 import { listQuotes } from "@/lib/db";
 import { won } from "@/lib/format";
 import type { Quote } from "@/lib/pricing/types";
 import { PublicHeader } from "@/components/PublicHeader";
+import { Breadcrumb } from "@/components/ui/Breadcrumb";
+import { SiteFooter } from "@/components/ui/SiteFooter";
+import {
+  ArrowRight,
+  Badge,
+  Band,
+  ButtonLink,
+  EmptyState,
+  Label,
+  Row,
+  RowList,
+} from "@/components/ui/kit";
 
 const STATUS_LABEL: Record<Quote["status"], string> = {
   ESTIMATE: "예상견적 (심사 대기)",
   CONTRACTED: "계약 확정",
   SETTLED: "정산 완료",
+};
+
+/** 상태 색은 kit 의 tone 만 쓴다 (임의 색 금지) */
+const STATUS_TONE: Record<Quote["status"], "warn" | "accent" | "good"> = {
+  ESTIMATE: "warn",
+  CONTRACTED: "accent",
+  SETTLED: "good",
 };
 
 export default async function MyPage() {
@@ -23,72 +41,69 @@ export default async function MyPage() {
   return (
     <div className="flex flex-1 flex-col">
       <PublicHeader active="/mypage" currentUser={user} />
+      <Breadcrumb items={[{ label: "내 신청 내역" }]} />
 
-      <main className="mx-auto w-full max-w-6xl flex-1 px-6 py-10">
-        <h1 className="text-[22px] font-semibold">{user.name} 님의 신청 내역</h1>
-        <p className="mt-2 text-[13.5px] text-muted">
-          {user.companyName ? `${user.companyName} · ` : ""}
-          {user.email}
-        </p>
+      <main className="flex flex-1 flex-col">
+        <Band tone="light" size="sm">
+          <Label className="mb-5 text-muted">My Applications</Label>
+          <h1 className="type-kr-heading text-h3-m sm:text-h3">{user.name} 님의 신청 내역</h1>
+          <p className="mt-5 text-s text-muted">
+            {user.companyName ? `${user.companyName} · ` : ""}
+            {user.email}
+          </p>
+        </Band>
 
-        <div className="mt-8 overflow-x-auto rounded border border-border">
-          <table className="w-full min-w-[720px] border-collapse text-[13px]">
-            <thead>
-              <tr className="border-b border-border bg-panel text-left text-[11.5px] font-medium text-muted">
-                <th className="px-4 py-3">신청번호</th>
-                <th className="px-4 py-3">신청일시</th>
-                <th className="px-4 py-3">주차</th>
-                <th className="px-4 py-3 text-right">신청 예상금액</th>
-                <th className="px-4 py-3 text-right">계약금액</th>
-                <th className="px-4 py-3 text-right">정산금액</th>
-                <th className="px-4 py-3">상태</th>
-                <th className="px-4 py-3" />
-              </tr>
-            </thead>
-            <tbody>
-              {quotes.length === 0 ? (
-                <tr>
-                  <td colSpan={8} className="px-4 py-8 text-center text-muted">
-                    아직 신청 내역이 없습니다.{" "}
-                    <Link href="/apply" className="text-accent hover:underline">
-                      대관 신청하기
-                    </Link>
-                  </td>
-                </tr>
-              ) : (
-                quotes.map((q) => (
-                  <tr key={q.id} className="border-b border-border/70">
-                    <td className="px-4 py-3 font-medium">{q.id}</td>
-                    <td className="px-4 py-3 text-muted">
-                      {new Date(q.createdAt).toLocaleString("ko-KR")}
-                    </td>
-                    <td className="px-4 py-3">
-                      {q.selection.week.year}.{q.selection.week.month} {q.selection.week.weekOfMonth}주차
-                    </td>
-                    <td className="px-4 py-3 text-right tabular-nums">{won(q.total)}</td>
-                    <td className="px-4 py-3 text-right tabular-nums">
-                      {q.contract ? won(q.contract.contractTotal) : "-"}
-                    </td>
-                    <td className="px-4 py-3 text-right tabular-nums">
-                      {q.settlement ? won(q.settlement.finalTotal) : "-"}
-                    </td>
-                    <td className="px-4 py-3">
-                      <span className="rounded-sm bg-accent-soft px-2.5 py-1 text-[11.5px] font-medium text-accent">
-                        {STATUS_LABEL[q.status]}
-                      </span>
-                    </td>
-                    <td className="px-4 py-3 text-right">
-                      <Link href={`/mypage/${q.id}`} className="font-medium text-accent hover:underline">
-                        상세 →
-                      </Link>
-                    </td>
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
-        </div>
+        <Band tone="white" size="sm">
+          {quotes.length === 0 ? (
+            <EmptyState
+              title="아직 신청 내역이 없습니다"
+              desc="예상 관객 규모와 일정을 입력하면 예상 대관료를 바로 확인할 수 있습니다."
+              action={
+                <ButtonLink href="/apply" variant="primary">
+                  대관 신청하기
+                  <ArrowRight />
+                </ButtonLink>
+              }
+            />
+          ) : (
+            <RowList>
+              {quotes.map((q) => (
+                <Row
+                  key={q.id}
+                  href={`/mypage/${q.id}`}
+                  lead={new Date(q.createdAt).toLocaleString("ko-KR")}
+                  title={q.id}
+                  sub={`${q.selection.week.year}.${q.selection.week.month} ${q.selection.week.weekOfMonth}주차`}
+                  meta={
+                    <dl className="flex flex-wrap gap-x-6 gap-y-1 tabular-nums sm:block sm:text-right">
+                      <div className="flex gap-2 sm:justify-end">
+                        <dt>신청 예상</dt>
+                        <dd className="font-bold text-foreground">{won(q.total)}</dd>
+                      </div>
+                      <div className="flex gap-2 sm:justify-end">
+                        <dt>계약</dt>
+                        <dd>{q.contract ? won(q.contract.contractTotal) : "-"}</dd>
+                      </div>
+                      <div className="flex gap-2 sm:justify-end">
+                        <dt>정산</dt>
+                        <dd>{q.settlement ? won(q.settlement.finalTotal) : "-"}</dd>
+                      </div>
+                    </dl>
+                  }
+                  action={
+                    <span className="flex items-center gap-3">
+                      <Badge tone={STATUS_TONE[q.status]}>{STATUS_LABEL[q.status]}</Badge>
+                      <ArrowRight className="text-muted transition-transform group-hover:translate-x-1" />
+                    </span>
+                  }
+                />
+              ))}
+            </RowList>
+          )}
+        </Band>
       </main>
+
+      <SiteFooter />
     </div>
   );
 }
