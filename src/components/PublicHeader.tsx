@@ -6,7 +6,7 @@ import type { AppUser } from "@/lib/pricing/types";
 import { LogoutButton } from "@/components/LogoutButton";
 import { NotificationBell } from "@/components/NotificationBell";
 
-const NAV_LINKS: {
+const MAIN_LINKS: {
   href: string;
   label: string;
   children?: { href: string; label: string }[];
@@ -33,9 +33,12 @@ const NAV_LINKS: {
       { href: "/guide/forms", label: "대관 자료" },
     ],
   },
+  { href: "/apply", label: "대관 신청" },
+];
+
+const RIGHT_LINKS: { href: string; label: string }[] = [
   { href: "/notices", label: "공지사항" },
   { href: "/faq", label: "FAQ" },
-  { href: "/apply", label: "대관 신청" },
 ];
 
 export function PublicHeader({
@@ -74,7 +77,7 @@ export function PublicHeader({
     return () => document.removeEventListener("click", onClickOutside);
   }, []);
 
-  const activeChildren = NAV_LINKS.find((link) => link.href === openMenu?.href)?.children;
+  const activeChildren = MAIN_LINKS.find((link) => link.href === openMenu?.href)?.children;
 
   return (
     <header className="sticky top-0 z-20 border-b border-border/70 bg-background/80 backdrop-blur-md">
@@ -84,7 +87,7 @@ export function PublicHeader({
         </Link>
 
         <nav ref={navRef} className="flex min-w-0 shrink items-center gap-x-6 overflow-x-auto whitespace-nowrap text-[13px] text-muted">
-          {NAV_LINKS.map((link) => (
+          {MAIN_LINKS.map((link) => (
             <div
               key={link.href}
               onMouseEnter={(e) => link.children && openNow(link.href, e.currentTarget)}
@@ -133,37 +136,51 @@ export function PublicHeader({
         )}
 
         <div className="ml-auto flex shrink-0 items-center gap-x-4 text-[13px] text-muted">
-          {currentUser ? (
-            <>
+          <nav className="flex items-center gap-x-4 whitespace-nowrap">
+            {RIGHT_LINKS.map((link) => (
               <Link
-                href={currentUser.role === "ADMIN" ? "/admin/users" : "/mypage/profile"}
-                className="hidden whitespace-nowrap underline decoration-border underline-offset-2 hover:text-foreground hover:decoration-foreground sm:inline"
-                title="회원정보 수정"
+                key={link.href}
+                href={link.href}
+                className={link.href === active ? "font-medium text-foreground" : "hover:text-foreground"}
               >
-                {currentUser.name} 님
+                {link.label}
               </Link>
-              {currentUser.role === "ADMIN" ? (
-                <Link href="/admin" className="whitespace-nowrap hover:text-foreground">
-                  운영자 백오피스
+            ))}
+          </nav>
+
+          <div className="flex items-center gap-x-4 border-l border-border/70 pl-4">
+            {currentUser ? (
+              <>
+                <Link
+                  href={currentUser.role === "ADMIN" ? "/admin/users" : "/mypage/profile"}
+                  className="hidden whitespace-nowrap underline decoration-border underline-offset-2 hover:text-foreground hover:decoration-foreground sm:inline"
+                  title="회원정보 수정"
+                >
+                  {currentUser.name} 님
                 </Link>
-              ) : (
-                <Link href="/mypage" className="whitespace-nowrap hover:text-foreground">
-                  내 신청 내역
+                {currentUser.role === "ADMIN" ? (
+                  <Link href="/admin" className="whitespace-nowrap hover:text-foreground">
+                    운영자 백오피스
+                  </Link>
+                ) : (
+                  <Link href="/mypage" className="whitespace-nowrap hover:text-foreground">
+                    내 신청 내역
+                  </Link>
+                )}
+                <NotificationBell role={currentUser.role} />
+                <LogoutButton className="whitespace-nowrap hover:text-foreground" />
+              </>
+            ) : (
+              <>
+                <Link href="/login" className="whitespace-nowrap hover:text-foreground">
+                  로그인
                 </Link>
-              )}
-              <NotificationBell role={currentUser.role} />
-              <LogoutButton className="whitespace-nowrap hover:text-foreground" />
-            </>
-          ) : (
-            <>
-              <Link href="/login" className="whitespace-nowrap hover:text-foreground">
-                로그인
-              </Link>
-              <Link href="/register" className="whitespace-nowrap hover:text-foreground">
-                회원가입
-              </Link>
-            </>
-          )}
+                <Link href="/register" className="whitespace-nowrap hover:text-foreground">
+                  회원가입
+                </Link>
+              </>
+            )}
+          </div>
         </div>
       </div>
     </header>
