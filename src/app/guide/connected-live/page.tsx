@@ -10,7 +10,7 @@ export const metadata: Metadata = {
 
 function Section({ id, title, children }: { id: string; title: string; children: React.ReactNode }) {
   return (
-    <section id={id} className="scroll-mt-24 border-t border-border py-14 first-of-type:border-t-0 first-of-type:pt-0">
+    <section id={id} className="scroll-mt-24 border-t border-border py-14">
       <h2 className="text-[22px] font-semibold tracking-tight">{title}</h2>
       <div className="mt-6">{children}</div>
     </section>
@@ -61,16 +61,18 @@ const BENEFITS: { tag: string; title: string; desc: string; image: string | null
   },
 ];
 
-const VENUE_TIERS: { title: string; desc: string; items: string[] | null }[] = [
+const VENUE_TIERS: { title: string; desc: string; items: string[] | null; image: string | null }[] = [
   {
     title: "REAL LIVE · 서울아레나 본공연",
     desc: "최대 2.8만 명 규모의 아레나 공연장에서 펼쳐지는 원본 무대입니다. 모든 커넥티드 라이브의 중심이 됩니다.",
     items: null,
+    image: null,
   },
   {
     title: "서울아레나 연계 시설",
     desc: "같은 부지 안에서 무대를 실시간으로 나눠 즐길 수 있는 공간들입니다.",
     items: ["중형공연장 · 약 2,000~4,000명", "컨벤션홀 · 약 1,400명", "야외 광장 · 약 500~1,000명"],
+    image: null,
   },
   {
     title: "공공 베뉴",
@@ -80,6 +82,7 @@ const VENUE_TIERS: { title: string; desc: string; items: string[] | null }[] = [
       "광화문 광장 · 약 10,000명 이상 수용 가능",
       "문정역 스포츠가든 · 약 1,000명 수용 가능",
     ],
+    image: null,
   },
 ];
 
@@ -150,13 +153,13 @@ export default async function ConnectedLivePage() {
             본공연은 서울아레나에서, 관람은 도시 곳곳에서. 공연 성격과 규모에 따라 다양한 베뉴를 연계해
             관람 경험을 확장합니다.
           </p>
-          <div className="mt-6">
-            <ImagePlaceholder src={null} alt="커넥티드 라이브 베뉴 연계 구조" />
-          </div>
           <div className="mt-6 space-y-5">
             {VENUE_TIERS.map((tier) => (
               <div key={tier.title} className="border border-border bg-panel/60 p-5">
-                <div className="text-[13.5px] font-semibold text-accent">{tier.title}</div>
+                <div className="max-w-sm">
+                  <ImagePlaceholder src={tier.image} alt={tier.title} />
+                </div>
+                <div className="mt-4 text-[13.5px] font-semibold text-accent">{tier.title}</div>
                 <p className="mt-2 text-[12.5px] leading-6 text-muted">{tier.desc}</p>
                 {tier.items && (
                   <ul className="mt-3 grid grid-cols-1 gap-x-6 gap-y-1 text-[12.5px] text-muted sm:grid-cols-3">
