@@ -1,15 +1,29 @@
 import { notFound, redirect } from "next/navigation";
 import { canAccessQuote, getCurrentUser } from "@/lib/auth";
-import { getDepositByQuoteId, getQuoteById, listAttachments } from "@/lib/db";
+import {
+  getContractSignatureByQuoteId,
+  getDepositByQuoteId,
+  getFacilityMeetingByQuoteId,
+  getQuoteById,
+  getTaxInvoice,
+  getTicketOpenByQuoteId,
+  listAttachments,
+} from "@/lib/db";
 import { won } from "@/lib/format";
 import { totalRentalDays } from "@/lib/pricing/rateTableUtils";
+import { checkAndFireReminders } from "@/lib/reminders";
 import { DepositPanel } from "@/components/DepositPanel";
 import { AttachmentsPanel } from "@/components/AttachmentsPanel";
+import { ContractSignaturePanel } from "@/components/ContractSignaturePanel";
+import { TaxInvoicePanel } from "@/components/TaxInvoicePanel";
+import { TicketOpenPanel } from "@/components/TicketOpenPanel";
+import { FacilityMeetingPanel } from "@/components/FacilityMeetingPanel";
+import { SettlementMutualConfirm } from "@/components/SettlementMutualConfirm";
 import { PublicHeader } from "@/components/PublicHeader";
 import { Breadcrumb } from "@/components/ui/Breadcrumb";
 import { SiteFooter } from "@/components/ui/SiteFooter";
 import { Badge, Band, ButtonLink, Label, SpecTable, btnClass } from "@/components/ui/kit";
-import type { Quote } from "@/lib/pricing/types";
+import { DEFAULT_VENUE_ID, VENUES, type Quote } from "@/lib/pricing/types";
 
 const STAGE_LABEL: Record<string, string> = {
   ESTIMATE: "신청 접수 (예상 견적)",
@@ -36,8 +50,17 @@ export default async function MyQuoteDetailPage({
   if (!quote) notFound();
   if (!canAccessQuote(user, quote)) notFound();
 
+  checkAndFireReminders(quote);
+
   const deposit = getDepositByQuoteId(id) ?? null;
-  const attachments = listAttachments(id);
+  const attachments = listAttachments(id, null);
+  const signature = getContractSignatureByQuoteId(id) ?? null;
+  const contractInvoice = getTaxInvoice(id, "CONTRACT") ?? null;
+  const settlementInvoice = getTaxInvoice(id, "SETTLEMENT") ?? null;
+  const ticketOpen = getTicketOpenByQuoteId(id) ?? null;
+  const facilityMeeting = getFacilityMeetingByQuoteId(id) ?? null;
+  const ticketOpenMaterials = listAttachments(id, "TICKET_OPEN");
+  const facilityMeetingMaterials = listAttachments(id, "FACILITY_MEETING");
 
   return (
     <div className="flex flex-1 flex-col">
@@ -55,7 +78,8 @@ export default async function MyQuoteDetailPage({
                 <Badge tone={STAGE_TONE[quote.status]}>{STAGE_LABEL[quote.status]}</Badge>
               </div>
               <p className="mt-5 text-s text-muted">
-                {quote.selection.week.year}년 {quote.selection.week.month}월{" "}
+                {VENUES.find((v) => v.id === (quote.selection.venueId ?? DEFAULT_VENUE_ID))?.name ?? "-"}{" "}
+                · {quote.selection.week.year}년 {quote.selection.week.month}월{" "}
                 {quote.selection.week.weekOfMonth}주차 · 총 {totalRentalDays(quote.selection)}일 · 관객{" "}
                 {quote.selection.expectedAudience.toLocaleString()}명
               </p>
@@ -175,9 +199,69 @@ export default async function MyQuoteDetailPage({
                       {won(quote.settlement.finalTotal)}
                     </span>
                   </div>
+                  <SettlementMutualConfirm
+                    quoteId={quote.id}
+                    settlement={quote.settlement}
+                    viewerRole="APPLICANT"
+                  />
                 </section>
               )}
             </div>
+          </Band>
+        )}
+
+        {/* 계약 이행 — 날인·세금계산서·티켓오픈·현장미팅 */}
+        {(quote.contract || quote.settlement) && (
+          <Band tone="light" size="sm" divide>
+            <Label className="mb-8 text-muted">Contract Process</Label>
+
+            {quote.contract && (
+              <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
+                <ContractSignaturePanel
+                  quoteId={quote.id}
+                  signature={signature}
+                  viewerRole="APPLICANT"
+                />
+                <TaxInvoicePanel
+                  quoteId={quote.id}
+                  purpose="CONTRACT"
+                  title="세금계산서 (계약금)"
+                  invoice={contractInvoice}
+                  viewerRole="APPLICANT"
+                />
+              </div>
+            )}
+
+            {quote.contract && (
+              <div className="mt-6 grid grid-cols-1 gap-6 sm:grid-cols-2">
+                <TicketOpenPanel
+                  quoteId={quote.id}
+                  depositConfirmed={deposit?.status === "CONFIRMED"}
+                  ticketOpen={ticketOpen}
+                  materials={ticketOpenMaterials}
+                  viewerRole="APPLICANT"
+                />
+                <FacilityMeetingPanel
+                  quoteId={quote.id}
+                  ticketOpenRegistered={!!ticketOpen?.openDate}
+                  facilityMeeting={facilityMeeting}
+                  materials={facilityMeetingMaterials}
+                  viewerRole="APPLICANT"
+                />
+              </div>
+            )}
+
+            {quote.settlement && (
+              <div className="mt-6">
+                <TaxInvoicePanel
+                  quoteId={quote.id}
+                  purpose="SETTLEMENT"
+                  title="세금계산서 (정산금)"
+                  invoice={settlementInvoice}
+                  viewerRole="APPLICANT"
+                />
+              </div>
+            )}
           </Band>
         )}
 

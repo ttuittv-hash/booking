@@ -167,7 +167,7 @@ export function Step1Calendar({
 
   return (
     <section>
-      <Label className="text-muted">Step 01</Label>
+      <Label className="text-muted">Step 02</Label>
       <h2 className="type-kr-heading mt-3 text-h4-m sm:text-h4">주차(기간) 선택</h2>
       <p className="mt-3 max-w-2xl text-s text-muted">
         달력에서 원하는 주를 눌러 선택하세요. 기본 단위는{" "}

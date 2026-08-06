@@ -49,8 +49,26 @@ export const MEDIA_TIER_LABEL: Record<Exclude<MediaTier, null>, string> = {
   FULL: "C세트",
 };
 
+// ---------------------------------------------------------------------------
+// 공간(대관 공연장) — 아레나/중형공연장 등, 추후 계속 확대 예정이므로 배열에
+// 항목만 추가하면 위저드·요금표 전체에 반영된다.
+// ---------------------------------------------------------------------------
+
+export interface Venue {
+  id: string;
+  name: string;
+}
+
+export const VENUES: Venue[] = [
+  { id: "arena", name: "아레나" },
+  { id: "medium-hall", name: "중형공연장" },
+];
+
+export const DEFAULT_VENUE_ID = "arena"; // venueId 미지정(기존) 데이터의 하위호환 기본값
+
 export interface RentalPackage {
   id: number; // 1~4
+  venueId: string; // VENUES 중 하나 — 이 패키지가 속한 공간
   name: string; // "패키지 1"
   tagline: string; // 한 줄 소개 문구 — "OOO을 위한 OOO" 형태로 패키지별 핵심 특징을 요약
   audienceTier: {
@@ -132,6 +150,7 @@ export const WEEKDAY_LABEL: Record<WeekDay, string> = {
 export type DayTag = "PREP" | "PERFORMANCE";
 
 export interface QuoteSelection {
+  venueId: string | null; // 0단계: 공간 선택
   packageId: number | null; // 1단계
   week: { year: number; month: number; weekOfMonth: number }; // 2단계 (화~일 시작 주)
   excludedDays: WeekDay[]; // 화~일 6일 중 실제 사용하지 않는 요일 (요일당 정액 할인, 최소 1일은 남겨야 함)
@@ -140,6 +159,52 @@ export interface QuoteSelection {
   expectedAudience: number; // 관객수 (청소비 등 자동 산출 입력값)
   expectedRevenue?: number; // 온라인 송출 수수료 계산용 (선택)
   addons: SelectedAddon[]; // 4단계 선택 항목
+  performanceInfo: PerformanceInfo; // 공연 정보 입력 단계
+}
+
+// ---------------------------------------------------------------------------
+// 공연 정보 입력 — 예상 대관료 확인 이후, 신청서 제출 전 공통 프로세스
+// ---------------------------------------------------------------------------
+
+export type EventType = "CONCERT" | "FANMEETING_CONCERT" | "CORPORATE" | "PUBLIC";
+
+export const EVENT_TYPE_LABEL: Record<EventType, string> = {
+  CONCERT: "콘서트",
+  FANMEETING_CONCERT: "팬미팅·콘서트",
+  CORPORATE: "기업행사",
+  PUBLIC: "공공행사",
+};
+
+export type StageType = "END_STAGE" | "CENTER_STAGE";
+
+export const STAGE_TYPE_LABEL: Record<StageType, string> = {
+  END_STAGE: "앤드스테이지",
+  CENTER_STAGE: "센터스테이지",
+};
+
+export type SeatingType = "SEATED" | "STANDING";
+
+export const SEATING_TYPE_LABEL: Record<SeatingType, string> = {
+  SEATED: "객석",
+  STANDING: "스탠딩",
+};
+
+export type RetractableSeatUse = "USE" | "NOT_USE";
+
+export const RETRACTABLE_SEAT_USE_LABEL: Record<RetractableSeatUse, string> = {
+  USE: "사용",
+  NOT_USE: "미사용",
+};
+
+export interface PerformanceInfo {
+  eventName: string; // 공연(행사)명
+  artist: string; // 아티스트
+  organizer: string; // 주최·주관·기획
+  eventScale: string; // 행사규모
+  eventTypes: EventType[]; // 행사유형
+  stageTypes: StageType[]; // 무대형태
+  seatingTypes: SeatingType[]; // 객석형태
+  retractableSeatUse: RetractableSeatUse | null; // 수납식 객석 사용여부
 }
 
 export interface WeekDemand {
@@ -224,6 +289,8 @@ export interface Settlement {
   finalTotal: number; // 최종 정산금액
   decidedAt: string;
   decidedBy: string;
+  mutualConfirmedAt?: string | null; // 신청자가 정산 내역을 확인한 시점 (상호 확인)
+  mutualConfirmedBy?: string | null;
 }
 
 // ---------------------------------------------------------------------------
@@ -246,8 +313,65 @@ export interface Deposit {
 }
 
 // ---------------------------------------------------------------------------
+// 대관 현황 — 계약 이후 진행 단계 (전자 날인 / 세금계산서 / 티켓오픈 / 시설회의)
+// 명세상 정식 연동 서비스(전자서명·세금계산서 발행 API) 도입 전까지는, 보증금과 동일하게
+// 운영자가 수동으로 상태를 체크하는 방식으로 운영한다.
+// ---------------------------------------------------------------------------
+
+export interface ContractSignature {
+  id: string;
+  quoteId: string;
+  venueSignedAt: string | null; // 공연장(운영자) 측 날인
+  venueSignedBy: string | null;
+  applicantSignedAt: string | null; // 대관사(신청자) 측 날인
+  applicantSignedBy: string | null;
+  createdAt: string;
+}
+
+// 세금계산서 — 계약금액(CONTRACT)·정산금액(SETTLEMENT) 공용. 발행 → 입금신청 → 입금확인,
+// 발행 후 미입금 상태가 5일 이상 지속되면 알림이 재발송된다(lastReminderAt 기준 lazy 체크).
+export type InvoicePurpose = "CONTRACT" | "SETTLEMENT";
+export type InvoiceStatus = "PENDING" | "ISSUED" | "REPORTED" | "PAID";
+
+export interface TaxInvoice {
+  id: string;
+  quoteId: string;
+  purpose: InvoicePurpose;
+  amount: number;
+  status: InvoiceStatus;
+  issuedAt: string | null;
+  issuedBy: string | null;
+  payerName: string | null; // 신청자가 입금신청 시 입력
+  reportedAt: string | null;
+  paidAt: string | null;
+  paidConfirmedBy: string | null;
+  lastReminderAt: string | null;
+  createdAt: string;
+}
+
+export interface TicketOpen {
+  id: string;
+  quoteId: string;
+  openDate: string | null; // ISO yyyy-mm-dd — 보증금 입금 확인 후 운영자가 등록
+  materialsUploadedAt: string | null; // 포스터/상세페이지/좌석배치도 등 자료 업로드 시점
+  lastReminderAt: string | null; // 오픈일 D-30 미업로드 알림 최근 발송 시점
+  createdAt: string;
+}
+
+export interface FacilityMeeting {
+  id: string;
+  quoteId: string;
+  meetingDate: string | null; // ISO yyyy-mm-dd — 티켓오픈 등록 후 운영자가 등록
+  materialsUploadedAt: string | null; // 운영 매뉴얼/프로덕션 노트 등 자료 업로드 시점
+  lastReminderAt: string | null; // 회의일 D-7 미업로드 알림 최근 발송 시점
+  createdAt: string;
+}
+
+// ---------------------------------------------------------------------------
 // 첨부서류
 // ---------------------------------------------------------------------------
+
+export type AttachmentCategory = "TICKET_OPEN" | "FACILITY_MEETING" | null;
 
 export interface Attachment {
   id: string;
@@ -257,6 +381,7 @@ export interface Attachment {
   mimeType: string;
   size: number;
   uploadedBy: string;
+  category: AttachmentCategory; // null = 일반 신청서류, 그 외 = 티켓오픈/시설회의 전용 자료
   createdAt: string;
 }
 
@@ -316,6 +441,24 @@ export interface AppNotification {
   quoteId: string;
   message: string;
   isRead: boolean;
+  createdAt: string;
+}
+
+// ---------------------------------------------------------------------------
+// 1:1 문의
+// ---------------------------------------------------------------------------
+
+export type InquiryStatus = "OPEN" | "ANSWERED";
+
+export interface Inquiry {
+  id: string;
+  userId: string;
+  title: string;
+  content: string;
+  status: InquiryStatus;
+  answer: string | null;
+  answeredAt: string | null;
+  answeredBy: string | null;
   createdAt: string;
 }
 

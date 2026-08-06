@@ -4,7 +4,7 @@ import { redirect } from "next/navigation";
 import { getCurrentUser, isPendingApplicant } from "@/lib/auth";
 import { getCurrentRateTable } from "@/lib/db";
 import { won } from "@/lib/format";
-import { findAddon, isAddonAvailable } from "@/lib/pricing/rateTableUtils";
+import { findAddon, packagePrice, isAddonAvailable } from "@/lib/pricing/rateTableUtils";
 import {
   ADDON_CATEGORY_LABEL,
   MEDIA_TIER_LABEL,
@@ -127,7 +127,7 @@ export default async function PackagesPage() {
                     <span className="mt-2 block text-s text-inverse-fg/80">{pkg.tagline}</span>
                   </span>
                   <span className="type-display shrink-0 text-h6 tabular-nums sm:text-h5">
-                    {won(pkg.baseFeePerWeek)}
+                    {won(packagePrice(rateTable, pkg))}
                   </span>
                 </Link>
               </li>
@@ -156,7 +156,7 @@ export default async function PackagesPage() {
                   <div className="mt-8 border-t border-border/25 pt-6">
                     <Label className="text-muted">기본 대관료</Label>
                     <p className="type-display mt-3 text-h3-m tabular-nums sm:text-h2">
-                      {won(pkg.baseFeePerWeek)}
+                      {won(packagePrice(rateTable, pkg))}
                     </p>
                     <p className="mt-3 text-s text-muted">
                       {pkg.includedWeeks}주 (화~일) 기준 · VAT 별도 · {pkg.dayBreakdown}
@@ -285,7 +285,7 @@ export default async function PackagesPage() {
               </p>
             </div>
             <div className="flex shrink-0 flex-col gap-3 sm:flex-row">
-              <Link href="/apply" className={btnClass("outline", "lg")}>
+              <Link href="/apply?new=1" className={btnClass("outline", "lg")}>
                 대관 신청 시작하기
                 <ArrowRight />
               </Link>

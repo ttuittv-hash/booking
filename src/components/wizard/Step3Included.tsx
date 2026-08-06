@@ -35,7 +35,7 @@ export function Step3Included({
 
   return (
     <section>
-      <Label className="text-muted">Step 03</Label>
+      <Label className="text-muted">Step 04</Label>
       <h2 className="type-kr-heading mt-3 text-h4-m sm:text-h4">기본 포함사항</h2>
       <p className="mt-3 max-w-2xl text-s text-muted">
         {pkg.name}에 기본 포함된 구성입니다. 초과분만 4단계에서 추가 과금됩니다.
@@ -80,7 +80,7 @@ export function Step3Included({
 function EmptyState() {
   return (
     <section>
-      <Label className="text-muted">Step 03</Label>
+      <Label className="text-muted">Step 04</Label>
       <h2 className="type-kr-heading mt-3 text-h4-m sm:text-h4">기본 포함사항</h2>
       <p className="mt-3 text-s text-muted">먼저 2단계에서 패키지를 선택하세요.</p>
     </section>

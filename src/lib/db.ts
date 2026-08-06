@@ -13,12 +13,19 @@ import type {
   AppNotification,
   AppUser,
   Attachment,
+  AttachmentCategory,
   AuditLogEntry,
   Company,
   ContractAdjustment,
+  ContractSignature,
   Deposit,
   DepositStatus,
   Faq,
+  FacilityMeeting,
+  Inquiry,
+  InquiryStatus,
+  InvoicePurpose,
+  InvoiceStatus,
   Notice,
   PageGroup,
   Quote,
@@ -28,6 +35,8 @@ import type {
   Settlement,
   DateBlock,
   StaticPage,
+  TaxInvoice,
+  TicketOpen,
   UserRole,
   WeekDemand,
 } from "./pricing/types";
@@ -194,6 +203,68 @@ function createConnection(): DatabaseSync {
       reason TEXT,
       created_at TEXT NOT NULL
     );
+
+    CREATE TABLE IF NOT EXISTS contract_signatures (
+      id TEXT PRIMARY KEY,
+      quote_id TEXT NOT NULL UNIQUE,
+      venue_signed_at TEXT,
+      venue_signed_by TEXT,
+      applicant_signed_at TEXT,
+      applicant_signed_by TEXT,
+      created_at TEXT NOT NULL,
+      FOREIGN KEY (quote_id) REFERENCES quotes(id)
+    );
+
+    CREATE TABLE IF NOT EXISTS tax_invoices (
+      id TEXT PRIMARY KEY,
+      quote_id TEXT NOT NULL,
+      purpose TEXT NOT NULL,
+      amount REAL NOT NULL,
+      status TEXT NOT NULL,
+      issued_at TEXT,
+      issued_by TEXT,
+      payer_name TEXT,
+      reported_at TEXT,
+      paid_at TEXT,
+      paid_confirmed_by TEXT,
+      last_reminder_at TEXT,
+      created_at TEXT NOT NULL,
+      FOREIGN KEY (quote_id) REFERENCES quotes(id),
+      UNIQUE(quote_id, purpose)
+    );
+
+    CREATE TABLE IF NOT EXISTS ticket_opens (
+      id TEXT PRIMARY KEY,
+      quote_id TEXT NOT NULL UNIQUE,
+      open_date TEXT,
+      materials_uploaded_at TEXT,
+      last_reminder_at TEXT,
+      created_at TEXT NOT NULL,
+      FOREIGN KEY (quote_id) REFERENCES quotes(id)
+    );
+
+    CREATE TABLE IF NOT EXISTS facility_meetings (
+      id TEXT PRIMARY KEY,
+      quote_id TEXT NOT NULL UNIQUE,
+      meeting_date TEXT,
+      materials_uploaded_at TEXT,
+      last_reminder_at TEXT,
+      created_at TEXT NOT NULL,
+      FOREIGN KEY (quote_id) REFERENCES quotes(id)
+    );
+
+    CREATE TABLE IF NOT EXISTS inquiries (
+      id TEXT PRIMARY KEY,
+      user_id TEXT NOT NULL,
+      title TEXT NOT NULL,
+      content TEXT NOT NULL,
+      status TEXT NOT NULL DEFAULT 'OPEN',
+      answer TEXT,
+      answered_at TEXT,
+      answered_by TEXT,
+      created_at TEXT NOT NULL,
+      FOREIGN KEY (user_id) REFERENCES users(id)
+    );
   `);
 
   // 이미 배포되어 있던 DB(기존 users/rate_tables 등)에는 CREATE TABLE IF NOT EXISTS가 새 컬럼을
@@ -217,6 +288,8 @@ function createConnection(): DatabaseSync {
   ensureColumn(db, "companies", "address", "TEXT");
   ensureColumn(db, "companies", "business_cert_url", "TEXT");
   ensureColumn(db, "companies", "business_cert_name", "TEXT");
+  ensureColumn(db, "attachments", "category", "TEXT");
+  ensureColumn(db, "users", "withdrawn_at", "TEXT");
   db.exec(
     "CREATE UNIQUE INDEX IF NOT EXISTS idx_users_username ON users(username) WHERE username IS NOT NULL",
   );
@@ -464,6 +537,7 @@ interface UserRow {
   company_id: string | null;
   role: UserRole;
   approval_status: ApprovalStatus;
+  withdrawn_at: string | null;
   created_at: string;
 }
 
@@ -540,7 +614,7 @@ export function findUserByEmailWithPasswordHash(
   const row = db.prepare("SELECT * FROM users WHERE email = ?").get(email.toLowerCase()) as
     | UserRow
     | undefined;
-  if (!row) return undefined;
+  if (!row || row.withdrawn_at) return undefined;
   return { ...toAppUser(row), passwordHash: row.password_hash };
 }
 
@@ -570,7 +644,7 @@ export function findUserByLoginIdWithPasswordHash(
     trimmed,
     trimmed.toLowerCase(),
   ) as UserRow | undefined;
-  if (!row) return undefined;
+  if (!row || row.withdrawn_at) return undefined;
   return { ...toAppUser(row), passwordHash: row.password_hash };
 }
 
@@ -622,6 +696,20 @@ export function findUserPasswordHash(id: string): string | undefined {
     | { password_hash: string }
     | undefined;
   return row?.password_hash;
+}
+
+// 탈퇴는 신청서(applicant_id FK)·감사로그 등 기존 기록 보존을 위해 소프트 삭제로 처리한다.
+export function withdrawUser(id: string, withdrawnAt: string) {
+  const db = getDb();
+  db.prepare("UPDATE users SET withdrawn_at = ? WHERE id = ?").run(withdrawnAt, id);
+}
+
+export function isUserWithdrawn(id: string): boolean {
+  const db = getDb();
+  const row = db.prepare("SELECT withdrawn_at FROM users WHERE id = ?").get(id) as
+    | { withdrawn_at: string | null }
+    | undefined;
+  return !!row?.withdrawn_at;
 }
 
 // ---------------------------------------------------------------------------
@@ -995,6 +1083,350 @@ export function confirmDeposit(quoteId: string, confirmedBy: string, confirmedAt
   return getDepositByQuoteId(quoteId)!;
 }
 
+// 정산 내역에 대한 신청자 상호 확인 — settlement_json에 필드만 덧붙인다 (기존 정산 확정 흐름은 그대로 둠).
+export function confirmSettlementMutual(quoteId: string, confirmedBy: string, confirmedAt: string): Quote {
+  const db = getDb();
+  const quote = getQuoteById(quoteId);
+  if (!quote?.settlement) throw new Error("정산 내역이 없습니다.");
+  const settlement: Settlement = {
+    ...quote.settlement,
+    mutualConfirmedAt: confirmedAt,
+    mutualConfirmedBy: confirmedBy,
+  };
+  db.prepare("UPDATE quotes SET settlement_json = ? WHERE id = ?").run(
+    JSON.stringify(settlement),
+    quoteId,
+  );
+  return getQuoteById(quoteId)!;
+}
+
+// ---------------------------------------------------------------------------
+// 전자 날인 (계약서 상호 날인 — 정식 전자서명 서비스 연동 전 운영자 수동 확인 방식)
+// ---------------------------------------------------------------------------
+
+interface ContractSignatureRow {
+  id: string;
+  quote_id: string;
+  venue_signed_at: string | null;
+  venue_signed_by: string | null;
+  applicant_signed_at: string | null;
+  applicant_signed_by: string | null;
+  created_at: string;
+}
+
+function toContractSignature(row: ContractSignatureRow): ContractSignature {
+  return {
+    id: row.id,
+    quoteId: row.quote_id,
+    venueSignedAt: row.venue_signed_at,
+    venueSignedBy: row.venue_signed_by,
+    applicantSignedAt: row.applicant_signed_at,
+    applicantSignedBy: row.applicant_signed_by,
+    createdAt: row.created_at,
+  };
+}
+
+export function getContractSignatureByQuoteId(quoteId: string): ContractSignature | undefined {
+  const db = getDb();
+  const row = db.prepare("SELECT * FROM contract_signatures WHERE quote_id = ?").get(quoteId) as
+    | ContractSignatureRow
+    | undefined;
+  return row ? toContractSignature(row) : undefined;
+}
+
+// 계약 확정 시점에 빈 레코드를 만들어두고, 이후 양측이 각자 날인한다.
+export function ensureContractSignature(quoteId: string, createdAt: string): ContractSignature {
+  const existing = getContractSignatureByQuoteId(quoteId);
+  if (existing) return existing;
+  const db = getDb();
+  const id = crypto.randomUUID();
+  db.prepare(
+    "INSERT INTO contract_signatures (id, quote_id, created_at) VALUES (?, ?, ?)",
+  ).run(id, quoteId, createdAt);
+  return getContractSignatureByQuoteId(quoteId)!;
+}
+
+export function signContractAsVenue(quoteId: string, signedBy: string, signedAt: string): ContractSignature {
+  const db = getDb();
+  db.prepare(
+    "UPDATE contract_signatures SET venue_signed_at = ?, venue_signed_by = ? WHERE quote_id = ?",
+  ).run(signedAt, signedBy, quoteId);
+  return getContractSignatureByQuoteId(quoteId)!;
+}
+
+export function signContractAsApplicant(quoteId: string, signedBy: string, signedAt: string): ContractSignature {
+  const db = getDb();
+  db.prepare(
+    "UPDATE contract_signatures SET applicant_signed_at = ?, applicant_signed_by = ? WHERE quote_id = ?",
+  ).run(signedAt, signedBy, quoteId);
+  return getContractSignatureByQuoteId(quoteId)!;
+}
+
+// ---------------------------------------------------------------------------
+// 세금계산서 (계약금액/정산금액 공용) — 발행 → 입금신청 → 입금확인
+// ---------------------------------------------------------------------------
+
+interface TaxInvoiceRow {
+  id: string;
+  quote_id: string;
+  purpose: InvoicePurpose;
+  amount: number;
+  status: InvoiceStatus;
+  issued_at: string | null;
+  issued_by: string | null;
+  payer_name: string | null;
+  reported_at: string | null;
+  paid_at: string | null;
+  paid_confirmed_by: string | null;
+  last_reminder_at: string | null;
+  created_at: string;
+}
+
+function toTaxInvoice(row: TaxInvoiceRow): TaxInvoice {
+  return {
+    id: row.id,
+    quoteId: row.quote_id,
+    purpose: row.purpose,
+    amount: row.amount,
+    status: row.status,
+    issuedAt: row.issued_at,
+    issuedBy: row.issued_by,
+    payerName: row.payer_name,
+    reportedAt: row.reported_at,
+    paidAt: row.paid_at,
+    paidConfirmedBy: row.paid_confirmed_by,
+    lastReminderAt: row.last_reminder_at,
+    createdAt: row.created_at,
+  };
+}
+
+export function getTaxInvoice(quoteId: string, purpose: InvoicePurpose): TaxInvoice | undefined {
+  const db = getDb();
+  const row = db
+    .prepare("SELECT * FROM tax_invoices WHERE quote_id = ? AND purpose = ?")
+    .get(quoteId, purpose) as TaxInvoiceRow | undefined;
+  return row ? toTaxInvoice(row) : undefined;
+}
+
+// 계약/정산 확정 시점에 PENDING 상태로 미리 만들어두고, 운영자가 금액을 채워 발행한다.
+export function ensureTaxInvoice(
+  quoteId: string,
+  purpose: InvoicePurpose,
+  amount: number,
+  createdAt: string,
+): TaxInvoice {
+  const existing = getTaxInvoice(quoteId, purpose);
+  if (existing) return existing;
+  const db = getDb();
+  const id = crypto.randomUUID();
+  db.prepare(
+    `INSERT INTO tax_invoices (id, quote_id, purpose, amount, status, created_at)
+     VALUES (?, ?, ?, ?, 'PENDING', ?)`,
+  ).run(id, quoteId, purpose, amount, createdAt);
+  return getTaxInvoice(quoteId, purpose)!;
+}
+
+export function issueTaxInvoice(
+  quoteId: string,
+  purpose: InvoicePurpose,
+  issuedBy: string,
+  issuedAt: string,
+): TaxInvoice {
+  const db = getDb();
+  db.prepare(
+    "UPDATE tax_invoices SET status = 'ISSUED', issued_at = ?, issued_by = ?, last_reminder_at = ? WHERE quote_id = ? AND purpose = ?",
+  ).run(issuedAt, issuedBy, issuedAt, quoteId, purpose);
+  return getTaxInvoice(quoteId, purpose)!;
+}
+
+export function reportTaxInvoicePayment(
+  quoteId: string,
+  purpose: InvoicePurpose,
+  payerName: string,
+  reportedAt: string,
+): TaxInvoice {
+  const db = getDb();
+  db.prepare(
+    "UPDATE tax_invoices SET status = 'REPORTED', payer_name = ?, reported_at = ? WHERE quote_id = ? AND purpose = ?",
+  ).run(payerName, reportedAt, quoteId, purpose);
+  return getTaxInvoice(quoteId, purpose)!;
+}
+
+export function confirmTaxInvoicePayment(
+  quoteId: string,
+  purpose: InvoicePurpose,
+  confirmedBy: string,
+  paidAt: string,
+): TaxInvoice {
+  const db = getDb();
+  db.prepare(
+    "UPDATE tax_invoices SET status = 'PAID', paid_at = ?, paid_confirmed_by = ? WHERE quote_id = ? AND purpose = ?",
+  ).run(paidAt, confirmedBy, quoteId, purpose);
+  return getTaxInvoice(quoteId, purpose)!;
+}
+
+// 미입금 5일 경과 시 알림 재발송 대상 — lastReminderAt 기준으로 lazy하게(페이지 조회 시점에) 판단한다.
+export function isInvoiceReminderDue(invoice: TaxInvoice, now: Date, intervalDays = 5): boolean {
+  if (invoice.status !== "ISSUED" && invoice.status !== "REPORTED") return false;
+  const base = invoice.lastReminderAt ?? invoice.issuedAt;
+  if (!base) return false;
+  const elapsedMs = now.getTime() - new Date(base).getTime();
+  return elapsedMs >= intervalDays * 24 * 60 * 60 * 1000;
+}
+
+export function touchInvoiceReminder(quoteId: string, purpose: InvoicePurpose, at: string) {
+  const db = getDb();
+  db.prepare(
+    "UPDATE tax_invoices SET last_reminder_at = ? WHERE quote_id = ? AND purpose = ?",
+  ).run(at, quoteId, purpose);
+}
+
+// ---------------------------------------------------------------------------
+// 티켓오픈
+// ---------------------------------------------------------------------------
+
+interface TicketOpenRow {
+  id: string;
+  quote_id: string;
+  open_date: string | null;
+  materials_uploaded_at: string | null;
+  last_reminder_at: string | null;
+  created_at: string;
+}
+
+function toTicketOpen(row: TicketOpenRow): TicketOpen {
+  return {
+    id: row.id,
+    quoteId: row.quote_id,
+    openDate: row.open_date,
+    materialsUploadedAt: row.materials_uploaded_at,
+    lastReminderAt: row.last_reminder_at,
+    createdAt: row.created_at,
+  };
+}
+
+export function getTicketOpenByQuoteId(quoteId: string): TicketOpen | undefined {
+  const db = getDb();
+  const row = db.prepare("SELECT * FROM ticket_opens WHERE quote_id = ?").get(quoteId) as
+    | TicketOpenRow
+    | undefined;
+  return row ? toTicketOpen(row) : undefined;
+}
+
+export function ensureTicketOpen(quoteId: string, createdAt: string): TicketOpen {
+  const existing = getTicketOpenByQuoteId(quoteId);
+  if (existing) return existing;
+  const db = getDb();
+  const id = crypto.randomUUID();
+  db.prepare("INSERT INTO ticket_opens (id, quote_id, created_at) VALUES (?, ?, ?)").run(
+    id,
+    quoteId,
+    createdAt,
+  );
+  return getTicketOpenByQuoteId(quoteId)!;
+}
+
+export function setTicketOpenDate(quoteId: string, openDate: string): TicketOpen {
+  const db = getDb();
+  db.prepare("UPDATE ticket_opens SET open_date = ? WHERE quote_id = ?").run(openDate, quoteId);
+  return getTicketOpenByQuoteId(quoteId)!;
+}
+
+export function markTicketOpenMaterialsUploaded(quoteId: string, at: string) {
+  const db = getDb();
+  db.prepare("UPDATE ticket_opens SET materials_uploaded_at = ? WHERE quote_id = ?").run(at, quoteId);
+}
+
+// D-30 미업로드 알림 대상 — 오픈일까지 30일 이하 남았고, 자료 미업로드 상태
+export function isTicketOpenReminderDue(ticketOpen: TicketOpen, now: Date): boolean {
+  if (!ticketOpen.openDate || ticketOpen.materialsUploadedAt) return false;
+  const daysUntilOpen = (new Date(ticketOpen.openDate).getTime() - now.getTime()) / (24 * 60 * 60 * 1000);
+  if (daysUntilOpen > 30) return false;
+  if (!ticketOpen.lastReminderAt) return true;
+  return now.getTime() - new Date(ticketOpen.lastReminderAt).getTime() >= 24 * 60 * 60 * 1000;
+}
+
+export function touchTicketOpenReminder(quoteId: string, at: string) {
+  const db = getDb();
+  db.prepare("UPDATE ticket_opens SET last_reminder_at = ? WHERE quote_id = ?").run(at, quoteId);
+}
+
+// ---------------------------------------------------------------------------
+// 시설회의
+// ---------------------------------------------------------------------------
+
+interface FacilityMeetingRow {
+  id: string;
+  quote_id: string;
+  meeting_date: string | null;
+  materials_uploaded_at: string | null;
+  last_reminder_at: string | null;
+  created_at: string;
+}
+
+function toFacilityMeeting(row: FacilityMeetingRow): FacilityMeeting {
+  return {
+    id: row.id,
+    quoteId: row.quote_id,
+    meetingDate: row.meeting_date,
+    materialsUploadedAt: row.materials_uploaded_at,
+    lastReminderAt: row.last_reminder_at,
+    createdAt: row.created_at,
+  };
+}
+
+export function getFacilityMeetingByQuoteId(quoteId: string): FacilityMeeting | undefined {
+  const db = getDb();
+  const row = db.prepare("SELECT * FROM facility_meetings WHERE quote_id = ?").get(quoteId) as
+    | FacilityMeetingRow
+    | undefined;
+  return row ? toFacilityMeeting(row) : undefined;
+}
+
+export function ensureFacilityMeeting(quoteId: string, createdAt: string): FacilityMeeting {
+  const existing = getFacilityMeetingByQuoteId(quoteId);
+  if (existing) return existing;
+  const db = getDb();
+  const id = crypto.randomUUID();
+  db.prepare("INSERT INTO facility_meetings (id, quote_id, created_at) VALUES (?, ?, ?)").run(
+    id,
+    quoteId,
+    createdAt,
+  );
+  return getFacilityMeetingByQuoteId(quoteId)!;
+}
+
+export function setFacilityMeetingDate(quoteId: string, meetingDate: string): FacilityMeeting {
+  const db = getDb();
+  db.prepare("UPDATE facility_meetings SET meeting_date = ? WHERE quote_id = ?").run(
+    meetingDate,
+    quoteId,
+  );
+  return getFacilityMeetingByQuoteId(quoteId)!;
+}
+
+export function markFacilityMeetingMaterialsUploaded(quoteId: string, at: string) {
+  const db = getDb();
+  db.prepare("UPDATE facility_meetings SET materials_uploaded_at = ? WHERE quote_id = ?").run(
+    at,
+    quoteId,
+  );
+}
+
+// D-7 미업로드 알림 대상 — 회의일까지 7일 이하 남았고, 자료 미업로드 상태
+export function isFacilityMeetingReminderDue(meeting: FacilityMeeting, now: Date): boolean {
+  if (!meeting.meetingDate || meeting.materialsUploadedAt) return false;
+  const daysUntilMeeting = (new Date(meeting.meetingDate).getTime() - now.getTime()) / (24 * 60 * 60 * 1000);
+  if (daysUntilMeeting > 7) return false;
+  if (!meeting.lastReminderAt) return true;
+  return now.getTime() - new Date(meeting.lastReminderAt).getTime() >= 24 * 60 * 60 * 1000;
+}
+
+export function touchFacilityMeetingReminder(quoteId: string, at: string) {
+  const db = getDb();
+  db.prepare("UPDATE facility_meetings SET last_reminder_at = ? WHERE quote_id = ?").run(at, quoteId);
+}
+
 // ---------------------------------------------------------------------------
 // 첨부서류
 // ---------------------------------------------------------------------------
@@ -1007,6 +1439,7 @@ interface AttachmentRow {
   mime_type: string;
   size: number;
   uploaded_by: string;
+  category: string | null;
   created_at: string;
 }
 
@@ -1019,6 +1452,7 @@ function toAttachment(row: AttachmentRow): Attachment {
     mimeType: row.mime_type,
     size: row.size,
     uploadedBy: row.uploaded_by,
+    category: (row.category as AttachmentCategory) ?? null,
     createdAt: row.created_at,
   };
 }
@@ -1031,12 +1465,13 @@ export function createAttachment(input: {
   mimeType: string;
   size: number;
   uploadedBy: string;
+  category?: AttachmentCategory;
   createdAt: string;
 }): Attachment {
   const db = getDb();
   db.prepare(
-    `INSERT INTO attachments (id, quote_id, stored_name, original_name, mime_type, size, uploaded_by, created_at)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+    `INSERT INTO attachments (id, quote_id, stored_name, original_name, mime_type, size, uploaded_by, category, created_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
   ).run(
     input.id,
     input.quoteId,
@@ -1045,6 +1480,7 @@ export function createAttachment(input: {
     input.mimeType,
     input.size,
     input.uploadedBy,
+    input.category ?? null,
     input.createdAt,
   );
   return toAttachment(
@@ -1052,12 +1488,21 @@ export function createAttachment(input: {
   );
 }
 
-export function listAttachments(quoteId: string): Attachment[] {
+export function listAttachments(quoteId: string, category?: AttachmentCategory): Attachment[] {
   const db = getDb();
-  const rows = db
-    .prepare("SELECT * FROM attachments WHERE quote_id = ? ORDER BY created_at ASC")
-    .all(quoteId) as unknown as AttachmentRow[];
-  return rows.map(toAttachment);
+  let rows: unknown[];
+  if (category === undefined) {
+    rows = db.prepare("SELECT * FROM attachments WHERE quote_id = ? ORDER BY created_at ASC").all(quoteId);
+  } else if (category === null) {
+    rows = db
+      .prepare("SELECT * FROM attachments WHERE quote_id = ? AND category IS NULL ORDER BY created_at ASC")
+      .all(quoteId);
+  } else {
+    rows = db
+      .prepare("SELECT * FROM attachments WHERE quote_id = ? AND category = ? ORDER BY created_at ASC")
+      .all(quoteId, category);
+  }
+  return (rows as AttachmentRow[]).map(toAttachment);
 }
 
 export function getAttachmentById(id: string): Attachment | undefined {
@@ -1150,6 +1595,80 @@ export function markNotificationRead(id: string, recipientId: string) {
 export function markAllNotificationsRead(recipientId: string) {
   const db = getDb();
   db.prepare("UPDATE notifications SET is_read = 1 WHERE recipient_id = ?").run(recipientId);
+}
+
+// ---------------------------------------------------------------------------
+// 1:1 문의
+// ---------------------------------------------------------------------------
+
+interface InquiryRow {
+  id: string;
+  user_id: string;
+  title: string;
+  content: string;
+  status: InquiryStatus;
+  answer: string | null;
+  answered_at: string | null;
+  answered_by: string | null;
+  created_at: string;
+}
+
+function toInquiry(row: InquiryRow): Inquiry {
+  return {
+    id: row.id,
+    userId: row.user_id,
+    title: row.title,
+    content: row.content,
+    status: row.status,
+    answer: row.answer,
+    answeredAt: row.answered_at,
+    answeredBy: row.answered_by,
+    createdAt: row.created_at,
+  };
+}
+
+export function createInquiry(input: {
+  id: string;
+  userId: string;
+  title: string;
+  content: string;
+  createdAt: string;
+}): Inquiry {
+  const db = getDb();
+  db.prepare(
+    `INSERT INTO inquiries (id, user_id, title, content, status, created_at)
+     VALUES (?, ?, ?, ?, 'OPEN', ?)`,
+  ).run(input.id, input.userId, input.title, input.content, input.createdAt);
+  return getInquiryById(input.id)!;
+}
+
+export function getInquiryById(id: string): Inquiry | undefined {
+  const db = getDb();
+  const row = db.prepare("SELECT * FROM inquiries WHERE id = ?").get(id) as InquiryRow | undefined;
+  return row ? toInquiry(row) : undefined;
+}
+
+export function listInquiries(filter?: { userId?: string }): Inquiry[] {
+  const db = getDb();
+  const rows = (
+    filter?.userId
+      ? db.prepare("SELECT * FROM inquiries WHERE user_id = ? ORDER BY created_at DESC").all(filter.userId)
+      : db.prepare("SELECT * FROM inquiries ORDER BY created_at DESC").all()
+  ) as unknown as InquiryRow[];
+  return rows.map(toInquiry);
+}
+
+export function answerInquiry(
+  id: string,
+  answer: string,
+  answeredBy: string,
+  answeredAt: string,
+): Inquiry {
+  const db = getDb();
+  db.prepare(
+    "UPDATE inquiries SET status = 'ANSWERED', answer = ?, answered_by = ?, answered_at = ? WHERE id = ?",
+  ).run(answer, answeredBy, answeredAt, id);
+  return getInquiryById(id)!;
 }
 
 // ---------------------------------------------------------------------------

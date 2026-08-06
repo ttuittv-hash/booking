@@ -1,10 +1,21 @@
 "use client";
 
 import Link from "next/link";
+import { useState } from "react";
 import { won } from "@/lib/format";
 import { findPackage, totalRentalDays } from "@/lib/pricing/rateTableUtils";
-import type { EstimatedQuote, QuoteSelection, RateTable } from "@/lib/pricing/types";
-import { Label, btnClass } from "@/components/ui/kit";
+import {
+  DEFAULT_VENUE_ID,
+  EVENT_TYPE_LABEL,
+  RETRACTABLE_SEAT_USE_LABEL,
+  SEATING_TYPE_LABEL,
+  STAGE_TYPE_LABEL,
+  VENUES,
+  type EstimatedQuote,
+  type QuoteSelection,
+  type RateTable,
+} from "@/lib/pricing/types";
+import { Label, SpecTable, btnClass } from "@/components/ui/kit";
 
 const STAGES = [
   {
@@ -43,6 +54,8 @@ export function Step6Submit({
   submitting,
   submittedId,
   error,
+  attachmentError,
+  fileCount = 0,
   onSubmit,
 }: {
   rateTable: RateTable;
@@ -53,23 +66,56 @@ export function Step6Submit({
   submitting: boolean;
   submittedId: string | null;
   error: string | null;
+  attachmentError?: string | null;
+  fileCount?: number;
   onSubmit: () => void;
 }) {
   const pkg = findPackage(rateTable, selection.packageId);
+  const [confirmed, setConfirmed] = useState(false);
+  const [pledged, setPledged] = useState(false);
+  const venueName =
+    VENUES.find((v) => v.id === (selection.venueId ?? DEFAULT_VENUE_ID))?.name ?? "-";
+  const info = selection.performanceInfo;
 
   if (!pkg) {
     return (
       <section>
-        <Label className="text-muted">Step 06</Label>
+        <Label className="text-muted">Step 08</Label>
         <h2 className="type-kr-heading mt-3 text-h4-m sm:text-h4">신청서 제출</h2>
-        <p className="mt-3 text-s text-muted">먼저 2단계에서 패키지를 선택하세요.</p>
+        <p className="mt-3 text-s text-muted">먼저 3단계에서 패키지를 선택하세요.</p>
       </section>
     );
   }
 
+  const canSubmit = confirmed && pledged;
+  const infoRows: [string, string][] = [
+    ["공연(행사)명", info.eventName || "-"],
+    ["아티스트", info.artist || "-"],
+    ["주최·주관·기획", info.organizer || "-"],
+    ["행사규모", info.eventScale || "-"],
+    [
+      "행사유형",
+      info.eventTypes.length ? info.eventTypes.map((t) => EVENT_TYPE_LABEL[t]).join(", ") : "-",
+    ],
+    [
+      "무대형태",
+      info.stageTypes.length ? info.stageTypes.map((t) => STAGE_TYPE_LABEL[t]).join(", ") : "-",
+    ],
+    [
+      "객석형태",
+      info.seatingTypes.length
+        ? info.seatingTypes.map((t) => SEATING_TYPE_LABEL[t]).join(", ")
+        : "-",
+    ],
+    [
+      "수납식 객석 사용여부",
+      info.retractableSeatUse ? RETRACTABLE_SEAT_USE_LABEL[info.retractableSeatUse] : "-",
+    ],
+  ];
+
   return (
     <section>
-      <Label className="text-muted">Step 06</Label>
+      <Label className="text-muted">Step 08</Label>
       <h2 className="type-kr-heading mt-3 text-h4-m sm:text-h4">
         {isEditing ? "신청서 수정" : "신청서 제출"}
       </h2>
@@ -83,7 +129,7 @@ export function Step6Submit({
       <div className="mt-7 flex flex-col gap-5 border-t-2 border-foreground pt-5 sm:flex-row sm:items-end sm:justify-between sm:gap-8">
         <div className="min-w-0">
           <p className="type-kr-heading text-h6-m sm:text-h6">
-            {pkg.name} · {pkg.audienceTier.label}
+            {venueName} · {pkg.name} · {pkg.audienceTier.label}
           </p>
           <p className="mt-2 text-s text-muted">
             {selection.week.year}년 {selection.week.month}월 {selection.week.weekOfMonth}주차 · 총{" "}
@@ -94,6 +140,17 @@ export function Step6Submit({
           <Label className="text-muted">신청 예상금액 · VAT 포함</Label>
           <p className="type-display mt-2 text-h4-m tabular-nums sm:text-h3">{won(quote.total)}</p>
         </div>
+      </div>
+
+      {/* 공연 정보 — 카드 박스 대신 헤어라인 제원표 */}
+      <div className="mt-10">
+        <div className="flex flex-wrap items-baseline justify-between gap-3">
+          <h3 className="type-kr-heading text-h6-m sm:text-h6">공연 정보</h3>
+          {fileCount > 0 && (
+            <p className="text-s text-muted">첨부파일 {fileCount}개가 함께 제출됩니다</p>
+          )}
+        </div>
+        <SpecTable rows={infoRows} className="mt-5" />
       </div>
 
       {submittedId ? (
@@ -112,6 +169,11 @@ export function Step6Submit({
               인쇄 / PDF 저장
             </Link>
           </div>
+          {attachmentError && (
+            <p className="mt-4 border-t border-on-accent/25 pt-3 text-s text-on-accent">
+              {attachmentError}
+            </p>
+          )}
         </div>
       ) : !isLoggedIn ? (
         <div className="mt-7 border-l-2 border-accent bg-warn-soft px-4 py-3.5 text-s leading-6 text-muted-strong">
@@ -127,11 +189,32 @@ export function Step6Submit({
         </div>
       ) : (
         <>
+          <div className="mt-7 space-y-3 border-t border-border/25 pt-5">
+            <label className="flex cursor-pointer items-start gap-2.5 text-s">
+              <input
+                type="checkbox"
+                checked={confirmed}
+                onChange={(e) => setConfirmed(e.target.checked)}
+                className="mt-0.5 accent-accent"
+              />
+              위에 표시된 공연기간/일정 및 공연정보 입력 내용을 확인하였으며, 이대로 신청서를
+              제출합니다.
+            </label>
+            <label className="flex cursor-pointer items-start gap-2.5 text-s">
+              <input
+                type="checkbox"
+                checked={pledged}
+                onChange={(e) => setPledged(e.target.checked)}
+                className="mt-0.5 accent-accent"
+              />
+              입력한 내용이 사실과 틀림없으며, 이를 이행할 것을 서약합니다.
+            </label>
+          </div>
           <button
             type="button"
-            disabled={submitting}
+            disabled={submitting || !canSubmit}
             onClick={onSubmit}
-            className={`${btnClass("primary", "lg")} mt-7`}
+            className={`${btnClass("primary", "lg")} mt-6`}
           >
             {submitting ? "저장 중..." : isEditing ? "수정 내용 저장" : "신청서 생성"}
           </button>

@@ -19,7 +19,7 @@ export function Step5Estimate({
   if (!pkg) {
     return (
       <section>
-        <Label className="text-muted">Step 05</Label>
+        <Label className="text-muted">Step 06</Label>
         <h2 className="type-kr-heading mt-3 text-h4-m sm:text-h4">예상 대관료 · 산출내역서</h2>
         <p className="mt-3 text-s text-muted">먼저 2단계에서 패키지를 선택하세요.</p>
       </section>
@@ -28,7 +28,7 @@ export function Step5Estimate({
 
   return (
     <section>
-      <Label className="text-muted">Step 05</Label>
+      <Label className="text-muted">Step 06</Label>
       <h2 className="type-kr-heading mt-3 text-h4-m sm:text-h4">예상 대관료 · 산출내역서</h2>
       <p className="mt-3 max-w-2xl text-s text-muted">
         {pkg.name} · {selection.week.year}.{selection.week.month}{" "}

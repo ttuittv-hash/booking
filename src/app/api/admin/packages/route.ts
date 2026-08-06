@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
 import { getCurrentRateTable, saveNewRateTableVersion } from "@/lib/db";
-import type { AddonCategory, AddonItem, MediaTier, PackageInclusion, RentalPackage } from "@/lib/pricing/types";
+import { VENUES, type AddonCategory, type AddonItem, type MediaTier, type PackageInclusion, type RentalPackage } from "@/lib/pricing/types";
 
 const MEDIA_TIERS: (MediaTier | null)[] = ["BASIC", "EXTENDED", "FULL", null];
 
@@ -53,6 +53,7 @@ function sanitizeNewAddon(input: Record<string, unknown>): AddonItem | null {
 function blankPackage(id: number): RentalPackage {
   return {
     id,
+    venueId: VENUES[0].id,
     name: `패키지 ${id}`,
     tagline: "",
     audienceTier: { min: 0, max: 0, label: "" },
@@ -106,6 +107,10 @@ function sanitizePackage(current: RentalPackage, input: unknown): RentalPackage 
     ? (p.mediaTier as MediaTier)
     : current.mediaTier;
 
+  const venueId = VENUES.some((v) => v.id === p.venueId)
+    ? (p.venueId as string)
+    : (current.venueId ?? VENUES[0].id);
+
   const str = (key: string) => (typeof p[key] === "string" ? (p[key] as string) : current[key as keyof RentalPackage]);
 
   const name = typeof p.name === "string" && p.name.trim() ? p.name.trim() : current.name;
@@ -119,6 +124,7 @@ function sanitizePackage(current: RentalPackage, input: unknown): RentalPackage 
 
   return {
     ...current,
+    venueId,
     name,
     tagline: str("tagline") as string,
     baseFeePerWeek,

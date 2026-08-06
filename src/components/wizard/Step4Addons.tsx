@@ -34,7 +34,7 @@ export function Step4Addons({
   if (!pkg) {
     return (
       <section>
-        <Label className="text-muted">Step 04</Label>
+        <Label className="text-muted">Step 05</Label>
         <h2 className="type-kr-heading mt-3 text-h4-m sm:text-h4">추가 옵션 선택</h2>
         <p className="mt-3 text-s text-muted">먼저 2단계에서 패키지를 선택하세요.</p>
       </section>
@@ -51,7 +51,7 @@ export function Step4Addons({
 
   return (
     <section>
-      <Label className="text-muted">Step 04</Label>
+      <Label className="text-muted">Step 05</Label>
       <h2 className="type-kr-heading mt-3 text-h4-m sm:text-h4">추가 옵션 선택</h2>
       <p className="mt-3 max-w-2xl text-s text-muted">
         기본 포함분은 초과분만 과금됩니다:{" "}

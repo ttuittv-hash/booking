@@ -26,6 +26,7 @@ const NAV_COLUMNS: { label: string; links: { label: string; href: string }[] }[]
       { label: "대관 개요", href: "/guide" },
       { label: "대관 절차", href: "/guide#process" },
       { label: "대관 패키지", href: "/packages" },
+      { label: "대관료", href: "/guide#rates" },
       { label: "대관 규약", href: "/guide#rules" },
       { label: "대관 양식함", href: "/guide/forms" },
       { label: "이미지 가이드", href: "/guide/image-guide" },
@@ -36,12 +37,13 @@ const NAV_COLUMNS: { label: string; links: { label: string; href: string }[] }[]
     links: [
       { label: "공지사항", href: "/notices" },
       { label: "FAQ", href: "/faq" },
+      { label: "1:1 문의", href: "/mypage/inquiries" },
     ],
   },
   {
     label: "Host It",
     links: [
-      { label: "대관 신청", href: "/apply" },
+      { label: "대관 신청", href: "/apply?new=1" },
       { label: "내 신청 내역", href: "/mypage" },
       { label: "회원가입", href: "/register" },
       { label: "로그인", href: "/login" },

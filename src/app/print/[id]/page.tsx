@@ -3,6 +3,14 @@ import { canAccessQuote, getCurrentUser } from "@/lib/auth";
 import { findUserById, getQuoteById } from "@/lib/db";
 import { won } from "@/lib/format";
 import { totalRentalDays } from "@/lib/pricing/rateTableUtils";
+import {
+  DEFAULT_VENUE_ID,
+  EVENT_TYPE_LABEL,
+  RETRACTABLE_SEAT_USE_LABEL,
+  SEATING_TYPE_LABEL,
+  STAGE_TYPE_LABEL,
+  VENUES,
+} from "@/lib/pricing/types";
 import { PrintButton } from "@/components/PrintButton";
 
 /**
@@ -66,6 +74,12 @@ export default async function PrintQuotePage({
           <h2 className="type-label text-xs text-muted">대관 일정</h2>
           <dl className="mt-3 border-t border-border/40">
             <SpecRow
+              label="공간"
+              value={
+                VENUES.find((v) => v.id === (quote.selection.venueId ?? DEFAULT_VENUE_ID))?.name ?? "-"
+              }
+            />
+            <SpecRow
               label="주차"
               value={`${quote.selection.week.year}년 ${quote.selection.week.month}월 ${quote.selection.week.weekOfMonth}주차`}
             />
@@ -74,6 +88,57 @@ export default async function PrintQuotePage({
           </dl>
         </div>
       </section>
+
+      {quote.selection.performanceInfo && (
+        <section className="mt-8 grid gap-8 break-inside-avoid sm:grid-cols-2">
+          <div>
+            <h2 className="type-label text-xs text-muted">공연 정보</h2>
+            <dl className="mt-3 border-t border-border/40">
+              <SpecRow label="공연(행사)명" value={quote.selection.performanceInfo.eventName || "-"} />
+              <SpecRow label="아티스트" value={quote.selection.performanceInfo.artist || "-"} />
+              <SpecRow label="주최·주관·기획" value={quote.selection.performanceInfo.organizer || "-"} />
+              <SpecRow label="행사규모" value={quote.selection.performanceInfo.eventScale || "-"} />
+            </dl>
+          </div>
+          <div>
+            <h2 className="type-label text-xs text-muted">공연 구성</h2>
+            <dl className="mt-3 border-t border-border/40">
+              <SpecRow
+                label="행사유형"
+                value={
+                  quote.selection.performanceInfo.eventTypes.length
+                    ? quote.selection.performanceInfo.eventTypes.map((t) => EVENT_TYPE_LABEL[t]).join(", ")
+                    : "-"
+                }
+              />
+              <SpecRow
+                label="무대형태"
+                value={
+                  quote.selection.performanceInfo.stageTypes.length
+                    ? quote.selection.performanceInfo.stageTypes.map((t) => STAGE_TYPE_LABEL[t]).join(", ")
+                    : "-"
+                }
+              />
+              <SpecRow
+                label="객석형태"
+                value={
+                  quote.selection.performanceInfo.seatingTypes.length
+                    ? quote.selection.performanceInfo.seatingTypes.map((t) => SEATING_TYPE_LABEL[t]).join(", ")
+                    : "-"
+                }
+              />
+              <SpecRow
+                label="수납식 객석 사용여부"
+                value={
+                  quote.selection.performanceInfo.retractableSeatUse
+                    ? RETRACTABLE_SEAT_USE_LABEL[quote.selection.performanceInfo.retractableSeatUse]
+                    : "-"
+                }
+              />
+            </dl>
+          </div>
+        </section>
+      )}
 
       <section className="mt-10">
         <h2 className="type-label text-xs text-muted">산출내역서</h2>

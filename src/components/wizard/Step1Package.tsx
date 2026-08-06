@@ -1,7 +1,12 @@
 "use client";
 
 import { won } from "@/lib/format";
-import { findAddon, recommendPackage } from "@/lib/pricing/rateTableUtils";
+import {
+  findAddon,
+  packagePrice,
+  packagesForVenue,
+  recommendPackage,
+} from "@/lib/pricing/rateTableUtils";
 import { MEDIA_TIER_LABEL, type RateTable } from "@/lib/pricing/types";
 import { Badge, Label } from "@/components/ui/kit";
 
@@ -11,22 +16,25 @@ const FIELD =
 
 export function Step1Package({
   rateTable,
+  venueId,
   packageId,
   expectedAudience,
   onSelectPackage,
   onChangeAudience,
 }: {
   rateTable: RateTable;
+  venueId: string;
   packageId: number | null;
   expectedAudience: number;
   onSelectPackage: (id: number) => void;
   onChangeAudience: (value: number) => void;
 }) {
-  const recommended = recommendPackage(rateTable, expectedAudience);
+  const recommended = recommendPackage(rateTable, expectedAudience, venueId);
+  const venuePackages = packagesForVenue(rateTable, venueId);
 
   return (
     <section>
-      <Label className="text-muted">Step 02</Label>
+      <Label className="text-muted">Step 03</Label>
       <h2 className="type-kr-heading mt-3 text-h4-m sm:text-h4">규모 / 패키지 선택</h2>
       <p className="mt-3 max-w-2xl text-s text-muted">
         예상 관객 규모를 입력하면 패키지가 추천됩니다. 패키지는 정찰제 고정가이며, 각 패키지에 기본
@@ -50,7 +58,7 @@ export function Step1Package({
 
       {/* 선택 타일이 아니라 헤어라인 로우. 선택 상태는 옐로 좌측 바로 표시한다. */}
       <ul className="mt-8 border-t border-border/25">
-        {rateTable.packages.map((pkg) => {
+        {venuePackages.map((pkg) => {
           const isSelected = packageId === pkg.id;
           const isRecommended = recommended === pkg.id;
           return (
@@ -106,7 +114,7 @@ export function Step1Package({
 
                 <div className="shrink-0 sm:text-right">
                   <div className="type-display text-h6-m tabular-nums sm:text-h6">
-                    {won(pkg.baseFeePerWeek)}
+                    {won(packagePrice(rateTable, pkg))}
                   </div>
                   <div className="mt-1 text-xs text-muted">/ 주 (화~일) · VAT 별도</div>
                 </div>

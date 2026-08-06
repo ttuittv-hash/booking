@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/lib/auth";
 import { PublicHeader } from "@/components/PublicHeader";
@@ -39,6 +40,17 @@ export default async function ProfilePage() {
         <Band tone="white" size="sm">
           <div className="max-w-xl">
             <ProfileForm user={user} />
+
+            {user.role !== "ADMIN" && (
+              <div className="mt-14 border-t border-border/25 pt-6">
+                <Link
+                  href="/mypage/withdraw"
+                  className="text-xs text-muted underline decoration-border-soft underline-offset-4 transition-colors hover:text-danger hover:decoration-danger"
+                >
+                  회원 탈퇴
+                </Link>
+              </div>
+            )}
           </div>
         </Band>
       </main>

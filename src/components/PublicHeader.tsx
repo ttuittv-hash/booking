@@ -8,11 +8,15 @@ import { NotificationBell } from "@/components/NotificationBell";
 import { btnClass } from "@/components/ui/kit";
 
 /**
- * IA: Notion "(웹사이트) 대관·비즈니스 사이트 구조 기획"
+ * IA는 디자인 브랜치 기준을 유지한다 — Notion "(웹사이트) 대관·비즈니스 사이트 구조 기획"
  *   YOUR STAGE · BOOK IT · KNOW IT · HOST IT
  * URL은 옮기지 않고 라벨만 교체한다 — /venue·/guide 경로를 바꾸면 API 라우트와
  * /admin/content 의 콘텐츠 키(home·venue·guide)까지 연쇄 수정이 필요하다.
  * 프로토타입에 있던 하위 항목은 하나도 빼지 않고 유지·이동만 했다.
+ *
+ * 기본 브랜치에서 새로 생긴 기능은 이 구조 안에 재배치했다.
+ *   · 대관료(/guide#rates)  → Book It
+ *   · 1:1 문의(/mypage/inquiries) → Know It (고객 지원)
  */
 const NAV_LINKS: {
   href: string;
@@ -36,9 +40,10 @@ const NAV_LINKS: {
     label: "Book It",
     ko: "대관 안내",
     children: [
-      { href: "/guide#overview", label: "대관 개요" },
+      { href: "/guide#overview", label: "대관시스템 개요" },
       { href: "/guide#process", label: "대관 절차" },
       { href: "/packages", label: "대관 패키지" },
+      { href: "/guide#rates", label: "대관료" },
       { href: "/guide#rules", label: "대관 규약" },
       { href: "/guide/forms", label: "대관 양식함" },
       { href: "/guide/image-guide", label: "이미지 가이드" },
@@ -52,6 +57,7 @@ const NAV_LINKS: {
     children: [
       { href: "/notices", label: "공지사항" },
       { href: "/faq", label: "FAQ" },
+      { href: "/mypage/inquiries", label: "1:1 문의" },
     ],
   },
   { href: "/apply", label: "Host It", ko: "대관 신청" },

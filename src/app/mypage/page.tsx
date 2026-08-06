@@ -45,12 +45,26 @@ export default async function MyPage() {
 
       <main className="flex flex-1 flex-col">
         <Band tone="light" size="sm">
-          <Label className="mb-5 text-muted">My Applications</Label>
-          <h1 className="type-kr-heading text-h3-m sm:text-h3">{user.name} 님의 신청 내역</h1>
-          <p className="mt-5 text-s text-muted">
-            {user.companyName ? `${user.companyName} · ` : ""}
-            {user.email}
-          </p>
+          <div className="flex flex-col gap-6 sm:flex-row sm:items-start sm:justify-between">
+            <div>
+              <Label className="mb-5 text-muted">My Applications</Label>
+              <h1 className="type-kr-heading text-h3-m sm:text-h3">
+                {user.name} 님의 신청 내역
+              </h1>
+              <p className="mt-5 text-s text-muted">
+                {user.companyName ? `${user.companyName} · ` : ""}
+                {user.email}
+              </p>
+            </div>
+            <div className="flex shrink-0 flex-wrap gap-3">
+              <ButtonLink href="/mypage/inquiries" variant="outline">
+                1:1 문의
+              </ButtonLink>
+              <ButtonLink href="/apply?new=1" variant="primary">
+                새 대관 신청
+              </ButtonLink>
+            </div>
+          </div>
         </Band>
 
         <Band tone="white" size="sm">

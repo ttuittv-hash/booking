@@ -1,5 +1,5 @@
 import { resolveSelectedDates } from "./dateRange";
-import { countPerformanceDays, extraDayPrice, findAddon, findPackage, includedQuantity } from "./rateTableUtils";
+import { countPerformanceDays, extraDayPrice, findAddon, findPackage, includedQuantity, packagePrice } from "./rateTableUtils";
 import type { EstimatedQuote, LineItem, PricingType, QuoteSelection, RateTable } from "./types";
 
 const METERED_NOTICE =
@@ -28,10 +28,9 @@ export function calculateQuote(selection: QuoteSelection, rateTable: RateTable):
   const items: LineItem[] = [];
 
   if (pkg) {
-    // (1) 기본 대관료 — 정찰제 고정가
-    items.push(
-      makeLine("BASE_FEE", "기본 대관료", "FIXED_PER_WEEK", 1, 0, 1, pkg.baseFeePerWeek, pkg.baseFeePerWeek),
-    );
+    // (1) 패키지 가격 — 정찰제 고정가 (기본 대관료 + 기본 포함 항목 단가 합계)
+    const price = packagePrice(rateTable, pkg);
+    items.push(makeLine("BASE_FEE", "패키지 가격", "FIXED_PER_WEEK", 1, 0, 1, price, price));
 
     // (1-1) 패키지 할인 — 관리자가 설정한 경우에만 기본 대관료에 적용
     if (pkg.discountRatio > 0) {

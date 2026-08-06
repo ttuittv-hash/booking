@@ -23,7 +23,9 @@ import {
 } from "./adminUi";
 import {
   ADDON_CATEGORY_LABEL,
+  DEFAULT_VENUE_ID,
   MEDIA_TIER_LABEL,
+  VENUES,
   type AddonCategory,
   type AddonItem,
   type MediaTier,
@@ -51,6 +53,7 @@ const MEDIA_OPTIONS: { value: MediaTier; label: string }[] = [
 function blankPackage(id: number): EditablePackage {
   return {
     id,
+    venueId: DEFAULT_VENUE_ID,
     name: `패키지 ${id}`,
     tagline: "",
     audienceTier: { min: 0, max: 0, label: "" },
@@ -183,6 +186,9 @@ export function PackagesForm({ rateTable }: { rateTable: RateTable }) {
         {packages.map((p) => (
           <button key={p.id} type="button" onClick={() => setActiveId(p.id)} className={tabCls(p.id === activeId)}>
             {p.name}
+            <span className="ml-1.5 font-normal text-muted">
+              {VENUES.find((v) => v.id === (p.venueId ?? DEFAULT_VENUE_ID))?.name}
+            </span>
           </button>
         ))}
         <button
@@ -236,6 +242,20 @@ export function PackagesForm({ rateTable }: { rateTable: RateTable }) {
         <section>
           <h2 className={SUB_TITLE}>기본 정보</h2>
           <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2">
+            <label className="block">
+              <span className={FIELD_LABEL}>공간</span>
+              <select
+                value={active.venueId ?? DEFAULT_VENUE_ID}
+                onChange={(e) => update({ venueId: e.target.value })}
+                className={FIELD}
+              >
+                {VENUES.map((v) => (
+                  <option key={v.id} value={v.id}>
+                    {v.name}
+                  </option>
+                ))}
+              </select>
+            </label>
             <label className="block">
               <span className={FIELD_LABEL}>패키지 이름</span>
               <input

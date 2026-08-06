@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import crypto from "node:crypto";
 import { getCurrentUser } from "@/lib/auth";
-import { addAuditLog, createNotification, getQuoteById, setQuoteSettlement } from "@/lib/db";
+import { addAuditLog, createNotification, ensureTaxInvoice, getQuoteById, setQuoteSettlement } from "@/lib/db";
 import type { Settlement } from "@/lib/pricing/types";
 
 function toEntries(input: unknown): { label: string; amount: number }[] {
@@ -55,6 +55,8 @@ export async function POST(request: Request, ctx: { params: Promise<{ id: string
     actorId: user.id,
     createdAt: settlement.decidedAt,
   });
+
+  ensureTaxInvoice(id, "SETTLEMENT", finalTotal, settlement.decidedAt);
 
   createNotification({
     id: crypto.randomUUID(),

@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { calculateQuote } from "./calculateQuote";
 import { resolveSelectedDates } from "./dateRange";
-import { extraDayPrice, findAddon, findPackage, includedQuantity } from "./rateTableUtils";
+import { extraDayPrice, findAddon, findPackage, includedQuantity, packagePrice } from "./rateTableUtils";
 import { buildSeedRateTable } from "./seed";
 import type { QuoteSelection } from "./types";
 
@@ -9,6 +9,7 @@ const RATE_TABLE = buildSeedRateTable();
 
 function baseSelection(overrides: Partial<QuoteSelection> = {}): QuoteSelection {
   return {
+    venueId: "arena",
     packageId: 2,
     week: { year: 2027, month: 8, weekOfMonth: 1 },
     excludedDays: [],
@@ -17,6 +18,16 @@ function baseSelection(overrides: Partial<QuoteSelection> = {}): QuoteSelection 
     expectedAudience: 8000,
     expectedRevenue: 0,
     addons: [],
+    performanceInfo: {
+      eventName: "",
+      artist: "",
+      organizer: "",
+      eventScale: "",
+      eventTypes: [],
+      stageTypes: [],
+      seatingTypes: [],
+      retractableSeatUse: null,
+    },
     ...overrides,
   };
 }
@@ -27,7 +38,7 @@ describe("calculateQuote — 명세서 7장 검증 케이스", () => {
 
   it("케이스 A: 기본만 — 기본료 + 청소비", () => {
     const quote = calculateQuote(baseSelection(), RATE_TABLE);
-    const expectedSubtotal = pkg2.baseFeePerWeek + 8000 * cleaning.unitPrice;
+    const expectedSubtotal = packagePrice(RATE_TABLE, pkg2) + 8000 * cleaning.unitPrice;
     expect(quote.subtotal).toBe(expectedSubtotal);
     expect(quote.vat).toBe(Math.round(expectedSubtotal * 0.1));
     expect(quote.total).toBe(expectedSubtotal + quote.vat);
@@ -58,7 +69,7 @@ describe("calculateQuote — 명세서 7장 검증 케이스", () => {
     expect(smartStageLine.amount).toBe(1 * smartStage.unitPrice);
 
     const expectedSubtotal =
-      pkg2.baseFeePerWeek + 8000 * cleaning.unitPrice + waitingRoom.unitPrice + smartStage.unitPrice;
+      packagePrice(RATE_TABLE, pkg2) + 8000 * cleaning.unitPrice + waitingRoom.unitPrice + smartStage.unitPrice;
     expect(quote.subtotal).toBe(expectedSubtotal);
   });
 
@@ -71,7 +82,7 @@ describe("calculateQuote — 명세서 7장 검증 케이스", () => {
     expect(extraDaysLine.billable).toBe(2);
     expect(extraDaysLine.amount).toBe(2 * dayPrice);
 
-    const expectedSubtotal = pkg2.baseFeePerWeek + 8000 * cleaning.unitPrice + 2 * dayPrice;
+    const expectedSubtotal = packagePrice(RATE_TABLE, pkg2) + 8000 * cleaning.unitPrice + 2 * dayPrice;
     expect(quote.subtotal).toBe(expectedSubtotal);
   });
 
@@ -83,7 +94,7 @@ describe("calculateQuote — 명세서 7장 검증 케이스", () => {
     expect(discountLine.billable).toBe(1);
     expect(discountLine.amount).toBe(-perDayDiscount);
 
-    const expectedSubtotal = pkg2.baseFeePerWeek + 8000 * cleaning.unitPrice - perDayDiscount;
+    const expectedSubtotal = packagePrice(RATE_TABLE, pkg2) + 8000 * cleaning.unitPrice - perDayDiscount;
     expect(quote.subtotal).toBe(expectedSubtotal);
   });
 

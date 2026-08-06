@@ -11,11 +11,25 @@ export function findAddon(rateTable: RateTable, id: string): AddonItem | undefin
   return rateTable.addons.find((a) => a.id === id);
 }
 
-export function recommendPackage(rateTable: RateTable, expectedAudience: number): number | null {
-  const match = rateTable.packages.find(
+export function packagesForVenue(rateTable: RateTable, venueId: string): RentalPackage[] {
+  return rateTable.packages.filter((p) => (p.venueId ?? "arena") === venueId);
+}
+
+export function recommendPackage(rateTable: RateTable, expectedAudience: number, venueId: string): number | null {
+  const match = packagesForVenue(rateTable, venueId).find(
     (p) => expectedAudience >= p.audienceTier.min && expectedAudience <= p.audienceTier.max,
   );
   return match ? match.id : null;
+}
+
+// 패키지 가격 = 기본 대관료 + 기본 포함 항목의 단가 합계.
+// 대관 신청 시 실제로 청구되는 금액은 이 "패키지 가격"이며, 기본 대관료 단독 금액이 아니다.
+export function packagePrice(rateTable: RateTable, pkg: RentalPackage): number {
+  const includedValue = pkg.includedItems.reduce((sum, item) => {
+    const addon = findAddon(rateTable, item.addonId);
+    return sum + (addon ? addon.unitPrice * item.quantity : 0);
+  }, 0);
+  return pkg.baseFeePerWeek + includedValue;
 }
 
 export function includedQuantity(pkg: RentalPackage | undefined, addonId: string): number {
