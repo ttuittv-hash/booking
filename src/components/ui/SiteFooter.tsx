@@ -1,44 +1,12 @@
 import Link from "next/link";
 import { Label } from "@/components/ui/kit";
+import { NAV_CATEGORIES } from "@/components/ui/nav-items";
 
 /**
  * Figma Design 페이지 공통 Footer.
  * 메뉴는 실제로 존재하는 페이지와 1:1로 맞춘다 — 한 페이지 안의 섹션은 올리지 않는다.
  * 레이어 스위처(Fan / Business / Premium)는 제거.
  */
-const NAV_COLUMNS: { label: string; links: { label: string; href: string }[] }[] = [
-  {
-    label: "Your Stage",
-    links: [{ label: "공연장 소개", href: "/venue" }],
-  },
-  {
-    label: "Book It",
-    links: [
-      { label: "대관 안내", href: "/guide" },
-      { label: "대관 패키지", href: "/packages" },
-      { label: "대관 양식함", href: "/guide/forms" },
-      { label: "이미지 가이드", href: "/guide/image-guide" },
-    ],
-  },
-  {
-    label: "Know It",
-    links: [
-      { label: "공지사항", href: "/notices" },
-      { label: "FAQ", href: "/faq" },
-      { label: "1:1 문의", href: "/mypage/inquiries" },
-    ],
-  },
-  {
-    label: "Host It",
-    links: [
-      { label: "대관 신청", href: "/apply?new=1" },
-      { label: "내 신청 내역", href: "/mypage" },
-      { label: "회원가입", href: "/register" },
-      { label: "로그인", href: "/login" },
-    ],
-  },
-];
-
 export function SiteFooter() {
   return (
     <footer className="mt-auto bg-inverse-bg text-inverse-fg">
@@ -56,11 +24,11 @@ export function SiteFooter() {
           </div>
 
           <div className="grid grid-cols-2 gap-8 sm:grid-cols-4">
-            {NAV_COLUMNS.map((col) => (
+            {NAV_CATEGORIES.map((col) => (
               <div key={col.label}>
                 <Label className="text-inverse-muted">{col.label}</Label>
                 <ul className="mt-4 space-y-2.5">
-                  {col.links.map((l) => (
+                  {col.pages.map((l) => (
                     <li key={l.href + l.label}>
                       <Link
                         href={l.href}
@@ -85,7 +53,13 @@ export function SiteFooter() {
               개인정보처리방침
             </Link>
             <Link href="/faq" className="hover:text-inverse-fg">
-              고객지원
+              FAQ
+            </Link>
+            <Link href="/login" className="hover:text-inverse-fg">
+              로그인
+            </Link>
+            <Link href="/register" className="hover:text-inverse-fg">
+              회원가입
             </Link>
           </div>
           <p>© {new Date().getFullYear()} Seoul Arena. All rights reserved.</p>

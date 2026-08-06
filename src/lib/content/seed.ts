@@ -358,7 +358,15 @@ export const DEFAULT_VENUE_CONTENT: VenueContent = {
     { name: "운영지원 공간 (BOH Support Area)", desc: "", image: null, featured: false },
   ],
   amenityGallery: [],
-  keyMaps: [],
+  keyMaps: [
+    { url: "", label: "B2F" },
+    { url: "", label: "B1F" },
+    { url: "", label: "1F" },
+    { url: "", label: "2F" },
+    { url: "", label: "3F" },
+    { url: "", label: "4F" },
+    { url: "", label: "5F" },
+  ],
 };
 
 export const DEFAULT_GUIDE_CONTENT: GuideContent = {

@@ -19,7 +19,7 @@
 5. **임의 값 금지.** `text-[13px]`, 하드코딩 hex, 임의 radius 전부 토큰으로.
 6. **옐로는 밝은 지면 위 텍스트로 쓰지 않는다.** (#FFCD00 on #F2F0EF = 1.5:1) 면·강조·구분선에만. 옐로 면 위 텍스트는 검정(14:1), 블랙 면 위 옐로 텍스트는 허용(11:1).
 
-## 1. 컬러 · 다크모드
+## 1. 컬러
 
 Primitive (Figma Style Guide › Variables)
 
@@ -28,24 +28,24 @@ Primitive (Figma Style Guide › Variables)
 | White `#FFFFFF` · Neutral Lightest `#F2F0EF` · Lighter `#CCCCCC` · Light `#AAAAAA` | Neutral `#666666` · Dark `#444444` · Darker `#222222` · Darkest `#000000` |
 | Accent Yellow `#FFCD00` | |
 
-시맨틱 토큰은 라이트/다크에서 값만 바뀐다. **컴포넌트는 항상 시맨틱 토큰을 쓴다.**
+컴포넌트는 항상 시맨틱 토큰을 쓴다. 원시값(hex)을 직접 쓰지 않는다.
 
-| 토큰 | Light | Dark |
+| 토큰 | 값 | 용도 |
 |---|---|---|
-| `background` | `#F2F0EF` | `#000000` |
-| `foreground` | `#000000` | `#F2F0EF` |
-| `muted` | `#666666` | `#AAAAAA` |
-| `border` | `#000000` | `#F2F0EF` |
-| `border-soft` | `#CCCCCC` | `#444444` |
-| `placeholder` | `#D9D7D6` | `#1A1A1A` |
-| `inverse-bg` / `inverse-fg` | `#000` / `#F2F0EF` | `#F2F0EF` / `#000` |
-| `accent` / `on-accent` | `#FFCD00` / `#000000` | 동일 |
-
-다크모드는 `html.dark` 클래스. 전환 UI는 오픈 메뉴 하단의 Light/Dark 토글.
-`dark:` 유틸리티를 직접 쓸 일은 거의 없다 — 토큰이 이미 뒤집힌다.
+| `background` | `#F2F0EF` | 지면. **순백은 지면에 쓰지 않는다** |
+| `surface` | `#F2F0EF` | 섹션 면 (오프화이트) |
+| `panel` | `#FFFFFF` | 박스·카드 (백오피스 패널 등) |
+| `foreground` | `#000000` | 본문·보더 |
+| `muted` | `#666666` | 보조 텍스트 |
+| `border` / `border-soft` | `#000000` / `#CCCCCC` | 헤어라인 / 밀도 높은 UI |
+| `placeholder` | `#D9D7D6` | 이미지 플레이스홀더 |
+| `inverse-bg` / `inverse-fg` | `#000` / `#F2F0EF` | 블랙 밴드 |
+| `accent` / `on-accent` | `#FFCD00` / `#000000` | 옐로 면 / 그 위 텍스트 |
 
 **`Band` 는 톤별로 토큰을 국소적으로 뒤집는다.** `tone="dark"` 안에서는 `foreground` 가 밝은 색이 되므로
 버튼·보더·`text-muted` 가 자동으로 맞는다. 컴포넌트에 tone prop 을 넘기지 마라.
+
+다크모드는 제공하지 않는다.
 
 ## 2. 타이포그래피
 
@@ -96,6 +96,7 @@ Primitive (Figma Style Guide › Variables)
 
 | | |
 |---|---|
+| `AuthShell` | 인증 화면. `variant="card"`(Login / 3) · `variant="tabs"`(Sign up / 1) |
 | `Band` | 풀블리드 섹션. `tone` = light·white·accent·dark, `size` = sm·md·lg. 섹션은 여백이 아니라 **색면 전환**으로 나눈다 |
 | `ButtonLink` / `btnClass` | `variant` = **primary**(검정 채움) · **secondary**(아웃라인) · **tertiary**(텍스트), `size` = sm·md·lg |
 | `Media` | 이미지. `src` 없으면 회색 플레이스홀더 |
@@ -125,19 +126,25 @@ Primitive (Figma Style Guide › Variables)
 
 ## 7. 정보구조
 
-메뉴는 **실제로 존재하는 페이지와 1:1**로 맞춘다. 한 페이지 안의 섹션은 메뉴에 올리지 않는다.
+**YOUR STAGE / BOOK IT / KNOW IT / HOST IT 은 카테고리 타이틀일 뿐 페이지가 아니다.**
+실제 페이지는 각 카테고리의 하위 목록이고, 이 정의는 `src/components/ui/nav-items.ts` 한 곳에 있다.
+헤더 메뉴와 푸터가 이 파일을 함께 쓴다. 한 페이지 안의 섹션은 메뉴에 올리지 않는다.
 
 ```
-Your Stage  /venue                    (하위 없음 — 개요·제원·무대특장·부대시설은 같은 페이지)
-Book It     /guide                    (하위 없음 — 개요·절차·대관료·규약은 같은 페이지)
+Your Stage  (카테고리 타이틀 — 링크 아님)
+  └ 공연장 소개      /venue        (개요·제원·무대특장·부대시설은 이 한 페이지 안)
+Book It
+  ├ 대관 안내        /guide        (개요·절차·대관료·규약은 이 한 페이지 안)
   ├ 대관 패키지      /packages
   ├ 대관 양식함      /guide/forms
   └ 이미지 가이드    /guide/image-guide
-Know It     (그룹)
+Know It
   ├ 공지사항        /notices
   ├ FAQ            /faq
   └ 1:1 문의        /mypage/inquiries
-Host It     /apply
+Host It
+  ├ 대관 신청        /apply
+  └ 내 신청 내역     /mypage
 ```
 
 ## 8. 카피 원칙 (브랜드 가이드 3.1 / 3.2)

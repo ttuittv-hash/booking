@@ -53,6 +53,39 @@ function TabBar({ children }: { children: React.ReactNode }) {
 
 /* ------------------------------------------------------- KeyMapGallery ---- */
 
+/**
+ * 층 선택 — Figma Style Guide › UI Elements 의 세그먼트 버튼("Option one").
+ * 선택된 층은 검정 채움, 나머지는 1px 아웃라인. 샤프 코너.
+ */
+function FloorButton({
+  active,
+  controls,
+  onSelect,
+  children,
+}: {
+  active: boolean;
+  controls: string;
+  onSelect: () => void;
+  children: React.ReactNode;
+}) {
+  return (
+    <button
+      type="button"
+      role="tab"
+      aria-selected={active}
+      aria-controls={controls}
+      onClick={onSelect}
+      className={`h-10 min-w-[3.5rem] shrink-0 border px-4 text-s font-bold transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent ${
+        active
+          ? "border-foreground bg-foreground text-background"
+          : "border-border-soft text-muted hover:border-foreground hover:text-foreground"
+      }`}
+    >
+      {children}
+    </button>
+  );
+}
+
 export function KeyMapGallery({ keyMaps }: { keyMaps: VenueKeyMap[] }) {
   const [active, setActive] = useState(0);
 
@@ -66,23 +99,23 @@ export function KeyMapGallery({ keyMaps }: { keyMaps: VenueKeyMap[] }) {
 
   return (
     <div>
-      <TabBar>
+      <div role="tablist" aria-label="층 선택" className="flex flex-wrap gap-2">
         {keyMaps.map((k, i) => (
-          <TabButton
+          <FloorButton
             key={i}
             active={activeIndex === i}
             controls="keymap-panel"
             onSelect={() => setActive(i)}
           >
             {k.label || `키맵 ${i + 1}`}
-          </TabButton>
+          </FloorButton>
         ))}
-      </TabBar>
+      </div>
 
       <div id="keymap-panel" role="tabpanel" className="mt-8">
         <Media
           src={activeMap.url}
-          alt={activeMap.label || `키맵 ${activeIndex + 1}`}
+          alt={`${activeMap.label || `키맵 ${activeIndex + 1}`} 키맵`}
           ratio="16 / 9"
         />
       </div>

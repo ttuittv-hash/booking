@@ -7,23 +7,14 @@ export const metadata: Metadata = {
     "한계 없는 인프라 위에서 당신만의 무대를 지휘하세요. 서울아레나 대관 안내·견적 산출·신청 시스템.",
 };
 
-/**
- * 첫 페인트 전에 테마를 확정해 화면이 번쩍이는 것을 막는다.
- * 저장된 선택이 없으면 OS 설정(prefers-color-scheme)을 따른다.
- */
-const THEME_SCRIPT = `(function(){try{var t=localStorage.getItem('sa-theme');
-if(!t){t=window.matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light';}
-if(t==='dark'){document.documentElement.classList.add('dark');}}catch(e){}})();`;
-
 export default function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="ko" className="h-full" suppressHydrationWarning>
+    <html lang="ko" className="h-full">
       <head>
-        <script dangerouslySetInnerHTML={{ __html: THEME_SCRIPT }} />
         {/*
           Figma Style Guide › Typography
             · Heading Typeface (English) : Archivo 700 / 800

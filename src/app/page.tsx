@@ -26,7 +26,6 @@ export default async function Home() {
     narrativeTitle,
     narrativeLead,
     narrativeStatements,
-    narrativeClosing,
     processTitle,
     processSteps,
   } = getHomeContent();
@@ -68,7 +67,6 @@ export default async function Home() {
             title={narrativeTitle}
             lead={narrativeLead}
             statements={narrativeStatements}
-            closing={narrativeClosing}
           />
         </Band>
 
@@ -113,7 +111,7 @@ export default async function Home() {
                 <ArrowRight />
               </ButtonLink>
               <ButtonLink href="/faq" variant="secondary" size="lg">
-                대관 문의
+                FAQ
               </ButtonLink>
             </>
           }

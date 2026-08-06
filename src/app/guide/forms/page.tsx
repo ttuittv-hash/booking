@@ -41,11 +41,6 @@ export default async function GuideFormsPage() {
             }
           />
 
-          <div className="mt-10">
-            <ButtonLink href="/guide" variant="tertiary">
-              대관 안내로 돌아가기
-            </ButtonLink>
-          </div>
         </Band>
       </main>
 

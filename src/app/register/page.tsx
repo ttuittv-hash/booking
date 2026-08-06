@@ -3,9 +3,8 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import { Breadcrumb } from "@/components/ui/Breadcrumb";
-import { SiteFooter } from "@/components/ui/SiteFooter";
-import { ArrowRight, Band, PageHeading, btnClass } from "@/components/ui/kit";
+import { AuthShell } from "@/components/ui/AuthShell";
+import { btnClass } from "@/components/ui/kit";
 
 declare global {
   interface Window {
@@ -140,42 +139,14 @@ export default function RegisterPage() {
   }
 
   return (
-    <div className="flex flex-1 flex-col">
-      {/* 2뎁스 — items 가 1개라 렌더되지 않는다 */}
-      <Breadcrumb items={[{ label: "회원가입" }]} />
-
-      <main className="grid flex-1 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.35fr)]">
-        {/* 브랜드 면 — 폼이 길어 데스크톱에서는 고정한다.
-            Band 가 톤별로 토큰을 뒤집으므로 색을 직접 지정하지 않는다. */}
-        <Band
-          tone="dark"
-          size="md"
-          className="flex flex-col justify-center overflow-hidden lg:sticky lg:top-0 lg:h-screen lg:self-start"
-        >
-          <Link href="/" className="type-display text-h6 leading-none">
-            Seoul Arena
-          </Link>
-          <span aria-hidden className="mt-16 block h-1 w-16 bg-accent" />
-          <p className="type-display mt-6 text-h3-m sm:text-h2">
-            Register
-            <br />
-            to host
-          </p>
-          <p className="mt-6 max-w-sm text-s text-muted">
-            대관사 전용 계정입니다. 운영자 승인 후 패키지 안내와 견적 산출을 이용하세요.
-          </p>
-        </Band>
-
-        {/* 폼 면 */}
-        <div className="px-6 py-16 lg:px-16 lg:py-20">
-          <div className="w-full max-w-xl">
-            <PageHeading
-              size="md"
-              title="신청자 회원가입"
-              lead="대관사(엔터테인먼트사·기획사) 전용 가입입니다. 가입 후 운영자 승인이 완료되어야 대관 패키지 안내와 견적 산출을 이용할 수 있습니다."
-            />
-
-            <form onSubmit={handleSubmit} noValidate className="mt-12 space-y-10">
+    <AuthShell
+      variant="plain"
+      active="register"
+      width="md"
+      title="신청자 회원가입"
+      lead="대관사(엔터테인먼트사·기획사) 전용 가입입니다. 가입 후 운영자 승인이 완료되어야 대관 패키지 안내와 견적 산출을 이용할 수 있습니다."
+    >
+      <form onSubmit={handleSubmit} noValidate className="space-y-10">
               <FormSection no="01" title="계정 정보">
                 <Field label="아이디" hint="영문 소문자/숫자, 4~20자">
                   <input
@@ -420,31 +391,20 @@ export default function RegisterPage() {
                 </p>
               )}
 
-              <button
-                type="submit"
-                disabled={loading}
-                className={`${btnClass("primary", "lg")} w-full`}
-              >
-                {loading ? "처리 중..." : "회원가입"}
-                {!loading && <ArrowRight />}
-              </button>
-            </form>
-
-            <p className="mt-8 border-t border-border/15 pt-6 text-s text-muted">
-              이미 계정이 있으신가요?{" "}
-              <Link
-                href="/login"
-                className="font-bold text-foreground underline decoration-accent decoration-2 underline-offset-4"
-              >
-                로그인
-              </Link>
-            </p>
-          </div>
+        <div className="space-y-3">
+          <button
+            type="submit"
+            disabled={loading}
+            className={`${btnClass("primary", "lg")} w-full`}
+          >
+            {loading ? "처리 중..." : "회원가입"}
+          </button>
+          <Link href="/login" className={`${btnClass("secondary", "lg")} w-full`}>
+            이미 계정이 있습니다
+          </Link>
         </div>
-      </main>
-
-      <SiteFooter />
-    </div>
+      </form>
+    </AuthShell>
   );
 }
 
