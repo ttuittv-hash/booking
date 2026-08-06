@@ -57,7 +57,7 @@ export default async function MyPage() {
               </p>
             </div>
             <div className="flex shrink-0 flex-wrap gap-3">
-              <ButtonLink href="/mypage/inquiries" variant="outline">
+              <ButtonLink href="/mypage/inquiries" variant="secondary">
                 1:1 문의
               </ButtonLink>
               <ButtonLink href="/apply?new=1" variant="primary">

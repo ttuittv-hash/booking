@@ -193,11 +193,11 @@ export function ScheduleManager({ initialYear, initialMonth }: { initialYear: nu
   return (
     <div className="mt-8">
       <div className="flex items-center justify-between gap-3">
-        <button type="button" onClick={() => goToMonth(-1)} className={btnClass("outline", "sm")}>
+        <button type="button" onClick={() => goToMonth(-1)} className={btnClass("secondary", "sm")}>
           ‹ 이전 달
         </button>
         <span className={HELP}>{loading && "불러오는 중..."}</span>
-        <button type="button" onClick={() => goToMonth(1)} className={btnClass("outline", "sm")}>
+        <button type="button" onClick={() => goToMonth(1)} className={btnClass("secondary", "sm")}>
           다음 달 ›
         </button>
       </div>

@@ -39,7 +39,7 @@ export default async function FaqPage() {
               title="등록된 FAQ가 없습니다"
               desc="자주 묻는 질문이 등록되면 진행 단계별로 이곳에 표시됩니다."
               action={
-                <ButtonLink href="/guide" variant="outline">
+                <ButtonLink href="/guide" variant="secondary">
                   대관 안내 보기
                 </ButtonLink>
               }
@@ -57,7 +57,7 @@ export default async function FaqPage() {
                 답변이 필요한 내용이 남았나요?
               </p>
             </div>
-            <ButtonLink href="/notices" variant="outline" className="self-start sm:self-auto">
+            <ButtonLink href="/notices" variant="secondary" className="self-start sm:self-auto">
               공지사항 확인
             </ButtonLink>
           </div>

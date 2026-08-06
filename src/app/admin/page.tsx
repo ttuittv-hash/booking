@@ -67,7 +67,7 @@ export default async function AdminPage({
               </option>
             ))}
           </select>
-          <button type="submit" className={btnClass("outline", "sm")}>
+          <button type="submit" className={btnClass("secondary", "sm")}>
             적용
           </button>
           {companyId && (

@@ -137,7 +137,7 @@ export function ReviewForm({
           type="button"
           disabled={!!submitting}
           onClick={() => decide("HOLD")}
-          className={btnClass("outline", "md")}
+          className={btnClass("secondary", "md")}
         >
           {submitting === "HOLD" ? "처리 중..." : "보류"}
         </button>

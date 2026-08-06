@@ -230,7 +230,7 @@ export function RatesForm({ rateTable }: { rateTable: RateTable }) {
                     <button
                       type="button"
                       onClick={() => setNewItemCategory(null)}
-                      className={btnClass("ghost", "sm")}
+                      className={btnClass("tertiary", "sm")}
                     >
                       취소
                     </button>

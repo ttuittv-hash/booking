@@ -86,7 +86,7 @@ export default async function MyQuoteDetailPage({
             </div>
             <div className="flex shrink-0 flex-wrap gap-3">
               {quote.status === "ESTIMATE" && user.role !== "ADMIN" && (
-                <ButtonLink href={`/apply/edit/${quote.id}`} variant="outline">
+                <ButtonLink href={`/apply/edit/${quote.id}`} variant="secondary">
                   신청 내용 수정
                 </ButtonLink>
               )}
@@ -94,7 +94,7 @@ export default async function MyQuoteDetailPage({
                 href={`/print/${quote.id}`}
                 target="_blank"
                 rel="noopener noreferrer"
-                className={btnClass("ghost")}
+                className={btnClass("tertiary")}
               >
                 인쇄 / PDF 저장
               </a>

@@ -68,7 +68,7 @@ export function AdminQuoteTable({ rows }: { rows: AdminQuoteRow[] }) {
               type="button"
               disabled={selected.size < 2}
               onClick={compare}
-              className={btnClass("outline", "sm")}
+              className={btnClass("secondary", "sm")}
             >
               선택 항목 비교 ({selected.size})
             </button>

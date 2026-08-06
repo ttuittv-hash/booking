@@ -322,7 +322,7 @@ export function WizardShell({
             type="button"
             disabled={step === 1}
             onClick={() => goTo(step - 1)}
-            className={btnClass("outline", "md")}
+            className={btnClass("secondary", "md")}
           >
             <ArrowRight className="rotate-180" />
             이전

@@ -72,7 +72,7 @@ export default async function NoticesPage() {
               title="등록된 공지사항이 없습니다"
               desc="대관 공고와 운영 안내가 등록되면 이곳에 표시됩니다."
               action={
-                <ButtonLink href="/guide" variant="outline">
+                <ButtonLink href="/guide" variant="secondary">
                   대관 안내 보기
                 </ButtonLink>
               }

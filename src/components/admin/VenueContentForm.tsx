@@ -254,7 +254,7 @@ export function VenueContentForm({ content: initial }: { content: VenueContent }
         <button
           type="button"
           onClick={() => setPreviewOpen((v) => !v)}
-          className={btnClass("outline", "sm")}
+          className={btnClass("secondary", "sm")}
         >
           {previewOpen ? "미리보기 닫기" : "미리보기"}
         </button>

@@ -104,7 +104,7 @@ export function ApplicantApprovalTable({
                         type="button"
                         disabled={busyId === a.id}
                         onClick={() => act(a.id, "reject")}
-                        className={btnClass("outline", "sm")}
+                        className={btnClass("secondary", "sm")}
                       >
                         거절
                       </button>

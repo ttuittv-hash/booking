@@ -1,57 +1,40 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import type { AppUser } from "@/lib/pricing/types";
 import { LogoutButton } from "@/components/LogoutButton";
 import { NotificationBell } from "@/components/NotificationBell";
 import { btnClass } from "@/components/ui/kit";
 
 /**
- * IA는 디자인 브랜치 기준을 유지한다 — Notion "(웹사이트) 대관·비즈니스 사이트 구조 기획"
- *   YOUR STAGE · BOOK IT · KNOW IT · HOST IT
- * URL은 옮기지 않고 라벨만 교체한다 — /venue·/guide 경로를 바꾸면 API 라우트와
- * /admin/content 의 콘텐츠 키(home·venue·guide)까지 연쇄 수정이 필요하다.
- * 프로토타입에 있던 하위 항목은 하나도 빼지 않고 유지·이동만 했다.
+ * Figma Wireframe › Navbar / 2 ("open menu").
+ * 닫힌 상태는 로고 + 햄버거만. 누르면 풀페이지 메뉴가 열린다.
  *
- * 기본 브랜치에서 새로 생긴 기능은 이 구조 안에 재배치했다.
- *   · 대관료(/guide#rates)  → Book It
- *   · 1:1 문의(/mypage/inquiries) → Know It (고객 지원)
+ * 메뉴는 실제로 존재하는 페이지와 1:1로 맞춘다.
+ * 한 페이지 안의 섹션(시설 개요·제원·무대특장·부대시설, 대관 개요·절차·대관료·규약)은
+ * 메뉴에 올리지 않는다 — 페이지 안에서 스크롤로 닿는 것들이다.
  */
-const NAV_LINKS: {
-  href: string;
+type NavItem = {
   label: string;
   ko: string;
+  href?: string;
   children?: { href: string; label: string }[];
-}[] = [
+};
+
+const NAV_ITEMS: NavItem[] = [
+  { label: "Your Stage", ko: "공연장 소개", href: "/venue" },
   {
-    href: "/venue",
-    label: "Your Stage",
-    ko: "공연장 소개",
-    children: [
-      { href: "/venue#overview", label: "시설 개요" },
-      { href: "/venue#specs", label: "시설 제원" },
-      { href: "/venue#stage-features", label: "무대 특장" },
-      { href: "/venue#amenities", label: "부대시설" },
-    ],
-  },
-  {
-    href: "/guide",
     label: "Book It",
     ko: "대관 안내",
+    href: "/guide",
     children: [
-      { href: "/guide#overview", label: "대관시스템 개요" },
-      { href: "/guide#process", label: "대관 절차" },
       { href: "/packages", label: "대관 패키지" },
-      { href: "/guide#rates", label: "대관료" },
-      { href: "/guide#rules", label: "대관 규약" },
       { href: "/guide/forms", label: "대관 양식함" },
       { href: "/guide/image-guide", label: "이미지 가이드" },
-      { href: "/notices", label: "대관 공지" },
     ],
   },
   {
-    href: "/notices",
     label: "Know It",
     ko: "고객 지원",
     children: [
@@ -60,8 +43,26 @@ const NAV_LINKS: {
       { href: "/mypage/inquiries", label: "1:1 문의" },
     ],
   },
-  { href: "/apply", label: "Host It", ko: "대관 신청" },
+  { label: "Host It", ko: "대관 신청", href: "/apply" },
 ];
+
+function useTheme() {
+  const [theme, setTheme] = useState<"light" | "dark">("light");
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setTheme(document.documentElement.classList.contains("dark") ? "dark" : "light");
+  }, []);
+  const apply = useCallback((next: "light" | "dark") => {
+    document.documentElement.classList.toggle("dark", next === "dark");
+    try {
+      localStorage.setItem("sa-theme", next);
+    } catch {
+      /* 프라이빗 모드 등에서 저장 실패는 무시 */
+    }
+    setTheme(next);
+  }, []);
+  return { theme, apply };
+}
 
 export function PublicHeader({
   active,
@@ -70,212 +71,260 @@ export function PublicHeader({
   active: string;
   currentUser: AppUser | null;
 }) {
-  // 상단 nav는 모바일에서 가로 스크롤이 필요한데, CSS 스펙상 한쪽 축만 auto로 지정해도
-  // 다른 축이 함께 auto로 승격되어 세로로 펼치는 드롭다운이 잘려버린다. 그래서 드롭다운은
-  // nav 내부 absolute가 아니라 트리거 위치를 계산해 position:fixed로 렌더링한다.
-  const [openMenu, setOpenMenu] = useState<{ href: string; top: number; left: number } | null>(null);
-  const [mobileOpen, setMobileOpen] = useState(false);
-  const closeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const navRef = useRef<HTMLElement>(null);
+  const [open, setOpen] = useState(false);
+  const [expanded, setExpanded] = useState<string | null>(null);
+  const [unread, setUnread] = useState(0);
+  const { theme, apply } = useTheme();
 
-  function openNow(href: string, target: HTMLElement) {
-    if (closeTimer.current) clearTimeout(closeTimer.current);
-    const rect = target.getBoundingClientRect();
-    setOpenMenu({ href, top: rect.bottom + 1, left: rect.left });
-  }
-  function cancelClose() {
-    if (closeTimer.current) clearTimeout(closeTimer.current);
-  }
-  function closeSoon() {
-    if (closeTimer.current) clearTimeout(closeTimer.current);
-    closeTimer.current = setTimeout(() => setOpenMenu(null), 150);
-  }
-
+  // 메뉴가 닫혀 있어도 새 알림이 있으면 햄버거에 점으로 알린다.
   useEffect(() => {
-    function onClickOutside(e: MouseEvent) {
-      if (navRef.current && !navRef.current.contains(e.target as Node)) setOpenMenu(null);
-    }
-    function onEsc(e: KeyboardEvent) {
-      if (e.key === "Escape") {
-        setOpenMenu(null);
-        setMobileOpen(false);
+    if (!currentUser) return;
+    let alive = true;
+    async function poll() {
+      try {
+        const res = await fetch("/api/notifications");
+        if (!res.ok) return;
+        const data = await res.json();
+        if (alive) setUnread(data.unreadCount ?? 0);
+      } catch {
+        /* 네트워크 오류는 무시 — 다음 폴링에서 복구 */
       }
     }
-    document.addEventListener("click", onClickOutside);
-    document.addEventListener("keydown", onEsc);
+    poll();
+    const t = setInterval(poll, 60_000);
     return () => {
-      document.removeEventListener("click", onClickOutside);
-      document.removeEventListener("keydown", onEsc);
+      alive = false;
+      clearInterval(t);
     };
+  }, [currentUser]);
+
+  useEffect(() => {
+    function onEsc(e: KeyboardEvent) {
+      if (e.key === "Escape") setOpen(false);
+    }
+    document.addEventListener("keydown", onEsc);
+    return () => document.removeEventListener("keydown", onEsc);
   }, []);
 
-  const activeChildren = NAV_LINKS.find((link) => link.href === openMenu?.href)?.children;
+  useEffect(() => {
+    document.body.style.overflow = open ? "hidden" : "";
+    return () => {
+      document.body.style.overflow = "";
+    };
+  }, [open]);
+
+  const activeLabel = NAV_ITEMS.find(
+    (i) => i.href === active || i.children?.some((c) => c.href === active),
+  )?.label;
 
   return (
-    <header className="sticky top-0 z-30 border-b border-border/20 bg-background/90 backdrop-blur-md">
-      <div className="container-site flex h-16 items-center gap-x-10 lg:h-[72px]">
-        <Link
-          href="/"
-          className="type-display shrink-0 text-h6-m leading-none sm:text-h6"
-          aria-label="Seoul Arena 홈"
-        >
-          Seoul Arena
-        </Link>
-
-        {/* 데스크톱 GNB */}
-        <nav ref={navRef} aria-label="주요 메뉴" className="hidden min-w-0 items-center gap-x-8 lg:flex">
-          {NAV_LINKS.map((link) => {
-            const isActive = link.href === active;
-            return (
-              <div
-                key={link.label}
-                onMouseEnter={(e) => link.children && openNow(link.href, e.currentTarget)}
-                onMouseLeave={() => link.children && closeSoon()}
-              >
-                <Link
-                  href={link.href}
-                  onClick={(e) => {
-                    if (link.children) {
-                      if (openMenu?.href === link.href) return;
-                      e.preventDefault();
-                      openNow(link.href, e.currentTarget.parentElement as HTMLElement);
-                    }
-                  }}
-                  className={`type-label flex items-center gap-1.5 whitespace-nowrap border-b-2 py-1 text-xs transition-colors ${
-                    isActive
-                      ? "border-accent text-foreground"
-                      : "border-transparent text-muted hover:text-foreground"
-                  }`}
-                >
-                  {link.label}
-                  {link.children && (
-                    <span aria-hidden className="text-[9px] opacity-60">
-                      ▾
-                    </span>
-                  )}
-                </Link>
-              </div>
-            );
-          })}
-        </nav>
-
-        {openMenu && activeChildren && (
-          <div
-            onMouseEnter={cancelClose}
-            onMouseLeave={() => closeSoon()}
-            style={{ top: openMenu.top, left: openMenu.left }}
-            className="fixed z-40 w-56 animate-[dropdown-in_0.16s_ease-out] border border-border/25 bg-surface py-1.5 shadow-md"
+    <>
+      <header className="sticky top-0 z-40 bg-background/90 backdrop-blur-md">
+        <div className="container-site flex h-16 items-center justify-between lg:h-[72px]">
+          <Link
+            href="/"
+            className="type-display text-h6-m leading-none sm:text-h5"
+            aria-label="Seoul Arena 홈"
           >
-            {activeChildren.map((child) => (
-              <Link
-                key={child.href + child.label}
-                href={child.href}
-                onClick={() => setOpenMenu(null)}
-                className="block whitespace-nowrap px-4 py-2.5 text-s text-muted transition-colors hover:bg-accent hover:text-on-accent"
-              >
-                {child.label}
-              </Link>
-            ))}
-          </div>
-        )}
+            Seoul Arena
+          </Link>
 
-        {/* 우측 유틸 */}
-        <div className="ml-auto flex shrink-0 items-center gap-x-4 text-xs text-muted">
-          <span className="hidden items-center gap-1.5 xl:flex" aria-label="언어">
-            <span className="type-label font-bold text-foreground">KOR</span>
-            <span aria-hidden className="opacity-40">
-              /
-            </span>
-            <span className="type-label opacity-50" title="영문 페이지 준비 중">
-              ENG
-            </span>
-          </span>
-
-          {currentUser ? (
-            <>
-              <Link
-                href={currentUser.role === "ADMIN" ? "/admin/users" : "/mypage/profile"}
-                className="hidden whitespace-nowrap hover:text-foreground sm:inline"
-                title="회원정보 수정"
-              >
-                {currentUser.name} 님
-              </Link>
-              {currentUser.role === "ADMIN" ? (
-                <Link href="/admin" className="whitespace-nowrap hover:text-foreground">
-                  운영자 백오피스
-                </Link>
-              ) : (
-                <Link href="/mypage" className="whitespace-nowrap hover:text-foreground">
-                  내 신청 내역
-                </Link>
-              )}
-              <NotificationBell role={currentUser.role} />
-              <LogoutButton className="whitespace-nowrap hover:text-foreground" />
-            </>
-          ) : (
-            <>
-              <Link href="/login" className="whitespace-nowrap hover:text-foreground">
-                로그인
-              </Link>
-              <Link href="/register" className="hidden whitespace-nowrap hover:text-foreground sm:inline">
-                회원가입
-              </Link>
-              <Link href="/apply" className={`${btnClass("primary", "sm")} hidden lg:inline-flex`}>
-                대관 신청
-              </Link>
-            </>
-          )}
-
-          {/* 모바일 메뉴 토글 */}
           <button
             type="button"
-            onClick={() => setMobileOpen((v) => !v)}
-            aria-expanded={mobileOpen}
-            aria-label="메뉴"
-            className="flex h-8 w-8 items-center justify-center border border-border/30 lg:hidden"
+            onClick={() => setOpen(true)}
+            aria-label="메뉴 열기"
+            aria-expanded={open}
+            className="relative -mr-2 flex h-10 w-10 items-center justify-center"
           >
-            <span aria-hidden className="text-r leading-none">
-              {mobileOpen ? "×" : "≡"}
+            <span aria-hidden className="flex w-6 flex-col gap-[5px]">
+              <span className="h-px w-full bg-foreground" />
+              <span className="h-px w-full bg-foreground" />
             </span>
+            {unread > 0 && (
+              <span
+                aria-hidden
+                className="absolute right-1 top-1.5 h-2 w-2 rounded-full bg-accent ring-1 ring-foreground"
+              />
+            )}
           </button>
         </div>
-      </div>
+      </header>
 
-      {/* 모바일 시트 */}
-      {mobileOpen && (
-        <div className="border-t border-border/20 bg-surface lg:hidden">
-          <div className="container-site py-6">
-            {NAV_LINKS.map((link) => (
-              <div key={link.label} className="border-b border-border/15 py-4 last:border-b-0">
-                <Link
-                  href={link.href}
-                  onClick={() => setMobileOpen(false)}
-                  className="type-label flex items-baseline gap-2 text-xs"
-                >
-                  {link.label}
-                  <span className="font-normal normal-case tracking-normal text-muted">
-                    {link.ko}
-                  </span>
+      {open && (
+        <div
+          role="dialog"
+          aria-modal="true"
+          aria-label="전체 메뉴"
+          className="fixed inset-0 z-50 flex animate-[menu-in_0.18s_ease-out] flex-col overflow-y-auto bg-background"
+        >
+          {/* 상단: 로고 + 닫기 */}
+          <div className="container-site flex h-16 shrink-0 items-center justify-between lg:h-[72px]">
+            <Link
+              href="/"
+              onClick={() => setOpen(false)}
+              className="type-display text-h6-m leading-none sm:text-h5"
+            >
+              Seoul Arena
+            </Link>
+            <button
+              type="button"
+              onClick={() => setOpen(false)}
+              aria-label="메뉴 닫기"
+              className="-mr-2 flex h-10 w-10 items-center justify-center text-h5 leading-none"
+            >
+              <span aria-hidden>×</span>
+            </button>
+          </div>
+
+          {/* 중앙: 메뉴 */}
+          <nav aria-label="전체 메뉴" className="container-site flex flex-1 flex-col justify-center py-10">
+            <ul className="text-center">
+              {NAV_ITEMS.map((item) => {
+                const isOpen = expanded === item.label;
+                const isActive = activeLabel === item.label;
+                return (
+                  <li key={item.label} className="py-2">
+                    <div className="flex items-center justify-center gap-3">
+                      {item.href ? (
+                        <Link
+                          href={item.href}
+                          onClick={() => setOpen(false)}
+                          className={`type-display text-h3-m transition-colors sm:text-h2 ${
+                            isActive ? "text-accent" : "hover:text-accent"
+                          }`}
+                        >
+                          {item.label}
+                        </Link>
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={() => setExpanded(isOpen ? null : item.label)}
+                          className={`type-display text-h3-m transition-colors sm:text-h2 ${
+                            isActive ? "text-accent" : "hover:text-accent"
+                          }`}
+                        >
+                          {item.label}
+                        </button>
+                      )}
+                      {item.children && (
+                        <button
+                          type="button"
+                          onClick={() => setExpanded(isOpen ? null : item.label)}
+                          aria-label={`${item.label} 하위 메뉴`}
+                          aria-expanded={isOpen}
+                          className="text-h6 leading-none transition-transform"
+                          style={{ transform: isOpen ? "rotate(180deg)" : undefined }}
+                        >
+                          <span aria-hidden>⌄</span>
+                        </button>
+                      )}
+                    </div>
+
+                    {item.children && isOpen && (
+                      <ul className="mt-4 flex flex-wrap justify-center gap-x-8 gap-y-3">
+                        {item.children.map((c) => (
+                          <li key={c.href}>
+                            <Link
+                              href={c.href}
+                              onClick={() => setOpen(false)}
+                              className={`text-m transition-colors hover:text-foreground ${
+                                c.href === active ? "text-foreground" : "text-muted"
+                              }`}
+                            >
+                              {c.label}
+                            </Link>
+                          </li>
+                        ))}
+                      </ul>
+                    )}
+                  </li>
+                );
+              })}
+            </ul>
+
+            {/* 계정 */}
+            <div className="mt-14 flex flex-wrap items-center justify-center gap-x-6 gap-y-3 text-s">
+              {currentUser ? (
+                <>
+                  <span className="text-muted">{currentUser.name} 님</span>
+                  <Link
+                    href={currentUser.role === "ADMIN" ? "/admin" : "/mypage"}
+                    onClick={() => setOpen(false)}
+                    className="font-bold hover:text-accent"
+                  >
+                    {currentUser.role === "ADMIN" ? "운영자 백오피스" : "내 신청 내역"}
+                  </Link>
+                  <Link
+                    href={currentUser.role === "ADMIN" ? "/admin/users" : "/mypage/profile"}
+                    onClick={() => setOpen(false)}
+                    className="text-muted hover:text-foreground"
+                  >
+                    회원정보
+                  </Link>
+                  <NotificationBell role={currentUser.role} />
+                  <LogoutButton className="text-muted hover:text-foreground" />
+                </>
+              ) : (
+                <>
+                  <Link
+                    href="/login"
+                    onClick={() => setOpen(false)}
+                    className={btnClass("secondary", "md")}
+                  >
+                    로그인
+                  </Link>
+                  <Link
+                    href="/register"
+                    onClick={() => setOpen(false)}
+                    className={btnClass("primary", "md")}
+                  >
+                    회원가입
+                  </Link>
+                </>
+              )}
+            </div>
+          </nav>
+
+          {/* 하단 바 — Figma Navbar / 2 하단 유틸 */}
+          <div className="border-t border-border/20">
+            <div className="container-site flex flex-wrap items-center justify-between gap-4 py-5 text-xs text-muted">
+              <div className="flex items-center gap-5">
+                <span className="font-bold text-foreground">KOR</span>
+                <span title="영문 페이지 준비 중">ENG</span>
+                <Link href="/faq" onClick={() => setOpen(false)} className="hover:text-foreground">
+                  대관 문의
                 </Link>
-                {link.children && (
-                  <div className="mt-3 flex flex-wrap gap-x-5 gap-y-2">
-                    {link.children.map((c) => (
-                      <Link
-                        key={c.href + c.label}
-                        href={c.href}
-                        onClick={() => setMobileOpen(false)}
-                        className="text-s text-muted hover:text-foreground"
-                      >
-                        {c.label}
-                      </Link>
-                    ))}
-                  </div>
-                )}
               </div>
-            ))}
+              <div className="flex items-center gap-1" role="group" aria-label="화면 테마">
+                <button
+                  type="button"
+                  onClick={() => apply("light")}
+                  aria-pressed={theme === "light"}
+                  className={`border px-3 py-1.5 transition-colors ${
+                    theme === "light"
+                      ? "border-foreground bg-foreground text-background"
+                      : "border-transparent hover:text-foreground"
+                  }`}
+                >
+                  Light
+                </button>
+                <button
+                  type="button"
+                  onClick={() => apply("dark")}
+                  aria-pressed={theme === "dark"}
+                  className={`border px-3 py-1.5 transition-colors ${
+                    theme === "dark"
+                      ? "border-foreground bg-foreground text-background"
+                      : "border-transparent hover:text-foreground"
+                  }`}
+                >
+                  Dark
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       )}
-    </header>
+    </>
   );
 }

@@ -1,23 +1,26 @@
 import Link from "next/link";
 
 /**
- * Figma Design 페이지 공통 Breadcrumb (높이 48).
- * 모든 하위 페이지 헤더 바로 아래에 놓는다.
+ * 2차 헤더(브레드크럼)는 3뎁스 페이지에서만 노출한다.
+ *   HOME / 내 신청 내역 / 1:1 문의   ← 여기서부터
+ *   HOME / 대관 안내                ← 이 레벨은 표시하지 않음
+ * 그래서 items 가 2개 미만이면 아무것도 렌더하지 않는다.
  */
-export function Breadcrumb({
-  items,
-}: {
-  items: { label: string; href?: string }[];
-}) {
+export function Breadcrumb({ items }: { items: { label: string; href?: string }[] }) {
+  if (items.length < 2) return null;
+
   return (
     <nav aria-label="현재 위치" className="border-b border-border/15">
       <div className="container-site flex h-12 items-center gap-2 overflow-x-auto whitespace-nowrap text-xs text-muted">
-        <Link href="/" className="type-label hover:text-foreground">
+        <Link
+          href="/"
+          className="font-extrabold uppercase tracking-[0.08em] [font-family:Archivo,sans-serif] hover:text-foreground"
+        >
           Home
         </Link>
         {items.map((item) => (
           <span key={item.label} className="flex items-center gap-2">
-            <span aria-hidden className="text-border/40">
+            <span aria-hidden className="opacity-40">
               /
             </span>
             {item.href ? (

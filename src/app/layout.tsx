@@ -7,32 +7,34 @@ export const metadata: Metadata = {
     "한계 없는 인프라 위에서 당신만의 무대를 지휘하세요. 서울아레나 대관 안내·견적 산출·신청 시스템.",
 };
 
+/**
+ * 첫 페인트 전에 테마를 확정해 화면이 번쩍이는 것을 막는다.
+ * 저장된 선택이 없으면 OS 설정(prefers-color-scheme)을 따른다.
+ */
+const THEME_SCRIPT = `(function(){try{var t=localStorage.getItem('sa-theme');
+if(!t){t=window.matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light';}
+if(t==='dark'){document.documentElement.classList.add('dark');}}catch(e){}})();`;
+
 export default function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="ko" className="h-full">
+    <html lang="ko" className="h-full" suppressHydrationWarning>
       <head>
+        <script dangerouslySetInnerHTML={{ __html: THEME_SCRIPT }} />
         {/*
           Figma Style Guide › Typography
             · Heading Typeface (English) : Archivo 700 / 800
             · Display Typeface (Korean)  : Gothic A1 900
-            · Body Typeface (Korean)     : KakaoBig 400/700/800 · KakaoSmall 300/400/700
-
+            · Body Typeface (Korean)     : KakaoBig / KakaoSmall
           카카오 큰글씨·작은글씨는 웹폰트 배포본이 없어 셀프호스팅이 필요하다.
-          globals.css의 폰트 스택이 "KakaoBig"/"KakaoSmall"을 먼저 찾으므로,
-          /public/fonts 에 웹폰트를 넣고 @font-face만 추가하면 그대로 승격된다.
-          확보 전까지는 브랜드 가이드가 국문 대체로 지정한 Gothic A1로 폴백한다.
-
-          next/font 대신 <link>를 쓰는 이유: 빌드 타임에 폰트 바이너리를 받아오지
-          않아 배포 환경의 네트워크 조건에 빌드가 좌우되지 않는다.
+          폰트 스택이 "KakaoBig"/"KakaoSmall" 을 먼저 찾으므로 /public/fonts 에 넣고
+          @font-face 만 추가하면 그대로 승격된다. 확보 전까지는 Gothic A1 로 폴백.
         */}
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
-        {/* no-page-custom-font 규칙은 pages 라우터용이다. App Router의 루트 레이아웃에
-            선언한 폰트는 전 페이지에 적용되므로 이 경고는 해당하지 않는다. */}
         {/* eslint-disable-next-line @next/next/no-page-custom-font */}
         <link
           rel="stylesheet"

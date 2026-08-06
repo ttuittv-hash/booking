@@ -10,9 +10,7 @@ import type { GuideContent, HomeContent, VenueContent } from "./types";
  */
 export const DEFAULT_HOME_CONTENT: HomeContent = {
   heroImage: null,
-  heroEyebrow: "HOST IT.",
   heroTitle: "BRING THE VISION,\nWE BUILD THE STAGE",
-  heroSubDisplay: "LIMITLESS SPACE, ABSOLUTE CONTROL",
   heroSubtitle: "한계 없는 인프라 위에서\n당신만의 무대를 지휘하세요.",
   heroPrimaryLabel: "대관 신청",
   heroPrimaryHref: "/apply",

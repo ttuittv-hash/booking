@@ -6,7 +6,7 @@ import {
   ButtonLink,
   EmptyState,
   Label,
-  SectionHead,
+  PageHeading,
   btnClass,
 } from "@/components/ui/kit";
 
@@ -29,12 +29,12 @@ const RICH_TEXT_CLS =
 function GuideCta({
   href,
   children,
-  variant = "outline",
+  variant = "secondary",
   disabled,
 }: {
   href: string;
   children: ReactNode;
-  variant?: "primary" | "outline" | "ghost";
+  variant?: "primary" | "secondary" | "tertiary";
   disabled?: boolean;
 }) {
   if (disabled) {
@@ -75,9 +75,7 @@ export function GuideContentView({
 
       {/* ── 대관 절차 (#process) — 번호 + 제목 + 설명 헤어라인 로우 ───────── */}
       <Band tone="dark" size="lg" id="process" className="scroll-mt-24">
-        <SectionHead
-          tone="dark"
-          label="Process"
+        <PageHeading
           title="대관 절차"
           lead="회원가입부터 사후 정산까지 8단계로 진행됩니다. 각 단계의 제출서류와 협의 일정을 미리 확인하세요."
         />
@@ -116,8 +114,7 @@ export function GuideContentView({
 
       {/* ── 대관 패키지 구성 개요 (#rates) ────────────────────────────────── */}
       <Band tone="light" id="rates" className="scroll-mt-24">
-        <SectionHead
-          label="Packages"
+        <PageHeading
           title="대관 패키지 구성"
           lead={
             <div className={RICH_TEXT_CLS} dangerouslySetInnerHTML={{ __html: packageIntro }} />
@@ -148,8 +145,7 @@ export function GuideContentView({
 
       {/* ── 대관 규약 (#rules) ────────────────────────────────────────────── */}
       <Band tone="white" id="rules" className="scroll-mt-24">
-        <SectionHead
-          label="Rules"
+        <PageHeading
           title="대관 규약"
           lead={<div className={RICH_TEXT_CLS} dangerouslySetInnerHTML={{ __html: rulesIntro }} />}
         />
@@ -178,7 +174,7 @@ export function GuideContentView({
               대관 양식함
               <ArrowRight />
             </GuideCta>
-            <GuideCta href="/guide/image-guide" variant="ghost" disabled={disableLinks}>
+            <GuideCta href="/guide/image-guide" variant="tertiary" disabled={disableLinks}>
               이미지 가이드
             </GuideCta>
           </div>

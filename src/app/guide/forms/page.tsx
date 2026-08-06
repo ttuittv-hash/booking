@@ -35,7 +35,7 @@ export default async function GuideFormsPage() {
             title="대관 관련 서식 자료"
             desc="자료 준비 중입니다. 필요한 서식은 대관 담당자를 통해 받을 수 있습니다."
             action={
-              <ButtonLink href="/guide#process" variant="outline">
+              <ButtonLink href="/guide#process" variant="secondary">
                 대관 절차 확인
                 <ArrowRight />
               </ButtonLink>
@@ -43,7 +43,7 @@ export default async function GuideFormsPage() {
           />
 
           <div className="mt-10">
-            <ButtonLink href="/guide" variant="ghost">
+            <ButtonLink href="/guide" variant="tertiary">
               대관 안내로 돌아가기
             </ButtonLink>
           </div>

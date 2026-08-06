@@ -26,9 +26,7 @@ export async function PUT(request: Request) {
 
   const saved = saveHomeContent({
     heroImage: content.heroImage ?? null,
-    heroEyebrow: content.heroEyebrow ?? "",
     heroTitle: content.heroTitle ?? "",
-    heroSubDisplay: content.heroSubDisplay ?? "",
     heroSubtitle: content.heroSubtitle ?? "",
     heroPrimaryLabel: content.heroPrimaryLabel ?? "",
     heroPrimaryHref: content.heroPrimaryHref ?? "/apply",

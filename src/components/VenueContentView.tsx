@@ -34,25 +34,23 @@ const no2 = (i: number) => String(i + 1).padStart(2, "0");
 
 /** 섹션 헤드 — 좌: 라벨 + 국문 타이틀 / 우: 리드. 국문 타이틀은 type-kr-heading. */
 function Head({
-  label,
   title,
   lead,
   tone = "light",
 }: {
-  label: string;
+  label?: string;
   title: string;
   lead?: ReactNode;
   tone?: "light" | "dark";
 }) {
-  const labelCls = tone === "dark" ? "text-inverse-muted" : "text-muted";
-  const leadCls = tone === "dark" ? "text-inverse-fg/80" : "text-muted";
+  // 아이브로(tagline)는 쓰지 않는다. tone 은 밴드가 토큰을 뒤집으므로 더 이상 필요 없다.
+  void tone;
   return (
     <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.35fr)] lg:gap-16">
       <div>
-        <Label className={`mb-4 ${labelCls}`}>{label}</Label>
         <h2 className="type-kr-heading text-h3-m sm:text-h3">{title}</h2>
       </div>
-      {lead && <div className={`text-m ${leadCls} lg:pt-14`}>{lead}</div>}
+      {lead && <div className="text-m text-muted lg:pt-14">{lead}</div>}
     </div>
   );
 }
@@ -143,7 +141,6 @@ export function VenueContentView({ content }: { content: VenueContent }) {
       {/* ── 시설 개요 ─────────────────────────────────────────────────────── */}
       <Band id="overview" tone="white" className="scroll-mt-20">
         <Head
-          label="Overview"
           title="시설 개요"
           lead={
             <div className={RICH_TEXT_CLS} dangerouslySetInnerHTML={{ __html: overviewIntro }} />
@@ -175,7 +172,6 @@ export function VenueContentView({ content }: { content: VenueContent }) {
         <Band tone="dark">
           <Head
             tone="dark"
-            label="Highlights"
             title="시설 구성의 강점"
             lead="공연 규모와 목적이 달라도 하나의 단지 안에서 해결하세요."
           />
@@ -196,7 +192,6 @@ export function VenueContentView({ content }: { content: VenueContent }) {
       {/* ── 층별 키맵 ─────────────────────────────────────────────────────── */}
       <Band tone="light">
         <Head
-          label="Key Map"
           title="층별 키맵"
           lead="층별 좌석 배치와 관객·스태프 동선을 확인하세요."
         />
@@ -208,7 +203,6 @@ export function VenueContentView({ content }: { content: VenueContent }) {
       {/* ── 시설 제원 ─────────────────────────────────────────────────────── */}
       <Band id="specs" tone="white" className="scroll-mt-20">
         <Head
-          label="Specs"
           title="아레나 / 중형공연장 시설 제원"
           lead={<div className={RICH_TEXT_CLS} dangerouslySetInnerHTML={{ __html: specsIntro }} />}
         />
@@ -240,7 +234,7 @@ export function VenueContentView({ content }: { content: VenueContent }) {
             title="기술자료 준비 중"
             desc="아레나·중형공연장 무대 장비 및 인프라 리스트를 담은 Technical Package는 정본 확정 후 제공합니다."
             action={
-              <ButtonLink href="/faq" variant="outline" size="sm">
+              <ButtonLink href="/faq" variant="secondary" size="sm">
                 기술자료 문의
               </ButtonLink>
             }
@@ -253,7 +247,6 @@ export function VenueContentView({ content }: { content: VenueContent }) {
         <Band id="stage-features" tone="dark" className="scroll-mt-20">
           <Head
             tone="dark"
-            label="Stage Features"
             title="무대 특장"
             lead="아티스트·관객·제작진 각각의 관점에서 무대가 무엇을 가능하게 하는지 확인하세요."
           />
@@ -266,7 +259,6 @@ export function VenueContentView({ content }: { content: VenueContent }) {
       {/* ── 부대 시설 ─────────────────────────────────────────────────────── */}
       <Band id="amenities" tone="light" className="scroll-mt-20">
         <Head
-          label="Amenities"
           title="부대 시설"
           lead="공연 준비부터 관객 응대까지, 운영에 필요한 공간을 함께 제공합니다."
         />
@@ -305,11 +297,11 @@ export function VenueContentView({ content }: { content: VenueContent }) {
             </p>
           </div>
           <div className="flex shrink-0 flex-col gap-3 sm:flex-row">
-            <ButtonLink href="/apply" variant="outline" size="lg">
+            <ButtonLink href="/apply" variant="secondary" size="lg">
               대관 신청하기
               <ArrowRight />
             </ButtonLink>
-            <ButtonLink href="/packages" variant="ghost" size="lg">
+            <ButtonLink href="/packages" variant="tertiary" size="lg">
               대관 패키지 보기
             </ButtonLink>
           </div>

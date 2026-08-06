@@ -105,7 +105,7 @@ export default async function NoticeDetailPage({
             )}
 
             <div className="mt-14 border-t border-border/25 pt-8">
-              <ButtonLink href="/notices" variant="outline">
+              <ButtonLink href="/notices" variant="secondary">
                 공지사항 목록
                 <ArrowRight />
               </ButtonLink>

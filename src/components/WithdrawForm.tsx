@@ -9,7 +9,7 @@ const FIELD =
   "w-full max-w-xs border border-border-soft bg-surface px-3.5 py-2.5 text-s text-foreground transition-colors placeholder:text-muted focus:border-foreground focus:outline-2 focus:outline-accent";
 
 /**
- * 파괴적 동작 버튼 — kit btnClass("outline","md") 와 같은 골격(1px 보더·샤프 코너·투명 배경)에
+ * 파괴적 동작 버튼 — kit btnClass("secondary","md") 와 같은 골격(1px 보더·샤프 코너·투명 배경)에
  * danger 색만 적용. btnClass 결과에 색을 덧붙이면 같은 속성의 유틸리티가 충돌하므로 별도로 조립한다.
  */
 const DANGER_BTN = [

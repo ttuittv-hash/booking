@@ -35,7 +35,7 @@ export default async function GuideImagePage() {
             title="시설 이미지 및 사용 가이드"
             desc="자료 준비 중입니다. 홍보물에 사용할 시설 이미지는 대관 담당자를 통해 받을 수 있습니다."
             action={
-              <ButtonLink href="/venue#amenities" variant="outline">
+              <ButtonLink href="/venue#amenities" variant="secondary">
                 공연장 소개 보기
                 <ArrowRight />
               </ButtonLink>
@@ -43,7 +43,7 @@ export default async function GuideImagePage() {
           />
 
           <div className="mt-10">
-            <ButtonLink href="/guide" variant="ghost">
+            <ButtonLink href="/guide" variant="tertiary">
               대관 안내로 돌아가기
             </ButtonLink>
           </div>

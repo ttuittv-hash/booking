@@ -2,9 +2,17 @@
 
 /* ============================================================================
    Seoul Arena — Business layer design tokens
-   출처: Kakao Arena Brand Guidelines 0.1 + Figma "2607 서울아레나 웹사이트 Full"
-         › WORKSPACE › Style Guide (Variables / Typography / Radius / Shadows)
+   출처: Kakao Arena Brand Guidelines 0.1
+        Figma "2607 서울아레나 웹사이트 Full" › WORKSPACE › Style Guide / Wireframe
+
+   다크모드는 Style Guide › UI Elements 의 다크 변형에서 실측한 값을 쓴다.
+     배경 #000000 · 프라이머리 버튼 흰 채움 + 검정 텍스트
+     입력 필드는 배경과 같은 색이고 1px 보더로만 구분 (라이트도 동일 원리)
    ========================================================================= */
+
+/* 다크모드는 html.dark 클래스로 제어한다 (오픈 메뉴 하단 토글).
+   최초 방문 시에는 OS 설정을 따르고, 사용자가 고르면 그 선택을 기억한다. */
+@custom-variant dark (&:where(.dark, .dark *));
 
 :root {
   /* --- Primitive: Neutrals (Figma Style Guide › Variables) --------------- */
@@ -20,24 +28,33 @@
   /* --- Primitive: Accent ------------------------------------------------ */
   --brand-yellow: #ffcd00;
 
-  /* --- Color scheme ----------------------------------------------------- */
+  /* --- Color scheme: Light ---------------------------------------------- */
   --background: var(--n-lightest);
   --surface: var(--n-white);
   --foreground: var(--n-darkest);
   --muted: var(--n-mid);
   --muted-strong: var(--n-dark);
-  /* 편집형 헤어라인(섹션·리스트 구분)은 검정, 밀도 높은 UI(폼·테이블)는 소프트 */
   --border: var(--n-darkest);
   --border-soft: var(--n-lighter);
+  --placeholder: #d9d7d6;
+  --placeholder-mark: var(--n-lighter);
+
   --accent: var(--brand-yellow);
-  /* 접근성: #FFCD00 on #F2F0EF = 약 1.5:1. 옐로는 절대 텍스트 색으로 쓰지 않고
-     면(배경)·강조 요소·구분선에만 쓰고, 그 위 텍스트는 항상 검정(약 14:1). */
+  /* 접근성: #FFCD00 on #F2F0EF = 약 1.5:1.
+     옐로는 텍스트 색으로 쓰지 않는다. 면·강조·구분선에만 쓰고 그 위 텍스트는 검정(14:1).
+     블랙 배경 위 옐로 텍스트는 약 11:1 이라 허용 (브랜드 가이드 Yellow on Black). */
   --on-accent: var(--n-darkest);
+
+  /* 버튼 (Figma UI Elements — 모노크롬. 옐로 버튼은 시스템에 없다) */
+  --btn-primary-bg: var(--n-darkest);
+  --btn-primary-fg: var(--n-white);
+  --btn-primary-bg-hover: var(--n-darker);
+
   --inverse-bg: var(--n-darkest);
   --inverse-fg: var(--n-lightest);
   --inverse-muted: var(--n-light);
 
-  /* --- 상태 (백오피스·신청 상태 배지) ------------------------------------ */
+  /* --- 상태 -------------------------------------------------------------- */
   --good: #0f5c33;
   --good-soft: #e3f1e8;
   --warn: var(--n-dark);
@@ -45,17 +62,15 @@
   --danger: #a8200d;
   --danger-soft: #f6e3df;
 
-  /* --- 기존 토큰 별칭 (마이그레이션 중 화면 깨짐 방지) -------------------- */
   --panel: var(--n-white);
   --panel-strong: #e8e6e4;
   --accent-hover: #e6b900;
   --accent-soft: #fff2c2;
 
-  /* --- Radius (Figma Style Guide › Radius) ------------------------------ */
-  --radius-none: 0px;
-  --radius-sm: 2px;
-  --radius-md: 4px;
-  --radius-lg: 8px;
+  /* --- Radius (Figma: 샤프) ---------------------------------------------- */
+  --radius-sm: 0px;
+  --radius-md: 0px;
+  --radius-lg: 0px;
 
   /* --- Shadows (Figma Style Guide › Shadows, 7단) ----------------------- */
   --shadow-xxs: 0 1px 2px rgba(0, 0, 0, 0.06);
@@ -66,10 +81,51 @@
   --shadow-xl: 0 24px 48px rgba(0, 0, 0, 0.12);
   --shadow-xxl: 0 32px 64px rgba(0, 0, 0, 0.14);
 
-  /* --- Layout (Figma: 캔버스 1512 / 컨테이너 1384 / 헤더 72 / 브레드크럼 48) */
+  /* --- Layout (Figma: 캔버스 1512 / 컨테이너 1384 / 헤더 72) ------------- */
   --container: 1384px;
   --header-h: 72px;
-  --breadcrumb-h: 48px;
+}
+
+/* --- Color scheme: Dark (Style Guide › UI Elements 다크 변형 실측) ------- */
+.dark {
+  --background: var(--n-darkest);
+  --surface: var(--n-darkest);
+  --foreground: var(--n-lightest);
+  --muted: var(--n-light);
+  --muted-strong: var(--n-lighter);
+  --border: var(--n-lightest);
+  --border-soft: var(--n-dark);
+  --placeholder: #1a1a1a;
+  --placeholder-mark: var(--n-dark);
+
+  --on-accent: var(--n-darkest);
+
+  --btn-primary-bg: var(--n-white);
+  --btn-primary-fg: var(--n-darkest);
+  --btn-primary-bg-hover: var(--n-lightest);
+
+  --inverse-bg: var(--n-lightest);
+  --inverse-fg: var(--n-darkest);
+  --inverse-muted: var(--n-mid);
+
+  --good: #6cc79a;
+  --good-soft: #10241a;
+  --warn: var(--n-light);
+  --warn-soft: #1c1c1c;
+  --danger: #f08a78;
+  --danger-soft: #2a1310;
+
+  --panel: #0d0d0d;
+  --panel-strong: #1a1a1a;
+  --accent-soft: #33290a;
+
+  --shadow-xxs: 0 1px 2px rgba(0, 0, 0, 0.6);
+  --shadow-xs: 0 1px 3px rgba(0, 0, 0, 0.6);
+  --shadow-sm: 0 4px 8px rgba(0, 0, 0, 0.6);
+  --shadow-md: 0 12px 16px rgba(0, 0, 0, 0.6);
+  --shadow-lg: 0 20px 24px rgba(0, 0, 0, 0.6);
+  --shadow-xl: 0 24px 48px rgba(0, 0, 0, 0.7);
+  --shadow-xxl: 0 32px 64px rgba(0, 0, 0, 0.7);
 }
 
 @theme inline {
@@ -80,6 +136,8 @@
   --color-muted-strong: var(--muted-strong);
   --color-border: var(--border);
   --color-border-soft: var(--border-soft);
+  --color-placeholder: var(--placeholder);
+  --color-placeholder-mark: var(--placeholder-mark);
   --color-accent: var(--accent);
   --color-on-accent: var(--on-accent);
   --color-inverse-bg: var(--inverse-bg);
@@ -107,72 +165,62 @@
   --color-accent-soft: var(--accent-soft);
 
   --font-display: "Archivo", "Helvetica Neue", Arial, sans-serif;
-  --font-kr-display: "KakaoBig", "Gothic A1", "Apple SD Gothic Neo", sans-serif;
-  --font-sans: "KakaoBig", "Gothic A1", "Apple SD Gothic Neo",
-    "Malgun Gothic", -apple-system, BlinkMacSystemFont, sans-serif;
-  --font-sans-sm: "KakaoSmall", "Gothic A1", "Apple SD Gothic Neo",
-    "Malgun Gothic", -apple-system, BlinkMacSystemFont, sans-serif;
+  --font-sans: "KakaoBig", "Gothic A1", "Apple SD Gothic Neo", "Malgun Gothic",
+    -apple-system, BlinkMacSystemFont, sans-serif;
 
   /* --- Type scale (Figma Style Guide › Typography) ---------------------- */
-  /* Display */
-  --text-d1: 10rem; /* 160 */
+  --text-d1: 10rem;
   --text-d1--line-height: 0.9;
   --text-d1--letter-spacing: -0.03em;
-  --text-d1-m: 4.5rem; /* 72 */
+  --text-d1-m: 4.5rem;
   --text-d1-m--line-height: 0.9;
   --text-d1-m--letter-spacing: -0.03em;
-  --text-d2: 6rem; /* 96 */
+  --text-d2: 6rem;
   --text-d2--line-height: 0.9;
   --text-d2--letter-spacing: -0.03em;
-  --text-d2-m: 3.25rem; /* 52 */
-  --text-d2--line-height: 0.9;
+  --text-d2-m: 3.25rem;
   --text-d2-m--line-height: 0.9;
   --text-d2-m--letter-spacing: -0.03em;
 
-  /* Headings — desktop */
-  --text-h1: 3.5rem; /* 56 */
+  --text-h1: 3.5rem;
   --text-h1--line-height: 1.2;
-  --text-h1--letter-spacing: -0.04em; /* 국문 -2.24px @56 */
-  --text-h2: 3rem; /* 48 */
+  --text-h1--letter-spacing: -0.04em;
+  --text-h2: 3rem;
   --text-h2--line-height: 1.2;
-  --text-h2--letter-spacing: -0.04em; /* 국문 -1.92px @48 */
-  --text-h3: 2.5rem; /* 40 */
+  --text-h2--letter-spacing: -0.04em;
+  --text-h3: 2.5rem;
   --text-h3--line-height: 1.2;
-  --text-h4: 2rem; /* 32 */
+  --text-h4: 2rem;
   --text-h4--line-height: 1.3;
-  --text-h5: 1.5rem; /* 24 */
+  --text-h5: 1.5rem;
   --text-h5--line-height: 1.4;
-  --text-h6: 1.25rem; /* 20 */
+  --text-h6: 1.25rem;
   --text-h6--line-height: 1.4;
 
-  /* Headings — mobile */
-  --text-h1-m: 2.5rem; /* 40 */
+  --text-h1-m: 2.5rem;
   --text-h1-m--line-height: 1.2;
   --text-h1-m--letter-spacing: -0.04em;
-  --text-h2-m: 2.25rem; /* 36 */
+  --text-h2-m: 2.25rem;
   --text-h2-m--line-height: 1.2;
   --text-h2-m--letter-spacing: -0.04em;
-  --text-h3-m: 2rem; /* 32 */
+  --text-h3-m: 2rem;
   --text-h3-m--line-height: 1.2;
-  --text-h4-m: 1.5rem; /* 24 */
+  --text-h4-m: 1.5rem;
   --text-h4-m--line-height: 1.4;
-  --text-h5-m: 1.25rem; /* 20 */
+  --text-h5-m: 1.25rem;
   --text-h5-m--line-height: 1.4;
-  --text-h6-m: 1.125rem; /* 18 */
+  --text-h6-m: 1.125rem;
   --text-h6-m--line-height: 1.4;
 
-  /* Body */
-  --text-tagline: 1rem;
-  --text-tagline--line-height: 1.5;
-  --text-l: 1.25rem; /* 20 */
+  --text-l: 1.25rem;
   --text-l--line-height: 1.5;
-  --text-m: 1.125rem; /* 18 */
+  --text-m: 1.125rem;
   --text-m--line-height: 1.5;
-  --text-r: 1rem; /* 16 */
+  --text-r: 1rem;
   --text-r--line-height: 1.5;
-  --text-s: 0.875rem; /* 14 */
+  --text-s: 0.875rem;
   --text-s--line-height: 1.5;
-  --text-xs: 0.75rem; /* 12 */
+  --text-xs: 0.75rem;
   --text-xs--line-height: 1.5;
 
   --shadow-xxs: var(--shadow-xxs);
@@ -183,25 +231,25 @@
   --shadow-xl: var(--shadow-xl);
   --shadow-xxl: var(--shadow-xxl);
 
-  --radius-sm: var(--radius-sm);
-  --radius-md: var(--radius-md);
-  --radius-lg: var(--radius-lg);
-
   --container-site: var(--container);
 }
 
 html {
   background: var(--background);
+  color-scheme: light;
   /* 스텝/탭 전환 시 콘텐츠 높이가 바뀌며 스크롤바가 생겼다 사라지면서
      레이아웃 전체가 좌우로 미세하게 흔들리는 것을 방지 */
   scrollbar-gutter: stable;
+}
+html.dark {
+  color-scheme: dark;
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: "KakaoBig", "Gothic A1", "Apple SD Gothic Neo",
-    "Malgun Gothic", -apple-system, BlinkMacSystemFont, sans-serif;
+  font-family: "KakaoBig", "Gothic A1", "Apple SD Gothic Neo", "Malgun Gothic",
+    -apple-system, BlinkMacSystemFont, sans-serif;
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;
 }
@@ -234,7 +282,7 @@ input[type="number"]::-webkit-inner-spin-button {
   margin-inline: auto;
   padding-inline: 1.5rem;
   @media (min-width: 1024px) {
-    padding-inline: 4rem; /* Figma: 1512 - 1384 = 128 / 2 */
+    padding-inline: 4rem; /* Figma: (1512 - 1384) / 2 */
   }
 }
 
@@ -246,14 +294,6 @@ input[type="number"]::-webkit-inner-spin-button {
   letter-spacing: -0.02em;
 }
 
-/* 섹션 라벨 (Archivo Extrabold 소형 대문자) */
-@utility type-label {
-  font-family: "Archivo", "Helvetica Neue", Arial, sans-serif;
-  font-weight: 800;
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-}
-
 /* 국문 헤딩 — 음수 자간 */
 @utility type-kr-heading {
   font-family: "KakaoBig", "Gothic A1", "Apple SD Gothic Neo", sans-serif;
@@ -261,41 +301,29 @@ input[type="number"]::-webkit-inner-spin-button {
   letter-spacing: -0.03em;
 }
 
-/* Iconic 그라디언트 — Black·Yellow·White 절제된 전환. 공식·인지 중심.
-   "이미지 준비 중" 슬롯의 브랜드 플레이스홀더로 사용. */
-@utility bg-iconic {
-  background-image:
-    radial-gradient(120% 90% at 18% 108%, #ffcd00 0%, rgba(255, 205, 0, 0.35) 38%, rgba(0, 0, 0, 0) 68%),
-    radial-gradient(100% 120% at 88% -12%, rgba(255, 255, 255, 0.28) 0%, rgba(0, 0, 0, 0) 60%),
-    linear-gradient(168deg, #141414 0%, #000000 62%);
+/* 입력 필드 — Figma UI Elements 기준.
+   배경은 지면과 같고 1px 보더로만 구분한다(라이트·다크 동일 원리). */
+@utility field-base {
+  width: 100%;
+  border-width: 1px;
+  border-color: var(--border-soft);
+  background-color: transparent;
+  padding-inline: 0.875rem;
+  padding-block: 0.625rem;
+  font-size: var(--text-s);
+  line-height: 1.5;
+  color: var(--foreground);
+  transition: border-color 150ms;
 }
-
-@utility bg-iconic-light {
-  background-image:
-    radial-gradient(110% 90% at 12% 105%, rgba(255, 205, 0, 0.9) 0%, rgba(255, 205, 0, 0.18) 42%, rgba(255, 255, 255, 0) 72%),
-    linear-gradient(168deg, #ffffff 0%, var(--n-lightest) 100%);
-}
-
-/* Expressive 그라디언트 — 옐로 기반 유사색 전환. 히어로 1회로 제한. */
-@utility bg-expressive {
-  background-image:
-    radial-gradient(85% 120% at 8% 12%, #ffb400 0%, rgba(255, 180, 0, 0) 55%),
-    radial-gradient(70% 95% at 34% 88%, #ffcd00 0%, rgba(255, 205, 0, 0) 62%),
-    radial-gradient(95% 130% at 92% 6%, #ff7a1a 0%, rgba(255, 122, 26, 0) 58%),
-    linear-gradient(140deg, #ffd83d 0%, var(--n-lightest) 72%, var(--n-lightest) 100%);
-}
-
-/* 그레인 오버레이 — 브랜드 KV의 텍스처감 */
-@utility grain {
-  position: relative;
-}
-@utility grain-layer {
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-  opacity: 0.28;
-  mix-blend-mode: multiply;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='3'/%3E%3C/filter%3E%3Crect width='140' height='140' filter='url(%23n)' opacity='0.5'/%3E%3C/svg%3E");
+@utility field-base {
+  &::placeholder {
+    color: var(--muted);
+  }
+  &:focus {
+    border-color: var(--foreground);
+    outline: 2px solid var(--accent);
+    outline-offset: 1px;
+  }
 }
 
 @media print {
@@ -326,9 +354,17 @@ input[type="number"]::-webkit-inner-spin-button {
   }
 }
 
+@keyframes menu-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
-  [class*="animate-[fade-up"],
-  [class*="animate-[dropdown-in"] {
+  [class*="animate-["] {
     animation: none !important;
   }
 }

@@ -21,7 +21,7 @@ import {
   type BandTone,
   ButtonLink,
   Label,
-  SectionHead,
+  PageHeading,
   SpecTable,
   btnClass,
 } from "@/components/ui/kit";
@@ -105,9 +105,7 @@ export default async function PackagesPage() {
 
         {/* ── 규모별 진입 — 어느 규모에서 어느 패키지인지 먼저 보여준다 ────── */}
         <Band tone="dark">
-          <SectionHead
-            tone="dark"
-            label="Scale"
+          <PageHeading
             title="규모로 고르세요"
             lead="예상 관객 규모가 패키지를 결정합니다. 기본 대관료는 화~일 1주 기준 정찰제이며 VAT는 별도입니다."
           />
@@ -236,8 +234,7 @@ export default async function PackagesPage() {
 
         {/* ── 부대항목 — 9개 카테고리 전체 단가 ────────────────────────────── */}
         <Band tone="white" id="addons" className="scroll-mt-24">
-          <SectionHead
-            label="Add-ons"
+          <PageHeading
             title="부대항목"
             lead={`공간·프로덕션·홍보 등 ${addonsByCategory.length}개 카테고리 ${rateTable.addons.length}개 항목을 필요한 만큼 선택합니다. 기본 포함분을 넘는 수량만 과금됩니다.`}
           />
@@ -285,11 +282,11 @@ export default async function PackagesPage() {
               </p>
             </div>
             <div className="flex shrink-0 flex-col gap-3 sm:flex-row">
-              <Link href="/apply?new=1" className={btnClass("outline", "lg")}>
+              <Link href="/apply?new=1" className={btnClass("secondary", "lg")}>
                 대관 신청 시작하기
                 <ArrowRight />
               </Link>
-              <ButtonLink href="/guide#rates" variant="ghost" size="lg">
+              <ButtonLink href="/guide#rates" variant="tertiary" size="lg">
                 대관 안내로
               </ButtonLink>
             </div>

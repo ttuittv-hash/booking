@@ -182,7 +182,7 @@ export function ProfileForm({ user }: { user: AppUser }) {
           type="button"
           disabled={savingPassword || !currentPassword || newPassword.length < 8}
           onClick={savePassword}
-          className={`${btnClass("outline")} mt-6`}
+          className={`${btnClass("secondary")} mt-6`}
         >
           {savingPassword ? "변경 중..." : "비밀번호 변경"}
         </button>

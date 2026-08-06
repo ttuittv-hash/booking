@@ -93,9 +93,7 @@ export function HomeContentForm({ content: initial }: { content: HomeContent }) 
   /** 스키마가 개정되어 저장된 구버전 데이터에 신규 항목이 없을 때 대응 */
   function loadDefaults() {
     patch({
-      heroEyebrow: DEFAULT_HOME_CONTENT.heroEyebrow,
       heroTitle: DEFAULT_HOME_CONTENT.heroTitle,
-      heroSubDisplay: DEFAULT_HOME_CONTENT.heroSubDisplay,
       heroSubtitle: DEFAULT_HOME_CONTENT.heroSubtitle,
       heroPrimaryLabel: DEFAULT_HOME_CONTENT.heroPrimaryLabel,
       heroPrimaryHref: DEFAULT_HOME_CONTENT.heroPrimaryHref,
@@ -151,16 +149,8 @@ export function HomeContentForm({ content: initial }: { content: HomeContent }) 
       <section>
         <h3 className={SUB_TITLE}>히어로 (상단 이미지 + 카피 + 버튼)</h3>
         <label className="mt-3 block">
-          <span className={labelCls}>상단 라벨 (예: HOST IT.)</span>
-          <input value={content.heroEyebrow} onChange={(e) => patch({ heroEyebrow: e.target.value })} className={inputCls} />
-        </label>
-        <label className="mt-3 block">
           <span className={labelCls}>영문 디스플레이 (줄바꿈 가능)</span>
           <textarea rows={2} value={content.heroTitle} onChange={(e) => patch({ heroTitle: e.target.value })} className={inputCls} />
-        </label>
-        <label className="mt-3 block">
-          <span className={labelCls}>영문 서브 디스플레이 (한 줄)</span>
-          <input value={content.heroSubDisplay} onChange={(e) => patch({ heroSubDisplay: e.target.value })} className={inputCls} />
         </label>
         <label className="mt-3 block">
           <span className={labelCls}>국문 리드 (줄바꿈 가능)</span>

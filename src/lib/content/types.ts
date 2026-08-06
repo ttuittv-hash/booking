@@ -92,11 +92,8 @@ export interface HomeProcessStep {
 
 export interface HomeContent {
   heroImage: string | null;
-  heroEyebrow: string;
   /** 영문 디스플레이 (Notion 대관 사이트 기획 히어로 후보안) */
   heroTitle: string;
-  /** 영문 서브 디스플레이 */
-  heroSubDisplay: string;
   /** 국문 리드 — 브랜드 가이드라인 문장 */
   heroSubtitle: string;
   heroPrimaryLabel: string;

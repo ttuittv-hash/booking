@@ -69,7 +69,7 @@ export function KeyMapGallery({ keyMaps }: { keyMaps: VenueKeyMap[] }) {
 
   // 키맵 이미지가 아직 등록되지 않은 단계 — Iconic 플레이스홀더로 자리를 유지한다.
   if (keyMaps.length === 0) {
-    return <Media alt="층별 키맵" ratio="16 / 9" label="키맵 이미지 준비 중" />;
+    return <Media alt="층별 키맵" ratio="16 / 9" />;
   }
 
   const activeIndex = Math.min(active, keyMaps.length - 1);
