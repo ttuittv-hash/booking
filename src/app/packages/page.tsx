@@ -105,7 +105,7 @@ export default async function PackagesPage() {
             부대시설 추가, 준비/공연 일수 조정 등 상세 옵션은 대관 신청 화면에서 실시간 견적으로 확인할 수 있습니다.
           </p>
           <Link
-            href="/apply"
+            href="/apply?new=1"
             className="inline-flex shrink-0 items-center gap-1 rounded bg-accent px-6 py-3 text-[14px] font-semibold text-white transition-colors hover:bg-accent-hover"
           >
             대관 신청 시작하기

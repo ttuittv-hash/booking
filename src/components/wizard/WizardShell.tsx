@@ -71,6 +71,7 @@ export function WizardShell({
   dateBlocks,
   editingQuoteId,
   initialSelection,
+  startFresh,
 }: {
   rateTable: RateTable;
   currentUser: AppUser | null;
@@ -78,6 +79,7 @@ export function WizardShell({
   dateBlocks: DateBlock[];
   editingQuoteId?: string;
   initialSelection?: QuoteSelection;
+  startFresh?: boolean;
 }) {
   const isEditing = !!editingQuoteId;
   const [step, setStep] = useState(1);
@@ -103,9 +105,15 @@ export function WizardShell({
   const [sessionExpired, setSessionExpired] = useState(false);
 
   // 로그인 리다이렉트 등으로 페이지를 이탈했다가 돌아와도 입력값을 복원한다.
-  // (기존 신청서 수정 중에는 새 신청서용 임시저장 내용을 불러오지 않는다.)
+  // (기존 신청서 수정 중에는 새 신청서용 임시저장 내용을 불러오지 않는다.
+  //  "대관 신청 시작하기"처럼 새 신청을 명시적으로 시작하는 진입점에서는
+  //  이전에 남아있던 임시저장 내용을 무시하고 공간 선택부터 새로 시작한다.)
   useEffect(() => {
     if (isEditing) return;
+    if (startFresh) {
+      clearWizardDraft();
+      return;
+    }
     // localStorage는 리액트 외부 저장소이므로 마운트 시 1회만 복원한다.
     const draft = loadWizardDraft();
     if (draft) {
