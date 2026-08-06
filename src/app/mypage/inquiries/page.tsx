@@ -40,7 +40,7 @@ export default async function MyInquiriesPage() {
 
   return (
     <div className="flex flex-1 flex-col">
-      <PublicHeader active="/mypage" currentUser={user} />
+      <PublicHeader active="/mypage/inquiries" currentUser={user} />
       <Breadcrumb
         items={[{ label: "내 신청 내역", href: "/mypage" }, { label: "1:1 문의" }]}
       />

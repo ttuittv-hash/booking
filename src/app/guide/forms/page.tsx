@@ -2,31 +2,32 @@ import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { getCurrentUser, isPendingApplicant } from "@/lib/auth";
 import { PublicHeader } from "@/components/PublicHeader";
-import { Breadcrumb } from "@/components/ui/Breadcrumb";
 import { SiteFooter } from "@/components/ui/SiteFooter";
-import { ArrowRight, Band, ButtonLink, EmptyState } from "@/components/ui/kit";
+import { ArrowRight, Band, ButtonLink, EmptyState, PageHeading } from "@/components/ui/kit";
 
 export const metadata: Metadata = {
   title: "대관 양식함 | 서울아레나",
 };
 
+/**
+ * Book It 은 카테고리 라벨일 뿐 페이지가 아니다.
+ * 따라서 이 페이지의 타이틀은 "대관 양식함" 이고, 브레드크럼도 두지 않는다
+ * (2뎁스이며, 링크할 상위 페이지가 존재하지 않는다).
+ */
 export default async function GuideFormsPage() {
   const currentUser = await getCurrentUser();
   if (currentUser && isPendingApplicant(currentUser)) redirect("/pending");
 
   return (
     <div className="flex flex-1 flex-col">
-      <PublicHeader active="/guide" currentUser={currentUser} />
-      <Breadcrumb items={[{ label: "Book It", href: "/guide" }, { label: "대관 양식함" }]} />
+      <PublicHeader active="/guide/forms" currentUser={currentUser} />
 
       <main className="flex flex-1 flex-col">
         <Band tone="light" size="lg">
-          <h1 className="type-display text-d2-m sm:text-h1 lg:text-d2">Book It</h1>
-          <p className="type-kr-heading mt-6 text-h4-m sm:text-h4">대관 양식함</p>
-          <p className="mt-8 max-w-3xl text-m text-muted">
-            대관 신청·계약·공연 준비 과정에서 필요한 각종 서식(계획서, 안전관리계획서, 반입반출
-            신청서 등)을 이곳에서 내려받을 수 있도록 준비 중입니다.
-          </p>
+          <PageHeading
+            title="대관 양식함"
+            lead="대관 신청·계약·공연 준비 과정에서 필요한 각종 서식(계획서, 안전관리계획서, 반입반출 신청서 등)을 이곳에서 내려받을 수 있도록 준비 중입니다."
+          />
         </Band>
 
         <Band tone="white">
@@ -40,7 +41,6 @@ export default async function GuideFormsPage() {
               </ButtonLink>
             }
           />
-
         </Band>
       </main>
 

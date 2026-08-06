@@ -513,62 +513,153 @@ export function LayoutSticky({ items }: { items: CardItem[] }) {
 
 /* --------------------------------------------------- Comparison / 1 ------ */
 
+export type CompareColumn = {
+  key: string;
+  title: ReactNode;
+  sub?: ReactNode;
+  /** 값 정렬. 기본은 우측(숫자 기준). 문장이 들어가는 열만 "left" 로 바꾼다. */
+  align?: "left" | "right";
+};
+export type CompareRow = { label: ReactNode; note?: string; cells: ReactNode[] };
+export type CompareGroup = { title: string; rows: CompareRow[] };
+
+/** 라벨 열 폭(%) — 값 열이 많을수록 좁힌다. 이 표의 유일한 폭 규칙. */
+const LABEL_PCT: Record<number, number> = { 1: 54, 2: 46, 3: 40, 4: 36, 5: 30 };
+
 /**
  * Figma Comparison / 1 — 수치·데이터 표의 표준.
- * 좌측 라벨 열 + 우측 값 열들. 라벨과 값이 같은 행에 붙어 읽힌다.
- * 단위는 열 헤더에 한 번만 쓰고 셀에서는 반복하지 않는다.
+ *
+ * 레이아웃 규칙 (표가 화면마다 달라 보이지 않게 하는 핵심)
+ *   · `table-fixed` — 열 폭이 내용이 아니라 이 컴포넌트의 규칙으로만 정해진다.
+ *     같은 열 수의 표는 어디에 놓여도 같은 폭이 된다.
+ *   · 값 열은 기본 우측 정렬. 숫자 기둥이 맞아야 비교가 된다.
+ *   · 카테고리로 묶을 때는 표를 여러 개 만들지 말고 `groups` 를 쓴다.
+ *     표를 쪼개면 묶음마다 열 폭이 달라진다.
+ *   · 단위는 열 헤더에 한 번만. 셀에서 반복하지 않는다.
  */
 export function ComparisonTable({
   rowLabel,
   columns,
   rows,
+  groups,
   footer,
   dense = false,
 }: {
   /** 좌측 상단 라벨 열 제목 */
   rowLabel?: string;
-  columns: { key: string; title: ReactNode; sub?: ReactNode }[];
-  rows: { label: string; cells: ReactNode[] }[];
+  columns: CompareColumn[];
+  rows?: CompareRow[];
+  /** 카테고리별 소제목 행이 들어간 단일 표 */
+  groups?: CompareGroup[];
   footer?: ReactNode;
   dense?: boolean;
 }) {
+  const body: CompareGroup[] = groups ?? (rows ? [{ title: "", rows }] : []);
+  const n = Math.max(columns.length, 1);
+  const labelPct = LABEL_PCT[n] ?? 30;
+  const colPct = (100 - labelPct) / n;
   const cellPad = dense ? "py-2.5" : "py-4";
+  // 열이 늘어도 셀이 뭉개지지 않게 최소 폭을 준다. 넘치면 가로 스크롤.
+  const minWidth = `${11 + n * 7}rem`;
+
+  const align = (c: CompareColumn) => (c.align === "left" ? "text-left" : "text-right");
+
   return (
     <div className="overflow-x-auto">
-      <table className="w-full min-w-[36rem] border-collapse text-left">
+      <table className="w-full table-fixed border-collapse text-left" style={{ minWidth }}>
+        <colgroup>
+          <col style={{ width: `${labelPct}%` }} />
+          {columns.map((c) => (
+            <col key={c.key} style={{ width: `${colPct}%` }} />
+          ))}
+        </colgroup>
         <thead>
           <tr className="border-b border-border/25">
-            <th scope="col" className={`${cellPad} pr-6 align-bottom text-xs font-bold text-muted`}>
+            <th scope="col" className={`${cellPad} pr-4 align-bottom text-xs font-bold text-muted`}>
               {rowLabel}
             </th>
             {columns.map((c) => (
-              <th key={c.key} scope="col" className={`${cellPad} pl-6 align-bottom`}>
-                <span className="type-kr-heading block text-h6-m sm:text-h6">{c.title}</span>
+              <th key={c.key} scope="col" className={`${cellPad} pl-4 align-bottom ${align(c)}`}>
+                <span className="type-kr-heading block break-keep text-h6-m sm:text-h6">
+                  {c.title}
+                </span>
                 {c.sub && <span className="mt-1 block text-xs font-normal text-muted">{c.sub}</span>}
               </th>
             ))}
           </tr>
         </thead>
-        <tbody>
-          {rows.map((r) => (
-            <tr key={r.label} className="border-b border-border/15">
-              <th scope="row" className={`${cellPad} pr-6 text-s font-normal text-muted`}>
-                {r.label}
-              </th>
-              {r.cells.map((cell, i) => (
-                <td
-                  key={columns[i]?.key ?? i}
-                  className={`${cellPad} pl-6 text-s font-bold tabular-nums`}
+        {body.map((group, gi) => (
+          <tbody key={group.title || gi}>
+            {group.title && (
+              <tr>
+                <th
+                  scope="colgroup"
+                  colSpan={n + 1}
+                  className={`border-b border-border/25 pb-2 text-left text-xs font-bold uppercase tracking-[0.08em] text-muted ${
+                    gi === 0 ? "pt-5" : "pt-9"
+                  }`}
                 >
-                  {cell}
-                </td>
-              ))}
-            </tr>
-          ))}
-        </tbody>
+                  {group.title}
+                </th>
+              </tr>
+            )}
+            {group.rows.map((r, ri) => (
+              <tr key={ri} className="border-b border-border/15">
+                <th
+                  scope="row"
+                  className={`${cellPad} pr-4 align-top text-s font-normal text-muted`}
+                >
+                  <span className="block break-keep">{r.label}</span>
+                  {r.note && <span className="mt-0.5 block text-xs text-muted">{r.note}</span>}
+                </th>
+                {r.cells.map((cell, i) => (
+                  <td
+                    key={columns[i]?.key ?? i}
+                    className={`${cellPad} pl-4 align-top text-s font-bold tabular-nums ${
+                      columns[i]?.align === "left" ? "break-keep text-left" : "text-right"
+                    }`}
+                  >
+                    {cell}
+                  </td>
+                ))}
+              </tr>
+            ))}
+          </tbody>
+        ))}
       </table>
       {footer && <div className="mt-6">{footer}</div>}
     </div>
+  );
+}
+
+/**
+ * 선택 컨트롤의 단일 언어 — Figma Multi-step Forms 선택 칩.
+ * **선택 = 검정 채움.** 옐로 하이라이트도, 좌측 컬러 바도, "선택됨" 배지도 쓰지 않는다.
+ */
+export function choiceClass(selected: boolean, disabled = false) {
+  return [
+    "block w-full border px-5 py-5 text-left outline-none transition-colors",
+    "focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-foreground",
+    disabled
+      ? "cursor-not-allowed border-border-soft opacity-45"
+      : selected
+        ? "cursor-pointer border-foreground bg-inverse-bg text-inverse-fg"
+        : "cursor-pointer border-border-soft hover:border-foreground",
+  ].join(" ");
+}
+
+/** 선택된 칩 안에서 text-muted·border 가 지면에 맞게 뒤집히도록 */
+export const CHOICE_SELECTED_VARS: React.CSSProperties = {
+  ["--muted" as string]: "var(--inverse-muted)",
+  ["--border" as string]: "var(--inverse-fg)",
+};
+
+/** 보조 고지문 — 색면·좌측 바를 쓰지 않고 헤어라인 위 작은 글씨로만 */
+export function Note({ children, className = "" }: { children: ReactNode; className?: string }) {
+  return (
+    <p className={`border-t border-border/25 pt-3 text-xs leading-5 text-muted ${className}`}>
+      {children}
+    </p>
   );
 }
 

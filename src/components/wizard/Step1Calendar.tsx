@@ -11,13 +11,14 @@ import {
   type WeekDay,
   type WeekDemand,
 } from "@/lib/pricing/types";
+import { Note } from "@/components/ui/kit";
 
 const DOW_LABELS = ["월", "화", "수", "목", "금", "토", "일"]; // 달력은 월요일부터 시작, 대관 단위는 화~일 (월요일은 대관 불가 기본값)
 const WEEKDAY_SHORT = ["일", "월", "화", "수", "목", "금", "토"];
 
 /** 샤프 1px 아이콘/스테퍼 버튼 */
 const ICON_BTN =
-  "inline-flex h-9 w-9 shrink-0 items-center justify-center border border-border-soft bg-surface text-r text-foreground outline-none transition-colors hover:border-foreground hover:bg-accent hover:text-on-accent focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-foreground";
+  "inline-flex h-9 w-9 shrink-0 items-center justify-center border border-border-soft bg-surface text-r text-foreground outline-none transition-colors hover:border-foreground hover:bg-inverse-bg hover:text-inverse-fg focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-foreground";
 
 function formatDateLabel(iso: string): string {
   const [, m, d] = iso.split("-").map(Number);
@@ -235,7 +236,7 @@ export function Step1Calendar({
                         blocked
                           ? "text-muted line-through"
                           : isActive
-                            ? "bg-accent font-bold text-on-accent"
+                            ? "bg-inverse-bg font-bold text-inverse-fg"
                             : !inMonth
                               ? "text-muted/40"
                               : isMonday
@@ -283,7 +284,7 @@ export function Step1Calendar({
                   "focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-foreground",
                   isExcluded
                     ? "border-border-soft bg-surface text-muted line-through"
-                    : "border-foreground bg-accent text-on-accent",
+                    : "border-foreground bg-inverse-bg text-inverse-fg",
                 ].join(" ")}
               >
                 {WEEKDAY_LABEL[day]}
@@ -324,13 +325,13 @@ export function Step1Calendar({
         </div>
       </div>
 
-      <p className="mt-6 border-l-2 border-accent bg-warn-soft px-4 py-3 text-s text-muted-strong">
+      <Note className="mt-6">
         <b className="text-foreground">
           {week.year}년 {week.month}월 {week.weekOfMonth}주차 · 총 {totalDays}일 적용
         </b>
         {excludedDays.length > 0 && ` (기본 6일 − 제외 ${excludedDays.length}일${extraDays > 0 ? ` + 추가 ${extraDays}일` : ""})`}
         {excludedDays.length === 0 && extraDays > 0 && ` (기본 6일 + 추가 ${extraDays}일)`}
-      </p>
+      </Note>
 
       {selectedDates.length > 0 && (
         <div className="mt-6 border-t border-border/25 pt-6">
@@ -359,7 +360,7 @@ export function Step1Calendar({
                       "border px-2 py-1 text-xs font-bold outline-none transition-colors",
                       "focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-foreground",
                       tag === "PERFORMANCE"
-                        ? "border-foreground bg-accent text-on-accent"
+                        ? "border-foreground bg-inverse-bg text-inverse-fg"
                         : "border-border-soft bg-surface text-muted hover:border-foreground hover:text-foreground",
                     ].join(" ")}
                   >

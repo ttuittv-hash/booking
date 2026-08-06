@@ -73,11 +73,11 @@ export function Step3Included({
         {pkg.name}에 기본 포함된 구성입니다. 초과분만 4단계에서 추가 과금됩니다.
       </p>
 
-      <div className="mt-7 max-w-xl">
+      <div className="mt-7">
         <ComparisonTable
           dense
           rowLabel="운영 조건"
-          columns={[{ key: "value", title: "기본 제공" }]}
+          columns={[{ key: "value", title: "기본 제공", align: "left" }]}
           rows={conditionRows}
         />
       </div>
@@ -95,26 +95,26 @@ export function Step3Included({
           별도 기본 포함 항목 없음
         </p>
       ) : (
-        <div className="mt-5 space-y-8">
-          {groups.map((group) => (
-            <div key={group.title} className="max-w-xl">
-              <ComparisonTable
-                dense
-                rowLabel={group.title}
-                columns={[
-                  { key: "qty", title: "수량" },
-                  { key: "rate", title: "초과 단가", sub: groupRateUnit(group.rows) },
-                ]}
-                rows={group.rows.map(({ item, addon }) => ({
-                  label: addon?.name ?? item.addonId,
-                  cells: [
-                    num(item.quantity),
-                    addon && addon.unitPrice > 0 ? num(addon.unitPrice) : "—",
-                  ],
-                }))}
-              />
-            </div>
-          ))}
+        // 카테고리마다 표를 만들면 열 폭이 제각각이 된다 — 한 표에 소제목 행으로 묶는다.
+        <div className="mt-5">
+          <ComparisonTable
+            dense
+            rowLabel="항목"
+            columns={[
+              { key: "qty", title: "수량" },
+              { key: "rate", title: "초과 단가", sub: groupRateUnit(all) },
+            ]}
+            groups={groups.map((group) => ({
+              title: group.title,
+              rows: group.rows.map(({ item, addon }) => ({
+                label: addon?.name ?? item.addonId,
+                cells: [
+                  num(item.quantity),
+                  addon && addon.unitPrice > 0 ? num(addon.unitPrice) : "—",
+                ],
+              })),
+            }))}
+          />
         </div>
       )}
     </section>

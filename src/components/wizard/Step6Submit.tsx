@@ -152,7 +152,7 @@ export function Step6Submit({
       </div>
 
       {submittedId ? (
-        <div className="mt-7 border-l-2 border-foreground bg-accent px-5 py-4 text-s text-on-accent">
+        <div className="mt-7 bg-accent px-6 py-5 text-s text-on-accent">
           <p className="font-bold">
             {isEditing ? "신청 내용이 수정되었습니다." : "신청이 접수되었습니다."}
           </p>
@@ -174,7 +174,7 @@ export function Step6Submit({
           )}
         </div>
       ) : !isLoggedIn ? (
-        <div className="mt-7 border-l-2 border-accent bg-warn-soft px-4 py-3.5 text-s leading-6 text-muted-strong">
+        <div className="mt-7 border-t border-border/25 pt-4 text-s leading-6 text-muted">
           신청서를 제출하려면 로그인이 필요합니다. 지금까지 입력한 내용은 그대로 유지되니, 로그인 후
           이어서 제출할 수 있습니다.{" "}
           <Link href="/login" className="font-bold text-foreground underline">
@@ -193,7 +193,7 @@ export function Step6Submit({
                 type="checkbox"
                 checked={confirmed}
                 onChange={(e) => setConfirmed(e.target.checked)}
-                className="mt-0.5 accent-accent"
+                className="mt-0.5 accent-foreground"
               />
               위에 표시된 공연기간/일정 및 공연정보 입력 내용을 확인하였으며, 이대로 신청서를
               제출합니다.
@@ -203,7 +203,7 @@ export function Step6Submit({
                 type="checkbox"
                 checked={pledged}
                 onChange={(e) => setPledged(e.target.checked)}
-                className="mt-0.5 accent-accent"
+                className="mt-0.5 accent-foreground"
               />
               입력한 내용이 사실과 틀림없으며, 이를 이행할 것을 서약합니다.
             </label>
@@ -217,7 +217,7 @@ export function Step6Submit({
             {submitting ? "저장 중..." : isEditing ? "수정 내용 저장" : "신청서 생성"}
           </button>
           {error && (
-            <p className="mt-3 border-l-2 border-danger bg-danger-soft px-4 py-2.5 text-s text-danger">
+            <p className="mt-3 border-l-2 border-danger pl-4 text-s text-danger">
               {error}
             </p>
           )}

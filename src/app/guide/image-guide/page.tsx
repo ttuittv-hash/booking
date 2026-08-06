@@ -2,31 +2,28 @@ import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { getCurrentUser, isPendingApplicant } from "@/lib/auth";
 import { PublicHeader } from "@/components/PublicHeader";
-import { Breadcrumb } from "@/components/ui/Breadcrumb";
 import { SiteFooter } from "@/components/ui/SiteFooter";
-import { ArrowRight, Band, ButtonLink, EmptyState } from "@/components/ui/kit";
+import { ArrowRight, Band, ButtonLink, EmptyState, PageHeading } from "@/components/ui/kit";
 
 export const metadata: Metadata = {
   title: "이미지 가이드 | 서울아레나",
 };
 
+/** Book It 은 카테고리 라벨이므로 페이지 타이틀은 "이미지 가이드", 브레드크럼 없음. */
 export default async function GuideImagePage() {
   const currentUser = await getCurrentUser();
   if (currentUser && isPendingApplicant(currentUser)) redirect("/pending");
 
   return (
     <div className="flex flex-1 flex-col">
-      <PublicHeader active="/guide" currentUser={currentUser} />
-      <Breadcrumb items={[{ label: "Book It", href: "/guide" }, { label: "이미지 가이드" }]} />
+      <PublicHeader active="/guide/image-guide" currentUser={currentUser} />
 
       <main className="flex flex-1 flex-col">
         <Band tone="light" size="lg">
-          <h1 className="type-display text-d2-m sm:text-h1 lg:text-d2">Book It</h1>
-          <p className="type-kr-heading mt-6 text-h4-m sm:text-h4">이미지 가이드</p>
-          <p className="mt-8 max-w-3xl text-m text-muted">
-            공연 홍보물·로고 사용 등에 필요한 서울아레나 시설 사진과 이미지 사용 가이드를
-            이곳에서 확인할 수 있도록 준비 중입니다.
-          </p>
+          <PageHeading
+            title="이미지 가이드"
+            lead="공연 홍보물·로고 사용 등에 필요한 서울아레나 시설 사진과 이미지 사용 가이드를 이곳에서 확인할 수 있도록 준비 중입니다."
+          />
         </Band>
 
         <Band tone="white">
@@ -40,7 +37,6 @@ export default async function GuideImagePage() {
               </ButtonLink>
             }
           />
-
         </Band>
       </main>
 

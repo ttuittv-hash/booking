@@ -90,18 +90,42 @@ Primitive (Figma Style Guide › Variables)
 
 `ComparisonTable` 규칙:
 
-- **단위는 열 헤더에 한 번만.** 셀마다 "n개 포함", "원/일" 을 반복하지 않는다
-- 라벨 열은 좌측 고정, 값은 바로 옆 열. 라벨과 값을 멀리 떼어놓지 않는다
-- 숫자는 `tabular-nums`
-- 해당 없음은 `—`, 포함은 `✓` (텍스트로 "포함" 이라 쓰지 않는다)
-- 행이 20개를 넘으면 카테고리로 묶고 묶음마다 소제목을 준다
+- **`table-fixed` 다.** 열 폭은 내용이 아니라 컴포넌트가 정한다 —
+  같은 열 수의 표는 어디에 놓여도 같은 폭이다. 폭을 손으로 만지지 마라
+- **값 열은 기본 우측 정렬.** 숫자 기둥이 맞아야 비교가 된다.
+  문장이 들어가는 열만 `align: "left"`
+- **카테고리는 표를 쪼개지 말고 `groups` 로.** 표를 여러 개 만들면
+  묶음마다 열 폭이 달라진다 (이 페이지가 난장판이 되는 1번 원인)
+- **모든 셀이 `—` 인 열은 만들지 않는다.** 정보가 아니라 소음이다
+- **좁은 컬럼에 5열 이상 넣지 않는다.** 보조 수치는 `note` 로 항목 아래에 내린다
+- **단위는 열 헤더에 한 번만.** 한 표에 단위가 섞이면 항목명 옆에 적는다
+- 해당 없음은 `—`, 포함은 `✓` · 숫자는 `tabular-nums`
 - `dense` 옵션으로 밀도를 높일 수 있다 (백오피스·긴 목록)
+
+### 페이지 그리드
+
+한 페이지 안의 모든 섹션은 **하나의 그리드 상수**를 공유한다.
+섹션마다 컬럼비·`pt`·`max-w` 를 다르게 주면 세로 기준선이 흐트러진다.
+
+```tsx
+const SPLIT = "grid gap-8 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.6fr)] lg:items-start lg:gap-16";
+// 좌: 제목·설명 / 우: 데이터. 예) src/app/packages/page.tsx
+```
+
+### 선택 상태
+
+**선택 = 검정 채움.** 이 언어 하나만 쓴다 (`choiceClass` + `CHOICE_SELECTED_VARS`).
+옐로 하이라이트·좌측 컬러 바·"선택됨" 배지를 만들지 않는다.
+보조 고지문도 색면 박스가 아니라 `Note` (헤어라인 + 작은 글씨) 로 쓴다.
 
 ## 5. 컴포넌트
 
 | | |
 |---|---|
 | `AuthShell` | 인증 화면. `variant="card"`(Login / 3) · `variant="tabs"`(Sign up / 1) |
+| `SiteFooter` | Figma Design › Footer / 1. 상단 Address·Contact + 사이트맵 → **컨테이너 전폭 워드마크** → 헤어라인 → 카피라이트·정책. 오프화이트 지면 |
+| `choiceClass` | 선택 칩 (Figma Multi-step Forms). 선택 = 검정 채움 |
+| `Note` | 보조 고지문. 색면 박스를 쓰지 않는다 |
 | `Band` | 풀블리드 섹션. `tone` = light·white·accent·dark, `size` = sm·md·lg. 섹션은 여백이 아니라 **색면 전환**으로 나눈다 |
 | `ButtonLink` / `btnClass` | `variant` = **primary**(검정 채움) · **secondary**(아웃라인) · **tertiary**(텍스트), `size` = sm·md·lg |
 | `Media` | 이미지. `src` 없으면 회색 플레이스홀더 |
@@ -134,6 +158,14 @@ Primitive (Figma Style Guide › Variables)
 **YOUR STAGE / BOOK IT / KNOW IT / HOST IT 은 카테고리 타이틀일 뿐 페이지가 아니다.**
 실제 페이지는 각 카테고리의 하위 목록이고, 이 정의는 `src/components/ui/nav-items.ts` 한 곳에 있다.
 헤더 메뉴와 푸터가 이 파일을 함께 쓴다. 한 페이지 안의 섹션은 메뉴에 올리지 않는다.
+
+따라서:
+
+- **페이지 타이틀은 카테고리명이 아니라 그 페이지 이름이다.** `대관 양식함` 이지 `Book It` 이 아니다
+- **카테고리를 브레드크럼에 넣지 않는다.** 링크할 상위 페이지가 없다.
+  브레드크럼은 실제 3뎁스에서만 (`items` 2개 미만이면 자동으로 렌더되지 않는다)
+- `PublicHeader active` 에는 **그 페이지의 실제 경로**를 넘긴다.
+  상위처럼 보이는 경로를 넘기면 메뉴에서 엉뚱한 항목이 볼드로 표시된다
 
 ```
 Your Stage  (카테고리 타이틀 — 링크 아님)

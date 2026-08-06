@@ -10,16 +10,6 @@ import {
 } from "@/lib/pricing/types";
 import { ComparisonTable } from "@/components/ui/kit";
 
-/** 단가 열 헤더에 한 번만 붙일 단위. 묶음 안에서 단위가 갈리면 항목명 옆에 표기한다. */
-function groupRateUnit(items: AddonItem[]): { sub: string; perRow: boolean } {
-  const units = new Set(
-    items.filter((a) => a.pricingType !== "METERED").map((a) => a.unitLabel),
-  );
-  if (units.size === 0) return { sub: "실사용 정산", perRow: false };
-  if (units.size === 1) return { sub: [...units][0], perRow: false };
-  return { sub: "원", perRow: true };
-}
-
 function ruleTagOf(addon: AddonItem): string | null {
   if (addon.availability.mode === "IF_PACKAGE_IN") {
     return `패키지 ${addon.availability.packages?.join("·")} 전용`;
@@ -72,6 +62,10 @@ export function Step4Addons({
     grouped.set(addon.category, list);
   }
 
+  const hasAnyIncluded = [...grouped.values()]
+    .flat()
+    .some((a) => includedQuantity(pkg, a.id) > 0);
+
   return (
     <section>
       <h2 className="type-kr-heading text-h4-m sm:text-h4">추가 옵션 선택</h2>
@@ -81,49 +75,45 @@ export function Step4Addons({
         부과됩니다.
       </p>
 
-      <div className="mt-8 space-y-10">
-        {[...grouped.entries()].map(([category, items]) => {
-          const { sub, perRow } = groupRateUnit(items);
-          return (
-            <div key={category}>
-              <div className="flex items-baseline gap-3">
-                <h3 className="type-kr-heading text-h6-m sm:text-h6">
-                  {ADDON_CATEGORY_LABEL[category]}
-                </h3>
-                <span className="text-xs tabular-nums text-muted">{items.length}</span>
-              </div>
-
-              <ComparisonTable
-                dense
-                rowLabel="항목"
-                columns={[
-                  { key: "included", title: "기본 포함", sub: "수량" },
-                  { key: "price", title: "단가", sub },
-                  { key: "request", title: "신청", sub: "수량" },
-                ]}
-                rows={items.map((addon) => {
-                  const included = includedQuantity(pkg, addon.id);
-                  return {
-                    label: rowLabel(addon, perRow),
-                    cells: [
-                      included > 0 ? num(included) : "—",
-                      addon.pricingType === "METERED" ? "—" : num(addon.unitPrice),
-                      <QuantityControl
-                        key="q"
-                        addon={addon}
-                        included={included}
-                        quantity={addonQuantities[addon.id] ?? 0}
-                        expectedRevenue={expectedRevenue}
-                        onChangeQuantity={onChangeQuantity}
-                        onChangeRevenue={onChangeRevenue}
-                      />,
-                    ],
-                  };
-                })}
-              />
-            </div>
-          );
-        })}
+      {/*
+        카테고리마다 표를 만들면 열 수·열 폭이 묶음마다 달라진다.
+        한 표에 소제목 행으로 묶어 열 구성을 한 번만 정한다.
+        "기본 포함" 열은 이 패키지에 포함 수량이 하나라도 있을 때만 만든다.
+      */}
+      <div className="mt-8">
+        <ComparisonTable
+          dense
+          rowLabel="항목"
+          columns={[
+            ...(hasAnyIncluded ? [{ key: "included", title: "기본 포함", sub: "수량" }] : []),
+            { key: "price", title: "단가", sub: "원 · VAT 별도" },
+            { key: "request", title: "신청", sub: "수량" },
+          ]}
+          groups={[...grouped.entries()].map(([category, items]) => ({
+            title: `${ADDON_CATEGORY_LABEL[category]} (${items.length})`,
+            rows: items.map((addon) => {
+              const included = includedQuantity(pkg, addon.id);
+              return {
+                // 한 표 안에 단위가 섞이므로 단위는 항상 항목명 옆에 적는다.
+                label: rowLabel(addon, true),
+                cells: [
+                  ...(hasAnyIncluded ? [included > 0 ? num(included) : "—"] : []),
+                  addon.pricingType === "METERED" ? "—" : num(addon.unitPrice),
+                  <span key="q" className="flex justify-end">
+                    <QuantityControl
+                      addon={addon}
+                      included={included}
+                      quantity={addonQuantities[addon.id] ?? 0}
+                      expectedRevenue={expectedRevenue}
+                      onChangeQuantity={onChangeQuantity}
+                      onChangeRevenue={onChangeRevenue}
+                    />
+                  </span>,
+                ],
+              };
+            }),
+          }))}
+        />
       </div>
     </section>
   );
@@ -131,7 +121,7 @@ export function Step4Addons({
 
 /** 수량 조절 스테퍼 — 샤프 1px 보더 */
 const STEP_BTN =
-  "inline-flex h-8 w-8 shrink-0 items-center justify-center border border-border-soft text-r font-normal text-foreground transition-colors hover:border-foreground hover:bg-accent hover:text-on-accent focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-foreground disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:border-border-soft disabled:hover:bg-transparent disabled:hover:text-foreground";
+  "inline-flex h-8 w-8 shrink-0 items-center justify-center border border-border-soft text-r font-normal text-foreground transition-colors hover:border-foreground hover:bg-inverse-bg hover:text-inverse-fg focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-foreground disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:border-border-soft disabled:hover:bg-transparent disabled:hover:text-foreground";
 
 function QuantityControl({
   addon,
@@ -160,7 +150,7 @@ function QuantityControl({
             type="checkbox"
             checked={quantity > 0}
             onChange={(e) => onChangeQuantity(addon.id, e.target.checked ? 1 : 0)}
-            className="h-4 w-4 accent-accent"
+            className="h-4 w-4 accent-foreground"
           />
           적용
         </label>

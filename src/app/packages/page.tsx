@@ -16,7 +16,6 @@ import {
   type RentalPackage,
 } from "@/lib/pricing/types";
 import { PublicHeader } from "@/components/PublicHeader";
-import { Breadcrumb } from "@/components/ui/Breadcrumb";
 import { SiteFooter } from "@/components/ui/SiteFooter";
 import {
   ArrowRight,
@@ -24,7 +23,9 @@ import {
   type BandTone,
   ButtonLink,
   ComparisonTable,
+  Note,
   PageHeading,
+  SpecTable,
   btnClass,
 } from "@/components/ui/kit";
 
@@ -36,15 +37,11 @@ export const metadata: Metadata = {
 const CATEGORY_ORDER = Object.keys(ADDON_CATEGORY_LABEL) as AddonCategory[];
 
 /**
- * 단가 열 헤더에 한 번만 붙일 단위.
- * 묶음 안에서 단위가 갈리면 헤더는 "원"만 쓰고 단위를 항목명 옆에 적는다.
+ * 이 페이지의 유일한 그리드. 모든 섹션이 같은 세로 기준선에서 시작한다.
+ * 좌: 제목·설명 / 우: 데이터. 섹션마다 컬럼비나 여백을 바꾸지 않는다.
  */
-function groupRateUnit(items: AddonItem[]): { sub: string; perRow: boolean } {
-  const units = new Set(items.filter((a) => a.pricingType !== "METERED").map((a) => a.unitLabel));
-  if (units.size === 0) return { sub: "실사용 정산", perRow: false };
-  if (units.size === 1) return { sub: [...units][0], perRow: false };
-  return { sub: "원", perRow: true };
-}
+const SPLIT =
+  "grid gap-8 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.6fr)] lg:items-start lg:gap-16";
 
 function addonRowLabel(addon: AddonItem, perRow: boolean): string {
   const unit =
@@ -70,10 +67,7 @@ function audienceRange(pkg: RentalPackage): string {
 }
 
 /** 패키지 규모 흐름의 4번째 단계: 이 패키지에서 무엇을 더 얹을 수 있는지 */
-function optionRows(
-  pkg: RentalPackage,
-  addons: AddonItem[],
-): { label: string; value: string }[] {
+function optionRows(pkg: RentalPackage, addons: AddonItem[]): [string, string][] {
   const includedIds = new Set(pkg.includedItems.map((i) => i.addonId));
   const available = addons.filter((a) => isAddonAvailable(a, pkg));
   const overage = available.filter((a) => includedIds.has(a.id));
@@ -82,23 +76,17 @@ function optionRows(
   );
   const common = available.filter((a) => !includedIds.has(a.id) && a.availability.mode === "ALWAYS");
 
-  const rows: { label: string; value: string }[] = [];
+  const rows: [string, string][] = [];
   if (overage.length > 0) {
-    rows.push({
-      label: "기본 포함분 초과 추가",
-      value: overage.map((a) => a.name).join(" · "),
-    });
+    rows.push(["기본 포함분 초과 추가", overage.map((a) => a.name).join(" · ")]);
   }
   if (conditional.length > 0) {
-    rows.push({
-      label: "이 패키지에서만 추가",
-      value: conditional.map((a) => a.name).join(" · "),
-    });
+    rows.push(["이 패키지에서만 추가", conditional.map((a) => a.name).join(" · ")]);
   }
-  rows.push({
-    label: "공통 부대항목",
-    value: `${common.length}개 항목 — 아래 부대항목 표에서 단가를 확인하세요.`,
-  });
+  rows.push([
+    "공통 부대항목",
+    `${common.length}개 항목 — 아래 부대항목 표에서 단가를 확인하세요.`,
+  ]);
   return rows;
 }
 
@@ -130,6 +118,10 @@ function includedRateUnit(rows: IncludedRow[]): string {
   return units.size === 1 ? [...units][0] : "원";
 }
 
+function allRows(groups: { rows: IncludedRow[] }[]): IncludedRow[] {
+  return groups.flatMap((g) => g.rows);
+}
+
 export default async function PackagesPage() {
   // 요금·기본 포함 수량은 계약 조건에 해당하므로 로그인한 신청자에게만 공개한다.
   const currentUser = await getCurrentUser();
@@ -151,8 +143,7 @@ export default async function PackagesPage() {
 
   return (
     <div className="flex flex-1 flex-col">
-      <PublicHeader active="/guide" currentUser={currentUser} />
-      <Breadcrumb items={[{ label: "Book It", href: "/guide" }, { label: "대관 패키지" }]} />
+      <PublicHeader active="/packages" currentUser={currentUser} />
 
       <main className="flex flex-1 flex-col">
         {/* ── 페이지 타이틀 ────────────────────────────────────────────────── */}
@@ -179,6 +170,7 @@ export default async function PackagesPage() {
                   rowLabel="구분"
                   columns={items.map((pkg) => ({
                     key: String(pkg.id),
+                    align: "left" as const,
                     title: (
                       <Link
                         href={`#package-${pkg.id}`}
@@ -244,83 +236,75 @@ export default async function PackagesPage() {
           const groups = includedGroups(pkg, lookupAddon);
           return (
             <Band key={pkg.id} tone={tone} id={`package-${pkg.id}`} className="scroll-mt-24">
-              {/* 1) 규모 · 2) 기본 대관료 */}
-              <div className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.35fr)] lg:gap-16">
+              {/*
+                레이아웃 규칙: 이 페이지의 모든 섹션은 같은 2컬럼 그리드(SPLIT)를 쓰고
+                두 컬럼은 항상 같은 높이에서 시작한다. 섹션마다 pt 를 다르게 주지 않는다.
+              */}
+              <div className={SPLIT}>
                 <div>
                   <h2 className="type-kr-heading text-h3-m sm:text-h3">{pkg.name}</h2>
-                  <p className="type-display mt-4 text-h5-m tabular-nums sm:text-h5">
+                  <p className="type-display mt-4 text-h6-m tabular-nums sm:text-h6">
                     {pkg.audienceTier.label}
                   </p>
+                  <p className="mt-5 max-w-md text-m text-muted">{pkg.tagline}</p>
                 </div>
-                <div className="lg:pt-6">
-                  <p className="text-m text-muted">{pkg.tagline}</p>
-                  <div className="mt-8 border-t border-border/25 pt-6">
-                    <p className="text-xs font-bold text-muted">기본 대관료</p>
-                    <p className="type-display mt-3 text-h3-m tabular-nums sm:text-h2">
-                      {won(packagePrice(rateTable, pkg))}
-                    </p>
-                    <p className="mt-3 text-s text-muted">
-                      {pkg.includedWeeks}주 (화~일) 기준 · VAT 별도 · {pkg.dayBreakdown}
-                    </p>
-                  </div>
-                </div>
-              </div>
-
-              {/* 3) 기본 포함 항목 — 카테고리별 수량 · 초과 단가 */}
-              <div className="mt-14">
-                <h3 className="type-kr-heading text-h5-m sm:text-h5">기본 포함 항목</h3>
-                <p className="mt-3 max-w-2xl text-s text-muted">
-                  아래 수량까지는 정찰제 대관료에 포함됩니다. 초과 단가는 포함 수량을 넘겼을 때만
-                  적용됩니다. 운영 조건(주차·대기실·매체 등)은 위 패키지 비교표에서 확인하세요.
-                </p>
-
-                {groups.length === 0 ? (
-                  <p className="mt-6 border-t border-border/25 py-4 text-s text-muted">
-                    별도 기본 포함 항목 없음
+                <div className="border-t-2 border-foreground pt-6">
+                  <p className="text-xs font-bold text-muted">기본 대관료</p>
+                  <p className="type-display mt-3 text-h3-m tabular-nums sm:text-h3">
+                    {won(packagePrice(rateTable, pkg))}
                   </p>
-                ) : (
-                  <div className="mt-6 grid gap-8 lg:grid-cols-2 lg:gap-x-16">
-                    {groups.map((group) => (
-                      <div key={group.title} className="max-w-xl">
-                        <ComparisonTable
-                          dense
-                          rowLabel={group.title}
-                          columns={[
-                            { key: "qty", title: "수량" },
-                            {
-                              key: "rate",
-                              title: "초과 단가",
-                              sub: includedRateUnit(group.rows),
-                            },
-                          ]}
-                          rows={group.rows.map(({ item, addon }) => ({
-                            label: addon?.name ?? item.addonId,
-                            cells: [
-                              num(item.quantity),
-                              addon && addon.unitPrice > 0 ? num(addon.unitPrice) : "—",
-                            ],
-                          }))}
-                        />
-                      </div>
-                    ))}
-                  </div>
-                )}
+                  <p className="mt-3 text-s text-muted">
+                    {pkg.includedWeeks}주 (화~일) 기준 · VAT 별도 · {pkg.dayBreakdown}
+                  </p>
+                </div>
               </div>
 
-              {/* 4) 선택 추가 */}
-              <div className="mt-14">
-                <h3 className="type-kr-heading text-h5-m sm:text-h5">선택 추가</h3>
-                <dl className="mt-6 border-t border-border/25">
-                  {optionRows(pkg, rateTable.addons).map((row) => (
-                    <div
-                      key={row.label}
-                      className="grid gap-1 border-b border-border/25 py-4 sm:grid-cols-[minmax(0,12rem)_minmax(0,1fr)] sm:gap-6"
-                    >
-                      <dt className="text-s font-bold">{row.label}</dt>
-                      <dd className="text-s text-muted">{row.value}</dd>
-                    </div>
-                  ))}
-                </dl>
+              {/* 기본 포함 항목 — 카테고리는 표를 쪼개지 말고 소제목 행으로 (열 폭 통일) */}
+              <div className={`mt-16 ${SPLIT}`}>
+                <div>
+                  <h3 className="type-kr-heading text-h5-m sm:text-h5">기본 포함 항목</h3>
+                  <p className="mt-4 max-w-md text-s text-muted">
+                    아래 수량까지는 정찰제 대관료에 포함됩니다. 초과 단가는 포함 수량을 넘겼을 때만
+                    적용됩니다. 운영 조건(주차·대기실·매체 등)은 위 패키지 비교표에서 확인하세요.
+                  </p>
+                </div>
+                <div>
+                  {groups.length === 0 ? (
+                    <p className="border-t border-border/25 py-4 text-s text-muted">
+                      별도 기본 포함 항목 없음
+                    </p>
+                  ) : (
+                    <ComparisonTable
+                      dense
+                      rowLabel="항목"
+                      columns={[
+                        { key: "qty", title: "수량" },
+                        { key: "rate", title: "초과 단가", sub: includedRateUnit(allRows(groups)) },
+                      ]}
+                      groups={groups.map((group) => ({
+                        title: group.title,
+                        rows: group.rows.map(({ item, addon }) => ({
+                          label: addon?.name ?? item.addonId,
+                          cells: [
+                            num(item.quantity),
+                            addon && addon.unitPrice > 0 ? num(addon.unitPrice) : "—",
+                          ],
+                        })),
+                      }))}
+                    />
+                  )}
+                </div>
+              </div>
+
+              {/* 선택 추가 */}
+              <div className={`mt-16 ${SPLIT}`}>
+                <div>
+                  <h3 className="type-kr-heading text-h5-m sm:text-h5">선택 추가</h3>
+                  <p className="mt-4 max-w-md text-s text-muted">
+                    기본 포함분을 넘는 수량과 이 패키지에서만 고를 수 있는 항목입니다.
+                  </p>
+                </div>
+                <SpecTable dense rows={optionRows(pkg, rateTable.addons)} />
               </div>
             </Band>
           );
@@ -328,41 +312,36 @@ export default async function PackagesPage() {
 
         {/* ── 부대항목 — 카테고리 전체 단가 ────────────────────────────────── */}
         <Band tone="white" id="addons" className="scroll-mt-24">
-          <PageHeading
-            as="h2"
-            title="부대항목"
-            lead={`공간·프로덕션·홍보 등 ${addonsByCategory.length}개 카테고리 ${rateTable.addons.length}개 항목을 필요한 만큼 선택합니다. 기본 포함분을 넘는 수량만 과금됩니다.`}
-          />
+          {/* 이 섹션도 같은 SPLIT 그리드를 쓴다 — 페이지 전체가 한 기준선 위에 놓인다. */}
+          <div className={SPLIT}>
+            <div>
+              <h2 className="type-kr-heading text-h2-m sm:text-h2">부대항목</h2>
+              <p className="mt-6 max-w-md text-m text-muted">
+                공간·프로덕션·홍보 등 {addonsByCategory.length}개 카테고리{" "}
+                {rateTable.addons.length}개 항목을 필요한 만큼 선택합니다. 기본 포함분을 넘는
+                수량만 과금됩니다.
+              </p>
+              <Note className="mt-8 max-w-md">
+                유틸리티(전기·상하수도·냉난방)는 실사용량 기준으로 사후 정산하므로 예상 견적에는
+                포함되지 않습니다. 단가가 “—” 인 항목은 실사용 정산 대상입니다.
+              </Note>
+            </div>
 
-          <div className="mt-14 grid gap-10 lg:grid-cols-2 lg:gap-x-16">
-            {addonsByCategory.map(({ category, items }) => {
-              const { sub, perRow } = groupRateUnit(items);
-              return (
-                <div key={category} className="max-w-xl">
-                  <div className="mb-3 flex items-baseline gap-3">
-                    <h3 className="type-kr-heading text-h6-m sm:text-h6">
-                      {ADDON_CATEGORY_LABEL[category]}
-                    </h3>
-                    <span className="text-xs tabular-nums text-muted">{items.length}</span>
-                  </div>
-                  <ComparisonTable
-                    dense
-                    rowLabel="항목"
-                    columns={[{ key: "rate", title: "단가", sub }]}
-                    rows={items.map((addon) => ({
-                      label: addonRowLabel(addon, perRow),
-                      cells: [addonRateCell(addon)],
-                    }))}
-                  />
-                </div>
-              );
-            })}
+            {/* 카테고리별로 표를 쪼개면 열 폭이 제각각이 된다 — 한 표에 소제목 행으로 묶는다. */}
+            <ComparisonTable
+              dense
+              rowLabel="항목"
+              columns={[{ key: "rate", title: "단가", sub: "원 · VAT 별도" }]}
+              groups={addonsByCategory.map(({ category, items }) => ({
+                title: `${ADDON_CATEGORY_LABEL[category]} (${items.length})`,
+                // 한 표 안에 단위가 여러 개 섞이므로 단위는 항상 항목명 옆에 적는다.
+                rows: items.map((addon) => ({
+                  label: addonRowLabel(addon, true),
+                  cells: [addonRateCell(addon)],
+                })),
+              }))}
+            />
           </div>
-
-          <p className="mt-10 max-w-3xl text-s text-muted">
-            유틸리티(전기·상하수도·냉난방)는 실사용량 기준으로 사후 정산하므로 예상 견적에는
-            포함되지 않습니다.
-          </p>
         </Band>
 
         {/* ── 전환 CTA (옐로 면 위 텍스트는 항상 검정) ─────────────────────── */}

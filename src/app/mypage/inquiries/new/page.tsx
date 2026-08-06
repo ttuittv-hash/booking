@@ -18,7 +18,7 @@ export default async function NewInquiryPage() {
 
   return (
     <div className="flex flex-1 flex-col">
-      <PublicHeader active="/mypage" currentUser={user} />
+      <PublicHeader active="/mypage/inquiries" currentUser={user} />
       {/* 3뎁스 — 부모(1:1 문의)를 포함해 2개 */}
       <Breadcrumb
         items={[{ label: "1:1 문의", href: "/mypage/inquiries" }, { label: "문의하기" }]}

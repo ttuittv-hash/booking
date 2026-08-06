@@ -59,7 +59,7 @@ function CheckboxChip({
       className={[
         "flex cursor-pointer items-center gap-2 border px-3.5 py-2.5 text-s transition-colors",
         checked
-          ? "border-foreground bg-accent text-on-accent"
+          ? "border-foreground bg-inverse-bg text-inverse-fg"
           : "border-border-soft bg-surface text-foreground hover:border-foreground",
       ].join(" ")}
     >

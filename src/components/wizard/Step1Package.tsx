@@ -8,7 +8,7 @@ import {
   recommendPackage,
 } from "@/lib/pricing/rateTableUtils";
 import { MEDIA_TIER_LABEL, type RateTable } from "@/lib/pricing/types";
-import { Badge } from "@/components/ui/kit";
+import { CHOICE_SELECTED_VARS, choiceClass } from "@/components/ui/kit";
 
 export function Step1Package({
   rateTable,
@@ -51,68 +51,65 @@ export function Step1Package({
         />
       </div>
 
-      {/* 선택 타일이 아니라 헤어라인 로우. 선택 상태는 옐로 좌측 바로 표시한다. */}
-      <ul className="mt-8 border-t border-border/25">
+      {/*
+        선택 칩 규격(Figma Multi-step Forms). 선택 = 검정 채움 하나로만 표현하고,
+        모든 카드는 같은 내부 구조·같은 순서로 정보를 담아 높이가 흔들리지 않게 한다.
+      */}
+      <ul className="mt-8 grid gap-3">
         {venuePackages.map((pkg) => {
           const isSelected = packageId === pkg.id;
           const isRecommended = recommended === pkg.id;
           return (
-            <li key={pkg.id} className="border-b border-border/25">
+            <li key={pkg.id}>
               <button
                 type="button"
                 onClick={() => onSelectPackage(pkg.id)}
                 aria-pressed={isSelected}
-                className={[
-                  "flex w-full flex-col gap-5 border-l-4 py-6 pl-4 pr-1 text-left outline-none transition-colors",
-                  "focus-visible:outline focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-foreground",
-                  "sm:flex-row sm:items-start sm:gap-8",
-                  isSelected
-                    ? "border-l-accent bg-foreground/[0.04]"
-                    : "border-l-transparent hover:bg-foreground/[0.03]",
-                ].join(" ")}
+                style={isSelected ? CHOICE_SELECTED_VARS : undefined}
+                className={choiceClass(isSelected)}
               >
-                <div className="min-w-0 flex-1">
-                  <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
-                    <span className="type-kr-heading text-h6-m sm:text-h6">{pkg.name}</span>
-                    <span className="text-s text-muted">{pkg.audienceTier.label}</span>
-                    {isRecommended && <Badge tone="accent">추천</Badge>}
-                    {isSelected && <Badge tone="neutral">선택됨</Badge>}
-                  </div>
-
-                  {pkg.tagline && <p className="mt-2 text-s text-muted">{pkg.tagline}</p>}
-
-                  <div className="mt-4 border-t border-border/15 pt-3">
-                    <div className="mb-2 text-xs font-bold text-muted">기본 포함</div>
-                    <div className="flex flex-wrap gap-x-6 gap-y-1.5">
-                      {pkg.includedItems.length === 0 ? (
-                        <span className="text-xs text-muted">별도 기본 포함 항목 없음</span>
-                      ) : (
-                        pkg.includedItems.map((item) => {
-                          const addon = findAddon(rateTable, item.addonId);
-                          return (
-                            <span key={item.addonId} className="text-xs text-muted">
-                              {addon?.name ?? item.addonId}{" "}
-                              <b className="tabular-nums text-foreground">{item.quantity}</b>
-                            </span>
-                          );
-                        })
+                <span className="flex flex-col gap-5 sm:flex-row sm:items-start sm:justify-between sm:gap-10">
+                  <span className="min-w-0 flex-1">
+                    <span className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
+                      <span className="type-kr-heading text-h6-m sm:text-h6">{pkg.name}</span>
+                      <span className="text-s text-muted">{pkg.audienceTier.label}</span>
+                      {isRecommended && (
+                        <span className="type-display text-xs tracking-[0.08em]">추천</span>
                       )}
-                      <span className="text-xs text-muted">
-                        홍보 디지털 매체{" "}
-                        <b className="text-foreground">
-                          {pkg.mediaTier ? MEDIA_TIER_LABEL[pkg.mediaTier] : "미포함"}
-                        </b>
-                      </span>
-                    </div>
-                  </div>
-                </div>
+                    </span>
+                    {pkg.tagline && <span className="mt-2 block text-s text-muted">{pkg.tagline}</span>}
+                  </span>
 
-                <div className="shrink-0 sm:text-right">
-                  <div className="type-display text-h6-m tabular-nums sm:text-h6">
-                    {won(packagePrice(rateTable, pkg))}
-                  </div>
-                  <div className="mt-1 text-xs text-muted">/ 주 (화~일) · VAT 별도</div>
-                </div>
+                  <span className="shrink-0 sm:text-right">
+                    <span className="type-display block text-h6-m tabular-nums sm:text-h6">
+                      {won(packagePrice(rateTable, pkg))}
+                    </span>
+                    <span className="mt-1 block text-xs text-muted">/ 주 (화~일) · VAT 별도</span>
+                  </span>
+                </span>
+
+                <span className="mt-5 block border-t border-border/40 pt-3">
+                  <span className="mb-2 block text-xs font-bold text-muted">기본 포함</span>
+                  <span className="flex flex-wrap gap-x-6 gap-y-1.5">
+                    {pkg.includedItems.length === 0 ? (
+                      <span className="text-xs text-muted">별도 기본 포함 항목 없음</span>
+                    ) : (
+                      pkg.includedItems.map((item) => {
+                        const addon = findAddon(rateTable, item.addonId);
+                        return (
+                          <span key={item.addonId} className="text-xs text-muted">
+                            {addon?.name ?? item.addonId}{" "}
+                            <b className="tabular-nums">{item.quantity}</b>
+                          </span>
+                        );
+                      })
+                    )}
+                    <span className="text-xs text-muted">
+                      홍보 디지털 매체{" "}
+                      <b>{pkg.mediaTier ? MEDIA_TIER_LABEL[pkg.mediaTier] : "미포함"}</b>
+                    </span>
+                  </span>
+                </span>
               </button>
             </li>
           );

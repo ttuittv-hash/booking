@@ -13,7 +13,8 @@ const STEP_NAMES = [
 
 /**
  * 스텝 인디케이터 — 샤프한 1px 타일.
- *   현재  = 옐로 면 + 검정 텍스트 (대비 14:1)
+ * 위저드 전체가 "선택·현재 = 검정 채움" 한 가지 언어만 쓴다. 옐로는 쓰지 않는다.
+ *   현재  = 검정 면 + 밝은 텍스트
  *   완료  = 검정 보더
  *   미완료 = border-soft + muted
  *
@@ -53,7 +54,7 @@ export function StepNav({
                   "flex h-9 items-center gap-2 whitespace-nowrap border px-2.5 outline-none transition-colors sm:px-3",
                   "focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-foreground",
                   isActive
-                    ? "border-foreground bg-accent text-on-accent"
+                    ? "border-foreground bg-inverse-bg text-inverse-fg"
                     : isDone
                       ? "border-foreground bg-transparent text-foreground"
                       : "border-border-soft bg-transparent text-muted",

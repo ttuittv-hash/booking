@@ -2,6 +2,7 @@
 
 import { won } from "@/lib/format";
 import type { EstimatedQuote } from "@/lib/pricing/types";
+import { Note } from "@/components/ui/kit";
 
 /** 우측 sticky 요약 — 카드 박스 없이 헤어라인 표(SpecTable 스타일)로만 구성한다. */
 export function SummaryPanel({ quote }: { quote: EstimatedQuote }) {
@@ -59,15 +60,13 @@ export function SummaryPanel({ quote }: { quote: EstimatedQuote }) {
 
         <div className="mt-5 border-t-2 border-foreground pt-4">
           <p className="text-xs font-bold text-muted">합계 · VAT 포함</p>
-          <p className="type-display mt-2 text-h4-m tabular-nums sm:text-h4">{won(quote.total)}</p>
+          <p className="type-display mt-2 text-h5-m tabular-nums sm:text-h5">{won(quote.total)}</p>
           <p className="mt-2 text-xs text-muted">
             부가세 10% 별도 산정 후 합산한 예상 금액입니다.
           </p>
         </div>
 
-        <p className="mt-6 border-l-2 border-accent bg-warn-soft px-4 py-3 text-xs leading-5 text-muted-strong">
-          {quote.meteredNotice}
-        </p>
+        <Note className="mt-6">{quote.meteredNotice}</Note>
       </div>
     </aside>
   );

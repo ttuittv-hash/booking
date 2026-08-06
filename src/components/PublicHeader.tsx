@@ -197,9 +197,6 @@ export function PublicHeader({
               <div className="flex items-center gap-5">
                 <span className="font-bold text-foreground">KOR</span>
                 <span title="영문 페이지 준비 중">ENG</span>
-                <Link href="/faq" onClick={() => setOpen(false)} className="hover:text-foreground">
-                  FAQ
-                </Link>
               </div>
             </div>
           </div>
