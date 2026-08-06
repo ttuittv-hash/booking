@@ -171,14 +171,9 @@ export function PublicHeader({
                 <LogoutButton className="whitespace-nowrap hover:text-foreground" />
               </>
             ) : (
-              <>
-                <Link href="/login" className="whitespace-nowrap hover:text-foreground">
-                  로그인
-                </Link>
-                <Link href="/register" className="whitespace-nowrap hover:text-foreground">
-                  회원가입
-                </Link>
-              </>
+              <Link href="/login" className="whitespace-nowrap hover:text-foreground">
+                로그인
+              </Link>
             )}
           </div>
         </div>
