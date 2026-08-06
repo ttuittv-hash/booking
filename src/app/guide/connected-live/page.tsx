@@ -17,26 +17,47 @@ function Section({ id, title, children }: { id: string; title: string; children:
   );
 }
 
-const BENEFITS = [
+// 실제 이미지는 추후 어드민 콘텐츠 관리 화면에서 업로드해 교체할 예정 — 지금은 자리만 잡아둔다.
+function ImagePlaceholder({ src, alt }: { src: string | null; alt: string }) {
+  if (src) {
+    return (
+      <div className="aspect-video overflow-hidden rounded-sm border border-border">
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src={src} alt={alt} className="h-full w-full object-cover" />
+      </div>
+    );
+  }
+  return (
+    <div className="flex aspect-video items-center justify-center rounded-sm border border-dashed border-border bg-panel/60">
+      <span className="text-[11.5px] text-muted">이미지 준비 중</span>
+    </div>
+  );
+}
+
+const BENEFITS: { tag: string; title: string; desc: string; image: string | null }[] = [
   {
     tag: "AUDIENCE EXPANSION",
     title: "관객 규모 확장",
     desc: "본공연은 그대로 유지하면서 연계 베뉴를 통해 추가 관객을 확보합니다. 회차를 늘리지 않고도 관람 수요를 흡수합니다.",
+    image: null,
   },
   {
     tag: "COST EFFICIENCY",
     title: "중계 비용 절감",
     desc: "서울아레나가 중계 인프라를 갖추고 있어, 개별 구축 대비 중계 비용을 크게 절감할 수 있습니다.",
+    image: null,
   },
   {
     tag: "MORE REVENUE",
     title: "추가 수익 기회",
     desc: "티켓 매출 외에도 MD·스폰서 등 다양한 수익원(RS)을 통해 공연 한 편의 매출 잠재력을 확장합니다.",
+    image: null,
   },
   {
     tag: "ONE-STOP CONTRACT",
     title: "단일 창구 계약",
     desc: "베뉴마다 개별 협상하던 기존 방식과 달리, 서울아레나 한 곳과의 계약으로 베뉴 연계·중계·송출·정산까지 일괄 처리됩니다.",
+    image: null,
   },
 ];
 
@@ -62,22 +83,26 @@ const VENUE_TIERS: { title: string; desc: string; items: string[] | null }[] = [
   },
 ];
 
-const HOW_IT_WORKS = [
+const HOW_IT_WORKS: { tag: string; desc: string; image: string | null }[] = [
   {
     tag: "본공연 확장형",
     desc: "본공연 매진 이후 커넥티드 라이브 좌석을 순차 오픈해, 티켓을 구하지 못한 팬에게 관람 기회를 제공합니다.",
+    image: null,
   },
   {
     tag: "대형 행사형",
     desc: "페스티벌·시상식 등을 처음부터 다채널로 기획해 도시 전역의 축제로 확장합니다.",
+    image: null,
   },
   {
     tag: "홍보·화제성형",
     desc: "쇼케이스·팬미팅 등을 여러 채널로 동시 송출해 미디어 임팩트를 극대화합니다.",
+    image: null,
   },
   {
     tag: "소셜라이브형",
     desc: "애프터파티, 생중계 파티 등 팬덤이 함께 모여 즐기고 소통할 수 있는 커뮤니티형 관람 경험을 더합니다.",
+    image: null,
   },
 ];
 
@@ -101,11 +126,16 @@ export default async function ConnectedLivePage() {
           있습니다. 본공연 한 번으로 관객을 2~3배 이상 확장하는 새로운 관람 구조입니다.
         </p>
 
+        <div className="mt-8">
+          <ImagePlaceholder src={null} alt="커넥티드 라이브 소개" />
+        </div>
+
         <Section id="why" title="WHY CONNECTED LIVE — 대관 신청자에게 어떤 이점이 있나요?">
           <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
             {BENEFITS.map((b) => (
               <div key={b.tag} className="border border-border bg-panel/60 p-5">
-                <div className="text-[11px] font-semibold uppercase tracking-[0.1em] text-accent">
+                <ImagePlaceholder src={b.image} alt={b.title} />
+                <div className="mt-4 text-[11px] font-semibold uppercase tracking-[0.1em] text-accent">
                   {b.tag}
                 </div>
                 <div className="mt-2 text-[14px] font-semibold">{b.title}</div>
@@ -120,6 +150,9 @@ export default async function ConnectedLivePage() {
             본공연은 서울아레나에서, 관람은 도시 곳곳에서. 공연 성격과 규모에 따라 다양한 베뉴를 연계해
             관람 경험을 확장합니다.
           </p>
+          <div className="mt-6">
+            <ImagePlaceholder src={null} alt="커넥티드 라이브 베뉴 연계 구조" />
+          </div>
           <div className="mt-6 space-y-5">
             {VENUE_TIERS.map((tier) => (
               <div key={tier.title} className="border border-border bg-panel/60 p-5">
@@ -153,7 +186,8 @@ export default async function ConnectedLivePage() {
           <div className="mt-6 grid grid-cols-1 gap-5 sm:grid-cols-2">
             {HOW_IT_WORKS.map((h) => (
               <div key={h.tag} className="border border-border bg-panel/60 p-5">
-                <div className="text-[13.5px] font-semibold">{h.tag}</div>
+                <ImagePlaceholder src={h.image} alt={h.tag} />
+                <div className="mt-4 text-[13.5px] font-semibold">{h.tag}</div>
                 <p className="mt-2 text-[12.5px] leading-6 text-muted">{h.desc}</p>
               </div>
             ))}
