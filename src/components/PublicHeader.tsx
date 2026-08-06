@@ -103,7 +103,7 @@ export function PublicHeader({
           role="dialog"
           aria-modal="true"
           aria-label="전체 메뉴"
-          className="fixed inset-0 z-50 flex animate-[menu-in_0.18s_ease-out] flex-col overflow-y-auto bg-background"
+          className="fixed inset-0 z-50 flex h-[100dvh] animate-[menu-in_0.18s_ease-out] flex-col overflow-y-auto bg-background"
         >
           {/* 상단: 로고 + 닫기 */}
           <div className="container-site flex h-16 shrink-0 items-center justify-between lg:h-[72px]">
@@ -124,22 +124,26 @@ export function PublicHeader({
             </button>
           </div>
 
-          {/* 2컬럼 사이트맵 */}
-          <nav aria-label="전체 메뉴" className="container-site flex flex-1 flex-col justify-center py-8">
+          {/* 2컬럼 사이트맵 — 구분선 없이 여백만으로 나눈다.
+              전체가 한 화면에 들어와야 하므로 타이틀 h5 / 페이지 r 로 조인다. */}
+          <nav
+            aria-label="전체 메뉴"
+            className="container-site flex flex-1 flex-col justify-center py-4 tall:py-6"
+          >
             <ul>
               {NAV_CATEGORIES.map((cat) => (
                 <li
                   key={cat.label}
-                  className="grid gap-3 border-t border-border/20 py-6 sm:grid-cols-[minmax(0,1fr)_minmax(0,2fr)] sm:gap-10 lg:py-8"
+                  className="grid grid-cols-[auto_minmax(0,1fr)] gap-x-6 py-3 sm:grid-cols-[minmax(0,1fr)_minmax(0,2fr)] sm:gap-x-10 sm:py-4 tall:lg:py-5"
                 >
-                  <h2 className="type-display text-h5-m sm:text-h4">{cat.label}</h2>
-                  <ul className="flex flex-col gap-2.5 sm:pt-1">
+                  <h2 className="type-display text-h6-m sm:text-h5 tall:lg:text-h4">{cat.label}</h2>
+                  <ul className="flex flex-col gap-2">
                     {cat.pages.map((p) => (
                       <li key={p.href}>
                         <Link
                           href={p.href}
                           onClick={() => setOpen(false)}
-                          className={`text-m transition-colors hover:text-accent ${
+                          className={`text-r transition-colors hover:text-accent tall:lg:text-m ${
                             p.href === active ? "font-bold text-foreground" : "text-muted"
                           }`}
                         >
@@ -153,7 +157,7 @@ export function PublicHeader({
             </ul>
 
             {/* 계정 — 박스 없는 텍스트 링크로 통일 */}
-            <div className="mt-8 flex flex-wrap items-center gap-x-7 gap-y-3 border-t border-border/20 pt-7">
+            <div className="mt-6 flex flex-wrap items-center gap-x-7 gap-y-2 tall:mt-8">
               {currentUser ? (
                 <>
                   <span className="text-s text-muted">{currentUser.name} 님</span>
@@ -188,8 +192,8 @@ export function PublicHeader({
           </nav>
 
           {/* 하단 바 — Figma Navbar / 2 하단 유틸 */}
-          <div className="border-t border-border/20">
-            <div className="container-site flex flex-wrap items-center justify-between gap-4 py-5 text-xs text-muted">
+          <div className="shrink-0">
+            <div className="container-site flex flex-wrap items-center justify-between gap-4 py-4 text-xs text-muted">
               <div className="flex items-center gap-5">
                 <span className="font-bold text-foreground">KOR</span>
                 <span title="영문 페이지 준비 중">ENG</span>

@@ -3,12 +3,13 @@ import type { HomeNarrativeStatement } from "@/lib/content/types";
 /**
  * 브랜드 선언문(카카오 브랜드 가이드라인 3.4 BUSINESS › HOST IT.).
  *
- * 구성
- *   1행  큰 글씨          서울아레나는 단순한 베뉴가 아닙니다.
- *   2행  작은 글씨 · 회색  아티스트와 기획사의 상상력을 …
- *   3~5행 2행과 같은 크기 · 본문색   세 문장
+ * 5개 문단(선언 1 + 리드 1 + 본문 3)을 **하나의 타이포 설정**으로 통일해 흘린다.
+ * 크기·색을 문단마다 바꾸지 않는다 — 선언문은 위계가 아니라 한 덩어리의 목소리다.
+ * 색은 `text-foreground` 로 두어 블랙 밴드 안에서 자동으로 흰 계열이 된다.
  *
- * 링크·호버·버튼은 두지 않는다. 읽는 흐름을 끊지 않고 선언문 그대로 전달한다.
+ * 측정폭(measure)은 `max-w-[22ch]`… 가 아니라 컨테이너 폭으로 제한한다.
+ * 32px 국문에서 한 줄이 22~26자를 넘으면 눈이 되돌아오지 못하므로 48rem 을 상한으로 둔다.
+ * 링크·호버·버튼은 두지 않는다.
  */
 export function Manifesto({
   title,
@@ -19,17 +20,18 @@ export function Manifesto({
   lead: string;
   statements: HomeNarrativeStatement[];
 }) {
+  const paragraphs = [title.replace(/\n/g, " "), lead, ...statements.map((s) => s.desc)];
+
   return (
-    <div className="max-w-5xl">
-      <p className="type-kr-heading text-h3-m sm:text-h2">{title.replace(/\n/g, " ")}</p>
-
-      <p className="mt-8 text-m text-muted sm:text-l">{lead}</p>
-
-      <div className="mt-6 space-y-4 text-m text-foreground sm:text-l">
-        {statements.map((s, i) => (
-          <p key={i}>{s.desc}</p>
-        ))}
-      </div>
+    <div className="max-w-3xl space-y-6 sm:space-y-8">
+      {paragraphs.map((text, i) => (
+        <p
+          key={i}
+          className="type-kr-heading text-h5-m break-keep text-foreground sm:text-h4"
+        >
+          {text}
+        </p>
+      ))}
     </div>
   );
 }

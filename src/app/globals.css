@@ -1,5 +1,9 @@
 @import "tailwindcss";
 
+/* 뷰포트 높이 변형 — 오픈 메뉴처럼 "한 화면에 다 들어와야" 하는 UI 전용.
+   화면이 충분히 높을 때만 타이포·여백을 키운다. 낮은 창에서는 기본(작은) 값이 남는다. */
+@custom-variant tall (@media (min-height: 820px));
+
 /* ============================================================================
    Seoul Arena — Business layer design tokens
    출처: Kakao Arena Brand Guidelines 0.1
