@@ -51,9 +51,9 @@ export function Step5Estimate({
           dense
           rowLabel="항목"
           columns={[
-            { key: "billable", title: "과금", sub: "수량" },
-            { key: "unitPrice", title: "단가", sub: "원" },
-            { key: "amount", title: "금액", sub: "원" },
+            { key: "billable", title: "과금" },
+            { key: "unitPrice", title: "단가" },
+            { key: "amount", title: "금액" },
           ]}
           rows={quote.lineItems.map((item) => {
             const byRevenue = item.pricingType === "REVENUE_PERCENT";
@@ -64,8 +64,8 @@ export function Step5Estimate({
                 : `신청 ${num(item.requested)} · 기본 포함 ${item.included ? num(item.included) : 0}`,
               cells: [
                 byRevenue ? "—" : num(item.billable),
-                byRevenue ? `${item.unitPrice}%` : num(item.unitPrice),
-                num(item.amount),
+                byRevenue ? `${item.unitPrice}%` : won(item.unitPrice),
+                won(item.amount),
               ],
             };
           })}

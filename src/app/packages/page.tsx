@@ -22,6 +22,7 @@ import {
   Band,
   type BandTone,
   ButtonLink,
+  CTABand,
   ComparisonTable,
   Note,
   PageHeading,
@@ -52,7 +53,7 @@ function addonRowLabel(addon: AddonItem, perRow: boolean): string {
 }
 
 function addonRateCell(addon: AddonItem): string {
-  return addon.pricingType === "METERED" ? "—" : num(addon.unitPrice);
+  return addon.pricingType === "METERED" ? "—" : won(addon.unitPrice);
 }
 
 /** "100대/일" → "100" (단위는 행 라벨에 한 번만 쓴다) */
@@ -111,15 +112,6 @@ function includedGroups(
   const ungrouped = all.filter((r) => !r.addon);
   if (ungrouped.length > 0) groups.push({ title: "기타", rows: ungrouped });
   return groups;
-}
-
-function includedRateUnit(rows: IncludedRow[]): string {
-  const units = new Set(rows.map((r) => r.addon?.unitLabel).filter(Boolean) as string[]);
-  return units.size === 1 ? [...units][0] : "원";
-}
-
-function allRows(groups: { rows: IncludedRow[] }[]): IncludedRow[] {
-  return groups.flatMap((g) => g.rows);
 }
 
 export default async function PackagesPage() {
@@ -186,8 +178,8 @@ export default async function PackagesPage() {
                       cells: items.map((pkg) => audienceRange(pkg)),
                     },
                     {
-                      label: "기본 대관료 (원 · VAT 별도)",
-                      cells: items.map((pkg) => num(packagePrice(rateTable, pkg))),
+                      label: "기본 대관료 · VAT 별도",
+                      cells: items.map((pkg) => won(packagePrice(rateTable, pkg))),
                     },
                     {
                       label: "홍보 디지털 매체",
@@ -279,7 +271,7 @@ export default async function PackagesPage() {
                       rowLabel="항목"
                       columns={[
                         { key: "qty", title: "수량" },
-                        { key: "rate", title: "초과 단가", sub: includedRateUnit(allRows(groups)) },
+                        { key: "rate", title: "초과 단가" },
                       ]}
                       groups={groups.map((group) => ({
                         title: group.title,
@@ -287,7 +279,7 @@ export default async function PackagesPage() {
                           label: addon?.name ?? item.addonId,
                           cells: [
                             num(item.quantity),
-                            addon && addon.unitPrice > 0 ? num(addon.unitPrice) : "—",
+                            addon && addon.unitPrice > 0 ? won(addon.unitPrice) : "—",
                           ],
                         })),
                       }))}
@@ -331,7 +323,7 @@ export default async function PackagesPage() {
             <ComparisonTable
               dense
               rowLabel="항목"
-              columns={[{ key: "rate", title: "단가", sub: "원 · VAT 별도" }]}
+              columns={[{ key: "rate", title: "단가" }]}
               groups={addonsByCategory.map(({ category, items }) => ({
                 title: `${ADDON_CATEGORY_LABEL[category]} (${items.length})`,
                 // 한 표 안에 단위가 여러 개 섞이므로 단위는 항상 항목명 옆에 적는다.
@@ -344,28 +336,22 @@ export default async function PackagesPage() {
           </div>
         </Band>
 
-        {/* ── 전환 CTA (옐로 면 위 텍스트는 항상 검정) ─────────────────────── */}
-        <Band tone="accent" size="md">
-          <div className="flex flex-col gap-8 lg:flex-row lg:items-end lg:justify-between">
-            <div>
-              <h2 className="type-kr-heading text-h3-m sm:text-h3">
-                규모와 일정을 넣으면 예상 대관료가 나옵니다.
-              </h2>
-              <p className="mt-4 max-w-xl text-m">
-                준비·공연 일수 조정, 청소비, 홍보 매체까지 신청 화면에서 실시간으로 반영됩니다.
-              </p>
-            </div>
-            <div className="flex shrink-0 flex-col gap-3 sm:flex-row">
-              <Link href="/apply?new=1" className={btnClass("secondary", "lg")}>
+        {/* ── 전환 CTA — 다른 페이지와 같은 높이가 되도록 CTABand 를 쓴다 ───── */}
+        <CTABand
+          title="규모와 일정을 넣으면 예상 대관료가 나옵니다."
+          lead="준비·공연 일수 조정, 청소비, 홍보 매체까지 신청 화면에서 실시간으로 반영됩니다."
+          actions={
+            <>
+              <Link href="/apply?new=1" className={btnClass("primary", "lg")}>
                 대관 신청 시작하기
                 <ArrowRight />
               </Link>
-              <ButtonLink href="/guide#rates" variant="tertiary" size="lg">
+              <ButtonLink href="/guide#rates" variant="secondary" size="lg">
                 대관 안내로
               </ButtonLink>
-            </div>
-          </div>
-        </Band>
+            </>
+          }
+        />
       </main>
 
       <SiteFooter />

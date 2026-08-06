@@ -4,7 +4,12 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import type { VenueAmenity, VenueContent, VenueHall, VenueHighlight, VenueKeyMap, VenueSpec } from "@/lib/content/types";
 import { DEFAULT_VENUE_CONTENT } from "@/lib/content/seed";
-import { VenueContentView } from "@/components/VenueContentView";
+import {
+  VenueAmenitiesView,
+  VenueOverviewView,
+  VenueSpecsView,
+  VenueStageFeaturesView,
+} from "@/components/venue/VenueSections";
 import { btnClass } from "@/components/ui/kit";
 import { NoticeEditor } from "./NoticeEditor";
 import {
@@ -266,7 +271,11 @@ export function VenueContentForm({ content: initial }: { content: VenueContent }
             미리보기 — 현재 입력값 기준 (저장되지 않음)
           </div>
           <div className="max-h-[70vh] overflow-y-auto bg-background">
-            <VenueContentView content={content} />
+            {/* Your Stage 는 4개 페이지로 나뉘어 있으므로 미리보기도 4개를 이어 보여준다. */}
+            <VenueOverviewView content={content} />
+            <VenueSpecsView content={content} />
+            <VenueStageFeaturesView content={content} />
+            <VenueAmenitiesView content={content} />
           </div>
         </div>
       )}

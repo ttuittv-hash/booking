@@ -17,6 +17,16 @@ import { NAV_CATEGORIES } from "@/components/ui/nav-items";
 /** 메뉴 안 계정 링크 — 박스 없이 텍스트만 (Figma 하단 유틸 링크와 같은 규격) */
 const MENU_LINK = "text-s font-bold transition-colors hover:text-accent";
 
+/**
+ * 메뉴 아이콘 — 줄 두 개(햄버거)가 아니라 원.
+ *   닫힘 : 검정 채움 원
+ *   열림 : 채움 없는 검정 아웃라인 원 + 안에 ×
+ * 두 상태가 같은 지름이라 누를 때 아이콘이 튀지 않는다.
+ */
+const MENU_DOT_BASE = "block h-7 w-7 rounded-full transition-colors";
+const MENU_DOT_CLOSED = `${MENU_DOT_BASE} bg-foreground`;
+const MENU_DOT_OPEN = `${MENU_DOT_BASE} border border-foreground bg-transparent`;
+
 export function PublicHeader({
   active,
   currentUser,
@@ -76,7 +86,7 @@ export function PublicHeader({
             Seoul Arena
           </Link>
 
-          {/* 클릭 범위를 넉넉히 — 실제 타깃은 56×56 */}
+          {/* 클릭 범위를 넉넉히 — 실제 타깃은 56×56, 아이콘은 검정 채움 원 */}
           <button
             type="button"
             onClick={() => setOpen(true)}
@@ -84,14 +94,11 @@ export function PublicHeader({
             aria-expanded={open}
             className="relative -mr-4 flex h-14 w-14 items-center justify-center"
           >
-            <span aria-hidden className="flex w-7 flex-col gap-[6px]">
-              <span className="h-px w-full bg-foreground" />
-              <span className="h-px w-full bg-foreground" />
-            </span>
+            <span aria-hidden className={MENU_DOT_CLOSED} />
             {unread > 0 && (
               <span
                 aria-hidden
-                className="absolute right-2.5 top-3 h-2 w-2 rounded-full bg-accent ring-1 ring-foreground"
+                className="absolute right-2 top-3 h-2 w-2 rounded-full bg-accent ring-1 ring-foreground"
               />
             )}
           </button>
@@ -118,9 +125,20 @@ export function PublicHeader({
               type="button"
               onClick={() => setOpen(false)}
               aria-label="메뉴 닫기"
-              className="-mr-4 flex h-14 w-14 items-center justify-center text-h5 leading-none"
+              className="-mr-4 flex h-14 w-14 items-center justify-center"
             >
-              <span aria-hidden>×</span>
+              <span aria-hidden className={`${MENU_DOT_OPEN} relative`}>
+                <svg
+                  viewBox="0 0 28 28"
+                  aria-hidden
+                  className="absolute inset-0 h-full w-full"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="1.25"
+                >
+                  <path d="M10.5 10.5 17.5 17.5M17.5 10.5 10.5 17.5" />
+                </svg>
+              </span>
             </button>
           </div>
 

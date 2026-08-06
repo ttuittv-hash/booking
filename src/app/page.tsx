@@ -91,7 +91,7 @@ export default async function Home() {
           </div>
 
           <div className="mt-12 flex flex-wrap gap-3">
-            <ButtonLink href="/guide" variant="secondary">
+            <ButtonLink href="/guide" variant="primary">
               대관 안내
             </ButtonLink>
             <ButtonLink href="/packages" variant="secondary">

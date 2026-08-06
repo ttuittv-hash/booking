@@ -247,6 +247,24 @@ input[type="number"]::-webkit-inner-spin-button {
   letter-spacing: -0.02em;
 }
 
+/*
+  푸터 워드마크 — 컨테이너 폭에 비례해 크기만 커진다.
+  글자를 늘려서(textLength / scaleX) 폭을 채우지 않는다. 자폭 비율은 항상 원본 그대로.
+  계수는 실측값이다 — Archivo 800 / letter-spacing −0.02em 에서 "SEOUL ARENA" 의 자폭은
+  font-size 100px 일 때 700.3px(= 7.003em). 컨테이너 폭을 꽉 채우려면 100/7.003 ≈ 14.28cqw 이고,
+  줄바꿈이 절대 일어나지 않도록 여유를 두어 14.1cqw 로 둔다 (nowrap 도 함께 건다).
+  부모에 `[container-type:inline-size]` 가 있어야 동작한다.
+*/
+@utility type-wordmark {
+  font-family: "Archivo", "Helvetica Neue", Arial, sans-serif;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: -0.02em;
+  font-size: 14.1cqw;
+  line-height: 0.9;
+  white-space: nowrap;
+}
+
 /* 국문 헤딩 — 음수 자간 */
 @utility type-kr-heading {
   font-family: "KakaoBig", "Gothic A1", "Apple SD Gothic Neo", sans-serif;

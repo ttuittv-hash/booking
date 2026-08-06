@@ -1,15 +1,17 @@
 import type { HomeNarrativeStatement } from "@/lib/content/types";
 
 /**
- * 브랜드 선언문(카카오 브랜드 가이드라인 3.4 BUSINESS › HOST IT.).
+ * 설계 선언 — Figma Wireframe › **Layout / 608** (Breakpoint=Desktop) 규격.
  *
- * 5개 문단(선언 1 + 리드 1 + 본문 3)을 **하나의 타이포 설정**으로 통일해 흘린다.
- * 크기·색을 문단마다 바꾸지 않는다 — 선언문은 위계가 아니라 한 덩어리의 목소리다.
- * 색은 `text-foreground` 로 두어 블랙 밴드 안에서 자동으로 흰 계열이 된다.
+ *   Section Title   Heading  Archivo 800 / 96 (모바일 36) · lh 0.9
+ *                   Text     18 (모바일 16)
+ *   List Item ×N    좌 : 번호  Archivo 800 / 48 (모바일 36), 폭 60 + 간격 32
+ *                   우 : Heading Archivo 800 / 48 (모바일 24)
+ *                        Text    16
+ *                   항목 사이 헤어라인
  *
- * 측정폭(measure)은 `max-w-[22ch]`… 가 아니라 컨테이너 폭으로 제한한다.
- * 32px 국문에서 한 줄이 22~26자를 넘으면 눈이 되돌아오지 못하므로 48rem 을 상한으로 둔다.
- * 링크·호버·버튼은 두지 않는다.
+ * 블랙 지면 위 흰 텍스트 — 상위에서 `<Band tone="dark">` 로 감싼다.
+ * Tagline 슬롯은 시스템 규칙에 따라 비운다. 링크·호버·버튼은 두지 않는다.
  */
 export function Manifesto({
   title,
@@ -20,18 +22,35 @@ export function Manifesto({
   lead: string;
   statements: HomeNarrativeStatement[];
 }) {
-  const paragraphs = [title.replace(/\n/g, " "), lead, ...statements.map((s) => s.desc)];
-
   return (
-    <div className="max-w-3xl space-y-6 sm:space-y-8">
-      {paragraphs.map((text, i) => (
-        <p
-          key={i}
-          className="type-kr-heading text-h5-m break-keep text-foreground sm:text-h4"
-        >
-          {text}
-        </p>
-      ))}
+    <div>
+      {/* Section Title */}
+      <h2 className="type-display text-h2-m leading-[0.9] sm:text-d2">
+        {title.split("\n").map((line, i) => (
+          <span key={i} className="block">
+            {line}
+          </span>
+        ))}
+      </h2>
+      <p className="mt-8 max-w-3xl break-keep text-r text-muted sm:mt-10 sm:text-m">{lead}</p>
+
+      {/* List — 번호 열 + 본문 열, 항목 사이 헤어라인 */}
+      <ol className="mt-14 border-t border-border/30 sm:mt-16">
+        {statements.map((s, i) => (
+          <li
+            key={s.title}
+            className="grid grid-cols-[3rem_minmax(0,1fr)] gap-x-5 border-b border-border/30 py-8 sm:grid-cols-[3.75rem_minmax(0,1fr)] sm:gap-x-8 sm:py-10"
+          >
+            <span className="type-display text-h2-m leading-none tabular-nums sm:text-h2">
+              {String(i + 1).padStart(2, "0")}
+            </span>
+            <div>
+              <h3 className="type-display text-h4-m leading-none sm:text-h2">{s.title}</h3>
+              <p className="mt-4 max-w-3xl break-keep text-r text-muted sm:mt-5">{s.desc}</p>
+            </div>
+          </li>
+        ))}
+      </ol>
     </div>
   );
 }

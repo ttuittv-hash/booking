@@ -1,5 +1,6 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
+import { Reveal } from "@/components/ui/Reveal";
 
 /* ============================================================================
    Seoul Arena — Business layer UI kit
@@ -172,47 +173,54 @@ export function ArrowRight({ className = "" }: { className?: string }) {
 /**
  * 이미지 슬롯. 실제 이미지가 없으면 Figma 와이어프레임과 같은 회색 플레이스홀더.
  * 이미지/영상을 받으면 src 만 채우면 그대로 대체된다.
+ *
+ * 스크롤로 처음 화면에 들어올 때 옐로 면이 덮고 있다가 위로 걷힌다(`Reveal`).
+ * 사이트의 모든 사진 슬롯이 이 컴포넌트를 쓰므로 리빌은 여기 한 곳에만 둔다.
+ * 리빌이 방해되는 자리(인쇄 화면 등)에서는 `reveal={false}`.
  */
 export function Media({
   src,
   alt,
   ratio = "16 / 9",
   className = "",
+  reveal = true,
+  revealDelay = 0,
 }: {
   src?: string | null;
   alt: string;
   ratio?: string;
   className?: string;
+  reveal?: boolean;
+  revealDelay?: number;
 }) {
-  if (src) {
-    return (
-      // eslint-disable-next-line @next/next/no-img-element
-      <img
-        src={src}
-        alt={alt}
-        style={{ aspectRatio: ratio }}
-        className={`w-full object-cover ${className}`}
-      />
-    );
-  }
-  return (
+  const inner = src ? (
+    // eslint-disable-next-line @next/next/no-img-element
+    <img
+      src={src}
+      alt={alt}
+      style={{ aspectRatio: ratio }}
+      className={`block w-full object-cover ${reveal ? "" : className}`}
+    />
+  ) : (
     <div
       style={{ aspectRatio: ratio }}
       role="img"
       aria-label={alt}
-      className={`flex w-full items-center justify-center bg-placeholder ${className}`}
+      className={`flex w-full items-center justify-center bg-placeholder ${reveal ? "" : className}`}
     >
-      <svg
-        aria-hidden
-        viewBox="0 0 24 24"
-        fill="none"
-        className="h-10 w-10 text-placeholder-mark"
-      >
+      <svg aria-hidden viewBox="0 0 24 24" fill="none" className="h-10 w-10 text-placeholder-mark">
         <rect x="3" y="4" width="18" height="16" rx="1" fill="currentColor" />
         <circle cx="8.5" cy="9.5" r="1.6" className="fill-placeholder" />
         <path d="M3.5 17.5 9 12l4 4 3-2.5 4.5 4" stroke="var(--placeholder)" strokeWidth="1.6" />
       </svg>
     </div>
+  );
+
+  if (!reveal) return inner;
+  return (
+    <Reveal delay={revealDelay} className={className}>
+      {inner}
+    </Reveal>
   );
 }
 
@@ -286,9 +294,9 @@ export function LayoutCards({
       <div
         className={`mt-14 grid gap-6 ${columns === 3 ? "md:grid-cols-3" : "md:grid-cols-2"}`}
       >
-        {items.map((it) => (
+        {items.map((it, i) => (
           <article key={it.title} className="flex flex-col border border-border/25">
-            <Media src={it.image} alt={it.title} ratio="16 / 10" />
+            <Media src={it.image} alt={it.title} ratio="16 / 10" revealDelay={i * 70} />
             <div className="flex flex-1 flex-col p-6">
               <h3 className="type-kr-heading text-h5-m sm:text-h5">{it.title}</h3>
               {it.meta && <p className="mt-2 text-s text-muted">{it.meta}</p>}
@@ -314,9 +322,9 @@ export function LayoutCards({
 export function LayoutFeatures({ items, columns = 2 }: { items: CardItem[]; columns?: 2 | 3 }) {
   return (
     <div className={`grid gap-10 ${columns === 3 ? "md:grid-cols-3" : "md:grid-cols-2"}`}>
-      {items.map((it) => (
+      {items.map((it, i) => (
         <article key={it.title}>
-          <Media src={it.image} alt={it.title} ratio="16 / 9" />
+          <Media src={it.image} alt={it.title} ratio="16 / 9" revealDelay={i * 70} />
           <h3 className="type-kr-heading mt-6 text-h5-m sm:text-h5">{it.title}</h3>
           {it.desc && <p className="mt-4 text-s text-muted">{it.desc}</p>}
           {it.href && (
@@ -349,9 +357,9 @@ export function LayoutHorizCards({
     <div>
       {title && <CenterHeading title={title} lead={lead} />}
       <div className="mt-14 grid gap-6 md:grid-cols-2">
-        {items.map((it) => (
+        {items.map((it, i) => (
           <article key={it.title} className="grid grid-cols-1 border border-border/25 sm:grid-cols-2">
-            <Media src={it.image} alt={it.title} ratio="4 / 3" className="h-full" />
+            <Media src={it.image} alt={it.title} ratio="4 / 3" className="h-full" revealDelay={i * 70} />
             <div className="flex flex-col justify-center p-6">
               <h3 className="type-kr-heading text-h6-m sm:text-h6">{it.title}</h3>
               {it.desc && <p className="mt-3 text-s text-muted">{it.desc}</p>}
@@ -516,7 +524,6 @@ export function LayoutSticky({ items }: { items: CardItem[] }) {
 export type CompareColumn = {
   key: string;
   title: ReactNode;
-  sub?: ReactNode;
   /** 값 정렬. 기본은 우측(숫자 기준). 문장이 들어가는 열만 "left" 로 바꾼다. */
   align?: "left" | "right";
 };
@@ -535,7 +542,8 @@ const LABEL_PCT: Record<number, number> = { 1: 54, 2: 46, 3: 40, 4: 36, 5: 30 };
  *   · 값 열은 기본 우측 정렬. 숫자 기둥이 맞아야 비교가 된다.
  *   · 카테고리로 묶을 때는 표를 여러 개 만들지 말고 `groups` 를 쓴다.
  *     표를 쪼개면 묶음마다 열 폭이 달라진다.
- *   · 단위는 열 헤더에 한 번만. 셀에서 반복하지 않는다.
+ *   · **단위 행을 두지 않는다.** 헤더에 단위 보조행이 있는 열과 없는 열이 섞이면
+ *     헤더 높이가 어긋난다. 수량은 단위 없이 숫자만, 금액은 셀마다 `₩` 를 붙인다.
  */
 export function ComparisonTable({
   rowLabel,
@@ -583,7 +591,6 @@ export function ComparisonTable({
                 <span className="type-kr-heading block break-keep text-h6-m sm:text-h6">
                   {c.title}
                 </span>
-                {c.sub && <span className="mt-1 block text-xs font-normal text-muted">{c.sub}</span>}
               </th>
             ))}
           </tr>
@@ -738,6 +745,12 @@ export function Row({
 
 /* ------------------------------------------------------------- CTA ------- */
 
+/**
+ * 페이지 하단 옐로 배너의 고정 높이(내부 콘텐츠 영역).
+ * 페이지마다 카피 길이가 달라도 배너 높이는 같아야 한다 — 이 값은 여기서만 정한다.
+ */
+export const CTA_BAND_MIN = "9rem";
+
 /** Figma CTA / 1 — 좌: 헤딩 + 본문 / 우: 버튼 2개 */
 export function CTABand({
   title,
@@ -752,12 +765,19 @@ export function CTABand({
 }) {
   return (
     <Band tone={tone} size="sm">
-      <div className="flex flex-col gap-8 lg:flex-row lg:items-center lg:justify-between">
+      {/*
+        옐로 배너는 페이지마다 카피 길이가 달라도 높이가 같아야 한다.
+        min-height 를 고정하고 내용을 수직 중앙에 둔다 (CTA_BAND_MIN 은 이 한 곳에서만 정한다).
+      */}
+      <div
+        style={{ minHeight: CTA_BAND_MIN }}
+        className="flex flex-col justify-center gap-8 lg:flex-row lg:items-center lg:justify-between"
+      >
         <div className="max-w-2xl">
           <h2 className="type-kr-heading text-h4-m sm:text-h4">{title}</h2>
           {lead && <p className="mt-4 text-s">{lead}</p>}
         </div>
-        <div className="flex shrink-0 flex-wrap gap-3">{actions}</div>
+        <div className="flex shrink-0 flex-wrap gap-3 lg:justify-end">{actions}</div>
       </div>
     </Band>
   );

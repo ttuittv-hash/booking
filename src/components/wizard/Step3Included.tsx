@@ -1,6 +1,6 @@
 "use client";
 
-import { num } from "@/lib/format";
+import { num, won } from "@/lib/format";
 import { findAddon, findPackage } from "@/lib/pricing/rateTableUtils";
 import {
   ADDON_CATEGORY_LABEL,
@@ -22,12 +22,6 @@ const CATEGORY_ORDER = Object.keys(ADDON_CATEGORY_LABEL) as AddonCategory[];
 interface IncludedRow {
   item: PackageInclusion;
   addon: AddonItem | undefined;
-}
-
-/** 초과 단가의 단위. 묶음 안에서 하나로 모이면 열 헤더에 한 번만 쓴다. */
-function groupRateUnit(rows: IncludedRow[]): string {
-  const units = new Set(rows.map((r) => r.addon?.unitLabel).filter(Boolean) as string[]);
-  return units.size === 1 ? [...units][0] : "원";
 }
 
 export function Step3Included({
@@ -102,7 +96,7 @@ export function Step3Included({
             rowLabel="항목"
             columns={[
               { key: "qty", title: "수량" },
-              { key: "rate", title: "초과 단가", sub: groupRateUnit(all) },
+              { key: "rate", title: "초과 단가" },
             ]}
             groups={groups.map((group) => ({
               title: group.title,
@@ -110,7 +104,7 @@ export function Step3Included({
                 label: addon?.name ?? item.addonId,
                 cells: [
                   num(item.quantity),
-                  addon && addon.unitPrice > 0 ? num(addon.unitPrice) : "—",
+                  addon && addon.unitPrice > 0 ? won(addon.unitPrice) : "—",
                 ],
               })),
             }))}

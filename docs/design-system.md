@@ -55,6 +55,8 @@ Primitive (Figma Style Guide › Variables)
 | **Gothic A1** | 국문 (KakaoBig·KakaoSmall 확보 시 자동 승격) | 300–900 |
 
 `type-display` 영문 대문자 디스플레이 · `type-kr-heading` 국문 헤딩(음수 자간 −0.03em)
+`type-wordmark` 푸터 워드마크 — 컨테이너 폭(cqw)에 비례해 **크기만** 커진다.
+글자를 늘려서(`textLength`·`scaleX`) 폭을 채우지 않는다. 부모에 `[container-type:inline-size]` 필요
 
 스케일 — 모바일/데스크톱을 짝지어 쓴다: `text-h3-m sm:text-h3`
 
@@ -98,7 +100,8 @@ Primitive (Figma Style Guide › Variables)
   묶음마다 열 폭이 달라진다 (이 페이지가 난장판이 되는 1번 원인)
 - **모든 셀이 `—` 인 열은 만들지 않는다.** 정보가 아니라 소음이다
 - **좁은 컬럼에 5열 이상 넣지 않는다.** 보조 수치는 `note` 로 항목 아래에 내린다
-- **단위는 열 헤더에 한 번만.** 한 표에 단위가 섞이면 항목명 옆에 적는다
+- **단위 행(헤더 보조행)을 두지 않는다.** 단위가 있는 열과 없는 열이 섞이면 헤더 높이가
+  어긋난다. 수량은 숫자만, 금액은 셀마다 `₩` (`won()`), 그 밖의 단위는 항목명 옆에
 - 해당 없음은 `—`, 포함은 `✓` · 숫자는 `tabular-nums`
 - `dense` 옵션으로 밀도를 높일 수 있다 (백오피스·긴 목록)
 
@@ -123,12 +126,15 @@ const SPLIT = "grid gap-8 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.6fr)] lg:items-
 | | |
 |---|---|
 | `AuthShell` | 인증 화면. `variant="card"`(Login / 3) · `variant="tabs"`(Sign up / 1) |
+| `PublicHeader` | 메뉴 아이콘은 **원**이다. 닫힘 = 검정 채움 원 / 열림 = 검정 아웃라인 원 + 내부 ×. 두 상태의 지름이 같아 아이콘이 튀지 않는다 |
 | `SiteFooter` | Figma Design › Footer / 1. 상단 Address·Contact + 사이트맵 → **컨테이너 전폭 워드마크** → 헤어라인 → 카피라이트·정책. 오프화이트 지면 |
 | `choiceClass` | 선택 칩 (Figma Multi-step Forms). 선택 = 검정 채움 |
 | `Note` | 보조 고지문. 색면 박스를 쓰지 않는다 |
 | `Band` | 풀블리드 섹션. `tone` = light·white·accent·dark, `size` = sm·md·lg. 섹션은 여백이 아니라 **색면 전환**으로 나눈다 |
 | `ButtonLink` / `btnClass` | `variant` = **primary**(검정 채움) · **secondary**(아웃라인) · **tertiary**(텍스트), `size` = sm·md·lg |
-| `Media` | 이미지. `src` 없으면 회색 플레이스홀더 |
+| `Media` | 이미지. `src` 없으면 회색 플레이스홀더. 스크롤 진입 시 옐로 리빌(`Reveal`)이 자동으로 걸린다 — 끄려면 `reveal={false}` |
+| `Reveal` | 뷰포트 진입 시 악센트 면이 덮었다가 위로 걷히는 와이프 인. **사진·카드에만** 쓰고 텍스트에는 쓰지 않는다. 한 번만 실행, `prefers-reduced-motion` 존중 |
+| `CTABand` | 페이지 하단 옐로 배너. 높이는 `CTA_BAND_MIN` 으로 고정 — 카피 길이가 달라도 페이지마다 같은 높이여야 한다. 옐로 배너를 직접 만들지 말고 이걸 쓴다 |
 | `Badge` | 상태 배지 |
 | `EmptyState` | 준비 중 콘텐츠 |
 | `Multiline` | seed 의 `\n` 유지 렌더 |
@@ -145,7 +151,7 @@ const SPLIT = "grid gap-8 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.6fr)] lg:items-
   <Breadcrumb items={[{ label: "내 신청 내역", href: "/mypage" }, { label: "1:1 문의" }]} />
   <main className="flex flex-1 flex-col">
     <Band tone="light" size="lg">
-      <PageHeading title="공연장 소개" lead="…" />
+      <PageHeading title="시설 제원" lead="…" />
     </Band>
     {/* 이후 Band 톤 교대 + 레이아웃 모듈 */}
   </main>
@@ -169,7 +175,10 @@ const SPLIT = "grid gap-8 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.6fr)] lg:items-
 
 ```
 Your Stage  (카테고리 타이틀 — 링크 아님)
-  └ 공연장 소개      /venue        (개요·제원·무대특장·부대시설은 이 한 페이지 안)
+  ├ 시설 개요        /venue                  (개요·시설 3종·강점·층별 키맵)
+  ├ 시설 제원        /venue/specs
+  ├ 무대 특장        /venue/stage-features
+  └ 부대시설         /venue/amenities
 Book It
   ├ 대관 안내        /guide        (개요·절차·대관료·규약은 이 한 페이지 안)
   ├ 대관 패키지      /packages
@@ -183,6 +192,13 @@ Host It
   ├ 대관 신청        /apply
   └ 내 신청 내역     /mypage
 ```
+
+### 설계 선언 (홈)
+
+홈의 매니페스토 섹션은 Figma Wireframe › **Layout / 608** (Desktop) 규격이다.
+슬로건 디스플레이(d2) + 리드 + 번호 붙은 설계원칙 4개, 블랙 지면 위 흰 텍스트.
+내용 기준은 Notion `대관·비즈니스 사이트 구조 기획 › HOST IT (HOME)` 이고,
+**수치는 여기에 쓰지 않는다** — 숫자는 Your Stage 에서, 그 숫자의 이유가 여기다.
 
 ## 8. 카피 원칙 (브랜드 가이드 3.1 / 3.2)
 

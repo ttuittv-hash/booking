@@ -42,32 +42,21 @@ export function SiteFooter() {
           </div>
         </div>
 
-        {/* 중단 — 컨테이너 전폭 워드마크 */}
-        <Link
-          href="/"
-          aria-label="Seoul Arena 홈"
-          title="Seoul Arena"
-          className="mt-20 block sm:mt-24"
-        >
-          <svg
-            viewBox="0 0 1000 104"
-            aria-hidden
-            preserveAspectRatio="xMidYMid meet"
-            className="block w-full"
+        {/*
+          중단 — 워드마크. 글자를 늘리지(stretch) 않는다.
+          `type-wordmark` 가 컨테이너 폭(cqw)에 비례해 font-size 만 키우므로
+          자폭 비율은 언제나 그대로다. textLength 로 억지로 늘리면 자형이 망가진다.
+        */}
+        <div className="mt-20 sm:mt-24 [container-type:inline-size]">
+          <Link
+            href="/"
+            aria-label="Seoul Arena 홈"
+            title="Seoul Arena"
+            className="type-wordmark block"
           >
-            <text
-              x="500"
-              y="82"
-              textAnchor="middle"
-              textLength="1000"
-              lengthAdjust="spacingAndGlyphs"
-              className="type-display"
-              style={{ fontSize: 96, fontWeight: 800, fill: "var(--foreground)" }}
-            >
-              SEOUL ARENA
-            </text>
-          </svg>
-        </Link>
+            SEOUL ARENA
+          </Link>
+        </div>
 
         {/* 하단 — 헤어라인 + 카피라이트 / 정책 */}
         <div className="mt-10 flex flex-col gap-4 border-t border-border/25 pt-6 text-xs text-muted sm:flex-row sm:items-center sm:justify-between">

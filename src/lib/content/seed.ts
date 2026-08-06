@@ -15,35 +15,47 @@ export const DEFAULT_HOME_CONTENT: HomeContent = {
   heroPrimaryLabel: "대관 신청",
   heroPrimaryHref: "/apply",
   heroSecondaryLabel: "시설 제원 보기",
-  heroSecondaryHref: "/venue#specs",
+  heroSecondaryHref: "/venue/specs",
+  /*
+    설계 선언 — Notion `(웹사이트) 대관·비즈니스 사이트 구조 기획 › HOST IT (HOME)`.
+    진입은 시설 스펙의 나열이 아니라 그 스펙이 어떤 전략에서 갖춰졌는가의 선언이다.
+    **숫자는 YOUR STAGE 에서, 그 숫자의 이유는 여기에서.** 그래서 본문에 수치를 넣지 않는다.
+  */
   narrativeLabel: "Manifesto",
-  narrativeTitle: "서울아레나는\n단순한 베뉴가 아닙니다.",
+  narrativeTitle: "BRING THE VISION,\nWE BUILD THE STAGE",
   narrativeLead:
-    "아티스트와 기획사의 상상력을 물리적 제약 없이 현실로 구현해 내는 캔버스입니다.",
+    "서울아레나의 모든 수치는 자랑이 아니라 의도입니다. 잔향 2.8초도, 상부 하중 180톤도, 반입구 9.9미터도 ‘프로듀서가 다른 곳에서 부딪히는 한계를 이 공간에서는 없앤다’는 하나의 전략에서 설계되었습니다.",
   narrativeStatements: [
     {
-      title: "어떠한 스케일과 포맷도",
-      desc: "세계 최고 수준의 음향, 리깅, 무대 시스템은 어떠한 스케일과 포맷의 연출도 완벽하게 수용할 준비가 되어 있습니다.",
-      href: "/venue#specs",
-      linkLabel: "시설 제원",
+      title: "EVERY SEAT IS THE STAGE",
+      desc: "티켓 등급이 경험 등급이 되지 않게 했습니다. 어느 좌석에 앉아도 같은 무대를 경험합니다. 뒷좌석까지 팔리는 공연이 아니라, 뒷좌석까지 무대가 되는 공연입니다.",
+      href: "/venue/specs",
+      linkLabel: "음향 · 시야 제원",
       image: null,
     },
     {
-      title: "가장 완성도 높은 라이브를 위해",
-      desc: "공간의 모든 인프라와 기민한 운영 시스템은 오직 단 하나, ‘가장 완성도 높은 라이브’를 위해 움직입니다.",
-      href: "/venue#stage-features",
-      linkLabel: "무대 특장",
+      title: "NO LIMIT ON THE SHOW",
+      desc: "리깅·하중·전원·무대 규격 때문에 연출 원안을 타협하지 않게 했습니다. “이 베뉴에선 그건 안 된다”는 말을 듣지 않는 연출이 가능합니다.",
+      href: "/venue/specs",
+      linkLabel: "무대 · 리깅 · 전원 제원",
       image: null,
     },
     {
-      title: "연출을 타협하지 마세요",
-      desc: "기술의 한계로 연출을 타협하지 마세요. 당신의 비전이 가장 온전하고 강력하게 관객에게 닿을 때까지.",
-      href: "/venue#amenities",
-      linkLabel: "부대시설",
+      title: "BUILD LESS, SHOW MORE",
+      desc: "제작 리스크와 비용을 외부 조달이 아니라 시설 자체로 흡수해 제작 비용과 시간을 30% 이상 줄입니다. 외주·반입을 최소화한 예측 가능한 제작비입니다.",
+      href: "/venue/specs",
+      linkLabel: "반입 · 동선 제원",
+      image: null,
+    },
+    {
+      title: "BEYOND THE ROOM",
+      desc: "무대를 현장 안에 가두지 않고 실시간으로 현장 밖까지 확장합니다. 객석 규모를 넘어서는 관객, 오프라인과 온라인이 하나인 라이브입니다.",
+      href: "/venue/specs",
+      linkLabel: "전원 · 중계 제원",
       image: null,
     },
   ],
-  narrativeClosing: "LIVE MOMENTS, LIVE PLATFORM",
+  narrativeClosing: "",
   processLabel: "APPLICATION PROCESS",
   processTitle: "신청 절차 안내",
   processSteps: [

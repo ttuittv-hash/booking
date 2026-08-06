@@ -127,11 +127,11 @@ export default async function MyQuoteDetailPage({
               dense
               rowLabel="항목"
               columns={[
-                { key: "requested", title: "신청", sub: "수량" },
-                { key: "included", title: "기본포함", sub: "수량" },
-                { key: "billable", title: "과금", sub: "수량" },
-                { key: "unitPrice", title: "단가", sub: "원" },
-                { key: "amount", title: "금액", sub: "원" },
+                { key: "requested", title: "신청" },
+                { key: "included", title: "기본포함" },
+                { key: "billable", title: "과금" },
+                { key: "unitPrice", title: "단가" },
+                { key: "amount", title: "금액" },
               ]}
               rows={quote.lineItems.map((item) => ({
                 label: item.label,

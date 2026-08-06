@@ -1,6 +1,6 @@
 "use client";
 
-import { num } from "@/lib/format";
+import { num, won } from "@/lib/format";
 import { findPackage, includedQuantity, isAddonAvailable } from "@/lib/pricing/rateTableUtils";
 import {
   ADDON_CATEGORY_LABEL,
@@ -85,9 +85,9 @@ export function Step4Addons({
           dense
           rowLabel="항목"
           columns={[
-            ...(hasAnyIncluded ? [{ key: "included", title: "기본 포함", sub: "수량" }] : []),
-            { key: "price", title: "단가", sub: "원 · VAT 별도" },
-            { key: "request", title: "신청", sub: "수량" },
+            ...(hasAnyIncluded ? [{ key: "included", title: "기본 포함" }] : []),
+            { key: "price", title: "단가" },
+            { key: "request", title: "신청" },
           ]}
           groups={[...grouped.entries()].map(([category, items]) => ({
             title: `${ADDON_CATEGORY_LABEL[category]} (${items.length})`,
@@ -98,7 +98,7 @@ export function Step4Addons({
                 label: rowLabel(addon, true),
                 cells: [
                   ...(hasAnyIncluded ? [included > 0 ? num(included) : "—"] : []),
-                  addon.pricingType === "METERED" ? "—" : num(addon.unitPrice),
+                  addon.pricingType === "METERED" ? "—" : won(addon.unitPrice),
                   <span key="q" className="flex justify-end">
                     <QuantityControl
                       addon={addon}

@@ -20,7 +20,12 @@ export interface NavCategory {
 export const NAV_CATEGORIES: NavCategory[] = [
   {
     label: "Your Stage",
-    pages: [{ href: "/venue", label: "공연장 소개" }],
+    pages: [
+      { href: "/venue", label: "시설 개요" },
+      { href: "/venue/specs", label: "시설 제원" },
+      { href: "/venue/stage-features", label: "무대 특장" },
+      { href: "/venue/amenities", label: "부대시설" },
+    ],
   },
   {
     label: "Book It",

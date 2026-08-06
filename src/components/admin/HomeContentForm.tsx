@@ -82,7 +82,7 @@ export function HomeContentForm({ content: initial }: { content: HomeContent }) 
     patch({
       narrativeStatements: [
         ...content.narrativeStatements,
-        { title: "", desc: "", href: "/venue#specs", linkLabel: "시설 제원", image: null },
+        { title: "", desc: "", href: "/venue/specs", linkLabel: "시설 제원", image: null },
       ],
     });
   }
