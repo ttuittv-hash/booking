@@ -31,6 +31,7 @@ const MAIN_LINKS: {
       { href: "/guide#rates", label: "대관료" },
       { href: "/guide#rules", label: "대관 규약" },
       { href: "/guide/forms", label: "대관 자료" },
+      { href: "/guide/connected-live", label: "커넥티드 라이브" },
     ],
   },
   { href: "/apply", label: "대관 신청" },
