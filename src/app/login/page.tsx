@@ -5,16 +5,13 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { Breadcrumb } from "@/components/ui/Breadcrumb";
 import { SiteFooter } from "@/components/ui/SiteFooter";
-import { ArrowRight, Label, btnClass } from "@/components/ui/kit";
+import { ArrowRight, Band, PageHeading, btnClass } from "@/components/ui/kit";
 
 /**
- * Figma "Sign Up and Log In Pages" — 좌측 브랜드 면(Iconic 그라디언트) + 우측 좁은 폭 폼.
- * 입력 필드 공통 스타일: 샤프 코너 · border-soft 1px · surface 배경 ·
- * 포커스 시 보더 foreground + 옐로 2px 아웃라인.
- * (kit.tsx 는 파운데이션이라 손대지 않으므로 폼 토큰은 각 폼 화면에 상수로 둔다)
+ * Figma "Sign Up and Log In Pages" — 좌측 브랜드 면 + 우측 좁은 폭 폼.
+ * 브랜드 면은 `Band tone="dark"` 로 토큰을 국소 반전시킨다(다크모드 자동 대응).
+ * 입력 필드는 `field-base` 유틸리티 하나로 통일한다.
  */
-const FIELD =
-  "w-full border border-border-soft bg-surface px-3.5 py-2.5 text-s text-foreground transition-colors placeholder:text-muted focus:border-foreground focus:outline-2 focus:outline-accent";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -46,34 +43,30 @@ export default function LoginPage() {
 
   return (
     <div className="flex flex-1 flex-col">
+      {/* 2뎁스 — items 가 1개라 렌더되지 않는다 */}
       <Breadcrumb items={[{ label: "로그인" }]} />
 
       <main className="grid flex-1 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.1fr)]">
-        {/* 브랜드 면 — 옐로 텍스트는 블랙 배경 위에서만 허용 */}
-        <aside className="relative flex flex-col justify-between overflow-hidden bg-inverse-bg px-6 py-14 text-inverse-fg lg:px-16 lg:py-20">
+        {/* 브랜드 면 — Band 가 톤별로 토큰을 뒤집으므로 색을 직접 지정하지 않는다 */}
+        <Band tone="dark" size="lg" className="flex flex-col justify-center">
           <Link href="/" className="type-display text-h6 leading-none">
             Seoul Arena
           </Link>
-          <div className="mt-16">
-            <span aria-hidden className="mb-6 block h-1 w-16 bg-accent" />
-            <Label className="text-accent">Host It</Label>
-            <p className="type-display mt-6 text-h3-m sm:text-h2">
-              Your stage
-              <br />
-              starts here
-            </p>
-            <p className="mt-6 max-w-sm text-s text-inverse-fg/80">
-              대관 신청·견적 산출·계약 진행 상황을 한곳에서 관리하세요.
-            </p>
-          </div>
-        </aside>
+          <span aria-hidden className="mt-16 block h-1 w-16 bg-accent" />
+          <p className="type-display mt-6 text-h3-m sm:text-h2">
+            Your stage
+            <br />
+            starts here
+          </p>
+          <p className="mt-6 max-w-sm text-s text-muted">
+            대관 신청·견적 산출·계약 진행 상황을 한곳에서 관리하세요.
+          </p>
+        </Band>
 
         {/* 폼 면 */}
         <div className="flex items-center px-6 py-16 lg:px-16 lg:py-20">
           <div className="w-full max-w-sm">
-            <Label className="text-muted">Log In</Label>
-            <h1 className="type-kr-heading mt-4 text-h3-m sm:text-h3">로그인</h1>
-            <p className="mt-4 text-s text-muted">대관 신청 계정으로 로그인하세요.</p>
+            <PageHeading size="md" title="로그인" lead="대관 신청 계정으로 로그인하세요." />
 
             <form onSubmit={handleSubmit} noValidate className="mt-10 space-y-5">
               <label className="block">
@@ -84,7 +77,7 @@ export default function LoginPage() {
                   autoComplete="username"
                   value={form.username}
                   onChange={(e) => setForm({ ...form, username: e.target.value })}
-                  className={FIELD}
+                  className="field-base"
                 />
               </label>
               <label className="block">
@@ -94,7 +87,7 @@ export default function LoginPage() {
                   required
                   value={form.password}
                   onChange={(e) => setForm({ ...form, password: e.target.value })}
-                  className={FIELD}
+                  className="field-base"
                 />
               </label>
 

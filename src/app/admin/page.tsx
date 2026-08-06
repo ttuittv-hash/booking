@@ -2,11 +2,11 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/lib/auth";
 import { findUserById, listCompanies, listQuotes } from "@/lib/db";
-import { won } from "@/lib/format";
-import { Label, btnClass } from "@/components/ui/kit";
+import { num } from "@/lib/format";
+import { btnClass } from "@/components/ui/kit";
 import { AdminNav } from "@/components/admin/AdminNav";
 import { AdminQuoteTable } from "@/components/admin/AdminQuoteTable";
-import { FIELD_BASE, PAGE_LEAD, PAGE_TITLE, QUIET_BTN } from "@/components/admin/adminUi";
+import { FIELD, NONE, PAGE_LEAD, PAGE_TITLE, QUIET_BTN } from "@/components/admin/adminUi";
 
 export default async function AdminPage({
   searchParams,
@@ -27,11 +27,11 @@ export default async function AdminPage({
     return {
       id: q.id,
       createdAtLabel: new Date(q.createdAt).toLocaleString("ko-KR"),
-      applicantName: applicant?.name ?? "-",
-      companyName: applicant?.companyName ?? "-",
+      applicantName: applicant?.name ?? NONE,
+      companyName: applicant?.companyName ?? NONE,
       weekLabel: `${q.selection.week.year}.${q.selection.week.month} ${q.selection.week.weekOfMonth}주차`,
-      audienceLabel: `${q.selection.expectedAudience.toLocaleString()}명`,
-      totalLabel: won(q.total),
+      audienceLabel: q.selection.expectedAudience.toLocaleString("ko-KR"),
+      totalLabel: num(q.total),
       status: q.status,
     };
   });
@@ -42,7 +42,6 @@ export default async function AdminPage({
 
       <main className="mx-auto w-full max-w-6xl flex-1 px-6 py-8 sm:py-10">
         <header className="border-b border-border/20 pb-6">
-          <Label className="mb-3 text-muted">Applications</Label>
           <h1 className={PAGE_TITLE}>신청 현황</h1>
           <p className={PAGE_LEAD}>
             신청서를 열어 심사 후 계약금액을 확정하고, 계약 확정 건에 대해서는
@@ -58,7 +57,7 @@ export default async function AdminPage({
             id="companyId"
             name="companyId"
             defaultValue={companyId ?? ""}
-            className={`${FIELD_BASE} py-1.5`}
+            className={`w-56 ${FIELD} py-1.5`}
           >
             <option value="">전체 회사</option>
             {companies.map((c) => (

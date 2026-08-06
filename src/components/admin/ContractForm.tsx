@@ -8,7 +8,6 @@ import {
   ADD_BTN,
   ERROR_NOTE,
   FIELD,
-  FIELD_BASE,
   FIELD_NUM,
   HELP,
   PANEL,
@@ -113,7 +112,7 @@ export function ContractForm({ quoteId, baseTotal }: { quoteId: string; baseTota
             max={100}
             value={depositRate}
             onChange={(e) => setDepositRate(Number(e.target.value) || 0)}
-            className={`w-20 ${FIELD_BASE} text-right tabular-nums`}
+            className={`w-20 ${FIELD} text-right tabular-nums`}
           />
           <span className="text-s text-muted">%</span>
         </div>

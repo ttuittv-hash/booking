@@ -6,7 +6,7 @@ import { PublicHeader } from "@/components/PublicHeader";
 import { TagBadge } from "@/components/TagBadge";
 import { Breadcrumb } from "@/components/ui/Breadcrumb";
 import { SiteFooter } from "@/components/ui/SiteFooter";
-import { ArrowRight, Band, ButtonLink, Label, Media } from "@/components/ui/kit";
+import { ArrowRight, Band, ButtonLink, Media, PageHeading } from "@/components/ui/kit";
 
 export async function generateMetadata({
   params,
@@ -55,26 +55,25 @@ export default async function NoticeDetailPage({
   return (
     <div className="flex flex-1 flex-col">
       <PublicHeader active="/notices" currentUser={currentUser} />
-      <Breadcrumb
-        items={[
-          { label: "Know It" },
-          { label: "Notice", href: "/notices" },
-          { label: notice.title },
-        ]}
-      />
+      {/* 3뎁스 — 부모(공지사항)를 포함해 2개 */}
+      <Breadcrumb items={[{ label: "공지사항", href: "/notices" }, { label: "상세" }]} />
 
       <main className="flex flex-1 flex-col">
         {/* 제목 · 메타 — 본문 폭 유지 */}
         <Band tone="light" size="md">
           <div className="max-w-3xl">
-            <Label className="text-muted">Notice</Label>
-            <h1 className="type-kr-heading mt-5 text-h3-m sm:text-h3">{notice.title}</h1>
-            <div className="mt-7 flex flex-wrap items-center gap-3 border-t border-border/25 pt-5 text-xs text-muted">
-              <TagBadge tag={notice.tag} spacing={false} />
-              <time className="tabular-nums" dateTime={notice.createdAt}>
-                {formatDateTime(notice.createdAt)}
-              </time>
-            </div>
+            <PageHeading
+              size="md"
+              title={notice.title}
+              lead={
+                <span className="flex flex-wrap items-center gap-3 border-t border-border/25 pt-5 text-xs text-muted">
+                  <TagBadge tag={notice.tag} spacing={false} />
+                  <time className="tabular-nums" dateTime={notice.createdAt}>
+                    {formatDateTime(notice.createdAt)}
+                  </time>
+                </span>
+              }
+            />
           </div>
         </Band>
 
@@ -89,7 +88,7 @@ export default async function NoticeDetailPage({
 
             {notice.attachmentUrl && (
               <div className="mt-12 border-t border-border/25 pt-8">
-                <Label className="mb-4 text-muted">Attachment</Label>
+                <h2 className="type-kr-heading mb-4 text-h6-m sm:text-h6">첨부파일</h2>
                 <a
                   href={`${notice.attachmentUrl}?name=${encodeURIComponent(notice.attachmentName ?? "첨부파일")}`}
                   className="group flex items-center justify-between gap-6 border border-border/25 px-5 py-4 transition-colors hover:border-foreground"
@@ -97,8 +96,8 @@ export default async function NoticeDetailPage({
                   <span className="min-w-0 truncate text-s font-bold">
                     {notice.attachmentName ?? "첨부파일"}
                   </span>
-                  <span className="type-label shrink-0 text-xs text-muted transition-colors group-hover:text-foreground">
-                    Download
+                  <span className="shrink-0 text-xs font-bold text-muted transition-colors group-hover:text-foreground">
+                    내려받기
                   </span>
                 </a>
               </div>

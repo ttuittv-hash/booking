@@ -12,9 +12,9 @@ import {
   CARD,
   CARD_NESTED,
   FIELD,
-  FIELD_BASE,
   FIELD_LABEL,
   HELP,
+  LINK_BTN,
   OK_NOTE,
   REMOVE_BTN,
   SUB_TITLE,
@@ -262,7 +262,7 @@ export function VenueContentForm({ content: initial }: { content: VenueContent }
 
       {previewOpen && (
         <div className="border border-border-soft">
-          <div className="type-label border-b border-border-soft bg-surface px-4 py-2 text-xs text-muted">
+          <div className="border-b border-border-soft bg-panel px-4 py-2 text-xs font-bold text-muted">
             미리보기 — 현재 입력값 기준 (저장되지 않음)
           </div>
           <div className="max-h-[70vh] overflow-y-auto bg-background">
@@ -401,7 +401,7 @@ export function VenueContentForm({ content: initial }: { content: VenueContent }
                       value={row[0]}
                       placeholder="항목명"
                       onChange={(e) => updateSpecRow(si, ri, 0, e.target.value)}
-                      className={`w-32 shrink-0 ${FIELD_BASE}`}
+                      className={`w-32 shrink-0 ${FIELD}`}
                     />
                     <input
                       value={row[1]}
@@ -445,7 +445,7 @@ export function VenueContentForm({ content: initial }: { content: VenueContent }
                 patch({ specHighlights: DEFAULT_VENUE_CONTENT.specHighlights });
               }
             }}
-            className="shrink-0 text-xs font-bold underline decoration-accent decoration-2 underline-offset-4 transition-colors hover:text-muted-strong"
+            className={`shrink-0 ${LINK_BTN}`}
           >
             최신 기본값으로 불러오기
           </button>
@@ -577,7 +577,7 @@ export function VenueContentForm({ content: initial }: { content: VenueContent }
                 });
               }
             }}
-            className="shrink-0 text-xs font-bold underline decoration-accent decoration-2 underline-offset-4 transition-colors hover:text-muted-strong"
+            className={`shrink-0 ${LINK_BTN}`}
           >
             최신 기본값으로 불러오기
           </button>
@@ -637,7 +637,7 @@ export function VenueContentForm({ content: initial }: { content: VenueContent }
                       value={a.name}
                       placeholder="시설명"
                       onChange={(e) => updateAmenityList(key, i, { name: e.target.value })}
-                      className={`w-56 shrink-0 ${FIELD_BASE}`}
+                      className={`w-56 shrink-0 ${FIELD}`}
                     />
                     <input
                       value={a.desc}

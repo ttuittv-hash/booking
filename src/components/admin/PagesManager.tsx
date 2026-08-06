@@ -12,6 +12,7 @@ import {
   FIELD,
   FIELD_LABEL,
   HELP,
+  LINK_BTN,
   PANEL,
   QUIET_BTN,
   REMOVE_BTN,
@@ -173,7 +174,7 @@ export function PagesManager({ pages: initialPages }: { pages: StaticPage[] }) {
                     <button
                       type="button"
                       onClick={() => startEdit(page)}
-                      className="text-xs font-bold underline decoration-accent decoration-2 underline-offset-4 transition-colors hover:text-muted-strong"
+                      className={LINK_BTN}
                     >
                       수정
                     </button>

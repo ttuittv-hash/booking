@@ -7,7 +7,6 @@ import { Badge, btnClass } from "@/components/ui/kit";
 import {
   ERROR_NOTE,
   FIELD,
-  FIELD_BASE,
   FIELD_LABEL,
   HELP,
   PANEL,
@@ -94,7 +93,7 @@ export function ReviewForm({
             max={100}
             value={score}
             onChange={(e) => setScore(e.target.value)}
-            className={`w-24 ${FIELD_BASE} text-right tabular-nums`}
+            className={`w-24 ${FIELD} text-right tabular-nums`}
           />
         </label>
         <label className="block">

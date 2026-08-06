@@ -100,7 +100,7 @@ export function GuideContentForm({ content: initial }: { content: GuideContent }
 
       {previewOpen && (
         <div className="border border-border-soft">
-          <div className="type-label border-b border-border-soft bg-surface px-4 py-2 text-xs text-muted">
+          <div className="border-b border-border-soft bg-panel px-4 py-2 text-xs font-bold text-muted">
             미리보기 — 현재 입력값 기준 (저장되지 않음)
           </div>
           <div className="max-h-[70vh] overflow-y-auto bg-background">

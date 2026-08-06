@@ -15,9 +15,9 @@ import {
   CARD,
   ERROR_NOTE,
   FIELD,
-  FIELD_BASE,
   FIELD_LABEL,
   HELP,
+  LINK_BTN,
   PANEL,
   QUIET_BTN,
   REMOVE_BTN,
@@ -28,7 +28,7 @@ import {
 
 /** 파일 선택 input — 샤프 코너 · border-soft */
 const FILE_INPUT =
-  "w-full text-xs text-muted file:mr-3 file:border file:border-border-soft file:bg-surface file:px-3 file:py-1.5 file:text-xs file:font-bold file:text-foreground";
+  "w-full text-xs text-muted file:mr-3 file:border file:border-border-soft file:bg-panel file:px-3 file:py-1.5 file:text-xs file:font-bold file:text-foreground";
 
 type Tab = "notices" | "faq" | "home" | "venue" | "guide";
 
@@ -250,7 +250,7 @@ function NoticesTab({
                   <button
                     type="button"
                     onClick={() => startEdit(notice)}
-                    className="text-xs font-bold underline decoration-accent decoration-2 underline-offset-4 transition-colors hover:text-muted-strong"
+                    className={LINK_BTN}
                   >
                     수정
                   </button>
@@ -274,7 +274,7 @@ function NoticesTab({
                 placeholder="말머리 (예: 공지, 점검)"
                 value={tag}
                 onChange={(e) => setTag(e.target.value)}
-                className={`w-32 shrink-0 ${FIELD_BASE}`}
+                className={`w-32 shrink-0 ${FIELD}`}
               />
               <input
                 type="text"
@@ -320,7 +320,7 @@ function NoticesTab({
               </span>
               {attachmentUrl ? (
                 <div className="flex items-center gap-3">
-                  <span className="border border-border-soft bg-surface px-3 py-1.5 text-xs">
+                  <span className="border border-border-soft bg-panel px-3 py-1.5 text-xs">
                     {attachmentName}
                   </span>
                   <button
@@ -467,7 +467,7 @@ function FaqTab({
                   <button
                     type="button"
                     onClick={() => startEdit(faq)}
-                    className="text-xs font-bold underline decoration-accent decoration-2 underline-offset-4 transition-colors hover:text-muted-strong"
+                    className={LINK_BTN}
                   >
                     수정
                   </button>
@@ -491,7 +491,7 @@ function FaqTab({
                 placeholder="말머리 (예: 신청, 정산)"
                 value={tag}
                 onChange={(e) => setTag(e.target.value)}
-                className={`w-32 shrink-0 ${FIELD_BASE}`}
+                className={`w-32 shrink-0 ${FIELD}`}
               />
               <input
                 type="text"

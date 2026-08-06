@@ -3,8 +3,8 @@
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { ADDON_CATEGORY_LABEL, type AddonCategory, type RateTable } from "@/lib/pricing/types";
-import { Label, btnClass } from "@/components/ui/kit";
-import { FIELD_BASE, HELP, PANEL, SECTION_TITLE } from "./adminUi";
+import { btnClass } from "@/components/ui/kit";
+import { FIELD, HELP, LINK_BTN, PANEL, SECTION_TITLE, SUB_TITLE } from "./adminUi";
 
 function slugify(name: string): string {
   const base = name
@@ -121,7 +121,7 @@ export function RatesForm({ rateTable }: { rateTable: RateTable }) {
             step={0.05}
             value={extraWeekRatio}
             onChange={(e) => setExtraWeekRatio(Number(e.target.value) || 0)}
-            className={`${FIELD_BASE} text-right tabular-nums`}
+            className={`${FIELD} text-right tabular-nums`}
           />
         </div>
 
@@ -138,7 +138,7 @@ export function RatesForm({ rateTable }: { rateTable: RateTable }) {
             step={0.01}
             value={dayExclusionDiscountRatio}
             onChange={(e) => setDayExclusionDiscountRatio(Number(e.target.value) || 0)}
-            className={`${FIELD_BASE} text-right tabular-nums`}
+            className={`${FIELD} text-right tabular-nums`}
           />
         </div>
       </section>
@@ -149,13 +149,13 @@ export function RatesForm({ rateTable }: { rateTable: RateTable }) {
           {[...grouped.entries()].map(([category, items]) => (
             <div key={category}>
               <div className="mb-2 flex items-center justify-between gap-3 border-b border-border/25 pb-1.5">
-                <Label className="text-muted">
+                <p className={SUB_TITLE}>
                   {ADDON_CATEGORY_LABEL[category as keyof typeof ADDON_CATEGORY_LABEL] ?? category}
-                </Label>
+                </p>
                 <button
                   type="button"
                   onClick={() => openNewItemForm(category as AddonCategory)}
-                  className="text-xs font-bold underline decoration-accent decoration-2 underline-offset-4 transition-colors hover:text-muted-strong"
+                  className={LINK_BTN}
                 >
                   + 항목 추가
                 </button>
@@ -183,7 +183,7 @@ export function RatesForm({ rateTable }: { rateTable: RateTable }) {
                               ),
                             )
                           }
-                          className={`${FIELD_BASE} text-right tabular-nums`}
+                          className={`${FIELD} text-right tabular-nums`}
                         />
                       ) : (
                         <span className="text-right text-xs text-muted">실사용 정산 (편집 불가)</span>
@@ -201,14 +201,14 @@ export function RatesForm({ rateTable }: { rateTable: RateTable }) {
                     placeholder="항목 이름"
                     value={newItemName}
                     onChange={(e) => setNewItemName(e.target.value)}
-                    className={`flex-1 ${FIELD_BASE}`}
+                    className={`flex-1 ${FIELD}`}
                   />
                   <input
                     type="text"
                     placeholder="단위 (예: 원/일)"
                     value={newItemUnitLabel}
                     onChange={(e) => setNewItemUnitLabel(e.target.value)}
-                    className={`w-32 ${FIELD_BASE}`}
+                    className={`w-32 ${FIELD}`}
                   />
                   <input
                     type="number"
@@ -216,7 +216,7 @@ export function RatesForm({ rateTable }: { rateTable: RateTable }) {
                     placeholder="단가"
                     value={newItemPrice}
                     onChange={(e) => setNewItemPrice(Math.max(0, Number(e.target.value) || 0))}
-                    className={`w-28 ${FIELD_BASE} text-right tabular-nums`}
+                    className={`w-28 ${FIELD} text-right tabular-nums`}
                   />
                   <div className="flex gap-2">
                     <button

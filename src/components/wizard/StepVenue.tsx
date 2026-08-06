@@ -1,7 +1,7 @@
 "use client";
 
 import { VENUES, type RateTable } from "@/lib/pricing/types";
-import { Badge, Label } from "@/components/ui/kit";
+import { Badge } from "@/components/ui/kit";
 
 export function StepVenue({
   rateTable,
@@ -14,8 +14,7 @@ export function StepVenue({
 }) {
   return (
     <section>
-      <Label className="text-muted">Step 01</Label>
-      <h2 className="type-kr-heading mt-3 text-h4-m sm:text-h4">공간 선택</h2>
+      <h2 className="type-kr-heading text-h4-m sm:text-h4">공간 선택</h2>
       <p className="mt-3 max-w-2xl text-s text-muted">
         대관하실 공간을 먼저 선택하세요. 공간마다 대관 패키지와 요금 구성이 다릅니다.
       </p>

@@ -4,7 +4,7 @@ import { getCurrentUser } from "@/lib/auth";
 import { PublicHeader } from "@/components/PublicHeader";
 import { Breadcrumb } from "@/components/ui/Breadcrumb";
 import { SiteFooter } from "@/components/ui/SiteFooter";
-import { Band, Label } from "@/components/ui/kit";
+import { Band, PageHeading } from "@/components/ui/kit";
 
 export const metadata: Metadata = {
   title: "이용약관 | 서울아레나",
@@ -28,13 +28,12 @@ export default async function TermsPage() {
   return (
     <div className="flex flex-1 flex-col">
       <PublicHeader active="/terms" currentUser={currentUser} />
-      <Breadcrumb items={[{ label: "Legal" }, { label: "Terms" }]} />
+      {/* 2뎁스 — items 가 1개라 렌더되지 않는다 */}
+      <Breadcrumb items={[{ label: "이용약관" }]} />
 
       <main className="flex flex-1 flex-col">
         <Band tone="light" size="lg">
-          <Label className="mb-6 text-muted">Legal</Label>
-          <h1 className="type-display text-d2-m sm:text-h1 lg:text-d2">Terms</h1>
-          <p className="mt-8 text-m text-muted">이용약관 · 시행일 2026년 8월 1일</p>
+          <PageHeading title="이용약관" lead="시행일 2026년 8월 1일" />
         </Band>
 
         <Band tone="white" size="md">

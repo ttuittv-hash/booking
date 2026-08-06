@@ -12,7 +12,7 @@ import {
   Band,
   ButtonLink,
   EmptyState,
-  Label,
+  PageHeading,
   Row,
   RowList,
 } from "@/components/ui/kit";
@@ -41,30 +41,26 @@ export default async function MyPage() {
   return (
     <div className="flex flex-1 flex-col">
       <PublicHeader active="/mypage" currentUser={user} />
+      {/* 2뎁스 — items 가 1개라 렌더되지 않는다 */}
       <Breadcrumb items={[{ label: "내 신청 내역" }]} />
 
       <main className="flex flex-1 flex-col">
         <Band tone="light" size="sm">
-          <div className="flex flex-col gap-6 sm:flex-row sm:items-start sm:justify-between">
-            <div>
-              <Label className="mb-5 text-muted">My Applications</Label>
-              <h1 className="type-kr-heading text-h3-m sm:text-h3">
-                {user.name} 님의 신청 내역
-              </h1>
-              <p className="mt-5 text-s text-muted">
-                {user.companyName ? `${user.companyName} · ` : ""}
-                {user.email}
-              </p>
-            </div>
-            <div className="flex shrink-0 flex-wrap gap-3">
-              <ButtonLink href="/mypage/inquiries" variant="secondary">
-                1:1 문의
-              </ButtonLink>
-              <ButtonLink href="/apply?new=1" variant="primary">
-                새 대관 신청
-              </ButtonLink>
-            </div>
-          </div>
+          <PageHeading
+            size="md"
+            title={`${user.name} 님의 신청 내역`}
+            lead={`${user.companyName ? `${user.companyName} · ` : ""}${user.email}`}
+            actions={
+              <>
+                <ButtonLink href="/mypage/inquiries" variant="secondary">
+                  1:1 문의
+                </ButtonLink>
+                <ButtonLink href="/apply?new=1" variant="primary">
+                  새 대관 신청
+                </ButtonLink>
+              </>
+            }
+          />
         </Band>
 
         <Band tone="white" size="sm">
@@ -96,11 +92,11 @@ export default async function MyPage() {
                       </div>
                       <div className="flex gap-2 sm:justify-end">
                         <dt>계약</dt>
-                        <dd>{q.contract ? won(q.contract.contractTotal) : "-"}</dd>
+                        <dd>{q.contract ? won(q.contract.contractTotal) : "—"}</dd>
                       </div>
                       <div className="flex gap-2 sm:justify-end">
                         <dt>정산</dt>
-                        <dd>{q.settlement ? won(q.settlement.finalTotal) : "-"}</dd>
+                        <dd>{q.settlement ? won(q.settlement.finalTotal) : "—"}</dd>
                       </div>
                     </dl>
                   }

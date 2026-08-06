@@ -100,7 +100,7 @@ export function AttachmentsPanel({
         <input
           ref={fileInput}
           type="file"
-          className="min-w-0 flex-1 border border-border-soft bg-surface px-3.5 py-2.5 text-s text-muted transition-colors file:mr-3 file:border file:border-foreground file:bg-transparent file:px-3 file:py-1 file:text-xs file:font-bold file:text-foreground focus:border-foreground focus:outline-2 focus:outline-accent"
+          className="field-base min-w-0 flex-1 file:mr-3 file:border file:border-foreground file:bg-transparent file:px-3 file:py-1 file:text-xs file:font-bold file:text-foreground"
         />
         <button
           type="button"

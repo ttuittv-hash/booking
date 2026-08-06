@@ -4,7 +4,7 @@ import { getCurrentUser, isPendingApplicant } from "@/lib/auth";
 import { PublicHeader } from "@/components/PublicHeader";
 import { Breadcrumb } from "@/components/ui/Breadcrumb";
 import { SiteFooter } from "@/components/ui/SiteFooter";
-import { ArrowRight, Band, ButtonLink, EmptyState, Label } from "@/components/ui/kit";
+import { ArrowRight, Band, ButtonLink, EmptyState } from "@/components/ui/kit";
 
 export const metadata: Metadata = {
   title: "이미지 가이드 | 서울아레나",
@@ -21,7 +21,6 @@ export default async function GuideImagePage() {
 
       <main className="flex flex-1 flex-col">
         <Band tone="light" size="lg">
-          <Label className="mb-6 text-muted">Book It</Label>
           <h1 className="type-display text-d2-m sm:text-h1 lg:text-d2">Book It</h1>
           <p className="type-kr-heading mt-6 text-h4-m sm:text-h4">이미지 가이드</p>
           <p className="mt-8 max-w-3xl text-m text-muted">

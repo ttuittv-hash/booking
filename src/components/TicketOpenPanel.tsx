@@ -5,12 +5,8 @@ import { useRef, useState } from "react";
 import type { Attachment, TicketOpen, UserRole } from "@/lib/pricing/types";
 import { Badge, btnClass } from "@/components/ui/kit";
 
-/** 입력 필드 — ProfileForm 의 FIELD 와 동일 규격 (샤프 · border-soft · 옐로 아웃라인) */
-const FIELD =
-  "w-full border border-border-soft bg-surface px-3.5 py-2.5 text-s text-foreground transition-colors placeholder:text-muted focus:border-foreground focus:outline-2 focus:outline-accent";
-
 const FILE_FIELD =
-  "min-w-0 flex-1 border border-border-soft bg-surface px-3.5 py-2.5 text-s text-muted transition-colors file:mr-3 file:border file:border-foreground file:bg-transparent file:px-3 file:py-1 file:text-xs file:font-bold file:text-foreground focus:border-foreground focus:outline-2 focus:outline-accent";
+  "field-base min-w-0 flex-1 file:mr-3 file:border file:border-foreground file:bg-transparent file:px-3 file:py-1 file:text-xs file:font-bold file:text-foreground";
 
 function formatSize(bytes: number): string {
   if (bytes < 1024) return `${bytes}B`;
@@ -109,7 +105,7 @@ export function TicketOpenPanel({
             value={openDate}
             onChange={(e) => setOpenDate(e.target.value)}
             aria-label="티켓오픈일"
-            className={`${FIELD} tabular-nums sm:w-52`}
+            className="field-base tabular-nums sm:w-52"
           />
           <button
             type="button"

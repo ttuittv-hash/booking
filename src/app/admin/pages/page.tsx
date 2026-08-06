@@ -1,7 +1,6 @@
 import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/lib/auth";
 import { listPages } from "@/lib/db";
-import { Label } from "@/components/ui/kit";
 import { AdminNav } from "@/components/admin/AdminNav";
 import { PagesManager } from "@/components/admin/PagesManager";
 import { PAGE_LEAD, PAGE_TITLE } from "@/components/admin/adminUi";
@@ -19,7 +18,6 @@ export default async function AdminPagesPage() {
 
       <main className="mx-auto w-full max-w-4xl flex-1 px-6 py-8 sm:py-10">
         <header className="border-b border-border/20 pb-6">
-          <Label className="mb-3 text-muted">Pages</Label>
           <h1 className={PAGE_TITLE}>페이지 관리</h1>
           <p className={PAGE_LEAD}>
             &ldquo;서울아레나 소개&rdquo;, &ldquo;대관 안내&rdquo;의 하위 페이지를 추가·수정·삭제하고

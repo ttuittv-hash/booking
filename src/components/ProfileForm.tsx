@@ -5,12 +5,6 @@ import { useState } from "react";
 import type { AppUser } from "@/lib/pricing/types";
 import { btnClass } from "@/components/ui/kit";
 
-/** 입력 필드 공통 스타일 — 샤프 코너 · border-soft 1px · surface 배경 · 포커스 옐로 아웃라인 */
-const FIELD =
-  "w-full border border-border-soft bg-surface px-3.5 py-2.5 text-s text-foreground transition-colors placeholder:text-muted focus:border-foreground focus:outline-2 focus:outline-accent";
-const FIELD_DISABLED =
-  "w-full border border-border-soft bg-background px-3.5 py-2.5 text-s text-muted";
-
 export function ProfileForm({ user }: { user: AppUser }) {
   const router = useRouter();
   const [name, setName] = useState(user.name);
@@ -81,7 +75,7 @@ export function ProfileForm({ user }: { user: AppUser }) {
         <div className="mt-6 space-y-4">
           <label className="block">
             <span className="mb-2 block text-xs text-muted">이메일</span>
-            <input type="email" value={user.email} disabled className={FIELD_DISABLED} />
+            <input type="email" value={user.email} disabled className="field-base text-muted" />
           </label>
           <label className="block">
             <span className="mb-2 block text-xs text-muted">소속 회사/기획사</span>
@@ -89,7 +83,7 @@ export function ProfileForm({ user }: { user: AppUser }) {
               type="text"
               value={user.companyName || "소속 없음"}
               disabled
-              className={FIELD_DISABLED}
+              className="field-base text-muted"
             />
           </label>
           <label className="block">
@@ -99,7 +93,7 @@ export function ProfileForm({ user }: { user: AppUser }) {
               autoComplete="name"
               value={name}
               onChange={(e) => setName(e.target.value)}
-              className={FIELD}
+              className="field-base"
             />
           </label>
           <label className="block">
@@ -110,7 +104,7 @@ export function ProfileForm({ user }: { user: AppUser }) {
               placeholder="010-0000-0000"
               value={phone}
               onChange={(e) => setPhone(e.target.value)}
-              className={FIELD}
+              className="field-base"
             />
           </label>
           <p className="text-xs text-muted">이메일과 소속 회사 변경은 운영자에게 문의해주세요.</p>
@@ -151,7 +145,7 @@ export function ProfileForm({ user }: { user: AppUser }) {
               autoComplete="current-password"
               value={currentPassword}
               onChange={(e) => setCurrentPassword(e.target.value)}
-              className={FIELD}
+              className="field-base"
             />
           </label>
           <label className="block">
@@ -162,7 +156,7 @@ export function ProfileForm({ user }: { user: AppUser }) {
               minLength={8}
               value={newPassword}
               onChange={(e) => setNewPassword(e.target.value)}
-              className={FIELD}
+              className="field-base"
             />
           </label>
         </div>

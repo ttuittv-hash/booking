@@ -5,15 +5,21 @@ import { findUserById, getQuoteById } from "@/lib/db";
 import { won } from "@/lib/format";
 import { totalRentalDays } from "@/lib/pricing/rateTableUtils";
 import type { Quote } from "@/lib/pricing/types";
-import { Label } from "@/components/ui/kit";
 import { AdminNav } from "@/components/admin/AdminNav";
 import {
   LINK_BTN,
+  NONE,
   PAGE_LEAD,
   PAGE_TITLE,
   TABLE,
-  TABLE_WRAP,
+  TABLE_CARD,
+  TABLE_HEAD,
+  TABLE_HEAD_DESC,
+  TABLE_HEAD_TITLE,
+  TABLE_SCROLL,
+  TD,
   TH,
+  THEAD_ROW,
 } from "@/components/admin/adminUi";
 
 const STATUS_LABEL: Record<Quote["status"], string> = {
@@ -53,7 +59,6 @@ export default async function AdminComparePage({
         </Link>
 
         <header className="mt-5 border-b border-border/20 pb-6">
-          <Label className="mb-3 text-muted">Compare</Label>
           <h1 className={PAGE_TITLE}>신청서 비교</h1>
           <p className={PAGE_LEAD}>같은 주차를 두고 경합 중인 신청서를 나란히 비교할 때 사용하세요.</p>
         </header>
@@ -61,73 +66,80 @@ export default async function AdminComparePage({
         {quotes.length < 2 ? (
           <p className="mt-8 text-s text-muted">비교하려면 신청 현황에서 2건 이상 선택해주세요.</p>
         ) : (
-          <div className={`mt-8 ${TABLE_WRAP}`}>
-            <table className={TABLE}>
-              <thead>
-                <tr className="border-b border-border-soft bg-background text-left">
-                  <th className={`${TH} sticky left-0 bg-background`}>항목</th>
-                  {quotes.map((q) => (
-                    <th key={q.id} className={`${TH} min-w-[220px]`}>
-                      <Link
-                        href={`/admin/${q.id}`}
-                        className="text-foreground underline decoration-accent decoration-2 underline-offset-4 transition-colors hover:text-muted-strong"
-                      >
-                        {q.id}
-                      </Link>
-                    </th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                <CompareRow label="신청자" values={quotes.map((q) => findUserById(q.applicantId)?.name ?? "-")} />
-                <CompareRow
-                  label="회사"
-                  values={quotes.map((q) => findUserById(q.applicantId)?.companyName ?? "-")}
-                />
-                <CompareRow
-                  label="주차"
-                  values={quotes.map(
-                    (q) => `${q.selection.week.year}.${q.selection.week.month} ${q.selection.week.weekOfMonth}주차`,
-                  )}
-                />
-                <CompareRow
-                  label="총 대관일수"
-                  values={quotes.map((q) => `${totalRentalDays(q.selection)}일`)}
-                />
-                <CompareRow
-                  label="관객"
-                  values={quotes.map((q) => `${q.selection.expectedAudience.toLocaleString()}명`)}
-                />
-                <CompareRow label="신청일시" values={quotes.map((q) => new Date(q.createdAt).toLocaleString("ko-KR"))} />
-                <CompareRow label="상태" values={quotes.map((q) => STATUS_LABEL[q.status])} />
-
-                <tr className="border-y border-border-soft bg-background">
-                  <td colSpan={quotes.length + 1} className="type-label px-3 py-2 text-xs text-muted">
-                    산출내역
-                  </td>
-                </tr>
-                {allAddonIds.map((addonId) => (
+          <div className={`mt-8 ${TABLE_CARD}`}>
+            <div className={TABLE_HEAD}>
+              <div>
+                <p className={TABLE_HEAD_TITLE}>비교 대상 ({quotes.length}건)</p>
+                <p className={TABLE_HEAD_DESC}>
+                  신청번호를 누르면 해당 신청서 상세로 이동합니다.
+                </p>
+              </div>
+            </div>
+            <div className={TABLE_SCROLL}>
+              <table className={TABLE}>
+                <thead>
+                  <tr className={THEAD_ROW}>
+                    <th className={`${TH} sticky left-0 bg-background`}>항목</th>
+                    {quotes.map((q) => (
+                      <th key={q.id} className={`${TH} min-w-[220px]`}>
+                        <Link href={`/admin/${q.id}`} className={LINK_BTN}>
+                          {q.id}
+                        </Link>
+                      </th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  <CompareRow label="신청자" values={quotes.map((q) => findUserById(q.applicantId)?.name ?? NONE)} />
                   <CompareRow
-                    key={addonId}
-                    label={labelByAddonId.get(addonId) ?? addonId}
-                    values={quotes.map((q) => {
-                      const item = q.lineItems.find((i) => i.addonId === addonId);
-                      return item ? won(item.amount) : "-";
-                    })}
+                    label="회사"
+                    values={quotes.map((q) => findUserById(q.applicantId)?.companyName ?? NONE)}
                   />
-                ))}
-                <CompareRow label="소계 (VAT 별도)" values={quotes.map((q) => won(q.subtotal))} />
-                <CompareRow label="부가세" values={quotes.map((q) => won(q.vat))} />
-                <tr className="border-t border-border">
-                  <td className="sticky left-0 bg-surface px-3 py-3 text-s font-bold">합계</td>
-                  {quotes.map((q) => (
-                    <td key={q.id} className="type-display px-3 py-3 text-h6-m tabular-nums">
-                      {won(q.total)}
+                  <CompareRow
+                    label="주차"
+                    values={quotes.map(
+                      (q) => `${q.selection.week.year}.${q.selection.week.month} ${q.selection.week.weekOfMonth}주차`,
+                    )}
+                  />
+                  <CompareRow
+                    label="총 대관일수"
+                    values={quotes.map((q) => `${totalRentalDays(q.selection)}일`)}
+                  />
+                  <CompareRow
+                    label="관객"
+                    values={quotes.map((q) => `${q.selection.expectedAudience.toLocaleString()}명`)}
+                  />
+                  <CompareRow label="신청일시" values={quotes.map((q) => new Date(q.createdAt).toLocaleString("ko-KR"))} />
+                  <CompareRow label="상태" values={quotes.map((q) => STATUS_LABEL[q.status])} />
+
+                  <tr className="border-y border-border-soft bg-background">
+                    <td colSpan={quotes.length + 1} className="px-3 py-2 text-xs font-bold text-muted">
+                      산출내역
                     </td>
+                  </tr>
+                  {allAddonIds.map((addonId) => (
+                    <CompareRow
+                      key={addonId}
+                      label={labelByAddonId.get(addonId) ?? addonId}
+                      values={quotes.map((q) => {
+                        const item = q.lineItems.find((i) => i.addonId === addonId);
+                        return item ? won(item.amount) : NONE;
+                      })}
+                    />
                   ))}
-                </tr>
-              </tbody>
-            </table>
+                  <CompareRow label="소계 (VAT 별도)" values={quotes.map((q) => won(q.subtotal))} />
+                  <CompareRow label="부가세" values={quotes.map((q) => won(q.vat))} />
+                  <tr className="border-t border-border">
+                    <td className="sticky left-0 bg-panel px-3 py-3 text-s font-bold">합계</td>
+                    {quotes.map((q) => (
+                      <td key={q.id} className="type-display px-3 py-3 text-h6-m tabular-nums">
+                        {won(q.total)}
+                      </td>
+                    ))}
+                  </tr>
+                </tbody>
+              </table>
+            </div>
           </div>
         )}
       </main>
@@ -138,9 +150,9 @@ export default async function AdminComparePage({
 function CompareRow({ label, values }: { label: string; values: string[] }) {
   return (
     <tr className="border-b border-border-soft">
-      <td className="sticky left-0 bg-surface px-3 py-2.5 text-xs text-muted">{label}</td>
+      <td className="sticky left-0 bg-panel px-3 py-2.5 text-xs text-muted">{label}</td>
       {values.map((v, i) => (
-        <td key={i} className="px-3 py-2.5 tabular-nums">
+        <td key={i} className={`${TD} tabular-nums`}>
           {v}
         </td>
       ))}

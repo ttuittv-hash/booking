@@ -3,7 +3,6 @@
 import { useState } from "react";
 import type { Faq } from "@/lib/pricing/types";
 import { TagBadge } from "@/components/TagBadge";
-import { Label } from "@/components/ui/kit";
 
 /**
  * FAQ 아코디언 — 헤어라인 로우 + 샤프한 +/− 토글.
@@ -14,25 +13,22 @@ import { Label } from "@/components/ui/kit";
  * 그룹핑을 포기하고 기존 단일 목록으로 렌더한다(카테고리는 태그 배지로 계속 노출).
  */
 
-type Stage = { id: string; en: string; kr: string; keywords: string[] };
+type Stage = { id: string; kr: string; keywords: string[] };
 
 /* 넓은 키워드(검토)를 마지막에 두어 좁은 단계가 먼저 잡히게 한다. */
 const STAGES: Stage[] = [
   {
     id: "apply",
-    en: "Apply",
     kr: "신청·심의",
     keywords: ["신청", "접수", "심사", "심의", "서류", "제출", "승인", "가입", "회원"],
   },
   {
     id: "contract",
-    en: "Contract",
     kr: "계약·정산",
     keywords: ["계약", "정산", "보증금", "계약금", "납부", "입금", "세금", "환불", "취소", "변경"],
   },
   {
     id: "runday",
-    en: "Run Day",
     kr: "준비·당일",
     keywords: [
       "준비",
@@ -50,7 +46,6 @@ const STAGES: Stage[] = [
   },
   {
     id: "review",
-    en: "Explore",
     kr: "검토",
     keywords: [
       "시설",
@@ -71,7 +66,7 @@ const STAGES: Stage[] = [
   },
 ];
 
-const OTHER: Stage = { id: "other", en: "More", kr: "기타", keywords: [] };
+const OTHER: Stage = { id: "other", kr: "기타", keywords: [] };
 
 function stageOf(faq: Faq): Stage {
   const tag = faq.tag ?? "";
@@ -151,9 +146,7 @@ export function FaqAccordion({ faqs }: { faqs: Faq[] }) {
             <span className="type-display text-s tabular-nums text-muted">
               {String(i + 1).padStart(2, "0")}
             </span>
-            <Label className="text-muted">
-              {group.stage.en} · {group.stage.kr}
-            </Label>
+            <h2 className="type-kr-heading text-h6-m sm:text-h6">{group.stage.kr}</h2>
           </div>
           <ul className="mt-5 border-t border-border/25">{group.items.map(renderItem)}</ul>
         </section>

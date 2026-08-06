@@ -1,6 +1,5 @@
 import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/lib/auth";
-import { Label } from "@/components/ui/kit";
 import { AdminNav } from "@/components/admin/AdminNav";
 import { ScheduleManager } from "@/components/admin/ScheduleManager";
 import { PAGE_LEAD, PAGE_TITLE } from "@/components/admin/adminUi";
@@ -18,7 +17,6 @@ export default async function AdminSchedulePage() {
 
       <main className="mx-auto w-full max-w-6xl flex-1 px-6 py-8 sm:py-10">
         <header className="border-b border-border/20 pb-6">
-          <Label className="mb-3 text-muted">Schedule</Label>
           <h1 className={PAGE_TITLE}>일정 관리</h1>
           <p className={PAGE_LEAD}>
             연도별로 각 월의 주차를 대관 신청 가능/불가로 설정합니다. 막아둔 주차는 대관 신청

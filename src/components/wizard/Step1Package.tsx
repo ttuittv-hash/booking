@@ -8,11 +8,7 @@ import {
   recommendPackage,
 } from "@/lib/pricing/rateTableUtils";
 import { MEDIA_TIER_LABEL, type RateTable } from "@/lib/pricing/types";
-import { Badge, Label } from "@/components/ui/kit";
-
-/** 입력 필드 — mypage/ProfileForm 의 FIELD 와 동일 규격 (샤프 · border-soft · 옐로 아웃라인) */
-const FIELD =
-  "w-full border border-border-soft bg-surface px-3.5 py-2.5 text-s text-foreground transition-colors placeholder:text-muted focus:border-foreground focus:outline-2 focus:outline-accent";
+import { Badge } from "@/components/ui/kit";
 
 export function Step1Package({
   rateTable,
@@ -34,15 +30,14 @@ export function Step1Package({
 
   return (
     <section>
-      <Label className="text-muted">Step 03</Label>
-      <h2 className="type-kr-heading mt-3 text-h4-m sm:text-h4">규모 / 패키지 선택</h2>
+      <h2 className="type-kr-heading text-h4-m sm:text-h4">규모 / 패키지 선택</h2>
       <p className="mt-3 max-w-2xl text-s text-muted">
         예상 관객 규모를 입력하면 패키지가 추천됩니다. 패키지는 정찰제 고정가이며, 각 패키지에 기본
         포함된 구성을 비교해서 선택하세요.
       </p>
 
       <div className="mt-7 max-w-xs">
-        <label htmlFor="expected-audience" className="type-label mb-2 block text-xs text-muted">
+        <label htmlFor="expected-audience" className="mb-2 block text-xs font-bold text-muted">
           예상 관객 규모 (명)
         </label>
         <input
@@ -52,7 +47,7 @@ export function Step1Package({
           step={500}
           value={expectedAudience}
           onChange={(e) => onChangeAudience(Math.max(0, Number(e.target.value) || 0))}
-          className={`${FIELD} tabular-nums`}
+          className="field-base tabular-nums"
         />
       </div>
 
@@ -87,7 +82,7 @@ export function Step1Package({
                   {pkg.tagline && <p className="mt-2 text-s text-muted">{pkg.tagline}</p>}
 
                   <div className="mt-4 border-t border-border/15 pt-3">
-                    <div className="type-label mb-2 text-xs text-muted">기본 포함</div>
+                    <div className="mb-2 text-xs font-bold text-muted">기본 포함</div>
                     <div className="flex flex-wrap gap-x-6 gap-y-1.5">
                       {pkg.includedItems.length === 0 ? (
                         <span className="text-xs text-muted">별도 기본 포함 항목 없음</span>

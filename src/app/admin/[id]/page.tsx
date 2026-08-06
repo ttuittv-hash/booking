@@ -13,7 +13,7 @@ import {
   listAttachments,
   listAuditLogsForQuote,
 } from "@/lib/db";
-import { won } from "@/lib/format";
+import { num, won } from "@/lib/format";
 import { totalRentalDays } from "@/lib/pricing/rateTableUtils";
 import { checkAndFireReminders } from "@/lib/reminders";
 import {
@@ -24,7 +24,7 @@ import {
   STAGE_TYPE_LABEL,
   VENUES,
 } from "@/lib/pricing/types";
-import { Label, SpecTable } from "@/components/ui/kit";
+import { SpecTable } from "@/components/ui/kit";
 import { ContractForm } from "@/components/admin/ContractForm";
 import { ReviewForm } from "@/components/admin/ReviewForm";
 import { SettlementForm } from "@/components/admin/SettlementForm";
@@ -39,11 +39,17 @@ import {
   ERROR_NOTE,
   INFO_NOTE,
   LINK_BTN,
+  NONE,
   PANEL,
   SECTION_TITLE,
   SUB_TITLE,
   TABLE,
-  TD,
+  TABLE_CARD,
+  TABLE_HEAD,
+  TABLE_HEAD_DESC,
+  TABLE_HEAD_TITLE,
+  TABLE_SCROLL,
+  TD_ID,
   TD_NUM,
   TH,
   TH_NUM,
@@ -107,7 +113,6 @@ export default async function AdminQuoteDetailPage({
 
       <main className="mx-auto w-full max-w-4xl flex-1 px-6 py-8 sm:py-10">
         <header className="border-b border-border/20 pb-6">
-          <Label className="mb-3 text-muted">Application</Label>
           <div className="flex flex-wrap items-baseline justify-between gap-x-6 gap-y-3">
             <h1 className="type-display text-h4-m tabular-nums sm:text-h4">{quote.id}</h1>
             <div className="flex flex-wrap items-center gap-x-5 gap-y-2">
@@ -121,15 +126,15 @@ export default async function AdminQuoteDetailPage({
           </div>
 
           <p className="mt-4 text-s text-muted">
-            {VENUES.find((v) => v.id === (quote.selection.venueId ?? DEFAULT_VENUE_ID))?.name ?? "-"} ·{" "}
+            {VENUES.find((v) => v.id === (quote.selection.venueId ?? DEFAULT_VENUE_ID))?.name ?? NONE} ·{" "}
             {quote.selection.week.year}년 {quote.selection.week.month}월{" "}
             {quote.selection.week.weekOfMonth}주차 · 총 {totalRentalDays(quote.selection)}일 · 관객{" "}
             {quote.selection.expectedAudience.toLocaleString()}명
           </p>
           <p className="mt-1.5 text-s text-muted">
-            신청자 <span className="font-bold text-foreground">{applicant?.name ?? "-"}</span>
-            {" "}({applicant?.email ?? "-"}) · 회사{" "}
-            <span className="font-bold text-foreground">{applicant?.companyName ?? "-"}</span>
+            신청자 <span className="font-bold text-foreground">{applicant?.name ?? NONE}</span>
+            {" "}({applicant?.email ?? NONE}) · 회사{" "}
+            <span className="font-bold text-foreground">{applicant?.companyName ?? NONE}</span>
           </p>
         </header>
 
@@ -139,10 +144,10 @@ export default async function AdminQuoteDetailPage({
             <div className="mt-4 grid gap-x-10 lg:grid-cols-2">
               <SpecTable
                 rows={[
-                  ["공연(행사)명", quote.selection.performanceInfo.eventName || "-"],
-                  ["아티스트", quote.selection.performanceInfo.artist || "-"],
-                  ["주최·주관·기획", quote.selection.performanceInfo.organizer || "-"],
-                  ["행사규모", quote.selection.performanceInfo.eventScale || "-"],
+                  ["공연(행사)명", quote.selection.performanceInfo.eventName || NONE],
+                  ["아티스트", quote.selection.performanceInfo.artist || NONE],
+                  ["주최·주관·기획", quote.selection.performanceInfo.organizer || NONE],
+                  ["행사규모", quote.selection.performanceInfo.eventScale || NONE],
                 ]}
               />
               <SpecTable
@@ -153,7 +158,7 @@ export default async function AdminQuoteDetailPage({
                       ? quote.selection.performanceInfo.eventTypes
                           .map((t) => EVENT_TYPE_LABEL[t])
                           .join(", ")
-                      : "-",
+                      : NONE,
                   ],
                   [
                     "무대형태",
@@ -161,7 +166,7 @@ export default async function AdminQuoteDetailPage({
                       ? quote.selection.performanceInfo.stageTypes
                           .map((t) => STAGE_TYPE_LABEL[t])
                           .join(", ")
-                      : "-",
+                      : NONE,
                   ],
                   [
                     "객석형태",
@@ -169,13 +174,13 @@ export default async function AdminQuoteDetailPage({
                       ? quote.selection.performanceInfo.seatingTypes
                           .map((t) => SEATING_TYPE_LABEL[t])
                           .join(", ")
-                      : "-",
+                      : NONE,
                   ],
                   [
                     "수납식 객석 사용여부",
                     quote.selection.performanceInfo.retractableSeatUse
                       ? RETRACTABLE_SEAT_USE_LABEL[quote.selection.performanceInfo.retractableSeatUse]
-                      : "-",
+                      : NONE,
                   ],
                 ]}
               />
@@ -183,9 +188,16 @@ export default async function AdminQuoteDetailPage({
           </section>
         )}
 
-        <section className={`mt-6 ${PANEL}`}>
-          <h2 className={SECTION_TITLE}>① 신청 예상금액 · 산출내역</h2>
-          <div className="mt-4 overflow-x-auto">
+        <section className={`mt-6 ${TABLE_CARD}`}>
+          <div className={TABLE_HEAD}>
+            <div>
+              <p className={TABLE_HEAD_TITLE}>① 신청 예상금액 · 산출내역</p>
+              <p className={TABLE_HEAD_DESC}>
+                기본 포함 수량을 뺀 과금수량에만 단가가 적용됩니다.
+              </p>
+            </div>
+          </div>
+          <div className={TABLE_SCROLL}>
             <table className={TABLE}>
               <thead>
                 <tr className={THEAD_ROW}>
@@ -193,25 +205,25 @@ export default async function AdminQuoteDetailPage({
                   <th className={TH_NUM}>신청</th>
                   <th className={TH_NUM}>기본포함</th>
                   <th className={TH_NUM}>과금수량</th>
-                  <th className={TH_NUM}>단가</th>
-                  <th className={TH_NUM}>금액</th>
+                  <th className={TH_NUM}>단가 (₩)</th>
+                  <th className={TH_NUM}>금액 (₩)</th>
                 </tr>
               </thead>
               <tbody>
                 {quote.lineItems.map((item) => (
                   <tr key={item.addonId} className={TR}>
-                    <td className={`${TD} font-bold`}>{item.label}</td>
-                    <td className={TD_NUM}>{item.requested.toLocaleString()}</td>
-                    <td className={TD_NUM}>{item.included || "-"}</td>
-                    <td className={TD_NUM}>{item.billable.toLocaleString()}</td>
-                    <td className={TD_NUM}>{won(item.unitPrice)}</td>
-                    <td className={`${TD_NUM} font-bold`}>{won(item.amount)}</td>
+                    <td className={TD_ID}>{item.label}</td>
+                    <td className={TD_NUM}>{item.requested.toLocaleString("ko-KR")}</td>
+                    <td className={TD_NUM}>{item.included || NONE}</td>
+                    <td className={TD_NUM}>{item.billable.toLocaleString("ko-KR")}</td>
+                    <td className={TD_NUM}>{num(item.unitPrice)}</td>
+                    <td className={`${TD_NUM} font-bold`}>{num(item.amount)}</td>
                   </tr>
                 ))}
               </tbody>
             </table>
           </div>
-          <div className="mt-4 flex flex-wrap justify-end gap-x-8 gap-y-2 border-t border-border/15 pt-4 text-s tabular-nums">
+          <div className="flex flex-wrap justify-end gap-x-8 gap-y-2 border-t border-border-soft px-4 py-3 text-s tabular-nums">
             <span className="text-muted">소계 {won(quote.subtotal)}</span>
             <span className="text-muted">VAT {won(quote.vat)}</span>
             <span className="font-bold">합계 {won(quote.total)}</span>

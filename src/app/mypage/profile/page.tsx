@@ -6,7 +6,7 @@ import { PublicHeader } from "@/components/PublicHeader";
 import { ProfileForm } from "@/components/ProfileForm";
 import { Breadcrumb } from "@/components/ui/Breadcrumb";
 import { SiteFooter } from "@/components/ui/SiteFooter";
-import { Band, Label } from "@/components/ui/kit";
+import { Band, PageHeading } from "@/components/ui/kit";
 
 export const metadata: Metadata = {
   title: "회원정보 수정 | 서울아레나",
@@ -30,11 +30,11 @@ export default async function ProfilePage() {
 
       <main className="flex flex-1 flex-col">
         <Band tone="light" size="sm">
-          <Label className="mb-5 text-muted">My Account</Label>
-          <h1 className="type-kr-heading text-h3-m sm:text-h3">회원정보 수정</h1>
-          <p className="mt-5 text-s text-muted">
-            담당자명·휴대폰 번호와 비밀번호를 직접 변경할 수 있습니다.
-          </p>
+          <PageHeading
+            size="md"
+            title="회원정보 수정"
+            lead="담당자명·휴대폰 번호와 비밀번호를 직접 변경할 수 있습니다."
+          />
         </Band>
 
         <Band tone="white" size="sm">

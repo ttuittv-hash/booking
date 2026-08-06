@@ -2,22 +2,29 @@
 
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-import { won } from "@/lib/format";
-import { Label, btnClass } from "@/components/ui/kit";
+import { num, won } from "@/lib/format";
+import { btnClass } from "@/components/ui/kit";
 import {
   FIELD,
-  FIELD_BASE,
   FIELD_LABEL,
   HELP,
+  LINK_BTN,
+  NONE,
   SUB_TITLE,
   TABLE,
-  TABLE_WRAP,
-  TD,
+  TABLE_CARD,
+  TABLE_HEAD,
+  TABLE_HEAD_ACTIONS,
+  TABLE_HEAD_DESC,
+  TABLE_HEAD_TITLE,
+  TABLE_SCROLL,
+  TD_ID,
   TD_NUM,
   TH,
   TH_NUM,
   THEAD_ROW,
   TR,
+  TR_HOVER,
   TAB_BAR,
   tabCls,
 } from "./adminUi";
@@ -194,48 +201,61 @@ export function PackagesForm({ rateTable }: { rateTable: RateTable }) {
         <button
           type="button"
           onClick={addPackage}
-          className="ml-1 shrink-0 whitespace-nowrap px-3 py-3 text-xs font-bold underline decoration-accent decoration-2 underline-offset-4 transition-colors hover:text-muted-strong"
+          className={`ml-1 shrink-0 whitespace-nowrap px-3 py-3 ${LINK_BTN}`}
         >
           + 새 패키지
         </button>
       </div>
 
-      <div className={`mt-6 ${TABLE_WRAP}`}>
-        <table className={`${TABLE} min-w-[560px]`}>
-          <thead>
-            <tr className={THEAD_ROW}>
-              <th className={TH}>패키지</th>
-              <th className={TH_NUM}>기본 대관료</th>
-              <th className={TH_NUM}>총 패키지 가격</th>
-              <th className={TH_NUM}>할인 적용가</th>
-            </tr>
-          </thead>
-          <tbody>
-            {packages.map((p) => {
-              const t = computeTotals(p);
-              return (
-                <tr
-                  key={p.id}
-                  className={`${TR} cursor-pointer transition-colors ${
-                    p.id === activeId ? "bg-accent/15" : "hover:bg-foreground/[0.03]"
-                  }`}
-                  onClick={() => setActiveId(p.id)}
-                >
-                  <td className={`${TD} font-bold`}>{p.name}</td>
-                  <td className={TD_NUM}>{won(p.baseFeePerWeek)}</td>
-                  <td className={TD_NUM}>{won(t.total)}</td>
-                  <td className={TD_NUM}>
-                    {p.discountRatio > 0 ? (
-                      <span className="font-bold">{won(t.discountedTotal)}</span>
-                    ) : (
-                      <span className="text-muted">-</span>
-                    )}
-                  </td>
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
+      <div className={`mt-6 ${TABLE_CARD}`}>
+        <div className={TABLE_HEAD}>
+          <div>
+            <p className={TABLE_HEAD_TITLE}>패키지 요약 ({packages.length})</p>
+            <p className={TABLE_HEAD_DESC}>
+              행을 누르면 아래에서 해당 패키지를 편집합니다.
+            </p>
+          </div>
+          <div className={TABLE_HEAD_ACTIONS}>
+            <button type="button" onClick={addPackage} className={btnClass("secondary", "sm")}>
+              새 패키지
+            </button>
+          </div>
+        </div>
+        <div className={TABLE_SCROLL}>
+          <table className={`${TABLE} min-w-[560px]`}>
+            <thead>
+              <tr className={THEAD_ROW}>
+                <th className={TH}>패키지</th>
+                <th className={TH_NUM}>기본 대관료 (₩)</th>
+                <th className={TH_NUM}>총 패키지 가격 (₩)</th>
+                <th className={TH_NUM}>할인 적용가 (₩)</th>
+              </tr>
+            </thead>
+            <tbody>
+              {packages.map((p) => {
+                const t = computeTotals(p);
+                return (
+                  <tr
+                    key={p.id}
+                    className={`cursor-pointer ${p.id === activeId ? `${TR} bg-accent/15` : TR_HOVER}`}
+                    onClick={() => setActiveId(p.id)}
+                  >
+                    <td className={TD_ID}>{p.name}</td>
+                    <td className={TD_NUM}>{num(p.baseFeePerWeek)}</td>
+                    <td className={TD_NUM}>{num(t.total)}</td>
+                    <td className={TD_NUM}>
+                      {p.discountRatio > 0 ? (
+                        <span className="font-bold">{num(t.discountedTotal)}</span>
+                      ) : (
+                        <span className="text-muted">{NONE}</span>
+                      )}
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
       </div>
 
       <div className="mt-6 space-y-8">
@@ -367,7 +387,7 @@ export function PackagesForm({ rateTable }: { rateTable: RateTable }) {
             </label>
           </div>
 
-          <div className="mt-5 flex flex-wrap items-center justify-between gap-3 border-l-2 border-accent bg-surface px-4 py-3">
+          <div className="mt-5 flex flex-wrap items-center justify-between gap-3 border-l-2 border-accent bg-panel px-4 py-3">
             <div>
               <div className={HELP}>총 패키지 가격 (기본 대관료 + 기본 포함 항목 단가 합계)</div>
               <div className="type-display mt-1 text-h6-m tabular-nums">
@@ -454,13 +474,13 @@ export function PackagesForm({ rateTable }: { rateTable: RateTable }) {
             {[...grouped.entries()].map(([category, items]) => (
               <div key={category}>
                 <div className="mb-2 flex items-center justify-between gap-3 border-b border-border/25 pb-1.5">
-                  <Label className="text-muted">
+                  <p className={SUB_TITLE}>
                     {ADDON_CATEGORY_LABEL[category as keyof typeof ADDON_CATEGORY_LABEL] ?? category}
-                  </Label>
+                  </p>
                   <button
                     type="button"
                     onClick={() => openNewItemForm(category as AddonCategory)}
-                    className="text-xs font-bold underline decoration-accent decoration-2 underline-offset-4 transition-colors hover:text-muted-strong"
+                    className={LINK_BTN}
                   >
                     + 항목 추가
                   </button>
@@ -492,9 +512,9 @@ export function PackagesForm({ rateTable }: { rateTable: RateTable }) {
                               min={1}
                               disabled={!checked}
                               value={checked ? qty : ""}
-                              placeholder="-"
+                              placeholder={NONE}
                               onChange={(e) => setIncludedQty(addon.id, Math.max(1, Number(e.target.value) || 1))}
-                              className={`w-16 ${FIELD_BASE} text-right tabular-nums`}
+                              className={`w-16 ${FIELD} text-right tabular-nums`}
                             />
                           </label>
                           <label className="flex items-center gap-1.5">
@@ -504,7 +524,7 @@ export function PackagesForm({ rateTable }: { rateTable: RateTable }) {
                               min={0}
                               value={addon.unitPrice}
                               onChange={(e) => updateAddonPrice(addon.id, Math.max(0, Number(e.target.value) || 0))}
-                              className={`w-32 ${FIELD_BASE} text-right tabular-nums`}
+                              className={`w-32 ${FIELD} text-right tabular-nums`}
                             />
                           </label>
                         </div>
@@ -521,14 +541,14 @@ export function PackagesForm({ rateTable }: { rateTable: RateTable }) {
                       placeholder="항목 이름"
                       value={newItemName}
                       onChange={(e) => setNewItemName(e.target.value)}
-                      className={`flex-1 ${FIELD_BASE}`}
+                      className={`flex-1 ${FIELD}`}
                     />
                     <input
                       type="text"
                       placeholder="단위 (예: 원/일)"
                       value={newItemUnitLabel}
                       onChange={(e) => setNewItemUnitLabel(e.target.value)}
-                      className={`w-32 ${FIELD_BASE}`}
+                      className={`w-32 ${FIELD}`}
                     />
                     <input
                       type="number"
@@ -536,7 +556,7 @@ export function PackagesForm({ rateTable }: { rateTable: RateTable }) {
                       placeholder="단가"
                       value={newItemPrice}
                       onChange={(e) => setNewItemPrice(Math.max(0, Number(e.target.value) || 0))}
-                      className={`w-28 ${FIELD_BASE} text-right tabular-nums`}
+                      className={`w-28 ${FIELD} text-right tabular-nums`}
                     />
                     <div className="flex gap-2">
                       <button

@@ -1,9 +1,15 @@
 "use client";
 
-import { won } from "@/lib/format";
+import { num, won } from "@/lib/format";
 import { findPackage, totalRentalDays } from "@/lib/pricing/rateTableUtils";
-import type { EstimatedQuote, QuoteSelection, RateTable } from "@/lib/pricing/types";
-import { Label } from "@/components/ui/kit";
+import type { EstimatedQuote, LineItem, QuoteSelection, RateTable } from "@/lib/pricing/types";
+import { ComparisonTable } from "@/components/ui/kit";
+
+/** 매출 연동 항목은 수량이 아니라 예상매출 × 요율로 산정되므로 근거를 항목명에 붙인다. */
+function lineLabel(item: LineItem, expectedRevenue: number): string {
+  if (item.pricingType !== "REVENUE_PERCENT") return item.label;
+  return `${item.label} · 예상매출 ${won(expectedRevenue)}`;
+}
 
 export function Step5Estimate({
   rateTable,
@@ -19,80 +25,62 @@ export function Step5Estimate({
   if (!pkg) {
     return (
       <section>
-        <Label className="text-muted">Step 06</Label>
-        <h2 className="type-kr-heading mt-3 text-h4-m sm:text-h4">예상 대관료 · 산출내역서</h2>
+        <h2 className="type-kr-heading text-h4-m sm:text-h4">예상 대관료 · 산출내역서</h2>
         <p className="mt-3 text-s text-muted">먼저 2단계에서 패키지를 선택하세요.</p>
       </section>
     );
   }
 
+  const expectedRevenue = selection.expectedRevenue ?? 0;
+
   return (
     <section>
-      <Label className="text-muted">Step 06</Label>
-      <h2 className="type-kr-heading mt-3 text-h4-m sm:text-h4">예상 대관료 · 산출내역서</h2>
+      <h2 className="type-kr-heading text-h4-m sm:text-h4">예상 대관료 · 산출내역서</h2>
       <p className="mt-3 max-w-2xl text-s text-muted">
         {pkg.name} · {selection.week.year}.{selection.week.month}{" "}
         {selection.week.weekOfMonth}주차 · 총 {totalRentalDays(selection)}일 · 관객{" "}
         {selection.expectedAudience.toLocaleString()}명
       </p>
 
-      <div className="mt-7 overflow-x-auto">
-        <table className="w-full min-w-[36rem] border-collapse text-s">
-          <thead>
-            <tr className="border-b-2 border-foreground">
-              <th className="type-label py-2.5 text-left text-xs text-muted">항목</th>
-              <th className="type-label py-2.5 text-right text-xs text-muted">신청</th>
-              <th className="type-label py-2.5 text-right text-xs text-muted">기본포함</th>
-              <th className="type-label py-2.5 text-right text-xs text-muted">과금수량</th>
-              <th className="type-label py-2.5 text-right text-xs text-muted">단가</th>
-              <th className="type-label py-2.5 text-right text-xs text-muted">금액</th>
-            </tr>
-          </thead>
-          <tbody>
-            {quote.lineItems.map((item) => (
-              <tr key={item.addonId} className="border-b border-border/15 tabular-nums">
-                <td className="py-3 text-left font-bold">{item.label}</td>
-                <td className="py-3 text-right text-muted">
-                  {item.pricingType === "REVENUE_PERCENT"
-                    ? `${won(selection.expectedRevenue ?? 0)} × ${item.unitPrice}%`
-                    : item.requested.toLocaleString()}
-                </td>
-                <td className="py-3 text-right text-muted">{item.included || "-"}</td>
-                <td className="py-3 text-right text-muted">
-                  {item.pricingType === "REVENUE_PERCENT" ? "-" : item.billable.toLocaleString()}
-                </td>
-                <td className="py-3 text-right text-muted">
-                  {item.pricingType === "REVENUE_PERCENT" ? "-" : won(item.unitPrice)}
-                </td>
-                <td className="py-3 text-right font-bold">{won(item.amount)}</td>
-              </tr>
-            ))}
-          </tbody>
-          <tfoot>
-            <tr className="border-b border-border/15">
-              <td colSpan={5} className="py-3 text-right text-s font-bold">
-                소계 (VAT 별도)
-              </td>
-              <td className="py-3 text-right text-s font-bold tabular-nums">
-                {won(quote.subtotal)}
-              </td>
-            </tr>
-            <tr className="border-b-2 border-foreground">
-              <td colSpan={5} className="py-3 text-right text-s text-muted">
-                부가세 10%
-              </td>
-              <td className="py-3 text-right text-s tabular-nums text-muted">{won(quote.vat)}</td>
-            </tr>
-            <tr>
-              <td colSpan={5} className="type-label pt-4 text-right text-xs">
+      <div className="mt-7">
+        <ComparisonTable
+          dense
+          rowLabel="항목"
+          columns={[
+            { key: "requested", title: "신청", sub: "수량" },
+            { key: "included", title: "기본 포함", sub: "수량" },
+            { key: "billable", title: "과금", sub: "수량" },
+            { key: "unitPrice", title: "단가", sub: "원" },
+            { key: "amount", title: "금액", sub: "원" },
+          ]}
+          rows={quote.lineItems.map((item) => {
+            const byRevenue = item.pricingType === "REVENUE_PERCENT";
+            return {
+              label: lineLabel(item, expectedRevenue),
+              cells: [
+                byRevenue ? "—" : num(item.requested),
+                item.included ? num(item.included) : "—",
+                byRevenue ? "—" : num(item.billable),
+                byRevenue ? `${item.unitPrice}%` : num(item.unitPrice),
+                num(item.amount),
+              ],
+            };
+          })}
+          footer={
+            <dl className="ml-auto grid max-w-sm grid-cols-[minmax(0,1fr)_auto] items-baseline gap-x-8 gap-y-3">
+              <dt className="text-s text-muted">소계 · VAT 별도</dt>
+              <dd className="text-right text-s font-bold tabular-nums">{won(quote.subtotal)}</dd>
+              <dt className="text-s text-muted">부가세 10%</dt>
+              <dd className="text-right text-s tabular-nums text-muted">{won(quote.vat)}</dd>
+              <dt className="border-t-2 border-foreground pt-3 text-s font-bold">
                 합계 · VAT 포함
-              </td>
-              <td className="type-display pt-4 text-right text-h5-m tabular-nums sm:text-h5">
+              </dt>
+              <dd className="type-display border-t-2 border-foreground pt-3 text-right text-h5-m tabular-nums sm:text-h5">
                 {won(quote.total)}
-              </td>
-            </tr>
-          </tfoot>
-        </table>
+              </dd>
+            </dl>
+          }
+        />
       </div>
 
       <p className="mt-7 border-l-2 border-accent bg-warn-soft px-4 py-3 text-s leading-6 text-muted-strong">

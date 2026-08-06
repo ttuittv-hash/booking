@@ -9,7 +9,7 @@ import {
   getTicketOpenByQuoteId,
   listAttachments,
 } from "@/lib/db";
-import { won } from "@/lib/format";
+import { num, won } from "@/lib/format";
 import { totalRentalDays } from "@/lib/pricing/rateTableUtils";
 import { checkAndFireReminders } from "@/lib/reminders";
 import { DepositPanel } from "@/components/DepositPanel";
@@ -22,7 +22,15 @@ import { SettlementMutualConfirm } from "@/components/SettlementMutualConfirm";
 import { PublicHeader } from "@/components/PublicHeader";
 import { Breadcrumb } from "@/components/ui/Breadcrumb";
 import { SiteFooter } from "@/components/ui/SiteFooter";
-import { Badge, Band, ButtonLink, Label, SpecTable, btnClass } from "@/components/ui/kit";
+import {
+  Badge,
+  Band,
+  ButtonLink,
+  ComparisonTable,
+  PageHeading,
+  SpecTable,
+  btnClass,
+} from "@/components/ui/kit";
 import { DEFAULT_VENUE_ID, VENUES, type Quote } from "@/lib/pricing/types";
 
 const STAGE_LABEL: Record<string, string> = {
@@ -70,36 +78,41 @@ export default async function MyQuoteDetailPage({
       <main className="flex flex-1 flex-col">
         {/* 신청 개요 */}
         <Band tone="light" size="sm">
-          <div className="flex flex-col gap-8 lg:flex-row lg:items-end lg:justify-between">
-            <div>
-              <Label className="mb-5 text-muted">Application</Label>
-              <div className="flex flex-wrap items-center gap-4">
-                <h1 className="type-display text-h3-m sm:text-h3">{quote.id}</h1>
+          <PageHeading
+            size="md"
+            title={
+              <span className="flex flex-wrap items-center gap-4">
+                <span>{quote.id}</span>
                 <Badge tone={STAGE_TONE[quote.status]}>{STAGE_LABEL[quote.status]}</Badge>
-              </div>
-              <p className="mt-5 text-s text-muted">
-                {VENUES.find((v) => v.id === (quote.selection.venueId ?? DEFAULT_VENUE_ID))?.name ?? "-"}{" "}
+              </span>
+            }
+            lead={
+              <>
+                {VENUES.find((v) => v.id === (quote.selection.venueId ?? DEFAULT_VENUE_ID))?.name ??
+                  "—"}{" "}
                 · {quote.selection.week.year}년 {quote.selection.week.month}월{" "}
                 {quote.selection.week.weekOfMonth}주차 · 총 {totalRentalDays(quote.selection)}일 · 관객{" "}
                 {quote.selection.expectedAudience.toLocaleString()}명
-              </p>
-            </div>
-            <div className="flex shrink-0 flex-wrap gap-3">
-              {quote.status === "ESTIMATE" && user.role !== "ADMIN" && (
-                <ButtonLink href={`/apply/edit/${quote.id}`} variant="secondary">
-                  신청 내용 수정
-                </ButtonLink>
-              )}
-              <a
-                href={`/print/${quote.id}`}
-                target="_blank"
-                rel="noopener noreferrer"
-                className={btnClass("tertiary")}
-              >
-                인쇄 / PDF 저장
-              </a>
-            </div>
-          </div>
+              </>
+            }
+            actions={
+              <>
+                {quote.status === "ESTIMATE" && user.role !== "ADMIN" && (
+                  <ButtonLink href={`/apply/edit/${quote.id}`} variant="secondary">
+                    신청 내용 수정
+                  </ButtonLink>
+                )}
+                <a
+                  href={`/print/${quote.id}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className={btnClass("tertiary")}
+                >
+                  인쇄 / PDF 저장
+                </a>
+              </>
+            }
+          />
         </Band>
 
         {/* ① 신청 예상금액 · 산출내역 */}
@@ -109,47 +122,45 @@ export default async function MyQuoteDetailPage({
             <h2 className="type-kr-heading text-h5-m sm:text-h5">신청 예상금액 · 산출내역</h2>
           </div>
 
-          <div className="mt-8 overflow-x-auto">
-            <table className="w-full min-w-[640px] border-collapse">
-              <thead>
-                <tr className="border-y border-border/25 text-xs text-muted">
-                  <th className="py-3 pr-4 text-left font-bold">항목</th>
-                  <th className="py-3 pr-4 text-right font-bold">신청</th>
-                  <th className="py-3 pr-4 text-right font-bold">기본포함</th>
-                  <th className="py-3 pr-4 text-right font-bold">과금수량</th>
-                  <th className="py-3 pr-4 text-right font-bold">단가</th>
-                  <th className="py-3 text-right font-bold">금액</th>
-                </tr>
-              </thead>
-              <tbody>
-                {quote.lineItems.map((item) => (
-                  <tr key={item.addonId} className="border-b border-border/15 text-s tabular-nums">
-                    <td className="py-3 pr-4 text-left font-bold">{item.label}</td>
-                    <td className="py-3 pr-4 text-right text-muted">{item.requested.toLocaleString()}</td>
-                    <td className="py-3 pr-4 text-right text-muted">{item.included || "-"}</td>
-                    <td className="py-3 pr-4 text-right">{item.billable.toLocaleString()}</td>
-                    <td className="py-3 pr-4 text-right text-muted">{won(item.unitPrice)}</td>
-                    <td className="py-3 text-right font-bold">{won(item.amount)}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+          <div className="mt-8">
+            <ComparisonTable
+              dense
+              rowLabel="항목"
+              columns={[
+                { key: "requested", title: "신청", sub: "수량" },
+                { key: "included", title: "기본포함", sub: "수량" },
+                { key: "billable", title: "과금", sub: "수량" },
+                { key: "unitPrice", title: "단가", sub: "원" },
+                { key: "amount", title: "금액", sub: "원" },
+              ]}
+              rows={quote.lineItems.map((item) => ({
+                label: item.label,
+                cells: [
+                  num(item.requested),
+                  item.included ? num(item.included) : "—",
+                  num(item.billable),
+                  num(item.unitPrice),
+                  num(item.amount),
+                ],
+              }))}
+            />
           </div>
 
-          <dl className="mt-8 ml-auto w-full max-w-sm border-t border-border/25">
-            <div className="flex items-baseline justify-between border-b border-border/15 py-3">
-              <dt className="text-xs text-muted">소계 (VAT 별도)</dt>
-              <dd className="text-s tabular-nums">{won(quote.subtotal)}</dd>
+          <div className="mt-8 ml-auto w-full max-w-sm">
+            <SpecTable
+              dense
+              rows={[
+                ["소계 (VAT 별도)", won(quote.subtotal)],
+                ["VAT", won(quote.vat)],
+              ]}
+            />
+            <div className="flex flex-wrap items-baseline justify-between gap-3 border-b-2 border-foreground py-3">
+              <span className="text-s text-muted">합계</span>
+              <span className="type-display text-h5-m tabular-nums sm:text-h5">
+                {won(quote.total)}
+              </span>
             </div>
-            <div className="flex items-baseline justify-between border-b border-border/15 py-3">
-              <dt className="text-xs text-muted">VAT</dt>
-              <dd className="text-s tabular-nums">{won(quote.vat)}</dd>
-            </div>
-            <div className="flex items-baseline justify-between border-b-2 border-foreground py-3">
-              <dt className="type-label text-xs">Total</dt>
-              <dd className="type-display text-h5-m tabular-nums sm:text-h5">{won(quote.total)}</dd>
-            </div>
-          </dl>
+          </div>
         </Band>
 
         {/* ② 계약금액 · ③ 정산금액 */}
@@ -189,7 +200,7 @@ export default async function MyQuoteDetailPage({
                     <h2 className="type-kr-heading text-h5-m sm:text-h5">최종 정산 완료</h2>
                   </div>
                   <div className="mt-6">
-                    <Badge tone="good">Settled</Badge>
+                    <Badge tone="good">정산 확정</Badge>
                   </div>
                   <div className="mt-6 flex flex-wrap items-baseline justify-between gap-3 border-t-2 border-foreground pt-4">
                     <span className="text-xs text-muted">
@@ -213,7 +224,7 @@ export default async function MyQuoteDetailPage({
         {/* 계약 이행 — 날인·세금계산서·티켓오픈·현장미팅 */}
         {(quote.contract || quote.settlement) && (
           <Band tone="light" size="sm" divide>
-            <Label className="mb-8 text-muted">Contract Process</Label>
+            <h2 className="type-kr-heading mb-8 text-h5-m sm:text-h5">계약 이행</h2>
 
             {quote.contract && (
               <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">

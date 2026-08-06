@@ -4,7 +4,7 @@ import { getInquiryById } from "@/lib/db";
 import { PublicHeader } from "@/components/PublicHeader";
 import { Breadcrumb } from "@/components/ui/Breadcrumb";
 import { SiteFooter } from "@/components/ui/SiteFooter";
-import { Badge, Band, EmptyState, Label } from "@/components/ui/kit";
+import { Badge, Band, EmptyState, PageHeading } from "@/components/ui/kit";
 
 export default async function MyInquiryDetailPage({
   params,
@@ -26,39 +26,38 @@ export default async function MyInquiryDetailPage({
   return (
     <div className="flex flex-1 flex-col">
       <PublicHeader active="/mypage" currentUser={user} />
-      <Breadcrumb
-        items={[
-          { label: "내 신청 내역", href: "/mypage" },
-          { label: "1:1 문의", href: "/mypage/inquiries" },
-          { label: inquiry.title },
-        ]}
-      />
+      {/* 3뎁스 — 부모(1:1 문의)를 포함해 2개 */}
+      <Breadcrumb items={[{ label: "1:1 문의", href: "/mypage/inquiries" }, { label: "상세" }]} />
 
       <main className="flex flex-1 flex-col">
         <Band tone="light" size="sm">
-          <Label className="mb-5 text-muted">Support</Label>
-          <div className="flex flex-wrap items-start justify-between gap-4">
-            <h1 className="type-kr-heading text-h4-m sm:text-h4">{inquiry.title}</h1>
-            <Badge tone={answered ? "good" : "warn"}>
-              {answered ? "답변 완료" : "답변 대기"}
-            </Badge>
-          </div>
-          <p className="mt-5 text-xs tabular-nums text-muted">
-            {new Date(inquiry.createdAt).toLocaleString("ko-KR")}
-          </p>
+          <PageHeading
+            size="md"
+            title={inquiry.title}
+            lead={
+              <span className="text-xs tabular-nums text-muted">
+                {new Date(inquiry.createdAt).toLocaleString("ko-KR")}
+              </span>
+            }
+            actions={
+              <Badge tone={answered ? "good" : "warn"}>
+                {answered ? "답변 완료" : "답변 대기"}
+              </Badge>
+            }
+          />
         </Band>
 
         <Band tone="white" size="sm">
           <div className="max-w-3xl border-t border-border/25 pt-6">
-            <Label className="mb-4 text-muted">문의 내용</Label>
+            <h2 className="type-kr-heading mb-4 text-h6-m sm:text-h6">문의 내용</h2>
             <p className="whitespace-pre-wrap text-s leading-7">{inquiry.content}</p>
           </div>
         </Band>
 
         {inquiry.answer ? (
           <Band tone="accent" size="sm">
-            <div className="max-w-3xl border-t border-on-accent/25 pt-6">
-              <Label className="mb-4">운영자 답변</Label>
+            <div className="max-w-3xl border-t border-border/25 pt-6">
+              <h2 className="type-kr-heading mb-4 text-h6-m sm:text-h6">운영자 답변</h2>
               <p className="whitespace-pre-wrap text-s leading-7">{inquiry.answer}</p>
               {inquiry.answeredAt && (
                 <p className="mt-5 text-xs tabular-nums">

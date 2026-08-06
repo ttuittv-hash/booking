@@ -11,7 +11,7 @@ import {
   Band,
   ButtonLink,
   EmptyState,
-  Label,
+  PageHeading,
   Row,
   RowList,
 } from "@/components/ui/kit";
@@ -47,20 +47,16 @@ export default async function MyInquiriesPage() {
 
       <main className="flex flex-1 flex-col">
         <Band tone="light" size="sm">
-          <div className="flex flex-col gap-6 sm:flex-row sm:items-start sm:justify-between">
-            <div>
-              <Label className="mb-5 text-muted">Support</Label>
-              <h1 className="type-kr-heading text-h3-m sm:text-h3">1:1 문의</h1>
-              <p className="mt-5 text-s text-muted">
-                대관 절차·요금·시설에 대해 문의하세요. 운영자가 확인 후 답변을 등록합니다.
-              </p>
-            </div>
-            <div className="shrink-0">
+          <PageHeading
+            size="md"
+            title="1:1 문의"
+            lead="대관 절차·요금·시설에 대해 문의하세요. 운영자가 확인 후 답변을 등록합니다."
+            actions={
               <ButtonLink href="/mypage/inquiries/new" variant="primary">
                 문의하기
               </ButtonLink>
-            </div>
-          </div>
+            }
+          />
         </Band>
 
         <Band tone="white" size="sm">

@@ -2,21 +2,29 @@ import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { getCurrentUser } from "@/lib/auth";
 import { findCompanyById, findUserById, listQuotes } from "@/lib/db";
-import { won } from "@/lib/format";
+import { num } from "@/lib/format";
 import type { AppUser, Quote } from "@/lib/pricing/types";
-import { ArrowRight, Badge, Label } from "@/components/ui/kit";
+import { ArrowRight, Badge } from "@/components/ui/kit";
 import { AdminNav } from "@/components/admin/AdminNav";
 import {
   LINK_BTN,
-  SUB_TITLE,
+  NONE,
+  ROW_LINK,
   TABLE,
-  TABLE_WRAP,
+  TABLE_CARD,
+  TABLE_HEAD,
+  TABLE_HEAD_DESC,
+  TABLE_HEAD_TITLE,
+  TABLE_SCROLL,
   TD,
+  TD_EMPTY,
+  TD_ID,
+  TD_LINK,
   TD_NUM,
   TH,
   TH_NUM,
   THEAD_ROW,
-  TR,
+  TR_HOVER,
 } from "@/components/admin/adminUi";
 
 const STATUS_LABEL: Record<Quote["status"], string> = {
@@ -62,9 +70,9 @@ export default async function AdminApplicantDetailPage({
 
   const profile: [string, string][] = [
     ["이메일", target.email],
-    ["휴대폰 번호", target.phone || "-"],
-    ["회사/기획사", target.companyName || "-"],
-    ["사업자등록번호", company?.businessRegistrationNumber || "-"],
+    ["휴대폰 번호", target.phone || NONE],
+    ["회사/기획사", target.companyName || NONE],
+    ["사업자등록번호", company?.businessRegistrationNumber || NONE],
     ["가입일", new Date(target.createdAt).toLocaleString("ko-KR")],
     ["계정 ID", target.id],
   ];
@@ -79,7 +87,6 @@ export default async function AdminApplicantDetailPage({
         </Link>
 
         <header className="mt-5 border-b border-border/20 pb-6">
-          <Label className="mb-3 text-muted">Member</Label>
           <div className="flex flex-wrap items-start justify-between gap-4">
             <div>
               <h1 className="type-kr-heading text-h5-m sm:text-h5">{target.name}</h1>
@@ -91,7 +98,7 @@ export default async function AdminApplicantDetailPage({
           </div>
         </header>
 
-        <dl className="mt-6 grid grid-cols-1 border-t border-border-soft bg-surface sm:grid-cols-2">
+        <dl className="mt-6 grid grid-cols-1 border-t border-border-soft bg-panel sm:grid-cols-2">
           {profile.map(([k, v]) => (
             <div key={k} className="border-b border-border-soft px-4 py-3">
               <dt className="text-xs text-muted">{k}</dt>
@@ -100,51 +107,58 @@ export default async function AdminApplicantDetailPage({
           ))}
         </dl>
 
-        <h2 className={`mt-10 ${SUB_TITLE}`}>신청 내역 ({quotes.length})</h2>
-        <div className={`mt-3 ${TABLE_WRAP}`}>
-          <table className={`${TABLE} min-w-[640px]`}>
-            <thead>
-              <tr className={THEAD_ROW}>
-                <th className={TH}>신청번호</th>
-                <th className={TH}>신청일시</th>
-                <th className={TH_NUM}>신청 예상금액</th>
-                <th className={TH}>상태</th>
-                <th className={TH} />
-              </tr>
-            </thead>
-            <tbody>
-              {quotes.length === 0 ? (
-                <tr>
-                  <td colSpan={5} className="px-3 py-10 text-center text-s text-muted">
-                    아직 신청 내역이 없습니다.
-                  </td>
+        <div className={`mt-10 ${TABLE_CARD}`}>
+          <div className={TABLE_HEAD}>
+            <div>
+              <p className={TABLE_HEAD_TITLE}>신청 내역 ({quotes.length})</p>
+              <p className={TABLE_HEAD_DESC}>
+                이 회원(또는 소속 회사)이 접수한 신청서입니다.
+              </p>
+            </div>
+          </div>
+          <div className={TABLE_SCROLL}>
+            <table className={`${TABLE} min-w-[640px]`}>
+              <thead>
+                <tr className={THEAD_ROW}>
+                  <th className={TH}>신청번호</th>
+                  <th className={TH_NUM}>신청일시</th>
+                  <th className={TH_NUM}>신청 예상금액 (₩)</th>
+                  <th className={TH}>상태</th>
+                  <th className={TH} />
                 </tr>
-              ) : (
-                quotes.map((q) => (
-                  <tr key={q.id} className={`${TR} transition-colors hover:bg-foreground/[0.03]`}>
-                    <td className={`${TD} font-bold tabular-nums`}>{q.id}</td>
-                    <td className={`${TD} tabular-nums text-muted`}>
-                      {new Date(q.createdAt).toLocaleString("ko-KR")}
-                    </td>
-                    <td className={`${TD_NUM} font-bold`}>{won(q.total)}</td>
-                    <td className={TD}>
-                      <Badge tone={STATUS_TONE[q.status]}>{STATUS_LABEL[q.status]}</Badge>
-                    </td>
-                    <td className={`${TD} text-right`}>
-                      <Link
-                        href={`/admin/${q.id}`}
-                        className="inline-flex items-center gap-1.5 text-xs font-bold transition-colors hover:text-muted-strong"
-                      >
-                        상세
-                        <ArrowRight />
-                      </Link>
+              </thead>
+              <tbody>
+                {quotes.length === 0 ? (
+                  <tr>
+                    <td colSpan={5} className={TD_EMPTY}>
+                      아직 신청 내역이 없습니다.
                     </td>
                   </tr>
-                ))
-              )}
-            </tbody>
-          </table>
+                ) : (
+                  quotes.map((q) => (
+                    <tr key={q.id} className={TR_HOVER}>
+                      <td className={`${TD_ID} tabular-nums`}>{q.id}</td>
+                      <td className={`${TD_NUM} text-muted`}>
+                        {new Date(q.createdAt).toLocaleString("ko-KR")}
+                      </td>
+                      <td className={`${TD_NUM} font-bold`}>{num(q.total)}</td>
+                      <td className={TD}>
+                        <Badge tone={STATUS_TONE[q.status]}>{STATUS_LABEL[q.status]}</Badge>
+                      </td>
+                      <td className={TD_LINK}>
+                        <Link href={`/admin/${q.id}`} className={ROW_LINK}>
+                          상세
+                          <ArrowRight />
+                        </Link>
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
         </div>
+
       </main>
     </div>
   );

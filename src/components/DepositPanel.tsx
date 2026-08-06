@@ -8,10 +8,6 @@ import { Badge, btnClass } from "@/components/ui/kit";
 
 const PLACEHOLDER_BANK_INFO = "예시은행 000-0000-0000-00 (예금주: 서울아레나) — 실제 확정 계좌로 교체 필요";
 
-/** 입력 필드 — ProfileForm 의 FIELD 와 동일 규격 */
-const FIELD =
-  "w-full border border-border-soft bg-surface px-3.5 py-2.5 text-s text-foreground transition-colors placeholder:text-muted focus:border-foreground focus:outline-2 focus:outline-accent";
-
 export function DepositPanel({
   quoteId,
   deposit,
@@ -100,7 +96,7 @@ export function DepositPanel({
               value={depositorName}
               onChange={(e) => setDepositorName(e.target.value)}
               aria-label="입금자명"
-              className={FIELD}
+              className="field-base"
             />
             <button
               type="button"

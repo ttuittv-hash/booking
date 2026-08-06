@@ -15,7 +15,7 @@ import {
   type QuoteSelection,
   type RateTable,
 } from "@/lib/pricing/types";
-import { Label, SpecTable, btnClass } from "@/components/ui/kit";
+import { SpecTable, btnClass } from "@/components/ui/kit";
 
 const STAGES = [
   {
@@ -80,8 +80,7 @@ export function Step6Submit({
   if (!pkg) {
     return (
       <section>
-        <Label className="text-muted">Step 08</Label>
-        <h2 className="type-kr-heading mt-3 text-h4-m sm:text-h4">신청서 제출</h2>
+        <h2 className="type-kr-heading text-h4-m sm:text-h4">신청서 제출</h2>
         <p className="mt-3 text-s text-muted">먼저 3단계에서 패키지를 선택하세요.</p>
       </section>
     );
@@ -115,8 +114,7 @@ export function Step6Submit({
 
   return (
     <section>
-      <Label className="text-muted">Step 08</Label>
-      <h2 className="type-kr-heading mt-3 text-h4-m sm:text-h4">
+      <h2 className="type-kr-heading text-h4-m sm:text-h4">
         {isEditing ? "신청서 수정" : "신청서 제출"}
       </h2>
       <p className="mt-3 max-w-2xl text-s text-muted">
@@ -137,7 +135,7 @@ export function Step6Submit({
           </p>
         </div>
         <div className="shrink-0 sm:text-right">
-          <Label className="text-muted">신청 예상금액 · VAT 포함</Label>
+          <p className="text-xs font-bold text-muted">신청 예상금액 · VAT 포함</p>
           <p className="type-display mt-2 text-h4-m tabular-nums sm:text-h3">{won(quote.total)}</p>
         </div>
       </div>
@@ -233,7 +231,7 @@ export function Step6Submit({
             key={s.no}
             className="grid gap-2 border-b border-border/25 py-4 sm:grid-cols-[5rem_minmax(0,14rem)_minmax(0,1fr)] sm:items-baseline sm:gap-6"
           >
-            <span className="type-label text-xs text-muted">{s.no}</span>
+            <span className="text-xs font-bold text-muted">{s.no}</span>
             <span className="text-s font-bold">{s.title}</span>
             <p className="text-s text-muted">{s.desc}</p>
           </li>

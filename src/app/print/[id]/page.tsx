@@ -1,7 +1,7 @@
 import { notFound, redirect } from "next/navigation";
 import { canAccessQuote, getCurrentUser } from "@/lib/auth";
 import { findUserById, getQuoteById } from "@/lib/db";
-import { won } from "@/lib/format";
+import { num, won } from "@/lib/format";
 import { totalRentalDays } from "@/lib/pricing/rateTableUtils";
 import {
   DEFAULT_VENUE_ID,
@@ -63,20 +63,20 @@ export default async function PrintQuotePage({
 
       <section className="mt-8 grid gap-8 sm:grid-cols-2">
         <div>
-          <h2 className="type-label text-xs text-muted">신청자 정보</h2>
+          <h2 className="text-xs font-bold text-muted">신청자 정보</h2>
           <dl className="mt-3 border-t border-border/40">
-            <SpecRow label="담당자" value={applicant?.name ?? "-"} />
-            <SpecRow label="회사/기획사" value={applicant?.companyName ?? "-"} />
-            <SpecRow label="이메일" value={applicant?.email ?? "-"} />
+            <SpecRow label="담당자" value={applicant?.name ?? "—"} />
+            <SpecRow label="회사/기획사" value={applicant?.companyName ?? "—"} />
+            <SpecRow label="이메일" value={applicant?.email ?? "—"} />
           </dl>
         </div>
         <div>
-          <h2 className="type-label text-xs text-muted">대관 일정</h2>
+          <h2 className="text-xs font-bold text-muted">대관 일정</h2>
           <dl className="mt-3 border-t border-border/40">
             <SpecRow
               label="공간"
               value={
-                VENUES.find((v) => v.id === (quote.selection.venueId ?? DEFAULT_VENUE_ID))?.name ?? "-"
+                VENUES.find((v) => v.id === (quote.selection.venueId ?? DEFAULT_VENUE_ID))?.name ?? "—"
               }
             />
             <SpecRow
@@ -92,23 +92,23 @@ export default async function PrintQuotePage({
       {quote.selection.performanceInfo && (
         <section className="mt-8 grid gap-8 break-inside-avoid sm:grid-cols-2">
           <div>
-            <h2 className="type-label text-xs text-muted">공연 정보</h2>
+            <h2 className="text-xs font-bold text-muted">공연 정보</h2>
             <dl className="mt-3 border-t border-border/40">
-              <SpecRow label="공연(행사)명" value={quote.selection.performanceInfo.eventName || "-"} />
-              <SpecRow label="아티스트" value={quote.selection.performanceInfo.artist || "-"} />
-              <SpecRow label="주최·주관·기획" value={quote.selection.performanceInfo.organizer || "-"} />
-              <SpecRow label="행사규모" value={quote.selection.performanceInfo.eventScale || "-"} />
+              <SpecRow label="공연(행사)명" value={quote.selection.performanceInfo.eventName || "—"} />
+              <SpecRow label="아티스트" value={quote.selection.performanceInfo.artist || "—"} />
+              <SpecRow label="주최·주관·기획" value={quote.selection.performanceInfo.organizer || "—"} />
+              <SpecRow label="행사규모" value={quote.selection.performanceInfo.eventScale || "—"} />
             </dl>
           </div>
           <div>
-            <h2 className="type-label text-xs text-muted">공연 구성</h2>
+            <h2 className="text-xs font-bold text-muted">공연 구성</h2>
             <dl className="mt-3 border-t border-border/40">
               <SpecRow
                 label="행사유형"
                 value={
                   quote.selection.performanceInfo.eventTypes.length
                     ? quote.selection.performanceInfo.eventTypes.map((t) => EVENT_TYPE_LABEL[t]).join(", ")
-                    : "-"
+                    : "—"
                 }
               />
               <SpecRow
@@ -116,7 +116,7 @@ export default async function PrintQuotePage({
                 value={
                   quote.selection.performanceInfo.stageTypes.length
                     ? quote.selection.performanceInfo.stageTypes.map((t) => STAGE_TYPE_LABEL[t]).join(", ")
-                    : "-"
+                    : "—"
                 }
               />
               <SpecRow
@@ -124,7 +124,7 @@ export default async function PrintQuotePage({
                 value={
                   quote.selection.performanceInfo.seatingTypes.length
                     ? quote.selection.performanceInfo.seatingTypes.map((t) => SEATING_TYPE_LABEL[t]).join(", ")
-                    : "-"
+                    : "—"
                 }
               />
               <SpecRow
@@ -132,7 +132,7 @@ export default async function PrintQuotePage({
                 value={
                   quote.selection.performanceInfo.retractableSeatUse
                     ? RETRACTABLE_SEAT_USE_LABEL[quote.selection.performanceInfo.retractableSeatUse]
-                    : "-"
+                    : "—"
                 }
               />
             </dl>
@@ -141,16 +141,16 @@ export default async function PrintQuotePage({
       )}
 
       <section className="mt-10">
-        <h2 className="type-label text-xs text-muted">산출내역서</h2>
+        <h2 className="text-xs font-bold text-muted">산출내역서</h2>
         <table className="mt-3 w-full border-collapse text-xs">
           <thead>
             <tr className="border-y border-foreground text-left">
               <th className="py-2 pr-3 font-bold">항목</th>
-              <th className="py-2 pr-3 text-right font-bold">신청</th>
-              <th className="py-2 pr-3 text-right font-bold">기본포함</th>
-              <th className="py-2 pr-3 text-right font-bold">과금수량</th>
-              <th className="py-2 pr-3 text-right font-bold">단가</th>
-              <th className="py-2 text-right font-bold">금액</th>
+              <th className="py-2 pr-3 text-right font-bold">신청 (수량)</th>
+              <th className="py-2 pr-3 text-right font-bold">기본포함 (수량)</th>
+              <th className="py-2 pr-3 text-right font-bold">과금 (수량)</th>
+              <th className="py-2 pr-3 text-right font-bold">단가 (원)</th>
+              <th className="py-2 text-right font-bold">금액 (원)</th>
             </tr>
           </thead>
           <tbody>
@@ -158,10 +158,10 @@ export default async function PrintQuotePage({
               <tr key={item.addonId} className="border-b border-border/40 tabular-nums">
                 <td className="py-2 pr-3">{item.label}</td>
                 <td className="py-2 pr-3 text-right">{item.requested.toLocaleString()}</td>
-                <td className="py-2 pr-3 text-right">{item.included || "-"}</td>
+                <td className="py-2 pr-3 text-right">{item.included ? item.included.toLocaleString() : "—"}</td>
                 <td className="py-2 pr-3 text-right">{item.billable.toLocaleString()}</td>
-                <td className="py-2 pr-3 text-right">{won(item.unitPrice)}</td>
-                <td className="py-2 text-right">{won(item.amount)}</td>
+                <td className="py-2 pr-3 text-right">{num(item.unitPrice)}</td>
+                <td className="py-2 text-right">{num(item.amount)}</td>
               </tr>
             ))}
           </tbody>
@@ -185,7 +185,7 @@ export default async function PrintQuotePage({
 
       {quote.contract && (
         <section className="mt-10 break-inside-avoid">
-          <h2 className="type-label text-xs text-muted">계약금액</h2>
+          <h2 className="text-xs font-bold text-muted">계약금액</h2>
           <dl className="mt-3 border-t border-border/40">
             {quote.contract.adjustments.map((a, i) => (
               <div key={i} className="flex justify-between gap-4 border-b border-border/40 py-1.5 text-xs">
@@ -205,7 +205,7 @@ export default async function PrintQuotePage({
 
       {quote.settlement && (
         <section className="mt-10 break-inside-avoid">
-          <h2 className="type-label text-xs text-muted">최종 정산금액</h2>
+          <h2 className="text-xs font-bold text-muted">최종 정산금액</h2>
           <dl className="mt-3 border-t border-border/40">
             <div className="flex justify-between gap-4 border-b-2 border-foreground py-2 font-bold">
               <dt>정산금액 (확정일 {new Date(quote.settlement.decidedAt).toLocaleDateString("ko-KR")})</dt>

@@ -81,7 +81,7 @@ export function NotificationBell({ role }: { role: "ADMIN" | "APPLICANT" }) {
         </svg>
         {/* 옐로 면 + 검정 텍스트 (대비 약 14:1) · 샤프 코너 */}
         {unreadCount > 0 && (
-          <span className="type-label absolute top-0 right-0 grid h-4 min-w-4 place-items-center border border-foreground bg-accent px-1 text-xs leading-none text-on-accent tabular-nums">
+          <span className="absolute top-0 right-0 grid h-4 min-w-4 place-items-center border border-foreground bg-accent px-1 text-xs leading-none font-bold text-on-accent tabular-nums">
             {unreadCount > 9 ? "9+" : unreadCount}
           </span>
         )}
@@ -90,7 +90,7 @@ export function NotificationBell({ role }: { role: "ADMIN" | "APPLICANT" }) {
       {open && (
         <div className="absolute right-0 z-40 mt-2 w-80 animate-[dropdown-in_0.16s_ease-out] border border-border/25 bg-surface shadow-md">
           <div className="flex items-center justify-between border-b border-border/25 px-4 py-3">
-            <span className="type-label text-xs">Notifications</span>
+            <span className="text-xs font-bold">알림</span>
             {unreadCount > 0 && (
               <button
                 type="button"

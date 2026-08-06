@@ -5,7 +5,7 @@ import { PublicHeader } from "@/components/PublicHeader";
 import { WithdrawForm } from "@/components/WithdrawForm";
 import { Breadcrumb } from "@/components/ui/Breadcrumb";
 import { SiteFooter } from "@/components/ui/SiteFooter";
-import { Badge, Band, Label } from "@/components/ui/kit";
+import { Badge, Band, PageHeading } from "@/components/ui/kit";
 
 export const metadata: Metadata = {
   title: "회원 탈퇴 | 서울아레나",
@@ -19,22 +19,19 @@ export default async function WithdrawPage() {
   return (
     <div className="flex flex-1 flex-col">
       <PublicHeader active="/mypage" currentUser={user} />
+      {/* 3뎁스 — 부모(회원정보 수정)를 포함해 2개 */}
       <Breadcrumb
-        items={[
-          { label: "내 신청 내역", href: "/mypage" },
-          { label: "회원정보 수정", href: "/mypage/profile" },
-          { label: "회원 탈퇴" },
-        ]}
+        items={[{ label: "회원정보 수정", href: "/mypage/profile" }, { label: "회원 탈퇴" }]}
       />
 
       <main className="flex flex-1 flex-col">
         <Band tone="light" size="sm">
-          <Label className="mb-5 text-muted">My Account</Label>
-          <div className="flex flex-wrap items-start justify-between gap-4">
-            <h1 className="type-kr-heading text-h3-m sm:text-h3 text-danger">회원 탈퇴</h1>
-            <Badge tone="danger">되돌릴 수 없음</Badge>
-          </div>
-          <p className="mt-5 text-s text-muted">탈퇴 전 아래 안내를 확인해주세요.</p>
+          <PageHeading
+            size="md"
+            title="회원 탈퇴"
+            lead="탈퇴 전 아래 안내를 확인해주세요."
+            actions={<Badge tone="danger">되돌릴 수 없음</Badge>}
+          />
         </Band>
 
         <Band tone="white" size="sm">

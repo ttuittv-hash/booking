@@ -1,16 +1,22 @@
 import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/lib/auth";
 import { listUsers } from "@/lib/db";
-import { Label } from "@/components/ui/kit";
 import { AdminNav } from "@/components/admin/AdminNav";
 import { AddAdminForm } from "@/components/admin/AddAdminForm";
 import {
   PAGE_LEAD,
   PAGE_TITLE,
   TABLE,
-  TABLE_WRAP,
-  TD,
+  TABLE_CARD,
+  TABLE_HEAD,
+  TABLE_HEAD_DESC,
+  TABLE_HEAD_TITLE,
+  TABLE_SCROLL,
+  TD_ID,
+  TD_MUTED,
+  TD_NUM,
   TH,
+  TH_NUM,
   THEAD_ROW,
   TR,
 } from "@/components/admin/adminUi";
@@ -28,7 +34,6 @@ export default async function AdminUsersPage() {
 
       <main className="mx-auto w-full max-w-4xl flex-1 px-6 py-8 sm:py-10">
         <header className="border-b border-border/20 pb-6">
-          <Label className="mb-3 text-muted">Admins</Label>
           <h1 className={PAGE_TITLE}>운영자 계정 관리</h1>
           <p className={PAGE_LEAD}>
             이 화면에서 생성한 계정은 모두 운영자(ADMIN) 권한을 가지며, 신청 심사·계약·정산·요금표
@@ -36,29 +41,38 @@ export default async function AdminUsersPage() {
           </p>
         </header>
 
-        <div className={`mt-8 ${TABLE_WRAP}`}>
-          <table className={TABLE}>
-            <thead>
-              <tr className={THEAD_ROW}>
-                <th className={TH}>이름</th>
-                <th className={TH}>이메일</th>
-                <th className={TH}>가입일</th>
-              </tr>
-            </thead>
-            <tbody>
-              {admins.map((a) => (
-                <tr key={a.id} className={TR}>
-                  <td className={`${TD} font-bold`}>
-                    {a.name} {a.id === user.id && <span className="font-normal text-muted">(나)</span>}
-                  </td>
-                  <td className={`${TD} text-muted`}>{a.email}</td>
-                  <td className={`${TD} tabular-nums text-muted`}>
-                    {new Date(a.createdAt).toLocaleDateString("ko-KR")}
-                  </td>
+        <div className={`mt-8 ${TABLE_CARD}`}>
+          <div className={TABLE_HEAD}>
+            <div>
+              <p className={TABLE_HEAD_TITLE}>운영자 계정 ({admins.length})</p>
+              <p className={TABLE_HEAD_DESC}>백오피스에 접근할 수 있는 전체 계정입니다.</p>
+            </div>
+          </div>
+          <div className={TABLE_SCROLL}>
+            <table className={TABLE}>
+              <thead>
+                <tr className={THEAD_ROW}>
+                  <th className={TH}>이름</th>
+                  <th className={TH}>이메일</th>
+                  <th className={TH_NUM}>가입일</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {admins.map((a) => (
+                  <tr key={a.id} className={TR}>
+                    <td className={TD_ID}>
+                      {a.name}{" "}
+                      {a.id === user.id && <span className="font-normal text-muted">(나)</span>}
+                    </td>
+                    <td className={TD_MUTED}>{a.email}</td>
+                    <td className={`${TD_NUM} text-muted`}>
+                      {new Date(a.createdAt).toLocaleDateString("ko-KR")}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </div>
 
         <div className="mt-8">

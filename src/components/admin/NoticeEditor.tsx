@@ -56,7 +56,19 @@ const IMAGE_WIDTHS = [
   { label: "원본", value: null },
 ];
 
-const COLORS = ["#1d1d1f", "#0071e3", "#d70015", "#1a7f37", "#86868b"];
+/**
+ * 본문 글자색 팔레트.
+ * 이 값들은 UI 색이 아니라 **본문 HTML 에 저장되는 콘텐츠 값**이라 시맨틱 토큰(var)을
+ * 쓸 수 없다. 그래서 Figma Style Guide › Variables 의 프리미티브 값만 그대로 쓴다.
+ * (옐로는 밝은 지면 위 텍스트로 쓸 수 없으므로 팔레트에 넣지 않는다)
+ */
+const COLORS: { value: string; label: string }[] = [
+  { value: "#000000", label: "검정" },
+  { value: "#444444", label: "진회색" },
+  { value: "#666666", label: "회색" },
+  { value: "#a8200d", label: "강조 빨강" },
+  { value: "#0f5c33", label: "강조 초록" },
+];
 
 export function NoticeEditor({
   value,
@@ -184,12 +196,13 @@ export function NoticeEditor({
 
         {COLORS.map((c) => (
           <button
-            key={c}
+            key={c.value}
             type="button"
-            onClick={() => editor.chain().focus().setColor(c).run()}
-            className="h-5 w-5 border border-border/30"
-            style={{ backgroundColor: c }}
-            aria-label={`글자색 ${c}`}
+            onClick={() => editor.chain().focus().setColor(c.value).run()}
+            className="h-5 w-5 border border-border-soft transition-colors hover:border-foreground"
+            style={{ backgroundColor: c.value }}
+            aria-label={`글자색 ${c.label}`}
+            title={c.label}
           />
         ))}
 

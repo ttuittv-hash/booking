@@ -11,7 +11,6 @@ import {
   type WeekDay,
   type WeekDemand,
 } from "@/lib/pricing/types";
-import { Label } from "@/components/ui/kit";
 
 const DOW_LABELS = ["월", "화", "수", "목", "금", "토", "일"]; // 달력은 월요일부터 시작, 대관 단위는 화~일 (월요일은 대관 불가 기본값)
 const WEEKDAY_SHORT = ["일", "월", "화", "수", "목", "금", "토"];
@@ -167,8 +166,7 @@ export function Step1Calendar({
 
   return (
     <section>
-      <Label className="text-muted">Step 02</Label>
-      <h2 className="type-kr-heading mt-3 text-h4-m sm:text-h4">주차(기간) 선택</h2>
+      <h2 className="type-kr-heading text-h4-m sm:text-h4">주차(기간) 선택</h2>
       <p className="mt-3 max-w-2xl text-s text-muted">
         달력에서 원하는 주를 눌러 선택하세요. 기본 단위는{" "}
         <b className="text-foreground">1주(화~일, 6일)</b>이며, 월요일은 기본적으로 대관하지
@@ -191,7 +189,7 @@ export function Step1Calendar({
         {DOW_LABELS.map((label, i) => (
           <div
             key={label}
-            className={`type-label text-xs ${i === 0 ? "text-muted/50" : "text-muted"}`}
+            className={`text-xs font-bold ${i === 0 ? "text-muted/50" : "text-muted"}`}
           >
             {label}
           </div>
@@ -269,7 +267,7 @@ export function Step1Calendar({
       </div>
 
       <div className="mt-8 border-t border-border/25 pt-6">
-        <Label className="text-muted">사용 요일</Label>
+        <h3 className="type-kr-heading text-h6-m sm:text-h6">사용 요일</h3>
         <p className="mt-2 text-s text-muted">화~일 중 제외할 요일을 선택하세요.</p>
         <div className="mt-3 flex flex-wrap gap-2">
           {WEEKDAYS.map((day) => {
@@ -302,7 +300,7 @@ export function Step1Calendar({
 
       <div className="mt-6 flex flex-wrap items-center justify-between gap-4 border-t border-border/25 pt-6">
         <div>
-          <Label className="text-muted">추가 일수</Label>
+          <h3 className="type-kr-heading text-h6-m sm:text-h6">추가 일수</h3>
           <p className="mt-2 text-s text-muted">일요일 이후로 연장할 일수입니다.</p>
         </div>
         <div className="flex items-center gap-2">
@@ -336,7 +334,7 @@ export function Step1Calendar({
 
       {selectedDates.length > 0 && (
         <div className="mt-6 border-t border-border/25 pt-6">
-          <Label className="text-muted">공연 / 세팅 설정</Label>
+          <h3 className="type-kr-heading text-h6-m sm:text-h6">공연 / 세팅 설정</h3>
           <p className="mt-2 max-w-2xl text-s text-muted">
             선택하신 {selectedDates.length}일 각각을 공연/세팅 중에서 직접 선택하세요. 기본값은
             {" "}{defaultPerformanceDays}일이 공연이며, 기본 공연일수보다 늘리거나 줄이면 대관료가
@@ -358,7 +356,7 @@ export function Step1Calendar({
                     onClick={() => toggleDayTag(date)}
                     aria-pressed={tag === "PERFORMANCE"}
                     className={[
-                      "type-label border px-2 py-1 text-xs outline-none transition-colors",
+                      "border px-2 py-1 text-xs font-bold outline-none transition-colors",
                       "focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-foreground",
                       tag === "PERFORMANCE"
                         ? "border-foreground bg-accent text-on-accent"

@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-import { ArrowRight, Label, btnClass } from "@/components/ui/kit";
+import { ArrowRight, btnClass } from "@/components/ui/kit";
 import { ERROR_NOTE, FIELD, FIELD_LABEL } from "@/components/admin/adminUi";
 
 export default function AdminLoginPage() {
@@ -41,13 +41,12 @@ export default function AdminLoginPage() {
 
   return (
     <div className="flex flex-1 items-center justify-center px-6 py-16">
-      <div className="w-full max-w-sm border border-border-soft bg-surface p-6 sm:p-8">
+      <div className="w-full max-w-sm border border-border-soft bg-panel p-6 sm:p-8">
         <span aria-hidden className="mb-6 block h-1 w-12 bg-accent" />
         <Link href="/" className="type-display text-h6-m leading-none">
           Seoul Arena
         </Link>
-        <Label className="mt-6 text-muted">Back Office</Label>
-        <h1 className="type-kr-heading mt-3 text-h5-m sm:text-h5">운영자 로그인</h1>
+        <h1 className="type-kr-heading mt-6 text-h5-m sm:text-h5">운영자 로그인</h1>
         <p className="mt-3 text-s text-muted">서울아레나 운영자 계정으로 로그인하세요.</p>
 
         <form onSubmit={handleSubmit} className="mt-8 space-y-4">

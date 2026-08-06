@@ -6,10 +6,6 @@ import { won } from "@/lib/format";
 import type { InvoicePurpose, InvoiceStatus, TaxInvoice, UserRole } from "@/lib/pricing/types";
 import { Badge, SpecTable, btnClass } from "@/components/ui/kit";
 
-/** 입력 필드 — ProfileForm 의 FIELD 와 동일 규격 (샤프 · border-soft · 옐로 아웃라인) */
-const FIELD =
-  "w-full border border-border-soft bg-surface px-3.5 py-2.5 text-s text-foreground transition-colors placeholder:text-muted focus:border-foreground focus:outline-2 focus:outline-accent";
-
 type BadgeTone = "neutral" | "warn" | "accent" | "good";
 
 const STATUS_META: Record<InvoiceStatus, { label: string; tone: BadgeTone }> = {
@@ -122,7 +118,7 @@ export function TaxInvoicePanel({
               onChange={(e) => setPayerName(e.target.value)}
               placeholder="입금자명"
               aria-label="입금자명"
-              className={FIELD}
+              className="field-base"
             />
             <button
               type="button"

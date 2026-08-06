@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { Breadcrumb } from "@/components/ui/Breadcrumb";
 import { SiteFooter } from "@/components/ui/SiteFooter";
-import { ArrowRight, Label, btnClass } from "@/components/ui/kit";
+import { ArrowRight, Band, PageHeading, btnClass } from "@/components/ui/kit";
 
 declare global {
   interface Window {
@@ -18,10 +18,6 @@ declare global {
 }
 
 type AccountType = "CORPORATE" | "INDIVIDUAL";
-
-/** 입력 필드 공통 스타일 — 샤프 코너 · border-soft 1px · surface 배경 · 포커스 옐로 아웃라인 */
-const FIELD =
-  "w-full border border-border-soft bg-surface px-3.5 py-2.5 text-s text-foreground transition-colors placeholder:text-muted focus:border-foreground focus:outline-2 focus:outline-accent";
 
 export default function RegisterPage() {
   const router = useRouter();
@@ -145,37 +141,39 @@ export default function RegisterPage() {
 
   return (
     <div className="flex flex-1 flex-col">
+      {/* 2뎁스 — items 가 1개라 렌더되지 않는다 */}
       <Breadcrumb items={[{ label: "회원가입" }]} />
 
       <main className="grid flex-1 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.35fr)]">
-        {/* 브랜드 면 — 폼이 길어 데스크톱에서는 고정한다 */}
-        <aside className="relative flex flex-col justify-between overflow-hidden bg-inverse-bg px-6 py-14 text-inverse-fg lg:sticky lg:top-0 lg:h-screen lg:self-start lg:px-16 lg:py-20">
+        {/* 브랜드 면 — 폼이 길어 데스크톱에서는 고정한다.
+            Band 가 톤별로 토큰을 뒤집으므로 색을 직접 지정하지 않는다. */}
+        <Band
+          tone="dark"
+          size="md"
+          className="flex flex-col justify-center overflow-hidden lg:sticky lg:top-0 lg:h-screen lg:self-start"
+        >
           <Link href="/" className="type-display text-h6 leading-none">
             Seoul Arena
           </Link>
-          <div className="mt-16">
-            <span aria-hidden className="mb-6 block h-1 w-16 bg-accent" />
-            <Label className="text-accent">Host It</Label>
-            <p className="type-display mt-6 text-h3-m sm:text-h2">
-              Register
-              <br />
-              to host
-            </p>
-            <p className="mt-6 max-w-sm text-s text-inverse-fg/80">
-              대관사 전용 계정입니다. 운영자 승인 후 패키지 안내와 견적 산출을 이용하세요.
-            </p>
-          </div>
-        </aside>
+          <span aria-hidden className="mt-16 block h-1 w-16 bg-accent" />
+          <p className="type-display mt-6 text-h3-m sm:text-h2">
+            Register
+            <br />
+            to host
+          </p>
+          <p className="mt-6 max-w-sm text-s text-muted">
+            대관사 전용 계정입니다. 운영자 승인 후 패키지 안내와 견적 산출을 이용하세요.
+          </p>
+        </Band>
 
         {/* 폼 면 */}
         <div className="px-6 py-16 lg:px-16 lg:py-20">
           <div className="w-full max-w-xl">
-            <Label className="text-muted">Sign Up</Label>
-            <h1 className="type-kr-heading mt-4 text-h3-m sm:text-h3">신청자 회원가입</h1>
-            <p className="mt-4 text-s text-muted">
-              대관사(엔터테인먼트사·기획사) 전용 가입입니다. 가입 후 운영자 승인이 완료되어야 대관
-              패키지 안내와 견적 산출을 이용할 수 있습니다.
-            </p>
+            <PageHeading
+              size="md"
+              title="신청자 회원가입"
+              lead="대관사(엔터테인먼트사·기획사) 전용 가입입니다. 가입 후 운영자 승인이 완료되어야 대관 패키지 안내와 견적 산출을 이용할 수 있습니다."
+            />
 
             <form onSubmit={handleSubmit} noValidate className="mt-12 space-y-10">
               <FormSection no="01" title="계정 정보">
@@ -186,7 +184,7 @@ export default function RegisterPage() {
                     autoComplete="username"
                     value={form.username}
                     onChange={(e) => setForm({ ...form, username: e.target.value })}
-                    className={FIELD}
+                    className="field-base"
                   />
                 </Field>
                 <Field label="비밀번호" hint="8자 이상">
@@ -197,7 +195,7 @@ export default function RegisterPage() {
                     autoComplete="new-password"
                     value={form.password}
                     onChange={(e) => setForm({ ...form, password: e.target.value })}
-                    className={FIELD}
+                    className="field-base"
                   />
                 </Field>
                 <Field label="비밀번호 확인">
@@ -207,7 +205,7 @@ export default function RegisterPage() {
                     autoComplete="new-password"
                     value={form.passwordConfirm}
                     onChange={(e) => setForm({ ...form, passwordConfirm: e.target.value })}
-                    className={FIELD}
+                    className="field-base"
                   />
                 </Field>
               </FormSection>
@@ -220,7 +218,7 @@ export default function RegisterPage() {
                     autoComplete="name"
                     value={form.name}
                     onChange={(e) => setForm({ ...form, name: e.target.value })}
-                    className={FIELD}
+                    className="field-base"
                   />
                 </Field>
                 <Field label="휴대폰 번호">
@@ -231,7 +229,7 @@ export default function RegisterPage() {
                     placeholder="010-0000-0000"
                     value={form.phone}
                     onChange={(e) => setForm({ ...form, phone: e.target.value })}
-                    className={FIELD}
+                    className="field-base"
                   />
                 </Field>
                 <Field label="이메일">
@@ -241,7 +239,7 @@ export default function RegisterPage() {
                     autoComplete="email"
                     value={form.email}
                     onChange={(e) => setForm({ ...form, email: e.target.value })}
-                    className={FIELD}
+                    className="field-base"
                   />
                 </Field>
               </FormSection>
@@ -259,12 +257,10 @@ export default function RegisterPage() {
                       type="button"
                       onClick={() => setAccountType(value)}
                       aria-pressed={accountType === value}
-                      className={[
-                        "border px-3 py-3 text-s font-bold transition-colors",
-                        accountType === value
-                          ? "border-foreground bg-accent text-on-accent"
-                          : "border-border-soft text-muted hover:border-foreground hover:text-foreground",
-                      ].join(" ")}
+                      className={btnClass(
+                        accountType === value ? "primary" : "secondary",
+                        "lg",
+                      )}
                     >
                       {label}
                     </button>
@@ -285,7 +281,7 @@ export default function RegisterPage() {
                       required
                       value={form.companyName}
                       onChange={(e) => setForm({ ...form, companyName: e.target.value })}
-                      className={FIELD}
+                      className="field-base"
                     />
                   </Field>
                   <Field label="사업자등록번호" hint="10자리, - 없이 또는 포함하여">
@@ -295,7 +291,7 @@ export default function RegisterPage() {
                       placeholder="000-00-00000"
                       value={form.businessRegistrationNumber}
                       onChange={(e) => setForm({ ...form, businessRegistrationNumber: e.target.value })}
-                      className={FIELD}
+                      className="field-base"
                     />
                   </Field>
                   <Field label="대표자 성명">
@@ -304,7 +300,7 @@ export default function RegisterPage() {
                       required
                       value={form.representativeName}
                       onChange={(e) => setForm({ ...form, representativeName: e.target.value })}
-                      className={FIELD}
+                      className="field-base"
                     />
                   </Field>
                   <Field label="주소">
@@ -314,12 +310,12 @@ export default function RegisterPage() {
                         readOnly
                         placeholder="우편번호"
                         value={form.postalCode}
-                        className={`${FIELD} flex-1`}
+                        className="field-base flex-1"
                       />
                       <button
                         type="button"
                         onClick={openPostcodeSearch}
-                        className="shrink-0 whitespace-nowrap border border-foreground px-4 text-s font-bold text-foreground transition-colors hover:bg-foreground hover:text-inverse-fg"
+                        className={`${btnClass("secondary", "md")} shrink-0`}
                       >
                         우편번호 찾기
                       </button>
@@ -329,14 +325,14 @@ export default function RegisterPage() {
                       readOnly
                       placeholder="주소 (우편번호 찾기로 입력)"
                       value={form.address}
-                      className={`${FIELD} mt-2`}
+                      className="field-base mt-2"
                     />
                     <input
                       type="text"
                       placeholder="상세주소"
                       value={form.addressDetail}
                       onChange={(e) => setForm({ ...form, addressDetail: e.target.value })}
-                      className={`${FIELD} mt-2`}
+                      className="field-base mt-2"
                     />
                   </Field>
                   <Field label="사업자등록증 첨부" hint="PDF/이미지, 10MB 이하">
@@ -344,7 +340,7 @@ export default function RegisterPage() {
                       type="file"
                       accept=".pdf,.jpg,.jpeg,.png"
                       onChange={handleCertUpload}
-                      className="w-full border border-border-soft bg-surface px-3.5 py-2.5 text-s text-muted file:mr-3 file:border file:border-foreground file:bg-transparent file:px-3 file:py-1 file:text-xs file:font-bold file:text-foreground"
+                      className="field-base text-muted file:mr-3 file:border file:border-foreground file:bg-transparent file:px-3 file:py-1 file:text-xs file:font-bold file:text-foreground"
                     />
                     {certUploading && <p className="mt-2 text-xs text-muted">업로드 중...</p>}
                     {certFile && <p className="mt-2 text-xs text-good">첨부됨: {certFile.name}</p>}
@@ -356,7 +352,7 @@ export default function RegisterPage() {
                     <select
                       value={form.companyId}
                       onChange={(e) => setForm({ ...form, companyId: e.target.value, companyName: "" })}
-                      className={FIELD}
+                      className="field-base"
                     >
                       <option value="">목록에서 선택하지 않음</option>
                       {companies.map((c) => (
@@ -373,7 +369,7 @@ export default function RegisterPage() {
                       placeholder="회사/기획사명 (직접 입력, 선택)"
                       value={form.companyName}
                       onChange={(e) => setForm({ ...form, companyName: e.target.value, companyId: "" })}
-                      className={FIELD}
+                      className="field-base"
                     />
                   </Field>
                 </FormSection>

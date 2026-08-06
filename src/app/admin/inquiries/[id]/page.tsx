@@ -2,10 +2,10 @@ import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { getCurrentUser } from "@/lib/auth";
 import { findUserById, getInquiryById } from "@/lib/db";
-import { Badge, Label } from "@/components/ui/kit";
+import { Badge } from "@/components/ui/kit";
 import { AdminNav } from "@/components/admin/AdminNav";
 import { AnswerInquiryForm } from "@/components/AnswerInquiryForm";
-import { HELP, LINK_BTN, PANEL, SECTION_TITLE } from "@/components/admin/adminUi";
+import { HELP, LINK_BTN, NONE, PANEL, SECTION_TITLE } from "@/components/admin/adminUi";
 
 export default async function AdminInquiryDetailPage({
   params,
@@ -33,7 +33,6 @@ export default async function AdminInquiryDetailPage({
         </Link>
 
         <header className="mt-5 border-b border-border/20 pb-6">
-          <Label className="mb-3 text-muted">Inquiry</Label>
           <div className="flex flex-wrap items-start justify-between gap-4">
             <h1 className="type-kr-heading text-h5-m sm:text-h5">{inquiry.title}</h1>
             <Badge tone={answered ? "good" : "warn"}>
@@ -41,7 +40,7 @@ export default async function AdminInquiryDetailPage({
             </Badge>
           </div>
           <p className="mt-2 text-s text-muted">
-            {author?.name ?? "-"} ({author?.companyName ?? "-"}, {author?.email ?? "-"}) ·{" "}
+            {author?.name ?? NONE} ({author?.companyName ?? NONE}, {author?.email ?? NONE}) ·{" "}
             <span className="tabular-nums">
               {new Date(inquiry.createdAt).toLocaleString("ko-KR")}
             </span>

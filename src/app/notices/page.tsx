@@ -6,7 +6,16 @@ import { PublicHeader } from "@/components/PublicHeader";
 import { TagBadge, isPinnedTag } from "@/components/TagBadge";
 import { Breadcrumb } from "@/components/ui/Breadcrumb";
 import { SiteFooter } from "@/components/ui/SiteFooter";
-import { Band, ButtonLink, EmptyState, Label, Row, RowList } from "@/components/ui/kit";
+import {
+  ArrowRight,
+  Band,
+  ButtonLink,
+  CTABand,
+  EmptyState,
+  PageHeading,
+  Row,
+  RowList,
+} from "@/components/ui/kit";
 import type { Notice } from "@/lib/pricing/types";
 
 export const metadata: Metadata = {
@@ -54,16 +63,15 @@ export default async function NoticesPage() {
   return (
     <div className="flex flex-1 flex-col">
       <PublicHeader active="/notices" currentUser={currentUser} />
-      <Breadcrumb items={[{ label: "Know It" }, { label: "Notice" }]} />
+      {/* 2뎁스 — items 가 1개라 렌더되지 않는다 */}
+      <Breadcrumb items={[{ label: "공지사항" }]} />
 
       <main className="flex flex-1 flex-col">
         <Band tone="light" size="lg">
-          <Label className="mb-6 text-muted">Know It</Label>
-          <h1 className="type-display text-d2-m sm:text-h1 lg:text-d2">Notice</h1>
-          <p className="mt-8 max-w-3xl text-m text-muted">
-            대관 공고, 운영정책 변경, 시스템 점검 안내를 여기서 확인하세요. 신청 전 최신 공지를 먼저
-            확인하시기 바랍니다.
-          </p>
+          <PageHeading
+            title="공지사항"
+            lead="대관 공고, 운영정책 변경, 시스템 점검 안내를 여기서 확인하세요. 신청 전 최신 공지를 먼저 확인하시기 바랍니다."
+          />
         </Band>
 
         {notices.length === 0 ? (
@@ -84,7 +92,7 @@ export default async function NoticesPage() {
               <Band tone="white" size="md">
                 <div className="flex items-center gap-3">
                   <span aria-hidden className="h-3 w-3 bg-accent" />
-                  <Label className="text-muted">Now Open · 진행 중 대관 공고</Label>
+                  <h2 className="type-kr-heading text-h5-m sm:text-h5">진행 중 대관 공고</h2>
                 </div>
                 <NoticeRows notices={pinned} pinned />
               </Band>
@@ -92,12 +100,28 @@ export default async function NoticesPage() {
 
             {rest.length > 0 && (
               <Band tone="light" size="md" divide={pinned.length === 0}>
-                <Label className="text-muted">All Notices</Label>
+                <h2 className="type-kr-heading text-h5-m sm:text-h5">전체 공지</h2>
                 <NoticeRows notices={rest} />
               </Band>
             )}
           </>
         )}
+
+        <CTABand
+          title="찾는 답이 공지에 없나요?"
+          lead="자주 묻는 질문을 먼저 확인하고, 남는 내용은 운영자에게 바로 문의하세요."
+          actions={
+            <>
+              <ButtonLink href="/faq" variant="primary">
+                자주 묻는 질문
+                <ArrowRight />
+              </ButtonLink>
+              <ButtonLink href="/mypage/inquiries" variant="secondary">
+                1:1 문의
+              </ButtonLink>
+            </>
+          }
+        />
       </main>
 
       <SiteFooter />

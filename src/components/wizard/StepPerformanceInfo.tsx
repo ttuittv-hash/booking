@@ -11,16 +11,11 @@ import {
   type SeatingType,
   type StageType,
 } from "@/lib/pricing/types";
-import { Label } from "@/components/ui/kit";
 
 const EVENT_TYPES = Object.keys(EVENT_TYPE_LABEL) as EventType[];
 const STAGE_TYPES = Object.keys(STAGE_TYPE_LABEL) as StageType[];
 const SEATING_TYPES = Object.keys(SEATING_TYPE_LABEL) as SeatingType[];
 const RETRACTABLE_USES = Object.keys(RETRACTABLE_SEAT_USE_LABEL) as RetractableSeatUse[];
-
-/** 입력 필드 — Step1Package / ProfileForm 의 FIELD 와 동일 규격 (샤프 · border-soft · 옐로 아웃라인) */
-const FIELD =
-  "w-full border border-border-soft bg-surface px-3.5 py-2.5 text-s text-foreground transition-colors placeholder:text-muted focus:border-foreground focus:outline-2 focus:outline-accent";
 
 // 신청서 제출(POST /api/quotes)이 성공한 뒤 /api/quotes/[id]/attachments로 업로드되므로,
 // 서버 쪽 검증 기준(src/app/api/quotes/[id]/attachments/route.ts)과 동일하게 맞춘다.
@@ -92,13 +87,13 @@ function TextField({
 }) {
   return (
     <label className="block">
-      <span className="type-label mb-2 block text-xs text-muted">{label}</span>
+      <span className="mb-2 block text-xs font-bold text-muted">{label}</span>
       <input
         type="text"
         value={value}
         placeholder={placeholder}
         onChange={(e) => onChange(e.target.value)}
-        className={FIELD}
+        className="field-base"
       />
     </label>
   );
@@ -146,8 +141,7 @@ export function StepPerformanceInfo({
 
   return (
     <section>
-      <Label className="text-muted">Step 07</Label>
-      <h2 className="type-kr-heading mt-3 text-h4-m sm:text-h4">공연 정보 입력</h2>
+      <h2 className="type-kr-heading text-h4-m sm:text-h4">공연 정보 입력</h2>
       <p className="mt-3 max-w-2xl text-s text-muted">
         신청하실 공연(행사)에 대한 기본 정보를 입력해 주세요.
       </p>
@@ -168,7 +162,7 @@ export function StepPerformanceInfo({
       </div>
 
       <div className="mt-8 border-t border-border/25 pt-5">
-        <div className="type-label mb-3 text-xs text-muted">행사유형</div>
+        <div className="mb-3 text-xs font-bold text-muted">행사유형</div>
         <div className="flex flex-wrap gap-2">
           {EVENT_TYPES.map((type) => (
             <CheckboxChip
@@ -182,7 +176,7 @@ export function StepPerformanceInfo({
       </div>
 
       <div className="mt-6 border-t border-border/15 pt-5">
-        <div className="type-label mb-3 text-xs text-muted">무대형태</div>
+        <div className="mb-3 text-xs font-bold text-muted">무대형태</div>
         <div className="flex flex-wrap gap-2">
           {STAGE_TYPES.map((type) => (
             <CheckboxChip
@@ -196,7 +190,7 @@ export function StepPerformanceInfo({
       </div>
 
       <div className="mt-6 border-t border-border/15 pt-5">
-        <div className="type-label mb-3 text-xs text-muted">객석형태</div>
+        <div className="mb-3 text-xs font-bold text-muted">객석형태</div>
         <div className="flex flex-wrap gap-2">
           {SEATING_TYPES.map((type) => (
             <CheckboxChip
@@ -210,7 +204,7 @@ export function StepPerformanceInfo({
       </div>
 
       <div className="mt-6 border-t border-border/15 pt-5">
-        <div className="type-label mb-3 text-xs text-muted">수납식 객석 사용여부</div>
+        <div className="mb-3 text-xs font-bold text-muted">수납식 객석 사용여부</div>
         <div className="flex flex-wrap gap-2">
           {RETRACTABLE_USES.map((use) => (
             <CheckboxChip
@@ -226,7 +220,7 @@ export function StepPerformanceInfo({
       </div>
 
       <div className="mt-8 border-t-2 border-foreground pt-5">
-        <div className="type-label text-xs text-muted">자료 첨부</div>
+        <div className="text-xs font-bold text-muted">자료 첨부</div>
         <p className="mt-3 text-s text-muted">
           공연기획서, 무대 도면 등 참고자료를 첨부하세요. (PDF/이미지/문서, 파일당 최대 20MB) 신청서
           제출 시 함께 업로드됩니다.
@@ -262,7 +256,7 @@ export function StepPerformanceInfo({
             addFiles(e.target.files);
             e.target.value = "";
           }}
-          className="mt-5 w-full border border-border-soft bg-surface px-3.5 py-2.5 text-s text-muted transition-colors file:mr-3 file:border file:border-foreground file:bg-transparent file:px-3 file:py-1 file:text-xs file:font-bold file:text-foreground focus:border-foreground focus:outline-2 focus:outline-accent"
+          className="field-base mt-5 text-muted file:mr-3 file:border file:border-foreground file:bg-transparent file:px-3 file:py-1 file:text-xs file:font-bold file:text-foreground"
         />
       </div>
     </section>
