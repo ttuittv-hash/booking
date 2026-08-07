@@ -7,6 +7,8 @@ import { DATA_DIR } from "./dataDir";
 import { buildSeedRateTable } from "./pricing/seed";
 import { SEED_PAGES } from "./pricing/pageSeed";
 import { DEFAULT_GUIDE_CONTENT, DEFAULT_HOME_CONTENT, DEFAULT_VENUE_CONTENT } from "./content/seed";
+import { FEATURE_SPEC_SEED } from "./featureSpecSeed";
+import { FEATURE_SPEC_SHEET_KEYS } from "./pricing/types";
 import type { GuideContent, HomeContent, VenueContent } from "./content/types";
 import type {
   ApprovalStatus,
@@ -22,6 +24,8 @@ import type {
   DepositStatus,
   Faq,
   FacilityMeeting,
+  FeatureSpecRow,
+  FeatureSpecSheetKey,
   Inquiry,
   InquiryStatus,
   InvoicePurpose,
@@ -38,6 +42,7 @@ import type {
   TaxInvoice,
   TicketOpen,
   UserRole,
+  AdminTier,
   WeekDemand,
 } from "./pricing/types";
 
@@ -198,6 +203,14 @@ function createConnection(): DatabaseSync {
       updated_at TEXT NOT NULL
     );
 
+    -- 내부 기능정의서(기획 문서) — 시트별로 표 전체를 JSON 배열로 저장한다.
+    -- 마스터 관리자만 편집 가능 (src/lib/auth.ts의 requireMasterAdmin 참고).
+    CREATE TABLE IF NOT EXISTS feature_spec_sheets (
+      sheet_key TEXT PRIMARY KEY,
+      data TEXT NOT NULL,
+      updated_at TEXT NOT NULL
+    );
+
     CREATE TABLE IF NOT EXISTS date_blocks (
       date TEXT PRIMARY KEY,
       reason TEXT,
@@ -290,9 +303,32 @@ function createConnection(): DatabaseSync {
   ensureColumn(db, "companies", "business_cert_name", "TEXT");
   ensureColumn(db, "attachments", "category", "TEXT");
   ensureColumn(db, "users", "withdrawn_at", "TEXT");
+  ensureColumn(db, "users", "admin_tier", "TEXT");
   db.exec(
     "CREATE UNIQUE INDEX IF NOT EXISTS idx_users_username ON users(username) WHERE username IS NOT NULL",
   );
+
+  // admin_tier 컬럼 도입 이전에 만들어진 운영자 계정 부트스트랩:
+  // 마스터 관리자가 한 명도 없으면, 가장 먼저 만들어진 운영자 계정을 마스터로 승격하고
+  // 나머지 운영자는 일반관리자(BASIC)로 채워둔다. (한 번만 실행되며, 이후엔 무동작)
+  const masterCount = db
+    .prepare("SELECT COUNT(*) as n FROM users WHERE role = 'ADMIN' AND admin_tier = 'MASTER'")
+    .get() as { n: number };
+  if (masterCount.n === 0) {
+    const oldestAdmin = db
+      .prepare("SELECT id FROM users WHERE role = 'ADMIN' ORDER BY created_at ASC LIMIT 1")
+      .get() as { id: string } | undefined;
+    if (oldestAdmin) {
+      db.prepare("UPDATE users SET admin_tier = 'MASTER' WHERE id = ?").run(oldestAdmin.id);
+      db.prepare(
+        "UPDATE users SET admin_tier = 'BASIC' WHERE role = 'ADMIN' AND admin_tier IS NULL",
+      ).run();
+    }
+  } else {
+    db.prepare(
+      "UPDATE users SET admin_tier = 'BASIC' WHERE role = 'ADMIN' AND admin_tier IS NULL",
+    ).run();
+  }
 
   const rateTableCount = db.prepare("SELECT COUNT(*) as n FROM rate_tables").get() as { n: number };
   if (rateTableCount.n === 0) {
@@ -307,8 +343,8 @@ function createConnection(): DatabaseSync {
     const password = process.env.SEED_ADMIN_PASSWORD || "admin1234!";
     const username = process.env.SEED_ADMIN_USERNAME || "admin";
     db.prepare(
-      `INSERT INTO users (id, username, email, password_hash, name, company_name, role, created_at)
-       VALUES (?, ?, ?, ?, ?, NULL, 'ADMIN', ?)`,
+      `INSERT INTO users (id, username, email, password_hash, name, company_name, role, admin_tier, created_at)
+       VALUES (?, ?, ?, ?, ?, NULL, 'ADMIN', 'MASTER', ?)`,
     ).run(
       crypto.randomUUID(),
       username,
@@ -357,6 +393,20 @@ function createConnection(): DatabaseSync {
     );
     SEED_PAGES.forEach((p, i) => {
       insertPage.run(crypto.randomUUID(), p.group, p.slug, p.navLabel, p.title, p.body, i, now, now);
+    });
+  }
+
+  // 기능정의서(내부 기획 문서) — 최초 1회만 시드 데이터로 채운다.
+  const featureSpecCount = db
+    .prepare("SELECT COUNT(*) as n FROM feature_spec_sheets")
+    .get() as { n: number };
+  if (featureSpecCount.n === 0) {
+    const now = new Date().toISOString();
+    const insertSheet = db.prepare(
+      "INSERT INTO feature_spec_sheets (sheet_key, data, updated_at) VALUES (?, ?, ?)",
+    );
+    FEATURE_SPEC_SHEET_KEYS.forEach((key) => {
+      insertSheet.run(key, JSON.stringify(FEATURE_SPEC_SEED[key] ?? []), now);
     });
   }
 
@@ -537,6 +587,7 @@ interface UserRow {
   company_id: string | null;
   role: UserRole;
   approval_status: ApprovalStatus;
+  admin_tier: AdminTier | null;
   withdrawn_at: string | null;
   created_at: string;
 }
@@ -552,6 +603,7 @@ function toAppUser(row: UserRow): AppUser {
     companyId: row.company_id,
     role: row.role,
     approvalStatus: row.approval_status,
+    adminTier: row.role === "ADMIN" ? (row.admin_tier ?? "BASIC") : null,
     createdAt: row.created_at,
   };
 }
@@ -567,6 +619,8 @@ export function createUser(input: {
   companyId?: string | null;
   role: UserRole;
   approvalStatus?: ApprovalStatus;
+  // role이 ADMIN일 때만 의미가 있다. 생략하면 신규 운영자는 일반관리자(BASIC)로 시작한다.
+  adminTier?: AdminTier;
   termsAgreedAt?: string | null;
   privacyAgreedAt?: string | null;
   createdAt: string;
@@ -575,9 +629,10 @@ export function createUser(input: {
   const approvalStatus = input.approvalStatus ?? "APPROVED";
   const companyId = input.companyId ?? null;
   const phone = input.phone ?? null;
+  const adminTier: AdminTier | null = input.role === "ADMIN" ? (input.adminTier ?? "BASIC") : null;
   db.prepare(
-    `INSERT INTO users (id, username, email, phone, password_hash, name, company_name, company_id, role, approval_status, terms_agreed_at, privacy_agreed_at, created_at)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    `INSERT INTO users (id, username, email, phone, password_hash, name, company_name, company_id, role, approval_status, admin_tier, terms_agreed_at, privacy_agreed_at, created_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
   ).run(
     input.id,
     input.username,
@@ -589,6 +644,7 @@ export function createUser(input: {
     companyId,
     input.role,
     approvalStatus,
+    adminTier,
     input.termsAgreedAt ?? null,
     input.privacyAgreedAt ?? null,
     input.createdAt,
@@ -603,6 +659,7 @@ export function createUser(input: {
     companyId,
     role: input.role,
     approvalStatus,
+    adminTier,
     createdAt: input.createdAt,
   };
 }
@@ -670,6 +727,27 @@ export function listUsers(filter?: { role?: UserRole; approvalStatus?: ApprovalS
 export function setUserApprovalStatus(id: string, approvalStatus: ApprovalStatus): AppUser {
   const db = getDb();
   db.prepare("UPDATE users SET approval_status = ? WHERE id = ?").run(approvalStatus, id);
+  return findUserById(id)!;
+}
+
+// 운영자 계정 등급 변경(일반관리자/프로 관리자/마스터 관리자). 호출부(API 라우트)에서
+// "호출자가 마스터 관리자인지"는 이미 확인했다고 가정한다 — 여기서는 마지막 남은 마스터
+// 관리자를 강등시키는 경우만 막아서, 시스템에 마스터가 0명이 되는 상태를 방지한다.
+export function setAdminTier(id: string, tier: AdminTier): AppUser {
+  const db = getDb();
+  const target = findUserById(id);
+  if (!target || target.role !== "ADMIN") {
+    throw new Error("운영자 계정이 아닙니다.");
+  }
+  if (target.adminTier === "MASTER" && tier !== "MASTER") {
+    const masterCount = db
+      .prepare("SELECT COUNT(*) as n FROM users WHERE role = 'ADMIN' AND admin_tier = 'MASTER'")
+      .get() as { n: number };
+    if (masterCount.n <= 1) {
+      throw new Error("마지막 남은 마스터 관리자는 강등할 수 없습니다.");
+    }
+  }
+  db.prepare("UPDATE users SET admin_tier = ? WHERE id = ?").run(tier, id);
   return findUserById(id)!;
 }
 
@@ -1984,4 +2062,33 @@ export function getHomeContent(): HomeContent {
 
 export function saveHomeContent(data: HomeContent): HomeContent {
   return saveSiteContent("home", data);
+}
+
+// ---------------------------------------------------------------------------
+// 기능정의서(내부 기획 문서) — 마스터 관리자 전용
+// ---------------------------------------------------------------------------
+
+export function getFeatureSpecSheet(key: FeatureSpecSheetKey): FeatureSpecRow[] {
+  const db = getDb();
+  const row = db.prepare("SELECT data FROM feature_spec_sheets WHERE sheet_key = ?").get(key) as
+    | { data: string }
+    | undefined;
+  return row ? (JSON.parse(row.data) as FeatureSpecRow[]) : (FEATURE_SPEC_SEED[key] ?? []);
+}
+
+export function getAllFeatureSpecSheets(): Record<FeatureSpecSheetKey, FeatureSpecRow[]> {
+  const result = {} as Record<FeatureSpecSheetKey, FeatureSpecRow[]>;
+  FEATURE_SPEC_SHEET_KEYS.forEach((key) => {
+    result[key] = getFeatureSpecSheet(key);
+  });
+  return result;
+}
+
+export function saveFeatureSpecSheet(key: FeatureSpecSheetKey, rows: FeatureSpecRow[]): FeatureSpecRow[] {
+  const db = getDb();
+  db.prepare(
+    `INSERT INTO feature_spec_sheets (sheet_key, data, updated_at) VALUES (?, ?, ?)
+     ON CONFLICT(sheet_key) DO UPDATE SET data = excluded.data, updated_at = excluded.updated_at`,
+  ).run(key, JSON.stringify(rows), new Date().toISOString());
+  return rows;
 }

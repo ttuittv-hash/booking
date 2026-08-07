@@ -36,7 +36,7 @@ export default async function AdminComparePage({
 
   return (
     <div className="flex flex-1 flex-col">
-      <AdminNav active="/admin" />
+      <AdminNav active="/admin" user={user} />
 
       <main className="mx-auto w-full max-w-6xl flex-1 px-6 py-10">
         <Link href="/admin" className="text-[12.5px] font-medium text-accent hover:underline">

@@ -21,7 +21,7 @@ export default async function AdminInquiryDetailPage({
 
   return (
     <div className="flex flex-1 flex-col">
-      <AdminNav active="/admin/inquiries" />
+      <AdminNav active="/admin/inquiries" user={user} />
 
       <main className="mx-auto w-full max-w-2xl flex-1 px-6 py-10">
         <Link href="/admin/inquiries" className="text-[12.5px] font-medium text-accent hover:underline">

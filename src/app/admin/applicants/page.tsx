@@ -18,7 +18,7 @@ export default async function AdminApplicantsPage() {
 
   return (
     <div className="flex flex-1 flex-col">
-      <AdminNav active="/admin/applicants" />
+      <AdminNav active="/admin/applicants" user={user} />
 
       <main className="mx-auto w-full max-w-4xl flex-1 px-6 py-10">
         <h1 className="text-[22px] font-semibold">회원 관리</h1>

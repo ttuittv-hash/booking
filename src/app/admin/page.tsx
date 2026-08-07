@@ -36,7 +36,7 @@ export default async function AdminPage({
 
   return (
     <div className="flex flex-1 flex-col">
-      <AdminNav active="/admin" />
+      <AdminNav active="/admin" user={user} />
 
       <main className="mx-auto w-full max-w-6xl flex-1 px-6 py-10">
         <h1 className="text-[22px] font-semibold">신청 현황</h1>

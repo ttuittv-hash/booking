@@ -84,6 +84,16 @@ export async function requireRole(role: UserRole): Promise<AppUser | null> {
   return user;
 }
 
+// 마스터 관리자 전용 화면/API에서 사용. role=ADMIN이면서 adminTier=MASTER인 계정만 통과시킨다.
+export function isMasterAdmin(user: AppUser | null): boolean {
+  return !!user && user.role === "ADMIN" && user.adminTier === "MASTER";
+}
+
+export async function requireMasterAdmin(): Promise<AppUser | null> {
+  const user = await getCurrentUser();
+  return isMasterAdmin(user) ? user : null;
+}
+
 // 승인 대기·거절 상태의 신청자(대관사) 계정 여부 — 대관 안내/신청 관련 화면 접근 제한에 사용
 export function isPendingApplicant(user: AppUser): boolean {
   return user.role === "APPLICANT" && user.approvalStatus !== "APPROVED";

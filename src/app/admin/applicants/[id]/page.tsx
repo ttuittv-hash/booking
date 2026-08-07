@@ -36,7 +36,7 @@ export default async function AdminApplicantDetailPage({
 
   return (
     <div className="flex flex-1 flex-col">
-      <AdminNav active="/admin/applicants" />
+      <AdminNav active="/admin/applicants" user={admin} />
 
       <main className="mx-auto w-full max-w-4xl flex-1 px-6 py-10">
         <Link href="/admin/applicants" className="text-[12.5px] font-medium text-accent hover:underline">
