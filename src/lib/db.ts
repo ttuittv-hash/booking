@@ -765,6 +765,28 @@ export function setAdminTier(id: string, tier: AdminTier): AppUser {
   return findUserById(id)!;
 }
 
+// 비밀번호 해시 없이 이메일로 계정을 찾는다(역할 무관 — 신청자든 운영자든).
+// "기존 회원을 운영자로 승급" 기능에서 사용.
+export function findUserByEmail(email: string): AppUser | undefined {
+  const db = getDb();
+  const row = db.prepare("SELECT * FROM users WHERE email = ?").get(email.toLowerCase()) as
+    | UserRow
+    | undefined;
+  if (!row || row.withdrawn_at) return undefined;
+  return toAppUser(row);
+}
+
+// 이미 가입된 계정(신청자 포함)을 운영자로 전환한다. 새 비밀번호를 만들지 않고
+// 그 사람이 이미 쓰던 계정 그대로 role/등급만 바꾸는 것 — Render 환경변수
+// (MASTER_ADMIN_EMAILS) 없이도 마스터 관리자가 화면에서 바로 할 수 있게 한다.
+export function promoteUserToAdmin(id: string, tier: AdminTier): AppUser {
+  const db = getDb();
+  db.prepare(
+    "UPDATE users SET role = 'ADMIN', admin_tier = ?, approval_status = 'APPROVED' WHERE id = ?",
+  ).run(tier, id);
+  return findUserById(id)!;
+}
+
 export function findUserById(id: string): AppUser | undefined {
   const db = getDb();
   const row = db.prepare("SELECT * FROM users WHERE id = ?").get(id) as UserRow | undefined;

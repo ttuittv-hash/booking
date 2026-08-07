@@ -4,6 +4,7 @@ import { listUsers } from "@/lib/db";
 import { AdminNav } from "@/components/admin/AdminNav";
 import { AddAdminForm } from "@/components/admin/AddAdminForm";
 import { AdminTierControl, TierBadge } from "@/components/admin/AdminTierControl";
+import { PromoteUserForm } from "@/components/admin/PromoteUserForm";
 
 export default async function AdminUsersPage() {
   const user = await getCurrentUser();
@@ -58,6 +59,12 @@ export default async function AdminUsersPage() {
             </tbody>
           </table>
         </div>
+
+        {master && (
+          <div className="mt-8">
+            <PromoteUserForm />
+          </div>
+        )}
 
         <div className="mt-8">
           <AddAdminForm />
