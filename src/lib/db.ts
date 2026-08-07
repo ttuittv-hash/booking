@@ -424,6 +424,44 @@ function createConnection(): DatabaseSync {
     });
   }
 
+  // 메뉴트리(프론트) 1회성 마이그레이션: "대분류" 하나였던 값을 "구분"(GNB/푸터) +
+  // "대분류"(짧은 이름: 유어스테이지·북잇·노우잇·호스트잇·하단·마이)로 분리하고,
+  // "마이"(신청자 마이페이지) 행들을 맨 뒤로 옮긴다. 이미 "구분" 필드가 있으면(=한 번
+  // 실행됐으면) 다시 건드리지 않는다 — 그 뒤에 마스터 관리자가 손으로 고친 내용을
+  // 덮어쓰지 않기 위함.
+  const menuFrontRow = db
+    .prepare("SELECT data FROM feature_spec_sheets WHERE sheet_key = ?")
+    .get("메뉴트리(프론트)") as { data: string } | undefined;
+  if (menuFrontRow) {
+    const menuFrontRows = JSON.parse(menuFrontRow.data) as Record<string, string>[];
+    const alreadyMigrated = menuFrontRows.some((r) => "구분" in r);
+    if (!alreadyMigrated) {
+      const LABEL_MAP: Record<string, [string, string]> = {
+        "신청자 마이페이지": ["GNB", "마이"],
+        "GNB·YOUR STAGE": ["GNB", "유어스테이지"],
+        "GNB·BOOK IT": ["GNB", "북잇"],
+        "GNB·KNOW IT": ["GNB", "노우잇"],
+        "GNB·HOST IT": ["GNB", "호스트잇"],
+        "GNB·하단": ["GNB", "하단"],
+      };
+      const transformed = menuFrontRows.map((row) => {
+        const old = row["대분류"];
+        const [gubun, daebunryu] = LABEL_MAP[old] ?? ["GNB", old];
+        const next: Record<string, string> = { 구분: gubun, 대분류: daebunryu };
+        for (const [k, v] of Object.entries(row)) {
+          if (k === "대분류") continue;
+          next[k] = v;
+        }
+        return next;
+      });
+      const mai = transformed.filter((r) => r["대분류"] === "마이");
+      const others = transformed.filter((r) => r["대분류"] !== "마이");
+      db.prepare(
+        "UPDATE feature_spec_sheets SET data = ?, updated_at = ? WHERE sheet_key = ?",
+      ).run(JSON.stringify([...others, ...mai]), new Date().toISOString(), "메뉴트리(프론트)");
+    }
+  }
+
   return db;
 }
 
