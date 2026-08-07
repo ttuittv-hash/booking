@@ -13,18 +13,18 @@ const SHEET_HEADERS: Record<FeatureSpecSheetKey, string[]> = {
   버그: ["#", "위치", "문제"],
   "메뉴트리(프론트)": ["대분류", "메뉴", "하위메뉴", "경로", "비고"],
   "메뉴트리(어드민)": ["대분류", "메뉴", "하위메뉴", "경로", "비고"],
-  "추가 개발 내역": ["#", "항목", "구분", "필요한 이유 / 준비물", "확보되면 할 일", "담당", "비고"],
+  "추가 개발 내역": ["#", "항목", "구분", "필요한 이유 / 준비물", "확보되면 할 일", "비고"],
   "패키지 참고": ["패키지", "공간", "수용 규모", "기본 대관료(주)", "홍보매체", "기본 준비/공연일수"],
   "옵션 참고": ["id", "카테고리", "이름", "과금 단위", "단가", "비고"],
 };
 
 // 짧은 값만 들어가는 컬럼은 좁게, 문장이 길게 들어가는 컬럼은 넓게 — 표가 옆으로
 // 한없이 늘어나지 않고 긴 텍스트는 줄바꿈되도록 헤더별로 폭을 다르게 준다.
+// 전부 min-width로만 지정한다 — 고정 width를 쓰면 한글 내용이 그 폭보다 길 때
+// 단어 단위가 아니라 한 글자씩 세로로 쪼개져 줄바꿈되는 문제가 생긴다.
+const TINY_COLS = new Set(["#", "id"]);
 const NARROW_COLS = new Set([
-  "#",
-  "id",
   "구분",
-  "담당",
   "위치",
   "카테고리",
   "과금 단위",
@@ -46,7 +46,8 @@ const WIDE_COLS = new Set([
 ]);
 
 function columnWidthClass(header: string): string {
-  if (NARROW_COLS.has(header)) return "w-24";
+  if (TINY_COLS.has(header)) return "min-w-[64px]";
+  if (NARROW_COLS.has(header)) return "min-w-[120px]";
   if (WIDE_COLS.has(header)) return "min-w-[280px]";
   return "min-w-[160px]";
 }
@@ -203,7 +204,13 @@ export function FeatureSpecManager({
               <tr key={rowIdx} className="border-b border-border/70 align-top hover:bg-panel/50">
                 {headers.map((h) => {
                   const widthClass = columnWidthClass(h);
-                  const charsPerLine = NARROW_COLS.has(h) ? 14 : WIDE_COLS.has(h) ? 34 : 20;
+                  const charsPerLine = TINY_COLS.has(h)
+                    ? 8
+                    : NARROW_COLS.has(h)
+                      ? 14
+                      : WIDE_COLS.has(h)
+                        ? 34
+                        : 20;
                   return (
                     <td key={h} className={`p-0 ${widthClass}`}>
                       <textarea
