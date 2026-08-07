@@ -330,6 +330,20 @@ function createConnection(): DatabaseSync {
     ).run();
   }
 
+  // MASTER_ADMIN_EMAILS(콤마로 구분된 이메일 목록) 환경변수에 있는 이메일로 이미 가입된
+  // 계정이 있으면 마스터 관리자로 승격한다(신청자 계정이었다면 운영자로도 함께 전환).
+  // 배포 환경변수로만 제어되고 코드에는 특정 개인 이메일을 박아두지 않는다 — 앱을 재시작할
+  // 때마다 다시 확인하므로, 아직 가입 전이었던 이메일도 나중에 가입하면 다음 재시작 때 승격된다.
+  const masterEmails = (process.env.MASTER_ADMIN_EMAILS || "")
+    .split(",")
+    .map((e) => e.trim().toLowerCase())
+    .filter(Boolean);
+  masterEmails.forEach((email) => {
+    db.prepare(
+      "UPDATE users SET role = 'ADMIN', admin_tier = 'MASTER', approval_status = 'APPROVED' WHERE email = ?",
+    ).run(email);
+  });
+
   const rateTableCount = db.prepare("SELECT COUNT(*) as n FROM rate_tables").get() as { n: number };
   if (rateTableCount.n === 0) {
     insertRateTable(db, buildSeedRateTable());
