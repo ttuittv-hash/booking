@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useLayoutEffect, useRef, useState } from "react";
 import {
   FEATURE_SPEC_SHEET_KEYS,
   type FeatureSpecRow,
@@ -17,6 +17,49 @@ const SHEET_HEADERS: Record<FeatureSpecSheetKey, string[]> = {
   "패키지 참고": ["패키지", "공간", "수용 규모", "기본 대관료(주)", "홍보매체", "기본 준비/공연일수"],
   "옵션 참고": ["id", "카테고리", "이름", "과금 단위", "단가", "비고"],
 };
+
+// 짧은 값만 들어가는 컬럼은 좁게, 문장이 길게 들어가는 컬럼은 넓게 — 표가 옆으로
+// 한없이 늘어나지 않고 긴 텍스트는 줄바꿈되도록 헤더별로 폭을 다르게 준다.
+const NARROW_COLS = new Set([
+  "#",
+  "id",
+  "구분",
+  "담당",
+  "위치",
+  "카테고리",
+  "과금 단위",
+  "단가",
+  "공간",
+  "수용 규모",
+  "기본 대관료(주)",
+  "기본 준비/공연일수",
+  "홍보매체",
+]);
+const WIDE_COLS = new Set([
+  "상세 정의",
+  "문제",
+  "필요한 이유 / 준비물",
+  "확보되면 할 일",
+  "검토 필요 사항",
+  "비고",
+  "하위메뉴",
+]);
+
+function columnWidthClass(header: string): string {
+  if (NARROW_COLS.has(header)) return "w-24";
+  if (WIDE_COLS.has(header)) return "min-w-[280px]";
+  return "min-w-[160px]";
+}
+
+// 서버에서도(첫 렌더 시) 대략 맞는 줄 수를 계산해, 자바스크립트가 붙기 전에도
+// 긴 텍스트가 한 줄로 잘려 보이지 않게 한다. 타이핑 중에는 아래 onInput 핸들러가
+// scrollHeight 기준으로 더 정확하게 다시 맞춘다.
+function estimateRows(value: string, charsPerLine: number): number {
+  if (!value) return 1;
+  const explicitLines = value.split("\n").length;
+  const wrappedLines = Math.ceil(value.length / charsPerLine);
+  return Math.max(1, explicitLines, wrappedLines);
+}
 
 type SaveState = "idle" | "saving" | "saved" | "error";
 
@@ -38,6 +81,18 @@ export function FeatureSpecManager({
   const [saveState, setSaveState] = useState<Record<string, SaveState>>({});
   const [savedAt, setSavedAt] = useState<Record<string, string>>({});
   const saveTimers = useRef<Partial<Record<FeatureSpecSheetKey, ReturnType<typeof setTimeout>>>>({});
+  const tableRef = useRef<HTMLDivElement>(null);
+
+  // estimateRows()의 글자수 어림값은 한글 폭·줄바꿈 규칙 때문에 실제보다 부족할 수 있다.
+  // 탭을 바꾸거나 행이 늘어나면(즉 새로 렌더링된 textarea가 생기면) 실제 scrollHeight를
+  // 다시 재서 높이를 맞춰, 내용이 잘려 보이는 셀이 없도록 한다.
+  useLayoutEffect(() => {
+    const textareas = tableRef.current?.querySelectorAll("textarea") ?? [];
+    textareas.forEach((el) => {
+      el.style.height = "auto";
+      el.style.height = `${el.scrollHeight}px`;
+    });
+  }, [activeSheet, data]);
 
   async function persist(sheet: FeatureSpecSheetKey, rows: FeatureSpecRow[]) {
     setSaveState((s) => ({ ...s, [sheet]: "saving" }));
@@ -124,12 +179,12 @@ export function FeatureSpecManager({
         </p>
       </div>
 
-      <div className="mt-2 overflow-x-auto rounded border border-border">
+      <div ref={tableRef} className="mt-2 overflow-x-auto rounded border border-border">
         <table className="w-full min-w-[720px] border-collapse text-[13px]">
           <thead>
             <tr className="border-b border-border bg-panel text-left text-[11.5px] font-medium text-muted">
               {headers.map((h) => (
-                <th key={h} className="whitespace-nowrap px-3 py-2.5">
+                <th key={h} className={`whitespace-nowrap px-3 py-2.5 ${columnWidthClass(h)}`}>
                   {h}
                 </th>
               ))}
@@ -146,22 +201,26 @@ export function FeatureSpecManager({
             )}
             {rows.map((row, rowIdx) => (
               <tr key={rowIdx} className="border-b border-border/70 align-top hover:bg-panel/50">
-                {headers.map((h) => (
-                  <td key={h} className="p-0">
-                    <textarea
-                      value={row[h] ?? ""}
-                      placeholder="입력…"
-                      rows={1}
-                      onChange={(e) => updateCell(activeSheet, rowIdx, h, e.target.value)}
-                      onInput={(e) => {
-                        const el = e.currentTarget;
-                        el.style.height = "auto";
-                        el.style.height = `${el.scrollHeight}px`;
-                      }}
-                      className="block w-full min-w-[120px] resize-none border-0 bg-transparent px-3 py-2.5 text-[13px] leading-5 outline-none focus:bg-accent-soft"
-                    />
-                  </td>
-                ))}
+                {headers.map((h) => {
+                  const widthClass = columnWidthClass(h);
+                  const charsPerLine = NARROW_COLS.has(h) ? 14 : WIDE_COLS.has(h) ? 34 : 20;
+                  return (
+                    <td key={h} className={`p-0 ${widthClass}`}>
+                      <textarea
+                        value={row[h] ?? ""}
+                        placeholder="입력…"
+                        rows={estimateRows(row[h] ?? "", charsPerLine)}
+                        onChange={(e) => updateCell(activeSheet, rowIdx, h, e.target.value)}
+                        onInput={(e) => {
+                          const el = e.currentTarget;
+                          el.style.height = "auto";
+                          el.style.height = `${el.scrollHeight}px`;
+                        }}
+                        className="block w-full resize-none whitespace-pre-wrap break-words border-0 bg-transparent px-3 py-2.5 text-[13px] leading-5 outline-none focus:bg-accent-soft"
+                      />
+                    </td>
+                  );
+                })}
                 <td className="whitespace-nowrap px-2 py-2.5 text-right">
                   <button
                     type="button"

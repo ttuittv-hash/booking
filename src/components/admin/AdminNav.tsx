@@ -13,8 +13,8 @@ const LINKS = [
   { href: "/admin/content", label: "콘텐츠 관리", masterOnly: false },
   { href: "/admin/inquiries", label: "1:1 문의", masterOnly: false },
   { href: "/admin/users", label: "운영자 계정", masterOnly: false },
-  // 기능정의서(내부 기획 문서)는 마스터 관리자만 볼 수 있다.
-  { href: "/admin/feature-spec", label: "기능정의서", masterOnly: true },
+  // 기능정의서(내부 기획 문서)는 일반 백오피스 메뉴에 넣지 않는다 — 개발자·마스터
+  // 관리자만 /admin/feature-spec 주소로 직접 들어간다 (src/app/admin/feature-spec/page.tsx).
 ];
 
 // user를 넘기지 않는 호출부는 하위호환을 위해 마스터 전용 메뉴를 숨긴 상태로 렌더링한다.
