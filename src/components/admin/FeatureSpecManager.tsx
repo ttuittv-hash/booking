@@ -152,113 +152,118 @@ export function FeatureSpecManager({
   const state = saveState[activeSheet] ?? "idle";
 
   return (
-    <div className="mt-8">
-      <div className="sticky top-14 z-10 -mx-6 flex h-11 items-center gap-1 overflow-x-auto whitespace-nowrap border-b border-border bg-background px-6 sm:top-16">
-        {FEATURE_SPEC_SHEET_KEYS.map((key) => (
-          <button
-            key={key}
-            type="button"
-            onClick={() => setActiveSheet(key)}
-            className={[
-              "shrink-0 border-b-2 px-3 py-3 text-[13px] font-medium outline-none transition-colors",
-              activeSheet === key
-                ? "border-accent text-accent"
-                : "border-transparent text-muted hover:text-foreground",
-            ].join(" ")}
-          >
-            {key} ({data[key].length})
-          </button>
-        ))}
-      </div>
+    <div className="mt-8 flex flex-col gap-6 lg:flex-row">
+      <aside className="shrink-0 lg:w-56">
+        <nav className="sticky top-20 flex flex-row gap-1 overflow-x-auto lg:flex-col lg:overflow-visible">
+          {FEATURE_SPEC_SHEET_KEYS.map((key) => (
+            <button
+              key={key}
+              type="button"
+              onClick={() => setActiveSheet(key)}
+              className={[
+                "flex shrink-0 items-center justify-between gap-2 whitespace-nowrap rounded-sm px-3 py-2 text-left text-[13px] font-medium outline-none transition-colors",
+                activeSheet === key
+                  ? "bg-accent-soft text-accent"
+                  : "text-muted hover:bg-panel hover:text-foreground",
+              ].join(" ")}
+            >
+              <span>{key}</span>
+              <span className="text-[11px] tabular-nums text-muted">{data[key].length}</span>
+            </button>
+          ))}
+        </nav>
+      </aside>
 
-      <div className="mt-4 flex items-center justify-between">
-        <p className="text-[12px] text-muted">셀을 클릭해서 바로 수정하세요. 변경 사항은 자동 저장됩니다.</p>
-        <p className="text-[12px] text-muted">
-          {state === "saving" && "저장 중…"}
-          {state === "saved" && `저장됨 · ${savedAt[activeSheet] ?? ""}`}
-          {state === "error" && <span className="text-red-600">저장 실패 — 다시 시도해 주세요</span>}
-        </p>
-      </div>
+      <div className="min-w-0 flex-1">
+        <div className="flex items-center justify-between">
+          <p className="text-[12px] text-muted">셀을 클릭해서 바로 수정하세요. 변경 사항은 자동 저장됩니다.</p>
+          <p className="text-[12px] text-muted">
+            {state === "saving" && "저장 중…"}
+            {state === "saved" && `저장됨 · ${savedAt[activeSheet] ?? ""}`}
+            {state === "error" && <span className="text-red-600">저장 실패 — 다시 시도해 주세요</span>}
+          </p>
+        </div>
 
-      <div ref={tableRef} className="mt-2 overflow-x-auto rounded border border-border">
-        <table className="w-full min-w-[720px] border-collapse text-[13px]">
-          <thead>
-            <tr className="border-b border-border bg-panel text-left text-[11.5px] font-medium text-muted">
-              {headers.map((h) => (
-                <th key={h} className={`whitespace-nowrap px-3 py-2.5 ${columnWidthClass(h)}`}>
-                  {h}
-                </th>
+        <div ref={tableRef} className="mt-2 overflow-x-auto rounded border border-border">
+          <table className="w-full min-w-[720px] border-collapse text-[13px]">
+            <thead>
+              <tr className="border-b border-border bg-panel text-left text-[11.5px] font-medium text-muted">
+                {headers.map((h) => (
+                  <th key={h} className={`whitespace-nowrap px-3 py-2.5 ${columnWidthClass(h)}`}>
+                    {h}
+                  </th>
+                ))}
+                <th className="w-1 px-2 py-2.5" />
+              </tr>
+            </thead>
+            <tbody>
+              {rows.length === 0 && (
+                <tr>
+                  <td colSpan={headers.length + 1} className="px-3 py-6 text-center text-muted">
+                    행이 없습니다.
+                  </td>
+                </tr>
+              )}
+              {rows.map((row, rowIdx) => (
+                <tr key={rowIdx} className="border-b border-border/70 align-top hover:bg-panel/50">
+                  {headers.map((h) => {
+                    const widthClass = columnWidthClass(h);
+                    const charsPerLine = TINY_COLS.has(h)
+                      ? 8
+                      : NARROW_COLS.has(h)
+                        ? 14
+                        : WIDE_COLS.has(h)
+                          ? 34
+                          : 20;
+                    return (
+                      <td key={h} className={`p-0 ${widthClass}`}>
+                        <textarea
+                          value={row[h] ?? ""}
+                          placeholder="입력…"
+                          rows={estimateRows(row[h] ?? "", charsPerLine)}
+                          onChange={(e) => updateCell(activeSheet, rowIdx, h, e.target.value)}
+                          onInput={(e) => {
+                            const el = e.currentTarget;
+                            el.style.height = "auto";
+                            el.style.height = `${el.scrollHeight}px`;
+                          }}
+                          className="block w-full resize-none whitespace-pre-wrap break-words border-0 bg-transparent px-3 py-2.5 text-[13px] leading-5 outline-none focus:bg-accent-soft"
+                        />
+                      </td>
+                    );
+                  })}
+                  <td className="whitespace-nowrap px-2 py-2.5 text-right">
+                    <button
+                      type="button"
+                      title="아래에 행 추가"
+                      onClick={() => addRow(activeSheet, rowIdx)}
+                      className="mr-1 rounded-sm border border-border px-1.5 py-0.5 text-muted hover:border-accent hover:text-accent"
+                    >
+                      +
+                    </button>
+                    <button
+                      type="button"
+                      title="이 행 삭제"
+                      onClick={() => deleteRow(activeSheet, rowIdx)}
+                      className="rounded-sm border border-border px-1.5 py-0.5 text-muted hover:border-red-600 hover:text-red-600"
+                    >
+                      ×
+                    </button>
+                  </td>
+                </tr>
               ))}
-              <th className="w-1 px-2 py-2.5" />
-            </tr>
-          </thead>
-          <tbody>
-            {rows.length === 0 && (
-              <tr>
-                <td colSpan={headers.length + 1} className="px-3 py-6 text-center text-muted">
-                  행이 없습니다.
-                </td>
-              </tr>
-            )}
-            {rows.map((row, rowIdx) => (
-              <tr key={rowIdx} className="border-b border-border/70 align-top hover:bg-panel/50">
-                {headers.map((h) => {
-                  const widthClass = columnWidthClass(h);
-                  const charsPerLine = TINY_COLS.has(h)
-                    ? 8
-                    : NARROW_COLS.has(h)
-                      ? 14
-                      : WIDE_COLS.has(h)
-                        ? 34
-                        : 20;
-                  return (
-                    <td key={h} className={`p-0 ${widthClass}`}>
-                      <textarea
-                        value={row[h] ?? ""}
-                        placeholder="입력…"
-                        rows={estimateRows(row[h] ?? "", charsPerLine)}
-                        onChange={(e) => updateCell(activeSheet, rowIdx, h, e.target.value)}
-                        onInput={(e) => {
-                          const el = e.currentTarget;
-                          el.style.height = "auto";
-                          el.style.height = `${el.scrollHeight}px`;
-                        }}
-                        className="block w-full resize-none whitespace-pre-wrap break-words border-0 bg-transparent px-3 py-2.5 text-[13px] leading-5 outline-none focus:bg-accent-soft"
-                      />
-                    </td>
-                  );
-                })}
-                <td className="whitespace-nowrap px-2 py-2.5 text-right">
-                  <button
-                    type="button"
-                    title="아래에 행 추가"
-                    onClick={() => addRow(activeSheet, rowIdx)}
-                    className="mr-1 rounded-sm border border-border px-1.5 py-0.5 text-muted hover:border-accent hover:text-accent"
-                  >
-                    +
-                  </button>
-                  <button
-                    type="button"
-                    title="이 행 삭제"
-                    onClick={() => deleteRow(activeSheet, rowIdx)}
-                    className="rounded-sm border border-border px-1.5 py-0.5 text-muted hover:border-red-600 hover:text-red-600"
-                  >
-                    ×
-                  </button>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+            </tbody>
+          </table>
+        </div>
 
-      <button
-        type="button"
-        onClick={() => addRow(activeSheet, null)}
-        className="mt-3 w-full rounded border border-dashed border-border py-2.5 text-[12.5px] font-medium text-muted hover:border-accent hover:text-accent"
-      >
-        + 행 추가
-      </button>
+        <button
+          type="button"
+          onClick={() => addRow(activeSheet, null)}
+          className="mt-3 w-full rounded border border-dashed border-border py-2.5 text-[12.5px] font-medium text-muted hover:border-accent hover:text-accent"
+        >
+          + 행 추가
+        </button>
+      </div>
     </div>
   );
 }

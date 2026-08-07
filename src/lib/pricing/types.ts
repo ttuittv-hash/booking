@@ -446,11 +446,11 @@ export interface AppUser {
 export type FeatureSpecRow = Record<string, string>;
 
 export const FEATURE_SPEC_SHEET_KEYS = [
+  "메뉴트리(프론트)",
+  "메뉴트리(어드민)",
   "기능정의(프론트)",
   "기능정의(어드민)",
   "버그",
-  "메뉴트리(프론트)",
-  "메뉴트리(어드민)",
   "추가 개발 내역",
   "패키지 참고",
   "옵션 참고",

@@ -18,7 +18,7 @@ export default async function AdminFeatureSpecPage() {
   return (
     <div className="flex flex-1 flex-col">
       <header className="sticky top-0 z-20 h-14 border-b border-border/70 bg-background/80 backdrop-blur-md sm:h-16">
-        <div className="mx-auto flex h-full max-w-6xl items-center gap-x-4 px-4 sm:px-6">
+        <div className="mx-auto flex h-full max-w-[1400px] items-center gap-x-4 px-4 sm:px-6">
           <span className="shrink-0 whitespace-nowrap text-[15px] font-semibold tracking-tight">
             기능정의서
           </span>
@@ -34,7 +34,7 @@ export default async function AdminFeatureSpecPage() {
         </div>
       </header>
 
-      <main className="mx-auto w-full max-w-6xl flex-1 px-6 py-10">
+      <main className="mx-auto w-full max-w-[1400px] flex-1 px-6 py-10">
         <h1 className="text-[22px] font-semibold">기능정의서</h1>
         <p className="mt-2 max-w-2xl text-[13.5px] leading-6 text-muted">
           내부 기획 문서입니다. 운영자 백오피스 메뉴에는 올라가지 않으며, 이 주소를 아는
