@@ -6,8 +6,8 @@ import { useState } from "react";
 import type { AppUser } from "@/lib/pricing/types";
 
 const STATUS_LABEL: Record<AppUser["approvalStatus"], string> = {
-  PENDING: "승인 대기",
-  APPROVED: "승인됨",
+  PENDING: "일반인 (승인 대기)",
+  APPROVED: "기본 (승인됨)",
   REJECTED: "거절됨",
 };
 
