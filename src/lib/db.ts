@@ -507,6 +507,47 @@ function createConnection(): DatabaseSync {
     }
   }
 
+  // 약관 2회성 마이그레이션: 구간별 구조로 바뀐 뒤에도 T-1~T-8·P-1~P-9는 실제 조항
+  // 원문이 아니라 요약문이 들어가 있었다("마스터 관리자가 원문인 줄 알았는데 요약이더라"
+  // 는 피드백으로 발견). 이 행들만 기능정의서 시드의 원문으로 교체하고(#로 매칭),
+  // 개인정보처리방침 전문 서두(P-0)가 없으면 추가한다. 다른 행(C-*, S-*, K-*, W-1, G-1
+  // 등)과 이미 원문으로 바뀐 행은 건드리지 않는다.
+  const termsRow2 = db
+    .prepare("SELECT data FROM feature_spec_sheets WHERE sheet_key = ?")
+    .get("약관") as { data: string } | undefined;
+  if (termsRow2) {
+    const termsRows2 = JSON.parse(termsRow2.data) as Record<string, string>[];
+    const t1 = termsRows2.find((r) => r["#"] === "T-1");
+    const needsVerbatimUpgrade = !!t1 && !t1["상세 정의"]?.startsWith("제1조 (목적)");
+    if (needsVerbatimUpgrade) {
+      // T-1~T-8, P-1~P-9만 원문으로 바꾼다 — 다른 행(C-*, S-*, K-*, W-1, G-1 등)은
+      // 시드에도 같은 #가 존재하지만 마스터 관리자가 손으로 고쳤을 수 있으므로 절대
+      // 건드리지 않는다.
+      const upgradeIds = new Set([
+        "T-1", "T-2", "T-3", "T-4", "T-5", "T-6", "T-7", "T-8",
+        "P-1", "P-2", "P-3", "P-4", "P-5", "P-6", "P-7", "P-8", "P-9",
+      ]);
+      const seedById = new Map(
+        (FEATURE_SPEC_SEED["약관"] ?? []).map((r) => [r["#"], r] as const),
+      );
+      const upgraded = termsRows2.map((row) => {
+        if (!upgradeIds.has(row["#"])) return row;
+        const seedRow = seedById.get(row["#"]);
+        return seedRow ? { ...row, 기능: seedRow["기능"], "상세 정의": seedRow["상세 정의"] } : row;
+      });
+      const hasP0 = upgraded.some((r) => r["#"] === "P-0");
+      const p0 = seedById.get("P-0");
+      const c2Index = upgraded.findIndex((r) => r["#"] === "C-2");
+      const withP0 =
+        !hasP0 && p0 && c2Index >= 0
+          ? [...upgraded.slice(0, c2Index + 1), p0, ...upgraded.slice(c2Index + 1)]
+          : upgraded;
+      db.prepare(
+        "UPDATE feature_spec_sheets SET data = ?, updated_at = ? WHERE sheet_key = ?",
+      ).run(JSON.stringify(withP0), new Date().toISOString(), "약관");
+    }
+  }
+
   return db;
 }
 
