@@ -410,19 +410,20 @@ function createConnection(): DatabaseSync {
     });
   }
 
-  // 기능정의서(내부 기획 문서) — 최초 1회만 시드 데이터로 채운다.
-  const featureSpecCount = db
-    .prepare("SELECT COUNT(*) as n FROM feature_spec_sheets")
-    .get() as { n: number };
-  if (featureSpecCount.n === 0) {
-    const now = new Date().toISOString();
-    const insertSheet = db.prepare(
-      "INSERT INTO feature_spec_sheets (sheet_key, data, updated_at) VALUES (?, ?, ?)",
-    );
-    FEATURE_SPEC_SHEET_KEYS.forEach((key) => {
-      insertSheet.run(key, JSON.stringify(FEATURE_SPEC_SEED[key] ?? []), now);
-    });
-  }
+  // 기능정의서(내부 기획 문서) — 시트별로 없는 것만 채운다(전체 카운트가 아니라
+  // 키 단위 존재 여부 체크). 이렇게 해야 이미 운영 중인 DB에 나중에 새 시트(예:
+  // "약관")가 추가돼도, 기존에 이미 수동 편집된 다른 시트들을 건드리지 않고 새
+  // 시트만 시드 데이터로 자동 채워진다.
+  const hasFeatureSpecSheet = db.prepare(
+    "SELECT 1 FROM feature_spec_sheets WHERE sheet_key = ?",
+  );
+  const insertSheet = db.prepare(
+    "INSERT INTO feature_spec_sheets (sheet_key, data, updated_at) VALUES (?, ?, ?)",
+  );
+  FEATURE_SPEC_SHEET_KEYS.forEach((key) => {
+    if (hasFeatureSpecSheet.get(key)) return;
+    insertSheet.run(key, JSON.stringify(FEATURE_SPEC_SEED[key] ?? []), new Date().toISOString());
+  });
 
   // 메뉴트리(프론트) 1회성 마이그레이션: "대분류" 하나였던 값을 "구분"(GNB/푸터) +
   // "대분류"(짧은 이름: 유어스테이지·북잇·노우잇·호스트잇·하단·마이)로 분리하고,
