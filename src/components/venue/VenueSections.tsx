@@ -81,11 +81,11 @@ function VenueFooterSections({ current }: { current: string }) {
         lead="대관 규모와 일정을 입력하면 예상 대관료를 즉시 확인할 수 있습니다."
         actions={
           <>
-            <ButtonLink href="/apply" variant="primary" size="lg">
+            <ButtonLink href="/apply" variant="primary">
               대관 신청하기
               <ArrowRight />
             </ButtonLink>
-            <ButtonLink href="/packages" variant="secondary" size="lg">
+            <ButtonLink href="/packages" variant="secondary">
               대관 패키지 보기
             </ButtonLink>
           </>

@@ -148,14 +148,20 @@ export function PublicHeader({
             aria-label="전체 메뉴"
             className="container-site flex flex-1 flex-col justify-center py-4 tall:py-6"
           >
+            {/*
+              반응형 스냅 포인트 — 2컬럼(카테고리 | 페이지)은 `sm`(640px)부터만 쓴다.
+              그 아래에서는 카테고리 제목을 페이지 목록 위로 올린 1컬럼으로 떨어뜨린다.
+              좁은 화면에서 카테고리 열이 눌려 글자가 세로로 쪼개지던 문제를 없앤다.
+            */}
             <ul>
               {NAV_CATEGORIES.map((cat) => (
                 <li
                   key={cat.label}
-                  className="grid grid-cols-[auto_minmax(0,1fr)] gap-x-6 py-3 sm:grid-cols-[minmax(0,1fr)_minmax(0,2fr)] sm:gap-x-10 sm:py-4 tall:lg:py-5"
+                  className="py-3 sm:grid sm:grid-cols-[minmax(0,1fr)_minmax(0,2fr)] sm:gap-x-10 sm:py-4 tall:lg:py-5"
                 >
                   <h2 className="type-display text-h6-m sm:text-h5 tall:lg:text-h4">{cat.label}</h2>
-                  <ul className="flex flex-col gap-2">
+                  {/* 1컬럼으로 떨어진 좁은 화면에서는 링크를 2열로 깔아 세로 길이를 줄인다 */}
+                  <ul className="mt-2 grid grid-cols-2 gap-x-4 gap-y-2 sm:mt-0 sm:grid-cols-1">
                     {cat.pages.map((p) => (
                       <li key={p.href}>
                         <Link

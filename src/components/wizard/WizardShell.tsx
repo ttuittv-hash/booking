@@ -317,12 +317,16 @@ export function WizardShell({
           />
         )}
 
-        <div className="mt-10 flex items-center justify-between gap-4 border-t border-border/25 pt-6">
+        {/*
+          Figma Multi Form / 5 — 폼 하단 버튼은 좌우로 벌리지 않고 **우측에 나란히** 둔다.
+          이전(아웃라인) + 다음(검정 채움), 높이 48.
+        */}
+        <div className="mt-10 flex flex-wrap justify-end gap-3 border-t border-border/25 pt-6">
           <button
             type="button"
             disabled={step === 1}
             onClick={() => goTo(step - 1)}
-            className={btnClass("secondary", "md")}
+            className={btnClass("secondary", "lg")}
           >
             <ArrowRight className="rotate-180" />
             이전
@@ -332,7 +336,7 @@ export function WizardShell({
               type="button"
               disabled={(step === 1 && !selection.venueId) || (step >= 3 && !selection.packageId)}
               onClick={() => goTo(step + 1)}
-              className={btnClass("primary", "md")}
+              className={btnClass("primary", "lg")}
             >
               다음
               <ArrowRight />

@@ -11,6 +11,7 @@ import {
   type SeatingType,
   type StageType,
 } from "@/lib/pricing/types";
+import { StepHeading } from "./StepHeading";
 
 const EVENT_TYPES = Object.keys(EVENT_TYPE_LABEL) as EventType[];
 const STAGE_TYPES = Object.keys(STAGE_TYPE_LABEL) as StageType[];
@@ -141,10 +142,10 @@ export function StepPerformanceInfo({
 
   return (
     <section>
-      <h2 className="type-kr-heading text-h4-m sm:text-h4">공연 정보 입력</h2>
-      <p className="mt-3 max-w-2xl text-s text-muted">
-        신청하실 공연(행사)에 대한 기본 정보를 입력해 주세요.
-      </p>
+      <StepHeading
+        title={<>공연 정보 입력</>}
+        lead={<>신청하실 공연(행사)에 대한 기본 정보를 입력해 주세요.</>}
+      />
 
       <div className="mt-7 grid grid-cols-1 gap-5 sm:grid-cols-2">
         <TextField

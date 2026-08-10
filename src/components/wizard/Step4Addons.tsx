@@ -9,6 +9,7 @@ import {
   type RateTable,
 } from "@/lib/pricing/types";
 import { ComparisonTable } from "@/components/ui/kit";
+import { StepHeading } from "./StepHeading";
 
 function ruleTagOf(addon: AddonItem): string | null {
   if (addon.availability.mode === "IF_PACKAGE_IN") {
@@ -48,8 +49,10 @@ export function Step4Addons({
   if (!pkg) {
     return (
       <section>
-        <h2 className="type-kr-heading text-h4-m sm:text-h4">추가 옵션 선택</h2>
-        <p className="mt-3 text-s text-muted">먼저 2단계에서 패키지를 선택하세요.</p>
+        <StepHeading
+        title={<>추가 옵션 선택</>}
+        lead={<>먼저 2단계에서 패키지를 선택하세요.</>}
+      />
       </section>
     );
   }
@@ -68,12 +71,12 @@ export function Step4Addons({
 
   return (
     <section>
-      <h2 className="type-kr-heading text-h4-m sm:text-h4">추가 옵션 선택</h2>
-      <p className="mt-3 max-w-2xl text-s text-muted">
-        기본 포함분은 초과분만 과금됩니다:{" "}
+      <StepHeading
+        title={<>추가 옵션 선택</>}
+        lead={<>기본 포함분은 초과분만 과금됩니다:{" "}
         <b className="text-foreground">MAX(신청−기본, 0) × 단가</b>. 유틸리티는 정산 시 실사용
-        부과됩니다.
-      </p>
+        부과됩니다.</>}
+      />
 
       {/*
         카테고리마다 표를 만들면 열 수·열 폭이 묶음마다 달라진다.

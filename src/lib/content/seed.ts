@@ -22,7 +22,7 @@ export const DEFAULT_HOME_CONTENT: HomeContent = {
     **숫자는 YOUR STAGE 에서, 그 숫자의 이유는 여기에서.** 그래서 본문에 수치를 넣지 않는다.
   */
   narrativeLabel: "Manifesto",
-  narrativeTitle: "BRING THE VISION,\nWE BUILD THE STAGE",
+  narrativeTitle: "LIMITLESS SPACE,\nABSOLUTE CONTROL",
   narrativeLead:
     "서울아레나의 모든 수치는 자랑이 아니라 의도입니다. 잔향 2.8초도, 상부 하중 180톤도, 반입구 9.9미터도 ‘프로듀서가 다른 곳에서 부딪히는 한계를 이 공간에서는 없앤다’는 하나의 전략에서 설계되었습니다.",
   narrativeStatements: [

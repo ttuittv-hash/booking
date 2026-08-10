@@ -86,7 +86,17 @@ Primitive (Figma Style Guide › Variables)
 | `CTABand` | CTA / 1 | 섹션 말미 전환 |
 | `PageHeading` | Header / 1-1 | 페이지 상단 헤딩 + 보조 문구 |
 | `CenterHeading` | Layout 1/3/6 헤더 | 센터 정렬 섹션 헤딩 |
-| `RowList` / `Row` | Card / List | 목록(공지·FAQ·신청 내역) |
+| `RowList` / `Row` | **Stacked List / 1** (Application Components) | 목록(공지·FAQ·신청 내역). 헤더(제목·리드·우측 컨트롤) + 헤어라인 행 |
+
+### 반응형
+
+**스냅 포인트는 `sm`(640px) 하나로 통일한다.** 그 아래는 1컬럼, 그 위는 2컬럼.
+컴포넌트마다 다른 지점에서 무너지면 화면 폭을 줄일 때 레이아웃이 계단처럼 어긋난다.
+
+- 오픈 메뉴: `sm` 미만이면 카테고리 제목을 페이지 목록 위로 올린 1컬럼.
+  대신 링크를 2열로 깔아 세로 길이를 줄인다 (한 화면 규칙을 320px 까지 지킨다)
+- `Row`: `sm` 미만이면 우측 메타·액션이 좌측 블록 아래로 떨어진다
+- 확인 폭: 1920 / 1440 / 1024 / 834 / 768 / 640 / 480 / 390 / 360 / 320
 
 ## 4. 표 만들기 (읽기 쉽게)
 
@@ -115,6 +125,17 @@ const SPLIT = "grid gap-8 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.6fr)] lg:items-
 // 좌: 제목·설명 / 우: 데이터. 예) src/app/packages/page.tsx
 ```
 
+### 버튼 크기
+
+크기는 "누가 쓰나"가 아니라 **"어디에 놓이나"** 로 정한다. 같은 역할의 버튼이 화면마다
+다른 크기로 나오면 안 된다. Figma Style Guide 의 버튼은 높이 48 / 40 두 가지다.
+
+| 크기 | 높이 | 쓰는 자리 |
+|---|---|---|
+| `lg` | 48 | 페이지·섹션의 주 액션. 히어로 · 섹션 말미 · CTA 배너 · EmptyState · 위저드 이전/다음. **`ButtonLink` 의 기본값** — 공개 페이지에서는 size 를 적지 않는다 |
+| `md` | 40 | 폼 제출. 백오피스·인증 화면 등 밀도 높은 폼 전용 |
+| `sm` | 32 | 카드·표 안의 인라인 액션 |
+
 ### 선택 상태
 
 **선택 = 검정 채움.** 이 언어 하나만 쓴다 (`choiceClass` + `CHOICE_SELECTED_VARS`).
@@ -133,10 +154,10 @@ const SPLIT = "grid gap-8 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.6fr)] lg:items-
 | `Band` | 풀블리드 섹션. `tone` = light·white·accent·dark, `size` = sm·md·lg. 섹션은 여백이 아니라 **색면 전환**으로 나눈다 |
 | `ButtonLink` / `btnClass` | `variant` = **primary**(검정 채움) · **secondary**(아웃라인) · **tertiary**(텍스트), `size` = sm·md·lg |
 | `Media` | 이미지. `src` 없으면 회색 플레이스홀더. 스크롤 진입 시 옐로 리빌(`Reveal`)이 자동으로 걸린다 — 끄려면 `reveal={false}` |
-| `Reveal` | 뷰포트 진입 시 악센트 면이 덮었다가 위로 걷히는 와이프 인. **사진·카드에만** 쓰고 텍스트에는 쓰지 않는다. 한 번만 실행, `prefers-reduced-motion` 존중 |
+| `Reveal` | 뷰포트 진입 시 악센트 면이 덮었다가 위로 걷히는 와이프 인. **사진·카드에만** 쓰고 텍스트에는 쓰지 않는다. **화면 밖으로 나가면 다시 덮이고 재진입할 때 또 재생한다** (되돌릴 때는 트랜지션을 꺼 역재생을 막는다). `prefers-reduced-motion` 존중 |
 | `CTABand` | 페이지 하단 옐로 배너. 높이는 `CTA_BAND_MIN` 으로 고정 — 카피 길이가 달라도 페이지마다 같은 높이여야 한다. 옐로 배너를 직접 만들지 말고 이걸 쓴다 |
 | `Badge` | 상태 배지 |
-| `EmptyState` | 준비 중 콘텐츠 |
+| `EmptyState` | 준비 중 콘텐츠. 위아래 헤어라인 사이 빈 블록 — **점선 보더를 쓰지 않는다**(Figma 시스템에 점선이 없다) |
 | `Multiline` | seed 의 `\n` 유지 렌더 |
 | 입력 필드 | `field-base` 유틸리티. 배경은 지면과 같고 1px 보더로만 구분 |
 
@@ -200,6 +221,15 @@ Host It
 슬로건 디스플레이(d2) + 리드 + 번호 붙은 설계원칙 4개, 블랙 지면 위 흰 텍스트.
 내용 기준은 Notion `대관·비즈니스 사이트 구조 기획 › HOST IT (HOME)` 이고,
 **수치는 여기에 쓰지 않는다** — 숫자는 Your Stage 에서, 그 숫자의 이유가 여기다.
+
+### 신청 위저드
+
+Figma MARKETING COMPONENTS › Multi-step Forms › **Multi Form / 5** 규격.
+
+- 스텝 인디케이터 — 원형 번호 칩(24) + 스텝 제목(14). 완료는 체크 원, 현재는 검정 채움 원
+- 단계 제목 — `StepHeading` (Heading 32 · Text 16, **가운데 정렬**, 폭 640 안쪽)
+- 폼 — 라벨 위 · 필드 높이 48 · 전폭
+- 하단 버튼 — 좌우로 벌리지 않고 **우측에 나란히**. 이전(아웃라인) + 다음(검정 채움), 높이 48
 
 ## 8. 카피 원칙 (브랜드 가이드 3.1 / 3.2)
 

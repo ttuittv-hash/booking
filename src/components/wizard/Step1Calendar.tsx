@@ -12,6 +12,7 @@ import {
   type WeekDemand,
 } from "@/lib/pricing/types";
 import { Note } from "@/components/ui/kit";
+import { StepHeading } from "./StepHeading";
 
 const DOW_LABELS = ["월", "화", "수", "목", "금", "토", "일"]; // 달력은 월요일부터 시작, 대관 단위는 화~일 (월요일은 대관 불가 기본값)
 const WEEKDAY_SHORT = ["일", "월", "화", "수", "목", "금", "토"];
@@ -167,12 +168,12 @@ export function Step1Calendar({
 
   return (
     <section>
-      <h2 className="type-kr-heading text-h4-m sm:text-h4">주차(기간) 선택</h2>
-      <p className="mt-3 max-w-2xl text-s text-muted">
-        달력에서 원하는 주를 눌러 선택하세요. 기본 단위는{" "}
+      <StepHeading
+        title={<>주차(기간) 선택</>}
+        lead={<>달력에서 원하는 주를 눌러 선택하세요. 기본 단위는{" "}
         <b className="text-foreground">1주(화~일, 6일)</b>이며, 월요일은 기본적으로 대관하지
-        않습니다. 아래에서 요일별로 빼거나 일수를 더할 수 있습니다.
-      </p>
+        않습니다. 아래에서 요일별로 빼거나 일수를 더할 수 있습니다.</>}
+      />
 
       <div className="mt-7 flex items-center justify-between border-b border-border/25 pb-4">
         <button type="button" onClick={() => goToMonth(-1)} aria-label="이전 달" className={ICON_BTN}>

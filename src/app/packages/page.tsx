@@ -346,7 +346,7 @@ export default async function PackagesPage() {
                 대관 신청 시작하기
                 <ArrowRight />
               </Link>
-              <ButtonLink href="/guide#rates" variant="secondary" size="lg">
+              <ButtonLink href="/guide#rates" variant="secondary">
                 대관 안내로
               </ButtonLink>
             </>

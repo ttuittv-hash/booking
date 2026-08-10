@@ -53,7 +53,7 @@ function GuideCta({
     );
   }
   return (
-    <ButtonLink href={href} variant={variant} size="lg">
+    <ButtonLink href={href} variant={variant}>
       {children}
     </ButtonLink>
   );

@@ -9,6 +9,7 @@ import {
 } from "@/lib/pricing/rateTableUtils";
 import { MEDIA_TIER_LABEL, type RateTable } from "@/lib/pricing/types";
 import { CHOICE_SELECTED_VARS, choiceClass } from "@/components/ui/kit";
+import { StepHeading } from "./StepHeading";
 
 export function Step1Package({
   rateTable,
@@ -30,11 +31,11 @@ export function Step1Package({
 
   return (
     <section>
-      <h2 className="type-kr-heading text-h4-m sm:text-h4">규모 / 패키지 선택</h2>
-      <p className="mt-3 max-w-2xl text-s text-muted">
-        예상 관객 규모를 입력하면 패키지가 추천됩니다. 패키지는 정찰제 고정가이며, 각 패키지에 기본
-        포함된 구성을 비교해서 선택하세요.
-      </p>
+      <StepHeading
+        title={<>규모 / 패키지 선택</>}
+        lead={<>예상 관객 규모를 입력하면 패키지가 추천됩니다. 패키지는 정찰제 고정가이며, 각 패키지에 기본
+        포함된 구성을 비교해서 선택하세요.</>}
+      />
 
       <div className="mt-7 max-w-xs">
         <label htmlFor="expected-audience" className="mb-2 block text-xs font-bold text-muted">

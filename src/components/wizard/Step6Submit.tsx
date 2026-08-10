@@ -16,6 +16,7 @@ import {
   type RateTable,
 } from "@/lib/pricing/types";
 import { SpecTable, btnClass } from "@/components/ui/kit";
+import { StepHeading } from "./StepHeading";
 
 const STAGES = [
   {
@@ -80,8 +81,10 @@ export function Step6Submit({
   if (!pkg) {
     return (
       <section>
-        <h2 className="type-kr-heading text-h4-m sm:text-h4">신청서 제출</h2>
-        <p className="mt-3 text-s text-muted">먼저 3단계에서 패키지를 선택하세요.</p>
+        <StepHeading
+        title={<>신청서 제출</>}
+        lead={<>먼저 3단계에서 패키지를 선택하세요.</>}
+      />
       </section>
     );
   }
@@ -114,14 +117,12 @@ export function Step6Submit({
 
   return (
     <section>
-      <h2 className="type-kr-heading text-h4-m sm:text-h4">
-        {isEditing ? "신청서 수정" : "신청서 제출"}
-      </h2>
-      <p className="mt-3 max-w-2xl text-s text-muted">
-        {isEditing
+      <StepHeading
+        title={<>{isEditing ? "신청서 수정" : "신청서 제출"}</>}
+        lead={<>{isEditing
           ? "아래 산출내역으로 신청서 내용이 수정됩니다. 신청금액은 예상금액이며, 이후 심사·계약에서 확정됩니다."
-          : "아래 산출내역으로 대관 신청서가 생성됩니다. 신청금액은 예상금액이며, 이후 심사·계약에서 확정됩니다."}
-      </p>
+          : "아래 산출내역으로 대관 신청서가 생성됩니다. 신청금액은 예상금액이며, 이후 심사·계약에서 확정됩니다."}</>}
+      />
 
       {/* 신청 요약 — 카드 박스 대신 상단 2px 룰 + 헤어라인 */}
       <div className="mt-7 flex flex-col gap-5 border-t-2 border-foreground pt-5 sm:flex-row sm:items-end sm:justify-between sm:gap-8">

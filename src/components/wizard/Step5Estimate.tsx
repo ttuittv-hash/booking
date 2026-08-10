@@ -4,6 +4,7 @@ import { num, won } from "@/lib/format";
 import { findPackage, totalRentalDays } from "@/lib/pricing/rateTableUtils";
 import type { EstimatedQuote, LineItem, QuoteSelection, RateTable } from "@/lib/pricing/types";
 import { ComparisonTable, Note } from "@/components/ui/kit";
+import { StepHeading } from "./StepHeading";
 
 /** 매출 연동 항목은 수량이 아니라 예상매출 × 요율로 산정되므로 근거를 항목명에 붙인다. */
 function lineLabel(item: LineItem, expectedRevenue: number): string {
@@ -25,8 +26,10 @@ export function Step5Estimate({
   if (!pkg) {
     return (
       <section>
-        <h2 className="type-kr-heading text-h4-m sm:text-h4">예상 대관료 · 산출내역서</h2>
-        <p className="mt-3 text-s text-muted">먼저 2단계에서 패키지를 선택하세요.</p>
+        <StepHeading
+        title={<>예상 대관료 · 산출내역서</>}
+        lead={<>먼저 2단계에서 패키지를 선택하세요.</>}
+      />
       </section>
     );
   }
@@ -35,12 +38,12 @@ export function Step5Estimate({
 
   return (
     <section>
-      <h2 className="type-kr-heading text-h4-m sm:text-h4">예상 대관료 · 산출내역서</h2>
-      <p className="mt-3 max-w-2xl text-s text-muted">
-        {pkg.name} · {selection.week.year}.{selection.week.month}{" "}
+      <StepHeading
+        title={<>예상 대관료 · 산출내역서</>}
+        lead={<>{pkg.name} · {selection.week.year}.{selection.week.month}{" "}
         {selection.week.weekOfMonth}주차 · 총 {totalRentalDays(selection)}일 · 관객{" "}
-        {selection.expectedAudience.toLocaleString()}명
-      </p>
+        {selection.expectedAudience.toLocaleString()}명</>}
+      />
 
       {/*
         열은 3개로 고정한다. 신청·기본포함 수량은 열을 더 만들지 않고 항목 아래

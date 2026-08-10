@@ -46,11 +46,11 @@ export default async function Home() {
           </p>
 
           <div className="mt-12 flex animate-[fade-up_0.7s_ease_both] flex-col items-stretch gap-3 [animation-delay:200ms] sm:flex-row sm:items-center">
-            <ButtonLink href={heroPrimaryHref} variant="primary" size="lg">
+            <ButtonLink href={heroPrimaryHref} variant="primary">
               {heroPrimaryLabel}
               <ArrowRight />
             </ButtonLink>
-            <ButtonLink href={heroSecondaryHref} variant="secondary" size="lg">
+            <ButtonLink href={heroSecondaryHref} variant="secondary">
               {heroSecondaryLabel}
             </ButtonLink>
           </div>
@@ -106,11 +106,11 @@ export default async function Home() {
           lead="대관 규모와 일정을 입력하면 예상 대관료를 즉시 확인할 수 있습니다."
           actions={
             <>
-              <ButtonLink href="/apply?new=1" variant="primary" size="lg">
+              <ButtonLink href="/apply?new=1" variant="primary">
                 대관 신청하기
                 <ArrowRight />
               </ButtonLink>
-              <ButtonLink href="/faq" variant="secondary" size="lg">
+              <ButtonLink href="/faq" variant="secondary">
                 FAQ
               </ButtonLink>
             </>

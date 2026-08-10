@@ -10,6 +10,7 @@ import {
   type RateTable,
 } from "@/lib/pricing/types";
 import { ComparisonTable } from "@/components/ui/kit";
+import { StepHeading } from "./StepHeading";
 
 const MEDIA_TIER_LABEL: Record<string, string> = {
   BASIC: "기본",
@@ -62,10 +63,10 @@ export function Step3Included({
 
   return (
     <section>
-      <h2 className="type-kr-heading text-h4-m sm:text-h4">기본 포함사항</h2>
-      <p className="mt-3 max-w-2xl text-s text-muted">
-        {pkg.name}에 기본 포함된 구성입니다. 초과분만 4단계에서 추가 과금됩니다.
-      </p>
+      <StepHeading
+        title={<>기본 포함사항</>}
+        lead={<>{pkg.name}에 기본 포함된 구성입니다. 초과분만 4단계에서 추가 과금됩니다.</>}
+      />
 
       <div className="mt-7">
         <ComparisonTable
@@ -118,8 +119,10 @@ export function Step3Included({
 function EmptyState() {
   return (
     <section>
-      <h2 className="type-kr-heading text-h4-m sm:text-h4">기본 포함사항</h2>
-      <p className="mt-3 text-s text-muted">먼저 2단계에서 패키지를 선택하세요.</p>
+      <StepHeading
+        title={<>기본 포함사항</>}
+        lead={<>먼저 2단계에서 패키지를 선택하세요.</>}
+      />
     </section>
   );
 }

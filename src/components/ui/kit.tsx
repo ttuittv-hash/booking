@@ -118,6 +118,16 @@ const BTN_VARIANT: Record<BtnVariant, string> = {
   tertiary: "border-transparent bg-transparent text-foreground hover:underline underline-offset-4",
 };
 
+/**
+ * Figma Style Guide › UI Elements › Buttons 는 높이 48 / 40 두 가지다.
+ *
+ * 크기는 "누가 쓰나"가 아니라 **"어디에 놓이나"** 로 정한다. 같은 역할의 버튼이
+ * 화면마다 다른 크기로 나오지 않게 하는 규칙이다.
+ *   lg(48) — 페이지·섹션의 주 액션. 히어로 · 섹션 말미 · CTA 배너 · EmptyState.
+ *            `ButtonLink` 의 기본값이므로 공개 페이지에서는 size 를 적지 않는다.
+ *   md(40) — 폼 제출 버튼. 백오피스·인증 화면 등 밀도가 높은 폼 전용.
+ *   sm(32) — 카드·표 안의 인라인 액션. 본문 흐름을 끊지 않아야 하는 자리.
+ */
 const BTN_SIZE: Record<BtnSize, string> = {
   sm: "h-8 px-4 text-xs",
   md: "h-10 px-5 text-s",
@@ -134,11 +144,12 @@ export function btnClass(variant: BtnVariant = "secondary", size: BtnSize = "md"
   ].join(" ");
 }
 
+/** 공개 페이지의 링크 버튼. 기본은 페이지 액션 크기(lg) — 크기를 적지 않는 것이 정상이다. */
 export function ButtonLink({
   href,
   children,
   variant = "secondary",
-  size = "md",
+  size = "lg",
   className = "",
 }: {
   href: string;
@@ -698,8 +709,42 @@ export function SpecTable({
 
 /* --------------------------------------------------------- RowList ------- */
 
-export function RowList({ children, className = "" }: { children: ReactNode; className?: string }) {
-  return <ul className={`border-t border-border/25 ${className}`}>{children}</ul>;
+/**
+ * Figma APPLICATION COMPONENTS › **Stacked Lists** › Stacked List / 1.
+ *
+ *   헤더(제목 + 리드 + 우측 컨트롤) → 헤어라인 → 행들
+ *   행 = 좌: 리드(번호·날짜) + 제목/부제 2줄 · 우: 메타 + 액션
+ *   행 사이 헤어라인. 모바일에서는 우측 메타·액션이 아래 줄로 떨어진다.
+ */
+export function RowList({
+  title,
+  lead,
+  controls,
+  children,
+  className = "",
+}: {
+  title?: ReactNode;
+  lead?: ReactNode;
+  /** 헤더 우측 컨트롤 (검색·정렬 등) */
+  controls?: ReactNode;
+  children: ReactNode;
+  className?: string;
+}) {
+  const hasHeader = Boolean(title || lead || controls);
+  return (
+    <div className={className}>
+      {hasHeader && (
+        <div className="flex flex-col gap-4 pb-5 lg:flex-row lg:items-end lg:justify-between lg:gap-10">
+          <div className="max-w-2xl">
+            {title && <h3 className="type-kr-heading text-h5-m sm:text-h5">{title}</h3>}
+            {lead && <p className="mt-3 text-s text-muted">{lead}</p>}
+          </div>
+          {controls && <div className="flex shrink-0 flex-wrap gap-3">{controls}</div>}
+        </div>
+      )}
+      <ul className="border-t border-border/25">{children}</ul>
+    </div>
+  );
 }
 
 export function Row({
@@ -718,16 +763,23 @@ export function Row({
   action?: ReactNode;
 }) {
   const inner = (
-    <div className="flex flex-col gap-3 py-6 sm:flex-row sm:items-center sm:gap-8">
-      {lead && <div className="w-full shrink-0 text-xs tabular-nums text-muted sm:w-32">{lead}</div>}
-      <div className="min-w-0 flex-1">
-        <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
-          <span className="type-kr-heading text-h6-m sm:text-h6">{title}</span>
-          {sub && <span className="text-s text-muted">{sub}</span>}
-        </div>
+    // 좁은 화면에서는 좌측 블록 아래로 메타·액션이 내려간다 (Stacked List 모바일)
+    <div className="flex flex-col gap-3 py-5 sm:flex-row sm:items-center sm:gap-8 sm:py-6">
+      <div className="flex min-w-0 flex-1 flex-col gap-1 sm:flex-row sm:items-center sm:gap-8">
+        {lead && (
+          <span className="shrink-0 text-xs tabular-nums text-muted sm:w-24">{lead}</span>
+        )}
+        <span className="min-w-0">
+          <span className="type-kr-heading block break-keep text-h6-m sm:text-h6">{title}</span>
+          {sub && <span className="mt-1 block break-keep text-s text-muted">{sub}</span>}
+        </span>
       </div>
-      {meta && <div className="shrink-0 text-xs text-muted">{meta}</div>}
-      {action && <div className="shrink-0">{action}</div>}
+      {(meta || action) && (
+        <div className="flex shrink-0 items-center justify-between gap-5 sm:justify-end">
+          {meta && <span className="text-xs text-muted">{meta}</span>}
+          {action && <span className="shrink-0">{action}</span>}
+        </div>
+      )}
     </div>
   );
   return (
@@ -794,11 +846,12 @@ export function EmptyState({
   desc?: string;
   action?: ReactNode;
 }) {
+  // Figma 시스템에는 점선 보더가 없다 — 위아래 헤어라인 사이의 빈 블록으로 둔다.
   return (
-    <div className="border border-dashed border-border/30 px-6 py-14 text-center">
-      <p className="type-kr-heading text-h6">{title}</p>
-      {desc && <p className="mx-auto mt-3 max-w-md text-s text-muted">{desc}</p>}
-      {action && <div className="mt-6 flex justify-center">{action}</div>}
+    <div className="border-y border-border/25 px-6 py-16 text-center">
+      <p className="type-kr-heading text-h6-m sm:text-h6">{title}</p>
+      {desc && <p className="mx-auto mt-3 max-w-md break-keep text-s text-muted">{desc}</p>}
+      {action && <div className="mt-8 flex justify-center">{action}</div>}
     </div>
   );
 }

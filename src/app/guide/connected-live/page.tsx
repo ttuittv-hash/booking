@@ -169,7 +169,7 @@ export default async function ConnectedLivePage() {
             lead="커넥티드 라이브 연계 공연으로 신청하면 대관 심사에서 대관점수 가점이 부여됩니다. 운영자가 일정·공연 내용·시설 적합성을 검토하는 심사 단계에서 반영되며, 자세한 기준과 신청 방법은 대관 담당자에게 문의하세요."
           />
           <div className="mt-10">
-            <ButtonLink href="/mypage/inquiries/new" variant="primary" size="lg">
+            <ButtonLink href="/mypage/inquiries/new" variant="primary">
               1:1 문의하기
               <ArrowRight />
             </ButtonLink>
@@ -181,11 +181,11 @@ export default async function ConnectedLivePage() {
           lead="대관 규모와 일정을 입력하면 예상 대관료를 즉시 확인할 수 있습니다."
           actions={
             <>
-              <ButtonLink href="/apply" variant="primary" size="lg">
+              <ButtonLink href="/apply" variant="primary">
                 대관 신청하기
                 <ArrowRight />
               </ButtonLink>
-              <ButtonLink href="/guide" variant="secondary" size="lg">
+              <ButtonLink href="/guide" variant="secondary">
                 대관 안내 보기
               </ButtonLink>
             </>
