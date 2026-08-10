@@ -32,6 +32,7 @@ export const NAV_CATEGORIES: NavCategory[] = [
     pages: [
       { href: "/guide", label: "대관 안내" },
       { href: "/packages", label: "대관 패키지" },
+      { href: "/guide/connected-live", label: "커넥티드 라이브" },
       { href: "/guide/forms", label: "대관 양식함" },
       { href: "/guide/image-guide", label: "이미지 가이드" },
     ],

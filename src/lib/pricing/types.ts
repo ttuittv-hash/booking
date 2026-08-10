@@ -395,6 +395,20 @@ export type UserRole = "APPLICANT" | "ADMIN";
 // 운영자(ADMIN) 계정은 항상 APPROVED로 생성된다.
 export type ApprovalStatus = "PENDING" | "APPROVED" | "REJECTED";
 
+// 운영자(ADMIN) 계정의 등급. role이 ADMIN인 계정에만 의미가 있다.
+// BASIC(일반관리자) — 가입 시 기본으로 부여되는 등급, 일상적인 운영 화면 접근 가능
+// PRO(프로 관리자) — 마스터 관리자가 별도로 승급
+// MASTER(마스터 관리자) — 최상위 등급. 다른 운영자 등급을 조정할 수 있고, 기능정의서처럼
+//   민감한 내부 문서 편집 권한은 이 등급에만 부여한다.
+//
+// 전체 5단계 계정 등급(참고):
+//   1. 일반인   — role=APPLICANT, approvalStatus=PENDING (가입만 하고 미승인)
+//   2. 기본     — role=APPLICANT, approvalStatus=APPROVED (가입+승인)
+//   3. 일반관리자 — role=ADMIN, adminTier=BASIC (가입+관리자 권한 부여)
+//   4. 프로 관리자 — role=ADMIN, adminTier=PRO (마스터 관리자가 별도 부여)
+//   5. 마스터 관리자 — role=ADMIN, adminTier=MASTER
+export type AdminTier = "BASIC" | "PRO" | "MASTER";
+
 // 공연 기획사(법인) — 같은 회사 실무자(개인) 여러 명이 이 기획사에 연결되어
 // 서로의 대관 신청 내역을 함께 조회·관리할 수 있다.
 export interface Company {
@@ -419,8 +433,30 @@ export interface AppUser {
   companyId: string | null;
   role: UserRole;
   approvalStatus: ApprovalStatus;
+  // role이 ADMIN일 때만 값이 있다 (APPLICANT는 항상 null).
+  adminTier: AdminTier | null;
   createdAt: string;
 }
+
+// ---------------------------------------------------------------------------
+// 기능정의서(내부 기획 문서) — 마스터 관리자 전용
+// ---------------------------------------------------------------------------
+
+// 표 하나의 한 행. 시트마다 컬럼 구성이 달라 자유 형식(컬럼명 -> 값)으로 저장한다.
+export type FeatureSpecRow = Record<string, string>;
+
+export const FEATURE_SPEC_SHEET_KEYS = [
+  "메뉴트리(프론트)",
+  "메뉴트리(어드민)",
+  "기능정의(프론트)",
+  "기능정의(어드민)",
+  "버그",
+  "추가 개발 내역",
+  "패키지 참고",
+  "옵션 참고",
+] as const;
+
+export type FeatureSpecSheetKey = (typeof FEATURE_SPEC_SHEET_KEYS)[number];
 
 export interface AuditLogEntry {
   id: string;

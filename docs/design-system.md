@@ -180,8 +180,9 @@ Your Stage  (카테고리 타이틀 — 링크 아님)
   ├ 무대 특장        /venue/stage-features
   └ 부대시설         /venue/amenities
 Book It
-  ├ 대관 안내        /guide        (개요·절차·대관료·규약은 이 한 페이지 안)
+  ├ 대관 안내        /guide                 (개요·절차·대관료·규약은 이 한 페이지 안)
   ├ 대관 패키지      /packages
+  ├ 커넥티드 라이브   /guide/connected-live
   ├ 대관 양식함      /guide/forms
   └ 이미지 가이드    /guide/image-guide
 Know It

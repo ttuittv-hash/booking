@@ -18,7 +18,7 @@ export default async function AdminContentPage() {
 
   return (
     <div className="flex flex-1 flex-col">
-      <AdminNav active="/admin/content" />
+      <AdminNav active="/admin/content" user={user} />
 
       <main className="mx-auto w-full max-w-4xl flex-1 px-6 py-8 sm:py-10">
         <header className="border-b border-border/20 pb-6">

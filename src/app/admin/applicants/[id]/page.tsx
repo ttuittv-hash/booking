@@ -41,8 +41,8 @@ const STATUS_TONE: Record<Quote["status"], "warn" | "accent" | "good"> = {
 };
 
 const APPROVAL_LABEL = {
-  PENDING: "승인 대기",
-  APPROVED: "승인됨",
+  PENDING: "일반인 (승인 대기)",
+  APPROVED: "기본 (승인됨)",
   REJECTED: "거절됨",
 } as const;
 
@@ -79,7 +79,7 @@ export default async function AdminApplicantDetailPage({
 
   return (
     <div className="flex flex-1 flex-col">
-      <AdminNav active="/admin/applicants" />
+      <AdminNav active="/admin/applicants" user={admin} />
 
       <main className="mx-auto w-full max-w-4xl flex-1 px-6 py-8 sm:py-10">
         <Link href="/admin/applicants" className={LINK_BTN}>
