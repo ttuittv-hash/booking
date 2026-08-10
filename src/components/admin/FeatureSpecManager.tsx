@@ -8,6 +8,7 @@ import {
 } from "@/lib/pricing/types";
 
 const SHEET_HEADERS: Record<FeatureSpecSheetKey, string[]> = {
+  "마일스톤": ["#", "대구분", "중구분", "소구분", "진행 업무", "결과물", "담당자", "기한", "상태", "비고"],
   "기능정의(프론트)": ["#", "영역", "기능", "상세 정의", "검토 필요 사항"],
   "기능정의(어드민)": ["#", "영역", "기능", "상세 정의", "검토 필요 사항"],
   버그: ["#", "위치", "문제"],
@@ -35,6 +36,13 @@ const NARROW_COLS = new Set([
   "기본 대관료(주)",
   "기본 준비/공연일수",
   "홍보매체",
+  "대구분",
+  "중구분",
+  "소구분",
+  "결과물",
+  "담당자",
+  "기한",
+  "상태",
 ]);
 const WIDE_COLS = new Set([
   "상세 정의",
@@ -44,6 +52,7 @@ const WIDE_COLS = new Set([
   "검토 필요 사항",
   "비고",
   "하위메뉴",
+  "진행 업무",
 ]);
 
 function columnWidthClass(header: string): string {

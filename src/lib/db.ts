@@ -463,6 +463,50 @@ function createConnection(): DatabaseSync {
     }
   }
 
+  // 메뉴트리(프론트) 2회성 마이그레이션: 공연사업팀이 제안한 사이트 전체 메뉴트리(홈페이지
+  // 소개/공연/시설안내/상업시설/고객센터 + 대관시스템 아이디·비밀번호 찾기/대관 규약)를
+  // 대조해 기존에 없던 행만 뒤에 추가한다. 기존 행은 절대 건드리지 않는다 — "정보사이트"
+  // 구분 행이 하나라도 있으면(=이미 추가됐으면) 다시 실행하지 않는다.
+  const menuFrontRow2 = db
+    .prepare("SELECT data FROM feature_spec_sheets WHERE sheet_key = ?")
+    .get("메뉴트리(프론트)") as { data: string } | undefined;
+  if (menuFrontRow2) {
+    const menuFrontRows2 = JSON.parse(menuFrontRow2.data) as Record<string, string>[];
+    const alreadyHasInfoSite = menuFrontRows2.some((r) => r["구분"] === "정보사이트");
+    if (!alreadyHasInfoSite) {
+      const seedRows = FEATURE_SPEC_SEED["메뉴트리(프론트)"] ?? [];
+      const newRows = seedRows.filter(
+        (r) => r["구분"] === "정보사이트" || r["메뉴"] === "아이디 / 비밀번호 찾기" || r["메뉴"] === "대관 규약",
+      );
+      if (newRows.length > 0) {
+        db.prepare(
+          "UPDATE feature_spec_sheets SET data = ?, updated_at = ? WHERE sheet_key = ?",
+        ).run(
+          JSON.stringify([...menuFrontRows2, ...newRows]),
+          new Date().toISOString(),
+          "메뉴트리(프론트)",
+        );
+      }
+    }
+  }
+
+  // 약관 1회성 마이그레이션: 처음 시드했던 "문서 조항 나열" 구조(영역="이용약관 (/terms)"
+  // 등)를 "플로우 구간별" 구조(구간1 회원가입, 구간4 전자 날인 등)로 교체한다. 이미 새
+  // 구조로 바뀌었거나(구간1 표시가 있음) 애초에 새 구조로 시드된 DB에는 손대지 않는다 —
+  // 마스터 관리자가 손으로 고친 내용을 덮어쓰지 않기 위함.
+  const termsRow = db
+    .prepare("SELECT data FROM feature_spec_sheets WHERE sheet_key = ?")
+    .get("약관") as { data: string } | undefined;
+  if (termsRow) {
+    const termsRows = JSON.parse(termsRow.data) as Record<string, string>[];
+    const isOldStructure = termsRows.some((r) => r["영역"] === "이용약관 (/terms)");
+    if (isOldStructure) {
+      db.prepare(
+        "UPDATE feature_spec_sheets SET data = ?, updated_at = ? WHERE sheet_key = ?",
+      ).run(JSON.stringify(FEATURE_SPEC_SEED["약관"] ?? []), new Date().toISOString(), "약관");
+    }
+  }
+
   return db;
 }
 
