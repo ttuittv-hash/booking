@@ -334,8 +334,16 @@ async function seedData(pool: Pool) {
   ).rows[0] as { n: number };
   if (adminCount.n === 0) {
     const email = process.env.SEED_ADMIN_EMAIL || "admin@seoularena.kr";
-    const password = process.env.SEED_ADMIN_PASSWORD || "admin1234!";
     const username = process.env.SEED_ADMIN_USERNAME || "admin";
+    // 운영(production)에서는 기본 비밀번호를 두지 않는다 — 초기 비밀번호를 반드시 환경변수로 지정.
+    const password =
+      process.env.SEED_ADMIN_PASSWORD ||
+      (process.env.NODE_ENV !== "production" ? "admin1234!" : "");
+    if (!password) {
+      throw new Error(
+        "운영자 계정이 없는데 SEED_ADMIN_PASSWORD 환경변수가 설정되지 않았습니다. 초기 비밀번호를 지정하세요.",
+      );
+    }
     // v2 스킴: 클라이언트가 보내는 sha256(비밀번호)을 bcrypt로 감싼 값을 저장한다.
     await pool.query(
       `INSERT INTO users (id, username, email, password_hash, password_scheme, name, company_name, role, admin_tier, created_at)
@@ -354,13 +362,16 @@ async function seedData(pool: Pool) {
     );
   }
 
-  // 내부 테스트용 — 승인 절차 없이 바로 대관 신청까지 이용 가능한 신청자 계정
+  // 내부 테스트용 — 승인 절차 없이 바로 대관 신청까지 이용 가능한 신청자 계정.
+  // 운영(production)에서는 환경변수로 비밀번호를 지정한 경우에만 생성한다(기본 자격증명 방지).
+  const testPassword =
+    process.env.SEED_TEST_APPLICANT_PASSWORD ||
+    (process.env.NODE_ENV !== "production" ? "test1234!" : "");
   const testApplicantEmail = (process.env.SEED_TEST_APPLICANT_EMAIL || "test@seoularena.kr").toLowerCase();
-  const existingTestApplicant = (
-    await pool.query("SELECT id FROM users WHERE email = $1", [testApplicantEmail])
-  ).rows[0];
-  if (!existingTestApplicant) {
-    const testPassword = process.env.SEED_TEST_APPLICANT_PASSWORD || "test1234!";
+  const existingTestApplicant = testPassword
+    ? (await pool.query("SELECT id FROM users WHERE email = $1", [testApplicantEmail])).rows[0]
+    : undefined;
+  if (testPassword && !existingTestApplicant) {
     const testUsername = process.env.SEED_TEST_APPLICANT_USERNAME || "test";
     await pool.query(
       `INSERT INTO users (id, username, email, password_hash, password_scheme, name, company_name, role, created_at)
@@ -408,6 +419,10 @@ async function seedData(pool: Pool) {
   }
 }
 
+// 여러 인스턴스가 동시에 기동해도 DDL/시드가 한 번만 돌도록 잠그는 키(임의 상수).
+// advisory lock은 커넥션(세션) 단위이므로 잠금·해제를 같은 커넥션에서 수행한다.
+const INIT_LOCK_KEY = 8264125031;
+
 async function ensureInit(): Promise<Pool> {
   if (!globalThis.__seoulArenaPool) {
     globalThis.__seoulArenaPool = createPool();
@@ -415,8 +430,15 @@ async function ensureInit(): Promise<Pool> {
   const pool = globalThis.__seoulArenaPool;
   if (!globalThis.__seoulArenaInit) {
     globalThis.__seoulArenaInit = (async () => {
-      await initSchema(pool);
-      await seedData(pool);
+      const client = await pool.connect();
+      try {
+        await client.query("SELECT pg_advisory_lock($1)", [INIT_LOCK_KEY]);
+        await initSchema(pool);
+        await seedData(pool);
+      } finally {
+        await client.query("SELECT pg_advisory_unlock($1)", [INIT_LOCK_KEY]).catch(() => {});
+        client.release();
+      }
     })().catch((err) => {
       // 초기화 실패 시 다음 요청에서 재시도할 수 있도록 초기화 프로미스를 비워둔다.
       globalThis.__seoulArenaInit = undefined;
@@ -930,8 +952,9 @@ export async function findApprovedWeekConflict(
   const week = quote.selection?.week;
   if (!week) return undefined;
 
-  const applicant = await findUserById(quote.applicantId);
-  const companyId = applicant?.companyId ?? null;
+  // 신청서마다 신청자를 따로 조회하면 신청 건수만큼 쿼리가 나가므로(N+1) 한 번에 읽어 맵으로 만든다.
+  const userById = new Map((await listUsers()).map((user) => [user.id, user]));
+  const companyId = userById.get(quote.applicantId)?.companyId ?? null;
 
   for (const other of await listQuotes()) {
     if (other.id === quote.id) continue;
@@ -944,7 +967,7 @@ export async function findApprovedWeekConflict(
       otherWeek.weekOfMonth === week.weekOfMonth;
     if (!sameWeek) continue;
 
-    const otherApplicant = await findUserById(other.applicantId);
+    const otherApplicant = userById.get(other.applicantId);
     const otherCompanyId = otherApplicant?.companyId ?? null;
     const sameCompany =
       companyId && otherCompanyId ? companyId === otherCompanyId : quote.applicantId === other.applicantId;
