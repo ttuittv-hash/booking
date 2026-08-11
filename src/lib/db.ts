@@ -488,8 +488,9 @@ export async function findApprovedWeekConflict(
   const week = quote.selection?.week;
   if (!week) return undefined;
 
-  const applicant = await findUserById(quote.applicantId);
-  const companyId = applicant?.companyId ?? null;
+  // 신청서마다 신청자를 따로 조회하면 신청 건수만큼 쿼리가 나가므로(N+1) 한 번에 읽어 맵으로 만든다.
+  const userById = new Map((await listUsers()).map((user) => [user.id, user]));
+  const companyId = userById.get(quote.applicantId)?.companyId ?? null;
 
   for (const other of await listQuotes()) {
     if (other.id === quote.id) continue;
@@ -502,7 +503,7 @@ export async function findApprovedWeekConflict(
       otherWeek.weekOfMonth === week.weekOfMonth;
     if (!sameWeek) continue;
 
-    const otherApplicant = await findUserById(other.applicantId);
+    const otherApplicant = userById.get(other.applicantId);
     const otherCompanyId = otherApplicant?.companyId ?? null;
     const sameCompany = companyId && otherCompanyId ? companyId === otherCompanyId : quote.applicantId === other.applicantId;
     if (sameCompany) continue;
