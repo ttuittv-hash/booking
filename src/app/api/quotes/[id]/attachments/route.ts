@@ -40,9 +40,9 @@ export async function POST(request: Request, ctx: { params: Promise<{ id: string
   if (!user) return NextResponse.json({ error: "로그인이 필요합니다." }, { status: 401 });
 
   const { id } = await ctx.params;
-  const quote = getQuoteById(id);
+  const quote = await getQuoteById(id);
   if (!quote) return NextResponse.json({ error: "신청서를 찾을 수 없습니다." }, { status: 404 });
-  if (!canAccessQuote(user, quote)) {
+  if (!await canAccessQuote(user, quote)) {
     return NextResponse.json({ error: "접근 권한이 없습니다." }, { status: 403 });
   }
 
@@ -74,7 +74,7 @@ export async function POST(request: Request, ctx: { params: Promise<{ id: string
   await fs.writeFile(path.join(quoteDir, storedName), buffer);
 
   const now = new Date().toISOString();
-  const attachment = createAttachment({
+  const attachment = await createAttachment({
     id: attachmentId,
     quoteId: id,
     storedName,
@@ -86,8 +86,8 @@ export async function POST(request: Request, ctx: { params: Promise<{ id: string
     createdAt: now,
   });
 
-  if (category === "TICKET_OPEN") markTicketOpenMaterialsUploaded(id, now);
-  if (category === "FACILITY_MEETING") markFacilityMeetingMaterialsUploaded(id, now);
+  if (category === "TICKET_OPEN") await markTicketOpenMaterialsUploaded(id, now);
+  if (category === "FACILITY_MEETING") await markFacilityMeetingMaterialsUploaded(id, now);
 
   return NextResponse.json({ attachment });
 }

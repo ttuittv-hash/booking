@@ -19,13 +19,13 @@ export async function POST(request: Request, ctx: { params: Promise<{ id: string
   const action = body?.action;
 
   if (action === "report") {
-    const quote = getQuoteById(id);
+    const quote = await getQuoteById(id);
     if (!quote) return NextResponse.json({ error: "신청서를 찾을 수 없습니다." }, { status: 404 });
-    if (!canAccessQuote(user, quote)) {
+    if (!await canAccessQuote(user, quote)) {
       return NextResponse.json({ error: "접근 권한이 없습니다." }, { status: 403 });
     }
 
-    const deposit = getDepositByQuoteId(id);
+    const deposit = await getDepositByQuoteId(id);
     if (!deposit) return NextResponse.json({ error: "보증금 안내가 아직 없습니다." }, { status: 404 });
     if (deposit.status !== "PENDING") {
       return NextResponse.json({ error: "이미 입금신청되었거나 확인된 보증금입니다." }, { status: 409 });
@@ -37,8 +37,8 @@ export async function POST(request: Request, ctx: { params: Promise<{ id: string
     }
 
     const createdAt = new Date().toISOString();
-    const updated = reportDeposit(id, depositorName, createdAt);
-    notifyAdmins({
+    const updated = await reportDeposit(id, depositorName, createdAt);
+    await notifyAdmins({
       quoteId: id,
       message: `${id}의 보증금 입금신청이 접수되었습니다. (입금자명: ${depositorName})`,
       createdAt,
@@ -51,18 +51,18 @@ export async function POST(request: Request, ctx: { params: Promise<{ id: string
       return NextResponse.json({ error: "운영자 로그인이 필요합니다." }, { status: 401 });
     }
 
-    const quote = getQuoteById(id);
+    const quote = await getQuoteById(id);
     if (!quote) return NextResponse.json({ error: "신청서를 찾을 수 없습니다." }, { status: 404 });
 
-    const deposit = getDepositByQuoteId(id);
+    const deposit = await getDepositByQuoteId(id);
     if (!deposit) return NextResponse.json({ error: "보증금 안내가 없습니다." }, { status: 404 });
     if (deposit.status !== "REPORTED") {
       return NextResponse.json({ error: "입금신청 상태가 아닙니다." }, { status: 409 });
     }
 
     const createdAt = new Date().toISOString();
-    const updated = confirmDeposit(id, user.id, createdAt);
-    createNotification({
+    const updated = await confirmDeposit(id, user.id, createdAt);
+    await createNotification({
       id: crypto.randomUUID(),
       recipientId: quote.applicantId,
       quoteId: id,

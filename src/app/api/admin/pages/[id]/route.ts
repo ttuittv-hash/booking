@@ -26,7 +26,7 @@ export async function PUT(request: Request, ctx: { params: Promise<{ id: string 
   }
 
   try {
-    const page = updatePage(id, { slug, navLabel, title, body: pageBody, sortOrder, updatedAt: new Date().toISOString() });
+    const page = await updatePage(id, { slug, navLabel, title, body: pageBody, sortOrder, updatedAt: new Date().toISOString() });
     if (!page) return NextResponse.json({ error: "페이지를 찾을 수 없습니다." }, { status: 404 });
     return NextResponse.json({ page });
   } catch {
@@ -41,6 +41,6 @@ export async function DELETE(_request: Request, ctx: { params: Promise<{ id: str
   }
 
   const { id } = await ctx.params;
-  deletePage(id);
+  await deletePage(id);
   return NextResponse.json({ ok: true });
 }

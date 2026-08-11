@@ -8,7 +8,7 @@ const GROUPS: PageGroup[] = ["VENUE", "GUIDE"];
 const SLUG_RE = /^[a-z0-9-]+$/;
 
 export async function GET() {
-  return NextResponse.json({ pages: listPages() });
+  return NextResponse.json({ pages: await listPages() });
 }
 
 export async function POST(request: Request) {
@@ -36,7 +36,7 @@ export async function POST(request: Request) {
   }
 
   try {
-    const page = createPage({
+    const page = await createPage({
       id: crypto.randomUUID(),
       group,
       slug,

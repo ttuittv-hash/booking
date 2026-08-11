@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/lib/auth";
-import { findUserById, listInquiries } from "@/lib/db";
+import { listInquiries, listUsers } from "@/lib/db";
 import { AdminNav } from "@/components/admin/AdminNav";
 
 const STATUS_LABEL: Record<string, string> = {
@@ -14,7 +14,9 @@ export default async function AdminInquiriesPage() {
   if (!user) redirect("/admin/login");
   if (user.role !== "ADMIN") redirect("/apply");
 
-  const inquiries = listInquiries();
+  const inquiries = await listInquiries();
+  // 문의마다 작성자를 따로 조회하면 N+1 쿼리가 되므로 한 번에 읽어 맵으로 만든다.
+  const userById = new Map((await listUsers()).map((u) => [u.id, u]));
 
   return (
     <div className="flex flex-1 flex-col">
@@ -32,7 +34,7 @@ export default async function AdminInquiriesPage() {
           ) : (
             <ul>
               {inquiries.map((inquiry) => {
-                const author = findUserById(inquiry.userId);
+                const author = userById.get(inquiry.userId);
                 return (
                   <li key={inquiry.id} className="border-b border-border last:border-b-0">
                     <Link

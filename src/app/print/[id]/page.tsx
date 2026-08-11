@@ -22,11 +22,11 @@ export default async function PrintQuotePage({
   if (!user) redirect("/login");
 
   const { id } = await params;
-  const quote = getQuoteById(id);
+  const quote = await getQuoteById(id);
   if (!quote) notFound();
-  if (!canAccessQuote(user, quote)) notFound();
+  if (!await canAccessQuote(user, quote)) notFound();
 
-  const applicant = findUserById(quote.applicantId);
+  const applicant = await findUserById(quote.applicantId);
 
   return (
     <div className="mx-auto max-w-3xl px-8 py-10 text-[13px] text-foreground">

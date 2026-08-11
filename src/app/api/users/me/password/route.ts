@@ -14,11 +14,11 @@ export async function PUT(request: Request) {
     return NextResponse.json({ error: "새 비밀번호는 8자 이상이어야 합니다." }, { status: 400 });
   }
 
-  const currentHash = findUserPasswordHash(user.id);
+  const currentHash = await findUserPasswordHash(user.id);
   if (!currentHash || !verifyPassword(currentPassword, currentHash)) {
     return NextResponse.json({ error: "현재 비밀번호가 일치하지 않습니다." }, { status: 400 });
   }
 
-  updateUserPassword(user.id, hashPassword(newPassword));
+  await updateUserPassword(user.id, hashPassword(newPassword));
   return NextResponse.json({ ok: true });
 }

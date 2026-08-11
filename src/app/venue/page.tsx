@@ -13,7 +13,7 @@ export default async function VenuePage() {
   const currentUser = await getCurrentUser();
   if (currentUser && isPendingApplicant(currentUser)) redirect("/pending");
 
-  const content = getVenueContent();
+  const content = await getVenueContent();
 
   return (
     <div className="flex flex-1 flex-col">

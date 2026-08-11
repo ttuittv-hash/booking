@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/lib/auth";
-import { findUserById, listCompanies, listQuotes } from "@/lib/db";
+import { listCompanies, listQuotes, listUsers } from "@/lib/db";
 import { won } from "@/lib/format";
 import { AdminNav } from "@/components/admin/AdminNav";
 import { AdminQuoteTable } from "@/components/admin/AdminQuoteTable";
@@ -16,12 +16,14 @@ export default async function AdminPage({
   if (user.role !== "ADMIN") redirect("/apply");
 
   const { companyId } = await searchParams;
-  const quotes = companyId ? listQuotes({ companyId }) : listQuotes();
-  const companies = listCompanies();
+  const quotes = companyId ? await listQuotes({ companyId }) : await listQuotes();
+  const companies = await listCompanies();
   // 날짜/통화 포맷은 로케일에 따라 서버·브라우저 렌더링 결과가 달라져 하이드레이션 불일치를
   // 일으킬 수 있으므로, 클라이언트 컴포넌트로 넘기기 전에 서버에서 미리 문자열로 포맷한다.
+  // 신청서마다 신청자를 따로 조회하면 N+1 쿼리가 되므로 한 번에 읽어 맵으로 만든다.
+  const userById = new Map((await listUsers()).map((u) => [u.id, u]));
   const rows = quotes.map((q) => {
-    const applicant = findUserById(q.applicantId);
+    const applicant = userById.get(q.applicantId);
     return {
       id: q.id,
       createdAtLabel: new Date(q.createdAt).toLocaleString("ko-KR"),

@@ -18,7 +18,7 @@ export async function POST(request: Request, ctx: { params: Promise<{ id: string
   }
 
   const { id } = await ctx.params;
-  const quote = getQuoteById(id);
+  const quote = await getQuoteById(id);
   if (!quote) return NextResponse.json({ error: "신청서를 찾을 수 없습니다." }, { status: 404 });
   if (quote.status !== "ESTIMATE") {
     return NextResponse.json({ error: "이미 계약 처리된 신청서입니다." }, { status: 409 });
@@ -34,7 +34,7 @@ export async function POST(request: Request, ctx: { params: Promise<{ id: string
   const rationale = typeof body?.rationale === "string" ? body.rationale.trim() : "";
 
   if (decision === "APPROVED") {
-    const conflict = findApprovedWeekConflict(quote);
+    const conflict = await findApprovedWeekConflict(quote);
     if (conflict) {
       const { year, month, weekOfMonth } = quote.selection.week;
       return NextResponse.json(
@@ -55,8 +55,8 @@ export async function POST(request: Request, ctx: { params: Promise<{ id: string
     decidedBy: user.id,
   };
 
-  const updated = setQuoteReview(id, review);
-  addAuditLog({
+  const updated = await setQuoteReview(id, review);
+  await addAuditLog({
     id: crypto.randomUUID(),
     quoteId: id,
     stage: "ESTIMATE",
@@ -65,7 +65,7 @@ export async function POST(request: Request, ctx: { params: Promise<{ id: string
     createdAt: review.decidedAt,
   });
 
-  createNotification({
+  await createNotification({
     id: crypto.randomUUID(),
     recipientId: quote.applicantId,
     quoteId: id,

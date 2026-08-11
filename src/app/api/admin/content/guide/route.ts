@@ -4,7 +4,7 @@ import { getGuideContent, saveGuideContent } from "@/lib/db";
 import type { GuideContent } from "@/lib/content/types";
 
 export async function GET() {
-  return NextResponse.json({ content: getGuideContent() });
+  return NextResponse.json({ content: await getGuideContent() });
 }
 
 export async function PUT(request: Request) {
@@ -19,6 +19,6 @@ export async function PUT(request: Request) {
     return NextResponse.json({ error: "잘못된 요청입니다." }, { status: 400 });
   }
 
-  const saved = saveGuideContent(content);
+  const saved = await saveGuideContent(content);
   return NextResponse.json({ content: saved });
 }

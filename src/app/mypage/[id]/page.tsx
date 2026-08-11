@@ -38,21 +38,21 @@ export default async function MyQuoteDetailPage({
   if (!user) redirect("/login");
 
   const { id } = await params;
-  const quote = getQuoteById(id);
+  const quote = await getQuoteById(id);
   if (!quote) notFound();
-  if (!canAccessQuote(user, quote)) notFound();
+  if (!await canAccessQuote(user, quote)) notFound();
 
-  checkAndFireReminders(quote);
+  await checkAndFireReminders(quote);
 
-  const deposit = getDepositByQuoteId(id) ?? null;
-  const attachments = listAttachments(id, null);
-  const signature = getContractSignatureByQuoteId(id) ?? null;
-  const contractInvoice = getTaxInvoice(id, "CONTRACT") ?? null;
-  const settlementInvoice = getTaxInvoice(id, "SETTLEMENT") ?? null;
-  const ticketOpen = getTicketOpenByQuoteId(id) ?? null;
-  const facilityMeeting = getFacilityMeetingByQuoteId(id) ?? null;
-  const ticketOpenMaterials = listAttachments(id, "TICKET_OPEN");
-  const facilityMeetingMaterials = listAttachments(id, "FACILITY_MEETING");
+  const deposit = await getDepositByQuoteId(id) ?? null;
+  const attachments = await listAttachments(id, null);
+  const signature = await getContractSignatureByQuoteId(id) ?? null;
+  const contractInvoice = await getTaxInvoice(id, "CONTRACT") ?? null;
+  const settlementInvoice = await getTaxInvoice(id, "SETTLEMENT") ?? null;
+  const ticketOpen = await getTicketOpenByQuoteId(id) ?? null;
+  const facilityMeeting = await getFacilityMeetingByQuoteId(id) ?? null;
+  const ticketOpenMaterials = await listAttachments(id, "TICKET_OPEN");
+  const facilityMeetingMaterials = await listAttachments(id, "FACILITY_MEETING");
 
   return (
     <div className="flex flex-1 flex-col">

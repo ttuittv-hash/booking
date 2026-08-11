@@ -9,7 +9,7 @@ export default async function AdminPackagesPage() {
   if (!user) redirect("/admin/login");
   if (user.role !== "ADMIN") redirect("/apply");
 
-  const rateTable = getCurrentRateTable();
+  const rateTable = await getCurrentRateTable();
 
   return (
     <div className="flex flex-1 flex-col">

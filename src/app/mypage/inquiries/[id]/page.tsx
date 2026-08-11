@@ -15,7 +15,7 @@ export default async function MyInquiryDetailPage({
   const { id } = await params;
   if (user.role === "ADMIN") redirect(`/admin/inquiries/${id}`);
 
-  const inquiry = getInquiryById(id);
+  const inquiry = await getInquiryById(id);
   if (!inquiry) notFound();
   if (inquiry.userId !== user.id) notFound();
 

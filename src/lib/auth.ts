@@ -7,11 +7,18 @@ import type { AppUser, Quote, UserRole } from "./pricing/types";
 const SESSION_COOKIE = "sa_session";
 const SESSION_TTL_SECONDS = 60 * 60 * 24 * 7; // 7일
 
-// 데모/개발 환경 기본 시크릿. 운영 배포 전 반드시 AUTH_SECRET 환경변수로 교체할 것.
+// 개발 편의를 위한 기본 시크릿. 운영(NODE_ENV=production)에서는 절대 쓰지 않는다 —
+// 이 값이 소스에 있으므로, 그대로 배포되면 누구나 세션 쿠키를 위조할 수 있다.
 const DEV_FALLBACK_SECRET = "seoularena-dev-only-secret-change-me-before-production-32b";
 
 function getSecretKey() {
-  const secret = process.env.AUTH_SECRET || DEV_FALLBACK_SECRET;
+  const secret = process.env.AUTH_SECRET;
+  if (!secret) {
+    if (process.env.NODE_ENV === "production") {
+      throw new Error("AUTH_SECRET 환경변수가 설정되지 않았습니다. (세션 서명 키)");
+    }
+    return new TextEncoder().encode(DEV_FALLBACK_SECRET);
+  }
   return new TextEncoder().encode(secret);
 }
 
@@ -73,8 +80,8 @@ export async function getCurrentUser(): Promise<AppUser | null> {
   if (!token) return null;
   const session = await verifySession(token);
   if (!session) return null;
-  if (isUserWithdrawn(session.sub)) return null;
-  const user = findUserById(session.sub);
+  if (await isUserWithdrawn(session.sub)) return null;
+  const user = await findUserById(session.sub);
   return user ?? null;
 }
 
@@ -100,10 +107,10 @@ export function isPendingApplicant(user: AppUser): boolean {
 }
 
 // 신청서 열람/관리 권한 — 운영자, 본인, 또는 같은 회사(기획사) 소속 실무자까지 허용
-export function canAccessQuote(user: AppUser, quote: Quote): boolean {
+export async function canAccessQuote(user: AppUser, quote: Quote): Promise<boolean> {
   if (user.role === "ADMIN") return true;
   if (quote.applicantId === user.id) return true;
   if (!user.companyId) return false;
-  const applicant = findUserById(quote.applicantId);
+  const applicant = await findUserById(quote.applicantId);
   return applicant?.companyId === user.companyId;
 }

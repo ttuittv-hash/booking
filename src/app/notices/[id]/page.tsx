@@ -12,7 +12,7 @@ export async function generateMetadata({
   params: Promise<{ id: string }>;
 }): Promise<Metadata> {
   const { id } = await params;
-  const notice = getNoticeById(id);
+  const notice = await getNoticeById(id);
   return { title: notice ? `${notice.title} | 서울아레나 공지사항` : "공지사항 | 서울아레나" };
 }
 
@@ -25,7 +25,7 @@ export default async function NoticeDetailPage({
   if (currentUser && isPendingApplicant(currentUser)) redirect("/pending");
 
   const { id } = await params;
-  const notice = getNoticeById(id);
+  const notice = await getNoticeById(id);
   if (!notice) notFound();
 
   return (

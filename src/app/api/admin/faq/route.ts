@@ -4,7 +4,7 @@ import { getCurrentUser } from "@/lib/auth";
 import { createFaq, listFaqs } from "@/lib/db";
 
 export async function GET() {
-  return NextResponse.json({ faqs: listFaqs() });
+  return NextResponse.json({ faqs: await listFaqs() });
 }
 
 export async function POST(request: Request) {
@@ -21,6 +21,6 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "질문과 답변을 입력하세요." }, { status: 400 });
   }
 
-  const faq = createFaq({ id: crypto.randomUUID(), tag, question, answer, createdAt: new Date().toISOString() });
+  const faq = await createFaq({ id: crypto.randomUUID(), tag, question, answer, createdAt: new Date().toISOString() });
   return NextResponse.json({ faq });
 }

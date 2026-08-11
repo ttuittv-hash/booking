@@ -13,7 +13,7 @@ export default async function GuidePage() {
   const currentUser = await getCurrentUser();
   if (currentUser && isPendingApplicant(currentUser)) redirect("/pending");
 
-  const content = getGuideContent();
+  const content = await getGuideContent();
 
   return (
     <div className="flex flex-1 flex-col">

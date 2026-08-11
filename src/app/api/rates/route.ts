@@ -35,7 +35,7 @@ function sanitizeNewAddon(input: Record<string, unknown>): AddonItem | null {
 }
 
 export async function GET() {
-  return NextResponse.json({ rateTable: getCurrentRateTable() });
+  return NextResponse.json({ rateTable: await getCurrentRateTable() });
 }
 
 export async function PUT(request: Request) {
@@ -55,7 +55,7 @@ export async function PUT(request: Request) {
   const dayExclusionDiscountRatio =
     typeof body?.dayExclusionDiscountRatio === "number" ? body.dayExclusionDiscountRatio : undefined;
 
-  const current = getCurrentRateTable();
+  const current = await getCurrentRateTable();
 
   const packages = current.packages.map((pkg) => {
     const override = packageOverrides.find((p) => p.id === pkg.id);
@@ -81,7 +81,7 @@ export async function PUT(request: Request) {
     .filter((a): a is AddonItem => a !== null);
   const addons = [...updatedExistingAddons, ...newAddons];
 
-  const next = saveNewRateTableVersion({
+  const next = await saveNewRateTableVersion({
     vatRate: current.vatRate,
     extraWeekRatio:
       extraWeekRatio !== undefined && extraWeekRatio >= 0 ? extraWeekRatio : current.extraWeekRatio,

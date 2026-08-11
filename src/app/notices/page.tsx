@@ -14,7 +14,7 @@ export default async function NoticesPage() {
   const currentUser = await getCurrentUser();
   if (currentUser && isPendingApplicant(currentUser)) redirect("/pending");
 
-  const notices = listNotices();
+  const notices = await listNotices();
 
   return (
     <div className="flex flex-1 flex-col">

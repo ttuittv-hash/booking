@@ -10,13 +10,13 @@ async function authorize(quoteId: string, attachmentId: string) {
   const user = await getCurrentUser();
   if (!user) return { error: NextResponse.json({ error: "로그인이 필요합니다." }, { status: 401 }) };
 
-  const quote = getQuoteById(quoteId);
+  const quote = await getQuoteById(quoteId);
   if (!quote) return { error: NextResponse.json({ error: "신청서를 찾을 수 없습니다." }, { status: 404 }) };
-  if (!canAccessQuote(user, quote)) {
+  if (!await canAccessQuote(user, quote)) {
     return { error: NextResponse.json({ error: "접근 권한이 없습니다." }, { status: 403 }) };
   }
 
-  const attachment = getAttachmentById(attachmentId);
+  const attachment = await getAttachmentById(attachmentId);
   if (!attachment || attachment.quoteId !== quoteId) {
     return { error: NextResponse.json({ error: "파일을 찾을 수 없습니다." }, { status: 404 }) };
   }
@@ -56,7 +56,7 @@ export async function DELETE(
 
   const filePath = path.join(UPLOAD_ROOT, id, result.attachment.storedName);
   await fs.unlink(filePath).catch(() => {});
-  deleteAttachment(attachmentId);
+  await deleteAttachment(attachmentId);
 
   return NextResponse.json({ ok: true });
 }

@@ -24,9 +24,9 @@ export async function POST(request: Request, ctx: { params: Promise<{ id: string
   if (!user) return NextResponse.json({ error: "로그인이 필요합니다." }, { status: 401 });
 
   const { id } = await ctx.params;
-  const quote = getQuoteById(id);
+  const quote = await getQuoteById(id);
   if (!quote) return NextResponse.json({ error: "신청서를 찾을 수 없습니다." }, { status: 404 });
-  if (!canAccessQuote(user, quote)) {
+  if (!await canAccessQuote(user, quote)) {
     return NextResponse.json({ error: "접근 권한이 없습니다." }, { status: 403 });
   }
 
@@ -35,7 +35,7 @@ export async function POST(request: Request, ctx: { params: Promise<{ id: string
   if (purpose !== "CONTRACT" && purpose !== "SETTLEMENT") {
     return NextResponse.json({ error: "잘못된 요청입니다." }, { status: 400 });
   }
-  const invoice = getTaxInvoice(id, purpose);
+  const invoice = await getTaxInvoice(id, purpose);
   if (!invoice) {
     return NextResponse.json({ error: "세금계산서 대상이 없습니다." }, { status: 404 });
   }
@@ -50,8 +50,8 @@ export async function POST(request: Request, ctx: { params: Promise<{ id: string
     if (invoice.status !== "PENDING") {
       return NextResponse.json({ error: "이미 발행된 세금계산서입니다." }, { status: 409 });
     }
-    const updated = issueTaxInvoice(id, purpose, user.id, now);
-    createNotification({
+    const updated = await issueTaxInvoice(id, purpose, user.id, now);
+    await createNotification({
       id: crypto.randomUUID(),
       recipientId: quote.applicantId,
       quoteId: id,
@@ -67,8 +67,8 @@ export async function POST(request: Request, ctx: { params: Promise<{ id: string
     }
     const payerName = typeof body.payerName === "string" ? body.payerName.trim() : "";
     if (!payerName) return NextResponse.json({ error: "입금자명을 입력하세요." }, { status: 400 });
-    const updated = reportTaxInvoicePayment(id, purpose, payerName, now);
-    notifyAdmins({
+    const updated = await reportTaxInvoicePayment(id, purpose, payerName, now);
+    await notifyAdmins({
       quoteId: id,
       message: `${id}의 ${label} 세금계산서 입금신청이 접수되었습니다. (입금자: ${payerName})`,
       createdAt: now,
@@ -83,8 +83,8 @@ export async function POST(request: Request, ctx: { params: Promise<{ id: string
     if (invoice.status !== "REPORTED") {
       return NextResponse.json({ error: "입금신청된 건만 확인할 수 있습니다." }, { status: 409 });
     }
-    const updated = confirmTaxInvoicePayment(id, purpose, user.id, now);
-    createNotification({
+    const updated = await confirmTaxInvoicePayment(id, purpose, user.id, now);
+    await createNotification({
       id: crypto.randomUUID(),
       recipientId: quote.applicantId,
       quoteId: id,

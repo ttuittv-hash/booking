@@ -58,10 +58,10 @@ export async function POST(request: Request) {
   if (!agreedPrivacy) {
     return NextResponse.json({ error: "개인정보 수집·이용에 동의해주세요." }, { status: 400 });
   }
-  if (findUserByUsername(username)) {
+  if (await findUserByUsername(username)) {
     return NextResponse.json({ error: "이미 사용 중인 아이디입니다." }, { status: 409 });
   }
-  const existingByEmail = findUserByEmailWithPasswordHash(email);
+  const existingByEmail = await findUserByEmailWithPasswordHash(email);
   if (existingByEmail) {
     return NextResponse.json(
       {
@@ -74,7 +74,7 @@ export async function POST(request: Request) {
     );
   }
   // 승인 대기 중에 이메일만 바꿔 중복으로 재신청하는 것을 막기 위해 전화번호도 함께 확인한다.
-  const existingByPhone = findUserByPhone(phone);
+  const existingByPhone = await findUserByPhone(phone);
   if (existingByPhone) {
     return NextResponse.json(
       {
@@ -93,12 +93,12 @@ export async function POST(request: Request) {
   let company;
   if (accountType === "INDIVIDUAL") {
     if (companyId) {
-      company = findCompanyById(companyId);
+      company = await findCompanyById(companyId);
       if (!company) {
         return NextResponse.json({ error: "선택한 회사를 찾을 수 없습니다. 목록을 새로고침해주세요." }, { status: 400 });
       }
     } else if (companyName) {
-      company = findOrCreateCompany(companyName);
+      company = await findOrCreateCompany(companyName);
     } else {
       company = null;
     }
@@ -121,7 +121,7 @@ export async function POST(request: Request) {
     if (!businessCertUrl) {
       return NextResponse.json({ error: "사업자등록증을 첨부하세요." }, { status: 400 });
     }
-    company = findOrCreateCompany(companyName, {
+    company = await findOrCreateCompany(companyName, {
       businessRegistrationNumber,
       representativeName,
       postalCode,
@@ -132,7 +132,7 @@ export async function POST(request: Request) {
   }
 
   const createdAt = new Date().toISOString();
-  const user = createUser({
+  const user = await createUser({
     id: crypto.randomUUID(),
     username,
     email,
@@ -148,7 +148,7 @@ export async function POST(request: Request) {
     createdAt,
   });
 
-  notifyAdmins({
+  await notifyAdmins({
     quoteId: "applicants",
     message: `신규 가입 승인 요청: ${name} (${company?.name ?? "소속 없음"}, ${accountType === "INDIVIDUAL" ? "개인회원" : "법인회원"})`,
     createdAt,

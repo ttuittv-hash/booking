@@ -4,7 +4,7 @@ import { getVenueContent, saveVenueContent } from "@/lib/db";
 import type { VenueContent } from "@/lib/content/types";
 
 export async function GET() {
-  return NextResponse.json({ content: getVenueContent() });
+  return NextResponse.json({ content: await getVenueContent() });
 }
 
 export async function PUT(request: Request) {
@@ -19,6 +19,6 @@ export async function PUT(request: Request) {
     return NextResponse.json({ error: "잘못된 요청입니다." }, { status: 400 });
   }
 
-  const saved = saveVenueContent(content);
+  const saved = await saveVenueContent(content);
   return NextResponse.json({ content: saved });
 }

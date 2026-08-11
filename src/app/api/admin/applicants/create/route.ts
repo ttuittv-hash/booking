@@ -37,19 +37,19 @@ export async function POST(request: Request) {
   if (!name) {
     return NextResponse.json({ error: "담당자명을 입력하세요." }, { status: 400 });
   }
-  if (findUserByUsername(username)) {
+  if (await findUserByUsername(username)) {
     return NextResponse.json({ error: "이미 사용 중인 아이디입니다." }, { status: 409 });
   }
-  if (findUserByEmailWithPasswordHash(email)) {
+  if (await findUserByEmailWithPasswordHash(email)) {
     return NextResponse.json({ error: "이미 가입된 이메일입니다." }, { status: 409 });
   }
 
   const company = companyName
-    ? findOrCreateCompany(companyName, { businessRegistrationNumber: businessRegistrationNumber || undefined })
+    ? await findOrCreateCompany(companyName, { businessRegistrationNumber: businessRegistrationNumber || undefined })
     : null;
 
   const createdAt = new Date().toISOString();
-  const user = createUser({
+  const user = await createUser({
     id: crypto.randomUUID(),
     username,
     email,

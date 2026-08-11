@@ -19,7 +19,7 @@ export async function POST(request: Request, ctx: { params: Promise<{ id: string
   }
 
   const { id } = await ctx.params;
-  const quote = getQuoteById(id);
+  const quote = await getQuoteById(id);
   if (!quote) return NextResponse.json({ error: "신청서를 찾을 수 없습니다." }, { status: 404 });
   if (quote.status !== "ESTIMATE") {
     return NextResponse.json({ error: "이미 계약 처리된 신청서입니다." }, { status: 409 });
@@ -44,8 +44,8 @@ export async function POST(request: Request, ctx: { params: Promise<{ id: string
     decidedBy: user.id,
   };
 
-  const updated = setQuoteContract(id, contract);
-  addAuditLog({
+  const updated = await setQuoteContract(id, contract);
+  await addAuditLog({
     id: crypto.randomUUID(),
     quoteId: id,
     stage: "CONTRACTED",
@@ -54,7 +54,7 @@ export async function POST(request: Request, ctx: { params: Promise<{ id: string
     createdAt: contract.decidedAt,
   });
 
-  const deposit = createDeposit({
+  const deposit = await createDeposit({
     id: crypto.randomUUID(),
     quoteId: id,
     requiredAmount: Math.round((contractTotal * depositRate) / 100),
@@ -62,10 +62,10 @@ export async function POST(request: Request, ctx: { params: Promise<{ id: string
     createdAt: contract.decidedAt,
   });
 
-  ensureContractSignature(id, contract.decidedAt);
-  ensureTaxInvoice(id, "CONTRACT", contractTotal, contract.decidedAt);
+  await ensureContractSignature(id, contract.decidedAt);
+  await ensureTaxInvoice(id, "CONTRACT", contractTotal, contract.decidedAt);
 
-  createNotification({
+  await createNotification({
     id: crypto.randomUUID(),
     recipientId: quote.applicantId,
     quoteId: id,

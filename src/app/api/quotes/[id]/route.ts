@@ -18,13 +18,13 @@ export async function GET(_request: Request, ctx: { params: Promise<{ id: string
   if (!user) return NextResponse.json({ error: "로그인이 필요합니다." }, { status: 401 });
 
   const { id } = await ctx.params;
-  const quote = getQuoteById(id);
+  const quote = await getQuoteById(id);
   if (!quote) return NextResponse.json({ error: "신청서를 찾을 수 없습니다." }, { status: 404 });
-  if (!canAccessQuote(user, quote)) {
+  if (!await canAccessQuote(user, quote)) {
     return NextResponse.json({ error: "접근 권한이 없습니다." }, { status: 403 });
   }
 
-  const auditLog = user.role === "ADMIN" ? listAuditLogsForQuote(id) : [];
+  const auditLog = user.role === "ADMIN" ? await listAuditLogsForQuote(id) : [];
   return NextResponse.json({ quote, auditLog });
 }
 
@@ -34,9 +34,9 @@ export async function PUT(request: Request, ctx: { params: Promise<{ id: string 
   if (!user) return NextResponse.json({ error: "로그인이 필요합니다." }, { status: 401 });
 
   const { id } = await ctx.params;
-  const quote = getQuoteById(id);
+  const quote = await getQuoteById(id);
   if (!quote) return NextResponse.json({ error: "신청서를 찾을 수 없습니다." }, { status: 404 });
-  if (!canAccessQuote(user, quote)) {
+  if (!await canAccessQuote(user, quote)) {
     return NextResponse.json({ error: "접근 권한이 없습니다." }, { status: 403 });
   }
   if (quote.status !== "ESTIMATE") {
@@ -49,7 +49,7 @@ export async function PUT(request: Request, ctx: { params: Promise<{ id: string 
     return NextResponse.json({ error: "패키지를 선택해주세요." }, { status: 400 });
   }
 
-  const blockedDates = findBlockedDatesAmong(resolveSelectedDates(selection));
+  const blockedDates = await findBlockedDatesAmong(resolveSelectedDates(selection));
   if (blockedDates.length > 0) {
     const list = blockedDates.map((b) => `${b.date}${b.reason ? ` (${b.reason})` : ""}`).join(", ");
     return NextResponse.json(
@@ -58,10 +58,10 @@ export async function PUT(request: Request, ctx: { params: Promise<{ id: string 
     );
   }
 
-  const rateTable = getCurrentRateTable();
+  const rateTable = await getCurrentRateTable();
   const computed = calculateQuote(selection, rateTable);
 
-  const updated = updateQuoteSelection(id, {
+  const updated = await updateQuoteSelection(id, {
     rateTableVersion: computed.rateTableVersion,
     selection: computed.selection,
     lineItems: computed.lineItems,
@@ -70,7 +70,7 @@ export async function PUT(request: Request, ctx: { params: Promise<{ id: string 
     total: computed.total,
   });
 
-  addAuditLog({
+  await addAuditLog({
     id: crypto.randomUUID(),
     quoteId: id,
     stage: "ESTIMATE",

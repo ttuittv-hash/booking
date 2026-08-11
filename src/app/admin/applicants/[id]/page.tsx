@@ -28,11 +28,11 @@ export default async function AdminApplicantDetailPage({
   if (admin.role !== "ADMIN") redirect("/apply");
 
   const { id } = await params;
-  const target = findUserById(id);
+  const target = await findUserById(id);
   if (!target || target.role !== "APPLICANT") notFound();
 
-  const company = target.companyId ? findCompanyById(target.companyId) : null;
-  const quotes = target.companyId ? listQuotes({ companyId: target.companyId }) : listQuotes({ applicantId: target.id });
+  const company = target.companyId ? await findCompanyById(target.companyId) : null;
+  const quotes = target.companyId ? await listQuotes({ companyId: target.companyId }) : await listQuotes({ applicantId: target.id });
 
   return (
     <div className="flex flex-1 flex-col">

@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/lib/auth";
-import { findUserById, getQuoteById } from "@/lib/db";
+import { getQuoteById, listUsers } from "@/lib/db";
 import { won } from "@/lib/format";
 import { totalRentalDays } from "@/lib/pricing/rateTableUtils";
 import type { Quote } from "@/lib/pricing/types";
@@ -24,7 +24,11 @@ export default async function AdminComparePage({
 
   const { ids } = await searchParams;
   const quoteIds = (ids ?? "").split(",").map((s) => s.trim()).filter(Boolean);
-  const quotes = quoteIds.map((id) => getQuoteById(id)).filter((q): q is Quote => !!q);
+  const quotes = (await Promise.all(quoteIds.map((id) => getQuoteById(id)))).filter(
+    (q): q is Quote => !!q,
+  );
+  // 신청자 정보는 아래 표에서 반복 참조하므로 한 번에 읽어 맵으로 만든다(N+1 방지).
+  const userById = new Map((await listUsers()).map((u) => [u.id, u]));
 
   const allAddonIds = [
     ...new Set(quotes.flatMap((q) => q.lineItems.map((i) => i.addonId))),
@@ -67,10 +71,10 @@ export default async function AdminComparePage({
                 </tr>
               </thead>
               <tbody>
-                <CompareRow label="신청자" values={quotes.map((q) => findUserById(q.applicantId)?.name ?? "-")} />
+                <CompareRow label="신청자" values={quotes.map((q) => userById.get(q.applicantId)?.name ?? "-")} />
                 <CompareRow
                   label="회사"
-                  values={quotes.map((q) => findUserById(q.applicantId)?.companyName ?? "-")}
+                  values={quotes.map((q) => userById.get(q.applicantId)?.companyName ?? "-")}
                 />
                 <CompareRow
                   label="주차"
