@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/lib/auth";
-import { findUserById, listInquiries } from "@/lib/db";
+import { listInquiries, listUsersByIds } from "@/lib/db";
 import { AdminNav } from "@/components/admin/AdminNav";
 
 const STATUS_LABEL: Record<string, string> = {
@@ -16,12 +16,7 @@ export default async function AdminInquiriesPage() {
 
   const inquiries = await listInquiries();
   const authorIds = [...new Set(inquiries.map((i) => i.userId))];
-  const authorById = new Map(
-    (await Promise.all(authorIds.map((uid) => findUserById(uid)))).map((u, i) => [
-      authorIds[i],
-      u,
-    ]),
-  );
+  const authorById = new Map((await listUsersByIds(authorIds)).map((u) => [u.id, u]));
 
   return (
     <div className="flex flex-1 flex-col">

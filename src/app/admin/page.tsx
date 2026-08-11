@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/lib/auth";
-import { findUserById, listCompanies, listQuotes } from "@/lib/db";
+import { listCompanies, listQuotes, listUsersByIds } from "@/lib/db";
 import { won } from "@/lib/format";
 import { AdminNav } from "@/components/admin/AdminNav";
 import { AdminQuoteTable } from "@/components/admin/AdminQuoteTable";
@@ -19,12 +19,7 @@ export default async function AdminPage({
   const quotes = companyId ? await listQuotes({ companyId }) : await listQuotes();
   const companies = await listCompanies();
   const applicantIds = [...new Set(quotes.map((q) => q.applicantId))];
-  const applicantById = new Map(
-    (await Promise.all(applicantIds.map((aid) => findUserById(aid)))).map((u, i) => [
-      applicantIds[i],
-      u,
-    ]),
-  );
+  const applicantById = new Map((await listUsersByIds(applicantIds)).map((u) => [u.id, u]));
   // 날짜/통화 포맷은 로케일에 따라 서버·브라우저 렌더링 결과가 달라져 하이드레이션 불일치를
   // 일으킬 수 있으므로, 클라이언트 컴포넌트로 넘기기 전에 서버에서 미리 문자열로 포맷한다.
   const rows = quotes.map((q) => {

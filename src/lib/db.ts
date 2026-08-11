@@ -449,11 +449,6 @@ async function ensureInit(): Promise<Pool> {
   return pool;
 }
 
-/** 초기화(스키마 생성·시드)가 끝난 커넥션 풀을 반환한다. */
-export async function getDb(): Promise<Pool> {
-  return ensureInit();
-}
-
 async function q<T>(sql: string, params: unknown[] = []): Promise<T[]> {
   const pool = await ensureInit();
   const result = await pool.query(sql, params);
@@ -737,6 +732,14 @@ export async function findUserByLoginIdWithPasswordHash(
   return { ...toAppUser(row), passwordHash: row.password_hash, passwordScheme: row.password_scheme };
 }
 
+// 목록 화면에서 신청자/작성자를 한 번에 채울 때 사용한다 — id 개수만큼 쿼리를 날리는 대신
+// IN 조건 한 방으로 읽는다.
+export async function listUsersByIds(ids: string[]): Promise<AppUser[]> {
+  if (ids.length === 0) return [];
+  const rows = await q<UserRow>("SELECT * FROM users WHERE id = ANY($1)", [ids]);
+  return rows.map(toAppUser);
+}
+
 export async function listUsers(filter?: {
   role?: UserRole;
   approvalStatus?: ApprovalStatus;
@@ -1016,11 +1019,6 @@ function toDateBlock(row: DateBlockRow): DateBlock {
 export async function listDateBlocks(): Promise<DateBlock[]> {
   const rows = await q<DateBlockRow>("SELECT * FROM date_blocks ORDER BY date ASC");
   return rows.map(toDateBlock);
-}
-
-export async function isDateBlocked(date: string): Promise<DateBlock | undefined> {
-  const row = await one<DateBlockRow>("SELECT * FROM date_blocks WHERE date = $1", [date]);
-  return row ? toDateBlock(row) : undefined;
 }
 
 // 신청서가 실제로 차지하는 날짜 목록(제외 요일 반영, 추가 일수 포함) 중 막힌 날짜가 있는지 확인한다.
@@ -2006,14 +2004,6 @@ export async function listPages(group?: PageGroup): Promise<StaticPage[]> {
 
 export async function getPageById(id: string): Promise<StaticPage | undefined> {
   const row = await one<PageRow>("SELECT * FROM pages WHERE id = $1", [id]);
-  return row ? toStaticPage(row) : undefined;
-}
-
-export async function getPageBySlug(group: PageGroup, slug: string): Promise<StaticPage | undefined> {
-  const row = await one<PageRow>("SELECT * FROM pages WHERE page_group = $1 AND slug = $2", [
-    group,
-    slug,
-  ]);
   return row ? toStaticPage(row) : undefined;
 }
 

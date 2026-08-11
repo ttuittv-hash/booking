@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/lib/auth";
-import { findUserById, getQuoteById } from "@/lib/db";
+import { getQuoteById, listUsersByIds } from "@/lib/db";
 import { won } from "@/lib/format";
 import { totalRentalDays } from "@/lib/pricing/rateTableUtils";
 import type { Quote } from "@/lib/pricing/types";
@@ -29,12 +29,7 @@ export default async function AdminComparePage({
   );
 
   const applicantIds = [...new Set(quotes.map((q) => q.applicantId))];
-  const applicantById = new Map(
-    (await Promise.all(applicantIds.map((aid) => findUserById(aid)))).map((u, i) => [
-      applicantIds[i],
-      u,
-    ]),
-  );
+  const applicantById = new Map((await listUsersByIds(applicantIds)).map((u) => [u.id, u]));
 
   const allAddonIds = [
     ...new Set(quotes.flatMap((q) => q.lineItems.map((i) => i.addonId))),

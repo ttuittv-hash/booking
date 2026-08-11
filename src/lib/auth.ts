@@ -84,12 +84,6 @@ export async function getCurrentUser(): Promise<AppUser | null> {
   return user ?? null;
 }
 
-export async function requireRole(role: UserRole): Promise<AppUser | null> {
-  const user = await getCurrentUser();
-  if (!user || user.role !== role) return null;
-  return user;
-}
-
 // 마스터 관리자 전용 화면/API에서 사용. role=ADMIN이면서 adminTier=MASTER인 계정만 통과시킨다.
 export function isMasterAdmin(user: AppUser | null): boolean {
   return !!user && user.role === "ADMIN" && user.adminTier === "MASTER";
