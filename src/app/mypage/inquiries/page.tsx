@@ -19,7 +19,7 @@ export default async function MyInquiriesPage() {
   if (!user) redirect("/login");
   if (user.role === "ADMIN") redirect("/admin/inquiries");
 
-  const inquiries = listInquiries({ userId: user.id });
+  const inquiries = await listInquiries({ userId: user.id });
 
   return (
     <div className="flex flex-1 flex-col">

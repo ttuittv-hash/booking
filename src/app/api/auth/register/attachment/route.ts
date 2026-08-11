@@ -3,6 +3,7 @@ import crypto from "node:crypto";
 import fs from "node:fs/promises";
 import path from "node:path";
 import { DATA_DIR } from "@/lib/dataDir";
+import { clientIpFrom, rateLimit } from "@/lib/rateLimit";
 
 const UPLOAD_ROOT = path.join(DATA_DIR, "uploads", "registration-attachments");
 const MAX_SIZE = 10 * 1024 * 1024; // 10MB
@@ -14,7 +15,16 @@ function safeExtension(originalName: string): string {
 }
 
 // 회원가입 진행 중(비로그인 상태)에 사업자등록증 등을 첨부하기 위한 공개 업로드 엔드포인트.
+// 비로그인 업로드이므로 IP당 횟수를 제한해 디스크 채우기 공격을 막는다.
 export async function POST(request: Request) {
+  const ip = clientIpFrom(request);
+  if (!rateLimit(`register-upload:${ip}`, 10, 10 * 60 * 1000)) {
+    return NextResponse.json(
+      { error: "업로드 요청이 너무 많습니다. 잠시 후 다시 시도해주세요." },
+      { status: 429 },
+    );
+  }
+
   const formData = await request.formData().catch(() => null);
   const file = formData?.get("file");
   if (!file || !(file instanceof File)) {

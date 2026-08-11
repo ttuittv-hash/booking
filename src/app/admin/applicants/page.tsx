@@ -10,10 +10,10 @@ export default async function AdminApplicantsPage() {
   if (!user) redirect("/admin/login");
   if (user.role !== "ADMIN") redirect("/apply");
 
-  const pending = listUsers({ role: "APPLICANT", approvalStatus: "PENDING" });
-  const decided = listUsers({ role: "APPLICANT" }).filter((a) => a.approvalStatus !== "PENDING");
+  const pending = await listUsers({ role: "APPLICANT", approvalStatus: "PENDING" });
+  const decided = (await listUsers({ role: "APPLICANT" })).filter((a) => a.approvalStatus !== "PENDING");
   const businessRegistrationNumbers = Object.fromEntries(
-    listCompanies().map((c) => [c.id, c.businessRegistrationNumber]),
+    (await listCompanies()).map((c) => [c.id, c.businessRegistrationNumber]),
   );
 
   return (

@@ -1,3 +1,11 @@
+databases:
+  # 애플리케이션 데이터베이스 (PostgreSQL). 웹 서비스와 같은 리전이어야
+  # 내부 연결 문자열(connectionString)로 접속할 수 있다.
+  - name: seoul-arena-db
+    plan: basic-256mb
+    databaseName: seoularena
+    user: seoularena
+
 services:
   - type: web
     name: seoul-arena-booking
@@ -6,6 +14,8 @@ services:
     branch: claude/seoul-arena-booking-system-k6ivh4
     buildCommand: npm install && npm run build
     startCommand: npm run start
+    # 업로드 파일(사업자등록증·공지 이미지·신청 첨부서류) 저장용 영구 디스크.
+    # DB는 PostgreSQL로 이전했지만 파일은 여전히 디스크에 저장된다.
     disk:
       name: seoul-arena-data
       mountPath: /var/data
@@ -15,9 +25,15 @@ services:
         value: "22"
       - key: DATA_DIR
         value: /var/data
+      - key: DATABASE_URL
+        fromDatabase:
+          name: seoul-arena-db
+          property: connectionString
       - key: AUTH_SECRET
         generateValue: true
       - key: SEED_ADMIN_EMAIL
         value: admin@seoularena.kr
+      # 초기 운영자 비밀번호 — 대시보드에서 반드시 강한 값으로 교체하고,
+      # 첫 로그인 후 화면에서 비밀번호를 변경할 것.
       - key: SEED_ADMIN_PASSWORD
-        value: admin1234!
+        sync: false

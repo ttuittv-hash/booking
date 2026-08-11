@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import crypto from "node:crypto";
 import { getCurrentUser, hashPassword } from "@/lib/auth";
 import { createUser, findUserByEmailWithPasswordHash, findUserByUsername, listUsers } from "@/lib/db";
+import { sha256Hex } from "@/lib/passwordScheme";
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const USERNAME_RE = /^[a-z0-9][a-z0-9_]{3,19}$/;
@@ -11,7 +12,7 @@ export async function GET() {
   if (!user || user.role !== "ADMIN") {
     return NextResponse.json({ error: "운영자 로그인이 필요합니다." }, { status: 401 });
   }
-  return NextResponse.json({ users: listUsers({ role: "ADMIN" }) });
+  return NextResponse.json({ users: await listUsers({ role: "ADMIN" }) });
 }
 
 export async function POST(request: Request) {
@@ -41,18 +42,18 @@ export async function POST(request: Request) {
   if (!name) {
     return NextResponse.json({ error: "이름을 입력하세요." }, { status: 400 });
   }
-  if (findUserByUsername(username)) {
+  if (await findUserByUsername(username)) {
     return NextResponse.json({ error: "이미 사용 중인 아이디입니다." }, { status: 409 });
   }
-  if (findUserByEmailWithPasswordHash(email)) {
+  if (await findUserByEmailWithPasswordHash(email)) {
     return NextResponse.json({ error: "이미 가입된 이메일입니다." }, { status: 409 });
   }
 
-  const created = createUser({
+  const created = await createUser({
     id: crypto.randomUUID(),
     username,
     email,
-    passwordHash: hashPassword(password),
+    passwordHash: hashPassword(sha256Hex(password)),
     name,
     companyName: null,
     role: "ADMIN",

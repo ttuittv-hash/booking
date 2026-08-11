@@ -22,51 +22,51 @@ const PURPOSE_LABEL: Record<InvoicePurpose, string> = {
   SETTLEMENT: "정산금",
 };
 
-export function checkAndFireReminders(quote: Quote) {
+export async function checkAndFireReminders(quote: Quote) {
   const now = new Date();
   const nowIso = now.toISOString();
 
   for (const purpose of ["CONTRACT", "SETTLEMENT"] as InvoicePurpose[]) {
-    const invoice = getTaxInvoice(quote.id, purpose);
+    const invoice = await getTaxInvoice(quote.id, purpose);
     if (invoice && isInvoiceReminderDue(invoice, now)) {
       const message = `${quote.id}의 ${PURPOSE_LABEL[purpose]} 세금계산서가 미입금 상태입니다. 입금 후 입금신청을 진행해주세요.`;
-      createNotification({
+      await createNotification({
         id: crypto.randomUUID(),
         recipientId: quote.applicantId,
         quoteId: quote.id,
         message,
         createdAt: nowIso,
       });
-      notifyAdmins({ quoteId: quote.id, message: `${quote.id} ${message}`, createdAt: nowIso });
-      touchInvoiceReminder(quote.id, purpose, nowIso);
+      await notifyAdmins({ quoteId: quote.id, message: `${quote.id} ${message}`, createdAt: nowIso });
+      await touchInvoiceReminder(quote.id, purpose, nowIso);
     }
   }
 
-  const ticketOpen = getTicketOpenByQuoteId(quote.id);
+  const ticketOpen = await getTicketOpenByQuoteId(quote.id);
   if (ticketOpen && isTicketOpenReminderDue(ticketOpen, now)) {
     const message = `${quote.id}의 티켓오픈일(${ticketOpen.openDate})이 다가오는데 자료(포스터/상세페이지/좌석배치도)가 업로드되지 않았습니다.`;
-    createNotification({
+    await createNotification({
       id: crypto.randomUUID(),
       recipientId: quote.applicantId,
       quoteId: quote.id,
       message,
       createdAt: nowIso,
     });
-    notifyAdmins({ quoteId: quote.id, message, createdAt: nowIso });
-    touchTicketOpenReminder(quote.id, nowIso);
+    await notifyAdmins({ quoteId: quote.id, message, createdAt: nowIso });
+    await touchTicketOpenReminder(quote.id, nowIso);
   }
 
-  const facilityMeeting = getFacilityMeetingByQuoteId(quote.id);
+  const facilityMeeting = await getFacilityMeetingByQuoteId(quote.id);
   if (facilityMeeting && isFacilityMeetingReminderDue(facilityMeeting, now)) {
     const message = `${quote.id}의 시설회의일(${facilityMeeting.meetingDate})이 다가오는데 자료(운영 매뉴얼/프로덕션 노트)가 업로드되지 않았습니다.`;
-    createNotification({
+    await createNotification({
       id: crypto.randomUUID(),
       recipientId: quote.applicantId,
       quoteId: quote.id,
       message,
       createdAt: nowIso,
     });
-    notifyAdmins({ quoteId: quote.id, message, createdAt: nowIso });
-    touchFacilityMeetingReminder(quote.id, nowIso);
+    await notifyAdmins({ quoteId: quote.id, message, createdAt: nowIso });
+    await touchFacilityMeetingReminder(quote.id, nowIso);
   }
 }

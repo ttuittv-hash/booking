@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { getCurrentUser, isPendingApplicant } from "@/lib/auth";
 import { getGuideContent } from "@/lib/db";
+import { sanitizeRichText } from "@/lib/sanitizeHtml";
 import { PublicHeader } from "@/components/PublicHeader";
 import { GuideContentView } from "@/components/GuideContentView";
 
@@ -13,7 +14,13 @@ export default async function GuidePage() {
   const currentUser = await getCurrentUser();
   if (currentUser && isPendingApplicant(currentUser)) redirect("/pending");
 
-  const content = getGuideContent();
+  const rawContent = await getGuideContent();
+  const content = {
+    ...rawContent,
+    intro: sanitizeRichText(rawContent.intro),
+    packageIntro: sanitizeRichText(rawContent.packageIntro),
+    rulesIntro: sanitizeRichText(rawContent.rulesIntro),
+  };
 
   return (
     <div className="flex flex-1 flex-col">

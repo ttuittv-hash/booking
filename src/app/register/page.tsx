@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
+import { hashPasswordForTransport } from "@/lib/clientPassword";
 
 declare global {
   interface Window {
@@ -111,11 +112,16 @@ export default function RegisterPage() {
 
     setLoading(true);
     try {
+      // 비밀번호 평문은 전송하지 않는다 — SHA-256 해시만 보내고 서버가 bcrypt로 저장한다.
+      // (undefined 필드는 JSON.stringify에서 제외된다)
+      const formWithoutPassword = { ...form, password: undefined, passwordConfirm: undefined };
+      const passwordHash = await hashPasswordForTransport(form.password);
       const res = await fetch("/api/auth/register", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          ...form,
+          ...formWithoutPassword,
+          passwordHash,
           address: form.addressDetail ? `${form.address} ${form.addressDetail}` : form.address,
           accountType,
           agreedTerms,

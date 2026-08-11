@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
 import { deleteNotice, updateNotice } from "@/lib/db";
+import { sanitizeRichText } from "@/lib/sanitizeHtml";
 
 export async function PUT(request: Request, ctx: { params: Promise<{ id: string }> }) {
   const user = await getCurrentUser();
@@ -22,10 +23,10 @@ export async function PUT(request: Request, ctx: { params: Promise<{ id: string 
     return NextResponse.json({ error: "제목과 내용을 입력하세요." }, { status: 400 });
   }
 
-  const notice = updateNotice(id, {
+  const notice = await updateNotice(id, {
     tag,
     title,
-    body: noticeBody,
+    body: sanitizeRichText(noticeBody),
     imageUrl,
     attachmentUrl,
     attachmentName,
@@ -42,6 +43,6 @@ export async function DELETE(_request: Request, ctx: { params: Promise<{ id: str
   }
 
   const { id } = await ctx.params;
-  deleteNotice(id);
+  await deleteNotice(id);
   return NextResponse.json({ ok: true });
 }

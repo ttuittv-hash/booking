@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { getCurrentUser, isPendingApplicant } from "@/lib/auth";
 import { getVenueContent } from "@/lib/db";
+import { sanitizeRichText } from "@/lib/sanitizeHtml";
 import { PublicHeader } from "@/components/PublicHeader";
 import { VenueContentView } from "@/components/VenueContentView";
 
@@ -13,7 +14,13 @@ export default async function VenuePage() {
   const currentUser = await getCurrentUser();
   if (currentUser && isPendingApplicant(currentUser)) redirect("/pending");
 
-  const content = getVenueContent();
+  const rawContent = await getVenueContent();
+  const content = {
+    ...rawContent,
+    intro: sanitizeRichText(rawContent.intro),
+    overviewIntro: sanitizeRichText(rawContent.overviewIntro),
+    specsIntro: sanitizeRichText(rawContent.specsIntro),
+  };
 
   return (
     <div className="flex flex-1 flex-col">

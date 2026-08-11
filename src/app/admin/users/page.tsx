@@ -11,7 +11,7 @@ export default async function AdminUsersPage() {
   if (!user) redirect("/admin/login");
   if (user.role !== "ADMIN") redirect("/apply");
 
-  const admins = listUsers({ role: "ADMIN" });
+  const admins = await listUsers({ role: "ADMIN" });
   const master = isMasterAdmin(user);
 
   return (

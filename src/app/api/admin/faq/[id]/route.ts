@@ -17,7 +17,7 @@ export async function PUT(request: Request, ctx: { params: Promise<{ id: string 
     return NextResponse.json({ error: "질문과 답변을 입력하세요." }, { status: 400 });
   }
 
-  const faq = updateFaq(id, { tag, question, answer, updatedAt: new Date().toISOString() });
+  const faq = await updateFaq(id, { tag, question, answer, updatedAt: new Date().toISOString() });
   if (!faq) return NextResponse.json({ error: "FAQ를 찾을 수 없습니다." }, { status: 404 });
   return NextResponse.json({ faq });
 }
@@ -29,6 +29,6 @@ export async function DELETE(_request: Request, ctx: { params: Promise<{ id: str
   }
 
   const { id } = await ctx.params;
-  deleteFaq(id);
+  await deleteFaq(id);
   return NextResponse.json({ ok: true });
 }

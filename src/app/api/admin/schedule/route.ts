@@ -9,7 +9,7 @@ export async function GET() {
   if (!user || user.role !== "ADMIN") {
     return NextResponse.json({ error: "운영자 로그인이 필요합니다." }, { status: 401 });
   }
-  return NextResponse.json({ blocks: listDateBlocks() });
+  return NextResponse.json({ blocks: await listDateBlocks() });
 }
 
 export async function POST(request: Request) {
@@ -26,7 +26,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "잘못된 요청입니다." }, { status: 400 });
   }
 
-  const block = blockDate(date, reason);
+  const block = await blockDate(date, reason);
   return NextResponse.json({ block });
 }
 
@@ -42,6 +42,6 @@ export async function DELETE(request: Request) {
     return NextResponse.json({ error: "잘못된 요청입니다." }, { status: 400 });
   }
 
-  unblockDate(date);
+  await unblockDate(date);
   return NextResponse.json({ ok: true });
 }

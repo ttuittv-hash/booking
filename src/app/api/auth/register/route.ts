@@ -10,14 +10,25 @@ import {
   findUserByUsername,
   notifyAdmins,
 } from "@/lib/db";
+import { SHA256_HEX_RE, sha256Hex } from "@/lib/passwordScheme";
+import { clientIpFrom, rateLimit } from "@/lib/rateLimit";
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const USERNAME_RE = /^[a-z0-9][a-z0-9_]{3,19}$/;
 
 export async function POST(request: Request) {
+  const ip = clientIpFrom(request);
+  if (!rateLimit(`register:${ip}`, 10, 10 * 60 * 1000)) {
+    return NextResponse.json(
+      { error: "요청이 너무 많습니다. 잠시 후 다시 시도해주세요." },
+      { status: 429 },
+    );
+  }
+
   const body = await request.json().catch(() => null);
   const username = typeof body?.username === "string" ? body.username.trim().toLowerCase() : "";
   const email = typeof body?.email === "string" ? body.email.trim() : "";
+  const passwordHashInput = typeof body?.passwordHash === "string" ? body.passwordHash.toLowerCase() : "";
   const password = typeof body?.password === "string" ? body.password : "";
   const name = typeof body?.name === "string" ? body.name.trim() : "";
   const phone = typeof body?.phone === "string" ? body.phone.trim() : "";
@@ -43,7 +54,18 @@ export async function POST(request: Request) {
   if (!EMAIL_RE.test(email)) {
     return NextResponse.json({ error: "올바른 이메일을 입력하세요." }, { status: 400 });
   }
-  if (password.length < 8) {
+  // 비밀번호는 클라이언트에서 SHA-256으로 해시해 전송한다(길이 검증도 클라이언트에서 수행).
+  // 평문 폴백(직접 API 호출)일 때만 서버에서 길이를 검증한다.
+  let transportHash = "";
+  if (SHA256_HEX_RE.test(passwordHashInput)) {
+    transportHash = passwordHashInput;
+  } else if (password) {
+    if (password.length < 8) {
+      return NextResponse.json({ error: "비밀번호는 8자 이상이어야 합니다." }, { status: 400 });
+    }
+    transportHash = sha256Hex(password);
+  }
+  if (!transportHash) {
     return NextResponse.json({ error: "비밀번호는 8자 이상이어야 합니다." }, { status: 400 });
   }
   if (!name) {
@@ -58,10 +80,10 @@ export async function POST(request: Request) {
   if (!agreedPrivacy) {
     return NextResponse.json({ error: "개인정보 수집·이용에 동의해주세요." }, { status: 400 });
   }
-  if (findUserByUsername(username)) {
+  if (await findUserByUsername(username)) {
     return NextResponse.json({ error: "이미 사용 중인 아이디입니다." }, { status: 409 });
   }
-  const existingByEmail = findUserByEmailWithPasswordHash(email);
+  const existingByEmail = await findUserByEmailWithPasswordHash(email);
   if (existingByEmail) {
     return NextResponse.json(
       {
@@ -74,7 +96,7 @@ export async function POST(request: Request) {
     );
   }
   // 승인 대기 중에 이메일만 바꿔 중복으로 재신청하는 것을 막기 위해 전화번호도 함께 확인한다.
-  const existingByPhone = findUserByPhone(phone);
+  const existingByPhone = await findUserByPhone(phone);
   if (existingByPhone) {
     return NextResponse.json(
       {
@@ -93,12 +115,12 @@ export async function POST(request: Request) {
   let company;
   if (accountType === "INDIVIDUAL") {
     if (companyId) {
-      company = findCompanyById(companyId);
+      company = await findCompanyById(companyId);
       if (!company) {
         return NextResponse.json({ error: "선택한 회사를 찾을 수 없습니다. 목록을 새로고침해주세요." }, { status: 400 });
       }
     } else if (companyName) {
-      company = findOrCreateCompany(companyName);
+      company = await findOrCreateCompany(companyName);
     } else {
       company = null;
     }
@@ -121,7 +143,7 @@ export async function POST(request: Request) {
     if (!businessCertUrl) {
       return NextResponse.json({ error: "사업자등록증을 첨부하세요." }, { status: 400 });
     }
-    company = findOrCreateCompany(companyName, {
+    company = await findOrCreateCompany(companyName, {
       businessRegistrationNumber,
       representativeName,
       postalCode,
@@ -132,12 +154,12 @@ export async function POST(request: Request) {
   }
 
   const createdAt = new Date().toISOString();
-  const user = createUser({
+  const user = await createUser({
     id: crypto.randomUUID(),
     username,
     email,
     phone,
-    passwordHash: hashPassword(password),
+    passwordHash: hashPassword(transportHash),
     name,
     companyName: company?.name ?? null,
     companyId: company?.id ?? null,
@@ -148,7 +170,7 @@ export async function POST(request: Request) {
     createdAt,
   });
 
-  notifyAdmins({
+  await notifyAdmins({
     quoteId: "applicants",
     message: `신규 가입 승인 요청: ${name} (${company?.name ?? "소속 없음"}, ${accountType === "INDIVIDUAL" ? "개인회원" : "법인회원"})`,
     createdAt,

@@ -10,7 +10,7 @@ export async function POST(request: Request, ctx: { params: Promise<{ id: string
   }
 
   const { id } = await ctx.params;
-  const inquiry = getInquiryById(id);
+  const inquiry = await getInquiryById(id);
   if (!inquiry) return NextResponse.json({ error: "문의를 찾을 수 없습니다." }, { status: 404 });
 
   const body = await request.json().catch(() => null);
@@ -18,8 +18,8 @@ export async function POST(request: Request, ctx: { params: Promise<{ id: string
   if (!answer) return NextResponse.json({ error: "답변 내용을 입력하세요." }, { status: 400 });
 
   const now = new Date().toISOString();
-  const updated = answerInquiry(id, answer, user.id, now);
-  createNotification({
+  const updated = await answerInquiry(id, answer, user.id, now);
+  await createNotification({
     id: crypto.randomUUID(),
     recipientId: inquiry.userId,
     quoteId: "",

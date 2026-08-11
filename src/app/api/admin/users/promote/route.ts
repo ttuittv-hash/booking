@@ -24,7 +24,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "올바르지 않은 등급입니다." }, { status: 400 });
   }
 
-  const target = findUserByEmail(email);
+  const target = await findUserByEmail(email);
   if (!target) {
     return NextResponse.json(
       { error: "그 이메일로 가입된 계정을 찾을 수 없습니다. 먼저 회원가입이 되어 있어야 합니다." },
@@ -32,6 +32,6 @@ export async function POST(request: Request) {
     );
   }
 
-  const promoted = promoteUserToAdmin(target.id, tier);
+  const promoted = await promoteUserToAdmin(target.id, tier);
   return NextResponse.json({ user: promoted });
 }

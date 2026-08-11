@@ -14,7 +14,14 @@ export default async function AdminInquiriesPage() {
   if (!user) redirect("/admin/login");
   if (user.role !== "ADMIN") redirect("/apply");
 
-  const inquiries = listInquiries();
+  const inquiries = await listInquiries();
+  const authorIds = [...new Set(inquiries.map((i) => i.userId))];
+  const authorById = new Map(
+    (await Promise.all(authorIds.map((uid) => findUserById(uid)))).map((u, i) => [
+      authorIds[i],
+      u,
+    ]),
+  );
 
   return (
     <div className="flex flex-1 flex-col">
@@ -32,7 +39,7 @@ export default async function AdminInquiriesPage() {
           ) : (
             <ul>
               {inquiries.map((inquiry) => {
-                const author = findUserById(inquiry.userId);
+                const author = authorById.get(inquiry.userId);
                 return (
                   <li key={inquiry.id} className="border-b border-border last:border-b-0">
                     <Link

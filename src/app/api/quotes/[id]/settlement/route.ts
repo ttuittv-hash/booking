@@ -19,7 +19,7 @@ export async function POST(request: Request, ctx: { params: Promise<{ id: string
   }
 
   const { id } = await ctx.params;
-  const quote = getQuoteById(id);
+  const quote = await getQuoteById(id);
   if (!quote) return NextResponse.json({ error: "신청서를 찾을 수 없습니다." }, { status: 404 });
   if (quote.status !== "CONTRACTED" || !quote.contract) {
     return NextResponse.json({ error: "계약 확정 후에만 정산할 수 있습니다." }, { status: 409 });
@@ -46,8 +46,8 @@ export async function POST(request: Request, ctx: { params: Promise<{ id: string
     decidedBy: user.id,
   };
 
-  const updated = setQuoteSettlement(id, settlement);
-  addAuditLog({
+  const updated = await setQuoteSettlement(id, settlement);
+  await addAuditLog({
     id: crypto.randomUUID(),
     quoteId: id,
     stage: "SETTLED",
@@ -56,9 +56,9 @@ export async function POST(request: Request, ctx: { params: Promise<{ id: string
     createdAt: settlement.decidedAt,
   });
 
-  ensureTaxInvoice(id, "SETTLEMENT", finalTotal, settlement.decidedAt);
+  await ensureTaxInvoice(id, "SETTLEMENT", finalTotal, settlement.decidedAt);
 
-  createNotification({
+  await createNotification({
     id: crypto.randomUUID(),
     recipientId: quote.applicantId,
     quoteId: id,

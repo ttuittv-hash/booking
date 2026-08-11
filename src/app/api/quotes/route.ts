@@ -27,10 +27,10 @@ export async function GET() {
 
   const quotes =
     user.role === "ADMIN"
-      ? listQuotes()
+      ? await listQuotes()
       : user.companyId
-        ? listQuotes({ companyId: user.companyId })
-        : listQuotes({ applicantId: user.id });
+        ? await listQuotes({ companyId: user.companyId })
+        : await listQuotes({ applicantId: user.id });
   return NextResponse.json({ quotes });
 }
 
@@ -46,16 +46,16 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "패키지를 선택해주세요." }, { status: 400 });
   }
 
-  const blockedDates = findBlockedDatesAmong(resolveSelectedDates(selection));
+  const blockedDates = await findBlockedDatesAmong(resolveSelectedDates(selection));
   if (blockedDates.length > 0) {
     return NextResponse.json({ error: formatBlockedDatesError(blockedDates) }, { status: 409 });
   }
 
   // 클라이언트가 보낸 금액은 신뢰하지 않고, 서버에서 현재 요금표로 재계산한다.
-  const rateTable = getCurrentRateTable();
+  const rateTable = await getCurrentRateTable();
   const computed = calculateQuote(selection, rateTable);
 
-  const quote = createQuote({
+  const quote = await createQuote({
     id: `SA-${crypto.randomUUID().slice(0, 8).toUpperCase()}`,
     applicantId: user.id,
     rateTableVersion: computed.rateTableVersion,
@@ -68,7 +68,7 @@ export async function POST(request: Request) {
     createdAt: new Date().toISOString(),
   });
 
-  addAuditLog({
+  await addAuditLog({
     id: crypto.randomUUID(),
     quoteId: quote.id,
     stage: "ESTIMATE",
@@ -77,13 +77,13 @@ export async function POST(request: Request) {
     createdAt: quote.createdAt,
   });
 
-  notifyAdmins({
+  await notifyAdmins({
     quoteId: quote.id,
     message: `새 대관 신청서 ${quote.id}가 접수되었습니다.`,
     createdAt: quote.createdAt,
   });
 
-  createNotification({
+  await createNotification({
     id: crypto.randomUUID(),
     recipientId: user.id,
     quoteId: quote.id,
