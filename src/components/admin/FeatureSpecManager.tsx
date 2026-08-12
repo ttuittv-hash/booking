@@ -90,6 +90,82 @@ function blankRow(sheet: FeatureSpecSheetKey): FeatureSpecRow {
   return row;
 }
 
+// 메뉴트리 시트는 표(스프레드시트) 형태로만 보면 계층 구조가 한눈에 안 들어와서,
+// "구분 > 대분류 > 메뉴 > 하위메뉴" 순서를 실제 가지치기(branch) 도식으로도 보여준다.
+const MENU_TREE_LEVEL_KEYS: Partial<Record<FeatureSpecSheetKey, string[]>> = {
+  "메뉴트리(프론트)": ["구분", "대분류", "메뉴", "하위메뉴"],
+  "메뉴트리(어드민)": ["대분류", "메뉴", "하위메뉴"],
+};
+
+interface MenuTreeNode {
+  label: string;
+  path?: string;
+  note?: string;
+  children: MenuTreeNode[];
+}
+
+function buildMenuTree(rows: FeatureSpecRow[], levelKeys: string[]): MenuTreeNode[] {
+  const roots: MenuTreeNode[] = [];
+  for (const row of rows) {
+    const parts = levelKeys.map((key) => (row[key] ?? "").trim()).filter(Boolean);
+    if (parts.length === 0) continue;
+    let siblings = roots;
+    let node: MenuTreeNode | undefined;
+    for (const label of parts) {
+      node = siblings.find((n) => n.label === label);
+      if (!node) {
+        node = { label, children: [] };
+        siblings.push(node);
+      }
+      siblings = node.children;
+    }
+    if (node) {
+      if (row["경로"]) node.path = row["경로"];
+      if (row["비고"]) node.note = row["비고"];
+    }
+  }
+  return roots;
+}
+
+function MenuTreeBranch({ node }: { node: MenuTreeNode }) {
+  return (
+    <li className="relative pl-5 before:absolute before:left-0 before:top-[15px] before:h-px before:w-4 before:bg-border">
+      <div className="inline-flex flex-wrap items-center gap-2 py-1">
+        <span className="rounded-sm border border-border bg-panel px-2 py-1 text-[12px] font-medium">
+          {node.label}
+        </span>
+        {node.path && (
+          <span className="rounded-sm bg-accent-soft px-1.5 py-0.5 text-[11px] text-accent">
+            {node.path}
+          </span>
+        )}
+        {node.note && <span className="text-[11px] text-muted">{node.note}</span>}
+      </div>
+      {node.children.length > 0 && (
+        <ul className="ml-[7px] border-l border-border pl-0">
+          {node.children.map((child, i) => (
+            <MenuTreeBranch key={i} node={child} />
+          ))}
+        </ul>
+      )}
+    </li>
+  );
+}
+
+function MenuTreeDiagram({ rows, levelKeys }: { rows: FeatureSpecRow[]; levelKeys: string[] }) {
+  const tree = buildMenuTree(rows, levelKeys);
+  if (tree.length === 0) return null;
+  return (
+    <div className="mt-2 max-h-[420px] overflow-auto rounded border border-border bg-background p-4">
+      <ul className="flex flex-col">
+        {tree.map((node, i) => (
+          <MenuTreeBranch key={i} node={node} />
+        ))}
+      </ul>
+    </div>
+  );
+}
+
 export function FeatureSpecManager({
   initialSheets,
 }: {
@@ -217,6 +293,13 @@ export function FeatureSpecManager({
             {state === "error" && <span className="text-red-600">저장 실패 — 다시 시도해 주세요</span>}
           </p>
         </div>
+
+        {MENU_TREE_LEVEL_KEYS[activeSheet] && (
+          <div className="mt-3">
+            <p className="text-[12px] font-medium text-muted">메뉴 구조도</p>
+            <MenuTreeDiagram rows={rows} levelKeys={MENU_TREE_LEVEL_KEYS[activeSheet]!} />
+          </div>
+        )}
 
         <div ref={tableRef} className="mt-2 overflow-x-auto rounded border border-border">
           <table className="w-full min-w-[720px] border-collapse text-[13px]">
