@@ -12,7 +12,6 @@ import {
 } from "@/lib/db";
 import { won } from "@/lib/format";
 import { totalRentalDays } from "@/lib/pricing/rateTableUtils";
-import { checkAndFireReminders } from "@/lib/reminders";
 import { DEFAULT_VENUE_ID, VENUES } from "@/lib/pricing/types";
 import { DepositPanel } from "@/components/DepositPanel";
 import { AttachmentsPanel } from "@/components/AttachmentsPanel";
@@ -42,7 +41,6 @@ export default async function MyQuoteDetailPage({
   if (!quote) notFound();
   if (!(await canAccessQuote(user, quote))) notFound();
 
-  await checkAndFireReminders(quote);
 
   const [
     depositRaw,

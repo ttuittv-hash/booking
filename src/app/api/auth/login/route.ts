@@ -9,7 +9,7 @@ import { clientIpFrom, rateLimit } from "@/lib/rateLimit";
 // 돌려주고, 클라이언트가 평문을 1회 함께 재전송하면 검증 후 v2로 자동 승격한다.
 export async function POST(request: Request) {
   const ip = clientIpFrom(request);
-  if (!rateLimit(`login:${ip}`, 20, 5 * 60 * 1000)) {
+  if (!(await rateLimit(`login:${ip}`, 20, 5 * 60 * 1000))) {
     return NextResponse.json(
       { error: "로그인 시도가 너무 많습니다. 잠시 후 다시 시도해주세요." },
       { status: 429 },
@@ -30,7 +30,7 @@ export async function POST(request: Request) {
   if (!username || !transportHash) {
     return NextResponse.json({ error: "아이디 또는 비밀번호가 올바르지 않습니다." }, { status: 401 });
   }
-  if (!rateLimit(`login:id:${username.toLowerCase()}`, 10, 5 * 60 * 1000)) {
+  if (!(await rateLimit(`login:id:${username.toLowerCase()}`, 10, 5 * 60 * 1000))) {
     return NextResponse.json(
       { error: "로그인 시도가 너무 많습니다. 잠시 후 다시 시도해주세요." },
       { status: 429 },

@@ -18,7 +18,7 @@ function safeExtension(originalName: string): string {
 // 비로그인 업로드이므로 IP당 횟수를 제한해 디스크 채우기 공격을 막는다.
 export async function POST(request: Request) {
   const ip = clientIpFrom(request);
-  if (!rateLimit(`register-upload:${ip}`, 10, 10 * 60 * 1000)) {
+  if (!(await rateLimit(`register-upload:${ip}`, 10, 10 * 60 * 1000))) {
     return NextResponse.json(
       { error: "업로드 요청이 너무 많습니다. 잠시 후 다시 시도해주세요." },
       { status: 429 },

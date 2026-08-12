@@ -15,7 +15,6 @@ import {
 } from "@/lib/db";
 import { won } from "@/lib/format";
 import { totalRentalDays } from "@/lib/pricing/rateTableUtils";
-import { checkAndFireReminders } from "@/lib/reminders";
 import {
   DEFAULT_VENUE_ID,
   EVENT_TYPE_LABEL,
@@ -54,7 +53,6 @@ export default async function AdminQuoteDetailPage({
   const quote = await getQuoteById(id);
   if (!quote) notFound();
 
-  await checkAndFireReminders(quote);
 
   const applicant = await findUserById(quote.applicantId);
   const auditLog = await listAuditLogsForQuote(id);

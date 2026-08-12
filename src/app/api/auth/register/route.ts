@@ -18,7 +18,7 @@ const USERNAME_RE = /^[a-z0-9][a-z0-9_]{3,19}$/;
 
 export async function POST(request: Request) {
   const ip = clientIpFrom(request);
-  if (!rateLimit(`register:${ip}`, 10, 10 * 60 * 1000)) {
+  if (!(await rateLimit(`register:${ip}`, 10, 10 * 60 * 1000))) {
     return NextResponse.json(
       { error: "요청이 너무 많습니다. 잠시 후 다시 시도해주세요." },
       { status: 429 },

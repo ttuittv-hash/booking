@@ -126,7 +126,12 @@ async function initSchema(pool: Pool) {
       created_at TEXT NOT NULL,
       review_json TEXT,
       contract_json TEXT,
-      settlement_json TEXT
+      settlement_json TEXT,
+      -- 주차는 selection_json 안에도 있지만, 경합 검사·수요 집계에서 조건 검색과 집계를
+      -- 해야 해서 컬럼으로 따로 뽑아 둔다(JSON 문자열은 DB가 검색하지 못한다).
+      week_year INTEGER,
+      week_month INTEGER,
+      week_of_month INTEGER
     );
 
     CREATE TABLE IF NOT EXISTS audit_logs (
@@ -271,6 +276,13 @@ async function initSchema(pool: Pool) {
       created_at TEXT NOT NULL
     );
 
+    -- 로그인·회원가입 시도 횟수 카운터. 서버가 여러 대여도 공유되고, 재시작해도 유지된다.
+    CREATE TABLE IF NOT EXISTS rate_limits (
+      key TEXT PRIMARY KEY,
+      count INTEGER NOT NULL,
+      reset_at TIMESTAMPTZ NOT NULL
+    );
+
     CREATE TABLE IF NOT EXISTS inquiries (
       id TEXT PRIMARY KEY,
       user_id TEXT NOT NULL REFERENCES users(id),
@@ -288,7 +300,30 @@ async function initSchema(pool: Pool) {
   // 이후 세션에서 추가되는 컬럼은 여기서 마이그레이션한다 (PostgreSQL은 IF NOT EXISTS 지원).
   await pool.query(`
     ALTER TABLE users ADD COLUMN IF NOT EXISTS password_scheme TEXT NOT NULL DEFAULT 'v2';
+    ALTER TABLE quotes ADD COLUMN IF NOT EXISTS week_year INTEGER;
+    ALTER TABLE quotes ADD COLUMN IF NOT EXISTS week_month INTEGER;
+    ALTER TABLE quotes ADD COLUMN IF NOT EXISTS week_of_month INTEGER;
+
     CREATE UNIQUE INDEX IF NOT EXISTS idx_users_username ON users(username) WHERE username IS NOT NULL;
+
+    -- 외래키 컬럼 인덱스. 없으면 신청서 상세·첨부 목록·알림 조회가 전부 테이블 전체 스캔이 된다.
+    CREATE INDEX IF NOT EXISTS idx_quotes_applicant ON quotes(applicant_id);
+    CREATE INDEX IF NOT EXISTS idx_quotes_week ON quotes(week_year, week_month, week_of_month);
+    CREATE INDEX IF NOT EXISTS idx_attachments_quote ON attachments(quote_id);
+    CREATE INDEX IF NOT EXISTS idx_audit_logs_quote ON audit_logs(quote_id);
+    CREATE INDEX IF NOT EXISTS idx_notifications_recipient ON notifications(recipient_id, is_read);
+    CREATE INDEX IF NOT EXISTS idx_inquiries_user ON inquiries(user_id);
+    CREATE INDEX IF NOT EXISTS idx_tax_invoices_quote ON tax_invoices(quote_id);
+    CREATE INDEX IF NOT EXISTS idx_users_phone ON users(phone) WHERE phone IS NOT NULL;
+  `);
+
+  // 주차 컬럼 도입 이전에 저장된 신청서는 selection_json 에서 값을 뽑아 한 번 채운다.
+  await pool.query(`
+    UPDATE quotes SET
+      week_year     = (selection_json::json -> 'week' ->> 'year')::int,
+      week_month    = (selection_json::json -> 'week' ->> 'month')::int,
+      week_of_month = (selection_json::json -> 'week' ->> 'weekOfMonth')::int
+    WHERE week_year IS NULL
   `);
 }
 
@@ -849,6 +884,36 @@ export async function isUserWithdrawn(id: string): Promise<boolean> {
 }
 
 // ---------------------------------------------------------------------------
+// 레이트리밋 (로그인·회원가입 시도 횟수)
+// ---------------------------------------------------------------------------
+
+// 고정 윈도우 카운터를 한 번의 upsert 로 갱신하고, 갱신된 값으로 허용 여부를 판단한다.
+// 창이 만료됐으면 카운트를 1로 되돌리고 만료 시각을 새로 잡는다.
+export async function consumeRateLimit(
+  key: string,
+  limit: number,
+  windowMs: number,
+): Promise<boolean> {
+  const row = await one<{ count: number }>(
+    `INSERT INTO rate_limits (key, count, reset_at)
+     VALUES ($1, 1, now() + ($2 || ' milliseconds')::interval)
+     ON CONFLICT (key) DO UPDATE SET
+       count = CASE WHEN rate_limits.reset_at <= now() THEN 1 ELSE rate_limits.count + 1 END,
+       reset_at = CASE WHEN rate_limits.reset_at <= now()
+                       THEN now() + ($2 || ' milliseconds')::interval
+                       ELSE rate_limits.reset_at END
+     RETURNING count`,
+    [key, String(windowMs)],
+  );
+  return (row?.count ?? 1) <= limit;
+}
+
+// 만료된 카운터 정리 — 알림 스케줄러가 하루 한 번 함께 호출한다.
+export async function purgeExpiredRateLimits(): Promise<void> {
+  await q("DELETE FROM rate_limits WHERE reset_at <= now()");
+}
+
+// ---------------------------------------------------------------------------
 // Quotes
 // ---------------------------------------------------------------------------
 
@@ -902,8 +967,8 @@ export async function createQuote(input: {
 }): Promise<Quote> {
   await q(
     `INSERT INTO quotes
-      (id, applicant_id, rate_table_version, selection_json, line_items_json, subtotal, vat, total, metered_notice, status, created_at, review_json, contract_json, settlement_json)
-     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, 'ESTIMATE', $10, NULL, NULL, NULL)`,
+      (id, applicant_id, rate_table_version, selection_json, line_items_json, subtotal, vat, total, metered_notice, status, created_at, review_json, contract_json, settlement_json, week_year, week_month, week_of_month)
+     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, 'ESTIMATE', $10, NULL, NULL, NULL, $11, $12, $13)`,
     [
       input.id,
       input.applicantId,
@@ -915,6 +980,9 @@ export async function createQuote(input: {
       input.total,
       input.meteredNotice,
       input.createdAt,
+      input.selection?.week?.year ?? null,
+      input.selection?.week?.month ?? null,
+      input.selection?.week?.weekOfMonth ?? null,
     ],
   );
   return (await getQuoteById(input.id))!;
@@ -955,52 +1023,51 @@ export async function findApprovedWeekConflict(
   const week = quote.selection?.week;
   if (!week) return undefined;
 
-  // 신청서마다 신청자를 따로 조회하면 신청 건수만큼 쿼리가 나가므로(N+1) 한 번에 읽어 맵으로 만든다.
-  const userById = new Map((await listUsers()).map((user) => [user.id, user]));
-  const companyId = userById.get(quote.applicantId)?.companyId ?? null;
+  // 같은 주차 신청서만 DB에서 골라 온다. 예전에는 전체 신청서를 읽어 앱에서 비교했는데,
+  // 심사 1회마다 전체 건수를 훑는 구조라 신청이 쌓일수록 급격히 느려졌다.
+  const rows = await q<QuoteRow & { applicant_company_id: string | null; applicant_company_name: string | null }>(
+    `SELECT q.*, u.company_id AS applicant_company_id, u.company_name AS applicant_company_name
+       FROM quotes q JOIN users u ON u.id = q.applicant_id
+      WHERE q.week_year = $1 AND q.week_month = $2 AND q.week_of_month = $3 AND q.id <> $4
+      ORDER BY q.created_at ASC`,
+    [week.year, week.month, week.weekOfMonth, quote.id],
+  );
+  if (rows.length === 0) return undefined;
 
-  for (const other of await listQuotes()) {
-    if (other.id === quote.id) continue;
+  const applicant = await findUserById(quote.applicantId);
+  const companyId = applicant?.companyId ?? null;
+
+  for (const row of rows) {
+    const other = toQuote(row);
+    // 승인 여부는 review_json 안에 있어 SQL 로 거르지 않는다 — 같은 주차 건만 남은 뒤라 양이 적다.
     if (other.review?.decision !== "APPROVED") continue;
-    const otherWeek = other.selection?.week;
-    if (!otherWeek) continue;
-    const sameWeek =
-      otherWeek.year === week.year &&
-      otherWeek.month === week.month &&
-      otherWeek.weekOfMonth === week.weekOfMonth;
-    if (!sameWeek) continue;
 
-    const otherApplicant = userById.get(other.applicantId);
-    const otherCompanyId = otherApplicant?.companyId ?? null;
+    const otherCompanyId = row.applicant_company_id;
     const sameCompany =
       companyId && otherCompanyId ? companyId === otherCompanyId : quote.applicantId === other.applicantId;
     if (sameCompany) continue;
 
-    return { quote: other, companyName: otherApplicant?.companyName ?? null };
+    return { quote: other, companyName: row.applicant_company_name };
   }
   return undefined;
 }
 
 // 캘린더 경합 현황 — 주차별로 신청서를 낸 회사(신청자) 수를 집계한다.
 export async function listWeekDemand(): Promise<WeekDemand[]> {
-  const rows = await q<{ selection_json: string; company_name: string | null; user_id: string }>(
-    `SELECT q.selection_json as selection_json, u.company_name as company_name, u.id as user_id
-     FROM quotes q JOIN users u ON u.id = q.applicant_id`,
+  // 집계를 DB에서 끝낸다 — 예전에는 전체 신청서를 읽어 앱에서 JSON 을 파싱해 세었다.
+  const rows = await q<{ year: number; month: number; week_of_month: number; company_count: number }>(
+    `SELECT q.week_year AS year, q.week_month AS month, q.week_of_month AS week_of_month,
+            COUNT(DISTINCT COALESCE(NULLIF(u.company_name, ''), u.id))::int AS company_count
+       FROM quotes q JOIN users u ON u.id = q.applicant_id
+      WHERE q.week_year IS NOT NULL
+      GROUP BY q.week_year, q.week_month, q.week_of_month`,
   );
-
-  const groups = new Map<string, Set<string>>();
-  for (const row of rows) {
-    const selection = JSON.parse(row.selection_json) as Quote["selection"];
-    const key = `${selection.week.year}-${selection.week.month}-${selection.week.weekOfMonth}`;
-    const companies = groups.get(key) ?? new Set<string>();
-    companies.add(row.company_name || row.user_id);
-    groups.set(key, companies);
-  }
-
-  return [...groups.entries()].map(([key, companies]) => {
-    const [year, month, weekOfMonth] = key.split("-").map(Number);
-    return { year, month, weekOfMonth, companyCount: companies.size };
-  });
+  return rows.map((row) => ({
+    year: row.year,
+    month: row.month,
+    weekOfMonth: row.week_of_month,
+    companyCount: row.company_count,
+  }));
 }
 
 // ---------------------------------------------------------------------------
@@ -1059,7 +1126,8 @@ export async function updateQuoteSelection(
 ): Promise<Quote> {
   await q(
     `UPDATE quotes
-     SET rate_table_version = $1, selection_json = $2, line_items_json = $3, subtotal = $4, vat = $5, total = $6
+     SET rate_table_version = $1, selection_json = $2, line_items_json = $3, subtotal = $4, vat = $5, total = $6,
+         week_year = $8, week_month = $9, week_of_month = $10
      WHERE id = $7`,
     [
       input.rateTableVersion,
@@ -1069,6 +1137,9 @@ export async function updateQuoteSelection(
       input.vat,
       input.total,
       id,
+      input.selection?.week?.year ?? null,
+      input.selection?.week?.month ?? null,
+      input.selection?.week?.weekOfMonth ?? null,
     ],
   );
   return (await getQuoteById(id))!;
@@ -1408,6 +1479,12 @@ export async function confirmTaxInvoicePayment(
   return (await getTaxInvoice(quoteId, purpose))!;
 }
 
+// 알림 스케줄러가 전체를 한 번에 훑을 때 사용한다(신청서마다 따로 조회하면 N+1).
+export async function listAllTaxInvoices(): Promise<TaxInvoice[]> {
+  const rows = await q<TaxInvoiceRow>("SELECT * FROM tax_invoices");
+  return rows.map(toTaxInvoice);
+}
+
 // 미입금 5일 경과 시 알림 재발송 대상 — lastReminderAt 기준으로 lazy하게(페이지 조회 시점에) 판단한다.
 export function isInvoiceReminderDue(invoice: TaxInvoice, now: Date, intervalDays = 5): boolean {
   if (invoice.status !== "ISSUED" && invoice.status !== "REPORTED") return false;
@@ -1473,6 +1550,11 @@ export async function setTicketOpenDate(quoteId: string, openDate: string): Prom
 
 export async function markTicketOpenMaterialsUploaded(quoteId: string, at: string) {
   await q("UPDATE ticket_opens SET materials_uploaded_at = $1 WHERE quote_id = $2", [at, quoteId]);
+}
+
+export async function listAllTicketOpens(): Promise<TicketOpen[]> {
+  const rows = await q<TicketOpenRow>("SELECT * FROM ticket_opens");
+  return rows.map(toTicketOpen);
 }
 
 // D-30 미업로드 알림 대상 — 오픈일까지 30일 이하 남았고, 자료 미업로드 상태
@@ -1546,6 +1628,11 @@ export async function setFacilityMeetingDate(
 
 export async function markFacilityMeetingMaterialsUploaded(quoteId: string, at: string) {
   await q("UPDATE facility_meetings SET materials_uploaded_at = $1 WHERE quote_id = $2", [at, quoteId]);
+}
+
+export async function listAllFacilityMeetings(): Promise<FacilityMeeting[]> {
+  const rows = await q<FacilityMeetingRow>("SELECT * FROM facility_meetings");
+  return rows.map(toFacilityMeeting);
 }
 
 // D-7 미업로드 알림 대상 — 회의일까지 7일 이하 남았고, 자료 미업로드 상태
