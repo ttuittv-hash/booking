@@ -99,7 +99,8 @@ const MENU_TREE_LEVEL_KEYS: Partial<Record<FeatureSpecSheetKey, string[]>> = {
 
 interface MenuTreeNode {
   label: string;
-  path?: string;
+  path: string[];
+  routePath?: string;
   note?: string;
   children: MenuTreeNode[];
 }
@@ -111,40 +112,197 @@ function buildMenuTree(rows: FeatureSpecRow[], levelKeys: string[]): MenuTreeNod
     if (parts.length === 0) continue;
     let siblings = roots;
     let node: MenuTreeNode | undefined;
+    let pathSoFar: string[] = [];
     for (const label of parts) {
+      pathSoFar = [...pathSoFar, label];
       node = siblings.find((n) => n.label === label);
       if (!node) {
-        node = { label, children: [] };
+        node = { label, path: pathSoFar, children: [] };
         siblings.push(node);
       }
       siblings = node.children;
     }
     if (node) {
-      if (row["경로"]) node.path = row["경로"];
+      if (row["경로"]) node.routePath = row["경로"];
       if (row["비고"]) node.note = row["비고"];
     }
   }
   return roots;
 }
 
-function MenuTreeBranch({ node }: { node: MenuTreeNode }) {
+// 트리 도식을 직접 편집하면 그 결과가 곧 시트의 행(rows)이어야 하므로, 모든 편집은
+// "행 배열을 어떻게 바꿀지"로 귀결시킨다 — 별도 데이터 모델을 만들지 않고 기존
+// FeatureSpecRow[] 저장 방식을 그대로 재사용한다.
+function blankTreeRow(levelKeys: string[]): FeatureSpecRow {
+  const row: FeatureSpecRow = {};
+  levelKeys.forEach((k) => (row[k] = ""));
+  row["경로"] = "";
+  row["비고"] = "";
+  return row;
+}
+
+function renameTreeNode(
+  rows: FeatureSpecRow[],
+  levelKeys: string[],
+  path: string[],
+  newLabel: string,
+): FeatureSpecRow[] {
+  const depth = path.length;
+  const key = levelKeys[depth - 1];
+  return rows.map((row) => {
+    const ancestorsMatch = path.slice(0, depth - 1).every((label, i) => (row[levelKeys[i]] ?? "") === label);
+    if (ancestorsMatch && (row[key] ?? "") === path[depth - 1]) {
+      return { ...row, [key]: newLabel };
+    }
+    return row;
+  });
+}
+
+function addTreeChild(rows: FeatureSpecRow[], levelKeys: string[], parentPath: string[]): FeatureSpecRow[] {
+  const depth = parentPath.length;
+  if (depth >= levelKeys.length) return rows;
+  const row = blankTreeRow(levelKeys);
+  parentPath.forEach((label, i) => (row[levelKeys[i]] = label));
+  row[levelKeys[depth]] = "새 항목";
+  return [...rows, row];
+}
+
+function addTreeRoot(rows: FeatureSpecRow[], levelKeys: string[]): FeatureSpecRow[] {
+  const row = blankTreeRow(levelKeys);
+  row[levelKeys[0]] = "새 항목";
+  return [...rows, row];
+}
+
+function deleteTreeNode(rows: FeatureSpecRow[], levelKeys: string[], path: string[]): FeatureSpecRow[] {
+  return rows.filter((row) => !path.every((label, i) => (row[levelKeys[i]] ?? "") === label));
+}
+
+function updateTreeLeaf(
+  rows: FeatureSpecRow[],
+  levelKeys: string[],
+  path: string[],
+  field: "경로" | "비고",
+  value: string,
+): FeatureSpecRow[] {
+  const depth = path.length;
+  const idx = rows.findIndex((row) => {
+    const parts = levelKeys.map((k) => (row[k] ?? "").trim()).filter(Boolean);
+    return parts.length === depth && parts.every((label, i) => label === path[i]);
+  });
+  if (idx === -1) {
+    const row = blankTreeRow(levelKeys);
+    path.forEach((label, i) => (row[levelKeys[i]] = label));
+    row[field] = value;
+    return [...rows, row];
+  }
+  return rows.map((row, i) => (i === idx ? { ...row, [field]: value } : row));
+}
+
+function TreeTextField({
+  value,
+  placeholder,
+  className,
+  onCommit,
+}: {
+  value: string;
+  placeholder: string;
+  className: string;
+  onCommit: (value: string) => void;
+}) {
+  const [draft, setDraft] = useState(value);
+  // 다른 데이터 갱신으로 바깥 값이 바뀌면(예: 다른 조작으로 rows가 재계산된 경우)
+  // 편집 중이 아닌 이상 최신 값으로 다시 맞춘다. useEffect 대신 렌더 중 비교하는
+  // React 공식 패턴("Adjusting state when a prop changes")을 사용해 불필요한
+  // 추가 렌더링을 피한다.
+  const [syncedValue, setSyncedValue] = useState(value);
+  if (value !== syncedValue) {
+    setSyncedValue(value);
+    setDraft(value);
+  }
+  return (
+    <input
+      value={draft}
+      placeholder={placeholder}
+      onChange={(e) => setDraft(e.target.value)}
+      onBlur={() => {
+        if (draft !== value) onCommit(draft);
+      }}
+      onKeyDown={(e) => {
+        if (e.key === "Enter") e.currentTarget.blur();
+      }}
+      className={className}
+    />
+  );
+}
+
+function MenuTreeBranch({
+  node,
+  levelKeys,
+  onRename,
+  onAddChild,
+  onDelete,
+  onUpdateLeaf,
+}: {
+  node: MenuTreeNode;
+  levelKeys: string[];
+  onRename: (path: string[], newLabel: string) => void;
+  onAddChild: (parentPath: string[]) => void;
+  onDelete: (path: string[]) => void;
+  onUpdateLeaf: (path: string[], field: "경로" | "비고", value: string) => void;
+}) {
+  const canAddChild = node.path.length < levelKeys.length;
   return (
     <li className="relative pl-5 before:absolute before:left-0 before:top-[15px] before:h-px before:w-4 before:bg-border">
-      <div className="inline-flex flex-wrap items-center gap-2 py-1">
-        <span className="rounded-sm border border-border bg-panel px-2 py-1 text-[12px] font-medium">
-          {node.label}
-        </span>
-        {node.path && (
-          <span className="rounded-sm bg-accent-soft px-1.5 py-0.5 text-[11px] text-accent">
-            {node.path}
-          </span>
+      <div className="inline-flex flex-wrap items-center gap-1.5 py-1">
+        <TreeTextField
+          value={node.label}
+          placeholder="이름"
+          onCommit={(v) => v.trim() && onRename(node.path, v.trim())}
+          className="w-28 rounded-sm border border-border bg-panel px-2 py-1 text-[12px] font-medium outline-none focus:border-accent"
+        />
+        <TreeTextField
+          value={node.routePath ?? ""}
+          placeholder="경로"
+          onCommit={(v) => onUpdateLeaf(node.path, "경로", v)}
+          className="w-32 rounded-sm bg-accent-soft px-1.5 py-1 text-[11px] text-accent outline-none placeholder:text-accent/50 focus:ring-1 focus:ring-accent"
+        />
+        <TreeTextField
+          value={node.note ?? ""}
+          placeholder="비고"
+          onCommit={(v) => onUpdateLeaf(node.path, "비고", v)}
+          className="w-40 rounded-sm border border-transparent bg-transparent px-1 py-1 text-[11px] text-muted outline-none focus:border-border"
+        />
+        {canAddChild && (
+          <button
+            type="button"
+            title="아래 가지 추가"
+            onClick={() => onAddChild(node.path)}
+            className="rounded-sm border border-border px-1 text-[11px] leading-tight text-muted hover:border-accent hover:text-accent"
+          >
+            +
+          </button>
         )}
-        {node.note && <span className="text-[11px] text-muted">{node.note}</span>}
+        <button
+          type="button"
+          title="이 가지 삭제 (하위 가지도 함께 삭제됨)"
+          onClick={() => onDelete(node.path)}
+          className="rounded-sm border border-border px-1 text-[11px] leading-tight text-muted hover:border-red-600 hover:text-red-600"
+        >
+          ×
+        </button>
       </div>
       {node.children.length > 0 && (
         <ul className="ml-[7px] border-l border-border pl-0">
           {node.children.map((child, i) => (
-            <MenuTreeBranch key={i} node={child} />
+            <MenuTreeBranch
+              key={i}
+              node={child}
+              levelKeys={levelKeys}
+              onRename={onRename}
+              onAddChild={onAddChild}
+              onDelete={onDelete}
+              onUpdateLeaf={onUpdateLeaf}
+            />
           ))}
         </ul>
       )}
@@ -152,16 +310,45 @@ function MenuTreeBranch({ node }: { node: MenuTreeNode }) {
   );
 }
 
-function MenuTreeDiagram({ rows, levelKeys }: { rows: FeatureSpecRow[]; levelKeys: string[] }) {
+function MenuTreeDiagram({
+  rows,
+  levelKeys,
+  onChange,
+}: {
+  rows: FeatureSpecRow[];
+  levelKeys: string[];
+  onChange: (nextRows: FeatureSpecRow[]) => void;
+}) {
   const tree = buildMenuTree(rows, levelKeys);
-  if (tree.length === 0) return null;
+  const onRename = (path: string[], newLabel: string) => onChange(renameTreeNode(rows, levelKeys, path, newLabel));
+  const onAddChild = (parentPath: string[]) => onChange(addTreeChild(rows, levelKeys, parentPath));
+  const onDelete = (path: string[]) => onChange(deleteTreeNode(rows, levelKeys, path));
+  const onUpdateLeaf = (path: string[], field: "경로" | "비고", value: string) =>
+    onChange(updateTreeLeaf(rows, levelKeys, path, field, value));
+
   return (
     <div className="mt-2 overflow-x-auto rounded border border-border bg-background p-4">
+      {tree.length === 0 && <p className="px-1 py-2 text-[12px] text-muted">항목이 없습니다.</p>}
       <ul className="flex flex-col">
         {tree.map((node, i) => (
-          <MenuTreeBranch key={i} node={node} />
+          <MenuTreeBranch
+            key={i}
+            node={node}
+            levelKeys={levelKeys}
+            onRename={onRename}
+            onAddChild={onAddChild}
+            onDelete={onDelete}
+            onUpdateLeaf={onUpdateLeaf}
+          />
         ))}
       </ul>
+      <button
+        type="button"
+        onClick={() => onChange(addTreeRoot(rows, levelKeys))}
+        className="mt-3 w-full rounded border border-dashed border-border py-2 text-[12px] font-medium text-muted hover:border-accent hover:text-accent"
+      >
+        + 새 항목 추가 (최상위)
+      </button>
     </div>
   );
 }
@@ -185,6 +372,10 @@ export function FeatureSpecManager({
   // 선택된 행 다음에 새 행을 끼워 넣기 위한 앵커. 시트를 바꾸면 행 번호 의미가
   // 달라지므로 selectSheet에서 항상 null로 리셋한다.
   const [selectedRowIdx, setSelectedRowIdx] = useState<number | null>(null);
+  // 마우스 드래그로 행 순서를 바꿀 때 쓰는 상태 — 어떤 행을 잡았는지, 지금 어느 행
+  // 위에 올라가 있는지.
+  const [draggedRowIdx, setDraggedRowIdx] = useState<number | null>(null);
+  const [dragOverRowIdx, setDragOverRowIdx] = useState<number | null>(null);
   const saveTimers = useRef<Partial<Record<FeatureSpecSheetKey, ReturnType<typeof setTimeout>>>>({});
   const tableRef = useRef<HTMLDivElement>(null);
 
@@ -260,19 +451,21 @@ export function FeatureSpecManager({
     });
   }
 
-  function moveRow(sheet: FeatureSpecSheetKey, rowIdx: number, direction: -1 | 1) {
-    const rowCount = data[sheet].length;
-    const target = rowIdx + direction;
-    if (target < 0 || target >= rowCount) return;
+  // 마우스로 행을 잡아 원하는 자리에 끌어다 놓는 방식의 순서 변경.
+  function moveRowTo(sheet: FeatureSpecSheetKey, fromIdx: number, toIdx: number) {
+    if (fromIdx === toIdx) return;
     setData((prev) => {
       const rows = [...prev[sheet]];
-      [rows[rowIdx], rows[target]] = [rows[target], rows[rowIdx]];
+      const [moved] = rows.splice(fromIdx, 1);
+      rows.splice(toIdx, 0, moved);
       persist(sheet, rows);
       return { ...prev, [sheet]: rows };
     });
     setSelectedRowIdx((prev) => {
-      if (prev === rowIdx) return target;
-      if (prev === target) return rowIdx;
+      if (prev === null) return null;
+      if (prev === fromIdx) return toIdx;
+      if (fromIdx < prev && prev <= toIdx) return prev - 1;
+      if (toIdx <= prev && prev < fromIdx) return prev + 1;
       return prev;
     });
   }
@@ -290,6 +483,12 @@ export function FeatureSpecManager({
   const rows = data[activeSheet];
   const headers = SHEET_HEADERS[activeSheet];
   const state = saveState[activeSheet] ?? "idle";
+  const menuTreeLevelKeys = MENU_TREE_LEVEL_KEYS[activeSheet];
+
+  function updateTreeRows(nextRows: FeatureSpecRow[]) {
+    setData((prev) => ({ ...prev, [activeSheet]: nextRows }));
+    persist(activeSheet, nextRows);
+  }
 
   return (
     <div className="mt-8 flex flex-col gap-6 lg:flex-row">
@@ -316,7 +515,11 @@ export function FeatureSpecManager({
 
       <div className="min-w-0 flex-1">
         <div className="flex items-center justify-between gap-3">
-          <p className="text-[12px] text-muted">셀을 클릭해서 바로 수정하세요. 변경 사항은 자동 저장됩니다.</p>
+          <p className="text-[12px] text-muted">
+            {menuTreeLevelKeys
+              ? "이름·경로·비고를 클릭해서 바로 수정하고, +로 가지를 늘리거나 ×로 삭제하세요. 변경 사항은 자동 저장됩니다."
+              : "셀을 클릭해서 바로 수정하세요. 변경 사항은 자동 저장됩니다."}
+          </p>
           <p className="text-[12px] text-muted">
             {state === "saving" && "저장 중…"}
             {state === "saved" && `저장됨 · ${savedAt[activeSheet] ?? ""}`}
@@ -324,13 +527,15 @@ export function FeatureSpecManager({
           </p>
         </div>
 
-        {MENU_TREE_LEVEL_KEYS[activeSheet] && (
+        {menuTreeLevelKeys && (
           <div className="mt-3">
             <p className="text-[12px] font-medium text-muted">메뉴 구조도</p>
-            <MenuTreeDiagram rows={rows} levelKeys={MENU_TREE_LEVEL_KEYS[activeSheet]!} />
+            <MenuTreeDiagram rows={rows} levelKeys={menuTreeLevelKeys} onChange={updateTreeRows} />
           </div>
         )}
 
+        {!menuTreeLevelKeys && (
+        <>
         <div ref={tableRef} className="mt-2 overflow-x-auto rounded border border-border">
           <table className="w-full min-w-[720px] border-collapse text-[13px]">
             <thead>
@@ -354,9 +559,22 @@ export function FeatureSpecManager({
               {rows.map((row, rowIdx) => (
                 <tr
                   key={rowIdx}
+                  onDragOver={(e) => {
+                    if (draggedRowIdx === null) return;
+                    e.preventDefault();
+                    e.dataTransfer.dropEffect = "move";
+                    if (dragOverRowIdx !== rowIdx) setDragOverRowIdx(rowIdx);
+                  }}
+                  onDrop={(e) => {
+                    e.preventDefault();
+                    if (draggedRowIdx !== null) moveRowTo(activeSheet, draggedRowIdx, rowIdx);
+                    setDraggedRowIdx(null);
+                    setDragOverRowIdx(null);
+                  }}
                   className={[
                     "border-b border-border/70 align-top hover:bg-panel/50",
                     selectedRowIdx === rowIdx ? "bg-accent-soft/60" : "",
+                    dragOverRowIdx === rowIdx && draggedRowIdx !== rowIdx ? "border-t-2 border-t-accent" : "",
                   ].join(" ")}
                 >
                   <td
@@ -375,25 +593,21 @@ export function FeatureSpecManager({
                           selectedRowIdx === rowIdx ? "border-accent bg-accent" : "border-border hover:border-accent",
                         ].join(" ")}
                       />
-                      <div className="flex gap-0.5">
-                        <button
-                          type="button"
-                          title="위로 이동"
-                          disabled={rowIdx === 0}
-                          onClick={() => moveRow(activeSheet, rowIdx, -1)}
-                          className="rounded-sm text-[10px] leading-none text-muted hover:text-accent disabled:opacity-20 disabled:hover:text-muted"
-                        >
-                          ▲
-                        </button>
-                        <button
-                          type="button"
-                          title="아래로 이동"
-                          disabled={rowIdx === rows.length - 1}
-                          onClick={() => moveRow(activeSheet, rowIdx, 1)}
-                          className="rounded-sm text-[10px] leading-none text-muted hover:text-accent disabled:opacity-20 disabled:hover:text-muted"
-                        >
-                          ▼
-                        </button>
+                      <div
+                        draggable
+                        title="마우스로 잡아서 순서 변경"
+                        onDragStart={(e) => {
+                          setDraggedRowIdx(rowIdx);
+                          e.dataTransfer.effectAllowed = "move";
+                          e.dataTransfer.setData("text/plain", String(rowIdx));
+                        }}
+                        onDragEnd={() => {
+                          setDraggedRowIdx(null);
+                          setDragOverRowIdx(null);
+                        }}
+                        className="flex h-3.5 w-6 cursor-grab items-center justify-center rounded-sm text-[10px] leading-none text-muted hover:text-accent active:cursor-grabbing"
+                      >
+                        ⠿
                       </div>
                       <div className="flex gap-0.5">
                         <button
@@ -488,6 +702,8 @@ export function FeatureSpecManager({
         >
           {selectedRowIdx !== null ? "+ 선택한 행 다음에 추가" : "+ 행 추가"}
         </button>
+        </>
+        )}
       </div>
     </div>
   );
