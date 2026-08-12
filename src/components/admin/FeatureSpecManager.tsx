@@ -198,15 +198,33 @@ function updateTreeLeaf(
   return rows.map((row, i) => (i === idx ? { ...row, [field]: value } : row));
 }
 
+// "ch" 단위는 숫자(0) 글자 폭 기준이라 한글처럼 훨씬 넓게 그려지는 글자에는
+// 그대로 쓰면 폭이 크게 부족해진다. 한글 음절/자모/한자 범위는 두 배 가까이
+// 넓게 잡아서 실제 렌더링 폭에 맞춘다.
+function estimateWidthCh(text: string): number {
+  let width = 0;
+  for (const ch of text) {
+    const code = ch.codePointAt(0) ?? 0;
+    const isWide =
+      (code >= 0xac00 && code <= 0xd7a3) || // 한글 음절
+      (code >= 0x3131 && code <= 0x318e) || // 한글 자모
+      (code >= 0x4e00 && code <= 0x9fff); // 한자
+    width += isWide ? 1.9 : 1;
+  }
+  return width;
+}
+
 function TreeTextField({
   value,
   placeholder,
   className,
+  minWidthCh,
   onCommit,
 }: {
   value: string;
   placeholder: string;
   className: string;
+  minWidthCh: number;
   onCommit: (value: string) => void;
 }) {
   const [draft, setDraft] = useState(value);
@@ -219,10 +237,15 @@ function TreeTextField({
     setSyncedValue(value);
     setDraft(value);
   }
+  // 고정 폭이면 긴 텍스트가 잘려서 안 보이므로, 글자 수에 맞춰 칸 자체가 늘어나게
+  // 한다. 한글은 "ch" 단위(숫자 폭 기준)보다 실제로 더 넓게 그려지므로 여유를
+  // 넉넉히 둔다.
+  const widthCh = Math.max(minWidthCh, estimateWidthCh(draft) + 3);
   return (
     <input
       value={draft}
       placeholder={placeholder}
+      style={{ width: `${widthCh}ch` }}
       onChange={(e) => setDraft(e.target.value)}
       onBlur={() => {
         if (draft !== value) onCommit(draft);
@@ -252,25 +275,28 @@ function MenuTreeBranch({
 }) {
   const canAddChild = node.path.length < levelKeys.length;
   return (
-    <li className="relative pl-5 before:absolute before:left-0 before:top-[15px] before:h-px before:w-4 before:bg-border">
-      <div className="inline-flex flex-wrap items-center gap-1.5 py-1">
+    <li className="relative pl-10 before:absolute before:left-0 before:top-[17px] before:h-px before:w-8 before:bg-border">
+      <div className="inline-flex flex-wrap items-center gap-1.5 py-1.5">
         <TreeTextField
           value={node.label}
           placeholder="이름"
+          minWidthCh={8}
           onCommit={(v) => v.trim() && onRename(node.path, v.trim())}
-          className="w-28 rounded-sm border border-border bg-panel px-2 py-1 text-[12px] font-medium outline-none focus:border-accent"
+          className="rounded-sm border border-border bg-panel px-2 py-1 text-[12px] font-medium outline-none focus:border-accent"
         />
         <TreeTextField
           value={node.routePath ?? ""}
           placeholder="경로"
+          minWidthCh={10}
           onCommit={(v) => onUpdateLeaf(node.path, "경로", v)}
-          className="w-32 rounded-sm bg-accent-soft px-1.5 py-1 text-[11px] text-accent outline-none placeholder:text-accent/50 focus:ring-1 focus:ring-accent"
+          className="rounded-sm bg-accent-soft px-1.5 py-1 text-[11px] text-accent outline-none placeholder:text-accent/50 focus:ring-1 focus:ring-accent"
         />
         <TreeTextField
           value={node.note ?? ""}
           placeholder="비고"
+          minWidthCh={12}
           onCommit={(v) => onUpdateLeaf(node.path, "비고", v)}
-          className="w-40 rounded-sm border border-transparent bg-transparent px-1 py-1 text-[11px] text-muted outline-none focus:border-border"
+          className="rounded-sm border border-transparent bg-transparent px-1 py-1 text-[11px] text-muted outline-none focus:border-border"
         />
         {canAddChild && (
           <button
@@ -292,7 +318,7 @@ function MenuTreeBranch({
         </button>
       </div>
       {node.children.length > 0 && (
-        <ul className="ml-[7px] border-l border-border pl-0">
+        <ul className="ml-3 border-l border-border pl-0">
           {node.children.map((child, i) => (
             <MenuTreeBranch
               key={i}
