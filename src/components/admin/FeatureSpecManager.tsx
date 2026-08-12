@@ -335,19 +335,18 @@ export function FeatureSpecManager({
           <table className="w-full min-w-[720px] border-collapse text-[13px]">
             <thead>
               <tr className="border-b border-border bg-panel text-left text-[11.5px] font-medium text-muted">
-                <th className="w-1 px-2 py-2.5" />
+                <th className="sticky left-0 z-10 w-1 border-r border-border bg-panel px-2 py-2.5" />
                 {headers.map((h) => (
                   <th key={h} className={`whitespace-nowrap px-3 py-2.5 ${columnWidthClass(h)}`}>
                     {h}
                   </th>
                 ))}
-                <th className="w-1 px-2 py-2.5" />
               </tr>
             </thead>
             <tbody>
               {rows.length === 0 && (
                 <tr>
-                  <td colSpan={headers.length + 2} className="px-3 py-6 text-center text-muted">
+                  <td colSpan={headers.length + 1} className="px-3 py-6 text-center text-muted">
                     행이 없습니다.
                   </td>
                 </tr>
@@ -360,7 +359,12 @@ export function FeatureSpecManager({
                     selectedRowIdx === rowIdx ? "bg-accent-soft/60" : "",
                   ].join(" ")}
                 >
-                  <td className="whitespace-nowrap px-1.5 py-2.5 text-center align-middle">
+                  <td
+                    className={[
+                      "sticky left-0 z-10 whitespace-nowrap border-r border-border px-1.5 py-2.5 text-center align-middle",
+                      selectedRowIdx === rowIdx ? "bg-accent-soft" : "bg-background",
+                    ].join(" ")}
+                  >
                     <div className="flex flex-col items-center gap-0.5">
                       <button
                         type="button"
@@ -389,6 +393,24 @@ export function FeatureSpecManager({
                           className="rounded-sm text-[10px] leading-none text-muted hover:text-accent disabled:opacity-20 disabled:hover:text-muted"
                         >
                           ▼
+                        </button>
+                      </div>
+                      <div className="flex gap-0.5">
+                        <button
+                          type="button"
+                          title="아래에 행 추가"
+                          onClick={() => addRow(activeSheet, rowIdx)}
+                          className="rounded-sm border border-border px-1 text-[11px] leading-tight text-muted hover:border-accent hover:text-accent"
+                        >
+                          +
+                        </button>
+                        <button
+                          type="button"
+                          title="이 행 삭제"
+                          onClick={() => deleteRow(activeSheet, rowIdx)}
+                          className="rounded-sm border border-border px-1 text-[11px] leading-tight text-muted hover:border-red-600 hover:text-red-600"
+                        >
+                          ×
                         </button>
                       </div>
                     </div>
@@ -453,24 +475,6 @@ export function FeatureSpecManager({
                       </td>
                     );
                   })}
-                  <td className="whitespace-nowrap px-2 py-2.5 text-right">
-                    <button
-                      type="button"
-                      title="아래에 행 추가"
-                      onClick={() => addRow(activeSheet, rowIdx)}
-                      className="mr-1 rounded-sm border border-border px-1.5 py-0.5 text-muted hover:border-accent hover:text-accent"
-                    >
-                      +
-                    </button>
-                    <button
-                      type="button"
-                      title="이 행 삭제"
-                      onClick={() => deleteRow(activeSheet, rowIdx)}
-                      className="rounded-sm border border-border px-1.5 py-0.5 text-muted hover:border-red-600 hover:text-red-600"
-                    >
-                      ×
-                    </button>
-                  </td>
                 </tr>
               ))}
             </tbody>
