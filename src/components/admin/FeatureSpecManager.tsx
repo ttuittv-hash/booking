@@ -156,7 +156,7 @@ function MenuTreeDiagram({ rows, levelKeys }: { rows: FeatureSpecRow[]; levelKey
   const tree = buildMenuTree(rows, levelKeys);
   if (tree.length === 0) return null;
   return (
-    <div className="mt-2 max-h-[420px] overflow-auto rounded border border-border bg-background p-4">
+    <div className="mt-2 overflow-x-auto rounded border border-border bg-background p-4">
       <ul className="flex flex-col">
         {tree.map((node, i) => (
           <MenuTreeBranch key={i} node={node} />
