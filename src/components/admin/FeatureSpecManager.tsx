@@ -1,11 +1,16 @@
 "use client";
 
 import { useLayoutEffect, useRef, useState } from "react";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import {
   FEATURE_SPEC_SHEET_KEYS,
   type FeatureSpecRow,
   type FeatureSpecSheetKey,
 } from "@/lib/pricing/types";
+
+function isSheetKey(value: string | null): value is FeatureSpecSheetKey {
+  return !!value && (FEATURE_SPEC_SHEET_KEYS as readonly string[]).includes(value);
+}
 
 const SHEET_HEADERS: Record<FeatureSpecSheetKey, string[]> = {
   "기능정의(프론트)": ["#", "영역", "기능", "상세 정의", "검토 필요 사항"],
@@ -90,8 +95,15 @@ export function FeatureSpecManager({
 }: {
   initialSheets: Record<FeatureSpecSheetKey, FeatureSpecRow[]>;
 }) {
+  const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+  const sheetParam = searchParams.get("sheet");
+
   const [data, setData] = useState(initialSheets);
-  const [activeSheet, setActiveSheet] = useState<FeatureSpecSheetKey>(FEATURE_SPEC_SHEET_KEYS[0]);
+  const [activeSheet, setActiveSheet] = useState<FeatureSpecSheetKey>(
+    isSheetKey(sheetParam) ? sheetParam : FEATURE_SPEC_SHEET_KEYS[0],
+  );
   const [saveState, setSaveState] = useState<Record<string, SaveState>>({});
   const [savedAt, setSavedAt] = useState<Record<string, string>>({});
   const saveTimers = useRef<Partial<Record<FeatureSpecSheetKey, ReturnType<typeof setTimeout>>>>({});
@@ -160,6 +172,15 @@ export function FeatureSpecManager({
     });
   }
 
+  // 새로고침해도 보던 시트가 그대로 유지되도록 선택한 시트를 URL(?sheet=...)에도
+  // 반영한다. router.replace를 써서 탭을 눌러도 방문 기록이 계속 쌓이지 않게 한다.
+  function selectSheet(key: FeatureSpecSheetKey) {
+    setActiveSheet(key);
+    const params = new URLSearchParams(searchParams.toString());
+    params.set("sheet", key);
+    router.replace(`${pathname}?${params.toString()}`, { scroll: false });
+  }
+
   const rows = data[activeSheet];
   const headers = SHEET_HEADERS[activeSheet];
   const state = saveState[activeSheet] ?? "idle";
@@ -172,7 +193,7 @@ export function FeatureSpecManager({
             <button
               key={key}
               type="button"
-              onClick={() => setActiveSheet(key)}
+              onClick={() => selectSheet(key)}
               className={[
                 "flex shrink-0 items-center justify-between gap-2 whitespace-nowrap rounded-sm px-3 py-2 text-left text-[13px] font-medium outline-none transition-colors",
                 activeSheet === key
