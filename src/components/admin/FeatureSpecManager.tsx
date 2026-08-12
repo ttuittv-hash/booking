@@ -91,6 +91,8 @@ export function FeatureSpecManager({
   const [activeSheet, setActiveSheet] = useState<FeatureSpecSheetKey>(FEATURE_SPEC_SHEET_KEYS[0]);
   const [saveState, setSaveState] = useState<Record<string, SaveState>>({});
   const [savedAt, setSavedAt] = useState<Record<string, string>>({});
+  const [wbsSyncing, setWbsSyncing] = useState(false);
+  const [wbsSyncMessage, setWbsSyncMessage] = useState<string | null>(null);
   const saveTimers = useRef<Partial<Record<FeatureSpecSheetKey, ReturnType<typeof setTimeout>>>>({});
   const tableRef = useRef<HTMLDivElement>(null);
 
@@ -157,6 +159,23 @@ export function FeatureSpecManager({
     });
   }
 
+  async function syncFromWbs() {
+    setWbsSyncing(true);
+    setWbsSyncMessage(null);
+    try {
+      const res = await fetch("/api/admin/feature-spec/wbs-sync", { method: "POST" });
+      const data = await res.json();
+      if (!res.ok) {
+        setWbsSyncMessage(data.error || "WBS 가져오기에 실패했습니다.");
+        return;
+      }
+      setData((prev) => ({ ...prev, "마일스톤": data.rows }));
+      setWbsSyncMessage(`WBS 태스크 ${data.total}건 중 신규 ${data.imported}건 추가됨`);
+    } finally {
+      setWbsSyncing(false);
+    }
+  }
+
   const rows = data[activeSheet];
   const headers = SHEET_HEADERS[activeSheet];
   const state = saveState[activeSheet] ?? "idle";
@@ -185,14 +204,29 @@ export function FeatureSpecManager({
       </aside>
 
       <div className="min-w-0 flex-1">
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between gap-3">
           <p className="text-[12px] text-muted">셀을 클릭해서 바로 수정하세요. 변경 사항은 자동 저장됩니다.</p>
-          <p className="text-[12px] text-muted">
-            {state === "saving" && "저장 중…"}
-            {state === "saved" && `저장됨 · ${savedAt[activeSheet] ?? ""}`}
-            {state === "error" && <span className="text-red-600">저장 실패 — 다시 시도해 주세요</span>}
-          </p>
+          <div className="flex items-center gap-3">
+            {activeSheet === "마일스톤" && (
+              <button
+                type="button"
+                disabled={wbsSyncing}
+                onClick={syncFromWbs}
+                className="shrink-0 whitespace-nowrap rounded-sm border border-border px-2.5 py-1.5 text-[12px] font-medium text-muted transition-colors hover:border-accent hover:text-accent disabled:opacity-50"
+              >
+                {wbsSyncing ? "가져오는 중…" : "WBS에서 가져오기"}
+              </button>
+            )}
+            <p className="text-[12px] text-muted">
+              {state === "saving" && "저장 중…"}
+              {state === "saved" && `저장됨 · ${savedAt[activeSheet] ?? ""}`}
+              {state === "error" && <span className="text-red-600">저장 실패 — 다시 시도해 주세요</span>}
+            </p>
+          </div>
         </div>
+        {activeSheet === "마일스톤" && wbsSyncMessage && (
+          <p className="mt-1.5 text-[12px] text-accent">{wbsSyncMessage}</p>
+        )}
 
         <div ref={tableRef} className="mt-2 overflow-x-auto rounded border border-border">
           <table className="w-full min-w-[720px] border-collapse text-[13px]">
