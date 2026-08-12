@@ -532,6 +532,24 @@ function createConnection(): DatabaseSync {
     }
   }
 
+  // 메뉴트리(프론트) 4회성 마이그레이션: "디자인 브랜치 GNB"라고 출처를 적어뒀던 행들을
+  // 통째로 제거한다. 아직 머지되지 않은 디자인 브랜치의 GNB 구성을 그대로 옮겨 적어둔
+  // 임시 참고 행이라, 확정된 내용이 아니므로 뺀다. 비고에 그 문구가 남아있는 행이 하나도
+  // 없으면(=이미 정리됐으면) 다시 실행하지 않는다.
+  const menuFrontRow4 = db
+    .prepare("SELECT data FROM feature_spec_sheets WHERE sheet_key = ?")
+    .get("메뉴트리(프론트)") as { data: string } | undefined;
+  if (menuFrontRow4) {
+    const menuFrontRows4 = JSON.parse(menuFrontRow4.data) as Record<string, string>[];
+    const hasDesignBranchNote = menuFrontRows4.some((r) => (r["비고"] ?? "").includes("디자인 브랜치 GNB"));
+    if (hasDesignBranchNote) {
+      const cleaned = menuFrontRows4.filter((r) => !(r["비고"] ?? "").includes("디자인 브랜치 GNB"));
+      db.prepare(
+        "UPDATE feature_spec_sheets SET data = ?, updated_at = ? WHERE sheet_key = ?",
+      ).run(JSON.stringify(cleaned), new Date().toISOString(), "메뉴트리(프론트)");
+    }
+  }
+
   // 약관 1회성 마이그레이션: 처음 시드했던 "문서 조항 나열" 구조(영역="이용약관 (/terms)"
   // 등)를 "플로우 구간별" 구조(구간1 회원가입, 구간4 전자 날인 등)로 교체한다. 이미 새
   // 구조로 바뀌었거나(구간1 표시가 있음) 애초에 새 구조로 시드된 DB에는 손대지 않는다 —

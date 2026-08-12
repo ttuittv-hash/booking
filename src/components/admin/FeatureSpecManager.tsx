@@ -182,6 +182,9 @@ export function FeatureSpecManager({
   );
   const [saveState, setSaveState] = useState<Record<string, SaveState>>({});
   const [savedAt, setSavedAt] = useState<Record<string, string>>({});
+  // 선택된 행 다음에 새 행을 끼워 넣기 위한 앵커. 시트를 바꾸면 행 번호 의미가
+  // 달라지므로 selectSheet에서 항상 null로 리셋한다.
+  const [selectedRowIdx, setSelectedRowIdx] = useState<number | null>(null);
   const saveTimers = useRef<Partial<Record<FeatureSpecSheetKey, ReturnType<typeof setTimeout>>>>({});
   const tableRef = useRef<HTMLDivElement>(null);
 
@@ -238,6 +241,9 @@ export function FeatureSpecManager({
       persist(sheet, rows);
       return { ...prev, [sheet]: rows };
     });
+    // 새로 만든 행을 선택 상태로 만들어, 이어서 "행 추가"를 눌러도 계속 그
+    // 바로 다음에 순서대로 끼워 넣을 수 있게 한다.
+    setSelectedRowIdx(afterIdx === null ? null : afterIdx + 1);
   }
 
   function deleteRow(sheet: FeatureSpecSheetKey, rowIdx: number) {
@@ -246,12 +252,36 @@ export function FeatureSpecManager({
       persist(sheet, rows);
       return { ...prev, [sheet]: rows };
     });
+    setSelectedRowIdx((prev) => {
+      if (prev === null) return null;
+      if (prev === rowIdx) return null;
+      if (prev > rowIdx) return prev - 1;
+      return prev;
+    });
+  }
+
+  function moveRow(sheet: FeatureSpecSheetKey, rowIdx: number, direction: -1 | 1) {
+    const rowCount = data[sheet].length;
+    const target = rowIdx + direction;
+    if (target < 0 || target >= rowCount) return;
+    setData((prev) => {
+      const rows = [...prev[sheet]];
+      [rows[rowIdx], rows[target]] = [rows[target], rows[rowIdx]];
+      persist(sheet, rows);
+      return { ...prev, [sheet]: rows };
+    });
+    setSelectedRowIdx((prev) => {
+      if (prev === rowIdx) return target;
+      if (prev === target) return rowIdx;
+      return prev;
+    });
   }
 
   // 새로고침해도 보던 시트가 그대로 유지되도록 선택한 시트를 URL(?sheet=...)에도
   // 반영한다. router.replace를 써서 탭을 눌러도 방문 기록이 계속 쌓이지 않게 한다.
   function selectSheet(key: FeatureSpecSheetKey) {
     setActiveSheet(key);
+    setSelectedRowIdx(null);
     const params = new URLSearchParams(searchParams.toString());
     params.set("sheet", key);
     router.replace(`${pathname}?${params.toString()}`, { scroll: false });
@@ -305,6 +335,7 @@ export function FeatureSpecManager({
           <table className="w-full min-w-[720px] border-collapse text-[13px]">
             <thead>
               <tr className="border-b border-border bg-panel text-left text-[11.5px] font-medium text-muted">
+                <th className="w-1 px-2 py-2.5" />
                 {headers.map((h) => (
                   <th key={h} className={`whitespace-nowrap px-3 py-2.5 ${columnWidthClass(h)}`}>
                     {h}
@@ -316,13 +347,52 @@ export function FeatureSpecManager({
             <tbody>
               {rows.length === 0 && (
                 <tr>
-                  <td colSpan={headers.length + 1} className="px-3 py-6 text-center text-muted">
+                  <td colSpan={headers.length + 2} className="px-3 py-6 text-center text-muted">
                     행이 없습니다.
                   </td>
                 </tr>
               )}
               {rows.map((row, rowIdx) => (
-                <tr key={rowIdx} className="border-b border-border/70 align-top hover:bg-panel/50">
+                <tr
+                  key={rowIdx}
+                  className={[
+                    "border-b border-border/70 align-top hover:bg-panel/50",
+                    selectedRowIdx === rowIdx ? "bg-accent-soft/60" : "",
+                  ].join(" ")}
+                >
+                  <td className="whitespace-nowrap px-1.5 py-2.5 text-center align-middle">
+                    <div className="flex flex-col items-center gap-0.5">
+                      <button
+                        type="button"
+                        title="이 행을 선택 — 다음 '행 추가'가 이 행 바로 뒤에 들어감"
+                        onClick={() => setSelectedRowIdx((prev) => (prev === rowIdx ? null : rowIdx))}
+                        className={[
+                          "h-3.5 w-3.5 rounded-full border",
+                          selectedRowIdx === rowIdx ? "border-accent bg-accent" : "border-border hover:border-accent",
+                        ].join(" ")}
+                      />
+                      <div className="flex gap-0.5">
+                        <button
+                          type="button"
+                          title="위로 이동"
+                          disabled={rowIdx === 0}
+                          onClick={() => moveRow(activeSheet, rowIdx, -1)}
+                          className="rounded-sm text-[10px] leading-none text-muted hover:text-accent disabled:opacity-20 disabled:hover:text-muted"
+                        >
+                          ▲
+                        </button>
+                        <button
+                          type="button"
+                          title="아래로 이동"
+                          disabled={rowIdx === rows.length - 1}
+                          onClick={() => moveRow(activeSheet, rowIdx, 1)}
+                          className="rounded-sm text-[10px] leading-none text-muted hover:text-accent disabled:opacity-20 disabled:hover:text-muted"
+                        >
+                          ▼
+                        </button>
+                      </div>
+                    </div>
+                  </td>
                   {headers.map((h) => {
                     const widthClass = columnWidthClass(h);
                     const charsPerLine = TINY_COLS.has(h)
@@ -409,10 +479,10 @@ export function FeatureSpecManager({
 
         <button
           type="button"
-          onClick={() => addRow(activeSheet, null)}
+          onClick={() => addRow(activeSheet, selectedRowIdx)}
           className="mt-3 w-full rounded border border-dashed border-border py-2.5 text-[12.5px] font-medium text-muted hover:border-accent hover:text-accent"
         >
-          + 행 추가
+          {selectedRowIdx !== null ? "+ 선택한 행 다음에 추가" : "+ 행 추가"}
         </button>
       </div>
     </div>
