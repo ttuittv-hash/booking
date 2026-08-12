@@ -50,11 +50,15 @@ const WIDE_COLS = new Set([
 // 더 넓게 잡는다.
 const EXTRA_WIDE_COLS = new Set(["상세 정의"]);
 
+// 영역/기능처럼 짧은 값만 들어가는 컬럼은 min-width만으로는 충분히 좁아지지
+// 않는다 — table-layout: auto에서는 남는 폭이 모든 컬럼에 비례 배분되기 때문에,
+// max-width로 상한을 함께 박아야 실제로 좁게 고정되고 그만큼 남는 공간이
+// "상세 정의"(상한 없음) 쪽으로 몰린다.
 function columnWidthClass(header: string): string {
-  if (TINY_COLS.has(header)) return "min-w-[64px]";
-  if (NARROW_COLS.has(header)) return "min-w-[120px]";
-  if (EXTRA_WIDE_COLS.has(header)) return "min-w-[420px]";
-  if (WIDE_COLS.has(header)) return "min-w-[280px]";
+  if (TINY_COLS.has(header)) return "w-[64px] min-w-[64px] max-w-[64px]";
+  if (NARROW_COLS.has(header)) return "w-[100px] min-w-[100px] max-w-[100px]";
+  if (EXTRA_WIDE_COLS.has(header)) return "min-w-[480px]";
+  if (WIDE_COLS.has(header)) return "min-w-[260px]";
   return "min-w-[160px]";
 }
 
@@ -230,6 +234,27 @@ export function FeatureSpecManager({
                           placeholder="입력…"
                           rows={estimateRows(row[h] ?? "", charsPerLine)}
                           onChange={(e) => updateCell(activeSheet, rowIdx, h, e.target.value)}
+                          onKeyDown={(e) => {
+                            // "상세" 계열 칸(상세 정의 등)은 줄바꿈 대신 " · " 구분자를 넣는다 —
+                            // 여러 조항/문장을 한 셀에 이어붙일 때 실제 개행 없이 가운데 점으로
+                            // 구분해온 기존 표기 방식(약관 시트)과 동일하게 맞추기 위함.
+                            if (h.includes("상세") && e.key === "Enter") {
+                              e.preventDefault();
+                              const el = e.currentTarget;
+                              const start = el.selectionStart;
+                              const end = el.selectionEnd;
+                              const value = row[h] ?? "";
+                              const insertion = " · ";
+                              const nextValue = value.slice(0, start) + insertion + value.slice(end);
+                              updateCell(activeSheet, rowIdx, h, nextValue);
+                              requestAnimationFrame(() => {
+                                const pos = start + insertion.length;
+                                el.selectionStart = el.selectionEnd = pos;
+                                el.style.height = "auto";
+                                el.style.height = `${el.scrollHeight}px`;
+                              });
+                            }
+                          }}
                           onInput={(e) => {
                             const el = e.currentTarget;
                             el.style.height = "auto";
