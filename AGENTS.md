@@ -51,7 +51,19 @@ This version has breaking changes — APIs, conventions, and file structure may 
 운영 문서는 인프라 repo 의 `application/arena/README.md`. 필수 환경변수는
 `DATABASE_URL`, `AUTH_SECRET`(운영에서 없으면 기동 거부), 최초 1회 `SEED_ADMIN_PASSWORD`.
 
-**업로드 파일은 로컬 디스크(`DATA_DIR`)에 저장되고 PVC 가 RWO 라 replicas 는 1 고정이다.**
-스케일아웃하려면 파일 저장소부터 오브젝트 스토리지로 옮겨야 한다.
-파일을 읽고 쓰는 라우트는 반드시 `DATA_DIR` 기준 경로를 쓴다(`process.cwd()` 금지 —
-배포 환경에서 경로가 갈려 404 난다).
+업로드 파일은 로컬 디스크(`DATA_DIR`)에 저장되지만 볼륨이 **CephFS(RWX)** 라
+pod 를 여러 개 띄울 수 있고 롤링 업데이트도 된다. 파일을 읽고 쓰는 라우트는 반드시
+`DATA_DIR` 기준 경로를 쓴다(`process.cwd()` 금지 — 배포 환경에서 경로가 갈려 404 난다).
+
+pod 를 여러 개 띄울 수 있으므로, **프로세스 메모리에 상태를 두면 안 된다**(카운터·캐시 등).
+레이트리밋 카운터가 그래서 `rate_limits` 테이블에 있다.
+
+## 알림은 스케줄러가 보낸다
+
+세금계산서 미입금(5일 간격)·티켓오픈 자료 미업로드(D-30)·시설회의 자료 미업로드(D-7)
+알림은 CronJob(`arena-reminders`, 매일 09:00 KST)이 `POST /api/internal/reminders` 를
+호출해 발송한다(`src/lib/reminders.ts` 의 `runReminderSweep`).
+
+**화면 조회 시점에 알림을 보내는 코드를 다시 넣지 말 것.** 예전에 그렇게 돼 있었는데,
+아무도 그 화면을 열지 않으면 알림이 누락되고 조회(GET)가 DB 쓰기를 유발했다.
+새 알림 종류를 추가할 때도 `runReminderSweep` 안에 넣는다.
