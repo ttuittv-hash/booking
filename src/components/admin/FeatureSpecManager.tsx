@@ -35,9 +35,11 @@ const NARROW_COLS = new Set([
   "기본 대관료(주)",
   "기본 준비/공연일수",
   "홍보매체",
-  "영역",
   "기능",
 ]);
+// "영역"은 약관 시트에서 "구간1 · 회원가입 — 이용약관 동의"처럼 다른 NARROW_COLS보다
+// 값이 길어서, 같은 100px로 묶으면 내용이 너무 눌려 보인다. 별도 폭을 준다.
+const MEDIUM_COLS = new Set(["영역"]);
 const WIDE_COLS = new Set([
   "문제",
   "필요한 이유 / 준비물",
@@ -55,8 +57,9 @@ const EXTRA_WIDE_COLS = new Set(["상세 정의"]);
 // max-width로 상한을 함께 박아야 실제로 좁게 고정되고 그만큼 남는 공간이
 // "상세 정의"(상한 없음) 쪽으로 몰린다.
 function columnWidthClass(header: string): string {
-  if (TINY_COLS.has(header)) return "w-[64px] min-w-[64px] max-w-[64px]";
+  if (TINY_COLS.has(header)) return "w-[48px] min-w-[48px] max-w-[48px]";
   if (NARROW_COLS.has(header)) return "w-[100px] min-w-[100px] max-w-[100px]";
+  if (MEDIUM_COLS.has(header)) return "w-[170px] min-w-[170px] max-w-[170px]";
   if (EXTRA_WIDE_COLS.has(header)) return "min-w-[480px]";
   if (WIDE_COLS.has(header)) return "min-w-[260px]";
   return "min-w-[160px]";
@@ -219,14 +222,16 @@ export function FeatureSpecManager({
                   {headers.map((h) => {
                     const widthClass = columnWidthClass(h);
                     const charsPerLine = TINY_COLS.has(h)
-                      ? 8
+                      ? 6
                       : NARROW_COLS.has(h)
                         ? 14
-                        : EXTRA_WIDE_COLS.has(h)
-                          ? 50
-                          : WIDE_COLS.has(h)
-                            ? 34
-                            : 20;
+                        : MEDIUM_COLS.has(h)
+                          ? 22
+                          : EXTRA_WIDE_COLS.has(h)
+                            ? 50
+                            : WIDE_COLS.has(h)
+                              ? 34
+                              : 20;
                     return (
                       <td key={h} className={`p-0 ${widthClass}`}>
                         <textarea
@@ -235,16 +240,15 @@ export function FeatureSpecManager({
                           rows={estimateRows(row[h] ?? "", charsPerLine)}
                           onChange={(e) => updateCell(activeSheet, rowIdx, h, e.target.value)}
                           onKeyDown={(e) => {
-                            // "상세" 계열 칸(상세 정의 등)은 줄바꿈 대신 " · " 구분자를 넣는다 —
-                            // 여러 조항/문장을 한 셀에 이어붙일 때 실제 개행 없이 가운데 점으로
-                            // 구분해온 기존 표기 방식(약관 시트)과 동일하게 맞추기 위함.
+                            // "상세" 계열 칸(상세 정의 등)에서 Enter를 누르면 줄은 그대로
+                            // 바뀌고, 새 줄 맨 앞에 가운데 점을 붙여준다(글머리 기호처럼).
                             if (h.includes("상세") && e.key === "Enter") {
                               e.preventDefault();
                               const el = e.currentTarget;
                               const start = el.selectionStart;
                               const end = el.selectionEnd;
                               const value = row[h] ?? "";
-                              const insertion = " · ";
+                              const insertion = "\n· ";
                               const nextValue = value.slice(0, start) + insertion + value.slice(end);
                               updateCell(activeSheet, rowIdx, h, nextValue);
                               requestAnimationFrame(() => {
