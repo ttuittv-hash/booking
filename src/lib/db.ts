@@ -490,6 +490,35 @@ function createConnection(): DatabaseSync {
     }
   }
 
+  // 메뉴트리(프론트) 3회성 마이그레이션: 공연사업팀이 제안한 "대관 신청" 세부 흐름(아레나/
+  // 중형공연장/공통 프로세스별 하위 단계, 대관 신청·변경 내역, 대관 진행 내역)과 "대관료"
+  // 메뉴 항목을 추가로 반영한다. "대관 신청 (아레나)" 메뉴가 하나라도 있으면(=이미
+  // 추가됐으면) 다시 실행하지 않는다.
+  const menuFrontRow3 = db
+    .prepare("SELECT data FROM feature_spec_sheets WHERE sheet_key = ?")
+    .get("메뉴트리(프론트)") as { data: string } | undefined;
+  if (menuFrontRow3) {
+    const menuFrontRows3 = JSON.parse(menuFrontRow3.data) as Record<string, string>[];
+    const alreadyHasApplyDetail = menuFrontRows3.some((r) => r["메뉴"] === "대관 신청 (아레나)");
+    if (!alreadyHasApplyDetail) {
+      const seedRows = FEATURE_SPEC_SEED["메뉴트리(프론트)"] ?? [];
+      const newRows = seedRows.filter((r) =>
+        ["대관 신청 (아레나)", "대관 신청 (중형공연장)", "대관 신청 (공연장 선택 이후 공통 프로세스)", "대관 신청/변경 내역", "대관 진행 내역", "대관료"].includes(
+          r["메뉴"],
+        ),
+      );
+      if (newRows.length > 0) {
+        db.prepare(
+          "UPDATE feature_spec_sheets SET data = ?, updated_at = ? WHERE sheet_key = ?",
+        ).run(
+          JSON.stringify([...menuFrontRows3, ...newRows]),
+          new Date().toISOString(),
+          "메뉴트리(프론트)",
+        );
+      }
+    }
+  }
+
   // 약관 1회성 마이그레이션: 처음 시드했던 "문서 조항 나열" 구조(영역="이용약관 (/terms)"
   // 등)를 "플로우 구간별" 구조(구간1 회원가입, 구간4 전자 날인 등)로 교체한다. 이미 새
   // 구조로 바뀌었거나(구간1 표시가 있음) 애초에 새 구조로 시드된 DB에는 손대지 않는다 —
