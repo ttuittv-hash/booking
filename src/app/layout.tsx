@@ -2,8 +2,8 @@ import type { Metadata } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "서울아레나 대관 견적·신청 시스템",
-  description: "서울아레나 대관 견적 산출 및 신청 시스템",
+  title: "서울아레나 대관 시스템",
+  description: "대관 신청부터 심사·계약·정산까지 한 곳에서",
 };
 
 export default function RootLayout({
