@@ -342,7 +342,17 @@ export function FeatureSpecManager({
                           value={row[h] ?? ""}
                           placeholder="입력…"
                           rows={estimateRows(row[h] ?? "", charsPerLine)}
-                          onChange={(e) => updateCell(activeSheet, rowIdx, h, e.target.value)}
+                          onChange={(e) => {
+                            const nextValue = e.target.value;
+                            // "상세" 계열 칸은 첫 줄도 다른 줄들과 마찬가지로 가운데 점으로
+                            // 시작해야 하므로, 빈 칸에서 처음 입력(타이핑/붙여넣기)이 들어올
+                            // 때 맨 앞에 "· "를 붙여준다.
+                            if (h.includes("상세") && (row[h] ?? "") === "" && nextValue !== "" && !nextValue.startsWith("· ")) {
+                              updateCell(activeSheet, rowIdx, h, "· " + nextValue);
+                              return;
+                            }
+                            updateCell(activeSheet, rowIdx, h, nextValue);
+                          }}
                           onKeyDown={(e) => {
                             // "상세" 계열 칸(상세 정의 등)에서 Enter를 누르면 줄은 그대로
                             // 바뀌고, 새 줄 맨 앞에 가운데 점을 붙여준다(글머리 기호처럼).
