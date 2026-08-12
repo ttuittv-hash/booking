@@ -577,6 +577,38 @@ function createConnection(): DatabaseSync {
     }
   }
 
+  // 약관 3회성 마이그레이션: T-1~T-8·P-1~P-9의 "상세 정의"에 들어있던 줄바꿈(\n)을
+  // " · " 가운데점 구분자로 합쳐 한 줄로 표시되게 한다(표 폭을 넓혀도 여러 줄로 늘어져
+  // 보기 불편하다는 피드백으로 진행). 이미 줄바꿈이 없는 행(=이미 적용됐거나 마스터
+  // 관리자가 직접 정리한 행)은 다시 건드리지 않는다.
+  const termsRow3 = db
+    .prepare("SELECT data FROM feature_spec_sheets WHERE sheet_key = ?")
+    .get("약관") as { data: string } | undefined;
+  if (termsRow3) {
+    const termsRows3 = JSON.parse(termsRow3.data) as Record<string, string>[];
+    const collapseIds = new Set([
+      "T-1", "T-2", "T-3", "T-4", "T-5", "T-6", "T-7", "T-8",
+      "P-1", "P-2", "P-3", "P-4", "P-5", "P-6", "P-7", "P-8", "P-9",
+    ]);
+    const needsCollapse = termsRows3.some(
+      (r) => collapseIds.has(r["#"]) && r["상세 정의"]?.includes("\n"),
+    );
+    if (needsCollapse) {
+      const collapsed = termsRows3.map((row) => {
+        if (!collapseIds.has(row["#"]) || !row["상세 정의"]?.includes("\n")) return row;
+        const joined = row["상세 정의"]
+          .split(/\n+/)
+          .map((seg) => seg.trim().replace(/^-\s+/, ""))
+          .filter(Boolean)
+          .join(" · ");
+        return { ...row, "상세 정의": joined };
+      });
+      db.prepare(
+        "UPDATE feature_spec_sheets SET data = ?, updated_at = ? WHERE sheet_key = ?",
+      ).run(JSON.stringify(collapsed), new Date().toISOString(), "약관");
+    }
+  }
+
   return db;
 }
 

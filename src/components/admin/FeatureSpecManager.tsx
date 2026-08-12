@@ -43,9 +43,10 @@ const NARROW_COLS = new Set([
   "담당자",
   "기한",
   "상태",
+  "영역",
+  "기능",
 ]);
 const WIDE_COLS = new Set([
-  "상세 정의",
   "문제",
   "필요한 이유 / 준비물",
   "확보되면 할 일",
@@ -54,10 +55,14 @@ const WIDE_COLS = new Set([
   "하위메뉴",
   "진행 업무",
 ]);
+// "상세 정의"는 실제 조항 전문·상세 설명이 들어가는 칸이라 다른 WIDE_COLS보다도
+// 더 넓게 잡는다.
+const EXTRA_WIDE_COLS = new Set(["상세 정의"]);
 
 function columnWidthClass(header: string): string {
   if (TINY_COLS.has(header)) return "min-w-[64px]";
   if (NARROW_COLS.has(header)) return "min-w-[120px]";
+  if (EXTRA_WIDE_COLS.has(header)) return "min-w-[420px]";
   if (WIDE_COLS.has(header)) return "min-w-[280px]";
   return "min-w-[160px]";
 }
@@ -256,9 +261,11 @@ export function FeatureSpecManager({
                       ? 8
                       : NARROW_COLS.has(h)
                         ? 14
-                        : WIDE_COLS.has(h)
-                          ? 34
-                          : 20;
+                        : EXTRA_WIDE_COLS.has(h)
+                          ? 50
+                          : WIDE_COLS.has(h)
+                            ? 34
+                            : 20;
                     return (
                       <td key={h} className={`p-0 ${widthClass}`}>
                         <textarea
