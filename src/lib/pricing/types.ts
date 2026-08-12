@@ -446,7 +446,6 @@ export interface AppUser {
 export type FeatureSpecRow = Record<string, string>;
 
 export const FEATURE_SPEC_SHEET_KEYS = [
-  "마일스톤",
   "메뉴트리(프론트)",
   "메뉴트리(어드민)",
   "기능정의(프론트)",

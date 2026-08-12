@@ -425,6 +425,19 @@ function createConnection(): DatabaseSync {
     insertSheet.run(key, JSON.stringify(FEATURE_SPEC_SEED[key] ?? []), new Date().toISOString());
   });
 
+  // "마일스톤" 시트 제거: WBS 연동과 함께 폐기됐다. 이미 시드됐던 DB에 남아있는
+  // 행은 더 이상 유효한 시트 키가 아니라 화면에서 접근할 방법이 없는 죽은 데이터라
+  // 정리한다. FEATURE_SPEC_SHEET_KEYS에 없는 다른 키가 남아있어도 마찬가지로
+  // 청소되도록 일반화해뒀다.
+  const validKeys = new Set<string>(FEATURE_SPEC_SHEET_KEYS as readonly string[]);
+  const allSheetKeys = db
+    .prepare("SELECT sheet_key FROM feature_spec_sheets")
+    .all() as { sheet_key: string }[];
+  const deleteSheet = db.prepare("DELETE FROM feature_spec_sheets WHERE sheet_key = ?");
+  allSheetKeys.forEach(({ sheet_key }) => {
+    if (!validKeys.has(sheet_key)) deleteSheet.run(sheet_key);
+  });
+
   // 메뉴트리(프론트) 1회성 마이그레이션: "대분류" 하나였던 값을 "구분"(GNB/푸터) +
   // "대분류"(짧은 이름: 유어스테이지·북잇·노우잇·호스트잇·하단·마이)로 분리하고,
   // "마이"(신청자 마이페이지) 행들을 맨 뒤로 옮긴다. 이미 "구분" 필드가 있으면(=한 번
