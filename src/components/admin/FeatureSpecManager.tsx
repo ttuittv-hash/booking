@@ -402,6 +402,7 @@ export function FeatureSpecManager({
   // 위에 올라가 있는지.
   const [draggedRowIdx, setDraggedRowIdx] = useState<number | null>(null);
   const [dragOverRowIdx, setDragOverRowIdx] = useState<number | null>(null);
+  const [copyState, setCopyState] = useState<"idle" | "copied" | "error">("idle");
   const saveTimers = useRef<Partial<Record<FeatureSpecSheetKey, ReturnType<typeof setTimeout>>>>({});
   const tableRef = useRef<HTMLDivElement>(null);
 
@@ -516,6 +517,21 @@ export function FeatureSpecManager({
     persist(activeSheet, nextRows);
   }
 
+  // 셀이 전부 textarea라 마우스로 여러 칸에 걸쳐 드래그 선택/복사를 할 수 없다.
+  // 대신 지금 보고 있는 시트 전체를 표 형태(탭으로 구분된 텍스트)로 클립보드에
+  // 복사해서, 채팅에 붙여넣어 전달할 수 있게 한다.
+  async function copySheetAsText() {
+    const tsvLine = (cells: string[]) => cells.map((c) => c.replace(/\t/g, " ").replace(/\r?\n/g, " ")).join("\t");
+    const lines = [tsvLine(headers), ...rows.map((row) => tsvLine(headers.map((h) => row[h] ?? "")))];
+    try {
+      await navigator.clipboard.writeText(lines.join("\n"));
+      setCopyState("copied");
+    } catch {
+      setCopyState("error");
+    }
+    setTimeout(() => setCopyState("idle"), 2000);
+  }
+
   return (
     <div className="mt-8 flex flex-col gap-6 lg:flex-row">
       <aside className="shrink-0 lg:w-56">
@@ -546,11 +562,20 @@ export function FeatureSpecManager({
               ? "이름·경로·비고를 클릭해서 바로 수정하고, +로 가지를 늘리거나 ×로 삭제하세요. 변경 사항은 자동 저장됩니다."
               : "셀을 클릭해서 바로 수정하세요. 변경 사항은 자동 저장됩니다."}
           </p>
-          <p className="text-[12px] text-muted">
-            {state === "saving" && "저장 중…"}
-            {state === "saved" && `저장됨 · ${savedAt[activeSheet] ?? ""}`}
-            {state === "error" && <span className="text-red-600">저장 실패 — 다시 시도해 주세요</span>}
-          </p>
+          <div className="flex shrink-0 items-center gap-3">
+            <button
+              type="button"
+              onClick={copySheetAsText}
+              className="rounded-sm border border-border px-2.5 py-1 text-[12px] font-medium text-muted hover:border-accent hover:text-accent"
+            >
+              {copyState === "copied" ? "복사됨 ✓" : copyState === "error" ? "복사 실패" : "표 복사"}
+            </button>
+            <p className="text-[12px] text-muted">
+              {state === "saving" && "저장 중…"}
+              {state === "saved" && `저장됨 · ${savedAt[activeSheet] ?? ""}`}
+              {state === "error" && <span className="text-red-600">저장 실패 — 다시 시도해 주세요</span>}
+            </p>
+          </div>
         </div>
 
         {menuTreeLevelKeys && (
