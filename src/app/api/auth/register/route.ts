@@ -2,6 +2,12 @@ import { NextResponse } from "next/server";
 import crypto from "node:crypto";
 import { createSession, hashPassword } from "@/lib/auth";
 import {
+  checkCompanyNumber,
+  isBlockedCompanyStatus,
+  isNiceConfigured,
+  normalizeCompanyName,
+} from "@/lib/nice";
+import {
   createUser,
   findCompanyById,
   findOrCreateCompany,
@@ -9,6 +15,7 @@ import {
   findUserByPhone,
   findUserByUsername,
   notifyAdmins,
+  saveCompanyVerification,
   withTransaction,
 } from "@/lib/db";
 import { SHA256_HEX_RE, sha256Hex } from "@/lib/passwordScheme";
@@ -144,6 +151,23 @@ export async function POST(request: Request) {
     if (!businessCertUrl) {
       return NextResponse.json({ error: "사업자등록증을 첨부하세요." }, { status: 400 });
     }
+    // 사업자등록번호 진위·상태 확인(NICE 법인실명확인).
+    // 휴업·폐업·부도 업체는 대관 계약 상대로 부적격이므로 가입을 막는다.
+    // 미설정이거나 조회에 실패하면 가입은 진행하고 "미확인"으로 남겨 운영자 심사에 넘긴다.
+    const verification = await checkCompanyNumber(businessRegistrationNumber);
+    if (isBlockedCompanyStatus(verification)) {
+      return NextResponse.json(
+        { error: `국세청 조회 결과 ${verification.compStatusLabel} 상태인 사업자등록번호입니다. 담당자에게 문의해주세요.` },
+        { status: 400 },
+      );
+    }
+    if (isNiceConfigured() && verification.status === "NOT_FOUND") {
+      return NextResponse.json(
+        { error: "조회되지 않는 사업자등록번호입니다. 번호를 다시 확인해주세요." },
+        { status: 400 },
+      );
+    }
+
     company = await findOrCreateCompany(companyName, {
       businessRegistrationNumber,
       representativeName,
@@ -151,6 +175,28 @@ export async function POST(request: Request) {
       address,
       businessCertUrl,
       businessCertName,
+    });
+
+    // 조회된 상호·대표자명이 입력값과 다르면 그대로 기록해 둔다 — 가입은 막지 않고
+    // (표기 차이가 흔하다) 운영자 심사 화면에서 확인하도록 한다.
+    const mismatches: string[] = [];
+    if (
+      verification.status === "VERIFIED" &&
+      verification.companyName &&
+      normalizeCompanyName(verification.companyName) !== normalizeCompanyName(companyName)
+    ) {
+      mismatches.push(`상호 불일치(등록: ${verification.companyName})`);
+    }
+    if (
+      verification.status === "VERIFIED" &&
+      verification.representativeName &&
+      verification.representativeName.replace(/\s+/g, "") !== representativeName.replace(/\s+/g, "")
+    ) {
+      mismatches.push(`대표자 불일치(등록: ${verification.representativeName})`);
+    }
+    await saveCompanyVerification(company.id, {
+      ...verification,
+      message: [verification.message, ...mismatches].filter(Boolean).join(" / ") || null,
     });
   }
 

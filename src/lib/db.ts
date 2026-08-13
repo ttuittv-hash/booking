@@ -11,6 +11,7 @@ import { sha256Hex } from "./passwordScheme";
 import type { GuideContent, HomeContent, VenueContent } from "./content/types";
 import type {
   ApprovalStatus,
+  CompanyVerification,
   AppNotification,
   AppUser,
   Attachment,
@@ -81,7 +82,16 @@ async function initSchema(pool: Pool) {
       address TEXT,
       business_cert_url TEXT,
       business_cert_name TEXT,
-      created_at TEXT NOT NULL
+      created_at TEXT NOT NULL,
+      -- 사업자 진위확인(NICE 법인실명확인) 결과. 가입 시 1회 조회해 심사 화면에 그대로 보여준다.
+      verification_status TEXT,
+      verified_company_name TEXT,
+      verified_representative_name TEXT,
+      verified_comp_status TEXT,
+      verified_comp_status_label TEXT,
+      verified_comp_type_label TEXT,
+      verification_message TEXT,
+      verified_at TEXT
     );
 
     CREATE TABLE IF NOT EXISTS users (
@@ -301,6 +311,14 @@ async function initSchema(pool: Pool) {
   // 이후 세션에서 추가되는 컬럼은 여기서 마이그레이션한다 (PostgreSQL은 IF NOT EXISTS 지원).
   await pool.query(`
     ALTER TABLE users ADD COLUMN IF NOT EXISTS password_scheme TEXT NOT NULL DEFAULT 'v2';
+    ALTER TABLE companies ADD COLUMN IF NOT EXISTS verification_status TEXT;
+    ALTER TABLE companies ADD COLUMN IF NOT EXISTS verified_company_name TEXT;
+    ALTER TABLE companies ADD COLUMN IF NOT EXISTS verified_representative_name TEXT;
+    ALTER TABLE companies ADD COLUMN IF NOT EXISTS verified_comp_status TEXT;
+    ALTER TABLE companies ADD COLUMN IF NOT EXISTS verified_comp_status_label TEXT;
+    ALTER TABLE companies ADD COLUMN IF NOT EXISTS verified_comp_type_label TEXT;
+    ALTER TABLE companies ADD COLUMN IF NOT EXISTS verification_message TEXT;
+    ALTER TABLE companies ADD COLUMN IF NOT EXISTS verified_at TEXT;
     ALTER TABLE quotes ADD COLUMN IF NOT EXISTS week_year INTEGER;
     ALTER TABLE quotes ADD COLUMN IF NOT EXISTS week_month INTEGER;
     ALTER TABLE quotes ADD COLUMN IF NOT EXISTS week_of_month INTEGER;
@@ -603,6 +621,14 @@ interface CompanyRow {
   business_cert_url: string | null;
   business_cert_name: string | null;
   created_at: string;
+  verification_status: string | null;
+  verified_company_name: string | null;
+  verified_representative_name: string | null;
+  verified_comp_status: string | null;
+  verified_comp_status_label: string | null;
+  verified_comp_type_label: string | null;
+  verification_message: string | null;
+  verified_at: string | null;
 }
 
 function toCompany(row: CompanyRow): Company {
@@ -616,7 +642,53 @@ function toCompany(row: CompanyRow): Company {
     businessCertUrl: row.business_cert_url,
     businessCertName: row.business_cert_name,
     createdAt: row.created_at,
+    verification: row.verification_status
+      ? {
+          status: row.verification_status as CompanyVerification["status"],
+          companyName: row.verified_company_name,
+          representativeName: row.verified_representative_name,
+          compStatus: row.verified_comp_status,
+          compStatusLabel: row.verified_comp_status_label,
+          compTypeLabel: row.verified_comp_type_label,
+          message: row.verification_message,
+          checkedAt: row.verified_at,
+        }
+      : null,
   };
+}
+
+// 사업자 진위확인 결과를 저장한다(가입 시 1회, 운영자가 재확인할 때 갱신).
+export async function saveCompanyVerification(
+  companyId: string,
+  verification: {
+    status: string;
+    companyName: string | null;
+    representativeName: string | null;
+    compStatus: string | null;
+    compStatusLabel: string | null;
+    compTypeLabel: string | null;
+    message: string | null;
+    checkedAt: string;
+  },
+): Promise<void> {
+  await q(
+    `UPDATE companies SET
+       verification_status = $1, verified_company_name = $2, verified_representative_name = $3,
+       verified_comp_status = $4, verified_comp_status_label = $5, verified_comp_type_label = $6,
+       verification_message = $7, verified_at = $8
+     WHERE id = $9`,
+    [
+      verification.status,
+      verification.companyName,
+      verification.representativeName,
+      verification.compStatus,
+      verification.compStatusLabel,
+      verification.compTypeLabel,
+      verification.message,
+      verification.checkedAt,
+      companyId,
+    ],
+  );
 }
 
 // 회사명으로 기존 기획사를 찾거나 없으면 새로 만든다 (대소문자·공백 무시하고 매칭).
@@ -648,6 +720,14 @@ export async function findOrCreateCompany(
     business_cert_url: extra?.businessCertUrl || null,
     business_cert_name: extra?.businessCertName || null,
     created_at: new Date().toISOString(),
+    verification_status: null,
+    verified_company_name: null,
+    verified_representative_name: null,
+    verified_comp_status: null,
+    verified_comp_status_label: null,
+    verified_comp_type_label: null,
+    verification_message: null,
+    verified_at: null,
   };
   // 같은 회사명으로 동시에 가입하면 조회-후-삽입 사이에 경합이 나서 한쪽이 UNIQUE 위반으로 실패한다.
   // 충돌 시 무시하고 아래에서 기존 행을 다시 읽는다.

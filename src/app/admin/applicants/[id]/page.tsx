@@ -3,7 +3,7 @@ import { notFound, redirect } from "next/navigation";
 import { getCurrentUser } from "@/lib/auth";
 import { findCompanyById, findUserById, listQuotes } from "@/lib/db";
 import { won } from "@/lib/format";
-import type { Quote } from "@/lib/pricing/types";
+import type { CompanyVerification, Quote } from "@/lib/pricing/types";
 import { AdminNav } from "@/components/admin/AdminNav";
 
 const STATUS_LABEL: Record<Quote["status"], string> = {
@@ -79,7 +79,29 @@ export default async function AdminApplicantDetailPage({
           </div>
           <div>
             <div className="text-[11px] text-muted">사업자등록번호</div>
-            <div className="mt-1 text-[13.5px] font-medium">{company?.businessRegistrationNumber || "-"}</div>
+            <div className="mt-1 flex flex-wrap items-center gap-2 text-[13.5px] font-medium">
+              {company?.businessRegistrationNumber || "-"}
+              {company?.verification && <VerificationBadge verification={company.verification} />}
+            </div>
+            {company?.verification && (
+              <div className="mt-1.5 space-y-0.5 text-[12px] text-muted">
+                {company.verification.companyName && (
+                  <div>등록 상호: {company.verification.companyName}</div>
+                )}
+                {company.verification.representativeName && (
+                  <div>등록 대표자: {company.verification.representativeName}</div>
+                )}
+                {company.verification.compTypeLabel && (
+                  <div>기업형태: {company.verification.compTypeLabel}</div>
+                )}
+                {company.verification.message && (
+                  <div className="text-amber-600">{company.verification.message}</div>
+                )}
+                {company.verification.checkedAt && (
+                  <div>확인: {new Date(company.verification.checkedAt).toLocaleString("ko-KR")}</div>
+                )}
+              </div>
+            )}
           </div>
           <div>
             <div className="text-[11px] text-muted">가입일</div>
@@ -136,5 +158,24 @@ export default async function AdminApplicantDetailPage({
         </div>
       </main>
     </div>
+  );
+}
+
+// 사업자 진위확인 결과 뱃지 — 운영자가 승인 전에 한눈에 보도록 상태를 색으로 구분한다.
+function VerificationBadge({ verification }: { verification: CompanyVerification }) {
+  const normal = verification.status === "VERIFIED" && verification.compStatus === "1";
+  const label =
+    verification.status === "VERIFIED"
+      ? `국세청 확인 · ${verification.compStatusLabel ?? "상태미상"}`
+      : verification.status === "NOT_FOUND"
+        ? "국세청 미조회"
+        : "미확인";
+  const className = normal
+    ? "border-emerald-500/40 bg-emerald-500/10 text-emerald-600"
+    : verification.status === "VERIFIED"
+      ? "border-red-500/40 bg-red-500/10 text-red-600"
+      : "border-border bg-panel text-muted";
+  return (
+    <span className={`rounded border px-1.5 py-0.5 text-[11px] font-medium ${className}`}>{label}</span>
   );
 }
