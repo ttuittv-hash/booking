@@ -640,6 +640,30 @@ function createConnection(): DatabaseSync {
     }
   }
 
+  // 상세 정의 1회성 마이그레이션: 상세 정의 칸은 이제 화면에서 새로 입력할 때
+  // 첫 줄도 다른 줄처럼 "· "로 시작하게 되어있는데, 이 규칙이 생기기 전에 이미
+  // 입력돼있던 값들은 첫머리에 점이 없다. 상세 정의 칸이 있는 시트를 모두 훑어서
+  // 값은 있는데 "· "로 시작하지 않는 행에만 앞머리를 붙여준다.
+  const detailDotSheetKeys = ["기능정의(프론트)", "기능정의(어드민)", "약관"] as const;
+  for (const key of detailDotSheetKeys) {
+    const detailRow = db.prepare("SELECT data FROM feature_spec_sheets WHERE sheet_key = ?").get(key) as
+      | { data: string }
+      | undefined;
+    if (!detailRow) continue;
+    const detailRows = JSON.parse(detailRow.data) as Record<string, string>[];
+    const needsDot = detailRows.some((r) => r["상세 정의"] && !r["상세 정의"].startsWith("· "));
+    if (!needsDot) continue;
+    const fixed = detailRows.map((r) => {
+      if (!r["상세 정의"] || r["상세 정의"].startsWith("· ")) return r;
+      return { ...r, "상세 정의": "· " + r["상세 정의"] };
+    });
+    db.prepare("UPDATE feature_spec_sheets SET data = ?, updated_at = ? WHERE sheet_key = ?").run(
+      JSON.stringify(fixed),
+      new Date().toISOString(),
+      key,
+    );
+  }
+
   return db;
 }
 
