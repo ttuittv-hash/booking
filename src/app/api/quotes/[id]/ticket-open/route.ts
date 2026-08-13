@@ -9,10 +9,10 @@ export async function POST(request: Request, ctx: { params: Promise<{ id: string
   }
 
   const { id } = await ctx.params;
-  const quote = getQuoteById(id);
+  const quote = await getQuoteById(id);
   if (!quote) return NextResponse.json({ error: "신청서를 찾을 수 없습니다." }, { status: 404 });
 
-  const deposit = getDepositByQuoteId(id);
+  const deposit = await getDepositByQuoteId(id);
   if (!deposit || deposit.status !== "CONFIRMED") {
     return NextResponse.json({ error: "보증금 입금 확인 후 등록할 수 있습니다." }, { status: 409 });
   }
@@ -23,7 +23,7 @@ export async function POST(request: Request, ctx: { params: Promise<{ id: string
     return NextResponse.json({ error: "티켓오픈일을 선택하세요." }, { status: 400 });
   }
 
-  ensureTicketOpen(id, new Date().toISOString());
-  const ticketOpen = setTicketOpenDate(id, openDate);
+  await ensureTicketOpen(id, new Date().toISOString());
+  const ticketOpen = await setTicketOpenDate(id, openDate);
   return NextResponse.json({ ticketOpen });
 }

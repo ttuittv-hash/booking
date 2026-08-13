@@ -24,7 +24,7 @@ export default async function Home() {
     processLabel,
     processTitle,
     processSteps,
-  } = getHomeContent();
+  } = await getHomeContent();
 
   return (
     <div className="flex flex-1 flex-col">

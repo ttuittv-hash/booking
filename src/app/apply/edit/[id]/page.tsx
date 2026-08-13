@@ -19,15 +19,15 @@ export default async function EditQuotePage({
   if (isPendingApplicant(currentUser)) redirect("/pending");
 
   const { id } = await params;
-  const quote = getQuoteById(id);
+  const quote = await getQuoteById(id);
   if (!quote) notFound();
-  if (!canAccessQuote(currentUser, quote)) notFound();
+  if (!(await canAccessQuote(currentUser, quote))) notFound();
   if (quote.status !== "ESTIMATE") redirect(`/mypage/${id}`);
 
   const [rateTable, weekDemand, dateBlocks] = await Promise.all([
     getCurrentRateTable(),
-    Promise.resolve(listWeekDemand()),
-    Promise.resolve(listDateBlocks()),
+    listWeekDemand(),
+    listDateBlocks(),
   ]);
 
   return (

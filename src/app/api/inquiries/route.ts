@@ -7,7 +7,7 @@ export async function GET() {
   const user = await getCurrentUser();
   if (!user) return NextResponse.json({ error: "로그인이 필요합니다." }, { status: 401 });
 
-  const inquiries = user.role === "ADMIN" ? listInquiries() : listInquiries({ userId: user.id });
+  const inquiries = user.role === "ADMIN" ? await listInquiries() : await listInquiries({ userId: user.id });
   return NextResponse.json({ inquiries });
 }
 
@@ -26,8 +26,8 @@ export async function POST(request: Request) {
   }
 
   const createdAt = new Date().toISOString();
-  const inquiry = createInquiry({ id: crypto.randomUUID(), userId: user.id, title, content, createdAt });
-  notifyAdmins({
+  const inquiry = await createInquiry({ id: crypto.randomUUID(), userId: user.id, title, content, createdAt });
+  await notifyAdmins({
     quoteId: "",
     message: `새 1:1 문의가 등록되었습니다: ${title}`,
     createdAt,

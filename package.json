@@ -10,9 +10,11 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "test": "vitest run"
+    "test": "vitest run",
+    "migrate:sqlite": "node scripts/migrate-sqlite-to-pg.mjs"
   },
   "dependencies": {
+    "@node-rs/bcrypt": "^1.10.7",
     "@tiptap/extension-color": "^3.29.2",
     "@tiptap/extension-image": "^3.29.2",
     "@tiptap/extension-table": "^3.29.2",
@@ -24,19 +26,23 @@
     "@tiptap/pm": "^3.29.2",
     "@tiptap/react": "^3.29.2",
     "@tiptap/starter-kit": "^3.29.2",
-    "bcryptjs": "^3.0.3",
+    "@types/pg": "^8.21.0",
+    "@types/sanitize-html": "^2.16.1",
     "jose": "^6.2.4",
-    "next": "16.2.12",
+    "next": "^16.3.0",
+    "pg": "^8.23.0",
     "react": "19.2.4",
-    "react-dom": "19.2.4"
+    "react-dom": "19.2.4",
+    "sanitize-html": "^2.17.6"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",
     "@types/node": "^22.20.1",
+    "@types/pg": "^8.21.0",
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "eslint": "^9",
-    "eslint-config-next": "16.2.12",
+    "eslint-config-next": "^16.3.0",
     "tailwindcss": "^4",
     "typescript": "^5",
     "vitest": "^4.1.10"

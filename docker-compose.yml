@@ -1,0 +1,17 @@
+# 로컬 개발용 PostgreSQL. `docker compose up -d` 후 `npm run dev` 하면
+# 기본 접속 문자열(postgres://postgres:postgres@localhost:5433/seoularena)로 붙는다.
+# (호스트 포트 5433 — 다른 프로젝트의 PostgreSQL이 5432를 쓰는 경우와 충돌 방지)
+services:
+  db:
+    image: postgres:16-alpine
+    ports:
+      - "5433:5432"
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: seoularena
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+
+volumes:
+  pgdata:

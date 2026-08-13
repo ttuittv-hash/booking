@@ -14,10 +14,10 @@ export async function POST(request: Request, ctx: { params: Promise<{ id: string
   }
 
   const { id } = await ctx.params;
-  const quote = getQuoteById(id);
+  const quote = await getQuoteById(id);
   if (!quote) return NextResponse.json({ error: "신청서를 찾을 수 없습니다." }, { status: 404 });
 
-  const ticketOpen = getTicketOpenByQuoteId(id);
+  const ticketOpen = await getTicketOpenByQuoteId(id);
   if (!ticketOpen?.openDate) {
     return NextResponse.json({ error: "티켓오픈 등록 후 등록할 수 있습니다." }, { status: 409 });
   }
@@ -28,7 +28,7 @@ export async function POST(request: Request, ctx: { params: Promise<{ id: string
     return NextResponse.json({ error: "시설회의일을 선택하세요." }, { status: 400 });
   }
 
-  ensureFacilityMeeting(id, new Date().toISOString());
-  const facilityMeeting = setFacilityMeetingDate(id, meetingDate);
+  await ensureFacilityMeeting(id, new Date().toISOString());
+  const facilityMeeting = await setFacilityMeetingDate(id, meetingDate);
   return NextResponse.json({ facilityMeeting });
 }

@@ -2,7 +2,8 @@ import Link from "next/link";
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { getCurrentUser, isPendingApplicant } from "@/lib/auth";
-import { listNotices } from "@/lib/db";
+import { listNoticesPaged, normalizePage } from "@/lib/db";
+import { Pagination } from "@/components/Pagination";
 import { PublicHeader } from "@/components/PublicHeader";
 import { TagBadge } from "@/components/TagBadge";
 
@@ -10,11 +11,17 @@ export const metadata: Metadata = {
   title: "공지사항 | 서울아레나",
 };
 
-export default async function NoticesPage() {
+export default async function NoticesPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ page?: string }>;
+}) {
   const currentUser = await getCurrentUser();
   if (currentUser && isPendingApplicant(currentUser)) redirect("/pending");
 
-  const notices = listNotices();
+  const { page: pageParam } = await searchParams;
+  const page = normalizePage(pageParam);
+  const { items: notices, total, totalPages } = await listNoticesPaged(page);
 
   return (
     <div className="flex flex-1 flex-col">
@@ -49,6 +56,7 @@ export default async function NoticesPage() {
             ))
           )}
         </div>
+        <Pagination page={page} totalPages={totalPages} total={total} basePath="/notices" />
       </main>
     </div>
   );

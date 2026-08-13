@@ -19,7 +19,7 @@ export async function PATCH(request: Request, ctx: { params: Promise<{ id: strin
   }
 
   try {
-    const updated = setAdminTier(id, tier);
+    const updated = await setAdminTier(id, tier);
     return NextResponse.json({ user: updated });
   } catch (err) {
     const message = err instanceof Error ? err.message : "등급 변경에 실패했습니다.";

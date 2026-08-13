@@ -1,10 +1,11 @@
 import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
 import { getGuideContent, saveGuideContent } from "@/lib/db";
+import { sanitizeRichText } from "@/lib/sanitizeHtml";
 import type { GuideContent } from "@/lib/content/types";
 
 export async function GET() {
-  return NextResponse.json({ content: getGuideContent() });
+  return NextResponse.json({ content: await getGuideContent() });
 }
 
 export async function PUT(request: Request) {
@@ -19,6 +20,10 @@ export async function PUT(request: Request) {
     return NextResponse.json({ error: "잘못된 요청입니다." }, { status: 400 });
   }
 
-  const saved = saveGuideContent(content);
+  content.intro = sanitizeRichText(content.intro);
+  content.packageIntro = sanitizeRichText(content.packageIntro);
+  content.rulesIntro = sanitizeRichText(content.rulesIntro);
+
+  const saved = await saveGuideContent(content);
   return NextResponse.json({ content: saved });
 }

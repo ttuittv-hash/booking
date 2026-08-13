@@ -3,6 +3,7 @@ import type { Metadata } from "next";
 import { notFound, redirect } from "next/navigation";
 import { getCurrentUser, isPendingApplicant } from "@/lib/auth";
 import { getNoticeById } from "@/lib/db";
+import { sanitizeRichText } from "@/lib/sanitizeHtml";
 import { PublicHeader } from "@/components/PublicHeader";
 import { TagBadge } from "@/components/TagBadge";
 
@@ -12,7 +13,7 @@ export async function generateMetadata({
   params: Promise<{ id: string }>;
 }): Promise<Metadata> {
   const { id } = await params;
-  const notice = getNoticeById(id);
+  const notice = await getNoticeById(id);
   return { title: notice ? `${notice.title} | 서울아레나 공지사항` : "공지사항 | 서울아레나" };
 }
 
@@ -25,7 +26,7 @@ export default async function NoticeDetailPage({
   if (currentUser && isPendingApplicant(currentUser)) redirect("/pending");
 
   const { id } = await params;
-  const notice = getNoticeById(id);
+  const notice = await getNoticeById(id);
   if (!notice) notFound();
 
   return (
@@ -72,7 +73,7 @@ export default async function NoticeDetailPage({
             [&_table]:mt-4 [&_table]:w-full [&_table]:border-collapse [&_table]:text-[13.5px]
             [&_td]:border [&_td]:border-border [&_td]:px-3 [&_td]:py-2
             [&_th]:border [&_th]:border-border [&_th]:bg-panel [&_th]:px-3 [&_th]:py-2 [&_th]:text-left [&_th]:font-semibold [&_th]:text-foreground"
-          dangerouslySetInnerHTML={{ __html: notice.body }}
+          dangerouslySetInnerHTML={{ __html: sanitizeRichText(notice.body) }}
         />
       </main>
     </div>

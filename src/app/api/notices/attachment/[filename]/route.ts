@@ -5,9 +5,12 @@ import { DATA_DIR } from "@/lib/dataDir";
 
 const UPLOAD_ROOT = path.join(DATA_DIR, "uploads", "notice-attachments");
 
+// 저장 파일명은 항상 `${crypto.randomUUID()}${확장자}` 형식 — 그 외 요청은 모두 거부한다 (경로조작 방지)
+const SAFE_FILENAME_RE = /^[0-9a-f-]{36}\.[a-z0-9]{1,10}$/;
+
 export async function GET(request: Request, ctx: { params: Promise<{ filename: string }> }) {
   const { filename } = await ctx.params;
-  if (filename.includes("/") || filename.includes("..")) {
+  if (!SAFE_FILENAME_RE.test(filename)) {
     return NextResponse.json({ error: "잘못된 요청입니다." }, { status: 400 });
   }
 

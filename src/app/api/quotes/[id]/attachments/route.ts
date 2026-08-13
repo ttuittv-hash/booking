@@ -30,9 +30,17 @@ const ALLOWED_MIME = new Set([
   "application/zip",
 ]);
 
+// 허용 확장자. file.type(브라우저가 붙이는 MIME)은 .hwp 등에서 빈 값으로 오는 경우가 있어
+// MIME 만으로는 걸러지지 않는다 — 확장자 화이트리스트로 .html/.svg 같은 파일 저장을 막는다.
+const ALLOWED_EXT = new Set([
+  ".pdf", ".png", ".jpg", ".jpeg", ".webp",
+  ".doc", ".docx", ".xls", ".xlsx",
+  ".hwp", ".hwpx", ".zip",
+]);
+
 function safeExtension(originalName: string): string {
   const ext = path.extname(originalName).toLowerCase();
-  return /^\.[a-z0-9]{1,10}$/.test(ext) ? ext : "";
+  return ALLOWED_EXT.has(ext) ? ext : "";
 }
 
 export async function POST(request: Request, ctx: { params: Promise<{ id: string }> }) {
@@ -40,9 +48,9 @@ export async function POST(request: Request, ctx: { params: Promise<{ id: string
   if (!user) return NextResponse.json({ error: "로그인이 필요합니다." }, { status: 401 });
 
   const { id } = await ctx.params;
-  const quote = getQuoteById(id);
+  const quote = await getQuoteById(id);
   if (!quote) return NextResponse.json({ error: "신청서를 찾을 수 없습니다." }, { status: 404 });
-  if (!canAccessQuote(user, quote)) {
+  if (!(await canAccessQuote(user, quote))) {
     return NextResponse.json({ error: "접근 권한이 없습니다." }, { status: 403 });
   }
 
@@ -60,6 +68,13 @@ export async function POST(request: Request, ctx: { params: Promise<{ id: string
       { status: 400 },
     );
   }
+  const extension = safeExtension(file.name);
+  if (!extension) {
+    return NextResponse.json(
+      { error: "허용되지 않는 파일 형식입니다. (PDF/이미지/문서 파일만 가능)" },
+      { status: 400 },
+    );
+  }
 
   const categoryInput = formData?.get("category");
   const category = VALID_CATEGORIES.includes(categoryInput as AttachmentCategory)
@@ -67,14 +82,14 @@ export async function POST(request: Request, ctx: { params: Promise<{ id: string
     : null;
 
   const attachmentId = crypto.randomUUID();
-  const storedName = `${attachmentId}${safeExtension(file.name)}`;
+  const storedName = `${attachmentId}${extension}`;
   const quoteDir = path.join(UPLOAD_ROOT, id);
   await fs.mkdir(quoteDir, { recursive: true });
   const buffer = Buffer.from(await file.arrayBuffer());
   await fs.writeFile(path.join(quoteDir, storedName), buffer);
 
   const now = new Date().toISOString();
-  const attachment = createAttachment({
+  const attachment = await createAttachment({
     id: attachmentId,
     quoteId: id,
     storedName,
@@ -86,8 +101,8 @@ export async function POST(request: Request, ctx: { params: Promise<{ id: string
     createdAt: now,
   });
 
-  if (category === "TICKET_OPEN") markTicketOpenMaterialsUploaded(id, now);
-  if (category === "FACILITY_MEETING") markFacilityMeetingMaterialsUploaded(id, now);
+  if (category === "TICKET_OPEN") await markTicketOpenMaterialsUploaded(id, now);
+  if (category === "FACILITY_MEETING") await markFacilityMeetingMaterialsUploaded(id, now);
 
   return NextResponse.json({ attachment });
 }

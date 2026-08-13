@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { hashPasswordForTransport } from "@/lib/clientPassword";
 
 export default function AdminLoginPage() {
   const router = useRouter();
@@ -15,11 +16,21 @@ export default function AdminLoginPage() {
     setError(null);
     setLoading(true);
     try {
-      const res = await fetch("/api/auth/login", {
+      // 비밀번호 평문 대신 SHA-256 해시를 전송한다. 구(SQLite) 시절 계정은 서버가
+      // 428을 돌려주며, 이때만 평문을 함께 재전송해 검증 후 새 방식으로 자동 전환된다.
+      const passwordHash = await hashPasswordForTransport(form.password);
+      let res = await fetch("/api/auth/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(form),
+        body: JSON.stringify({ username: form.username, passwordHash }),
       });
+      if (res.status === 428) {
+        res = await fetch("/api/auth/login", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ username: form.username, passwordHash, password: form.password }),
+        });
+      }
       const data = await res.json();
       if (!res.ok) {
         setError(data.error || "로그인에 실패했습니다.");

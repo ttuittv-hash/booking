@@ -16,9 +16,9 @@ export async function POST(request: Request, ctx: { params: Promise<{ id: string
   if (!user) return NextResponse.json({ error: "로그인이 필요합니다." }, { status: 401 });
 
   const { id } = await ctx.params;
-  const quote = getQuoteById(id);
+  const quote = await getQuoteById(id);
   if (!quote) return NextResponse.json({ error: "신청서를 찾을 수 없습니다." }, { status: 404 });
-  if (!canAccessQuote(user, quote)) {
+  if (!(await canAccessQuote(user, quote))) {
     return NextResponse.json({ error: "접근 권한이 없습니다." }, { status: 403 });
   }
   if (!quote.contract) {
@@ -28,8 +28,8 @@ export async function POST(request: Request, ctx: { params: Promise<{ id: string
   const now = new Date().toISOString();
 
   if (user.role === "ADMIN") {
-    const signature = signContractAsVenue(id, user.id, now);
-    createNotification({
+    const signature = await signContractAsVenue(id, user.id, now);
+    await createNotification({
       id: crypto.randomUUID(),
       recipientId: quote.applicantId,
       quoteId: id,
@@ -39,8 +39,8 @@ export async function POST(request: Request, ctx: { params: Promise<{ id: string
     return NextResponse.json({ signature });
   }
 
-  const signature = signContractAsApplicant(id, user.id, now);
-  notifyAdmins({
+  const signature = await signContractAsApplicant(id, user.id, now);
+  await notifyAdmins({
     quoteId: id,
     message: `${id} 계약서에 대관사측 날인이 완료되었습니다.`,
     createdAt: now,

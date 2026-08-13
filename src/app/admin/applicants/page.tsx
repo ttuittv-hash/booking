@@ -1,19 +1,31 @@
 import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/lib/auth";
-import { listCompanies, listUsers } from "@/lib/db";
+import { listCompanies, listUsers, listUsersPaged, normalizePage } from "@/lib/db";
+import { Pagination } from "@/components/Pagination";
 import { AddApplicantForm } from "@/components/admin/AddApplicantForm";
 import { AdminNav } from "@/components/admin/AdminNav";
 import { ApplicantApprovalTable } from "@/components/admin/ApplicantApprovalTable";
 
-export default async function AdminApplicantsPage() {
+export default async function AdminApplicantsPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ page?: string }>;
+}) {
   const user = await getCurrentUser();
   if (!user) redirect("/admin/login");
   if (user.role !== "ADMIN") redirect("/apply");
 
-  const pending = listUsers({ role: "APPLICANT", approvalStatus: "PENDING" });
-  const decided = listUsers({ role: "APPLICANT" }).filter((a) => a.approvalStatus !== "PENDING");
+  const { page: pageParam } = await searchParams;
+  const page = normalizePage(pageParam);
+  // 승인 대기는 처리해야 할 목록이라 전부 보여주고, 이미 처리된 목록만 페이지 단위로 끊는다.
+  const pending = await listUsers({ role: "APPLICANT", approvalStatus: "PENDING" });
+  const {
+    items: decided,
+    total: decidedTotal,
+    totalPages: decidedTotalPages,
+  } = await listUsersPaged({ role: "APPLICANT", excludeApprovalStatus: "PENDING" }, page);
   const businessRegistrationNumbers = Object.fromEntries(
-    listCompanies().map((c) => [c.id, c.businessRegistrationNumber]),
+    (await listCompanies()).map((c) => [c.id, c.businessRegistrationNumber]),
   );
 
   return (
@@ -37,6 +49,12 @@ export default async function AdminApplicantsPage() {
         <div className="mt-10">
           <AddApplicantForm />
         </div>
+        <Pagination
+          page={page}
+          totalPages={decidedTotalPages}
+          total={decidedTotal}
+          basePath="/admin/applicants"
+        />
       </main>
     </div>
   );

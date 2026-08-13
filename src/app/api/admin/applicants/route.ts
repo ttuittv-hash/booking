@@ -16,14 +16,14 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "잘못된 요청입니다." }, { status: 400 });
   }
 
-  const target = findUserById(id);
+  const target = await findUserById(id);
   if (!target || target.role !== "APPLICANT") {
     return NextResponse.json({ error: "대상 계정을 찾을 수 없습니다." }, { status: 404 });
   }
 
-  const updated = setUserApprovalStatus(id, action === "approve" ? "APPROVED" : "REJECTED");
+  const updated = await setUserApprovalStatus(id, action === "approve" ? "APPROVED" : "REJECTED");
 
-  createNotification({
+  await createNotification({
     id: crypto.randomUUID(),
     recipientId: id,
     quoteId: "",

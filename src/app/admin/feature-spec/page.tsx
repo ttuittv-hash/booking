@@ -13,7 +13,7 @@ export default async function AdminFeatureSpecPage() {
   if (user.role !== "ADMIN") redirect("/apply");
   if (!isMasterAdmin(user)) redirect("/admin");
 
-  const sheets = getAllFeatureSpecSheets();
+  const sheets = await getAllFeatureSpecSheets();
 
   return (
     <div className="flex flex-1 flex-col">
