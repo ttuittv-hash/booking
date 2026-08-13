@@ -1,4 +1,4 @@
-import bcrypt from "bcryptjs";
+import { hash as bcryptHash, verify as bcryptVerify } from "@node-rs/bcrypt";
 import { jwtVerify, SignJWT } from "jose";
 import { cookies } from "next/headers";
 import { findUserById, isUserWithdrawn } from "./db";
@@ -21,12 +21,18 @@ function getSecretKey() {
 
 // 클라이언트가 SHA-256으로 해시해 보낸 값을 bcrypt로 한 번 더 감싸 저장한다
 // (v2 스킴 — src/lib/passwordScheme.ts 참고).
-export function hashPassword(passwordSha256: string): string {
-  return bcrypt.hashSync(passwordSha256, 10);
+//
+// 네이티브(Rust) 구현을 비동기로 쓴다. 순수 JS 구현을 동기로 호출하면 bcrypt 계산(50~100ms)
+// 동안 이벤트 루프가 막혀 그 서버의 다른 요청까지 전부 대기하게 된다.
+// 저장되는 해시 형식은 동일하므로 기존 비밀번호는 그대로 검증된다.
+const BCRYPT_COST = 10;
+
+export function hashPassword(passwordSha256: string): Promise<string> {
+  return bcryptHash(passwordSha256, BCRYPT_COST);
 }
 
-export function verifyPassword(passwordSha256: string, hash: string): boolean {
-  return bcrypt.compareSync(passwordSha256, hash);
+export function verifyPassword(passwordSha256: string, hash: string): Promise<boolean> {
+  return bcryptVerify(passwordSha256, hash);
 }
 
 interface SessionPayload {

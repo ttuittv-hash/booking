@@ -1,7 +1,8 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/lib/auth";
-import { listCompanies, listQuotes, listUsersByIds } from "@/lib/db";
+import { listCompanies, listQuotesPaged, listUsersByIds, normalizePage } from "@/lib/db";
+import { Pagination } from "@/components/Pagination";
 import { won } from "@/lib/format";
 import { AdminNav } from "@/components/admin/AdminNav";
 import { AdminQuoteTable } from "@/components/admin/AdminQuoteTable";
@@ -9,14 +10,18 @@ import { AdminQuoteTable } from "@/components/admin/AdminQuoteTable";
 export default async function AdminPage({
   searchParams,
 }: {
-  searchParams: Promise<{ companyId?: string }>;
+  searchParams: Promise<{ companyId?: string; page?: string }>;
 }) {
   const user = await getCurrentUser();
   if (!user) redirect("/admin/login");
   if (user.role !== "ADMIN") redirect("/apply");
 
-  const { companyId } = await searchParams;
-  const quotes = companyId ? await listQuotes({ companyId }) : await listQuotes();
+  const { companyId, page: pageParam } = await searchParams;
+  const page = normalizePage(pageParam);
+  const { items: quotes, total, totalPages } = await listQuotesPaged(
+    companyId ? { companyId } : {},
+    page,
+  );
   const companies = await listCompanies();
   const applicantIds = [...new Set(quotes.map((q) => q.applicantId))];
   const applicantById = new Map((await listUsersByIds(applicantIds)).map((u) => [u.id, u]));
@@ -79,6 +84,13 @@ export default async function AdminPage({
 
         <div className="mt-6">
           <AdminQuoteTable rows={rows} />
+          <Pagination
+            page={page}
+            totalPages={totalPages}
+            total={total}
+            basePath="/admin"
+            params={{ companyId }}
+          />
         </div>
       </main>
     </div>

@@ -2,7 +2,8 @@ import Link from "next/link";
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/lib/auth";
-import { listInquiries } from "@/lib/db";
+import { listInquiriesPaged, normalizePage } from "@/lib/db";
+import { Pagination } from "@/components/Pagination";
 import { PublicHeader } from "@/components/PublicHeader";
 
 export const metadata: Metadata = {
@@ -14,12 +15,18 @@ const STATUS_LABEL: Record<string, string> = {
   ANSWERED: "답변 완료",
 };
 
-export default async function MyInquiriesPage() {
+export default async function MyInquiriesPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ page?: string }>;
+}) {
   const user = await getCurrentUser();
   if (!user) redirect("/login");
   if (user.role === "ADMIN") redirect("/admin/inquiries");
 
-  const inquiries = await listInquiries({ userId: user.id });
+  const { page: pageParam } = await searchParams;
+  const page = normalizePage(pageParam);
+  const { items: inquiries, total, totalPages } = await listInquiriesPaged({ userId: user.id }, page);
 
   return (
     <div className="flex flex-1 flex-col">
@@ -72,6 +79,7 @@ export default async function MyInquiriesPage() {
             </ul>
           )}
         </div>
+        <Pagination page={page} totalPages={totalPages} total={total} basePath="/mypage/inquiries" />
       </main>
     </div>
   );

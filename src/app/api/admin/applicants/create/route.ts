@@ -55,7 +55,7 @@ export async function POST(request: Request) {
     username,
     email,
     phone: phone || null,
-    passwordHash: hashPassword(sha256Hex(password)),
+    passwordHash: await hashPassword(sha256Hex(password)),
     name,
     companyName: company?.name ?? null,
     companyId: company?.id ?? null,

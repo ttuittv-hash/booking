@@ -1,7 +1,8 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/lib/auth";
-import { listInquiries, listUsersByIds } from "@/lib/db";
+import { listInquiriesPaged, listUsersByIds, normalizePage } from "@/lib/db";
+import { Pagination } from "@/components/Pagination";
 import { AdminNav } from "@/components/admin/AdminNav";
 
 const STATUS_LABEL: Record<string, string> = {
@@ -9,12 +10,18 @@ const STATUS_LABEL: Record<string, string> = {
   ANSWERED: "답변 완료",
 };
 
-export default async function AdminInquiriesPage() {
+export default async function AdminInquiriesPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ page?: string }>;
+}) {
   const user = await getCurrentUser();
   if (!user) redirect("/admin/login");
   if (user.role !== "ADMIN") redirect("/apply");
 
-  const inquiries = await listInquiries();
+  const { page: pageParam } = await searchParams;
+  const page = normalizePage(pageParam);
+  const { items: inquiries, total, totalPages } = await listInquiriesPaged({}, page);
   const authorIds = [...new Set(inquiries.map((i) => i.userId))];
   const authorById = new Map((await listUsersByIds(authorIds)).map((u) => [u.id, u]));
 
@@ -64,6 +71,7 @@ export default async function AdminInquiriesPage() {
             </ul>
           )}
         </div>
+        <Pagination page={page} totalPages={totalPages} total={total} basePath="/admin/inquiries" />
       </main>
     </div>
   );

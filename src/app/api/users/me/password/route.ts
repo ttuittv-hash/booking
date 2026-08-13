@@ -40,7 +40,7 @@ export async function PUT(request: Request) {
       : currentPassword
         ? sha256Hex(currentPassword)
         : "";
-    if (!currentTransportHash || !verifyPassword(currentTransportHash, cred.passwordHash)) {
+    if (!currentTransportHash || !(await verifyPassword(currentTransportHash, cred.passwordHash))) {
       return NextResponse.json({ error: "현재 비밀번호가 일치하지 않습니다." }, { status: 400 });
     }
   } else {
@@ -48,11 +48,11 @@ export async function PUT(request: Request) {
     if (!currentPassword) {
       return NextResponse.json({ legacy: true, error: "레거시 계정 확인이 필요합니다." }, { status: 428 });
     }
-    if (!verifyPassword(currentPassword, cred.passwordHash)) {
+    if (!(await verifyPassword(currentPassword, cred.passwordHash))) {
       return NextResponse.json({ error: "현재 비밀번호가 일치하지 않습니다." }, { status: 400 });
     }
   }
 
-  await updateUserPassword(user.id, hashPassword(newTransportHash));
+  await updateUserPassword(user.id, await hashPassword(newTransportHash));
   return NextResponse.json({ ok: true });
 }

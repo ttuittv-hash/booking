@@ -53,7 +53,7 @@ export async function POST(request: Request) {
     id: crypto.randomUUID(),
     username,
     email,
-    passwordHash: hashPassword(sha256Hex(password)),
+    passwordHash: await hashPassword(sha256Hex(password)),
     name,
     companyName: null,
     role: "ADMIN",

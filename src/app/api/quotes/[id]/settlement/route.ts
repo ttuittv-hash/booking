@@ -1,7 +1,14 @@
 import { NextResponse } from "next/server";
 import crypto from "node:crypto";
 import { getCurrentUser } from "@/lib/auth";
-import { addAuditLog, createNotification, ensureTaxInvoice, getQuoteById, setQuoteSettlement } from "@/lib/db";
+import {
+  addAuditLog,
+  createNotification,
+  ensureTaxInvoice,
+  getQuoteById,
+  setQuoteSettlement,
+  withTransaction,
+} from "@/lib/db";
 import type { Settlement } from "@/lib/pricing/types";
 
 function toEntries(input: unknown): { label: string; amount: number }[] {
@@ -46,24 +53,29 @@ export async function POST(request: Request, ctx: { params: Promise<{ id: string
     decidedBy: user.id,
   };
 
-  const updated = await setQuoteSettlement(id, settlement);
-  await addAuditLog({
-    id: crypto.randomUUID(),
-    quoteId: id,
-    stage: "SETTLED",
-    snapshot: updated,
-    actorId: user.id,
-    createdAt: settlement.decidedAt,
-  });
+  // 정산 확정·감사로그·세금계산서·알림은 한 묶음이다.
+  const updated = await withTransaction(async () => {
+    const updated = await setQuoteSettlement(id, settlement);
+    await addAuditLog({
+      id: crypto.randomUUID(),
+      quoteId: id,
+      stage: "SETTLED",
+      snapshot: updated,
+      actorId: user.id,
+      createdAt: settlement.decidedAt,
+    });
 
-  await ensureTaxInvoice(id, "SETTLEMENT", finalTotal, settlement.decidedAt);
+    await ensureTaxInvoice(id, "SETTLEMENT", finalTotal, settlement.decidedAt);
 
-  await createNotification({
-    id: crypto.randomUUID(),
-    recipientId: quote.applicantId,
-    quoteId: id,
-    message: `${id}의 최종 정산금액이 ₩${finalTotal.toLocaleString("ko-KR")}으로 확정되었습니다.`,
-    createdAt: settlement.decidedAt,
+    await createNotification({
+      id: crypto.randomUUID(),
+      recipientId: quote.applicantId,
+      quoteId: id,
+      message: `${id}의 최종 정산금액이 ₩${finalTotal.toLocaleString("ko-KR")}으로 확정되었습니다.`,
+      createdAt: settlement.decidedAt,
+    });
+
+    return updated;
   });
 
   return NextResponse.json({ quote: updated });

@@ -43,7 +43,7 @@ export async function POST(request: Request) {
   }
 
   if (user.passwordScheme === "v2") {
-    if (!verifyPassword(transportHash, user.passwordHash)) {
+    if (!(await verifyPassword(transportHash, user.passwordHash))) {
       return NextResponse.json({ error: "아이디 또는 비밀번호가 올바르지 않습니다." }, { status: 401 });
     }
   } else {
@@ -51,11 +51,11 @@ export async function POST(request: Request) {
     if (!passwordPlain) {
       return NextResponse.json({ legacy: true, error: "레거시 계정 확인이 필요합니다." }, { status: 428 });
     }
-    if (!verifyPassword(passwordPlain, user.passwordHash)) {
+    if (!(await verifyPassword(passwordPlain, user.passwordHash))) {
       return NextResponse.json({ error: "아이디 또는 비밀번호가 올바르지 않습니다." }, { status: 401 });
     }
     // 검증 성공 — 현행 스킴(bcrypt(sha256(비밀번호)))으로 자동 승격
-    await updateUserPassword(user.id, hashPassword(transportHash));
+    await updateUserPassword(user.id, await hashPassword(transportHash));
   }
 
   await createSession(user.id, user.role);

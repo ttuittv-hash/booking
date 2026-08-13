@@ -9,6 +9,7 @@ import {
   findUserByPhone,
   findUserByUsername,
   notifyAdmins,
+  withTransaction,
 } from "@/lib/db";
 import { SHA256_HEX_RE, sha256Hex } from "@/lib/passwordScheme";
 import { clientIpFrom, rateLimit } from "@/lib/rateLimit";
@@ -154,26 +155,33 @@ export async function POST(request: Request) {
   }
 
   const createdAt = new Date().toISOString();
-  const user = await createUser({
-    id: crypto.randomUUID(),
-    username,
-    email,
-    phone,
-    passwordHash: hashPassword(transportHash),
-    name,
-    companyName: company?.name ?? null,
-    companyId: company?.id ?? null,
-    role: "APPLICANT",
-    approvalStatus: "PENDING",
-    termsAgreedAt: createdAt,
-    privacyAgreedAt: createdAt,
-    createdAt,
-  });
+  const passwordHash = await hashPassword(transportHash);
 
-  await notifyAdmins({
-    quoteId: "applicants",
-    message: `신규 가입 승인 요청: ${name} (${company?.name ?? "소속 없음"}, ${accountType === "INDIVIDUAL" ? "개인회원" : "법인회원"})`,
-    createdAt,
+  // 계정 생성과 운영자 알림은 한 묶음이다 — 알림만 실패해 승인 요청이 묻히면 안 된다.
+  const user = await withTransaction(async () => {
+    const created = await createUser({
+      id: crypto.randomUUID(),
+      username,
+      email,
+      phone,
+      passwordHash,
+      name,
+      companyName: company?.name ?? null,
+      companyId: company?.id ?? null,
+      role: "APPLICANT",
+      approvalStatus: "PENDING",
+      termsAgreedAt: createdAt,
+      privacyAgreedAt: createdAt,
+      createdAt,
+    });
+
+    await notifyAdmins({
+      quoteId: "applicants",
+      message: `신규 가입 승인 요청: ${name} (${company?.name ?? "소속 없음"}, ${accountType === "INDIVIDUAL" ? "개인회원" : "법인회원"})`,
+      createdAt,
+    });
+
+    return created;
   });
 
   await createSession(user.id, user.role);

@@ -1,5 +1,6 @@
-import { Pool } from "pg";
-import bcrypt from "bcryptjs";
+import { Pool, type PoolClient } from "pg";
+import { AsyncLocalStorage } from "node:async_hooks";
+import { hash as bcryptHash } from "@node-rs/bcrypt";
 import crypto from "node:crypto";
 import { buildSeedRateTable } from "./pricing/seed";
 import { SEED_PAGES } from "./pricing/pageSeed";
@@ -387,7 +388,7 @@ async function seedData(pool: Pool) {
         crypto.randomUUID(),
         username,
         email.toLowerCase(),
-        bcrypt.hashSync(sha256Hex(password), 10),
+        await bcryptHash(sha256Hex(password), 10),
         "운영자",
         new Date().toISOString(),
       ],
@@ -415,7 +416,7 @@ async function seedData(pool: Pool) {
         crypto.randomUUID(),
         testUsername,
         testApplicantEmail,
-        bcrypt.hashSync(sha256Hex(testPassword), 10),
+        await bcryptHash(sha256Hex(testPassword), 10),
         "테스트 담당자",
         "테스트용 계정",
         new Date().toISOString(),
@@ -484,10 +485,46 @@ async function ensureInit(): Promise<Pool> {
   return pool;
 }
 
+// 트랜잭션 중이면 그 커넥션으로, 아니면 풀로 실행한다.
+// AsyncLocalStorage 를 쓰는 이유: 조회/변경 함수 100여 개에 커넥션을 인자로 넘기지 않고도
+// withTransaction() 안에서 호출된 것들이 같은 트랜잭션에 묶이게 하기 위함이다.
+const txStorage = new AsyncLocalStorage<PoolClient>();
+
 async function q<T>(sql: string, params: unknown[] = []): Promise<T[]> {
+  const tx = txStorage.getStore();
+  if (tx) {
+    const result = await tx.query(sql, params);
+    return result.rows as T[];
+  }
   const pool = await ensureInit();
   const result = await pool.query(sql, params);
   return result.rows as T[];
+}
+
+/**
+ * 여러 건의 변경을 하나로 묶는다 — 도중에 실패하면 전부 되돌린다.
+ * 예: 신청서 생성 + 감사로그 + 운영자 알림이 따로 커밋되면
+ * "신청서는 있는데 이력이 없는" 상태가 남을 수 있다.
+ *
+ * 콜백 안에서 부르는 db 함수는 자동으로 같은 트랜잭션에 참여한다.
+ * 중첩 호출은 바깥 트랜잭션에 합류한다(별도 트랜잭션을 새로 열지 않는다).
+ */
+export async function withTransaction<T>(fn: () => Promise<T>): Promise<T> {
+  if (txStorage.getStore()) return fn();
+
+  const pool = await ensureInit();
+  const client = await pool.connect();
+  try {
+    await client.query("BEGIN");
+    const result = await txStorage.run(client, fn);
+    await client.query("COMMIT");
+    return result;
+  } catch (error) {
+    await client.query("ROLLBACK").catch(() => {});
+    throw error;
+  } finally {
+    client.release();
+  }
 }
 
 async function one<T>(sql: string, params: unknown[] = []): Promise<T | undefined> {
@@ -612,10 +649,13 @@ export async function findOrCreateCompany(
     business_cert_name: extra?.businessCertName || null,
     created_at: new Date().toISOString(),
   };
+  // 같은 회사명으로 동시에 가입하면 조회-후-삽입 사이에 경합이 나서 한쪽이 UNIQUE 위반으로 실패한다.
+  // 충돌 시 무시하고 아래에서 기존 행을 다시 읽는다.
   await q(
     `INSERT INTO companies
       (id, name, business_registration_number, representative_name, postal_code, address, business_cert_url, business_cert_name, created_at)
-     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)`,
+     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+     ON CONFLICT (name) DO NOTHING`,
     [
       row.id,
       row.name,
@@ -628,7 +668,10 @@ export async function findOrCreateCompany(
       row.created_at,
     ],
   );
-  return toCompany(row);
+  const stored = await one<CompanyRow>("SELECT * FROM companies WHERE lower(name) = lower($1)", [
+    trimmed,
+  ]);
+  return toCompany(stored ?? row);
 }
 
 export async function findCompanyById(id: string): Promise<Company | undefined> {
@@ -794,6 +837,35 @@ export async function listUsers(filter?: {
   return rows.map(toAppUser);
 }
 
+export async function listUsersPaged(
+  filter: { role?: UserRole; approvalStatus?: ApprovalStatus; excludeApprovalStatus?: ApprovalStatus } = {},
+  page = 1,
+  pageSize = DEFAULT_PAGE_SIZE,
+): Promise<Paged<AppUser>> {
+  const conditions: string[] = [];
+  const params: unknown[] = [];
+  if (filter.role) {
+    params.push(filter.role);
+    conditions.push(`role = $${params.length}`);
+  }
+  if (filter.approvalStatus) {
+    params.push(filter.approvalStatus);
+    conditions.push(`approval_status = $${params.length}`);
+  }
+  if (filter.excludeApprovalStatus) {
+    params.push(filter.excludeApprovalStatus);
+    conditions.push(`approval_status <> $${params.length}`);
+  }
+  const where = conditions.length ? `WHERE ${conditions.join(" AND ")}` : "";
+
+  const countRow = await one<{ n: number }>(`SELECT COUNT(*)::int AS n FROM users ${where}`, params);
+  const rows = await q<UserRow>(
+    `SELECT * FROM users ${where} ORDER BY created_at ASC LIMIT $${params.length + 1} OFFSET $${params.length + 2}`,
+    [...params, pageSize, (page - 1) * pageSize],
+  );
+  return toPaged(rows.map(toAppUser), countRow?.n ?? 0, page, pageSize);
+}
+
 export async function setUserApprovalStatus(id: string, approvalStatus: ApprovalStatus): Promise<AppUser> {
   await q("UPDATE users SET approval_status = $1 WHERE id = $2", [approvalStatus, id]);
   return (await findUserById(id))!;
@@ -881,6 +953,31 @@ export async function isUserWithdrawn(id: string): Promise<boolean> {
     [id],
   );
   return !!row?.withdrawn_at;
+}
+
+
+// ---------------------------------------------------------------------------
+// 목록 페이지네이션
+// ---------------------------------------------------------------------------
+
+export interface Paged<T> {
+  items: T[];
+  total: number;
+  page: number;
+  pageSize: number;
+  totalPages: number;
+}
+
+export const DEFAULT_PAGE_SIZE = 20;
+
+// 1보다 작거나 숫자가 아닌 입력은 1페이지로 보정한다(쿼리스트링을 그대로 받기 때문).
+export function normalizePage(input: unknown): number {
+  const page = Number(input);
+  return Number.isFinite(page) && page >= 1 ? Math.floor(page) : 1;
+}
+
+function toPaged<T>(items: T[], total: number, page: number, pageSize: number): Paged<T> {
+  return { items, total, page, pageSize, totalPages: Math.max(1, Math.ceil(total / pageSize)) };
 }
 
 // ---------------------------------------------------------------------------
@@ -1012,6 +1109,35 @@ export async function listQuotes(filter?: {
     rows = await q<QuoteRow>("SELECT * FROM quotes ORDER BY created_at DESC");
   }
   return rows.map(toQuote);
+}
+
+// 화면용 신청서 목록 — 전체를 한 번에 읽지 않고 페이지 단위로 끊어 온다.
+export async function listQuotesPaged(
+  filter: { applicantId?: string; companyId?: string } = {},
+  page = 1,
+  pageSize = DEFAULT_PAGE_SIZE,
+): Promise<Paged<Quote>> {
+  const conditions: string[] = [];
+  const params: unknown[] = [];
+  let from = "quotes q";
+  if (filter.companyId) {
+    from = "quotes q JOIN users u ON u.id = q.applicant_id";
+    params.push(filter.companyId);
+    conditions.push(`u.company_id = $${params.length}`);
+  } else if (filter.applicantId) {
+    params.push(filter.applicantId);
+    conditions.push(`q.applicant_id = $${params.length}`);
+  }
+  const where = conditions.length ? `WHERE ${conditions.join(" AND ")}` : "";
+
+  const countRow = await one<{ n: number }>(`SELECT COUNT(*)::int AS n FROM ${from} ${where}`, params);
+  const total = countRow?.n ?? 0;
+
+  const rows = await q<QuoteRow>(
+    `SELECT q.* FROM ${from} ${where} ORDER BY q.created_at DESC LIMIT $${params.length + 1} OFFSET $${params.length + 2}`,
+    [...params, pageSize, (page - 1) * pageSize],
+  );
+  return toPaged(rows.map(toQuote), total, page, pageSize);
 }
 
 // 같은 주차에 이미 심사 승인된 "다른 회사"의 신청서가 있는지 확인한다.
@@ -1874,6 +2000,25 @@ export async function listInquiries(filter?: { userId?: string }): Promise<Inqui
   return rows.map(toInquiry);
 }
 
+export async function listInquiriesPaged(
+  filter: { userId?: string } = {},
+  page = 1,
+  pageSize = DEFAULT_PAGE_SIZE,
+): Promise<Paged<Inquiry>> {
+  const params: unknown[] = [];
+  let where = "";
+  if (filter.userId) {
+    params.push(filter.userId);
+    where = `WHERE user_id = $${params.length}`;
+  }
+  const countRow = await one<{ n: number }>(`SELECT COUNT(*)::int AS n FROM inquiries ${where}`, params);
+  const rows = await q<InquiryRow>(
+    `SELECT * FROM inquiries ${where} ORDER BY created_at DESC LIMIT $${params.length + 1} OFFSET $${params.length + 2}`,
+    [...params, pageSize, (page - 1) * pageSize],
+  );
+  return toPaged(rows.map(toInquiry), countRow?.n ?? 0, page, pageSize);
+}
+
 export async function answerInquiry(
   id: string,
   answer: string,
@@ -1920,6 +2065,15 @@ function toNotice(row: NoticeRow): Notice {
 export async function listNotices(): Promise<Notice[]> {
   const rows = await q<NoticeRow>("SELECT * FROM notices ORDER BY created_at DESC");
   return rows.map(toNotice);
+}
+
+export async function listNoticesPaged(page = 1, pageSize = DEFAULT_PAGE_SIZE): Promise<Paged<Notice>> {
+  const countRow = await one<{ n: number }>("SELECT COUNT(*)::int AS n FROM notices");
+  const rows = await q<NoticeRow>(
+    "SELECT * FROM notices ORDER BY created_at DESC LIMIT $1 OFFSET $2",
+    [pageSize, (page - 1) * pageSize],
+  );
+  return toPaged(rows.map(toNotice), countRow?.n ?? 0, page, pageSize);
 }
 
 export async function getNoticeById(id: string): Promise<Notice | undefined> {

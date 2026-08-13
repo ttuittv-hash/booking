@@ -25,7 +25,7 @@ export async function POST(request: Request) {
       : password
         ? sha256Hex(password)
         : "";
-    if (!transportHash || !verifyPassword(transportHash, cred.passwordHash)) {
+    if (!transportHash || !(await verifyPassword(transportHash, cred.passwordHash))) {
       return NextResponse.json({ error: "비밀번호가 일치하지 않습니다." }, { status: 400 });
     }
   } else {
@@ -33,7 +33,7 @@ export async function POST(request: Request) {
     if (!password) {
       return NextResponse.json({ legacy: true, error: "레거시 계정 확인이 필요합니다." }, { status: 428 });
     }
-    if (!verifyPassword(password, cred.passwordHash)) {
+    if (!(await verifyPassword(password, cred.passwordHash))) {
       return NextResponse.json({ error: "비밀번호가 일치하지 않습니다." }, { status: 400 });
     }
   }

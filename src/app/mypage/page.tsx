@@ -1,7 +1,8 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getCurrentUser, isPendingApplicant } from "@/lib/auth";
-import { listQuotes } from "@/lib/db";
+import { listQuotesPaged, normalizePage } from "@/lib/db";
+import { Pagination } from "@/components/Pagination";
 import { won } from "@/lib/format";
 import type { Quote } from "@/lib/pricing/types";
 import { PublicHeader } from "@/components/PublicHeader";
@@ -12,13 +13,22 @@ const STATUS_LABEL: Record<Quote["status"], string> = {
   SETTLED: "정산 완료",
 };
 
-export default async function MyPage() {
+export default async function MyPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ page?: string }>;
+}) {
   const user = await getCurrentUser();
   if (!user) redirect("/login");
   if (user.role !== "APPLICANT") redirect("/admin");
   if (isPendingApplicant(user)) redirect("/pending");
 
-  const quotes = user.companyId ? await listQuotes({ companyId: user.companyId }) : await listQuotes({ applicantId: user.id });
+  const { page: pageParam } = await searchParams;
+  const page = normalizePage(pageParam);
+  const { items: quotes, total, totalPages } = await listQuotesPaged(
+    user.companyId ? { companyId: user.companyId } : { applicantId: user.id },
+    page,
+  );
 
   return (
     <div className="flex flex-1 flex-col">
@@ -96,6 +106,7 @@ export default async function MyPage() {
             </tbody>
           </table>
         </div>
+        <Pagination page={page} totalPages={totalPages} total={total} basePath="/mypage" />
       </main>
     </div>
   );
