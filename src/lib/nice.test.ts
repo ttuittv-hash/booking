@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
+  buildApiAuthorization,
   checkCompanyNumber,
   isBlockedCompanyStatus,
   isNiceConfigured,
@@ -87,6 +88,34 @@ describe("NICE 사업자 진위확인", () => {
     expect(JSON.parse(String(checkCall?.init?.body))).toMatchObject({
       dataBody: { comp_num: "7418101531" },
     });
+
+    // Authorization 은 토큰을 그대로 넣는 게 아니라 access_token:유닉스초:client_id 를 Base64 로 묶는다
+    const headers = checkCall?.init?.headers as Record<string, string>;
+    expect(headers.ProductID).toBe("2101764012");
+    const [scheme, encoded] = headers.Authorization.split(" ");
+    expect(scheme).toBe("bearer");
+    const [token, timestamp, clientId] = Buffer.from(encoded, "base64").toString().split(":");
+    expect(token).toBe("test-token");
+    expect(clientId).toBe("test-client");
+    expect(Number(timestamp)).toBeGreaterThan(1_700_000_000);
+  });
+
+  it("Authorization 은 access_token:유닉스초:client_id 를 Base64 로 인코딩한다", () => {
+    const encoded = buildApiAuthorization("tok", 1_770_000_000_000);
+    expect(Buffer.from(encoded, "base64").toString()).toBe("tok:1770000000:test-client");
+  });
+
+  it("토큰 발급은 Basic(client_id:client_secret) + client_credentials 로 요청한다", async () => {
+    const calls = stubFetch({ rsp_cd: "P000", result_cd: "01", comp_status: "1" });
+    await checkCompanyNumber(KAKAO_ENTERPRISE.compNum);
+
+    const tokenCall = calls.find((c) => c.url.includes("/oauth/token"));
+    const headers = tokenCall?.init?.headers as Record<string, string>;
+    expect(Buffer.from(headers.Authorization.replace("Basic ", ""), "base64").toString()).toBe(
+      "test-client:test-secret",
+    );
+    expect(headers["Content-Type"]).toBe("application/x-www-form-urlencoded");
+    expect(String(tokenCall?.init?.body)).toBe("grant_type=client_credentials&scope=default");
   });
 
   it("폐업·휴업·부도는 가입 차단 대상이다", async () => {

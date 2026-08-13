@@ -9,6 +9,19 @@
 const BASE_URL = process.env.NICE_API_BASE_URL || "https://svc.niceapi.co.kr:22001";
 const TOKEN_PATH = "/digital/niceid/oauth/oauth/token";
 const COMPANY_CHECK_PATH = "/digital/niceid/api/v1.0/comp/check";
+/** 법인실명확인 상품코드 */
+const DEFAULT_PRODUCT_ID = "2101764012";
+
+/**
+ * API 요청용 Authorization 값.
+ * 문서 기준: "bearer " + Base64(access_token:current_timestamp:client_id)
+ * current_timestamp 는 초 단위 유닉스 시간.
+ */
+export function buildApiAuthorization(accessToken: string, now = Date.now()): string {
+  const timestamp = Math.floor(now / 1000);
+  const clientId = process.env.NICE_CLIENT_ID ?? "";
+  return Buffer.from(`${accessToken}:${timestamp}:${clientId}`).toString("base64");
+}
 
 // 기업상태코드 (문서 기준)
 const COMP_STATUS_LABEL: Record<string, string> = {
@@ -123,10 +136,11 @@ export async function checkCompanyNumber(businessNumber: string): Promise<Compan
     const response = await fetch(`${BASE_URL}${COMPANY_CHECK_PATH}`, {
       method: "POST",
       headers: {
-        Authorization: `Bearer ${token}`,
+        // 토큰을 그대로 넣는 게 아니라 access_token:유닉스초:client_id 를 Base64 로 묶는다.
+        // (개발가이드 "Authorization 구성" 항목 — 일반적인 Bearer 방식과 다르니 주의)
+        Authorization: `bearer ${buildApiAuthorization(token)}`,
         "Content-Type": "application/json",
-        client_id: process.env.NICE_CLIENT_ID as string,
-        productID: process.env.NICE_PRODUCT_ID || "2101764012",
+        ProductID: process.env.NICE_PRODUCT_ID || DEFAULT_PRODUCT_ID,
       },
       body: JSON.stringify({
         dataHeader: { CNTY_CD: "ko" },
