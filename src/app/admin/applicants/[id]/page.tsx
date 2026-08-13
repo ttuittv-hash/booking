@@ -3,7 +3,7 @@ import { notFound, redirect } from "next/navigation";
 import { getCurrentUser } from "@/lib/auth";
 import { findCompanyById, findUserById, listQuotes } from "@/lib/db";
 import { won } from "@/lib/format";
-import type { CompanyVerification, Quote } from "@/lib/pricing/types";
+import type { Company, CompanyVerification, Quote } from "@/lib/pricing/types";
 import { AdminNav } from "@/components/admin/AdminNav";
 
 const STATUS_LABEL: Record<Quote["status"], string> = {
@@ -83,25 +83,6 @@ export default async function AdminApplicantDetailPage({
               {company?.businessRegistrationNumber || "-"}
               {company?.verification && <VerificationBadge verification={company.verification} />}
             </div>
-            {company?.verification && (
-              <div className="mt-1.5 space-y-0.5 text-[12px] text-muted">
-                {company.verification.companyName && (
-                  <div>등록 상호: {company.verification.companyName}</div>
-                )}
-                {company.verification.representativeName && (
-                  <div>등록 대표자: {company.verification.representativeName}</div>
-                )}
-                {company.verification.compTypeLabel && (
-                  <div>기업형태: {company.verification.compTypeLabel}</div>
-                )}
-                {company.verification.message && (
-                  <div className="text-amber-600">{company.verification.message}</div>
-                )}
-                {company.verification.checkedAt && (
-                  <div>확인: {new Date(company.verification.checkedAt).toLocaleString("ko-KR")}</div>
-                )}
-              </div>
-            )}
           </div>
           <div>
             <div className="text-[11px] text-muted">가입일</div>
@@ -114,6 +95,8 @@ export default async function AdminApplicantDetailPage({
             <div className="mt-1 text-[13.5px] font-medium">{target.id}</div>
           </div>
         </div>
+
+        {company && <BusinessCheckPanel company={company} />}
 
         <h2 className="mt-10 text-[14px] font-semibold">신청 내역 ({quotes.length})</h2>
         <div className="mt-3 overflow-x-auto rounded border border-border">
@@ -177,5 +160,107 @@ function VerificationBadge({ verification }: { verification: CompanyVerification
       : "border-border bg-panel text-muted";
   return (
     <span className={`rounded border px-1.5 py-0.5 text-[11px] font-medium ${className}`}>{label}</span>
+  );
+}
+
+// 입력값과 국세청 등록값을 나란히 놓고 대조한다. 운영자가 승인 전에 볼 화면이라
+// 불일치 항목만 눈에 띄게 하고, 서류는 필요할 때만 열어보게 한다.
+function BusinessCheckPanel({ company }: { company: Company }) {
+  const verification = company.verification;
+  const rows: { label: string; input: string | null; registered: string | null }[] = [
+    { label: "상호", input: company.name, registered: verification?.companyName ?? null },
+    {
+      label: "대표자",
+      input: company.representativeName,
+      registered: verification?.representativeName ?? null,
+    },
+  ];
+
+  const same = (a: string | null, b: string | null) =>
+    !!a && !!b && a.replace(/\s+/g, "") === b.replace(/\s+/g, "");
+
+  return (
+    <div className="mt-4 rounded border border-border bg-background p-6">
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <h2 className="text-[14px] font-semibold">사업자 확인</h2>
+        {verification?.checkedAt && (
+          <span className="text-[11.5px] text-muted">
+            국세청 조회 {new Date(verification.checkedAt).toLocaleString("ko-KR")}
+          </span>
+        )}
+      </div>
+
+      {verification ? (
+        <table className="mt-3 w-full border-collapse text-[13px]">
+          <thead>
+            <tr className="border-b border-border text-left text-[11.5px] text-muted">
+              <th className="w-24 py-2 font-medium">항목</th>
+              <th className="py-2 font-medium">가입 시 입력값</th>
+              <th className="py-2 font-medium">국세청 등록값</th>
+              <th className="w-16 py-2 font-medium">대조</th>
+            </tr>
+          </thead>
+          <tbody>
+            {rows.map((row) => {
+              const matched = same(row.input, row.registered);
+              return (
+                <tr key={row.label} className="border-b border-border/60 last:border-b-0">
+                  <td className="py-2 text-muted">{row.label}</td>
+                  <td className="py-2">{row.input || "-"}</td>
+                  <td className="py-2">{row.registered || "-"}</td>
+                  <td className="py-2">
+                    {!row.registered ? (
+                      <span className="text-muted">-</span>
+                    ) : matched ? (
+                      <span className="text-emerald-600">일치</span>
+                    ) : (
+                      <span className="font-medium text-amber-600">확인 필요</span>
+                    )}
+                  </td>
+                </tr>
+              );
+            })}
+            <tr>
+              <td className="py-2 text-muted">기업상태</td>
+              <td className="py-2 text-muted">-</td>
+              <td className="py-2">{verification.compStatusLabel || "-"}</td>
+              <td className="py-2">
+                {verification.compStatus === "1" ? (
+                  <span className="text-emerald-600">정상</span>
+                ) : (
+                  <span className="text-muted">-</span>
+                )}
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      ) : (
+        <p className="mt-3 text-[13px] text-muted">
+          국세청 조회 이력이 없습니다. 사업자등록증과 입력값을 직접 대조해 주세요.
+        </p>
+      )}
+
+      {verification?.message && (
+        <p className="mt-3 rounded border border-amber-500/40 bg-amber-500/10 px-3 py-2 text-[12.5px] text-amber-700">
+          {verification.message}
+        </p>
+      )}
+
+      <div className="mt-4 border-t border-border pt-3">
+        <div className="text-[11px] text-muted">사업자등록증</div>
+        {company.businessCertUrl ? (
+          <a
+            href={`${company.businessCertUrl}${company.businessCertName ? `?name=${encodeURIComponent(company.businessCertName)}` : ""}`}
+            className="mt-1 inline-block text-[13.5px] font-medium text-accent hover:underline"
+          >
+            {company.businessCertName || "첨부파일"} 열기
+          </a>
+        ) : (
+          <p className="mt-1 text-[13.5px] text-amber-600">
+            미첨부 — 신청자가 직접 입력한 정보로 신청했습니다.
+          </p>
+        )}
+      </div>
+    </div>
   );
 }

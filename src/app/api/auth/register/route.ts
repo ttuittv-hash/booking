@@ -148,9 +148,8 @@ export async function POST(request: Request) {
     if (!postalCode || !address) {
       return NextResponse.json({ error: "우편번호 찾기로 주소를 입력하세요." }, { status: 400 });
     }
-    if (!businessCertUrl) {
-      return NextResponse.json({ error: "사업자등록증을 첨부하세요." }, { status: 400 });
-    }
+    // 사업자등록증 첨부는 권장이되 필수는 아니다 — 입력값은 사업자번호 진위확인으로 검증되고,
+    // 첨부 여부는 운영자 심사 화면에 그대로 표시돼 판단에 쓰인다.
     // 사업자등록번호 진위·상태 확인(NICE 법인실명확인).
     // 휴업·폐업·부도 업체는 대관 계약 상대로 부적격이므로 가입을 막는다.
     // 미설정이거나 조회에 실패하면 가입은 진행하고 "미확인"으로 남겨 운영자 심사에 넘긴다.

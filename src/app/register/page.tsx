@@ -105,7 +105,6 @@ export default function RegisterPage() {
       if (!form.businessRegistrationNumber.trim()) return setError("사업자등록번호를 입력하세요.");
       if (!form.representativeName.trim()) return setError("대표자 성명을 입력하세요.");
       if (!form.postalCode.trim() || !form.address.trim()) return setError("우편번호 찾기로 주소를 입력하세요.");
-      if (!certFile) return setError("사업자등록증을 첨부하세요.");
     }
     if (!agreedTerms) return setError("이용약관에 동의해주세요.");
     if (!agreedPrivacy) return setError("개인정보 수집·이용에 동의해주세요.");
@@ -309,10 +308,17 @@ export default function RegisterPage() {
                   className="input mt-2"
                 />
               </Field>
-              <Field label="사업자등록증 첨부" hint="PDF/이미지, 10MB 이하">
+              <Field label="사업자등록증 첨부" hint="PDF/이미지, 10MB 이하 · 권장">
                 <input type="file" accept=".pdf,.jpg,.jpeg,.png" onChange={handleCertUpload} className="text-[13px]" />
                 {certUploading && <p className="mt-1.5 text-[12px] text-muted">업로드 중...</p>}
-                {certFile && <p className="mt-1.5 text-[12px] text-good">첨부됨: {certFile.name}</p>}
+                {certFile ? (
+                  <p className="mt-1.5 text-[12px] text-good">첨부됨: {certFile.name}</p>
+                ) : (
+                  <p className="mt-1.5 text-[12px] text-muted">
+                    지금 파일이 없으면 위에 입력하신 정보로 먼저 신청하실 수 있습니다.
+                    다만 첨부가 없으면 운영자 확인에 시간이 더 걸릴 수 있습니다.
+                  </p>
+                )}
               </Field>
             </FormSection>
           ) : (
