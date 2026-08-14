@@ -50,7 +50,7 @@ export function Step3Included({
       <div className="mt-3 flex flex-wrap gap-x-6 gap-y-1.5 text-[12.5px] text-muted">
         <span>대기실 {pkg.waitingRoomNote}</span>
         <span>부속공간 {pkg.sideFacilities}</span>
-        {pkg.outdoorPlazaIncluded && <span>야외광장 · 티켓박스 포함</span>}
+        {pkg.outdoorPlazaIncluded && <span>야외광장 · 티켓박스 · 하역시설 포함</span>}
       </div>
 
       <div className="mt-6 flex items-center justify-between border-b border-border pb-3">

@@ -44,6 +44,8 @@ function blankPackage(id: number): EditablePackage {
     includedItems: [],
     mediaTier: null,
     discountRatio: 0,
+    setupExtraDayFee: 0,
+    performanceExtraDayFee: 0,
     dayBreakdown: "준비 4일 + 공연 2일",
     defaultPerformanceDays: 2,
     rentalHours: "09:00 ~ 22:00",
@@ -275,6 +277,26 @@ export function PackagesForm({ rateTable }: { rateTable: RateTable }) {
                 min={0}
                 value={active.baseFeePerWeek}
                 onChange={(e) => update({ baseFeePerWeek: Number(e.target.value) || 0 })}
+                className="w-full rounded-sm border border-border bg-panel px-3 py-2 text-[13px] outline-none focus:border-accent"
+              />
+            </label>
+            <label className="block">
+              <span className="mb-1 block text-[12px] text-muted">셋업(준비일) 추가/차감 단가 (원/일)</span>
+              <input
+                type="number"
+                min={0}
+                value={active.setupExtraDayFee}
+                onChange={(e) => update({ setupExtraDayFee: Number(e.target.value) || 0 })}
+                className="w-full rounded-sm border border-border bg-panel px-3 py-2 text-[13px] outline-none focus:border-accent"
+              />
+            </label>
+            <label className="block">
+              <span className="mb-1 block text-[12px] text-muted">공연일 추가/차감 단가 (원/일)</span>
+              <input
+                type="number"
+                min={0}
+                value={active.performanceExtraDayFee}
+                onChange={(e) => update({ performanceExtraDayFee: Number(e.target.value) || 0 })}
                 className="w-full rounded-sm border border-border bg-panel px-3 py-2 text-[13px] outline-none focus:border-accent"
               />
             </label>

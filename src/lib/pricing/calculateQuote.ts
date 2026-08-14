@@ -1,5 +1,12 @@
 import { resolveSelectedDates } from "./dateRange";
-import { countPerformanceDays, extraDayPrice, findAddon, findPackage, includedQuantity, packagePrice } from "./rateTableUtils";
+import {
+  countPerformanceDays,
+  findAddon,
+  findPackage,
+  includedQuantity,
+  isDefaultPerformanceWeekday,
+  packagePrice,
+} from "./rateTableUtils";
 import { DEFAULT_VENUE_ID } from "./types";
 import type { EstimatedQuote, LineItem, LineItemVisibility, PricingType, QuoteSelection, RateTable } from "./types";
 
@@ -59,30 +66,54 @@ export function calculateQuote(selection: QuoteSelection, rateTable: RateTable):
       );
     }
 
-    // (2) 제외 요일 할인 — 화~일 6일 중 실제 사용하지 않는 요일만큼 정액 할인
-    // [부록B #2] 정확한 차감 단가 규칙은 아직 미확정 — 확정 전까지는 기존 임시 비율을 유지한다.
+    // (2) 제외 요일 할인 — 화~일 6일 중 실제 사용하지 않는 요일만큼 정액 할인.
+    // [확정 2026-08-14, 기능정의서 2-37/2-38] 기존 "기본 대관료 × 1/6 균등" 임시 규칙 폐기.
+    // 확정 추가일 단가(셋업/공연)를 대칭 적용한다 — 제외하는 요일이 패키지 기본값상 준비일인지
+    // 공연일인지에 따라 다른 단가로 차감한다(요일 자체가 선택안에서 사라지므로 날짜별 dayTags가
+    // 아니라 WEEKDAYS 상의 패키지 기본 배치로 판정, isDefaultPerformanceWeekday).
     if (selection.excludedDays.length > 0) {
-      const perDayDiscount = Math.round(pkg.baseFeePerWeek * rateTable.dayExclusionDiscountRatio);
-      const excludedDayCount = selection.excludedDays.length;
-      items.push(
-        makeLine(
-          "day_exclusion_discount",
-          `제외 요일 할인 (${excludedDayCount}일)`,
-          "PER_DAY",
-          excludedDayCount,
-          0,
-          excludedDayCount,
-          perDayDiscount,
-          -(perDayDiscount * excludedDayCount),
-          "VISIBLE",
-        ),
-      );
+      const excludedPrepCount = selection.excludedDays.filter(
+        (day) => !isDefaultPerformanceWeekday(day, pkg.defaultPerformanceDays),
+      ).length;
+      const excludedPerformanceCount = selection.excludedDays.length - excludedPrepCount;
+
+      if (excludedPrepCount > 0) {
+        items.push(
+          makeLine(
+            "day_exclusion_discount_prep",
+            `제외 요일 할인 — 준비일 (${excludedPrepCount}일)`,
+            "PER_DAY",
+            excludedPrepCount,
+            0,
+            excludedPrepCount,
+            pkg.setupExtraDayFee,
+            -(excludedPrepCount * pkg.setupExtraDayFee),
+            "VISIBLE",
+          ),
+        );
+      }
+      if (excludedPerformanceCount > 0) {
+        items.push(
+          makeLine(
+            "day_exclusion_discount_performance",
+            `제외 요일 할인 — 공연일 (${excludedPerformanceCount}일)`,
+            "PER_DAY",
+            excludedPerformanceCount,
+            0,
+            excludedPerformanceCount,
+            pkg.performanceExtraDayFee,
+            -(excludedPerformanceCount * pkg.performanceExtraDayFee),
+            "VISIBLE",
+          ),
+        );
+      }
     }
 
-    // (2-1) 추가 일수 — 일요일 이후로 연장하는 일수를 일 단위로 과금 (초과 주차 단가 ÷ 6일)
-    // [부록B #22] 셋업/공연 추가일 확정 단가(2-38)는 아직 반영 전 — 기존 임시 비율을 유지한다.
+    // (2-1) 추가 일수 — 일요일 이후로 연장하는 일수를 일 단위로 과금.
+    // [확정 2026-08-14, 기능정의서 2-38] 연장일은 준비일 성격의 추가 접근일로 보고
+    // 셋업(준비일) 추가 단가를 적용한다(전 패키지 동일 46,790,000원/일).
     if (selection.extraDays > 0) {
-      const price = extraDayPrice(rateTable, pkg);
+      const price = pkg.setupExtraDayFee;
       items.push(
         makeLine(
           "extra_days",
@@ -98,12 +129,13 @@ export function calculateQuote(selection: QuoteSelection, rateTable: RateTable):
       );
     }
 
-    // (2-2) 준비일/공연일 조정 — 패키지 기본 공연일수 대비 실제 지정한 공연일수 차이만큼 가감
+    // (2-2) 준비일/공연일 조정 — 패키지 기본 공연일수 대비 실제 지정한 공연일수 차이만큼 가감.
+    // [확정 2026-08-14, 기능정의서 2-38] 공연일 추가 단가(패키지별 상이)를 적용한다.
     const selectedDates = resolveSelectedDates(selection);
     const performanceDayCount = countPerformanceDays(selectedDates, selection.dayTags, pkg.defaultPerformanceDays);
     const performanceDelta = performanceDayCount - pkg.defaultPerformanceDays;
     if (performanceDelta !== 0) {
-      const unitPrice = extraDayPrice(rateTable, pkg);
+      const unitPrice = pkg.performanceExtraDayFee;
       items.push(
         makeLine(
           "performance_day_adjustment",

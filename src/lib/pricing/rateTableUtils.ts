@@ -1,4 +1,5 @@
-import type { AddonItem, DayTag, QuoteSelection, RateTable, RentalPackage } from "./types";
+import { WEEKDAYS } from "./types";
+import type { AddonItem, DayTag, QuoteSelection, RateTable, RentalPackage, WeekDay } from "./types";
 
 export function findPackage(
   rateTable: RateTable,
@@ -46,13 +47,24 @@ export function isAddonAvailable(addonItem: AddonItem, pkg: RentalPackage | unde
   return false;
 }
 
+// [폐기 2026-08-14, 기능정의서 2-38/부록A] "기본 대관료 × 60% ÷ 6" 임시 규칙 — 확정 단가
+// (pkg.setupExtraDayFee / pkg.performanceExtraDayFee)로 대체됐다. 중형공연장(medium-hall)
+// 플레이스홀더 패키지가 아직 이 비율을 참조하므로 함수 자체는 남겨둔다.
 export function extraWeekPrice(rateTable: RateTable, pkg: RentalPackage): number {
   return Math.round(pkg.baseFeePerWeek * rateTable.extraWeekRatio);
 }
 
-// 일요일 이후 연장하는 하루당 단가 = 초과 주차 단가 ÷ 6일(화~일)
 export function extraDayPrice(rateTable: RateTable, pkg: RentalPackage): number {
   return Math.round(extraWeekPrice(rateTable, pkg) / 6);
+}
+
+// 화~일 6일 중 해당 요일이 패키지 기본값상 "공연일"인지 — WEEKDAYS 배열의 뒤쪽
+// defaultPerformanceDays개가 공연일이다(defaultDayTags와 동일 규칙, 요일 단위 버전).
+// 요일 제외(2-37)는 그 요일의 실제 날짜 자체가 선택안에서 사라지므로 dayTags 재지정이
+// 불가능하다 — 그래서 날짜가 아닌 "요일"의 패키지 기본값으로 셋업/공연 단가를 가른다.
+export function isDefaultPerformanceWeekday(day: WeekDay, defaultPerformanceDays: number): boolean {
+  const index = WEEKDAYS.indexOf(day);
+  return index >= WEEKDAYS.length - defaultPerformanceDays;
 }
 
 // 신청 총 대관일수 = 기본 6일(화~일) − 제외 요일 수 + 추가 일수
