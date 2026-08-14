@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { btnClass } from "@/components/ui/kit";
+import { hashPasswordForTransport } from "@/lib/clientPassword";
 
 export function WithdrawForm() {
   const router = useRouter();
@@ -15,11 +16,21 @@ export function WithdrawForm() {
     setBusy(true);
     setError(null);
     try {
-      const res = await fetch("/api/users/me/withdraw", {
+      // 비밀번호 평문 대신 SHA-256 해시를 전송한다. 구(SQLite) 시절 계정은 서버가
+      // 428을 돌려주며, 이때만 평문을 함께 재전송해 검증한다.
+      const passwordHash = await hashPasswordForTransport(password);
+      let res = await fetch("/api/users/me/withdraw", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ password }),
+        body: JSON.stringify({ passwordHash }),
       });
+      if (res.status === 428) {
+        res = await fetch("/api/users/me/withdraw", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ passwordHash, password }),
+        });
+      }
       const data = await res.json();
       if (!res.ok) {
         setError(data.error || "탈퇴 처리에 실패했습니다.");

@@ -15,7 +15,6 @@ import {
 } from "@/lib/db";
 import { num, won } from "@/lib/format";
 import { totalRentalDays } from "@/lib/pricing/rateTableUtils";
-import { checkAndFireReminders } from "@/lib/reminders";
 import {
   DEFAULT_VENUE_ID,
   EVENT_TYPE_LABEL,
@@ -73,23 +72,23 @@ export default async function AdminQuoteDetailPage({
   if (user.role !== "ADMIN") redirect("/apply");
 
   const { id } = await params;
-  const quote = getQuoteById(id);
+  const quote = await getQuoteById(id);
   if (!quote) notFound();
 
-  checkAndFireReminders(quote);
 
-  const applicant = findUserById(quote.applicantId);
-  const auditLog = listAuditLogsForQuote(id);
-  const deposit = getDepositByQuoteId(id) ?? null;
-  const attachments = listAttachments(id, null);
-  const weekConflict = quote.status === "ESTIMATE" ? findApprovedWeekConflict(quote) ?? null : null;
-  const signature = getContractSignatureByQuoteId(id) ?? null;
-  const contractInvoice = getTaxInvoice(id, "CONTRACT") ?? null;
-  const settlementInvoice = getTaxInvoice(id, "SETTLEMENT") ?? null;
-  const ticketOpen = getTicketOpenByQuoteId(id) ?? null;
-  const facilityMeeting = getFacilityMeetingByQuoteId(id) ?? null;
-  const ticketOpenMaterials = listAttachments(id, "TICKET_OPEN");
-  const facilityMeetingMaterials = listAttachments(id, "FACILITY_MEETING");
+  const applicant = await findUserById(quote.applicantId);
+  const auditLog = await listAuditLogsForQuote(id);
+  const deposit = (await getDepositByQuoteId(id)) ?? null;
+  const attachments = await listAttachments(id, null);
+  const weekConflict =
+    quote.status === "ESTIMATE" ? (await findApprovedWeekConflict(quote)) ?? null : null;
+  const signature = (await getContractSignatureByQuoteId(id)) ?? null;
+  const contractInvoice = (await getTaxInvoice(id, "CONTRACT")) ?? null;
+  const settlementInvoice = (await getTaxInvoice(id, "SETTLEMENT")) ?? null;
+  const ticketOpen = (await getTicketOpenByQuoteId(id)) ?? null;
+  const facilityMeeting = (await getFacilityMeetingByQuoteId(id)) ?? null;
+  const ticketOpenMaterials = await listAttachments(id, "TICKET_OPEN");
+  const facilityMeetingMaterials = await listAttachments(id, "FACILITY_MEETING");
 
   return (
     <div className="flex flex-1 flex-col">

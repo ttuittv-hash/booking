@@ -17,7 +17,7 @@ export async function GET(_request: Request, { params }: { params: Promise<{ she
   if (!isValidSheetKey(key)) {
     return NextResponse.json({ error: "존재하지 않는 표입니다." }, { status: 404 });
   }
-  return NextResponse.json({ rows: getFeatureSpecSheet(key) });
+  return NextResponse.json({ rows: await getFeatureSpecSheet(key) });
 }
 
 export async function PUT(request: Request, { params }: { params: Promise<{ sheetKey: string }> }) {
@@ -45,6 +45,6 @@ export async function PUT(request: Request, { params }: { params: Promise<{ shee
     return NextResponse.json({ error: "행 데이터 형식이 올바르지 않습니다." }, { status: 400 });
   }
 
-  const saved = saveFeatureSpecSheet(key, rows);
+  const saved = await saveFeatureSpecSheet(key, rows);
   return NextResponse.json({ rows: saved });
 }

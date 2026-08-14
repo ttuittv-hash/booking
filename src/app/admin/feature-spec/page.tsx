@@ -14,13 +14,14 @@ export default async function AdminFeatureSpecPage() {
   if (user.role !== "ADMIN") redirect("/apply");
   if (!isMasterAdmin(user)) redirect("/admin");
 
-  const sheets = getAllFeatureSpecSheets();
+  const sheets = await getAllFeatureSpecSheets();
 
   return (
     <div className="flex flex-1 flex-col">
-      {/* 백오피스 AdminNav 와 같은 높이·리듬의 헤어라인 바 (메뉴만 없다) */}
+      {/* 백오피스 AdminNav 와 같은 높이·리듬의 헤어라인 바 (메뉴만 없다).
+          표가 화면 폭만큼 넓어야 하므로 가로폭 제한은 두지 않는다 (max-w-none). */}
       <header className="sticky top-0 z-20 h-14 border-b border-border/20 bg-background/95 backdrop-blur-md sm:h-16">
-        <div className="mx-auto flex h-full max-w-[1400px] items-center gap-x-4 px-4 sm:px-6">
+        <div className="mx-auto flex h-full w-full max-w-none items-center gap-x-4 px-4 sm:px-6">
           <Link
             href="/"
             className="type-display shrink-0 whitespace-nowrap text-h6-m leading-none"
@@ -40,7 +41,7 @@ export default async function AdminFeatureSpecPage() {
         </div>
       </header>
 
-      <main className="mx-auto w-full max-w-[1400px] flex-1 px-6 py-8 sm:py-10">
+      <main className="mx-auto w-full max-w-none flex-1 px-6 py-8 sm:py-10">
         <header className="border-b border-border/20 pb-6">
           <h1 className={PAGE_TITLE}>기능정의서</h1>
           <p className={PAGE_LEAD}>

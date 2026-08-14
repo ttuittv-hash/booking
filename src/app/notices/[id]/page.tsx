@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { notFound, redirect } from "next/navigation";
 import { getCurrentUser, isPendingApplicant } from "@/lib/auth";
 import { getNoticeById } from "@/lib/db";
+import { sanitizeRichText } from "@/lib/sanitizeHtml";
 import { PublicHeader } from "@/components/PublicHeader";
 import { TagBadge } from "@/components/TagBadge";
 import { Breadcrumb } from "@/components/ui/Breadcrumb";
@@ -14,7 +15,7 @@ export async function generateMetadata({
   params: Promise<{ id: string }>;
 }): Promise<Metadata> {
   const { id } = await params;
-  const notice = getNoticeById(id);
+  const notice = await getNoticeById(id);
   return { title: notice ? `${notice.title} | 서울아레나 공지사항` : "공지사항 | 서울아레나" };
 }
 
@@ -49,7 +50,7 @@ export default async function NoticeDetailPage({
   if (currentUser && isPendingApplicant(currentUser)) redirect("/pending");
 
   const { id } = await params;
-  const notice = getNoticeById(id);
+  const notice = await getNoticeById(id);
   if (!notice) notFound();
 
   return (
@@ -84,7 +85,11 @@ export default async function NoticeDetailPage({
               <Media src={notice.imageUrl} alt={notice.title} ratio="auto" className="mb-10" />
             )}
 
-            <div className={PROSE} dangerouslySetInnerHTML={{ __html: notice.body }} />
+            {/* 운영자 리치 에디터 HTML — 스크립트·이벤트 핸들러를 제거한 뒤 렌더한다 */}
+            <div
+              className={PROSE}
+              dangerouslySetInnerHTML={{ __html: sanitizeRichText(notice.body) }}
+            />
 
             {notice.attachmentUrl && (
               <div className="mt-12 border-t border-border/25 pt-8">

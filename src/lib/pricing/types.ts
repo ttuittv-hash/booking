@@ -411,6 +411,18 @@ export type AdminTier = "BASIC" | "PRO" | "MASTER";
 
 // 공연 기획사(법인) — 같은 회사 실무자(개인) 여러 명이 이 기획사에 연결되어
 // 서로의 대관 신청 내역을 함께 조회·관리할 수 있다.
+export interface CompanyVerification {
+  /** VERIFIED: 실존 확인 / NOT_FOUND: 조회되지 않음 / UNCHECKED: 확인 못함 */
+  status: "VERIFIED" | "NOT_FOUND" | "UNCHECKED";
+  companyName: string | null;
+  representativeName: string | null;
+  compStatus: string | null;
+  compStatusLabel: string | null;
+  compTypeLabel: string | null;
+  message: string | null;
+  checkedAt: string | null;
+}
+
 export interface Company {
   id: string;
   name: string;
@@ -421,6 +433,8 @@ export interface Company {
   businessCertUrl: string | null;
   businessCertName: string | null;
   createdAt: string;
+  /** 사업자 진위확인(NICE 법인실명확인) 결과 — 확인 이력이 없으면 null */
+  verification: CompanyVerification | null;
 }
 
 export interface AppUser {
@@ -451,6 +465,7 @@ export const FEATURE_SPEC_SHEET_KEYS = [
   "기능정의(프론트)",
   "기능정의(어드민)",
   "버그",
+  "약관",
   "추가 개발 내역",
   "패키지 참고",
   "옵션 참고",

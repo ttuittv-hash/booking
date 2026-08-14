@@ -120,7 +120,7 @@ export default async function PackagesPage() {
   if (!currentUser) redirect("/login");
   if (isPendingApplicant(currentUser)) redirect("/pending");
 
-  const rateTable = getCurrentRateTable();
+  const rateTable = await getCurrentRateTable();
   const packages = [...rateTable.packages].sort((a, b) => a.audienceTier.min - b.audienceTier.min);
   const lookupAddon = (id: string) => findAddon(rateTable, id);
   const addonsByCategory = CATEGORY_ORDER.map((category) => ({

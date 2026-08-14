@@ -10,11 +10,11 @@ export default async function AdminContentPage() {
   if (!user) redirect("/admin/login");
   if (user.role !== "ADMIN") redirect("/apply");
 
-  const notices = listNotices();
-  const faqs = listFaqs();
-  const homeContent = getHomeContent();
-  const venueContent = getVenueContent();
-  const guideContent = getGuideContent();
+  const notices = await listNotices();
+  const faqs = await listFaqs();
+  const homeContent = await getHomeContent();
+  const venueContent = await getVenueContent();
+  const guideContent = await getGuideContent();
 
   return (
     <div className="flex flex-1 flex-col">

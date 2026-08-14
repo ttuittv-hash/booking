@@ -1,4 +1,4 @@
-import bcrypt from "bcryptjs";
+import { hash as bcryptHash, verify as bcryptVerify } from "@node-rs/bcrypt";
 import { jwtVerify, SignJWT } from "jose";
 import { cookies } from "next/headers";
 import { findUserById, isUserWithdrawn } from "./db";
@@ -12,15 +12,27 @@ const DEV_FALLBACK_SECRET = "seoularena-dev-only-secret-change-me-before-product
 
 function getSecretKey() {
   const secret = process.env.AUTH_SECRET || DEV_FALLBACK_SECRET;
+  // 운영 환경에서 AUTH_SECRET 없이 기동하면 세션 위조가 가능해지므로 기동을 막는다.
+  if (process.env.NODE_ENV === "production" && !process.env.AUTH_SECRET) {
+    throw new Error("AUTH_SECRET 환경변수가 설정되지 않았습니다. 운영 환경에서는 필수입니다.");
+  }
   return new TextEncoder().encode(secret);
 }
 
-export function hashPassword(password: string): string {
-  return bcrypt.hashSync(password, 10);
+// 클라이언트가 SHA-256으로 해시해 보낸 값을 bcrypt로 한 번 더 감싸 저장한다
+// (v2 스킴 — src/lib/passwordScheme.ts 참고).
+//
+// 네이티브(Rust) 구현을 비동기로 쓴다. 순수 JS 구현을 동기로 호출하면 bcrypt 계산(50~100ms)
+// 동안 이벤트 루프가 막혀 그 서버의 다른 요청까지 전부 대기하게 된다.
+// 저장되는 해시 형식은 동일하므로 기존 비밀번호는 그대로 검증된다.
+const BCRYPT_COST = 10;
+
+export function hashPassword(passwordSha256: string): Promise<string> {
+  return bcryptHash(passwordSha256, BCRYPT_COST);
 }
 
-export function verifyPassword(password: string, hash: string): boolean {
-  return bcrypt.compareSync(password, hash);
+export function verifyPassword(passwordSha256: string, hash: string): Promise<boolean> {
+  return bcryptVerify(passwordSha256, hash);
 }
 
 interface SessionPayload {
@@ -73,15 +85,9 @@ export async function getCurrentUser(): Promise<AppUser | null> {
   if (!token) return null;
   const session = await verifySession(token);
   if (!session) return null;
-  if (isUserWithdrawn(session.sub)) return null;
-  const user = findUserById(session.sub);
+  if (await isUserWithdrawn(session.sub)) return null;
+  const user = await findUserById(session.sub);
   return user ?? null;
-}
-
-export async function requireRole(role: UserRole): Promise<AppUser | null> {
-  const user = await getCurrentUser();
-  if (!user || user.role !== role) return null;
-  return user;
 }
 
 // 마스터 관리자 전용 화면/API에서 사용. role=ADMIN이면서 adminTier=MASTER인 계정만 통과시킨다.
@@ -100,10 +106,10 @@ export function isPendingApplicant(user: AppUser): boolean {
 }
 
 // 신청서 열람/관리 권한 — 운영자, 본인, 또는 같은 회사(기획사) 소속 실무자까지 허용
-export function canAccessQuote(user: AppUser, quote: Quote): boolean {
+export async function canAccessQuote(user: AppUser, quote: Quote): Promise<boolean> {
   if (user.role === "ADMIN") return true;
   if (quote.applicantId === user.id) return true;
   if (!user.companyId) return false;
-  const applicant = findUserById(quote.applicantId);
+  const applicant = await findUserById(quote.applicantId);
   return applicant?.companyId === user.companyId;
 }

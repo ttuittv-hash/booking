@@ -4,7 +4,8 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { AuthShell } from "@/components/ui/AuthShell";
-import { btnClass } from "@/components/ui/kit";
+import { btnClass, Note } from "@/components/ui/kit";
+import { hashPasswordForTransport } from "@/lib/clientPassword";
 
 declare global {
   interface Window {
@@ -106,18 +107,22 @@ export default function RegisterPage() {
       if (!form.businessRegistrationNumber.trim()) return setError("사업자등록번호를 입력하세요.");
       if (!form.representativeName.trim()) return setError("대표자 성명을 입력하세요.");
       if (!form.postalCode.trim() || !form.address.trim()) return setError("우편번호 찾기로 주소를 입력하세요.");
-      if (!certFile) return setError("사업자등록증을 첨부하세요.");
     }
     if (!agreedTerms) return setError("이용약관에 동의해주세요.");
     if (!agreedPrivacy) return setError("개인정보 수집·이용에 동의해주세요.");
 
     setLoading(true);
     try {
+      // 비밀번호 평문은 전송하지 않는다 — SHA-256 해시만 보내고 서버가 bcrypt로 저장한다.
+      // (undefined 필드는 JSON.stringify에서 제외된다)
+      const formWithoutPassword = { ...form, password: undefined, passwordConfirm: undefined };
+      const passwordHash = await hashPasswordForTransport(form.password);
       const res = await fetch("/api/auth/register", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          ...form,
+          ...formWithoutPassword,
+          passwordHash,
           address: form.addressDetail ? `${form.address} ${form.addressDetail}` : form.address,
           accountType,
           agreedTerms,
@@ -264,6 +269,12 @@ export default function RegisterPage() {
                       onChange={(e) => setForm({ ...form, businessRegistrationNumber: e.target.value })}
                       className="field-base"
                     />
+                    {/* 진위확인은 가입 요청 시 서버(NICE 법인실명확인)에서 수행된다.
+                        휴업·폐업 등 부적격 상태이거나 조회되지 않으면 그 사유가 아래 오류로 표시된다. */}
+                    <Note className="mt-3">
+                      입력하신 번호는 국세청 사업자 진위확인으로 조회합니다. 휴업·폐업 등으로 확인되면
+                      가입이 제한되고, 상호·대표자가 등록 정보와 다르면 운영자 심사에서 확인합니다.
+                    </Note>
                   </Field>
                   <Field label="대표자 성명">
                     <input
@@ -306,7 +317,7 @@ export default function RegisterPage() {
                       className="field-base mt-2"
                     />
                   </Field>
-                  <Field label="사업자등록증 첨부" hint="PDF/이미지, 10MB 이하">
+                  <Field label="사업자등록증 첨부" hint="PDF/이미지, 10MB 이하 · 권장">
                     <input
                       type="file"
                       accept=".pdf,.jpg,.jpeg,.png"
@@ -314,7 +325,16 @@ export default function RegisterPage() {
                       className="field-base text-muted file:mr-3 file:border file:border-foreground file:bg-transparent file:px-3 file:py-1 file:text-xs file:font-bold file:text-foreground"
                     />
                     {certUploading && <p className="mt-2 text-xs text-muted">업로드 중...</p>}
-                    {certFile && <p className="mt-2 text-xs text-good">첨부됨: {certFile.name}</p>}
+                    {certFile ? (
+                      <p className="mt-2 text-xs text-good">첨부됨: {certFile.name}</p>
+                    ) : (
+                      // 첨부는 필수가 아니다 — 사업자번호 진위확인으로 입력값을 검증하고,
+                      // 첨부 여부는 운영자 심사 화면에 그대로 표시된다.
+                      <Note className="mt-3">
+                        지금 파일이 없어도 입력하신 정보로 먼저 가입할 수 있습니다. 다만 첨부가 없으면
+                        운영자 확인에 시간이 더 걸릴 수 있습니다.
+                      </Note>
+                    )}
                   </Field>
                 </FormSection>
               ) : (
@@ -395,11 +415,11 @@ export default function RegisterPage() {
           <button
             type="submit"
             disabled={loading}
-            className={`${btnClass("primary", "lg")} w-full`}
+            className={`${btnClass("primary", "md")} w-full`}
           >
             {loading ? "처리 중..." : "회원가입"}
           </button>
-          <Link href="/login" className={`${btnClass("secondary", "lg")} w-full`}>
+          <Link href="/login" className={`${btnClass("secondary", "md")} w-full`}>
             이미 계정이 있습니다
           </Link>
         </div>

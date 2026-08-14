@@ -16,7 +16,7 @@ export default async function FaqPage() {
   const currentUser = await getCurrentUser();
   if (currentUser && isPendingApplicant(currentUser)) redirect("/pending");
 
-  const faqs = listFaqs();
+  const faqs = await listFaqs();
 
   return (
     <div className="flex flex-1 flex-col">

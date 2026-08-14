@@ -2,9 +2,10 @@ import { NextResponse } from "next/server";
 import crypto from "node:crypto";
 import { getCurrentUser } from "@/lib/auth";
 import { createNotice, listNotices } from "@/lib/db";
+import { sanitizeRichText } from "@/lib/sanitizeHtml";
 
 export async function GET() {
-  return NextResponse.json({ notices: listNotices() });
+  return NextResponse.json({ notices: await listNotices() });
 }
 
 export async function POST(request: Request) {
@@ -26,11 +27,11 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "제목과 내용을 입력하세요." }, { status: 400 });
   }
 
-  const notice = createNotice({
+  const notice = await createNotice({
     id: crypto.randomUUID(),
     tag,
     title,
-    body: noticeBody,
+    body: sanitizeRichText(noticeBody),
     imageUrl,
     attachmentUrl,
     attachmentName,

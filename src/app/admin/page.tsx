@@ -1,8 +1,9 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/lib/auth";
-import { findUserById, listCompanies, listQuotes } from "@/lib/db";
+import { listCompanies, listQuotesPaged, listUsersByIds, normalizePage } from "@/lib/db";
 import { num } from "@/lib/format";
+import { Pagination } from "@/components/Pagination";
 import { btnClass } from "@/components/ui/kit";
 import { AdminNav } from "@/components/admin/AdminNav";
 import { AdminQuoteTable } from "@/components/admin/AdminQuoteTable";
@@ -11,19 +12,25 @@ import { FIELD, NONE, PAGE_LEAD, PAGE_TITLE, QUIET_BTN } from "@/components/admi
 export default async function AdminPage({
   searchParams,
 }: {
-  searchParams: Promise<{ companyId?: string }>;
+  searchParams: Promise<{ companyId?: string; page?: string }>;
 }) {
   const user = await getCurrentUser();
   if (!user) redirect("/admin/login");
   if (user.role !== "ADMIN") redirect("/apply");
 
-  const { companyId } = await searchParams;
-  const quotes = companyId ? listQuotes({ companyId }) : listQuotes();
-  const companies = listCompanies();
+  const { companyId, page: pageParam } = await searchParams;
+  const page = normalizePage(pageParam);
+  const { items: quotes, total, totalPages } = await listQuotesPaged(
+    companyId ? { companyId } : {},
+    page,
+  );
+  const companies = await listCompanies();
+  const applicantIds = [...new Set(quotes.map((q) => q.applicantId))];
+  const applicantById = new Map((await listUsersByIds(applicantIds)).map((u) => [u.id, u]));
   // 날짜/통화 포맷은 로케일에 따라 서버·브라우저 렌더링 결과가 달라져 하이드레이션 불일치를
   // 일으킬 수 있으므로, 클라이언트 컴포넌트로 넘기기 전에 서버에서 미리 문자열로 포맷한다.
   const rows = quotes.map((q) => {
-    const applicant = findUserById(q.applicantId);
+    const applicant = applicantById.get(q.applicantId);
     return {
       id: q.id,
       createdAtLabel: new Date(q.createdAt).toLocaleString("ko-KR"),
@@ -78,6 +85,13 @@ export default async function AdminPage({
 
         <div className="mt-6">
           <AdminQuoteTable rows={rows} />
+          <Pagination
+            page={page}
+            totalPages={totalPages}
+            total={total}
+            basePath="/admin"
+            params={{ companyId }}
+          />
         </div>
       </main>
     </div>

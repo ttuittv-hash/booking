@@ -1,12 +1,15 @@
+import type { ReactNode } from "react";
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { getCurrentUser } from "@/lib/auth";
 import { findCompanyById, findUserById, listQuotes } from "@/lib/db";
 import { num } from "@/lib/format";
-import type { AppUser, Quote } from "@/lib/pricing/types";
+import type { AppUser, Company, CompanyVerification, Quote } from "@/lib/pricing/types";
 import { ArrowRight, Badge } from "@/components/ui/kit";
 import { AdminNav } from "@/components/admin/AdminNav";
 import {
+  HELP,
+  INFO_NOTE,
   LINK_BTN,
   NONE,
   ROW_LINK,
@@ -20,11 +23,14 @@ import {
   TD_EMPTY,
   TD_ID,
   TD_LINK,
+  TD_MUTED,
   TD_NUM,
   TH,
   TH_NUM,
   THEAD_ROW,
+  TR,
   TR_HOVER,
+  WARN_NOTE,
 } from "@/components/admin/adminUi";
 
 const STATUS_LABEL: Record<Quote["status"], string> = {
@@ -62,17 +68,25 @@ export default async function AdminApplicantDetailPage({
   if (admin.role !== "ADMIN") redirect("/apply");
 
   const { id } = await params;
-  const target = findUserById(id);
+  const target = await findUserById(id);
   if (!target || target.role !== "APPLICANT") notFound();
 
-  const company = target.companyId ? findCompanyById(target.companyId) : null;
-  const quotes = target.companyId ? listQuotes({ companyId: target.companyId }) : listQuotes({ applicantId: target.id });
+  const company = target.companyId ? await findCompanyById(target.companyId) : null;
+  const quotes = target.companyId
+    ? await listQuotes({ companyId: target.companyId })
+    : await listQuotes({ applicantId: target.id });
 
-  const profile: [string, string][] = [
+  const profile: [string, ReactNode][] = [
     ["이메일", target.email],
     ["휴대폰 번호", target.phone || NONE],
     ["회사/기획사", target.companyName || NONE],
-    ["사업자등록번호", company?.businessRegistrationNumber || NONE],
+    [
+      "사업자등록번호",
+      <span key="brn" className="flex flex-wrap items-center gap-2">
+        {company?.businessRegistrationNumber || NONE}
+        {company?.verification && <VerificationBadge verification={company.verification} />}
+      </span>,
+    ],
     ["가입일", new Date(target.createdAt).toLocaleString("ko-KR")],
     ["계정 ID", target.id],
   ];
@@ -106,6 +120,8 @@ export default async function AdminApplicantDetailPage({
             </div>
           ))}
         </dl>
+
+        {company && <BusinessCheckPanel company={company} />}
 
         <div className={`mt-10 ${TABLE_CARD}`}>
           <div className={TABLE_HEAD}>
@@ -158,8 +174,132 @@ export default async function AdminApplicantDetailPage({
             </table>
           </div>
         </div>
-
       </main>
+    </div>
+  );
+}
+
+// 사업자 진위확인 결과 뱃지 — 운영자가 승인 전에 한눈에 보도록 상태를 구분한다.
+// 색은 kit 의 Badge tone 만 쓴다 (임의 색 금지).
+function VerificationBadge({ verification }: { verification: CompanyVerification }) {
+  const normal = verification.status === "VERIFIED" && verification.compStatus === "1";
+  const label =
+    verification.status === "VERIFIED"
+      ? `국세청 확인 · ${verification.compStatusLabel ?? "상태미상"}`
+      : verification.status === "NOT_FOUND"
+        ? "국세청 미조회"
+        : "미확인";
+  const tone = normal ? "good" : verification.status === "VERIFIED" ? "danger" : "neutral";
+  return <Badge tone={tone}>{label}</Badge>;
+}
+
+// 입력값과 국세청 등록값을 나란히 놓고 대조한다. 운영자가 승인 전에 볼 화면이라
+// 불일치 항목만 눈에 띄게 하고, 서류는 필요할 때만 열어보게 한다.
+function BusinessCheckPanel({ company }: { company: Company }) {
+  const verification = company.verification;
+  const rows: { label: string; input: string | null; registered: string | null }[] = [
+    { label: "상호", input: company.name, registered: verification?.companyName ?? null },
+    {
+      label: "대표자",
+      input: company.representativeName,
+      registered: verification?.representativeName ?? null,
+    },
+  ];
+
+  const same = (a: string | null, b: string | null) =>
+    !!a && !!b && a.replace(/\s+/g, "") === b.replace(/\s+/g, "");
+
+  return (
+    <div className={`mt-8 ${TABLE_CARD}`}>
+      <div className={TABLE_HEAD}>
+        <div>
+          <p className={TABLE_HEAD_TITLE}>사업자 확인</p>
+          <p className={TABLE_HEAD_DESC}>
+            가입 시 입력값과 국세청 등록값을 대조합니다. 승인 전에 확인하세요.
+          </p>
+        </div>
+        {verification?.checkedAt && (
+          <span className={HELP}>
+            국세청 조회 {new Date(verification.checkedAt).toLocaleString("ko-KR")}
+          </span>
+        )}
+      </div>
+
+      {verification ? (
+        <div className={TABLE_SCROLL}>
+          <table className={`${TABLE} min-w-[560px]`}>
+            <thead>
+              <tr className={THEAD_ROW}>
+                <th className={`${TH} w-24`}>항목</th>
+                <th className={TH}>가입 시 입력값</th>
+                <th className={TH}>국세청 등록값</th>
+                <th className={`${TH} w-24`}>대조</th>
+              </tr>
+            </thead>
+            <tbody>
+              {rows.map((row) => {
+                const matched = same(row.input, row.registered);
+                return (
+                  <tr key={row.label} className={TR}>
+                    <td className={TD_MUTED}>{row.label}</td>
+                    <td className={TD}>{row.input || NONE}</td>
+                    <td className={TD}>{row.registered || NONE}</td>
+                    <td className={TD}>
+                      {!row.registered ? (
+                        <span className="text-muted">{NONE}</span>
+                      ) : matched ? (
+                        <Badge tone="good">일치</Badge>
+                      ) : (
+                        <Badge tone="danger">확인 필요</Badge>
+                      )}
+                    </td>
+                  </tr>
+                );
+              })}
+              <tr className={TR}>
+                <td className={TD_MUTED}>기업상태</td>
+                <td className={TD_MUTED}>{NONE}</td>
+                <td className={TD}>{verification.compStatusLabel || NONE}</td>
+                <td className={TD}>
+                  {verification.compStatus === "1" ? (
+                    <Badge tone="good">정상</Badge>
+                  ) : (
+                    <span className="text-muted">{NONE}</span>
+                  )}
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      ) : (
+        <div className="px-4 py-3.5">
+          <p className={INFO_NOTE}>
+            국세청 조회 이력이 없습니다. 사업자등록증과 입력값을 직접 대조해 주세요.
+          </p>
+        </div>
+      )}
+
+      {verification?.message && (
+        <div className="border-t border-border-soft px-4 py-3.5">
+          <p className={WARN_NOTE}>{verification.message}</p>
+        </div>
+      )}
+
+      <div className="border-t border-border-soft px-4 py-3.5">
+        <p className={HELP}>사업자등록증</p>
+        {company.businessCertUrl ? (
+          <a
+            href={`${company.businessCertUrl}${company.businessCertName ? `?name=${encodeURIComponent(company.businessCertName)}` : ""}`}
+            className={`mt-2 inline-block ${LINK_BTN}`}
+          >
+            {company.businessCertName || "첨부파일"} 열기
+          </a>
+        ) : (
+          <p className={`mt-2 ${WARN_NOTE}`}>
+            미첨부 — 신청자가 직접 입력한 정보로 신청했습니다.
+          </p>
+        )}
+      </div>
     </div>
   );
 }

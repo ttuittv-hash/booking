@@ -24,8 +24,8 @@ export default async function ApplyPage({
   const [{ new: startFreshParam }, rateTable, weekDemand, dateBlocks] = await Promise.all([
     searchParams,
     getCurrentRateTable(),
-    Promise.resolve(listWeekDemand()),
-    Promise.resolve(listDateBlocks()),
+    listWeekDemand(),
+    listDateBlocks(),
   ]);
 
   return (

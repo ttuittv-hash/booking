@@ -11,7 +11,6 @@ import {
 } from "@/lib/db";
 import { num, won } from "@/lib/format";
 import { totalRentalDays } from "@/lib/pricing/rateTableUtils";
-import { checkAndFireReminders } from "@/lib/reminders";
 import { DepositPanel } from "@/components/DepositPanel";
 import { AttachmentsPanel } from "@/components/AttachmentsPanel";
 import { ContractSignaturePanel } from "@/components/ContractSignaturePanel";
@@ -54,21 +53,38 @@ export default async function MyQuoteDetailPage({
   if (!user) redirect("/login");
 
   const { id } = await params;
-  const quote = getQuoteById(id);
+  const quote = await getQuoteById(id);
   if (!quote) notFound();
-  if (!canAccessQuote(user, quote)) notFound();
+  if (!(await canAccessQuote(user, quote))) notFound();
 
-  checkAndFireReminders(quote);
-
-  const deposit = getDepositByQuoteId(id) ?? null;
-  const attachments = listAttachments(id, null);
-  const signature = getContractSignatureByQuoteId(id) ?? null;
-  const contractInvoice = getTaxInvoice(id, "CONTRACT") ?? null;
-  const settlementInvoice = getTaxInvoice(id, "SETTLEMENT") ?? null;
-  const ticketOpen = getTicketOpenByQuoteId(id) ?? null;
-  const facilityMeeting = getFacilityMeetingByQuoteId(id) ?? null;
-  const ticketOpenMaterials = listAttachments(id, "TICKET_OPEN");
-  const facilityMeetingMaterials = listAttachments(id, "FACILITY_MEETING");
+  // 상세에 필요한 부속 데이터는 한 번에 조회한다 (PostgreSQL 전환 후 전부 async)
+  const [
+    depositRaw,
+    attachments,
+    signatureRaw,
+    contractInvoiceRaw,
+    settlementInvoiceRaw,
+    ticketOpenRaw,
+    facilityMeetingRaw,
+    ticketOpenMaterials,
+    facilityMeetingMaterials,
+  ] = await Promise.all([
+    getDepositByQuoteId(id),
+    listAttachments(id, null),
+    getContractSignatureByQuoteId(id),
+    getTaxInvoice(id, "CONTRACT"),
+    getTaxInvoice(id, "SETTLEMENT"),
+    getTicketOpenByQuoteId(id),
+    getFacilityMeetingByQuoteId(id),
+    listAttachments(id, "TICKET_OPEN"),
+    listAttachments(id, "FACILITY_MEETING"),
+  ]);
+  const deposit = depositRaw ?? null;
+  const signature = signatureRaw ?? null;
+  const contractInvoice = contractInvoiceRaw ?? null;
+  const settlementInvoice = settlementInvoiceRaw ?? null;
+  const ticketOpen = ticketOpenRaw ?? null;
+  const facilityMeeting = facilityMeetingRaw ?? null;
 
   return (
     <div className="flex flex-1 flex-col">

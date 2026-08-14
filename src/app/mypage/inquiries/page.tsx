@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/lib/auth";
-import { listInquiries } from "@/lib/db";
+import { listInquiriesPaged, normalizePage } from "@/lib/db";
 import { PublicHeader } from "@/components/PublicHeader";
 import { Breadcrumb } from "@/components/ui/Breadcrumb";
 import { SiteFooter } from "@/components/ui/SiteFooter";
@@ -15,6 +15,7 @@ import {
   Row,
   RowList,
 } from "@/components/ui/kit";
+import { Pagination } from "@/components/Pagination";
 
 export const metadata: Metadata = {
   title: "1:1 문의 | 서울아레나",
@@ -31,12 +32,18 @@ const STATUS_TONE: Record<string, "warn" | "good"> = {
   ANSWERED: "good",
 };
 
-export default async function MyInquiriesPage() {
+export default async function MyInquiriesPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ page?: string }>;
+}) {
   const user = await getCurrentUser();
   if (!user) redirect("/login");
   if (user.role === "ADMIN") redirect("/admin/inquiries");
 
-  const inquiries = listInquiries({ userId: user.id });
+  const { page: pageParam } = await searchParams;
+  const page = normalizePage(pageParam);
+  const { items: inquiries, total, totalPages } = await listInquiriesPaged({ userId: user.id }, page);
 
   return (
     <div className="flex flex-1 flex-col">
@@ -90,6 +97,14 @@ export default async function MyInquiriesPage() {
                 />
               ))}
             </RowList>
+          )}
+          {inquiries.length > 0 && (
+            <Pagination
+              page={page}
+              totalPages={totalPages}
+              total={total}
+              basePath="/mypage/inquiries"
+            />
           )}
         </Band>
       </main>

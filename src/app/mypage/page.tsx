@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 import { getCurrentUser, isPendingApplicant } from "@/lib/auth";
-import { listQuotes } from "@/lib/db";
+import { listQuotesPaged, normalizePage } from "@/lib/db";
 import { won } from "@/lib/format";
 import type { Quote } from "@/lib/pricing/types";
 import { PublicHeader } from "@/components/PublicHeader";
@@ -16,6 +16,7 @@ import {
   Row,
   RowList,
 } from "@/components/ui/kit";
+import { Pagination } from "@/components/Pagination";
 
 const STATUS_LABEL: Record<Quote["status"], string> = {
   ESTIMATE: "예상견적 (심사 대기)",
@@ -30,13 +31,22 @@ const STATUS_TONE: Record<Quote["status"], "warn" | "accent" | "good"> = {
   SETTLED: "good",
 };
 
-export default async function MyPage() {
+export default async function MyPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ page?: string }>;
+}) {
   const user = await getCurrentUser();
   if (!user) redirect("/login");
   if (user.role !== "APPLICANT") redirect("/admin");
   if (isPendingApplicant(user)) redirect("/pending");
 
-  const quotes = user.companyId ? listQuotes({ companyId: user.companyId }) : listQuotes({ applicantId: user.id });
+  const { page: pageParam } = await searchParams;
+  const page = normalizePage(pageParam);
+  const { items: quotes, total, totalPages } = await listQuotesPaged(
+    user.companyId ? { companyId: user.companyId } : { applicantId: user.id },
+    page,
+  );
 
   return (
     <div className="flex flex-1 flex-col">
@@ -109,6 +119,9 @@ export default async function MyPage() {
                 />
               ))}
             </RowList>
+          )}
+          {quotes.length > 0 && (
+            <Pagination page={page} totalPages={totalPages} total={total} basePath="/mypage" />
           )}
         </Band>
       </main>

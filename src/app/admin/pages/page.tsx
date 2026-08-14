@@ -10,7 +10,7 @@ export default async function AdminPagesPage() {
   if (!user) redirect("/admin/login");
   if (user.role !== "ADMIN") redirect("/apply");
 
-  const pages = listPages();
+  const pages = await listPages();
 
   return (
     <div className="flex flex-1 flex-col">

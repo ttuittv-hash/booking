@@ -2,6 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { hashPasswordForTransport } from "@/lib/clientPassword";
 import type { AppUser } from "@/lib/pricing/types";
 import { btnClass } from "@/components/ui/kit";
 
@@ -46,11 +47,28 @@ export function ProfileForm({ user }: { user: AppUser }) {
     setPasswordError(null);
     setPasswordMessage(null);
     try {
-      const res = await fetch("/api/users/me/password", {
+      if (newPassword.length < 8) {
+        setPasswordError("새 비밀번호는 8자 이상이어야 합니다.");
+        return;
+      }
+      // 비밀번호 평문 대신 SHA-256 해시를 전송한다. 구(SQLite) 시절 계정은 서버가
+      // 428을 돌려주며, 이때만 현재 비밀번호 평문을 함께 재전송해 검증한다.
+      const [currentPasswordHash, newPasswordHash] = await Promise.all([
+        hashPasswordForTransport(currentPassword),
+        hashPasswordForTransport(newPassword),
+      ]);
+      let res = await fetch("/api/users/me/password", {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ currentPassword, newPassword }),
+        body: JSON.stringify({ currentPasswordHash, newPasswordHash }),
       });
+      if (res.status === 428) {
+        res = await fetch("/api/users/me/password", {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ currentPasswordHash, newPasswordHash, currentPassword }),
+        });
+      }
       const data = await res.json();
       if (!res.ok) {
         setPasswordError(data.error || "변경에 실패했습니다.");

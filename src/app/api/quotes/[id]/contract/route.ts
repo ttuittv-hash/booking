@@ -9,6 +9,7 @@ import {
   ensureTaxInvoice,
   getQuoteById,
   setQuoteContract,
+  withTransaction,
 } from "@/lib/db";
 import type { ContractAdjustment } from "@/lib/pricing/types";
 
@@ -19,7 +20,7 @@ export async function POST(request: Request, ctx: { params: Promise<{ id: string
   }
 
   const { id } = await ctx.params;
-  const quote = getQuoteById(id);
+  const quote = await getQuoteById(id);
   if (!quote) return NextResponse.json({ error: "신청서를 찾을 수 없습니다." }, { status: 404 });
   if (quote.status !== "ESTIMATE") {
     return NextResponse.json({ error: "이미 계약 처리된 신청서입니다." }, { status: 409 });
@@ -44,33 +45,39 @@ export async function POST(request: Request, ctx: { params: Promise<{ id: string
     decidedBy: user.id,
   };
 
-  const updated = setQuoteContract(id, contract);
-  addAuditLog({
-    id: crypto.randomUUID(),
-    quoteId: id,
-    stage: "CONTRACTED",
-    snapshot: updated,
-    actorId: user.id,
-    createdAt: contract.decidedAt,
-  });
+  // 계약 확정은 신청서 상태·감사로그·보증금·전자날인·세금계산서·알림이 한 묶음이다.
+  // 중간에 실패해서 "계약은 확정됐는데 보증금 레코드가 없는" 상태가 남으면 안 된다.
+  const { updated, deposit } = await withTransaction(async () => {
+    const updated = await setQuoteContract(id, contract);
+    await addAuditLog({
+      id: crypto.randomUUID(),
+      quoteId: id,
+      stage: "CONTRACTED",
+      snapshot: updated,
+      actorId: user.id,
+      createdAt: contract.decidedAt,
+    });
 
-  const deposit = createDeposit({
-    id: crypto.randomUUID(),
-    quoteId: id,
-    requiredAmount: Math.round((contractTotal * depositRate) / 100),
-    depositRate,
-    createdAt: contract.decidedAt,
-  });
+    const deposit = await createDeposit({
+      id: crypto.randomUUID(),
+      quoteId: id,
+      requiredAmount: Math.round((contractTotal * depositRate) / 100),
+      depositRate,
+      createdAt: contract.decidedAt,
+    });
 
-  ensureContractSignature(id, contract.decidedAt);
-  ensureTaxInvoice(id, "CONTRACT", contractTotal, contract.decidedAt);
+    await ensureContractSignature(id, contract.decidedAt);
+    await ensureTaxInvoice(id, "CONTRACT", contractTotal, contract.decidedAt);
 
-  createNotification({
-    id: crypto.randomUUID(),
-    recipientId: quote.applicantId,
-    quoteId: id,
-    message: `${id}의 계약금액이 ₩${contractTotal.toLocaleString("ko-KR")}으로 확정되었습니다.`,
-    createdAt: contract.decidedAt,
+    await createNotification({
+      id: crypto.randomUUID(),
+      recipientId: quote.applicantId,
+      quoteId: id,
+      message: `${id}의 계약금액이 ₩${contractTotal.toLocaleString("ko-KR")}으로 확정되었습니다.`,
+      createdAt: contract.decidedAt,
+    });
+
+    return { updated, deposit };
   });
 
   return NextResponse.json({ quote: updated, deposit });

@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import crypto from "node:crypto";
 import { getCurrentUser, hashPassword } from "@/lib/auth";
 import { createUser, findOrCreateCompany, findUserByEmailWithPasswordHash, findUserByUsername } from "@/lib/db";
+import { sha256Hex } from "@/lib/passwordScheme";
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const USERNAME_RE = /^[a-z0-9][a-z0-9_]{3,19}$/;
@@ -37,24 +38,24 @@ export async function POST(request: Request) {
   if (!name) {
     return NextResponse.json({ error: "담당자명을 입력하세요." }, { status: 400 });
   }
-  if (findUserByUsername(username)) {
+  if (await findUserByUsername(username)) {
     return NextResponse.json({ error: "이미 사용 중인 아이디입니다." }, { status: 409 });
   }
-  if (findUserByEmailWithPasswordHash(email)) {
+  if (await findUserByEmailWithPasswordHash(email)) {
     return NextResponse.json({ error: "이미 가입된 이메일입니다." }, { status: 409 });
   }
 
   const company = companyName
-    ? findOrCreateCompany(companyName, { businessRegistrationNumber: businessRegistrationNumber || undefined })
+    ? await findOrCreateCompany(companyName, { businessRegistrationNumber: businessRegistrationNumber || undefined })
     : null;
 
   const createdAt = new Date().toISOString();
-  const user = createUser({
+  const user = await createUser({
     id: crypto.randomUUID(),
     username,
     email,
     phone: phone || null,
-    passwordHash: hashPassword(password),
+    passwordHash: await hashPassword(sha256Hex(password)),
     name,
     companyName: company?.name ?? null,
     companyId: company?.id ?? null,

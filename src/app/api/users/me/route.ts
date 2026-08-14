@@ -17,6 +17,6 @@ export async function PUT(request: Request) {
     return NextResponse.json({ error: "휴대폰 번호를 입력하세요." }, { status: 400 });
   }
 
-  const updated = updateUserProfile(user.id, { name, phone });
+  const updated = await updateUserProfile(user.id, { name, phone });
   return NextResponse.json({ user: updated });
 }

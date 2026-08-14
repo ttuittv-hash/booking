@@ -4,7 +4,7 @@ import { getHomeContent, saveHomeContent } from "@/lib/db";
 import type { HomeContent } from "@/lib/content/types";
 
 export async function GET() {
-  return NextResponse.json({ content: getHomeContent() });
+  return NextResponse.json({ content: await getHomeContent() });
 }
 
 export async function PUT(request: Request) {
@@ -24,7 +24,7 @@ export async function PUT(request: Request) {
     return NextResponse.json({ error: "잘못된 요청입니다." }, { status: 400 });
   }
 
-  const saved = saveHomeContent({
+  const saved = await saveHomeContent({
     heroImage: content.heroImage ?? null,
     heroTitle: content.heroTitle ?? "",
     heroSubtitle: content.heroSubtitle ?? "",

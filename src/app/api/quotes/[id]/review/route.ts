@@ -1,7 +1,14 @@
 import { NextResponse } from "next/server";
 import crypto from "node:crypto";
 import { getCurrentUser } from "@/lib/auth";
-import { addAuditLog, createNotification, findApprovedWeekConflict, getQuoteById, setQuoteReview } from "@/lib/db";
+import {
+  addAuditLog,
+  createNotification,
+  findApprovedWeekConflict,
+  getQuoteById,
+  setQuoteReview,
+  withTransaction,
+} from "@/lib/db";
 import type { Review, ReviewDecision } from "@/lib/pricing/types";
 
 const DECISIONS: ReviewDecision[] = ["APPROVED", "HOLD", "REJECTED"];
@@ -18,7 +25,7 @@ export async function POST(request: Request, ctx: { params: Promise<{ id: string
   }
 
   const { id } = await ctx.params;
-  const quote = getQuoteById(id);
+  const quote = await getQuoteById(id);
   if (!quote) return NextResponse.json({ error: "신청서를 찾을 수 없습니다." }, { status: 404 });
   if (quote.status !== "ESTIMATE") {
     return NextResponse.json({ error: "이미 계약 처리된 신청서입니다." }, { status: 409 });
@@ -34,7 +41,7 @@ export async function POST(request: Request, ctx: { params: Promise<{ id: string
   const rationale = typeof body?.rationale === "string" ? body.rationale.trim() : "";
 
   if (decision === "APPROVED") {
-    const conflict = findApprovedWeekConflict(quote);
+    const conflict = await findApprovedWeekConflict(quote);
     if (conflict) {
       const { year, month, weekOfMonth } = quote.selection.week;
       return NextResponse.json(
@@ -55,22 +62,27 @@ export async function POST(request: Request, ctx: { params: Promise<{ id: string
     decidedBy: user.id,
   };
 
-  const updated = setQuoteReview(id, review);
-  addAuditLog({
-    id: crypto.randomUUID(),
-    quoteId: id,
-    stage: "ESTIMATE",
-    snapshot: updated,
-    actorId: user.id,
-    createdAt: review.decidedAt,
-  });
+  // 심사 결과·감사로그·신청자 알림은 한 묶음이다.
+  const updated = await withTransaction(async () => {
+    const updated = await setQuoteReview(id, review);
+    await addAuditLog({
+      id: crypto.randomUUID(),
+      quoteId: id,
+      stage: "ESTIMATE",
+      snapshot: updated,
+      actorId: user.id,
+      createdAt: review.decidedAt,
+    });
 
-  createNotification({
-    id: crypto.randomUUID(),
-    recipientId: quote.applicantId,
-    quoteId: id,
-    message: `${id}의 심사 결과: ${DECISION_LABEL[decision]}${rationale ? ` (${rationale})` : ""}`,
-    createdAt: review.decidedAt,
+    await createNotification({
+      id: crypto.randomUUID(),
+      recipientId: quote.applicantId,
+      quoteId: id,
+      message: `${id}의 심사 결과: ${DECISION_LABEL[decision]}${rationale ? ` (${rationale})` : ""}`,
+      createdAt: review.decidedAt,
+    });
+
+    return updated;
   });
 
   return NextResponse.json({ quote: updated });

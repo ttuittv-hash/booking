@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { getCurrentUser, isPendingApplicant } from "@/lib/auth";
-import { listNotices } from "@/lib/db";
+import { listNoticesPaged, normalizePage } from "@/lib/db";
 import { PublicHeader } from "@/components/PublicHeader";
 import { TagBadge, isPinnedTag } from "@/components/TagBadge";
 import { Breadcrumb } from "@/components/ui/Breadcrumb";
@@ -16,6 +16,7 @@ import {
   Row,
   RowList,
 } from "@/components/ui/kit";
+import { Pagination } from "@/components/Pagination";
 import type { Notice } from "@/lib/pricing/types";
 
 export const metadata: Metadata = {
@@ -49,11 +50,17 @@ function NoticeRows({ notices, pinned = false }: { notices: Notice[]; pinned?: b
   );
 }
 
-export default async function NoticesPage() {
+export default async function NoticesPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ page?: string }>;
+}) {
   const currentUser = await getCurrentUser();
   if (currentUser && isPendingApplicant(currentUser)) redirect("/pending");
 
-  const notices = listNotices();
+  const { page: pageParam } = await searchParams;
+  const page = normalizePage(pageParam);
+  const { items: notices, total, totalPages } = await listNoticesPaged(page);
 
   // 표시 레벨 정렬만 한다 — 데이터(정렬: 최신순)는 그대로 두고 대관 공고 계열 태그를
   // 상단 고정 그룹으로 끌어올린다. Notion 기획 › 공지사항 "진행 중 대관 공고 우선 노출".
@@ -98,12 +105,16 @@ export default async function NoticesPage() {
               </Band>
             )}
 
-            {rest.length > 0 && (
-              <Band tone="light" size="md" divide={pinned.length === 0}>
-                <h2 className="type-kr-heading text-h5-m sm:text-h5">전체 공지</h2>
-                <NoticeRows notices={rest} />
-              </Band>
-            )}
+            <Band tone="light" size="md" divide={pinned.length === 0}>
+              {rest.length > 0 && (
+                <>
+                  <h2 className="type-kr-heading text-h5-m sm:text-h5">전체 공지</h2>
+                  <NoticeRows notices={rest} />
+                </>
+              )}
+              {/* 페이지네이션은 고정 공고를 포함한 한 페이지 전체(total/totalPages)를 기준으로 한다 */}
+              <Pagination page={page} totalPages={totalPages} total={total} basePath="/notices" />
+            </Band>
           </>
         )}
 

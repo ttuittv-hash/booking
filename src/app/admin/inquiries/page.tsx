@@ -1,7 +1,8 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/lib/auth";
-import { findUserById, listInquiries } from "@/lib/db";
+import { listInquiriesPaged, listUsersByIds, normalizePage } from "@/lib/db";
+import { Pagination } from "@/components/Pagination";
 import { ArrowRight, Badge } from "@/components/ui/kit";
 import { AdminNav } from "@/components/admin/AdminNav";
 import {
@@ -38,12 +39,20 @@ const STATUS_TONE: Record<string, "warn" | "good"> = {
   ANSWERED: "good",
 };
 
-export default async function AdminInquiriesPage() {
+export default async function AdminInquiriesPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ page?: string }>;
+}) {
   const user = await getCurrentUser();
   if (!user) redirect("/admin/login");
   if (user.role !== "ADMIN") redirect("/apply");
 
-  const inquiries = listInquiries();
+  const { page: pageParam } = await searchParams;
+  const page = normalizePage(pageParam);
+  const { items: inquiries, total, totalPages } = await listInquiriesPaged({}, page);
+  const authorIds = [...new Set(inquiries.map((i) => i.userId))];
+  const authorById = new Map((await listUsersByIds(authorIds)).map((u) => [u.id, u]));
   const openCount = inquiries.filter((i) => i.status === "OPEN").length;
 
   return (
@@ -61,8 +70,8 @@ export default async function AdminInquiriesPage() {
         <div className={`mt-8 ${TABLE_CARD}`}>
           <div className={TABLE_HEAD}>
             <div>
-              <p className={TABLE_HEAD_TITLE}>문의 목록 ({inquiries.length})</p>
-              <p className={TABLE_HEAD_DESC}>답변 대기 {openCount}건</p>
+              <p className={TABLE_HEAD_TITLE}>문의 목록 ({total})</p>
+              <p className={TABLE_HEAD_DESC}>이 페이지 답변 대기 {openCount}건</p>
             </div>
           </div>
           <div className={TABLE_SCROLL}>
@@ -85,7 +94,7 @@ export default async function AdminInquiriesPage() {
                   </tr>
                 ) : (
                   inquiries.map((inquiry) => {
-                    const author = findUserById(inquiry.userId);
+                    const author = authorById.get(inquiry.userId);
                     return (
                       <tr key={inquiry.id} className={TR_HOVER}>
                         <td className={TD_ID}>
@@ -121,6 +130,7 @@ export default async function AdminInquiriesPage() {
             </table>
           </div>
         </div>
+        <Pagination page={page} totalPages={totalPages} total={total} basePath="/admin/inquiries" />
       </main>
     </div>
   );

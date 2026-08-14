@@ -155,7 +155,7 @@ export async function PUT(request: Request) {
   const overrides = Array.isArray(body?.packages) ? (body.packages as unknown[]) : [];
   const addonOverrides = Array.isArray(body?.addons) ? (body.addons as unknown[]) : [];
 
-  const current = getCurrentRateTable();
+  const current = await getCurrentRateTable();
   const currentIds = new Set(current.packages.map((pkg) => pkg.id));
 
   const updatedExisting = current.packages.map((pkg) => {
@@ -190,7 +190,7 @@ export async function PUT(request: Request) {
     .filter((a): a is AddonItem => a !== null);
   const addons = [...updatedExistingAddons, ...newAddons];
 
-  const next = saveNewRateTableVersion({
+  const next = await saveNewRateTableVersion({
     vatRate: current.vatRate,
     extraWeekRatio: current.extraWeekRatio,
     dayExclusionDiscountRatio: current.dayExclusionDiscountRatio,
