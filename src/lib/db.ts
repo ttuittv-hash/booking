@@ -211,6 +211,15 @@ function createConnection(): DatabaseSync {
       updated_at TEXT NOT NULL
     );
 
+    -- 1회성 데이터 마이그레이션이 실행됐는지 추적한다. "특정 마커 행이 있는지"로
+    -- 판단하면, 마이그레이션이 추가한 행을 사용자가 나중에 지웠을 때 마커가
+    -- 사라져서 재배포할 때마다 그 내용이 되살아나는 문제가 생긴다(실제로 발생함).
+    -- 한 번 실행되면 여기 기록해서, 사용자가 그 뒤에 뭘 지우든 다시 실행되지 않게 한다.
+    CREATE TABLE IF NOT EXISTS applied_migrations (
+      id TEXT PRIMARY KEY,
+      applied_at TEXT NOT NULL
+    );
+
     CREATE TABLE IF NOT EXISTS date_blocks (
       date TEXT PRIMARY KEY,
       reason TEXT,
@@ -438,184 +447,200 @@ function createConnection(): DatabaseSync {
     if (!validKeys.has(sheet_key)) deleteSheet.run(sheet_key);
   });
 
+  // 마이그레이션이 한 번 실행됐으면 그 뒤로는 절대 다시 실행하지 않는다.
+  // (아래 각 마이그레이션의 "이미 있으면 건너뛴다" 체크는 특정 행의 존재 여부로
+  // 판단하는데, 그 행을 사용자가 나중에 지우면 존재 여부 체크가 다시 "없음"으로
+  // 바뀌어서 재배포할 때마다 지운 내용이 되살아나는 문제가 있었다. 이제
+  // applied_migrations에 기록해 완전히 끝낸 걸로 표시하면, 그 뒤에 사용자가 뭘
+  // 지우든 더 이상 건드리지 않는다.)
+  function runMigrationOnce(id: string, fn: () => void) {
+    const already = db.prepare("SELECT 1 FROM applied_migrations WHERE id = ?").get(id);
+    if (already) return;
+    fn();
+    db.prepare("INSERT INTO applied_migrations (id, applied_at) VALUES (?, ?)").run(id, new Date().toISOString());
+  }
+
   // 메뉴트리(프론트) 1회성 마이그레이션: "대분류" 하나였던 값을 "구분"(GNB/푸터) +
   // "대분류"(짧은 이름: 유어스테이지·북잇·노우잇·호스트잇·하단·마이)로 분리하고,
   // "마이"(신청자 마이페이지) 행들을 맨 뒤로 옮긴다. 이미 "구분" 필드가 있으면(=한 번
   // 실행됐으면) 다시 건드리지 않는다 — 그 뒤에 마스터 관리자가 손으로 고친 내용을
   // 덮어쓰지 않기 위함.
-  const menuFrontRow = db
-    .prepare("SELECT data FROM feature_spec_sheets WHERE sheet_key = ?")
-    .get("메뉴트리(프론트)") as { data: string } | undefined;
-  if (menuFrontRow) {
+  runMigrationOnce("menu_front_v1_split_gubun", () => {
+    const menuFrontRow = db
+      .prepare("SELECT data FROM feature_spec_sheets WHERE sheet_key = ?")
+      .get("메뉴트리(프론트)") as { data: string } | undefined;
+    if (!menuFrontRow) return;
     const menuFrontRows = JSON.parse(menuFrontRow.data) as Record<string, string>[];
     const alreadyMigrated = menuFrontRows.some((r) => "구분" in r);
-    if (!alreadyMigrated) {
-      const LABEL_MAP: Record<string, [string, string]> = {
-        "신청자 마이페이지": ["GNB", "마이"],
-        "GNB·YOUR STAGE": ["GNB", "유어스테이지"],
-        "GNB·BOOK IT": ["GNB", "북잇"],
-        "GNB·KNOW IT": ["GNB", "노우잇"],
-        "GNB·HOST IT": ["GNB", "호스트잇"],
-        "GNB·하단": ["GNB", "하단"],
-      };
-      const transformed = menuFrontRows.map((row) => {
-        const old = row["대분류"];
-        const [gubun, daebunryu] = LABEL_MAP[old] ?? ["GNB", old];
-        const next: Record<string, string> = { 구분: gubun, 대분류: daebunryu };
-        for (const [k, v] of Object.entries(row)) {
-          if (k === "대분류") continue;
-          next[k] = v;
-        }
-        return next;
-      });
-      const mai = transformed.filter((r) => r["대분류"] === "마이");
-      const others = transformed.filter((r) => r["대분류"] !== "마이");
-      db.prepare(
-        "UPDATE feature_spec_sheets SET data = ?, updated_at = ? WHERE sheet_key = ?",
-      ).run(JSON.stringify([...others, ...mai]), new Date().toISOString(), "메뉴트리(프론트)");
-    }
-  }
+    if (alreadyMigrated) return;
+    const LABEL_MAP: Record<string, [string, string]> = {
+      "신청자 마이페이지": ["GNB", "마이"],
+      "GNB·YOUR STAGE": ["GNB", "유어스테이지"],
+      "GNB·BOOK IT": ["GNB", "북잇"],
+      "GNB·KNOW IT": ["GNB", "노우잇"],
+      "GNB·HOST IT": ["GNB", "호스트잇"],
+      "GNB·하단": ["GNB", "하단"],
+    };
+    const transformed = menuFrontRows.map((row) => {
+      const old = row["대분류"];
+      const [gubun, daebunryu] = LABEL_MAP[old] ?? ["GNB", old];
+      const next: Record<string, string> = { 구분: gubun, 대분류: daebunryu };
+      for (const [k, v] of Object.entries(row)) {
+        if (k === "대분류") continue;
+        next[k] = v;
+      }
+      return next;
+    });
+    const mai = transformed.filter((r) => r["대분류"] === "마이");
+    const others = transformed.filter((r) => r["대분류"] !== "마이");
+    db.prepare(
+      "UPDATE feature_spec_sheets SET data = ?, updated_at = ? WHERE sheet_key = ?",
+    ).run(JSON.stringify([...others, ...mai]), new Date().toISOString(), "메뉴트리(프론트)");
+  });
 
   // 메뉴트리(프론트) 2회성 마이그레이션: 공연사업팀이 제안한 사이트 전체 메뉴트리(홈페이지
   // 소개/공연/시설안내/상업시설/고객센터 + 대관시스템 아이디·비밀번호 찾기/대관 규약)를
   // 대조해 기존에 없던 행만 뒤에 추가한다. 기존 행은 절대 건드리지 않는다 — "정보사이트"
   // 구분 행이 하나라도 있으면(=이미 추가됐으면) 다시 실행하지 않는다.
-  const menuFrontRow2 = db
-    .prepare("SELECT data FROM feature_spec_sheets WHERE sheet_key = ?")
-    .get("메뉴트리(프론트)") as { data: string } | undefined;
-  if (menuFrontRow2) {
+  runMigrationOnce("menu_front_v2_add_infosite", () => {
+    const menuFrontRow2 = db
+      .prepare("SELECT data FROM feature_spec_sheets WHERE sheet_key = ?")
+      .get("메뉴트리(프론트)") as { data: string } | undefined;
+    if (!menuFrontRow2) return;
     const menuFrontRows2 = JSON.parse(menuFrontRow2.data) as Record<string, string>[];
+    // 이 마이그레이션이 applied_migrations에 기록되기 전이라면(=처음 실행되는
+    // 시점) 예전 방식(존재 여부 체크)으로 이미 추가돼있을 수 있으므로, 이번 한
+    // 번만 중복 추가를 막기 위해 여전히 확인한다. 기록된 뒤로는 이 마이그레이션
+    // 자체가 다시 호출되지 않으므로 이 체크도 다시 실행되지 않는다.
     const alreadyHasInfoSite = menuFrontRows2.some((r) => r["구분"] === "정보사이트");
-    if (!alreadyHasInfoSite) {
-      const seedRows = FEATURE_SPEC_SEED["메뉴트리(프론트)"] ?? [];
-      const newRows = seedRows.filter(
-        (r) => r["구분"] === "정보사이트" || r["메뉴"] === "아이디 / 비밀번호 찾기" || r["메뉴"] === "대관 규약",
+    if (alreadyHasInfoSite) return;
+    const seedRows = FEATURE_SPEC_SEED["메뉴트리(프론트)"] ?? [];
+    const newRows = seedRows.filter(
+      (r) => r["구분"] === "정보사이트" || r["메뉴"] === "아이디 / 비밀번호 찾기" || r["메뉴"] === "대관 규약",
+    );
+    if (newRows.length > 0) {
+      db.prepare(
+        "UPDATE feature_spec_sheets SET data = ?, updated_at = ? WHERE sheet_key = ?",
+      ).run(
+        JSON.stringify([...menuFrontRows2, ...newRows]),
+        new Date().toISOString(),
+        "메뉴트리(프론트)",
       );
-      if (newRows.length > 0) {
-        db.prepare(
-          "UPDATE feature_spec_sheets SET data = ?, updated_at = ? WHERE sheet_key = ?",
-        ).run(
-          JSON.stringify([...menuFrontRows2, ...newRows]),
-          new Date().toISOString(),
-          "메뉴트리(프론트)",
-        );
-      }
     }
-  }
+  });
 
   // 메뉴트리(프론트) 3회성 마이그레이션: 공연사업팀이 제안한 "대관 신청" 세부 흐름(아레나/
   // 중형공연장/공통 프로세스별 하위 단계, 대관 신청·변경 내역, 대관 진행 내역)과 "대관료"
   // 메뉴 항목을 추가로 반영한다. "대관 신청 (아레나)" 메뉴가 하나라도 있으면(=이미
   // 추가됐으면) 다시 실행하지 않는다.
-  const menuFrontRow3 = db
-    .prepare("SELECT data FROM feature_spec_sheets WHERE sheet_key = ?")
-    .get("메뉴트리(프론트)") as { data: string } | undefined;
-  if (menuFrontRow3) {
+  runMigrationOnce("menu_front_v3_add_apply_detail", () => {
+    const menuFrontRow3 = db
+      .prepare("SELECT data FROM feature_spec_sheets WHERE sheet_key = ?")
+      .get("메뉴트리(프론트)") as { data: string } | undefined;
+    if (!menuFrontRow3) return;
     const menuFrontRows3 = JSON.parse(menuFrontRow3.data) as Record<string, string>[];
     const alreadyHasApplyDetail = menuFrontRows3.some((r) => r["메뉴"] === "대관 신청 (아레나)");
-    if (!alreadyHasApplyDetail) {
-      const seedRows = FEATURE_SPEC_SEED["메뉴트리(프론트)"] ?? [];
-      const newRows = seedRows.filter((r) =>
-        ["대관 신청 (아레나)", "대관 신청 (중형공연장)", "대관 신청 (공연장 선택 이후 공통 프로세스)", "대관 신청/변경 내역", "대관 진행 내역", "대관료"].includes(
-          r["메뉴"],
-        ),
+    if (alreadyHasApplyDetail) return;
+    const seedRows = FEATURE_SPEC_SEED["메뉴트리(프론트)"] ?? [];
+    const newRows = seedRows.filter((r) =>
+      ["대관 신청 (아레나)", "대관 신청 (중형공연장)", "대관 신청 (공연장 선택 이후 공통 프로세스)", "대관 신청/변경 내역", "대관 진행 내역", "대관료"].includes(
+        r["메뉴"],
+      ),
+    );
+    if (newRows.length > 0) {
+      db.prepare(
+        "UPDATE feature_spec_sheets SET data = ?, updated_at = ? WHERE sheet_key = ?",
+      ).run(
+        JSON.stringify([...menuFrontRows3, ...newRows]),
+        new Date().toISOString(),
+        "메뉴트리(프론트)",
       );
-      if (newRows.length > 0) {
-        db.prepare(
-          "UPDATE feature_spec_sheets SET data = ?, updated_at = ? WHERE sheet_key = ?",
-        ).run(
-          JSON.stringify([...menuFrontRows3, ...newRows]),
-          new Date().toISOString(),
-          "메뉴트리(프론트)",
-        );
-      }
     }
-  }
+  });
 
   // 메뉴트리(프론트) 4회성 마이그레이션: "디자인 브랜치 GNB"라고 출처를 적어뒀던 행들을
   // 통째로 제거한다. 아직 머지되지 않은 디자인 브랜치의 GNB 구성을 그대로 옮겨 적어둔
-  // 임시 참고 행이라, 확정된 내용이 아니므로 뺀다. 비고에 그 문구가 남아있는 행이 하나도
-  // 없으면(=이미 정리됐으면) 다시 실행하지 않는다.
-  const menuFrontRow4 = db
-    .prepare("SELECT data FROM feature_spec_sheets WHERE sheet_key = ?")
-    .get("메뉴트리(프론트)") as { data: string } | undefined;
-  if (menuFrontRow4) {
+  // 임시 참고 행이라, 확정된 내용이 아니므로 뺀다.
+  runMigrationOnce("menu_front_v4_remove_design_branch_note", () => {
+    const menuFrontRow4 = db
+      .prepare("SELECT data FROM feature_spec_sheets WHERE sheet_key = ?")
+      .get("메뉴트리(프론트)") as { data: string } | undefined;
+    if (!menuFrontRow4) return;
     const menuFrontRows4 = JSON.parse(menuFrontRow4.data) as Record<string, string>[];
-    const hasDesignBranchNote = menuFrontRows4.some((r) => (r["비고"] ?? "").includes("디자인 브랜치 GNB"));
-    if (hasDesignBranchNote) {
-      const cleaned = menuFrontRows4.filter((r) => !(r["비고"] ?? "").includes("디자인 브랜치 GNB"));
-      db.prepare(
-        "UPDATE feature_spec_sheets SET data = ?, updated_at = ? WHERE sheet_key = ?",
-      ).run(JSON.stringify(cleaned), new Date().toISOString(), "메뉴트리(프론트)");
-    }
-  }
+    const cleaned = menuFrontRows4.filter((r) => !(r["비고"] ?? "").includes("디자인 브랜치 GNB"));
+    if (cleaned.length === menuFrontRows4.length) return;
+    db.prepare(
+      "UPDATE feature_spec_sheets SET data = ?, updated_at = ? WHERE sheet_key = ?",
+    ).run(JSON.stringify(cleaned), new Date().toISOString(), "메뉴트리(프론트)");
+  });
 
   // 약관 1회성 마이그레이션: 처음 시드했던 "문서 조항 나열" 구조(영역="이용약관 (/terms)"
   // 등)를 "플로우 구간별" 구조(구간1 회원가입, 구간4 전자 날인 등)로 교체한다. 이미 새
   // 구조로 바뀌었거나(구간1 표시가 있음) 애초에 새 구조로 시드된 DB에는 손대지 않는다 —
   // 마스터 관리자가 손으로 고친 내용을 덮어쓰지 않기 위함.
-  const termsRow = db
-    .prepare("SELECT data FROM feature_spec_sheets WHERE sheet_key = ?")
-    .get("약관") as { data: string } | undefined;
-  if (termsRow) {
+  runMigrationOnce("terms_v1_flow_structure", () => {
+    const termsRow = db
+      .prepare("SELECT data FROM feature_spec_sheets WHERE sheet_key = ?")
+      .get("약관") as { data: string } | undefined;
+    if (!termsRow) return;
     const termsRows = JSON.parse(termsRow.data) as Record<string, string>[];
     const isOldStructure = termsRows.some((r) => r["영역"] === "이용약관 (/terms)");
-    if (isOldStructure) {
-      db.prepare(
-        "UPDATE feature_spec_sheets SET data = ?, updated_at = ? WHERE sheet_key = ?",
-      ).run(JSON.stringify(FEATURE_SPEC_SEED["약관"] ?? []), new Date().toISOString(), "약관");
-    }
-  }
+    if (!isOldStructure) return;
+    db.prepare(
+      "UPDATE feature_spec_sheets SET data = ?, updated_at = ? WHERE sheet_key = ?",
+    ).run(JSON.stringify(FEATURE_SPEC_SEED["약관"] ?? []), new Date().toISOString(), "약관");
+  });
 
   // 약관 2회성 마이그레이션: 구간별 구조로 바뀐 뒤에도 T-1~T-8·P-1~P-9는 실제 조항
   // 원문이 아니라 요약문이 들어가 있었다("마스터 관리자가 원문인 줄 알았는데 요약이더라"
   // 는 피드백으로 발견). 이 행들만 기능정의서 시드의 원문으로 교체하고(#로 매칭),
   // 개인정보처리방침 전문 서두(P-0)가 없으면 추가한다. 다른 행(C-*, S-*, K-*, W-1, G-1
   // 등)과 이미 원문으로 바뀐 행은 건드리지 않는다.
-  const termsRow2 = db
-    .prepare("SELECT data FROM feature_spec_sheets WHERE sheet_key = ?")
-    .get("약관") as { data: string } | undefined;
-  if (termsRow2) {
+  runMigrationOnce("terms_v2_verbatim_text", () => {
+    const termsRow2 = db
+      .prepare("SELECT data FROM feature_spec_sheets WHERE sheet_key = ?")
+      .get("약관") as { data: string } | undefined;
+    if (!termsRow2) return;
     const termsRows2 = JSON.parse(termsRow2.data) as Record<string, string>[];
     const t1 = termsRows2.find((r) => r["#"] === "T-1");
     const needsVerbatimUpgrade = !!t1 && !t1["상세 정의"]?.startsWith("제1조 (목적)");
-    if (needsVerbatimUpgrade) {
-      // T-1~T-8, P-1~P-9만 원문으로 바꾼다 — 다른 행(C-*, S-*, K-*, W-1, G-1 등)은
-      // 시드에도 같은 #가 존재하지만 마스터 관리자가 손으로 고쳤을 수 있으므로 절대
-      // 건드리지 않는다.
-      const upgradeIds = new Set([
-        "T-1", "T-2", "T-3", "T-4", "T-5", "T-6", "T-7", "T-8",
-        "P-1", "P-2", "P-3", "P-4", "P-5", "P-6", "P-7", "P-8", "P-9",
-      ]);
-      const seedById = new Map(
-        (FEATURE_SPEC_SEED["약관"] ?? []).map((r) => [r["#"], r] as const),
-      );
-      const upgraded = termsRows2.map((row) => {
-        if (!upgradeIds.has(row["#"])) return row;
-        const seedRow = seedById.get(row["#"]);
-        return seedRow ? { ...row, 기능: seedRow["기능"], "상세 정의": seedRow["상세 정의"] } : row;
-      });
-      const hasP0 = upgraded.some((r) => r["#"] === "P-0");
-      const p0 = seedById.get("P-0");
-      const c2Index = upgraded.findIndex((r) => r["#"] === "C-2");
-      const withP0 =
-        !hasP0 && p0 && c2Index >= 0
-          ? [...upgraded.slice(0, c2Index + 1), p0, ...upgraded.slice(c2Index + 1)]
-          : upgraded;
-      db.prepare(
-        "UPDATE feature_spec_sheets SET data = ?, updated_at = ? WHERE sheet_key = ?",
-      ).run(JSON.stringify(withP0), new Date().toISOString(), "약관");
-    }
-  }
+    if (!needsVerbatimUpgrade) return;
+    // T-1~T-8, P-1~P-9만 원문으로 바꾼다 — 다른 행(C-*, S-*, K-*, W-1, G-1 등)은
+    // 시드에도 같은 #가 존재하지만 마스터 관리자가 손으로 고쳤을 수 있으므로 절대
+    // 건드리지 않는다.
+    const upgradeIds = new Set([
+      "T-1", "T-2", "T-3", "T-4", "T-5", "T-6", "T-7", "T-8",
+      "P-1", "P-2", "P-3", "P-4", "P-5", "P-6", "P-7", "P-8", "P-9",
+    ]);
+    const seedById = new Map(
+      (FEATURE_SPEC_SEED["약관"] ?? []).map((r) => [r["#"], r] as const),
+    );
+    const upgraded = termsRows2.map((row) => {
+      if (!upgradeIds.has(row["#"])) return row;
+      const seedRow = seedById.get(row["#"]);
+      return seedRow ? { ...row, 기능: seedRow["기능"], "상세 정의": seedRow["상세 정의"] } : row;
+    });
+    const hasP0 = upgraded.some((r) => r["#"] === "P-0");
+    const p0 = seedById.get("P-0");
+    const c2Index = upgraded.findIndex((r) => r["#"] === "C-2");
+    const withP0 =
+      !hasP0 && p0 && c2Index >= 0
+        ? [...upgraded.slice(0, c2Index + 1), p0, ...upgraded.slice(c2Index + 1)]
+        : upgraded;
+    db.prepare(
+      "UPDATE feature_spec_sheets SET data = ?, updated_at = ? WHERE sheet_key = ?",
+    ).run(JSON.stringify(withP0), new Date().toISOString(), "약관");
+  });
 
   // 약관 3회성 마이그레이션: T-1~T-8·P-1~P-9의 "상세 정의"에 들어있던 줄바꿈(\n)을
   // " · " 가운데점 구분자로 합쳐 한 줄로 표시되게 한다(표 폭을 넓혀도 여러 줄로 늘어져
   // 보기 불편하다는 피드백으로 진행). 이미 줄바꿈이 없는 행(=이미 적용됐거나 마스터
   // 관리자가 직접 정리한 행)은 다시 건드리지 않는다.
-  const termsRow3 = db
-    .prepare("SELECT data FROM feature_spec_sheets WHERE sheet_key = ?")
-    .get("약관") as { data: string } | undefined;
-  if (termsRow3) {
+  runMigrationOnce("terms_v3_collapse_newlines", () => {
+    const termsRow3 = db
+      .prepare("SELECT data FROM feature_spec_sheets WHERE sheet_key = ?")
+      .get("약관") as { data: string } | undefined;
+    if (!termsRow3) return;
     const termsRows3 = JSON.parse(termsRow3.data) as Record<string, string>[];
     const collapseIds = new Set([
       "T-1", "T-2", "T-3", "T-4", "T-5", "T-6", "T-7", "T-8",
@@ -624,45 +649,46 @@ function createConnection(): DatabaseSync {
     const needsCollapse = termsRows3.some(
       (r) => collapseIds.has(r["#"]) && r["상세 정의"]?.includes("\n"),
     );
-    if (needsCollapse) {
-      const collapsed = termsRows3.map((row) => {
-        if (!collapseIds.has(row["#"]) || !row["상세 정의"]?.includes("\n")) return row;
-        const joined = row["상세 정의"]
-          .split(/\n+/)
-          .map((seg) => seg.trim().replace(/^-\s+/, ""))
-          .filter(Boolean)
-          .join(" · ");
-        return { ...row, "상세 정의": joined };
-      });
-      db.prepare(
-        "UPDATE feature_spec_sheets SET data = ?, updated_at = ? WHERE sheet_key = ?",
-      ).run(JSON.stringify(collapsed), new Date().toISOString(), "약관");
-    }
-  }
+    if (!needsCollapse) return;
+    const collapsed = termsRows3.map((row) => {
+      if (!collapseIds.has(row["#"]) || !row["상세 정의"]?.includes("\n")) return row;
+      const joined = row["상세 정의"]
+        .split(/\n+/)
+        .map((seg) => seg.trim().replace(/^-\s+/, ""))
+        .filter(Boolean)
+        .join(" · ");
+      return { ...row, "상세 정의": joined };
+    });
+    db.prepare(
+      "UPDATE feature_spec_sheets SET data = ?, updated_at = ? WHERE sheet_key = ?",
+    ).run(JSON.stringify(collapsed), new Date().toISOString(), "약관");
+  });
 
   // 상세 정의 1회성 마이그레이션: 상세 정의 칸은 이제 화면에서 새로 입력할 때
   // 첫 줄도 다른 줄처럼 "· "로 시작하게 되어있는데, 이 규칙이 생기기 전에 이미
   // 입력돼있던 값들은 첫머리에 점이 없다. 상세 정의 칸이 있는 시트를 모두 훑어서
   // 값은 있는데 "· "로 시작하지 않는 행에만 앞머리를 붙여준다.
-  const detailDotSheetKeys = ["기능정의(프론트)", "기능정의(어드민)", "약관"] as const;
-  for (const key of detailDotSheetKeys) {
-    const detailRow = db.prepare("SELECT data FROM feature_spec_sheets WHERE sheet_key = ?").get(key) as
-      | { data: string }
-      | undefined;
-    if (!detailRow) continue;
-    const detailRows = JSON.parse(detailRow.data) as Record<string, string>[];
-    const needsDot = detailRows.some((r) => r["상세 정의"] && !r["상세 정의"].startsWith("· "));
-    if (!needsDot) continue;
-    const fixed = detailRows.map((r) => {
-      if (!r["상세 정의"] || r["상세 정의"].startsWith("· ")) return r;
-      return { ...r, "상세 정의": "· " + r["상세 정의"] };
-    });
-    db.prepare("UPDATE feature_spec_sheets SET data = ?, updated_at = ? WHERE sheet_key = ?").run(
-      JSON.stringify(fixed),
-      new Date().toISOString(),
-      key,
-    );
-  }
+  runMigrationOnce("detail_definition_v1_leading_dot", () => {
+    const detailDotSheetKeys = ["기능정의(프론트)", "기능정의(어드민)", "약관"] as const;
+    for (const key of detailDotSheetKeys) {
+      const detailRow = db.prepare("SELECT data FROM feature_spec_sheets WHERE sheet_key = ?").get(key) as
+        | { data: string }
+        | undefined;
+      if (!detailRow) continue;
+      const detailRows = JSON.parse(detailRow.data) as Record<string, string>[];
+      const needsDot = detailRows.some((r) => r["상세 정의"] && !r["상세 정의"].startsWith("· "));
+      if (!needsDot) continue;
+      const fixed = detailRows.map((r) => {
+        if (!r["상세 정의"] || r["상세 정의"].startsWith("· ")) return r;
+        return { ...r, "상세 정의": "· " + r["상세 정의"] };
+      });
+      db.prepare("UPDATE feature_spec_sheets SET data = ?, updated_at = ? WHERE sheet_key = ?").run(
+        JSON.stringify(fixed),
+        new Date().toISOString(),
+        key,
+      );
+    }
+  });
 
   return db;
 }
