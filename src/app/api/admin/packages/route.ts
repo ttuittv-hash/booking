@@ -47,6 +47,7 @@ function sanitizeNewAddon(input: Record<string, unknown>): AddonItem | null {
     unitLabel: typeof input.unitLabel === "string" && input.unitLabel.trim() ? input.unitLabel.trim() : "원",
     availability: { mode: "ALWAYS" },
     billingPhase: "ESTIMATE",
+    visibility: "VISIBLE",
   };
 }
 

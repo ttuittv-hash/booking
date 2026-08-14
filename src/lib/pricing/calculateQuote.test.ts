@@ -32,13 +32,21 @@ function baseSelection(overrides: Partial<QuoteSelection> = {}): QuoteSelection 
   };
 }
 
+// [기능정의서 2-48] 아레나 유틸리티(필수) 자동 산입 합계 — HIDDEN, ESTIMATE, UTILITY 카테고리 항목의 합.
+function arenaHiddenUtilityTotal(): number {
+  return RATE_TABLE.addons
+    .filter((a) => a.category === "UTILITY" && a.visibility === "HIDDEN" && a.billingPhase === "ESTIMATE")
+    .reduce((sum, a) => sum + a.unitPrice, 0);
+}
+
 describe("calculateQuote — 명세서 7장 검증 케이스", () => {
   const pkg2 = findPackage(RATE_TABLE, 2)!;
   const cleaning = findAddon(RATE_TABLE, "cleaning")!;
+  const utilityTotal = arenaHiddenUtilityTotal();
 
-  it("케이스 A: 기본만 — 기본료 + 청소비", () => {
+  it("케이스 A: 기본만 — 기본료 + 청소비 + 유틸리티(자동산입)", () => {
     const quote = calculateQuote(baseSelection(), RATE_TABLE);
-    const expectedSubtotal = packagePrice(RATE_TABLE, pkg2) + 8000 * cleaning.unitPrice;
+    const expectedSubtotal = packagePrice(RATE_TABLE, pkg2) + 8000 * cleaning.unitPrice + utilityTotal;
     expect(quote.subtotal).toBe(expectedSubtotal);
     expect(quote.vat).toBe(Math.round(expectedSubtotal * 0.1));
     expect(quote.total).toBe(expectedSubtotal + quote.vat);
@@ -69,7 +77,11 @@ describe("calculateQuote — 명세서 7장 검증 케이스", () => {
     expect(smartStageLine.amount).toBe(1 * smartStage.unitPrice);
 
     const expectedSubtotal =
-      packagePrice(RATE_TABLE, pkg2) + 8000 * cleaning.unitPrice + waitingRoom.unitPrice + smartStage.unitPrice;
+      packagePrice(RATE_TABLE, pkg2) +
+      8000 * cleaning.unitPrice +
+      waitingRoom.unitPrice +
+      smartStage.unitPrice +
+      utilityTotal;
     expect(quote.subtotal).toBe(expectedSubtotal);
   });
 
@@ -82,7 +94,8 @@ describe("calculateQuote — 명세서 7장 검증 케이스", () => {
     expect(extraDaysLine.billable).toBe(2);
     expect(extraDaysLine.amount).toBe(2 * dayPrice);
 
-    const expectedSubtotal = packagePrice(RATE_TABLE, pkg2) + 8000 * cleaning.unitPrice + 2 * dayPrice;
+    const expectedSubtotal =
+      packagePrice(RATE_TABLE, pkg2) + 8000 * cleaning.unitPrice + 2 * dayPrice + utilityTotal;
     expect(quote.subtotal).toBe(expectedSubtotal);
   });
 
@@ -94,8 +107,36 @@ describe("calculateQuote — 명세서 7장 검증 케이스", () => {
     expect(discountLine.billable).toBe(1);
     expect(discountLine.amount).toBe(-perDayDiscount);
 
-    const expectedSubtotal = packagePrice(RATE_TABLE, pkg2) + 8000 * cleaning.unitPrice - perDayDiscount;
+    const expectedSubtotal =
+      packagePrice(RATE_TABLE, pkg2) + 8000 * cleaning.unitPrice - perDayDiscount + utilityTotal;
     expect(quote.subtotal).toBe(expectedSubtotal);
+  });
+
+  it("패키지 가격은 요금표 고정값 그대로다 — 포함 항목 단가를 더해 역산하지 않는다 (2-20/2-42)", () => {
+    const quote = calculateQuote(baseSelection(), RATE_TABLE);
+    const baseFeeLine = quote.lineItems.find((i) => i.addonId === "BASE_FEE")!;
+    expect(baseFeeLine.amount).toBe(pkg2.baseFeePerWeek);
+    expect(baseFeeLine.visibility).toBe("VISIBLE");
+  });
+
+  it("유틸리티(필수)는 신청자 화면에서 HIDDEN 등급으로, 견적에는 자동 산입된다 (2-48)", () => {
+    const quote = calculateQuote(baseSelection(), RATE_TABLE);
+    const utilityLine = quote.lineItems.find((i) => i.addonId === "utility_bundle")!;
+    expect(utilityLine).toBeDefined();
+    expect(utilityLine.visibility).toBe("HIDDEN");
+    expect(utilityLine.amount).toBe(utilityTotal);
+    expect(utilityTotal).toBe(61_000_000);
+  });
+
+  it("선택 부대시설(옥외광고 등)은 VISIBLE 등급으로 항목·단가·금액이 그대로 노출된다 (2-71)", () => {
+    const outdoor = findAddon(RATE_TABLE, "outdoor_xbanner")!;
+    const quote = calculateQuote(
+      baseSelection({ addons: [{ addonId: "outdoor_xbanner", requestedQuantity: 2 }] }),
+      RATE_TABLE,
+    );
+    const line = quote.lineItems.find((i) => i.addonId === "outdoor_xbanner")!;
+    expect(line.visibility).toBe("VISIBLE");
+    expect(line.amount).toBe(2 * outdoor.unitPrice);
   });
 
   it("제외 요일 할인 + 추가 일수는 함께 적용된다", () => {

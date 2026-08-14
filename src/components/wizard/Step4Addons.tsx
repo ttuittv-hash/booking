@@ -39,6 +39,7 @@ export function Step4Addons({
   const grouped = new Map<AddonCategory, AddonItem[]>();
   for (const addon of rateTable.addons) {
     if (!isAddonAvailable(addon, pkg)) continue;
+    if (addon.visibility === "HIDDEN") continue; // 자동 산입 항목 — 신청자가 선택하는 화면이 아니다 (2-71)
     const list = grouped.get(addon.category) ?? [];
     list.push(addon);
     grouped.set(addon.category, list);

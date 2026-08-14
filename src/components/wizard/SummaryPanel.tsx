@@ -31,10 +31,15 @@ export function SummaryPanel({ quote }: { quote: EstimatedQuote }) {
                   }
                 >
                   {item.label}
-                  {item.billable > 0 && item.included > 0 && (
-                    <span className="ml-1 text-[11px] text-muted">
-                      (초과 {item.billable.toLocaleString()})
-                    </span>
+                  {item.visibility === "HIDDEN" ? (
+                    <span className="ml-1 text-[11px] text-muted">(자동 포함)</span>
+                  ) : (
+                    item.billable > 0 &&
+                    item.included > 0 && (
+                      <span className="ml-1 text-[11px] text-muted">
+                        (초과 {item.billable.toLocaleString()})
+                      </span>
+                    )
                   )}
                 </span>
                 <span className="font-medium tabular-nums text-foreground">

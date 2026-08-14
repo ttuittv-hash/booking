@@ -22,14 +22,13 @@ export function recommendPackage(rateTable: RateTable, expectedAudience: number,
   return match ? match.id : null;
 }
 
-// 패키지 가격 = 기본 대관료 + 기본 포함 항목의 단가 합계.
-// 대관 신청 시 실제로 청구되는 금액은 이 "패키지 가격"이며, 기본 대관료 단독 금액이 아니다.
+// 패키지 가격 = 요금표에 등록된 표시 대관료 고정값 그 자체.
+// [개정 2026-08-14, 기능정의서 2-20/2-42/부록A] 기존 "기본 대관료 + 기본 포함 항목 단가 합계"
+// 역산 규칙은 폐기됐다 — 구성 항목(includedItems)은 신청자 화면에 항목·수량만 보여주는 용도
+// (ITEM_ONLY, Ⓐ)이며 이 가격에 가산되지 않는다. 실제 산정표에서도 Ⓐ+Ⓑ 합계와 표시 대관료가
+// 일치하지 않는다(패키지마다 수천만원 차이, 마진·반올림 성격은 미확인 — 부록B #21).
 export function packagePrice(rateTable: RateTable, pkg: RentalPackage): number {
-  const includedValue = pkg.includedItems.reduce((sum, item) => {
-    const addon = findAddon(rateTable, item.addonId);
-    return sum + (addon ? addon.unitPrice * item.quantity : 0);
-  }, 0);
-  return pkg.baseFeePerWeek + includedValue;
+  return pkg.baseFeePerWeek;
 }
 
 export function includedQuantity(pkg: RentalPackage | undefined, addonId: string): number {

@@ -47,24 +47,36 @@ export function Step5Estimate({
             </tr>
           </thead>
           <tbody>
-            {quote.lineItems.map((item) => (
-              <tr key={item.addonId} className="border-b border-border/70 tabular-nums">
-                <td className="py-2.5 text-left font-medium">{item.label}</td>
-                <td className="py-2.5 text-right">
-                  {item.pricingType === "REVENUE_PERCENT"
-                    ? `${won(selection.expectedRevenue ?? 0)} × ${item.unitPrice}%`
-                    : item.requested.toLocaleString()}
-                </td>
-                <td className="py-2.5 text-right">{item.included || "-"}</td>
-                <td className="py-2.5 text-right">
-                  {item.pricingType === "REVENUE_PERCENT" ? "-" : item.billable.toLocaleString()}
-                </td>
-                <td className="py-2.5 text-right">
-                  {item.pricingType === "REVENUE_PERCENT" ? "-" : won(item.unitPrice)}
-                </td>
-                <td className="py-2.5 text-right font-semibold">{won(item.amount)}</td>
-              </tr>
-            ))}
+            {quote.lineItems.map((item) => {
+              const isHidden = item.visibility === "HIDDEN";
+              return (
+                <tr key={item.addonId} className="border-b border-border/70 tabular-nums">
+                  <td className="py-2.5 text-left font-medium">
+                    {item.label}
+                    {isHidden && (
+                      <span className="ml-1.5 rounded-sm bg-panel px-1.5 py-0.5 text-[10.5px] font-normal text-muted">
+                        자동 포함
+                      </span>
+                    )}
+                  </td>
+                  <td className="py-2.5 text-right">
+                    {isHidden
+                      ? "-"
+                      : item.pricingType === "REVENUE_PERCENT"
+                        ? `${won(selection.expectedRevenue ?? 0)} × ${item.unitPrice}%`
+                        : item.requested.toLocaleString()}
+                  </td>
+                  <td className="py-2.5 text-right">{isHidden ? "-" : item.included || "-"}</td>
+                  <td className="py-2.5 text-right">
+                    {isHidden || item.pricingType === "REVENUE_PERCENT" ? "-" : item.billable.toLocaleString()}
+                  </td>
+                  <td className="py-2.5 text-right">
+                    {isHidden || item.pricingType === "REVENUE_PERCENT" ? "-" : won(item.unitPrice)}
+                  </td>
+                  <td className="py-2.5 text-right font-semibold">{won(item.amount)}</td>
+                </tr>
+              );
+            })}
           </tbody>
           <tfoot>
             <tr>

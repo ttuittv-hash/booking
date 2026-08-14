@@ -135,6 +135,7 @@ export function PackagesForm({ rateTable }: { rateTable: RateTable }) {
       unitLabel: newItemUnitLabel.trim() || "원",
       availability: { mode: "ALWAYS" },
       billingPhase: "ESTIMATE",
+      visibility: "VISIBLE",
     };
     setAddons((prev) => [...prev, item]);
     setIncludedQty(id, 1);

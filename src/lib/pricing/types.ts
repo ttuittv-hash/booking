@@ -76,7 +76,10 @@ export interface RentalPackage {
     max: number;
     label: string; // "~5,000석 규모"
   };
-  baseFeePerWeek: number; // 기본 대관료(1주, 고정가) — 요금표에서 주입
+  // 표시 대관료(1주, 고정가) — 요금표에서 주입되는 독립 고정값. [개정 2026-08-14, 기능정의서 2-20/2-42]
+  // 기존 "기본 대관료 + 포함 항목 정가 합산" 규칙은 폐기됐다 — 이 값 자체가 최종 표시 금액이며,
+  // includedItems 단가를 더해 역산·검증하지 않는다(Bowl 사용료가 이 값에 내재되어 있다, 2-43).
+  baseFeePerWeek: number;
   includedWeeks: number; // 기본 포함 주차 (통상 1)
   includedItems: PackageInclusion[]; // 기본 포함사항 (3단계에 표시)
   mediaTier: MediaTier; // 홍보 디지털 매체(구좌) 등급 개방
@@ -107,6 +110,13 @@ export interface AvailabilityRule {
 
 export type BillingPhase = "ESTIMATE" | "SETTLEMENT";
 
+// 산출내역표 노출 등급 (기능정의서 2-71). 신청자 화면 기준이며 운영자 화면(어드민)에는
+// 적용하지 않는다 — 운영자는 항상 전체 내역을 본다.
+// VISIBLE    — 항목·수량·단가·금액 전부 노출 (예: 선택 옵션)
+// ITEM_ONLY  — 항목명·수량만 노출, 단가·금액은 감춘다 (예: 패키지 기본 포함 항목)
+// HIDDEN     — 항목 자체가 드러나지 않고 금액에만 자동 반영된다 (예: 유틸리티)
+export type LineItemVisibility = "VISIBLE" | "ITEM_ONLY" | "HIDDEN";
+
 export interface AddonItem {
   id: string; // "waiting_room", "smart_stage" ...
   category: AddonCategory;
@@ -117,6 +127,7 @@ export interface AddonItem {
   availability: AvailabilityRule;
   autoQuantity?: "AUDIENCE"; // 있으면 관객수로 수량 자동 채움 (청소비)
   billingPhase: BillingPhase; // 예상견적 포함 여부 (유틸리티=SETTLEMENT)
+  visibility: LineItemVisibility; // 신청자 화면 노출 등급 (2-71)
   note?: string;
 }
 
@@ -236,6 +247,7 @@ export interface LineItem {
   unitPrice: number;
   amount: number; // billable * unitPrice
   phase: BillingPhase;
+  visibility: LineItemVisibility; // 신청자 화면 노출 등급 (2-71)
 }
 
 export interface Quote {
