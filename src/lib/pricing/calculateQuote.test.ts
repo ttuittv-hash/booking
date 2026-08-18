@@ -10,12 +10,17 @@ const RATE_TABLE = buildSeedRateTable();
 function baseSelection(overrides: Partial<QuoteSelection> = {}): QuoteSelection {
   return {
     venueId: "arena",
+    bookingMode: "SINGLE",
     packageId: 2,
     week: { year: 2027, month: 8, weekOfMonth: 1 },
     excludedDays: [],
     extraDays: 0,
     dayTags: {},
     expectedAudience: 8000,
+    secondaryAudience: 1500,
+    midHallDays: {},
+    midHallExtraSetupHours: 0,
+    midHallExtraLoadOutHours: 0,
     expectedRevenue: 0,
     addons: [],
     performanceInfo: {

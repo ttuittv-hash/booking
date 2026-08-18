@@ -167,14 +167,36 @@ export const WEEKDAY_LABEL: Record<WeekDay, string> = {
 
 export type DayTag = "PREP" | "PERFORMANCE";
 
+// ---------------------------------------------------------------------------
+// 동시 대관 / 중형 일 단위 캘린더 — [화면 뼈대 2026-08-18, 화면시나리오·기능정의 v6.3]
+// 이용 시설을 아레나/중형공연장/동시 대관 3택으로 통합한다(기능정의 2-13, 확정).
+// 이번 반영은 화면 흐름 뼈대까지다 — 중형(DAILY) 요금 계산 엔진과 Application+Booking
+// 데이터모델 분리는 다음 단계 작업이며, 이 커밋에서는 손대지 않는다.
+// ---------------------------------------------------------------------------
+
+export type BookingMode = "SINGLE" | "SIMULTANEOUS";
+
+// 중형공연장은 패키지 개념이 없다 — 날짜를 하루씩 골라 셋업/공연만 지정한다(2-25, 확정).
+export type MidHallDayRole = "SETUP" | "PERFORMANCE";
+
+export interface MidHallDaySelection {
+  role: MidHallDayRole;
+  shows: number; // 공연일에만 의미 있음 — 1일 2회 이상 회차 지정 (2-29)
+}
+
 export interface QuoteSelection {
   venueId: string | null; // 0단계: 공간 선택
-  packageId: number | null; // 1단계
-  week: { year: number; month: number; weekOfMonth: number }; // 2단계 (화~일 시작 주)
+  bookingMode: BookingMode; // SIMULTANEOUS = 아레나 + 중형을 신청서 1건으로 묶는 동시 대관(2-13, 할인 없음)
+  packageId: number | null; // 1단계 — 아레나 전용. 중형은 패키지가 없어 항상 null.
+  week: { year: number; month: number; weekOfMonth: number }; // 2단계 (화~일 시작 주) — 아레나 일정
   excludedDays: WeekDay[]; // 화~일 6일 중 실제 사용하지 않는 요일 (요일당 정액 할인, 최소 1일은 남겨야 함)
   extraDays: number; // 일요일 이후로 연장하는 추가 일수 (일 단위 과금, 0 이상)
   dayTags: Record<string, DayTag>; // 실제 대관일(ISO 날짜)별 준비일/공연일 지정 — 미지정 시 패키지 기본값 적용
-  expectedAudience: number; // 관객수 (청소비 등 자동 산출 입력값)
+  expectedAudience: number; // 관객수 (청소비 등 자동 산출 입력값) — 동시 대관 시 아레나 값
+  secondaryAudience: number; // 중형 예상 관객 규모 — 동시 대관 또는 중형 단독일 때만 의미 있음(2-14)
+  midHallDays: Record<string, MidHallDaySelection>; // 중형 일정 — ISO 날짜별 셋업/공연 지정(2-25~2-29)
+  midHallExtraSetupHours: number; // 셋업 연장(22:00~24:00) 시간 — 100만원/시간(2-28, 참고용 표시만)
+  midHallExtraLoadOutHours: number; // 철수 Load-Out 시간 — 100만원/시간(2-28, 참고용 표시만)
   expectedRevenue?: number; // 온라인 송출 수수료 계산용 (선택)
   addons: SelectedAddon[]; // 4단계 선택 항목
   performanceInfo: PerformanceInfo; // 공연 정보 입력 단계

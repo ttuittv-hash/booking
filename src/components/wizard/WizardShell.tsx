@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { calculateQuote } from "@/lib/pricing/calculateQuote";
+import { overlapDates, resolveSelectedDates } from "@/lib/pricing/dateRange";
 import { findAddon, findPackage, isAddonAvailable } from "@/lib/pricing/rateTableUtils";
 import type { AppUser, DateBlock, QuoteSelection, RateTable, WeekDemand } from "@/lib/pricing/types";
 import { DEFAULT_VENUE_ID } from "@/lib/pricing/types";
@@ -10,6 +11,7 @@ import { StepNav } from "./StepNav";
 import { SummaryPanel } from "./SummaryPanel";
 import { StepVenue } from "./StepVenue";
 import { Step1Calendar } from "./Step1Calendar";
+import { MidHallCalendar } from "./MidHallCalendar";
 import { Step1Package } from "./Step1Package";
 import { Step3Included } from "./Step3Included";
 import { Step4Addons } from "./Step4Addons";
@@ -18,6 +20,12 @@ import { StepPerformanceInfo } from "./StepPerformanceInfo";
 import { Step6Submit } from "./Step6Submit";
 
 const TOTAL_STEPS = 8;
+
+// 중형공연장 단독(패키지 없음)일 때는 3단계(규모/패키지)·4단계(기본 포함사항)가 성립하지
+// 않는다 — 위저드 내부 단계 번호는 그대로 두고 이 두 단계만 건너뛴다(2-25, 확정).
+function isMidHallOnly(selection: Pick<QuoteSelection, "venueId" | "bookingMode">): boolean {
+  return selection.venueId === "medium-hall" && selection.bookingMode === "SINGLE";
+}
 
 // 오늘 기준 다음 달을 기본값으로 — 과거 임의의 연도로 고정돼 있으면 신청자가 매번
 // 달력을 여러 달 넘겨야 하고, 자신이 신청한 주차의 경합 현황도 바로 보이지 않는다.
@@ -40,12 +48,17 @@ const INITIAL_PERFORMANCE_INFO: QuoteSelection["performanceInfo"] = {
 
 const INITIAL_SELECTION: QuoteSelection = {
   venueId: null,
+  bookingMode: "SINGLE",
   packageId: null,
   week: defaultWeek(),
   excludedDays: [],
   extraDays: 0,
   dayTags: {},
   expectedAudience: 8000,
+  secondaryAudience: 1500,
+  midHallDays: {},
+  midHallExtraSetupHours: 0,
+  midHallExtraLoadOutHours: 0,
   expectedRevenue: 0,
   addons: [],
   performanceInfo: INITIAL_PERFORMANCE_INFO,
@@ -92,10 +105,19 @@ export function WizardShell({
           ...INITIAL_SELECTION,
           ...initialSelection,
           venueId: initialSelection.venueId ?? DEFAULT_VENUE_ID,
+          bookingMode: initialSelection.bookingMode ?? "SINGLE",
+          secondaryAudience: initialSelection.secondaryAudience ?? INITIAL_SELECTION.secondaryAudience,
+          midHallDays: initialSelection.midHallDays ?? {},
           performanceInfo: initialSelection.performanceInfo ?? INITIAL_PERFORMANCE_INFO,
         }
       : INITIAL_SELECTION,
   );
+  // 동시 대관 캘린더 탭 + 중형 캘린더 월 이동은 신청서 selection과 별개의 화면 상태다.
+  const [venueTab, setVenueTab] = useState<"arena" | "medium-hall">("arena");
+  const [midHallMonth, setMidHallMonth] = useState(() => {
+    const w = defaultWeek();
+    return { year: w.year, month: w.month };
+  });
   const [submittedId, setSubmittedId] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
@@ -123,6 +145,9 @@ export function WizardShell({
         ...draft.selection,
         dayTags: draft.selection.dayTags ?? {},
         venueId: draft.selection.venueId ?? null,
+        bookingMode: draft.selection.bookingMode ?? "SINGLE",
+        secondaryAudience: draft.selection.secondaryAudience ?? INITIAL_SELECTION.secondaryAudience,
+        midHallDays: draft.selection.midHallDays ?? {},
         performanceInfo: draft.selection.performanceInfo ?? INITIAL_PERFORMANCE_INFO,
       });
       setStep(draft.step);
@@ -136,9 +161,26 @@ export function WizardShell({
   }, [step, selection, submittedId, isEditing]);
 
   const quote = useMemo(() => calculateQuote(selection, rateTable), [selection, rateTable]);
-  const maxUnlockedStep = !selection.venueId ? 1 : selection.packageId ? TOTAL_STEPS : 3;
+  const midHallOnly = isMidHallOnly(selection);
+  const hasMidHallSelection = Object.keys(selection.midHallDays).length > 0;
+  const maxUnlockedStep = !selection.venueId
+    ? 1
+    : midHallOnly
+      ? hasMidHallSelection
+        ? TOTAL_STEPS
+        : 2
+      : selection.packageId
+        ? TOTAL_STEPS
+        : 3;
   // 패키지 선택 전에도 기본 공연일수를 보여줘야 하므로, 모든 패키지가 공유하는 기본값(2일)을 임시로 사용한다.
   const defaultPerformanceDays = findPackage(rateTable, selection.packageId)?.defaultPerformanceDays ?? 2;
+  // 동시 대관 겹침 — 아레나 확정 기간과 중형 선택일의 교집합(2-33/2-34). 금액에는 영향 없다.
+  const arenaSelectedDates = useMemo(() => resolveSelectedDates(selection), [selection]);
+  const midHallSelectedDates = Object.keys(selection.midHallDays);
+  const overlapDayCount = useMemo(
+    () => overlapDates(arenaSelectedDates, midHallSelectedDates).length,
+    [arenaSelectedDates, midHallSelectedDates],
+  );
 
   function goTo(target: number) {
     if (target < 1 || target > TOTAL_STEPS) return;
@@ -147,12 +189,40 @@ export function WizardShell({
     if (typeof window !== "undefined") window.scrollTo({ top: 0, behavior: "smooth" });
   }
 
-  function selectVenue(id: string) {
+  function goNext() {
+    if (midHallOnly && step === 2) {
+      goTo(5);
+      return;
+    }
+    goTo(step + 1);
+  }
+
+  function goPrev() {
+    if (midHallOnly && step === 5) {
+      goTo(2);
+      return;
+    }
+    goTo(step - 1);
+  }
+
+  // [화면 뼈대 2026-08-18, 기능정의 2-5/2-13] 이용 시설을 바꾸면 요금 체계가 달라 이월할
+  // 수 없으므로 STEP 1-2 · 2의 입력값을 전부 초기화한다(패키지 · 일정 · 옵션 모두).
+  function selectVenue(id: string, bookingMode: QuoteSelection["bookingMode"]) {
     setSelection((prev) =>
-      prev.venueId === id
+      prev.venueId === id && prev.bookingMode === bookingMode
         ? prev
-        : { ...prev, venueId: id, packageId: null, addons: [] },
+        : {
+            ...prev,
+            venueId: id,
+            bookingMode,
+            packageId: null,
+            addons: [],
+            midHallDays: {},
+            midHallExtraSetupHours: 0,
+            midHallExtraLoadOutHours: 0,
+          },
     );
+    setVenueTab("arena");
     setSubmittedId(null);
   }
 
@@ -238,12 +308,119 @@ export function WizardShell({
   return (
     <div className="mx-auto grid w-full max-w-6xl grid-cols-1 gap-8 px-4 py-8 sm:px-6 sm:py-10 lg:grid-cols-[minmax(0,1fr)_360px]">
       <div className="min-w-0">
-        <StepNav step={step} maxUnlockedStep={maxUnlockedStep} onJump={goTo} />
+        <StepNav
+          step={step}
+          maxUnlockedStep={maxUnlockedStep}
+          hiddenSteps={midHallOnly ? [3, 4] : []}
+          onJump={goTo}
+        />
 
         {step === 1 && (
-          <StepVenue rateTable={rateTable} venueId={selection.venueId} onSelectVenue={selectVenue} />
+          <StepVenue
+            rateTable={rateTable}
+            venueId={selection.venueId}
+            bookingMode={selection.bookingMode}
+            expectedAudience={selection.expectedAudience}
+            secondaryAudience={selection.secondaryAudience}
+            onSelectVenue={selectVenue}
+            onChangeAudience={(value) => setSelection((prev) => ({ ...prev, expectedAudience: value }))}
+            onChangeSecondaryAudience={(value) =>
+              setSelection((prev) => ({ ...prev, secondaryAudience: value }))
+            }
+          />
         )}
-        {step === 2 && (
+        {step === 2 && selection.bookingMode === "SIMULTANEOUS" && (
+          <section className="rounded border border-border bg-background p-5 sm:p-7">
+            <h2 className="text-[19px] font-semibold">2. 공간 · 일정</h2>
+            <p className="mt-1.5 text-[13.5px] text-muted">
+              동시 대관에서는 아레나를 먼저 확정합니다 — 덩어리가 크고 제약이 많아 기준선
+              역할을 합니다.
+            </p>
+            <div className="mt-5 flex gap-1 border-b border-border">
+              {(["arena", "medium-hall"] as const).map((tab) => (
+                <button
+                  key={tab}
+                  type="button"
+                  onClick={() => setVenueTab(tab)}
+                  className={[
+                    "border-b-2 px-4 py-2.5 text-[13.5px] font-medium transition-colors",
+                    venueTab === tab
+                      ? "border-accent text-accent"
+                      : "border-transparent text-muted hover:text-foreground",
+                  ].join(" ")}
+                >
+                  {tab === "arena"
+                    ? "아레나 일정"
+                    : hasMidHallSelection
+                      ? `중형 일정${overlapDayCount > 0 ? ` · 아레나와 ${overlapDayCount}일 겹침` : ""}`
+                      : "중형 일정 (대기)"}
+                </button>
+              ))}
+            </div>
+            <div className="mt-6">
+              {venueTab === "arena" ? (
+                <Step1Calendar
+                  week={selection.week}
+                  excludedDays={selection.excludedDays}
+                  extraDays={selection.extraDays}
+                  dayTags={selection.dayTags}
+                  defaultPerformanceDays={defaultPerformanceDays}
+                  weekDemand={weekDemand}
+                  dateBlocks={dateBlocks}
+                  onChangeWeek={(week) => setSelection((prev) => ({ ...prev, week }))}
+                  onChangeExcludedDays={(excludedDays) =>
+                    setSelection((prev) => ({ ...prev, excludedDays }))
+                  }
+                  onChangeExtraDays={(extraDays) =>
+                    setSelection((prev) => ({ ...prev, extraDays }))
+                  }
+                  onChangeDayTags={(dayTags) => setSelection((prev) => ({ ...prev, dayTags }))}
+                />
+              ) : (
+                <MidHallCalendar
+                  year={midHallMonth.year}
+                  month={midHallMonth.month}
+                  days={selection.midHallDays}
+                  extraSetupHours={selection.midHallExtraSetupHours}
+                  extraLoadOutHours={selection.midHallExtraLoadOutHours}
+                  dateBlocks={dateBlocks}
+                  overlayDates={new Set(arenaSelectedDates)}
+                  overlayLabel="아레나"
+                  onChangeMonth={(year, month) => setMidHallMonth({ year, month })}
+                  onChangeDays={(midHallDays) => setSelection((prev) => ({ ...prev, midHallDays }))}
+                  onChangeExtraSetupHours={(value) =>
+                    setSelection((prev) => ({ ...prev, midHallExtraSetupHours: value }))
+                  }
+                  onChangeExtraLoadOutHours={(value) =>
+                    setSelection((prev) => ({ ...prev, midHallExtraLoadOutHours: value }))
+                  }
+                />
+              )}
+            </div>
+          </section>
+        )}
+        {step === 2 && midHallOnly && (
+          <section className="rounded border border-border bg-background p-5 sm:p-7">
+            <h2 className="text-[19px] font-semibold">2. 공간 · 일정</h2>
+            <MidHallCalendar
+              year={midHallMonth.year}
+              month={midHallMonth.month}
+              days={selection.midHallDays}
+              extraSetupHours={selection.midHallExtraSetupHours}
+              extraLoadOutHours={selection.midHallExtraLoadOutHours}
+              dateBlocks={dateBlocks}
+              onChangeMonth={(year, month) => setMidHallMonth({ year, month })}
+              onChangeDays={(midHallDays) => setSelection((prev) => ({ ...prev, midHallDays }))}
+              onChangeExtraSetupHours={(value) =>
+                setSelection((prev) => ({ ...prev, midHallExtraSetupHours: value }))
+              }
+              onChangeExtraLoadOutHours={(value) =>
+                setSelection((prev) => ({ ...prev, midHallExtraLoadOutHours: value }))
+              }
+            />
+          </section>
+        )}
+        {step === 2 && selection.bookingMode === "SINGLE" && selection.venueId === "arena" && (
           <Step1Calendar
             week={selection.week}
             excludedDays={selection.excludedDays}
@@ -279,6 +456,7 @@ export function WizardShell({
           <Step4Addons
             rateTable={rateTable}
             packageId={selection.packageId}
+            midHallOnly={midHallOnly}
             addonQuantities={addonQuantities}
             expectedRevenue={selection.expectedRevenue ?? 0}
             onChangeQuantity={setAddonQuantity}
@@ -316,7 +494,7 @@ export function WizardShell({
           <button
             type="button"
             disabled={step === 1}
-            onClick={() => goTo(step - 1)}
+            onClick={goPrev}
             className="rounded-sm border border-border px-5 py-2.5 text-[13.5px] font-medium text-foreground transition-colors hover:bg-panel disabled:cursor-not-allowed disabled:opacity-40"
           >
             ← 이전
@@ -324,8 +502,12 @@ export function WizardShell({
           {step < TOTAL_STEPS && (
             <button
               type="button"
-              disabled={(step === 1 && !selection.venueId) || (step >= 3 && !selection.packageId)}
-              onClick={() => goTo(step + 1)}
+              disabled={
+                (step === 1 && !selection.venueId) ||
+                (step === 2 && midHallOnly && !hasMidHallSelection) ||
+                (!midHallOnly && step >= 3 && !selection.packageId)
+              }
+              onClick={goNext}
               className="rounded-sm bg-accent px-6 py-2.5 text-[13.5px] font-semibold text-white transition-colors hover:bg-accent-hover disabled:cursor-not-allowed disabled:opacity-40"
             >
               다음 →

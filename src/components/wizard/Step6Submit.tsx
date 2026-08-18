@@ -75,12 +75,21 @@ export function Step6Submit({
   const venueName =
     VENUES.find((v) => v.id === (selection.venueId ?? DEFAULT_VENUE_ID))?.name ?? "-";
   const info = selection.performanceInfo;
+  const isSimultaneous = selection.bookingMode === "SIMULTANEOUS";
 
-  if (!pkg) {
+  // [화면 뼈대 2026-08-18] 동시 대관 · 중형 단독은 요금 엔진(중형 DAILY 계산 · 합산)이
+  // 아직 연동되지 않았다 — 지금 제출을 허용하면 중형 금액이 빠진 채로 신청서가 접수돼
+  // 실제 대관료를 과소 산정하게 된다. 요금 엔진 연동 전까지는 화면 흐름 확인까지만 지원한다.
+  if (!pkg || isSimultaneous) {
+    const isMidHall = selection.venueId === "medium-hall";
     return (
       <section className="rounded border border-border bg-background p-7">
         <p className="text-[13.5px] text-muted">
-          먼저 1단계에서 패키지를 선택하세요.
+          {isSimultaneous
+            ? "동시 대관 신청서 제출은 요금 엔진(중형 · 합산 계산)이 연동된 뒤 지원됩니다. 지금은 화면 흐름만 확인할 수 있습니다."
+            : isMidHall
+              ? "중형공연장 신청서 제출은 요금 엔진 연동 후 지원됩니다. 지금은 화면 흐름만 확인할 수 있습니다."
+              : "먼저 1단계에서 패키지를 선택하세요."}
         </p>
       </section>
     );

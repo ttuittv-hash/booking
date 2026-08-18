@@ -12,6 +12,7 @@ import {
 export function Step4Addons({
   rateTable,
   packageId,
+  midHallOnly,
   addonQuantities,
   expectedRevenue,
   onChangeQuantity,
@@ -19,6 +20,7 @@ export function Step4Addons({
 }: {
   rateTable: RateTable;
   packageId: number | null;
+  midHallOnly?: boolean;
   addonQuantities: Record<string, number>;
   expectedRevenue: number;
   onChangeQuantity: (addonId: string, quantity: number) => void;
@@ -30,7 +32,9 @@ export function Step4Addons({
     return (
       <section className="rounded border border-border bg-background p-7">
         <p className="text-[13.5px] text-muted">
-          먼저 1단계에서 패키지를 선택하세요.
+          {midHallOnly
+            ? "중형공연장 추가 옵션 화면은 다음 업데이트에서 반영됩니다(화면시나리오 기능정의 2-43 옵션 목록 확정 후)."
+            : "먼저 1단계에서 패키지를 선택하세요."}
         </p>
       </section>
     );
