@@ -10,8 +10,14 @@ function maskBusinessNumber(brn: string | null): string | null {
 }
 function coarseAddress(address: string | null): string | null {
   if (!address) return null;
-  const parts = address.trim().split(/\s+/);
-  return parts.slice(0, 2).join(" ") || null;
+  const parts = address.trim().split(/\s+/).filter(Boolean);
+  if (parts.length === 0) return null;
+  const kept: string[] = [];
+  for (const part of parts.slice(0, 3)) {
+    kept.push(part);
+    if (/(구|군)$/.test(part)) break;
+  }
+  return kept.join(" ") || null;
 }
 
 describe("회사 검색 노출 규칙", () => {
@@ -30,8 +36,10 @@ describe("회사 검색 노출 규칙", () => {
   });
 
   it("주소는 시/군/구까지만 남는다", () => {
-    expect(coarseAddress("경기도 성남시 분당구 판교역로 166")).toBe("경기도 성남시");
+    // 도 주소는 3단계, 광역시 주소는 2단계에서 구가 나온다 — 개수가 아니라 구/군에서 끊는다.
+    expect(coarseAddress("경기도 성남시 분당구 판교역로 166")).toBe("경기도 성남시 분당구");
     expect(coarseAddress("서울특별시 도봉구 창동 1-24")).toBe("서울특별시 도봉구");
+    expect(coarseAddress("강원도 평창군 대관령면 올림픽로 715")).toBe("강원도 평창군");
   });
 
   it("상세 주소는 노출되지 않는다", () => {

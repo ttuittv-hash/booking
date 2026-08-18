@@ -1103,11 +1103,24 @@ function maskBusinessNumber(brn: string | null): string | null {
   return brn.length <= 3 ? brn : `${brn.slice(0, 3)}-**-*****`;
 }
 
-/** 주소를 시/군/구까지만 남긴다. 상세 주소는 가입 전에 알 이유가 없다. */
+/**
+ * 주소를 시/군/구까지만 남긴다. 상세 주소는 가입 전에 알 이유가 없다.
+ *
+ * 한국 주소는 단계 수가 일정하지 않다 —
+ *   "서울특별시 도봉구 창동 1-24"          → 2단계에서 구가 끝난다
+ *   "경기도 성남시 분당구 판교역로 166"    → 3단계까지 가야 구가 나온다
+ * 그래서 개수로 자르지 않고 구/군이 나오면 거기서 끊는다.
+ */
 function coarseAddress(address: string | null): string | null {
   if (!address) return null;
-  const parts = address.trim().split(/\s+/);
-  return parts.slice(0, 2).join(" ") || null;
+  const parts = address.trim().split(/\s+/).filter(Boolean);
+  if (parts.length === 0) return null;
+  const kept: string[] = [];
+  for (const part of parts.slice(0, 3)) {
+    kept.push(part);
+    if (/(구|군)$/.test(part)) break;
+  }
+  return kept.join(" ") || null;
 }
 
 export interface CompanySearchItem {
