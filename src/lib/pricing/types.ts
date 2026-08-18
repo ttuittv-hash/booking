@@ -391,6 +391,14 @@ export interface Attachment {
 
 export type UserRole = "APPLICANT" | "ADMIN";
 
+// 회원 유형. 지금은 기업회원만 가입할 수 있고 개인회원은 화면에서 비활성 상태로 노출된다.
+// 나중에 열 때 기존 행을 손대지 않아도 되게 컬럼과 타입을 먼저 둔다(기획서 A7).
+export type MemberType = "CORPORATE" | "INDIVIDUAL";
+
+// 회사 안에서의 권한. 운영자 등급인 AdminTier(MASTER/BASIC)와는 완전히 다른 축이다 —
+// 이쪽은 대관사(회사) 대표 담당자인지 일반 담당자인지를 가른다.
+export type CompanyRole = "MASTER" | "STAFF";
+
 // 신청자(대관사) 계정은 일반인이 자유 가입할 수 없도록 운영자 승인이 필요하다.
 // 운영자(ADMIN) 계정은 항상 APPROVED로 생성된다.
 export type ApprovalStatus = "PENDING" | "APPROVED" | "REJECTED";
@@ -449,6 +457,12 @@ export interface AppUser {
   approvalStatus: ApprovalStatus;
   // role이 ADMIN일 때만 값이 있다 (APPLICANT는 항상 null).
   adminTier: AdminTier | null;
+  // 회원 유형 — 지금은 전부 CORPORATE.
+  memberType: MemberType;
+  // 회사 소속 신청자일 때만 값이 있다. 운영자(ADMIN)는 회사가 없어 null.
+  companyRole: CompanyRole | null;
+  // 휴대폰 본인인증을 마친 시각. null 이면 미인증 계정이다.
+  identityVerifiedAt: string | null;
   createdAt: string;
 }
 
@@ -489,7 +503,8 @@ export interface AuditLogEntry {
 export interface AppNotification {
   id: string;
   recipientId: string;
-  quoteId: string;
+  /** 신청서와 무관한 알림(가입 승인·비밀번호 변경 등)은 null 이다. */
+  quoteId: string | null;
   message: string;
   isRead: boolean;
   createdAt: string;

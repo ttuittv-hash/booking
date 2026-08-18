@@ -42,6 +42,8 @@ import type {
   TaxInvoice,
   TicketOpen,
   UserRole,
+  MemberType,
+  CompanyRole,
   AdminTier,
   WeekDemand,
 } from "./pricing/types";
@@ -305,6 +307,93 @@ async function initSchema(pool: Pool) {
       answered_by TEXT,
       created_at TEXT NOT NULL
     );
+
+    -- ─────────────────────────────────────────────────────────────────────
+    -- 가입·인증 개편 (기획서 2026-08-18) — Phase 1 기반 테이블
+    -- ─────────────────────────────────────────────────────────────────────
+
+    -- 약관 동의 이력. "언제 동의했나"만으로는 분쟁에 대응할 수 없어서,
+    -- 동의 시점의 약관 버전과 본문 해시를 함께 박아 둔다(사후에 약관을 고쳐도
+    -- 그때 무엇에 동의했는지 되짚을 수 있다).
+    CREATE TABLE IF NOT EXISTS terms_agreements (
+      id TEXT PRIMARY KEY,
+      user_id TEXT NOT NULL REFERENCES users(id),
+      terms_kind TEXT NOT NULL,          -- SERVICE / PRIVACY_REQUIRED / PRIVACY_OPTIONAL / MARKETING
+      terms_version TEXT NOT NULL,       -- 약관 버전 코드
+      body_hash TEXT NOT NULL,           -- 동의 시점 본문의 SHA-256
+      agreed INTEGER NOT NULL,           -- 선택 약관은 0(미동의)도 남긴다
+      agreed_at TEXT NOT NULL,           -- 초 단위 ISO8601
+      request_ip TEXT
+    );
+
+    -- 본인인증(NICE 통합인증) 시도 이력. 성공 건만이 아니라 실패도 남겨야
+    -- "누가 언제 인증했는가"를 되짚을 수 있다. CI/DI 는 암호문으로만 들어간다.
+    CREATE TABLE IF NOT EXISTS identity_verifications (
+      id TEXT PRIMARY KEY,
+      user_id TEXT REFERENCES users(id),   -- 가입 전 인증이라 시점상 NULL 일 수 있다
+      request_no TEXT NOT NULL,
+      transaction_id TEXT,
+      succeeded INTEGER NOT NULL DEFAULT 0,
+      result_code TEXT,
+      result_message TEXT,
+      ci_encrypted TEXT,
+      di_encrypted TEXT,
+      di_index TEXT,                       -- 중복 가입 판별용 블라인드 인덱스
+      name TEXT,
+      birthdate TEXT,
+      gender TEXT,
+      national_info TEXT,
+      mobile_co TEXT,
+      mobile_no TEXT,
+      created_at TEXT NOT NULL
+    );
+
+    -- 마스터가 소속 담당자를 부를 때 쓰는 초대. 계정을 미리 만들지 않고 링크만 보내고,
+    -- 본인이 인증한 뒤 비밀번호를 직접 정한다(임시 비밀번호를 남이 아는 상태를 만들지 않는다).
+    CREATE TABLE IF NOT EXISTS company_invitations (
+      id TEXT PRIMARY KEY,
+      company_id TEXT NOT NULL REFERENCES companies(id),
+      invited_by TEXT NOT NULL REFERENCES users(id),
+      email TEXT NOT NULL,
+      token_hash TEXT NOT NULL,          -- 원문 토큰은 저장하지 않는다
+      status TEXT NOT NULL DEFAULT 'PENDING',  -- PENDING / ACCEPTED / EXPIRED / CANCELLED
+      expires_at TEXT NOT NULL,          -- 발급 +7일
+      accepted_at TEXT,
+      accepted_user_id TEXT REFERENCES users(id),
+      created_at TEXT NOT NULL
+    );
+
+    -- 카카오 알림톡 템플릿. 문안을 코드에 하드코딩하면 심사 통과분만 골라 켜는 게 불가능하다.
+    CREATE TABLE IF NOT EXISTS message_templates (
+      code TEXT PRIMARY KEY,             -- MB-01 / BK-08 / ST-04 / NT-01 …
+      title TEXT NOT NULL,
+      body TEXT NOT NULL,
+      variables_json TEXT NOT NULL DEFAULT '[]',
+      channel TEXT NOT NULL DEFAULT 'ALIMTALK',  -- ALIMTALK / FRIENDTALK
+      release_phase TEXT NOT NULL DEFAULT 'TBD', -- FIRST / SECOND / TBD
+      review_status TEXT NOT NULL DEFAULT 'DRAFT', -- DRAFT / SUBMITTED / APPROVED / REJECTED
+      enabled INTEGER NOT NULL DEFAULT 0,
+      updated_at TEXT NOT NULL
+    );
+
+    -- 발송 이력. idempotency_key 로 같은 이벤트가 두 번 나가는 것을 막는다
+    -- (배치 재실행·재시도에서 중복 발송이 제일 흔한 사고다).
+    CREATE TABLE IF NOT EXISTS message_sends (
+      id TEXT PRIMARY KEY,
+      idempotency_key TEXT NOT NULL,
+      template_code TEXT NOT NULL,
+      recipient_id TEXT REFERENCES users(id),
+      recipient_phone TEXT,
+      channel TEXT NOT NULL,             -- INAPP / EMAIL / ALIMTALK / LMS
+      status TEXT NOT NULL DEFAULT 'QUEUED', -- QUEUED / SENT / FAILED / FALLBACK
+      attempt INTEGER NOT NULL DEFAULT 0,
+      result_code TEXT,
+      result_message TEXT,
+      payload_json TEXT,
+      scheduled_at TEXT,                 -- 반복 알람의 다음 발송 예정 시각
+      sent_at TEXT,
+      created_at TEXT NOT NULL
+    );
   `);
 
   // 이미 배포되어 있던 DB에는 CREATE TABLE IF NOT EXISTS가 새 컬럼을 추가해주지 않으므로,
@@ -334,6 +423,83 @@ async function initSchema(pool: Pool) {
     CREATE INDEX IF NOT EXISTS idx_inquiries_user ON inquiries(user_id);
     CREATE INDEX IF NOT EXISTS idx_tax_invoices_quote ON tax_invoices(quote_id);
     CREATE INDEX IF NOT EXISTS idx_users_phone ON users(phone) WHERE phone IS NOT NULL;
+
+    -- ── 가입·인증 개편 (기획서 2026-08-18) ────────────────────────────────
+    -- 회원 유형. 지금은 기업회원만 열지만 컬럼을 먼저 두어, 개인회원을 열 때
+    -- 기존 행 전체를 마이그레이션하지 않아도 되게 한다.
+    ALTER TABLE users ADD COLUMN IF NOT EXISTS member_type TEXT NOT NULL DEFAULT 'CORPORATE';
+    -- 회사 안에서의 권한(MASTER/STAFF). 운영자 등급인 admin_tier 와 다른 축이다.
+    ALTER TABLE users ADD COLUMN IF NOT EXISTS company_role TEXT;
+    -- 본인인증 결과. 고유식별정보라 암호문으로만 넣고, 검색은 di_index 로 한다.
+    ALTER TABLE users ADD COLUMN IF NOT EXISTS ci_encrypted TEXT;
+    ALTER TABLE users ADD COLUMN IF NOT EXISTS di_encrypted TEXT;
+    ALTER TABLE users ADD COLUMN IF NOT EXISTS di_index TEXT;
+    ALTER TABLE users ADD COLUMN IF NOT EXISTS identity_verified_at TEXT;
+
+    -- 초대로 만들어진 계정은 본인이 비밀번호를 정하기 전까지 해시가 없다.
+    ALTER TABLE users ALTER COLUMN password_hash DROP NOT NULL;
+
+    ALTER TABLE companies ADD COLUMN IF NOT EXISTS master_user_id TEXT REFERENCES users(id);
+
+    -- 가입·계정 알림(승인/반려/비밀번호 변경)은 신청서와 무관하다.
+    -- quote_id 가 NOT NULL 이면 이런 알림은 저장 자체가 안 된다.
+    ALTER TABLE notifications ALTER COLUMN quote_id DROP NOT NULL;
+
+    -- 회사의 유일 키는 회사명이 아니라 사업자등록번호다.
+    -- 동명 회사가 실제로 있어서 name UNIQUE 는 오히려 정상 가입을 막는다.
+    ALTER TABLE companies DROP CONSTRAINT IF EXISTS companies_name_key;
+    CREATE UNIQUE INDEX IF NOT EXISTS idx_companies_brn
+      ON companies(business_registration_number)
+      WHERE business_registration_number IS NOT NULL;
+
+    CREATE UNIQUE INDEX IF NOT EXISTS idx_users_di ON users(di_index) WHERE di_index IS NOT NULL;
+    CREATE INDEX IF NOT EXISTS idx_users_company ON users(company_id) WHERE company_id IS NOT NULL;
+    CREATE INDEX IF NOT EXISTS idx_terms_agreements_user ON terms_agreements(user_id);
+    CREATE INDEX IF NOT EXISTS idx_identity_verifications_di ON identity_verifications(di_index);
+    CREATE INDEX IF NOT EXISTS idx_company_invitations_company ON company_invitations(company_id);
+    CREATE UNIQUE INDEX IF NOT EXISTS idx_company_invitations_token ON company_invitations(token_hash);
+    CREATE UNIQUE INDEX IF NOT EXISTS idx_message_sends_idem ON message_sends(idempotency_key);
+    CREATE INDEX IF NOT EXISTS idx_message_sends_recipient ON message_sends(recipient_id);
+    CREATE INDEX IF NOT EXISTS idx_message_sends_scheduled
+      ON message_sends(scheduled_at) WHERE scheduled_at IS NOT NULL;
+  `);
+
+  // 사업자등록번호는 숫자만 남긴 형태로 통일한다 — 하이픈 유무로 같은 회사가
+  // 둘로 갈리면 UNIQUE 인덱스가 제 역할을 못 한다.
+  await pool.query(`
+    UPDATE companies
+       SET business_registration_number = regexp_replace(business_registration_number, '\\D', '', 'g')
+     WHERE business_registration_number IS NOT NULL
+       AND business_registration_number <> regexp_replace(business_registration_number, '\\D', '', 'g')
+  `);
+
+  // 회사별 최초 가입자를 마스터로 세운다. 마스터가 0명인 회사가 생기면
+  // 소속 담당자를 승인할 사람이 없어져 가입 흐름이 멈춘다.
+  await pool.query(`
+    UPDATE users SET company_role = 'MASTER'
+     WHERE company_role IS NULL
+       AND role = 'APPLICANT'
+       AND company_id IS NOT NULL
+       AND id = (
+         SELECT u2.id FROM users u2
+          WHERE u2.company_id = users.company_id
+            AND u2.role = 'APPLICANT'
+            AND u2.withdrawn_at IS NULL
+          ORDER BY u2.created_at ASC
+          LIMIT 1
+       )
+  `);
+  await pool.query(`
+    UPDATE users SET company_role = 'STAFF'
+     WHERE company_role IS NULL AND role = 'APPLICANT' AND company_id IS NOT NULL
+  `);
+  await pool.query(`
+    UPDATE companies SET master_user_id = (
+      SELECT u.id FROM users u
+       WHERE u.company_id = companies.id AND u.company_role = 'MASTER'
+       ORDER BY u.created_at ASC LIMIT 1
+    )
+    WHERE master_user_id IS NULL
   `);
 
   // 주차 컬럼 도입 이전에 저장된 신청서는 selection_json 에서 값을 뽑아 한 번 채운다.
@@ -804,8 +970,14 @@ interface UserRow {
   username: string | null;
   email: string;
   phone: string | null;
-  password_hash: string;
+  password_hash: string | null;
   password_scheme: PasswordScheme;
+  member_type: string | null;
+  company_role: string | null;
+  ci_encrypted: string | null;
+  di_encrypted: string | null;
+  di_index: string | null;
+  identity_verified_at: string | null;
   name: string;
   company_name: string | null;
   company_id: string | null;
@@ -828,6 +1000,9 @@ function toAppUser(row: UserRow): AppUser {
     role: row.role,
     approvalStatus: row.approval_status,
     adminTier: row.role === "ADMIN" ? (row.admin_tier ?? "BASIC") : null,
+    memberType: (row.member_type as MemberType | null) ?? "CORPORATE",
+    companyRole: row.role === "APPLICANT" ? ((row.company_role as CompanyRole | null) ?? null) : null,
+    identityVerifiedAt: row.identity_verified_at ?? null,
     createdAt: row.created_at,
   };
 }
@@ -847,15 +1022,21 @@ export async function createUser(input: {
   adminTier?: AdminTier;
   termsAgreedAt?: string | null;
   privacyAgreedAt?: string | null;
+  // 회원 유형. 지금은 기업회원만 열려 있어 생략하면 CORPORATE 다.
+  memberType?: MemberType;
+  // 회사 소속 신청자의 회사 내 권한. 최초 가입자는 MASTER, 합류자는 STAFF.
+  companyRole?: CompanyRole | null;
   createdAt: string;
 }): Promise<AppUser> {
   const approvalStatus = input.approvalStatus ?? "APPROVED";
   const companyId = input.companyId ?? null;
   const phone = input.phone ?? null;
   const adminTier: AdminTier | null = input.role === "ADMIN" ? (input.adminTier ?? "BASIC") : null;
+  const memberType: MemberType = input.memberType ?? "CORPORATE";
+  const companyRole: CompanyRole | null = input.role === "APPLICANT" ? (input.companyRole ?? null) : null;
   await q(
-    `INSERT INTO users (id, username, email, phone, password_hash, password_scheme, name, company_name, company_id, role, approval_status, admin_tier, terms_agreed_at, privacy_agreed_at, created_at)
-     VALUES ($1, $2, $3, $4, $5, 'v2', $6, $7, $8, $9, $10, $11, $12, $13, $14)`,
+    `INSERT INTO users (id, username, email, phone, password_hash, password_scheme, name, company_name, company_id, role, approval_status, admin_tier, terms_agreed_at, privacy_agreed_at, member_type, company_role, created_at)
+     VALUES ($1, $2, $3, $4, $5, 'v2', $6, $7, $8, $9, $10, $11, $12, $13, $15, $16, $14)`,
     [
       input.id,
       input.username,
@@ -871,6 +1052,8 @@ export async function createUser(input: {
       input.termsAgreedAt ?? null,
       input.privacyAgreedAt ?? null,
       input.createdAt,
+      memberType,
+      companyRole,
     ],
   );
   return {
@@ -884,6 +1067,9 @@ export async function createUser(input: {
     role: input.role,
     approvalStatus,
     adminTier,
+    memberType,
+    companyRole,
+    identityVerifiedAt: null,
     createdAt: input.createdAt,
   };
 }
@@ -893,6 +1079,9 @@ export async function findUserByEmailWithPasswordHash(
 ): Promise<(AppUser & { passwordHash: string; passwordScheme: PasswordScheme }) | undefined> {
   const row = await one<UserRow>("SELECT * FROM users WHERE email = $1", [email.toLowerCase()]);
   if (!row || row.withdrawn_at) return undefined;
+  // 초대만 받고 아직 비밀번호를 정하지 않은 계정은 password_hash 가 NULL 이다.
+  // 이런 계정으로는 로그인이 성립하지 않으므로 여기서 잘라낸다(빈 해시로 검증에 들어가면 안 된다).
+  if (!row.password_hash) return undefined;
   return { ...toAppUser(row), passwordHash: row.password_hash, passwordScheme: row.password_scheme };
 }
 
@@ -918,6 +1107,9 @@ export async function findUserByLoginIdWithPasswordHash(
     trimmed.toLowerCase(),
   ]);
   if (!row || row.withdrawn_at) return undefined;
+  // 초대만 받고 아직 비밀번호를 정하지 않은 계정은 password_hash 가 NULL 이다.
+  // 이런 계정으로는 로그인이 성립하지 않으므로 여기서 잘라낸다(빈 해시로 검증에 들어가면 안 된다).
+  if (!row.password_hash) return undefined;
   return { ...toAppUser(row), passwordHash: row.password_hash, passwordScheme: row.password_scheme };
 }
 
@@ -1046,11 +1238,14 @@ export async function updateUserPassword(id: string, passwordHash: string) {
 export async function findUserPasswordHash(
   id: string,
 ): Promise<{ passwordHash: string; passwordScheme: PasswordScheme } | undefined> {
-  const row = await one<{ password_hash: string; password_scheme: PasswordScheme }>(
+  const row = await one<{ password_hash: string | null; password_scheme: PasswordScheme }>(
     "SELECT password_hash, password_scheme FROM users WHERE id = $1",
     [id],
   );
-  return row ? { passwordHash: row.password_hash, passwordScheme: row.password_scheme } : undefined;
+  // 비밀번호를 아직 정하지 않은 계정(초대 대기)은 "해시 없음"으로 다룬다.
+  return row && row.password_hash
+    ? { passwordHash: row.password_hash, passwordScheme: row.password_scheme }
+    : undefined;
 }
 
 // 탈퇴는 신청서(applicant_id FK)·감사로그 등 기존 기록 보존을 위해 소프트 삭제로 처리한다.
@@ -1985,7 +2180,7 @@ export async function deleteAttachment(id: string) {
 interface NotificationRow {
   id: string;
   recipient_id: string;
-  quote_id: string;
+  quote_id: string | null;
   message: string;
   is_read: number;
   created_at: string;
@@ -2005,7 +2200,8 @@ function toNotification(row: NotificationRow): AppNotification {
 export async function createNotification(input: {
   id: string;
   recipientId: string;
-  quoteId: string;
+  /** 가입 승인·비밀번호 변경처럼 신청서가 없는 알림은 null 로 넣는다. */
+  quoteId: string | null;
   message: string;
   createdAt: string;
 }) {
