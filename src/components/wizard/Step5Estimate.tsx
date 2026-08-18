@@ -72,7 +72,7 @@ export function Step5Estimate({
     <section className="rounded border border-border bg-background p-7">
       <h2 className="text-[19px] font-semibold">6. 예상 대관료 · 산출내역서</h2>
       <p className="mt-1.5 text-[13.5px] text-muted">
-        {pkg.name} · {selection.week.year}.{selection.week.month}{" "}
+        {pkg.audienceTier.label} · {selection.week.year}.{selection.week.month}{" "}
         {selection.week.weekOfMonth}주차 · 총 {totalRentalDays(selection)}일 · 관객{" "}
         {selection.expectedAudience.toLocaleString()}명
       </p>

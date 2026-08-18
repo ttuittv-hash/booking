@@ -15,7 +15,7 @@ export function SummaryPanel({ quote }: { quote: EstimatedQuote }) {
         <div className="mt-4 divide-y divide-border/70">
           {quote.lineItems.length === 0 ? (
             <div className="py-3 text-[13px] text-muted">
-              패키지를 선택하면 견적이 표시됩니다.
+              공간과 일정을 선택하면 견적이 표시됩니다.
             </div>
           ) : (
             quote.lineItems.map((item) => (

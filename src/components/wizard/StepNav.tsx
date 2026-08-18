@@ -12,8 +12,8 @@ interface StageGroup {
 
 const STAGE_GROUPS: StageGroup[] = [
   { label: "01 공간 · 일정", steps: [1, 2] },
-  { label: "02 구성 · 옵션", steps: [3, 4, 5] },
-  { label: "03 신청서 제출", steps: [6, 7, 8] },
+  { label: "02 구성 · 옵션", steps: [3] },
+  { label: "03 신청서 제출", steps: [4, 5, 6] },
   { label: "04 심사", steps: [] },
   { label: "05 결과 안내", steps: [] },
 ];

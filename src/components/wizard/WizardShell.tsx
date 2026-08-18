@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { calculateQuote } from "@/lib/pricing/calculateQuote";
 import { overlapDates, resolveSelectedDates } from "@/lib/pricing/dateRange";
-import { findAddon, findPackage, isAddonAvailable } from "@/lib/pricing/rateTableUtils";
+import { findAddon, findPackage, isAddonAvailable, recommendPackage } from "@/lib/pricing/rateTableUtils";
 import type { AppUser, DateBlock, QuoteSelection, RateTable, WeekDemand } from "@/lib/pricing/types";
 import { DEFAULT_VENUE_ID } from "@/lib/pricing/types";
 import { clearWizardDraft, loadWizardDraft, saveWizardDraft } from "@/lib/quotesStore";
@@ -12,17 +12,15 @@ import { SummaryPanel } from "./SummaryPanel";
 import { StepVenue } from "./StepVenue";
 import { Step1Calendar } from "./Step1Calendar";
 import { MidHallCalendar } from "./MidHallCalendar";
-import { Step1Package } from "./Step1Package";
-import { Step3Included } from "./Step3Included";
-import { Step4Addons } from "./Step4Addons";
+import { StepConfigOptions } from "./StepConfigOptions";
 import { Step5Estimate } from "./Step5Estimate";
 import { StepPerformanceInfo } from "./StepPerformanceInfo";
 import { Step6Submit } from "./Step6Submit";
 
-const TOTAL_STEPS = 8;
+const TOTAL_STEPS = 6;
 
-// 중형공연장 단독(패키지 없음)일 때는 3단계(규모/패키지)·4단계(기본 포함사항)가 성립하지
-// 않는다 — 위저드 내부 단계 번호는 그대로 두고 이 두 단계만 건너뛴다(2-25, 확정).
+// 중형공연장 단독(패키지 없음)일 때는 STEP 2(구성·옵션)의 내용이 달라질 뿐, 별도
+// 단계로 나누지 않는다(2-25, 확정).
 function isMidHallOnly(selection: Pick<QuoteSelection, "venueId" | "bookingMode">): boolean {
   return selection.venueId === "medium-hall" && selection.bookingMode === "SINGLE";
 }
@@ -180,20 +178,29 @@ export function WizardShell({
     saveWizardDraft({ step, selection });
   }, [step, selection, submittedId, isEditing]);
 
-  const quote = useMemo(() => calculateQuote(selection, rateTable), [selection, rateTable]);
   const midHallOnly = isMidHallOnly(selection);
+  // [화면 뼈대 2026-08-18, 기능정의 2-16] 패키지는 카드를 눌러 고르는 게 아니라 관객
+  // 규모로 자동 결정된다. state에 동기화해두지 않고 렌더마다 파생값으로 계산한다 —
+  // effect에서 setState로 되먹임하면 렌더가 한 번 더 걸리고 리액트 권장 패턴에도
+  // 어긋난다(react-hooks/set-state-in-effect). 패키지가 바뀌면 그 패키지에서 더 이상
+  // 선택할 수 없는 옵션도 함께 걸러서, 화면에는 안 보이는데 견적에는 남는 일이 없게 한다.
+  const effectivePackageId = midHallOnly
+    ? null
+    : recommendPackage(rateTable, selection.expectedAudience, "arena");
+  const effectiveAddons = useMemo(
+    () => pruneUnavailableAddons(rateTable, selection, effectivePackageId),
+    [rateTable, selection, effectivePackageId],
+  );
+  const resolvedSelection: QuoteSelection = useMemo(
+    () => ({ ...selection, packageId: effectivePackageId, addons: effectiveAddons }),
+    [selection, effectivePackageId, effectiveAddons],
+  );
+
+  const quote = useMemo(() => calculateQuote(resolvedSelection, rateTable), [resolvedSelection, rateTable]);
   const hasMidHallSelection = Object.keys(selection.midHallDays).length > 0;
-  const maxUnlockedStep = !selection.venueId
-    ? 1
-    : midHallOnly
-      ? hasMidHallSelection
-        ? TOTAL_STEPS
-        : 2
-      : selection.packageId
-        ? TOTAL_STEPS
-        : 3;
+  const maxUnlockedStep = !selection.venueId ? 1 : midHallOnly && !hasMidHallSelection ? 2 : TOTAL_STEPS;
   // 패키지 선택 전에도 기본 공연일수를 보여줘야 하므로, 모든 패키지가 공유하는 기본값(2일)을 임시로 사용한다.
-  const defaultPerformanceDays = findPackage(rateTable, selection.packageId)?.defaultPerformanceDays ?? 2;
+  const defaultPerformanceDays = findPackage(rateTable, effectivePackageId)?.defaultPerformanceDays ?? 2;
   // 동시 대관 겹침 — 아레나 확정 기간과 중형 선택일의 교집합(2-33/2-34). 금액에는 영향 없다.
   const arenaSelectedDates = useMemo(() => resolveSelectedDates(selection), [selection]);
   const midHallSelectedDates = Object.keys(selection.midHallDays);
@@ -207,22 +214,6 @@ export function WizardShell({
     if (target > maxUnlockedStep) return;
     setStep(target);
     if (typeof window !== "undefined") window.scrollTo({ top: 0, behavior: "smooth" });
-  }
-
-  function goNext() {
-    if (midHallOnly && step === 2) {
-      goTo(5);
-      return;
-    }
-    goTo(step + 1);
-  }
-
-  function goPrev() {
-    if (midHallOnly && step === 5) {
-      goTo(2);
-      return;
-    }
-    goTo(step - 1);
   }
 
   // [화면 뼈대 2026-08-18, 기능정의 2-5/2-13] 이용 시설을 바꾸면 요금 체계가 달라 이월할
@@ -243,15 +234,6 @@ export function WizardShell({
           },
     );
     setVenueTab("arena");
-    setSubmittedId(null);
-  }
-
-  function selectPackage(id: number) {
-    setSelection((prev) => ({
-      ...prev,
-      packageId: id,
-      addons: pruneUnavailableAddons(rateTable, prev, id),
-    }));
     setSubmittedId(null);
   }
 
@@ -300,7 +282,7 @@ export function WizardShell({
       const res = await fetch(isEditing ? `/api/quotes/${editingQuoteId}` : "/api/quotes", {
         method: isEditing ? "PUT" : "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ selection }),
+        body: JSON.stringify({ selection: resolvedSelection }),
       });
       const data = await res.json();
       if (!res.ok) {
@@ -328,12 +310,7 @@ export function WizardShell({
   return (
     <div className="mx-auto grid w-full max-w-6xl grid-cols-1 gap-8 px-4 py-8 sm:px-6 sm:py-10 lg:grid-cols-[minmax(0,1fr)_360px]">
       <div className="min-w-0">
-        <StepNav
-          step={step}
-          maxUnlockedStep={maxUnlockedStep}
-          hiddenSteps={midHallOnly ? [3, 4] : []}
-          onJump={goTo}
-        />
+        <StepNav step={step} maxUnlockedStep={maxUnlockedStep} onJump={goTo} />
 
         {step === 1 && (
           <StepVenue
@@ -468,23 +445,10 @@ export function WizardShell({
           />
         )}
         {step === 3 && (
-          <Step1Package
+          <StepConfigOptions
             rateTable={rateTable}
-            venueId={selection.venueId ?? DEFAULT_VENUE_ID}
-            packageId={selection.packageId}
-            expectedAudience={selection.expectedAudience}
-            onSelectPackage={selectPackage}
-            onChangeAudience={(value) =>
-              setSelection((prev) => ({ ...prev, expectedAudience: value }))
-            }
-          />
-        )}
-        {step === 4 && <Step3Included rateTable={rateTable} packageId={selection.packageId} />}
-        {step === 5 && (
-          <Step4Addons
-            rateTable={rateTable}
-            packageId={selection.packageId}
-            midHallOnly={midHallOnly}
+            selection={resolvedSelection}
+            defaultPerformanceDays={defaultPerformanceDays}
             addonQuantities={addonQuantities}
             expectedRevenue={selection.expectedRevenue ?? 0}
             onChangeQuantity={setAddonQuantity}
@@ -493,21 +457,21 @@ export function WizardShell({
             }
           />
         )}
-        {step === 6 && <Step5Estimate rateTable={rateTable} quote={quote} selection={selection} />}
-        {step === 7 && (
+        {step === 4 && <Step5Estimate rateTable={rateTable} quote={quote} selection={resolvedSelection} />}
+        {step === 5 && (
           <StepPerformanceInfo
             info={selection.performanceInfo}
             onChange={(performanceInfo) => setSelection((prev) => ({ ...prev, performanceInfo }))}
-            selection={selection}
+            selection={resolvedSelection}
             files={pendingFiles}
             onFilesChange={setPendingFiles}
           />
         )}
-        {step === 8 && (
+        {step === 6 && (
           <Step6Submit
             rateTable={rateTable}
             quote={quote}
-            selection={selection}
+            selection={resolvedSelection}
             isLoggedIn={!!currentUser && !sessionExpired}
             isEditing={isEditing}
             submitting={submitting}
@@ -523,7 +487,7 @@ export function WizardShell({
           <button
             type="button"
             disabled={step === 1}
-            onClick={goPrev}
+            onClick={() => goTo(step - 1)}
             className="rounded-sm border border-border px-5 py-2.5 text-[13.5px] font-medium text-foreground transition-colors hover:bg-panel disabled:cursor-not-allowed disabled:opacity-40"
           >
             ← 이전
@@ -533,10 +497,9 @@ export function WizardShell({
               type="button"
               disabled={
                 (step === 1 && !selection.venueId) ||
-                (step === 2 && midHallOnly && !hasMidHallSelection) ||
-                (!midHallOnly && step >= 3 && !selection.packageId)
+                (step === 2 && midHallOnly && !hasMidHallSelection)
               }
-              onClick={goNext}
+              onClick={() => goTo(step + 1)}
               className="rounded-sm bg-accent px-6 py-2.5 text-[13.5px] font-semibold text-white transition-colors hover:bg-accent-hover disabled:cursor-not-allowed disabled:opacity-40"
             >
               다음 →

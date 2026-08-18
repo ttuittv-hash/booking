@@ -19,8 +19,8 @@ import {
 const STAGES = [
   {
     no: "STEP ①",
-    title: "패키지 선택",
-    desc: "공연 일정과 관객 규모에 맞는 대관 패키지를 선택합니다.",
+    title: "공간 · 일정 선택",
+    desc: "공연 일정과 관객 규모를 입력하면 대관료가 자동으로 산정됩니다.",
   },
   {
     no: "STEP ②",
@@ -109,7 +109,7 @@ export function Step6Submit({
       <div className="mt-6 flex flex-wrap items-center justify-between gap-4 rounded border border-border bg-panel/60 p-6">
         <div>
           <div className="text-[15px] font-semibold">
-            {venueName} · {pkg.name} · {pkg.audienceTier.label}
+            {venueName} · {pkg.audienceTier.label}
           </div>
           <div className="mt-1 text-[13px] text-muted">
             {selection.week.year}년 {selection.week.month}월{" "}
