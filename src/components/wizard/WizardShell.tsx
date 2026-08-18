@@ -15,9 +15,10 @@ import { MidHallCalendar } from "./MidHallCalendar";
 import { StepConfigOptions } from "./StepConfigOptions";
 import { Step5Estimate } from "./Step5Estimate";
 import { StepPerformanceInfo } from "./StepPerformanceInfo";
+import { StepAudiencePublicInterest } from "./StepAudiencePublicInterest";
 import { Step6Submit } from "./Step6Submit";
 
-const TOTAL_STEPS = 6;
+const TOTAL_STEPS = 7;
 
 // 중형공연장 단독(패키지 없음)일 때는 STEP 2(구성·옵션)의 내용이 달라질 뿐, 별도
 // 단계로 나누지 않는다(2-25, 확정).
@@ -55,6 +56,8 @@ const INITIAL_PERFORMANCE_INFO: QuoteSelection["performanceInfo"] = {
   retractableSeatUse: null,
   teardownCompletionTime: "",
   ticketOpenExpectedDate: "",
+  expectedPaidSalesRate: 0,
+  ancillaryBusinessPlans: [],
   castContractStatus: null,
   foreignArtistNotes: "",
   sensitiveInfoMaskingAcknowledged: false,
@@ -468,6 +471,15 @@ export function WizardShell({
           />
         )}
         {step === 6 && (
+          <StepAudiencePublicInterest
+            info={selection.performanceInfo}
+            onChange={(performanceInfo) => setSelection((prev) => ({ ...prev, performanceInfo }))}
+            selection={resolvedSelection}
+            files={pendingFiles}
+            onFilesChange={setPendingFiles}
+          />
+        )}
+        {step === 7 && (
           <Step6Submit
             rateTable={rateTable}
             quote={quote}

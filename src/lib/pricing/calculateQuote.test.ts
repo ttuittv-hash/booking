@@ -44,6 +44,8 @@ function baseSelection(overrides: Partial<QuoteSelection> = {}): QuoteSelection 
       retractableSeatUse: null,
       teardownCompletionTime: "",
       ticketOpenExpectedDate: "",
+      expectedPaidSalesRate: 0,
+      ancillaryBusinessPlans: [],
       castContractStatus: null,
       foreignArtistNotes: "",
       sensitiveInfoMaskingAcknowledged: false,

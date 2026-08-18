@@ -273,6 +273,17 @@ export const AGE_RATING_LABEL: Record<AgeRating, string> = {
   UNDECIDED: "미정",
 };
 
+// [화면 뼈대 2026-08-18, 화면시나리오 SCREEN 07/12 · STEP 3-2] 부대사업 계획 — 복수 선택.
+export type AncillaryBusinessPlan = "MD_SALES" | "POPUP_STORE" | "SPONSOR_BOOTH" | "OTHER" | "NONE";
+
+export const ANCILLARY_BUSINESS_PLAN_LABEL: Record<AncillaryBusinessPlan, string> = {
+  MD_SALES: "MD 판매",
+  POPUP_STORE: "팝업스토어",
+  SPONSOR_BOOTH: "협찬부스",
+  OTHER: "기타",
+  NONE: "해당 없음",
+};
+
 export interface PerformanceInfo {
   // 신청자 정보 (STEP 3-1 좌측) — 회원정보에서 자동 입력되나 수정 가능
   applicantCompanyName: string; // 대관신청사명
@@ -296,6 +307,10 @@ export interface PerformanceInfo {
   retractableSeatUse: RetractableSeatUse | null; // 수납식 객석 사용여부
   teardownCompletionTime: string; // 철수 완료 예정시간
   ticketOpenExpectedDate: string; // 티켓 오픈 예정일
+
+  // 예상 관객 및 사업규모 · 공공성 (STEP 3-2)
+  expectedPaidSalesRate: number; // 예상 유료 판매율(%)
+  ancillaryBusinessPlans: AncillaryBusinessPlan[]; // 부대사업 계획
 
   // 개최 신뢰도 및 안전관리 (STEP 3-3) — 회원 유형이 기획사 직접 신청이면 화면에서 섹션 숨김
   castContractStatus: CastContractStatus | null; // 주요 출연진 계약 상태
