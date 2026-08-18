@@ -915,19 +915,22 @@ export async function findOrCreateCompany(
   const trimmed = name.trim();
   const brn = normalizeBusinessNumber(extra?.businessRegistrationNumber);
 
-  // 사업자번호가 있으면 그것이 유일 키다.
   if (brn) {
+    // 사업자번호가 있으면 그것만이 유일 키다.
+    // 못 찾았다고 회사명으로 되짚으면 안 된다 — 동명 회사가 실재하므로
+    // "이름이 같다"는 이유로 남의 회사에 합류시켜 버린다.
     const byBrn = await one<CompanyRow>(
       "SELECT * FROM companies WHERE business_registration_number = $1",
       [brn],
     );
     if (byBrn) return toCompany(byBrn);
+  } else {
+    // 사업자번호 없이 등록된 예전 데이터와의 호환 경로.
+    const existing = await one<CompanyRow>("SELECT * FROM companies WHERE lower(name) = lower($1)", [
+      trimmed,
+    ]);
+    if (existing) return toCompany(existing);
   }
-  // 사업자번호 없이 등록된 예전 데이터와의 호환 경로.
-  const existing = await one<CompanyRow>("SELECT * FROM companies WHERE lower(name) = lower($1)", [
-    trimmed,
-  ]);
-  if (existing) return toCompany(existing);
 
   const row: CompanyRow = {
     id: crypto.randomUUID(),
