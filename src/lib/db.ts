@@ -44,6 +44,7 @@ import type {
   UserRole,
   MemberType,
   CompanyRole,
+  CompanyStatus,
   AdminTier,
   WeekDemand,
 } from "./pricing/types";
@@ -440,6 +441,8 @@ async function initSchema(pool: Pool) {
     ALTER TABLE users ALTER COLUMN password_hash DROP NOT NULL;
 
     ALTER TABLE companies ADD COLUMN IF NOT EXISTS master_user_id TEXT REFERENCES users(id);
+    -- 회사 자체의 승인 상태. 회원 개인의 approval_status 와 다른 축이다.
+    ALTER TABLE companies ADD COLUMN IF NOT EXISTS status TEXT NOT NULL DEFAULT 'PENDING';
 
     -- 가입·계정 알림(승인/반려/비밀번호 변경)은 신청서와 무관하다.
     -- quote_id 가 NOT NULL 이면 이런 알림은 저장 자체가 안 된다.
@@ -826,6 +829,8 @@ interface CompanyRow {
   verified_comp_type_label: string | null;
   verification_message: string | null;
   verified_at: string | null;
+  status: string | null;
+  master_user_id: string | null;
 }
 
 function toCompany(row: CompanyRow): Company {
@@ -839,6 +844,8 @@ function toCompany(row: CompanyRow): Company {
     businessCertUrl: row.business_cert_url,
     businessCertName: row.business_cert_name,
     createdAt: row.created_at,
+    status: (row.status as CompanyStatus | null) ?? "PENDING",
+    masterUserId: row.master_user_id ?? null,
     verification: row.verification_status
       ? {
           status: row.verification_status as CompanyVerification["status"],
@@ -950,6 +957,8 @@ export async function findOrCreateCompany(
     verified_comp_type_label: null,
     verification_message: null,
     verified_at: null,
+    status: "PENDING",
+    master_user_id: null,
   };
   // 같은 사업자번호로 동시에 가입하면 조회-후-삽입 사이에 경합이 나서 한쪽이 UNIQUE 위반으로 실패한다.
   // 충돌 시 무시하고 아래에서 기존 행을 다시 읽는다.
@@ -1001,6 +1010,148 @@ export async function assignCompanyRoleOnJoin(
     await q("UPDATE companies SET master_user_id = $1 WHERE id = $2", [userId, companyId]);
   }
   return role;
+}
+
+/**
+ * 사업자등록번호로 "이 사람이 최초 가입자인지 기존 회사 합류인지"를 서버가 판정한다(기획서 A11).
+ * 사용자가 고르는 값이 아니다 — 고르게 두면 남의 회사에 붙거나 같은 회사를 둘로 만든다.
+ *
+ * 판정 케이스 6종:
+ *   NEW              등록 이력 없음        → 최초 가입자. 회사를 만들고 본인이 마스터가 된다.
+ *   JOIN_APPROVED    승인된 회사           → 합류. 마스터 또는 운영자가 승인한다.
+ *   JOIN_PENDING     심사 중인 회사        → 합류하되 앞선 심사가 끝날 때까지 함께 기다린다.
+ *   REAPPLY_REJECTED 미승인 처리된 회사    → 최초 가입자 심사로 되돌린다(이전 사유를 참고).
+ *   BLOCKED_SUSPENDED 휴·폐업 확인된 회사  → 가입을 막는다. 대관 계약 상대로 부적격.
+ *   (NEW 는 회사 행이 아직 없으므로 company 가 null 이다)
+ */
+export type CompanyJoinKind =
+  | "NEW"
+  | "JOIN_APPROVED"
+  | "JOIN_PENDING"
+  | "REAPPLY_REJECTED"
+  | "BLOCKED_SUSPENDED";
+
+export interface CompanyJoinDecision {
+  kind: CompanyJoinKind;
+  company: Company | null;
+}
+
+export async function resolveCompanyJoin(
+  businessRegistrationNumber: string | null | undefined,
+): Promise<CompanyJoinDecision> {
+  const brn = normalizeBusinessNumber(businessRegistrationNumber);
+  if (!brn) return { kind: "NEW", company: null };
+
+  const row = await one<CompanyRow>(
+    "SELECT * FROM companies WHERE business_registration_number = $1",
+    [brn],
+  );
+  if (!row) return { kind: "NEW", company: null };
+
+  const company = toCompany(row);
+  switch (company.status) {
+    case "SUSPENDED":
+      return { kind: "BLOCKED_SUSPENDED", company };
+    case "REJECTED":
+      return { kind: "REAPPLY_REJECTED", company };
+    case "APPROVED":
+      return { kind: "JOIN_APPROVED", company };
+    default:
+      return { kind: "JOIN_PENDING", company };
+  }
+}
+
+/** 회사 상태를 바꾼다. 최초 가입자 심사 결과가 그대로 회사의 상태가 된다. */
+export async function setCompanyStatus(companyId: string, status: CompanyStatus): Promise<void> {
+  await q("UPDATE companies SET status = $1 WHERE id = $2", [status, companyId]);
+}
+
+/**
+ * 회사에 남아 있는 마스터가 없으면 가장 오래된 승인 계정을 마스터로 올린다.
+ * 마스터가 0명이면 소속 담당자의 합류를 승인할 사람이 없어져 가입 흐름이 멈춘다.
+ */
+export async function ensureCompanyMaster(companyId: string): Promise<void> {
+  await q(
+    `UPDATE companies SET master_user_id = (
+       SELECT u.id FROM users u
+        WHERE u.company_id = $1 AND u.role = 'APPLICANT' AND u.withdrawn_at IS NULL
+        ORDER BY (u.approval_status = 'APPROVED') DESC, u.created_at ASC
+        LIMIT 1
+     )
+     WHERE id = $1
+       AND (master_user_id IS NULL
+            OR NOT EXISTS (SELECT 1 FROM users u2
+                            WHERE u2.id = companies.master_user_id AND u2.withdrawn_at IS NULL))`,
+    [companyId],
+  );
+  await q(
+    `UPDATE users SET company_role = 'MASTER'
+      WHERE id = (SELECT master_user_id FROM companies WHERE id = $1)
+        AND company_role IS DISTINCT FROM 'MASTER'`,
+    [companyId],
+  );
+}
+
+/** 이 계정이 자기 회사의 마스터인가 — 담당자 관리·합류 승인 권한 검사에 쓴다. */
+export function isCompanyMaster(user: AppUser | null | undefined): boolean {
+  return !!user && user.role === "APPLICANT" && user.companyRole === "MASTER";
+}
+
+/** 사업자등록번호를 앞 3자리만 남기고 가린다 — 목록에서 번호를 수집하지 못하게 한다. */
+function maskBusinessNumber(brn: string | null): string | null {
+  if (!brn) return null;
+  return brn.length <= 3 ? brn : `${brn.slice(0, 3)}-**-*****`;
+}
+
+/** 주소를 시/군/구까지만 남긴다. 상세 주소는 가입 전에 알 이유가 없다. */
+function coarseAddress(address: string | null): string | null {
+  if (!address) return null;
+  const parts = address.trim().split(/\s+/);
+  return parts.slice(0, 2).join(" ") || null;
+}
+
+export interface CompanySearchItem {
+  id: string;
+  name: string;
+  businessNumberMasked: string | null;
+  region: string | null;
+}
+
+/**
+ * 합류할 회사를 찾는 검색. 승인 완료된 회사만 대상으로 한다 —
+ * 심사 중이거나 미승인·휴폐업 처리된 회사는 존재 자체를 알리지 않는다.
+ * total 은 자르기 전 건수라 "결과가 너무 많음"을 판정하는 데 쓴다.
+ */
+export async function searchCompaniesForJoin(
+  field: "name" | "brn",
+  keyword: string,
+  limit = 6,
+): Promise<{ total: number; results: CompanySearchItem[] }> {
+  const rows =
+    field === "brn"
+      ? await q<CompanyRow>(
+          `SELECT * FROM companies
+            WHERE status = 'APPROVED' AND business_registration_number = $1
+            ORDER BY name ASC LIMIT $2`,
+          [normalizeBusinessNumber(keyword), limit],
+        )
+      : await q<CompanyRow>(
+          `SELECT * FROM companies
+            WHERE status = 'APPROVED' AND name ILIKE $1
+            ORDER BY (lower(name) = lower($2)) DESC, name ASC
+            LIMIT $3`,
+          [`%${keyword.replace(/[%_]/g, (m) => "\\" + m)}%`, keyword, limit],
+        );
+
+  return {
+    total: rows.length,
+    results: rows.slice(0, 3).map((row) => ({
+      id: row.id,
+      name: row.name,
+      businessNumberMasked: maskBusinessNumber(row.business_registration_number),
+      region: coarseAddress(row.address),
+    })),
+  };
 }
 
 export async function findCompanyById(id: string): Promise<Company | undefined> {

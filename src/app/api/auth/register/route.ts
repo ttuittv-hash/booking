@@ -12,6 +12,8 @@ import {
   findCompanyById,
   findOrCreateCompany,
   assignCompanyRoleOnJoin,
+  resolveCompanyJoin,
+  createNotification,
   findUserByEmailWithPasswordHash,
   findUserByPhone,
   findUserByUsername,
@@ -122,6 +124,8 @@ export async function POST(request: Request) {
   // 개인회원 = 목록에서 기존 회사를 선택하거나, 목록에 없으면 이름을 직접 입력(신규 등록)하거나, 소속 회사 없이 가입 가능.
   // 어느 경우든 같은 company_id를 공유하는 사용자끼리 서로의 신청 내역을 함께 관리할 수 있다.
   let company;
+  // 기업회원 가입의 합류 판정 결과 — 가입 완료 응답에 안내 문구로 실린다.
+  let joinKind: import("@/lib/db").CompanyJoinKind = "NEW";
   if (accountType === "INDIVIDUAL") {
     if (companyId) {
       company = await findCompanyById(companyId);
@@ -167,6 +171,17 @@ export async function POST(request: Request) {
         { status: 400 },
       );
     }
+
+    // 최초 가입자인지 기존 회사 합류인지는 서버가 등록 이력으로 판정한다(기획서 A11).
+    // 사용자가 고르게 두면 남의 회사에 붙거나 같은 회사를 둘로 만든다.
+    const join = await resolveCompanyJoin(businessRegistrationNumber);
+    if (join.kind === "BLOCKED_SUSPENDED") {
+      return NextResponse.json(
+        { error: "휴업·폐업으로 확인된 사업자등록번호입니다. 담당자에게 문의해주세요." },
+        { status: 400 },
+      );
+    }
+    joinKind = join.kind;
 
     company = await findOrCreateCompany(companyName, {
       businessRegistrationNumber,
@@ -226,15 +241,39 @@ export async function POST(request: Request) {
       created.companyRole = await assignCompanyRoleOnJoin(created.id, company.id);
     }
 
+    // 최초 가입자는 운영자가 전담하고, 이후 가입자는 그 회사 마스터도 처리할 수 있다(기획서 1-42).
+    // 마스터가 부재·지연이어도 운영자가 안전망이므로 운영자 알림은 두 경우 모두 보낸다.
+    const joinLabel =
+      created.companyRole === "MASTER" ? "회사 신규 등록" : `${company?.name ?? ""} 합류 신청`;
     await notifyAdmins({
       quoteId: "applicants",
-      message: `신규 가입 승인 요청: ${name} (${company?.name ?? "소속 없음"}, ${accountType === "INDIVIDUAL" ? "개인회원" : "법인회원"})`,
+      message: `신규 가입 승인 요청: ${name} (${company?.name ?? "소속 없음"}, ${accountType === "INDIVIDUAL" ? "개인회원" : "법인회원"}, ${joinLabel})`,
       createdAt,
     });
+
+    if (company && created.companyRole === "STAFF" && company.masterUserId) {
+      await createNotification({
+        id: crypto.randomUUID(),
+        recipientId: company.masterUserId,
+        quoteId: null,
+        message: `${name}님이 ${company.name} 합류를 신청했습니다. 담당자 관리에서 승인해주세요.`,
+        createdAt,
+      });
+    }
 
     return created;
   });
 
   await createSession(user.id, user.role);
-  return NextResponse.json({ user });
+  // 합류 상황에 따라 안내 문구가 달라진다 — "심사 중인 회사"인지 "미승인 이력이 있는 회사"인지
+  // 알려주지 않으면 사용자는 왜 대기가 길어지는지 알 수 없다.
+  const joinNotice =
+    joinKind === "JOIN_PENDING"
+      ? "이미 심사가 진행 중인 회사입니다. 앞선 심사가 끝난 뒤 함께 처리됩니다."
+      : joinKind === "REAPPLY_REJECTED"
+        ? "이전에 미승인 처리된 회사입니다. 운영자가 다시 심사합니다."
+        : joinKind === "JOIN_APPROVED"
+          ? "등록된 회사에 합류 신청되었습니다. 회사 대표 담당자 또는 운영자가 승인합니다."
+          : null;
+  return NextResponse.json({ user, joinKind, joinNotice });
 }

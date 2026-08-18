@@ -399,6 +399,17 @@ export type MemberType = "CORPORATE" | "INDIVIDUAL";
 // 이쪽은 대관사(회사) 대표 담당자인지 일반 담당자인지를 가른다.
 export type CompanyRole = "MASTER" | "STAFF";
 
+/**
+ * 회사(대관단체)의 상태. 회원 개인의 승인 상태와 별개다 —
+ * 회사는 최초 가입자가 승인될 때 함께 확정된다(기획서 1-37).
+ *
+ *  PENDING   최초 가입자가 아직 심사 중. 이 회사로 합류하려는 사람도 함께 기다린다.
+ *  APPROVED  승인 완료. 검색 목록에 노출되고 합류 신청을 받을 수 있다.
+ *  REJECTED  미승인 처리. 재신청은 다시 최초 가입자 심사로 돌아간다.
+ *  SUSPENDED 휴업·폐업·부도로 확인됨. 대관 계약 상대로 부적격이다.
+ */
+export type CompanyStatus = "PENDING" | "APPROVED" | "REJECTED" | "SUSPENDED";
+
 // 신청자(대관사) 계정은 일반인이 자유 가입할 수 없도록 운영자 승인이 필요하다.
 // 운영자(ADMIN) 계정은 항상 APPROVED로 생성된다.
 export type ApprovalStatus = "PENDING" | "APPROVED" | "REJECTED";
@@ -441,6 +452,10 @@ export interface Company {
   businessCertUrl: string | null;
   businessCertName: string | null;
   createdAt: string;
+  /** 회사 자체의 승인 상태 — 최초 가입자가 승인될 때 함께 확정된다. */
+  status: CompanyStatus;
+  /** 대표 담당자(마스터) 계정 id — 아직 정해지지 않았으면 null */
+  masterUserId: string | null;
   /** 사업자 진위확인(NICE 법인실명확인) 결과 — 확인 이력이 없으면 null */
   verification: CompanyVerification | null;
 }
