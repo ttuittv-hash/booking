@@ -975,6 +975,31 @@ export async function findOrCreateCompany(
   return toCompany(stored ?? row);
 }
 
+/**
+ * 회사에 합류한 계정의 회사 내 권한을 정한다.
+ * 마스터가 아직 없으면 이 사람이 최초 가입자이므로 MASTER, 있으면 STAFF 다(기획서 1-38·1-42).
+ *
+ * 기동 시 백필만으로는 부족하다 — 백필 이후에 만들어지는 회사는 마스터가 0명인 채로
+ * 남아 소속 담당자를 승인할 사람이 없어진다. 그래서 합류 시점에 매번 정한다.
+ * 동시 가입 경합에서 두 명이 동시에 MASTER 가 되지 않도록 회사 행을 잠그고 판단한다.
+ */
+export async function assignCompanyRoleOnJoin(
+  userId: string,
+  companyId: string,
+): Promise<CompanyRole> {
+  const locked = await one<{ master_user_id: string | null }>(
+    "SELECT master_user_id FROM companies WHERE id = $1 FOR UPDATE",
+    [companyId],
+  );
+  const isFirst = !locked?.master_user_id;
+  const role: CompanyRole = isFirst ? "MASTER" : "STAFF";
+  await q("UPDATE users SET company_role = $1 WHERE id = $2", [role, userId]);
+  if (isFirst) {
+    await q("UPDATE companies SET master_user_id = $1 WHERE id = $2", [userId, companyId]);
+  }
+  return role;
+}
+
 export async function findCompanyById(id: string): Promise<Company | undefined> {
   const row = await one<CompanyRow>("SELECT * FROM companies WHERE id = $1", [id]);
   return row ? toCompany(row) : undefined;

@@ -1,7 +1,13 @@
 import { NextResponse } from "next/server";
 import crypto from "node:crypto";
 import { getCurrentUser, hashPassword } from "@/lib/auth";
-import { createUser, findOrCreateCompany, findUserByEmailWithPasswordHash, findUserByUsername } from "@/lib/db";
+import {
+  assignCompanyRoleOnJoin,
+  createUser,
+  findOrCreateCompany,
+  findUserByEmailWithPasswordHash,
+  findUserByUsername,
+} from "@/lib/db";
 import { sha256Hex } from "@/lib/passwordScheme";
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -63,6 +69,12 @@ export async function POST(request: Request) {
     approvalStatus: "APPROVED",
     createdAt,
   });
+
+  // 운영자가 직접 만든 계정도 회사에 붙으면 마스터 여부를 정해야 한다 —
+  // 안 그러면 마스터가 0명인 회사가 만들어진다.
+  if (company) {
+    user.companyRole = await assignCompanyRoleOnJoin(user.id, company.id);
+  }
 
   return NextResponse.json({ user });
 }

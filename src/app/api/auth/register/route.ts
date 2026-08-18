@@ -11,6 +11,7 @@ import {
   createUser,
   findCompanyById,
   findOrCreateCompany,
+  assignCompanyRoleOnJoin,
   findUserByEmailWithPasswordHash,
   findUserByPhone,
   findUserByUsername,
@@ -219,6 +220,11 @@ export async function POST(request: Request) {
       privacyAgreedAt: createdAt,
       createdAt,
     });
+
+    // 회사에 붙은 계정이면 최초 가입자인지 판정해 MASTER/STAFF 를 정한다.
+    if (company) {
+      created.companyRole = await assignCompanyRoleOnJoin(created.id, company.id);
+    }
 
     await notifyAdmins({
       quoteId: "applicants",
