@@ -35,15 +35,32 @@ function defaultWeek(): QuoteSelection["week"] {
   return { year: next.getFullYear(), month: next.getMonth() + 1, weekOfMonth: 1 };
 }
 
+const EMPTY_RESPONSIBLE_PERSON = { name: "", title: "", phone: "" };
+
 const INITIAL_PERFORMANCE_INFO: QuoteSelection["performanceInfo"] = {
+  applicantCompanyName: "",
+  applicantBusinessRegistrationNumber: "",
+  applicantContactName: "",
+  applicantContactPhone: "",
+  operationsResponsible: EMPTY_RESPONSIBLE_PERSON,
+  safetyResponsible: EMPTY_RESPONSIBLE_PERSON,
+  pastPerformances: [],
   eventName: "",
   artist: "",
   organizer: "",
   eventScale: "",
   eventTypes: [],
+  ageRating: null,
+  ageLimitDetail: "",
   stageTypes: [],
   seatingTypes: [],
   retractableSeatUse: null,
+  teardownCompletionTime: "",
+  ticketOpenExpectedDate: "",
+  castContractStatus: null,
+  foreignArtistNotes: "",
+  sensitiveInfoMaskingAcknowledged: false,
+  safetyPledgeSigned: false,
 };
 
 const INITIAL_SELECTION: QuoteSelection = {
@@ -54,6 +71,7 @@ const INITIAL_SELECTION: QuoteSelection = {
   excludedDays: [],
   extraDays: 0,
   dayTags: {},
+  dayShowCounts: {},
   expectedAudience: 8000,
   secondaryAudience: 1500,
   midHallDays: {},
@@ -107,6 +125,7 @@ export function WizardShell({
           venueId: initialSelection.venueId ?? DEFAULT_VENUE_ID,
           bookingMode: initialSelection.bookingMode ?? "SINGLE",
           secondaryAudience: initialSelection.secondaryAudience ?? INITIAL_SELECTION.secondaryAudience,
+          dayShowCounts: initialSelection.dayShowCounts ?? {},
           midHallDays: initialSelection.midHallDays ?? {},
           performanceInfo: initialSelection.performanceInfo ?? INITIAL_PERFORMANCE_INFO,
         }
@@ -144,6 +163,7 @@ export function WizardShell({
         ...INITIAL_SELECTION,
         ...draft.selection,
         dayTags: draft.selection.dayTags ?? {},
+        dayShowCounts: draft.selection.dayShowCounts ?? {},
         venueId: draft.selection.venueId ?? null,
         bookingMode: draft.selection.bookingMode ?? "SINGLE",
         secondaryAudience: draft.selection.secondaryAudience ?? INITIAL_SELECTION.secondaryAudience,
@@ -364,6 +384,7 @@ export function WizardShell({
                   excludedDays={selection.excludedDays}
                   extraDays={selection.extraDays}
                   dayTags={selection.dayTags}
+                  dayShowCounts={selection.dayShowCounts}
                   defaultPerformanceDays={defaultPerformanceDays}
                   weekDemand={weekDemand}
                   dateBlocks={dateBlocks}
@@ -375,6 +396,9 @@ export function WizardShell({
                     setSelection((prev) => ({ ...prev, extraDays }))
                   }
                   onChangeDayTags={(dayTags) => setSelection((prev) => ({ ...prev, dayTags }))}
+                  onChangeDayShowCounts={(dayShowCounts) =>
+                    setSelection((prev) => ({ ...prev, dayShowCounts }))
+                  }
                 />
               ) : (
                 <MidHallCalendar
@@ -426,6 +450,7 @@ export function WizardShell({
             excludedDays={selection.excludedDays}
             extraDays={selection.extraDays}
             dayTags={selection.dayTags}
+            dayShowCounts={selection.dayShowCounts}
             defaultPerformanceDays={defaultPerformanceDays}
             weekDemand={weekDemand}
             dateBlocks={dateBlocks}
@@ -437,6 +462,9 @@ export function WizardShell({
               setSelection((prev) => ({ ...prev, extraDays }))
             }
             onChangeDayTags={(dayTags) => setSelection((prev) => ({ ...prev, dayTags }))}
+            onChangeDayShowCounts={(dayShowCounts) =>
+              setSelection((prev) => ({ ...prev, dayShowCounts }))
+            }
           />
         )}
         {step === 3 && (
@@ -470,6 +498,7 @@ export function WizardShell({
           <StepPerformanceInfo
             info={selection.performanceInfo}
             onChange={(performanceInfo) => setSelection((prev) => ({ ...prev, performanceInfo }))}
+            selection={selection}
             files={pendingFiles}
             onFilesChange={setPendingFiles}
           />

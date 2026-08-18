@@ -165,7 +165,10 @@ export const WEEKDAY_LABEL: Record<WeekDay, string> = {
   SUN: "일",
 };
 
-export type DayTag = "PREP" | "PERFORMANCE";
+// [화면 뼈대 2026-08-18, 화면시나리오 INTERACTION "아레나 — 일자 역할 드롭다운"] 셋업/공연일/
+// 철수/삭제(미사용) 4가지 상태. 철수(LOAD_OUT)는 가격 반영 방식이 아직 미정이라(BLOCKERS
+// P1) 당분간 PREP과 동일하게 비공연일로 취급한다 — 상태 구분 자체는 화면에 노출한다.
+export type DayTag = "PREP" | "PERFORMANCE" | "LOAD_OUT";
 
 // ---------------------------------------------------------------------------
 // 동시 대관 / 중형 일 단위 캘린더 — [화면 뼈대 2026-08-18, 화면시나리오·기능정의 v6.3]
@@ -191,7 +194,8 @@ export interface QuoteSelection {
   week: { year: number; month: number; weekOfMonth: number }; // 2단계 (화~일 시작 주) — 아레나 일정
   excludedDays: WeekDay[]; // 화~일 6일 중 실제 사용하지 않는 요일 (요일당 정액 할인, 최소 1일은 남겨야 함)
   extraDays: number; // 일요일 이후로 연장하는 추가 일수 (일 단위 과금, 0 이상)
-  dayTags: Record<string, DayTag>; // 실제 대관일(ISO 날짜)별 준비일/공연일 지정 — 미지정 시 패키지 기본값 적용
+  dayTags: Record<string, DayTag>; // 실제 대관일(ISO 날짜)별 준비일/공연일/철수 지정 — 미지정 시 패키지 기본값 적용
+  dayShowCounts: Record<string, number>; // 공연일로 지정된 날짜의 1일 회차(기본 1) — 2회 이상 할증은 미정(2-20), 화면 입력만 우선 반영
   expectedAudience: number; // 관객수 (청소비 등 자동 산출 입력값) — 동시 대관 시 아레나 값
   secondaryAudience: number; // 중형 예상 관객 규모 — 동시 대관 또는 중형 단독일 때만 의미 있음(2-14)
   midHallDays: Record<string, MidHallDaySelection>; // 중형 일정 — ISO 날짜별 셋업/공연 지정(2-25~2-29)
@@ -236,15 +240,68 @@ export const RETRACTABLE_SEAT_USE_LABEL: Record<RetractableSeatUse, string> = {
   NOT_USE: "미사용",
 };
 
+// [화면 뼈대 2026-08-18, 화면시나리오 SCREEN 06/12 · 08/12] STEP 3-1(신청자 정보 · 공연
+// 기본정보) · STEP 3-3(개최 신뢰도 · 안전관리) 반영. 대관기간 · 공연일시 · 총 공연 횟수는
+// selection(캘린더 결과)에서 읽기 전용으로 자동 계산하므로 이 타입에는 넣지 않는다.
+export interface ResponsiblePerson {
+  name: string;
+  title: string; // 공연 운영 총괄: 직책 / 안전관리 총괄: 소속
+  phone: string;
+}
+
+export interface PastPerformanceRecord {
+  eventName: string;
+  venue: string;
+  period: string;
+  audience: string;
+  role: string; // 주최·주관 역할
+}
+
+export type CastContractStatus = "COMPLETED" | "IN_PROGRESS" | "PLANNED";
+
+export const CAST_CONTRACT_STATUS_LABEL: Record<CastContractStatus, string> = {
+  COMPLETED: "계약 완료",
+  IN_PROGRESS: "협의 중",
+  PLANNED: "섭외 예정",
+};
+
+export type AgeRating = "ALL" | "AGE_LIMIT" | "UNDECIDED";
+
+export const AGE_RATING_LABEL: Record<AgeRating, string> = {
+  ALL: "전체관람가",
+  AGE_LIMIT: "연령제한",
+  UNDECIDED: "미정",
+};
+
 export interface PerformanceInfo {
+  // 신청자 정보 (STEP 3-1 좌측) — 회원정보에서 자동 입력되나 수정 가능
+  applicantCompanyName: string; // 대관신청사명
+  applicantBusinessRegistrationNumber: string; // 사업자등록번호
+  applicantContactName: string; // 담당자
+  applicantContactPhone: string; // 담당자 연락처
+  operationsResponsible: ResponsiblePerson; // 공연 운영 총괄 책임자
+  safetyResponsible: ResponsiblePerson; // 안전관리 총괄 책임자
+  pastPerformances: PastPerformanceRecord[]; // 대관사 최근 3년간 공연 실적 (반복 입력)
+
+  // 공연 기본정보 (STEP 3-1 우측)
   eventName: string; // 공연(행사)명
   artist: string; // 아티스트
   organizer: string; // 주최·주관·기획
   eventScale: string; // 행사규모
   eventTypes: EventType[]; // 행사유형
+  ageRating: AgeRating | null; // 공연등급
+  ageLimitDetail: string; // 연령제한 상세(예: 15세 이상)
   stageTypes: StageType[]; // 무대형태
   seatingTypes: SeatingType[]; // 객석형태
   retractableSeatUse: RetractableSeatUse | null; // 수납식 객석 사용여부
+  teardownCompletionTime: string; // 철수 완료 예정시간
+  ticketOpenExpectedDate: string; // 티켓 오픈 예정일
+
+  // 개최 신뢰도 및 안전관리 (STEP 3-3) — 회원 유형이 기획사 직접 신청이면 화면에서 섹션 숨김
+  castContractStatus: CastContractStatus | null; // 주요 출연진 계약 상태
+  foreignArtistNotes: string; // 해외 아티스트 추가사항 (비자·입국 일정·국내 에이전시)
+  sensitiveInfoMaskingAcknowledged: boolean; // 민감정보(금액·개인정보) 마스킹 제출 허용 고지 확인
+  safetyPledgeSigned: boolean; // 안전규정 준수 확약서 작성 여부
 }
 
 export interface WeekDemand {

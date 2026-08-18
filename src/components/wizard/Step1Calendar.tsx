@@ -71,6 +71,7 @@ export function Step1Calendar({
   excludedDays,
   extraDays,
   dayTags,
+  dayShowCounts,
   defaultPerformanceDays,
   weekDemand,
   dateBlocks,
@@ -78,11 +79,13 @@ export function Step1Calendar({
   onChangeExcludedDays,
   onChangeExtraDays,
   onChangeDayTags,
+  onChangeDayShowCounts,
 }: {
   week: QuoteSelection["week"];
   excludedDays: WeekDay[];
   extraDays: number;
   dayTags: Record<string, DayTag>;
+  dayShowCounts: Record<string, number>;
   defaultPerformanceDays: number;
   weekDemand: WeekDemand[];
   dateBlocks: DateBlock[];
@@ -90,6 +93,7 @@ export function Step1Calendar({
   onChangeExcludedDays: (days: WeekDay[]) => void;
   onChangeExtraDays: (value: number) => void;
   onChangeDayTags: (dayTags: Record<string, DayTag>) => void;
+  onChangeDayShowCounts: (dayShowCounts: Record<string, number>) => void;
 }) {
   // [화면 뼈대 2026-08-18, 화면시나리오 SCREEN 02/12 · INTERACTION] 역할 지정은 팝업이 아니라
   // 클릭한 날짜 아래에 바로 펼쳐지는 드롭다운으로 처리한다 — 이전의 "사용 요일 토글 행" +
@@ -161,7 +165,7 @@ export function Step1Calendar({
     return null; // 추가 일수(연장일)는 요일 개념이 없다 — 역할 지정 대상이 아니다
   }
 
-  function setRole(iso: string, role: "SETUP" | "PERFORMANCE" | "REMOVE") {
+  function setRole(iso: string, role: DayTag | "REMOVE") {
     const weekday = weekdayForDate(iso);
     if (!weekday) return;
     const isExcluded = excludedDays.includes(weekday);
@@ -172,14 +176,19 @@ export function Step1Calendar({
       setOpenDate(null);
       return;
     }
-    // 셋업/공연일 선택 — 제외돼 있었다면 다시 사용일로 복귀시킨 뒤 역할을 지정한다.
+    // 셋업/공연일/철수 선택 — 제외돼 있었다면 다시 사용일로 복귀시킨 뒤 역할을 지정한다.
     if (isExcluded) onChangeExcludedDays(excludedDays.filter((d) => d !== weekday));
-    onChangeDayTags({ ...dayTags, [iso]: role === "PERFORMANCE" ? "PERFORMANCE" : "PREP" });
+    onChangeDayTags({ ...dayTags, [iso]: role });
     setOpenDate(null);
   }
 
+  function setShowCount(iso: string, count: number) {
+    onChangeDayShowCounts({ ...dayShowCounts, [iso]: Math.max(1, Math.min(4, count)) });
+  }
+
   const setupCount = selectedDates.filter((d) => effectiveDayTag(d, dayTags, dayTagDefaults) === "PREP").length;
-  const performanceCount = selectedDates.length - setupCount;
+  const loadOutCount = selectedDates.filter((d) => effectiveDayTag(d, dayTags, dayTagDefaults) === "LOAD_OUT").length;
+  const performanceCount = selectedDates.length - setupCount - loadOutCount;
 
   return (
     <section className="border border-border bg-background p-5 sm:p-7">
@@ -187,7 +196,8 @@ export function Step1Calendar({
       <p className="mt-1.5 text-[13.5px] text-muted">
         달력에서 원하는 주를 눌러 선택하세요. 기본 단위는{" "}
         <b className="text-foreground">1주(화~일, 6일)</b>이며, 월요일은 기본적으로 대관하지
-        않습니다. 선택한 주의 날짜를 누르면 셋업 · 공연일 · 제외를 바로 지정할 수 있습니다.
+        않습니다. 선택한 주의 날짜를 누르면 셋업 · 공연일(회차 포함) · 철수 · 제외를 바로
+        지정할 수 있습니다.
       </p>
 
       <div className="mt-6 flex items-center justify-between">
@@ -268,7 +278,11 @@ export function Step1Calendar({
                       <span>{date.getDate()}</span>
                       {tag && (
                         <span className="text-[9px] font-medium leading-none">
-                          {tag === "PERFORMANCE" ? "공연" : "세팅"}
+                          {tag === "PERFORMANCE"
+                            ? `공연${(dayShowCounts[iso] ?? 1) > 1 ? `×${dayShowCounts[iso]}` : ""}`
+                            : tag === "LOAD_OUT"
+                              ? "철수"
+                              : "세팅"}
                         </span>
                       )}
                     </button>
@@ -284,7 +298,7 @@ export function Step1Calendar({
                   <div className="mt-2 flex flex-wrap gap-1.5">
                     <button
                       type="button"
-                      onClick={() => setRole(openDate, "SETUP")}
+                      onClick={() => setRole(openDate, "PREP")}
                       className={[
                         "rounded-sm px-3 py-1.5 text-[12px] font-medium transition-colors",
                         activeDateKeys.has(dateKey(new Date(openDate))) &&
@@ -310,6 +324,19 @@ export function Step1Calendar({
                     </button>
                     <button
                       type="button"
+                      onClick={() => setRole(openDate, "LOAD_OUT")}
+                      className={[
+                        "rounded-sm px-3 py-1.5 text-[12px] font-medium transition-colors",
+                        activeDateKeys.has(dateKey(new Date(openDate))) &&
+                        effectiveDayTag(openDate, dayTags, dayTagDefaults) === "LOAD_OUT"
+                          ? "bg-accent text-white"
+                          : "bg-panel-strong text-muted hover:text-foreground",
+                      ].join(" ")}
+                    >
+                      철수
+                    </button>
+                    <button
+                      type="button"
                       onClick={() => setRole(openDate, "REMOVE")}
                       disabled={activeDateKeys.has(dateKey(new Date(openDate))) && usedDayCount <= 1}
                       className="rounded-sm bg-panel-strong px-3 py-1.5 text-[12px] font-medium text-muted transition-colors hover:text-red-600 disabled:cursor-not-allowed disabled:opacity-40"
@@ -317,8 +344,32 @@ export function Step1Calendar({
                       삭제 (미사용)
                     </button>
                   </div>
+                  {activeDateKeys.has(dateKey(new Date(openDate))) &&
+                    effectiveDayTag(openDate, dayTags, dayTagDefaults) === "PERFORMANCE" && (
+                      <div className="mt-2.5 flex items-center gap-2 border-t border-accent/20 pt-2.5">
+                        <span className="text-[11.5px] text-muted">공연 회차</span>
+                        <button
+                          type="button"
+                          onClick={() => setShowCount(openDate, (dayShowCounts[openDate] ?? 1) - 1)}
+                          className="h-6 w-6 rounded-sm border border-border text-[13px] text-muted hover:border-accent hover:text-accent"
+                        >
+                          −
+                        </button>
+                        <span className="w-4 text-center text-[12px] font-medium tabular-nums">
+                          {dayShowCounts[openDate] ?? 1}
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => setShowCount(openDate, (dayShowCounts[openDate] ?? 1) + 1)}
+                          className="h-6 w-6 rounded-sm border border-border text-[13px] text-muted hover:border-accent hover:text-accent"
+                        >
+                          +
+                        </button>
+                      </div>
+                    )}
                   <p className="mt-2 text-[11px] text-muted">
-                    1일 2회 이상 공연 할증은 아직 협의 중입니다(요금 엔진 연동 후 반영).
+                    1일 2회 이상 공연 할증은 아직 협의 중입니다(요금 엔진 연동 후 반영) — 회차는
+                    지금도 지정해 두시면 이후 반영 시 그대로 적용됩니다.
                   </p>
                 </div>
               )}
@@ -369,7 +420,8 @@ export function Step1Calendar({
 
       <div className="mt-4 text-[14px] font-medium text-accent">
         {week.year}년 {week.month}월 {week.weekOfMonth}주차 · 셋업 {setupCount}일 · 공연{" "}
-        {performanceCount}일 · 총 {totalDays}일 적용
+        {performanceCount}일{loadOutCount > 0 ? ` · 철수 ${loadOutCount}일` : ""} · 총 {totalDays}
+        일 적용
         {excludedDays.length > 0 && ` (기본 6일 − 제외 ${excludedDays.length}일${extraDays > 0 ? ` + 추가 ${extraDays}일` : ""})`}
         {excludedDays.length === 0 && extraDays > 0 && ` (기본 6일 + 추가 ${extraDays}일)`}
       </div>
