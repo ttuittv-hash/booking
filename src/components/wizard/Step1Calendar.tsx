@@ -177,9 +177,10 @@ export function Step1Calendar({
       return;
     }
     // 셋업/공연일/철수 선택 — 제외돼 있었다면 다시 사용일로 복귀시킨 뒤 역할을 지정한다.
+    // 드롭다운은 여기서 닫지 않는다 — 공연일을 고른 직후 바로 아래에서 회차를 조정해야
+    // 하므로, 상태값과 회차 스테퍼를 같은 화면에서 함께 보여준다.
     if (isExcluded) onChangeExcludedDays(excludedDays.filter((d) => d !== weekday));
     onChangeDayTags({ ...dayTags, [iso]: role });
-    setOpenDate(null);
   }
 
   function setShowCount(iso: string, count: number) {
@@ -279,7 +280,7 @@ export function Step1Calendar({
                       {tag && (
                         <span className="text-[9px] font-medium leading-none">
                           {tag === "PERFORMANCE"
-                            ? `공연${(dayShowCounts[iso] ?? 1) > 1 ? `×${dayShowCounts[iso]}` : ""}`
+                            ? `공연×${dayShowCounts[iso] ?? 1}`
                             : tag === "LOAD_OUT"
                               ? "철수"
                               : "세팅"}
@@ -292,8 +293,18 @@ export function Step1Calendar({
 
               {isActiveWeek && openInThisRow && openDate && (
                 <div className="mt-1.5 rounded-sm border border-accent bg-accent-soft/40 px-3 py-2.5">
-                  <div className="text-[12.5px] font-semibold text-foreground">
-                    {formatDateLabel(openDate)} — 역할 선택
+                  <div className="flex items-center justify-between">
+                    <div className="text-[12.5px] font-semibold text-foreground">
+                      {formatDateLabel(openDate)} — 역할 선택
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setOpenDate(null)}
+                      aria-label="닫기"
+                      className="text-[12px] text-muted hover:text-foreground"
+                    >
+                      닫기 ✕
+                    </button>
                   </div>
                   <div className="mt-2 flex flex-wrap gap-1.5">
                     <button
