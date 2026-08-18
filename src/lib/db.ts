@@ -888,8 +888,19 @@ export async function saveCompanyVerification(
   );
 }
 
-// 회사명으로 기존 기획사를 찾거나 없으면 새로 만든다 (대소문자·공백 무시하고 매칭).
-// 이미 등록된 회사라면 사업자등록번호 등 법인 정보는 최초 등록 값을 그대로 유지한다.
+/**
+ * 사업자등록번호를 숫자만 남긴 형태로 통일한다.
+ * "333-33-33333" 과 "3333333333" 이 다른 회사로 갈리면 유일 키가 무의미해진다.
+ */
+export function normalizeBusinessNumber(value: string | null | undefined): string | null {
+  const digits = (value ?? "").replace(/\D/g, "");
+  return digits.length > 0 ? digits : null;
+}
+
+// 기존 기획사를 찾거나 없으면 새로 만든다.
+// 회사의 유일 키는 회사명이 아니라 사업자등록번호다(기획서 1-35) — 동명 회사가 실재하므로
+// 이름으로는 같은 회사인지 판단할 수 없다. 사업자번호가 없는 예전 데이터만 이름으로 찾는다.
+// 이미 등록된 회사라면 법인 정보는 최초 등록 값을 그대로 유지한다.
 export async function findOrCreateCompany(
   name: string,
   extra?: {
@@ -902,6 +913,17 @@ export async function findOrCreateCompany(
   },
 ): Promise<Company> {
   const trimmed = name.trim();
+  const brn = normalizeBusinessNumber(extra?.businessRegistrationNumber);
+
+  // 사업자번호가 있으면 그것이 유일 키다.
+  if (brn) {
+    const byBrn = await one<CompanyRow>(
+      "SELECT * FROM companies WHERE business_registration_number = $1",
+      [brn],
+    );
+    if (byBrn) return toCompany(byBrn);
+  }
+  // 사업자번호 없이 등록된 예전 데이터와의 호환 경로.
   const existing = await one<CompanyRow>("SELECT * FROM companies WHERE lower(name) = lower($1)", [
     trimmed,
   ]);
@@ -910,7 +932,7 @@ export async function findOrCreateCompany(
   const row: CompanyRow = {
     id: crypto.randomUUID(),
     name: trimmed,
-    business_registration_number: extra?.businessRegistrationNumber?.trim() || null,
+    business_registration_number: brn,
     representative_name: extra?.representativeName?.trim() || null,
     postal_code: extra?.postalCode?.trim() || null,
     address: extra?.address?.trim() || null,
@@ -926,13 +948,14 @@ export async function findOrCreateCompany(
     verification_message: null,
     verified_at: null,
   };
-  // 같은 회사명으로 동시에 가입하면 조회-후-삽입 사이에 경합이 나서 한쪽이 UNIQUE 위반으로 실패한다.
+  // 같은 사업자번호로 동시에 가입하면 조회-후-삽입 사이에 경합이 나서 한쪽이 UNIQUE 위반으로 실패한다.
   // 충돌 시 무시하고 아래에서 기존 행을 다시 읽는다.
+  // 충돌 대상은 사업자번호 부분 인덱스(idx_companies_brn)다 — 회사명 UNIQUE 는 제거됐다.
   await q(
     `INSERT INTO companies
       (id, name, business_registration_number, representative_name, postal_code, address, business_cert_url, business_cert_name, created_at)
      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
-     ON CONFLICT (name) DO NOTHING`,
+     ON CONFLICT (business_registration_number) WHERE business_registration_number IS NOT NULL DO NOTHING`,
     [
       row.id,
       row.name,
@@ -945,9 +968,10 @@ export async function findOrCreateCompany(
       row.created_at,
     ],
   );
-  const stored = await one<CompanyRow>("SELECT * FROM companies WHERE lower(name) = lower($1)", [
-    trimmed,
-  ]);
+  // 경합에 밀렸으면 먼저 들어간 행이 정본이다. 사업자번호가 있으면 그걸로 다시 읽는다.
+  const stored = brn
+    ? await one<CompanyRow>("SELECT * FROM companies WHERE business_registration_number = $1", [brn])
+    : await one<CompanyRow>("SELECT * FROM companies WHERE lower(name) = lower($1)", [trimmed]);
   return toCompany(stored ?? row);
 }
 
