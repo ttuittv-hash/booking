@@ -1,5 +1,7 @@
 import { NextResponse } from "next/server";
 import { isNiceAuthConfigured } from "@/lib/niceAuth";
+import { publicOrigin } from "@/lib/publicUrl";
+import { dispatchMessage } from "@/lib/message/dispatch";
 import { verifyIdentityTicket } from "@/lib/identityTicket";
 import crypto from "node:crypto";
 import { createSession, hashPassword } from "@/lib/auth";
@@ -15,11 +17,11 @@ import {
   findOrCreateCompany,
   assignCompanyRoleOnJoin,
   resolveCompanyJoin,
-  createNotification,
   attachIdentityToUser,
   findCompletedIdentity,
   findUserByDi,
   saveTermsAgreements,
+  listUsers,
   findUserByEmailWithPasswordHash,
   findUserByPhone,
   findUserByUsername,
@@ -63,6 +65,7 @@ export async function POST(request: Request) {
   // 미설정 환경(로컬 등)에서는 인증 단계를 건너뛰므로 티켓이 없어도 진행한다.
   const identityTicket = typeof body?.identityTicket === "string" ? body.identityTicket : "";
   // 약관 동의 스냅샷 — 화면이 보낸 버전·본문 해시를 그대로 기록한다(기획서 1-25).
+  const origin = publicOrigin(request);
   const agreements = Array.isArray(body?.agreements) ? body.agreements : [];
   const agreedTerms = body?.agreedTerms === true;
   const agreedPrivacy = body?.agreedPrivacy === true;
@@ -321,18 +324,39 @@ export async function POST(request: Request) {
       createdAt,
     });
 
+    // MB-04 합류 신청 발생 → 그 회사 마스터
     if (company && created.companyRole === "STAFF" && company.masterUserId) {
-      await createNotification({
-        id: crypto.randomUUID(),
-        recipientId: company.masterUserId,
-        quoteId: null,
-        message: `${name}님이 ${company.name} 합류를 신청했습니다. 담당자 관리에서 승인해주세요.`,
-        createdAt,
+      await dispatchMessage({
+        templateCode: "MB-04",
+        idempotencyKey: `MB-04:${created.id}`,
+        recipient: { userId: company.masterUserId, phone: null, email: null, name: null },
+        variables: { 신청자명: name },
+        origin,
       });
     }
 
     return created;
   });
+
+  // MB-01 가입 신청 접수 → 신청자 본인
+  await dispatchMessage({
+    templateCode: "MB-01",
+    idempotencyKey: `MB-01:${user.id}`,
+    recipient: { userId: user.id, phone, email, name },
+    origin,
+  });
+  // MB-05 회사 신규 등록 → 운영자
+  if (company && user.companyRole === "MASTER") {
+    for (const admin of await listUsers({ role: "ADMIN" })) {
+      await dispatchMessage({
+        templateCode: "MB-05",
+        idempotencyKey: `MB-05:${company.id}:${admin.id}`,
+        recipient: { userId: admin.id, phone: admin.phone, email: admin.email, name: admin.name },
+        variables: { 회사명: company.name, 신청자명: name },
+        origin,
+      });
+    }
+  }
 
   await createSession(user.id, user.role);
   // 합류 상황에 따라 안내 문구가 달라진다 — "심사 중인 회사"인지 "미승인 이력이 있는 회사"인지

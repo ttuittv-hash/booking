@@ -126,7 +126,12 @@ export function MembersManager() {
                               type="button"
                               data-testid="reject-member"
                               disabled={busy}
-                              onClick={() => act("/api/admin/applicants", { id: m.id, action: "reject" })}
+                              onClick={() => {
+                                // MB-03 의 필수 변수라 사유 없이 반려할 수 없다.
+                                const reason = window.prompt("반려 사유를 입력해주세요. 신청자에게 그대로 안내됩니다.");
+                                if (!reason?.trim()) return;
+                                void act("/api/admin/applicants", { id: m.id, action: "reject", reason: reason.trim() });
+                              }}
                               className={btnClass("secondary", "sm")}
                             >
                               거절

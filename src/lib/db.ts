@@ -1604,6 +1604,78 @@ export async function findSessionEpoch(userId: string): Promise<string | null> {
   return row?.session_epoch ?? null;
 }
 
+// ── 비즈메시지 발송 이력 (기획서 B1) ────────────────────────────────────────
+
+export async function findSendByIdempotencyKey(key: string): Promise<{ id: string } | undefined> {
+  return one<{ id: string }>("SELECT id FROM message_sends WHERE idempotency_key = $1", [key]);
+}
+
+export async function recordSendAttempt(input: {
+  id: string;
+  idempotencyKey: string;
+  templateCode: string;
+  recipientId: string | null;
+  recipientPhone: string | null;
+  channel: string;
+  status: string;
+  resultCode?: string | null;
+  resultMessage?: string | null;
+  payloadJson?: string | null;
+  createdAt: string;
+}): Promise<void> {
+  await q(
+    `INSERT INTO message_sends
+       (id, idempotency_key, template_code, recipient_id, recipient_phone, channel, status,
+        attempt, result_code, result_message, payload_json, created_at)
+     VALUES ($1, $2, $3, $4, $5, $6, $7, 1, $8, $9, $10, $11)
+     ON CONFLICT (idempotency_key) DO NOTHING`,
+    [
+      input.id,
+      input.idempotencyKey,
+      input.templateCode,
+      input.recipientId,
+      input.recipientPhone,
+      input.channel,
+      input.status,
+      input.resultCode ?? null,
+      input.resultMessage ?? null,
+      input.payloadJson ?? null,
+      input.createdAt,
+    ],
+  );
+}
+
+export async function updateSendResult(
+  id: string,
+  result: { status: string; resultCode: string | null; resultMessage: string | null; sentAt: string | null },
+): Promise<void> {
+  await q(
+    `UPDATE message_sends
+        SET status = $2, result_code = $3, result_message = $4, sent_at = $5
+      WHERE id = $1`,
+    [id, result.status, result.resultCode, result.resultMessage, result.sentAt],
+  );
+}
+
+/** 백오피스 발송 이력 조회 (기획서 1-60). */
+export async function listMessageSends(limit = 100) {
+  return q<{
+    id: string;
+    template_code: string;
+    channel: string;
+    status: string;
+    recipient_phone: string | null;
+    result_code: string | null;
+    result_message: string | null;
+    created_at: string;
+    sent_at: string | null;
+  }>(
+    `SELECT id, template_code, channel, status, recipient_phone, result_code, result_message, created_at, sent_at
+       FROM message_sends ORDER BY created_at DESC LIMIT $1`,
+    [limit],
+  );
+}
+
 /** 마스킹된 아이디 — 전체를 그대로 보여주면 목록화가 가능해진다(기획서 A13). */
 export function maskUsername(username: string): string {
   if (username.length <= 2) return username[0] + "*";

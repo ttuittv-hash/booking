@@ -1,0 +1,87 @@
+// 알림톡 템플릿 — 1차 오픈(8/24) 회원가입 5종 (기획서 B2).
+//
+// 문안을 코드에 두는 이유: 심사 통과분만 골라 켜야 하고, 변수 목록이 코드와
+// 어긋나면 빈 값이 그대로 발송된다. 심사 상태·활성 여부는 DB(message_templates)로
+// 관리하고, 여기서는 "무엇을 어떤 변수로 렌더링하는가"만 정의한다.
+
+export interface TemplateDef {
+  code: string;
+  title: string;
+  /** 본문 — #{변수} 자리표시자를 쓴다(카카오 규격과 동일 표기). */
+  body: string;
+  variables: string[];
+  /** 1차 오픈 대상인지 */
+  release: "FIRST" | "SECOND" | "TBD";
+  button?: { name: string; path: string };
+}
+
+export const TEMPLATES: TemplateDef[] = [
+  {
+    code: "MB-01",
+    title: "가입 신청 접수",
+    body: "회원가입이 진행 중입니다.\n가입 심사 완료 후 결과를 다시 안내드리겠습니다.",
+    variables: [],
+    release: "FIRST",
+  },
+  {
+    code: "MB-02",
+    title: "가입 승인",
+    body: "회원가입이 승인되었습니다.\n이제 대관시스템을 이용하실 수 있습니다.",
+    variables: [],
+    release: "FIRST",
+    button: { name: "대관 신청하기", path: "/apply" },
+  },
+  {
+    code: "MB-03",
+    title: "가입 반려",
+    body: "회원가입이 반려되었습니다.\n사유: #{반려사유}",
+    variables: ["반려사유"],
+    release: "FIRST",
+  },
+  {
+    code: "MB-04",
+    title: "합류 신청 발생",
+    body: "#{신청자명}님이 귀사 담당자로 합류를 신청했습니다.\n승인해 주세요.",
+    variables: ["신청자명"],
+    release: "FIRST",
+    button: { name: "담당자 관리", path: "/mypage/members" },
+  },
+  {
+    code: "MB-05",
+    title: "회사 신규 등록 (운영자)",
+    body: "신규 회사 등록 신청이 접수되었습니다.\n회사명: #{회사명}\n신청자: #{신청자명}",
+    variables: ["회사명", "신청자명"],
+    release: "FIRST",
+    button: { name: "심사 화면", path: "/admin/applicants" },
+  },
+];
+
+export function findTemplate(code: string): TemplateDef | undefined {
+  return TEMPLATES.find((t) => t.code === code);
+}
+
+/** 자리표시자 추출 — 본문과 variables 선언이 어긋나는 것을 막는다. */
+export function placeholdersIn(body: string): string[] {
+  return [...body.matchAll(/#\{([^}]+)\}/g)].map((m) => m[1]);
+}
+
+export class TemplateVariableError extends Error {}
+
+/**
+ * 변수를 채워 본문을 만든다.
+ * 빈 값이 그대로 나가면 신뢰가 즉시 깨지므로(기획서 1-54), 누락은 발송 전에 막는다.
+ */
+export function renderTemplate(code: string, variables: Record<string, string>): string {
+  const def = findTemplate(code);
+  if (!def) throw new TemplateVariableError(`템플릿을 찾을 수 없습니다: ${code}`);
+
+  const needed = placeholdersIn(def.body);
+  const missing = needed.filter((k) => {
+    const v = variables[k];
+    return v === undefined || v === null || String(v).trim() === "";
+  });
+  if (missing.length > 0) {
+    throw new TemplateVariableError(`${code} 변수 누락: ${missing.join(", ")}`);
+  }
+  return def.body.replace(/#\{([^}]+)\}/g, (_, k) => String(variables[k]));
+}

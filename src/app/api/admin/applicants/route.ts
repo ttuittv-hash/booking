@@ -1,10 +1,9 @@
 import { NextResponse } from "next/server";
-import crypto from "node:crypto";
 import { getCurrentUser } from "@/lib/auth";
+import { dispatchMessage } from "@/lib/message/dispatch";
+import { publicOrigin } from "@/lib/publicUrl";
 import {
-  createNotification,
   ensureCompanyMaster,
-  findCompanyById,
   findUserById,
   setCompanyStatus,
   setUserApprovalStatus,
@@ -27,6 +26,8 @@ export async function POST(request: Request) {
   const body = await request.json().catch(() => null);
   const id = typeof body?.id === "string" ? body.id : "";
   const action = body?.action === "approve" ? "approve" : body?.action === "reject" ? "reject" : null;
+  // MB-03 의 필수 변수. 사유 없이 반려하면 빈 값이 그대로 발송되므로 여기서 막는다(기획서 B2).
+  const rejectReason = typeof body?.reason === "string" ? body.reason.trim() : "";
   if (!id || !action) {
     return NextResponse.json({ error: "잘못된 요청입니다." }, { status: 400 });
   }
@@ -74,6 +75,13 @@ export async function POST(request: Request) {
     );
   }
 
+  if (action === "reject" && !rejectReason) {
+    return NextResponse.json(
+      { error: "반려 사유를 입력해주세요. 신청자에게 그대로 안내됩니다." },
+      { status: 400 },
+    );
+  }
+
   const approved = action === "approve";
   const updated = await setUserApprovalStatus(id, approved ? "APPROVED" : "REJECTED");
 
@@ -87,16 +95,13 @@ export async function POST(request: Request) {
     await ensureCompanyMaster(target.companyId);
   }
 
-  const company = target.companyId ? await findCompanyById(target.companyId) : undefined;
-  await createNotification({
-    id: crypto.randomUUID(),
-    recipientId: id,
-    // 가입 승인은 신청서와 무관하다.
-    quoteId: null,
-    message: approved
-      ? `가입이 승인되었습니다.${company ? ` (${company.name})` : ""} 이제 대관 패키지 안내와 견적 산출을 이용하실 수 있습니다.`
-      : "가입이 승인되지 않았습니다. 자세한 사항은 운영자에게 문의해주세요.",
-    createdAt: new Date().toISOString(),
+  // MB-02 가입 승인 / MB-03 가입 반려
+  await dispatchMessage({
+    templateCode: approved ? "MB-02" : "MB-03",
+    idempotencyKey: `${approved ? "MB-02" : "MB-03"}:${id}`,
+    recipient: { userId: id, phone: target.phone, email: target.email, name: target.name },
+    variables: approved ? {} : { 반려사유: rejectReason },
+    origin: publicOrigin(request),
   });
 
   return NextResponse.json({ user: updated, processedBy: isAdmin ? "ADMIN" : "MASTER" });

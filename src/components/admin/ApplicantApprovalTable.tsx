@@ -51,14 +51,26 @@ export function ApplicantApprovalTable({
   const [busyId, setBusyId] = useState<string | null>(null);
 
   async function act(id: string, action: "approve" | "reject") {
+    // 반려 사유는 MB-03 알림톡의 필수 변수다. 비워두면 신청자에게 빈 사유가 나간다.
+    let reason = "";
+    if (action === "reject") {
+      const input = window.prompt("반려 사유를 입력해주세요. 신청자에게 그대로 안내됩니다.");
+      if (!input?.trim()) return;
+      reason = input.trim();
+    }
     setBusyId(id);
     try {
       const res = await fetch("/api/admin/applicants", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ id, action }),
+        body: JSON.stringify({ id, action, reason }),
       });
-      if (res.ok) router.refresh();
+      if (res.ok) {
+        router.refresh();
+      } else {
+        const data = await res.json().catch(() => null);
+        window.alert(data?.error ?? "처리하지 못했습니다.");
+      }
     } finally {
       setBusyId(null);
     }
