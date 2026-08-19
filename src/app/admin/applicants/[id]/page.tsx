@@ -78,6 +78,8 @@ export default async function AdminApplicantDetailPage({
     : await listQuotes({ applicantId: target.id });
 
   const profile: [string, ReactNode][] = [
+    ["이름", target.name],
+    ["로그인 ID", target.username || NONE],
     ["이메일", target.email],
     ["휴대폰 번호", target.phone || NONE],
     ["회사/기획사", target.companyName || NONE],
@@ -239,15 +241,18 @@ export default async function AdminApplicantDetailPage({
 
 // 사업자 진위확인 결과 뱃지 — 운영자가 승인 전에 한눈에 보도록 상태를 구분한다.
 // 색은 kit 의 Badge tone 만 쓴다 (임의 색 금지).
+// 가입 화면과 같은 말을 쓴다 — 같은 결과를 두 화면이 다르게 부르면 대조가 안 된다.
+//   인증 완료 / 확인 필요 / 인증 실패
 function VerificationBadge({ verification }: { verification: CompanyVerification }) {
   const normal = verification.status === "VERIFIED" && verification.compStatus === "1";
-  const label =
-    verification.status === "VERIFIED"
-      ? `국세청 확인 · ${verification.compStatusLabel ?? "상태미상"}`
+  const label = normal
+    ? `인증 완료 · ${verification.compStatusLabel ?? "정상"}`
+    : verification.status === "VERIFIED"
+      ? `확인 필요 · ${verification.compStatusLabel ?? "상태 정보 없음"}`
       : verification.status === "NOT_FOUND"
-        ? "국세청 미조회"
-        : "미확인";
-  const tone = normal ? "good" : verification.status === "VERIFIED" ? "danger" : "neutral";
+        ? "인증 실패 · 조회되지 않음"
+        : "확인 필요 · 미확인";
+  const tone = normal ? "good" : verification.status === "NOT_FOUND" ? "danger" : "neutral";
   return <Badge tone={tone}>{label}</Badge>;
 }
 
