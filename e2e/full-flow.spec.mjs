@@ -12,6 +12,17 @@ function check(id, label, ok, detail = "") {
   console.log(`${ok ? "PASS" : "FAIL"}  ${id.padEnd(7)} ${label}${detail ? "  — " + detail : ""}`);
 }
 
+
+/**
+ * 이미 등록된 회사로 확인되면 기업정보가 읽기 전용으로 잠긴다(정상 동작).
+ * 잠긴 칸에 fill 을 시도하면 타임아웃이 나므로, 편집 가능한 칸만 채운다.
+ */
+async function fillIfEditable(p, sel, value) {
+  const ro = await p.locator(sel).getAttribute("readonly");
+  if (ro !== null) return;
+  await p.fill(sel, value);
+}
+
 const browser = await chromium.launch();
 const t = String(Date.now()).slice(-6);
 
@@ -60,8 +71,8 @@ try {
   // 기획서 A5 — 사업자등록번호는 [중복·진위확인]을 통과해야 제출할 수 있다
   await page.click('[data-testid="verify-brn"]');
   await page.waitForSelector('[data-testid="brn-check-message"]', { timeout: 25000 });
-  await page.fill('[data-testid="f-postalCode"]', "13529");
-  await page.fill('[data-testid="f-address"]', "경기도 성남시 분당구 판교역로 166");
+  await fillIfEditable(page, '[data-testid="f-postalCode"]', "13529");
+  await fillIfEditable(page, '[data-testid="f-address"]', "경기도 성남시 분당구 판교역로 166");
   await page.fill('[data-testid="f-username"]', masterUser);
   await page.fill('[data-testid="f-email"]', `${masterUser}@seoul-ent.co.kr`);
   await page.fill('[data-testid="f-password"]', "Test1234!");
