@@ -1191,6 +1191,36 @@ export async function searchCompaniesForJoin(
   };
 }
 
+/** 약관 동의 이력을 남긴다. 선택 약관은 미동의(0)도 남겨야 "물어봤고 거절했다"가 증명된다. */
+export async function saveTermsAgreements(
+  userId: string,
+  agreements: {
+    kind: string;
+    version: string;
+    bodyHash: string;
+    agreed: boolean;
+    agreedAt: string;
+    requestIp: string | null;
+  }[],
+): Promise<void> {
+  for (const a of agreements) {
+    await q(
+      `INSERT INTO terms_agreements (id, user_id, terms_kind, terms_version, body_hash, agreed, agreed_at, request_ip)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
+      [
+        crypto.randomUUID(),
+        userId,
+        a.kind,
+        a.version,
+        a.bodyHash,
+        a.agreed ? 1 : 0,
+        a.agreedAt,
+        a.requestIp,
+      ],
+    );
+  }
+}
+
 // ── 본인인증 (NICE 통합인증) ────────────────────────────────────────────────
 
 export interface IdentityPending {
@@ -1356,6 +1386,43 @@ export async function findCompletedIdentity(id: string): Promise<
     ci: decryptOptional(row.ci_encrypted),
     di: decryptOptional(row.di_encrypted),
   };
+}
+
+/**
+ * 개발 환경 전용 — 인증을 통과한 것처럼 이력을 만들어 둔다.
+ * 표준창 인증은 실제 사람이 해야 해서 E2E 자동화가 불가능하다.
+ * 호출부(/api/auth/nice/start)에서 이중 잠금을 확인한 뒤에만 들어온다.
+ */
+export async function saveStubIdentity(input: {
+  id: string;
+  name: string;
+  mobileNo: string;
+  ci: string;
+  di: string;
+  purpose: string;
+  createdAt: string;
+}): Promise<void> {
+  await q(
+    `INSERT INTO identity_verifications
+       (id, nonce, request_no, transaction_id, purpose, succeeded, result_code, result_message,
+        name, birthdate, gender, national_info, mobile_co, mobile_no,
+        ci_encrypted, di_encrypted, di_index, consumed_at, created_at)
+     VALUES ($1, $2, $3, $4, $5, 1, 'STUB', '개발 환경 스텁',
+             $6, '19900101', '1', '0', '1', $7, $8, $9, $10, $11, $11)`,
+    [
+      input.id,
+      "stub-" + input.id,
+      "STUB-" + input.id,
+      "STUB-TX-" + input.id,
+      input.purpose,
+      input.name,
+      input.mobileNo,
+      encryptField(input.ci),
+      encryptField(input.di),
+      blindIndex(input.di),
+      input.createdAt,
+    ],
+  );
 }
 
 /** DI 로 이미 가입한 계정을 찾는다 — 중복 가입 판별(기획서 1-28). */

@@ -1,7 +1,8 @@
 import { NextResponse } from "next/server";
 import crypto from "node:crypto";
 import { issueAccessToken, issueAuthUrl, isNiceAuthConfigured } from "@/lib/niceAuth";
-import { saveIdentityPending } from "@/lib/db";
+import { saveIdentityPending, saveStubIdentity } from "@/lib/db";
+import { signIdentityTicket } from "@/lib/identityTicket";
 import { clientIpFrom, rateLimit } from "@/lib/rateLimit";
 
 // 본인인증 시작 — 표준창 팝업 URL 을 발급한다(기획서 A4).
@@ -29,6 +30,42 @@ export async function POST(request: Request) {
     body?.purpose === "FIND_ID" || body?.purpose === "RESET_PASSWORD" ? body.purpose : "REGISTER";
 
   const origin = new URL(request.url).origin;
+
+  // ── 개발 환경 전용 스텁 ───────────────────────────────────────────────
+  // 표준창 인증은 실제 사람이 휴대폰으로 해야 해서 E2E 로 자동화할 수 없다.
+  // dev 에서만 인증을 통과시킨 것처럼 처리해 뒤 단계를 검증한다.
+  //
+  // 두 겹으로 잠근다 — 환경변수가 있어야 하고, 요청 헤더의 값이 그 환경변수와
+  // 정확히 같아야 한다. 환경변수만으로 열면 실수로 운영에 들어갔을 때
+  // 본인인증이 통째로 무력해진다. 운영 매니페스트에는 이 변수를 넣지 않는다.
+  const stubSecret = process.env.NICE_AUTH_DEV_STUB;
+  const stubHeader = request.headers.get("x-dev-stub");
+  if (stubSecret && stubHeader && stubHeader === stubSecret) {
+    const id = crypto.randomUUID();
+    const seed = crypto.randomBytes(12).toString("hex");
+    await saveStubIdentity({
+      id,
+      name: body?.stubName || "테스트사용자",
+      mobileNo: body?.stubPhone || "0100000" + seed.slice(0, 4),
+      di: "STUB-DI-" + seed,
+      ci: "STUB-CI-" + seed,
+      purpose,
+      createdAt: new Date().toISOString(),
+    });
+    const ticket = await signIdentityTicket({
+      verificationId: id,
+      purpose,
+      name: body?.stubName || "테스트사용자",
+      mobileNo: body?.stubPhone || "0100000" + seed.slice(0, 4),
+    });
+    return NextResponse.json({
+      stub: true,
+      ticket,
+      name: body?.stubName || "테스트사용자",
+      mobileNo: body?.stubPhone || "0100000" + seed.slice(0, 4),
+    });
+  }
+
   // 콜백 상관관계 키. NICE 는 완료 시 web_transaction_id 만 돌려주므로 우리 쪽 진행 건을
   // 특정할 수단이 없다. return_url 경로에 nonce 를 박아 두면 동시 가입자끼리 섞이지 않는다.
   const nonce = crypto.randomUUID();

@@ -19,6 +19,7 @@ import {
   attachIdentityToUser,
   findCompletedIdentity,
   findUserByDi,
+  saveTermsAgreements,
   findUserByEmailWithPasswordHash,
   findUserByPhone,
   findUserByUsername,
@@ -61,6 +62,8 @@ export async function POST(request: Request) {
   // 본인인증 티켓 — 인증을 마친 사람만 가입할 수 있다(기획서 A4).
   // 미설정 환경(로컬 등)에서는 인증 단계를 건너뛰므로 티켓이 없어도 진행한다.
   const identityTicket = typeof body?.identityTicket === "string" ? body.identityTicket : "";
+  // 약관 동의 스냅샷 — 화면이 보낸 버전·본문 해시를 그대로 기록한다(기획서 1-25).
+  const agreements = Array.isArray(body?.agreements) ? body.agreements : [];
   const agreedTerms = body?.agreedTerms === true;
   const agreedPrivacy = body?.agreedPrivacy === true;
 
@@ -273,6 +276,25 @@ export async function POST(request: Request) {
       privacyAgreedAt: createdAt,
       createdAt,
     });
+
+    // 동의 이력. 선택 약관은 미동의(false)도 남겨야 "물어봤고 거절했다"가 증명된다.
+    if (agreements.length > 0) {
+      await saveTermsAgreements(
+        created.id,
+        agreements
+          .filter((a: { kind?: unknown; version?: unknown; bodyHash?: unknown }) =>
+            typeof a?.kind === "string" && typeof a?.version === "string" && typeof a?.bodyHash === "string",
+          )
+          .map((a: { kind: string; version: string; bodyHash: string; agreed?: boolean }) => ({
+            kind: a.kind,
+            version: a.version,
+            bodyHash: a.bodyHash,
+            agreed: a.agreed === true,
+            agreedAt: createdAt,
+            requestIp: clientIpFrom(request),
+          })),
+      );
+    }
 
     // 본인인증 결과(CI/DI)를 계정에 붙인다. 암호문으로 들어가고 DI 는 블라인드 인덱스도 함께 남는다.
     if (identity?.ci && identity.di) {
