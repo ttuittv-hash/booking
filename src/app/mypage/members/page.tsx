@@ -19,8 +19,8 @@ export default async function MembersPage() {
       <PublicHeader active="/mypage" currentUser={user} />
       <main className="container-site flex-1 py-12">
         <PageHeading title="담당자 관리" />
-        <p className="mt-3 text-s text-muted">
-          {user.companyName} · 소속 담당자를 초대하고 합류 신청을 승인합니다.
+        <p className="mt-3 break-keep text-s leading-6 text-muted">
+          {user.companyName} · 대표 담당자로서 소속 담당자를 초대하고 합류 신청을 승인합니다.
         </p>
         <MembersManager />
       </main>

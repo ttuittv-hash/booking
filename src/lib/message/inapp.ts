@@ -14,15 +14,14 @@ export const inAppAdapter: ChannelAdapter = {
       // 아직 계정이 없는 수신자(가입 전 안내 등)에게는 인앱이 성립하지 않는다.
       return { ok: false, channel: "INAPP", failure: "UNREACHABLE", resultMessage: "계정 없음" };
     }
-    const message = request.button
-      ? `${request.body}\n${request.button.name}: ${request.button.url}`
-      : request.body;
+    // 버튼은 본문에 URL 을 붙이지 않고 링크로 저장한다 — 알림을 누르면 바로 이동한다.
     await createNotification({
       id: crypto.randomUUID(),
       recipientId: request.recipient.userId,
       // 비즈메시지는 신청서에 매인 알림이 아니다.
       quoteId: null,
-      message,
+      link: request.button?.url ?? null,
+      message: request.body,
       createdAt: new Date().toISOString(),
     });
     return { ok: true, channel: "INAPP", resultCode: "OK" };

@@ -478,6 +478,9 @@ async function initSchema(pool: Pool) {
     -- 가입·계정 알림(승인/반려/비밀번호 변경)은 신청서와 무관하다.
     -- quote_id 가 NOT NULL 이면 이런 알림은 저장 자체가 안 된다.
     ALTER TABLE notifications ALTER COLUMN quote_id DROP NOT NULL;
+    -- 알림을 눌렀을 때 갈 곳. 예전에는 신청서 상세로만 갈 수 있어서 비즈메시지는
+    -- 본문에 URL 을 그대로 적어 넣었다 — 링크로 저장해 화면에서 누르게 한다.
+    ALTER TABLE notifications ADD COLUMN IF NOT EXISTS link TEXT;
 
     -- 회사의 유일 키는 회사명이 아니라 사업자등록번호다.
     -- 동명 회사가 실제로 있어서 name UNIQUE 는 오히려 정상 가입을 막는다.
@@ -2976,6 +2979,7 @@ interface NotificationRow {
   id: string;
   recipient_id: string;
   quote_id: string | null;
+  link: string | null;
   message: string;
   is_read: number;
   created_at: string;
@@ -2986,6 +2990,7 @@ function toNotification(row: NotificationRow): AppNotification {
     id: row.id,
     recipientId: row.recipient_id,
     quoteId: row.quote_id,
+    link: row.link ?? null,
     message: row.message,
     isRead: row.is_read === 1,
     createdAt: row.created_at,
@@ -2997,13 +3002,15 @@ export async function createNotification(input: {
   recipientId: string;
   /** 가입 승인·비밀번호 변경처럼 신청서가 없는 알림은 null 로 넣는다. */
   quoteId: string | null;
+  /** 눌렀을 때 갈 곳. 없으면 기본 목록으로 간다. */
+  link?: string | null;
   message: string;
   createdAt: string;
 }) {
   await q(
-    `INSERT INTO notifications (id, recipient_id, quote_id, message, is_read, created_at)
-     VALUES ($1, $2, $3, $4, 0, $5)`,
-    [input.id, input.recipientId, input.quoteId, input.message, input.createdAt],
+    `INSERT INTO notifications (id, recipient_id, quote_id, link, message, is_read, created_at)
+     VALUES ($1, $2, $3, $6, $4, 0, $5)`,
+    [input.id, input.recipientId, input.quoteId, input.message, input.createdAt, input.link ?? null],
   );
 }
 

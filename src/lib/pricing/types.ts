@@ -523,6 +523,8 @@ export interface AppNotification {
   recipientId: string;
   /** 신청서와 무관한 알림(가입 승인·비밀번호 변경 등)은 null 이다. */
   quoteId: string | null;
+  /** 눌렀을 때 갈 곳 — 없으면 역할별 기본 목록으로 간다. */
+  link: string | null;
   message: string;
   isRead: boolean;
   createdAt: string;

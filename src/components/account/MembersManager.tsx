@@ -87,7 +87,11 @@ export function MembersManager() {
       ) : null}
 
       <section>
-        <h2 className="text-s font-bold">소속 담당자</h2>
+        <h2 className="text-s font-bold">담당자 목록</h2>
+        <p className="mt-1 break-keep text-xs leading-6 text-muted">
+          회사를 처음 등록한 분이 <b>대표 담당자</b>가 되고, 이후 합류한 분은 <b>소속 담당자</b>가
+          됩니다. 대표 담당자만 초대 · 합류 승인 · 소속 해제 · 대표 이관을 할 수 있습니다.
+        </p>
         <div className="mt-3 overflow-x-auto">
           <table className="w-full min-w-[36rem] text-s" data-testid="members-table">
             <thead>
@@ -104,7 +108,17 @@ export function MembersManager() {
                 <tr key={m.id} className="border-b border-border/40" data-testid={`member-${m.id}`}>
                   <td className="py-3">{m.name}</td>
                   <td className="py-3 text-muted">{m.email}</td>
-                  <td className="py-3">{m.companyRole === "MASTER" ? "대표 담당자" : "담당자"}</td>
+                  <td className="py-3">
+                    <span
+                      className={`inline-block border px-2 py-0.5 text-xs ${
+                        m.companyRole === "MASTER"
+                          ? "border-accent text-accent"
+                          : "border-border-soft text-muted"
+                      }`}
+                    >
+                      {m.companyRole === "MASTER" ? "대표 담당자" : "소속 담당자"}
+                    </span>
+                  </td>
                   <td className="py-3">{APPROVAL_LABEL[m.approvalStatus] ?? m.approvalStatus}</td>
                   <td className="py-3">
                     {m.companyRole === "MASTER" ? (
