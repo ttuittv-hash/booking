@@ -23,7 +23,6 @@ import {
   type SeatingType,
   type StageType,
 } from "@/lib/pricing/types";
-import { StepHeading } from "./StepHeading";
 
 const EVENT_TYPES = Object.keys(EVENT_TYPE_LABEL) as EventType[];
 const STAGE_TYPES = Object.keys(STAGE_TYPE_LABEL) as StageType[];

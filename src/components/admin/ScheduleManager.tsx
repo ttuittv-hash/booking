@@ -5,7 +5,6 @@ import { useEffect, useState } from "react";
 import { isoDate } from "@/lib/pricing/dateRange";
 import type { DateBlock } from "@/lib/pricing/types";
 import { btnClass } from "@/components/ui/kit";
-import { FIELD_LABEL, FIELD_SM, HELP, PANEL, SUB_TITLE } from "./adminUi";
 
 interface ScheduleOccupancyEntry {
   quoteId: string;

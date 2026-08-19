@@ -11,8 +11,6 @@ import {
   type WeekDay,
   type WeekDemand,
 } from "@/lib/pricing/types";
-import { Note } from "@/components/ui/kit";
-import { StepHeading } from "./StepHeading";
 
 const DOW_LABELS = ["월", "화", "수", "목", "금", "토", "일"]; // 달력은 월요일부터 시작, 대관 단위는 화~일 (월요일은 대관 불가 기본값)
 const WEEKDAY_SHORT = ["일", "월", "화", "수", "목", "금", "토"];
