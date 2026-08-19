@@ -8,6 +8,14 @@ import { DEFAULT_GUIDE_CONTENT, DEFAULT_HOME_CONTENT, DEFAULT_VENUE_CONTENT } fr
 import { FEATURE_SPEC_SEED } from "./featureSpecSeed";
 import { FEATURE_SPEC_SHEET_KEYS } from "./pricing/types";
 import { sha256Hex } from "./passwordScheme";
+import {
+  blindIndex,
+  blindIndexOptional,
+  decryptField,
+  decryptOptional,
+  encryptField,
+  encryptOptional,
+} from "./fieldCrypto";
 import type { GuideContent, HomeContent, VenueContent } from "./content/types";
 import type {
   ApprovalStatus,
@@ -443,6 +451,22 @@ async function initSchema(pool: Pool) {
     ALTER TABLE companies ADD COLUMN IF NOT EXISTS master_user_id TEXT REFERENCES users(id);
     -- 회사 자체의 승인 상태. 회원 개인의 approval_status 와 다른 축이다.
     ALTER TABLE companies ADD COLUMN IF NOT EXISTS status TEXT NOT NULL DEFAULT 'PENDING';
+
+    -- 진행 중인 본인인증 건을 콜백에서 다시 집어들기 위한 값들.
+    -- pod 가 여러 개라 프로세스 메모리에 두면 콜백이 다른 pod 로 가서 깨진다.
+    -- ticket 은 복호화 키의 씨앗이라 암호문으로만 보관한다.
+    ALTER TABLE identity_verifications ADD COLUMN IF NOT EXISTS purpose TEXT NOT NULL DEFAULT 'REGISTER';
+    ALTER TABLE identity_verifications ADD COLUMN IF NOT EXISTS access_token TEXT;
+    ALTER TABLE identity_verifications ADD COLUMN IF NOT EXISTS ticket_encrypted TEXT;
+    ALTER TABLE identity_verifications ADD COLUMN IF NOT EXISTS iterations INTEGER;
+    ALTER TABLE identity_verifications ADD COLUMN IF NOT EXISTS consumed_at TEXT;
+    -- 콜백 상관관계 키. NICE 는 완료 시 web_transaction_id 만 돌려주므로,
+    -- 우리가 만든 nonce 를 return_url 경로에 박아 두고 그것으로 진행 건을 찾는다.
+    -- "가장 최근 미소비 건"으로 찾으면 동시 가입자끼리 남의 인증 결과를 집어간다.
+    ALTER TABLE identity_verifications ADD COLUMN IF NOT EXISTS nonce TEXT;
+    CREATE UNIQUE INDEX IF NOT EXISTS idx_identity_nonce ON identity_verifications(nonce) WHERE nonce IS NOT NULL;
+    CREATE UNIQUE INDEX IF NOT EXISTS idx_identity_request_no ON identity_verifications(request_no);
+    CREATE INDEX IF NOT EXISTS idx_identity_transaction ON identity_verifications(transaction_id);
 
     -- 가입·계정 알림(승인/반려/비밀번호 변경)은 신청서와 무관하다.
     -- quote_id 가 NOT NULL 이면 이런 알림은 저장 자체가 안 된다.
@@ -1165,6 +1189,201 @@ export async function searchCompaniesForJoin(
       region: coarseAddress(row.address),
     })),
   };
+}
+
+// ── 본인인증 (NICE 통합인증) ────────────────────────────────────────────────
+
+export interface IdentityPending {
+  id: string;
+  nonce: string;
+  requestNo: string;
+  transactionId: string;
+  purpose: string;
+  accessToken: string;
+  ticket: string;
+  iterations: number;
+  createdAt: string;
+}
+
+/** 표준창을 띄우기 직전에 진행 건을 남긴다. 콜백이 이 행을 찾아 결과를 조회한다. */
+export async function saveIdentityPending(input: IdentityPending): Promise<void> {
+  await q(
+    `INSERT INTO identity_verifications
+       (id, nonce, request_no, transaction_id, purpose, access_token, ticket_encrypted, iterations, succeeded, created_at)
+     VALUES ($1, $9, $2, $3, $4, $5, $6, $7, 0, $8)`,
+    [
+      input.id,
+      input.requestNo,
+      input.transactionId,
+      input.purpose,
+      input.accessToken,
+      encryptField(input.ticket),
+      input.iterations,
+      input.createdAt,
+      input.nonce,
+    ],
+  );
+}
+
+/**
+ * 콜백에서 진행 건을 집어든다. nonce 로 정확히 한 건만 찾는다.
+ * 이미 소비된 건은 돌려주지 않는다 — 같은 인증을 두 번 쓰지 못하게 한다.
+ */
+export async function takeIdentityPending(nonce: string): Promise<IdentityPending | undefined> {
+  const row = await one<{
+    id: string;
+    nonce: string;
+    request_no: string;
+    transaction_id: string;
+    purpose: string;
+    access_token: string | null;
+    ticket_encrypted: string | null;
+    iterations: number | null;
+    created_at: string;
+  }>(
+    `SELECT id, nonce, request_no, transaction_id, purpose, access_token, ticket_encrypted, iterations, created_at
+       FROM identity_verifications
+      WHERE nonce = $1 AND consumed_at IS NULL
+      LIMIT 1`,
+    [nonce],
+  );
+  if (!row || !row.access_token || !row.ticket_encrypted || row.iterations == null) return undefined;
+  return {
+    id: row.id,
+    nonce: row.nonce,
+    requestNo: row.request_no,
+    transactionId: row.transaction_id,
+    purpose: row.purpose,
+    accessToken: row.access_token,
+    ticket: decryptField(row.ticket_encrypted),
+    iterations: row.iterations,
+    createdAt: row.created_at,
+  };
+}
+
+/**
+ * 인증 결과를 기록한다. CI/DI 는 암호문으로만 넣고, 중복 판별용 블라인드 인덱스를 함께 남긴다.
+ * access_token·ticket 은 더 쓸 일이 없으므로 지운다(오래 들고 있을 이유가 없다).
+ */
+export async function completeIdentityVerification(
+  id: string,
+  result: {
+    succeeded: boolean;
+    resultCode?: string | null;
+    resultMessage?: string | null;
+    name?: string | null;
+    birthdate?: string | null;
+    gender?: string | null;
+    nationalInfo?: string | null;
+    mobileCo?: string | null;
+    mobileNo?: string | null;
+    ci?: string | null;
+    di?: string | null;
+  },
+): Promise<void> {
+  await q(
+    `UPDATE identity_verifications
+        SET succeeded = $2, result_code = $3, result_message = $4,
+            name = $5, birthdate = $6, gender = $7, national_info = $8,
+            mobile_co = $9, mobile_no = $10,
+            ci_encrypted = $11, di_encrypted = $12, di_index = $13,
+            access_token = NULL, ticket_encrypted = NULL,
+            consumed_at = $14
+      WHERE id = $1`,
+    [
+      id,
+      result.succeeded ? 1 : 0,
+      result.resultCode ?? null,
+      result.resultMessage ?? null,
+      result.name ?? null,
+      result.birthdate ?? null,
+      result.gender ?? null,
+      result.nationalInfo ?? null,
+      result.mobileCo ?? null,
+      result.mobileNo ?? null,
+      encryptOptional(result.ci ?? null),
+      encryptOptional(result.di ?? null),
+      blindIndexOptional(result.di ?? null),
+      new Date().toISOString(),
+    ],
+  );
+}
+
+/** 서명 티켓의 verificationId 로 인증 이력을 되읽는다. 성공 건만 돌려준다. */
+export async function findCompletedIdentity(id: string): Promise<
+  | {
+      id: string;
+      purpose: string;
+      name: string | null;
+      birthdate: string | null;
+      gender: string | null;
+      nationalInfo: string | null;
+      mobileCo: string | null;
+      mobileNo: string | null;
+      ci: string | null;
+      di: string | null;
+    }
+  | undefined
+> {
+  const row = await one<{
+    id: string;
+    purpose: string;
+    name: string | null;
+    birthdate: string | null;
+    gender: string | null;
+    national_info: string | null;
+    mobile_co: string | null;
+    mobile_no: string | null;
+    ci_encrypted: string | null;
+    di_encrypted: string | null;
+    succeeded: number;
+  }>(
+    `SELECT id, purpose, name, birthdate, gender, national_info, mobile_co, mobile_no,
+            ci_encrypted, di_encrypted, succeeded
+       FROM identity_verifications WHERE id = $1`,
+    [id],
+  );
+  if (!row || row.succeeded !== 1) return undefined;
+  return {
+    id: row.id,
+    purpose: row.purpose,
+    name: row.name,
+    birthdate: row.birthdate,
+    gender: row.gender,
+    nationalInfo: row.national_info,
+    mobileCo: row.mobile_co,
+    mobileNo: row.mobile_no,
+    ci: decryptOptional(row.ci_encrypted),
+    di: decryptOptional(row.di_encrypted),
+  };
+}
+
+/** DI 로 이미 가입한 계정을 찾는다 — 중복 가입 판별(기획서 1-28). */
+export async function findUserByDi(di: string): Promise<AppUser | undefined> {
+  const row = await one<UserRow>(
+    "SELECT * FROM users WHERE di_index = $1 AND withdrawn_at IS NULL",
+    [blindIndex(di)],
+  );
+  return row ? toAppUser(row) : undefined;
+}
+
+/** 가입 확정 시 본인인증 결과를 계정에 붙인다. */
+export async function attachIdentityToUser(
+  userId: string,
+  identity: { ci: string; di: string; verifiedAt: string },
+): Promise<void> {
+  await q(
+    `UPDATE users
+        SET ci_encrypted = $2, di_encrypted = $3, di_index = $4, identity_verified_at = $5
+      WHERE id = $1`,
+    [
+      userId,
+      encryptField(identity.ci),
+      encryptField(identity.di),
+      blindIndex(identity.di),
+      identity.verifiedAt,
+    ],
+  );
 }
 
 export async function findCompanyById(id: string): Promise<Company | undefined> {

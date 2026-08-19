@@ -1,4 +1,6 @@
 import { NextResponse } from "next/server";
+import { isNiceAuthConfigured } from "@/lib/niceAuth";
+import { verifyIdentityTicket } from "@/lib/identityTicket";
 import crypto from "node:crypto";
 import { createSession, hashPassword } from "@/lib/auth";
 import {
@@ -14,6 +16,9 @@ import {
   assignCompanyRoleOnJoin,
   resolveCompanyJoin,
   createNotification,
+  attachIdentityToUser,
+  findCompletedIdentity,
+  findUserByDi,
   findUserByEmailWithPasswordHash,
   findUserByPhone,
   findUserByUsername,
@@ -53,6 +58,9 @@ export async function POST(request: Request) {
   const address = typeof body?.address === "string" ? body.address.trim() : "";
   const businessCertUrl = typeof body?.businessCertUrl === "string" ? body.businessCertUrl.trim() : "";
   const businessCertName = typeof body?.businessCertName === "string" ? body.businessCertName.trim() : "";
+  // 본인인증 티켓 — 인증을 마친 사람만 가입할 수 있다(기획서 A4).
+  // 미설정 환경(로컬 등)에서는 인증 단계를 건너뛰므로 티켓이 없어도 진행한다.
+  const identityTicket = typeof body?.identityTicket === "string" ? body.identityTicket : "";
   const agreedTerms = body?.agreedTerms === true;
   const agreedPrivacy = body?.agreedPrivacy === true;
 
@@ -118,6 +126,36 @@ export async function POST(request: Request) {
       },
       { status: 409 },
     );
+  }
+
+  // 본인인증 결과 확인. 티켓은 서명돼 있고, 실제 값은 서버가 이력에서 다시 읽는다 —
+  // 클라이언트가 보낸 이름·휴대폰을 그대로 믿지 않는다.
+  let identity: Awaited<ReturnType<typeof findCompletedIdentity>> = undefined;
+  if (isNiceAuthConfigured()) {
+    if (!identityTicket) {
+      return NextResponse.json({ error: "휴대폰 본인인증을 먼저 진행해주세요." }, { status: 400 });
+    }
+    const payload = await verifyIdentityTicket(identityTicket);
+    if (!payload || payload.purpose !== "REGISTER") {
+      return NextResponse.json(
+        { error: "본인인증 정보가 만료되었습니다. 다시 인증해주세요." },
+        { status: 400 },
+      );
+    }
+    identity = await findCompletedIdentity(payload.verificationId);
+    if (!identity || !identity.di) {
+      return NextResponse.json(
+        { error: "본인인증 결과를 확인할 수 없습니다. 다시 인증해주세요." },
+        { status: 400 },
+      );
+    }
+    // 인증 시점 이후에 같은 명의로 가입이 끼어들 수 있으므로 여기서 한 번 더 본다.
+    if (await findUserByDi(identity.di)) {
+      return NextResponse.json(
+        { error: "이미 가입된 명의입니다. 아이디 찾기로 진행해주세요." },
+        { status: 409 },
+      );
+    }
   }
 
   // 법인회원 = 회사를 새로 등록(또는 동일명 회사에 합류).
@@ -235,6 +273,16 @@ export async function POST(request: Request) {
       privacyAgreedAt: createdAt,
       createdAt,
     });
+
+    // 본인인증 결과(CI/DI)를 계정에 붙인다. 암호문으로 들어가고 DI 는 블라인드 인덱스도 함께 남는다.
+    if (identity?.ci && identity.di) {
+      await attachIdentityToUser(created.id, {
+        ci: identity.ci,
+        di: identity.di,
+        verifiedAt: createdAt,
+      });
+      created.identityVerifiedAt = createdAt;
+    }
 
     // 회사에 붙은 계정이면 최초 가입자인지 판정해 MASTER/STAFF 를 정한다.
     if (company) {
