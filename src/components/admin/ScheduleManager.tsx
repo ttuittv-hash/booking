@@ -179,7 +179,7 @@ export function ScheduleManager({ initialYear, initialMonth }: { initialYear: nu
                 : "border-transparent text-muted hover:text-foreground",
             ].join(" ")}
           >
-            {tab === "arena" ? "아레나 달력" : "중형공연장 달력"}
+            {tab === "arena" ? "아레나" : "중형공연장"}
           </button>
         ))}
       </div>

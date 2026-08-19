@@ -26,6 +26,8 @@ function slugify(name: string): string {
   return (base || "item") + "_" + Math.random().toString(36).slice(2, 6);
 }
 
+const ADDON_CATEGORIES = Object.keys(ADDON_CATEGORY_LABEL) as AddonCategory[];
+
 const MEDIA_OPTIONS: { value: MediaTier; label: string }[] = [
   { value: null, label: "미포함" },
   { value: "BASIC", label: MEDIA_TIER_LABEL.BASIC },
@@ -73,6 +75,7 @@ export function PackagesForm({ rateTable }: { rateTable: RateTable }) {
   const [newItemName, setNewItemName] = useState("");
   const [newItemUnitLabel, setNewItemUnitLabel] = useState("");
   const [newItemPrice, setNewItemPrice] = useState(0);
+  const [pickerCategory, setPickerCategory] = useState<AddonCategory>(ADDON_CATEGORIES[0]);
 
   const active = packages.find((p) => p.id === activeId)!;
 
@@ -522,6 +525,76 @@ export function PackagesForm({ rateTable }: { rateTable: RateTable }) {
               <span className={`rounded-sm px-2 py-0.5 text-[10.5px] font-semibold ${badgeClass}`}>{badge}</span>
             </div>
             <p className="mt-1 text-[12px] text-muted">{desc}</p>
+
+            <div className="mt-3 flex flex-wrap items-center gap-2 border-b border-dashed border-border pb-3">
+              <select
+                value={pickerCategory}
+                onChange={(e) => setPickerCategory(e.target.value as AddonCategory)}
+                className="rounded-sm border border-border bg-panel px-2 py-1.5 text-[12px] outline-none focus:border-accent"
+              >
+                {ADDON_CATEGORIES.map((cat) => (
+                  <option key={cat} value={cat}>
+                    {ADDON_CATEGORY_LABEL[cat]}
+                  </option>
+                ))}
+              </select>
+              <button
+                type="button"
+                onClick={() => openNewItemForm(pickerCategory, visibility)}
+                className="rounded-sm px-2 py-1 text-[11.5px] font-medium text-accent hover:underline"
+              >
+                + 새 카테고리로 항목 추가
+              </button>
+            </div>
+
+            {newItemCategory && newItemVisibility === visibility && !groupedByVisibility.has(newItemCategory) && (
+              <div className="mt-3 flex flex-col gap-2 rounded-sm border border-dashed border-accent/40 bg-accent-soft/40 p-3 sm:flex-row sm:items-center">
+                <span className="shrink-0 text-[11px] font-semibold text-accent">
+                  {ADDON_CATEGORY_LABEL[newItemCategory]} (신규)
+                </span>
+                <input
+                  type="text"
+                  autoFocus
+                  placeholder="항목 이름"
+                  value={newItemName}
+                  onChange={(e) => setNewItemName(e.target.value)}
+                  className="flex-1 rounded-sm border border-border bg-background px-3 py-1.5 text-[13px] outline-none focus:border-accent"
+                />
+                <input
+                  type="text"
+                  placeholder="단위 (예: 원/일)"
+                  value={newItemUnitLabel}
+                  onChange={(e) => setNewItemUnitLabel(e.target.value)}
+                  className="w-32 rounded-sm border border-border bg-background px-3 py-1.5 text-[13px] outline-none focus:border-accent"
+                />
+                <input
+                  type="number"
+                  min={0}
+                  placeholder="단가"
+                  value={newItemPrice}
+                  onChange={(e) => setNewItemPrice(Math.max(0, Number(e.target.value) || 0))}
+                  className="w-28 rounded-sm border border-border bg-background px-3 py-1.5 text-right text-[13px] outline-none focus:border-accent"
+                />
+                <div className="flex gap-2">
+                  <button
+                    type="button"
+                    onClick={confirmNewItem}
+                    disabled={!newItemName.trim()}
+                    className="rounded-sm bg-accent px-3 py-1.5 text-[12.5px] font-semibold text-white disabled:opacity-50"
+                  >
+                    추가
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setNewItemCategory(null)}
+                    className="rounded-sm border border-border px-3 py-1.5 text-[12.5px] text-muted"
+                  >
+                    취소
+                  </button>
+                </div>
+              </div>
+            )}
+
             <div className="mt-4 space-y-5">
               {[...groupedByVisibility.entries()].map(([category, items]) => (
                 <div key={category}>
@@ -640,7 +713,9 @@ export function PackagesForm({ rateTable }: { rateTable: RateTable }) {
                 </div>
               ))}
               {groupedByVisibility.size === 0 && (
-                <p className="text-[12px] text-muted">아직 항목이 없습니다 — 위 카테고리 &ldquo;+ 항목 추가&rdquo;로 등록하세요.</p>
+                <p className="text-[12px] text-muted">
+                  아직 항목이 없습니다 — 위에서 카테고리를 고르고 &ldquo;+ 새 카테고리로 항목 추가&rdquo;를 눌러 등록하세요.
+                </p>
               )}
             </div>
           </section>
