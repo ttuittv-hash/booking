@@ -15,6 +15,26 @@ function check(id, label, ok, detail = "") {
 const browser = await chromium.launch();
 const t = String(Date.now()).slice(-6);
 
+/**
+ * 하이드레이션 전에 값을 채우면 DOM 에는 들어가지만 React 상태는 비어 있다.
+ * 이후 같은 값으로 다시 채워도 React 는 "값이 그대로"라 보고 onChange 를 건너뛰어,
+ * disabled 로 묶인 버튼이 영영 잠긴 채로 남는다.
+ * 그래서 재시도할 때마다 한 번 비우고 다시 채워 변경 이벤트가 확실히 발생하게 한다.
+ */
+async function fillUntilEnabled(p, inputSel, value, buttonSel) {
+  for (let i = 0; i < 10; i++) {
+    await p.fill(inputSel, "");
+    await p.fill(inputSel, value);
+    try {
+      await p.waitForSelector(`${buttonSel}:not([disabled])`, { timeout: 1500 });
+      return;
+    } catch {
+      await p.waitForTimeout(300);
+    }
+  }
+  throw new Error(`버튼이 활성화되지 않음: ${buttonSel}`);
+}
+
 async function newCtx() {
   const c = await browser.newContext();
   await c.setExtraHTTPHeaders({ "x-dev-stub": STUB });
@@ -142,8 +162,9 @@ try {
     await rec.locator('[data-testid="link-reset-password"]').isVisible());
 
   await rec.goto(`${BASE}/reset-password`, { waitUntil: "domcontentloaded" });
-  await rec.fill('[data-testid="reset-username"]', masterUser);
+  await fillUntilEnabled(rec, '[data-testid="reset-username"]', masterUser, '[data-testid="reset-next"]');
   await rec.click('[data-testid="reset-next"]');
+  await rec.waitForSelector('[data-testid="identity-start"]', { timeout: 15000 });
   await rec.click('[data-testid="identity-start"]');
   await rec.waitForSelector('[data-testid="reset-password-new"]', { timeout: 20000 });
   await rec.fill('[data-testid="reset-password-new"]', "NewPass1234!");
@@ -154,7 +175,9 @@ try {
   check("A13-3", "다른 사람의 인증으로는 남의 비밀번호를 못 바꾼다",
     resetErr.includes("일치하는 회원이 없습니다"), resetErr.slice(0, 40));
 } catch (e) {
-  check("ERR", "예외 발생", false, e.message.split("\n")[0]);
+  // 어느 단계에서 멈췄는지 알 수 있게 스택 첫 줄과 화면을 남긴다.
+  const where = (e.stack || "").split("\n").find((l) => l.includes("full-flow.spec")) || "";
+  check("ERR", "예외 발생", false, `${e.message.split("\n")[0]} @${where.trim()}`);
 }
 
 await browser.close();
