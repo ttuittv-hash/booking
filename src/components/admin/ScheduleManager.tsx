@@ -71,6 +71,7 @@ export function ScheduleManager({ initialYear, initialMonth }: { initialYear: nu
   const [loading, setLoading] = useState(true);
   const [openDate, setOpenDate] = useState<string | null>(null);
   const [reasonDraft, setReasonDraft] = useState("");
+  const [venueTab, setVenueTab] = useState<"arena" | "medium-hall">("arena");
 
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect -- 월 이동 시 새 데이터를 받기 전까지 로딩 표시
@@ -159,19 +160,37 @@ export function ScheduleManager({ initialYear, initialMonth }: { initialYear: nu
       </div>
 
       <p className="mt-3 text-[12.5px] leading-6 text-muted">
-        날짜를 누르면 그 날짜의 아레나 · 중형공연장 예약 현황을 확인하고, 대관 신청 가능/불가를
-        바로 전환할 수 있습니다. 막힌 날짜가 하나라도 포함된 주는 아레나 신청 화면 달력에서
-        선택할 수 없고, 중형공연장은 해당 날짜만 선택할 수 없습니다.
+        공간마다 예약 구조가 달라 탭으로 나눠 보여줍니다. 날짜를 누르면 그 날짜의 예약 현황을
+        확인하고, 대관 신청 가능/불가를 바로 전환할 수 있습니다(신청 불가 설정은 공간과
+        무관하게 그 날짜 전체에 적용됩니다). 막힌 날짜가 하나라도 포함된 주는 아레나 신청 화면
+        달력에서 선택할 수 없고, 중형공연장은 해당 날짜만 선택할 수 없습니다.
       </p>
+
+      <div className="mt-4 flex gap-1 border-b border-border">
+        {(["arena", "medium-hall"] as const).map((tab) => (
+          <button
+            key={tab}
+            type="button"
+            onClick={() => setVenueTab(tab)}
+            className={[
+              "border-b-2 px-4 py-2.5 text-[13.5px] font-medium transition-colors",
+              venueTab === tab
+                ? "border-accent text-accent"
+                : "border-transparent text-muted hover:text-foreground",
+            ].join(" ")}
+          >
+            {tab === "arena" ? "아레나 달력" : "중형공연장 달력"}
+          </button>
+        ))}
+      </div>
+
       <div className="mt-3 flex flex-wrap items-center gap-4 text-[11.5px] text-muted">
         <span className="flex items-center gap-1.5">
-          <span className="h-2 w-2 rounded-full bg-accent" /> 아레나 예약
+          <span className={["h-2 w-2 rounded-full", venueTab === "arena" ? "bg-accent" : "bg-good"].join(" ")} />
+          {venueTab === "arena" ? "아레나 예약" : "중형 예약"}
         </span>
         <span className="flex items-center gap-1.5">
-          <span className="h-2 w-2 rounded-full bg-good" /> 중형 예약
-        </span>
-        <span className="flex items-center gap-1.5">
-          <span className="h-2 w-2 rounded-full bg-red-500" /> 신청 불가(관리자 지정)
+          <span className="h-2 w-2 rounded-full bg-red-500" /> 신청 불가(관리자 지정 · 공간 공통)
         </span>
       </div>
 
@@ -195,9 +214,7 @@ export function ScheduleManager({ initialYear, initialMonth }: { initialYear: nu
                     const dateStr = isoDate(date);
                     const existingBlock = inMonth ? blockedByDate.get(dateStr) : undefined;
                     const isBlocked = !!existingBlock;
-                    const entries = occupancy[dateStr] ?? [];
-                    const arenaCount = entries.filter((e) => e.venueId === "arena").length;
-                    const midHallCount = entries.filter((e) => e.venueId === "medium-hall").length;
+                    const entries = (occupancy[dateStr] ?? []).filter((e) => e.venueId === venueTab);
                     const isToday = isSameDate(date, today);
                     return (
                       <button
@@ -220,18 +237,14 @@ export function ScheduleManager({ initialYear, initialMonth }: { initialYear: nu
                         ].join(" ")}
                       >
                         <span className={isBlocked ? "line-through" : ""}>{date.getDate()}</span>
-                        {inMonth && (arenaCount > 0 || midHallCount > 0) && (
-                          <span className="flex items-center gap-1">
-                            {arenaCount > 0 && (
-                              <span className="rounded-sm bg-accent-soft px-1 text-[9px] font-semibold text-accent">
-                                아{arenaCount}
-                              </span>
-                            )}
-                            {midHallCount > 0 && (
-                              <span className="rounded-sm bg-good-soft px-1 text-[9px] font-semibold text-good">
-                                중{midHallCount}
-                              </span>
-                            )}
+                        {inMonth && entries.length > 0 && (
+                          <span
+                            className={[
+                              "rounded-sm px-1 text-[9px] font-semibold",
+                              venueTab === "arena" ? "bg-accent-soft text-accent" : "bg-good-soft text-good",
+                            ].join(" ")}
+                          >
+                            {entries.length}건
                           </span>
                         )}
                       </button>
@@ -254,32 +267,32 @@ export function ScheduleManager({ initialYear, initialMonth }: { initialYear: nu
                     </div>
 
                     <div className="mt-2.5">
-                      {(occupancy[openDate] ?? []).length === 0 ? (
-                        <p className="text-[12px] text-muted">이 날짜에 예약된 신청서가 없습니다.</p>
-                      ) : (
-                        <ul className="space-y-1.5">
-                          {(occupancy[openDate] ?? []).map((entry, i) => (
-                            <li
-                              key={`${entry.quoteId}-${i}`}
-                              className="flex flex-wrap items-center gap-x-2 gap-y-1 rounded-sm bg-background px-2.5 py-1.5 text-[12px]"
-                            >
-                              <span
-                                className={[
-                                  "rounded-sm px-1.5 py-0.5 text-[10px] font-semibold",
-                                  entry.venueId === "arena" ? "bg-accent-soft text-accent" : "bg-good-soft text-good",
-                                ].join(" ")}
+                      {(() => {
+                        const allEntries = occupancy[openDate] ?? [];
+                        const tabEntries = allEntries.filter((e) => e.venueId === venueTab);
+                        const otherVenueCount = allEntries.length - tabEntries.length;
+                        return tabEntries.length === 0 ? (
+                          <p className="text-[12px] text-muted">
+                            이 날짜에 {venueLabel(venueTab)} 예약이 없습니다.
+                            {otherVenueCount > 0 && ` (다른 공간 예약 ${otherVenueCount}건 있음 — 탭 전환해서 확인)`}
+                          </p>
+                        ) : (
+                          <ul className="space-y-1.5">
+                            {tabEntries.map((entry, i) => (
+                              <li
+                                key={`${entry.quoteId}-${i}`}
+                                className="flex flex-wrap items-center gap-x-2 gap-y-1 rounded-sm bg-background px-2.5 py-1.5 text-[12px]"
                               >
-                                {venueLabel(entry.venueId)}
-                              </span>
-                              <span className="text-muted">{roleLabel(entry.role)}</span>
-                              <Link href={`/admin/${entry.quoteId}`} className="font-medium text-foreground hover:text-accent hover:underline">
-                                {entry.companyName}
-                              </Link>
-                              <span className="text-[10.5px] text-muted">· {statusLabel(entry.status, entry.reviewDecision)}</span>
-                            </li>
-                          ))}
-                        </ul>
-                      )}
+                                <span className="text-muted">{roleLabel(entry.role)}</span>
+                                <Link href={`/admin/${entry.quoteId}`} className="font-medium text-foreground hover:text-accent hover:underline">
+                                  {entry.companyName}
+                                </Link>
+                                <span className="text-[10.5px] text-muted">· {statusLabel(entry.status, entry.reviewDecision)}</span>
+                              </li>
+                            ))}
+                          </ul>
+                        );
+                      })()}
                     </div>
 
                     <div className="mt-3 flex flex-wrap items-center gap-2 border-t border-accent/20 pt-3">
