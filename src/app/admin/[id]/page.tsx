@@ -48,6 +48,21 @@ const STAGE_LABEL: Record<string, string> = {
   ESTIMATE: "신청 접수",
   CONTRACTED: "계약 확정",
   SETTLED: "정산 확정",
+  SUBMITTED: "신청서 제출",
+  EDITED: "신청서 수정(신청자)",
+  REVIEW_APPROVED: "심사 승인",
+  REVIEW_HOLD: "심사 보류",
+  REVIEW_REJECTED: "심사 반려",
+  DEPOSIT_REPORTED: "보증금 입금신청",
+  DEPOSIT_CONFIRMED: "보증금 입금확인",
+  SIGNED_VENUE: "계약서 날인(공연장)",
+  SIGNED_APPLICANT: "계약서 날인(대관사)",
+  INVOICE_ISSUED: "세금계산서 발행",
+  INVOICE_PAYMENT_REPORTED: "세금계산서 입금신청",
+  INVOICE_PAYMENT_CONFIRMED: "세금계산서 입금확인",
+  TICKET_OPEN_SET: "티켓오픈일 등록",
+  FACILITY_MEETING_SET: "시설회의일 등록",
+  SETTLEMENT_MUTUAL_CONFIRMED: "정산 상호확인",
 };
 
 export default async function AdminQuoteDetailPage({

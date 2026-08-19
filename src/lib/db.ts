@@ -16,6 +16,7 @@ import type {
   AppUser,
   Attachment,
   AttachmentCategory,
+  AuditLogAction,
   AuditLogEntry,
   Company,
   ContractAdjustment,
@@ -1416,7 +1417,7 @@ export async function setQuoteSettlement(id: string, settlement: Settlement): Pr
 export async function addAuditLog(entry: {
   id: string;
   quoteId: string;
-  stage: QuoteStatus;
+  stage: AuditLogAction;
   snapshot: unknown;
   actorId: string;
   createdAt: string;
@@ -1432,7 +1433,7 @@ export async function listAuditLogsForQuote(quoteId: string): Promise<AuditLogEn
   const rows = await q<{
     id: string;
     quote_id: string;
-    stage: QuoteStatus;
+    stage: AuditLogAction;
     snapshot_json: string;
     actor_id: string;
     created_at: string;

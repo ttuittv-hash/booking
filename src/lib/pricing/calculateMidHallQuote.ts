@@ -41,6 +41,25 @@ export function calculateMidHallLineItems(selection: QuoteSelection, rateTable: 
     );
   }
 
+  // 철수(일) — 아레나(DayTag LOAD_OUT)와 동일하게 가격 반영 방식이 아직 미정이라 당분간
+  // 셋업과 동일 단가로 취급한다(상태 구분 자체는 화면에 노출).
+  const loadOutDayCount = entries.filter(([, d]) => d.role === "LOAD_OUT").length;
+  if (loadOutDayCount > 0) {
+    items.push(
+      makeLine(
+        "midhall_loadout_day",
+        "철수",
+        "PER_DAY",
+        loadOutDayCount,
+        0,
+        loadOutDayCount,
+        cfg.setupDayFee,
+        loadOutDayCount * cfg.setupDayFee,
+        "VISIBLE",
+      ),
+    );
+  }
+
   // 공연 Show — 평일/주말 × 1회/2회 조합별로 묶어서 과금한다.
   const bucketCounts = new Map<string, number>(); // "weekday-1" | "weekday-2" | "weekend-1" | "weekend-2"
   const bucketLabel: Record<string, string> = {

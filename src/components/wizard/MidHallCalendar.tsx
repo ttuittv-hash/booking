@@ -38,8 +38,14 @@ function buildMonthGrid(year: number, month: number): Date[][] {
 }
 
 export function midHallReferencePrice(iso: string, role: MidHallDayRole, config: MidHallRateConfig): number {
-  if (role === "SETUP") return config.setupDayFee;
+  if (role === "SETUP" || role === "LOAD_OUT") return config.setupDayFee;
   return isWeekendDate(iso) ? config.performanceWeekendFee : config.performanceWeekdayFee;
+}
+
+function roleTag(role: MidHallDayRole, shows: number): string {
+  if (role === "SETUP") return "셋업";
+  if (role === "LOAD_OUT") return "철수";
+  return `공연${shows > 1 ? `×${shows}` : ""}`;
 }
 
 export function MidHallCalendar({
@@ -50,8 +56,6 @@ export function MidHallCalendar({
   extraSetupHours,
   extraLoadOutHours,
   dateBlocks,
-  overlayDates,
-  overlayLabel,
   rateConfig,
   onChangeMonth,
   onChangeDays,
@@ -65,8 +69,6 @@ export function MidHallCalendar({
   extraSetupHours: number;
   extraLoadOutHours: number;
   dateBlocks: DateBlock[];
-  overlayDates?: Set<string>;
-  overlayLabel?: string;
   rateConfig: MidHallRateConfig;
   onChangeMonth: (year: number, month: number) => void;
   onChangeDays: (days: Record<string, MidHallDaySelection>) => void;
@@ -84,9 +86,9 @@ export function MidHallCalendar({
   const today = new Date();
   const selectedDates = Object.keys(days).sort();
   const setupCount = selectedDates.filter((d) => days[d].role === "SETUP").length;
+  const loadOutDayCount = selectedDates.filter((d) => days[d].role === "LOAD_OUT").length;
   const performanceDates = selectedDates.filter((d) => days[d].role === "PERFORMANCE");
   const showCount = performanceDates.reduce((sum, d) => sum + days[d].shows, 0);
-  const overlapCount = overlayDates ? selectedDates.filter((d) => overlayDates.has(d)).length : 0;
 
   function goToMonth(delta: number) {
     let nextMonth = month + delta;
@@ -123,9 +125,9 @@ export function MidHallCalendar({
     <div>
       {title && <h3 className="text-[15px] font-semibold">{title}</h3>}
       <p className="mt-1.5 text-[13px] text-muted">
-        패키지가 없습니다 — 달력에서 날짜를 누르면 셋업 · 공연일(회차 포함)과 셋업 연장 ·
-        철수 Load-Out 시간까지 같은 자리에서 지정할 수 있습니다. 최소 대관 일수 제한이 없고
-        연속하지 않아도 됩니다.
+        패키지가 없습니다 — 달력에서 날짜를 누르면 셋업 · 공연일(회차 포함) · 철수와 셋업
+        연장 · 철수 연장 시간까지 같은 자리에서 지정할 수 있습니다. 최소 대관 일수 제한이
+        없고 연속하지 않아도 됩니다.
       </p>
 
       <div className="mt-5 flex items-center justify-between">
@@ -170,7 +172,6 @@ export function MidHallCalendar({
                   const isToday = isoDate(today) === iso;
                   const selection = days[iso];
                   const blocked = blockedByDate.get(iso);
-                  const isOverlay = overlayDates?.has(iso) ?? false;
                   const interactable = inMonth && !blocked;
                   return (
                     <button
@@ -186,21 +187,14 @@ export function MidHallCalendar({
                             ? "cursor-not-allowed text-muted line-through"
                             : selection
                               ? "cursor-pointer bg-accent-soft font-semibold text-accent"
-                              : isOverlay
-                                ? "cursor-pointer bg-panel-strong text-muted hover:text-foreground"
-                                : "cursor-pointer text-foreground hover:bg-panel",
+                              : "cursor-pointer text-foreground hover:bg-panel",
                         isToday ? "underline decoration-2 underline-offset-4" : "",
                         openDate === iso ? "ring-2 ring-accent" : "",
                       ].join(" ")}
                     >
                       <span>{date.getDate()}</span>
                       {inMonth && selection && (
-                        <span className="text-[9.5px] font-medium">
-                          {selection.role === "SETUP" ? "셋업" : `공연${selection.shows > 1 ? `×${selection.shows}` : ""}`}
-                        </span>
-                      )}
-                      {inMonth && !selection && isOverlay && !blocked && (
-                        <span className="text-[9px] text-muted">{overlayLabel ?? "겹침"}</span>
+                        <span className="text-[9.5px] font-medium">{roleTag(selection.role, selection.shows)}</span>
                       )}
                     </button>
                   );
@@ -251,11 +245,23 @@ export function MidHallCalendar({
                     </button>
                     <button
                       type="button"
+                      onClick={() => setRole(openDate, "LOAD_OUT")}
+                      className={[
+                        "rounded-sm px-3 py-1.5 text-[12px] font-medium transition-colors",
+                        days[openDate]?.role === "LOAD_OUT"
+                          ? "bg-accent text-white"
+                          : "bg-panel-strong text-muted hover:text-foreground",
+                      ].join(" ")}
+                    >
+                      철수
+                    </button>
+                    <button
+                      type="button"
                       onClick={() => removeDate(openDate)}
                       disabled={!days[openDate]}
                       className="rounded-sm bg-panel-strong px-3 py-1.5 text-[12px] font-medium text-muted transition-colors hover:text-red-600 disabled:cursor-not-allowed disabled:opacity-40"
                     >
-                      삭제 (미사용)
+                      삭제
                     </button>
                   </div>
                   {days[openDate]?.role === "PERFORMANCE" && (
@@ -346,18 +352,13 @@ export function MidHallCalendar({
         })}
       </div>
 
-      {overlayDates && overlayDates.size > 0 && (
-        <div className="mt-3 inline-flex items-center gap-1.5 rounded-sm bg-accent-soft px-3 py-1.5 text-[12.5px] font-medium text-accent">
-          {overlapCount > 0 ? `${overlayLabel ?? "아레나"}와 ${overlapCount}일 겹침` : `${overlayLabel ?? "아레나"}와 겹치지 않음`}
-        </div>
-      )}
-
       {selectedDates.length > 0 && (
         <div className="mt-5 text-[14px] font-medium text-accent">
           선택 일자 {selectedDates.length}일(비연속 가능) · 셋업 {setupCount}일 · 공연{" "}
           {performanceDates.length}일 · 회차 합계 {showCount}
+          {loadOutDayCount > 0 && ` · 철수 ${loadOutDayCount}일`}
           {extraSetupHours > 0 && ` · 셋업연장 ${extraSetupHours}시간`}
-          {extraLoadOutHours > 0 && ` · 철수 ${extraLoadOutHours}시간`}
+          {extraLoadOutHours > 0 && ` · 철수연장 ${extraLoadOutHours}시간`}
         </div>
       )}
 

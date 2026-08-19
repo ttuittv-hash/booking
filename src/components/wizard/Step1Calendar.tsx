@@ -413,7 +413,7 @@ export function Step1Calendar({
                       })()}
                       className="rounded-sm bg-panel-strong px-3 py-1.5 text-[12px] font-medium text-muted transition-colors hover:text-red-600 disabled:cursor-not-allowed disabled:opacity-40"
                     >
-                      삭제 (미사용)
+                      삭제
                     </button>
                   </div>
                   {activeDateKeys.has(dateKey(new Date(openDate))) &&

@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { calculateQuote } from "@/lib/pricing/calculateQuote";
-import { overlapDates, resolveSelectedDates } from "@/lib/pricing/dateRange";
+import { resolveSelectedDates } from "@/lib/pricing/dateRange";
 import {
   defaultDayTags,
   effectiveDayTag,
@@ -309,14 +309,6 @@ export function WizardShell({
       value: effectivePkg?.mediaTier ? MEDIA_TIER_LABEL[effectivePkg.mediaTier] : "미포함",
     },
   ];
-  // 동시 대관 겹침 — 아레나 확정 기간과 중형 선택일의 교집합(2-33/2-34). 금액에는 영향 없다.
-  const arenaSelectedDates = useMemo(() => resolveSelectedDates(selection), [selection]);
-  const midHallSelectedDates = Object.keys(selection.midHallDays);
-  const overlapDayCount = useMemo(
-    () => overlapDates(arenaSelectedDates, midHallSelectedDates).length,
-    [arenaSelectedDates, midHallSelectedDates],
-  );
-
   function goTo(target: number) {
     if (target < 1 || target > TOTAL_STEPS) return;
     if (target > maxUnlockedStep) return;
@@ -458,11 +450,7 @@ export function WizardShell({
                       : "border-transparent text-muted hover:text-foreground",
                   ].join(" ")}
                 >
-                  {tab === "arena"
-                    ? "아레나 일정"
-                    : hasMidHallSelection
-                      ? `중형 일정${overlapDayCount > 0 ? ` · 아레나와 ${overlapDayCount}일 겹침` : ""}`
-                      : "중형 일정 (대기)"}
+                  {tab === "arena" ? "아레나 일정" : hasMidHallSelection ? "중형 일정" : "중형 일정 (대기)"}
                 </button>
               ))}
             </div>
@@ -498,8 +486,6 @@ export function WizardShell({
                   extraLoadOutHours={selection.midHallExtraLoadOutHours}
                   dateBlocks={dateBlocks}
                   rateConfig={rateTable.midHall}
-                  overlayDates={new Set(arenaSelectedDates)}
-                  overlayLabel="아레나"
                   onChangeMonth={(year, month) => setMidHallMonth({ year, month })}
                   onChangeDays={(midHallDays) => setSelection((prev) => ({ ...prev, midHallDays }))}
                   onChangeExtraSetupHours={(value) =>

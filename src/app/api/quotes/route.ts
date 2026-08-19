@@ -89,7 +89,7 @@ export async function POST(request: Request) {
     await addAuditLog({
       id: crypto.randomUUID(),
       quoteId: quote.id,
-      stage: "ESTIMATE",
+      stage: "SUBMITTED",
       snapshot: quote,
       actorId: user.id,
       createdAt: quote.createdAt,

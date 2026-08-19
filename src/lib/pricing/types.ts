@@ -199,7 +199,10 @@ export interface MidHallRateConfig {
 export type BookingMode = "SINGLE" | "SIMULTANEOUS";
 
 // 중형공연장은 패키지 개념이 없다 — 날짜를 하루씩 골라 셋업/공연만 지정한다(2-25, 확정).
-export type MidHallDayRole = "SETUP" | "PERFORMANCE";
+// 아레나(Step1Calendar)와 동일하게 셋업/공연/철수 3가지 상태를 둔다 — 철수는 아레나와
+// 마찬가지로 가격 반영 방식이 아직 미정이라 당분간 셋업과 동일하게 취급한다(DayTag 주석
+// 참고, 2026-08-19).
+export type MidHallDayRole = "SETUP" | "PERFORMANCE" | "LOAD_OUT";
 
 export interface MidHallDaySelection {
   role: MidHallDayRole;
@@ -611,10 +614,31 @@ export const FEATURE_SPEC_SHEET_KEYS = [
 
 export type FeatureSpecSheetKey = (typeof FEATURE_SPEC_SHEET_KEYS)[number];
 
+// 감사 로그의 stage — 3단계 굵은 상태(QuoteStatus)뿐 아니라 그 사이에서 실제로 발생하는
+// 개별 전이 이벤트도 함께 남긴다(리포트 12-B-7 운영 리드타임 지표의 전제). 기존 3개 값은
+// 하위 호환을 위해 그대로 남겨둔다.
+export type AuditLogAction =
+  | QuoteStatus
+  | "SUBMITTED"
+  | "EDITED"
+  | "REVIEW_APPROVED"
+  | "REVIEW_HOLD"
+  | "REVIEW_REJECTED"
+  | "DEPOSIT_REPORTED"
+  | "DEPOSIT_CONFIRMED"
+  | "SIGNED_VENUE"
+  | "SIGNED_APPLICANT"
+  | "INVOICE_ISSUED"
+  | "INVOICE_PAYMENT_REPORTED"
+  | "INVOICE_PAYMENT_CONFIRMED"
+  | "TICKET_OPEN_SET"
+  | "FACILITY_MEETING_SET"
+  | "SETTLEMENT_MUTUAL_CONFIRMED";
+
 export interface AuditLogEntry {
   id: string;
   quoteId: string;
-  stage: QuoteStatus;
+  stage: AuditLogAction;
   snapshot: unknown;
   actorId: string;
   createdAt: string;

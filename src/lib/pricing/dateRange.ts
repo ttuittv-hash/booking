@@ -57,10 +57,3 @@ export function resolveSelectedDates(
   }
   return dates;
 }
-
-// 동시 대관 겹침 계산 — 아레나 확정 기간 ∩ 중형 선택일. 금액에는 영향을 주지 않고
-// 안전관리계획서 기준 인원 산정에만 쓰인다(기능정의 2-33/2-34, 화면시나리오 SCREEN 04/12).
-export function overlapDates(arenaDates: string[], midHallDates: string[]): string[] {
-  const arenaSet = new Set(arenaDates);
-  return midHallDates.filter((d) => arenaSet.has(d));
-}

@@ -86,7 +86,7 @@ export async function PUT(request: Request, ctx: { params: Promise<{ id: string 
   await addAuditLog({
     id: crypto.randomUUID(),
     quoteId: id,
-    stage: "ESTIMATE",
+    stage: "EDITED",
     snapshot: updated,
     actorId: user.id,
     createdAt: new Date().toISOString(),

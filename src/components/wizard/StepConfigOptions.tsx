@@ -47,8 +47,9 @@ function midHallSummaryLine(selection: QuoteSelection): string | null {
   const dates = Object.keys(selection.midHallDays);
   if (dates.length === 0) return null;
   const setup = dates.filter((d) => selection.midHallDays[d].role === "SETUP").length;
-  const performance = dates.length - setup;
-  return `${dates.length}일 · 셋업${setup} · 공연${performance}`;
+  const performance = dates.filter((d) => selection.midHallDays[d].role === "PERFORMANCE").length;
+  const loadOut = dates.filter((d) => selection.midHallDays[d].role === "LOAD_OUT").length;
+  return `${dates.length}일 · 셋업${setup} · 공연${performance}${loadOut > 0 ? ` · 철수${loadOut}` : ""}`;
 }
 
 type BaseCompositionGroup = "일정" | "공간" | "인프라";
