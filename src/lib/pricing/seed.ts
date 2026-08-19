@@ -168,11 +168,14 @@ export const SEED_ADDONS: AddonItem[] = [
   { id: "simulation_room", category: "SPACE", name: "시뮬레이션룸", pricingType: "PER_DAY", unitPrice: 2_000_000, unitLabel: "원/일", availability: { mode: "ALWAYS" }, billingPhase: "ESTIMATE", visibility: "VISIBLE" },
   { id: "press_room", category: "SPACE", name: "프레스룸", pricingType: "PER_DAY", unitPrice: 1_000_000, unitLabel: "원/일", availability: { mode: "ALWAYS" }, billingPhase: "ESTIMATE", visibility: "VISIBLE" },
   { id: "skybox", category: "PREMIUM", name: "스카이박스", pricingType: "PER_ROOM", unitPrice: 3_000_000, unitLabel: "원/실", availability: { mode: "ALWAYS" }, billingPhase: "ESTIMATE", visibility: "VISIBLE" },
-  { id: "mother_truss_a", category: "PRODUCTION", name: "마더트러스 A 추가", pricingType: "PER_DAY", unitPrice: 3_000_000, unitLabel: "원/일", availability: { mode: "IF_NOT_INCLUDED" }, billingPhase: "ESTIMATE", visibility: "VISIBLE", note: "선택 패키지 불포함 시에만 선택 가능" },
-  { id: "mother_truss_b", category: "PRODUCTION", name: "마더트러스 B 추가", pricingType: "PER_DAY", unitPrice: 2_500_000, unitLabel: "원/일", availability: { mode: "IF_NOT_INCLUDED" }, billingPhase: "ESTIMATE", visibility: "VISIBLE" },
-  { id: "mother_truss_c", category: "PRODUCTION", name: "마더트러스 C 추가", pricingType: "PER_DAY", unitPrice: 2_000_000, unitLabel: "원/일", availability: { mode: "IF_NOT_INCLUDED" }, billingPhase: "ESTIMATE", visibility: "VISIBLE" },
-  { id: "mother_truss_l", category: "PRODUCTION", name: "마더트러스 L 추가", pricingType: "PER_DAY", unitPrice: 2_500_000, unitLabel: "원/일", availability: { mode: "IF_NOT_INCLUDED" }, billingPhase: "ESTIMATE", visibility: "VISIBLE" },
-  { id: "mother_truss_r", category: "PRODUCTION", name: "마더트러스 R 추가", pricingType: "PER_DAY", unitPrice: 2_500_000, unitLabel: "원/일", availability: { mode: "IF_NOT_INCLUDED" }, billingPhase: "ESTIMATE", visibility: "VISIBLE" },
+  // [개정 2026-08-19] 패키지 구성 산정표 — 트러스(센터) 5종 합산이 6일 기준 63,000,000원
+  // (일당 10,500,000원)으로 확정됨. 세부 5종 개별 단가는 산정표에 없어, 기존 비율(3.0:2.5:2.0:2.5:2.5)을
+  // 유지한 채 합계만 10,500,000원/일에 맞춰 비례 축소했다 — 개별 단가가 확정되면 교체 필요.
+  { id: "mother_truss_a", category: "PRODUCTION", name: "마더트러스 A 추가", pricingType: "PER_DAY", unitPrice: 2_520_000, unitLabel: "원/일", availability: { mode: "IF_NOT_INCLUDED" }, billingPhase: "ESTIMATE", visibility: "VISIBLE", note: "선택 패키지 불포함 시에만 선택 가능" },
+  { id: "mother_truss_b", category: "PRODUCTION", name: "마더트러스 B 추가", pricingType: "PER_DAY", unitPrice: 2_100_000, unitLabel: "원/일", availability: { mode: "IF_NOT_INCLUDED" }, billingPhase: "ESTIMATE", visibility: "VISIBLE" },
+  { id: "mother_truss_c", category: "PRODUCTION", name: "마더트러스 C 추가", pricingType: "PER_DAY", unitPrice: 1_680_000, unitLabel: "원/일", availability: { mode: "IF_NOT_INCLUDED" }, billingPhase: "ESTIMATE", visibility: "VISIBLE" },
+  { id: "mother_truss_l", category: "PRODUCTION", name: "마더트러스 L 추가", pricingType: "PER_DAY", unitPrice: 2_100_000, unitLabel: "원/일", availability: { mode: "IF_NOT_INCLUDED" }, billingPhase: "ESTIMATE", visibility: "VISIBLE" },
+  { id: "mother_truss_r", category: "PRODUCTION", name: "마더트러스 R 추가", pricingType: "PER_DAY", unitPrice: 2_100_000, unitLabel: "원/일", availability: { mode: "IF_NOT_INCLUDED" }, billingPhase: "ESTIMATE", visibility: "VISIBLE" },
   { id: "reduction_curtain", category: "PRODUCTION", name: "리덕션 커튼", pricingType: "PER_DAY", unitPrice: 1_500_000, unitLabel: "원/일", availability: { mode: "IF_NOT_INCLUDED" }, billingPhase: "ESTIMATE", visibility: "VISIBLE" },
   { id: "center_lift", category: "PRODUCTION", name: "센터리프트", pricingType: "PER_DAY", unitPrice: 4_000_000, unitLabel: "원/일", availability: { mode: "IF_NOT_INCLUDED" }, billingPhase: "ESTIMATE", visibility: "VISIBLE" },
   // [개정 2026-08-14, 부록A] IF_PACKAGE_IN(패키지별 차등 노출) 규칙 폐기 — 전 패키지 공통 노출(ALWAYS).
