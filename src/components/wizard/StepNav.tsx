@@ -8,15 +8,28 @@
 // 차등일 뿐 구성이 완전히 동일하다는 확정 사항 때문). 위저드 내부 스텝 번호(1~8)는 그대로
 // 두고 이 그룹에 여러 개씩 묶는다 — 04 심사·05 결과 안내는 제출 이후 단계라 위저드 안에는
 // 대응하는 화면이 없고, 그래서 항상 비활성(도달 불가)으로 표시된다.
+interface SubStep {
+  step: number;
+  label: string;
+}
+
 interface StageGroup {
   label: string;
-  steps: number[];
+  steps: SubStep[];
 }
 
 const STAGE_GROUPS: StageGroup[] = [
-  { label: "01 패키지 선택", steps: [1, 2] },
-  { label: "02 구성 · 옵션", steps: [3] },
-  { label: "03 신청서 제출", steps: [4, 5, 6, 7] },
+  { label: "01 패키지 선택", steps: [{ step: 1, label: "공간 선택" }, { step: 2, label: "일정 선택" }] },
+  { label: "02 구성 · 옵션", steps: [{ step: 3, label: "구성 · 옵션" }] },
+  {
+    label: "03 신청서 제출",
+    steps: [
+      { step: 4, label: "예상 대관료" },
+      { step: 5, label: "신청자 정보" },
+      { step: 6, label: "관객 · 공공성" },
+      { step: 7, label: "최종 제출" },
+    ],
+  },
   { label: "04 심사", steps: [] },
   { label: "05 결과 안내", steps: [] },
 ];
@@ -32,31 +45,81 @@ export function StepNav({
   hiddenSteps?: number[];
   onJump: (step: number) => void;
 }) {
+  const groupsWithVisibleSteps = STAGE_GROUPS.map((group) => ({
+    ...group,
+    visibleSteps: group.steps.filter((s) => !hiddenSteps?.includes(s.step)),
+  }));
+  const activeGroup = groupsWithVisibleSteps.find((g) => g.visibleSteps.some((s) => s.step === step));
+
   return (
-    <div className="sticky top-14 z-10 -mx-4 mb-8 flex h-11 items-center gap-1 overflow-x-auto border-b border-border bg-background px-4 sm:top-16 sm:-mx-6 sm:px-6">
-      {STAGE_GROUPS.map((group) => {
-        const visibleSteps = group.steps.filter((s) => !hiddenSteps?.includes(s));
-        const entryStep = visibleSteps[0];
-        const isActive = visibleSteps.includes(step);
-        const disabled = entryStep === undefined || entryStep > maxUnlockedStep;
-        return (
-          <button
-            key={group.label}
-            type="button"
-            disabled={disabled}
-            onClick={() => entryStep !== undefined && onJump(entryStep)}
-            className={[
-              "shrink-0 whitespace-nowrap border-b-2 px-3 py-3 text-[13px] font-medium outline-none transition-colors",
-              isActive
-                ? "border-accent text-accent"
-                : "border-transparent text-muted hover:text-foreground",
-              disabled ? "cursor-not-allowed opacity-40" : "cursor-pointer",
-            ].join(" ")}
-          >
-            {group.label}
-          </button>
-        );
-      })}
+    <div className="sticky top-14 z-10 -mx-4 mb-8 border-b border-border bg-background sm:top-16">
+      <div className="flex h-11 items-center gap-1 overflow-x-auto px-4 sm:px-6">
+        {groupsWithVisibleSteps.map((group) => {
+          const entryStep = group.visibleSteps[0]?.step;
+          const isActive = group.visibleSteps.some((s) => s.step === step);
+          const disabled = entryStep === undefined || entryStep > maxUnlockedStep;
+          return (
+            <button
+              key={group.label}
+              type="button"
+              disabled={disabled}
+              onClick={() => entryStep !== undefined && onJump(entryStep)}
+              className={[
+                "shrink-0 whitespace-nowrap border-b-2 px-3 py-3 text-[13px] font-medium outline-none transition-colors",
+                isActive
+                  ? "border-accent text-accent"
+                  : "border-transparent text-muted hover:text-foreground",
+                disabled ? "cursor-not-allowed opacity-40" : "cursor-pointer",
+              ].join(" ")}
+            >
+              {group.label}
+            </button>
+          );
+        })}
+      </div>
+
+      {activeGroup && activeGroup.visibleSteps.length > 1 && (
+        <div className="flex items-center gap-2 overflow-x-auto px-4 pb-3 sm:px-6">
+          {activeGroup.visibleSteps.map((s, i) => {
+            const isCurrent = s.step === step;
+            const isDone = s.step < step;
+            const disabled = s.step > maxUnlockedStep;
+            return (
+              <div key={s.step} className="flex shrink-0 items-center gap-2">
+                {i > 0 && <span className="text-[11px] text-muted">›</span>}
+                <button
+                  type="button"
+                  disabled={disabled}
+                  onClick={() => onJump(s.step)}
+                  className={[
+                    "flex items-center gap-1.5 rounded-full border px-3 py-1 text-[12px] font-medium transition-colors",
+                    isCurrent
+                      ? "border-accent bg-accent-soft text-accent"
+                      : isDone
+                        ? "border-border bg-panel text-foreground hover:border-accent/50"
+                        : "border-border bg-transparent text-muted",
+                    disabled ? "cursor-not-allowed opacity-40" : "cursor-pointer",
+                  ].join(" ")}
+                >
+                  <span
+                    className={[
+                      "flex h-4 w-4 shrink-0 items-center justify-center rounded-full text-[10px]",
+                      isCurrent
+                        ? "bg-accent text-white"
+                        : isDone
+                          ? "bg-accent/70 text-white"
+                          : "bg-border text-muted",
+                    ].join(" ")}
+                  >
+                    {isDone ? "✓" : i + 1}
+                  </span>
+                  {s.label}
+                </button>
+              </div>
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 }
