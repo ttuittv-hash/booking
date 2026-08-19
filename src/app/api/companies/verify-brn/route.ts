@@ -100,6 +100,19 @@ export async function POST(request: Request) {
     });
   }
 
+  // 기업상태가 "정보없음"(코드 0)이면 국세청에 상태가 없다는 뜻이다.
+  // 조회 자체는 성공했지만 실재하는 정상 사업자라고 단정할 수 없으므로 완료로 표시하지 않는다.
+  // 가입은 막지 않고(외부 조회로 가입을 끊지 않는다는 기존 방침) 운영자 심사로 넘긴다.
+  if (!verification.compStatus || verification.compStatus === "0") {
+    return NextResponse.json({
+      state: "UNCHECKED",
+      title: "확인 필요",
+      companyName: verification.companyName,
+      representativeName: verification.representativeName,
+      message: `${verification.companyName ?? "조회된 상호 없음"} — 국세청에 사업자 상태 정보가 없습니다. 운영자 심사에서 확인합니다.`,
+    });
+  }
+
   return NextResponse.json({
     state: "VERIFIED",
     title: "인증 완료",

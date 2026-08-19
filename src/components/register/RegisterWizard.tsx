@@ -707,7 +707,7 @@ function StepInfo({
       // 신규 등록이면 국세청 조회값으로 상호·대표자를 채운다. 등록부 값이 정본이라
       // 입력값이 있어도 덮어쓴다 — 표기가 어긋난 채 제출되면 운영자 심사에서
       // "불일치"로 잡혀 승인이 늦어진다. 주소·대표번호는 이 응답에 없어 직접 입력해야 한다.
-      if (data.state === "VERIFIED") {
+      if (data.state === "VERIFIED" || data.state === "UNCHECKED") {
         setForm((p) => ({
           ...p,
           companyName: data.companyName || p.companyName,
@@ -740,7 +740,7 @@ function StepInfo({
       : brnCheck?.state === "REGISTERED"
         ? "text-accent"
         : brnCheck?.state === "UNCHECKED"
-          ? "text-muted"
+          ? "text-warn"
           : "text-danger";
 
   return (
@@ -810,7 +810,7 @@ function StepInfo({
             <div data-testid="brn-check-message" className="mt-2.5 break-keep text-xs leading-6">
               <span className={`font-bold ${brnTone}`}>{brnCheck.title}</span>
               <span className="ml-2 text-muted">{brnCheck.message}</span>
-              {brnCheck.state === "VERIFIED" ? (
+              {brnCheck.state === "VERIFIED" || brnCheck.state === "UNCHECKED" ? (
                 <p className="mt-1 text-muted">
                   회사명 · 대표자 성명은 국세청 등록 정보로 채워집니다. 주소 · 대표번호는 직접
                   입력해 주세요.
