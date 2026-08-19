@@ -10,7 +10,7 @@ export default function RegisterPage() {
       active="register"
       title="회원가입"
       lead="서울아레나 대관시스템 회원가입입니다."
-      width="md"
+      width="lg"
     >
       <RegisterWizard />
     </AuthShell>

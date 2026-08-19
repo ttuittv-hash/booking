@@ -56,6 +56,9 @@ export async function POST(request: Request) {
   const businessRegistrationNumber =
     typeof body?.businessRegistrationNumber === "string" ? body.businessRegistrationNumber.trim() : "";
   const representativeName = typeof body?.representativeName === "string" ? body.representativeName.trim() : "";
+  const companyPhone = typeof body?.companyPhone === "string" ? body.companyPhone.trim() : "";
+  const companyFax = typeof body?.companyFax === "string" ? body.companyFax.trim() : "";
+  const corporateNumber = typeof body?.corporateNumber === "string" ? body.corporateNumber.trim() : "";
   const postalCode = typeof body?.postalCode === "string" ? body.postalCode.trim() : "";
   const address = typeof body?.address === "string" ? body.address.trim() : "";
   const businessCertUrl = typeof body?.businessCertUrl === "string" ? body.businessCertUrl.trim() : "";
@@ -232,6 +235,9 @@ export async function POST(request: Request) {
       address,
       businessCertUrl,
       businessCertName,
+      companyPhone,
+      companyFax,
+      corporateNumber,
     });
 
     // 조회된 상호·대표자명이 입력값과 다르면 그대로 기록해 둔다 — 가입은 막지 않고

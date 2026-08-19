@@ -14,6 +14,9 @@ const baseCompany = {
   createdAt: "2026-08-19",
   status: "PENDING" as const,
   masterUserId: null,
+  companyPhone: null,
+  companyFax: null,
+  corporateNumber: null,
   verification: {
     status: "VERIFIED" as const,
     companyName: "테스트",

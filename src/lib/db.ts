@@ -454,6 +454,10 @@ async function initSchema(pool: Pool) {
     ALTER TABLE companies ADD COLUMN IF NOT EXISTS master_user_id TEXT REFERENCES users(id);
     -- 회사 자체의 승인 상태. 회원 개인의 approval_status 와 다른 축이다.
     ALTER TABLE companies ADD COLUMN IF NOT EXISTS status TEXT NOT NULL DEFAULT 'PENDING';
+    -- 기획서 A5 기업정보 항목 — 대표번호·대표팩스·법인등록번호
+    ALTER TABLE companies ADD COLUMN IF NOT EXISTS company_phone TEXT;
+    ALTER TABLE companies ADD COLUMN IF NOT EXISTS company_fax TEXT;
+    ALTER TABLE companies ADD COLUMN IF NOT EXISTS corporate_number TEXT;
 
     -- 진행 중인 본인인증 건을 콜백에서 다시 집어들기 위한 값들.
     -- pod 가 여러 개라 프로세스 메모리에 두면 콜백이 다른 pod 로 가서 깨진다.
@@ -639,6 +643,28 @@ async function seedData(pool: Pool) {
     console.log(
       `[seoularena] 내부 테스트용 신청자 계정이 생성되었습니다 (승인 완료 상태) — 아이디: ${testUsername}`,
     );
+  }
+
+  // 회사정보 불러오기(기획서 A6)를 바로 시험해 볼 수 있게 표본 회사를 하나 둔다.
+  // 승인 완료 상태여야 검색에 잡힌다. 이미 있으면 건드리지 않는다.
+  const sampleBrn = "1018116510";
+  const sampleExists = (
+    await pool.query("SELECT 1 FROM companies WHERE business_registration_number = $1", [sampleBrn])
+  ).rowCount;
+  if (!sampleExists) {
+    await pool.query(
+      `INSERT INTO companies
+         (id, name, business_registration_number, representative_name, postal_code, address,
+          company_phone, company_fax, corporate_number, status, created_at,
+          verification_status, verified_company_name, verified_representative_name,
+          verified_comp_status, verified_comp_status_label, verified_comp_type_label, verified_at)
+       VALUES ($1, '주식회사 서울아레나', $2, '박○○', '01411',
+               '서울특별시 도봉구 창동 1-24 대운빌딩 2층',
+               '02-1234-4567', '02-544-0966', '1101111234567', 'APPROVED', $3,
+               'VERIFIED', '주식회사 서울아레나', '박○○', '1', '계속사업자', '일반', $3)`,
+      [crypto.randomUUID(), sampleBrn, new Date().toISOString()],
+    );
+    console.log("[seoularena] 표본 회사(주식회사 서울아레나)를 등록했습니다 — 회사정보 불러오기 시험용");
   }
 
   // 서울아레나 소개 / 대관 안내 하위 페이지 — 최초 1회만 기본 콘텐츠로 시드한다.
@@ -858,6 +884,9 @@ interface CompanyRow {
   verified_at: string | null;
   status: string | null;
   master_user_id: string | null;
+  company_phone: string | null;
+  company_fax: string | null;
+  corporate_number: string | null;
 }
 
 function toCompany(row: CompanyRow): Company {
@@ -872,6 +901,9 @@ function toCompany(row: CompanyRow): Company {
     businessCertName: row.business_cert_name,
     createdAt: row.created_at,
     status: (row.status as CompanyStatus | null) ?? "PENDING",
+    companyPhone: row.company_phone ?? null,
+    companyFax: row.company_fax ?? null,
+    corporateNumber: row.corporate_number ?? null,
     masterUserId: row.master_user_id ?? null,
     verification: row.verification_status
       ? {
@@ -944,6 +976,9 @@ export async function findOrCreateCompany(
     address?: string;
     businessCertUrl?: string;
     businessCertName?: string;
+    companyPhone?: string;
+    companyFax?: string;
+    corporateNumber?: string;
   },
 ): Promise<Company> {
   const trimmed = name.trim();
@@ -986,14 +1021,18 @@ export async function findOrCreateCompany(
     verified_at: null,
     status: "PENDING",
     master_user_id: null,
+    company_phone: extra?.companyPhone?.trim() || null,
+    company_fax: extra?.companyFax?.trim() || null,
+    corporate_number: extra?.corporateNumber?.replace(/\D/g, "") || null,
   };
   // 같은 사업자번호로 동시에 가입하면 조회-후-삽입 사이에 경합이 나서 한쪽이 UNIQUE 위반으로 실패한다.
   // 충돌 시 무시하고 아래에서 기존 행을 다시 읽는다.
   // 충돌 대상은 사업자번호 부분 인덱스(idx_companies_brn)다 — 회사명 UNIQUE 는 제거됐다.
   await q(
     `INSERT INTO companies
-      (id, name, business_registration_number, representative_name, postal_code, address, business_cert_url, business_cert_name, created_at)
-     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+      (id, name, business_registration_number, representative_name, postal_code, address, business_cert_url, business_cert_name, created_at,
+       company_phone, company_fax, corporate_number)
+     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
      ON CONFLICT (business_registration_number) WHERE business_registration_number IS NOT NULL DO NOTHING`,
     [
       row.id,
@@ -1005,6 +1044,9 @@ export async function findOrCreateCompany(
       row.business_cert_url,
       row.business_cert_name,
       row.created_at,
+      row.company_phone,
+      row.company_fax,
+      row.corporate_number,
     ],
   );
   // 경합에 밀렸으면 먼저 들어간 행이 정본이다. 사업자번호가 있으면 그걸로 다시 읽는다.

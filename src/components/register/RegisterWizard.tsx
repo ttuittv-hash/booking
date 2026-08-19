@@ -51,6 +51,9 @@ type FormState = {
   businessRegistrationNumber: string;
   representativeName: string;
   companyPhone: string;
+  companyFax: string;
+  corporateNumber: string;
+  personalPhone: string;
   postalCode: string;
   address: string;
   addressDetail: string;
@@ -81,11 +84,17 @@ export function RegisterWizard() {
     businessRegistrationNumber: "",
     representativeName: "",
     companyPhone: "",
+    companyFax: "",
+    corporateNumber: "",
+    personalPhone: "",
     postalCode: "",
     address: "",
     addressDetail: "",
   });
   const [pickedCompany, setPickedCompany] = useState<CompanyHit | null>(null);
+  // 사업자등록번호 중복·진위확인, 아이디 중복확인 결과
+  const [brnCheck, setBrnCheck] = useState<{ state: string; message: string } | null>(null);
+  const [idCheck, setIdCheck] = useState<{ available: boolean; message: string } | null>(null);
   const [searchOpen, setSearchOpen] = useState(false);
   const [joinNotice, setJoinNotice] = useState<string | null>(null);
 
@@ -176,6 +185,15 @@ export function RegisterWizard() {
       setError("비밀번호가 일치하지 않습니다.");
       return;
     }
+    // 불러오기로 채운 회사는 이미 확인된 번호라 다시 묻지 않는다(기획서 A5).
+    if (!pickedCompany && brnCheck?.state !== "VERIFIED" && brnCheck?.state !== "UNCHECKED") {
+      setError("사업자등록번호 [중복·진위확인]을 먼저 진행해 주세요.");
+      return;
+    }
+    if (idCheck?.available !== true) {
+      setError("로그인 ID [중복확인]을 먼저 진행해 주세요.");
+      return;
+    }
     setLoading(true);
     try {
       const res = await fetch("/api/auth/register", {
@@ -192,6 +210,9 @@ export function RegisterWizard() {
           companyName: form.companyName,
           businessRegistrationNumber: form.businessRegistrationNumber,
           representativeName: form.representativeName,
+          companyPhone: form.companyPhone,
+          companyFax: form.companyFax,
+          corporateNumber: form.corporateNumber,
           postalCode: form.postalCode,
           address: [form.address, form.addressDetail].filter(Boolean).join(" "),
           agreedTerms: !!agreed.SERVICE,
@@ -247,9 +268,14 @@ export function RegisterWizard() {
           setForm={setForm}
           identity={identity}
           pickedCompany={pickedCompany}
+          brnCheck={brnCheck}
+          setBrnCheck={setBrnCheck}
+          idCheck={idCheck}
+          setIdCheck={setIdCheck}
           onOpenSearch={() => setSearchOpen(true)}
           onClearCompany={() => {
             setPickedCompany(null);
+            setBrnCheck(null);
             setForm((f) => ({ ...f, companyName: "", businessRegistrationNumber: "" }));
           }}
           onPostcode={openPostcode}
@@ -266,7 +292,9 @@ export function RegisterWizard() {
           onClose={() => setSearchOpen(false)}
           onPick={(hit) => {
             setPickedCompany(hit);
-            setForm((f) => ({ ...f, companyName: hit.name }));
+            // 불러온 회사는 이미 확인된 번호다 — 중복확인·진위확인을 생략한다(기획서 A5).
+            setBrnCheck({ state: "VERIFIED", message: `불러온 회사입니다 — ${hit.name}` });
+            setForm((f) => ({ ...f, companyName: hit.name, businessRegistrationNumber: "" }));
             setSearchOpen(false);
           }}
         />
@@ -304,38 +332,40 @@ function StepMemberType({ onNext }: { onNext: () => void }) {
   return (
     <section className="mt-8" data-testid="step-member-type">
       <h2 className="type-kr-heading text-h6-m sm:text-h6">가입하실 회원 유형을 선택해 주세요.</h2>
-      <div className="mt-6 grid gap-4 sm:grid-cols-2">
+      <div className="mt-6 grid gap-5 sm:grid-cols-2">
         <button
           type="button"
           data-testid="pick-corporate"
           onClick={onNext}
-          className="border border-foreground p-5 text-left transition-colors hover:bg-surface"
+          className="flex flex-col border border-foreground p-6 text-left transition-colors hover:bg-surface"
         >
           <span className="text-xs font-bold text-accent">가입 가능</span>
           <span className="mt-2 block text-h6-m font-bold">기업회원</span>
-          <span className="mt-1 block text-s text-muted">사업자등록증이 있는 법인 · 개인사업자</span>
-          <ul className="mt-3 space-y-1 text-s text-muted">
+          <span className="mt-1 block break-keep text-s text-muted">
+            사업자등록증이 있는 법인 · 개인사업자
+          </span>
+          <ul className="mt-3 space-y-1.5 break-keep text-s text-muted">
             <li>· 공연 기획사 · 제작사 · 대행사 등</li>
             <li>· 대관 신청 · 계약 · 정산 전 과정 이용</li>
             <li>· 사업자등록번호 진위확인으로 즉시 심사</li>
           </ul>
-          <span className={`${btnClass("primary", "md")} mt-5 w-full`}>기업회원으로 가입하기</span>
+          <span className={`${btnClass("primary", "md")} mt-auto w-full pt-3`}>기업회원으로 가입하기</span>
         </button>
 
         <div
           data-testid="pick-individual"
           aria-disabled="true"
-          className="border border-border-soft p-5 opacity-60"
+          className="flex flex-col border border-border-soft p-6 opacity-60"
         >
           <span className="text-xs font-bold text-muted">준비 중</span>
           <span className="mt-2 block text-h6-m font-bold text-muted">개인회원</span>
-          <span className="mt-1 block text-s text-muted">사업자등록증이 없는 개인</span>
-          <ul className="mt-3 space-y-1 text-s text-muted">
+          <span className="mt-1 block break-keep text-s text-muted">사업자등록증이 없는 개인</span>
+          <ul className="mt-3 space-y-1.5 break-keep text-s text-muted">
             <li>· 동호회 · 개인 주최자 등</li>
             <li>· 현재 기업회원만 가입할 수 있습니다</li>
             <li>· 오픈 시 공지사항으로 안내</li>
           </ul>
-          <button type="button" disabled className={`${btnClass("secondary", "md")} mt-5 w-full`}>
+          <button type="button" disabled className={`${btnClass("secondary", "md")} mt-auto w-full`}>
             준비 중입니다
           </button>
         </div>
@@ -372,7 +402,7 @@ function StepTerms({
         {terms.map((t) => (
           <div key={t.kind} className="border border-border-soft">
             <label className="flex items-center justify-between gap-3 border-b border-border-soft px-4 py-3">
-              <span className="text-s font-bold">
+              <span className="break-keep text-s font-bold">
                 {t.title}{" "}
                 <span className={t.required ? "text-accent" : "text-muted"}>
                   ({t.required ? "필수" : "선택"})
@@ -430,7 +460,7 @@ function StepIdentity({
   return (
     <section className="mt-8" data-testid="step-identity">
       <h2 className="type-kr-heading text-h6-m sm:text-h6">본인인증을 진행해 주세요.</h2>
-      <p className="mt-2 text-s text-muted">
+      <p className="mt-2 max-w-2xl break-keep text-s text-muted">
         본인 명의 휴대폰으로 본인인증을 진행합니다. 인증 결과의 이름·휴대폰번호는 계약 당사자
         정보로 쓰이므로 이후 단계에서 수정할 수 없습니다.
       </p>
@@ -447,7 +477,7 @@ function StepIdentity({
           {loading ? "인증창을 여는 중…" : "인증하기"}
         </button>
       </div>
-      <p className="mt-4 text-xs text-muted">
+      <p className="mt-4 break-keep text-xs text-muted">
         외국인·법인 명의 휴대폰·미성년 등으로 인증이 어려운 경우 고객센터로 문의해 주세요.
       </p>
       <div className="mt-8 flex gap-3">
@@ -464,6 +494,10 @@ function StepInfo({
   setForm,
   identity,
   pickedCompany,
+  brnCheck,
+  setBrnCheck,
+  idCheck,
+  setIdCheck,
   onOpenSearch,
   onClearCompany,
   onPostcode,
@@ -475,6 +509,10 @@ function StepInfo({
   setForm: React.Dispatch<React.SetStateAction<FormState>>;
   identity: { name: string; mobileNo: string; mobileCo: string | null } | null;
   pickedCompany: CompanyHit | null;
+  brnCheck: { state: string; message: string } | null;
+  setBrnCheck: React.Dispatch<React.SetStateAction<{ state: string; message: string } | null>>;
+  idCheck: { available: boolean; message: string } | null;
+  setIdCheck: React.Dispatch<React.SetStateAction<{ available: boolean; message: string } | null>>;
   onOpenSearch: () => void;
   onClearCompany: () => void;
   onPostcode: () => void;
@@ -482,11 +520,58 @@ function StepInfo({
   onPrev: () => void;
   onSubmit: () => void;
 }) {
+  const [checking, setChecking] = useState<"brn" | "id" | null>(null);
   const set =
     (k: keyof FormState) =>
     (e: React.ChangeEvent<HTMLInputElement>) =>
       setForm((p) => ({ ...p, [k]: e.target.value }));
   const locked = !!pickedCompany;
+
+  // 사업자등록번호 중복확인 + 국세청 진위확인 (기획서 A5 · 1-34)
+  async function verifyBrn() {
+    setChecking("brn");
+    try {
+      const res = await fetch("/api/companies/verify-brn", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ businessRegistrationNumber: form.businessRegistrationNumber }),
+      });
+      const data = await res.json();
+      setBrnCheck({ state: data.state ?? "ERROR", message: data.message ?? data.error ?? "" });
+      // 조회된 상호·대표자를 비워둔 칸에 채워준다. 입력값이 있으면 건드리지 않는다.
+      if (data.state === "VERIFIED") {
+        setForm((p) => ({
+          ...p,
+          companyName: p.companyName || data.companyName || "",
+          representativeName: p.representativeName || data.representativeName || "",
+        }));
+      }
+    } finally {
+      setChecking(null);
+    }
+  }
+
+  async function checkUsername() {
+    setChecking("id");
+    try {
+      const res = await fetch("/api/auth/check-username", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ username: form.username }),
+      });
+      const data = await res.json();
+      setIdCheck({ available: data.available === true, message: data.message ?? data.error ?? "" });
+    } finally {
+      setChecking(null);
+    }
+  }
+
+  const brnTone =
+    brnCheck?.state === "VERIFIED"
+      ? "text-ok"
+      : brnCheck?.state === "REGISTERED" || brnCheck?.state === "UNCHECKED"
+        ? "text-muted"
+        : "text-danger";
 
   return (
     <section className="mt-8" data-testid="step-info">
@@ -501,13 +586,14 @@ function StepInfo({
           회사정보 불러오기
         </button>
       </div>
+      <p className="mt-2 break-keep text-xs text-muted">* 표시는 필수 입력 항목입니다.</p>
 
       {pickedCompany ? (
         <p
           data-testid="picked-company"
-          className="mt-4 flex items-center justify-between gap-3 border border-accent px-4 py-3 text-s"
+          className="mt-4 flex flex-wrap items-center justify-between gap-3 border border-accent px-4 py-3 text-s"
         >
-          <span>
+          <span className="break-keep">
             불러온 회사 <b>{pickedCompany.name}</b>
             <span className="ml-2 text-muted">{pickedCompany.businessNumberMasked}</span>
           </span>
@@ -518,40 +604,121 @@ function StepInfo({
       ) : null}
 
       <h3 className="mt-8 text-s font-bold">① 기업 정보</h3>
-      <div className="mt-3 grid gap-4 sm:grid-cols-2">
+      <p className="mt-1 break-keep text-xs text-muted">
+        이미 등록된 회사라면 [회사정보 불러오기]로 채우세요.
+      </p>
+      <div className="mt-4 grid gap-x-6 gap-y-5 sm:grid-cols-2">
         <Field label="회사명" required>
           <input data-testid="f-companyName" value={form.companyName} onChange={set("companyName")} readOnly={locked} className={inputCls(locked)} />
         </Field>
         <Field label="대표자 성명" required>
           <input data-testid="f-representativeName" value={form.representativeName} onChange={set("representativeName")} className={inputCls(false)} />
         </Field>
-        <Field label="사업자등록번호" required hint="숫자 10자리">
-          <input data-testid="f-brn" value={form.businessRegistrationNumber} onChange={set("businessRegistrationNumber")} readOnly={locked} className={inputCls(locked)} />
-        </Field>
+
+        <div className="sm:col-span-2">
+          <Field label="사업자등록번호" required hint="숫자 10자리">
+            <span className="flex gap-2">
+              <input
+                data-testid="f-brn"
+                value={form.businessRegistrationNumber}
+                onChange={(e) => {
+                  set("businessRegistrationNumber")(e);
+                  setBrnCheck(null);
+                }}
+                readOnly={locked}
+                placeholder="120-81-47521"
+                className={`${inputCls(locked)} flex-1`}
+              />
+              <button
+                type="button"
+                data-testid="verify-brn"
+                disabled={locked || checking === "brn" || !form.businessRegistrationNumber}
+                onClick={verifyBrn}
+                className={`${btnClass("secondary", "md")} whitespace-nowrap`}
+              >
+                {checking === "brn" ? "확인 중…" : "중복·진위확인"}
+              </button>
+            </span>
+          </Field>
+          {brnCheck ? (
+            <p data-testid="brn-check-message" className={`mt-2 break-keep text-xs ${brnTone}`}>
+              {brnCheck.message}
+            </p>
+          ) : null}
+        </div>
+
         <Field label="대표번호">
-          <input data-testid="f-companyPhone" value={form.companyPhone} onChange={set("companyPhone")} className={inputCls(false)} />
+          <input data-testid="f-companyPhone" value={form.companyPhone} onChange={set("companyPhone")} placeholder="02-1234-5678" className={inputCls(false)} />
         </Field>
-      </div>
-      <div className="mt-4 flex flex-wrap gap-2">
-        <input data-testid="f-postalCode" value={form.postalCode} onChange={set("postalCode")} placeholder="우편번호" className={`${inputCls(false)} w-32`} />
-        <button type="button" data-testid="open-postcode" onClick={onPostcode} className={btnClass("secondary", "sm")}>
-          우편번호 찾기
-        </button>
-        <input data-testid="f-address" value={form.address} onChange={set("address")} placeholder="회사주소" className={`${inputCls(false)} min-w-52 flex-1`} />
-        <input data-testid="f-addressDetail" value={form.addressDetail} onChange={set("addressDetail")} placeholder="상세주소" className={`${inputCls(false)} min-w-40 flex-1`} />
+        <Field label="대표팩스">
+          <input data-testid="f-companyFax" value={form.companyFax} onChange={set("companyFax")} className={inputCls(false)} />
+        </Field>
+        <Field label="법인등록번호" hint="선택 · 법인만">
+          <input data-testid="f-corporateNumber" value={form.corporateNumber} onChange={set("corporateNumber")} placeholder="110111-1234567" className={inputCls(false)} />
+        </Field>
+        <div />
+
+        <div className="sm:col-span-2">
+          <Field label="회사주소" required>
+            <span className="flex flex-wrap gap-2">
+              <input data-testid="f-postalCode" value={form.postalCode} onChange={set("postalCode")} placeholder="우편번호" className={`${inputCls(false)} w-32`} />
+              <button type="button" data-testid="open-postcode" onClick={onPostcode} className={`${btnClass("secondary", "md")} whitespace-nowrap`}>
+                우편번호 찾기
+              </button>
+            </span>
+          </Field>
+          <div className="mt-2 grid gap-3 sm:grid-cols-2">
+            <input data-testid="f-address" value={form.address} onChange={set("address")} placeholder="회사주소" className={inputCls(false)} />
+            <input data-testid="f-addressDetail" value={form.addressDetail} onChange={set("addressDetail")} placeholder="상세주소" className={inputCls(false)} />
+          </div>
+        </div>
       </div>
 
-      <h3 className="mt-8 text-s font-bold">② 개인 정보</h3>
-      <div className="mt-3 grid gap-4 sm:grid-cols-2">
+      <h3 className="mt-10 text-s font-bold">② 개인 정보</h3>
+      <p className="mt-1 break-keep text-xs text-muted">
+        이름 · 휴대폰번호는 본인인증 결과가 그대로 들어가며 수정할 수 없습니다.
+      </p>
+      <div className="mt-4 grid gap-x-6 gap-y-5 sm:grid-cols-2">
         <Field label="이름" hint="본인인증 결과">
           <input data-testid="f-name" value={identity?.name ?? ""} readOnly className={inputCls(true)} />
         </Field>
         <Field label="휴대폰번호" hint="본인인증 결과">
           <input data-testid="f-phone" value={identity?.mobileNo ?? ""} readOnly className={inputCls(true)} />
         </Field>
-        <Field label="로그인 ID" required hint="5~20자 영문·숫자">
-          <input data-testid="f-username" value={form.username} onChange={set("username")} className={inputCls(false)} />
-        </Field>
+
+        <div>
+          <Field label="로그인 ID" required hint="5~20자 영문·숫자">
+            <span className="flex gap-2">
+              <input
+                data-testid="f-username"
+                value={form.username}
+                onChange={(e) => {
+                  set("username")(e);
+                  setIdCheck(null);
+                }}
+                className={`${inputCls(false)} flex-1`}
+              />
+              <button
+                type="button"
+                data-testid="check-username"
+                disabled={checking === "id" || !form.username}
+                onClick={checkUsername}
+                className={`${btnClass("secondary", "md")} whitespace-nowrap`}
+              >
+                {checking === "id" ? "확인 중…" : "중복확인"}
+              </button>
+            </span>
+          </Field>
+          {idCheck ? (
+            <p
+              data-testid="id-check-message"
+              className={`mt-2 break-keep text-xs ${idCheck.available ? "text-ok" : "text-danger"}`}
+            >
+              {idCheck.message}
+            </p>
+          ) : null}
+        </div>
+
         <Field label="이메일" required>
           <input data-testid="f-email" type="email" value={form.email} onChange={set("email")} className={inputCls(false)} />
         </Field>
@@ -561,9 +728,12 @@ function StepInfo({
         <Field label="비밀번호 확인" required>
           <input data-testid="f-passwordConfirm" type="password" value={form.passwordConfirm} onChange={set("passwordConfirm")} className={inputCls(false)} />
         </Field>
+        <Field label="전화번호">
+          <input data-testid="f-personalPhone" value={form.personalPhone} onChange={set("personalPhone")} placeholder="02-544-1651" className={inputCls(false)} />
+        </Field>
       </div>
 
-      <div className="mt-8 flex gap-3">
+      <div className="mt-10 flex gap-3">
         <button type="button" onClick={onPrev} className={btnClass("secondary", "md")}>
           이전
         </button>

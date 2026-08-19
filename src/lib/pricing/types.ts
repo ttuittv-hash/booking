@@ -456,6 +456,9 @@ export interface Company {
   status: CompanyStatus;
   /** 대표 담당자(마스터) 계정 id — 아직 정해지지 않았으면 null */
   masterUserId: string | null;
+  companyPhone: string | null;
+  companyFax: string | null;
+  corporateNumber: string | null;
   /** 사업자 진위확인(NICE 법인실명확인) 결과 — 확인 이력이 없으면 null */
   verification: CompanyVerification | null;
 }

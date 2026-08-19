@@ -1,7 +1,6 @@
 import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
 import { dispatchMessage } from "@/lib/message/dispatch";
-import { publicOrigin } from "@/lib/publicUrl";
 import {
   ensureCompanyMaster,
   findUserById,
