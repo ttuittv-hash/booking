@@ -63,8 +63,8 @@ export function StepVenue({
 
       <div className="mt-6 divide-y divide-border">
         <div className="py-5 first:pt-0">
-          <div className="flex flex-wrap items-center gap-x-8 gap-y-3">
-            <label className="w-28 shrink-0 text-[13px] font-medium text-foreground">이용 시설 *</label>
+          <div className="grid grid-cols-1 gap-x-8 gap-y-3 sm:grid-cols-[7rem_1fr] sm:items-center">
+            <label className="text-[13px] font-medium text-foreground">이용 시설 *</label>
             <div className="flex flex-wrap gap-2">
               {(
                 [
@@ -88,17 +88,17 @@ export function StepVenue({
                 </button>
               ))}
             </div>
+            <p className="text-[11.5px] leading-5 text-muted sm:col-start-2">
+              동시 대관은 두 공간을 신청서 1건으로 묶어 신청하는 것이며, 두 공간은 완전히
+              분리되어 있어 <b className="text-foreground">할인은 없습니다</b> — 금액은 각 공간을
+              따로 신청했을 때와 같습니다.
+            </p>
           </div>
-          <p className="mt-3 pl-0 text-[11.5px] leading-5 text-muted sm:pl-[7.5rem]">
-            동시 대관은 두 공간을 신청서 1건으로 묶어 신청하는 것이며, 두 공간은 완전히
-            분리되어 있어 <b className="text-foreground">할인은 없습니다</b> — 금액은 각 공간을
-            따로 신청했을 때와 같습니다.
-          </p>
         </div>
 
         {primaryVenue === "arena" && (
-          <div className="flex flex-wrap items-center gap-x-8 gap-y-3 py-5">
-            <label className="w-28 shrink-0 text-[13px] font-medium text-foreground">무대 구성 *</label>
+          <div className="grid grid-cols-1 gap-x-8 gap-y-3 py-5 sm:grid-cols-[7rem_1fr] sm:items-center">
+            <label className="text-[13px] font-medium text-foreground">무대 구성 *</label>
             <div className="flex flex-wrap gap-2">
               {STAGE_TYPES.map((type) => {
                 const checked = performanceInfo.stageTypes[0] === type;
@@ -123,8 +123,8 @@ export function StepVenue({
         )}
 
         {hasSelection && (
-          <div className="flex flex-wrap items-start gap-x-8 gap-y-4 py-5">
-            <label className="w-28 shrink-0 pt-2.5 text-[13px] font-medium text-foreground">예상 관객 규모 *</label>
+          <div className="grid grid-cols-1 gap-x-8 gap-y-4 py-5 sm:grid-cols-[7rem_1fr] sm:items-start">
+            <label className="pt-2.5 text-[13px] font-medium text-foreground">예상 관객 규모 *</label>
             <div className="flex flex-wrap items-start gap-6">
               {primaryVenue === "arena" && (
                 <div className="max-w-xs">
@@ -166,8 +166,8 @@ export function StepVenue({
 
         {hasSelection && (
           <div className="space-y-5 py-5">
-            <div className="flex flex-wrap items-center gap-x-8 gap-y-3">
-              <label className="w-28 shrink-0 text-[13px] font-medium text-foreground">공연 유형 *</label>
+            <div className="grid grid-cols-1 gap-x-8 gap-y-3 sm:grid-cols-[7rem_1fr] sm:items-center">
+              <label className="text-[13px] font-medium text-foreground">공연 유형 *</label>
               <select
                 value={performanceInfo.eventTypes[0] ?? ""}
                 onChange={(e) => setInfo("eventTypes", e.target.value ? [e.target.value as EventType] : [])}
@@ -182,8 +182,8 @@ export function StepVenue({
               </select>
             </div>
 
-            <div className="flex flex-wrap items-center gap-x-8 gap-y-3">
-              <label className="w-28 shrink-0 text-[13px] font-medium text-foreground">공연(행사)명 *</label>
+            <div className="grid grid-cols-1 gap-x-8 gap-y-3 sm:grid-cols-[7rem_1fr] sm:items-center">
+              <label className="text-[13px] font-medium text-foreground">공연(행사)명 *</label>
               <input
                 type="text"
                 value={performanceInfo.eventName}
@@ -193,8 +193,8 @@ export function StepVenue({
               />
             </div>
 
-            <div className="flex flex-wrap items-center gap-x-8 gap-y-3">
-              <label className="w-28 shrink-0 text-[13px] font-medium text-foreground">아티스트 / 출연진 *</label>
+            <div className="grid grid-cols-1 gap-x-8 gap-y-3 sm:grid-cols-[7rem_1fr] sm:items-center">
+              <label className="text-[13px] font-medium text-foreground">아티스트 / 출연진 *</label>
               <input
                 type="text"
                 value={performanceInfo.artist}
