@@ -1,5 +1,6 @@
 "use client";
 
+import { INITIAL_PERFORMANCE_INFO } from "@/lib/pricing/performanceInfoDefaults";
 import { resolveSelectedDates } from "@/lib/pricing/dateRange";
 import { defaultDayTags, effectiveDayTag } from "@/lib/pricing/rateTableUtils";
 import {
@@ -211,46 +212,21 @@ const EMPTY_PAST_PERFORMANCE: PastPerformanceRecord = {
   role: "",
 };
 
-export function StepPerformanceInfo({
+// 동시 대관에서 "각각 다르게 입력"을 켰을 때 아레나/중형 두 벌을 그리기 위해
+// 신청자 정보 · 공연 기본정보 · 개최 신뢰도 카드 자체를 분리했다.
+// scheduleSummary가 null이면(중형 전용 사본) 대관기간/총 공연 횟수 행은 표시하지 않는다 —
+// 그 값들은 아레나 쪽(원본) 카드에 이미 한 번만 나온다.
+function PerformanceInfoFields({
   info,
   onChange,
-  selection,
-  files,
-  onFilesChange,
+  scheduleSummary,
 }: {
   info: PerformanceInfo;
   onChange: (info: PerformanceInfo) => void;
-  selection: QuoteSelection;
-  files: File[];
-  onFilesChange: (files: File[]) => void;
+  scheduleSummary: { arenaLine: string | null; midHallLine: string | null; showsTotal: number; isMidHallInvolved: boolean } | null;
 }) {
   function set<K extends keyof PerformanceInfo>(key: K, value: PerformanceInfo[K]) {
     onChange({ ...info, [key]: value });
-  }
-
-  function addFiles(selected: FileList | null) {
-    if (!selected || selected.length === 0) return;
-    const accepted: File[] = [];
-    const rejected: string[] = [];
-    for (const file of Array.from(selected)) {
-      if (file.size > MAX_FILE_SIZE) {
-        rejected.push(`${file.name} (20MB 초과)`);
-        continue;
-      }
-      if (file.type && !ALLOWED_MIME.has(file.type)) {
-        rejected.push(`${file.name} (지원하지 않는 형식)`);
-        continue;
-      }
-      accepted.push(file);
-    }
-    if (accepted.length > 0) onFilesChange([...files, ...accepted]);
-    if (rejected.length > 0) {
-      window.alert(`다음 파일은 첨부할 수 없습니다:\n${rejected.join("\n")}`);
-    }
-  }
-
-  function removeFile(index: number) {
-    onFilesChange(files.filter((_, i) => i !== index));
   }
 
   function addPastPerformance() {
@@ -271,20 +247,9 @@ export function StepPerformanceInfo({
     );
   }
 
-  const arenaLine = arenaSummary(selection);
-  const midHallLine = midHallSummary(selection);
-  const showsTotal = totalShowCount(selection);
-  const isSimultaneous = selection.bookingMode === "SIMULTANEOUS";
-  const isMidHallInvolved = isSimultaneous || selection.venueId === "medium-hall";
-
   return (
-    <section className="rounded border border-border bg-background p-7">
-      <h2 className="text-[19px] font-semibold">STEP 3-1 · 신청자 정보 · 공연 기본정보</h2>
-      <p className="mt-1.5 text-[13.5px] text-muted">
-        신청서는 두 공간을 합쳐 1건입니다. 대관기간만 공간별로 나눠 표기합니다.
-      </p>
-
-      <div className="mt-6 flex flex-col gap-6">
+    <>
+      <div className="flex flex-col gap-6">
         {/* 신청자 정보 */}
         <div className="rounded-sm border border-border bg-panel/30 p-6">
           <h3 className="text-[15px] font-semibold">신청자 정보</h3>
@@ -402,11 +367,13 @@ export function StepPerformanceInfo({
             <TextField label="아티스트 / 출연진" value={info.artist} onChange={(v) => set("artist", v)} />
             <TextField label="주최 · 주관 · 기획" value={info.organizer} onChange={(v) => set("organizer", v)} />
 
-            {arenaLine && <ReadOnlyRow label="대관기간 — 아레나" value={arenaLine} note="수정은 STEP 1(공간·일정)에서" />}
-            {isMidHallInvolved && midHallLine && (
-              <ReadOnlyRow label="대관기간 — 중형" value={midHallLine} note="수정은 STEP 1(공간·일정)에서" />
+            {scheduleSummary?.arenaLine && (
+              <ReadOnlyRow label="대관기간 — 아레나" value={scheduleSummary.arenaLine} note="수정은 STEP 1(공간·일정)에서" />
             )}
-            <ReadOnlyRow label="총 공연 횟수" value={`${showsTotal}회 (자동 계산)`} />
+            {scheduleSummary?.isMidHallInvolved && scheduleSummary.midHallLine && (
+              <ReadOnlyRow label="대관기간 — 중형" value={scheduleSummary.midHallLine} note="수정은 STEP 1(공간·일정)에서" />
+            )}
+            {scheduleSummary && <ReadOnlyRow label="총 공연 횟수" value={`${scheduleSummary.showsTotal}회 (자동 계산)`} />}
 
             <TextField label="행사규모" value={info.eventScale} onChange={(v) => set("eventScale", v)} />
           </div>
@@ -553,6 +520,114 @@ export function StepPerformanceInfo({
           안전규정 준수 확약서 작성을 완료했습니다.
         </label>
       </div>
+    </>
+  );
+}
+
+export function StepPerformanceInfo({
+  info,
+  onChange,
+  midHallInfo,
+  onChangeMidHallInfo,
+  selection,
+  files,
+  onFilesChange,
+}: {
+  info: PerformanceInfo;
+  onChange: (info: PerformanceInfo) => void;
+  midHallInfo: PerformanceInfo | null;
+  onChangeMidHallInfo: (info: PerformanceInfo | null) => void;
+  selection: QuoteSelection;
+  files: File[];
+  onFilesChange: (files: File[]) => void;
+}) {
+  function addFiles(selected: FileList | null) {
+    if (!selected || selected.length === 0) return;
+    const accepted: File[] = [];
+    const rejected: string[] = [];
+    for (const file of Array.from(selected)) {
+      if (file.size > MAX_FILE_SIZE) {
+        rejected.push(`${file.name} (20MB 초과)`);
+        continue;
+      }
+      if (file.type && !ALLOWED_MIME.has(file.type)) {
+        rejected.push(`${file.name} (지원하지 않는 형식)`);
+        continue;
+      }
+      accepted.push(file);
+    }
+    if (accepted.length > 0) onFilesChange([...files, ...accepted]);
+    if (rejected.length > 0) {
+      window.alert(`다음 파일은 첨부할 수 없습니다:\n${rejected.join("\n")}`);
+    }
+  }
+
+  function removeFile(index: number) {
+    onFilesChange(files.filter((_, i) => i !== index));
+  }
+
+  const arenaLine = arenaSummary(selection);
+  const midHallLine = midHallSummary(selection);
+  const showsTotal = totalShowCount(selection);
+  const isSimultaneous = selection.bookingMode === "SIMULTANEOUS";
+  const isMidHallInvolved = isSimultaneous || selection.venueId === "medium-hall";
+  const midHallDifferent = isSimultaneous && midHallInfo !== null;
+
+  function toggleMidHallDifferent(different: boolean) {
+    onChangeMidHallInfo(different ? (midHallInfo ?? { ...INITIAL_PERFORMANCE_INFO }) : null);
+  }
+
+  return (
+    <section className="rounded border border-border bg-background p-7">
+      <h2 className="text-[19px] font-semibold">STEP 3-1 · 신청자 정보 · 공연 기본정보</h2>
+      <p className="mt-1.5 text-[13.5px] text-muted">
+        신청서는 두 공간을 합쳐 1건입니다. 대관기간만 공간별로 나눠 표기합니다.
+      </p>
+
+      {isSimultaneous && (
+        <div className="mt-5 flex flex-wrap items-center gap-3 rounded-sm border border-border bg-panel/40 px-4 py-3">
+          <span className="text-[12.5px] font-medium text-muted">중형공연장 신청자 · 공연 정보</span>
+          <div className="flex overflow-hidden rounded-sm border border-border">
+            <button
+              type="button"
+              onClick={() => toggleMidHallDifferent(false)}
+              className={[
+                "px-3 py-1.5 text-[12px] font-medium transition-colors",
+                !midHallDifferent ? "bg-accent text-white" : "bg-panel-strong text-muted hover:text-foreground",
+              ].join(" ")}
+            >
+              동일하게 입력
+            </button>
+            <button
+              type="button"
+              onClick={() => toggleMidHallDifferent(true)}
+              className={[
+                "px-3 py-1.5 text-[12px] font-medium transition-colors",
+                midHallDifferent ? "bg-accent text-white" : "bg-panel-strong text-muted hover:text-foreground",
+              ].join(" ")}
+            >
+              각각 다르게 입력
+            </button>
+          </div>
+        </div>
+      )}
+
+      <div className="mt-6">
+        <PerformanceInfoFields
+          info={info}
+          onChange={onChange}
+          scheduleSummary={{ arenaLine, midHallLine, showsTotal, isMidHallInvolved }}
+        />
+      </div>
+
+      {midHallDifferent && midHallInfo && (
+        <div className="mt-8 border-t-2 border-dashed border-accent/30 pt-8">
+          <div className="mb-4 inline-flex items-center gap-2 rounded-sm bg-accent-soft px-3 py-1.5 text-[12.5px] font-semibold text-accent">
+            중형공연장 신청자 · 공연 정보 (별도 입력)
+          </div>
+          <PerformanceInfoFields info={midHallInfo} onChange={onChangeMidHallInfo} scheduleSummary={null} />
+        </div>
+      )}
 
       <div className="mt-6 rounded-sm border border-border bg-panel/30 p-6">
         <h3 className="text-[15px] font-semibold">자료 첨부</h3>

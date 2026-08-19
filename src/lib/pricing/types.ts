@@ -225,7 +225,10 @@ export interface QuoteSelection {
   midHallExtraLoadOutHours: number; // 철수 Load-Out 시간 — 100만원/시간(2-28, 참고용 표시만)
   expectedRevenue?: number; // 온라인 송출 수수료 계산용 (선택)
   addons: SelectedAddon[]; // 4단계 선택 항목
-  performanceInfo: PerformanceInfo; // 공연 정보 입력 단계
+  performanceInfo: PerformanceInfo; // 공연 정보 입력 단계 — 동시 대관 시 아레나(및 각각 입력 안 했을 때 중형) 정보
+  // 동시 대관에서 중형 정보를 아레나와 다르게 입력할 때만 값이 있다 — null(기본값)이면
+  // "동일하게" 상태로 performanceInfo를 그대로 공유한다(2026-08-19, 기본정보 탭 분리 요청).
+  midHallPerformanceInfo: PerformanceInfo | null;
 }
 
 // ---------------------------------------------------------------------------

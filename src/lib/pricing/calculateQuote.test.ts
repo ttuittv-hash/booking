@@ -51,6 +51,7 @@ function baseSelection(overrides: Partial<QuoteSelection> = {}): QuoteSelection 
       sensitiveInfoMaskingAcknowledged: false,
       safetyPledgeSigned: false,
     },
+    midHallPerformanceInfo: null,
     ...overrides,
   };
 }

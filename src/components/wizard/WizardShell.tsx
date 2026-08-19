@@ -13,6 +13,7 @@ import {
 } from "@/lib/pricing/rateTableUtils";
 import type { AppUser, DateBlock, QuoteSelection, RateTable, WeekDemand } from "@/lib/pricing/types";
 import { DEFAULT_VENUE_ID, EVENT_TYPE_LABEL, MEDIA_TIER_LABEL, STAGE_TYPE_LABEL } from "@/lib/pricing/types";
+import { INITIAL_PERFORMANCE_INFO } from "@/lib/pricing/performanceInfoDefaults";
 import { clearWizardDraft, loadWizardDraft, saveWizardDraft } from "@/lib/quotesStore";
 import { StepNav } from "./StepNav";
 import { SummaryPanel, type SummaryPreviewRow } from "./SummaryPanel";
@@ -42,35 +43,6 @@ function defaultWeek(): QuoteSelection["week"] {
   return { year: next.getFullYear(), month: next.getMonth() + 1, weekOfMonth: 1 };
 }
 
-const EMPTY_RESPONSIBLE_PERSON = { name: "", title: "", phone: "" };
-
-const INITIAL_PERFORMANCE_INFO: QuoteSelection["performanceInfo"] = {
-  applicantCompanyName: "",
-  applicantBusinessRegistrationNumber: "",
-  applicantContactName: "",
-  applicantContactPhone: "",
-  operationsResponsible: EMPTY_RESPONSIBLE_PERSON,
-  safetyResponsible: EMPTY_RESPONSIBLE_PERSON,
-  pastPerformances: [],
-  eventName: "",
-  artist: "",
-  organizer: "",
-  eventScale: "",
-  eventTypes: [],
-  ageRating: null,
-  ageLimitDetail: "",
-  stageTypes: [],
-  seatingTypes: [],
-  retractableSeatUse: null,
-  teardownCompletionTime: "",
-  ticketOpenExpectedDate: "",
-  expectedPaidSalesRate: 0,
-  ancillaryBusinessPlans: [],
-  castContractStatus: null,
-  foreignArtistNotes: "",
-  sensitiveInfoMaskingAcknowledged: false,
-  safetyPledgeSigned: false,
-};
 
 const INITIAL_SELECTION: QuoteSelection = {
   venueId: null,
@@ -89,6 +61,7 @@ const INITIAL_SELECTION: QuoteSelection = {
   expectedRevenue: 0,
   addons: [],
   performanceInfo: INITIAL_PERFORMANCE_INFO,
+  midHallPerformanceInfo: null,
 };
 
 function pruneUnavailableAddons(
@@ -562,6 +535,10 @@ export function WizardShell({
           <StepPerformanceInfo
             info={selection.performanceInfo}
             onChange={(performanceInfo) => setSelection((prev) => ({ ...prev, performanceInfo }))}
+            midHallInfo={selection.midHallPerformanceInfo}
+            onChangeMidHallInfo={(midHallPerformanceInfo) =>
+              setSelection((prev) => ({ ...prev, midHallPerformanceInfo }))
+            }
             selection={resolvedSelection}
             files={pendingFiles}
             onFilesChange={setPendingFiles}
