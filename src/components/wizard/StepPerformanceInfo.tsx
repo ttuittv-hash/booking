@@ -283,7 +283,7 @@ export function StepPerformanceInfo({
         신청서는 두 공간을 합쳐 1건입니다. 대관기간만 공간별로 나눠 표기합니다.
       </p>
 
-      <div className="mt-6 grid grid-cols-1 gap-8 lg:grid-cols-2">
+      <div className="mt-6 flex flex-col gap-8">
         {/* 신청자 정보 */}
         <div>
           <h3 className="text-[15px] font-semibold">신청자 정보</h3>

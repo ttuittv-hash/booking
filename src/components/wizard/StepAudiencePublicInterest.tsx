@@ -106,7 +106,7 @@ export function StepAudiencePublicInterest({
         관객 수는 공간별로 받고, 공공성 계획은 9개 항목을 안내한 뒤 파일 1건으로 통합 첨부합니다.
       </p>
 
-      <div className="mt-6 grid grid-cols-1 gap-8 lg:grid-cols-2">
+      <div className="mt-6 flex flex-col gap-8">
         {/* 3. 예상 관객 및 사업규모 */}
         <div>
           <h3 className="text-[15px] font-semibold">3. 예상 관객 및 사업규모</h3>
