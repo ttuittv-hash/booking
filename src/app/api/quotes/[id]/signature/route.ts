@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import crypto from "node:crypto";
 import { canAccessQuote, getCurrentUser } from "@/lib/auth";
 import {
+  addAuditLog,
   createNotification,
   getQuoteById,
   notifyAdmins,
@@ -29,6 +30,14 @@ export async function POST(request: Request, ctx: { params: Promise<{ id: string
 
   if (user.role === "ADMIN") {
     const signature = await signContractAsVenue(id, user.id, now);
+    await addAuditLog({
+      id: crypto.randomUUID(),
+      quoteId: id,
+      stage: "SIGNED_VENUE",
+      snapshot: signature,
+      actorId: user.id,
+      createdAt: now,
+    });
     await createNotification({
       id: crypto.randomUUID(),
       recipientId: quote.applicantId,
@@ -40,6 +49,14 @@ export async function POST(request: Request, ctx: { params: Promise<{ id: string
   }
 
   const signature = await signContractAsApplicant(id, user.id, now);
+  await addAuditLog({
+    id: crypto.randomUUID(),
+    quoteId: id,
+    stage: "SIGNED_APPLICANT",
+    snapshot: signature,
+    actorId: user.id,
+    createdAt: now,
+  });
   await notifyAdmins({
     quoteId: id,
     message: `${id} 계약서에 대관사측 날인이 완료되었습니다.`,

@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import crypto from "node:crypto";
 import { canAccessQuote, getCurrentUser } from "@/lib/auth";
 import {
+  addAuditLog,
   confirmDeposit,
   createNotification,
   getDepositByQuoteId,
@@ -38,6 +39,14 @@ export async function POST(request: Request, ctx: { params: Promise<{ id: string
 
     const createdAt = new Date().toISOString();
     const updated = await reportDeposit(id, depositorName, createdAt);
+    await addAuditLog({
+      id: crypto.randomUUID(),
+      quoteId: id,
+      stage: "DEPOSIT_REPORTED",
+      snapshot: updated,
+      actorId: user.id,
+      createdAt,
+    });
     await notifyAdmins({
       quoteId: id,
       message: `${id}의 보증금 입금신청이 접수되었습니다. (입금자명: ${depositorName})`,
@@ -62,6 +71,14 @@ export async function POST(request: Request, ctx: { params: Promise<{ id: string
 
     const createdAt = new Date().toISOString();
     const updated = await confirmDeposit(id, user.id, createdAt);
+    await addAuditLog({
+      id: crypto.randomUUID(),
+      quoteId: id,
+      stage: "DEPOSIT_CONFIRMED",
+      snapshot: updated,
+      actorId: user.id,
+      createdAt,
+    });
     await createNotification({
       id: crypto.randomUUID(),
       recipientId: quote.applicantId,

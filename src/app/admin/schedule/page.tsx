@@ -19,9 +19,8 @@ export default async function AdminSchedulePage() {
         <header className="border-b border-border/20 pb-6">
           <h1 className={PAGE_TITLE}>일정 관리</h1>
           <p className={PAGE_LEAD}>
-            연도별로 각 월의 주차를 대관 신청 가능/불가로 설정합니다. 막아둔 주차는 대관 신청
-            화면의 달력에서 선택할 수 없고, 이미 열려 있는 주차는 별도 설정 없이 자유롭게(수시)
-            신청받을 수 있습니다.
+            한 달씩 달력을 보면서 아레나 · 중형공연장 예약 현황을 한 화면에서 확인하고, 날짜별로
+            대관 신청 가능/불가를 설정합니다.
           </p>
         </header>
 

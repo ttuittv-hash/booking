@@ -4,7 +4,7 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { ADDON_CATEGORY_LABEL, type AddonCategory, type RateTable } from "@/lib/pricing/types";
 import { btnClass } from "@/components/ui/kit";
-import { FIELD, HELP, LINK_BTN, PANEL, SECTION_TITLE, SUB_TITLE } from "./adminUi";
+import { FIELD, FIELD_NUM, HELP, LINK_BTN, PANEL, SECTION_TITLE, SUB_TITLE } from "./adminUi";
 
 function slugify(name: string): string {
   const base = name
@@ -31,6 +31,7 @@ export function RatesForm({ rateTable }: { rateTable: RateTable }) {
   const [dayExclusionDiscountRatio, setDayExclusionDiscountRatio] = useState(
     rateTable.dayExclusionDiscountRatio,
   );
+  const [midHall, setMidHall] = useState(rateTable.midHall);
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const [newItemCategory, setNewItemCategory] = useState<AddonCategory | null>(null);
@@ -85,6 +86,7 @@ export function RatesForm({ rateTable }: { rateTable: RateTable }) {
           dayExclusionDiscountRatio,
           addons: addons.map((a) => ({ id: a.id, unitPrice: a.unitPrice })),
           newAddons,
+          midHall,
         }),
       });
       const data = await res.json();
@@ -139,6 +141,55 @@ export function RatesForm({ rateTable }: { rateTable: RateTable }) {
             value={dayExclusionDiscountRatio}
             onChange={(e) => setDayExclusionDiscountRatio(Number(e.target.value) || 0)}
             className={`${FIELD} text-right tabular-nums`}
+          />
+        </div>
+      </section>
+
+      <section className={PANEL}>
+        <h2 className={SECTION_TITLE}>중형공연장 요금 (DAILY)</h2>
+        <p className={`mt-1 ${HELP}`}>
+          중형공연장은 패키지가 없는 일 단위 요금제입니다. 1일 3회 이상 공연은 자동 계산하지
+          않고 운영자 확인이 필요한 항목으로 남습니다.
+        </p>
+
+        {(
+          [
+            ["setupDayFee", "셋업 Load-In (1일, 평일/주말 동일)"],
+            ["performanceWeekdayFee", "공연 Show — 평일 (1일)"],
+            ["performanceWeekendFee", "공연 Show — 주말 (1일)"],
+            ["extraHourFee", "셋업 연장 · 철수 Load-Out (시간당)"],
+            ["cleaningUnitPrice", "청소비 (원/인)"],
+          ] as const
+        ).map(([key, label]) => (
+          <div
+            key={key}
+            className="mt-4 grid grid-cols-1 items-center gap-2 border-t border-border-soft pt-4 sm:grid-cols-[1fr_200px] sm:gap-3"
+          >
+            <div className={SUB_TITLE}>{label}</div>
+            <input
+              type="number"
+              min={0}
+              value={midHall[key]}
+              onChange={(e) => setMidHall((prev) => ({ ...prev, [key]: Math.max(0, Number(e.target.value) || 0) }))}
+              className={FIELD_NUM}
+            />
+          </div>
+        ))}
+
+        <div className="mt-4 grid grid-cols-1 items-center gap-2 border-t border-border-soft pt-4 sm:grid-cols-[1fr_200px] sm:gap-3">
+          <div>
+            <div className={SUB_TITLE}>1일 2회 공연 할증 비율</div>
+            <div className={HELP}>해당 일 공연 요금 × 이 비율만큼 할증 (0.5 = 50%)</div>
+          </div>
+          <input
+            type="number"
+            min={0}
+            step={0.05}
+            value={midHall.secondShowSurchargeRatio}
+            onChange={(e) =>
+              setMidHall((prev) => ({ ...prev, secondShowSurchargeRatio: Math.max(0, Number(e.target.value) || 0) }))
+            }
+            className={FIELD_NUM}
           />
         </div>
       </section>

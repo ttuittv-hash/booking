@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
+import crypto from "node:crypto";
 import { getCurrentUser } from "@/lib/auth";
-import { ensureTicketOpen, getDepositByQuoteId, getQuoteById, setTicketOpenDate } from "@/lib/db";
+import { addAuditLog, ensureTicketOpen, getDepositByQuoteId, getQuoteById, setTicketOpenDate } from "@/lib/db";
 
 export async function POST(request: Request, ctx: { params: Promise<{ id: string }> }) {
   const user = await getCurrentUser();
@@ -25,5 +26,13 @@ export async function POST(request: Request, ctx: { params: Promise<{ id: string
 
   await ensureTicketOpen(id, new Date().toISOString());
   const ticketOpen = await setTicketOpenDate(id, openDate);
+  await addAuditLog({
+    id: crypto.randomUUID(),
+    quoteId: id,
+    stage: "TICKET_OPEN_SET",
+    snapshot: ticketOpen,
+    actorId: user.id,
+    createdAt: new Date().toISOString(),
+  });
   return NextResponse.json({ ticketOpen });
 }

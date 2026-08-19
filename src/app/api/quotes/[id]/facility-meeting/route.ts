@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
+import crypto from "node:crypto";
 import { getCurrentUser } from "@/lib/auth";
 import {
+  addAuditLog,
   ensureFacilityMeeting,
   getQuoteById,
   getTicketOpenByQuoteId,
@@ -30,5 +32,13 @@ export async function POST(request: Request, ctx: { params: Promise<{ id: string
 
   await ensureFacilityMeeting(id, new Date().toISOString());
   const facilityMeeting = await setFacilityMeetingDate(id, meetingDate);
+  await addAuditLog({
+    id: crypto.randomUUID(),
+    quoteId: id,
+    stage: "FACILITY_MEETING_SET",
+    snapshot: facilityMeeting,
+    actorId: user.id,
+    createdAt: new Date().toISOString(),
+  });
   return NextResponse.json({ facilityMeeting });
 }

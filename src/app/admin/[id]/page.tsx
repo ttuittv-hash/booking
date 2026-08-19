@@ -22,6 +22,7 @@ import {
   SEATING_TYPE_LABEL,
   STAGE_TYPE_LABEL,
   VENUES,
+  type QuoteSelection,
 } from "@/lib/pricing/types";
 import { SpecTable } from "@/components/ui/kit";
 import { ContractForm } from "@/components/admin/ContractForm";
@@ -56,10 +57,35 @@ import {
   TR,
 } from "@/components/admin/adminUi";
 
+// 중형공연장은 주차가 아니라 날짜별(셋업/공연·회차)로 잡히므로 개요 한 줄로 압축해 보여준다.
+function midHallSummaryLine(selection: QuoteSelection): string | null {
+  const dates = Object.keys(selection.midHallDays).sort();
+  if (dates.length === 0) return null;
+  const setup = dates.filter((d) => selection.midHallDays[d].role === "SETUP").length;
+  const performanceDates = dates.filter((d) => selection.midHallDays[d].role === "PERFORMANCE");
+  const shows = performanceDates.reduce((sum, d) => sum + selection.midHallDays[d].shows, 0);
+  return `총 ${dates.length}일 (셋업 ${setup} · 공연 ${performanceDates.length} · 회차 ${shows}) · 관객 ${selection.secondaryAudience.toLocaleString()}명`;
+}
+
 const STAGE_LABEL: Record<string, string> = {
   ESTIMATE: "신청 접수",
   CONTRACTED: "계약 확정",
   SETTLED: "정산 확정",
+  SUBMITTED: "신청서 제출",
+  EDITED: "신청서 수정(신청자)",
+  REVIEW_APPROVED: "심사 승인",
+  REVIEW_HOLD: "심사 보류",
+  REVIEW_REJECTED: "심사 반려",
+  DEPOSIT_REPORTED: "보증금 입금신청",
+  DEPOSIT_CONFIRMED: "보증금 입금확인",
+  SIGNED_VENUE: "계약서 날인(공연장)",
+  SIGNED_APPLICANT: "계약서 날인(대관사)",
+  INVOICE_ISSUED: "세금계산서 발행",
+  INVOICE_PAYMENT_REPORTED: "세금계산서 입금신청",
+  INVOICE_PAYMENT_CONFIRMED: "세금계산서 입금확인",
+  TICKET_OPEN_SET: "티켓오픈일 등록",
+  FACILITY_MEETING_SET: "시설회의일 등록",
+  SETTLEMENT_MUTUAL_CONFIRMED: "정산 상호확인",
 };
 
 export default async function AdminQuoteDetailPage({
@@ -125,10 +151,24 @@ export default async function AdminQuoteDetailPage({
           </div>
 
           <p className="mt-4 text-s text-muted">
-            {VENUES.find((v) => v.id === (quote.selection.venueId ?? DEFAULT_VENUE_ID))?.name ?? NONE} ·{" "}
-            {quote.selection.week.year}년 {quote.selection.week.month}월{" "}
-            {quote.selection.week.weekOfMonth}주차 · 총 {totalRentalDays(quote.selection)}일 · 관객{" "}
-            {quote.selection.expectedAudience.toLocaleString()}명
+            {quote.selection.bookingMode === "SIMULTANEOUS" ? (
+              <>
+                아레나 {quote.selection.week.year}년 {quote.selection.week.month}월{" "}
+                {quote.selection.week.weekOfMonth}주차 · 총 {totalRentalDays(quote.selection)}일 · 관객{" "}
+                {quote.selection.expectedAudience.toLocaleString()}명
+                <br />
+                중형공연장 {midHallSummaryLine(quote.selection)}
+              </>
+            ) : quote.selection.venueId === "medium-hall" ? (
+              <>중형공연장 · {midHallSummaryLine(quote.selection)}</>
+            ) : (
+              <>
+                {VENUES.find((v) => v.id === (quote.selection.venueId ?? DEFAULT_VENUE_ID))?.name ?? NONE} ·{" "}
+                {quote.selection.week.year}년 {quote.selection.week.month}월{" "}
+                {quote.selection.week.weekOfMonth}주차 · 총 {totalRentalDays(quote.selection)}일 · 관객{" "}
+                {quote.selection.expectedAudience.toLocaleString()}명
+              </>
+            )}
           </p>
           <p className="mt-1.5 text-s text-muted">
             신청자 <span className="font-bold text-foreground">{applicant?.name ?? NONE}</span>

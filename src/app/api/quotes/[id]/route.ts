@@ -45,11 +45,21 @@ export async function PUT(request: Request, ctx: { params: Promise<{ id: string 
 
   const body = await request.json().catch(() => null);
   const selection = body?.selection as QuoteSelection | undefined;
-  if (!selection || typeof selection.packageId !== "number") {
+  if (!selection) {
+    return NextResponse.json({ error: "잘못된 요청입니다." }, { status: 400 });
+  }
+  const needsPackage = selection.venueId !== "medium-hall" || selection.bookingMode === "SIMULTANEOUS";
+  const needsMidHall = selection.venueId === "medium-hall" || selection.bookingMode === "SIMULTANEOUS";
+  if (needsPackage && typeof selection.packageId !== "number") {
     return NextResponse.json({ error: "패키지를 선택해주세요." }, { status: 400 });
   }
+  if (needsMidHall && Object.keys(selection.midHallDays ?? {}).length === 0) {
+    return NextResponse.json({ error: "중형공연장 일정을 선택해주세요." }, { status: 400 });
+  }
 
-  const blockedDates = await findBlockedDatesAmong(resolveSelectedDates(selection));
+  const arenaDates = needsPackage ? resolveSelectedDates(selection) : [];
+  const midHallDates = needsMidHall ? Object.keys(selection.midHallDays ?? {}) : [];
+  const blockedDates = await findBlockedDatesAmong([...arenaDates, ...midHallDates]);
   if (blockedDates.length > 0) {
     const list = blockedDates.map((b) => `${b.date}${b.reason ? ` (${b.reason})` : ""}`).join(", ");
     return NextResponse.json(
@@ -60,6 +70,9 @@ export async function PUT(request: Request, ctx: { params: Promise<{ id: string 
 
   const rateTable = await getCurrentRateTable();
   const computed = calculateQuote(selection, rateTable);
+  if (computed.blockingIssues.length > 0) {
+    return NextResponse.json({ error: computed.blockingIssues.join(" ") }, { status: 400 });
+  }
 
   const updated = await updateQuoteSelection(id, {
     rateTableVersion: computed.rateTableVersion,
@@ -73,7 +86,7 @@ export async function PUT(request: Request, ctx: { params: Promise<{ id: string 
   await addAuditLog({
     id: crypto.randomUUID(),
     quoteId: id,
-    stage: "ESTIMATE",
+    stage: "EDITED",
     snapshot: updated,
     actorId: user.id,
     createdAt: new Date().toISOString(),

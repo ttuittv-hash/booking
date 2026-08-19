@@ -30,7 +30,16 @@ import {
   SpecTable,
   btnClass,
 } from "@/components/ui/kit";
-import { DEFAULT_VENUE_ID, VENUES, type Quote } from "@/lib/pricing/types";
+import { DEFAULT_VENUE_ID, VENUES, type Quote, type QuoteSelection } from "@/lib/pricing/types";
+
+function midHallSummaryLine(selection: QuoteSelection): string | null {
+  const dates = Object.keys(selection.midHallDays).sort();
+  if (dates.length === 0) return null;
+  const setup = dates.filter((d) => selection.midHallDays[d].role === "SETUP").length;
+  const performanceDates = dates.filter((d) => selection.midHallDays[d].role === "PERFORMANCE");
+  const shows = performanceDates.reduce((sum, d) => sum + selection.midHallDays[d].shows, 0);
+  return `총 ${dates.length}일 (셋업 ${setup} · 공연 ${performanceDates.length} · 회차 ${shows}) · 관객 ${selection.secondaryAudience.toLocaleString()}명`;
+}
 
 const STAGE_LABEL: Record<string, string> = {
   ESTIMATE: "신청 접수 (예상 견적)",
@@ -103,13 +112,25 @@ export default async function MyQuoteDetailPage({
               </span>
             }
             lead={
-              <>
-                {VENUES.find((v) => v.id === (quote.selection.venueId ?? DEFAULT_VENUE_ID))?.name ??
-                  "—"}{" "}
-                · {quote.selection.week.year}년 {quote.selection.week.month}월{" "}
-                {quote.selection.week.weekOfMonth}주차 · 총 {totalRentalDays(quote.selection)}일 · 관객{" "}
-                {quote.selection.expectedAudience.toLocaleString()}명
-              </>
+              quote.selection.bookingMode === "SIMULTANEOUS" ? (
+                <>
+                  아레나 {quote.selection.week.year}년 {quote.selection.week.month}월{" "}
+                  {quote.selection.week.weekOfMonth}주차 · 총 {totalRentalDays(quote.selection)}일 · 관객{" "}
+                  {quote.selection.expectedAudience.toLocaleString()}명
+                  <br />
+                  중형공연장 {midHallSummaryLine(quote.selection)}
+                </>
+              ) : quote.selection.venueId === "medium-hall" ? (
+                <>중형공연장 · {midHallSummaryLine(quote.selection)}</>
+              ) : (
+                <>
+                  {VENUES.find((v) => v.id === (quote.selection.venueId ?? DEFAULT_VENUE_ID))?.name ??
+                    "—"}{" "}
+                  · {quote.selection.week.year}년 {quote.selection.week.month}월{" "}
+                  {quote.selection.week.weekOfMonth}주차 · 총 {totalRentalDays(quote.selection)}일 · 관객{" "}
+                  {quote.selection.expectedAudience.toLocaleString()}명
+                </>
+              )
             }
             actions={
               <>
@@ -138,6 +159,11 @@ export default async function MyQuoteDetailPage({
             <h2 className="type-kr-heading text-h5-m sm:text-h5">신청 예상금액 · 산출내역</h2>
           </div>
 
+          {/*
+            Bowl 사용료·유틸리티(HIDDEN)는 관리자에게만 항목·금액을 노출한다 — 신청자
+            본인에게는 행 자체를 숨긴다. 소계/VAT/합계는 quote 전체 lineItems 기준으로
+            이미 계산돼 있어 행을 숨겨도 총액은 달라지지 않는다.
+          */}
           <div className="mt-8">
             <ComparisonTable
               dense
@@ -149,16 +175,18 @@ export default async function MyQuoteDetailPage({
                 { key: "unitPrice", title: "단가" },
                 { key: "amount", title: "금액" },
               ]}
-              rows={quote.lineItems.map((item) => ({
-                label: item.label,
-                cells: [
-                  num(item.requested),
-                  item.included ? num(item.included) : "—",
-                  num(item.billable),
-                  num(item.unitPrice),
-                  num(item.amount),
-                ],
-              }))}
+              rows={quote.lineItems
+                .filter((item) => item.visibility !== "HIDDEN" || user.role === "ADMIN")
+                .map((item) => ({
+                  label: item.label,
+                  cells: [
+                    num(item.requested),
+                    item.included ? num(item.included) : "—",
+                    num(item.billable),
+                    num(item.unitPrice),
+                    num(item.amount),
+                  ],
+                }))}
             />
           </div>
 

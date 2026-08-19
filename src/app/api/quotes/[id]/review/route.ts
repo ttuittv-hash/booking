@@ -68,7 +68,8 @@ export async function POST(request: Request, ctx: { params: Promise<{ id: string
     await addAuditLog({
       id: crypto.randomUUID(),
       quoteId: id,
-      stage: "ESTIMATE",
+      stage:
+        decision === "APPROVED" ? "REVIEW_APPROVED" : decision === "REJECTED" ? "REVIEW_REJECTED" : "REVIEW_HOLD",
       snapshot: updated,
       actorId: user.id,
       createdAt: review.decidedAt,
