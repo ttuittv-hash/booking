@@ -5,7 +5,6 @@ import { resolveSelectedDates } from "@/lib/pricing/dateRange";
 import {
   defaultDayTags,
   effectiveDayTag,
-  findAddon,
   findPackage,
   includedQuantity,
   isAddonAvailable,
@@ -17,6 +16,7 @@ import {
   type AddonItem,
   type QuoteSelection,
   type RateTable,
+  type RentalPackage,
 } from "@/lib/pricing/types";
 
 // [화면 뼈대 2026-08-18, 화면시나리오 SCREEN 05/12] "규모/패키지 선택 → 기본 포함사항 →
@@ -47,6 +47,44 @@ function midHallSummaryLine(selection: QuoteSelection): string | null {
   const setup = dates.filter((d) => selection.midHallDays[d].role === "SETUP").length;
   const performance = dates.length - setup;
   return `${dates.length}일 · 셋업${setup} · 공연${performance}`;
+}
+
+interface BaseCompositionTile {
+  label: string;
+  value: string;
+}
+
+// [화면 뼈대 2026-08-19, 패키지 구성 산정표] "기본 구성" 그리드는 pkg.includedItems를 그대로
+// 나열하지 않고 산정표 항목·순서에 맞춰 큐레이션한다 — 산정표에는 있지만 addon 데이터로는
+// 없는 야외광장·티켓박스·주차·하역시설·부속공간을 포함하고, 트러스 5종(A+B+C+L+R)은 산정표처럼
+// "트러스(센터)" 한 줄로 합쳐 보여준다(선택 옵션에서는 5종 그대로 개별 addon으로 남는다 —
+// 여기는 표시 전용 큐레이션일 뿐 요금 데이터 모델은 바꾸지 않는다). 전 패키지 구성이 완전히
+// 동일하다는 확정 사항에 따라 준비/공연 일수도 실제 캘린더 선택이 아니라 패키지 산정표 기준
+// (dayBreakdown)을 그대로 쓴다.
+function arenaBaseCompositionTiles(pkg: RentalPackage): BaseCompositionTile[] {
+  const match = pkg.dayBreakdown.match(/준비\s*(\d+)일.*공연\s*(\d+)일/);
+  const setupDays = match ? Number(match[1]) : 4;
+  const performanceDays = match ? Number(match[2]) : 2;
+  const totalDays = setupDays + performanceDays;
+  const parkingCount = pkg.parkingPerDay.match(/\d+/)?.[0] ?? "150";
+  const sideRoomCount = pkg.sideFacilities.match(/(\d+)개실/)?.[1] ?? "7";
+
+  return [
+    { label: "준비", value: `${setupDays}일` },
+    { label: "공연", value: `${performanceDays}일` },
+    { label: "야외광장", value: pkg.outdoorPlazaIncluded ? `${performanceDays}일` : "미포함" },
+    { label: "티켓박스", value: `${performanceDays}일` },
+    { label: "주차", value: `${parkingCount}대` },
+    { label: "하역시설", value: `${totalDays}일` },
+    { label: "대기실", value: "14개실" },
+    { label: "부속공간", value: `${sideRoomCount}개실 · ${totalDays}일` },
+    { label: "트러스(센터)", value: `${totalDays}일` },
+    { label: "스마트스테이지", value: `${performanceDays}일` },
+    { label: "계단 LED", value: `${performanceDays}일` },
+    { label: "딜레이 스피커", value: `${performanceDays}일` },
+    { label: "스카이박스", value: "2개" },
+    { label: "프로덕션 전기", value: `${totalDays}일` },
+  ];
 }
 
 export function StepConfigOptions({
@@ -115,46 +153,37 @@ export function StepConfigOptions({
         </div>
       </div>
 
-      <div className="mt-6">
-        <div className="mb-2.5 text-[12.5px] font-medium text-muted">
-          기본 구성 (대관료 포함) — 항목 · 수량. 관객 규모와 무관하게 동일하게 제공됩니다.
+      <div className="mt-6 rounded border border-good/30 bg-good-soft/30 p-5">
+        <div className="flex items-center gap-2">
+          <span className="rounded-sm bg-good px-2 py-0.5 text-[10.5px] font-semibold text-white">기본 포함</span>
+          <span className="text-[12.5px] font-medium text-foreground">
+            대관료에 이미 포함된 구성 — 관객 규모와 무관하게 전 패키지 동일하게 제공됩니다
+          </span>
         </div>
-        <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
-          {pkg.includedItems.length === 0 ? (
-            <div className="col-span-full text-[12.5px] text-muted">별도 기본 포함 항목 없음</div>
-          ) : (
-            pkg.includedItems.map((item) => {
-              const addon = findAddon(rateTable, item.addonId);
-              return (
-                <div key={item.addonId} className="rounded-sm border border-border bg-panel/60 px-3 py-2">
-                  <div className="text-[11px] text-muted">{addon?.name ?? item.addonId}</div>
-                  <div className="mt-0.5 text-[13px] font-semibold text-accent">
-                    {item.quantity.toLocaleString()}
-                    {addon?.unitLabel.includes("일") ? "일" : ""}
-                  </div>
-                </div>
-              );
-            })
-          )}
-          <div className="rounded-sm border border-border bg-panel/60 px-3 py-2">
+        <div className="mt-3.5 grid grid-cols-2 gap-2 sm:grid-cols-4">
+          {arenaBaseCompositionTiles(pkg).map((tile) => (
+            <div key={tile.label} className="rounded-sm border border-good/20 bg-background px-3 py-2">
+              <div className="text-[11px] text-muted">{tile.label}</div>
+              <div className="mt-0.5 text-[13px] font-semibold text-good">{tile.value}</div>
+            </div>
+          ))}
+          <div className="rounded-sm border border-good/20 bg-background px-3 py-2">
             <div className="text-[11px] text-muted">홍보 디지털 매체</div>
-            <div className="mt-0.5 text-[13px] font-semibold text-accent">
+            <div className="mt-0.5 text-[13px] font-semibold text-good">
               {pkg.mediaTier ? MEDIA_TIER_LABEL[pkg.mediaTier] : "미포함"}
             </div>
           </div>
         </div>
-        <div className="mt-2 flex flex-wrap gap-x-6 gap-y-1 text-[11.5px] text-muted">
-          <span>대기실 {pkg.waitingRoomNote}</span>
-          <span>부속공간 {pkg.sideFacilities}</span>
-          {pkg.outdoorPlazaIncluded && <span>야외광장 · 티켓박스 · 하역시설 포함</span>}
-        </div>
       </div>
 
-      <div className="mt-7">
-        <div className="mb-2.5 text-[12.5px] font-medium text-muted">
-          선택 옵션 — 수량을 정하면 단가 × 수량으로 금액이 즉시 계산됩니다
+      <div className="mt-6 rounded border border-accent/30 bg-accent-soft/20 p-5">
+        <div className="flex items-center gap-2">
+          <span className="rounded-sm bg-accent px-2 py-0.5 text-[10.5px] font-semibold text-white">선택 옵션</span>
+          <span className="text-[12.5px] font-medium text-foreground">
+            필요한 만큼 수량을 정해 추가하는 항목 — 단가 × 수량으로 금액이 즉시 계산됩니다
+          </span>
         </div>
-        <div className="space-y-6">
+        <div className="mt-4 space-y-6">
           {[...grouped.entries()].map(([category, items]) => (
             <div key={category}>
               <div className="mb-2 text-[11px] font-semibold uppercase tracking-wide text-accent">
@@ -176,7 +205,7 @@ export function StepConfigOptions({
             </div>
           ))}
         </div>
-        <div className="mt-4 flex items-center justify-between rounded-sm bg-panel px-4 py-3 text-[13.5px] font-semibold">
+        <div className="mt-4 flex items-center justify-between rounded-sm bg-background px-4 py-3 text-[13.5px] font-semibold">
           <span>선택 옵션</span>
           <span className="tabular-nums">{selectedOptionCount}건 선택됨</span>
         </div>

@@ -69,50 +69,52 @@ export function StepVenue({
         시작됩니다. 다음 화면에서 일정을 선택합니다.
       </p>
 
-      <div className="mt-6 space-y-5">
-        <div className="flex flex-wrap items-center gap-x-8 gap-y-3">
-          <label className="w-28 shrink-0 text-[13px] font-medium text-foreground">이용 시설 *</label>
-          <div className="flex flex-wrap items-center gap-5">
-            <label className="flex cursor-pointer items-center gap-1.5 text-[13.5px]">
-              <input
-                type="radio"
-                name="primary-venue"
-                checked={primaryVenue === "arena"}
-                onChange={() => pickPrimary("arena")}
-                className="accent-accent"
-              />
-              메인 아레나
-            </label>
-            <label className="flex cursor-pointer items-center gap-1.5 text-[13.5px]">
-              <input
-                type="radio"
-                name="primary-venue"
-                checked={primaryVenue === "medium-hall"}
-                disabled={isSimultaneous}
-                onChange={() => pickPrimary("medium-hall")}
-                className="accent-accent"
-              />
-              중형공연장
-            </label>
-            <label className="ml-2 flex cursor-pointer items-center gap-1.5 rounded-sm border border-border bg-panel px-3 py-1.5 text-[13px]">
-              <input
-                type="checkbox"
-                checked={isSimultaneous}
-                onChange={(e) => toggleSimultaneous(e.target.checked)}
-                className="accent-accent"
-              />
-              동시 대관
-            </label>
+      <div className="mt-6 divide-y divide-border">
+        <div className="py-5 first:pt-0">
+          <div className="flex flex-wrap items-center gap-x-8 gap-y-3">
+            <label className="w-28 shrink-0 text-[13px] font-medium text-foreground">이용 시설 *</label>
+            <div className="flex flex-wrap items-center gap-5">
+              <label className="flex cursor-pointer items-center gap-1.5 text-[13.5px]">
+                <input
+                  type="radio"
+                  name="primary-venue"
+                  checked={primaryVenue === "arena"}
+                  onChange={() => pickPrimary("arena")}
+                  className="accent-accent"
+                />
+                메인 아레나
+              </label>
+              <label className="flex cursor-pointer items-center gap-1.5 text-[13.5px]">
+                <input
+                  type="radio"
+                  name="primary-venue"
+                  checked={primaryVenue === "medium-hall"}
+                  disabled={isSimultaneous}
+                  onChange={() => pickPrimary("medium-hall")}
+                  className="accent-accent"
+                />
+                중형공연장
+              </label>
+              <label className="ml-2 flex cursor-pointer items-center gap-1.5 rounded-sm border border-border bg-panel px-3 py-1.5 text-[13px]">
+                <input
+                  type="checkbox"
+                  checked={isSimultaneous}
+                  onChange={(e) => toggleSimultaneous(e.target.checked)}
+                  className="accent-accent"
+                />
+                동시 대관
+              </label>
+            </div>
           </div>
+          <p className="mt-3 pl-0 text-[11.5px] leading-5 text-muted sm:pl-[7.5rem]">
+            동시 대관은 두 공간을 신청서 1건으로 묶어 신청하는 것이며, 두 공간은 완전히
+            분리되어 있어 <b className="text-foreground">할인은 없습니다</b> — 금액은 각 공간을
+            따로 신청했을 때와 같습니다.
+          </p>
         </div>
-        <p className="pl-[7.5rem] text-[11.5px] leading-5 text-muted">
-          동시 대관은 두 공간을 신청서 1건으로 묶어 신청하는 것이며, 두 공간은 완전히
-          분리되어 있어 <b className="text-foreground">할인은 없습니다</b> — 금액은 각 공간을
-          따로 신청했을 때와 같습니다.
-        </p>
 
         {primaryVenue === "arena" && (
-          <div className="flex flex-wrap items-center gap-x-8 gap-y-3">
+          <div className="flex flex-wrap items-center gap-x-8 gap-y-3 py-5">
             <label className="w-28 shrink-0 text-[13px] font-medium text-foreground">무대 구성 *</label>
             <div className="flex flex-wrap gap-2">
               {STAGE_TYPES.map((type) => {
@@ -138,13 +140,14 @@ export function StepVenue({
         )}
 
         {hasSelection && (
-          <div className="flex flex-wrap items-start gap-x-8 gap-y-3">
-            <label className="w-28 shrink-0 pt-2.5 text-[13px] font-medium text-foreground">
-              예상 관객 규모 * {isSimultaneous ? "— 아레나" : ""}
-            </label>
-            <div className="flex flex-wrap items-end gap-6">
+          <div className="flex flex-wrap items-start gap-x-8 gap-y-4 py-5">
+            <label className="w-28 shrink-0 pt-2.5 text-[13px] font-medium text-foreground">예상 관객 규모 *</label>
+            <div className="flex flex-wrap items-start gap-6">
               {primaryVenue === "arena" && (
                 <div className="max-w-xs">
+                  {isSimultaneous && (
+                    <label className="mb-1.5 block text-[12.5px] font-medium text-muted">아레나</label>
+                  )}
                   <input
                     type="number"
                     min={0}
@@ -160,7 +163,7 @@ export function StepVenue({
               {(isSimultaneous || primaryVenue === "medium-hall") && (
                 <div className="max-w-xs">
                   {isSimultaneous && (
-                    <label className="mb-1.5 block text-[12.5px] font-medium text-muted">예상 관객 규모 — 중형</label>
+                    <label className="mb-1.5 block text-[12.5px] font-medium text-muted">중형</label>
                   )}
                   <input
                     type="number"
@@ -179,7 +182,7 @@ export function StepVenue({
         )}
 
         {hasSelection && (
-          <>
+          <div className="space-y-5 py-5">
             <div className="flex flex-wrap items-center gap-x-8 gap-y-3">
               <label className="w-28 shrink-0 text-[13px] font-medium text-foreground">공연 유형 *</label>
               <select
@@ -217,14 +220,16 @@ export function StepVenue({
                 className="w-full max-w-md rounded-sm border border-border bg-panel px-3.5 py-2.5 text-[14px] outline-none placeholder:text-muted focus:border-accent focus:ring-2 focus:ring-accent/20"
               />
             </div>
-
-            <div className="rounded-sm border-l-2 border-accent bg-accent-soft/40 px-4 py-3 text-[12.5px] leading-5 text-foreground">
-              공연명 · 출연진은 STEP 3 신청서와 자동 연동됩니다. 여기서 입력한 값은 신청서에
-              그대로 채워지며, STEP 3에서 수정할 수 있습니다.
-            </div>
-          </>
+          </div>
         )}
       </div>
+
+      {hasSelection && (
+        <div className="mt-5 rounded-sm border-l-2 border-accent bg-accent-soft/40 px-4 py-3 text-[12.5px] leading-5 text-foreground">
+          공연명 · 출연진은 STEP 3 신청서와 자동 연동됩니다. 여기서 입력한 값은 신청서에 그대로
+          채워지며, STEP 3에서 수정할 수 있습니다.
+        </div>
+      )}
     </section>
   );
 }
