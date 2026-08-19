@@ -62,14 +62,31 @@ export default async function PrintQuotePage({
           <dl className="mt-2 space-y-1">
             <Row
               label="공간"
-              value={VENUES.find((v) => v.id === (quote.selection.venueId ?? DEFAULT_VENUE_ID))?.name ?? "-"}
+              value={
+                quote.selection.bookingMode === "SIMULTANEOUS"
+                  ? "아레나 + 중형공연장 (동시 대관)"
+                  : (VENUES.find((v) => v.id === (quote.selection.venueId ?? DEFAULT_VENUE_ID))?.name ?? "-")
+              }
             />
-            <Row
-              label="주차"
-              value={`${quote.selection.week.year}년 ${quote.selection.week.month}월 ${quote.selection.week.weekOfMonth}주차`}
-            />
-            <Row label="총 대관일수" value={`${totalRentalDays(quote.selection)}일`} />
-            <Row label="예상 관객" value={`${quote.selection.expectedAudience.toLocaleString()}명`} />
+            {(quote.selection.venueId !== "medium-hall" || quote.selection.bookingMode === "SIMULTANEOUS") && (
+              <>
+                <Row
+                  label="주차 (아레나)"
+                  value={`${quote.selection.week.year}년 ${quote.selection.week.month}월 ${quote.selection.week.weekOfMonth}주차`}
+                />
+                <Row label="총 대관일수 (아레나)" value={`${totalRentalDays(quote.selection)}일`} />
+                <Row label="예상 관객 (아레나)" value={`${quote.selection.expectedAudience.toLocaleString()}명`} />
+              </>
+            )}
+            {(quote.selection.venueId === "medium-hall" || quote.selection.bookingMode === "SIMULTANEOUS") && (
+              <>
+                <Row
+                  label="대관일수 (중형)"
+                  value={`${Object.keys(quote.selection.midHallDays).length}일`}
+                />
+                <Row label="예상 관객 (중형)" value={`${quote.selection.secondaryAudience.toLocaleString()}명`} />
+              </>
+            )}
           </dl>
         </div>
       </section>

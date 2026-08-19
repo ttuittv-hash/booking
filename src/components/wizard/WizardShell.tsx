@@ -489,6 +489,7 @@ export function WizardShell({
                   extraSetupHours={selection.midHallExtraSetupHours}
                   extraLoadOutHours={selection.midHallExtraLoadOutHours}
                   dateBlocks={dateBlocks}
+                  rateConfig={rateTable.midHall}
                   overlayDates={new Set(arenaSelectedDates)}
                   overlayLabel="아레나"
                   onChangeMonth={(year, month) => setMidHallMonth({ year, month })}
@@ -514,6 +515,7 @@ export function WizardShell({
               extraSetupHours={selection.midHallExtraSetupHours}
               extraLoadOutHours={selection.midHallExtraLoadOutHours}
               dateBlocks={dateBlocks}
+              rateConfig={rateTable.midHall}
               onChangeMonth={(year, month) => setMidHallMonth({ year, month })}
               onChangeDays={(midHallDays) => setSelection((prev) => ({ ...prev, midHallDays }))}
               onChangeExtraSetupHours={(value) =>

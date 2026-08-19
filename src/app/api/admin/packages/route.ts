@@ -208,6 +208,7 @@ export async function PUT(request: Request) {
     dayExclusionDiscountRatio: current.dayExclusionDiscountRatio,
     packages,
     addons,
+    midHall: current.midHall,
   });
 
   return NextResponse.json({ rateTable: next });

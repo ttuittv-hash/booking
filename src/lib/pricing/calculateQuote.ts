@@ -1,4 +1,6 @@
+import { calculateMidHallLineItems } from "./calculateMidHallQuote";
 import { resolveSelectedDates } from "./dateRange";
+import { makeLine } from "./lineItem";
 import {
   countPerformanceDays,
   findAddon,
@@ -8,7 +10,7 @@ import {
   packagePrice,
 } from "./rateTableUtils";
 import { DEFAULT_VENUE_ID } from "./types";
-import type { EstimatedQuote, LineItem, LineItemVisibility, PricingType, QuoteSelection, RateTable } from "./types";
+import type { EstimatedQuote, LineItem, QuoteSelection, RateTable } from "./types";
 
 const METERED_NOTICE =
   "전기·상하수도·냉난방 등 유틸리티는 실사용량 기준으로 정산 단계에서 부과됩니다.";
@@ -20,21 +22,6 @@ const METERED_NOTICE =
 // 소비 측(SummaryPanel/Step5Estimate/print·mypage 상세)에 맡긴다 — 관리자 화면(print·mypage의
 // user.role === "ADMIN")만 예외적으로 항목을 그대로 보여준다.
 const ARENA_HIDDEN_UTILITY_LABEL = "유틸리티(필수)";
-
-function makeLine(
-  addonId: string,
-  label: string,
-  pricingType: PricingType,
-  requested: number,
-  included: number,
-  billable: number,
-  unitPrice: number,
-  amount: number,
-  visibility: LineItemVisibility,
-  phase: LineItem["phase"] = "ESTIMATE",
-): LineItem {
-  return { addonId, label, pricingType, requested, included, billable, unitPrice, amount, phase, visibility };
-}
 
 /**
  * 순수 함수: 선택 상태 + 요금표 → 견적(예상 대관료).
@@ -229,6 +216,15 @@ export function calculateQuote(selection: QuoteSelection, rateTable: RateTable):
     }
   }
 
+  // (5) 중형공연장(DAILY) — 중형 단독 또는 동시 대관일 때 아레나 계산과 별개로 합산한다
+  // (동시 대관은 할인 없이 단순 합산, 기능정의 2-13 확정).
+  let blockingIssues: string[] = [];
+  if (selection.venueId === "medium-hall" || selection.bookingMode === "SIMULTANEOUS") {
+    const midHall = calculateMidHallLineItems(selection, rateTable);
+    items.push(...midHall.items);
+    blockingIssues = midHall.blockingIssues;
+  }
+
   const subtotal = items.reduce((sum, item) => sum + item.amount, 0);
   const vat = Math.round(subtotal * rateTable.vatRate);
 
@@ -240,6 +236,7 @@ export function calculateQuote(selection: QuoteSelection, rateTable: RateTable):
     vat,
     total: subtotal + vat,
     meteredNotice: METERED_NOTICE,
+    blockingIssues,
     status: "ESTIMATE",
   };
 }

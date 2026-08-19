@@ -265,3 +265,119 @@ describe("calculateQuote — 명세서 7장 검증 케이스", () => {
     expect(quote.total).toBe(0);
   });
 });
+
+describe("calculateQuote — 중형공연장(DAILY) 요금 엔진", () => {
+  const cfg = RATE_TABLE.midHall;
+
+  function midHallOnlySelection(overrides: Partial<QuoteSelection> = {}): QuoteSelection {
+    return baseSelection({
+      venueId: "medium-hall",
+      packageId: null,
+      secondaryAudience: 3000,
+      ...overrides,
+    });
+  }
+
+  it("셋업 + 평일 공연 1회 — 기본 단가 그대로 과금된다", () => {
+    // 2027-08-03(화)=셋업, 2027-08-04(수)=공연 1회 — 둘 다 평일
+    const quote = calculateQuote(
+      midHallOnlySelection({
+        midHallDays: {
+          "2027-08-03": { role: "SETUP", shows: 1 },
+          "2027-08-04": { role: "PERFORMANCE", shows: 1 },
+        },
+      }),
+      RATE_TABLE,
+    );
+    const setupLine = quote.lineItems.find((i) => i.addonId === "midhall_setup")!;
+    const showLine = quote.lineItems.find((i) => i.addonId === "midhall_show_weekday-1")!;
+    expect(setupLine.amount).toBe(cfg.setupDayFee);
+    expect(showLine.amount).toBe(cfg.performanceWeekdayFee);
+    expect(quote.blockingIssues).toHaveLength(0);
+  });
+
+  it("1일 2회 공연 — 그 날 요금에 할증 비율만큼 할증된다", () => {
+    const quote = calculateQuote(
+      midHallOnlySelection({
+        midHallDays: { "2027-08-04": { role: "PERFORMANCE", shows: 2 } }, // 수요일(평일)
+      }),
+      RATE_TABLE,
+    );
+    const line = quote.lineItems.find((i) => i.addonId === "midhall_show_weekday-2")!;
+    expect(line.amount).toBe(Math.round(cfg.performanceWeekdayFee * (1 + cfg.secondShowSurchargeRatio)));
+  });
+
+  it("주말 공연은 주말 단가로 과금된다", () => {
+    const quote = calculateQuote(
+      midHallOnlySelection({
+        midHallDays: { "2027-08-07": { role: "PERFORMANCE", shows: 1 } }, // 토요일
+      }),
+      RATE_TABLE,
+    );
+    const line = quote.lineItems.find((i) => i.addonId === "midhall_show_weekend-1")!;
+    expect(line.amount).toBe(cfg.performanceWeekendFee);
+  });
+
+  it("1일 3회 이상은 자동 계산하지 않고 blockingIssues로 제출을 막는다", () => {
+    const quote = calculateQuote(
+      midHallOnlySelection({
+        midHallDays: { "2027-08-04": { role: "PERFORMANCE", shows: 3 } },
+      }),
+      RATE_TABLE,
+    );
+    const reviewLine = quote.lineItems.find((i) => i.addonId === "midhall_show_review_2027-08-04")!;
+    expect(reviewLine.amount).toBe(0);
+    expect(quote.blockingIssues.length).toBe(1);
+    expect(quote.blockingIssues[0]).toContain("3회");
+  });
+
+  it("셋업 연장 · 철수 Load-Out 시간 과금", () => {
+    const quote = calculateQuote(
+      midHallOnlySelection({
+        midHallDays: { "2027-08-03": { role: "SETUP", shows: 1 } },
+        midHallExtraSetupHours: 2,
+        midHallExtraLoadOutHours: 3,
+      }),
+      RATE_TABLE,
+    );
+    const setupExtra = quote.lineItems.find((i) => i.addonId === "midhall_extra_setup_hours")!;
+    const loadOutExtra = quote.lineItems.find((i) => i.addonId === "midhall_extra_loadout_hours")!;
+    expect(setupExtra.amount).toBe(2 * cfg.extraHourFee);
+    expect(loadOutExtra.amount).toBe(3 * cfg.extraHourFee);
+  });
+
+  it("청소비 — 1회당 예상 관객 수 × 총 공연 횟수", () => {
+    const quote = calculateQuote(
+      midHallOnlySelection({
+        secondaryAudience: 2000,
+        midHallDays: {
+          "2027-08-04": { role: "PERFORMANCE", shows: 2 },
+          "2027-08-07": { role: "PERFORMANCE", shows: 1 },
+        },
+      }),
+      RATE_TABLE,
+    );
+    const cleaningLine = quote.lineItems.find((i) => i.addonId === "midhall_cleaning")!;
+    expect(cleaningLine.requested).toBe(2000 * 3); // 회차 합계 3
+    expect(cleaningLine.amount).toBe(2000 * 3 * cfg.cleaningUnitPrice);
+  });
+
+  it("중형 일정이 없으면 중형 라인아이템이 생기지 않는다", () => {
+    const quote = calculateQuote(midHallOnlySelection({ midHallDays: {} }), RATE_TABLE);
+    expect(quote.lineItems).toHaveLength(0);
+    expect(quote.total).toBe(0);
+  });
+
+  it("동시 대관(SIMULTANEOUS) — 아레나 소계 + 중형 소계가 할인 없이 단순 합산된다", () => {
+    const midHallDays = { "2027-08-04": { role: "PERFORMANCE" as const, shows: 1 } };
+    const arenaOnly = calculateQuote(baseSelection({ secondaryAudience: 3000 }), RATE_TABLE);
+    const midHallOnly = calculateQuote(midHallOnlySelection({ midHallDays }), RATE_TABLE);
+    const combined = calculateQuote(
+      baseSelection({ bookingMode: "SIMULTANEOUS", secondaryAudience: 3000, midHallDays }),
+      RATE_TABLE,
+    );
+    expect(combined.subtotal).toBe(arenaOnly.subtotal + midHallOnly.subtotal);
+    expect(combined.lineItems.some((i) => i.addonId === "BASE_FEE")).toBe(true);
+    expect(combined.lineItems.some((i) => i.addonId === "midhall_show_weekday-1")).toBe(true);
+  });
+});

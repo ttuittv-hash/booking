@@ -43,11 +43,23 @@ export async function POST(request: Request) {
 
   const body = await request.json().catch(() => null);
   const selection = body?.selection as QuoteSelection | undefined;
-  if (!selection || typeof selection.packageId !== "number") {
+  if (!selection) {
+    return NextResponse.json({ error: "잘못된 요청입니다." }, { status: 400 });
+  }
+  // 아레나(패키지 필요)는 SINGLE·SIMULTANEOUS 모두, 중형(DAILY, 패키지 없음)은
+  // SIMULTANEOUS·중형 단독일 때 필요하다 — 동시 대관은 두 조건을 동시에 만족해야 한다.
+  const needsPackage = selection.venueId !== "medium-hall" || selection.bookingMode === "SIMULTANEOUS";
+  const needsMidHall = selection.venueId === "medium-hall" || selection.bookingMode === "SIMULTANEOUS";
+  if (needsPackage && typeof selection.packageId !== "number") {
     return NextResponse.json({ error: "패키지를 선택해주세요." }, { status: 400 });
   }
+  if (needsMidHall && Object.keys(selection.midHallDays ?? {}).length === 0) {
+    return NextResponse.json({ error: "중형공연장 일정을 선택해주세요." }, { status: 400 });
+  }
 
-  const blockedDates = await findBlockedDatesAmong(resolveSelectedDates(selection));
+  const arenaDates = needsPackage ? resolveSelectedDates(selection) : [];
+  const midHallDates = needsMidHall ? Object.keys(selection.midHallDays ?? {}) : [];
+  const blockedDates = await findBlockedDatesAmong([...arenaDates, ...midHallDates]);
   if (blockedDates.length > 0) {
     return NextResponse.json({ error: formatBlockedDatesError(blockedDates) }, { status: 409 });
   }
@@ -55,6 +67,9 @@ export async function POST(request: Request) {
   // 클라이언트가 보낸 금액은 신뢰하지 않고, 서버에서 현재 요금표로 재계산한다.
   const rateTable = await getCurrentRateTable();
   const computed = calculateQuote(selection, rateTable);
+  if (computed.blockingIssues.length > 0) {
+    return NextResponse.json({ error: computed.blockingIssues.join(" ") }, { status: 400 });
+  }
 
   // 신청서·이력·알림은 한 묶음이다 — 중간에 실패하면 전부 되돌린다.
   const quote = await withTransaction(async () => {

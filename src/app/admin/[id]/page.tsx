@@ -22,7 +22,17 @@ import {
   SEATING_TYPE_LABEL,
   STAGE_TYPE_LABEL,
   VENUES,
+  type QuoteSelection,
 } from "@/lib/pricing/types";
+
+function midHallSummaryLine(selection: QuoteSelection): string | null {
+  const dates = Object.keys(selection.midHallDays).sort();
+  if (dates.length === 0) return null;
+  const setup = dates.filter((d) => selection.midHallDays[d].role === "SETUP").length;
+  const performanceDates = dates.filter((d) => selection.midHallDays[d].role === "PERFORMANCE");
+  const shows = performanceDates.reduce((sum, d) => sum + selection.midHallDays[d].shows, 0);
+  return `총 ${dates.length}일 (셋업 ${setup} · 공연 ${performanceDates.length} · 회차 ${shows}) · 관객 ${selection.secondaryAudience.toLocaleString()}명`;
+}
 import { ContractForm } from "@/components/admin/ContractForm";
 import { ReviewForm } from "@/components/admin/ReviewForm";
 import { SettlementForm } from "@/components/admin/SettlementForm";
@@ -99,10 +109,24 @@ export default async function AdminQuoteDetailPage({
         </div>
 
         <p className="mt-1.5 text-[13.5px] text-muted">
-          {VENUES.find((v) => v.id === (quote.selection.venueId ?? DEFAULT_VENUE_ID))?.name ?? "-"} ·{" "}
-          {quote.selection.week.year}년 {quote.selection.week.month}월{" "}
-          {quote.selection.week.weekOfMonth}주차 · 총 {totalRentalDays(quote.selection)}일 · 관객{" "}
-          {quote.selection.expectedAudience.toLocaleString()}명
+          {quote.selection.bookingMode === "SIMULTANEOUS" ? (
+            <>
+              아레나 {quote.selection.week.year}년 {quote.selection.week.month}월{" "}
+              {quote.selection.week.weekOfMonth}주차 · 총 {totalRentalDays(quote.selection)}일 · 관객{" "}
+              {quote.selection.expectedAudience.toLocaleString()}명
+              <br />
+              중형공연장 {midHallSummaryLine(quote.selection)}
+            </>
+          ) : quote.selection.venueId === "medium-hall" ? (
+            <>중형공연장 · {midHallSummaryLine(quote.selection)}</>
+          ) : (
+            <>
+              {VENUES.find((v) => v.id === (quote.selection.venueId ?? DEFAULT_VENUE_ID))?.name ?? "-"} ·{" "}
+              {quote.selection.week.year}년 {quote.selection.week.month}월{" "}
+              {quote.selection.week.weekOfMonth}주차 · 총 {totalRentalDays(quote.selection)}일 · 관객{" "}
+              {quote.selection.expectedAudience.toLocaleString()}명
+            </>
+          )}
         </p>
         <p className="mt-1 text-[13.5px] text-muted">
           신청자 <span className="font-medium text-foreground">{applicant?.name ?? "-"}</span>

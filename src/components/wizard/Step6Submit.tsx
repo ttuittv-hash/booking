@@ -16,6 +16,15 @@ import {
   type RateTable,
 } from "@/lib/pricing/types";
 
+function midHallSummaryLine(selection: QuoteSelection): string | null {
+  const dates = Object.keys(selection.midHallDays).sort();
+  if (dates.length === 0) return null;
+  const setup = dates.filter((d) => selection.midHallDays[d].role === "SETUP").length;
+  const performanceDates = dates.filter((d) => selection.midHallDays[d].role === "PERFORMANCE");
+  const shows = performanceDates.reduce((sum, d) => sum + selection.midHallDays[d].shows, 0);
+  return `총 ${dates.length}일 (셋업 ${setup} · 공연 ${performanceDates.length} · 회차 ${shows}) · 관객 ${selection.secondaryAudience.toLocaleString()}명`;
+}
+
 const STAGES = [
   {
     no: "STEP ①",
@@ -72,30 +81,31 @@ export function Step6Submit({
   const pkg = findPackage(rateTable, selection.packageId);
   const [confirmed, setConfirmed] = useState(false);
   const [pledged, setPledged] = useState(false);
-  const venueName =
-    VENUES.find((v) => v.id === (selection.venueId ?? DEFAULT_VENUE_ID))?.name ?? "-";
   const info = selection.performanceInfo;
   const isSimultaneous = selection.bookingMode === "SIMULTANEOUS";
+  const hasMidHall = Object.keys(selection.midHallDays).length > 0;
+  const needsPackage = !isSimultaneous ? selection.venueId !== "medium-hall" : true;
+  const needsMidHall = isSimultaneous || selection.venueId === "medium-hall";
 
-  // [화면 뼈대 2026-08-18] 동시 대관 · 중형 단독은 요금 엔진(중형 DAILY 계산 · 합산)이
-  // 아직 연동되지 않았다 — 지금 제출을 허용하면 중형 금액이 빠진 채로 신청서가 접수돼
-  // 실제 대관료를 과소 산정하게 된다. 요금 엔진 연동 전까지는 화면 흐름 확인까지만 지원한다.
-  if (!pkg || isSimultaneous) {
-    const isMidHall = selection.venueId === "medium-hall";
+  const venueName = isSimultaneous
+    ? "아레나 + 중형공연장 (동시 대관)"
+    : (VENUES.find((v) => v.id === (selection.venueId ?? DEFAULT_VENUE_ID))?.name ?? "-");
+  const audienceTierLabel = pkg?.audienceTier.label ?? (needsMidHall ? "~3,000명 규모" : "");
+
+  if ((needsPackage && !pkg) || (needsMidHall && !hasMidHall)) {
     return (
       <section className="rounded border border-border bg-background p-7">
         <p className="text-[13.5px] text-muted">
-          {isSimultaneous
-            ? "동시 대관 신청서 제출은 요금 엔진(중형 · 합산 계산)이 연동된 뒤 지원됩니다. 지금은 화면 흐름만 확인할 수 있습니다."
-            : isMidHall
-              ? "중형공연장 신청서 제출은 요금 엔진 연동 후 지원됩니다. 지금은 화면 흐름만 확인할 수 있습니다."
-              : "먼저 1단계에서 패키지를 선택하세요."}
+          {needsPackage && !pkg
+            ? "먼저 1단계에서 패키지를 선택하세요."
+            : "중형공연장 일정을 먼저 선택하세요."}
         </p>
       </section>
     );
   }
 
-  const canSubmit = confirmed && pledged;
+  const blockingIssues = quote.blockingIssues;
+  const canSubmit = confirmed && pledged && blockingIssues.length === 0;
 
   return (
     <section className="rounded border border-border bg-background p-7">
@@ -109,12 +119,25 @@ export function Step6Submit({
       <div className="mt-6 flex flex-wrap items-center justify-between gap-4 rounded border border-border bg-panel/60 p-6">
         <div>
           <div className="text-[15px] font-semibold">
-            {venueName} · {pkg.audienceTier.label}
+            {venueName} · {audienceTierLabel}
           </div>
           <div className="mt-1 text-[13px] text-muted">
-            {selection.week.year}년 {selection.week.month}월{" "}
-            {selection.week.weekOfMonth}주차 · 총 {totalRentalDays(selection)}일 ·
-            관객 {selection.expectedAudience.toLocaleString()}명
+            {isSimultaneous ? (
+              <>
+                아레나 {selection.week.year}년 {selection.week.month}월 {selection.week.weekOfMonth}주차 ·
+                총 {totalRentalDays(selection)}일 · 관객 {selection.expectedAudience.toLocaleString()}명
+                <br />
+                중형공연장 {midHallSummaryLine(selection)}
+              </>
+            ) : pkg ? (
+              <>
+                {selection.week.year}년 {selection.week.month}월{" "}
+                {selection.week.weekOfMonth}주차 · 총 {totalRentalDays(selection)}일 ·
+                관객 {selection.expectedAudience.toLocaleString()}명
+              </>
+            ) : (
+              midHallSummaryLine(selection)
+            )}
           </div>
         </div>
         <div className="text-right">
@@ -209,6 +232,17 @@ export function Step6Submit({
         </div>
       ) : (
         <>
+          {blockingIssues.length > 0 && (
+            <div className="mt-5 rounded-sm border border-warn/30 bg-warn-soft px-4 py-3.5 text-[13.5px] text-warn">
+              <p className="font-semibold">운영자 확인이 필요한 항목이 있어 아직 제출할 수 없습니다.</p>
+              <ul className="mt-1.5 list-disc space-y-1 pl-4">
+                {blockingIssues.map((issue) => (
+                  <li key={issue}>{issue}</li>
+                ))}
+              </ul>
+              <p className="mt-1.5">STEP 2(구성 · 옵션)에서 해당 일정을 2회 이하로 조정하거나, 운영자에게 문의해 주세요.</p>
+            </div>
+          )}
           <div className="mt-5 space-y-2.5">
             <label className="flex cursor-pointer items-start gap-2.5 text-[13px]">
               <input

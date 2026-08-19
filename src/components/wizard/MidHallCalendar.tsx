@@ -1,25 +1,10 @@
 "use client";
 
-import { isoDate } from "@/lib/pricing/dateRange";
-import type { DateBlock, MidHallDayRole, MidHallDaySelection } from "@/lib/pricing/types";
-
-// [화면 뼈대 2026-08-18, 화면시나리오 PRICING/SCREEN 03·04] 중형은 패키지가 없다 — 날짜별
-// 단가를 셀에 미리 노출한다(2-26). 아래 단가는 명세서 PRICING 표의 확정값이며, 화면 참고용
-// 표시에만 쓴다. 실제 견적 산출(요금 엔진 연동)은 다음 단계 작업이다.
-export const MID_HALL_REFERENCE_PRICE = {
-  setup: 5_660_000, // 셋업 Load-In — 평일/주말 동일
-  performanceWeekday: 8_060_000, // 공연 — 평일
-  performanceWeekend: 11_780_000, // 공연 — 주말 (토·일 정의는 미정, 2-26)
-  extraHour: 1_000_000, // 셋업 연장 · 철수 Load-Out — 시간당
-};
+import { isoDate, isWeekendDate } from "@/lib/pricing/dateRange";
+import type { DateBlock, MidHallDayRole, MidHallDaySelection, MidHallRateConfig } from "@/lib/pricing/types";
 
 function won(n: number): string {
   return `${n.toLocaleString("ko-KR")}원`;
-}
-
-export function isMidHallWeekend(iso: string): boolean {
-  const day = new Date(iso).getDay();
-  return day === 0 || day === 6;
 }
 
 function toColumnIndex(jsDay: number): number {
@@ -51,9 +36,9 @@ function buildMonthGrid(year: number, month: number): Date[][] {
   return weeks;
 }
 
-export function midHallReferencePrice(iso: string, role: MidHallDayRole): number {
-  if (role === "SETUP") return MID_HALL_REFERENCE_PRICE.setup;
-  return isMidHallWeekend(iso) ? MID_HALL_REFERENCE_PRICE.performanceWeekend : MID_HALL_REFERENCE_PRICE.performanceWeekday;
+export function midHallReferencePrice(iso: string, role: MidHallDayRole, config: MidHallRateConfig): number {
+  if (role === "SETUP") return config.setupDayFee;
+  return isWeekendDate(iso) ? config.performanceWeekendFee : config.performanceWeekdayFee;
 }
 
 export function MidHallCalendar({
@@ -66,6 +51,7 @@ export function MidHallCalendar({
   dateBlocks,
   overlayDates,
   overlayLabel,
+  rateConfig,
   onChangeMonth,
   onChangeDays,
   onChangeExtraSetupHours,
@@ -80,6 +66,7 @@ export function MidHallCalendar({
   dateBlocks: DateBlock[];
   overlayDates?: Set<string>;
   overlayLabel?: string;
+  rateConfig: MidHallRateConfig;
   onChangeMonth: (year: number, month: number) => void;
   onChangeDays: (days: Record<string, MidHallDaySelection>) => void;
   onChangeExtraSetupHours: (value: number) => void;
@@ -264,7 +251,7 @@ export function MidHallCalendar({
             <span className="text-[11.5px] text-muted">시간</span>
           </div>
         </div>
-        <p className="mt-2 text-[11.5px] text-muted">{won(MID_HALL_REFERENCE_PRICE.extraHour)}/시간 (참고용 — 요금 엔진 연동 후 확정)</p>
+        <p className="mt-2 text-[11.5px] text-muted">{won(rateConfig.extraHourFee)}/시간</p>
       </div>
 
       {selectedDates.length > 0 && (
@@ -279,7 +266,7 @@ export function MidHallCalendar({
                 <div key={iso} className="flex flex-col gap-1.5 rounded-sm border border-border bg-panel/60 px-2.5 py-2.5">
                   <div className="flex items-center justify-between gap-3">
                     <span className="text-[13px] font-semibold text-foreground">
-                      {formatDateLabel(iso)} {isMidHallWeekend(iso) ? <span className="text-muted">· 주말</span> : null}
+                      {formatDateLabel(iso)} {isWeekendDate(iso) ? <span className="text-muted">· 주말</span> : null}
                     </span>
                     <button
                       type="button"
@@ -326,17 +313,21 @@ export function MidHallCalendar({
                     )}
                   </div>
                   <span className="text-[10.5px] text-muted">
-                    참고 단가 {won(midHallReferencePrice(iso, sel.role))}
-                    {sel.role === "PERFORMANCE" && sel.shows > 1 ? " × 50% 할증(2회차부터)" : ""}
+                    {sel.role === "PERFORMANCE" && sel.shows >= 3 ? (
+                      <span className="text-warn">1일 {sel.shows}회 — 운영자 확인 필요(자동 계산 제외)</span>
+                    ) : (
+                      <>
+                        단가 {won(midHallReferencePrice(iso, sel.role, rateConfig))}
+                        {sel.role === "PERFORMANCE" && sel.shows === 2
+                          ? ` × ${Math.round(rateConfig.secondShowSurchargeRatio * 100)}% 할증(2회차)`
+                          : ""}
+                      </>
+                    )}
                   </span>
                 </div>
               );
             })}
           </div>
-          <p className="mt-3 text-[11px] text-muted">
-            표시된 단가는 화면시나리오 v6.3 PRICING 표 참고용입니다. 실제 견적 계산(요금 엔진 연동)은
-            다음 업데이트에서 반영됩니다.
-          </p>
         </div>
       )}
 

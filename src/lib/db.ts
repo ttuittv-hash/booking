@@ -2,7 +2,7 @@ import { Pool, type PoolClient } from "pg";
 import { AsyncLocalStorage } from "node:async_hooks";
 import { hash as bcryptHash } from "@node-rs/bcrypt";
 import crypto from "node:crypto";
-import { buildSeedRateTable } from "./pricing/seed";
+import { buildSeedRateTable, SEED_MID_HALL_RATE_CONFIG } from "./pricing/seed";
 import { SEED_PAGES } from "./pricing/pageSeed";
 import { DEFAULT_GUIDE_CONTENT, DEFAULT_HOME_CONTENT, DEFAULT_VENUE_CONTENT } from "./content/seed";
 import { FEATURE_SPEC_SEED } from "./featureSpecSeed";
@@ -322,6 +322,7 @@ async function initSchema(pool: Pool) {
     ALTER TABLE quotes ADD COLUMN IF NOT EXISTS week_year INTEGER;
     ALTER TABLE quotes ADD COLUMN IF NOT EXISTS week_month INTEGER;
     ALTER TABLE quotes ADD COLUMN IF NOT EXISTS week_of_month INTEGER;
+    ALTER TABLE rate_tables ADD COLUMN IF NOT EXISTS mid_hall_json TEXT;
 
     CREATE UNIQUE INDEX IF NOT EXISTS idx_users_username ON users(username) WHERE username IS NOT NULL;
 
@@ -583,8 +584,8 @@ async function one<T>(sql: string, params: unknown[] = []): Promise<T | undefine
 
 async function insertRateTable(pool: Pool, rateTable: RateTable) {
   await pool.query(
-    `INSERT INTO rate_tables (version, vat_rate, extra_week_ratio, day_exclusion_discount_ratio, packages_json, addons_json, updated_at)
-     VALUES ($1, $2, $3, $4, $5, $6, $7)`,
+    `INSERT INTO rate_tables (version, vat_rate, extra_week_ratio, day_exclusion_discount_ratio, packages_json, addons_json, mid_hall_json, updated_at)
+     VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
     [
       rateTable.version,
       rateTable.vatRate,
@@ -592,6 +593,7 @@ async function insertRateTable(pool: Pool, rateTable: RateTable) {
       rateTable.dayExclusionDiscountRatio,
       JSON.stringify(rateTable.packages),
       JSON.stringify(rateTable.addons),
+      JSON.stringify(rateTable.midHall),
       rateTable.updatedAt,
     ],
   );
@@ -609,6 +611,7 @@ export async function getCurrentRateTable(): Promise<RateTable> {
     day_exclusion_discount_ratio: number;
     packages_json: string;
     addons_json: string;
+    mid_hall_json: string | null;
     updated_at: string;
   }>("SELECT * FROM rate_tables ORDER BY updated_at DESC LIMIT 1");
   if (!row) throw new Error("요금표가 초기화되지 않았습니다.");
@@ -617,6 +620,8 @@ export async function getCurrentRateTable(): Promise<RateTable> {
     RateTable["packages"][number] & { discountRatio?: number }
   >;
   const packages = rawPackages.map((pkg) => ({ ...pkg, discountRatio: pkg.discountRatio ?? 0 }));
+  // mid_hall_json 컬럼 추가(2026-08-19) 이전에 저장된 버전은 NULL이므로 시드 기본값으로 보정한다.
+  const midHall = row.mid_hall_json ? JSON.parse(row.mid_hall_json) : SEED_MID_HALL_RATE_CONFIG;
   return {
     version: row.version,
     vatRate: row.vat_rate,
@@ -624,6 +629,7 @@ export async function getCurrentRateTable(): Promise<RateTable> {
     dayExclusionDiscountRatio: row.day_exclusion_discount_ratio,
     packages,
     addons: JSON.parse(row.addons_json),
+    midHall,
     updatedAt: row.updated_at,
   };
 }

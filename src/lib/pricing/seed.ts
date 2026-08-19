@@ -1,4 +1,4 @@
-import type { AddonItem, PackageInclusion, RateTable, RentalPackage } from "./types";
+import type { AddonItem, MidHallRateConfig, PackageInclusion, RateTable, RentalPackage } from "./types";
 
 // 모든 금액은 확정 전 플레이스홀더입니다. 실제 요금표 확정 시 운영자 백오피스(요금표 관리)에서
 // 교체하면 됩니다. 이 파일은 DB가 비어 있을 때 최초 1회 시드하는 기본값입니다.
@@ -231,6 +231,16 @@ export const SEED_EXTRA_WEEK_RATIO = 0.6;
 // 화~일 6일 중 미사용 요일 1일당 할인 비율. 6일 중 1일 = 약 16.7%를 임시 비율로 둔다.
 export const SEED_DAY_EXCLUSION_DISCOUNT_RATIO = 1 / 6;
 
+// [신규 2026-08-19] 중형공연장 일 단위 요금표(DAILY) — 사용자 제공 요금표 확정값.
+export const SEED_MID_HALL_RATE_CONFIG: MidHallRateConfig = {
+  setupDayFee: 5_660_000,
+  performanceWeekdayFee: 8_060_000,
+  performanceWeekendFee: 11_780_000,
+  extraHourFee: 1_000_000,
+  secondShowSurchargeRatio: 0.5,
+  cleaningUnitPrice: 1_000,
+};
+
 export function buildSeedRateTable(): RateTable {
   return {
     version: SEED_RATE_TABLE_VERSION,
@@ -239,6 +249,7 @@ export function buildSeedRateTable(): RateTable {
     dayExclusionDiscountRatio: SEED_DAY_EXCLUSION_DISCOUNT_RATIO,
     packages: SEED_PACKAGES,
     addons: SEED_ADDONS,
+    midHall: SEED_MID_HALL_RATE_CONFIG,
     updatedAt: new Date(0).toISOString(),
   };
 }

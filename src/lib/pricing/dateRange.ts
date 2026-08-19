@@ -11,6 +11,11 @@ function addDays(date: Date, n: number): Date {
   return d;
 }
 
+export function isWeekendDate(iso: string): boolean {
+  const day = new Date(iso).getDay();
+  return day === 0 || day === 6;
+}
+
 export function isoDate(d: Date): string {
   const y = d.getFullYear();
   const m = String(d.getMonth() + 1).padStart(2, "0");

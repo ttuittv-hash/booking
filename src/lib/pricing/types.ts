@@ -152,6 +152,7 @@ export interface RateTable {
   dayExclusionDiscountRatio: number; // 화~일 중 미사용(제외) 요일 1일당 할인 비율 (기본 대관료 × 이 비율)
   packages: RentalPackage[];
   addons: AddonItem[];
+  midHall: MidHallRateConfig;
   updatedAt: string;
 }
 
@@ -180,9 +181,20 @@ export type DayTag = "PREP" | "PERFORMANCE" | "LOAD_OUT";
 // ---------------------------------------------------------------------------
 // 동시 대관 / 중형 일 단위 캘린더 — [화면 뼈대 2026-08-18, 화면시나리오·기능정의 v6.3]
 // 이용 시설을 아레나/중형공연장/동시 대관 3택으로 통합한다(기능정의 2-13, 확정).
-// 이번 반영은 화면 흐름 뼈대까지다 — 중형(DAILY) 요금 계산 엔진과 Application+Booking
-// 데이터모델 분리는 다음 단계 작업이며, 이 커밋에서는 손대지 않는다.
+// [개정 2026-08-19] 중형(DAILY) 요금 계산 엔진을 연동했다 — MidHallRateConfig 참고.
 // ---------------------------------------------------------------------------
+
+// 중형공연장 일 단위 요금표(DAILY) — 패키지가 없어 RentalPackage와 별도 구조로 관리한다.
+// 관리자 화면(요금표 관리)에서 편집 가능. 2회 공연 초과(3회 이상)는 자동 계산하지 않고
+// 운영자 확인이 필요한 항목으로 남긴다(계산 엔진에서 별도 처리).
+export interface MidHallRateConfig {
+  setupDayFee: number; // 셋업 Load-In 1일 — 평일/주말 동일
+  performanceWeekdayFee: number; // 공연 1일 — 평일
+  performanceWeekendFee: number; // 공연 1일 — 주말
+  extraHourFee: number; // 셋업 연장(22:00~24:00) · 철수 Load-Out 시간당
+  secondShowSurchargeRatio: number; // 1일 2회 공연 시 그 날 요금에 곱하는 할증 비율 (0.5=50%)
+  cleaningUnitPrice: number; // 청소비 원/인 — (1회당 예상 관객 수 × 총 공연 횟수)에 곱한다
+}
 
 export type BookingMode = "SINGLE" | "SIMULTANEOUS";
 
@@ -380,7 +392,12 @@ export interface Quote {
 export type EstimatedQuote = Omit<
   Quote,
   "id" | "applicantId" | "createdAt" | "review" | "contract" | "settlement"
->;
+> & {
+  // 중형(DAILY) 공연일에 1일 3회 이상 지정된 경우 등 — 자동 계산하지 않고 운영자 확인이
+  // 필요한 사유 목록. 비어있지 않으면 신청서 제출을 막는다(Step6Submit). 제출 시점에는
+  // 반드시 비어있어야 하므로 영구 저장되는 Quote에는 두지 않는다.
+  blockingIssues: string[];
+};
 
 // 계약 전 심사 단계 — 운영자가 신청서를 검토하고 승인/보류/거절을 기록한다.
 export type ReviewDecision = "APPROVED" | "HOLD" | "REJECTED";

@@ -1,14 +1,16 @@
 "use client";
 
 import { won } from "@/lib/format";
-import { isMidHallWeekend, midHallReferencePrice } from "./MidHallCalendar";
 import { findPackage, totalRentalDays } from "@/lib/pricing/rateTableUtils";
 import type { EstimatedQuote, QuoteSelection, RateTable } from "@/lib/pricing/types";
 
-function formatDateLabel(iso: string): string {
-  const WEEKDAY_SHORT = ["일", "월", "화", "수", "목", "금", "토"];
-  const [, m, d] = iso.split("-").map(Number);
-  return `${m}/${d}(${WEEKDAY_SHORT[new Date(iso).getDay()]})`;
+function midHallSummaryLine(selection: QuoteSelection): string | null {
+  const dates = Object.keys(selection.midHallDays).sort();
+  if (dates.length === 0) return null;
+  const setup = dates.filter((d) => selection.midHallDays[d].role === "SETUP").length;
+  const performanceDates = dates.filter((d) => selection.midHallDays[d].role === "PERFORMANCE");
+  const shows = performanceDates.reduce((sum, d) => sum + selection.midHallDays[d].shows, 0);
+  return `${dates.length}일 (셋업 ${setup} · 공연 ${performanceDates.length} · 회차 ${shows}) · 관객 ${selection.secondaryAudience.toLocaleString()}명`;
 }
 
 export function Step5Estimate({
@@ -21,60 +23,35 @@ export function Step5Estimate({
   selection: QuoteSelection;
 }) {
   const pkg = findPackage(rateTable, selection.packageId);
+  const hasMidHall = Object.keys(selection.midHallDays).length > 0;
+  const isSimultaneous = selection.bookingMode === "SIMULTANEOUS";
 
-  if (!pkg) {
-    const midHallDates = Object.keys(selection.midHallDays).sort();
-    if (midHallDates.length === 0) {
-      return (
-        <section className="rounded border border-border bg-background p-7">
-          <p className="text-[13.5px] text-muted">먼저 1단계에서 패키지를 선택하세요.</p>
-        </section>
-      );
-    }
-    const referenceTotal = midHallDates.reduce(
-      (sum, iso) => sum + midHallReferencePrice(iso, selection.midHallDays[iso].role),
-      0,
-    );
+  if (!pkg && !hasMidHall) {
     return (
       <section className="rounded border border-border bg-background p-7">
-        <h2 className="text-[19px] font-semibold">6. 예상 대관료 · 산출내역서 (중형)</h2>
-        <p className="mt-1.5 text-[13.5px] text-muted">
-          중형공연장은 패키지가 없어 날짜별 참고 단가만 안내합니다 — 실제 견적 계산(요금 엔진
-          연동)은 다음 업데이트에서 반영됩니다.
-        </p>
-        <div className="mt-5 divide-y divide-border rounded border border-border">
-          {midHallDates.map((iso) => {
-            const sel = selection.midHallDays[iso];
-            const price = midHallReferencePrice(iso, sel.role);
-            return (
-              <div key={iso} className="flex items-center justify-between px-4 py-2.5 text-[13.5px]">
-                <span>
-                  {formatDateLabel(iso)} {isMidHallWeekend(iso) && <span className="text-muted">· 주말</span>} ·{" "}
-                  {sel.role === "SETUP" ? "셋업" : `공연 ${sel.shows}회차`}
-                </span>
-                <span className="tabular-nums text-muted">{won(price)}</span>
-              </div>
-            );
-          })}
-          <div className="flex items-center justify-between bg-panel px-4 py-2.5 text-[13.5px] font-semibold">
-            <span>참고 합계 (VAT 별도)</span>
-            <span className="tabular-nums">{won(referenceTotal)}</span>
-          </div>
-        </div>
-        <p className="mt-3 text-[11px] text-muted">
-          청소비 · 시간 단위 추가 · 선택 옵션은 이 참고 합계에 포함되지 않습니다.
-        </p>
+        <p className="text-[13.5px] text-muted">먼저 1단계에서 패키지를 선택하거나 중형공연장 일정을 선택하세요.</p>
       </section>
     );
   }
+
+  const arenaLine = pkg
+    ? `${pkg.audienceTier.label} · ${selection.week.year}.${selection.week.month} ${selection.week.weekOfMonth}주차 · 총 ${totalRentalDays(selection)}일 · 관객 ${selection.expectedAudience.toLocaleString()}명`
+    : null;
+  const midHallLine = midHallSummaryLine(selection);
 
   return (
     <section className="rounded border border-border bg-background p-7">
       <h2 className="text-[19px] font-semibold">6. 예상 대관료 · 산출내역서</h2>
       <p className="mt-1.5 text-[13.5px] text-muted">
-        {pkg.audienceTier.label} · {selection.week.year}.{selection.week.month}{" "}
-        {selection.week.weekOfMonth}주차 · 총 {totalRentalDays(selection)}일 · 관객{" "}
-        {selection.expectedAudience.toLocaleString()}명
+        {isSimultaneous ? (
+          <>
+            아레나 — {arenaLine}
+            <br />
+            중형공연장 — {midHallLine}
+          </>
+        ) : (
+          arenaLine ?? midHallLine
+        )}
       </p>
 
       <div className="mt-6 overflow-x-auto">
@@ -147,10 +124,20 @@ export function Step5Estimate({
         {quote.meteredNotice} 본 금액은 <b>예상</b>이며 확정 금액이 아닙니다.
       </p>
 
-      {selection.bookingMode === "SIMULTANEOUS" && (
+      {quote.blockingIssues.length > 0 && (
+        <div className="mt-4 rounded border-l-2 border-warn bg-warn-soft px-4 py-3 text-[12.5px] leading-5 text-warn">
+          <p className="font-semibold">운영자 확인이 필요해 아직 신청서를 제출할 수 없습니다.</p>
+          <ul className="mt-1.5 list-disc space-y-1 pl-4">
+            {quote.blockingIssues.map((issue) => (
+              <li key={issue}>{issue}</li>
+            ))}
+          </ul>
+        </div>
+      )}
+
+      {isSimultaneous && (
         <div className="mt-4 rounded border-l-2 border-accent bg-accent-soft px-4 py-3 text-[12.5px] leading-5 text-accent">
-          위 금액은 <b>아레나 소계만</b> 반영합니다. 중형 소계 · 합산 금액은 요금 엔진 연동 후
-          이 화면에 함께 표시될 예정입니다(할인 없이 두 소계를 단순 합산).
+          위 금액은 <b>아레나 + 중형공연장 합산</b>입니다 (할인 없이 두 소계를 단순 합산).
         </div>
       )}
     </section>
