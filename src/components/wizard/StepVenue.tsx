@@ -12,12 +12,12 @@ import {
 const EVENT_TYPES = Object.keys(EVENT_TYPE_LABEL) as EventType[];
 const STAGE_TYPES = Object.keys(STAGE_TYPE_LABEL) as StageType[];
 
-// [화면 뼈대 2026-08-19, 화면시나리오 STEP 1-1] 이용 시설은 라디오(메인 아레나/중형공연장)
-// + 별도 "동시 대관" 체크박스 조합이다. 체크박스가 켜지면 아레나가 기준(anchor)이 되므로
-// 라디오는 항상 "메인 아레나" 상태로 고정해 보여준다 — 동시 대관에서 아레나를 먼저
-// 확정하는 흐름(2단계 캘린더의 "동시 대관에서는 아레나를 먼저 확정합니다")과 일치시킨다.
-// venueId가 아직 null이면(첫 진입) 라디오 둘 다 선택 안 된 상태로 보여준다 — "arena"를
-// 기본값처럼 취급해 미리 체크해두면 사용자가 클릭해도 change 이벤트가 안 붙는다.
+// [화면 뼈대 2026-08-19, 화면시나리오 STEP 1-1] 이용 시설은 "메인 아레나 / 중형공연장 /
+// 동시 대관" 3개 중 하나만 고르는 토글 버튼이다 — 라디오+체크박스 조합(중복 체크로
+// 오인되던 구조)이 아니라 셋이 동등한 배타적 선택지다. 동시 대관을 고르면 아레나가
+// 기준(anchor)이 되므로 venueId는 항상 "arena"로 고정한다(2단계 캘린더의 "동시 대관에서는
+// 아레나를 먼저 확정합니다" 흐름과 일치). venueId가 아직 null이면(첫 진입) 셋 다 비활성
+// 상태로 보여준다.
 function primaryVenueOf(venueId: string | null, bookingMode: BookingMode): "arena" | "medium-hall" | null {
   if (bookingMode === "SIMULTANEOUS") return "arena";
   if (!venueId) return null;
@@ -49,14 +49,6 @@ export function StepVenue({
   const primaryVenue = primaryVenueOf(venueId, bookingMode);
   const hasSelection = !!venueId;
 
-  function pickPrimary(id: "arena" | "medium-hall") {
-    onSelectVenue(id, isSimultaneous ? "SIMULTANEOUS" : "SINGLE");
-  }
-
-  function toggleSimultaneous(checked: boolean) {
-    onSelectVenue("arena", checked ? "SIMULTANEOUS" : "SINGLE");
-  }
-
   function setInfo<K extends keyof PerformanceInfo>(key: K, value: PerformanceInfo[K]) {
     onChangePerformanceInfo({ ...performanceInfo, [key]: value });
   }
@@ -73,37 +65,28 @@ export function StepVenue({
         <div className="py-5 first:pt-0">
           <div className="flex flex-wrap items-center gap-x-8 gap-y-3">
             <label className="w-28 shrink-0 text-[13px] font-medium text-foreground">이용 시설 *</label>
-            <div className="flex flex-wrap items-center gap-5">
-              <label className="flex cursor-pointer items-center gap-1.5 text-[13.5px]">
-                <input
-                  type="radio"
-                  name="primary-venue"
-                  checked={primaryVenue === "arena"}
-                  onChange={() => pickPrimary("arena")}
-                  className="accent-accent"
-                />
-                메인 아레나
-              </label>
-              <label className="flex cursor-pointer items-center gap-1.5 text-[13.5px]">
-                <input
-                  type="radio"
-                  name="primary-venue"
-                  checked={primaryVenue === "medium-hall"}
-                  disabled={isSimultaneous}
-                  onChange={() => pickPrimary("medium-hall")}
-                  className="accent-accent"
-                />
-                중형공연장
-              </label>
-              <label className="ml-2 flex cursor-pointer items-center gap-1.5 rounded-sm border border-border bg-panel px-3 py-1.5 text-[13px]">
-                <input
-                  type="checkbox"
-                  checked={isSimultaneous}
-                  onChange={(e) => toggleSimultaneous(e.target.checked)}
-                  className="accent-accent"
-                />
-                동시 대관
-              </label>
+            <div className="flex flex-wrap gap-2">
+              {(
+                [
+                  { key: "arena", label: "메인 아레나", active: primaryVenue === "arena" && !isSimultaneous, onClick: () => onSelectVenue("arena", "SINGLE") },
+                  { key: "medium-hall", label: "중형공연장", active: primaryVenue === "medium-hall" && !isSimultaneous, onClick: () => onSelectVenue("medium-hall", "SINGLE") },
+                  { key: "simultaneous", label: "동시 대관", active: isSimultaneous, onClick: () => onSelectVenue("arena", "SIMULTANEOUS") },
+                ] as const
+              ).map((opt) => (
+                <button
+                  key={opt.key}
+                  type="button"
+                  onClick={opt.onClick}
+                  className={[
+                    "rounded-sm border px-3.5 py-2 text-[13px] font-medium transition-colors",
+                    opt.active
+                      ? "border-accent bg-accent-soft text-foreground"
+                      : "border-border bg-panel text-muted hover:border-accent/50",
+                  ].join(" ")}
+                >
+                  {opt.label}
+                </button>
+              ))}
             </div>
           </div>
           <p className="mt-3 pl-0 text-[11.5px] leading-5 text-muted sm:pl-[7.5rem]">
