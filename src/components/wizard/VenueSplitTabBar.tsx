@@ -21,10 +21,10 @@ export function VenueSplitTabBar({
   onMerge: () => void;
 }) {
   return (
-    <div className="mt-5 flex flex-wrap items-center justify-between gap-2 border-b border-border">
+    <div className="mt-5 flex flex-wrap items-center justify-between gap-2 border-b border-border/25">
       <div className="flex gap-1">
         {!midHallDifferent && (
-          <span className="border-b-2 border-accent px-4 py-2.5 text-[13.5px] font-medium text-accent">공통</span>
+          <span className="border-b-2 border-accent px-4 py-2.5 text-s font-medium text-foreground">공통</span>
         )}
         {midHallDifferent && (
           <>
@@ -32,9 +32,9 @@ export function VenueSplitTabBar({
               type="button"
               onClick={() => onSelectTab("ARENA")}
               className={[
-                "border-b-2 px-4 py-2.5 text-[13.5px] font-medium transition-colors",
+                "border-b-2 px-4 py-2.5 text-s font-medium transition-colors",
                 activeTab === "ARENA"
-                  ? "border-accent text-accent"
+                  ? "border-accent text-foreground"
                   : "border-transparent text-muted hover:text-foreground",
               ].join(" ")}
             >
@@ -44,9 +44,9 @@ export function VenueSplitTabBar({
               type="button"
               onClick={() => onSelectTab("MIDHALL")}
               className={[
-                "border-b-2 px-4 py-2.5 text-[13.5px] font-medium transition-colors",
+                "border-b-2 px-4 py-2.5 text-s font-medium transition-colors",
                 activeTab === "MIDHALL"
-                  ? "border-accent text-accent"
+                  ? "border-accent text-foreground"
                   : "border-transparent text-muted hover:text-foreground",
               ].join(" ")}
             >
@@ -59,7 +59,7 @@ export function VenueSplitTabBar({
         <button
           type="button"
           onClick={onMerge}
-          className="mb-2 shrink-0 text-[12px] font-medium text-muted hover:text-accent"
+          className="mb-2 shrink-0 text-xs font-medium text-muted hover:text-foreground"
         >
           ↺ 공통으로 합치기
         </button>
@@ -67,7 +67,7 @@ export function VenueSplitTabBar({
         <button
           type="button"
           onClick={onSplit}
-          className="mb-2 shrink-0 text-[12px] font-medium text-accent hover:underline"
+          className="mb-2 shrink-0 text-xs font-medium text-foreground hover:underline"
         >
           ＋ 공간별로 다르게 입력
         </button>

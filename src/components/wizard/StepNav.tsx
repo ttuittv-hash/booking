@@ -106,7 +106,7 @@ export function StepNav({
                 onClick={() => entryStep !== undefined && onJump(entryStep)}
                 aria-current={isActive ? "step" : undefined}
                 className={[
-                  "whitespace-nowrap border-b-2 px-3 py-3 text-[13px] font-medium outline-none transition-colors",
+                  "whitespace-nowrap border-b-2 px-3 py-3 text-s font-medium outline-none transition-colors",
                   "focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-foreground",
                   isActive
                     ? "border-foreground font-bold text-foreground"
@@ -130,7 +130,7 @@ export function StepNav({
             return (
               <li key={s.step} className="flex shrink-0 items-center gap-2">
                 {i > 0 && (
-                  <span aria-hidden className="text-[11px] text-muted">
+                  <span aria-hidden className="text-xs text-muted">
                     ›
                   </span>
                 )}
@@ -140,7 +140,7 @@ export function StepNav({
                   onClick={() => onJump(s.step)}
                   aria-current={isCurrent ? "step" : undefined}
                   className={[
-                    "flex items-center gap-1.5 rounded-full border px-3 py-1 text-[12px] font-medium outline-none transition-colors",
+                    "flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs font-medium outline-none transition-colors",
                     "focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-foreground",
                     isCurrent || isDone ? "border-foreground text-foreground" : "border-border-soft text-muted",
                     disabled ? "cursor-not-allowed opacity-40" : "cursor-pointer",
@@ -149,7 +149,7 @@ export function StepNav({
                   <span
                     aria-hidden
                     className={[
-                      "flex h-4 w-4 shrink-0 items-center justify-center rounded-full text-[10px] tabular-nums",
+                      "flex h-4 w-4 shrink-0 items-center justify-center rounded-full text-xs tabular-nums",
                       isCurrent
                         ? "bg-inverse-bg text-inverse-fg"
                         : isDone

@@ -58,9 +58,9 @@ export function StepPublicInterest({
   }
 
   return (
-    <section className="rounded border border-border bg-background p-7">
-      <h2 className="text-[19px] font-semibold">STEP 3-3 · 공공성 및 연계 프로그램</h2>
-      <p className="mt-1.5 text-[13.5px] text-muted">
+    <section>
+      <h2 className="type-kr-heading text-h6-m sm:text-h6">공공성</h2>
+      <p className="mt-1.5 text-s text-muted">
         아래 9개 항목을 참고해 계획을 하나의 파일로 정리해 첨부합니다.
       </p>
 
@@ -77,21 +77,21 @@ export function StepPublicInterest({
       {/* 공공성 항목은 공간별로 달라지는 입력값이 없어 탭을 넘겨도 아래 안내 · 첨부는
           동일하게 유지된다 — 04 기본 정보 그룹의 다른 두 화면과 탭 구조만 맞춘다
           (2026-08-19, 형식상 탭 추가 요청). */}
-      <div className="mt-6 rounded-sm border border-border bg-panel/30 p-6">
-        <h3 className="text-[15px] font-semibold">공공성 및 연계 프로그램</h3>
-        <p className="mt-1 text-[12px] leading-5 text-muted">
+      <div className="mt-10 border-t-2 border-foreground pt-5">
+        <h3 className="type-kr-heading text-h6-m">공공성 및 연계 프로그램</h3>
+        <p className="mt-1 text-xs leading-5 text-muted">
           아래 항목을 참고해 계획을 하나의 파일로 정리해 첨부해 주세요. 미확정 사항은 &lsquo;검토
           중&rsquo;으로 기재 가능합니다.
         </p>
 
         <div className="mt-4 grid grid-cols-1 gap-2.5 sm:grid-cols-3">
           {PUBLIC_INTEREST_ITEMS.map((item, i) => (
-            <div key={item.title} className="rounded-sm border border-border bg-panel/40 p-3">
+            <div key={item.title} className="border border-border/25 p-4">
               <div className="flex items-start gap-2">
-                <span className="shrink-0 text-[12.5px] font-semibold text-accent">{i + 1}.</span>
+                <span className="shrink-0 text-xs font-semibold text-foreground">{i + 1}.</span>
                 <div>
-                  <div className="text-[13px] font-medium text-foreground">{item.title}</div>
-                  <div className="mt-0.5 text-[11.5px] text-muted">{item.hint}</div>
+                  <div className="text-s font-medium text-foreground">{item.title}</div>
+                  <div className="mt-0.5 text-xs text-muted">{item.hint}</div>
                 </div>
               </div>
             </div>
@@ -99,9 +99,9 @@ export function StepPublicInterest({
         </div>
       </div>
 
-      <div className="mt-6 rounded-sm border border-border bg-panel/30 p-6">
-        <h3 className="text-[15px] font-semibold">자료 첨부</h3>
-        <p className="mt-1 mb-2.5 text-[12px] leading-5 text-muted">
+      <div className="mt-10 border-t-2 border-foreground pt-5">
+        <h3 className="type-kr-heading text-h6-m">자료 첨부</h3>
+        <p className="mt-1 mb-2.5 text-xs leading-5 text-muted">
           공공성 및 연계 프로그램 계획서(PDF/HWP/DOCX, 9개 항목 통합 1개 파일)를 첨부하세요.
         </p>
 
@@ -110,10 +110,10 @@ export function StepPublicInterest({
             {files.map((file, i) => (
               <li
                 key={`${file.name}-${i}`}
-                className="flex items-center justify-between rounded border border-border bg-panel px-3.5 py-2.5"
+                className="flex items-center justify-between border border-border/25 bg-panel px-3.5 py-2.5"
               >
-                <span className="truncate text-[13px] font-medium">{file.name}</span>
-                <button type="button" onClick={() => removeFile(i)} className="shrink-0 text-[11.5px] text-muted hover:text-red-600">
+                <span className="truncate text-s font-medium">{file.name}</span>
+                <button type="button" onClick={() => removeFile(i)} className="shrink-0 text-xs text-muted hover:text-red-600">
                   삭제
                 </button>
               </li>
@@ -128,7 +128,7 @@ export function StepPublicInterest({
             addFiles(e.target.files);
             e.target.value = "";
           }}
-          className="text-[12.5px] text-muted file:mr-3 file:rounded file:border file:border-border file:bg-background file:px-3 file:py-1.5 file:text-[12.5px] file:font-medium"
+          className="text-xs text-muted file:mr-3 file:file:border file:border-border/25 file:bg-background file:px-3 file:py-1.5 file:text-xs file:font-medium"
         />
       </div>
     </section>

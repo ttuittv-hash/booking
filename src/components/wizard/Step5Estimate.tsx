@@ -103,7 +103,7 @@ export function Step5Estimate({
   return (
     <section>
       <StepHeading
-        title={<>예상 대관료 · 산출내역서</>}
+        title={<>예상 대관료</>}
         lead={
           isSimultaneous ? (
             <>

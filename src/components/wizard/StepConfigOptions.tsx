@@ -140,10 +140,10 @@ function baseCompositionTiles(
 function BaseCompositionCard({ tiles, note }: { tiles: BaseCompositionTile[]; note: string }) {
   if (tiles.length === 0) return null;
   return (
-    <div className="mt-6 rounded border border-good/30 bg-good-soft/30 p-5">
+    <div className="mt-6 border border-good/30 bg-good-soft/30 p-5">
       <div className="flex items-center gap-2">
-        <span className="rounded-sm bg-good px-2 py-0.5 text-[10.5px] font-semibold text-white">기본 포함</span>
-        <span className="text-[12.5px] font-medium text-foreground">{note}</span>
+        <span className="bg-good px-2 py-0.5 text-xs font-semibold text-white">기본 포함</span>
+        <span className="text-xs font-medium text-foreground">{note}</span>
       </div>
       <div className="mt-4 space-y-4">
         {BASE_COMPOSITION_GROUP_ORDER.map((group) => {
@@ -151,12 +151,12 @@ function BaseCompositionCard({ tiles, note }: { tiles: BaseCompositionTile[]; no
           if (groupTiles.length === 0) return null;
           return (
             <div key={group}>
-              <div className="mb-1.5 text-[10.5px] font-semibold uppercase tracking-wide text-good">{group}</div>
+              <div className="mb-1.5 text-xs font-semibold uppercase tracking-wide text-good">{group}</div>
               <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
                 {groupTiles.map((tile) => (
-                  <div key={tile.label} className="rounded-sm border border-good/20 bg-background px-3 py-2">
-                    <div className="text-[11px] text-muted">{tile.label}</div>
-                    <div className="mt-0.5 text-[13px] font-semibold text-good">{tile.value}</div>
+                  <div key={tile.label} className="border border-good/20 bg-background px-3 py-2">
+                    <div className="text-xs text-muted">{tile.label}</div>
+                    <div className="mt-0.5 text-s font-semibold text-good">{tile.value}</div>
                   </div>
                 ))}
               </div>
@@ -194,9 +194,9 @@ export function StepConfigOptions({
     const midHallPkg = packagesForVenue(rateTable, "medium-hall")[0];
     const midHallTiles = midHallPkg ? baseCompositionTiles(midHallPkg, rateTable, { includeSchedule: false }) : [];
     return (
-      <section className="rounded border border-border bg-background p-7">
-        <h2 className="text-[19px] font-semibold">2. 구성 · 옵션</h2>
-        <p className="mt-3 text-[13.5px] text-muted">
+      <section>
+        <h2 className="type-kr-heading text-h6-m sm:text-h6">구성 · 옵션</h2>
+        <p className="mt-3 text-s text-muted">
           중형공연장은 패키지가 없는 일 단위 요금제입니다 — 아래는 예약 일수와 무관하게 항상
           포함되는 기본 구성입니다.
         </p>
@@ -206,7 +206,7 @@ export function StepConfigOptions({
           note="대관료에 이미 포함된 구성 — 예약 일수와 무관하게 동일하게 제공됩니다"
         />
 
-        <p className="mt-6 text-[13.5px] text-muted">
+        <p className="mt-6 text-s text-muted">
           추가 옵션(시설사용료 · 센터리프트 등) 선택 화면은 다음 업데이트에서 반영됩니다.
         </p>
       </section>
@@ -215,10 +215,10 @@ export function StepConfigOptions({
 
   if (!pkg) {
     return (
-      <section className="rounded border border-border bg-background p-7">
-        <h2 className="text-[19px] font-semibold">2. 구성 · 옵션</h2>
-        <p className="mt-3 text-[13.5px] text-muted">
-          예상 관객 규모에 맞는 패키지를 아직 찾지 못했습니다. STEP 1에서 관객 규모를 확인해 주세요.
+      <section>
+        <h2 className="type-kr-heading text-h6-m sm:text-h6">구성 · 옵션</h2>
+        <p className="mt-3 text-s text-muted">
+          예상 관객 규모에 맞는 패키지를 아직 찾지 못했습니다. 패키지 선택에서 관객 규모를 확인해 주세요.
         </p>
       </section>
     );
@@ -252,14 +252,12 @@ export function StepConfigOptions({
 
   const arenaSection = (
     <>
-      <div className="flex flex-wrap items-baseline justify-between gap-2 border-b border-border pb-4">
+      <div className="flex flex-wrap items-baseline justify-between gap-2 border-b border-border/25 pb-4">
         <div>
-          <h2 className="text-[19px] font-semibold">
-            아레나 <span className="text-[14px] font-normal text-muted">· 관객 규모 기준 자동 산정</span>
-          </h2>
-          <p className="mt-1 text-[12.5px] text-muted">
-            {pkg.audienceTier.label} · 예상 관객 {selection.expectedAudience.toLocaleString()}명 ·{" "}
-            {arenaSummaryLine(selection, defaultPerformanceDays)}
+          <h2 className="type-kr-heading text-h6-m sm:text-h6">아레나</h2>
+          <p className="mt-1 text-xs text-muted">
+            관객 규모 기준 자동 산정 · {pkg.audienceTier.label} · 예상 관객{" "}
+            {selection.expectedAudience.toLocaleString()}명 · {arenaSummaryLine(selection, defaultPerformanceDays)}
           </p>
         </div>
       </div>
@@ -269,17 +267,17 @@ export function StepConfigOptions({
         note="대관료에 이미 포함된 구성 — 관객 규모와 무관하게 전 패키지 동일하게 제공됩니다"
       />
 
-      <div className="mt-6 rounded border border-accent/30 bg-accent-soft/20 p-5">
+      <div className="mt-6 border border-accent/30 bg-accent-soft/20 p-5">
         <div className="flex items-center gap-2">
-          <span className="rounded-sm bg-accent px-2 py-0.5 text-[10.5px] font-semibold text-white">선택 옵션</span>
-          <span className="text-[12.5px] font-medium text-foreground">
+          <span className="bg-accent px-2 py-0.5 text-xs font-semibold text-on-accent">선택 옵션</span>
+          <span className="text-xs font-medium text-foreground">
             필요한 만큼 수량을 정해 추가하는 항목 — 단가 × 수량으로 금액이 즉시 계산됩니다
           </span>
         </div>
         <div className="mt-4 space-y-6">
           {[...grouped.entries()].map(([category, items]) => (
             <div key={category}>
-              <div className="mb-2 text-[11px] font-semibold uppercase tracking-wide text-accent">
+              <div className="mb-2 text-xs font-semibold uppercase tracking-wide text-foreground">
                 {ADDON_CATEGORY_LABEL[category]}
               </div>
               <div className="space-y-2">
@@ -298,11 +296,11 @@ export function StepConfigOptions({
             </div>
           ))}
         </div>
-        <div className="mt-4 flex items-center justify-between rounded-sm bg-background px-4 py-3 text-[13.5px] font-semibold">
+        <div className="mt-4 flex items-center justify-between bg-background px-4 py-3 text-s font-semibold">
           <span>선택 옵션</span>
           <span className="tabular-nums">{selectedOptionCount}건 선택됨</span>
         </div>
-        <p className="mt-2 text-[11px] text-muted">
+        <p className="mt-2 text-xs text-muted">
           청소 사용료 · 수도광열비 · 추가 광고 구좌 등은 별도입니다. 금액은 표시하지 않으며,
           선택을 마치면 다음 화면(예상 대관료)에서 총액을 확인합니다.
           <br />※ 신청 규모를 초과해 좌석을 오픈하는 경우 사후 정산 시 추가 과금됩니다.
@@ -312,7 +310,7 @@ export function StepConfigOptions({
   );
 
   if (!isSimultaneous) {
-    return <section className="rounded border border-border bg-background p-7">{arenaSection}</section>;
+    return <section>{arenaSection}</section>;
   }
 
   const midHallPkgForTab = packagesForVenue(rateTable, "medium-hall")[0];
@@ -323,12 +321,11 @@ export function StepConfigOptions({
 
   const midHallSection = (
     <>
-      <div className="border-b border-border pb-4">
-        <h2 className="text-[19px] font-semibold">
-          중형공연장 <span className="text-[14px] font-normal text-muted">· 일 단위 요금제</span>
-        </h2>
-        <p className="mt-1 text-[12.5px] text-muted">
-          {midHallLine ? `${midHallLine} (아레나와 별개 공간)` : "STEP 2(일정)의 중형 일정 탭에서 날짜를 먼저 지정해 주세요."}
+      <div className="border-b border-border/25 pb-4">
+        <h2 className="type-kr-heading text-h6-m sm:text-h6">중형공연장</h2>
+        <p className="mt-1 text-xs text-muted">
+          일 단위 요금제 ·{" "}
+          {midHallLine ? `${midHallLine} (아레나와 별개 공간)` : "일정 선택의 중형 일정 탭에서 날짜를 먼저 지정해 주세요."}
         </p>
       </div>
 
@@ -337,29 +334,29 @@ export function StepConfigOptions({
         note="대관료에 이미 포함된 구성 — 예약 일수와 무관하게 동일하게 제공됩니다"
       />
 
-      <p className="mt-6 text-[13.5px] text-muted">
+      <p className="mt-6 text-s text-muted">
         추가 옵션(시설사용료 · 센터리프트 등) 선택 화면은 다음 업데이트에서 반영됩니다.
       </p>
     </>
   );
 
   return (
-    <section className="rounded border border-border bg-background p-7">
-      <h2 className="text-[19px] font-semibold">2. 구성 · 옵션</h2>
-      <p className="mt-1.5 text-[13.5px] text-muted">
+    <section>
+      <h2 className="type-kr-heading text-h6-m sm:text-h6">구성 · 옵션</h2>
+      <p className="mt-1.5 text-s text-muted">
         동시 대관은 두 공간의 구성이 서로 달라 탭으로 나눠 보여줍니다.
       </p>
 
-      <div className="mt-5 flex gap-1 border-b border-border">
+      <div className="mt-5 flex gap-1 border-b border-border/25">
         {(["arena", "medium-hall"] as const).map((tab) => (
           <button
             key={tab}
             type="button"
             onClick={() => setVenueTab(tab)}
             className={[
-              "border-b-2 px-4 py-2.5 text-[13.5px] font-medium transition-colors",
+              "border-b-2 px-4 py-2.5 text-s font-medium transition-colors",
               venueTab === tab
-                ? "border-accent text-accent"
+                ? "border-accent text-foreground"
                 : "border-transparent text-muted hover:text-foreground",
             ].join(" ")}
           >
@@ -411,38 +408,38 @@ function AddonRow({
   return (
     <div
       className={[
-        "flex flex-col gap-3 rounded border px-4 py-3 sm:flex-row sm:items-center sm:justify-between sm:gap-4",
-        isUtil ? "border-border/70 bg-panel/50 opacity-60" : "border-border bg-panel/60",
+        "flex flex-col gap-3 border px-4 py-3 sm:flex-row sm:items-center sm:justify-between sm:gap-4",
+        isUtil ? "border-border/70 bg-panel/50 opacity-60" : "border-border/25 bg-panel/60",
       ].join(" ")}
     >
       <div className="min-w-0">
         <div className="flex flex-wrap items-center gap-1.5">
-          <span className="text-[13.5px] font-medium">{addon.name}</span>
+          <span className="text-s font-medium">{addon.name}</span>
           {included > 0 && (
-            <span className="rounded-sm bg-good-soft px-1.5 py-0.5 text-[10.5px] font-semibold text-good">
+            <span className="bg-good-soft px-1.5 py-0.5 text-xs font-semibold text-good">
               {included} 기본포함
             </span>
           )}
           {ruleTag && (
-            <span className="rounded-sm bg-warn-soft px-1.5 py-0.5 text-[10.5px] font-semibold text-warn">
+            <span className="bg-warn-soft px-1.5 py-0.5 text-xs font-semibold text-warn">
               {ruleTag}
             </span>
           )}
         </div>
-        <div className="mt-0.5 text-[11.5px] text-muted">
+        <div className="mt-0.5 text-xs text-muted">
           {addon.unitLabel}
           {addon.note ? ` · ${addon.note}` : ""}
         </div>
       </div>
 
       <div className="flex shrink-0 items-center justify-between gap-3 sm:justify-end">
-        <span className="whitespace-nowrap text-[12px] text-muted">{priceLabel}</span>
+        <span className="whitespace-nowrap text-xs text-muted">{priceLabel}</span>
 
         {isUtil ? (
-          <span className="whitespace-nowrap text-[12.5px] text-muted">정산 단계 부과</span>
+          <span className="whitespace-nowrap text-xs text-muted">정산 단계 부과</span>
         ) : isRevenue ? (
           <div className="flex items-center gap-2">
-            <label className="flex items-center gap-1.5 whitespace-nowrap text-[12px] text-muted">
+            <label className="flex items-center gap-1.5 whitespace-nowrap text-xs text-muted">
               <input
                 type="checkbox"
                 checked={quantity > 0}
@@ -459,7 +456,7 @@ function AddonRow({
               value={expectedRevenue || ""}
               disabled={quantity <= 0}
               onChange={(e) => onChangeRevenue(Math.max(0, Number(e.target.value) || 0))}
-              className="w-24 shrink-0 rounded-sm border border-border bg-background px-2.5 py-1.5 text-right text-[13px] outline-none focus:border-accent disabled:opacity-40 sm:w-28"
+              className="field-base text-right tabular-nums w-24 shrink-0 disabled:opacity-40 sm:w-28"
             />
           </div>
         ) : (
@@ -472,7 +469,7 @@ function AddonRow({
             onChange={(e) =>
               onChangeQuantity(addon.id, Math.max(0, Number(e.target.value) || 0))
             }
-            className="w-16 shrink-0 rounded-sm border border-border bg-background px-2.5 py-1.5 text-right text-[13px] outline-none focus:border-accent"
+            className="field-base text-right tabular-nums w-16 shrink-0"
           />
         )}
       </div>

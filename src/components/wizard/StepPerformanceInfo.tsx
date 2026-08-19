@@ -377,10 +377,10 @@ function PerformanceInfoFields({
             <TextField label="주최 · 주관 · 기획" value={info.organizer} onChange={(v) => set("organizer", v)} />
 
             {scheduleSummary?.arenaLine && (
-              <ReadOnlyRow label="대관기간 — 아레나" value={scheduleSummary.arenaLine} note="수정은 STEP 2(일정)에서" />
+              <ReadOnlyRow label="대관기간 — 아레나" value={scheduleSummary.arenaLine} note="수정은 일정 선택에서" />
             )}
             {scheduleSummary?.midHallLine && (
-              <ReadOnlyRow label="대관기간 — 중형" value={scheduleSummary.midHallLine} note="수정은 STEP 2(일정)에서" />
+              <ReadOnlyRow label="대관기간 — 중형" value={scheduleSummary.midHallLine} note="수정은 일정 선택에서" />
             )}
             {scheduleSummary?.showsTotal != null && (
               <ReadOnlyRow label="총 공연 횟수" value={`${scheduleSummary.showsTotal}회 (자동 계산)`} />
@@ -602,7 +602,7 @@ export function StepPerformanceInfo({
 
   return (
     <section>
-      <h2 className="type-kr-heading text-h6-m sm:text-h6">신청자 정보 · 공연 기본정보</h2>
+      <h2 className="type-kr-heading text-h6-m sm:text-h6">신청자 정보</h2>
       <p className="mt-3 text-s text-muted">
         신청서는 두 공간을 합쳐 1건입니다. 대관기간만 공간별로 나눠 표기합니다.
       </p>

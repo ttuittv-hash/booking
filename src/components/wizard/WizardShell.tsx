@@ -423,7 +423,7 @@ export function WizardShell({
         type="button"
         disabled={step === 1}
         onClick={() => goTo(step - 1)}
-        className="rounded-full px-3.5 py-1.5 text-[12.5px] font-medium text-muted transition-colors hover:bg-panel hover:text-foreground disabled:cursor-not-allowed disabled:opacity-30"
+        className="rounded-full px-3.5 py-1.5 text-xs font-medium text-muted transition-colors hover:bg-panel hover:text-foreground disabled:cursor-not-allowed disabled:opacity-30"
       >
         ← 이전
       </button>
@@ -432,7 +432,7 @@ export function WizardShell({
           type="button"
           disabled={(step === 1 && !selection.venueId) || (step === 2 && midHallOnly && !hasMidHallSelection)}
           onClick={() => goTo(step + 1)}
-          className="rounded-full border border-border px-3.5 py-1.5 text-[12.5px] font-medium text-foreground transition-colors hover:border-accent hover:text-accent disabled:cursor-not-allowed disabled:opacity-30"
+          className="rounded-full border border-border/25 px-3.5 py-1.5 text-xs font-medium text-foreground transition-colors hover:border-foreground hover:text-foreground disabled:cursor-not-allowed disabled:opacity-30"
         >
           다음 →
         </button>
@@ -467,22 +467,22 @@ export function WizardShell({
           />
         )}
         {step === 2 && selection.bookingMode === "SIMULTANEOUS" && (
-          <section className="rounded border border-border bg-background p-5 sm:p-7">
-            <h2 className="text-[19px] font-semibold">2. 일정</h2>
-            <p className="mt-1.5 text-[13.5px] text-muted">
+          <section className="border border-border/25 bg-background p-5 sm:p-7">
+            <h2 className="type-kr-heading text-h6-m sm:text-h6">일정 선택</h2>
+            <p className="mt-1.5 text-s text-muted">
               동시 대관에서는 아레나를 먼저 확정합니다 — 덩어리가 크고 제약이 많아 기준선
               역할을 합니다.
             </p>
-            <div className="mt-5 flex gap-1 border-b border-border">
+            <div className="mt-5 flex gap-1 border-b border-border/25">
               {(["arena", "medium-hall"] as const).map((tab) => (
                 <button
                   key={tab}
                   type="button"
                   onClick={() => setVenueTab(tab)}
                   className={[
-                    "border-b-2 px-4 py-2.5 text-[13.5px] font-medium transition-colors",
+                    "border-b-2 px-4 py-2.5 text-s font-medium transition-colors",
                     venueTab === tab
-                      ? "border-accent text-accent"
+                      ? "border-accent text-foreground"
                       : "border-transparent text-muted hover:text-foreground",
                   ].join(" ")}
                 >
@@ -537,8 +537,8 @@ export function WizardShell({
           </section>
         )}
         {step === 2 && midHallOnly && (
-          <section className="rounded border border-border bg-background p-5 sm:p-7">
-            <h2 className="text-[19px] font-semibold">2. 일정</h2>
+          <section className="border border-border/25 bg-background p-5 sm:p-7">
+            <h2 className="type-kr-heading text-h6-m sm:text-h6">일정 선택</h2>
             <MidHallCalendar
               year={midHallMonth.year}
               month={midHallMonth.month}
