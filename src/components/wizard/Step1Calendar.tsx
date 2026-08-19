@@ -66,6 +66,19 @@ function addDays(date: Date, n: number): Date {
   return d;
 }
 
+const MAX_EXTRA_DAYS = 30;
+
+type DayKind =
+  | { kind: "base"; weekday: WeekDay }
+  | { kind: "extra"; index: number } // 화~일(offset 0~5) 다음으로 이미 추가된 날 — index는 추가일 중 순번(0부터)
+  | { kind: "extend" }; // 다음으로 이어서 추가할 수 있는 바로 다음 날 (아직 미추가)
+
+function omit<T>(obj: Record<string, T>, key: string): Record<string, T> {
+  const copy = { ...obj };
+  delete copy[key];
+  return copy;
+}
+
 export function Step1Calendar({
   week,
   excludedDays,
@@ -156,30 +169,64 @@ export function Step1Calendar({
     return match?.companyCount ?? 0;
   }
 
-  function weekdayForDate(iso: string): WeekDay | null {
+  // 화~일(offset 0~5)은 기본 대관 요일, offset 6부터는 일요일 다음으로 이어 붙이는 추가일이다.
+  // 별도 스테퍼 없이 달력에서 바로 다음 날짜를 눌러 추가하고, 이미 추가된 날은 기존 날짜와
+  // 똑같이 역할 지정/회차 조정/삭제가 가능하다 — 추가일만 별도 취급하던 이전 제약을 없앤다.
+  function offsetForDate(iso: string): number | null {
     if (!selectedTuesday) return null;
     const targetKey = dateKey(new Date(iso));
-    for (let i = 0; i < 6; i++) {
-      if (dateKey(addDays(selectedTuesday, i)) === targetKey) return WEEKDAYS[i];
+    for (let i = -1; i <= 6 + MAX_EXTRA_DAYS; i++) {
+      if (dateKey(addDays(selectedTuesday, i)) === targetKey) return i;
     }
-    return null; // 추가 일수(연장일)는 요일 개념이 없다 — 역할 지정 대상이 아니다
+    return null;
+  }
+
+  function dayKindForDate(iso: string): DayKind | null {
+    const offset = offsetForDate(iso);
+    if (offset === null) return null;
+    if (offset >= 0 && offset <= 5) return { kind: "base", weekday: WEEKDAYS[offset] };
+    if (offset >= 6 && offset <= 6 + extraDays - 1) return { kind: "extra", index: offset - 6 };
+    if (offset === 6 + extraDays && extraDays < MAX_EXTRA_DAYS) return { kind: "extend" };
+    return null;
   }
 
   function setRole(iso: string, role: DayTag | "REMOVE") {
-    const weekday = weekdayForDate(iso);
-    if (!weekday) return;
-    const isExcluded = excludedDays.includes(weekday);
+    const dayKind = dayKindForDate(iso);
+    if (!dayKind) return;
 
-    if (role === "REMOVE") {
-      if (!isExcluded && usedDayCount <= 1) return; // 최소 1일은 남겨야 함
-      if (!isExcluded) onChangeExcludedDays([...excludedDays, weekday]);
-      setOpenDate(null);
+    if (dayKind.kind === "base") {
+      const isExcluded = excludedDays.includes(dayKind.weekday);
+      if (role === "REMOVE") {
+        if (!isExcluded && usedDayCount <= 1) return; // 최소 1일은 남겨야 함
+        if (!isExcluded) onChangeExcludedDays([...excludedDays, dayKind.weekday]);
+        setOpenDate(null);
+        return;
+      }
+      // 셋업/공연일/철수 선택 — 제외돼 있었다면 다시 사용일로 복귀시킨 뒤 역할을 지정한다.
+      // 드롭다운은 여기서 닫지 않는다 — 공연일을 고른 직후 바로 아래에서 회차를 조정해야
+      // 하므로, 상태값과 회차 스테퍼를 같은 화면에서 함께 보여준다.
+      if (isExcluded) onChangeExcludedDays(excludedDays.filter((d) => d !== dayKind.weekday));
+      onChangeDayTags({ ...dayTags, [iso]: role });
       return;
     }
-    // 셋업/공연일/철수 선택 — 제외돼 있었다면 다시 사용일로 복귀시킨 뒤 역할을 지정한다.
-    // 드롭다운은 여기서 닫지 않는다 — 공연일을 고른 직후 바로 아래에서 회차를 조정해야
-    // 하므로, 상태값과 회차 스테퍼를 같은 화면에서 함께 보여준다.
-    if (isExcluded) onChangeExcludedDays(excludedDays.filter((d) => d !== weekday));
+
+    if (dayKind.kind === "extra") {
+      if (role === "REMOVE") {
+        // 추가일은 화~일 뒤로 이어붙인 연속 카운트라 맨 마지막 날만 뗄 수 있다.
+        if (dayKind.index !== extraDays - 1) return;
+        onChangeExtraDays(extraDays - 1);
+        onChangeDayTags(omit(dayTags, iso));
+        onChangeDayShowCounts(omit(dayShowCounts, iso));
+        setOpenDate(null);
+        return;
+      }
+      onChangeDayTags({ ...dayTags, [iso]: role });
+      return;
+    }
+
+    // dayKind.kind === "extend" — 아직 추가되지 않은, 화~일 다음으로 이어 붙일 수 있는 바로 다음 날
+    if (role === "REMOVE") return; // 아직 추가되지 않았으니 뗄 것이 없다
+    onChangeExtraDays(extraDays + 1);
     onChangeDayTags({ ...dayTags, [iso]: role });
   }
 
@@ -198,7 +245,9 @@ export function Step1Calendar({
         달력에서 원하는 주를 눌러 선택하세요. 기본 단위는{" "}
         <b className="text-foreground">1주(화~일, 6일)</b>이며, 월요일은 기본적으로 대관하지
         않습니다. 선택한 주의 날짜를 누르면 셋업 · 공연일(회차 포함) · 철수 · 제외를 바로
-        지정할 수 있습니다.
+        지정할 수 있습니다. 기간을 더 늘리려면 일요일 다음으로{" "}
+        <span className="text-accent">추가+</span> 표시된 날짜를 눌러 이어 붙이면 됩니다 — 이렇게
+        추가한 날짜도 다른 날짜와 똑같이 역할과 회차를 지정할 수 있습니다.
       </p>
 
       <div className="mt-6 flex items-center justify-between">
@@ -234,7 +283,6 @@ export function Step1Calendar({
       <div className="mt-1.5 space-y-1 sm:space-y-1.5">
         {calendarWeeks.map((calWeek, wi) => {
           const isSelectable = calWeek.weekOfMonth !== null;
-          const isActiveWeek = calWeek.weekOfMonth !== null && calWeek.weekOfMonth === week.weekOfMonth;
           const demand = calWeek.weekOfMonth !== null ? demandFor(calWeek.weekOfMonth) : 0;
           const blocked = calWeek.weekOfMonth !== null ? blockedFor(calWeek.weekOfMonth) : undefined;
           const openInThisRow = openDate && calWeek.days.some((d) => isoDate(d) === openDate);
@@ -248,18 +296,21 @@ export function Step1Calendar({
                   const iso = isoDate(date);
                   const isActive = activeDateKeys.has(dateKey(date));
                   const tag = isActive ? effectiveDayTag(iso, dayTags, dayTagDefaults) : null;
-                  const cellDisabled = !isSelectable || !!blocked || isMonday;
+                  const dayKind = dayKindForDate(iso);
+                  const isExtendable = dayKind?.kind === "extend";
+                  const interactable = dayKind !== null;
+                  const cellDisabled = !!blocked || (isMonday && !interactable) || (!isSelectable && !interactable);
                   return (
                     <button
                       key={di}
                       type="button"
                       disabled={cellDisabled}
                       onClick={() => {
-                        if (!isActiveWeek) {
-                          if (calWeek.weekOfMonth !== null) selectWeek(calWeek.weekOfMonth);
+                        if (interactable) {
+                          setOpenDate(openDate === iso ? null : iso);
                           return;
                         }
-                        setOpenDate(openDate === iso ? null : iso);
+                        if (calWeek.weekOfMonth !== null) selectWeek(calWeek.weekOfMonth);
                       }}
                       className={[
                         "flex h-9 flex-col items-center justify-center gap-0.5 rounded-sm text-[12.5px] sm:h-11 sm:text-[13px]",
@@ -267,11 +318,13 @@ export function Step1Calendar({
                           ? "cursor-not-allowed text-muted line-through"
                           : isActive
                             ? "cursor-pointer bg-accent-soft font-semibold text-accent"
-                            : !inMonth
-                              ? "cursor-default text-muted/40"
-                              : isMonday
-                                ? "cursor-default text-muted/70"
-                                : "cursor-pointer text-foreground hover:bg-panel",
+                            : isExtendable
+                              ? "cursor-pointer border border-dashed border-accent/50 text-muted hover:border-accent hover:text-accent"
+                              : !inMonth
+                                ? "cursor-default text-muted/40"
+                                : isMonday
+                                  ? "cursor-default text-muted/70"
+                                  : "cursor-pointer text-foreground hover:bg-panel",
                         isToday ? "underline decoration-2 underline-offset-4" : "",
                         openDate === iso ? "ring-2 ring-accent" : "",
                       ].join(" ")}
@@ -286,16 +339,18 @@ export function Step1Calendar({
                               : "세팅"}
                         </span>
                       )}
+                      {!tag && isExtendable && <span className="text-[9px] font-medium leading-none">추가+</span>}
                     </button>
                   );
                 })}
               </div>
 
-              {isActiveWeek && openInThisRow && openDate && (
+              {openInThisRow && openDate && (
                 <div className="mt-1.5 rounded-sm border border-accent bg-accent-soft/40 px-3 py-2.5">
                   <div className="flex items-center justify-between">
                     <div className="text-[12.5px] font-semibold text-foreground">
-                      {formatDateLabel(openDate)} — 역할 선택
+                      {formatDateLabel(openDate)}
+                      {dayKindForDate(openDate)?.kind === "extend" ? " — 추가 후 역할 선택" : " — 역할 선택"}
                     </div>
                     <button
                       type="button"
@@ -349,7 +404,13 @@ export function Step1Calendar({
                     <button
                       type="button"
                       onClick={() => setRole(openDate, "REMOVE")}
-                      disabled={activeDateKeys.has(dateKey(new Date(openDate))) && usedDayCount <= 1}
+                      disabled={(() => {
+                        const kind = dayKindForDate(openDate);
+                        if (!kind) return true;
+                        if (kind.kind === "base") return activeDateKeys.has(dateKey(new Date(openDate))) && usedDayCount <= 1;
+                        if (kind.kind === "extra") return kind.index !== extraDays - 1; // 맨 마지막 추가일만 뗄 수 있음
+                        return true; // extend — 아직 추가되지 않아 뗄 것이 없음
+                      })()}
                       className="rounded-sm bg-panel-strong px-3 py-1.5 text-[12px] font-medium text-muted transition-colors hover:text-red-600 disabled:cursor-not-allowed disabled:opacity-40"
                     >
                       삭제 (미사용)
@@ -401,32 +462,6 @@ export function Step1Calendar({
             </div>
           );
         })}
-      </div>
-
-      <div className="mt-5 flex flex-wrap items-center gap-3 border-t border-border pt-5">
-        <label className="text-[12.5px] font-medium text-muted">추가 일수 (일요일 이후 연장)</label>
-        <div className="flex items-center gap-2">
-          <button
-            type="button"
-            onClick={() => onChangeExtraDays(Math.max(0, extraDays - 1))}
-            className="h-8 w-8 rounded-sm border border-border text-[15px] text-muted hover:border-accent hover:text-accent"
-            aria-label="추가 일수 감소"
-          >
-            −
-          </button>
-          <span className="w-6 text-center text-[13px] font-medium tabular-nums">{extraDays}</span>
-          <button
-            type="button"
-            onClick={() => onChangeExtraDays(Math.min(30, extraDays + 1))}
-            className="h-8 w-8 rounded-sm border border-border text-[15px] text-muted hover:border-accent hover:text-accent"
-            aria-label="추가 일수 증가"
-          >
-            +
-          </button>
-        </div>
-        {extraDays > 0 && (
-          <span className="text-[11px] text-muted">추가 일수는 패키지 기본값으로 역할이 지정됩니다 — 날짜별 개별 지정은 다음 업데이트에서 지원됩니다.</span>
-        )}
       </div>
 
       <div className="mt-4 text-[14px] font-medium text-accent">

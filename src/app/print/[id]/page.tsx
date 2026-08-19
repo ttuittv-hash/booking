@@ -139,22 +139,20 @@ export default async function PrintQuotePage({
             </tr>
           </thead>
           <tbody>
-            {quote.lineItems.map((item) => {
-              const isHidden = item.visibility === "HIDDEN" && user.role !== "ADMIN";
-              return (
+            {/* Bowl 사용료·유틸리티(HIDDEN)는 관리자에게만 항목·금액을 노출한다 — 신청자에게는
+                행 자체를 숨기고, 소계/VAT/합계는 quote 전체 lineItems 기준 값을 그대로 쓴다. */}
+            {quote.lineItems
+              .filter((item) => item.visibility !== "HIDDEN" || user.role === "ADMIN")
+              .map((item) => (
                 <tr key={item.addonId} className="border-b border-border tabular-nums">
-                  <td className="py-1.5">
-                    {item.label}
-                    {isHidden && <span className="ml-1 text-[10.5px] text-muted">(자동 포함)</span>}
-                  </td>
-                  <td className="py-1.5 text-right">{isHidden ? "-" : item.requested.toLocaleString()}</td>
-                  <td className="py-1.5 text-right">{isHidden ? "-" : item.included || "-"}</td>
-                  <td className="py-1.5 text-right">{isHidden ? "-" : item.billable.toLocaleString()}</td>
-                  <td className="py-1.5 text-right">{isHidden ? "-" : won(item.unitPrice)}</td>
+                  <td className="py-1.5">{item.label}</td>
+                  <td className="py-1.5 text-right">{item.requested.toLocaleString()}</td>
+                  <td className="py-1.5 text-right">{item.included || "-"}</td>
+                  <td className="py-1.5 text-right">{item.billable.toLocaleString()}</td>
+                  <td className="py-1.5 text-right">{won(item.unitPrice)}</td>
                   <td className="py-1.5 text-right">{won(item.amount)}</td>
                 </tr>
-              );
-            })}
+              ))}
           </tbody>
         </table>
         <div className="mt-3 flex justify-end gap-8">

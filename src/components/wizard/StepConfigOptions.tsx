@@ -92,17 +92,12 @@ export function StepConfigOptions({
     grouped.set(addon.category, list);
   }
 
-  const optionsTotal = [...grouped.values()]
+  // [화면 뼈대 2026-08-19, 화면시나리오 STEP 3-3 #①⑤ "금액 노출 시점"] 이 화면(STEP 2 구성·옵션)
+  // 에서는 금액을 노출하지 않는다 — 선택된 옵션 건수만 보여주고, 실제 금액은 다음 화면(예상
+  // 대관료)에서 처음 확인한다.
+  const selectedOptionCount = [...grouped.values()]
     .flat()
-    .reduce((sum, addon) => {
-      if (addon.billingPhase === "SETTLEMENT") return sum;
-      const qty = addonQuantities[addon.id] ?? 0;
-      const included = includedQuantity(pkg, addon.id);
-      if (addon.pricingType === "REVENUE_PERCENT") {
-        return qty > 0 ? sum + Math.round((expectedRevenue * addon.unitPrice) / 100) : sum;
-      }
-      return sum + Math.max(qty - included, 0) * addon.unitPrice;
-    }, 0);
+    .filter((addon) => addon.billingPhase !== "SETTLEMENT" && (addonQuantities[addon.id] ?? 0) > 0).length;
 
   const midHallLine = isSimultaneous ? midHallSummaryLine(selection) : null;
 
@@ -182,12 +177,13 @@ export function StepConfigOptions({
           ))}
         </div>
         <div className="mt-4 flex items-center justify-between rounded-sm bg-panel px-4 py-3 text-[13.5px] font-semibold">
-          <span>선택 옵션 합계</span>
-          <span className="tabular-nums">{won(optionsTotal)}</span>
+          <span>선택 옵션</span>
+          <span className="tabular-nums">{selectedOptionCount}건 선택됨</span>
         </div>
         <p className="mt-2 text-[11px] text-muted">
-          총 대관료는 신청서 제출 직전(STEP 3-3)에 확인합니다. 이 화면은 선택 옵션 금액까지만
-          보여줍니다.
+          청소 사용료 · 수도광열비 · 추가 광고 구좌 등은 별도입니다. 금액은 표시하지 않으며,
+          선택을 마치면 다음 화면(예상 대관료)에서 총액을 확인합니다.
+          <br />※ 신청 규모를 초과해 좌석을 오픈하는 경우 사후 정산 시 추가 과금됩니다.
         </p>
       </div>
 

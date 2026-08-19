@@ -3,22 +3,32 @@
 import { won } from "@/lib/format";
 import type { EstimatedQuote } from "@/lib/pricing/types";
 
-export function SummaryPanel({ quote }: { quote: EstimatedQuote }) {
+// [화면 뼈대 2026-08-19, 화면시나리오 STEP 3-3 #①⑤ "금액 노출 시점"] STEP 1·2(공간·일정,
+// 구성·옵션)에서는 선택 내용만 요약해 보여주고 금액은 표시하지 않는다 — 신청자가 구성을 충분히
+// 검토한 뒤 STEP 4(예상 대관료)에서 처음 총액을 확인하는 흐름이다. revealPrice=false면 항목
+// 라벨만 나열하고 소계·VAT·합계 대신 안내 문구를 보여준다.
+export function SummaryPanel({ quote, revealPrice = true }: { quote: EstimatedQuote; revealPrice?: boolean }) {
+  // Bowl 사용료·유틸리티(HIDDEN)는 합계에는 포함하되 신청자 화면에는 항목·금액 모두 노출하지
+  // 않는다 — quote.subtotal/total은 전체 lineItems 기준으로 이미 계산돼 있어 여기서 걸러내도
+  // 총액에는 영향이 없다.
+  const visibleItems = quote.lineItems.filter((item) => item.visibility !== "HIDDEN");
   return (
     <aside className="lg:sticky lg:top-[108px] lg:self-start">
       <div className="rounded border border-border bg-panel/70 p-6">
-        <h3 className="text-[15px] font-semibold">실시간 견적 요약</h3>
+        <h3 className="text-[15px] font-semibold">{revealPrice ? "실시간 견적 요약" : "선택 내용 요약"}</h3>
         <p className="mt-1 text-[11.5px] font-medium text-warn">
-          ※ 예상 금액 — 확정 아님 (신청 → 계약 → 정산 단계에서 확정)
+          {revealPrice
+            ? "※ 예상 금액 — 확정 아님 (신청 → 계약 → 정산 단계에서 확정)"
+            : "※ 예상 대관료는 구성을 마치면 다음 단계(예상 대관료)에서 확인할 수 있습니다."}
         </p>
 
         <div className="mt-4 divide-y divide-border/70">
-          {quote.lineItems.length === 0 ? (
+          {visibleItems.length === 0 ? (
             <div className="py-3 text-[13px] text-muted">
-              공간과 일정을 선택하면 견적이 표시됩니다.
+              공간과 일정을 선택하면 선택 내용이 표시됩니다.
             </div>
           ) : (
-            quote.lineItems.map((item) => (
+            visibleItems.map((item) => (
               <div
                 key={item.addonId}
                 className="flex items-center justify-between py-2.5 text-[13px]"
@@ -31,45 +41,50 @@ export function SummaryPanel({ quote }: { quote: EstimatedQuote }) {
                   }
                 >
                   {item.label}
-                  {item.visibility === "HIDDEN" ? (
-                    <span className="ml-1 text-[11px] text-muted">(자동 포함)</span>
-                  ) : (
-                    item.billable > 0 &&
-                    item.included > 0 && (
-                      <span className="ml-1 text-[11px] text-muted">
-                        (초과 {item.billable.toLocaleString()})
-                      </span>
-                    )
+                  {item.billable > 0 && item.included > 0 && (
+                    <span className="ml-1 text-[11px] text-muted">
+                      (초과 {item.billable.toLocaleString()})
+                    </span>
                   )}
                 </span>
-                <span className="font-medium tabular-nums text-foreground">
-                  {won(item.amount)}
-                </span>
+                {revealPrice && (
+                  <span className="font-medium tabular-nums text-foreground">
+                    {won(item.amount)}
+                  </span>
+                )}
               </div>
             ))
           )}
         </div>
 
-        <div className="mt-3 space-y-1.5 border-t border-border pt-3">
-          <div className="flex justify-between text-[13px] text-muted">
-            <span>소계 (VAT 별도)</span>
-            <span className="tabular-nums">{won(quote.subtotal)}</span>
+        {revealPrice ? (
+          <div className="mt-3 space-y-1.5 border-t border-border pt-3">
+            <div className="flex justify-between text-[13px] text-muted">
+              <span>소계 (VAT 별도)</span>
+              <span className="tabular-nums">{won(quote.subtotal)}</span>
+            </div>
+            <div className="flex justify-between text-[13px] text-muted">
+              <span>부가세 10%</span>
+              <span className="tabular-nums">{won(quote.vat)}</span>
+            </div>
+            <div className="flex items-baseline justify-between pt-2">
+              <span className="text-[14px] font-semibold">합계</span>
+              <span className="text-[22px] font-semibold tabular-nums">
+                {won(quote.total)}
+              </span>
+            </div>
           </div>
-          <div className="flex justify-between text-[13px] text-muted">
-            <span>부가세 10%</span>
-            <span className="tabular-nums">{won(quote.vat)}</span>
+        ) : (
+          <div className="mt-3 border-t border-border pt-3 text-[12.5px] text-muted">
+            금액은 표시하지 않습니다 — 구성을 충분히 검토한 뒤 마지막에 총액을 확인합니다.
           </div>
-          <div className="flex items-baseline justify-between pt-2">
-            <span className="text-[14px] font-semibold">합계</span>
-            <span className="text-[22px] font-semibold tabular-nums">
-              {won(quote.total)}
-            </span>
-          </div>
-        </div>
+        )}
 
-        <p className="mt-4 rounded border-l-2 border-warn bg-warn-soft px-3 py-2.5 text-[11.5px] leading-5 text-warn">
-          {quote.meteredNotice}
-        </p>
+        {revealPrice && (
+          <p className="mt-4 rounded border-l-2 border-warn bg-warn-soft px-3 py-2.5 text-[11.5px] leading-5 text-warn">
+            {quote.meteredNotice}
+          </p>
+        )}
       </div>
     </aside>
   );

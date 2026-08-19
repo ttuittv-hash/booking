@@ -13,11 +13,12 @@ import type { EstimatedQuote, LineItem, LineItemVisibility, PricingType, QuoteSe
 const METERED_NOTICE =
   "전기·상하수도·냉난방 등 유틸리티는 실사용량 기준으로 정산 단계에서 부과됩니다.";
 
-// [개정 2026-08-14, 기능정의서 2-48] 아레나 유틸리티(수도광열비·당일철수·익일철야)는 전 패키지
-// 동일 금액이 견적에 자동 산입되며 신청자 화면에는 항목 자체가 드러나지 않는다(Ⓒ, HIDDEN).
-// 부록B #1 — 합계 포함 여부 자체는 아직 최종 확정 전이라, 문서가 권장하는 절충안(2-71 검토사항)을
-// 따른다: 합계에는 포함하되 "유틸리티(필수)" 한 줄만 금액과 함께 노출해 신청자가 총액을 검산할 수
-// 있게 한다 — 세부 3항목(수도광열비/당일철수/익일철야) 단가는 계속 감춘다.
+// [개정 2026-08-19] 아레나 유틸리티(수도광열비·당일철수·익일철야)·Bowl 사용료는 전 패키지
+// 동일/규모 연동 금액이 견적 합계에 자동 산입되지만, 신청자 화면에는 항목·금액 모두 노출하지
+// 않는다(HIDDEN) — 2026-08-14에 도입했던 "합계 검산용으로 한 줄만 노출" 절충안(부록B #1)은
+// 폐기한다. LineItem 자체는 계속 만들어 합계 계산에는 포함시키고, 화면에서 걸러내는 책임은
+// 소비 측(SummaryPanel/Step5Estimate/print·mypage 상세)에 맡긴다 — 관리자 화면(print·mypage의
+// user.role === "ADMIN")만 예외적으로 항목을 그대로 보여준다.
 const ARENA_HIDDEN_UTILITY_LABEL = "유틸리티(필수)";
 
 function makeLine(
@@ -170,8 +171,8 @@ export function calculateQuote(selection: QuoteSelection, rateTable: RateTable):
     }
 
     // (3-1) 유틸리티(필수) — [아레나 전용] 전 패키지 동일 금액이 자동 산입된다 (2-36 ②, 2-48).
-    // 신청자가 선택하거나 화면에서 항목을 보는 절차가 없다 — HIDDEN. 부록B #1 절충안에 따라
-    // 세부 3항목은 감추고 합계 한 줄만 노출한다(아래 UI에서 처리).
+    // 신청자가 선택하거나 화면에서 항목을 보는 절차가 없다 — HIDDEN. 신청자 화면에서는 항목·
+    // 금액 모두 완전히 숨긴다(소비 측에서 visibility==="HIDDEN" 라인을 걸러낸다).
     if ((pkg.venueId ?? DEFAULT_VENUE_ID) === "arena") {
       const hiddenUtilityAddons = rateTable.addons.filter(
         (a) => a.category === "UTILITY" && a.visibility === "HIDDEN" && a.billingPhase === "ESTIMATE",

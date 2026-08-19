@@ -520,7 +520,7 @@ export function WizardShell({
         </div>
       </div>
 
-      <SummaryPanel quote={quote} />
+      <SummaryPanel quote={quote} revealPrice={step >= 4} />
     </div>
   );
 }
