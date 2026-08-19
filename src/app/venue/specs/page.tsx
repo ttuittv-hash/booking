@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
-import { redirect } from "next/navigation";
-import { getCurrentUser, isPendingApplicant } from "@/lib/auth";
+import { getCurrentUser, requireAccess } from "@/lib/auth";
 import { getVenueContent } from "@/lib/db";
 import { sanitizeRichText } from "@/lib/sanitizeHtml";
 import { PublicHeader } from "@/components/PublicHeader";
@@ -12,8 +11,9 @@ export const metadata: Metadata = {
 };
 
 export default async function VenueSpecsPage() {
+  // 기획서 A15 접근권한 매트릭스 — 규칙은 accessPolicy.ts 한 곳에만 둔다
+  await requireAccess("/venue/specs");
   const currentUser = await getCurrentUser();
-  if (currentUser && isPendingApplicant(currentUser)) redirect("/pending");
 
   // 관리자 리치텍스트는 화면에 넣기 전에 정화한다 (XSS)
   const rawContent = await getVenueContent();

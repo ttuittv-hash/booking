@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
-import { redirect } from "next/navigation";
-import { getCurrentUser, isPendingApplicant } from "@/lib/auth";
+import { getCurrentUser, requireAccess } from "@/lib/auth";
 import { PublicHeader } from "@/components/PublicHeader";
 import { SiteFooter } from "@/components/ui/SiteFooter";
 import { ArrowRight, Band, ButtonLink, EmptyState, PageHeading } from "@/components/ui/kit";
@@ -11,8 +10,9 @@ export const metadata: Metadata = {
 
 /** Book It 은 카테고리 라벨이므로 페이지 타이틀은 "이미지 가이드", 브레드크럼 없음. */
 export default async function GuideImagePage() {
+  // 기획서 A15 접근권한 매트릭스 — 규칙은 accessPolicy.ts 한 곳에만 둔다
+  await requireAccess("/guide/image-guide");
   const currentUser = await getCurrentUser();
-  if (currentUser && isPendingApplicant(currentUser)) redirect("/pending");
 
   return (
     <div className="flex flex-1 flex-col">

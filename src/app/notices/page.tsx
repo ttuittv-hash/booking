@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
-import { redirect } from "next/navigation";
-import { getCurrentUser, isPendingApplicant, requireAccess } from "@/lib/auth";
+import { getCurrentUser, requireAccess } from "@/lib/auth";
 import { listNoticesPaged, normalizePage } from "@/lib/db";
 import { PublicHeader } from "@/components/PublicHeader";
 import { TagBadge, isPinnedTag } from "@/components/TagBadge";
@@ -58,7 +57,6 @@ export default async function NoticesPage({
   // 기획서 A15 — 비로그인 차단, 로그인하면 승인 전에도 열람 가능
   await requireAccess("/notices");
   const currentUser = await getCurrentUser();
-  if (currentUser && isPendingApplicant(currentUser)) redirect("/pending");
 
   const { page: pageParam } = await searchParams;
   const page = normalizePage(pageParam);

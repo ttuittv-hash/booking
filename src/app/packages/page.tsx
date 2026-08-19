@@ -1,7 +1,7 @@
 import Link from "next/link";
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
-import { getCurrentUser, isPendingApplicant, requireAccess } from "@/lib/auth";
+import { getCurrentUser, requireAccess } from "@/lib/auth";
 import { getCurrentRateTable } from "@/lib/db";
 import { num, won } from "@/lib/format";
 import { findAddon, packagePrice, isAddonAvailable } from "@/lib/pricing/rateTableUtils";
@@ -120,7 +120,6 @@ export default async function PackagesPage() {
   // 요금·기본 포함 수량은 계약 조건에 해당하므로 로그인한 신청자에게만 공개한다.
   const currentUser = await getCurrentUser();
   if (!currentUser) redirect("/login");
-  if (isPendingApplicant(currentUser)) redirect("/pending");
 
   const rateTable = await getCurrentRateTable();
   const packages = [...rateTable.packages].sort((a, b) => a.audienceTier.min - b.audienceTier.min);
