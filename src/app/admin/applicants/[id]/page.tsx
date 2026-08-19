@@ -7,6 +7,7 @@ import { num } from "@/lib/format";
 import type { AppUser, Company, CompanyVerification, Quote } from "@/lib/pricing/types";
 import { ArrowRight, Badge } from "@/components/ui/kit";
 import { AdminNav } from "@/components/admin/AdminNav";
+import { buildVerificationBadges, overallVerdict } from "@/lib/verificationBadges";
 import {
   HELP,
   INFO_NOTE,
@@ -87,9 +88,39 @@ export default async function AdminApplicantDetailPage({
         {company?.verification && <VerificationBadge verification={company.verification} />}
       </span>,
     ],
+    [
+      "회사 내 권한",
+      target.companyRole === "MASTER" ? (
+        <span key="role" className="border border-accent px-2 py-0.5 text-xs text-accent">
+          대표 담당자
+        </span>
+      ) : target.companyRole === "STAFF" ? (
+        <span key="role" className="border border-border-soft px-2 py-0.5 text-xs text-muted">
+          소속 담당자
+        </span>
+      ) : (
+        NONE
+      ),
+    ],
+    ["본인인증", target.identityVerifiedAt ? new Date(target.identityVerifiedAt).toLocaleString("ko-KR") : "미인증"],
     ["가입일", new Date(target.createdAt).toLocaleString("ko-KR")],
     ["계정 ID", target.id],
   ];
+
+  // 기획서 A9 — 운영자가 판단에 쓰는 근거 7종. 목록과 같은 판정을 쓴다.
+  const badges = buildVerificationBadges({
+    user: target,
+    company: company ?? null,
+    duplicated: false,
+  });
+  const verdict = overallVerdict(badges);
+
+  const BADGE_MARK: Record<string, string> = { PASS: "✓", WARN: "!", NONE: "—" };
+  const BADGE_TONE: Record<string, string> = {
+    PASS: "text-ok",
+    WARN: "text-danger",
+    NONE: "text-muted",
+  };
 
   return (
     <div className="flex flex-1 flex-col">
@@ -120,6 +151,33 @@ export default async function AdminApplicantDetailPage({
             </div>
           ))}
         </dl>
+
+        {/* 기획서 A9 — 승인 판단 근거 7종. 목록 화면과 같은 판정 로직을 쓴다. */}
+        <section className={`mt-8 ${TABLE_CARD}`}>
+          <div className={TABLE_HEAD}>
+            <div>
+              <p className={TABLE_HEAD_TITLE}>검증 결과</p>
+              <p className={TABLE_HEAD_DESC}>
+                {verdict === "AUTO"
+                  ? "7개 항목이 모두 통과했습니다."
+                  : "확인이 필요한 항목이 있습니다. 승인 전에 확인해 주세요."}
+              </p>
+            </div>
+          </div>
+          <ul className="divide-y divide-border-soft">
+            {badges.map((b) => (
+              <li key={b.key} className="flex items-center justify-between gap-4 px-4 py-3">
+                <span className="flex items-center gap-3 text-s">
+                  <span className={`w-4 text-center font-bold ${BADGE_TONE[b.state]}`}>
+                    {BADGE_MARK[b.state]}
+                  </span>
+                  <span className="font-bold">{b.label}</span>
+                </span>
+                <span className="break-keep text-right text-xs text-muted">{b.detail}</span>
+              </li>
+            ))}
+          </ul>
+        </section>
 
         {company && <BusinessCheckPanel company={company} />}
 

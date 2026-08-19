@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useCallback, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
@@ -289,23 +290,34 @@ function FragmentRow({
                         >
                           {isMaster ? "대표 담당자" : "소속 담당자"}
                         </span>
-                        <b>{m.name}</b>
+                        {/* 이름을 누르면 회원 상세로 간다 — 진위확인 배지와 신청 내역이 거기 있다. */}
+                        <Link
+                          href={`/admin/applicants/${m.id}`}
+                          className="font-bold underline decoration-border-soft underline-offset-4 transition-colors hover:decoration-accent"
+                        >
+                          {m.name}
+                        </Link>
                         <span className="text-muted">{m.username}</span>
                         <span className="text-muted">{m.email}</span>
                         <span className="text-xs text-muted">
                           {APPROVAL_LABEL[m.approvalStatus] ?? m.approvalStatus}
                         </span>
                       </span>
-                      {!isMaster && m.approvalStatus === "APPROVED" ? (
-                        <button
-                          type="button"
-                          disabled={busy}
-                          onClick={() => onSetMaster(m)}
-                          className={LINK_BTN}
-                        >
-                          대표로 지정
-                        </button>
-                      ) : null}
+                      <span className="flex shrink-0 items-center gap-3">
+                        <Link href={`/admin/applicants/${m.id}`} className={LINK_BTN}>
+                          상세
+                        </Link>
+                        {!isMaster && m.approvalStatus === "APPROVED" ? (
+                          <button
+                            type="button"
+                            disabled={busy}
+                            onClick={() => onSetMaster(m)}
+                            className={LINK_BTN}
+                          >
+                            대표로 지정
+                          </button>
+                        ) : null}
+                      </span>
                     </li>
                   );
                 })}
