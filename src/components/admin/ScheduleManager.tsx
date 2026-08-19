@@ -266,68 +266,76 @@ export function ScheduleManager({ initialYear, initialMonth }: { initialYear: nu
                       </button>
                     </div>
 
-                    <div className="mt-2.5">
-                      {(() => {
-                        const allEntries = occupancy[openDate] ?? [];
-                        const tabEntries = allEntries.filter((e) => e.venueId === venueTab);
-                        const otherVenueCount = allEntries.length - tabEntries.length;
-                        return tabEntries.length === 0 ? (
-                          <p className="text-[12px] text-muted">
-                            이 날짜에 {venueLabel(venueTab)} 예약이 없습니다.
-                            {otherVenueCount > 0 && ` (다른 공간 예약 ${otherVenueCount}건 있음 — 탭 전환해서 확인)`}
-                          </p>
-                        ) : (
-                          <ul className="space-y-1.5">
-                            {tabEntries.map((entry, i) => (
-                              <li
-                                key={`${entry.quoteId}-${i}`}
-                                className="flex flex-wrap items-center gap-x-2 gap-y-1 rounded-sm bg-background px-2.5 py-1.5 text-[12px]"
-                              >
-                                <span className="text-muted">{roleLabel(entry.role)}</span>
-                                <Link href={`/admin/${entry.quoteId}`} className="font-medium text-foreground hover:text-accent hover:underline">
-                                  {entry.companyName}
-                                </Link>
-                                <span className="text-[10.5px] text-muted">· {statusLabel(entry.status, entry.reviewDecision)}</span>
-                              </li>
-                            ))}
-                          </ul>
-                        );
-                      })()}
-                    </div>
+                    <div className="mt-2.5 grid grid-cols-1 gap-3 border-t border-accent/20 pt-3 sm:grid-cols-2 sm:divide-x sm:divide-accent/20">
+                      <div className="sm:pr-3">
+                        <div className="mb-1.5 text-[10.5px] font-semibold uppercase tracking-wide text-muted">
+                          상태
+                        </div>
+                        {(() => {
+                          const allEntries = occupancy[openDate] ?? [];
+                          const tabEntries = allEntries.filter((e) => e.venueId === venueTab);
+                          const otherVenueCount = allEntries.length - tabEntries.length;
+                          return tabEntries.length === 0 ? (
+                            <p className="text-[12px] text-muted">
+                              이 날짜에 {venueLabel(venueTab)} 예약이 없습니다.
+                              {otherVenueCount > 0 && ` (다른 공간 예약 ${otherVenueCount}건 있음 — 탭 전환해서 확인)`}
+                            </p>
+                          ) : (
+                            <ul className="space-y-1.5">
+                              {tabEntries.map((entry, i) => (
+                                <li
+                                  key={`${entry.quoteId}-${i}`}
+                                  className="flex flex-wrap items-center gap-x-2 gap-y-1 rounded-sm bg-background px-2.5 py-1.5 text-[12px]"
+                                >
+                                  <span className="text-muted">{roleLabel(entry.role)}</span>
+                                  <Link href={`/admin/${entry.quoteId}`} className="font-medium text-foreground hover:text-accent hover:underline">
+                                    {entry.companyName}
+                                  </Link>
+                                  <span className="text-[10.5px] text-muted">· {statusLabel(entry.status, entry.reviewDecision)}</span>
+                                </li>
+                              ))}
+                            </ul>
+                          );
+                        })()}
+                      </div>
 
-                    <div className="mt-3 flex flex-wrap items-center gap-2 border-t border-accent/20 pt-3">
-                      {blockedByDate.get(openDate) ? (
-                        <>
-                          <span className="text-[12px] text-red-600">
-                            신청 불가로 지정됨
-                            {blockedByDate.get(openDate)?.reason ? ` · ${blockedByDate.get(openDate)?.reason}` : ""}
-                          </span>
-                          <button
-                            type="button"
-                            onClick={unblockOpenDate}
-                            className="rounded-sm bg-panel-strong px-3 py-1.5 text-[12px] font-medium text-muted hover:text-foreground"
-                          >
-                            신청 가능으로 되돌리기
-                          </button>
-                        </>
-                      ) : (
-                        <>
-                          <input
-                            type="text"
-                            value={reasonDraft}
-                            onChange={(e) => setReasonDraft(e.target.value)}
-                            placeholder="막을 사유(선택) — 예: 정기 대관, 내부 행사"
-                            className="min-w-0 flex-1 rounded-sm border border-border bg-background px-2.5 py-1.5 text-[12px] outline-none focus:border-accent"
-                          />
-                          <button
-                            type="button"
-                            onClick={blockOpenDate}
-                            className="shrink-0 rounded-sm bg-panel-strong px-3 py-1.5 text-[12px] font-medium text-muted hover:text-red-600"
-                          >
-                            이 날짜 막기
-                          </button>
-                        </>
-                      )}
+                      <div className="sm:pl-3">
+                        <div className="mb-1.5 text-[10.5px] font-semibold uppercase tracking-wide text-muted">
+                          설정
+                        </div>
+                        {blockedByDate.get(openDate) ? (
+                          <div className="space-y-2">
+                            <p className="text-[12px] text-red-600">
+                              신청 불가로 지정됨
+                              {blockedByDate.get(openDate)?.reason ? ` · ${blockedByDate.get(openDate)?.reason}` : ""}
+                            </p>
+                            <button
+                              type="button"
+                              onClick={unblockOpenDate}
+                              className="rounded-sm bg-panel-strong px-3 py-1.5 text-[12px] font-medium text-muted hover:text-foreground"
+                            >
+                              신청 가능으로 되돌리기
+                            </button>
+                          </div>
+                        ) : (
+                          <div className="flex flex-wrap items-center gap-2">
+                            <input
+                              type="text"
+                              value={reasonDraft}
+                              onChange={(e) => setReasonDraft(e.target.value)}
+                              placeholder="막을 사유(선택) — 예: 정기 대관, 내부 행사"
+                              className="min-w-0 flex-1 rounded-sm border border-border bg-background px-2.5 py-1.5 text-[12px] outline-none focus:border-accent"
+                            />
+                            <button
+                              type="button"
+                              onClick={blockOpenDate}
+                              className="shrink-0 rounded-sm bg-panel-strong px-3 py-1.5 text-[12px] font-medium text-muted hover:text-red-600"
+                            >
+                              이 날짜 막기
+                            </button>
+                          </div>
+                        )}
+                      </div>
                     </div>
                   </div>
                 )}
