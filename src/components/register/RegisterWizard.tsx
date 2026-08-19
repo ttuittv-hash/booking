@@ -315,7 +315,18 @@ export function RegisterWizard() {
           onClearCompany={() => {
             setPickedCompany(null);
             setBrnCheck(null);
-            setForm((f) => ({ ...f, companyName: "", businessRegistrationNumber: "" }));
+            setForm((f) => ({
+              ...f,
+              companyName: "",
+              businessRegistrationNumber: "",
+              representativeName: "",
+              companyPhone: "",
+              companyFax: "",
+              corporateNumber: "",
+              postalCode: "",
+              address: "",
+              addressDetail: "",
+            }));
           }}
           onPostcode={openPostcode}
           loading={loading}
@@ -329,12 +340,34 @@ export function RegisterWizard() {
       {searchOpen ? (
         <CompanySearchDialog
           onClose={() => setSearchOpen(false)}
-          onPick={(hit) => {
+          onPick={async (hit) => {
             setPickedCompany(hit);
             // 불러온 회사는 이미 확인된 번호다 — 중복확인·진위확인을 생략한다(기획서 A5).
             setBrnCheck({ state: "VERIFIED", message: `불러온 회사입니다 — ${hit.name}` });
-            setForm((f) => ({ ...f, companyName: hit.name, businessRegistrationNumber: "" }));
             setSearchOpen(false);
+            // 기업정보 전 항목을 채운다. 채워진 칸은 읽기 전용이 된다.
+            try {
+              const res = await fetch(`/api/companies/${hit.id}/profile`);
+              const data = await res.json();
+              const c = data.company;
+              if (c) {
+                setForm((f) => ({
+                  ...f,
+                  companyName: c.name ?? hit.name,
+                  businessRegistrationNumber: c.businessRegistrationNumber ?? "",
+                  representativeName: c.representativeName ?? "",
+                  companyPhone: c.companyPhone ?? "",
+                  companyFax: c.companyFax ?? "",
+                  corporateNumber: c.corporateNumber ?? "",
+                  postalCode: c.postalCode ?? "",
+                  address: c.address ?? "",
+                }));
+                return;
+              }
+            } catch {
+              // 조회에 실패해도 회사명만이라도 채워 흐름이 끊기지 않게 한다.
+            }
+            setForm((f) => ({ ...f, companyName: hit.name }));
           }}
         />
       ) : null}
@@ -627,12 +660,14 @@ function StepInfo({
       });
       const data = await res.json();
       setBrnCheck({ state: data.state ?? "ERROR", message: data.message ?? data.error ?? "" });
-      // 조회된 상호·대표자를 비워둔 칸에 채워준다. 입력값이 있으면 건드리지 않는다.
+      // 국세청 조회값으로 상호·대표자를 채운다. 등록부 값이 정본이라 입력값이 있어도 덮어쓴다 —
+      // 표기가 어긋난 채 제출되면 운영자 심사에서 "불일치"로 잡혀 승인이 늦어진다.
+      // 주소·대표번호는 이 API 응답에 없어 직접 입력해야 한다.
       if (data.state === "VERIFIED") {
         setForm((p) => ({
           ...p,
-          companyName: p.companyName || data.companyName || "",
-          representativeName: p.representativeName || data.representativeName || "",
+          companyName: data.companyName || p.companyName,
+          representativeName: data.representativeName || p.representativeName,
         }));
       }
     } finally {
@@ -693,17 +728,13 @@ function StepInfo({
       ) : null}
 
       <h3 className="mt-8 text-s font-bold">① 기업 정보</h3>
-      <p className="mt-1 break-keep text-xs text-muted">
-        이미 등록된 회사라면 [회사정보 불러오기]로 채우세요.
+      <p className="mt-1 break-keep text-xs leading-6 text-muted">
+        {locked
+          ? "불러온 회사의 기업 정보입니다. 수정하려면 [다시 선택]을 눌러 주세요."
+          : "이미 등록된 회사라면 [회사정보 불러오기]로 채우세요."}
       </p>
       <div className="mt-4 grid gap-x-6 gap-y-5 sm:grid-cols-2">
-        <Field label="회사명" required>
-          <input data-testid="f-companyName" value={form.companyName} onChange={set("companyName")} readOnly={locked} className={inputCls(locked)} />
-        </Field>
-        <Field label="대표자 성명" required>
-          <input data-testid="f-representativeName" value={form.representativeName} onChange={set("representativeName")} className={inputCls(false)} />
-        </Field>
-
+        {/* 사업자등록번호가 먼저다 — 진위확인을 거치면 아래 회사명·대표자가 채워진다. */}
         <div className="sm:col-span-2">
           <Field label="사업자등록번호" required hint="숫자 10자리">
             <span className="flex gap-2">
@@ -730,35 +761,49 @@ function StepInfo({
             </span>
           </Field>
           {brnCheck ? (
-            <p data-testid="brn-check-message" className={`mt-2 break-keep text-xs ${brnTone}`}>
-              {brnCheck.message}
-            </p>
+            <>
+              <p data-testid="brn-check-message" className={`mt-2 break-keep text-xs leading-6 ${brnTone}`}>
+                {brnCheck.message}
+              </p>
+              {brnCheck.state === "VERIFIED" && !locked ? (
+                <p className="mt-1 break-keep text-xs leading-6 text-muted">
+                  회사명 · 대표자 성명은 국세청 등록 정보로 채워집니다. 주소 · 대표번호는 직접 입력해 주세요.
+                </p>
+              ) : null}
+            </>
           ) : null}
         </div>
 
+        <Field label="회사명" required>
+          <input data-testid="f-companyName" value={form.companyName} onChange={set("companyName")} readOnly={locked} className={inputCls(locked)} />
+        </Field>
+        <Field label="대표자 성명" required>
+          <input data-testid="f-representativeName" readOnly={locked} value={form.representativeName} onChange={set("representativeName")} className={inputCls(locked)} />
+        </Field>
+
         <Field label="대표번호">
-          <input data-testid="f-companyPhone" value={form.companyPhone} onChange={set("companyPhone")} placeholder="02-1234-5678" className={inputCls(false)} />
+          <input data-testid="f-companyPhone" readOnly={locked} value={form.companyPhone} onChange={set("companyPhone")} placeholder="02-1234-5678" className={inputCls(locked)} />
         </Field>
         <Field label="대표팩스">
-          <input data-testid="f-companyFax" value={form.companyFax} onChange={set("companyFax")} className={inputCls(false)} />
+          <input data-testid="f-companyFax" readOnly={locked} value={form.companyFax} onChange={set("companyFax")} className={inputCls(locked)} />
         </Field>
         <Field label="법인등록번호" hint="선택 · 법인만">
-          <input data-testid="f-corporateNumber" value={form.corporateNumber} onChange={set("corporateNumber")} placeholder="110111-1234567" className={inputCls(false)} />
+          <input data-testid="f-corporateNumber" readOnly={locked} value={form.corporateNumber} onChange={set("corporateNumber")} placeholder="110111-1234567" className={inputCls(locked)} />
         </Field>
         <div />
 
         <div className="sm:col-span-2">
           <Field label="회사주소" required>
             <span className="flex flex-wrap gap-2">
-              <input data-testid="f-postalCode" value={form.postalCode} onChange={set("postalCode")} placeholder="우편번호" className={inputCls(false, "w-36")} />
-              <button type="button" data-testid="open-postcode" onClick={onPostcode} className={`${btnClass("secondary", "md")} whitespace-nowrap`}>
+              <input data-testid="f-postalCode" readOnly={locked} value={form.postalCode} onChange={set("postalCode")} placeholder="우편번호" className={inputCls(locked, "w-36")} />
+              <button type="button" data-testid="open-postcode" disabled={locked} onClick={onPostcode} className={`${btnClass("secondary", "md")} whitespace-nowrap`}>
                 우편번호 찾기
               </button>
             </span>
           </Field>
           <div className="mt-2 grid gap-3 sm:grid-cols-2">
-            <input data-testid="f-address" value={form.address} onChange={set("address")} placeholder="회사주소" className={inputCls(false)} />
-            <input data-testid="f-addressDetail" value={form.addressDetail} onChange={set("addressDetail")} placeholder="상세주소" className={inputCls(false)} />
+            <input data-testid="f-address" readOnly={locked} value={form.address} onChange={set("address")} placeholder="회사주소" className={inputCls(locked)} />
+            <input data-testid="f-addressDetail" readOnly={locked} value={form.addressDetail} onChange={set("addressDetail")} placeholder="상세주소" className={inputCls(locked)} />
           </div>
         </div>
       </div>
@@ -893,12 +938,12 @@ function CompanySearchDialog({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 sm:p-8"
       data-testid="company-search"
     >
-      <div className="w-full max-w-lg bg-background p-6">
+      <div className="flex max-h-[85vh] w-full max-w-3xl flex-col overflow-y-auto bg-background p-7 sm:p-9">
         <div className="flex items-center justify-between">
-          <h3 className="text-h6-m font-bold">회사정보 불러오기</h3>
+          <h3 className="text-h5-m font-bold sm:text-h5">회사정보 불러오기</h3>
           <button type="button" data-testid="search-close" onClick={onClose} aria-label="닫기" className="text-muted">
             ✕
           </button>
@@ -912,7 +957,7 @@ function CompanySearchDialog({
             data-testid="search-field"
             value={field}
             onChange={(e) => setField(e.target.value as "name" | "brn")}
-            className="border border-border-soft px-3 py-2 text-s"
+            className="border border-border-soft px-3 py-2.5 text-s"
           >
             <option value="name">회사명</option>
             <option value="brn">사업자등록번호</option>
@@ -924,7 +969,8 @@ function CompanySearchDialog({
             onKeyDown={(e) => {
               if (e.key === "Enter") void run();
             }}
-            className="flex-1 border border-border-soft px-3 py-2 text-s"
+            placeholder="회사명 2자 이상 또는 사업자등록번호 10자리"
+            className="min-w-0 flex-1 border border-border-soft px-3 py-2.5 text-s"
           />
           <button type="button" data-testid="search-run" onClick={() => void run()} className={`${btnClass("primary", "sm")} whitespace-nowrap`}>
             검색
@@ -937,11 +983,11 @@ function CompanySearchDialog({
           </p>
         ) : null}
 
-        <ul className="mt-4 space-y-2" data-testid="search-results" data-state={state ?? ""}>
+        <ul className="mt-5 space-y-2.5" data-testid="search-results" data-state={state ?? ""}>
           {results.map((hit) => (
             <li
               key={hit.id}
-              className="flex items-center justify-between gap-3 border border-border-soft px-4 py-3.5"
+              className="flex flex-wrap items-center justify-between gap-3 border border-border-soft px-5 py-4"
             >
               <span className="break-keep text-s leading-6">
                 <b>{hit.name}</b>
