@@ -218,8 +218,23 @@ export function RegisterWizard() {
       return;
     }
     // 불러오기로 채운 회사는 이미 확인된 번호라 다시 묻지 않는다(기획서 A5).
-    if (!pickedCompany && brnCheck?.state !== "VERIFIED" && brnCheck?.state !== "UNCHECKED") {
-      setError("사업자등록번호 [중복·진위확인]을 먼저 진행해 주세요.");
+    //
+    // 통과로 보는 상태:
+    //   VERIFIED   국세청 조회 완료
+    //   REGISTERED 이미 등록된 회사 → 합류 신청. 정상 경로라 막으면 안 된다.
+    //   UNCHECKED  진위확인을 쓸 수 없는 환경 → 운영자 심사로 넘긴다
+    // 막는 상태: 미확인 · INVALID · NOT_FOUND · BLOCKED(휴·폐업)
+    const brnOk =
+      pickedCompany !== null ||
+      brnCheck?.state === "VERIFIED" ||
+      brnCheck?.state === "REGISTERED" ||
+      brnCheck?.state === "UNCHECKED";
+    if (!brnOk) {
+      setError(
+        brnCheck
+          ? brnCheck.message
+          : "사업자등록번호 [중복·진위확인]을 먼저 진행해 주세요.",
+      );
       return;
     }
     if (idCheck?.available !== true) {
