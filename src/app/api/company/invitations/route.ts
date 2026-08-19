@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { publicOrigin } from "@/lib/publicUrl";
 import crypto from "node:crypto";
 import { getCurrentUser } from "@/lib/auth";
 import { hashInviteToken, inviteExpiresAt, issueInviteToken } from "@/lib/invitation";
@@ -53,7 +54,7 @@ export async function POST(request: Request) {
     createdAt: new Date().toISOString(),
   });
 
-  const origin = new URL(request.url).origin;
+  const origin = publicOrigin(request);
   // 메일 발송 인프라가 아직 없다 — 링크를 화면에 돌려주고 마스터가 직접 전달한다.
   // 발송 채널이 붙으면(Phase 6) 이 자리를 메일·알림톡으로 바꾼다.
   return NextResponse.json({

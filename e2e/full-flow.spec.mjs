@@ -76,8 +76,17 @@ try {
   await bo.waitForURL(/\/admin/, { timeout: 20000 });
   check("A9-1", "운영자가 백오피스에 로그인한다", true);
 
+  // 승인 대상 id 는 실행 중에 파일로 넘겨받는다(테스트 전용 조회 API 를 만들지 않기 위함).
+  fs.writeFileSync("/tmp/e2e-master-username.txt", masterUser);
+  let masterId = "";
+  for (let i = 0; i < 30 && !masterId; i++) {
+    masterId = fs.existsSync("/tmp/e2e-master-id.txt")
+      ? fs.readFileSync("/tmp/e2e-master-id.txt", "utf8").trim()
+      : "";
+    if (!masterId) await new Promise((r) => setTimeout(r, 1000));
+  }
   const approve = await bo.request.post(`${BO}/api/admin/applicants`, {
-    data: { id: process.env.MASTER_ID, action: "approve" },
+    data: { id: masterId, action: "approve" },
   });
   check("A9-2", "운영자가 최초 가입자를 승인한다", approve.ok(), String(approve.status()));
 

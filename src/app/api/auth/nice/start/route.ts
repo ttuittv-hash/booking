@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { publicOrigin } from "@/lib/publicUrl";
 import crypto from "node:crypto";
 import { issueAccessToken, issueAuthUrl, isNiceAuthConfigured } from "@/lib/niceAuth";
 import { saveIdentityPending, saveStubIdentity } from "@/lib/db";
@@ -29,7 +30,7 @@ export async function POST(request: Request) {
   const purpose =
     body?.purpose === "FIND_ID" || body?.purpose === "RESET_PASSWORD" ? body.purpose : "REGISTER";
 
-  const origin = new URL(request.url).origin;
+  const origin = publicOrigin(request);
 
   // ── 개발 환경 전용 스텁 ───────────────────────────────────────────────
   // 표준창 인증은 실제 사람이 휴대폰으로 해야 해서 E2E 로 자동화할 수 없다.
