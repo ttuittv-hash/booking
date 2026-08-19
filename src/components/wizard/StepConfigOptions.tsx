@@ -8,6 +8,7 @@ import {
   findPackage,
   includedQuantity,
   isAddonAvailable,
+  packagesForVenue,
 } from "@/lib/pricing/rateTableUtils";
 import {
   ADDON_CATEGORY_LABEL,
@@ -74,22 +75,41 @@ function unitSuffix(unitLabel: string): string {
   return "";
 }
 
+// 중형공연장 패키지에서 재사용하는 addon 중 일부는 아레나와 quantity의 의미가 다르다 —
+// 아레나는 waiting_room/intercom_wireless를 일 단위 과금 addon(원/일)으로 써서 quantity가
+// "포함 일수"를 뜻하지만, 중형 패키지는 같은 addon을 "대기실 몇 실 · 인터컴 몇 대"라는
+// 개수 의미로 재사용한다(waitingRoomNote="지상 2실"과 일치). unitLabel만 보고는 구분이
+// 안 되므로 중형 패키지에 한해 addonId로 단위를 오버라이드한다.
+const MID_HALL_COUNT_UNIT_OVERRIDES: Record<string, string> = {
+  waiting_room: "실",
+  intercom_wireless: "대",
+  intercom_wired: "대",
+};
+
 // [화면 뼈대 2026-08-19, 패키지 구성 산정표] "기본 구성" 그리드는 pkg.includedItems를 그대로
 // 데이터 기반으로 나열하고(addonId → 요금표에서 이름·단위 조회), 일정 · 공간 · 인프라 3개
 // 그룹으로 묶어 보여준다 — 관리자가 "패키지 관리"에서 항목을 추가·삭제·수정하면 이 그리드에도
 // 그대로 반영된다. 트러스 5종(A+B+C+L+R)만 산정표처럼 "트러스(센터)" 한 줄로 합쳐 보여준다
 // (선택 옵션에서는 5종 그대로 개별 addon으로 남는다 — 여기는 표시 전용 큐레이션일 뿐 요금
 // 데이터 모델은 바꾸지 않는다). 준비/공연 일수는 대응하는 addon이 없어 dayBreakdown 문자열
-// 에서 그대로 읽는다.
-function arenaBaseCompositionTiles(pkg: RentalPackage, rateTable: RateTable): BaseCompositionTile[] {
-  const match = pkg.dayBreakdown.match(/준비\s*(\d+)일.*공연\s*(\d+)일/);
-  const setupDays = match ? Number(match[1]) : 4;
-  const performanceDays = match ? Number(match[2]) : 2;
+// 에서 그대로 읽는다 — 다만 중형공연장은 패키지 고정 일수가 아니라 캘린더에서 자유롭게
+// 고른 일수(최소 대관일수 제한 없음)라 dayBreakdown 기반 준비/공연 타일은 의미가 없으므로
+// includeSchedule=false 로 꺼서 공간·인프라 기본 구성만 보여준다.
+function baseCompositionTiles(
+  pkg: RentalPackage,
+  rateTable: RateTable,
+  options: { includeSchedule?: boolean } = {},
+): BaseCompositionTile[] {
+  const { includeSchedule = true } = options;
+  const tiles: BaseCompositionTile[] = [];
 
-  const tiles: BaseCompositionTile[] = [
-    { group: "일정", label: "준비", value: `${setupDays}일` },
-    { group: "일정", label: "공연", value: `${performanceDays}일` },
-  ];
+  if (includeSchedule) {
+    const match = pkg.dayBreakdown.match(/준비\s*(\d+)일.*공연\s*(\d+)일/);
+    const setupDays = match ? Number(match[1]) : 4;
+    const performanceDays = match ? Number(match[2]) : 2;
+    tiles.push({ group: "일정", label: "준비", value: `${setupDays}일` });
+    tiles.push({ group: "일정", label: "공연", value: `${performanceDays}일` });
+  }
 
   let trussDays = 0;
   for (const item of pkg.includedItems) {
@@ -99,10 +119,14 @@ function arenaBaseCompositionTiles(pkg: RentalPackage, rateTable: RateTable): Ba
     }
     const addon = rateTable.addons.find((a) => a.id === item.addonId);
     if (!addon) continue;
+    const suffix =
+      pkg.venueId === "medium-hall" && MID_HALL_COUNT_UNIT_OVERRIDES[item.addonId]
+        ? MID_HALL_COUNT_UNIT_OVERRIDES[item.addonId]
+        : unitSuffix(addon.unitLabel);
     tiles.push({
       group: baseCompositionGroupOf(addon.category),
       label: addon.name,
-      value: `${item.quantity.toLocaleString()}${unitSuffix(addon.unitLabel)}`,
+      value: `${item.quantity.toLocaleString()}${suffix}`,
     });
   }
   if (trussDays > 0) tiles.push({ group: "인프라", label: "트러스(센터)", value: `${trussDays}일` });
@@ -131,14 +155,60 @@ export function StepConfigOptions({
   const isSimultaneous = selection.bookingMode === "SIMULTANEOUS";
   const pkg = findPackage(rateTable, selection.packageId);
 
-  if (midHallOnly || !pkg) {
+  if (midHallOnly) {
+    const midHallPkg = packagesForVenue(rateTable, "medium-hall")[0];
+    const midHallTiles = midHallPkg ? baseCompositionTiles(midHallPkg, rateTable, { includeSchedule: false }) : [];
     return (
       <section className="rounded border border-border bg-background p-7">
         <h2 className="text-[19px] font-semibold">2. 구성 · 옵션</h2>
         <p className="mt-3 text-[13.5px] text-muted">
-          {midHallOnly
-            ? "중형공연장은 패키지가 없습니다 — 추가 옵션 화면은 다음 업데이트에서 반영됩니다(화면시나리오 기능정의 2-43 옵션 목록 확정 후)."
-            : "예상 관객 규모에 맞는 패키지를 아직 찾지 못했습니다. STEP 1에서 관객 규모를 확인해 주세요."}
+          중형공연장은 패키지가 없는 일 단위 요금제입니다 — 아래는 예약 일수와 무관하게 항상
+          포함되는 기본 구성입니다.
+        </p>
+
+        {midHallTiles.length > 0 && (
+          <div className="mt-6 rounded border border-good/30 bg-good-soft/30 p-5">
+            <div className="flex items-center gap-2">
+              <span className="rounded-sm bg-good px-2 py-0.5 text-[10.5px] font-semibold text-white">기본 포함</span>
+              <span className="text-[12.5px] font-medium text-foreground">
+                대관료에 이미 포함된 구성 — 예약 일수와 무관하게 동일하게 제공됩니다
+              </span>
+            </div>
+            <div className="mt-4 space-y-4">
+              {BASE_COMPOSITION_GROUP_ORDER.map((group) => {
+                const tiles = midHallTiles.filter((t) => t.group === group);
+                if (tiles.length === 0) return null;
+                return (
+                  <div key={group}>
+                    <div className="mb-1.5 text-[10.5px] font-semibold uppercase tracking-wide text-good">{group}</div>
+                    <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+                      {tiles.map((tile) => (
+                        <div key={tile.label} className="rounded-sm border border-good/20 bg-background px-3 py-2">
+                          <div className="text-[11px] text-muted">{tile.label}</div>
+                          <div className="mt-0.5 text-[13px] font-semibold text-good">{tile.value}</div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
+        <p className="mt-6 text-[13.5px] text-muted">
+          추가 옵션(시설사용료 · 센터리프트 등) 선택 화면은 다음 업데이트에서 반영됩니다.
+        </p>
+      </section>
+    );
+  }
+
+  if (!pkg) {
+    return (
+      <section className="rounded border border-border bg-background p-7">
+        <h2 className="text-[19px] font-semibold">2. 구성 · 옵션</h2>
+        <p className="mt-3 text-[13.5px] text-muted">
+          예상 관객 규모에 맞는 패키지를 아직 찾지 못했습니다. STEP 1에서 관객 규모를 확인해 주세요.
         </p>
       </section>
     );
@@ -162,7 +232,13 @@ export function StepConfigOptions({
     .filter((addon) => addon.billingPhase !== "SETTLEMENT" && (addonQuantities[addon.id] ?? 0) > 0).length;
 
   const midHallLine = isSimultaneous ? midHallSummaryLine(selection) : null;
-  const baseCompositionTiles = arenaBaseCompositionTiles(pkg, rateTable);
+  const compositionTiles = baseCompositionTiles(pkg, rateTable);
+  const midHallPkgForSummary = isSimultaneous ? packagesForVenue(rateTable, "medium-hall")[0] : undefined;
+  const midHallCompositionSummary = midHallPkgForSummary
+    ? baseCompositionTiles(midHallPkgForSummary, rateTable, { includeSchedule: false })
+        .map((t) => `${t.label} ${t.value}`)
+        .join(" · ")
+    : null;
 
   return (
     <section className="rounded border border-border bg-background p-7">
@@ -187,7 +263,7 @@ export function StepConfigOptions({
         </div>
         <div className="mt-4 space-y-4">
           {BASE_COMPOSITION_GROUP_ORDER.map((group) => {
-            const tiles = baseCompositionTiles.filter((t) => t.group === group);
+            const tiles = compositionTiles.filter((t) => t.group === group);
             if (group === "인프라") {
               tiles.push({
                 group: "인프라",
@@ -258,8 +334,9 @@ export function StepConfigOptions({
           <div className="text-[13px] font-semibold">중형공연장</div>
           {midHallLine ? (
             <p className="mt-1 text-[12.5px] text-muted">
-              일 요금제 · {midHallLine} · 기본 구성: 대기실 4개실 · 퀵체인지룸 · 로비 · 분장실
-              (아레나와 별개 공간) · 선택 옵션 화면은 다음 업데이트에서 반영됩니다.
+              일 요금제 · {midHallLine}
+              {midHallCompositionSummary && ` · 기본 구성: ${midHallCompositionSummary}`} (아레나와 별개
+              공간) · 선택 옵션 화면은 다음 업데이트에서 반영됩니다.
             </p>
           ) : (
             <p className="mt-1 text-[12.5px] text-muted">
