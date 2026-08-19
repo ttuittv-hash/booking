@@ -1,0 +1,126 @@
+"use client";
+
+import Link from "next/link";
+import { useState } from "react";
+import { IdentityGate } from "@/components/account/IdentityGate";
+import { btnClass } from "@/components/ui/kit";
+import { hashPasswordForTransport } from "@/lib/clientPassword";
+
+export function InviteAcceptForm({ token }: { token: string }) {
+  const [step, setStep] = useState<1 | 2 | 3>(token ? 1 : 0 as 1);
+  const [ticket, setTicket] = useState("");
+  const [username, setUsername] = useState("");
+  const [password, setPassword] = useState("");
+  const [confirm, setConfirm] = useState("");
+  const [companyName, setCompanyName] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
+
+  if (!token) {
+    return (
+      <p data-testid="invite-invalid" className="mt-8 text-center text-s">
+        초대 링크가 올바르지 않습니다. 대표 담당자에게 재발송을 요청해 주세요.
+      </p>
+    );
+  }
+
+  async function submit() {
+    setError(null);
+    if (password !== confirm) {
+      setError("비밀번호가 일치하지 않습니다.");
+      return;
+    }
+    setLoading(true);
+    try {
+      const res = await fetch("/api/company/invitations/accept", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          token,
+          username,
+          identityTicket: ticket,
+          passwordHash: await hashPasswordForTransport(password),
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "초대를 수락하지 못했습니다.");
+      setCompanyName(data.companyName ?? null);
+      setStep(3);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "초대를 수락하지 못했습니다.");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  return (
+    <div className="mt-6" data-testid="invite-accept" data-step={step}>
+      {error ? (
+        <p data-testid="invite-error" className="mb-4 border border-danger/40 px-4 py-3 text-s text-danger">
+          {error}
+        </p>
+      ) : null}
+
+      {step === 1 ? (
+        <IdentityGate
+          purpose="REGISTER"
+          onVerified={(v) => {
+            setTicket(v.ticket);
+            setStep(2);
+          }}
+        />
+      ) : step === 2 ? (
+        <div className="space-y-4">
+          <label className="block">
+            <span className="mb-1.5 block text-xs font-bold">아이디 (5~20자 영문·숫자)</span>
+            <input
+              data-testid="invite-username"
+              value={username}
+              onChange={(e) => setUsername(e.target.value)}
+              className="w-full border border-border-soft bg-background px-3 py-2 text-s"
+            />
+          </label>
+          <label className="block">
+            <span className="mb-1.5 block text-xs font-bold">비밀번호</span>
+            <input
+              data-testid="invite-password"
+              type="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              className="w-full border border-border-soft bg-background px-3 py-2 text-s"
+            />
+          </label>
+          <label className="block">
+            <span className="mb-1.5 block text-xs font-bold">비밀번호 확인</span>
+            <input
+              data-testid="invite-password-confirm"
+              type="password"
+              value={confirm}
+              onChange={(e) => setConfirm(e.target.value)}
+              className="w-full border border-border-soft bg-background px-3 py-2 text-s"
+            />
+          </label>
+          <button
+            type="button"
+            data-testid="invite-submit"
+            disabled={loading || !username || !password}
+            onClick={submit}
+            className={`${btnClass("primary", "md")} w-full`}
+          >
+            {loading ? "처리 중…" : "가입 완료"}
+          </button>
+        </div>
+      ) : (
+        <div className="text-center" data-testid="invite-done">
+          <p className="text-h6-m font-bold">합류가 완료되었습니다</p>
+          <p className="mt-2 text-s text-muted">
+            {companyName ? `${companyName} 소속 담당자로 등록되었습니다.` : "소속 담당자로 등록되었습니다."}
+          </p>
+          <Link href="/apply" className={`${btnClass("primary", "md")} mt-8`}>
+            대관 신청하기
+          </Link>
+        </div>
+      )}
+    </div>
+  );
+}

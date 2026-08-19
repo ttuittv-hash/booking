@@ -1119,6 +1119,160 @@ export async function ensureCompanyMaster(companyId: string): Promise<void> {
   );
 }
 
+/** 회사 소속 담당자 목록 — 마스터의 담당자 관리 화면(기획서 A10). */
+export async function listCompanyMembers(companyId: string): Promise<AppUser[]> {
+  const rows = await q<UserRow>(
+    `SELECT * FROM users
+      WHERE company_id = $1 AND role = 'APPLICANT'
+      ORDER BY (company_role = 'MASTER') DESC, created_at ASC`,
+    [companyId],
+  );
+  return rows.map(toAppUser);
+}
+
+/**
+ * 마스터 권한을 다른 소속 담당자에게 넘긴다.
+ * 회사당 마스터는 1명이므로 이관자는 즉시 일반 담당자가 된다.
+ * 한 트랜잭션 안에서 처리하지 않으면 마스터가 0명이거나 2명인 순간이 생긴다.
+ */
+export async function transferCompanyMaster(
+  companyId: string,
+  fromUserId: string,
+  toUserId: string,
+): Promise<void> {
+  await withTransaction(async () => {
+    await q("UPDATE users SET company_role = 'STAFF' WHERE id = $1 AND company_id = $2", [
+      fromUserId,
+      companyId,
+    ]);
+    await q("UPDATE users SET company_role = 'MASTER' WHERE id = $1 AND company_id = $2", [
+      toUserId,
+      companyId,
+    ]);
+    await q("UPDATE companies SET master_user_id = $1 WHERE id = $2", [toUserId, companyId]);
+  });
+}
+
+/**
+ * 소속 담당자를 해제한다. 계정 삭제가 아니라 소속 해제 + 비활성이다(기획서 A10).
+ * 계정을 지우면 그 사람이 낸 신청서·계약 이력이 함께 끊긴다.
+ */
+export async function removeCompanyMember(companyId: string, userId: string): Promise<void> {
+  await q(
+    `UPDATE users
+        SET company_id = NULL, company_role = NULL, approval_status = 'REJECTED'
+      WHERE id = $1 AND company_id = $2 AND company_role <> 'MASTER'`,
+    [userId, companyId],
+  );
+}
+
+// ── 담당자 초대 (기획서 A11) ────────────────────────────────────────────────
+
+export interface CompanyInvitation {
+  id: string;
+  companyId: string;
+  email: string;
+  status: string;
+  expiresAt: string;
+  createdAt: string;
+}
+
+/**
+ * 초대장을 만든다. 계정을 미리 만들지 않고 링크만 보낸다 —
+ * 임시 비밀번호를 마스터가 정하면 그 사람이 남의 비밀번호를 아는 상태가 되고,
+ * 본인이 직접 설정하지 않았으므로 실명 확인 근거도 사라진다.
+ *
+ * 원문 토큰은 저장하지 않는다. 유출돼도 DB 만으로는 링크를 만들 수 없게 한다.
+ */
+export async function createCompanyInvitation(input: {
+  id: string;
+  companyId: string;
+  invitedBy: string;
+  email: string;
+  tokenHash: string;
+  expiresAt: string;
+  createdAt: string;
+}): Promise<void> {
+  await q(
+    `INSERT INTO company_invitations (id, company_id, invited_by, email, token_hash, status, expires_at, created_at)
+     VALUES ($1, $2, $3, $4, $5, 'PENDING', $6, $7)`,
+    [
+      input.id,
+      input.companyId,
+      input.invitedBy,
+      input.email.toLowerCase(),
+      input.tokenHash,
+      input.expiresAt,
+      input.createdAt,
+    ],
+  );
+}
+
+export async function listCompanyInvitations(companyId: string): Promise<CompanyInvitation[]> {
+  const rows = await q<{
+    id: string;
+    company_id: string;
+    email: string;
+    status: string;
+    expires_at: string;
+    created_at: string;
+  }>(
+    `SELECT id, company_id, email, status, expires_at, created_at
+       FROM company_invitations WHERE company_id = $1 ORDER BY created_at DESC`,
+    [companyId],
+  );
+  return rows.map((r) => ({
+    id: r.id,
+    companyId: r.company_id,
+    email: r.email,
+    status: r.status,
+    expiresAt: r.expires_at,
+    createdAt: r.created_at,
+  }));
+}
+
+/** 토큰 해시로 유효한 초대를 찾는다. 만료·소비된 건은 돌려주지 않는다. */
+export async function findValidInvitation(tokenHash: string): Promise<
+  { id: string; companyId: string; email: string; companyName: string } | undefined
+> {
+  const row = await one<{
+    id: string;
+    company_id: string;
+    email: string;
+    expires_at: string;
+    company_name: string;
+  }>(
+    `SELECT i.id, i.company_id, i.email, i.expires_at, c.name AS company_name
+       FROM company_invitations i JOIN companies c ON c.id = i.company_id
+      WHERE i.token_hash = $1 AND i.status = 'PENDING'`,
+    [tokenHash],
+  );
+  if (!row) return undefined;
+  if (Date.parse(row.expires_at) < Date.now()) return undefined;
+  return {
+    id: row.id,
+    companyId: row.company_id,
+    email: row.email,
+    companyName: row.company_name,
+  };
+}
+
+export async function consumeInvitation(id: string, userId: string): Promise<void> {
+  await q(
+    `UPDATE company_invitations
+        SET status = 'ACCEPTED', accepted_at = $2, accepted_user_id = $3
+      WHERE id = $1 AND status = 'PENDING'`,
+    [id, new Date().toISOString(), userId],
+  );
+}
+
+export async function cancelInvitation(id: string, companyId: string): Promise<void> {
+  await q(
+    "UPDATE company_invitations SET status = 'CANCELLED' WHERE id = $1 AND company_id = $2 AND status = 'PENDING'",
+    [id, companyId],
+  );
+}
+
 /** 이 계정이 자기 회사의 마스터인가 — 담당자 관리·합류 승인 권한 검사에 쓴다. */
 export function isCompanyMaster(user: AppUser | null | undefined): boolean {
   return !!user && user.role === "APPLICANT" && user.companyRole === "MASTER";
