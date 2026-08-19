@@ -490,6 +490,20 @@ async function initSchema(pool: Pool) {
       WHERE business_registration_number IS NOT NULL;
 
     CREATE UNIQUE INDEX IF NOT EXISTS idx_users_di ON users(di_index) WHERE di_index IS NOT NULL;
+    -- 회사당 대표 담당자는 한 명이다. 이 불변식이 깨지면 합류 승인 주체가 둘이 되고
+    -- 대표 이관이 어느 쪽을 내릴지 모호해진다. 코드에서만 지키면 직접 UPDATE 한 번에 무너진다.
+    --
+    -- 인덱스를 걸기 전에 이미 둘 이상인 회사를 정리한다(가장 먼저 만들어진 한 명만 남긴다).
+    -- 같은 쿼리 안이라 순서대로 실행되고, 정리보다 인덱스가 먼저 돌면 생성이 실패한다.
+    UPDATE users SET company_role = 'STAFF'
+     WHERE company_role = 'MASTER' AND company_id IS NOT NULL
+       AND id <> (
+         SELECT u2.id FROM users u2
+          WHERE u2.company_id = users.company_id AND u2.company_role = 'MASTER'
+          ORDER BY u2.created_at ASC LIMIT 1
+       );
+    CREATE UNIQUE INDEX IF NOT EXISTS idx_users_company_master
+      ON users(company_id) WHERE company_role = 'MASTER' AND company_id IS NOT NULL;
     CREATE INDEX IF NOT EXISTS idx_users_company ON users(company_id) WHERE company_id IS NOT NULL;
     CREATE INDEX IF NOT EXISTS idx_terms_agreements_user ON terms_agreements(user_id);
     CREATE INDEX IF NOT EXISTS idx_identity_verifications_di ON identity_verifications(di_index);
