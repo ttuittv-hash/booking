@@ -7,6 +7,8 @@ import { btnClass } from "@/components/ui/kit";
 import {
   FIELD,
   FIELD_LABEL,
+  FIELD_NUM,
+  FIELD_SM,
   HELP,
   LINK_BTN,
   NONE,
@@ -323,7 +325,7 @@ export function PackagesForm({ rateTable }: { rateTable: RateTable }) {
               />
             </label>
             <label className="block">
-              <span className="mb-1 block text-[12px] text-muted">기본 대관료 (원/주, 화~일) — 신청자 노출 총액</span>
+              <span className="mb-1 block text-xs text-muted">기본 대관료 (원/주, 화~일) — 신청자 노출 총액</span>
               <input
                 type="number"
                 min={0}
@@ -333,7 +335,7 @@ export function PackagesForm({ rateTable }: { rateTable: RateTable }) {
               />
             </label>
             <label className="block">
-              <span className="mb-1 block text-[12px] text-muted">
+              <span className="mb-1 block text-xs text-muted">
                 Bowl 사용료 (원/주) — 신청자 비노출, 위 기본 대관료에 이미 포함된 참고값
               </span>
               <input
@@ -341,31 +343,31 @@ export function PackagesForm({ rateTable }: { rateTable: RateTable }) {
                 min={0}
                 value={active.bowlFee}
                 onChange={(e) => update({ bowlFee: Number(e.target.value) || 0 })}
-                className="w-full rounded-sm border border-border bg-panel px-3 py-2 text-[13px] outline-none focus:border-accent"
+                className={`w-full ${FIELD}`}
               />
             </label>
             <label className="block">
-              <span className="mb-1 block text-[12px] text-muted">셋업(준비일) 추가/차감 단가 (원/일)</span>
+              <span className="mb-1 block text-xs text-muted">셋업(준비일) 추가/차감 단가 (원/일)</span>
               <input
                 type="number"
                 min={0}
                 value={active.setupExtraDayFee}
                 onChange={(e) => update({ setupExtraDayFee: Number(e.target.value) || 0 })}
-                className="w-full rounded-sm border border-border bg-panel px-3 py-2 text-[13px] outline-none focus:border-accent"
+                className={`w-full ${FIELD}`}
               />
             </label>
             <label className="block">
-              <span className="mb-1 block text-[12px] text-muted">공연일 추가/차감 단가 (원/일)</span>
+              <span className="mb-1 block text-xs text-muted">공연일 추가/차감 단가 (원/일)</span>
               <input
                 type="number"
                 min={0}
                 value={active.performanceExtraDayFee}
                 onChange={(e) => update({ performanceExtraDayFee: Number(e.target.value) || 0 })}
-                className="w-full rounded-sm border border-border bg-panel px-3 py-2 text-[13px] outline-none focus:border-accent"
+                className={`w-full ${FIELD}`}
               />
             </label>
             <label className="block">
-              <span className="mb-1 block text-[12px] text-muted">할인율 적용 (%, 기본 대관료 기준)</span>
+              <span className="mb-1 block text-xs text-muted">할인율 적용 (%, 기본 대관료 기준)</span>
               <div className="flex items-center gap-2">
                 <input
                   type="checkbox"
@@ -544,23 +546,23 @@ export function PackagesForm({ rateTable }: { rateTable: RateTable }) {
               grouped: optionAddons,
               title: "③ 선택 가능 옵션",
               badge: "항목 · 금액 노출",
-              badgeClass: "bg-accent text-white",
+              badgeClass: "bg-accent text-on-accent",
               desc: "신청자가 STEP 2(구성·옵션)에서 직접 수량을 정해 선택하는 항목 — 항목명·단가·금액이 모두 노출된다.",
             },
           ]
         ).map(({ visibility, grouped: groupedByVisibility, title, badge, badgeClass, desc }) => (
           <section key={visibility}>
             <div className="flex items-center gap-2">
-              <h2 className="text-[14px] font-semibold">{title}</h2>
-              <span className={`rounded-sm px-2 py-0.5 text-[10.5px] font-semibold ${badgeClass}`}>{badge}</span>
+              <h2 className={SUB_TITLE}>{title}</h2>
+              <span className={`px-2 py-0.5 text-xs font-semibold ${badgeClass}`}>{badge}</span>
             </div>
-            <p className="mt-1 text-[12px] text-muted">{desc}</p>
+            <p className="mt-1 text-xs text-muted">{desc}</p>
 
-            <div className="mt-3 flex flex-wrap items-center gap-2 border-b border-dashed border-border pb-3">
+            <div className="mt-3 flex flex-wrap items-center gap-2 border-b border-dashed border-border-soft pb-3">
               <select
                 value={pickerCategory}
                 onChange={(e) => setPickerCategory(e.target.value as AddonCategory)}
-                className="rounded-sm border border-border bg-panel px-2 py-1.5 text-[12px] outline-none focus:border-accent"
+                className={FIELD_SM}
               >
                 {ADDON_CATEGORIES.map((cat) => (
                   <option key={cat} value={cat}>
@@ -571,15 +573,15 @@ export function PackagesForm({ rateTable }: { rateTable: RateTable }) {
               <button
                 type="button"
                 onClick={() => openNewItemForm(pickerCategory, visibility)}
-                className="rounded-sm px-2 py-1 text-[11.5px] font-medium text-accent hover:underline"
+                className="px-2 py-1 text-xs font-medium text-foreground hover:underline"
               >
                 + 새 카테고리로 항목 추가
               </button>
             </div>
 
             {newItemCategory && newItemVisibility === visibility && !groupedByVisibility.has(newItemCategory) && (
-              <div className="mt-3 flex flex-col gap-2 rounded-sm border border-dashed border-accent/40 bg-accent-soft/40 p-3 sm:flex-row sm:items-center">
-                <span className="shrink-0 text-[11px] font-semibold text-accent">
+              <div className="mt-3 flex flex-col gap-2 border border-dashed border-accent/40 bg-accent-soft/40 p-3 sm:flex-row sm:items-center">
+                <span className="shrink-0 text-xs font-semibold text-foreground">
                   {ADDON_CATEGORY_LABEL[newItemCategory]} (신규)
                 </span>
                 <input
@@ -588,14 +590,14 @@ export function PackagesForm({ rateTable }: { rateTable: RateTable }) {
                   placeholder="항목 이름"
                   value={newItemName}
                   onChange={(e) => setNewItemName(e.target.value)}
-                  className="flex-1 rounded-sm border border-border bg-background px-3 py-1.5 text-[13px] outline-none focus:border-accent"
+                  className={`flex-1 ${FIELD}`}
                 />
                 <input
                   type="text"
                   placeholder="단위 (예: 원/일)"
                   value={newItemUnitLabel}
                   onChange={(e) => setNewItemUnitLabel(e.target.value)}
-                  className="w-32 rounded-sm border border-border bg-background px-3 py-1.5 text-[13px] outline-none focus:border-accent"
+                  className={`w-32 ${FIELD}`}
                 />
                 <input
                   type="number"
@@ -603,21 +605,21 @@ export function PackagesForm({ rateTable }: { rateTable: RateTable }) {
                   placeholder="단가"
                   value={newItemPrice}
                   onChange={(e) => setNewItemPrice(Math.max(0, Number(e.target.value) || 0))}
-                  className="w-28 rounded-sm border border-border bg-background px-3 py-1.5 text-right text-[13px] outline-none focus:border-accent"
+                  className={`w-28 ${FIELD_NUM}`}
                 />
                 <div className="flex gap-2">
                   <button
                     type="button"
                     onClick={confirmNewItem}
                     disabled={!newItemName.trim()}
-                    className="rounded-sm bg-accent px-3 py-1.5 text-[12.5px] font-semibold text-white disabled:opacity-50"
+                    className={btnClass("primary", "sm")}
                   >
                     추가
                   </button>
                   <button
                     type="button"
                     onClick={() => setNewItemCategory(null)}
-                    className="rounded-sm border border-border px-3 py-1.5 text-[12.5px] text-muted"
+                    className={btnClass("secondary", "sm")}
                   >
                     취소
                   </button>
@@ -629,13 +631,13 @@ export function PackagesForm({ rateTable }: { rateTable: RateTable }) {
               {[...groupedByVisibility.entries()].map(([category, items]) => (
                 <div key={category}>
                   <div className="mb-2 flex items-center justify-between">
-                    <span className="text-[11px] font-semibold uppercase tracking-wide text-accent">
+                    <span className="text-xs font-semibold uppercase tracking-wide text-foreground">
                       {ADDON_CATEGORY_LABEL[category as keyof typeof ADDON_CATEGORY_LABEL] ?? category}
                     </span>
                     <button
                       type="button"
                       onClick={() => openNewItemForm(category as AddonCategory, visibility)}
-                      className="rounded-sm px-2 py-1 text-[11.5px] font-medium text-accent hover:underline"
+                      className="px-2 py-1 text-xs font-medium text-foreground hover:underline"
                     >
                       + 항목 추가
                     </button>
@@ -649,18 +651,18 @@ export function PackagesForm({ rateTable }: { rateTable: RateTable }) {
                           key={addon.id}
                           className="flex flex-col gap-2 border-b border-border/50 pb-1.5 sm:flex-row sm:items-center sm:justify-between"
                         >
-                          <label className="flex items-center gap-2 text-[13px]">
+                          <label className="flex items-center gap-2 text-s">
                             <input
                               type="checkbox"
                               checked={checked}
                               onChange={(e) => setIncludedQty(addon.id, e.target.checked ? 1 : 0)}
                             />
                             {addon.name}
-                            <span className="text-[11px] text-muted">({addon.unitLabel})</span>
+                            <span className="text-xs text-muted">({addon.unitLabel})</span>
                           </label>
                           <div className="flex items-center gap-3">
                             <label className="flex items-center gap-1.5">
-                              <span className="text-[11px] text-muted">기본 수량</span>
+                              <span className="text-xs text-muted">기본 수량</span>
                               <input
                                 type="number"
                                 min={1}
@@ -668,23 +670,23 @@ export function PackagesForm({ rateTable }: { rateTable: RateTable }) {
                                 value={checked ? qty : ""}
                                 placeholder="-"
                                 onChange={(e) => setIncludedQty(addon.id, Math.max(1, Number(e.target.value) || 1))}
-                                className="w-16 rounded-sm border border-border bg-panel px-3 py-1.5 text-right text-[13px] outline-none focus:border-accent disabled:opacity-40"
+                                className={`w-16 disabled:opacity-40 ${FIELD_NUM}`}
                               />
                             </label>
                             <label className="flex items-center gap-1.5">
-                              <span className="text-[11px] text-muted">단가</span>
+                              <span className="text-xs text-muted">단가</span>
                               <input
                                 type="number"
                                 min={0}
                                 value={addon.unitPrice}
                                 onChange={(e) => updateAddonPrice(addon.id, Math.max(0, Number(e.target.value) || 0))}
-                                className="w-32 rounded-sm border border-border bg-panel px-3 py-1.5 text-right text-[13px] outline-none focus:border-accent"
+                                className={`w-32 ${FIELD_NUM}`}
                               />
                             </label>
                             <select
                               value={addon.visibility}
                               onChange={(e) => updateAddonVisibility(addon.id, e.target.value as LineItemVisibility)}
-                              className="rounded-sm border border-border bg-panel px-2 py-1.5 text-[11.5px] outline-none focus:border-accent"
+                              className={FIELD_SM}
                             >
                               <option value="ITEM_ONLY">기본 내역</option>
                               <option value="HIDDEN">비노출</option>
@@ -697,21 +699,21 @@ export function PackagesForm({ rateTable }: { rateTable: RateTable }) {
                   </div>
 
                   {newItemCategory === category && newItemVisibility === visibility && (
-                    <div className="mt-3 flex flex-col gap-2 rounded-sm border border-dashed border-accent/40 bg-accent-soft/40 p-3 sm:flex-row sm:items-center">
+                    <div className="mt-3 flex flex-col gap-2 border border-dashed border-accent/40 bg-accent-soft/40 p-3 sm:flex-row sm:items-center">
                       <input
                         type="text"
                         autoFocus
                         placeholder="항목 이름"
                         value={newItemName}
                         onChange={(e) => setNewItemName(e.target.value)}
-                        className="flex-1 rounded-sm border border-border bg-background px-3 py-1.5 text-[13px] outline-none focus:border-accent"
+                        className={`flex-1 ${FIELD}`}
                       />
                       <input
                         type="text"
                         placeholder="단위 (예: 원/일)"
                         value={newItemUnitLabel}
                         onChange={(e) => setNewItemUnitLabel(e.target.value)}
-                        className="w-32 rounded-sm border border-border bg-background px-3 py-1.5 text-[13px] outline-none focus:border-accent"
+                        className={`w-32 ${FIELD}`}
                       />
                       <input
                         type="number"
@@ -719,21 +721,21 @@ export function PackagesForm({ rateTable }: { rateTable: RateTable }) {
                         placeholder="단가"
                         value={newItemPrice}
                         onChange={(e) => setNewItemPrice(Math.max(0, Number(e.target.value) || 0))}
-                        className="w-28 rounded-sm border border-border bg-background px-3 py-1.5 text-right text-[13px] outline-none focus:border-accent"
+                        className={`w-28 ${FIELD_NUM}`}
                       />
                       <div className="flex gap-2">
                         <button
                           type="button"
                           onClick={confirmNewItem}
                           disabled={!newItemName.trim()}
-                          className="rounded-sm bg-accent px-3 py-1.5 text-[12.5px] font-semibold text-white disabled:opacity-50"
+                          className={btnClass("primary", "sm")}
                         >
                           추가
                         </button>
                         <button
                           type="button"
                           onClick={() => setNewItemCategory(null)}
-                          className="rounded-sm border border-border px-3 py-1.5 text-[12.5px] text-muted"
+                          className={btnClass("secondary", "sm")}
                         >
                           취소
                         </button>
@@ -743,7 +745,7 @@ export function PackagesForm({ rateTable }: { rateTable: RateTable }) {
                 </div>
               ))}
               {groupedByVisibility.size === 0 && (
-                <p className="text-[12px] text-muted">
+                <p className="text-xs text-muted">
                   아직 항목이 없습니다 — 위에서 카테고리를 고르고 &ldquo;+ 새 카테고리로 항목 추가&rdquo;를 눌러 등록하세요.
                 </p>
               )}

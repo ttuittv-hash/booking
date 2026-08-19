@@ -122,13 +122,13 @@ function TextField({
 }) {
   return (
     <div>
-      <label className="mb-1.5 block text-[12.5px] font-medium text-muted">{label}</label>
+      <label className="mb-1.5 block text-xs font-medium text-muted">{label}</label>
       <input
         type={type}
         value={value}
         placeholder={placeholder}
         onChange={(e) => onChange(e.target.value)}
-        className="w-full rounded-sm border border-border bg-panel px-4 py-2.5 text-[15px] outline-none focus:border-accent focus:ring-2 focus:ring-accent/20"
+        className="field-base w-full"
       />
     </div>
   );
@@ -137,11 +137,11 @@ function TextField({
 function ReadOnlyRow({ label, value, note }: { label: string; value: string; note?: string }) {
   return (
     <div>
-      <label className="mb-1.5 block text-[12.5px] font-medium text-muted">{label}</label>
-      <div className="rounded-sm border border-border bg-panel/60 px-4 py-2.5 text-[14px] text-foreground">
+      <label className="mb-1.5 block text-xs font-medium text-muted">{label}</label>
+      <div className="border border-border/25 bg-panel/60 px-4 py-2.5 text-s text-foreground">
         {value}
       </div>
-      {note && <p className="mt-1 text-[11px] text-muted">{note}</p>}
+      {note && <p className="mt-1 text-xs text-muted">{note}</p>}
     </div>
   );
 }
@@ -188,25 +188,25 @@ function ResponsiblePersonFields({
 }) {
   return (
     <div>
-      <label className="mb-1.5 block text-[12.5px] font-medium text-muted">{label}</label>
+      <label className="mb-1.5 block text-xs font-medium text-muted">{label}</label>
       <div className="grid grid-cols-3 gap-2">
         <input
           value={value.name}
           placeholder="성명"
           onChange={(e) => onChange({ ...value, name: e.target.value })}
-          className="w-full rounded-sm border border-border bg-panel px-3 py-2.5 text-[13.5px] outline-none focus:border-accent focus:ring-2 focus:ring-accent/20"
+          className="field-base w-full"
         />
         <input
           value={value.title}
           placeholder={thirdFieldLabel === "소속" ? "소속" : "직책"}
           onChange={(e) => onChange({ ...value, title: e.target.value })}
-          className="w-full rounded-sm border border-border bg-panel px-3 py-2.5 text-[13.5px] outline-none focus:border-accent focus:ring-2 focus:ring-accent/20"
+          className="field-base w-full"
         />
         <input
           value={value.phone}
           placeholder="연락처"
           onChange={(e) => onChange({ ...value, phone: e.target.value })}
-          className="w-full rounded-sm border border-border bg-panel px-3 py-2.5 text-[13.5px] outline-none focus:border-accent focus:ring-2 focus:ring-accent/20"
+          className="field-base w-full"
         />
       </div>
     </div>
@@ -260,9 +260,9 @@ function PerformanceInfoFields({
     <>
       <div className="flex flex-col gap-6">
         {/* 신청자 정보 */}
-        <div className="rounded-sm border border-border bg-panel/30 p-6">
-          <h3 className="text-[15px] font-semibold">신청자 정보</h3>
-          <p className="mt-1 text-[12px] text-muted">회원정보에서 자동 입력 · 수정 가능</p>
+        <div className="border-t-2 border-foreground pt-5">
+          <h3 className="type-kr-heading text-h6-m">신청자 정보</h3>
+          <p className="mt-1 text-xs text-muted">회원정보에서 자동 입력 · 수정 가능</p>
 
           <div className="mt-4 space-y-4">
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
@@ -305,57 +305,57 @@ function PerformanceInfoFields({
 
           <div className="mt-6">
             <div className="mb-2.5 flex items-center justify-between">
-              <label className="text-[12.5px] font-medium text-muted">대관사 최근 3년간 공연 실적</label>
+              <label className="text-xs font-medium text-muted">대관사 최근 3년간 공연 실적</label>
               <button
                 type="button"
                 onClick={addPastPerformance}
-                className="text-[12px] font-medium text-accent hover:underline"
+                className="text-xs font-medium text-foreground hover:underline"
               >
                 ＋ 행 추가
               </button>
             </div>
             {info.pastPerformances.length === 0 && (
-              <p className="text-[12.5px] text-muted">아직 등록된 실적이 없습니다.</p>
+              <p className="text-xs text-muted">아직 등록된 실적이 없습니다.</p>
             )}
             <div className="space-y-2">
               {info.pastPerformances.map((row, i) => (
-                <div key={i} className="grid grid-cols-5 gap-1.5 rounded-sm border border-border bg-panel/40 p-2">
+                <div key={i} className="grid grid-cols-5 gap-1.5 border-b border-border/15 py-2">
                   <input
                     value={row.eventName}
                     placeholder="공연명"
                     onChange={(e) => updatePastPerformance(i, { eventName: e.target.value })}
-                    className="rounded-sm border border-border bg-background px-2 py-1.5 text-[12px] outline-none focus:border-accent"
+                    className="field-base"
                   />
                   <input
                     value={row.venue}
                     placeholder="장소"
                     onChange={(e) => updatePastPerformance(i, { venue: e.target.value })}
-                    className="rounded-sm border border-border bg-background px-2 py-1.5 text-[12px] outline-none focus:border-accent"
+                    className="field-base"
                   />
                   <input
                     value={row.period}
                     placeholder="기간"
                     onChange={(e) => updatePastPerformance(i, { period: e.target.value })}
-                    className="rounded-sm border border-border bg-background px-2 py-1.5 text-[12px] outline-none focus:border-accent"
+                    className="field-base"
                   />
                   <input
                     value={row.audience}
                     placeholder="관객 수"
                     onChange={(e) => updatePastPerformance(i, { audience: e.target.value })}
-                    className="rounded-sm border border-border bg-background px-2 py-1.5 text-[12px] outline-none focus:border-accent"
+                    className="field-base"
                   />
                   <div className="flex items-center gap-1">
                     <input
                       value={row.role}
                       placeholder="주최·주관 역할"
                       onChange={(e) => updatePastPerformance(i, { role: e.target.value })}
-                      className="w-full rounded-sm border border-border bg-background px-2 py-1.5 text-[12px] outline-none focus:border-accent"
+                      className="field-base w-full"
                     />
                     <button
                       type="button"
                       onClick={() => removePastPerformance(i)}
                       aria-label="삭제"
-                      className="shrink-0 text-[11px] text-muted hover:text-red-600"
+                      className="shrink-0 text-xs text-muted hover:text-red-600"
                     >
                       삭제
                     </button>
@@ -367,9 +367,9 @@ function PerformanceInfoFields({
         </div>
 
         {/* 공연 기본정보 */}
-        <div className="rounded-sm border border-border bg-panel/30 p-6">
-          <h3 className="text-[15px] font-semibold">공연 기본정보</h3>
-          <p className="mt-1 text-[12px] text-muted">입력한 내용은 대관심의 및 계약서 작성에 활용됩니다</p>
+        <div className="border-t-2 border-foreground pt-5">
+          <h3 className="type-kr-heading text-h6-m">공연 기본정보</h3>
+          <p className="mt-1 text-xs text-muted">입력한 내용은 대관심의 및 계약서 작성에 활용됩니다</p>
 
           <div className="mt-4 space-y-4">
             <TextField label="공연(행사)명" value={info.eventName} onChange={(v) => set("eventName", v)} />
@@ -390,7 +390,7 @@ function PerformanceInfoFields({
           </div>
 
           <div className="mt-6">
-            <div className="mb-2.5 text-[12.5px] font-medium text-muted">행사유형</div>
+            <div className="mb-2.5 text-xs font-medium text-muted">행사유형</div>
             <div className="flex flex-wrap gap-2">
               {EVENT_TYPES.map((type) => (
                 <CheckboxChip
@@ -404,7 +404,7 @@ function PerformanceInfoFields({
           </div>
 
           <div className="mt-6">
-            <div className="mb-2.5 text-[12.5px] font-medium text-muted">공연등급</div>
+            <div className="mb-2.5 text-xs font-medium text-muted">공연등급</div>
             <div className="flex flex-wrap gap-2">
               {AGE_RATINGS.map((rating) => (
                 <CheckboxChip
@@ -420,13 +420,13 @@ function PerformanceInfoFields({
                 value={info.ageLimitDetail}
                 placeholder="예: 15세 이상 관람가"
                 onChange={(e) => set("ageLimitDetail", e.target.value)}
-                className="mt-2 w-full max-w-xs rounded-sm border border-border bg-panel px-3.5 py-2 text-[13px] outline-none focus:border-accent"
+                className="field-base mt-2 w-full max-w-xs"
               />
             )}
           </div>
 
           <div className="mt-6">
-            <div className="mb-2.5 text-[12.5px] font-medium text-muted">객석형태</div>
+            <div className="mb-2.5 text-xs font-medium text-muted">객석형태</div>
             <div className="flex flex-wrap gap-2">
               {SEATING_TYPES.map((type) => (
                 <CheckboxChip
@@ -440,7 +440,7 @@ function PerformanceInfoFields({
           </div>
 
           <div className="mt-6">
-            <div className="mb-2.5 text-[12.5px] font-medium text-muted">무대형태</div>
+            <div className="mb-2.5 text-xs font-medium text-muted">무대형태</div>
             <div className="flex flex-wrap gap-2">
               {STAGE_TYPES.map((type) => (
                 <CheckboxChip
@@ -454,7 +454,7 @@ function PerformanceInfoFields({
           </div>
 
           <div className="mt-6">
-            <div className="mb-2.5 text-[12.5px] font-medium text-muted">수납식 객석 사용여부</div>
+            <div className="mb-2.5 text-xs font-medium text-muted">수납식 객석 사용여부</div>
             <div className="flex flex-wrap gap-2">
               {RETRACTABLE_USES.map((use) => (
                 <CheckboxChip
@@ -484,12 +484,12 @@ function PerformanceInfoFields({
         </div>
       </div>
 
-      <div className="mt-6 rounded-sm border border-border bg-panel/30 p-6">
-        <h3 className="text-[15px] font-semibold">개최 신뢰도 및 이력 확인</h3>
-        <p className="mt-1 text-[12px] text-muted">회원 유형이 &lsquo;기획사 직접 신청&rsquo;이면 이후 정책에 따라 이 섹션이 생략될 수 있습니다</p>
+      <div className="mt-10 border-t-2 border-foreground pt-5">
+        <h3 className="type-kr-heading text-h6-m">개최 신뢰도 및 이력 확인</h3>
+        <p className="mt-1 text-xs text-muted">회원 유형이 &lsquo;기획사 직접 신청&rsquo;이면 이후 정책에 따라 이 섹션이 생략될 수 있습니다</p>
 
         <div className="mt-4">
-          <div className="mb-2.5 text-[12.5px] font-medium text-muted">주요 출연진 계약 상태</div>
+          <div className="mb-2.5 text-xs font-medium text-muted">주요 출연진 계약 상태</div>
           <div className="flex flex-wrap gap-2">
             {CAST_CONTRACT_STATUSES.map((status) => (
               <CheckboxChip
@@ -511,7 +511,7 @@ function PerformanceInfoFields({
           />
         </div>
 
-        <label className="mt-5 flex cursor-pointer items-start gap-2.5 text-[12.5px] text-muted">
+        <label className="mt-5 flex cursor-pointer items-start gap-2.5 text-xs text-muted">
           <input
             type="checkbox"
             checked={info.sensitiveInfoMaskingAcknowledged}
@@ -521,7 +521,7 @@ function PerformanceInfoFields({
           출연 계약 증빙(계약서 · 출연확약서)의 금액 · 개인정보는 마스킹 제출을 허용합니다.
         </label>
 
-        <label className="mt-3 flex cursor-pointer items-start gap-2.5 text-[12.5px] text-muted">
+        <label className="mt-3 flex cursor-pointer items-start gap-2.5 text-xs text-muted">
           <input
             type="checkbox"
             checked={info.safetyPledgeSigned}
@@ -601,9 +601,9 @@ export function StepPerformanceInfo({
   }
 
   return (
-    <section className="rounded border border-border bg-background p-7">
-      <h2 className="text-[19px] font-semibold">STEP 3-1 · 신청자 정보 · 공연 기본정보</h2>
-      <p className="mt-1.5 text-[13.5px] text-muted">
+    <section>
+      <h2 className="type-kr-heading text-h6-m sm:text-h6">신청자 정보 · 공연 기본정보</h2>
+      <p className="mt-3 text-s text-muted">
         신청서는 두 공간을 합쳐 1건입니다. 대관기간만 공간별로 나눠 표기합니다.
       </p>
 
@@ -641,9 +641,9 @@ export function StepPerformanceInfo({
         )}
       </div>
 
-      <div className="mt-6 rounded-sm border border-border bg-panel/30 p-6">
-        <h3 className="text-[15px] font-semibold">자료 첨부</h3>
-        <p className="mt-1 mb-2.5 text-[12px] text-muted">
+      <div className="mt-10 border-t-2 border-foreground pt-5">
+        <h3 className="type-kr-heading text-h6-m">자료 첨부</h3>
+        <p className="mt-1 mb-2.5 text-xs text-muted">
           공연기획서 · 무대 도면, 출연 계약 증빙, 행사 안전관리계획서 등을 첨부하세요. (PDF/이미지/문서,
           파일당 최대 20MB) 신청서 제출 시 함께 업로드됩니다.
           {isSimultaneous && " 동시 대관은 두 공간의 배치도를 각각 첨부합니다."}

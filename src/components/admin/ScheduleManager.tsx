@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 import { isoDate } from "@/lib/pricing/dateRange";
 import type { DateBlock } from "@/lib/pricing/types";
 import { btnClass } from "@/components/ui/kit";
+import { FIELD_SM } from "./adminUi";
 
 interface ScheduleOccupancyEntry {
   quoteId: string;
@@ -142,37 +143,37 @@ export function ScheduleManager({ initialYear, initialMonth }: { initialYear: nu
           ‹ 이전 달
         </button>
         <div className="flex items-center gap-2">
-          <span className="text-[15px] font-semibold">
+          <span className="text-r font-semibold">
             {year}년 {month}월
           </span>
-          <span className="text-[12px] text-muted">{loading && "불러오는 중..."}</span>
+          <span className="text-xs text-muted">{loading && "불러오는 중..."}</span>
         </div>
         <button
           type="button"
           onClick={() => goToMonth(1)}
-          className="rounded-sm border border-border px-3 py-1.5 text-[13px] text-muted hover:border-accent hover:text-accent"
+          className={btnClass("secondary", "sm")}
         >
           다음 달 ›
         </button>
       </div>
 
-      <p className="mt-3 text-[12.5px] leading-6 text-muted">
+      <p className="mt-3 text-xs leading-6 text-muted">
         공간마다 예약 구조가 달라 탭으로 나눠 보여줍니다. 날짜를 누르면 그 날짜의 예약 현황을
         확인하고, 대관 신청 가능/불가를 바로 전환할 수 있습니다(신청 불가 설정은 공간과
         무관하게 그 날짜 전체에 적용됩니다). 막힌 날짜가 하나라도 포함된 주는 아레나 신청 화면
         달력에서 선택할 수 없고, 중형공연장은 해당 날짜만 선택할 수 없습니다.
       </p>
 
-      <div className="mt-4 flex gap-1 border-b border-border">
+      <div className="mt-4 flex gap-1 border-b border-border-soft">
         {(["arena", "medium-hall"] as const).map((tab) => (
           <button
             key={tab}
             type="button"
             onClick={() => setVenueTab(tab)}
             className={[
-              "border-b-2 px-4 py-2.5 text-[13.5px] font-medium transition-colors",
+              "border-b-2 px-4 py-2.5 text-s font-medium transition-colors",
               venueTab === tab
-                ? "border-accent text-accent"
+                ? "border-accent text-foreground"
                 : "border-transparent text-muted hover:text-foreground",
             ].join(" ")}
           >
@@ -181,7 +182,7 @@ export function ScheduleManager({ initialYear, initialMonth }: { initialYear: nu
         ))}
       </div>
 
-      <div className="mt-3 flex flex-wrap items-center gap-4 text-[11.5px] text-muted">
+      <div className="mt-3 flex flex-wrap items-center gap-4 text-xs text-muted">
         <span className="flex items-center gap-1.5">
           <span className={["h-2 w-2 rounded-full", venueTab === "arena" ? "bg-accent" : "bg-good"].join(" ")} />
           {venueTab === "arena" ? "아레나 예약" : "중형 예약"}
@@ -191,8 +192,8 @@ export function ScheduleManager({ initialYear, initialMonth }: { initialYear: nu
         </span>
       </div>
 
-      <div className="mt-5 rounded border border-border bg-panel/60 p-4">
-        <div className="grid grid-cols-7 gap-1 text-center text-[11px] font-medium text-muted">
+      <div className="mt-5 border border-border-soft bg-panel/60 p-4">
+        <div className="grid grid-cols-7 gap-1 text-center text-xs font-medium text-muted">
           {DOW_LABELS.map((label, i) => (
             <div key={label} className={i === 6 ? "opacity-50" : ""}>
               {label}
@@ -223,7 +224,7 @@ export function ScheduleManager({ initialYear, initialMonth }: { initialYear: nu
                           setReasonDraft(existingBlock?.reason ?? "");
                         }}
                         className={[
-                          "flex h-14 flex-col items-center justify-center gap-0.5 rounded-sm px-1 text-[12.5px] transition-colors",
+                          "flex h-14 flex-col items-center justify-center gap-0.5 px-1 text-xs transition-colors",
                           !inMonth
                             ? "cursor-default text-muted/30"
                             : isBlocked
@@ -237,8 +238,8 @@ export function ScheduleManager({ initialYear, initialMonth }: { initialYear: nu
                         {inMonth && entries.length > 0 && (
                           <span
                             className={[
-                              "rounded-sm px-1 text-[9px] font-semibold",
-                              venueTab === "arena" ? "bg-accent-soft text-accent" : "bg-good-soft text-good",
+                              "px-1 text-xs font-semibold",
+                              venueTab === "arena" ? "bg-accent-soft text-foreground" : "bg-good-soft text-good",
                             ].join(" ")}
                           >
                             {entries.length}건
@@ -250,14 +251,14 @@ export function ScheduleManager({ initialYear, initialMonth }: { initialYear: nu
                 </div>
 
                 {openInThisRow && openDate && (
-                  <div className="mt-1.5 rounded-sm border border-accent bg-accent-soft/40 px-3.5 py-3">
+                  <div className="mt-1.5 border border-accent bg-accent-soft/40 px-3.5 py-3">
                     <div className="flex items-center justify-between">
-                      <div className="text-[13px] font-semibold text-foreground">{formatDateLabel(openDate)}</div>
+                      <div className="text-s font-semibold text-foreground">{formatDateLabel(openDate)}</div>
                       <button
                         type="button"
                         onClick={() => setOpenDate(null)}
                         aria-label="닫기"
-                        className="text-[12px] text-muted hover:text-foreground"
+                        className="text-xs text-muted hover:text-foreground"
                       >
                         닫기 ✕
                       </button>
@@ -269,7 +270,7 @@ export function ScheduleManager({ initialYear, initialMonth }: { initialYear: nu
                         const tabEntries = allEntries.filter((e) => e.venueId === venueTab);
                         const otherVenueCount = allEntries.length - tabEntries.length;
                         return tabEntries.length === 0 ? (
-                          <p className="text-[12px] text-muted">
+                          <p className="text-xs text-muted">
                             이 날짜에 {venueLabel(venueTab)} 예약이 없습니다.
                             {otherVenueCount > 0 && ` (다른 공간 예약 ${otherVenueCount}건 있음 — 탭 전환해서 확인)`}
                           </p>
@@ -278,13 +279,13 @@ export function ScheduleManager({ initialYear, initialMonth }: { initialYear: nu
                             {tabEntries.map((entry, i) => (
                               <li
                                 key={`${entry.quoteId}-${i}`}
-                                className="flex flex-wrap items-center gap-x-2 gap-y-1 rounded-sm bg-background px-2.5 py-1.5 text-[12px]"
+                                className="flex flex-wrap items-center gap-x-2 gap-y-1 bg-background px-2.5 py-1.5 text-xs"
                               >
                                 <span className="text-muted">{roleLabel(entry.role)}</span>
-                                <Link href={`/admin/${entry.quoteId}`} className="font-medium text-foreground hover:text-accent hover:underline">
+                                <Link href={`/admin/${entry.quoteId}`} className="font-medium text-foreground hover:text-foreground hover:underline">
                                   {entry.companyName}
                                 </Link>
-                                <span className="text-[10.5px] text-muted">· {statusLabel(entry.status, entry.reviewDecision)}</span>
+                                <span className="text-xs text-muted">· {statusLabel(entry.status, entry.reviewDecision)}</span>
                               </li>
                             ))}
                           </ul>
@@ -295,14 +296,14 @@ export function ScheduleManager({ initialYear, initialMonth }: { initialYear: nu
                     <div className="mt-3 flex flex-wrap items-center gap-2 border-t border-accent/20 pt-3">
                       {blockedByDate.get(openDate) ? (
                         <>
-                          <span className="text-[12px] text-red-600">
+                          <span className="text-xs text-red-600">
                             신청 불가로 지정됨
                             {blockedByDate.get(openDate)?.reason ? ` · ${blockedByDate.get(openDate)?.reason}` : ""}
                           </span>
                           <button
                             type="button"
                             onClick={unblockOpenDate}
-                            className="rounded-sm bg-panel-strong px-3 py-1.5 text-[12px] font-medium text-muted hover:text-foreground"
+                            className="bg-panel-strong px-3 py-1.5 text-xs font-medium text-muted hover:text-foreground"
                           >
                             신청 가능으로 되돌리기
                           </button>
@@ -314,12 +315,12 @@ export function ScheduleManager({ initialYear, initialMonth }: { initialYear: nu
                             value={reasonDraft}
                             onChange={(e) => setReasonDraft(e.target.value)}
                             placeholder="막을 사유(선택) — 예: 정기 대관, 내부 행사"
-                            className="min-w-0 flex-1 rounded-sm border border-border bg-background px-2.5 py-1.5 text-[12px] outline-none focus:border-accent"
+                            className={`min-w-0 flex-1 ${FIELD_SM}`}
                           />
                           <button
                             type="button"
                             onClick={blockOpenDate}
-                            className="shrink-0 rounded-sm bg-panel-strong px-3 py-1.5 text-[12px] font-medium text-muted hover:text-red-600"
+                            className="shrink-0 bg-panel-strong px-3 py-1.5 text-xs font-medium text-muted hover:text-red-600"
                           >
                             이 날짜 막기
                           </button>
