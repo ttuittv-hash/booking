@@ -106,10 +106,10 @@ export function StepAudiencePublicInterest({
         관객 수는 공간별로 받고, 공공성 계획은 9개 항목을 안내한 뒤 파일 1건으로 통합 첨부합니다.
       </p>
 
-      <div className="mt-6 flex flex-col gap-8">
-        {/* 3. 예상 관객 및 사업규모 */}
-        <div>
-          <h3 className="text-[15px] font-semibold">3. 예상 관객 및 사업규모</h3>
+      <div className="mt-6 flex flex-col gap-6">
+        {/* 예상 관객 및 사업규모 */}
+        <div className="rounded-sm border border-border bg-panel/30 p-6">
+          <h3 className="text-[15px] font-semibold">예상 관객 및 사업규모</h3>
           <p className="mt-1 text-[12px] text-muted">
             객석배치도는 계획안 기준으로 제출할 수 있으며, 승인 후 변경 시 사전 협의가 필요합니다
           </p>
@@ -173,9 +173,9 @@ export function StepAudiencePublicInterest({
           </div>
         </div>
 
-        {/* 4. 공공성 및 연계 프로그램 */}
-        <div>
-          <h3 className="text-[15px] font-semibold">4. 공공성 및 연계 프로그램</h3>
+        {/* 공공성 및 연계 프로그램 */}
+        <div className="rounded-sm border border-border bg-panel/30 p-6">
+          <h3 className="text-[15px] font-semibold">공공성 및 연계 프로그램</h3>
           <p className="mt-1 text-[12px] leading-5 text-muted">
             아래 항목을 참고해 계획을 하나의 파일로 정리해 첨부해 주세요. 미확정 사항은 &lsquo;검토
             중&rsquo;으로 기재 가능합니다.
@@ -195,9 +195,9 @@ export function StepAudiencePublicInterest({
         </div>
       </div>
 
-      <div className="mt-8 border-t border-border pt-7">
-        <div className="mb-2.5 text-[12.5px] font-medium text-muted">자료 첨부</div>
-        <p className="mb-2.5 text-[12px] leading-5 text-muted">
+      <div className="mt-6 rounded-sm border border-border bg-panel/30 p-6">
+        <h3 className="text-[15px] font-semibold">자료 첨부</h3>
+        <p className="mt-1 mb-2.5 text-[12px] leading-5 text-muted">
           객석배치도(PDF/이미지)와 공공성 및 연계 프로그램 계획서(PDF/HWP/DOCX, 9개 항목 통합
           1개 파일)를 함께 첨부하세요.
           {isSimultaneous && " 동시 대관은 두 공간의 객석배치도를 각각 첨부합니다."}

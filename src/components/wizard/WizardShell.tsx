@@ -111,6 +111,7 @@ export function WizardShell({
   editingQuoteId,
   initialSelection,
   startFresh,
+  applicantPrefill,
 }: {
   rateTable: RateTable;
   currentUser: AppUser | null;
@@ -119,9 +120,27 @@ export function WizardShell({
   editingQuoteId?: string;
   initialSelection?: QuoteSelection;
   startFresh?: boolean;
+  applicantPrefill?: {
+    companyName: string;
+    businessRegistrationNumber: string;
+    contactName: string;
+    contactPhone: string;
+  };
 }) {
   const isEditing = !!editingQuoteId;
   const [step, setStep] = useState(1);
+  // [화면 뼈대 2026-08-19, STEP 3-1 "신청자 정보"] 신규 신청서에 한해 회원정보로 미리
+  // 채운다 — 기존 신청서 수정(initialSelection.performanceInfo 존재)이나 임시저장
+  // 복원 시에는 이미 저장된 값을 그대로 쓰고 덮어쓰지 않는다.
+  const initialPerformanceInfo: QuoteSelection["performanceInfo"] = applicantPrefill
+    ? {
+        ...INITIAL_PERFORMANCE_INFO,
+        applicantCompanyName: applicantPrefill.companyName,
+        applicantBusinessRegistrationNumber: applicantPrefill.businessRegistrationNumber,
+        applicantContactName: applicantPrefill.contactName,
+        applicantContactPhone: applicantPrefill.contactPhone,
+      }
+    : INITIAL_PERFORMANCE_INFO;
   // File은 JSON 직렬화가 안 되므로 selection과 분리해 별도 상태로 두고
   // localStorage 임시저장 대상에서도 제외한다 (새로고침 시 다시 선택 필요).
   const [pendingFiles, setPendingFiles] = useState<File[]>([]);
@@ -135,9 +154,9 @@ export function WizardShell({
           secondaryAudience: initialSelection.secondaryAudience ?? INITIAL_SELECTION.secondaryAudience,
           dayShowCounts: initialSelection.dayShowCounts ?? {},
           midHallDays: initialSelection.midHallDays ?? {},
-          performanceInfo: initialSelection.performanceInfo ?? INITIAL_PERFORMANCE_INFO,
+          performanceInfo: initialSelection.performanceInfo ?? initialPerformanceInfo,
         }
-      : INITIAL_SELECTION,
+      : { ...INITIAL_SELECTION, performanceInfo: initialPerformanceInfo },
   );
   // 동시 대관 캘린더 탭 + 중형 캘린더 월 이동은 신청서 selection과 별개의 화면 상태다.
   const [venueTab, setVenueTab] = useState<"arena" | "medium-hall">("arena");
@@ -176,7 +195,7 @@ export function WizardShell({
         bookingMode: draft.selection.bookingMode ?? "SINGLE",
         secondaryAudience: draft.selection.secondaryAudience ?? INITIAL_SELECTION.secondaryAudience,
         midHallDays: draft.selection.midHallDays ?? {},
-        performanceInfo: draft.selection.performanceInfo ?? INITIAL_PERFORMANCE_INFO,
+        performanceInfo: draft.selection.performanceInfo ?? initialPerformanceInfo,
       });
       setStep(draft.step);
     }

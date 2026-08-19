@@ -283,33 +283,37 @@ export function StepPerformanceInfo({
         신청서는 두 공간을 합쳐 1건입니다. 대관기간만 공간별로 나눠 표기합니다.
       </p>
 
-      <div className="mt-6 flex flex-col gap-8">
+      <div className="mt-6 flex flex-col gap-6">
         {/* 신청자 정보 */}
-        <div>
+        <div className="rounded-sm border border-border bg-panel/30 p-6">
           <h3 className="text-[15px] font-semibold">신청자 정보</h3>
           <p className="mt-1 text-[12px] text-muted">회원정보에서 자동 입력 · 수정 가능</p>
 
           <div className="mt-4 space-y-4">
-            <TextField
-              label="대관신청사명"
-              value={info.applicantCompanyName}
-              onChange={(v) => set("applicantCompanyName", v)}
-            />
-            <TextField
-              label="사업자등록번호"
-              value={info.applicantBusinessRegistrationNumber}
-              onChange={(v) => set("applicantBusinessRegistrationNumber", v)}
-            />
-            <TextField
-              label="담당자"
-              value={info.applicantContactName}
-              onChange={(v) => set("applicantContactName", v)}
-            />
-            <TextField
-              label="담당자 연락처"
-              value={info.applicantContactPhone}
-              onChange={(v) => set("applicantContactPhone", v)}
-            />
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+              <TextField
+                label="대관신청사명"
+                value={info.applicantCompanyName}
+                onChange={(v) => set("applicantCompanyName", v)}
+              />
+              <TextField
+                label="사업자등록번호"
+                value={info.applicantBusinessRegistrationNumber}
+                onChange={(v) => set("applicantBusinessRegistrationNumber", v)}
+              />
+            </div>
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+              <TextField
+                label="담당자"
+                value={info.applicantContactName}
+                onChange={(v) => set("applicantContactName", v)}
+              />
+              <TextField
+                label="담당자 연락처"
+                value={info.applicantContactPhone}
+                onChange={(v) => set("applicantContactPhone", v)}
+              />
+            </div>
             <ResponsiblePersonFields
               label="공연 운영 총괄 책임자"
               thirdFieldLabel="직책"
@@ -388,8 +392,8 @@ export function StepPerformanceInfo({
         </div>
 
         {/* 공연 기본정보 */}
-        <div>
-          <h3 className="text-[15px] font-semibold">1. 공연 기본정보</h3>
+        <div className="rounded-sm border border-border bg-panel/30 p-6">
+          <h3 className="text-[15px] font-semibold">공연 기본정보</h3>
           <p className="mt-1 text-[12px] text-muted">입력한 내용은 대관심의 및 계약서 작성에 활용됩니다</p>
 
           <div className="mt-4 space-y-4">
@@ -501,8 +505,8 @@ export function StepPerformanceInfo({
         </div>
       </div>
 
-      <div className="mt-8 border-t border-border pt-7">
-        <h3 className="text-[15px] font-semibold">6. 개최 신뢰도 및 이력 확인</h3>
+      <div className="mt-6 rounded-sm border border-border bg-panel/30 p-6">
+        <h3 className="text-[15px] font-semibold">개최 신뢰도 및 이력 확인</h3>
         <p className="mt-1 text-[12px] text-muted">회원 유형이 &lsquo;기획사 직접 신청&rsquo;이면 이후 정책에 따라 이 섹션이 생략될 수 있습니다</p>
 
         <div className="mt-4">
@@ -549,9 +553,9 @@ export function StepPerformanceInfo({
         </label>
       </div>
 
-      <div className="mt-7 border-t border-border pt-7">
-        <div className="mb-2.5 text-[12.5px] font-medium text-muted">자료 첨부</div>
-        <p className="mb-2.5 text-[12px] text-muted">
+      <div className="mt-6 rounded-sm border border-border bg-panel/30 p-6">
+        <h3 className="text-[15px] font-semibold">자료 첨부</h3>
+        <p className="mt-1 mb-2.5 text-[12px] text-muted">
           공연기획서 · 무대 도면, 출연 계약 증빙, 행사 안전관리계획서 등을 첨부하세요. (PDF/이미지/문서,
           파일당 최대 20MB) 신청서 제출 시 함께 업로드됩니다.
           {isSimultaneous && " 동시 대관은 두 공간의 배치도를 각각 첨부합니다."}
