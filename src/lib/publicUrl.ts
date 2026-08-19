@@ -19,3 +19,34 @@ export function publicOrigin(request: Request): string {
   }
   return new URL(request.url).origin;
 }
+
+/**
+ * 링크를 "받는 사람이 쓰는 화면"의 주소로 만든다.
+ *
+ * bo/partner 가 호스트로 갈리므로, 보내는 쪽 호스트를 그대로 쓰면 엉뚱한 데로 간다 —
+ * 운영자가 승인을 눌렀다고 해서 신청자에게 bo 주소를 보내면 그 경로는 404 다.
+ * 수신자가 운영자면 bo, 신청자면 partner 로 맞춘다.
+ */
+export type LinkAudience = "APPLICANT" | "ADMIN";
+
+export function audienceOrigin(request: Request, audience: LinkAudience): string {
+  const explicit =
+    audience === "ADMIN" ? process.env.PUBLIC_ADMIN_BASE_URL : process.env.PUBLIC_PARTNER_BASE_URL;
+  if (explicit) return explicit.replace(/\/+$/, "");
+
+  const origin = publicOrigin(request);
+  try {
+    const url = new URL(origin);
+    const want = audience === "ADMIN" ? "bo." : "partner.";
+    const other = audience === "ADMIN" ? "partner." : "bo.";
+    if (url.hostname.startsWith(want)) return origin;
+    if (url.hostname.startsWith(other)) {
+      url.hostname = want + url.hostname.slice(other.length);
+      return url.origin;
+    }
+    // bo/partner 로 갈리지 않는 환경(로컬 등)은 경로 기반이라 그대로 쓴다.
+    return origin;
+  } catch {
+    return origin;
+  }
+}

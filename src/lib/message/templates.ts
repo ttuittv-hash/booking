@@ -12,12 +12,15 @@ export interface TemplateDef {
   variables: string[];
   /** 1차 오픈 대상인지 */
   release: "FIRST" | "SECOND" | "TBD";
+  /** 이 메시지를 받는 사람이 쓰는 화면 — 버튼 링크의 호스트를 이걸로 정한다. */
+  audience: "APPLICANT" | "ADMIN";
   button?: { name: string; path: string };
 }
 
 export const TEMPLATES: TemplateDef[] = [
   {
     code: "MB-01",
+    audience: "APPLICANT",
     title: "가입 신청 접수",
     body: "회원가입이 진행 중입니다.\n가입 심사 완료 후 결과를 다시 안내드리겠습니다.",
     variables: [],
@@ -25,6 +28,7 @@ export const TEMPLATES: TemplateDef[] = [
   },
   {
     code: "MB-02",
+    audience: "APPLICANT",
     title: "가입 승인",
     body: "회원가입이 승인되었습니다.\n이제 대관시스템을 이용하실 수 있습니다.",
     variables: [],
@@ -33,6 +37,7 @@ export const TEMPLATES: TemplateDef[] = [
   },
   {
     code: "MB-03",
+    audience: "APPLICANT",
     title: "가입 반려",
     body: "회원가입이 반려되었습니다.\n사유: #{반려사유}",
     variables: ["반려사유"],
@@ -40,6 +45,7 @@ export const TEMPLATES: TemplateDef[] = [
   },
   {
     code: "MB-04",
+    audience: "APPLICANT",
     title: "합류 신청 발생",
     body: "#{신청자명}님이 귀사 담당자로 합류를 신청했습니다.\n승인해 주세요.",
     variables: ["신청자명"],
@@ -48,6 +54,7 @@ export const TEMPLATES: TemplateDef[] = [
   },
   {
     code: "MB-05",
+    audience: "ADMIN",
     title: "회사 신규 등록 (운영자)",
     body: "신규 회사 등록 신청이 접수되었습니다.\n회사명: #{회사명}\n신청자: #{신청자명}",
     variables: ["회사명", "신청자명"],

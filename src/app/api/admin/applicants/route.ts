@@ -101,7 +101,7 @@ export async function POST(request: Request) {
     idempotencyKey: `${approved ? "MB-02" : "MB-03"}:${id}`,
     recipient: { userId: id, phone: target.phone, email: target.email, name: target.name },
     variables: approved ? {} : { 반려사유: rejectReason },
-    origin: publicOrigin(request),
+    request,
   });
 
   return NextResponse.json({ user: updated, processedBy: isAdmin ? "ADMIN" : "MASTER" });

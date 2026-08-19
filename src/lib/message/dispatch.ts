@@ -12,6 +12,7 @@ import {
   recordSendAttempt,
   updateSendResult,
 } from "@/lib/db";
+import { audienceOrigin } from "@/lib/publicUrl";
 import { inAppAdapter } from "./inapp";
 import { kakaoBizTalkAdapter } from "./kakaoBizTalk";
 import { renderTemplate, findTemplate, TemplateVariableError } from "./templates";
@@ -32,8 +33,12 @@ export interface DispatchInput {
   idempotencyKey: string;
   recipient: SendRequest["recipient"];
   variables?: Record<string, string>;
-  /** 버튼 URL 을 절대경로로 만들기 위한 origin */
-  origin?: string;
+  /**
+   * 버튼 URL 을 만들 때 쓰는 요청.
+   * 링크 호스트는 템플릿의 audience(신청자/운영자)로 정해진다 — 보내는 쪽 호스트를
+   * 그대로 쓰면 운영자가 승인했다는 이유로 신청자에게 bo 주소가 나간다.
+   */
+  request?: Request;
 }
 
 export interface DispatchOutcome {
@@ -84,7 +89,12 @@ export async function dispatchMessage(input: DispatchInput): Promise<DispatchOut
     recipient: input.recipient,
     variables,
     button: def.button
-      ? { name: def.button.name, url: `${input.origin ?? ""}${def.button.path}` }
+      ? {
+          name: def.button.name,
+          url: input.request
+            ? `${audienceOrigin(input.request, def.audience)}${def.button.path}`
+            : def.button.path,
+        }
       : null,
   };
 

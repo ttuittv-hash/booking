@@ -40,3 +40,40 @@ describe("publicOrigin", () => {
     expect(publicOrigin(req({}, "https://fallback.example/api/x"))).toBe("https://fallback.example");
   });
 });
+
+// 링크가 "받는 사람이 쓰는 화면"으로 가는지.
+// 운영자가 승인을 눌렀다고 신청자에게 bo 주소를 보내면 그 경로는 404 다.
+import { audienceOrigin } from "./publicUrl";
+
+describe("audienceOrigin", () => {
+  const boReq = new Request("http://localhost:3000/api/x", {
+    headers: { "x-forwarded-host": "bo.dev.seoularena.net" },
+  });
+  const partnerReq = new Request("http://localhost:3000/api/x", {
+    headers: { "x-forwarded-host": "partner.dev.seoularena.net" },
+  });
+
+  it("운영자 요청이라도 신청자 링크는 partner 로 간다", () => {
+    expect(audienceOrigin(boReq, "APPLICANT")).toBe("https://partner.dev.seoularena.net");
+  });
+
+  it("신청자 요청이라도 운영자 링크는 bo 로 간다", () => {
+    expect(audienceOrigin(partnerReq, "ADMIN")).toBe("https://bo.dev.seoularena.net");
+  });
+
+  it("같은 대상이면 그대로 둔다", () => {
+    expect(audienceOrigin(partnerReq, "APPLICANT")).toBe("https://partner.dev.seoularena.net");
+    expect(audienceOrigin(boReq, "ADMIN")).toBe("https://bo.dev.seoularena.net");
+  });
+
+  it("bo/partner 로 갈리지 않는 환경은 경로 기반이라 그대로 쓴다", () => {
+    const local = new Request("http://localhost:3000/api/x", { headers: { host: "localhost:3000" } });
+    expect(audienceOrigin(local, "APPLICANT")).toBe("http://localhost:3000");
+  });
+
+  it("환경변수로 못박을 수 있다", () => {
+    process.env.PUBLIC_PARTNER_BASE_URL = "https://partner.seoularena.net/";
+    expect(audienceOrigin(boReq, "APPLICANT")).toBe("https://partner.seoularena.net");
+    delete process.env.PUBLIC_PARTNER_BASE_URL;
+  });
+});
