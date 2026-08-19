@@ -1,5 +1,6 @@
 import type { VenueContent } from "@/lib/content/types";
 import { KeyMapGallery } from "@/components/KeyMapGallery";
+import { StageFeaturesTabs } from "@/components/StageFeaturesTabs";
 
 const RICH_TEXT_CLS =
   "[&_a]:text-accent [&_a]:underline [&_li]:mt-1 [&_p]:my-2 [&_p]:first:mt-0 [&_p]:last:mb-0 [&_strong]:text-foreground [&_ul]:list-disc [&_ul]:pl-5";
@@ -126,37 +127,7 @@ export function VenueContentView({ content }: { content: VenueContent }) {
 
       {specHighlights.length > 0 && (
         <Section id="stage-features" title="무대 특장">
-          <div className="space-y-10">
-            {specHighlights.map((hl) => (
-              <div key={hl.title}>
-                <div className="flex flex-wrap gap-2">
-                  {hl.badges.map((b) => (
-                    <span
-                      key={b}
-                      className={`rounded-full border px-3 py-1 text-[11px] font-semibold tracking-wide ${
-                        b === hl.highlightBadge
-                          ? "border-accent bg-accent-soft text-accent"
-                          : "border-border text-muted"
-                      }`}
-                    >
-                      {b}
-                    </span>
-                  ))}
-                </div>
-                <h3 className="mt-4 text-[17px] font-semibold tracking-tight text-foreground sm:text-[19px]">{hl.title}</h3>
-                <p className="mt-1.5 text-[13px] text-muted">{hl.subtitle}</p>
-                <div className="mt-5 grid grid-cols-1 gap-4 sm:grid-cols-2">
-                  {hl.cards.map((c) => (
-                    <div key={c.title} className="rounded-sm border border-border bg-panel/50 p-4">
-                      <ImagePlaceholder src={c.image} alt={c.title} />
-                      <div className="mt-3 text-[13.5px] font-semibold">{c.title}</div>
-                      {c.desc && <p className="mt-1 text-[12.5px] leading-6 text-muted">{c.desc}</p>}
-                    </div>
-                  ))}
-                </div>
-              </div>
-            ))}
-          </div>
+          <StageFeaturesTabs highlights={specHighlights} />
         </Section>
       )}
 
