@@ -219,11 +219,12 @@ export const EVENT_TYPE_LABEL: Record<EventType, string> = {
   PUBLIC: "공공행사",
 };
 
-export type StageType = "END_STAGE" | "CENTER_STAGE";
+export type StageType = "END_STAGE" | "CENTER_STAGE" | "UNDECIDED";
 
 export const STAGE_TYPE_LABEL: Record<StageType, string> = {
-  END_STAGE: "앤드스테이지",
-  CENTER_STAGE: "센터스테이지",
+  END_STAGE: "엔드 스테이지",
+  CENTER_STAGE: "센터 스테이지",
+  UNDECIDED: "미정",
 };
 
 export type SeatingType = "SEATED" | "STANDING";

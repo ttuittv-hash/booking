@@ -3,11 +3,25 @@
 import { won } from "@/lib/format";
 import type { EstimatedQuote } from "@/lib/pricing/types";
 
-// [화면 뼈대 2026-08-19, 화면시나리오 STEP 3-3 #①⑤ "금액 노출 시점"] STEP 1·2(공간·일정,
-// 구성·옵션)에서는 선택 내용만 요약해 보여주고 금액은 표시하지 않는다 — 신청자가 구성을 충분히
-// 검토한 뒤 STEP 4(예상 대관료)에서 처음 총액을 확인하는 흐름이다. revealPrice=false면 항목
-// 라벨만 나열하고 소계·VAT·합계 대신 안내 문구를 보여준다.
-export function SummaryPanel({ quote, revealPrice = true }: { quote: EstimatedQuote; revealPrice?: boolean }) {
+export interface SummaryPreviewRow {
+  label: string;
+  value: string;
+}
+
+// [화면 뼈대 2026-08-19, 화면시나리오 STEP 1-1 "선택 내용"] STEP 1·2(공간·일정, 구성·옵션)
+// 에서는 선택 내용만 요약해 보여주고 금액은 표시하지 않는다 — 신청자가 구성을 충분히 검토한
+// 뒤 STEP 4(예상 대관료)에서 처음 총액을 확인하는 흐름이다. revealPrice=false면 소계·VAT·
+// 합계 대신 안내 문구를 보여준다. previewRows가 있으면(STEP 1-1) 견적 항목 대신 이용시설·
+// 무대구성 등 지금까지 입력한 값 자체를 큐레이션한 목록으로 보여준다.
+export function SummaryPanel({
+  quote,
+  revealPrice = true,
+  previewRows,
+}: {
+  quote: EstimatedQuote;
+  revealPrice?: boolean;
+  previewRows?: SummaryPreviewRow[];
+}) {
   // Bowl 사용료·유틸리티(HIDDEN)는 합계에는 포함하되 신청자 화면에는 항목·금액 모두 노출하지
   // 않는다 — quote.subtotal/total은 전체 lineItems 기준으로 이미 계산돼 있어 여기서 걸러내도
   // 총액에는 영향이 없다.
@@ -15,15 +29,22 @@ export function SummaryPanel({ quote, revealPrice = true }: { quote: EstimatedQu
   return (
     <aside className="lg:sticky lg:top-[108px] lg:self-start">
       <div className="rounded border border-border bg-panel/70 p-6">
-        <h3 className="text-[15px] font-semibold">{revealPrice ? "실시간 견적 요약" : "선택 내용 요약"}</h3>
+        <h3 className="text-[15px] font-semibold">{revealPrice ? "실시간 견적 요약" : "선택 내용"}</h3>
         <p className="mt-1 text-[11.5px] font-medium text-warn">
           {revealPrice
             ? "※ 예상 금액 — 확정 아님 (신청 → 계약 → 정산 단계에서 확정)"
-            : "※ 예상 대관료는 구성을 마치면 다음 단계(예상 대관료)에서 확인할 수 있습니다."}
+            : "※ 스크롤을 따라 고정 · 금액은 표시하지 않음"}
         </p>
 
         <div className="mt-4 divide-y divide-border/70">
-          {visibleItems.length === 0 ? (
+          {previewRows ? (
+            previewRows.map((row) => (
+              <div key={row.label} className="flex items-center justify-between py-2.5 text-[13px]">
+                <span className="text-muted">{row.label}</span>
+                <span className="font-medium text-foreground">{row.value}</span>
+              </div>
+            ))
+          ) : visibleItems.length === 0 ? (
             <div className="py-3 text-[13px] text-muted">
               공간과 일정을 선택하면 선택 내용이 표시됩니다.
             </div>
@@ -76,7 +97,7 @@ export function SummaryPanel({ quote, revealPrice = true }: { quote: EstimatedQu
           </div>
         ) : (
           <div className="mt-3 border-t border-border pt-3 text-[12.5px] text-muted">
-            금액은 표시하지 않습니다 — 구성을 충분히 검토한 뒤 마지막에 총액을 확인합니다.
+            예상 대관료는 신청서 제출 직전 단계에서 최종 확인합니다.
           </div>
         )}
 

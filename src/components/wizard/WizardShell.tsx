@@ -5,10 +5,10 @@ import { calculateQuote } from "@/lib/pricing/calculateQuote";
 import { overlapDates, resolveSelectedDates } from "@/lib/pricing/dateRange";
 import { findAddon, findPackage, isAddonAvailable, recommendPackage } from "@/lib/pricing/rateTableUtils";
 import type { AppUser, DateBlock, QuoteSelection, RateTable, WeekDemand } from "@/lib/pricing/types";
-import { DEFAULT_VENUE_ID } from "@/lib/pricing/types";
+import { DEFAULT_VENUE_ID, EVENT_TYPE_LABEL, STAGE_TYPE_LABEL } from "@/lib/pricing/types";
 import { clearWizardDraft, loadWizardDraft, saveWizardDraft } from "@/lib/quotesStore";
 import { StepNav } from "./StepNav";
-import { SummaryPanel } from "./SummaryPanel";
+import { SummaryPanel, type SummaryPreviewRow } from "./SummaryPanel";
 import { StepVenue } from "./StepVenue";
 import { Step1Calendar } from "./Step1Calendar";
 import { MidHallCalendar } from "./MidHallCalendar";
@@ -201,6 +201,43 @@ export function WizardShell({
 
   const quote = useMemo(() => calculateQuote(resolvedSelection, rateTable), [resolvedSelection, rateTable]);
   const hasMidHallSelection = Object.keys(selection.midHallDays).length > 0;
+
+  // [화면 뼈대 2026-08-19, 화면시나리오 STEP 1-1 "선택 내용"] STEP 1에서는 견적 항목이 아니라
+  // 지금까지 입력한 값 자체(이용시설·무대구성·관객규모·공연유형·공연명·대관일정)를 큐레이션해
+  // 우측 패널에 보여준다.
+  const isArenaPrimary = selection.venueId !== "medium-hall";
+  const venuePreviewRows: SummaryPreviewRow[] = [
+    {
+      label: "이용 시설",
+      value: !selection.venueId
+        ? "선택 전"
+        : selection.bookingMode === "SIMULTANEOUS"
+          ? "아레나 + 중형 (동시)"
+          : selection.venueId === "medium-hall"
+            ? "중형공연장"
+            : "메인 아레나",
+    },
+    {
+      label: "무대 구성",
+      value: !isArenaPrimary
+        ? "해당 없음"
+        : selection.performanceInfo.stageTypes[0]
+          ? STAGE_TYPE_LABEL[selection.performanceInfo.stageTypes[0]]
+          : "미선택",
+    },
+    {
+      label: "관객 규모",
+      value: selection.expectedAudience > 0 ? `${selection.expectedAudience.toLocaleString()}명` : "미입력",
+    },
+    {
+      label: "공연 유형",
+      value: selection.performanceInfo.eventTypes[0]
+        ? EVENT_TYPE_LABEL[selection.performanceInfo.eventTypes[0]]
+        : "미선택",
+    },
+    { label: "공연명", value: selection.performanceInfo.eventName || "미입력" },
+    { label: "대관 일정", value: "다음 화면에서 선택" },
+  ];
   const maxUnlockedStep = !selection.venueId ? 1 : midHallOnly && !hasMidHallSelection ? 2 : TOTAL_STEPS;
   // 패키지 선택 전에도 기본 공연일수를 보여줘야 하므로, 모든 패키지가 공유하는 기본값(2일)을 임시로 사용한다.
   const defaultPerformanceDays = findPackage(rateTable, effectivePackageId)?.defaultPerformanceDays ?? 2;
@@ -317,16 +354,17 @@ export function WizardShell({
 
         {step === 1 && (
           <StepVenue
-            rateTable={rateTable}
             venueId={selection.venueId}
             bookingMode={selection.bookingMode}
             expectedAudience={selection.expectedAudience}
             secondaryAudience={selection.secondaryAudience}
+            performanceInfo={selection.performanceInfo}
             onSelectVenue={selectVenue}
             onChangeAudience={(value) => setSelection((prev) => ({ ...prev, expectedAudience: value }))}
             onChangeSecondaryAudience={(value) =>
               setSelection((prev) => ({ ...prev, secondaryAudience: value }))
             }
+            onChangePerformanceInfo={(performanceInfo) => setSelection((prev) => ({ ...prev, performanceInfo }))}
           />
         )}
         {step === 2 && selection.bookingMode === "SIMULTANEOUS" && (
@@ -520,7 +558,11 @@ export function WizardShell({
         </div>
       </div>
 
-      <SummaryPanel quote={quote} revealPrice={step >= 4} />
+      <SummaryPanel
+        quote={quote}
+        revealPrice={step >= 4}
+        previewRows={step === 1 ? venuePreviewRows : undefined}
+      />
     </div>
   );
 }
