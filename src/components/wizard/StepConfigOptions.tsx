@@ -328,7 +328,7 @@ export function StepConfigOptions({
           중형공연장 <span className="text-[14px] font-normal text-muted">· 일 단위 요금제</span>
         </h2>
         <p className="mt-1 text-[12.5px] text-muted">
-          {midHallLine ? `${midHallLine} (아레나와 별개 공간)` : "STEP 1(공간·일정)의 중형 일정 탭에서 날짜를 먼저 지정해 주세요."}
+          {midHallLine ? `${midHallLine} (아레나와 별개 공간)` : "STEP 2(일정)의 중형 일정 탭에서 날짜를 먼저 지정해 주세요."}
         </p>
       </div>
 

@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import { INITIAL_PERFORMANCE_INFO } from "@/lib/pricing/performanceInfoDefaults";
 import { resolveSelectedDates } from "@/lib/pricing/dateRange";
 import { defaultDayTags, effectiveDayTag } from "@/lib/pricing/rateTableUtils";
@@ -223,7 +224,7 @@ function PerformanceInfoFields({
 }: {
   info: PerformanceInfo;
   onChange: (info: PerformanceInfo) => void;
-  scheduleSummary: { arenaLine: string | null; midHallLine: string | null; showsTotal: number; isMidHallInvolved: boolean } | null;
+  scheduleSummary: { arenaLine: string | null; midHallLine: string | null; showsTotal: number | null } | null;
 }) {
   function set<K extends keyof PerformanceInfo>(key: K, value: PerformanceInfo[K]) {
     onChange({ ...info, [key]: value });
@@ -368,12 +369,14 @@ function PerformanceInfoFields({
             <TextField label="주최 · 주관 · 기획" value={info.organizer} onChange={(v) => set("organizer", v)} />
 
             {scheduleSummary?.arenaLine && (
-              <ReadOnlyRow label="대관기간 — 아레나" value={scheduleSummary.arenaLine} note="수정은 STEP 1(공간·일정)에서" />
+              <ReadOnlyRow label="대관기간 — 아레나" value={scheduleSummary.arenaLine} note="수정은 STEP 2(일정)에서" />
             )}
-            {scheduleSummary?.isMidHallInvolved && scheduleSummary.midHallLine && (
-              <ReadOnlyRow label="대관기간 — 중형" value={scheduleSummary.midHallLine} note="수정은 STEP 1(공간·일정)에서" />
+            {scheduleSummary?.midHallLine && (
+              <ReadOnlyRow label="대관기간 — 중형" value={scheduleSummary.midHallLine} note="수정은 STEP 2(일정)에서" />
             )}
-            {scheduleSummary && <ReadOnlyRow label="총 공연 횟수" value={`${scheduleSummary.showsTotal}회 (자동 계산)`} />}
+            {scheduleSummary?.showsTotal != null && (
+              <ReadOnlyRow label="총 공연 횟수" value={`${scheduleSummary.showsTotal}회 (자동 계산)`} />
+            )}
 
             <TextField label="행사규모" value={info.eventScale} onChange={(v) => set("eventScale", v)} />
           </div>
@@ -524,6 +527,8 @@ function PerformanceInfoFields({
   );
 }
 
+type PerformanceInfoTab = "COMMON" | "ARENA" | "MIDHALL";
+
 export function StepPerformanceInfo({
   info,
   onChange,
@@ -541,6 +546,8 @@ export function StepPerformanceInfo({
   files: File[];
   onFilesChange: (files: File[]) => void;
 }) {
+  const [activeTab, setActiveTab] = useState<PerformanceInfoTab>(midHallInfo ? "ARENA" : "COMMON");
+
   function addFiles(selected: FileList | null) {
     if (!selected || selected.length === 0) return;
     const accepted: File[] = [];
@@ -572,9 +579,18 @@ export function StepPerformanceInfo({
   const isSimultaneous = selection.bookingMode === "SIMULTANEOUS";
   const isMidHallInvolved = isSimultaneous || selection.venueId === "medium-hall";
   const midHallDifferent = isSimultaneous && midHallInfo !== null;
+  // 병합 직후(공통으로 합치기)나 초기 마운트 시 activeTab이 낡은 값을 들고 있을 수 있으므로,
+  // 실제로 보여줄 탭은 상태값을 그대로 믿지 않고 매 렌더 파생값으로 다시 정한다.
+  const effectiveTab: PerformanceInfoTab = midHallDifferent ? (activeTab === "MIDHALL" ? "MIDHALL" : "ARENA") : "COMMON";
 
-  function toggleMidHallDifferent(different: boolean) {
-    onChangeMidHallInfo(different ? (midHallInfo ?? { ...INITIAL_PERFORMANCE_INFO }) : null);
+  function splitAndSelect(tab: "ARENA" | "MIDHALL") {
+    if (!midHallDifferent) onChangeMidHallInfo(midHallInfo ?? { ...INITIAL_PERFORMANCE_INFO });
+    setActiveTab(tab);
+  }
+
+  function mergeToCommon() {
+    onChangeMidHallInfo(null);
+    setActiveTab("COMMON");
   }
 
   return (
@@ -585,49 +601,85 @@ export function StepPerformanceInfo({
       </p>
 
       {isSimultaneous && (
-        <div className="mt-5 flex flex-wrap items-center gap-3 rounded-sm border border-border bg-panel/40 px-4 py-3">
-          <span className="text-[12.5px] font-medium text-muted">중형공연장 신청자 · 공연 정보</span>
-          <div className="flex overflow-hidden rounded-sm border border-border">
-            <button
-              type="button"
-              onClick={() => toggleMidHallDifferent(false)}
-              className={[
-                "px-3 py-1.5 text-[12px] font-medium transition-colors",
-                !midHallDifferent ? "bg-accent text-white" : "bg-panel-strong text-muted hover:text-foreground",
-              ].join(" ")}
-            >
-              동일하게 입력
-            </button>
-            <button
-              type="button"
-              onClick={() => toggleMidHallDifferent(true)}
-              className={[
-                "px-3 py-1.5 text-[12px] font-medium transition-colors",
-                midHallDifferent ? "bg-accent text-white" : "bg-panel-strong text-muted hover:text-foreground",
-              ].join(" ")}
-            >
-              각각 다르게 입력
-            </button>
+        <div className="mt-5 flex flex-wrap items-center justify-between gap-2 border-b border-border">
+          <div className="flex gap-1">
+            {!midHallDifferent && (
+              <span className="border-b-2 border-accent px-4 py-2.5 text-[13.5px] font-medium text-accent">
+                공통
+              </span>
+            )}
+            {midHallDifferent && (
+              <>
+                <button
+                  type="button"
+                  onClick={() => setActiveTab("ARENA")}
+                  className={[
+                    "border-b-2 px-4 py-2.5 text-[13.5px] font-medium transition-colors",
+                    effectiveTab === "ARENA"
+                      ? "border-accent text-accent"
+                      : "border-transparent text-muted hover:text-foreground",
+                  ].join(" ")}
+                >
+                  아레나
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setActiveTab("MIDHALL")}
+                  className={[
+                    "border-b-2 px-4 py-2.5 text-[13.5px] font-medium transition-colors",
+                    effectiveTab === "MIDHALL"
+                      ? "border-accent text-accent"
+                      : "border-transparent text-muted hover:text-foreground",
+                  ].join(" ")}
+                >
+                  중형
+                </button>
+              </>
+            )}
           </div>
+          {midHallDifferent ? (
+            <button
+              type="button"
+              onClick={mergeToCommon}
+              className="mb-2 shrink-0 text-[12px] font-medium text-muted hover:text-accent"
+            >
+              ↺ 공통으로 합치기
+            </button>
+          ) : (
+            <button
+              type="button"
+              onClick={() => splitAndSelect("ARENA")}
+              className="mb-2 shrink-0 text-[12px] font-medium text-accent hover:underline"
+            >
+              ＋ 공간별로 다르게 입력
+            </button>
+          )}
         </div>
       )}
 
       <div className="mt-6">
-        <PerformanceInfoFields
-          info={info}
-          onChange={onChange}
-          scheduleSummary={{ arenaLine, midHallLine, showsTotal, isMidHallInvolved }}
-        />
+        {effectiveTab === "COMMON" && (
+          <PerformanceInfoFields
+            info={info}
+            onChange={onChange}
+            scheduleSummary={{ arenaLine, midHallLine: isMidHallInvolved ? midHallLine : null, showsTotal }}
+          />
+        )}
+        {effectiveTab === "ARENA" && (
+          <PerformanceInfoFields
+            info={info}
+            onChange={onChange}
+            scheduleSummary={{ arenaLine, midHallLine: null, showsTotal }}
+          />
+        )}
+        {effectiveTab === "MIDHALL" && midHallInfo && (
+          <PerformanceInfoFields
+            info={midHallInfo}
+            onChange={onChangeMidHallInfo}
+            scheduleSummary={{ arenaLine: null, midHallLine, showsTotal: null }}
+          />
+        )}
       </div>
-
-      {midHallDifferent && midHallInfo && (
-        <div className="mt-8 border-t-2 border-dashed border-accent/30 pt-8">
-          <div className="mb-4 inline-flex items-center gap-2 rounded-sm bg-accent-soft px-3 py-1.5 text-[12.5px] font-semibold text-accent">
-            중형공연장 신청자 · 공연 정보 (별도 입력)
-          </div>
-          <PerformanceInfoFields info={midHallInfo} onChange={onChangeMidHallInfo} scheduleSummary={null} />
-        </div>
-      )}
 
       <div className="mt-6 rounded-sm border border-border bg-panel/30 p-6">
         <h3 className="text-[15px] font-semibold">자료 첨부</h3>

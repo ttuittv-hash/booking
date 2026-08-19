@@ -93,6 +93,7 @@ export function Step1Calendar({
   onChangeExtraDays,
   onChangeDayTags,
   onChangeDayShowCounts,
+  heading = "2. 주차(기간) 선택",
 }: {
   week: QuoteSelection["week"];
   excludedDays: WeekDay[];
@@ -107,6 +108,9 @@ export function Step1Calendar({
   onChangeExtraDays: (value: number) => void;
   onChangeDayTags: (dayTags: Record<string, DayTag>) => void;
   onChangeDayShowCounts: (dayShowCounts: Record<string, number>) => void;
+  // 동시 대관에서는 상위 venueTab("아레나 일정")이 이미 공간을 구분해 보여주므로,
+  // 탭 이름과 탭 바로 아래 제목이 다른 문구로 겹치지 않도록 상위에서 맞춰 넘긴다.
+  heading?: string;
 }) {
   // [화면 뼈대 2026-08-18, 화면시나리오 SCREEN 02/12 · INTERACTION] 역할 지정은 팝업이 아니라
   // 클릭한 날짜 아래에 바로 펼쳐지는 드롭다운으로 처리한다 — 이전의 "사용 요일 토글 행" +
@@ -240,7 +244,7 @@ export function Step1Calendar({
 
   return (
     <section className="border border-border bg-background p-5 sm:p-7">
-      <h2 className="text-[19px] font-semibold">2. 주차(기간) 선택</h2>
+      <h2 className="text-[19px] font-semibold">{heading}</h2>
       <p className="mt-1.5 text-[13.5px] text-muted">
         달력에서 원하는 주를 눌러 선택하세요. 기본 단위는{" "}
         <b className="text-foreground">1주(화~일, 6일)</b>이며, 월요일은 기본적으로 대관하지

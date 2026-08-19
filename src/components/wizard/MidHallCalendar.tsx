@@ -287,25 +287,27 @@ export function MidHallCalendar({
                         </button>
                         <span className="text-[10px] text-muted">회차</span>
                       </div>
-                      <div className="flex items-center gap-2">
-                        <span className="text-[11.5px] text-muted">철수 Load-Out(공연 종료 후, 전체 일정 공통)</span>
-                        <button
-                          type="button"
-                          onClick={() => onChangeExtraLoadOutHours(Math.max(0, extraLoadOutHours - 1))}
-                          className="h-6 w-6 rounded-sm border border-border text-[13px] text-muted hover:border-accent hover:text-accent"
-                        >
-                          −
-                        </button>
-                        <span className="w-4 text-center text-[12px] font-medium tabular-nums">{extraLoadOutHours}</span>
-                        <button
-                          type="button"
-                          onClick={() => onChangeExtraLoadOutHours(Math.min(6, extraLoadOutHours + 1))}
-                          className="h-6 w-6 rounded-sm border border-border text-[13px] text-muted hover:border-accent hover:text-accent"
-                        >
-                          +
-                        </button>
-                        <span className="text-[10px] text-muted">시간 · {won(rateConfig.extraHourFee)}/시간</span>
-                      </div>
+                    </div>
+                  )}
+                  {days[openDate]?.role === "LOAD_OUT" && (
+                    <div className="mt-2.5 flex items-center gap-2 border-t border-accent/20 pt-2.5">
+                      <span className="text-[11.5px] text-muted">철수 Load-Out 연장(전체 일정 공통)</span>
+                      <button
+                        type="button"
+                        onClick={() => onChangeExtraLoadOutHours(Math.max(0, extraLoadOutHours - 1))}
+                        className="h-6 w-6 rounded-sm border border-border text-[13px] text-muted hover:border-accent hover:text-accent"
+                      >
+                        −
+                      </button>
+                      <span className="w-4 text-center text-[12px] font-medium tabular-nums">{extraLoadOutHours}</span>
+                      <button
+                        type="button"
+                        onClick={() => onChangeExtraLoadOutHours(Math.min(6, extraLoadOutHours + 1))}
+                        className="h-6 w-6 rounded-sm border border-border text-[13px] text-muted hover:border-accent hover:text-accent"
+                      >
+                        +
+                      </button>
+                      <span className="text-[10px] text-muted">시간 · {won(rateConfig.extraHourFee)}/시간</span>
                     </div>
                   )}
                   {days[openDate]?.role === "SETUP" && (

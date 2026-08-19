@@ -383,10 +383,35 @@ export function WizardShell({
     selection.addons.map((a) => [a.addonId, a.requestedQuantity]),
   );
 
+  const navButtons = (
+    <div className="flex items-center justify-between">
+      <button
+        type="button"
+        disabled={step === 1}
+        onClick={() => goTo(step - 1)}
+        className="rounded-sm border border-border px-5 py-2.5 text-[13.5px] font-medium text-foreground transition-colors hover:bg-panel disabled:cursor-not-allowed disabled:opacity-40"
+      >
+        ← 이전
+      </button>
+      {step < TOTAL_STEPS && (
+        <button
+          type="button"
+          disabled={(step === 1 && !selection.venueId) || (step === 2 && midHallOnly && !hasMidHallSelection)}
+          onClick={() => goTo(step + 1)}
+          className="rounded-sm bg-accent px-6 py-2.5 text-[13.5px] font-semibold text-white transition-colors hover:bg-accent-hover disabled:cursor-not-allowed disabled:opacity-40"
+        >
+          다음 →
+        </button>
+      )}
+    </div>
+  );
+
   return (
     <div className="mx-auto grid w-full max-w-6xl grid-cols-1 gap-8 px-4 py-8 sm:px-6 sm:py-10 lg:grid-cols-[minmax(0,1fr)_360px]">
       <div className="min-w-0">
         <StepNav step={step} maxUnlockedStep={maxUnlockedStep} onJump={goTo} />
+
+        <div className="mt-5">{navButtons}</div>
 
         {step === 1 && (
           <StepVenue
@@ -405,7 +430,7 @@ export function WizardShell({
         )}
         {step === 2 && selection.bookingMode === "SIMULTANEOUS" && (
           <section className="rounded border border-border bg-background p-5 sm:p-7">
-            <h2 className="text-[19px] font-semibold">2. 공간 · 일정</h2>
+            <h2 className="text-[19px] font-semibold">2. 일정</h2>
             <p className="mt-1.5 text-[13.5px] text-muted">
               동시 대관에서는 아레나를 먼저 확정합니다 — 덩어리가 크고 제약이 많아 기준선
               역할을 합니다.
@@ -423,13 +448,14 @@ export function WizardShell({
                       : "border-transparent text-muted hover:text-foreground",
                   ].join(" ")}
                 >
-                  {tab === "arena" ? "아레나 일정" : hasMidHallSelection ? "중형 일정" : "중형 일정 (대기)"}
+                  {tab === "arena" ? "아레나 일정" : "중형 일정"}
                 </button>
               ))}
             </div>
             <div className="mt-6">
               {venueTab === "arena" ? (
                 <Step1Calendar
+                  heading="아레나 일정"
                   week={selection.week}
                   excludedDays={selection.excludedDays}
                   extraDays={selection.extraDays}
@@ -474,7 +500,7 @@ export function WizardShell({
         )}
         {step === 2 && midHallOnly && (
           <section className="rounded border border-border bg-background p-5 sm:p-7">
-            <h2 className="text-[19px] font-semibold">2. 공간 · 일정</h2>
+            <h2 className="text-[19px] font-semibold">2. 일정</h2>
             <MidHallCalendar
               year={midHallMonth.year}
               month={midHallMonth.month}
@@ -572,29 +598,7 @@ export function WizardShell({
           />
         )}
 
-        <div className="mt-6 flex items-center justify-between">
-          <button
-            type="button"
-            disabled={step === 1}
-            onClick={() => goTo(step - 1)}
-            className="rounded-sm border border-border px-5 py-2.5 text-[13.5px] font-medium text-foreground transition-colors hover:bg-panel disabled:cursor-not-allowed disabled:opacity-40"
-          >
-            ← 이전
-          </button>
-          {step < TOTAL_STEPS && (
-            <button
-              type="button"
-              disabled={
-                (step === 1 && !selection.venueId) ||
-                (step === 2 && midHallOnly && !hasMidHallSelection)
-              }
-              onClick={() => goTo(step + 1)}
-              className="rounded-sm bg-accent px-6 py-2.5 text-[13.5px] font-semibold text-white transition-colors hover:bg-accent-hover disabled:cursor-not-allowed disabled:opacity-40"
-            >
-              다음 →
-            </button>
-          )}
-        </div>
+        <div className="mt-6">{navButtons}</div>
       </div>
 
       <SummaryPanel
