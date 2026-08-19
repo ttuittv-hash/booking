@@ -109,7 +109,7 @@ export function Step6Submit({
 
   return (
     <section className="rounded border border-border bg-background p-7">
-      <h2 className="text-[19px] font-semibold">8. {isEditing ? "신청서 수정" : "신청서 제출"}</h2>
+      <h2 className="text-[19px] font-semibold">최종 제출</h2>
       <p className="mt-1.5 text-[13.5px] text-muted">
         {isEditing
           ? "아래 산출내역으로 신청서 내용이 수정됩니다. 신청금액은 예상금액이며, 이후 심사·계약에서 확정됩니다."
@@ -240,7 +240,7 @@ export function Step6Submit({
                   <li key={issue}>{issue}</li>
                 ))}
               </ul>
-              <p className="mt-1.5">STEP 2(구성 · 옵션)에서 해당 일정을 2회 이하로 조정하거나, 운영자에게 문의해 주세요.</p>
+              <p className="mt-1.5">일정 선택에서 해당 일정을 2회 이하로 조정하거나, 운영자에게 문의해 주세요.</p>
             </div>
           )}
           <div className="mt-5 space-y-2.5">

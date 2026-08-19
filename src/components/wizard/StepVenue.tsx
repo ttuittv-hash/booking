@@ -55,10 +55,10 @@ export function StepVenue({
 
   return (
     <section className="rounded border border-border bg-background p-7">
-      <h2 className="text-[19px] font-semibold">어떤 공연을 준비하고 계신가요?</h2>
+      <h2 className="text-[19px] font-semibold">패키지 선택</h2>
       <p className="mt-1.5 text-[13.5px] text-muted">
-        시설 · 무대 구성 · 규모를 먼저 고르면 아래에서 공간 정보에 맞는 예상 대관료 산정이
-        시작됩니다. 다음 화면에서 일정을 선택합니다.
+        어떤 공연을 준비하고 계신가요? 시설 · 무대 구성 · 규모를 먼저 고르면 아래에서 공간
+        정보에 맞는 예상 대관료 산정이 시작됩니다. 다음 화면에서 일정을 선택합니다.
       </p>
 
       <div className="mt-6 divide-y divide-border">
@@ -209,8 +209,8 @@ export function StepVenue({
 
       {hasSelection && (
         <div className="mt-5 rounded-sm border-l-2 border-accent bg-accent-soft/40 px-4 py-3 text-[12.5px] leading-5 text-foreground">
-          공연명 · 출연진은 STEP 3 신청서와 자동 연동됩니다. 여기서 입력한 값은 신청서에 그대로
-          채워지며, STEP 3에서 수정할 수 있습니다.
+          공연명 · 출연진은 신청자 정보 화면과 자동 연동됩니다. 여기서 입력한 값은 신청서에 그대로
+          채워지며, 신청자 정보에서 수정할 수 있습니다.
         </div>
       )}
     </section>

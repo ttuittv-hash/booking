@@ -456,7 +456,7 @@ export function WizardShell({
         )}
         {step === 2 && selection.bookingMode === "SIMULTANEOUS" && (
           <section className="rounded border border-border bg-background p-5 sm:p-7">
-            <h2 className="text-[19px] font-semibold">2. 일정</h2>
+            <h2 className="text-[19px] font-semibold">일정 선택</h2>
             <p className="mt-1.5 text-[13.5px] text-muted">
               동시 대관에서는 아레나를 먼저 확정합니다 — 덩어리가 크고 제약이 많아 기준선
               역할을 합니다.
@@ -526,7 +526,7 @@ export function WizardShell({
         )}
         {step === 2 && midHallOnly && (
           <section className="rounded border border-border bg-background p-5 sm:p-7">
-            <h2 className="text-[19px] font-semibold">2. 일정</h2>
+            <h2 className="text-[19px] font-semibold">일정 선택</h2>
             <MidHallCalendar
               year={midHallMonth.year}
               month={midHallMonth.month}

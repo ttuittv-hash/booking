@@ -86,7 +86,7 @@ function AudienceFields({
             <div className="rounded-sm border border-border bg-panel/60 px-4 py-2.5 text-[14px] text-foreground">
               {audienceSummary.arenaLine}
             </div>
-            <p className="mt-1 text-[11px] text-muted">STEP 1 값과 연동 — 수정은 STEP 1에서</p>
+            <p className="mt-1 text-[11px] text-muted">패키지 선택 값과 연동 — 수정은 패키지 선택에서</p>
           </div>
         )}
 
@@ -96,7 +96,7 @@ function AudienceFields({
             <div className="rounded-sm border border-border bg-panel/60 px-4 py-2.5 text-[14px] text-foreground">
               {audienceSummary.midHallLine}
             </div>
-            <p className="mt-1 text-[11px] text-muted">STEP 1 값과 연동 — 수정은 STEP 1에서</p>
+            <p className="mt-1 text-[11px] text-muted">패키지 선택 값과 연동 — 수정은 패키지 선택에서</p>
           </div>
         )}
 
@@ -195,7 +195,7 @@ export function StepAudience({
 
   return (
     <section className="rounded border border-border bg-background p-7">
-      <h2 className="text-[19px] font-semibold">STEP 3-2 · 예상 관객 및 사업규모</h2>
+      <h2 className="text-[19px] font-semibold">관객</h2>
       <p className="mt-1.5 text-[13.5px] text-muted">
         관객 수는 공간별로 자동 산정되며, 객석배치도는 계획안 기준으로 별도 첨부합니다.
       </p>

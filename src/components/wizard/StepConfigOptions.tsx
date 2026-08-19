@@ -195,7 +195,7 @@ export function StepConfigOptions({
     const midHallTiles = midHallPkg ? baseCompositionTiles(midHallPkg, rateTable, { includeSchedule: false }) : [];
     return (
       <section className="rounded border border-border bg-background p-7">
-        <h2 className="text-[19px] font-semibold">2. 구성 · 옵션</h2>
+        <h2 className="text-[19px] font-semibold">구성 · 옵션</h2>
         <p className="mt-3 text-[13.5px] text-muted">
           중형공연장은 패키지가 없는 일 단위 요금제입니다 — 아래는 예약 일수와 무관하게 항상
           포함되는 기본 구성입니다.
@@ -216,9 +216,9 @@ export function StepConfigOptions({
   if (!pkg) {
     return (
       <section className="rounded border border-border bg-background p-7">
-        <h2 className="text-[19px] font-semibold">2. 구성 · 옵션</h2>
+        <h2 className="text-[19px] font-semibold">구성 · 옵션</h2>
         <p className="mt-3 text-[13.5px] text-muted">
-          예상 관객 규모에 맞는 패키지를 아직 찾지 못했습니다. STEP 1에서 관객 규모를 확인해 주세요.
+          예상 관객 규모에 맞는 패키지를 아직 찾지 못했습니다. 패키지 선택에서 관객 규모를 확인해 주세요.
         </p>
       </section>
     );
@@ -254,12 +254,10 @@ export function StepConfigOptions({
     <>
       <div className="flex flex-wrap items-baseline justify-between gap-2 border-b border-border pb-4">
         <div>
-          <h2 className="text-[19px] font-semibold">
-            아레나 <span className="text-[14px] font-normal text-muted">· 관객 규모 기준 자동 산정</span>
-          </h2>
+          <h2 className="text-[19px] font-semibold">아레나</h2>
           <p className="mt-1 text-[12.5px] text-muted">
-            {pkg.audienceTier.label} · 예상 관객 {selection.expectedAudience.toLocaleString()}명 ·{" "}
-            {arenaSummaryLine(selection, defaultPerformanceDays)}
+            관객 규모 기준 자동 산정 · {pkg.audienceTier.label} · 예상 관객{" "}
+            {selection.expectedAudience.toLocaleString()}명 · {arenaSummaryLine(selection, defaultPerformanceDays)}
           </p>
         </div>
       </div>
@@ -324,11 +322,10 @@ export function StepConfigOptions({
   const midHallSection = (
     <>
       <div className="border-b border-border pb-4">
-        <h2 className="text-[19px] font-semibold">
-          중형공연장 <span className="text-[14px] font-normal text-muted">· 일 단위 요금제</span>
-        </h2>
+        <h2 className="text-[19px] font-semibold">중형공연장</h2>
         <p className="mt-1 text-[12.5px] text-muted">
-          {midHallLine ? `${midHallLine} (아레나와 별개 공간)` : "STEP 2(일정)의 중형 일정 탭에서 날짜를 먼저 지정해 주세요."}
+          일 단위 요금제 ·{" "}
+          {midHallLine ? `${midHallLine} (아레나와 별개 공간)` : "일정 선택의 중형 일정 탭에서 날짜를 먼저 지정해 주세요."}
         </p>
       </div>
 
@@ -345,7 +342,7 @@ export function StepConfigOptions({
 
   return (
     <section className="rounded border border-border bg-background p-7">
-      <h2 className="text-[19px] font-semibold">2. 구성 · 옵션</h2>
+      <h2 className="text-[19px] font-semibold">구성 · 옵션</h2>
       <p className="mt-1.5 text-[13.5px] text-muted">
         동시 대관은 두 공간의 구성이 서로 달라 탭으로 나눠 보여줍니다.
       </p>

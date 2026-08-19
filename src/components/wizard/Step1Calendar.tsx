@@ -93,7 +93,7 @@ export function Step1Calendar({
   onChangeExtraDays,
   onChangeDayTags,
   onChangeDayShowCounts,
-  heading = "2. 주차(기간) 선택",
+  heading = "일정 선택",
 }: {
   week: QuoteSelection["week"];
   excludedDays: WeekDay[];

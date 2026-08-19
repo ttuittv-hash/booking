@@ -59,7 +59,7 @@ export function StepPublicInterest({
 
   return (
     <section className="rounded border border-border bg-background p-7">
-      <h2 className="text-[19px] font-semibold">STEP 3-3 · 공공성 및 연계 프로그램</h2>
+      <h2 className="text-[19px] font-semibold">공공성</h2>
       <p className="mt-1.5 text-[13.5px] text-muted">
         아래 9개 항목을 참고해 계획을 하나의 파일로 정리해 첨부합니다.
       </p>
