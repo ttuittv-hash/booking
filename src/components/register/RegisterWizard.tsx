@@ -305,7 +305,7 @@ export function RegisterWizard() {
 
 function StepBar({ step }: { step: number }) {
   return (
-    <ol className="flex flex-wrap items-center gap-x-3 gap-y-2 text-xs" data-testid="step-bar">
+    <ol className="flex flex-wrap items-center gap-x-4 gap-y-2.5 text-xs" data-testid="step-bar">
       {STEP_LABELS.map((label, i) => {
         const n = i + 1;
         const state = n === step ? "current" : n < step ? "done" : "todo";
@@ -320,7 +320,9 @@ function StepBar({ step }: { step: number }) {
             >
               {n}
             </span>
-            <span className={state === "todo" ? "text-muted" : "font-bold"}>{label}</span>
+            <span className={`whitespace-nowrap ${state === "todo" ? "text-muted" : "font-bold"}`}>
+              {label}
+            </span>
           </li>
         );
       })}
@@ -330,47 +332,65 @@ function StepBar({ step }: { step: number }) {
 
 function StepMemberType({ onNext }: { onNext: () => void }) {
   return (
-    <section className="mt-8" data-testid="step-member-type">
-      <h2 className="type-kr-heading text-h6-m sm:text-h6">가입하실 회원 유형을 선택해 주세요.</h2>
+    <section className="mt-10" data-testid="step-member-type">
+      <h2 className="type-kr-heading break-keep text-h6-m sm:text-h6">
+        가입하실 회원 유형을 선택해 주세요.
+      </h2>
+
+      {/* items-stretch(기본)로 두 카드 높이를 맞추고, 각 카드 안에서 버튼을 바닥에 붙인다.
+          높이가 다르면 두 버튼이 어긋나 보인다. */}
       <div className="mt-6 grid gap-5 sm:grid-cols-2">
         <button
           type="button"
           data-testid="pick-corporate"
           onClick={onNext}
-          className="flex flex-col border border-foreground p-6 text-left transition-colors hover:bg-surface"
+          className="flex h-full flex-col border border-foreground p-6 text-left transition-colors hover:bg-surface"
         >
-          <span className="text-xs font-bold text-accent">가입 가능</span>
-          <span className="mt-2 block text-h6-m font-bold">기업회원</span>
-          <span className="mt-1 block break-keep text-s text-muted">
-            사업자등록증이 있는 법인 · 개인사업자
+          <span className="flex-1">
+            <span className="block text-xs font-bold text-accent">가입 가능</span>
+            <span className="mt-2 block text-h6-m font-bold">기업회원</span>
+            <span className="mt-1.5 block break-keep text-s leading-6 text-muted">
+              사업자등록증이 있는 법인 · 개인사업자
+            </span>
+            <span className="mt-4 block space-y-2 break-keep text-s leading-6 text-muted">
+              <span className="block">· 공연 기획사 · 제작사 · 대행사 등</span>
+              <span className="block">· 대관 신청 · 계약 · 정산 전 과정 이용</span>
+              <span className="block">· 사업자등록번호 진위확인으로 즉시 심사</span>
+            </span>
           </span>
-          <ul className="mt-3 space-y-1.5 break-keep text-s text-muted">
-            <li>· 공연 기획사 · 제작사 · 대행사 등</li>
-            <li>· 대관 신청 · 계약 · 정산 전 과정 이용</li>
-            <li>· 사업자등록번호 진위확인으로 즉시 심사</li>
-          </ul>
-          <span className={`${btnClass("primary", "md")} mt-6 w-full`}>기업회원으로 가입하기</span>
+          <span className={`${btnClass("primary", "md")} mt-7 w-full justify-center text-center`}>
+            기업회원으로 가입하기
+          </span>
         </button>
 
         <div
           data-testid="pick-individual"
           aria-disabled="true"
-          className="flex flex-col border border-border-soft p-6 opacity-60"
+          className="flex h-full flex-col border border-border-soft p-6 opacity-60"
         >
-          <span className="text-xs font-bold text-muted">준비 중</span>
-          <span className="mt-2 block text-h6-m font-bold text-muted">개인회원</span>
-          <span className="mt-1 block break-keep text-s text-muted">사업자등록증이 없는 개인</span>
-          <ul className="mt-3 space-y-1.5 break-keep text-s text-muted">
-            <li>· 동호회 · 개인 주최자 등</li>
-            <li>· 현재 기업회원만 가입할 수 있습니다</li>
-            <li>· 오픈 시 공지사항으로 안내</li>
-          </ul>
-          <button type="button" disabled className={`${btnClass("secondary", "md")} mt-6 w-full`}>
+          <div className="flex-1">
+            <p className="text-xs font-bold text-muted">준비 중</p>
+            <p className="mt-2 text-h6-m font-bold text-muted">개인회원</p>
+            <p className="mt-1.5 break-keep text-s leading-6 text-muted">
+              사업자등록증이 없는 개인
+            </p>
+            <ul className="mt-4 space-y-2 break-keep text-s leading-6 text-muted">
+              <li>· 동호회 · 개인 주최자 등</li>
+              <li>· 현재 기업회원만 가입할 수 있습니다</li>
+              <li>· 오픈 시 공지사항으로 안내</li>
+            </ul>
+          </div>
+          <button
+            type="button"
+            disabled
+            className={`${btnClass("secondary", "md")} mt-7 w-full justify-center text-center`}
+          >
             준비 중입니다
           </button>
         </div>
       </div>
-      <p className="mt-6 text-s text-muted">
+
+      <p className="mt-7 break-keep text-s text-muted">
         이미 계정이 있으신가요?{" "}
         <Link href="/login" className="underline underline-offset-4">
           로그인
@@ -397,11 +417,14 @@ function StepTerms({
 }) {
   return (
     <section className="mt-8" data-testid="step-terms">
-      <h2 className="type-kr-heading text-h6-m sm:text-h6">약관에 동의해 주세요.</h2>
+      <h2 className="type-kr-heading break-keep text-h6-m sm:text-h6">약관에 동의해 주세요.</h2>
+      <p className="mt-2 break-keep text-s text-muted">
+        필수 항목 2건에 모두 동의하셔야 다음 단계로 진행할 수 있습니다.
+      </p>
       <div className="mt-6 space-y-5">
         {terms.map((t) => (
           <div key={t.kind} className="border border-border-soft">
-            <label className="flex items-center justify-between gap-3 border-b border-border-soft px-4 py-3">
+            <label className="flex cursor-pointer items-center justify-between gap-4 border-b border-border-soft px-5 py-4">
               <span className="break-keep text-s font-bold">
                 {t.title}{" "}
                 <span className={t.required ? "text-accent" : "text-muted"}>
@@ -423,15 +446,15 @@ function StepTerms({
             </label>
             <pre
               data-testid={`terms-body-${t.kind}`}
-              className="max-h-40 overflow-y-auto whitespace-pre-wrap px-4 py-3 text-xs leading-6 text-muted"
+              className="max-h-44 overflow-y-auto whitespace-pre-wrap break-keep px-5 py-4 font-sans text-xs leading-7 text-muted"
             >
               {t.body}
             </pre>
           </div>
         ))}
       </div>
-      <div className="mt-8 flex gap-3">
-        <button type="button" onClick={onPrev} className={btnClass("secondary", "md")}>
+      <div className="mt-9 flex gap-3">
+        <button type="button" onClick={onPrev} className={`${btnClass("secondary", "md")} justify-center`}>
           이전
         </button>
         <button
@@ -439,7 +462,7 @@ function StepTerms({
           data-testid="terms-next"
           disabled={!canNext}
           onClick={onNext}
-          className={`${btnClass("primary", "md")} flex-1`}
+          className={`${btnClass("primary", "md")} flex-1 justify-center`}
         >
           다음
         </button>
@@ -464,15 +487,17 @@ function StepIdentity({
         본인 명의 휴대폰으로 본인인증을 진행합니다. 인증 결과의 이름·휴대폰번호는 계약 당사자
         정보로 쓰이므로 이후 단계에서 수정할 수 없습니다.
       </p>
-      <div className="mt-6 border border-border-soft bg-surface px-6 py-10 text-center">
+      <div className="mt-7 border border-border-soft bg-surface px-6 py-12 text-center">
         <p className="text-h6-m font-bold">휴대폰</p>
-        <p className="mt-2 text-s text-muted">본인 명의로 등록된 휴대폰 번호를 이용하여 본인확인</p>
+        <p className="mx-auto mt-2.5 max-w-sm break-keep text-s leading-6 text-muted">
+          본인 명의로 등록된 휴대폰 번호를 이용하여 본인확인
+        </p>
         <button
           type="button"
           data-testid="identity-start"
           disabled={loading}
           onClick={onStart}
-          className={`${btnClass("primary", "md")} mt-6`}
+          className={`${btnClass("primary", "md")} mt-7 min-w-40 justify-center`}
         >
           {loading ? "인증창을 여는 중…" : "인증하기"}
         </button>
@@ -480,8 +505,8 @@ function StepIdentity({
       <p className="mt-4 break-keep text-xs text-muted">
         외국인·법인 명의 휴대폰·미성년 등으로 인증이 어려운 경우 고객센터로 문의해 주세요.
       </p>
-      <div className="mt-8 flex gap-3">
-        <button type="button" onClick={onPrev} className={btnClass("secondary", "md")}>
+      <div className="mt-9 flex gap-3">
+        <button type="button" onClick={onPrev} className={`${btnClass("secondary", "md")} justify-center`}>
           이전
         </button>
       </div>
@@ -734,7 +759,7 @@ function StepInfo({
       </div>
 
       <div className="mt-10 flex gap-3">
-        <button type="button" onClick={onPrev} className={btnClass("secondary", "md")}>
+        <button type="button" onClick={onPrev} className={`${btnClass("secondary", "md")} justify-center`}>
           이전
         </button>
         <button
@@ -742,7 +767,7 @@ function StepInfo({
           data-testid="submit-register"
           disabled={loading}
           onClick={onSubmit}
-          className={`${btnClass("primary", "md")} flex-1`}
+          className={`${btnClass("primary", "md")} flex-1 justify-center`}
         >
           {loading ? "처리 중…" : "가입 신청"}
         </button>
@@ -753,16 +778,18 @@ function StepInfo({
 
 function StepDone({ notice }: { notice: string | null }) {
   return (
-    <section className="mt-8 text-center" data-testid="step-done">
-      <h2 className="type-kr-heading text-h5-m sm:text-h5">가입 신청이 접수되었습니다</h2>
-      <p className="mt-3 text-s text-muted">승인 완료 후 이용 가능합니다.</p>
+    <section className="mt-12 text-center" data-testid="step-done">
+      <h2 className="type-kr-heading break-keep text-h5-m sm:text-h5">가입 신청이 접수되었습니다</h2>
+      <p className="mt-3 break-keep text-s leading-6 text-muted">승인 완료 후 이용 가능합니다.</p>
       {notice ? (
-        <p data-testid="join-notice" className="mt-4 border border-border-soft px-4 py-3 text-s">
+        <p data-testid="join-notice" className="mx-auto mt-5 max-w-lg break-keep border border-border-soft px-5 py-4 text-s leading-6">
           {notice}
         </p>
       ) : null}
-      <p className="mt-2 text-xs text-muted">승인 결과는 알림톡 및 이메일로 안내해 드립니다.</p>
-      <Link href="/login" className={`${btnClass("primary", "md")} mt-8`}>
+      <p className="mt-3 break-keep text-xs leading-6 text-muted">
+        승인 결과는 알림톡 및 이메일로 안내해 드립니다.
+      </p>
+      <Link href="/login" className={`${btnClass("primary", "md")} mt-9 min-w-40 justify-center`}>
         로그인
       </Link>
     </section>
@@ -804,7 +831,9 @@ function CompanySearchDialog({
             ✕
           </button>
         </div>
-        <p className="mt-2 text-s text-muted">사업자등록번호 또는 회사명으로 검색해 주세요.</p>
+        <p className="mt-2 break-keep text-s leading-6 text-muted">
+          사업자등록번호 또는 회사명으로 검색해 주세요.
+        </p>
 
         <div className="mt-4 flex gap-2">
           <select
@@ -825,13 +854,13 @@ function CompanySearchDialog({
             }}
             className="flex-1 border border-border-soft px-3 py-2 text-s"
           />
-          <button type="button" data-testid="search-run" onClick={() => void run()} className={btnClass("primary", "sm")}>
+          <button type="button" data-testid="search-run" onClick={() => void run()} className={`${btnClass("primary", "sm")} whitespace-nowrap`}>
             검색
           </button>
         </div>
 
         {message ? (
-          <p data-testid="search-message" className="mt-4 text-s text-muted">
+          <p data-testid="search-message" className="mt-4 break-keep text-s leading-6 text-muted">
             {message}
           </p>
         ) : null}
@@ -840,9 +869,9 @@ function CompanySearchDialog({
           {results.map((hit) => (
             <li
               key={hit.id}
-              className="flex items-center justify-between gap-3 border border-border-soft px-4 py-3"
+              className="flex items-center justify-between gap-3 border border-border-soft px-4 py-3.5"
             >
-              <span className="text-s">
+              <span className="break-keep text-s leading-6">
                 <b>{hit.name}</b>
                 <span className="ml-2 text-muted">
                   {hit.businessNumberMasked} · {hit.region}
@@ -860,7 +889,7 @@ function CompanySearchDialog({
           ))}
         </ul>
 
-        <p className="mt-4 text-xs text-muted">
+        <p className="mt-5 break-keep text-xs leading-6 text-muted">
           찾으시는 회사가 없다면 창을 닫고 기업 정보를 직접 입력해 신규 등록으로 진행해 주세요.
         </p>
       </div>
@@ -881,7 +910,7 @@ function Field({
 }) {
   return (
     <label className="block">
-      <span className="mb-1.5 block text-xs font-bold">
+      <span className="mb-2 block break-keep text-xs leading-5 font-bold">
         {required ? <span className="text-accent">* </span> : null}
         {label}
         {hint ? <span className="ml-1 font-normal text-muted">({hint})</span> : null}
