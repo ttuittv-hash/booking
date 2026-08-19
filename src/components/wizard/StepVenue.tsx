@@ -1,5 +1,7 @@
 "use client";
 
+import { CHOICE_SELECTED_VARS, Note, choiceClass } from "@/components/ui/kit";
+import { StepForm, StepHeading } from "./StepHeading";
 import {
   EVENT_TYPE_LABEL,
   STAGE_TYPE_LABEL,
@@ -58,124 +60,155 @@ export function StepVenue({
   }
 
   return (
-    <section className="rounded border border-border bg-background p-7">
-      <h2 className="text-[19px] font-semibold">어떤 공연을 준비하고 계신가요?</h2>
-      <p className="mt-1.5 text-[13.5px] text-muted">
-        시설 · 무대 구성 · 규모를 먼저 고르면 아래에서 공간 정보에 맞는 예상 대관료 산정이
-        시작됩니다. 다음 화면에서 일정을 선택합니다.
-      </p>
+    <section>
+      <StepHeading
+        title={<>공간 선택</>}
+        lead={
+          <>
+            시설 · 무대 구성 · 규모를 먼저 고르면 공간 정보에 맞는 예상 대관료 산정이
+            시작됩니다. 대관 일정은 다음 화면에서 선택합니다.
+          </>
+        }
+      />
 
-      <div className="mt-6 divide-y divide-border">
-        <div className="py-5 first:pt-0">
-          <div className="flex flex-wrap items-center gap-x-8 gap-y-3">
-            <label className="w-28 shrink-0 text-[13px] font-medium text-foreground">이용 시설 *</label>
-            <div className="flex flex-wrap gap-2">
-              {(
-                [
-                  { key: "arena", label: "메인 아레나", active: primaryVenue === "arena" && !isSimultaneous, onClick: () => onSelectVenue("arena", "SINGLE") },
-                  { key: "medium-hall", label: "중형공연장", active: primaryVenue === "medium-hall" && !isSimultaneous, onClick: () => onSelectVenue("medium-hall", "SINGLE") },
-                  { key: "simultaneous", label: "동시 대관", active: isSimultaneous, onClick: () => onSelectVenue("arena", "SIMULTANEOUS") },
-                ] as const
-              ).map((opt) => (
+      <StepForm>
+        {/* 이용 시설 — 셋 중 하나만 고르는 배타적 선택. 선택 = 검정 채움 한 가지 언어. */}
+        <fieldset>
+          <legend className="text-s font-bold">이용 시설 *</legend>
+          <ul className="mt-4 grid gap-3 sm:grid-cols-3">
+            {(
+              [
+                {
+                  key: "arena",
+                  label: "메인 아레나",
+                  selected: primaryVenue === "arena" && !isSimultaneous,
+                  onClick: () => onSelectVenue("arena", "SINGLE"),
+                },
+                {
+                  key: "medium-hall",
+                  label: "중형공연장",
+                  selected: primaryVenue === "medium-hall" && !isSimultaneous,
+                  onClick: () => onSelectVenue("medium-hall", "SINGLE"),
+                },
+                {
+                  key: "simultaneous",
+                  label: "동시 대관",
+                  selected: isSimultaneous,
+                  onClick: () => onSelectVenue("arena", "SIMULTANEOUS"),
+                },
+              ] as const
+            ).map((opt) => (
+              <li key={opt.key}>
                 <button
-                  key={opt.key}
                   type="button"
                   onClick={opt.onClick}
-                  className={[
-                    "rounded-sm border px-3.5 py-2 text-[13px] font-medium transition-colors",
-                    opt.active
-                      ? "border-accent bg-accent-soft text-foreground"
-                      : "border-border bg-panel text-muted hover:border-accent/50",
-                  ].join(" ")}
+                  aria-pressed={opt.selected}
+                  style={opt.selected ? CHOICE_SELECTED_VARS : undefined}
+                  className={choiceClass(opt.selected)}
                 >
-                  {opt.label}
+                  <span className="type-kr-heading block text-h6-m">{opt.label}</span>
                 </button>
-              ))}
-            </div>
-          </div>
-          <p className="mt-3 pl-0 text-[11.5px] leading-5 text-muted sm:pl-[7.5rem]">
-            동시 대관은 두 공간을 신청서 1건으로 묶어 신청하는 것이며, 두 공간은 완전히
-            분리되어 있어 <b className="text-foreground">할인은 없습니다</b> — 금액은 각 공간을
-            따로 신청했을 때와 같습니다.
-          </p>
-        </div>
+              </li>
+            ))}
+          </ul>
+          <Note className="mt-4">
+            동시 대관은 두 공간을 신청서 1건으로 묶어 신청하는 것이며, 두 공간은 완전히 분리되어
+            있어 <b className="text-foreground">할인은 없습니다</b> — 금액은 각 공간을 따로
+            신청했을 때와 같습니다.
+          </Note>
+        </fieldset>
 
         {primaryVenue === "arena" && (
-          <div className="flex flex-wrap items-center gap-x-8 gap-y-3 py-5">
-            <label className="w-28 shrink-0 text-[13px] font-medium text-foreground">무대 구성 *</label>
-            <div className="flex flex-wrap gap-2">
+          <fieldset className="mt-10 border-t border-border/25 pt-8">
+            <legend className="text-s font-bold">무대 구성 *</legend>
+            <ul className="mt-4 grid gap-3 sm:grid-cols-2">
               {STAGE_TYPES.map((type) => {
-                const checked = performanceInfo.stageTypes[0] === type;
+                const selected = performanceInfo.stageTypes[0] === type;
                 return (
-                  <button
-                    key={type}
-                    type="button"
-                    onClick={() => setInfo("stageTypes", [type])}
-                    className={[
-                      "rounded-sm border px-3.5 py-2 text-[13px] font-medium transition-colors",
-                      checked
-                        ? "border-accent bg-accent-soft text-foreground"
-                        : "border-border bg-panel text-muted hover:border-accent/50",
-                    ].join(" ")}
-                  >
-                    {STAGE_TYPE_LABEL[type]}
-                  </button>
+                  <li key={type}>
+                    <button
+                      type="button"
+                      onClick={() => setInfo("stageTypes", [type])}
+                      aria-pressed={selected}
+                      style={selected ? CHOICE_SELECTED_VARS : undefined}
+                      className={choiceClass(selected)}
+                    >
+                      <span className="text-s font-bold">{STAGE_TYPE_LABEL[type]}</span>
+                    </button>
+                  </li>
                 );
               })}
-            </div>
-          </div>
+            </ul>
+          </fieldset>
         )}
 
         {hasSelection && (
-          <div className="flex flex-wrap items-start gap-x-8 gap-y-4 py-5">
-            <label className="w-28 shrink-0 pt-2.5 text-[13px] font-medium text-foreground">예상 관객 규모 *</label>
-            <div className="flex flex-wrap items-start gap-6">
+          <fieldset className="mt-10 border-t border-border/25 pt-8">
+            <legend className="text-s font-bold">예상 관객 규모 *</legend>
+            <div className="mt-4 grid gap-6 sm:grid-cols-2">
               {primaryVenue === "arena" && (
-                <div className="max-w-xs">
-                  {isSimultaneous && (
-                    <label className="mb-1.5 block text-[12.5px] font-medium text-muted">아레나</label>
-                  )}
-                  <input
-                    type="number"
-                    min={0}
-                    step={500}
-                    value={expectedAudience}
-                    onChange={(e) => onChangeAudience(Math.max(0, Number(e.target.value) || 0))}
-                    className="w-40 rounded-sm border border-border bg-panel px-3.5 py-2.5 text-[14px] outline-none focus:border-accent focus:ring-2 focus:ring-accent/20"
-                  />
-                  <span className="ml-2 text-[13px] text-muted">명</span>
-                  <p className="mt-1 text-[11px] text-muted">22,000명 초과 시 별도 문의가 필요할 수 있습니다.</p>
+                <div>
+                  <label htmlFor="arena-audience" className="mb-1.5 block text-xs text-muted">
+                    {isSimultaneous ? "아레나" : "관객 수"}
+                  </label>
+                  <div className="flex items-baseline gap-2">
+                    <input
+                      id="arena-audience"
+                      type="number"
+                      min={0}
+                      step={500}
+                      value={expectedAudience}
+                      onChange={(e) => onChangeAudience(Math.max(0, Number(e.target.value) || 0))}
+                      className="field-base w-40 text-right tabular-nums"
+                    />
+                    <span className="text-s text-muted">명</span>
+                  </div>
+                  <p className="mt-2 text-xs text-muted">
+                    22,000명 초과 시 별도 문의가 필요할 수 있습니다.
+                  </p>
                 </div>
               )}
               {(isSimultaneous || primaryVenue === "medium-hall") && (
-                <div className="max-w-xs">
-                  {isSimultaneous && (
-                    <label className="mb-1.5 block text-[12.5px] font-medium text-muted">중형</label>
-                  )}
-                  <input
-                    type="number"
-                    min={0}
-                    step={100}
-                    value={secondaryAudience}
-                    onChange={(e) => onChangeSecondaryAudience(Math.max(0, Number(e.target.value) || 0))}
-                    className="w-40 rounded-sm border border-border bg-panel px-3.5 py-2.5 text-[14px] outline-none focus:border-accent focus:ring-2 focus:ring-accent/20"
-                  />
-                  <span className="ml-2 text-[13px] text-muted">명</span>
-                  <p className="mt-1 text-[11px] text-muted">3,000명 초과 시 별도 문의가 필요할 수 있습니다. 청소비 산출에만 사용됩니다.</p>
+                <div>
+                  <label htmlFor="midhall-audience" className="mb-1.5 block text-xs text-muted">
+                    {isSimultaneous ? "중형" : "관객 수"}
+                  </label>
+                  <div className="flex items-baseline gap-2">
+                    <input
+                      id="midhall-audience"
+                      type="number"
+                      min={0}
+                      step={100}
+                      value={secondaryAudience}
+                      onChange={(e) =>
+                        onChangeSecondaryAudience(Math.max(0, Number(e.target.value) || 0))
+                      }
+                      className="field-base w-40 text-right tabular-nums"
+                    />
+                    <span className="text-s text-muted">명</span>
+                  </div>
+                  <p className="mt-2 text-xs text-muted">
+                    3,000명 초과 시 별도 문의가 필요할 수 있습니다. 청소비 산출에만 사용됩니다.
+                  </p>
                 </div>
               )}
             </div>
-          </div>
+          </fieldset>
         )}
 
         {hasSelection && (
-          <div className="space-y-5 py-5">
-            <div className="flex flex-wrap items-center gap-x-8 gap-y-3">
-              <label className="w-28 shrink-0 text-[13px] font-medium text-foreground">공연 유형 *</label>
+          <div className="mt-10 border-t border-border/25 pt-8">
+            <div>
+              <label htmlFor="event-type" className="mb-1.5 block text-s font-bold">
+                공연 유형 *
+              </label>
               <select
+                id="event-type"
                 value={performanceInfo.eventTypes[0] ?? ""}
-                onChange={(e) => setInfo("eventTypes", e.target.value ? [e.target.value as EventType] : [])}
-                className="w-full max-w-xs rounded-sm border border-border bg-panel px-3.5 py-2.5 text-[14px] outline-none focus:border-accent focus:ring-2 focus:ring-accent/20"
+                onChange={(e) =>
+                  setInfo("eventTypes", e.target.value ? [e.target.value as EventType] : [])
+                }
+                className="field-base max-w-xs"
               >
                 <option value="">선택하세요</option>
                 {EVENT_TYPES.map((type) => (
@@ -186,37 +219,41 @@ export function StepVenue({
               </select>
             </div>
 
-            <div className="flex flex-wrap items-center gap-x-8 gap-y-3">
-              <label className="w-28 shrink-0 text-[13px] font-medium text-foreground">공연(행사)명 *</label>
+            <div className="mt-6">
+              <label htmlFor="event-name" className="mb-1.5 block text-s font-bold">
+                공연(행사)명 *
+              </label>
               <input
+                id="event-name"
                 type="text"
                 value={performanceInfo.eventName}
                 onChange={(e) => setInfo("eventName", e.target.value)}
                 placeholder="국문 필수 · 영문 선택 · '가제' 옵션 선택 가능"
-                className="w-full max-w-md rounded-sm border border-border bg-panel px-3.5 py-2.5 text-[14px] outline-none placeholder:text-muted focus:border-accent focus:ring-2 focus:ring-accent/20"
+                className="field-base"
               />
             </div>
 
-            <div className="flex flex-wrap items-center gap-x-8 gap-y-3">
-              <label className="w-28 shrink-0 text-[13px] font-medium text-foreground">아티스트 / 출연진 *</label>
+            <div className="mt-6">
+              <label htmlFor="event-artist" className="mb-1.5 block text-s font-bold">
+                아티스트 / 출연진 *
+              </label>
               <input
+                id="event-artist"
                 type="text"
                 value={performanceInfo.artist}
                 onChange={(e) => setInfo("artist", e.target.value)}
                 placeholder="아티스트명 · 국내/해외 구분 · 주요 출연진 추가 가능"
-                className="w-full max-w-md rounded-sm border border-border bg-panel px-3.5 py-2.5 text-[14px] outline-none placeholder:text-muted focus:border-accent focus:ring-2 focus:ring-accent/20"
+                className="field-base"
               />
             </div>
+
+            <Note className="mt-8">
+              공연명 · 출연진은 신청서 제출 단계와 자동 연동됩니다. 여기서 입력한 값이 신청서에
+              그대로 채워지며, 신청서에서 수정할 수 있습니다.
+            </Note>
           </div>
         )}
-      </div>
-
-      {hasSelection && (
-        <div className="mt-5 rounded-sm border-l-2 border-accent bg-accent-soft/40 px-4 py-3 text-[12.5px] leading-5 text-foreground">
-          공연명 · 출연진은 STEP 3 신청서와 자동 연동됩니다. 여기서 입력한 값은 신청서에 그대로
-          채워지며, STEP 3에서 수정할 수 있습니다.
-        </div>
-      )}
+      </StepForm>
     </section>
   );
 }
