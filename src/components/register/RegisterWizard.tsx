@@ -349,7 +349,7 @@ function StepMemberType({ onNext }: { onNext: () => void }) {
             <li>· 대관 신청 · 계약 · 정산 전 과정 이용</li>
             <li>· 사업자등록번호 진위확인으로 즉시 심사</li>
           </ul>
-          <span className={`${btnClass("primary", "md")} mt-auto w-full pt-3`}>기업회원으로 가입하기</span>
+          <span className={`${btnClass("primary", "md")} mt-6 w-full`}>기업회원으로 가입하기</span>
         </button>
 
         <div
@@ -365,7 +365,7 @@ function StepMemberType({ onNext }: { onNext: () => void }) {
             <li>· 현재 기업회원만 가입할 수 있습니다</li>
             <li>· 오픈 시 공지사항으로 안내</li>
           </ul>
-          <button type="button" disabled className={`${btnClass("secondary", "md")} mt-auto w-full`}>
+          <button type="button" disabled className={`${btnClass("secondary", "md")} mt-6 w-full`}>
             준비 중입니다
           </button>
         </div>
@@ -661,7 +661,7 @@ function StepInfo({
         <div className="sm:col-span-2">
           <Field label="회사주소" required>
             <span className="flex flex-wrap gap-2">
-              <input data-testid="f-postalCode" value={form.postalCode} onChange={set("postalCode")} placeholder="우편번호" className={`${inputCls(false)} w-32`} />
+              <input data-testid="f-postalCode" value={form.postalCode} onChange={set("postalCode")} placeholder="우편번호" className={inputCls(false, "w-36")} />
               <button type="button" data-testid="open-postcode" onClick={onPostcode} className={`${btnClass("secondary", "md")} whitespace-nowrap`}>
                 우편번호 찾기
               </button>
@@ -891,8 +891,9 @@ function Field({
   );
 }
 
-function inputCls(readOnly: boolean) {
-  return `w-full border px-3 py-2 text-s ${
+function inputCls(readOnly: boolean, width = "w-full") {
+  // 폭을 인자로 받는다 — 문자열에 w-full 을 박아두면 w-32 같은 지정이 충돌해 먹지 않는다.
+  return `${width} border px-3 py-2 text-s ${
     readOnly ? "border-border-soft bg-surface text-muted" : "border-border-soft bg-background"
   }`;
 }
