@@ -35,10 +35,10 @@ const MEDIA_OPTIONS: { value: MediaTier; label: string }[] = [
   { value: "FULL", label: MEDIA_TIER_LABEL.FULL },
 ];
 
-function blankPackage(id: number): EditablePackage {
+function blankPackage(id: number, venueId: string): EditablePackage {
   return {
     id,
-    venueId: DEFAULT_VENUE_ID,
+    venueId,
     name: `패키지 ${id}`,
     tagline: "",
     audienceTier: { min: 0, max: 0, label: "" },
@@ -66,6 +66,9 @@ export function PackagesForm({ rateTable }: { rateTable: RateTable }) {
   const router = useRouter();
   const [packages, setPackages] = useState<EditablePackage[]>(rateTable.packages);
   const [activeId, setActiveId] = useState(rateTable.packages[0]?.id ?? 1);
+  const [venueTab, setVenueTab] = useState<"arena" | "medium-hall">(
+    (rateTable.packages[0]?.venueId as "arena" | "medium-hall" | undefined) ?? "arena",
+  );
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
 
@@ -78,6 +81,13 @@ export function PackagesForm({ rateTable }: { rateTable: RateTable }) {
   const [pickerCategory, setPickerCategory] = useState<AddonCategory>(ADDON_CATEGORIES[0]);
 
   const active = packages.find((p) => p.id === activeId)!;
+  const venuePackages = packages.filter((p) => (p.venueId ?? DEFAULT_VENUE_ID) === venueTab);
+
+  function selectVenueTab(v: "arena" | "medium-hall") {
+    setVenueTab(v);
+    const first = packages.find((p) => (p.venueId ?? DEFAULT_VENUE_ID) === v);
+    if (first) setActiveId(first.id);
+  }
 
   // [화면 뼈대 2026-08-19] 패키지 구성을 신청자 노출 등급 기준 3분류로 나눠 보여준다 —
   // ① 기본 내역(ITEM_ONLY, 항목명만 노출) ② Bowl 사용료 + 유틸리티(HIDDEN, 완전 비노출)
@@ -103,7 +113,7 @@ export function PackagesForm({ rateTable }: { rateTable: RateTable }) {
 
   function addPackage() {
     const nextId = Math.max(0, ...packages.map((p) => p.id)) + 1;
-    setPackages((prev) => [...prev, blankPackage(nextId)]);
+    setPackages((prev) => [...prev, blankPackage(nextId, venueTab)]);
     setActiveId(nextId);
   }
 
@@ -189,8 +199,26 @@ export function PackagesForm({ rateTable }: { rateTable: RateTable }) {
 
   return (
     <div className="mt-8">
-      <div className="sticky top-14 z-10 -mx-6 flex h-11 items-center gap-1 overflow-x-auto whitespace-nowrap border-b border-border bg-background px-6 sm:top-16">
-        {packages.map((p) => (
+      <div className="flex gap-1 border-b border-border">
+        {(["arena", "medium-hall"] as const).map((v) => (
+          <button
+            key={v}
+            type="button"
+            onClick={() => selectVenueTab(v)}
+            className={[
+              "border-b-2 px-4 py-2.5 text-[13.5px] font-medium transition-colors",
+              venueTab === v
+                ? "border-accent text-accent"
+                : "border-transparent text-muted hover:text-foreground",
+            ].join(" ")}
+          >
+            {VENUES.find((venue) => venue.id === v)?.name ?? v}
+          </button>
+        ))}
+      </div>
+
+      <div className="sticky top-14 z-10 -mx-6 mt-4 flex h-11 items-center gap-1 overflow-x-auto whitespace-nowrap border-b border-border bg-background px-6 sm:top-16">
+        {venuePackages.map((p) => (
           <button
             key={p.id}
             type="button"
@@ -203,9 +231,6 @@ export function PackagesForm({ rateTable }: { rateTable: RateTable }) {
             ].join(" ")}
           >
             {p.name}
-            <span className="ml-1.5 text-[11px] text-muted">
-              {VENUES.find((v) => v.id === (p.venueId ?? DEFAULT_VENUE_ID))?.name}
-            </span>
           </button>
         ))}
         <button
@@ -228,7 +253,7 @@ export function PackagesForm({ rateTable }: { rateTable: RateTable }) {
             </tr>
           </thead>
           <tbody>
-            {packages.map((p) => {
+            {venuePackages.map((p) => {
               const t = computeTotals(p);
               return (
                 <tr
@@ -491,6 +516,16 @@ export function PackagesForm({ rateTable }: { rateTable: RateTable }) {
           </div>
         </section>
 
+        {venueTab === "medium-hall" && (
+          <p className="rounded-sm border-l-2 border-accent bg-accent-soft/40 px-4 py-3 text-[12.5px] leading-5 text-foreground">
+            중형공연장은 이 목록(추가 옵션)을 쓰지 않습니다 — 가격은 &ldquo;요금표 관리&rdquo;의
+            &ldquo;중형공연장 요금&rdquo; 섹션에서 따로 관리합니다. 여기서는 STEP 2(구성·옵션)에
+            표시되는 기본 구성 안내 문구만 편집합니다.
+          </p>
+        )}
+
+        {venueTab === "arena" && (
+        <>
         {(
           [
             {
@@ -720,6 +755,8 @@ export function PackagesForm({ rateTable }: { rateTable: RateTable }) {
             </div>
           </section>
         ))}
+        </>
+        )}
       </div>
 
       <div className="mt-8 flex items-center gap-4 border-t border-border pt-6">

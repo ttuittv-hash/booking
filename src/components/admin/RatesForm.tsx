@@ -2,7 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-import { ADDON_CATEGORY_LABEL, type AddonCategory, type RateTable } from "@/lib/pricing/types";
+import { ADDON_CATEGORY_LABEL, VENUES, type AddonCategory, type RateTable } from "@/lib/pricing/types";
 
 function slugify(name: string): string {
   const base = name
@@ -30,6 +30,7 @@ export function RatesForm({ rateTable }: { rateTable: RateTable }) {
     rateTable.dayExclusionDiscountRatio,
   );
   const [midHall, setMidHall] = useState(rateTable.midHall);
+  const [venueTab, setVenueTab] = useState<"arena" | "medium-hall">("arena");
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const [newItemCategory, setNewItemCategory] = useState<AddonCategory | null>(null);
@@ -101,6 +102,26 @@ export function RatesForm({ rateTable }: { rateTable: RateTable }) {
 
   return (
     <div className="mt-8 space-y-8">
+      <div className="flex gap-1 border-b border-border">
+        {(["arena", "medium-hall"] as const).map((v) => (
+          <button
+            key={v}
+            type="button"
+            onClick={() => setVenueTab(v)}
+            className={[
+              "border-b-2 px-4 py-2.5 text-[13.5px] font-medium transition-colors",
+              venueTab === v
+                ? "border-accent text-accent"
+                : "border-transparent text-muted hover:text-foreground",
+            ].join(" ")}
+          >
+            {VENUES.find((venue) => venue.id === v)?.name ?? v}
+          </button>
+        ))}
+      </div>
+
+      {venueTab === "arena" && (
+      <>
       <section className="rounded border border-border bg-background p-6">
         <h2 className="text-[15px] font-semibold">공통 요율</h2>
         <p className="mt-1 text-[12.5px] text-muted">
@@ -142,7 +163,10 @@ export function RatesForm({ rateTable }: { rateTable: RateTable }) {
           />
         </div>
       </section>
+      </>
+      )}
 
+      {venueTab === "medium-hall" && (
       <section className="rounded border border-border bg-background p-6">
         <h2 className="text-[15px] font-semibold">중형공연장 요금 (DAILY)</h2>
         <p className="mt-1 text-[12.5px] text-muted">
@@ -191,7 +215,10 @@ export function RatesForm({ rateTable }: { rateTable: RateTable }) {
           />
         </div>
       </section>
+      )}
 
+      {venueTab === "arena" && (
+      <>
       <section className="rounded border border-border bg-background p-6">
         <h2 className="text-[15px] font-semibold">부대시설 단가</h2>
         <div className="mt-4 space-y-6">
@@ -290,6 +317,8 @@ export function RatesForm({ rateTable }: { rateTable: RateTable }) {
           ))}
         </div>
       </section>
+      </>
+      )}
 
       <div className="flex items-center gap-4">
         <button
