@@ -48,7 +48,7 @@ export const TERMS: TermsDocument[] = [
   {
     kind: "PRIVACY_REQUIRED",
     version: "2026-08-01",
-    title: "개인정보 수집 및 이용 동의 (필수)",
+    title: "개인정보 수집 및 이용 동의",
     required: true,
     body: [
       "1. 수집 항목",
@@ -70,7 +70,7 @@ export const TERMS: TermsDocument[] = [
   {
     kind: "PRIVACY_OPTIONAL",
     version: "2026-08-01",
-    title: "마케팅 정보 수신 동의 (선택)",
+    title: "마케팅 정보 수신 동의",
     required: false,
     body: [
       "대관 공고·시설 안내·행사 소식 등 마케팅 정보를 이메일·문자·알림톡으로 받아보실 수 있습니다.",
