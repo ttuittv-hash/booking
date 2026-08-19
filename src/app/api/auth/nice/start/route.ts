@@ -49,7 +49,9 @@ export async function POST(request: Request) {
     .map((c) => c.trim())
     .find((c) => c.startsWith("dev_stub="))
     ?.slice("dev_stub=".length);
-  if (stubSecret && (stubHeader === stubSecret || stubCookie === stubSecret)) {
+  // 화면의 "개발용 우회" 버튼은 본문 플래그로 들어온다. 환경변수가 있는 곳에서만 열린다.
+  const devBypass = body?.devBypass === true;
+  if (stubSecret && (stubHeader === stubSecret || stubCookie === stubSecret || devBypass)) {
     const id = crypto.randomUUID();
     const seed = crypto.randomBytes(12).toString("hex");
     await saveStubIdentity({

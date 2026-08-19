@@ -12,7 +12,7 @@
 // "개인회원이 나중에 열린다는 사실을 첫 화면에서 알린다".
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { btnClass } from "@/components/ui/kit";
 import { hashPasswordForTransport } from "@/lib/clientPassword";
 
@@ -94,6 +94,10 @@ export function RegisterWizard() {
   const [pickedCompany, setPickedCompany] = useState<CompanyHit | null>(null);
   // 개발 환경에서 본인인증을 건너뛴 상태인지 — 화면에 그대로 표시해 착각을 막는다.
   const [stubMode, setStubMode] = useState(false);
+  // 개발 환경에서만 우회 버튼을 보여준다.
+  const [devBypass, setDevBypass] = useState(false);
+  // 인증 결과를 기다리는 중인지. 팝업 감시와 메시지 수신이 서로를 덮어쓰지 않게 ref 로 둔다.
+  const awaitingAuth = useRef(false);
   // 사업자등록번호 중복·진위확인, 아이디 중복확인 결과
   const [brnCheck, setBrnCheck] = useState<{ state: string; message: string } | null>(null);
   const [idCheck, setIdCheck] = useState<{ available: boolean; message: string } | null>(null);
@@ -105,6 +109,10 @@ export function RegisterWizard() {
       .then((r) => r.json())
       .then((d) => setTerms(d.terms ?? []))
       .catch(() => setTerms([]));
+    fetch("/api/auth/nice/config")
+      .then((r) => r.json())
+      .then((d) => setDevBypass(d.devBypass === true))
+      .catch(() => setDevBypass(false));
   }, []);
 
   const requiredTerms = terms.filter((t) => t.required);
@@ -115,6 +123,7 @@ export function RegisterWizard() {
       if (e.origin !== window.location.origin) return;
       if (!e.data || e.data.source !== "nice-auth") return;
       const p = e.data.payload || {};
+      awaitingAuth.current = false;
       setLoading(false);
       if (!p.ok) {
         setError(p.message || "본인인증에 실패했습니다.");
@@ -128,18 +137,19 @@ export function RegisterWizard() {
     return () => window.removeEventListener("message", onMessage);
   }, []);
 
-  async function startIdentity() {
+  async function startIdentity(options?: { bypass?: boolean }) {
     setError(null);
     setLoading(true);
     try {
       const res = await fetch("/api/auth/nice/start", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ purpose: "REGISTER" }),
+        body: JSON.stringify({ purpose: "REGISTER", devBypass: options?.bypass === true }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "본인인증을 시작하지 못했습니다.");
-      // 개발 환경 스텁 응답 — 팝업 없이 곧바로 인증을 마친 것으로 처리한다.
+
+      // 개발 환경 우회 — 팝업 없이 곧바로 인증을 마친 것으로 처리한다.
       if (data.stub && data.ticket) {
         setLoading(false);
         setStubMode(true);
@@ -152,11 +162,30 @@ export function RegisterWizard() {
         setStep(4);
         return;
       }
-      window.open(
+
+      awaitingAuth.current = true;
+      const popup = window.open(
         data.authUrl,
         "niceAuth",
         "width=480,height=812,menubar=no,status=no,toolbar=no,scrollbars=no",
       );
+      if (!popup) {
+        awaitingAuth.current = false;
+        setLoading(false);
+        setError("팝업이 차단되었습니다. 브라우저 팝업 차단을 해제한 뒤 다시 시도해 주세요.");
+        return;
+      }
+      // 사용자가 인증창을 그냥 닫으면 결과 메시지가 오지 않는다.
+      // 감시하지 않으면 버튼이 "인증창을 여는 중…" 인 채로 영영 잠긴다.
+      const timer = window.setInterval(() => {
+        if (!popup.closed) return;
+        window.clearInterval(timer);
+        // 결과 메시지가 이미 왔으면 건드리지 않는다(정상 완료 후에도 창은 닫힌다).
+        if (!awaitingAuth.current) return;
+        awaitingAuth.current = false;
+        setLoading(false);
+        setError("본인인증이 완료되지 않았습니다. 다시 시도해 주세요.");
+      }, 700);
     } catch (e) {
       setLoading(false);
       setError(e instanceof Error ? e.message : "본인인증을 시작하지 못했습니다.");
@@ -264,7 +293,13 @@ export function RegisterWizard() {
           onNext={() => setStep(3)}
         />
       ) : step === 3 ? (
-        <StepIdentity loading={loading} onStart={startIdentity} onPrev={() => setStep(2)} />
+        <StepIdentity
+          loading={loading}
+          devBypass={devBypass}
+          onStart={() => startIdentity()}
+          onBypass={() => startIdentity({ bypass: true })}
+          onPrev={() => setStep(2)}
+        />
       ) : step === 4 ? (
         <StepInfo
           form={form}
@@ -477,11 +512,15 @@ function StepTerms({
 
 function StepIdentity({
   loading,
+  devBypass,
   onStart,
+  onBypass,
   onPrev,
 }: {
   loading: boolean;
+  devBypass: boolean;
   onStart: () => void;
+  onBypass: () => void;
   onPrev: () => void;
 }) {
   return (
@@ -509,6 +548,25 @@ function StepIdentity({
       <p className="mt-4 break-keep text-xs text-muted">
         외국인·법인 명의 휴대폰·미성년 등으로 인증이 어려운 경우 고객센터로 문의해 주세요.
       </p>
+      {/* 개발 환경 전용 — 표준창 인증은 실제 사람이 휴대폰으로 해야 해서
+          화면 흐름을 훑어볼 때 막힌다. 운영에는 이 변수가 없어 버튼이 뜨지 않는다. */}
+      {devBypass ? (
+        <div className="mt-6 border border-warn/40 px-4 py-3">
+          <p className="break-keep text-xs leading-6 text-warn">
+            개발 환경에서만 보이는 버튼입니다. 인증을 건너뛰고 다음 단계로 넘어갑니다.
+          </p>
+          <button
+            type="button"
+            data-testid="identity-bypass"
+            disabled={loading}
+            onClick={onBypass}
+            className={`${btnClass("secondary", "sm")} mt-2.5 justify-center`}
+          >
+            인증 없이 다음 (개발용)
+          </button>
+        </div>
+      ) : null}
+
       <div className="mt-9 flex gap-3">
         <button type="button" onClick={onPrev} className={`${btnClass("secondary", "md")} justify-center`}>
           이전
