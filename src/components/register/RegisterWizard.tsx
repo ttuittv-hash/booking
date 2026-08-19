@@ -92,6 +92,8 @@ export function RegisterWizard() {
     addressDetail: "",
   });
   const [pickedCompany, setPickedCompany] = useState<CompanyHit | null>(null);
+  // 개발 환경에서 본인인증을 건너뛴 상태인지 — 화면에 그대로 표시해 착각을 막는다.
+  const [stubMode, setStubMode] = useState(false);
   // 사업자등록번호 중복·진위확인, 아이디 중복확인 결과
   const [brnCheck, setBrnCheck] = useState<{ state: string; message: string } | null>(null);
   const [idCheck, setIdCheck] = useState<{ available: boolean; message: string } | null>(null);
@@ -140,6 +142,7 @@ export function RegisterWizard() {
       // 개발 환경 스텁 응답 — 팝업 없이 곧바로 인증을 마친 것으로 처리한다.
       if (data.stub && data.ticket) {
         setLoading(false);
+        setStubMode(true);
         setIdentity({
           ticket: data.ticket,
           name: data.name ?? "테스트사용자",
@@ -267,6 +270,7 @@ export function RegisterWizard() {
           form={form}
           setForm={setForm}
           identity={identity}
+          stubMode={stubMode}
           pickedCompany={pickedCompany}
           brnCheck={brnCheck}
           setBrnCheck={setBrnCheck}
@@ -518,6 +522,7 @@ function StepInfo({
   form,
   setForm,
   identity,
+  stubMode,
   pickedCompany,
   brnCheck,
   setBrnCheck,
@@ -533,6 +538,7 @@ function StepInfo({
   form: FormState;
   setForm: React.Dispatch<React.SetStateAction<FormState>>;
   identity: { name: string; mobileNo: string; mobileCo: string | null } | null;
+  stubMode: boolean;
   pickedCompany: CompanyHit | null;
   brnCheck: { state: string; message: string } | null;
   setBrnCheck: React.Dispatch<React.SetStateAction<{ state: string; message: string } | null>>;
@@ -703,6 +709,14 @@ function StepInfo({
       <p className="mt-1 break-keep text-xs text-muted">
         이름 · 휴대폰번호는 본인인증 결과가 그대로 들어가며 수정할 수 없습니다.
       </p>
+      {stubMode ? (
+        <p
+          data-testid="stub-notice"
+          className="mt-3 break-keep border border-warn/40 px-4 py-2.5 text-xs leading-6 text-warn"
+        >
+          개발 환경: 본인인증을 건너뛴 상태입니다. 아래 이름 · 휴대폰번호는 실제 인증 결과가 아닙니다.
+        </p>
+      ) : null}
       <div className="mt-4 grid gap-x-6 gap-y-5 sm:grid-cols-2">
         <Field label="이름" hint="본인인증 결과">
           <input data-testid="f-name" value={identity?.name ?? ""} readOnly className={inputCls(true)} />

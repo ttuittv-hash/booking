@@ -39,9 +39,17 @@ export async function POST(request: Request) {
   // 두 겹으로 잠근다 — 환경변수가 있어야 하고, 요청 헤더의 값이 그 환경변수와
   // 정확히 같아야 한다. 환경변수만으로 열면 실수로 운영에 들어갔을 때
   // 본인인증이 통째로 무력해진다. 운영 매니페스트에는 이 변수를 넣지 않는다.
+  // 자동화(E2E)는 헤더로, 사람이 브라우저로 볼 때는 쿠키로 연다.
+  // 어느 쪽이든 NICE_AUTH_DEV_STUB 과 정확히 같은 값을 들고 와야 한다.
   const stubSecret = process.env.NICE_AUTH_DEV_STUB;
   const stubHeader = request.headers.get("x-dev-stub");
-  if (stubSecret && stubHeader && stubHeader === stubSecret) {
+  const stubCookie = request.headers
+    .get("cookie")
+    ?.split(";")
+    .map((c) => c.trim())
+    .find((c) => c.startsWith("dev_stub="))
+    ?.slice("dev_stub=".length);
+  if (stubSecret && (stubHeader === stubSecret || stubCookie === stubSecret)) {
     const id = crypto.randomUUID();
     const seed = crypto.randomBytes(12).toString("hex");
     await saveStubIdentity({
