@@ -26,6 +26,7 @@ export async function POST(request: Request) {
   if (!brn || brn.length !== 10) {
     return NextResponse.json({
       state: "INVALID",
+      title: "인증 실패",
       message: "사업자등록번호 10자리를 정확히 입력해 주세요.",
     });
   }
@@ -35,20 +36,36 @@ export async function POST(request: Request) {
   if (join.kind === "BLOCKED_SUSPENDED") {
     return NextResponse.json({
       state: "BLOCKED",
+      title: "인증 실패",
       message: "휴업·폐업으로 확인된 사업자등록번호입니다. 담당자에게 문의해 주세요.",
     });
   }
   if (join.company) {
+    // 이미 등록된 회사면 회사정보 불러오기와 똑같이 기업정보를 그대로 채워준다.
+    // 사업자번호를 정확히 아는 사람만 여기까지 오고, 어차피 그 회사로 합류하게 된다.
+    const c = join.company;
     return NextResponse.json({
       state: "REGISTERED",
-      companyName: join.company.name,
+      title: "이미 등록된 회사",
       joinKind: join.kind,
+      companyName: c.name,
+      company: {
+        id: c.id,
+        name: c.name,
+        businessRegistrationNumber: c.businessRegistrationNumber,
+        representativeName: c.representativeName,
+        postalCode: c.postalCode,
+        address: c.address,
+        companyPhone: c.companyPhone,
+        companyFax: c.companyFax,
+        corporateNumber: c.corporateNumber,
+      },
       message:
         join.kind === "JOIN_PENDING"
-          ? `이미 심사가 진행 중인 회사입니다. (${join.company.name})`
+          ? `${c.name} — 이미 심사가 진행 중입니다. 앞선 심사가 끝난 뒤 함께 처리됩니다.`
           : join.kind === "REAPPLY_REJECTED"
-            ? `이전에 미승인 처리된 회사입니다. (${join.company.name})`
-            : `이미 등록된 회사입니다. '${join.company.name}'(으)로 합류 신청됩니다.`,
+            ? `${c.name} — 이전에 미승인 처리된 회사입니다. 운영자가 다시 심사합니다.`
+            : `${c.name} — 합류 신청됩니다. 회사 대표 담당자 또는 운영자가 승인합니다.`,
     });
   }
 
@@ -56,35 +73,40 @@ export async function POST(request: Request) {
   if (!isNiceConfigured()) {
     return NextResponse.json({
       state: "UNCHECKED",
-      message: "진위확인을 사용할 수 없어 확인 없이 진행됩니다.",
+      title: "확인 생략",
+      message: "진위확인을 사용할 수 없어 확인 없이 진행됩니다. 운영자 심사에서 확인됩니다.",
     });
   }
   const verification = await checkCompanyNumber(brn);
   if (isBlockedCompanyStatus(verification)) {
     return NextResponse.json({
       state: "BLOCKED",
+      title: "인증 실패",
       message: `국세청 조회 결과 ${verification.compStatusLabel} 상태인 사업자등록번호입니다.`,
     });
   }
   if (verification.status === "NOT_FOUND") {
     return NextResponse.json({
       state: "NOT_FOUND",
+      title: "인증 실패",
       message: "조회되지 않는 사업자등록번호입니다. 번호를 다시 확인해 주세요.",
     });
   }
   if (verification.status !== "VERIFIED") {
     return NextResponse.json({
       state: "UNCHECKED",
+      title: "확인 생략",
       message: verification.message ?? "진위확인을 완료하지 못했습니다. 운영자 심사에서 확인됩니다.",
     });
   }
 
   return NextResponse.json({
     state: "VERIFIED",
-    // 조회된 상호·대표자를 돌려줘 입력값과 맞춰볼 수 있게 한다.
+    title: "인증 완료",
+    // 조회된 상호·대표자를 돌려줘 화면에서 그대로 채운다.
     companyName: verification.companyName,
     representativeName: verification.representativeName,
     compStatusLabel: verification.compStatusLabel,
-    message: `국세청 조회 완료 — ${verification.companyName ?? ""} (${verification.compStatusLabel ?? ""})`,
+    message: `${verification.companyName ?? ""} (${verification.compStatusLabel ?? ""})`,
   });
 }

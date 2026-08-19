@@ -99,7 +99,7 @@ export function RegisterWizard() {
   // 인증 결과를 기다리는 중인지. 팝업 감시와 메시지 수신이 서로를 덮어쓰지 않게 ref 로 둔다.
   const awaitingAuth = useRef(false);
   // 사업자등록번호 중복·진위확인, 아이디 중복확인 결과
-  const [brnCheck, setBrnCheck] = useState<{ state: string; message: string } | null>(null);
+  const [brnCheck, setBrnCheck] = useState<{ state: string; title: string; message: string } | null>(null);
   const [idCheck, setIdCheck] = useState<{ available: boolean; message: string } | null>(null);
   const [searchOpen, setSearchOpen] = useState(false);
   const [joinNotice, setJoinNotice] = useState<string | null>(null);
@@ -327,6 +327,9 @@ export function RegisterWizard() {
           idCheck={idCheck}
           setIdCheck={setIdCheck}
           onOpenSearch={() => setSearchOpen(true)}
+          onLockCompany={(name) =>
+            setPickedCompany({ id: "", name, businessNumberMasked: null, region: null })
+          }
           onClearCompany={() => {
             setPickedCompany(null);
             setBrnCheck(null);
@@ -358,7 +361,7 @@ export function RegisterWizard() {
           onPick={async (hit) => {
             setPickedCompany(hit);
             // 불러온 회사는 이미 확인된 번호다 — 중복확인·진위확인을 생략한다(기획서 A5).
-            setBrnCheck({ state: "VERIFIED", message: `불러온 회사입니다 — ${hit.name}` });
+            setBrnCheck({ state: "REGISTERED", title: "이미 등록된 회사", message: `${hit.name} — 합류 신청됩니다.` });
             setSearchOpen(false);
             // 기업정보 전 항목을 채운다. 채워진 칸은 읽기 전용이 된다.
             try {
@@ -636,6 +639,7 @@ function StepInfo({
   setIdCheck,
   onOpenSearch,
   onClearCompany,
+  onLockCompany,
   onPostcode,
   loading,
   onPrev,
@@ -646,12 +650,14 @@ function StepInfo({
   identity: { name: string; mobileNo: string; mobileCo: string | null } | null;
   stubMode: boolean;
   pickedCompany: CompanyHit | null;
-  brnCheck: { state: string; message: string } | null;
-  setBrnCheck: React.Dispatch<React.SetStateAction<{ state: string; message: string } | null>>;
+  brnCheck: { state: string; title: string; message: string } | null;
+  setBrnCheck: React.Dispatch<React.SetStateAction<{ state: string; title: string; message: string } | null>>;
   idCheck: { available: boolean; message: string } | null;
   setIdCheck: React.Dispatch<React.SetStateAction<{ available: boolean; message: string } | null>>;
   onOpenSearch: () => void;
   onClearCompany: () => void;
+  /** 이미 등록된 회사로 확인되면 기업정보를 잠근다. */
+  onLockCompany: (name: string) => void;
   onPostcode: () => void;
   loading: boolean;
   onPrev: () => void;
@@ -674,10 +680,33 @@ function StepInfo({
         body: JSON.stringify({ businessRegistrationNumber: form.businessRegistrationNumber }),
       });
       const data = await res.json();
-      setBrnCheck({ state: data.state ?? "ERROR", message: data.message ?? data.error ?? "" });
-      // 국세청 조회값으로 상호·대표자를 채운다. 등록부 값이 정본이라 입력값이 있어도 덮어쓴다 —
-      // 표기가 어긋난 채 제출되면 운영자 심사에서 "불일치"로 잡혀 승인이 늦어진다.
-      // 주소·대표번호는 이 API 응답에 없어 직접 입력해야 한다.
+      setBrnCheck({
+        state: data.state ?? "ERROR",
+        title: data.title ?? "인증 실패",
+        message: data.message ?? data.error ?? "",
+      });
+
+      // 이미 등록된 회사면 저장된 기업정보를 그대로 채운다 — 회사정보 불러오기와 같다.
+      if (data.state === "REGISTERED" && data.company) {
+        const c = data.company;
+        setForm((p) => ({
+          ...p,
+          companyName: c.name ?? p.companyName,
+          businessRegistrationNumber: c.businessRegistrationNumber ?? p.businessRegistrationNumber,
+          representativeName: c.representativeName ?? "",
+          companyPhone: c.companyPhone ?? "",
+          companyFax: c.companyFax ?? "",
+          corporateNumber: c.corporateNumber ?? "",
+          postalCode: c.postalCode ?? "",
+          address: c.address ?? "",
+        }));
+        onLockCompany(c.name ?? "");
+        return;
+      }
+
+      // 신규 등록이면 국세청 조회값으로 상호·대표자를 채운다. 등록부 값이 정본이라
+      // 입력값이 있어도 덮어쓴다 — 표기가 어긋난 채 제출되면 운영자 심사에서
+      // "불일치"로 잡혀 승인이 늦어진다. 주소·대표번호는 이 응답에 없어 직접 입력해야 한다.
       if (data.state === "VERIFIED") {
         setForm((p) => ({
           ...p,
@@ -708,9 +737,11 @@ function StepInfo({
   const brnTone =
     brnCheck?.state === "VERIFIED"
       ? "text-ok"
-      : brnCheck?.state === "REGISTERED" || brnCheck?.state === "UNCHECKED"
-        ? "text-muted"
-        : "text-danger";
+      : brnCheck?.state === "REGISTERED"
+        ? "text-accent"
+        : brnCheck?.state === "UNCHECKED"
+          ? "text-muted"
+          : "text-danger";
 
   return (
     <section className="mt-8" data-testid="step-info">
@@ -776,16 +807,21 @@ function StepInfo({
             </span>
           </Field>
           {brnCheck ? (
-            <>
-              <p data-testid="brn-check-message" className={`mt-2 break-keep text-xs leading-6 ${brnTone}`}>
-                {brnCheck.message}
-              </p>
-              {brnCheck.state === "VERIFIED" && !locked ? (
-                <p className="mt-1 break-keep text-xs leading-6 text-muted">
-                  회사명 · 대표자 성명은 국세청 등록 정보로 채워집니다. 주소 · 대표번호는 직접 입력해 주세요.
+            <div data-testid="brn-check-message" className="mt-2.5 break-keep text-xs leading-6">
+              <span className={`font-bold ${brnTone}`}>{brnCheck.title}</span>
+              <span className="ml-2 text-muted">{brnCheck.message}</span>
+              {brnCheck.state === "VERIFIED" ? (
+                <p className="mt-1 text-muted">
+                  회사명 · 대표자 성명은 국세청 등록 정보로 채워집니다. 주소 · 대표번호는 직접
+                  입력해 주세요.
                 </p>
               ) : null}
-            </>
+              {brnCheck.state === "REGISTERED" ? (
+                <p className="mt-1 text-muted">
+                  등록된 기업 정보가 그대로 채워집니다. 개인 정보만 입력해 주세요.
+                </p>
+              ) : null}
+            </div>
           ) : null}
         </div>
 
