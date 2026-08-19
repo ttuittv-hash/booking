@@ -4,6 +4,7 @@ import { getCurrentUser, isPendingApplicant } from "@/lib/auth";
 import { listFaqs } from "@/lib/db";
 import { FaqAccordion } from "@/components/FaqAccordion";
 import { PublicHeader } from "@/components/PublicHeader";
+import { PublicFooter } from "@/components/PublicFooter";
 
 export const metadata: Metadata = {
   title: "FAQ | 서울아레나",
@@ -35,6 +36,8 @@ export default async function FaqPage() {
           <FaqAccordion faqs={faqs} />
         )}
       </main>
+
+      <PublicFooter />
     </div>
   );
 }

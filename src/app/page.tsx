@@ -2,6 +2,7 @@ import Link from "next/link";
 import { getCurrentUser } from "@/lib/auth";
 import { getHomeContent } from "@/lib/db";
 import { PublicHeader } from "@/components/PublicHeader";
+import { PublicFooter } from "@/components/PublicFooter";
 
 export default async function Home() {
   const user = await getCurrentUser();
@@ -227,10 +228,7 @@ export default async function Home() {
         </section>
       </main>
 
-      <footer className="border-t border-border/70 px-6 py-8 text-center text-[12px] text-muted">
-        © 서울아레나. 모든 금액은 부가세 별도이며, 표시 금액은 확정 전
-        예상치입니다.
-      </footer>
+      <PublicFooter />
     </div>
   );
 }

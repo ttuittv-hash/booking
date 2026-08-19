@@ -21,6 +21,7 @@ import { TicketOpenPanel } from "@/components/TicketOpenPanel";
 import { FacilityMeetingPanel } from "@/components/FacilityMeetingPanel";
 import { SettlementMutualConfirm } from "@/components/SettlementMutualConfirm";
 import { PublicHeader } from "@/components/PublicHeader";
+import { PublicFooter } from "@/components/PublicFooter";
 
 function midHallSummaryLine(selection: QuoteSelection): string | null {
   const dates = Object.keys(selection.midHallDays).sort();
@@ -261,6 +262,8 @@ export default async function MyQuoteDetailPage({
           <AttachmentsPanel quoteId={quote.id} attachments={attachments} />
         </div>
       </main>
+
+      <PublicFooter />
     </div>
   );
 }

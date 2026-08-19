@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/lib/auth";
 import { PublicHeader } from "@/components/PublicHeader";
+import { PublicFooter } from "@/components/PublicFooter";
 
 export const metadata: Metadata = {
   title: "가입 승인 대기 | 서울아레나",
@@ -32,6 +33,8 @@ export default async function PendingPage() {
         <h1 className="text-[20px] font-semibold">{notice.title}</h1>
         <p className="mt-3 text-[13.5px] leading-6 text-muted">{notice.desc}</p>
       </main>
+
+      <PublicFooter />
     </div>
   );
 }

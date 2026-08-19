@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { getCurrentUser } from "@/lib/auth";
 import { PublicHeader } from "@/components/PublicHeader";
+import { PublicFooter } from "@/components/PublicFooter";
 
 export const metadata: Metadata = {
   title: "개인정보처리방침 | 서울아레나",
@@ -121,6 +122,8 @@ export default async function PrivacyPage() {
           </section>
         </div>
       </main>
+
+      <PublicFooter />
     </div>
   );
 }

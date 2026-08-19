@@ -4,6 +4,7 @@ import { getCurrentUser, isPendingApplicant } from "@/lib/auth";
 import { getVenueContent } from "@/lib/db";
 import { sanitizeRichText } from "@/lib/sanitizeHtml";
 import { PublicHeader } from "@/components/PublicHeader";
+import { PublicFooter } from "@/components/PublicFooter";
 import { VenueContentView } from "@/components/VenueContentView";
 
 export const metadata: Metadata = {
@@ -28,6 +29,8 @@ export default async function VenuePage() {
       <main className="flex flex-1 flex-col">
         <VenueContentView content={content} />
       </main>
+
+      <PublicFooter />
     </div>
   );
 }

@@ -6,6 +6,7 @@ import { Pagination } from "@/components/Pagination";
 import { won } from "@/lib/format";
 import type { Quote } from "@/lib/pricing/types";
 import { PublicHeader } from "@/components/PublicHeader";
+import { PublicFooter } from "@/components/PublicFooter";
 
 const STATUS_LABEL: Record<Quote["status"], string> = {
   ESTIMATE: "예상견적 (심사 대기)",
@@ -108,6 +109,8 @@ export default async function MyPage({
         </div>
         <Pagination page={page} totalPages={totalPages} total={total} basePath="/mypage" />
       </main>
+
+      <PublicFooter />
     </div>
   );
 }

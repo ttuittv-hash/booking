@@ -3,6 +3,7 @@ import { notFound, redirect } from "next/navigation";
 import { getCurrentUser } from "@/lib/auth";
 import { getInquiryById } from "@/lib/db";
 import { PublicHeader } from "@/components/PublicHeader";
+import { PublicFooter } from "@/components/PublicFooter";
 
 export default async function MyInquiryDetailPage({
   params,
@@ -60,6 +61,8 @@ export default async function MyInquiryDetailPage({
           <p className="mt-4 text-[13px] text-muted">아직 답변이 등록되지 않았습니다.</p>
         )}
       </main>
+
+      <PublicFooter />
     </div>
   );
 }

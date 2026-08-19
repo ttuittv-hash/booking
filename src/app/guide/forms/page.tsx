@@ -3,6 +3,7 @@ import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { getCurrentUser, isPendingApplicant } from "@/lib/auth";
 import { PublicHeader } from "@/components/PublicHeader";
+import { PublicFooter } from "@/components/PublicFooter";
 
 export const metadata: Metadata = {
   title: "대관 양식함 | 서울아레나",
@@ -33,6 +34,8 @@ export default async function GuideFormsPage() {
           ← 대관 안내로 돌아가기
         </Link>
       </main>
+
+      <PublicFooter />
     </div>
   );
 }

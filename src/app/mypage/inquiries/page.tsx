@@ -5,6 +5,7 @@ import { getCurrentUser } from "@/lib/auth";
 import { listInquiriesPaged, normalizePage } from "@/lib/db";
 import { Pagination } from "@/components/Pagination";
 import { PublicHeader } from "@/components/PublicHeader";
+import { PublicFooter } from "@/components/PublicFooter";
 
 export const metadata: Metadata = {
   title: "1:1 문의 | 서울아레나",
@@ -81,6 +82,8 @@ export default async function MyInquiriesPage({
         </div>
         <Pagination page={page} totalPages={totalPages} total={total} basePath="/mypage/inquiries" />
       </main>
+
+      <PublicFooter />
     </div>
   );
 }

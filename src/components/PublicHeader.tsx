@@ -6,6 +6,11 @@ import type { AppUser } from "@/lib/pricing/types";
 import { LogoutButton } from "@/components/LogoutButton";
 import { NotificationBell } from "@/components/NotificationBell";
 
+// [메뉴트리 2026-08-19] GNB 4대 분류(Your Stage / Book It / Host It / Know It) — 운영팀
+// 제공 메뉴트리를 그대로 반영한다. "아레나"·"중형"·각 부대시설 항목은 현재 /venue 페이지가
+// 아직 공간별로 나뉘지 않고 "아레나 / 중형공연장 시설 제원" 한 섹션에 통합되어 있어 같은
+// 앵커(#specs, #amenities)를 가리킨다 — 추후 공간별 콘텐츠가 분리되면 각자의 앵커로
+// 갈라주면 된다. "컨벤션"·"상업"은 아직 전용 콘텐츠가 없어 /venue로 연결해둔다.
 const MAIN_LINKS: {
   href: string;
   label: string;
@@ -13,34 +18,47 @@ const MAIN_LINKS: {
 }[] = [
   {
     href: "/venue",
-    label: "SEOUL ARENA",
+    label: "Your Stage",
     children: [
       { href: "/venue#overview", label: "시설 개요" },
-      { href: "/venue#specs", label: "시설 제원" },
-      { href: "/venue#stage-features", label: "무대 특장" },
-      { href: "/venue#amenities", label: "부대시설" },
+      { href: "/venue#stage-features", label: "시설 소개/특징" },
+      { href: "/venue#specs", label: "아레나" },
+      { href: "/venue#amenities", label: "아레나 부대시설" },
+      { href: "/venue#specs", label: "중형" },
+      { href: "/venue#amenities", label: "중형 부대시설" },
+      { href: "/venue", label: "컨벤션" },
+      { href: "/venue", label: "상업" },
     ],
   },
   {
     href: "/guide",
-    label: "대관 안내",
+    label: "Book It",
     children: [
-      { href: "/guide#overview", label: "대관시스템 개요" },
-      { href: "/guide#process", label: "대관 절차" },
-      { href: "/venue#specs", label: "대관 시설" },
+      { href: "/guide#process", label: "대관 안내 및 절차" },
       { href: "/guide#rates", label: "대관료" },
       { href: "/guide#rules", label: "대관 규약" },
-      { href: "/guide/forms", label: "대관 자료" },
-      { href: "/guide/connected-live", label: "커넥티드 라이브" },
+      { href: "/guide/forms", label: "대관자료" },
     ],
   },
-  { href: "/apply", label: "대관 신청" },
+  {
+    href: "/apply",
+    label: "Host It",
+    children: [
+      { href: "/apply", label: "대관 신청" },
+      { href: "/mypage", label: "대관 신청 현황" },
+      { href: "/mypage", label: "대관 진행 내역" },
+    ],
+  },
+  {
+    href: "/notices",
+    label: "Know It",
+    children: [
+      { href: "/notices", label: "공지사항" },
+      { href: "/faq", label: "Q&A" },
+    ],
+  },
 ];
 
-const RIGHT_LINKS: { href: string; label: string }[] = [
-  { href: "/notices", label: "공지사항" },
-  { href: "/faq", label: "FAQ" },
-];
 
 export function PublicHeader({
   active,
@@ -80,6 +98,11 @@ export function PublicHeader({
 
   const activeChildren = MAIN_LINKS.find((link) => link.href === openMenu?.href)?.children;
 
+  function isLinkActive(link: (typeof MAIN_LINKS)[number]) {
+    if (link.href === active) return true;
+    return (link.children ?? []).some((child) => child.href === active || active.startsWith(`${child.href}/`));
+  }
+
   return (
     <header className="sticky top-0 z-20 border-b border-border/70 bg-background/80 backdrop-blur-md">
       <div className="mx-auto flex h-14 max-w-6xl items-center gap-x-8 px-4 sm:h-16 sm:px-6">
@@ -103,7 +126,7 @@ export function PublicHeader({
                     openNow(link.href, e.currentTarget.parentElement as HTMLElement);
                   }
                 }}
-                className={`flex items-center gap-1 whitespace-nowrap ${link.href === active ? "font-medium text-foreground" : "hover:text-foreground"}`}
+                className={`flex items-center gap-1 whitespace-nowrap ${isLinkActive(link) ? "font-medium text-foreground" : "hover:text-foreground"}`}
               >
                 {link.label}
                 {link.children && (
@@ -137,19 +160,7 @@ export function PublicHeader({
         )}
 
         <div className="ml-auto flex shrink-0 items-center gap-x-4 text-[13px] text-muted">
-          <nav className="flex items-center gap-x-4 whitespace-nowrap">
-            {RIGHT_LINKS.map((link) => (
-              <Link
-                key={link.href}
-                href={link.href}
-                className={link.href === active ? "font-medium text-foreground" : "hover:text-foreground"}
-              >
-                {link.label}
-              </Link>
-            ))}
-          </nav>
-
-          <div className="flex items-center gap-x-4 border-l border-border/70 pl-4">
+          <div className="flex items-center gap-x-4">
             {currentUser ? (
               <>
                 <Link

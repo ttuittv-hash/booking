@@ -5,6 +5,7 @@ import { getCurrentUser, isPendingApplicant } from "@/lib/auth";
 import { getNoticeById } from "@/lib/db";
 import { sanitizeRichText } from "@/lib/sanitizeHtml";
 import { PublicHeader } from "@/components/PublicHeader";
+import { PublicFooter } from "@/components/PublicFooter";
 import { TagBadge } from "@/components/TagBadge";
 
 export async function generateMetadata({
@@ -76,6 +77,8 @@ export default async function NoticeDetailPage({
           dangerouslySetInnerHTML={{ __html: sanitizeRichText(notice.body) }}
         />
       </main>
+
+      <PublicFooter />
     </div>
   );
 }

@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { getCurrentUser } from "@/lib/auth";
 import { PublicHeader } from "@/components/PublicHeader";
+import { PublicFooter } from "@/components/PublicFooter";
 
 export const metadata: Metadata = {
   title: "이용약관 | 서울아레나",
@@ -115,6 +116,8 @@ export default async function TermsPage() {
           </section>
         </div>
       </main>
+
+      <PublicFooter />
     </div>
   );
 }

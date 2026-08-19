@@ -7,6 +7,7 @@ import { won } from "@/lib/format";
 import { findAddon, packagePrice } from "@/lib/pricing/rateTableUtils";
 import { MEDIA_TIER_LABEL } from "@/lib/pricing/types";
 import { PublicHeader } from "@/components/PublicHeader";
+import { PublicFooter } from "@/components/PublicFooter";
 
 export const metadata: Metadata = {
   title: "대관 패키지 안내 | 서울아레나",
@@ -113,6 +114,8 @@ export default async function PackagesPage() {
           </Link>
         </div>
       </main>
+
+      <PublicFooter />
     </div>
   );
 }

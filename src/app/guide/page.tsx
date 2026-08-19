@@ -4,6 +4,7 @@ import { getCurrentUser, isPendingApplicant } from "@/lib/auth";
 import { getGuideContent } from "@/lib/db";
 import { sanitizeRichText } from "@/lib/sanitizeHtml";
 import { PublicHeader } from "@/components/PublicHeader";
+import { PublicFooter } from "@/components/PublicFooter";
 import { GuideContentView } from "@/components/GuideContentView";
 
 export const metadata: Metadata = {
@@ -28,6 +29,8 @@ export default async function GuidePage() {
       <main className="flex flex-1 flex-col">
         <GuideContentView content={content} />
       </main>
+
+      <PublicFooter />
     </div>
   );
 }

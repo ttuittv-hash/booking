@@ -3,6 +3,7 @@ import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/lib/auth";
 import { PublicHeader } from "@/components/PublicHeader";
+import { PublicFooter } from "@/components/PublicFooter";
 import { NewInquiryForm } from "@/components/NewInquiryForm";
 
 export const metadata: Metadata = {
@@ -27,6 +28,8 @@ export default async function NewInquiryPage() {
 
         <NewInquiryForm />
       </main>
+
+      <PublicFooter />
     </div>
   );
 }

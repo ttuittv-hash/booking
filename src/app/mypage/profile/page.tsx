@@ -3,6 +3,7 @@ import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/lib/auth";
 import { PublicHeader } from "@/components/PublicHeader";
+import { PublicFooter } from "@/components/PublicFooter";
 import { ProfileForm } from "@/components/ProfileForm";
 
 export const metadata: Metadata = {
@@ -37,6 +38,8 @@ export default async function ProfilePage() {
           </div>
         )}
       </main>
+
+      <PublicFooter />
     </div>
   );
 }

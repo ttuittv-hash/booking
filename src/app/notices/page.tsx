@@ -5,6 +5,7 @@ import { getCurrentUser, isPendingApplicant } from "@/lib/auth";
 import { listNoticesPaged, normalizePage } from "@/lib/db";
 import { Pagination } from "@/components/Pagination";
 import { PublicHeader } from "@/components/PublicHeader";
+import { PublicFooter } from "@/components/PublicFooter";
 import { TagBadge } from "@/components/TagBadge";
 
 export const metadata: Metadata = {
@@ -58,6 +59,8 @@ export default async function NoticesPage({
         </div>
         <Pagination page={page} totalPages={totalPages} total={total} basePath="/notices" />
       </main>
+
+      <PublicFooter />
     </div>
   );
 }
