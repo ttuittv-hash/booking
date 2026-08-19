@@ -49,42 +49,65 @@ function midHallSummaryLine(selection: QuoteSelection): string | null {
   return `${dates.length}일 · 셋업${setup} · 공연${performance}`;
 }
 
+type BaseCompositionGroup = "일정" | "공간" | "인프라";
+
 interface BaseCompositionTile {
+  group: BaseCompositionGroup;
   label: string;
   value: string;
 }
 
+const BASE_COMPOSITION_GROUP_ORDER: BaseCompositionGroup[] = ["일정", "공간", "인프라"];
+
+const TRUSS_ADDON_IDS = ["mother_truss_a", "mother_truss_b", "mother_truss_c", "mother_truss_l", "mother_truss_r"];
+
+// addon.category → 기본구성 그리드 그룹. SPACE는 공간, PRODUCTION·PREMIUM은 인프라(무대·조명·
+// 음향 등 설비류)로 묶는다 — 일정(준비/공연)은 addon이 아니라 합성 항목이라 별도 처리한다.
+function baseCompositionGroupOf(category: AddonCategory): BaseCompositionGroup {
+  return category === "SPACE" ? "공간" : "인프라";
+}
+
+function unitSuffix(unitLabel: string): string {
+  if (unitLabel.includes("일")) return "일";
+  if (unitLabel.includes("대")) return "대";
+  if (unitLabel.includes("실")) return "실";
+  return "";
+}
+
 // [화면 뼈대 2026-08-19, 패키지 구성 산정표] "기본 구성" 그리드는 pkg.includedItems를 그대로
-// 나열하지 않고 산정표 항목·순서에 맞춰 큐레이션한다 — 산정표에는 있지만 addon 데이터로는
-// 없는 야외광장·티켓박스·주차·하역시설·부속공간을 포함하고, 트러스 5종(A+B+C+L+R)은 산정표처럼
-// "트러스(센터)" 한 줄로 합쳐 보여준다(선택 옵션에서는 5종 그대로 개별 addon으로 남는다 —
-// 여기는 표시 전용 큐레이션일 뿐 요금 데이터 모델은 바꾸지 않는다). 전 패키지 구성이 완전히
-// 동일하다는 확정 사항에 따라 준비/공연 일수도 실제 캘린더 선택이 아니라 패키지 산정표 기준
-// (dayBreakdown)을 그대로 쓴다.
-function arenaBaseCompositionTiles(pkg: RentalPackage): BaseCompositionTile[] {
+// 데이터 기반으로 나열하고(addonId → 요금표에서 이름·단위 조회), 일정 · 공간 · 인프라 3개
+// 그룹으로 묶어 보여준다 — 관리자가 "패키지 관리"에서 항목을 추가·삭제·수정하면 이 그리드에도
+// 그대로 반영된다. 트러스 5종(A+B+C+L+R)만 산정표처럼 "트러스(센터)" 한 줄로 합쳐 보여준다
+// (선택 옵션에서는 5종 그대로 개별 addon으로 남는다 — 여기는 표시 전용 큐레이션일 뿐 요금
+// 데이터 모델은 바꾸지 않는다). 준비/공연 일수는 대응하는 addon이 없어 dayBreakdown 문자열
+// 에서 그대로 읽는다.
+function arenaBaseCompositionTiles(pkg: RentalPackage, rateTable: RateTable): BaseCompositionTile[] {
   const match = pkg.dayBreakdown.match(/준비\s*(\d+)일.*공연\s*(\d+)일/);
   const setupDays = match ? Number(match[1]) : 4;
   const performanceDays = match ? Number(match[2]) : 2;
-  const totalDays = setupDays + performanceDays;
-  const parkingCount = pkg.parkingPerDay.match(/\d+/)?.[0] ?? "150";
-  const sideRoomCount = pkg.sideFacilities.match(/(\d+)개실/)?.[1] ?? "7";
 
-  return [
-    { label: "준비", value: `${setupDays}일` },
-    { label: "공연", value: `${performanceDays}일` },
-    { label: "야외광장", value: pkg.outdoorPlazaIncluded ? `${performanceDays}일` : "미포함" },
-    { label: "티켓박스", value: `${performanceDays}일` },
-    { label: "주차", value: `${parkingCount}대` },
-    { label: "하역시설", value: `${totalDays}일` },
-    { label: "대기실", value: "14개실" },
-    { label: "부속공간", value: `${sideRoomCount}개실 · ${totalDays}일` },
-    { label: "트러스(센터)", value: `${totalDays}일` },
-    { label: "스마트스테이지", value: `${performanceDays}일` },
-    { label: "계단 LED", value: `${performanceDays}일` },
-    { label: "딜레이 스피커", value: `${performanceDays}일` },
-    { label: "스카이박스", value: "2개" },
-    { label: "프로덕션 전기", value: `${totalDays}일` },
+  const tiles: BaseCompositionTile[] = [
+    { group: "일정", label: "준비", value: `${setupDays}일` },
+    { group: "일정", label: "공연", value: `${performanceDays}일` },
   ];
+
+  let trussDays = 0;
+  for (const item of pkg.includedItems) {
+    if (TRUSS_ADDON_IDS.includes(item.addonId)) {
+      trussDays = Math.max(trussDays, item.quantity);
+      continue;
+    }
+    const addon = rateTable.addons.find((a) => a.id === item.addonId);
+    if (!addon) continue;
+    tiles.push({
+      group: baseCompositionGroupOf(addon.category),
+      label: addon.name,
+      value: `${item.quantity.toLocaleString()}${unitSuffix(addon.unitLabel)}`,
+    });
+  }
+  if (trussDays > 0) tiles.push({ group: "인프라", label: "트러스(센터)", value: `${trussDays}일` });
+
+  return tiles;
 }
 
 export function StepConfigOptions({
@@ -125,6 +148,7 @@ export function StepConfigOptions({
   for (const addon of rateTable.addons) {
     if (!isAddonAvailable(addon, pkg)) continue;
     if (addon.visibility === "HIDDEN") continue; // 자동 산입 항목 — 신청자가 선택하는 화면이 아니다 (2-71)
+    if (addon.visibility === "ITEM_ONLY") continue; // 기본 구성 전용 항목 — 별도 구매 옵션이 아니다
     const list = grouped.get(addon.category) ?? [];
     list.push(addon);
     grouped.set(addon.category, list);
@@ -138,6 +162,7 @@ export function StepConfigOptions({
     .filter((addon) => addon.billingPhase !== "SETTLEMENT" && (addonQuantities[addon.id] ?? 0) > 0).length;
 
   const midHallLine = isSimultaneous ? midHallSummaryLine(selection) : null;
+  const baseCompositionTiles = arenaBaseCompositionTiles(pkg, rateTable);
 
   return (
     <section className="rounded border border-border bg-background p-7">
@@ -160,19 +185,31 @@ export function StepConfigOptions({
             대관료에 이미 포함된 구성 — 관객 규모와 무관하게 전 패키지 동일하게 제공됩니다
           </span>
         </div>
-        <div className="mt-3.5 grid grid-cols-2 gap-2 sm:grid-cols-4">
-          {arenaBaseCompositionTiles(pkg).map((tile) => (
-            <div key={tile.label} className="rounded-sm border border-good/20 bg-background px-3 py-2">
-              <div className="text-[11px] text-muted">{tile.label}</div>
-              <div className="mt-0.5 text-[13px] font-semibold text-good">{tile.value}</div>
-            </div>
-          ))}
-          <div className="rounded-sm border border-good/20 bg-background px-3 py-2">
-            <div className="text-[11px] text-muted">홍보 디지털 매체</div>
-            <div className="mt-0.5 text-[13px] font-semibold text-good">
-              {pkg.mediaTier ? MEDIA_TIER_LABEL[pkg.mediaTier] : "미포함"}
-            </div>
-          </div>
+        <div className="mt-4 space-y-4">
+          {BASE_COMPOSITION_GROUP_ORDER.map((group) => {
+            const tiles = baseCompositionTiles.filter((t) => t.group === group);
+            if (group === "인프라") {
+              tiles.push({
+                group: "인프라",
+                label: "홍보 디지털 매체",
+                value: pkg.mediaTier ? MEDIA_TIER_LABEL[pkg.mediaTier] : "미포함",
+              });
+            }
+            if (tiles.length === 0) return null;
+            return (
+              <div key={group}>
+                <div className="mb-1.5 text-[10.5px] font-semibold uppercase tracking-wide text-good">{group}</div>
+                <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+                  {tiles.map((tile) => (
+                    <div key={tile.label} className="rounded-sm border border-good/20 bg-background px-3 py-2">
+                      <div className="text-[11px] text-muted">{tile.label}</div>
+                      <div className="mt-0.5 text-[13px] font-semibold text-good">{tile.value}</div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            );
+          })}
         </div>
       </div>
 

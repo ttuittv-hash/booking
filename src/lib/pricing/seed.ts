@@ -17,7 +17,12 @@ const ARENA_PARKING_PER_DAY = "150대/일";
 const ARENA_WAITING_ROOM_NOTE = "지하 8실 · 지상 6실 (14개실)";
 const ARENA_SIDE_FACILITIES = "부속공간 7개실 · 식당 · 하역시설";
 const ARENA_INCLUDED_ITEMS: PackageInclusion[] = [
+  { addonId: "outdoor_plaza", quantity: 2 },
+  { addonId: "ticket_box", quantity: 2 },
+  { addonId: "parking", quantity: 150 },
+  { addonId: "loading_dock", quantity: 6 },
   { addonId: "waiting_room", quantity: 14 },
+  { addonId: "side_facility", quantity: 6 },
   { addonId: "mother_truss_a", quantity: 6 },
   { addonId: "mother_truss_b", quantity: 6 },
   { addonId: "mother_truss_c", quantity: 6 },
@@ -26,8 +31,8 @@ const ARENA_INCLUDED_ITEMS: PackageInclusion[] = [
   { addonId: "smart_stage", quantity: 2 },
   { addonId: "stair_led", quantity: 2 },
   { addonId: "delay_speaker", quantity: 2 },
-  { addonId: "production_power", quantity: 6 },
   { addonId: "skybox", quantity: 2 },
+  { addonId: "production_power", quantity: 6 },
 ];
 
 export const SEED_PACKAGES: RentalPackage[] = [
@@ -38,6 +43,7 @@ export const SEED_PACKAGES: RentalPackage[] = [
     tagline: "합리적인 규모의 콘서트를 위한 스탠더드 패키지",
     audienceTier: { min: 0, max: 12_000, label: "~12,000석 규모" },
     baseFeePerWeek: 518_000_000, // [확정 2026-08-14] 패키지 요금표 시트 — VAT 별도, 준비 4일+공연 2일 기준
+    bowlFee: 96_000_000, // [패키지 구성 산정표] 1만명 x 2회 x 4,000원/인 — baseFeePerWeek와 합산 시 산정표 근거(496.76M)와 확정가(518M) 사이 21.24M 차이가 남, 재확인 필요
     includedWeeks: 1,
     mediaTier: null,
     discountRatio: 0,
@@ -61,6 +67,7 @@ export const SEED_PACKAGES: RentalPackage[] = [
     tagline: "확장된 홍보 효과가 필요한 중대형 공연을 위한 패키지",
     audienceTier: { min: 12_001, max: 15_000, label: "~15,000석 규모" },
     baseFeePerWeek: 548_000_000, // [확정 2026-08-14] 패키지 요금표 시트
+    bowlFee: 120_000_000, // [패키지 구성 산정표] 1.5만명 x 2회 x 4,000원/인
     includedWeeks: 1,
     mediaTier: "BASIC",
     discountRatio: 0,
@@ -84,6 +91,7 @@ export const SEED_PACKAGES: RentalPackage[] = [
     tagline: "대형 스탠딩 공연을 위한 풀프로덕션 패키지",
     audienceTier: { min: 15_001, max: 18_000, label: "~18,000석 규모" },
     baseFeePerWeek: 613_000_000, // [확정 2026-08-14] 패키지 요금표 시트
+    bowlFee: 180_000_000, // [패키지 구성 산정표] 1.8만명 x 2회 x 5,000원/인
     includedWeeks: 1,
     mediaTier: "EXTENDED",
     discountRatio: 0,
@@ -107,6 +115,7 @@ export const SEED_PACKAGES: RentalPackage[] = [
     tagline: "최대 규모 공연을 위한 프리미엄 올인원 패키지",
     audienceTier: { min: 18_001, max: 99_999, label: "20,000석+ 규모" },
     baseFeePerWeek: 660_000_000, // [확정 2026-08-14] 패키지 요금표 시트
+    bowlFee: 220_000_000, // [패키지 구성 산정표] 2.2만명 x 2회 x 5,000원/인
     includedWeeks: 1,
     mediaTier: "FULL",
     discountRatio: 0,
@@ -130,6 +139,7 @@ export const SEED_PACKAGES: RentalPackage[] = [
     tagline: "약 2,000석 규모의 중형 공연·행사를 위한 기본 패키지",
     audienceTier: { min: 0, max: 2_000, label: "~2,000석 규모" },
     baseFeePerWeek: 15_000_000,
+    bowlFee: 0, // 중형공연장은 Bowl 사용료 개념 없음
     includedWeeks: 1,
     mediaTier: null,
     discountRatio: 0,
@@ -161,6 +171,17 @@ export const SEED_ADDONS: AddonItem[] = [
   { id: "artist_meal", category: "SERVICE", name: "아티스트 식사", pricingType: "PER_MEAL", unitPrice: 30_000, unitLabel: "원/식", availability: { mode: "ALWAYS" }, billingPhase: "ESTIMATE", visibility: "VISIBLE" },
   { id: "catering", category: "SERVICE", name: "케이터링", pricingType: "PER_MEAL", unitPrice: 25_000, unitLabel: "원/식", availability: { mode: "ALWAYS" }, billingPhase: "ESTIMATE", visibility: "VISIBLE" },
   { id: "retractable_seat", category: "FACILITY", name: "수납식 객석 사용료", pricingType: "PER_SECTION", unitPrice: 3_000_000, unitLabel: "원/섹션", availability: { mode: "ALWAYS" }, billingPhase: "ESTIMATE", visibility: "VISIBLE" },
+  // [신규 2026-08-19, 패키지 구성 산정표] 야외광장·티켓박스·주차·하역시설·부속공간 — 예전에는
+  // pkg.outdoorPlazaIncluded/parkingPerDay/sideFacilities 같은 순수 설명 문자열로만 있어서
+  // "기본 구성" 그리드에 항목으로 잡히지도, 관리자가 단가를 편집할 수도 없었다. 이제 다른
+  // 기본 포함 항목과 동일하게 addon으로 등록하고 visibility="ITEM_ONLY"(항목명만 노출,
+  // 단가·금액은 감춤)로 표시한다 — 별도로 초과 구매하는 개념이 없는 항목들이라 availability는
+  // ALWAYS로 두되 StepConfigOptions의 "선택 옵션" 목록에서는 ITEM_ONLY를 걸러 제외한다.
+  { id: "outdoor_plaza", category: "SPACE", name: "야외광장", pricingType: "PER_DAY", unitPrice: 10_000_000, unitLabel: "원/일", availability: { mode: "ALWAYS" }, billingPhase: "ESTIMATE", visibility: "ITEM_ONLY" },
+  { id: "ticket_box", category: "SPACE", name: "티켓박스", pricingType: "PER_DAY", unitPrice: 1_000_000, unitLabel: "원/일", availability: { mode: "ALWAYS" }, billingPhase: "ESTIMATE", visibility: "ITEM_ONLY" },
+  { id: "parking", category: "SPACE", name: "주차", pricingType: "PER_DAY", unitPrice: 72_000, unitLabel: "원/대", availability: { mode: "ALWAYS" }, billingPhase: "ESTIMATE", visibility: "ITEM_ONLY", note: "6일 기준 총액 환산 단가" },
+  { id: "loading_dock", category: "SPACE", name: "하역시설", pricingType: "PER_DAY", unitPrice: 1_000_000, unitLabel: "원/일", availability: { mode: "ALWAYS" }, billingPhase: "ESTIMATE", visibility: "ITEM_ONLY" },
+  { id: "side_facility", category: "SPACE", name: "부속공간", pricingType: "PER_DAY", unitPrice: 4_200_000, unitLabel: "원/일", availability: { mode: "ALWAYS" }, billingPhase: "ESTIMATE", visibility: "ITEM_ONLY", note: "7개실 기준" },
   { id: "waiting_room", category: "SPACE", name: "대기실", pricingType: "PER_DAY", unitPrice: 1_000_000, unitLabel: "원/일", availability: { mode: "ALWAYS" }, billingPhase: "ESTIMATE", visibility: "VISIBLE", note: "패키지 기본 포함분 초과 시 과금" },
   { id: "practice_room", category: "SPACE", name: "연습실", pricingType: "PER_DAY", unitPrice: 800_000, unitLabel: "원/일", availability: { mode: "ALWAYS" }, billingPhase: "ESTIMATE", visibility: "VISIBLE" },
   { id: "multi_room", category: "SPACE", name: "다목적실", pricingType: "PER_DAY", unitPrice: 700_000, unitLabel: "원/일", availability: { mode: "ALWAYS" }, billingPhase: "ESTIMATE", visibility: "VISIBLE" },

@@ -80,6 +80,13 @@ export interface RentalPackage {
   // 기존 "기본 대관료 + 포함 항목 정가 합산" 규칙은 폐기됐다 — 이 값 자체가 최종 표시 금액이며,
   // includedItems 단가를 더해 역산·검증하지 않는다(Bowl 사용료가 이 값에 내재되어 있다, 2-43).
   baseFeePerWeek: number;
+  // [화면 뼈대 2026-08-19, 패키지 구성 산정표] baseFeePerWeek(신청자 노출 총액)은 그대로
+  // 계산의 기준값으로 쓰고 건드리지 않는다 — bowlFee는 "이 중 얼마가 관객 규모별 Bowl
+  // 사용료 몫인지"를 관리자가 참고·감사할 수 있게 하는 부가 필드일 뿐, 견적 계산에는
+  // 관여하지 않는다(신청자에게는 항상 완전히 숨김). 기본 구성 항목 합계는 별도 필드로
+  // 저장하지 않고 includedItems 중 visibility="ITEM_ONLY"인 항목의 단가×수량을 그때그때
+  // 합산해서 쓴다(관리자 화면 참고).
+  bowlFee: number; // Bowl 사용료 참고값 — baseFeePerWeek에 이미 내재, 신청자 비노출
   includedWeeks: number; // 기본 포함 주차 (통상 1)
   includedItems: PackageInclusion[]; // 기본 포함사항 (3단계에 표시)
   mediaTier: MediaTier; // 홍보 디지털 매체(구좌) 등급 개방

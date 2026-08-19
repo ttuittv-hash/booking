@@ -3,9 +3,16 @@
 import { useEffect, useMemo, useState } from "react";
 import { calculateQuote } from "@/lib/pricing/calculateQuote";
 import { overlapDates, resolveSelectedDates } from "@/lib/pricing/dateRange";
-import { findAddon, findPackage, isAddonAvailable, recommendPackage } from "@/lib/pricing/rateTableUtils";
+import {
+  defaultDayTags,
+  effectiveDayTag,
+  findAddon,
+  findPackage,
+  isAddonAvailable,
+  recommendPackage,
+} from "@/lib/pricing/rateTableUtils";
 import type { AppUser, DateBlock, QuoteSelection, RateTable, WeekDemand } from "@/lib/pricing/types";
-import { DEFAULT_VENUE_ID, EVENT_TYPE_LABEL, STAGE_TYPE_LABEL } from "@/lib/pricing/types";
+import { DEFAULT_VENUE_ID, EVENT_TYPE_LABEL, MEDIA_TIER_LABEL, STAGE_TYPE_LABEL } from "@/lib/pricing/types";
 import { clearWizardDraft, loadWizardDraft, saveWizardDraft } from "@/lib/quotesStore";
 import { StepNav } from "./StepNav";
 import { SummaryPanel, type SummaryPreviewRow } from "./SummaryPanel";
@@ -240,7 +247,44 @@ export function WizardShell({
   ];
   const maxUnlockedStep = !selection.venueId ? 1 : midHallOnly && !hasMidHallSelection ? 2 : TOTAL_STEPS;
   // 패키지 선택 전에도 기본 공연일수를 보여줘야 하므로, 모든 패키지가 공유하는 기본값(2일)을 임시로 사용한다.
-  const defaultPerformanceDays = findPackage(rateTable, effectivePackageId)?.defaultPerformanceDays ?? 2;
+  const effectivePkg = findPackage(rateTable, effectivePackageId);
+  const defaultPerformanceDays = effectivePkg?.defaultPerformanceDays ?? 2;
+
+  // [화면 뼈대 2026-08-19, 화면시나리오 STEP 2 "선택 내용"] STEP 2(구성·옵션)에서도 견적
+  // lineItems가 아니라 지금까지 정한 값(패키지·대관 주차·공연 횟수·부대시설·홍보)을
+  // 큐레이션해 보여준다 — "Package N" 대신 관객 규모 등급으로 표기한다(패키지 번호 비노출
+  // 확정 사항, 2026-08-18).
+  const configArenaDates = resolveSelectedDates(selection);
+  const configShowCount = (() => {
+    if (configArenaDates.length === 0) return 0;
+    const defaults = defaultDayTags(configArenaDates, defaultPerformanceDays);
+    return configArenaDates.reduce((sum, d) => {
+      const tag = effectiveDayTag(d, selection.dayTags, defaults);
+      return tag === "PERFORMANCE" ? sum + (selection.dayShowCounts[d] ?? 1) : sum;
+    }, 0);
+  })();
+  const configOptionCount = selection.addons.filter(
+    (a) => a.addonId !== "cleaning" && a.requestedQuantity > 0,
+  ).length;
+  const configPreviewRows: SummaryPreviewRow[] = [
+    {
+      label: "구성",
+      value: effectivePkg ? `${effectivePkg.audienceTier.label} · 자동 결정` : "패키지 없음",
+    },
+    {
+      label: "대관 주차",
+      value:
+        configArenaDates.length > 0
+          ? `${selection.week.year}년 ${selection.week.month}월 ${selection.week.weekOfMonth}주차 · ${configArenaDates.length}일`
+          : "미선택",
+    },
+    { label: "공연", value: configShowCount > 0 ? `총 ${configShowCount}회` : "미선택" },
+    { label: "부대시설", value: `${configOptionCount}건 선택` },
+    {
+      label: "홍보",
+      value: effectivePkg?.mediaTier ? MEDIA_TIER_LABEL[effectivePkg.mediaTier] : "미포함",
+    },
+  ];
   // 동시 대관 겹침 — 아레나 확정 기간과 중형 선택일의 교집합(2-33/2-34). 금액에는 영향 없다.
   const arenaSelectedDates = useMemo(() => resolveSelectedDates(selection), [selection]);
   const midHallSelectedDates = Object.keys(selection.midHallDays);
@@ -561,7 +605,7 @@ export function WizardShell({
       <SummaryPanel
         quote={quote}
         revealPrice={step >= 4}
-        previewRows={step === 1 ? venuePreviewRows : undefined}
+        previewRows={step === 1 ? venuePreviewRows : step === 2 || step === 3 ? configPreviewRows : undefined}
       />
     </div>
   );

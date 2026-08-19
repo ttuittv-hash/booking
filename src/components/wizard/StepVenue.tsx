@@ -154,7 +154,7 @@ export function StepVenue({
                     step={500}
                     value={expectedAudience}
                     onChange={(e) => onChangeAudience(Math.max(0, Number(e.target.value) || 0))}
-                    className="w-40 rounded-sm border border-border bg-panel px-4 py-2.5 text-[15px] outline-none focus:border-accent focus:ring-2 focus:ring-accent/20"
+                    className="w-40 rounded-sm border border-border bg-panel px-3.5 py-2.5 text-[14px] outline-none focus:border-accent focus:ring-2 focus:ring-accent/20"
                   />
                   <span className="ml-2 text-[13px] text-muted">명</span>
                   <p className="mt-1 text-[11px] text-muted">22,000명 초과 시 별도 문의가 필요할 수 있습니다.</p>
@@ -171,7 +171,7 @@ export function StepVenue({
                     step={100}
                     value={secondaryAudience}
                     onChange={(e) => onChangeSecondaryAudience(Math.max(0, Number(e.target.value) || 0))}
-                    className="w-40 rounded-sm border border-border bg-panel px-4 py-2.5 text-[15px] outline-none focus:border-accent focus:ring-2 focus:ring-accent/20"
+                    className="w-40 rounded-sm border border-border bg-panel px-3.5 py-2.5 text-[14px] outline-none focus:border-accent focus:ring-2 focus:ring-accent/20"
                   />
                   <span className="ml-2 text-[13px] text-muted">명</span>
                   <p className="mt-1 text-[11px] text-muted">3,000명 초과 시 별도 문의가 필요할 수 있습니다. 청소비 산출에만 사용됩니다.</p>

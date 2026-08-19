@@ -59,6 +59,7 @@ function blankPackage(id: number): RentalPackage {
     tagline: "",
     audienceTier: { min: 0, max: 0, label: "" },
     baseFeePerWeek: 0,
+    bowlFee: 0,
     includedWeeks: 1,
     includedItems: [],
     mediaTier: null,
