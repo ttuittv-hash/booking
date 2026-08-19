@@ -22,10 +22,11 @@ import { MidHallCalendar } from "./MidHallCalendar";
 import { StepConfigOptions } from "./StepConfigOptions";
 import { Step5Estimate } from "./Step5Estimate";
 import { StepPerformanceInfo } from "./StepPerformanceInfo";
-import { StepAudiencePublicInterest } from "./StepAudiencePublicInterest";
+import { StepAudience } from "./StepAudience";
+import { StepPublicInterest } from "./StepPublicInterest";
 import { Step6Submit } from "./Step6Submit";
 
-const TOTAL_STEPS = 7;
+const TOTAL_STEPS = 8;
 
 // 중형공연장 단독(패키지 없음)일 때는 STEP 2(구성·옵션)의 내용이 달라질 뿐, 별도
 // 단계로 나누지 않는다(2-25, 확정).
@@ -143,7 +144,11 @@ export function WizardShell({
     : INITIAL_PERFORMANCE_INFO;
   // File은 JSON 직렬화가 안 되므로 selection과 분리해 별도 상태로 두고
   // localStorage 임시저장 대상에서도 제외한다 (새로고침 시 다시 선택 필요).
+  // 신청자 정보(공연기획서 등) · 관객(객석배치도) · 공공성(연계 프로그램 계획서)은
+  // 각자 다른 서류라 슬롯을 분리한다 — 제출 시점에 하나로 합쳐 업로드한다.
   const [pendingFiles, setPendingFiles] = useState<File[]>([]);
+  const [audienceFiles, setAudienceFiles] = useState<File[]>([]);
+  const [publicInterestFiles, setPublicInterestFiles] = useState<File[]>([]);
   const [selection, setSelection] = useState<QuoteSelection>(
     initialSelection
       ? {
@@ -352,9 +357,10 @@ export function WizardShell({
   }
 
   async function uploadPendingFiles(quoteId: string) {
-    if (pendingFiles.length === 0) return;
+    const allFiles = [...pendingFiles, ...audienceFiles, ...publicInterestFiles];
+    if (allFiles.length === 0) return;
     const failed: string[] = [];
-    for (const file of pendingFiles) {
+    for (const file of allFiles) {
       try {
         const formData = new FormData();
         formData.append("file", file);
@@ -373,6 +379,8 @@ export function WizardShell({
       );
     } else {
       setPendingFiles([]);
+      setAudienceFiles([]);
+      setPublicInterestFiles([]);
     }
   }
 
@@ -574,15 +582,18 @@ export function WizardShell({
           />
         )}
         {step === 6 && (
-          <StepAudiencePublicInterest
+          <StepAudience
             info={selection.performanceInfo}
             onChange={(performanceInfo) => setSelection((prev) => ({ ...prev, performanceInfo }))}
             selection={resolvedSelection}
-            files={pendingFiles}
-            onFilesChange={setPendingFiles}
+            files={audienceFiles}
+            onFilesChange={setAudienceFiles}
           />
         )}
         {step === 7 && (
+          <StepPublicInterest files={publicInterestFiles} onFilesChange={setPublicInterestFiles} />
+        )}
+        {step === 8 && (
           <Step6Submit
             rateTable={rateTable}
             quote={quote}
@@ -593,7 +604,7 @@ export function WizardShell({
             submittedId={submittedId}
             error={submitError}
             attachmentError={attachmentError}
-            fileCount={pendingFiles.length}
+            fileCount={pendingFiles.length + audienceFiles.length + publicInterestFiles.length}
             onSubmit={submit}
           />
         )}
