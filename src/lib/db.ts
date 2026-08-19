@@ -444,6 +444,9 @@ async function initSchema(pool: Pool) {
     ALTER TABLE users ADD COLUMN IF NOT EXISTS di_encrypted TEXT;
     ALTER TABLE users ADD COLUMN IF NOT EXISTS di_index TEXT;
     ALTER TABLE users ADD COLUMN IF NOT EXISTS identity_verified_at TEXT;
+    -- 세션 일괄 무효화 기준시각. 세션은 서명 토큰이라 서버에 목록이 없어서,
+    -- 이 값보다 먼저 발급된 토큰을 전부 무효로 본다(비밀번호 변경·탈퇴·강제 로그아웃).
+    ALTER TABLE users ADD COLUMN IF NOT EXISTS session_epoch TEXT;
 
     -- 초대로 만들어진 계정은 본인이 비밀번호를 정하기 전까지 해시가 없다.
     ALTER TABLE users ALTER COLUMN password_hash DROP NOT NULL;
@@ -1434,6 +1437,27 @@ export async function findUserByDi(di: string): Promise<AppUser | undefined> {
   return row ? toAppUser(row) : undefined;
 }
 
+/** 이 시각보다 먼저 발급된 세션을 모두 무효로 만든다. */
+export async function setSessionEpoch(userId: string, at: string): Promise<void> {
+  await q("UPDATE users SET session_epoch = $1 WHERE id = $2", [at, userId]);
+}
+
+export async function findSessionEpoch(userId: string): Promise<string | null> {
+  const row = await one<{ session_epoch: string | null }>(
+    "SELECT session_epoch FROM users WHERE id = $1",
+    [userId],
+  );
+  return row?.session_epoch ?? null;
+}
+
+/** 마스킹된 아이디 — 전체를 그대로 보여주면 목록화가 가능해진다(기획서 A13). */
+export function maskUsername(username: string): string {
+  if (username.length <= 2) return username[0] + "*";
+  const head = username.slice(0, 4 > username.length - 2 ? 1 : 4);
+  const tail = username.slice(-2);
+  return `${head}${"*".repeat(Math.max(2, username.length - head.length - tail.length))}${tail}`;
+}
+
 /** 가입 확정 시 본인인증 결과를 계정에 붙인다. */
 export async function attachIdentityToUser(
   userId: string,
@@ -1475,6 +1499,7 @@ interface UserRow {
   password_hash: string | null;
   password_scheme: PasswordScheme;
   member_type: string | null;
+  session_epoch: string | null;
   company_role: string | null;
   ci_encrypted: string | null;
   di_encrypted: string | null;

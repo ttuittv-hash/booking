@@ -1,7 +1,7 @@
 import Link from "next/link";
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
-import { getCurrentUser, isPendingApplicant } from "@/lib/auth";
+import { getCurrentUser, isPendingApplicant, requireAccess } from "@/lib/auth";
 import { getCurrentRateTable } from "@/lib/db";
 import { num, won } from "@/lib/format";
 import { findAddon, packagePrice, isAddonAvailable } from "@/lib/pricing/rateTableUtils";
@@ -115,6 +115,8 @@ function includedGroups(
 }
 
 export default async function PackagesPage() {
+  // 기획서 A15 — 비로그인 차단, 로그인하면 승인 전에도 열람 가능
+  await requireAccess("/packages");
   // 요금·기본 포함 수량은 계약 조건에 해당하므로 로그인한 신청자에게만 공개한다.
   const currentUser = await getCurrentUser();
   if (!currentUser) redirect("/login");

@@ -1,11 +1,19 @@
 import { hash as bcryptHash, verify as bcryptVerify } from "@node-rs/bcrypt";
 import { jwtVerify, SignJWT } from "jose";
 import { cookies } from "next/headers";
-import { findUserById, isUserWithdrawn } from "./db";
+import { redirect } from "next/navigation";
+import { findSessionEpoch, findUserById, isUserWithdrawn } from "./db";
+import { accountStateOf, canAccess, redirectFor } from "./accessPolicy";
 import type { AppUser, Quote, UserRole } from "./pricing/types";
 
 const SESSION_COOKIE = "sa_session";
-const SESSION_TTL_SECONDS = 60 * 60 * 24 * 7; // 7일
+
+// 세션 정책 (기획서 A15).
+//   유휴 2시간  — 활동이 있으면 연장된다. 자리를 비운 사이 남이 이어 쓰는 것을 막는다.
+//   절대 7일    — 아무리 계속 써도 7일이 지나면 다시 로그인해야 한다.
+// 쿠키 자체의 만료는 절대 상한에 맞추고, 유휴 만료는 토큰 안의 마지막 활동 시각으로 판단한다.
+const IDLE_TIMEOUT_SECONDS = 2 * 60 * 60;
+const ABSOLUTE_TTL_SECONDS = 60 * 60 * 24 * 7;
 
 // 데모/개발 환경 기본 시크릿. 운영 배포 전 반드시 AUTH_SECRET 환경변수로 교체할 것.
 const DEV_FALLBACK_SECRET = "seoularena-dev-only-secret-change-me-before-production-32b";
@@ -39,36 +47,77 @@ interface SessionPayload {
   [key: string]: unknown;
   sub: string;
   role: UserRole;
+  /** 최초 로그인 시각(초). 절대 상한 판정에 쓴다 — 연장돼도 이 값은 바뀌지 않는다. */
+  lif: number;
+  /** 마지막 활동 시각(초). 유휴 판정에 쓴다. */
+  lat: number;
 }
 
 async function signSession(payload: SessionPayload): Promise<string> {
   return new SignJWT(payload)
     .setProtectedHeader({ alg: "HS256" })
     .setIssuedAt()
-    .setExpirationTime(`${SESSION_TTL_SECONDS}s`)
+    // 쿠키·토큰의 만료는 절대 상한에 맞춘다. 유휴 만료는 lat 으로 따로 판정한다.
+    .setExpirationTime(payload.lif + ABSOLUTE_TTL_SECONDS)
     .sign(getSecretKey());
 }
 
-async function verifySession(token: string): Promise<SessionPayload | null> {
+export type SessionExpiry = "IDLE" | "ABSOLUTE" | null;
+
+async function verifySession(
+  token: string,
+): Promise<{ payload: SessionPayload | null; expired: SessionExpiry }> {
   try {
     const { payload } = await jwtVerify(token, getSecretKey());
-    if (typeof payload.sub !== "string" || typeof payload.role !== "string") return null;
-    return { sub: payload.sub, role: payload.role as UserRole };
+    if (typeof payload.sub !== "string" || typeof payload.role !== "string") {
+      return { payload: null, expired: null };
+    }
+    const now = Math.floor(Date.now() / 1000);
+    const lif = typeof payload.lif === "number" ? payload.lif : now;
+    const lat = typeof payload.lat === "number" ? payload.lat : now;
+
+    if (now - lif > ABSOLUTE_TTL_SECONDS) return { payload: null, expired: "ABSOLUTE" };
+    if (now - lat > IDLE_TIMEOUT_SECONDS) return { payload: null, expired: "IDLE" };
+
+    return {
+      payload: { sub: payload.sub, role: payload.role as UserRole, lif, lat },
+      expired: null,
+    };
   } catch {
-    return null;
+    // 서명 불일치이거나 절대 만료가 지난 토큰이다.
+    return { payload: null, expired: "ABSOLUTE" };
   }
 }
 
 /** Route Handler / Server Function 안에서만 호출 가능 (쿠키 쓰기) */
 export async function createSession(userId: string, role: UserRole) {
-  const token = await signSession({ sub: userId, role });
+  const now = Math.floor(Date.now() / 1000);
+  const token = await signSession({ sub: userId, role, lif: now, lat: now });
   const cookieStore = await cookies();
   cookieStore.set(SESSION_COOKIE, token, {
     httpOnly: true,
     secure: process.env.NODE_ENV === "production",
     sameSite: "lax",
     path: "/",
-    maxAge: SESSION_TTL_SECONDS,
+    maxAge: ABSOLUTE_TTL_SECONDS,
+  });
+}
+
+/**
+ * 활동이 있었으니 유휴 시계를 되감는다(절대 상한은 그대로 둔다).
+ * 쿠키 쓰기가 가능한 곳(Route Handler·Server Action)에서만 호출할 수 있다.
+ */
+export async function touchSession(session: { sub: string; role: UserRole; lif: number }) {
+  const now = Math.floor(Date.now() / 1000);
+  const token = await signSession({ sub: session.sub, role: session.role, lif: session.lif, lat: now });
+  const cookieStore = await cookies();
+  cookieStore.set(SESSION_COOKIE, token, {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === "production",
+    sameSite: "lax",
+    path: "/",
+    // 쿠키 수명은 최초 로그인 기준 절대 상한까지만 남긴다.
+    maxAge: Math.max(0, session.lif + ABSOLUTE_TTL_SECONDS - now),
   });
 }
 
@@ -83,11 +132,31 @@ export async function getCurrentUser(): Promise<AppUser | null> {
   const cookieStore = await cookies();
   const token = cookieStore.get(SESSION_COOKIE)?.value;
   if (!token) return null;
-  const session = await verifySession(token);
-  if (!session) return null;
-  if (await isUserWithdrawn(session.sub)) return null;
-  const user = await findUserById(session.sub);
+  const { payload } = await verifySession(token);
+  if (!payload) return null;
+  if (await isUserWithdrawn(payload.sub)) return null;
+  // 비밀번호 변경·탈퇴 이후 발급된 토큰만 유효하다.
+  const epoch = await findSessionEpoch(payload.sub);
+  if (epoch && payload.lif * 1000 < Date.parse(epoch)) return null;
+  const user = await findUserById(payload.sub);
   return user ?? null;
+}
+
+/** 현재 세션의 원시 값 — 유휴 연장(touchSession)에 필요하다. */
+export async function getSessionRaw(): Promise<{ sub: string; role: UserRole; lif: number } | null> {
+  const cookieStore = await cookies();
+  const token = cookieStore.get(SESSION_COOKIE)?.value;
+  if (!token) return null;
+  const { payload } = await verifySession(token);
+  return payload ? { sub: payload.sub, role: payload.role, lif: payload.lif } : null;
+}
+
+/** 왜 끊겼는지 구분한다 — 화면에서 "유휴로 종료" 와 "기간 만료" 안내를 다르게 하기 위함. */
+export async function getSessionExpiry(): Promise<SessionExpiry> {
+  const cookieStore = await cookies();
+  const token = cookieStore.get(SESSION_COOKIE)?.value;
+  if (!token) return null;
+  return (await verifySession(token)).expired;
 }
 
 // 마스터 관리자 전용 화면/API에서 사용. role=ADMIN이면서 adminTier=MASTER인 계정만 통과시킨다.
@@ -98,6 +167,23 @@ export function isMasterAdmin(user: AppUser | null): boolean {
 export async function requireMasterAdmin(): Promise<AppUser | null> {
   const user = await getCurrentUser();
   return isMasterAdmin(user) ? user : null;
+}
+
+/**
+ * 접근권한 매트릭스(기획서 A15)를 한 곳에서 적용한다.
+ * 페이지마다 조건을 따로 쓰면 표와 어긋나기 시작한다 — 규칙은 accessPolicy.ts 한 곳에만 둔다.
+ *
+ * 미들웨어에서 처리하지 않는 이유: 승인 상태는 DB 를 봐야 알 수 있는데
+ * 미들웨어(edge)에서는 DB 에 붙을 수 없다. 세션 토큰에 넣어두면 운영자가 승인한 뒤에도
+ * 재로그인 전까지 옛 상태로 남는다.
+ */
+export async function requireAccess(pathname: string): Promise<AppUser | null> {
+  const user = await getCurrentUser();
+  const state = accountStateOf(user);
+  if (!canAccess(pathname, state)) {
+    redirect(redirectFor(state, pathname));
+  }
+  return user;
 }
 
 // 승인 대기·거절 상태의 신청자(대관사) 계정 여부 — 대관 안내/신청 관련 화면 접근 제한에 사용

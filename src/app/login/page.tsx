@@ -100,6 +100,14 @@ export default function LoginPage() {
         <button type="submit" disabled={loading} className={`${btnClass("primary", "md")} w-full`}>
           {loading ? "처리 중..." : "로그인"}
         </button>
+          {/* 기획서 A13 — 로그인 화면에서 회원가입·아이디 찾기·비밀번호 찾기로 갈 수 있어야 한다 */}
+          <p className="mt-5 flex items-center justify-center gap-3 text-xs text-muted">
+            <Link href="/register" className="hover:text-foreground">회원가입</Link>
+            <span aria-hidden="true">|</span>
+            <Link href="/find-id" data-testid="link-find-id" className="hover:text-foreground">아이디 찾기</Link>
+            <span aria-hidden="true">|</span>
+            <Link href="/reset-password" data-testid="link-reset-password" className="hover:text-foreground">비밀번호 찾기</Link>
+          </p>
       </form>
     </AuthShell>
   );

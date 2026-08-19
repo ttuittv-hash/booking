@@ -1,5 +1,5 @@
 // 회원가입 5스텝 E2E — 기획서 A2~A8 을 화면에서 그대로 확인한다.
-import { chromium, expect } from "@playwright/test";
+import { chromium } from "@playwright/test";
 import fs from "node:fs";
 
 const BASE = process.env.E2E_BASE || "https://partner.dev.seoularena.net";

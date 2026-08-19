@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
-import { getCurrentUser, isPendingApplicant } from "@/lib/auth";
+import { getCurrentUser, isPendingApplicant, requireAccess } from "@/lib/auth";
 import { getGuideContent } from "@/lib/db";
 import { sanitizeRichText } from "@/lib/sanitizeHtml";
 import { PublicHeader } from "@/components/PublicHeader";
@@ -13,6 +13,8 @@ export const metadata: Metadata = {
 };
 
 export default async function GuidePage() {
+  // 기획서 A15 — 비로그인 차단, 로그인하면 승인 전에도 열람 가능
+  await requireAccess("/guide");
   const currentUser = await getCurrentUser();
   if (currentUser && isPendingApplicant(currentUser)) redirect("/pending");
 

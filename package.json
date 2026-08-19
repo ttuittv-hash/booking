@@ -11,7 +11,8 @@
     "start": "next start",
     "lint": "eslint",
     "test": "vitest run",
-    "migrate:sqlite": "node scripts/migrate-sqlite-to-pg.mjs"
+    "migrate:sqlite": "node scripts/migrate-sqlite-to-pg.mjs",
+    "e2e": "node e2e/register.spec.mjs"
   },
   "dependencies": {
     "@node-rs/bcrypt": "^1.10.7",
