@@ -2075,6 +2075,132 @@ export interface Paged<T> {
 export const DEFAULT_PAGE_SIZE = 20;
 
 // 1보다 작거나 숫자가 아닌 입력은 1페이지로 보정한다(쿼리스트링을 그대로 받기 때문).
+// ── 운영자 회사 관리 (기획서 A9·A10 운영자 시야) ───────────────────────────
+
+export interface CompanyRow2 {
+  id: string;
+  name: string;
+  businessRegistrationNumber: string | null;
+  representativeName: string | null;
+  status: string;
+  masterUserId: string | null;
+  masterName: string | null;
+  memberCount: number;
+  pendingCount: number;
+  createdAt: string;
+}
+
+/**
+ * 회사 목록 — 소속 인원과 승인 대기 건수를 함께 센다.
+ * 행마다 사용자 수를 다시 세면 회사 수만큼 쿼리가 나가므로 집계로 한 번에 읽는다.
+ */
+export async function listCompaniesPaged(
+  filter: { keyword?: string; status?: string } = {},
+  page = 1,
+  pageSize = DEFAULT_PAGE_SIZE,
+): Promise<Paged<CompanyRow2>> {
+  const conditions: string[] = [];
+  const params: unknown[] = [];
+  if (filter.keyword) {
+    params.push(`%${filter.keyword.replace(/[%_]/g, (m) => "\\" + m)}%`);
+    const i = params.length;
+    // 회사명 또는 사업자등록번호(하이픈 무시)로 찾는다.
+    params.push(filter.keyword.replace(/\D/g, ""));
+    conditions.push(
+      `(c.name ILIKE $${i} OR ($${params.length} <> '' AND c.business_registration_number LIKE '%' || $${params.length} || '%'))`,
+    );
+  }
+  if (filter.status) {
+    params.push(filter.status);
+    conditions.push(`c.status = $${params.length}`);
+  }
+  const where = conditions.length ? `WHERE ${conditions.join(" AND ")}` : "";
+
+  const countRow = await one<{ n: number }>(
+    `SELECT COUNT(*)::int AS n FROM companies c ${where}`,
+    params,
+  );
+  const rows = await q<{
+    id: string;
+    name: string;
+    business_registration_number: string | null;
+    representative_name: string | null;
+    status: string | null;
+    master_user_id: string | null;
+    master_name: string | null;
+    member_count: number;
+    pending_count: number;
+    created_at: string;
+  }>(
+    `SELECT c.id, c.name, c.business_registration_number, c.representative_name,
+            c.status, c.master_user_id, c.created_at,
+            m.name AS master_name,
+            COALESCE(u.member_count, 0)::int  AS member_count,
+            COALESCE(u.pending_count, 0)::int AS pending_count
+       FROM companies c
+       LEFT JOIN users m ON m.id = c.master_user_id
+       LEFT JOIN (
+         SELECT company_id,
+                COUNT(*) FILTER (WHERE withdrawn_at IS NULL) AS member_count,
+                COUNT(*) FILTER (WHERE approval_status = 'PENDING' AND withdrawn_at IS NULL) AS pending_count
+           FROM users WHERE role = 'APPLICANT' AND company_id IS NOT NULL
+          GROUP BY company_id
+       ) u ON u.company_id = c.id
+       ${where}
+      ORDER BY (COALESCE(u.pending_count, 0) > 0) DESC, c.created_at DESC
+      LIMIT $${params.length + 1} OFFSET $${params.length + 2}`,
+    [...params, pageSize, (page - 1) * pageSize],
+  );
+  return toPaged(
+    rows.map((r) => ({
+      id: r.id,
+      name: r.name,
+      businessRegistrationNumber: r.business_registration_number,
+      representativeName: r.representative_name,
+      status: r.status ?? "PENDING",
+      masterUserId: r.master_user_id,
+      masterName: r.master_name,
+      memberCount: r.member_count,
+      pendingCount: r.pending_count,
+      createdAt: r.created_at,
+    })),
+    countRow?.n ?? 0,
+    page,
+    pageSize,
+  );
+}
+
+/**
+ * 운영자가 대표 담당자를 바꾼다.
+ * 회사 소속이고 승인 완료된 계정만 대표가 될 수 있다 — 승인 안 된 사람을 대표로 세우면
+ * 그 사람이 합류 승인을 하게 된다.
+ */
+export async function setCompanyMasterByAdmin(
+  companyId: string,
+  newMasterId: string,
+): Promise<{ ok: boolean; error?: string }> {
+  const target = await one<UserRow>(
+    "SELECT * FROM users WHERE id = $1 AND company_id = $2 AND role = 'APPLICANT'",
+    [newMasterId, companyId],
+  );
+  if (!target) return { ok: false, error: "그 회사 소속 담당자가 아닙니다." };
+  if (target.withdrawn_at) return { ok: false, error: "탈퇴한 계정입니다." };
+  if (target.approval_status !== "APPROVED") {
+    return { ok: false, error: "승인 완료된 담당자만 대표로 지정할 수 있습니다." };
+  }
+
+  await withTransaction(async () => {
+    // 기존 대표는 소속 담당자로 내린다. 회사당 대표는 한 명이다.
+    await q(
+      "UPDATE users SET company_role = 'STAFF' WHERE company_id = $1 AND company_role = 'MASTER'",
+      [companyId],
+    );
+    await q("UPDATE users SET company_role = 'MASTER' WHERE id = $1", [newMasterId]);
+    await q("UPDATE companies SET master_user_id = $1 WHERE id = $2", [newMasterId, companyId]);
+  });
+  return { ok: true };
+}
+
 export function normalizePage(input: unknown): number {
   const page = Number(input);
   return Number.isFinite(page) && page >= 1 ? Math.floor(page) : 1;

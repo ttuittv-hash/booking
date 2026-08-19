@@ -187,7 +187,7 @@ export function NotificationBell({ role }: { role: "ADMIN" | "APPLICANT" }) {
           </div>
 
           <Link
-            href={detailPrefix}
+            href={`${detailPrefix}/notifications`}
             onClick={() => setOpen(false)}
             className="block border-t border-border/25 px-5 py-3 text-center text-xs font-bold text-muted transition-colors hover:text-foreground"
           >
