@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import { isoDate, isWeekendDate } from "@/lib/pricing/dateRange";
 import type { DateBlock, MidHallDayRole, MidHallDaySelection, MidHallRateConfig } from "@/lib/pricing/types";
 
@@ -72,6 +73,12 @@ export function MidHallCalendar({
   onChangeExtraSetupHours: (value: number) => void;
   onChangeExtraLoadOutHours: (value: number) => void;
 }) {
+  // [화면 뼈대 2026-08-19, 아레나 STEP 2(Step1Calendar)와 동일 구조] 역할 지정은 날짜 아래에
+  // 바로 펼쳐지는 인라인 드롭다운으로 처리한다 — 클릭 즉시 기본값(공연일)으로 토글하고 별도
+  // 목록에서 편집하던 이전 방식은 "날짜 자체에서 세팅"하는 아레나 캘린더 구조와 어긋나서
+  // 통일한다.
+  const [openDate, setOpenDate] = useState<string | null>(null);
+
   const weeks = buildMonthGrid(year, month);
   const blockedByDate = new Map(dateBlocks.map((b) => [b.date, b]));
   const today = new Date();
@@ -94,19 +101,9 @@ export function MidHallCalendar({
     onChangeMonth(nextYear, nextMonth);
   }
 
-  function toggleDate(iso: string) {
-    if (blockedByDate.has(iso)) return;
-    const next = { ...days };
-    if (next[iso]) {
-      delete next[iso];
-    } else {
-      next[iso] = { role: "PERFORMANCE", shows: 1 };
-    }
-    onChangeDays(next);
-  }
-
   function setRole(iso: string, role: MidHallDayRole) {
-    onChangeDays({ ...days, [iso]: { role, shows: role === "PERFORMANCE" ? (days[iso]?.shows ?? 1) : 1 } });
+    const current = days[iso];
+    onChangeDays({ ...days, [iso]: { role, shows: role === "PERFORMANCE" ? (current?.shows ?? 1) : 1 } });
   }
 
   function setShows(iso: string, shows: number) {
@@ -119,14 +116,16 @@ export function MidHallCalendar({
     const next = { ...days };
     delete next[iso];
     onChangeDays(next);
+    setOpenDate(null);
   }
 
   return (
     <div>
       {title && <h3 className="text-[15px] font-semibold">{title}</h3>}
       <p className="mt-1.5 text-[13px] text-muted">
-        패키지가 없습니다 — 달력에서 날짜를 눌러 셋업/공연을 지정하세요. 최소 대관 일수 제한이
-        없고 연속하지 않아도 됩니다.
+        패키지가 없습니다 — 달력에서 날짜를 누르면 셋업 · 공연일(회차 포함)과 셋업 연장 ·
+        철수 Load-Out 시간까지 같은 자리에서 지정할 수 있습니다. 최소 대관 일수 제한이 없고
+        연속하지 않아도 됩니다.
       </p>
 
       <div className="mt-5 flex items-center justify-between">
@@ -159,48 +158,192 @@ export function MidHallCalendar({
         ))}
       </div>
 
-      <div className="mt-1.5 grid grid-cols-7 gap-1 sm:gap-1.5">
-        {weeks.flatMap((week) =>
-          week.map((date) => {
-            const inMonth = date.getMonth() === month - 1;
-            const iso = isoDate(date);
-            const isToday = isoDate(today) === iso;
-            const selection = days[iso];
-            const blocked = blockedByDate.get(iso);
-            const isOverlay = overlayDates?.has(iso) ?? false;
-            return (
-              <button
-                key={iso}
-                type="button"
-                disabled={!inMonth || !!blocked}
-                onClick={() => toggleDate(iso)}
-                className={[
-                  "flex h-14 flex-col items-center justify-center gap-0.5 rounded-sm text-[12.5px] transition-colors sm:h-16",
-                  !inMonth
-                    ? "cursor-default text-transparent"
-                    : blocked
-                      ? "cursor-not-allowed text-muted line-through"
-                      : selection
-                        ? "cursor-pointer bg-accent-soft font-semibold text-accent"
-                        : isOverlay
-                          ? "cursor-pointer bg-panel-strong text-muted hover:text-foreground"
-                          : "cursor-pointer text-foreground hover:bg-panel",
-                  isToday ? "underline decoration-2 underline-offset-4" : "",
-                ].join(" ")}
-              >
-                <span>{date.getDate()}</span>
-                {inMonth && selection && (
-                  <span className="text-[9.5px] font-medium">
-                    {selection.role === "SETUP" ? "셋업" : `공연${selection.shows > 1 ? `×${selection.shows}` : ""}`}
-                  </span>
-                )}
-                {inMonth && !selection && isOverlay && !blocked && (
-                  <span className="text-[9px] text-muted">{overlayLabel ?? "겹침"}</span>
-                )}
-              </button>
-            );
-          }),
-        )}
+      <div className="mt-1.5 space-y-1 sm:space-y-1.5">
+        {weeks.map((weekDays, wi) => {
+          const openInThisRow = openDate && weekDays.some((d) => isoDate(d) === openDate);
+          return (
+            <div key={wi}>
+              <div className="grid grid-cols-7 gap-1 sm:gap-1.5">
+                {weekDays.map((date) => {
+                  const inMonth = date.getMonth() === month - 1;
+                  const iso = isoDate(date);
+                  const isToday = isoDate(today) === iso;
+                  const selection = days[iso];
+                  const blocked = blockedByDate.get(iso);
+                  const isOverlay = overlayDates?.has(iso) ?? false;
+                  const interactable = inMonth && !blocked;
+                  return (
+                    <button
+                      key={iso}
+                      type="button"
+                      disabled={!interactable}
+                      onClick={() => setOpenDate(openDate === iso ? null : iso)}
+                      className={[
+                        "flex h-14 flex-col items-center justify-center gap-0.5 rounded-sm text-[12.5px] transition-colors sm:h-16",
+                        !inMonth
+                          ? "cursor-default text-transparent"
+                          : blocked
+                            ? "cursor-not-allowed text-muted line-through"
+                            : selection
+                              ? "cursor-pointer bg-accent-soft font-semibold text-accent"
+                              : isOverlay
+                                ? "cursor-pointer bg-panel-strong text-muted hover:text-foreground"
+                                : "cursor-pointer text-foreground hover:bg-panel",
+                        isToday ? "underline decoration-2 underline-offset-4" : "",
+                        openDate === iso ? "ring-2 ring-accent" : "",
+                      ].join(" ")}
+                    >
+                      <span>{date.getDate()}</span>
+                      {inMonth && selection && (
+                        <span className="text-[9.5px] font-medium">
+                          {selection.role === "SETUP" ? "셋업" : `공연${selection.shows > 1 ? `×${selection.shows}` : ""}`}
+                        </span>
+                      )}
+                      {inMonth && !selection && isOverlay && !blocked && (
+                        <span className="text-[9px] text-muted">{overlayLabel ?? "겹침"}</span>
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
+
+              {openInThisRow && openDate && (
+                <div className="mt-1.5 rounded-sm border border-accent bg-accent-soft/40 px-3 py-2.5">
+                  <div className="flex items-center justify-between">
+                    <div className="text-[12.5px] font-semibold text-foreground">
+                      {formatDateLabel(openDate)}
+                      {isWeekendDate(openDate) ? <span className="ml-1 font-normal text-muted">· 주말</span> : null}
+                      {" — 역할 선택"}
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setOpenDate(null)}
+                      aria-label="닫기"
+                      className="text-[12px] text-muted hover:text-foreground"
+                    >
+                      닫기 ✕
+                    </button>
+                  </div>
+                  <div className="mt-2 flex flex-wrap gap-1.5">
+                    <button
+                      type="button"
+                      onClick={() => setRole(openDate, "SETUP")}
+                      className={[
+                        "rounded-sm px-3 py-1.5 text-[12px] font-medium transition-colors",
+                        days[openDate]?.role === "SETUP"
+                          ? "bg-accent text-white"
+                          : "bg-panel-strong text-muted hover:text-foreground",
+                      ].join(" ")}
+                    >
+                      셋업
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setRole(openDate, "PERFORMANCE")}
+                      className={[
+                        "rounded-sm px-3 py-1.5 text-[12px] font-medium transition-colors",
+                        days[openDate]?.role === "PERFORMANCE"
+                          ? "bg-accent text-white"
+                          : "bg-panel-strong text-muted hover:text-foreground",
+                      ].join(" ")}
+                    >
+                      공연일
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => removeDate(openDate)}
+                      disabled={!days[openDate]}
+                      className="rounded-sm bg-panel-strong px-3 py-1.5 text-[12px] font-medium text-muted transition-colors hover:text-red-600 disabled:cursor-not-allowed disabled:opacity-40"
+                    >
+                      삭제 (미사용)
+                    </button>
+                  </div>
+                  {days[openDate]?.role === "PERFORMANCE" && (
+                    <div className="mt-2.5 flex flex-wrap items-center gap-x-5 gap-y-2 border-t border-accent/20 pt-2.5">
+                      <div className="flex items-center gap-2">
+                        <span className="text-[11.5px] text-muted">공연 회차</span>
+                        <button
+                          type="button"
+                          onClick={() => setShows(openDate, (days[openDate]?.shows ?? 1) - 1)}
+                          className="h-6 w-6 rounded-sm border border-border text-[13px] text-muted hover:border-accent hover:text-accent"
+                        >
+                          −
+                        </button>
+                        <span className="w-4 text-center text-[12px] font-medium tabular-nums">
+                          {days[openDate]?.shows ?? 1}
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => setShows(openDate, (days[openDate]?.shows ?? 1) + 1)}
+                          className="h-6 w-6 rounded-sm border border-border text-[13px] text-muted hover:border-accent hover:text-accent"
+                        >
+                          +
+                        </button>
+                        <span className="text-[10px] text-muted">회차</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <span className="text-[11.5px] text-muted">철수 Load-Out(공연 종료 후, 전체 일정 공통)</span>
+                        <button
+                          type="button"
+                          onClick={() => onChangeExtraLoadOutHours(Math.max(0, extraLoadOutHours - 1))}
+                          className="h-6 w-6 rounded-sm border border-border text-[13px] text-muted hover:border-accent hover:text-accent"
+                        >
+                          −
+                        </button>
+                        <span className="w-4 text-center text-[12px] font-medium tabular-nums">{extraLoadOutHours}</span>
+                        <button
+                          type="button"
+                          onClick={() => onChangeExtraLoadOutHours(Math.min(6, extraLoadOutHours + 1))}
+                          className="h-6 w-6 rounded-sm border border-border text-[13px] text-muted hover:border-accent hover:text-accent"
+                        >
+                          +
+                        </button>
+                        <span className="text-[10px] text-muted">시간 · {won(rateConfig.extraHourFee)}/시간</span>
+                      </div>
+                    </div>
+                  )}
+                  {days[openDate]?.role === "SETUP" && (
+                    <div className="mt-2.5 flex items-center gap-2 border-t border-accent/20 pt-2.5">
+                      <span className="text-[11.5px] text-muted">셋업 연장(22:00~24:00, 전체 일정 공통)</span>
+                      <button
+                        type="button"
+                        onClick={() => onChangeExtraSetupHours(Math.max(0, extraSetupHours - 1))}
+                        className="h-6 w-6 rounded-sm border border-border text-[13px] text-muted hover:border-accent hover:text-accent"
+                      >
+                        −
+                      </button>
+                      <span className="w-4 text-center text-[12px] font-medium tabular-nums">{extraSetupHours}</span>
+                      <button
+                        type="button"
+                        onClick={() => onChangeExtraSetupHours(Math.min(2, extraSetupHours + 1))}
+                        className="h-6 w-6 rounded-sm border border-border text-[13px] text-muted hover:border-accent hover:text-accent"
+                      >
+                        +
+                      </button>
+                      <span className="text-[10px] text-muted">시간 · {won(rateConfig.extraHourFee)}/시간</span>
+                    </div>
+                  )}
+                  <p className="mt-2 text-[11px] text-muted">
+                    {days[openDate] ? (
+                      days[openDate].role === "PERFORMANCE" && days[openDate].shows >= 3 ? (
+                        <span className="text-warn">1일 {days[openDate].shows}회 — 운영자 확인 필요(자동 계산 제외)</span>
+                      ) : (
+                        <>
+                          단가 {won(midHallReferencePrice(openDate, days[openDate].role, rateConfig))}
+                          {days[openDate].role === "PERFORMANCE" && days[openDate].shows === 2
+                            ? ` × ${Math.round(rateConfig.secondShowSurchargeRatio * 100)}% 할증(2회차)`
+                            : ""}
+                        </>
+                      )
+                    ) : (
+                      "셋업 또는 공연일을 선택하면 날짜가 추가됩니다."
+                    )}
+                  </p>
+                </div>
+              )}
+            </div>
+          );
+        })}
       </div>
 
       {overlayDates && overlayDates.size > 0 && (
@@ -209,125 +352,12 @@ export function MidHallCalendar({
         </div>
       )}
 
-      <div className="mt-5 border-t border-border pt-5">
-        <label className="text-[12.5px] font-medium text-muted">시간 단위 추가 — 날짜 역할과 별개로 시간만 더합니다</label>
-        <div className="mt-3 flex flex-wrap gap-6">
-          <div className="flex items-center gap-2">
-            <span className="text-[12.5px] text-muted">셋업 연장 (22:00~24:00)</span>
-            <button
-              type="button"
-              onClick={() => onChangeExtraSetupHours(Math.max(0, extraSetupHours - 1))}
-              className="h-7 w-7 rounded-sm border border-border text-[14px] text-muted hover:border-accent hover:text-accent"
-            >
-              −
-            </button>
-            <span className="w-5 text-center text-[13px] font-medium tabular-nums">{extraSetupHours}</span>
-            <button
-              type="button"
-              onClick={() => onChangeExtraSetupHours(Math.min(2, extraSetupHours + 1))}
-              className="h-7 w-7 rounded-sm border border-border text-[14px] text-muted hover:border-accent hover:text-accent"
-            >
-              +
-            </button>
-            <span className="text-[11.5px] text-muted">시간</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <span className="text-[12.5px] text-muted">철수 Load-Out (공연 종료 후)</span>
-            <button
-              type="button"
-              onClick={() => onChangeExtraLoadOutHours(Math.max(0, extraLoadOutHours - 1))}
-              className="h-7 w-7 rounded-sm border border-border text-[14px] text-muted hover:border-accent hover:text-accent"
-            >
-              −
-            </button>
-            <span className="w-5 text-center text-[13px] font-medium tabular-nums">{extraLoadOutHours}</span>
-            <button
-              type="button"
-              onClick={() => onChangeExtraLoadOutHours(Math.min(6, extraLoadOutHours + 1))}
-              className="h-7 w-7 rounded-sm border border-border text-[14px] text-muted hover:border-accent hover:text-accent"
-            >
-              +
-            </button>
-            <span className="text-[11.5px] text-muted">시간</span>
-          </div>
-        </div>
-        <p className="mt-2 text-[11.5px] text-muted">{won(rateConfig.extraHourFee)}/시간</p>
-      </div>
-
       {selectedDates.length > 0 && (
-        <div className="mt-5 border-t border-border pt-5">
-          <label className="text-[12.5px] font-medium text-muted">
-            선택 일자 {selectedDates.length}일 (비연속 가능) · 셋업 {setupCount} · 공연 {performanceDates.length} · 회차 합계 {showCount}
-          </label>
-          <div className="mt-3 flex flex-wrap gap-2">
-            {selectedDates.map((iso) => {
-              const sel = days[iso];
-              return (
-                <div key={iso} className="flex flex-col gap-1.5 rounded-sm border border-border bg-panel/60 px-2.5 py-2.5">
-                  <div className="flex items-center justify-between gap-3">
-                    <span className="text-[13px] font-semibold text-foreground">
-                      {formatDateLabel(iso)} {isWeekendDate(iso) ? <span className="text-muted">· 주말</span> : null}
-                    </span>
-                    <button
-                      type="button"
-                      onClick={() => removeDate(iso)}
-                      aria-label="삭제"
-                      className="text-[11px] text-muted hover:text-red-600"
-                    >
-                      삭제
-                    </button>
-                  </div>
-                  <div className="flex items-center gap-1.5">
-                    {(["SETUP", "PERFORMANCE"] as MidHallDayRole[]).map((role) => (
-                      <button
-                        key={role}
-                        type="button"
-                        onClick={() => setRole(iso, role)}
-                        className={[
-                          "rounded-sm px-2 py-0.5 text-[10.5px] font-medium transition-colors",
-                          sel.role === role ? "bg-accent-soft text-accent" : "bg-panel-strong text-muted hover:text-foreground",
-                        ].join(" ")}
-                      >
-                        {role === "SETUP" ? "셋업" : "공연"}
-                      </button>
-                    ))}
-                    {sel.role === "PERFORMANCE" && (
-                      <div className="ml-1 flex items-center gap-1">
-                        <button
-                          type="button"
-                          onClick={() => setShows(iso, sel.shows - 1)}
-                          className="h-5 w-5 rounded-sm border border-border text-[11px] text-muted hover:border-accent hover:text-accent"
-                        >
-                          −
-                        </button>
-                        <span className="w-4 text-center text-[11px] tabular-nums">{sel.shows}</span>
-                        <button
-                          type="button"
-                          onClick={() => setShows(iso, sel.shows + 1)}
-                          className="h-5 w-5 rounded-sm border border-border text-[11px] text-muted hover:border-accent hover:text-accent"
-                        >
-                          +
-                        </button>
-                        <span className="text-[10px] text-muted">회차</span>
-                      </div>
-                    )}
-                  </div>
-                  <span className="text-[10.5px] text-muted">
-                    {sel.role === "PERFORMANCE" && sel.shows >= 3 ? (
-                      <span className="text-warn">1일 {sel.shows}회 — 운영자 확인 필요(자동 계산 제외)</span>
-                    ) : (
-                      <>
-                        단가 {won(midHallReferencePrice(iso, sel.role, rateConfig))}
-                        {sel.role === "PERFORMANCE" && sel.shows === 2
-                          ? ` × ${Math.round(rateConfig.secondShowSurchargeRatio * 100)}% 할증(2회차)`
-                          : ""}
-                      </>
-                    )}
-                  </span>
-                </div>
-              );
-            })}
-          </div>
+        <div className="mt-5 text-[14px] font-medium text-accent">
+          선택 일자 {selectedDates.length}일(비연속 가능) · 셋업 {setupCount}일 · 공연{" "}
+          {performanceDates.length}일 · 회차 합계 {showCount}
+          {extraSetupHours > 0 && ` · 셋업연장 ${extraSetupHours}시간`}
+          {extraLoadOutHours > 0 && ` · 철수 ${extraLoadOutHours}시간`}
         </div>
       )}
 
