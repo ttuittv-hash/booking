@@ -90,12 +90,18 @@ try {
   await page.fill('[data-testid="f-companyName"]', "카카오");
   await page.fill('[data-testid="f-brn"]', "120-81-47521");
   await page.fill('[data-testid="f-representativeName"]', "정신아");
+  // 기획서 A5 — 사업자등록번호는 [중복·진위확인]을 통과해야 제출할 수 있다
+  await page.click('[data-testid="verify-brn"]');
+  await page.waitForSelector('[data-testid="brn-check-message"]', { timeout: 25000 });
   await page.fill('[data-testid="f-postalCode"]', "13529");
   await page.fill('[data-testid="f-address"]', "경기도 성남시 분당구 판교역로 166");
   await page.fill('[data-testid="f-username"]', "e2e" + t);
   await page.fill('[data-testid="f-email"]', `e2e${t}@example.com`);
   await page.fill('[data-testid="f-password"]', "Test1234!");
   await page.fill('[data-testid="f-passwordConfirm"]', "Test1234!");
+  // 로그인 ID 도 [중복확인]을 거쳐야 한다
+  await page.click('[data-testid="check-username"]');
+  await page.waitForSelector('[data-testid="id-check-message"]', { timeout: 20000 });
   await page.click('[data-testid="submit-register"]');
 
   // ── A8 STEP 5 가입완료 ────────────────────────────────────
