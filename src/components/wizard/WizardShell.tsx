@@ -406,12 +406,38 @@ export function WizardShell({
     </div>
   );
 
+  // 하단 버튼은 이 화면의 주된 진행 액션(강조된 파랑 버튼)이고, 상단은 스크롤을 줄이기
+  // 위한 보조 이동 수단이라 같은 굵기로 두면 바로 아래 섹션 박스와 부딪혀 무거워 보인다
+  // — 옅은 pill 버튼으로 톤을 낮추고 아래 여백을 넉넉히 둔다(2026-08-19).
+  const topNavButtons = (
+    <div className="flex items-center justify-between">
+      <button
+        type="button"
+        disabled={step === 1}
+        onClick={() => goTo(step - 1)}
+        className="rounded-full px-3.5 py-1.5 text-[12.5px] font-medium text-muted transition-colors hover:bg-panel hover:text-foreground disabled:cursor-not-allowed disabled:opacity-30"
+      >
+        ← 이전
+      </button>
+      {step < TOTAL_STEPS && (
+        <button
+          type="button"
+          disabled={(step === 1 && !selection.venueId) || (step === 2 && midHallOnly && !hasMidHallSelection)}
+          onClick={() => goTo(step + 1)}
+          className="rounded-full border border-border px-3.5 py-1.5 text-[12.5px] font-medium text-foreground transition-colors hover:border-accent hover:text-accent disabled:cursor-not-allowed disabled:opacity-30"
+        >
+          다음 →
+        </button>
+      )}
+    </div>
+  );
+
   return (
     <div className="mx-auto grid w-full max-w-6xl grid-cols-1 gap-8 px-4 py-8 sm:px-6 sm:py-10 lg:grid-cols-[minmax(0,1fr)_360px]">
       <div className="min-w-0">
         <StepNav step={step} maxUnlockedStep={maxUnlockedStep} onJump={goTo} />
 
-        <div className="mt-5">{navButtons}</div>
+        <div className="mt-4 mb-6">{topNavButtons}</div>
 
         {step === 1 && (
           <StepVenue
@@ -574,13 +600,25 @@ export function WizardShell({
           <StepAudience
             info={selection.performanceInfo}
             onChange={(performanceInfo) => setSelection((prev) => ({ ...prev, performanceInfo }))}
+            midHallInfo={selection.midHallPerformanceInfo}
+            onChangeMidHallInfo={(midHallPerformanceInfo) =>
+              setSelection((prev) => ({ ...prev, midHallPerformanceInfo }))
+            }
             selection={resolvedSelection}
             files={audienceFiles}
             onFilesChange={setAudienceFiles}
           />
         )}
         {step === 7 && (
-          <StepPublicInterest files={publicInterestFiles} onFilesChange={setPublicInterestFiles} />
+          <StepPublicInterest
+            selection={resolvedSelection}
+            midHallInfo={selection.midHallPerformanceInfo}
+            onChangeMidHallInfo={(midHallPerformanceInfo) =>
+              setSelection((prev) => ({ ...prev, midHallPerformanceInfo }))
+            }
+            files={publicInterestFiles}
+            onFilesChange={setPublicInterestFiles}
+          />
         )}
         {step === 8 && (
           <Step6Submit

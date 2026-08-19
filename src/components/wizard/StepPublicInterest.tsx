@@ -1,5 +1,10 @@
 "use client";
 
+import { useState } from "react";
+import { INITIAL_PERFORMANCE_INFO } from "@/lib/pricing/performanceInfoDefaults";
+import type { PerformanceInfo, QuoteSelection } from "@/lib/pricing/types";
+import { VenueSplitTabBar, type VenueSplitTab } from "./VenueSplitTabBar";
+
 // [화면 뼈대 2026-08-18, 화면시나리오 SCREEN 07/12 #4] 안내만 하고 개별 입력창은 두지 않는다
 // — 신청자는 이 9개 항목을 참고해 계획서 파일 1건으로 통합 제출한다(2-... 확정).
 const PUBLIC_INTEREST_ITEMS = [
@@ -15,12 +20,20 @@ const PUBLIC_INTEREST_ITEMS = [
 ];
 
 export function StepPublicInterest({
+  selection,
+  midHallInfo,
+  onChangeMidHallInfo,
   files,
   onFilesChange,
 }: {
+  selection: QuoteSelection;
+  midHallInfo: PerformanceInfo | null;
+  onChangeMidHallInfo: (info: PerformanceInfo | null) => void;
   files: File[];
   onFilesChange: (files: File[]) => void;
 }) {
+  const [activeTab, setActiveTab] = useState<VenueSplitTab>(midHallInfo ? "ARENA" : "COMMON");
+
   function addFiles(selected: FileList | null) {
     if (!selected || selected.length === 0) return;
     onFilesChange([...files, ...Array.from(selected)]);
@@ -30,6 +43,20 @@ export function StepPublicInterest({
     onFilesChange(files.filter((_, i) => i !== index));
   }
 
+  const isSimultaneous = selection.bookingMode === "SIMULTANEOUS";
+  const midHallDifferent = isSimultaneous && midHallInfo !== null;
+  const effectiveTab: VenueSplitTab = midHallDifferent ? (activeTab === "MIDHALL" ? "MIDHALL" : "ARENA") : "COMMON";
+
+  function splitAndSelect(tab: "ARENA" | "MIDHALL") {
+    if (!midHallDifferent) onChangeMidHallInfo(midHallInfo ?? { ...INITIAL_PERFORMANCE_INFO });
+    setActiveTab(tab);
+  }
+
+  function mergeToCommon() {
+    onChangeMidHallInfo(null);
+    setActiveTab("COMMON");
+  }
+
   return (
     <section className="rounded border border-border bg-background p-7">
       <h2 className="text-[19px] font-semibold">STEP 3-3 · 공공성 및 연계 프로그램</h2>
@@ -37,6 +64,19 @@ export function StepPublicInterest({
         아래 9개 항목을 참고해 계획을 하나의 파일로 정리해 첨부합니다.
       </p>
 
+      {isSimultaneous && (
+        <VenueSplitTabBar
+          midHallDifferent={midHallDifferent}
+          activeTab={effectiveTab}
+          onSelectTab={setActiveTab}
+          onSplit={() => splitAndSelect("ARENA")}
+          onMerge={mergeToCommon}
+        />
+      )}
+
+      {/* 공공성 항목은 공간별로 달라지는 입력값이 없어 탭을 넘겨도 아래 안내 · 첨부는
+          동일하게 유지된다 — 04 기본 정보 그룹의 다른 두 화면과 탭 구조만 맞춘다
+          (2026-08-19, 형식상 탭 추가 요청). */}
       <div className="mt-6 rounded-sm border border-border bg-panel/30 p-6">
         <h3 className="text-[15px] font-semibold">공공성 및 연계 프로그램</h3>
         <p className="mt-1 text-[12px] leading-5 text-muted">

@@ -363,7 +363,7 @@ export function StepConfigOptions({
                 : "border-transparent text-muted hover:text-foreground",
             ].join(" ")}
           >
-            {tab === "arena" ? "아레나" : midHallLine ? `중형공연장 · ${midHallLine}` : "중형공연장 (대기)"}
+            {tab === "arena" ? "아레나" : "중형공연장"}
           </button>
         ))}
       </div>

@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { INITIAL_PERFORMANCE_INFO } from "@/lib/pricing/performanceInfoDefaults";
+import { VenueSplitTabBar, type VenueSplitTab } from "./VenueSplitTabBar";
 import { resolveSelectedDates } from "@/lib/pricing/dateRange";
 import { defaultDayTags, effectiveDayTag } from "@/lib/pricing/rateTableUtils";
 import {
@@ -527,7 +528,6 @@ function PerformanceInfoFields({
   );
 }
 
-type PerformanceInfoTab = "COMMON" | "ARENA" | "MIDHALL";
 
 export function StepPerformanceInfo({
   info,
@@ -546,7 +546,7 @@ export function StepPerformanceInfo({
   files: File[];
   onFilesChange: (files: File[]) => void;
 }) {
-  const [activeTab, setActiveTab] = useState<PerformanceInfoTab>(midHallInfo ? "ARENA" : "COMMON");
+  const [activeTab, setActiveTab] = useState<VenueSplitTab>(midHallInfo ? "ARENA" : "COMMON");
 
   function addFiles(selected: FileList | null) {
     if (!selected || selected.length === 0) return;
@@ -581,7 +581,7 @@ export function StepPerformanceInfo({
   const midHallDifferent = isSimultaneous && midHallInfo !== null;
   // 병합 직후(공통으로 합치기)나 초기 마운트 시 activeTab이 낡은 값을 들고 있을 수 있으므로,
   // 실제로 보여줄 탭은 상태값을 그대로 믿지 않고 매 렌더 파생값으로 다시 정한다.
-  const effectiveTab: PerformanceInfoTab = midHallDifferent ? (activeTab === "MIDHALL" ? "MIDHALL" : "ARENA") : "COMMON";
+  const effectiveTab: VenueSplitTab = midHallDifferent ? (activeTab === "MIDHALL" ? "MIDHALL" : "ARENA") : "COMMON";
 
   function splitAndSelect(tab: "ARENA" | "MIDHALL") {
     if (!midHallDifferent) onChangeMidHallInfo(midHallInfo ?? { ...INITIAL_PERFORMANCE_INFO });
@@ -601,60 +601,13 @@ export function StepPerformanceInfo({
       </p>
 
       {isSimultaneous && (
-        <div className="mt-5 flex flex-wrap items-center justify-between gap-2 border-b border-border">
-          <div className="flex gap-1">
-            {!midHallDifferent && (
-              <span className="border-b-2 border-accent px-4 py-2.5 text-[13.5px] font-medium text-accent">
-                공통
-              </span>
-            )}
-            {midHallDifferent && (
-              <>
-                <button
-                  type="button"
-                  onClick={() => setActiveTab("ARENA")}
-                  className={[
-                    "border-b-2 px-4 py-2.5 text-[13.5px] font-medium transition-colors",
-                    effectiveTab === "ARENA"
-                      ? "border-accent text-accent"
-                      : "border-transparent text-muted hover:text-foreground",
-                  ].join(" ")}
-                >
-                  아레나
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setActiveTab("MIDHALL")}
-                  className={[
-                    "border-b-2 px-4 py-2.5 text-[13.5px] font-medium transition-colors",
-                    effectiveTab === "MIDHALL"
-                      ? "border-accent text-accent"
-                      : "border-transparent text-muted hover:text-foreground",
-                  ].join(" ")}
-                >
-                  중형
-                </button>
-              </>
-            )}
-          </div>
-          {midHallDifferent ? (
-            <button
-              type="button"
-              onClick={mergeToCommon}
-              className="mb-2 shrink-0 text-[12px] font-medium text-muted hover:text-accent"
-            >
-              ↺ 공통으로 합치기
-            </button>
-          ) : (
-            <button
-              type="button"
-              onClick={() => splitAndSelect("ARENA")}
-              className="mb-2 shrink-0 text-[12px] font-medium text-accent hover:underline"
-            >
-              ＋ 공간별로 다르게 입력
-            </button>
-          )}
-        </div>
+        <VenueSplitTabBar
+          midHallDifferent={midHallDifferent}
+          activeTab={effectiveTab}
+          onSelectTab={setActiveTab}
+          onSplit={() => splitAndSelect("ARENA")}
+          onMerge={mergeToCommon}
+        />
       )}
 
       <div className="mt-6">
