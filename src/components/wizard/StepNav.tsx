@@ -79,7 +79,7 @@ export function StepNav({
       </div>
 
       {activeGroup && activeGroup.visibleSteps.length > 1 && (
-        <div className="flex items-center gap-2 overflow-x-auto px-4 pb-3 sm:px-6">
+        <div className="flex items-center gap-2 overflow-x-auto px-4 pb-3 pt-3 sm:px-6">
           {activeGroup.visibleSteps.map((s, i) => {
             const isCurrent = s.step === step;
             const isDone = s.step < step;
