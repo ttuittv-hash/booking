@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import { won } from "@/lib/format";
 import { resolveSelectedDates } from "@/lib/pricing/dateRange";
 import {
@@ -134,6 +135,38 @@ function baseCompositionTiles(
   return tiles;
 }
 
+// 아레나 탭·중형 탭·중형 단독(midHallOnly)에서 공통으로 쓰는 "기본 포함" 그리드 카드.
+function BaseCompositionCard({ tiles, note }: { tiles: BaseCompositionTile[]; note: string }) {
+  if (tiles.length === 0) return null;
+  return (
+    <div className="mt-6 rounded border border-good/30 bg-good-soft/30 p-5">
+      <div className="flex items-center gap-2">
+        <span className="rounded-sm bg-good px-2 py-0.5 text-[10.5px] font-semibold text-white">기본 포함</span>
+        <span className="text-[12.5px] font-medium text-foreground">{note}</span>
+      </div>
+      <div className="mt-4 space-y-4">
+        {BASE_COMPOSITION_GROUP_ORDER.map((group) => {
+          const groupTiles = tiles.filter((t) => t.group === group);
+          if (groupTiles.length === 0) return null;
+          return (
+            <div key={group}>
+              <div className="mb-1.5 text-[10.5px] font-semibold uppercase tracking-wide text-good">{group}</div>
+              <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+                {groupTiles.map((tile) => (
+                  <div key={tile.label} className="rounded-sm border border-good/20 bg-background px-3 py-2">
+                    <div className="text-[11px] text-muted">{tile.label}</div>
+                    <div className="mt-0.5 text-[13px] font-semibold text-good">{tile.value}</div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
 export function StepConfigOptions({
   rateTable,
   selection,
@@ -154,6 +187,7 @@ export function StepConfigOptions({
   const midHallOnly = selection.venueId === "medium-hall" && selection.bookingMode === "SINGLE";
   const isSimultaneous = selection.bookingMode === "SIMULTANEOUS";
   const pkg = findPackage(rateTable, selection.packageId);
+  const [venueTab, setVenueTab] = useState<"arena" | "medium-hall">("arena");
 
   if (midHallOnly) {
     const midHallPkg = packagesForVenue(rateTable, "medium-hall")[0];
@@ -166,35 +200,10 @@ export function StepConfigOptions({
           포함되는 기본 구성입니다.
         </p>
 
-        {midHallTiles.length > 0 && (
-          <div className="mt-6 rounded border border-good/30 bg-good-soft/30 p-5">
-            <div className="flex items-center gap-2">
-              <span className="rounded-sm bg-good px-2 py-0.5 text-[10.5px] font-semibold text-white">기본 포함</span>
-              <span className="text-[12.5px] font-medium text-foreground">
-                대관료에 이미 포함된 구성 — 예약 일수와 무관하게 동일하게 제공됩니다
-              </span>
-            </div>
-            <div className="mt-4 space-y-4">
-              {BASE_COMPOSITION_GROUP_ORDER.map((group) => {
-                const tiles = midHallTiles.filter((t) => t.group === group);
-                if (tiles.length === 0) return null;
-                return (
-                  <div key={group}>
-                    <div className="mb-1.5 text-[10.5px] font-semibold uppercase tracking-wide text-good">{group}</div>
-                    <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
-                      {tiles.map((tile) => (
-                        <div key={tile.label} className="rounded-sm border border-good/20 bg-background px-3 py-2">
-                          <div className="text-[11px] text-muted">{tile.label}</div>
-                          <div className="mt-0.5 text-[13px] font-semibold text-good">{tile.value}</div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-        )}
+        <BaseCompositionCard
+          tiles={midHallTiles}
+          note="대관료에 이미 포함된 구성 — 예약 일수와 무관하게 동일하게 제공됩니다"
+        />
 
         <p className="mt-6 text-[13.5px] text-muted">
           추가 옵션(시설사용료 · 센터리프트 등) 선택 화면은 다음 업데이트에서 반영됩니다.
@@ -231,17 +240,17 @@ export function StepConfigOptions({
     .flat()
     .filter((addon) => addon.billingPhase !== "SETTLEMENT" && (addonQuantities[addon.id] ?? 0) > 0).length;
 
-  const midHallLine = isSimultaneous ? midHallSummaryLine(selection) : null;
-  const compositionTiles = baseCompositionTiles(pkg, rateTable);
-  const midHallPkgForSummary = isSimultaneous ? packagesForVenue(rateTable, "medium-hall")[0] : undefined;
-  const midHallCompositionSummary = midHallPkgForSummary
-    ? baseCompositionTiles(midHallPkgForSummary, rateTable, { includeSchedule: false })
-        .map((t) => `${t.label} ${t.value}`)
-        .join(" · ")
-    : null;
+  const compositionTiles: BaseCompositionTile[] = [
+    ...baseCompositionTiles(pkg, rateTable),
+    {
+      group: "인프라",
+      label: "홍보 디지털 매체",
+      value: pkg.mediaTier ? MEDIA_TIER_LABEL[pkg.mediaTier] : "미포함",
+    },
+  ];
 
-  return (
-    <section className="rounded border border-border bg-background p-7">
+  const arenaSection = (
+    <>
       <div className="flex flex-wrap items-baseline justify-between gap-2 border-b border-border pb-4">
         <div>
           <h2 className="text-[19px] font-semibold">
@@ -254,40 +263,10 @@ export function StepConfigOptions({
         </div>
       </div>
 
-      <div className="mt-6 rounded border border-good/30 bg-good-soft/30 p-5">
-        <div className="flex items-center gap-2">
-          <span className="rounded-sm bg-good px-2 py-0.5 text-[10.5px] font-semibold text-white">기본 포함</span>
-          <span className="text-[12.5px] font-medium text-foreground">
-            대관료에 이미 포함된 구성 — 관객 규모와 무관하게 전 패키지 동일하게 제공됩니다
-          </span>
-        </div>
-        <div className="mt-4 space-y-4">
-          {BASE_COMPOSITION_GROUP_ORDER.map((group) => {
-            const tiles = compositionTiles.filter((t) => t.group === group);
-            if (group === "인프라") {
-              tiles.push({
-                group: "인프라",
-                label: "홍보 디지털 매체",
-                value: pkg.mediaTier ? MEDIA_TIER_LABEL[pkg.mediaTier] : "미포함",
-              });
-            }
-            if (tiles.length === 0) return null;
-            return (
-              <div key={group}>
-                <div className="mb-1.5 text-[10.5px] font-semibold uppercase tracking-wide text-good">{group}</div>
-                <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
-                  {tiles.map((tile) => (
-                    <div key={tile.label} className="rounded-sm border border-good/20 bg-background px-3 py-2">
-                      <div className="text-[11px] text-muted">{tile.label}</div>
-                      <div className="mt-0.5 text-[13px] font-semibold text-good">{tile.value}</div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            );
-          })}
-        </div>
-      </div>
+      <BaseCompositionCard
+        tiles={compositionTiles}
+        note="대관료에 이미 포함된 구성 — 관객 규모와 무관하게 전 패키지 동일하게 제공됩니다"
+      />
 
       <div className="mt-6 rounded border border-accent/30 bg-accent-soft/20 p-5">
         <div className="flex items-center gap-2">
@@ -328,24 +307,67 @@ export function StepConfigOptions({
           <br />※ 신청 규모를 초과해 좌석을 오픈하는 경우 사후 정산 시 추가 과금됩니다.
         </p>
       </div>
+    </>
+  );
 
-      {isSimultaneous && (
-        <div className="mt-7 border-t border-border pt-5">
-          <div className="text-[13px] font-semibold">중형공연장</div>
-          {midHallLine ? (
-            <p className="mt-1 text-[12.5px] text-muted">
-              일 요금제 · {midHallLine}
-              {midHallCompositionSummary && ` · 기본 구성: ${midHallCompositionSummary}`} (아레나와 별개
-              공간) · 선택 옵션 화면은 다음 업데이트에서 반영됩니다.
-            </p>
-          ) : (
-            <p className="mt-1 text-[12.5px] text-muted">
-              중형 일정이 아직 없습니다 — STEP 1(공간·일정)의 중형 일정 탭에서 먼저 날짜를
-              지정해 주세요.
-            </p>
-          )}
-        </div>
-      )}
+  if (!isSimultaneous) {
+    return <section className="rounded border border-border bg-background p-7">{arenaSection}</section>;
+  }
+
+  const midHallPkgForTab = packagesForVenue(rateTable, "medium-hall")[0];
+  const midHallTilesForTab = midHallPkgForTab
+    ? baseCompositionTiles(midHallPkgForTab, rateTable, { includeSchedule: false })
+    : [];
+  const midHallLine = midHallSummaryLine(selection);
+
+  const midHallSection = (
+    <>
+      <div className="border-b border-border pb-4">
+        <h2 className="text-[19px] font-semibold">
+          중형공연장 <span className="text-[14px] font-normal text-muted">· 일 단위 요금제</span>
+        </h2>
+        <p className="mt-1 text-[12.5px] text-muted">
+          {midHallLine ? `${midHallLine} (아레나와 별개 공간)` : "STEP 1(공간·일정)의 중형 일정 탭에서 날짜를 먼저 지정해 주세요."}
+        </p>
+      </div>
+
+      <BaseCompositionCard
+        tiles={midHallTilesForTab}
+        note="대관료에 이미 포함된 구성 — 예약 일수와 무관하게 동일하게 제공됩니다"
+      />
+
+      <p className="mt-6 text-[13.5px] text-muted">
+        추가 옵션(시설사용료 · 센터리프트 등) 선택 화면은 다음 업데이트에서 반영됩니다.
+      </p>
+    </>
+  );
+
+  return (
+    <section className="rounded border border-border bg-background p-7">
+      <h2 className="text-[19px] font-semibold">2. 구성 · 옵션</h2>
+      <p className="mt-1.5 text-[13.5px] text-muted">
+        동시 대관은 두 공간의 구성이 서로 달라 탭으로 나눠 보여줍니다.
+      </p>
+
+      <div className="mt-5 flex gap-1 border-b border-border">
+        {(["arena", "medium-hall"] as const).map((tab) => (
+          <button
+            key={tab}
+            type="button"
+            onClick={() => setVenueTab(tab)}
+            className={[
+              "border-b-2 px-4 py-2.5 text-[13.5px] font-medium transition-colors",
+              venueTab === tab
+                ? "border-accent text-accent"
+                : "border-transparent text-muted hover:text-foreground",
+            ].join(" ")}
+          >
+            {tab === "arena" ? "아레나" : midHallLine ? `중형공연장 · ${midHallLine}` : "중형공연장 (대기)"}
+          </button>
+        ))}
+      </div>
+
+      <div className="mt-6">{venueTab === "arena" ? arenaSection : midHallSection}</div>
     </section>
   );
 }
