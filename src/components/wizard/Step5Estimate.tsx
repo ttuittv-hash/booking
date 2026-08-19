@@ -2,7 +2,7 @@
 
 import { won } from "@/lib/format";
 import { findPackage, totalRentalDays } from "@/lib/pricing/rateTableUtils";
-import type { EstimatedQuote, QuoteSelection, RateTable } from "@/lib/pricing/types";
+import type { EstimatedQuote, LineItem, QuoteSelection, RateTable } from "@/lib/pricing/types";
 
 function midHallSummaryLine(selection: QuoteSelection): string | null {
   const dates = Object.keys(selection.midHallDays).sort();
@@ -11,6 +11,79 @@ function midHallSummaryLine(selection: QuoteSelection): string | null {
   const performanceDates = dates.filter((d) => selection.midHallDays[d].role === "PERFORMANCE");
   const shows = performanceDates.reduce((sum, d) => sum + selection.midHallDays[d].shows, 0);
   return `${dates.length}일 (셋업 ${setup} · 공연 ${performanceDates.length} · 회차 ${shows}) · 관객 ${selection.secondaryAudience.toLocaleString()}명`;
+}
+
+// 중형공연장 라인아이템은 addonId가 전부 "midhall"로 시작한다(calculateMidHallQuote.ts) —
+// 계산 엔진을 건드리지 않고 화면에서만 아레나/중형으로 갈라 보여주는 데 이 규칙을 쓴다.
+function isMidHallLineItem(item: LineItem): boolean {
+  return item.addonId.startsWith("midhall");
+}
+
+function LineItemTable({
+  title,
+  items,
+  expectedRevenue,
+}: {
+  title?: string;
+  items: LineItem[];
+  expectedRevenue: number;
+}) {
+  const subtotal = items.reduce((sum, item) => sum + item.amount, 0);
+  return (
+    <div className="mt-6">
+      {title && <h3 className="mb-2 text-[14.5px] font-semibold text-foreground">{title}</h3>}
+      <div className="overflow-x-auto">
+        <table className="w-full border-collapse text-[13px]">
+          <thead>
+            <tr className="border-b border-border text-[11.5px] font-medium text-muted">
+              <th className="py-2 text-left">항목</th>
+              <th className="py-2 text-right">신청</th>
+              <th className="py-2 text-right">기본포함</th>
+              <th className="py-2 text-right">과금수량</th>
+              <th className="py-2 text-right">단가</th>
+              <th className="py-2 text-right">금액</th>
+            </tr>
+          </thead>
+          <tbody>
+            {items.length === 0 ? (
+              <tr>
+                <td colSpan={6} className="py-3 text-center text-[12.5px] text-muted">
+                  선택된 항목이 없습니다.
+                </td>
+              </tr>
+            ) : (
+              items.map((item) => (
+                <tr key={item.addonId} className="border-b border-border/70 tabular-nums">
+                  <td className="py-2.5 text-left font-medium">{item.label}</td>
+                  <td className="py-2.5 text-right">
+                    {item.pricingType === "REVENUE_PERCENT"
+                      ? `${won(expectedRevenue)} × ${item.unitPrice}%`
+                      : item.requested.toLocaleString()}
+                  </td>
+                  <td className="py-2.5 text-right">{item.included || "-"}</td>
+                  <td className="py-2.5 text-right">
+                    {item.pricingType === "REVENUE_PERCENT" ? "-" : item.billable.toLocaleString()}
+                  </td>
+                  <td className="py-2.5 text-right">
+                    {item.pricingType === "REVENUE_PERCENT" ? "-" : won(item.unitPrice)}
+                  </td>
+                  <td className="py-2.5 text-right font-semibold">{won(item.amount)}</td>
+                </tr>
+              ))
+            )}
+          </tbody>
+          <tfoot>
+            <tr>
+              <td colSpan={5} className="pt-2.5 text-right text-[13px] font-semibold">
+                {title ? `${title} 소계` : "소계"}
+              </td>
+              <td className="pt-2.5 text-right text-[13px] font-semibold tabular-nums">{won(subtotal)}</td>
+            </tr>
+          </tfoot>
+        </table>
+      </div>
+    </div>
+  );
 }
 
 export function Step5Estimate({
@@ -39,6 +112,12 @@ export function Step5Estimate({
     : null;
   const midHallLine = midHallSummaryLine(selection);
 
+  const visibleItems = quote.lineItems.filter((item) => item.visibility !== "HIDDEN");
+  const arenaItems = visibleItems.filter((item) => !isMidHallLineItem(item));
+  const midHallItems = visibleItems.filter(isMidHallLineItem);
+  const arenaVisibleSubtotal = arenaItems.reduce((sum, item) => sum + item.amount, 0);
+  const midHallVisibleSubtotal = midHallItems.reduce((sum, item) => sum + item.amount, 0);
+
   return (
     <section className="rounded border border-border bg-background p-7">
       <h2 className="text-[19px] font-semibold">6. 예상 대관료 · 산출내역서</h2>
@@ -54,70 +133,39 @@ export function Step5Estimate({
         )}
       </p>
 
-      <div className="mt-6 overflow-x-auto">
-        <table className="w-full border-collapse text-[13px]">
-          <thead>
-            <tr className="border-b border-border text-[11.5px] font-medium text-muted">
-              <th className="py-2 text-left">항목</th>
-              <th className="py-2 text-right">신청</th>
-              <th className="py-2 text-right">기본포함</th>
-              <th className="py-2 text-right">과금수량</th>
-              <th className="py-2 text-right">단가</th>
-              <th className="py-2 text-right">금액</th>
-            </tr>
-          </thead>
-          <tbody>
-            {/* Bowl 사용료·유틸리티(HIDDEN)는 합계에는 포함하되 신청자 화면에는 항목·금액을
-                노출하지 않는다 — 아래 소계/부가세/합계는 quote.subtotal 등 전체 lineItems
-                기준 값을 그대로 쓰므로 여기서 걸러내도 금액 자체는 달라지지 않는다. */}
-            {quote.lineItems
-              .filter((item) => item.visibility !== "HIDDEN")
-              .map((item) => (
-                <tr key={item.addonId} className="border-b border-border/70 tabular-nums">
-                  <td className="py-2.5 text-left font-medium">{item.label}</td>
-                  <td className="py-2.5 text-right">
-                    {item.pricingType === "REVENUE_PERCENT"
-                      ? `${won(selection.expectedRevenue ?? 0)} × ${item.unitPrice}%`
-                      : item.requested.toLocaleString()}
-                  </td>
-                  <td className="py-2.5 text-right">{item.included || "-"}</td>
-                  <td className="py-2.5 text-right">
-                    {item.pricingType === "REVENUE_PERCENT" ? "-" : item.billable.toLocaleString()}
-                  </td>
-                  <td className="py-2.5 text-right">
-                    {item.pricingType === "REVENUE_PERCENT" ? "-" : won(item.unitPrice)}
-                  </td>
-                  <td className="py-2.5 text-right font-semibold">{won(item.amount)}</td>
-                </tr>
-              ))}
-          </tbody>
-          <tfoot>
-            <tr>
-              <td colSpan={5} className="pt-3 text-right text-[13px] font-semibold">
-                소계 (VAT 별도)
-              </td>
-              <td className="pt-3 text-right text-[13px] font-semibold tabular-nums">
-                {won(quote.subtotal)}
-              </td>
-            </tr>
-            <tr>
-              <td colSpan={5} className="pt-1 text-right text-[12.5px] text-muted">
-                부가세 10%
-              </td>
-              <td className="pt-1 text-right text-[12.5px] text-muted tabular-nums">
-                {won(quote.vat)}
-              </td>
-            </tr>
-            <tr>
-              <td colSpan={5} className="pt-2 text-right text-[15px] font-semibold">
-                합계
-              </td>
-              <td className="pt-2 text-right text-[17px] font-semibold tabular-nums">
-                {won(quote.total)}
-              </td>
-            </tr>
-          </tfoot>
-        </table>
+      {/* Bowl 사용료·유틸리티(HIDDEN)는 아래 합계 계산에는 포함되지만 신청자 화면에는
+          항목·금액을 노출하지 않는다 — 그래서 아레나/중형 소계를 각각 더해도 맨 아래
+          최종 소계(quote.subtotal, 전체 lineItems 기준)와는 차이가 날 수 있다. */}
+      {isSimultaneous ? (
+        <>
+          <LineItemTable title="아레나" items={arenaItems} expectedRevenue={selection.expectedRevenue ?? 0} />
+          <LineItemTable title="중형공연장" items={midHallItems} expectedRevenue={selection.expectedRevenue ?? 0} />
+        </>
+      ) : (
+        <LineItemTable items={visibleItems} expectedRevenue={selection.expectedRevenue ?? 0} />
+      )}
+
+      <div className="mt-6 rounded-sm border border-border bg-panel/40 p-5">
+        {isSimultaneous && (
+          <div className="mb-3 flex items-center justify-between border-b border-border pb-3 text-[13px]">
+            <span className="text-muted">아레나 소계 + 중형공연장 소계</span>
+            <span className="tabular-nums text-foreground">
+              {won(arenaVisibleSubtotal)} + {won(midHallVisibleSubtotal)}
+            </span>
+          </div>
+        )}
+        <div className="flex justify-between text-[13px] text-muted">
+          <span>소계 (VAT 별도)</span>
+          <span className="tabular-nums">{won(quote.subtotal)}</span>
+        </div>
+        <div className="mt-1.5 flex justify-between text-[13px] text-muted">
+          <span>부가세 10%</span>
+          <span className="tabular-nums">{won(quote.vat)}</span>
+        </div>
+        <div className="mt-2.5 flex items-baseline justify-between border-t border-border pt-2.5">
+          <span className="text-[15px] font-semibold">합계</span>
+          <span className="text-[19px] font-semibold tabular-nums">{won(quote.total)}</span>
+        </div>
       </div>
 
       <p className="mt-6 rounded border-l-2 border-warn bg-warn-soft px-4 py-3 text-[12.5px] leading-5 text-warn">
