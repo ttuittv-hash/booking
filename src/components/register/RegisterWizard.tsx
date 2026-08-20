@@ -575,7 +575,6 @@ function StepTerms({
         <button
           type="button"
           data-testid="terms-next"
-          aria-disabled={!canNext}
           onClick={onNext}
           className={`${btnClass("primary", "md")} flex-1 justify-center ${canNext ? "" : "opacity-50"}`}
         >
