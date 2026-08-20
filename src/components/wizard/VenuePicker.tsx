@@ -57,11 +57,6 @@ export function VenuePicker({
           </button>
         ))}
       </div>
-      <p className="text-[11.5px] leading-5 text-muted sm:col-start-2">
-        동시 대관은 두 공간을 신청서 1건으로 묶어 신청하는 것이며, 두 공간은 완전히
-        분리되어 있어 <b className="text-foreground">할인은 없습니다</b> — 금액은 각 공간을
-        따로 신청했을 때와 같습니다.
-      </p>
     </div>
   );
 }

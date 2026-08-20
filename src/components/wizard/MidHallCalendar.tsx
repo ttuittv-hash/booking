@@ -124,11 +124,6 @@ export function MidHallCalendar({
   return (
     <div>
       {title && <h3 className="text-[15px] font-semibold">{title}</h3>}
-      <p className="mt-1.5 text-[13px] text-muted">
-        패키지가 없습니다 — 달력에서 날짜를 누르면 셋업 · 공연일(회차 포함) · 철수와 셋업
-        연장 · 철수 연장 시간까지 같은 자리에서 지정할 수 있습니다. 최소 대관 일수 제한이
-        없고 연속하지 않아도 됩니다.
-      </p>
 
       <div className="mt-5 flex items-center justify-between">
         <button

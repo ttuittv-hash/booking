@@ -245,14 +245,6 @@ export function Step1Calendar({
   return (
     <section className="border border-border bg-background p-5 sm:p-7">
       <h2 className="text-[19px] font-semibold">{heading}</h2>
-      <p className="mt-1.5 text-[13.5px] text-muted">
-        달력에서 원하는 주를 눌러 선택하세요. 기본 단위는{" "}
-        <b className="text-foreground">1주(화~일, 6일)</b>이며, 월요일은 기본적으로 대관하지
-        않습니다. 선택한 주의 날짜를 누르면 셋업 · 공연일(회차 포함) · 철수 · 제외를 바로
-        지정할 수 있습니다. 기간을 더 늘리려면 일요일 다음으로{" "}
-        <span className="text-accent">추가+</span> 표시된 날짜를 눌러 이어 붙이면 됩니다 — 이렇게
-        추가한 날짜도 다른 날짜와 똑같이 역할과 회차를 지정할 수 있습니다.
-      </p>
 
       <div className="mt-6 flex items-center justify-between">
         <button
