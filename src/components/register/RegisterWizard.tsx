@@ -702,11 +702,18 @@ function StepInfo({
         body: JSON.stringify({ businessRegistrationNumber: form.businessRegistrationNumber }),
       });
       const data = await res.json();
-      setBrnCheck({
-        state: data.state ?? "ERROR",
-        title: data.title ?? "인증 실패",
-        message: data.message ?? data.error ?? "",
-      });
+      const state: string = data.state ?? "ERROR";
+      const title: string = data.title ?? "인증 실패";
+      const message: string = data.message ?? data.error ?? "";
+      setBrnCheck({ state, title, message });
+
+      // 버튼을 누른 결과는 화면 안 문구뿐 아니라 토스트로도 알린다.
+      // 문구만 있으면 스크롤 위치에 따라 눈에 안 들어온다 — 눌렀는데 아무 일도
+      // 없는 것처럼 보인다는 지적이 실제로 있었다.
+      const notice = message ? `${title} — ${message}` : title;
+      if (state === "VERIFIED") toast.success(notice);
+      else if (state === "REGISTERED" || state === "UNCHECKED") toast.info(notice);
+      else toast.error(notice);
 
       // 이미 등록된 회사면 저장된 기업정보를 그대로 채운다 — 회사정보 불러오기와 같다.
       if (data.state === "REGISTERED" && data.company) {
@@ -736,6 +743,11 @@ function StepInfo({
           representativeName: data.representativeName || p.representativeName,
         }));
       }
+    } catch {
+      // 예전에는 여기서 조용히 끝났다 — 버튼만 멈추고 아무 말이 없었다.
+      const message = "확인 중 문제가 발생했습니다. 잠시 후 다시 시도해 주세요.";
+      setBrnCheck({ state: "ERROR", title: "인증 실패", message });
+      toast.error(message);
     } finally {
       setChecking(null);
     }
@@ -750,7 +762,14 @@ function StepInfo({
         body: JSON.stringify({ username: form.username }),
       });
       const data = await res.json();
-      setIdCheck({ available: data.available === true, message: data.message ?? data.error ?? "" });
+      const available = data.available === true;
+      const message: string = data.message ?? data.error ?? "";
+      setIdCheck({ available, message });
+      if (message) (available ? toast.success : toast.error)(message);
+    } catch {
+      const message = "확인 중 문제가 발생했습니다. 잠시 후 다시 시도해 주세요.";
+      setIdCheck({ available: false, message });
+      toast.error(message);
     } finally {
       setChecking(null);
     }
