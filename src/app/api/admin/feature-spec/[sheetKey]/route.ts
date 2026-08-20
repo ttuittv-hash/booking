@@ -1,17 +1,14 @@
 import { NextResponse } from "next/server";
-import { requireMasterAdmin } from "@/lib/auth";
 import { getFeatureSpecSheet, saveFeatureSpecSheet } from "@/lib/db";
 import { FEATURE_SPEC_SHEET_KEYS, type FeatureSpecSheetKey } from "@/lib/pricing/types";
 
+// [개정 2026-08-20] 이 문서는 로그인 없이 누구나 조회·수정할 수 있다(사용자 요청) —
+// 더 이상 마스터 관리자로 제한하지 않는다.
 function isValidSheetKey(key: string): key is FeatureSpecSheetKey {
   return (FEATURE_SPEC_SHEET_KEYS as readonly string[]).includes(key);
 }
 
 export async function GET(_request: Request, { params }: { params: Promise<{ sheetKey: string }> }) {
-  const user = await requireMasterAdmin();
-  if (!user) {
-    return NextResponse.json({ error: "마스터 관리자만 접근할 수 있습니다." }, { status: 403 });
-  }
   const { sheetKey } = await params;
   const key = decodeURIComponent(sheetKey);
   if (!isValidSheetKey(key)) {
@@ -21,10 +18,6 @@ export async function GET(_request: Request, { params }: { params: Promise<{ she
 }
 
 export async function PUT(request: Request, { params }: { params: Promise<{ sheetKey: string }> }) {
-  const user = await requireMasterAdmin();
-  if (!user) {
-    return NextResponse.json({ error: "마스터 관리자만 접근할 수 있습니다." }, { status: 403 });
-  }
   const { sheetKey } = await params;
   const key = decodeURIComponent(sheetKey);
   if (!isValidSheetKey(key)) {
