@@ -457,10 +457,6 @@ export function WizardShell({
         {step === 2 && selection.bookingMode === "SIMULTANEOUS" && (
           <section className="rounded border border-border bg-background p-5 sm:p-7">
             <h2 className="text-[19px] font-semibold">일정 선택</h2>
-            <p className="mt-1.5 text-[13.5px] text-muted">
-              동시 대관에서는 아레나를 먼저 확정합니다 — 덩어리가 크고 제약이 많아 기준선
-              역할을 합니다.
-            </p>
             <div className="mt-5 flex gap-1 border-b border-border">
               {(["arena", "medium-hall"] as const).map((tab) => (
                 <button
