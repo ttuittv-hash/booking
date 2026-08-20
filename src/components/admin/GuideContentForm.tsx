@@ -87,7 +87,7 @@ export function GuideContentForm({ content: initial }: { content: GuideContent }
 
   return (
     <div className="space-y-8">
-      <div className="sticky top-14 z-10 -mx-6 flex items-center justify-between gap-3 border-b border-border/20 bg-background px-6 py-3 sm:top-16">
+      <div className="sticky top-[6.25rem] z-10 -mx-6 flex items-center justify-between gap-3 border-b border-border/20 bg-background px-6 py-3 sm:top-[6.75rem] lg:top-16">
         <span className={HELP}>수정 중인 내용은 저장 전까지 실제 페이지에 반영되지 않습니다.</span>
         <button
           type="button"
