@@ -36,7 +36,7 @@ export default async function MyPage({
     <div className="flex flex-1 flex-col">
       <PublicHeader active="/mypage" currentUser={user} />
 
-      <main className="mx-auto w-full max-w-7xl flex-1 px-6 py-10">
+      <main className="mx-auto w-full max-w-6xl flex-1 px-6 py-10">
         <div className="flex flex-col gap-8 sm:flex-row sm:gap-10">
           <MyPageSidebar active="/mypage" />
 
@@ -79,7 +79,19 @@ export default async function MyPage({
                           {q.selection.performanceInfo.eventName || "-"}
                         </td>
                         <td className="px-4 py-3">
-                          {q.selection.week.year}.{q.selection.week.month} {q.selection.week.weekOfMonth}주차
+                          {q.selection.bookingMode === "SIMULTANEOUS" ? (
+                            <>
+                              아레나 {q.selection.week.year}.{q.selection.week.month} {q.selection.week.weekOfMonth}주차
+                              <br />
+                              중형 {Object.keys(q.selection.midHallDays).length}일
+                            </>
+                          ) : q.selection.venueId === "medium-hall" ? (
+                            <>중형 {Object.keys(q.selection.midHallDays).length}일</>
+                          ) : (
+                            <>
+                              {q.selection.week.year}.{q.selection.week.month} {q.selection.week.weekOfMonth}주차
+                            </>
+                          )}
                         </td>
                         <td className="px-4 py-3 text-right tabular-nums">{won(q.total)}</td>
                         <td className="px-4 py-3 text-right tabular-nums">

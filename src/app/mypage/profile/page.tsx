@@ -21,7 +21,7 @@ export default async function ProfilePage() {
     <div className="flex flex-1 flex-col">
       <PublicHeader active="/mypage/profile" currentUser={user} />
 
-      <main className="mx-auto w-full max-w-4xl flex-1 px-6 py-10">
+      <main className="mx-auto w-full max-w-6xl flex-1 px-6 py-10">
         {user.role === "ADMIN" ? (
           <div className="max-w-2xl">
             <Link href="/admin" className="text-[12.5px] font-medium text-accent hover:underline">
