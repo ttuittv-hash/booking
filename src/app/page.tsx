@@ -51,20 +51,22 @@ function keyNumbers(open: boolean): StatItem[] {
       href: open ? specHref : "/venue",
     },
     {
-      value: "180t",
-      label: "상부 활하중",
+      // 단위는 값이 아니라 라벨에 적는다 (디자인 가이드 §9.4).
+      // type-display 가 대문자 변환이라 값에 붙인 소문자 단위가 `35M` 처럼 튄다.
+      value: "180",
+      label: "상부 활하중 (톤)",
       desc: "마더트러스 5기(A·B·C·L·R)의 활하중 합계입니다.",
       href: specHref,
     },
     {
-      value: "35m",
-      label: "그리드 높이",
+      value: "35",
+      label: "그리드 높이 (m)",
       desc: "플로어 기준 테크니컬 그리드 높이입니다.",
       href: specHref,
     },
     {
-      value: "9.9 × 4.5m",
-      label: "반입구",
+      value: "9.9 × 4.5",
+      label: "반입구 (m)",
       desc: "40ft 컨테이너가 그대로 들어옵니다.",
       href: specHref,
     },
@@ -79,8 +81,8 @@ function keyNumbers(open: boolean): StatItem[] {
   return [
     ...base,
     {
-      value: "24 × 12 × 13m",
-      label: "중형공연장 메인 스테이지",
+      value: "24 × 12 × 13",
+      label: "중형공연장 메인 스테이지 (m)",
       desc: "프로시니엄 무대 폭·높이·깊이입니다.",
       href: "/venue/specs?venue=live-hall",
     },
