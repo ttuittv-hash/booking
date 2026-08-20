@@ -45,8 +45,8 @@ const MAIN_LINKS: {
     label: "Host It",
     children: [
       { href: "/apply", label: "대관 신청" },
-      { href: "/mypage", label: "대관 신청 현황" },
       { href: "/mypage", label: "대관 진행 내역" },
+      { href: "/mypage/profile", label: "나의 정보 수정" },
     ],
   },
   {
@@ -164,9 +164,9 @@ export function PublicHeader({
             {currentUser ? (
               <>
                 <Link
-                  href={currentUser.role === "ADMIN" ? "/admin/users" : "/mypage/profile"}
+                  href={currentUser.role === "ADMIN" ? "/admin/users" : "/mypage"}
                   className="hidden whitespace-nowrap underline decoration-border underline-offset-2 hover:text-foreground hover:decoration-foreground sm:inline"
-                  title="회원정보 수정"
+                  title={currentUser.role === "ADMIN" ? "회원정보 수정" : "마이페이지"}
                 >
                   {currentUser.name} 님
                 </Link>
@@ -176,7 +176,7 @@ export function PublicHeader({
                   </Link>
                 ) : (
                   <Link href="/mypage" className="whitespace-nowrap hover:text-foreground">
-                    내 신청 내역
+                    마이페이지
                   </Link>
                 )}
                 <NotificationBell role={currentUser.role} />

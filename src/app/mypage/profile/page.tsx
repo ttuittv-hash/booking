@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/lib/auth";
 import { PublicHeader } from "@/components/PublicHeader";
 import { PublicFooter } from "@/components/PublicFooter";
+import { MyPageNav } from "@/components/MyPageNav";
 import { ProfileForm } from "@/components/ProfileForm";
 
 export const metadata: Metadata = {
@@ -19,12 +20,13 @@ export default async function ProfilePage() {
       <PublicHeader active="/mypage/profile" currentUser={user} />
 
       <main className="mx-auto w-full max-w-xl flex-1 px-6 py-10">
-        <Link
-          href={user.role === "ADMIN" ? "/admin" : "/mypage"}
-          className="text-[12.5px] font-medium text-accent hover:underline"
-        >
-          ← {user.role === "ADMIN" ? "운영자 백오피스" : "내 신청 내역"}
-        </Link>
+        {user.role === "ADMIN" ? (
+          <Link href="/admin" className="text-[12.5px] font-medium text-accent hover:underline">
+            ← 운영자 백오피스
+          </Link>
+        ) : (
+          <MyPageNav active="/mypage/profile" />
+        )}
 
         <h1 className="mt-4 text-[22px] font-semibold">회원정보 수정</h1>
 
