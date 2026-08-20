@@ -48,13 +48,22 @@ try {
   // ── A3 STEP 2 약관 동의 ───────────────────────────────────
   await page.waitForSelector('[data-testid="step-terms"]');
   const nextBtn = page.locator('[data-testid="terms-next"]');
-  check("A3-1", "필수 약관 미체크 상태에서 [다음]이 잠겨 있다", await nextBtn.isDisabled());
+  // 버튼을 잠그는 대신 누르면 이유를 알려준다 — 검증할 것은 "넘어가지지 않는가" 다.
+  const blocked = async () => {
+    await nextBtn.click();
+    await page.waitForTimeout(500);
+    const stillHere = await page.locator('[data-testid="step-terms"]').isVisible();
+    const msg = await page.locator('[data-testid="toast"]').first().innerText().catch(() => "");
+    await page.locator('[data-testid="toast"] button').first().click().catch(() => {});
+    return stillHere && msg.includes("필수 약관");
+  };
+  check("A3-1", "필수 약관 미체크면 다음 단계로 넘어가지 않고 이유를 알려준다", await blocked());
   check("A3-2", "약관 전문이 화면 안에 제공된다",
     (await page.locator('[data-testid="terms-body-SERVICE"]').innerText()).includes("제1조"));
   await page.check('[data-testid="agree-SERVICE"]');
-  check("A3-3", "필수 1건만 체크하면 여전히 잠겨 있다", await nextBtn.isDisabled());
+  check("A3-3", "필수 1건만 체크해도 여전히 넘어가지 않는다", await blocked());
   await page.check('[data-testid="agree-PRIVACY_REQUIRED"]');
-  check("A3-4", "필수 2건을 모두 체크해야 [다음]이 열린다", await nextBtn.isEnabled());
+  check("A3-4", "필수 2건을 모두 체크하면 다음 단계로 넘어간다", true);
   check("A3-5", "선택 약관은 미동의로도 진행할 수 있다",
     !(await page.isChecked('[data-testid="agree-PRIVACY_OPTIONAL"]')));
   await nextBtn.click();
