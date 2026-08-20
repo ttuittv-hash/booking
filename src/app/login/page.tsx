@@ -101,12 +101,27 @@ export default function LoginPage() {
           {loading ? "처리 중..." : "로그인"}
         </button>
           {/* 기획서 A13 — 로그인 화면에서 회원가입·아이디 찾기·비밀번호 찾기로 갈 수 있어야 한다 */}
-          <p className="mt-5 flex items-center justify-center gap-3 text-xs text-muted">
-            <Link href="/register" className="hover:text-foreground">회원가입</Link>
+          {/* 글자만 타깃이면 14px 이라 손가락으로 잘 안 눌린다 — 세로 여백으로 영역을 넓힌다. */}
+          <p className="mt-4 flex items-center justify-center gap-1 text-xs text-muted">
+            <Link href="/register" className="flex min-h-11 items-center px-2 hover:text-foreground">
+              회원가입
+            </Link>
             <span aria-hidden="true">|</span>
-            <Link href="/find-id" data-testid="link-find-id" className="hover:text-foreground">아이디 찾기</Link>
+            <Link
+              href="/find-id"
+              data-testid="link-find-id"
+              className="flex min-h-11 items-center px-2 hover:text-foreground"
+            >
+              아이디 찾기
+            </Link>
             <span aria-hidden="true">|</span>
-            <Link href="/reset-password" data-testid="link-reset-password" className="hover:text-foreground">비밀번호 찾기</Link>
+            <Link
+              href="/reset-password"
+              data-testid="link-reset-password"
+              className="flex min-h-11 items-center px-2 hover:text-foreground"
+            >
+              비밀번호 찾기
+            </Link>
           </p>
       </form>
     </AuthShell>

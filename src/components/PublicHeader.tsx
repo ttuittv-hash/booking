@@ -78,9 +78,11 @@ export function PublicHeader({
     <>
       <header className="sticky top-0 z-40 bg-background/90 backdrop-blur-md">
         <div className="container-site flex h-16 items-center justify-between lg:h-[72px]">
+          {/* 글자 높이만큼만 잡히면 터치 타깃이 18~24px 밖에 안 된다.
+              헤더 높이만큼 세로를 채워 누르기 쉽게 한다. */}
           <Link
             href="/"
-            className="type-display text-h6-m leading-none sm:text-h5"
+            className="type-display flex h-full items-center text-h6-m leading-none sm:text-h5"
             aria-label="Seoul Arena 홈"
           >
             Seoul Arena

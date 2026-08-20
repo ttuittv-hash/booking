@@ -140,7 +140,9 @@ export function StepNav({
                   onClick={() => onJump(s.step)}
                   aria-current={isCurrent ? "step" : undefined}
                   className={[
-                    "flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs font-medium outline-none transition-colors",
+                    // 터치로 누르는 칩이라 최소 높이를 확보한다. py-1 만으로는 24px 이라
+                    // 손가락으로 정확히 짚기 어렵다(권장 44px).
+                    "flex min-h-11 items-center gap-1.5 rounded-full border px-3.5 py-1.5 text-xs font-medium outline-none transition-colors",
                     "focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-foreground",
                     isCurrent || isDone ? "border-foreground text-foreground" : "border-border-soft text-muted",
                     disabled ? "cursor-not-allowed opacity-40" : "cursor-pointer",
