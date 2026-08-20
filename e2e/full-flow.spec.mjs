@@ -94,6 +94,17 @@ try {
   await page.waitForSelector('[data-testid="id-check-message"]', { timeout: 20000 });
   await page.click('[data-testid="submit-register"]');
   await page.waitForSelector('[data-testid="step-done"]', { timeout: 30000 });
+
+  // 이 테스트는 "최초 가입자 = 대표 담당자"를 전제로 한다. 카카오가 이미 있으면 이번
+  // 사용자는 소속 담당자로 붙고, 그 사실이 한참 뒤 A10 에서야 드러나 원인을 찾기 어렵다.
+  // 여기서 바로 세운다 — 앱은 정상 동작한 것이고, 정리를 안 한 것이 원인이다.
+  const doneNotice = await page.locator('[data-testid="step-done"]').innerText();
+  if (doneNotice.includes("등록된 회사에 합류")) {
+    throw new Error(
+      "카카오(120-81-47521)가 dev DB 에 이미 있어 소속 담당자로 가입됐다.\n" +
+        "        ./e2e/reset-dev.sh 를 먼저 돌린 뒤 다시 실행할 것.",
+    );
+  }
   check("A8-1", "최초 가입자 가입이 접수된다", true);
 
   // ── A15 접근권한: 승인 대기 상태 ──────────────────────────
