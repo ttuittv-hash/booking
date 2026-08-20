@@ -38,7 +38,7 @@ export default async function AdminApplicantsPage({
           <h1 className={PAGE_TITLE}>회원 관리</h1>
           <p className={PAGE_LEAD}>
             일반인은 자유 가입할 수 없으며, 신청자(대관사) 계정은 운영자 승인이 있어야 대관
-            대관료 열람과 신청서 작성을 이용할 수 있습니다. 담당자명을 클릭하면 상세 정보와 신청
+            패키지 안내와 견적 산출을 이용할 수 있습니다. 담당자명을 클릭하면 상세 정보와 신청
             내역을 확인할 수 있습니다.
           </p>
         </header>

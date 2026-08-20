@@ -1,21 +1,6 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  /**
-   * 2026-08 정보구조 재구성으로 없어진 경로.
-   * 북마크·검색 유입·외부 공유 링크가 죽지 않도록 영구 리다이렉트한다.
-   *   대관 양식함 · 이미지 가이드 → 자료실로 흡수
-   *   무대 특장 → `/venue/features` 로 개칭
-   */
-  async redirects() {
-    return [
-      { source: "/guide/forms", destination: "/library", permanent: true },
-      { source: "/guide/image-guide", destination: "/library", permanent: true },
-      { source: "/guide/rules", destination: "/library?doc=rules", permanent: true },
-      { source: "/venue/stage-features", destination: "/venue/features", permanent: true },
-    ];
-  },
-
   async headers() {
     return [
       {

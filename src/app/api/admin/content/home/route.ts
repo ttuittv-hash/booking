@@ -18,7 +18,8 @@ export async function PUT(request: Request) {
   if (
     !content ||
     typeof content !== "object" ||
-    !Array.isArray(content.narrativeStatements)
+    !Array.isArray(content.narrativeStatements) ||
+    !Array.isArray(content.processSteps)
   ) {
     return NextResponse.json({ error: "잘못된 요청입니다." }, { status: 400 });
   }
@@ -28,14 +29,17 @@ export async function PUT(request: Request) {
     heroTitle: content.heroTitle ?? "",
     heroSubtitle: content.heroSubtitle ?? "",
     heroPrimaryLabel: content.heroPrimaryLabel ?? "",
-    heroPrimaryHref: content.heroPrimaryHref ?? "/register",
+    heroPrimaryHref: content.heroPrimaryHref ?? "/apply",
     heroSecondaryLabel: content.heroSecondaryLabel ?? "",
-    heroSecondaryHref: content.heroSecondaryHref ?? "/guide",
+    heroSecondaryHref: content.heroSecondaryHref ?? "/venue",
     narrativeLabel: content.narrativeLabel ?? "",
     narrativeTitle: content.narrativeTitle ?? "",
     narrativeLead: content.narrativeLead ?? "",
     narrativeStatements: content.narrativeStatements,
     narrativeClosing: content.narrativeClosing ?? "",
+    processLabel: content.processLabel ?? "",
+    processTitle: content.processTitle ?? "",
+    processSteps: content.processSteps,
   });
   return NextResponse.json({ content: saved });
 }

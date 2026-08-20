@@ -4,8 +4,7 @@ import { getCurrentUser, isPendingApplicant } from "@/lib/auth";
 import { getNoticeById } from "@/lib/db";
 import { sanitizeRichText } from "@/lib/sanitizeHtml";
 import { PublicHeader } from "@/components/PublicHeader";
-import { isPinnedTag, TagBadge } from "@/components/TagBadge";
-import { isRentalOpen } from "@/lib/release";
+import { TagBadge } from "@/components/TagBadge";
 import { Breadcrumb } from "@/components/ui/Breadcrumb";
 import { SiteFooter } from "@/components/ui/SiteFooter";
 import { ArrowRight, Band, ButtonLink, Media, PageHeading } from "@/components/ui/kit";
@@ -54,10 +53,6 @@ export default async function NoticeDetailPage({
   const notice = await getNoticeById(id);
   if (!notice) notFound();
 
-  const isRentalPost = isPinnedTag(notice.tag);
-  const updated = notice.updatedAt !== notice.createdAt;
-  const open = isRentalOpen();
-
   return (
     <div className="flex flex-1 flex-col">
       <PublicHeader active="/notices" currentUser={currentUser} />
@@ -75,41 +70,11 @@ export default async function NoticeDetailPage({
                 <span className="flex flex-wrap items-center gap-3 border-t border-border/25 pt-5 text-xs text-muted">
                   <TagBadge tag={notice.tag} spacing={false} />
                   <time className="tabular-nums" dateTime={notice.createdAt}>
-                    {formatDateTime(notice.createdAt)} 게시
+                    {formatDateTime(notice.createdAt)}
                   </time>
-                  {updated && (
-                    <time className="tabular-nums" dateTime={notice.updatedAt}>
-                      {formatDateTime(notice.updatedAt)} 갱신
-                    </time>
-                  )}
                 </span>
               }
             />
-
-            {/* 말머리가 `대관공고` 인 경우에만 접수 정보를 본문 위에 고정한다 */}
-            {isRentalPost && (
-              <dl className="mt-10 flex flex-wrap gap-x-10 gap-y-4 border-t-2 border-border pt-6">
-                {(
-                  [
-                    ["접수 개시", notice.applyStart ?? "추후 공지"],
-                    ["접수 마감", notice.applyEnd ?? "추후 공지"],
-                    ["대상 공간", notice.targetVenues ?? "본문 참조"],
-                  ] as [string, string][]
-                ).map(([k, v]) => (
-                  <div key={k}>
-                    <dt className="text-xs font-bold text-muted">{k}</dt>
-                    <dd className="mt-1 text-s font-bold">{v}</dd>
-                  </div>
-                ))}
-              </dl>
-            )}
-
-            {updated && (
-              <p className="mt-6 border-t border-border/25 pt-3 text-xs leading-5 text-muted">
-                이 공고는 {formatDateTime(notice.updatedAt)}에 갱신되었습니다. 변경된 내용은 본문에
-                반영되어 있습니다.
-              </p>
-            )}
           </div>
         </Band>
 
@@ -143,32 +108,10 @@ export default async function NoticeDetailPage({
               </div>
             )}
 
-            {/* 관련 링크 — 규약과 시설소개자료는 파일을 복제하지 않고 자료실을 가리킨다 */}
             <div className="mt-14 border-t border-border/25 pt-8">
-              <h2 className="type-kr-heading mb-5 text-h6-m sm:text-h6">관련 링크</h2>
-              <div className="flex flex-wrap gap-3">
-                <ButtonLink href="/guide" variant="secondary">
-                  대관 안내
-                </ButtonLink>
-                <ButtonLink href="/library" variant="secondary">
-                  자료실
-                </ButtonLink>
-                <ButtonLink href="/packages" variant="secondary">
-                  대관료
-                </ButtonLink>
-                <ButtonLink href="/apply" variant="secondary">
-                  대관 신청
-                </ButtonLink>
-              </div>
-            </div>
-
-            <div className="mt-12 flex flex-wrap items-center gap-3 border-t border-border/25 pt-8">
-              <ButtonLink href={open ? "/apply" : "/register"} variant="primary">
-                {open ? "대관 신청하기" : "회원가입"}
-                <ArrowRight />
-              </ButtonLink>
               <ButtonLink href="/notices" variant="secondary">
                 공지사항 목록
+                <ArrowRight />
               </ButtonLink>
             </div>
           </div>

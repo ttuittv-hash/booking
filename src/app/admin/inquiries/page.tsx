@@ -1,6 +1,5 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { inquiryCategoryLabel } from "@/lib/inquiryCategories";
 import { getCurrentUser } from "@/lib/auth";
 import { listInquiriesPaged, listUsersByIds, normalizePage } from "@/lib/db";
 import { Pagination } from "@/components/Pagination";
@@ -105,10 +104,6 @@ export default async function AdminInquiriesPage({
                           >
                             {inquiry.title}
                           </Link>
-                          <span className="mt-1 block text-xs font-normal text-muted">
-                            {inquiryCategoryLabel(inquiry.category)}
-                            {inquiry.quoteId && ` · ${inquiry.quoteId}`}
-                          </span>
                         </td>
                         <td className={TD_MUTED}>
                           {author?.name ?? NONE} ({author?.companyName ?? NONE})

@@ -30,9 +30,8 @@ export default async function FaqPage() {
           <div className="grid gap-12 lg:grid-cols-[minmax(0,22rem)_minmax(0,1fr)] lg:gap-20">
             <div className="lg:sticky lg:top-28 lg:self-start">
               <h1 className="type-kr-heading text-h2-m sm:text-h2">자주 묻는 질문</h1>
-              <p className="measure mt-6 break-keep text-m text-muted">
-                관객 대상 관람 안내는 개관 시점에 별도로 안내하며, 지금은 대관사가 신청 전에
-                확인하셔야 할 내용만 다룹니다. 여기에 없는 내용은 1:1 문의로 남겨 주세요.
+              <p className="mt-6 text-m text-muted">
+                신청부터 심의, 계약·정산, 공연 당일까지 자주 묻는 질문을 단계별로 모았습니다.
               </p>
               <div className="mt-8 flex flex-wrap gap-3">
                 <ButtonLink href="/mypage/inquiries" variant="primary">
@@ -46,7 +45,7 @@ export default async function FaqPage() {
               {faqs.length === 0 ? (
                 <EmptyState
                   title="등록된 FAQ가 없습니다"
-                  desc="검토 · 신청·심의 · 계약·정산 · 준비·당일 네 구간의 문항이 등록되면 이곳에 표시됩니다."
+                  desc="자주 묻는 질문이 등록되면 진행 단계별로 이곳에 표시됩니다."
                   action={
                     <ButtonLink href="/guide" variant="secondary">
                       대관 안내 보기

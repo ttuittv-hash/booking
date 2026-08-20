@@ -5,13 +5,13 @@ import { getVenueContent } from "@/lib/db";
 import { sanitizeRichText } from "@/lib/sanitizeHtml";
 import { PublicHeader } from "@/components/PublicHeader";
 import { SiteFooter } from "@/components/ui/SiteFooter";
-import { VenueAmenitiesView } from "@/components/venue/VenueSections";
+import { VenueStageFeaturesView } from "@/components/venue/VenueSections";
 
 export const metadata: Metadata = {
-  title: "부대시설 | 서울아레나",
+  title: "무대 특장 | 서울아레나",
 };
 
-export default async function VenueAmenitiesPage() {
+export default async function VenueStageFeaturesPage() {
   const currentUser = await getCurrentUser();
   if (currentUser && isPendingApplicant(currentUser)) redirect("/pending");
 
@@ -26,9 +26,9 @@ export default async function VenueAmenitiesPage() {
 
   return (
     <div className="flex flex-1 flex-col">
-      <PublicHeader active="/venue/amenities" currentUser={currentUser} />
+      <PublicHeader active="/venue/stage-features" currentUser={currentUser} />
       <main className="flex flex-1 flex-col">
-        <VenueAmenitiesView content={content} />
+        <VenueStageFeaturesView content={content} />
       </main>
       <SiteFooter />
     </div>

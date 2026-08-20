@@ -15,13 +15,6 @@ import { TagBadge } from "@/components/TagBadge";
 
 type Stage = { id: string; kr: string; keywords: string[] };
 
-/**
- * 말머리 닫힌 목록 — 관리 화면은 이 넷 중에서만 고르게 한다.
- * 자유 입력으로 두면 같은 성격의 문항이 서로 다른 그룹으로 갈린다.
- */
-export const FAQ_TAGS = ["검토", "신청·심의", "계약·정산", "준비·당일"] as const;
-export type FaqTag = (typeof FAQ_TAGS)[number];
-
 /* 넓은 키워드(검토)를 마지막에 두어 좁은 단계가 먼저 잡히게 한다. */
 const STAGES: Stage[] = [
   {
@@ -76,10 +69,7 @@ const STAGES: Stage[] = [
 const OTHER: Stage = { id: "other", kr: "기타", keywords: [] };
 
 function stageOf(faq: Faq): Stage {
-  const tag = (faq.tag ?? "").replace(/\s/g, "");
-  // 말머리가 4단계 중 하나면 그대로 쓴다. 키워드 추정은 구버전 데이터 대비 폴백이다.
-  const exact = STAGES.find((s) => s.kr.replace(/\s/g, "") === tag);
-  if (exact) return exact;
+  const tag = faq.tag ?? "";
   const byTag = STAGES.find((s) => s.keywords.some((k) => tag.includes(k)));
   if (byTag) return byTag;
   const found = STAGES.find((s) => s.keywords.some((k) => faq.question.includes(k)));

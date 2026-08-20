@@ -29,7 +29,7 @@ export async function POST(request: Request) {
     quoteId: "",
     message:
       action === "approve"
-        ? "가입이 승인되었습니다. 이제 대관료 열람과 신청서 작성을 이용하실 수 있습니다."
+        ? "가입이 승인되었습니다. 이제 대관 패키지 안내와 견적 산출을 이용하실 수 있습니다."
         : "가입이 승인되지 않았습니다. 자세한 사항은 운영자에게 문의해주세요.",
     createdAt: new Date().toISOString(),
   });

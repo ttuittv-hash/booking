@@ -80,40 +80,9 @@
   --shadow-xl: 0 24px 48px rgba(0, 0, 0, 0.12);
   --shadow-xxl: 0 32px 64px rgba(0, 0, 0, 0.14);
 
-  /* --- Layout ------------------------------------------------------------
-     디자인 가이드 v0.1 (260820) §2 — 6 columns / Stretch / Margin 64 / Gutter 40.
-     콘텐츠 폭은 고정 max-width 가 아니라 `뷰포트 − (마진 × 2)` 다.
-     구 규격(max-width 1384 → 콘텐츠 1256)은 폐기했다. 1256·458·522·734 가
-     코드에 남아 있으면 그것은 구 규격 잔재다.
-        컬럼 폭  c = (W − 40 × 5) / 6
-        n컬럼    = n·c + 40·(n−1)
-     1497 기준 → W 1369 · 1col 194.8 · 2col 429.7 · 3col 664.5 · 4col 899.3
-     ---------------------------------------------------------------------- */
-  --margin-x: 1.25rem; /* 20 — 640 미만 */
-  --gutter: 1rem;
-  --columns: 6;
-  /* 산문 최대 폭(measure). 컬럼 스팬과 무관한 절대값 — 약 45~50자 */
-  --measure: 48rem; /* 768 */
+  /* --- Layout (Figma: 캔버스 1512 / 컨테이너 1384 / 헤더 72) ------------- */
+  --container: 1384px;
   --header-h: 72px;
-}
-
-@media (min-width: 768px) {
-  :root {
-    --margin-x: 2rem; /* 32 */
-    --gutter: 1.5rem; /* 24 */
-  }
-}
-@media (min-width: 1024px) {
-  :root {
-    --margin-x: 3rem; /* 48 */
-    --gutter: 2rem; /* 32 */
-  }
-}
-@media (min-width: 1440px) {
-  :root {
-    --margin-x: 4rem; /* 64 — 정본 */
-    --gutter: 2.5rem; /* 40 — 정본 */
-  }
 }
 
 @theme inline {
@@ -219,8 +188,7 @@
   --shadow-xl: var(--shadow-xl);
   --shadow-xxl: var(--shadow-xxl);
 
-  --spacing-gutter: var(--gutter);
-  --spacing-margin-x: var(--margin-x);
+  --container-site: var(--container);
 }
 
 html {
@@ -261,34 +229,14 @@ input[type="number"]::-webkit-inner-spin-button {
    Utilities
    ========================================================================= */
 
-/*
-  섹션 안쪽 콘텐츠 래퍼. 풀블리드 지면 위에 좌우 마진만 준다.
-  max-width 를 두지 않는 것이 정본이다 — 콘텐츠 폭은 뷰포트에서 마진을 뺀 값이고,
-  산문의 가독 폭은 `measure`(768) 가 따로 책임진다.
-*/
 @utility container-site {
   width: 100%;
+  max-width: var(--container);
   margin-inline: auto;
-  padding-inline: var(--margin-x);
-}
-
-/*
-  6컬럼 레이아웃 그리드. 컬럼 경계에 스냅해야 하는 블록에만 쓴다.
-  1024 미만에서는 1컬럼으로 무너진다 (스냅 포인트는 하나로 유지).
-  자식은 `col-span-*` 로 스팬을 적는다 — 2col 사이드바, 4col 본문 등.
-*/
-@utility grid-site {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr);
-  gap: var(--gutter);
+  padding-inline: 1.5rem;
   @media (min-width: 1024px) {
-    grid-template-columns: repeat(6, minmax(0, 1fr));
+    padding-inline: 4rem; /* Figma: (1512 - 1384) / 2 */
   }
-}
-
-/* 산문 문단의 최대 폭 — 컬럼 스팬과 무관한 절대값 */
-@utility measure {
-  max-width: var(--measure);
 }
 
 /* 영문 디스플레이 — Archivo Extrabold, 대문자 */

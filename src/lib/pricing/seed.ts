@@ -1,243 +1,221 @@
-import { ARENA_PACKAGE_RATES } from "@/lib/content/rateFacts";
-import { ARENA_RATE_INCLUDES } from "@/lib/content/venueFacts";
 import type { AddonItem, RateTable, RentalPackage } from "./types";
 
-/* ============================================================================
-   요금표 시드 — DB 가 비어 있을 때 최초 1회 넣는 기본값.
-   운영 중 값은 백오피스(요금표 관리)에서 교체한다.
+// 모든 금액은 확정 전 값입니다. Rate Card 확정 시 운영자 백오피스(요금표 관리)에서
+// 교체하면 됩니다. 이 파일은 DB가 비어 있을 때 최초 1회 시드하는 기본값입니다.
+//
+// 패키지 기본 대관료 정본: Notion "(웹사이트) 대관·비즈니스 사이트 구조 기획" › BOOK IT › 대관료
+//   P1 1.2만명 이하 약 4.29억 / P2 1.2–1.49만 약 4.89억
+//   P3 1.5–1.79만 약 5.57억 / P4 1.8–2.2만 약 6.09억
+// 산출 근거: 실시협약 고정 기본 대관료(준비일 2,580만원/일 · 공연일 5,770만원/일, 2018 불변가,
+//   2027 경상가 전환 예정) 기준 공연 1건 약 2.2억(셋업 4일 + 공연 2일)에 시설·장비·매체를 더한 값.
+//   내부 검토안이므로 공개 전 정본 재확인 필요.
 
-   정본: `대관 오픈 준비_101.xlsx` › 대관료 시트 (2026-08)
-   화면 표기 정본은 `src/lib/content/rateFacts.ts` 이며, 패키지 대관료는 그 파일에서 가져온다.
-   두 곳에 금액을 적으면 반드시 어긋나므로 여기서 숫자를 다시 쓰지 않는다.
+export const SEED_RATE_TABLE_VERSION = "2026-08-notion-v1";
 
-   2026-08 교체 내역
-     ① 패키지 대관료 — 429/489/557/609백만(내부 검토안) → 518/548/613/660백만(요금 시트)
-     ② 관객 규모 상한 — 패키지 4 의 99,999 → 22,000
-     ③ 센터 리프트 — 실물 1 EA. "패키지 3·4 기본 포함 2대" 는 성립하지 않는다.
-        기본 포함에서 빼고 추가 항목으로만 둔다 (1,500,000원 / 공연 회당)
-     ④ 송출 수수료 — 매출 5% → 3%
-     ⑤ 관계자 주차 — 전 패키지 150대 (단지 총량 915대와 구분)
-     ⑥ 기본 포함사항 — 수량·초과 단가 모델에서 서술 목록(RATE INCLUDES)으로 전환.
-        요금 시트에 초과 단가가 있는 항목만 추가 항목으로 남긴다
-     ⑦ 유선 인터컴 — 시트에 요금이 없어 신청 항목에서 제외 (1:1 문의로 안내)
-     ⑧ 홍보 디지털 매체 A/B/C 세트 — 시트에 없다. 옥외 광고물·디지털 매체 협의 항목 하나로 통합
-     ⑨ 중형공연장 — 패키지 개념이 없다. 일수 기준 트랙은 9/1 대관오픈 범위이므로
-        패키지 시드에서 제외한다 (근거 없는 금액을 만들지 않는다)
-   ========================================================================= */
-
-export const SEED_RATE_TABLE_VERSION = "2026-08-rate-sheet-v1";
-
-/** 전 패키지 공통 운영 조건 — 요금 시트 기준·제한 사항 */
-const COMMON = {
-  includedWeeks: 1,
-  discountRatio: 0,
-  dayBreakdown: "셋업 4일 + 공연 2일",
-  defaultPerformanceDays: 2,
-  rentalHours: "09:00 ~ 22:00",
-  outdoorPlazaIncluded: true,
-  parkingPerDay: "150대/일",
-  waitingRoomNote: "지하 8실 · 지상 6실 (총 14실)",
-  sideFacilities: "다목적실 2실 · 운영관리실 · 프로덕션룸 · 녹음실 · 식당 · 프레스룸",
-} as const;
-
-const TAGLINE: Record<1 | 2 | 3 | 4, string> = {
-  1: "엔드 스테이지와 플로어 지정석으로 여는 표준 구성",
-  2: "엔드 스테이지에 플로어 스탠딩을 더한 구성",
-  3: "센터 스테이지로 객석을 사방에 두는 구성",
-  4: "센터 스테이지와 플로어 스탠딩으로 최대 규모를 담는 구성",
-};
-
-export const SEED_PACKAGES: RentalPackage[] = ARENA_PACKAGE_RATES.map((r, i) => {
-  const prev = ARENA_PACKAGE_RATES[i - 1];
-  return {
-    id: r.id,
+// 아래 4개 패키지의 기본정보/기본 포함사항은 "패키지 구성" 명세(엑셀) 기준입니다.
+// 대관 구성(화~일)·세부 구성(준비 4일+공연 2일)·대관시간(09:00~22:00)·야외광장 포함 여부는
+// 전 패키지 공통이며, 객석 운영 형태·무대형태는 명세상 "대관시스템 미노출" 항목이라 신청자 화면에는 표시하지 않습니다.
+export const SEED_PACKAGES: RentalPackage[] = [
+  {
+    id: 1,
     venueId: "arena",
-    name: r.name,
-    tagline: TAGLINE[r.id],
-    audienceTier: {
-      min: prev ? Number(prev.capacity.replace(/\D/g, "")) + 1 : 0,
-      max: Number(r.capacity.replace(/\D/g, "")),
-      label: `${r.capacity} 규모`,
-    },
-    baseFeePerWeek: r.total,
-    includedItems: [],
-    rateIncludes: ARENA_RATE_INCLUDES,
+    name: "패키지 1",
+    tagline: "합리적인 규모의 콘서트를 위한 스탠더드 패키지",
+    audienceTier: { min: 0, max: 12_000, label: "~12,000석 규모" },
+    baseFeePerWeek: 429_000_000,
+    includedWeeks: 1,
     mediaTier: null,
-    seatingType: r.seatingType,
-    stageType: r.stageType,
-    ...COMMON,
-  } satisfies RentalPackage;
-});
-
-/**
- * 추가 사용료 — 요금 시트 ADDITIONAL CHARGES 를 그대로 옮긴 것.
- * 시트에 없는 항목은 만들지 않는다. 금액을 창작하지 않는다.
- */
-export const SEED_ADDONS: AddonItem[] = [
-  {
-    id: "extra_slot",
-    category: "SCHEDULE",
-    name: "추가 대관 (종일 09:00~24:00)",
-    pricingType: "PER_HOUR",
-    unitPrice: 35_000_000,
-    unitLabel: "원/시간",
-    availability: { mode: "ALWAYS" },
-    billingPhase: "ESTIMATE",
-    note: "기준 이용시간(09:00~22:00)을 넘길 때",
+    discountRatio: 0,
+    dayBreakdown: "준비 4일 + 공연 2일",
+    defaultPerformanceDays: 2,
+    rentalHours: "09:00 ~ 22:00",
+    outdoorPlazaIncluded: true,
+    parkingPerDay: "100대/일",
+    waitingRoomNote: "지하 4실 · 지상 3실",
+    sideFacilities: "운영관리실 · 프로덕션룸 · 무대감독실 · 식당",
+    seatingType: "지정 좌석형",
+    stageType: "엔드스테이지",
+    includedItems: [
+      { addonId: "waiting_room", quantity: 7 },
+      { addonId: "follow_spot", quantity: 5 },
+      { addonId: "intercom_wireless", quantity: 10 },
+      { addonId: "mother_truss_a", quantity: 6 },
+      { addonId: "mother_truss_l", quantity: 6 },
+      { addonId: "mother_truss_r", quantity: 6 },
+      { addonId: "smart_stage", quantity: 1 },
+      { addonId: "production_power", quantity: 6 },
+      { addonId: "delay_speaker", quantity: 1 },
+    ],
   },
   {
-    id: "late_night_slot",
-    category: "SCHEDULE",
-    name: "추가 대관 (철야 24:00~06:00)",
-    pricingType: "PER_HOUR",
-    unitPrice: 45_000_000,
-    unitLabel: "원/시간",
-    availability: { mode: "ALWAYS" },
-    billingPhase: "ESTIMATE",
+    id: 2,
+    venueId: "arena",
+    name: "패키지 2",
+    tagline: "확장된 홍보 효과가 필요한 중대형 공연을 위한 패키지",
+    audienceTier: { min: 12_001, max: 14_900, label: "12,000~14,900석 규모" },
+    baseFeePerWeek: 489_000_000,
+    includedWeeks: 1,
+    mediaTier: "BASIC",
+    discountRatio: 0,
+    dayBreakdown: "준비 4일 + 공연 2일",
+    defaultPerformanceDays: 2,
+    rentalHours: "09:00 ~ 22:00",
+    outdoorPlazaIncluded: true,
+    parkingPerDay: "150대/일",
+    waitingRoomNote: "지하 4실 · 지상 6실",
+    sideFacilities: "패키지1 구성 + 다목적실",
+    seatingType: "지정석 + 스탠딩",
+    stageType: "엔드스테이지",
+    includedItems: [
+      { addonId: "waiting_room", quantity: 10 },
+      { addonId: "follow_spot", quantity: 10 },
+      { addonId: "intercom_wireless", quantity: 15 },
+      { addonId: "mother_truss_a", quantity: 6 },
+      { addonId: "mother_truss_b", quantity: 6 },
+      { addonId: "mother_truss_l", quantity: 6 },
+      { addonId: "mother_truss_r", quantity: 6 },
+      { addonId: "smart_stage", quantity: 1 },
+      { addonId: "production_power", quantity: 6 },
+      { addonId: "delay_speaker", quantity: 1 },
+    ],
   },
   {
-    id: "booth",
-    category: "SPACE",
-    name: "부스",
-    pricingType: "PER_DAY",
-    unitPrice: 1_000_000,
-    unitLabel: "원/1일·개소",
-    availability: { mode: "ALWAYS" },
-    billingPhase: "ESTIMATE",
+    id: 3,
+    venueId: "arena",
+    name: "패키지 3",
+    tagline: "대형 스탠딩 공연을 위한 풀프로덕션 패키지",
+    audienceTier: { min: 14_901, max: 17_900, label: "15,000~17,900석 규모" },
+    baseFeePerWeek: 557_000_000,
+    includedWeeks: 1,
+    mediaTier: "EXTENDED",
+    discountRatio: 0,
+    dayBreakdown: "준비 4일 + 공연 2일",
+    defaultPerformanceDays: 2,
+    rentalHours: "09:00 ~ 22:00",
+    outdoorPlazaIncluded: true,
+    parkingPerDay: "200대/일",
+    waitingRoomNote: "지하 8실 · 지상 6실",
+    sideFacilities: "패키지2 구성 + 프레스룸",
+    seatingType: "스탠딩",
+    stageType: "센터스테이지",
+    includedItems: [
+      { addonId: "waiting_room", quantity: 14 },
+      { addonId: "follow_spot", quantity: 15 },
+      { addonId: "intercom_wireless", quantity: 20 },
+      { addonId: "mother_truss_a", quantity: 6 },
+      { addonId: "mother_truss_b", quantity: 6 },
+      { addonId: "mother_truss_c", quantity: 6 },
+      { addonId: "mother_truss_l", quantity: 6 },
+      { addonId: "mother_truss_r", quantity: 6 },
+      { addonId: "smart_stage", quantity: 2 },
+      { addonId: "center_lift", quantity: 2 },
+      { addonId: "production_power", quantity: 6 },
+      { addonId: "delay_speaker", quantity: 1 },
+    ],
   },
   {
-    id: "popup_space",
-    category: "SPACE",
-    name: "팝업 공간",
-    pricingType: "PER_DAY",
-    unitPrice: 2_000_000,
-    unitLabel: "원/1일",
-    availability: { mode: "ALWAYS" },
-    billingPhase: "ESTIMATE",
-    note: "20평 기준",
+    id: 4,
+    venueId: "arena",
+    name: "패키지 4",
+    tagline: "최대 규모 공연을 위한 프리미엄 올인원 패키지",
+    audienceTier: { min: 17_901, max: 99_999, label: "18,000~22,000석 규모" },
+    baseFeePerWeek: 609_000_000,
+    includedWeeks: 1,
+    mediaTier: "FULL",
+    discountRatio: 0,
+    dayBreakdown: "준비 4일 + 공연 2일",
+    defaultPerformanceDays: 2,
+    rentalHours: "09:00 ~ 22:00",
+    outdoorPlazaIncluded: true,
+    parkingPerDay: "200대/일",
+    waitingRoomNote: "지하 8실 · 지상 6실",
+    sideFacilities: "패키지2 구성 + 프레스룸",
+    seatingType: "스탠딩",
+    stageType: "센터스테이지",
+    includedItems: [
+      { addonId: "waiting_room", quantity: 14 },
+      { addonId: "follow_spot", quantity: 15 },
+      { addonId: "intercom_wireless", quantity: 20 },
+      { addonId: "mother_truss_a", quantity: 6 },
+      { addonId: "mother_truss_b", quantity: 6 },
+      { addonId: "mother_truss_c", quantity: 6 },
+      { addonId: "mother_truss_l", quantity: 6 },
+      { addonId: "mother_truss_r", quantity: 6 },
+      { addonId: "smart_stage", quantity: 2 },
+      { addonId: "center_lift", quantity: 2 },
+      { addonId: "production_power", quantity: 6 },
+      { addonId: "delay_speaker", quantity: 1 },
+    ],
   },
   {
-    id: "practice_room",
-    category: "SPACE",
-    name: "B1F 연습실",
-    pricingType: "PER_DAY",
-    unitPrice: 1_000_000,
-    unitLabel: "원/1일",
-    availability: { mode: "ALWAYS" },
-    billingPhase: "ESTIMATE",
-  },
-  {
-    id: "center_lift",
-    category: "PRODUCTION",
-    name: "센터 리프트",
-    pricingType: "PER_DAY",
-    unitPrice: 1_500_000,
-    unitLabel: "원/공연 회당",
-    availability: { mode: "ALWAYS", maxAddQuantity: 1 },
-    billingPhase: "ESTIMATE",
-    note: "1대 보유 — 같은 시간에 한 곳에서만 운용",
-  },
-  {
-    id: "follow_spot",
-    category: "PRODUCTION",
-    name: "팔로우 스팟",
-    pricingType: "PER_DAY",
-    unitPrice: 150_000,
-    unitLabel: "원/1일·대당",
-    availability: { mode: "ALWAYS", maxAddQuantity: 15 },
-    billingPhase: "ESTIMATE",
-    note: "최대 15대",
-  },
-  {
-    id: "intercom_wireless",
-    category: "PRODUCTION",
-    name: "무선 인터컴",
-    pricingType: "PER_DAY",
-    unitPrice: 30_000,
-    unitLabel: "원/1일·팩당",
-    availability: { mode: "ALWAYS", maxAddQuantity: 20 },
-    billingPhase: "ESTIMATE",
-    note: "최대 20팩",
-  },
-  {
-    id: "extra_parking",
-    category: "SERVICE",
-    name: "추가 주차권",
-    pricingType: "PER_DAY",
-    unitPrice: 15_000,
-    unitLabel: "원/1일권·대당",
-    availability: { mode: "ALWAYS" },
-    billingPhase: "ESTIMATE",
-    note: "포함 150대를 넘길 때",
-  },
-  {
-    id: "online_streaming_fee",
-    category: "FEE",
-    name: "송출 수수료",
-    pricingType: "REVENUE_PERCENT",
-    unitPrice: 3,
-    unitLabel: "매출 %",
-    availability: { mode: "ALWAYS" },
-    billingPhase: "ESTIMATE",
-  },
-  {
-    id: "outdoor_media",
-    category: "PROMOTION",
-    name: "옥외 광고물·디지털 매체",
-    pricingType: "METERED",
-    unitPrice: 0,
-    unitLabel: "위치·규격에 따라 산정",
-    availability: { mode: "ALWAYS" },
-    billingPhase: "SETTLEMENT",
-    note: "협의 요청으로 접수합니다",
-  },
-  {
-    id: "util_electricity",
-    category: "UTILITY",
-    name: "일반전기",
-    pricingType: "METERED",
-    unitPrice: 0,
-    unitLabel: "실사용 정산",
-    availability: { mode: "ALWAYS" },
-    billingPhase: "SETTLEMENT",
-    note: "수도광열비 — 실사용량 기준 사후 정산",
-  },
-  {
-    id: "util_water",
-    category: "UTILITY",
-    name: "상하수도",
-    pricingType: "METERED",
-    unitPrice: 0,
-    unitLabel: "실사용 정산",
-    availability: { mode: "ALWAYS" },
-    billingPhase: "SETTLEMENT",
-    note: "수도광열비 — 실사용량 기준 사후 정산",
-  },
-  {
-    id: "util_heating",
-    category: "UTILITY",
-    name: "난방비",
-    pricingType: "METERED",
-    unitPrice: 0,
-    unitLabel: "실사용 정산",
-    availability: { mode: "ALWAYS" },
-    billingPhase: "SETTLEMENT",
-    note: "수도광열비 — 실사용량 기준 사후 정산",
-  },
-  {
-    id: "util_cooling",
-    category: "UTILITY",
-    name: "냉방비",
-    pricingType: "METERED",
-    unitPrice: 0,
-    unitLabel: "실사용 정산",
-    availability: { mode: "ALWAYS" },
-    billingPhase: "SETTLEMENT",
-    note: "수도광열비 — 실사용량 기준 사후 정산",
+    id: 5,
+    venueId: "medium-hall",
+    name: "중형공연장 패키지",
+    tagline: "약 2,000석 규모의 중형 공연·행사를 위한 기본 패키지",
+    audienceTier: { min: 0, max: 2_000, label: "~2,000석 규모" },
+    baseFeePerWeek: 15_000_000,
+    includedWeeks: 1,
+    mediaTier: null,
+    discountRatio: 0,
+    dayBreakdown: "준비 2일 + 공연 1일",
+    defaultPerformanceDays: 1,
+    rentalHours: "09:00 ~ 22:00",
+    outdoorPlazaIncluded: false,
+    parkingPerDay: "50대/일",
+    waitingRoomNote: "지상 2실",
+    sideFacilities: "운영관리실",
+    seatingType: "지정 좌석형",
+    stageType: "엔드스테이지",
+    includedItems: [
+      { addonId: "waiting_room", quantity: 2 },
+      { addonId: "intercom_wireless", quantity: 4 },
+    ],
   },
 ];
 
-// 초과 주차 단가는 요금 시트에 없다(변경 대관료만 있다). 확정 전까지 임시 비율을 유지한다.
+export const SEED_ADDONS: AddonItem[] = [
+  { id: "late_night_slot", category: "SCHEDULE", name: "심야 추가대관", pricingType: "PER_HOUR", unitPrice: 2_000_000, unitLabel: "원/시간", availability: { mode: "ALWAYS" }, billingPhase: "ESTIMATE", note: "특정 월요일·시간 선택 필요" },
+  { id: "extra_slot", category: "SCHEDULE", name: "일반 추가대관", pricingType: "PER_HOUR", unitPrice: 1_000_000, unitLabel: "원/시간", availability: { mode: "ALWAYS" }, billingPhase: "ESTIMATE" },
+  { id: "cleaning", category: "SERVICE", name: "청소비", pricingType: "PER_PERSON", unitPrice: 1_000, unitLabel: "원/인", availability: { mode: "ALWAYS" }, autoQuantity: "AUDIENCE", billingPhase: "ESTIMATE", note: "예상 관객수 자동 산출" },
+  { id: "meal", category: "SERVICE", name: "식사비", pricingType: "PER_MEAL", unitPrice: 12_000, unitLabel: "원/식", availability: { mode: "ALWAYS" }, billingPhase: "ESTIMATE" },
+  { id: "artist_meal", category: "SERVICE", name: "아티스트 식사", pricingType: "PER_MEAL", unitPrice: 30_000, unitLabel: "원/식", availability: { mode: "ALWAYS" }, billingPhase: "ESTIMATE" },
+  { id: "catering", category: "SERVICE", name: "케이터링", pricingType: "PER_MEAL", unitPrice: 25_000, unitLabel: "원/식", availability: { mode: "ALWAYS" }, billingPhase: "ESTIMATE" },
+  { id: "retractable_seat", category: "FACILITY", name: "수납식 객석 사용료", pricingType: "PER_SECTION", unitPrice: 3_000_000, unitLabel: "원/섹션", availability: { mode: "ALWAYS" }, billingPhase: "ESTIMATE" },
+  { id: "waiting_room", category: "SPACE", name: "대기실", pricingType: "PER_DAY", unitPrice: 1_000_000, unitLabel: "원/일", availability: { mode: "ALWAYS" }, billingPhase: "ESTIMATE", note: "패키지 기본 포함분 초과 시 과금" },
+  { id: "practice_room", category: "SPACE", name: "연습실", pricingType: "PER_DAY", unitPrice: 800_000, unitLabel: "원/일", availability: { mode: "ALWAYS" }, billingPhase: "ESTIMATE" },
+  { id: "multi_room", category: "SPACE", name: "다목적실", pricingType: "PER_DAY", unitPrice: 700_000, unitLabel: "원/일", availability: { mode: "ALWAYS" }, billingPhase: "ESTIMATE" },
+  { id: "recording_room", category: "SPACE", name: "녹음실", pricingType: "PER_DAY", unitPrice: 1_500_000, unitLabel: "원/일", availability: { mode: "ALWAYS" }, billingPhase: "ESTIMATE" },
+  { id: "simulation_room", category: "SPACE", name: "시뮬레이션룸", pricingType: "PER_DAY", unitPrice: 2_000_000, unitLabel: "원/일", availability: { mode: "ALWAYS" }, billingPhase: "ESTIMATE" },
+  { id: "press_room", category: "SPACE", name: "프레스룸", pricingType: "PER_DAY", unitPrice: 1_000_000, unitLabel: "원/일", availability: { mode: "ALWAYS" }, billingPhase: "ESTIMATE" },
+  { id: "skybox", category: "PREMIUM", name: "스카이박스", pricingType: "PER_ROOM", unitPrice: 3_000_000, unitLabel: "원/실", availability: { mode: "ALWAYS" }, billingPhase: "ESTIMATE" },
+  { id: "mother_truss_a", category: "PRODUCTION", name: "마더트러스 A 추가", pricingType: "PER_DAY", unitPrice: 3_000_000, unitLabel: "원/일", availability: { mode: "IF_NOT_INCLUDED" }, billingPhase: "ESTIMATE", note: "선택 패키지 불포함 시에만 선택 가능" },
+  { id: "mother_truss_b", category: "PRODUCTION", name: "마더트러스 B 추가", pricingType: "PER_DAY", unitPrice: 2_500_000, unitLabel: "원/일", availability: { mode: "IF_NOT_INCLUDED" }, billingPhase: "ESTIMATE" },
+  { id: "mother_truss_c", category: "PRODUCTION", name: "마더트러스 C 추가", pricingType: "PER_DAY", unitPrice: 2_000_000, unitLabel: "원/일", availability: { mode: "IF_NOT_INCLUDED" }, billingPhase: "ESTIMATE" },
+  { id: "mother_truss_l", category: "PRODUCTION", name: "마더트러스 L 추가", pricingType: "PER_DAY", unitPrice: 2_500_000, unitLabel: "원/일", availability: { mode: "IF_NOT_INCLUDED" }, billingPhase: "ESTIMATE" },
+  { id: "mother_truss_r", category: "PRODUCTION", name: "마더트러스 R 추가", pricingType: "PER_DAY", unitPrice: 2_500_000, unitLabel: "원/일", availability: { mode: "IF_NOT_INCLUDED" }, billingPhase: "ESTIMATE" },
+  { id: "reduction_curtain", category: "PRODUCTION", name: "리덕션 커튼", pricingType: "PER_DAY", unitPrice: 1_500_000, unitLabel: "원/일", availability: { mode: "IF_NOT_INCLUDED" }, billingPhase: "ESTIMATE" },
+  { id: "center_lift", category: "PRODUCTION", name: "센터리프트", pricingType: "PER_DAY", unitPrice: 4_000_000, unitLabel: "원/일", availability: { mode: "IF_NOT_INCLUDED" }, billingPhase: "ESTIMATE" },
+  { id: "smart_stage", category: "PRODUCTION", name: "스마트스테이지", pricingType: "PER_DAY", unitPrice: 2_000_000, unitLabel: "원/일", availability: { mode: "IF_PACKAGE_IN", packages: [1, 2], maxAddQuantity: 1 }, billingPhase: "ESTIMATE" },
+  { id: "follow_spot", category: "PRODUCTION", name: "팔로우 스팟", pricingType: "PER_DAY", unitPrice: 500_000, unitLabel: "원/일", availability: { mode: "IF_PACKAGE_IN", packages: [1, 2] }, billingPhase: "ESTIMATE" },
+  { id: "stair_led", category: "PRODUCTION", name: "계단 LED", pricingType: "PER_DAY", unitPrice: 800_000, unitLabel: "원/일", availability: { mode: "ALWAYS" }, billingPhase: "ESTIMATE" },
+  { id: "intercom_wireless", category: "PRODUCTION", name: "무선 인터컴", pricingType: "PER_DAY", unitPrice: 300_000, unitLabel: "원/일", availability: { mode: "IF_PACKAGE_IN", packages: [1, 2] }, billingPhase: "ESTIMATE" },
+  { id: "intercom_wired", category: "PRODUCTION", name: "유선 인터컴", pricingType: "PER_DAY", unitPrice: 200_000, unitLabel: "원/일", availability: { mode: "ALWAYS" }, billingPhase: "ESTIMATE" },
+  { id: "production_power", category: "PRODUCTION", name: "프로덕션 전기", pricingType: "PER_DAY", unitPrice: 500_000, unitLabel: "원/일", availability: { mode: "ALWAYS" }, billingPhase: "ESTIMATE", note: "준비일·공연일 기본 제공" },
+  { id: "delay_speaker", category: "PRODUCTION", name: "딜레이 스피커", pricingType: "PER_DAY", unitPrice: 1_000_000, unitLabel: "원/일", availability: { mode: "ALWAYS" }, billingPhase: "ESTIMATE", note: "공연일 기본 제공" },
+  { id: "online_streaming_fee", category: "FEE", name: "온라인 송출 수수료", pricingType: "REVENUE_PERCENT", unitPrice: 5, unitLabel: "매출 %", availability: { mode: "ALWAYS" }, billingPhase: "ESTIMATE" },
+  { id: "util_electricity", category: "UTILITY", name: "일반전기", pricingType: "METERED", unitPrice: 0, unitLabel: "실사용 정산", availability: { mode: "ALWAYS" }, billingPhase: "SETTLEMENT", note: "실사용 부과" },
+  { id: "util_water", category: "UTILITY", name: "상하수도", pricingType: "METERED", unitPrice: 0, unitLabel: "실사용 정산", availability: { mode: "ALWAYS" }, billingPhase: "SETTLEMENT", note: "실사용 부과" },
+  { id: "util_heating", category: "UTILITY", name: "난방비", pricingType: "METERED", unitPrice: 0, unitLabel: "실사용 정산", availability: { mode: "ALWAYS" }, billingPhase: "SETTLEMENT", note: "실사용 부과" },
+  { id: "util_cooling", category: "UTILITY", name: "냉방비", pricingType: "METERED", unitPrice: 0, unitLabel: "실사용 정산", availability: { mode: "ALWAYS" }, billingPhase: "SETTLEMENT", note: "실사용 부과" },
+  { id: "media_basic", category: "PROMOTION", name: "디지털 매체 (A세트)", pricingType: "PER_DAY", unitPrice: 2_000_000, unitLabel: "원/일", availability: { mode: "IF_PACKAGE_IN", packages: [2] }, billingPhase: "ESTIMATE" },
+  { id: "media_extended", category: "PROMOTION", name: "디지털 매체 (B세트)", pricingType: "PER_DAY", unitPrice: 4_000_000, unitLabel: "원/일", availability: { mode: "IF_PACKAGE_IN", packages: [3] }, billingPhase: "ESTIMATE" },
+  { id: "media_full", category: "PROMOTION", name: "디지털 매체 (C세트)", pricingType: "PER_DAY", unitPrice: 6_000_000, unitLabel: "원/일", availability: { mode: "IF_PACKAGE_IN", packages: [4] }, billingPhase: "ESTIMATE" },
+  { id: "outdoor_streetlight", category: "PROMOTION", name: "옥외광고 (가로등 배너)", pricingType: "PER_DAY", unitPrice: 500_000, unitLabel: "원/일", availability: { mode: "ALWAYS" }, billingPhase: "ESTIMATE" },
+  { id: "outdoor_xbanner", category: "PROMOTION", name: "옥외광고 (엑스배너)", pricingType: "PER_DAY", unitPrice: 300_000, unitLabel: "원/일", availability: { mode: "ALWAYS" }, billingPhase: "ESTIMATE" },
+  { id: "outdoor_wrapping", category: "PROMOTION", name: "옥외광고 (래핑)", pricingType: "PER_DAY", unitPrice: 1_000_000, unitLabel: "원/일", availability: { mode: "ALWAYS" }, billingPhase: "ESTIMATE" },
+];
+
+// 초과 주차 단가는 아직 미확정 항목(명세서 4.3)이라, 패키지 기본 대관료의 60%를 임시 비율로 둔다.
 export const SEED_EXTRA_WEEK_RATIO = 0.6;
 
 // 화~일 6일 중 미사용 요일 1일당 할인 비율. 6일 중 1일 = 약 16.7%를 임시 비율로 둔다.

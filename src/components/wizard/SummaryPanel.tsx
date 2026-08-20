@@ -2,13 +2,17 @@
 
 import { won } from "@/lib/format";
 import type { EstimatedQuote } from "@/lib/pricing/types";
+import { Note } from "@/components/ui/kit";
 
 /** 우측 sticky 요약 — 카드 박스 없이 헤어라인 표(SpecTable 스타일)로만 구성한다. */
 export function SummaryPanel({ quote }: { quote: EstimatedQuote }) {
   return (
-    <aside className="w-full min-w-0 lg:col-span-2 lg:sticky lg:top-28 lg:self-start">
+    <aside className="w-full min-w-0 lg:sticky lg:top-28 lg:self-start">
       <div className="border-t-2 border-foreground pt-5">
         <h3 className="type-kr-heading text-h6-m sm:text-h6">실시간 견적 요약</h3>
+        <p className="mt-2 text-xs text-muted">
+          ※ 예상 금액 — 확정 아님 (신청 → 계약 → 정산 단계에서 확정)
+        </p>
 
         <dl className="mt-5 border-t border-border/25">
           {quote.lineItems.length === 0 ? (
@@ -55,14 +59,14 @@ export function SummaryPanel({ quote }: { quote: EstimatedQuote }) {
         </dl>
 
         <div className="mt-5 border-t-2 border-foreground pt-4">
-          <p className="text-xs font-bold">합계 (VAT 포함)</p>
+          <p className="text-xs font-bold text-muted">합계 · VAT 포함</p>
           <p className="type-display mt-2 text-h5-m tabular-nums sm:text-h5">{won(quote.total)}</p>
-          <ul className="mt-2 space-y-1 text-xs leading-5 text-muted">
-            <li>부가세 10% 별도 산정 후 합산한 예상 금액입니다.</li>
-            <li>실제 금액은 신청 → 계약 → 정산 단계에서 확정됩니다.</li>
-            <li>{quote.meteredNotice}</li>
-          </ul>
+          <p className="mt-2 text-xs text-muted">
+            부가세 10% 별도 산정 후 합산한 예상 금액입니다.
+          </p>
         </div>
+
+        <Note className="mt-6">{quote.meteredNotice}</Note>
       </div>
     </aside>
   );

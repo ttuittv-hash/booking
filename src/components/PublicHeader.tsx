@@ -6,7 +6,6 @@ import type { AppUser } from "@/lib/pricing/types";
 import { LogoutButton } from "@/components/LogoutButton";
 import { NotificationBell } from "@/components/NotificationBell";
 import { NAV_CATEGORIES } from "@/components/ui/nav-items";
-import { isReleased, OPEN_PHASE_BADGE } from "@/lib/release";
 
 /**
  * Figma Wireframe › Navbar / 2 ("open menu").
@@ -165,20 +164,14 @@ export function PublicHeader({
                   <ul className="mt-2 grid grid-cols-2 gap-x-4 gap-y-2 sm:mt-0 sm:grid-cols-1">
                     {cat.pages.map((p) => (
                       <li key={p.href}>
-                        {/* 미공개 페이지도 메뉴에서 숨기지 않는다. 언제 열리는지만 라벨로 알린다 */}
                         <Link
                           href={p.href}
                           onClick={() => setOpen(false)}
-                          className={`inline-flex items-baseline gap-2 text-r transition-colors hover:text-accent tall:lg:text-m ${
+                          className={`text-r transition-colors hover:text-accent tall:lg:text-m ${
                             p.href === active ? "font-bold text-foreground" : "text-muted"
                           }`}
                         >
                           {p.label}
-                          {p.phase && !isReleased(p.phase) && (
-                            <span className="type-display text-[10px] tracking-[0.08em] text-accent">
-                              {OPEN_PHASE_BADGE}
-                            </span>
-                          )}
                         </Link>
                       </li>
                     ))}

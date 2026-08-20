@@ -1,6 +1,5 @@
 import Link from "next/link";
 import { NAV_CATEGORIES } from "@/components/ui/nav-items";
-import { isReleased, OPEN_PHASE_BADGE } from "@/lib/release";
 
 /**
  * Figma Design › Footer / 1 규격.
@@ -11,14 +10,8 @@ import { isReleased, OPEN_PHASE_BADGE } from "@/lib/release";
  *
  * 지면은 오프화이트, 글자는 검정. 블랙 밴드가 아니다.
  */
-const ADDRESS = "서울특별시 도봉구 창동 1-23, 1-24번지 일대";
-
-/*
-  대외 문의 이메일은 확정 전까지 화면에 노출하지 않는다.
-  시설소개자료 PDF 의 창구(`john.arena@` · `miles.b@`)와 기존 푸터 주소
-  (`booking.arena@`)가 서로 달라, 어느 쪽을 노출해도 한쪽은 틀린 안내가 된다.
-  창구가 확정되면 이 자리에 되살린다.
-*/
+const ADDRESS = "서울특별시 도봉구 창동 1-24";
+const CONTACT = "booking.arena@kakaocorp.com";
 
 export function SiteFooter() {
   return (
@@ -28,7 +21,7 @@ export function SiteFooter() {
         <div className="grid gap-12 lg:grid-cols-[minmax(0,1fr)_auto] lg:gap-16">
           <div className="space-y-6">
             <FooterField label="Address" value={ADDRESS} />
-            <FooterField label="Contact" value="1:1 문의로 남겨 주세요" href="/mypage/inquiries" />
+            <FooterField label="Contact" value={CONTACT} href={`mailto:${CONTACT}`} />
           </div>
 
           <div className="grid grid-cols-2 gap-x-10 gap-y-8 sm:grid-cols-4 lg:gap-x-14">
@@ -38,16 +31,8 @@ export function SiteFooter() {
                 <ul className="mt-4 space-y-2.5">
                   {col.pages.map((l) => (
                     <li key={l.href + l.label}>
-                      <Link
-                        href={l.href}
-                        className="inline-flex items-baseline gap-2 text-r transition-colors hover:text-accent"
-                      >
+                      <Link href={l.href} className="text-r transition-colors hover:text-accent">
                         {l.label}
-                        {l.phase && !isReleased(l.phase) && (
-                          <span className="type-display text-[10px] tracking-[0.08em] text-accent">
-                            {OPEN_PHASE_BADGE}
-                          </span>
-                        )}
                       </Link>
                     </li>
                   ))}
@@ -106,9 +91,9 @@ function FooterField({ label, value, href }: { label: string; value: string; hre
     <div>
       <p className="text-s text-muted">{label}</p>
       {href ? (
-        <Link href={href} className="text-s underline underline-offset-4 hover:text-accent">
+        <a href={href} className="text-s underline underline-offset-4 hover:text-accent">
           {value}
-        </Link>
+        </a>
       ) : (
         <p className="text-s">{value}</p>
       )}

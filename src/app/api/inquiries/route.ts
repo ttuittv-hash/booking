@@ -2,7 +2,6 @@ import { NextResponse } from "next/server";
 import crypto from "node:crypto";
 import { getCurrentUser } from "@/lib/auth";
 import { createInquiry, listInquiries, notifyAdmins } from "@/lib/db";
-import { findInquiryCategory } from "@/lib/inquiryCategories";
 
 export async function GET() {
   const user = await getCurrentUser();
@@ -20,38 +19,17 @@ export async function POST(request: Request) {
   }
 
   const body = await request.json().catch(() => null);
-  const title = typeof body?.title === "string" ? body.title.trim().slice(0, 60) : "";
-  const content = typeof body?.content === "string" ? body.content.trim().slice(0, 2000) : "";
-  const category = findInquiryCategory(typeof body?.category === "string" ? body.category : null);
-  const quoteId = typeof body?.quoteId === "string" && body.quoteId.trim() ? body.quoteId.trim() : null;
-
-  if (!category) {
-    return NextResponse.json({ error: "문의 유형을 선택해 주세요." }, { status: 400 });
-  }
+  const title = typeof body?.title === "string" ? body.title.trim() : "";
+  const content = typeof body?.content === "string" ? body.content.trim() : "";
   if (!title || !content) {
-    return NextResponse.json({ error: "제목과 내용을 입력해 주세요." }, { status: 400 });
-  }
-  // 신청 건을 전제하는 유형은 신청번호 없이 접수하면 담당 부서가 확인할 대상이 없다
-  if (category.quote === "REQUIRED" && !quoteId) {
-    return NextResponse.json(
-      { error: `${category.label} 문의는 관련 신청번호가 필요합니다.` },
-      { status: 400 },
-    );
+    return NextResponse.json({ error: "제목과 내용을 입력하세요." }, { status: 400 });
   }
 
   const createdAt = new Date().toISOString();
-  const inquiry = await createInquiry({
-    id: crypto.randomUUID(),
-    userId: user.id,
-    category: category.id,
-    quoteId: category.quote === "NONE" ? null : quoteId,
-    title,
-    content,
-    createdAt,
-  });
+  const inquiry = await createInquiry({ id: crypto.randomUUID(), userId: user.id, title, content, createdAt });
   await notifyAdmins({
-    quoteId: quoteId ?? "",
-    message: `새 1:1 문의가 등록되었습니다 (${category.label}): ${title}`,
+    quoteId: "",
+    message: `새 1:1 문의가 등록되었습니다: ${title}`,
     createdAt,
   });
 

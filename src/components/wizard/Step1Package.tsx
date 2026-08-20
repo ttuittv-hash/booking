@@ -2,12 +2,12 @@
 
 import { won } from "@/lib/format";
 import {
+  findAddon,
   packagePrice,
   packagesForVenue,
   recommendPackage,
 } from "@/lib/pricing/rateTableUtils";
-import { ARENA_MAX_AUDIENCE } from "@/lib/content/rateFacts";
-import type { RateTable } from "@/lib/pricing/types";
+import { MEDIA_TIER_LABEL, type RateTable } from "@/lib/pricing/types";
 import { CHOICE_SELECTED_VARS, choiceClass } from "@/components/ui/kit";
 import { StepHeading } from "./StepHeading";
 
@@ -28,50 +28,28 @@ export function Step1Package({
 }) {
   const recommended = recommendPackage(rateTable, expectedAudience, venueId);
   const venuePackages = packagesForVenue(rateTable, venueId);
-  const recommendedName = venuePackages.find((p) => p.id === recommended)?.name ?? "";
-  const selected = venuePackages.find((p) => p.id === packageId);
-  const overCapacity = expectedAudience > ARENA_MAX_AUDIENCE;
-  const overSelected = !!selected && expectedAudience > selected.audienceTier.max;
 
   return (
     <section>
       <StepHeading
-        title={<>공연 규모와 무대 형태를 선택해 주세요</>}
-        lead={
-          <>
-            예상 관객 규모와 무대 형태에 따라 패키지가 정해집니다. 패키지마다 최대 수용인원과 권장
-            무대·객석 형태가 다르고 대관료도 달라집니다. 선택하신 패키지는 심사 과정에서 공연
-            계획과 맞는지 함께 검토합니다.
-          </>
-        }
+        title={<>규모 / 패키지 선택</>}
+        lead={<>예상 관객 규모를 입력하면 패키지가 추천됩니다. 패키지는 정찰제 고정가이며, 각 패키지에 기본
+        포함된 구성을 비교해서 선택하세요.</>}
       />
 
       <div className="mt-7 max-w-xs">
-        <label htmlFor="expected-audience" className="mb-2 block text-xs font-bold">
+        <label htmlFor="expected-audience" className="mb-2 block text-xs font-bold text-muted">
           예상 관객 규모 (명)
         </label>
         <input
           id="expected-audience"
           type="number"
-          min={1}
-          max={ARENA_MAX_AUDIENCE}
+          min={0}
           step={500}
           value={expectedAudience}
           onChange={(e) => onChangeAudience(Math.max(0, Number(e.target.value) || 0))}
           className="field-base tabular-nums"
         />
-        {overCapacity && (
-          <p className="mt-2 text-s text-danger">
-            패키지 최대 수용인원은 약 {ARENA_MAX_AUDIENCE.toLocaleString()}명입니다. 이보다 큰
-            규모는 1:1 문의로 상담해 주세요.
-          </p>
-        )}
-        {!overCapacity && overSelected && (
-          <p className="mt-2 text-s text-danger">
-            입력하신 규모가 선택하신 패키지의 최대 수용인원을 넘습니다.
-            {recommended ? ` 규모에 맞는 ${recommendedName}을(를) 확인해 주세요.` : ""}
-          </p>
-        )}
       </div>
 
       {/*
@@ -112,15 +90,24 @@ export function Step1Package({
                 </span>
 
                 <span className="mt-5 block border-t border-border/40 pt-3">
-                  <span className="flex flex-wrap gap-x-6 gap-y-1.5 text-xs text-muted">
-                    <span>
-                      권장 무대 <b className="font-bold">{pkg.stageType}</b>
-                    </span>
-                    <span>
-                      권장 객석 <b className="font-bold">{pkg.seatingType}</b>
-                    </span>
-                    <span>
-                      관계자 주차 <b className="font-bold">{pkg.parkingPerDay}</b>
+                  <span className="mb-2 block text-xs font-bold text-muted">기본 포함</span>
+                  <span className="flex flex-wrap gap-x-6 gap-y-1.5">
+                    {pkg.includedItems.length === 0 ? (
+                      <span className="text-xs text-muted">별도 기본 포함 항목 없음</span>
+                    ) : (
+                      pkg.includedItems.map((item) => {
+                        const addon = findAddon(rateTable, item.addonId);
+                        return (
+                          <span key={item.addonId} className="text-xs text-muted">
+                            {addon?.name ?? item.addonId}{" "}
+                            <b className="tabular-nums">{item.quantity}</b>
+                          </span>
+                        );
+                      })
+                    )}
+                    <span className="text-xs text-muted">
+                      홍보 디지털 매체{" "}
+                      <b>{pkg.mediaTier ? MEDIA_TIER_LABEL[pkg.mediaTier] : "미포함"}</b>
                     </span>
                   </span>
                 </span>

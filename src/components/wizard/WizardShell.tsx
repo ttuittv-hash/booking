@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { calculateQuote } from "@/lib/pricing/calculateQuote";
 import { findAddon, findPackage, isAddonAvailable } from "@/lib/pricing/rateTableUtils";
 import type { AppUser, DateBlock, QuoteSelection, RateTable, WeekDemand } from "@/lib/pricing/types";
-import { DEFAULT_VENUE_ID, VENUES } from "@/lib/pricing/types";
+import { DEFAULT_VENUE_ID } from "@/lib/pricing/types";
 import { clearWizardDraft, loadWizardDraft, saveWizardDraft } from "@/lib/quotesStore";
 import { ArrowRight, btnClass } from "@/components/ui/kit";
 import { StepNav } from "./StepNav";
@@ -241,16 +241,9 @@ export function WizardShell({
     // container-site 는 width:100% 를 명시하므로 5cfc178 의 w-full 요건을 만족한다.
     // (그래도 의도를 남기기 위해 w-full 을 유지한다) 콘텐츠 트랙은 반드시
     // minmax(0,1fr) + min-w-0 로 묶어 스텝 전환 시 폭이 변하지 않게 한다. (310e689)
-    // 디자인 가이드 §7.4 — 본문 4컬럼 + 사이드바 2컬럼, 거터 하나만큼 벌린다.
-    // 콘텐츠 트랙은 minmax(0,1fr) + min-w-0 로 묶어 스텝 전환 시 폭이 변하지 않게 한다. (310e689)
-    <div className="container-site grid-site w-full py-12">
-      <div className="min-w-0 lg:col-span-4">
-        <StepNav
-          step={step}
-          maxUnlockedStep={maxUnlockedStep}
-          onJump={goTo}
-          trackName={VENUES.find((v) => v.id === selection.venueId)?.name}
-        />
+    <div className="container-site grid w-full grid-cols-1 gap-10 py-10 sm:py-12 lg:grid-cols-[minmax(0,1fr)_360px] lg:gap-14">
+      <div className="min-w-0">
+        <StepNav step={step} maxUnlockedStep={maxUnlockedStep} onJump={goTo} />
 
         {step === 1 && (
           <StepVenue rateTable={rateTable} venueId={selection.venueId} onSelectVenue={selectVenue} />

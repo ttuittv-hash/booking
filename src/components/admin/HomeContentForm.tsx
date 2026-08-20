@@ -82,7 +82,7 @@ export function HomeContentForm({ content: initial }: { content: HomeContent }) 
     patch({
       narrativeStatements: [
         ...content.narrativeStatements,
-        { title: "", desc: "" },
+        { title: "", desc: "", href: "/venue/specs", linkLabel: "시설 제원", image: null },
       ],
     });
   }
@@ -106,6 +106,21 @@ export function HomeContentForm({ content: initial }: { content: HomeContent }) 
       narrativeClosing: DEFAULT_HOME_CONTENT.narrativeClosing,
     });
     setMessage("브랜드 내러티브 기본값을 불러왔습니다. 확인 후 저장하세요.");
+  }
+
+  function updateProcessStep(i: number, patchS: Partial<HomeContent["processSteps"][number]>) {
+    patch({ processSteps: content.processSteps.map((s, j) => (j === i ? { ...s, ...patchS } : s)) });
+  }
+  function addProcessStep() {
+    patch({
+      processSteps: [
+        ...content.processSteps,
+        { no: String(content.processSteps.length + 1).padStart(2, "0"), title: "", desc: "" },
+      ],
+    });
+  }
+  function removeProcessStep(i: number) {
+    patch({ processSteps: content.processSteps.filter((_, j) => j !== i) });
   }
 
   async function save() {
@@ -238,6 +253,41 @@ export function HomeContentForm({ content: initial }: { content: HomeContent }) 
                   삭제
                 </button>
               </div>
+              <div className="mt-2 grid grid-cols-1 gap-2 sm:grid-cols-2">
+                <label>
+                  <span className={labelCls}>근거 페이지 링크</span>
+                  <input value={s.href} onChange={(e) => updateStatement(i, { href: e.target.value })} className={inputCls} />
+                </label>
+                <label>
+                  <span className={labelCls}>링크 라벨 (예: 시설 제원)</span>
+                  <input value={s.linkLabel} onChange={(e) => updateStatement(i, { linkLabel: e.target.value })} className={inputCls} />
+                </label>
+              </div>
+              <div className="mt-2">
+                <span className={labelCls}>이미지 (선택)</span>
+                {s.image ? (
+                  <div className="flex items-center gap-2">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src={s.image} alt={s.title} className="h-16 w-28 border border-border-soft object-cover" />
+                    <button type="button" onClick={() => updateStatement(i, { image: null })} className={removeBtnCls}>
+                      이미지 삭제
+                    </button>
+                  </div>
+                ) : (
+                  <label className="inline-block">
+                    <span className={addBtnCls}>
+                      {imageUploading === `statement-${i}` ? "업로드 중..." : "+ 이미지 업로드"}
+                    </span>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      disabled={imageUploading === `statement-${i}`}
+                      onChange={(e) => uploadSingleImage(e, `statement-${i}`, (url) => updateStatement(i, { image: url }))}
+                      className="hidden"
+                    />
+                  </label>
+                )}
+              </div>
             </div>
           ))}
           <button type="button" onClick={addStatement} className={addBtnCls}>
@@ -248,11 +298,45 @@ export function HomeContentForm({ content: initial }: { content: HomeContent }) 
 
       <section className="border-t border-border/15 pt-7">
         <h3 className={SUB_TITLE}>신청 절차</h3>
-        <p className={`mt-3 ${HELP}`}>
-          홈의 절차 블록은 대관 안내의 8단계를 3구간으로 압축해 자동으로 보여줍니다. 홈 전용
-          절차를 따로 만들지 않습니다 — 절차가 두 벌이 되면 반드시 어긋납니다. 문구를 고치시려면{" "}
-          <code className="font-bold">src/lib/content/processFacts.ts</code> 를 갱신해야 합니다.
-        </p>
+        <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2">
+          <label>
+            <span className={labelCls}>상단 라벨 (예: APPLICATION PROCESS)</span>
+            <input value={content.processLabel} onChange={(e) => patch({ processLabel: e.target.value })} className={inputCls} />
+          </label>
+          <label>
+            <span className={labelCls}>제목 (예: 신청 절차 안내)</span>
+            <input value={content.processTitle} onChange={(e) => patch({ processTitle: e.target.value })} className={inputCls} />
+          </label>
+        </div>
+
+        <div className="mt-3 space-y-3">
+          {content.processSteps.map((s, i) => (
+            <div key={i} className={cardCls}>
+              <div className="flex items-start justify-between gap-2">
+                <div className="grid flex-1 grid-cols-1 gap-2 sm:grid-cols-4">
+                  <label>
+                    <span className={labelCls}>번호</span>
+                    <input value={s.no} onChange={(e) => updateProcessStep(i, { no: e.target.value })} className={inputCls} />
+                  </label>
+                  <label className="sm:col-span-1">
+                    <span className={labelCls}>제목</span>
+                    <input value={s.title} onChange={(e) => updateProcessStep(i, { title: e.target.value })} className={inputCls} />
+                  </label>
+                  <label className="sm:col-span-2">
+                    <span className={labelCls}>설명</span>
+                    <input value={s.desc} onChange={(e) => updateProcessStep(i, { desc: e.target.value })} className={inputCls} />
+                  </label>
+                </div>
+                <button type="button" onClick={() => removeProcessStep(i)} className={removeBtnCls}>
+                  삭제
+                </button>
+              </div>
+            </div>
+          ))}
+          <button type="button" onClick={addProcessStep} className={addBtnCls}>
+            + 절차 단계 추가
+          </button>
+        </div>
       </section>
 
       {message && <p className={OK_NOTE}>{message}</p>}

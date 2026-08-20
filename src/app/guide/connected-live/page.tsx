@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { getCurrentUser, isPendingApplicant } from "@/lib/auth";
-import { isRentalOpen, OPEN_PHASE_LABEL } from "@/lib/release";
 import { PublicHeader } from "@/components/PublicHeader";
 import { SiteFooter } from "@/components/ui/SiteFooter";
 import {
@@ -9,10 +8,11 @@ import {
   Band,
   ButtonLink,
   CTABand,
-  ComparisonTable,
+  LayoutCards,
+  LayoutFeatures,
+  Media,
   Note,
   PageHeading,
-  ReleaseNotice,
   SpecTable,
 } from "@/components/ui/kit";
 
@@ -21,81 +21,78 @@ export const metadata: Metadata = {
 };
 
 /**
- * BOOK IT 하위에 두는 것은 확정 사항이다. 연계 공간의 사양과 요금이 확정된 뒤에도
- * 위치를 옮기지 않는다.
- *
- * 근거 없는 정량·정도 표현은 전부 뺐다. 삭제 대상은 "관객 2~3배", "중계 비용 크게 절감",
- * "컨벤션홀 약 1,400명" 이며 모두 근거 문서가 없다. 배수나 절감률을 다른 수치로
- * 바꿔 넣지 않고, 어떤 공연에 검토할 만한지를 조건으로 서술했다.
- *
- * 심사와의 관계 — 기존 카피는 대관 심사 가점을 약속했으나 실제 심사 로직에 가점 반영이 없다.
- * 이행할 수 없는 약속이므로 "참고 요소"로 낮췄다. 심사 항목과 배점이 정의되기 전까지
- * 화면에서 가점·우대·우선이라는 단어를 쓰지 않는다.
+ * Book It › 커넥티드 라이브.
+ * Book It 은 카테고리 라벨이므로 페이지 타이틀은 "커넥티드 라이브" 이고 브레드크럼을 두지 않는다.
+ * 본문은 Figma 레이아웃 모듈만 조합하고, 이미지 슬롯은 전부 Media 로 둔다.
  */
 
-const LINKED_SPACES: { space: string; capacity: string; note: string }[] = [
+const BENEFITS: { title: string; desc: string }[] = [
   {
-    space: "중형공연장",
-    capacity: "스탠딩 최대 3,500명 / 좌석 2,000~2,500명",
-    note: "아레나와 연계한 공연 운영이 가능합니다.",
+    title: "관객 규모 확장",
+    desc: "본공연은 그대로 유지하면서 연계 베뉴를 통해 추가 관객을 확보합니다. 회차를 늘리지 않고도 관람 수요를 흡수합니다.",
   },
   {
-    space: "복합문화컨벤션",
-    capacity: "미확정",
-    note: "K-컬처 맞춤 체류형 소비·문화 체험 공간입니다. 수용 규모와 세부 사양은 확정 후 안내합니다.",
+    title: "중계 비용 절감",
+    desc: "서울아레나가 중계 인프라를 갖추고 있어, 개별 구축 대비 중계 비용을 크게 절감할 수 있습니다.",
   },
   {
-    space: "야외광장",
-    capacity: "미확정",
-    note: "아레나 광장 3,835㎡, 중형공연장 광장 1,081㎡입니다. 면적 기준 수용 규모는 운영 계획에 따라 산정합니다.",
+    title: "추가 수익 기회",
+    desc: "티켓 매출 외에도 MD·스폰서 등 다양한 수익원을 통해 공연 한 편의 매출 잠재력을 확장합니다.",
   },
   {
-    space: "판매시설",
-    capacity: "미확정",
-    note: "웨딩·팬사인회·팬미팅 등 소규모 이벤트 공간입니다. 세부 사양은 확정 후 안내합니다.",
+    title: "단일 창구 계약",
+    desc: "베뉴마다 개별 협상하던 기존 방식과 달리, 서울아레나 한 곳과의 계약으로 베뉴 연계·중계·송출·정산까지 일괄 처리됩니다.",
   },
 ];
 
-function SectionTitle({ en, ko, lead }: { en: string; ko: string; lead?: React.ReactNode }) {
-  return (
-    <div>
-      <p className="type-display text-h6-m sm:text-h6">{en}</p>
-      <h2 className="type-kr-heading mt-4 text-h3-m sm:text-h3">{ko}</h2>
-      {lead && <div className="measure mt-6 break-keep text-m text-muted">{lead}</div>}
-    </div>
-  );
-}
+const VENUE_TIERS: { title: string; desc: string; rows: [string, string][] }[] = [
+  {
+    title: "REAL LIVE · 서울아레나 본공연",
+    desc: "최대 2.8만 명 규모의 아레나 공연장에서 펼쳐지는 원본 무대입니다. 모든 커넥티드 라이브의 중심이 됩니다.",
+    rows: [["메인 아레나", "최대 28,000명"]],
+  },
+  {
+    title: "서울아레나 연계 시설",
+    desc: "같은 부지 안에서 무대를 실시간으로 나눠 즐길 수 있는 공간입니다.",
+    rows: [
+      ["중형공연장", "약 2,000~4,000명"],
+      ["컨벤션홀", "약 1,400명"],
+      ["야외 광장", "약 500~1,000명"],
+    ],
+  },
+  {
+    title: "공공 베뉴",
+    desc: "도심 대형 광장을 활용해 대규모 관객을 수용하는 확장형 베뉴입니다.",
+    rows: [
+      ["서울광장", "약 5,000명"],
+      ["광화문 광장", "약 10,000명 이상"],
+      ["문정역 스포츠가든", "약 1,000명"],
+    ],
+  },
+];
+
+const HOW_IT_WORKS: { title: string; desc: string }[] = [
+  {
+    title: "본공연 확장형",
+    desc: "본공연 매진 이후 커넥티드 라이브 좌석을 순차 오픈해, 티켓을 구하지 못한 팬에게 관람 기회를 제공합니다.",
+  },
+  {
+    title: "대형 행사형",
+    desc: "페스티벌·시상식 등을 처음부터 다채널로 기획해 도시 전역의 축제로 확장합니다.",
+  },
+  {
+    title: "홍보·화제성형",
+    desc: "쇼케이스·팬미팅 등을 여러 채널로 동시 송출해 미디어 임팩트를 극대화합니다.",
+  },
+  {
+    title: "소셜라이브형",
+    desc: "애프터파티, 생중계 파티 등 팬덤이 함께 모여 즐기고 소통할 수 있는 커뮤니티형 관람 경험을 더합니다.",
+  },
+];
 
 export default async function ConnectedLivePage() {
   const currentUser = await getCurrentUser();
   if (currentUser && isPendingApplicant(currentUser)) redirect("/pending");
-
-  if (!isRentalOpen()) {
-    return (
-      <div className="flex flex-1 flex-col">
-        <PublicHeader active="/guide/connected-live" currentUser={currentUser} />
-        <main className="flex flex-1 flex-col">
-          <ReleaseNotice
-            title="커넥티드 라이브"
-            releaseLabel={OPEN_PHASE_LABEL}
-            lead="아레나 공연을 같은 단지 안의 다른 공간으로 연계해 함께 운영하는 방식입니다. 연계 가능 공간과 요금 안내는 9월 1일 대관 오픈과 함께 공개합니다."
-            alternatives={
-              <>
-                <ButtonLink href="/guide" variant="primary">
-                  대관 안내 보기
-                  <ArrowRight />
-                </ButtonLink>
-                <ButtonLink href="/mypage/inquiries" variant="secondary">
-                  연계 운영 문의
-                </ButtonLink>
-              </>
-            }
-          />
-        </main>
-        <SiteFooter />
-      </div>
-    );
-  }
 
   return (
     <div className="flex flex-1 flex-col">
@@ -105,61 +102,91 @@ export default async function ConnectedLivePage() {
         <Band tone="light" size="lg">
           <PageHeading
             title="커넥티드 라이브"
-            lead="아레나에서 열리는 공연을 같은 단지 안의 다른 공간으로 연계해 함께 운영하는 방식입니다. 아레나 객석만으로 관객을 다 담기 어려운 공연이나, 공연 전후 시간대에 단지 안에서 관객 동선을 이어가고 싶은 공연에 검토하실 수 있습니다. 연계 범위와 운영 방식은 공연별로 협의해 정합니다."
+            lead="서울아레나의 공연을 여러 베뉴로 실시간 송출해, 하나의 무대를 도시 전체로 연결하는 오프라인 생중계 관람 모델입니다. 장거리 이동이나 티켓팅으로 공연장을 찾지 못한 국내외 팬도 가까운 공연장·영화관·컨벤션홀·광장에서 같은 무대를 실시간으로 즐길 수 있습니다."
           />
-        </Band>
-
-        <Band tone="white">
-          <SectionTitle en="LINKED SPACES" ko="연계 가능 공간" />
           <div className="mt-14">
-            <ComparisonTable
-              rowLabel="공간"
-              columns={[
-                { key: "capacity", title: "수용 규모", align: "left" },
-                { key: "note", title: "비고", align: "left" },
-              ]}
-              rows={LINKED_SPACES.map((s) => ({ label: s.space, cells: [s.capacity, s.note] }))}
-            />
+            <Media src={null} alt="커넥티드 라이브" ratio="21 / 9" />
           </div>
-          <Note className="measure mt-8">
-            수용 규모는 일반적인 무대·객석 구성을 기준으로 보수적으로 산정한 참고치이며, 공연별
-            무대 규모 및 객석 운영 계획에 따라 확대·조정될 수 있습니다. 옥외 중계용 전력은 200A를
-            사용하실 수 있으며, 야외광장에는 200A·100A·100A 회로가 배치됩니다.
-          </Note>
         </Band>
 
-        <Band tone="light">
-          <SectionTitle
-            en="REVIEW"
-            ko="대관 심사와의 관계"
-            lead="커넥티드 라이브 연계를 함께 신청하시면 대관 심사에서 참고 요소로 검토합니다. 신청서의 공연 정보에 연계 희망 공간과 운영 계획을 적어 주시면 심사 단계에서 함께 봅니다. 연계 신청이 승인 여부를 결정하지는 않으며, 일정과 공연 내용, 시설 적합성을 종합적으로 검토하는 기존 심사 기준이 그대로 적용됩니다."
-          />
-        </Band>
-
+        {/* 대관 신청자 관점의 이점 (Figma Layout / 2) */}
         <Band tone="white">
-          <SectionTitle
-            en="RATE"
-            ko="연계 운영에 적용되는 요금"
-            lead="현재 요금표에 확정된 커넥티드 라이브 관련 항목은 송출 수수료 하나입니다."
+          <PageHeading
+            as="h2"
+            size="md"
+            title="한 번의 공연으로 관객을 2~3배까지"
+            lead="커넥티드 라이브가 대관 신청자에게 주는 이점입니다."
           />
-          <SpecTable className="mt-12" rows={[["송출 수수료", "매출의 3%"]]} />
-          <Note className="measure mt-8">
-            연계하시는 공간의 사용료와 중계 운영 비용은 별도 협의로 정합니다. 연계 범위가 공연마다
-            다르고 사용하시는 공간의 조합에 따라 산정 방식이 달라지기 때문입니다.
+          <LayoutFeatures columns={2} items={BENEFITS} />
+        </Band>
+
+        {/* 연계 베뉴 — 등급별 수용 규모 */}
+        <Band tone="light">
+          <PageHeading
+            as="h2"
+            size="md"
+            title="연계 베뉴"
+            lead="본공연은 서울아레나에서, 관람은 도시 곳곳에서. 공연 성격과 규모에 따라 베뉴를 연계해 관람 경험을 확장합니다."
+          />
+          <div className="mt-14 space-y-16">
+            {VENUE_TIERS.map((tier) => (
+              <div
+                key={tier.title}
+                className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.6fr)] lg:items-start lg:gap-16"
+              >
+                <div>
+                  <h3 className="type-kr-heading text-h5-m sm:text-h5">{tier.title}</h3>
+                  <p className="mt-4 max-w-md break-keep text-s text-muted">{tier.desc}</p>
+                </div>
+                <SpecTable dense rows={tier.rows} />
+              </div>
+            ))}
+          </div>
+          <Note className="mt-14 max-w-3xl">
+            이외에도 상영·상업 시설 네트워크(전국 영화관, 펍·라운지, 커뮤니티 공간 등)를 통해 팬이
+            가까운 곳에서 관람할 수 있고, 해외 상영 시설까지 연계해 글로벌 팬덤에게도 실시간으로
+            무대를 전합니다. 연계 베뉴 구성과 수용 규모는 공연 기획과 협의 상황에 따라 달라질 수
+            있습니다.
           </Note>
+        </Band>
+
+        {/* 구성 유형 (Figma Layout / 1) */}
+        <Band tone="white">
+          <LayoutCards
+            columns={2}
+            title="구성 유형"
+            lead="공연 유형에 따라 유연하게 구성할 수 있습니다."
+            items={HOW_IT_WORKS.map((h) => ({ title: h.title, desc: h.desc }))}
+          />
+        </Band>
+
+        {/* 대관 심사 가점 */}
+        <Band tone="dark">
+          <PageHeading
+            as="h2"
+            size="md"
+            title="대관 심사 가점"
+            lead="커넥티드 라이브 연계 공연으로 신청하면 대관 심사에서 대관점수 가점이 부여됩니다. 운영자가 일정·공연 내용·시설 적합성을 검토하는 심사 단계에서 반영되며, 자세한 기준과 신청 방법은 대관 담당자에게 문의하세요."
+          />
+          <div className="mt-10">
+            <ButtonLink href="/mypage/inquiries/new" variant="primary">
+              1:1 문의하기
+              <ArrowRight />
+            </ButtonLink>
+          </div>
         </Band>
 
         <CTABand
-          title="연계 구성을 검토 중이시라면 먼저 알려 주세요."
-          lead="연계 범위와 운영 방식은 공연별로 협의해 정합니다."
+          title="연계 규모를 포함해 예상 대관료를 확인하세요."
+          lead="대관 규모와 일정을 입력하면 예상 대관료를 즉시 확인할 수 있습니다."
           actions={
             <>
               <ButtonLink href="/apply" variant="primary">
-                대관 신청
+                대관 신청하기
                 <ArrowRight />
               </ButtonLink>
-              <ButtonLink href="/mypage/inquiries" variant="secondary">
-                연계 운영 문의
+              <ButtonLink href="/guide" variant="secondary">
+                대관 안내 보기
               </ButtonLink>
             </>
           }

@@ -67,7 +67,6 @@ function blankPackage(id: number): EditablePackage {
     baseFeePerWeek: 0,
     includedWeeks: 1,
     includedItems: [],
-    rateIncludes: [],
     mediaTier: null,
     discountRatio: 0,
     dayBreakdown: "준비 4일 + 공연 2일",
@@ -468,7 +467,7 @@ export function PackagesForm({ rateTable }: { rateTable: RateTable }) {
         <section>
           <h2 className={SUB_TITLE}>기본 포함 항목 · 요금</h2>
           <p className={`mt-2 ${HELP}`}>
-            체크한 항목은 아래 입력한 수량만큼 이 패키지에 기본 포함되며, 초과분만 추가 옵션 단계에서 과금됩니다. 단계 번호를 문구에 적지 마세요 — 트랙마다 번호가 다릅니다.
+            체크한 항목은 아래 입력한 수량만큼 이 패키지에 기본 포함되며, 초과분만 4단계에서 추가 과금됩니다.
             항목별 단가는 요금표 관리와 동일한 값이며, 여기서 수정하면 요금표에도 함께 반영됩니다.
           </p>
           <div className="mt-4 space-y-5">

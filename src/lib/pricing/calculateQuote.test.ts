@@ -34,41 +34,42 @@ function baseSelection(overrides: Partial<QuoteSelection> = {}): QuoteSelection 
 
 describe("calculateQuote — 명세서 7장 검증 케이스", () => {
   const pkg2 = findPackage(RATE_TABLE, 2)!;
+  const cleaning = findAddon(RATE_TABLE, "cleaning")!;
 
-  it("케이스 A: 기본만 — 패키지 정찰가 하나뿐", () => {
+  it("케이스 A: 기본만 — 기본료 + 청소비", () => {
     const quote = calculateQuote(baseSelection(), RATE_TABLE);
-    const expectedSubtotal = packagePrice(RATE_TABLE, pkg2);
+    const expectedSubtotal = packagePrice(RATE_TABLE, pkg2) + 8000 * cleaning.unitPrice;
     expect(quote.subtotal).toBe(expectedSubtotal);
     expect(quote.vat).toBe(Math.round(expectedSubtotal * 0.1));
     expect(quote.total).toBe(expectedSubtotal + quote.vat);
   });
 
-  it("케이스 B: 추가 항목은 첫 수량부터 전량 과금된다 (요금 시트에 수량 기준 포함분이 없다)", () => {
-    const followSpot = findAddon(RATE_TABLE, "follow_spot")!;
-    const intercom = findAddon(RATE_TABLE, "intercom_wireless")!;
-
-    expect(includedQuantity(pkg2, "follow_spot")).toBe(0);
+  it("케이스 B: 초과분 과금 — 대기실 초과분 + 스마트스테이지 추가분만 과금", () => {
+    const waitingRoomIncluded = includedQuantity(pkg2, "waiting_room");
+    const smartStageIncluded = includedQuantity(pkg2, "smart_stage");
+    const waitingRoom = findAddon(RATE_TABLE, "waiting_room")!;
+    const smartStage = findAddon(RATE_TABLE, "smart_stage")!;
 
     const quote = calculateQuote(
       baseSelection({
         addons: [
-          { addonId: "follow_spot", requestedQuantity: 5 },
-          { addonId: "intercom_wireless", requestedQuantity: 10 },
+          { addonId: "waiting_room", requestedQuantity: waitingRoomIncluded + 1 }, // 포함분+1개 신청 → 1개만 과금
+          { addonId: "smart_stage", requestedQuantity: smartStageIncluded + 1 }, // 포함분+1개 신청 → 1개만 과금
         ],
       }),
       RATE_TABLE,
     );
 
-    const followSpotLine = quote.lineItems.find((i) => i.addonId === "follow_spot")!;
-    const intercomLine = quote.lineItems.find((i) => i.addonId === "intercom_wireless")!;
+    const waitingRoomLine = quote.lineItems.find((i) => i.addonId === "waiting_room")!;
+    const smartStageLine = quote.lineItems.find((i) => i.addonId === "smart_stage")!;
 
-    expect(followSpotLine.billable).toBe(5);
-    expect(followSpotLine.amount).toBe(5 * followSpot.unitPrice);
-    expect(intercomLine.billable).toBe(10);
-    expect(intercomLine.amount).toBe(10 * intercom.unitPrice);
+    expect(waitingRoomLine.billable).toBe(1);
+    expect(waitingRoomLine.amount).toBe(1 * waitingRoom.unitPrice);
+    expect(smartStageLine.billable).toBe(1);
+    expect(smartStageLine.amount).toBe(1 * smartStage.unitPrice);
 
     const expectedSubtotal =
-      packagePrice(RATE_TABLE, pkg2) + 5 * followSpot.unitPrice + 10 * intercom.unitPrice;
+      packagePrice(RATE_TABLE, pkg2) + 8000 * cleaning.unitPrice + waitingRoom.unitPrice + smartStage.unitPrice;
     expect(quote.subtotal).toBe(expectedSubtotal);
   });
 
@@ -81,7 +82,7 @@ describe("calculateQuote — 명세서 7장 검증 케이스", () => {
     expect(extraDaysLine.billable).toBe(2);
     expect(extraDaysLine.amount).toBe(2 * dayPrice);
 
-    const expectedSubtotal = packagePrice(RATE_TABLE, pkg2) + 2 * dayPrice;
+    const expectedSubtotal = packagePrice(RATE_TABLE, pkg2) + 8000 * cleaning.unitPrice + 2 * dayPrice;
     expect(quote.subtotal).toBe(expectedSubtotal);
   });
 
@@ -93,7 +94,7 @@ describe("calculateQuote — 명세서 7장 검증 케이스", () => {
     expect(discountLine.billable).toBe(1);
     expect(discountLine.amount).toBe(-perDayDiscount);
 
-    const expectedSubtotal = packagePrice(RATE_TABLE, pkg2) - perDayDiscount;
+    const expectedSubtotal = packagePrice(RATE_TABLE, pkg2) + 8000 * cleaning.unitPrice - perDayDiscount;
     expect(quote.subtotal).toBe(expectedSubtotal);
   });
 
@@ -108,32 +109,23 @@ describe("calculateQuote — 명세서 7장 검증 케이스", () => {
     expect(extraDaysLine.billable).toBe(1);
   });
 
-  it("케이스 D: 패키지 가격은 정찰 총액이며 포함 항목 단가가 더해지지 않는다", () => {
-    // 요금 시트의 패키지 대관료는 그 자체로 총액이다.
-    // 서술형 RATE INCLUDES 는 금액을 갖지 않으므로 패키지 가격에 더해지지 않는다.
-    for (const pkg of RATE_TABLE.packages) {
-      expect(packagePrice(RATE_TABLE, pkg)).toBe(pkg.baseFeePerWeek);
-      expect(pkg.rateIncludes.length).toBeGreaterThan(0);
-    }
-  });
+  it("케이스 D: 규칙 차단 — 패키지3은 마더트러스A가 기본 포함이므로 IF_NOT_INCLUDED 규칙상 선택 불가", () => {
+    const pkg3 = findPackage(RATE_TABLE, 3)!;
+    const included = includedQuantity(pkg3, "mother_truss_a");
+    expect(included).toBeGreaterThan(0);
 
-  it("센터 리프트는 실물 1대이므로 추가 상한이 1이다", () => {
-    const centerLift = findAddon(RATE_TABLE, "center_lift")!;
-    expect(centerLift.availability.maxAddQuantity).toBe(1);
-    for (const pkg of RATE_TABLE.packages) {
-      expect(includedQuantity(pkg, "center_lift")).toBe(0);
-    }
-  });
-
-  it("아레나 패키지 대관료는 요금 시트 값과 같다", () => {
-    expect(RATE_TABLE.packages.map((p) => p.baseFeePerWeek)).toEqual([
-      518_000_000, 548_000_000, 613_000_000, 660_000_000,
-    ]);
-    expect(RATE_TABLE.packages.at(-1)!.audienceTier.max).toBe(22_000);
-  });
-
-  it("송출 수수료는 매출의 3% 다", () => {
-    expect(findAddon(RATE_TABLE, "online_streaming_fee")!.unitPrice).toBe(3);
+    // 이 항목을 강제로 addons에 담아도(= UI에서 노출되지 않아야 정상), 계산 엔진 규칙상
+    // "포함 수량" 위에 얹은 신청량만 과금되어야 한다 — 전량 재과금되지 않음을 검증.
+    const quote = calculateQuote(
+      baseSelection({
+        packageId: 3,
+        addons: [{ addonId: "mother_truss_a", requestedQuantity: included }],
+      }),
+      RATE_TABLE,
+    );
+    const line = quote.lineItems.find((i) => i.addonId === "mother_truss_a")!;
+    expect(line.billable).toBe(0);
+    expect(line.amount).toBe(0);
   });
 
   it("유틸리티(METERED, SETTLEMENT) 항목은 예상견적에서 제외된다", () => {

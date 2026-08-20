@@ -4,12 +4,11 @@ import { hash as bcryptHash } from "@node-rs/bcrypt";
 import crypto from "node:crypto";
 import { buildSeedRateTable } from "./pricing/seed";
 import { SEED_PAGES } from "./pricing/pageSeed";
-import { DEFAULT_HOME_CONTENT } from "./content/seed";
-import { SEED_FAQS } from "./content/faqSeed";
+import { DEFAULT_GUIDE_CONTENT, DEFAULT_HOME_CONTENT, DEFAULT_VENUE_CONTENT } from "./content/seed";
 import { FEATURE_SPEC_SEED } from "./featureSpecSeed";
 import { FEATURE_SPEC_SHEET_KEYS } from "./pricing/types";
 import { sha256Hex } from "./passwordScheme";
-import type { HomeContent } from "./content/types";
+import type { GuideContent, HomeContent, VenueContent } from "./content/types";
 import type {
   ApprovalStatus,
   CompanyVerification,
@@ -312,15 +311,6 @@ async function initSchema(pool: Pool) {
   // 이후 세션에서 추가되는 컬럼은 여기서 마이그레이션한다 (PostgreSQL은 IF NOT EXISTS 지원).
   await pool.query(`
     ALTER TABLE users ADD COLUMN IF NOT EXISTS password_scheme TEXT NOT NULL DEFAULT 'v2';
-    -- 대관공고 게시물의 접수 정보. 대관 일정의 정본은 공지 게시물이므로
-    -- 홈·대관 안내의 공고 카드는 이 값을 그대로 끌어다 쓰고 값을 복제하지 않는다.
-    ALTER TABLE notices ADD COLUMN IF NOT EXISTS apply_start TEXT;
-    ALTER TABLE notices ADD COLUMN IF NOT EXISTS apply_end TEXT;
-    ALTER TABLE notices ADD COLUMN IF NOT EXISTS target_venues TEXT;
-    -- 1:1 문의 유형과 관련 신청번호. 자유 서술 두 칸만으로는 운영자가 어느 부서로
-    -- 넘길지, 어느 신청 건에 관한 문의인지 본문을 읽어야만 알 수 있었다.
-    ALTER TABLE inquiries ADD COLUMN IF NOT EXISTS category TEXT;
-    ALTER TABLE inquiries ADD COLUMN IF NOT EXISTS quote_id TEXT;
     ALTER TABLE companies ADD COLUMN IF NOT EXISTS verification_status TEXT;
     ALTER TABLE companies ADD COLUMN IF NOT EXISTS verified_company_name TEXT;
     ALTER TABLE companies ADD COLUMN IF NOT EXISTS verified_representative_name TEXT;
@@ -465,22 +455,6 @@ async function seedData(pool: Pool) {
         `INSERT INTO pages (id, page_group, slug, nav_label, title, body, sort_order, created_at, updated_at)
          VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)`,
         [crypto.randomUUID(), p.group, p.slug, p.navLabel, p.title, p.body, i, now, now],
-      );
-    }
-  }
-
-  // FAQ — 최초 1회만 시드한다. 8/20 공개 시점에 문항이 0건이면 빈 화면으로 열린다.
-  // 이후 운영자가 편집한 내용을 덮어쓰지 않도록 비어 있을 때만 넣는다.
-  const faqCount = (await pool.query("SELECT COUNT(*)::int as n FROM faqs")).rows[0] as { n: number };
-  if (faqCount.n === 0) {
-    const now = new Date().toISOString();
-    for (let i = 0; i < SEED_FAQS.length; i++) {
-      const f = SEED_FAQS[i];
-      // created_at 순으로 정렬되므로 순번만큼 밀어 넣어 문서 순서를 유지한다
-      const at = new Date(Date.parse(now) + i * 1000).toISOString();
-      await pool.query(
-        "INSERT INTO faqs (id, tag, question, answer, created_at, updated_at) VALUES ($1, $2, $3, $4, $5, $6)",
-        [crypto.randomUUID(), f.tag, f.question, f.answer, at, at],
       );
     }
   }
@@ -2085,8 +2059,6 @@ export async function markAllNotificationsRead(recipientId: string) {
 interface InquiryRow {
   id: string;
   user_id: string;
-  category: string | null;
-  quote_id: string | null;
   title: string;
   content: string;
   status: InquiryStatus;
@@ -2100,8 +2072,6 @@ function toInquiry(row: InquiryRow): Inquiry {
   return {
     id: row.id,
     userId: row.user_id,
-    category: row.category,
-    quoteId: row.quote_id,
     title: row.title,
     content: row.content,
     status: row.status,
@@ -2115,24 +2085,14 @@ function toInquiry(row: InquiryRow): Inquiry {
 export async function createInquiry(input: {
   id: string;
   userId: string;
-  category?: string | null;
-  quoteId?: string | null;
   title: string;
   content: string;
   createdAt: string;
 }): Promise<Inquiry> {
   await q(
-    `INSERT INTO inquiries (id, user_id, category, quote_id, title, content, status, created_at)
-     VALUES ($1, $2, $3, $4, $5, $6, 'OPEN', $7)`,
-    [
-      input.id,
-      input.userId,
-      input.category ?? null,
-      input.quoteId ?? null,
-      input.title,
-      input.content,
-      input.createdAt,
-    ],
+    `INSERT INTO inquiries (id, user_id, title, content, status, created_at)
+     VALUES ($1, $2, $3, $4, 'OPEN', $5)`,
+    [input.id, input.userId, input.title, input.content, input.createdAt],
   );
   return (await getInquiryById(input.id))!;
 }
@@ -2195,9 +2155,6 @@ interface NoticeRow {
   image_url: string | null;
   attachment_url: string | null;
   attachment_name: string | null;
-  apply_start: string | null;
-  apply_end: string | null;
-  target_venues: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -2211,9 +2168,6 @@ function toNotice(row: NoticeRow): Notice {
     imageUrl: row.image_url,
     attachmentUrl: row.attachment_url,
     attachmentName: row.attachment_name,
-    applyStart: row.apply_start,
-    applyEnd: row.apply_end,
-    targetVenues: row.target_venues,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
   };
@@ -2246,13 +2200,10 @@ export async function createNotice(input: {
   imageUrl?: string | null;
   attachmentUrl?: string | null;
   attachmentName?: string | null;
-  applyStart?: string | null;
-  applyEnd?: string | null;
-  targetVenues?: string | null;
   createdAt: string;
 }): Promise<Notice> {
   await q(
-    "INSERT INTO notices (id, tag, title, body, image_url, attachment_url, attachment_name, apply_start, apply_end, target_venues, created_at, updated_at) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)",
+    "INSERT INTO notices (id, tag, title, body, image_url, attachment_url, attachment_name, created_at, updated_at) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)",
     [
       input.id,
       input.tag ?? null,
@@ -2261,9 +2212,6 @@ export async function createNotice(input: {
       input.imageUrl ?? null,
       input.attachmentUrl ?? null,
       input.attachmentName ?? null,
-      input.applyStart ?? null,
-      input.applyEnd ?? null,
-      input.targetVenues ?? null,
       input.createdAt,
       input.createdAt,
     ],
@@ -2280,14 +2228,11 @@ export async function updateNotice(
     imageUrl?: string | null;
     attachmentUrl?: string | null;
     attachmentName?: string | null;
-    applyStart?: string | null;
-    applyEnd?: string | null;
-    targetVenues?: string | null;
     updatedAt: string;
   },
 ): Promise<Notice | undefined> {
   await q(
-    "UPDATE notices SET tag = $1, title = $2, body = $3, image_url = $4, attachment_url = $5, attachment_name = $6, apply_start = $7, apply_end = $8, target_venues = $9, updated_at = $10 WHERE id = $11",
+    "UPDATE notices SET tag = $1, title = $2, body = $3, image_url = $4, attachment_url = $5, attachment_name = $6, updated_at = $7 WHERE id = $8",
     [
       input.tag ?? null,
       input.title,
@@ -2295,9 +2240,6 @@ export async function updateNotice(
       input.imageUrl ?? null,
       input.attachmentUrl ?? null,
       input.attachmentName ?? null,
-      input.applyStart ?? null,
-      input.applyEnd ?? null,
-      input.targetVenues ?? null,
       input.updatedAt,
       id,
     ],
@@ -2481,9 +2423,23 @@ async function saveSiteContent<T>(page: string, data: T): Promise<T> {
   return data;
 }
 
+export async function getVenueContent(): Promise<VenueContent> {
+  const stored = await getSiteContent<Partial<VenueContent> | null>("venue", null);
+  if (!stored) return DEFAULT_VENUE_CONTENT;
+  return { ...DEFAULT_VENUE_CONTENT, ...stored };
+}
 
+export async function saveVenueContent(data: VenueContent): Promise<VenueContent> {
+  return saveSiteContent("venue", data);
+}
 
+export async function getGuideContent(): Promise<GuideContent> {
+  return getSiteContent<GuideContent>("guide", DEFAULT_GUIDE_CONTENT);
+}
 
+export async function saveGuideContent(data: GuideContent): Promise<GuideContent> {
+  return saveSiteContent("guide", data);
+}
 
 export async function getHomeContent(): Promise<HomeContent> {
   const stored = await getSiteContent<Partial<HomeContent> | null>("home", null);

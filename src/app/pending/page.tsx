@@ -13,7 +13,7 @@ export const metadata: Metadata = {
 const NOTICE: Record<"PENDING" | "REJECTED", { title: string; desc: string }> = {
   PENDING: {
     title: "가입 승인 대기 중입니다",
-    desc: "일반인은 자유 가입할 수 없으며, 운영자 승인이 완료되어야 대관료 열람과 신청서 작성을 이용하실 수 있습니다. 승인 결과는 알림으로 안내해 드립니다.",
+    desc: "일반인은 자유 가입할 수 없으며, 운영자 승인이 완료되어야 대관 패키지 안내와 견적 산출·신청을 이용하실 수 있습니다. 승인 결과는 알림으로 안내해 드립니다.",
   },
   REJECTED: {
     title: "가입이 승인되지 않았습니다",
@@ -45,7 +45,7 @@ export default async function PendingPage() {
             in progress
           </p>
           <p className="mt-6 max-w-sm text-s text-muted">
-            승인이 완료되면 대관료와 예상 금액을 바로 확인하실 수 있습니다.
+            승인이 완료되면 대관 패키지 안내와 예상 견적을 바로 확인할 수 있습니다.
           </p>
         </Band>
 

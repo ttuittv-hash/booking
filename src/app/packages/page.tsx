@@ -1,346 +1,357 @@
+import Link from "next/link";
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { getCurrentUser, isPendingApplicant } from "@/lib/auth";
-import { won } from "@/lib/format";
+import { getCurrentRateTable } from "@/lib/db";
+import { num, won } from "@/lib/format";
+import { findAddon, packagePrice, isAddonAvailable } from "@/lib/pricing/rateTableUtils";
 import {
-  ARENA_ADDITIONAL_CHARGES,
-  ARENA_LIMITS,
-  ARENA_PACKAGE_RATES,
-  LIVE_HALL_DAY_RATES,
-  LIVE_HALL_LIMITS,
-  LIVE_HALL_OPTIONAL_SERVICES,
-  RATE_COMMON_NOTES,
-  RATE_STRUCTURE,
-  VAT_NOTE,
-  type ChargeRow,
-} from "@/lib/content/rateFacts";
-import {
-  ARENA_RATE_INCLUDES,
-  CAPACITY_DISCLAIMER,
-  LIVE_HALL_RATE_INCLUDES,
-} from "@/lib/content/venueFacts";
-import { isRentalOpen, OPEN_PHASE_BADGE } from "@/lib/release";
+  ADDON_CATEGORY_LABEL,
+  DEFAULT_VENUE_ID,
+  MEDIA_TIER_LABEL,
+  VENUES,
+  type AddonCategory,
+  type AddonItem,
+  type PackageInclusion,
+  type RentalPackage,
+} from "@/lib/pricing/types";
 import { PublicHeader } from "@/components/PublicHeader";
 import { SiteFooter } from "@/components/ui/SiteFooter";
 import {
   ArrowRight,
-  Badge,
   Band,
+  type BandTone,
   ButtonLink,
   CTABand,
   ComparisonTable,
-  DownloadIcon,
   Note,
   PageHeading,
   SpecTable,
-  type CompareGroup,
+  btnClass,
 } from "@/components/ui/kit";
 
 export const metadata: Metadata = {
-  title: "대관료 | 서울아레나",
+  title: "대관 패키지 안내 | 서울아레나",
 };
 
+/** 카테고리 노출 순서 — 도메인 정의(AddonCategory) 순서를 그대로 따른다. */
+const CATEGORY_ORDER = Object.keys(ADDON_CATEGORY_LABEL) as AddonCategory[];
+
 /**
- * 페이지명을 "대관 패키지"에서 "대관료"로 바꿨다.
- * 중형공연장은 패키지 개념이 없으므로 "패키지"를 페이지명으로 쓰면 절반이 틀린 이름이 된다.
- * 기존 경로 `/packages` 는 유지한다.
+ * 이 페이지의 유일한 그리드. 모든 섹션이 같은 세로 기준선에서 시작한다.
+ * 좌: 제목·설명 / 우: 데이터. 섹션마다 컬럼비나 여백을 바꾸지 않는다.
  */
+const SPLIT =
+  "grid gap-8 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.6fr)] lg:items-start lg:gap-16";
 
-function SectionTitle({ en, ko, lead }: { en: string; ko: string; lead?: React.ReactNode }) {
-  return (
-    <div>
-      <p className="type-display text-h6-m sm:text-h6">{en}</p>
-      <h2 className="type-kr-heading mt-4 text-h3-m sm:text-h3">{ko}</h2>
-      {lead && <div className="measure mt-6 break-keep text-m text-muted">{lead}</div>}
-    </div>
+function addonRowLabel(addon: AddonItem, perRow: boolean): string {
+  const unit =
+    perRow && addon.pricingType !== "METERED"
+      ? ` (${addon.unitLabel.replace(/^원\//, "")})`
+      : "";
+  return `${addon.name}${unit}${addon.note ? ` · ${addon.note}` : ""}`;
+}
+
+function addonRateCell(addon: AddonItem): string {
+  return addon.pricingType === "METERED" ? "—" : won(addon.unitPrice);
+}
+
+/** "100대/일" → "100" (단위는 행 라벨에 한 번만 쓴다) */
+function parkingCount(value: string): string {
+  const stripped = value.replace("대/일", "").trim();
+  return stripped || value;
+}
+
+function audienceRange(pkg: RentalPackage): string {
+  const { min, max } = pkg.audienceTier;
+  return min > 0 ? `${num(min)} ~ ${num(max)}` : `~ ${num(max)}`;
+}
+
+/** 패키지 규모 흐름의 4번째 단계: 이 패키지에서 무엇을 더 얹을 수 있는지 */
+function optionRows(pkg: RentalPackage, addons: AddonItem[]): [string, string][] {
+  const includedIds = new Set(pkg.includedItems.map((i) => i.addonId));
+  const available = addons.filter((a) => isAddonAvailable(a, pkg));
+  const overage = available.filter((a) => includedIds.has(a.id));
+  const conditional = available.filter(
+    (a) => !includedIds.has(a.id) && a.availability.mode !== "ALWAYS",
   );
+  const common = available.filter((a) => !includedIds.has(a.id) && a.availability.mode === "ALWAYS");
+
+  const rows: [string, string][] = [];
+  if (overage.length > 0) {
+    rows.push(["기본 포함분 초과 추가", overage.map((a) => a.name).join(" · ")]);
+  }
+  if (conditional.length > 0) {
+    rows.push(["이 패키지에서만 추가", conditional.map((a) => a.name).join(" · ")]);
+  }
+  rows.push([
+    "공통 부대항목",
+    `${common.length}개 항목 — 아래 부대항목 표에서 단가를 확인하세요.`,
+  ]);
+  return rows;
 }
 
-/** 금액 열은 마지막 열 우측 정렬 — 자릿수가 맞아야 비교가 된다 */
-function chargeGroups(rows: ChargeRow[]): CompareGroup[] {
-  const order: string[] = [];
-  rows.forEach((r) => {
-    if (!order.includes(r.group)) order.push(r.group);
-  });
-  return order.map((g) => ({
-    title: g,
-    rows: rows
-      .filter((r) => r.group === g)
-      .map((r) => ({
-        label: r.item,
-        note: r.unit,
-        cells: [typeof r.rate === "number" ? won(r.rate) : r.rate],
-      })),
+interface IncludedRow {
+  item: PackageInclusion;
+  addon: AddonItem | undefined;
+}
+
+/** 기본 포함 항목을 카테고리로 묶는다 — 카테고리는 하나도 빼지 않는다. */
+function includedGroups(
+  pkg: RentalPackage,
+  lookup: (id: string) => AddonItem | undefined,
+): { title: string; rows: IncludedRow[] }[] {
+  const all: IncludedRow[] = pkg.includedItems.map((item) => ({
+    item,
+    addon: lookup(item.addonId),
   }));
+  const groups = CATEGORY_ORDER.map((category) => ({
+    title: ADDON_CATEGORY_LABEL[category],
+    rows: all.filter((r) => r.addon?.category === category),
+  })).filter((g) => g.rows.length > 0);
+  const ungrouped = all.filter((r) => !r.addon);
+  if (ungrouped.length > 0) groups.push({ title: "기타", rows: ungrouped });
+  return groups;
 }
 
-export default async function RatesPage() {
-  // 요금은 공연 규모·일정 구성에 따라 달라지고 계약 조건과 직접 연결되므로
-  // 승인된 대관사 계정으로 로그인한 경우에만 열람을 허용한다.
+export default async function PackagesPage() {
+  // 요금·기본 포함 수량은 계약 조건에 해당하므로 로그인한 신청자에게만 공개한다.
   const currentUser = await getCurrentUser();
   if (!currentUser) redirect("/login");
   if (isPendingApplicant(currentUser)) redirect("/pending");
 
-  const open = isRentalOpen();
+  const rateTable = await getCurrentRateTable();
+  const packages = [...rateTable.packages].sort((a, b) => a.audienceTier.min - b.audienceTier.min);
+  const lookupAddon = (id: string) => findAddon(rateTable, id);
+  const addonsByCategory = CATEGORY_ORDER.map((category) => ({
+    category,
+    items: rateTable.addons.filter((a) => a.category === category),
+  })).filter((g) => g.items.length > 0);
+  // 공간마다 패키지 구성이 다르므로 비교표도 공간 단위로 나눈다.
+  const packagesByVenue = VENUES.map((venue) => ({
+    venue,
+    items: packages.filter((p) => (p.venueId ?? DEFAULT_VENUE_ID) === venue.id),
+  })).filter((g) => g.items.length > 0);
 
   return (
     <div className="flex flex-1 flex-col">
       <PublicHeader active="/packages" currentUser={currentUser} />
 
       <main className="flex flex-1 flex-col">
+        {/* ── 페이지 타이틀 ────────────────────────────────────────────────── */}
         <Band tone="light" size="lg">
           <PageHeading
-            title="대관료"
-            lead="아레나는 패키지 단위, 중형공연장은 일수 단위로 요금을 산정합니다. 이 페이지는 승인된 대관사 계정으로 로그인하신 경우에만 열람하실 수 있습니다. 요금이 공연 규모와 일정 구성에 따라 달라지고 계약 조건과 직접 연결되기 때문입니다."
+            title="대관 패키지"
+            lead="객석 규모에 맞는 패키지를 고르면 기본 대관료와 기본 포함 항목이 정해집니다. 필요한 부대항목만 더해 예상 대관료를 신청 화면에서 바로 확인하세요."
           />
         </Band>
 
-        {/* ── RATE STRUCTURE ─────────────────────────────────────────────── */}
+        {/* ── 패키지 비교 — 패키지를 열로, 조건을 행으로 ───────────────────── */}
         <Band tone="dark">
-          <SectionTitle en="RATE STRUCTURE" ko="두 공간의 요금 체계" />
-          <div className="mt-14">
+          <PageHeading
+            as="h2"
+            title="패키지 비교"
+            lead="기본 대관료는 화~일 1주 기준 정찰제이며 VAT는 별도입니다. 패키지명을 누르면 상세 구성으로 이동합니다."
+          />
+
+          <div className="mt-14 space-y-12">
+            {packagesByVenue.map(({ venue, items }) => (
+              <div key={venue.id}>
+                <h3 className="type-kr-heading mb-4 text-h6-m sm:text-h6">{venue.name}</h3>
+                <ComparisonTable
+                  rowLabel="구분"
+                  columns={items.map((pkg) => ({
+                    key: String(pkg.id),
+                    align: "left" as const,
+                    title: (
+                      <Link
+                        href={`#package-${pkg.id}`}
+                        className="underline-offset-4 hover:underline"
+                      >
+                        {pkg.name}
+                      </Link>
+                    ),
+                  }))}
+                  rows={[
+                    {
+                      label: "관객 규모 (명)",
+                      cells: items.map((pkg) => audienceRange(pkg)),
+                    },
+                    {
+                      label: "기본 대관료 · VAT 별도",
+                      cells: items.map((pkg) => won(packagePrice(rateTable, pkg))),
+                    },
+                    {
+                      label: "홍보 디지털 매체",
+                      cells: items.map((pkg) =>
+                        pkg.mediaTier ? MEDIA_TIER_LABEL[pkg.mediaTier] : "—",
+                      ),
+                    },
+                    {
+                      label: "주차 (대/일)",
+                      cells: items.map((pkg) => parkingCount(pkg.parkingPerDay)),
+                    },
+                    {
+                      label: "대기실",
+                      cells: items.map((pkg) => pkg.waitingRoomNote),
+                    },
+                    {
+                      label: "세부 구성",
+                      cells: items.map((pkg) => pkg.dayBreakdown),
+                    },
+                    {
+                      label: "대관시간",
+                      cells: items.map((pkg) => pkg.rentalHours),
+                    },
+                    {
+                      label: "부속공간",
+                      cells: items.map((pkg) => pkg.sideFacilities),
+                    },
+                    {
+                      label: "야외광장 · 티켓박스",
+                      cells: items.map((pkg) => (pkg.outdoorPlazaIncluded ? "✓" : "—")),
+                    },
+                    {
+                      label: "기본 포함 항목 (개)",
+                      cells: items.map((pkg) => num(pkg.includedItems.length)),
+                    },
+                  ]}
+                />
+              </div>
+            ))}
+          </div>
+        </Band>
+
+        {/* ── 패키지별 상세: 기본 대관료 → 기본 포함 항목 → 선택 추가 ─────── */}
+        {packages.map((pkg, i) => {
+          const tone: BandTone = i % 2 === 0 ? "white" : "light";
+          const groups = includedGroups(pkg, lookupAddon);
+          return (
+            <Band key={pkg.id} tone={tone} id={`package-${pkg.id}`} className="scroll-mt-24">
+              {/*
+                레이아웃 규칙: 이 페이지의 모든 섹션은 같은 2컬럼 그리드(SPLIT)를 쓰고
+                두 컬럼은 항상 같은 높이에서 시작한다. 섹션마다 pt 를 다르게 주지 않는다.
+              */}
+              <div className={SPLIT}>
+                <div>
+                  <h2 className="type-kr-heading text-h3-m sm:text-h3">{pkg.name}</h2>
+                  <p className="type-display mt-4 text-h6-m tabular-nums sm:text-h6">
+                    {pkg.audienceTier.label}
+                  </p>
+                  <p className="mt-5 max-w-md text-m text-muted">{pkg.tagline}</p>
+                </div>
+                <div className="border-t-2 border-foreground pt-6">
+                  <p className="text-xs font-bold text-muted">기본 대관료</p>
+                  <p className="type-display mt-3 text-h3-m tabular-nums sm:text-h3">
+                    {won(packagePrice(rateTable, pkg))}
+                  </p>
+                  <p className="mt-3 text-s text-muted">
+                    {pkg.includedWeeks}주 (화~일) 기준 · VAT 별도 · {pkg.dayBreakdown}
+                  </p>
+                </div>
+              </div>
+
+              {/* 기본 포함 항목 — 카테고리는 표를 쪼개지 말고 소제목 행으로 (열 폭 통일) */}
+              <div className={`mt-16 ${SPLIT}`}>
+                <div>
+                  <h3 className="type-kr-heading text-h5-m sm:text-h5">기본 포함 항목</h3>
+                  <p className="mt-4 max-w-md text-s text-muted">
+                    아래 수량까지는 정찰제 대관료에 포함됩니다. 초과 단가는 포함 수량을 넘겼을 때만
+                    적용됩니다. 운영 조건(주차·대기실·매체 등)은 위 패키지 비교표에서 확인하세요.
+                  </p>
+                </div>
+                <div>
+                  {groups.length === 0 ? (
+                    <p className="border-t border-border/25 py-4 text-s text-muted">
+                      별도 기본 포함 항목 없음
+                    </p>
+                  ) : (
+                    <ComparisonTable
+                      dense
+                      rowLabel="항목"
+                      columns={[
+                        { key: "qty", title: "수량" },
+                        { key: "rate", title: "초과 단가" },
+                      ]}
+                      groups={groups.map((group) => ({
+                        title: group.title,
+                        rows: group.rows.map(({ item, addon }) => ({
+                          label: addon?.name ?? item.addonId,
+                          cells: [
+                            num(item.quantity),
+                            addon && addon.unitPrice > 0 ? won(addon.unitPrice) : "—",
+                          ],
+                        })),
+                      }))}
+                    />
+                  )}
+                </div>
+              </div>
+
+              {/* 선택 추가 */}
+              <div className={`mt-16 ${SPLIT}`}>
+                <div>
+                  <h3 className="type-kr-heading text-h5-m sm:text-h5">선택 추가</h3>
+                  <p className="mt-4 max-w-md text-s text-muted">
+                    기본 포함분을 넘는 수량과 이 패키지에서만 고를 수 있는 항목입니다.
+                  </p>
+                </div>
+                <SpecTable dense rows={optionRows(pkg, rateTable.addons)} />
+              </div>
+            </Band>
+          );
+        })}
+
+        {/* ── 부대항목 — 카테고리 전체 단가 ────────────────────────────────── */}
+        <Band tone="white" id="addons" className="scroll-mt-24">
+          {/* 이 섹션도 같은 SPLIT 그리드를 쓴다 — 페이지 전체가 한 기준선 위에 놓인다. */}
+          <div className={SPLIT}>
+            <div>
+              <h2 className="type-kr-heading text-h2-m sm:text-h2">부대항목</h2>
+              <p className="mt-6 max-w-md text-m text-muted">
+                공간·프로덕션·홍보 등 {addonsByCategory.length}개 카테고리{" "}
+                {rateTable.addons.length}개 항목을 필요한 만큼 선택합니다. 기본 포함분을 넘는
+                수량만 과금됩니다.
+              </p>
+              <Note className="mt-8 max-w-md">
+                유틸리티(전기·상하수도·냉난방)는 실사용량 기준으로 사후 정산하므로 예상 견적에는
+                포함되지 않습니다. 단가가 “—” 인 항목은 실사용 정산 대상입니다.
+              </Note>
+            </div>
+
+            {/* 카테고리별로 표를 쪼개면 열 폭이 제각각이 된다 — 한 표에 소제목 행으로 묶는다. */}
             <ComparisonTable
-              rowLabel="구분"
-              columns={[
-                { key: "arena", title: "아레나", align: "left" },
-                { key: "live-hall", title: "중형공연장", align: "left" },
-              ]}
-              rows={RATE_STRUCTURE.map((r) => ({ label: r.label, cells: [r.arena, r.liveHall] }))}
+              dense
+              rowLabel="항목"
+              columns={[{ key: "rate", title: "단가" }]}
+              groups={addonsByCategory.map(({ category, items }) => ({
+                title: `${ADDON_CATEGORY_LABEL[category]} (${items.length})`,
+                // 한 표 안에 단위가 여러 개 섞이므로 단위는 항상 항목명 옆에 적는다.
+                rows: items.map((addon) => ({
+                  label: addonRowLabel(addon, true),
+                  cells: [addonRateCell(addon)],
+                })),
+              }))}
             />
           </div>
-          <div className="measure mt-8 space-y-4 break-keep text-s">
-            <p>
-              아레나는 패키지를 고르시면 대관료와 포함 범위가 함께 정해집니다. 중형공연장은
-              사용하시는 날짜 하나하나에 셋업일과 공연일 중 어느 쪽인지 지정하시고, 공연일은 평일과
-              주말을 구분해 합산합니다.
-            </p>
-            <p className="text-inverse-muted">
-              단지 전체 주차는 915대(B2F 596대 + B1F 319대)입니다. 위 표의 150대·100대는 대관료에
-              포함되는 관계자 주차 수량이며 단지 총량과 다릅니다.
-            </p>
-          </div>
         </Band>
 
-        {/* ── 아레나 대관료 ───────────────────────────────────────────────── */}
-        <Band tone="light" id="arena" className="scroll-mt-24">
-          <SectionTitle
-            en="ARENA"
-            ko="아레나 대관료"
-            lead={`${VAT_NOTE} 대관 기간은 1주이며, 1주는 셋업 4일과 공연 2일을 합한 6일입니다.`}
-          />
-
-          <div className="mt-14">
-            <h3 className="type-kr-heading text-h5-m sm:text-h5">패키지 1~4 비교</h3>
-            <div className="mt-6">
-              <ComparisonTable
-                rowLabel="구분"
-                columns={ARENA_PACKAGE_RATES.map((p) => ({ key: String(p.id), title: p.name }))}
-                rows={[
-                  { label: "최대 수용인원", cells: ARENA_PACKAGE_RATES.map((p) => p.capacity) },
-                  { label: "권장 무대 형태", cells: ARENA_PACKAGE_RATES.map((p) => p.stageType) },
-                  { label: "권장 객석 형태", cells: ARENA_PACKAGE_RATES.map((p) => p.seatingType) },
-                  { label: "대관료 (1주)", cells: ARENA_PACKAGE_RATES.map((p) => won(p.total)) },
-                ]}
-              />
-            </div>
-            <Note className="measure mt-6">{CAPACITY_DISCLAIMER}</Note>
-          </div>
-
-          <div className="mt-16">
-            <h3 className="type-kr-heading text-h5-m sm:text-h5">대관료 세부 내역</h3>
-            <div className="mt-6">
-              <ComparisonTable
-                rowLabel="구분"
-                columns={ARENA_PACKAGE_RATES.map((p) => ({ key: String(p.id), title: p.name }))}
-                rows={[
-                  {
-                    label: "셋업일 전용 사용료 (4일)",
-                    cells: ARENA_PACKAGE_RATES.map((p) => won(p.setupExclusive)),
-                  },
-                  {
-                    label: "ㄴ 1일 단가",
-                    cells: ARENA_PACKAGE_RATES.map((p) => won(p.setupPerDay)),
-                  },
-                  {
-                    label: "공연일 전용 사용료 (2일)",
-                    cells: ARENA_PACKAGE_RATES.map((p) => won(p.showExclusive)),
-                  },
-                  {
-                    label: "ㄴ 1일 단가",
-                    cells: ARENA_PACKAGE_RATES.map((p) => won(p.showPerDay)),
-                  },
-                  {
-                    label: "시설 사용료 (1주)",
-                    cells: ARENA_PACKAGE_RATES.map((p) => won(p.facility)),
-                  },
-                  { label: "합계", cells: ARENA_PACKAGE_RATES.map((p) => won(p.total)) },
-                  {
-                    label: "셋업 변경 대관료 (1일)",
-                    cells: ARENA_PACKAGE_RATES.map((p) => won(p.setupChangePerDay)),
-                  },
-                  {
-                    label: "공연 변경 대관료 (1일)",
-                    cells: ARENA_PACKAGE_RATES.map((p) => won(p.showChangePerDay)),
-                  },
-                ]}
-              />
-            </div>
-            <div className="measure mt-6 space-y-3 break-keep text-s text-muted">
-              <p>
-                전용 사용료와 셋업 변경 대관료는 패키지에 따라 달라지지 않습니다. 패키지 사이의 금액
-                차이는 시설 사용료와 공연 변경 대관료에서 발생합니다.
-              </p>
-              <p>
-                셋업 변경 대관료와 공연 변경 대관료는 기준 구성인 셋업 4일·공연 2일에서 일수를
-                조정하실 때 적용하는 1일 단가입니다. 적용 조건은 계약 시 협의합니다.
-              </p>
-            </div>
-          </div>
-
-          <div className="mt-16">
-            <h3 className="type-display text-h6-m sm:text-h6">RATE INCLUDES</h3>
-            <SpecTable className="mt-6" rows={ARENA_RATE_INCLUDES} />
-            <Note className="measure mt-6">
-              프리미엄 공간(스카이박스)과 프로덕션 전력 수치는 확인 회신 전까지 게재를 보류합니다.
-            </Note>
-          </div>
-
-          <div className="mt-16">
-            <h3 className="type-display text-h6-m sm:text-h6">ADDITIONAL CHARGES</h3>
-            <p className="measure mt-4 break-keep text-s text-muted">
-              아래 항목은 대관료에 포함되지 않으며, 신청하신 범위에 따라 별도로 청구됩니다.{" "}
-              {VAT_NOTE}
-            </p>
-            <div className="mt-6">
-              <ComparisonTable
-                dense
-                rowLabel="항목"
-                columns={[{ key: "rate", title: "요금" }]}
-                groups={chargeGroups(ARENA_ADDITIONAL_CHARGES)}
-              />
-            </div>
-            <Note className="measure mt-6">
-              센터 리프트는 1대를 보유하고 있어 같은 시간에 한 곳에서만 운용하실 수 있습니다.
-            </Note>
-          </div>
-
-          <div className="mt-16">
-            <h3 className="type-kr-heading text-h5-m sm:text-h5">기준·제한 사항</h3>
-            <SpecTable className="mt-6" rows={ARENA_LIMITS} />
-          </div>
-        </Band>
-
-        {/* ── 중형공연장 대관료 ───────────────────────────────────────────── */}
-        <Band tone="white" id="live-hall" className="scroll-mt-24">
-          <SectionTitle
-            en="LIVE HALL"
-            ko="중형공연장 대관료"
-            lead="중형공연장은 패키지를 두지 않습니다. 실제 사용하시는 대관일수를 기준으로 산정하며, 날짜마다 셋업일과 공연일 중 어느 쪽인지 지정하시고 공연일은 평일과 주말을 구분합니다."
-          />
-
-          <div className="mt-14">
-            <h3 className="type-display text-h6-m sm:text-h6">BASE RATE</h3>
-            <p className="mt-4 text-s text-muted">{VAT_NOTE}</p>
-            <div className="mt-6">
-              <ComparisonTable
-                rowLabel="구분"
-                columns={LIVE_HALL_DAY_RATES.map((r) => ({ key: r.label, title: r.label }))}
-                rows={[
-                  { label: "대관료 (1일)", cells: LIVE_HALL_DAY_RATES.map((r) => won(r.total)) },
-                  {
-                    label: "ㄴ 전용 사용료 (1일)",
-                    cells: LIVE_HALL_DAY_RATES.map((r) => won(r.exclusive)),
-                  },
-                  {
-                    label: "ㄴ 시설 사용료 (1일)",
-                    cells: LIVE_HALL_DAY_RATES.map((r) => won(r.facility)),
-                  },
-                ]}
-              />
-            </div>
-            <div className="measure mt-6 space-y-3 break-keep text-s text-muted">
-              <p>셋업일은 평일과 주말의 요금이 같습니다. 공연일은 주말이 평일보다 4,000,000원 높습니다.</p>
-              <p>
-                수용인원은 스탠딩 구성에서 최대 3,500명, 좌석 구성에서 2,000~2,500명입니다.{" "}
-                {CAPACITY_DISCLAIMER}
-              </p>
-            </div>
-          </div>
-
-          <div className="mt-16">
-            <h3 className="type-display text-h6-m sm:text-h6">RATE INCLUDES</h3>
-            <SpecTable className="mt-6" rows={LIVE_HALL_RATE_INCLUDES} />
-          </div>
-
-          <div className="mt-16">
-            <h3 className="type-display text-h6-m sm:text-h6">OPTIONAL SERVICES</h3>
-            <p className="measure mt-4 break-keep text-s text-muted">
-              아래 항목은 기본 대관료에 포함되지 않으며 항목별로 신청하십니다. {VAT_NOTE}
-            </p>
-            <div className="mt-6">
-              <ComparisonTable
-                dense
-                rowLabel="항목"
-                columns={[{ key: "rate", title: "요금" }]}
-                groups={chargeGroups(LIVE_HALL_OPTIONAL_SERVICES)}
-              />
-            </div>
-          </div>
-
-          <div className="mt-16">
-            <h3 className="type-kr-heading text-h5-m sm:text-h5">기준·제한 사항</h3>
-            <SpecTable className="mt-6" rows={LIVE_HALL_LIMITS} />
-          </div>
-        </Band>
-
-        {/* ── 공통 고지 ───────────────────────────────────────────────────── */}
-        <Band tone="light">
-          <SectionTitle en="TERMS" ko="공통 고지" />
-          <ul className="measure mt-10 space-y-3">
-            {RATE_COMMON_NOTES.map((t) => (
-              <li key={t} className="break-keep border-t border-border/15 pt-3 text-s text-muted">
-                {t}
-              </li>
-            ))}
-          </ul>
-        </Band>
-
-        {open ? (
-          <CTABand
-            title="공연 규모와 일정이 정해지셨다면 신청서에서 예상 대관료를 확인하실 수 있습니다."
-            actions={
-              <>
-                <ButtonLink href="/apply" variant="primary">
-                  대관 신청
-                  <ArrowRight />
-                </ButtonLink>
-                <ButtonLink href="/mypage/inquiries" variant="secondary">
-                  요금 문의하기
-                </ButtonLink>
-              </>
-            }
-          />
-        ) : (
-          <CTABand
-            title="대관 신청은 9월 1일에 열립니다."
-            lead="그 전에 대관 공고와 대관 규약을 확인해 두시면 좋습니다."
-            actions={
-              <>
-                <ButtonLink href="/notices" variant="primary">
-                  대관 공고 확인
-                  <ArrowRight />
-                </ButtonLink>
-                <ButtonLink href="/library?doc=rules" variant="secondary">
-                  대관 규약 내려받기
-                  <DownloadIcon />
-                </ButtonLink>
-                <span className="inline-flex items-center gap-2 self-center text-xs text-muted">
-                  <Badge>{OPEN_PHASE_BADGE}</Badge> 대관 신청
-                </span>
-              </>
-            }
-          />
-        )}
+        {/* ── 전환 CTA — 다른 페이지와 같은 높이가 되도록 CTABand 를 쓴다 ───── */}
+        <CTABand
+          title="규모와 일정을 넣으면 예상 대관료가 나옵니다."
+          lead="준비·공연 일수 조정, 청소비, 홍보 매체까지 신청 화면에서 실시간으로 반영됩니다."
+          actions={
+            <>
+              <Link href="/apply?new=1" className={btnClass("primary", "lg")}>
+                대관 신청 시작하기
+                <ArrowRight />
+              </Link>
+              <ButtonLink href="/guide#rates" variant="secondary">
+                대관 안내로
+              </ButtonLink>
+            </>
+          }
+        />
       </main>
 
       <SiteFooter />
