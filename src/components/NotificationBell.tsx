@@ -103,7 +103,7 @@ export function NotificationBell({ role }: { role: "ADMIN" | "APPLICANT" }) {
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
-        className="relative flex h-7 w-7 items-center justify-center text-foreground transition-colors hover:text-accent"
+        className="relative flex h-11 w-11 items-center justify-center text-foreground transition-colors hover:text-accent sm:h-7 sm:w-7"
         aria-label={unreadCount > 0 ? `알림 ${unreadCount}건` : "알림"}
         aria-expanded={open}
       >

@@ -136,7 +136,8 @@ export function QueryTabs({
               key={it.value}
               {...tabProps(it.value)}
               // 라벨 크기는 상단바 메뉴(14)와 같게 둔다 — 탭이 페이지 제목보다 커 보이면 안 된다
-              className={`h-8 shrink-0 whitespace-nowrap rounded-full px-5 text-s font-bold transition-colors ${
+              // 모바일에서는 44px 을 확보한다 — 32px 알약은 손가락으로 누르기 작다. sm 부터 디자인 규격.
+              className={`h-11 shrink-0 whitespace-nowrap rounded-full px-5 text-s font-bold transition-colors sm:h-8 ${
                 it.value === active
                   ? "bg-n-white text-n-darkest"
                   : "text-n-white/70 hover:text-n-white"
