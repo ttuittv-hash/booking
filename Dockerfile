@@ -30,6 +30,9 @@ COPY --from=deps /app/node_modules ./node_modules
 COPY --from=builder /app/.next ./.next
 COPY --from=builder /app/public ./public
 COPY package.json next.config.ts tsconfig.json ./
+# 운영 점검용 스크립트. 외부 연동은 아웃바운드 IP 기준으로 열리므로 클러스터 안에서 돌려야 한다
+# (예: scripts/biztalk-check.mjs — DKT 비즈메시지 방화벽·토큰·경로 확인).
+COPY scripts ./scripts
 RUN mkdir -p /data && chown -R node:node /data /app/.next
 USER node
 EXPOSE 3000
