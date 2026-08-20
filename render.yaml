@@ -6,6 +6,13 @@ databases:
     databaseName: seoularena
     user: seoularena
 
+  # 프리뷰 전용 DB. claude/venue-fee-spec-revamp 브랜치는 요금·패키지 스키마가
+  # 운영 브랜치와 다를 수 있어 운영 DB(seoul-arena-db)를 공유하지 않는다.
+  - name: seoul-arena-fee-preview-db
+    plan: basic-256mb
+    databaseName: seoularena_feepreview
+    user: seoularena
+
 services:
   - type: web
     name: seoul-arena-booking
@@ -35,5 +42,35 @@ services:
         value: admin@seoularena.kr
       # 초기 운영자 비밀번호 — 대시보드에서 반드시 강한 값으로 교체하고,
       # 첫 로그인 후 화면에서 비밀번호를 변경할 것.
+      - key: SEED_ADMIN_PASSWORD
+        sync: false
+
+  # 요금제 개편(claude/venue-fee-spec-revamp) 프리뷰용 별도 서비스.
+  # 운영 서비스(seoul-arena-booking)와는 이름 · DB · 디스크를 모두 분리해
+  # 운영 데이터·트래픽에 영향을 주지 않는다.
+  - type: web
+    name: seoul-arena-booking-fee-preview
+    runtime: node
+    plan: starter
+    branch: claude/venue-fee-spec-revamp
+    buildCommand: npm install && npm run build
+    startCommand: npm run start
+    disk:
+      name: seoul-arena-fee-preview-data
+      mountPath: /var/data
+      sizeGB: 1
+    envVars:
+      - key: NODE_VERSION
+        value: "22"
+      - key: DATA_DIR
+        value: /var/data
+      - key: DATABASE_URL
+        fromDatabase:
+          name: seoul-arena-fee-preview-db
+          property: connectionString
+      - key: AUTH_SECRET
+        generateValue: true
+      - key: SEED_ADMIN_EMAIL
+        value: admin@seoularena.kr
       - key: SEED_ADMIN_PASSWORD
         sync: false

@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getCurrentUser, hashPassword, verifyPassword } from "@/lib/auth";
 import { findUserPasswordHash, updateUserPassword } from "@/lib/db";
+import { setSessionEpoch } from "@/lib/db";
 import { SHA256_HEX_RE, sha256Hex } from "@/lib/passwordScheme";
 
 export async function PUT(request: Request) {
@@ -54,5 +55,7 @@ export async function PUT(request: Request) {
   }
 
   await updateUserPassword(user.id, await hashPassword(newTransportHash));
+  // 비밀번호 변경 시 기존 세션을 모두 끊는다(기획서 A13·A14).
+  await setSessionEpoch(user.id, new Date().toISOString());
   return NextResponse.json({ ok: true });
 }

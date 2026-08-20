@@ -74,8 +74,15 @@ export const QUIET_BTN = "text-xs text-muted transition-colors hover:text-foregr
 /* ------------------------------------------------------------------ 탭 ---- */
 
 /** 상단 탭 바 — 지면 위에 붙는 스티키 바 (AdminNav 높이 14/16 아래) */
+/**
+ * 화면 상단에 붙는 탭 바.
+ *
+ * 고정 위치는 헤더 높이에 맞춘다. 백오피스 헤더는 lg 미만에서 메뉴가 아래 줄로
+ * 내려가 두 줄(56/64 + 44)이 되므로 오프셋도 그만큼 커진다. 안 맞추면 탭 바가
+ * 헤더 밑으로 파고들어 가려진다.
+ */
 export const TAB_BAR =
-  "sticky top-14 z-10 -mx-6 flex h-11 items-center gap-1 overflow-x-auto whitespace-nowrap border-b border-border/20 bg-background px-6 sm:top-16";
+  "sticky top-[6.25rem] z-10 -mx-6 flex h-11 items-center gap-1 overflow-x-auto whitespace-nowrap border-b border-border/20 bg-background px-6 sm:top-[6.75rem] lg:top-16";
 
 /** 활성 탭은 옐로 하단 바 + 검정 텍스트 */
 export function tabCls(active: boolean) {

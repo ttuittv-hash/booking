@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
+import crypto from "node:crypto";
 import { canAccessQuote, getCurrentUser } from "@/lib/auth";
-import { confirmSettlementMutual, getQuoteById } from "@/lib/db";
+import { addAuditLog, confirmSettlementMutual, getQuoteById } from "@/lib/db";
 
 export async function POST(_request: Request, ctx: { params: Promise<{ id: string }> }) {
   const user = await getCurrentUser();
@@ -19,6 +20,15 @@ export async function POST(_request: Request, ctx: { params: Promise<{ id: strin
     return NextResponse.json({ error: "이미 확인된 정산 내역입니다." }, { status: 409 });
   }
 
-  const updated = await confirmSettlementMutual(id, user.id, new Date().toISOString());
+  const createdAt = new Date().toISOString();
+  const updated = await confirmSettlementMutual(id, user.id, createdAt);
+  await addAuditLog({
+    id: crypto.randomUUID(),
+    quoteId: id,
+    stage: "SETTLEMENT_MUTUAL_CONFIRMED",
+    snapshot: updated,
+    actorId: user.id,
+    createdAt,
+  });
   return NextResponse.json({ quote: updated });
 }

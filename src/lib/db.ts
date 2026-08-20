@@ -2,13 +2,21 @@ import { Pool, type PoolClient } from "pg";
 import { AsyncLocalStorage } from "node:async_hooks";
 import { hash as bcryptHash } from "@node-rs/bcrypt";
 import crypto from "node:crypto";
-import { buildSeedRateTable } from "./pricing/seed";
+import { buildSeedRateTable, SEED_MID_HALL_RATE_CONFIG } from "./pricing/seed";
 import { SEED_PAGES } from "./pricing/pageSeed";
 import { DEFAULT_HOME_CONTENT } from "./content/seed";
 import { SEED_FAQS } from "./content/faqSeed";
 import { FEATURE_SPEC_SEED } from "./featureSpecSeed";
 import { FEATURE_SPEC_SHEET_KEYS } from "./pricing/types";
 import { sha256Hex } from "./passwordScheme";
+import {
+  blindIndex,
+  blindIndexOptional,
+  decryptField,
+  decryptOptional,
+  encryptField,
+  encryptOptional,
+} from "./fieldCrypto";
 import type { HomeContent } from "./content/types";
 import {
   DEFAULT_DOCUMENTS_CONTENT,
@@ -31,6 +39,7 @@ import type {
   AppUser,
   Attachment,
   AttachmentCategory,
+  AuditLogAction,
   AuditLogEntry,
   Company,
   ContractAdjustment,
@@ -57,6 +66,9 @@ import type {
   TaxInvoice,
   TicketOpen,
   UserRole,
+  MemberType,
+  CompanyRole,
+  CompanyStatus,
   AdminTier,
   WeekDemand,
 } from "./pricing/types";
@@ -320,6 +332,93 @@ async function initSchema(pool: Pool) {
       answered_by TEXT,
       created_at TEXT NOT NULL
     );
+
+    -- ─────────────────────────────────────────────────────────────────────
+    -- 가입·인증 개편 (기획서 2026-08-18) — Phase 1 기반 테이블
+    -- ─────────────────────────────────────────────────────────────────────
+
+    -- 약관 동의 이력. "언제 동의했나"만으로는 분쟁에 대응할 수 없어서,
+    -- 동의 시점의 약관 버전과 본문 해시를 함께 박아 둔다(사후에 약관을 고쳐도
+    -- 그때 무엇에 동의했는지 되짚을 수 있다).
+    CREATE TABLE IF NOT EXISTS terms_agreements (
+      id TEXT PRIMARY KEY,
+      user_id TEXT NOT NULL REFERENCES users(id),
+      terms_kind TEXT NOT NULL,          -- SERVICE / PRIVACY_REQUIRED / PRIVACY_OPTIONAL / MARKETING
+      terms_version TEXT NOT NULL,       -- 약관 버전 코드
+      body_hash TEXT NOT NULL,           -- 동의 시점 본문의 SHA-256
+      agreed INTEGER NOT NULL,           -- 선택 약관은 0(미동의)도 남긴다
+      agreed_at TEXT NOT NULL,           -- 초 단위 ISO8601
+      request_ip TEXT
+    );
+
+    -- 본인인증(NICE 통합인증) 시도 이력. 성공 건만이 아니라 실패도 남겨야
+    -- "누가 언제 인증했는가"를 되짚을 수 있다. CI/DI 는 암호문으로만 들어간다.
+    CREATE TABLE IF NOT EXISTS identity_verifications (
+      id TEXT PRIMARY KEY,
+      user_id TEXT REFERENCES users(id),   -- 가입 전 인증이라 시점상 NULL 일 수 있다
+      request_no TEXT NOT NULL,
+      transaction_id TEXT,
+      succeeded INTEGER NOT NULL DEFAULT 0,
+      result_code TEXT,
+      result_message TEXT,
+      ci_encrypted TEXT,
+      di_encrypted TEXT,
+      di_index TEXT,                       -- 중복 가입 판별용 블라인드 인덱스
+      name TEXT,
+      birthdate TEXT,
+      gender TEXT,
+      national_info TEXT,
+      mobile_co TEXT,
+      mobile_no TEXT,
+      created_at TEXT NOT NULL
+    );
+
+    -- 마스터가 소속 담당자를 부를 때 쓰는 초대. 계정을 미리 만들지 않고 링크만 보내고,
+    -- 본인이 인증한 뒤 비밀번호를 직접 정한다(임시 비밀번호를 남이 아는 상태를 만들지 않는다).
+    CREATE TABLE IF NOT EXISTS company_invitations (
+      id TEXT PRIMARY KEY,
+      company_id TEXT NOT NULL REFERENCES companies(id),
+      invited_by TEXT NOT NULL REFERENCES users(id),
+      email TEXT NOT NULL,
+      token_hash TEXT NOT NULL,          -- 원문 토큰은 저장하지 않는다
+      status TEXT NOT NULL DEFAULT 'PENDING',  -- PENDING / ACCEPTED / EXPIRED / CANCELLED
+      expires_at TEXT NOT NULL,          -- 발급 +7일
+      accepted_at TEXT,
+      accepted_user_id TEXT REFERENCES users(id),
+      created_at TEXT NOT NULL
+    );
+
+    -- 카카오 알림톡 템플릿. 문안을 코드에 하드코딩하면 심사 통과분만 골라 켜는 게 불가능하다.
+    CREATE TABLE IF NOT EXISTS message_templates (
+      code TEXT PRIMARY KEY,             -- MB-01 / BK-08 / ST-04 / NT-01 …
+      title TEXT NOT NULL,
+      body TEXT NOT NULL,
+      variables_json TEXT NOT NULL DEFAULT '[]',
+      channel TEXT NOT NULL DEFAULT 'ALIMTALK',  -- ALIMTALK / FRIENDTALK
+      release_phase TEXT NOT NULL DEFAULT 'TBD', -- FIRST / SECOND / TBD
+      review_status TEXT NOT NULL DEFAULT 'DRAFT', -- DRAFT / SUBMITTED / APPROVED / REJECTED
+      enabled INTEGER NOT NULL DEFAULT 0,
+      updated_at TEXT NOT NULL
+    );
+
+    -- 발송 이력. idempotency_key 로 같은 이벤트가 두 번 나가는 것을 막는다
+    -- (배치 재실행·재시도에서 중복 발송이 제일 흔한 사고다).
+    CREATE TABLE IF NOT EXISTS message_sends (
+      id TEXT PRIMARY KEY,
+      idempotency_key TEXT NOT NULL,
+      template_code TEXT NOT NULL,
+      recipient_id TEXT REFERENCES users(id),
+      recipient_phone TEXT,
+      channel TEXT NOT NULL,             -- INAPP / EMAIL / ALIMTALK / LMS
+      status TEXT NOT NULL DEFAULT 'QUEUED', -- QUEUED / SENT / FAILED / FALLBACK
+      attempt INTEGER NOT NULL DEFAULT 0,
+      result_code TEXT,
+      result_message TEXT,
+      payload_json TEXT,
+      scheduled_at TEXT,                 -- 반복 알람의 다음 발송 예정 시각
+      sent_at TEXT,
+      created_at TEXT NOT NULL
+    );
   `);
 
   // 이미 배포되어 있던 DB에는 CREATE TABLE IF NOT EXISTS가 새 컬럼을 추가해주지 않으므로,
@@ -341,6 +440,7 @@ async function initSchema(pool: Pool) {
     ALTER TABLE quotes ADD COLUMN IF NOT EXISTS week_year INTEGER;
     ALTER TABLE quotes ADD COLUMN IF NOT EXISTS week_month INTEGER;
     ALTER TABLE quotes ADD COLUMN IF NOT EXISTS week_of_month INTEGER;
+    ALTER TABLE rate_tables ADD COLUMN IF NOT EXISTS mid_hall_json TEXT;
 
     CREATE UNIQUE INDEX IF NOT EXISTS idx_users_username ON users(username) WHERE username IS NOT NULL;
 
@@ -353,6 +453,125 @@ async function initSchema(pool: Pool) {
     CREATE INDEX IF NOT EXISTS idx_inquiries_user ON inquiries(user_id);
     CREATE INDEX IF NOT EXISTS idx_tax_invoices_quote ON tax_invoices(quote_id);
     CREATE INDEX IF NOT EXISTS idx_users_phone ON users(phone) WHERE phone IS NOT NULL;
+
+    -- ── 가입·인증 개편 (기획서 2026-08-18) ────────────────────────────────
+    -- 회원 유형. 지금은 기업회원만 열지만 컬럼을 먼저 두어, 개인회원을 열 때
+    -- 기존 행 전체를 마이그레이션하지 않아도 되게 한다.
+    ALTER TABLE users ADD COLUMN IF NOT EXISTS member_type TEXT NOT NULL DEFAULT 'CORPORATE';
+    -- 회사 안에서의 권한(MASTER/STAFF). 운영자 등급인 admin_tier 와 다른 축이다.
+    ALTER TABLE users ADD COLUMN IF NOT EXISTS company_role TEXT;
+    -- 본인인증 결과. 고유식별정보라 암호문으로만 넣고, 검색은 di_index 로 한다.
+    ALTER TABLE users ADD COLUMN IF NOT EXISTS ci_encrypted TEXT;
+    ALTER TABLE users ADD COLUMN IF NOT EXISTS di_encrypted TEXT;
+    ALTER TABLE users ADD COLUMN IF NOT EXISTS di_index TEXT;
+    ALTER TABLE users ADD COLUMN IF NOT EXISTS identity_verified_at TEXT;
+    -- 세션 일괄 무효화 기준시각. 세션은 서명 토큰이라 서버에 목록이 없어서,
+    -- 이 값보다 먼저 발급된 토큰을 전부 무효로 본다(비밀번호 변경·탈퇴·강제 로그아웃).
+    ALTER TABLE users ADD COLUMN IF NOT EXISTS session_epoch TEXT;
+
+    -- 초대로 만들어진 계정은 본인이 비밀번호를 정하기 전까지 해시가 없다.
+    ALTER TABLE users ALTER COLUMN password_hash DROP NOT NULL;
+
+    ALTER TABLE companies ADD COLUMN IF NOT EXISTS master_user_id TEXT REFERENCES users(id);
+    -- 회사 자체의 승인 상태. 회원 개인의 approval_status 와 다른 축이다.
+    ALTER TABLE companies ADD COLUMN IF NOT EXISTS status TEXT NOT NULL DEFAULT 'PENDING';
+    -- 기획서 A5 기업정보 항목 — 대표번호·대표팩스·법인등록번호
+    ALTER TABLE companies ADD COLUMN IF NOT EXISTS company_phone TEXT;
+    ALTER TABLE companies ADD COLUMN IF NOT EXISTS company_fax TEXT;
+    ALTER TABLE companies ADD COLUMN IF NOT EXISTS corporate_number TEXT;
+
+    -- 진행 중인 본인인증 건을 콜백에서 다시 집어들기 위한 값들.
+    -- pod 가 여러 개라 프로세스 메모리에 두면 콜백이 다른 pod 로 가서 깨진다.
+    -- ticket 은 복호화 키의 씨앗이라 암호문으로만 보관한다.
+    ALTER TABLE identity_verifications ADD COLUMN IF NOT EXISTS purpose TEXT NOT NULL DEFAULT 'REGISTER';
+    ALTER TABLE identity_verifications ADD COLUMN IF NOT EXISTS access_token TEXT;
+    ALTER TABLE identity_verifications ADD COLUMN IF NOT EXISTS ticket_encrypted TEXT;
+    ALTER TABLE identity_verifications ADD COLUMN IF NOT EXISTS iterations INTEGER;
+    ALTER TABLE identity_verifications ADD COLUMN IF NOT EXISTS consumed_at TEXT;
+    -- 콜백 상관관계 키. NICE 는 완료 시 web_transaction_id 만 돌려주므로,
+    -- 우리가 만든 nonce 를 return_url 경로에 박아 두고 그것으로 진행 건을 찾는다.
+    -- "가장 최근 미소비 건"으로 찾으면 동시 가입자끼리 남의 인증 결과를 집어간다.
+    ALTER TABLE identity_verifications ADD COLUMN IF NOT EXISTS nonce TEXT;
+    CREATE UNIQUE INDEX IF NOT EXISTS idx_identity_nonce ON identity_verifications(nonce) WHERE nonce IS NOT NULL;
+    CREATE UNIQUE INDEX IF NOT EXISTS idx_identity_request_no ON identity_verifications(request_no);
+    CREATE INDEX IF NOT EXISTS idx_identity_transaction ON identity_verifications(transaction_id);
+
+    -- 가입·계정 알림(승인/반려/비밀번호 변경)은 신청서와 무관하다.
+    -- quote_id 가 NOT NULL 이면 이런 알림은 저장 자체가 안 된다.
+    ALTER TABLE notifications ALTER COLUMN quote_id DROP NOT NULL;
+    -- 알림을 눌렀을 때 갈 곳. 예전에는 신청서 상세로만 갈 수 있어서 비즈메시지는
+    -- 본문에 URL 을 그대로 적어 넣었다 — 링크로 저장해 화면에서 누르게 한다.
+    ALTER TABLE notifications ADD COLUMN IF NOT EXISTS link TEXT;
+
+    -- 회사의 유일 키는 회사명이 아니라 사업자등록번호다.
+    -- 동명 회사가 실제로 있어서 name UNIQUE 는 오히려 정상 가입을 막는다.
+    ALTER TABLE companies DROP CONSTRAINT IF EXISTS companies_name_key;
+    CREATE UNIQUE INDEX IF NOT EXISTS idx_companies_brn
+      ON companies(business_registration_number)
+      WHERE business_registration_number IS NOT NULL;
+
+    CREATE UNIQUE INDEX IF NOT EXISTS idx_users_di ON users(di_index) WHERE di_index IS NOT NULL;
+    -- 회사당 대표 담당자는 한 명이다. 이 불변식이 깨지면 합류 승인 주체가 둘이 되고
+    -- 대표 이관이 어느 쪽을 내릴지 모호해진다. 코드에서만 지키면 직접 UPDATE 한 번에 무너진다.
+    --
+    -- 인덱스를 걸기 전에 이미 둘 이상인 회사를 정리한다(가장 먼저 만들어진 한 명만 남긴다).
+    -- 같은 쿼리 안이라 순서대로 실행되고, 정리보다 인덱스가 먼저 돌면 생성이 실패한다.
+    UPDATE users SET company_role = 'STAFF'
+     WHERE company_role = 'MASTER' AND company_id IS NOT NULL
+       AND id <> (
+         SELECT u2.id FROM users u2
+          WHERE u2.company_id = users.company_id AND u2.company_role = 'MASTER'
+          ORDER BY u2.created_at ASC LIMIT 1
+       );
+    CREATE UNIQUE INDEX IF NOT EXISTS idx_users_company_master
+      ON users(company_id) WHERE company_role = 'MASTER' AND company_id IS NOT NULL;
+    CREATE INDEX IF NOT EXISTS idx_users_company ON users(company_id) WHERE company_id IS NOT NULL;
+    CREATE INDEX IF NOT EXISTS idx_terms_agreements_user ON terms_agreements(user_id);
+    CREATE INDEX IF NOT EXISTS idx_identity_verifications_di ON identity_verifications(di_index);
+    CREATE INDEX IF NOT EXISTS idx_company_invitations_company ON company_invitations(company_id);
+    CREATE UNIQUE INDEX IF NOT EXISTS idx_company_invitations_token ON company_invitations(token_hash);
+    CREATE UNIQUE INDEX IF NOT EXISTS idx_message_sends_idem ON message_sends(idempotency_key);
+    CREATE INDEX IF NOT EXISTS idx_message_sends_recipient ON message_sends(recipient_id);
+    CREATE INDEX IF NOT EXISTS idx_message_sends_scheduled
+      ON message_sends(scheduled_at) WHERE scheduled_at IS NOT NULL;
+  `);
+
+  // 사업자등록번호는 숫자만 남긴 형태로 통일한다 — 하이픈 유무로 같은 회사가
+  // 둘로 갈리면 UNIQUE 인덱스가 제 역할을 못 한다.
+  await pool.query(`
+    UPDATE companies
+       SET business_registration_number = regexp_replace(business_registration_number, '\\D', '', 'g')
+     WHERE business_registration_number IS NOT NULL
+       AND business_registration_number <> regexp_replace(business_registration_number, '\\D', '', 'g')
+  `);
+
+  // 회사별 최초 가입자를 마스터로 세운다. 마스터가 0명인 회사가 생기면
+  // 소속 담당자를 승인할 사람이 없어져 가입 흐름이 멈춘다.
+  await pool.query(`
+    UPDATE users SET company_role = 'MASTER'
+     WHERE company_role IS NULL
+       AND role = 'APPLICANT'
+       AND company_id IS NOT NULL
+       AND id = (
+         SELECT u2.id FROM users u2
+          WHERE u2.company_id = users.company_id
+            AND u2.role = 'APPLICANT'
+            AND u2.withdrawn_at IS NULL
+          ORDER BY u2.created_at ASC
+          LIMIT 1
+       )
+  `);
+  await pool.query(`
+    UPDATE users SET company_role = 'STAFF'
+     WHERE company_role IS NULL AND role = 'APPLICANT' AND company_id IS NOT NULL
+  `);
+  await pool.query(`
+    UPDATE companies SET master_user_id = (
+      SELECT u.id FROM users u
+       WHERE u.company_id = companies.id AND u.company_role = 'MASTER'
+       ORDER BY u.created_at ASC LIMIT 1
+    )
+    WHERE master_user_id IS NULL
   `);
 
   // 주차 컬럼 도입 이전에 저장된 신청서는 selection_json 에서 값을 뽑아 한 번 채운다.
@@ -462,6 +681,28 @@ async function seedData(pool: Pool) {
     console.log(
       `[seoularena] 내부 테스트용 신청자 계정이 생성되었습니다 (승인 완료 상태) — 아이디: ${testUsername}`,
     );
+  }
+
+  // 회사정보 불러오기(기획서 A6)를 바로 시험해 볼 수 있게 표본 회사를 하나 둔다.
+  // 승인 완료 상태여야 검색에 잡힌다. 이미 있으면 건드리지 않는다.
+  const sampleBrn = "1018116510";
+  const sampleExists = (
+    await pool.query("SELECT 1 FROM companies WHERE business_registration_number = $1", [sampleBrn])
+  ).rowCount;
+  if (!sampleExists) {
+    await pool.query(
+      `INSERT INTO companies
+         (id, name, business_registration_number, representative_name, postal_code, address,
+          company_phone, company_fax, corporate_number, status, created_at,
+          verification_status, verified_company_name, verified_representative_name,
+          verified_comp_status, verified_comp_status_label, verified_comp_type_label, verified_at)
+       VALUES ($1, '주식회사 서울아레나', $2, '박○○', '01411',
+               '서울특별시 도봉구 창동 1-24 대운빌딩 2층',
+               '02-1234-4567', '02-544-0966', '1101111234567', 'APPROVED', $3,
+               'VERIFIED', '주식회사 서울아레나', '박○○', '1', '계속사업자', '일반', $3)`,
+      [crypto.randomUUID(), sampleBrn, new Date().toISOString()],
+    );
+    console.log("[seoularena] 표본 회사(주식회사 서울아레나)를 등록했습니다 — 회사정보 불러오기 시험용");
   }
 
   // 서울아레나 소개 / 대관 안내 하위 페이지 — 최초 1회만 기본 콘텐츠로 시드한다.
@@ -641,8 +882,8 @@ async function one<T>(sql: string, params: unknown[] = []): Promise<T | undefine
 
 async function insertRateTable(pool: Pool, rateTable: RateTable) {
   await pool.query(
-    `INSERT INTO rate_tables (version, vat_rate, extra_week_ratio, day_exclusion_discount_ratio, packages_json, addons_json, updated_at)
-     VALUES ($1, $2, $3, $4, $5, $6, $7)`,
+    `INSERT INTO rate_tables (version, vat_rate, extra_week_ratio, day_exclusion_discount_ratio, packages_json, addons_json, mid_hall_json, updated_at)
+     VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
     [
       rateTable.version,
       rateTable.vatRate,
@@ -650,6 +891,7 @@ async function insertRateTable(pool: Pool, rateTable: RateTable) {
       rateTable.dayExclusionDiscountRatio,
       JSON.stringify(rateTable.packages),
       JSON.stringify(rateTable.addons),
+      JSON.stringify(rateTable.midHall),
       rateTable.updatedAt,
     ],
   );
@@ -667,6 +909,7 @@ export async function getCurrentRateTable(): Promise<RateTable> {
     day_exclusion_discount_ratio: number;
     packages_json: string;
     addons_json: string;
+    mid_hall_json: string | null;
     updated_at: string;
   }>("SELECT * FROM rate_tables ORDER BY updated_at DESC LIMIT 1");
   if (!row) throw new Error("요금표가 초기화되지 않았습니다.");
@@ -675,6 +918,8 @@ export async function getCurrentRateTable(): Promise<RateTable> {
     RateTable["packages"][number] & { discountRatio?: number }
   >;
   const packages = rawPackages.map((pkg) => ({ ...pkg, discountRatio: pkg.discountRatio ?? 0 }));
+  // mid_hall_json 컬럼 추가(2026-08-19) 이전에 저장된 버전은 NULL이므로 시드 기본값으로 보정한다.
+  const midHall = row.mid_hall_json ? JSON.parse(row.mid_hall_json) : SEED_MID_HALL_RATE_CONFIG;
   return {
     version: row.version,
     vatRate: row.vat_rate,
@@ -682,6 +927,7 @@ export async function getCurrentRateTable(): Promise<RateTable> {
     dayExclusionDiscountRatio: row.day_exclusion_discount_ratio,
     packages,
     addons: JSON.parse(row.addons_json),
+    midHall,
     updatedAt: row.updated_at,
   };
 }
@@ -718,6 +964,11 @@ interface CompanyRow {
   verified_comp_type_label: string | null;
   verification_message: string | null;
   verified_at: string | null;
+  status: string | null;
+  master_user_id: string | null;
+  company_phone: string | null;
+  company_fax: string | null;
+  corporate_number: string | null;
 }
 
 function toCompany(row: CompanyRow): Company {
@@ -731,6 +982,11 @@ function toCompany(row: CompanyRow): Company {
     businessCertUrl: row.business_cert_url,
     businessCertName: row.business_cert_name,
     createdAt: row.created_at,
+    status: (row.status as CompanyStatus | null) ?? "PENDING",
+    companyPhone: row.company_phone ?? null,
+    companyFax: row.company_fax ?? null,
+    corporateNumber: row.corporate_number ?? null,
+    masterUserId: row.master_user_id ?? null,
     verification: row.verification_status
       ? {
           status: row.verification_status as CompanyVerification["status"],
@@ -780,8 +1036,19 @@ export async function saveCompanyVerification(
   );
 }
 
-// 회사명으로 기존 기획사를 찾거나 없으면 새로 만든다 (대소문자·공백 무시하고 매칭).
-// 이미 등록된 회사라면 사업자등록번호 등 법인 정보는 최초 등록 값을 그대로 유지한다.
+/**
+ * 사업자등록번호를 숫자만 남긴 형태로 통일한다.
+ * "333-33-33333" 과 "3333333333" 이 다른 회사로 갈리면 유일 키가 무의미해진다.
+ */
+export function normalizeBusinessNumber(value: string | null | undefined): string | null {
+  const digits = (value ?? "").replace(/\D/g, "");
+  return digits.length > 0 ? digits : null;
+}
+
+// 기존 기획사를 찾거나 없으면 새로 만든다.
+// 회사의 유일 키는 회사명이 아니라 사업자등록번호다(기획서 1-35) — 동명 회사가 실재하므로
+// 이름으로는 같은 회사인지 판단할 수 없다. 사업자번호가 없는 예전 데이터만 이름으로 찾는다.
+// 이미 등록된 회사라면 법인 정보는 최초 등록 값을 그대로 유지한다.
 export async function findOrCreateCompany(
   name: string,
   extra?: {
@@ -791,18 +1058,35 @@ export async function findOrCreateCompany(
     address?: string;
     businessCertUrl?: string;
     businessCertName?: string;
+    companyPhone?: string;
+    companyFax?: string;
+    corporateNumber?: string;
   },
 ): Promise<Company> {
   const trimmed = name.trim();
-  const existing = await one<CompanyRow>("SELECT * FROM companies WHERE lower(name) = lower($1)", [
-    trimmed,
-  ]);
-  if (existing) return toCompany(existing);
+  const brn = normalizeBusinessNumber(extra?.businessRegistrationNumber);
+
+  if (brn) {
+    // 사업자번호가 있으면 그것만이 유일 키다.
+    // 못 찾았다고 회사명으로 되짚으면 안 된다 — 동명 회사가 실재하므로
+    // "이름이 같다"는 이유로 남의 회사에 합류시켜 버린다.
+    const byBrn = await one<CompanyRow>(
+      "SELECT * FROM companies WHERE business_registration_number = $1",
+      [brn],
+    );
+    if (byBrn) return toCompany(byBrn);
+  } else {
+    // 사업자번호 없이 등록된 예전 데이터와의 호환 경로.
+    const existing = await one<CompanyRow>("SELECT * FROM companies WHERE lower(name) = lower($1)", [
+      trimmed,
+    ]);
+    if (existing) return toCompany(existing);
+  }
 
   const row: CompanyRow = {
     id: crypto.randomUUID(),
     name: trimmed,
-    business_registration_number: extra?.businessRegistrationNumber?.trim() || null,
+    business_registration_number: brn,
     representative_name: extra?.representativeName?.trim() || null,
     postal_code: extra?.postalCode?.trim() || null,
     address: extra?.address?.trim() || null,
@@ -817,14 +1101,21 @@ export async function findOrCreateCompany(
     verified_comp_type_label: null,
     verification_message: null,
     verified_at: null,
+    status: "PENDING",
+    master_user_id: null,
+    company_phone: extra?.companyPhone?.trim() || null,
+    company_fax: extra?.companyFax?.trim() || null,
+    corporate_number: extra?.corporateNumber?.replace(/\D/g, "") || null,
   };
-  // 같은 회사명으로 동시에 가입하면 조회-후-삽입 사이에 경합이 나서 한쪽이 UNIQUE 위반으로 실패한다.
+  // 같은 사업자번호로 동시에 가입하면 조회-후-삽입 사이에 경합이 나서 한쪽이 UNIQUE 위반으로 실패한다.
   // 충돌 시 무시하고 아래에서 기존 행을 다시 읽는다.
+  // 충돌 대상은 사업자번호 부분 인덱스(idx_companies_brn)다 — 회사명 UNIQUE 는 제거됐다.
   await q(
     `INSERT INTO companies
-      (id, name, business_registration_number, representative_name, postal_code, address, business_cert_url, business_cert_name, created_at)
-     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
-     ON CONFLICT (name) DO NOTHING`,
+      (id, name, business_registration_number, representative_name, postal_code, address, business_cert_url, business_cert_name, created_at,
+       company_phone, company_fax, corporate_number)
+     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
+     ON CONFLICT (business_registration_number) WHERE business_registration_number IS NOT NULL DO NOTHING`,
     [
       row.id,
       row.name,
@@ -835,12 +1126,705 @@ export async function findOrCreateCompany(
       row.business_cert_url,
       row.business_cert_name,
       row.created_at,
+      row.company_phone,
+      row.company_fax,
+      row.corporate_number,
     ],
   );
-  const stored = await one<CompanyRow>("SELECT * FROM companies WHERE lower(name) = lower($1)", [
-    trimmed,
-  ]);
+  // 경합에 밀렸으면 먼저 들어간 행이 정본이다. 사업자번호가 있으면 그걸로 다시 읽는다.
+  const stored = brn
+    ? await one<CompanyRow>("SELECT * FROM companies WHERE business_registration_number = $1", [brn])
+    : await one<CompanyRow>("SELECT * FROM companies WHERE lower(name) = lower($1)", [trimmed]);
   return toCompany(stored ?? row);
+}
+
+/**
+ * 회사에 합류한 계정의 회사 내 권한을 정한다.
+ * 마스터가 아직 없으면 이 사람이 최초 가입자이므로 MASTER, 있으면 STAFF 다(기획서 1-38·1-42).
+ *
+ * 기동 시 백필만으로는 부족하다 — 백필 이후에 만들어지는 회사는 마스터가 0명인 채로
+ * 남아 소속 담당자를 승인할 사람이 없어진다. 그래서 합류 시점에 매번 정한다.
+ * 동시 가입 경합에서 두 명이 동시에 MASTER 가 되지 않도록 회사 행을 잠그고 판단한다.
+ */
+export async function assignCompanyRoleOnJoin(
+  userId: string,
+  companyId: string,
+): Promise<CompanyRole> {
+  const locked = await one<{ master_user_id: string | null }>(
+    "SELECT master_user_id FROM companies WHERE id = $1 FOR UPDATE",
+    [companyId],
+  );
+  const isFirst = !locked?.master_user_id;
+  const role: CompanyRole = isFirst ? "MASTER" : "STAFF";
+  await q("UPDATE users SET company_role = $1 WHERE id = $2", [role, userId]);
+  if (isFirst) {
+    await q("UPDATE companies SET master_user_id = $1 WHERE id = $2", [userId, companyId]);
+  }
+  return role;
+}
+
+/**
+ * 사업자등록번호로 "이 사람이 최초 가입자인지 기존 회사 합류인지"를 서버가 판정한다(기획서 A11).
+ * 사용자가 고르는 값이 아니다 — 고르게 두면 남의 회사에 붙거나 같은 회사를 둘로 만든다.
+ *
+ * 판정 케이스 6종:
+ *   NEW              등록 이력 없음        → 최초 가입자. 회사를 만들고 본인이 마스터가 된다.
+ *   JOIN_APPROVED    승인된 회사           → 합류. 마스터 또는 운영자가 승인한다.
+ *   JOIN_PENDING     심사 중인 회사        → 합류하되 앞선 심사가 끝날 때까지 함께 기다린다.
+ *   REAPPLY_REJECTED 미승인 처리된 회사    → 최초 가입자 심사로 되돌린다(이전 사유를 참고).
+ *   BLOCKED_SUSPENDED 휴·폐업 확인된 회사  → 가입을 막는다. 대관 계약 상대로 부적격.
+ *   (NEW 는 회사 행이 아직 없으므로 company 가 null 이다)
+ */
+export type CompanyJoinKind =
+  | "NEW"
+  | "JOIN_APPROVED"
+  | "JOIN_PENDING"
+  | "REAPPLY_REJECTED"
+  | "BLOCKED_SUSPENDED";
+
+export interface CompanyJoinDecision {
+  kind: CompanyJoinKind;
+  company: Company | null;
+}
+
+export async function resolveCompanyJoin(
+  businessRegistrationNumber: string | null | undefined,
+): Promise<CompanyJoinDecision> {
+  const brn = normalizeBusinessNumber(businessRegistrationNumber);
+  if (!brn) return { kind: "NEW", company: null };
+
+  const row = await one<CompanyRow>(
+    "SELECT * FROM companies WHERE business_registration_number = $1",
+    [brn],
+  );
+  if (!row) return { kind: "NEW", company: null };
+
+  const company = toCompany(row);
+  switch (company.status) {
+    case "SUSPENDED":
+      return { kind: "BLOCKED_SUSPENDED", company };
+    case "REJECTED":
+      return { kind: "REAPPLY_REJECTED", company };
+    case "APPROVED":
+      return { kind: "JOIN_APPROVED", company };
+    default:
+      return { kind: "JOIN_PENDING", company };
+  }
+}
+
+/** 회사 상태를 바꾼다. 최초 가입자 심사 결과가 그대로 회사의 상태가 된다. */
+export async function setCompanyStatus(companyId: string, status: CompanyStatus): Promise<void> {
+  await q("UPDATE companies SET status = $1 WHERE id = $2", [status, companyId]);
+}
+
+/**
+ * 회사에 남아 있는 마스터가 없으면 가장 오래된 승인 계정을 마스터로 올린다.
+ * 마스터가 0명이면 소속 담당자의 합류를 승인할 사람이 없어져 가입 흐름이 멈춘다.
+ */
+export async function ensureCompanyMaster(companyId: string): Promise<void> {
+  await q(
+    `UPDATE companies SET master_user_id = (
+       SELECT u.id FROM users u
+        WHERE u.company_id = $1 AND u.role = 'APPLICANT' AND u.withdrawn_at IS NULL
+        ORDER BY (u.approval_status = 'APPROVED') DESC, u.created_at ASC
+        LIMIT 1
+     )
+     WHERE id = $1
+       AND (master_user_id IS NULL
+            OR NOT EXISTS (SELECT 1 FROM users u2
+                            WHERE u2.id = companies.master_user_id AND u2.withdrawn_at IS NULL))`,
+    [companyId],
+  );
+  await q(
+    `UPDATE users SET company_role = 'MASTER'
+      WHERE id = (SELECT master_user_id FROM companies WHERE id = $1)
+        AND company_role IS DISTINCT FROM 'MASTER'`,
+    [companyId],
+  );
+}
+
+/** 회사 소속 담당자 목록 — 마스터의 담당자 관리 화면(기획서 A10). */
+export async function listCompanyMembers(companyId: string): Promise<AppUser[]> {
+  const rows = await q<UserRow>(
+    `SELECT * FROM users
+      WHERE company_id = $1 AND role = 'APPLICANT'
+      ORDER BY (company_role = 'MASTER') DESC, created_at ASC`,
+    [companyId],
+  );
+  return rows.map(toAppUser);
+}
+
+/**
+ * 마스터 권한을 다른 소속 담당자에게 넘긴다.
+ * 회사당 마스터는 1명이므로 이관자는 즉시 일반 담당자가 된다.
+ * 한 트랜잭션 안에서 처리하지 않으면 마스터가 0명이거나 2명인 순간이 생긴다.
+ */
+export async function transferCompanyMaster(
+  companyId: string,
+  fromUserId: string,
+  toUserId: string,
+): Promise<void> {
+  await withTransaction(async () => {
+    await q("UPDATE users SET company_role = 'STAFF' WHERE id = $1 AND company_id = $2", [
+      fromUserId,
+      companyId,
+    ]);
+    await q("UPDATE users SET company_role = 'MASTER' WHERE id = $1 AND company_id = $2", [
+      toUserId,
+      companyId,
+    ]);
+    await q("UPDATE companies SET master_user_id = $1 WHERE id = $2", [toUserId, companyId]);
+  });
+}
+
+/**
+ * 소속 담당자를 해제한다. 계정 삭제가 아니라 소속 해제 + 비활성이다(기획서 A10).
+ * 계정을 지우면 그 사람이 낸 신청서·계약 이력이 함께 끊긴다.
+ */
+export async function removeCompanyMember(companyId: string, userId: string): Promise<void> {
+  await q(
+    `UPDATE users
+        SET company_id = NULL, company_role = NULL, approval_status = 'REJECTED'
+      WHERE id = $1 AND company_id = $2 AND company_role <> 'MASTER'`,
+    [userId, companyId],
+  );
+}
+
+// ── 담당자 초대 (기획서 A11) ────────────────────────────────────────────────
+
+export interface CompanyInvitation {
+  id: string;
+  companyId: string;
+  email: string;
+  status: string;
+  expiresAt: string;
+  createdAt: string;
+}
+
+/**
+ * 초대장을 만든다. 계정을 미리 만들지 않고 링크만 보낸다 —
+ * 임시 비밀번호를 마스터가 정하면 그 사람이 남의 비밀번호를 아는 상태가 되고,
+ * 본인이 직접 설정하지 않았으므로 실명 확인 근거도 사라진다.
+ *
+ * 원문 토큰은 저장하지 않는다. 유출돼도 DB 만으로는 링크를 만들 수 없게 한다.
+ */
+export async function createCompanyInvitation(input: {
+  id: string;
+  companyId: string;
+  invitedBy: string;
+  email: string;
+  tokenHash: string;
+  expiresAt: string;
+  createdAt: string;
+}): Promise<void> {
+  await q(
+    `INSERT INTO company_invitations (id, company_id, invited_by, email, token_hash, status, expires_at, created_at)
+     VALUES ($1, $2, $3, $4, $5, 'PENDING', $6, $7)`,
+    [
+      input.id,
+      input.companyId,
+      input.invitedBy,
+      input.email.toLowerCase(),
+      input.tokenHash,
+      input.expiresAt,
+      input.createdAt,
+    ],
+  );
+}
+
+export async function listCompanyInvitations(companyId: string): Promise<CompanyInvitation[]> {
+  const rows = await q<{
+    id: string;
+    company_id: string;
+    email: string;
+    status: string;
+    expires_at: string;
+    created_at: string;
+  }>(
+    `SELECT id, company_id, email, status, expires_at, created_at
+       FROM company_invitations WHERE company_id = $1 ORDER BY created_at DESC`,
+    [companyId],
+  );
+  return rows.map((r) => ({
+    id: r.id,
+    companyId: r.company_id,
+    email: r.email,
+    status: r.status,
+    expiresAt: r.expires_at,
+    createdAt: r.created_at,
+  }));
+}
+
+/** 토큰 해시로 유효한 초대를 찾는다. 만료·소비된 건은 돌려주지 않는다. */
+export async function findValidInvitation(tokenHash: string): Promise<
+  { id: string; companyId: string; email: string; companyName: string } | undefined
+> {
+  const row = await one<{
+    id: string;
+    company_id: string;
+    email: string;
+    expires_at: string;
+    company_name: string;
+  }>(
+    `SELECT i.id, i.company_id, i.email, i.expires_at, c.name AS company_name
+       FROM company_invitations i JOIN companies c ON c.id = i.company_id
+      WHERE i.token_hash = $1 AND i.status = 'PENDING'`,
+    [tokenHash],
+  );
+  if (!row) return undefined;
+  if (Date.parse(row.expires_at) < Date.now()) return undefined;
+  return {
+    id: row.id,
+    companyId: row.company_id,
+    email: row.email,
+    companyName: row.company_name,
+  };
+}
+
+export async function consumeInvitation(id: string, userId: string): Promise<void> {
+  await q(
+    `UPDATE company_invitations
+        SET status = 'ACCEPTED', accepted_at = $2, accepted_user_id = $3
+      WHERE id = $1 AND status = 'PENDING'`,
+    [id, new Date().toISOString(), userId],
+  );
+}
+
+export async function cancelInvitation(id: string, companyId: string): Promise<void> {
+  await q(
+    "UPDATE company_invitations SET status = 'CANCELLED' WHERE id = $1 AND company_id = $2 AND status = 'PENDING'",
+    [id, companyId],
+  );
+}
+
+/** 이 계정이 자기 회사의 마스터인가 — 담당자 관리·합류 승인 권한 검사에 쓴다. */
+export function isCompanyMaster(user: AppUser | null | undefined): boolean {
+  return !!user && user.role === "APPLICANT" && user.companyRole === "MASTER";
+}
+
+/** 사업자등록번호를 앞 3자리만 남기고 가린다 — 목록에서 번호를 수집하지 못하게 한다. */
+function maskBusinessNumber(brn: string | null): string | null {
+  if (!brn) return null;
+  return brn.length <= 3 ? brn : `${brn.slice(0, 3)}-**-*****`;
+}
+
+/**
+ * 주소를 시/군/구까지만 남긴다. 상세 주소는 가입 전에 알 이유가 없다.
+ *
+ * 한국 주소는 단계 수가 일정하지 않다 —
+ *   "서울특별시 도봉구 창동 1-24"          → 2단계에서 구가 끝난다
+ *   "경기도 성남시 분당구 판교역로 166"    → 3단계까지 가야 구가 나온다
+ * 그래서 개수로 자르지 않고 구/군이 나오면 거기서 끊는다.
+ */
+function coarseAddress(address: string | null): string | null {
+  if (!address) return null;
+  const parts = address.trim().split(/\s+/).filter(Boolean);
+  if (parts.length === 0) return null;
+  const kept: string[] = [];
+  for (const part of parts.slice(0, 3)) {
+    kept.push(part);
+    if (/(구|군)$/.test(part)) break;
+  }
+  return kept.join(" ") || null;
+}
+
+export interface CompanySearchItem {
+  id: string;
+  name: string;
+  businessNumberMasked: string | null;
+  region: string | null;
+}
+
+/**
+ * 합류할 회사를 찾는 검색. 승인 완료된 회사만 대상으로 한다 —
+ * 심사 중이거나 미승인·휴폐업 처리된 회사는 존재 자체를 알리지 않는다.
+ * total 은 자르기 전 건수라 "결과가 너무 많음"을 판정하는 데 쓴다.
+ */
+export async function searchCompaniesForJoin(
+  field: "name" | "brn",
+  keyword: string,
+  limit = 6,
+): Promise<{ total: number; results: CompanySearchItem[] }> {
+  const rows =
+    field === "brn"
+      ? await q<CompanyRow>(
+          `SELECT * FROM companies
+            WHERE status = 'APPROVED' AND business_registration_number = $1
+            ORDER BY name ASC LIMIT $2`,
+          [normalizeBusinessNumber(keyword), limit],
+        )
+      : await q<CompanyRow>(
+          `SELECT * FROM companies
+            WHERE status = 'APPROVED' AND name ILIKE $1
+            ORDER BY (lower(name) = lower($2)) DESC, name ASC
+            LIMIT $3`,
+          [`%${keyword.replace(/[%_]/g, (m) => "\\" + m)}%`, keyword, limit],
+        );
+
+  return {
+    total: rows.length,
+    results: rows.slice(0, 3).map((row) => ({
+      id: row.id,
+      name: row.name,
+      businessNumberMasked: maskBusinessNumber(row.business_registration_number),
+      region: coarseAddress(row.address),
+    })),
+  };
+}
+
+/** 약관 동의 이력을 남긴다. 선택 약관은 미동의(0)도 남겨야 "물어봤고 거절했다"가 증명된다. */
+export async function saveTermsAgreements(
+  userId: string,
+  agreements: {
+    kind: string;
+    version: string;
+    bodyHash: string;
+    agreed: boolean;
+    agreedAt: string;
+    requestIp: string | null;
+  }[],
+): Promise<void> {
+  for (const a of agreements) {
+    await q(
+      `INSERT INTO terms_agreements (id, user_id, terms_kind, terms_version, body_hash, agreed, agreed_at, request_ip)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
+      [
+        crypto.randomUUID(),
+        userId,
+        a.kind,
+        a.version,
+        a.bodyHash,
+        a.agreed ? 1 : 0,
+        a.agreedAt,
+        a.requestIp,
+      ],
+    );
+  }
+}
+
+// ── 본인인증 (NICE 통합인증) ────────────────────────────────────────────────
+
+export interface IdentityPending {
+  id: string;
+  nonce: string;
+  requestNo: string;
+  transactionId: string;
+  purpose: string;
+  accessToken: string;
+  ticket: string;
+  iterations: number;
+  createdAt: string;
+}
+
+/** 표준창을 띄우기 직전에 진행 건을 남긴다. 콜백이 이 행을 찾아 결과를 조회한다. */
+export async function saveIdentityPending(input: IdentityPending): Promise<void> {
+  await q(
+    `INSERT INTO identity_verifications
+       (id, nonce, request_no, transaction_id, purpose, access_token, ticket_encrypted, iterations, succeeded, created_at)
+     VALUES ($1, $9, $2, $3, $4, $5, $6, $7, 0, $8)`,
+    [
+      input.id,
+      input.requestNo,
+      input.transactionId,
+      input.purpose,
+      input.accessToken,
+      encryptField(input.ticket),
+      input.iterations,
+      input.createdAt,
+      input.nonce,
+    ],
+  );
+}
+
+/**
+ * 콜백에서 진행 건을 집어든다. nonce 로 정확히 한 건만 찾는다.
+ * 이미 소비된 건은 돌려주지 않는다 — 같은 인증을 두 번 쓰지 못하게 한다.
+ */
+export async function takeIdentityPending(nonce: string): Promise<IdentityPending | undefined> {
+  const row = await one<{
+    id: string;
+    nonce: string;
+    request_no: string;
+    transaction_id: string;
+    purpose: string;
+    access_token: string | null;
+    ticket_encrypted: string | null;
+    iterations: number | null;
+    created_at: string;
+  }>(
+    `SELECT id, nonce, request_no, transaction_id, purpose, access_token, ticket_encrypted, iterations, created_at
+       FROM identity_verifications
+      WHERE nonce = $1 AND consumed_at IS NULL
+      LIMIT 1`,
+    [nonce],
+  );
+  if (!row || !row.access_token || !row.ticket_encrypted || row.iterations == null) return undefined;
+  return {
+    id: row.id,
+    nonce: row.nonce,
+    requestNo: row.request_no,
+    transactionId: row.transaction_id,
+    purpose: row.purpose,
+    accessToken: row.access_token,
+    ticket: decryptField(row.ticket_encrypted),
+    iterations: row.iterations,
+    createdAt: row.created_at,
+  };
+}
+
+/**
+ * 인증 결과를 기록한다. CI/DI 는 암호문으로만 넣고, 중복 판별용 블라인드 인덱스를 함께 남긴다.
+ * access_token·ticket 은 더 쓸 일이 없으므로 지운다(오래 들고 있을 이유가 없다).
+ */
+export async function completeIdentityVerification(
+  id: string,
+  result: {
+    succeeded: boolean;
+    resultCode?: string | null;
+    resultMessage?: string | null;
+    name?: string | null;
+    birthdate?: string | null;
+    gender?: string | null;
+    nationalInfo?: string | null;
+    mobileCo?: string | null;
+    mobileNo?: string | null;
+    ci?: string | null;
+    di?: string | null;
+  },
+): Promise<void> {
+  await q(
+    `UPDATE identity_verifications
+        SET succeeded = $2, result_code = $3, result_message = $4,
+            name = $5, birthdate = $6, gender = $7, national_info = $8,
+            mobile_co = $9, mobile_no = $10,
+            ci_encrypted = $11, di_encrypted = $12, di_index = $13,
+            access_token = NULL, ticket_encrypted = NULL,
+            consumed_at = $14
+      WHERE id = $1`,
+    [
+      id,
+      result.succeeded ? 1 : 0,
+      result.resultCode ?? null,
+      result.resultMessage ?? null,
+      result.name ?? null,
+      result.birthdate ?? null,
+      result.gender ?? null,
+      result.nationalInfo ?? null,
+      result.mobileCo ?? null,
+      result.mobileNo ?? null,
+      encryptOptional(result.ci ?? null),
+      encryptOptional(result.di ?? null),
+      blindIndexOptional(result.di ?? null),
+      new Date().toISOString(),
+    ],
+  );
+}
+
+/** 서명 티켓의 verificationId 로 인증 이력을 되읽는다. 성공 건만 돌려준다. */
+export async function findCompletedIdentity(id: string): Promise<
+  | {
+      id: string;
+      purpose: string;
+      name: string | null;
+      birthdate: string | null;
+      gender: string | null;
+      nationalInfo: string | null;
+      mobileCo: string | null;
+      mobileNo: string | null;
+      ci: string | null;
+      di: string | null;
+    }
+  | undefined
+> {
+  const row = await one<{
+    id: string;
+    purpose: string;
+    name: string | null;
+    birthdate: string | null;
+    gender: string | null;
+    national_info: string | null;
+    mobile_co: string | null;
+    mobile_no: string | null;
+    ci_encrypted: string | null;
+    di_encrypted: string | null;
+    succeeded: number;
+  }>(
+    `SELECT id, purpose, name, birthdate, gender, national_info, mobile_co, mobile_no,
+            ci_encrypted, di_encrypted, succeeded
+       FROM identity_verifications WHERE id = $1`,
+    [id],
+  );
+  if (!row || row.succeeded !== 1) return undefined;
+  return {
+    id: row.id,
+    purpose: row.purpose,
+    name: row.name,
+    birthdate: row.birthdate,
+    gender: row.gender,
+    nationalInfo: row.national_info,
+    mobileCo: row.mobile_co,
+    mobileNo: row.mobile_no,
+    ci: decryptOptional(row.ci_encrypted),
+    di: decryptOptional(row.di_encrypted),
+  };
+}
+
+/**
+ * 개발 환경 전용 — 인증을 통과한 것처럼 이력을 만들어 둔다.
+ * 표준창 인증은 실제 사람이 해야 해서 E2E 자동화가 불가능하다.
+ * 호출부(/api/auth/nice/start)에서 이중 잠금을 확인한 뒤에만 들어온다.
+ */
+export async function saveStubIdentity(input: {
+  id: string;
+  name: string;
+  mobileNo: string;
+  ci: string;
+  di: string;
+  purpose: string;
+  createdAt: string;
+}): Promise<void> {
+  await q(
+    `INSERT INTO identity_verifications
+       (id, nonce, request_no, transaction_id, purpose, succeeded, result_code, result_message,
+        name, birthdate, gender, national_info, mobile_co, mobile_no,
+        ci_encrypted, di_encrypted, di_index, consumed_at, created_at)
+     VALUES ($1, $2, $3, $4, $5, 1, 'STUB', '개발 환경 스텁',
+             $6, '19900101', '1', '0', '1', $7, $8, $9, $10, $11, $11)`,
+    [
+      input.id,
+      "stub-" + input.id,
+      "STUB-" + input.id,
+      "STUB-TX-" + input.id,
+      input.purpose,
+      input.name,
+      input.mobileNo,
+      encryptField(input.ci),
+      encryptField(input.di),
+      blindIndex(input.di),
+      input.createdAt,
+    ],
+  );
+}
+
+/** DI 로 이미 가입한 계정을 찾는다 — 중복 가입 판별(기획서 1-28). */
+export async function findUserByDi(di: string): Promise<AppUser | undefined> {
+  const row = await one<UserRow>(
+    "SELECT * FROM users WHERE di_index = $1 AND withdrawn_at IS NULL",
+    [blindIndex(di)],
+  );
+  return row ? toAppUser(row) : undefined;
+}
+
+/** 이 시각보다 먼저 발급된 세션을 모두 무효로 만든다. */
+export async function setSessionEpoch(userId: string, at: string): Promise<void> {
+  await q("UPDATE users SET session_epoch = $1 WHERE id = $2", [at, userId]);
+}
+
+export async function findSessionEpoch(userId: string): Promise<string | null> {
+  const row = await one<{ session_epoch: string | null }>(
+    "SELECT session_epoch FROM users WHERE id = $1",
+    [userId],
+  );
+  return row?.session_epoch ?? null;
+}
+
+// ── 비즈메시지 발송 이력 (기획서 B1) ────────────────────────────────────────
+
+export async function findSendByIdempotencyKey(key: string): Promise<{ id: string } | undefined> {
+  return one<{ id: string }>("SELECT id FROM message_sends WHERE idempotency_key = $1", [key]);
+}
+
+export async function recordSendAttempt(input: {
+  id: string;
+  idempotencyKey: string;
+  templateCode: string;
+  recipientId: string | null;
+  recipientPhone: string | null;
+  channel: string;
+  status: string;
+  resultCode?: string | null;
+  resultMessage?: string | null;
+  payloadJson?: string | null;
+  createdAt: string;
+}): Promise<void> {
+  await q(
+    `INSERT INTO message_sends
+       (id, idempotency_key, template_code, recipient_id, recipient_phone, channel, status,
+        attempt, result_code, result_message, payload_json, created_at)
+     VALUES ($1, $2, $3, $4, $5, $6, $7, 1, $8, $9, $10, $11)
+     ON CONFLICT (idempotency_key) DO NOTHING`,
+    [
+      input.id,
+      input.idempotencyKey,
+      input.templateCode,
+      input.recipientId,
+      input.recipientPhone,
+      input.channel,
+      input.status,
+      input.resultCode ?? null,
+      input.resultMessage ?? null,
+      input.payloadJson ?? null,
+      input.createdAt,
+    ],
+  );
+}
+
+export async function updateSendResult(
+  id: string,
+  result: { status: string; resultCode: string | null; resultMessage: string | null; sentAt: string | null },
+): Promise<void> {
+  await q(
+    `UPDATE message_sends
+        SET status = $2, result_code = $3, result_message = $4, sent_at = $5
+      WHERE id = $1`,
+    [id, result.status, result.resultCode, result.resultMessage, result.sentAt],
+  );
+}
+
+/** 백오피스 발송 이력 조회 (기획서 1-60). */
+export async function listMessageSends(limit = 100) {
+  return q<{
+    id: string;
+    template_code: string;
+    channel: string;
+    status: string;
+    recipient_phone: string | null;
+    result_code: string | null;
+    result_message: string | null;
+    created_at: string;
+    sent_at: string | null;
+  }>(
+    `SELECT id, template_code, channel, status, recipient_phone, result_code, result_message, created_at, sent_at
+       FROM message_sends ORDER BY created_at DESC LIMIT $1`,
+    [limit],
+  );
+}
+
+/** 마스킹된 아이디 — 전체를 그대로 보여주면 목록화가 가능해진다(기획서 A13). */
+export function maskUsername(username: string): string {
+  if (username.length <= 2) return username[0] + "*";
+  const head = username.slice(0, 4 > username.length - 2 ? 1 : 4);
+  const tail = username.slice(-2);
+  return `${head}${"*".repeat(Math.max(2, username.length - head.length - tail.length))}${tail}`;
+}
+
+/** 가입 확정 시 본인인증 결과를 계정에 붙인다. */
+export async function attachIdentityToUser(
+  userId: string,
+  identity: { ci: string; di: string; verifiedAt: string },
+): Promise<void> {
+  await q(
+    `UPDATE users
+        SET ci_encrypted = $2, di_encrypted = $3, di_index = $4, identity_verified_at = $5
+      WHERE id = $1`,
+    [
+      userId,
+      encryptField(identity.ci),
+      encryptField(identity.di),
+      blindIndex(identity.di),
+      identity.verifiedAt,
+    ],
+  );
 }
 
 export async function findCompanyById(id: string): Promise<Company | undefined> {
@@ -862,8 +1846,15 @@ interface UserRow {
   username: string | null;
   email: string;
   phone: string | null;
-  password_hash: string;
+  password_hash: string | null;
   password_scheme: PasswordScheme;
+  member_type: string | null;
+  session_epoch: string | null;
+  company_role: string | null;
+  ci_encrypted: string | null;
+  di_encrypted: string | null;
+  di_index: string | null;
+  identity_verified_at: string | null;
   name: string;
   company_name: string | null;
   company_id: string | null;
@@ -886,6 +1877,9 @@ function toAppUser(row: UserRow): AppUser {
     role: row.role,
     approvalStatus: row.approval_status,
     adminTier: row.role === "ADMIN" ? (row.admin_tier ?? "BASIC") : null,
+    memberType: (row.member_type as MemberType | null) ?? "CORPORATE",
+    companyRole: row.role === "APPLICANT" ? ((row.company_role as CompanyRole | null) ?? null) : null,
+    identityVerifiedAt: row.identity_verified_at ?? null,
     createdAt: row.created_at,
   };
 }
@@ -905,15 +1899,21 @@ export async function createUser(input: {
   adminTier?: AdminTier;
   termsAgreedAt?: string | null;
   privacyAgreedAt?: string | null;
+  // 회원 유형. 지금은 기업회원만 열려 있어 생략하면 CORPORATE 다.
+  memberType?: MemberType;
+  // 회사 소속 신청자의 회사 내 권한. 최초 가입자는 MASTER, 합류자는 STAFF.
+  companyRole?: CompanyRole | null;
   createdAt: string;
 }): Promise<AppUser> {
   const approvalStatus = input.approvalStatus ?? "APPROVED";
   const companyId = input.companyId ?? null;
   const phone = input.phone ?? null;
   const adminTier: AdminTier | null = input.role === "ADMIN" ? (input.adminTier ?? "BASIC") : null;
+  const memberType: MemberType = input.memberType ?? "CORPORATE";
+  const companyRole: CompanyRole | null = input.role === "APPLICANT" ? (input.companyRole ?? null) : null;
   await q(
-    `INSERT INTO users (id, username, email, phone, password_hash, password_scheme, name, company_name, company_id, role, approval_status, admin_tier, terms_agreed_at, privacy_agreed_at, created_at)
-     VALUES ($1, $2, $3, $4, $5, 'v2', $6, $7, $8, $9, $10, $11, $12, $13, $14)`,
+    `INSERT INTO users (id, username, email, phone, password_hash, password_scheme, name, company_name, company_id, role, approval_status, admin_tier, terms_agreed_at, privacy_agreed_at, member_type, company_role, created_at)
+     VALUES ($1, $2, $3, $4, $5, 'v2', $6, $7, $8, $9, $10, $11, $12, $13, $15, $16, $14)`,
     [
       input.id,
       input.username,
@@ -929,6 +1929,8 @@ export async function createUser(input: {
       input.termsAgreedAt ?? null,
       input.privacyAgreedAt ?? null,
       input.createdAt,
+      memberType,
+      companyRole,
     ],
   );
   return {
@@ -942,6 +1944,9 @@ export async function createUser(input: {
     role: input.role,
     approvalStatus,
     adminTier,
+    memberType,
+    companyRole,
+    identityVerifiedAt: null,
     createdAt: input.createdAt,
   };
 }
@@ -951,6 +1956,9 @@ export async function findUserByEmailWithPasswordHash(
 ): Promise<(AppUser & { passwordHash: string; passwordScheme: PasswordScheme }) | undefined> {
   const row = await one<UserRow>("SELECT * FROM users WHERE email = $1", [email.toLowerCase()]);
   if (!row || row.withdrawn_at) return undefined;
+  // 초대만 받고 아직 비밀번호를 정하지 않은 계정은 password_hash 가 NULL 이다.
+  // 이런 계정으로는 로그인이 성립하지 않으므로 여기서 잘라낸다(빈 해시로 검증에 들어가면 안 된다).
+  if (!row.password_hash) return undefined;
   return { ...toAppUser(row), passwordHash: row.password_hash, passwordScheme: row.password_scheme };
 }
 
@@ -976,6 +1984,9 @@ export async function findUserByLoginIdWithPasswordHash(
     trimmed.toLowerCase(),
   ]);
   if (!row || row.withdrawn_at) return undefined;
+  // 초대만 받고 아직 비밀번호를 정하지 않은 계정은 password_hash 가 NULL 이다.
+  // 이런 계정으로는 로그인이 성립하지 않으므로 여기서 잘라낸다(빈 해시로 검증에 들어가면 안 된다).
+  if (!row.password_hash) return undefined;
   return { ...toAppUser(row), passwordHash: row.password_hash, passwordScheme: row.password_scheme };
 }
 
@@ -1104,11 +2115,14 @@ export async function updateUserPassword(id: string, passwordHash: string) {
 export async function findUserPasswordHash(
   id: string,
 ): Promise<{ passwordHash: string; passwordScheme: PasswordScheme } | undefined> {
-  const row = await one<{ password_hash: string; password_scheme: PasswordScheme }>(
+  const row = await one<{ password_hash: string | null; password_scheme: PasswordScheme }>(
     "SELECT password_hash, password_scheme FROM users WHERE id = $1",
     [id],
   );
-  return row ? { passwordHash: row.password_hash, passwordScheme: row.password_scheme } : undefined;
+  // 비밀번호를 아직 정하지 않은 계정(초대 대기)은 "해시 없음"으로 다룬다.
+  return row && row.password_hash
+    ? { passwordHash: row.password_hash, passwordScheme: row.password_scheme }
+    : undefined;
 }
 
 // 탈퇴는 신청서(applicant_id FK)·감사로그 등 기존 기록 보존을 위해 소프트 삭제로 처리한다.
@@ -1140,6 +2154,132 @@ export interface Paged<T> {
 export const DEFAULT_PAGE_SIZE = 20;
 
 // 1보다 작거나 숫자가 아닌 입력은 1페이지로 보정한다(쿼리스트링을 그대로 받기 때문).
+// ── 운영자 회사 관리 (기획서 A9·A10 운영자 시야) ───────────────────────────
+
+export interface CompanyRow2 {
+  id: string;
+  name: string;
+  businessRegistrationNumber: string | null;
+  representativeName: string | null;
+  status: string;
+  masterUserId: string | null;
+  masterName: string | null;
+  memberCount: number;
+  pendingCount: number;
+  createdAt: string;
+}
+
+/**
+ * 회사 목록 — 소속 인원과 승인 대기 건수를 함께 센다.
+ * 행마다 사용자 수를 다시 세면 회사 수만큼 쿼리가 나가므로 집계로 한 번에 읽는다.
+ */
+export async function listCompaniesPaged(
+  filter: { keyword?: string; status?: string } = {},
+  page = 1,
+  pageSize = DEFAULT_PAGE_SIZE,
+): Promise<Paged<CompanyRow2>> {
+  const conditions: string[] = [];
+  const params: unknown[] = [];
+  if (filter.keyword) {
+    params.push(`%${filter.keyword.replace(/[%_]/g, (m) => "\\" + m)}%`);
+    const i = params.length;
+    // 회사명 또는 사업자등록번호(하이픈 무시)로 찾는다.
+    params.push(filter.keyword.replace(/\D/g, ""));
+    conditions.push(
+      `(c.name ILIKE $${i} OR ($${params.length} <> '' AND c.business_registration_number LIKE '%' || $${params.length} || '%'))`,
+    );
+  }
+  if (filter.status) {
+    params.push(filter.status);
+    conditions.push(`c.status = $${params.length}`);
+  }
+  const where = conditions.length ? `WHERE ${conditions.join(" AND ")}` : "";
+
+  const countRow = await one<{ n: number }>(
+    `SELECT COUNT(*)::int AS n FROM companies c ${where}`,
+    params,
+  );
+  const rows = await q<{
+    id: string;
+    name: string;
+    business_registration_number: string | null;
+    representative_name: string | null;
+    status: string | null;
+    master_user_id: string | null;
+    master_name: string | null;
+    member_count: number;
+    pending_count: number;
+    created_at: string;
+  }>(
+    `SELECT c.id, c.name, c.business_registration_number, c.representative_name,
+            c.status, c.master_user_id, c.created_at,
+            m.name AS master_name,
+            COALESCE(u.member_count, 0)::int  AS member_count,
+            COALESCE(u.pending_count, 0)::int AS pending_count
+       FROM companies c
+       LEFT JOIN users m ON m.id = c.master_user_id
+       LEFT JOIN (
+         SELECT company_id,
+                COUNT(*) FILTER (WHERE withdrawn_at IS NULL) AS member_count,
+                COUNT(*) FILTER (WHERE approval_status = 'PENDING' AND withdrawn_at IS NULL) AS pending_count
+           FROM users WHERE role = 'APPLICANT' AND company_id IS NOT NULL
+          GROUP BY company_id
+       ) u ON u.company_id = c.id
+       ${where}
+      ORDER BY (COALESCE(u.pending_count, 0) > 0) DESC, c.created_at DESC
+      LIMIT $${params.length + 1} OFFSET $${params.length + 2}`,
+    [...params, pageSize, (page - 1) * pageSize],
+  );
+  return toPaged(
+    rows.map((r) => ({
+      id: r.id,
+      name: r.name,
+      businessRegistrationNumber: r.business_registration_number,
+      representativeName: r.representative_name,
+      status: r.status ?? "PENDING",
+      masterUserId: r.master_user_id,
+      masterName: r.master_name,
+      memberCount: r.member_count,
+      pendingCount: r.pending_count,
+      createdAt: r.created_at,
+    })),
+    countRow?.n ?? 0,
+    page,
+    pageSize,
+  );
+}
+
+/**
+ * 운영자가 대표 담당자를 바꾼다.
+ * 회사 소속이고 승인 완료된 계정만 대표가 될 수 있다 — 승인 안 된 사람을 대표로 세우면
+ * 그 사람이 합류 승인을 하게 된다.
+ */
+export async function setCompanyMasterByAdmin(
+  companyId: string,
+  newMasterId: string,
+): Promise<{ ok: boolean; error?: string }> {
+  const target = await one<UserRow>(
+    "SELECT * FROM users WHERE id = $1 AND company_id = $2 AND role = 'APPLICANT'",
+    [newMasterId, companyId],
+  );
+  if (!target) return { ok: false, error: "그 회사 소속 담당자가 아닙니다." };
+  if (target.withdrawn_at) return { ok: false, error: "탈퇴한 계정입니다." };
+  if (target.approval_status !== "APPROVED") {
+    return { ok: false, error: "승인 완료된 담당자만 대표로 지정할 수 있습니다." };
+  }
+
+  await withTransaction(async () => {
+    // 기존 대표는 소속 담당자로 내린다. 회사당 대표는 한 명이다.
+    await q(
+      "UPDATE users SET company_role = 'STAFF' WHERE company_id = $1 AND company_role = 'MASTER'",
+      [companyId],
+    );
+    await q("UPDATE users SET company_role = 'MASTER' WHERE id = $1", [newMasterId]);
+    await q("UPDATE companies SET master_user_id = $1 WHERE id = $2", [newMasterId, companyId]);
+  });
+  return { ok: true };
+}
+
 export function normalizePage(input: unknown): number {
   const page = Number(input);
   return Number.isFinite(page) && page >= 1 ? Math.floor(page) : 1;
@@ -1468,7 +2608,7 @@ export async function setQuoteSettlement(id: string, settlement: Settlement): Pr
 export async function addAuditLog(entry: {
   id: string;
   quoteId: string;
-  stage: QuoteStatus;
+  stage: AuditLogAction;
   snapshot: unknown;
   actorId: string;
   createdAt: string;
@@ -1484,7 +2624,7 @@ export async function listAuditLogsForQuote(quoteId: string): Promise<AuditLogEn
   const rows = await q<{
     id: string;
     quote_id: string;
-    stage: QuoteStatus;
+    stage: AuditLogAction;
     snapshot_json: string;
     actor_id: string;
     created_at: string;
@@ -2043,7 +3183,8 @@ export async function deleteAttachment(id: string) {
 interface NotificationRow {
   id: string;
   recipient_id: string;
-  quote_id: string;
+  quote_id: string | null;
+  link: string | null;
   message: string;
   is_read: number;
   created_at: string;
@@ -2054,6 +3195,7 @@ function toNotification(row: NotificationRow): AppNotification {
     id: row.id,
     recipientId: row.recipient_id,
     quoteId: row.quote_id,
+    link: row.link ?? null,
     message: row.message,
     isRead: row.is_read === 1,
     createdAt: row.created_at,
@@ -2063,14 +3205,17 @@ function toNotification(row: NotificationRow): AppNotification {
 export async function createNotification(input: {
   id: string;
   recipientId: string;
-  quoteId: string;
+  /** 가입 승인·비밀번호 변경처럼 신청서가 없는 알림은 null 로 넣는다. */
+  quoteId: string | null;
+  /** 눌렀을 때 갈 곳. 없으면 기본 목록으로 간다. */
+  link?: string | null;
   message: string;
   createdAt: string;
 }) {
   await q(
-    `INSERT INTO notifications (id, recipient_id, quote_id, message, is_read, created_at)
-     VALUES ($1, $2, $3, $4, 0, $5)`,
-    [input.id, input.recipientId, input.quoteId, input.message, input.createdAt],
+    `INSERT INTO notifications (id, recipient_id, quote_id, link, message, is_read, created_at)
+     VALUES ($1, $2, $3, $6, $4, 0, $5)`,
+    [input.id, input.recipientId, input.quoteId, input.message, input.createdAt, input.link ?? null],
   );
 }
 

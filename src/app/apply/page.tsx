@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { getCurrentUser, isPendingApplicant } from "@/lib/auth";
-import { getCurrentRateTable, listDateBlocks, listWeekDemand } from "@/lib/db";
+import { findCompanyById, getCurrentRateTable, listDateBlocks, listWeekDemand } from "@/lib/db";
 import { PublicHeader } from "@/components/PublicHeader";
 import { SiteFooter } from "@/components/ui/SiteFooter";
 import { Band, PageHead } from "@/components/ui/kit";
@@ -26,12 +26,22 @@ export default async function ApplyPage({
   if (!currentUser) redirect("/login");
   if (isPendingApplicant(currentUser)) redirect("/pending");
 
-  const [{ new: startFreshParam }, rateTable, weekDemand, dateBlocks] = await Promise.all([
+  const [{ new: startFreshParam }, rateTable, weekDemand, dateBlocks, company] = await Promise.all([
     searchParams,
     getCurrentRateTable(),
     listWeekDemand(),
     listDateBlocks(),
+    currentUser.companyId ? findCompanyById(currentUser.companyId) : Promise.resolve(undefined),
   ]);
+
+  // [화면 뼈대 2026-08-19, STEP 3-1 "신청자 정보"] 대관신청사명·사업자등록번호·담당자·
+  // 담당자연락처는 회원정보에서 자동 입력하고 수정은 계속 허용한다.
+  const applicantPrefill = {
+    companyName: currentUser.companyName ?? "",
+    businessRegistrationNumber: company?.businessRegistrationNumber ?? "",
+    contactName: currentUser.name,
+    contactPhone: currentUser.phone ?? "",
+  };
 
   return (
     <div className="flex flex-1 flex-col">
@@ -53,6 +63,7 @@ export default async function ApplyPage({
           weekDemand={weekDemand}
           dateBlocks={dateBlocks}
           startFresh={!!startFreshParam}
+          applicantPrefill={applicantPrefill}
         />
       </main>
 

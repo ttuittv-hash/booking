@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import crypto from "node:crypto";
 import { canAccessQuote, getCurrentUser } from "@/lib/auth";
 import {
+  addAuditLog,
   confirmTaxInvoicePayment,
   createNotification,
   getQuoteById,
@@ -51,6 +52,14 @@ export async function POST(request: Request, ctx: { params: Promise<{ id: string
       return NextResponse.json({ error: "이미 발행된 세금계산서입니다." }, { status: 409 });
     }
     const updated = await issueTaxInvoice(id, purpose, user.id, now);
+    await addAuditLog({
+      id: crypto.randomUUID(),
+      quoteId: id,
+      stage: "INVOICE_ISSUED",
+      snapshot: updated,
+      actorId: user.id,
+      createdAt: now,
+    });
     await createNotification({
       id: crypto.randomUUID(),
       recipientId: quote.applicantId,
@@ -68,6 +77,14 @@ export async function POST(request: Request, ctx: { params: Promise<{ id: string
     const payerName = typeof body.payerName === "string" ? body.payerName.trim() : "";
     if (!payerName) return NextResponse.json({ error: "입금자명을 입력하세요." }, { status: 400 });
     const updated = await reportTaxInvoicePayment(id, purpose, payerName, now);
+    await addAuditLog({
+      id: crypto.randomUUID(),
+      quoteId: id,
+      stage: "INVOICE_PAYMENT_REPORTED",
+      snapshot: updated,
+      actorId: user.id,
+      createdAt: now,
+    });
     await notifyAdmins({
       quoteId: id,
       message: `${id}의 ${label} 세금계산서 입금신청이 접수되었습니다. (입금자: ${payerName})`,
@@ -84,6 +101,14 @@ export async function POST(request: Request, ctx: { params: Promise<{ id: string
       return NextResponse.json({ error: "입금신청된 건만 확인할 수 있습니다." }, { status: 409 });
     }
     const updated = await confirmTaxInvoicePayment(id, purpose, user.id, now);
+    await addAuditLog({
+      id: crypto.randomUUID(),
+      quoteId: id,
+      stage: "INVOICE_PAYMENT_CONFIRMED",
+      snapshot: updated,
+      actorId: user.id,
+      createdAt: now,
+    });
     await createNotification({
       id: crypto.randomUUID(),
       recipientId: quote.applicantId,

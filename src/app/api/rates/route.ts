@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
 import { getCurrentRateTable, saveNewRateTableVersion } from "@/lib/db";
-import type { AddonCategory, AddonItem } from "@/lib/pricing/types";
+import type { AddonCategory, AddonItem, RateTable } from "@/lib/pricing/types";
 
 const ADDON_CATEGORIES: AddonCategory[] = [
   "SCHEDULE",
@@ -31,6 +31,7 @@ function sanitizeNewAddon(input: Record<string, unknown>): AddonItem | null {
     unitLabel: typeof input.unitLabel === "string" && input.unitLabel.trim() ? input.unitLabel.trim() : "원",
     availability: { mode: "ALWAYS" },
     billingPhase: "ESTIMATE",
+    visibility: "VISIBLE",
   };
 }
 
@@ -54,8 +55,23 @@ export async function PUT(request: Request) {
   const extraWeekRatio = typeof body?.extraWeekRatio === "number" ? body.extraWeekRatio : undefined;
   const dayExclusionDiscountRatio =
     typeof body?.dayExclusionDiscountRatio === "number" ? body.dayExclusionDiscountRatio : undefined;
+  const midHallOverride =
+    body?.midHall && typeof body.midHall === "object" ? (body.midHall as Record<string, unknown>) : undefined;
 
   const current = await getCurrentRateTable();
+
+  const midHallField = (key: keyof RateTable["midHall"]): number => {
+    const value = midHallOverride?.[key];
+    return typeof value === "number" && value >= 0 ? value : current.midHall[key];
+  };
+  const midHall: RateTable["midHall"] = {
+    setupDayFee: midHallField("setupDayFee"),
+    performanceWeekdayFee: midHallField("performanceWeekdayFee"),
+    performanceWeekendFee: midHallField("performanceWeekendFee"),
+    extraHourFee: midHallField("extraHourFee"),
+    secondShowSurchargeRatio: midHallField("secondShowSurchargeRatio"),
+    cleaningUnitPrice: midHallField("cleaningUnitPrice"),
+  };
 
   const packages = current.packages.map((pkg) => {
     const override = packageOverrides.find((p) => p.id === pkg.id);
@@ -91,6 +107,7 @@ export async function PUT(request: Request) {
         : current.dayExclusionDiscountRatio,
     packages,
     addons,
+    midHall,
   });
 
   return NextResponse.json({ rateTable: next });

@@ -7,6 +7,8 @@ import { btnClass } from "@/components/ui/kit";
 import {
   FIELD,
   FIELD_LABEL,
+  FIELD_NUM,
+  FIELD_SM,
   HELP,
   LINK_BTN,
   NONE,
@@ -35,6 +37,7 @@ import {
   VENUES,
   type AddonCategory,
   type AddonItem,
+  type LineItemVisibility,
   type MediaTier,
   type RateTable,
 } from "@/lib/pricing/types";
@@ -50,6 +53,8 @@ function slugify(name: string): string {
   return (base || "item") + "_" + Math.random().toString(36).slice(2, 6);
 }
 
+const ADDON_CATEGORIES = Object.keys(ADDON_CATEGORY_LABEL) as AddonCategory[];
+
 const MEDIA_OPTIONS: { value: MediaTier; label: string }[] = [
   { value: null, label: "미포함" },
   { value: "BASIC", label: MEDIA_TIER_LABEL.BASIC },
@@ -57,18 +62,21 @@ const MEDIA_OPTIONS: { value: MediaTier; label: string }[] = [
   { value: "FULL", label: MEDIA_TIER_LABEL.FULL },
 ];
 
-function blankPackage(id: number): EditablePackage {
+function blankPackage(id: number, venueId: string): EditablePackage {
   return {
     id,
-    venueId: DEFAULT_VENUE_ID,
+    venueId,
     name: `패키지 ${id}`,
     tagline: "",
     audienceTier: { min: 0, max: 0, label: "" },
     baseFeePerWeek: 0,
+    bowlFee: 0,
     includedWeeks: 1,
     includedItems: [],
     mediaTier: null,
     discountRatio: 0,
+    setupExtraDayFee: 0,
+    performanceExtraDayFee: 0,
     dayBreakdown: "준비 4일 + 공연 2일",
     defaultPerformanceDays: 2,
     rentalHours: "09:00 ~ 22:00",
@@ -85,23 +93,46 @@ export function PackagesForm({ rateTable }: { rateTable: RateTable }) {
   const router = useRouter();
   const [packages, setPackages] = useState<EditablePackage[]>(rateTable.packages);
   const [activeId, setActiveId] = useState(rateTable.packages[0]?.id ?? 1);
+  const [venueTab, setVenueTab] = useState<"arena" | "medium-hall">(
+    (rateTable.packages[0]?.venueId as "arena" | "medium-hall" | undefined) ?? "arena",
+  );
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
 
   const [addons, setAddons] = useState<AddonItem[]>(rateTable.addons);
   const [newItemCategory, setNewItemCategory] = useState<AddonCategory | null>(null);
+  const [newItemVisibility, setNewItemVisibility] = useState<LineItemVisibility>("VISIBLE");
   const [newItemName, setNewItemName] = useState("");
   const [newItemUnitLabel, setNewItemUnitLabel] = useState("");
   const [newItemPrice, setNewItemPrice] = useState(0);
+  const [pickerCategory, setPickerCategory] = useState<AddonCategory>(ADDON_CATEGORIES[0]);
 
   const active = packages.find((p) => p.id === activeId)!;
-  const grouped = new Map<string, AddonItem[]>();
-  for (const addon of addons) {
-    if (addon.pricingType === "METERED") continue;
-    const list = grouped.get(addon.category) ?? [];
-    list.push(addon);
-    grouped.set(addon.category, list);
+  const venuePackages = packages.filter((p) => (p.venueId ?? DEFAULT_VENUE_ID) === venueTab);
+
+  function selectVenueTab(v: "arena" | "medium-hall") {
+    setVenueTab(v);
+    const first = packages.find((p) => (p.venueId ?? DEFAULT_VENUE_ID) === v);
+    if (first) setActiveId(first.id);
   }
+
+  // [화면 뼈대 2026-08-19] 패키지 구성을 신청자 노출 등급 기준 3분류로 나눠 보여준다 —
+  // ① 기본 내역(ITEM_ONLY, 항목명만 노출) ② Bowl 사용료 + 유틸리티(HIDDEN, 완전 비노출)
+  // ③ 선택 가능 옵션(VISIBLE, 항목·금액 모두 노출). 같은 addon 목록을 그룹핑 방식만 바꿔서
+  // 재사용한다 — 요금 계산 로직에는 영향 없음(표시 전용 재구성).
+  function groupByCategory(items: AddonItem[]): Map<string, AddonItem[]> {
+    const map = new Map<string, AddonItem[]>();
+    for (const addon of items) {
+      const list = map.get(addon.category) ?? [];
+      list.push(addon);
+      map.set(addon.category, list);
+    }
+    return map;
+  }
+  const billableAddons = addons.filter((a) => a.pricingType !== "METERED");
+  const baseDetailAddons = groupByCategory(billableAddons.filter((a) => a.visibility === "ITEM_ONLY"));
+  const hiddenAddons = groupByCategory(billableAddons.filter((a) => a.visibility === "HIDDEN"));
+  const optionAddons = groupByCategory(billableAddons.filter((a) => a.visibility === "VISIBLE"));
 
   function update(patch: Partial<EditablePackage>) {
     setPackages((prev) => prev.map((p) => (p.id === activeId ? { ...p, ...patch } : p)));
@@ -109,7 +140,7 @@ export function PackagesForm({ rateTable }: { rateTable: RateTable }) {
 
   function addPackage() {
     const nextId = Math.max(0, ...packages.map((p) => p.id)) + 1;
-    setPackages((prev) => [...prev, blankPackage(nextId)]);
+    setPackages((prev) => [...prev, blankPackage(nextId, venueTab)]);
     setActiveId(nextId);
   }
 
@@ -128,8 +159,13 @@ export function PackagesForm({ rateTable }: { rateTable: RateTable }) {
     setAddons((prev) => prev.map((a) => (a.id === addonId ? { ...a, unitPrice } : a)));
   }
 
-  function openNewItemForm(category: AddonCategory) {
+  function updateAddonVisibility(addonId: string, visibility: LineItemVisibility) {
+    setAddons((prev) => prev.map((a) => (a.id === addonId ? { ...a, visibility } : a)));
+  }
+
+  function openNewItemForm(category: AddonCategory, visibility: LineItemVisibility) {
     setNewItemCategory(category);
+    setNewItemVisibility(visibility);
     setNewItemName("");
     setNewItemUnitLabel("원/일");
     setNewItemPrice(0);
@@ -160,6 +196,7 @@ export function PackagesForm({ rateTable }: { rateTable: RateTable }) {
       unitLabel: newItemUnitLabel.trim() || "원",
       availability: { mode: "ALWAYS" },
       billingPhase: "ESTIMATE",
+      visibility: newItemVisibility,
     };
     setAddons((prev) => [...prev, item]);
     setIncludedQty(id, 1);
@@ -189,13 +226,30 @@ export function PackagesForm({ rateTable }: { rateTable: RateTable }) {
 
   return (
     <div className="mt-8">
+      {/* 1뎁스: 공간 — 패키지가 늘어 한 줄에 다 못 들어간다(그쪽 개편). */}
+      <div className="flex gap-1 border-b border-border/20">
+        {(["arena", "medium-hall"] as const).map((v) => (
+          <button
+            key={v}
+            type="button"
+            onClick={() => selectVenueTab(v)}
+            className={tabCls(venueTab === v)}
+          >
+            {VENUES.find((venue) => venue.id === v)?.name ?? v}
+          </button>
+        ))}
+      </div>
+
+      {/* 2뎁스: 그 공간의 패키지 */}
       <div className={TAB_BAR}>
-        {packages.map((p) => (
-          <button key={p.id} type="button" onClick={() => setActiveId(p.id)} className={tabCls(p.id === activeId)}>
+        {venuePackages.map((p) => (
+          <button
+            key={p.id}
+            type="button"
+            onClick={() => setActiveId(p.id)}
+            className={tabCls(p.id === activeId)}
+          >
             {p.name}
-            <span className="ml-1.5 font-normal text-muted">
-              {VENUES.find((v) => v.id === (p.venueId ?? DEFAULT_VENUE_ID))?.name}
-            </span>
           </button>
         ))}
         <button
@@ -298,7 +352,7 @@ export function PackagesForm({ rateTable }: { rateTable: RateTable }) {
               />
             </label>
             <label className="block">
-              <span className={FIELD_LABEL}>기본 대관료 (원/주, 화~일)</span>
+              <span className="mb-1 block text-xs text-muted">기본 대관료 (원/주, 화~일) — 신청자 노출 총액</span>
               <input
                 type="number"
                 min={0}
@@ -308,7 +362,39 @@ export function PackagesForm({ rateTable }: { rateTable: RateTable }) {
               />
             </label>
             <label className="block">
-              <span className={FIELD_LABEL}>할인율 적용 (%, 기본 대관료 기준)</span>
+              <span className="mb-1 block text-xs text-muted">
+                Bowl 사용료 (원/주) — 신청자 비노출, 위 기본 대관료에 이미 포함된 참고값
+              </span>
+              <input
+                type="number"
+                min={0}
+                value={active.bowlFee}
+                onChange={(e) => update({ bowlFee: Number(e.target.value) || 0 })}
+                className={`w-full ${FIELD}`}
+              />
+            </label>
+            <label className="block">
+              <span className="mb-1 block text-xs text-muted">셋업(준비일) 추가/차감 단가 (원/일)</span>
+              <input
+                type="number"
+                min={0}
+                value={active.setupExtraDayFee}
+                onChange={(e) => update({ setupExtraDayFee: Number(e.target.value) || 0 })}
+                className={`w-full ${FIELD}`}
+              />
+            </label>
+            <label className="block">
+              <span className="mb-1 block text-xs text-muted">공연일 추가/차감 단가 (원/일)</span>
+              <input
+                type="number"
+                min={0}
+                value={active.performanceExtraDayFee}
+                onChange={(e) => update({ performanceExtraDayFee: Number(e.target.value) || 0 })}
+                className={`w-full ${FIELD}`}
+              />
+            </label>
+            <label className="block">
+              <span className="mb-1 block text-xs text-muted">할인율 적용 (%, 기본 대관료 기준)</span>
               <div className="flex items-center gap-2">
                 <input
                   type="checkbox"
@@ -464,123 +550,247 @@ export function PackagesForm({ rateTable }: { rateTable: RateTable }) {
           </div>
         </section>
 
-        <section>
-          <h2 className={SUB_TITLE}>기본 포함 항목 · 요금</h2>
-          <p className={`mt-2 ${HELP}`}>
-            체크한 항목은 아래 입력한 수량만큼 이 패키지에 기본 포함되며, 초과분만 4단계에서 추가 과금됩니다.
-            항목별 단가는 요금표 관리와 동일한 값이며, 여기서 수정하면 요금표에도 함께 반영됩니다.
+        {venueTab === "medium-hall" && (
+          <p className="rounded-sm border-l-2 border-accent bg-accent-soft/40 px-4 py-3 text-[12.5px] leading-5 text-foreground">
+            중형공연장은 이 목록(추가 옵션)을 쓰지 않습니다 — 가격은 &ldquo;요금표 관리&rdquo;의
+            &ldquo;중형공연장 요금&rdquo; 섹션에서 따로 관리합니다. 여기서는 STEP 2(구성·옵션)에
+            표시되는 기본 구성 안내 문구만 편집합니다.
           </p>
-          <div className="mt-4 space-y-5">
-            {[...grouped.entries()].map(([category, items]) => (
-              <div key={category}>
-                <div className="mb-2 flex items-center justify-between gap-3 border-b border-border/25 pb-1.5">
-                  <p className={SUB_TITLE}>
-                    {ADDON_CATEGORY_LABEL[category as keyof typeof ADDON_CATEGORY_LABEL] ?? category}
-                  </p>
+        )}
+
+        {venueTab === "arena" && (
+        <>
+        {(
+          [
+            {
+              visibility: "ITEM_ONLY" as const,
+              grouped: baseDetailAddons,
+              title: "① 기본 내역",
+              badge: "기본 포함",
+              badgeClass: "bg-good text-white",
+              desc: "신청자 화면에는 항목명·수량만 노출되고 단가·금액은 감춘다(예: 야외광장, 대기실, 트러스 등). 체크한 항목은 이 패키지에 기본 포함된다.",
+            },
+            {
+              visibility: "HIDDEN" as const,
+              grouped: hiddenAddons,
+              title: "② Bowl 사용료 + 유틸리티",
+              badge: "신청자 비노출",
+              badgeClass: "bg-panel-strong text-muted",
+              desc: "위 Bowl 사용료 필드와 이 목록(유틸리티 등)은 신청자 화면 어디에도 항목·금액이 노출되지 않는다 — 견적 합계에는 자동으로 포함된다.",
+            },
+            {
+              visibility: "VISIBLE" as const,
+              grouped: optionAddons,
+              title: "③ 선택 가능 옵션",
+              badge: "항목 · 금액 노출",
+              badgeClass: "bg-accent text-on-accent",
+              desc: "신청자가 STEP 2(구성·옵션)에서 직접 수량을 정해 선택하는 항목 — 항목명·단가·금액이 모두 노출된다.",
+            },
+          ]
+        ).map(({ visibility, grouped: groupedByVisibility, title, badge, badgeClass, desc }) => (
+          <section key={visibility}>
+            <div className="flex items-center gap-2">
+              <h2 className={SUB_TITLE}>{title}</h2>
+              <span className={`px-2 py-0.5 text-xs font-semibold ${badgeClass}`}>{badge}</span>
+            </div>
+            <p className="mt-1 text-xs text-muted">{desc}</p>
+
+            <div className="mt-3 flex flex-wrap items-center gap-2 border-b border-dashed border-border-soft pb-3">
+              <select
+                value={pickerCategory}
+                onChange={(e) => setPickerCategory(e.target.value as AddonCategory)}
+                className={FIELD_SM}
+              >
+                {ADDON_CATEGORIES.map((cat) => (
+                  <option key={cat} value={cat}>
+                    {ADDON_CATEGORY_LABEL[cat]}
+                  </option>
+                ))}
+              </select>
+              <button
+                type="button"
+                onClick={() => openNewItemForm(pickerCategory, visibility)}
+                className="px-2 py-1 text-xs font-medium text-foreground hover:underline"
+              >
+                + 새 카테고리로 항목 추가
+              </button>
+            </div>
+
+            {newItemCategory && newItemVisibility === visibility && !groupedByVisibility.has(newItemCategory) && (
+              <div className="mt-3 flex flex-col gap-2 border border-dashed border-accent/40 bg-accent-soft/40 p-3 sm:flex-row sm:items-center">
+                <span className="shrink-0 text-xs font-semibold text-foreground">
+                  {ADDON_CATEGORY_LABEL[newItemCategory]} (신규)
+                </span>
+                <input
+                  type="text"
+                  autoFocus
+                  placeholder="항목 이름"
+                  value={newItemName}
+                  onChange={(e) => setNewItemName(e.target.value)}
+                  className={`flex-1 ${FIELD}`}
+                />
+                <input
+                  type="text"
+                  placeholder="단위 (예: 원/일)"
+                  value={newItemUnitLabel}
+                  onChange={(e) => setNewItemUnitLabel(e.target.value)}
+                  className={`w-32 ${FIELD}`}
+                />
+                <input
+                  type="number"
+                  min={0}
+                  placeholder="단가"
+                  value={newItemPrice}
+                  onChange={(e) => setNewItemPrice(Math.max(0, Number(e.target.value) || 0))}
+                  className={`w-28 ${FIELD_NUM}`}
+                />
+                <div className="flex gap-2">
                   <button
                     type="button"
-                    onClick={() => openNewItemForm(category as AddonCategory)}
-                    className={LINK_BTN}
+                    onClick={confirmNewItem}
+                    disabled={!newItemName.trim()}
+                    className={btnClass("primary", "sm")}
                   >
-                    + 항목 추가
+                    추가
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setNewItemCategory(null)}
+                    className={btnClass("secondary", "sm")}
+                  >
+                    취소
                   </button>
                 </div>
-                <div className="space-y-1.5">
-                  {items.map((addon) => {
-                    const qty = includedQty(addon.id);
-                    const checked = qty > 0;
-                    return (
-                      <div
-                        key={addon.id}
-                        className="flex flex-col gap-2 border-b border-border-soft py-1.5 sm:flex-row sm:items-center sm:justify-between"
-                      >
-                        <label className="flex items-center gap-2 text-s">
-                          <input
-                            type="checkbox"
-                            className="accent-accent"
-                            checked={checked}
-                            onChange={(e) => setIncludedQty(addon.id, e.target.checked ? 1 : 0)}
-                          />
-                          {addon.name}
-                          <span className="text-xs text-muted">({addon.unitLabel})</span>
-                        </label>
-                        <div className="flex items-center gap-3">
-                          <label className="flex items-center gap-1.5">
-                            <span className="text-xs text-muted">기본 수량</span>
-                            <input
-                              type="number"
-                              min={1}
-                              disabled={!checked}
-                              value={checked ? qty : ""}
-                              placeholder={NONE}
-                              onChange={(e) => setIncludedQty(addon.id, Math.max(1, Number(e.target.value) || 1))}
-                              className={`w-16 ${FIELD} text-right tabular-nums`}
-                            />
-                          </label>
-                          <label className="flex items-center gap-1.5">
-                            <span className="text-xs text-muted">단가</span>
-                            <input
-                              type="number"
-                              min={0}
-                              value={addon.unitPrice}
-                              onChange={(e) => updateAddonPrice(addon.id, Math.max(0, Number(e.target.value) || 0))}
-                              className={`w-32 ${FIELD} text-right tabular-nums`}
-                            />
-                          </label>
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-
-                {newItemCategory === category && (
-                  <div className="mt-3 flex flex-col gap-2 border-l-2 border-accent bg-background p-3 sm:flex-row sm:items-center">
-                    <input
-                      type="text"
-                      autoFocus
-                      placeholder="항목 이름"
-                      value={newItemName}
-                      onChange={(e) => setNewItemName(e.target.value)}
-                      className={`flex-1 ${FIELD}`}
-                    />
-                    <input
-                      type="text"
-                      placeholder="단위 (예: 원/일)"
-                      value={newItemUnitLabel}
-                      onChange={(e) => setNewItemUnitLabel(e.target.value)}
-                      className={`w-32 ${FIELD}`}
-                    />
-                    <input
-                      type="number"
-                      min={0}
-                      placeholder="단가"
-                      value={newItemPrice}
-                      onChange={(e) => setNewItemPrice(Math.max(0, Number(e.target.value) || 0))}
-                      className={`w-28 ${FIELD} text-right tabular-nums`}
-                    />
-                    <div className="flex gap-2">
-                      <button
-                        type="button"
-                        onClick={confirmNewItem}
-                        disabled={!newItemName.trim()}
-                        className={btnClass("primary", "sm")}
-                      >
-                        추가
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => setNewItemCategory(null)}
-                        className={btnClass("tertiary", "sm")}
-                      >
-                        취소
-                      </button>
-                    </div>
-                  </div>
-                )}
               </div>
-            ))}
-          </div>
-        </section>
+            )}
+
+            <div className="mt-4 space-y-5">
+              {[...groupedByVisibility.entries()].map(([category, items]) => (
+                <div key={category}>
+                  <div className="mb-2 flex items-center justify-between">
+                    <span className="text-xs font-semibold uppercase tracking-wide text-foreground">
+                      {ADDON_CATEGORY_LABEL[category as keyof typeof ADDON_CATEGORY_LABEL] ?? category}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => openNewItemForm(category as AddonCategory, visibility)}
+                      className="px-2 py-1 text-xs font-medium text-foreground hover:underline"
+                    >
+                      + 항목 추가
+                    </button>
+                  </div>
+                  <div className="space-y-1.5">
+                    {items.map((addon) => {
+                      const qty = includedQty(addon.id);
+                      const checked = qty > 0;
+                      return (
+                        <div
+                          key={addon.id}
+                          className="flex flex-col gap-2 border-b border-border/50 pb-1.5 sm:flex-row sm:items-center sm:justify-between"
+                        >
+                          <label className="flex items-center gap-2 text-s">
+                            <input
+                              type="checkbox"
+                              checked={checked}
+                              onChange={(e) => setIncludedQty(addon.id, e.target.checked ? 1 : 0)}
+                            />
+                            {addon.name}
+                            <span className="text-xs text-muted">({addon.unitLabel})</span>
+                          </label>
+                          <div className="flex items-center gap-3">
+                            <label className="flex items-center gap-1.5">
+                              <span className="text-xs text-muted">기본 수량</span>
+                              <input
+                                type="number"
+                                min={1}
+                                disabled={!checked}
+                                value={checked ? qty : ""}
+                                placeholder="-"
+                                onChange={(e) => setIncludedQty(addon.id, Math.max(1, Number(e.target.value) || 1))}
+                                className={`w-16 disabled:opacity-40 ${FIELD_NUM}`}
+                              />
+                            </label>
+                            <label className="flex items-center gap-1.5">
+                              <span className="text-xs text-muted">단가</span>
+                              <input
+                                type="number"
+                                min={0}
+                                value={addon.unitPrice}
+                                onChange={(e) => updateAddonPrice(addon.id, Math.max(0, Number(e.target.value) || 0))}
+                                className={`w-32 ${FIELD_NUM}`}
+                              />
+                            </label>
+                            <select
+                              value={addon.visibility}
+                              onChange={(e) => updateAddonVisibility(addon.id, e.target.value as LineItemVisibility)}
+                              className={FIELD_SM}
+                            >
+                              <option value="ITEM_ONLY">기본 내역</option>
+                              <option value="HIDDEN">비노출</option>
+                              <option value="VISIBLE">선택 옵션</option>
+                            </select>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+
+                  {newItemCategory === category && newItemVisibility === visibility && (
+                    <div className="mt-3 flex flex-col gap-2 border border-dashed border-accent/40 bg-accent-soft/40 p-3 sm:flex-row sm:items-center">
+                      <input
+                        type="text"
+                        autoFocus
+                        placeholder="항목 이름"
+                        value={newItemName}
+                        onChange={(e) => setNewItemName(e.target.value)}
+                        className={`flex-1 ${FIELD}`}
+                      />
+                      <input
+                        type="text"
+                        placeholder="단위 (예: 원/일)"
+                        value={newItemUnitLabel}
+                        onChange={(e) => setNewItemUnitLabel(e.target.value)}
+                        className={`w-32 ${FIELD}`}
+                      />
+                      <input
+                        type="number"
+                        min={0}
+                        placeholder="단가"
+                        value={newItemPrice}
+                        onChange={(e) => setNewItemPrice(Math.max(0, Number(e.target.value) || 0))}
+                        className={`w-28 ${FIELD_NUM}`}
+                      />
+                      <div className="flex gap-2">
+                        <button
+                          type="button"
+                          onClick={confirmNewItem}
+                          disabled={!newItemName.trim()}
+                          className={btnClass("primary", "sm")}
+                        >
+                          추가
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setNewItemCategory(null)}
+                          className={btnClass("secondary", "sm")}
+                        >
+                          취소
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              ))}
+              {groupedByVisibility.size === 0 && (
+                <p className="text-xs text-muted">
+                  아직 항목이 없습니다 — 위에서 카테고리를 고르고 &ldquo;+ 새 카테고리로 항목 추가&rdquo;를 눌러 등록하세요.
+                </p>
+              )}
+            </div>
+          </section>
+        ))}
+        </>
+        )}
       </div>
 
       <div className="mt-8 flex flex-wrap items-center gap-4 border-t border-border/20 pt-6">

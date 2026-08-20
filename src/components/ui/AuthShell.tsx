@@ -27,18 +27,21 @@ export function AuthShell({
   active: "login" | "register";
   title: string;
   lead?: string;
-  /** 회원가입은 필드가 많아 조금 넓게 */
-  width?: "sm" | "md";
+  /** 회원가입 위저드는 2열 폼이라 더 넓게 쓴다 */
+  width?: "sm" | "md" | "lg";
   footer?: ReactNode;
   children: ReactNode;
 }) {
-  const maxW = width === "md" ? "max-w-xl" : "max-w-md";
+  const maxW = width === "lg" ? "max-w-4xl" : width === "md" ? "max-w-xl" : "max-w-md";
 
   if (variant === "card") {
     return (
       <div className="flex min-h-screen flex-1 flex-col bg-background">
         <div className="container-site flex h-16 items-center justify-center lg:h-[72px]">
-          <Link href="/" className="type-display text-h5-m leading-none sm:text-h4">
+          <Link
+            href="/"
+            className="type-display flex h-full items-center text-h5-m leading-none sm:text-h4"
+          >
             Seoul Arena
           </Link>
         </div>
@@ -65,13 +68,16 @@ export function AuthShell({
     return (
       <div className="flex min-h-screen flex-1 flex-col bg-background">
         <div className="container-site flex h-16 items-center lg:h-[72px]">
-          <Link href="/" className="type-display text-h6-m leading-none sm:text-h5">
+          <Link
+            href="/"
+            className="type-display flex h-full items-center text-h6-m leading-none sm:text-h5"
+          >
             Seoul Arena
           </Link>
         </div>
 
         <main className="container-site flex flex-1 justify-center py-12 sm:py-16">
-          <div className={`w-full ${width === "md" ? "max-w-xl" : "max-w-md"}`}>
+          <div className={`w-full ${maxW}`}>
             <h1 className="type-kr-heading text-center text-h3-m sm:text-h3">{title}</h1>
             {lead && <p className="mt-4 text-center text-s text-muted">{lead}</p>}
             <div className="mt-12">{children}</div>
@@ -100,7 +106,7 @@ export function AuthShell({
       </div>
 
       <main className="container-site flex flex-1 items-start justify-center py-12 sm:py-20">
-        <div className={`w-full ${width === "md" ? "max-w-xl" : "max-w-sm"}`}>
+        <div className={`w-full ${width === "lg" ? "max-w-4xl" : width === "md" ? "max-w-xl" : "max-w-sm"}`}>
           <div role="tablist" className="flex justify-center gap-10">
             {tabs.map((t) => (
               <Link

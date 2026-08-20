@@ -47,6 +47,7 @@ function sanitizeNewAddon(input: Record<string, unknown>): AddonItem | null {
     unitLabel: typeof input.unitLabel === "string" && input.unitLabel.trim() ? input.unitLabel.trim() : "원",
     availability: { mode: "ALWAYS" },
     billingPhase: "ESTIMATE",
+    visibility: "VISIBLE",
   };
 }
 
@@ -58,10 +59,13 @@ function blankPackage(id: number): RentalPackage {
     tagline: "",
     audienceTier: { min: 0, max: 0, label: "" },
     baseFeePerWeek: 0,
+    bowlFee: 0,
     includedWeeks: 1,
     includedItems: [],
     mediaTier: null,
     discountRatio: 0,
+    setupExtraDayFee: 0,
+    performanceExtraDayFee: 0,
     dayBreakdown: "준비 4일 + 공연 2일",
     defaultPerformanceDays: 2,
     rentalHours: "09:00 ~ 22:00",
@@ -115,6 +119,12 @@ function sanitizePackage(current: RentalPackage, input: unknown): RentalPackage 
 
   const name = typeof p.name === "string" && p.name.trim() ? p.name.trim() : current.name;
   const baseFeePerWeek = Number.isFinite(Number(p.baseFeePerWeek)) ? Math.max(0, Number(p.baseFeePerWeek)) : current.baseFeePerWeek;
+  const setupExtraDayFee = Number.isFinite(Number(p.setupExtraDayFee))
+    ? Math.max(0, Number(p.setupExtraDayFee))
+    : current.setupExtraDayFee;
+  const performanceExtraDayFee = Number.isFinite(Number(p.performanceExtraDayFee))
+    ? Math.max(0, Number(p.performanceExtraDayFee))
+    : current.performanceExtraDayFee;
   const defaultPerformanceDays = Number.isFinite(Number(p.defaultPerformanceDays))
     ? Math.max(0, Math.round(Number(p.defaultPerformanceDays)))
     : current.defaultPerformanceDays;
@@ -128,6 +138,8 @@ function sanitizePackage(current: RentalPackage, input: unknown): RentalPackage 
     name,
     tagline: str("tagline") as string,
     baseFeePerWeek,
+    setupExtraDayFee,
+    performanceExtraDayFee,
     defaultPerformanceDays,
     discountRatio,
     audienceTier,
@@ -196,6 +208,7 @@ export async function PUT(request: Request) {
     dayExclusionDiscountRatio: current.dayExclusionDiscountRatio,
     packages,
     addons,
+    midHall: current.midHall,
   });
 
   return NextResponse.json({ rateTable: next });

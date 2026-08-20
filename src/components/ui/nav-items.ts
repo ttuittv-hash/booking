@@ -62,6 +62,16 @@ export const ACCOUNT_PAGES: NavPage[] = [
   { href: "/mypage/history", label: "대관 진행 내역", loginRequired: true },
 ];
 
+/**
+ * 대표 담당자에게만 보이는 계정 메뉴.
+ * 일반 담당자가 열면 되돌려 보내지므로 목록에 아예 올리지 않는다.
+ */
+export const MASTER_ACCOUNT_PAGE: NavPage = {
+  href: "/mypage/members",
+  label: "담당자 관리",
+  loginRequired: true,
+};
+
 /** 푸터 사이트맵 — 중앙 2묶음 + 신청 + 지원 */
 export const FOOTER_CATEGORIES: NavCategory[] = [
   ...NAV_CATEGORIES,

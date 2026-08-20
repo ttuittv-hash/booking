@@ -76,15 +76,27 @@ export default async function PrintQuotePage({
             <SpecRow
               label="공간"
               value={
-                VENUES.find((v) => v.id === (quote.selection.venueId ?? DEFAULT_VENUE_ID))?.name ?? "—"
+                quote.selection.bookingMode === "SIMULTANEOUS"
+                  ? "아레나 + 중형공연장 (동시 대관)"
+                  : (VENUES.find((v) => v.id === (quote.selection.venueId ?? DEFAULT_VENUE_ID))?.name ?? "—")
               }
             />
-            <SpecRow
-              label="주차"
-              value={`${quote.selection.week.year}년 ${quote.selection.week.month}월 ${quote.selection.week.weekOfMonth}주차`}
-            />
-            <SpecRow label="총 대관일수" value={`${totalRentalDays(quote.selection)}일`} />
-            <SpecRow label="예상 관객" value={`${quote.selection.expectedAudience.toLocaleString()}명`} />
+            {(quote.selection.venueId !== "medium-hall" || quote.selection.bookingMode === "SIMULTANEOUS") && (
+              <>
+                <SpecRow
+                  label="주차 (아레나)"
+                  value={`${quote.selection.week.year}년 ${quote.selection.week.month}월 ${quote.selection.week.weekOfMonth}주차`}
+                />
+                <SpecRow label="총 대관일수 (아레나)" value={`${totalRentalDays(quote.selection)}일`} />
+                <SpecRow label="예상 관객 (아레나)" value={`${quote.selection.expectedAudience.toLocaleString()}명`} />
+              </>
+            )}
+            {(quote.selection.venueId === "medium-hall" || quote.selection.bookingMode === "SIMULTANEOUS") && (
+              <>
+                <SpecRow label="대관일수 (중형)" value={`${Object.keys(quote.selection.midHallDays).length}일`} />
+                <SpecRow label="예상 관객 (중형)" value={`${quote.selection.secondaryAudience.toLocaleString()}명`} />
+              </>
+            )}
           </dl>
         </div>
       </section>
@@ -154,16 +166,21 @@ export default async function PrintQuotePage({
             </tr>
           </thead>
           <tbody>
-            {quote.lineItems.map((item) => (
-              <tr key={item.addonId} className="border-b border-border/40 tabular-nums">
-                <td className="py-2 pr-3">{item.label}</td>
-                <td className="py-2 pr-3 text-right">{item.requested.toLocaleString()}</td>
-                <td className="py-2 pr-3 text-right">{item.included ? item.included.toLocaleString() : "—"}</td>
-                <td className="py-2 pr-3 text-right">{item.billable.toLocaleString()}</td>
-                <td className="py-2 pr-3 text-right">{num(item.unitPrice)}</td>
-                <td className="py-2 text-right">{num(item.amount)}</td>
-              </tr>
-            ))}
+            {/* Bowl 사용료·유틸리티(HIDDEN)는 관리자에게만 항목·금액을 노출한다 — 신청자
+                인쇄본에서는 행 자체를 숨기고, 소계/VAT/합계는 quote 전체 lineItems 기준
+                값을 그대로 쓴다(숨겨도 총액은 달라지지 않는다). */}
+            {quote.lineItems
+              .filter((item) => item.visibility !== "HIDDEN" || user.role === "ADMIN")
+              .map((item) => (
+                <tr key={item.addonId} className="border-b border-border/40 tabular-nums">
+                  <td className="py-2 pr-3">{item.label}</td>
+                  <td className="py-2 pr-3 text-right">{item.requested.toLocaleString()}</td>
+                  <td className="py-2 pr-3 text-right">{item.included ? item.included.toLocaleString() : "—"}</td>
+                  <td className="py-2 pr-3 text-right">{item.billable.toLocaleString()}</td>
+                  <td className="py-2 pr-3 text-right">{num(item.unitPrice)}</td>
+                  <td className="py-2 text-right">{num(item.amount)}</td>
+                </tr>
+              ))}
           </tbody>
         </table>
 

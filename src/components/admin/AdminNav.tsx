@@ -30,8 +30,11 @@ export function AdminNav({ active, user }: { active: string; user?: AppUser | nu
   const links = LINKS.filter((link) => !link.masterOnly || master);
 
   return (
-    <header className="sticky top-0 z-20 h-14 border-b border-border/20 bg-background/95 backdrop-blur-md sm:h-16">
-      <div className="mx-auto flex h-full max-w-6xl items-center gap-x-4 px-4 sm:px-6">
+    // 메뉴가 10개라 좁은 화면에서는 로고·알림·로그아웃과 한 줄에 못 넣는다.
+    // 예전에는 같은 줄에서 가로 스크롤로 밀어넣었는데 모바일에서 메뉴 폭이 79px 까지
+    // 줄어 사실상 못 썼다. lg 미만에서는 메뉴를 아래 줄로 내려 화면 폭을 다 쓰게 한다.
+    <header className="sticky top-0 z-20 border-b border-border/20 bg-background/95 backdrop-blur-md">
+      <div className="mx-auto flex h-14 max-w-6xl items-center gap-x-4 px-4 sm:h-16 sm:px-6">
         <Link
           href="/"
           className="type-display shrink-0 whitespace-nowrap text-h6-m leading-none"
@@ -45,7 +48,7 @@ export function AdminNav({ active, user }: { active: string; user?: AppUser | nu
 
         <nav
           aria-label="백오피스 메뉴"
-          className="ml-auto flex h-full min-w-0 shrink items-center gap-x-4 overflow-x-auto whitespace-nowrap"
+          className="ml-auto hidden h-full min-w-0 shrink items-center gap-x-4 overflow-x-auto whitespace-nowrap lg:flex"
         >
           {links.map((link) => {
             const isActive = link.href === active;
@@ -66,11 +69,35 @@ export function AdminNav({ active, user }: { active: string; user?: AppUser | nu
           })}
         </nav>
 
-        <div className="ml-4 flex shrink-0 items-center gap-x-4 text-xs text-muted">
+        <div className="ml-auto flex shrink-0 items-center gap-x-4 text-xs text-muted lg:ml-4">
           <NotificationBell role="ADMIN" />
           <LogoutButton className="whitespace-nowrap font-bold hover:text-foreground" />
         </div>
       </div>
+
+      {/* 좁은 화면 전용 메뉴 줄 — 화면 폭을 다 쓰고 가로 스크롤한다. */}
+      <nav
+        aria-label="백오피스 메뉴"
+        className="flex items-center gap-x-5 overflow-x-auto whitespace-nowrap border-t border-border/15 px-4 sm:px-6 lg:hidden"
+      >
+        {links.map((link) => {
+          const isActive = link.href === active;
+          return (
+            <Link
+              key={link.href}
+              href={link.href}
+              aria-current={isActive ? "page" : undefined}
+              className={`flex h-11 shrink-0 items-center whitespace-nowrap border-b-2 text-xs font-bold transition-colors ${
+                isActive
+                  ? "border-accent text-foreground"
+                  : "border-transparent text-muted hover:text-foreground"
+              }`}
+            >
+              {link.label}
+            </Link>
+          );
+        })}
+      </nav>
     </header>
   );
 }

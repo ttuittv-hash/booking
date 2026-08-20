@@ -7,6 +7,7 @@ import { LogoutButton } from "@/components/LogoutButton";
 import { NotificationBell } from "@/components/NotificationBell";
 import {
   ACCOUNT_PAGES,
+  MASTER_ACCOUNT_PAGE,
   NAV_ACTION,
   NAV_CATEGORIES,
   SUPPORT_MENU,
@@ -178,6 +179,12 @@ export function PublicHeader({
     setOpenKey((k) => (k === key ? null : key));
   }
 
+  // 담당자 관리는 대표 담당자 전용이다 — 일반 담당자에게는 메뉴에 올리지 않는다.
+  const accountPages =
+    currentUser?.companyRole === "MASTER"
+      ? [ACCOUNT_PAGES[0], MASTER_ACCOUNT_PAGE, ...ACCOUNT_PAGES.slice(1)]
+      : ACCOUNT_PAGES;
+
   return (
     <header
       className={`sticky top-0 z-40 transition-colors ${
@@ -271,7 +278,7 @@ export function PublicHeader({
                 <UtilMenu
                   id="account"
                   label={`${currentUser.name} 님`}
-                  pages={ACCOUNT_PAGES}
+                  pages={accountPages}
                   active={active}
                   openKey={openKey}
                   onOpen={openWithCancel}
@@ -417,7 +424,7 @@ export function PublicHeader({
                         </Link>
                       </li>
                     ) : (
-                      ACCOUNT_PAGES.map((p) => (
+                      accountPages.map((p) => (
                         <li key={p.href}>
                           <Link
                             href={p.href}

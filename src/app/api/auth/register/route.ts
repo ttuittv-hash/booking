@@ -1,4 +1,8 @@
 import { NextResponse } from "next/server";
+import { isNiceAuthConfigured } from "@/lib/niceAuth";
+import { dispatchMessage } from "@/lib/message/dispatch";
+import { verifyIdentityTicket } from "@/lib/identityTicket";
+import { USERNAME_HINT, USERNAME_RE } from "@/lib/validation";
 import crypto from "node:crypto";
 import { createSession, hashPassword } from "@/lib/auth";
 import {
@@ -11,6 +15,13 @@ import {
   createUser,
   findCompanyById,
   findOrCreateCompany,
+  assignCompanyRoleOnJoin,
+  resolveCompanyJoin,
+  attachIdentityToUser,
+  findCompletedIdentity,
+  findUserByDi,
+  saveTermsAgreements,
+  listUsers,
   findUserByEmailWithPasswordHash,
   findUserByPhone,
   findUserByUsername,
@@ -22,7 +33,8 @@ import { SHA256_HEX_RE, sha256Hex } from "@/lib/passwordScheme";
 import { clientIpFrom, rateLimit } from "@/lib/rateLimit";
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-const USERNAME_RE = /^[a-z0-9][a-z0-9_]{3,19}$/;
+// 규칙은 src/lib/validation.ts 한 곳에만 둔다 — 예전에는 여기와 중복확인 API 가
+// 서로 다른 정규식을 써서, 중복확인은 통과하는데 가입에서 거부되는 조합이 있었다.
 
 export async function POST(request: Request) {
   const ip = clientIpFrom(request);
@@ -46,16 +58,24 @@ export async function POST(request: Request) {
   const businessRegistrationNumber =
     typeof body?.businessRegistrationNumber === "string" ? body.businessRegistrationNumber.trim() : "";
   const representativeName = typeof body?.representativeName === "string" ? body.representativeName.trim() : "";
+  const companyPhone = typeof body?.companyPhone === "string" ? body.companyPhone.trim() : "";
+  const companyFax = typeof body?.companyFax === "string" ? body.companyFax.trim() : "";
+  const corporateNumber = typeof body?.corporateNumber === "string" ? body.corporateNumber.trim() : "";
   const postalCode = typeof body?.postalCode === "string" ? body.postalCode.trim() : "";
   const address = typeof body?.address === "string" ? body.address.trim() : "";
   const businessCertUrl = typeof body?.businessCertUrl === "string" ? body.businessCertUrl.trim() : "";
   const businessCertName = typeof body?.businessCertName === "string" ? body.businessCertName.trim() : "";
+  // 본인인증 티켓 — 인증을 마친 사람만 가입할 수 있다(기획서 A4).
+  // 미설정 환경(로컬 등)에서는 인증 단계를 건너뛰므로 티켓이 없어도 진행한다.
+  const identityTicket = typeof body?.identityTicket === "string" ? body.identityTicket : "";
+  // 약관 동의 스냅샷 — 화면이 보낸 버전·본문 해시를 그대로 기록한다(기획서 1-25).
+  const agreements = Array.isArray(body?.agreements) ? body.agreements : [];
   const agreedTerms = body?.agreedTerms === true;
   const agreedPrivacy = body?.agreedPrivacy === true;
 
   if (!USERNAME_RE.test(username)) {
     return NextResponse.json(
-      { error: "아이디는 영문 소문자/숫자로 시작하는 4~20자여야 합니다." },
+      { error: `아이디는 ${USERNAME_HINT}이어야 합니다.` },
       { status: 400 },
     );
   }
@@ -117,10 +137,42 @@ export async function POST(request: Request) {
     );
   }
 
+  // 본인인증 결과 확인. 티켓은 서명돼 있고, 실제 값은 서버가 이력에서 다시 읽는다 —
+  // 클라이언트가 보낸 이름·휴대폰을 그대로 믿지 않는다.
+  let identity: Awaited<ReturnType<typeof findCompletedIdentity>> = undefined;
+  if (isNiceAuthConfigured()) {
+    if (!identityTicket) {
+      return NextResponse.json({ error: "휴대폰 본인인증을 먼저 진행해주세요." }, { status: 400 });
+    }
+    const payload = await verifyIdentityTicket(identityTicket);
+    if (!payload || payload.purpose !== "REGISTER") {
+      return NextResponse.json(
+        { error: "본인인증 정보가 만료되었습니다. 다시 인증해주세요." },
+        { status: 400 },
+      );
+    }
+    identity = await findCompletedIdentity(payload.verificationId);
+    if (!identity || !identity.di) {
+      return NextResponse.json(
+        { error: "본인인증 결과를 확인할 수 없습니다. 다시 인증해주세요." },
+        { status: 400 },
+      );
+    }
+    // 인증 시점 이후에 같은 명의로 가입이 끼어들 수 있으므로 여기서 한 번 더 본다.
+    if (await findUserByDi(identity.di)) {
+      return NextResponse.json(
+        { error: "이미 가입된 명의입니다. 아이디 찾기로 진행해주세요." },
+        { status: 409 },
+      );
+    }
+  }
+
   // 법인회원 = 회사를 새로 등록(또는 동일명 회사에 합류).
   // 개인회원 = 목록에서 기존 회사를 선택하거나, 목록에 없으면 이름을 직접 입력(신규 등록)하거나, 소속 회사 없이 가입 가능.
   // 어느 경우든 같은 company_id를 공유하는 사용자끼리 서로의 신청 내역을 함께 관리할 수 있다.
   let company;
+  // 기업회원 가입의 합류 판정 결과 — 가입 완료 응답에 안내 문구로 실린다.
+  let joinKind: import("@/lib/db").CompanyJoinKind = "NEW";
   if (accountType === "INDIVIDUAL") {
     if (companyId) {
       company = await findCompanyById(companyId);
@@ -167,6 +219,17 @@ export async function POST(request: Request) {
       );
     }
 
+    // 최초 가입자인지 기존 회사 합류인지는 서버가 등록 이력으로 판정한다(기획서 A11).
+    // 사용자가 고르게 두면 남의 회사에 붙거나 같은 회사를 둘로 만든다.
+    const join = await resolveCompanyJoin(businessRegistrationNumber);
+    if (join.kind === "BLOCKED_SUSPENDED") {
+      return NextResponse.json(
+        { error: "휴업·폐업으로 확인된 사업자등록번호입니다. 담당자에게 문의해주세요." },
+        { status: 400 },
+      );
+    }
+    joinKind = join.kind;
+
     company = await findOrCreateCompany(companyName, {
       businessRegistrationNumber,
       representativeName,
@@ -174,6 +237,9 @@ export async function POST(request: Request) {
       address,
       businessCertUrl,
       businessCertName,
+      companyPhone,
+      companyFax,
+      corporateNumber,
     });
 
     // 조회된 상호·대표자명이 입력값과 다르면 그대로 기록해 둔다 — 가입은 막지 않고
@@ -220,15 +286,94 @@ export async function POST(request: Request) {
       createdAt,
     });
 
+    // 동의 이력. 선택 약관은 미동의(false)도 남겨야 "물어봤고 거절했다"가 증명된다.
+    if (agreements.length > 0) {
+      await saveTermsAgreements(
+        created.id,
+        agreements
+          .filter((a: { kind?: unknown; version?: unknown; bodyHash?: unknown }) =>
+            typeof a?.kind === "string" && typeof a?.version === "string" && typeof a?.bodyHash === "string",
+          )
+          .map((a: { kind: string; version: string; bodyHash: string; agreed?: boolean }) => ({
+            kind: a.kind,
+            version: a.version,
+            bodyHash: a.bodyHash,
+            agreed: a.agreed === true,
+            agreedAt: createdAt,
+            requestIp: clientIpFrom(request),
+          })),
+      );
+    }
+
+    // 본인인증 결과(CI/DI)를 계정에 붙인다. 암호문으로 들어가고 DI 는 블라인드 인덱스도 함께 남는다.
+    if (identity?.ci && identity.di) {
+      await attachIdentityToUser(created.id, {
+        ci: identity.ci,
+        di: identity.di,
+        verifiedAt: createdAt,
+      });
+      created.identityVerifiedAt = createdAt;
+    }
+
+    // 회사에 붙은 계정이면 최초 가입자인지 판정해 MASTER/STAFF 를 정한다.
+    if (company) {
+      created.companyRole = await assignCompanyRoleOnJoin(created.id, company.id);
+    }
+
+    // 최초 가입자는 운영자가 전담하고, 이후 가입자는 그 회사 마스터도 처리할 수 있다(기획서 1-42).
+    // 마스터가 부재·지연이어도 운영자가 안전망이므로 운영자 알림은 두 경우 모두 보낸다.
+    const joinLabel =
+      created.companyRole === "MASTER" ? "회사 신규 등록" : `${company?.name ?? ""} 합류 신청`;
     await notifyAdmins({
       quoteId: "applicants",
-      message: `신규 가입 승인 요청: ${name} (${company?.name ?? "소속 없음"}, ${accountType === "INDIVIDUAL" ? "개인회원" : "법인회원"})`,
+      message: `신규 가입 승인 요청: ${name} (${company?.name ?? "소속 없음"}, ${accountType === "INDIVIDUAL" ? "개인회원" : "법인회원"}, ${joinLabel})`,
       createdAt,
     });
+
+    // MB-04 합류 신청 발생 → 그 회사 마스터
+    if (company && created.companyRole === "STAFF" && company.masterUserId) {
+      await dispatchMessage({
+        templateCode: "MB-04",
+        idempotencyKey: `MB-04:${created.id}`,
+        recipient: { userId: company.masterUserId, phone: null, email: null, name: null },
+        variables: { 신청자명: name },
+        request,
+      });
+    }
 
     return created;
   });
 
+  // MB-01 가입 신청 접수 → 신청자 본인
+  await dispatchMessage({
+    templateCode: "MB-01",
+    idempotencyKey: `MB-01:${user.id}`,
+    recipient: { userId: user.id, phone, email, name },
+    request,
+  });
+  // MB-05 회사 신규 등록 → 운영자
+  if (company && user.companyRole === "MASTER") {
+    for (const admin of await listUsers({ role: "ADMIN" })) {
+      await dispatchMessage({
+        templateCode: "MB-05",
+        idempotencyKey: `MB-05:${company.id}:${admin.id}`,
+        recipient: { userId: admin.id, phone: admin.phone, email: admin.email, name: admin.name },
+        variables: { 회사명: company.name, 신청자명: name },
+        request,
+      });
+    }
+  }
+
   await createSession(user.id, user.role);
-  return NextResponse.json({ user });
+  // 합류 상황에 따라 안내 문구가 달라진다 — "심사 중인 회사"인지 "미승인 이력이 있는 회사"인지
+  // 알려주지 않으면 사용자는 왜 대기가 길어지는지 알 수 없다.
+  const joinNotice =
+    joinKind === "JOIN_PENDING"
+      ? "이미 심사가 진행 중인 회사입니다. 앞선 심사가 끝난 뒤 함께 처리됩니다."
+      : joinKind === "REAPPLY_REJECTED"
+        ? "이전에 미승인 처리된 회사입니다. 운영자가 다시 심사합니다."
+        : joinKind === "JOIN_APPROVED"
+          ? "등록된 회사에 합류 신청되었습니다. 회사 대표 담당자 또는 운영자가 승인합니다."
+          : null;
+  return NextResponse.json({ user, joinKind, joinNotice });
 }
