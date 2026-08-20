@@ -203,11 +203,14 @@ export function QuoteApplicationDetail({
 
   return (
     <div className="space-y-3">
+      <Section title="공간 선택">
+        <dl className="divide-y divide-border/60 text-[13px]">
+          <Row label="이용 시설" value={venueLabel} />
+        </dl>
+      </Section>
+
       <Section title="일정 선택">
         <div className="space-y-5">
-          <dl className="divide-y divide-border/60 text-[13px]">
-            <Row label="이용 시설" value={venueLabel} />
-          </dl>
           {hasArena && (
             <div>
               <p className="text-[11.5px] font-semibold uppercase tracking-wide text-muted">아레나 일정</p>
