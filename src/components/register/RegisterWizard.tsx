@@ -350,26 +350,18 @@ export function RegisterWizard() {
           setBrnCheck={setBrnCheck}
           idCheck={idCheck}
           setIdCheck={setIdCheck}
-          onOpenSearch={() => setSearchOpen(true)}
+          onOpenSearch={() => {
+            // 불러오기를 다시 누르면 잠금이 풀린다. 배너의 [다시 선택] 을 없앴으므로
+            // 이 버튼이 유일한 되돌리기 수단이다 — 이게 없으면 회사를 잘못 불러왔을 때
+            // 새로고침 말고는 빠져나갈 길이 없다.
+            // 입력값은 지우지 않는다. 창을 그냥 닫았을 때 애써 채운 내용이 사라지면 안 된다.
+            setPickedCompany(null);
+            setBrnCheck(null);
+            setSearchOpen(true);
+          }}
           onLockCompany={(name) =>
             setPickedCompany({ id: "", name, businessNumberMasked: null, region: null })
           }
-          onClearCompany={() => {
-            setPickedCompany(null);
-            setBrnCheck(null);
-            setForm((f) => ({
-              ...f,
-              companyName: "",
-              businessRegistrationNumber: "",
-              representativeName: "",
-              companyPhone: "",
-              companyFax: "",
-              corporateNumber: "",
-              postalCode: "",
-              address: "",
-              addressDetail: "",
-            }));
-          }}
           onPostcode={openPostcode}
           loading={loading}
           onPrev={() => setStep(3)}
@@ -403,6 +395,8 @@ export function RegisterWizard() {
                   corporateNumber: c.corporateNumber ?? "",
                   postalCode: c.postalCode ?? "",
                   address: c.address ?? "",
+                  // 직접 입력해 둔 상세주소가 남으면 다른 회사 주소에 붙는다.
+                  addressDetail: "",
                 }));
                 return;
               }
@@ -662,7 +656,6 @@ function StepInfo({
   idCheck,
   setIdCheck,
   onOpenSearch,
-  onClearCompany,
   onLockCompany,
   onPostcode,
   loading,
@@ -679,7 +672,6 @@ function StepInfo({
   idCheck: { available: boolean; message: string } | null;
   setIdCheck: React.Dispatch<React.SetStateAction<{ available: boolean; message: string } | null>>;
   onOpenSearch: () => void;
-  onClearCompany: () => void;
   /** 이미 등록된 회사로 확인되면 기업정보를 잠근다. */
   onLockCompany: (name: string) => void;
   onPostcode: () => void;
@@ -787,21 +779,6 @@ function StepInfo({
         </button>
       </div>
       <p className="mt-2 break-keep text-xs text-muted">* 표시는 필수 입력 항목입니다.</p>
-
-      {pickedCompany ? (
-        <p
-          data-testid="picked-company"
-          className="mt-4 flex flex-wrap items-center justify-between gap-3 border border-accent px-4 py-3 text-s"
-        >
-          <span className="break-keep">
-            불러온 회사 <b>{pickedCompany.name}</b>
-            <span className="ml-2 text-muted">{pickedCompany.businessNumberMasked}</span>
-          </span>
-          <button type="button" onClick={onClearCompany} className="underline underline-offset-4">
-            다시 선택
-          </button>
-        </p>
-      ) : null}
 
       <h3 className="mt-8 text-s font-bold">① 기업 정보</h3>
       {locked ? null : (
