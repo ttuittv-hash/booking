@@ -32,10 +32,8 @@ export function MyPageSidebar({ active }: { active: MyPageSection }) {
       <nav className="flex flex-col gap-y-4 rounded border border-border bg-panel/40 p-3">
         {SECTIONS.map((section) => (
           <div key={section.label}>
-            <p className="px-2.5 text-[11.5px] font-semibold tracking-wide text-muted">
-              {section.label}
-            </p>
-            <ul className="mt-1.5 space-y-0.5">
+            <p className="px-2.5 text-[15px] font-bold text-foreground">{section.label}</p>
+            <ul className="mt-1.5 space-y-0.5 pl-4">
               {section.items.map((item) => (
                 <li key={item.href}>
                   <Link

@@ -52,9 +52,9 @@ export default async function MyPage({
                 <thead>
                   <tr className="border-b border-border bg-panel text-left text-[11.5px] font-medium text-muted">
                     <th className="px-4 py-3">신청번호</th>
-                    <th className="px-4 py-3">신청일시</th>
+                    <th className="px-4 py-3">공연명</th>
                     <th className="px-4 py-3">주차</th>
-                    <th className="px-4 py-3 text-right">신청 예상금액</th>
+                    <th className="px-4 py-3 text-right">예상금액</th>
                     <th className="px-4 py-3 text-right">계약금액</th>
                     <th className="px-4 py-3 text-right">정산금액</th>
                     <th className="px-4 py-3">상태</th>
@@ -76,7 +76,7 @@ export default async function MyPage({
                       <tr key={q.id} className="border-b border-border/70">
                         <td className="px-4 py-3 font-medium">{q.id}</td>
                         <td className="px-4 py-3 text-muted">
-                          {new Date(q.createdAt).toLocaleString("ko-KR")}
+                          {q.selection.performanceInfo.eventName || "-"}
                         </td>
                         <td className="px-4 py-3">
                           {q.selection.week.year}.{q.selection.week.month} {q.selection.week.weekOfMonth}주차
