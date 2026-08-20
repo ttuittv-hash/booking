@@ -3,12 +3,11 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import type { Faq, Notice } from "@/lib/pricing/types";
-import type { GuideContent, HomeContent } from "@/lib/content/types";
-import { TagBadge } from "@/components/TagBadge";
+import type { HomeContent } from "@/lib/content/types";
+import { NOTICE_TAGS, NOTICE_TAG_HELP, PINNED_NOTICE_TAG, TagBadge, type NoticeTag } from "@/components/TagBadge";
 import { btnClass } from "@/components/ui/kit";
 import { NoticeEditor } from "./NoticeEditor";
-import { VenueFactsNotice } from "./VenueFactsNotice";
-import { GuideContentForm } from "./GuideContentForm";
+import { GuideFactsNotice, VenueFactsNotice } from "./VenueFactsNotice";
 import { HomeContentForm } from "./HomeContentForm";
 import {
   ADD_BTN_LG,
@@ -45,12 +44,10 @@ export function ContentManager({
   notices: initialNotices,
   faqs: initialFaqs,
   homeContent,
-  guideContent,
 }: {
   notices: Notice[];
   faqs: Faq[];
   homeContent: HomeContent;
-  guideContent: GuideContent;
 }) {
   const router = useRouter();
   const [tab, setTab] = useState<Tab>("notices");
@@ -80,7 +77,7 @@ export function ContentManager({
         {tab === "faq" && <FaqTab faqs={faqs} setFaqs={setFaqs} router={router} />}
         {tab === "home" && <HomeContentForm content={homeContent} />}
         {tab === "venue" && <VenueFactsNotice />}
-        {tab === "guide" && <GuideContentForm content={guideContent} />}
+        {tab === "guide" && <GuideFactsNotice />}
       </div>
     </div>
   );
@@ -101,6 +98,10 @@ function NoticesTab({
   const [imageUrl, setImageUrl] = useState<string | null>(null);
   const [attachmentUrl, setAttachmentUrl] = useState<string | null>(null);
   const [attachmentName, setAttachmentName] = useState<string | null>(null);
+  // 대관공고 게시물만 갖는 접수 정보 — 대관 일정의 정본은 이 게시물이다
+  const [applyStart, setApplyStart] = useState("");
+  const [applyEnd, setApplyEnd] = useState("");
+  const [targetVenues, setTargetVenues] = useState("");
   const [editingId, setEditingId] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
@@ -115,6 +116,9 @@ function NoticesTab({
     setImageUrl(null);
     setAttachmentUrl(null);
     setAttachmentName(null);
+    setApplyStart("");
+    setApplyEnd("");
+    setTargetVenues("");
     setError(null);
   }
 
@@ -126,6 +130,9 @@ function NoticesTab({
     setImageUrl(notice.imageUrl);
     setAttachmentUrl(notice.attachmentUrl);
     setAttachmentName(notice.attachmentName);
+    setApplyStart(notice.applyStart ?? "");
+    setApplyEnd(notice.applyEnd ?? "");
+    setTargetVenues(notice.targetVenues ?? "");
   }
 
   function resetForm() {
@@ -184,7 +191,17 @@ function NoticesTab({
       const res = await fetch(isNew ? "/api/admin/notices" : `/api/admin/notices/${editingId}`, {
         method: isNew ? "POST" : "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ tag, title, body, imageUrl, attachmentUrl, attachmentName }),
+        body: JSON.stringify({
+          tag,
+          title,
+          body,
+          imageUrl,
+          attachmentUrl,
+          attachmentName,
+          applyStart,
+          applyEnd,
+          targetVenues,
+        }),
       });
       const data = await res.json();
       if (!res.ok) {
@@ -267,13 +284,19 @@ function NoticesTab({
           <h3 className={SUB_TITLE}>{editingId === "__new__" ? "새 공지사항 등록" : "공지사항 수정"}</h3>
           <div className="mt-4 space-y-4">
             <div className="flex gap-2">
-              <input
-                type="text"
-                placeholder="말머리 (예: 공지, 점검)"
+              {/* 말머리는 닫힌 목록에서만 고른다 — 자유 입력을 허용하면 같은 성격의 게시물이 갈린다 */}
+              <select
                 value={tag}
                 onChange={(e) => setTag(e.target.value)}
-                className={`w-32 shrink-0 ${FIELD}`}
-              />
+                className={`w-36 shrink-0 ${FIELD}`}
+              >
+                <option value="">말머리 없음</option>
+                {NOTICE_TAGS.map((t) => (
+                  <option key={t} value={t}>
+                    {t}
+                  </option>
+                ))}
+              </select>
               <input
                 type="text"
                 placeholder="제목"
@@ -282,6 +305,40 @@ function NoticesTab({
                 className={FIELD}
               />
             </div>
+            {tag && <p className={HELP}>{NOTICE_TAG_HELP[tag as NoticeTag]}</p>}
+
+            {tag === PINNED_NOTICE_TAG && (
+              <div className="border border-border-soft p-4">
+                <span className={FIELD_LABEL}>접수 정보 (대관공고 전용)</span>
+                <p className={HELP}>
+                  홈과 대관 안내의 공고 카드가 이 값을 그대로 끌어다 씁니다. 대관 일정은 이
+                  게시물에만 적고 다른 화면에 복제하지 않습니다.
+                </p>
+                <div className="mt-3 grid gap-2 sm:grid-cols-3">
+                  <input
+                    type="text"
+                    placeholder="접수 개시 (예: 2026년 9월 1일)"
+                    value={applyStart}
+                    onChange={(e) => setApplyStart(e.target.value)}
+                    className={FIELD}
+                  />
+                  <input
+                    type="text"
+                    placeholder="접수 마감 (미정이면 추후 공지)"
+                    value={applyEnd}
+                    onChange={(e) => setApplyEnd(e.target.value)}
+                    className={FIELD}
+                  />
+                  <input
+                    type="text"
+                    placeholder="대상 공간 (예: 아레나, 중형공연장)"
+                    value={targetVenues}
+                    onChange={(e) => setTargetVenues(e.target.value)}
+                    className={FIELD}
+                  />
+                </div>
+              </div>
+            )}
             <div>
               <span className={FIELD_LABEL}>내용</span>
               <NoticeEditor value={body} onChange={setBody} />

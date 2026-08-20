@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/lib/auth";
-import { getGuideContent, getHomeContent, listFaqs, listNotices } from "@/lib/db";
+import { getHomeContent, listFaqs, listNotices } from "@/lib/db";
 import { AdminNav } from "@/components/admin/AdminNav";
 import { ContentManager } from "@/components/admin/ContentManager";
 import { PAGE_LEAD, PAGE_TITLE } from "@/components/admin/adminUi";
@@ -13,7 +13,6 @@ export default async function AdminContentPage() {
   const notices = await listNotices();
   const faqs = await listFaqs();
   const homeContent = await getHomeContent();
-  const guideContent = await getGuideContent();
 
   return (
     <div className="flex flex-1 flex-col">
@@ -32,7 +31,6 @@ export default async function AdminContentPage() {
           notices={notices}
           faqs={faqs}
           homeContent={homeContent}
-          guideContent={guideContent}
         />
       </main>
     </div>

@@ -78,7 +78,17 @@ export interface RentalPackage {
   };
   baseFeePerWeek: number; // 기본 대관료(1주, 고정가) — 요금표에서 주입
   includedWeeks: number; // 기본 포함 주차 (통상 1)
-  includedItems: PackageInclusion[]; // 기본 포함사항 (3단계에 표시)
+  /**
+   * 수량 기준 기본 포함분 — 포함 수량을 넘긴 만큼만 과금하는 항목.
+   * 2026-08 요금 시트 기준 아레나 패키지에는 수량 기준 포함분이 없다(전부 서술 포함).
+   * 초과 과금 모델이 필요한 항목이 생기면 여기에 넣는다.
+   */
+  includedItems: PackageInclusion[];
+  /**
+   * 서술형 기본 포함 목록 — 요금 시트 RATE INCLUDES 를 그대로 옮긴 것.
+   * [구분, 포함 내용] 쌍이며 수량·단가가 붙지 않는다.
+   */
+  rateIncludes: [string, string][];
   mediaTier: MediaTier; // 홍보 디지털 매체(구좌) 등급 개방
   discountRatio: number; // 0=할인 없음, 0.1=기본 대관료 10% 할인 — 견적 계산 시 기본 대관료에 적용
 
@@ -525,6 +535,10 @@ export interface Notice {
   imageUrl: string | null;
   attachmentUrl: string | null; // 첨부파일(규약/상세문서 등) 다운로드 링크
   attachmentName: string | null; // 첨부파일 원본 파일명
+  /** 말머리가 `대관공고` 일 때만 쓰는 접수 정보. 대관 일정의 정본은 이 게시물이다. */
+  applyStart: string | null; // 접수 개시 — "2026년 9월 1일" 처럼 표기 그대로
+  applyEnd: string | null; // 접수 마감 — 미확정이면 "추후 공지"
+  targetVenues: string | null; // 대상 공간 — "아레나, 중형공연장"
   createdAt: string;
   updatedAt: string;
 }

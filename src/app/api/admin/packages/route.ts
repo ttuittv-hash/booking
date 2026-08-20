@@ -60,6 +60,7 @@ function blankPackage(id: number): RentalPackage {
     baseFeePerWeek: 0,
     includedWeeks: 1,
     includedItems: [],
+    rateIncludes: [],
     mediaTier: null,
     discountRatio: 0,
     dayBreakdown: "준비 4일 + 공연 2일",

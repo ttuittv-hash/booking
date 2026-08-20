@@ -4,11 +4,11 @@ import { hash as bcryptHash } from "@node-rs/bcrypt";
 import crypto from "node:crypto";
 import { buildSeedRateTable } from "./pricing/seed";
 import { SEED_PAGES } from "./pricing/pageSeed";
-import { DEFAULT_GUIDE_CONTENT, DEFAULT_HOME_CONTENT, DEFAULT_VENUE_CONTENT } from "./content/seed";
+import { DEFAULT_HOME_CONTENT } from "./content/seed";
 import { FEATURE_SPEC_SEED } from "./featureSpecSeed";
 import { FEATURE_SPEC_SHEET_KEYS } from "./pricing/types";
 import { sha256Hex } from "./passwordScheme";
-import type { GuideContent, HomeContent, VenueContent } from "./content/types";
+import type { HomeContent } from "./content/types";
 import type {
   ApprovalStatus,
   CompanyVerification,
@@ -311,6 +311,11 @@ async function initSchema(pool: Pool) {
   // 이후 세션에서 추가되는 컬럼은 여기서 마이그레이션한다 (PostgreSQL은 IF NOT EXISTS 지원).
   await pool.query(`
     ALTER TABLE users ADD COLUMN IF NOT EXISTS password_scheme TEXT NOT NULL DEFAULT 'v2';
+    -- 대관공고 게시물의 접수 정보. 대관 일정의 정본은 공지 게시물이므로
+    -- 홈·대관 안내의 공고 카드는 이 값을 그대로 끌어다 쓰고 값을 복제하지 않는다.
+    ALTER TABLE notices ADD COLUMN IF NOT EXISTS apply_start TEXT;
+    ALTER TABLE notices ADD COLUMN IF NOT EXISTS apply_end TEXT;
+    ALTER TABLE notices ADD COLUMN IF NOT EXISTS target_venues TEXT;
     ALTER TABLE companies ADD COLUMN IF NOT EXISTS verification_status TEXT;
     ALTER TABLE companies ADD COLUMN IF NOT EXISTS verified_company_name TEXT;
     ALTER TABLE companies ADD COLUMN IF NOT EXISTS verified_representative_name TEXT;
@@ -2155,6 +2160,9 @@ interface NoticeRow {
   image_url: string | null;
   attachment_url: string | null;
   attachment_name: string | null;
+  apply_start: string | null;
+  apply_end: string | null;
+  target_venues: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -2168,6 +2176,9 @@ function toNotice(row: NoticeRow): Notice {
     imageUrl: row.image_url,
     attachmentUrl: row.attachment_url,
     attachmentName: row.attachment_name,
+    applyStart: row.apply_start,
+    applyEnd: row.apply_end,
+    targetVenues: row.target_venues,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
   };
@@ -2200,10 +2211,13 @@ export async function createNotice(input: {
   imageUrl?: string | null;
   attachmentUrl?: string | null;
   attachmentName?: string | null;
+  applyStart?: string | null;
+  applyEnd?: string | null;
+  targetVenues?: string | null;
   createdAt: string;
 }): Promise<Notice> {
   await q(
-    "INSERT INTO notices (id, tag, title, body, image_url, attachment_url, attachment_name, created_at, updated_at) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)",
+    "INSERT INTO notices (id, tag, title, body, image_url, attachment_url, attachment_name, apply_start, apply_end, target_venues, created_at, updated_at) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)",
     [
       input.id,
       input.tag ?? null,
@@ -2212,6 +2226,9 @@ export async function createNotice(input: {
       input.imageUrl ?? null,
       input.attachmentUrl ?? null,
       input.attachmentName ?? null,
+      input.applyStart ?? null,
+      input.applyEnd ?? null,
+      input.targetVenues ?? null,
       input.createdAt,
       input.createdAt,
     ],
@@ -2228,11 +2245,14 @@ export async function updateNotice(
     imageUrl?: string | null;
     attachmentUrl?: string | null;
     attachmentName?: string | null;
+    applyStart?: string | null;
+    applyEnd?: string | null;
+    targetVenues?: string | null;
     updatedAt: string;
   },
 ): Promise<Notice | undefined> {
   await q(
-    "UPDATE notices SET tag = $1, title = $2, body = $3, image_url = $4, attachment_url = $5, attachment_name = $6, updated_at = $7 WHERE id = $8",
+    "UPDATE notices SET tag = $1, title = $2, body = $3, image_url = $4, attachment_url = $5, attachment_name = $6, apply_start = $7, apply_end = $8, target_venues = $9, updated_at = $10 WHERE id = $11",
     [
       input.tag ?? null,
       input.title,
@@ -2240,6 +2260,9 @@ export async function updateNotice(
       input.imageUrl ?? null,
       input.attachmentUrl ?? null,
       input.attachmentName ?? null,
+      input.applyStart ?? null,
+      input.applyEnd ?? null,
+      input.targetVenues ?? null,
       input.updatedAt,
       id,
     ],
@@ -2423,23 +2446,9 @@ async function saveSiteContent<T>(page: string, data: T): Promise<T> {
   return data;
 }
 
-export async function getVenueContent(): Promise<VenueContent> {
-  const stored = await getSiteContent<Partial<VenueContent> | null>("venue", null);
-  if (!stored) return DEFAULT_VENUE_CONTENT;
-  return { ...DEFAULT_VENUE_CONTENT, ...stored };
-}
 
-export async function saveVenueContent(data: VenueContent): Promise<VenueContent> {
-  return saveSiteContent("venue", data);
-}
 
-export async function getGuideContent(): Promise<GuideContent> {
-  return getSiteContent<GuideContent>("guide", DEFAULT_GUIDE_CONTENT);
-}
 
-export async function saveGuideContent(data: GuideContent): Promise<GuideContent> {
-  return saveSiteContent("guide", data);
-}
 
 export async function getHomeContent(): Promise<HomeContent> {
   const stored = await getSiteContent<Partial<HomeContent> | null>("home", null);

@@ -24,3 +24,26 @@ export function VenueFactsNotice() {
     </div>
   );
 }
+
+/**
+ * 대관 절차 8단계와 신청 전 확인 사항도 같은 이유로 코드 정본으로 옮겼다.
+ *
+ * 절차 안내가 8단계(대관 안내)·5단계(홈)·5단계(위저드 마지막) 세 벌로 갈라져 서로
+ * 매핑되지 않던 것이 재구성 이전의 상태였다. 정본을 하나로 두지 않으면 다시 갈라진다.
+ */
+export function GuideFactsNotice() {
+  return (
+    <div className={PANEL}>
+      <h3 className={SUB_TITLE}>대관 절차는 코드 정본으로 관리합니다</h3>
+      <p className={`mt-3 ${HELP}`}>
+        대관 절차 8단계와 신청 전 확인 사항은{" "}
+        <code className="font-bold">src/lib/content/processFacts.ts</code> 한 곳에서 관리합니다.
+        홈의 3구간 요약도 같은 8단계를 압축해 쓰므로 별도 단계 체계를 만들지 않습니다.
+      </p>
+      <ul className={`mt-4 list-disc space-y-1 pl-5 ${HELP}`}>
+        <li>대관 일정은 절차가 아니라 공고입니다. 공지사항 탭에서 `대관공고` 말머리로 등록하세요.</li>
+        <li>요금 체계·금액은 요금표 관리(대관료) 화면이 소유합니다.</li>
+      </ul>
+    </div>
+  );
+}
