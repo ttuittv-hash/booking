@@ -1,8 +1,16 @@
 "use client";
 
+import type { ReactNode } from "react";
 import { won } from "@/lib/format";
-import { findPackage, totalRentalDays } from "@/lib/pricing/rateTableUtils";
+import {
+  arenaCompositionTiles,
+  baseCompositionTiles,
+  findPackage,
+  packagesForVenue,
+  totalRentalDays,
+} from "@/lib/pricing/rateTableUtils";
 import type { EstimatedQuote, LineItem, QuoteSelection, RateTable } from "@/lib/pricing/types";
+import { BaseCompositionCard } from "./BaseCompositionCard";
 
 function midHallSummaryLine(selection: QuoteSelection): string | null {
   const dates = Object.keys(selection.midHallDays).sort();
@@ -23,15 +31,18 @@ function LineItemTable({
   title,
   items,
   expectedRevenue,
+  composition,
 }: {
   title?: string;
   items: LineItem[];
   expectedRevenue: number;
+  composition?: ReactNode;
 }) {
   const subtotal = items.reduce((sum, item) => sum + item.amount, 0);
   return (
     <div className="mt-6">
       {title && <h3 className="mb-2 text-[14.5px] font-semibold text-foreground">{title}</h3>}
+      {composition}
       <div className="overflow-x-auto">
         <table className="w-full border-collapse text-[13px]">
           <thead>
@@ -118,6 +129,13 @@ export function Step5Estimate({
   const arenaVisibleSubtotal = arenaItems.reduce((sum, item) => sum + item.amount, 0);
   const midHallVisibleSubtotal = midHallItems.reduce((sum, item) => sum + item.amount, 0);
 
+  // [개정 2026-08-20] "예상 대관료" 화면은 과금 항목뿐 아니라 선택한 패키지에 이미 포함된
+  // 기본 구성(대기실·인터컴·트러스 등)도 상세히 보여준다 — 구성·옵션(STEP2) 패키지 슬롯과
+  // 동일한 baseCompositionTiles를 재사용해 두 화면의 산정 내역이 서로 다르지 않게 한다.
+  const midHallPkg = packagesForVenue(rateTable, "medium-hall")[0];
+  const arenaTiles = pkg ? arenaCompositionTiles(pkg, rateTable) : [];
+  const midHallTiles = midHallPkg && hasMidHall ? baseCompositionTiles(midHallPkg, rateTable, { includeSchedule: false }) : [];
+
   return (
     <section className="rounded border border-border bg-background p-7">
       <h2 className="text-[19px] font-semibold">예상 대관료</h2>
@@ -138,11 +156,53 @@ export function Step5Estimate({
           최종 소계(quote.subtotal, 전체 lineItems 기준)와는 차이가 날 수 있다. */}
       {isSimultaneous ? (
         <>
-          <LineItemTable title="아레나" items={arenaItems} expectedRevenue={selection.expectedRevenue ?? 0} />
-          <LineItemTable title="중형공연장" items={midHallItems} expectedRevenue={selection.expectedRevenue ?? 0} />
+          <LineItemTable
+            title="아레나"
+            items={arenaItems}
+            expectedRevenue={selection.expectedRevenue ?? 0}
+            composition={
+              arenaTiles.length > 0 && (
+                <BaseCompositionCard
+                  tiles={arenaTiles}
+                  note="기본 대관료에 포함된 구성 — 관객 규모와 무관하게 전 패키지 동일하게 제공됩니다"
+                />
+              )
+            }
+          />
+          <LineItemTable
+            title="중형공연장"
+            items={midHallItems}
+            expectedRevenue={selection.expectedRevenue ?? 0}
+            composition={
+              midHallTiles.length > 0 && (
+                <BaseCompositionCard
+                  tiles={midHallTiles}
+                  note="대관료에 이미 포함된 구성 — 예약 일수와 무관하게 동일하게 제공됩니다"
+                />
+              )
+            }
+          />
         </>
       ) : (
-        <LineItemTable items={visibleItems} expectedRevenue={selection.expectedRevenue ?? 0} />
+        <LineItemTable
+          items={visibleItems}
+          expectedRevenue={selection.expectedRevenue ?? 0}
+          composition={
+            pkg
+              ? arenaTiles.length > 0 && (
+                  <BaseCompositionCard
+                    tiles={arenaTiles}
+                    note="기본 대관료에 포함된 구성 — 관객 규모와 무관하게 전 패키지 동일하게 제공됩니다"
+                  />
+                )
+              : midHallTiles.length > 0 && (
+                  <BaseCompositionCard
+                    tiles={midHallTiles}
+                    note="대관료에 이미 포함된 구성 — 예약 일수와 무관하게 동일하게 제공됩니다"
+                  />
+                )
+          }
+        />
       )}
 
       <div className="mt-6 rounded-sm border border-border bg-panel/40 p-5">

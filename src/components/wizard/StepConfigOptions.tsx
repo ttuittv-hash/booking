@@ -4,6 +4,9 @@ import { useState } from "react";
 import { won } from "@/lib/format";
 import { resolveSelectedDates } from "@/lib/pricing/dateRange";
 import {
+  arenaCompositionTiles,
+  baseCompositionSummaryLine,
+  baseCompositionTiles,
   defaultDayTags,
   effectiveDayTag,
   findPackage,
@@ -13,13 +16,13 @@ import {
 } from "@/lib/pricing/rateTableUtils";
 import {
   ADDON_CATEGORY_LABEL,
-  MEDIA_TIER_LABEL,
   type AddonCategory,
   type AddonItem,
   type QuoteSelection,
   type RateTable,
   type RentalPackage,
 } from "@/lib/pricing/types";
+import { BaseCompositionCard } from "./BaseCompositionCard";
 
 // [화면 뼈대 2026-08-18, 화면시나리오 SCREEN 05/12] "규모/패키지 선택 → 기본 포함사항 →
 // 추가 옵션" 3개 화면을 STEP 2(구성·옵션) 한 화면으로 합친다.
@@ -51,96 +54,6 @@ function midHallSummaryLine(selection: QuoteSelection): string | null {
   const performance = dates.filter((d) => selection.midHallDays[d].role === "PERFORMANCE").length;
   const loadOut = dates.filter((d) => selection.midHallDays[d].role === "LOAD_OUT").length;
   return `${dates.length}일 · 셋업${setup} · 공연${performance}${loadOut > 0 ? ` · 철수${loadOut}` : ""}`;
-}
-
-type BaseCompositionGroup = "일정" | "공간" | "인프라";
-
-interface BaseCompositionTile {
-  group: BaseCompositionGroup;
-  label: string;
-  value: string;
-}
-
-const BASE_COMPOSITION_GROUP_ORDER: BaseCompositionGroup[] = ["일정", "공간", "인프라"];
-
-const TRUSS_ADDON_IDS = ["mother_truss_a", "mother_truss_b", "mother_truss_c", "mother_truss_l", "mother_truss_r"];
-
-// addon.category → 기본구성 그리드 그룹. SPACE는 공간, PRODUCTION·PREMIUM은 인프라(무대·조명·
-// 음향 등 설비류)로 묶는다 — 일정(준비/공연)은 addon이 아니라 합성 항목이라 별도 처리한다.
-function baseCompositionGroupOf(category: AddonCategory): BaseCompositionGroup {
-  return category === "SPACE" ? "공간" : "인프라";
-}
-
-function unitSuffix(unitLabel: string): string {
-  if (unitLabel.includes("일")) return "일";
-  if (unitLabel.includes("대")) return "대";
-  if (unitLabel.includes("실")) return "실";
-  return "";
-}
-
-// 중형공연장 패키지에서 재사용하는 addon 중 일부는 아레나와 quantity의 의미가 다르다 —
-// 아레나는 waiting_room/intercom_wireless를 일 단위 과금 addon(원/일)으로 써서 quantity가
-// "포함 일수"를 뜻하지만, 중형 패키지는 같은 addon을 "대기실 몇 실 · 인터컴 몇 대"라는
-// 개수 의미로 재사용한다(waitingRoomNote="지상 2실"과 일치). unitLabel만 보고는 구분이
-// 안 되므로 중형 패키지에 한해 addonId로 단위를 오버라이드한다.
-const MID_HALL_COUNT_UNIT_OVERRIDES: Record<string, string> = {
-  waiting_room: "실",
-  intercom_wireless: "대",
-  intercom_wired: "대",
-};
-
-// [화면 뼈대 2026-08-19, 패키지 구성 산정표] "기본 구성" 그리드는 pkg.includedItems를 그대로
-// 데이터 기반으로 나열하고(addonId → 요금표에서 이름·단위 조회), 일정 · 공간 · 인프라 3개
-// 그룹으로 묶어 보여준다 — 관리자가 "패키지 관리"에서 항목을 추가·삭제·수정하면 이 그리드에도
-// 그대로 반영된다. 트러스 5종(A+B+C+L+R)만 산정표처럼 "트러스(센터)" 한 줄로 합쳐 보여준다
-// (선택 옵션에서는 5종 그대로 개별 addon으로 남는다 — 여기는 표시 전용 큐레이션일 뿐 요금
-// 데이터 모델은 바꾸지 않는다). 준비/공연 일수는 대응하는 addon이 없어 dayBreakdown 문자열
-// 에서 그대로 읽는다 — 다만 중형공연장은 패키지 고정 일수가 아니라 캘린더에서 자유롭게
-// 고른 일수(최소 대관일수 제한 없음)라 dayBreakdown 기반 준비/공연 타일은 의미가 없으므로
-// includeSchedule=false 로 꺼서 공간·인프라 기본 구성만 보여준다.
-function baseCompositionTiles(
-  pkg: RentalPackage,
-  rateTable: RateTable,
-  options: { includeSchedule?: boolean } = {},
-): BaseCompositionTile[] {
-  const { includeSchedule = true } = options;
-  const tiles: BaseCompositionTile[] = [];
-
-  if (includeSchedule) {
-    const match = pkg.dayBreakdown.match(/준비\s*(\d+)일.*공연\s*(\d+)일/);
-    const setupDays = match ? Number(match[1]) : 4;
-    const performanceDays = match ? Number(match[2]) : 2;
-    tiles.push({ group: "일정", label: "준비", value: `${setupDays}일` });
-    tiles.push({ group: "일정", label: "공연", value: `${performanceDays}일` });
-  }
-
-  let trussDays = 0;
-  for (const item of pkg.includedItems) {
-    if (TRUSS_ADDON_IDS.includes(item.addonId)) {
-      trussDays = Math.max(trussDays, item.quantity);
-      continue;
-    }
-    const addon = rateTable.addons.find((a) => a.id === item.addonId);
-    if (!addon) continue;
-    const suffix =
-      pkg.venueId === "medium-hall" && MID_HALL_COUNT_UNIT_OVERRIDES[item.addonId]
-        ? MID_HALL_COUNT_UNIT_OVERRIDES[item.addonId]
-        : unitSuffix(addon.unitLabel);
-    tiles.push({
-      group: baseCompositionGroupOf(addon.category),
-      label: addon.name,
-      value: `${item.quantity.toLocaleString()}${suffix}`,
-    });
-  }
-  if (trussDays > 0) tiles.push({ group: "인프라", label: "트러스(센터)", value: `${trussDays}일` });
-
-  return tiles;
-}
-
-// [개정 2026-08-20] "기본 포함" 카드(BaseCompositionCard)는 아레나 탭에서 패키지 슬롯 안으로
-// 흡수한다 — 별도 카드 대신 패키지를 고르면 그 아래 한 줄 요약 텍스트로 보여준다.
-function baseCompositionSummaryLine(tiles: BaseCompositionTile[]): string {
-  return tiles.map((t) => `${t.label} ${t.value}`).join(" · ");
 }
 
 // [화면 뼈대 2026-08-20, 개정] 관객 규모는 더 이상 별도 "패키지 선택" 화면에서 입력하지
@@ -228,38 +141,6 @@ function PackagePicker({
   );
 }
 
-// 아레나 탭·중형 탭·중형 단독(midHallOnly)에서 공통으로 쓰는 "기본 포함" 그리드 카드.
-function BaseCompositionCard({ tiles, note }: { tiles: BaseCompositionTile[]; note: string }) {
-  if (tiles.length === 0) return null;
-  return (
-    <div className="mt-6 rounded border border-good/30 bg-good-soft/30 p-5">
-      <div className="flex items-center gap-2">
-        <span className="rounded-sm bg-good px-2 py-0.5 text-[10.5px] font-semibold text-white">기본 포함</span>
-        <span className="text-[12.5px] font-medium text-foreground">{note}</span>
-      </div>
-      <div className="mt-4 space-y-4">
-        {BASE_COMPOSITION_GROUP_ORDER.map((group) => {
-          const groupTiles = tiles.filter((t) => t.group === group);
-          if (groupTiles.length === 0) return null;
-          return (
-            <div key={group}>
-              <div className="mb-1.5 text-[10.5px] font-semibold uppercase tracking-wide text-good">{group}</div>
-              <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
-                {groupTiles.map((tile) => (
-                  <div key={tile.label} className="rounded-sm border border-good/20 bg-background px-3 py-2">
-                    <div className="text-[11px] text-muted">{tile.label}</div>
-                    <div className="mt-0.5 text-[13px] font-semibold text-good">{tile.value}</div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          );
-        })}
-      </div>
-    </div>
-  );
-}
-
 export function StepConfigOptions({
   rateTable,
   selection,
@@ -338,16 +219,7 @@ export function StepConfigOptions({
     .flat()
     .filter((addon) => addon.billingPhase !== "SETTLEMENT" && (addonQuantities[addon.id] ?? 0) > 0).length;
 
-  const compositionTiles: BaseCompositionTile[] = pkg
-    ? [
-        ...baseCompositionTiles(pkg, rateTable),
-        {
-          group: "인프라",
-          label: "홍보 디지털 매체",
-          value: pkg.mediaTier ? MEDIA_TIER_LABEL[pkg.mediaTier] : "미포함",
-        },
-      ]
-    : [];
+  const compositionTiles = pkg ? arenaCompositionTiles(pkg, rateTable) : [];
 
   const arenaSection = (
     <>
