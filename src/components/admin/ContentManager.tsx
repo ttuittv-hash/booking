@@ -3,11 +3,11 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import type { Faq, Notice } from "@/lib/pricing/types";
-import type { GuideContent, HomeContent, VenueContent } from "@/lib/content/types";
+import type { GuideContent, HomeContent } from "@/lib/content/types";
 import { TagBadge } from "@/components/TagBadge";
 import { btnClass } from "@/components/ui/kit";
 import { NoticeEditor } from "./NoticeEditor";
-import { VenueContentForm } from "./VenueContentForm";
+import { VenueFactsNotice } from "./VenueFactsNotice";
 import { GuideContentForm } from "./GuideContentForm";
 import { HomeContentForm } from "./HomeContentForm";
 import {
@@ -45,13 +45,11 @@ export function ContentManager({
   notices: initialNotices,
   faqs: initialFaqs,
   homeContent,
-  venueContent,
   guideContent,
 }: {
   notices: Notice[];
   faqs: Faq[];
   homeContent: HomeContent;
-  venueContent: VenueContent;
   guideContent: GuideContent;
 }) {
   const router = useRouter();
@@ -67,7 +65,7 @@ export function ContentManager({
             ["notices", `공지사항 (${notices.length})`],
             ["faq", `FAQ (${faqs.length})`],
             ["home", "홈 화면"],
-            ["venue", "서울아레나 소개"],
+            ["venue", "시설 정보"],
             ["guide", "대관 안내"],
           ] as const
         ).map(([key, label]) => (
@@ -81,7 +79,7 @@ export function ContentManager({
         {tab === "notices" && <NoticesTab notices={notices} setNotices={setNotices} router={router} />}
         {tab === "faq" && <FaqTab faqs={faqs} setFaqs={setFaqs} router={router} />}
         {tab === "home" && <HomeContentForm content={homeContent} />}
-        {tab === "venue" && <VenueContentForm content={venueContent} />}
+        {tab === "venue" && <VenueFactsNotice />}
         {tab === "guide" && <GuideContentForm content={guideContent} />}
       </div>
     </div>
