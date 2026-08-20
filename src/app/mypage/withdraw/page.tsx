@@ -21,7 +21,7 @@ export default async function WithdrawPage() {
 
       <main className="mx-auto w-full max-w-xl flex-1 px-6 py-10">
         <Link href="/mypage/profile" className="text-[12.5px] font-medium text-accent hover:underline">
-          ← 회원정보 수정
+          ← 나의 정보 수정
         </Link>
 
         <h1 className="mt-4 text-[22px] font-semibold">회원 탈퇴</h1>

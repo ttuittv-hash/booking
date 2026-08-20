@@ -35,7 +35,7 @@ export default async function MyInquiriesPage({
 
       <main className="mx-auto w-full max-w-3xl flex-1 px-6 py-10">
         <Link href="/mypage" className="text-[12.5px] font-medium text-accent hover:underline">
-          ← 내 신청 내역
+          ← 대관 진행 내역
         </Link>
 
         <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
