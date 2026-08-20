@@ -1,5 +1,6 @@
 import Link from "next/link";
 import type { AppNotification } from "@/lib/pricing/types";
+import { formatDateTime } from "@/lib/format";
 
 // 알림 전체 보기 목록. 드롭다운과 같은 규칙으로 제목·본문을 나눈다.
 export function NotificationList({
@@ -45,7 +46,7 @@ export function NotificationList({
                   <span className="mt-1 block break-keep text-xs leading-6 text-muted">{body}</span>
                 ) : null}
                 <span className="mt-1.5 block text-xs text-muted tabular-nums">
-                  {new Date(n.createdAt).toLocaleString("ko-KR")}
+                  {formatDateTime(n.createdAt)}
                 </span>
               </span>
             </Link>

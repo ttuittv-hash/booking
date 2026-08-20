@@ -16,6 +16,7 @@ import { TagBadge } from "@/components/TagBadge";
 import { btnClass } from "@/components/ui/kit";
 import { NoticeEditor } from "./NoticeEditor";
 import { HomeContentForm } from "./HomeContentForm";
+import { formatDateTime } from "@/lib/format";
 import {
   DocumentsForm,
   FeaturesForm,
@@ -280,7 +281,7 @@ function NoticesTab({
                     </div>
                     <p className={`mt-1.5 ${HELP}`}>{stripHtml(notice.body)}</p>
                     <div className="mt-2 flex items-center gap-2 text-xs tabular-nums text-muted">
-                      {new Date(notice.createdAt).toLocaleString("ko-KR")}
+                      {formatDateTime(notice.createdAt)}
                       {notice.attachmentUrl && <span className="font-bold text-foreground">· 첨부파일</span>}
                     </div>
                   </div>

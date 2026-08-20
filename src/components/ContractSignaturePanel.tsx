@@ -5,6 +5,7 @@ import { useState } from "react";
 import type { ContractSignature, UserRole } from "@/lib/pricing/types";
 import { Badge, Note, SpecTable, btnClass } from "@/components/ui/kit";
 import { useToast } from "@/components/ui/Toast";
+import { formatDate } from "@/lib/format";
 
 // 계약 확인사항 초안 — 법무 검토 전. 정식 대관계약서(대관 규약)가 확정되면 그 내용으로
 // 교체해야 한다. 기능정의서 "약관" 시트 구간4(K-1~K-6)에 같은 내용이 정리되어 있다.
@@ -89,13 +90,13 @@ export function ContractSignaturePanel({
     [
       "공연장(운영자)",
       signature.venueSignedAt
-        ? `날인 완료 · ${new Date(signature.venueSignedAt).toLocaleDateString("ko-KR")}`
+        ? `날인 완료 · ${formatDate(signature.venueSignedAt)}`
         : "날인 대기",
     ],
     [
       "대관사(신청자)",
       signature.applicantSignedAt
-        ? `날인 완료 · ${new Date(signature.applicantSignedAt).toLocaleDateString("ko-KR")}`
+        ? `날인 완료 · ${formatDate(signature.applicantSignedAt)}`
         : "날인 대기",
     ],
   ];

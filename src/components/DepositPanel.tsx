@@ -2,7 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-import { won } from "@/lib/format";
+import { won, formatDateTime } from "@/lib/format";
 import type { Deposit } from "@/lib/pricing/types";
 import { Badge, btnClass } from "@/components/ui/kit";
 import { useToast } from "@/components/ui/Toast";
@@ -124,7 +124,7 @@ export function DepositPanel({
         <div className="mt-5 space-y-3">
           <p className="text-s text-muted">
             입금자명 <b className="text-foreground">{deposit.depositorName}</b> ·{" "}
-            {deposit.reportedAt && new Date(deposit.reportedAt).toLocaleString("ko-KR")} 입금신청됨
+            {deposit.reportedAt && formatDateTime(deposit.reportedAt)} 입금신청됨
           </p>
           {viewerRole === "ADMIN" ? (
             <button
@@ -143,7 +143,7 @@ export function DepositPanel({
 
       {deposit.status === "CONFIRMED" && (
         <p className="mt-5 text-s text-good">
-          {deposit.confirmedAt && new Date(deposit.confirmedAt).toLocaleString("ko-KR")} 입금 확인 완료
+          {deposit.confirmedAt && formatDateTime(deposit.confirmedAt)} 입금 확인 완료
         </p>
       )}
 

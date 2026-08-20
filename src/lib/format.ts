@@ -11,3 +11,40 @@ export function won(amount: number): string {
 export function num(amount: number): string {
   return Math.round(amount).toLocaleString("ko-KR");
 }
+
+/*
+  날짜는 반드시 서울 시간대로 고정해서 그린다.
+
+  클라이언트 컴포넌트는 서버에서 한 번 그려진 뒤 브라우저에서 다시 그려지는데,
+  toLocaleDateString() 을 그대로 쓰면 시간대를 실행 환경에서 가져온다 — 파드는 UTC,
+  브라우저는 KST 라 자정 전후 데이터의 날짜가 서로 달라지고, 텍스트가 어긋난 순간
+  React 가 하이드레이션을 버린다(#418). 그 사이 화면의 버튼은 눌러도 반응이 없다.
+  실제로 회원 관리 화면에서 그렇게 신고됐다.
+*/
+
+const KST_DATE = new Intl.DateTimeFormat("ko-KR", { timeZone: "Asia/Seoul", dateStyle: "medium" });
+const KST_DATETIME = new Intl.DateTimeFormat("ko-KR", {
+  timeZone: "Asia/Seoul",
+  dateStyle: "medium",
+  timeStyle: "short",
+});
+const KST_MONTH_DAY = new Intl.DateTimeFormat("ko-KR", {
+  timeZone: "Asia/Seoul",
+  month: "long",
+  day: "numeric",
+});
+
+/** "2026. 8. 21." */
+export function formatDate(iso: string | number | Date): string {
+  return KST_DATE.format(new Date(iso));
+}
+
+/** "2026. 8. 21. 오후 2:30" */
+export function formatDateTime(iso: string | number | Date): string {
+  return KST_DATETIME.format(new Date(iso));
+}
+
+/** "8월 21일" */
+export function formatMonthDay(iso: string | number | Date): string {
+  return KST_MONTH_DAY.format(new Date(iso));
+}
