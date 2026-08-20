@@ -261,6 +261,7 @@ function TreeTextField({
 function MenuTreeBranch({
   node,
   levelKeys,
+  canEdit,
   onRename,
   onAddChild,
   onDelete,
@@ -268,36 +269,51 @@ function MenuTreeBranch({
 }: {
   node: MenuTreeNode;
   levelKeys: string[];
+  canEdit: boolean;
   onRename: (path: string[], newLabel: string) => void;
   onAddChild: (parentPath: string[]) => void;
   onDelete: (path: string[]) => void;
   onUpdateLeaf: (path: string[], field: "경로" | "비고", value: string) => void;
 }) {
-  const canAddChild = node.path.length < levelKeys.length;
+  const canAddChild = canEdit && node.path.length < levelKeys.length;
   return (
     <li className="relative pl-10 before:absolute before:left-0 before:top-[17px] before:h-px before:w-8 before:bg-border">
       <div className="inline-flex flex-wrap items-center gap-1.5 py-1.5">
-        <TreeTextField
-          value={node.label}
-          placeholder="이름"
-          minWidthCh={8}
-          onCommit={(v) => v.trim() && onRename(node.path, v.trim())}
-          className="rounded-sm border border-border bg-panel px-2 py-1 text-[12px] font-medium outline-none focus:border-accent"
-        />
-        <TreeTextField
-          value={node.routePath ?? ""}
-          placeholder="경로"
-          minWidthCh={10}
-          onCommit={(v) => onUpdateLeaf(node.path, "경로", v)}
-          className="rounded-sm bg-accent-soft px-1.5 py-1 text-[11px] text-accent outline-none placeholder:text-accent/50 focus:ring-1 focus:ring-accent"
-        />
-        <TreeTextField
-          value={node.note ?? ""}
-          placeholder="비고"
-          minWidthCh={12}
-          onCommit={(v) => onUpdateLeaf(node.path, "비고", v)}
-          className="rounded-sm border border-transparent bg-transparent px-1 py-1 text-[11px] text-muted outline-none focus:border-border"
-        />
+        {canEdit ? (
+          <>
+            <TreeTextField
+              value={node.label}
+              placeholder="이름"
+              minWidthCh={8}
+              onCommit={(v) => v.trim() && onRename(node.path, v.trim())}
+              className="rounded-sm border border-border bg-panel px-2 py-1 text-[12px] font-medium outline-none focus:border-accent"
+            />
+            <TreeTextField
+              value={node.routePath ?? ""}
+              placeholder="경로"
+              minWidthCh={10}
+              onCommit={(v) => onUpdateLeaf(node.path, "경로", v)}
+              className="rounded-sm bg-accent-soft px-1.5 py-1 text-[11px] text-accent outline-none placeholder:text-accent/50 focus:ring-1 focus:ring-accent"
+            />
+            <TreeTextField
+              value={node.note ?? ""}
+              placeholder="비고"
+              minWidthCh={12}
+              onCommit={(v) => onUpdateLeaf(node.path, "비고", v)}
+              className="rounded-sm border border-transparent bg-transparent px-1 py-1 text-[11px] text-muted outline-none focus:border-border"
+            />
+          </>
+        ) : (
+          <>
+            <span className="rounded-sm border border-border bg-panel px-2 py-1 text-[12px] font-medium">
+              {node.label}
+            </span>
+            {node.routePath && (
+              <span className="rounded-sm bg-accent-soft px-1.5 py-1 text-[11px] text-accent">{node.routePath}</span>
+            )}
+            {node.note && <span className="px-1 py-1 text-[11px] text-muted">{node.note}</span>}
+          </>
+        )}
         {canAddChild && (
           <button
             type="button"
@@ -308,14 +324,16 @@ function MenuTreeBranch({
             +
           </button>
         )}
-        <button
-          type="button"
-          title="이 가지 삭제 (하위 가지도 함께 삭제됨)"
-          onClick={() => onDelete(node.path)}
-          className="rounded-sm border border-border px-1 text-[11px] leading-tight text-muted hover:border-red-600 hover:text-red-600"
-        >
-          ×
-        </button>
+        {canEdit && (
+          <button
+            type="button"
+            title="이 가지 삭제 (하위 가지도 함께 삭제됨)"
+            onClick={() => onDelete(node.path)}
+            className="rounded-sm border border-border px-1 text-[11px] leading-tight text-muted hover:border-red-600 hover:text-red-600"
+          >
+            ×
+          </button>
+        )}
       </div>
       {node.children.length > 0 && (
         <ul className="ml-3 border-l border-border pl-0">
@@ -324,6 +342,7 @@ function MenuTreeBranch({
               key={i}
               node={child}
               levelKeys={levelKeys}
+              canEdit={canEdit}
               onRename={onRename}
               onAddChild={onAddChild}
               onDelete={onDelete}
@@ -339,10 +358,12 @@ function MenuTreeBranch({
 function MenuTreeDiagram({
   rows,
   levelKeys,
+  canEdit,
   onChange,
 }: {
   rows: FeatureSpecRow[];
   levelKeys: string[];
+  canEdit: boolean;
   onChange: (nextRows: FeatureSpecRow[]) => void;
 }) {
   const tree = buildMenuTree(rows, levelKeys);
@@ -361,6 +382,7 @@ function MenuTreeDiagram({
             key={i}
             node={node}
             levelKeys={levelKeys}
+            canEdit={canEdit}
             onRename={onRename}
             onAddChild={onAddChild}
             onDelete={onDelete}
@@ -368,21 +390,25 @@ function MenuTreeDiagram({
           />
         ))}
       </ul>
-      <button
-        type="button"
-        onClick={() => onChange(addTreeRoot(rows, levelKeys))}
-        className="mt-3 w-full rounded border border-dashed border-border py-2 text-[12px] font-medium text-muted hover:border-accent hover:text-accent"
-      >
-        + 새 항목 추가 (최상위)
-      </button>
+      {canEdit && (
+        <button
+          type="button"
+          onClick={() => onChange(addTreeRoot(rows, levelKeys))}
+          className="mt-3 w-full rounded border border-dashed border-border py-2 text-[12px] font-medium text-muted hover:border-accent hover:text-accent"
+        >
+          + 새 항목 추가 (최상위)
+        </button>
+      )}
     </div>
   );
 }
 
 export function FeatureSpecManager({
   initialSheets,
+  canEdit,
 }: {
   initialSheets: Record<FeatureSpecSheetKey, FeatureSpecRow[]>;
+  canEdit: boolean;
 }) {
   const router = useRouter();
   const pathname = usePathname();
@@ -558,9 +584,11 @@ export function FeatureSpecManager({
       <div className="min-w-0 flex-1">
         <div className="flex items-center justify-between gap-3">
           <p className="text-[12px] text-muted">
-            {menuTreeLevelKeys
-              ? "이름·경로·비고를 클릭해서 바로 수정하고, +로 가지를 늘리거나 ×로 삭제하세요. 변경 사항은 자동 저장됩니다."
-              : "셀을 클릭해서 바로 수정하세요. 변경 사항은 자동 저장됩니다."}
+            {!canEdit
+              ? "조회 전용입니다. 수정하려면 마스터 관리자로 로그인하세요."
+              : menuTreeLevelKeys
+                ? "이름·경로·비고를 클릭해서 바로 수정하고, +로 가지를 늘리거나 ×로 삭제하세요. 변경 사항은 자동 저장됩니다."
+                : "셀을 클릭해서 바로 수정하세요. 변경 사항은 자동 저장됩니다."}
           </p>
           <div className="flex shrink-0 items-center gap-3">
             <button
@@ -581,7 +609,7 @@ export function FeatureSpecManager({
         {menuTreeLevelKeys && (
           <div className="mt-3">
             <p className="text-[12px] font-medium text-muted">메뉴 구조도</p>
-            <MenuTreeDiagram rows={rows} levelKeys={menuTreeLevelKeys} onChange={updateTreeRows} />
+            <MenuTreeDiagram rows={rows} levelKeys={menuTreeLevelKeys} canEdit={canEdit} onChange={updateTreeRows} />
           </div>
         )}
 
@@ -611,12 +639,13 @@ export function FeatureSpecManager({
                 <tr
                   key={rowIdx}
                   onDragOver={(e) => {
-                    if (draggedRowIdx === null) return;
+                    if (!canEdit || draggedRowIdx === null) return;
                     e.preventDefault();
                     e.dataTransfer.dropEffect = "move";
                     if (dragOverRowIdx !== rowIdx) setDragOverRowIdx(rowIdx);
                   }}
                   onDrop={(e) => {
+                    if (!canEdit) return;
                     e.preventDefault();
                     if (draggedRowIdx !== null) moveRowTo(activeSheet, draggedRowIdx, rowIdx);
                     setDraggedRowIdx(null);
@@ -634,51 +663,55 @@ export function FeatureSpecManager({
                       selectedRowIdx === rowIdx ? "bg-accent-soft" : "bg-background",
                     ].join(" ")}
                   >
-                    <div className="flex flex-col items-center gap-0.5">
-                      <button
-                        type="button"
-                        title="이 행을 선택 — 다음 '행 추가'가 이 행 바로 뒤에 들어감"
-                        onClick={() => setSelectedRowIdx((prev) => (prev === rowIdx ? null : rowIdx))}
-                        className={[
-                          "h-3.5 w-3.5 rounded-full border",
-                          selectedRowIdx === rowIdx ? "border-accent bg-accent" : "border-border hover:border-accent",
-                        ].join(" ")}
-                      />
-                      <div
-                        draggable
-                        title="마우스로 잡아서 순서 변경"
-                        onDragStart={(e) => {
-                          setDraggedRowIdx(rowIdx);
-                          e.dataTransfer.effectAllowed = "move";
-                          e.dataTransfer.setData("text/plain", String(rowIdx));
-                        }}
-                        onDragEnd={() => {
-                          setDraggedRowIdx(null);
-                          setDragOverRowIdx(null);
-                        }}
-                        className="flex h-3.5 w-6 cursor-grab items-center justify-center rounded-sm text-[10px] leading-none text-muted hover:text-accent active:cursor-grabbing"
-                      >
-                        ⠿
-                      </div>
-                      <div className="flex gap-0.5">
+                    {canEdit ? (
+                      <div className="flex flex-col items-center gap-0.5">
                         <button
                           type="button"
-                          title="아래에 행 추가"
-                          onClick={() => addRow(activeSheet, rowIdx)}
-                          className="rounded-sm border border-border px-1 text-[11px] leading-tight text-muted hover:border-accent hover:text-accent"
+                          title="이 행을 선택 — 다음 '행 추가'가 이 행 바로 뒤에 들어감"
+                          onClick={() => setSelectedRowIdx((prev) => (prev === rowIdx ? null : rowIdx))}
+                          className={[
+                            "h-3.5 w-3.5 rounded-full border",
+                            selectedRowIdx === rowIdx ? "border-accent bg-accent" : "border-border hover:border-accent",
+                          ].join(" ")}
+                        />
+                        <div
+                          draggable
+                          title="마우스로 잡아서 순서 변경"
+                          onDragStart={(e) => {
+                            setDraggedRowIdx(rowIdx);
+                            e.dataTransfer.effectAllowed = "move";
+                            e.dataTransfer.setData("text/plain", String(rowIdx));
+                          }}
+                          onDragEnd={() => {
+                            setDraggedRowIdx(null);
+                            setDragOverRowIdx(null);
+                          }}
+                          className="flex h-3.5 w-6 cursor-grab items-center justify-center rounded-sm text-[10px] leading-none text-muted hover:text-accent active:cursor-grabbing"
                         >
-                          +
-                        </button>
-                        <button
-                          type="button"
-                          title="이 행 삭제"
-                          onClick={() => deleteRow(activeSheet, rowIdx)}
-                          className="rounded-sm border border-border px-1 text-[11px] leading-tight text-muted hover:border-red-600 hover:text-red-600"
-                        >
-                          ×
-                        </button>
+                          ⠿
+                        </div>
+                        <div className="flex gap-0.5">
+                          <button
+                            type="button"
+                            title="아래에 행 추가"
+                            onClick={() => addRow(activeSheet, rowIdx)}
+                            className="rounded-sm border border-border px-1 text-[11px] leading-tight text-muted hover:border-accent hover:text-accent"
+                          >
+                            +
+                          </button>
+                          <button
+                            type="button"
+                            title="이 행 삭제"
+                            onClick={() => deleteRow(activeSheet, rowIdx)}
+                            className="rounded-sm border border-border px-1 text-[11px] leading-tight text-muted hover:border-red-600 hover:text-red-600"
+                          >
+                            ×
+                          </button>
+                        </div>
                       </div>
-                    </div>
+                    ) : (
+                      <span className="text-[11px] tabular-nums text-muted">{rowIdx + 1}</span>
+                    )}
                   </td>
                   {headers.map((h) => {
                     const widthClass = columnWidthClass(h);
@@ -699,43 +732,53 @@ export function FeatureSpecManager({
                           value={row[h] ?? ""}
                           placeholder="입력…"
                           rows={estimateRows(row[h] ?? "", charsPerLine)}
-                          onChange={(e) => {
-                            const nextValue = e.target.value;
-                            // "상세" 계열 칸은 첫 줄도 다른 줄들과 마찬가지로 가운데 점으로
-                            // 시작해야 하므로, 빈 칸에서 처음 입력(타이핑/붙여넣기)이 들어올
-                            // 때 맨 앞에 "· "를 붙여준다.
-                            if (h.includes("상세") && (row[h] ?? "") === "" && nextValue !== "" && !nextValue.startsWith("· ")) {
-                              updateCell(activeSheet, rowIdx, h, "· " + nextValue);
-                              return;
-                            }
-                            updateCell(activeSheet, rowIdx, h, nextValue);
-                          }}
-                          onKeyDown={(e) => {
-                            // "상세" 계열 칸(상세 정의 등)에서 Enter를 누르면 줄은 그대로
-                            // 바뀌고, 새 줄 맨 앞에 가운데 점을 붙여준다(글머리 기호처럼).
-                            if (h.includes("상세") && e.key === "Enter") {
-                              e.preventDefault();
-                              const el = e.currentTarget;
-                              const start = el.selectionStart;
-                              const end = el.selectionEnd;
-                              const value = row[h] ?? "";
-                              const insertion = "\n· ";
-                              const nextValue = value.slice(0, start) + insertion + value.slice(end);
-                              updateCell(activeSheet, rowIdx, h, nextValue);
-                              requestAnimationFrame(() => {
-                                const pos = start + insertion.length;
-                                el.selectionStart = el.selectionEnd = pos;
-                                el.style.height = "auto";
-                                el.style.height = `${el.scrollHeight}px`;
-                              });
-                            }
-                          }}
+                          readOnly={!canEdit}
+                          tabIndex={canEdit ? undefined : -1}
+                          onChange={
+                            !canEdit
+                              ? undefined
+                              : (e) => {
+                                  const nextValue = e.target.value;
+                                  // "상세" 계열 칸은 첫 줄도 다른 줄들과 마찬가지로 가운데 점으로
+                                  // 시작해야 하므로, 빈 칸에서 처음 입력(타이핑/붙여넣기)이 들어올
+                                  // 때 맨 앞에 "· "를 붙여준다.
+                                  if (h.includes("상세") && (row[h] ?? "") === "" && nextValue !== "" && !nextValue.startsWith("· ")) {
+                                    updateCell(activeSheet, rowIdx, h, "· " + nextValue);
+                                    return;
+                                  }
+                                  updateCell(activeSheet, rowIdx, h, nextValue);
+                                }
+                          }
+                          onKeyDown={
+                            !canEdit
+                              ? undefined
+                              : (e) => {
+                                  // "상세" 계열 칸(상세 정의 등)에서 Enter를 누르면 줄은 그대로
+                                  // 바뀌고, 새 줄 맨 앞에 가운데 점을 붙여준다(글머리 기호처럼).
+                                  if (h.includes("상세") && e.key === "Enter") {
+                                    e.preventDefault();
+                                    const el = e.currentTarget;
+                                    const start = el.selectionStart;
+                                    const end = el.selectionEnd;
+                                    const value = row[h] ?? "";
+                                    const insertion = "\n· ";
+                                    const nextValue = value.slice(0, start) + insertion + value.slice(end);
+                                    updateCell(activeSheet, rowIdx, h, nextValue);
+                                    requestAnimationFrame(() => {
+                                      const pos = start + insertion.length;
+                                      el.selectionStart = el.selectionEnd = pos;
+                                      el.style.height = "auto";
+                                      el.style.height = `${el.scrollHeight}px`;
+                                    });
+                                  }
+                                }
+                          }
                           onInput={(e) => {
                             const el = e.currentTarget;
                             el.style.height = "auto";
                             el.style.height = `${el.scrollHeight}px`;
                           }}
-                          className="block w-full resize-none whitespace-pre-wrap break-words border-0 bg-transparent px-3 py-2.5 text-[13px] leading-5 outline-none focus:bg-accent-soft"
+                          className={`block w-full resize-none whitespace-pre-wrap break-words border-0 bg-transparent px-3 py-2.5 text-[13px] leading-5 outline-none ${canEdit ? "focus:bg-accent-soft" : "cursor-default"}`}
                         />
                       </td>
                     );
@@ -746,13 +789,15 @@ export function FeatureSpecManager({
           </table>
         </div>
 
-        <button
-          type="button"
-          onClick={() => addRow(activeSheet, selectedRowIdx)}
-          className="mt-3 w-full rounded border border-dashed border-border py-2.5 text-[12.5px] font-medium text-muted hover:border-accent hover:text-accent"
-        >
-          {selectedRowIdx !== null ? "+ 선택한 행 다음에 추가" : "+ 행 추가"}
-        </button>
+        {canEdit && (
+          <button
+            type="button"
+            onClick={() => addRow(activeSheet, selectedRowIdx)}
+            className="mt-3 w-full rounded border border-dashed border-border py-2.5 text-[12.5px] font-medium text-muted hover:border-accent hover:text-accent"
+          >
+            {selectedRowIdx !== null ? "+ 선택한 행 다음에 추가" : "+ 행 추가"}
+          </button>
+        )}
         </>
         )}
       </div>
