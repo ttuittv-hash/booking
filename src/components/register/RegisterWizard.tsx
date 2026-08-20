@@ -15,6 +15,7 @@ import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { btnClass } from "@/components/ui/kit";
 import { useToast } from "@/components/ui/Toast";
+import { PasswordMatchHint } from "@/components/ui/PasswordMatchHint";
 import {
   checkBusinessNumber,
   checkEmail,
@@ -350,6 +351,11 @@ export function RegisterWizard() {
           setBrnCheck={setBrnCheck}
           idCheck={idCheck}
           setIdCheck={setIdCheck}
+          onUnlock={() => {
+            // 값은 지우지 않는다 — 불러온 내용을 바탕으로 고쳐 쓰는 경우가 대부분이다.
+            setPickedCompany(null);
+            setBrnCheck(null);
+          }}
           onOpenSearch={() => {
             // 불러오기를 다시 누르면 잠금이 풀린다. 배너의 [다시 선택] 을 없앴으므로
             // 이 버튼이 유일한 되돌리기 수단이다 — 이게 없으면 회사를 잘못 불러왔을 때
@@ -656,6 +662,7 @@ function StepInfo({
   idCheck,
   setIdCheck,
   onOpenSearch,
+  onUnlock,
   onLockCompany,
   onPostcode,
   loading,
@@ -672,6 +679,8 @@ function StepInfo({
   idCheck: { available: boolean; message: string } | null;
   setIdCheck: React.Dispatch<React.SetStateAction<{ available: boolean; message: string } | null>>;
   onOpenSearch: () => void;
+  /** 불러온 회사를 되돌린다 — 잠금을 풀고 직접 입력할 수 있게 한다 */
+  onUnlock: () => void;
   /** 이미 등록된 회사로 확인되면 기업정보를 잠근다. */
   onLockCompany: (name: string) => void;
   onPostcode: () => void;
@@ -821,12 +830,18 @@ function StepInfo({
                 placeholder="120-81-47521"
                 className={`${inputCls(locked)} flex-1`}
               />
-              {/* 불러온 회사는 등록 때 이미 확인이 끝났다 — 버튼을 비활성으로 남겨두면
-                  눌러도 반응이 없어 고장으로 보인다. 상태 표시로 바꾼다. */}
+              {/* 불러온 회사는 등록 때 이미 확인이 끝났으니 "확인 완료"를 보여줬는데,
+                  불러왔다가 직접 입력하고 싶어질 때 되돌릴 길이 없었다.
+                  상태 표시보다 되돌리기가 더 필요하다 — [취소] 로 바꾼다. */}
               {locked ? (
-                <span className="flex shrink-0 items-center whitespace-nowrap border border-ok px-3 text-xs text-ok">
-                  확인 완료
-                </span>
+                <button
+                  type="button"
+                  data-testid="brn-cancel"
+                  onClick={onUnlock}
+                  className={btnClass("secondary", "md")}
+                >
+                  취소
+                </button>
               ) : (
                 <button
                   type="button"
@@ -971,6 +986,7 @@ function StepInfo({
             onChange={set("passwordConfirm")}
             className={inputCls(false)}
           />
+          <PasswordMatchHint password={form.password} confirm={form.passwordConfirm} />
         </Field>
         <Field label="전화번호">
           <input data-testid="f-personalPhone" value={form.personalPhone} onChange={set("personalPhone")} placeholder="02-544-1651" className={inputCls(false)} />
@@ -1053,8 +1069,9 @@ function CompanySearchDialog({
       onKeyDown={(e) => {
         if (e.key === "Escape") onClose();
       }}
-      tabIndex={-1}
-      ref={(el) => el?.focus()}
+      /* 포커스는 열릴 때 딱 한 번 검색창으로 보낸다.
+         인라인 ref 로 겹판에 focus() 를 걸었더니 렌더마다 다시 실행돼, 글자 하나 칠 때마다
+         입력칸에서 커서를 빼앗았다 — 실사용에서 바로 신고된 버그다. */
     >
       <div className="flex max-h-[85vh] w-full max-w-3xl flex-col overflow-y-auto bg-background p-7 sm:p-9">
         <div className="flex items-center justify-between">
@@ -1079,6 +1096,7 @@ function CompanySearchDialog({
           </select>
           <input
             data-testid="search-keyword"
+            autoFocus
             value={keyword}
             onChange={(e) => setKeyword(e.target.value)}
             onKeyDown={(e) => {

@@ -7,6 +7,7 @@ import { btnClass } from "@/components/ui/kit";
 import { useToast } from "@/components/ui/Toast";
 import { checkPassword, checkUsername, firstFailure, PASSWORD_HINT, USERNAME_HINT } from "@/lib/validation";
 import { hashPasswordForTransport } from "@/lib/clientPassword";
+import { PasswordMatchHint } from "@/components/ui/PasswordMatchHint";
 
 export function InviteAcceptForm({ token }: { token: string }) {
   const toast = useToast();
@@ -111,6 +112,7 @@ export function InviteAcceptForm({ token }: { token: string }) {
               onChange={(e) => setConfirm(e.target.value)}
               className="w-full border border-border-soft bg-background px-3 py-2 text-s"
             />
+            <PasswordMatchHint password={password} confirm={confirm} />
           </label>
           <button
             type="button"

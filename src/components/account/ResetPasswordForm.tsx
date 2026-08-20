@@ -7,6 +7,7 @@ import { btnClass } from "@/components/ui/kit";
 import { useToast } from "@/components/ui/Toast";
 import { checkPassword, checkUsername, firstFailure, PASSWORD_HINT } from "@/lib/validation";
 import { hashPasswordForTransport } from "@/lib/clientPassword";
+import { PasswordMatchHint } from "@/components/ui/PasswordMatchHint";
 
 // 3단계: 아이디 입력 → 본인인증 → 새 비밀번호 입력
 export function ResetPasswordForm() {
@@ -134,6 +135,7 @@ export function ResetPasswordForm() {
               onChange={(e) => setConfirm(e.target.value)}
               className="w-full border border-border-soft bg-background px-3 py-2 text-s"
             />
+            <PasswordMatchHint password={password} confirm={confirm} />
           </label>
           <p className="break-keep text-xs leading-6 text-muted">{PASSWORD_HINT}</p>
           <button
