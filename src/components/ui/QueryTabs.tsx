@@ -54,8 +54,10 @@ export function QueryTabs({
 
   function select(value: string) {
     const next = new URLSearchParams(search.toString());
-    if (value === items[0].value) next.delete(param);
-    else next.set(param, value);
+    // 항상 파라미터를 적는다. 예전에는 첫 탭이면 지웠는데, 그러면 탭을 오갈 때
+    // /features ↔ /features?venue=live-hall 로 주소 모양이 들쭉날쭉했다.
+    // 파라미터 없이 들어온 첫 진입만 기본 탭으로 볼 뿐, 클릭 뒤에는 항상 명시한다.
+    next.set(param, value);
     const qs = next.toString();
     router.replace(qs ? `?${qs}` : "?", { scroll: false });
     headerRef.current?.scrollIntoView({ block: "start", behavior: "auto" });

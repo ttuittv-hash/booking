@@ -37,6 +37,20 @@ const PANEL_LINK = "block whitespace-nowrap py-1.5 text-xs transition-colors hov
  * 중앙 메뉴(Archivo 대문자 14)보다 커 보이지 않게 국문은 한 단 작게 둔다 —
  * 같은 14 라도 국문이 시각적으로 더 크고 무거워서 도구가 여정보다 앞서 읽힌다.
  */
+/**
+ * 운영자 백오피스 주소.
+ * 파트너 호스트에서 /admin 으로 링크하면 프록시가 막고 홈으로 돌려보낸다 —
+ * "백오피스 버튼이 동작을 안 한다"는 신고가 이것이다. partner. 를 bo. 로 바꾼
+ * 절대 주소로 보낸다. 세션 쿠키는 부모 도메인으로 굽기 때문에 로그인이 유지된다.
+ * 프록시 없는 환경(localhost)에서는 같은 호스트의 /admin 이 그대로 동작한다.
+ */
+function backofficeHref(): string {
+  if (typeof window === "undefined") return "/admin";
+  const { protocol, host } = window.location;
+  const m = /^partner\.(.+)$/.exec(host);
+  return m ? `${protocol}//bo.${m[1]}/` : "/admin";
+}
+
 const UTIL_BTN =
   "flex items-center gap-1 whitespace-nowrap text-xs font-bold text-foreground transition-colors hover:text-accent";
 
@@ -285,9 +299,9 @@ export function PublicHeader({
             <>
               <NotificationBell role={currentUser.role} />
               {currentUser.role === "ADMIN" ? (
-                <Link href="/admin" className={UTIL_BTN}>
+                <a href={backofficeHref()} className={UTIL_BTN}>
                   운영자 백오피스
-                </Link>
+                </a>
               ) : (
                 <UtilMenu
                   id="account"
@@ -429,13 +443,13 @@ export function PublicHeader({
                   <ul className="mt-3 space-y-2">
                     {currentUser.role === "ADMIN" ? (
                       <li>
-                        <Link
-                          href="/admin"
+                        <a
+                          href={backofficeHref()}
                           onClick={() => setMobileOpen(false)}
                           className="text-r text-muted"
                         >
                           운영자 백오피스
-                        </Link>
+                        </a>
                       </li>
                     ) : (
                       accountPages.map((p) => (

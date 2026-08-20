@@ -30,29 +30,12 @@ type Company = {
   createdAt: string;
 };
 
-type Member = {
-  id: string;
-  name: string;
-  username: string;
-  email: string;
-  phone: string | null;
-  companyRole: string | null;
-  approvalStatus: string;
-  createdAt: string;
-};
-
 const STATUS_LABEL: Record<string, string> = {
   PENDING: "심사 중",
   APPROVED: "승인 완료",
   REJECTED: "미승인",
   SUSPENDED: "휴·폐업",
 };
-const APPROVAL_LABEL: Record<string, string> = {
-  PENDING: "승인 대기",
-  APPROVED: "정상",
-  REJECTED: "비활성",
-};
-
 export function CompanyDirectory({
   companies,
   total,
@@ -60,7 +43,6 @@ export function CompanyDirectory({
   totalPages,
   keyword,
   status,
-  openId,
 }: {
   companies: Company[];
   total: number;
@@ -68,14 +50,9 @@ export function CompanyDirectory({
   totalPages: number;
   keyword: string;
   status: string;
-  openId: string;
 }) {
   const router = useRouter();
   const [q, setQ] = useState(keyword);
-  const [expanded, setExpanded] = useState<string | null>(openId || null);
-  const [members, setMembers] = useState<Record<string, Member[]>>({});
-  const [busy, setBusy] = useState(false);
-  const [error, setError] = useState<string | null>(null);
 
   const search = useCallback(
     (nextQ: string, nextStatus: string) => {
@@ -86,43 +63,6 @@ export function CompanyDirectory({
     },
     [router],
   );
-
-  async function toggle(id: string) {
-    if (expanded === id) {
-      setExpanded(null);
-      return;
-    }
-    setExpanded(id);
-    if (members[id]) return;
-    const res = await fetch(`/api/admin/companies/members?companyId=${id}`);
-    const data = await res.json();
-    setMembers((prev) => ({ ...prev, [id]: data.members ?? [] }));
-  }
-
-  async function setMaster(companyId: string, targetId: string, name: string) {
-    if (!window.confirm(`${name}님을 대표 담당자로 지정합니다. 기존 대표는 소속 담당자가 됩니다.`)) {
-      return;
-    }
-    setError(null);
-    setBusy(true);
-    try {
-      const res = await fetch("/api/admin/companies", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ action: "setMaster", companyId, targetId }),
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || "변경하지 못했습니다.");
-      const refreshed = await fetch(`/api/admin/companies/members?companyId=${companyId}`);
-      const md = await refreshed.json();
-      setMembers((prev) => ({ ...prev, [companyId]: md.members ?? [] }));
-      router.refresh();
-    } catch (e) {
-      setError(e instanceof Error ? e.message : "변경하지 못했습니다.");
-    } finally {
-      setBusy(false);
-    }
-  }
 
   return (
     <div className="mt-8">
@@ -164,16 +104,12 @@ export function CompanyDirectory({
         ) : null}
       </div>
 
-      {error ? (
-        <p className="mt-4 border border-danger/40 px-4 py-3 text-s text-danger">{error}</p>
-      ) : null}
-
       <div className={`${TABLE_CARD} mt-5`}>
         <div className={TABLE_HEAD}>
           <div>
             <p className={TABLE_HEAD_TITLE}>회사 목록 ({total})</p>
             <p className={TABLE_HEAD_DESC}>
-              회사를 누르면 소속 담당자가 펼쳐집니다. 대표 담당자가 맨 위에 표시됩니다.
+              회사를 누르면 상세 페이지로 이동합니다 — 담당자 목록과 대표 지정이 거기 있습니다.
             </p>
           </div>
         </div>
@@ -197,17 +133,7 @@ export function CompanyDirectory({
                   </td>
                 </tr>
               ) : (
-                companies.map((c) => (
-                  <FragmentRow
-                    key={c.id}
-                    company={c}
-                    expanded={expanded === c.id}
-                    members={members[c.id]}
-                    busy={busy}
-                    onToggle={() => toggle(c.id)}
-                    onSetMaster={(m) => setMaster(c.id, m.id, m.name)}
-                  />
-                ))
+                companies.map((c) => <CompanyRow key={c.id} company={c} />)
               )}
             </tbody>
           </table>
@@ -224,108 +150,40 @@ export function CompanyDirectory({
   );
 }
 
-function FragmentRow({
-  company,
-  expanded,
-  members,
-  busy,
-  onToggle,
-  onSetMaster,
-}: {
-  company: Company;
-  expanded: boolean;
-  members?: Member[];
-  busy: boolean;
-  onToggle: () => void;
-  onSetMaster: (m: Member) => void;
-}) {
+/**
+ * 회사 한 줄 — 누르면 상세 페이지로 간다.
+ * 예전에는 행 안에서 아코디언으로 담당자를 펼쳤는데, 접었다 폈다 하며 비교하기
+ * 어렵고 특정 회사를 링크로 공유할 수도 없었다.
+ */
+function CompanyRow({ company }: { company: Company }) {
+  const router = useRouter();
   return (
-    <>
-      <tr
-        onClick={onToggle}
-        className="cursor-pointer border-b border-border/15 transition-colors hover:bg-foreground/[0.03]"
-      >
-        <td className="px-4 py-3">
-          <span className="flex items-center gap-2">
-            <span aria-hidden className="text-xs text-muted">
-              {expanded ? "▾" : "▸"}
+    <tr
+      onClick={() => router.push(`/admin/companies/${company.id}`)}
+      className="cursor-pointer border-b border-border/15 transition-colors hover:bg-foreground/[0.03]"
+    >
+      <td className="px-4 py-3">
+        <span className="flex items-center gap-2">
+          <Link
+            href={`/admin/companies/${company.id}`}
+            onClick={(e) => e.stopPropagation()}
+            className="font-bold underline decoration-border-soft underline-offset-4 transition-colors hover:decoration-accent"
+          >
+            {company.name}
+          </Link>
+          {company.pendingCount > 0 ? (
+            <span className="border border-accent bg-accent px-1.5 text-[10px] leading-4 text-on-accent tabular-nums">
+              대기 {company.pendingCount}
             </span>
-            <span className="font-bold">{company.name}</span>
-            {company.pendingCount > 0 ? (
-              <span className="border border-accent bg-accent px-1.5 text-[10px] leading-4 text-on-accent tabular-nums">
-                대기 {company.pendingCount}
-              </span>
-            ) : null}
-          </span>
-        </td>
-        <td className="px-4 py-3 text-muted tabular-nums">
-          {company.businessRegistrationNumber ?? "—"}
-        </td>
-        <td className="px-4 py-3">{company.masterName ?? <span className="text-muted">미지정</span>}</td>
-        <td className="px-4 py-3 text-right tabular-nums">{company.memberCount}</td>
-        <td className="px-4 py-3 text-muted">{STATUS_LABEL[company.status] ?? company.status}</td>
-      </tr>
-
-      {expanded ? (
-        <tr className="border-b border-border/20 bg-background">
-          <td colSpan={5} className="px-4 py-4">
-            {!members ? (
-              <p className="py-4 text-center text-xs text-muted">불러오는 중…</p>
-            ) : members.length === 0 ? (
-              <p className="py-4 text-center text-xs text-muted">소속 담당자가 없습니다.</p>
-            ) : (
-              <ul className="space-y-2">
-                {members.map((m) => {
-                  const isMaster = m.companyRole === "MASTER";
-                  return (
-                    <li
-                      key={m.id}
-                      className="flex flex-wrap items-center justify-between gap-3 border border-border-soft px-4 py-3"
-                    >
-                      <span className="flex flex-wrap items-center gap-2 text-s">
-                        <span
-                          className={`border px-2 py-0.5 text-xs ${
-                            isMaster ? "border-accent text-accent" : "border-border-soft text-muted"
-                          }`}
-                        >
-                          {isMaster ? "대표 담당자" : "소속 담당자"}
-                        </span>
-                        {/* 이름을 누르면 회원 상세로 간다 — 진위확인 배지와 신청 내역이 거기 있다. */}
-                        <Link
-                          href={`/admin/applicants/${m.id}`}
-                          className="font-bold underline decoration-border-soft underline-offset-4 transition-colors hover:decoration-accent"
-                        >
-                          {m.name}
-                        </Link>
-                        <span className="text-muted">{m.username}</span>
-                        <span className="text-muted">{m.email}</span>
-                        <span className="text-xs text-muted">
-                          {APPROVAL_LABEL[m.approvalStatus] ?? m.approvalStatus}
-                        </span>
-                      </span>
-                      <span className="flex shrink-0 items-center gap-3">
-                        <Link href={`/admin/applicants/${m.id}`} className={LINK_BTN}>
-                          상세
-                        </Link>
-                        {!isMaster && m.approvalStatus === "APPROVED" ? (
-                          <button
-                            type="button"
-                            disabled={busy}
-                            onClick={() => onSetMaster(m)}
-                            className={LINK_BTN}
-                          >
-                            대표로 지정
-                          </button>
-                        ) : null}
-                      </span>
-                    </li>
-                  );
-                })}
-              </ul>
-            )}
-          </td>
-        </tr>
-      ) : null}
-    </>
+          ) : null}
+        </span>
+      </td>
+      <td className="px-4 py-3 text-muted tabular-nums">
+        {company.businessRegistrationNumber ?? "—"}
+      </td>
+      <td className="px-4 py-3">{company.masterName ?? <span className="text-muted">미지정</span>}</td>
+      <td className="px-4 py-3 text-right tabular-nums">{company.memberCount}</td>
+      <td className="px-4 py-3 text-muted">{STATUS_LABEL[company.status] ?? company.status}</td>
+    </tr>
   );
 }

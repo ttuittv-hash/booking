@@ -87,7 +87,7 @@ export default async function AdminApplicantsPage({
         ) : tab === "decided" ? (
           <DecidedTab page={page} brns={businessRegistrationNumbers} />
         ) : (
-          <CompaniesTab page={page} keyword={keyword} status={status} openId={params.company ?? ""} />
+          <CompaniesTab page={page} keyword={keyword} status={status} />
         )}
       </main>
     </div>
@@ -140,12 +140,10 @@ async function CompaniesTab({
   page,
   keyword,
   status,
-  openId,
 }: {
   page: number;
   keyword: string;
   status: string;
-  openId: string;
 }) {
   const { items, total, totalPages } = await listCompaniesPaged({ keyword, status }, page);
   return (
@@ -156,7 +154,6 @@ async function CompaniesTab({
       totalPages={totalPages}
       keyword={keyword}
       status={status}
-      openId={openId}
     />
   );
 }
