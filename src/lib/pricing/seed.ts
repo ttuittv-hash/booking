@@ -10,7 +10,7 @@ import type { AddonItem, MidHallRateConfig, PackageInclusion, RateTable, RentalP
 //   2027 경상가 전환 예정) 기준 공연 1건 약 2.2억(셋업 4일 + 공연 2일)에 시설·장비·매체를 더한 값.
 //   내부 검토안이므로 공개 전 정본 재확인 필요.
 
-export const SEED_RATE_TABLE_VERSION = "2026-08-notion-v1";
+export const SEED_RATE_TABLE_VERSION = "2026-08-homepage-v2";
 
 // 아래 4개 패키지의 기본정보/기본 포함사항은 "패키지 구성" 명세(엑셀) 기준입니다.
 // 대관 구성(화~일)·세부 구성(준비 4일+공연 2일)·대관시간(09:00~22:00)·야외광장 포함 여부는
@@ -239,13 +239,18 @@ export const SEED_EXTRA_WEEK_RATIO = 0.6;
 export const SEED_DAY_EXCLUSION_DISCOUNT_RATIO = 1 / 6;
 
 // [신규 2026-08-19] 중형공연장 일 단위 요금표(DAILY) — 사용자 제공 요금표 확정값.
+// [2026-08-21] 공개 대관료 페이지(rateFacts — 홈페이지 정본)에 맞춰 갱신.
+// 이전 값(셋업 566만·평일 806만·주말 1,178만·할증 50%)은 기획 초기 산정치였는데,
+// 공개 페이지가 확정가를 실으면서 운영 요금표만 옛 값으로 남아 견적이 공개가와 달랐다.
 export const SEED_MID_HALL_RATE_CONFIG: MidHallRateConfig = {
-  setupDayFee: 5_660_000,
-  performanceWeekdayFee: 8_060_000,
-  performanceWeekendFee: 11_780_000,
-  extraHourFee: 1_000_000,
-  secondShowSurchargeRatio: 0.5,
-  cleaningUnitPrice: 1_000,
+  setupDayFee: 14_000_000, // 전용 5,500,000 + 시설 8,500,000
+  performanceWeekdayFee: 21_000_000, // 전용 7,900,000 + 시설 13,100,000
+  performanceWeekendFee: 25_000_000, // 전용 11,550,000 + 시설 13,450,000
+  extraHourFee: 1_000_000, // 추가대관 09:00~24:00 시간당 (24~06시 150만원은 운영자 확인 항목)
+  secondShowSurchargeRatio: 0.3, // "1일 2회 공연 — 추가 회차 대관료 30% 할증"
+  // 공개 페이지가 "객석 기본 클리닝(특효류 포함)"을 대관료에 포함한다고 명시한다 —
+  // 인당 청소비를 따로 받으면 공개가보다 비싸져 0 으로 둔다.
+  cleaningUnitPrice: 0,
 };
 
 export function buildSeedRateTable(): RateTable {

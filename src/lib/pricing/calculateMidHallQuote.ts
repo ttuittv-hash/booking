@@ -137,8 +137,9 @@ export function calculateMidHallLineItems(selection: QuoteSelection, rateTable: 
     );
   }
 
-  // 청소비 — 1회당 예상 관객 수 × 총 공연 횟수(회차 합, 확인대기 회차 포함)
-  if (totalShows > 0 && selection.secondaryAudience > 0) {
+  // 청소비 — 1회당 예상 관객 수 × 총 공연 횟수(회차 합, 확인대기 회차 포함).
+  // 단가가 0이면(기본 클리닝이 대관료에 포함된 요금표) 0원 줄을 만들지 않는다.
+  if (cfg.cleaningUnitPrice > 0 && totalShows > 0 && selection.secondaryAudience > 0) {
     const qty = selection.secondaryAudience * totalShows;
     items.push(
       makeLine("midhall_cleaning", "청소비", "PER_PERSON", qty, 0, qty, cfg.cleaningUnitPrice, qty * cfg.cleaningUnitPrice, "VISIBLE"),

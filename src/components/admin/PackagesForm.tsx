@@ -2,6 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { useQueryTab } from "@/components/admin/useQueryTab";
 import { num, won } from "@/lib/format";
 import { btnClass } from "@/components/ui/kit";
 import {
@@ -89,13 +90,17 @@ function blankPackage(id: number, venueId: string): EditablePackage {
   };
 }
 
+// URL 은 공개 화면과 같은 이름(?venue=arena|live-hall)을 쓰고, 내부 venueId 와 매핑한다.
+const VENUE_URL_VALUES = ["arena", "live-hall"] as const;
+const URL_TO_VENUE: Record<string, "arena" | "medium-hall"> = { arena: "arena", "live-hall": "medium-hall" };
+const VENUE_TO_URL: Record<"arena" | "medium-hall", "arena" | "live-hall"> = { arena: "arena", "medium-hall": "live-hall" };
+
 export function PackagesForm({ rateTable }: { rateTable: RateTable }) {
   const router = useRouter();
   const [packages, setPackages] = useState<EditablePackage[]>(rateTable.packages);
   const [activeId, setActiveId] = useState(rateTable.packages[0]?.id ?? 1);
-  const [venueTab, setVenueTab] = useState<"arena" | "medium-hall">(
-    (rateTable.packages[0]?.venueId as "arena" | "medium-hall" | undefined) ?? "arena",
-  );
+  const [venueUrl, setVenueUrl] = useQueryTab("venue", VENUE_URL_VALUES, "arena");
+  const venueTab = URL_TO_VENUE[venueUrl];
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
 
@@ -111,7 +116,7 @@ export function PackagesForm({ rateTable }: { rateTable: RateTable }) {
   const venuePackages = packages.filter((p) => (p.venueId ?? DEFAULT_VENUE_ID) === venueTab);
 
   function selectVenueTab(v: "arena" | "medium-hall") {
-    setVenueTab(v);
+    setVenueUrl(VENUE_TO_URL[v]);
     const first = packages.find((p) => (p.venueId ?? DEFAULT_VENUE_ID) === v);
     if (first) setActiveId(first.id);
   }

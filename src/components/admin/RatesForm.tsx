@@ -2,6 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { useQueryTab } from "@/components/admin/useQueryTab";
 import { ADDON_CATEGORY_LABEL, VENUES, type AddonCategory, type RateTable } from "@/lib/pricing/types";
 import { btnClass } from "@/components/ui/kit";
 import { FIELD, FIELD_NUM, HELP, LINK_BTN, PANEL, SECTION_TITLE, SUB_TITLE, tabCls } from "./adminUi";
@@ -14,6 +15,11 @@ function slugify(name: string): string {
     .replace(/^_+|_+$/g, "");
   return (base || "item") + "_" + Math.random().toString(36).slice(2, 6);
 }
+
+// URL 은 공개 화면과 같은 이름(?venue=arena|live-hall)을 쓰고, 내부 venueId 와 매핑한다.
+const VENUE_URL_VALUES = ["arena", "live-hall"] as const;
+const URL_TO_VENUE: Record<string, "arena" | "medium-hall"> = { arena: "arena", "live-hall": "medium-hall" };
+const VENUE_TO_URL: Record<"arena" | "medium-hall", "arena" | "live-hall"> = { arena: "arena", "medium-hall": "live-hall" };
 
 export function RatesForm({ rateTable }: { rateTable: RateTable }) {
   const router = useRouter();
@@ -32,7 +38,8 @@ export function RatesForm({ rateTable }: { rateTable: RateTable }) {
     rateTable.dayExclusionDiscountRatio,
   );
   const [midHall, setMidHall] = useState(rateTable.midHall);
-  const [venueTab, setVenueTab] = useState<"arena" | "medium-hall">("arena");
+  const [venueUrl, setVenueUrl] = useQueryTab("venue", VENUE_URL_VALUES, "arena");
+  const venueTab = URL_TO_VENUE[venueUrl];
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const [newItemCategory, setNewItemCategory] = useState<AddonCategory | null>(null);
@@ -107,7 +114,7 @@ export function RatesForm({ rateTable }: { rateTable: RateTable }) {
       {/* 1뎁스: 공간 — 아레나와 중형공연장은 요율 체계가 달라 화면을 나눈다(그쪽 개편). */}
       <div className="flex gap-1 border-b border-border/20">
         {(["arena", "medium-hall"] as const).map((v) => (
-          <button key={v} type="button" onClick={() => setVenueTab(v)} className={tabCls(venueTab === v)}>
+          <button key={v} type="button" onClick={() => setVenueUrl(VENUE_TO_URL[v])} className={tabCls(venueTab === v)}>
             {VENUES.find((venue) => venue.id === v)?.name ?? v}
           </button>
         ))}

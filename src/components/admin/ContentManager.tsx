@@ -17,6 +17,7 @@ import { btnClass } from "@/components/ui/kit";
 import { NoticeEditor } from "./NoticeEditor";
 import { HomeContentForm } from "./HomeContentForm";
 import { formatDateTime } from "@/lib/format";
+import { useQueryTab } from "@/components/admin/useQueryTab";
 import {
   DocumentsForm,
   FeaturesForm,
@@ -87,7 +88,12 @@ export function ContentManager({
   documentsContent: DocumentsContent;
 }) {
   const router = useRouter();
-  const [tab, setTab] = useState<Tab>("notices");
+  // 탭을 URL(?tab=)에 싣는다 — 새로고침해도 유지되고 특정 탭을 링크로 줄 수 있다.
+  const [tab, setTab] = useQueryTab<Tab>(
+    "tab",
+    ["notices", "faq", "home", "seoularena", "features", "guide", "rates", "rules", "documents"],
+    "notices",
+  );
   const [notices, setNotices] = useState(initialNotices);
   const [faqs, setFaqs] = useState(initialFaqs);
 
