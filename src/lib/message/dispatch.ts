@@ -14,7 +14,7 @@ import {
 } from "@/lib/db";
 import { audienceOrigin } from "@/lib/publicUrl";
 import { inAppAdapter } from "./inapp";
-import { kakaoBizTalkAdapter } from "./kakaoBizTalk";
+import { kakaoBizTalkAdapter, xmsAdapter } from "./kakaoBizTalk";
 import { renderTemplate, findTemplate, TemplateVariableError } from "./templates";
 import type { ChannelAdapter, SendRequest, SendResult } from "./types";
 
@@ -122,9 +122,40 @@ export async function dispatchMessage(input: DispatchInput): Promise<DispatchOut
       sentAt: result.ok ? new Date().toISOString() : null,
     });
     // ⑦ 도달 불가(미가입·차단·수신거부)는 문자 대체발송 대상이다.
-    //    LMS 계약이 아직 없어 지금은 인앱으로만 떨어진다.
+    //    대체발송을 DKT 에 맡기지 않고 우리가 하는 이유는, 맡기면 대체발송 사실이
+    //    우리 이력에 남지 않아 "왜 문자로 갔는지"를 나중에 설명할 수 없기 때문이다.
     if (!result.ok && result.failure === "UNREACHABLE") {
-      results.push({ ok: false, channel: "LMS", failure: "UNREACHABLE", resultMessage: "LMS 미설정" });
+      if (!xmsAdapter.isConfigured()) {
+        // 발신번호 사전등록 전에는 문자를 보낼 수 없다(DKT 유저웹에서 등록한다).
+        results.push({
+          ok: false,
+          channel: "LMS",
+          failure: "UNREACHABLE",
+          resultMessage: "문자 미설정 — 발신번호 사전등록 필요",
+        });
+      } else {
+        const fallbackId = crypto.randomUUID();
+        await recordSendAttempt({
+          id: fallbackId,
+          idempotencyKey: `${input.idempotencyKey}:LMS`,
+          templateCode: input.templateCode,
+          recipientId: input.recipient.userId,
+          recipientPhone: input.recipient.phone,
+          channel: "LMS",
+          status: "QUEUED",
+          payloadJson: JSON.stringify(variables),
+          createdAt: new Date().toISOString(),
+        });
+        const fallback = await xmsAdapter.send({ ...request, variables: { ...variables, __sendId: fallbackId } });
+        results.push(fallback);
+        // 문자는 접수 응답만 동기로 온다 — 최종 결과는 폴링이 채운다(FALLBACK 로 남긴다).
+        await updateSendResult(fallbackId, {
+          status: fallback.ok ? "FALLBACK" : "FAILED",
+          resultCode: fallback.resultCode ?? null,
+          resultMessage: fallback.resultMessage ?? null,
+          sentAt: fallback.ok ? new Date().toISOString() : null,
+        });
+      }
     }
   }
 

@@ -1,16 +1,79 @@
-// 카카오 알림톡 — DK테크인 Kakao i Connect Message 연동 (기획서 B2).
-// 규격: https://docs.kakaoi.ai/kakao_i_connect_message/bizmessage/api/api_reference/at/
+// 카카오 알림톡 · 문자(XMS) — DK테크인 BizMsg 연동 (기획서 B2).
 //
-// 키를 아직 받지 못했다. isConfigured() 가 false 면 파이프라인이 이 채널을 건너뛰므로,
-// 키가 들어오는 순간 환경변수만 채우면 그대로 살아난다.
+// 2026-08-20 DKT 메시지서비스팀이 검증(CBT) 계정과 발송 가이드를 보내왔다. 그 가이드의
+// 흐름을 그대로 옮긴 것이 이 파일이다.
+//
+//   ① 토큰 발급   POST /v2/oauth/token          — 6시간 유효, 4~5시간마다 갱신
+//   ② 알림톡      POST /v2/request/{cid}/kakao
+//   ③ 문자(XMS)   POST /v2/request/{cid}/xms
+//   ④ 결과 폴링   GET  /v2/info/message/results
+//   ⑤ 폴링 완료   GET  /v2/info/message/results/complete/{reportGroupNumber}
+//
+// 문자는 SM 24시간·LM 72시간까지 결과를 기다리므로 발송 응답만으로는 성패를 알 수 없다.
+// 알림톡 대체발송 건도 마찬가지다 — 그래서 ④⑤ 폴링이 필요하다.
+//
+// 검증 환경은 방화벽 개방 전까지 닿지 않는다(2026-08-24 오후 예정). isConfigured() 가
+// false 면 파이프라인이 이 채널을 건너뛰므로, 환경변수만 채우면 그대로 살아난다.
 
 import type { ChannelAdapter, FailureKind, SendRequest, SendResult } from "./types";
 
 const TOKEN_PATH = "/v2/oauth/token";
-const SEND_PATH = "/v2/send/kakao";
+const RESULTS_PATH = "/v2/info/message/results";
 
-/** 토큰 유효기간이 길다(문서 예시 약 10일). 만료 1시간 전에 미리 갱신한다. */
+/** 토큰은 6시간 유효하다. 가이드대로 4~5시간 쓰고 갱신한다(만료 1시간 전). */
+const TOKEN_RENEW_MARGIN_MS = 60 * 60 * 1000;
+
 let cached: { token: string; expiresAt: number } | null = null;
+
+/*
+  회로 차단기.
+
+  가입 승인·회원가입 라우트가 dispatchMessage 를 await 한다. 그래서 DKT 가 닿지 않으면
+  알림 한 건마다 타임아웃(10~15초)만큼 화면이 멈춘다 — 회원가입은 알림을 세 번 보내므로
+  30초 넘게 붙잡힌다. 알림이 늦는 것과 가입이 안 되는 것은 전혀 다른 문제다.
+
+  그래서 "연결 자체가 안 되는" 실패가 이어지면 잠시 이 채널을 건너뛴다. API 가 응답은
+  했는데 거절한 경우(템플릿 오류 등)는 세지 않는다 — 그건 서버가 살아 있다는 뜻이다.
+
+  검증 환경 방화벽이 열리기 전(2026-08-24 예정)에도 이 덕분에 화면이 느려지지 않는다.
+*/
+const BREAKER_THRESHOLD = 3;
+const BREAKER_COOLDOWN_MS = 5 * 60 * 1000;
+let transportFailures = 0;
+let breakerOpenUntil = 0;
+
+function breakerOpen(): boolean {
+  return Date.now() < breakerOpenUntil;
+}
+
+function noteTransportFailure(): void {
+  transportFailures += 1;
+  if (transportFailures >= BREAKER_THRESHOLD) {
+    breakerOpenUntil = Date.now() + BREAKER_COOLDOWN_MS;
+    transportFailures = 0;
+  }
+}
+
+function noteReachable(): void {
+  transportFailures = 0;
+  breakerOpenUntil = 0;
+}
+
+/** 테스트용 — 차단기 상태를 초기화한다. */
+export function resetBizTalkBreaker(): void {
+  transportFailures = 0;
+  breakerOpenUntil = 0;
+}
+
+const BREAKER_RESULT = {
+  resultCode: "BREAKER_OPEN",
+  resultMessage: "DK테크인 연결 실패가 이어져 잠시 건너뜁니다",
+} as const;
+
+/** 테스트·재로그인용 — 캐시된 토큰을 버린다. */
+export function resetBizTalkToken(): void {
+  cached = null;
+}
 
 function baseUrl(): string {
   return (process.env.BIZTALK_BASE_URL || "").replace(/\/+$/, "");
@@ -21,9 +84,26 @@ export function isBizTalkConfigured(): boolean {
     process.env.BIZTALK_BASE_URL &&
       process.env.BIZTALK_CLIENT_ID &&
       process.env.BIZTALK_CLIENT_SECRET &&
-      process.env.BIZTALK_SENDER_KEY &&
-      process.env.BIZTALK_SENDER_NO,
+      process.env.BIZTALK_SENDER_KEY,
   );
+}
+
+/** 문자 발송은 발신번호 사전등록을 마친 번호가 있어야 한다. */
+export function isXmsConfigured(): boolean {
+  return isBizTalkConfigured() && Boolean(process.env.BIZTALK_SENDER_NO);
+}
+
+/**
+ * 발송 URL 의 {cid}.
+ *
+ * 확인 필요 — DKT 가이드는 `/v2/request/{{cid}}/kakao` 로만 적어 두고 cid 가 무엇인지
+ * 설명하지 않았다. 같은 제품군(Kakao i Connect Message) 문서에서는 "고객사가 매기는
+ * 메시지 고유 ID"라서 발송 이력 id 를 쓴다. 계약 ID(clientId)일 가능성도 있어
+ * BIZTALK_CID 로 덮어쓸 수 있게 뒀다 — 방화벽이 열리면 스웨거로 확정할 것.
+ * (scripts/biztalk-check.mjs 가 두 형태를 모두 찔러 본다.)
+ */
+function requestCid(request: SendRequest): string {
+  return process.env.BIZTALK_CID || request.variables.__sendId || request.templateCode;
 }
 
 /**
@@ -32,7 +112,7 @@ export function isBizTalkConfigured(): boolean {
  * base64(id:secret) 이 아니라 "Basic {clientId} {clientSecret}" 로 공백 구분이다(문서 기준).
  */
 export async function issueBizTalkToken(): Promise<string> {
-  if (cached && cached.expiresAt > Date.now() + 60 * 60 * 1000) return cached.token;
+  if (cached && cached.expiresAt > Date.now() + TOKEN_RENEW_MARGIN_MS) return cached.token;
 
   const res = await fetch(`${baseUrl()}${TOKEN_PATH}`, {
     method: "POST",
@@ -49,35 +129,53 @@ export async function issueBizTalkToken(): Promise<string> {
     expires_in?: number;
   };
   if (!json.access_token) {
+    // 서버가 응답은 했다 — 연결 문제는 아니므로 차단기를 건드리지 않는다.
+    noteReachable();
     throw new Error(`알림톡 토큰 발급 실패 (code=${json.code ?? res.status})`);
   }
+  noteReachable();
   cached = {
+    // expires_in 이 없으면 가이드의 6시간을 쓴다.
     token: json.access_token,
-    expiresAt: Date.now() + (json.expires_in ?? 3600) * 1000,
+    expiresAt: Date.now() + (json.expires_in ?? 6 * 3600) * 1000,
   };
   return cached.token;
 }
 
-/** 결과 코드를 우리 실패 분류로 옮긴다(문서 state_code 기준). */
-export function classifyBizTalkCode(code: string | null | undefined): FailureKind {
+/** 결과 코드를 우리 실패 분류로 옮긴다(가이드 state_code 기준). */
+export function classifyBizTalkCode(code: string | number | null | undefined): FailureKind {
   switch (String(code ?? "")) {
     case "200":
       return "UNKNOWN"; // 성공 — 호출부에서 ok 로 처리한다
     case "410":
     case "420":
+    case "400":
       // 유효성·파일 오류는 템플릿·변수 문제다. 재시도해도 같은 결과라 중단한다.
       return "TEMPLATE";
-    case "400":
-      return "TEMPLATE";
     case "100":
-    case "520":
-    case "510":
     case "500":
+    case "510":
+    case "520":
       // 처리중·재처리·브로커·시스템 오류는 일시적일 수 있다.
       return "TRANSIENT";
     default:
       return "UNKNOWN";
   }
+}
+
+async function postJson(path: string, token: string, body: unknown) {
+  const res = await fetch(`${baseUrl()}${path}`, {
+    method: "POST",
+    headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+    signal: AbortSignal.timeout(15_000),
+  });
+  const json = (await res.json().catch(() => ({}))) as {
+    code?: string | number;
+    uid?: string;
+    result?: { detail_code?: string; detail_message?: string };
+  };
+  return { status: res.status, json };
 }
 
 export const kakaoBizTalkAdapter: ChannelAdapter = {
@@ -88,20 +186,22 @@ export const kakaoBizTalkAdapter: ChannelAdapter = {
     if (!request.recipient.phone) {
       return { ok: false, channel: "ALIMTALK", failure: "INVALID_NUMBER", resultMessage: "수신번호 없음" };
     }
+    if (breakerOpen()) {
+      return { ok: false, channel: "ALIMTALK", failure: "TRANSIENT", ...BREAKER_RESULT };
+    }
     try {
       const token = await issueBizTalkToken();
       const body: Record<string, unknown> = {
         message_type: "AT",
         sender_key: process.env.BIZTALK_SENDER_KEY,
-        // 우리 발송 이력 id 를 cid 로 넘겨 결과를 되짚을 수 있게 한다.
-        cid: request.variables.__sendId ?? request.templateCode,
         template_code: request.templateCode,
         phone_number: request.recipient.phone.replace(/\D/g, ""),
-        sender_no: process.env.BIZTALK_SENDER_NO,
         message: request.body,
-        // 대체발송은 파이프라인이 직접 관리한다(어떤 실패에 무엇으로 보낼지 규칙이 우리 쪽에 있다).
+        // 대체발송은 파이프라인이 직접 관리한다 — 어떤 실패에 무엇으로 보낼지 규칙이 우리 쪽에 있다.
+        // DKT 에 맡기면 우리 이력에 대체발송 사실이 남지 않는다.
         fall_back_yn: false,
       };
+      if (process.env.BIZTALK_SENDER_NO) body.sender_no = process.env.BIZTALK_SENDER_NO;
       if (request.button) {
         body.button = [
           {
@@ -113,35 +213,25 @@ export const kakaoBizTalkAdapter: ChannelAdapter = {
         ];
       }
 
-      const res = await fetch(`${baseUrl()}${SEND_PATH}`, {
-        method: "POST",
-        headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
-        body: JSON.stringify(body),
-        signal: AbortSignal.timeout(15_000),
-      });
-      const json = (await res.json()) as {
-        code?: string;
-        uid?: string;
-        result?: { detail_code?: string; detail_message?: string };
-      };
+      const { status, json } = await postJson(
+        `/v2/request/${encodeURIComponent(requestCid(request))}/kakao`,
+        token,
+        body,
+      );
 
       if (String(json.code) === "200") {
-        return {
-          ok: true,
-          channel: "ALIMTALK",
-          providerMessageId: json.uid ?? null,
-          resultCode: "200",
-        };
+        return { ok: true, channel: "ALIMTALK", providerMessageId: json.uid ?? null, resultCode: "200" };
       }
       return {
         ok: false,
         channel: "ALIMTALK",
-        resultCode: json.result?.detail_code ?? String(json.code ?? res.status),
+        resultCode: json.result?.detail_code ?? String(json.code ?? status),
         resultMessage: json.result?.detail_message ?? null,
         failure: classifyBizTalkCode(json.code),
       };
     } catch (error) {
-      // 타임아웃·네트워크 오류는 재시도 대상이다.
+      // 타임아웃·네트워크 오류는 재시도 대상이다. 이어지면 잠시 채널을 닫는다.
+      noteTransportFailure();
       return {
         ok: false,
         channel: "ALIMTALK",
@@ -151,3 +241,105 @@ export const kakaoBizTalkAdapter: ChannelAdapter = {
     }
   },
 };
+
+/**
+ * 문자(XMS) — 알림톡이 도달하지 못했을 때의 대체발송 채널.
+ *
+ * 발송 응답은 "접수했다"까지만 말해 준다. 실제 성패는 폴링으로 확인한다
+ * (SM 24시간·LM 72시간까지 대기하므로 동기 응답이 불가능하다).
+ */
+export const xmsAdapter: ChannelAdapter = {
+  channel: "LMS",
+  isConfigured: isXmsConfigured,
+
+  async send(request: SendRequest): Promise<SendResult> {
+    if (!request.recipient.phone) {
+      return { ok: false, channel: "LMS", failure: "INVALID_NUMBER", resultMessage: "수신번호 없음" };
+    }
+    if (breakerOpen()) {
+      return { ok: false, channel: "LMS", failure: "TRANSIENT", ...BREAKER_RESULT };
+    }
+    try {
+      const token = await issueBizTalkToken();
+      const { status, json } = await postJson(
+        `/v2/request/${encodeURIComponent(requestCid(request))}/xms`,
+        token,
+        {
+          // 90바이트를 넘으면 LMS 로 나간다. 우리 템플릿은 대부분 넘으므로 제목을 함께 보낸다.
+          message_type: "LM",
+          sender_no: process.env.BIZTALK_SENDER_NO,
+          phone_number: request.recipient.phone.replace(/\D/g, ""),
+          title: process.env.BIZTALK_LMS_TITLE || "서울아레나",
+          message: request.body,
+        },
+      );
+      if (String(json.code) === "200") {
+        // 접수만 된 상태다. 최종 결과는 폴링으로 갱신한다.
+        return { ok: true, channel: "LMS", providerMessageId: json.uid ?? null, resultCode: "200" };
+      }
+      return {
+        ok: false,
+        channel: "LMS",
+        resultCode: json.result?.detail_code ?? String(json.code ?? status),
+        resultMessage: json.result?.detail_message ?? null,
+        failure: classifyBizTalkCode(json.code),
+      };
+    } catch (error) {
+      noteTransportFailure();
+      return {
+        ok: false,
+        channel: "LMS",
+        resultMessage: error instanceof Error ? error.message : "알 수 없는 오류",
+        failure: "TRANSIENT",
+      };
+    }
+  },
+};
+
+export interface PolledResult {
+  /** 우리가 넘긴 cid — 발송 이력 id */
+  cid: string | null;
+  uid: string | null;
+  stateCode: string | null;
+  message: string | null;
+}
+
+export interface PollBatch {
+  reportGroupNumber: string | null;
+  results: PolledResult[];
+}
+
+/**
+ * ④ 결과 폴링 — 문자와 알림톡 대체발송 건의 최종 결과를 받아 온다.
+ * 받은 뒤에는 반드시 completePoll() 로 확인 처리를 해야 같은 건이 다시 내려오지 않는다.
+ */
+export async function pollMessageResults(): Promise<PollBatch> {
+  const token = await issueBizTalkToken();
+  const res = await fetch(`${baseUrl()}${RESULTS_PATH}`, {
+    headers: { Authorization: `Bearer ${token}` },
+    signal: AbortSignal.timeout(15_000),
+  });
+  const json = (await res.json().catch(() => ({}))) as {
+    report_group_number?: string;
+    results?: Array<{ cid?: string; uid?: string; state_code?: string; message?: string }>;
+  };
+  return {
+    reportGroupNumber: json.report_group_number ?? null,
+    results: (json.results ?? []).map((r) => ({
+      cid: r.cid ?? null,
+      uid: r.uid ?? null,
+      stateCode: r.state_code ?? null,
+      message: r.message ?? null,
+    })),
+  };
+}
+
+/** ⑤ 폴링 완료 처리 — 이걸 빼먹으면 같은 결과가 계속 다시 내려온다. */
+export async function completePoll(reportGroupNumber: string): Promise<boolean> {
+  const token = await issueBizTalkToken();
+  const res = await fetch(
+    `${baseUrl()}${RESULTS_PATH}/complete/${encodeURIComponent(reportGroupNumber)}`,
+    { headers: { Authorization: `Bearer ${token}` }, signal: AbortSignal.timeout(15_000) },
+  );
+  return res.ok;
+}
