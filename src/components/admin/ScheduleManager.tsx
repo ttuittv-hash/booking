@@ -322,7 +322,7 @@ export function ScheduleManager({ initialYear, initialMonth }: { initialYear: nu
                               value={reasonDraft}
                               onChange={(e) => setReasonDraft(e.target.value)}
                               placeholder="막을 사유(선택) — 예: 정기 대관, 내부 행사"
-                              className="min-w-0 flex-1 border border-border bg-background px-2.5 py-1.5 text-xs outline-none focus:border-accent"
+                              className={`${FIELD_SM} min-w-0 flex-1`}
                             />
                             <button
                               type="button"
