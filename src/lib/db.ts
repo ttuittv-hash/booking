@@ -330,6 +330,14 @@ async function initSchema(pool: Pool) {
     ALTER TABLE quotes ADD COLUMN IF NOT EXISTS week_month INTEGER;
     ALTER TABLE quotes ADD COLUMN IF NOT EXISTS week_of_month INTEGER;
     ALTER TABLE rate_tables ADD COLUMN IF NOT EXISTS mid_hall_json TEXT;
+    -- 나의 정보 수정 화면 확장(2026-08-20) — 기업 대표번호/대표팩스/법인등록번호,
+    -- 개인 유선전화/팩스번호. 회사명·사업자등록번호는 여기 포함되지 않는다(변경 불가 —
+    -- 탈퇴 후 재가입 안내).
+    ALTER TABLE companies ADD COLUMN IF NOT EXISTS representative_phone TEXT;
+    ALTER TABLE companies ADD COLUMN IF NOT EXISTS representative_fax TEXT;
+    ALTER TABLE companies ADD COLUMN IF NOT EXISTS corporate_registration_number TEXT;
+    ALTER TABLE users ADD COLUMN IF NOT EXISTS office_phone TEXT;
+    ALTER TABLE users ADD COLUMN IF NOT EXISTS fax_number TEXT;
 
     CREATE UNIQUE INDEX IF NOT EXISTS idx_users_username ON users(username) WHERE username IS NOT NULL;
 
@@ -660,6 +668,9 @@ interface CompanyRow {
   name: string;
   business_registration_number: string | null;
   representative_name: string | null;
+  representative_phone: string | null;
+  representative_fax: string | null;
+  corporate_registration_number: string | null;
   postal_code: string | null;
   address: string | null;
   business_cert_url: string | null;
@@ -681,6 +692,9 @@ function toCompany(row: CompanyRow): Company {
     name: row.name,
     businessRegistrationNumber: row.business_registration_number,
     representativeName: row.representative_name,
+    representativePhone: row.representative_phone,
+    representativeFax: row.representative_fax,
+    corporateRegistrationNumber: row.corporate_registration_number,
     postalCode: row.postal_code,
     address: row.address,
     businessCertUrl: row.business_cert_url,
@@ -759,6 +773,9 @@ export async function findOrCreateCompany(
     name: trimmed,
     business_registration_number: extra?.businessRegistrationNumber?.trim() || null,
     representative_name: extra?.representativeName?.trim() || null,
+    representative_phone: null,
+    representative_fax: null,
+    corporate_registration_number: null,
     postal_code: extra?.postalCode?.trim() || null,
     address: extra?.address?.trim() || null,
     business_cert_url: extra?.businessCertUrl || null,
@@ -808,6 +825,37 @@ export async function listCompanies(): Promise<Company[]> {
   return rows.map(toCompany);
 }
 
+// 나의 정보 수정에서 회원이 직접 바꿀 수 있는 기업 정보만 갱신한다. 회사명·사업자등록번호는
+// 여기 포함하지 않는다 — 바뀌면 다른 회사로 취급해야 하므로 탈퇴 후 재가입 안내로 유도한다.
+export async function updateCompanyProfile(
+  id: string,
+  input: {
+    representativeName: string | null;
+    representativePhone: string | null;
+    representativeFax: string | null;
+    corporateRegistrationNumber: string | null;
+    postalCode: string | null;
+    address: string | null;
+  },
+): Promise<Company> {
+  await q(
+    `UPDATE companies SET
+       representative_name = $1, representative_phone = $2, representative_fax = $3,
+       corporate_registration_number = $4, postal_code = $5, address = $6
+     WHERE id = $7`,
+    [
+      input.representativeName,
+      input.representativePhone,
+      input.representativeFax,
+      input.corporateRegistrationNumber,
+      input.postalCode,
+      input.address,
+      id,
+    ],
+  );
+  return (await findCompanyById(id))!;
+}
+
 // ---------------------------------------------------------------------------
 // Users
 // ---------------------------------------------------------------------------
@@ -817,6 +865,8 @@ interface UserRow {
   username: string | null;
   email: string;
   phone: string | null;
+  office_phone: string | null;
+  fax_number: string | null;
   password_hash: string;
   password_scheme: PasswordScheme;
   name: string;
@@ -835,6 +885,8 @@ function toAppUser(row: UserRow): AppUser {
     username: row.username ?? row.email,
     email: row.email,
     phone: row.phone,
+    officePhone: row.office_phone,
+    faxNumber: row.fax_number,
     name: row.name,
     companyName: row.company_name,
     companyId: row.company_id,
@@ -891,6 +943,8 @@ export async function createUser(input: {
     username: input.username,
     email: input.email.toLowerCase(),
     phone,
+    officePhone: null,
+    faxNumber: null,
     name: input.name,
     companyName: input.companyName,
     companyId,
@@ -1041,9 +1095,20 @@ export async function findUserById(id: string): Promise<AppUser | undefined> {
 
 export async function updateUserProfile(
   id: string,
-  input: { name: string; phone: string | null },
+  input: {
+    name: string;
+    phone: string | null;
+    username: string;
+    email: string;
+    officePhone: string | null;
+    faxNumber: string | null;
+  },
 ): Promise<AppUser> {
-  await q("UPDATE users SET name = $1, phone = $2 WHERE id = $3", [input.name, input.phone, id]);
+  await q(
+    `UPDATE users SET name = $1, phone = $2, username = $3, email = $4, office_phone = $5, fax_number = $6
+     WHERE id = $7`,
+    [input.name, input.phone, input.username, input.email.toLowerCase(), input.officePhone, input.faxNumber, id],
+  );
   return (await findUserById(id))!;
 }
 

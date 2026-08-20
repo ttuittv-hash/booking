@@ -572,6 +572,9 @@ export interface Company {
   name: string;
   businessRegistrationNumber: string | null;
   representativeName: string | null;
+  representativePhone: string | null;
+  representativeFax: string | null;
+  corporateRegistrationNumber: string | null;
   postalCode: string | null;
   address: string | null;
   businessCertUrl: string | null;
@@ -586,6 +589,8 @@ export interface AppUser {
   username: string;
   email: string;
   phone: string | null;
+  officePhone: string | null;
+  faxNumber: string | null;
   name: string;
   companyName: string | null;
   companyId: string | null;

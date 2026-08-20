@@ -1,14 +1,36 @@
 "use client";
 
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { hashPasswordForTransport } from "@/lib/clientPassword";
-import type { AppUser } from "@/lib/pricing/types";
+import type { AppUser, Company } from "@/lib/pricing/types";
 
-export function ProfileForm({ user }: { user: AppUser }) {
+const inputCls =
+  "w-full rounded-sm border border-border bg-panel px-3.5 py-2.5 text-[14px] outline-none focus:border-accent";
+const lockedInputCls =
+  "w-full rounded-sm border border-border bg-panel-strong px-3.5 py-2.5 text-[14px] text-muted outline-none";
+const labelCls = "mb-1.5 block text-[12.5px] font-medium text-muted";
+
+export function ProfileForm({ user, company }: { user: AppUser; company: Company | null }) {
   const router = useRouter();
   const [name, setName] = useState(user.name);
   const [phone, setPhone] = useState(user.phone ?? "");
+  const [username, setUsername] = useState(user.username);
+  const [email, setEmail] = useState(user.email);
+  const [officePhone, setOfficePhone] = useState(user.officePhone ?? "");
+  const [faxNumber, setFaxNumber] = useState(user.faxNumber ?? "");
+
+  const [representativeName, setRepresentativeName] = useState(company?.representativeName ?? "");
+  const [representativePhone, setRepresentativePhone] = useState(company?.representativePhone ?? "");
+  const [representativeFax, setRepresentativeFax] = useState(company?.representativeFax ?? "");
+  const [corporateRegistrationNumber, setCorporateRegistrationNumber] = useState(
+    company?.corporateRegistrationNumber ?? "",
+  );
+  const [postalCode, setPostalCode] = useState(company?.postalCode ?? "");
+  const [address, setAddress] = useState(company?.address ?? "");
+
+  const [confirmPassword, setConfirmPassword] = useState("");
   const [savingProfile, setSavingProfile] = useState(false);
   const [profileMessage, setProfileMessage] = useState<string | null>(null);
   const [profileError, setProfileError] = useState<string | null>(null);
@@ -24,17 +46,59 @@ export function ProfileForm({ user }: { user: AppUser }) {
     setProfileError(null);
     setProfileMessage(null);
     try {
-      const res = await fetch("/api/users/me", {
+      if (!confirmPassword) {
+        setProfileError("현재 비밀번호를 입력하세요.");
+        return;
+      }
+      const currentPasswordHash = await hashPasswordForTransport(confirmPassword);
+      let res = await fetch("/api/users/me", {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name, phone }),
+        body: JSON.stringify({
+          name,
+          phone,
+          username,
+          email,
+          officePhone,
+          faxNumber,
+          representativeName,
+          representativePhone,
+          representativeFax,
+          corporateRegistrationNumber,
+          postalCode,
+          address,
+          currentPasswordHash,
+        }),
       });
+      if (res.status === 428) {
+        res = await fetch("/api/users/me", {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            name,
+            phone,
+            username,
+            email,
+            officePhone,
+            faxNumber,
+            representativeName,
+            representativePhone,
+            representativeFax,
+            corporateRegistrationNumber,
+            postalCode,
+            address,
+            currentPasswordHash,
+            currentPassword: confirmPassword,
+          }),
+        });
+      }
       const data = await res.json();
       if (!res.ok) {
         setProfileError(data.error || "저장에 실패했습니다.");
         return;
       }
       setProfileMessage("회원정보가 수정되었습니다.");
+      setConfirmPassword("");
       router.refresh();
     } finally {
       setSavingProfile(false);
@@ -84,48 +148,168 @@ export function ProfileForm({ user }: { user: AppUser }) {
   return (
     <div className="mt-8 space-y-8">
       <section className="rounded border border-border bg-background p-6">
-        <h2 className="text-[15px] font-semibold">기본 정보</h2>
+        <h2 className="text-[15px] font-semibold">개인 정보</h2>
         <div className="mt-4 space-y-3">
           <label className="block">
-            <span className="mb-1.5 block text-[12.5px] font-medium text-muted">이메일</span>
-            <input
-              type="email"
-              value={user.email}
-              disabled
-              className="w-full rounded-sm border border-border bg-panel-strong px-3.5 py-2.5 text-[14px] text-muted outline-none"
-            />
-          </label>
-          <label className="block">
-            <span className="mb-1.5 block text-[12.5px] font-medium text-muted">소속 회사/기획사</span>
-            <input
-              type="text"
-              value={user.companyName || "소속 없음"}
-              disabled
-              className="w-full rounded-sm border border-border bg-panel-strong px-3.5 py-2.5 text-[14px] text-muted outline-none"
-            />
-          </label>
-          <label className="block">
-            <span className="mb-1.5 block text-[12.5px] font-medium text-muted">담당자명</span>
+            <span className={labelCls}>담당자명</span>
             <input
               type="text"
               autoComplete="name"
               value={name}
               onChange={(e) => setName(e.target.value)}
-              className="w-full rounded-sm border border-border bg-panel px-3.5 py-2.5 text-[14px] outline-none focus:border-accent"
+              className={inputCls}
             />
           </label>
           <label className="block">
-            <span className="mb-1.5 block text-[12.5px] font-medium text-muted">휴대폰 번호</span>
+            <span className={labelCls}>휴대폰 번호</span>
             <input
               type="tel"
               autoComplete="tel"
               placeholder="010-0000-0000"
               value={phone}
               onChange={(e) => setPhone(e.target.value)}
-              className="w-full rounded-sm border border-border bg-panel px-3.5 py-2.5 text-[14px] outline-none focus:border-accent"
+              className={inputCls}
             />
           </label>
-          <p className="text-[12px] text-muted">이메일과 소속 회사 변경은 운영자에게 문의해주세요.</p>
+          <label className="block">
+            <span className={labelCls}>전화번호</span>
+            <input
+              type="tel"
+              placeholder="02-0000-0000 (선택)"
+              value={officePhone}
+              onChange={(e) => setOfficePhone(e.target.value)}
+              className={inputCls}
+            />
+          </label>
+          <label className="block">
+            <span className={labelCls}>팩스번호</span>
+            <input
+              type="tel"
+              placeholder="02-0000-0000 (선택)"
+              value={faxNumber}
+              onChange={(e) => setFaxNumber(e.target.value)}
+              className={inputCls}
+            />
+          </label>
+          <label className="block">
+            <span className={labelCls}>로그인 ID</span>
+            <input
+              type="text"
+              autoComplete="username"
+              value={username}
+              onChange={(e) => setUsername(e.target.value.trim().toLowerCase())}
+              className={inputCls}
+            />
+          </label>
+          <label className="block">
+            <span className={labelCls}>이메일</span>
+            <input
+              type="email"
+              autoComplete="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              className={inputCls}
+            />
+          </label>
+        </div>
+      </section>
+
+      <section className="rounded border border-border bg-background p-6">
+        <h2 className="text-[15px] font-semibold">기업 정보</h2>
+        {company ? (
+          <div className="mt-4 space-y-3">
+            <label className="block">
+              <span className={labelCls}>회사명</span>
+              <input type="text" value={company.name} disabled className={lockedInputCls} />
+            </label>
+            <label className="block">
+              <span className={labelCls}>사업자등록번호</span>
+              <input
+                type="text"
+                value={company.businessRegistrationNumber ?? ""}
+                disabled
+                className={lockedInputCls}
+              />
+            </label>
+            <p className="text-[12px] text-muted">
+              회사명·사업자등록번호는 다른 회사로 바뀌는 것과 같아 여기서 바로 수정할 수 없습니다. 변경이
+              필요하면{" "}
+              <Link href="/mypage/withdraw" className="text-accent hover:underline">
+                회원 탈퇴
+              </Link>{" "}
+              후 새 정보로 다시 가입해주세요.
+            </p>
+
+            <label className="block">
+              <span className={labelCls}>대표자성명</span>
+              <input
+                type="text"
+                value={representativeName}
+                onChange={(e) => setRepresentativeName(e.target.value)}
+                className={inputCls}
+              />
+            </label>
+            <label className="block">
+              <span className={labelCls}>대표번호</span>
+              <input
+                type="tel"
+                placeholder="02-0000-0000"
+                value={representativePhone}
+                onChange={(e) => setRepresentativePhone(e.target.value)}
+                className={inputCls}
+              />
+            </label>
+            <label className="block">
+              <span className={labelCls}>대표팩스</span>
+              <input
+                type="tel"
+                placeholder="02-0000-0000 (선택)"
+                value={representativeFax}
+                onChange={(e) => setRepresentativeFax(e.target.value)}
+                className={inputCls}
+              />
+            </label>
+            <label className="block">
+              <span className={labelCls}>법인등록번호</span>
+              <input
+                type="text"
+                value={corporateRegistrationNumber}
+                onChange={(e) => setCorporateRegistrationNumber(e.target.value)}
+                className={inputCls}
+              />
+            </label>
+            <label className="block">
+              <span className={labelCls}>우편번호</span>
+              <input
+                type="text"
+                value={postalCode}
+                onChange={(e) => setPostalCode(e.target.value)}
+                className={inputCls}
+              />
+            </label>
+            <label className="block">
+              <span className={labelCls}>회사주소</span>
+              <input type="text" value={address} onChange={(e) => setAddress(e.target.value)} className={inputCls} />
+            </label>
+          </div>
+        ) : (
+          <p className="mt-3 text-[13px] text-muted">소속된 회사가 없습니다.</p>
+        )}
+      </section>
+
+      <section className="rounded border border-border bg-background p-6">
+        <h2 className="text-[15px] font-semibold">저장하려면 현재 비밀번호를 입력하세요</h2>
+        <div className="mt-4">
+          <label className="block">
+            <span className={labelCls}>현재 비밀번호</span>
+            <input
+              type="password"
+              autoComplete="current-password"
+              value={confirmPassword}
+              onChange={(e) => setConfirmPassword(e.target.value)}
+              className={inputCls}
+            />
+          </label>
         </div>
         {profileError && <p className="mt-3 text-[13px] text-red-600">{profileError}</p>}
         {profileMessage && <p className="mt-3 text-[13px] text-good">{profileMessage}</p>}
@@ -143,24 +327,24 @@ export function ProfileForm({ user }: { user: AppUser }) {
         <h2 className="text-[15px] font-semibold">비밀번호 변경</h2>
         <div className="mt-4 space-y-3">
           <label className="block">
-            <span className="mb-1.5 block text-[12.5px] font-medium text-muted">현재 비밀번호</span>
+            <span className={labelCls}>현재 비밀번호</span>
             <input
               type="password"
               autoComplete="current-password"
               value={currentPassword}
               onChange={(e) => setCurrentPassword(e.target.value)}
-              className="w-full rounded-sm border border-border bg-panel px-3.5 py-2.5 text-[14px] outline-none focus:border-accent"
+              className={inputCls}
             />
           </label>
           <label className="block">
-            <span className="mb-1.5 block text-[12.5px] font-medium text-muted">새 비밀번호 (8자 이상)</span>
+            <span className={labelCls}>새 비밀번호 (8자 이상)</span>
             <input
               type="password"
               autoComplete="new-password"
               minLength={8}
               value={newPassword}
               onChange={(e) => setNewPassword(e.target.value)}
-              className="w-full rounded-sm border border-border bg-panel px-3.5 py-2.5 text-[14px] outline-none focus:border-accent"
+              className={inputCls}
             />
           </label>
         </div>
