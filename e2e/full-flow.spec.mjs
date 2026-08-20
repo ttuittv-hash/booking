@@ -1,4 +1,11 @@
 // 8/24 오픈 범위 전체 흐름 E2E — 기획서 A2~A15 를 화면에서 1:1 확인한다.
+//
+// 전제: 카카오(120-81-47521)가 dev DB 에 없어야 한다.
+// 진위확인을 통과하려면 실제로 존재하는 사업자번호를 써야 해서 실행마다 번호를 바꿀 수 없다.
+// 그래서 이 회사가 남아 있으면 이번 사용자는 "최초 가입자(대표 담당자)"가 아니라 소속 담당자로
+// 붙고, 대표 담당자 전용인 담당자 관리(A10)부터 줄줄이 실패한다. 실행 전에 지운다:
+//
+//   ./e2e/reset-dev.sh
 import { chromium } from "@playwright/test";
 import fs from "node:fs";
 
@@ -113,19 +120,20 @@ try {
   await bo.waitForURL(/\/admin/, { timeout: 20000 });
   check("A9-1", "운영자가 백오피스에 로그인한다", true);
 
-  // 승인 대상 id 는 실행 중에 파일로 넘겨받는다(테스트 전용 조회 API 를 만들지 않기 위함).
-  fs.writeFileSync("/tmp/e2e-master-username.txt", masterUser);
-  let masterId = "";
-  for (let i = 0; i < 30 && !masterId; i++) {
-    masterId = fs.existsSync("/tmp/e2e-master-id.txt")
-      ? fs.readFileSync("/tmp/e2e-master-id.txt", "utf8").trim()
-      : "";
-    if (!masterId) await new Promise((r) => setTimeout(r, 1000));
-  }
-  const approve = await bo.request.post(`${BO}/api/admin/applicants`, {
-    data: { id: masterId, action: "approve" },
-  });
-  check("A9-2", "운영자가 최초 가입자를 승인한다", approve.ok(), String(approve.status()));
+  // 승인은 운영자가 실제로 하는 대로 화면에서 한다.
+  // 예전에는 승인 대상 id 를 /tmp 파일로 넘겨받았는데, 그 파일을 채워 줄 주체가 없어
+  // 직전 실행이 남긴 낡은 id 를 읽고 "이미 처리된 건"(409)으로 실패했다.
+  await bo.goto(`${BO}/admin/applicants`, { waitUntil: "domcontentloaded" });
+  const row = bo.locator("tr", { hasText: `${masterUser}@seoul-ent.co.kr` }).first();
+  await row.waitFor({ timeout: 20000 });
+  await row.getByRole("button", { name: "승인" }).click();
+  // 승인되면 승인 대기 목록에서 빠진다
+  await row.waitFor({ state: "detached", timeout: 20000 }).catch(() => {});
+  const stillPending = await bo
+    .locator("tr", { hasText: `${masterUser}@seoul-ent.co.kr` })
+    .filter({ has: bo.getByRole("button", { name: "승인" }) })
+    .count();
+  check("A9-2", "운영자가 최초 가입자를 승인한다", stillPending === 0);
 
   // ── 승인 후 접근권한 ──────────────────────────────────────
   await page.goto(`${BASE}/apply`, { waitUntil: "domcontentloaded" });
