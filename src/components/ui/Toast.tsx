@@ -5,6 +5,10 @@
 // 예전에는 위저드 상단에 오류 문단을 붙였는데, 스크롤을 내려 입력하다 [다음]을 누르면
 // 메시지가 화면 밖에 떠서 왜 안 넘어가는지 알 수 없었다. 토스트는 보고 있는 자리에 뜬다.
 //
+// 화면 위에서 내려온다. 처음에는 아래에 띄웠는데, 하필 그 자리에 본문과 버튼이 있어
+// 읽던 문장을 가렸다. 위쪽은 헤더가 차지할 뿐이라 가릴 것이 적다 — 헤더 바로 아래에
+// 얹어 헤더 자체도 가리지 않는다.
+//
 // 접근성: role="status" + aria-live="polite" 로 스크린리더가 읽는다.
 // 오류는 assertive 로 즉시 읽게 한다.
 
@@ -70,7 +74,8 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
     <ToastContext.Provider value={api}>
       {children}
       <div
-        className="pointer-events-none fixed inset-x-0 bottom-6 z-[100] flex flex-col items-center gap-2 px-4 sm:bottom-8"
+        // 헤더 높이(모바일 56~64px · 데스크톱 64~72px) 바로 아래에 둔다.
+        className="pointer-events-none fixed inset-x-0 top-[4.5rem] z-[100] flex flex-col items-center gap-2 px-4 sm:top-20 lg:top-[5.5rem]"
         aria-live="polite"
       >
         {items.map((t) => (
@@ -92,7 +97,7 @@ function Toast({ item, onDone }: { item: ToastItem; onDone: () => void }) {
       data-testid="toast"
       data-tone={item.tone}
       role={item.tone === "error" ? "alert" : "status"}
-      className={`pointer-events-auto flex w-full max-w-md items-start gap-3 border px-4 py-3 shadow-lg ${TONE_CLASS[item.tone]}`}
+      className={`pointer-events-auto flex w-full max-w-md items-start gap-3 border px-4 py-3 shadow-lg animate-[toast-in_180ms_ease-out] ${TONE_CLASS[item.tone]}`}
     >
       <span className="mt-0.5 shrink-0 text-xs font-bold" aria-hidden>
         {item.tone === "error" ? "!" : item.tone === "success" ? "✓" : "i"}
