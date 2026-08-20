@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import type { AppUser } from "@/lib/pricing/types";
 import { LogoutButton } from "@/components/LogoutButton";
 import { NotificationBell } from "@/components/NotificationBell";
@@ -43,12 +43,24 @@ const PANEL_LINK = "block whitespace-nowrap py-1.5 text-xs transition-colors hov
  * "백오피스 버튼이 동작을 안 한다"는 신고가 이것이다. partner. 를 bo. 로 바꾼
  * 절대 주소로 보낸다. 세션 쿠키는 부모 도메인으로 굽기 때문에 로그인이 유지된다.
  * 프록시 없는 환경(localhost)에서는 같은 호스트의 /admin 이 그대로 동작한다.
+ *
+ * 렌더 중에 window 를 읽으면 서버 값("/admin")과 어긋나 하이드레이션이 그 속성을
+ * 버린다 — 실제로 버튼이 계속 /admin 을 가리켰다. 마운트 후 상태로 채운다.
  */
-function backofficeHref(): string {
-  if (typeof window === "undefined") return "/admin";
-  const { protocol, host } = window.location;
-  const m = /^partner\.(.+)$/.exec(host);
-  return m ? `${protocol}//bo.${m[1]}/` : "/admin";
+function useBackofficeHref(): string {
+  // 초기값 계산을 지연 이니셜라이저로 미룬다 — effect 안 setState 는 재렌더를 한 번 더 유발한다.
+  // useState 이니셜라이저는 클라이언트 첫 렌더(하이드레이션)에서 실행되므로 window 를 읽어도
+  // 되지만, 서버 마크업("/admin")과 속성이 어긋나는 문제는 suppressHydrationWarning 대신
+  // useSyncExternalStore 로 푸는 것이 정석이다. 여기서는 값이 정적이라 그걸로 충분하다.
+  return useSyncExternalStore(
+    () => () => {},
+    () => {
+      const { protocol, host } = window.location;
+      const m = /^partner\.(.+)$/.exec(host);
+      return m ? `${protocol}//bo.${m[1]}/` : "/admin";
+    },
+    () => "/admin",
+  );
 }
 
 const UTIL_BTN =
@@ -130,6 +142,7 @@ export function PublicHeader({
   active: string;
   currentUser: AppUser | null;
 }) {
+  const backofficeHref = useBackofficeHref();
   /** 펼쳐진 드롭다운의 키 (카테고리 라벨 · "지원" · "계정") */
   const [openKey, setOpenKey] = useState<string | null>(null);
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -299,7 +312,7 @@ export function PublicHeader({
             <>
               <NotificationBell role={currentUser.role} />
               {currentUser.role === "ADMIN" ? (
-                <a href={backofficeHref()} className={UTIL_BTN}>
+                <a href={backofficeHref} className={UTIL_BTN}>
                   운영자 백오피스
                 </a>
               ) : (
@@ -444,7 +457,7 @@ export function PublicHeader({
                     {currentUser.role === "ADMIN" ? (
                       <li>
                         <a
-                          href={backofficeHref()}
+                          href={backofficeHref}
                           onClick={() => setMobileOpen(false)}
                           className="text-r text-muted"
                         >
