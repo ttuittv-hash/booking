@@ -618,18 +618,18 @@ async function insertRateTable(pool: Pool, rateTable: RateTable) {
 // Rate table
 // ---------------------------------------------------------------------------
 
-export async function getCurrentRateTable(): Promise<RateTable> {
-  const row = await one<{
-    version: string;
-    vat_rate: number;
-    extra_week_ratio: number;
-    day_exclusion_discount_ratio: number;
-    packages_json: string;
-    addons_json: string;
-    mid_hall_json: string | null;
-    updated_at: string;
-  }>("SELECT * FROM rate_tables ORDER BY updated_at DESC LIMIT 1");
-  if (!row) throw new Error("요금표가 초기화되지 않았습니다.");
+interface RateTableRow {
+  version: string;
+  vat_rate: number;
+  extra_week_ratio: number;
+  day_exclusion_discount_ratio: number;
+  packages_json: string;
+  addons_json: string;
+  mid_hall_json: string | null;
+  updated_at: string;
+}
+
+function toRateTable(row: RateTableRow): RateTable {
   // 과거 버전(할인율 필드 추가 이전)에 저장된 패키지는 discountRatio가 없을 수 있으므로 기본값 0으로 보정한다.
   const rawPackages = JSON.parse(row.packages_json) as Array<
     RateTable["packages"][number] & { discountRatio?: number }
@@ -647,6 +647,21 @@ export async function getCurrentRateTable(): Promise<RateTable> {
     midHall,
     updatedAt: row.updated_at,
   };
+}
+
+export async function getCurrentRateTable(): Promise<RateTable> {
+  const row = await one<RateTableRow>("SELECT * FROM rate_tables ORDER BY updated_at DESC LIMIT 1");
+  if (!row) throw new Error("요금표가 초기화되지 않았습니다.");
+  return toRateTable(row);
+}
+
+// 신청서 상세 화면에서 "신청 당시" 패키지명 등을 정확히 복원하기 위해, 현재 요금표가 아니라
+// 견적 계산 시점의 버전(quote.rateTableVersion)을 그대로 조회한다. 해당 버전이 없으면(드묾)
+// 현재 요금표로 대체한다.
+export async function getRateTableByVersion(version: string): Promise<RateTable> {
+  const row = await one<RateTableRow>("SELECT * FROM rate_tables WHERE version = $1", [version]);
+  if (!row) return getCurrentRateTable();
+  return toRateTable(row);
 }
 
 export async function saveNewRateTableVersion(

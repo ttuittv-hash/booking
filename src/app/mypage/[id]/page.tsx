@@ -6,6 +6,7 @@ import {
   getDepositByQuoteId,
   getFacilityMeetingByQuoteId,
   getQuoteById,
+  getRateTableByVersion,
   getTaxInvoice,
   getTicketOpenByQuoteId,
   listAttachments,
@@ -23,6 +24,7 @@ import { SettlementMutualConfirm } from "@/components/SettlementMutualConfirm";
 import { PublicHeader } from "@/components/PublicHeader";
 import { PublicFooter } from "@/components/PublicFooter";
 import { MyPageSidebar } from "@/components/MyPageSidebar";
+import { QuoteApplicationDetail } from "@/components/QuoteApplicationDetail";
 
 function midHallSummaryLine(selection: QuoteSelection): string | null {
   const dates = Object.keys(selection.midHallDays).sort();
@@ -63,6 +65,7 @@ export default async function MyQuoteDetailPage({
     facilityMeetingRaw,
     ticketOpenMaterials,
     facilityMeetingMaterials,
+    rateTable,
   ] = await Promise.all([
     getDepositByQuoteId(id),
     listAttachments(id, null),
@@ -73,6 +76,7 @@ export default async function MyQuoteDetailPage({
     getFacilityMeetingByQuoteId(id),
     listAttachments(id, "TICKET_OPEN"),
     listAttachments(id, "FACILITY_MEETING"),
+    getRateTableByVersion(quote.rateTableVersion),
   ]);
   const deposit = depositRaw ?? null;
   const signature = signatureRaw ?? null;
@@ -134,7 +138,17 @@ export default async function MyQuoteDetailPage({
                 </>
               )}
             </p>
-    
+
+            <div className="mt-6">
+              <h2 className="text-[15px] font-semibold">신청 내역 상세</h2>
+              <p className="mt-1 text-[12px] text-muted">
+                대관 신청 시 탭별로 입력한 값입니다. 항목을 눌러 펼쳐보세요.
+              </p>
+              <div className="mt-3">
+                <QuoteApplicationDetail selection={quote.selection} rateTable={rateTable} />
+              </div>
+            </div>
+
             <section className="mt-6 rounded border border-border bg-background p-6">
               <h2 className="text-[15px] font-semibold">① 신청 예상금액 · 산출내역</h2>
               <div className="mt-4 overflow-x-auto">
