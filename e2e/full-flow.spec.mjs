@@ -37,23 +37,25 @@ const t = String(Date.now()).slice(-6);
  * 하이드레이션 전에 값을 채우면 DOM 에는 들어가지만 React 상태는 비어 있다.
  * 이후 같은 값으로 다시 채워도 React 는 "값이 그대로"라 보고 onChange 를 건너뛰어,
  * 화면은 입력된 것처럼 보이는데 제출은 빈 값으로 나간다.
- * 그래서 한 번 비우고 다시 채워 변경 이벤트가 확실히 발생하게 한다.
  *
- * 예전에는 "버튼이 풀렸는가"로 하이드레이션 완료를 판정했는데, 입력이 비었다고
- * 버튼을 잠그는 UI 를 걷어내면서(잠긴 버튼은 눌러도 반응이 없어 고장으로 보인다)
- * 그 신호가 없어졌다. 대신 React 가 값을 실제로 받았는지를 직접 확인한다.
+ * 입력칸의 value 만 봐서는 이걸 구분할 수 없다 — DOM 값은 React 와 무관하게 채워진다.
+ * 예전에는 "버튼이 풀렸는가"로 판정했는데, 입력이 비었다고 버튼을 잠그는 UI 를
+ * 걷어내면서(잠긴 버튼은 눌러도 반응이 없어 고장으로 보인다) 그 신호도 사라졌다.
+ * 그래서 결과로 확인한다 — 채우고 누른 뒤 다음 화면이 나오지 않으면 다시 채워 누른다.
  */
-async function fillHydrated(p, inputSel, value) {
-  for (let i = 0; i < 10; i++) {
+async function fillAndAdvance(p, inputSel, value, buttonSel, expectSel) {
+  for (let i = 0; i < 8; i++) {
     await p.fill(inputSel, "");
     await p.fill(inputSel, value);
-    // React 가 제어하는 값이면 재렌더 후에도 값이 남는다.
-    await p.waitForTimeout(250);
-    const settled = await p.$eval(inputSel, (el) => el.value);
-    if (settled === value) return;
-    await p.waitForTimeout(300);
+    await p.click(buttonSel);
+    try {
+      await p.waitForSelector(expectSel, { timeout: 3000 });
+      return;
+    } catch {
+      await p.waitForTimeout(400);
+    }
   }
-  throw new Error(`입력이 React 상태에 반영되지 않음: ${inputSel}`);
+  throw new Error(`다음 화면이 나오지 않음: ${expectSel}`);
 }
 
 async function newCtx() {
@@ -195,9 +197,13 @@ try {
     await rec.locator('[data-testid="link-reset-password"]').isVisible());
 
   await rec.goto(`${BASE}/reset-password`, { waitUntil: "domcontentloaded" });
-  await fillHydrated(rec, '[data-testid="reset-username"]', masterUser);
-  await rec.click('[data-testid="reset-next"]');
-  await rec.waitForSelector('[data-testid="identity-start"]', { timeout: 15000 });
+  await fillAndAdvance(
+    rec,
+    '[data-testid="reset-username"]',
+    masterUser,
+    '[data-testid="reset-next"]',
+    '[data-testid="identity-start"]',
+  );
   await rec.click('[data-testid="identity-start"]');
   await rec.waitForSelector('[data-testid="reset-password-new"]', { timeout: 20000 });
   await rec.fill('[data-testid="reset-password-new"]', "NewPass1234!");

@@ -444,7 +444,7 @@ export function WizardShell({
         type="button"
         disabled={step === 1}
         onClick={() => goTo(step - 1)}
-        className="rounded-full px-3.5 py-1.5 text-xs font-medium text-muted transition-colors hover:bg-panel hover:text-foreground disabled:cursor-not-allowed disabled:opacity-30"
+        className="inline-flex min-h-11 items-center rounded-full px-3.5 py-1.5 text-xs font-medium text-muted transition-colors hover:bg-panel hover:text-foreground disabled:cursor-not-allowed disabled:opacity-30 sm:min-h-0"
       >
         ← 이전
       </button>
@@ -452,7 +452,7 @@ export function WizardShell({
         <button
           type="button"
           onClick={goNext}
-          className="rounded-full border border-border/25 px-3.5 py-1.5 text-xs font-medium text-foreground transition-colors hover:border-foreground hover:text-foreground disabled:cursor-not-allowed disabled:opacity-30"
+          className="inline-flex min-h-11 items-center rounded-full border border-border/25 px-3.5 py-1.5 text-xs font-medium text-foreground transition-colors hover:border-foreground hover:text-foreground disabled:cursor-not-allowed disabled:opacity-30 sm:min-h-0"
         >
           다음 →
         </button>

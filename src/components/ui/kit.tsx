@@ -128,9 +128,11 @@ const BTN_VARIANT: Record<BtnVariant, string> = {
  *   md(40) — 폼 제출 버튼. 백오피스·인증 화면 등 밀도가 높은 폼 전용.
  *   sm(32) — 카드·표 안의 인라인 액션. 본문 흐름을 끊지 않아야 하는 자리.
  */
+// 모바일에서는 어떤 크기든 44px 을 확보한다 — h-8(32px)·h-10(40px)은 손가락으로
+// 누르기에 작다. sm 브레이크포인트부터는 원래 높이로 돌아가 촘촘한 표가 유지된다.
 const BTN_SIZE: Record<BtnSize, string> = {
-  sm: "h-8 px-4 text-xs",
-  md: "h-10 px-5 text-s",
+  sm: "h-11 px-4 text-xs sm:h-8",
+  md: "h-11 px-5 text-s sm:h-10",
   lg: "h-12 px-6 text-s",
 };
 
