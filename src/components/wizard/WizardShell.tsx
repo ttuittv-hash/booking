@@ -176,7 +176,12 @@ export function WizardShell({
         bookingMode: draft.selection.bookingMode ?? "SINGLE",
         secondaryAudience: draft.selection.secondaryAudience ?? INITIAL_SELECTION.secondaryAudience,
         midHallDays: draft.selection.midHallDays ?? {},
-        performanceInfo: draft.selection.performanceInfo ?? initialPerformanceInfo,
+        // 임시저장은 예전 빌드가 남긴 것일 수 있다 — 이후 추가된 필드(pastPerformances 등)가
+        // 없는 채 복원되면 STEP 4 가 undefined.length 로 통째로 죽는다(실제 신고 사례).
+        // 기본값 위에 저장본을 겹쳐 빠진 필드를 채운다.
+        performanceInfo: draft.selection.performanceInfo
+          ? { ...initialPerformanceInfo, ...draft.selection.performanceInfo }
+          : initialPerformanceInfo,
       });
       setStep(draft.step);
     }

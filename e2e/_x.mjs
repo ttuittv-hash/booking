@@ -1,42 +1,31 @@
 import { chromium } from "@playwright/test";
 const B="https://partner.dev.seoularena.net";
 const b=await chromium.launch();
-const p=await (await b.newContext({viewport:{width:1440,height:960}})).newPage();
-await p.goto(`${B}/register`,{waitUntil:"domcontentloaded"});
-await p.click('[data-testid="pick-corporate"]');
-await p.check('[data-testid="agree-SERVICE"]'); await p.check('[data-testid="agree-PRIVACY_REQUIRED"]');
-await p.click('[data-testid="terms-next"]');
-await p.click('[data-testid="identity-bypass"]');
-await p.waitForSelector('[data-testid="step-info"]',{timeout:25000});
-
-const gone=async()=>{ await p.locator('[data-testid="toast"]').first().waitFor({state:"detached",timeout:9000}).catch(()=>{}); };
-// 등록된 회사로 확인되면 칸이 잠긴다 — [회사정보 불러오기]를 눌러 푼 뒤 다음 케이스로 간다.
-const unlock=async()=>{
-  if (await p.locator('[data-testid="f-brn"]').getAttribute("readonly") === null) return;
-  await p.click('[data-testid="open-company-search"]');
-  await p.waitForTimeout(600);
-  await p.keyboard.press("Escape");
-  await p.waitForTimeout(600);
-};
-const press=async(brn,label)=>{
-  await gone(); await unlock();
-  await p.fill('[data-testid="f-brn"]', brn);
-  await p.click('[data-testid="verify-brn"]');
-  const t=p.locator('[data-testid="toast"]').first();
-  const shown=await t.waitFor({state:"visible",timeout:15000}).then(()=>true).catch(()=>false);
-  const text=shown ? (await t.innerText()).replace(/\s+/g," ").replace(/[!✕✓i]/g,"").trim() : "(토스트 없음)";
-  const tone=shown ? await t.getAttribute("data-tone") : "-";
-  const inline=(await p.locator('[data-testid="brn-check-message"]').innerText().catch(()=>"")).replace(/\s+/g," ");
-  console.log(`${label}`);
-  console.log(`   토스트[${tone}] ${text}`);
-  console.log(`   화면문구  ${inline}`);
-  return shown;
-};
-
-const r1=await press("1018116511", "① 스크린샷과 같은 번호 (조회 안 되는 번호)");
-if (r1) await p.screenshot({path:`${process.env.OUT}/toast-fail.png`});
-await press("1018116510", "② 이미 등록된 회사");
-await press("1208147521", "③ 실제 존재하는 번호 (카카오)");
-await gone();
-await press("123", "④ 자릿수 부족 (클라이언트 검증)");
+const p=await (await b.newContext({viewport:{width:1440,height:1000}})).newPage();
+const errs=[];
+p.on("pageerror",e=>errs.push(String(e).slice(0,200)));
+await p.goto(`${B}/login`,{waitUntil:"domcontentloaded"});
+const i=p.locator("input"); await i.nth(0).fill(process.env.U); await i.nth(1).fill("Test1234!");
+await p.locator('button[type="submit"]').first().click();
+await p.waitForURL(x=>!x.toString().includes("/login"),{timeout:20000});
+await p.goto(`${B}/apply?new=1`,{waitUntil:"domcontentloaded"}); await p.waitForTimeout(2000);
+const text=async()=> (await p.locator("main").innerText().catch(()=>"(본문 없음)")).replace(/\s+/g," ");
+console.log("STEP1 선택지:", (await text()).slice(0,150));
+// 동시 대관 선택지가 있으면 그걸 고른다
+const dongsi=p.locator('button, label').filter({hasText:/동시/}).first();
+if (await dongsi.count()) { await dongsi.click(); console.log("→ 동시 대관 선택"); }
+else { await p.locator('button, label').filter({hasText:/아레나/}).first().click(); console.log("→ 아레나 선택"); }
+await p.waitForTimeout(800);
+await p.locator('button:has-text("다음")').last().click(); await p.waitForTimeout(1500);
+// 달력에서 하루 선택
+const cells=p.locator('button:not([disabled])').filter({hasText:/^\d{1,2}$/});
+await cells.nth(Math.floor(await cells.count()*0.6)).click(); await p.waitForTimeout(1200);
+await p.locator('button:has-text("다음")').last().click(); await p.waitForTimeout(1500);
+console.log("STEP3 도달:", (await text()).slice(0,80));
+// 스텝 바에서 04 기본 정보 클릭
+const step4=p.locator('button, a, li').filter({hasText:/04 기본 정보|기본 정보/}).first();
+await step4.click().catch(e=>console.log("클릭 오류:", String(e).slice(0,80)));
+await p.waitForTimeout(1500);
+console.log("클릭 후 본문:", (await text()).slice(0,100));
+console.log("페이지 오류:", errs.length? errs.join("\n") : "없음");
 await b.close();
