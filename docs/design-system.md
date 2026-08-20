@@ -132,7 +132,7 @@ Figma 가 stretch 로 잡혀 있어서 넓은 화면에서는 컬럼이 같이 �
 | `ProcessSteps` | Notion 대관 절차 | 한 줄 4박스 × 2줄 + 사이 화살표. 절차 요약은 이 모듈만 쓴다 |
 | `FeatureList` / `LabeledList` | Layout / 2 · Comparison 행 리듬 | 제목+설명 나열 / 라벨-값 나열 |
 | `DocumentList` | Figma 서식 자료실 | 자료 목록. 파일이 없으면 다운로드 아이콘 대신 안내 문구 |
-| `QueryTabs` | **page tabs** (2608) | URL 쿼리(`?tab=` · `?venue=`)로 도는 탭. 기본 `variant="pill"` — 검정 알약 안 흰 알약, 화면 가운데에 떠서 상단바 바로 아래 스티키. `variant="line"` 은 한 페이지 안 하위 축 전용(대관 진행 내역) |
+| `QueryTabs` | **page tabs** (2608) | URL 쿼리(`?tab=` · `?venue=`)로 도는 탭. 기본 `variant="pill"` — 검정 알약 안 흰 알약(항목 h32 · 라벨 Bold 14 = 상단바와 같은 크기), 화면 가운데에 떠서 상단바 바로 아래 스티키. 중앙 메뉴와 같은 축에 놓인다. `variant="line"` 은 한 페이지 안 하위 축 전용(대관 진행 내역) |
 | `ArticleLayout` / `Article` | **Content / 1** | 좌 2컬럼 스티키 **검색창 + 목차** + 우 4컬럼 본문. 규약처럼 긴 조문 문서. `searchLabel` 을 주면 검색이 붙고, 걸린 조만 남기며 본문에 옐로로 표시한다 |
 
 ### 헤딩 위계 (Notion 정본)
@@ -233,7 +233,7 @@ const SPLIT = "grid gap-8 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.6fr)] lg:items-
 |---|---|
 | `AuthShell` | 인증 화면. `variant="card"`(Login / 3) · `variant="tabs"`(Sign up / 1) |
 | `Pagination` | 목록 하단 페이지 이동. 공개·백오피스 공용 — 화면마다 따로 만들지 않는다 |
-| `PublicHeader` | 높이 `--header-h`(56 / lg 64). **아웃라인 없음** — 지면과 같은 색이고 스크롤하면 `bg-background/85 + blur` 로 바뀌어 글자 가독성만 지킨다. **넓은 화면(lg 이상)** — 좌 워드마크 / 중앙 `YOUR STAGE │ YOUR GUIDE │ BOOK IT` (올캡스 Archivo) / 우 지원▾ · 알림 · 이름▾ · 로그아웃. **카테고리는 호버해도 색이 변하지 않는다** — 갈 페이지가 없으므로 누를 수 있다는 신호를 주면 안 된다. 펼쳐지는 패널이 피드백이다. `BOOK IT` 만 링크라 호버 색이 바뀐다. 우측 유틸은 채움·아웃라인 없는 텍스트 버튼. **좁은 화면** — 원형 클릭 메뉴 유지(닫힘 = 검정 채움 원 / 열림 = 아웃라인 원 + 내부 ×, 지름이 같아 아이콘이 튀지 않는다) |
+| `PublicHeader` | 높이 `--header-h`(56 / lg 64). **아웃라인 없음** — 지면과 같은 색이고 스크롤하면 `bg-background/85 + blur` 로 바뀌어 글자 가독성만 지킨다. **넓은 화면(lg 이상)** — 좌 워드마크 / 중앙 `YOUR STAGE  YOUR GUIDE  BOOK IT` (올캡스 Archivo 14, **구분선 없음**, 좌우 요소 사이가 아니라 **화면 중앙에 절대 위치** — 아래 알약 탭과 같은 축) / 우 지원▾ · 알림 · 이름▾ · 로그아웃 (**12** — 중앙보다 커 보이지 않게 한 단 작게, 같은 14 라도 국문이 더 무겁다). **카테고리는 호버해도 색이 변하지 않는다** — 갈 페이지가 없으므로 누를 수 있다는 신호를 주면 안 된다. 펼쳐지는 패널이 피드백이다. `BOOK IT` 만 링크라 호버 색이 바뀐다. 우측 유틸은 채움·아웃라인 없는 텍스트 버튼. **좁은 화면** — 원형 클릭 메뉴 유지(닫힘 = 검정 채움 원 / 열림 = 아웃라인 원 + 내부 ×, 지름이 같아 아이콘이 튀지 않는다) |
 | `NotificationBell` | 아이콘은 Figma 2608 › `notifications` 벡터(24, 면채움). 안 읽은 건수는 옐로 면 배지 |
 | `SiteFooter` | Figma Design › Footer / 1. 상단 Address·Contact + 사이트맵 → **컨테이너 전폭 워드마크** → 헤어라인 → 카피라이트·정책. 오프화이트 지면 |
 | `choiceClass` | 선택 칩 (Figma Multi-step Forms). 선택 = 검정 채움 |

@@ -28,13 +28,17 @@ import {
    블러 + 반투명으로 글자 가독성만 지킨다.
    ========================================================================= */
 
-const CAT_BTN = "flex h-full items-center px-4 type-display text-s text-foreground";
+const CAT_BTN = "flex h-full items-center px-3 type-display text-s text-foreground";
 const ACTION_BTN =
-  "flex h-full items-center px-4 type-display text-s text-foreground transition-colors hover:text-accent";
-const PANEL_LINK = "block whitespace-nowrap py-2 text-s transition-colors hover:text-accent";
-/** 우측 유틸 — 채움·아웃라인 없는 텍스트 버튼 */
+  "flex h-full items-center px-3 type-display text-s text-foreground transition-colors hover:text-accent";
+const PANEL_LINK = "block whitespace-nowrap py-1.5 text-xs transition-colors hover:text-accent";
+/**
+ * 우측 유틸 — 채움·아웃라인 없는 텍스트 버튼.
+ * 중앙 메뉴(Archivo 대문자 14)보다 커 보이지 않게 국문은 한 단 작게 둔다 —
+ * 같은 14 라도 국문이 시각적으로 더 크고 무거워서 도구가 여정보다 앞서 읽힌다.
+ */
 const UTIL_BTN =
-  "flex items-center gap-1 whitespace-nowrap text-s font-bold text-foreground transition-colors hover:text-accent";
+  "flex items-center gap-1 whitespace-nowrap text-xs font-bold text-foreground transition-colors hover:text-accent";
 
 function Caret() {
   return (
@@ -192,7 +196,12 @@ export function PublicHeader({
       }`}
       onMouseLeave={closeSoon}
     >
-      <div className="container-site flex h-[var(--header-h)] items-center justify-between gap-6">
+      {/*
+        중앙 메뉴는 좌우 요소 사이 공간의 가운데가 아니라 **화면의 가운데**에 와야 한다 —
+        워드마크와 우측 유틸의 폭이 다르므로 flex 로만 두면 아래 알약 탭과 축이 어긋난다.
+        그래서 절대 위치로 화면 중앙에 고정한다(마진이 좌우 대칭이라 컨테이너 중앙 = 화면 중앙).
+      */}
+      <div className="container-site relative flex h-[var(--header-h)] items-center justify-between gap-6">
         <Link
           href="/"
           className="type-display shrink-0 text-h6-m leading-none"
@@ -202,14 +211,17 @@ export function PublicHeader({
         </Link>
 
         {/* 중앙 — 카테고리 2개 + 액션 1개 */}
-        <nav aria-label="주요 메뉴" className="hidden h-full flex-1 justify-center lg:flex">
+        <nav
+          aria-label="주요 메뉴"
+          className="absolute left-1/2 hidden h-full -translate-x-1/2 lg:flex"
+        >
           <ul className="flex h-full items-stretch">
             {NAV_CATEGORIES.map((cat) => {
               const isOpen = openKey === cat.label;
               return (
                 <li
                   key={cat.label}
-                  className="relative flex items-stretch after:my-auto after:block after:h-3 after:w-px after:bg-border/25"
+                  className="relative flex items-stretch"
                   onMouseEnter={() => openWithCancel(cat.label)}
                   onFocus={() => openWithCancel(cat.label)}
                 >
@@ -257,7 +269,7 @@ export function PublicHeader({
         </nav>
 
         {/* 우측 — 지원 · 알림 · 계정 */}
-        <div className="hidden shrink-0 items-center gap-5 lg:flex">
+        <div className="hidden shrink-0 items-center gap-4 lg:flex">
           <UtilMenu
             id="support"
             label={SUPPORT_MENU.label}

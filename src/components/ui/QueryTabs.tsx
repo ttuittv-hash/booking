@@ -16,6 +16,8 @@ import { useRef, type ReactNode } from "react";
 
      pill (기본)  Figma 2608 › `page tabs` — 검정 알약 안에 흰 알약.
                   화면 가운데에 떠 있고 상단바 바로 아래에 스티키로 붙는다.
+                  라벨은 상단바 메뉴와 같은 14 — Figma 원안(20)은 페이지 제목보다
+                  커 보여서 위계가 뒤집힌다.
      line         밑줄 탭. 페이지 안에서 한 섹션의 하위 축을 가를 때만 쓴다
                   (대관 진행 내역의 티켓 오픈 / 시설 회의 / 정산).
    ========================================================================= */
@@ -133,7 +135,8 @@ export function QueryTabs({
             <button
               key={it.value}
               {...tabProps(it.value)}
-              className={`type-kr-heading h-10 shrink-0 whitespace-nowrap rounded-full px-6 text-h6-m transition-colors sm:text-h6 ${
+              // 라벨 크기는 상단바 메뉴(14)와 같게 둔다 — 탭이 페이지 제목보다 커 보이면 안 된다
+              className={`h-8 shrink-0 whitespace-nowrap rounded-full px-5 text-s font-bold transition-colors ${
                 it.value === active
                   ? "bg-n-white text-n-darkest"
                   : "text-n-white/70 hover:text-n-white"
