@@ -23,7 +23,7 @@ export default async function ProfilePage() {
         items={[
           user.role === "ADMIN"
             ? { label: "운영자 백오피스", href: "/admin" }
-            : { label: "내 신청 내역", href: "/mypage" },
+            : { label: "대관 신청 현황", href: "/mypage/process" },
           { label: "회원정보 수정" },
         ]}
       />

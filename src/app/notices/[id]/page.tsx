@@ -47,7 +47,8 @@ export default async function NoticeDetailPage({
   params: Promise<{ id: string }>;
 }) {
   const currentUser = await getCurrentUser();
-  if (currentUser && isPendingApplicant(currentUser)) redirect("/pending");
+  if (!currentUser) redirect("/login");
+  if (isPendingApplicant(currentUser)) redirect("/pending");
 
   const { id } = await params;
   const notice = await getNoticeById(id);

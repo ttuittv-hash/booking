@@ -11,11 +11,12 @@ import {
   Band,
   ButtonLink,
   EmptyState,
-  PageHeading,
+  PageHead,
   Row,
   RowList,
 } from "@/components/ui/kit";
 import { Pagination } from "@/components/Pagination";
+import { inquiryCategoryLabel } from "@/lib/inquiryCategories";
 
 export const metadata: Metadata = {
   title: "1:1 문의 | 서울아레나",
@@ -49,18 +50,18 @@ export default async function MyInquiriesPage({
     <div className="flex flex-1 flex-col">
       <PublicHeader active="/mypage/inquiries" currentUser={user} />
       <Breadcrumb
-        items={[{ label: "내 신청 내역", href: "/mypage" }, { label: "1:1 문의" }]}
+        items={[{ label: "마이페이지", href: "/mypage/process" }, { label: "1:1 문의" }]}
       />
 
       <main className="flex flex-1 flex-col">
         <Band tone="light" size="sm">
-          <PageHeading
-            size="md"
-            title="1:1 문의"
-            lead="대관 절차·요금·시설에 대해 문의하세요. 운영자가 확인 후 답변을 등록합니다."
+          <PageHead
+            en="INQUIRIES"
+            ko="1:1 문의"
+            lead="FAQ에서 답을 찾지 못하셨다면 이곳에 문의를 남겨 주세요. 담당 부서가 확인 후 답변드립니다."
             actions={
               <ButtonLink href="/mypage/inquiries/new" variant="primary">
-                문의하기
+                문의 작성
               </ButtonLink>
             }
           />
@@ -69,13 +70,18 @@ export default async function MyInquiriesPage({
         <Band tone="white" size="sm">
           {inquiries.length === 0 ? (
             <EmptyState
-              title="등록된 문의가 없습니다"
-              desc="궁금한 점을 남기면 운영자가 확인 후 답변합니다."
+              title="아직 등록하신 문의가 없습니다"
+              desc="궁금한 점이 있으시면 문의를 남겨 주세요."
               action={
-                <ButtonLink href="/mypage/inquiries/new" variant="primary">
-                  문의하기
-                  <ArrowRight />
-                </ButtonLink>
+                <span className="flex flex-wrap justify-center gap-3">
+                  <ButtonLink href="/mypage/inquiries/new" variant="primary">
+                    문의 작성
+                    <ArrowRight />
+                  </ButtonLink>
+                  <ButtonLink href="/faq" variant="secondary">
+                    FAQ 먼저 보기
+                  </ButtonLink>
+                </span>
               }
             />
           ) : (
@@ -86,6 +92,12 @@ export default async function MyInquiriesPage({
                   href={`/mypage/inquiries/${inquiry.id}`}
                   lead={new Date(inquiry.createdAt).toLocaleString("ko-KR")}
                   title={inquiry.title}
+                  sub={
+                    <span className="flex flex-wrap gap-x-4">
+                      <span>{inquiryCategoryLabel(inquiry.category)}</span>
+                      <span className="tabular-nums">관련 신청번호 {inquiry.quoteId ?? "—"}</span>
+                    </span>
+                  }
                   action={
                     <span className="flex items-center gap-3">
                       <Badge tone={STATUS_TONE[inquiry.status] ?? "neutral"}>

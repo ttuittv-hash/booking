@@ -2,12 +2,12 @@ import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
 import { getVenueContent, saveVenueContent } from "@/lib/db";
 import { sanitizeRichText } from "@/lib/sanitizeHtml";
-import type { VenueContent } from "@/lib/content/types";
 
 export async function GET() {
   return NextResponse.json({ content: await getVenueContent() });
 }
 
+/** 리드 문단 하나만 저장한다 (2026-08 재구성으로 나머지 필드는 코드 정본으로 옮겼다). */
 export async function PUT(request: Request) {
   const user = await getCurrentUser();
   if (!user || user.role !== "ADMIN") {
@@ -15,15 +15,11 @@ export async function PUT(request: Request) {
   }
 
   const body = await request.json().catch(() => null);
-  const content = body?.content as VenueContent | undefined;
-  if (!content || !Array.isArray(content.halls) || !Array.isArray(content.specs)) {
+  const intro = body?.content?.intro;
+  if (typeof intro !== "string") {
     return NextResponse.json({ error: "잘못된 요청입니다." }, { status: 400 });
   }
 
-  content.intro = sanitizeRichText(content.intro);
-  content.overviewIntro = sanitizeRichText(content.overviewIntro);
-  content.specsIntro = sanitizeRichText(content.specsIntro);
-
-  const saved = await saveVenueContent(content);
+  const saved = await saveVenueContent({ intro: sanitizeRichText(intro) });
   return NextResponse.json({ content: saved });
 }

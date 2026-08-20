@@ -38,7 +38,7 @@ export default async function EditQuotePage({
       <PublicHeader active="/apply" currentUser={currentUser} />
       <Breadcrumb
         items={[
-          { label: "내 신청 내역", href: "/mypage" },
+          { label: "대관 신청 현황", href: "/mypage/process" },
           { label: `${quote.id} 수정` },
         ]}
       />

@@ -7,8 +7,7 @@ import type { GuideContent, HomeContent, VenueContent } from "@/lib/content/type
 import { TagBadge } from "@/components/TagBadge";
 import { btnClass } from "@/components/ui/kit";
 import { NoticeEditor } from "./NoticeEditor";
-import { VenueContentForm } from "./VenueContentForm";
-import { GuideContentForm } from "./GuideContentForm";
+import { LeadContentForm } from "./LeadContentForm";
 import { HomeContentForm } from "./HomeContentForm";
 import {
   ADD_BTN_LG,
@@ -67,8 +66,8 @@ export function ContentManager({
             ["notices", `공지사항 (${notices.length})`],
             ["faq", `FAQ (${faqs.length})`],
             ["home", "홈 화면"],
-            ["venue", "서울아레나 소개"],
-            ["guide", "대관 안내"],
+            ["venue", "시설개요 리드"],
+            ["guide", "대관 안내 리드"],
           ] as const
         ).map(([key, label]) => (
           <button key={key} type="button" onClick={() => setTab(key)} className={tabCls(tab === key)}>
@@ -81,8 +80,22 @@ export function ContentManager({
         {tab === "notices" && <NoticesTab notices={notices} setNotices={setNotices} router={router} />}
         {tab === "faq" && <FaqTab faqs={faqs} setFaqs={setFaqs} router={router} />}
         {tab === "home" && <HomeContentForm content={homeContent} />}
-        {tab === "venue" && <VenueContentForm content={venueContent} />}
-        {tab === "guide" && <GuideContentForm content={guideContent} />}
+        {tab === "venue" && (
+          <LeadContentForm
+            endpoint="/api/admin/content/venue"
+            title="시설개요 리드 문단"
+            help="서울아레나(시설개요 탭) 맨 위에 나오는 소개 문단입니다. 제원·특징 등 나머지 내용은 코드 정본(lib/content/venueFacts.ts)에서 관리합니다."
+            initialIntro={venueContent.intro}
+          />
+        )}
+        {tab === "guide" && (
+          <LeadContentForm
+            endpoint="/api/admin/content/guide"
+            title="대관 안내 리드 문단"
+            help="대관 안내(대관 안내 탭) 맨 위에 나오는 소개 문단입니다. 요금 체계와 절차 8단계는 코드 정본(lib/content/rateFacts.ts · processFacts.ts)에서 관리합니다."
+            initialIntro={guideContent.intro}
+          />
+        )}
       </div>
     </div>
   );

@@ -1,100 +1,38 @@
-export interface VenueHall {
-  no: string;
-  title: string;
-  titleEn: string;
-  stat: string;
-  desc: string;
-  image: string | null;
-}
+/* ============================================================================
+   관리자 CMS 로 편집하는 콘텐츠 타입.
 
-export interface VenueSpec {
-  name: string;
-  rows: [string, string][];
-  image: string | null;
-}
+   2026-08 정보구조 재구성으로 시설 정보·대관 절차·요금은 CMS 에서 코드 정본으로 옮겼다
+   (`lib/content/venueFacts.ts` · `processFacts.ts` · `rateFacts.ts`).
+   제원·절차·요금은 마케팅 카피가 아니라 정본 문서에서 온 사실이고, 두 곳에서 편집할 수
+   있으면 반드시 어긋나기 때문이다.
 
-export interface VenueAmenity {
-  name: string;
-  desc: string;
-  image: string | null;
-  featured: boolean;
-}
+   CMS 에 남긴 것은 **실제로 자주 바뀌는 리드 문구와 홈 카피**뿐이다.
+   ========================================================================= */
 
-export interface VenueKeyMap {
-  url: string;
-  label: string;
-}
-
-export interface VenueHighlightCard {
-  title: string;
-  desc: string;
-  image: string | null;
-}
-
-export interface VenueHighlight {
-  badges: string[];
-  highlightBadge: string;
-  title: string;
-  subtitle: string;
-  cards: VenueHighlightCard[];
-}
-
+/** 서울아레나(`/seoularena`) 시설개요 탭의 리드 문단 */
 export interface VenueContent {
   intro: string;
-  overviewIntro: string;
-  halls: VenueHall[];
-  features: string[];
-  specsIntro: string;
-  specs: VenueSpec[];
-  specHighlights: VenueHighlight[];
-  providedFacilities: string[];
-  arenaAmenities: VenueAmenity[];
-  mediumHallAmenities: VenueAmenity[];
-  amenityGallery: VenueKeyMap[];
-  keyMaps: VenueKeyMap[];
 }
 
-export interface GuideStep {
-  no: string;
-  title: string;
-  desc: string;
-}
-
+/** 대관 안내(`/guide`) 대관 안내 탭의 리드 문단 */
 export interface GuideContent {
   intro: string;
-  steps: GuideStep[];
-  notices: string[];
-  packageIntro: string;
-  packageBullets: string[];
-  rulesIntro: string;
 }
 
 /**
  * 브랜드 내러티브 진술.
- * 카카오 브랜드 가이드라인 3.4 "브랜드 선언문: BUSINESS › HOST IT." 본문을
- * 근거 페이지로 연결되는 블록 단위로 나눈 것.
- * 기존 MISSION / VISION / STRATEGY(MVC) 구조를 대체한다.
+ * 카카오 브랜드 가이드라인 3.4 "브랜드 선언문: BUSINESS › HOST IT." 본문을 블록으로 나눈 것.
  */
 export interface HomeNarrativeStatement {
-  title: string;
-  desc: string;
-  /** 이 진술을 뒷받침하는 제원·안내 페이지 */
-  href: string;
-  linkLabel: string;
-  image: string | null;
-}
-
-export interface HomeProcessStep {
-  no: string;
   title: string;
   desc: string;
 }
 
 export interface HomeContent {
   heroImage: string | null;
-  /** 영문 디스플레이 (Notion 대관 사이트 기획 히어로 후보안) */
+  /** 영문 디스플레이 */
   heroTitle: string;
-  /** 국문 리드 — 브랜드 가이드라인 문장 */
+  /** 국문 리드 */
   heroSubtitle: string;
   heroPrimaryLabel: string;
   heroPrimaryHref: string;
@@ -105,7 +43,4 @@ export interface HomeContent {
   narrativeLead: string;
   narrativeStatements: HomeNarrativeStatement[];
   narrativeClosing: string;
-  processLabel: string;
-  processTitle: string;
-  processSteps: HomeProcessStep[];
 }
