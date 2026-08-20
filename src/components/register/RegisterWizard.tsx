@@ -15,7 +15,7 @@ import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { btnClass } from "@/components/ui/kit";
 import { useToast } from "@/components/ui/Toast";
-import { PasswordMatchHint } from "@/components/ui/PasswordMatchHint";
+import { InputCheckMark, PasswordMatchHint } from "@/components/ui/PasswordMatchHint";
 import {
   checkBusinessNumber,
   checkEmail,
@@ -966,26 +966,32 @@ function StepInfo({
           <input data-testid="f-email" type="email" value={form.email} onChange={set("email")} className={inputCls(false)} />
         </Field>
         <Field label="비밀번호" required hint={PASSWORD_HINT}>
-          <input
-            data-testid="f-password"
-            type="password"
-            name="new-password"
-            autoComplete="new-password"
-            value={form.password}
-            onChange={set("password")}
-            className={inputCls(false)}
-          />
+          <div className="relative">
+            <input
+              data-testid="f-password"
+              type="password"
+              name="new-password"
+              autoComplete="new-password"
+              value={form.password}
+              onChange={set("password")}
+              className={`${inputCls(false)} pr-9`}
+            />
+            <InputCheckMark show={checkPassword(form.password).ok} />
+          </div>
         </Field>
         <Field label="비밀번호 확인" required>
-          <input
-            data-testid="f-passwordConfirm"
-            type="password"
-            name="confirm-password"
-            autoComplete="new-password"
-            value={form.passwordConfirm}
-            onChange={set("passwordConfirm")}
-            className={inputCls(false)}
-          />
+          <div className="relative">
+            <input
+              data-testid="f-passwordConfirm"
+              type="password"
+              name="confirm-password"
+              autoComplete="new-password"
+              value={form.passwordConfirm}
+              onChange={set("passwordConfirm")}
+              className={`${inputCls(false)} pr-9`}
+            />
+            <InputCheckMark show={form.passwordConfirm.length > 0 && form.password === form.passwordConfirm} />
+          </div>
           <PasswordMatchHint password={form.password} confirm={form.passwordConfirm} />
         </Field>
         <Field label="전화번호">
