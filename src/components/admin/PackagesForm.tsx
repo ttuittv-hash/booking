@@ -62,10 +62,10 @@ const MEDIA_OPTIONS: { value: MediaTier; label: string }[] = [
   { value: "FULL", label: MEDIA_TIER_LABEL.FULL },
 ];
 
-function blankPackage(id: number): EditablePackage {
+function blankPackage(id: number, venueId: string): EditablePackage {
   return {
     id,
-    venueId: DEFAULT_VENUE_ID,
+    venueId,
     name: `패키지 ${id}`,
     tagline: "",
     audienceTier: { min: 0, max: 0, label: "" },
@@ -93,6 +93,9 @@ export function PackagesForm({ rateTable }: { rateTable: RateTable }) {
   const router = useRouter();
   const [packages, setPackages] = useState<EditablePackage[]>(rateTable.packages);
   const [activeId, setActiveId] = useState(rateTable.packages[0]?.id ?? 1);
+  const [venueTab, setVenueTab] = useState<"arena" | "medium-hall">(
+    (rateTable.packages[0]?.venueId as "arena" | "medium-hall" | undefined) ?? "arena",
+  );
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
 
@@ -105,6 +108,13 @@ export function PackagesForm({ rateTable }: { rateTable: RateTable }) {
   const [pickerCategory, setPickerCategory] = useState<AddonCategory>(ADDON_CATEGORIES[0]);
 
   const active = packages.find((p) => p.id === activeId)!;
+  const venuePackages = packages.filter((p) => (p.venueId ?? DEFAULT_VENUE_ID) === venueTab);
+
+  function selectVenueTab(v: "arena" | "medium-hall") {
+    setVenueTab(v);
+    const first = packages.find((p) => (p.venueId ?? DEFAULT_VENUE_ID) === v);
+    if (first) setActiveId(first.id);
+  }
 
   // [화면 뼈대 2026-08-19] 패키지 구성을 신청자 노출 등급 기준 3분류로 나눠 보여준다 —
   // ① 기본 내역(ITEM_ONLY, 항목명만 노출) ② Bowl 사용료 + 유틸리티(HIDDEN, 완전 비노출)
@@ -130,7 +140,7 @@ export function PackagesForm({ rateTable }: { rateTable: RateTable }) {
 
   function addPackage() {
     const nextId = Math.max(0, ...packages.map((p) => p.id)) + 1;
-    setPackages((prev) => [...prev, blankPackage(nextId)]);
+    setPackages((prev) => [...prev, blankPackage(nextId, venueTab)]);
     setActiveId(nextId);
   }
 
@@ -216,13 +226,30 @@ export function PackagesForm({ rateTable }: { rateTable: RateTable }) {
 
   return (
     <div className="mt-8">
+      {/* 1뎁스: 공간 — 패키지가 늘어 한 줄에 다 못 들어간다(그쪽 개편). */}
+      <div className="flex gap-1 border-b border-border/20">
+        {(["arena", "medium-hall"] as const).map((v) => (
+          <button
+            key={v}
+            type="button"
+            onClick={() => selectVenueTab(v)}
+            className={tabCls(venueTab === v)}
+          >
+            {VENUES.find((venue) => venue.id === v)?.name ?? v}
+          </button>
+        ))}
+      </div>
+
+      {/* 2뎁스: 그 공간의 패키지 */}
       <div className={TAB_BAR}>
-        {packages.map((p) => (
-          <button key={p.id} type="button" onClick={() => setActiveId(p.id)} className={tabCls(p.id === activeId)}>
+        {venuePackages.map((p) => (
+          <button
+            key={p.id}
+            type="button"
+            onClick={() => setActiveId(p.id)}
+            className={tabCls(p.id === activeId)}
+          >
             {p.name}
-            <span className="ml-1.5 font-normal text-muted">
-              {VENUES.find((v) => v.id === (p.venueId ?? DEFAULT_VENUE_ID))?.name}
-            </span>
           </button>
         ))}
         <button
@@ -523,6 +550,16 @@ export function PackagesForm({ rateTable }: { rateTable: RateTable }) {
           </div>
         </section>
 
+        {venueTab === "medium-hall" && (
+          <p className="rounded-sm border-l-2 border-accent bg-accent-soft/40 px-4 py-3 text-[12.5px] leading-5 text-foreground">
+            중형공연장은 이 목록(추가 옵션)을 쓰지 않습니다 — 가격은 &ldquo;요금표 관리&rdquo;의
+            &ldquo;중형공연장 요금&rdquo; 섹션에서 따로 관리합니다. 여기서는 STEP 2(구성·옵션)에
+            표시되는 기본 구성 안내 문구만 편집합니다.
+          </p>
+        )}
+
+        {venueTab === "arena" && (
+        <>
         {(
           [
             {
@@ -752,6 +789,8 @@ export function PackagesForm({ rateTable }: { rateTable: RateTable }) {
             </div>
           </section>
         ))}
+        </>
+        )}
       </div>
 
       <div className="mt-8 flex flex-wrap items-center gap-4 border-t border-border/20 pt-6">

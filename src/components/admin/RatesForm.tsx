@@ -2,9 +2,9 @@
 
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-import { ADDON_CATEGORY_LABEL, type AddonCategory, type RateTable } from "@/lib/pricing/types";
+import { ADDON_CATEGORY_LABEL, VENUES, type AddonCategory, type RateTable } from "@/lib/pricing/types";
 import { btnClass } from "@/components/ui/kit";
-import { FIELD, FIELD_NUM, HELP, LINK_BTN, PANEL, SECTION_TITLE, SUB_TITLE } from "./adminUi";
+import { FIELD, FIELD_NUM, HELP, LINK_BTN, PANEL, SECTION_TITLE, SUB_TITLE, tabCls } from "./adminUi";
 
 function slugify(name: string): string {
   const base = name
@@ -32,6 +32,7 @@ export function RatesForm({ rateTable }: { rateTable: RateTable }) {
     rateTable.dayExclusionDiscountRatio,
   );
   const [midHall, setMidHall] = useState(rateTable.midHall);
+  const [venueTab, setVenueTab] = useState<"arena" | "medium-hall">("arena");
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const [newItemCategory, setNewItemCategory] = useState<AddonCategory | null>(null);
@@ -103,6 +104,17 @@ export function RatesForm({ rateTable }: { rateTable: RateTable }) {
 
   return (
     <div className="mt-8 space-y-8">
+      {/* 1뎁스: 공간 — 아레나와 중형공연장은 요율 체계가 달라 화면을 나눈다(그쪽 개편). */}
+      <div className="flex gap-1 border-b border-border/20">
+        {(["arena", "medium-hall"] as const).map((v) => (
+          <button key={v} type="button" onClick={() => setVenueTab(v)} className={tabCls(venueTab === v)}>
+            {VENUES.find((venue) => venue.id === v)?.name ?? v}
+          </button>
+        ))}
+      </div>
+
+      {venueTab === "arena" && (
+      <>
       <section className={PANEL}>
         <h2 className={SECTION_TITLE}>공통 요율</h2>
         <p className={`mt-2 ${HELP}`}>
@@ -144,7 +156,10 @@ export function RatesForm({ rateTable }: { rateTable: RateTable }) {
           />
         </div>
       </section>
+      </>
+      )}
 
+      {venueTab === "medium-hall" && (
       <section className={PANEL}>
         <h2 className={SECTION_TITLE}>중형공연장 요금 (DAILY)</h2>
         <p className={`mt-1 ${HELP}`}>
@@ -193,7 +208,10 @@ export function RatesForm({ rateTable }: { rateTable: RateTable }) {
           />
         </div>
       </section>
+      )}
 
+      {venueTab === "arena" && (
+      <>
       <section className={PANEL}>
         <h2 className={SECTION_TITLE}>부대시설 단가</h2>
         <div className="mt-4 space-y-6">
@@ -292,6 +310,8 @@ export function RatesForm({ rateTable }: { rateTable: RateTable }) {
           ))}
         </div>
       </section>
+      </>
+      )}
 
       <div className="flex flex-wrap items-center gap-4 border-t border-border/20 pt-6">
         <button
