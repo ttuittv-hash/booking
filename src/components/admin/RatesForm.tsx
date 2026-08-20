@@ -21,7 +21,19 @@ const VENUE_URL_VALUES = ["arena", "live-hall"] as const;
 const URL_TO_VENUE: Record<string, "arena" | "medium-hall"> = { arena: "arena", "live-hall": "medium-hall" };
 const VENUE_TO_URL: Record<"arena" | "medium-hall", "arena" | "live-hall"> = { arena: "arena", "medium-hall": "live-hall" };
 
-export function RatesForm({ rateTable }: { rateTable: RateTable }) {
+export interface PublicMidHallRef {
+  total: number | null;
+  breakdown: string | null;
+}
+
+export function RatesForm({
+  rateTable,
+  publicMidHall,
+}: {
+  rateTable: RateTable;
+  /** 공개 대관료 페이지(/rates)에 표기된 중형 금액 — 입력칸 옆 대조용 */
+  publicMidHall?: Record<"setup" | "weekday" | "weekend", PublicMidHallRef>;
+}) {
   const router = useRouter();
   const [addons, setAddons] = useState(
     rateTable.addons.map((a) => ({
@@ -176,27 +188,40 @@ export function RatesForm({ rateTable }: { rateTable: RateTable }) {
 
         {(
           [
-            ["setupDayFee", "셋업 Load-In (1일, 평일/주말 동일)"],
-            ["performanceWeekdayFee", "공연 Show — 평일 (1일)"],
-            ["performanceWeekendFee", "공연 Show — 주말 (1일)"],
-            ["extraHourFee", "셋업 연장 · 철수 Load-Out (시간당)"],
-            ["cleaningUnitPrice", "청소비 (원/인)"],
+            ["setupDayFee", "셋업 Load-In (1일, 평일/주말 동일)", "setup"],
+            ["performanceWeekdayFee", "공연 Show — 평일 (1일)", "weekday"],
+            ["performanceWeekendFee", "공연 Show — 주말 (1일)", "weekend"],
+            ["extraHourFee", "셋업 연장 · 철수 Load-Out (시간당)", null],
+            ["cleaningUnitPrice", "청소비 (원/인)", null],
           ] as const
-        ).map(([key, label]) => (
-          <div
-            key={key}
-            className="mt-4 grid grid-cols-1 items-center gap-2 border-t border-border-soft pt-4 sm:grid-cols-[1fr_200px] sm:gap-3"
-          >
-            <div className={SUB_TITLE}>{label}</div>
-            <input
-              type="number"
-              min={0}
-              value={midHall[key]}
-              onChange={(e) => setMidHall((prev) => ({ ...prev, [key]: Math.max(0, Number(e.target.value) || 0) }))}
-              className={FIELD_NUM}
-            />
-          </div>
-        ))}
+        ).map(([key, label, publicKey]) => {
+          const ref = publicKey && publicMidHall ? publicMidHall[publicKey] : null;
+          const mismatch = ref?.total != null && ref.total !== midHall[key];
+          return (
+            <div
+              key={key}
+              className="mt-4 grid grid-cols-1 items-center gap-2 border-t border-border-soft pt-4 sm:grid-cols-[1fr_200px] sm:gap-3"
+            >
+              <div>
+                <div className={SUB_TITLE}>{label}</div>
+                {ref?.total != null ? (
+                  <div className={mismatch ? "mt-0.5 text-xs font-bold text-danger" : `mt-0.5 ${HELP}`}>
+                    공개 페이지 표기 {ref.total.toLocaleString("ko-KR")}원
+                    {ref.breakdown ? ` (${ref.breakdown})` : ""}
+                    {mismatch ? " — 입력값과 다릅니다" : " · 일치"}
+                  </div>
+                ) : null}
+              </div>
+              <input
+                type="number"
+                min={0}
+                value={midHall[key]}
+                onChange={(e) => setMidHall((prev) => ({ ...prev, [key]: Math.max(0, Number(e.target.value) || 0) }))}
+                className={FIELD_NUM}
+              />
+            </div>
+          );
+        })}
 
         <div className="mt-4 grid grid-cols-1 items-center gap-2 border-t border-border-soft pt-4 sm:grid-cols-[1fr_200px] sm:gap-3">
           <div>

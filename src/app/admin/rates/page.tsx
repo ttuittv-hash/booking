@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/lib/auth";
-import { getCurrentRateTable } from "@/lib/db";
+import { getCurrentRateTable, getRatesContent } from "@/lib/db";
 import { RatesForm } from "@/components/admin/RatesForm";
 import { AdminNav } from "@/components/admin/AdminNav";
 import { PAGE_LEAD, PAGE_TITLE } from "@/components/admin/adminUi";
@@ -11,6 +11,25 @@ export default async function AdminRatesPage() {
   if (user.role !== "ADMIN") redirect("/apply");
 
   const rateTable = await getCurrentRateTable();
+
+  // 공개 대관료 페이지(/rates)의 표기 금액 — 요금표 입력칸 옆에 나란히 보여 준다.
+  // 견적 계산(이 요금표)과 공개 표기(콘텐츠 관리)는 별도 데이터라 자동으로 맞춰지지
+  // 않는다. 어긋난 채 운영되면 공개가와 실제 견적이 달라지므로, 여기서 눈으로 잡는다.
+  const ratesContent = await getRatesContent();
+  const toNumber = (v: string | undefined) => {
+    const digits = (v ?? "").replace(/[^0-9]/g, "");
+    return digits ? Number(digits) : null;
+  };
+  const liveHall = ratesContent.liveHall;
+  const findCol = (key: string) => liveHall.columns.find((c) => c.key === key);
+  const findDetail = (key: string) => liveHall.detailColumns.find((c) => c.key === key);
+  const publicMidHall = Object.fromEntries(
+    (["setup", "weekday", "weekend"] as const).map((key) => {
+      const total = toNumber(findCol(key)?.values[0]);
+      const parts = (findDetail(key)?.values ?? []).filter(Boolean).join(" + ");
+      return [key, { total, breakdown: parts || null }];
+    }),
+  ) as Record<"setup" | "weekday" | "weekend", { total: number | null; breakdown: string | null }>;
 
   return (
     <div className="flex flex-1 flex-col">
@@ -28,7 +47,7 @@ export default async function AdminRatesPage() {
           </p>
         </header>
 
-        <RatesForm rateTable={rateTable} />
+        <RatesForm rateTable={rateTable} publicMidHall={publicMidHall} />
       </main>
     </div>
   );
