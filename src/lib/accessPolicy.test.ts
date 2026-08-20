@@ -15,11 +15,33 @@ describe("계정 상태 판정", () => {
     expect(accountStateOf({ role: "ADMIN", approvalStatus: "APPROVED" })).toBe("APPROVED"));
 });
 
-describe("시설 소개 — 3단계 모두 열람", () => {
+describe("서울아레나 소개 — 3단계 모두 열람", () => {
   for (const state of ["GUEST", "PENDING", "APPROVED"] as const) {
-    it(`${state} 도 /venue 를 본다`, () => expect(canAccess("/venue", state)).toBe(true));
+    it(`${state} 도 /seoularena 를 본다`, () => expect(canAccess("/seoularena", state)).toBe(true));
   }
-  it("하위 경로도 열린다", () => expect(canAccess("/venue/specs", "GUEST")).toBe(true));
+  it("하위 경로도 열린다", () => expect(canAccess("/seoularena/x", "GUEST")).toBe(true));
+  // 규칙이 없는 경로는 공개로 보기 때문에, 규칙이 실제로 걸려 있는지도 같이 확인한다.
+  // (이게 없으면 경로가 사라져도 테스트가 계속 통과한다 — 2026-08 IA 재구성 때 실제로 그랬다.)
+  it("규칙이 실제로 등록돼 있다", () => expect(findRule("/seoularena")?.label).toBe("서울아레나"));
+});
+
+describe("IA 재구성으로 새로 생긴 페이지 — 비로그인 차단", () => {
+  for (const [path, label] of [
+    ["/features", "시설 소개"],
+    ["/rates", "대관료"],
+    ["/rules", "대관 규약"],
+    ["/documents", "대관 자료"],
+  ] as const) {
+    it(`${label} 은 비로그인이 막힌다`, () => expect(canAccess(path, "GUEST")).toBe(false));
+    it(`${label} 은 승인 대기도 열람한다`, () => expect(canAccess(path, "PENDING")).toBe(true));
+    it(`${label} 규칙이 등록돼 있다`, () => expect(findRule(path)?.label).toBe(label));
+  }
+});
+
+describe("사라진 경로", () => {
+  // /venue·/packages 는 IA 재구성으로 없어졌다. 규칙도 같이 지웠는지 확인한다.
+  it("/venue 규칙은 남아 있지 않다", () => expect(findRule("/venue")).toBeUndefined());
+  it("/packages 규칙은 남아 있지 않다", () => expect(findRule("/packages")).toBeUndefined());
 });
 
 describe("대관안내·대관현황 — 비로그인 차단, 로그인하면 승인 전에도 열람", () => {
@@ -34,6 +56,10 @@ describe("대관신청·신청내역 — 승인 완료 필수", () => {
   it("미승인도 막힌다", () => expect(canAccess("/apply", "REJECTED")).toBe(false));
   it("승인 완료만 가능하다", () => expect(canAccess("/apply", "APPROVED")).toBe(true));
   it("신청내역도 승인 완료여야 한다", () => expect(canAccess("/mypage", "PENDING")).toBe(false));
+  it("대관 신청 현황도 승인 완료여야 한다", () =>
+    expect(canAccess("/mypage/process", "PENDING")).toBe(false));
+  it("대관 진행 내역도 승인 완료여야 한다", () =>
+    expect(canAccess("/mypage/history", "PENDING")).toBe(false));
 });
 
 describe("마이 — 승인 대기여도 본인 정보 수정은 가능", () => {

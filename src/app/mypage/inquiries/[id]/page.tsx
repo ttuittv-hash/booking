@@ -4,7 +4,8 @@ import { getInquiryById } from "@/lib/db";
 import { PublicHeader } from "@/components/PublicHeader";
 import { Breadcrumb } from "@/components/ui/Breadcrumb";
 import { SiteFooter } from "@/components/ui/SiteFooter";
-import { Badge, Band, EmptyState, PageHeading } from "@/components/ui/kit";
+import { Badge, Band, ButtonLink, EmptyState, PageHeading } from "@/components/ui/kit";
+import { inquiryCategoryLabel } from "@/lib/inquiryCategories";
 
 export default async function MyInquiryDetailPage({
   params,
@@ -35,8 +36,14 @@ export default async function MyInquiryDetailPage({
             size="md"
             title={inquiry.title}
             lead={
-              <span className="text-xs tabular-nums text-muted">
-                {new Date(inquiry.createdAt).toLocaleString("ko-KR")}
+              <span className="flex flex-wrap items-center gap-x-4 gap-y-2 text-xs text-muted">
+                <Badge>{inquiryCategoryLabel(inquiry.category)}</Badge>
+                <span className="tabular-nums">
+                  {new Date(inquiry.createdAt).toLocaleString("ko-KR")}
+                </span>
+                {inquiry.quoteId && (
+                  <span className="tabular-nums">관련 신청번호 {inquiry.quoteId}</span>
+                )}
               </span>
             }
             actions={
@@ -68,9 +75,15 @@ export default async function MyInquiryDetailPage({
           </Band>
         ) : (
           <Band tone="light" size="sm">
+            {/* 이유 없이 비활성만 두면 같은 문의가 중복 등록된다 — 왜 수정할 수 없는지 함께 적는다 */}
             <EmptyState
-              title="아직 답변이 등록되지 않았습니다"
-              desc="운영자가 확인한 뒤 이 화면에 답변을 등록합니다."
+              title="담당 부서가 확인하고 있습니다"
+              desc="답변이 등록되면 이메일로 알려 드립니다. 등록 후에는 문의 내용을 수정하실 수 없으므로, 덧붙일 내용이 있으시면 새 문의로 남겨 주세요."
+              action={
+                <ButtonLink href="/mypage/inquiries/new" variant="secondary">
+                  새 문의 작성
+                </ButtonLink>
+              }
             />
           </Band>
         )}

@@ -18,7 +18,7 @@ export default async function WithdrawPage() {
 
   return (
     <div className="flex flex-1 flex-col">
-      <PublicHeader active="/mypage" currentUser={user} />
+      <PublicHeader active="/mypage/process" currentUser={user} />
       {/* 3뎁스 — 부모(회원정보 수정)를 포함해 2개 */}
       <Breadcrumb
         items={[{ label: "회원정보 수정", href: "/mypage/profile" }, { label: "회원 탈퇴" }]}

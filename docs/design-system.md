@@ -3,7 +3,12 @@
 출처
 - Kakao Arena Brand Guidelines 0.1
 - Figma `2607 서울아레나 웹사이트 Full` › WORKSPACE › **Wireframe** / **Style Guide** / Design
-- Notion `(웹사이트) 대관·비즈니스 사이트 구조 기획`
+- Figma `2608 서울아레나 대관시스템` — 그리드 정본 · Header/Content 레이아웃
+- Notion `(웹사이트) 대관·비즈니스 사이트 구조 기획` — **정보구조와 페이지별 콘텐츠의 정본**
+- `260820 서울아레나 대관시스템 디자인·브랜드 가이드.md` (디자인팀 공유 문서)
+
+**Notion 과 이 문서가 어긋나면 Notion 이 이긴다.** 헤딩 위계(H1 영문 슬로건 / H3 국문 제목)와
+페이지별 섹션 구성은 Notion 에서 확정한 것이고, 여기 적힌 것은 그것을 코드로 옮긴 결과다.
 
 새 화면을 만들거나 기존 화면을 고칠 때 **여기 정의된 레이아웃과 컴포넌트만** 쓴다.
 없으면 Figma에서 먼저 찾고, 그래도 없으면 만들지 말고 물어본다.
@@ -68,7 +73,37 @@ Primitive (Figma Style Guide › Variables)
 `d1`(160/72) · `d2`(96/52) · `h1`(56/40) · `h2`(48/36) · `h3`(40/32) · `h4`(32/24) · `h5`(24/20) · `h6`(20/18)
 본문 `l`(20) · `m`(18) · `r`(16) · `s`(14) · `xs`(12), 모두 lh 1.5
 
-## 3. 레이아웃 모듈 (Figma Wireframe › 컨텐츠 종류별 레이아웃)
+## 3. 그리드 (Figma `2608` 정본)
+
+**6 컬럼 / stretch / 마진 64 / 거터 40.** 콘텐츠 폭은 고정값이 아니라
+`뷰포트 − 마진×2` 다. `container-site` 에 max-width 를 다시 붙이지 마라 —
+Figma 가 stretch 로 잡혀 있어서 넓은 화면에서는 컬럼이 같이 넓어진다.
+
+| 폭 | 마진 | 거터 |
+|---|---|---|
+| ≥1440 | 64 | 40 |
+| ≥1024 | 48 | 32 |
+| ≥768 | 32 | 24 |
+| <768 | 20 | 16 |
+
+- `container-site` — 좌우 마진만 준다(전폭). 모든 밴드 안쪽 래퍼가 이걸 쓴다
+- `grid-site` — lg 이상에서 6컬럼 · `gap: var(--gutter)`
+- `measure` — 본문 가독 폭(48rem). 긴 문단은 6컬럼을 다 채우지 않는다
+- 스팬 환산(1497 기준, 콘텐츠 1369): 1열 194.8 / 2열 429.7 / 3열 664.5 / 4열 899.3
+
+**기본은 좌측 정렬 1컬럼.** 카드처럼 대등한 항목이 나열될 때만 멀티컬럼을 쓴다.
+
+### 표의 열 배치
+
+| 열 수 | 놓는 자리 |
+|---|---|
+| 2열 | 1·2열. 금액이면 1열 + **마지막 열** |
+| 3열 | 1·2·3열. 금액이면 1·2열 + **마지막 열** |
+| 4열 | 1·2·3열 + **마지막 열** |
+
+금액은 오른쪽 끝에 붙여 숫자 기둥을 만든다.
+
+## 4. 레이아웃 모듈 (Figma Wireframe › 컨텐츠 종류별 레이아웃)
 
 `@/components/ui/kit` 에서 가져다 쓴다. **모듈을 변형하지 말고 그대로 쓴다.**
 
@@ -87,18 +122,50 @@ Primitive (Figma Style Guide › Variables)
 | `PageHeading` | Header / 1-1 | 페이지 상단 헤딩 + 보조 문구 |
 | `CenterHeading` | Layout 1/3/6 헤더 | 센터 정렬 섹션 헤딩 |
 | `RowList` / `Row` | **Stacked List / 1** (Application Components) | 목록(공지·FAQ·신청 내역). 헤더(제목·리드·우측 컨트롤) + 헤어라인 행 |
+| `PageHead` | Notion 위계 | **페이지 머리글의 표준.** H1 영문 슬로건(`type-display`) + H3 국문 제목. `PageHeading` 은 구형이다 |
+| `SectionHead` | Notion 위계 | 섹션 머리글(H3). 영문이면 Archivo, 국문이면 KakaoBig 로 자동 전환 |
+| `PhotoHero` | Header / 5 | 전면 사진 섹션(아레나·중형공연장). 높이 `min(900px, 100svh)`, 좌측 정렬 · 세로 중앙 |
+| `ProcessSteps` | Notion 대관 절차 | 한 줄 4박스 × 2줄 + 사이 화살표. 절차 요약은 이 모듈만 쓴다 |
+| `FeatureList` / `LabeledList` | Layout / 2 · Comparison 행 리듬 | 제목+설명 나열 / 라벨-값 나열 |
+| `DocumentList` | Figma 서식 자료실 | 자료 목록. 파일이 없으면 다운로드 아이콘 대신 안내 문구 |
+| `QueryTabs` | Figma 탭 | URL 쿼리(`?tab=` · `?venue=`)로 도는 탭. 새로고침·공유·뒤로가기가 유지된다 |
+| `ArticleLayout` / `Article` | **Content / 1** | 좌 2컬럼 스티키 목차 + 우 4컬럼 본문. 규약처럼 긴 조문 문서 |
+
+### 헤딩 위계 (Notion 정본)
+
+Notion 이 잡아 놓은 위계를 그대로 쓴다. 디자인 가이드의 크기 규칙과 어긋나면 이쪽이 이긴다.
+
+| 자리 | 무엇 | 컴포넌트 |
+|---|---|---|
+| H1 | 페이지 **영문 슬로건** (`HOW IT WORKS`) — 대문자 Archivo | `PageHead en` |
+| H3 | 페이지 **국문 제목** (`대관 절차`) | `PageHead ko` |
+| H2 | 전면 사진 섹션 제목 (아레나 · 중형공연장) | `PhotoHero title` |
+| H3 | 섹션 제목 (`RATE INCLUDES`) | `SectionHead title` |
+| H5 | 목록 항목 제목 | `FeatureList` · `ProcessSteps` 내부 |
+
+영문 제목은 `type-display`(Archivo, 대문자), 국문 제목은 `type-kr-heading`.
+`SectionHead` 는 제목이 라틴 문자인지 보고 알아서 고른다 — 직접 클래스를 붙이지 마라.
+**`type-display` 는 `text-transform: uppercase` 다.** `35m`·`180t` 처럼 소문자 단위가 붙은 값을
+넣으면 `35M` 으로 나온다. 단위는 라벨 쪽으로 뺀다.
+
+### 밴드 리듬
+
+머리글만 있는 밴드 뒤에 곧바로 다른 밴드를 놓지 마라 — 두 밴드의 세로 패딩이 더해져
+제목과 내용 사이가 200px 넘게 벌어진다. 리드 문장이 없으면 **한 밴드 안에서** `mt` 로 띄운다.
 
 ### 반응형
 
-**스냅 포인트는 `sm`(640px) 하나로 통일한다.** 그 아래는 1컬럼, 그 위는 2컬럼.
+**콘텐츠 스냅 포인트는 `sm`(640px) 하나로 통일한다.** 그 아래는 1컬럼, 그 위는 2컬럼.
 컴포넌트마다 다른 지점에서 무너지면 화면 폭을 줄일 때 레이아웃이 계단처럼 어긋난다.
+예외는 **헤더와 6컬럼 그리드뿐** — 카테고리 4개를 한 줄에 담으려면 `lg`(1024px) 가 필요하다.
 
-- 오픈 메뉴: `sm` 미만이면 카테고리 제목을 페이지 목록 위로 올린 1컬럼.
-  대신 링크를 2열로 깔아 세로 길이를 줄인다 (한 화면 규칙을 320px 까지 지킨다)
+- 헤더: `lg` 미만이면 카테고리 노출을 접고 원형 버튼 + 전체 메뉴로 떨어진다
 - `Row`: `sm` 미만이면 우측 메타·액션이 좌측 블록 아래로 떨어진다
+- `ArticleLayout`: `lg` 미만이면 목차가 본문 위로 올라간다
 - 확인 폭: 1920 / 1440 / 1024 / 834 / 768 / 640 / 480 / 390 / 360 / 320
+- 검수는 **1497 / 390 두 폭에서 전 페이지 스크린샷 + 가로 오버플로 계측**으로 한다
 
-## 4. 표 만들기 (읽기 쉽게)
+## 5. 표 만들기 (읽기 쉽게)
 
 `ComparisonTable` 규칙:
 
@@ -122,7 +189,7 @@ Primitive (Figma Style Guide › Variables)
 
 ```tsx
 const SPLIT = "grid gap-8 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.6fr)] lg:items-start lg:gap-16";
-// 좌: 제목·설명 / 우: 데이터. 예) src/app/packages/page.tsx
+// 좌: 제목·설명 / 우: 데이터. 예) src/app/rates/page.tsx
 ```
 
 ### 버튼 크기
@@ -154,13 +221,13 @@ const SPLIT = "grid gap-8 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.6fr)] lg:items-
 - 현재 페이지 주변 5개만 노출한다 — 페이지가 많아져도 줄바꿈이 나지 않는다.
 - 좁은 화면에서는 건수 줄과 컨트롤 줄이 세로로 쌓인다 (`sm` 스냅).
 
-## 5. 컴포넌트
+## 6. 컴포넌트
 
 | | |
 |---|---|
 | `AuthShell` | 인증 화면. `variant="card"`(Login / 3) · `variant="tabs"`(Sign up / 1) |
 | `Pagination` | 목록 하단 페이지 이동. 공개·백오피스 공용 — 화면마다 따로 만들지 않는다 |
-| `PublicHeader` | 메뉴 아이콘은 **원**이다. 닫힘 = 검정 채움 원 / 열림 = 검정 아웃라인 원 + 내부 ×. 두 상태의 지름이 같아 아이콘이 튀지 않는다 |
+| `PublicHeader` | **넓은 화면(lg 이상)** — 좌 워드마크 / 중앙에 카테고리 4개를 접지 않고 노출(일반 텍스트, 호버·포커스로 하위 페이지 드롭다운) / 우 로그인 · 로그인 후 마이페이지+로그아웃. 카테고리는 페이지가 아니므로 링크가 아니라 버튼이다. **좁은 화면** — 기존 원형 클릭 메뉴 유지(닫힘 = 검정 채움 원 / 열림 = 아웃라인 원 + 내부 ×, 지름이 같아 아이콘이 튀지 않는다) |
 | `SiteFooter` | Figma Design › Footer / 1. 상단 Address·Contact + 사이트맵 → **컨테이너 전폭 워드마크** → 헤어라인 → 카피라이트·정책. 오프화이트 지면 |
 | `choiceClass` | 선택 칩 (Figma Multi-step Forms). 선택 = 검정 채움 |
 | `Note` | 보조 고지문. 색면 박스를 쓰지 않는다 |
@@ -189,24 +256,30 @@ const SPLIT = "grid gap-8 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.6fr)] lg:items-
 
 동의 체크박스는 폼 안의 컨트롤이므로 제출 버튼은 `md`, 화면 자체의 주 액션이면 `lg` 다.
 
-## 6. 페이지 골격
+## 7. 페이지 골격
 
 ```tsx
 <div className="flex flex-1 flex-col">
-  <PublicHeader active="/venue" currentUser={user} />
+  <PublicHeader active="/rules" currentUser={user} />
   {/* 브레드크럼은 3뎁스부터만. items 2개 미만이면 자동으로 렌더되지 않는다 */}
-  <Breadcrumb items={[{ label: "내 신청 내역", href: "/mypage" }, { label: "1:1 문의" }]} />
+  <Breadcrumb items={[{ label: "내 신청 내역", href: "/mypage/process" }, { label: "1:1 문의" }]} />
   <main className="flex flex-1 flex-col">
     <Band tone="light" size="lg">
-      <PageHeading title="시설 제원" lead="…" />
+      <PageHead en="BOOKING AGREEMENT" ko="대관 규약" lead="…" />
     </Band>
     {/* 이후 Band 톤 교대 + 레이아웃 모듈 */}
+    <CTABand … />
   </main>
   <SiteFooter />
 </div>
 ```
 
-## 7. 정보구조
+탭이 있는 페이지는 `QueryTabs` 로 감싸고, 탭 바만 `container-site` 에 두어
+패널 안의 밴드가 전폭으로 흐르게 한다(`tablistClassName="container-site pt-10"`).
+쿼리 파라미터 이름은 `nav-items.ts` 의 `CONTENT_TAB_PARAM`(`tab`) ·
+`VENUE_TAB_PARAM`(`venue`) 만 쓴다.
+
+## 8. 정보구조
 
 **YOUR STAGE / BOOK IT / KNOW IT / HOST IT 은 카테고리 타이틀일 뿐 페이지가 아니다.**
 실제 페이지는 각 카테고리의 하위 목록이고, 이 정의는 `src/components/ui/nav-items.ts` 한 곳에 있다.
@@ -214,32 +287,56 @@ const SPLIT = "grid gap-8 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.6fr)] lg:items-
 
 따라서:
 
-- **페이지 타이틀은 카테고리명이 아니라 그 페이지 이름이다.** `대관 양식함` 이지 `Book It` 이 아니다
+- **페이지 타이틀은 카테고리명이 아니라 그 페이지 이름이다.** `대관 규약` 이지 `Book It` 이 아니다
 - **카테고리를 브레드크럼에 넣지 않는다.** 링크할 상위 페이지가 없다.
   브레드크럼은 실제 3뎁스에서만 (`items` 2개 미만이면 자동으로 렌더되지 않는다)
 - `PublicHeader active` 에는 **그 페이지의 실제 경로**를 넘긴다.
   상위처럼 보이는 경로를 넘기면 메뉴에서 엉뚱한 항목이 볼드로 표시된다
+- **한 페이지 안의 탭은 메뉴에 올리지 않는다.** 공간 구분(아레나/중형공연장)과
+  콘텐츠 구분(시설개요/시설특징, 대관안내/대관절차)은 전부 탭이다
 
 ```
 Your Stage  (카테고리 타이틀 — 링크 아님)
-  ├ 시설 개요        /venue                  (개요·시설 3종·강점·층별 키맵)
-  ├ 시설 제원        /venue/specs
-  ├ 무대 특장        /venue/stage-features
-  └ 부대시설         /venue/amenities
+  ├ 서울아레나       /seoularena            탭: 시설개요 · 시설 특징
+  └ 시설 소개        /features              탭: 아레나 · 중형공연장
 Book It
-  ├ 대관 안내        /guide                 (개요·절차·대관료·규약은 이 한 페이지 안)
-  ├ 대관 패키지      /packages
-  ├ 커넥티드 라이브   /guide/connected-live
-  ├ 대관 양식함      /guide/forms
-  └ 이미지 가이드    /guide/image-guide
+  ├ 대관 안내        /guide                 탭: 대관 안내 · 대관 절차
+  ├ 대관료           /rates                 탭: 아레나 · 중형공연장
+  ├ 대관 규약        /rules
+  └ 대관 자료        /documents             탭: 아레나 · 중형공연장
 Know It
-  ├ 공지사항        /notices
-  ├ FAQ            /faq
+  ├ 공지사항         /notices
+  ├ FAQ             /faq
   └ 1:1 문의        /mypage/inquiries
 Host It
   ├ 대관 신청        /apply
-  └ 내 신청 내역     /mypage
+  ├ 대관 신청 현황    /mypage/process
+  └ 대관 진행 내역    /mypage/history
 ```
+
+홈(`/`)을 뺀 모든 페이지는 로그인이 필요하다. `/seoularena` 만 비로그인 열람을 허용한다.
+경로를 바꿀 때는 `next.config.ts` 에 **영구 리다이렉트를 남긴다** — 이미 배포된 정본의
+`/venue`·`/packages`·`/library` 등이 그렇게 살아 있다.
+
+### 콘텐츠 정본 · CMS
+
+화면에 나오는 문안·수치는 코드에 박지 않는다. 흐름은 한 방향이다.
+
+```
+src/lib/content/*Facts.ts   →  pageContent.ts 의 DEFAULT_*  →  site_content 테이블  →  화면
+   (Notion·요금 시트·규약 PDF 에서 옮긴 초기값)        (운영 중 정본)
+```
+
+- `*Facts.ts` 는 **초기값의 출처**다. 운영 중에 값을 고칠 때 여기를 고치면 안 된다 —
+  이미 저장된 DB 값이 이기므로 화면이 안 바뀐다
+- 편집 화면은 `/admin/content` 한 곳 (`ContentManager`), 저장은
+  `PUT /api/admin/content/[page]` (`seoularena`·`features`·`guide`·`rates`·`rules`·`documents`)
+- 폼은 `components/admin/fields.tsx` 의 조각(`Text`·`Area`·`Rich`·`StringList`·
+  `ListEditor`·`ContentFormShell`)을 조합해 만든다. 화면마다 폼을 새로 짜지 않는다
+- **대관 규약은 조문을 한 칸씩 고치는 문서가 아니다.** 판본을 통째로 갈아 끼우는 문서라
+  전문 한 칸으로 두고 `parseRules()` 가 렌더할 때 장·조로 파싱한다
+- 새 페이지를 CMS 에 붙일 때: `pageContent.ts` 에 타입+DEFAULT → `db.ts` 에 get/save →
+  `[page]` 라우트의 `PAGES` 맵 → 폼 → `ContentManager` 탭. 다섯 군데를 다 건드려야 한다
 
 ### 설계 선언 (홈)
 
@@ -257,15 +354,20 @@ Figma MARKETING COMPONENTS › Multi-step Forms › **Multi Form / 5** 규격.
 - 폼 — 라벨 위 · 필드 높이 48 · 전폭
 - 하단 버튼 — 좌우로 벌리지 않고 **우측에 나란히**. 이전(아웃라인) + 다음(검정 채움), 높이 48
 
-## 8. 카피 원칙 (브랜드 가이드 3.1 / 3.2)
+## 9. 카피 원칙 (브랜드 가이드 3.1 / 3.2)
 
 - **Clear** 쉬운 단어, 10–15단어 짧은 문장 · **Confident** 사실 기반 능동 표현 · **Engaging** 진정성
 - 수동 → 능동. 정량 정보는 **의도 → 근거(수치) → 결과** 순서로
 - 히어로 카피는 진입부 1회
 
-## 9. 하지 말 것
+## 10. 하지 말 것
 
-- 프로토타입에 있는 **기능·카테고리를 삭제하지 않는다.** 이동·재배치만 허용
-- URL 경로를 바꾸지 않는다
+- 프로토타입에 있는 **기능·카테고리를 삭제하지 않는다.** 이동·재배치만 허용.
+  신청·인증·심사·정산처럼 이미 도는 기능은 화면을 다시 그려도 그대로 살린다
+- **URL 경로를 소리 없이 바꾸지 않는다.** IA 개편으로 옮겨야 하면
+  `next.config.ts` 에 영구 리다이렉트를 남긴다
 - `globals.css` · `kit.tsx` · `PublicHeader` · `SiteFooter` · `Breadcrumb` · `seed.ts` ·
-  `content/types.ts` · `lib/pricing/*` 는 파운데이션이다. 페이지 작업 중 임의로 고치지 않는다
+  `content/types.ts` · `content/pageContent.ts` · `nav-items.ts` · `lib/pricing/*` 는
+  파운데이션이다. 페이지 작업 중 임의로 고치지 않는다
+- **`container-site` 에 max-width 를 되붙이지 않는다.** 그리드가 stretch 라 넓은 화면에서
+  가운데 좁게 갇히면 Figma 와 어긋난다

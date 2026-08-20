@@ -11,7 +11,7 @@ import {
   ButtonLink,
   CTABand,
   EmptyState,
-  PageHeading,
+  PageHead,
   Row,
   RowList,
 } from "@/components/ui/kit";
@@ -75,16 +75,17 @@ export default async function NoticesPage({
 
       <main className="flex flex-1 flex-col">
         <Band tone="light" size="lg">
-          <PageHeading
-            title="공지사항"
-            lead="대관 공고, 운영정책 변경, 시스템 점검 안내를 여기서 확인하세요. 신청 전 최신 공지를 먼저 확인하시기 바랍니다."
+          <PageHead
+            en="NOTICES"
+            ko="공지사항"
+            lead="대관 접수 일정과 변경 사항, 시설·요금 안내를 확인하세요."
           />
         </Band>
 
         {notices.length === 0 ? (
           <Band tone="white" size="md">
             <EmptyState
-              title="등록된 공지사항이 없습니다"
+              title="등록된 공지가 없습니다"
               desc="대관 공고와 운영 안내가 등록되면 이곳에 표시됩니다."
               action={
                 <ButtonLink href="/guide" variant="secondary">
@@ -99,7 +100,7 @@ export default async function NoticesPage({
               <Band tone="white" size="md">
                 <div className="flex items-center gap-3">
                   <span aria-hidden className="h-3 w-3 bg-accent" />
-                  <h2 className="type-kr-heading text-h5-m sm:text-h5">진행 중 대관 공고</h2>
+                  <h2 className="type-kr-heading text-h5-m sm:text-h5">진행 중인 대관 공고</h2>
                 </div>
                 <NoticeRows notices={pinned} pinned />
               </Band>

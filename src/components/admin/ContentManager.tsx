@@ -3,13 +3,27 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import type { Faq, Notice } from "@/lib/pricing/types";
-import type { GuideContent, HomeContent, VenueContent } from "@/lib/content/types";
+import type { HomeContent } from "@/lib/content/types";
+import type {
+  DocumentsContent,
+  FeaturesContent,
+  GuidePageContent,
+  RatesContent,
+  RulesContent,
+  SeoulArenaContent,
+} from "@/lib/content/pageContent";
 import { TagBadge } from "@/components/TagBadge";
 import { btnClass } from "@/components/ui/kit";
 import { NoticeEditor } from "./NoticeEditor";
-import { VenueContentForm } from "./VenueContentForm";
-import { GuideContentForm } from "./GuideContentForm";
 import { HomeContentForm } from "./HomeContentForm";
+import {
+  DocumentsForm,
+  FeaturesForm,
+  GuideForm,
+  RatesForm,
+  RulesForm,
+  SeoulArenaForm,
+} from "./PageContentForms";
 import {
   ADD_BTN_LG,
   CARD,
@@ -30,7 +44,16 @@ import {
 const FILE_INPUT =
   "w-full text-xs text-muted file:mr-3 file:border file:border-border-soft file:bg-panel file:px-3 file:py-1.5 file:text-xs file:font-bold file:text-foreground";
 
-type Tab = "notices" | "faq" | "home" | "venue" | "guide";
+type Tab =
+  | "notices"
+  | "faq"
+  | "home"
+  | "seoularena"
+  | "features"
+  | "guide"
+  | "rates"
+  | "rules"
+  | "documents";
 
 function isHtmlBodyEmpty(html: string): boolean {
   return html.replace(/<[^>]+>/g, "").trim().length === 0 && !html.includes("<img");
@@ -45,14 +68,22 @@ export function ContentManager({
   notices: initialNotices,
   faqs: initialFaqs,
   homeContent,
-  venueContent,
+  seoulArenaContent,
+  featuresContent,
   guideContent,
+  ratesContent,
+  rulesContent,
+  documentsContent,
 }: {
   notices: Notice[];
   faqs: Faq[];
   homeContent: HomeContent;
-  venueContent: VenueContent;
-  guideContent: GuideContent;
+  seoulArenaContent: SeoulArenaContent;
+  featuresContent: FeaturesContent;
+  guideContent: GuidePageContent;
+  ratesContent: RatesContent;
+  rulesContent: RulesContent;
+  documentsContent: DocumentsContent;
 }) {
   const router = useRouter();
   const [tab, setTab] = useState<Tab>("notices");
@@ -66,9 +97,13 @@ export function ContentManager({
           [
             ["notices", `공지사항 (${notices.length})`],
             ["faq", `FAQ (${faqs.length})`],
-            ["home", "홈 화면"],
-            ["venue", "서울아레나 소개"],
+            ["home", "홈"],
+            ["seoularena", "서울아레나"],
+            ["features", "시설 소개"],
             ["guide", "대관 안내"],
+            ["rates", "대관료"],
+            ["rules", "대관 규약"],
+            ["documents", "대관 자료"],
           ] as const
         ).map(([key, label]) => (
           <button key={key} type="button" onClick={() => setTab(key)} className={tabCls(tab === key)}>
@@ -81,8 +116,12 @@ export function ContentManager({
         {tab === "notices" && <NoticesTab notices={notices} setNotices={setNotices} router={router} />}
         {tab === "faq" && <FaqTab faqs={faqs} setFaqs={setFaqs} router={router} />}
         {tab === "home" && <HomeContentForm content={homeContent} />}
-        {tab === "venue" && <VenueContentForm content={venueContent} />}
-        {tab === "guide" && <GuideContentForm content={guideContent} />}
+        {tab === "seoularena" && <SeoulArenaForm content={seoulArenaContent} />}
+        {tab === "features" && <FeaturesForm content={featuresContent} />}
+        {tab === "guide" && <GuideForm content={guideContent} />}
+        {tab === "rates" && <RatesForm content={ratesContent} />}
+        {tab === "rules" && <RulesForm content={rulesContent} />}
+        {tab === "documents" && <DocumentsForm content={documentsContent} />}
       </div>
     </div>
   );

@@ -68,10 +68,15 @@ const RULES: MenuRule[] = [
 
   { prefix: "/apply", label: "대관신청", allow: APPROVED_ONLY },
 
-  { prefix: "/venue", label: "시설 소개", allow: OPEN_ALL },
-  { prefix: "/guide", label: "대관안내", allow: LOGIN_ONLY },
-  { prefix: "/packages", label: "대관 패키지", allow: LOGIN_ONLY },
-  { prefix: "/notices", label: "대관현황", allow: LOGIN_ONLY },
+  // 2026-08 IA 재구성(Notion 확정안)으로 경로가 바뀌었다.
+  // /venue·/packages 는 사라지고, 공개 소개는 /seoularena 가, 상세 스펙은 /features 가 맡는다.
+  { prefix: "/seoularena", label: "서울아레나", allow: OPEN_ALL },
+  { prefix: "/features", label: "시설 소개", allow: LOGIN_ONLY },
+  { prefix: "/guide", label: "대관 안내", allow: LOGIN_ONLY },
+  { prefix: "/rates", label: "대관료", allow: LOGIN_ONLY },
+  { prefix: "/rules", label: "대관 규약", allow: LOGIN_ONLY },
+  { prefix: "/documents", label: "대관 자료", allow: LOGIN_ONLY },
+  { prefix: "/notices", label: "공지사항", allow: LOGIN_ONLY },
   { prefix: "/faq", label: "FAQ", allow: OPEN_ALL },
 ];
 

@@ -1,31 +1,30 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { AppUser } from "@/lib/pricing/types";
 import { LogoutButton } from "@/components/LogoutButton";
 import { NotificationBell } from "@/components/NotificationBell";
 import { NAV_CATEGORIES } from "@/components/ui/nav-items";
+import { btnClass } from "@/components/ui/kit";
 
-/**
- * Figma Wireframe › Navbar / 2 ("open menu").
- * 닫힌 상태는 로고 + 햄버거만. 누르면 풀페이지 메뉴가 열린다.
- *
- * 메뉴는 2컬럼 사이트맵이다 — 좌: 카테고리 타이틀(링크 아님) / 우: 그 카테고리의 페이지들.
- * 상세 페이지를 한 화면에서 전부 볼 수 있게 하는 것이 목적이라 접기·펼치기를 두지 않는다.
- */
-/** 메뉴 안 계정 링크 — 박스 없이 텍스트만 (Figma 하단 유틸 링크와 같은 규격) */
-const MENU_LINK = "text-s font-bold transition-colors hover:text-accent";
+/* ============================================================================
+   상단 내비게이션
 
-/**
- * 메뉴 아이콘 — 줄 두 개(햄버거)가 아니라 원.
- *   닫힘 : 검정 채움 원
- *   열림 : 채움 없는 검정 아웃라인 원 + 안에 ×
- * 두 상태가 같은 지름이라 누를 때 아이콘이 튀지 않는다.
- */
-const MENU_DOT_BASE = "block h-7 w-7 rounded-full transition-colors";
-const MENU_DOT_CLOSED = `${MENU_DOT_BASE} bg-foreground`;
-const MENU_DOT_OPEN = `${MENU_DOT_BASE} border border-foreground bg-transparent`;
+   좌 : 워드마크
+   중 : 카테고리 4개를 **접지 않고 바로 노출**한다. 일반 텍스트로 두고,
+        마우스를 올리면 그 카테고리의 페이지 목록이 아래로 펼쳐진다.
+   우 : 로그인 / (로그인 후) 마이페이지 · 로그아웃
+
+   카테고리 자체는 페이지가 아니므로 링크가 아니다 — 버튼으로 두고 키보드로도
+   펼칠 수 있게 한다(포커스·Enter·Escape). 좁은 화면에서는 카테고리를 한 줄에
+   담을 수 없으므로 기존처럼 전체 메뉴 패널로 떨어진다.
+   ========================================================================= */
+
+const CAT_BTN =
+  "flex h-full items-center px-4 text-s font-bold transition-colors hover:text-accent";
+const PANEL_LINK = "block py-2 text-s transition-colors hover:text-accent";
+const UTIL_LINK = "text-s font-bold transition-colors hover:text-accent";
 
 export function PublicHeader({
   active,
@@ -34,10 +33,13 @@ export function PublicHeader({
   active: string;
   currentUser: AppUser | null;
 }) {
-  const [open, setOpen] = useState(false);
+  /** 데스크톱 드롭다운에서 펼쳐진 카테고리 라벨 */
+  const [openCat, setOpenCat] = useState<string | null>(null);
+  /** 좁은 화면 전체 메뉴 */
+  const [mobileOpen, setMobileOpen] = useState(false);
   const [unread, setUnread] = useState(0);
+  const closeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  // 메뉴가 닫혀 있어도 새 알림이 있으면 햄버거에 점으로 알린다.
   useEffect(() => {
     if (!currentUser) return;
     let alive = true;
@@ -61,75 +63,169 @@ export function PublicHeader({
 
   useEffect(() => {
     function onEsc(e: KeyboardEvent) {
-      if (e.key === "Escape") setOpen(false);
+      if (e.key !== "Escape") return;
+      setOpenCat(null);
+      setMobileOpen(false);
     }
     document.addEventListener("keydown", onEsc);
     return () => document.removeEventListener("keydown", onEsc);
   }, []);
 
   useEffect(() => {
-    document.body.style.overflow = open ? "hidden" : "";
+    document.body.style.overflow = mobileOpen ? "hidden" : "";
     return () => {
       document.body.style.overflow = "";
     };
-  }, [open]);
+  }, [mobileOpen]);
+
+  // 카테고리와 패널 사이를 대각선으로 지나갈 때 메뉴가 닫히지 않도록 잠깐 유예한다.
+  function openWithCancel(label: string) {
+    if (closeTimer.current) clearTimeout(closeTimer.current);
+    setOpenCat(label);
+  }
+  function closeSoon() {
+    if (closeTimer.current) clearTimeout(closeTimer.current);
+    closeTimer.current = setTimeout(() => setOpenCat(null), 120);
+  }
+
+  const accountLinks = currentUser ? (
+    <>
+      <NotificationBell role={currentUser.role} />
+      {currentUser.role === "ADMIN" ? (
+        <Link href="/admin" className={btnClass("secondary", "sm")}>
+          운영자 백오피스
+        </Link>
+      ) : (
+        <Link href="/mypage/process" className={btnClass("secondary", "sm")}>
+          마이페이지
+        </Link>
+      )}
+      <LogoutButton className={btnClass("primary", "sm")} />
+    </>
+  ) : (
+    <>
+      <Link href="/register" className={UTIL_LINK}>
+        회원가입
+      </Link>
+      <Link href="/login" className={btnClass("primary", "sm")}>
+        로그인
+      </Link>
+    </>
+  );
 
   return (
-    <>
-      <header className="sticky top-0 z-40 bg-background/90 backdrop-blur-md">
-        <div className="container-site flex h-16 items-center justify-between lg:h-[72px]">
-          {/* 글자 높이만큼만 잡히면 터치 타깃이 18~24px 밖에 안 된다.
-              헤더 높이만큼 세로를 채워 누르기 쉽게 한다. */}
-          <Link
-            href="/"
-            className="type-display flex h-full items-center text-h6-m leading-none sm:text-h5"
-            aria-label="Seoul Arena 홈"
-          >
-            Seoul Arena
-          </Link>
+    <header
+      className="sticky top-0 z-40 border-b border-border/15 bg-background/95 backdrop-blur-md"
+      onMouseLeave={closeSoon}
+    >
+      <div className="container-site flex h-16 items-center justify-between gap-6 lg:h-[72px]">
+        {/* 글자 높이만큼만 잡히면 터치 타깃이 18~24px 밖에 안 된다.
+            헤더 높이만큼 세로를 채워 누르기 쉽게 한다. */}
+        <Link
+          href="/"
+          className="type-display flex h-full shrink-0 items-center text-h6-m leading-none sm:text-h5"
+          aria-label="Seoul Arena 홈"
+        >
+          Seoul Arena
+        </Link>
 
-          {/* 클릭 범위를 넉넉히 — 실제 타깃은 56×56, 아이콘은 검정 채움 원 */}
-          <button
-            type="button"
-            onClick={() => setOpen(true)}
-            aria-label="메뉴 열기"
-            aria-expanded={open}
-            className="relative -mr-4 flex h-14 w-14 items-center justify-center"
-          >
-            <span aria-hidden className={MENU_DOT_CLOSED} />
-            {unread > 0 && (
-              <span
-                aria-hidden
-                className="absolute right-2 top-3 h-2 w-2 rounded-full bg-accent ring-1 ring-foreground"
-              />
-            )}
-          </button>
-        </div>
-      </header>
+        {/* 중앙 — 카테고리 4개를 항상 노출한다 */}
+        <nav aria-label="주요 메뉴" className="hidden h-full flex-1 justify-center lg:flex">
+          <ul className="flex h-full items-stretch">
+            {NAV_CATEGORIES.map((cat) => {
+              const isOpen = openCat === cat.label;
+              const hasActive = cat.pages.some((p) => p.href === active);
+              return (
+                <li
+                  key={cat.label}
+                  className="relative flex items-stretch"
+                  onMouseEnter={() => openWithCancel(cat.label)}
+                  onFocus={() => openWithCancel(cat.label)}
+                >
+                  <button
+                    type="button"
+                    aria-expanded={isOpen}
+                    aria-haspopup="true"
+                    onClick={() => setOpenCat(isOpen ? null : cat.label)}
+                    className={`${CAT_BTN} ${hasActive ? "text-foreground" : "text-muted"}`}
+                  >
+                    {cat.label}
+                  </button>
 
-      {open && (
+                  {isOpen && (
+                    <div
+                      className="absolute left-1/2 top-full z-50 min-w-52 -translate-x-1/2 animate-[dropdown-in_0.14s_ease-out] border border-border/20 bg-background p-4 shadow-sm"
+                      onMouseEnter={() => openWithCancel(cat.label)}
+                    >
+                      <ul>
+                        {cat.pages.map((p) => (
+                          <li key={p.href}>
+                            <Link
+                              href={p.href}
+                              onClick={() => setOpenCat(null)}
+                              className={`${PANEL_LINK} ${
+                                p.href === active ? "font-bold text-foreground" : "text-muted"
+                              }`}
+                            >
+                              {p.label}
+                            </Link>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+                </li>
+              );
+            })}
+          </ul>
+        </nav>
+
+        {/* 우측 — 계정 */}
+        <div className="hidden shrink-0 items-center gap-4 lg:flex">{accountLinks}</div>
+
+        {/* 좁은 화면 — 카테고리 4개를 한 줄에 담을 수 없으므로 전체 메뉴로 떨어진다 */}
+        <button
+          type="button"
+          onClick={() => setMobileOpen(true)}
+          aria-label="메뉴 열기"
+          aria-expanded={mobileOpen}
+          className="relative -mr-3 flex h-12 w-12 items-center justify-center lg:hidden"
+        >
+          <span aria-hidden className="block h-7 w-7 rounded-full bg-foreground" />
+          {unread > 0 && (
+            <span
+              aria-hidden
+              className="absolute right-1 top-2 h-2 w-2 rounded-full bg-accent ring-1 ring-foreground"
+            />
+          )}
+        </button>
+      </div>
+
+      {mobileOpen && (
         <div
           role="dialog"
           aria-modal="true"
           aria-label="전체 메뉴"
-          className="fixed inset-0 z-50 flex h-[100dvh] animate-[menu-in_0.18s_ease-out] flex-col overflow-y-auto bg-background"
+          className="fixed inset-0 z-50 flex h-[100dvh] animate-[menu-in_0.18s_ease-out] flex-col overflow-y-auto bg-background lg:hidden"
         >
-          {/* 상단: 로고 + 닫기 */}
-          <div className="container-site flex h-16 shrink-0 items-center justify-between lg:h-[72px]">
+          <div className="container-site flex h-16 shrink-0 items-center justify-between">
             <Link
               href="/"
-              onClick={() => setOpen(false)}
-              className="type-display text-h6-m leading-none sm:text-h5"
+              onClick={() => setMobileOpen(false)}
+              className="type-display text-h6-m leading-none"
             >
               Seoul Arena
             </Link>
             <button
               type="button"
-              onClick={() => setOpen(false)}
+              onClick={() => setMobileOpen(false)}
               aria-label="메뉴 닫기"
-              className="-mr-4 flex h-14 w-14 items-center justify-center"
+              className="-mr-3 flex h-12 w-12 items-center justify-center"
             >
-              <span aria-hidden className={`${MENU_DOT_OPEN} relative`}>
+              <span
+                aria-hidden
+                className="relative block h-7 w-7 rounded-full border border-foreground"
+              >
                 <svg
                   viewBox="0 0 28 28"
                   aria-hidden
@@ -144,32 +240,18 @@ export function PublicHeader({
             </button>
           </div>
 
-          {/* 2컬럼 사이트맵 — 구분선 없이 여백만으로 나눈다.
-              전체가 한 화면에 들어와야 하므로 타이틀 h5 / 페이지 r 로 조인다. */}
-          <nav
-            aria-label="전체 메뉴"
-            className="container-site flex flex-1 flex-col justify-center py-4 tall:py-6"
-          >
-            {/*
-              반응형 스냅 포인트 — 2컬럼(카테고리 | 페이지)은 `sm`(640px)부터만 쓴다.
-              그 아래에서는 카테고리 제목을 페이지 목록 위로 올린 1컬럼으로 떨어뜨린다.
-              좁은 화면에서 카테고리 열이 눌려 글자가 세로로 쪼개지던 문제를 없앤다.
-            */}
-            <ul>
+          <nav aria-label="전체 메뉴" className="container-site flex-1 py-6">
+            <ul className="space-y-8">
               {NAV_CATEGORIES.map((cat) => (
-                <li
-                  key={cat.label}
-                  className="py-3 sm:grid sm:grid-cols-[minmax(0,1fr)_minmax(0,2fr)] sm:gap-x-10 sm:py-4 tall:lg:py-5"
-                >
-                  <h2 className="type-display text-h6-m sm:text-h5 tall:lg:text-h4">{cat.label}</h2>
-                  {/* 1컬럼으로 떨어진 좁은 화면에서는 링크를 2열로 깔아 세로 길이를 줄인다 */}
-                  <ul className="mt-2 grid grid-cols-2 gap-x-4 gap-y-2 sm:mt-0 sm:grid-cols-1">
+                <li key={cat.label}>
+                  <h2 className="type-display text-h6-m">{cat.label}</h2>
+                  <ul className="mt-3 space-y-2">
                     {cat.pages.map((p) => (
                       <li key={p.href}>
                         <Link
                           href={p.href}
-                          onClick={() => setOpen(false)}
-                          className={`text-r transition-colors hover:text-accent tall:lg:text-m ${
+                          onClick={() => setMobileOpen(false)}
+                          className={`text-r transition-colors hover:text-accent ${
                             p.href === active ? "font-bold text-foreground" : "text-muted"
                           }`}
                         >
@@ -182,52 +264,34 @@ export function PublicHeader({
               ))}
             </ul>
 
-            {/* 계정 — 박스 없는 텍스트 링크로 통일 */}
-            <div className="mt-6 flex flex-wrap items-center gap-x-7 gap-y-2 tall:mt-8">
+            <div className="mt-10 flex flex-wrap items-center gap-x-6 gap-y-3 border-t border-border/20 pt-6">
               {currentUser ? (
                 <>
                   <span className="text-s text-muted">{currentUser.name} 님</span>
                   <Link
-                    href={currentUser.role === "ADMIN" ? "/admin" : "/mypage"}
-                    onClick={() => setOpen(false)}
-                    className={MENU_LINK}
+                    href={currentUser.role === "ADMIN" ? "/admin" : "/mypage/process"}
+                    onClick={() => setMobileOpen(false)}
+                    className={UTIL_LINK}
                   >
-                    {currentUser.role === "ADMIN" ? "운영자 백오피스" : "내 신청 내역"}
-                  </Link>
-                  <Link
-                    href={currentUser.role === "ADMIN" ? "/admin/users" : "/mypage/profile"}
-                    onClick={() => setOpen(false)}
-                    className={MENU_LINK}
-                  >
-                    회원정보
+                    {currentUser.role === "ADMIN" ? "운영자 백오피스" : "마이페이지"}
                   </Link>
                   <NotificationBell role={currentUser.role} />
-                  <LogoutButton className={MENU_LINK} />
+                  <LogoutButton className={UTIL_LINK} />
                 </>
               ) : (
                 <>
-                  <Link href="/login" onClick={() => setOpen(false)} className={MENU_LINK}>
+                  <Link href="/login" onClick={() => setMobileOpen(false)} className={UTIL_LINK}>
                     로그인
                   </Link>
-                  <Link href="/register" onClick={() => setOpen(false)} className={MENU_LINK}>
+                  <Link href="/register" onClick={() => setMobileOpen(false)} className={UTIL_LINK}>
                     회원가입
                   </Link>
                 </>
               )}
             </div>
           </nav>
-
-          {/* 하단 바 — Figma Navbar / 2 하단 유틸 */}
-          <div className="shrink-0">
-            <div className="container-site flex flex-wrap items-center justify-between gap-4 py-4 text-xs text-muted">
-              <div className="flex items-center gap-5">
-                <span className="font-bold text-foreground">KOR</span>
-                <span title="영문 페이지 준비 중">ENG</span>
-              </div>
-            </div>
-          </div>
         </div>
       )}
-    </>
+    </header>
   );
 }

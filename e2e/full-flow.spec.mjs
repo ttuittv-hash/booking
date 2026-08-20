@@ -96,8 +96,11 @@ try {
   check("A15-1", "승인 대기는 대관신청이 막힌다", page.url().includes("/pending"));
   await page.goto(`${BASE}/guide`, { waitUntil: "domcontentloaded" });
   check("A15-2", "승인 대기도 대관안내는 열람한다", page.url().includes("/guide"));
-  await page.goto(`${BASE}/venue`, { waitUntil: "domcontentloaded" });
-  check("A15-3", "시설소개는 누구나 열람한다", page.url().includes("/venue"));
+  await page.goto(`${BASE}/seoularena`, { waitUntil: "domcontentloaded" });
+  check("A15-3", "서울아레나 소개는 누구나 열람한다", page.url().includes("/seoularena"));
+  // IA 재구성으로 상세 스펙(시설 소개)은 로그인이 필요한 /features 로 분리됐다.
+  await page.goto(`${BASE}/features`, { waitUntil: "domcontentloaded" });
+  check("A15-3b", "승인 대기도 시설 소개를 본다", page.url().includes("/features"));
   await page.goto(`${BASE}/mypage/profile`, { waitUntil: "domcontentloaded" });
   check("A15-4", "승인 대기도 본인 정보 수정은 들어간다", page.url().includes("/mypage/profile"));
 
@@ -105,8 +108,10 @@ try {
   const guest = await (await newCtx()).newPage();
   await guest.goto(`${BASE}/guide`, { waitUntil: "domcontentloaded" });
   check("A15-5", "비로그인은 대관안내가 막힌다", guest.url().includes("/login"));
-  await guest.goto(`${BASE}/venue`, { waitUntil: "domcontentloaded" });
-  check("A15-6", "비로그인도 시설소개는 본다", guest.url().includes("/venue"));
+  await guest.goto(`${BASE}/seoularena`, { waitUntil: "domcontentloaded" });
+  check("A15-6", "비로그인도 서울아레나 소개는 본다", guest.url().includes("/seoularena"));
+  await guest.goto(`${BASE}/features`, { waitUntil: "domcontentloaded" });
+  check("A15-6b", "비로그인은 시설 소개가 막힌다", guest.url().includes("/login"));
 
   // ── A9 운영자 승인 ────────────────────────────────────────
   const boCtx = await newCtx();

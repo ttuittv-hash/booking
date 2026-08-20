@@ -694,9 +694,10 @@ export function SpecTable({
   const pad = dense ? "py-2.5" : "py-4";
   return (
     <dl className={`border-t border-border/25 ${className}`}>
-      {rows.map(([k, v]) => (
+      {/* 같은 라벨이 반복되는 표가 있다(RATE INCLUDES 의 "공간" 두 행) — 인덱스를 키에 섞는다 */}
+      {rows.map(([k, v], i) => (
         <div
-          key={k}
+          key={`${k}-${i}`}
           className={`grid gap-1 border-b border-border/15 ${pad} sm:grid-cols-[minmax(0,12rem)_minmax(0,1fr)] sm:gap-6`}
         >
           <dt className="text-s text-muted">{k}</dt>
@@ -890,5 +891,328 @@ export function Multiline({ text }: { text: string }) {
         </span>
       ))}
     </>
+  );
+}
+
+/* ==========================================================================
+   Notion 「8/20 오픈 기준 정보구조」 헤딩 위계
+
+   페이지 제목은 **H1 영문 슬로건**, 그 아래 **H3 국문 제목**이 온다.
+   섹션 제목도 H3 이며 영문 키워드(FEATURES · STAGE & CAPACITY …)와
+   국문(시설 개요 · 아레나 대관료 …)을 같은 크기로 쓴다.
+   사진 전면 섹션의 공간명은 H2, 항목 제목은 H5 다.
+
+   디자인 가이드 §3 의 "페이지 타이틀 = Display/D2 96" 규칙과 충돌하는데,
+   이 구조에서는 **Notion 을 우선**한다.
+   ========================================================================== */
+
+/** 영문 대문자 키워드인지 — 그렇다면 Archivo, 아니면 국문 헤딩 서체를 쓴다 */
+function isLatinHeading(text: ReactNode): boolean {
+  return typeof text === "string" && /^[\x20-\x7E]+$/.test(text);
+}
+
+function headingFontClass(text: ReactNode): string {
+  return isLatinHeading(text) ? "type-display" : "type-kr-heading";
+}
+
+/**
+ * 페이지 헤드 — H1 영문 슬로건 + H3 국문 제목 + 리드.
+ * 탭이 있는 페이지에서는 탭마다 H1 이 바뀌므로 탭 패널 안에서 쓴다.
+ */
+export function PageHead({
+  en,
+  ko,
+  lead,
+  actions,
+  as: As = "h1",
+}: {
+  /** H1 — 영문 슬로건 (ABOUT SEOUL ARENA · ARENA RATES …) */
+  en: string;
+  /** H3 — 국문 제목 (시설 개요 · 아레나 대관료 …) */
+  ko?: string;
+  lead?: ReactNode;
+  actions?: ReactNode;
+  as?: "h1" | "h2";
+}) {
+  return (
+    <div className="flex flex-col gap-8 lg:flex-row lg:items-end lg:justify-between">
+      <div className="min-w-0">
+        <As className="type-display text-h1-m sm:text-h1">{en}</As>
+        {ko && (
+          <h3 className="type-kr-heading mt-6 text-h3-m sm:text-h3">{ko}</h3>
+        )}
+        {lead && <div className="measure mt-6 break-keep text-m text-muted">{lead}</div>}
+      </div>
+      {actions && <div className="flex shrink-0 flex-wrap gap-3">{actions}</div>}
+    </div>
+  );
+}
+
+/** 섹션 헤드 — H3. 영문 키워드면 Archivo, 국문이면 국문 헤딩 서체가 자동으로 붙는다. */
+export function SectionHead({
+  title,
+  lead,
+  actions,
+}: {
+  title: string;
+  lead?: ReactNode;
+  actions?: ReactNode;
+}) {
+  return (
+    <div className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
+      <div className="min-w-0">
+        <h3 className={`${headingFontClass(title)} text-h3-m sm:text-h3`}>{title}</h3>
+        {lead && <div className="measure mt-5 break-keep text-m text-muted">{lead}</div>}
+      </div>
+      {actions && <div className="flex shrink-0 flex-wrap gap-3">{actions}</div>}
+    </div>
+  );
+}
+
+/* ------------------------------------------------------ 사진 전면 섹션 ---- */
+
+/**
+ * Figma `01 공개 화면 › 02 공간 안내` 의 **Header / 5** — 공간 소개 섹션.
+ *
+ *   전면 사진 위에 좌측 정렬 텍스트 블록이 수직 가운데에 놓인다.
+ *   H2 공간명 → 24 → eyebrow(수용 규모, 14 Bold) → 24 → 설명(본문, 폭 3col)
+ *
+ * 사진이 없으면 `placeholder` 면으로 떨어지며 텍스트는 검정으로 뒤집힌다.
+ */
+export function PhotoHero({
+  title,
+  eyebrow,
+  desc,
+  image,
+  minHeight = "900px",
+}: {
+  title: string;
+  eyebrow?: string;
+  desc?: string;
+  image?: string | null;
+  minHeight?: string;
+}) {
+  return (
+    <section
+      className={`relative isolate flex items-center ${image ? "text-n-white" : "bg-placeholder text-foreground"}`}
+      style={{ minHeight: `min(${minHeight}, 100svh)` }}
+    >
+      {image && (
+        <>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src={image} alt="" aria-hidden className="absolute inset-0 -z-10 h-full w-full object-cover" />
+          {/* 텍스트 가독을 위한 최소한의 그늘 — 사진 자체를 어둡게 덮지 않는다 */}
+          <div
+            aria-hidden
+            className="absolute inset-0 -z-10 bg-gradient-to-r from-black/55 via-black/25 to-transparent"
+          />
+        </>
+      )}
+      <div className="container-site py-20">
+        <h2 className="type-kr-heading text-h2-m sm:text-h2">{title}</h2>
+        {eyebrow && <p className="mt-6 text-s font-bold">{eyebrow}</p>}
+        {desc && (
+          <p className="mt-6 max-w-[41.5rem] break-keep text-r leading-7">{desc}</p>
+        )}
+      </div>
+    </section>
+  );
+}
+
+/* ------------------------------------------------------------ 특징 목록 --- */
+
+export interface FeatureItem {
+  /** H5 항목 제목 */
+  title: string;
+  /** 설명 — 줄바꿈은 배열 항목으로 나눈다 */
+  lines: string[];
+}
+
+/**
+ * FEATURES 목록 — H5 제목 + 설명. 번호를 붙이면 순번이 함께 나온다.
+ * 항목 사이 헤어라인. 2컬럼으로 깔 수 있지만 순서가 있는 내용에는 쓰지 않는다.
+ */
+export function FeatureList({
+  items,
+  numbered = false,
+  columns = 1,
+}: {
+  items: FeatureItem[];
+  numbered?: boolean;
+  columns?: 1 | 2;
+}) {
+  return (
+    <ul
+      className={`border-t border-border/25 ${
+        columns === 2 ? "lg:grid lg:grid-cols-2 lg:gap-x-[var(--gutter)]" : ""
+      }`}
+    >
+      {items.map((it, i) => (
+        <li
+          key={it.title}
+          className={`flex gap-6 border-b border-border/15 py-7 sm:gap-8 ${
+            columns === 2 && i === 1 ? "lg:border-t-0" : ""
+          }`}
+        >
+          {numbered && (
+            <span className="type-display w-10 shrink-0 text-h6-m tabular-nums text-muted sm:text-h6">
+              {String(i + 1).padStart(2, "0")}
+            </span>
+          )}
+          <div className="min-w-0">
+            <h4 className="type-kr-heading break-keep text-h5-m sm:text-h5">{it.title}</h4>
+            {it.lines.length > 0 && (
+              <div className="measure mt-3 space-y-1">
+                {it.lines.map((line) => (
+                  <p key={line} className="break-keep text-s text-muted">
+                    {line}
+                  </p>
+                ))}
+              </div>
+            )}
+          </div>
+        </li>
+      ))}
+    </ul>
+  );
+}
+
+/**
+ * 라벨 + 설명 한 줄 목록 (ADDITIONAL FACILITIES 처럼 "명칭 + 부연" 나열).
+ * 값이 없는 항목도 그대로 둔다 — 수량이 미확정이면 그 사실이 정보다.
+ */
+export function LabeledList({ items }: { items: { label: string; desc?: string }[] }) {
+  return (
+    <dl className="border-t border-border/25">
+      {items.map((it, i) => (
+        <div
+          key={`${it.label}-${i}`}
+          className="grid gap-1 border-b border-border/15 py-4 sm:grid-cols-[minmax(0,14rem)_minmax(0,1fr)] sm:gap-8"
+        >
+          <dt className="text-s font-bold">{it.label}</dt>
+          {it.desc && <dd className="break-keep text-s text-muted">{it.desc}</dd>}
+        </div>
+      ))}
+    </dl>
+  );
+}
+
+/* -------------------------------------------------------- 대관 절차 ------ */
+
+export interface ProcessStep {
+  no: string;
+  title: string;
+  desc: string;
+}
+
+function StepArrow({ className = "" }: { className?: string }) {
+  return (
+    <svg aria-hidden viewBox="0 0 24 24" fill="none" className={`h-5 w-5 shrink-0 ${className}`}>
+      <path d="M9.5 5.5 16 12l-6.5 6.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="square" />
+    </svg>
+  );
+}
+
+/**
+ * 대관 절차 — **한 줄에 4박스씩 두 줄**, 박스 사이에 화살표.
+ * 순서가 있는 내용이므로 카드 그리드가 아니라 화살표로 이어진 흐름으로 그린다.
+ * 좁은 화면에서는 한 줄에 하나씩 쌓이고 화살표는 아래를 향한다.
+ */
+export function ProcessSteps({ steps }: { steps: ProcessStep[] }) {
+  const rows: ProcessStep[][] = [];
+  for (let i = 0; i < steps.length; i += 4) rows.push(steps.slice(i, i + 4));
+
+  return (
+    <ol className="space-y-[var(--gutter)]">
+      {rows.map((row, ri) => (
+        <li key={ri}>
+          <ul className="grid gap-3 sm:grid-cols-2 lg:flex lg:items-stretch lg:gap-0">
+            {row.map((s, i) => (
+              <li key={s.no} className="flex items-stretch lg:min-w-0 lg:flex-1">
+                <div className="min-w-0 flex-1 border border-border/25 bg-panel p-6">
+                  <span className="type-display block text-h6-m tabular-nums text-muted sm:text-h6">
+                    {s.no}
+                  </span>
+                  <h4 className="type-kr-heading mt-3 break-keep text-h6-m sm:text-h6">{s.title}</h4>
+                  <p className="mt-3 break-keep text-s text-muted">{s.desc}</p>
+                </div>
+                {i < row.length - 1 && (
+                  <StepArrow className="mx-2 hidden self-center text-muted lg:block" />
+                )}
+              </li>
+            ))}
+          </ul>
+        </li>
+      ))}
+    </ol>
+  );
+}
+
+/* ------------------------------------------------------------ 자료 목록 --- */
+
+export function DownloadIcon({ className = "" }: { className?: string }) {
+  return (
+    <span
+      aria-hidden
+      className={`inline-flex h-6 w-6 shrink-0 items-center justify-center ${className}`}
+    >
+      <svg viewBox="0 0 16 16" fill="none" className="h-4 w-4">
+        <path
+          d="M8 1.5v9m0 0L4.5 7M8 10.5 11.5 7M2 13.5h12"
+          stroke="currentColor"
+          strokeWidth="1.5"
+          strokeLinecap="square"
+        />
+      </svg>
+    </span>
+  );
+}
+
+export interface DocItem {
+  title: string;
+  desc?: string;
+  /** [라벨, 값] — 형식·쪽수·용량 / 버전 / 갱신일 */
+  meta?: [string, string][];
+  href?: string;
+  /** 파일이 아직 없을 때 버튼 대신 표시하는 안내 */
+  pendingNote?: string;
+}
+
+/** 첨부파일 다운로드 모듈 — 자료명 / 설명 / 형식·버전·갱신일 / 버튼 순서를 고정한다. */
+export function DocumentList({ items }: { items: DocItem[] }) {
+  return (
+    <ul className="border-t border-border/25">
+      {items.map((d) => (
+        <li
+          key={d.title}
+          className="flex flex-col gap-5 border-b border-border/15 py-7 lg:flex-row lg:items-start lg:justify-between lg:gap-12"
+        >
+          <div className="min-w-0">
+            <h4 className="type-kr-heading break-keep text-h5-m sm:text-h5">{d.title}</h4>
+            {d.desc && <p className="measure mt-3 break-keep text-s text-muted">{d.desc}</p>}
+            {d.meta && d.meta.length > 0 && (
+              <dl className="mt-4 flex flex-wrap gap-x-8 gap-y-2">
+                {d.meta.map(([k, v]) => (
+                  <div key={k} className="flex gap-2 text-xs">
+                    <dt className="font-bold text-muted">{k}</dt>
+                    <dd className="tabular-nums">{v}</dd>
+                  </div>
+                ))}
+              </dl>
+            )}
+          </div>
+          <div className="shrink-0">
+            {d.href ? (
+              <ButtonLink href={d.href} variant="secondary">
+                다운로드
+                <DownloadIcon />
+              </ButtonLink>
+            ) : (
+              <p className="text-xs text-muted">{d.pendingNote ?? "준비 중입니다."}</p>
+            )}
+          </div>
+        </li>
+      ))}
+    </ul>
   );
 }

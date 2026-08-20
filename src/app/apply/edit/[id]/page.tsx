@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { notFound, redirect } from "next/navigation";
-import { canAccessQuote, getCurrentUser, isPendingApplicant } from "@/lib/auth";
+import { canAccessQuote, requireAccessedUser } from "@/lib/auth";
 import { getCurrentRateTable, getQuoteById, listDateBlocks, listWeekDemand } from "@/lib/db";
 import { PublicHeader } from "@/components/PublicHeader";
 import { Breadcrumb } from "@/components/ui/Breadcrumb";
@@ -17,9 +17,8 @@ export default async function EditQuotePage({
 }: {
   params: Promise<{ id: string }>;
 }) {
-  const currentUser = await getCurrentUser();
-  if (!currentUser) redirect("/login");
-  if (isPendingApplicant(currentUser)) redirect("/pending");
+  // 기획서 A15 접근권한 매트릭스 — 규칙은 accessPolicy.ts 한 곳에만 둔다
+  const currentUser = await requireAccessedUser("/apply/edit");
 
   const { id } = await params;
   const quote = await getQuoteById(id);
@@ -38,7 +37,7 @@ export default async function EditQuotePage({
       <PublicHeader active="/apply" currentUser={currentUser} />
       <Breadcrumb
         items={[
-          { label: "내 신청 내역", href: "/mypage" },
+          { label: "대관 신청 현황", href: "/mypage/process" },
           { label: `${quote.id} 수정` },
         ]}
       />

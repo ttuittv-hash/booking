@@ -704,6 +704,10 @@ export type InquiryStatus = "OPEN" | "ANSWERED";
 export interface Inquiry {
   id: string;
   userId: string;
+  /** 문의 유형 (INQUIRY_CATEGORIES 중 하나). 운영자가 담당 부서를 판단하는 근거 */
+  category: string | null;
+  /** 관련 신청번호. 특정 신청 건을 전제하는 유형에서는 필수 */
+  quoteId: string | null;
   title: string;
   content: string;
   status: InquiryStatus;

@@ -10,9 +10,9 @@ import { MembersManager } from "@/components/account/MembersManager";
 export default async function MembersPage() {
   const user = await getCurrentUser();
   if (!user) redirect("/login?next=%2Fmypage%2Fmembers");
-  if (!user.companyId) redirect("/mypage");
+  if (!user.companyId) redirect("/mypage/history");
   // 마스터만 열 수 있다. 일반 담당자에게는 메뉴 자체가 보이지 않는다.
-  if (!isCompanyMaster(user)) redirect("/mypage");
+  if (!isCompanyMaster(user)) redirect("/mypage/history");
 
   return (
     <div className="flex flex-1 flex-col">

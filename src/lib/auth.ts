@@ -186,6 +186,17 @@ export async function requireAccess(pathname: string): Promise<AppUser | null> {
   return user;
 }
 
+/**
+ * 비로그인이 막히는 경로 전용 requireAccess.
+ * 통과했다면 매트릭스상 반드시 로그인 상태이므로, 호출부가 매번 null 을 풀지 않아도 된다.
+ */
+export async function requireAccessedUser(pathname: string): Promise<AppUser> {
+  const user = await requireAccess(pathname);
+  // 매트릭스상 도달하지 않는다(GUEST 는 위에서 막힌다). 타입을 좁히려고 남겨 둔다.
+  if (!user) redirect("/login");
+  return user;
+}
+
 // 승인 대기·거절 상태의 신청자(대관사) 계정 여부 — 대관 안내/신청 관련 화면 접근 제한에 사용
 export function isPendingApplicant(user: AppUser): boolean {
   return user.role === "APPLICANT" && user.approvalStatus !== "APPROVED";

@@ -97,8 +97,8 @@ export default async function MyQuoteDetailPage({
 
   return (
     <div className="flex flex-1 flex-col">
-      <PublicHeader active="/mypage" currentUser={user} />
-      <Breadcrumb items={[{ label: "내 신청 내역", href: "/mypage" }, { label: quote.id }]} />
+      <PublicHeader active="/mypage/process" currentUser={user} />
+      <Breadcrumb items={[{ label: "대관 신청 현황", href: "/mypage/process" }, { label: quote.id }]} />
 
       <main className="flex flex-1 flex-col">
         {/* 신청 개요 */}
