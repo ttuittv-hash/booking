@@ -25,8 +25,8 @@ const SECTIONS: {
 
 export function MyPageSidebar({ active }: { active: MyPageSection }) {
   return (
-    <aside className="w-full shrink-0 sm:w-44">
-      <nav className="flex flex-col gap-y-5">
+    <aside className="w-full shrink-0 sm:w-48">
+      <nav className="flex flex-col gap-y-1 rounded border border-border bg-panel/40 p-3">
         {SECTIONS.map((section) => {
           const sectionActive =
             active === section.href || section.children?.some((c) => c.href === active);
@@ -34,22 +34,24 @@ export function MyPageSidebar({ active }: { active: MyPageSection }) {
             <div key={section.href}>
               <Link
                 href={section.href}
-                className={`block whitespace-nowrap text-[13.5px] font-medium ${
-                  sectionActive ? "text-accent" : "text-foreground hover:text-accent"
+                className={`block rounded-sm px-2.5 py-2 text-[13.5px] font-medium whitespace-nowrap transition-colors ${
+                  sectionActive
+                    ? "bg-accent-soft text-accent"
+                    : "text-foreground hover:bg-panel"
                 }`}
               >
                 {section.label}
               </Link>
               {section.children && (
-                <ul className="mt-2 space-y-1.5 border-l border-border pl-3 sm:mt-2.5">
+                <ul className="mt-0.5 mb-1">
                   {section.children.map((child) => (
                     <li key={child.href}>
                       <Link
                         href={child.href}
-                        className={`block whitespace-nowrap text-[12.5px] ${
+                        className={`block rounded-sm px-2.5 py-1.5 pl-6 text-[12.5px] whitespace-nowrap transition-colors ${
                           active === child.href
                             ? "font-medium text-accent"
-                            : "text-muted hover:text-foreground"
+                            : "text-muted hover:bg-panel hover:text-foreground"
                         }`}
                       >
                         {child.label}
