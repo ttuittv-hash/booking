@@ -1042,6 +1042,19 @@ function CompanySearchDialog({
     <div
       className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 sm:p-8"
       data-testid="company-search"
+      role="dialog"
+      aria-modal="true"
+      aria-label="회사정보 불러오기"
+      // 어두운 바깥을 누르거나 Esc 를 누르면 닫힌다 — 창을 띄웠으면 그렇게 닫히리라 기대한다.
+      // 안쪽을 눌렀을 때 닫히면 안 되므로 대상이 이 겹판 자신일 때만 닫는다.
+      onMouseDown={(e) => {
+        if (e.target === e.currentTarget) onClose();
+      }}
+      onKeyDown={(e) => {
+        if (e.key === "Escape") onClose();
+      }}
+      tabIndex={-1}
+      ref={(el) => el?.focus()}
     >
       <div className="flex max-h-[85vh] w-full max-w-3xl flex-col overflow-y-auto bg-background p-7 sm:p-9">
         <div className="flex items-center justify-between">
