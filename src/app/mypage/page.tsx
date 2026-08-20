@@ -2,7 +2,8 @@ import { redirect } from "next/navigation";
 import { getCurrentUser, isPendingApplicant } from "@/lib/auth";
 import { listQuotesPaged, normalizePage } from "@/lib/db";
 import { won } from "@/lib/format";
-import type { Quote } from "@/lib/pricing/types";
+import { QUOTE_STATUS_LABEL, QUOTE_STATUS_NEXT, QUOTE_STATUS_TONE } from "@/lib/quoteStatus";
+import { isRentalOpen, OPEN_PHASE_LABEL } from "@/lib/release";
 import { PublicHeader } from "@/components/PublicHeader";
 import { Breadcrumb } from "@/components/ui/Breadcrumb";
 import { SiteFooter } from "@/components/ui/SiteFooter";
@@ -13,23 +14,11 @@ import {
   ButtonLink,
   EmptyState,
   PageHeading,
+  ReleaseNotice,
   Row,
   RowList,
 } from "@/components/ui/kit";
 import { Pagination } from "@/components/Pagination";
-
-const STATUS_LABEL: Record<Quote["status"], string> = {
-  ESTIMATE: "예상견적 (심사 대기)",
-  CONTRACTED: "계약 확정",
-  SETTLED: "정산 완료",
-};
-
-/** 상태 색은 kit 의 tone 만 쓴다 (임의 색 금지) */
-const STATUS_TONE: Record<Quote["status"], "warn" | "accent" | "good"> = {
-  ESTIMATE: "warn",
-  CONTRACTED: "accent",
-  SETTLED: "good",
-};
 
 export default async function MyPage({
   searchParams,
@@ -40,6 +29,34 @@ export default async function MyPage({
   if (!user) redirect("/login");
   if (user.role !== "APPLICANT") redirect("/admin");
   if (isPendingApplicant(user)) redirect("/pending");
+
+  // 내 신청 내역은 9/1 대관오픈 범위다. 그 전에는 라우트를 살리고 안내 화면으로 대체한다.
+  if (!isRentalOpen()) {
+    return (
+      <div className="flex flex-1 flex-col">
+        <PublicHeader active="/mypage" currentUser={user} />
+        <main className="flex flex-1 flex-col">
+          <ReleaseNotice
+            title="내 신청 내역"
+            releaseLabel={OPEN_PHASE_LABEL}
+            lead="제출하신 대관 신청의 심사 진행과 계약 이후 일정을 확인하는 화면입니다. 대관 신청 접수가 시작되는 9월 1일에 함께 열립니다."
+            alternatives={
+              <>
+                <ButtonLink href="/apply" variant="primary">
+                  대관 신청 안내
+                  <ArrowRight />
+                </ButtonLink>
+                <ButtonLink href="/mypage/inquiries" variant="secondary">
+                  1:1 문의
+                </ButtonLink>
+              </>
+            }
+          />
+        </main>
+        <SiteFooter />
+      </div>
+    );
+  }
 
   const { page: pageParam } = await searchParams;
   const page = normalizePage(pageParam);
@@ -112,7 +129,16 @@ export default async function MyPage({
                   }
                   action={
                     <span className="flex items-center gap-3">
-                      <Badge tone={STATUS_TONE[q.status]}>{STATUS_LABEL[q.status]}</Badge>
+                      {/* 상태 배지 아래 "다음에 하실 일" 한 줄 — 상태만 보여 주면
+                          대관사가 무엇을 기다려야 하는지 알 수 없다 */}
+                      <span className="flex flex-col items-end gap-1 text-right">
+                        <Badge tone={QUOTE_STATUS_TONE[q.status]}>
+                          {QUOTE_STATUS_LABEL[q.status]}
+                        </Badge>
+                        <span className="max-w-56 break-keep text-xs text-muted">
+                          {QUOTE_STATUS_NEXT[q.status]}
+                        </span>
+                      </span>
                       <ArrowRight className="text-muted transition-transform group-hover:translate-x-1" />
                     </span>
                   }

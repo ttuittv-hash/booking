@@ -16,6 +16,7 @@ import {
   RowList,
 } from "@/components/ui/kit";
 import { Pagination } from "@/components/Pagination";
+import { inquiryCategoryLabel } from "@/lib/inquiryCategories";
 
 export const metadata: Metadata = {
   title: "1:1 문의 | 서울아레나",
@@ -57,7 +58,7 @@ export default async function MyInquiriesPage({
           <PageHeading
             size="md"
             title="1:1 문의"
-            lead="대관 절차·요금·시설에 대해 문의하세요. 운영자가 확인 후 답변을 등록합니다."
+            lead="FAQ에서 답을 찾지 못하셨다면 이곳에 문의를 남겨 주세요. 문의 유형을 선택해 주시면 담당 부서가 확인해 답변드립니다. 답변은 이 페이지에서 확인하실 수 있고, 등록하신 이메일로도 알려 드립니다."
             actions={
               <ButtonLink href="/mypage/inquiries/new" variant="primary">
                 문의하기
@@ -69,13 +70,18 @@ export default async function MyInquiriesPage({
         <Band tone="white" size="sm">
           {inquiries.length === 0 ? (
             <EmptyState
-              title="등록된 문의가 없습니다"
-              desc="궁금한 점을 남기면 운영자가 확인 후 답변합니다."
+              title="아직 등록하신 문의가 없습니다"
+              desc="궁금한 점이 있으시면 문의를 남겨 주세요. 접수 일정이나 요금처럼 여러 대관사에 공통으로 해당하는 내용은 공지사항과 FAQ에 먼저 반영합니다."
               action={
-                <ButtonLink href="/mypage/inquiries/new" variant="primary">
-                  문의하기
-                  <ArrowRight />
-                </ButtonLink>
+                <span className="flex flex-wrap justify-center gap-3">
+                  <ButtonLink href="/mypage/inquiries/new" variant="primary">
+                    문의 작성하기
+                    <ArrowRight />
+                  </ButtonLink>
+                  <ButtonLink href="/faq" variant="secondary">
+                    FAQ 먼저 보기
+                  </ButtonLink>
+                </span>
               }
             />
           ) : (
@@ -86,6 +92,14 @@ export default async function MyInquiriesPage({
                   href={`/mypage/inquiries/${inquiry.id}`}
                   lead={new Date(inquiry.createdAt).toLocaleString("ko-KR")}
                   title={inquiry.title}
+                  sub={
+                    <span className="flex flex-wrap gap-x-4">
+                      <span>{inquiryCategoryLabel(inquiry.category)}</span>
+                      <span className="tabular-nums">
+                        관련 신청번호 {inquiry.quoteId ?? "—"}
+                      </span>
+                    </span>
+                  }
                   action={
                     <span className="flex items-center gap-3">
                       <Badge tone={STATUS_TONE[inquiry.status] ?? "neutral"}>

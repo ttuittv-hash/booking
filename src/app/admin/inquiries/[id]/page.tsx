@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
+import { inquiryCategoryLabel } from "@/lib/inquiryCategories";
 import { getCurrentUser } from "@/lib/auth";
 import { findUserById, getInquiryById } from "@/lib/db";
 import { Badge } from "@/components/ui/kit";
@@ -40,10 +41,17 @@ export default async function AdminInquiryDetailPage({
             </Badge>
           </div>
           <p className="mt-2 text-s text-muted">
-            {author?.name ?? NONE} ({author?.companyName ?? NONE}, {author?.email ?? NONE}) ·{" "}
+            {inquiryCategoryLabel(inquiry.category)} · {author?.name ?? NONE} (
+            {author?.companyName ?? NONE}, {author?.email ?? NONE}) ·{" "}
             <span className="tabular-nums">
               {new Date(inquiry.createdAt).toLocaleString("ko-KR")}
             </span>
+            {inquiry.quoteId && (
+              <>
+                {" · "}
+                <span className="tabular-nums">관련 신청번호 {inquiry.quoteId}</span>
+              </>
+            )}
           </p>
         </header>
 

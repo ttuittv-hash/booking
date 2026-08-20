@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import type { Faq, Notice } from "@/lib/pricing/types";
 import type { HomeContent } from "@/lib/content/types";
 import { NOTICE_TAGS, NOTICE_TAG_HELP, PINNED_NOTICE_TAG, TagBadge, type NoticeTag } from "@/components/TagBadge";
+import { FAQ_TAGS } from "@/components/FaqAccordion";
 import { btnClass } from "@/components/ui/kit";
 import { NoticeEditor } from "./NoticeEditor";
 import { GuideFactsNotice, VenueFactsNotice } from "./VenueFactsNotice";
@@ -541,13 +542,18 @@ function FaqTab({
           <h3 className={SUB_TITLE}>{editingId === "__new__" ? "새 FAQ 등록" : "FAQ 수정"}</h3>
           <div className="mt-4 space-y-4">
             <div className="flex gap-2">
-              <input
-                type="text"
-                placeholder="말머리 (예: 신청, 정산)"
+              <select
                 value={tag}
                 onChange={(e) => setTag(e.target.value)}
-                className={`w-32 shrink-0 ${FIELD}`}
-              />
+                className={`w-36 shrink-0 ${FIELD}`}
+              >
+                <option value="">말머리 없음</option>
+                {FAQ_TAGS.map((t) => (
+                  <option key={t} value={t}>
+                    {t}
+                  </option>
+                ))}
+              </select>
               <input
                 type="text"
                 placeholder="질문"

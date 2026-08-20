@@ -31,18 +31,11 @@ import {
   btnClass,
 } from "@/components/ui/kit";
 import { DEFAULT_VENUE_ID, VENUES, type Quote } from "@/lib/pricing/types";
+import { QUOTE_STATUS_LABEL, QUOTE_STATUS_NEXT, QUOTE_STATUS_TONE } from "@/lib/quoteStatus";
 
-const STAGE_LABEL: Record<string, string> = {
-  ESTIMATE: "신청 접수 (예상 견적)",
-  CONTRACTED: "계약 확정",
-  SETTLED: "정산 확정",
-};
-
-const STAGE_TONE: Record<Quote["status"], "warn" | "accent" | "good"> = {
-  ESTIMATE: "warn",
-  CONTRACTED: "accent",
-  SETTLED: "good",
-};
+// 목록과 같은 문자열을 쓴다 — 라벨은 lib/quoteStatus.ts 한 곳에서만 정한다
+const STAGE_LABEL = QUOTE_STATUS_LABEL;
+const STAGE_TONE = QUOTE_STATUS_TONE;
 
 export default async function MyQuoteDetailPage({
   params,
@@ -109,6 +102,9 @@ export default async function MyQuoteDetailPage({
                 · {quote.selection.week.year}년 {quote.selection.week.month}월{" "}
                 {quote.selection.week.weekOfMonth}주차 · 총 {totalRentalDays(quote.selection)}일 · 관객{" "}
                 {quote.selection.expectedAudience.toLocaleString()}명
+                <span className="mt-3 block break-keep text-s text-muted">
+                  {QUOTE_STATUS_NEXT[quote.status]}
+                </span>
               </>
             }
             actions={
