@@ -483,6 +483,7 @@ export function WizardShell({
           <div className="space-y-6">
             <section className="rounded border border-border bg-background p-5 sm:p-7">
               <h2 className="text-[19px] font-semibold">공간 선택</h2>
+              <p className="mt-1.5 text-[13.5px] text-muted">아레나, 중형공연장, 동시 대관 중 이용할 공간을 선택하세요.</p>
               <div className="mt-5">
                 <VenuePicker venueId={selection.venueId} bookingMode={selection.bookingMode} onSelectVenue={selectVenue} />
               </div>

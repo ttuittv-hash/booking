@@ -1,16 +1,9 @@
 "use client";
 
-import type { ReactNode } from "react";
 import { won } from "@/lib/format";
-import {
-  arenaCompositionTiles,
-  baseCompositionTiles,
-  findPackage,
-  packagesForVenue,
-  totalRentalDays,
-} from "@/lib/pricing/rateTableUtils";
+import { findPackage, totalRentalDays } from "@/lib/pricing/rateTableUtils";
 import type { EstimatedQuote, LineItem, QuoteSelection, RateTable } from "@/lib/pricing/types";
-import { BaseCompositionCard } from "./BaseCompositionCard";
+import { QuoteLineItemsReport } from "@/components/QuoteLineItemsReport";
 
 function midHallSummaryLine(selection: QuoteSelection): string | null {
   const dates = Object.keys(selection.midHallDays).sort();
@@ -25,76 +18,6 @@ function midHallSummaryLine(selection: QuoteSelection): string | null {
 // 계산 엔진을 건드리지 않고 화면에서만 아레나/중형으로 갈라 보여주는 데 이 규칙을 쓴다.
 function isMidHallLineItem(item: LineItem): boolean {
   return item.addonId.startsWith("midhall");
-}
-
-function LineItemTable({
-  title,
-  items,
-  expectedRevenue,
-  composition,
-}: {
-  title?: string;
-  items: LineItem[];
-  expectedRevenue: number;
-  composition?: ReactNode;
-}) {
-  const subtotal = items.reduce((sum, item) => sum + item.amount, 0);
-  return (
-    <div className="mt-6">
-      {title && <h3 className="mb-2 text-[14.5px] font-semibold text-foreground">{title}</h3>}
-      {composition}
-      <div className="overflow-x-auto">
-        <table className="w-full border-collapse text-[13px]">
-          <thead>
-            <tr className="border-b border-border text-[11.5px] font-medium text-muted">
-              <th className="py-2 text-left">항목</th>
-              <th className="py-2 text-right">신청</th>
-              <th className="py-2 text-right">기본포함</th>
-              <th className="py-2 text-right">과금수량</th>
-              <th className="py-2 text-right">단가</th>
-              <th className="py-2 text-right">금액</th>
-            </tr>
-          </thead>
-          <tbody>
-            {items.length === 0 ? (
-              <tr>
-                <td colSpan={6} className="py-3 text-center text-[12.5px] text-muted">
-                  선택된 항목이 없습니다.
-                </td>
-              </tr>
-            ) : (
-              items.map((item) => (
-                <tr key={item.addonId} className="border-b border-border/70 tabular-nums">
-                  <td className="py-2.5 text-left font-medium">{item.label}</td>
-                  <td className="py-2.5 text-right">
-                    {item.pricingType === "REVENUE_PERCENT"
-                      ? `${won(expectedRevenue)} × ${item.unitPrice}%`
-                      : item.requested.toLocaleString()}
-                  </td>
-                  <td className="py-2.5 text-right">{item.included || "-"}</td>
-                  <td className="py-2.5 text-right">
-                    {item.pricingType === "REVENUE_PERCENT" ? "-" : item.billable.toLocaleString()}
-                  </td>
-                  <td className="py-2.5 text-right">
-                    {item.pricingType === "REVENUE_PERCENT" ? "-" : won(item.unitPrice)}
-                  </td>
-                  <td className="py-2.5 text-right font-semibold">{won(item.amount)}</td>
-                </tr>
-              ))
-            )}
-          </tbody>
-          <tfoot>
-            <tr>
-              <td colSpan={5} className="pt-2.5 text-right text-[13px] font-semibold">
-                {title ? `${title} 소계` : "소계"}
-              </td>
-              <td className="pt-2.5 text-right text-[13px] font-semibold tabular-nums">{won(subtotal)}</td>
-            </tr>
-          </tfoot>
-        </table>
-      </div>
-    </div>
-  );
 }
 
 export function Step5Estimate({
@@ -129,13 +52,6 @@ export function Step5Estimate({
   const arenaVisibleSubtotal = arenaItems.reduce((sum, item) => sum + item.amount, 0);
   const midHallVisibleSubtotal = midHallItems.reduce((sum, item) => sum + item.amount, 0);
 
-  // [개정 2026-08-20] "예상 대관료" 화면은 과금 항목뿐 아니라 선택한 패키지에 이미 포함된
-  // 기본 구성(대기실·인터컴·트러스 등)도 상세히 보여준다 — 구성·옵션(STEP2) 패키지 슬롯과
-  // 동일한 baseCompositionTiles를 재사용해 두 화면의 산정 내역이 서로 다르지 않게 한다.
-  const midHallPkg = packagesForVenue(rateTable, "medium-hall")[0];
-  const arenaTiles = pkg ? arenaCompositionTiles(pkg, rateTable) : [];
-  const midHallTiles = midHallPkg && hasMidHall ? baseCompositionTiles(midHallPkg, rateTable, { includeSchedule: false }) : [];
-
   return (
     <section className="rounded border border-border bg-background p-7">
       <h2 className="text-[19px] font-semibold">예상 대관료</h2>
@@ -153,57 +69,16 @@ export function Step5Estimate({
 
       {/* Bowl 사용료·유틸리티(HIDDEN)는 아래 합계 계산에는 포함되지만 신청자 화면에는
           항목·금액을 노출하지 않는다 — 그래서 아레나/중형 소계를 각각 더해도 맨 아래
-          최종 소계(quote.subtotal, 전체 lineItems 기준)와는 차이가 날 수 있다. */}
-      {isSimultaneous ? (
-        <>
-          <LineItemTable
-            title="아레나"
-            items={arenaItems}
-            expectedRevenue={selection.expectedRevenue ?? 0}
-            composition={
-              arenaTiles.length > 0 && (
-                <BaseCompositionCard
-                  tiles={arenaTiles}
-                  note="기본 대관료에 포함된 구성 — 관객 규모와 무관하게 전 패키지 동일하게 제공됩니다"
-                />
-              )
-            }
-          />
-          <LineItemTable
-            title="중형공연장"
-            items={midHallItems}
-            expectedRevenue={selection.expectedRevenue ?? 0}
-            composition={
-              midHallTiles.length > 0 && (
-                <BaseCompositionCard
-                  tiles={midHallTiles}
-                  note="대관료에 이미 포함된 구성 — 예약 일수와 무관하게 동일하게 제공됩니다"
-                />
-              )
-            }
-          />
-        </>
-      ) : (
-        <LineItemTable
-          items={visibleItems}
-          expectedRevenue={selection.expectedRevenue ?? 0}
-          composition={
-            pkg
-              ? arenaTiles.length > 0 && (
-                  <BaseCompositionCard
-                    tiles={arenaTiles}
-                    note="기본 대관료에 포함된 구성 — 관객 규모와 무관하게 전 패키지 동일하게 제공됩니다"
-                  />
-                )
-              : midHallTiles.length > 0 && (
-                  <BaseCompositionCard
-                    tiles={midHallTiles}
-                    note="대관료에 이미 포함된 구성 — 예약 일수와 무관하게 동일하게 제공됩니다"
-                  />
-                )
-          }
-        />
-      )}
+          최종 소계(quote.subtotal, 전체 lineItems 기준)와는 차이가 날 수 있다.
+          [개정 2026-08-20] 과금 항목뿐 아니라 선택한 패키지에 이미 포함된 기본 구성(대기실·
+          인터컴·트러스 등)도 상세히 보여준다 — 마이페이지 신청 상세·인쇄용 신청서와 동일한
+          QuoteLineItemsReport를 재사용해 세 화면의 산정 내역이 서로 다르지 않게 한다. */}
+      <QuoteLineItemsReport
+        rateTable={rateTable}
+        selection={selection}
+        lineItems={quote.lineItems}
+        expectedRevenue={selection.expectedRevenue ?? 0}
+      />
 
       <div className="mt-6 rounded-sm border border-border bg-panel/40 p-5">
         {isSimultaneous && (

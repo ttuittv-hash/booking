@@ -1,6 +1,6 @@
 import { notFound, redirect } from "next/navigation";
 import { canAccessQuote, getCurrentUser } from "@/lib/auth";
-import { findUserById, getQuoteById } from "@/lib/db";
+import { findUserById, getQuoteById, getRateTableByVersion } from "@/lib/db";
 import { won } from "@/lib/format";
 import { totalRentalDays } from "@/lib/pricing/rateTableUtils";
 import {
@@ -12,6 +12,7 @@ import {
   VENUES,
 } from "@/lib/pricing/types";
 import { PrintButton } from "@/components/PrintButton";
+import { QuoteLineItemsReport } from "@/components/QuoteLineItemsReport";
 
 export default async function PrintQuotePage({
   params,
@@ -26,7 +27,10 @@ export default async function PrintQuotePage({
   if (!quote) notFound();
   if (!(await canAccessQuote(user, quote))) notFound();
 
-  const applicant = await findUserById(quote.applicantId);
+  const [applicant, rateTable] = await Promise.all([
+    findUserById(quote.applicantId),
+    getRateTableByVersion(quote.rateTableVersion),
+  ]);
 
   return (
     <div className="mx-auto max-w-3xl px-8 py-10 text-[13px] text-foreground">
@@ -144,34 +148,17 @@ export default async function PrintQuotePage({
 
       <section className="mt-8">
         <h2 className="text-[11.5px] font-semibold uppercase tracking-wide text-muted">산출내역서</h2>
-        <table className="mt-2 w-full border-collapse text-[12.5px]">
-          <thead>
-            <tr className="border-b border-foreground/60 text-left">
-              <th className="py-1.5">항목</th>
-              <th className="py-1.5 text-right">신청</th>
-              <th className="py-1.5 text-right">기본포함</th>
-              <th className="py-1.5 text-right">과금수량</th>
-              <th className="py-1.5 text-right">단가</th>
-              <th className="py-1.5 text-right">금액</th>
-            </tr>
-          </thead>
-          <tbody>
-            {/* Bowl 사용료·유틸리티(HIDDEN)는 관리자에게만 항목·금액을 노출한다 — 신청자에게는
-                행 자체를 숨기고, 소계/VAT/합계는 quote 전체 lineItems 기준 값을 그대로 쓴다. */}
-            {quote.lineItems
-              .filter((item) => item.visibility !== "HIDDEN" || user.role === "ADMIN")
-              .map((item) => (
-                <tr key={item.addonId} className="border-b border-border tabular-nums">
-                  <td className="py-1.5">{item.label}</td>
-                  <td className="py-1.5 text-right">{item.requested.toLocaleString()}</td>
-                  <td className="py-1.5 text-right">{item.included || "-"}</td>
-                  <td className="py-1.5 text-right">{item.billable.toLocaleString()}</td>
-                  <td className="py-1.5 text-right">{won(item.unitPrice)}</td>
-                  <td className="py-1.5 text-right">{won(item.amount)}</td>
-                </tr>
-              ))}
-          </tbody>
-        </table>
+        {/* Bowl 사용료·유틸리티(HIDDEN)는 관리자에게만 항목·금액을 노출한다 — 신청자에게는
+            행 자체를 숨기고, 소계/VAT/합계는 quote 전체 lineItems 기준 값을 그대로 쓴다.
+            패키지 기본 구성(대기실·트러스 등)도 위저드·마이페이지와 동일하게 상세히 보여준다. */}
+        <QuoteLineItemsReport
+          rateTable={rateTable}
+          selection={quote.selection}
+          lineItems={quote.lineItems}
+          expectedRevenue={quote.selection.expectedRevenue ?? 0}
+          showHidden={user.role === "ADMIN"}
+          dense
+        />
         <div className="mt-3 flex justify-end gap-8">
           <span className="text-muted">소계(VAT 별도) {won(quote.subtotal)}</span>
           <span className="text-muted">VAT {won(quote.vat)}</span>
