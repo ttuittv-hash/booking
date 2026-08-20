@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { isNiceAuthConfigured } from "@/lib/niceAuth";
-import { dispatchMessage } from "@/lib/message/dispatch";
+import { dispatchMessageInBackground } from "@/lib/message/dispatch";
 import { verifyIdentityTicket } from "@/lib/identityTicket";
 import { USERNAME_HINT, USERNAME_RE } from "@/lib/validation";
 import crypto from "node:crypto";
@@ -340,7 +340,7 @@ export async function POST(request: Request) {
 
     // MB-04 합류 신청 발생 → 그 회사 마스터
     if (company && created.companyRole === "STAFF" && company.masterUserId) {
-      await dispatchMessage({
+      dispatchMessageInBackground({
         templateCode: "MB-04",
         idempotencyKey: `MB-04:${created.id}`,
         recipient: { userId: company.masterUserId, phone: null, email: null, name: null },
@@ -353,7 +353,7 @@ export async function POST(request: Request) {
   });
 
   // MB-01 가입 신청 접수 → 신청자 본인
-  await dispatchMessage({
+  dispatchMessageInBackground({
     templateCode: "MB-01",
     idempotencyKey: `MB-01:${user.id}`,
     recipient: { userId: user.id, phone, email, name },
@@ -362,7 +362,7 @@ export async function POST(request: Request) {
   // MB-05 회사 신규 등록 → 운영자
   if (company && user.companyRole === "MASTER") {
     for (const admin of await listUsers({ role: "ADMIN" })) {
-      await dispatchMessage({
+      dispatchMessageInBackground({
         templateCode: "MB-05",
         idempotencyKey: `MB-05:${company.id}:${admin.id}`,
         recipient: { userId: admin.id, phone: admin.phone, email: admin.email, name: admin.name },

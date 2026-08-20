@@ -50,6 +50,29 @@ export interface DispatchOutcome {
  * 한 이벤트를 발송한다.
  * 실패해도 예외를 던지지 않는다 — 알림 실패로 본 업무(가입 승인 등)가 되돌아가면 안 된다.
  */
+/**
+ * 응답을 막지 않고 발송한다.
+ *
+ * 가입·승인 라우트는 알림 결과를 쓰지 않는다. 그런데 await 하고 있어서, 외부 발송처가
+ * 느리거나 닿지 않으면 그 시간만큼 사용자가 빈 화면을 본다 — DKT 검증 환경 방화벽이
+ * 닫혀 있던 동안 회원가입이 10초 넘게 걸렸다. 알림이 늦는 것과 가입이 안 되는 것은
+ * 다른 문제다.
+ *
+ * 발송 시도는 보내기 전에 이미 message_sends 에 QUEUED 로 남으므로, 응답을 먼저
+ * 돌려줘도 "무엇을 보내려 했는지"는 사라지지 않는다.
+ *
+ * next start 는 오래 사는 프로세스라 응답 뒤에도 이 작업이 이어진다. 롤링 업데이트로
+ * 파드가 내려가는 순간에 걸린 건은 QUEUED 로 남는다 — 그건 이력에서 보인다.
+ */
+export function dispatchMessageInBackground(input: DispatchInput): void {
+  void dispatchMessage(input).catch((error) => {
+    console.error(
+      `[message] 백그라운드 발송 실패 template=${input.templateCode} key=${input.idempotencyKey}`,
+      error,
+    );
+  });
+}
+
 export async function dispatchMessage(input: DispatchInput): Promise<DispatchOutcome> {
   // ② 중복 발송 차단. 배치 재실행·재시도에서 같은 메시지가 두 번 가는 것이 가장 흔한 사고다.
   if (await findSendByIdempotencyKey(input.idempotencyKey)) {
