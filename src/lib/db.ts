@@ -4,11 +4,17 @@ import { hash as bcryptHash } from "@node-rs/bcrypt";
 import crypto from "node:crypto";
 import { buildSeedRateTable, SEED_MID_HALL_RATE_CONFIG } from "./pricing/seed";
 import { SEED_PAGES } from "./pricing/pageSeed";
-import { DEFAULT_GUIDE_CONTENT, DEFAULT_HOME_CONTENT, DEFAULT_VENUE_CONTENT } from "./content/seed";
+import {
+  DEFAULT_GUIDE_CONTENT,
+  DEFAULT_HOME_CONTENT,
+  DEFAULT_PRIVACY_CONTENT,
+  DEFAULT_TERMS_CONTENT,
+  DEFAULT_VENUE_CONTENT,
+} from "./content/seed";
 import { FEATURE_SPEC_SEED } from "./featureSpecSeed";
 import { FEATURE_SPEC_SHEET_KEYS } from "./pricing/types";
 import { sha256Hex } from "./passwordScheme";
-import type { GuideContent, HomeContent, VenueContent } from "./content/types";
+import type { GuideContent, HomeContent, LegalContent, VenueContent } from "./content/types";
 import type {
   ApprovalStatus,
   CompanyVerification,
@@ -2456,6 +2462,22 @@ export async function getHomeContent(): Promise<HomeContent> {
 
 export async function saveHomeContent(data: HomeContent): Promise<HomeContent> {
   return saveSiteContent("home", data);
+}
+
+export async function getTermsContent(): Promise<LegalContent> {
+  return getSiteContent<LegalContent>("terms", DEFAULT_TERMS_CONTENT);
+}
+
+export async function saveTermsContent(data: LegalContent): Promise<LegalContent> {
+  return saveSiteContent("terms", data);
+}
+
+export async function getPrivacyContent(): Promise<LegalContent> {
+  return getSiteContent<LegalContent>("privacy", DEFAULT_PRIVACY_CONTENT);
+}
+
+export async function savePrivacyContent(data: LegalContent): Promise<LegalContent> {
+  return saveSiteContent("privacy", data);
 }
 
 // ---------------------------------------------------------------------------

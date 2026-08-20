@@ -82,6 +82,11 @@ export interface HomeProcessStep {
   desc: string;
 }
 
+export interface LegalContent {
+  effectiveDate: string;
+  bodyHtml: string;
+}
+
 export interface HomeContent {
   heroImage: string | null;
   heroEyebrow: string;

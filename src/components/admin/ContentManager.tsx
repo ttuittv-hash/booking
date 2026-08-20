@@ -3,14 +3,15 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import type { Faq, Notice } from "@/lib/pricing/types";
-import type { GuideContent, HomeContent, VenueContent } from "@/lib/content/types";
+import type { GuideContent, HomeContent, LegalContent, VenueContent } from "@/lib/content/types";
 import { TagBadge } from "@/components/TagBadge";
 import { NoticeEditor } from "./NoticeEditor";
 import { VenueContentForm } from "./VenueContentForm";
 import { GuideContentForm } from "./GuideContentForm";
 import { HomeContentForm } from "./HomeContentForm";
+import { LegalContentForm } from "./LegalContentForm";
 
-type Tab = "notices" | "faq" | "home" | "venue" | "guide";
+type Tab = "notices" | "faq" | "home" | "venue" | "guide" | "terms" | "privacy";
 
 function isHtmlBodyEmpty(html: string): boolean {
   return html.replace(/<[^>]+>/g, "").trim().length === 0 && !html.includes("<img");
@@ -27,12 +28,16 @@ export function ContentManager({
   homeContent,
   venueContent,
   guideContent,
+  termsContent,
+  privacyContent,
 }: {
   notices: Notice[];
   faqs: Faq[];
   homeContent: HomeContent;
   venueContent: VenueContent;
   guideContent: GuideContent;
+  termsContent: LegalContent;
+  privacyContent: LegalContent;
 }) {
   const router = useRouter();
   const [tab, setTab] = useState<Tab>("notices");
@@ -49,6 +54,8 @@ export function ContentManager({
             ["home", "홈 화면"],
             ["venue", "서울아레나 소개"],
             ["guide", "대관 안내"],
+            ["terms", "이용약관"],
+            ["privacy", "개인정보처리방침"],
           ] as const
         ).map(([key, label]) => (
           <button
@@ -73,6 +80,12 @@ export function ContentManager({
         {tab === "home" && <HomeContentForm content={homeContent} />}
         {tab === "venue" && <VenueContentForm content={venueContent} />}
         {tab === "guide" && <GuideContentForm content={guideContent} />}
+        {tab === "terms" && (
+          <LegalContentForm kind="terms" label="이용약관" content={termsContent} publicHref="/terms" />
+        )}
+        {tab === "privacy" && (
+          <LegalContentForm kind="privacy" label="개인정보처리방침" content={privacyContent} publicHref="/privacy" />
+        )}
       </div>
     </div>
   );

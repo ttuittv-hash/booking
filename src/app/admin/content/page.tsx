@@ -1,6 +1,14 @@
 import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/lib/auth";
-import { getGuideContent, getHomeContent, getVenueContent, listFaqs, listNotices } from "@/lib/db";
+import {
+  getGuideContent,
+  getHomeContent,
+  getPrivacyContent,
+  getTermsContent,
+  getVenueContent,
+  listFaqs,
+  listNotices,
+} from "@/lib/db";
 import { AdminNav } from "@/components/admin/AdminNav";
 import { ContentManager } from "@/components/admin/ContentManager";
 
@@ -14,6 +22,8 @@ export default async function AdminContentPage() {
   const homeContent = await getHomeContent();
   const venueContent = await getVenueContent();
   const guideContent = await getGuideContent();
+  const termsContent = await getTermsContent();
+  const privacyContent = await getPrivacyContent();
 
   return (
     <div className="flex flex-1 flex-col">
@@ -22,8 +32,8 @@ export default async function AdminContentPage() {
       <main className="mx-auto w-full max-w-4xl flex-1 px-6 py-10">
         <h1 className="text-[22px] font-semibold">콘텐츠 관리</h1>
         <p className="mt-2 text-[13.5px] leading-6 text-muted">
-          공지사항·FAQ와 &ldquo;서울아레나 소개&rdquo;, &ldquo;대관 안내&rdquo; 페이지 내용을 여기서 관리합니다.
-          저장하면 해당 화면에 바로 반영됩니다.
+          공지사항·FAQ와 &ldquo;서울아레나 소개&rdquo;, &ldquo;대관 안내&rdquo;, &ldquo;이용약관&rdquo;,
+          &ldquo;개인정보처리방침&rdquo; 페이지 내용을 여기서 관리합니다. 저장하면 해당 화면에 바로 반영됩니다.
         </p>
 
         <ContentManager
@@ -32,6 +42,8 @@ export default async function AdminContentPage() {
           homeContent={homeContent}
           venueContent={venueContent}
           guideContent={guideContent}
+          termsContent={termsContent}
+          privacyContent={privacyContent}
         />
       </main>
     </div>
