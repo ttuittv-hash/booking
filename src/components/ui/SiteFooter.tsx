@@ -31,7 +31,7 @@ export function SiteFooter() {
                 <ul className="mt-4 space-y-2.5">
                   {col.pages.map((l) => (
                     <li key={l.href + l.label}>
-                      <Link href={l.href} className="text-r transition-colors hover:text-accent">
+                      <Link href={l.href} className="inline-flex min-h-9 items-center text-r transition-colors hover:text-accent">
                         {l.label}
                       </Link>
                     </li>
