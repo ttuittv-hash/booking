@@ -18,7 +18,6 @@ import { TicketOpenPanel } from "@/components/TicketOpenPanel";
 import { FacilityMeetingPanel } from "@/components/FacilityMeetingPanel";
 import { SettlementMutualConfirm } from "@/components/SettlementMutualConfirm";
 import {
-  ArrowRight,
   Band,
   ButtonLink,
   EmptyState,
@@ -128,6 +127,7 @@ export default async function ApplicationHistoryPage() {
         <Band tone="white">
           <QueryTabs
             param="stage"
+            variant="line"
             ariaLabel="진행 단계"
             items={[
               {
@@ -217,12 +217,6 @@ export default async function ApplicationHistoryPage() {
             계약서·전자 날인·세금계산서 등 신청 건별 상세는 대관 신청 현황에서 해당 건을 열어
             확인하실 수 있습니다.
           </Note>
-          <div className="mt-6">
-            <ButtonLink href="/mypage/process" variant="secondary">
-              대관 신청 현황
-              <ArrowRight />
-            </ButtonLink>
-          </div>
         </Band>
       </main>
 

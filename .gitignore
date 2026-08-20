@@ -47,3 +47,6 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# E2E 실패 스크린샷 — 저장소에 남기지 않는다
+e2e-failure.png

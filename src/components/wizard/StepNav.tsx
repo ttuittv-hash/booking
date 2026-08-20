@@ -88,10 +88,10 @@ export function StepNav({
   return (
     <nav
       aria-label="신청 단계"
-      // sticky 오프셋은 PublicHeader 높이(64 / lg 72)에 맞춘다. 음수 마진(-mx-*)으로
+      // sticky 오프셋은 상단바 높이 토큰(`--header-h`)을 그대로 따른다. 음수 마진(-mx-*)으로
       // 그리드 트랙 밖으로 빼지 않는다 — 스텝 전환 시 위저드 폭이 흔들리던 버그
       // (5cfc178 / 310e689) 가 그렇게 재발한다. w-full + overflow-x-auto 로만 처리한다.
-      className="sticky top-16 z-20 mb-10 w-full border-b border-border/25 bg-background lg:top-[72px]"
+      className="sticky top-[var(--header-h)] z-20 mb-10 w-full border-b border-border/25 bg-background"
     >
       <ol className="flex h-11 w-full min-w-0 items-center gap-1 overflow-x-auto">
         {groupsWithVisibleSteps.map((group) => {

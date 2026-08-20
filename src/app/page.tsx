@@ -58,6 +58,7 @@ export default async function Home() {
         {/* ── 전환 CTA ───────────────────────────────────────────────────── */}
         <CTABand
           title="당신의 무대를 지금 설계하세요."
+          lead="대관 안내에서 절차와 대관료를 먼저 확인해 보세요."
           actions={
             <ButtonLink href="/guide" variant="primary">
               대관 안내

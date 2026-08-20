@@ -8,10 +8,7 @@ import { SiteFooter } from "@/components/ui/SiteFooter";
 import { QueryTabs } from "@/components/ui/QueryTabs";
 import { VENUE_TABS, VENUE_TAB_PARAM } from "@/components/ui/nav-items";
 import {
-  ArrowRight,
   Band,
-  ButtonLink,
-  CTABand,
   DocumentList,
   PageHead,
 } from "@/components/ui/kit";
@@ -44,7 +41,6 @@ export default async function DocumentsPage() {
         <QueryTabs
           param={VENUE_TAB_PARAM}
           ariaLabel="공간 선택"
-          tablistClassName="container-site pt-10"
           items={VENUE_TABS.map((t) => ({
             value: t.value,
             label: t.label,
@@ -71,21 +67,6 @@ export default async function DocumentsPage() {
           }))}
         />
 
-        <CTABand
-          title="필요한 자료가 목록에 없나요?"
-          lead="1:1 문의로 요청해 주시면 담당자가 확인해 회신합니다."
-          actions={
-            <>
-              <ButtonLink href="/mypage/inquiries" variant="primary">
-                1:1 문의하기
-                <ArrowRight />
-              </ButtonLink>
-              <ButtonLink href="/rules" variant="secondary">
-                대관 규약
-              </ButtonLink>
-            </>
-          }
-        />
       </main>
 
       <SiteFooter />

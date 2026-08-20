@@ -93,7 +93,8 @@
   --columns: 6;
   /* 산문 최대 폭(measure). 컬럼 스팬과 무관한 절대값 — 약 45~50자 */
   --measure: 48rem; /* 768 */
-  --header-h: 72px;
+  /* 상단바 높이 — 스티키 오프셋(탭 알약·목차·위저드 스텝)이 전부 이 값을 참조한다 */
+  --header-h: 56px;
 }
 
 @media (min-width: 768px) {
@@ -106,6 +107,7 @@
   :root {
     --margin-x: 3rem; /* 48 */
     --gutter: 2rem; /* 32 */
+    --header-h: 64px;
   }
 }
 @media (min-width: 1440px) {
@@ -317,7 +319,8 @@ input[type="number"]::-webkit-inner-spin-button {
   font-weight: 800;
   text-transform: uppercase;
   letter-spacing: -0.02em;
-  font-size: 14.1cqw;
+  /* 컨테이너 폭에 맞춘 값 — Archivo 자폭 기준으로 마진 안에 딱 들어온다 */
+  font-size: 13.65cqw;
   line-height: 0.9;
   white-space: nowrap;
 }

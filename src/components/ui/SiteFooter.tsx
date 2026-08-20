@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { NAV_CATEGORIES } from "@/components/ui/nav-items";
+import { FOOTER_CATEGORIES } from "@/components/ui/nav-items";
 
 /**
  * Figma Design › Footer / 1 규격.
@@ -25,7 +25,7 @@ export function SiteFooter() {
           </div>
 
           <div className="grid grid-cols-2 gap-x-10 gap-y-8 sm:grid-cols-4 lg:gap-x-14">
-            {NAV_CATEGORIES.map((col) => (
+            {FOOTER_CATEGORIES.map((col) => (
               <div key={col.label}>
                 <p className="type-display text-xs tracking-[0.08em] text-muted">{col.label}</p>
                 <ul className="mt-4 space-y-2.5">

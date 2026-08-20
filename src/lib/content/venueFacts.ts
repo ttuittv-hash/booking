@@ -20,6 +20,8 @@ export interface VenueHeroCopy {
   title: string;
   eyebrow: string;
   desc: string;
+  /** 전면 배경 사진. 운영자가 백오피스에서 바꿀 수 있고, 여기 값은 초기값이다 */
+  image: string | null;
 }
 
 /** 전면 사진 섹션 두 개 — Figma `02 공간 안내 › Header / 5` 레이아웃 */
@@ -27,11 +29,13 @@ export const VENUE_HEROES: VenueHeroCopy[] = [
   {
     title: "아레나",
     eyebrow: "18,269석 · 최대 28,000명",
+    image: "/images/arena.jpg",
     desc: "국내외 대형 콘서트와 라이브 공연을 위한 전문 공연장. 공연 연출에 따라 다양한 좌석 배치와 무대 구성이 가능하며, 최신 무대·음향·조명·반입반출 시스템을 갖춰 투어 공연은 물론 대규모 시상식, 방송 행사, 기업 이벤트까지 폭넓게 운영합니다.",
   },
   {
     title: "중형공연장",
     eyebrow: "2,000석 · 최대 7,000명",
+    image: "/images/live-hall.jpg",
     desc: "콘서트, 뮤지컬, 팬미팅, 쇼케이스, 기업행사 등 중형 규모 콘텐츠에 적합한 공연장. 관객과 아티스트 간 높은 몰입감을 제공하는 공간으로, 공연 특성에 맞는 유연한 운영이 가능합니다.",
   },
 ];
@@ -184,9 +188,21 @@ export const ARENA_CAPACITY: StageCapacity[] = [
   },
 ];
 
-export const LIVE_HALL_CAPACITY: [string, string][] = [
-  ["좌석", "플로어 2010석 (2층 1524+12(장애인석) / 3층 446+28(장애인석))"],
-  ["스탠딩", "최대 3,060석"],
+/**
+ * 중형공연장 객석 — 아레나와 같은 SEATED / STANDING 규격으로 맞춘다.
+ * 원본은 "플로어 2010석 (2층 1524+12(장애인석) / 3층 446+28(장애인석))" 한 줄이었고,
+ * 2층·3층 합(1,524+12+446+28)이 정확히 2,010이라 총계와 층별 내역으로 나눴다.
+ */
+export const LIVE_HALL_CAPACITY: StageCapacity[] = [
+  {
+    stage: "",
+    seated: "2,010석",
+    standing: "최대 3,060석",
+    floors: [
+      ["2층", "1,524석 (장애인석 12석 별도)"],
+      ["3층", "446석 (장애인석 28석 별도)"],
+    ],
+  },
 ];
 
 export const ARENA_FACILITIES: { label: string; desc?: string }[] = [
