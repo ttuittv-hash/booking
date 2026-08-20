@@ -137,6 +137,12 @@ function baseCompositionTiles(
   return tiles;
 }
 
+// [개정 2026-08-20] "기본 포함" 카드(BaseCompositionCard)는 아레나 탭에서 패키지 슬롯 안으로
+// 흡수한다 — 별도 카드 대신 패키지를 고르면 그 아래 한 줄 요약 텍스트로 보여준다.
+function baseCompositionSummaryLine(tiles: BaseCompositionTile[]): string {
+  return tiles.map((t) => `${t.label} ${t.value}`).join(" · ");
+}
+
 // [화면 뼈대 2026-08-20, 개정] 관객 규모는 더 이상 별도 "패키지 선택" 화면에서 입력하지
 // 않는다 — 일정을 먼저 고르고, 그 규모에 따라 자동 결정되는 패키지·구성을 바로 이 화면
 // (구성·옵션)에서 함께 보면서 조정할 수 있게 옮겼다.
@@ -176,10 +182,12 @@ function ScaleInputBlock({
 function PackagePicker({
   packages,
   selectedId,
+  summary,
   onSelect,
 }: {
   packages: RentalPackage[];
   selectedId: number | null;
+  summary?: string;
   onSelect: (id: number) => void;
 }) {
   return (
@@ -210,6 +218,12 @@ function PackagePicker({
           );
         })}
       </div>
+      {summary && (
+        <p className="mt-3 rounded-sm border border-border bg-panel/60 px-3 py-2 text-[11.5px] text-muted">
+          <span className="font-medium text-foreground">기본 포함: </span>
+          {summary}
+        </p>
+      )}
     </div>
   );
 }
@@ -348,32 +362,32 @@ export function StepConfigOptions({
       </div>
 
       <div className="mt-6">
-        <PackagePicker packages={arenaPackages} selectedId={selection.packageId} onSelect={onSelectPackage} />
+        <PackagePicker
+          packages={arenaPackages}
+          selectedId={selection.packageId}
+          summary={pkg ? baseCompositionSummaryLine(compositionTiles) : undefined}
+          onSelect={onSelectPackage}
+        />
       </div>
 
       {!pkg ? (
-        <p className="text-[13.5px] text-muted">위에서 패키지를 선택하면 기본 구성과 선택 옵션을 확인할 수 있습니다.</p>
+        <p className="text-[13.5px] text-muted">위에서 패키지를 선택하면 선택 옵션을 확인할 수 있습니다.</p>
       ) : (
         <>
-          <BaseCompositionCard
-            tiles={compositionTiles}
-            note="대관료에 이미 포함된 구성 — 관객 규모와 무관하게 전 패키지 동일하게 제공됩니다"
-          />
-
-          <div className="mt-6 rounded border border-accent/30 bg-accent-soft/20 p-5">
+          <div className="mt-5 rounded border border-accent/30 bg-accent-soft/20 p-4">
             <div className="flex items-center gap-2">
               <span className="rounded-sm bg-accent px-2 py-0.5 text-[10.5px] font-semibold text-white">선택 옵션</span>
-              <span className="text-[12.5px] font-medium text-foreground">
+              <span className="text-[12px] font-medium text-foreground">
                 필요한 만큼 수량을 정해 추가하는 항목 — 단가 × 수량으로 금액이 즉시 계산됩니다
               </span>
             </div>
-            <div className="mt-4 space-y-6">
+            <div className="mt-3 space-y-4">
               {[...grouped.entries()].map(([category, items]) => (
                 <div key={category}>
-                  <div className="mb-2 text-[11px] font-semibold uppercase tracking-wide text-accent">
+                  <div className="mb-1.5 text-[10.5px] font-semibold uppercase tracking-wide text-accent">
                     {ADDON_CATEGORY_LABEL[category]}
                   </div>
-                  <div className="space-y-2">
+                  <div className="grid grid-cols-1 gap-1.5 sm:grid-cols-2">
                     {items.map((addon) => (
                       <AddonRow
                         key={addon.id}
@@ -389,11 +403,11 @@ export function StepConfigOptions({
                 </div>
               ))}
             </div>
-            <div className="mt-4 flex items-center justify-between rounded-sm bg-background px-4 py-3 text-[13.5px] font-semibold">
+            <div className="mt-3 flex items-center justify-between rounded-sm bg-background px-3 py-2 text-[13px] font-semibold">
               <span>선택 옵션</span>
               <span className="tabular-nums">{selectedOptionCount}건 선택됨</span>
             </div>
-            <p className="mt-2 text-[11px] text-muted">
+            <p className="mt-2 text-[10.5px] text-muted">
               청소 사용료 · 수도광열비 · 추가 광고 구좌 등은 별도입니다. 금액은 표시하지 않으며,
               선택을 마치면 다음 화면(예상 대관료)에서 총액을 확인합니다.
               <br />※ 신청 규모를 초과해 좌석을 오픈하는 경우 사후 정산 시 추가 과금됩니다.
@@ -509,43 +523,43 @@ function AddonRow({
   return (
     <div
       className={[
-        "flex flex-col gap-3 rounded border px-4 py-3 sm:flex-row sm:items-center sm:justify-between sm:gap-4",
+        "flex flex-col gap-1.5 rounded border px-3 py-2",
         isUtil ? "border-border/70 bg-panel/50 opacity-60" : "border-border bg-panel/60",
       ].join(" ")}
     >
       <div className="min-w-0">
         <div className="flex flex-wrap items-center gap-1.5">
-          <span className="text-[13.5px] font-medium">{addon.name}</span>
+          <span className="text-[12.5px] font-medium">{addon.name}</span>
           {included > 0 && (
-            <span className="rounded-sm bg-good-soft px-1.5 py-0.5 text-[10.5px] font-semibold text-good">
+            <span className="rounded-sm bg-good-soft px-1.5 py-0.5 text-[10px] font-semibold text-good">
               {included} 기본포함
             </span>
           )}
           {ruleTag && (
-            <span className="rounded-sm bg-warn-soft px-1.5 py-0.5 text-[10.5px] font-semibold text-warn">
+            <span className="rounded-sm bg-warn-soft px-1.5 py-0.5 text-[10px] font-semibold text-warn">
               {ruleTag}
             </span>
           )}
         </div>
-        <div className="mt-0.5 text-[11.5px] text-muted">
+        <div className="mt-0.5 text-[11px] text-muted">
           {addon.unitLabel}
           {addon.note ? ` · ${addon.note}` : ""}
         </div>
       </div>
 
-      <div className="flex shrink-0 items-center justify-between gap-3 sm:justify-end">
-        <span className="whitespace-nowrap text-[12px] text-muted">{priceLabel}</span>
+      <div className="flex shrink-0 items-center justify-between gap-2">
+        <span className="whitespace-nowrap text-[11.5px] text-muted">{priceLabel}</span>
 
         {isUtil ? (
-          <span className="whitespace-nowrap text-[12.5px] text-muted">정산 단계 부과</span>
+          <span className="whitespace-nowrap text-[12px] text-muted">정산 단계 부과</span>
         ) : isRevenue ? (
-          <div className="flex items-center gap-2">
-            <label className="flex items-center gap-1.5 whitespace-nowrap text-[12px] text-muted">
+          <div className="flex items-center gap-1.5">
+            <label className="flex items-center gap-1 whitespace-nowrap text-[11.5px] text-muted">
               <input
                 type="checkbox"
                 checked={quantity > 0}
                 onChange={(e) => onChangeQuantity(addon.id, e.target.checked ? 1 : 0)}
-                className="h-4 w-4 accent-[var(--accent)]"
+                className="h-3.5 w-3.5 accent-[var(--accent)]"
               />
               적용
             </label>
@@ -557,7 +571,7 @@ function AddonRow({
               value={expectedRevenue || ""}
               disabled={quantity <= 0}
               onChange={(e) => onChangeRevenue(Math.max(0, Number(e.target.value) || 0))}
-              className="w-24 shrink-0 rounded-sm border border-border bg-background px-2.5 py-1.5 text-right text-[13px] outline-none focus:border-accent disabled:opacity-40 sm:w-28"
+              className="w-20 shrink-0 rounded-sm border border-border bg-background px-2 py-1 text-right text-[12px] outline-none focus:border-accent disabled:opacity-40"
             />
           </div>
         ) : (
@@ -570,7 +584,7 @@ function AddonRow({
             onChange={(e) =>
               onChangeQuantity(addon.id, Math.max(0, Number(e.target.value) || 0))
             }
-            className="w-16 shrink-0 rounded-sm border border-border bg-background px-2.5 py-1.5 text-right text-[13px] outline-none focus:border-accent"
+            className="w-14 shrink-0 rounded-sm border border-border bg-background px-2 py-1 text-right text-[12px] outline-none focus:border-accent"
           />
         )}
       </div>

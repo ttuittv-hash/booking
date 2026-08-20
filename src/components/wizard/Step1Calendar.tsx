@@ -93,7 +93,7 @@ export function Step1Calendar({
   onChangeExtraDays,
   onChangeDayTags,
   onChangeDayShowCounts,
-  heading = "일정 선택",
+  heading,
 }: {
   week: QuoteSelection["week"];
   excludedDays: WeekDay[];
@@ -244,9 +244,9 @@ export function Step1Calendar({
 
   return (
     <section className="border border-border bg-background p-5 sm:p-7">
-      <h2 className="text-[19px] font-semibold">{heading}</h2>
+      {heading && <h2 className="text-[19px] font-semibold">{heading}</h2>}
 
-      <div className="mt-6 flex items-center justify-between">
+      <div className={heading ? "mt-6 flex items-center justify-between" : "flex items-center justify-between"}>
         <button
           type="button"
           onClick={() => goToMonth(-1)}

@@ -514,7 +514,6 @@ export function WizardShell({
                 <div className="mt-6">
                   {venueTab === "arena" ? (
                     <Step1Calendar
-                      heading="아레나 일정"
                       week={selection.week}
                       excludedDays={selection.excludedDays}
                       extraDays={selection.extraDays}
@@ -583,28 +582,30 @@ export function WizardShell({
             )}
             {selection.venueId && selection.bookingMode === "SINGLE" && selection.venueId === "arena" && (
               <section className="rounded border border-border bg-background p-5 sm:p-7">
-                <Step1Calendar
-                  heading="일정 선택"
-                  week={selection.week}
-                  excludedDays={selection.excludedDays}
-                  extraDays={selection.extraDays}
-                  dayTags={selection.dayTags}
-                  dayShowCounts={selection.dayShowCounts}
-                  defaultPerformanceDays={defaultPerformanceDays}
-                  weekDemand={weekDemand}
-                  dateBlocks={dateBlocks}
-                  onChangeWeek={(week) => setSelection((prev) => ({ ...prev, week }))}
-                  onChangeExcludedDays={(excludedDays) =>
-                    setSelection((prev) => ({ ...prev, excludedDays }))
-                  }
-                  onChangeExtraDays={(extraDays) =>
-                    setSelection((prev) => ({ ...prev, extraDays }))
-                  }
-                  onChangeDayTags={(dayTags) => setSelection((prev) => ({ ...prev, dayTags }))}
-                  onChangeDayShowCounts={(dayShowCounts) =>
-                    setSelection((prev) => ({ ...prev, dayShowCounts }))
-                  }
-                />
+                <h2 className="text-[19px] font-semibold">일정 선택</h2>
+                <div className="mt-5">
+                  <Step1Calendar
+                    week={selection.week}
+                    excludedDays={selection.excludedDays}
+                    extraDays={selection.extraDays}
+                    dayTags={selection.dayTags}
+                    dayShowCounts={selection.dayShowCounts}
+                    defaultPerformanceDays={defaultPerformanceDays}
+                    weekDemand={weekDemand}
+                    dateBlocks={dateBlocks}
+                    onChangeWeek={(week) => setSelection((prev) => ({ ...prev, week }))}
+                    onChangeExcludedDays={(excludedDays) =>
+                      setSelection((prev) => ({ ...prev, excludedDays }))
+                    }
+                    onChangeExtraDays={(extraDays) =>
+                      setSelection((prev) => ({ ...prev, extraDays }))
+                    }
+                    onChangeDayTags={(dayTags) => setSelection((prev) => ({ ...prev, dayTags }))}
+                    onChangeDayShowCounts={(dayShowCounts) =>
+                      setSelection((prev) => ({ ...prev, dayShowCounts }))
+                    }
+                  />
+                </div>
               </section>
             )}
           </div>
