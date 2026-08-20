@@ -23,7 +23,8 @@ const VENUE_TO_URL: Record<"arena" | "medium-hall", "arena" | "live-hall"> = { a
 
 export interface PublicMidHallRef {
   total: number | null;
-  breakdown: string | null;
+  exclusive: number | null;
+  facility: number | null;
 }
 
 export function RatesForm({
@@ -50,6 +51,22 @@ export function RatesForm({
     rateTable.dayExclusionDiscountRatio,
   );
   const [midHall, setMidHall] = useState(rateTable.midHall);
+  // 전용/시설 내역 — 요금표에 저장된 값 → 없으면 공개 페이지 표기 → 그것도 없으면 총액을 전용에
+  const initialBreakdown = rateTable.midHall.breakdown ?? {
+    setup: {
+      exclusive: publicMidHall?.setup.exclusive ?? rateTable.midHall.setupDayFee,
+      facility: publicMidHall?.setup.facility ?? 0,
+    },
+    weekday: {
+      exclusive: publicMidHall?.weekday.exclusive ?? rateTable.midHall.performanceWeekdayFee,
+      facility: publicMidHall?.weekday.facility ?? 0,
+    },
+    weekend: {
+      exclusive: publicMidHall?.weekend.exclusive ?? rateTable.midHall.performanceWeekendFee,
+      facility: publicMidHall?.weekend.facility ?? 0,
+    },
+  };
+  const [breakdown, setBreakdown] = useState(initialBreakdown);
   const [venueUrl, setVenueUrl] = useQueryTab("venue", VENUE_URL_VALUES, "arena");
   const venueTab = URL_TO_VENUE[venueUrl];
   const [saving, setSaving] = useState(false);
@@ -106,7 +123,7 @@ export function RatesForm({
           dayExclusionDiscountRatio,
           addons: addons.map((a) => ({ id: a.id, unitPrice: a.unitPrice })),
           newAddons,
-          midHall,
+          midHall: { ...midHall, breakdown },
         }),
       });
       const data = await res.json();
@@ -188,40 +205,79 @@ export function RatesForm({
 
         {(
           [
-            ["setupDayFee", "셋업 Load-In (1일, 평일/주말 동일)", "setup"],
-            ["performanceWeekdayFee", "공연 Show — 평일 (1일)", "weekday"],
-            ["performanceWeekendFee", "공연 Show — 주말 (1일)", "weekend"],
-            ["extraHourFee", "셋업 연장 · 철수 Load-Out (시간당)", null],
-            ["cleaningUnitPrice", "청소비 (원/인)", null],
+            ["setup", "셋업 Load-In (1일, 평일/주말 동일)"],
+            ["weekday", "공연 Show — 평일 (1일)"],
+            ["weekend", "공연 Show — 주말 (1일)"],
           ] as const
-        ).map(([key, label, publicKey]) => {
-          const ref = publicKey && publicMidHall ? publicMidHall[publicKey] : null;
-          const mismatch = ref?.total != null && ref.total !== midHall[key];
+        ).map(([key, label]) => {
+          const row = breakdown[key];
+          const total = row.exclusive + row.facility;
+          const setPart = (part: "exclusive" | "facility", raw: string) => {
+            const value = Math.max(0, Number(raw) || 0);
+            setBreakdown((prev) => {
+              const nextRow = { ...prev[key], [part]: value };
+              // 총액은 내역의 합 — 견적 엔진이 쓰는 필드를 함께 갱신한다
+              const totalKey =
+                key === "setup" ? "setupDayFee" : key === "weekday" ? "performanceWeekdayFee" : "performanceWeekendFee";
+              setMidHall((mh) => ({ ...mh, [totalKey]: nextRow.exclusive + nextRow.facility }));
+              return { ...prev, [key]: nextRow };
+            });
+          };
           return (
-            <div
-              key={key}
-              className="mt-4 grid grid-cols-1 items-center gap-2 border-t border-border-soft pt-4 sm:grid-cols-[1fr_200px] sm:gap-3"
-            >
-              <div>
+            <div key={key} className="mt-4 border-t border-border-soft pt-4">
+              <div className="flex flex-wrap items-baseline justify-between gap-2">
                 <div className={SUB_TITLE}>{label}</div>
-                {ref?.total != null ? (
-                  <div className={mismatch ? "mt-0.5 text-xs font-bold text-danger" : `mt-0.5 ${HELP}`}>
-                    공개 페이지 표기 {ref.total.toLocaleString("ko-KR")}원
-                    {ref.breakdown ? ` (${ref.breakdown})` : ""}
-                    {mismatch ? " — 입력값과 다릅니다" : " · 일치"}
-                  </div>
-                ) : null}
+                <div className="text-s font-bold tabular-nums">
+                  합계 {total.toLocaleString("ko-KR")}원
+                  <span className={`ml-2 font-normal ${HELP}`}>견적 계산·공개 페이지에 함께 적용</span>
+                </div>
               </div>
-              <input
-                type="number"
-                min={0}
-                value={midHall[key]}
-                onChange={(e) => setMidHall((prev) => ({ ...prev, [key]: Math.max(0, Number(e.target.value) || 0) }))}
-                className={FIELD_NUM}
-              />
+              <div className="mt-2 grid grid-cols-1 gap-2 sm:grid-cols-2 sm:gap-3">
+                <label>
+                  <span className={`mb-1 block ${HELP}`}>전용 사용료 / 일당</span>
+                  <input
+                    type="number"
+                    min={0}
+                    value={row.exclusive}
+                    onChange={(e) => setPart("exclusive", e.target.value)}
+                    className={FIELD_NUM}
+                  />
+                </label>
+                <label>
+                  <span className={`mb-1 block ${HELP}`}>시설 사용료 / 일당</span>
+                  <input
+                    type="number"
+                    min={0}
+                    value={row.facility}
+                    onChange={(e) => setPart("facility", e.target.value)}
+                    className={FIELD_NUM}
+                  />
+                </label>
+              </div>
             </div>
           );
         })}
+
+        {(
+          [
+            ["extraHourFee", "셋업 연장 · 철수 Load-Out (시간당)"],
+            ["cleaningUnitPrice", "청소비 (원/인)"],
+          ] as const
+        ).map(([key, label]) => (
+          <div
+            key={key}
+            className="mt-4 grid grid-cols-1 items-center gap-2 border-t border-border-soft pt-4 sm:grid-cols-[1fr_200px] sm:gap-3"
+          >
+            <div className={SUB_TITLE}>{label}</div>
+            <input
+              type="number"
+              min={0}
+              value={midHall[key]}
+              onChange={(e) => setMidHall((prev) => ({ ...prev, [key]: Math.max(0, Number(e.target.value) || 0) }))}
+              className={FIELD_NUM}
+            />
+          </div>
+        ))}
 
         <div className="mt-4 grid grid-cols-1 items-center gap-2 border-t border-border-soft pt-4 sm:grid-cols-[1fr_200px] sm:gap-3">
           <div>

@@ -251,6 +251,11 @@ export const SEED_MID_HALL_RATE_CONFIG: MidHallRateConfig = {
   // 공개 페이지가 "객석 기본 클리닝(특효류 포함)"을 대관료에 포함한다고 명시한다 —
   // 인당 청소비를 따로 받으면 공개가보다 비싸져 0 으로 둔다.
   cleaningUnitPrice: 0,
+  breakdown: {
+    setup: { exclusive: 5_500_000, facility: 8_500_000 },
+    weekday: { exclusive: 7_900_000, facility: 13_100_000 },
+    weekend: { exclusive: 11_550_000, facility: 13_450_000 },
+  },
 };
 
 export function buildSeedRateTable(): RateTable {

@@ -25,11 +25,20 @@ export default async function AdminRatesPage() {
   const findDetail = (key: string) => liveHall.detailColumns.find((c) => c.key === key);
   const publicMidHall = Object.fromEntries(
     (["setup", "weekday", "weekend"] as const).map((key) => {
-      const total = toNumber(findCol(key)?.values[0]);
-      const parts = (findDetail(key)?.values ?? []).filter(Boolean).join(" + ");
-      return [key, { total, breakdown: parts || null }];
+      const detail = findDetail(key)?.values ?? [];
+      return [
+        key,
+        {
+          total: toNumber(findCol(key)?.values[0]),
+          exclusive: toNumber(detail[0]),
+          facility: toNumber(detail[1]),
+        },
+      ];
     }),
-  ) as Record<"setup" | "weekday" | "weekend", { total: number | null; breakdown: string | null }>;
+  ) as Record<
+    "setup" | "weekday" | "weekend",
+    { total: number | null; exclusive: number | null; facility: number | null }
+  >;
 
   return (
     <div className="flex flex-1 flex-col">
