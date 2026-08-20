@@ -7,10 +7,8 @@ import { TagBadge, isPinnedTag } from "@/components/TagBadge";
 import { Breadcrumb } from "@/components/ui/Breadcrumb";
 import { SiteFooter } from "@/components/ui/SiteFooter";
 import {
-  ArrowRight,
   Band,
   ButtonLink,
-  CTABand,
   EmptyState,
   PageHead,
   Row,
@@ -120,21 +118,6 @@ export default async function NoticesPage({
           </>
         )}
 
-        <CTABand
-          title="찾는 답이 공지에 없나요?"
-          lead="자주 묻는 질문을 먼저 확인하고, 남는 내용은 운영자에게 바로 문의하세요."
-          actions={
-            <>
-              <ButtonLink href="/faq" variant="primary">
-                자주 묻는 질문
-                <ArrowRight />
-              </ButtonLink>
-              <ButtonLink href="/mypage/inquiries" variant="secondary">
-                1:1 문의
-              </ButtonLink>
-            </>
-          }
-        />
       </main>
 
       <SiteFooter />

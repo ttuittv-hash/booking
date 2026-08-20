@@ -5,8 +5,8 @@ import { getRulesContent } from "@/lib/db";
 import { parseRules } from "@/lib/content/pageContent";
 import { PublicHeader } from "@/components/PublicHeader";
 import { SiteFooter } from "@/components/ui/SiteFooter";
-import { Article, ArticleLayout } from "@/components/ui/ArticleLayout";
-import { ArrowRight, Band, ButtonLink, CTABand, Note, PageHead } from "@/components/ui/kit";
+import { ArticleLayout } from "@/components/ui/ArticleLayout";
+import { Band, Note, PageHead } from "@/components/ui/kit";
 
 export const metadata: Metadata = {
   title: "대관 규약 | 서울아레나",
@@ -58,30 +58,16 @@ export default async function RulesPage() {
 
         <Band tone="white">
           <ArticleLayout
+            searchLabel="규약 내 검색"
+            searchPlaceholder="예: 위약금, 반입, 정산"
             sections={chapters.map((ch) => ({
               id: ch.id,
               title: ch.title,
-              body: ch.articles.map((a, i) => (
-                <Article key={`${a.title}-${i}`} title={a.title} paragraphs={a.paragraphs} />
-              )),
+              articles: ch.articles,
             }))}
           />
         </Band>
 
-        <CTABand
-          title="규약을 확인하셨다면 대관 신청으로 이동하세요."
-          actions={
-            <>
-              <ButtonLink href="/apply" variant="primary">
-                대관 신청
-                <ArrowRight />
-              </ButtonLink>
-              <ButtonLink href="/documents" variant="secondary">
-                대관 자료
-              </ButtonLink>
-            </>
-          }
-        />
       </main>
 
       <SiteFooter />

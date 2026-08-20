@@ -62,6 +62,7 @@ export default async function MyInquiriesPage({
             actions={
               <ButtonLink href="/mypage/inquiries/new" variant="primary">
                 문의 작성
+                <ArrowRight />
               </ButtonLink>
             }
           />

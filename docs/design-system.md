@@ -93,6 +93,9 @@ Figma 가 stretch 로 잡혀 있어서 넓은 화면에서는 컬럼이 같이 �
 
 **기본은 좌측 정렬 1컬럼.** 카드처럼 대등한 항목이 나열될 때만 멀티컬럼을 쓴다.
 
+푸터 워드마크(`type-wordmark`)는 컨테이너 폭에 비례해 **크기만** 커지고 마진 안에 딱 들어온다
+(`13.65cqw` — Archivo 자폭에 맞춘 값). 글자를 늘려서 폭을 채우지 않는다.
+
 ### 표의 열 배치
 
 | 열 수 | 놓는 자리 |
@@ -118,6 +121,7 @@ Figma 가 stretch 로 잡혀 있어서 넓은 화면에서는 컬럼이 같이 �
 | `LayoutSticky` | Layout / 7 | 좌측 스티키 이미지 + 우측 번호 텍스트. 순차 서사 |
 | `ComparisonTable` | Comparison / 1 | **모든 수치·데이터 표의 표준** |
 | `SpecTable` | Comparison 행 리듬 | 값이 하나뿐인 라벨/값 나열 |
+| `GroupedSpecTable` | Comparison 행 리듬 | 묶음이 있는 라벨/값 나열. 열 배치가 `SpecTable` 과 같아 두 표를 위아래로 놓아도 값 열이 같은 세로선에서 시작한다 (RATE INCLUDES ↔ ADDITIONAL CHARGES) |
 | `CTABand` | CTA / 1 | 섹션 말미 전환 |
 | `PageHeading` | Header / 1-1 | 페이지 상단 헤딩 + 보조 문구 |
 | `CenterHeading` | Layout 1/3/6 헤더 | 센터 정렬 섹션 헤딩 |
@@ -128,8 +132,8 @@ Figma 가 stretch 로 잡혀 있어서 넓은 화면에서는 컬럼이 같이 �
 | `ProcessSteps` | Notion 대관 절차 | 한 줄 4박스 × 2줄 + 사이 화살표. 절차 요약은 이 모듈만 쓴다 |
 | `FeatureList` / `LabeledList` | Layout / 2 · Comparison 행 리듬 | 제목+설명 나열 / 라벨-값 나열 |
 | `DocumentList` | Figma 서식 자료실 | 자료 목록. 파일이 없으면 다운로드 아이콘 대신 안내 문구 |
-| `QueryTabs` | Figma 탭 | URL 쿼리(`?tab=` · `?venue=`)로 도는 탭. 새로고침·공유·뒤로가기가 유지된다 |
-| `ArticleLayout` / `Article` | **Content / 1** | 좌 2컬럼 스티키 목차 + 우 4컬럼 본문. 규약처럼 긴 조문 문서 |
+| `QueryTabs` | **page tabs** (2608) | URL 쿼리(`?tab=` · `?venue=`)로 도는 탭. 기본 `variant="pill"` — 검정 알약 안 흰 알약, 화면 가운데에 떠서 상단바 바로 아래 스티키. `variant="line"` 은 한 페이지 안 하위 축 전용(대관 진행 내역) |
+| `ArticleLayout` / `Article` | **Content / 1** | 좌 2컬럼 스티키 **검색창 + 목차** + 우 4컬럼 본문. 규약처럼 긴 조문 문서. `searchLabel` 을 주면 검색이 붙고, 걸린 조만 남기며 본문에 옐로로 표시한다 |
 
 ### 헤딩 위계 (Notion 정본)
 
@@ -160,6 +164,8 @@ Notion 이 잡아 놓은 위계를 그대로 쓴다. 디자인 가이드의 크�
 예외는 **헤더와 6컬럼 그리드뿐** — 카테고리 4개를 한 줄에 담으려면 `lg`(1024px) 가 필요하다.
 
 - 헤더: `lg` 미만이면 카테고리 노출을 접고 원형 버튼 + 전체 메뉴로 떨어진다
+- 스티키 오프셋은 전부 `--header-h`(56 / lg 64) 를 참조한다. 픽셀을 손으로 적지 마라 —
+  탭 알약 `top-[var(--header-h)]`, 규약 목차·위저드 스텝도 같은 토큰을 쓴다
 - `Row`: `sm` 미만이면 우측 메타·액션이 좌측 블록 아래로 떨어진다
 - `ArticleLayout`: `lg` 미만이면 목차가 본문 위로 올라간다
 - 확인 폭: 1920 / 1440 / 1024 / 834 / 768 / 640 / 480 / 390 / 360 / 320
@@ -227,7 +233,8 @@ const SPLIT = "grid gap-8 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.6fr)] lg:items-
 |---|---|
 | `AuthShell` | 인증 화면. `variant="card"`(Login / 3) · `variant="tabs"`(Sign up / 1) |
 | `Pagination` | 목록 하단 페이지 이동. 공개·백오피스 공용 — 화면마다 따로 만들지 않는다 |
-| `PublicHeader` | **넓은 화면(lg 이상)** — 좌 워드마크 / 중앙에 카테고리 4개를 접지 않고 노출(일반 텍스트, 호버·포커스로 하위 페이지 드롭다운) / 우 로그인 · 로그인 후 마이페이지+로그아웃. 카테고리는 페이지가 아니므로 링크가 아니라 버튼이다. **좁은 화면** — 기존 원형 클릭 메뉴 유지(닫힘 = 검정 채움 원 / 열림 = 아웃라인 원 + 내부 ×, 지름이 같아 아이콘이 튀지 않는다) |
+| `PublicHeader` | 높이 `--header-h`(56 / lg 64). **아웃라인 없음** — 지면과 같은 색이고 스크롤하면 `bg-background/85 + blur` 로 바뀌어 글자 가독성만 지킨다. **넓은 화면(lg 이상)** — 좌 워드마크 / 중앙 `YOUR STAGE │ YOUR GUIDE │ BOOK IT` (올캡스 Archivo) / 우 지원▾ · 알림 · 이름▾ · 로그아웃. **카테고리는 호버해도 색이 변하지 않는다** — 갈 페이지가 없으므로 누를 수 있다는 신호를 주면 안 된다. 펼쳐지는 패널이 피드백이다. `BOOK IT` 만 링크라 호버 색이 바뀐다. 우측 유틸은 채움·아웃라인 없는 텍스트 버튼. **좁은 화면** — 원형 클릭 메뉴 유지(닫힘 = 검정 채움 원 / 열림 = 아웃라인 원 + 내부 ×, 지름이 같아 아이콘이 튀지 않는다) |
+| `NotificationBell` | 아이콘은 Figma 2608 › `notifications` 벡터(24, 면채움). 안 읽은 건수는 옐로 면 배지 |
 | `SiteFooter` | Figma Design › Footer / 1. 상단 Address·Contact + 사이트맵 → **컨테이너 전폭 워드마크** → 헤어라인 → 카피라이트·정책. 오프화이트 지면 |
 | `choiceClass` | 선택 칩 (Figma Multi-step Forms). 선택 = 검정 채움 |
 | `Note` | 보조 고지문. 색면 박스를 쓰지 않는다 |
@@ -281,42 +288,48 @@ const SPLIT = "grid gap-8 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.6fr)] lg:items-
 
 ## 8. 정보구조
 
-**YOUR STAGE / BOOK IT / KNOW IT / HOST IT 은 카테고리 타이틀일 뿐 페이지가 아니다.**
-실제 페이지는 각 카테고리의 하위 목록이고, 이 정의는 `src/components/ui/nav-items.ts` 한 곳에 있다.
-헤더 메뉴와 푸터가 이 파일을 함께 쓴다. 한 페이지 안의 섹션은 메뉴에 올리지 않는다.
+**중앙은 여정, 우측은 도구.** 중앙에는 대관을 진행하려면 거쳐야 하는 것만 두고,
+어느 단계에서든 쓰는 것(지원·알림·계정)은 전부 우측 유틸리티로 뺀다.
+정의는 `src/components/ui/nav-items.ts` 한 곳에 있고 헤더와 푸터가 함께 쓴다.
+
+```
+중앙 (읽는 곳 — 카테고리 타이틀일 뿐 페이지가 아니다)
+  YOUR STAGE   서울아레나 /seoularena   (탭: 시설개요 · 시설 특징)
+               시설 소개  /features      (탭: 아레나 · 중형공연장)
+  YOUR GUIDE   대관 안내  /guide         (탭: 대관 안내 · 대관 절차)
+               대관료     /rates         (탭: 아레나 · 중형공연장)
+               대관 규약  /rules
+               대관 자료  /documents     (탭: 아레나 · 중형공연장)
+중앙 (누르는 곳 — 유일한 액션)
+  BOOK IT      /apply → 대관 신청 위저드로 바로 간다
+
+우측 (도구)
+  지원 ▾       공지사항 /notices · FAQ /faq · 1:1 문의 /mypage/inquiries
+  ○○○ 님 ▾    가입 정보 /mypage/profile · 대관 신청 내역 /mypage/process
+               · 대관 진행 내역 /mypage/history
+  로그아웃      (비로그인 → 회원가입 · 로그인)
+```
+
+**이름이 왜 이런가** — 명사 둘 + 동사 하나. 문법만으로 "둘은 읽는 곳, 하나는 누르는 곳"이
+읽힌다. `YOUR GUIDE` 는 "가이드"가 국내 실무에서 번역 없이 통하는 몇 안 되는 영어 명사라
+고른 것이고, 무대(장소) ↔ 가이드(문서)라 `YOUR STAGE` 와 의미가 겹치지 않는다.
 
 따라서:
 
-- **페이지 타이틀은 카테고리명이 아니라 그 페이지 이름이다.** `대관 규약` 이지 `Book It` 이 아니다
-- **카테고리를 브레드크럼에 넣지 않는다.** 링크할 상위 페이지가 없다.
-  브레드크럼은 실제 3뎁스에서만 (`items` 2개 미만이면 자동으로 렌더되지 않는다)
-- `PublicHeader active` 에는 **그 페이지의 실제 경로**를 넘긴다.
-  상위처럼 보이는 경로를 넘기면 메뉴에서 엉뚱한 항목이 볼드로 표시된다
-- **한 페이지 안의 탭은 메뉴에 올리지 않는다.** 공간 구분(아레나/중형공연장)과
-  콘텐츠 구분(시설개요/시설특징, 대관안내/대관절차)은 전부 탭이다
-
-```
-Your Stage  (카테고리 타이틀 — 링크 아님)
-  ├ 서울아레나       /seoularena            탭: 시설개요 · 시설 특징
-  └ 시설 소개        /features              탭: 아레나 · 중형공연장
-Book It
-  ├ 대관 안내        /guide                 탭: 대관 안내 · 대관 절차
-  ├ 대관료           /rates                 탭: 아레나 · 중형공연장
-  ├ 대관 규약        /rules
-  └ 대관 자료        /documents             탭: 아레나 · 중형공연장
-Know It
-  ├ 공지사항         /notices
-  ├ FAQ             /faq
-  └ 1:1 문의        /mypage/inquiries
-Host It
-  ├ 대관 신청        /apply
-  ├ 대관 신청 현황    /mypage/process
-  └ 대관 진행 내역    /mypage/history
-```
+- **페이지 타이틀은 카테고리명이 아니라 그 페이지 이름이다.** `대관 규약` 이지 `Your Guide` 가 아니다
+- **카테고리를 브레드크럼에 넣지 않는다.** 링크할 상위 페이지가 없다
+- `PublicHeader active` 에는 **그 페이지의 실제 경로**를 넘긴다
+- **한 페이지 안의 탭은 메뉴에 올리지 않는다**
+- 푸터 사이트맵은 `FOOTER_CATEGORIES` — 중앙 2묶음 + BOOK IT + 지원 4열
 
 홈(`/`)을 뺀 모든 페이지는 로그인이 필요하다. `/seoularena` 만 비로그인 열람을 허용한다.
-경로를 바꿀 때는 `next.config.ts` 에 **영구 리다이렉트를 남긴다** — 이미 배포된 정본의
-`/venue`·`/packages`·`/library` 등이 그렇게 살아 있다.
+경로를 바꿀 때는 `next.config.ts` 에 **영구 리다이렉트를 남긴다**.
+
+### 페이지 마무리
+
+**공개 페이지 맨 아래에 옐로 CTA 밴드를 두지 않는다.** 모든 페이지가 같은 배너로 끝나면
+그 자리가 배경이 되어 아무도 읽지 않고, 헤더의 `BOOK IT` 과도 겹친다.
+`CTABand` 는 **홈에서 한 번만** 쓴다.
 
 ### 콘텐츠 정본 · CMS
 
@@ -335,6 +348,9 @@ src/lib/content/*Facts.ts   →  pageContent.ts 의 DEFAULT_*  →  site_content
   `ListEditor`·`ContentFormShell`)을 조합해 만든다. 화면마다 폼을 새로 짜지 않는다
 - **대관 규약은 조문을 한 칸씩 고치는 문서가 아니다.** 판본을 통째로 갈아 끼우는 문서라
   전문 한 칸으로 두고 `parseRules()` 가 렌더할 때 장·조로 파싱한다
+- **사진도 콘텐츠다.** 기본 사진은 `public/images/` 에 커밋해 두고
+  (`hero.jpg` · `arena.jpg` · `live-hall.jpg`), 운영자는 `/admin/content` 에서
+  `ImageField` 로 갈아 끼운다. 업로드본은 `/api/pages/image/…` 로 저장된다
 - 새 페이지를 CMS 에 붙일 때: `pageContent.ts` 에 타입+DEFAULT → `db.ts` 에 get/save →
   `[page]` 라우트의 `PAGES` 맵 → 폼 → `ContentManager` 탭. 다섯 군데를 다 건드려야 한다
 

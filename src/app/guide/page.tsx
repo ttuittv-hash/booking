@@ -12,7 +12,6 @@ import {
   ArrowRight,
   Band,
   ButtonLink,
-  CTABand,
   PageHead,
   ProcessSteps,
   SectionHead,
@@ -83,27 +82,12 @@ export default async function GuidePage() {
         <QueryTabs
           param={CONTENT_TAB_PARAM}
           ariaLabel="대관 안내"
-          tablistClassName="container-site pt-10"
           items={[
             { value: "book", label: "대관 안내", panel: <HowToBookPanel c={content} introHtml={introHtml} /> },
             { value: "process", label: "대관 절차", panel: <HowItWorksPanel c={content} /> },
           ]}
         />
 
-        <CTABand
-          title="준비가 되셨다면 대관 신청으로 이동하세요."
-          actions={
-            <>
-              <ButtonLink href="/apply" variant="primary">
-                대관 신청
-                <ArrowRight />
-              </ButtonLink>
-              <ButtonLink href="/rules" variant="secondary">
-                대관 규약
-              </ButtonLink>
-            </>
-          }
-        />
       </main>
 
       <SiteFooter />

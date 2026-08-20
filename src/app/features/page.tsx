@@ -8,10 +8,7 @@ import { SiteFooter } from "@/components/ui/SiteFooter";
 import { QueryTabs } from "@/components/ui/QueryTabs";
 import { VENUE_TABS, VENUE_TAB_PARAM } from "@/components/ui/nav-items";
 import {
-  ArrowRight,
   Band,
-  ButtonLink,
-  CTABand,
   FeatureList,
   LabeledList,
   PageHead,
@@ -127,7 +124,6 @@ export default async function FeaturesPage() {
         <QueryTabs
           param={VENUE_TAB_PARAM}
           ariaLabel="공간 선택"
-          tablistClassName="container-site pt-10"
           items={VENUE_TABS.map((t) => ({
             value: t.value,
             label: t.label,
@@ -140,20 +136,6 @@ export default async function FeaturesPage() {
           }))}
         />
 
-        <CTABand
-          title="요금 체계와 포함 범위는 대관료에서 확인하세요."
-          actions={
-            <>
-              <ButtonLink href="/rates" variant="primary">
-                대관료 보기
-                <ArrowRight />
-              </ButtonLink>
-              <ButtonLink href="/documents" variant="secondary">
-                대관 자료
-              </ButtonLink>
-            </>
-          }
-        />
       </main>
 
       <SiteFooter />

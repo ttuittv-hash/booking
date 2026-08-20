@@ -478,10 +478,26 @@ async function seedData(pool: Pool) {
     }
   }
 
-  // FAQ — 최초 1회만 시드한다. 문항이 0건이면 화면이 빈 채로 열린다.
-  // 이후 운영자가 편집한 내용을 덮어쓰지 않도록 비어 있을 때만 넣는다.
+  // FAQ — 원본 시트(`26년_대관사_FAQ…xlsx`)가 정본이고, 여기서 DB 로 옮긴다.
+  //
+  //   비어 있으면            → 넣는다
+  //   시드가 바뀌었는데       → 운영자가 **한 건도 손대지 않았을 때만** 통째로 갈아 끼운다
+  //   한 건이라도 편집됐으면   → 건드리지 않는다 (운영자 편집이 항상 이긴다)
+  //
+  // 시드가 바뀌었는지는 해시로 판단하고, 적용한 해시는 `site_content` 에 남긴다.
+  const faqSeedHash = crypto.createHash("sha256").update(JSON.stringify(SEED_FAQS)).digest("hex");
+  const storedFaqHash = (
+    await pool.query("SELECT data FROM site_content WHERE page = 'faq_seed_hash'")
+  ).rows[0] as { data: string } | undefined;
   const faqCount = (await pool.query("SELECT COUNT(*)::int as n FROM faqs")).rows[0] as { n: number };
-  if (faqCount.n === 0) {
+  const faqEdited = (
+    await pool.query("SELECT COUNT(*)::int as n FROM faqs WHERE updated_at <> created_at")
+  ).rows[0] as { n: number };
+
+  // `site_content.data` 는 JSON 문자열을 담는 칸이라 해시도 JSON 으로 감싼다.
+  const seedChanged = storedFaqHash?.data !== JSON.stringify(faqSeedHash);
+  if (faqCount.n === 0 || (seedChanged && faqEdited.n === 0)) {
+    await pool.query("DELETE FROM faqs");
     const base = Date.now();
     for (let i = 0; i < SEED_FAQS.length; i++) {
       const f = SEED_FAQS[i];
@@ -492,6 +508,13 @@ async function seedData(pool: Pool) {
         [crypto.randomUUID(), f.tag, f.question, f.answer, at, at],
       );
     }
+  }
+  if (seedChanged) {
+    await pool.query(
+      `INSERT INTO site_content (page, data, updated_at) VALUES ('faq_seed_hash', $1, $2)
+       ON CONFLICT (page) DO UPDATE SET data = EXCLUDED.data, updated_at = EXCLUDED.updated_at`,
+      [JSON.stringify(faqSeedHash), new Date().toISOString()],
+    );
   }
 
   // 기능정의서(내부 기획 문서) — 시트별로 없는 것만 채운다. 이미 운영 중인 DB에 나중에

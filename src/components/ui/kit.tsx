@@ -501,7 +501,7 @@ export function LayoutSticky({ items }: { items: CardItem[] }) {
   return (
     <div className="grid gap-10 lg:grid-cols-2 lg:gap-16">
       <div className="hidden lg:block">
-        <div className="sticky top-28">
+        <div className="sticky top-[calc(var(--header-h)+5rem)]">
           <Media src={items[0]?.image} alt={items[0]?.title ?? ""} ratio="3 / 4" />
         </div>
       </div>
@@ -705,6 +705,59 @@ export function SpecTable({
         </div>
       ))}
     </dl>
+  );
+}
+
+/**
+ * 묶음이 있는 라벨/값 표. 열 배치는 `SpecTable` 과 완전히 같다 —
+ * 같은 페이지에 두 표가 위아래로 놓일 때(RATE INCLUDES ↔ ADDITIONAL CHARGES)
+ * 값 열이 다른 자리에서 시작하면 세로 기준선이 어긋나기 때문이다.
+ */
+export interface SpecGroup {
+  title: string;
+  rows: { label: string; value: string; note?: string }[];
+}
+
+export function GroupedSpecTable({
+  groups,
+  className = "",
+  dense = false,
+}: {
+  groups: SpecGroup[];
+  className?: string;
+  dense?: boolean;
+}) {
+  const pad = dense ? "py-2.5" : "py-4";
+  return (
+    <div className={`border-t border-border/25 ${className}`}>
+      {groups.map((g, gi) => (
+        <section key={`${g.title}-${gi}`}>
+          <h4
+            className={`border-b border-border/25 pb-2 text-xs font-bold text-muted ${
+              gi === 0 ? "pt-4" : "pt-8"
+            }`}
+          >
+            {g.title}
+          </h4>
+          <dl>
+            {g.rows.map((r, i) => (
+              <div
+                key={`${r.label}-${i}`}
+                className={`grid gap-1 border-b border-border/15 ${pad} sm:grid-cols-[minmax(0,12rem)_minmax(0,1fr)] sm:gap-6`}
+              >
+                <dt className="text-s text-muted">{r.label}</dt>
+                <dd className="text-s font-bold">
+                  {r.value}
+                  {r.note && (
+                    <span className="mt-1 block text-xs font-normal text-muted">{r.note}</span>
+                  )}
+                </dd>
+              </div>
+            ))}
+          </dl>
+        </section>
+      ))}
+    </div>
   );
 }
 
@@ -1001,10 +1054,13 @@ export function PhotoHero({
         <>
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src={image} alt="" aria-hidden className="absolute inset-0 -z-10 h-full w-full object-cover" />
-          {/* 텍스트 가독을 위한 최소한의 그늘 — 사진 자체를 어둡게 덮지 않는다 */}
+          {/*
+            텍스트 가독을 위한 그늘. 좌측(텍스트가 앉는 쪽)만 짙게 깔고 우측은 사진을 살린다.
+            아레나 사진처럼 바닥이 밝은 컷에서도 흰 본문이 읽혀야 하므로 좌측은 65%까지 준다.
+          */}
           <div
             aria-hidden
-            className="absolute inset-0 -z-10 bg-gradient-to-r from-black/55 via-black/25 to-transparent"
+            className="absolute inset-0 -z-10 bg-gradient-to-r from-black/70 via-black/35 to-black/10"
           />
         </>
       )}
@@ -1130,7 +1186,7 @@ export function ProcessSteps({ steps }: { steps: ProcessStep[] }) {
             {row.map((s, i) => (
               <li key={s.no} className="flex items-stretch lg:min-w-0 lg:flex-1">
                 <div className="min-w-0 flex-1 border border-border/25 bg-panel p-6">
-                  <span className="type-display block text-h6-m tabular-nums text-muted sm:text-h6">
+                  <span className="type-display block text-h6-m tabular-nums sm:text-h6">
                     {s.no}
                   </span>
                   <h4 className="type-kr-heading mt-3 break-keep text-h6-m sm:text-h6">{s.title}</h4>
@@ -1156,13 +1212,9 @@ export function DownloadIcon({ className = "" }: { className?: string }) {
       aria-hidden
       className={`inline-flex h-6 w-6 shrink-0 items-center justify-center ${className}`}
     >
-      <svg viewBox="0 0 16 16" fill="none" className="h-4 w-4">
-        <path
-          d="M8 1.5v9m0 0L4.5 7M8 10.5 11.5 7M2 13.5h12"
-          stroke="currentColor"
-          strokeWidth="1.5"
-          strokeLinecap="square"
-        />
+      {/* Figma 2608 › 01 공개 화면 › `download` 벡터 */}
+      <svg viewBox="0 0 24 24" fill="currentColor" className="h-5 w-5">
+        <path d="M11.996 15.7793C11.8866 15.7793 11.7825 15.7585 11.6835 15.717C11.5843 15.6757 11.4889 15.6095 11.3972 15.5185L7.55646 11.6778C7.38663 11.5033 7.30588 11.299 7.31421 11.065C7.32255 10.831 7.40838 10.6291 7.57171 10.4593C7.74971 10.2888 7.95646 10.2046 8.19196 10.2068C8.4273 10.2091 8.62996 10.2952 8.79996 10.4653L11.1482 12.8325V4.70225C11.1482 4.46225 11.2305 4.25933 11.3952 4.0935C11.5597 3.9275 11.7628 3.8445 12.0045 3.8445C12.246 3.8445 12.4475 3.9275 12.6092 4.0935C12.7709 4.25933 12.8517 4.46225 12.8517 4.70225V12.8325L15.225 10.4653C15.3916 10.2952 15.5884 10.2123 15.8152 10.2163C16.0422 10.2204 16.2441 10.3076 16.421 10.4777C16.5891 10.6481 16.6723 10.852 16.6705 11.0895C16.6685 11.327 16.5825 11.5314 16.4125 11.7027L12.6027 15.5185C12.5107 15.6095 12.4139 15.6757 12.3122 15.717C12.2107 15.7585 12.1053 15.7793 11.996 15.7793ZM5.55371 20.1495C5.09371 20.1495 4.69488 19.9806 4.35721 19.6428C4.01938 19.3051 3.85046 18.9062 3.85046 18.4462V15.7227C3.85046 15.4824 3.93271 15.2804 4.09721 15.1168C4.26171 14.9531 4.4648 14.8713 4.70646 14.8713C4.94813 14.8713 5.1498 14.9531 5.31146 15.1168C5.47296 15.2804 5.55371 15.4824 5.55371 15.7227V18.4462H18.4462V15.7227C18.4462 15.4824 18.5285 15.2804 18.693 15.1168C18.8575 14.9531 19.0604 14.8713 19.3017 14.8713C19.543 14.8713 19.7456 14.9531 19.9095 15.1168C20.0735 15.2804 20.1555 15.4824 20.1555 15.7227V18.4462C20.1555 18.9062 19.986 19.3051 19.647 19.6428C19.3081 19.9806 18.9079 20.1495 18.4462 20.1495H5.55371Z" />
       </svg>
     </span>
   );

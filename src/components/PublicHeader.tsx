@@ -5,26 +5,104 @@ import { useEffect, useRef, useState } from "react";
 import type { AppUser } from "@/lib/pricing/types";
 import { LogoutButton } from "@/components/LogoutButton";
 import { NotificationBell } from "@/components/NotificationBell";
-import { NAV_CATEGORIES } from "@/components/ui/nav-items";
-import { btnClass } from "@/components/ui/kit";
+import {
+  ACCOUNT_PAGES,
+  NAV_ACTION,
+  NAV_CATEGORIES,
+  SUPPORT_MENU,
+  type NavPage,
+} from "@/components/ui/nav-items";
 
 /* ============================================================================
    상단 내비게이션
 
-   좌 : 워드마크
-   중 : 카테고리 4개를 **접지 않고 바로 노출**한다. 일반 텍스트로 두고,
-        마우스를 올리면 그 카테고리의 페이지 목록이 아래로 펼쳐진다.
-   우 : 로그인 / (로그인 후) 마이페이지 · 로그아웃
+   좌   워드마크
+   중앙 YOUR STAGE · YOUR GUIDE (카테고리 — 링크가 아니라 호버로 펼치는 묶음)
+        BOOK IT (유일한 액션 — 대관 신청 위저드로 바로 간다)
+   우측 지원 · 알림 · 계정 · 로그아웃 — 여정이 아니라 도구라 채움·아웃라인 없이 텍스트로 둔다
 
-   카테고리 자체는 페이지가 아니므로 링크가 아니다 — 버튼으로 두고 키보드로도
-   펼칠 수 있게 한다(포커스·Enter·Escape). 좁은 화면에서는 카테고리를 한 줄에
-   담을 수 없으므로 기존처럼 전체 메뉴 패널로 떨어진다.
+   카테고리에는 호버 색 변화를 주지 않는다. 눌러서 갈 페이지가 없기 때문에
+   "누를 수 있다"는 신호를 주면 안 된다 — 펼쳐지는 패널 자체가 피드백이다.
+   상단바는 아웃라인 없이 지면과 같은 색이고, 콘텐츠가 밑으로 지나갈 때
+   블러 + 반투명으로 글자 가독성만 지킨다.
    ========================================================================= */
 
-const CAT_BTN =
-  "flex h-full items-center px-4 text-s font-bold transition-colors hover:text-accent";
-const PANEL_LINK = "block py-2 text-s transition-colors hover:text-accent";
-const UTIL_LINK = "text-s font-bold transition-colors hover:text-accent";
+const CAT_BTN = "flex h-full items-center px-4 type-display text-s text-foreground";
+const ACTION_BTN =
+  "flex h-full items-center px-4 type-display text-s text-foreground transition-colors hover:text-accent";
+const PANEL_LINK = "block whitespace-nowrap py-2 text-s transition-colors hover:text-accent";
+/** 우측 유틸 — 채움·아웃라인 없는 텍스트 버튼 */
+const UTIL_BTN =
+  "flex items-center gap-1 whitespace-nowrap text-s font-bold text-foreground transition-colors hover:text-accent";
+
+function Caret() {
+  return (
+    <svg aria-hidden viewBox="0 0 12 12" className="h-3 w-3" fill="none" stroke="currentColor">
+      <path d="M3 4.5 6 7.5 9 4.5" strokeWidth="1.4" strokeLinecap="square" />
+    </svg>
+  );
+}
+
+/** 우측 유틸 드롭다운 — 트리거는 텍스트, 패널은 하단 정렬 */
+function UtilMenu({
+  id,
+  label,
+  pages,
+  active,
+  openKey,
+  onOpen,
+  onToggle,
+}: {
+  id: string;
+  label: string;
+  pages: NavPage[];
+  active: string;
+  openKey: string | null;
+  onOpen: (key: string) => void;
+  onToggle: (key: string) => void;
+}) {
+  const isOpen = openKey === id;
+  return (
+    <div
+      className="relative flex items-center"
+      onMouseEnter={() => onOpen(id)}
+      onFocus={() => onOpen(id)}
+    >
+      <button
+        type="button"
+        aria-expanded={isOpen}
+        aria-haspopup="true"
+        onClick={() => onToggle(id)}
+        className={UTIL_BTN}
+      >
+        {label}
+        <Caret />
+      </button>
+      {isOpen && (
+        <div
+          className="absolute right-0 top-full z-50 min-w-44 animate-[dropdown-in_0.14s_ease-out] bg-background p-4 shadow-md"
+          onMouseEnter={() => onOpen(id)}
+        >
+          <ul>
+            {pages.map((p) => (
+              <li key={p.href}>
+                <Link
+                  href={p.href}
+                  onClick={() => onToggle(id)}
+                  className={`${PANEL_LINK} ${
+                    p.href === active ? "font-bold text-foreground" : "text-muted"
+                  }`}
+                >
+                  {p.label}
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+    </div>
+  );
+}
 
 export function PublicHeader({
   active,
@@ -33,11 +111,11 @@ export function PublicHeader({
   active: string;
   currentUser: AppUser | null;
 }) {
-  /** 데스크톱 드롭다운에서 펼쳐진 카테고리 라벨 */
-  const [openCat, setOpenCat] = useState<string | null>(null);
-  /** 좁은 화면 전체 메뉴 */
+  /** 펼쳐진 드롭다운의 키 (카테고리 라벨 · "지원" · "계정") */
+  const [openKey, setOpenKey] = useState<string | null>(null);
   const [mobileOpen, setMobileOpen] = useState(false);
   const [unread, setUnread] = useState(0);
+  const [scrolled, setScrolled] = useState(false);
   const closeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
@@ -64,11 +142,20 @@ export function PublicHeader({
   useEffect(() => {
     function onEsc(e: KeyboardEvent) {
       if (e.key !== "Escape") return;
-      setOpenCat(null);
+      setOpenKey(null);
       setMobileOpen(false);
     }
     document.addEventListener("keydown", onEsc);
     return () => document.removeEventListener("keydown", onEsc);
+  }, []);
+
+  useEffect(() => {
+    function onScroll() {
+      setScrolled(window.scrollY > 4);
+    }
+    onScroll();
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => window.removeEventListener("scroll", onScroll);
   }, []);
 
   useEffect(() => {
@@ -78,65 +165,44 @@ export function PublicHeader({
     };
   }, [mobileOpen]);
 
-  // 카테고리와 패널 사이를 대각선으로 지나갈 때 메뉴가 닫히지 않도록 잠깐 유예한다.
-  function openWithCancel(label: string) {
+  // 트리거와 패널 사이를 대각선으로 지나갈 때 닫히지 않도록 잠깐 유예한다.
+  function openWithCancel(key: string) {
     if (closeTimer.current) clearTimeout(closeTimer.current);
-    setOpenCat(label);
+    setOpenKey(key);
   }
   function closeSoon() {
     if (closeTimer.current) clearTimeout(closeTimer.current);
-    closeTimer.current = setTimeout(() => setOpenCat(null), 120);
+    closeTimer.current = setTimeout(() => setOpenKey(null), 120);
   }
-
-  const accountLinks = currentUser ? (
-    <>
-      <NotificationBell role={currentUser.role} />
-      {currentUser.role === "ADMIN" ? (
-        <Link href="/admin" className={btnClass("secondary", "sm")}>
-          운영자 백오피스
-        </Link>
-      ) : (
-        <Link href="/mypage/process" className={btnClass("secondary", "sm")}>
-          마이페이지
-        </Link>
-      )}
-      <LogoutButton className={btnClass("primary", "sm")} />
-    </>
-  ) : (
-    <>
-      <Link href="/register" className={UTIL_LINK}>
-        회원가입
-      </Link>
-      <Link href="/login" className={btnClass("primary", "sm")}>
-        로그인
-      </Link>
-    </>
-  );
+  function toggle(key: string) {
+    setOpenKey((k) => (k === key ? null : key));
+  }
 
   return (
     <header
-      className="sticky top-0 z-40 border-b border-border/15 bg-background/95 backdrop-blur-md"
+      className={`sticky top-0 z-40 transition-colors ${
+        scrolled ? "bg-background/85 backdrop-blur-md" : "bg-background"
+      }`}
       onMouseLeave={closeSoon}
     >
-      <div className="container-site flex h-16 items-center justify-between gap-6 lg:h-[72px]">
+      <div className="container-site flex h-[var(--header-h)] items-center justify-between gap-6">
         <Link
           href="/"
-          className="type-display shrink-0 text-h6-m leading-none sm:text-h5"
+          className="type-display shrink-0 text-h6-m leading-none"
           aria-label="Seoul Arena 홈"
         >
           Seoul Arena
         </Link>
 
-        {/* 중앙 — 카테고리 4개를 항상 노출한다 */}
+        {/* 중앙 — 카테고리 2개 + 액션 1개 */}
         <nav aria-label="주요 메뉴" className="hidden h-full flex-1 justify-center lg:flex">
           <ul className="flex h-full items-stretch">
             {NAV_CATEGORIES.map((cat) => {
-              const isOpen = openCat === cat.label;
-              const hasActive = cat.pages.some((p) => p.href === active);
+              const isOpen = openKey === cat.label;
               return (
                 <li
                   key={cat.label}
-                  className="relative flex items-stretch"
+                  className="relative flex items-stretch after:my-auto after:block after:h-3 after:w-px after:bg-border/25"
                   onMouseEnter={() => openWithCancel(cat.label)}
                   onFocus={() => openWithCancel(cat.label)}
                 >
@@ -144,15 +210,15 @@ export function PublicHeader({
                     type="button"
                     aria-expanded={isOpen}
                     aria-haspopup="true"
-                    onClick={() => setOpenCat(isOpen ? null : cat.label)}
-                    className={`${CAT_BTN} ${hasActive ? "text-foreground" : "text-muted"}`}
+                    onClick={() => setOpenKey(isOpen ? null : cat.label)}
+                    className={CAT_BTN}
                   >
                     {cat.label}
                   </button>
 
                   {isOpen && (
                     <div
-                      className="absolute left-1/2 top-full z-50 min-w-52 -translate-x-1/2 animate-[dropdown-in_0.14s_ease-out] border border-border/20 bg-background p-4 shadow-sm"
+                      className="absolute left-1/2 top-full z-50 min-w-48 -translate-x-1/2 animate-[dropdown-in_0.14s_ease-out] bg-background p-4 shadow-md"
                       onMouseEnter={() => openWithCancel(cat.label)}
                     >
                       <ul>
@@ -160,7 +226,7 @@ export function PublicHeader({
                           <li key={p.href}>
                             <Link
                               href={p.href}
-                              onClick={() => setOpenCat(null)}
+                              onClick={() => setOpenKey(null)}
                               className={`${PANEL_LINK} ${
                                 p.href === active ? "font-bold text-foreground" : "text-muted"
                               }`}
@@ -175,13 +241,58 @@ export function PublicHeader({
                 </li>
               );
             })}
+            <li className="flex items-stretch">
+              <Link href={NAV_ACTION.href} className={ACTION_BTN}>
+                {NAV_ACTION.label}
+              </Link>
+            </li>
           </ul>
         </nav>
 
-        {/* 우측 — 계정 */}
-        <div className="hidden shrink-0 items-center gap-4 lg:flex">{accountLinks}</div>
+        {/* 우측 — 지원 · 알림 · 계정 */}
+        <div className="hidden shrink-0 items-center gap-5 lg:flex">
+          <UtilMenu
+            id="support"
+            label={SUPPORT_MENU.label}
+            pages={SUPPORT_MENU.pages}
+            active={active}
+            openKey={openKey}
+            onOpen={openWithCancel}
+            onToggle={toggle}
+          />
+          {currentUser ? (
+            <>
+              <NotificationBell role={currentUser.role} />
+              {currentUser.role === "ADMIN" ? (
+                <Link href="/admin" className={UTIL_BTN}>
+                  운영자 백오피스
+                </Link>
+              ) : (
+                <UtilMenu
+                  id="account"
+                  label={`${currentUser.name} 님`}
+                  pages={ACCOUNT_PAGES}
+                  active={active}
+                  openKey={openKey}
+                  onOpen={openWithCancel}
+                  onToggle={toggle}
+                />
+              )}
+              <LogoutButton className={UTIL_BTN} />
+            </>
+          ) : (
+            <>
+              <Link href="/register" className={UTIL_BTN}>
+                회원가입
+              </Link>
+              <Link href="/login" className={UTIL_BTN}>
+                로그인
+              </Link>
+            </>
+          )}
+        </div>
 
-        {/* 좁은 화면 — 카테고리 4개를 한 줄에 담을 수 없으므로 전체 메뉴로 떨어진다 */}
+        {/* 좁은 화면 — 원형 클릭 메뉴 */}
         <button
           type="button"
           onClick={() => setMobileOpen(true)}
@@ -206,7 +317,7 @@ export function PublicHeader({
           aria-label="전체 메뉴"
           className="fixed inset-0 z-50 flex h-[100dvh] animate-[menu-in_0.18s_ease-out] flex-col overflow-y-auto bg-background lg:hidden"
         >
-          <div className="container-site flex h-16 shrink-0 items-center justify-between">
+          <div className="container-site flex h-[var(--header-h)] shrink-0 items-center justify-between">
             <Link
               href="/"
               onClick={() => setMobileOpen(false)}
@@ -260,31 +371,89 @@ export function PublicHeader({
                   </ul>
                 </li>
               ))}
+              <li>
+                <Link
+                  href={NAV_ACTION.href}
+                  onClick={() => setMobileOpen(false)}
+                  className="type-display text-h6-m"
+                >
+                  {NAV_ACTION.label}
+                </Link>
+              </li>
             </ul>
 
-            <div className="mt-10 flex flex-wrap items-center gap-x-6 gap-y-3 border-t border-border/20 pt-6">
+            <div className="mt-10 border-t border-border/20 pt-6">
+              <h2 className="text-s font-bold">{SUPPORT_MENU.label}</h2>
+              <ul className="mt-3 space-y-2">
+                {SUPPORT_MENU.pages.map((p) => (
+                  <li key={p.href}>
+                    <Link
+                      href={p.href}
+                      onClick={() => setMobileOpen(false)}
+                      className={`text-r transition-colors hover:text-accent ${
+                        p.href === active ? "font-bold text-foreground" : "text-muted"
+                      }`}
+                    >
+                      {p.label}
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            </div>
+
+            <div className="mt-8 border-t border-border/20 pt-6">
               {currentUser ? (
                 <>
-                  <span className="text-s text-muted">{currentUser.name} 님</span>
-                  <Link
-                    href={currentUser.role === "ADMIN" ? "/admin" : "/mypage/process"}
-                    onClick={() => setMobileOpen(false)}
-                    className={UTIL_LINK}
-                  >
-                    {currentUser.role === "ADMIN" ? "운영자 백오피스" : "마이페이지"}
-                  </Link>
-                  <NotificationBell role={currentUser.role} />
-                  <LogoutButton className={UTIL_LINK} />
+                  <h2 className="text-s font-bold">{currentUser.name} 님</h2>
+                  <ul className="mt-3 space-y-2">
+                    {currentUser.role === "ADMIN" ? (
+                      <li>
+                        <Link
+                          href="/admin"
+                          onClick={() => setMobileOpen(false)}
+                          className="text-r text-muted"
+                        >
+                          운영자 백오피스
+                        </Link>
+                      </li>
+                    ) : (
+                      ACCOUNT_PAGES.map((p) => (
+                        <li key={p.href}>
+                          <Link
+                            href={p.href}
+                            onClick={() => setMobileOpen(false)}
+                            className={`text-r transition-colors hover:text-accent ${
+                              p.href === active ? "font-bold text-foreground" : "text-muted"
+                            }`}
+                          >
+                            {p.label}
+                          </Link>
+                        </li>
+                      ))
+                    )}
+                  </ul>
+                  <div className="mt-4 flex items-center gap-5">
+                    <NotificationBell role={currentUser.role} />
+                    <LogoutButton className="text-s font-bold" />
+                  </div>
                 </>
               ) : (
-                <>
-                  <Link href="/login" onClick={() => setMobileOpen(false)} className={UTIL_LINK}>
+                <div className="flex flex-wrap items-center gap-x-6 gap-y-3">
+                  <Link
+                    href="/login"
+                    onClick={() => setMobileOpen(false)}
+                    className="text-s font-bold"
+                  >
                     로그인
                   </Link>
-                  <Link href="/register" onClick={() => setMobileOpen(false)} className={UTIL_LINK}>
+                  <Link
+                    href="/register"
+                    onClick={() => setMobileOpen(false)}
+                    className="text-s font-bold"
+                  >
                     회원가입
                   </Link>
-                </>
+                </div>
               )}
             </div>
           </nav>

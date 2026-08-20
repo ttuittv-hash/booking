@@ -9,7 +9,7 @@ import type { HomeContent } from "./types";
  * 히어로 디스플레이는 Notion "(웹사이트) 대관·비즈니스 사이트 구조 기획" 후보안.
  */
 export const DEFAULT_HOME_CONTENT: HomeContent = {
-  heroImage: null,
+  heroImage: "/images/hero.jpg",
   heroTitle: "BRING THE VISION,\nWE BUILD THE STAGE",
   heroSubtitle: "한계 없는 인프라 위에서\n당신만의 무대를 지휘하세요.",
   heroPrimaryLabel: "대관 신청",

@@ -9,10 +9,7 @@ import { SiteFooter } from "@/components/ui/SiteFooter";
 import { QueryTabs } from "@/components/ui/QueryTabs";
 import { CONTENT_TAB_PARAM } from "@/components/ui/nav-items";
 import {
-  ArrowRight,
   Band,
-  ButtonLink,
-  CTABand,
   FeatureList,
   PageHead,
   PhotoHero,
@@ -103,27 +100,12 @@ export default async function SeoulArenaPage() {
         <QueryTabs
           param={CONTENT_TAB_PARAM}
           ariaLabel="서울아레나 소개"
-          tablistClassName="container-site pt-10"
           items={[
             { value: "about", label: "시설개요", panel: <AboutPanel c={content} introHtml={introHtml} /> },
             { value: "features", label: "시설 특징", panel: <WhyPanel c={content} whyHtml={whyHtml} /> },
           ]}
         />
 
-        <CTABand
-          title="공연 규모와 일정이 정해지셨다면 시설 소개에서 제원을 확인하세요."
-          actions={
-            <>
-              <ButtonLink href="/features" variant="primary">
-                시설 소개 보기
-                <ArrowRight />
-              </ButtonLink>
-              <ButtonLink href="/guide" variant="secondary">
-                대관 안내
-              </ButtonLink>
-            </>
-          }
-        />
       </main>
 
       <SiteFooter />

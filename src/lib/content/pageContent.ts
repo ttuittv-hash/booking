@@ -76,7 +76,7 @@ export interface SeoulArenaContent {
 
 export const DEFAULT_SEOULARENA_CONTENT: SeoulArenaContent = {
   aboutLead: ABOUT_LEAD,
-  heroes: VENUE_HEROES.map((h) => ({ ...h, image: null })),
+  heroes: VENUE_HEROES.map((h) => ({ ...h })),
   complexFeaturesLead: COMPLEX_FEATURES_LEAD,
   complexFeatures: COMPLEX_FEATURES.map((f) => f.title),
   whyLead: WHY_LEAD,
@@ -119,14 +119,12 @@ export const DEFAULT_FEATURES_CONTENT: FeaturesContent = {
   },
   liveHall: {
     overview: LIVE_HALL_OVERVIEW.map((c) => ({ label: c.label, value: c.value })),
-    capacity: [
-      {
-        stage: "",
-        seated: "",
-        standing: "",
-        floors: LIVE_HALL_CAPACITY.map(([label, value]) => ({ label, value })),
-      },
-    ],
+    capacity: LIVE_HALL_CAPACITY.map((c) => ({
+      stage: c.stage,
+      seated: c.seated,
+      standing: c.standing,
+      floors: c.floors.map(([label, value]) => ({ label, value })),
+    })),
     features: [],
     facilities: LIVE_HALL_FACILITIES.map((f) => ({ label: f.label, value: f.desc ?? "" })),
   },

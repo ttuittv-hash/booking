@@ -8,23 +8,24 @@ import { SiteFooter } from "@/components/ui/SiteFooter";
 import { QueryTabs } from "@/components/ui/QueryTabs";
 import { VENUE_TABS, VENUE_TAB_PARAM } from "@/components/ui/nav-items";
 import {
-  ArrowRight,
   Band,
-  ButtonLink,
-  CTABand,
   ComparisonTable,
+  GroupedSpecTable,
   PageHead,
   SectionHead,
   SpecTable,
-  type CompareGroup,
+  type SpecGroup,
 } from "@/components/ui/kit";
 
 export const metadata: Metadata = {
   title: "대관료 | 서울아레나",
 };
 
-/** ADDITIONAL CHARGES — 구분으로 묶고 금액은 마지막 열에 우측 정렬 */
-function chargeGroups(rows: ChargeBlock[]): CompareGroup[] {
+/**
+ * ADDITIONAL CHARGES — 구분으로 묶는다. 열 배치는 RATE INCLUDES 와 같은
+ * 라벨(12rem) + 값 이라, 두 표의 값 열이 같은 세로선에서 시작한다.
+ */
+function chargeGroups(rows: ChargeBlock[]): SpecGroup[] {
   const order: string[] = [];
   rows.forEach((r) => {
     if (!order.includes(r.group)) order.push(r.group);
@@ -33,7 +34,7 @@ function chargeGroups(rows: ChargeBlock[]): CompareGroup[] {
     title: g,
     rows: rows
       .filter((r) => r.group === g)
-      .map((r) => ({ label: r.item, note: r.note || undefined, cells: [r.cost] })),
+      .map((r) => ({ label: r.item, value: r.cost, note: r.note || undefined })),
   }));
 }
 
@@ -97,14 +98,7 @@ function RatePanel({ en, ko, c }: { en: string; ko: string; c: VenueRateContent 
         {c.charges.length > 0 && (
           <>
             <SectionHead title="ADDITIONAL CHARGES" />
-            <div className="mt-12">
-              <ComparisonTable
-                dense
-                rowLabel="항목"
-                columns={[{ key: "cost", title: "비용" }]}
-                groups={chargeGroups(c.charges)}
-              />
-            </div>
+            <GroupedSpecTable className="mt-12" groups={chargeGroups(c.charges)} />
           </>
         )}
 
@@ -144,7 +138,6 @@ export default async function RatesPage() {
         <QueryTabs
           param={VENUE_TAB_PARAM}
           ariaLabel="공간 선택"
-          tablistClassName="container-site pt-10"
           items={VENUE_TABS.map((t) => ({
             value: t.value,
             label: t.label,
@@ -157,20 +150,6 @@ export default async function RatesPage() {
           }))}
         />
 
-        <CTABand
-          title="입력하신 조건으로 예상 대관료를 확인하실 수 있습니다."
-          actions={
-            <>
-              <ButtonLink href="/apply" variant="primary">
-                대관 신청
-                <ArrowRight />
-              </ButtonLink>
-              <ButtonLink href="/rules" variant="secondary">
-                대관 규약
-              </ButtonLink>
-            </>
-          }
-        />
       </main>
 
       <SiteFooter />

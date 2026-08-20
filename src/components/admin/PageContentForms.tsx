@@ -11,7 +11,16 @@ import type {
   VenueFacilityContent,
   VenueRateContent,
 } from "@/lib/content/pageContent";
-import { Area, ContentFormShell, ListEditor, Rich, Section, StringList, Text } from "./fields";
+import {
+  Area,
+  ContentFormShell,
+  ImageField,
+  ListEditor,
+  Rich,
+  Section,
+  StringList,
+  Text,
+} from "./fields";
 import { HELP } from "./adminUi";
 
 /* ============================================================================
@@ -72,7 +81,7 @@ export function SeoulArenaForm({ content }: { content: SeoulArenaContent }) {
 
           <Section
             title="공간 소개 (전면 사진 섹션)"
-            help="사진 위에 공간명·수용 규모·설명이 얹힙니다. 이미지 주소를 비우면 회색 플레이스홀더가 나옵니다."
+            help="사진 위에 공간명·수용 규모·설명이 얹힙니다. 사진을 비우면 회색 플레이스홀더가 나옵니다."
           >
             <ListEditor
               items={v.heroes}
@@ -91,11 +100,10 @@ export function SeoulArenaForm({ content }: { content: SeoulArenaContent }) {
                     />
                   </div>
                   <Area label="설명" rows={3} value={it.desc} onChange={(desc) => p({ desc })} />
-                  <Text
-                    label="배경 이미지 주소"
-                    value={it.image ?? ""}
-                    onChange={(image) => p({ image: image.trim() ? image : null })}
-                    placeholder="/api/pages/image/…"
+                  <ImageField
+                    label="배경 사진"
+                    value={it.image}
+                    onChange={(image) => p({ image })}
                   />
                 </div>
               )}

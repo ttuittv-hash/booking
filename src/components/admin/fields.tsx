@@ -5,6 +5,10 @@ import { btnClass } from "@/components/ui/kit";
 import { NoticeEditor } from "./NoticeEditor";
 import { ADD_BTN, CARD, ERROR_NOTE, FIELD, FIELD_LABEL, HELP, OK_NOTE, REMOVE_BTN, SUB_TITLE } from "./adminUi";
 
+/** 파일 선택 input — 샤프 코너 · border-soft */
+const FILE_INPUT =
+  "text-xs text-muted file:mr-3 file:border file:border-border-soft file:bg-panel file:px-3 file:py-1.5 file:text-xs file:font-bold file:text-foreground";
+
 /* ============================================================================
    페이지 콘텐츠 편집기의 공용 조각.
 
@@ -83,6 +87,77 @@ export function Rich({
       <span className={FIELD_LABEL}>{label}</span>
       {help && <p className={`mb-2 ${HELP}`}>{help}</p>}
       <NoticeEditor value={value} onChange={onChange} />
+    </div>
+  );
+}
+
+/**
+ * 이미지 한 장 — 파일을 올리거나 주소를 직접 넣는다.
+ * 업로드는 `/api/admin/pages/upload` 로 가고 `/api/pages/image/…` 주소를 돌려준다.
+ * 리포지터리에 함께 커밋한 기본 사진(`/images/…`)도 그대로 쓸 수 있다.
+ */
+export function ImageField({
+  label,
+  value,
+  onChange,
+  help,
+}: {
+  label: string;
+  value: string | null;
+  onChange: (url: string | null) => void;
+  help?: string;
+}) {
+  const [uploading, setUploading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  async function upload(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setUploading(true);
+    setError(null);
+    try {
+      const body = new FormData();
+      body.append("file", file);
+      const res = await fetch("/api/admin/pages/upload", { method: "POST", body });
+      const data = await res.json();
+      if (!res.ok) setError(data.error || "업로드하지 못했습니다.");
+      else onChange(data.url);
+    } finally {
+      setUploading(false);
+      e.target.value = "";
+    }
+  }
+
+  return (
+    <div>
+      <span className={FIELD_LABEL}>{label}</span>
+      {help && <p className={`mb-2 ${HELP}`}>{help}</p>}
+      {value && (
+        // 업로드·정적 파일 주소를 그대로 미리보기 한다 — next/image 로 감쌀 이유가 없다
+        // eslint-disable-next-line @next/next/no-img-element
+        <img
+          src={value}
+          alt=""
+          className="mb-2 h-32 w-full border border-border-soft object-cover"
+        />
+      )}
+      <div className="flex flex-wrap items-center gap-2">
+        <input type="file" accept="image/*" onChange={upload} className={FILE_INPUT} />
+        {value && (
+          <button type="button" onClick={() => onChange(null)} className={REMOVE_BTN}>
+            사진 삭제
+          </button>
+        )}
+      </div>
+      {uploading && <p className={`mt-1 ${HELP}`}>업로드 중…</p>}
+      {error && <p className={`mt-1 ${ERROR_NOTE}`}>{error}</p>}
+      <input
+        type="text"
+        value={value ?? ""}
+        placeholder="/images/… 또는 /api/pages/image/…"
+        onChange={(e) => onChange(e.target.value.trim() ? e.target.value : null)}
+        className={`${FIELD} mt-2`}
+      />
     </div>
   );
 }

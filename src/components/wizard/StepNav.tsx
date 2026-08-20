@@ -49,8 +49,8 @@ export function StepNav({
   return (
     <nav
       aria-label="신청 단계"
-      // sticky 오프셋은 PublicHeader 높이(64 / lg 72)에 맞춘다.
-      className="sticky top-16 z-20 mb-10 w-full border-b border-border/25 bg-background lg:top-[72px]"
+      // sticky 오프셋은 상단바 높이 토큰(`--header-h`)을 그대로 따른다.
+      className="sticky top-[var(--header-h)] z-20 mb-10 w-full border-b border-border/25 bg-background"
     >
       <ol className="flex w-full min-w-0 items-center justify-start gap-x-5 gap-y-2 overflow-x-auto py-4 lg:flex-wrap lg:justify-center lg:overflow-visible">
         {STEP_NAMES.map((name, i) => {

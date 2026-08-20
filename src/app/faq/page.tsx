@@ -5,7 +5,7 @@ import { listFaqs } from "@/lib/db";
 import { FaqAccordion } from "@/components/FaqAccordion";
 import { PublicHeader } from "@/components/PublicHeader";
 import { SiteFooter } from "@/components/ui/SiteFooter";
-import { ArrowRight, Band, ButtonLink, CTABand, EmptyState, PageHead } from "@/components/ui/kit";
+import { ArrowRight, Band, ButtonLink, EmptyState, PageHead } from "@/components/ui/kit";
 
 export const metadata: Metadata = {
   title: "FAQ | 서울아레나",
@@ -53,20 +53,6 @@ export default async function FaqPage() {
           )}
         </Band>
 
-        <CTABand
-          title="답변이 필요한 내용이 남았나요?"
-          actions={
-            <>
-              <ButtonLink href="/mypage/inquiries/new" variant="primary">
-                1:1 문의하기
-                <ArrowRight />
-              </ButtonLink>
-              <ButtonLink href="/notices" variant="secondary">
-                공지사항 확인
-              </ButtonLink>
-            </>
-          }
-        />
       </main>
 
       <SiteFooter />

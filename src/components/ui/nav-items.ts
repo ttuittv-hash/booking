@@ -1,14 +1,13 @@
 /**
  * 사이트 정보구조 — 헤더 메뉴와 푸터가 같은 정의를 쓴다.
  *
- * YOUR STAGE / BOOK IT / KNOW IT / HOST IT 은 **카테고리 타이틀일 뿐 페이지가 아니다.**
- * 실제 페이지는 각 카테고리의 pages 목록이고, 이 목록이 유일한 기준이다.
- * 로그인·회원가입은 콘텐츠 페이지가 아니라 계정 동작이라 여기에 넣지 않고
- * 메뉴 하단 계정 행과 푸터 하단에서 따로 다룬다.
+ * 2026-08 재구성 (2차) — 중앙은 여정, 우측은 도구로 나눈다.
  *
- * 2026-08 재구성 — Notion 「대관 사이트 8/20 오픈 기준 정보구조 재구성」 확정안.
- * 내용 카테고리로 페이지를 나누고 공간(아레나 / 중형공연장)은 페이지 안의 탭으로 전환한다.
- * 공간별 페이지를 따로 두지 않는다.
+ *   중앙  YOUR STAGE · YOUR GUIDE  (카테고리 타이틀. 링크가 아니다)
+ *         BOOK IT                 (유일한 액션 — 대관 신청 위저드로 바로 간다)
+ *   우측  지원 / 계정              (여정이 아니라 도구라 우측 유틸리티로 뺀다)
+ *
+ * 공간(아레나 / 중형공연장)과 내용 구분은 전부 페이지 안의 탭이다. 메뉴에 올리지 않는다.
  */
 export interface NavPage {
   href: string;
@@ -23,6 +22,7 @@ export interface NavCategory {
   pages: NavPage[];
 }
 
+/** 중앙 — 읽는 곳 두 묶음 */
 export const NAV_CATEGORIES: NavCategory[] = [
   {
     label: "Your Stage",
@@ -32,7 +32,7 @@ export const NAV_CATEGORIES: NavCategory[] = [
     ],
   },
   {
-    label: "Book It",
+    label: "Your Guide",
     pages: [
       { href: "/guide", label: "대관 안내", loginRequired: true },
       { href: "/rates", label: "대관료", loginRequired: true },
@@ -40,22 +40,33 @@ export const NAV_CATEGORIES: NavCategory[] = [
       { href: "/documents", label: "대관 자료", loginRequired: true },
     ],
   },
-  {
-    label: "Know It",
-    pages: [
-      { href: "/notices", label: "공지사항", loginRequired: true },
-      { href: "/faq", label: "FAQ", loginRequired: true },
-      { href: "/mypage/inquiries", label: "1:1 문의", loginRequired: true },
-    ],
-  },
-  {
-    label: "Host It",
-    pages: [
-      { href: "/apply", label: "대관 신청", loginRequired: true },
-      { href: "/mypage/process", label: "대관 신청 현황", loginRequired: true },
-      { href: "/mypage/history", label: "대관 진행 내역", loginRequired: true },
-    ],
-  },
+];
+
+/** 중앙 — 누르는 곳 하나. 카테고리가 아니라 목적지다. */
+export const NAV_ACTION = { href: "/apply", label: "Book It" } as const;
+
+/** 우측 — 지원. 여정의 한 단계가 아니라 어느 단계에서든 쓰는 도구다. */
+export const SUPPORT_MENU: NavCategory = {
+  label: "지원",
+  pages: [
+    { href: "/notices", label: "공지사항", loginRequired: true },
+    { href: "/faq", label: "FAQ", loginRequired: true },
+    { href: "/mypage/inquiries", label: "1:1 문의", loginRequired: true },
+  ],
+};
+
+/** 우측 — 계정. 라벨은 로그인한 사용자 이름으로 바뀐다. */
+export const ACCOUNT_PAGES: NavPage[] = [
+  { href: "/mypage/profile", label: "가입 정보", loginRequired: true },
+  { href: "/mypage/process", label: "대관 신청 내역", loginRequired: true },
+  { href: "/mypage/history", label: "대관 진행 내역", loginRequired: true },
+];
+
+/** 푸터 사이트맵 — 중앙 2묶음 + 신청 + 지원 */
+export const FOOTER_CATEGORIES: NavCategory[] = [
+  ...NAV_CATEGORIES,
+  { label: "Book It", pages: [{ href: NAV_ACTION.href, label: "대관 신청", loginRequired: true }] },
+  SUPPORT_MENU,
 ];
 
 /* --------------------------------------------------------------- 탭 축 --- */
