@@ -9,10 +9,14 @@
 # 지우는 순서가 있다. companies.master_user_id 가 users 를 붙잡고 있어 먼저 끊어야 한다.
 set -euo pipefail
 
+# 판교 클러스터에 붙어야 한다. 이미 잡혀 있으면 그대로 쓴다.
+: "${KUBECONFIG:=$(cd "$(dirname "$0")/../.." && pwd)/tmp/pangyo/kubeconfig/pangyo-kubeconfig}"
+export KUBECONFIG
+
 BRN="${1:-1208147521}"
 NS="${E2E_NAMESPACE:-arena-dev}"
 
-kubectl -n "$NS" exec arena-db-0 -- psql -U arena -d arena -q <<SQL
+kubectl -n "$NS" exec -i arena-db-0 -- psql -U arena -d arena -q -v ON_ERROR_STOP=1 <<SQL
 UPDATE companies SET master_user_id = NULL WHERE business_registration_number = '$BRN';
 CREATE TEMP VIEW _t AS
   SELECT id FROM users
