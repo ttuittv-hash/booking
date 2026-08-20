@@ -37,7 +37,7 @@ export function AdminNav({ active, user }: { active: string; user?: AppUser | nu
       <div className="mx-auto flex h-14 max-w-6xl items-center gap-x-4 px-4 sm:h-16 sm:px-6">
         <Link
           href="/"
-          className="type-display shrink-0 whitespace-nowrap text-h6-m leading-none"
+          className="type-display flex h-full shrink-0 items-center whitespace-nowrap text-h6-m leading-none"
           aria-label="Seoul Arena 홈"
         >
           Seoul Arena
