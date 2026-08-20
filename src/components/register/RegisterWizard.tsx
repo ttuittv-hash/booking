@@ -17,6 +17,8 @@ import { btnClass } from "@/components/ui/kit";
 import { useToast } from "@/components/ui/Toast";
 import { InputCheckMark, PasswordMatchHint } from "@/components/ui/PasswordMatchHint";
 import {
+  sanitizePasswordInput,
+  sanitizeUsernameInput,
   checkBusinessNumber,
   checkEmail,
   checkPassword,
@@ -352,17 +354,46 @@ export function RegisterWizard() {
           idCheck={idCheck}
           setIdCheck={setIdCheck}
           onUnlock={() => {
-            // 값은 지우지 않는다 — 불러온 내용을 바탕으로 고쳐 쓰는 경우가 대부분이다.
+            // 기업 정보를 통째로 비운다. 처음에는 값을 남겼는데, 사용자가 다른 사업자번호를
+            // 입력해 진위확인을 하면 이전 회사의 상호·대표자·주소가 그대로 남아 새 번호와
+            // 섞였다 — 그 상태로 제출되면 남의 회사 정보로 가입하는 셈이다.
+            // [취소] 는 "직접 입력하겠다"는 뜻이므로 빈 종이에서 시작하는 것이 맞다.
             setPickedCompany(null);
             setBrnCheck(null);
+            setForm((f) => ({
+              ...f,
+              companyName: "",
+              businessRegistrationNumber: "",
+              representativeName: "",
+              companyPhone: "",
+              companyFax: "",
+              corporateNumber: "",
+              postalCode: "",
+              address: "",
+              addressDetail: "",
+            }));
           }}
           onOpenSearch={() => {
-            // 불러오기를 다시 누르면 잠금이 풀린다. 배너의 [다시 선택] 을 없앴으므로
-            // 이 버튼이 유일한 되돌리기 수단이다 — 이게 없으면 회사를 잘못 불러왔을 때
-            // 새로고침 말고는 빠져나갈 길이 없다.
-            // 입력값은 지우지 않는다. 창을 그냥 닫았을 때 애써 채운 내용이 사라지면 안 된다.
-            setPickedCompany(null);
-            setBrnCheck(null);
+            // 불러온 회사가 잠겨 있는 상태에서 다시 열면, 그 회사 정보는 지우고 시작한다.
+            // 잠금만 풀고 값을 남겼더니 창을 그냥 닫은 뒤 다른 번호로 진위확인을 하면
+            // 이전 회사의 상호·대표자·주소가 새 번호와 섞였다.
+            // 직접 타이핑한 내용(잠기지 않은 상태)은 건드리지 않는다.
+            if (pickedCompany) {
+              setPickedCompany(null);
+              setBrnCheck(null);
+              setForm((f) => ({
+                ...f,
+                companyName: "",
+                businessRegistrationNumber: "",
+                representativeName: "",
+                companyPhone: "",
+                companyFax: "",
+                corporateNumber: "",
+                postalCode: "",
+                address: "",
+                addressDetail: "",
+              }));
+            }
             setSearchOpen(true);
           }}
           onLockCompany={(name) =>
@@ -936,7 +967,8 @@ function StepInfo({
                 data-testid="f-username"
                 value={form.username}
                 onChange={(e) => {
-                  set("username")(e);
+                  // 한글 IME 입력을 걸러 영문·숫자만 받는다
+                  setForm((f) => ({ ...f, username: sanitizeUsernameInput(e.target.value) }));
                   setIdCheck(null);
                 }}
                 className={`${inputCls(false)} flex-1`}
@@ -973,7 +1005,7 @@ function StepInfo({
               name="new-password"
               autoComplete="new-password"
               value={form.password}
-              onChange={set("password")}
+              onChange={(e) => setForm((f) => ({ ...f, password: sanitizePasswordInput(e.target.value) }))}
               className={`${inputCls(false)} pr-9`}
             />
             <InputCheckMark show={checkPassword(form.password).ok} />
@@ -987,7 +1019,7 @@ function StepInfo({
               name="confirm-password"
               autoComplete="new-password"
               value={form.passwordConfirm}
-              onChange={set("passwordConfirm")}
+              onChange={(e) => setForm((f) => ({ ...f, passwordConfirm: sanitizePasswordInput(e.target.value) }))}
               className={`${inputCls(false)} pr-9`}
             />
             <InputCheckMark show={form.passwordConfirm.length > 0 && form.password === form.passwordConfirm} />

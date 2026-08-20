@@ -76,3 +76,22 @@ export function firstFailure(...results: (CheckResult | false | null | undefined
   }
   return null;
 }
+
+/*
+  아이디·비밀번호 칸은 입력 단계에서 영문 자판만 받는다.
+
+  한글 IME 가 켜진 채 아이디를 치면 "ㅎㅎㄴ" 같은 값이 들어가고, 제출에서야
+  "영문·숫자만" 오류를 만난다. 브라우저는 IME 를 강제로 끌 방법을 주지 않으므로,
+  입력되는 순간 규칙 밖 문자를 걸러내는 것이 할 수 있는 전부다 — 한글을 치면
+  아무것도 입력되지 않고, 자판을 영문으로 바꾸면 그대로 들어간다.
+*/
+
+/** 아이디 칸용 — 영문·숫자만 남긴다. */
+export function sanitizeUsernameInput(value: string): string {
+  return value.replace(/[^a-zA-Z0-9]/g, "");
+}
+
+/** 비밀번호 칸용 — 인쇄 가능한 ASCII(영문·숫자·특수문자)만 남긴다. 공백도 제외. */
+export function sanitizePasswordInput(value: string): string {
+  return value.replace(/[^\x21-\x7E]/g, "");
+}
