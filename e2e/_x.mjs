@@ -1,0 +1,25 @@
+import { chromium } from "@playwright/test";
+const B="https://partner.dev.seoularena.net";
+const b=await chromium.launch();
+const lc=await b.newContext(); {const p=await lc.newPage();
+ await p.goto(`${B}/login`,{waitUntil:"domcontentloaded"});const i=p.locator("input");
+ await i.nth(0).fill(process.env.U);await i.nth(1).fill("Test1234!");
+ await p.locator('button[type="submit"]').first().click();
+ await p.waitForURL(x=>!x.toString().includes("/login"),{timeout:20000});await p.close();}
+const p=await (await b.newContext({viewport:{width:1440,height:1200},storageState:await lc.storageState()})).newPage();
+await p.goto(B+"/apply?new=1",{waitUntil:"networkidle"});
+const step=async()=> (await p.locator("main").innerText()).replace(/\s+/g," ");
+await p.locator('button, label').filter({hasText:/아레나|중형공연장/}).first().click().catch(()=>{});
+await p.waitForTimeout(800);
+await p.locator('button:has-text("다음")').last().click(); await p.waitForTimeout(1500);
+console.log("STEP2 진입:", (await step()).slice(0,90));
+await p.screenshot({path:process.env.OUT+"/wizard-step2.png"});
+const cells=p.locator('button:not([disabled])').filter({hasText:/^\d{1,2}$/});
+console.log("날짜칸:", await cells.count());
+await cells.nth(Math.floor(await cells.count()/2)).click().catch(e=>console.log("클릭실패",String(e).slice(0,60)));
+await p.waitForTimeout(1500);
+console.log("클릭 후:", (await step()).slice(0,120));
+console.log("다음버튼 수:", await p.locator('button:has-text("다음")').count());
+console.log("보이는 버튼:", await p.$$eval("button", bs=>bs.filter(x=>x.offsetParent).map(x=>x.textContent.trim().slice(0,10)).slice(-12).join(" · ")));
+await p.screenshot({path:process.env.OUT+"/wizard-after-date.png"});
+await b.close();

@@ -1,8 +1,14 @@
-// UI 전수 점검 — 뷰포트 3종 × 전 페이지. 콘솔 오류·가로 넘침·터치 타깃·줄바꿈을 본다.
+// 레이아웃 점검 — 뷰포트 3종 × 전 페이지. 가로 넘침·터치 타깃·한글 줄바꿈·콘솔 오류를 본다.
+//
+// 로그인 계정은 환경변수로 받는다 — 승인 완료된 신청자 계정이어야 한다.
+//   E2E_USER (기본 testuser) · E2E_PASSWORD (기본 Test1234!)
+// 계정이 없으면 /register 로 가입한 뒤 bo 의 회원 관리에서 승인하거나,
+// full-flow.spec.mjs 를 한 번 돌리면 승인된 계정이 하나 만들어진다.
 import { chromium } from "@playwright/test";
+
+const USER = process.env.E2E_USER || "testuser";
+const PW = process.env.E2E_PASSWORD || "Test1234!";
 const B = "https://partner.dev.seoularena.net";
-const BO = "https://bo.dev.seoularena.net";
-const USER = process.env.U, PW = "Test1234!";
 
 const VIEWPORTS = [
   { name: "모바일", width: 390, height: 844 },
@@ -18,19 +24,26 @@ const add = (kind, where, detail) => issues.push({ kind, where, detail });
 
 const browser = await chromium.launch();
 
+// 로그인은 한 번만 한다 — 뷰포트마다 새로 하면 레이트리밋(아이디당 5분 10회)에 걸린다.
+const loginCtx = await browser.newContext();
+{
+  const p = await loginCtx.newPage();
+  await p.goto(`${B}/login`, { waitUntil: "domcontentloaded" });
+  const i = p.locator("input");
+  await i.nth(0).fill(USER); await i.nth(1).fill(PW);
+  await p.locator('button[type="submit"]').first().click();
+  await p.waitForURL((u) => !u.toString().includes("/login"), { timeout: 20000 });
+  await p.close();
+}
+const storageState = await loginCtx.storageState();
+await loginCtx.close();
+
 for (const vp of VIEWPORTS) {
-  const ctx = await browser.newContext({ viewport: { width: vp.width, height: vp.height } });
+  const ctx = await browser.newContext({ viewport: { width: vp.width, height: vp.height }, storageState });
   const page = await ctx.newPage();
   const consoleErrors = [];
   page.on("console", (m) => { if (m.type() === "error") consoleErrors.push(m.text().slice(0, 120)); });
   page.on("pageerror", (e) => consoleErrors.push("pageerror: " + String(e).slice(0, 120)));
-
-  // 로그인
-  await page.goto(`${B}/login`, { waitUntil: "domcontentloaded" });
-  const i = page.locator("input");
-  await i.nth(0).fill(USER); await i.nth(1).fill(PW);
-  await page.locator('button[type="submit"]').first().click();
-  await page.waitForURL((u) => !u.toString().includes("/login"), { timeout: 20000 }).catch(() => {});
 
   for (const route of PAGES) {
     consoleErrors.length = 0;
@@ -84,7 +97,11 @@ for (const vp of VIEWPORTS) {
       for (const el of document.querySelectorAll("h1,h2,h3,button,a[class*=btn],[class*=Button],label,th")) {
         const t = (el.textContent || "").trim();
         if (!t || t.length < 3 || t.length > 30) continue;
-        if (el.querySelector("svg, img, div, p")) continue;
+        // 폼 컨트롤이나 여러 자식을 품은 요소는 Range 가 줄을 잘못 센다 — 순수 텍스트만 본다.
+        if (el.querySelector("svg, img, div, p, input, textarea, select, button, span")) continue;
+        // 화면에 실제로 보이는 것만. 숨은 탭 안의 표는 폭이 0이라 항상 쪼개져 보인다.
+        const box = el.getBoundingClientRect();
+        if (!el.offsetParent || box.width < 8) continue;
         const { lines, rects, tops } = lineCount(el);
         if (lines < 2) continue;
         const lastTop = Math.max(...tops);
