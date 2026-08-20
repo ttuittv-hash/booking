@@ -1,15 +1,9 @@
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { getCurrentUser, isPendingApplicant } from "@/lib/auth";
-import { getVenueContent } from "@/lib/db";
+import { getSeoulArenaContent } from "@/lib/db";
 import { sanitizeRichText } from "@/lib/sanitizeHtml";
-import {
-  COMPLEX_FEATURES,
-  COMPLEX_FEATURES_LEAD,
-  STAGE_FEATURES,
-  VENUE_HEROES,
-  WHY_LEAD,
-} from "@/lib/content/venueFacts";
+import type { SeoulArenaContent } from "@/lib/content/pageContent";
 import { PublicHeader } from "@/components/PublicHeader";
 import { SiteFooter } from "@/components/ui/SiteFooter";
 import { QueryTabs } from "@/components/ui/QueryTabs";
@@ -35,9 +29,10 @@ export const metadata: Metadata = {
  * 헤딩 위계는 Notion 구조를 따른다 — H1 영문 슬로건, H3 국문 제목, H5 항목.
  * 공간 소개 두 블록은 Figma `02 공간 안내 › Header / 5` 의 전면 사진 섹션이므로
  * 탭 바만 마진 안에 두고 패널은 풀블리드로 흐르게 한다.
+ * 문구·사진·항목은 모두 콘텐츠 관리에서 편집한다.
  */
 
-function AboutPanel({ introHtml }: { introHtml: string }) {
+function AboutPanel({ c, introHtml }: { c: SeoulArenaContent; introHtml: string }) {
   return (
     <>
       <Band tone="light" size="lg">
@@ -48,41 +43,57 @@ function AboutPanel({ introHtml }: { introHtml: string }) {
         />
       </Band>
 
-      {VENUE_HEROES.map((v) => (
-        <PhotoHero key={v.title} title={v.title} eyebrow={v.eyebrow} desc={v.desc} />
+      {c.heroes.map((v, i) => (
+        <PhotoHero
+          key={`${v.title}-${i}`}
+          title={v.title}
+          eyebrow={v.eyebrow}
+          desc={v.desc}
+          image={v.image}
+        />
       ))}
 
-      <Band tone="light">
-        <SectionHead title="FEATURES" lead={COMPLEX_FEATURES_LEAD} />
-        <div className="mt-12">
-          <FeatureList items={COMPLEX_FEATURES} numbered />
-        </div>
-      </Band>
+      {c.complexFeatures.length > 0 && (
+        <Band tone="light">
+          <SectionHead title="FEATURES" lead={c.complexFeaturesLead} />
+          <div className="mt-12">
+            <FeatureList items={c.complexFeatures.map((t) => ({ title: t, lines: [] }))} numbered />
+          </div>
+        </Band>
+      )}
     </>
   );
 }
 
-function WhyPanel() {
+function WhyPanel({ c, whyHtml }: { c: SeoulArenaContent; whyHtml: string }) {
   return (
     <>
       <Band tone="light" size="lg">
-        <PageHead en="WHY SEOUL ARENA" ko="시설 특징" lead={WHY_LEAD} />
+        <PageHead
+          en="WHY SEOUL ARENA"
+          ko="시설 특징"
+          lead={<div dangerouslySetInnerHTML={{ __html: whyHtml }} />}
+        />
       </Band>
 
-      <Band tone="dark">
-        <SectionHead title="FEATURES" />
-        <div className="mt-12">
-          <FeatureList items={STAGE_FEATURES} />
-        </div>
-      </Band>
+      {c.stageFeatures.length > 0 && (
+        <Band tone="dark">
+          <SectionHead title="FEATURES" />
+          <div className="mt-12">
+            <FeatureList items={c.stageFeatures} />
+          </div>
+        </Band>
+      )}
     </>
   );
 }
 
 export default async function SeoulArenaPage() {
-  const [currentUser, venueContent] = await Promise.all([getCurrentUser(), getVenueContent()]);
+  const [currentUser, content] = await Promise.all([getCurrentUser(), getSeoulArenaContent()]);
   if (currentUser && isPendingApplicant(currentUser)) redirect("/pending");
-  const introHtml = sanitizeRichText(venueContent.intro);
+
+  const introHtml = sanitizeRichText(content.aboutLead);
+  const whyHtml = sanitizeRichText(content.whyLead);
 
   return (
     <div className="flex flex-1 flex-col">
@@ -94,8 +105,8 @@ export default async function SeoulArenaPage() {
           ariaLabel="서울아레나 소개"
           tablistClassName="container-site pt-10"
           items={[
-            { value: "about", label: "시설개요", panel: <AboutPanel introHtml={introHtml} /> },
-            { value: "features", label: "시설 특징", panel: <WhyPanel /> },
+            { value: "about", label: "시설개요", panel: <AboutPanel c={content} introHtml={introHtml} /> },
+            { value: "features", label: "시설 특징", panel: <WhyPanel c={content} whyHtml={whyHtml} /> },
           ]}
         />
 

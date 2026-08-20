@@ -3,12 +3,27 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import type { Faq, Notice } from "@/lib/pricing/types";
-import type { GuideContent, HomeContent, VenueContent } from "@/lib/content/types";
+import type { HomeContent } from "@/lib/content/types";
+import type {
+  DocumentsContent,
+  FeaturesContent,
+  GuidePageContent,
+  RatesContent,
+  RulesContent,
+  SeoulArenaContent,
+} from "@/lib/content/pageContent";
 import { TagBadge } from "@/components/TagBadge";
 import { btnClass } from "@/components/ui/kit";
 import { NoticeEditor } from "./NoticeEditor";
-import { LeadContentForm } from "./LeadContentForm";
 import { HomeContentForm } from "./HomeContentForm";
+import {
+  DocumentsForm,
+  FeaturesForm,
+  GuideForm,
+  RatesForm,
+  RulesForm,
+  SeoulArenaForm,
+} from "./PageContentForms";
 import {
   ADD_BTN_LG,
   CARD,
@@ -29,7 +44,16 @@ import {
 const FILE_INPUT =
   "w-full text-xs text-muted file:mr-3 file:border file:border-border-soft file:bg-panel file:px-3 file:py-1.5 file:text-xs file:font-bold file:text-foreground";
 
-type Tab = "notices" | "faq" | "home" | "venue" | "guide";
+type Tab =
+  | "notices"
+  | "faq"
+  | "home"
+  | "seoularena"
+  | "features"
+  | "guide"
+  | "rates"
+  | "rules"
+  | "documents";
 
 function isHtmlBodyEmpty(html: string): boolean {
   return html.replace(/<[^>]+>/g, "").trim().length === 0 && !html.includes("<img");
@@ -44,14 +68,22 @@ export function ContentManager({
   notices: initialNotices,
   faqs: initialFaqs,
   homeContent,
-  venueContent,
+  seoulArenaContent,
+  featuresContent,
   guideContent,
+  ratesContent,
+  rulesContent,
+  documentsContent,
 }: {
   notices: Notice[];
   faqs: Faq[];
   homeContent: HomeContent;
-  venueContent: VenueContent;
-  guideContent: GuideContent;
+  seoulArenaContent: SeoulArenaContent;
+  featuresContent: FeaturesContent;
+  guideContent: GuidePageContent;
+  ratesContent: RatesContent;
+  rulesContent: RulesContent;
+  documentsContent: DocumentsContent;
 }) {
   const router = useRouter();
   const [tab, setTab] = useState<Tab>("notices");
@@ -65,9 +97,13 @@ export function ContentManager({
           [
             ["notices", `공지사항 (${notices.length})`],
             ["faq", `FAQ (${faqs.length})`],
-            ["home", "홈 화면"],
-            ["venue", "시설개요 리드"],
-            ["guide", "대관 안내 리드"],
+            ["home", "홈"],
+            ["seoularena", "서울아레나"],
+            ["features", "시설 소개"],
+            ["guide", "대관 안내"],
+            ["rates", "대관료"],
+            ["rules", "대관 규약"],
+            ["documents", "대관 자료"],
           ] as const
         ).map(([key, label]) => (
           <button key={key} type="button" onClick={() => setTab(key)} className={tabCls(tab === key)}>
@@ -80,22 +116,12 @@ export function ContentManager({
         {tab === "notices" && <NoticesTab notices={notices} setNotices={setNotices} router={router} />}
         {tab === "faq" && <FaqTab faqs={faqs} setFaqs={setFaqs} router={router} />}
         {tab === "home" && <HomeContentForm content={homeContent} />}
-        {tab === "venue" && (
-          <LeadContentForm
-            endpoint="/api/admin/content/venue"
-            title="시설개요 리드 문단"
-            help="서울아레나(시설개요 탭) 맨 위에 나오는 소개 문단입니다. 제원·특징 등 나머지 내용은 코드 정본(lib/content/venueFacts.ts)에서 관리합니다."
-            initialIntro={venueContent.intro}
-          />
-        )}
-        {tab === "guide" && (
-          <LeadContentForm
-            endpoint="/api/admin/content/guide"
-            title="대관 안내 리드 문단"
-            help="대관 안내(대관 안내 탭) 맨 위에 나오는 소개 문단입니다. 요금 체계와 절차 8단계는 코드 정본(lib/content/rateFacts.ts · processFacts.ts)에서 관리합니다."
-            initialIntro={guideContent.intro}
-          />
-        )}
+        {tab === "seoularena" && <SeoulArenaForm content={seoulArenaContent} />}
+        {tab === "features" && <FeaturesForm content={featuresContent} />}
+        {tab === "guide" && <GuideForm content={guideContent} />}
+        {tab === "rates" && <RatesForm content={ratesContent} />}
+        {tab === "rules" && <RulesForm content={rulesContent} />}
+        {tab === "documents" && <DocumentsForm content={documentsContent} />}
       </div>
     </div>
   );

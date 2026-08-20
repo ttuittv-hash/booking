@@ -1,21 +1,8 @@
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { getCurrentUser, isPendingApplicant } from "@/lib/auth";
-import { won } from "@/lib/format";
-import {
-  ARENA_ADDITIONAL_CHARGES,
-  ARENA_LIMITS,
-  ARENA_RATES,
-  ARENA_RATE_INCLUDES,
-  ARENA_RATE_NOTES,
-  ARENA_RENTAL_PERIOD,
-  LIVE_HALL_ADDITIONAL_CHARGES,
-  LIVE_HALL_LIMITS,
-  LIVE_HALL_RATES,
-  LIVE_HALL_RATE_INCLUDES,
-  LIVE_HALL_RATE_NOTES,
-  type ChargeRow,
-} from "@/lib/content/rateFacts";
+import { getRatesContent } from "@/lib/db";
+import type { ChargeBlock, VenueRateContent } from "@/lib/content/pageContent";
 import { PublicHeader } from "@/components/PublicHeader";
 import { SiteFooter } from "@/components/ui/SiteFooter";
 import { QueryTabs } from "@/components/ui/QueryTabs";
@@ -37,7 +24,7 @@ export const metadata: Metadata = {
 };
 
 /** ADDITIONAL CHARGES — 구분으로 묶고 금액은 마지막 열에 우측 정렬 */
-function chargeGroups(rows: ChargeRow[]): CompareGroup[] {
+function chargeGroups(rows: ChargeBlock[]): CompareGroup[] {
   const order: string[] = [];
   rows.forEach((r) => {
     if (!order.includes(r.group)) order.push(r.group);
@@ -46,157 +33,98 @@ function chargeGroups(rows: ChargeRow[]): CompareGroup[] {
     title: g,
     rows: rows
       .filter((r) => r.group === g)
-      .map((r) => ({ label: r.item, note: r.note, cells: [r.cost] })),
+      .map((r) => ({ label: r.item, note: r.note || undefined, cells: [r.cost] })),
   }));
 }
 
-function Notes({ items }: { items: string[] }) {
-  return (
-    <ul className="measure mt-10 space-y-2">
-      {items.map((t) => (
-        <li key={t} className="break-keep text-xs leading-5 text-muted">
-          ※ {t}
-        </li>
-      ))}
-    </ul>
-  );
-}
+function RatePanel({ en, ko, c }: { en: string; ko: string; c: VenueRateContent }) {
+  const cols = c.columns.map((r) => ({ key: r.key, title: r.name }));
+  const detailCols = c.detailColumns.map((r) => ({ key: r.key, title: r.name }));
 
-function ArenaPanel() {
-  const cols = ARENA_RATES.map((r) => ({ key: r.key, title: r.name }));
-  return (
-    <>
-      <Band tone="light" size="lg">
-        <PageHead en="ARENA RATES" ko="아레나 대관료" />
-      </Band>
+  const rows = c.rowLabels.map((label, i) => ({
+    label,
+    cells: c.columns.map((col) => col.values[i] ?? ""),
+  }));
+  if (c.rentalPeriod) {
+    // 대관 기간은 열마다 같은 값이므로 첫 열에만 적고 나머지는 비운다
+    rows.splice(rows.length - 1, 0, {
+      label: "대관 기간",
+      cells: c.columns.map((_, i) => (i === 0 ? c.rentalPeriod : "")),
+    });
+  }
 
-      <Band tone="white">
-        <SectionHead title="ARENA RATE" />
-        <div className="mt-12">
-          <ComparisonTable
-            rowLabel="구분"
-            columns={cols}
-            rows={[
-              { label: "최대 수용인원", cells: ARENA_RATES.map((r) => r.capacity) },
-              { label: "권장 무대 형태", cells: ARENA_RATES.map((r) => r.stageType) },
-              { label: "권장 객석 형태", cells: ARENA_RATES.map((r) => r.seatingType) },
-              {
-                label: "대관 기간",
-                cells: ARENA_RATES.map((_, i) => (i === 0 ? ARENA_RENTAL_PERIOD : "")),
-              },
-              { label: "대관료", cells: ARENA_RATES.map((r) => won(r.total)) },
-            ]}
-          />
-        </div>
-
-        <details className="mt-10 border-t border-border/25 pt-5">
-          <summary className="cursor-pointer text-s font-bold">Details</summary>
-          <div className="mt-6">
-            <ComparisonTable
-              dense
-              rowLabel="구분"
-              columns={cols}
-              rows={[
-                {
-                  label: "셋업일 전용 사용료",
-                  note: "기본 대관료 / 일당",
-                  cells: ARENA_RATES.map((r) => r.setupExclusive),
-                },
-                {
-                  label: "공연일 전용 사용료",
-                  note: "기본 대관료 / 일당",
-                  cells: ARENA_RATES.map((r) => r.showExclusive),
-                },
-                { label: "시설 사용료", cells: ARENA_RATES.map((r) => r.facility) },
-                { label: "셋업 변경 대관료", cells: ARENA_RATES.map((r) => r.setupChange) },
-                { label: "공연 변경 대관료", cells: ARENA_RATES.map((r) => r.showChange) },
-              ]}
-            />
-          </div>
-        </details>
-      </Band>
-
-      <Band tone="light">
-        <SectionHead title="RATE INCLUDES" />
-        <SpecTable className="mt-12" rows={ARENA_RATE_INCLUDES} />
-      </Band>
-
-      <Band tone="white">
-        <SectionHead title="ADDITIONAL CHARGES" />
-        <div className="mt-12">
-          <ComparisonTable
-            dense
-            rowLabel="항목"
-            columns={[{ key: "cost", title: "비용" }]}
-            groups={chargeGroups(ARENA_ADDITIONAL_CHARGES)}
-          />
-        </div>
-        <SpecTable className="mt-14" dense rows={ARENA_LIMITS} />
-        <Notes items={ARENA_RATE_NOTES} />
-      </Band>
-    </>
-  );
-}
-
-function LiveHallPanel() {
-  const cols = LIVE_HALL_RATES.map((r) => ({ key: r.key, title: r.name }));
   return (
     <>
       <Band tone="light" size="lg">
-        <PageHead en="LIVE HALL RATES" ko="중형공연장 대관료" />
+        <PageHead en={en} ko={ko} />
       </Band>
 
       <Band tone="white">
-        <SectionHead title="LIVE HALL RATE" />
+        <SectionHead title="RATE" />
         <div className="mt-12">
-          <ComparisonTable
-            rowLabel="구분"
-            columns={cols}
-            rows={[{ label: "대관료", cells: LIVE_HALL_RATES.map((r) => r.total) }]}
-          />
+          <ComparisonTable rowLabel="구분" columns={cols} rows={rows} />
         </div>
 
-        <details className="mt-10 border-t border-border/25 pt-5">
-          <summary className="cursor-pointer text-s font-bold">Details</summary>
-          <div className="mt-6">
-            <ComparisonTable
-              dense
-              rowLabel="구분"
-              columns={cols}
-              rows={[
-                {
-                  label: "전용 사용료 / 일당",
-                  note: "기본 대관료",
-                  cells: LIVE_HALL_RATES.map((r) => r.exclusive),
-                },
-                {
-                  label: "시설 사용료 / 일당",
-                  note: "옵션 대관료",
-                  cells: LIVE_HALL_RATES.map((r) => r.facility),
-                },
-              ]}
-            />
-          </div>
-        </details>
+        {c.detailLabels.length > 0 && (
+          <details className="mt-10 border-t border-border/25 pt-5">
+            <summary className="cursor-pointer text-s font-bold">Details</summary>
+            <div className="mt-6">
+              <ComparisonTable
+                dense
+                rowLabel="구분"
+                columns={detailCols}
+                rows={c.detailLabels.map((label, i) => ({
+                  label,
+                  cells: c.detailColumns.map((col) => col.values[i] ?? ""),
+                }))}
+              />
+            </div>
+          </details>
+        )}
       </Band>
 
-      <Band tone="light">
-        <SectionHead title="RATE INCLUDES" />
-        <SpecTable className="mt-12" rows={LIVE_HALL_RATE_INCLUDES} />
-      </Band>
+      {c.includes.length > 0 && (
+        <Band tone="light">
+          <SectionHead title="RATE INCLUDES" />
+          <SpecTable
+            className="mt-12"
+            rows={c.includes.map((p) => [p.label, p.value] as [string, string])}
+          />
+        </Band>
+      )}
 
       <Band tone="white">
-        <SectionHead title="ADDITIONAL CHARGES" />
-        <div className="mt-12">
-          <ComparisonTable
+        {c.charges.length > 0 && (
+          <>
+            <SectionHead title="ADDITIONAL CHARGES" />
+            <div className="mt-12">
+              <ComparisonTable
+                dense
+                rowLabel="항목"
+                columns={[{ key: "cost", title: "비용" }]}
+                groups={chargeGroups(c.charges)}
+              />
+            </div>
+          </>
+        )}
+
+        {c.limits.length > 0 && (
+          <SpecTable
+            className="mt-14"
             dense
-            rowLabel="항목"
-            columns={[{ key: "cost", title: "비용" }]}
-            groups={chargeGroups(LIVE_HALL_ADDITIONAL_CHARGES)}
+            rows={c.limits.map((p) => [p.label, p.value] as [string, string])}
           />
-        </div>
-        <SpecTable className="mt-14" dense rows={LIVE_HALL_LIMITS} />
-        <Notes items={LIVE_HALL_RATE_NOTES} />
+        )}
+
+        {c.notes.length > 0 && (
+          <ul className="measure mt-10 space-y-2">
+            {c.notes.map((t, i) => (
+              <li key={`${t}-${i}`} className="break-keep text-xs leading-5 text-muted">
+                ※ {t}
+              </li>
+            ))}
+          </ul>
+        )}
       </Band>
     </>
   );
@@ -204,7 +132,7 @@ function LiveHallPanel() {
 
 export default async function RatesPage() {
   // 요금은 계약 조건과 직접 연결되므로 승인된 대관사 계정에게만 공개한다.
-  const currentUser = await getCurrentUser();
+  const [currentUser, content] = await Promise.all([getCurrentUser(), getRatesContent()]);
   if (!currentUser) redirect("/login");
   if (isPendingApplicant(currentUser)) redirect("/pending");
 
@@ -220,7 +148,12 @@ export default async function RatesPage() {
           items={VENUE_TABS.map((t) => ({
             value: t.value,
             label: t.label,
-            panel: t.value === "arena" ? <ArenaPanel /> : <LiveHallPanel />,
+            panel:
+              t.value === "arena" ? (
+                <RatePanel en="ARENA RATES" ko="아레나 대관료" c={content.arena} />
+              ) : (
+                <RatePanel en="LIVE HALL RATES" ko="중형공연장 대관료" c={content.liveHall} />
+              ),
           }))}
         />
 

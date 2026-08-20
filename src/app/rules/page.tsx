@@ -1,12 +1,8 @@
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { getCurrentUser, isPendingApplicant } from "@/lib/auth";
-import {
-  RULES_EFFECTIVE_DATE,
-  RULES_TITLE,
-  RULES_VERSION,
-  RULE_CHAPTERS,
-} from "@/lib/content/rulesFacts";
+import { getRulesContent } from "@/lib/db";
+import { parseRules } from "@/lib/content/pageContent";
 import { PublicHeader } from "@/components/PublicHeader";
 import { SiteFooter } from "@/components/ui/SiteFooter";
 import { Article, ArticleLayout } from "@/components/ui/ArticleLayout";
@@ -22,9 +18,12 @@ export const metadata: Metadata = {
  * (좌 스티키 목차 + 우 본문).
  */
 export default async function RulesPage() {
-  const currentUser = await getCurrentUser();
+  const [currentUser, content] = await Promise.all([getCurrentUser(), getRulesContent()]);
   if (!currentUser) redirect("/login");
   if (isPendingApplicant(currentUser)) redirect("/pending");
+
+  const chapters = parseRules(content.body);
+  const articleCount = chapters.reduce((n, c) => n + c.articles.length, 0);
 
   return (
     <div className="flex flex-1 flex-col">
@@ -35,14 +34,14 @@ export default async function RulesPage() {
           <PageHead
             en="BOOKING AGREEMENT"
             ko="대관 규약"
-            lead={`${RULES_TITLE} 전문입니다. 대관을 신청하시면 이 규약에 동의하신 것으로 보며, 신청서 제출 단계에서 동의를 확인합니다.`}
+            lead={`${content.title} 전문입니다. 대관을 신청하시면 이 규약에 동의하신 것으로 보며, 신청서 제출 단계에서 동의를 확인합니다.`}
           />
           <dl className="mt-10 flex flex-wrap gap-x-10 gap-y-3">
             {(
               [
-                ["버전", RULES_VERSION],
-                ["시행일", RULES_EFFECTIVE_DATE],
-                ["구성", `${RULE_CHAPTERS.length}개 장 · ${RULE_CHAPTERS.reduce((n, c) => n + c.articles.length, 0)}개 조`],
+                ["버전", content.version],
+                ["시행일", content.effectiveDate],
+                ["구성", `${chapters.length}개 장 · ${articleCount}개 조`],
               ] as [string, string][]
             ).map(([k, v]) => (
               <div key={k}>
@@ -59,11 +58,11 @@ export default async function RulesPage() {
 
         <Band tone="white">
           <ArticleLayout
-            sections={RULE_CHAPTERS.map((ch) => ({
+            sections={chapters.map((ch) => ({
               id: ch.id,
               title: ch.title,
-              body: ch.articles.map((a) => (
-                <Article key={a.title} title={a.title} paragraphs={a.paragraphs} />
+              body: ch.articles.map((a, i) => (
+                <Article key={`${a.title}-${i}`} title={a.title} paragraphs={a.paragraphs} />
               )),
             }))}
           />

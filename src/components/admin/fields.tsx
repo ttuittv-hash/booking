@@ -1,0 +1,289 @@
+"use client";
+
+import { useState, type ReactNode } from "react";
+import { btnClass } from "@/components/ui/kit";
+import { NoticeEditor } from "./NoticeEditor";
+import { ADD_BTN, CARD, ERROR_NOTE, FIELD, FIELD_LABEL, HELP, OK_NOTE, REMOVE_BTN, SUB_TITLE } from "./adminUi";
+
+/* ============================================================================
+   페이지 콘텐츠 편집기의 공용 조각.
+
+   화면마다 폼을 새로 짜지 않도록 입력 한 칸 · 목록 하나를 여기서 정의하고,
+   페이지별 폼은 이것들을 조합만 한다.
+   ========================================================================= */
+
+export function Text({
+  label,
+  value,
+  onChange,
+  placeholder,
+  help,
+}: {
+  label: string;
+  value: string;
+  onChange: (v: string) => void;
+  placeholder?: string;
+  help?: string;
+}) {
+  return (
+    <label className="block">
+      <span className={FIELD_LABEL}>{label}</span>
+      <input
+        type="text"
+        value={value}
+        placeholder={placeholder}
+        onChange={(e) => onChange(e.target.value)}
+        className={FIELD}
+      />
+      {help && <span className={`mt-1 block ${HELP}`}>{help}</span>}
+    </label>
+  );
+}
+
+export function Area({
+  label,
+  value,
+  onChange,
+  rows = 3,
+  help,
+}: {
+  label: string;
+  value: string;
+  onChange: (v: string) => void;
+  rows?: number;
+  help?: string;
+}) {
+  return (
+    <label className="block">
+      <span className={FIELD_LABEL}>{label}</span>
+      <textarea
+        rows={rows}
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        className={FIELD}
+      />
+      {help && <span className={`mt-1 block ${HELP}`}>{help}</span>}
+    </label>
+  );
+}
+
+export function Rich({
+  label,
+  value,
+  onChange,
+  help,
+}: {
+  label: string;
+  value: string;
+  onChange: (v: string) => void;
+  help?: string;
+}) {
+  return (
+    <div>
+      <span className={FIELD_LABEL}>{label}</span>
+      {help && <p className={`mb-2 ${HELP}`}>{help}</p>}
+      <NoticeEditor value={value} onChange={onChange} />
+    </div>
+  );
+}
+
+/** 문자열 목록 — 한 줄짜리 항목이 반복될 때 */
+export function StringList({
+  label,
+  items,
+  onChange,
+  placeholder,
+  addLabel = "+ 항목 추가",
+}: {
+  label?: string;
+  items: string[];
+  onChange: (items: string[]) => void;
+  placeholder?: string;
+  addLabel?: string;
+}) {
+  return (
+    <div>
+      {label && <span className={FIELD_LABEL}>{label}</span>}
+      <div className="space-y-2">
+        {items.map((item, i) => (
+          <div key={i} className="flex items-center gap-2">
+            <input
+              type="text"
+              value={item}
+              placeholder={placeholder}
+              onChange={(e) => onChange(items.map((v, j) => (j === i ? e.target.value : v)))}
+              className={FIELD}
+            />
+            <button
+              type="button"
+              onClick={() => onChange(items.filter((_, j) => j !== i))}
+              className={REMOVE_BTN}
+            >
+              삭제
+            </button>
+          </div>
+        ))}
+        <button type="button" onClick={() => onChange([...items, ""])} className={ADD_BTN}>
+          {addLabel}
+        </button>
+      </div>
+    </div>
+  );
+}
+
+/**
+ * 객체 목록 — 항목마다 여러 칸이 있을 때. 추가·삭제·순서 이동을 제공한다.
+ * `render` 는 항목 하나를 그리는 함수이며, `patch` 로 일부 필드만 바꾼다.
+ */
+export function ListEditor<T>({
+  label,
+  help,
+  items,
+  onChange,
+  blank,
+  addLabel = "+ 항목 추가",
+  render,
+  titleOf,
+}: {
+  label?: string;
+  help?: string;
+  items: T[];
+  onChange: (items: T[]) => void;
+  blank: () => T;
+  addLabel?: string;
+  render: (item: T, patch: (p: Partial<T>) => void, index: number) => ReactNode;
+  /** 접힘 상태에서 보여줄 요약. 없으면 순번만 나온다 */
+  titleOf?: (item: T, index: number) => string;
+}) {
+  function patchAt(i: number, p: Partial<T>) {
+    onChange(items.map((v, j) => (j === i ? { ...v, ...p } : v)));
+  }
+  function move(i: number, dir: -1 | 1) {
+    const j = i + dir;
+    if (j < 0 || j >= items.length) return;
+    const next = [...items];
+    [next[i], next[j]] = [next[j], next[i]];
+    onChange(next);
+  }
+
+  return (
+    <div>
+      {label && <span className={FIELD_LABEL}>{label}</span>}
+      {help && <p className={`mb-2 ${HELP}`}>{help}</p>}
+      <div className="space-y-3">
+        {items.map((item, i) => (
+          <div key={i} className={CARD}>
+            <div className="mb-3 flex items-center justify-between gap-2">
+              <span className="text-xs font-bold text-muted">
+                {titleOf ? titleOf(item, i) : `${i + 1}`}
+              </span>
+              <span className="flex items-center gap-1">
+                <button
+                  type="button"
+                  onClick={() => move(i, -1)}
+                  disabled={i === 0}
+                  aria-label="위로"
+                  className={`${REMOVE_BTN} disabled:opacity-30`}
+                >
+                  ↑
+                </button>
+                <button
+                  type="button"
+                  onClick={() => move(i, 1)}
+                  disabled={i === items.length - 1}
+                  aria-label="아래로"
+                  className={`${REMOVE_BTN} disabled:opacity-30`}
+                >
+                  ↓
+                </button>
+                <button
+                  type="button"
+                  onClick={() => onChange(items.filter((_, j) => j !== i))}
+                  className={REMOVE_BTN}
+                >
+                  삭제
+                </button>
+              </span>
+            </div>
+            {render(item, (p) => patchAt(i, p), i)}
+          </div>
+        ))}
+        <button type="button" onClick={() => onChange([...items, blank()])} className={ADD_BTN}>
+          {addLabel}
+        </button>
+      </div>
+    </div>
+  );
+}
+
+/** 폼 껍데기 — 제목 · 저장 버튼 · 결과 메시지를 한 규격으로 묶는다 */
+export function ContentFormShell<T>({
+  page,
+  initial,
+  children,
+}: {
+  /** `/api/admin/content/[page]` 의 페이지 키 */
+  page: string;
+  initial: T;
+  children: (value: T, patch: (p: Partial<T>) => void) => ReactNode;
+}) {
+  const [value, setValue] = useState<T>(initial);
+  const [saving, setSaving] = useState(false);
+  const [message, setMessage] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  function patch(p: Partial<T>) {
+    setValue((v) => ({ ...v, ...p }));
+  }
+
+  async function save() {
+    setSaving(true);
+    setMessage(null);
+    setError(null);
+    try {
+      const res = await fetch(`/api/admin/content/${page}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ content: value }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setError(data.error || "저장하지 못했습니다. 잠시 후 다시 시도해 주세요.");
+        return;
+      }
+      setMessage("저장했습니다. 해당 화면에 바로 반영됩니다.");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return (
+    <div className="space-y-8">
+      {children(value, patch)}
+
+      {message && <p className={OK_NOTE}>{message}</p>}
+      {error && <p className={ERROR_NOTE}>{error}</p>}
+
+      <div className="sticky bottom-0 -mx-6 border-t border-border/20 bg-background px-6 py-3">
+        <button
+          type="button"
+          disabled={saving}
+          onClick={save}
+          className={btnClass("primary", "md")}
+        >
+          {saving ? "저장 중..." : "저장"}
+        </button>
+      </div>
+    </div>
+  );
+}
+
+export function Section({ title, help, children }: { title: string; help?: string; children: ReactNode }) {
+  return (
+    <section className="border-t border-border/15 pt-7 first:border-t-0 first:pt-0">
+      <h3 className={SUB_TITLE}>{title}</h3>
+      {help && <p className={`mt-2 ${HELP}`}>{help}</p>}
+      <div className="mt-3 space-y-4">{children}</div>
+    </section>
+  );
+}

@@ -4,12 +4,26 @@ import { hash as bcryptHash } from "@node-rs/bcrypt";
 import crypto from "node:crypto";
 import { buildSeedRateTable } from "./pricing/seed";
 import { SEED_PAGES } from "./pricing/pageSeed";
-import { DEFAULT_GUIDE_CONTENT, DEFAULT_HOME_CONTENT, DEFAULT_VENUE_CONTENT } from "./content/seed";
+import { DEFAULT_HOME_CONTENT } from "./content/seed";
 import { SEED_FAQS } from "./content/faqSeed";
 import { FEATURE_SPEC_SEED } from "./featureSpecSeed";
 import { FEATURE_SPEC_SHEET_KEYS } from "./pricing/types";
 import { sha256Hex } from "./passwordScheme";
-import type { GuideContent, HomeContent, VenueContent } from "./content/types";
+import type { HomeContent } from "./content/types";
+import {
+  DEFAULT_DOCUMENTS_CONTENT,
+  DEFAULT_FEATURES_CONTENT,
+  DEFAULT_GUIDE_PAGE_CONTENT,
+  DEFAULT_RATES_CONTENT,
+  DEFAULT_RULES_CONTENT,
+  DEFAULT_SEOULARENA_CONTENT,
+  type DocumentsContent,
+  type FeaturesContent,
+  type GuidePageContent,
+  type RatesContent,
+  type RulesContent,
+  type SeoulArenaContent,
+} from "./content/pageContent";
 import type {
   ApprovalStatus,
   CompanyVerification,
@@ -2458,22 +2472,57 @@ async function saveSiteContent<T>(page: string, data: T): Promise<T> {
   return data;
 }
 
-export async function getVenueContent(): Promise<VenueContent> {
-  const stored = await getSiteContent<Partial<VenueContent> | null>("venue", null);
-  if (!stored) return DEFAULT_VENUE_CONTENT;
-  return { ...DEFAULT_VENUE_CONTENT, ...stored };
+/* ---------------------------------------------------------------------------
+   페이지 콘텐츠 — 운영자가 백오피스에서 편집한다.
+   저장된 값이 없거나 일부만 있으면 기본값(Notion 콘텐츠 전문)으로 채운다.
+   --------------------------------------------------------------------------- */
+
+async function getPageContent<T>(key: string, fallback: T): Promise<T> {
+  const stored = await getSiteContent<Partial<T> | null>(key, null);
+  if (!stored) return fallback;
+  return { ...fallback, ...stored };
 }
 
-export async function saveVenueContent(data: VenueContent): Promise<VenueContent> {
-  return saveSiteContent("venue", data);
+export async function getSeoulArenaContent(): Promise<SeoulArenaContent> {
+  return getPageContent("seoularena", DEFAULT_SEOULARENA_CONTENT);
+}
+export async function saveSeoulArenaContent(data: SeoulArenaContent) {
+  return saveSiteContent("seoularena", data);
 }
 
-export async function getGuideContent(): Promise<GuideContent> {
-  return getSiteContent<GuideContent>("guide", DEFAULT_GUIDE_CONTENT);
+export async function getFeaturesContent(): Promise<FeaturesContent> {
+  return getPageContent("features", DEFAULT_FEATURES_CONTENT);
+}
+export async function saveFeaturesContent(data: FeaturesContent) {
+  return saveSiteContent("features", data);
 }
 
-export async function saveGuideContent(data: GuideContent): Promise<GuideContent> {
+export async function getGuidePageContent(): Promise<GuidePageContent> {
+  return getPageContent("guide", DEFAULT_GUIDE_PAGE_CONTENT);
+}
+export async function saveGuidePageContent(data: GuidePageContent) {
   return saveSiteContent("guide", data);
+}
+
+export async function getRatesContent(): Promise<RatesContent> {
+  return getPageContent("rates", DEFAULT_RATES_CONTENT);
+}
+export async function saveRatesContent(data: RatesContent) {
+  return saveSiteContent("rates", data);
+}
+
+export async function getDocumentsContent(): Promise<DocumentsContent> {
+  return getPageContent("documents", DEFAULT_DOCUMENTS_CONTENT);
+}
+export async function saveDocumentsContent(data: DocumentsContent) {
+  return saveSiteContent("documents", data);
+}
+
+export async function getRulesContent(): Promise<RulesContent> {
+  return getPageContent("rules", DEFAULT_RULES_CONTENT);
+}
+export async function saveRulesContent(data: RulesContent) {
+  return saveSiteContent("rules", data);
 }
 
 export async function getHomeContent(): Promise<HomeContent> {

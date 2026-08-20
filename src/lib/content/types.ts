@@ -9,16 +9,6 @@
    CMS 에 남긴 것은 **실제로 자주 바뀌는 리드 문구와 홈 카피**뿐이다.
    ========================================================================= */
 
-/** 서울아레나(`/seoularena`) 시설개요 탭의 리드 문단 */
-export interface VenueContent {
-  intro: string;
-}
-
-/** 대관 안내(`/guide`) 대관 안내 탭의 리드 문단 */
-export interface GuideContent {
-  intro: string;
-}
-
 /**
  * 브랜드 내러티브 진술.
  * 카카오 브랜드 가이드라인 3.4 "브랜드 선언문: BUSINESS › HOST IT." 본문을 블록으로 나눈 것.

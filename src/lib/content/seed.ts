@@ -1,6 +1,4 @@
-import { ABOUT_LEAD } from "./venueFacts";
-import { GUIDE_LEAD } from "./processFacts";
-import type { GuideContent, HomeContent, VenueContent } from "./types";
+import type { HomeContent } from "./types";
 
 /**
  * 홈 기본 콘텐츠.
@@ -47,9 +45,3 @@ export const DEFAULT_HOME_CONTENT: HomeContent = {
   ],
   narrativeClosing: "",
 };
-
-/** 시설개요 리드 — Notion 콘텐츠 전문의 문장이 기본값이다 */
-export const DEFAULT_VENUE_CONTENT: VenueContent = { intro: ABOUT_LEAD };
-
-/** 대관 안내 리드 */
-export const DEFAULT_GUIDE_CONTENT: GuideContent = { intro: GUIDE_LEAD };

@@ -694,9 +694,10 @@ export function SpecTable({
   const pad = dense ? "py-2.5" : "py-4";
   return (
     <dl className={`border-t border-border/25 ${className}`}>
-      {rows.map(([k, v]) => (
+      {/* 같은 라벨이 반복되는 표가 있다(RATE INCLUDES 의 "공간" 두 행) — 인덱스를 키에 섞는다 */}
+      {rows.map(([k, v], i) => (
         <div
-          key={k}
+          key={`${k}-${i}`}
           className={`grid gap-1 border-b border-border/15 ${pad} sm:grid-cols-[minmax(0,12rem)_minmax(0,1fr)] sm:gap-6`}
         >
           <dt className="text-s text-muted">{k}</dt>
@@ -1083,9 +1084,9 @@ export function FeatureList({
 export function LabeledList({ items }: { items: { label: string; desc?: string }[] }) {
   return (
     <dl className="border-t border-border/25">
-      {items.map((it) => (
+      {items.map((it, i) => (
         <div
-          key={it.label}
+          key={`${it.label}-${i}`}
           className="grid gap-1 border-b border-border/15 py-4 sm:grid-cols-[minmax(0,14rem)_minmax(0,1fr)] sm:gap-8"
         >
           <dt className="text-s font-bold">{it.label}</dt>

@@ -1,16 +1,8 @@
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { getCurrentUser, isPendingApplicant } from "@/lib/auth";
-import {
-  ARENA_CAPACITY,
-  ARENA_FACILITIES,
-  ARENA_OVERVIEW,
-  LIVE_HALL_CAPACITY,
-  LIVE_HALL_FACILITIES,
-  LIVE_HALL_OVERVIEW,
-  STAGE_FEATURES,
-  type OverviewCard,
-} from "@/lib/content/venueFacts";
+import { getFeaturesContent } from "@/lib/db";
+import type { Pair, VenueFacilityContent } from "@/lib/content/pageContent";
 import { PublicHeader } from "@/components/PublicHeader";
 import { SiteFooter } from "@/components/ui/SiteFooter";
 import { QueryTabs } from "@/components/ui/QueryTabs";
@@ -32,11 +24,11 @@ export const metadata: Metadata = {
 };
 
 /** 개요 카드 4개 — 제목은 eyebrow, 내용은 H5 (Notion 지정) */
-function OverviewCards({ items }: { items: OverviewCard[] }) {
+function OverviewCards({ items }: { items: Pair[] }) {
   return (
     <ul className="grid gap-x-[var(--gutter)] gap-y-10 sm:grid-cols-2 lg:grid-cols-4">
-      {items.map((c) => (
-        <li key={c.label} className="border-t-2 border-border pt-5">
+      {items.map((c, i) => (
+        <li key={`${c.label}-${i}`} className="border-t-2 border-border pt-5">
           <p className="text-xs font-bold text-muted">{c.label}</p>
           <p className="type-kr-heading mt-3 break-keep text-h5-m sm:text-h5">{c.value}</p>
         </li>
@@ -45,88 +37,85 @@ function OverviewCards({ items }: { items: OverviewCard[] }) {
   );
 }
 
-function ArenaPanel() {
+function VenuePanel({ en, ko, c }: { en: string; ko: string; c: VenueFacilityContent }) {
   return (
     <>
       <Band tone="light" size="lg">
-        <PageHead en="ARENA" ko="아레나" />
-        <div className="mt-14">
-          <OverviewCards items={ARENA_OVERVIEW} />
-        </div>
+        <PageHead en={en} ko={ko} />
+        {c.overview.length > 0 && (
+          <div className="mt-14">
+            <OverviewCards items={c.overview} />
+          </div>
+        )}
       </Band>
 
-      <Band tone="white">
-        <SectionHead title="STAGE & CAPACITY" />
-        <div className="mt-14 space-y-16">
-          {ARENA_CAPACITY.map((c) => (
-            <div key={c.stage}>
-              <h4 className="type-kr-heading text-h5-m sm:text-h5">{c.stage}</h4>
-              <dl className="mt-5 flex flex-wrap gap-x-12 gap-y-3">
-                <div>
-                  <dt className="text-xs font-bold text-muted">SEATED</dt>
-                  <dd className="type-display mt-1 text-h5-m tabular-nums sm:text-h5">{c.seated}</dd>
-                </div>
-                <div>
-                  <dt className="text-xs font-bold text-muted">STANDING</dt>
-                  <dd className="type-display mt-1 text-h5-m tabular-nums sm:text-h5">
-                    {c.standing}
-                  </dd>
-                </div>
-              </dl>
-              <SpecTable className="mt-8" rows={c.floors} />
-            </div>
-          ))}
-        </div>
-      </Band>
+      {c.capacity.length > 0 && (
+        <Band tone="white">
+          <SectionHead title="STAGE & CAPACITY" />
+          <div className="mt-14 space-y-16">
+            {c.capacity.map((cap, i) => (
+              <div key={`${cap.stage}-${i}`}>
+                {cap.stage && (
+                  <h4 className="type-kr-heading text-h5-m sm:text-h5">{cap.stage}</h4>
+                )}
+                {(cap.seated || cap.standing) && (
+                  <dl className="mt-5 flex flex-wrap gap-x-12 gap-y-3">
+                    {cap.seated && (
+                      <div>
+                        <dt className="text-xs font-bold text-muted">SEATED</dt>
+                        <dd className="type-display mt-1 text-h5-m tabular-nums sm:text-h5">
+                          {cap.seated}
+                        </dd>
+                      </div>
+                    )}
+                    {cap.standing && (
+                      <div>
+                        <dt className="text-xs font-bold text-muted">STANDING</dt>
+                        <dd className="type-display mt-1 text-h5-m tabular-nums sm:text-h5">
+                          {cap.standing}
+                        </dd>
+                      </div>
+                    )}
+                  </dl>
+                )}
+                {cap.floors.length > 0 && (
+                  <SpecTable
+                    className="mt-8"
+                    rows={cap.floors.map((f) => [f.label, f.value] as [string, string])}
+                  />
+                )}
+              </div>
+            ))}
+          </div>
+        </Band>
+      )}
 
-      <Band tone="dark">
-        <SectionHead title="FEATURES" />
-        <div className="mt-12">
-          <FeatureList items={STAGE_FEATURES} />
-        </div>
-      </Band>
+      {c.features.length > 0 && (
+        <Band tone="dark">
+          <SectionHead title="FEATURES" />
+          <div className="mt-12">
+            <FeatureList items={c.features} />
+          </div>
+        </Band>
+      )}
 
-      <Band tone="light">
-        <SectionHead title="ADDITIONAL FACILITIES" />
-        <div className="mt-12">
-          <LabeledList items={ARENA_FACILITIES} />
-        </div>
-      </Band>
-    </>
-  );
-}
-
-function LiveHallPanel() {
-  return (
-    <>
-      <Band tone="light" size="lg">
-        <PageHead en="LIVE HALL" ko="중형공연장" />
-        <div className="mt-14">
-          <OverviewCards items={LIVE_HALL_OVERVIEW} />
-        </div>
-      </Band>
-
-      <Band tone="white">
-        <SectionHead title="STAGE & CAPACITY" />
-        <div className="mt-14">
-          <h4 className="type-kr-heading text-h5-m sm:text-h5">객석</h4>
-          <SpecTable className="mt-5" rows={LIVE_HALL_CAPACITY} />
-        </div>
-      </Band>
-
-      <Band tone="light">
-        <SectionHead title="ADDITIONAL FACILITIES" />
-        <div className="mt-12">
-          <LabeledList items={LIVE_HALL_FACILITIES} />
-        </div>
-      </Band>
+      {c.facilities.length > 0 && (
+        <Band tone="light">
+          <SectionHead title="ADDITIONAL FACILITIES" />
+          <div className="mt-12">
+            <LabeledList
+              items={c.facilities.map((f) => ({ label: f.label, desc: f.value || undefined }))}
+            />
+          </div>
+        </Band>
+      )}
     </>
   );
 }
 
 export default async function FeaturesPage() {
   // 시설 소개부터는 로그인한 대관사에게만 공개한다 (Notion 확정 정보구조).
-  const currentUser = await getCurrentUser();
+  const [currentUser, content] = await Promise.all([getCurrentUser(), getFeaturesContent()]);
   if (!currentUser) redirect("/login");
   if (isPendingApplicant(currentUser)) redirect("/pending");
 
@@ -142,7 +131,12 @@ export default async function FeaturesPage() {
           items={VENUE_TABS.map((t) => ({
             value: t.value,
             label: t.label,
-            panel: t.value === "arena" ? <ArenaPanel /> : <LiveHallPanel />,
+            panel:
+              t.value === "arena" ? (
+                <VenuePanel en="ARENA" ko="아레나" c={content.arena} />
+              ) : (
+                <VenuePanel en="LIVE HALL" ko="중형공연장" c={content.liveHall} />
+              ),
           }))}
         />
 
