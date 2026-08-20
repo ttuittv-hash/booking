@@ -18,34 +18,6 @@ import {
 import { SpecTable, btnClass } from "@/components/ui/kit";
 import { StepHeading } from "./StepHeading";
 
-const STAGES = [
-  {
-    no: "STEP ①",
-    title: "패키지 선택",
-    desc: "공연 일정과 관객 규모에 맞는 대관 패키지를 선택합니다.",
-  },
-  {
-    no: "STEP ②",
-    title: "구성과 대관료 확인",
-    desc: "포함 항목과 부대시설을 구성하고, 예상 대관료를 확인합니다.",
-  },
-  {
-    no: "STEP ③",
-    title: "신청 제출",
-    desc: "입력한 내용으로 대관 신청서를 접수합니다.",
-  },
-  {
-    no: "STEP ④",
-    title: "심사",
-    desc: "운영자가 일정·공연 내용·시설 적합성 등을 종합적으로 검토합니다.",
-  },
-  {
-    no: "STEP ⑤",
-    title: "심사 결과 안내",
-    desc: "승인·보류·거절 결과와 사유를 알림으로 안내해 드립니다.",
-  },
-];
-
 export function Step6Submit({
   rateTable,
   quote,
@@ -74,6 +46,7 @@ export function Step6Submit({
   const pkg = findPackage(rateTable, selection.packageId);
   const [confirmed, setConfirmed] = useState(false);
   const [pledged, setPledged] = useState(false);
+  const [agreedRules, setAgreedRules] = useState(false);
   const venueName =
     VENUES.find((v) => v.id === (selection.venueId ?? DEFAULT_VENUE_ID))?.name ?? "-";
   const info = selection.performanceInfo;
@@ -83,13 +56,13 @@ export function Step6Submit({
       <section>
         <StepHeading
         title={<>신청서 제출</>}
-        lead={<>먼저 3단계에서 패키지를 선택하세요.</>}
+        lead={<>먼저 규모·패키지 선택 단계에서 패키지를 고르세요.</>}
       />
       </section>
     );
   }
 
-  const canSubmit = confirmed && pledged;
+  const canSubmit = confirmed && pledged && agreedRules;
   const infoRows: [string, string][] = [
     ["공연(행사)명", info.eventName || "-"],
     ["아티스트", info.artist || "-"],
@@ -158,7 +131,7 @@ export function Step6Submit({
             {isEditing ? "신청 내용이 수정되었습니다." : "신청이 접수되었습니다."}
           </p>
           <p className="mt-2 leading-6">
-            운영자 심사 → 계약 → 정산 순으로 진행되며, 각 단계가 완료되면 알림으로 안내해 드립니다.
+            접수번호가 발급되었습니다. 진행 상황은 내 신청 내역에서 확인하실 수 있습니다.
           </p>
           <div className="mt-4 flex flex-wrap gap-4">
             <Link href={`/mypage/${submittedId}`} className="font-bold underline">
@@ -196,8 +169,7 @@ export function Step6Submit({
                 onChange={(e) => setConfirmed(e.target.checked)}
                 className="mt-0.5 accent-foreground"
               />
-              위에 표시된 공연기간/일정 및 공연정보 입력 내용을 확인하였으며, 이대로 신청서를
-              제출합니다.
+              입력한 내용이 사실과 같으며, 심사에 필요한 자료를 모두 제출했음을 확인합니다.
             </label>
             <label className="flex cursor-pointer items-start gap-2.5 text-s">
               <input
@@ -206,9 +178,41 @@ export function Step6Submit({
                 onChange={(e) => setPledged(e.target.checked)}
                 className="mt-0.5 accent-foreground"
               />
-              입력한 내용이 사실과 틀림없으며, 이를 이행할 것을 서약합니다.
+              신청서에 기재한 공연 내용과 운영 계획을 그대로 이행하며, 기재 내용과 다른 공연을
+              진행할 경우 승인이 취소될 수 있음에 동의합니다.
             </label>
+            {/*
+              규약 동의를 실제로 받는다. "숙지하고 동의한 것으로 간주됩니다" 문장만 두면
+              증빙이 남지 않는다. 규약 전문은 웹에 게재하지 않고 자료실에서 내려받는다.
+            */}
+            <label className="flex cursor-pointer items-start gap-2.5 text-s">
+              <input
+                type="checkbox"
+                checked={agreedRules}
+                onChange={(e) => setAgreedRules(e.target.checked)}
+                className="mt-0.5 accent-foreground"
+              />
+              대관 규약을 읽고 동의합니다.
+            </label>
+            <p className="pl-6 text-xs text-muted">
+              대관 규약 전문은{" "}
+              <Link
+                href="/library?doc=rules"
+                target="_blank"
+                className="font-bold text-foreground underline"
+              >
+                자료실 대관 규약 탭
+              </Link>
+              에서 PDF로 내려받으실 수 있습니다.
+            </p>
           </div>
+
+          <p className="mt-6 border-t border-border/25 pt-3 text-xs leading-5 text-muted">
+            제출하시면 접수번호가 발급되고 심사가 시작됩니다. 심사 결과는 승인, 보류, 반려로 구분해
+            내 신청 내역과 등록하신 이메일로 안내합니다. 심사 과정에서 추가 자료를 요청할 수
+            있습니다. 심사 승인만으로는 일정이 확정되지 않으며, 계약을 체결하고 계약금을 납부하셔야
+            대관이 확정됩니다.
+          </p>
           <button
             type="button"
             disabled={submitting || !canSubmit}
@@ -225,19 +229,6 @@ export function Step6Submit({
         </>
       )}
 
-      <h3 className="type-kr-heading mt-12 text-h6-m sm:text-h6">신청 절차</h3>
-      <ol className="mt-5 border-t border-border/25">
-        {STAGES.map((s) => (
-          <li
-            key={s.no}
-            className="grid gap-2 border-b border-border/25 py-4 sm:grid-cols-[5rem_minmax(0,14rem)_minmax(0,1fr)] sm:items-baseline sm:gap-6"
-          >
-            <span className="text-xs font-bold text-muted">{s.no}</span>
-            <span className="text-s font-bold">{s.title}</span>
-            <p className="text-s text-muted">{s.desc}</p>
-          </li>
-        ))}
-      </ol>
     </section>
   );
 }

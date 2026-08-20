@@ -77,14 +77,14 @@ export default async function NoticesPage({
         <Band tone="light" size="lg">
           <PageHeading
             title="공지사항"
-            lead="대관 공고, 운영정책 변경, 시스템 점검 안내를 여기서 확인하세요. 신청 전 최신 공지를 먼저 확인하시기 바랍니다."
+            lead="대관 접수 일정과 변경 사항, 시설·요금 안내를 이곳에 게시합니다. 대관 일정의 기준은 이 페이지의 공고입니다. 다른 화면에 표시된 일정과 다르게 보일 경우 이 페이지의 최신 공고를 기준으로 판단해 주세요."
           />
         </Band>
 
         {notices.length === 0 ? (
           <Band tone="white" size="md">
             <EmptyState
-              title="등록된 공지사항이 없습니다"
+              title="등록된 공지가 없습니다"
               desc="대관 공고와 운영 안내가 등록되면 이곳에 표시됩니다."
               action={
                 <ButtonLink href="/guide" variant="secondary">
@@ -99,8 +99,12 @@ export default async function NoticesPage({
               <Band tone="white" size="md">
                 <div className="flex items-center gap-3">
                   <span aria-hidden className="h-3 w-3 bg-accent" />
-                  <h2 className="type-kr-heading text-h5-m sm:text-h5">진행 중 대관 공고</h2>
+                  <h2 className="type-kr-heading text-h5-m sm:text-h5">진행 중인 대관 공고</h2>
                 </div>
+                <p className="measure mt-4 break-keep text-s text-muted">
+                  접수 기간이 지난 공고는 전체 목록으로 내려갑니다. 접수 일정이 바뀌면 해당 공고를
+                  갱신해 안내합니다.
+                </p>
                 <NoticeRows notices={pinned} pinned />
               </Band>
             )}
@@ -120,7 +124,7 @@ export default async function NoticesPage({
 
         <CTABand
           title="찾는 답이 공지에 없나요?"
-          lead="자주 묻는 질문을 먼저 확인하고, 남는 내용은 운영자에게 바로 문의하세요."
+          lead="자주 묻는 질문을 먼저 확인해 주세요. 접수 일정이나 요금처럼 여러 대관사에 공통으로 해당하는 내용은 공지사항과 FAQ에 먼저 반영합니다."
           actions={
             <>
               <ButtonLink href="/faq" variant="primary">

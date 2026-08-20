@@ -28,7 +28,7 @@ export function Step5Estimate({
       <section>
         <StepHeading
         title={<>예상 대관료 · 산출내역서</>}
-        lead={<>먼저 2단계에서 패키지를 선택하세요.</>}
+        lead={<>먼저 규모·패키지 선택 단계에서 패키지를 고르세요.</>}
       />
       </section>
     );

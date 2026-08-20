@@ -73,7 +73,7 @@ export function ApplicantApprovalTable({
           </p>
           <p className={TABLE_HEAD_DESC}>
             {pending
-              ? "승인해야 대관 패키지 안내와 견적 산출을 이용할 수 있습니다."
+              ? "승인해야 대관료 열람과 신청서 작성을 이용할 수 있습니다."
               : "이미 승인하거나 거절한 신청자 계정입니다."}
           </p>
         </div>

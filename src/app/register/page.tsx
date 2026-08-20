@@ -149,7 +149,7 @@ export default function RegisterPage() {
       active="register"
       width="md"
       title="신청자 회원가입"
-      lead="대관사(엔터테인먼트사·기획사) 전용 가입입니다. 가입 후 운영자 승인이 완료되어야 대관 패키지 안내와 견적 산출을 이용할 수 있습니다."
+      lead="대관사(엔터테인먼트사·기획사) 전용 가입입니다. 가입 후 운영자 승인이 완료되어야 대관료 열람과 신청서 작성을 이용할 수 있습니다."
     >
       <form onSubmit={handleSubmit} noValidate className="space-y-10">
               <FormSection no="01" title="계정 정보">
