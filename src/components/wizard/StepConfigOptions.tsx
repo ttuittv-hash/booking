@@ -136,6 +136,39 @@ function baseCompositionTiles(
   return tiles;
 }
 
+// [화면 뼈대 2026-08-20, 개정] 관객 규모는 더 이상 별도 "패키지 선택" 화면에서 입력하지
+// 않는다 — 일정을 먼저 고르고, 그 규모에 따라 자동 결정되는 패키지·구성을 바로 이 화면
+// (구성·옵션)에서 함께 보면서 조정할 수 있게 옮겼다.
+function ScaleInputBlock({
+  label,
+  value,
+  onChange,
+  note,
+}: {
+  label: string;
+  value: number;
+  onChange: (value: number) => void;
+  note: string;
+}) {
+  return (
+    <div className="mb-6 border-b border-border pb-6">
+      <label className="block text-[13px] font-medium text-foreground">{label} *</label>
+      <div className="mt-2">
+        <input
+          type="number"
+          min={0}
+          step={500}
+          value={value}
+          onChange={(e) => onChange(Math.max(0, Number(e.target.value) || 0))}
+          className="w-40 rounded-sm border border-border bg-panel px-3.5 py-2.5 text-[14px] outline-none focus:border-accent focus:ring-2 focus:ring-accent/20"
+        />
+        <span className="ml-2 text-[13px] text-muted">명</span>
+      </div>
+      <p className="mt-1.5 text-[11px] text-muted">{note}</p>
+    </div>
+  );
+}
+
 // 아레나 탭·중형 탭·중형 단독(midHallOnly)에서 공통으로 쓰는 "기본 포함" 그리드 카드.
 function BaseCompositionCard({ tiles, note }: { tiles: BaseCompositionTile[]; note: string }) {
   if (tiles.length === 0) return null;
@@ -176,6 +209,8 @@ export function StepConfigOptions({
   expectedRevenue,
   onChangeQuantity,
   onChangeRevenue,
+  onChangeAudience,
+  onChangeSecondaryAudience,
 }: {
   rateTable: RateTable;
   selection: QuoteSelection;
@@ -184,6 +219,8 @@ export function StepConfigOptions({
   expectedRevenue: number;
   onChangeQuantity: (addonId: string, quantity: number) => void;
   onChangeRevenue: (value: number) => void;
+  onChangeAudience: (value: number) => void;
+  onChangeSecondaryAudience: (value: number) => void;
 }) {
   const midHallOnly = selection.venueId === "medium-hall" && selection.bookingMode === "SINGLE";
   const isSimultaneous = selection.bookingMode === "SIMULTANEOUS";
@@ -201,6 +238,15 @@ export function StepConfigOptions({
           포함되는 기본 구성입니다.
         </p>
 
+        <div className="mt-6">
+          <ScaleInputBlock
+            label="예상 관객 규모"
+            value={selection.secondaryAudience}
+            onChange={onChangeSecondaryAudience}
+            note="3,000명 초과 시 별도 문의가 필요할 수 있습니다. 청소비 산출에만 사용됩니다."
+          />
+        </div>
+
         <BaseCompositionCard
           tiles={midHallTiles}
           note="대관료에 이미 포함된 구성 — 예약 일수와 무관하게 동일하게 제공됩니다"
@@ -217,8 +263,16 @@ export function StepConfigOptions({
     return (
       <section className="rounded border border-border bg-background p-7">
         <h2 className="text-[19px] font-semibold">구성 · 옵션</h2>
+        <div className="mt-6">
+          <ScaleInputBlock
+            label="예상 관객 규모"
+            value={selection.expectedAudience}
+            onChange={onChangeAudience}
+            note="22,000명 초과 시 별도 문의가 필요할 수 있습니다. 관객 규모에 따라 패키지(구성)가 자동 결정됩니다."
+          />
+        </div>
         <p className="mt-3 text-[13.5px] text-muted">
-          예상 관객 규모에 맞는 패키지를 아직 찾지 못했습니다. 패키지 선택에서 관객 규모를 확인해 주세요.
+          위 관객 규모에 맞는 패키지를 아직 찾지 못했습니다. 규모를 조정해 주세요.
         </p>
       </section>
     );
@@ -252,6 +306,12 @@ export function StepConfigOptions({
 
   const arenaSection = (
     <>
+      <ScaleInputBlock
+        label="예상 관객 규모"
+        value={selection.expectedAudience}
+        onChange={onChangeAudience}
+        note="22,000명 초과 시 별도 문의가 필요할 수 있습니다. 관객 규모에 따라 아래 패키지(구성)가 자동 결정됩니다."
+      />
       <div className="flex flex-wrap items-baseline justify-between gap-2 border-b border-border pb-4">
         <div>
           <h2 className="text-[19px] font-semibold">아레나</h2>
@@ -321,6 +381,12 @@ export function StepConfigOptions({
 
   const midHallSection = (
     <>
+      <ScaleInputBlock
+        label="예상 관객 규모"
+        value={selection.secondaryAudience}
+        onChange={onChangeSecondaryAudience}
+        note="3,000명 초과 시 별도 문의가 필요할 수 있습니다. 청소비 산출에만 사용됩니다."
+      />
       <div className="border-b border-border pb-4">
         <h2 className="text-[19px] font-semibold">중형공연장</h2>
         <p className="mt-1 text-[12.5px] text-muted">

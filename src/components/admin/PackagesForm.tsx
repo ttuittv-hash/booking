@@ -307,7 +307,7 @@ export function PackagesForm({ rateTable }: { rateTable: RateTable }) {
             </label>
             <label className="block sm:col-span-2">
               <span className="mb-1 block text-[12px] text-muted">
-                패키지 한 줄 소개 (예: &quot;OOO을 위한 OOO&quot; — 패키지별 핵심 특징 요약, 패키지 선택 화면과 안내 페이지에 표시됩니다)
+                패키지 한 줄 소개 (예: &quot;OOO을 위한 OOO&quot; — 패키지별 핵심 특징 요약, 대관 안내 페이지에 표시됩니다)
               </span>
               <input
                 type="text"

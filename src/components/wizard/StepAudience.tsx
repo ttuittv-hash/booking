@@ -86,7 +86,7 @@ function AudienceFields({
             <div className="rounded-sm border border-border bg-panel/60 px-4 py-2.5 text-[14px] text-foreground">
               {audienceSummary.arenaLine}
             </div>
-            <p className="mt-1 text-[11px] text-muted">패키지 선택 값과 연동 — 수정은 패키지 선택에서</p>
+            <p className="mt-1 text-[11px] text-muted">구성 · 옵션 값과 연동 — 수정은 구성 · 옵션에서</p>
           </div>
         )}
 
@@ -96,7 +96,7 @@ function AudienceFields({
             <div className="rounded-sm border border-border bg-panel/60 px-4 py-2.5 text-[14px] text-foreground">
               {audienceSummary.midHallLine}
             </div>
-            <p className="mt-1 text-[11px] text-muted">패키지 선택 값과 연동 — 수정은 패키지 선택에서</p>
+            <p className="mt-1 text-[11px] text-muted">구성 · 옵션 값과 연동 — 수정은 구성 · 옵션에서</p>
           </div>
         )}
 

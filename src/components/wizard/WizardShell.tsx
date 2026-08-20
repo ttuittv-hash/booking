@@ -12,12 +12,12 @@ import {
   recommendPackage,
 } from "@/lib/pricing/rateTableUtils";
 import type { AppUser, DateBlock, QuoteSelection, RateTable, WeekDemand } from "@/lib/pricing/types";
-import { DEFAULT_VENUE_ID, EVENT_TYPE_LABEL, MEDIA_TIER_LABEL, STAGE_TYPE_LABEL } from "@/lib/pricing/types";
+import { DEFAULT_VENUE_ID, MEDIA_TIER_LABEL } from "@/lib/pricing/types";
 import { INITIAL_PERFORMANCE_INFO } from "@/lib/pricing/performanceInfoDefaults";
 import { clearWizardDraft, loadWizardDraft, saveWizardDraft } from "@/lib/quotesStore";
 import { StepNav } from "./StepNav";
 import { SummaryPanel, type SummaryPreviewRow } from "./SummaryPanel";
-import { StepVenue } from "./StepVenue";
+import { VenuePicker } from "./VenuePicker";
 import { Step1Calendar } from "./Step1Calendar";
 import { MidHallCalendar } from "./MidHallCalendar";
 import { StepConfigOptions } from "./StepConfigOptions";
@@ -27,7 +27,7 @@ import { StepAudience } from "./StepAudience";
 import { StepPublicInterest } from "./StepPublicInterest";
 import { Step6Submit } from "./Step6Submit";
 
-const TOTAL_STEPS = 8;
+const TOTAL_STEPS = 7;
 
 // 중형공연장 단독(패키지 없음)일 때는 STEP 2(구성·옵션)의 내용이 달라질 뿐, 별도
 // 단계로 나누지 않는다(2-25, 확정).
@@ -206,11 +206,25 @@ export function WizardShell({
   const quote = useMemo(() => calculateQuote(resolvedSelection, rateTable), [resolvedSelection, rateTable]);
   const hasMidHallSelection = Object.keys(selection.midHallDays).length > 0;
 
-  // [화면 뼈대 2026-08-19, 화면시나리오 STEP 1-1 "선택 내용"] STEP 1에서는 견적 항목이 아니라
-  // 지금까지 입력한 값 자체(이용시설·무대구성·관객규모·공연유형·공연명·대관일정)를 큐레이션해
-  // 우측 패널에 보여준다.
-  const isArenaPrimary = selection.venueId !== "medium-hall";
-  const venuePreviewRows: SummaryPreviewRow[] = [
+  // [개정 2026-08-20] 패키지 선택 화면이 없어지면서 STEP 1은 "이용 시설 선택 + 일정
+  // 선택"으로 합쳐졌다 — 관객 규모는 더 이상 이 단계에서 입력하지 않고 구성·옵션으로
+  // 옮겼으므로, 이 단계의 미리보기 패널도 이용 시설·대관 일정만 큐레이션해 보여준다.
+  const maxUnlockedStep = !selection.venueId ? 1 : midHallOnly && !hasMidHallSelection ? 1 : TOTAL_STEPS;
+  // 패키지 선택 전에도 기본 공연일수를 보여줘야 하므로, 모든 패키지가 공유하는 기본값(2일)을 임시로 사용한다.
+  const effectivePkg = findPackage(rateTable, effectivePackageId);
+  const defaultPerformanceDays = effectivePkg?.defaultPerformanceDays ?? 2;
+
+  const configArenaDates = resolveSelectedDates(selection);
+  const configShowCount = (() => {
+    if (configArenaDates.length === 0) return 0;
+    const defaults = defaultDayTags(configArenaDates, defaultPerformanceDays);
+    return configArenaDates.reduce((sum, d) => {
+      const tag = effectiveDayTag(d, selection.dayTags, defaults);
+      return tag === "PERFORMANCE" ? sum + (selection.dayShowCounts[d] ?? 1) : sum;
+    }, 0);
+  })();
+  const midHallDayCount = Object.keys(selection.midHallDays).length;
+  const schedulePreviewRows: SummaryPreviewRow[] = [
     {
       label: "이용 시설",
       value: !selection.venueId
@@ -221,45 +235,27 @@ export function WizardShell({
             ? "중형공연장"
             : "메인 아레나",
     },
-    {
-      label: "무대 구성",
-      value: !isArenaPrimary
-        ? "해당 없음"
-        : selection.performanceInfo.stageTypes[0]
-          ? STAGE_TYPE_LABEL[selection.performanceInfo.stageTypes[0]]
-          : "미선택",
-    },
-    {
-      label: "관객 규모",
-      value: selection.expectedAudience > 0 ? `${selection.expectedAudience.toLocaleString()}명` : "미입력",
-    },
-    {
-      label: "공연 유형",
-      value: selection.performanceInfo.eventTypes[0]
-        ? EVENT_TYPE_LABEL[selection.performanceInfo.eventTypes[0]]
-        : "미선택",
-    },
-    { label: "공연명", value: selection.performanceInfo.eventName || "미입력" },
-    { label: "대관 일정", value: "다음 화면에서 선택" },
+    ...(midHallOnly
+      ? [{ label: "대관 일정", value: midHallDayCount > 0 ? `${midHallDayCount}일 선택` : "미선택" }]
+      : [
+          {
+            label: "아레나 일정",
+            value:
+              configArenaDates.length > 0
+                ? `${selection.week.year}년 ${selection.week.month}월 ${selection.week.weekOfMonth}주차 · ${configArenaDates.length}일`
+                : "미선택",
+          },
+        ]),
+    ...(selection.bookingMode === "SIMULTANEOUS"
+      ? [{ label: "중형 일정", value: midHallDayCount > 0 ? `${midHallDayCount}일 선택` : "미선택" }]
+      : []),
+    { label: "관객 규모", value: "다음 화면(구성 · 옵션)에서 입력" },
   ];
-  const maxUnlockedStep = !selection.venueId ? 1 : midHallOnly && !hasMidHallSelection ? 2 : TOTAL_STEPS;
-  // 패키지 선택 전에도 기본 공연일수를 보여줘야 하므로, 모든 패키지가 공유하는 기본값(2일)을 임시로 사용한다.
-  const effectivePkg = findPackage(rateTable, effectivePackageId);
-  const defaultPerformanceDays = effectivePkg?.defaultPerformanceDays ?? 2;
 
-  // [화면 뼈대 2026-08-19, 화면시나리오 STEP 2 "선택 내용"] STEP 2(구성·옵션)에서도 견적
+  // [화면 뼈대 2026-08-19, 화면시나리오 STEP 2 "선택 내용"] 구성·옵션 화면에서도 견적
   // lineItems가 아니라 지금까지 정한 값(패키지·대관 주차·공연 횟수·부대시설·홍보)을
   // 큐레이션해 보여준다 — "Package N" 대신 관객 규모 등급으로 표기한다(패키지 번호 비노출
   // 확정 사항, 2026-08-18).
-  const configArenaDates = resolveSelectedDates(selection);
-  const configShowCount = (() => {
-    if (configArenaDates.length === 0) return 0;
-    const defaults = defaultDayTags(configArenaDates, defaultPerformanceDays);
-    return configArenaDates.reduce((sum, d) => {
-      const tag = effectiveDayTag(d, selection.dayTags, defaults);
-      return tag === "PERFORMANCE" ? sum + (selection.dayShowCounts[d] ?? 1) : sum;
-    }, 0);
-  })();
   const configOptionCount = selection.addons.filter(
     (a) => a.addonId !== "cleaning" && a.requestedQuantity > 0,
   ).length;
@@ -396,7 +392,7 @@ export function WizardShell({
       {step < TOTAL_STEPS && (
         <button
           type="button"
-          disabled={(step === 1 && !selection.venueId) || (step === 2 && midHallOnly && !hasMidHallSelection)}
+          disabled={step === 1 && (!selection.venueId || (midHallOnly && !hasMidHallSelection))}
           onClick={() => goTo(step + 1)}
           className="rounded-sm bg-accent px-6 py-2.5 text-[13.5px] font-semibold text-white transition-colors hover:bg-accent-hover disabled:cursor-not-allowed disabled:opacity-40"
         >
@@ -422,7 +418,7 @@ export function WizardShell({
       {step < TOTAL_STEPS && (
         <button
           type="button"
-          disabled={(step === 1 && !selection.venueId) || (step === 2 && midHallOnly && !hasMidHallSelection)}
+          disabled={step === 1 && (!selection.venueId || (midHallOnly && !hasMidHallSelection))}
           onClick={() => goTo(step + 1)}
           className="rounded-full border border-border px-3.5 py-1.5 text-[12.5px] font-medium text-foreground transition-colors hover:border-accent hover:text-accent disabled:cursor-not-allowed disabled:opacity-30"
         >
@@ -440,42 +436,103 @@ export function WizardShell({
         <div className="mt-4 mb-6">{topNavButtons}</div>
 
         {step === 1 && (
-          <StepVenue
-            venueId={selection.venueId}
-            bookingMode={selection.bookingMode}
-            expectedAudience={selection.expectedAudience}
-            secondaryAudience={selection.secondaryAudience}
-            performanceInfo={selection.performanceInfo}
-            onSelectVenue={selectVenue}
-            onChangeAudience={(value) => setSelection((prev) => ({ ...prev, expectedAudience: value }))}
-            onChangeSecondaryAudience={(value) =>
-              setSelection((prev) => ({ ...prev, secondaryAudience: value }))
-            }
-            onChangePerformanceInfo={(performanceInfo) => setSelection((prev) => ({ ...prev, performanceInfo }))}
-          />
-        )}
-        {step === 2 && selection.bookingMode === "SIMULTANEOUS" && (
           <section className="rounded border border-border bg-background p-5 sm:p-7">
             <h2 className="text-[19px] font-semibold">일정 선택</h2>
-            <div className="mt-5 flex gap-1 border-b border-border">
-              {(["arena", "medium-hall"] as const).map((tab) => (
-                <button
-                  key={tab}
-                  type="button"
-                  onClick={() => setVenueTab(tab)}
-                  className={[
-                    "border-b-2 px-4 py-2.5 text-[13.5px] font-medium transition-colors",
-                    venueTab === tab
-                      ? "border-accent text-accent"
-                      : "border-transparent text-muted hover:text-foreground",
-                  ].join(" ")}
-                >
-                  {tab === "arena" ? "아레나 일정" : "중형 일정"}
-                </button>
-              ))}
+            <p className="mt-1.5 text-[13.5px] text-muted">
+              먼저 이용 시설을 고르면 그 시설의 일정을 바로 이어서 선택할 수 있습니다.
+            </p>
+            <div className="mt-5">
+              <VenuePicker venueId={selection.venueId} bookingMode={selection.bookingMode} onSelectVenue={selectVenue} />
             </div>
-            <div className="mt-6">
-              {venueTab === "arena" ? (
+
+            {selection.venueId && selection.bookingMode === "SIMULTANEOUS" && (
+              <>
+                <div className="mt-6 flex gap-1 border-b border-border">
+                  {(["arena", "medium-hall"] as const).map((tab) => (
+                    <button
+                      key={tab}
+                      type="button"
+                      onClick={() => setVenueTab(tab)}
+                      className={[
+                        "border-b-2 px-4 py-2.5 text-[13.5px] font-medium transition-colors",
+                        venueTab === tab
+                          ? "border-accent text-accent"
+                          : "border-transparent text-muted hover:text-foreground",
+                      ].join(" ")}
+                    >
+                      {tab === "arena" ? "아레나 일정" : "중형 일정"}
+                    </button>
+                  ))}
+                </div>
+                <div className="mt-6">
+                  {venueTab === "arena" ? (
+                    <Step1Calendar
+                      heading="아레나 일정"
+                      week={selection.week}
+                      excludedDays={selection.excludedDays}
+                      extraDays={selection.extraDays}
+                      dayTags={selection.dayTags}
+                      dayShowCounts={selection.dayShowCounts}
+                      defaultPerformanceDays={defaultPerformanceDays}
+                      weekDemand={weekDemand}
+                      dateBlocks={dateBlocks}
+                      onChangeWeek={(week) => setSelection((prev) => ({ ...prev, week }))}
+                      onChangeExcludedDays={(excludedDays) =>
+                        setSelection((prev) => ({ ...prev, excludedDays }))
+                      }
+                      onChangeExtraDays={(extraDays) =>
+                        setSelection((prev) => ({ ...prev, extraDays }))
+                      }
+                      onChangeDayTags={(dayTags) => setSelection((prev) => ({ ...prev, dayTags }))}
+                      onChangeDayShowCounts={(dayShowCounts) =>
+                        setSelection((prev) => ({ ...prev, dayShowCounts }))
+                      }
+                    />
+                  ) : (
+                    <MidHallCalendar
+                      year={midHallMonth.year}
+                      month={midHallMonth.month}
+                      days={selection.midHallDays}
+                      extraSetupHours={selection.midHallExtraSetupHours}
+                      extraLoadOutHours={selection.midHallExtraLoadOutHours}
+                      dateBlocks={dateBlocks}
+                      rateConfig={rateTable.midHall}
+                      onChangeMonth={(year, month) => setMidHallMonth({ year, month })}
+                      onChangeDays={(midHallDays) => setSelection((prev) => ({ ...prev, midHallDays }))}
+                      onChangeExtraSetupHours={(value) =>
+                        setSelection((prev) => ({ ...prev, midHallExtraSetupHours: value }))
+                      }
+                      onChangeExtraLoadOutHours={(value) =>
+                        setSelection((prev) => ({ ...prev, midHallExtraLoadOutHours: value }))
+                      }
+                    />
+                  )}
+                </div>
+              </>
+            )}
+            {selection.venueId && midHallOnly && (
+              <div className="mt-6">
+                <MidHallCalendar
+                  year={midHallMonth.year}
+                  month={midHallMonth.month}
+                  days={selection.midHallDays}
+                  extraSetupHours={selection.midHallExtraSetupHours}
+                  extraLoadOutHours={selection.midHallExtraLoadOutHours}
+                  dateBlocks={dateBlocks}
+                  rateConfig={rateTable.midHall}
+                  onChangeMonth={(year, month) => setMidHallMonth({ year, month })}
+                  onChangeDays={(midHallDays) => setSelection((prev) => ({ ...prev, midHallDays }))}
+                  onChangeExtraSetupHours={(value) =>
+                    setSelection((prev) => ({ ...prev, midHallExtraSetupHours: value }))
+                  }
+                  onChangeExtraLoadOutHours={(value) =>
+                    setSelection((prev) => ({ ...prev, midHallExtraLoadOutHours: value }))
+                  }
+                />
+              </div>
+            )}
+            {selection.venueId && selection.bookingMode === "SINGLE" && selection.venueId === "arena" && (
+              <div className="mt-6">
                 <Step1Calendar
                   heading="아레나 일정"
                   week={selection.week}
@@ -498,74 +555,11 @@ export function WizardShell({
                     setSelection((prev) => ({ ...prev, dayShowCounts }))
                   }
                 />
-              ) : (
-                <MidHallCalendar
-                  year={midHallMonth.year}
-                  month={midHallMonth.month}
-                  days={selection.midHallDays}
-                  extraSetupHours={selection.midHallExtraSetupHours}
-                  extraLoadOutHours={selection.midHallExtraLoadOutHours}
-                  dateBlocks={dateBlocks}
-                  rateConfig={rateTable.midHall}
-                  onChangeMonth={(year, month) => setMidHallMonth({ year, month })}
-                  onChangeDays={(midHallDays) => setSelection((prev) => ({ ...prev, midHallDays }))}
-                  onChangeExtraSetupHours={(value) =>
-                    setSelection((prev) => ({ ...prev, midHallExtraSetupHours: value }))
-                  }
-                  onChangeExtraLoadOutHours={(value) =>
-                    setSelection((prev) => ({ ...prev, midHallExtraLoadOutHours: value }))
-                  }
-                />
-              )}
-            </div>
+              </div>
+            )}
           </section>
         )}
-        {step === 2 && midHallOnly && (
-          <section className="rounded border border-border bg-background p-5 sm:p-7">
-            <h2 className="text-[19px] font-semibold">일정 선택</h2>
-            <MidHallCalendar
-              year={midHallMonth.year}
-              month={midHallMonth.month}
-              days={selection.midHallDays}
-              extraSetupHours={selection.midHallExtraSetupHours}
-              extraLoadOutHours={selection.midHallExtraLoadOutHours}
-              dateBlocks={dateBlocks}
-              rateConfig={rateTable.midHall}
-              onChangeMonth={(year, month) => setMidHallMonth({ year, month })}
-              onChangeDays={(midHallDays) => setSelection((prev) => ({ ...prev, midHallDays }))}
-              onChangeExtraSetupHours={(value) =>
-                setSelection((prev) => ({ ...prev, midHallExtraSetupHours: value }))
-              }
-              onChangeExtraLoadOutHours={(value) =>
-                setSelection((prev) => ({ ...prev, midHallExtraLoadOutHours: value }))
-              }
-            />
-          </section>
-        )}
-        {step === 2 && selection.bookingMode === "SINGLE" && selection.venueId === "arena" && (
-          <Step1Calendar
-            week={selection.week}
-            excludedDays={selection.excludedDays}
-            extraDays={selection.extraDays}
-            dayTags={selection.dayTags}
-            dayShowCounts={selection.dayShowCounts}
-            defaultPerformanceDays={defaultPerformanceDays}
-            weekDemand={weekDemand}
-            dateBlocks={dateBlocks}
-            onChangeWeek={(week) => setSelection((prev) => ({ ...prev, week }))}
-            onChangeExcludedDays={(excludedDays) =>
-              setSelection((prev) => ({ ...prev, excludedDays }))
-            }
-            onChangeExtraDays={(extraDays) =>
-              setSelection((prev) => ({ ...prev, extraDays }))
-            }
-            onChangeDayTags={(dayTags) => setSelection((prev) => ({ ...prev, dayTags }))}
-            onChangeDayShowCounts={(dayShowCounts) =>
-              setSelection((prev) => ({ ...prev, dayShowCounts }))
-            }
-          />
-        )}
-        {step === 3 && (
+        {step === 2 && (
           <StepConfigOptions
             rateTable={rateTable}
             selection={resolvedSelection}
@@ -576,10 +570,14 @@ export function WizardShell({
             onChangeRevenue={(value) =>
               setSelection((prev) => ({ ...prev, expectedRevenue: value }))
             }
+            onChangeAudience={(value) => setSelection((prev) => ({ ...prev, expectedAudience: value }))}
+            onChangeSecondaryAudience={(value) =>
+              setSelection((prev) => ({ ...prev, secondaryAudience: value }))
+            }
           />
         )}
-        {step === 4 && <Step5Estimate rateTable={rateTable} quote={quote} selection={resolvedSelection} />}
-        {step === 5 && (
+        {step === 3 && <Step5Estimate rateTable={rateTable} quote={quote} selection={resolvedSelection} />}
+        {step === 4 && (
           <StepPerformanceInfo
             info={selection.performanceInfo}
             onChange={(performanceInfo) => setSelection((prev) => ({ ...prev, performanceInfo }))}
@@ -592,7 +590,7 @@ export function WizardShell({
             onFilesChange={setPendingFiles}
           />
         )}
-        {step === 6 && (
+        {step === 5 && (
           <StepAudience
             info={selection.performanceInfo}
             onChange={(performanceInfo) => setSelection((prev) => ({ ...prev, performanceInfo }))}
@@ -605,7 +603,7 @@ export function WizardShell({
             onFilesChange={setAudienceFiles}
           />
         )}
-        {step === 7 && (
+        {step === 6 && (
           <StepPublicInterest
             selection={resolvedSelection}
             midHallInfo={selection.midHallPerformanceInfo}
@@ -616,7 +614,7 @@ export function WizardShell({
             onFilesChange={setPublicInterestFiles}
           />
         )}
-        {step === 8 && (
+        {step === 7 && (
           <Step6Submit
             rateTable={rateTable}
             quote={quote}
@@ -637,8 +635,8 @@ export function WizardShell({
 
       <SummaryPanel
         quote={quote}
-        revealPrice={step >= 4}
-        previewRows={step === 1 ? venuePreviewRows : step === 2 || step === 3 ? configPreviewRows : undefined}
+        revealPrice={step >= 3}
+        previewRows={step === 1 ? schedulePreviewRows : step === 2 ? configPreviewRows : undefined}
       />
     </div>
   );
