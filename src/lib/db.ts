@@ -1317,7 +1317,7 @@ export async function listQuotes(filter?: {
 
 // 화면용 신청서 목록 — 전체를 한 번에 읽지 않고 페이지 단위로 끊어 온다.
 export async function listQuotesPaged(
-  filter: { applicantId?: string; companyId?: string } = {},
+  filter: { applicantId?: string; companyId?: string; status?: Quote["status"][] } = {},
   page = 1,
   pageSize = DEFAULT_PAGE_SIZE,
 ): Promise<Paged<Quote>> {
@@ -1331,6 +1331,10 @@ export async function listQuotesPaged(
   } else if (filter.applicantId) {
     params.push(filter.applicantId);
     conditions.push(`q.applicant_id = $${params.length}`);
+  }
+  if (filter.status && filter.status.length > 0) {
+    params.push(filter.status);
+    conditions.push(`q.status = ANY($${params.length})`);
   }
   const where = conditions.length ? `WHERE ${conditions.join(" AND ")}` : "";
 
@@ -1861,6 +1865,14 @@ export async function getTicketOpenByQuoteId(quoteId: string): Promise<TicketOpe
   return row ? toTicketOpen(row) : undefined;
 }
 
+// 목록 화면(마이페이지 티켓오픈 정보)에서 신청서마다 조회하지 않도록 quoteId 목록을
+// 한 번에 IN 조건으로 읽는다.
+export async function listTicketOpensByQuoteIds(quoteIds: string[]): Promise<TicketOpen[]> {
+  if (quoteIds.length === 0) return [];
+  const rows = await q<TicketOpenRow>("SELECT * FROM ticket_opens WHERE quote_id = ANY($1)", [quoteIds]);
+  return rows.map(toTicketOpen);
+}
+
 export async function ensureTicketOpen(quoteId: string, createdAt: string): Promise<TicketOpen> {
   const existing = await getTicketOpenByQuoteId(quoteId);
   if (existing) return existing;
@@ -1931,6 +1943,16 @@ export async function getFacilityMeetingByQuoteId(
     quoteId,
   ]);
   return row ? toFacilityMeeting(row) : undefined;
+}
+
+// 목록 화면(마이페이지 시설 회의)에서 신청서마다 조회하지 않도록 quoteId 목록을 한 번에
+// IN 조건으로 읽는다.
+export async function listFacilityMeetingsByQuoteIds(quoteIds: string[]): Promise<FacilityMeeting[]> {
+  if (quoteIds.length === 0) return [];
+  const rows = await q<FacilityMeetingRow>("SELECT * FROM facility_meetings WHERE quote_id = ANY($1)", [
+    quoteIds,
+  ]);
+  return rows.map(toFacilityMeeting);
 }
 
 export async function ensureFacilityMeeting(
