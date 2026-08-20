@@ -45,7 +45,7 @@ export default async function ProfilePage() {
               <div className="mt-14 border-t border-border/25 pt-6">
                 <Link
                   href="/mypage/withdraw"
-                  className="text-xs text-muted underline decoration-border-soft underline-offset-4 transition-colors hover:text-danger hover:decoration-danger"
+                  className="inline-flex min-h-11 items-center text-xs text-muted underline decoration-border-soft underline-offset-4 transition-colors hover:text-danger hover:decoration-danger"
                 >
                   회원 탈퇴
                 </Link>

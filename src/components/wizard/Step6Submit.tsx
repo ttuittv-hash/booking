@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useState } from "react";
 import { won } from "@/lib/format";
 import { findPackage, totalRentalDays } from "@/lib/pricing/rateTableUtils";
+import { useToast } from "@/components/ui/Toast";
 import { btnClass } from "@/components/ui/kit";
 import { StepHeading } from "./StepHeading";
 import {
@@ -80,6 +81,7 @@ export function Step6Submit({
   fileCount?: number;
   onSubmit: () => void;
 }) {
+  const toast = useToast();
   const pkg = findPackage(rateTable, selection.packageId);
   const [confirmed, setConfirmed] = useState(false);
   const [pledged, setPledged] = useState(false);
@@ -107,7 +109,26 @@ export function Step6Submit({
   }
 
   const blockingIssues = quote.blockingIssues;
-  const canSubmit = confirmed && pledged && blockingIssues.length === 0;
+
+  /**
+   * 제출을 막는 이유. 없으면 null.
+   * 버튼을 잠가 두면 눌러도 반응이 없어 고장으로 보인다 — 이유를 알려 주고 되돌린다.
+   */
+  function blockedReason(): string | null {
+    if (blockingIssues.length > 0) return blockingIssues[0];
+    if (!confirmed) return "산출내역 확인에 동의해 주세요.";
+    if (!pledged) return "입력 내용이 사실이라는 서약에 동의해 주세요.";
+    return null;
+  }
+
+  function handleSubmit() {
+    const reason = blockedReason();
+    if (reason) {
+      toast.error(reason);
+      return;
+    }
+    onSubmit();
+  }
 
   return (
     <section>
@@ -269,8 +290,8 @@ export function Step6Submit({
           </div>
           <button
             type="button"
-            disabled={submitting || !canSubmit}
-            onClick={onSubmit}
+            disabled={submitting}
+            onClick={handleSubmit}
             className={`mt-5 ${btnClass("primary", "lg")}`}
           >
             {submitting ? "저장 중..." : isEditing ? "수정 내용 저장" : "신청서 생성"}

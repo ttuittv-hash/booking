@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { useRef, useState } from "react";
 import type { Attachment, FacilityMeeting, UserRole } from "@/lib/pricing/types";
 import { Badge, btnClass } from "@/components/ui/kit";
+import { useToast } from "@/components/ui/Toast";
 
 const FILE_FIELD =
   "field-base min-w-0 flex-1 file:mr-3 file:border file:border-foreground file:bg-transparent file:px-3 file:py-1 file:text-xs file:font-bold file:text-foreground";
@@ -29,11 +30,16 @@ export function FacilityMeetingPanel({
 }) {
   const router = useRouter();
   const fileInput = useRef<HTMLInputElement>(null);
+  const toast = useToast();
   const [meetingDate, setMeetingDate] = useState(facilityMeeting?.meetingDate ?? "");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   async function saveDate() {
+    if (!meetingDate) {
+      toast.error("회의 일자를 선택해 주세요.");
+      return;
+    }
     if (!meetingDate) return;
     setBusy(true);
     setError(null);
@@ -109,7 +115,7 @@ export function FacilityMeetingPanel({
           />
           <button
             type="button"
-            disabled={busy || !meetingDate}
+            disabled={busy}
             onClick={saveDate}
             className={`${btnClass("primary", "md")} shrink-0`}
           >

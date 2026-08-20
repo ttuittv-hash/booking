@@ -16,6 +16,7 @@ import { DEFAULT_VENUE_ID, EVENT_TYPE_LABEL, MEDIA_TIER_LABEL, STAGE_TYPE_LABEL 
 import { INITIAL_PERFORMANCE_INFO } from "@/lib/pricing/performanceInfoDefaults";
 import { clearWizardDraft, loadWizardDraft, saveWizardDraft } from "@/lib/quotesStore";
 import { ArrowRight, btnClass } from "@/components/ui/kit";
+import { useToast } from "@/components/ui/Toast";
 import { StepNav } from "./StepNav";
 import { SummaryPanel, type SummaryPreviewRow } from "./SummaryPanel";
 import { StepVenue } from "./StepVenue";
@@ -103,6 +104,7 @@ export function WizardShell({
   };
 }) {
   const isEditing = !!editingQuoteId;
+  const toast = useToast();
   const [step, setStep] = useState(1);
   // [화면 뼈대 2026-08-19, STEP 3-1 "신청자 정보"] 신규 신청서에 한해 회원정보로 미리
   // 채운다 — 기존 신청서 수정(initialSelection.performanceInfo 존재)이나 임시저장
@@ -384,6 +386,26 @@ export function WizardShell({
     selection.addons.map((a) => [a.addonId, a.requestedQuantity]),
   );
 
+  /**
+   * 다음 단계로 못 넘어가는 이유. 없으면 null.
+   * 예전에는 [다음] 을 잠가 뒀는데, 눌러도 아무 반응이 없어 고장으로 보였다.
+   * 버튼은 열어 두고 누르면 무엇이 빠졌는지 알려 준다.
+   */
+  function blockedReason(): string | null {
+    if (step === 1 && !selection.venueId) return "먼저 대관하실 시설을 선택해 주세요.";
+    if (step === 2 && midHallOnly && !hasMidHallSelection) return "대관 일정을 선택해 주세요.";
+    return null;
+  }
+
+  function goNext() {
+    const reason = blockedReason();
+    if (reason) {
+      toast.error(reason);
+      return;
+    }
+    goTo(step + 1);
+  }
+
   /*
     Figma Multi Form / 5 — 폼 하단 버튼은 좌우로 벌리지 않고 **우측에 나란히** 둔다.
     이전(아웃라인) + 다음(검정 채움), 높이 48. 진행 차단 조건은 새 대관 플로우 기준
@@ -403,8 +425,7 @@ export function WizardShell({
       {step < TOTAL_STEPS && (
         <button
           type="button"
-          disabled={(step === 1 && !selection.venueId) || (step === 2 && midHallOnly && !hasMidHallSelection)}
-          onClick={() => goTo(step + 1)}
+          onClick={goNext}
           className={btnClass("primary", "lg")}
         >
           다음
@@ -430,8 +451,7 @@ export function WizardShell({
       {step < TOTAL_STEPS && (
         <button
           type="button"
-          disabled={(step === 1 && !selection.venueId) || (step === 2 && midHallOnly && !hasMidHallSelection)}
-          onClick={() => goTo(step + 1)}
+          onClick={goNext}
           className="rounded-full border border-border/25 px-3.5 py-1.5 text-xs font-medium text-foreground transition-colors hover:border-foreground hover:text-foreground disabled:cursor-not-allowed disabled:opacity-30"
         >
           다음 →

@@ -36,21 +36,24 @@ const t = String(Date.now()).slice(-6);
 /**
  * 하이드레이션 전에 값을 채우면 DOM 에는 들어가지만 React 상태는 비어 있다.
  * 이후 같은 값으로 다시 채워도 React 는 "값이 그대로"라 보고 onChange 를 건너뛰어,
- * disabled 로 묶인 버튼이 영영 잠긴 채로 남는다.
- * 그래서 재시도할 때마다 한 번 비우고 다시 채워 변경 이벤트가 확실히 발생하게 한다.
+ * 화면은 입력된 것처럼 보이는데 제출은 빈 값으로 나간다.
+ * 그래서 한 번 비우고 다시 채워 변경 이벤트가 확실히 발생하게 한다.
+ *
+ * 예전에는 "버튼이 풀렸는가"로 하이드레이션 완료를 판정했는데, 입력이 비었다고
+ * 버튼을 잠그는 UI 를 걷어내면서(잠긴 버튼은 눌러도 반응이 없어 고장으로 보인다)
+ * 그 신호가 없어졌다. 대신 React 가 값을 실제로 받았는지를 직접 확인한다.
  */
-async function fillUntilEnabled(p, inputSel, value, buttonSel) {
+async function fillHydrated(p, inputSel, value) {
   for (let i = 0; i < 10; i++) {
     await p.fill(inputSel, "");
     await p.fill(inputSel, value);
-    try {
-      await p.waitForSelector(`${buttonSel}:not([disabled])`, { timeout: 1500 });
-      return;
-    } catch {
-      await p.waitForTimeout(300);
-    }
+    // React 가 제어하는 값이면 재렌더 후에도 값이 남는다.
+    await p.waitForTimeout(250);
+    const settled = await p.$eval(inputSel, (el) => el.value);
+    if (settled === value) return;
+    await p.waitForTimeout(300);
   }
-  throw new Error(`버튼이 활성화되지 않음: ${buttonSel}`);
+  throw new Error(`입력이 React 상태에 반영되지 않음: ${inputSel}`);
 }
 
 async function newCtx() {
@@ -192,7 +195,7 @@ try {
     await rec.locator('[data-testid="link-reset-password"]').isVisible());
 
   await rec.goto(`${BASE}/reset-password`, { waitUntil: "domcontentloaded" });
-  await fillUntilEnabled(rec, '[data-testid="reset-username"]', masterUser, '[data-testid="reset-next"]');
+  await fillHydrated(rec, '[data-testid="reset-username"]', masterUser);
   await rec.click('[data-testid="reset-next"]');
   await rec.waitForSelector('[data-testid="identity-start"]', { timeout: 15000 });
   await rec.click('[data-testid="identity-start"]');

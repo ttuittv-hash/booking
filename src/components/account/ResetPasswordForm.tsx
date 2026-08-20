@@ -81,8 +81,12 @@ export function ResetPasswordForm() {
           <button
             type="button"
             data-testid="reset-next"
-            disabled={!username.trim()}
             onClick={() => {
+              // 버튼을 잠그지 않는다 — 눌러도 반응이 없으면 고장으로 보인다. 이유를 알려 준다.
+              if (!username.trim()) {
+                toast.error("아이디를 입력해 주세요.");
+                return;
+              }
               const invalid = firstFailure(checkUsername(username));
               if (invalid) {
                 toast.error(invalid);

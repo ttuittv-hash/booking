@@ -5,6 +5,7 @@ import { useState } from "react";
 import { won } from "@/lib/format";
 import type { InvoicePurpose, InvoiceStatus, TaxInvoice, UserRole } from "@/lib/pricing/types";
 import { Badge, SpecTable, btnClass } from "@/components/ui/kit";
+import { useToast } from "@/components/ui/Toast";
 
 type BadgeTone = "neutral" | "warn" | "accent" | "good";
 
@@ -34,11 +35,16 @@ export function TaxInvoicePanel({
   viewerRole: UserRole;
 }) {
   const router = useRouter();
+  const toast = useToast();
   const [payerName, setPayerName] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   async function act(action: "issue" | "report" | "confirm") {
+    if (action === "report" && !payerName.trim()) {
+      toast.error("입금자명을 입력해 주세요.");
+      return;
+    }
     setBusy(true);
     setError(null);
     try {
@@ -122,7 +128,7 @@ export function TaxInvoicePanel({
             />
             <button
               type="button"
-              disabled={busy || !payerName.trim()}
+              disabled={busy}
               onClick={() => act("report")}
               className={`${btnClass("primary", "md")} shrink-0`}
             >

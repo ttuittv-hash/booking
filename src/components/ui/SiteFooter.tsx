@@ -91,7 +91,11 @@ function FooterField({ label, value, href }: { label: string; value: string; hre
     <div>
       <p className="text-s text-muted">{label}</p>
       {href ? (
-        <a href={href} className="text-s underline underline-offset-4 hover:text-accent">
+        // 글자 높이만큼만 잡히면 터치 타깃이 14px 밖에 안 된다. 아래 푸터 링크들과 같이 맞춘다.
+        <a
+          href={href}
+          className="inline-flex min-h-11 items-center text-s underline underline-offset-4 hover:text-accent"
+        >
           {value}
         </a>
       ) : (

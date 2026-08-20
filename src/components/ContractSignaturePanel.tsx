@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import type { ContractSignature, UserRole } from "@/lib/pricing/types";
 import { Badge, Note, SpecTable, btnClass } from "@/components/ui/kit";
+import { useToast } from "@/components/ui/Toast";
 
 // 계약 확인사항 초안 — 법무 검토 전. 정식 대관계약서(대관 규약)가 확정되면 그 내용으로
 // 교체해야 한다. 기능정의서 "약관" 시트 구간4(K-1~K-6)에 같은 내용이 정리되어 있다.
@@ -44,6 +45,7 @@ export function ContractSignaturePanel({
   viewerRole: UserRole;
 }) {
   const router = useRouter();
+  const toast = useToast();
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [agreed, setAgreed] = useState(false);
@@ -52,6 +54,10 @@ export function ContractSignaturePanel({
   const bothSigned = !!signature?.venueSignedAt && !!signature?.applicantSignedAt;
 
   async function sign() {
+    if (!agreed) {
+      toast.error("계약 내용 확인에 동의해 주세요.");
+      return;
+    }
     setBusy(true);
     setError(null);
     try {
@@ -128,7 +134,7 @@ export function ContractSignaturePanel({
           </label>
           <button
             type="button"
-            disabled={busy || !agreed}
+            disabled={busy}
             onClick={sign}
             className={`${btnClass("primary", "md")} mt-5`}
           >

@@ -5,6 +5,7 @@ import { useState } from "react";
 import { won } from "@/lib/format";
 import type { Deposit } from "@/lib/pricing/types";
 import { Badge, btnClass } from "@/components/ui/kit";
+import { useToast } from "@/components/ui/Toast";
 
 const PLACEHOLDER_BANK_INFO = "예시은행 000-0000-0000-00 (예금주: 서울아레나) — 실제 확정 계좌로 교체 필요";
 
@@ -18,6 +19,7 @@ export function DepositPanel({
   viewerRole: "ADMIN" | "APPLICANT";
 }) {
   const router = useRouter();
+  const toast = useToast();
   const [depositorName, setDepositorName] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -35,6 +37,10 @@ export function DepositPanel({
   }
 
   async function report() {
+    if (!depositorName.trim()) {
+      toast.error("입금자명을 입력해 주세요.");
+      return;
+    }
     setSubmitting(true);
     setError(null);
     try {
@@ -100,7 +106,7 @@ export function DepositPanel({
             />
             <button
               type="button"
-              disabled={submitting || !depositorName.trim()}
+              disabled={submitting}
               onClick={report}
               className={`${btnClass("primary", "md")} shrink-0`}
             >

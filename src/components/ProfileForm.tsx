@@ -5,9 +5,11 @@ import { useState } from "react";
 import { hashPasswordForTransport } from "@/lib/clientPassword";
 import type { AppUser } from "@/lib/pricing/types";
 import { btnClass } from "@/components/ui/kit";
+import { useToast } from "@/components/ui/Toast";
 
 export function ProfileForm({ user }: { user: AppUser }) {
   const router = useRouter();
+  const toast = useToast();
   const [name, setName] = useState(user.name);
   const [phone, setPhone] = useState(user.phone ?? "");
   const [savingProfile, setSavingProfile] = useState(false);
@@ -43,6 +45,14 @@ export function ProfileForm({ user }: { user: AppUser }) {
   }
 
   async function savePassword() {
+    if (!currentPassword) {
+      toast.error("현재 비밀번호를 입력해 주세요.");
+      return;
+    }
+    if (newPassword.length < 8) {
+      toast.error("새 비밀번호는 8자 이상이어야 합니다.");
+      return;
+    }
     setSavingPassword(true);
     setPasswordError(null);
     setPasswordMessage(null);
@@ -192,7 +202,7 @@ export function ProfileForm({ user }: { user: AppUser }) {
 
         <button
           type="button"
-          disabled={savingPassword || !currentPassword || newPassword.length < 8}
+          disabled={savingPassword}
           onClick={savePassword}
           className={`${btnClass("secondary")} mt-6`}
         >
