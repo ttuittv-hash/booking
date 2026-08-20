@@ -9,7 +9,6 @@ import {
   findAddon,
   findPackage,
   isAddonAvailable,
-  recommendPackage,
 } from "@/lib/pricing/rateTableUtils";
 import type { AppUser, DateBlock, QuoteSelection, RateTable, WeekDemand } from "@/lib/pricing/types";
 import { DEFAULT_VENUE_ID, MEDIA_TIER_LABEL } from "@/lib/pricing/types";
@@ -186,14 +185,13 @@ export function WizardShell({
   }, [step, selection, submittedId, isEditing]);
 
   const midHallOnly = isMidHallOnly(selection);
-  // [화면 뼈대 2026-08-18, 기능정의 2-16] 패키지는 카드를 눌러 고르는 게 아니라 관객
-  // 규모로 자동 결정된다. state에 동기화해두지 않고 렌더마다 파생값으로 계산한다 —
-  // effect에서 setState로 되먹임하면 렌더가 한 번 더 걸리고 리액트 권장 패턴에도
-  // 어긋난다(react-hooks/set-state-in-effect). 패키지가 바뀌면 그 패키지에서 더 이상
-  // 선택할 수 없는 옵션도 함께 걸러서, 화면에는 안 보이는데 견적에는 남는 일이 없게 한다.
-  const effectivePackageId = midHallOnly
-    ? null
-    : recommendPackage(rateTable, selection.expectedAudience, "arena");
+  // [개정 2026-08-20] 패키지는 이제 관객 규모로 자동 결정하지 않고, 구성·옵션 화면에서
+  // 4개 카드 중 하나를 직접 클릭해 고른다 — selection.packageId가 그 선택을 그대로
+  // 담는다(중형 단독일 때만 패키지 자체가 없으므로 null로 강제한다). 패키지가 바뀌면
+  // 그 패키지에서 더 이상 선택할 수 없는 옵션도 함께 걸러서, 화면에는 안 보이는데
+  // 견적에는 남는 일이 없게 한다.
+  const effectivePackageId = midHallOnly ? null : selection.packageId;
+  const needsPackage = !midHallOnly;
   const effectiveAddons = useMemo(
     () => pruneUnavailableAddons(rateTable, selection, effectivePackageId),
     [rateTable, selection, effectivePackageId],
@@ -209,8 +207,16 @@ export function WizardShell({
   // [개정 2026-08-20, 재재개정] "공간 선택"과 "일정 선택"은 다시 하나의 스텝(탭)으로
   // 합치되, 화면 안에서는 "공간 선택" 슬롯과 "일정 선택" 슬롯 두 섹션으로 나눠 보여준다 —
   // 공간 슬롯에서 이용 시설을 고르면 그 아래 일정 슬롯(아레나 캘린더 / 중형 캘린더 /
-  // 동시 대관 탭)이 그 선택에 따라 달라진다. 관객 규모는 여전히 구성·옵션에서 입력한다.
-  const maxUnlockedStep = !selection.venueId ? 1 : midHallOnly && !hasMidHallSelection ? 1 : TOTAL_STEPS;
+  // 동시 대관 탭)이 그 선택에 따라 달라진다. 관객 규모는 여전히 구성·옵션에서 입력하고,
+  // 패키지도 구성·옵션에서 직접 선택해야 하므로 그전까지는 STEP 3(예상 대관료) 이후로
+  // 넘어갈 수 없다.
+  const maxUnlockedStep = !selection.venueId
+    ? 1
+    : midHallOnly && !hasMidHallSelection
+      ? 1
+      : needsPackage && !selection.packageId
+        ? 2
+        : TOTAL_STEPS;
   // 패키지 선택 전에도 기본 공연일수를 보여줘야 하므로, 모든 패키지가 공유하는 기본값(2일)을 임시로 사용한다.
   const effectivePkg = findPackage(rateTable, effectivePackageId);
   const defaultPerformanceDays = effectivePkg?.defaultPerformanceDays ?? 2;
@@ -264,7 +270,7 @@ export function WizardShell({
   const configPreviewRows: SummaryPreviewRow[] = [
     {
       label: isSimultaneousBooking ? "아레나 구성" : "구성",
-      value: effectivePkg ? `${effectivePkg.audienceTier.label} · 자동 결정` : "패키지 없음",
+      value: effectivePkg ? `${effectivePkg.name} · ${effectivePkg.audienceTier.label}` : "미선택",
     },
     {
       label: isSimultaneousBooking ? "아레나 일정" : "대관 주차",
@@ -317,6 +323,24 @@ export function WizardShell({
           },
     );
     setVenueTab("arena");
+    setSubmittedId(null);
+  }
+
+  // [개정 2026-08-20] 구성·옵션 화면에서 관객 규모 입력창을 없애고 패키지 카드만 남겼다 —
+  // 청소비 등에 쓰는 expectedAudience는 이제 고른 패키지의 관객 등급에서 대표값을 끌어와
+  // 자동으로 채운다(패키지 4처럼 상한이 없는 등급은 앱 전역에서 써 온 22,000명 상한으로
+  // 갈음한다).
+  function selectPackage(packageId: number) {
+    const pkg = findPackage(rateTable, packageId);
+    setSelection((prev) =>
+      prev.packageId === packageId
+        ? prev
+        : {
+            ...prev,
+            packageId,
+            expectedAudience: pkg ? Math.min(pkg.audienceTier.max, 22000) : prev.expectedAudience,
+          },
+    );
     setSubmittedId(null);
   }
 
@@ -406,7 +430,10 @@ export function WizardShell({
       {step < TOTAL_STEPS && (
         <button
           type="button"
-          disabled={step === 1 && (!selection.venueId || (midHallOnly && !hasMidHallSelection))}
+          disabled={
+            (step === 1 && (!selection.venueId || (midHallOnly && !hasMidHallSelection))) ||
+            (step === 2 && needsPackage && !selection.packageId)
+          }
           onClick={() => goTo(step + 1)}
           className="rounded-sm bg-accent px-6 py-2.5 text-[13.5px] font-semibold text-white transition-colors hover:bg-accent-hover disabled:cursor-not-allowed disabled:opacity-40"
         >
@@ -432,7 +459,10 @@ export function WizardShell({
       {step < TOTAL_STEPS && (
         <button
           type="button"
-          disabled={step === 1 && (!selection.venueId || (midHallOnly && !hasMidHallSelection))}
+          disabled={
+            (step === 1 && (!selection.venueId || (midHallOnly && !hasMidHallSelection))) ||
+            (step === 2 && needsPackage && !selection.packageId)
+          }
           onClick={() => goTo(step + 1)}
           className="rounded-full border border-border px-3.5 py-1.5 text-[12.5px] font-medium text-foreground transition-colors hover:border-accent hover:text-accent disabled:cursor-not-allowed disabled:opacity-30"
         >
@@ -590,10 +620,10 @@ export function WizardShell({
             onChangeRevenue={(value) =>
               setSelection((prev) => ({ ...prev, expectedRevenue: value }))
             }
-            onChangeAudience={(value) => setSelection((prev) => ({ ...prev, expectedAudience: value }))}
             onChangeSecondaryAudience={(value) =>
               setSelection((prev) => ({ ...prev, secondaryAudience: value }))
             }
+            onSelectPackage={selectPackage}
           />
         )}
         {step === 3 && <Step5Estimate rateTable={rateTable} quote={quote} selection={resolvedSelection} />}
