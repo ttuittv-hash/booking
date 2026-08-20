@@ -56,6 +56,7 @@ export function WithdrawForm() {
         <span className="mb-2 block text-xs text-muted-strong">비밀번호 확인</span>
         <input
           type="password"
+              autoComplete="current-password"
           value={password}
           onChange={(e) => setPassword(e.target.value)}
           className="field-base max-w-xs"

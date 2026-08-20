@@ -92,6 +92,8 @@ export function InviteAcceptForm({ token }: { token: string }) {
             <span className="mb-1.5 block break-keep text-xs font-bold">비밀번호 ({PASSWORD_HINT})</span>
             <input
               data-testid="invite-password"
+              name="new-password"
+              autoComplete="new-password"
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
@@ -102,6 +104,8 @@ export function InviteAcceptForm({ token }: { token: string }) {
             <span className="mb-1.5 block text-xs font-bold">비밀번호 확인</span>
             <input
               data-testid="invite-password-confirm"
+              name="confirm-password"
+              autoComplete="new-password"
               type="password"
               value={confirm}
               onChange={(e) => setConfirm(e.target.value)}

@@ -202,25 +202,10 @@ export async function POST(request: Request) {
     }
     // 사업자등록증 첨부는 권장이되 필수는 아니다 — 입력값은 사업자번호 진위확인으로 검증되고,
     // 첨부 여부는 운영자 심사 화면에 그대로 표시돼 판단에 쓰인다.
-    // 사업자등록번호 진위·상태 확인(NICE 법인실명확인).
-    // 휴업·폐업·부도 업체는 대관 계약 상대로 부적격이므로 가입을 막는다.
-    // 미설정이거나 조회에 실패하면 가입은 진행하고 "미확인"으로 남겨 운영자 심사에 넘긴다.
-    const verification = await checkCompanyNumber(businessRegistrationNumber);
-    if (isBlockedCompanyStatus(verification)) {
-      return NextResponse.json(
-        { error: `국세청 조회 결과 ${verification.compStatusLabel} 상태인 사업자등록번호입니다. 담당자에게 문의해주세요.` },
-        { status: 400 },
-      );
-    }
-    if (isNiceConfigured() && verification.status === "NOT_FOUND") {
-      return NextResponse.json(
-        { error: "조회되지 않는 사업자등록번호입니다. 번호를 다시 확인해주세요." },
-        { status: 400 },
-      );
-    }
-
-    // 최초 가입자인지 기존 회사 합류인지는 서버가 등록 이력으로 판정한다(기획서 A11).
-    // 사용자가 고르게 두면 남의 회사에 붙거나 같은 회사를 둘로 만든다.
+    // 등록 이력을 먼저 본다. 순서가 중요하다 —
+    // 이미 등록된 회사에 합류하는 경우까지 국세청에 다시 물으면, 최초 등록 때 확인이
+    // 끝난 회사인데도 조회가 실패하면 합류가 막힌다(실제로 그랬다).
+    // 기획서 A5 도 "불러오기로 채운 회사는 중복확인·진위확인을 생략한다"고 정한다.
     const join = await resolveCompanyJoin(businessRegistrationNumber);
     if (join.kind === "BLOCKED_SUSPENDED") {
       return NextResponse.json(
@@ -229,6 +214,26 @@ export async function POST(request: Request) {
       );
     }
     joinKind = join.kind;
+
+    // 새 회사를 만드는 경우에만 진위확인을 돌린다.
+    // 휴업·폐업·부도 업체는 대관 계약 상대로 부적격이므로 가입을 막는다.
+    // 미설정이거나 조회에 실패하면 가입은 진행하고 "미확인"으로 남겨 운영자 심사에 넘긴다.
+    const isNewCompany = join.company === null;
+    const verification = isNewCompany
+      ? await checkCompanyNumber(businessRegistrationNumber)
+      : null;
+    if (verification && isBlockedCompanyStatus(verification)) {
+      return NextResponse.json(
+        { error: `국세청 조회 결과 ${verification.compStatusLabel} 상태인 사업자등록번호입니다. 담당자에게 문의해주세요.` },
+        { status: 400 },
+      );
+    }
+    if (verification && isNiceConfigured() && verification.status === "NOT_FOUND") {
+      return NextResponse.json(
+        { error: "조회되지 않는 사업자등록번호입니다. 번호를 다시 확인해주세요." },
+        { status: 400 },
+      );
+    }
 
     company = await findOrCreateCompany(companyName, {
       businessRegistrationNumber,
@@ -244,6 +249,8 @@ export async function POST(request: Request) {
 
     // 조회된 상호·대표자명이 입력값과 다르면 그대로 기록해 둔다 — 가입은 막지 않고
     // (표기 차이가 흔하다) 운영자 심사 화면에서 확인하도록 한다.
+    // 기존 회사에 합류하는 경우엔 조회를 돌리지 않았으므로 기록할 것도 없다.
+    if (verification) {
     const mismatches: string[] = [];
     if (
       verification.status === "VERIFIED" &&
@@ -263,6 +270,7 @@ export async function POST(request: Request) {
       ...verification,
       message: [verification.message, ...mismatches].filter(Boolean).join(" / ") || null,
     });
+    }
   }
 
   const createdAt = new Date().toISOString();

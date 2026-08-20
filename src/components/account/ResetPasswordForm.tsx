@@ -111,6 +111,8 @@ export function ResetPasswordForm() {
             <span className="mb-1.5 block text-xs font-bold">새 비밀번호</span>
             <input
               data-testid="reset-password-new"
+              name="new-password"
+              autoComplete="new-password"
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
@@ -121,6 +123,8 @@ export function ResetPasswordForm() {
             <span className="mb-1.5 block text-xs font-bold">새 비밀번호 확인</span>
             <input
               data-testid="reset-password-confirm"
+              name="confirm-password"
+              autoComplete="new-password"
               type="password"
               value={confirm}
               onChange={(e) => setConfirm(e.target.value)}

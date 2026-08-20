@@ -687,6 +687,7 @@ function StepInfo({
   onPrev: () => void;
   onSubmit: () => void;
 }) {
+  const toast = useToast();
   const [checking, setChecking] = useState<"brn" | "id" | null>(null);
   const set =
     (k: keyof FormState) =>
@@ -696,6 +697,11 @@ function StepInfo({
 
   // 사업자등록번호 중복확인 + 국세청 진위확인 (기획서 A5 · 1-34)
   async function verifyBrn() {
+    const invalid = firstFailure(checkBusinessNumber(form.businessRegistrationNumber));
+    if (invalid) {
+      toast.error(invalid);
+      return;
+    }
     setChecking("brn");
     try {
       const res = await fetch("/api/companies/verify-brn", {
@@ -798,11 +804,11 @@ function StepInfo({
       ) : null}
 
       <h3 className="mt-8 text-s font-bold">① 기업 정보</h3>
-      <p className="mt-1 break-keep text-xs leading-6 text-muted">
-        {locked
-          ? "불러온 회사의 기업 정보입니다. 수정하려면 [다시 선택]을 눌러 주세요."
-          : "이미 등록된 회사라면 [회사정보 불러오기]로 채우세요."}
-      </p>
+      {locked ? null : (
+        <p className="mt-1 break-keep text-xs leading-6 text-muted">
+          이미 등록된 회사라면 [회사정보 불러오기]로 채우세요.
+        </p>
+      )}
       <div className="mt-4 grid gap-x-6 gap-y-5 sm:grid-cols-2">
         {/* 사업자등록번호가 먼저다 — 진위확인을 거치면 아래 회사명·대표자가 채워진다. */}
         <div className="sm:col-span-2">
@@ -819,15 +825,23 @@ function StepInfo({
                 placeholder="120-81-47521"
                 className={`${inputCls(locked)} flex-1`}
               />
-              <button
-                type="button"
-                data-testid="verify-brn"
-                disabled={locked || checking === "brn" || !form.businessRegistrationNumber}
-                onClick={verifyBrn}
-                className={`${btnClass("secondary", "md")} whitespace-nowrap`}
-              >
-                {checking === "brn" ? "확인 중…" : "중복·진위확인"}
-              </button>
+              {/* 불러온 회사는 등록 때 이미 확인이 끝났다 — 버튼을 비활성으로 남겨두면
+                  눌러도 반응이 없어 고장으로 보인다. 상태 표시로 바꾼다. */}
+              {locked ? (
+                <span className="flex shrink-0 items-center whitespace-nowrap border border-ok px-3 text-xs text-ok">
+                  확인 완료
+                </span>
+              ) : (
+                <button
+                  type="button"
+                  data-testid="verify-brn"
+                  disabled={checking === "brn"}
+                  onClick={verifyBrn}
+                  className={`${btnClass("secondary", "md")} whitespace-nowrap`}
+                >
+                  {checking === "brn" ? "확인 중…" : "중복·진위확인"}
+                </button>
+              )}
             </span>
           </Field>
           {brnCheck ? (
@@ -842,7 +856,8 @@ function StepInfo({
               ) : null}
               {brnCheck.state === "REGISTERED" ? (
                 <p className="mt-1 text-muted">
-                  등록된 기업 정보가 그대로 채워집니다. 개인 정보만 입력해 주세요.
+                  등록된 기업 정보가 확인되었습니다. 개인 정보만 입력하면 해당 기업의 구성원으로
+                  가입할 수 있습니다.
                 </p>
               ) : null}
             </div>
@@ -940,10 +955,26 @@ function StepInfo({
           <input data-testid="f-email" type="email" value={form.email} onChange={set("email")} className={inputCls(false)} />
         </Field>
         <Field label="비밀번호" required hint={PASSWORD_HINT}>
-          <input data-testid="f-password" type="password" value={form.password} onChange={set("password")} className={inputCls(false)} />
+          <input
+            data-testid="f-password"
+            type="password"
+            name="new-password"
+            autoComplete="new-password"
+            value={form.password}
+            onChange={set("password")}
+            className={inputCls(false)}
+          />
         </Field>
         <Field label="비밀번호 확인" required>
-          <input data-testid="f-passwordConfirm" type="password" value={form.passwordConfirm} onChange={set("passwordConfirm")} className={inputCls(false)} />
+          <input
+            data-testid="f-passwordConfirm"
+            type="password"
+            name="confirm-password"
+            autoComplete="new-password"
+            value={form.passwordConfirm}
+            onChange={set("passwordConfirm")}
+            className={inputCls(false)}
+          />
         </Field>
         <Field label="전화번호">
           <input data-testid="f-personalPhone" value={form.personalPhone} onChange={set("personalPhone")} placeholder="02-544-1651" className={inputCls(false)} />
