@@ -4,9 +4,12 @@ import Link from "next/link";
 import { useState } from "react";
 import { IdentityGate } from "@/components/account/IdentityGate";
 import { btnClass } from "@/components/ui/kit";
+import { useToast } from "@/components/ui/Toast";
+import { checkPassword, checkUsername, firstFailure, PASSWORD_HINT, USERNAME_HINT } from "@/lib/validation";
 import { hashPasswordForTransport } from "@/lib/clientPassword";
 
 export function InviteAcceptForm({ token }: { token: string }) {
+  const toast = useToast();
   const [step, setStep] = useState<1 | 2 | 3>(token ? 1 : 0 as 1);
   const [ticket, setTicket] = useState("");
   const [username, setUsername] = useState("");
@@ -26,8 +29,13 @@ export function InviteAcceptForm({ token }: { token: string }) {
 
   async function submit() {
     setError(null);
-    if (password !== confirm) {
-      setError("비밀번호가 일치하지 않습니다.");
+    const invalid = firstFailure(
+      checkUsername(username),
+      checkPassword(password),
+      password === confirm ? null : { ok: false, message: "비밀번호가 일치하지 않습니다." },
+    );
+    if (invalid) {
+      toast.error(invalid);
       return;
     }
     setLoading(true);
@@ -72,7 +80,7 @@ export function InviteAcceptForm({ token }: { token: string }) {
       ) : step === 2 ? (
         <div className="space-y-4">
           <label className="block">
-            <span className="mb-1.5 block text-xs font-bold">아이디 (5~20자 영문·숫자)</span>
+            <span className="mb-1.5 block text-xs font-bold">아이디 ({USERNAME_HINT})</span>
             <input
               data-testid="invite-username"
               value={username}
@@ -81,7 +89,7 @@ export function InviteAcceptForm({ token }: { token: string }) {
             />
           </label>
           <label className="block">
-            <span className="mb-1.5 block text-xs font-bold">비밀번호</span>
+            <span className="mb-1.5 block break-keep text-xs font-bold">비밀번호 ({PASSWORD_HINT})</span>
             <input
               data-testid="invite-password"
               type="password"

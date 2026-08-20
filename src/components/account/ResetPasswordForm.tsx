@@ -4,10 +4,13 @@ import Link from "next/link";
 import { useState } from "react";
 import { IdentityGate } from "@/components/account/IdentityGate";
 import { btnClass } from "@/components/ui/kit";
+import { useToast } from "@/components/ui/Toast";
+import { checkPassword, checkUsername, firstFailure, PASSWORD_HINT } from "@/lib/validation";
 import { hashPasswordForTransport } from "@/lib/clientPassword";
 
 // 3단계: 아이디 입력 → 본인인증 → 새 비밀번호 입력
 export function ResetPasswordForm() {
+  const toast = useToast();
   const [step, setStep] = useState<1 | 2 | 3 | 4>(1);
   const [username, setUsername] = useState("");
   const [ticket, setTicket] = useState("");
@@ -18,8 +21,13 @@ export function ResetPasswordForm() {
 
   async function submit() {
     setError(null);
-    if (password !== confirm) {
-      setError("비밀번호가 일치하지 않습니다.");
+    // 서버는 해시만 받으므로 규칙 검사는 여기서만 가능하다.
+    const invalid = firstFailure(
+      checkPassword(password),
+      password === confirm ? null : { ok: false, message: "비밀번호가 일치하지 않습니다." },
+    );
+    if (invalid) {
+      toast.error(invalid);
       return;
     }
     setLoading(true);
@@ -74,7 +82,14 @@ export function ResetPasswordForm() {
             type="button"
             data-testid="reset-next"
             disabled={!username.trim()}
-            onClick={() => setStep(2)}
+            onClick={() => {
+              const invalid = firstFailure(checkUsername(username));
+              if (invalid) {
+                toast.error(invalid);
+                return;
+              }
+              setStep(2);
+            }}
             className={`${btnClass("primary", "md")} mt-6 w-full`}
           >
             다음
@@ -112,7 +127,7 @@ export function ResetPasswordForm() {
               className="w-full border border-border-soft bg-background px-3 py-2 text-s"
             />
           </label>
-          <p className="text-xs text-muted">8~20자 영문 대소문자·숫자·특수문자 조합</p>
+          <p className="break-keep text-xs leading-6 text-muted">{PASSWORD_HINT}</p>
           <button
             type="button"
             data-testid="reset-submit"

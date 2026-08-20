@@ -1,9 +1,7 @@
 import { NextResponse } from "next/server";
 import { findUserByUsername } from "@/lib/db";
+import { USERNAME_HINT, USERNAME_RE } from "@/lib/validation";
 import { clientIpFrom, rateLimit } from "@/lib/rateLimit";
-
-/** 로그인 ID 규칙 — 5~20자 영문·숫자 (기획서 1-32). */
-export const USERNAME_RE = /^[a-zA-Z0-9]{5,20}$/;
 
 // 아이디 중복확인 (기획서 A5).
 // 아이디 존재 여부를 알려주는 API 라 훑기에 쓰일 수 있다 — 호출 수를 제한한다.
@@ -22,7 +20,7 @@ export async function POST(request: Request) {
   if (!USERNAME_RE.test(username)) {
     return NextResponse.json({
       available: false,
-      message: "5~20자의 영문·숫자 조합으로 입력해 주세요.",
+      message: `${USERNAME_HINT}으로 입력해 주세요.`,
     });
   }
   const taken = await findUserByUsername(username);

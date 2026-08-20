@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { isNiceAuthConfigured } from "@/lib/niceAuth";
 import { dispatchMessage } from "@/lib/message/dispatch";
 import { verifyIdentityTicket } from "@/lib/identityTicket";
+import { USERNAME_HINT, USERNAME_RE } from "@/lib/validation";
 import crypto from "node:crypto";
 import { createSession, hashPassword } from "@/lib/auth";
 import {
@@ -32,7 +33,8 @@ import { SHA256_HEX_RE, sha256Hex } from "@/lib/passwordScheme";
 import { clientIpFrom, rateLimit } from "@/lib/rateLimit";
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-const USERNAME_RE = /^[a-z0-9][a-z0-9_]{3,19}$/;
+// 규칙은 src/lib/validation.ts 한 곳에만 둔다 — 예전에는 여기와 중복확인 API 가
+// 서로 다른 정규식을 써서, 중복확인은 통과하는데 가입에서 거부되는 조합이 있었다.
 
 export async function POST(request: Request) {
   const ip = clientIpFrom(request);
@@ -73,7 +75,7 @@ export async function POST(request: Request) {
 
   if (!USERNAME_RE.test(username)) {
     return NextResponse.json(
-      { error: "아이디는 영문 소문자/숫자로 시작하는 4~20자여야 합니다." },
+      { error: `아이디는 ${USERNAME_HINT}이어야 합니다.` },
       { status: 400 },
     );
   }

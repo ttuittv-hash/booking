@@ -14,6 +14,16 @@
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { btnClass } from "@/components/ui/kit";
+import { useToast } from "@/components/ui/Toast";
+import {
+  checkBusinessNumber,
+  checkEmail,
+  checkPassword,
+  checkUsername,
+  firstFailure,
+  PASSWORD_HINT,
+  USERNAME_HINT,
+} from "@/lib/validation";
 import { hashPasswordForTransport } from "@/lib/clientPassword";
 
 declare global {
@@ -62,9 +72,12 @@ type FormState = {
 const STEP_LABELS = ["회원 유형", "약관 동의", "본인인증", "정보 입력", "가입완료"];
 
 export function RegisterWizard() {
+  const toast = useToast();
   const [step, setStep] = useState(1);
-  const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  // 오류는 토스트로 띄운다. 위저드 상단에 붙이면 스크롤을 내려 입력하다 [다음]을 눌렀을 때
+  // 메시지가 화면 밖에 떠서 왜 안 넘어가는지 알 수 없다.
+  const setError = toast.error;
 
   const [terms, setTerms] = useState<TermsItem[]>([]);
   const [agreed, setAgreed] = useState<Record<string, boolean>>({});
@@ -126,19 +139,17 @@ export function RegisterWizard() {
       awaitingAuth.current = false;
       setLoading(false);
       if (!p.ok) {
-        setError(p.message || "본인인증에 실패했습니다.");
+        toast.error(p.message || "본인인증에 실패했습니다.");
         return;
       }
-      setError(null);
       setIdentity({ ticket: p.ticket, name: p.name, mobileNo: p.mobileNo, mobileCo: p.mobileCo });
       setStep(4);
     }
     window.addEventListener("message", onMessage);
     return () => window.removeEventListener("message", onMessage);
-  }, []);
+  }, [toast]);
 
   async function startIdentity(options?: { bypass?: boolean }) {
-    setError(null);
     setLoading(true);
     try {
       const res = await fetch("/api/auth/nice/start", {
@@ -212,9 +223,25 @@ export function RegisterWizard() {
   }
 
   async function submit() {
-    setError(null);
-    if (form.password !== form.passwordConfirm) {
-      setError("비밀번호가 일치하지 않습니다.");
+    // 화면에서 먼저 거른다. 특히 비밀번호는 SHA-256 해시로 보내므로 서버가 원문을 못 본다 —
+    // 여기서 통과시키지 않으면 규칙이 아무 데서도 검사되지 않는다.
+    const invalid = firstFailure(
+      form.companyName.trim() ? null : { ok: false, message: "회사명을 입력해 주세요." },
+      checkBusinessNumber(form.businessRegistrationNumber),
+      form.representativeName.trim() ? null : { ok: false, message: "대표자 성명을 입력해 주세요." },
+      form.postalCode.trim() && form.address.trim()
+        ? null
+        : { ok: false, message: "우편번호 찾기로 회사주소를 입력해 주세요." },
+      identity ? null : { ok: false, message: "휴대폰 본인인증을 먼저 진행해 주세요." },
+      checkUsername(form.username),
+      checkEmail(form.email),
+      checkPassword(form.password),
+      form.password === form.passwordConfirm
+        ? null
+        : { ok: false, message: "비밀번호가 일치하지 않습니다." },
+    );
+    if (invalid) {
+      toast.error(invalid);
       return;
     }
     // 불러오기로 채운 회사는 이미 확인된 번호라 다시 묻지 않는다(기획서 A5).
@@ -287,15 +314,6 @@ export function RegisterWizard() {
     <div data-testid="register-wizard" data-step={step}>
       <StepBar step={step} />
 
-      {error ? (
-        <p
-          data-testid="register-error"
-          className="mt-6 border border-danger/40 bg-danger/5 px-4 py-3 text-s text-danger"
-        >
-          {error}
-        </p>
-      ) : null}
-
       {step === 1 ? (
         <StepMemberType onNext={() => setStep(2)} />
       ) : step === 2 ? (
@@ -305,7 +323,13 @@ export function RegisterWizard() {
           setAgreed={setAgreed}
           canNext={requiredAllAgreed}
           onPrev={() => setStep(1)}
-          onNext={() => setStep(3)}
+          onNext={() => {
+            if (!requiredAllAgreed) {
+              toast.error("필수 약관 2건에 모두 동의해 주세요.");
+              return;
+            }
+            setStep(3);
+          }}
         />
       ) : step === 3 ? (
         <StepIdentity
@@ -547,12 +571,13 @@ function StepTerms({
         <button type="button" onClick={onPrev} className={`${btnClass("secondary", "md")} justify-center`}>
           이전
         </button>
+        {/* disabled 로 막아두면 왜 안 넘어가는지 알 수 없다 — 누르면 이유를 알려준다. */}
         <button
           type="button"
           data-testid="terms-next"
-          disabled={!canNext}
+          aria-disabled={!canNext}
           onClick={onNext}
-          className={`${btnClass("primary", "md")} flex-1 justify-center`}
+          className={`${btnClass("primary", "md")} flex-1 justify-center ${canNext ? "" : "opacity-50"}`}
         >
           다음
         </button>
@@ -880,7 +905,7 @@ function StepInfo({
         </Field>
 
         <div>
-          <Field label="로그인 ID" required hint="5~20자 영문·숫자">
+          <Field label="로그인 ID" required hint={USERNAME_HINT}>
             <span className="flex gap-2">
               <input
                 data-testid="f-username"
@@ -915,7 +940,7 @@ function StepInfo({
         <Field label="이메일" required>
           <input data-testid="f-email" type="email" value={form.email} onChange={set("email")} className={inputCls(false)} />
         </Field>
-        <Field label="비밀번호" required hint="8~20자 영문 대소문자·숫자·특수문자">
+        <Field label="비밀번호" required hint={PASSWORD_HINT}>
           <input data-testid="f-password" type="password" value={form.password} onChange={set("password")} className={inputCls(false)} />
         </Field>
         <Field label="비밀번호 확인" required>

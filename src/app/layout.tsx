@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { ToastProvider } from "@/components/ui/Toast";
 import "./globals.css";
 
 // 모든 페이지가 PostgreSQL에서 데이터를 읽으므로 빌드 시점 정적 프리렌더링을 끈다 —
@@ -36,7 +37,10 @@ export default function RootLayout({
           href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700;800&family=Gothic+A1:wght@300;400;500;700;800;900&display=swap"
         />
       </head>
-      <body className="min-h-full flex flex-col bg-background text-foreground">{children}</body>
+      <body className="min-h-full flex flex-col bg-background text-foreground">
+        {/* 입력 오류·안내는 토스트로 띄운다 — 화면 어디를 보고 있든 눈에 들어온다. */}
+        <ToastProvider>{children}</ToastProvider>
+      </body>
     </html>
   );
 }
