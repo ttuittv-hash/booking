@@ -62,16 +62,16 @@ export function SiteFooter() {
         <div className="mt-10 flex flex-col gap-4 border-t border-border/25 pt-6 text-xs text-muted sm:flex-row sm:items-center sm:justify-between">
           <p>© {new Date().getFullYear()} Seoul Arena. All rights reserved.</p>
           <div className="flex flex-wrap items-center gap-x-6 gap-y-2">
-            <Link href="/notices" className="hover:text-foreground">
+            <Link href="/notices" className="flex min-h-11 items-center hover:text-foreground">
               운영정보
             </Link>
-            <Link href="/faq" className="hover:text-foreground">
+            <Link href="/faq" className="flex min-h-11 items-center hover:text-foreground">
               고객지원
             </Link>
-            <Link href="/terms" className="hover:text-foreground">
+            <Link href="/terms" className="flex min-h-11 items-center hover:text-foreground">
               이용약관
             </Link>
-            <Link href="/privacy" className="hover:text-foreground">
+            <Link href="/privacy" className="flex min-h-11 items-center hover:text-foreground">
               개인정보처리방침
             </Link>
           </div>

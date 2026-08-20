@@ -61,7 +61,7 @@ export default function LoginPage() {
           신청자 계정이 없으신가요?{" "}
           <Link
             href="/register"
-            className="font-bold text-foreground underline decoration-accent decoration-2 underline-offset-4"
+            className="inline-flex min-h-11 items-center px-1 font-bold text-foreground underline decoration-accent decoration-2 underline-offset-4"
           >
             회원가입
           </Link>

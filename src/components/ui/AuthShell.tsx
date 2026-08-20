@@ -38,7 +38,10 @@ export function AuthShell({
     return (
       <div className="flex min-h-screen flex-1 flex-col bg-background">
         <div className="container-site flex h-16 items-center justify-center lg:h-[72px]">
-          <Link href="/" className="type-display text-h5-m leading-none sm:text-h4">
+          <Link
+            href="/"
+            className="type-display flex h-full items-center text-h5-m leading-none sm:text-h4"
+          >
             Seoul Arena
           </Link>
         </div>
@@ -65,7 +68,10 @@ export function AuthShell({
     return (
       <div className="flex min-h-screen flex-1 flex-col bg-background">
         <div className="container-site flex h-16 items-center lg:h-[72px]">
-          <Link href="/" className="type-display text-h6-m leading-none sm:text-h5">
+          <Link
+            href="/"
+            className="type-display flex h-full items-center text-h6-m leading-none sm:text-h5"
+          >
             Seoul Arena
           </Link>
         </div>
