@@ -2,6 +2,9 @@ import Link from "next/link";
 
 export type MyPageSection =
   | "/mypage"
+  | "/mypage/ticket-open"
+  | "/mypage/facility-meeting"
+  | "/mypage/settlement"
   | "/mypage/inquiries"
   | "/mypage/profile"
   | "/mypage/withdraw";
@@ -14,6 +17,9 @@ const SECTIONS: {
     label: "대관 현황",
     items: [
       { href: "/mypage", label: "대관 진행 내역" },
+      { href: "/mypage/ticket-open", label: "티켓 오픈 정보" },
+      { href: "/mypage/facility-meeting", label: "시설 회의" },
+      { href: "/mypage/settlement", label: "정산" },
       { href: "/mypage/inquiries", label: "1:1 문의" },
     ],
   },
