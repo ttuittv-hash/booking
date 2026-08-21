@@ -4,7 +4,11 @@ import { hash as bcryptHash } from "@node-rs/bcrypt";
 import crypto from "node:crypto";
 import { buildSeedRateTable, SEED_MID_HALL_RATE_CONFIG } from "./pricing/seed";
 import { SEED_PAGES } from "./pricing/pageSeed";
-import { DEFAULT_HOME_CONTENT } from "./content/seed";
+import {
+  DEFAULT_HOME_CONTENT,
+  DEFAULT_PRIVACY_CONTENT,
+  DEFAULT_TERMS_CONTENT,
+} from "./content/seed";
 import { SEED_FAQS } from "./content/faqSeed";
 import { FEATURE_SPEC_SEED } from "./featureSpecSeed";
 import { FEATURE_SPEC_SHEET_KEYS } from "./pricing/types";
@@ -17,7 +21,7 @@ import {
   encryptField,
   encryptOptional,
 } from "./fieldCrypto";
-import type { HomeContent } from "./content/types";
+import type { HomeContent, LegalContent } from "./content/types";
 import {
   DEFAULT_DOCUMENTS_CONTENT,
   DEFAULT_FEATURES_CONTENT,
@@ -441,6 +445,14 @@ async function initSchema(pool: Pool) {
     ALTER TABLE quotes ADD COLUMN IF NOT EXISTS week_month INTEGER;
     ALTER TABLE quotes ADD COLUMN IF NOT EXISTS week_of_month INTEGER;
     ALTER TABLE rate_tables ADD COLUMN IF NOT EXISTS mid_hall_json TEXT;
+    -- 나의 정보 수정 화면 확장(2026-08-20) — 기업 대표번호/대표팩스/법인등록번호,
+    -- 개인 유선전화/팩스번호. 회사명·사업자등록번호는 여기 포함되지 않는다(변경 불가 —
+    -- 탈퇴 후 재가입 안내).
+    ALTER TABLE companies ADD COLUMN IF NOT EXISTS representative_phone TEXT;
+    ALTER TABLE companies ADD COLUMN IF NOT EXISTS representative_fax TEXT;
+    ALTER TABLE companies ADD COLUMN IF NOT EXISTS corporate_registration_number TEXT;
+    ALTER TABLE users ADD COLUMN IF NOT EXISTS office_phone TEXT;
+    ALTER TABLE users ADD COLUMN IF NOT EXISTS fax_number TEXT;
 
     CREATE UNIQUE INDEX IF NOT EXISTS idx_users_username ON users(username) WHERE username IS NOT NULL;
 
@@ -918,18 +930,18 @@ async function insertRateTable(pool: Pool, rateTable: RateTable) {
 // Rate table
 // ---------------------------------------------------------------------------
 
-export async function getCurrentRateTable(): Promise<RateTable> {
-  const row = await one<{
-    version: string;
-    vat_rate: number;
-    extra_week_ratio: number;
-    day_exclusion_discount_ratio: number;
-    packages_json: string;
-    addons_json: string;
-    mid_hall_json: string | null;
-    updated_at: string;
-  }>("SELECT * FROM rate_tables ORDER BY updated_at DESC LIMIT 1");
-  if (!row) throw new Error("요금표가 초기화되지 않았습니다.");
+interface RateTableRow {
+  version: string;
+  vat_rate: number;
+  extra_week_ratio: number;
+  day_exclusion_discount_ratio: number;
+  packages_json: string;
+  addons_json: string;
+  mid_hall_json: string | null;
+  updated_at: string;
+}
+
+function toRateTable(row: RateTableRow): RateTable {
   // 과거 버전(할인율 필드 추가 이전)에 저장된 패키지는 discountRatio가 없을 수 있으므로 기본값 0으로 보정한다.
   const rawPackages = JSON.parse(row.packages_json) as Array<
     RateTable["packages"][number] & { discountRatio?: number }
@@ -947,6 +959,21 @@ export async function getCurrentRateTable(): Promise<RateTable> {
     midHall,
     updatedAt: row.updated_at,
   };
+}
+
+export async function getCurrentRateTable(): Promise<RateTable> {
+  const row = await one<RateTableRow>("SELECT * FROM rate_tables ORDER BY updated_at DESC LIMIT 1");
+  if (!row) throw new Error("요금표가 초기화되지 않았습니다.");
+  return toRateTable(row);
+}
+
+// 신청서 상세 화면에서 "신청 당시" 패키지명 등을 정확히 복원하기 위해, 현재 요금표가 아니라
+// 견적 계산 시점의 버전(quote.rateTableVersion)을 그대로 조회한다. 해당 버전이 없으면(드묾)
+// 현재 요금표로 대체한다.
+export async function getRateTableByVersion(version: string): Promise<RateTable> {
+  const row = await one<RateTableRow>("SELECT * FROM rate_tables WHERE version = $1", [version]);
+  if (!row) return getCurrentRateTable();
+  return toRateTable(row);
 }
 
 export async function saveNewRateTableVersion(
@@ -968,6 +995,9 @@ interface CompanyRow {
   name: string;
   business_registration_number: string | null;
   representative_name: string | null;
+  representative_phone: string | null;
+  representative_fax: string | null;
+  corporate_registration_number: string | null;
   postal_code: string | null;
   address: string | null;
   business_cert_url: string | null;
@@ -994,6 +1024,9 @@ function toCompany(row: CompanyRow): Company {
     name: row.name,
     businessRegistrationNumber: row.business_registration_number,
     representativeName: row.representative_name,
+    representativePhone: row.representative_phone,
+    representativeFax: row.representative_fax,
+    corporateRegistrationNumber: row.corporate_registration_number,
     postalCode: row.postal_code,
     address: row.address,
     businessCertUrl: row.business_cert_url,
@@ -1105,6 +1138,9 @@ export async function findOrCreateCompany(
     name: trimmed,
     business_registration_number: brn,
     representative_name: extra?.representativeName?.trim() || null,
+    representative_phone: null,
+    representative_fax: null,
+    corporate_registration_number: null,
     postal_code: extra?.postalCode?.trim() || null,
     address: extra?.address?.trim() || null,
     business_cert_url: extra?.businessCertUrl || null,
@@ -1854,6 +1890,37 @@ export async function listCompanies(): Promise<Company[]> {
   return rows.map(toCompany);
 }
 
+// 나의 정보 수정에서 회원이 직접 바꿀 수 있는 기업 정보만 갱신한다. 회사명·사업자등록번호는
+// 여기 포함하지 않는다 — 바뀌면 다른 회사로 취급해야 하므로 탈퇴 후 재가입 안내로 유도한다.
+export async function updateCompanyProfile(
+  id: string,
+  input: {
+    representativeName: string | null;
+    representativePhone: string | null;
+    representativeFax: string | null;
+    corporateRegistrationNumber: string | null;
+    postalCode: string | null;
+    address: string | null;
+  },
+): Promise<Company> {
+  await q(
+    `UPDATE companies SET
+       representative_name = $1, representative_phone = $2, representative_fax = $3,
+       corporate_registration_number = $4, postal_code = $5, address = $6
+     WHERE id = $7`,
+    [
+      input.representativeName,
+      input.representativePhone,
+      input.representativeFax,
+      input.corporateRegistrationNumber,
+      input.postalCode,
+      input.address,
+      id,
+    ],
+  );
+  return (await findCompanyById(id))!;
+}
+
 // ---------------------------------------------------------------------------
 // Users
 // ---------------------------------------------------------------------------
@@ -1863,6 +1930,8 @@ interface UserRow {
   username: string | null;
   email: string;
   phone: string | null;
+  office_phone: string | null;
+  fax_number: string | null;
   password_hash: string | null;
   password_scheme: PasswordScheme;
   member_type: string | null;
@@ -1888,6 +1957,8 @@ function toAppUser(row: UserRow): AppUser {
     username: row.username ?? row.email,
     email: row.email,
     phone: row.phone,
+    officePhone: row.office_phone,
+    faxNumber: row.fax_number,
     name: row.name,
     companyName: row.company_name,
     companyId: row.company_id,
@@ -1955,6 +2026,8 @@ export async function createUser(input: {
     username: input.username,
     email: input.email.toLowerCase(),
     phone,
+    officePhone: null,
+    faxNumber: null,
     name: input.name,
     companyName: input.companyName,
     companyId,
@@ -2114,9 +2187,20 @@ export async function findUserById(id: string): Promise<AppUser | undefined> {
 
 export async function updateUserProfile(
   id: string,
-  input: { name: string; phone: string | null },
+  input: {
+    name: string;
+    phone: string | null;
+    username: string;
+    email: string;
+    officePhone: string | null;
+    faxNumber: string | null;
+  },
 ): Promise<AppUser> {
-  await q("UPDATE users SET name = $1, phone = $2 WHERE id = $3", [input.name, input.phone, id]);
+  await q(
+    `UPDATE users SET name = $1, phone = $2, username = $3, email = $4, office_phone = $5, fax_number = $6
+     WHERE id = $7`,
+    [input.name, input.phone, input.username, input.email.toLowerCase(), input.officePhone, input.faxNumber, id],
+  );
   return (await findUserById(id))!;
 }
 
@@ -2439,7 +2523,7 @@ export async function listQuotes(filter?: {
 
 // 화면용 신청서 목록 — 전체를 한 번에 읽지 않고 페이지 단위로 끊어 온다.
 export async function listQuotesPaged(
-  filter: { applicantId?: string; companyId?: string } = {},
+  filter: { applicantId?: string; companyId?: string; status?: Quote["status"][] } = {},
   page = 1,
   pageSize = DEFAULT_PAGE_SIZE,
 ): Promise<Paged<Quote>> {
@@ -2453,6 +2537,10 @@ export async function listQuotesPaged(
   } else if (filter.applicantId) {
     params.push(filter.applicantId);
     conditions.push(`q.applicant_id = $${params.length}`);
+  }
+  if (filter.status && filter.status.length > 0) {
+    params.push(filter.status);
+    conditions.push(`q.status = ANY($${params.length})`);
   }
   const where = conditions.length ? `WHERE ${conditions.join(" AND ")}` : "";
 
@@ -2983,6 +3071,14 @@ export async function getTicketOpenByQuoteId(quoteId: string): Promise<TicketOpe
   return row ? toTicketOpen(row) : undefined;
 }
 
+// 목록 화면(마이페이지 티켓오픈 정보)에서 신청서마다 조회하지 않도록 quoteId 목록을
+// 한 번에 IN 조건으로 읽는다.
+export async function listTicketOpensByQuoteIds(quoteIds: string[]): Promise<TicketOpen[]> {
+  if (quoteIds.length === 0) return [];
+  const rows = await q<TicketOpenRow>("SELECT * FROM ticket_opens WHERE quote_id = ANY($1)", [quoteIds]);
+  return rows.map(toTicketOpen);
+}
+
 export async function ensureTicketOpen(quoteId: string, createdAt: string): Promise<TicketOpen> {
   const existing = await getTicketOpenByQuoteId(quoteId);
   if (existing) return existing;
@@ -3053,6 +3149,16 @@ export async function getFacilityMeetingByQuoteId(
     quoteId,
   ]);
   return row ? toFacilityMeeting(row) : undefined;
+}
+
+// 목록 화면(마이페이지 시설 회의)에서 신청서마다 조회하지 않도록 quoteId 목록을 한 번에
+// IN 조건으로 읽는다.
+export async function listFacilityMeetingsByQuoteIds(quoteIds: string[]): Promise<FacilityMeeting[]> {
+  if (quoteIds.length === 0) return [];
+  const rows = await q<FacilityMeetingRow>("SELECT * FROM facility_meetings WHERE quote_id = ANY($1)", [
+    quoteIds,
+  ]);
+  return rows.map(toFacilityMeeting);
 }
 
 export async function ensureFacilityMeeting(
@@ -3718,6 +3824,22 @@ export async function getHomeContent(): Promise<HomeContent> {
 
 export async function saveHomeContent(data: HomeContent): Promise<HomeContent> {
   return saveSiteContent("home", data);
+}
+
+export async function getTermsContent(): Promise<LegalContent> {
+  return getSiteContent<LegalContent>("terms", DEFAULT_TERMS_CONTENT);
+}
+
+export async function saveTermsContent(data: LegalContent): Promise<LegalContent> {
+  return saveSiteContent("terms", data);
+}
+
+export async function getPrivacyContent(): Promise<LegalContent> {
+  return getSiteContent<LegalContent>("privacy", DEFAULT_PRIVACY_CONTENT);
+}
+
+export async function savePrivacyContent(data: LegalContent): Promise<LegalContent> {
+  return saveSiteContent("privacy", data);
 }
 
 // ---------------------------------------------------------------------------

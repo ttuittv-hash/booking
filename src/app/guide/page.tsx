@@ -33,7 +33,7 @@ function HowToBookPanel({ c, introHtml }: { c: GuidePageContent; introHtml: stri
 
       <Band tone="white">
         <SectionHead title="RATE STRUCTURE" lead="요금 체계는 공간에 따라 다릅니다." />
-        <dl className="mt-14 border-t border-border/25">
+        <dl className="mt-10 border-t border-border/25">
           {c.rateStructure.map((r) => (
             <div
               key={r.label}
@@ -44,7 +44,7 @@ function HowToBookPanel({ c, introHtml }: { c: GuidePageContent; introHtml: stri
             </div>
           ))}
         </dl>
-        <div className="mt-12">
+        <div className="mt-10">
           <ButtonLink href="/rates" variant="primary">
             대관료 보기
             <ArrowRight />
@@ -60,7 +60,7 @@ function HowItWorksPanel({ c }: { c: GuidePageContent }) {
   return (
     <Band tone="light" size="lg">
       <PageHead en="HOW IT WORKS" ko="대관 절차" />
-      <div className="mt-16 sm:mt-20">
+      <div className="mt-10">
         <ProcessSteps steps={c.process} />
       </div>
     </Band>

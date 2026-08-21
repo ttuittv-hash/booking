@@ -1,61 +1,60 @@
-import type { Metadata } from "next";
 import Link from "next/link";
+import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/lib/auth";
+import { findCompanyById } from "@/lib/db";
 import { PublicHeader } from "@/components/PublicHeader";
-import { ProfileForm } from "@/components/ProfileForm";
-import { Breadcrumb } from "@/components/ui/Breadcrumb";
 import { SiteFooter } from "@/components/ui/SiteFooter";
-import { Band, PageHeading } from "@/components/ui/kit";
+import { MyPageShell } from "@/components/mypage/MyPageShell";
+import { Band, PageHead } from "@/components/ui/kit";
+import { ProfileForm } from "@/components/ProfileForm";
 
 export const metadata: Metadata = {
-  title: "회원정보 수정 | 서울아레나",
+  title: "나의 정보 수정 | 서울아레나",
 };
 
 export default async function ProfilePage() {
   const user = await getCurrentUser();
   if (!user) redirect("/login");
+  const company = user.companyId ? ((await findCompanyById(user.companyId)) ?? null) : null;
+
+  // 운영자에게는 마이페이지 메뉴가 의미 없다 — 백오피스로 돌아가는 링크만 둔다.
+  if (user.role === "ADMIN") {
+    return (
+      <div className="flex flex-1 flex-col">
+        <PublicHeader active="/mypage/profile" currentUser={user} />
+        <main className="flex flex-1 flex-col">
+          <Band tone="light" size="lg">
+            <PageHead en="MY PROFILE" ko="나의 정보 수정" />
+            <div className="mt-6">
+              <Link
+                href="/admin"
+                className="text-s font-bold underline underline-offset-4 hover:text-accent"
+              >
+                ← 운영자 백오피스
+              </Link>
+            </div>
+          </Band>
+          <Band tone="light">
+            <div className="measure">
+              <ProfileForm user={user} company={company} />
+            </div>
+          </Band>
+        </main>
+        <SiteFooter />
+      </div>
+    );
+  }
 
   return (
-    <div className="flex flex-1 flex-col">
-      <PublicHeader active="/mypage/profile" currentUser={user} />
-      <Breadcrumb
-        items={[
-          user.role === "ADMIN"
-            ? { label: "운영자 백오피스", href: "/admin" }
-            : { label: "대관 신청 현황", href: "/mypage/process" },
-          { label: "회원정보 수정" },
-        ]}
-      />
-
-      <main className="flex flex-1 flex-col">
-        <Band tone="light" size="sm">
-          <PageHeading
-            size="md"
-            title="회원정보 수정"
-            lead="담당자명·휴대폰 번호와 비밀번호를 직접 변경할 수 있습니다."
-          />
-        </Band>
-
-        <Band tone="white" size="sm">
-          <div className="max-w-xl">
-            <ProfileForm user={user} />
-
-            {user.role !== "ADMIN" && (
-              <div className="mt-14 border-t border-border/25 pt-6">
-                <Link
-                  href="/mypage/withdraw"
-                  className="inline-flex min-h-11 items-center text-xs text-muted underline decoration-border-soft underline-offset-4 transition-colors hover:text-danger hover:decoration-danger"
-                >
-                  회원 탈퇴
-                </Link>
-              </div>
-            )}
-          </div>
-        </Band>
-      </main>
-
-      <SiteFooter />
-    </div>
+    <MyPageShell
+      user={user}
+      active="/mypage/profile"
+      en="MY PROFILE"
+      ko="나의 정보 수정"
+      lead="가입 시 등록한 회원·기업 정보를 확인하고 수정하실 수 있습니다."
+    >
+      <ProfileForm user={user} company={company} />
+    </MyPageShell>
   );
 }

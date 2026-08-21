@@ -16,7 +16,7 @@ const VIEWPORTS = [
   { name: "데스크톱", width: 1440, height: 900 },
 ];
 const PAGES = ["/", "/seoularena", "/features", "/guide", "/rates", "/rules", "/documents",
-  "/notices", "/faq", "/mypage/inquiries", "/apply", "/mypage/process", "/mypage/history",
+  "/notices", "/faq", "/mypage/inquiries", "/apply", "/mypage", "/mypage/ticket-open", "/mypage/settlement", "/mypage/facility-meeting",
   "/mypage/profile", "/mypage/members", "/mypage/notifications", "/terms", "/privacy"];
 
 const issues = [];

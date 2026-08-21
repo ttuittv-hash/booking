@@ -71,7 +71,7 @@ export function FaqAccordion({ faqs }: { faqs: Faq[] }) {
   }
 
   return (
-    <div className="space-y-14">
+    <div className="space-y-10">
       {groups.map((group, i) => (
         <section key={group.tag}>
           <div className="flex items-baseline gap-3">

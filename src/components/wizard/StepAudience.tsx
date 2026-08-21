@@ -31,7 +31,7 @@ function CheckboxChip({
     <label
       className={[
         "flex cursor-pointer items-center gap-2 border px-3.5 py-2.5 text-s transition-colors",
-        checked ? "border-accent bg-accent-soft text-foreground" : "border-border/25 bg-panel hover:border-foreground",
+        checked ? "border-foreground bg-inverse-bg text-inverse-fg text-foreground" : "border-border bg-panel hover:border-foreground/50",
       ].join(" ")}
     >
       <input type="checkbox" checked={checked} onChange={onChange} className="accent-accent" />
@@ -73,8 +73,8 @@ function AudienceFields({
   }
 
   return (
-    <div className="border-t-2 border-foreground pt-5">
-      <h3 className="type-kr-heading text-h6-m">예상 관객 및 사업규모</h3>
+    <div className="border border-border bg-panel/30 p-6">
+      <h3 className="text-r font-bold">예상 관객 및 사업규모</h3>
       <p className="mt-1 text-xs text-muted">
         객석배치도는 계획안 기준으로 제출할 수 있으며, 승인 후 변경 시 사전 협의가 필요합니다
       </p>
@@ -82,35 +82,35 @@ function AudienceFields({
       <div className="mt-4 space-y-4">
         {audienceSummary.arenaLine && (
           <div>
-            <label className="mb-1.5 block text-xs font-medium text-muted">1회당 예상 관객 수 — 아레나</label>
-            <div className="border border-border/25 bg-panel/60 px-4 py-2.5 text-s text-foreground">
+            <label className="mb-1.5 block text-xs font-bold text-muted">1회당 예상 관객 수 — 아레나</label>
+            <div className="border border-border bg-panel/60 px-4 py-2.5 text-s text-foreground">
               {audienceSummary.arenaLine}
             </div>
-            <p className="mt-1 text-xs text-muted">패키지 선택 값과 연동 — 수정은 패키지 선택에서</p>
+            <p className="mt-1 text-xs text-muted">구성 · 옵션 값과 연동 — 수정은 구성 · 옵션에서</p>
           </div>
         )}
 
         {audienceSummary.midHallLine && (
           <div>
-            <label className="mb-1.5 block text-xs font-medium text-muted">1회당 예상 관객 수 — 중형</label>
-            <div className="border border-border/25 bg-panel/60 px-4 py-2.5 text-s text-foreground">
+            <label className="mb-1.5 block text-xs font-bold text-muted">1회당 예상 관객 수 — 중형</label>
+            <div className="border border-border bg-panel/60 px-4 py-2.5 text-s text-foreground">
               {audienceSummary.midHallLine}
             </div>
-            <p className="mt-1 text-xs text-muted">패키지 선택 값과 연동 — 수정은 패키지 선택에서</p>
+            <p className="mt-1 text-xs text-muted">구성 · 옵션 값과 연동 — 수정은 구성 · 옵션에서</p>
           </div>
         )}
 
         {audienceSummary.totalLine && (
           <div>
-            <label className="mb-1.5 block text-xs font-medium text-muted">총 예상 관객 수</label>
-            <div className="border border-border/25 bg-panel/60 px-4 py-2.5 text-s text-foreground">
+            <label className="mb-1.5 block text-xs font-bold text-muted">총 예상 관객 수</label>
+            <div className="border border-border bg-panel/60 px-4 py-2.5 text-s text-foreground">
               {audienceSummary.totalLine}
             </div>
           </div>
         )}
 
         <div className="max-w-xs">
-          <label className="mb-1.5 block text-xs font-medium text-muted">예상 유료 판매율</label>
+          <label className="mb-1.5 block text-xs font-bold text-muted">예상 유료 판매율</label>
           <div className="flex items-center gap-2">
             <input
               type="number"
@@ -118,14 +118,14 @@ function AudienceFields({
               max={100}
               value={info.expectedPaidSalesRate || ""}
               onChange={(e) => set("expectedPaidSalesRate", Math.max(0, Math.min(100, Number(e.target.value) || 0)))}
-              className="field-base w-24"
+              className="w-24 border border-border bg-panel px-3.5 py-2.5 text-s outline-none focus:border-foreground focus:ring-2 focus:ring-accent/20"
             />
             <span className="text-s text-muted">%</span>
           </div>
         </div>
 
         <div>
-          <div className="mb-2 text-xs font-medium text-muted">부대사업 계획</div>
+          <div className="mb-2 text-xs font-bold text-muted">부대사업 계획</div>
           <div className="flex flex-wrap gap-2">
             {ANCILLARY_PLANS.map((plan) => (
               <CheckboxChip
@@ -194,8 +194,8 @@ export function StepAudience({
   }
 
   return (
-    <section>
-      <h2 className="type-kr-heading text-h6-m sm:text-h6">관객</h2>
+    <section className="border border-border bg-background p-7">
+      <h2 className="type-kr-heading text-h5-m sm:text-h5">관객</h2>
       <p className="mt-1.5 text-s text-muted">
         관객 수는 공간별로 자동 산정되며, 객석배치도는 계획안 기준으로 별도 첨부합니다.
       </p>
@@ -246,8 +246,8 @@ export function StepAudience({
         )}
       </div>
 
-      <div className="mt-10 border-t-2 border-foreground pt-5">
-        <h3 className="type-kr-heading text-h6-m">자료 첨부</h3>
+      <div className="mt-6 border border-border bg-panel/30 p-6">
+        <h3 className="text-r font-bold">자료 첨부</h3>
         <p className="mt-1 mb-2.5 text-xs leading-5 text-muted">
           객석배치도(PDF/이미지)를 첨부하세요.
           {isSimultaneous && " 동시 대관은 두 공간의 객석배치도를 각각 첨부합니다."}
@@ -258,10 +258,10 @@ export function StepAudience({
             {files.map((file, i) => (
               <li
                 key={`${file.name}-${i}`}
-                className="flex items-center justify-between border border-border/25 bg-panel px-3.5 py-2.5"
+                className="flex items-center justify-between border border-border bg-panel px-3.5 py-2.5"
               >
-                <span className="truncate text-s font-medium">{file.name}</span>
-                <button type="button" onClick={() => removeFile(i)} className="shrink-0 text-xs text-muted hover:text-red-600">
+                <span className="truncate text-s font-bold">{file.name}</span>
+                <button type="button" onClick={() => removeFile(i)} className="shrink-0 text-xs text-muted hover:text-danger">
                   삭제
                 </button>
               </li>
@@ -276,7 +276,7 @@ export function StepAudience({
             addFiles(e.target.files);
             e.target.value = "";
           }}
-          className="text-xs text-muted file:mr-3 file:border file:border-border/25 file:bg-background file:px-3 file:py-1.5 file:text-xs file:font-medium"
+          className="text-xs text-muted file:mr-3 file:border file:border-border file:bg-background file:px-3 file:py-1.5 file:text-xs file:font-bold"
         />
       </div>
     </section>

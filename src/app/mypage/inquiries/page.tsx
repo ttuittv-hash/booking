@@ -2,16 +2,12 @@ import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/lib/auth";
 import { listInquiriesPaged, normalizePage } from "@/lib/db";
-import { PublicHeader } from "@/components/PublicHeader";
-import { Breadcrumb } from "@/components/ui/Breadcrumb";
-import { SiteFooter } from "@/components/ui/SiteFooter";
+import { MyPageShell } from "@/components/mypage/MyPageShell";
 import {
   ArrowRight,
   Badge,
-  Band,
   ButtonLink,
   EmptyState,
-  PageHead,
   Row,
   RowList,
 } from "@/components/ui/kit";
@@ -47,28 +43,20 @@ export default async function MyInquiriesPage({
   const { items: inquiries, total, totalPages } = await listInquiriesPaged({ userId: user.id }, page);
 
   return (
-    <div className="flex flex-1 flex-col">
-      <PublicHeader active="/mypage/inquiries" currentUser={user} />
-      <Breadcrumb
-        items={[{ label: "마이페이지", href: "/mypage/process" }, { label: "1:1 문의" }]}
-      />
-
-      <main className="flex flex-1 flex-col">
-        <Band tone="light" size="sm">
-          <PageHead
-            en="INQUIRIES"
-            ko="1:1 문의"
-            lead="FAQ에서 답을 찾지 못하셨다면 이곳에 문의를 남겨 주세요. 담당 부서가 확인 후 답변드립니다."
-            actions={
-              <ButtonLink href="/mypage/inquiries/new" variant="primary">
-                문의 작성
-                <ArrowRight />
-              </ButtonLink>
-            }
-          />
-        </Band>
-
-        <Band tone="white" size="sm">
+    <MyPageShell
+      user={user}
+      active="/mypage/inquiries"
+      en="INQUIRIES"
+      ko="1:1 문의"
+      lead="FAQ에서 답을 찾지 못하셨다면 이곳에 문의를 남겨 주세요. 담당 부서가 확인 후 답변드립니다."
+      actions={
+        <ButtonLink href="/mypage/inquiries/new" variant="primary">
+          문의 작성
+          <ArrowRight />
+        </ButtonLink>
+      }
+    >
+      <>
           {inquiries.length === 0 ? (
             <EmptyState
               title="아직 등록하신 문의가 없습니다"
@@ -119,10 +107,7 @@ export default async function MyInquiriesPage({
               basePath="/mypage/inquiries"
             />
           )}
-        </Band>
-      </main>
-
-      <SiteFooter />
-    </div>
+      </>
+    </MyPageShell>
   );
 }

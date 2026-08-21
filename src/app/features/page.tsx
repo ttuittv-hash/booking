@@ -39,7 +39,7 @@ function VenuePanel({ en, ko, c }: { en: string; ko: string; c: VenueFacilityCon
       <Band tone="light" size="lg">
         <PageHead en={en} ko={ko} />
         {c.overview.length > 0 && (
-          <div className="mt-14">
+          <div className="mt-10">
             <OverviewCards items={c.overview} />
           </div>
         )}
@@ -48,7 +48,7 @@ function VenuePanel({ en, ko, c }: { en: string; ko: string; c: VenueFacilityCon
       {c.capacity.length > 0 && (
         <Band tone="white">
           <SectionHead title="STAGE & CAPACITY" />
-          <div className="mt-14 space-y-16">
+          <div className="mt-10 space-y-10">
             {c.capacity.map((cap, i) => (
               <div key={`${cap.stage}-${i}`}>
                 {cap.stage && (
@@ -89,7 +89,7 @@ function VenuePanel({ en, ko, c }: { en: string; ko: string; c: VenueFacilityCon
       {c.features.length > 0 && (
         <Band tone="dark">
           <SectionHead title="FEATURES" />
-          <div className="mt-12">
+          <div className="mt-10">
             <FeatureList items={c.features} />
           </div>
         </Band>
@@ -98,7 +98,7 @@ function VenuePanel({ en, ko, c }: { en: string; ko: string; c: VenueFacilityCon
       {c.facilities.length > 0 && (
         <Band tone="light">
           <SectionHead title="ADDITIONAL FACILITIES" />
-          <div className="mt-12">
+          <div className="mt-10">
             <LabeledList
               items={c.facilities.map((f) => ({ label: f.label, desc: f.value || undefined }))}
             />

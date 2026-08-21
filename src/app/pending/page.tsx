@@ -39,7 +39,7 @@ export default async function PendingPage() {
         {/* 브랜드 면 — Band 가 톤별로 토큰을 뒤집으므로 색을 직접 지정하지 않는다 */}
         <Band tone="dark" size="lg" className="flex flex-col justify-end">
           <span aria-hidden className="block h-1 w-16 bg-accent" />
-          <p className="type-display mt-6 text-h3-m sm:text-h2">
+          <p className="type-display mt-6 text-h3-m sm:text-h3">
             Review
             <br />
             in progress

@@ -56,10 +56,8 @@ describe("대관신청·신청내역 — 승인 완료 필수", () => {
   it("미승인도 막힌다", () => expect(canAccess("/apply", "REJECTED")).toBe(false));
   it("승인 완료만 가능하다", () => expect(canAccess("/apply", "APPROVED")).toBe(true));
   it("신청내역도 승인 완료여야 한다", () => expect(canAccess("/mypage", "PENDING")).toBe(false));
-  it("대관 신청 현황도 승인 완료여야 한다", () =>
-    expect(canAccess("/mypage/process", "PENDING")).toBe(false));
-  it("대관 진행 내역도 승인 완료여야 한다", () =>
-    expect(canAccess("/mypage/history", "PENDING")).toBe(false));
+  it("마이페이지 하위(시설회의·정산·티켓오픈)도 승인 완료여야 한다", () =>
+    expect(canAccess("/mypage/settlement", "PENDING")).toBe(false));
 });
 
 describe("마이 — 승인 대기여도 본인 정보 수정은 가능", () => {

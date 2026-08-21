@@ -61,6 +61,28 @@ const BAND_VARS: Record<BandTone, React.CSSProperties> = {
   },
 };
 
+/**
+ * 밴드가 아닌 곳(카드·섹션 박스)을 검정 면으로 만들 때 쓰는 토큰 반전.
+ * `Band tone="dark"` 와 같은 값이라 그 안의 입력 필드·보조 텍스트·보더가
+ * 자동으로 지면에 맞는다 — 검정 배경에 검정 글자가 나오는 사고를 막는다.
+ */
+export const INVERSE_SURFACE_VARS: React.CSSProperties = BAND_VARS.dark;
+
+/**
+ * 반전된 면(검정 카드) **안에** 다시 밝은 카드를 놓을 때 토큰을 되돌린다.
+ * `BAND_VARS.light` 는 빈 객체라 상속된 반전 값을 되돌리지 못하므로 여기서 명시한다.
+ */
+export const PLAIN_SURFACE_VARS: React.CSSProperties = {
+  ["--background" as string]: "var(--n-lightest)",
+  ["--foreground" as string]: "var(--n-darkest)",
+  ["--muted" as string]: "var(--n-mid)",
+  ["--border" as string]: "var(--n-darkest)",
+  ["--border-soft" as string]: "var(--n-lighter)",
+  ["--btn-primary-bg" as string]: "var(--n-darkest)",
+  ["--btn-primary-fg" as string]: "var(--n-white)",
+  ["--btn-primary-bg-hover" as string]: "var(--n-darker)",
+};
+
 export function Band({
   tone = "light",
   children,
@@ -76,16 +98,29 @@ export function Band({
   divide?: boolean;
   size?: "sm" | "md" | "lg";
 }) {
+  /*
+    세로 여백은 세 단뿐이다. 넉넉함보다 리듬이 중요해서, 한 화면에 두 밴드가
+    같이 보이도록 값을 줄여 잡았다 (예전 80/112/128 → 64/80/96).
+      lg  페이지 머리글 · 1급 섹션   56 / 64 / 80
+      md  일반 섹션 (기본)            40 / 48 / 64
+      sm  밀도 높은 섹션 · 목록 상단   32 / 40
+  */
   const pad =
     size === "lg"
-      ? "py-20 sm:py-28 lg:py-32"
+      ? "py-14 sm:py-16 lg:py-20"
       : size === "sm"
-        ? "py-10 sm:py-14"
-        : "py-16 sm:py-20 lg:py-24";
+        ? "py-8 sm:py-10"
+        : "py-10 sm:py-12 lg:py-16";
   return (
     <section
       id={id}
       style={BAND_VARS[tone]}
+      /*
+        `light` 와 `white` 는 같은 오프화이트다 — 색이 바뀌지 않으므로 두 밴드가 이어지면
+        아래 패딩 + 위 패딩이 그대로 더해져 빈 공간처럼 보인다. 같은 지면끼리 붙었을 때는
+        위 패딩을 지워 간격을 하나로 만든다(globals.css 의 `[data-band]` 규칙).
+      */
+      data-band={tone === "light" || tone === "white" ? "plain" : tone}
       className={`${BAND_TONE[tone]} ${pad} ${divide ? "border-t border-border/15" : ""} ${className}`}
     >
       <div className="container-site">{children}</div>
@@ -255,7 +290,7 @@ export function PageHeading({
 }) {
   const cls =
     size === "lg"
-      ? "type-kr-heading text-h2-m sm:text-h2"
+      ? "type-kr-heading text-h3-m sm:text-h3"
       : "type-kr-heading text-h3-m sm:text-h3";
   return (
     <div className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
@@ -305,7 +340,7 @@ export function LayoutCards({
     <div>
       {title && <CenterHeading title={title} lead={lead} />}
       <div
-        className={`mt-14 grid gap-6 ${columns === 3 ? "md:grid-cols-3" : "md:grid-cols-2"}`}
+        className={`mt-10 grid gap-6 ${columns === 3 ? "md:grid-cols-3" : "md:grid-cols-2"}`}
       >
         {items.map((it, i) => (
           <article key={it.title} className="flex flex-col border border-border/25">
@@ -369,7 +404,7 @@ export function LayoutHorizCards({
   return (
     <div>
       {title && <CenterHeading title={title} lead={lead} />}
-      <div className="mt-14 grid gap-6 md:grid-cols-2">
+      <div className="mt-10 grid gap-6 md:grid-cols-2">
         {items.map((it, i) => (
           <article key={it.title} className="grid grid-cols-1 border border-border/25 sm:grid-cols-2">
             <Media src={it.image} alt={it.title} ratio="4 / 3" className="h-full" revealDelay={i * 70} />
@@ -413,7 +448,7 @@ export function LayoutColumns({
         <h2 className="type-kr-heading text-h3-m sm:text-h3">{title}</h2>
         {lead && <p className="mt-6 text-m text-muted">{lead}</p>}
       </div>
-      <div className={`mt-14 grid gap-10 ${cols}`}>
+      <div className={`mt-10 grid gap-10 ${cols}`}>
         {items.map((it) => (
           <div key={it.title}>
             <h3 className="type-kr-heading text-h6-m sm:text-h6">{it.title}</h3>
@@ -464,7 +499,7 @@ export function LayoutAlternating({
   return (
     <div>
       {title && <CenterHeading title={title} lead={lead} />}
-      <div className="mt-14 space-y-6">
+      <div className="mt-10 space-y-6">
         {items.map((it, i) => (
           <article
             key={it.title}
@@ -473,7 +508,7 @@ export function LayoutAlternating({
             <div
               className={`flex flex-col justify-center p-8 lg:p-12 ${i % 2 === 1 ? "lg:order-2" : ""}`}
             >
-              <h3 className="type-kr-heading text-h4-m sm:text-h4">{it.title}</h3>
+              <h3 className="type-kr-heading text-h5-m sm:text-h5">{it.title}</h3>
               {it.desc && <p className="mt-5 max-w-xl text-s text-muted">{it.desc}</p>}
               {it.href && (
                 <div className="mt-7">
@@ -507,13 +542,13 @@ export function LayoutSticky({ items }: { items: CardItem[] }) {
           <Media src={items[0]?.image} alt={items[0]?.title ?? ""} ratio="3 / 4" />
         </div>
       </div>
-      <div className="space-y-16">
+      <div className="space-y-10">
         {items.map((it, i) => (
           <article key={it.title}>
             <span className="type-display text-h5 tabular-nums text-muted">
               {String(i + 1).padStart(2, "0")}
             </span>
-            <h3 className="type-kr-heading mt-3 text-h4-m sm:text-h4">{it.title}</h3>
+            <h3 className="type-kr-heading mt-3 text-h5-m sm:text-h5">{it.title}</h3>
             {it.desc && <p className="mt-5 text-s text-muted">{it.desc}</p>}
             <div className="mt-6 lg:hidden">
               <Media src={it.image} alt={it.title} ratio="16 / 10" />
@@ -882,7 +917,7 @@ export function CTABand({
         className="flex flex-col justify-center gap-8 lg:flex-row lg:items-center lg:justify-between"
       >
         <div className="max-w-2xl">
-          <h2 className="type-kr-heading text-h4-m sm:text-h4">{title}</h2>
+          <h2 className="type-kr-heading text-h3-m sm:text-h3">{title}</h2>
           {lead && <p className="mt-4 text-s">{lead}</p>}
         </div>
         <div className="flex shrink-0 flex-wrap gap-3 lg:justify-end">{actions}</div>
@@ -990,13 +1025,13 @@ export function PageHead({
   as?: "h1" | "h2";
 }) {
   return (
-    <div className="flex flex-col gap-8 lg:flex-row lg:items-end lg:justify-between">
+    <div className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
       <div className="min-w-0">
         <As className="type-display text-h1-m sm:text-h1">{en}</As>
         {ko && (
-          <h3 className="type-kr-heading mt-6 text-h3-m sm:text-h3">{ko}</h3>
+          <h3 className="type-kr-heading mt-4 text-h3-m sm:text-h3">{ko}</h3>
         )}
-        {lead && <div className="measure mt-6 break-keep text-m text-muted">{lead}</div>}
+        {lead && <div className="measure mt-4 break-keep text-r text-muted sm:text-m">{lead}</div>}
       </div>
       {actions && <div className="flex shrink-0 flex-wrap gap-3">{actions}</div>}
     </div>
@@ -1017,7 +1052,7 @@ export function SectionHead({
     <div className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
       <div className="min-w-0">
         <h3 className={`${headingFontClass(title)} text-h3-m sm:text-h3`}>{title}</h3>
-        {lead && <div className="measure mt-5 break-keep text-m text-muted">{lead}</div>}
+        {lead && <div className="measure mt-3 break-keep text-r text-muted sm:text-m">{lead}</div>}
       </div>
       {actions && <div className="flex shrink-0 flex-wrap gap-3">{actions}</div>}
     </div>
@@ -1067,7 +1102,7 @@ export function PhotoHero({
         </>
       )}
       <div className="container-site py-20">
-        <h2 className="type-kr-heading text-h2-m sm:text-h2">{title}</h2>
+        <h2 className="type-kr-heading text-h3-m sm:text-h3">{title}</h2>
         {eyebrow && <p className="mt-6 text-s font-bold">{eyebrow}</p>}
         {desc && (
           <p className="mt-6 max-w-[41.5rem] break-keep text-r leading-7">{desc}</p>

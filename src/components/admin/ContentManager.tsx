@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import type { Faq, Notice } from "@/lib/pricing/types";
-import type { HomeContent } from "@/lib/content/types";
+import type { HomeContent, LegalContent } from "@/lib/content/types";
 import type {
   DocumentsContent,
   FeaturesContent,
@@ -18,6 +18,7 @@ import { NoticeEditor } from "./NoticeEditor";
 import { HomeContentForm } from "./HomeContentForm";
 import { formatDateTime } from "@/lib/format";
 import { useQueryTab } from "@/components/admin/useQueryTab";
+import { LegalContentForm } from "./LegalContentForm";
 import {
   DocumentsForm,
   FeaturesForm,
@@ -55,7 +56,8 @@ type Tab =
   | "guide"
   | "rates"
   | "rules"
-  | "documents";
+  | "documents"
+  | "legal";
 
 function isHtmlBodyEmpty(html: string): boolean {
   return html.replace(/<[^>]+>/g, "").trim().length === 0 && !html.includes("<img");
@@ -76,6 +78,8 @@ export function ContentManager({
   ratesContent,
   rulesContent,
   documentsContent,
+  termsContent,
+  privacyContent,
 }: {
   notices: Notice[];
   faqs: Faq[];
@@ -86,12 +90,14 @@ export function ContentManager({
   ratesContent: RatesContent;
   rulesContent: RulesContent;
   documentsContent: DocumentsContent;
+  termsContent: LegalContent;
+  privacyContent: LegalContent;
 }) {
   const router = useRouter();
   // 탭을 URL(?tab=)에 싣는다 — 새로고침해도 유지되고 특정 탭을 링크로 줄 수 있다.
   const [tab, setTab] = useQueryTab<Tab>(
     "tab",
-    ["notices", "faq", "home", "seoularena", "features", "guide", "rates", "rules", "documents"],
+    ["notices", "faq", "home", "seoularena", "features", "guide", "rates", "rules", "documents", "legal"],
     "notices",
   );
   const [notices, setNotices] = useState(initialNotices);
@@ -111,6 +117,7 @@ export function ContentManager({
             ["rates", "대관료"],
             ["rules", "대관 규약"],
             ["documents", "대관 자료"],
+            ["legal", "약관 · 정책"],
           ] as const
         ).map(([key, label]) => (
           <button key={key} type="button" onClick={() => setTab(key)} className={tabCls(tab === key)}>
@@ -129,6 +136,22 @@ export function ContentManager({
         {tab === "rates" && <RatesForm content={ratesContent} />}
         {tab === "rules" && <RulesForm content={rulesContent} />}
         {tab === "documents" && <DocumentsForm content={documentsContent} />}
+        {tab === "legal" && (
+          <div className="space-y-10">
+            <LegalContentForm
+              kind="terms"
+              label="이용약관"
+              content={termsContent}
+              publicHref="/terms"
+            />
+            <LegalContentForm
+              kind="privacy"
+              label="개인정보처리방침"
+              content={privacyContent}
+              publicHref="/privacy"
+            />
+          </div>
+        )}
       </div>
     </div>
   );

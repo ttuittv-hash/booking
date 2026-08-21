@@ -52,7 +52,7 @@ function AboutPanel({ c, introHtml }: { c: SeoulArenaContent; introHtml: string 
       {c.complexFeatures.length > 0 && (
         <Band tone="light">
           <SectionHead title="FEATURES" lead={c.complexFeaturesLead} />
-          <div className="mt-12">
+          <div className="mt-10">
             <FeatureList items={c.complexFeatures.map((t) => ({ title: t, lines: [] }))} numbered />
           </div>
         </Band>
@@ -75,7 +75,7 @@ function WhyPanel({ c, whyHtml }: { c: SeoulArenaContent; whyHtml: string }) {
       {c.stageFeatures.length > 0 && (
         <Band tone="dark">
           <SectionHead title="FEATURES" />
-          <div className="mt-12">
+          <div className="mt-10">
             <FeatureList items={c.stageFeatures} />
           </div>
         </Band>

@@ -17,6 +17,9 @@ const baseCompany = {
   companyPhone: null,
   companyFax: null,
   corporateNumber: null,
+  representativePhone: null,
+  representativeFax: null,
+  corporateRegistrationNumber: null,
   verification: {
     status: "VERIFIED" as const,
     companyName: "테스트",

@@ -6,8 +6,7 @@ import type { AppUser } from "@/lib/pricing/types";
 import { LogoutButton } from "@/components/LogoutButton";
 import { NotificationBell } from "@/components/NotificationBell";
 import {
-  ACCOUNT_PAGES,
-  MASTER_ACCOUNT_PAGE,
+  ACCOUNT_HREF,
   NAV_ACTION,
   NAV_CATEGORIES,
   SUPPORT_MENU,
@@ -29,8 +28,9 @@ import {
    ========================================================================= */
 
 const CAT_BTN = "flex h-full items-center px-3 type-display text-s text-foreground";
+/** BOOK IT — 사이트의 유일한 액션이라 상단바에서 유일하게 채움 버튼이다 */
 const ACTION_BTN =
-  "flex h-full items-center px-3 type-display text-s text-foreground transition-colors hover:text-accent";
+  "flex h-8 items-center border border-transparent bg-[var(--btn-primary-bg)] px-5 type-display text-s text-[var(--btn-primary-fg)] transition-colors hover:bg-[var(--btn-primary-bg-hover)]";
 const PANEL_LINK = "block whitespace-nowrap py-1.5 text-xs transition-colors hover:text-accent";
 /**
  * 우측 유틸 — 채움·아웃라인 없는 텍스트 버튼.
@@ -63,8 +63,16 @@ function useBackofficeHref(): string {
   );
 }
 
-const UTIL_BTN =
-  "flex items-center gap-1 whitespace-nowrap text-xs font-bold text-foreground transition-colors hover:text-accent";
+const UTIL_BASE =
+  "flex items-center gap-1 whitespace-nowrap text-xs font-bold text-foreground transition-colors";
+/**
+ * 드롭다운을 여는 트리거(지원 · 계정). 중앙 카테고리와 같은 이유로
+ * **호버 색을 바꾸지 않는다** — 눌러서 갈 페이지가 없으므로 링크처럼 보이면 안 된다.
+ * 펼쳐지는 패널이 피드백이다.
+ */
+const UTIL_TRIGGER = UTIL_BASE;
+/** 실제로 이동·실행하는 것(로그인 · 회원가입 · 로그아웃 · 백오피스) */
+const UTIL_LINK = `${UTIL_BASE} hover:text-accent`;
 
 function Caret() {
   return (
@@ -104,7 +112,7 @@ function UtilMenu({
         aria-expanded={isOpen}
         aria-haspopup="true"
         onClick={() => onToggle(id)}
-        className={UTIL_BTN}
+        className={UTIL_TRIGGER}
       >
         {label}
         <Caret />
@@ -209,12 +217,11 @@ export function PublicHeader({
   function toggle(key: string) {
     setOpenKey((k) => (k === key ? null : key));
   }
-
-  // 담당자 관리는 대표 담당자 전용이다 — 일반 담당자에게는 메뉴에 올리지 않는다.
-  const accountPages =
-    currentUser?.companyRole === "MASTER"
-      ? [ACCOUNT_PAGES[0], MASTER_ACCOUNT_PAGE, ...ACCOUNT_PAGES.slice(1)]
-      : ACCOUNT_PAGES;
+  /** 유예 없이 바로 닫는다 — 카테고리가 아닌 항목으로 마우스가 넘어갈 때 */
+  function closeNow() {
+    if (closeTimer.current) clearTimeout(closeTimer.current);
+    setOpenKey(null);
+  }
 
   return (
     <header
@@ -233,6 +240,7 @@ export function PublicHeader({
             헤더 높이만큼 세로를 채워 누르기 쉽게 한다. */}
         <Link
           href="/"
+          onMouseEnter={closeNow}
           className="type-display flex h-full shrink-0 items-center text-h6-m leading-none"
           aria-label="Seoul Arena 홈"
         >
@@ -289,7 +297,12 @@ export function PublicHeader({
                 </li>
               );
             })}
-            <li className="flex items-stretch">
+            {/*
+              BOOK IT 위로 마우스가 오면 열려 있던 카테고리를 **즉시** 닫는다.
+              닫힘 유예(120ms)만 믿으면 YOUR GUIDE → BOOK IT 으로 지나가는 동안
+              드롭다운이 버튼을 덮은 채로 남아 엉뚱한 페이지로 들어가게 된다.
+            */}
+            <li className="ml-2 flex items-center" onMouseEnter={closeNow} onFocus={closeNow}>
               <Link href={NAV_ACTION.href} className={ACTION_BTN}>
                 {NAV_ACTION.label}
               </Link>
@@ -310,30 +323,30 @@ export function PublicHeader({
           />
           {currentUser ? (
             <>
-              <NotificationBell role={currentUser.role} />
               {currentUser.role === "ADMIN" ? (
-                <a href={backofficeHref} className={UTIL_BTN}>
+                <a href={backofficeHref} className={UTIL_LINK} onMouseEnter={closeNow}>
                   운영자 백오피스
                 </a>
               ) : (
-                <UtilMenu
-                  id="account"
-                  label={`${currentUser.name} 님`}
-                  pages={accountPages}
-                  active={active}
-                  openKey={openKey}
-                  onOpen={openWithCancel}
-                  onToggle={toggle}
-                />
+                /* 이름 자체가 마이페이지 링크다 — 드롭다운을 두지 않고 밑줄로만 표시한다 */
+                <Link
+                  href={ACCOUNT_HREF}
+                  onMouseEnter={closeNow}
+                  className={`${UTIL_LINK} underline decoration-1 underline-offset-4`}
+                >
+                  {currentUser.name} 님
+                </Link>
               )}
-              <LogoutButton className={UTIL_BTN} />
+              <LogoutButton className={UTIL_LINK} />
+              {/* 알림은 맨 오른쪽 — 텍스트 메뉴와 성격이 달라 끝에 떼어 둔다 */}
+              <NotificationBell role={currentUser.role} />
             </>
           ) : (
             <>
-              <Link href="/register" className={UTIL_BTN}>
+              <Link href="/register" className={UTIL_LINK} onMouseEnter={closeNow}>
                 회원가입
               </Link>
-              <Link href="/login" className={UTIL_BTN}>
+              <Link href="/login" className={UTIL_LINK} onMouseEnter={closeNow}>
                 로그인
               </Link>
             </>
@@ -420,10 +433,11 @@ export function PublicHeader({
                 </li>
               ))}
               <li>
+                {/* 좁은 화면에서도 유일한 액션이라 채움 버튼으로 둔다 */}
                 <Link
                   href={NAV_ACTION.href}
                   onClick={() => setMobileOpen(false)}
-                  className="type-display text-h6-m"
+                  className="flex h-12 items-center justify-center border border-transparent bg-[var(--btn-primary-bg)] type-display text-s text-[var(--btn-primary-fg)]"
                 >
                   {NAV_ACTION.label}
                 </Link>
@@ -465,19 +479,17 @@ export function PublicHeader({
                         </a>
                       </li>
                     ) : (
-                      accountPages.map((p) => (
-                        <li key={p.href}>
-                          <Link
-                            href={p.href}
-                            onClick={() => setMobileOpen(false)}
-                            className={`text-r transition-colors hover:text-accent ${
-                              p.href === active ? "font-bold text-foreground" : "text-muted"
-                            }`}
-                          >
-                            {p.label}
-                          </Link>
-                        </li>
-                      ))
+                      <li>
+                        <Link
+                          href={ACCOUNT_HREF}
+                          onClick={() => setMobileOpen(false)}
+                          className={`text-r underline decoration-1 underline-offset-4 transition-colors hover:text-accent ${
+                            active.startsWith("/mypage") ? "font-bold text-foreground" : "text-muted"
+                          }`}
+                        >
+                          마이페이지
+                        </Link>
+                      </li>
                     )}
                   </ul>
                   <div className="mt-4 flex items-center gap-5">

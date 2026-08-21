@@ -157,7 +157,19 @@
   --font-sans: "KakaoBig", "Gothic A1", "Apple SD Gothic Neo", "Malgun Gothic",
     -apple-system, BlinkMacSystemFont, sans-serif;
 
-  /* --- Type scale (Figma Style Guide › Typography) ---------------------- */
+  /* --- Type scale (Figma Style Guide › Typography) ----------------------
+     스케일은 다 갖고 있지만 **화면에서 쓰는 단은 다섯 개**다. 위계가 아니라
+     크기가 다양해지면 페이지마다 무게가 달라 보인다.
+
+       d2      홈 히어로 · 선언문 제목 (브랜드 순간 전용)
+       h1      페이지 영문 슬로건
+       h3      페이지 국문 제목 · 섹션 제목 · 전면 사진 제목 · CTA 제목
+       h5      블록 제목 (장, 카드, 위저드 단계, 히어로 보조 문장)
+       h6      항목 제목 (조, 목록 항목, 절차 단계)
+
+     h2 · h4 · d1 은 쓰지 않는다. 본문은 리드 `text-r sm:text-m`,
+     본문 `text-r`, 보조 `text-s`, 미세 `text-xs` 네 단만 쓴다.
+     ---------------------------------------------------------------------- */
   --text-d1: 10rem;
   --text-d1--line-height: 0.9;
   --text-d1--letter-spacing: -0.03em;
@@ -222,6 +234,12 @@
 
   --spacing-gutter: var(--gutter);
   --spacing-margin-x: var(--margin-x);
+}
+
+/* 같은 지면끼리 이어진 밴드는 위 패딩을 지워 간격을 하나로 만든다.
+   (색이 바뀌는 밴드 — accent · dark — 는 자기 패딩을 그대로 갖는다) */
+[data-band="plain"] + [data-band="plain"] {
+  padding-top: 0;
 }
 
 html {
