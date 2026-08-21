@@ -243,7 +243,7 @@ export function Step1Calendar({
   const performanceCount = selectedDates.length - setupCount - loadOutCount;
 
   return (
-    <section className="border border-border bg-background p-5 sm:p-7">
+    <div>
       {heading && <h2 className="text-[19px] font-semibold">{heading}</h2>}
 
       <div className={heading ? "mt-6 flex items-center justify-between" : "flex items-center justify-between"}>
@@ -467,6 +467,6 @@ export function Step1Calendar({
         {excludedDays.length > 0 && ` (기본 6일 − 제외 ${excludedDays.length}일${extraDays > 0 ? ` + 추가 ${extraDays}일` : ""})`}
         {excludedDays.length === 0 && extraDays > 0 && ` (기본 6일 + 추가 ${extraDays}일)`}
       </div>
-    </section>
+    </div>
   );
 }
