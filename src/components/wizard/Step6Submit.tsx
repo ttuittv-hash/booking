@@ -99,7 +99,7 @@ export function Step6Submit({
       <section className="border border-border/25 bg-background p-7">
         <p className="text-s text-muted">
           {needsPackage && !pkg
-            ? "먼저 1단계에서 패키지를 선택하세요."
+            ? "구성 · 옵션에서 패키지를 먼저 선택하세요."
             : "중형공연장 일정을 먼저 선택하세요."}
         </p>
       </section>

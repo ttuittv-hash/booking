@@ -18,6 +18,11 @@ export interface HomeNarrativeStatement {
   desc: string;
 }
 
+export interface LegalContent {
+  effectiveDate: string;
+  bodyHtml: string;
+}
+
 export interface HomeContent {
   heroImage: string | null;
   /** 영문 디스플레이 */

@@ -1,12 +1,12 @@
-import type { Metadata } from "next";
 import Link from "next/link";
+import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/lib/auth";
+import { findCompanyById } from "@/lib/db";
 import { PublicHeader } from "@/components/PublicHeader";
+import { PublicFooter } from "@/components/PublicFooter";
+import { MyPageSidebar } from "@/components/MyPageSidebar";
 import { ProfileForm } from "@/components/ProfileForm";
-import { Breadcrumb } from "@/components/ui/Breadcrumb";
-import { SiteFooter } from "@/components/ui/SiteFooter";
-import { Band, PageHeading } from "@/components/ui/kit";
 
 export const metadata: Metadata = {
   title: "회원정보 수정 | 서울아레나",
@@ -15,47 +15,33 @@ export const metadata: Metadata = {
 export default async function ProfilePage() {
   const user = await getCurrentUser();
   if (!user) redirect("/login");
+  const company = user.companyId ? (await findCompanyById(user.companyId)) ?? null : null;
 
   return (
     <div className="flex flex-1 flex-col">
       <PublicHeader active="/mypage/profile" currentUser={user} />
-      <Breadcrumb
-        items={[
-          user.role === "ADMIN"
-            ? { label: "운영자 백오피스", href: "/admin" }
-            : { label: "대관 신청 현황", href: "/mypage/process" },
-          { label: "회원정보 수정" },
-        ]}
-      />
 
-      <main className="flex flex-1 flex-col">
-        <Band tone="light" size="sm">
-          <PageHeading
-            size="md"
-            title="회원정보 수정"
-            lead="담당자명·휴대폰 번호와 비밀번호를 직접 변경할 수 있습니다."
-          />
-        </Band>
-
-        <Band tone="white" size="sm">
-          <div className="max-w-xl">
-            <ProfileForm user={user} />
-
-            {user.role !== "ADMIN" && (
-              <div className="mt-10 border-t border-border/25 pt-6">
-                <Link
-                  href="/mypage/withdraw"
-                  className="text-xs text-muted underline decoration-border-soft underline-offset-4 transition-colors hover:text-danger hover:decoration-danger"
-                >
-                  회원 탈퇴
-                </Link>
-              </div>
-            )}
+      <main className="mx-auto w-full max-w-6xl flex-1 px-6 py-10">
+        {user.role === "ADMIN" ? (
+          <div className="max-w-2xl">
+            <Link href="/admin" className="text-[12.5px] font-medium text-accent hover:underline">
+              ← 운영자 백오피스
+            </Link>
+            <h1 className="mt-4 text-[22px] font-semibold">회원정보 수정</h1>
+            <ProfileForm user={user} company={company} />
           </div>
-        </Band>
+        ) : (
+          <div className="flex flex-col gap-8 sm:flex-row sm:gap-10">
+            <MyPageSidebar active="/mypage/profile" />
+            <div className="min-w-0 max-w-2xl flex-1">
+              <h1 className="text-[22px] font-semibold">회원정보 수정</h1>
+              <ProfileForm user={user} company={company} />
+            </div>
+          </div>
+        )}
       </main>
 
-      <SiteFooter />
+      <PublicFooter />
     </div>
   );
 }

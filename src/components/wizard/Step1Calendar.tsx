@@ -15,10 +15,6 @@ import {
 const DOW_LABELS = ["월", "화", "수", "목", "금", "토", "일"]; // 달력은 월요일부터 시작, 대관 단위는 화~일 (월요일은 대관 불가 기본값)
 const WEEKDAY_SHORT = ["일", "월", "화", "수", "목", "금", "토"];
 
-/** 샤프 1px 아이콘/스테퍼 버튼 */
-const ICON_BTN =
-  "inline-flex h-9 w-9 shrink-0 items-center justify-center border border-border-soft bg-surface text-r text-foreground outline-none transition-colors hover:border-foreground hover:bg-inverse-bg hover:text-inverse-fg focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-foreground";
-
 function formatDateLabel(iso: string): string {
   const [, m, d] = iso.split("-").map(Number);
   return `${m}/${d}(${WEEKDAY_SHORT[new Date(iso).getDay()]})`;
@@ -97,7 +93,7 @@ export function Step1Calendar({
   onChangeExtraDays,
   onChangeDayTags,
   onChangeDayShowCounts,
-  heading = "일정 선택",
+  heading,
 }: {
   week: QuoteSelection["week"];
   excludedDays: WeekDay[];
@@ -247,41 +243,40 @@ export function Step1Calendar({
   const performanceCount = selectedDates.length - setupCount - loadOutCount;
 
   return (
-    <section>
-      <h2 className="type-kr-heading text-h5-m sm:text-h5">{heading}</h2>
-      <p className="mt-3 text-s text-muted">
-        달력에서 원하는 주를 눌러 선택하세요. 기본 단위는{" "}
-        <b className="text-foreground">1주(화~일, 6일)</b>이며, 월요일은 기본적으로 대관하지
-        않습니다. 선택한 주의 날짜를 누르면 셋업 · 공연일(회차 포함) · 철수 · 제외를 바로
-        지정할 수 있습니다. 기간을 더 늘리려면 일요일 다음으로{" "}
-        <span className="text-foreground">추가+</span> 표시된 날짜를 눌러 이어 붙이면 됩니다 — 이렇게
-        추가한 날짜도 다른 날짜와 똑같이 역할과 회차를 지정할 수 있습니다.
-      </p>
+    <div>
+      {heading && <h2 className="text-[19px] font-semibold">{heading}</h2>}
 
-      <div className="mt-7 flex items-center justify-between border-b border-border/25 pb-4">
-        <button type="button" onClick={() => goToMonth(-1)} aria-label="이전 달" className={ICON_BTN}>
+      <div className={heading ? "mt-6 flex items-center justify-between" : "flex items-center justify-between"}>
+        <button
+          type="button"
+          onClick={() => goToMonth(-1)}
+          aria-label="이전 달"
+          className="rounded-sm border border-border px-3 py-1.5 text-[13px] text-muted hover:border-accent hover:text-accent"
+        >
           ‹
         </button>
-        <div className="type-display text-h6-m tabular-nums sm:text-h6">
-          {week.year}. {String(week.month).padStart(2, "0")}
+        <div className="text-[15px] font-semibold">
+          {week.year}년 {week.month}월
         </div>
-        <button type="button" onClick={() => goToMonth(1)} aria-label="다음 달" className={ICON_BTN}>
+        <button
+          type="button"
+          onClick={() => goToMonth(1)}
+          aria-label="다음 달"
+          className="rounded-sm border border-border px-3 py-1.5 text-[13px] text-muted hover:border-accent hover:text-accent"
+        >
           ›
         </button>
       </div>
 
-      <div className="mt-4 grid grid-cols-7 gap-1 text-center sm:gap-1.5">
+      <div className="mt-4 grid grid-cols-7 gap-1 text-center text-[11px] font-medium text-muted sm:gap-1.5">
         {DOW_LABELS.map((label, i) => (
-          <div
-            key={label}
-            className={`text-xs font-bold ${i === 0 ? "text-muted/50" : "text-muted"}`}
-          >
+          <div key={label} className={i === 0 ? "opacity-50" : ""}>
             {label}
           </div>
         ))}
       </div>
 
-      <div className="mt-2 space-y-1 sm:space-y-1.5">
+      <div className="mt-1.5 space-y-1 sm:space-y-1.5">
         {calendarWeeks.map((calWeek, wi) => {
           const isSelectable = calWeek.weekOfMonth !== null;
           const demand = calWeek.weekOfMonth !== null ? demandFor(calWeek.weekOfMonth) : 0;
@@ -289,7 +284,7 @@ export function Step1Calendar({
           const openInThisRow = openDate && calWeek.days.some((d) => isoDate(d) === openDate);
           return (
             <div key={wi}>
-              <div className="grid w-full grid-cols-7 gap-1 p-0.5 sm:gap-1.5">
+              <div className="grid w-full grid-cols-7 gap-1 rounded-sm p-0.5 sm:gap-1.5">
                 {calWeek.days.map((date, di) => {
                   const inMonth = date.getMonth() === week.month - 1;
                   const isMonday = di === 0;
@@ -314,13 +309,13 @@ export function Step1Calendar({
                         if (calWeek.weekOfMonth !== null) selectWeek(calWeek.weekOfMonth);
                       }}
                       className={[
-                        "flex h-9 flex-col items-center justify-center gap-0.5 text-xs sm:h-11 sm:text-s",
+                        "flex h-9 flex-col items-center justify-center gap-0.5 rounded-sm text-[12.5px] sm:h-11 sm:text-[13px]",
                         blocked
                           ? "cursor-not-allowed text-muted line-through"
                           : isActive
-                            ? "cursor-pointer bg-accent-soft font-semibold text-foreground"
+                            ? "cursor-pointer bg-accent-soft font-semibold text-accent"
                             : isExtendable
-                              ? "cursor-pointer border border-dashed border-accent/50 text-muted hover:border-foreground hover:text-foreground"
+                              ? "cursor-pointer border border-dashed border-accent/50 text-muted hover:border-accent hover:text-accent"
                               : !inMonth
                                 ? "cursor-default text-muted/40"
                                 : isMonday
@@ -332,7 +327,7 @@ export function Step1Calendar({
                     >
                       <span>{date.getDate()}</span>
                       {tag && (
-                        <span className="text-xs font-medium leading-none">
+                        <span className="text-[9px] font-medium leading-none">
                           {tag === "PERFORMANCE"
                             ? `공연×${dayShowCounts[iso] ?? 1}`
                             : tag === "LOAD_OUT"
@@ -340,16 +335,16 @@ export function Step1Calendar({
                               : "세팅"}
                         </span>
                       )}
-                      {!tag && isExtendable && <span className="text-xs font-medium leading-none">추가+</span>}
+                      {!tag && isExtendable && <span className="text-[9px] font-medium leading-none">추가+</span>}
                     </button>
                   );
                 })}
               </div>
 
               {openInThisRow && openDate && (
-                <div className="mt-1.5 border border-accent bg-accent-soft/40 px-3 py-2.5">
+                <div className="mt-1.5 rounded-sm border border-accent bg-accent-soft/40 px-3 py-2.5">
                   <div className="flex items-center justify-between">
-                    <div className="text-xs font-semibold text-foreground">
+                    <div className="text-[12.5px] font-semibold text-foreground">
                       {formatDateLabel(openDate)}
                       {dayKindForDate(openDate)?.kind === "extend" ? " — 추가 후 역할 선택" : " — 역할 선택"}
                     </div>
@@ -357,7 +352,7 @@ export function Step1Calendar({
                       type="button"
                       onClick={() => setOpenDate(null)}
                       aria-label="닫기"
-                      className="text-xs text-muted hover:text-foreground"
+                      className="text-[12px] text-muted hover:text-foreground"
                     >
                       닫기 ✕
                     </button>
@@ -367,10 +362,10 @@ export function Step1Calendar({
                       type="button"
                       onClick={() => setRole(openDate, "PREP")}
                       className={[
-                        "px-3 py-1.5 text-xs font-medium transition-colors",
+                        "rounded-sm px-3 py-1.5 text-[12px] font-medium transition-colors",
                         activeDateKeys.has(dateKey(new Date(openDate))) &&
                         effectiveDayTag(openDate, dayTags, dayTagDefaults) === "PREP"
-                          ? "bg-accent text-on-accent"
+                          ? "bg-accent text-white"
                           : "bg-panel-strong text-muted hover:text-foreground",
                       ].join(" ")}
                     >
@@ -380,10 +375,10 @@ export function Step1Calendar({
                       type="button"
                       onClick={() => setRole(openDate, "PERFORMANCE")}
                       className={[
-                        "px-3 py-1.5 text-xs font-medium transition-colors",
+                        "rounded-sm px-3 py-1.5 text-[12px] font-medium transition-colors",
                         activeDateKeys.has(dateKey(new Date(openDate))) &&
                         effectiveDayTag(openDate, dayTags, dayTagDefaults) === "PERFORMANCE"
-                          ? "bg-accent text-on-accent"
+                          ? "bg-accent text-white"
                           : "bg-panel-strong text-muted hover:text-foreground",
                       ].join(" ")}
                     >
@@ -393,10 +388,10 @@ export function Step1Calendar({
                       type="button"
                       onClick={() => setRole(openDate, "LOAD_OUT")}
                       className={[
-                        "px-3 py-1.5 text-xs font-medium transition-colors",
+                        "rounded-sm px-3 py-1.5 text-[12px] font-medium transition-colors",
                         activeDateKeys.has(dateKey(new Date(openDate))) &&
                         effectiveDayTag(openDate, dayTags, dayTagDefaults) === "LOAD_OUT"
-                          ? "bg-accent text-on-accent"
+                          ? "bg-accent text-white"
                           : "bg-panel-strong text-muted hover:text-foreground",
                       ].join(" ")}
                     >
@@ -412,7 +407,7 @@ export function Step1Calendar({
                         if (kind.kind === "extra") return kind.index !== extraDays - 1; // 맨 마지막 추가일만 뗄 수 있음
                         return true; // extend — 아직 추가되지 않아 뗄 것이 없음
                       })()}
-                      className="bg-panel-strong px-3 py-1.5 text-xs font-medium text-muted transition-colors hover:text-red-600 disabled:cursor-not-allowed disabled:opacity-40"
+                      className="rounded-sm bg-panel-strong px-3 py-1.5 text-[12px] font-medium text-muted transition-colors hover:text-red-600 disabled:cursor-not-allowed disabled:opacity-40"
                     >
                       삭제
                     </button>
@@ -420,27 +415,27 @@ export function Step1Calendar({
                   {activeDateKeys.has(dateKey(new Date(openDate))) &&
                     effectiveDayTag(openDate, dayTags, dayTagDefaults) === "PERFORMANCE" && (
                       <div className="mt-2.5 flex items-center gap-2 border-t border-accent/20 pt-2.5">
-                        <span className="text-xs text-muted">공연 회차</span>
+                        <span className="text-[11.5px] text-muted">공연 회차</span>
                         <button
                           type="button"
                           onClick={() => setShowCount(openDate, (dayShowCounts[openDate] ?? 1) - 1)}
-                          className="h-6 w-6 border border-border/25 text-s text-muted hover:border-foreground hover:text-foreground"
+                          className="h-6 w-6 rounded-sm border border-border text-[13px] text-muted hover:border-accent hover:text-accent"
                         >
                           −
                         </button>
-                        <span className="w-4 text-center text-xs font-medium tabular-nums">
+                        <span className="w-4 text-center text-[12px] font-medium tabular-nums">
                           {dayShowCounts[openDate] ?? 1}
                         </span>
                         <button
                           type="button"
                           onClick={() => setShowCount(openDate, (dayShowCounts[openDate] ?? 1) + 1)}
-                          className="h-6 w-6 border border-border/25 text-s text-muted hover:border-foreground hover:text-foreground"
+                          className="h-6 w-6 rounded-sm border border-border text-[13px] text-muted hover:border-accent hover:text-accent"
                         >
                           +
                         </button>
                       </div>
                     )}
-                  <p className="mt-2 text-xs text-muted">
+                  <p className="mt-2 text-[11px] text-muted">
                     1일 2회 이상 공연 할증은 아직 협의 중입니다(요금 엔진 연동 후 반영) — 회차는
                     지금도 지정해 두시면 이후 반영 시 그대로 적용됩니다.
                   </p>
@@ -448,14 +443,14 @@ export function Step1Calendar({
               )}
 
               {blocked ? (
-                <div className="pt-1 text-right text-xs font-bold text-danger">
+                <div className="px-0.5 pt-0.5 text-right text-[10.5px] font-medium text-red-600">
                   대관 불가{blocked.reason ? ` · ${blocked.reason}` : ""}
                 </div>
               ) : (
                 demand > 0 && (
-                  <div className="pt-1 text-right text-xs text-muted">
+                  <div className="px-0.5 pt-0.5 text-right text-[10.5px] text-muted">
                     {demand > 1 && <span>경합 중 · </span>}
-                    <b className="tabular-nums text-foreground">{demand}</b>
+                    <span className="font-bold text-accent">{demand}</span>
                     <span>개사 신청</span>
                   </div>
                 )
@@ -465,13 +460,13 @@ export function Step1Calendar({
         })}
       </div>
 
-      <div className="mt-4 text-s font-medium text-foreground">
+      <div className="mt-4 text-[14px] font-medium text-accent">
         {week.year}년 {week.month}월 {week.weekOfMonth}주차 · 셋업 {setupCount}일 · 공연{" "}
         {performanceCount}일{loadOutCount > 0 ? ` · 철수 ${loadOutCount}일` : ""} · 총 {totalDays}
         일 적용
         {excludedDays.length > 0 && ` (기본 6일 − 제외 ${excludedDays.length}일${extraDays > 0 ? ` + 추가 ${extraDays}일` : ""})`}
         {excludedDays.length === 0 && extraDays > 0 && ` (기본 6일 + 추가 ${extraDays}일)`}
       </div>
-    </section>
+    </div>
   );
 }

@@ -123,36 +123,31 @@ export function MidHallCalendar({
 
   return (
     <div>
-      {title && <h3 className="type-kr-heading text-h6-m">{title}</h3>}
-      <p className="mt-1.5 text-s text-muted">
-        패키지가 없습니다 — 달력에서 날짜를 누르면 셋업 · 공연일(회차 포함) · 철수와 셋업
-        연장 · 철수 연장 시간까지 같은 자리에서 지정할 수 있습니다. 최소 대관 일수 제한이
-        없고 연속하지 않아도 됩니다.
-      </p>
+      {title && <h3 className="text-[15px] font-semibold">{title}</h3>}
 
       <div className="mt-5 flex items-center justify-between">
         <button
           type="button"
           onClick={() => goToMonth(-1)}
           aria-label="이전 달"
-          className="border border-border/25 px-3 py-1.5 text-s text-muted hover:border-foreground hover:text-foreground"
+          className="rounded-sm border border-border px-3 py-1.5 text-[13px] text-muted hover:border-accent hover:text-accent"
         >
           ‹
         </button>
-        <div className="text-r font-semibold">
+        <div className="text-[15px] font-semibold">
           {year}년 {month}월
         </div>
         <button
           type="button"
           onClick={() => goToMonth(1)}
           aria-label="다음 달"
-          className="border border-border/25 px-3 py-1.5 text-s text-muted hover:border-foreground hover:text-foreground"
+          className="rounded-sm border border-border px-3 py-1.5 text-[13px] text-muted hover:border-accent hover:text-accent"
         >
           ›
         </button>
       </div>
 
-      <div className="mt-4 grid grid-cols-7 gap-1 text-center text-xs font-medium text-muted sm:gap-1.5">
+      <div className="mt-4 grid grid-cols-7 gap-1 text-center text-[11px] font-medium text-muted sm:gap-1.5">
         {DOW_LABELS.map((label, i) => (
           <div key={label} className={i === 5 || i === 6 ? "opacity-70" : ""}>
             {label}
@@ -180,13 +175,13 @@ export function MidHallCalendar({
                       disabled={!interactable}
                       onClick={() => setOpenDate(openDate === iso ? null : iso)}
                       className={[
-                        "flex h-14 flex-col items-center justify-center gap-0.5 text-xs transition-colors sm:h-16",
+                        "flex h-14 flex-col items-center justify-center gap-0.5 rounded-sm text-[12.5px] transition-colors sm:h-16",
                         !inMonth
                           ? "cursor-default text-transparent"
                           : blocked
                             ? "cursor-not-allowed text-muted line-through"
                             : selection
-                              ? "cursor-pointer bg-accent-soft font-semibold text-foreground"
+                              ? "cursor-pointer bg-accent-soft font-semibold text-accent"
                               : "cursor-pointer text-foreground hover:bg-panel",
                         isToday ? "underline decoration-2 underline-offset-4" : "",
                         openDate === iso ? "ring-2 ring-accent" : "",
@@ -194,7 +189,7 @@ export function MidHallCalendar({
                     >
                       <span>{date.getDate()}</span>
                       {inMonth && selection && (
-                        <span className="text-xs font-bold">{roleTag(selection.role, selection.shows)}</span>
+                        <span className="text-[9.5px] font-medium">{roleTag(selection.role, selection.shows)}</span>
                       )}
                     </button>
                   );
@@ -202,9 +197,9 @@ export function MidHallCalendar({
               </div>
 
               {openInThisRow && openDate && (
-                <div className="mt-1.5 border border-accent bg-accent-soft/40 px-3 py-2.5">
+                <div className="mt-1.5 rounded-sm border border-accent bg-accent-soft/40 px-3 py-2.5">
                   <div className="flex items-center justify-between">
-                    <div className="text-xs font-semibold text-foreground">
+                    <div className="text-[12.5px] font-semibold text-foreground">
                       {formatDateLabel(openDate)}
                       {isWeekendDate(openDate) ? <span className="ml-1 font-normal text-muted">· 주말</span> : null}
                       {" — 역할 선택"}
@@ -213,7 +208,7 @@ export function MidHallCalendar({
                       type="button"
                       onClick={() => setOpenDate(null)}
                       aria-label="닫기"
-                      className="text-xs text-muted hover:text-foreground"
+                      className="text-[12px] text-muted hover:text-foreground"
                     >
                       닫기 ✕
                     </button>
@@ -223,9 +218,9 @@ export function MidHallCalendar({
                       type="button"
                       onClick={() => setRole(openDate, "SETUP")}
                       className={[
-                        "px-3 py-1.5 text-xs font-medium transition-colors",
+                        "rounded-sm px-3 py-1.5 text-[12px] font-medium transition-colors",
                         days[openDate]?.role === "SETUP"
-                          ? "bg-accent text-on-accent"
+                          ? "bg-accent text-white"
                           : "bg-panel-strong text-muted hover:text-foreground",
                       ].join(" ")}
                     >
@@ -235,9 +230,9 @@ export function MidHallCalendar({
                       type="button"
                       onClick={() => setRole(openDate, "PERFORMANCE")}
                       className={[
-                        "px-3 py-1.5 text-xs font-medium transition-colors",
+                        "rounded-sm px-3 py-1.5 text-[12px] font-medium transition-colors",
                         days[openDate]?.role === "PERFORMANCE"
-                          ? "bg-accent text-on-accent"
+                          ? "bg-accent text-white"
                           : "bg-panel-strong text-muted hover:text-foreground",
                       ].join(" ")}
                     >
@@ -247,9 +242,9 @@ export function MidHallCalendar({
                       type="button"
                       onClick={() => setRole(openDate, "LOAD_OUT")}
                       className={[
-                        "px-3 py-1.5 text-xs font-medium transition-colors",
+                        "rounded-sm px-3 py-1.5 text-[12px] font-medium transition-colors",
                         days[openDate]?.role === "LOAD_OUT"
-                          ? "bg-accent text-on-accent"
+                          ? "bg-accent text-white"
                           : "bg-panel-strong text-muted hover:text-foreground",
                       ].join(" ")}
                     >
@@ -259,7 +254,7 @@ export function MidHallCalendar({
                       type="button"
                       onClick={() => removeDate(openDate)}
                       disabled={!days[openDate]}
-                      className="bg-panel-strong px-3 py-1.5 text-xs font-medium text-muted transition-colors hover:text-red-600 disabled:cursor-not-allowed disabled:opacity-40"
+                      className="rounded-sm bg-panel-strong px-3 py-1.5 text-[12px] font-medium text-muted transition-colors hover:text-red-600 disabled:cursor-not-allowed disabled:opacity-40"
                     >
                       삭제
                     </button>
@@ -267,71 +262,71 @@ export function MidHallCalendar({
                   {days[openDate]?.role === "PERFORMANCE" && (
                     <div className="mt-2.5 flex flex-wrap items-center gap-x-5 gap-y-2 border-t border-accent/20 pt-2.5">
                       <div className="flex items-center gap-2">
-                        <span className="text-xs text-muted">공연 회차</span>
+                        <span className="text-[11.5px] text-muted">공연 회차</span>
                         <button
                           type="button"
                           onClick={() => setShows(openDate, (days[openDate]?.shows ?? 1) - 1)}
-                          className="h-6 w-6 border border-border/25 text-s text-muted hover:border-foreground hover:text-foreground"
+                          className="h-6 w-6 rounded-sm border border-border text-[13px] text-muted hover:border-accent hover:text-accent"
                         >
                           −
                         </button>
-                        <span className="w-4 text-center text-xs font-medium tabular-nums">
+                        <span className="w-4 text-center text-[12px] font-medium tabular-nums">
                           {days[openDate]?.shows ?? 1}
                         </span>
                         <button
                           type="button"
                           onClick={() => setShows(openDate, (days[openDate]?.shows ?? 1) + 1)}
-                          className="h-6 w-6 border border-border/25 text-s text-muted hover:border-foreground hover:text-foreground"
+                          className="h-6 w-6 rounded-sm border border-border text-[13px] text-muted hover:border-accent hover:text-accent"
                         >
                           +
                         </button>
-                        <span className="text-xs text-muted">회차</span>
+                        <span className="text-[10px] text-muted">회차</span>
                       </div>
                     </div>
                   )}
                   {days[openDate]?.role === "LOAD_OUT" && (
                     <div className="mt-2.5 flex items-center gap-2 border-t border-accent/20 pt-2.5">
-                      <span className="text-xs text-muted">철수 Load-Out 연장(전체 일정 공통)</span>
+                      <span className="text-[11.5px] text-muted">철수 Load-Out 연장(전체 일정 공통)</span>
                       <button
                         type="button"
                         onClick={() => onChangeExtraLoadOutHours(Math.max(0, extraLoadOutHours - 1))}
-                        className="h-6 w-6 border border-border/25 text-s text-muted hover:border-foreground hover:text-foreground"
+                        className="h-6 w-6 rounded-sm border border-border text-[13px] text-muted hover:border-accent hover:text-accent"
                       >
                         −
                       </button>
-                      <span className="w-4 text-center text-xs font-medium tabular-nums">{extraLoadOutHours}</span>
+                      <span className="w-4 text-center text-[12px] font-medium tabular-nums">{extraLoadOutHours}</span>
                       <button
                         type="button"
                         onClick={() => onChangeExtraLoadOutHours(Math.min(6, extraLoadOutHours + 1))}
-                        className="h-6 w-6 border border-border/25 text-s text-muted hover:border-foreground hover:text-foreground"
+                        className="h-6 w-6 rounded-sm border border-border text-[13px] text-muted hover:border-accent hover:text-accent"
                       >
                         +
                       </button>
-                      <span className="text-xs text-muted">시간 · {won(rateConfig.extraHourFee)}/시간</span>
+                      <span className="text-[10px] text-muted">시간 · {won(rateConfig.extraHourFee)}/시간</span>
                     </div>
                   )}
                   {days[openDate]?.role === "SETUP" && (
                     <div className="mt-2.5 flex items-center gap-2 border-t border-accent/20 pt-2.5">
-                      <span className="text-xs text-muted">셋업 연장(22:00~24:00, 전체 일정 공통)</span>
+                      <span className="text-[11.5px] text-muted">셋업 연장(22:00~24:00, 전체 일정 공통)</span>
                       <button
                         type="button"
                         onClick={() => onChangeExtraSetupHours(Math.max(0, extraSetupHours - 1))}
-                        className="h-6 w-6 border border-border/25 text-s text-muted hover:border-foreground hover:text-foreground"
+                        className="h-6 w-6 rounded-sm border border-border text-[13px] text-muted hover:border-accent hover:text-accent"
                       >
                         −
                       </button>
-                      <span className="w-4 text-center text-xs font-medium tabular-nums">{extraSetupHours}</span>
+                      <span className="w-4 text-center text-[12px] font-medium tabular-nums">{extraSetupHours}</span>
                       <button
                         type="button"
                         onClick={() => onChangeExtraSetupHours(Math.min(2, extraSetupHours + 1))}
-                        className="h-6 w-6 border border-border/25 text-s text-muted hover:border-foreground hover:text-foreground"
+                        className="h-6 w-6 rounded-sm border border-border text-[13px] text-muted hover:border-accent hover:text-accent"
                       >
                         +
                       </button>
-                      <span className="text-xs text-muted">시간 · {won(rateConfig.extraHourFee)}/시간</span>
+                      <span className="text-[10px] text-muted">시간 · {won(rateConfig.extraHourFee)}/시간</span>
                     </div>
                   )}
-                  <p className="mt-2 text-xs text-muted">
+                  <p className="mt-2 text-[11px] text-muted">
                     {days[openDate] ? (
                       days[openDate].role === "PERFORMANCE" && days[openDate].shows >= 3 ? (
                         <span className="text-warn">1일 {days[openDate].shows}회 — 운영자 확인 필요(자동 계산 제외)</span>
@@ -355,7 +350,7 @@ export function MidHallCalendar({
       </div>
 
       {selectedDates.length > 0 && (
-        <div className="mt-5 text-s font-medium text-foreground">
+        <div className="mt-5 text-[14px] font-medium text-accent">
           선택 일자 {selectedDates.length}일(비연속 가능) · 셋업 {setupCount}일 · 공연{" "}
           {performanceDates.length}일 · 회차 합계 {showCount}
           {loadOutDayCount > 0 && ` · 철수 ${loadOutDayCount}일`}
@@ -364,7 +359,7 @@ export function MidHallCalendar({
         </div>
       )}
 
-      <p className="mt-5 text-xs leading-5 text-muted">
+      <p className="mt-5 text-[11.5px] leading-5 text-muted">
         대관료 포함 — 공연일 냉·난방(공연 1시간 전~종료) · 분장실 · 대기실 4개실 + 퀵체인지룸 ·
         로비 · 전기 · 수도 · 하우스 매니저 · 어셔. 브레이크타임 12:00~13:00 · 18:00~19:00에는 대관
         진행이 제한됩니다(시간 조정 협의 가능).
