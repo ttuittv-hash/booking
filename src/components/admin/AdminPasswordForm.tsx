@@ -36,10 +36,10 @@ export function AdminPasswordForm() {
 
   return (
     <section className="border border-border bg-background p-5">
-      <h2 className="text-r font-bold">비밀번호 변경</h2>
+      <h2 className="type-kr-heading text-h6-m">비밀번호 변경</h2>
       <div className="mt-4 max-w-sm space-y-3">
         <label className="block">
-          <span className="mb-1.5 block text-xs font-medium text-muted">현재 비밀번호</span>
+          <span className="mb-1.5 block text-xs font-bold text-muted">현재 비밀번호</span>
           <input
             type="password"
             autoComplete="current-password"
@@ -49,7 +49,7 @@ export function AdminPasswordForm() {
           />
         </label>
         <label className="block">
-          <span className="mb-1.5 block text-xs font-medium text-muted">새 비밀번호 (8자 이상)</span>
+          <span className="mb-1.5 block text-xs font-bold text-muted">새 비밀번호 (8자 이상)</span>
           <input
             type="password"
             autoComplete="new-password"

@@ -128,7 +128,21 @@ export function Band({
   );
 }
 
-/** 푸터 컬럼 제목 등 구조 라벨. 헤딩 위 아이브로로는 쓰지 않는다. */
+/* ============================================================================
+   아이브로 — 블록 위의 작은 라벨. **크기는 언제나 작은 단(12)** 이고 두 종뿐이다.
+
+     EYEBROW      국문·공용 — 12 Bold, 자간 없음
+     Label / LABEL_CAPS   영문 캡스 — 12 ExtraBold Archivo, 자간 0.08em
+
+   같은 12 라도 굵기·자간이 자리마다 다르면 크기가 다른 것처럼 보인다. 그래서
+   한글에 `uppercase`(효과 없음) + `tracking-wide` 를 걸어 두는 식의 변형을 두지
+   않는다 — 한글에 자간을 벌리면 같은 12 가 더 커 보인다.
+   ========================================================================= */
+
+/** 국문·공용 아이브로. 색은 자리에 맞게 `text-muted` / `text-foreground` 를 붙인다. */
+export const EYEBROW = "text-xs font-bold";
+
+/** 푸터 컬럼 제목 등 영문 캡스 라벨. 헤딩 위 아이브로로는 쓰지 않는다. */
 export function Label({ children, className = "" }: { children: ReactNode; className?: string }) {
   return (
     <p
@@ -166,7 +180,8 @@ export function Label({ children, className = "" }: { children: ReactNode; class
    금지
      · `py-*` 로 높이를 만들지 않는다 — 높이는 h-8 / h-10 / h-12 뿐이다
        (`px-3 py-1.5` 처럼 쓰면 글꼴 줄높이에 따라 30·31·33px 이 섞여 나온다)
-     · `rounded-*` 금지. 알약은 페이지 전환 탭(QueryTabs pill) 전용이다
+     · `rounded-*` 금지 — **네모는 실행(버튼), 알약은 이동(탭)** 이다. 알약은 탭 계열
+       전용이다(페이지 전환 탭 `QueryTabs` pill · 위저드 하위 단계 `StepNav`)
      · 옐로를 면·글자색으로 쓰지 않는다 — 옐로는 포커스 링과 밑줄 강조에만
      · 임의 px 글자 크기 금지 — 48·40 은 text-s(14), 32 는 text-xs(12)
      · 같은 줄에 높이가 다른 컨트롤을 섞지 않는다(입력 필드도 같은 단으로 맞춘다)
@@ -671,7 +686,7 @@ export function ComparisonTable({
                 <th
                   scope="colgroup"
                   colSpan={n + 1}
-                  className={`border-b border-border/25 pb-2 text-left text-xs font-bold uppercase tracking-[0.08em] text-muted ${
+                  className={`border-b border-border/25 pb-2 text-left text-xs font-bold text-muted ${
                     gi === 0 ? "pt-5" : "pt-9"
                   }`}
                 >
@@ -759,7 +774,10 @@ export function toggleClass(selected: boolean, disabled = false) {
  * 네모 아웃라인 · 샤프 코너 · 32(버튼 sm 과 같은 단). 필드 자체는 한 줄 입력이라 40.
  */
 export const FILE_INPUT =
-  "field-base file:mr-3 file:inline-flex file:h-8 file:items-center file:border file:border-foreground file:bg-transparent file:px-4 file:text-xs file:font-bold file:text-foreground";
+  // `my-[3px]` 는 광학 보정이다. 브라우저는 파일 버튼을 글자 **베이스라인**에 얹으므로
+  // 40 필드 안에서 위 1 / 아래 7 로 치우친다(실측). 3px 을 주면 4.0 / 4.2 로 가운데 온다.
+  // display:flex 나 align-items 는 파일 입력 내부에 먹지 않는다(크로미움).
+  "field-base file:mr-3 file:my-[3px] file:inline-flex file:h-8 file:items-center file:border file:border-foreground file:bg-transparent file:px-4 file:text-xs file:font-bold file:text-foreground";
 
 /** 아이콘 버튼(±, ‹ ›) — 토글과 같은 32 높이의 정사각형 */
 export const ICON_BTN_SM =
@@ -1093,7 +1111,7 @@ export function PageHead({
         {ko && (
           <h3 className="type-kr-heading mt-4 text-h3-m sm:text-h3">{ko}</h3>
         )}
-        {lead && <div className="measure mt-4 break-keep text-r text-muted sm:text-m">{lead}</div>}
+        {lead && <div className="measure mt-4 break-keep text-m text-muted">{lead}</div>}
       </div>
       {actions && <div className="flex shrink-0 flex-wrap gap-3">{actions}</div>}
     </div>
@@ -1114,7 +1132,7 @@ export function SectionHead({
     <div className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
       <div className="min-w-0">
         <h3 className={`${headingFontClass(title)} text-h3-m sm:text-h3`}>{title}</h3>
-        {lead && <div className="measure mt-3 break-keep text-r text-muted sm:text-m">{lead}</div>}
+        {lead && <div className="measure mt-3 break-keep text-m text-muted">{lead}</div>}
       </div>
       {actions && <div className="flex shrink-0 flex-wrap gap-3">{actions}</div>}
     </div>
@@ -1167,7 +1185,7 @@ export function PhotoHero({
         <h2 className="type-kr-heading text-h3-m sm:text-h3">{title}</h2>
         {eyebrow && <p className="mt-6 text-s font-bold">{eyebrow}</p>}
         {desc && (
-          <p className="mt-6 max-w-[41.5rem] break-keep text-r leading-7">{desc}</p>
+          <p className="mt-6 max-w-[41.5rem] break-keep text-m leading-8">{desc}</p>
         )}
       </div>
     </section>

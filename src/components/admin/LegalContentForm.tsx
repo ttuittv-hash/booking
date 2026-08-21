@@ -7,7 +7,7 @@ import type { LegalContent } from "@/lib/content/types";
 import { NoticeEditor } from "./NoticeEditor";
 
 const RICH_TEXT_PREVIEW_CLS =
-  "[&_h2]:mt-6 [&_h2]:text-r [&_h2]:font-bold [&_h2]:text-foreground [&_h2]:first:mt-0 [&_p]:my-2 [&_ul]:list-disc [&_ul]:pl-5 [&_li]:mt-1 [&_table]:mt-3 [&_table]:w-full [&_table]:border-collapse [&_td]:border [&_td]:border-border [&_td]:px-2.5 [&_td]:py-1.5 [&_th]:border [&_th]:border-border [&_th]:bg-panel-strong [&_th]:px-2.5 [&_th]:py-1.5 [&_th]:text-left";
+  "[&_h2]:mt-6 [&_h2]:text-h6-m [&_h2]:font-bold [&_h2]:text-foreground [&_h2]:first:mt-0 [&_p]:my-2 [&_ul]:list-disc [&_ul]:pl-5 [&_li]:mt-1 [&_table]:mt-3 [&_table]:w-full [&_table]:border-collapse [&_td]:border [&_td]:border-border [&_td]:px-2.5 [&_td]:py-1.5 [&_th]:border [&_th]:border-border [&_th]:bg-panel-strong [&_th]:px-2.5 [&_th]:py-1.5 [&_th]:text-left";
 
 export function LegalContentForm({
   kind,
@@ -63,7 +63,7 @@ export function LegalContentForm({
 
       {previewOpen && (
         <div className="border border-border">
-          <div className="border-b border-border bg-panel px-4 py-2 text-xs font-medium text-muted">
+          <div className="border-b border-border bg-panel px-4 py-2 text-xs font-bold text-muted">
             미리보기 — 현재 입력값 기준 (저장되지 않음)
           </div>
           <div className="max-h-[70vh] overflow-y-auto bg-background px-5 py-4">

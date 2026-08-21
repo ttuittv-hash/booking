@@ -143,7 +143,7 @@ export function ScheduleManager({ initialYear, initialMonth }: { initialYear: nu
           ‹ 이전 달
         </button>
         <div className="flex items-center gap-2">
-          <span className="text-r font-bold">
+          <span className="type-kr-heading text-h6-m">
             {year}년 {month}월
           </span>
           <span className="text-xs text-muted">{loading && "불러오는 중..."}</span>
@@ -188,12 +188,12 @@ export function ScheduleManager({ initialYear, initialMonth }: { initialYear: nu
           {venueTab === "arena" ? "아레나 예약" : "중형 예약"}
         </span>
         <span className="flex items-center gap-1.5">
-          <span className="h-2 w-2 rounded-full bg-red-500" /> 신청 불가(관리자 지정 · 공간 공통)
+          <span className="h-2 w-2 rounded-full bg-danger" /> 신청 불가(관리자 지정 · 공간 공통)
         </span>
       </div>
 
       <div className="mt-5 border border-border-soft bg-panel/60 p-4">
-        <div className="grid grid-cols-7 gap-1 text-center text-xs font-medium text-muted">
+        <div className="grid grid-cols-7 gap-1 text-center text-xs font-bold text-muted">
           {DOW_LABELS.map((label, i) => (
             <div key={label} className={i === 6 ? "opacity-50" : ""}>
               {label}
@@ -228,7 +228,7 @@ export function ScheduleManager({ initialYear, initialMonth }: { initialYear: nu
                           !inMonth
                             ? "cursor-default text-muted/30"
                             : isBlocked
-                              ? "cursor-pointer bg-red-50 font-medium text-red-500 hover:bg-red-100"
+                              ? "cursor-pointer bg-danger-soft font-bold text-danger hover:bg-danger-soft"
                               : "cursor-pointer text-foreground hover:bg-panel-strong",
                           isToday ? "underline decoration-2 underline-offset-4" : "",
                           openDate === dateStr ? "ring-2 ring-accent" : "",
@@ -266,7 +266,7 @@ export function ScheduleManager({ initialYear, initialMonth }: { initialYear: nu
 
                     <div className="mt-2.5 grid grid-cols-1 gap-3 border-t border-accent/20 pt-3 sm:grid-cols-2 sm:divide-x sm:divide-accent/20">
                       <div className="sm:pr-3">
-                        <div className="mb-1.5 text-xs font-bold uppercase tracking-wide text-muted">
+                        <div className="mb-1.5 text-xs font-bold text-muted">
                           상태
                         </div>
                         {(() => {
@@ -286,7 +286,7 @@ export function ScheduleManager({ initialYear, initialMonth }: { initialYear: nu
                                   className="flex flex-wrap items-center gap-x-2 gap-y-1 bg-background px-2.5 py-1.5 text-xs"
                                 >
                                   <span className="text-muted">{roleLabel(entry.role)}</span>
-                                  <Link href={`/admin/${entry.quoteId}`} className="font-medium text-foreground hover:text-foreground hover:underline">
+                                  <Link href={`/admin/${entry.quoteId}`} className="font-bold text-foreground hover:text-foreground hover:underline">
                                     {entry.companyName}
                                   </Link>
                                   <span className="text-xs text-muted">· {statusLabel(entry.status, entry.reviewDecision)}</span>
@@ -298,7 +298,7 @@ export function ScheduleManager({ initialYear, initialMonth }: { initialYear: nu
                       </div>
 
                       <div className="sm:pl-3">
-                        <div className="mb-1.5 text-xs font-bold uppercase tracking-wide text-muted">
+                        <div className="mb-1.5 text-xs font-bold text-muted">
                           설정
                         </div>
                         {blockedByDate.get(openDate) ? (

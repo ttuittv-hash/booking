@@ -54,7 +54,7 @@ export function Manifesto({
         ))}
       </h2>
       {/* 리드는 빈 줄로 문단을 나눈다 */}
-      <div className="mt-6 max-w-3xl space-y-4 break-keep text-r text-muted sm:text-m">
+      <div className="mt-6 max-w-3xl space-y-4 break-keep text-m text-muted">
         {lead
           .split(/\n{2,}/)
           .map((para) => para.trim())
@@ -80,7 +80,7 @@ export function Manifesto({
               <h3 className="type-display text-h5-m leading-none sm:text-h3">
                 {s.title}
               </h3>
-              <p className="mt-3 max-w-3xl break-keep text-r text-muted">
+              <p className="mt-3 max-w-3xl break-keep text-s text-muted">
                 <Emphasized text={s.desc} />
               </p>
             </div>

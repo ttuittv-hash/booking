@@ -96,29 +96,27 @@ export function Step5Estimate({
           <span className="tabular-nums">{won(quote.vat)}</span>
         </div>
         <div className="mt-2.5 flex items-baseline justify-between border-t border-border pt-2.5">
-          <span className="text-r font-bold">합계</span>
+          <span className="text-s font-bold">합계</span>
           <span className="text-h6-m sm:text-h6 font-bold tabular-nums">{won(quote.total)}</span>
         </div>
       </div>
 
-      <p className="mt-6 border-l-2 border-border bg-panel px-4 py-3 text-xs leading-5 text-muted-strong">
-        {quote.meteredNotice} 본 금액은 <b>예상</b>이며 확정 금액이 아닙니다.
+      {/* 고지문은 색면 박스가 아니라 작은 글씨다 — 사이드바의 「실시간 견적 요약」 고지와
+          같은 언어를 쓴다. 박스를 두르면 금액표와 무게가 비슷해져 어느 쪽이 결과인지
+          흐려진다 */}
+      <p className="mt-6 text-xs leading-5 text-muted">
+        {quote.meteredNotice} 본 금액은 <b className="font-bold text-foreground">예상</b>이며 확정 금액이 아닙니다.
+        {isSimultaneous && " 위 금액은 아레나 + 중형공연장 합산입니다(할인 없이 두 소계를 단순 합산)."}
       </p>
 
       {quote.blockingIssues.length > 0 && (
-        <div className="mt-4 border-l-2 border-border bg-panel px-4 py-3 text-xs leading-5 text-muted-strong">
-          <p className="font-bold">운영자 확인이 필요해 아직 신청서를 제출할 수 없습니다.</p>
+        <div className="mt-4 text-xs leading-5 text-muted">
+          <p className="font-bold text-foreground">운영자 확인이 필요해 아직 신청서를 제출할 수 없습니다.</p>
           <ul className="mt-1.5 list-disc space-y-1 pl-4">
             {quote.blockingIssues.map((issue) => (
               <li key={issue}>{issue}</li>
             ))}
           </ul>
-        </div>
-      )}
-
-      {isSimultaneous && (
-        <div className="mt-4 border-l-2 border-foreground bg-inverse-bg text-inverse-fg px-4 py-3 text-xs leading-5 text-foreground">
-          위 금액은 <b>아레나 + 중형공연장 합산</b>입니다 (할인 없이 두 소계를 단순 합산).
         </div>
       )}
     </section>

@@ -125,7 +125,7 @@ export function MidHallCalendar({
 
   return (
     <div>
-      {title && <h3 className="text-r font-bold">{title}</h3>}
+      {title && <h3 className="type-kr-heading text-h6-m">{title}</h3>}
 
       <div className="mt-5 flex items-center justify-between">
         <button
@@ -136,7 +136,7 @@ export function MidHallCalendar({
         >
           ‹
         </button>
-        <div className="text-r font-bold">
+        <div className="type-kr-heading text-h6-m">
           {year}년 {month}월
         </div>
         <button

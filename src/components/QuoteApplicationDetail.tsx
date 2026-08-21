@@ -1,4 +1,5 @@
 import { findPackage } from "@/lib/pricing/rateTableUtils";
+import { EYEBROW } from "@/components/ui/kit";
 import {
   AGE_RATING_LABEL,
   ANCILLARY_BUSINESS_PLAN_LABEL,
@@ -33,7 +34,7 @@ function Row({ label, value }: { label: string; value: string }) {
   return (
     <div className="flex justify-between gap-4 py-1">
       <dt className="text-muted">{label}</dt>
-      <dd className="text-right font-medium">{value}</dd>
+      <dd className="text-right font-bold">{value}</dd>
     </div>
   );
 }
@@ -66,7 +67,7 @@ function performanceInfoFields(info: PerformanceInfo) {
   return (
     <div className="space-y-5">
       <div>
-        <p className="text-xs font-bold uppercase tracking-wide text-muted">신청자 기본정보</p>
+        <p className={`${EYEBROW} text-muted`}>신청자 기본정보</p>
         <dl className="mt-1.5 divide-y divide-border/60 text-s">
           <Row label="대관신청사명" value={info.applicantCompanyName || "-"} />
           <Row label="사업자등록번호" value={info.applicantBusinessRegistrationNumber || "-"} />
@@ -76,7 +77,7 @@ function performanceInfoFields(info: PerformanceInfo) {
       </div>
 
       <div>
-        <p className="text-xs font-bold uppercase tracking-wide text-muted">공연 운영 총괄 책임자</p>
+        <p className={`${EYEBROW} text-muted`}>공연 운영 총괄 책임자</p>
         <dl className="mt-1.5 divide-y divide-border/60 text-s">
           <Row label="이름" value={info.operationsResponsible.name || "-"} />
           <Row label="직책" value={info.operationsResponsible.title || "-"} />
@@ -85,7 +86,7 @@ function performanceInfoFields(info: PerformanceInfo) {
       </div>
 
       <div>
-        <p className="text-xs font-bold uppercase tracking-wide text-muted">안전관리 총괄 책임자</p>
+        <p className={`${EYEBROW} text-muted`}>안전관리 총괄 책임자</p>
         <dl className="mt-1.5 divide-y divide-border/60 text-s">
           <Row label="이름" value={info.safetyResponsible.name || "-"} />
           <Row label="소속" value={info.safetyResponsible.title || "-"} />
@@ -95,7 +96,7 @@ function performanceInfoFields(info: PerformanceInfo) {
 
       {info.pastPerformances.length > 0 && (
         <div>
-          <p className="text-xs font-bold uppercase tracking-wide text-muted">
+          <p className={`${EYEBROW} text-muted`}>
             최근 3년간 공연 실적
           </p>
           <div className="mt-1.5 overflow-x-auto">
@@ -126,7 +127,7 @@ function performanceInfoFields(info: PerformanceInfo) {
       )}
 
       <div>
-        <p className="text-xs font-bold uppercase tracking-wide text-muted">공연 기본정보</p>
+        <p className={`${EYEBROW} text-muted`}>공연 기본정보</p>
         <dl className="mt-1.5 divide-y divide-border/60 text-s">
           <Row label="공연(행사)명" value={info.eventName || "-"} />
           <Row label="아티스트" value={info.artist || "-"} />
@@ -162,7 +163,7 @@ function performanceInfoFields(info: PerformanceInfo) {
       </div>
 
       <div>
-        <p className="text-xs font-bold uppercase tracking-wide text-muted">
+        <p className={`${EYEBROW} text-muted`}>
           개최 신뢰도 및 안전관리
         </p>
         <dl className="mt-1.5 divide-y divide-border/60 text-s">
@@ -213,7 +214,7 @@ export function QuoteApplicationDetail({
         <div className="space-y-5">
           {hasArena && (
             <div>
-              <p className="text-xs font-bold uppercase tracking-wide text-muted">아레나 일정</p>
+              <p className={`${EYEBROW} text-muted`}>아레나 일정</p>
               <dl className="mt-1.5 divide-y divide-border/60 text-s">
                 <Row
                   label="주차"
@@ -258,7 +259,7 @@ export function QuoteApplicationDetail({
 
           {hasMidHall && (
             <div>
-              <p className="text-xs font-bold uppercase tracking-wide text-muted">중형공연장 일정</p>
+              <p className={`${EYEBROW} text-muted`}>중형공연장 일정</p>
               {midHallDates.length > 0 ? (
                 <div className="mt-1.5 overflow-x-auto">
                   <table className="w-full min-w-[360px] border-collapse text-xs">

@@ -90,7 +90,7 @@ function LineItemTable({
       <div className="overflow-x-auto">
         <table className={`w-full border-collapse ${textSize}`}>
           <thead>
-            <tr className="border-b border-border text-xs font-medium text-muted">
+            <tr className="border-b border-border text-xs font-bold text-muted">
               <th className="py-2 text-left">항목</th>
               <th className="py-2 text-right">수량</th>
               <th className="py-2 text-right">단가</th>
@@ -112,7 +112,7 @@ function LineItemTable({
                   <tr key={item.addonId} className="border-b border-border/70 tabular-nums">
                     <td className={`${cellPad} text-left`}>
                       <div className="flex flex-wrap items-center gap-1.5">
-                        <span className="font-medium">{item.label}</span>
+                        <span className="font-bold">{item.label}</span>
                         {isIncluded && (
                           <span className="bg-good-soft px-1.5 py-0.5 text-xs font-bold text-good">
                             기본 포함

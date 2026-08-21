@@ -9,7 +9,7 @@
      · 백오피스는 공개 페이지의 컬러 밴드 교대를 쓰지 않는다.
        지면(background) + 흰 패널(panel) + 헤어라인으로만 구획한다
      · 옐로는 면·강조·구분선에만. 옐로 위 텍스트는 항상 검정 (옐로 텍스트 금지)
-     · 임의 px 폰트 금지 — text-xs / text-s / text-r … 토큰만
+     · 임의 px 폰트 금지 — 본문은 text-m / text-s / text-xs 세 단만
      · 아이브로(Tagline) 없음. 화면 상단은 제목 + 한 줄 설명으로 시작한다
      · 포커스: 보더 foreground + 옐로 2px 아웃라인.
        Tailwind v4 에서 base 에 outline-none 을 넣으면 focus:outline-2 가 죽으므로
@@ -84,7 +84,7 @@ export const QUIET_BTN = "text-xs text-muted transition-colors hover:text-foregr
  * 헤더 밑으로 파고들어 가려진다.
  */
 export const TAB_BAR =
-  "sticky top-[6.25rem] z-10 -mx-6 flex h-12 items-center gap-1 overflow-x-auto whitespace-nowrap border-b border-border/20 bg-background px-6 sm:top-[6.75rem] lg:top-16";
+  "sticky top-[6.25rem] z-10 -mx-6 flex h-12 items-center gap-1 overflow-x-auto whitespace-nowrap border-b border-border/20 bg-background px-6 [contain:paint] sm:top-[6.75rem] lg:top-16";
 
 /** 활성 탭은 옐로 하단 바 + 검정 텍스트. 높이는 버튼과 같은 단(40)으로 고정한다 */
 export function tabCls(active: boolean) {
@@ -120,7 +120,8 @@ export const TABLE_HEAD_DESC = "mt-1 text-xs text-muted";
 export const TABLE_HEAD_ACTIONS = "flex shrink-0 flex-wrap items-center gap-2";
 
 /** 표 본문만 가로 스크롤 (헤더·페이저는 고정) */
-export const TABLE_SCROLL = "overflow-x-auto";
+/* `contain: paint` 없이 두면 넘치는 표 폭이 문서 전체 가로 스크롤로 새어 나간다(크로미움) */
+export const TABLE_SCROLL = "overflow-x-auto [contain:paint]";
 export const TABLE = "w-full border-collapse text-s";
 
 /** 테이블 헤더 행 — 컬럼명은 작고 muted */

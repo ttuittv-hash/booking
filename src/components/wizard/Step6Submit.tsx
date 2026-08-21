@@ -122,7 +122,7 @@ export function Step6Submit({
 
       <div className="mt-10 flex flex-wrap items-center justify-between gap-4 border-t-2 border-foreground pt-6">
         <div>
-          <div className="text-r font-bold">
+          <div className="type-kr-heading text-h6-m">
             {venueName} · {audienceTierLabel}
           </div>
           <div className="mt-1 text-s text-muted">

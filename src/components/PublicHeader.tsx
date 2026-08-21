@@ -392,7 +392,7 @@ export function PublicHeader({
                         <Link
                           href={p.href}
                           onClick={() => setMobileOpen(false)}
-                          className={`text-r transition-colors hover:text-accent ${
+                          className={`text-s transition-colors hover:text-accent ${
                             p.href === active ? "font-bold text-foreground" : "text-muted"
                           }`}
                         >
@@ -423,7 +423,7 @@ export function PublicHeader({
                     <Link
                       href={p.href}
                       onClick={() => setMobileOpen(false)}
-                      className={`text-r transition-colors hover:text-accent ${
+                      className={`text-s transition-colors hover:text-accent ${
                         p.href === active ? "font-bold text-foreground" : "text-muted"
                       }`}
                     >
@@ -444,7 +444,7 @@ export function PublicHeader({
                         <Link
                           href="/admin"
                           onClick={() => setMobileOpen(false)}
-                          className="text-r text-muted"
+                          className="text-s text-muted"
                         >
                           운영자 백오피스
                         </Link>
@@ -454,7 +454,7 @@ export function PublicHeader({
                         <Link
                           href={ACCOUNT_HREF}
                           onClick={() => setMobileOpen(false)}
-                          className={`text-r underline decoration-1 underline-offset-4 transition-colors hover:text-accent ${
+                          className={`text-s underline decoration-1 underline-offset-4 transition-colors hover:text-accent ${
                             active.startsWith("/mypage") ? "font-bold text-foreground" : "text-muted"
                           }`}
                         >

@@ -656,7 +656,7 @@ export function PackagesForm({ rateTable }: { rateTable: RateTable }) {
               <button
                 type="button"
                 onClick={() => openNewItemForm(pickerCategory, visibility)}
-                className="px-2 py-1 text-xs font-medium text-foreground hover:underline"
+                className="px-2 py-1 text-xs font-bold text-foreground hover:underline"
               >
                 + 새 카테고리로 항목 추가
               </button>
@@ -714,13 +714,13 @@ export function PackagesForm({ rateTable }: { rateTable: RateTable }) {
               {[...groupedByVisibility.entries()].map(([category, items]) => (
                 <div key={category}>
                   <div className="mb-2 flex items-center justify-between">
-                    <span className="text-xs font-bold uppercase tracking-wide text-foreground">
+                    <span className="text-xs font-bold text-foreground">
                       {ADDON_CATEGORY_LABEL[category as keyof typeof ADDON_CATEGORY_LABEL] ?? category}
                     </span>
                     <button
                       type="button"
                       onClick={() => openNewItemForm(category as AddonCategory, visibility)}
-                      className="px-2 py-1 text-xs font-medium text-foreground hover:underline"
+                      className="px-2 py-1 text-xs font-bold text-foreground hover:underline"
                     >
                       + 항목 추가
                     </button>

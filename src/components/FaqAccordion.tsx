@@ -49,14 +49,14 @@ export function FaqAccordion({ faqs }: { faqs: Faq[] }) {
           </span>
           <span
             aria-hidden
-            className="type-display flex h-8 w-8 shrink-0 items-center justify-center border border-border/30 text-r leading-none transition-colors group-hover:border-foreground"
+            className="type-display flex h-8 w-8 shrink-0 items-center justify-center border border-border/30 text-s leading-none transition-colors group-hover:border-foreground"
           >
             {isOpen ? "−" : "+"}
           </span>
         </button>
         {isOpen && (
           <div id={panelId} className="border-l-2 border-accent pb-7 pl-5">
-            <p className="whitespace-pre-wrap break-keep text-r leading-8 text-muted-strong">
+            <p className="whitespace-pre-wrap break-keep text-m leading-8 text-muted-strong">
               <span className="type-display mr-2 text-s text-foreground">A</span>
               {faq.answer}
             </p>

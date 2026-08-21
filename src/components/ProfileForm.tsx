@@ -150,7 +150,7 @@ export function ProfileForm({ user, company }: { user: AppUser; company: Company
   return (
     <div className="mt-8 space-y-8">
       <section className="border border-border bg-background p-5">
-        <h2 className="text-r font-bold">개인 정보</h2>
+        <h2 className="type-kr-heading text-h6-m">개인 정보</h2>
         <div className="mt-4 space-y-3">
           <label className="block">
             <span className={labelCls}>담당자명</span>
@@ -217,7 +217,7 @@ export function ProfileForm({ user, company }: { user: AppUser; company: Company
       </section>
 
       <section className="border border-border bg-background p-5">
-        <h2 className="text-r font-bold">기업 정보</h2>
+        <h2 className="type-kr-heading text-h6-m">기업 정보</h2>
         {company ? (
           <div className="mt-4 space-y-3">
             <label className="block">
@@ -300,7 +300,7 @@ export function ProfileForm({ user, company }: { user: AppUser; company: Company
       </section>
 
       <section className="border border-border bg-background p-5">
-        <h2 className="text-r font-bold">저장하려면 현재 비밀번호를 입력하세요</h2>
+        <h2 className="type-kr-heading text-h6-m">저장하려면 현재 비밀번호를 입력하세요</h2>
         <div className="mt-4">
           <label className="block">
             <span className={labelCls}>현재 비밀번호</span>
@@ -326,7 +326,7 @@ export function ProfileForm({ user, company }: { user: AppUser; company: Company
       </section>
 
       <section className="border border-border bg-background p-5">
-        <h2 className="text-r font-bold">비밀번호 변경</h2>
+        <h2 className="type-kr-heading text-h6-m">비밀번호 변경</h2>
         <div className="mt-4 space-y-3">
           <label className="block">
             <span className={labelCls}>현재 비밀번호</span>

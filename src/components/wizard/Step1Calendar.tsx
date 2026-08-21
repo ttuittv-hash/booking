@@ -257,7 +257,7 @@ export function Step1Calendar({
         >
           ‹
         </button>
-        <div className="text-r font-bold">
+        <div className="type-kr-heading text-h6-m">
           {week.year}년 {week.month}월
         </div>
         <button
