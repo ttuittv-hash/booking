@@ -125,15 +125,6 @@ export default function LoginPage() {
               비밀번호 찾기
             </Link>
           </p>
-          <p className="mt-1 text-center text-xs text-muted">
-            운영자이신가요?{" "}
-            <Link
-              href="/admin/login"
-              className="inline-flex min-h-11 items-center px-2 font-bold text-foreground underline underline-offset-4"
-            >
-              운영자 로그인
-            </Link>
-          </p>
       </form>
     </AuthShell>
   );
