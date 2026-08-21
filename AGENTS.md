@@ -84,3 +84,21 @@ pod 를 여러 개 띄울 수 있으므로, **프로세스 메모리에 상태�
 - 상호·대표자명이 입력값과 다르면 차단하지 않고 기록만 한다(표기 차이가 흔하다).
   운영자 심사 화면(`/admin/applicants/[id]`)에 뱃지와 함께 노출된다.
 - 접근 IP 제한이 있는 서비스다 — 서버 아웃바운드 IP를 NICE 이용기관 포털에 등록해야 한다.
+
+# 브랜치 운영 (2026-08-21 합의)
+
+| 브랜치 | 역할 | 배포 대상 |
+|---|---|---|
+| `feat/phase-1` | 개발 통합 정본. 모든 작업이 여기로 모인다 | `arena-dev` (dev) |
+| `release` | 운영에 나간 코드 그대로. **직접 커밋 금지** | `arena` (운영, ArgoCD) |
+
+- 운영 배포 = dev 에서 검증된 `feat/phase-1` 커밋으로 `release` 를 fast-forward
+  하고, `deploy/prod-YYYY-MM-DD` 태그를 남긴 뒤 `tmp/pangyo` 의
+  `application/arena/manifests.yaml` 이미지 태그를 올려 커밋·푸시한다(ArgoCD 자동 sync).
+- 협업 브랜치는 두 갈래가 들어온다: `design/venue-booking-ui`(디자이너)와
+  `claude/venue-fee-spec-revamp`(다른 세션의 기능 작업). **디자인 브랜치가
+  기능 브랜치를 먼저 흡수하는 패턴**이므로, 보통 디자인 브랜치 하나만 병합하면 된다.
+  병합 때마다 확인할 것: ① 레거시 isPendingApplicant 게이트 부활(세 번 재발)
+  ② 기획서 A13 링크·A15 매트릭스 ③ 잠긴 버튼 패턴 ④ toLocale* 시간대 의존.
+- 운영/개발 환경 차이는 시크릿·env 로만 낸다. dev 전용: `NICE_AUTH_DEV_STUB`,
+  `SEED_SAMPLE_COMPANY=true`. 운영 전용: 별도 `FIELD_*` 암호화 키.
