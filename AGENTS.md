@@ -90,10 +90,10 @@ pod 를 여러 개 띄울 수 있으므로, **프로세스 메모리에 상태�
 | 브랜치 | 역할 | 배포 대상 |
 |---|---|---|
 | `feat/phase-1` | 개발 통합 정본. 모든 작업이 여기로 모인다 | `arena-dev` (dev) |
-| `release` | 운영에 나간 코드 그대로. **직접 커밋 금지** | `arena` (운영, ArgoCD) |
+| `release/vX.Y.Z` | 운영에 나간 코드 그대로(현재 `release/v1.0.0`). **직접 커밋 금지** | `arena` (운영, ArgoCD) |
 
 - 운영 배포 = dev 에서 검증된 `feat/phase-1` 커밋으로 `release` 를 fast-forward
-  하고, `deploy/prod-YYYY-MM-DD` 태그를 남긴 뒤 `tmp/pangyo` 의
+  하고(새 릴리스면 `release/vX.Y.Z` 새로 생성), `vX.Y.Z` 태그를 남긴 뒤 `tmp/pangyo` 의
   `application/arena/manifests.yaml` 이미지 태그를 올려 커밋·푸시한다(ArgoCD 자동 sync).
 - 협업 브랜치는 두 갈래가 들어온다: `design/venue-booking-ui`(디자이너)와
   `claude/venue-fee-spec-revamp`(다른 세션의 기능 작업). **디자인 브랜치가
