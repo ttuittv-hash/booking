@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { clearSession, getCurrentUser, verifyPassword } from "@/lib/auth";
+import { appendSessionClear, getCurrentUser, verifyPassword } from "@/lib/auth";
 import { findUserPasswordHash, withdrawUser } from "@/lib/db";
 import { setSessionEpoch } from "@/lib/db";
 import { SHA256_HEX_RE, sha256Hex } from "@/lib/passwordScheme";
@@ -40,8 +40,9 @@ export async function POST(request: Request) {
   }
 
   await withdrawUser(user.id, new Date().toISOString());
-  await clearSession();
   // 탈퇴 시 기존 세션을 모두 끊는다(기획서 A13·A14).
   await setSessionEpoch(user.id, new Date().toISOString());
-  return NextResponse.json({ ok: true });
+  const response = NextResponse.json({ ok: true });
+  await appendSessionClear(response);
+  return response;
 }

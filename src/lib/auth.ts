@@ -144,20 +144,28 @@ export async function touchSession(session: { sub: string; role: UserRole; lif: 
   });
 }
 
-/** Route Handler / Server Function 안에서만 호출 가능 (쿠키 쓰기) */
-export async function clearSession() {
-  const cookieStore = await cookies();
-  // Domain 을 붙여 구운 쿠키는 같은 Domain 으로 지워야 실제로 사라진다.
-  cookieStore.set(SESSION_COOKIE, "", {
-    httpOnly: true,
-    secure: process.env.NODE_ENV === "production",
-    sameSite: "lax",
-    path: "/",
-    domain: await cookieDomainFromRequest(),
-    maxAge: 0,
-  });
-  // 도메인 공유 이전에 host 전용으로 구워진 옛 쿠키도 함께 지운다.
-  cookieStore.delete(SESSION_COOKIE);
+/**
+ * 세션 쿠키를 지운다 — 응답에 직접 Set-Cookie 를 싣는다.
+ *
+ * cookies() API 로는 안 된다: 같은 이름은 하나만 내보내서, Domain 붙인 삭제와
+ * host 전용 삭제를 둘 다 걸면 뒤의 것이 앞의 것을 덮는다. 실제로 그렇게 배포됐고
+ * Domain 없는 삭제만 나가 도메인 쿠키가 살아남았다 — "로그아웃이 안 된다"는
+ * 신고가 이것이다. 두 변형(도메인 공유 쿠키 + 공유 이전의 host 전용 쿠키)을
+ * 각각의 Set-Cookie 헤더로 내보내야 한다.
+ */
+export async function appendSessionClear(response: Response): Promise<void> {
+  const expired = [
+    `${SESSION_COOKIE}=`,
+    "Path=/",
+    "Expires=Thu, 01 Jan 1970 00:00:00 GMT",
+    "Max-Age=0",
+    "HttpOnly",
+    "SameSite=Lax",
+    ...(process.env.NODE_ENV === "production" ? ["Secure"] : []),
+  ].join("; ");
+  response.headers.append("Set-Cookie", expired);
+  const domain = await cookieDomainFromRequest();
+  if (domain) response.headers.append("Set-Cookie", `${expired}; Domain=${domain}`);
 }
 
 /** Server Component/Route Handler 어디서든 호출 가능 (쿠키 읽기 전용) */
