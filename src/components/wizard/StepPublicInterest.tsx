@@ -59,7 +59,7 @@ export function StepPublicInterest({
 
   return (
     <section>
-      <h2 className="type-kr-heading text-h6-m sm:text-h6">공공성</h2>
+      <h2 className="type-kr-heading text-h5-m sm:text-h5">공공성</h2>
       <p className="mt-1.5 text-s text-muted">
         아래 9개 항목을 참고해 계획을 하나의 파일로 정리해 첨부합니다.
       </p>

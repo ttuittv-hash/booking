@@ -24,7 +24,7 @@ export function VenueSplitTabBar({
     <div className="mt-5 flex flex-wrap items-center justify-between gap-2 border-b border-border/25">
       <div className="flex gap-1">
         {!midHallDifferent && (
-          <span className="border-b-2 border-accent px-4 py-2.5 text-s font-medium text-foreground">공통</span>
+          <span className="border-b-2 border-foreground px-4 py-2.5 text-s font-bold text-foreground">공통</span>
         )}
         {midHallDifferent && (
           <>
@@ -34,7 +34,7 @@ export function VenueSplitTabBar({
               className={[
                 "border-b-2 px-4 py-2.5 text-s font-medium transition-colors",
                 activeTab === "ARENA"
-                  ? "border-accent text-foreground"
+                  ? "border-foreground font-bold text-foreground"
                   : "border-transparent text-muted hover:text-foreground",
               ].join(" ")}
             >
@@ -46,7 +46,7 @@ export function VenueSplitTabBar({
               className={[
                 "border-b-2 px-4 py-2.5 text-s font-medium transition-colors",
                 activeTab === "MIDHALL"
-                  ? "border-accent text-foreground"
+                  ? "border-foreground font-bold text-foreground"
                   : "border-transparent text-muted hover:text-foreground",
               ].join(" ")}
             >

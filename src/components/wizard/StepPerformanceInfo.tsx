@@ -516,7 +516,7 @@ function PerformanceInfoFields({
             type="checkbox"
             checked={info.sensitiveInfoMaskingAcknowledged}
             onChange={(e) => set("sensitiveInfoMaskingAcknowledged", e.target.checked)}
-            className="mt-0.5 accent-accent"
+            className="mt-0.5 accent-foreground"
           />
           출연 계약 증빙(계약서 · 출연확약서)의 금액 · 개인정보는 마스킹 제출을 허용합니다.
         </label>
@@ -526,7 +526,7 @@ function PerformanceInfoFields({
             type="checkbox"
             checked={info.safetyPledgeSigned}
             onChange={(e) => set("safetyPledgeSigned", e.target.checked)}
-            className="mt-0.5 accent-accent"
+            className="mt-0.5 accent-foreground"
           />
           안전규정 준수 확약서 작성을 완료했습니다.
         </label>
@@ -602,7 +602,7 @@ export function StepPerformanceInfo({
 
   return (
     <section>
-      <h2 className="type-kr-heading text-h6-m sm:text-h6">신청자 정보</h2>
+      <h2 className="type-kr-heading text-h5-m sm:text-h5">신청자 정보</h2>
       <p className="mt-3 text-s text-muted">
         신청서는 두 공간을 합쳐 1건입니다. 대관기간만 공간별로 나눠 표기합니다.
       </p>

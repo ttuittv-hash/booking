@@ -31,10 +31,10 @@ function CheckboxChip({
     <label
       className={[
         "flex cursor-pointer items-center gap-2 border px-3.5 py-2.5 text-s transition-colors",
-        checked ? "border-accent bg-accent-soft text-foreground" : "border-border/25 bg-panel hover:border-foreground",
+        checked ? "border-foreground bg-inverse-bg text-inverse-fg" : "border-border/25 hover:border-foreground",
       ].join(" ")}
     >
-      <input type="checkbox" checked={checked} onChange={onChange} className="accent-accent" />
+      <input type="checkbox" checked={checked} onChange={onChange} className="accent-foreground" />
       {label}
     </label>
   );
@@ -195,7 +195,7 @@ export function StepAudience({
 
   return (
     <section>
-      <h2 className="type-kr-heading text-h6-m sm:text-h6">관객</h2>
+      <h2 className="type-kr-heading text-h5-m sm:text-h5">관객</h2>
       <p className="mt-1.5 text-s text-muted">
         관객 수는 공간별로 자동 산정되며, 객석배치도는 계획안 기준으로 별도 첨부합니다.
       </p>

@@ -248,7 +248,7 @@ export function Step1Calendar({
 
   return (
     <section>
-      <h2 className="type-kr-heading text-h6-m sm:text-h6">{heading}</h2>
+      <h2 className="type-kr-heading text-h5-m sm:text-h5">{heading}</h2>
       <p className="mt-3 text-s text-muted">
         달력에서 원하는 주를 눌러 선택하세요. 기본 단위는{" "}
         <b className="text-foreground">1주(화~일, 6일)</b>이며, 월요일은 기본적으로 대관하지

@@ -29,8 +29,9 @@ import {
    ========================================================================= */
 
 const CAT_BTN = "flex h-full items-center px-3 type-display text-s text-foreground";
+/** BOOK IT — 사이트의 유일한 액션이라 상단바에서 유일하게 채움 버튼이다 */
 const ACTION_BTN =
-  "flex h-full items-center px-3 type-display text-s text-foreground transition-colors hover:text-accent";
+  "flex h-8 items-center border border-transparent bg-[var(--btn-primary-bg)] px-5 type-display text-s text-[var(--btn-primary-fg)] transition-colors hover:bg-[var(--btn-primary-bg-hover)]";
 const PANEL_LINK = "block whitespace-nowrap py-1.5 text-xs transition-colors hover:text-accent";
 /**
  * 우측 유틸 — 채움·아웃라인 없는 텍스트 버튼.
@@ -182,6 +183,11 @@ export function PublicHeader({
   function toggle(key: string) {
     setOpenKey((k) => (k === key ? null : key));
   }
+  /** 유예 없이 바로 닫는다 — 카테고리가 아닌 항목으로 마우스가 넘어갈 때 */
+  function closeNow() {
+    if (closeTimer.current) clearTimeout(closeTimer.current);
+    setOpenKey(null);
+  }
 
   // 담당자 관리는 대표 담당자 전용이다 — 일반 담당자에게는 메뉴에 올리지 않는다.
   const accountPages =
@@ -204,6 +210,7 @@ export function PublicHeader({
       <div className="container-site relative flex h-[var(--header-h)] items-center justify-between gap-6">
         <Link
           href="/"
+          onMouseEnter={closeNow}
           className="type-display shrink-0 text-h6-m leading-none"
           aria-label="Seoul Arena 홈"
         >
@@ -260,7 +267,12 @@ export function PublicHeader({
                 </li>
               );
             })}
-            <li className="flex items-stretch">
+            {/*
+              BOOK IT 위로 마우스가 오면 열려 있던 카테고리를 **즉시** 닫는다.
+              닫힘 유예(120ms)만 믿으면 YOUR GUIDE → BOOK IT 으로 지나가는 동안
+              드롭다운이 버튼을 덮은 채로 남아 엉뚱한 페이지로 들어가게 된다.
+            */}
+            <li className="ml-2 flex items-center" onMouseEnter={closeNow} onFocus={closeNow}>
               <Link href={NAV_ACTION.href} className={ACTION_BTN}>
                 {NAV_ACTION.label}
               </Link>
@@ -281,9 +293,8 @@ export function PublicHeader({
           />
           {currentUser ? (
             <>
-              <NotificationBell role={currentUser.role} />
               {currentUser.role === "ADMIN" ? (
-                <Link href="/admin" className={UTIL_BTN}>
+                <Link href="/admin" className={UTIL_BTN} onMouseEnter={closeNow}>
                   운영자 백오피스
                 </Link>
               ) : (
@@ -298,13 +309,15 @@ export function PublicHeader({
                 />
               )}
               <LogoutButton className={UTIL_BTN} />
+              {/* 알림은 맨 오른쪽 — 텍스트 메뉴와 성격이 달라 끝에 떼어 둔다 */}
+              <NotificationBell role={currentUser.role} />
             </>
           ) : (
             <>
-              <Link href="/register" className={UTIL_BTN}>
+              <Link href="/register" className={UTIL_BTN} onMouseEnter={closeNow}>
                 회원가입
               </Link>
-              <Link href="/login" className={UTIL_BTN}>
+              <Link href="/login" className={UTIL_BTN} onMouseEnter={closeNow}>
                 로그인
               </Link>
             </>
@@ -391,10 +404,11 @@ export function PublicHeader({
                 </li>
               ))}
               <li>
+                {/* 좁은 화면에서도 유일한 액션이라 채움 버튼으로 둔다 */}
                 <Link
                   href={NAV_ACTION.href}
                   onClick={() => setMobileOpen(false)}
-                  className="type-display text-h6-m"
+                  className="flex h-12 items-center justify-center border border-transparent bg-[var(--btn-primary-bg)] type-display text-s text-[var(--btn-primary-fg)]"
                 >
                   {NAV_ACTION.label}
                 </Link>

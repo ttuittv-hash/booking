@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { won } from "@/lib/format";
+import { CHOICE_SELECTED_VARS } from "@/components/ui/kit";
 import { resolveSelectedDates } from "@/lib/pricing/dateRange";
 import {
   defaultDayTags,
@@ -140,10 +141,11 @@ function baseCompositionTiles(
 function BaseCompositionCard({ tiles, note }: { tiles: BaseCompositionTile[]; note: string }) {
   if (tiles.length === 0) return null;
   return (
-    <div className="mt-6 border border-good/30 bg-good-soft/30 p-5">
-      <div className="flex items-center gap-2">
-        <span className="bg-good px-2 py-0.5 text-xs font-semibold text-white">기본 포함</span>
-        <span className="text-xs font-medium text-foreground">{note}</span>
+    // 기본 포함 = **아웃라인 박스**. 이미 값을 치른 것이라 강조하지 않는다.
+    <div className="mt-6 border border-border/25 p-5">
+      <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+        <span className="border border-foreground px-2 py-0.5 text-xs font-bold">기본 포함</span>
+        <span className="text-xs text-muted">{note}</span>
       </div>
       <div className="mt-4 space-y-4">
         {BASE_COMPOSITION_GROUP_ORDER.map((group) => {
@@ -151,12 +153,12 @@ function BaseCompositionCard({ tiles, note }: { tiles: BaseCompositionTile[]; no
           if (groupTiles.length === 0) return null;
           return (
             <div key={group}>
-              <div className="mb-1.5 text-xs font-semibold uppercase tracking-wide text-good">{group}</div>
+              <div className="mb-1.5 text-xs font-bold uppercase tracking-wide text-muted">{group}</div>
               <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
                 {groupTiles.map((tile) => (
-                  <div key={tile.label} className="border border-good/20 bg-background px-3 py-2">
+                  <div key={tile.label} className="border border-border/15 px-3 py-2">
                     <div className="text-xs text-muted">{tile.label}</div>
-                    <div className="mt-0.5 text-s font-semibold text-good">{tile.value}</div>
+                    <div className="mt-0.5 text-s font-bold">{tile.value}</div>
                   </div>
                 ))}
               </div>
@@ -195,7 +197,7 @@ export function StepConfigOptions({
     const midHallTiles = midHallPkg ? baseCompositionTiles(midHallPkg, rateTable, { includeSchedule: false }) : [];
     return (
       <section>
-        <h2 className="type-kr-heading text-h6-m sm:text-h6">구성 · 옵션</h2>
+        <h2 className="type-kr-heading text-h5-m sm:text-h5">구성 · 옵션</h2>
         <p className="mt-3 text-s text-muted">
           중형공연장은 패키지가 없는 일 단위 요금제입니다 — 아래는 예약 일수와 무관하게 항상
           포함되는 기본 구성입니다.
@@ -216,7 +218,7 @@ export function StepConfigOptions({
   if (!pkg) {
     return (
       <section>
-        <h2 className="type-kr-heading text-h6-m sm:text-h6">구성 · 옵션</h2>
+        <h2 className="type-kr-heading text-h5-m sm:text-h5">구성 · 옵션</h2>
         <p className="mt-3 text-s text-muted">
           예상 관객 규모에 맞는 패키지를 아직 찾지 못했습니다. 패키지 선택에서 관객 규모를 확인해 주세요.
         </p>
@@ -267,10 +269,11 @@ export function StepConfigOptions({
         note="대관료에 이미 포함된 구성 — 관객 규모와 무관하게 전 패키지 동일하게 제공됩니다"
       />
 
-      <div className="mt-6 border border-accent/30 bg-accent-soft/20 p-5">
-        <div className="flex items-center gap-2">
-          <span className="bg-accent px-2 py-0.5 text-xs font-semibold text-on-accent">선택 옵션</span>
-          <span className="text-xs font-medium text-foreground">
+      {/* 선택 옵션 = 실제로 고르는 것이라 머리표를 **검정 채움**으로 둔다 */}
+      <div className="mt-6 border border-border/25 p-5">
+        <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+          <span className="bg-foreground px-2 py-0.5 text-xs font-bold text-background">선택 옵션</span>
+          <span className="text-xs text-muted">
             필요한 만큼 수량을 정해 추가하는 항목 — 단가 × 수량으로 금액이 즉시 계산됩니다
           </span>
         </div>
@@ -342,7 +345,7 @@ export function StepConfigOptions({
 
   return (
     <section>
-      <h2 className="type-kr-heading text-h6-m sm:text-h6">구성 · 옵션</h2>
+      <h2 className="type-kr-heading text-h5-m sm:text-h5">구성 · 옵션</h2>
       <p className="mt-1.5 text-s text-muted">
         동시 대관은 두 공간의 구성이 서로 달라 탭으로 나눠 보여줍니다.
       </p>
@@ -356,7 +359,7 @@ export function StepConfigOptions({
             className={[
               "border-b-2 px-4 py-2.5 text-s font-medium transition-colors",
               venueTab === tab
-                ? "border-accent text-foreground"
+                ? "border-foreground text-foreground"
                 : "border-transparent text-muted hover:text-foreground",
             ].join(" ")}
           >
@@ -405,23 +408,31 @@ function AddonRow({
       ? `매출 ${addon.unitPrice}%`
       : `${won(addon.unitPrice)} / ${addon.unitLabel.replace("원/", "")}`;
 
+  // 고른 항목은 **검정 채움**이다 — 위저드 전체가 "선택 = 검정 채움" 한 가지 언어만 쓴다.
+  // 채움 안에서 보조 텍스트·보더가 지면에 맞게 뒤집히도록 토큰을 국소 반전한다.
+  const picked = !isUtil && quantity > 0;
   return (
     <div
+      style={picked ? CHOICE_SELECTED_VARS : undefined}
       className={[
         "flex flex-col gap-3 border px-4 py-3 sm:flex-row sm:items-center sm:justify-between sm:gap-4",
-        isUtil ? "border-border/70 bg-panel/50 opacity-60" : "border-border/25 bg-panel/60",
+        isUtil
+          ? "border-border/70 opacity-60"
+          : picked
+            ? "border-foreground bg-inverse-bg text-inverse-fg"
+            : "border-border/25",
       ].join(" ")}
     >
       <div className="min-w-0">
         <div className="flex flex-wrap items-center gap-1.5">
           <span className="text-s font-medium">{addon.name}</span>
           {included > 0 && (
-            <span className="bg-good-soft px-1.5 py-0.5 text-xs font-semibold text-good">
+            <span className="border border-border/40 px-1.5 py-0.5 text-xs font-bold text-muted">
               {included} 기본포함
             </span>
           )}
           {ruleTag && (
-            <span className="bg-warn-soft px-1.5 py-0.5 text-xs font-semibold text-warn">
+            <span className="border border-border/40 px-1.5 py-0.5 text-xs font-bold text-muted">
               {ruleTag}
             </span>
           )}
@@ -444,7 +455,7 @@ function AddonRow({
                 type="checkbox"
                 checked={quantity > 0}
                 onChange={(e) => onChangeQuantity(addon.id, e.target.checked ? 1 : 0)}
-                className="h-4 w-4 accent-[var(--accent)]"
+                className="h-4 w-4 accent-foreground"
               />
               적용
             </label>

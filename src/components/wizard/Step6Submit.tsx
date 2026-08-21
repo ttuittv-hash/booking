@@ -253,7 +253,7 @@ export function Step6Submit({
                 type="checkbox"
                 checked={confirmed}
                 onChange={(e) => setConfirmed(e.target.checked)}
-                className="mt-0.5 accent-accent"
+                className="mt-0.5 accent-foreground"
               />
               위에 표시된 공연기간/일정 및 공연정보 입력 내용을 확인하였으며, 이대로 신청서를 제출합니다.
             </label>
@@ -262,7 +262,7 @@ export function Step6Submit({
                 type="checkbox"
                 checked={pledged}
                 onChange={(e) => setPledged(e.target.checked)}
-                className="mt-0.5 accent-accent"
+                className="mt-0.5 accent-foreground"
               />
               입력한 내용이 사실과 틀림없으며, 이를 이행할 것을 서약합니다.
             </label>

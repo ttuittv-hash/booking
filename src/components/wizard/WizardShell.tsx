@@ -386,8 +386,11 @@ export function WizardShell({
 
   /*
     Figma Multi Form / 5 — 폼 하단 버튼은 좌우로 벌리지 않고 **우측에 나란히** 둔다.
-    이전(아웃라인) + 다음(검정 채움), 높이 48. 진행 차단 조건은 새 대관 플로우 기준
-    (STEP 1 시설 미선택 / STEP 2 중형 단독인데 일정 미선택)이다.
+    이전(아웃라인) + 다음(검정 채움), 높이 48.
+
+    버튼 줄은 **화면당 하나**다. 예전엔 스크롤을 줄이려고 상단에도 옅은 알약 버튼을
+    뒀는데, 같은 동작이 두 가지 모양으로 보여 어느 쪽이 진짜 진행인지 헷갈렸다.
+    진행 차단 조건은 STEP 1 시설 미선택 / STEP 2 중형 단독인데 일정 미선택.
   */
   const navButtons = (
     <div className="mt-10 flex flex-wrap justify-end gap-3 border-t border-border/25 pt-6">
@@ -414,32 +417,6 @@ export function WizardShell({
     </div>
   );
 
-  // 하단 버튼은 이 화면의 주된 진행 액션(강조된 파랑 버튼)이고, 상단은 스크롤을 줄이기
-  // 위한 보조 이동 수단이라 같은 굵기로 두면 바로 아래 섹션 박스와 부딪혀 무거워 보인다
-  // — 옅은 pill 버튼으로 톤을 낮추고 아래 여백을 넉넉히 둔다(2026-08-19).
-  const topNavButtons = (
-    <div className="flex items-center justify-between">
-      <button
-        type="button"
-        disabled={step === 1}
-        onClick={() => goTo(step - 1)}
-        className="rounded-full px-3.5 py-1.5 text-xs font-medium text-muted transition-colors hover:bg-panel hover:text-foreground disabled:cursor-not-allowed disabled:opacity-30"
-      >
-        ← 이전
-      </button>
-      {step < TOTAL_STEPS && (
-        <button
-          type="button"
-          disabled={(step === 1 && !selection.venueId) || (step === 2 && midHallOnly && !hasMidHallSelection)}
-          onClick={() => goTo(step + 1)}
-          className="rounded-full border border-border/25 px-3.5 py-1.5 text-xs font-medium text-foreground transition-colors hover:border-foreground hover:text-foreground disabled:cursor-not-allowed disabled:opacity-30"
-        >
-          다음 →
-        </button>
-      )}
-    </div>
-  );
-
   return (
     // 좌: 스텝 콘텐츠 / 우: sticky 요약 패널.
     // container-site 는 width:100% 를 명시하므로 5cfc178 의 w-full 요건을 만족한다.
@@ -448,8 +425,6 @@ export function WizardShell({
     <div className="container-site grid w-full grid-cols-1 gap-10 py-10 sm:py-12 lg:grid-cols-[minmax(0,1fr)_360px] lg:gap-14">
       <div className="min-w-0">
         <StepNav step={step} maxUnlockedStep={maxUnlockedStep} onJump={goTo} />
-
-        <div className="mt-4 mb-6">{topNavButtons}</div>
 
         {step === 1 && (
           <StepVenue
@@ -468,7 +443,7 @@ export function WizardShell({
         )}
         {step === 2 && selection.bookingMode === "SIMULTANEOUS" && (
           <section className="border border-border/25 bg-background p-5 sm:p-7">
-            <h2 className="type-kr-heading text-h6-m sm:text-h6">일정 선택</h2>
+            <h2 className="type-kr-heading text-h5-m sm:text-h5">일정 선택</h2>
             <p className="mt-1.5 text-s text-muted">
               동시 대관에서는 아레나를 먼저 확정합니다 — 덩어리가 크고 제약이 많아 기준선
               역할을 합니다.
@@ -482,7 +457,7 @@ export function WizardShell({
                   className={[
                     "border-b-2 px-4 py-2.5 text-s font-medium transition-colors",
                     venueTab === tab
-                      ? "border-accent text-foreground"
+                      ? "border-foreground font-bold text-foreground"
                       : "border-transparent text-muted hover:text-foreground",
                   ].join(" ")}
                 >
@@ -538,7 +513,7 @@ export function WizardShell({
         )}
         {step === 2 && midHallOnly && (
           <section className="border border-border/25 bg-background p-5 sm:p-7">
-            <h2 className="type-kr-heading text-h6-m sm:text-h6">일정 선택</h2>
+            <h2 className="type-kr-heading text-h5-m sm:text-h5">일정 선택</h2>
             <MidHallCalendar
               year={midHallMonth.year}
               month={midHallMonth.month}
