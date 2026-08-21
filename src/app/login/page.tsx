@@ -90,7 +90,22 @@ export default function LoginPage() {
           </button>
         </form>
 
-        <p className="mt-6 text-center text-[13px] text-muted">
+        {/* 기획서 A13 — 로그인 화면에서 아이디·비밀번호 찾기로 갈 수 있어야 한다.
+            디자인 개편 때 빠졌던 것을 복원(E2E A13-1·A13-2 가 잡았다). */}
+        <p className="mt-4 flex items-center justify-center gap-3 text-[12.5px] text-muted">
+          <Link href="/find-id" data-testid="link-find-id" className="hover:text-foreground hover:underline">
+            아이디 찾기
+          </Link>
+          <span aria-hidden className="text-border">|</span>
+          <Link
+            href="/reset-password"
+            data-testid="link-reset-password"
+            className="hover:text-foreground hover:underline"
+          >
+            비밀번호 찾기
+          </Link>
+        </p>
+        <p className="mt-4 text-center text-[13px] text-muted">
           신청자 계정이 없으신가요?{" "}
           <Link href="/register" className="font-medium text-accent hover:underline">
             회원가입
