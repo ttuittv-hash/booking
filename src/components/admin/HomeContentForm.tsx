@@ -217,7 +217,10 @@ export function HomeContentForm({ content: initial }: { content: HomeContent }) 
         </label>
         <label className="mt-3 block">
           <span className={labelCls}>리드 문구</span>
-          <textarea rows={2} value={content.narrativeLead} onChange={(e) => patch({ narrativeLead: e.target.value })} className={inputCls} />
+          <textarea rows={5} value={content.narrativeLead} onChange={(e) => patch({ narrativeLead: e.target.value })} className={inputCls} />
+          <span className="mt-1 block text-xs text-muted">
+            빈 줄을 넣으면 문단이 나뉩니다. <b className="text-foreground">**감싼 부분**</b> 은 굵게 나옵니다.
+          </span>
         </label>
 
         <div className="mt-4 space-y-3">
@@ -231,7 +234,10 @@ export function HomeContentForm({ content: initial }: { content: HomeContent }) 
                   </label>
                   <label className="sm:col-span-2">
                     <span className={labelCls}>본문</span>
-                    <textarea rows={2} value={s.desc} onChange={(e) => updateStatement(i, { desc: e.target.value })} className={inputCls} />
+                    <textarea rows={4} value={s.desc} onChange={(e) => updateStatement(i, { desc: e.target.value })} className={inputCls} />
+                    <span className="mt-1 block text-xs text-muted">
+                      <b className="text-foreground">**감싼 부분**</b> 은 굵게 — 마무리 문장에 씁니다.
+                    </span>
                   </label>
                 </div>
                 <button type="button" onClick={() => removeStatement(i)} className={removeBtnCls}>
