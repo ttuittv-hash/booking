@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { won } from "@/lib/format";
-import { CHOICE_SELECTED_VARS } from "@/components/ui/kit";
+import { INVERSE_SURFACE_VARS } from "@/components/ui/kit";
 import { resolveSelectedDates } from "@/lib/pricing/dateRange";
 import {
   defaultDayTags,
@@ -269,10 +269,19 @@ export function StepConfigOptions({
         note="대관료에 이미 포함된 구성 — 관객 규모와 무관하게 전 패키지 동일하게 제공됩니다"
       />
 
-      {/* 선택 옵션 = 실제로 고르는 것이라 머리표를 **검정 채움**으로 둔다 */}
-      <div className="mt-6 border border-border/25 p-5">
+      {/*
+        선택 옵션 = 실제로 고르는 곳이라 **박스 자체를 검정 면**으로 둔다.
+        안의 항목에는 선택 강조를 주지 않는다 — 수량 입력칸이 있어서 면을 채우면
+        입력한 숫자가 안 보인다. 토큰을 국소 반전해 입력 필드·보조 텍스트가 따라온다.
+      */}
+      <div
+        style={INVERSE_SURFACE_VARS}
+        className="mt-6 bg-inverse-bg p-5 text-inverse-fg"
+      >
         <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
-          <span className="bg-foreground px-2 py-0.5 text-xs font-bold text-background">선택 옵션</span>
+          <span className="bg-inverse-fg px-2 py-0.5 text-xs font-bold text-inverse-bg">
+            선택 옵션
+          </span>
           <span className="text-xs text-muted">
             필요한 만큼 수량을 정해 추가하는 항목 — 단가 × 수량으로 금액이 즉시 계산됩니다
           </span>
@@ -299,7 +308,7 @@ export function StepConfigOptions({
             </div>
           ))}
         </div>
-        <div className="mt-4 flex items-center justify-between bg-background px-4 py-3 text-s font-semibold">
+        <div className="mt-5 flex items-center justify-between border-t border-border/40 pt-4 text-s font-bold">
           <span>선택 옵션</span>
           <span className="tabular-nums">{selectedOptionCount}건 선택됨</span>
         </div>
@@ -408,19 +417,13 @@ function AddonRow({
       ? `매출 ${addon.unitPrice}%`
       : `${won(addon.unitPrice)} / ${addon.unitLabel.replace("원/", "")}`;
 
-  // 고른 항목은 **검정 채움**이다 — 위저드 전체가 "선택 = 검정 채움" 한 가지 언어만 쓴다.
-  // 채움 안에서 보조 텍스트·보더가 지면에 맞게 뒤집히도록 토큰을 국소 반전한다.
-  const picked = !isUtil && quantity > 0;
+  // 행에는 선택 강조를 주지 않는다. 수량을 적는 칸이 그 안에 있어서 면을 채우면
+  // 입력한 숫자가 배경에 묻힌다 — 이 화면에서 "고르는 곳"임은 바깥 박스(검정 면)가 말한다.
   return (
     <div
-      style={picked ? CHOICE_SELECTED_VARS : undefined}
       className={[
         "flex flex-col gap-3 border px-4 py-3 sm:flex-row sm:items-center sm:justify-between sm:gap-4",
-        isUtil
-          ? "border-border/70 opacity-60"
-          : picked
-            ? "border-foreground bg-inverse-bg text-inverse-fg"
-            : "border-border/25",
+        isUtil ? "border-border/70 opacity-60" : "border-border/25",
       ].join(" ")}
     >
       <div className="min-w-0">

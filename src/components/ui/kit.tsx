@@ -61,6 +61,13 @@ const BAND_VARS: Record<BandTone, React.CSSProperties> = {
   },
 };
 
+/**
+ * 밴드가 아닌 곳(카드·섹션 박스)을 검정 면으로 만들 때 쓰는 토큰 반전.
+ * `Band tone="dark"` 와 같은 값이라 그 안의 입력 필드·보조 텍스트·보더가
+ * 자동으로 지면에 맞는다 — 검정 배경에 검정 글자가 나오는 사고를 막는다.
+ */
+export const INVERSE_SURFACE_VARS: React.CSSProperties = BAND_VARS.dark;
+
 export function Band({
   tone = "light",
   children,
