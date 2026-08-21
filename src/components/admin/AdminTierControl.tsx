@@ -3,7 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import type { AdminTier } from "@/lib/pricing/types";
-import { FIELD_SM } from "@/components/admin/adminUi";
+import { FIELD_SM, REMOVE_BTN } from "@/components/admin/adminUi";
 
 const TIER_LABEL: Record<AdminTier, string> = {
   BASIC: "일반관리자",
@@ -77,5 +77,41 @@ export function AdminTierControl({ userId, tier }: { userId: string; tier: Admin
       </select>
       {error && <span className="text-xs text-danger">{error}</span>}
     </div>
+  );
+}
+
+/**
+ * 운영자 권한 해제 — 계정을 삭제하지 않고 신청자로 되돌린다.
+ * 자기 자신과 마지막 마스터는 서버가 막는다.
+ */
+export function AdminDemoteButton({ userId, name }: { userId: string; name: string }) {
+  const router = useRouter();
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  async function demote() {
+    if (!confirm(`「${name}」 계정의 운영자 권한을 해제할까요?\n계정은 남고 신청자로 되돌립니다.`)) return;
+    setSaving(true);
+    setError(null);
+    try {
+      const res = await fetch(`/api/admin/users/${userId}`, { method: "DELETE" });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        setError(data.error || "권한을 해제하지 못했습니다.");
+        return;
+      }
+      router.refresh();
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return (
+    <span className="inline-flex flex-col items-end gap-1">
+      <button type="button" onClick={demote} disabled={saving} className={REMOVE_BTN}>
+        {saving ? "처리 중…" : "권한 해제"}
+      </button>
+      {error && <span className="text-xs text-danger">{error}</span>}
+    </span>
   );
 }

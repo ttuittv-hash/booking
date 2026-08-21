@@ -1,5 +1,7 @@
 "use client";
 
+import { toggleClass } from "@/components/ui/kit";
+
 import { useState } from "react";
 import { defaultDayTags, effectiveDayTag } from "@/lib/pricing/rateTableUtils";
 import { resolveSelectedDates } from "@/lib/pricing/dateRange";
@@ -261,7 +263,7 @@ export function StepAudience({
                 className="flex items-center justify-between border border-border bg-panel px-3.5 py-2.5"
               >
                 <span className="truncate text-s font-bold">{file.name}</span>
-                <button type="button" onClick={() => removeFile(i)} className="shrink-0 text-xs text-muted hover:text-danger">
+                <button type="button" onClick={() => removeFile(i)} className={`${toggleClass(false)} shrink-0`}>
                   삭제
                 </button>
               </li>

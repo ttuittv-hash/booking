@@ -3,7 +3,6 @@
 import { useState } from "react";
 import type { Faq } from "@/lib/pricing/types";
 import { FAQ_TAGS } from "@/lib/content/faqSeed";
-import { TagBadge } from "@/components/TagBadge";
 
 /**
  * FAQ 아코디언 — 헤어라인 로우 + 샤프한 +/− 토글.

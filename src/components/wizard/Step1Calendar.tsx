@@ -1,5 +1,7 @@
 "use client";
 
+import { ICON_BTN_SM, toggleClass } from "@/components/ui/kit";
+
 import { useState } from "react";
 import { isoDate, resolveSelectedDates } from "@/lib/pricing/dateRange";
 import { defaultDayTags, effectiveDayTag } from "@/lib/pricing/rateTableUtils";
@@ -251,7 +253,7 @@ export function Step1Calendar({
           type="button"
           onClick={() => goToMonth(-1)}
           aria-label="이전 달"
-          className="border border-border px-3 py-1.5 text-s text-muted hover:border-foreground hover:text-foreground"
+          className={toggleClass(false)}
         >
           ‹
         </button>
@@ -262,7 +264,7 @@ export function Step1Calendar({
           type="button"
           onClick={() => goToMonth(1)}
           aria-label="다음 달"
-          className="border border-border px-3 py-1.5 text-s text-muted hover:border-foreground hover:text-foreground"
+          className={toggleClass(false)}
         >
           ›
         </button>
@@ -362,10 +364,10 @@ export function Step1Calendar({
                       type="button"
                       onClick={() => setRole(openDate, "PREP")}
                       className={[
-                        "px-3 py-1.5 text-xs font-bold transition-colors",
+                        "inline-flex h-8 items-center border px-3 text-xs font-bold transition-colors",
                         activeDateKeys.has(dateKey(new Date(openDate))) &&
                         effectiveDayTag(openDate, dayTags, dayTagDefaults) === "PREP"
-                          ? "bg-foreground text-background"
+                          ? "border-foreground bg-inverse-bg text-inverse-fg"
                           : "border border-border/25 text-muted hover:border-foreground hover:text-foreground",
                       ].join(" ")}
                     >
@@ -375,10 +377,10 @@ export function Step1Calendar({
                       type="button"
                       onClick={() => setRole(openDate, "PERFORMANCE")}
                       className={[
-                        "px-3 py-1.5 text-xs font-bold transition-colors",
+                        "inline-flex h-8 items-center border px-3 text-xs font-bold transition-colors",
                         activeDateKeys.has(dateKey(new Date(openDate))) &&
                         effectiveDayTag(openDate, dayTags, dayTagDefaults) === "PERFORMANCE"
-                          ? "bg-foreground text-background"
+                          ? "border-foreground bg-inverse-bg text-inverse-fg"
                           : "border border-border/25 text-muted hover:border-foreground hover:text-foreground",
                       ].join(" ")}
                     >
@@ -388,10 +390,10 @@ export function Step1Calendar({
                       type="button"
                       onClick={() => setRole(openDate, "LOAD_OUT")}
                       className={[
-                        "px-3 py-1.5 text-xs font-bold transition-colors",
+                        "inline-flex h-8 items-center border px-3 text-xs font-bold transition-colors",
                         activeDateKeys.has(dateKey(new Date(openDate))) &&
                         effectiveDayTag(openDate, dayTags, dayTagDefaults) === "LOAD_OUT"
-                          ? "bg-foreground text-background"
+                          ? "border-foreground bg-inverse-bg text-inverse-fg"
                           : "border border-border/25 text-muted hover:border-foreground hover:text-foreground",
                       ].join(" ")}
                     >
@@ -419,7 +421,7 @@ export function Step1Calendar({
                         <button
                           type="button"
                           onClick={() => setShowCount(openDate, (dayShowCounts[openDate] ?? 1) - 1)}
-                          className="h-6 w-6 border border-border text-s text-muted hover:border-foreground hover:text-foreground"
+                          className={ICON_BTN_SM}
                         >
                           −
                         </button>
@@ -429,7 +431,7 @@ export function Step1Calendar({
                         <button
                           type="button"
                           onClick={() => setShowCount(openDate, (dayShowCounts[openDate] ?? 1) + 1)}
-                          className="h-6 w-6 border border-border text-s text-muted hover:border-foreground hover:text-foreground"
+                          className={ICON_BTN_SM}
                         >
                           +
                         </button>

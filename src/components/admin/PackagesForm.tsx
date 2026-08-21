@@ -29,6 +29,7 @@ import {
   TR_HOVER,
   TAB_BAR,
   tabCls,
+  REMOVE_BTN,
 } from "./adminUi";
 import {
   ADDON_CATEGORY_LABEL,
@@ -144,6 +145,20 @@ export function PackagesForm({ rateTable }: { rateTable: RateTable }) {
     setActiveId(nextId);
   }
 
+  /** 패키지 삭제 — 공간별 마지막 하나는 남긴다(고를 것이 없으면 신청이 막힌다) */
+  function removePackage(id: number) {
+    const target = packages.find((p) => p.id === id);
+    if (!target) return;
+    if (packages.filter((p) => p.venueId === target.venueId).length <= 1) {
+      alert("이 공간의 마지막 패키지는 삭제할 수 없습니다. 새 패키지를 먼저 추가하세요.");
+      return;
+    }
+    if (!confirm(`「${target.name}」 패키지를 삭제할까요?`)) return;
+    const rest = packages.filter((p) => p.id !== id);
+    setPackages(rest);
+    if (activeId === id) setActiveId(rest[0]?.id ?? 0);
+  }
+
   function includedQty(addonId: string): number {
     return active.includedItems.find((i) => i.addonId === addonId)?.quantity ?? 0;
   }
@@ -161,6 +176,22 @@ export function PackagesForm({ rateTable }: { rateTable: RateTable }) {
 
   function updateAddonVisibility(addonId: string, visibility: LineItemVisibility) {
     setAddons((prev) => prev.map((a) => (a.id === addonId ? { ...a, visibility } : a)));
+  }
+
+  /**
+   * 항목 삭제 — 목록에서 빼고, 모든 패키지의 기본 포함 수량에서도 함께 지운다.
+   * 한쪽만 지우면 화면에는 안 보이는데 견적에는 남는 유령 항목이 된다.
+   */
+  function removeAddon(addonId: string) {
+    const addon = addons.find((a) => a.id === addonId);
+    if (!confirm(`「${addon?.name ?? addonId}」 항목을 삭제할까요?\n모든 패키지의 기본 포함 설정에서도 함께 지워집니다.`)) return;
+    setAddons((prev) => prev.filter((a) => a.id !== addonId));
+    setPackages((prev) =>
+      prev.map((pkg) => ({
+        ...pkg,
+        includedItems: pkg.includedItems.filter((it) => it.addonId !== addonId),
+      })),
+    );
   }
 
   function openNewItemForm(category: AddonCategory, visibility: LineItemVisibility) {
@@ -283,6 +314,9 @@ export function PackagesForm({ rateTable }: { rateTable: RateTable }) {
                 <th className={TH_NUM}>기본 대관료 (₩)</th>
                 <th className={TH_NUM}>총 패키지 가격 (₩)</th>
                 <th className={TH_NUM}>할인 적용가 (₩)</th>
+                <th className={TH}>
+                  <span className="sr-only">삭제</span>
+                </th>
               </tr>
             </thead>
             <tbody>
@@ -303,6 +337,18 @@ export function PackagesForm({ rateTable }: { rateTable: RateTable }) {
                       ) : (
                         <span className="text-muted">{NONE}</span>
                       )}
+                    </td>
+                    <td className="px-4 py-3 text-right">
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          removePackage(p.id);
+                        }}
+                        className={REMOVE_BTN}
+                      >
+                        삭제
+                      </button>
                     </td>
                   </tr>
                 );
@@ -729,6 +775,13 @@ export function PackagesForm({ rateTable }: { rateTable: RateTable }) {
                               <option value="HIDDEN">비노출</option>
                               <option value="VISIBLE">선택 옵션</option>
                             </select>
+                            <button
+                              type="button"
+                              onClick={() => removeAddon(addon.id)}
+                              className={REMOVE_BTN}
+                            >
+                              삭제
+                            </button>
                           </div>
                         </div>
                       );

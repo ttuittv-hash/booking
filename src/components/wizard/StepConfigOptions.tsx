@@ -19,7 +19,7 @@ import {
   type RateTable,
   type RentalPackage,
 } from "@/lib/pricing/types";
-import { INVERSE_SURFACE_VARS, PLAIN_SURFACE_VARS } from "@/components/ui/kit";
+import { CHOICE_SELECTED_VARS } from "@/components/ui/kit";
 import { BaseCompositionCard } from "./BaseCompositionCard";
 
 // [화면 뼈대 2026-08-18, 화면시나리오 SCREEN 05/12] "규모/패키지 선택 → 기본 포함사항 →
@@ -76,14 +76,16 @@ function PackagePicker({
                 setShowCustomNotice(false);
                 onSelect(p.id);
               }}
+              /* 고른 카드는 검정 채움 — 안쪽 제목·설명이 따라오도록 토큰을 국소 반전한다 */
+              style={active ? CHOICE_SELECTED_VARS : undefined}
               className={[
                 "border px-4 py-3 text-left transition-colors",
                 active
                   ? "border-foreground bg-inverse-bg text-inverse-fg"
-                  : "border-border bg-panel hover:border-foreground/50",
+                  : "border-border-soft hover:border-foreground",
               ].join(" ")}
             >
-              <div className="text-s font-bold text-foreground">{p.name}</div>
+              <div className="text-s font-bold">{p.name}</div>
               <div className="mt-0.5 text-xs text-muted">{p.tagline}</div>
             </button>
           );
@@ -91,14 +93,15 @@ function PackagePicker({
         <button
           type="button"
           onClick={() => setShowCustomNotice(true)}
+          style={showCustomNotice ? CHOICE_SELECTED_VARS : undefined}
           className={[
             "border border-dashed px-4 py-3 text-left transition-colors",
             showCustomNotice
               ? "border-foreground bg-inverse-bg text-inverse-fg"
-              : "border-border bg-panel text-muted hover:border-foreground/50",
+              : "border-border-soft text-muted hover:border-foreground",
           ].join(" ")}
         >
-          <div className="text-s font-bold text-foreground">커스텀</div>
+          <div className="text-s font-bold">커스텀</div>
           <div className="mt-0.5 text-xs text-muted">직접구성</div>
         </button>
       </div>
@@ -218,13 +221,8 @@ export function StepConfigOptions({
       {!pkg ? (
         <p className="text-s text-muted">위에서 패키지를 선택하면 선택 옵션을 확인할 수 있습니다.</p>
       ) : (
-        /*
-          선택 옵션 = 실제로 고르는 곳이라 **박스 자체를 검정 면**으로 둔다.
-          안의 항목은 흰 카드이고 선택 강조를 주지 않는다 — 수량 입력칸이 있어서
-          면 색이 바뀌면 입력한 숫자가 안 보인다. 토큰을 국소 반전해 머리글·헤어라인이
-          지면에 맞고, 카드는 `PLAIN_SURFACE_VARS` 로 되돌린다.
-        */
-        <div style={INVERSE_SURFACE_VARS} className="mt-6 bg-inverse-bg p-5 text-inverse-fg">
+        /* 선택 옵션 = 아웃라인 박스. 색면을 쓰지 않는다 — 안의 항목도 아웃라인만이다 */
+        <div className="mt-6 border border-border/25 p-5">
           <h2 className="type-kr-heading text-h6-m sm:text-h6">선택 옵션</h2>
           <p className="mt-2 text-xs text-muted">
             필요한 만큼 수량을 정해 추가하는 항목 — 단가 × 수량으로 금액이 즉시 계산됩니다
@@ -292,7 +290,7 @@ export function StepConfigOptions({
             type="button"
             onClick={() => setVenueTab(tab)}
             className={[
-              "border-b-2 px-4 py-2.5 text-s font-bold transition-colors",
+              "flex h-10 items-center border-b-2 px-4 text-s font-bold transition-colors",
               venueTab === tab
                 ? "border-foreground text-foreground"
                 : "border-transparent text-muted hover:text-foreground",
@@ -343,14 +341,12 @@ function AddonRow({
       ? `매출 ${addon.unitPrice}%`
       : `${won(addon.unitPrice)} / ${addon.unitLabel.replace("원/", "")}`;
 
-  // 검정 박스 위의 **흰 카드**다. 선택 여부로 색이 변하지 않는다 —
+  // 항목은 아웃라인만이다. 선택 여부로 면 색을 바꾸지 않는다 —
   // 수량을 적는 칸이 안에 있어서 면 색이 바뀌면 입력한 숫자가 묻힌다.
-  // 반전된 토큰을 여기서 되돌려야 입력 글자가 검정으로 나온다.
   return (
     <div
-      style={PLAIN_SURFACE_VARS}
       className={[
-        "flex flex-col gap-1.5 border border-border-soft bg-panel px-3 py-2 text-foreground",
+        "flex flex-col gap-1.5 border border-border-soft px-3 py-2",
         isUtil ? "opacity-60" : "",
       ].join(" ")}
     >

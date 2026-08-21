@@ -1,5 +1,7 @@
 "use client";
 
+import { toggleClass } from "@/components/ui/kit";
+
 import { useState } from "react";
 import { INITIAL_PERFORMANCE_INFO } from "@/lib/pricing/performanceInfoDefaults";
 import { VenueSplitTabBar, type VenueSplitTab } from "./VenueSplitTabBar";
@@ -309,7 +311,7 @@ function PerformanceInfoFields({
               <button
                 type="button"
                 onClick={addPastPerformance}
-                className="text-xs font-bold text-foreground hover:underline"
+                className={toggleClass(false)}
               >
                 ＋ 행 추가
               </button>
@@ -355,7 +357,7 @@ function PerformanceInfoFields({
                       type="button"
                       onClick={() => removePastPerformance(i)}
                       aria-label="삭제"
-                      className="shrink-0 text-xs text-muted hover:text-danger"
+                      className={`${toggleClass(false)} shrink-0`}
                     >
                       삭제
                     </button>

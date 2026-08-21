@@ -1,5 +1,7 @@
 "use client";
 
+import { ICON_BTN_SM, toggleClass } from "@/components/ui/kit";
+
 import { useState } from "react";
 import { isoDate, isWeekendDate } from "@/lib/pricing/dateRange";
 import type { DateBlock, MidHallDayRole, MidHallDaySelection, MidHallRateConfig } from "@/lib/pricing/types";
@@ -130,7 +132,7 @@ export function MidHallCalendar({
           type="button"
           onClick={() => goToMonth(-1)}
           aria-label="이전 달"
-          className="border border-border px-3 py-1.5 text-s text-muted hover:border-foreground hover:text-foreground"
+          className={toggleClass(false)}
         >
           ‹
         </button>
@@ -141,7 +143,7 @@ export function MidHallCalendar({
           type="button"
           onClick={() => goToMonth(1)}
           aria-label="다음 달"
-          className="border border-border px-3 py-1.5 text-s text-muted hover:border-foreground hover:text-foreground"
+          className={toggleClass(false)}
         >
           ›
         </button>
@@ -218,9 +220,9 @@ export function MidHallCalendar({
                       type="button"
                       onClick={() => setRole(openDate, "SETUP")}
                       className={[
-                        "px-3 py-1.5 text-xs font-bold transition-colors",
+                        "inline-flex h-8 items-center border px-3 text-xs font-bold transition-colors",
                         days[openDate]?.role === "SETUP"
-                          ? "bg-foreground text-background"
+                          ? "border-foreground bg-inverse-bg text-inverse-fg"
                           : "border border-border/25 text-muted hover:border-foreground hover:text-foreground",
                       ].join(" ")}
                     >
@@ -230,9 +232,9 @@ export function MidHallCalendar({
                       type="button"
                       onClick={() => setRole(openDate, "PERFORMANCE")}
                       className={[
-                        "px-3 py-1.5 text-xs font-bold transition-colors",
+                        "inline-flex h-8 items-center border px-3 text-xs font-bold transition-colors",
                         days[openDate]?.role === "PERFORMANCE"
-                          ? "bg-foreground text-background"
+                          ? "border-foreground bg-inverse-bg text-inverse-fg"
                           : "border border-border/25 text-muted hover:border-foreground hover:text-foreground",
                       ].join(" ")}
                     >
@@ -242,9 +244,9 @@ export function MidHallCalendar({
                       type="button"
                       onClick={() => setRole(openDate, "LOAD_OUT")}
                       className={[
-                        "px-3 py-1.5 text-xs font-bold transition-colors",
+                        "inline-flex h-8 items-center border px-3 text-xs font-bold transition-colors",
                         days[openDate]?.role === "LOAD_OUT"
-                          ? "bg-foreground text-background"
+                          ? "border-foreground bg-inverse-bg text-inverse-fg"
                           : "border border-border/25 text-muted hover:border-foreground hover:text-foreground",
                       ].join(" ")}
                     >
@@ -266,7 +268,7 @@ export function MidHallCalendar({
                         <button
                           type="button"
                           onClick={() => setShows(openDate, (days[openDate]?.shows ?? 1) - 1)}
-                          className="h-6 w-6 border border-border text-s text-muted hover:border-foreground hover:text-foreground"
+                          className={ICON_BTN_SM}
                         >
                           −
                         </button>
@@ -276,7 +278,7 @@ export function MidHallCalendar({
                         <button
                           type="button"
                           onClick={() => setShows(openDate, (days[openDate]?.shows ?? 1) + 1)}
-                          className="h-6 w-6 border border-border text-s text-muted hover:border-foreground hover:text-foreground"
+                          className={ICON_BTN_SM}
                         >
                           +
                         </button>
@@ -290,7 +292,7 @@ export function MidHallCalendar({
                       <button
                         type="button"
                         onClick={() => onChangeExtraLoadOutHours(Math.max(0, extraLoadOutHours - 1))}
-                        className="h-6 w-6 border border-border text-s text-muted hover:border-foreground hover:text-foreground"
+                        className={ICON_BTN_SM}
                       >
                         −
                       </button>
@@ -298,7 +300,7 @@ export function MidHallCalendar({
                       <button
                         type="button"
                         onClick={() => onChangeExtraLoadOutHours(Math.min(6, extraLoadOutHours + 1))}
-                        className="h-6 w-6 border border-border text-s text-muted hover:border-foreground hover:text-foreground"
+                        className={ICON_BTN_SM}
                       >
                         +
                       </button>
@@ -311,7 +313,7 @@ export function MidHallCalendar({
                       <button
                         type="button"
                         onClick={() => onChangeExtraSetupHours(Math.max(0, extraSetupHours - 1))}
-                        className="h-6 w-6 border border-border text-s text-muted hover:border-foreground hover:text-foreground"
+                        className={ICON_BTN_SM}
                       >
                         −
                       </button>
@@ -319,7 +321,7 @@ export function MidHallCalendar({
                       <button
                         type="button"
                         onClick={() => onChangeExtraSetupHours(Math.min(2, extraSetupHours + 1))}
-                        className="h-6 w-6 border border-border text-s text-muted hover:border-foreground hover:text-foreground"
+                        className={ICON_BTN_SM}
                       >
                         +
                       </button>

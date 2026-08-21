@@ -701,6 +701,28 @@ export function choiceClass(selected: boolean, disabled = false) {
   ].join(" ");
 }
 
+/**
+ * 작은 토글 칩 — 날짜 역할(셋업·공연일·철수), 필터, 값 스테퍼처럼 표·카드 안에 놓이는
+ * 인라인 컨트롤. 버튼 크기는 시스템의 세 단만 쓴다(48 / 40 / **32**) — 이건 32 다.
+ * 선택 = 검정 채움 한 가지 언어. 같은 줄에 놓이는 컨트롤은 전부 이 높이로 맞춘다.
+ */
+export function toggleClass(selected: boolean, disabled = false) {
+  return [
+    "inline-flex h-8 items-center justify-center gap-1 whitespace-nowrap border px-3 text-xs font-bold",
+    "transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2",
+    "focus-visible:outline-foreground",
+    disabled
+      ? "cursor-not-allowed border-border-soft opacity-40"
+      : selected
+        ? "cursor-pointer border-foreground bg-inverse-bg text-inverse-fg"
+        : "cursor-pointer border-border-soft text-muted hover:border-foreground hover:text-foreground",
+  ].join(" ");
+}
+
+/** 아이콘 버튼(±, ‹ ›) — 토글과 같은 32 높이의 정사각형 */
+export const ICON_BTN_SM =
+  "inline-flex h-8 w-8 shrink-0 items-center justify-center border border-border-soft text-s text-muted transition-colors hover:border-foreground hover:text-foreground disabled:cursor-not-allowed disabled:opacity-40";
+
 /** 선택된 칩 안에서 text-muted·border 가 지면에 맞게 뒤집히도록 */
 export const CHOICE_SELECTED_VARS: React.CSSProperties = {
   ["--muted" as string]: "var(--inverse-muted)",

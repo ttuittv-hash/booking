@@ -1,5 +1,7 @@
 "use client";
 
+import { toggleClass } from "@/components/ui/kit";
+
 import { useState } from "react";
 import { INITIAL_PERFORMANCE_INFO } from "@/lib/pricing/performanceInfoDefaults";
 import type { PerformanceInfo, QuoteSelection } from "@/lib/pricing/types";
@@ -113,7 +115,7 @@ export function StepPublicInterest({
                 className="flex items-center justify-between border border-border/25 bg-panel px-3.5 py-2.5"
               >
                 <span className="truncate text-s font-bold">{file.name}</span>
-                <button type="button" onClick={() => removeFile(i)} className="shrink-0 text-xs text-muted hover:text-danger">
+                <button type="button" onClick={() => removeFile(i)} className={`${toggleClass(false)} shrink-0`}>
                   삭제
                 </button>
               </li>

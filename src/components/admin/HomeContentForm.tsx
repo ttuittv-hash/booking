@@ -28,7 +28,6 @@ export function HomeContentForm({ content: initial }: { content: HomeContent }) 
   const [content, setContent] = useState<HomeContent>(initial);
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
-  const [imageUploading, setImageUploading] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
 
   function patch(p: Partial<HomeContent>) {
@@ -51,25 +50,6 @@ export function HomeContentForm({ content: initial }: { content: HomeContent }) 
     }
   }
 
-  async function uploadSingleImage(
-    e: React.ChangeEvent<HTMLInputElement>,
-    key: string,
-    onDone: (url: string) => void,
-  ) {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    setImageUploading(key);
-    try {
-      const formData = new FormData();
-      formData.append("file", file);
-      const res = await fetch("/api/admin/notices/upload", { method: "POST", body: formData });
-      const data = await res.json();
-      if (res.ok) onDone(data.url);
-    } finally {
-      setImageUploading(null);
-      e.target.value = "";
-    }
-  }
 
   function updateStatement(i: number, patchS: Partial<HomeContent["narrativeStatements"][number]>) {
     patch({

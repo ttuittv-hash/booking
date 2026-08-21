@@ -1,5 +1,7 @@
 "use client";
 
+import { CHOICE_SELECTED_VARS } from "@/components/ui/kit";
+
 // [화면 뼈대 2026-08-20, 세 번째 개정] "공간 선택"과 "일정 선택"을 다시 하나의 탭으로
 // 합쳤다 — 화면 안에서는 두 슬롯(섹션)으로 나뉘어 보이지만 진행 표시상으로는 한 그룹
 // "01 공간/일정"이다. 이용 시설(공간)을 먼저 고르면 그 아래 일정 슬롯(아레나 캘린더 /
@@ -106,7 +108,7 @@ export function StepNav({
                 onClick={() => entryStep !== undefined && onJump(entryStep)}
                 aria-current={isActive ? "step" : undefined}
                 className={[
-                  "whitespace-nowrap border-b-2 px-3 py-3 text-s font-bold outline-none transition-colors",
+                  "flex h-12 items-center whitespace-nowrap border-b-2 px-3 text-s font-bold outline-none transition-colors",
                   "focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-foreground",
                   isActive
                     ? "border-foreground font-bold text-foreground"
@@ -139,27 +141,23 @@ export function StepNav({
                   disabled={disabled}
                   onClick={() => onJump(s.step)}
                   aria-current={isCurrent ? "step" : undefined}
+                  /* 선택 = 검정 채움. 안쪽 번호·체크가 따라오도록 토큰을 국소 반전한다 */
+                  style={isCurrent ? CHOICE_SELECTED_VARS : undefined}
                   className={[
-                    // 터치로 누르는 칩이라 최소 높이를 확보한다. py-1 만으로는 24px 이라
-                    // 손가락으로 정확히 짚기 어렵다(권장 44px).
-                    "flex min-h-11 items-center gap-1.5 rounded-full border px-3.5 py-1.5 text-xs font-bold outline-none transition-colors",
+                    // 버튼 크기는 시스템의 세 단만 쓴다 — 그룹 탭 48 / 하위 단계 40.
+                    // 코너는 샤프. 알약은 페이지 전환 탭 전용이라 진행 단계에는 쓰지 않는다.
+                    "flex h-10 items-center gap-2 border px-4 text-xs font-bold outline-none transition-colors",
                     "focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-foreground",
-                    isCurrent || isDone ? "border-foreground text-foreground" : "border-border-soft text-muted",
+                    isCurrent
+                      ? "border-foreground bg-inverse-bg text-inverse-fg"
+                      : isDone
+                        ? "border-foreground text-foreground"
+                        : "border-border-soft text-muted",
                     disabled ? "cursor-not-allowed opacity-40" : "cursor-pointer",
                   ].join(" ")}
                 >
-                  <span
-                    aria-hidden
-                    className={[
-                      "flex h-4 w-4 shrink-0 items-center justify-center rounded-full text-xs tabular-nums",
-                      isCurrent
-                        ? "bg-inverse-bg text-inverse-fg"
-                        : isDone
-                          ? "text-foreground"
-                          : "text-muted",
-                    ].join(" ")}
-                  >
-                    {isDone ? <CheckMark /> : i + 1}
+                  <span aria-hidden className="type-display shrink-0 text-xs tabular-nums text-muted">
+                    {isDone ? <CheckMark /> : String(i + 1).padStart(2, "0")}
                   </span>
                   {s.label}
                 </button>

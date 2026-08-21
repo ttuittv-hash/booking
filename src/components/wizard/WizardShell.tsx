@@ -2,21 +2,18 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { calculateQuote } from "@/lib/pricing/calculateQuote";
-import { resolveSelectedDates } from "@/lib/pricing/dateRange";
 import {
-  defaultDayTags,
-  effectiveDayTag,
   findAddon,
   findPackage,
   isAddonAvailable,
 } from "@/lib/pricing/rateTableUtils";
 import type { AppUser, DateBlock, QuoteSelection, RateTable, SafetyPledge, WeekDemand } from "@/lib/pricing/types";
-import { DEFAULT_VENUE_ID, MEDIA_TIER_LABEL } from "@/lib/pricing/types";
+import { DEFAULT_VENUE_ID } from "@/lib/pricing/types";
 import { INITIAL_PERFORMANCE_INFO } from "@/lib/pricing/performanceInfoDefaults";
 import { clearWizardDraft, loadWizardDraft, saveWizardDraft } from "@/lib/quotesStore";
 import { ArrowRight, btnClass } from "@/components/ui/kit";
 import { StepNav } from "./StepNav";
-import { SummaryPanel, type SummaryPreviewRow } from "./SummaryPanel";
+import { SummaryPanel } from "./SummaryPanel";
 import { VenuePicker } from "./VenuePicker";
 import { Step1Calendar } from "./Step1Calendar";
 import { MidHallCalendar } from "./MidHallCalendar";
@@ -183,7 +180,12 @@ export function WizardShell({
         bookingMode: draft.selection.bookingMode ?? "SINGLE",
         secondaryAudience: draft.selection.secondaryAudience ?? INITIAL_SELECTION.secondaryAudience,
         midHallDays: draft.selection.midHallDays ?? {},
-        performanceInfo: draft.selection.performanceInfo ?? initialPerformanceInfo,
+        // 중첩 객체는 **초기값 위에 얹는다** — 스키마가 늘어난 뒤 복원된 초안에
+        // 새 필드가 없으면 배열·객체 접근에서 렌더가 터진다.
+        performanceInfo: { ...initialPerformanceInfo, ...(draft.selection.performanceInfo ?? {}) },
+        safetyPledge: { ...DEFAULT_SAFETY_PLEDGE, ...(draft.selection.safetyPledge ?? {}) },
+        addons: Array.isArray(draft.selection.addons) ? draft.selection.addons : [],
+        excludedDays: Array.isArray(draft.selection.excludedDays) ? draft.selection.excludedDays : [],
       });
       setStep(draft.step);
     }
@@ -232,83 +234,6 @@ export function WizardShell({
   const effectivePkg = findPackage(rateTable, effectivePackageId);
   const defaultPerformanceDays = effectivePkg?.defaultPerformanceDays ?? 2;
 
-  const configArenaDates = resolveSelectedDates(selection);
-  const configShowCount = (() => {
-    if (configArenaDates.length === 0) return 0;
-    const defaults = defaultDayTags(configArenaDates, defaultPerformanceDays);
-    return configArenaDates.reduce((sum, d) => {
-      const tag = effectiveDayTag(d, selection.dayTags, defaults);
-      return tag === "PERFORMANCE" ? sum + (selection.dayShowCounts[d] ?? 1) : sum;
-    }, 0);
-  })();
-  const midHallDayCount = Object.keys(selection.midHallDays).length;
-  const schedulePreviewRows: SummaryPreviewRow[] = [
-    {
-      label: "이용 시설",
-      value: !selection.venueId
-        ? "선택 전"
-        : selection.bookingMode === "SIMULTANEOUS"
-          ? "아레나 + 중형 (동시)"
-          : selection.venueId === "medium-hall"
-            ? "중형공연장"
-            : "메인 아레나",
-    },
-    ...(midHallOnly
-      ? [{ label: "대관 일정", value: midHallDayCount > 0 ? `${midHallDayCount}일 선택` : "미선택" }]
-      : [
-          {
-            label: "아레나 일정",
-            value:
-              configArenaDates.length > 0
-                ? `${selection.week.year}년 ${selection.week.month}월 ${selection.week.weekOfMonth}주차 · ${configArenaDates.length}일`
-                : "미선택",
-          },
-        ]),
-    ...(selection.bookingMode === "SIMULTANEOUS"
-      ? [{ label: "중형 일정", value: midHallDayCount > 0 ? `${midHallDayCount}일 선택` : "미선택" }]
-      : []),
-    { label: "관객 규모", value: "다음 화면(구성 · 옵션)에서 입력" },
-  ];
-
-  // [화면 뼈대 2026-08-19, 화면시나리오 STEP 2 "선택 내용"] 구성·옵션 화면에서도 견적
-  // lineItems가 아니라 지금까지 정한 값(패키지·대관 주차·공연 횟수·부대시설·홍보)을
-  // 큐레이션해 보여준다 — "Package N" 대신 관객 규모 등급으로 표기한다(패키지 번호 비노출
-  // 확정 사항, 2026-08-18).
-  const configOptionCount = selection.addons.filter(
-    (a) => a.addonId !== "cleaning" && a.requestedQuantity > 0,
-  ).length;
-  const isSimultaneousBooking = selection.bookingMode === "SIMULTANEOUS";
-  const configPreviewRows: SummaryPreviewRow[] = [
-    {
-      label: isSimultaneousBooking ? "아레나 구성" : "구성",
-      value: effectivePkg ? `${effectivePkg.name} · ${effectivePkg.audienceTier.label}` : "미선택",
-    },
-    {
-      label: isSimultaneousBooking ? "아레나 일정" : "대관 주차",
-      value:
-        configArenaDates.length > 0
-          ? `${selection.week.year}년 ${selection.week.month}월 ${selection.week.weekOfMonth}주차 · ${configArenaDates.length}일`
-          : "미선택",
-    },
-    { label: "공연", value: configShowCount > 0 ? `총 ${configShowCount}회` : "미선택" },
-    { label: "부대시설", value: `${configOptionCount}건 선택` },
-    {
-      label: "홍보",
-      value: effectivePkg?.mediaTier ? MEDIA_TIER_LABEL[effectivePkg.mediaTier] : "미포함",
-    },
-    ...(isSimultaneousBooking
-      ? [
-          {
-            label: "중형 일정",
-            value: midHallDayCount > 0 ? `${midHallDayCount}일 선택` : "미선택",
-          },
-          {
-            label: "중형 관객 규모",
-            value: `${selection.secondaryAudience.toLocaleString()}명`,
-          },
-        ]
-      : []),
-  ];
   function goTo(target: number) {
     if (target < 1 || target > TOTAL_STEPS) return;
     if (target > maxUnlockedStep) return;
@@ -429,13 +354,13 @@ export function WizardShell({
   );
 
   /*
-    Figma Multi Form / 5 — 폼 하단 버튼은 좌우로 벌리지 않고 **우측에 나란히** 둔다.
-    이전(아웃라인) + 다음(검정 채움), 높이 48. 버튼 줄은 **화면당 하나**다 —
-    예전엔 스크롤을 줄이려고 상단에도 옅은 알약 버튼을 뒀는데, 같은 동작이 두 모양으로
-    보여 어느 쪽이 진짜 진행인지 헷갈렸다.
+    폼 하단 버튼은 **양 끝**에 둔다 — 이전(좌·아웃라인) / 다음(우·검정 채움), 높이 48.
+    버튼 줄은 **화면당 하나**다. 예전엔 스크롤을 줄이려고 상단에도 옅은 알약 버튼을 뒀는데,
+    같은 동작이 두 모양으로 보여 어느 쪽이 진짜 진행인지 헷갈렸다.
+    다음 버튼이 없는 마지막 단계에서도 이전 버튼이 왼쪽에 그대로 남는다.
   */
   const navButtons = (
-    <div className="mt-10 flex flex-wrap justify-end gap-3 border-t border-border/25 pt-6">
+    <div className="mt-10 flex items-center justify-between gap-3 border-t border-border/25 pt-6">
       <button
         type="button"
         disabled={step === 1}
@@ -500,7 +425,7 @@ export function WizardShell({
                         disabled={!enabled}
                         onClick={() => enabled && setVenueTab(tab)}
                         className={[
-                          "border-b-2 px-4 py-2.5 text-s font-bold transition-colors",
+                          "flex h-10 items-center border-b-2 px-4 text-s font-bold transition-colors",
                           venueTab === tab && enabled
                             ? "border-foreground text-foreground"
                             : enabled
@@ -639,8 +564,11 @@ export function WizardShell({
 
       <SummaryPanel
         quote={quote}
-        revealPrice={step >= 3}
-        previewRows={step === 1 ? schedulePreviewRows : step === 2 ? configPreviewRows : undefined}
+        /*
+          요약 패널은 처음부터 **실시간 견적 요약**이다 — 대관료·항목·합계를 함께 보여준다.
+          한동안 STEP 1·2 에서 금액을 감췄는데, 신청자가 구성을 고르는 동안 값이 얼마나
+          움직이는지 볼 수 없어 되돌렸다. "예상 금액 · 확정 아님" 고지를 함께 둔다.
+        */
       />
     </div>
   );

@@ -3,7 +3,11 @@ import { getCurrentUser, isMasterAdmin } from "@/lib/auth";
 import { listUsers } from "@/lib/db";
 import { AdminNav } from "@/components/admin/AdminNav";
 import { AddAdminForm } from "@/components/admin/AddAdminForm";
-import { AdminTierControl, TierBadge } from "@/components/admin/AdminTierControl";
+import {
+  AdminDemoteButton,
+  AdminTierControl,
+  TierBadge,
+} from "@/components/admin/AdminTierControl";
 import { PromoteUserForm } from "@/components/admin/PromoteUserForm";
 import {
   PAGE_LEAD,
@@ -74,9 +78,12 @@ export default async function AdminUsersPage() {
                       {new Date(a.createdAt).toLocaleDateString("ko-KR")}
                     </td>
                     <td className={TD}>
-                      <div className="flex justify-end">
+                      <div className="flex items-center justify-end gap-3">
                         {master ? (
-                          <AdminTierControl userId={a.id} tier={a.adminTier ?? "BASIC"} />
+                          <>
+                            <AdminTierControl userId={a.id} tier={a.adminTier ?? "BASIC"} />
+                            {a.id !== user.id && <AdminDemoteButton userId={a.id} name={a.name} />}
+                          </>
                         ) : (
                           <TierBadge tier={a.adminTier ?? "BASIC"} />
                         )}
