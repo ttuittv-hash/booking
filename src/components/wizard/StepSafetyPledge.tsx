@@ -17,11 +17,11 @@ export function StepSafetyPledge({
   onChange: (pledge: SafetyPledge) => void;
 }) {
   return (
-    <section className="rounded border border-border bg-background p-7">
-      <h2 className="text-[19px] font-semibold">안전관리 서약서</h2>
-      <p className="mt-1.5 text-[13.5px] text-muted">공연 안전 관리를 위한 서약 항목을 확인하고 동의해 주세요.</p>
+    <section className="border border-border bg-background p-7">
+      <h2 className="type-kr-heading text-h5-m sm:text-h5">안전관리 서약서</h2>
+      <p className="mt-1.5 text-s text-muted">공연 안전 관리를 위한 서약 항목을 확인하고 동의해 주세요.</p>
 
-      <div className="mt-6 rounded border border-border">
+      <div className="mt-6 border border-border">
         {PLEDGE_ITEMS.map((item, i) => (
           <label
             key={item.key}
@@ -36,19 +36,19 @@ export function StepSafetyPledge({
               onChange={(e) => onChange({ ...pledge, [item.key]: e.target.checked })}
               className="mt-0.5 h-4 w-4 accent-[var(--accent)]"
             />
-            <span className="text-[13.5px] leading-6 text-foreground">{item.label}</span>
+            <span className="text-s leading-6 text-foreground">{item.label}</span>
           </label>
         ))}
       </div>
 
       <div className="mt-6">
-        <label className="block text-[13px] font-medium text-foreground">서명</label>
+        <label className="block text-s font-bold text-foreground">서명</label>
         <textarea
           value={pledge.signature}
           onChange={(e) => onChange({ ...pledge, signature: e.target.value })}
           placeholder="담당자 성명을 입력해 서명을 대신합니다."
           rows={3}
-          className="mt-2 w-full rounded-sm border border-border bg-panel px-3.5 py-2.5 text-[13.5px] outline-none focus:border-accent focus:ring-2 focus:ring-accent/20"
+          className="mt-2 w-full border border-border bg-panel px-3.5 py-2.5 text-s outline-none focus:border-foreground focus:ring-2 focus:ring-accent/20"
         />
       </div>
     </section>

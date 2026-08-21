@@ -6,8 +6,7 @@ import type { AppUser } from "@/lib/pricing/types";
 import { LogoutButton } from "@/components/LogoutButton";
 import { NotificationBell } from "@/components/NotificationBell";
 import {
-  ACCOUNT_PAGES,
-  MASTER_ACCOUNT_PAGE,
+  ACCOUNT_HREF,
   NAV_ACTION,
   NAV_CATEGORIES,
   SUPPORT_MENU,
@@ -197,12 +196,6 @@ export function PublicHeader({
     setOpenKey(null);
   }
 
-  // 담당자 관리는 대표 담당자 전용이다 — 일반 담당자에게는 메뉴에 올리지 않는다.
-  const accountPages =
-    currentUser?.companyRole === "MASTER"
-      ? [ACCOUNT_PAGES[0], MASTER_ACCOUNT_PAGE, ...ACCOUNT_PAGES.slice(1)]
-      : ACCOUNT_PAGES;
-
   return (
     <header
       className={`sticky top-0 z-40 transition-colors ${
@@ -306,15 +299,14 @@ export function PublicHeader({
                   운영자 백오피스
                 </Link>
               ) : (
-                <UtilMenu
-                  id="account"
-                  label={`${currentUser.name} 님`}
-                  pages={accountPages}
-                  active={active}
-                  openKey={openKey}
-                  onOpen={openWithCancel}
-                  onToggle={toggle}
-                />
+                /* 이름 자체가 마이페이지 링크다 — 드롭다운을 두지 않고 밑줄로만 표시한다 */
+                <Link
+                  href={ACCOUNT_HREF}
+                  onMouseEnter={closeNow}
+                  className={`${UTIL_LINK} underline decoration-1 underline-offset-4`}
+                >
+                  {currentUser.name} 님
+                </Link>
               )}
               <LogoutButton className={UTIL_LINK} />
               {/* 알림은 맨 오른쪽 — 텍스트 메뉴와 성격이 달라 끝에 떼어 둔다 */}
@@ -458,19 +450,17 @@ export function PublicHeader({
                         </Link>
                       </li>
                     ) : (
-                      accountPages.map((p) => (
-                        <li key={p.href}>
-                          <Link
-                            href={p.href}
-                            onClick={() => setMobileOpen(false)}
-                            className={`text-r transition-colors hover:text-accent ${
-                              p.href === active ? "font-bold text-foreground" : "text-muted"
-                            }`}
-                          >
-                            {p.label}
-                          </Link>
-                        </li>
-                      ))
+                      <li>
+                        <Link
+                          href={ACCOUNT_HREF}
+                          onClick={() => setMobileOpen(false)}
+                          className={`text-r underline decoration-1 underline-offset-4 transition-colors hover:text-accent ${
+                            active.startsWith("/mypage") ? "font-bold text-foreground" : "text-muted"
+                          }`}
+                        >
+                          마이페이지
+                        </Link>
+                      </li>
                     )}
                   </ul>
                   <div className="mt-4 flex items-center gap-5">

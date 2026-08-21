@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getCurrentUser, isPendingApplicant } from "@/lib/auth";
@@ -5,15 +6,43 @@ import { listQuotesPaged, normalizePage } from "@/lib/db";
 import { Pagination } from "@/components/Pagination";
 import { won } from "@/lib/format";
 import type { Quote } from "@/lib/pricing/types";
-import { PublicHeader } from "@/components/PublicHeader";
-import { PublicFooter } from "@/components/PublicFooter";
-import { MyPageSidebar } from "@/components/MyPageSidebar";
+import { QUOTE_STATUS_LABEL, QUOTE_STATUS_TONE } from "@/lib/quoteStatus";
+import { MyPageIdentity, MyPageShell } from "@/components/mypage/MyPageShell";
+import { DataTable, type Column } from "@/components/mypage/DataTable";
+import { ArrowRight, Badge, ButtonLink } from "@/components/ui/kit";
 
-const STATUS_LABEL: Record<Quote["status"], string> = {
-  ESTIMATE: "예상견적 (심사 대기)",
-  CONTRACTED: "계약 확정",
-  SETTLED: "정산 완료",
+export const metadata: Metadata = {
+  title: "대관 진행 내역 | 서울아레나",
 };
+
+const COLUMNS: Column[] = [
+  { key: "id", label: "신청번호" },
+  { key: "event", label: "공연명" },
+  { key: "week", label: "주차" },
+  { key: "estimate", label: "예상금액", align: "right" },
+  { key: "contract", label: "계약금액", align: "right" },
+  { key: "settlement", label: "정산금액", align: "right" },
+  { key: "status", label: "상태" },
+  { key: "detail", label: "상세 보기", srOnly: true, align: "right" },
+];
+
+/** 주차 표기 — 동시 대관은 아레나 주차와 중형 일수를 함께 적는다 */
+function weekLabel(q: Quote) {
+  const { selection: s } = q;
+  const arena = `${s.week.year}.${s.week.month} ${s.week.weekOfMonth}주차`;
+  const midDays = Object.keys(s.midHallDays).length;
+  if (s.bookingMode === "SIMULTANEOUS") {
+    return (
+      <>
+        아레나 {arena}
+        <br />
+        <span className="text-muted">중형 {midDays}일</span>
+      </>
+    );
+  }
+  if (s.venueId === "medium-hall") return `중형 ${midDays}일`;
+  return arena;
+}
 
 export default async function MyPage({
   searchParams,
@@ -27,101 +56,62 @@ export default async function MyPage({
 
   const { page: pageParam } = await searchParams;
   const page = normalizePage(pageParam);
-  const { items: quotes, total, totalPages } = await listQuotesPaged(
+  const {
+    items: quotes,
+    total,
+    totalPages,
+  } = await listQuotesPaged(
     user.companyId ? { companyId: user.companyId } : { applicantId: user.id },
     page,
   );
 
   return (
-    <div className="flex flex-1 flex-col">
-      <PublicHeader active="/mypage" currentUser={user} />
-
-      <main className="mx-auto w-full max-w-6xl flex-1 px-6 py-10">
-        <div className="flex flex-col gap-8 sm:flex-row sm:gap-10">
-          <MyPageSidebar active="/mypage" />
-
-          <div className="min-w-0 flex-1">
-            <h1 className="text-[22px] font-semibold">대관 진행 내역</h1>
-            <p className="mt-2 text-[13.5px] text-muted">
-              {user.name} 님 · {user.companyName ? `${user.companyName} · ` : ""}
-              {user.email}
-            </p>
-
-            <div className="mt-8 overflow-x-auto rounded border border-border">
-              <table className="w-full min-w-[720px] border-collapse text-[13px]">
-                <thead>
-                  <tr className="border-b border-border bg-panel text-left text-[11.5px] font-medium text-muted">
-                    <th className="px-4 py-3">신청번호</th>
-                    <th className="px-4 py-3">공연명</th>
-                    <th className="px-4 py-3">주차</th>
-                    <th className="px-4 py-3 text-right">예상금액</th>
-                    <th className="px-4 py-3 text-right">계약금액</th>
-                    <th className="px-4 py-3 text-right">정산금액</th>
-                    <th className="px-4 py-3">상태</th>
-                    <th className="px-4 py-3" />
-                  </tr>
-                </thead>
-                <tbody>
-                  {quotes.length === 0 ? (
-                    <tr>
-                      <td colSpan={8} className="px-4 py-8 text-center text-muted">
-                        아직 신청 내역이 없습니다.{" "}
-                        <Link href="/apply" className="text-accent hover:underline">
-                          대관 신청하기
-                        </Link>
-                      </td>
-                    </tr>
-                  ) : (
-                    quotes.map((q) => (
-                      <tr key={q.id} className="border-b border-border/70">
-                        <td className="px-4 py-3 font-medium">{q.id}</td>
-                        <td className="px-4 py-3 text-muted">
-                          {q.selection.performanceInfo.eventName || "-"}
-                        </td>
-                        <td className="px-4 py-3">
-                          {q.selection.bookingMode === "SIMULTANEOUS" ? (
-                            <>
-                              아레나 {q.selection.week.year}.{q.selection.week.month} {q.selection.week.weekOfMonth}주차
-                              <br />
-                              중형 {Object.keys(q.selection.midHallDays).length}일
-                            </>
-                          ) : q.selection.venueId === "medium-hall" ? (
-                            <>중형 {Object.keys(q.selection.midHallDays).length}일</>
-                          ) : (
-                            <>
-                              {q.selection.week.year}.{q.selection.week.month} {q.selection.week.weekOfMonth}주차
-                            </>
-                          )}
-                        </td>
-                        <td className="px-4 py-3 text-right tabular-nums">{won(q.total)}</td>
-                        <td className="px-4 py-3 text-right tabular-nums">
-                          {q.contract ? won(q.contract.contractTotal) : "-"}
-                        </td>
-                        <td className="px-4 py-3 text-right tabular-nums">
-                          {q.settlement ? won(q.settlement.finalTotal) : "-"}
-                        </td>
-                        <td className="px-4 py-3">
-                          <span className="rounded-sm bg-accent-soft px-2.5 py-1 text-[11.5px] font-medium text-accent">
-                            {STATUS_LABEL[q.status]}
-                          </span>
-                        </td>
-                        <td className="px-4 py-3 text-right">
-                          <Link href={`/mypage/${q.id}`} className="font-medium text-accent hover:underline">
-                            상세 →
-                          </Link>
-                        </td>
-                      </tr>
-                    ))
-                  )}
-                </tbody>
-              </table>
-            </div>
-            <Pagination page={page} totalPages={totalPages} total={total} basePath="/mypage" />
-          </div>
-        </div>
-      </main>
-
-      <PublicFooter />
-    </div>
+    <MyPageShell
+      user={user}
+      active="/mypage"
+      en="BOOKING STATUS"
+      ko="대관 진행 내역"
+      lead={<MyPageIdentity user={user} />}
+      actions={
+        <ButtonLink href="/apply" variant="primary">
+          새 대관 신청
+          <ArrowRight />
+        </ButtonLink>
+      }
+    >
+      <DataTable
+        columns={COLUMNS}
+        minWidth="52rem"
+        empty={
+          <>
+            아직 신청 내역이 없습니다.{" "}
+            <Link href="/apply" className="font-bold text-foreground underline underline-offset-4">
+              대관 신청하기
+            </Link>
+          </>
+        }
+        rows={quotes.map((q) => ({
+          id: q.id,
+          cells: {
+            id: <span className="font-bold">{q.id}</span>,
+            event: q.selection.performanceInfo.eventName || "—",
+            week: weekLabel(q),
+            estimate: won(q.total),
+            contract: q.contract ? won(q.contract.contractTotal) : "—",
+            settlement: q.settlement ? won(q.settlement.finalTotal) : "—",
+            status: <Badge tone={QUOTE_STATUS_TONE[q.status]}>{QUOTE_STATUS_LABEL[q.status]}</Badge>,
+            detail: (
+              <Link
+                href={`/mypage/${q.id}`}
+                className="whitespace-nowrap text-s font-bold underline underline-offset-4 hover:text-accent"
+              >
+                상세
+              </Link>
+            ),
+          },
+        }))}
+      />
+      <Pagination page={page} totalPages={totalPages} total={total} basePath="/mypage" />
+    </MyPageShell>
   );
 }

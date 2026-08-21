@@ -88,9 +88,9 @@ export function StepPublicInterest({
           {PUBLIC_INTEREST_ITEMS.map((item, i) => (
             <div key={item.title} className="border border-border/25 p-4">
               <div className="flex items-start gap-2">
-                <span className="shrink-0 text-xs font-semibold text-foreground">{i + 1}.</span>
+                <span className="shrink-0 text-xs font-bold text-foreground">{i + 1}.</span>
                 <div>
-                  <div className="text-s font-medium text-foreground">{item.title}</div>
+                  <div className="text-s font-bold text-foreground">{item.title}</div>
                   <div className="mt-0.5 text-xs text-muted">{item.hint}</div>
                 </div>
               </div>
@@ -112,8 +112,8 @@ export function StepPublicInterest({
                 key={`${file.name}-${i}`}
                 className="flex items-center justify-between border border-border/25 bg-panel px-3.5 py-2.5"
               >
-                <span className="truncate text-s font-medium">{file.name}</span>
-                <button type="button" onClick={() => removeFile(i)} className="shrink-0 text-xs text-muted hover:text-red-600">
+                <span className="truncate text-s font-bold">{file.name}</span>
+                <button type="button" onClick={() => removeFile(i)} className="shrink-0 text-xs text-muted hover:text-danger">
                   삭제
                 </button>
               </li>
@@ -128,7 +128,7 @@ export function StepPublicInterest({
             addFiles(e.target.files);
             e.target.value = "";
           }}
-          className="text-xs text-muted file:mr-3 file:border file:border-border/25 file:bg-background file:px-3 file:py-1.5 file:text-xs file:font-medium"
+          className="text-xs text-muted file:mr-3 file:border file:border-border/25 file:bg-background file:px-3 file:py-1.5 file:text-xs file:font-bold"
         />
       </div>
     </section>

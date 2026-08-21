@@ -19,6 +19,7 @@ import {
   type RateTable,
   type RentalPackage,
 } from "@/lib/pricing/types";
+import { INVERSE_SURFACE_VARS, PLAIN_SURFACE_VARS } from "@/components/ui/kit";
 import { BaseCompositionCard } from "./BaseCompositionCard";
 
 // [화면 뼈대 2026-08-18, 화면시나리오 SCREEN 05/12] "규모/패키지 선택 → 기본 포함사항 →
@@ -63,7 +64,7 @@ function PackagePicker({
 
   return (
     <div className="mb-6 border-b border-border pb-6">
-      <label className="block text-[13px] font-medium text-foreground">패키지 선택 *</label>
+      <label className="block text-s font-bold text-foreground">패키지 선택 *</label>
       <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-5">
         {packages.map((p) => {
           const active = selectedId === p.id;
@@ -76,14 +77,14 @@ function PackagePicker({
                 onSelect(p.id);
               }}
               className={[
-                "rounded-sm border px-4 py-3 text-left transition-colors",
+                "border px-4 py-3 text-left transition-colors",
                 active
-                  ? "border-accent bg-accent-soft"
-                  : "border-border bg-panel hover:border-accent/50",
+                  ? "border-foreground bg-inverse-bg text-inverse-fg"
+                  : "border-border bg-panel hover:border-foreground/50",
               ].join(" ")}
             >
-              <div className="text-[13.5px] font-semibold text-foreground">{p.name}</div>
-              <div className="mt-0.5 text-[12px] text-muted">{p.tagline}</div>
+              <div className="text-s font-bold text-foreground">{p.name}</div>
+              <div className="mt-0.5 text-xs text-muted">{p.tagline}</div>
             </button>
           );
         })}
@@ -91,27 +92,27 @@ function PackagePicker({
           type="button"
           onClick={() => setShowCustomNotice(true)}
           className={[
-            "rounded-sm border border-dashed px-4 py-3 text-left transition-colors",
+            "border border-dashed px-4 py-3 text-left transition-colors",
             showCustomNotice
-              ? "border-accent bg-accent-soft"
-              : "border-border bg-panel text-muted hover:border-accent/50",
+              ? "border-foreground bg-inverse-bg text-inverse-fg"
+              : "border-border bg-panel text-muted hover:border-foreground/50",
           ].join(" ")}
         >
-          <div className="text-[13.5px] font-semibold text-foreground">커스텀</div>
-          <div className="mt-0.5 text-[12px] text-muted">직접구성</div>
+          <div className="text-s font-bold text-foreground">커스텀</div>
+          <div className="mt-0.5 text-xs text-muted">직접구성</div>
         </button>
       </div>
 
       {showCustomNotice && (
-        <p className="mt-3 rounded-sm border border-warn/30 bg-warn-soft px-3 py-2.5 text-[11.5px] text-warn">
+        <p className="mt-3 border border-border/30 bg-panel px-3 py-2.5 text-xs text-muted-strong">
           운영자 문의가 필요한 맞춤 구성입니다. 1:1 문의 또는 담당자에게 연락해 주세요.
         </p>
       )}
 
       {selectedId != null && (
-        <div className="mt-4 rounded-sm border border-good/30 bg-good-soft/40 px-4 py-3">
-          <span className="rounded-sm bg-good px-2 py-0.5 text-[10.5px] font-semibold text-white">기본 포함</span>
-          <p className="mt-1.5 text-[12px] leading-5 text-foreground">
+        <div className="mt-4 border border-border/30 bg-panel/40 px-4 py-3">
+          <span className="bg-foreground px-2 py-0.5 text-xs font-bold text-background">기본 포함</span>
+          <p className="mt-1.5 text-xs leading-5 text-foreground">
             모든 패키지에는 공연 운영에 필요한 기본 시설과 장비가 모두 포함되어 있습니다
             <br />
             자세한 포함 옵션은 신청서 제출 시 최종 옵션을 확인해 주세요
@@ -151,9 +152,9 @@ export function StepConfigOptions({
     const midHallPkg = packagesForVenue(rateTable, "medium-hall")[0];
     const midHallTiles = midHallPkg ? baseCompositionTiles(midHallPkg, rateTable, { includeSchedule: false }) : [];
     return (
-      <section className="rounded border border-border bg-background p-7">
-        <h2 className="text-[19px] font-semibold">구성 · 옵션</h2>
-        <p className="mt-3 text-[13.5px] text-muted">
+      <section className="border border-border bg-background p-7">
+        <h2 className="type-kr-heading text-h5-m sm:text-h5">구성 · 옵션</h2>
+        <p className="mt-3 text-s text-muted">
           중형공연장은 패키지가 없는 일 단위 요금제입니다 — 아래는 예약 일수와 무관하게 항상
           포함되는 기본 구성입니다.
         </p>
@@ -163,7 +164,7 @@ export function StepConfigOptions({
           note="대관료에 이미 포함된 구성 — 예약 일수와 무관하게 동일하게 제공됩니다"
         />
 
-        <p className="mt-6 text-[13.5px] text-muted">
+        <p className="mt-6 text-s text-muted">
           추가 옵션(시설사용료 · 센터리프트 등) 선택 화면은 다음 업데이트에서 반영됩니다.
         </p>
       </section>
@@ -200,9 +201,9 @@ export function StepConfigOptions({
           이 헤더가 화면의 유일한 제목이라 남긴다. */}
       {!isSimultaneous && (
         <div className="border-b border-border pb-4">
-          <h2 className="text-[19px] font-semibold">아레나</h2>
+          <h2 className="type-kr-heading text-h5-m sm:text-h5">아레나</h2>
           {pkg && (
-            <p className="mt-1 text-[12.5px] text-muted">
+            <p className="mt-1 text-xs text-muted">
               {pkg.name} · {pkg.audienceTier.label} · 예상 관객{" "}
               {selection.expectedAudience.toLocaleString()}명 · {arenaSummaryLine(selection, defaultPerformanceDays)}
             </p>
@@ -215,14 +216,20 @@ export function StepConfigOptions({
       </div>
 
       {!pkg ? (
-        <p className="text-[13.5px] text-muted">위에서 패키지를 선택하면 선택 옵션을 확인할 수 있습니다.</p>
+        <p className="text-s text-muted">위에서 패키지를 선택하면 선택 옵션을 확인할 수 있습니다.</p>
       ) : (
-        <div className="mt-6">
-          <h2 className="text-[15px] font-semibold">선택 옵션</h2>
-          <p className="mt-1 text-[12px] text-muted">
+        /*
+          선택 옵션 = 실제로 고르는 곳이라 **박스 자체를 검정 면**으로 둔다.
+          안의 항목은 흰 카드이고 선택 강조를 주지 않는다 — 수량 입력칸이 있어서
+          면 색이 바뀌면 입력한 숫자가 안 보인다. 토큰을 국소 반전해 머리글·헤어라인이
+          지면에 맞고, 카드는 `PLAIN_SURFACE_VARS` 로 되돌린다.
+        */
+        <div style={INVERSE_SURFACE_VARS} className="mt-6 bg-inverse-bg p-5 text-inverse-fg">
+          <h2 className="type-kr-heading text-h6-m sm:text-h6">선택 옵션</h2>
+          <p className="mt-2 text-xs text-muted">
             필요한 만큼 수량을 정해 추가하는 항목 — 단가 × 수량으로 금액이 즉시 계산됩니다
           </p>
-          <div className="mt-3 grid grid-cols-1 gap-1.5 sm:grid-cols-2 lg:grid-cols-3">
+          <div className="mt-4 grid grid-cols-1 gap-1.5 sm:grid-cols-2 lg:grid-cols-3">
             {flatAddons.map((addon) => (
               <AddonRow
                 key={addon.id}
@@ -235,11 +242,11 @@ export function StepConfigOptions({
               />
             ))}
           </div>
-          <div className="mt-3 flex items-center justify-between rounded-sm border border-border bg-panel/40 px-3 py-2 text-[13px] font-semibold">
+          <div className="mt-4 flex items-center justify-between border-t border-border/40 pt-4 text-s font-bold">
             <span>선택 옵션</span>
             <span className="tabular-nums">{selectedOptionCount}건 선택됨</span>
           </div>
-          <p className="mt-2 text-[10.5px] text-muted">
+          <p className="mt-2 text-xs text-muted">
             청소 사용료 · 수도광열비 · 추가 광고 구좌 등은 별도입니다. 금액은 표시하지 않으며,
             선택을 마치면 다음 화면(예상 대관료)에서 총액을 확인합니다.
             <br />※ 신청 규모를 초과해 좌석을 오픈하는 경우 사후 정산 시 추가 과금됩니다.
@@ -250,7 +257,7 @@ export function StepConfigOptions({
   );
 
   if (!isSimultaneous) {
-    return <section className="rounded border border-border bg-background p-7">{arenaSection}</section>;
+    return <section className="border border-border bg-background p-7">{arenaSection}</section>;
   }
 
   const midHallPkgForTab = packagesForVenue(rateTable, "medium-hall")[0];
@@ -265,16 +272,16 @@ export function StepConfigOptions({
         note="대관료에 이미 포함된 구성 — 예약 일수와 무관하게 동일하게 제공됩니다"
       />
 
-      <p className="mt-6 text-[13.5px] text-muted">
+      <p className="mt-6 text-s text-muted">
         추가 옵션(시설사용료 · 센터리프트 등) 선택 화면은 다음 업데이트에서 반영됩니다.
       </p>
     </>
   );
 
   return (
-    <section className="rounded border border-border bg-background p-7">
-      <h2 className="text-[19px] font-semibold">구성 · 옵션</h2>
-      <p className="mt-1.5 text-[13.5px] text-muted">
+    <section className="border border-border bg-background p-7">
+      <h2 className="type-kr-heading text-h5-m sm:text-h5">구성 · 옵션</h2>
+      <p className="mt-1.5 text-s text-muted">
         동시 대관은 두 공간의 구성이 서로 달라 탭으로 나눠 보여줍니다.
       </p>
 
@@ -285,9 +292,9 @@ export function StepConfigOptions({
             type="button"
             onClick={() => setVenueTab(tab)}
             className={[
-              "border-b-2 px-4 py-2.5 text-[13.5px] font-medium transition-colors",
+              "border-b-2 px-4 py-2.5 text-s font-bold transition-colors",
               venueTab === tab
-                ? "border-accent text-accent"
+                ? "border-foreground text-foreground"
                 : "border-transparent text-muted hover:text-foreground",
             ].join(" ")}
           >
@@ -336,41 +343,45 @@ function AddonRow({
       ? `매출 ${addon.unitPrice}%`
       : `${won(addon.unitPrice)} / ${addon.unitLabel.replace("원/", "")}`;
 
+  // 검정 박스 위의 **흰 카드**다. 선택 여부로 색이 변하지 않는다 —
+  // 수량을 적는 칸이 안에 있어서 면 색이 바뀌면 입력한 숫자가 묻힌다.
+  // 반전된 토큰을 여기서 되돌려야 입력 글자가 검정으로 나온다.
   return (
     <div
+      style={PLAIN_SURFACE_VARS}
       className={[
-        "flex flex-col gap-1.5 rounded border px-3 py-2",
-        isUtil ? "border-border/70 bg-panel/50 opacity-60" : "border-border bg-panel/60",
+        "flex flex-col gap-1.5 border border-border-soft bg-panel px-3 py-2 text-foreground",
+        isUtil ? "opacity-60" : "",
       ].join(" ")}
     >
       <div className="min-w-0">
         <div className="flex flex-wrap items-center gap-1.5">
-          <span className="text-[12.5px] font-medium">{addon.name}</span>
+          <span className="text-xs font-bold">{addon.name}</span>
           {included > 0 && (
-            <span className="rounded-sm bg-good-soft px-1.5 py-0.5 text-[10px] font-semibold text-good">
+            <span className="border border-border/40 px-1.5 py-0.5 text-xs font-bold text-muted">
               {included} 기본포함
             </span>
           )}
           {ruleTag && (
-            <span className="rounded-sm bg-warn-soft px-1.5 py-0.5 text-[10px] font-semibold text-warn">
+            <span className="border border-border/40 px-1.5 py-0.5 text-xs font-bold text-muted">
               {ruleTag}
             </span>
           )}
         </div>
-        <div className="mt-0.5 text-[11px] text-muted">
+        <div className="mt-0.5 text-xs text-muted">
           {addon.unitLabel}
           {addon.note ? ` · ${addon.note}` : ""}
         </div>
       </div>
 
       <div className="flex shrink-0 items-center justify-between gap-2">
-        <span className="whitespace-nowrap text-[11.5px] text-muted">{priceLabel}</span>
+        <span className="whitespace-nowrap text-xs text-muted">{priceLabel}</span>
 
         {isUtil ? (
-          <span className="whitespace-nowrap text-[12px] text-muted">정산 단계 부과</span>
+          <span className="whitespace-nowrap text-xs text-muted">정산 단계 부과</span>
         ) : isRevenue ? (
           <div className="flex items-center gap-1.5">
-            <label className="flex items-center gap-1 whitespace-nowrap text-[11.5px] text-muted">
+            <label className="flex items-center gap-1 whitespace-nowrap text-xs text-muted">
               <input
                 type="checkbox"
                 checked={quantity > 0}
@@ -387,7 +398,7 @@ function AddonRow({
               value={expectedRevenue || ""}
               disabled={quantity <= 0}
               onChange={(e) => onChangeRevenue(Math.max(0, Number(e.target.value) || 0))}
-              className="w-20 shrink-0 rounded-sm border border-border bg-background px-2 py-1 text-right text-[12px] outline-none focus:border-accent disabled:opacity-40"
+              className="w-20 shrink-0 border border-border bg-background px-2 py-1 text-right text-xs outline-none focus:border-foreground disabled:opacity-40"
             />
           </div>
         ) : (
@@ -400,7 +411,7 @@ function AddonRow({
             onChange={(e) =>
               onChangeQuantity(addon.id, Math.max(0, Number(e.target.value) || 0))
             }
-            className="w-14 shrink-0 rounded-sm border border-border bg-background px-2 py-1 text-right text-[12px] outline-none focus:border-accent"
+            className="w-14 shrink-0 border border-border bg-background px-2 py-1 text-right text-xs outline-none focus:border-foreground"
           />
         )}
       </div>

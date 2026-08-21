@@ -55,22 +55,11 @@ export const SUPPORT_MENU: NavCategory = {
   ],
 };
 
-/** 우측 — 계정. 라벨은 로그인한 사용자 이름으로 바뀐다. */
-export const ACCOUNT_PAGES: NavPage[] = [
-  { href: "/mypage/profile", label: "가입 정보", loginRequired: true },
-  { href: "/mypage/process", label: "대관 신청 내역", loginRequired: true },
-  { href: "/mypage/history", label: "대관 진행 내역", loginRequired: true },
-];
-
 /**
- * 대표 담당자에게만 보이는 계정 메뉴.
- * 일반 담당자가 열면 되돌려 보내지므로 목록에 아예 올리지 않는다.
+ * 우측 — 계정. 드롭다운을 두지 않고 `○○○ 님` 자체가 마이페이지 링크다.
+ * 마이페이지 안에 좌측 메뉴가 있으므로 상단바에서 같은 목록을 또 펼칠 이유가 없다.
  */
-export const MASTER_ACCOUNT_PAGE: NavPage = {
-  href: "/mypage/members",
-  label: "담당자 관리",
-  loginRequired: true,
-};
+export const ACCOUNT_HREF = "/mypage";
 
 /** 푸터 사이트맵 — 중앙 2묶음 + 신청 + 지원 */
 export const FOOTER_CATEGORIES: NavCategory[] = [

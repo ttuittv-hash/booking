@@ -14,6 +14,7 @@ import type { AppUser, DateBlock, QuoteSelection, RateTable, SafetyPledge, WeekD
 import { DEFAULT_VENUE_ID, MEDIA_TIER_LABEL } from "@/lib/pricing/types";
 import { INITIAL_PERFORMANCE_INFO } from "@/lib/pricing/performanceInfoDefaults";
 import { clearWizardDraft, loadWizardDraft, saveWizardDraft } from "@/lib/quotesStore";
+import { ArrowRight, btnClass } from "@/components/ui/kit";
 import { StepNav } from "./StepNav";
 import { SummaryPanel, type SummaryPreviewRow } from "./SummaryPanel";
 import { VenuePicker } from "./VenuePicker";
@@ -427,15 +428,22 @@ export function WizardShell({
     selection.addons.map((a) => [a.addonId, a.requestedQuantity]),
   );
 
+  /*
+    Figma Multi Form / 5 — 폼 하단 버튼은 좌우로 벌리지 않고 **우측에 나란히** 둔다.
+    이전(아웃라인) + 다음(검정 채움), 높이 48. 버튼 줄은 **화면당 하나**다 —
+    예전엔 스크롤을 줄이려고 상단에도 옅은 알약 버튼을 뒀는데, 같은 동작이 두 모양으로
+    보여 어느 쪽이 진짜 진행인지 헷갈렸다.
+  */
   const navButtons = (
-    <div className="flex items-center justify-between">
+    <div className="mt-10 flex flex-wrap justify-end gap-3 border-t border-border/25 pt-6">
       <button
         type="button"
         disabled={step === 1}
         onClick={() => goTo(step - 1)}
-        className="rounded-sm border border-border px-5 py-2.5 text-[13.5px] font-medium text-foreground transition-colors hover:bg-panel disabled:cursor-not-allowed disabled:opacity-40"
+        className={btnClass("secondary", "lg")}
       >
-        ← 이전
+        <ArrowRight className="rotate-180" />
+        이전
       </button>
       {step < TOTAL_STEPS && (
         <button
@@ -445,65 +453,37 @@ export function WizardShell({
             (step === 2 && needsPackage && !selection.packageId)
           }
           onClick={() => goTo(step + 1)}
-          className="rounded-sm bg-accent px-6 py-2.5 text-[13.5px] font-semibold text-white transition-colors hover:bg-accent-hover disabled:cursor-not-allowed disabled:opacity-40"
+          className={btnClass("primary", "lg")}
         >
-          다음 →
-        </button>
-      )}
-    </div>
-  );
-
-  // 하단 버튼은 이 화면의 주된 진행 액션(강조된 파랑 버튼)이고, 상단은 스크롤을 줄이기
-  // 위한 보조 이동 수단이라 같은 굵기로 두면 바로 아래 섹션 박스와 부딪혀 무거워 보인다
-  // — 옅은 pill 버튼으로 톤을 낮추고 아래 여백을 넉넉히 둔다(2026-08-19).
-  const topNavButtons = (
-    <div className="flex items-center justify-between">
-      <button
-        type="button"
-        disabled={step === 1}
-        onClick={() => goTo(step - 1)}
-        className="rounded-full px-3.5 py-1.5 text-[12.5px] font-medium text-muted transition-colors hover:bg-panel hover:text-foreground disabled:cursor-not-allowed disabled:opacity-30"
-      >
-        ← 이전
-      </button>
-      {step < TOTAL_STEPS && (
-        <button
-          type="button"
-          disabled={
-            (step === 1 && (!selection.venueId || (midHallOnly && !hasMidHallSelection))) ||
-            (step === 2 && needsPackage && !selection.packageId)
-          }
-          onClick={() => goTo(step + 1)}
-          className="rounded-full border border-border px-3.5 py-1.5 text-[12.5px] font-medium text-foreground transition-colors hover:border-accent hover:text-accent disabled:cursor-not-allowed disabled:opacity-30"
-        >
-          다음 →
+          다음
+          <ArrowRight />
         </button>
       )}
     </div>
   );
 
   return (
-    <div className="mx-auto grid w-full max-w-6xl grid-cols-1 gap-8 px-4 py-8 sm:px-6 sm:py-10 lg:grid-cols-[minmax(0,1fr)_360px]">
+    // 좌: 스텝 콘텐츠 / 우: sticky 요약 패널.
+    // 콘텐츠 트랙은 minmax(0,1fr) + min-w-0 로 묶어 스텝 전환 시 폭이 변하지 않게 한다.
+    <div className="container-site grid w-full grid-cols-1 gap-10 py-10 sm:py-12 lg:grid-cols-[minmax(0,1fr)_360px] lg:gap-14">
       <div className="min-w-0">
         <StepNav step={step} maxUnlockedStep={maxUnlockedStep} onJump={goTo} />
 
-        <div className="mt-4 mb-6">{topNavButtons}</div>
-
         {step === 1 && (
           <div className="space-y-6">
-            <section className="rounded border border-border bg-background p-5 sm:p-7">
-              <h2 className="text-[19px] font-semibold">공간 선택</h2>
-              <p className="mt-1.5 text-[13.5px] text-muted">아레나, 중형공연장, 동시 대관 중 이용할 공간을 선택하세요.</p>
+            <section className="border border-border bg-background p-5 sm:p-7">
+              <h2 className="type-kr-heading text-h5-m sm:text-h5">공간 선택</h2>
+              <p className="mt-1.5 text-s text-muted">아레나, 중형공연장, 동시 대관 중 이용할 공간을 선택하세요.</p>
               <div className="mt-5">
                 <VenuePicker venueId={selection.venueId} bookingMode={selection.bookingMode} onSelectVenue={selectVenue} />
               </div>
             </section>
 
             {selection.venueId && (
-              <section className="rounded border border-border bg-background p-5 sm:p-7">
-                <h2 className="text-[19px] font-semibold">일정 선택</h2>
+              <section className="border border-border bg-background p-5 sm:p-7">
+                <h2 className="type-kr-heading text-h5-m sm:text-h5">일정 선택</h2>
                 {selection.bookingMode === "SIMULTANEOUS" && (
-                  <p className="mt-1.5 text-[13.5px] text-muted">
+                  <p className="mt-1.5 text-s text-muted">
                     동시 대관에서는 두 공간의 일정을 탭으로 나눠 각각 선택합니다.
                   </p>
                 )}
@@ -520,9 +500,9 @@ export function WizardShell({
                         disabled={!enabled}
                         onClick={() => enabled && setVenueTab(tab)}
                         className={[
-                          "border-b-2 px-4 py-2.5 text-[13.5px] font-medium transition-colors",
+                          "border-b-2 px-4 py-2.5 text-s font-bold transition-colors",
                           venueTab === tab && enabled
-                            ? "border-accent text-accent"
+                            ? "border-foreground text-foreground"
                             : enabled
                               ? "border-transparent text-muted hover:text-foreground"
                               : "cursor-not-allowed border-transparent text-muted/40",

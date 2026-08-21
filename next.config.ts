@@ -19,7 +19,10 @@ const nextConfig: NextConfig = {
       { source: "/guide/connected-live", destination: "/guide", permanent: true },
       { source: "/library", destination: "/documents", permanent: true },
       // HOST IT — 내 신청 내역이 신청 현황 / 진행 내역으로 갈렸다
-      { source: "/mypage", destination: "/mypage/process", permanent: true },
+      // 마이페이지는 개발 정본의 구조(진행 내역 · 티켓오픈 · 시설회의 · 정산)를 따른다.
+      // 앞서 쓰던 두 경로는 그 안으로 흡수됐다.
+      { source: "/mypage/process", destination: "/mypage", permanent: true },
+      { source: "/mypage/history", destination: "/mypage", permanent: true },
     ];
   },
 

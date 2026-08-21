@@ -1,35 +1,26 @@
 import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/lib/auth";
 import { isCompanyMaster } from "@/lib/db";
-import { PublicHeader } from "@/components/PublicHeader";
-import { SiteFooter } from "@/components/ui/SiteFooter";
-import { Band, PageHead } from "@/components/ui/kit";
+import { MyPageShell } from "@/components/mypage/MyPageShell";
 import { MembersManager } from "@/components/account/MembersManager";
 
 // 담당자 관리 — 마스터 전용 메뉴(기획서 A10).
 export default async function MembersPage() {
   const user = await getCurrentUser();
   if (!user) redirect("/login?next=%2Fmypage%2Fmembers");
-  if (!user.companyId) redirect("/mypage/process");
+  if (!user.companyId) redirect("/mypage");
   // 마스터만 열 수 있다. 일반 담당자에게는 메뉴 자체가 보이지 않는다.
-  if (!isCompanyMaster(user)) redirect("/mypage/process");
+  if (!isCompanyMaster(user)) redirect("/mypage");
 
   return (
-    <div className="flex flex-1 flex-col">
-      <PublicHeader active="/mypage/members" currentUser={user} />
-      <main className="flex flex-1 flex-col">
-        <Band tone="light" size="sm">
-          <PageHead
-            en="MEMBERS"
-            ko="담당자 관리"
-            lead={`${user.companyName} · 대표 담당자로서 소속 담당자를 초대하고 합류 신청을 승인합니다.`}
-          />
-        </Band>
-        <Band tone="white" size="sm">
-          <MembersManager />
-        </Band>
-      </main>
-      <SiteFooter />
-    </div>
+    <MyPageShell
+      user={user}
+      active="/mypage/members"
+      en="MEMBERS"
+      ko="담당자 관리"
+      lead={`${user.companyName} · 대표 담당자로서 소속 담당자를 초대하고 합류 신청을 승인합니다.`}
+    >
+      <MembersManager />
+    </MyPageShell>
   );
 }

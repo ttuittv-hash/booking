@@ -4,9 +4,8 @@ import { notFound, redirect } from "next/navigation";
 import { canAccessQuote, getCurrentUser, isPendingApplicant } from "@/lib/auth";
 import { getQuoteById, getTaxInvoice } from "@/lib/db";
 import { won } from "@/lib/format";
-import { PublicHeader } from "@/components/PublicHeader";
-import { PublicFooter } from "@/components/PublicFooter";
-import { MyPageSidebar } from "@/components/MyPageSidebar";
+import { MyPageShell } from "@/components/mypage/MyPageShell";
+import { EmptyState } from "@/components/ui/kit";
 import { SettlementMutualConfirm } from "@/components/SettlementMutualConfirm";
 import { TaxInvoicePanel } from "@/components/TaxInvoicePanel";
 
@@ -38,70 +37,70 @@ export default async function MySettlementDetailPage({
   const settlementInvoice = quote.settlement ? ((await getTaxInvoice(id, "SETTLEMENT")) ?? null) : null;
 
   return (
-    <div className="flex flex-1 flex-col">
-      <PublicHeader active="/mypage" currentUser={user} />
+    <MyPageShell
+      user={user}
+      active="/mypage/settlement"
+      en="SETTLEMENT"
+      ko={quote.id}
+      lead={
+        <>
+          {quote.selection.performanceInfo.eventName || "공연명 미입력"} · {STAGE_LABEL[quote.status]}
+        </>
+      }
+    >
+      <div className="flex flex-wrap items-center gap-x-6 gap-y-2 border-b border-border/25 pb-4">
+        <Link
+          href="/mypage/settlement"
+          className="text-s font-bold underline underline-offset-4 hover:text-accent"
+        >
+          ← 정산 목록
+        </Link>
+        <Link
+          href={`/mypage/${quote.id}`}
+          className="text-s text-muted underline underline-offset-4 hover:text-foreground"
+        >
+          전체 신청 내역 보기
+        </Link>
+      </div>
 
-      <main className="mx-auto w-full max-w-6xl flex-1 px-6 py-10">
-        <div className="flex flex-col gap-8 sm:flex-row sm:gap-10">
-          <MyPageSidebar active="/mypage/settlement" />
-
-          <div className="min-w-0 max-w-3xl flex-1">
-            <Link href="/mypage/settlement" className="text-[12.5px] font-medium text-accent hover:underline">
-              ← 정산 목록
-            </Link>
-
-            <div className="mt-3 flex flex-wrap items-center justify-between gap-3">
-              <h1 className="text-[22px] font-semibold">{quote.id}</h1>
-              <div className="flex items-center gap-3">
-                <Link href={`/mypage/${quote.id}`} className="text-[12.5px] font-medium text-accent hover:underline">
-                  전체 신청 내역 보기 →
-                </Link>
-                <span className="text-[12.5px] text-muted">{STAGE_LABEL[quote.status]}</span>
-              </div>
+      {quote.settlement ? (
+        <>
+          {/* 확정 금액은 색면 박스가 아니라 2px 룰 + 큰 숫자로 — 표 규격과 같은 언어 */}
+          <section className="mt-8">
+            <h2 className="type-kr-heading text-h5-m sm:text-h5">정산 확정</h2>
+            <div className="mt-4 flex flex-wrap items-baseline justify-between gap-3 border-t-2 border-foreground pt-4">
+              <span className="text-xs text-muted">
+                확정일시 {new Date(quote.settlement.decidedAt).toLocaleString("ko-KR")}
+              </span>
+              <span className="type-display text-h5-m tabular-nums sm:text-h5">
+                {won(quote.settlement.finalTotal)}
+              </span>
             </div>
-            <p className="mt-1.5 text-[13.5px] text-muted">
-              {quote.selection.performanceInfo.eventName || "공연명 미입력"}
-            </p>
+            <SettlementMutualConfirm
+              quoteId={quote.id}
+              settlement={quote.settlement}
+              viewerRole="APPLICANT"
+            />
+          </section>
 
-            {quote.settlement ? (
-              <>
-                <section className="mt-6 rounded border border-good/30 bg-good-soft p-6">
-                  <h2 className="text-[15px] font-semibold text-good">정산 확정</h2>
-                  <div className="mt-3 flex items-center justify-between">
-                    <span className="text-[13px] text-good/80">
-                      확정일시 {new Date(quote.settlement.decidedAt).toLocaleString("ko-KR")}
-                    </span>
-                    <span className="text-[20px] font-semibold tabular-nums text-good">
-                      {won(quote.settlement.finalTotal)}
-                    </span>
-                  </div>
-                  <SettlementMutualConfirm quoteId={quote.id} settlement={quote.settlement} viewerRole="APPLICANT" />
-                </section>
-
-                <div className="mt-6">
-                  <TaxInvoicePanel
-                    quoteId={quote.id}
-                    purpose="SETTLEMENT"
-                    title="세금계산서 (정산금)"
-                    invoice={settlementInvoice}
-                    viewerRole="APPLICANT"
-                  />
-                </div>
-              </>
-            ) : (
-              <section className="mt-6 rounded border border-border bg-background p-6">
-                <h2 className="text-[15px] font-semibold">정산 대기 중</h2>
-                <p className="mt-2 text-[13px] text-muted">
-                  아직 최종 정산금액이 확정되지 않았습니다. 운영자가 부대사용료·현장 추가/차감 내역을
-                  확정하면 이 화면에서 정산 내역과 세금계산서를 확인할 수 있습니다.
-                </p>
-              </section>
-            )}
+          <div className="mt-10">
+            <TaxInvoicePanel
+              quoteId={quote.id}
+              purpose="SETTLEMENT"
+              title="세금계산서 (정산금)"
+              invoice={settlementInvoice}
+              viewerRole="APPLICANT"
+            />
           </div>
+        </>
+      ) : (
+        <div className="mt-8">
+          <EmptyState
+            title="정산 대기 중입니다"
+            desc="아직 최종 정산금액이 확정되지 않았습니다. 운영자가 부대사용료·현장 추가/차감 내역을 확정하면 이 화면에서 정산 내역과 세금계산서를 확인하실 수 있습니다."
+          />
         </div>
-      </main>
-
-      <PublicFooter />
-    </div>
+      )}
+    </MyPageShell>
   );
 }

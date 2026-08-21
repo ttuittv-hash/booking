@@ -32,7 +32,7 @@ export function VenueSplitTabBar({
               type="button"
               onClick={() => onSelectTab("ARENA")}
               className={[
-                "border-b-2 px-4 py-2.5 text-s font-medium transition-colors",
+                "border-b-2 px-4 py-2.5 text-s font-bold transition-colors",
                 activeTab === "ARENA"
                   ? "border-foreground font-bold text-foreground"
                   : "border-transparent text-muted hover:text-foreground",
@@ -44,7 +44,7 @@ export function VenueSplitTabBar({
               type="button"
               onClick={() => onSelectTab("MIDHALL")}
               className={[
-                "border-b-2 px-4 py-2.5 text-s font-medium transition-colors",
+                "border-b-2 px-4 py-2.5 text-s font-bold transition-colors",
                 activeTab === "MIDHALL"
                   ? "border-foreground font-bold text-foreground"
                   : "border-transparent text-muted hover:text-foreground",
@@ -59,7 +59,7 @@ export function VenueSplitTabBar({
         <button
           type="button"
           onClick={onMerge}
-          className="mb-2 shrink-0 text-xs font-medium text-muted hover:text-foreground"
+          className="mb-2 shrink-0 text-xs font-bold text-muted hover:text-foreground"
         >
           ↺ 공통으로 합치기
         </button>
@@ -67,7 +67,7 @@ export function VenueSplitTabBar({
         <button
           type="button"
           onClick={onSplit}
-          className="mb-2 shrink-0 text-xs font-medium text-foreground hover:underline"
+          className="mb-2 shrink-0 text-xs font-bold text-foreground hover:underline"
         >
           ＋ 공간별로 다르게 입력
         </button>

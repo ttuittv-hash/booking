@@ -122,7 +122,7 @@ export function Step6Submit({
 
       <div className="mt-10 flex flex-wrap items-center justify-between gap-4 border-t-2 border-foreground pt-6">
         <div>
-          <div className="text-r font-semibold">
+          <div className="text-r font-bold">
             {venueName} · {audienceTierLabel}
           </div>
           <div className="mt-1 text-s text-muted">
@@ -154,7 +154,7 @@ export function Step6Submit({
 
       <div className="mt-6 border-t border-border/25 pt-5">
         <div className="flex items-center justify-between">
-          <div className="text-s font-semibold">공연 정보</div>
+          <div className="text-s font-bold">공연 정보</div>
           {fileCount > 0 && (
             <div className="text-xs text-muted">첨부파일 {fileCount}개가 함께 제출됩니다</div>
           )}
@@ -162,41 +162,41 @@ export function Step6Submit({
         <dl className="mt-3 grid grid-cols-1 gap-x-6 gap-y-2 text-xs sm:grid-cols-2">
           <div className="flex justify-between gap-3 sm:justify-start">
             <dt className="text-muted">공연(행사)명</dt>
-            <dd className="font-medium">{info.eventName || "-"}</dd>
+            <dd className="font-bold">{info.eventName || "-"}</dd>
           </div>
           <div className="flex justify-between gap-3 sm:justify-start">
             <dt className="text-muted">아티스트</dt>
-            <dd className="font-medium">{info.artist || "-"}</dd>
+            <dd className="font-bold">{info.artist || "-"}</dd>
           </div>
           <div className="flex justify-between gap-3 sm:justify-start">
             <dt className="text-muted">주최·주관·기획</dt>
-            <dd className="font-medium">{info.organizer || "-"}</dd>
+            <dd className="font-bold">{info.organizer || "-"}</dd>
           </div>
           <div className="flex justify-between gap-3 sm:justify-start">
             <dt className="text-muted">행사규모</dt>
-            <dd className="font-medium">{info.eventScale || "-"}</dd>
+            <dd className="font-bold">{info.eventScale || "-"}</dd>
           </div>
           <div className="flex justify-between gap-3 sm:justify-start">
             <dt className="text-muted">행사유형</dt>
-            <dd className="font-medium">
+            <dd className="font-bold">
               {info.eventTypes.length ? info.eventTypes.map((t) => EVENT_TYPE_LABEL[t]).join(", ") : "-"}
             </dd>
           </div>
           <div className="flex justify-between gap-3 sm:justify-start">
             <dt className="text-muted">무대형태</dt>
-            <dd className="font-medium">
+            <dd className="font-bold">
               {info.stageTypes.length ? info.stageTypes.map((t) => STAGE_TYPE_LABEL[t]).join(", ") : "-"}
             </dd>
           </div>
           <div className="flex justify-between gap-3 sm:justify-start">
             <dt className="text-muted">객석형태</dt>
-            <dd className="font-medium">
+            <dd className="font-bold">
               {info.seatingTypes.length ? info.seatingTypes.map((t) => SEATING_TYPE_LABEL[t]).join(", ") : "-"}
             </dd>
           </div>
           <div className="flex justify-between gap-3 sm:justify-start">
             <dt className="text-muted">수납식 객석 사용여부</dt>
-            <dd className="font-medium">
+            <dd className="font-bold">
               {info.retractableSeatUse ? RETRACTABLE_SEAT_USE_LABEL[info.retractableSeatUse] : "-"}
             </dd>
           </div>
@@ -205,16 +205,16 @@ export function Step6Submit({
 
       {submittedId ? (
         <div className="mt-8 border-t-2 border-foreground pt-5 text-s text-foreground">
-          <p className="font-semibold">{isEditing ? "신청 내용이 수정되었습니다." : "신청이 접수되었습니다."}</p>
+          <p className="font-bold">{isEditing ? "신청 내용이 수정되었습니다." : "신청이 접수되었습니다."}</p>
           <p className="mt-1.5 leading-6">
             운영자 심사 → 계약 → 정산 순으로 진행되며, 각 단계가 완료되면
             알림으로 안내해 드립니다.
           </p>
           <div className="mt-3 flex gap-4">
-            <Link href={`/mypage/${submittedId}`} className="font-semibold underline">
+            <Link href={`/mypage/${submittedId}`} className="font-bold underline">
               신청 내역 확인
             </Link>
-            <Link href={`/print/${submittedId}`} target="_blank" className="font-semibold underline">
+            <Link href={`/print/${submittedId}`} target="_blank" className="font-bold underline">
               인쇄 / PDF 저장
             </Link>
           </div>
@@ -226,11 +226,11 @@ export function Step6Submit({
         <div className="mt-8 border-t-2 border-foreground pt-5 text-s text-foreground">
           신청서를 제출하려면 로그인이 필요합니다. 지금까지 입력한 내용은
           그대로 유지되니, 로그인 후 이어서 제출할 수 있습니다.{" "}
-          <Link href="/login" className="font-semibold underline">
+          <Link href="/login" className="font-bold underline">
             로그인
           </Link>{" "}
           ·{" "}
-          <Link href="/register" className="font-semibold underline">
+          <Link href="/register" className="font-bold underline">
             회원가입
           </Link>
         </div>
@@ -238,7 +238,7 @@ export function Step6Submit({
         <>
           {blockingIssues.length > 0 && (
             <div className="mt-8 border-t-2 border-foreground pt-5 text-s text-foreground">
-              <p className="font-semibold">운영자 확인이 필요한 항목이 있어 아직 제출할 수 없습니다.</p>
+              <p className="font-bold">운영자 확인이 필요한 항목이 있어 아직 제출할 수 없습니다.</p>
               <ul className="mt-1.5 list-disc space-y-1 pl-4">
                 {blockingIssues.map((issue) => (
                   <li key={issue}>{issue}</li>
@@ -275,7 +275,7 @@ export function Step6Submit({
           >
             {submitting ? "저장 중..." : isEditing ? "수정 내용 저장" : "신청서 생성"}
           </button>
-          {error && <p className="mt-3 text-s text-red-600">{error}</p>}
+          {error && <p className="mt-3 text-s text-danger">{error}</p>}
         </>
       )}
 
@@ -283,8 +283,8 @@ export function Step6Submit({
       <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-3">
         {STAGES.map((s) => (
           <div key={s.no} className="border-t border-border/25 pt-4">
-            <div className="text-xs font-semibold text-foreground">{s.no}</div>
-            <div className="mt-1.5 text-s font-semibold">{s.title}</div>
+            <div className="text-xs font-bold text-foreground">{s.no}</div>
+            <div className="mt-1.5 text-s font-bold">{s.title}</div>
             <p className="mt-1.5 text-xs leading-5 text-muted">{s.desc}</p>
           </div>
         ))}

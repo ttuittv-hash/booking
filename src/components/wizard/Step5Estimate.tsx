@@ -35,8 +35,8 @@ export function Step5Estimate({
 
   if (!pkg && !hasMidHall) {
     return (
-      <section className="rounded border border-border bg-background p-7">
-        <p className="text-[13.5px] text-muted">먼저 1단계에서 패키지를 선택하거나 중형공연장 일정을 선택하세요.</p>
+      <section className="border border-border bg-background p-7">
+        <p className="text-s text-muted">먼저 1단계에서 패키지를 선택하거나 중형공연장 일정을 선택하세요.</p>
       </section>
     );
   }
@@ -53,9 +53,9 @@ export function Step5Estimate({
   const midHallVisibleSubtotal = midHallItems.reduce((sum, item) => sum + item.amount, 0);
 
   return (
-    <section className="rounded border border-border bg-background p-7">
-      <h2 className="text-[19px] font-semibold">예상 대관료</h2>
-      <p className="mt-1.5 text-[13.5px] text-muted">
+    <section className="border border-border bg-background p-7">
+      <h2 className="type-kr-heading text-h5-m sm:text-h5">예상 대관료</h2>
+      <p className="mt-1.5 text-s text-muted">
         {isSimultaneous ? (
           <>
             아레나 — {arenaLine}
@@ -78,36 +78,36 @@ export function Step5Estimate({
         expectedRevenue={selection.expectedRevenue ?? 0}
       />
 
-      <div className="mt-6 rounded-sm border border-border bg-panel/40 p-5">
+      <div className="mt-6 border border-border bg-panel/40 p-5">
         {isSimultaneous && (
-          <div className="mb-3 flex items-center justify-between border-b border-border pb-3 text-[13px]">
+          <div className="mb-3 flex items-center justify-between border-b border-border pb-3 text-s">
             <span className="text-muted">아레나 소계 + 중형공연장 소계</span>
             <span className="tabular-nums text-foreground">
               {won(arenaVisibleSubtotal)} + {won(midHallVisibleSubtotal)}
             </span>
           </div>
         )}
-        <div className="flex justify-between text-[13px] text-muted">
+        <div className="flex justify-between text-s text-muted">
           <span>소계 (VAT 별도)</span>
           <span className="tabular-nums">{won(quote.subtotal)}</span>
         </div>
-        <div className="mt-1.5 flex justify-between text-[13px] text-muted">
+        <div className="mt-1.5 flex justify-between text-s text-muted">
           <span>부가세 10%</span>
           <span className="tabular-nums">{won(quote.vat)}</span>
         </div>
         <div className="mt-2.5 flex items-baseline justify-between border-t border-border pt-2.5">
-          <span className="text-[15px] font-semibold">합계</span>
-          <span className="text-[19px] font-semibold tabular-nums">{won(quote.total)}</span>
+          <span className="text-r font-bold">합계</span>
+          <span className="text-h6-m sm:text-h6 font-bold tabular-nums">{won(quote.total)}</span>
         </div>
       </div>
 
-      <p className="mt-6 rounded border-l-2 border-warn bg-warn-soft px-4 py-3 text-[12.5px] leading-5 text-warn">
+      <p className="mt-6 border-l-2 border-border bg-panel px-4 py-3 text-xs leading-5 text-muted-strong">
         {quote.meteredNotice} 본 금액은 <b>예상</b>이며 확정 금액이 아닙니다.
       </p>
 
       {quote.blockingIssues.length > 0 && (
-        <div className="mt-4 rounded border-l-2 border-warn bg-warn-soft px-4 py-3 text-[12.5px] leading-5 text-warn">
-          <p className="font-semibold">운영자 확인이 필요해 아직 신청서를 제출할 수 없습니다.</p>
+        <div className="mt-4 border-l-2 border-border bg-panel px-4 py-3 text-xs leading-5 text-muted-strong">
+          <p className="font-bold">운영자 확인이 필요해 아직 신청서를 제출할 수 없습니다.</p>
           <ul className="mt-1.5 list-disc space-y-1 pl-4">
             {quote.blockingIssues.map((issue) => (
               <li key={issue}>{issue}</li>
@@ -117,7 +117,7 @@ export function Step5Estimate({
       )}
 
       {isSimultaneous && (
-        <div className="mt-4 rounded border-l-2 border-accent bg-accent-soft px-4 py-3 text-[12.5px] leading-5 text-accent">
+        <div className="mt-4 border-l-2 border-foreground bg-inverse-bg text-inverse-fg px-4 py-3 text-xs leading-5 text-foreground">
           위 금액은 <b>아레나 + 중형공연장 합산</b>입니다 (할인 없이 두 소계를 단순 합산).
         </div>
       )}

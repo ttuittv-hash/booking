@@ -33,7 +33,7 @@ export function VenuePicker({
 
   return (
     <div className="grid grid-cols-1 gap-x-8 gap-y-3 sm:grid-cols-[7rem_1fr] sm:items-center">
-      <label className="text-[13px] font-medium text-foreground">이용 시설 *</label>
+      <label className="text-s font-bold text-foreground">이용 시설 *</label>
       <div className="flex flex-wrap gap-2">
         {(
           [
@@ -47,10 +47,10 @@ export function VenuePicker({
             type="button"
             onClick={opt.onClick}
             className={[
-              "rounded-sm border px-3.5 py-2 text-[13px] font-medium transition-colors",
+              "border px-3.5 py-2 text-s font-bold transition-colors",
               opt.active
-                ? "border-accent bg-accent-soft text-foreground"
-                : "border-border bg-panel text-muted hover:border-accent/50",
+                ? "border-foreground bg-inverse-bg text-inverse-fg text-foreground"
+                : "border-border bg-panel text-muted hover:border-foreground/50",
             ].join(" ")}
           >
             {opt.label}

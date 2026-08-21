@@ -5,9 +5,11 @@ import {
   getFeaturesContent,
   getGuidePageContent,
   getHomeContent,
+  getPrivacyContent,
   getRatesContent,
   getRulesContent,
   getSeoulArenaContent,
+  getTermsContent,
   listFaqs,
   listNotices,
 } from "@/lib/db";
@@ -30,6 +32,8 @@ export default async function AdminContentPage() {
     ratesContent,
     rulesContent,
     documentsContent,
+    termsContent,
+    privacyContent,
   ] = await Promise.all([
     listNotices(),
     listFaqs(),
@@ -40,6 +44,8 @@ export default async function AdminContentPage() {
     getRatesContent(),
     getRulesContent(),
     getDocumentsContent(),
+    getTermsContent(),
+    getPrivacyContent(),
   ]);
 
   return (
@@ -65,6 +71,8 @@ export default async function AdminContentPage() {
           ratesContent={ratesContent}
           rulesContent={rulesContent}
           documentsContent={documentsContent}
+          termsContent={termsContent}
+          privacyContent={privacyContent}
         />
       </main>
     </div>

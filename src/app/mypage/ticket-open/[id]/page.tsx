@@ -3,9 +3,8 @@ import type { Metadata } from "next";
 import { notFound, redirect } from "next/navigation";
 import { canAccessQuote, getCurrentUser, isPendingApplicant } from "@/lib/auth";
 import { getDepositByQuoteId, getQuoteById, getTicketOpenByQuoteId, listAttachments } from "@/lib/db";
-import { PublicHeader } from "@/components/PublicHeader";
-import { PublicFooter } from "@/components/PublicFooter";
-import { MyPageSidebar } from "@/components/MyPageSidebar";
+import { MyPageShell } from "@/components/mypage/MyPageShell";
+import { Note } from "@/components/ui/kit";
 import { TicketOpenPanel } from "@/components/TicketOpenPanel";
 
 export const metadata: Metadata = {
@@ -40,51 +39,45 @@ export default async function MyTicketOpenDetailPage({
   ]);
 
   return (
-    <div className="flex flex-1 flex-col">
-      <PublicHeader active="/mypage" currentUser={user} />
+    <MyPageShell
+      user={user}
+      active="/mypage/ticket-open"
+      en="TICKET OPEN"
+      ko={quote.id}
+      lead={
+        <>
+          {quote.selection.performanceInfo.eventName || "공연명 미입력"} · {STAGE_LABEL[quote.status]}
+        </>
+      }
+    >
+      <div className="flex flex-wrap items-center gap-x-6 gap-y-2 border-b border-border/25 pb-4">
+        <Link
+          href="/mypage/ticket-open"
+          className="text-s font-bold underline underline-offset-4 hover:text-accent"
+        >
+          ← 티켓 오픈 정보 목록
+        </Link>
+        <Link
+          href={`/mypage/${quote.id}`}
+          className="text-s text-muted underline underline-offset-4 hover:text-foreground"
+        >
+          전체 신청 내역 보기
+        </Link>
+      </div>
 
-      <main className="mx-auto w-full max-w-6xl flex-1 px-6 py-10">
-        <div className="flex flex-col gap-8 sm:flex-row sm:gap-10">
-          <MyPageSidebar active="/mypage/ticket-open" />
-
-          <div className="min-w-0 max-w-3xl flex-1">
-            <Link href="/mypage/ticket-open" className="text-[12.5px] font-medium text-accent hover:underline">
-              ← 티켓 오픈 정보 목록
-            </Link>
-
-            <div className="mt-3 flex flex-wrap items-center justify-between gap-3">
-              <h1 className="text-[22px] font-semibold">{quote.id}</h1>
-              <div className="flex items-center gap-3">
-                <Link href={`/mypage/${quote.id}`} className="text-[12.5px] font-medium text-accent hover:underline">
-                  전체 신청 내역 보기 →
-                </Link>
-                <span className="text-[12.5px] text-muted">{STAGE_LABEL[quote.status]}</span>
-              </div>
-            </div>
-            <p className="mt-1.5 text-[13.5px] text-muted">
-              {quote.selection.performanceInfo.eventName || "공연명 미입력"}
-            </p>
-
-            <section className="mt-6 rounded border border-border bg-background p-6">
-              <h2 className="text-[15px] font-semibold">티켓 오픈 정보</h2>
-              <p className="mt-1 text-[12px] text-muted">
-                티켓 오픈일을 등록하고 관련 홍보·판매 자료를 업로드하세요.
-              </p>
-              <div className="mt-4">
-                <TicketOpenPanel
-                  quoteId={quote.id}
-                  depositConfirmed={deposit?.status === "CONFIRMED"}
-                  ticketOpen={ticketOpen ?? null}
-                  materials={materials}
-                  viewerRole="APPLICANT"
-                />
-              </div>
-            </section>
-          </div>
+      <section className="mt-8">
+        <h2 className="type-kr-heading text-h5-m sm:text-h5">티켓 오픈 정보</h2>
+        <Note className="mt-3">티켓 오픈일을 등록하고 관련 홍보·판매 자료를 업로드하세요.</Note>
+        <div className="mt-6">
+          <TicketOpenPanel
+            quoteId={quote.id}
+            depositConfirmed={deposit?.status === "CONFIRMED"}
+            ticketOpen={ticketOpen ?? null}
+            materials={materials}
+            viewerRole="APPLICANT"
+          />
         </div>
-      </main>
-
-      <PublicFooter />
-    </div>
+      </section>
+    </MyPageShell>
   );
 }
