@@ -44,39 +44,6 @@ function arenaSummaryLine(selection: QuoteSelection, defaultPerformanceDays: num
   return parts.join(" · ");
 }
 
-// [화면 뼈대 2026-08-20, 개정] 관객 규모는 더 이상 별도 "패키지 선택" 화면에서 입력하지
-// 않는다 — 일정을 먼저 고르고, 그 규모에 따라 자동 결정되는 패키지·구성을 바로 이 화면
-// (구성·옵션)에서 함께 보면서 조정할 수 있게 옮겼다.
-function ScaleInputBlock({
-  label,
-  value,
-  onChange,
-  note,
-}: {
-  label: string;
-  value: number;
-  onChange: (value: number) => void;
-  note: string;
-}) {
-  return (
-    <div className="mb-6 border-b border-border pb-6">
-      <label className="block text-[13px] font-medium text-foreground">{label} *</label>
-      <div className="mt-2">
-        <input
-          type="number"
-          min={0}
-          step={500}
-          value={value}
-          onChange={(e) => onChange(Math.max(0, Number(e.target.value) || 0))}
-          className="w-40 rounded-sm border border-border bg-panel px-3.5 py-2.5 text-[14px] outline-none focus:border-accent focus:ring-2 focus:ring-accent/20"
-        />
-        <span className="ml-2 text-[13px] text-muted">명</span>
-      </div>
-      <p className="mt-1.5 text-[11px] text-muted">{note}</p>
-    </div>
-  );
-}
-
 // [개정 2026-08-20] 아레나 패키지 4개는 기본 구성이 전부 동일하고 관객 규모 등급(Bowl
 // 사용료)만 다르다 — 카드로 나열해 신청자가 직접 하나를 고르게 한다. 고른 패키지에 따라
 // 바로 아래 "선택 옵션" 슬롯의 항목이 달라진다(isAddonAvailable).
@@ -163,7 +130,6 @@ export function StepConfigOptions({
   expectedRevenue,
   onChangeQuantity,
   onChangeRevenue,
-  onChangeSecondaryAudience,
   onSelectPackage,
 }: {
   rateTable: RateTable;
@@ -173,7 +139,6 @@ export function StepConfigOptions({
   expectedRevenue: number;
   onChangeQuantity: (addonId: string, quantity: number) => void;
   onChangeRevenue: (value: number) => void;
-  onChangeSecondaryAudience: (value: number) => void;
   onSelectPackage: (packageId: number) => void;
 }) {
   const midHallOnly = selection.venueId === "medium-hall" && selection.bookingMode === "SINGLE";
@@ -192,15 +157,6 @@ export function StepConfigOptions({
           중형공연장은 패키지가 없는 일 단위 요금제입니다 — 아래는 예약 일수와 무관하게 항상
           포함되는 기본 구성입니다.
         </p>
-
-        <div className="mt-6">
-          <ScaleInputBlock
-            label="예상 관객 규모"
-            value={selection.secondaryAudience}
-            onChange={onChangeSecondaryAudience}
-            note="3,000명 초과 시 별도 문의가 필요할 수 있습니다. 청소비 산출에만 사용됩니다."
-          />
-        </div>
 
         <BaseCompositionCard
           tiles={midHallTiles}

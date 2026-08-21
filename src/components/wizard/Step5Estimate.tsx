@@ -70,11 +70,9 @@ export function Step5Estimate({
       {/* Bowl 사용료·유틸리티(HIDDEN)는 아래 합계 계산에는 포함되지만 신청자 화면에는
           항목·금액을 노출하지 않는다 — 그래서 아레나/중형 소계를 각각 더해도 맨 아래
           최종 소계(quote.subtotal, 전체 lineItems 기준)와는 차이가 날 수 있다.
-          [개정 2026-08-20] 과금 항목뿐 아니라 선택한 패키지에 이미 포함된 기본 구성(대기실·
-          인터컴·트러스 등)도 상세히 보여준다 — 마이페이지 신청 상세·인쇄용 신청서와 동일한
-          QuoteLineItemsReport를 재사용해 세 화면의 산정 내역이 서로 다르지 않게 한다. */}
+          마이페이지 신청 상세·인쇄용 신청서와 동일한 QuoteLineItemsReport를 재사용해 세
+          화면의 산출내역이 서로 다르지 않게 한다. */}
       <QuoteLineItemsReport
-        rateTable={rateTable}
         selection={selection}
         lineItems={quote.lineItems}
         expectedRevenue={selection.expectedRevenue ?? 0}

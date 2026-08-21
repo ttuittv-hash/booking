@@ -154,10 +154,9 @@ export default async function MyQuoteDetailPage({
               <h2 className="text-[15px] font-semibold">① 신청 예상금액 · 산출내역</h2>
               {/* Bowl 사용료·유틸리티(HIDDEN)는 관리자에게만 항목·금액을 노출한다 — 신청자
                   본인에게는 행 자체를 숨기고, 소계/VAT/합계는 quote 전체 lineItems 기준
-                  값을 그대로 쓴다. 패키지 기본 구성(대기실·트러스 등)도 위저드(Step5Estimate)와
-                  동일하게 QuoteLineItemsReport로 상세히 보여준다. */}
+                  값을 그대로 쓴다. 위저드(Step5Estimate)와 동일한 QuoteLineItemsReport를
+                  써서 세 화면의 산출내역이 서로 다르지 않게 한다. */}
               <QuoteLineItemsReport
-                rateTable={rateTable}
                 selection={quote.selection}
                 lineItems={quote.lineItems}
                 expectedRevenue={quote.selection.expectedRevenue ?? 0}

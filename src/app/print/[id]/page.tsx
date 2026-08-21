@@ -1,6 +1,6 @@
 import { notFound, redirect } from "next/navigation";
 import { canAccessQuote, getCurrentUser } from "@/lib/auth";
-import { findUserById, getQuoteById, getRateTableByVersion } from "@/lib/db";
+import { findUserById, getQuoteById } from "@/lib/db";
 import { won } from "@/lib/format";
 import { totalRentalDays } from "@/lib/pricing/rateTableUtils";
 import {
@@ -27,10 +27,7 @@ export default async function PrintQuotePage({
   if (!quote) notFound();
   if (!(await canAccessQuote(user, quote))) notFound();
 
-  const [applicant, rateTable] = await Promise.all([
-    findUserById(quote.applicantId),
-    getRateTableByVersion(quote.rateTableVersion),
-  ]);
+  const applicant = await findUserById(quote.applicantId);
 
   return (
     <div className="mx-auto max-w-3xl px-8 py-10 text-[13px] text-foreground">
@@ -150,9 +147,8 @@ export default async function PrintQuotePage({
         <h2 className="text-[11.5px] font-semibold uppercase tracking-wide text-muted">산출내역서</h2>
         {/* Bowl 사용료·유틸리티(HIDDEN)는 관리자에게만 항목·금액을 노출한다 — 신청자에게는
             행 자체를 숨기고, 소계/VAT/합계는 quote 전체 lineItems 기준 값을 그대로 쓴다.
-            패키지 기본 구성(대기실·트러스 등)도 위저드·마이페이지와 동일하게 상세히 보여준다. */}
+            위저드·마이페이지와 동일한 QuoteLineItemsReport를 재사용한다. */}
         <QuoteLineItemsReport
-          rateTable={rateTable}
           selection={quote.selection}
           lineItems={quote.lineItems}
           expectedRevenue={quote.selection.expectedRevenue ?? 0}

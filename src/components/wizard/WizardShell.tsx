@@ -332,7 +332,7 @@ export function WizardShell({
             midHallExtraLoadOutHours: 0,
           },
     );
-    setVenueTab("arena");
+    setVenueTab(bookingMode === "SIMULTANEOUS" ? "arena" : id === "medium-hall" ? "medium-hall" : "arena");
     setSubmittedId(null);
   }
 
@@ -499,28 +499,39 @@ export function WizardShell({
               </div>
             </section>
 
-            {selection.venueId && selection.bookingMode === "SIMULTANEOUS" && (
+            {selection.venueId && (
               <section className="rounded border border-border bg-background p-5 sm:p-7">
                 <h2 className="text-[19px] font-semibold">일정 선택</h2>
-                <p className="mt-1.5 text-[13.5px] text-muted">
-                  동시 대관에서는 두 공간의 일정을 탭으로 나눠 각각 선택합니다.
-                </p>
+                {selection.bookingMode === "SIMULTANEOUS" && (
+                  <p className="mt-1.5 text-[13.5px] text-muted">
+                    동시 대관에서는 두 공간의 일정을 탭으로 나눠 각각 선택합니다.
+                  </p>
+                )}
+                {/* [개정 2026-08-21] 아레나만/중형만/동시 대관 세 경우 모두 같은 탭 구조를
+                    쓴다 — 선택하지 않은 공간의 탭은 감춰지지 않고 비활성(disabled)으로만
+                    남아, 캘린더 슬롯 디자인 자체가 공간 선택에 따라 달라 보이지 않게 한다. */}
                 <div className="mt-5 flex gap-1 border-b border-border">
-                  {(["arena", "medium-hall"] as const).map((tab) => (
-                    <button
-                      key={tab}
-                      type="button"
-                      onClick={() => setVenueTab(tab)}
-                      className={[
-                        "border-b-2 px-4 py-2.5 text-[13.5px] font-medium transition-colors",
-                        venueTab === tab
-                          ? "border-accent text-accent"
-                          : "border-transparent text-muted hover:text-foreground",
-                      ].join(" ")}
-                    >
-                      {tab === "arena" ? "아레나 일정" : "중형 일정"}
-                    </button>
-                  ))}
+                  {(["arena", "medium-hall"] as const).map((tab) => {
+                    const enabled = selection.bookingMode === "SIMULTANEOUS" || selection.venueId === tab;
+                    return (
+                      <button
+                        key={tab}
+                        type="button"
+                        disabled={!enabled}
+                        onClick={() => enabled && setVenueTab(tab)}
+                        className={[
+                          "border-b-2 px-4 py-2.5 text-[13.5px] font-medium transition-colors",
+                          venueTab === tab && enabled
+                            ? "border-accent text-accent"
+                            : enabled
+                              ? "border-transparent text-muted hover:text-foreground"
+                              : "cursor-not-allowed border-transparent text-muted/40",
+                        ].join(" ")}
+                      >
+                        {tab === "arena" ? "아레나 일정" : "중형 일정"}
+                      </button>
+                    );
+                  })}
                 </div>
                 <div className="mt-6">
                   {venueTab === "arena" ? (
@@ -567,58 +578,6 @@ export function WizardShell({
                 </div>
               </section>
             )}
-            {selection.venueId && midHallOnly && (
-              <section className="rounded border border-border bg-background p-5 sm:p-7">
-                <h2 className="text-[19px] font-semibold">일정 선택</h2>
-                <div className="mt-5">
-                  <MidHallCalendar
-                    year={midHallMonth.year}
-                    month={midHallMonth.month}
-                    days={selection.midHallDays}
-                    extraSetupHours={selection.midHallExtraSetupHours}
-                    extraLoadOutHours={selection.midHallExtraLoadOutHours}
-                    dateBlocks={dateBlocks}
-                    rateConfig={rateTable.midHall}
-                    onChangeMonth={(year, month) => setMidHallMonth({ year, month })}
-                    onChangeDays={(midHallDays) => setSelection((prev) => ({ ...prev, midHallDays }))}
-                    onChangeExtraSetupHours={(value) =>
-                      setSelection((prev) => ({ ...prev, midHallExtraSetupHours: value }))
-                    }
-                    onChangeExtraLoadOutHours={(value) =>
-                      setSelection((prev) => ({ ...prev, midHallExtraLoadOutHours: value }))
-                    }
-                  />
-                </div>
-              </section>
-            )}
-            {selection.venueId && selection.bookingMode === "SINGLE" && selection.venueId === "arena" && (
-              <section className="rounded border border-border bg-background p-5 sm:p-7">
-                <h2 className="text-[19px] font-semibold">일정 선택</h2>
-                <div className="mt-5">
-                  <Step1Calendar
-                    week={selection.week}
-                    excludedDays={selection.excludedDays}
-                    extraDays={selection.extraDays}
-                    dayTags={selection.dayTags}
-                    dayShowCounts={selection.dayShowCounts}
-                    defaultPerformanceDays={defaultPerformanceDays}
-                    weekDemand={weekDemand}
-                    dateBlocks={dateBlocks}
-                    onChangeWeek={(week) => setSelection((prev) => ({ ...prev, week }))}
-                    onChangeExcludedDays={(excludedDays) =>
-                      setSelection((prev) => ({ ...prev, excludedDays }))
-                    }
-                    onChangeExtraDays={(extraDays) =>
-                      setSelection((prev) => ({ ...prev, extraDays }))
-                    }
-                    onChangeDayTags={(dayTags) => setSelection((prev) => ({ ...prev, dayTags }))}
-                    onChangeDayShowCounts={(dayShowCounts) =>
-                      setSelection((prev) => ({ ...prev, dayShowCounts }))
-                    }
-                  />
-                </div>
-              </section>
-            )}
           </div>
         )}
         {step === 2 && (
@@ -631,9 +590,6 @@ export function WizardShell({
             onChangeQuantity={setAddonQuantity}
             onChangeRevenue={(value) =>
               setSelection((prev) => ({ ...prev, expectedRevenue: value }))
-            }
-            onChangeSecondaryAudience={(value) =>
-              setSelection((prev) => ({ ...prev, secondaryAudience: value }))
             }
             onSelectPackage={selectPackage}
           />
