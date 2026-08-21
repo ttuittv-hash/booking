@@ -13,6 +13,7 @@ import { SEED_FAQS } from "./content/faqSeed";
 import { FEATURE_SPEC_SEED } from "./featureSpecSeed";
 import { FEATURE_SPEC_SHEET_KEYS } from "./pricing/types";
 import { sha256Hex } from "./passwordScheme";
+import { INITIAL_PERFORMANCE_INFO } from "./pricing/performanceInfoDefaults";
 import {
   blindIndex,
   blindIndexOptional,
@@ -2450,12 +2451,47 @@ interface QuoteRow {
   settlement_json: string | null;
 }
 
+/**
+ * 저장된 selection 을 현행 스키마로 보정한다.
+ *
+ * 신청서는 저장 시점의 위저드 스키마로 굳는데, 스키마는 계속 자란다(중형 일 단위 ·
+ * 동시 대관 · 안전 서약 …). 예전 신청서를 새 코드가 읽으면 없는 필드에서
+ * Object.keys(undefined) 로 상세 화면이 통째로 죽는다 — v1.0.0 운영 검수에서
+ * 7월 신청서(SA-6AF9D211)가 실제로 500 을 냈다. 읽기 경계인 여기 한 곳에서
+ * 기본값을 채워 모든 화면(운영자 상세 · 마이페이지 · 인쇄)이 안전해지게 한다.
+ * 저장본은 건드리지 않는다.
+ */
+function normalizeStoredSelection(raw: string): Quote["selection"] {
+  const s = JSON.parse(raw) as Partial<Quote["selection"]>;
+  return {
+    ...s,
+    venueId: s.venueId ?? null,
+    bookingMode: s.bookingMode ?? "SINGLE",
+    dayTags: s.dayTags ?? {},
+    dayShowCounts: s.dayShowCounts ?? {},
+    midHallDays: s.midHallDays ?? {},
+    addons: Array.isArray(s.addons) ? s.addons : [],
+    excludedDays: Array.isArray(s.excludedDays) ? s.excludedDays : [],
+    extraDays: Array.isArray(s.extraDays) ? s.extraDays : [],
+    secondaryAudience: s.secondaryAudience ?? 0,
+    performanceInfo: { ...INITIAL_PERFORMANCE_INFO, ...(s.performanceInfo ?? {}) },
+    safetyPledge: {
+      fireSafety: false,
+      managerDesignated: false,
+      facilityInspected: false,
+      incidentReporting: false,
+      signature: "",
+      ...(s.safetyPledge ?? {}),
+    },
+  } as Quote["selection"];
+}
+
 function toQuote(row: QuoteRow): Quote {
   return {
     id: row.id,
     applicantId: row.applicant_id,
     rateTableVersion: row.rate_table_version,
-    selection: JSON.parse(row.selection_json),
+    selection: normalizeStoredSelection(row.selection_json),
     lineItems: JSON.parse(row.line_items_json),
     subtotal: row.subtotal,
     vat: row.vat,
