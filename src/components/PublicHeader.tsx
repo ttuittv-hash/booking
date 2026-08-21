@@ -38,8 +38,16 @@ const PANEL_LINK = "block whitespace-nowrap py-1.5 text-xs transition-colors hov
  * 중앙 메뉴(Archivo 대문자 14)보다 커 보이지 않게 국문은 한 단 작게 둔다 —
  * 같은 14 라도 국문이 시각적으로 더 크고 무거워서 도구가 여정보다 앞서 읽힌다.
  */
-const UTIL_BTN =
-  "flex items-center gap-1 whitespace-nowrap text-xs font-bold text-foreground transition-colors hover:text-accent";
+const UTIL_BASE =
+  "flex items-center gap-1 whitespace-nowrap text-xs font-bold text-foreground transition-colors";
+/**
+ * 드롭다운을 여는 트리거(지원 · 계정). 중앙 카테고리와 같은 이유로
+ * **호버 색을 바꾸지 않는다** — 눌러서 갈 페이지가 없으므로 링크처럼 보이면 안 된다.
+ * 펼쳐지는 패널이 피드백이다.
+ */
+const UTIL_TRIGGER = UTIL_BASE;
+/** 실제로 이동·실행하는 것(로그인 · 회원가입 · 로그아웃 · 백오피스) */
+const UTIL_LINK = `${UTIL_BASE} hover:text-accent`;
 
 function Caret() {
   return (
@@ -79,7 +87,7 @@ function UtilMenu({
         aria-expanded={isOpen}
         aria-haspopup="true"
         onClick={() => onToggle(id)}
-        className={UTIL_BTN}
+        className={UTIL_TRIGGER}
       >
         {label}
         <Caret />
@@ -294,7 +302,7 @@ export function PublicHeader({
           {currentUser ? (
             <>
               {currentUser.role === "ADMIN" ? (
-                <Link href="/admin" className={UTIL_BTN} onMouseEnter={closeNow}>
+                <Link href="/admin" className={UTIL_LINK} onMouseEnter={closeNow}>
                   운영자 백오피스
                 </Link>
               ) : (
@@ -308,16 +316,16 @@ export function PublicHeader({
                   onToggle={toggle}
                 />
               )}
-              <LogoutButton className={UTIL_BTN} />
+              <LogoutButton className={UTIL_LINK} />
               {/* 알림은 맨 오른쪽 — 텍스트 메뉴와 성격이 달라 끝에 떼어 둔다 */}
               <NotificationBell role={currentUser.role} />
             </>
           ) : (
             <>
-              <Link href="/register" className={UTIL_BTN} onMouseEnter={closeNow}>
+              <Link href="/register" className={UTIL_LINK} onMouseEnter={closeNow}>
                 회원가입
               </Link>
-              <Link href="/login" className={UTIL_BTN} onMouseEnter={closeNow}>
+              <Link href="/login" className={UTIL_LINK} onMouseEnter={closeNow}>
                 로그인
               </Link>
             </>
