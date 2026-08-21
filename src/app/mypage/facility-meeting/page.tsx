@@ -100,7 +100,7 @@ export default async function MyFacilityMeetingPage({
                             </span>
                           </td>
                           <td className="px-4 py-3 text-right">
-                            <Link href={`/mypage/${q.id}`} className="font-medium text-accent hover:underline">
+                            <Link href={`/mypage/facility-meeting/${q.id}`} className="font-medium text-accent hover:underline">
                               상세 →
                             </Link>
                           </td>
