@@ -1,5 +1,8 @@
 "use client";
 
+import type { ReactNode } from "react";
+import { CHOICE_SELECTED_VARS } from "@/components/ui/kit";
+
 // [화면 뼈대 2026-08-20, 세 번째 개정] "공간 선택"과 "일정 선택"을 다시 하나의 탭으로
 // 합쳤다 — 화면 안에서는 두 슬롯(섹션)으로 나뉘어 보이지만 진행 표시상으로는 한 그룹
 // "01 공간/일정"이다. 이용 시설(공간)을 먼저 고르면 그 아래 일정 슬롯(아레나 캘린더 /
@@ -56,15 +59,41 @@ const STAGE_GROUPS: StageGroup[] = [
  */
 function CheckMark() {
   return (
-    <svg aria-hidden viewBox="0 0 16 16" fill="none" className="h-3.5 w-3.5">
+    <svg aria-hidden viewBox="0 0 16 16" fill="none" className="h-3 w-3">
       <path
         d="M3.5 8.5 6.5 11.5 12.5 5"
         stroke="currentColor"
-        strokeWidth="1.8"
+        strokeWidth="2"
         strokeLinecap="round"
         strokeLinejoin="round"
       />
     </svg>
+  );
+}
+
+/** 하위 단계 사이의 셰브런 — 이것들이 나란한 버튼이 아니라 순서라는 표시 */
+function Chevron() {
+  return (
+    <svg aria-hidden viewBox="0 0 16 16" fill="none" className="h-3 w-3 shrink-0 text-muted">
+      <path d="M6 3l5 5-5 5" stroke="currentColor" strokeWidth="1.6" strokeLinecap="square" />
+    </svg>
+  );
+}
+
+/**
+ * 단계 번호 — 원 안의 숫자.
+ *
+ * 알약 안에 번호를 그냥 텍스트로 두면 라벨과 두 개의 글자 덩어리가 되어 줄이 맞지
+ * 않는다(그리고 옆 버튼들과 똑같이 보인다). 번호는 항상 20px 원 안에 넣는다.
+ */
+function StepBullet({ children }: { children: ReactNode }) {
+  return (
+    <span
+      aria-hidden
+      className="grid h-5 w-5 shrink-0 place-items-center rounded-full border border-current type-display text-xs leading-none tabular-nums"
+    >
+      {children}
+    </span>
   );
 }
 
@@ -106,7 +135,7 @@ export function StepNav({
                 onClick={() => entryStep !== undefined && onJump(entryStep)}
                 aria-current={isActive ? "step" : undefined}
                 className={[
-                  "whitespace-nowrap border-b-2 px-3 py-3 text-s font-bold outline-none transition-colors",
+                  "flex h-12 items-center whitespace-nowrap border-b-2 px-3 text-s font-bold outline-none transition-colors",
                   "focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-foreground",
                   isActive
                     ? "border-foreground font-bold text-foreground"
@@ -122,45 +151,37 @@ export function StepNav({
       </ol>
 
       {activeGroup && activeGroup.visibleSteps.length > 1 && (
-        <ol className="flex w-full min-w-0 items-center gap-2 overflow-x-auto pb-3 pt-3">
+        <ol className="flex w-full min-w-0 items-center gap-1.5 overflow-x-auto pb-3 pt-3">
           {activeGroup.visibleSteps.map((s, i) => {
             const isCurrent = s.step === step;
             const isDone = s.step < step;
             const disabled = s.step > maxUnlockedStep;
             return (
-              <li key={s.step} className="flex shrink-0 items-center gap-2">
-                {i > 0 && (
-                  <span aria-hidden className="text-xs text-muted">
-                    ›
-                  </span>
-                )}
+              <li key={s.step} className="flex shrink-0 items-center gap-1.5">
+                {i > 0 && <Chevron />}
                 <button
                   type="button"
                   disabled={disabled}
                   onClick={() => onJump(s.step)}
                   aria-current={isCurrent ? "step" : undefined}
+                  /* 현재 단계 = 검정 채움. 안쪽 번호 원·체크가 따라오도록 토큰을 국소 반전한다 */
+                  style={isCurrent ? CHOICE_SELECTED_VARS : undefined}
                   className={[
-                    // 터치로 누르는 칩이라 최소 높이를 확보한다. py-1 만으로는 24px 이라
-                    // 손가락으로 정확히 짚기 어렵다(권장 44px).
-                    "flex min-h-11 items-center gap-1.5 rounded-full border px-3.5 py-1.5 text-xs font-bold outline-none transition-colors",
+                    // 하위 단계는 **알약**이다 — 네모는 실행(버튼), 알약은 이동(탭)이라는
+                    // 구분을 지킨다. 샤프 코너로 두면 바로 아래 이전/다음 버튼과 같은
+                    // 모양이 되어 "누르면 뭔가 실행되는 것"으로 읽힌다.
+                    // 높이는 버튼과 같은 단(40)을 쓴다.
+                    "flex h-10 items-center gap-2 rounded-full border pl-2.5 pr-4 text-xs font-bold outline-none transition-colors",
                     "focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-foreground",
-                    isCurrent || isDone ? "border-foreground text-foreground" : "border-border-soft text-muted",
+                    isCurrent
+                      ? "border-foreground bg-inverse-bg text-inverse-fg"
+                      : isDone
+                        ? "border-foreground text-foreground"
+                        : "border-border-soft text-muted",
                     disabled ? "cursor-not-allowed opacity-40" : "cursor-pointer",
                   ].join(" ")}
                 >
-                  <span
-                    aria-hidden
-                    className={[
-                      "flex h-4 w-4 shrink-0 items-center justify-center rounded-full text-xs tabular-nums",
-                      isCurrent
-                        ? "bg-inverse-bg text-inverse-fg"
-                        : isDone
-                          ? "text-foreground"
-                          : "text-muted",
-                    ].join(" ")}
-                  >
-                    {isDone ? <CheckMark /> : i + 1}
-                  </span>
+                  <StepBullet>{isDone ? <CheckMark /> : i + 1}</StepBullet>
                   {s.label}
                 </button>
               </li>

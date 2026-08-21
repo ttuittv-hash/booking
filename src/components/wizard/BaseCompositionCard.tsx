@@ -15,7 +15,7 @@ export function BaseCompositionCard({ tiles, note }: { tiles: BaseCompositionTil
           if (groupTiles.length === 0) return null;
           return (
             <div key={group}>
-              <div className="mb-1.5 text-xs font-bold uppercase tracking-wide text-foreground">{group}</div>
+              <div className="mb-1.5 text-xs font-bold text-foreground">{group}</div>
               <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
                 {groupTiles.map((tile) => (
                   <div key={tile.label} className="border border-border/20 bg-background px-3 py-2">

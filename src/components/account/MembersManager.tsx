@@ -203,7 +203,7 @@ export function MembersManager() {
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             placeholder="초대할 담당자 이메일"
-            className="min-w-64 flex-1 border border-border-soft bg-background px-3 py-2 text-s"
+            className="field-base min-w-64 flex-1"
           />
           <button
             type="button"

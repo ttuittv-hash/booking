@@ -143,7 +143,7 @@ export function ScheduleManager({ initialYear, initialMonth }: { initialYear: nu
           ‹ 이전 달
         </button>
         <div className="flex items-center gap-2">
-          <span className="text-r font-semibold">
+          <span className="type-kr-heading text-h6-m">
             {year}년 {month}월
           </span>
           <span className="text-xs text-muted">{loading && "불러오는 중..."}</span>
@@ -171,7 +171,7 @@ export function ScheduleManager({ initialYear, initialMonth }: { initialYear: nu
             type="button"
             onClick={() => setVenueTab(tab)}
             className={[
-              "border-b-2 px-4 py-2.5 text-s font-medium transition-colors",
+              "flex h-10 items-center border-b-2 px-4 text-s font-bold transition-colors",
               venueTab === tab
                 ? "border-accent text-foreground"
                 : "border-transparent text-muted hover:text-foreground",
@@ -188,12 +188,12 @@ export function ScheduleManager({ initialYear, initialMonth }: { initialYear: nu
           {venueTab === "arena" ? "아레나 예약" : "중형 예약"}
         </span>
         <span className="flex items-center gap-1.5">
-          <span className="h-2 w-2 rounded-full bg-red-500" /> 신청 불가(관리자 지정 · 공간 공통)
+          <span className="h-2 w-2 rounded-full bg-danger" /> 신청 불가(관리자 지정 · 공간 공통)
         </span>
       </div>
 
       <div className="mt-5 border border-border-soft bg-panel/60 p-4">
-        <div className="grid grid-cols-7 gap-1 text-center text-xs font-medium text-muted">
+        <div className="grid grid-cols-7 gap-1 text-center text-xs font-bold text-muted">
           {DOW_LABELS.map((label, i) => (
             <div key={label} className={i === 6 ? "opacity-50" : ""}>
               {label}
@@ -228,7 +228,7 @@ export function ScheduleManager({ initialYear, initialMonth }: { initialYear: nu
                           !inMonth
                             ? "cursor-default text-muted/30"
                             : isBlocked
-                              ? "cursor-pointer bg-red-50 font-medium text-red-500 hover:bg-red-100"
+                              ? "cursor-pointer bg-danger-soft font-bold text-danger hover:bg-danger-soft"
                               : "cursor-pointer text-foreground hover:bg-panel-strong",
                           isToday ? "underline decoration-2 underline-offset-4" : "",
                           openDate === dateStr ? "ring-2 ring-accent" : "",
@@ -238,7 +238,7 @@ export function ScheduleManager({ initialYear, initialMonth }: { initialYear: nu
                         {inMonth && entries.length > 0 && (
                           <span
                             className={[
-                              "px-1 text-xs font-semibold",
+                              "px-1 text-xs font-bold",
                               venueTab === "arena" ? "bg-accent-soft text-foreground" : "bg-good-soft text-good",
                             ].join(" ")}
                           >
@@ -253,7 +253,7 @@ export function ScheduleManager({ initialYear, initialMonth }: { initialYear: nu
                 {openInThisRow && openDate && (
                   <div className="mt-1.5 border border-accent bg-accent-soft/40 px-3.5 py-3">
                     <div className="flex items-center justify-between">
-                      <div className="text-s font-semibold text-foreground">{formatDateLabel(openDate)}</div>
+                      <div className="text-s font-bold text-foreground">{formatDateLabel(openDate)}</div>
                       <button
                         type="button"
                         onClick={() => setOpenDate(null)}
@@ -266,7 +266,7 @@ export function ScheduleManager({ initialYear, initialMonth }: { initialYear: nu
 
                     <div className="mt-2.5 grid grid-cols-1 gap-3 border-t border-accent/20 pt-3 sm:grid-cols-2 sm:divide-x sm:divide-accent/20">
                       <div className="sm:pr-3">
-                        <div className="mb-1.5 text-xs font-semibold uppercase tracking-wide text-muted">
+                        <div className="mb-1.5 text-xs font-bold text-muted">
                           상태
                         </div>
                         {(() => {
@@ -286,7 +286,7 @@ export function ScheduleManager({ initialYear, initialMonth }: { initialYear: nu
                                   className="flex flex-wrap items-center gap-x-2 gap-y-1 bg-background px-2.5 py-1.5 text-xs"
                                 >
                                   <span className="text-muted">{roleLabel(entry.role)}</span>
-                                  <Link href={`/admin/${entry.quoteId}`} className="font-medium text-foreground hover:text-foreground hover:underline">
+                                  <Link href={`/admin/${entry.quoteId}`} className="font-bold text-foreground hover:text-foreground hover:underline">
                                     {entry.companyName}
                                   </Link>
                                   <span className="text-xs text-muted">· {statusLabel(entry.status, entry.reviewDecision)}</span>
@@ -298,19 +298,19 @@ export function ScheduleManager({ initialYear, initialMonth }: { initialYear: nu
                       </div>
 
                       <div className="sm:pl-3">
-                        <div className="mb-1.5 text-xs font-semibold uppercase tracking-wide text-muted">
+                        <div className="mb-1.5 text-xs font-bold text-muted">
                           설정
                         </div>
                         {blockedByDate.get(openDate) ? (
                           <div className="space-y-2">
-                            <p className="text-xs text-red-600">
+                            <p className="text-xs text-danger">
                               신청 불가로 지정됨
                               {blockedByDate.get(openDate)?.reason ? ` · ${blockedByDate.get(openDate)?.reason}` : ""}
                             </p>
                             <button
                               type="button"
                               onClick={unblockOpenDate}
-                              className="rounded-sm bg-panel-strong px-3 py-1.5 text-xs font-medium text-muted hover:text-foreground"
+                              className={btnClass("secondary", "sm")}
                             >
                               신청 가능으로 되돌리기
                             </button>
@@ -327,7 +327,7 @@ export function ScheduleManager({ initialYear, initialMonth }: { initialYear: nu
                             <button
                               type="button"
                               onClick={blockOpenDate}
-                              className="shrink-0 bg-panel-strong px-3 py-1.5 text-xs font-medium text-muted hover:text-red-600"
+                              className={`shrink-0 ${btnClass("danger", "sm")}`}
                             >
                               이 날짜 막기
                             </button>

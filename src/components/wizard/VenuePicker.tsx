@@ -47,7 +47,7 @@ export function VenuePicker({
             type="button"
             onClick={opt.onClick}
             className={[
-              "border px-3.5 py-2 text-s font-bold transition-colors",
+              "flex h-10 items-center border px-4 text-s font-bold transition-colors",
               opt.active
                 ? "border-foreground bg-inverse-bg text-inverse-fg text-foreground"
                 : "border-border bg-panel text-muted hover:border-foreground/50",

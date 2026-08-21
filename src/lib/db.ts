@@ -2180,6 +2180,15 @@ export async function promoteUserToAdmin(id: string, tier: AdminTier): Promise<A
   return (await findUserById(id))!;
 }
 
+/**
+ * 운영자 권한 해제 — 계정을 지우지 않고 신청자로 되돌린다.
+ * 계정을 삭제하면 그 사람이 남긴 심사·정산 기록의 작성자가 사라져 이력을 못 읽는다.
+ */
+export async function demoteAdminToApplicant(id: string): Promise<AppUser> {
+  await q("UPDATE users SET role = 'APPLICANT', admin_tier = NULL WHERE id = $1", [id]);
+  return (await findUserById(id))!;
+}
+
 export async function findUserById(id: string): Promise<AppUser | undefined> {
   const row = await one<UserRow>("SELECT * FROM users WHERE id = $1", [id]);
   return row ? toAppUser(row) : undefined;

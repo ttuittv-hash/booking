@@ -33,44 +33,40 @@ await p.goto(B+"/apply?new=1",{waitUntil:"domcontentloaded"});
 await p.waitForTimeout(2500);
 say((await p.locator('button:has-text("다음")').count())>0, "위저드가 열린다");
 
-// STEP1 시설
-await p.locator('button, label').filter({hasText:/아레나|중형공연장/}).first().click().catch(()=>{});
-await p.waitForTimeout(700);
-await next();
-say(/일정 선택/.test(await text()), "STEP1 → STEP2 (일정 선택)");
-
-// STEP2 달력 — 한 주만 고른다
+// STEP1 공간/일정 — 시설 선택 + 달력에서 한 주
+await p.locator('button, label').filter({hasText:/아레나/}).first().click().catch(()=>{});
+await p.waitForTimeout(800);
 const cells = p.locator('button:not([disabled])').filter({hasText:/^\d{1,2}$/});
 const n = await cells.count();
-await cells.nth(Math.floor(n*0.6)).click();
-await p.waitForTimeout(1200);
-const picked = /주차/.test(await text());
-say(picked, `달력에서 한 주가 잡힌다 (${n}칸)`, (await text()).match(/2026년 \d+월 \d+주차[^\.]{0,24}/)?.[0] ?? "");
+await cells.nth(Math.floor(n*0.6)).click(); await p.waitForTimeout(1000);
+say(/주차/.test(await text()), `공간/일정에서 한 주가 잡힌다 (${n}칸)`, (await text()).match(/2026년 \d+월 \d+주차[^\.]{0,20}/)?.[0] ?? "");
 await next();
-say(/구성|옵션/.test(await text()), "STEP2 → STEP3 (구성·옵션)");
 
-// STEP3 이후 — 스텝 표시줄은 다섯 단계를 항상 보여주므로 "신청서 생성" 버튼이
-// 나타날 때까지 넘긴다(최대 6회). 어디서 멈추는지도 같이 남긴다.
+// STEP2 구성·옵션 — 패키지 수동 선택(개편으로 자동 산정에서 바뀜)
+say(/구성.*옵션|패키지/.test(await text()), "STEP2 구성·옵션 도달");
+await p.locator('button, [role=button], label').filter({hasText:/^패키지 1/}).first().click().catch(()=>{});
+await p.waitForTimeout(900);
+await next();
+
+// STEP3 기본 정보 → STEP4 신청서 제출
+say(/신청자 정보|기본 정보/.test(await text()), "STEP3 기본 정보 도달");
 let reached = false;
-for (let i = 0; i < 6 && !reached; i++) {
+for (let i = 0; i < 5 && !reached; i++) {
   await next();
-  reached = (await p.locator('button:has-text("신청서 생성"), button:has-text("수정 내용 저장")').count()) > 0;
+  reached = (await p.locator('button:has-text("신청서 생성"), button:has-text("수정 내용 저장"), button:has-text("제출")').count()) > 0;
 }
 say(reached, "마지막 단계(신청서 제출)까지 간다", reached ? "" : (await text()).slice(-80));
 
-// 최종 제출 — 동의 없이 누르면 이유를 알려주는가
-const submit = p.locator('button:has-text("신청서 생성"), button:has-text("수정 내용 저장")').last();
-if (await submit.count()) {
-  say(!(await submit.isDisabled()), "[신청서 생성]이 잠겨 있지 않다");
-  await submit.scrollIntoViewIfNeeded().catch(()=>{});
-  await submit.click();
-  await p.waitForTimeout(1400);
-  const t=(await p.locator('[data-testid="toast"]').first().innerText().catch(()=>"")).replace(/\s+/g," ");
-  say(/동의|서약|확인/.test(t), "동의 전 제출은 이유를 알려준다", t.slice(0,44));
-} else {
-  say(false, "최종 제출 버튼을 찾지 못함", (await text()).slice(0,60));
-  console.log("현재 단계 버튼:", await p.$$eval("button", bs=>bs.filter(x=>x.offsetParent).map(x=>x.textContent.trim().slice(0,16)).slice(-14).join(" · ")));
-  console.log("본문 꼬리:", (await text()).slice(-260));
+if (reached) {
+  const submit = p.locator('button:has-text("신청서 생성"), button:has-text("수정 내용 저장")').last();
+  if (await submit.count()) {
+    say(!(await submit.isDisabled()), "[신청서 생성]이 잠겨 있지 않다");
+    await submit.scrollIntoViewIfNeeded().catch(()=>{});
+    await submit.click();
+    await p.waitForTimeout(1400);
+    const t=(await p.locator('[data-testid="toast"]').first().innerText().catch(()=>"")).replace(/\s+/g," ");
+    say(/동의|서약|확인/.test(t), "동의 전 제출은 이유를 알려준다", t.slice(0,44));
+  }
 }
 
 say(errs.length===0, "콘솔 오류가 없다", [...new Set(errs)].slice(0,2).join(" | "));

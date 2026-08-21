@@ -203,7 +203,7 @@ export default async function MyQuoteDetailPage({
               확정일시{" "}
               {new Date(quote.contract.decidedAt).toLocaleString("ko-KR")}
             </span>
-            <span className="text-[18px] font-bold tabular-nums">
+            <span className="text-m font-bold tabular-nums">
               {won(quote.contract.contractTotal)}
             </span>
           </div>
@@ -248,7 +248,7 @@ export default async function MyQuoteDetailPage({
 
       {quote.settlement && (
         <section className="mt-6 border-t-2 border-foreground pt-5">
-          <h2 className="text-r font-bold text-foreground">③ 최종 정산 완료</h2>
+          <h2 className="type-kr-heading text-h6-m text-foreground">③ 최종 정산 완료</h2>
           <div className="mt-3 flex items-center justify-between">
             <span className="text-s text-muted">
               확정일시{" "}

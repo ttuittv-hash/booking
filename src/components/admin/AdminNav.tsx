@@ -48,7 +48,7 @@ export function AdminNav({ active, user }: { active: string; user?: AppUser | nu
 
         <nav
           aria-label="백오피스 메뉴"
-          className="ml-auto hidden h-full min-w-0 shrink items-center gap-x-4 overflow-x-auto whitespace-nowrap lg:flex"
+          className="ml-auto hidden h-full min-w-0 shrink items-center gap-x-4 overflow-x-auto whitespace-nowrap [contain:paint] lg:flex"
         >
           {links.map((link) => {
             const isActive = link.href === active;
@@ -78,7 +78,7 @@ export function AdminNav({ active, user }: { active: string; user?: AppUser | nu
       {/* 좁은 화면 전용 메뉴 줄 — 화면 폭을 다 쓰고 가로 스크롤한다. */}
       <nav
         aria-label="백오피스 메뉴"
-        className="flex items-center gap-x-5 overflow-x-auto whitespace-nowrap border-t border-border/15 px-4 sm:px-6 lg:hidden"
+        className="flex items-center gap-x-5 overflow-x-auto whitespace-nowrap border-t border-border/15 px-4 [contain:paint] sm:px-6 lg:hidden"
       >
         {links.map((link) => {
           const isActive = link.href === active;

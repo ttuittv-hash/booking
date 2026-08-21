@@ -27,7 +27,7 @@ function formatDateTime(iso: string): string {
 
 /* 본문(운영자 리치 에디터 HTML) 타이포 — 전부 디자인 토큰으로. 라운딩 없음. */
 const PROSE = [
-  "whitespace-pre-wrap text-r leading-8 text-muted-strong",
+  "whitespace-pre-wrap text-m leading-8 text-muted-strong",
   "[&_h2]:type-kr-heading [&_h2]:mt-12 [&_h2]:text-h5-m [&_h2]:text-foreground sm:[&_h2]:text-h5",
   "[&_h3]:type-kr-heading [&_h3]:mt-10 [&_h3]:text-h6-m [&_h3]:text-foreground [&_h3]:first:mt-0 sm:[&_h3]:text-h6",
   "[&_p]:my-4 [&_p]:first:mt-0 [&_p]:last:mb-0",

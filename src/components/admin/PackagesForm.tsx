@@ -30,6 +30,7 @@ import {
   TR_HOVER,
   TAB_BAR,
   tabCls,
+  REMOVE_BTN,
 } from "./adminUi";
 import {
   ADDON_CATEGORY_LABEL,
@@ -149,6 +150,20 @@ export function PackagesForm({ rateTable }: { rateTable: RateTable }) {
     setActiveId(nextId);
   }
 
+  /** 패키지 삭제 — 공간별 마지막 하나는 남긴다(고를 것이 없으면 신청이 막힌다) */
+  function removePackage(id: number) {
+    const target = packages.find((p) => p.id === id);
+    if (!target) return;
+    if (packages.filter((p) => p.venueId === target.venueId).length <= 1) {
+      alert("이 공간의 마지막 패키지는 삭제할 수 없습니다. 새 패키지를 먼저 추가하세요.");
+      return;
+    }
+    if (!confirm(`「${target.name}」 패키지를 삭제할까요?`)) return;
+    const rest = packages.filter((p) => p.id !== id);
+    setPackages(rest);
+    if (activeId === id) setActiveId(rest[0]?.id ?? 0);
+  }
+
   function includedQty(addonId: string): number {
     return active.includedItems.find((i) => i.addonId === addonId)?.quantity ?? 0;
   }
@@ -166,6 +181,22 @@ export function PackagesForm({ rateTable }: { rateTable: RateTable }) {
 
   function updateAddonVisibility(addonId: string, visibility: LineItemVisibility) {
     setAddons((prev) => prev.map((a) => (a.id === addonId ? { ...a, visibility } : a)));
+  }
+
+  /**
+   * 항목 삭제 — 목록에서 빼고, 모든 패키지의 기본 포함 수량에서도 함께 지운다.
+   * 한쪽만 지우면 화면에는 안 보이는데 견적에는 남는 유령 항목이 된다.
+   */
+  function removeAddon(addonId: string) {
+    const addon = addons.find((a) => a.id === addonId);
+    if (!confirm(`「${addon?.name ?? addonId}」 항목을 삭제할까요?\n모든 패키지의 기본 포함 설정에서도 함께 지워집니다.`)) return;
+    setAddons((prev) => prev.filter((a) => a.id !== addonId));
+    setPackages((prev) =>
+      prev.map((pkg) => ({
+        ...pkg,
+        includedItems: pkg.includedItems.filter((it) => it.addonId !== addonId),
+      })),
+    );
   }
 
   function openNewItemForm(category: AddonCategory, visibility: LineItemVisibility) {
@@ -288,6 +319,9 @@ export function PackagesForm({ rateTable }: { rateTable: RateTable }) {
                 <th className={TH_NUM}>기본 대관료 (₩)</th>
                 <th className={TH_NUM}>총 패키지 가격 (₩)</th>
                 <th className={TH_NUM}>할인 적용가 (₩)</th>
+                <th className={TH}>
+                  <span className="sr-only">삭제</span>
+                </th>
               </tr>
             </thead>
             <tbody>
@@ -308,6 +342,18 @@ export function PackagesForm({ rateTable }: { rateTable: RateTable }) {
                       ) : (
                         <span className="text-muted">{NONE}</span>
                       )}
+                    </td>
+                    <td className="px-4 py-3 text-right">
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          removePackage(p.id);
+                        }}
+                        className={REMOVE_BTN}
+                      >
+                        삭제
+                      </button>
                     </td>
                   </tr>
                 );
@@ -556,7 +602,7 @@ export function PackagesForm({ rateTable }: { rateTable: RateTable }) {
         </section>
 
         {venueTab === "medium-hall" && (
-          <p className="rounded-sm border-l-2 border-accent bg-accent-soft/40 px-4 py-3 text-[12.5px] leading-5 text-foreground">
+          <p className="border-l-2 border-accent bg-accent-soft/40 px-4 py-3 text-xs leading-5 text-foreground">
             중형공연장은 이 목록(추가 옵션)을 쓰지 않습니다 — 가격은 &ldquo;요금표 관리&rdquo;의
             &ldquo;중형공연장 요금&rdquo; 섹션에서 따로 관리합니다. 여기서는 STEP 2(구성·옵션)에
             표시되는 기본 구성 안내 문구만 편집합니다.
@@ -596,7 +642,7 @@ export function PackagesForm({ rateTable }: { rateTable: RateTable }) {
           <section key={visibility}>
             <div className="flex items-center gap-2">
               <h2 className={SUB_TITLE}>{title}</h2>
-              <span className={`px-2 py-0.5 text-xs font-semibold ${badgeClass}`}>{badge}</span>
+              <span className={`px-2 py-0.5 text-xs font-bold ${badgeClass}`}>{badge}</span>
             </div>
             <p className="mt-1 text-xs text-muted">{desc}</p>
 
@@ -615,7 +661,7 @@ export function PackagesForm({ rateTable }: { rateTable: RateTable }) {
               <button
                 type="button"
                 onClick={() => openNewItemForm(pickerCategory, visibility)}
-                className="px-2 py-1 text-xs font-medium text-foreground hover:underline"
+                className="px-2 py-1 text-xs font-bold text-foreground hover:underline"
               >
                 + 새 카테고리로 항목 추가
               </button>
@@ -623,7 +669,7 @@ export function PackagesForm({ rateTable }: { rateTable: RateTable }) {
 
             {newItemCategory && newItemVisibility === visibility && !groupedByVisibility.has(newItemCategory) && (
               <div className="mt-3 flex flex-col gap-2 border border-dashed border-accent/40 bg-accent-soft/40 p-3 sm:flex-row sm:items-center">
-                <span className="shrink-0 text-xs font-semibold text-foreground">
+                <span className="shrink-0 text-xs font-bold text-foreground">
                   {ADDON_CATEGORY_LABEL[newItemCategory]} (신규)
                 </span>
                 <input
@@ -673,13 +719,13 @@ export function PackagesForm({ rateTable }: { rateTable: RateTable }) {
               {[...groupedByVisibility.entries()].map(([category, items]) => (
                 <div key={category}>
                   <div className="mb-2 flex items-center justify-between">
-                    <span className="text-xs font-semibold uppercase tracking-wide text-foreground">
+                    <span className="text-xs font-bold text-foreground">
                       {ADDON_CATEGORY_LABEL[category as keyof typeof ADDON_CATEGORY_LABEL] ?? category}
                     </span>
                     <button
                       type="button"
                       onClick={() => openNewItemForm(category as AddonCategory, visibility)}
-                      className="px-2 py-1 text-xs font-medium text-foreground hover:underline"
+                      className="px-2 py-1 text-xs font-bold text-foreground hover:underline"
                     >
                       + 항목 추가
                     </button>
@@ -734,6 +780,13 @@ export function PackagesForm({ rateTable }: { rateTable: RateTable }) {
                               <option value="HIDDEN">비노출</option>
                               <option value="VISIBLE">선택 옵션</option>
                             </select>
+                            <button
+                              type="button"
+                              onClick={() => removeAddon(addon.id)}
+                              className={REMOVE_BTN}
+                            >
+                              삭제
+                            </button>
                           </div>
                         </div>
                       );

@@ -13,8 +13,8 @@ export default async function AdminAccountPage() {
       <AdminNav active="/admin/account" user={user} />
 
       <main className="mx-auto w-full max-w-4xl flex-1 px-6 py-10">
-        <h1 className="text-[22px] font-semibold">계정 설정</h1>
-        <p className="mt-2 max-w-2xl text-[13.5px] leading-6 text-muted">
+        <h1 className="text-[22px] font-bold">계정 설정</h1>
+        <p className="mt-2 max-w-2xl text-s leading-6 text-muted">
           {user.name} ({user.email})
         </p>
 

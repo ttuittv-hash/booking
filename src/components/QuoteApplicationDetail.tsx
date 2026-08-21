@@ -1,4 +1,5 @@
 import { findPackage } from "@/lib/pricing/rateTableUtils";
+import { EYEBROW } from "@/components/ui/kit";
 import {
   AGE_RATING_LABEL,
   ANCILLARY_BUSINESS_PLAN_LABEL,
@@ -33,7 +34,7 @@ function Row({ label, value }: { label: string; value: string }) {
   return (
     <div className="flex justify-between gap-4 py-1">
       <dt className="text-muted">{label}</dt>
-      <dd className="text-right font-medium">{value}</dd>
+      <dd className="text-right font-bold">{value}</dd>
     </div>
   );
 }
@@ -50,12 +51,12 @@ function Section({
   return (
     <details
       open={defaultOpen}
-      className="group rounded border border-border [&_summary::-webkit-details-marker]:hidden"
+      className="group border border-border [&_summary::-webkit-details-marker]:hidden"
     >
-      <summary className="flex cursor-pointer list-none items-center justify-between px-4 py-3 text-[13.5px] font-semibold">
+      <summary className="flex cursor-pointer list-none items-center justify-between px-4 py-3 text-s font-bold">
         {title}
-        <span className="text-[11px] text-muted group-open:hidden">펼치기 ›</span>
-        <span className="hidden text-[11px] text-muted group-open:inline">접기 ⌄</span>
+        <span className="text-xs text-muted group-open:hidden">펼치기 ›</span>
+        <span className="hidden text-xs text-muted group-open:inline">접기 ⌄</span>
       </summary>
       <div className="border-t border-border px-4 py-4">{children}</div>
     </details>
@@ -66,8 +67,8 @@ function performanceInfoFields(info: PerformanceInfo) {
   return (
     <div className="space-y-5">
       <div>
-        <p className="text-[11.5px] font-semibold uppercase tracking-wide text-muted">신청자 기본정보</p>
-        <dl className="mt-1.5 divide-y divide-border/60 text-[13px]">
+        <p className={`${EYEBROW} text-muted`}>신청자 기본정보</p>
+        <dl className="mt-1.5 divide-y divide-border/60 text-s">
           <Row label="대관신청사명" value={info.applicantCompanyName || "-"} />
           <Row label="사업자등록번호" value={info.applicantBusinessRegistrationNumber || "-"} />
           <Row label="담당자" value={info.applicantContactName || "-"} />
@@ -76,8 +77,8 @@ function performanceInfoFields(info: PerformanceInfo) {
       </div>
 
       <div>
-        <p className="text-[11.5px] font-semibold uppercase tracking-wide text-muted">공연 운영 총괄 책임자</p>
-        <dl className="mt-1.5 divide-y divide-border/60 text-[13px]">
+        <p className={`${EYEBROW} text-muted`}>공연 운영 총괄 책임자</p>
+        <dl className="mt-1.5 divide-y divide-border/60 text-s">
           <Row label="이름" value={info.operationsResponsible.name || "-"} />
           <Row label="직책" value={info.operationsResponsible.title || "-"} />
           <Row label="연락처" value={info.operationsResponsible.phone || "-"} />
@@ -85,8 +86,8 @@ function performanceInfoFields(info: PerformanceInfo) {
       </div>
 
       <div>
-        <p className="text-[11.5px] font-semibold uppercase tracking-wide text-muted">안전관리 총괄 책임자</p>
-        <dl className="mt-1.5 divide-y divide-border/60 text-[13px]">
+        <p className={`${EYEBROW} text-muted`}>안전관리 총괄 책임자</p>
+        <dl className="mt-1.5 divide-y divide-border/60 text-s">
           <Row label="이름" value={info.safetyResponsible.name || "-"} />
           <Row label="소속" value={info.safetyResponsible.title || "-"} />
           <Row label="연락처" value={info.safetyResponsible.phone || "-"} />
@@ -95,11 +96,11 @@ function performanceInfoFields(info: PerformanceInfo) {
 
       {info.pastPerformances.length > 0 && (
         <div>
-          <p className="text-[11.5px] font-semibold uppercase tracking-wide text-muted">
+          <p className={`${EYEBROW} text-muted`}>
             최근 3년간 공연 실적
           </p>
           <div className="mt-1.5 overflow-x-auto">
-            <table className="w-full min-w-[520px] border-collapse text-[12.5px]">
+            <table className="w-full min-w-[520px] border-collapse text-xs">
               <thead>
                 <tr className="border-b border-border text-left text-muted">
                   <th className="py-1.5 pr-2">공연명</th>
@@ -126,8 +127,8 @@ function performanceInfoFields(info: PerformanceInfo) {
       )}
 
       <div>
-        <p className="text-[11.5px] font-semibold uppercase tracking-wide text-muted">공연 기본정보</p>
-        <dl className="mt-1.5 divide-y divide-border/60 text-[13px]">
+        <p className={`${EYEBROW} text-muted`}>공연 기본정보</p>
+        <dl className="mt-1.5 divide-y divide-border/60 text-s">
           <Row label="공연(행사)명" value={info.eventName || "-"} />
           <Row label="아티스트" value={info.artist || "-"} />
           <Row label="주최·주관·기획" value={info.organizer || "-"} />
@@ -162,10 +163,10 @@ function performanceInfoFields(info: PerformanceInfo) {
       </div>
 
       <div>
-        <p className="text-[11.5px] font-semibold uppercase tracking-wide text-muted">
+        <p className={`${EYEBROW} text-muted`}>
           개최 신뢰도 및 안전관리
         </p>
-        <dl className="mt-1.5 divide-y divide-border/60 text-[13px]">
+        <dl className="mt-1.5 divide-y divide-border/60 text-s">
           <Row
             label="주요 출연진 계약 상태"
             value={info.castContractStatus ? CAST_CONTRACT_STATUS_LABEL[info.castContractStatus] : "-"}
@@ -204,7 +205,7 @@ export function QuoteApplicationDetail({
   return (
     <div className="space-y-3">
       <Section title="공간 선택">
-        <dl className="divide-y divide-border/60 text-[13px]">
+        <dl className="divide-y divide-border/60 text-s">
           <Row label="이용 시설" value={venueLabel} />
         </dl>
       </Section>
@@ -213,8 +214,8 @@ export function QuoteApplicationDetail({
         <div className="space-y-5">
           {hasArena && (
             <div>
-              <p className="text-[11.5px] font-semibold uppercase tracking-wide text-muted">아레나 일정</p>
-              <dl className="mt-1.5 divide-y divide-border/60 text-[13px]">
+              <p className={`${EYEBROW} text-muted`}>아레나 일정</p>
+              <dl className="mt-1.5 divide-y divide-border/60 text-s">
                 <Row
                   label="주차"
                   value={`${selection.week.year}년 ${selection.week.month}월 ${selection.week.weekOfMonth}주차`}
@@ -231,7 +232,7 @@ export function QuoteApplicationDetail({
               </dl>
               {arenaDates.length > 0 && (
                 <div className="mt-2 overflow-x-auto">
-                  <table className="w-full min-w-[360px] border-collapse text-[12.5px]">
+                  <table className="w-full min-w-[360px] border-collapse text-xs">
                     <thead>
                       <tr className="border-b border-border text-left text-muted">
                         <th className="py-1.5 pr-3">날짜</th>
@@ -258,10 +259,10 @@ export function QuoteApplicationDetail({
 
           {hasMidHall && (
             <div>
-              <p className="text-[11.5px] font-semibold uppercase tracking-wide text-muted">중형공연장 일정</p>
+              <p className={`${EYEBROW} text-muted`}>중형공연장 일정</p>
               {midHallDates.length > 0 ? (
                 <div className="mt-1.5 overflow-x-auto">
-                  <table className="w-full min-w-[360px] border-collapse text-[12.5px]">
+                  <table className="w-full min-w-[360px] border-collapse text-xs">
                     <thead>
                       <tr className="border-b border-border text-left text-muted">
                         <th className="py-1.5 pr-3">날짜</th>
@@ -284,9 +285,9 @@ export function QuoteApplicationDetail({
                   </table>
                 </div>
               ) : (
-                <p className="mt-1.5 text-[13px] text-muted">지정된 날짜가 없습니다.</p>
+                <p className="mt-1.5 text-s text-muted">지정된 날짜가 없습니다.</p>
               )}
-              <dl className="mt-2 divide-y divide-border/60 text-[13px]">
+              <dl className="mt-2 divide-y divide-border/60 text-s">
                 <Row label="셋업 연장 시간" value={`${selection.midHallExtraSetupHours}시간`} />
                 <Row label="철수(Load-Out) 연장 시간" value={`${selection.midHallExtraLoadOutHours}시간`} />
               </dl>
@@ -296,7 +297,7 @@ export function QuoteApplicationDetail({
       </Section>
 
       <Section title="구성 · 옵션">
-        <dl className="divide-y divide-border/60 text-[13px]">
+        <dl className="divide-y divide-border/60 text-s">
           {hasArena && (
             <>
               <Row label="패키지" value={pkg ? `${pkg.name} — ${pkg.tagline}` : "-"} />
@@ -314,7 +315,7 @@ export function QuoteApplicationDetail({
         {performanceInfoFields(selection.performanceInfo)}
         {isSimultaneous && selection.midHallPerformanceInfo && (
           <div className="mt-6 border-t border-dashed border-border pt-5">
-            <p className="mb-3 text-[12.5px] font-semibold text-accent">
+            <p className="mb-3 text-xs font-bold text-accent">
               중형공연장 — 아레나와 다르게 입력한 정보
             </p>
             {performanceInfoFields(selection.midHallPerformanceInfo)}
@@ -323,7 +324,7 @@ export function QuoteApplicationDetail({
       </Section>
 
       <Section title="관객">
-        <dl className="divide-y divide-border/60 text-[13px]">
+        <dl className="divide-y divide-border/60 text-s">
           {hasArena && (
             <Row label="1회당 예상 관객 수 (아레나)" value={`${selection.expectedAudience.toLocaleString()}명`} />
           )}

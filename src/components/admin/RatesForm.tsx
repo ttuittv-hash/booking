@@ -5,7 +5,17 @@ import { useState } from "react";
 import { useQueryTab } from "@/components/admin/useQueryTab";
 import { ADDON_CATEGORY_LABEL, VENUES, type AddonCategory, type RateTable } from "@/lib/pricing/types";
 import { btnClass } from "@/components/ui/kit";
-import { FIELD, FIELD_NUM, HELP, LINK_BTN, PANEL, SECTION_TITLE, SUB_TITLE, tabCls } from "./adminUi";
+import {
+  FIELD,
+  FIELD_NUM,
+  HELP,
+  LINK_BTN,
+  PANEL,
+  REMOVE_BTN,
+  SECTION_TITLE,
+  SUB_TITLE,
+  tabCls,
+} from "./adminUi";
 
 function slugify(name: string): string {
   const base = name
@@ -88,6 +98,12 @@ export function RatesForm({
     setNewItemName("");
     setNewItemUnitLabel("원/일");
     setNewItemPrice(0);
+  }
+
+  /** 부대시설 항목 삭제 — 요금표에서 빼면 견적에서도 사라진다 */
+  function removeAddon(addonId: string, name: string) {
+    if (!confirm(`「${name}」 항목을 삭제할까요? 이 항목은 이후 견적에 나타나지 않습니다.`)) return;
+    setAddons((prev) => prev.filter((a) => a.id !== addonId));
   }
 
   function confirmNewItem() {
@@ -323,7 +339,7 @@ export function RatesForm({
                   return (
                     <div
                       key={addon.id}
-                      className="grid grid-cols-1 items-center gap-2 py-2 sm:grid-cols-[1fr_160px] sm:gap-3"
+                      className="grid grid-cols-1 items-center gap-2 py-2 sm:grid-cols-[1fr_160px_auto] sm:gap-3"
                     >
                       <span className="text-s">
                         {addon.name} <span className="text-xs text-muted">({addon.unitLabel})</span>
@@ -345,6 +361,13 @@ export function RatesForm({
                       ) : (
                         <span className="text-right text-xs text-muted">실사용 정산 (편집 불가)</span>
                       )}
+                      <button
+                        type="button"
+                        onClick={() => removeAddon(addon.id, addon.name)}
+                        className={REMOVE_BTN}
+                      >
+                        삭제
+                      </button>
                     </div>
                   );
                 })}

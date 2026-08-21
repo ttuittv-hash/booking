@@ -300,21 +300,21 @@ export function ArticleLayout({
                   }}
                   placeholder={searchPlaceholder}
                   autoComplete="off"
-                  className="field-base h-11 w-full pr-11 text-s"
+                  className="field-base w-full pr-10 text-s"
                 />
                 {input ? (
                   <button
                     type="button"
                     onClick={clear}
                     aria-label="검색어 지우기"
-                    className="absolute right-0 top-0 flex h-11 w-11 items-center justify-center text-muted transition-colors hover:text-foreground"
+                    className="absolute right-0 top-0 flex h-10 w-10 items-center justify-center text-muted transition-colors hover:text-foreground"
                   >
                     <ClearIcon />
                   </button>
                 ) : (
                   <span
                     aria-hidden
-                    className="pointer-events-none absolute right-0 top-0 flex h-11 w-11 items-center justify-center text-muted"
+                    className="pointer-events-none absolute right-0 top-0 flex h-10 w-10 items-center justify-center text-muted"
                   >
                     <SearchIcon />
                   </span>

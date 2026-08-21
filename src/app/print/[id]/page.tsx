@@ -2,6 +2,7 @@ import { notFound, redirect } from "next/navigation";
 import { canAccessQuote, getCurrentUser } from "@/lib/auth";
 import { findUserById, getQuoteById } from "@/lib/db";
 import { won } from "@/lib/format";
+import { EYEBROW } from "@/components/ui/kit";
 import { totalRentalDays } from "@/lib/pricing/rateTableUtils";
 import {
   DEFAULT_VENUE_ID,
@@ -58,7 +59,7 @@ export default async function PrintQuotePage({
 
       <section className="mt-6 grid grid-cols-2 gap-6">
         <div>
-          <h2 className="text-xs font-bold uppercase tracking-wide text-muted">
+          <h2 className={`${EYEBROW} text-muted`}>
             신청자 정보
           </h2>
           <dl className="mt-2 space-y-1">
@@ -68,7 +69,7 @@ export default async function PrintQuotePage({
           </dl>
         </div>
         <div>
-          <h2 className="text-xs font-bold uppercase tracking-wide text-muted">
+          <h2 className={`${EYEBROW} text-muted`}>
             대관 일정
           </h2>
           <dl className="mt-2 space-y-1">
@@ -120,7 +121,7 @@ export default async function PrintQuotePage({
       {quote.selection.performanceInfo && (
         <section className="mt-8 grid grid-cols-2 gap-6">
           <div>
-            <h2 className="text-xs font-bold uppercase tracking-wide text-muted">
+            <h2 className={`${EYEBROW} text-muted`}>
               공연 정보
             </h2>
             <dl className="mt-2 space-y-1">
@@ -143,7 +144,7 @@ export default async function PrintQuotePage({
             </dl>
           </div>
           <div>
-            <h2 className="text-xs font-bold uppercase tracking-wide text-muted">
+            <h2 className={`${EYEBROW} text-muted`}>
               공연 구성
             </h2>
             <dl className="mt-2 space-y-1">
@@ -193,7 +194,7 @@ export default async function PrintQuotePage({
       )}
 
       <section className="mt-8">
-        <h2 className="text-xs font-bold uppercase tracking-wide text-muted">
+        <h2 className={`${EYEBROW} text-muted`}>
           산출내역서
         </h2>
         {/* Bowl 사용료·유틸리티(HIDDEN)는 관리자에게만 항목·금액을 노출한다 — 신청자에게는
@@ -217,7 +218,7 @@ export default async function PrintQuotePage({
 
       {quote.contract && (
         <section className="mt-8">
-          <h2 className="text-xs font-bold uppercase tracking-wide text-muted">
+          <h2 className={`${EYEBROW} text-muted`}>
             계약금액
           </h2>
           <ul className="mt-2 space-y-1">
@@ -244,7 +245,7 @@ export default async function PrintQuotePage({
 
       {quote.settlement && (
         <section className="mt-8">
-          <h2 className="text-xs font-bold uppercase tracking-wide text-muted">
+          <h2 className={`${EYEBROW} text-muted`}>
             최종 정산금액
           </h2>
           <div className="mt-2 flex justify-between border-t border-border pt-2 font-bold">
@@ -273,7 +274,7 @@ function Row({ label, value }: { label: string; value: string }) {
   return (
     <div className="flex justify-between gap-4">
       <dt className="text-muted">{label}</dt>
-      <dd className="font-medium">{value}</dd>
+      <dd className="font-bold">{value}</dd>
     </div>
   );
 }

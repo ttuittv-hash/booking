@@ -9,7 +9,7 @@
      · 백오피스는 공개 페이지의 컬러 밴드 교대를 쓰지 않는다.
        지면(background) + 흰 패널(panel) + 헤어라인으로만 구획한다
      · 옐로는 면·강조·구분선에만. 옐로 위 텍스트는 항상 검정 (옐로 텍스트 금지)
-     · 임의 px 폰트 금지 — text-xs / text-s / text-r … 토큰만
+     · 임의 px 폰트 금지 — 본문은 text-m / text-s / text-xs 세 단만
      · 아이브로(Tagline) 없음. 화면 상단은 제목 + 한 줄 설명으로 시작한다
      · 포커스: 보더 foreground + 옐로 2px 아웃라인.
        Tailwind v4 에서 base 에 outline-none 을 넣으면 focus:outline-2 가 죽으므로
@@ -28,8 +28,8 @@
 /** 입력 필드 기본 */
 export const FIELD = "field-base disabled:opacity-40";
 
-/** 밀도 높은 인라인 입력 (툴바·수량) */
-export const FIELD_SM = "field-base px-2 py-1.5 text-xs disabled:opacity-40";
+/** 밀도 높은 인라인 입력 (툴바·수량) — 버튼 sm 과 같은 32 */
+export const FIELD_SM = "field-base h-8 px-2 text-xs disabled:opacity-40";
 
 /** 숫자 입력 — 우측 정렬 + tabular-nums */
 export const FIELD_NUM = `${FIELD} text-right tabular-nums`;
@@ -49,16 +49,18 @@ export const CARD = "border border-border-soft bg-panel p-4";
 export const CARD_NESTED = "border border-border-soft bg-background p-3";
 
 /* ------------------------------------------------------------- 버튼 ------ */
-/* 버튼은 kit 의 btnClass(primary | secondary | tertiary) 만 쓴다.
-   아래는 버튼이 아닌 것들 — 점선 추가 슬롯, 텍스트 링크, 파괴적 동작 신호. */
+/* 버튼은 kit 의 btnClass(primary | secondary | tertiary | danger) 만 쓴다.
+   높이도 kit 의 세 단(48 / 40 / 32)을 그대로 따른다 — 백오피스라고 더 작게 만들지
+   않는다. 아래는 "버튼 네모"가 아닌 것들 — 점선 추가 슬롯, 텍스트 링크, 파괴적 신호.
+   점선 슬롯도 높이는 같은 단을 쓴다(py-* 로 만들지 않는다). */
 
-/** 점선 추가 버튼 (옐로 텍스트 금지 → hover 는 검정) */
+/** 점선 추가 버튼 — 행 안(32) */
 export const ADD_BTN =
-  "inline-flex items-center border border-dashed border-border-soft px-3 py-1.5 text-xs font-bold text-muted transition-colors hover:border-foreground hover:text-foreground focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-foreground";
+  "inline-flex h-8 items-center border border-dashed border-border-soft px-4 text-xs font-bold text-muted transition-colors hover:border-foreground hover:text-foreground focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-foreground";
 
-/** 점선 추가 버튼 — 목록 하단의 큰 버전 */
+/** 점선 추가 버튼 — 목록 하단(40) */
 export const ADD_BTN_LG =
-  "inline-flex items-center border border-dashed border-border-soft px-4 py-3 text-xs font-bold text-muted transition-colors hover:border-foreground hover:text-foreground focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-foreground";
+  "inline-flex h-10 items-center border border-dashed border-border-soft px-5 text-xs font-bold text-muted transition-colors hover:border-foreground hover:text-foreground focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-foreground";
 
 /** 삭제/제거 — 파괴적 동작은 색(text-danger)으로만 신호한다 */
 export const REMOVE_BTN =
@@ -86,12 +88,12 @@ export const QUIET_BTN = "text-xs text-muted transition-colors hover:text-foregr
  * 헤더 밑으로 파고들어 가려진다.
  */
 export const TAB_BAR =
-  "sticky top-[6.25rem] z-10 -mx-6 flex h-11 items-center gap-1 overflow-x-auto whitespace-nowrap border-b border-border/20 bg-background px-6 sm:top-[6.75rem] lg:top-16";
+  "sticky top-[6.25rem] z-10 -mx-6 flex h-12 items-center gap-1 overflow-x-auto whitespace-nowrap border-b border-border/20 bg-background px-6 [contain:paint] sm:top-[6.75rem] lg:top-16";
 
-/** 활성 탭은 옐로 하단 바 + 검정 텍스트 */
+/** 활성 탭은 옐로 하단 바 + 검정 텍스트. 높이는 버튼과 같은 단(40)으로 고정한다 */
 export function tabCls(active: boolean) {
   return [
-    "shrink-0 border-b-2 px-3 py-3 text-xs font-bold transition-colors",
+    "flex h-10 shrink-0 items-center border-b-2 px-3 text-xs font-bold transition-colors",
     active ? "border-accent text-foreground" : "border-transparent text-muted hover:text-foreground",
   ].join(" ");
 }
@@ -122,7 +124,8 @@ export const TABLE_HEAD_DESC = "mt-1 text-xs text-muted";
 export const TABLE_HEAD_ACTIONS = "flex shrink-0 flex-wrap items-center gap-2";
 
 /** 표 본문만 가로 스크롤 (헤더·페이저는 고정) */
-export const TABLE_SCROLL = "overflow-x-auto";
+/* `contain: paint` 없이 두면 넘치는 표 폭이 문서 전체 가로 스크롤로 새어 나간다(크로미움) */
+export const TABLE_SCROLL = "overflow-x-auto [contain:paint]";
 export const TABLE = "w-full border-collapse text-s";
 
 /** 테이블 헤더 행 — 컬럼명은 작고 muted */

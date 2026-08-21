@@ -3,7 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useRef, useState } from "react";
 import type { Attachment } from "@/lib/pricing/types";
-import { btnClass } from "@/components/ui/kit";
+import { btnClass, FILE_INPUT } from "@/components/ui/kit";
 import { formatDate } from "@/lib/format";
 
 function formatSize(bytes: number): string {
@@ -101,7 +101,7 @@ export function AttachmentsPanel({
         <input
           ref={fileInput}
           type="file"
-          className="field-base min-w-0 flex-1 file:mr-3 file:border file:border-foreground file:bg-transparent file:px-3 file:py-1 file:text-xs file:font-bold file:text-foreground"
+          className={`${FILE_INPUT} min-w-0 flex-1`}
         />
         <button
           type="button"

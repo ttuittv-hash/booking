@@ -19,8 +19,9 @@ import {
   type RateTable,
   type RentalPackage,
 } from "@/lib/pricing/types";
-import { INVERSE_SURFACE_VARS, PLAIN_SURFACE_VARS } from "@/components/ui/kit";
+import { CHOICE_SELECTED_VARS, choiceClass } from "@/components/ui/kit";
 import { BaseCompositionCard } from "./BaseCompositionCard";
+import { StepHeading } from "./StepHeading";
 
 // [화면 뼈대 2026-08-18, 화면시나리오 SCREEN 05/12] "규모/패키지 선택 → 기본 포함사항 →
 // 추가 옵션" 3개 화면을 STEP 2(구성·옵션) 한 화면으로 합친다.
@@ -76,14 +77,11 @@ function PackagePicker({
                 setShowCustomNotice(false);
                 onSelect(p.id);
               }}
-              className={[
-                "border px-4 py-3 text-left transition-colors",
-                active
-                  ? "border-foreground bg-inverse-bg text-inverse-fg"
-                  : "border-border bg-panel hover:border-foreground/50",
-              ].join(" ")}
+              /* 고른 카드는 검정 채움 — 안쪽 제목·설명이 따라오도록 토큰을 국소 반전한다 */
+              style={active ? CHOICE_SELECTED_VARS : undefined}
+              className={choiceClass(active, { dense: true })}
             >
-              <div className="text-s font-bold text-foreground">{p.name}</div>
+              <div className="text-s font-bold">{p.name}</div>
               <div className="mt-0.5 text-xs text-muted">{p.tagline}</div>
             </button>
           );
@@ -91,14 +89,10 @@ function PackagePicker({
         <button
           type="button"
           onClick={() => setShowCustomNotice(true)}
-          className={[
-            "border border-dashed px-4 py-3 text-left transition-colors",
-            showCustomNotice
-              ? "border-foreground bg-inverse-bg text-inverse-fg"
-              : "border-border bg-panel text-muted hover:border-foreground/50",
-          ].join(" ")}
+          style={showCustomNotice ? CHOICE_SELECTED_VARS : undefined}
+          className={`${choiceClass(showCustomNotice, { dense: true })} border-dashed`}
         >
-          <div className="text-s font-bold text-foreground">커스텀</div>
+          <div className="text-s font-bold">커스텀</div>
           <div className="mt-0.5 text-xs text-muted">직접구성</div>
         </button>
       </div>
@@ -152,12 +146,11 @@ export function StepConfigOptions({
     const midHallPkg = packagesForVenue(rateTable, "medium-hall")[0];
     const midHallTiles = midHallPkg ? baseCompositionTiles(midHallPkg, rateTable, { includeSchedule: false }) : [];
     return (
-      <section className="border border-border bg-background p-7">
-        <h2 className="type-kr-heading text-h5-m sm:text-h5">구성 · 옵션</h2>
-        <p className="mt-3 text-s text-muted">
-          중형공연장은 패키지가 없는 일 단위 요금제입니다 — 아래는 예약 일수와 무관하게 항상
-          포함되는 기본 구성입니다.
-        </p>
+      <section>
+        <StepHeading
+          title="구성 · 옵션"
+          lead="중형공연장은 패키지가 없는 일 단위 요금제입니다 — 아래는 예약 일수와 무관하게 항상 포함되는 기본 구성입니다."
+        />
 
         <BaseCompositionCard
           tiles={midHallTiles}
@@ -200,31 +193,25 @@ export function StepConfigOptions({
           "아레나" 라벨을 반복하지 않는다 — 탭 없이 단독으로 쓰이는 단일 아레나 예약에서만
           이 헤더가 화면의 유일한 제목이라 남긴다. */}
       {!isSimultaneous && (
-        <div className="border-b border-border pb-4">
-          <h2 className="type-kr-heading text-h5-m sm:text-h5">아레나</h2>
-          {pkg && (
-            <p className="mt-1 text-xs text-muted">
-              {pkg.name} · {pkg.audienceTier.label} · 예상 관객{" "}
-              {selection.expectedAudience.toLocaleString()}명 · {arenaSummaryLine(selection, defaultPerformanceDays)}
-            </p>
-          )}
-        </div>
+        <StepHeading
+          title="아레나"
+          lead={
+            pkg
+              ? `${pkg.name} · ${pkg.audienceTier.label} · 예상 관객 ${selection.expectedAudience.toLocaleString()}명 · ${arenaSummaryLine(selection, defaultPerformanceDays)}`
+              : undefined
+          }
+        />
       )}
 
-      <div className="mt-6">
+      <div className="mt-8">
         <PackagePicker packages={arenaPackages} selectedId={selection.packageId} onSelect={onSelectPackage} />
       </div>
 
       {!pkg ? (
         <p className="text-s text-muted">위에서 패키지를 선택하면 선택 옵션을 확인할 수 있습니다.</p>
       ) : (
-        /*
-          선택 옵션 = 실제로 고르는 곳이라 **박스 자체를 검정 면**으로 둔다.
-          안의 항목은 흰 카드이고 선택 강조를 주지 않는다 — 수량 입력칸이 있어서
-          면 색이 바뀌면 입력한 숫자가 안 보인다. 토큰을 국소 반전해 머리글·헤어라인이
-          지면에 맞고, 카드는 `PLAIN_SURFACE_VARS` 로 되돌린다.
-        */
-        <div style={INVERSE_SURFACE_VARS} className="mt-6 bg-inverse-bg p-5 text-inverse-fg">
+        /* 선택 옵션 = 아웃라인 박스. 색면을 쓰지 않는다 — 안의 항목도 아웃라인만이다 */
+        <div className="mt-6 border border-border/25 p-5">
           <h2 className="type-kr-heading text-h6-m sm:text-h6">선택 옵션</h2>
           <p className="mt-2 text-xs text-muted">
             필요한 만큼 수량을 정해 추가하는 항목 — 단가 × 수량으로 금액이 즉시 계산됩니다
@@ -257,7 +244,7 @@ export function StepConfigOptions({
   );
 
   if (!isSimultaneous) {
-    return <section className="border border-border bg-background p-7">{arenaSection}</section>;
+    return <section>{arenaSection}</section>;
   }
 
   const midHallPkgForTab = packagesForVenue(rateTable, "medium-hall")[0];
@@ -279,20 +266,17 @@ export function StepConfigOptions({
   );
 
   return (
-    <section className="border border-border bg-background p-7">
-      <h2 className="type-kr-heading text-h5-m sm:text-h5">구성 · 옵션</h2>
-      <p className="mt-1.5 text-s text-muted">
-        동시 대관은 두 공간의 구성이 서로 달라 탭으로 나눠 보여줍니다.
-      </p>
+    <section>
+      <StepHeading title="구성 · 옵션" lead="동시 대관은 두 공간의 구성이 서로 달라 탭으로 나눠 보여줍니다." />
 
-      <div className="mt-5 flex gap-1 border-b border-border">
+      <div className="mt-8 flex gap-1 border-b border-border">
         {(["arena", "medium-hall"] as const).map((tab) => (
           <button
             key={tab}
             type="button"
             onClick={() => setVenueTab(tab)}
             className={[
-              "border-b-2 px-4 py-2.5 text-s font-bold transition-colors",
+              "flex h-10 items-center border-b-2 px-4 text-s font-bold transition-colors",
               venueTab === tab
                 ? "border-foreground text-foreground"
                 : "border-transparent text-muted hover:text-foreground",
@@ -343,14 +327,12 @@ function AddonRow({
       ? `매출 ${addon.unitPrice}%`
       : `${won(addon.unitPrice)} / ${addon.unitLabel.replace("원/", "")}`;
 
-  // 검정 박스 위의 **흰 카드**다. 선택 여부로 색이 변하지 않는다 —
+  // 항목은 아웃라인만이다. 선택 여부로 면 색을 바꾸지 않는다 —
   // 수량을 적는 칸이 안에 있어서 면 색이 바뀌면 입력한 숫자가 묻힌다.
-  // 반전된 토큰을 여기서 되돌려야 입력 글자가 검정으로 나온다.
   return (
     <div
-      style={PLAIN_SURFACE_VARS}
       className={[
-        "flex flex-col gap-1.5 border border-border-soft bg-panel px-3 py-2 text-foreground",
+        "flex flex-col gap-1.5 border border-border-soft px-3 py-2",
         isUtil ? "opacity-60" : "",
       ].join(" ")}
     >

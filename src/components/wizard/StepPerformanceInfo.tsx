@@ -1,5 +1,7 @@
 "use client";
 
+import { FILE_INPUT, toggleClass } from "@/components/ui/kit";
+
 import { useState } from "react";
 import { INITIAL_PERFORMANCE_INFO } from "@/lib/pricing/performanceInfoDefaults";
 import { VenueSplitTabBar, type VenueSplitTab } from "./VenueSplitTabBar";
@@ -309,7 +311,7 @@ function PerformanceInfoFields({
               <button
                 type="button"
                 onClick={addPastPerformance}
-                className="text-xs font-bold text-foreground hover:underline"
+                className={toggleClass(false)}
               >
                 ＋ 행 추가
               </button>
@@ -355,7 +357,7 @@ function PerformanceInfoFields({
                       type="button"
                       onClick={() => removePastPerformance(i)}
                       aria-label="삭제"
-                      className="shrink-0 text-xs text-muted hover:text-danger"
+                      className={`${toggleClass(false)} shrink-0`}
                     >
                       삭제
                     </button>
@@ -679,7 +681,7 @@ export function StepPerformanceInfo({
             addFiles(e.target.files);
             e.target.value = "";
           }}
-          className="field-base mt-5 text-muted file:mr-3 file:border file:border-foreground file:bg-transparent file:px-3 file:py-1 file:text-xs file:font-bold file:text-foreground"
+          className={`${FILE_INPUT} mt-5 text-muted`}
         />
       </div>
     </section>

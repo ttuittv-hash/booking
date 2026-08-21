@@ -1,5 +1,7 @@
 "use client";
 
+import { CHOICE_SELECTED_VARS, FILE_INPUT } from "@/components/ui/kit";
+
 import { useState } from "react";
 import { defaultDayTags, effectiveDayTag } from "@/lib/pricing/rateTableUtils";
 import { resolveSelectedDates } from "@/lib/pricing/dateRange";
@@ -11,6 +13,7 @@ import {
   type QuoteSelection,
 } from "@/lib/pricing/types";
 import { VenueSplitTabBar, type VenueSplitTab } from "./VenueSplitTabBar";
+import { StepHeading } from "./StepHeading";
 
 const ANCILLARY_PLANS = Object.keys(ANCILLARY_BUSINESS_PLAN_LABEL) as AncillaryBusinessPlan[];
 
@@ -29,12 +32,21 @@ function CheckboxChip({
 }) {
   return (
     <label
+      /* 선택 = 검정 채움. 안쪽 글자가 따라오도록 토큰을 국소 반전한다 */
+      style={checked ? CHOICE_SELECTED_VARS : undefined}
       className={[
-        "flex cursor-pointer items-center gap-2 border px-3.5 py-2.5 text-s transition-colors",
-        checked ? "border-foreground bg-inverse-bg text-inverse-fg text-foreground" : "border-border bg-panel hover:border-foreground/50",
+        // 인라인 칩도 버튼과 같은 단(40) — px/py 조합으로 43px 을 만들지 않는다
+        "flex h-10 cursor-pointer items-center gap-2 border px-4 text-s transition-colors",
+        checked ? "border-foreground bg-inverse-bg text-inverse-fg" : "border-border-soft hover:border-foreground",
       ].join(" ")}
     >
-      <input type="checkbox" checked={checked} onChange={onChange} className="accent-accent" />
+      <input
+        type="checkbox"
+        checked={checked}
+        onChange={onChange}
+        /* 검정 채움 위에서는 체크박스도 밝은 면으로 뒤집는다 — 안 그러면 검정 위 검정이다 */
+        className={`h-4 w-4 ${checked ? "accent-[var(--background)]" : "accent-[var(--foreground)]"}`}
+      />
       {label}
     </label>
   );
@@ -73,8 +85,10 @@ function AudienceFields({
   }
 
   return (
-    <div className="border border-border bg-panel/30 p-6">
-      <h3 className="text-r font-bold">예상 관객 및 사업규모</h3>
+    /* 단계 안의 블록은 박스로 싸지 않는다 — 굵은 헤어라인 + H6 으로만 나눈다
+       (신청자 정보·공공성과 같은 규칙) */
+    <div className="border-t-2 border-foreground pt-5">
+      <h3 className="type-kr-heading text-h6-m">예상 관객 및 사업규모</h3>
       <p className="mt-1 text-xs text-muted">
         객석배치도는 계획안 기준으로 제출할 수 있으며, 승인 후 변경 시 사전 협의가 필요합니다
       </p>
@@ -83,7 +97,7 @@ function AudienceFields({
         {audienceSummary.arenaLine && (
           <div>
             <label className="mb-1.5 block text-xs font-bold text-muted">1회당 예상 관객 수 — 아레나</label>
-            <div className="border border-border bg-panel/60 px-4 py-2.5 text-s text-foreground">
+            <div className="flex h-10 items-center border border-border-soft px-3.5 text-s text-foreground">
               {audienceSummary.arenaLine}
             </div>
             <p className="mt-1 text-xs text-muted">구성 · 옵션 값과 연동 — 수정은 구성 · 옵션에서</p>
@@ -93,7 +107,7 @@ function AudienceFields({
         {audienceSummary.midHallLine && (
           <div>
             <label className="mb-1.5 block text-xs font-bold text-muted">1회당 예상 관객 수 — 중형</label>
-            <div className="border border-border bg-panel/60 px-4 py-2.5 text-s text-foreground">
+            <div className="flex h-10 items-center border border-border-soft px-3.5 text-s text-foreground">
               {audienceSummary.midHallLine}
             </div>
             <p className="mt-1 text-xs text-muted">구성 · 옵션 값과 연동 — 수정은 구성 · 옵션에서</p>
@@ -103,7 +117,7 @@ function AudienceFields({
         {audienceSummary.totalLine && (
           <div>
             <label className="mb-1.5 block text-xs font-bold text-muted">총 예상 관객 수</label>
-            <div className="border border-border bg-panel/60 px-4 py-2.5 text-s text-foreground">
+            <div className="flex h-10 items-center border border-border-soft px-3.5 text-s text-foreground">
               {audienceSummary.totalLine}
             </div>
           </div>
@@ -118,7 +132,7 @@ function AudienceFields({
               max={100}
               value={info.expectedPaidSalesRate || ""}
               onChange={(e) => set("expectedPaidSalesRate", Math.max(0, Math.min(100, Number(e.target.value) || 0)))}
-              className="w-24 border border-border bg-panel px-3.5 py-2.5 text-s outline-none focus:border-foreground focus:ring-2 focus:ring-accent/20"
+              className="field-base w-24"
             />
             <span className="text-s text-muted">%</span>
           </div>
@@ -194,11 +208,11 @@ export function StepAudience({
   }
 
   return (
-    <section className="border border-border bg-background p-7">
-      <h2 className="type-kr-heading text-h5-m sm:text-h5">관객</h2>
-      <p className="mt-1.5 text-s text-muted">
-        관객 수는 공간별로 자동 산정되며, 객석배치도는 계획안 기준으로 별도 첨부합니다.
-      </p>
+    <section>
+      <StepHeading
+        title="관객"
+        lead="관객 수는 공간별로 자동 산정되며, 객석배치도는 계획안 기준으로 별도 첨부합니다."
+      />
 
       {isSimultaneous && (
         <VenueSplitTabBar
@@ -246,22 +260,27 @@ export function StepAudience({
         )}
       </div>
 
-      <div className="mt-6 border border-border bg-panel/30 p-6">
-        <h3 className="text-r font-bold">자료 첨부</h3>
+      <div className="mt-10 border-t-2 border-foreground pt-5">
+        <h3 className="type-kr-heading text-h6-m">자료 첨부</h3>
         <p className="mt-1 mb-2.5 text-xs leading-5 text-muted">
           객석배치도(PDF/이미지)를 첨부하세요.
           {isSimultaneous && " 동시 대관은 두 공간의 객석배치도를 각각 첨부합니다."}
         </p>
 
         {files.length > 0 && (
-          <ul className="mb-3 space-y-2">
+          /* 첨부 목록도 신청자 정보와 같은 헤어라인 목록이다 — 화면마다 다른 파일칩을 만들지 않는다 */
+          <ul className="mt-5 border-t border-border/25">
             {files.map((file, i) => (
               <li
                 key={`${file.name}-${i}`}
-                className="flex items-center justify-between border border-border bg-panel px-3.5 py-2.5"
+                className="flex items-center justify-between gap-4 border-b border-border/25 py-4"
               >
-                <span className="truncate text-s font-bold">{file.name}</span>
-                <button type="button" onClick={() => removeFile(i)} className="shrink-0 text-xs text-muted hover:text-danger">
+                <span className="min-w-0 truncate text-s font-bold">{file.name}</span>
+                <button
+                  type="button"
+                  onClick={() => removeFile(i)}
+                  className="shrink-0 cursor-pointer text-xs text-muted transition-colors hover:text-danger"
+                >
                   삭제
                 </button>
               </li>
@@ -276,7 +295,7 @@ export function StepAudience({
             addFiles(e.target.files);
             e.target.value = "";
           }}
-          className="text-xs text-muted file:mr-3 file:border file:border-border file:bg-background file:px-3 file:py-1.5 file:text-xs file:font-bold"
+          className={FILE_INPUT}
         />
       </div>
     </section>
