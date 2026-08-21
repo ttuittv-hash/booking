@@ -218,7 +218,7 @@ export function WizardShell({
   // 합치되, 화면 안에서는 "공간 선택" 슬롯과 "일정 선택" 슬롯 두 섹션으로 나눠 보여준다 —
   // 공간 슬롯에서 이용 시설을 고르면 그 아래 일정 슬롯(아레나 캘린더 / 중형 캘린더 /
   // 동시 대관 탭)이 그 선택에 따라 달라진다. 관객 규모는 여전히 구성·옵션에서 입력하고,
-  // 패키지도 구성·옵션에서 직접 선택해야 하므로 그전까지는 STEP 3(예상 대관료) 이후로
+  // 패키지도 구성·옵션에서 직접 선택해야 하므로 그전까지는 STEP 3(신청자 정보) 이후로
   // 넘어갈 수 없다.
   const maxUnlockedStep = !selection.venueId
     ? 1
@@ -594,8 +594,7 @@ export function WizardShell({
             onSelectPackage={selectPackage}
           />
         )}
-        {step === 3 && <Step5Estimate rateTable={rateTable} quote={quote} selection={resolvedSelection} />}
-        {step === 4 && (
+        {step === 3 && (
           <StepPerformanceInfo
             info={selection.performanceInfo}
             onChange={(performanceInfo) => setSelection((prev) => ({ ...prev, performanceInfo }))}
@@ -608,7 +607,7 @@ export function WizardShell({
             onFilesChange={setPendingFiles}
           />
         )}
-        {step === 5 && (
+        {step === 4 && (
           <StepAudience
             info={selection.performanceInfo}
             onChange={(performanceInfo) => setSelection((prev) => ({ ...prev, performanceInfo }))}
@@ -621,7 +620,7 @@ export function WizardShell({
             onFilesChange={setAudienceFiles}
           />
         )}
-        {step === 6 && (
+        {step === 5 && (
           <StepPublicInterest
             selection={resolvedSelection}
             midHallInfo={selection.midHallPerformanceInfo}
@@ -632,12 +631,13 @@ export function WizardShell({
             onFilesChange={setPublicInterestFiles}
           />
         )}
-        {step === 7 && (
+        {step === 6 && (
           <StepSafetyPledge
             pledge={selection.safetyPledge ?? DEFAULT_SAFETY_PLEDGE}
             onChange={(safetyPledge) => setSelection((prev) => ({ ...prev, safetyPledge }))}
           />
         )}
+        {step === 7 && <Step5Estimate rateTable={rateTable} quote={quote} selection={resolvedSelection} />}
         {step === 8 && (
           <Step6Submit
             rateTable={rateTable}
