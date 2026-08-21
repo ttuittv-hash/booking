@@ -36,7 +36,9 @@ export default function LoginPage() {
         setError(data.error || "로그인에 실패했습니다.");
         return;
       }
-      router.push(data.user.role === "ADMIN" ? "/admin" : "/apply");
+      // 운영자도 로그인 직후 바로 관리 페이지로 보내지 않고 홈으로 보낸다 — 관리
+      // 페이지는 헤더의 "운영자 백오피스" 링크로 따로 들어가게 한다(2026-08-21).
+      router.push(data.user.role === "ADMIN" ? "/" : "/apply");
       router.refresh();
     } finally {
       setLoading(false);
@@ -92,6 +94,12 @@ export default function LoginPage() {
           신청자 계정이 없으신가요?{" "}
           <Link href="/register" className="font-medium text-accent hover:underline">
             회원가입
+          </Link>
+        </p>
+        <p className="mt-2 text-center text-[12.5px] text-muted">
+          운영자이신가요?{" "}
+          <Link href="/admin/login" className="font-medium text-accent hover:underline">
+            운영자 로그인
           </Link>
         </p>
       </div>
