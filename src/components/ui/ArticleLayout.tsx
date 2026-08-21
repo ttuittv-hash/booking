@@ -83,33 +83,51 @@ export function ArticleLayout({
     [shown, q],
   );
 
-  useEffect(() => {
-    const targets = shown
-      .map((s) => document.getElementById(s.id))
-      .filter((el): el is HTMLElement => !!el);
-    if (targets.length === 0) return;
+  /*
+    현재 위치는 스크롤 좌표에서 직접 계산한다.
 
-    // 화면 상단 1/3 지점을 지난 마지막 장을 현재 위치로 본다.
-    const io = new IntersectionObserver(
-      (entries) => {
-        const visible = entries
-          .filter((e) => e.isIntersecting)
-          .sort((a, b) => a.boundingClientRect.top - b.boundingClientRect.top);
-        if (visible[0]) setActiveId(visible[0].target.id);
-      },
-      { rootMargin: "-96px 0px -66% 0px", threshold: 0 },
-    );
-    targets.forEach((t) => io.observe(t));
-    return () => io.disconnect();
+    IntersectionObserver 로 하면 두 가지가 어긋난다 — 콜백이 **바뀐 항목만** 넘겨주므로
+    "지금 보이는 것 중 맨 위"를 부분 집합에서 고르게 되고, rootMargin 과 앵커의
+    scroll-margin 이 다르면 목차를 눌러 이동한 직후에도 이전 장이 켜진 채로 남는다.
+    판정선(상단바 아래 첫 줄)을 넘어간 마지막 장이 현재 장이다.
+  */
+  useEffect(() => {
+    let frame = 0;
+    function update() {
+      frame = 0;
+      const headerH =
+        parseFloat(getComputedStyle(document.documentElement).getPropertyValue("--header-h")) || 64;
+      const line = headerH + 96; // 앵커의 scroll-margin 과 같은 자리
+      let current = shown[0]?.id ?? "";
+      for (const s of shown) {
+        const el = document.getElementById(s.id);
+        if (!el) continue;
+        if (el.getBoundingClientRect().top - line <= 1) current = s.id;
+        else break; // 장은 문서 순서대로 있으므로 하나라도 아래면 그 뒤는 볼 필요가 없다
+      }
+      setActiveId(current);
+    }
+    function onScroll() {
+      if (frame) return;
+      frame = requestAnimationFrame(update);
+    }
+    update();
+    window.addEventListener("scroll", onScroll, { passive: true });
+    window.addEventListener("resize", onScroll);
+    return () => {
+      if (frame) cancelAnimationFrame(frame);
+      window.removeEventListener("scroll", onScroll);
+      window.removeEventListener("resize", onScroll);
+    };
   }, [shown]);
 
   return (
     <div className="grid-site">
       {/* 검색 + 목차 */}
       <nav aria-label="목차" className="lg:col-span-2">
-        <div className="lg:sticky lg:top-[calc(var(--header-h)+5rem)]">
+        <div className="lg:sticky lg:top-[calc(var(--header-h)+2.5rem)]">
           {searchLabel !== undefined && (
-            <div className="mb-7 print:hidden">
+            <div className="mb-6 print:hidden">
               <label htmlFor="article-search" className="text-xs font-bold text-muted">
                 {searchLabel}
               </label>
@@ -143,11 +161,12 @@ export function ArticleLayout({
           )}
 
           <p className="type-display text-xs tracking-[0.08em] text-muted">TABLE OF CONTENTS</p>
-          <ul className="mt-5 max-h-[50vh] overflow-y-auto border-t border-border/25 print:max-h-none print:overflow-visible">
+          <ul className="mt-4 max-h-[50vh] overflow-y-auto border-t border-border/25 print:max-h-none print:overflow-visible">
             {shown.map((s) => (
               <li key={s.id} className="border-b border-border/15">
                 <a
                   href={`#${s.id}`}
+                  onClick={() => setActiveId(s.id)}
                   aria-current={activeId === s.id ? "true" : undefined}
                   className={`block break-keep py-3 text-s transition-colors hover:text-foreground ${
                     activeId === s.id ? "font-bold text-foreground" : "text-muted"
@@ -170,10 +189,10 @@ export function ArticleLayout({
           <section
             key={s.id}
             id={s.id}
-            className="scroll-mt-[calc(var(--header-h)+5rem)] pb-14"
+            className="scroll-mt-[calc(var(--header-h)+6rem)] pb-12"
           >
-            <h4 className="type-kr-heading text-h4-m sm:text-h4">{s.title}</h4>
-            <div className="mt-7 space-y-8">
+            <h4 className="type-kr-heading text-h5-m sm:text-h5">{s.title}</h4>
+            <div className="mt-6 space-y-8">
               {s.articles
                 ? s.articles.map((a, i) => (
                     <Article
@@ -204,7 +223,7 @@ export function Article({
 }) {
   return (
     <article>
-      <h5 className="type-kr-heading break-keep text-h5-m sm:text-h5">
+      <h5 className="type-kr-heading break-keep text-h6-m sm:text-h6">
         <Highlight text={title} query={query} />
       </h5>
       <div className="mt-4 space-y-3">

@@ -42,7 +42,7 @@ export default async function ProfilePage() {
             <ProfileForm user={user} />
 
             {user.role !== "ADMIN" && (
-              <div className="mt-14 border-t border-border/25 pt-6">
+              <div className="mt-10 border-t border-border/25 pt-6">
                 <Link
                   href="/mypage/withdraw"
                   className="text-xs text-muted underline decoration-border-soft underline-offset-4 transition-colors hover:text-danger hover:decoration-danger"

@@ -146,7 +146,7 @@ export function Step6Submit({
         </div>
         <div className="text-right">
           <div className="text-xs text-muted">신청 예상금액 (VAT 포함)</div>
-          <div className="text-h4-m font-semibold tabular-nums">
+          <div className="text-h5-m font-bold tabular-nums sm:text-h5">
             {won(quote.total)}
           </div>
         </div>

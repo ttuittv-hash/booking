@@ -23,15 +23,15 @@ export default async function Home() {
       <main className="flex flex-1 flex-col">
         {/* ── 히어로 ─────────────────────────────────────────────────────── */}
         <Band tone="light" size="lg">
-          <h1 className="type-display max-w-4xl animate-[fade-up_0.7s_ease_both] text-d2-m sm:text-h1 lg:text-d2">
+          <h1 className="type-display max-w-4xl animate-[fade-up_0.7s_ease_both] text-d2-m lg:text-d2">
             <Multiline text={content.heroTitle} />
           </h1>
 
-          <p className="type-kr-heading mt-8 max-w-2xl animate-[fade-up_0.7s_ease_both] break-keep text-h4-m [animation-delay:120ms] sm:mt-10 sm:text-h4">
+          <p className="type-kr-heading mt-6 max-w-2xl animate-[fade-up_0.7s_ease_both] break-keep text-h5-m [animation-delay:120ms] sm:text-h5">
             <Multiline text={content.heroSubtitle} />
           </p>
 
-          <div className="mt-10 flex animate-[fade-up_0.7s_ease_both] flex-col items-stretch gap-3 [animation-delay:200ms] sm:mt-12 sm:flex-row sm:items-center">
+          <div className="mt-8 flex animate-[fade-up_0.7s_ease_both] flex-col items-stretch gap-3 [animation-delay:200ms] sm:flex-row sm:items-center">
             <ButtonLink href={content.heroPrimaryHref} variant="primary">
               {content.heroPrimaryLabel}
               <ArrowRight />
@@ -41,7 +41,7 @@ export default async function Home() {
             </ButtonLink>
           </div>
 
-          <div className="mt-14 sm:mt-16">
+          <div className="mt-10">
             <Media src={content.heroImage} alt="서울아레나" ratio="21 / 9" />
           </div>
         </Band>

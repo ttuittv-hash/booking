@@ -49,7 +49,7 @@ export default async function DocumentsPage() {
               t.value === "arena" ? (
                 <Band tone="light" size="lg">
                   <PageHead en="ARENA DOCUMENTS" ko="아레나 대관 자료" lead={content.lead} />
-                  <div className="mt-14">
+                  <div className="mt-10">
                     <DocumentList items={content.arena.map(toDocItem)} />
                   </div>
                 </Band>
@@ -60,7 +60,7 @@ export default async function DocumentsPage() {
                     ko="중형공연장 대관 자료"
                     lead={content.lead}
                   />
-                  <div className="mt-14">
+                  <div className="mt-10">
                     <DocumentList items={content.liveHall.map(toDocItem)} />
                   </div>
                 </Band>

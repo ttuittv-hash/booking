@@ -138,7 +138,7 @@ export default async function ApplicationHistoryPage() {
                   rows.length === 0 ? (
                     <EmptyTab label="티켓 오픈" />
                   ) : (
-                    <div className="space-y-12 pt-14">
+                    <div className="space-y-10 pt-14">
                       {rows.map((r) => (
                         <section key={r.quote.id}>
                           <QuoteHeading quote={r.quote} />
@@ -163,7 +163,7 @@ export default async function ApplicationHistoryPage() {
                   rows.length === 0 ? (
                     <EmptyTab label="시설 회의" />
                   ) : (
-                    <div className="space-y-12 pt-14">
+                    <div className="space-y-10 pt-14">
                       {rows.map((r) => (
                         <section key={r.quote.id}>
                           <QuoteHeading quote={r.quote} />
@@ -188,7 +188,7 @@ export default async function ApplicationHistoryPage() {
                   settled.length === 0 ? (
                     <EmptyTab label="정산" />
                   ) : (
-                    <div className="space-y-12 pt-14">
+                    <div className="space-y-10 pt-14">
                       {settled.map((r) => (
                         <section key={r.quote.id}>
                           <QuoteHeading quote={r.quote} />
@@ -214,7 +214,7 @@ export default async function ApplicationHistoryPage() {
             ]}
           />
 
-          <Note className="measure mt-14">
+          <Note className="measure mt-10">
             계약서·전자 날인·세금계산서 등 신청 건별 상세는 대관 신청 현황에서 해당 건을 열어
             확인하실 수 있습니다.
           </Note>

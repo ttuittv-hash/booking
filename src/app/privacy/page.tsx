@@ -45,7 +45,7 @@ export default async function PrivacyPage() {
               어떠한 조치가 취해지고 있는지 알려드립니다.
             </p>
 
-            <div className="mt-12 space-y-10">
+            <div className="mt-10 space-y-8">
               <Clause title="1. 수집하는 개인정보 항목 및 수집 방법">
                 <p>회사는 회원가입 및 대관 신청 과정에서 아래와 같은 개인정보를 수집합니다.</p>
                 <ul>

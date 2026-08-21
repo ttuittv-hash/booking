@@ -56,13 +56,13 @@ function RatePanel({ en, ko, c }: { en: string; ko: string; c: VenueRateContent 
 
   return (
     <>
+      {/* 머리글만 있는 밴드를 따로 두면 두 밴드의 세로 패딩이 더해져 지나치게 벌어진다 */}
       <Band tone="light" size="lg">
         <PageHead en={en} ko={ko} />
-      </Band>
-
-      <Band tone="white">
-        <SectionHead title="RATE" />
         <div className="mt-12">
+          <SectionHead title="RATE" />
+        </div>
+        <div className="mt-10">
           <ComparisonTable rowLabel="구분" columns={cols} rows={rows} />
         </div>
 
@@ -88,7 +88,7 @@ function RatePanel({ en, ko, c }: { en: string; ko: string; c: VenueRateContent 
         <Band tone="light">
           <SectionHead title="RATE INCLUDES" />
           <SpecTable
-            className="mt-12"
+            className="mt-10"
             rows={c.includes.map((p) => [p.label, p.value] as [string, string])}
           />
         </Band>
@@ -98,13 +98,13 @@ function RatePanel({ en, ko, c }: { en: string; ko: string; c: VenueRateContent 
         {c.charges.length > 0 && (
           <>
             <SectionHead title="ADDITIONAL CHARGES" />
-            <GroupedSpecTable className="mt-12" groups={chargeGroups(c.charges)} />
+            <GroupedSpecTable className="mt-10" groups={chargeGroups(c.charges)} />
           </>
         )}
 
         {c.limits.length > 0 && (
           <SpecTable
-            className="mt-14"
+            className="mt-10"
             dense
             rows={c.limits.map((p) => [p.label, p.value] as [string, string])}
           />

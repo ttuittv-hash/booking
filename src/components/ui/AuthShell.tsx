@@ -40,7 +40,7 @@ export function AuthShell({
         <div className="container-site flex h-16 items-center justify-center lg:h-[72px]">
           <Link
             href="/"
-            className="type-display flex h-full items-center text-h5-m leading-none sm:text-h4"
+            className="type-display flex h-full items-center text-h5-m leading-none sm:text-h5"
           >
             Seoul Arena
           </Link>

@@ -133,29 +133,39 @@ Figma 가 stretch 로 잡혀 있어서 넓은 화면에서는 컬럼이 같이 �
 | `FeatureList` / `LabeledList` | Layout / 2 · Comparison 행 리듬 | 제목+설명 나열 / 라벨-값 나열 |
 | `DocumentList` | Figma 서식 자료실 | 자료 목록. 파일이 없으면 다운로드 아이콘 대신 안내 문구 |
 | `QueryTabs` | **page tabs** (2608) | URL 쿼리(`?tab=` · `?venue=`)로 도는 탭. 기본 `variant="pill"` — 검정 알약 안 흰 알약(항목 h32 · 라벨 Bold 14 = 상단바와 같은 크기), 화면 가운데에 떠서 상단바 바로 아래 스티키. 중앙 메뉴와 같은 축에 놓인다. `variant="line"` 은 한 페이지 안 하위 축 전용(대관 진행 내역) |
-| `ArticleLayout` / `Article` | **Content / 1** | 좌 2컬럼 스티키 **검색창 + 목차** + 우 4컬럼 본문. 규약처럼 긴 조문 문서. `searchLabel` 을 주면 검색이 붙고, 걸린 조만 남기며 본문에 옐로로 표시한다 |
+| `ArticleLayout` / `Article` | **Content / 1** | 좌 2컬럼 스티키 **검색창 + 목차** + 우 4컬럼 본문. 규약처럼 긴 조문 문서. `searchLabel` 을 주면 검색이 붙고, 걸린 조만 남기며 본문에 옐로로 표시한다. 현재 위치는 **스크롤 좌표로 직접 계산**한다 — IntersectionObserver 는 바뀐 항목만 넘겨주고 rootMargin 이 앵커의 `scroll-margin` 과 어긋나서 목차를 눌러도 이전 항목이 켜져 있었다 |
 
-### 헤딩 위계 (Notion 정본)
+### 헤딩 위계 (Notion 정본) — 쓰는 단은 다섯 개
 
-Notion 이 잡아 놓은 위계를 그대로 쓴다. 디자인 가이드의 크기 규칙과 어긋나면 이쪽이 이긴다.
+| 단 | 값(데/모) | 어디에 | 컴포넌트 |
+|---|---|---|---|
+| `d2` | 96/52 | 홈 히어로 · 선언문 제목 (브랜드 순간 전용) | — |
+| `h1` | 56/40 | 페이지 **영문 슬로건** | `PageHead en` |
+| `h3` | 40/32 | 페이지 **국문 제목** · 섹션 제목 · 전면 사진 제목 · CTA 제목 | `PageHead ko` · `SectionHead` · `PhotoHero` · `CTABand` |
+| `h5` | 24/20 | 블록 제목 (장, 카드, 위저드 단계, 히어로 보조 문장) | `ArticleLayout` 장 · `StepHeading` |
+| `h6` | 20/18 | 항목 제목 (조, 목록 항목, 절차 단계) | `Article` · `FeatureList` · `ProcessSteps` |
 
-| 자리 | 무엇 | 컴포넌트 |
-|---|---|---|
-| H1 | 페이지 **영문 슬로건** (`HOW IT WORKS`) — 대문자 Archivo | `PageHead en` |
-| H3 | 페이지 **국문 제목** (`대관 절차`) | `PageHead ko` |
-| H2 | 전면 사진 섹션 제목 (아레나 · 중형공연장) | `PhotoHero title` |
-| H3 | 섹션 제목 (`RATE INCLUDES`) | `SectionHead title` |
-| H5 | 목록 항목 제목 | `FeatureList` · `ProcessSteps` 내부 |
+**`h2` · `h4` · `d1` 은 쓰지 않는다.** 위계가 아니라 크기가 다양해지면 페이지마다 무게가
+달라 보인다. 본문도 네 단만 쓴다 — 리드 `text-r sm:text-m` · 본문 `text-r` ·
+보조 `text-s` · 미세 `text-xs`.
 
 영문 제목은 `type-display`(Archivo, 대문자), 국문 제목은 `type-kr-heading`.
 `SectionHead` 는 제목이 라틴 문자인지 보고 알아서 고른다 — 직접 클래스를 붙이지 마라.
 **`type-display` 는 `text-transform: uppercase` 다.** `35m`·`180t` 처럼 소문자 단위가 붙은 값을
 넣으면 `35M` 으로 나온다. 단위는 라벨 쪽으로 뺀다.
 
-### 밴드 리듬
+### 밴드 리듬 · 간격
 
-머리글만 있는 밴드 뒤에 곧바로 다른 밴드를 놓지 마라 — 두 밴드의 세로 패딩이 더해져
-제목과 내용 사이가 200px 넘게 벌어진다. 리드 문장이 없으면 **한 밴드 안에서** `mt` 로 띄운다.
+세로 패딩은 세 단뿐이다 — `lg` 80/64/56 · `md` 64/48/40 · `sm` 40/32 (1440/768/모바일).
+
+**같은 지면끼리 이어진 밴드는 위 패딩을 지운다** (`[data-band="plain"] + [data-band="plain"]`).
+`light` 와 `white` 는 같은 오프화이트라 색이 바뀌지 않으므로, 두 밴드가 붙으면 아래 패딩과
+위 패딩이 그대로 더해져 빈 공간처럼 보였다. 색이 바뀌는 밴드(accent·dark)는 자기 패딩을 갖는다.
+
+머리글만 있는 밴드 뒤에 곧바로 다른 밴드를 놓는 것보다, 한 밴드 안에서 `mt` 로 띄우는 편이 낫다.
+
+간격은 세 값만 쓴다 — **제목→국문 제목 16 · 머리글→리드 12 · 머리글→본문 40**.
+`mt-12`·`mt-14`·`mt-16` 처럼 자리마다 다른 값을 쓰지 않는다.
 
 ### 반응형
 
