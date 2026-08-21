@@ -1,6 +1,6 @@
 "use client";
 
-import { ICON_BTN_SM, toggleClass } from "@/components/ui/kit";
+import { btnClass, ICON_BTN_SM, toggleClass } from "@/components/ui/kit";
 
 import { useState } from "react";
 import { isoDate, resolveSelectedDates } from "@/lib/pricing/dateRange";
@@ -409,7 +409,7 @@ export function Step1Calendar({
                         if (kind.kind === "extra") return kind.index !== extraDays - 1; // 맨 마지막 추가일만 뗄 수 있음
                         return true; // extend — 아직 추가되지 않아 뗄 것이 없음
                       })()}
-                      className="border border-border/25 px-3 py-1.5 text-xs font-bold text-muted transition-colors hover:border-danger hover:text-danger disabled:cursor-not-allowed disabled:opacity-40"
+                      className={btnClass("danger", "sm")}
                     >
                       삭제
                     </button>

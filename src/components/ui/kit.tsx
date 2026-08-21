@@ -140,9 +140,39 @@ export function Label({ children, className = "" }: { children: ReactNode; class
 }
 
 /* ------------------------------------------------------------ Button ----- */
-/* Figma Style Guide › UI Elements › Buttons — 모노크롬 3종 */
+/* ============================================================================
+   버튼 규칙 — 사이트 전체에서 이것만 쓴다
+   기준: Figma Style Guide › UI Elements › Buttons
 
-type BtnVariant = "primary" | "secondary" | "tertiary";
+   ┌ 모양 ────────────────────────────────────────────────────────────────┐
+   │ 코너 0 (샤프) · 테두리 1px · 폭은 글자 + 좌우 패딩 · 세로는 아래 3단만  │
+   └──────────────────────────────────────────────────────────────────────┘
+
+   **높이는 "누가 쓰나"가 아니라 "어디에 놓이나"로 정한다.** 같은 자리의 버튼이
+   화면마다 다른 높이로 나오지 않게 하는 규칙이다.
+
+     lg (48)  페이지·단계의 주 액션 — 히어로 CTA · 섹션 말미 · 위저드 이전/다음 ·
+              EmptyState. `ButtonLink` 의 기본값이라 공개 페이지에서는 size 를 적지 않는다.
+     md (40)  폼과 인라인 컨트롤 — 폼 제출 · 선택 칩 · 카드/표 머리의 액션 · 탭.
+     sm (32)  행 안의 보조 액션 — 표 행의 삭제·수정 · 수량 스테퍼(±) · 페이저(‹ ›) ·
+              토글 칩. `toggleClass()` / `ICON_BTN_SM` 도 같은 32 다.
+
+   변형은 네 가지뿐이다.
+     primary    검정 채움 / 흰 글자     — 화면에 하나. 그 화면이 원하는 단 하나의 행동
+     secondary  검정 테두리 / 투명 면   — primary 옆의 대안, 보조 이동
+     tertiary   테두리 없음 / 호버 밑줄 — 취소·닫기처럼 무게가 없어야 하는 것
+     danger     빨강 테두리 → 호버 채움 — 되돌릴 수 없는 삭제의 **확정** 버튼에만
+
+   금지
+     · `py-*` 로 높이를 만들지 않는다 — 높이는 h-8 / h-10 / h-12 뿐이다
+       (`px-3 py-1.5` 처럼 쓰면 글꼴 줄높이에 따라 30·31·33px 이 섞여 나온다)
+     · `rounded-*` 금지. 알약은 페이지 전환 탭(QueryTabs pill) 전용이다
+     · 옐로를 면·글자색으로 쓰지 않는다 — 옐로는 포커스 링과 밑줄 강조에만
+     · 임의 px 글자 크기 금지 — 48·40 은 text-s(14), 32 는 text-xs(12)
+     · 같은 줄에 높이가 다른 컨트롤을 섞지 않는다(입력 필드도 같은 단으로 맞춘다)
+   ========================================================================= */
+
+type BtnVariant = "primary" | "secondary" | "tertiary" | "danger";
 type BtnSize = "sm" | "md" | "lg";
 
 const BTN_VARIANT: Record<BtnVariant, string> = {
@@ -151,18 +181,11 @@ const BTN_VARIANT: Record<BtnVariant, string> = {
   secondary:
     "border-foreground bg-transparent text-foreground hover:bg-foreground hover:text-background",
   tertiary: "border-transparent bg-transparent text-foreground hover:underline underline-offset-4",
+  /* 파괴적 동작의 확정 버튼. 평소엔 조용하고 호버에서만 빨강 면이 된다 —
+     목록 안의 인라인 "삭제"는 버튼 네모가 아니라 텍스트(adminUi 의 REMOVE_BTN)를 쓴다 */
+  danger: "border-danger bg-transparent text-danger hover:bg-danger hover:text-background",
 };
 
-/**
- * Figma Style Guide › UI Elements › Buttons 는 높이 48 / 40 두 가지다.
- *
- * 크기는 "누가 쓰나"가 아니라 **"어디에 놓이나"** 로 정한다. 같은 역할의 버튼이
- * 화면마다 다른 크기로 나오지 않게 하는 규칙이다.
- *   lg(48) — 페이지·섹션의 주 액션. 히어로 · 섹션 말미 · CTA 배너 · EmptyState.
- *            `ButtonLink` 의 기본값이므로 공개 페이지에서는 size 를 적지 않는다.
- *   md(40) — 폼 제출 버튼. 백오피스·인증 화면 등 밀도가 높은 폼 전용.
- *   sm(32) — 카드·표 안의 인라인 액션. 본문 흐름을 끊지 않아야 하는 자리.
- */
 const BTN_SIZE: Record<BtnSize, string> = {
   sm: "h-8 px-4 text-xs",
   md: "h-10 px-5 text-s",
@@ -686,12 +709,24 @@ export function ComparisonTable({
 }
 
 /**
- * 선택 컨트롤의 단일 언어 — Figma Multi-step Forms 선택 칩.
+ * 선택 카드 — 제목 + 설명이 들어가는 클릭 가능한 네모.
+ *
+ * **버튼의 3단 높이(48/40/32) 규칙 밖이다.** 높이가 내용에서 나오기 때문이다. 대신
+ * 패딩을 두 가지로만 고정해 화면마다 다른 카드가 되지 않게 한다.
+ *   기본(20)  — 한 화면에 2~3장 놓이는 큰 선택(회원 유형 등)
+ *   dense(16/12) — 격자로 여러 장 놓이는 선택(패키지 등)
+ *
  * **선택 = 검정 채움.** 옐로 하이라이트도, 좌측 컬러 바도, "선택됨" 배지도 쓰지 않는다.
+ * 검정 면 위에서 안쪽 글자가 사라지지 않도록 호출부에서 `CHOICE_SELECTED_VARS` 를
+ * 함께 style 로 넘긴다.
  */
-export function choiceClass(selected: boolean, disabled = false) {
+export function choiceClass(
+  selected: boolean,
+  { disabled = false, dense = false }: { disabled?: boolean; dense?: boolean } = {},
+) {
   return [
-    "block w-full border px-5 py-5 text-left outline-none transition-colors",
+    "block w-full border text-left outline-none transition-colors",
+    dense ? "px-4 py-3" : "px-5 py-5",
     "focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-foreground",
     disabled
       ? "cursor-not-allowed border-border-soft opacity-45"
@@ -718,6 +753,13 @@ export function toggleClass(selected: boolean, disabled = false) {
         : "cursor-pointer border-border-soft text-muted hover:border-foreground hover:text-foreground",
   ].join(" ");
 }
+
+/**
+ * 파일 선택 입력 — 브라우저가 그리는 "파일 선택" 버튼도 시스템 버튼처럼 보이게 한다.
+ * 네모 아웃라인 · 샤프 코너 · 32(버튼 sm 과 같은 단). 필드 자체는 한 줄 입력이라 40.
+ */
+export const FILE_INPUT =
+  "field-base file:mr-3 file:inline-flex file:h-8 file:items-center file:border file:border-foreground file:bg-transparent file:px-4 file:text-xs file:font-bold file:text-foreground";
 
 /** 아이콘 버튼(±, ‹ ›) — 토글과 같은 32 높이의 정사각형 */
 export const ICON_BTN_SM =
@@ -984,7 +1026,7 @@ export function Badge({
   } as const;
   return (
     <span
-      className={`inline-flex items-center border px-2 py-1 text-[10px] font-extrabold uppercase tracking-[0.08em] [font-family:Archivo,sans-serif] ${map[tone]}`}
+      className={`inline-flex items-center border px-2 py-1 text-xs font-extrabold uppercase tracking-[0.08em] [font-family:Archivo,sans-serif] ${map[tone]}`}
     >
       {children}
     </span>

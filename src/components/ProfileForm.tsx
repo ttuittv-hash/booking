@@ -3,14 +3,16 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { btnClass } from "@/components/ui/kit";
+import { FIELD, FIELD_LABEL } from "@/components/admin/adminUi";
 import { hashPasswordForTransport } from "@/lib/clientPassword";
 import type { AppUser, Company } from "@/lib/pricing/types";
 
-const inputCls =
-  "w-full rounded-sm border border-border bg-panel px-3.5 py-2.5 text-[14px] outline-none focus:border-accent";
-const lockedInputCls =
-  "w-full rounded-sm border border-border bg-panel-strong px-3.5 py-2.5 text-[14px] text-muted outline-none";
-const labelCls = "mb-1.5 block text-[12.5px] font-medium text-muted";
+/* 입력·라벨은 시스템 토큰만 쓴다 — 한 줄 입력의 높이는 field-base 가 40 으로 못 박아
+   같은 줄 버튼(40)과 아래위가 맞는다 */
+const inputCls = FIELD;
+const lockedInputCls = `${FIELD} bg-panel-strong text-muted`;
+const labelCls = FIELD_LABEL;
 
 export function ProfileForm({ user, company }: { user: AppUser; company: Company | null }) {
   const router = useRouter();
@@ -147,8 +149,8 @@ export function ProfileForm({ user, company }: { user: AppUser; company: Company
 
   return (
     <div className="mt-8 space-y-8">
-      <section className="rounded border border-border bg-background p-6">
-        <h2 className="text-[15px] font-semibold">개인 정보</h2>
+      <section className="border border-border bg-background p-5">
+        <h2 className="text-r font-bold">개인 정보</h2>
         <div className="mt-4 space-y-3">
           <label className="block">
             <span className={labelCls}>담당자명</span>
@@ -214,8 +216,8 @@ export function ProfileForm({ user, company }: { user: AppUser; company: Company
         </div>
       </section>
 
-      <section className="rounded border border-border bg-background p-6">
-        <h2 className="text-[15px] font-semibold">기업 정보</h2>
+      <section className="border border-border bg-background p-5">
+        <h2 className="text-r font-bold">기업 정보</h2>
         {company ? (
           <div className="mt-4 space-y-3">
             <label className="block">
@@ -231,7 +233,7 @@ export function ProfileForm({ user, company }: { user: AppUser; company: Company
                 className={lockedInputCls}
               />
             </label>
-            <p className="text-[12px] text-muted">
+            <p className="text-xs text-muted">
               회사명·사업자등록번호는 다른 회사로 바뀌는 것과 같아 여기서 바로 수정할 수 없습니다. 변경이
               필요하면{" "}
               <Link href="/mypage/withdraw" className="text-accent hover:underline">
@@ -293,12 +295,12 @@ export function ProfileForm({ user, company }: { user: AppUser; company: Company
             </label>
           </div>
         ) : (
-          <p className="mt-3 text-[13px] text-muted">소속된 회사가 없습니다.</p>
+          <p className="mt-3 text-s text-muted">소속된 회사가 없습니다.</p>
         )}
       </section>
 
-      <section className="rounded border border-border bg-background p-6">
-        <h2 className="text-[15px] font-semibold">저장하려면 현재 비밀번호를 입력하세요</h2>
+      <section className="border border-border bg-background p-5">
+        <h2 className="text-r font-bold">저장하려면 현재 비밀번호를 입력하세요</h2>
         <div className="mt-4">
           <label className="block">
             <span className={labelCls}>현재 비밀번호</span>
@@ -311,20 +313,20 @@ export function ProfileForm({ user, company }: { user: AppUser; company: Company
             />
           </label>
         </div>
-        {profileError && <p className="mt-3 text-[13px] text-red-600">{profileError}</p>}
-        {profileMessage && <p className="mt-3 text-[13px] text-good">{profileMessage}</p>}
+        {profileError && <p className="mt-3 text-s text-danger">{profileError}</p>}
+        {profileMessage && <p className="mt-3 text-s text-good">{profileMessage}</p>}
         <button
           type="button"
           disabled={savingProfile}
           onClick={saveProfile}
-          className="mt-4 rounded-sm bg-accent px-6 py-2.5 text-[13.5px] font-semibold text-white transition-colors hover:bg-accent-hover disabled:opacity-50"
+          className={`mt-4 ${btnClass("primary", "md")}`}
         >
           {savingProfile ? "저장 중..." : "정보 저장"}
         </button>
       </section>
 
-      <section className="rounded border border-border bg-background p-6">
-        <h2 className="text-[15px] font-semibold">비밀번호 변경</h2>
+      <section className="border border-border bg-background p-5">
+        <h2 className="text-r font-bold">비밀번호 변경</h2>
         <div className="mt-4 space-y-3">
           <label className="block">
             <span className={labelCls}>현재 비밀번호</span>
@@ -348,13 +350,13 @@ export function ProfileForm({ user, company }: { user: AppUser; company: Company
             />
           </label>
         </div>
-        {passwordError && <p className="mt-3 text-[13px] text-red-600">{passwordError}</p>}
-        {passwordMessage && <p className="mt-3 text-[13px] text-good">{passwordMessage}</p>}
+        {passwordError && <p className="mt-3 text-s text-danger">{passwordError}</p>}
+        {passwordMessage && <p className="mt-3 text-s text-good">{passwordMessage}</p>}
         <button
           type="button"
           disabled={savingPassword || !currentPassword || newPassword.length < 8}
           onClick={savePassword}
-          className="mt-4 rounded-sm border border-border px-6 py-2.5 text-[13.5px] font-semibold text-foreground transition-colors hover:bg-panel disabled:opacity-50"
+          className={`mt-4 ${btnClass("secondary", "md")}`}
         >
           {savingPassword ? "변경 중..." : "비밀번호 변경"}
         </button>

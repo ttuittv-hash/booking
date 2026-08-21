@@ -83,14 +83,14 @@ function LineItemTable({
 }) {
   const subtotal = items.reduce((sum, item) => sum + item.amount, 0);
   const cellPad = dense ? "py-1.5" : "py-2.5";
-  const textSize = dense ? "text-[12.5px]" : "text-[13px]";
+  const textSize = dense ? "text-xs" : "text-s";
   return (
     <div className="mt-6">
-      {title && <h3 className="mb-2 text-[14.5px] font-semibold text-foreground">{title}</h3>}
+      {title && <h3 className="mb-2 text-s font-bold font-bold text-foreground">{title}</h3>}
       <div className="overflow-x-auto">
         <table className={`w-full border-collapse ${textSize}`}>
           <thead>
-            <tr className="border-b border-border text-[11.5px] font-medium text-muted">
+            <tr className="border-b border-border text-xs font-medium text-muted">
               <th className="py-2 text-left">항목</th>
               <th className="py-2 text-right">수량</th>
               <th className="py-2 text-right">단가</th>
@@ -100,7 +100,7 @@ function LineItemTable({
           <tbody>
             {items.length === 0 ? (
               <tr>
-                <td colSpan={4} className="py-3 text-center text-[12.5px] text-muted">
+                <td colSpan={4} className="py-3 text-center text-xs text-muted">
                   선택된 항목이 없습니다.
                 </td>
               </tr>
@@ -114,12 +114,12 @@ function LineItemTable({
                       <div className="flex flex-wrap items-center gap-1.5">
                         <span className="font-medium">{item.label}</span>
                         {isIncluded && (
-                          <span className="rounded-sm bg-good-soft px-1.5 py-0.5 text-[10px] font-semibold text-good">
+                          <span className="bg-good-soft px-1.5 py-0.5 text-xs font-bold text-good">
                             기본 포함
                           </span>
                         )}
                         {isOptionalAddon && (
-                          <span className="rounded-sm bg-warn-soft px-1.5 py-0.5 text-[10px] font-semibold text-warn">
+                          <span className="bg-warn-soft px-1.5 py-0.5 text-xs font-bold text-warn">
                             선택 옵션
                           </span>
                         )}
@@ -137,7 +137,7 @@ function LineItemTable({
                           ? "-"
                           : won(item.unitPrice)}
                     </td>
-                    <td className={`${cellPad} text-right font-semibold ${isIncluded ? "text-good" : ""}`}>
+                    <td className={`${cellPad} text-right font-bold ${isIncluded ? "text-good" : ""}`}>
                       {isIncluded ? "포함" : won(item.amount)}
                     </td>
                   </tr>
@@ -147,10 +147,10 @@ function LineItemTable({
           </tbody>
           <tfoot>
             <tr>
-              <td colSpan={3} className="pt-2.5 text-right text-[13px] font-semibold">
+              <td colSpan={3} className="pt-2.5 text-right text-s font-bold">
                 {title ? `${title} 소계` : "소계"}
               </td>
-              <td className="pt-2.5 text-right text-[13px] font-semibold tabular-nums">{won(subtotal)}</td>
+              <td className="pt-2.5 text-right text-s font-bold tabular-nums">{won(subtotal)}</td>
             </tr>
           </tfoot>
         </table>

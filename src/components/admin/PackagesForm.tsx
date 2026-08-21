@@ -597,7 +597,7 @@ export function PackagesForm({ rateTable }: { rateTable: RateTable }) {
         </section>
 
         {venueTab === "medium-hall" && (
-          <p className="rounded-sm border-l-2 border-accent bg-accent-soft/40 px-4 py-3 text-[12.5px] leading-5 text-foreground">
+          <p className="border-l-2 border-accent bg-accent-soft/40 px-4 py-3 text-xs leading-5 text-foreground">
             중형공연장은 이 목록(추가 옵션)을 쓰지 않습니다 — 가격은 &ldquo;요금표 관리&rdquo;의
             &ldquo;중형공연장 요금&rdquo; 섹션에서 따로 관리합니다. 여기서는 STEP 2(구성·옵션)에
             표시되는 기본 구성 안내 문구만 편집합니다.
@@ -637,7 +637,7 @@ export function PackagesForm({ rateTable }: { rateTable: RateTable }) {
           <section key={visibility}>
             <div className="flex items-center gap-2">
               <h2 className={SUB_TITLE}>{title}</h2>
-              <span className={`px-2 py-0.5 text-xs font-semibold ${badgeClass}`}>{badge}</span>
+              <span className={`px-2 py-0.5 text-xs font-bold ${badgeClass}`}>{badge}</span>
             </div>
             <p className="mt-1 text-xs text-muted">{desc}</p>
 
@@ -664,7 +664,7 @@ export function PackagesForm({ rateTable }: { rateTable: RateTable }) {
 
             {newItemCategory && newItemVisibility === visibility && !groupedByVisibility.has(newItemCategory) && (
               <div className="mt-3 flex flex-col gap-2 border border-dashed border-accent/40 bg-accent-soft/40 p-3 sm:flex-row sm:items-center">
-                <span className="shrink-0 text-xs font-semibold text-foreground">
+                <span className="shrink-0 text-xs font-bold text-foreground">
                   {ADDON_CATEGORY_LABEL[newItemCategory]} (신규)
                 </span>
                 <input
@@ -714,7 +714,7 @@ export function PackagesForm({ rateTable }: { rateTable: RateTable }) {
               {[...groupedByVisibility.entries()].map(([category, items]) => (
                 <div key={category}>
                   <div className="mb-2 flex items-center justify-between">
-                    <span className="text-xs font-semibold uppercase tracking-wide text-foreground">
+                    <span className="text-xs font-bold uppercase tracking-wide text-foreground">
                       {ADDON_CATEGORY_LABEL[category as keyof typeof ADDON_CATEGORY_LABEL] ?? category}
                     </span>
                     <button

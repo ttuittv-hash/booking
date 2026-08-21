@@ -1,6 +1,6 @@
 "use client";
 
-import { toggleClass } from "@/components/ui/kit";
+import { FILE_INPUT, toggleClass } from "@/components/ui/kit";
 
 import { useState } from "react";
 import { INITIAL_PERFORMANCE_INFO } from "@/lib/pricing/performanceInfoDefaults";
@@ -681,7 +681,7 @@ export function StepPerformanceInfo({
             addFiles(e.target.files);
             e.target.value = "";
           }}
-          className="field-base mt-5 text-muted file:mr-3 file:border file:border-foreground file:bg-transparent file:px-3 file:py-1 file:text-xs file:font-bold file:text-foreground"
+          className={`${FILE_INPUT} mt-5 text-muted`}
         />
       </div>
     </section>

@@ -101,7 +101,9 @@ export function QueryTabs({
               <button
                 key={it.value}
                 {...tabProps(it.value)}
-                className={`-mb-px border-b-2 px-1 pb-4 pt-2 text-s font-bold transition-colors ${
+                /* 라인 탭도 버튼과 같은 단으로 높이를 고정한다 — pb/pt 로 만들면
+                   글꼴 줄높이에 따라 화면마다 달라진다 */
+                className={`-mb-px flex h-12 items-center border-b-2 px-1 text-s font-bold transition-colors ${
                   it.value === active
                     ? "border-foreground text-foreground"
                     : "border-transparent text-muted hover:text-foreground"

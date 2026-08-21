@@ -3,10 +3,9 @@
 import { useRouter } from "next/navigation";
 import { useRef, useState } from "react";
 import type { Attachment, TicketOpen, UserRole } from "@/lib/pricing/types";
-import { Badge, btnClass } from "@/components/ui/kit";
+import { Badge, btnClass, FILE_INPUT } from "@/components/ui/kit";
 
-const FILE_FIELD =
-  "field-base min-w-0 flex-1 file:mr-3 file:border file:border-foreground file:bg-transparent file:px-3 file:py-1 file:text-xs file:font-bold file:text-foreground";
+const FILE_FIELD = `${FILE_INPUT} min-w-0 flex-1`;
 
 function formatSize(bytes: number): string {
   if (bytes < 1024) return `${bytes}B`;

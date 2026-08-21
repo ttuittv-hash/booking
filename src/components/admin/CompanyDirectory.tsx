@@ -252,7 +252,7 @@ function FragmentRow({
             </span>
             <span className="font-bold">{company.name}</span>
             {company.pendingCount > 0 ? (
-              <span className="border border-accent bg-accent px-1.5 text-[10px] leading-4 text-on-accent tabular-nums">
+              <span className="border border-accent bg-accent px-1.5 text-xs leading-4 text-on-accent tabular-nums">
                 대기 {company.pendingCount}
               </span>
             ) : null}

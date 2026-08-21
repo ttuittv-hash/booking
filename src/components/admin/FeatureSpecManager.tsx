@@ -7,9 +7,8 @@ import {
   type FeatureSpecRow,
   type FeatureSpecSheetKey,
 } from "@/lib/pricing/types";
-import { btnClass } from "@/components/ui/kit";
+import { btnClass, ICON_BTN_SM } from "@/components/ui/kit";
 import {
-  ADD_BTN,
   ADD_BTN_LG,
   FIELD_SM,
   HELP,
@@ -315,7 +314,7 @@ function MenuTreeBranch({
             type="button"
             title="아래 가지 추가"
             onClick={() => onAddChild(node.path)}
-            className={`${ADD_BTN} px-1.5 py-0.5 leading-tight`}
+            className={`${ICON_BTN_SM} border-dashed`}
           >
             +
           </button>
@@ -324,7 +323,7 @@ function MenuTreeBranch({
           type="button"
           title="이 가지 삭제 (하위 가지도 함께 삭제됨)"
           onClick={() => onDelete(node.path)}
-          className="border border-border-soft px-1.5 py-0.5 text-xs leading-tight text-muted transition-colors hover:border-danger hover:text-danger"
+          className={`${ICON_BTN_SM} hover:border-danger hover:text-danger`}
         >
           ×
         </button>
@@ -554,7 +553,7 @@ export function FeatureSpecManager({
               type="button"
               onClick={() => selectSheet(key)}
               className={[
-                "flex shrink-0 items-center justify-between gap-2 whitespace-nowrap border px-3 py-2 text-left text-s font-bold outline-none transition-colors",
+                "flex h-10 shrink-0 items-center justify-between gap-2 whitespace-nowrap border px-3 text-left text-s font-bold outline-none transition-colors",
                 activeSheet === key
                   ? "border-foreground bg-inverse-bg text-inverse-fg"
                   : "border-transparent text-muted hover:border-border-soft hover:text-foreground",
@@ -679,7 +678,7 @@ export function FeatureSpecManager({
                           type="button"
                           title="아래에 행 추가"
                           onClick={() => addRow(activeSheet, rowIdx)}
-                          className="border border-border-soft px-1.5 py-0.5 text-xs leading-tight text-muted transition-colors hover:border-foreground hover:text-foreground"
+                          className={ICON_BTN_SM}
                         >
                           +
                         </button>
@@ -687,7 +686,7 @@ export function FeatureSpecManager({
                           type="button"
                           title="이 행 삭제"
                           onClick={() => deleteRow(activeSheet, rowIdx)}
-                          className="border border-border-soft px-1.5 py-0.5 text-xs leading-tight text-muted transition-colors hover:border-danger hover:text-danger"
+                          className={`${ICON_BTN_SM} hover:border-danger hover:text-danger`}
                         >
                           ×
                         </button>

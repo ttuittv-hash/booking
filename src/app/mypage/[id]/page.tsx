@@ -203,7 +203,7 @@ export default async function MyQuoteDetailPage({
               확정일시{" "}
               {new Date(quote.contract.decidedAt).toLocaleString("ko-KR")}
             </span>
-            <span className="text-[18px] font-bold tabular-nums">
+            <span className="text-m font-bold tabular-nums">
               {won(quote.contract.contractTotal)}
             </span>
           </div>

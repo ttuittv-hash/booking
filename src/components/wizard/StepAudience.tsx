@@ -1,6 +1,6 @@
 "use client";
 
-import { toggleClass } from "@/components/ui/kit";
+import { FILE_INPUT, toggleClass } from "@/components/ui/kit";
 
 import { useState } from "react";
 import { defaultDayTags, effectiveDayTag } from "@/lib/pricing/rateTableUtils";
@@ -13,6 +13,7 @@ import {
   type QuoteSelection,
 } from "@/lib/pricing/types";
 import { VenueSplitTabBar, type VenueSplitTab } from "./VenueSplitTabBar";
+import { StepHeading } from "./StepHeading";
 
 const ANCILLARY_PLANS = Object.keys(ANCILLARY_BUSINESS_PLAN_LABEL) as AncillaryBusinessPlan[];
 
@@ -196,11 +197,11 @@ export function StepAudience({
   }
 
   return (
-    <section className="border border-border bg-background p-7">
-      <h2 className="type-kr-heading text-h5-m sm:text-h5">관객</h2>
-      <p className="mt-1.5 text-s text-muted">
-        관객 수는 공간별로 자동 산정되며, 객석배치도는 계획안 기준으로 별도 첨부합니다.
-      </p>
+    <section>
+      <StepHeading
+        title="관객"
+        lead="관객 수는 공간별로 자동 산정되며, 객석배치도는 계획안 기준으로 별도 첨부합니다."
+      />
 
       {isSimultaneous && (
         <VenueSplitTabBar
@@ -278,7 +279,7 @@ export function StepAudience({
             addFiles(e.target.files);
             e.target.value = "";
           }}
-          className="text-xs text-muted file:mr-3 file:border file:border-border file:bg-background file:px-3 file:py-1.5 file:text-xs file:font-bold"
+          className={FILE_INPUT}
         />
       </div>
     </section>

@@ -35,7 +35,7 @@ export function Step5Estimate({
 
   if (!pkg && !hasMidHall) {
     return (
-      <section className="border border-border bg-background p-7">
+      <section>
         <p className="text-s text-muted">먼저 1단계에서 패키지를 선택하거나 중형공연장 일정을 선택하세요.</p>
       </section>
     );
@@ -53,9 +53,9 @@ export function Step5Estimate({
   const midHallVisibleSubtotal = midHallItems.reduce((sum, item) => sum + item.amount, 0);
 
   return (
-    <section className="border border-border bg-background p-7">
+    <section>
       <h2 className="type-kr-heading text-h5-m sm:text-h5">예상 대관료</h2>
-      <p className="mt-1.5 text-s text-muted">
+      <p className="measure mt-3 break-keep text-s text-muted">
         {isSimultaneous ? (
           <>
             아레나 — {arenaLine}

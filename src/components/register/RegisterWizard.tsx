@@ -426,7 +426,7 @@ function StepBar({ step }: { step: number }) {
         return (
           <li key={label} className="flex items-center gap-2" data-state={state}>
             <span
-              className={`flex h-6 w-6 shrink-0 items-center justify-center border text-[11px] tabular-nums ${
+              className={`flex h-6 w-6 shrink-0 items-center justify-center border text-xs tabular-nums ${
                 state === "todo"
                   ? "border-border-soft text-muted"
                   : "border-foreground bg-foreground text-background"
@@ -458,10 +458,12 @@ function StepMemberType({ onNext }: { onNext: () => void }) {
           type="button"
           data-testid="pick-corporate"
           onClick={onNext}
-          className="flex h-full flex-col border border-foreground p-6 text-left transition-colors hover:bg-surface"
+          /* 선택 카드 — kit 의 choiceClass 와 같은 패딩(20)을 쓴다. 여기만 flex 배치가 필요해
+             (카드 바닥에 버튼을 붙인다) 클래스를 직접 적는다 */
+          className="flex h-full flex-col border border-foreground p-5 text-left transition-colors hover:bg-surface"
         >
           <span className="flex-1">
-            <span className="block text-xs font-bold text-accent">가입 가능</span>
+            <span className="block text-xs font-bold text-foreground">가입 가능</span>
             <span className="mt-2 block text-h6-m font-bold">기업회원</span>
             <span className="mt-1.5 block break-keep text-s leading-6 text-muted">
               사업자등록증이 있는 법인 · 개인사업자
@@ -480,7 +482,7 @@ function StepMemberType({ onNext }: { onNext: () => void }) {
         <div
           data-testid="pick-individual"
           aria-disabled="true"
-          className="flex h-full flex-col border border-border-soft p-6 opacity-60"
+          className="flex h-full flex-col border border-border-soft p-5 opacity-60"
         >
           <div className="flex-1">
             <p className="text-xs font-bold text-muted">준비 중</p>

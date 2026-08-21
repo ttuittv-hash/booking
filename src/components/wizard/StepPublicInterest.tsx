@@ -1,6 +1,6 @@
 "use client";
 
-import { toggleClass } from "@/components/ui/kit";
+import { FILE_INPUT, toggleClass } from "@/components/ui/kit";
 
 import { useState } from "react";
 import { INITIAL_PERFORMANCE_INFO } from "@/lib/pricing/performanceInfoDefaults";
@@ -130,7 +130,7 @@ export function StepPublicInterest({
             addFiles(e.target.files);
             e.target.value = "";
           }}
-          className="text-xs text-muted file:mr-3 file:border file:border-border/25 file:bg-background file:px-3 file:py-1.5 file:text-xs file:font-bold"
+          className={FILE_INPUT}
         />
       </div>
     </section>

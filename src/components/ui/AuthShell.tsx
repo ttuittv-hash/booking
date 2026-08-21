@@ -114,7 +114,7 @@ export function AuthShell({
                 href={t.href}
                 role="tab"
                 aria-selected={active === t.key}
-                className={`border-b-2 pb-3 text-s font-bold transition-colors ${
+                className={`flex h-10 items-center border-b-2 text-s font-bold transition-colors ${
                   active === t.key
                     ? "border-foreground text-foreground"
                     : "border-transparent text-muted hover:text-foreground"

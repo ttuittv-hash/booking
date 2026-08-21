@@ -13,6 +13,7 @@ import { INITIAL_PERFORMANCE_INFO } from "@/lib/pricing/performanceInfoDefaults"
 import { clearWizardDraft, loadWizardDraft, saveWizardDraft } from "@/lib/quotesStore";
 import { ArrowRight, btnClass } from "@/components/ui/kit";
 import { StepNav } from "./StepNav";
+import { StepHeading } from "./StepHeading";
 import { SummaryPanel } from "./SummaryPanel";
 import { VenuePicker } from "./VenuePicker";
 import { Step1Calendar } from "./Step1Calendar";
@@ -395,18 +396,17 @@ export function WizardShell({
         <StepNav step={step} maxUnlockedStep={maxUnlockedStep} onJump={goTo} />
 
         {step === 1 && (
-          <div className="space-y-6">
-            <section className="border border-border bg-background p-5 sm:p-7">
-              <h2 className="type-kr-heading text-h5-m sm:text-h5">공간 선택</h2>
-              <p className="mt-1.5 text-s text-muted">아레나, 중형공연장, 동시 대관 중 이용할 공간을 선택하세요.</p>
-              <div className="mt-5">
-                <VenuePicker venueId={selection.venueId} bookingMode={selection.bookingMode} onSelectVenue={selectVenue} />
-              </div>
-            </section>
+          <section>
+            <StepHeading title="공간 선택" lead="아레나, 중형공연장, 동시 대관 중 이용할 공간을 선택하세요." />
+            <div className="mt-8">
+              <VenuePicker venueId={selection.venueId} bookingMode={selection.bookingMode} onSelectVenue={selectVenue} />
+            </div>
 
             {selection.venueId && (
-              <section className="border border-border bg-background p-5 sm:p-7">
-                <h2 className="type-kr-heading text-h5-m sm:text-h5">일정 선택</h2>
+              /* 한 단계 안의 두 번째 블록 — 박스로 싸지 않고 굵은 헤어라인으로만 나눈다
+                 (신청자 정보의 "자료 첨부"와 같은 규칙) */
+              <div className="mt-10 border-t-2 border-foreground pt-5">
+                <h3 className="type-kr-heading text-h6-m">일정 선택</h3>
                 {selection.bookingMode === "SIMULTANEOUS" && (
                   <p className="mt-1.5 text-s text-muted">
                     동시 대관에서는 두 공간의 일정을 탭으로 나눠 각각 선택합니다.
@@ -481,9 +481,9 @@ export function WizardShell({
                     />
                   )}
                 </div>
-              </section>
+              </div>
             )}
-          </div>
+          </section>
         )}
         {step === 2 && (
           <StepConfigOptions

@@ -357,6 +357,17 @@ input[type="number"]::-webkit-inner-spin-button {
   line-height: 1.5;
   color: var(--foreground);
   transition: border-color 150ms;
+
+  /*
+    한 줄 입력은 버튼과 같은 단(40)으로 못 박는다 — 패딩으로만 두면 43px 이 나와
+    같은 줄의 버튼(40)과 아래위가 어긋난다. 여러 줄인 textarea 는 내용이 높이를
+    만들어야 하므로 제외한다. 밀도 높은 자리는 뒤에 `h-8` 을 붙여 덮어쓴다
+    (커스텀 유틸리티가 Tailwind 유틸리티보다 먼저 방출된다).
+  */
+  &:where(input, select) {
+    height: 2.5rem;
+    padding-block: 0;
+  }
 }
 @utility field-base {
   &::placeholder {

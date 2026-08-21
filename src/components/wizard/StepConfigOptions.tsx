@@ -19,8 +19,9 @@ import {
   type RateTable,
   type RentalPackage,
 } from "@/lib/pricing/types";
-import { CHOICE_SELECTED_VARS } from "@/components/ui/kit";
+import { CHOICE_SELECTED_VARS, choiceClass } from "@/components/ui/kit";
 import { BaseCompositionCard } from "./BaseCompositionCard";
+import { StepHeading } from "./StepHeading";
 
 // [화면 뼈대 2026-08-18, 화면시나리오 SCREEN 05/12] "규모/패키지 선택 → 기본 포함사항 →
 // 추가 옵션" 3개 화면을 STEP 2(구성·옵션) 한 화면으로 합친다.
@@ -78,12 +79,7 @@ function PackagePicker({
               }}
               /* 고른 카드는 검정 채움 — 안쪽 제목·설명이 따라오도록 토큰을 국소 반전한다 */
               style={active ? CHOICE_SELECTED_VARS : undefined}
-              className={[
-                "border px-4 py-3 text-left transition-colors",
-                active
-                  ? "border-foreground bg-inverse-bg text-inverse-fg"
-                  : "border-border-soft hover:border-foreground",
-              ].join(" ")}
+              className={choiceClass(active, { dense: true })}
             >
               <div className="text-s font-bold">{p.name}</div>
               <div className="mt-0.5 text-xs text-muted">{p.tagline}</div>
@@ -94,12 +90,7 @@ function PackagePicker({
           type="button"
           onClick={() => setShowCustomNotice(true)}
           style={showCustomNotice ? CHOICE_SELECTED_VARS : undefined}
-          className={[
-            "border border-dashed px-4 py-3 text-left transition-colors",
-            showCustomNotice
-              ? "border-foreground bg-inverse-bg text-inverse-fg"
-              : "border-border-soft text-muted hover:border-foreground",
-          ].join(" ")}
+          className={`${choiceClass(showCustomNotice, { dense: true })} border-dashed`}
         >
           <div className="text-s font-bold">커스텀</div>
           <div className="mt-0.5 text-xs text-muted">직접구성</div>
@@ -155,12 +146,11 @@ export function StepConfigOptions({
     const midHallPkg = packagesForVenue(rateTable, "medium-hall")[0];
     const midHallTiles = midHallPkg ? baseCompositionTiles(midHallPkg, rateTable, { includeSchedule: false }) : [];
     return (
-      <section className="border border-border bg-background p-7">
-        <h2 className="type-kr-heading text-h5-m sm:text-h5">구성 · 옵션</h2>
-        <p className="mt-3 text-s text-muted">
-          중형공연장은 패키지가 없는 일 단위 요금제입니다 — 아래는 예약 일수와 무관하게 항상
-          포함되는 기본 구성입니다.
-        </p>
+      <section>
+        <StepHeading
+          title="구성 · 옵션"
+          lead="중형공연장은 패키지가 없는 일 단위 요금제입니다 — 아래는 예약 일수와 무관하게 항상 포함되는 기본 구성입니다."
+        />
 
         <BaseCompositionCard
           tiles={midHallTiles}
@@ -203,18 +193,17 @@ export function StepConfigOptions({
           "아레나" 라벨을 반복하지 않는다 — 탭 없이 단독으로 쓰이는 단일 아레나 예약에서만
           이 헤더가 화면의 유일한 제목이라 남긴다. */}
       {!isSimultaneous && (
-        <div className="border-b border-border pb-4">
-          <h2 className="type-kr-heading text-h5-m sm:text-h5">아레나</h2>
-          {pkg && (
-            <p className="mt-1 text-xs text-muted">
-              {pkg.name} · {pkg.audienceTier.label} · 예상 관객{" "}
-              {selection.expectedAudience.toLocaleString()}명 · {arenaSummaryLine(selection, defaultPerformanceDays)}
-            </p>
-          )}
-        </div>
+        <StepHeading
+          title="아레나"
+          lead={
+            pkg
+              ? `${pkg.name} · ${pkg.audienceTier.label} · 예상 관객 ${selection.expectedAudience.toLocaleString()}명 · ${arenaSummaryLine(selection, defaultPerformanceDays)}`
+              : undefined
+          }
+        />
       )}
 
-      <div className="mt-6">
+      <div className="mt-8">
         <PackagePicker packages={arenaPackages} selectedId={selection.packageId} onSelect={onSelectPackage} />
       </div>
 
@@ -255,7 +244,7 @@ export function StepConfigOptions({
   );
 
   if (!isSimultaneous) {
-    return <section className="border border-border bg-background p-7">{arenaSection}</section>;
+    return <section>{arenaSection}</section>;
   }
 
   const midHallPkgForTab = packagesForVenue(rateTable, "medium-hall")[0];
@@ -277,13 +266,10 @@ export function StepConfigOptions({
   );
 
   return (
-    <section className="border border-border bg-background p-7">
-      <h2 className="type-kr-heading text-h5-m sm:text-h5">구성 · 옵션</h2>
-      <p className="mt-1.5 text-s text-muted">
-        동시 대관은 두 공간의 구성이 서로 달라 탭으로 나눠 보여줍니다.
-      </p>
+    <section>
+      <StepHeading title="구성 · 옵션" lead="동시 대관은 두 공간의 구성이 서로 달라 탭으로 나눠 보여줍니다." />
 
-      <div className="mt-5 flex gap-1 border-b border-border">
+      <div className="mt-8 flex gap-1 border-b border-border">
         {(["arena", "medium-hall"] as const).map((tab) => (
           <button
             key={tab}

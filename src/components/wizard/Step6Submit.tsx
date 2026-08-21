@@ -96,7 +96,7 @@ export function Step6Submit({
 
   if ((needsPackage && !pkg) || (needsMidHall && !hasMidHall)) {
     return (
-      <section className="border border-border/25 bg-background p-7">
+      <section>
         <p className="text-s text-muted">
           {needsPackage && !pkg
             ? "구성 · 옵션에서 패키지를 먼저 선택하세요."

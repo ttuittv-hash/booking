@@ -1,6 +1,7 @@
 "use client";
 
 import type { SafetyPledge } from "@/lib/pricing/types";
+import { StepHeading } from "./StepHeading";
 
 const PLEDGE_ITEMS: { key: keyof Omit<SafetyPledge, "signature">; label: string }[] = [
   { key: "fireSafety", label: "화재 예방 및 비상 대피 수칙을 준수합니다." },
@@ -17,11 +18,13 @@ export function StepSafetyPledge({
   onChange: (pledge: SafetyPledge) => void;
 }) {
   return (
-    <section className="border border-border bg-background p-7">
-      <h2 className="type-kr-heading text-h5-m sm:text-h5">안전관리 서약서</h2>
-      <p className="mt-1.5 text-s text-muted">공연 안전 관리를 위한 서약 항목을 확인하고 동의해 주세요.</p>
+    <section>
+      <StepHeading
+        title="안전관리 서약서"
+        lead="공연 안전 관리를 위한 서약 항목을 확인하고 동의해 주세요."
+      />
 
-      <div className="mt-6 border border-border">
+      <div className="mt-8 border border-border">
         {PLEDGE_ITEMS.map((item, i) => (
           <label
             key={item.key}
@@ -48,7 +51,7 @@ export function StepSafetyPledge({
           onChange={(e) => onChange({ ...pledge, signature: e.target.value })}
           placeholder="담당자 성명을 입력해 서명을 대신합니다."
           rows={3}
-          className="mt-2 w-full border border-border bg-panel px-3.5 py-2.5 text-s outline-none focus:border-foreground focus:ring-2 focus:ring-accent/20"
+          className="field-base mt-2"
         />
       </div>
     </section>

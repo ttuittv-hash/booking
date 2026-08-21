@@ -1,6 +1,6 @@
 "use client";
 
-import { ICON_BTN_SM, toggleClass } from "@/components/ui/kit";
+import { btnClass, ICON_BTN_SM, toggleClass } from "@/components/ui/kit";
 
 import { useState } from "react";
 import { isoDate, isWeekendDate } from "@/lib/pricing/dateRange";
@@ -256,7 +256,7 @@ export function MidHallCalendar({
                       type="button"
                       onClick={() => removeDate(openDate)}
                       disabled={!days[openDate]}
-                      className="border border-border/25 px-3 py-1.5 text-xs font-bold text-muted transition-colors hover:border-danger hover:text-danger disabled:cursor-not-allowed disabled:opacity-40"
+                      className={btnClass("danger", "sm")}
                     >
                       삭제
                     </button>
