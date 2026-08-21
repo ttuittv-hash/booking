@@ -10,7 +10,7 @@ import {
   findPackage,
   isAddonAvailable,
 } from "@/lib/pricing/rateTableUtils";
-import type { AppUser, DateBlock, QuoteSelection, RateTable, WeekDemand } from "@/lib/pricing/types";
+import type { AppUser, DateBlock, QuoteSelection, RateTable, SafetyPledge, WeekDemand } from "@/lib/pricing/types";
 import { DEFAULT_VENUE_ID, MEDIA_TIER_LABEL } from "@/lib/pricing/types";
 import { INITIAL_PERFORMANCE_INFO } from "@/lib/pricing/performanceInfoDefaults";
 import { clearWizardDraft, loadWizardDraft, saveWizardDraft } from "@/lib/quotesStore";
@@ -24,9 +24,18 @@ import { Step5Estimate } from "./Step5Estimate";
 import { StepPerformanceInfo } from "./StepPerformanceInfo";
 import { StepAudience } from "./StepAudience";
 import { StepPublicInterest } from "./StepPublicInterest";
+import { StepSafetyPledge } from "./StepSafetyPledge";
 import { Step6Submit } from "./Step6Submit";
 
-const TOTAL_STEPS = 7;
+const TOTAL_STEPS = 8;
+
+const DEFAULT_SAFETY_PLEDGE: SafetyPledge = {
+  fireSafety: false,
+  managerDesignated: false,
+  facilityInspected: false,
+  incidentReporting: false,
+  signature: "",
+};
 
 // 중형공연장 단독(패키지 없음)일 때는 STEP 2(구성·옵션)의 내용이 달라질 뿐, 별도
 // 단계로 나누지 않는다(2-25, 확정).
@@ -44,7 +53,7 @@ function defaultWeek(): QuoteSelection["week"] {
 
 
 const INITIAL_SELECTION: QuoteSelection = {
-  venueId: null,
+  venueId: "arena",
   bookingMode: "SINGLE",
   packageId: null,
   week: defaultWeek(),
@@ -61,6 +70,7 @@ const INITIAL_SELECTION: QuoteSelection = {
   addons: [],
   performanceInfo: INITIAL_PERFORMANCE_INFO,
   midHallPerformanceInfo: null,
+  safetyPledge: DEFAULT_SAFETY_PLEDGE,
 };
 
 function pruneUnavailableAddons(
@@ -667,6 +677,12 @@ export function WizardShell({
           />
         )}
         {step === 7 && (
+          <StepSafetyPledge
+            pledge={selection.safetyPledge ?? DEFAULT_SAFETY_PLEDGE}
+            onChange={(safetyPledge) => setSelection((prev) => ({ ...prev, safetyPledge }))}
+          />
+        )}
+        {step === 8 && (
           <Step6Submit
             rateTable={rateTable}
             quote={quote}

@@ -4,8 +4,6 @@ import { useState } from "react";
 import { won } from "@/lib/format";
 import { resolveSelectedDates } from "@/lib/pricing/dateRange";
 import {
-  arenaCompositionTiles,
-  baseCompositionSummaryLine,
   baseCompositionTiles,
   defaultDayTags,
   effectiveDayTag,
@@ -15,7 +13,6 @@ import {
   packagesForVenue,
 } from "@/lib/pricing/rateTableUtils";
 import {
-  ADDON_CATEGORY_LABEL,
   type AddonCategory,
   type AddonItem,
   type QuoteSelection,
@@ -45,15 +42,6 @@ function arenaSummaryLine(selection: QuoteSelection, defaultPerformanceDays: num
   const parts = [`셋업${setup}`, `공연${performance}`];
   if (loadOut > 0) parts.push(`철수${loadOut}`);
   return parts.join(" · ");
-}
-
-function midHallSummaryLine(selection: QuoteSelection): string | null {
-  const dates = Object.keys(selection.midHallDays);
-  if (dates.length === 0) return null;
-  const setup = dates.filter((d) => selection.midHallDays[d].role === "SETUP").length;
-  const performance = dates.filter((d) => selection.midHallDays[d].role === "PERFORMANCE").length;
-  const loadOut = dates.filter((d) => selection.midHallDays[d].role === "LOAD_OUT").length;
-  return `${dates.length}일 · 셋업${setup} · 공연${performance}${loadOut > 0 ? ` · 철수${loadOut}` : ""}`;
 }
 
 // [화면 뼈대 2026-08-20, 개정] 관객 규모는 더 이상 별도 "패키지 선택" 화면에서 입력하지
@@ -92,31 +80,34 @@ function ScaleInputBlock({
 // [개정 2026-08-20] 아레나 패키지 4개는 기본 구성이 전부 동일하고 관객 규모 등급(Bowl
 // 사용료)만 다르다 — 카드로 나열해 신청자가 직접 하나를 고르게 한다. 고른 패키지에 따라
 // 바로 아래 "선택 옵션" 슬롯의 항목이 달라진다(isAddonAvailable).
+// [개정 2026-08-21] "커스텀" 카드는 실제 패키지가 아니다 — 클릭해도 견적 계산에 참여하지
+// 않고 운영자 문의 안내만 보여주는 자리표시자다. rateTable.packages에 없는 항목이라
+// packages 배열과 별개로 하드코딩한다.
 function PackagePicker({
   packages,
   selectedId,
-  summary,
   onSelect,
 }: {
   packages: RentalPackage[];
   selectedId: number | null;
-  summary?: string;
   onSelect: (id: number) => void;
 }) {
+  const [showCustomNotice, setShowCustomNotice] = useState(false);
+
   return (
     <div className="mb-6 border-b border-border pb-6">
       <label className="block text-[13px] font-medium text-foreground">패키지 선택 *</label>
-      <p className="mt-1 text-[11px] text-muted">
-        구성은 모든 패키지가 동일하며, 관객 규모 등급에 따라 대관료만 달라집니다.
-      </p>
-      <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2">
+      <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-5">
         {packages.map((p) => {
           const active = selectedId === p.id;
           return (
             <button
               key={p.id}
               type="button"
-              onClick={() => onSelect(p.id)}
+              onClick={() => {
+                setShowCustomNotice(false);
+                onSelect(p.id);
+              }}
               className={[
                 "rounded-sm border px-4 py-3 text-left transition-colors",
                 active
@@ -126,16 +117,39 @@ function PackagePicker({
             >
               <div className="text-[13.5px] font-semibold text-foreground">{p.name}</div>
               <div className="mt-0.5 text-[12px] text-muted">{p.tagline}</div>
-              <div className="mt-1.5 text-[11.5px] font-medium text-accent">{p.audienceTier.label}</div>
             </button>
           );
         })}
+        <button
+          type="button"
+          onClick={() => setShowCustomNotice(true)}
+          className={[
+            "rounded-sm border border-dashed px-4 py-3 text-left transition-colors",
+            showCustomNotice
+              ? "border-accent bg-accent-soft"
+              : "border-border bg-panel text-muted hover:border-accent/50",
+          ].join(" ")}
+        >
+          <div className="text-[13.5px] font-semibold text-foreground">커스텀</div>
+          <div className="mt-0.5 text-[12px] text-muted">직접구성</div>
+        </button>
       </div>
-      {summary && (
-        <p className="mt-3 rounded-sm border border-border bg-panel/60 px-3 py-2 text-[11.5px] text-muted">
-          <span className="font-medium text-foreground">기본 포함: </span>
-          {summary}
+
+      {showCustomNotice && (
+        <p className="mt-3 rounded-sm border border-warn/30 bg-warn-soft px-3 py-2.5 text-[11.5px] text-warn">
+          운영자 문의가 필요한 맞춤 구성입니다. 1:1 문의 또는 담당자에게 연락해 주세요.
         </p>
+      )}
+
+      {selectedId != null && (
+        <div className="mt-4 rounded-sm border border-good/30 bg-good-soft/40 px-4 py-3">
+          <span className="rounded-sm bg-good px-2 py-0.5 text-[10.5px] font-semibold text-white">기본 포함</span>
+          <p className="mt-1.5 text-[12px] leading-5 text-foreground">
+            모든 패키지에는 공연 운영에 필요한 기본 시설과 장비가 모두 포함되어 있습니다
+            <br />
+            자세한 포함 옵션은 신청서 제출 시 최종 옵션을 확인해 주세요
+          </p>
+        </div>
       )}
     </div>
   );
@@ -219,73 +233,62 @@ export function StepConfigOptions({
     .flat()
     .filter((addon) => addon.billingPhase !== "SETTLEMENT" && (addonQuantities[addon.id] ?? 0) > 0).length;
 
-  const compositionTiles = pkg ? arenaCompositionTiles(pkg, rateTable) : [];
+  // [개정 2026-08-21] 선택 옵션 목록은 더 이상 카테고리로 묶지 않는다 — 단일 세로 목록으로
+  // 평탄화해서 더 가벼운 화면으로 보여준다(요청 시안 기준).
+  const flatAddons = [...grouped.values()].flat();
 
   const arenaSection = (
     <>
-      <div className="border-b border-border pb-4">
-        <h2 className="text-[19px] font-semibold">아레나</h2>
-        {pkg && (
-          <p className="mt-1 text-[12.5px] text-muted">
-            {pkg.name} · {pkg.audienceTier.label} · 예상 관객{" "}
-            {selection.expectedAudience.toLocaleString()}명 · {arenaSummaryLine(selection, defaultPerformanceDays)}
-          </p>
-        )}
-      </div>
+      {/* [개정 2026-08-21] 동시 대관은 이미 위에 "아레나/중형공연장" 탭이 있어 그 아래 또
+          "아레나" 라벨을 반복하지 않는다 — 탭 없이 단독으로 쓰이는 단일 아레나 예약에서만
+          이 헤더가 화면의 유일한 제목이라 남긴다. */}
+      {!isSimultaneous && (
+        <div className="border-b border-border pb-4">
+          <h2 className="text-[19px] font-semibold">아레나</h2>
+          {pkg && (
+            <p className="mt-1 text-[12.5px] text-muted">
+              {pkg.name} · {pkg.audienceTier.label} · 예상 관객{" "}
+              {selection.expectedAudience.toLocaleString()}명 · {arenaSummaryLine(selection, defaultPerformanceDays)}
+            </p>
+          )}
+        </div>
+      )}
 
       <div className="mt-6">
-        <PackagePicker
-          packages={arenaPackages}
-          selectedId={selection.packageId}
-          summary={pkg ? baseCompositionSummaryLine(compositionTiles) : undefined}
-          onSelect={onSelectPackage}
-        />
+        <PackagePicker packages={arenaPackages} selectedId={selection.packageId} onSelect={onSelectPackage} />
       </div>
 
       {!pkg ? (
         <p className="text-[13.5px] text-muted">위에서 패키지를 선택하면 선택 옵션을 확인할 수 있습니다.</p>
       ) : (
-        <>
-          <div className="mt-5 rounded border border-accent/30 bg-accent-soft/20 p-4">
-            <div className="flex items-center gap-2">
-              <span className="rounded-sm bg-accent px-2 py-0.5 text-[10.5px] font-semibold text-white">선택 옵션</span>
-              <span className="text-[12px] font-medium text-foreground">
-                필요한 만큼 수량을 정해 추가하는 항목 — 단가 × 수량으로 금액이 즉시 계산됩니다
-              </span>
-            </div>
-            <div className="mt-3 space-y-4">
-              {[...grouped.entries()].map(([category, items]) => (
-                <div key={category}>
-                  <div className="mb-1.5 text-[10.5px] font-semibold uppercase tracking-wide text-accent">
-                    {ADDON_CATEGORY_LABEL[category]}
-                  </div>
-                  <div className="grid grid-cols-1 gap-1.5 sm:grid-cols-2">
-                    {items.map((addon) => (
-                      <AddonRow
-                        key={addon.id}
-                        addon={addon}
-                        included={includedQuantity(pkg, addon.id)}
-                        quantity={addonQuantities[addon.id] ?? 0}
-                        expectedRevenue={expectedRevenue}
-                        onChangeQuantity={onChangeQuantity}
-                        onChangeRevenue={onChangeRevenue}
-                      />
-                    ))}
-                  </div>
-                </div>
-              ))}
-            </div>
-            <div className="mt-3 flex items-center justify-between rounded-sm bg-background px-3 py-2 text-[13px] font-semibold">
-              <span>선택 옵션</span>
-              <span className="tabular-nums">{selectedOptionCount}건 선택됨</span>
-            </div>
-            <p className="mt-2 text-[10.5px] text-muted">
-              청소 사용료 · 수도광열비 · 추가 광고 구좌 등은 별도입니다. 금액은 표시하지 않으며,
-              선택을 마치면 다음 화면(예상 대관료)에서 총액을 확인합니다.
-              <br />※ 신청 규모를 초과해 좌석을 오픈하는 경우 사후 정산 시 추가 과금됩니다.
-            </p>
+        <div className="mt-6">
+          <h2 className="text-[15px] font-semibold">선택 옵션</h2>
+          <p className="mt-1 text-[12px] text-muted">
+            필요한 만큼 수량을 정해 추가하는 항목 — 단가 × 수량으로 금액이 즉시 계산됩니다
+          </p>
+          <div className="mt-3 grid grid-cols-1 gap-1.5 sm:grid-cols-2 lg:grid-cols-3">
+            {flatAddons.map((addon) => (
+              <AddonRow
+                key={addon.id}
+                addon={addon}
+                included={includedQuantity(pkg, addon.id)}
+                quantity={addonQuantities[addon.id] ?? 0}
+                expectedRevenue={expectedRevenue}
+                onChangeQuantity={onChangeQuantity}
+                onChangeRevenue={onChangeRevenue}
+              />
+            ))}
           </div>
-        </>
+          <div className="mt-3 flex items-center justify-between rounded-sm border border-border bg-panel/40 px-3 py-2 text-[13px] font-semibold">
+            <span>선택 옵션</span>
+            <span className="tabular-nums">{selectedOptionCount}건 선택됨</span>
+          </div>
+          <p className="mt-2 text-[10.5px] text-muted">
+            청소 사용료 · 수도광열비 · 추가 광고 구좌 등은 별도입니다. 금액은 표시하지 않으며,
+            선택을 마치면 다음 화면(예상 대관료)에서 총액을 확인합니다.
+            <br />※ 신청 규모를 초과해 좌석을 오픈하는 경우 사후 정산 시 추가 과금됩니다.
+          </p>
+        </div>
       )}
     </>
   );
@@ -298,24 +301,9 @@ export function StepConfigOptions({
   const midHallTilesForTab = midHallPkgForTab
     ? baseCompositionTiles(midHallPkgForTab, rateTable, { includeSchedule: false })
     : [];
-  const midHallLine = midHallSummaryLine(selection);
 
   const midHallSection = (
     <>
-      <ScaleInputBlock
-        label="예상 관객 규모"
-        value={selection.secondaryAudience}
-        onChange={onChangeSecondaryAudience}
-        note="3,000명 초과 시 별도 문의가 필요할 수 있습니다. 청소비 산출에만 사용됩니다."
-      />
-      <div className="border-b border-border pb-4">
-        <h2 className="text-[19px] font-semibold">중형공연장</h2>
-        <p className="mt-1 text-[12.5px] text-muted">
-          일 단위 요금제 ·{" "}
-          {midHallLine ? `${midHallLine} (아레나와 별개 공간)` : "일정 선택의 중형 일정 탭에서 날짜를 먼저 지정해 주세요."}
-        </p>
-      </div>
-
       <BaseCompositionCard
         tiles={midHallTilesForTab}
         note="대관료에 이미 포함된 구성 — 예약 일수와 무관하게 동일하게 제공됩니다"

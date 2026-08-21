@@ -209,6 +209,17 @@ export interface MidHallDaySelection {
   shows: number; // 공연일에만 의미 있음 — 1일 2회 이상 회차 지정 (2-29)
 }
 
+// [신규 2026-08-21] "기본 정보" 그룹의 4번째 서브탭 — 공연 안전 관리 서약서. 아레나/중형
+// 동시 대관이어도 행사 전체에 대한 서약 1건으로 충분하다고 보고 venue별로 나누지 않는다
+// (performanceInfo처럼 midHall 전용 값을 따로 두지 않음).
+export interface SafetyPledge {
+  fireSafety: boolean; // 화재 예방 및 비상 대피 수칙 준수
+  managerDesignated: boolean; // 안전관리 총괄 책임자 지정 및 연락처 최신화
+  facilityInspected: boolean; // 무대·시설 안전 점검 결과 사전 확인
+  incidentReporting: boolean; // 사고 발생 시 관리사무소·관계 기관 즉시 보고
+  signature: string;
+}
+
 export interface QuoteSelection {
   venueId: string | null; // 0단계: 공간 선택
   bookingMode: BookingMode; // SIMULTANEOUS = 아레나 + 중형을 신청서 1건으로 묶는 동시 대관(2-13, 할인 없음)
@@ -229,6 +240,8 @@ export interface QuoteSelection {
   // 동시 대관에서 중형 정보를 아레나와 다르게 입력할 때만 값이 있다 — null(기본값)이면
   // "동일하게" 상태로 performanceInfo를 그대로 공유한다(2026-08-19, 기본정보 탭 분리 요청).
   midHallPerformanceInfo: PerformanceInfo | null;
+  // optional — 이 필드가 추가되기 전에 제출된 기존 신청서(DB의 selection_json)에는 없다.
+  safetyPledge?: SafetyPledge;
 }
 
 // ---------------------------------------------------------------------------

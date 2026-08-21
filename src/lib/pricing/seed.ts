@@ -39,8 +39,8 @@ export const SEED_PACKAGES: RentalPackage[] = [
   {
     id: 1,
     venueId: "arena",
-    name: "패키지 1",
-    tagline: "합리적인 규모의 콘서트를 위한 스탠더드 패키지",
+    name: "베이직",
+    tagline: "기본형",
     audienceTier: { min: 0, max: 12_000, label: "~12,000석 규모" },
     baseFeePerWeek: 518_000_000, // [확정 2026-08-14] 패키지 요금표 시트 — VAT 별도, 준비 4일+공연 2일 기준
     bowlFee: 96_000_000, // [패키지 구성 산정표] 1만명 x 2회 x 4,000원/인 — baseFeePerWeek와 합산 시 산정표 근거(496.76M)와 확정가(518M) 사이 21.24M 차이가 남, 재확인 필요
@@ -63,8 +63,8 @@ export const SEED_PACKAGES: RentalPackage[] = [
   {
     id: 2,
     venueId: "arena",
-    name: "패키지 2",
-    tagline: "확장된 홍보 효과가 필요한 중대형 공연을 위한 패키지",
+    name: "스탠다드",
+    tagline: "인기",
     audienceTier: { min: 12_001, max: 15_000, label: "~15,000석 규모" },
     baseFeePerWeek: 548_000_000, // [확정 2026-08-14] 패키지 요금표 시트
     bowlFee: 120_000_000, // [패키지 구성 산정표] 1.5만명 x 2회 x 4,000원/인
@@ -87,8 +87,8 @@ export const SEED_PACKAGES: RentalPackage[] = [
   {
     id: 3,
     venueId: "arena",
-    name: "패키지 3",
-    tagline: "대형 스탠딩 공연을 위한 풀프로덕션 패키지",
+    name: "플러스",
+    tagline: "확장형",
     audienceTier: { min: 15_001, max: 18_000, label: "~18,000석 규모" },
     baseFeePerWeek: 613_000_000, // [확정 2026-08-14] 패키지 요금표 시트
     bowlFee: 180_000_000, // [패키지 구성 산정표] 1.8만명 x 2회 x 5,000원/인
@@ -111,8 +111,8 @@ export const SEED_PACKAGES: RentalPackage[] = [
   {
     id: 4,
     venueId: "arena",
-    name: "패키지 4",
-    tagline: "최대 규모 공연을 위한 프리미엄 올인원 패키지",
+    name: "프리미엄",
+    tagline: "풀서비스",
     audienceTier: { min: 18_001, max: 99_999, label: "20,000석+ 규모" },
     baseFeePerWeek: 660_000_000, // [확정 2026-08-14] 패키지 요금표 시트
     bowlFee: 220_000_000, // [패키지 구성 산정표] 2.2만명 x 2회 x 5,000원/인

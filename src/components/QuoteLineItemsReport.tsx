@@ -15,6 +15,30 @@ function isMidHallLineItem(item: LineItem): boolean {
   return item.addonId.startsWith("midhall");
 }
 
+// [개정 2026-08-21, 시안 반영] 표를 "항목/수량/단가/금액" 4열로 단순화하면서, 기존
+// "신청/기본포함/과금수량" 3개 열이 담던 정보는 항목명 옆 배지로 옮긴다 — 엔진이 자동으로
+// 만드는 기본 요금·할인·유틸리티 라인은 배지를 달지 않고, 신청자가 직접 고른 부대시설만
+// "선택 옵션"으로 표시한다.
+const CORE_LINE_IDS = new Set([
+  "BASE_FEE",
+  "package_discount",
+  "day_exclusion_discount_prep",
+  "day_exclusion_discount_performance",
+  "extra_days",
+  "performance_day_adjustment",
+  "cleaning",
+  "utility_bundle",
+  "midhall_setup",
+  "midhall_loadout_day",
+  "midhall_extra_setup_hours",
+  "midhall_extra_loadout_hours",
+  "midhall_cleaning",
+]);
+
+function isCoreLine(item: LineItem): boolean {
+  return CORE_LINE_IDS.has(item.addonId) || item.addonId.startsWith("midhall_show_");
+}
+
 // [공유 2026-08-20] 위저드(Step5Estimate) · 마이페이지 신청 상세 · 인쇄용 신청서, 세 화면
 // 모두 "선택한 패키지에 이미 포함된 기본 구성" + "과금 항목"을 동일하게 상세 노출해야 한다는
 // 요청에 따라, 표 렌더링(아레나/중형 분리 + 기본 포함 카드)을 이 한 컴포넌트로 공유한다 —
@@ -129,9 +153,7 @@ function LineItemTable({
           <thead>
             <tr className="border-b border-border text-[11.5px] font-medium text-muted">
               <th className="py-2 text-left">항목</th>
-              <th className="py-2 text-right">신청</th>
-              <th className="py-2 text-right">기본포함</th>
-              <th className="py-2 text-right">과금수량</th>
+              <th className="py-2 text-right">수량</th>
               <th className="py-2 text-right">단가</th>
               <th className="py-2 text-right">금액</th>
             </tr>
@@ -139,34 +161,54 @@ function LineItemTable({
           <tbody>
             {items.length === 0 ? (
               <tr>
-                <td colSpan={6} className="py-3 text-center text-[12.5px] text-muted">
+                <td colSpan={4} className="py-3 text-center text-[12.5px] text-muted">
                   선택된 항목이 없습니다.
                 </td>
               </tr>
             ) : (
-              items.map((item) => (
-                <tr key={item.addonId} className="border-b border-border/70 tabular-nums">
-                  <td className={`${cellPad} text-left font-medium`}>{item.label}</td>
-                  <td className={`${cellPad} text-right`}>
-                    {item.pricingType === "REVENUE_PERCENT"
-                      ? `${won(expectedRevenue)} × ${item.unitPrice}%`
-                      : item.requested.toLocaleString()}
-                  </td>
-                  <td className={`${cellPad} text-right`}>{item.included || "-"}</td>
-                  <td className={`${cellPad} text-right`}>
-                    {item.pricingType === "REVENUE_PERCENT" ? "-" : item.billable.toLocaleString()}
-                  </td>
-                  <td className={`${cellPad} text-right`}>
-                    {item.pricingType === "REVENUE_PERCENT" ? "-" : won(item.unitPrice)}
-                  </td>
-                  <td className={`${cellPad} text-right font-semibold`}>{won(item.amount)}</td>
-                </tr>
-              ))
+              items.map((item) => {
+                const isIncluded = item.included > 0 && item.billable === 0 && item.amount === 0;
+                const isOptionalAddon = !isIncluded && !isCoreLine(item);
+                return (
+                  <tr key={item.addonId} className="border-b border-border/70 tabular-nums">
+                    <td className={`${cellPad} text-left`}>
+                      <div className="flex flex-wrap items-center gap-1.5">
+                        <span className="font-medium">{item.label}</span>
+                        {isIncluded && (
+                          <span className="rounded-sm bg-good-soft px-1.5 py-0.5 text-[10px] font-semibold text-good">
+                            기본 포함
+                          </span>
+                        )}
+                        {isOptionalAddon && (
+                          <span className="rounded-sm bg-warn-soft px-1.5 py-0.5 text-[10px] font-semibold text-warn">
+                            선택 옵션
+                          </span>
+                        )}
+                      </div>
+                    </td>
+                    <td className={`${cellPad} text-right`}>
+                      {item.pricingType === "REVENUE_PERCENT"
+                        ? `${won(expectedRevenue)} × ${item.unitPrice}%`
+                        : item.requested.toLocaleString()}
+                    </td>
+                    <td className={`${cellPad} text-right ${isIncluded ? "text-good" : ""}`}>
+                      {isIncluded
+                        ? "포함"
+                        : item.pricingType === "REVENUE_PERCENT"
+                          ? "-"
+                          : won(item.unitPrice)}
+                    </td>
+                    <td className={`${cellPad} text-right font-semibold ${isIncluded ? "text-good" : ""}`}>
+                      {isIncluded ? "포함" : won(item.amount)}
+                    </td>
+                  </tr>
+                );
+              })
             )}
           </tbody>
           <tfoot>
             <tr>
-              <td colSpan={5} className="pt-2.5 text-right text-[13px] font-semibold">
+              <td colSpan={3} className="pt-2.5 text-right text-[13px] font-semibold">
                 {title ? `${title} 소계` : "소계"}
               </td>
               <td className="pt-2.5 text-right text-[13px] font-semibold tabular-nums">{won(subtotal)}</td>
