@@ -685,7 +685,23 @@ async function seedData(pool: Pool) {
 
   // 회사정보 불러오기(기획서 A6)를 바로 시험해 볼 수 있게 표본 회사를 하나 둔다.
   // 승인 완료 상태여야 검색에 잡힌다. 이미 있으면 건드리지 않는다.
+  //
+  // SEED_SAMPLE_COMPANY=true 인 환경(dev)에서만 만든다. 조건 없이 돌렸더니 운영 첫
+  // 기동에서 가짜 사업자번호를 단 "주식회사 서울아레나"가 실DB에 들어갔다 — 운영사
+  // 이름을 단 허위 회사라, 신청자가 불러오기로 합류 신청까지 할 수 있는 상태였다.
   const sampleBrn = "1018116510";
+  if (process.env.SEED_SAMPLE_COMPANY !== "true") {
+    // 운영에는 만들지 않는다. 과거에 시드된 것이 남아 있으면 그대로 두지 않고 지운다
+    // (담당자가 붙기 전 초기 상태에서만 — 사용자가 딸린 회사는 건드리지 않는다).
+    await pool.query(
+      `DELETE FROM companies c
+        WHERE c.business_registration_number = $1
+          AND c.name = '주식회사 서울아레나'
+          AND c.representative_name = '박○○'
+          AND NOT EXISTS (SELECT 1 FROM users u WHERE u.company_id = c.id)`,
+      [sampleBrn],
+    );
+  } else {
   const sampleExists = (
     await pool.query("SELECT 1 FROM companies WHERE business_registration_number = $1", [sampleBrn])
   ).rowCount;
@@ -703,6 +719,7 @@ async function seedData(pool: Pool) {
       [crypto.randomUUID(), sampleBrn, new Date().toISOString()],
     );
     console.log("[seoularena] 표본 회사(주식회사 서울아레나)를 등록했습니다 — 회사정보 불러오기 시험용");
+  }
   }
 
   // 서울아레나 소개 / 대관 안내 하위 페이지 — 최초 1회만 기본 콘텐츠로 시드한다.
