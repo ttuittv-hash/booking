@@ -68,6 +68,21 @@ const BAND_VARS: Record<BandTone, React.CSSProperties> = {
  */
 export const INVERSE_SURFACE_VARS: React.CSSProperties = BAND_VARS.dark;
 
+/**
+ * 반전된 면(검정 카드) **안에** 다시 밝은 카드를 놓을 때 토큰을 되돌린다.
+ * `BAND_VARS.light` 는 빈 객체라 상속된 반전 값을 되돌리지 못하므로 여기서 명시한다.
+ */
+export const PLAIN_SURFACE_VARS: React.CSSProperties = {
+  ["--background" as string]: "var(--n-lightest)",
+  ["--foreground" as string]: "var(--n-darkest)",
+  ["--muted" as string]: "var(--n-mid)",
+  ["--border" as string]: "var(--n-darkest)",
+  ["--border-soft" as string]: "var(--n-lighter)",
+  ["--btn-primary-bg" as string]: "var(--n-darkest)",
+  ["--btn-primary-fg" as string]: "var(--n-white)",
+  ["--btn-primary-bg-hover" as string]: "var(--n-darker)",
+};
+
 export function Band({
   tone = "light",
   children,

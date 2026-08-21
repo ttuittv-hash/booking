@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { won } from "@/lib/format";
-import { INVERSE_SURFACE_VARS } from "@/components/ui/kit";
+import { INVERSE_SURFACE_VARS, PLAIN_SURFACE_VARS } from "@/components/ui/kit";
 import { resolveSelectedDates } from "@/lib/pricing/dateRange";
 import {
   defaultDayTags,
@@ -417,13 +417,16 @@ function AddonRow({
       ? `매출 ${addon.unitPrice}%`
       : `${won(addon.unitPrice)} / ${addon.unitLabel.replace("원/", "")}`;
 
-  // 행에는 선택 강조를 주지 않는다. 수량을 적는 칸이 그 안에 있어서 면을 채우면
-  // 입력한 숫자가 배경에 묻힌다 — 이 화면에서 "고르는 곳"임은 바깥 박스(검정 면)가 말한다.
+  // 항목은 검정 박스 위의 **흰 카드**다. 선택 여부로 색이 변하지 않는다 —
+  // 수량을 적는 칸이 안에 있어서 면 색이 바뀌면 입력한 숫자가 묻힌다.
+  // 검정 면에서 반전된 토큰을 여기서 되돌려야 입력 글자가 검정으로 나온다.
   return (
     <div
+      style={PLAIN_SURFACE_VARS}
       className={[
-        "flex flex-col gap-3 border px-4 py-3 sm:flex-row sm:items-center sm:justify-between sm:gap-4",
-        isUtil ? "border-border/70 opacity-60" : "border-border/25",
+        "flex flex-col gap-3 border border-border-soft bg-panel px-4 py-3 text-foreground",
+        "sm:flex-row sm:items-center sm:justify-between sm:gap-4",
+        isUtil ? "opacity-60" : "",
       ].join(" ")}
     >
       <div className="min-w-0">
