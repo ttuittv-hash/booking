@@ -8,6 +8,7 @@ import {
   findUserByEmailWithPasswordHash,
   findUserByUsername,
 } from "@/lib/db";
+import { dispatchMessage } from "@/lib/message/dispatch";
 import { sha256Hex } from "@/lib/passwordScheme";
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -75,6 +76,17 @@ export async function POST(request: Request) {
   if (company) {
     user.companyRole = await assignCompanyRoleOnJoin(user.id, company.id);
   }
+
+  // 비밀번호는 운영자가 안전한 채널로 직접 전달하므로 메시지에는 담지 않는다 —
+  // "계정이 만들어졌다"는 사실과 아이디만 알린다. 이미 계정이 있어(userId 확보)
+  // 인앱 알림도 함께 남는다.
+  await dispatchMessage({
+    templateCode: "MB-07",
+    idempotencyKey: `MB-07:${user.id}`,
+    recipient: { userId: user.id, phone: user.phone, email: user.email, name: user.name },
+    variables: { 아이디: user.username },
+    request,
+  });
 
   return NextResponse.json({ user });
 }

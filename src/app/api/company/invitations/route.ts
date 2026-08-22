@@ -3,6 +3,7 @@ import { publicOrigin } from "@/lib/publicUrl";
 import crypto from "node:crypto";
 import { getCurrentUser } from "@/lib/auth";
 import { hashInviteToken, inviteExpiresAt, issueInviteToken } from "@/lib/invitation";
+import { dispatchMessage } from "@/lib/message/dispatch";
 import {
   cancelInvitation,
   createCompanyInvitation,
@@ -55,12 +56,24 @@ export async function POST(request: Request) {
   });
 
   const origin = publicOrigin(request);
-  // 메일 발송 인프라가 아직 없다 — 링크를 화면에 돌려주고 마스터가 직접 전달한다.
-  // 발송 채널이 붙으면(Phase 6) 이 자리를 메일·알림톡으로 바꾼다.
+  const inviteUrl = `${origin}/invite?token=${token}`;
+
+  // 초대받은 사람은 아직 계정이 없어 인앱 알림이 성립하지 않는다(recipient.userId
+  // null) — dispatchMessage가 이를 감지해 인앱은 건너뛰고 알림톡/이메일로만
+  // 나간다. 마스터 화면에는 계속 링크를 그대로 보여줘 발송 실패 시에도 직접
+  // 전달할 수 있게 한다(기존 동작 유지).
+  await dispatchMessage({
+    templateCode: "MB-06",
+    idempotencyKey: `MB-06:${id}`,
+    recipient: { userId: null, phone: null, email, name: null },
+    variables: { 회사명: user.companyName ?? "", 초대링크: inviteUrl },
+    request,
+  });
+
   return NextResponse.json({
     ok: true,
     invitationId: id,
-    inviteUrl: `${origin}/invite?token=${token}`,
+    inviteUrl,
     expiresAt,
   });
 }

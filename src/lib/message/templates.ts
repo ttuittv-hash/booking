@@ -61,6 +61,32 @@ export const TEMPLATES: TemplateDef[] = [
     release: "FIRST",
     button: { name: "심사 화면", path: "/admin/applicants" },
   },
+  {
+    // 대표 담당자(마스터)가 링크로 담당자를 초대할 때 — 계정이 아직 없는 수신자에게
+    // 나가므로 링크를 버튼이 아니라 본문 변수로 담는다(button.path는 고정 경로만
+    // 지원해 초대 토큰 같은 동적 값을 못 담는다).
+    // [신규 2026-08-22] "마스터·운영자가 담당자를 추가하면 알림이 가야 한다"는
+    // 요청으로 추가 — 1차 오픈 5종(기획서 B2)에는 포함되지 않았던 케이스라
+    // release는 SECOND로 두되(카카오 알림톡 사전심사 대상 여부는 별도 확인 필요),
+    // 발송 파이프라인 자체는 release와 무관하게 지금 바로 동작한다.
+    code: "MB-06",
+    audience: "APPLICANT",
+    title: "담당자 초대",
+    body: "#{회사명}에서 서울아레나 대관시스템 담당자로 초대했습니다.\n아래 링크에서 7일 이내에 본인 인증 후 계정 정보를 등록해주세요.\n#{초대링크}",
+    variables: ["회사명", "초대링크"],
+    release: "SECOND",
+  },
+  {
+    // 운영자가 /admin/applicants/create 로 계정을 직접 만들 때 — 비밀번호는
+    // 운영자가 안전한 채널로 별도 전달하므로 메시지에는 담지 않는다.
+    code: "MB-07",
+    audience: "APPLICANT",
+    title: "계정 생성 안내",
+    body: "서울아레나 운영자가 담당자 계정을 생성했습니다.\n아이디: #{아이디}\n로그인 정보는 담당자를 통해 별도로 전달받으세요.",
+    variables: ["아이디"],
+    release: "SECOND",
+    button: { name: "로그인", path: "/login" },
+  },
 ];
 
 export function findTemplate(code: string): TemplateDef | undefined {
