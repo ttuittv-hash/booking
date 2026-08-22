@@ -25,6 +25,9 @@ export default async function EditQuotePage({
   if (!quote) notFound();
   if (!(await canAccessQuote(currentUser, quote))) notFound();
   if (quote.status !== "ESTIMATE") redirect(`/mypage/${id}`);
+  // 심사가 시작된(review 기록이 있는) 신청서는 신청자가 직접 수정할 수 없다 —
+  // PUT /api/quotes/[id]와 같은 기준(2026-08-22).
+  if (quote.review) redirect(`/mypage/${id}`);
 
   const [rateTable, weekDemand, dateBlocks] = await Promise.all([
     getCurrentRateTable(),
@@ -47,7 +50,7 @@ export default async function EditQuotePage({
           <PageHeading
             size="md"
             title="신청서 수정"
-            lead={`신청번호 ${quote.id} · 심사 전(예상견적) 상태에서만 내용을 수정할 수 있습니다.`}
+            lead={`신청번호 ${quote.id} · 접수 후 심사 시작 전까지만 직접 수정할 수 있으며, 접수번호는 그대로 유지됩니다.`}
           />
         </Band>
 

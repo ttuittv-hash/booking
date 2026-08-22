@@ -80,6 +80,9 @@ export function StepMarketingCooperation({
               ＋ 채널 추가
             </button>
           </div>
+          <p className="mt-1 mb-3 break-keep text-xs leading-6 text-muted">
+            공연 운영 채널이 있다면 입력해주세요. 서울아레나와 연계하여 홍보 가능합니다.
+          </p>
           {info.channels.length === 0 && <p className="text-xs text-muted">등록된 채널이 없습니다.</p>}
           <div className="space-y-2">
             {info.channels.map((row, i) => (
@@ -146,8 +149,8 @@ export function StepMarketingCooperation({
             <div className="rounded-lg border border-border/25 bg-surface p-4">
               <p className="text-xs font-bold text-foreground">노출 및 활용 범위</p>
               <p className="mt-1.5 break-keep text-xs leading-6 text-muted">
-                서울아레나 웹사이트·앱, 공식 SNS·뉴스레터, 현장 디지털 사이니지 등
-                서울아레나가 운영하는 온·오프라인 채널
+                서울아레나 웹사이트·app 서비스, 채널, 공식 SNS·뉴스레터, 현장 디지털 사이니지 등
+                서울아레나가 운영하는 온·오프라인 서비스
               </p>
             </div>
           </div>
@@ -185,6 +188,11 @@ export function StepMarketingCooperation({
               ＋ 항목 추가
             </button>
           </div>
+          <p className="mt-1 mb-3 break-keep text-xs leading-6 text-muted">
+            서울아레나의 공식 파트너 및 제휴 브랜드와 연계한 공동 스폰서십·프로모션 등 협업
+            기회를 검토할 수 있습니다. 선택 시 공연·행사의 특성과 브랜드 적합성을 고려하여
+            별도 협의를 통해 진행됩니다.
+          </p>
           {info.sponsorships.length === 0 && (
             <p className="text-xs text-muted">등록된 스폰서십 · 협업 내역이 없습니다.</p>
           )}

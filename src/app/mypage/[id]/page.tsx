@@ -128,7 +128,7 @@ export default async function MyQuoteDetailPage({
       lead={summaryLine}
       actions={
         <div className="flex flex-wrap items-center gap-x-5 gap-y-2">
-          {quote.status === "ESTIMATE" && user.role !== "ADMIN" && (
+          {quote.status === "ESTIMATE" && !quote.review && user.role !== "ADMIN" && (
             <Link
               href={`/apply/edit/${quote.id}`}
               className="text-s font-bold underline underline-offset-4 hover:text-foreground"
@@ -211,20 +211,26 @@ export default async function MyQuoteDetailPage({
       )}
 
       {quote.contract && (
-        <div className="mt-6 grid grid-cols-1 gap-6 sm:grid-cols-2">
-          <ContractSignaturePanel
-            quoteId={quote.id}
-            signature={signature}
-            viewerRole="APPLICANT"
-          />
-          <TaxInvoicePanel
-            quoteId={quote.id}
-            purpose="CONTRACT"
-            title="세금계산서 (계약금)"
-            invoice={contractInvoice}
-            viewerRole="APPLICANT"
-          />
-        </div>
+        <>
+          {/* 계약 확인사항이 항목 6개짜리 긴 글이라 세금계산서와 반반으로 나누면 글이
+              좁게 눌려 읽기 어렵다(2026-08-22) — 전자 날인만 전체 폭을 쓰게 뺀다. */}
+          <div className="mt-6">
+            <ContractSignaturePanel
+              quoteId={quote.id}
+              signature={signature}
+              viewerRole="APPLICANT"
+            />
+          </div>
+          <div className="mt-6 grid grid-cols-1 gap-6 sm:grid-cols-2">
+            <TaxInvoicePanel
+              quoteId={quote.id}
+              purpose="CONTRACT"
+              title="세금계산서 (계약금)"
+              invoice={contractInvoice}
+              viewerRole="APPLICANT"
+            />
+          </div>
+        </>
       )}
 
       {quote.contract && (

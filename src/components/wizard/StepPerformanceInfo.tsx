@@ -53,6 +53,55 @@ const ALLOWED_MIME = new Set([
   "application/zip",
 ]);
 
+// 신청자 정보 단계(STEP 3)의 필수값 검증 — 자료 첨부만 선택이고 나머지 슬롯은 전부
+// 필수다(2026-08-22, "그 외 슬롯은 필수값으로 해서... 다음단계로 안넘어가게"). 대관사
+// 최근 3년간 공연 실적(반복 입력)과 해외 아티스트 추가사항은 신규 업체·국내 공연에는
+// 해당 사항이 없을 수 있어 필수에서 뺀다. venueLabel을 주면 동시 대관에서 아레나/중형
+// 중 어느 쪽이 비었는지 메시지에 알려준다.
+export function validatePerformanceInfoStep(info: PerformanceInfo, venueLabel?: string): string | null {
+  const prefix = venueLabel ? `${venueLabel} ` : "";
+  const person = (value: ResponsiblePerson, label: string) => {
+    if (!value.name.trim() || !value.title.trim() || !value.phone.trim()) {
+      return `${prefix}${label}(성명·소속·연락처)을 모두 입력해 주세요.`;
+    }
+    return null;
+  };
+
+  if (!info.applicantCompanyName.trim()) return `${prefix}대관신청사명을 입력해 주세요.`;
+  if (!info.applicantBusinessRegistrationNumber.trim()) return `${prefix}사업자등록번호를 입력해 주세요.`;
+  if (!info.applicantCompanyType) return `${prefix}신청 기업 유형을 선택해 주세요.`;
+  if (!info.applicantContactName.trim()) return `${prefix}담당자를 입력해 주세요.`;
+  if (!info.applicantContactPhone.trim()) return `${prefix}담당자 연락처를 입력해 주세요.`;
+  const operationsError = person(info.operationsResponsible, "공연 운영 총괄 책임자");
+  if (operationsError) return operationsError;
+  const safetyError = person(info.safetyResponsible, "안전관리 총괄 책임자");
+  if (safetyError) return safetyError;
+
+  if (!info.eventName.trim()) return `${prefix}공연(행사)명을 입력해 주세요.`;
+  if (!info.artist.trim()) return `${prefix}아티스트 / 출연진을 입력해 주세요.`;
+  if (!info.organizer.trim()) return `${prefix}주최 · 주관 · 기획을 입력해 주세요.`;
+  if (info.eventTypes.length === 0) return `${prefix}행사유형을 하나 이상 선택해 주세요.`;
+  if (!info.ageRating) return `${prefix}공연등급을 선택해 주세요.`;
+  if (info.ageRating === "AGE_LIMIT" && !info.ageLimitDetail.trim()) {
+    return `${prefix}연령제한 상세를 입력해 주세요.`;
+  }
+
+  if (!info.teardownCompletionTime.trim()) return `${prefix}철수 완료 예정시간을 입력해 주세요.`;
+  if (!info.ticketOpenExpectedDate.trim()) return `${prefix}티켓 오픈 예정일을 입력해 주세요.`;
+
+  if (info.seatingTypes.length === 0) return `${prefix}객석형태를 하나 이상 선택해 주세요.`;
+  if (!info.retractableSeatUse) return `${prefix}수납식 객석 사용여부를 선택해 주세요.`;
+  if (info.stageTypes.length === 0) return `${prefix}무대형태를 하나 이상 선택해 주세요.`;
+
+  if (!info.castContractStatus) return `${prefix}주요 출연진 계약 상태를 선택해 주세요.`;
+  if (!info.sensitiveInfoMaskingAcknowledged) {
+    return `${prefix}출연 계약 증빙 마스킹 제출 허용에 동의해 주세요.`;
+  }
+  if (!info.safetyPledgeSigned) return `${prefix}안전규정 준수 확약서 작성 완료에 동의해 주세요.`;
+
+  return null;
+}
+
 function formatSize(bytes: number): string {
   if (bytes < 1024) return `${bytes}B`;
   if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)}KB`;
@@ -143,7 +192,8 @@ function ReadOnlyRow({ label, value, note }: { label: string; value: string; not
   return (
     <div>
       <label className="mb-1.5 block text-xs font-bold text-muted">{label}</label>
-      <div className="border border-border/25 bg-panel/60 px-4 py-2.5 text-s text-foreground">
+      {/* h-10 로 옆에 나란히 놓이는 입력 필드(field-base)와 높이를 맞춘다(2026-08-22) */}
+      <div className="flex h-10 items-center border border-border/25 bg-panel/60 px-4 text-s text-foreground">
         {value}
       </div>
       {note && <p className="mt-1 text-xs text-muted">{note}</p>}
@@ -182,12 +232,10 @@ function CheckboxChip({
 
 function ResponsiblePersonFields({
   label,
-  thirdFieldLabel,
   value,
   onChange,
 }: {
   label: string;
-  thirdFieldLabel: string;
   value: ResponsiblePerson;
   onChange: (value: ResponsiblePerson) => void;
 }) {
@@ -203,7 +251,7 @@ function ResponsiblePersonFields({
         />
         <input
           value={value.title}
-          placeholder={thirdFieldLabel === "소속" ? "소속" : "직책"}
+          placeholder="소속"
           onChange={(e) => onChange({ ...value, title: e.target.value })}
           className="field-base w-full"
         />
@@ -311,13 +359,11 @@ function PerformanceInfoFields({
             </div>
             <ResponsiblePersonFields
               label="공연 운영 총괄 책임자"
-              thirdFieldLabel="직책"
               value={info.operationsResponsible}
               onChange={(v) => set("operationsResponsible", v)}
             />
             <ResponsiblePersonFields
               label="안전관리 총괄 책임자"
-              thirdFieldLabel="소속"
               value={info.safetyResponsible}
               onChange={(v) => set("safetyResponsible", v)}
             />
@@ -472,12 +518,18 @@ function PerformanceInfoFields({
                     onChange={(v) => set("teardownCompletionTime", v)}
                   />
                 </div>
-                <TextField
-                  label="티켓 오픈 예정일"
-                  type="date"
-                  value={info.ticketOpenExpectedDate}
-                  onChange={(v) => set("ticketOpenExpectedDate", v)}
-                />
+                {/* 네이티브 date input을 다른 필드처럼 w-full로 늘리면 브라우저마다
+                    내부 세그먼트 사이가 벌어져 이상하게 보인다 — 앱 전역의 날짜 입력
+                    관례(TicketOpenPanel 등)와 같이 폭을 좁게 고정한다. */}
+                <div>
+                  <label className="mb-1.5 block text-xs font-bold text-muted">티켓 오픈 예정일</label>
+                  <input
+                    type="date"
+                    value={info.ticketOpenExpectedDate}
+                    onChange={(e) => set("ticketOpenExpectedDate", e.target.value)}
+                    className="field-base tabular-nums sm:w-52"
+                  />
+                </div>
               </div>
             </div>
 

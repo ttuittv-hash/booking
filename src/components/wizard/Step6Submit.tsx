@@ -294,7 +294,7 @@ export function Step6Submit({
             onClick={handleSubmit}
             className={`mt-5 ${btnClass("primary", "lg")}`}
           >
-            {submitting ? "저장 중..." : isEditing ? "수정 내용 저장" : "신청서 생성"}
+            {submitting ? "저장 중..." : isEditing ? "수정사항 제출" : "신청서 생성"}
           </button>
           {error && <p className="mt-3 text-s text-danger">{error}</p>}
         </>

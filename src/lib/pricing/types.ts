@@ -374,6 +374,51 @@ export const ANCILLARY_BUSINESS_PLAN_LABEL: Record<AncillaryBusinessPlan, string
   NONE: "해당 없음",
 };
 
+// 공공/공익 참여 및 연계 프로그램 — 복수 선택(2026-08-22, 정보 안내에서 선택형으로 전환).
+export type PublicInterestItem =
+  | "DISCOUNT_ACCESS"
+  | "ACCESSIBILITY_SUPPORT"
+  | "VENUE_LINKED_PROGRAM"
+  | "ANTI_SCALPING"
+  | "CONSUMER_PROTECTION"
+  | "PUBLIC_AGENCY_LINKED_EVENT"
+  | "LOCAL_COMMUNITY_PROGRAM"
+  | "PUBLIC_INTEREST_SEATS"
+  | "FACILITY_LINKED_PROGRAM"
+  | "OTHER"
+  | "UNDER_REVIEW"
+  | "NONE";
+
+export const PUBLIC_INTEREST_ITEM_LABEL: Record<PublicInterestItem, string> = {
+  DISCOUNT_ACCESS: "문화소외계층 할인 · 초청석",
+  ACCESSIBILITY_SUPPORT: "장애인 관람 접근성 지원",
+  VENUE_LINKED_PROGRAM: "공연장 연계사업 참여",
+  ANTI_SCALPING: "암표 · 부정거래 방지대책",
+  CONSUMER_PROTECTION: "소비자 보호계획",
+  PUBLIC_AGENCY_LINKED_EVENT: "공공기관 · 지자체 연계 행사",
+  LOCAL_COMMUNITY_PROGRAM: "지역상생 프로그램",
+  PUBLIC_INTEREST_SEATS: "공익 목적 객석 제공",
+  FACILITY_LINKED_PROGRAM: "시설 연계 프로그램",
+  OTHER: "그외 기타",
+  UNDER_REVIEW: "검토 중",
+  NONE: "없음",
+};
+
+export const PUBLIC_INTEREST_ITEM_HINT: Record<PublicInterestItem, string> = {
+  DISCOUNT_ACCESS: "대상, 할인율 또는 좌석 수",
+  ACCESSIBILITY_SUPPORT: "배리어프리, 전담인력, 안내계획",
+  VENUE_LINKED_PROGRAM: "커넥티드 라이브 등 협조 · 제안",
+  ANTI_SCALPING: "본인인증, 예매 제한, 모니터링",
+  CONSUMER_PROTECTION: "공정 운영, 환불 · 취소, 민원 대응",
+  PUBLIC_AGENCY_LINKED_EVENT: "기관명, 주최 · 주관 · 후원 관계",
+  LOCAL_COMMUNITY_PROGRAM: "지역 업체 · 인력, 주민 프로그램",
+  PUBLIC_INTEREST_SEATS: "제공 대상과 좌석 수",
+  FACILITY_LINKED_PROGRAM: "판매시설, 중형공연장, MD 팝업",
+  OTHER: "위 항목에 해당하지 않는 참여 · 연계 계획",
+  UNDER_REVIEW: "아직 확정되지 않은 항목",
+  NONE: "해당 없음",
+};
+
 export interface PerformanceInfo {
   // 신청자 정보 (STEP 3-1 좌측) — 회원정보에서 자동 입력되나 수정 가능
   applicantCompanyName: string; // 대관신청사명
@@ -406,6 +451,10 @@ export interface PerformanceInfo {
   // 그 전에 저장된 신청서에는 없다.
   expectedPaidSalesRateMidHall?: number; // 예상 유료 판매율(%) — 중형
   ancillaryBusinessPlans: AncillaryBusinessPlan[]; // 부대사업 계획
+
+  // 공공/공익 참여 여부 (STEP 3-2.5) — 선택사항. optional: 선택형으로 바뀌기 전(2026-08-22)
+  // 저장된 신청서에는 없을 수 있다.
+  publicInterestItems?: PublicInterestItem[];
 
   // 개최 신뢰도 및 안전관리 (STEP 3-3) — 회원 유형이 기획사 직접 신청이면 화면에서 섹션 숨김
   castContractStatus: CastContractStatus | null; // 주요 출연진 계약 상태

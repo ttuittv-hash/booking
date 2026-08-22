@@ -400,8 +400,13 @@ export default async function AdminQuoteDetailPage({
           )}
 
           {quote.contract && (
-            <div className="mt-6 grid grid-cols-1 gap-6 sm:grid-cols-2">
+            <div className="mt-6">
               <ContractSignaturePanel quoteId={quote.id} signature={signature} viewerRole="ADMIN" />
+            </div>
+          )}
+
+          {quote.contract && (
+            <div className="mt-6 grid grid-cols-1 gap-6 sm:grid-cols-2">
               <TaxInvoicePanel
                 quoteId={quote.id}
                 purpose="CONTRACT"

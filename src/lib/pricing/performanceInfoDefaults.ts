@@ -24,6 +24,7 @@ export const INITIAL_PERFORMANCE_INFO: PerformanceInfo = {
   expectedPaidSalesRate: 0,
   expectedPaidSalesRateMidHall: 0,
   ancillaryBusinessPlans: [],
+  publicInterestItems: [],
   castContractStatus: null,
   foreignArtistNotes: "",
   sensitiveInfoMaskingAcknowledged: false,

@@ -21,6 +21,16 @@ function toggleInArray<T>(list: T[], value: T): T[] {
   return list.includes(value) ? list.filter((v) => v !== value) : [...list, value];
 }
 
+// 규모 단계(STEP 4)의 필수값 검증 — 예상 유료 판매율만 선택이고 부대사업 계획은 필수다
+// (2026-08-22, "예상 유료판매율만 (선택)... 나머지는 필수사항"). 자료 첨부(객석배치도)는
+// 다른 슬롯과 같은 이유로 여기서는 검증하지 않는다.
+export function validateAudienceStep(info: PerformanceInfo, venueLabel?: string): string | null {
+  if (info.ancillaryBusinessPlans.length === 0) {
+    return `${venueLabel ? `${venueLabel} ` : ""}부대사업 계획을 하나 이상 선택해 주세요.`;
+  }
+  return null;
+}
+
 function CheckboxChip({
   checked,
   label,
@@ -97,9 +107,6 @@ function AudienceFields({
        (신청자 정보·공공성과 같은 규칙) */
     <div className="border-t-2 border-foreground pt-5">
       <h3 className="type-kr-heading text-h6-m">예상 관객 및 사업규모</h3>
-      <p className="mt-1 text-xs text-muted">
-        객석배치도는 계획안 기준으로 제출할 수 있으며, 승인 후 변경 시 사전 협의가 필요합니다
-      </p>
 
       <div className="mt-4 space-y-4">
         {/* 아레나/중형/총 예상 관객 수를 세 칸씩 쌓지 않고 한 줄로 — 눈이 세로로 오르내리지
@@ -132,16 +139,13 @@ function AudienceFields({
             )}
           </div>
         )}
-        {(audienceSummary.arenaLine || audienceSummary.midHallLine) && (
-          <p className="-mt-2 text-xs text-muted">구성 · 옵션 값과 연동 — 수정은 구성 · 옵션에서</p>
-        )}
 
         {/* 예상 유료 판매율도 같은 이유로 한 줄로 — 동시 대관이면 아레나/중형을 각각 입력한다.
             "예상 유료 판매율 — 아레나/중형" 을 매번 반복하지 않고, 대관기간 행처럼 상위
             라벨 하나로 묶은 뒤 아레나/중형은 짧은 하위 라벨로만 구분한다(2026-08-22,
             "예상 유료 판매율로 묶고 아레나, 중형 보여주면" 요청). */}
         <div>
-          <label className="mb-1.5 block text-xs font-bold text-muted">예상 유료 판매율</label>
+          <label className="mb-1.5 block text-xs font-bold text-muted">예상 유료 판매율 (선택)</label>
           <div className={showMidHallRate ? "grid max-w-md grid-cols-2 gap-4" : "max-w-xs"}>
             <div>
               {showMidHallRate && <div className="mb-1 text-xs text-muted">아레나</div>}
@@ -304,6 +308,8 @@ export function StepAudience({
         <p className="mt-1 mb-2.5 text-xs leading-5 text-muted">
           객석배치도(PDF/이미지)를 첨부하세요.
           {isSimultaneous && " 동시 대관은 두 공간의 객석배치도를 각각 첨부합니다."}
+          {" "}객석배치도는 계획안 기준으로 제출할 수 있으며, 승인 후 변경 시 사전 협의가
+          필요합니다.
         </p>
 
         {files.length > 0 && (

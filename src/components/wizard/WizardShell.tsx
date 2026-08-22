@@ -30,8 +30,8 @@ import { Step1Calendar } from "./Step1Calendar";
 import { MidHallCalendar } from "./MidHallCalendar";
 import { StepConfigOptions } from "./StepConfigOptions";
 import { Step5Estimate } from "./Step5Estimate";
-import { StepPerformanceInfo } from "./StepPerformanceInfo";
-import { StepAudience } from "./StepAudience";
+import { StepPerformanceInfo, validatePerformanceInfoStep } from "./StepPerformanceInfo";
+import { StepAudience, validateAudienceStep } from "./StepAudience";
 import { StepPublicInterest } from "./StepPublicInterest";
 import { StepMarketingCooperation } from "./StepMarketingCooperation";
 import { StepSafetyPledge } from "./StepSafetyPledge";
@@ -270,13 +270,26 @@ export function WizardShell({
   // 동시 대관 탭)이 그 선택에 따라 달라진다. 관객 규모는 여전히 구성·옵션에서 입력하고,
   // 패키지도 구성·옵션에서 직접 선택해야 하므로 그전까지는 STEP 3(신청자 정보) 이후로
   // 넘어갈 수 없다.
+  // [개정 2026-08-22] "신청자 정보"·"규모"의 필수값을 채우지 않으면 그 다음 단계로도
+  // 못 넘어가게 한다("다음" 버튼뿐 아니라 스텝 탭을 직접 눌러 건너뛰는 것도 막는다) —
+  // 자료 첨부만 선택이고 나머지는 필수라는 요청(2026-08-22)의 연장.
+  const step3Blocked =
+    validatePerformanceInfoStep(selection.performanceInfo, selection.midHallPerformanceInfo ? "아레나" : undefined) ??
+    (selection.midHallPerformanceInfo && validatePerformanceInfoStep(selection.midHallPerformanceInfo, "중형공연장"));
+  const step4Blocked =
+    validateAudienceStep(selection.performanceInfo, selection.midHallPerformanceInfo ? "아레나" : undefined) ??
+    (selection.midHallPerformanceInfo && validateAudienceStep(selection.midHallPerformanceInfo, "중형공연장"));
   const maxUnlockedStep = !selection.venueId
     ? 1
     : midHallOnly && !hasMidHallSelection
       ? 1
       : needsPackage && !selection.packageId
         ? 2
-        : TOTAL_STEPS;
+        : step3Blocked
+          ? 3
+          : step4Blocked
+            ? 4
+            : TOTAL_STEPS;
   // 패키지 선택 전에도 기본 공연일수를 보여줘야 하므로, 모든 패키지가 공유하는 기본값(2일)을 임시로 사용한다.
   const effectivePkg = findPackage(rateTable, effectivePackageId);
   const defaultPerformanceDays = effectivePkg?.defaultPerformanceDays ?? 2;
@@ -445,6 +458,14 @@ export function WizardShell({
               toast.error("패키지를 선택해 주세요.");
               return;
             }
+            if (step === 3 && step3Blocked) {
+              toast.error(step3Blocked);
+              return;
+            }
+            if (step === 4 && step4Blocked) {
+              toast.error(step4Blocked);
+              return;
+            }
             goTo(step + 1);
           }}
           className={btnClass("primary", "lg")}
@@ -596,6 +617,8 @@ export function WizardShell({
         )}
         {step === 5 && (
           <StepPublicInterest
+            info={selection.performanceInfo}
+            onChange={(performanceInfo) => setSelection((prev) => ({ ...prev, performanceInfo }))}
             selection={resolvedSelection}
             midHallInfo={selection.midHallPerformanceInfo}
             onChangeMidHallInfo={(midHallPerformanceInfo) =>

@@ -114,7 +114,9 @@ export function ContractSignaturePanel({
         <div className="mt-5">
           {/* 색면 박스 대신 헤어라인 + 작은 글씨 (Note 규격) */}
           <Note>계약 확인사항 (초안 — 정식 대관계약서 확정 전 요약)</Note>
-          <ol className="mt-3 max-h-48 space-y-2 overflow-y-auto text-xs leading-5 text-muted">
+          {/* 전체 폭을 쓰는 자리라 6개 항목이 다 보이게 스크롤 없이 펼친다(2026-08-22,
+              "반쪽에만 노출되느라 글자가 다 잘리거든" 피드백 — 좁은 칸 + 스크롤 조합을 없앤다). */}
+          <ol className="mt-3 space-y-2 text-xs leading-5 text-muted">
             {CONTRACT_TERMS.map((term, i) => (
               <li key={term.title}>
                 <span className="font-bold text-foreground">
