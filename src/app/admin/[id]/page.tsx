@@ -161,8 +161,9 @@ export default async function AdminQuoteDetailPage({
   const facilityMeetingMaterials = await listAttachments(id, "FACILITY_MEETING");
 
   const needsArenaDates = quote.selection.venueId !== "medium-hall" || quote.selection.bookingMode === "SIMULTANEOUS";
-  const rateTable = needsArenaDates ? await getRateTableByVersion(quote.rateTableVersion) : null;
-  const pkg = rateTable ? findPackage(rateTable, quote.selection.packageId) : null;
+  // 정산 폼의 "요금표에서 선택" 기능에도 쓰이므로 공간 종류와 무관하게 항상 가져온다.
+  const rateTable = await getRateTableByVersion(quote.rateTableVersion);
+  const pkg = needsArenaDates ? findPackage(rateTable, quote.selection.packageId) : null;
   const arenaDateGroups =
     needsArenaDates && pkg ? groupArenaDatesByTag(quote.selection, pkg.defaultPerformanceDays) : [];
   const midHallDateGroups = groupMidHallDatesByRole(quote.selection);
@@ -432,7 +433,12 @@ export default async function AdminQuoteDetailPage({
 
           {quote.status === "CONTRACTED" && quote.contract && (
             <div className="mt-6">
-              <SettlementForm quoteId={quote.id} contractTotal={quote.contract.contractTotal} />
+              <SettlementForm
+                quoteId={quote.id}
+                contractTotal={quote.contract.contractTotal}
+                addons={rateTable.addons}
+                lineItems={quote.lineItems}
+              />
             </div>
           )}
 
