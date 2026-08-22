@@ -1395,6 +1395,8 @@ export interface CompanyInvitation {
   // 너무 개발 언어" 피드백).
   acceptedUserId: string | null;
   acceptedUserApprovalStatus: string | null;
+  acceptedUserName: string | null;
+  companyName: string;
 }
 
 /**
@@ -1441,10 +1443,14 @@ export async function listCompanyInvitations(companyId: string): Promise<Company
     created_at: string;
     accepted_user_id: string | null;
     accepted_user_approval_status: string | null;
+    accepted_user_name: string | null;
+    company_name: string;
   }>(
     `SELECT i.id, i.company_id, i.email, i.phone, i.status, i.expires_at, i.created_at,
-            i.accepted_user_id, u.approval_status AS accepted_user_approval_status
+            i.accepted_user_id, u.approval_status AS accepted_user_approval_status, u.name AS accepted_user_name,
+            c.name AS company_name
        FROM company_invitations i
+       JOIN companies c ON c.id = i.company_id
        LEFT JOIN users u ON u.id = i.accepted_user_id
       WHERE i.company_id = $1 ORDER BY i.created_at DESC`,
     [companyId],
@@ -1459,6 +1465,8 @@ export async function listCompanyInvitations(companyId: string): Promise<Company
     createdAt: r.created_at,
     acceptedUserId: r.accepted_user_id,
     acceptedUserApprovalStatus: r.accepted_user_approval_status,
+    acceptedUserName: r.accepted_user_name,
+    companyName: r.company_name,
   }));
 }
 

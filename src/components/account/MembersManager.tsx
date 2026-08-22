@@ -21,6 +21,8 @@ type Invitation = {
   expiresAt: string;
   acceptedUserId: string | null;
   acceptedUserApprovalStatus: string | null;
+  acceptedUserName: string | null;
+  companyName: string;
 };
 
 const APPROVAL_LABEL: Record<string, string> = {
@@ -274,9 +276,12 @@ export function MembersManager() {
           </div>
         ) : null}
 
-        <table className="mt-6 w-full text-s" data-testid="invitations-table">
+        <div className="mt-6 overflow-x-auto">
+        <table className="w-full min-w-[42rem] text-s" data-testid="invitations-table">
           <thead>
             <tr className="border-b border-border text-xs text-muted">
+              <th className="py-2 text-left">소속</th>
+              <th className="py-2 text-left">이름</th>
               <th className="py-2 text-left">이메일</th>
               <th className="py-2 text-left">휴대폰</th>
               <th className="py-2 text-left">상태</th>
@@ -289,6 +294,8 @@ export function MembersManager() {
               const state = inviteState(iv);
               return (
                 <tr key={iv.id} className="border-b border-border/40">
+                  <td className="py-3 text-muted">{iv.companyName}</td>
+                  <td className="py-3">{iv.acceptedUserName ?? "—"}</td>
                   <td className="py-3">{iv.email}</td>
                   <td className="py-3 text-muted">{iv.phone ?? "—"}</td>
                   <td className="py-3">{state.label}</td>
@@ -333,13 +340,14 @@ export function MembersManager() {
             })}
             {invitations.length === 0 ? (
               <tr>
-                <td colSpan={5} className="py-6 text-center text-muted">
+                <td colSpan={7} className="py-6 text-center text-muted">
                   발급한 초대가 없습니다.
                 </td>
               </tr>
             ) : null}
           </tbody>
         </table>
+        </div>
       </section>
     </div>
   );
