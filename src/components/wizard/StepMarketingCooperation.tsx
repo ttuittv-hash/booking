@@ -47,6 +47,24 @@ export function StepMarketingCooperation({
     );
   }
 
+  function addSponsorship() {
+    set("sponsorships", [...info.sponsorships, { brandName: "", campaignSummary: "" }]);
+  }
+
+  function updateSponsorship(index: number, patch: Partial<MarketingCooperation["sponsorships"][number]>) {
+    set(
+      "sponsorships",
+      info.sponsorships.map((row, i) => (i === index ? { ...row, ...patch } : row)),
+    );
+  }
+
+  function removeSponsorship(index: number) {
+    set(
+      "sponsorships",
+      info.sponsorships.filter((_, i) => i !== index),
+    );
+  }
+
   return (
     <section>
       <StepHeading title="마케팅 협조 및 계획" lead="프로모션 및 협업 관련 정보를 입력해 주세요." />
@@ -123,13 +141,22 @@ export function StepMarketingCooperation({
 
             <div>
               <p className="font-bold text-foreground">노출 및 활용 범위</p>
-              <ul className="mt-1.5 list-disc space-y-1 pl-4">
-                <li>서울아레나 공식 웹사이트 및 모바일 서비스(모바일 앱 등)</li>
-                <li>공연·행사 상세, 일정, 아티스트 정보, 추천·큐레이션 등 서울아레나 서비스 내 관련 영역</li>
-                <li>서울아레나 공식 SNS, 뉴스레터 등 디지털 채널</li>
-                <li>서울아레나 내 디지털 사이니지, 미디어월 등 온·오프라인 안내·홍보 매체</li>
-                <li>공연·행사 홍보, 프로모션 및 관람객 대상 마케팅</li>
-              </ul>
+              <div className="mt-1.5 grid grid-cols-1 gap-3 sm:grid-cols-2">
+                <div className="border border-border/25 p-3">
+                  <p className="text-xs font-bold text-foreground">홍보</p>
+                  <ul className="mt-1.5 list-disc space-y-1 pl-4">
+                    <li>서울아레나 공식 SNS, 뉴스레터 등 디지털 채널</li>
+                    <li>서울아레나 내 디지털 사이니지, 미디어월 등 온·오프라인 안내·홍보 매체</li>
+                  </ul>
+                </div>
+                <div className="border border-border/25 p-3">
+                  <p className="text-xs font-bold text-foreground">서비스</p>
+                  <ul className="mt-1.5 list-disc space-y-1 pl-4">
+                    <li>서울아레나 공식 웹사이트 및 모바일 서비스(모바일 앱 등)</li>
+                    <li>공연·행사 상세, 일정, 아티스트 정보, 추천·큐레이션 등 서울아레나 서비스 내 관련 영역</li>
+                  </ul>
+                </div>
+              </div>
             </div>
 
             <p>
@@ -162,24 +189,43 @@ export function StepMarketingCooperation({
         </div>
 
         <div className="mt-8 border-t border-border/25 pt-5">
-          <h3 className="type-kr-heading text-h6-m">공동 스폰서십 · 브랜드 협업 연계</h3>
-          <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2">
-            <div>
-              <label className="mb-1.5 block text-xs font-bold text-muted">스폰서 / 브랜드사명</label>
-              <input
-                value={info.sponsorBrandName}
-                onChange={(e) => set("sponsorBrandName", e.target.value)}
-                className="field-base"
-              />
-            </div>
-            <div>
-              <label className="mb-1.5 block text-xs font-bold text-muted">연계 캠페인 개요</label>
-              <input
-                value={info.sponsorCampaignSummary}
-                onChange={(e) => set("sponsorCampaignSummary", e.target.value)}
-                className="field-base"
-              />
-            </div>
+          <div className="mb-2.5 flex items-center justify-between">
+            <h3 className="type-kr-heading text-h6-m">공동 스폰서십 · 브랜드 협업 연계</h3>
+            <button type="button" onClick={addSponsorship} className={toggleClass(false)}>
+              ＋ 항목 추가
+            </button>
+          </div>
+          {info.sponsorships.length === 0 && (
+            <p className="text-xs text-muted">등록된 스폰서십 · 협업 내역이 없습니다.</p>
+          )}
+          <div className="space-y-2">
+            {info.sponsorships.map((row, i) => (
+              <div
+                key={i}
+                className="grid grid-cols-1 gap-1.5 border-b border-border/15 py-2 sm:grid-cols-[1fr_2fr_auto]"
+              >
+                <input
+                  value={row.brandName}
+                  placeholder="스폰서 / 브랜드사명"
+                  onChange={(e) => updateSponsorship(i, { brandName: e.target.value })}
+                  className="field-base"
+                />
+                <input
+                  value={row.campaignSummary}
+                  placeholder="연계 캠페인 개요"
+                  onChange={(e) => updateSponsorship(i, { campaignSummary: e.target.value })}
+                  className="field-base"
+                />
+                <button
+                  type="button"
+                  onClick={() => removeSponsorship(i)}
+                  aria-label="항목 삭제"
+                  className="flex h-10 w-10 shrink-0 items-center justify-center text-muted transition-colors hover:text-danger"
+                >
+                  ✕
+                </button>
+              </div>
+            ))}
           </div>
         </div>
 

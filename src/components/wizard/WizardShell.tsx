@@ -56,8 +56,7 @@ const DEFAULT_MARKETING_COOPERATION: MarketingCooperation = {
     { platform: "X (트위터)", handle: "", followers: "" },
   ],
   seoulArenaPromotionConsent: null,
-  sponsorBrandName: "",
-  sponsorCampaignSummary: "",
+  sponsorships: [],
   ticketSalesDataConsent: false,
   pollstarConsent: false,
 };
@@ -219,6 +218,9 @@ export function WizardShell({
           channels: Array.isArray(draft.selection.marketingCooperation?.channels)
             ? draft.selection.marketingCooperation.channels
             : DEFAULT_MARKETING_COOPERATION.channels,
+          sponsorships: Array.isArray(draft.selection.marketingCooperation?.sponsorships)
+            ? draft.selection.marketingCooperation.sponsorships
+            : DEFAULT_MARKETING_COOPERATION.sponsorships,
         },
         addons: Array.isArray(draft.selection.addons) ? draft.selection.addons : [],
         excludedDays: Array.isArray(draft.selection.excludedDays) ? draft.selection.excludedDays : [],

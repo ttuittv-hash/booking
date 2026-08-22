@@ -242,13 +242,17 @@ export interface MarketingChannel {
   followers: string; // 구독자·팔로워 수 — 참고용 문자열, 형식 강제 안 함
 }
 
+export interface MarketingSponsorship {
+  brandName: string; // 스폰서 · 브랜드사명
+  campaignSummary: string; // 연계 캠페인 개요
+}
+
 export interface MarketingCooperation {
   channels: MarketingChannel[];
   // 미선택은 null — 동의/비동의 둘 다 아직 고르지 않은 상태와 "비동의를 골랐다"를
   // 구분해야 해서 boolean 대신 tri-state로 둔다.
   seoulArenaPromotionConsent: boolean | null;
-  sponsorBrandName: string;
-  sponsorCampaignSummary: string;
+  sponsorships: MarketingSponsorship[];
   ticketSalesDataConsent: boolean;
   pollstarConsent: boolean;
 }
