@@ -91,8 +91,12 @@ function PackagePicker({
                   가늠할 수 있게 한다. */}
               <dl className="mt-2.5 space-y-1 border-t border-border/25 pt-2.5 text-xs">
                 <div className="flex items-baseline justify-between gap-2">
-                  <dt className="text-muted">최대 수용인원</dt>
-                  <dd className="font-bold tabular-nums">{p.audienceTier.label}</dd>
+                  <dt className="text-muted">수용인원</dt>
+                  {/* audienceTier.label 은 "~12,000석 규모"처럼 다른 화면(예상 대관료
+                      요약 등)에서 문장 속에 자연스럽게 들어가도록 "규모"가 붙어 있다 —
+                      여기서는 라벨과 겹쳐 중복이라 이 카드에서만 뗀다(2026-08-22,
+                      "규모 글자 빼"). */}
+                  <dd className="font-bold tabular-nums">{p.audienceTier.label.replace(/\s*규모$/, "")}</dd>
                 </div>
                 <div className="flex items-baseline justify-between gap-2">
                   <dt className="text-muted">권장 무대</dt>
