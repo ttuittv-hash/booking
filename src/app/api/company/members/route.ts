@@ -6,6 +6,7 @@ import {
   removeCompanyMember,
   transferCompanyMaster,
   createNotification,
+  setUserApprovalStatus,
 } from "@/lib/db";
 import crypto from "node:crypto";
 
@@ -67,6 +68,26 @@ export async function POST(request: Request) {
     ] as const) {
       await createNotification({ id: crypto.randomUUID(), recipientId: rid, quoteId: null, message: msg, createdAt: now });
     }
+    return NextResponse.json({ ok: true });
+  }
+
+  if (action === "revoke") {
+    // 승인 취소 — 승인 완료 상태를 되돌려 다시 승인 대기로 보낸다. 소속 해제와
+    // 달리 회사 소속은 유지된다(2026-08-22, "담당자 초대" 상태값 정리 요청).
+    if (target.approvalStatus !== "APPROVED") {
+      return NextResponse.json(
+        { error: "승인 완료된 담당자만 승인을 취소할 수 있습니다." },
+        { status: 400 },
+      );
+    }
+    await setUserApprovalStatus(targetId, "PENDING");
+    await createNotification({
+      id: crypto.randomUUID(),
+      recipientId: targetId,
+      quoteId: null,
+      message: "승인이 취소되어 다시 승인 대기 상태가 되었습니다. 자세한 사항은 회사 대표 담당자에게 문의해주세요.",
+      createdAt: new Date().toISOString(),
+    });
     return NextResponse.json({ ok: true });
   }
 

@@ -13,13 +13,37 @@ type Member = {
   approvalStatus: string;
   createdAt: string;
 };
-type Invitation = { id: string; email: string; phone: string | null; status: string; expiresAt: string };
+type Invitation = {
+  id: string;
+  email: string;
+  phone: string | null;
+  status: string;
+  expiresAt: string;
+  acceptedUserId: string | null;
+  acceptedUserApprovalStatus: string | null;
+};
 
 const APPROVAL_LABEL: Record<string, string> = {
   APPROVED: "정상",
   PENDING: "승인 대기",
   REJECTED: "비활성",
 };
+
+// 초대장 자체의 상태(PENDING/ACCEPTED/CANCELLED)는 개발 용어라 그대로 보여주면
+// "이게 뭔 뜻이지" 소리가 나온다 — 링크를 받은 사람이 지금 어느 단계인지로
+// 다시 정의한다: 초대 발송 → 가입 신청(승인 버튼) → 승인 완료(승인 취소 버튼)
+// (2026-08-22, "pending 이런식은 너무 개발 언어" 피드백).
+function inviteState(iv: Invitation): {
+  label: string;
+  action: "approve" | "revoke" | "cancel" | null;
+} {
+  if (iv.status === "CANCELLED") return { label: "초대 취소됨", action: null };
+  if (iv.status === "PENDING") return { label: "초대 발송", action: "cancel" };
+  // ACCEPTED — 링크를 받은 사람이 가입까지는 마쳤고, 승인 여부만 남았다.
+  if (iv.acceptedUserApprovalStatus === "APPROVED") return { label: "승인 완료", action: "revoke" };
+  if (iv.acceptedUserApprovalStatus === "REJECTED") return { label: "가입 반려됨", action: null };
+  return { label: "가입 신청", action: "approve" };
+}
 
 export function MembersManager() {
   const [members, setMembers] = useState<Member[]>([]);
@@ -261,29 +285,52 @@ export function MembersManager() {
             </tr>
           </thead>
           <tbody>
-            {invitations.map((iv) => (
-              <tr key={iv.id} className="border-b border-border/40">
-                <td className="py-3">{iv.email}</td>
-                <td className="py-3 text-muted">{iv.phone ?? "—"}</td>
-                <td className="py-3">{iv.status}</td>
-                <td className="py-3 text-muted">{iv.expiresAt.slice(0, 10)}</td>
-                <td className="py-3">
-                  {iv.status === "PENDING" ? (
-                    <button
-                      type="button"
-                      data-testid="cancel-invite"
-                      disabled={busy}
-                      onClick={() => act("/api/company/invitations", { action: "cancel", id: iv.id })}
-                      className={btnClass("tertiary", "sm")}
-                    >
-                      취소
-                    </button>
-                  ) : (
-                    <span className="text-muted">—</span>
-                  )}
-                </td>
-              </tr>
-            ))}
+            {invitations.map((iv) => {
+              const state = inviteState(iv);
+              return (
+                <tr key={iv.id} className="border-b border-border/40">
+                  <td className="py-3">{iv.email}</td>
+                  <td className="py-3 text-muted">{iv.phone ?? "—"}</td>
+                  <td className="py-3">{state.label}</td>
+                  <td className="py-3 text-muted">{iv.expiresAt.slice(0, 10)}</td>
+                  <td className="py-3">
+                    {state.action === "cancel" ? (
+                      <button
+                        type="button"
+                        data-testid="cancel-invite"
+                        disabled={busy}
+                        onClick={() => act("/api/company/invitations", { action: "cancel", id: iv.id })}
+                        className={btnClass("tertiary", "sm")}
+                      >
+                        취소
+                      </button>
+                    ) : state.action === "approve" ? (
+                      <button
+                        type="button"
+                        data-testid="approve-invite"
+                        disabled={busy || !iv.acceptedUserId}
+                        onClick={() => act("/api/admin/applicants", { id: iv.acceptedUserId, action: "approve" })}
+                        className={btnClass("primary", "sm")}
+                      >
+                        승인
+                      </button>
+                    ) : state.action === "revoke" ? (
+                      <button
+                        type="button"
+                        data-testid="revoke-invite"
+                        disabled={busy || !iv.acceptedUserId}
+                        onClick={() => act("/api/company/members", { action: "revoke", targetId: iv.acceptedUserId })}
+                        className={btnClass("tertiary", "sm")}
+                      >
+                        승인 취소
+                      </button>
+                    ) : (
+                      <span className="text-muted">—</span>
+                    )}
+                  </td>
+                </tr>
+              );
+            })}
             {invitations.length === 0 ? (
               <tr>
                 <td colSpan={5} className="py-6 text-center text-muted">

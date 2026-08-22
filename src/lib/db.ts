@@ -1389,6 +1389,12 @@ export interface CompanyInvitation {
   status: string;
   expiresAt: string;
   createdAt: string;
+  // 초대를 받아 가입한 계정 — 링크만 발급하는 초대장 자체에는 승인 여부가 없고,
+  // 그 사람의 계정(users.approval_status)에 있다. 화면에서 "초대 발송 → 가입 신청 →
+  // 승인 완료" 3단계를 보여주려면 이 값이 필요하다(2026-08-22, "pending 이런식이라
+  // 너무 개발 언어" 피드백).
+  acceptedUserId: string | null;
+  acceptedUserApprovalStatus: string | null;
 }
 
 /**
@@ -1433,9 +1439,14 @@ export async function listCompanyInvitations(companyId: string): Promise<Company
     status: string;
     expires_at: string;
     created_at: string;
+    accepted_user_id: string | null;
+    accepted_user_approval_status: string | null;
   }>(
-    `SELECT id, company_id, email, phone, status, expires_at, created_at
-       FROM company_invitations WHERE company_id = $1 ORDER BY created_at DESC`,
+    `SELECT i.id, i.company_id, i.email, i.phone, i.status, i.expires_at, i.created_at,
+            i.accepted_user_id, u.approval_status AS accepted_user_approval_status
+       FROM company_invitations i
+       LEFT JOIN users u ON u.id = i.accepted_user_id
+      WHERE i.company_id = $1 ORDER BY i.created_at DESC`,
     [companyId],
   );
   return rows.map((r) => ({
@@ -1446,6 +1457,8 @@ export async function listCompanyInvitations(companyId: string): Promise<Company
     status: r.status,
     expiresAt: r.expires_at,
     createdAt: r.created_at,
+    acceptedUserId: r.accepted_user_id,
+    acceptedUserApprovalStatus: r.accepted_user_approval_status,
   }));
 }
 
