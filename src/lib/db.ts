@@ -51,6 +51,7 @@ import type {
   AuditLogAction,
   AuditLogEntry,
   Company,
+  ContractAddendum,
   ContractAdjustment,
   ContractSignature,
   Deposit,
@@ -315,6 +316,17 @@ async function initSchema(pool: Pool) {
       applicant_signed_by TEXT,
       created_at TEXT NOT NULL
     );
+
+    CREATE TABLE IF NOT EXISTS contract_addendums (
+      id TEXT PRIMARY KEY,
+      quote_id TEXT NOT NULL REFERENCES quotes(id),
+      description TEXT NOT NULL,
+      amount_delta DOUBLE PRECISION NOT NULL,
+      agreed_at TEXT NOT NULL,
+      created_by TEXT NOT NULL REFERENCES users(id),
+      created_at TEXT NOT NULL
+    );
+    CREATE INDEX IF NOT EXISTS idx_contract_addendums_quote ON contract_addendums(quote_id);
 
     CREATE TABLE IF NOT EXISTS tax_invoices (
       id TEXT PRIMARY KEY,
@@ -3254,6 +3266,67 @@ export async function signContractAsApplicant(
     [signedAt, signedBy, quoteId],
   );
   return (await getContractSignatureByQuoteId(quoteId))!;
+}
+
+// ---------------------------------------------------------------------------
+// 부속합의 — 계약 체결 후 일정/공연 횟수 변경에 따른 금액 변동 이력(append-only)
+// ---------------------------------------------------------------------------
+
+interface ContractAddendumRow {
+  id: string;
+  quote_id: string;
+  description: string;
+  amount_delta: number;
+  agreed_at: string;
+  created_by: string;
+  created_at: string;
+}
+
+function toContractAddendum(row: ContractAddendumRow): ContractAddendum {
+  return {
+    id: row.id,
+    quoteId: row.quote_id,
+    description: row.description,
+    amountDelta: row.amount_delta,
+    agreedAt: row.agreed_at,
+    createdBy: row.created_by,
+    createdAt: row.created_at,
+  };
+}
+
+// 체결일(agreedAt) 오름차순 — 실제 합의된 순서대로 이력을 보여준다.
+export async function listContractAddendums(quoteId: string): Promise<ContractAddendum[]> {
+  const rows = await q<ContractAddendumRow>(
+    "SELECT * FROM contract_addendums WHERE quote_id = $1 ORDER BY agreed_at ASC, created_at ASC",
+    [quoteId],
+  );
+  return rows.map(toContractAddendum);
+}
+
+export async function createContractAddendum(input: {
+  id: string;
+  quoteId: string;
+  description: string;
+  amountDelta: number;
+  agreedAt: string;
+  createdBy: string;
+  createdAt: string;
+}): Promise<ContractAddendum> {
+  await q(
+    `INSERT INTO contract_addendums (id, quote_id, description, amount_delta, agreed_at, created_by, created_at)
+     VALUES ($1, $2, $3, $4, $5, $6, $7)`,
+    [
+      input.id,
+      input.quoteId,
+      input.description,
+      input.amountDelta,
+      input.agreedAt,
+      input.createdBy,
+      input.createdAt,
+    ],
+  );
+  const row = await one<ContractAddendumRow>("SELECT * FROM contract_addendums WHERE id = $1", [input.id]);
+  return toContractAddendum(row!);
 }
 
 // ---------------------------------------------------------------------------

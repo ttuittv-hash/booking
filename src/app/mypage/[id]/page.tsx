@@ -10,6 +10,7 @@ import {
   getTaxInvoice,
   getTicketOpenByQuoteId,
   listAttachments,
+  listContractAddendums,
 } from "@/lib/db";
 import { won } from "@/lib/format";
 import { totalRentalDays } from "@/lib/pricing/rateTableUtils";
@@ -21,6 +22,7 @@ import {
 import { DepositPanel } from "@/components/DepositPanel";
 import { AttachmentsPanel } from "@/components/AttachmentsPanel";
 import { ContractSignaturePanel } from "@/components/ContractSignaturePanel";
+import { ContractAddendumsPanel } from "@/components/ContractAddendumsPanel";
 import { TaxInvoicePanel } from "@/components/TaxInvoicePanel";
 import { TicketOpenPanel } from "@/components/TicketOpenPanel";
 import { FacilityMeetingPanel } from "@/components/FacilityMeetingPanel";
@@ -69,30 +71,36 @@ export default async function MyQuoteDetailPage({
     attachments,
     signatureRaw,
     contractInvoiceRaw,
+    balanceInvoiceRaw,
     settlementInvoiceRaw,
     ticketOpenRaw,
     facilityMeetingRaw,
     ticketOpenMaterials,
     facilityMeetingMaterials,
     rateTable,
+    addendumsRaw,
   ] = await Promise.all([
     getDepositByQuoteId(id),
     listAttachments(id, null),
     getContractSignatureByQuoteId(id),
     getTaxInvoice(id, "CONTRACT"),
+    getTaxInvoice(id, "CONTRACT_BALANCE"),
     getTaxInvoice(id, "SETTLEMENT"),
     getTicketOpenByQuoteId(id),
     getFacilityMeetingByQuoteId(id),
     listAttachments(id, "TICKET_OPEN"),
     listAttachments(id, "FACILITY_MEETING"),
     getRateTableByVersion(quote.rateTableVersion),
+    quote.contract ? listContractAddendums(id) : Promise.resolve([]),
   ]);
   const deposit = depositRaw ?? null;
   const signature = signatureRaw ?? null;
   const contractInvoice = contractInvoiceRaw ?? null;
+  const balanceInvoice = balanceInvoiceRaw ?? null;
   const settlementInvoice = settlementInvoiceRaw ?? null;
   const ticketOpen = ticketOpenRaw ?? null;
   const facilityMeeting = facilityMeetingRaw ?? null;
+  const addendums = addendumsRaw;
 
   /* 머리글 리드 — 공간·주차·일수·관객을 한 줄로 */
   const summaryLine =
@@ -211,6 +219,17 @@ export default async function MyQuoteDetailPage({
       )}
 
       {quote.contract && (
+        <div className="mt-6">
+          <ContractAddendumsPanel
+            quoteId={quote.id}
+            contractTotal={quote.contract.contractTotal}
+            addendums={addendums}
+            viewerRole="APPLICANT"
+          />
+        </div>
+      )}
+
+      {quote.contract && (
         <>
           {/* 계약 확인사항이 항목 6개짜리 긴 글이라 세금계산서와 반반으로 나누면 글이
               좁게 눌려 읽기 어렵다(2026-08-22) — 전자 날인만 전체 폭을 쓰게 뺀다. */}
@@ -229,6 +248,13 @@ export default async function MyQuoteDetailPage({
               invoice={contractInvoice}
               viewerRole="APPLICANT"
             />
+            <TaxInvoicePanel
+              quoteId={quote.id}
+              purpose="CONTRACT_BALANCE"
+              title="세금계산서 (잔금)"
+              invoice={balanceInvoice}
+              viewerRole="APPLICANT"
+            />
           </div>
         </>
       )}
@@ -238,6 +264,7 @@ export default async function MyQuoteDetailPage({
           <TicketOpenPanel
             quoteId={quote.id}
             depositConfirmed={deposit?.status === "CONFIRMED"}
+            balanceInvoicePaid={balanceInvoice ? balanceInvoice.status === "PAID" : null}
             ticketOpen={ticketOpen}
             materials={ticketOpenMaterials}
             viewerRole="APPLICANT"

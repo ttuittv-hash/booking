@@ -2,7 +2,7 @@ import Link from "next/link";
 import type { Metadata } from "next";
 import { notFound, redirect } from "next/navigation";
 import { canAccessQuote, getCurrentUser, isPendingApplicant } from "@/lib/auth";
-import { getDepositByQuoteId, getQuoteById, getTicketOpenByQuoteId, listAttachments } from "@/lib/db";
+import { getDepositByQuoteId, getQuoteById, getTaxInvoice, getTicketOpenByQuoteId, listAttachments } from "@/lib/db";
 import { MyPageShell } from "@/components/mypage/MyPageShell";
 import { Note } from "@/components/ui/kit";
 import { TicketOpenPanel } from "@/components/TicketOpenPanel";
@@ -32,8 +32,9 @@ export default async function MyTicketOpenDetailPage({
   if (!quote) notFound();
   if (!(await canAccessQuote(user, quote))) notFound();
 
-  const [deposit, ticketOpen, materials] = await Promise.all([
+  const [deposit, balanceInvoice, ticketOpen, materials] = await Promise.all([
     getDepositByQuoteId(id),
+    getTaxInvoice(id, "CONTRACT_BALANCE"),
     getTicketOpenByQuoteId(id),
     listAttachments(id, "TICKET_OPEN"),
   ]);
@@ -72,6 +73,7 @@ export default async function MyTicketOpenDetailPage({
           <TicketOpenPanel
             quoteId={quote.id}
             depositConfirmed={deposit?.status === "CONFIRMED"}
+            balanceInvoicePaid={balanceInvoice ? balanceInvoice.status === "PAID" : null}
             ticketOpen={ticketOpen ?? null}
             materials={materials}
             viewerRole="APPLICANT"

@@ -17,12 +17,18 @@ function formatSize(bytes: number): string {
 export function TicketOpenPanel({
   quoteId,
   depositConfirmed,
+  balanceInvoicePaid,
   ticketOpen,
   materials,
   viewerRole,
 }: {
   quoteId: string;
   depositConfirmed: boolean;
+  // 잔금(세금계산서 CONTRACT_BALANCE) 완납 여부 — null이면 잔금 청구서 자체가 아직
+  // 없다는 뜻이라(운영자가 필요할 때 직접 만드는 방식) 경고를 띄우지 않는다. false일
+  // 때만 "미납 상태로 오픈 진행 중"을 알린다 — 하드 블록은 아니다(2026-08-22 대관료
+  // 정산프로세스 반영, 잔금 미납 시 오픈 보류 여부는 운영 정책 미정이라 경고에 그친다).
+  balanceInvoicePaid: boolean | null;
   ticketOpen: TicketOpen | null;
   materials: Attachment[];
   viewerRole: UserRole;
@@ -102,6 +108,12 @@ export function TicketOpenPanel({
       <p className="mt-3 text-s text-muted">
         포스터, 상세페이지, 좌석배치도 등 티켓오픈 자료를 오픈일 D-30 전까지 업로드해주세요.
       </p>
+
+      {balanceInvoicePaid === false && (
+        <p className="mt-3 border-l-2 border-danger bg-danger-soft px-4 py-2.5 text-s text-danger">
+          잔금이 아직 입금 확인되지 않았습니다. 입금 확인 후 오픈을 진행하는 것을 권장합니다.
+        </p>
+      )}
 
       {viewerRole === "ADMIN" ? (
         <div className="mt-5 flex flex-col gap-3 sm:flex-row sm:items-stretch">

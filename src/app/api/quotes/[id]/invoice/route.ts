@@ -5,6 +5,7 @@ import {
   addAuditLog,
   confirmTaxInvoicePayment,
   createNotification,
+  ensureTaxInvoice,
   getQuoteById,
   getTaxInvoice,
   issueTaxInvoice,
@@ -15,11 +16,13 @@ import type { InvoicePurpose } from "@/lib/pricing/types";
 
 const PURPOSE_LABEL: Record<InvoicePurpose, string> = {
   CONTRACT: "계약금",
+  CONTRACT_BALANCE: "잔금",
   SETTLEMENT: "정산금",
 };
 
-// 세금계산서 발행/입금신청/입금확인 — 계약(CONTRACT)·정산(SETTLEMENT) 공용 엔드포인트.
-// 정식 세금계산서 발행 서비스 연동 전까지는 보증금과 동일한 운영자 수동 확인 방식으로 운영한다.
+// 세금계산서 발행/입금신청/입금확인 — 계약금(CONTRACT)·잔금(CONTRACT_BALANCE)·정산(SETTLEMENT)
+// 공용 엔드포인트. 정식 세금계산서 발행 서비스 연동 전까지는 보증금과 동일한 운영자 수동
+// 확인 방식으로 운영한다.
 export async function POST(request: Request, ctx: { params: Promise<{ id: string }> }) {
   const user = await getCurrentUser();
   if (!user) return NextResponse.json({ error: "로그인이 필요합니다." }, { status: 401 });
@@ -33,16 +36,39 @@ export async function POST(request: Request, ctx: { params: Promise<{ id: string
 
   const body = await request.json().catch(() => null);
   const purpose = body?.purpose as InvoicePurpose;
-  if (purpose !== "CONTRACT" && purpose !== "SETTLEMENT") {
+  if (purpose !== "CONTRACT" && purpose !== "CONTRACT_BALANCE" && purpose !== "SETTLEMENT") {
     return NextResponse.json({ error: "잘못된 요청입니다." }, { status: 400 });
   }
+  const now = new Date().toISOString();
+  const label = PURPOSE_LABEL[purpose];
+
+  // 잔금(CONTRACT_BALANCE)은 계약금과 달리 계약 확정 시점에 자동으로 만들어두지
+  // 않는다 — 계약금:잔금 비율·청구 시점이 아직 확정되지 않아, 운영자가 필요할 때
+  // 직접 금액을 정해 청구서를 만든다(2026-08-22 대관료 정산프로세스 반영).
+  if (purpose === "CONTRACT_BALANCE" && body.action === "create") {
+    if (user.role !== "ADMIN") {
+      return NextResponse.json({ error: "운영자만 잔금 청구서를 만들 수 있습니다." }, { status: 403 });
+    }
+    if (!quote.contract) {
+      return NextResponse.json({ error: "계약이 확정된 신청서만 잔금을 청구할 수 있습니다." }, { status: 409 });
+    }
+    if (await getTaxInvoice(id, "CONTRACT_BALANCE")) {
+      return NextResponse.json({ error: "이미 잔금 청구서가 있습니다." }, { status: 409 });
+    }
+    const amount = Number(body.amount);
+    if (!Number.isFinite(amount) || amount <= 0) {
+      return NextResponse.json({ error: "잔금 청구 금액을 입력하세요." }, { status: 400 });
+    }
+    // 계약금(CONTRACT)이 계약 확정 시점에 조용히 PENDING으로 만들어지는 것과 같은 수준의
+    // 사건이라, 별도 감사로그는 남기지 않는다 — 실제 청구 행위는 이후 "발행"(issue)부터다.
+    const invoice = await ensureTaxInvoice(id, "CONTRACT_BALANCE", amount, now);
+    return NextResponse.json({ invoice });
+  }
+
   const invoice = await getTaxInvoice(id, purpose);
   if (!invoice) {
     return NextResponse.json({ error: "세금계산서 대상이 없습니다." }, { status: 404 });
   }
-
-  const now = new Date().toISOString();
-  const label = PURPOSE_LABEL[purpose];
 
   if (body.action === "issue") {
     if (user.role !== "ADMIN") {

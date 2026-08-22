@@ -550,6 +550,20 @@ export interface ContractAdjustment {
   decidedBy: string;
 }
 
+// 부속합의 — 계약 체결 후 일정·공연 횟수 변경 등으로 금액이 달라질 때의 변경 이력
+// (2026-08-22 대관료 정산프로세스 반영). append-only로 쌓이며, 계약금액 자체(contractTotal)는
+// 건드리지 않고 화면에서 "계약금액 + 부속합의 합계"로 표시만 더한다 — 이 금액 변동을
+// 계약금/잔금 청구 중 어느 쪽에 반영할지는 정책 미정이라 자동 반영하지 않는다.
+export interface ContractAddendum {
+  id: string;
+  quoteId: string;
+  description: string; // 변경 사유
+  amountDelta: number; // 이번 부속합의로 인한 금액 변동 (감액은 음수)
+  agreedAt: string; // 부속합의 체결일 (운영자가 입력하는 실제 합의 날짜)
+  createdBy: string;
+  createdAt: string;
+}
+
 export interface Settlement {
   quoteId: string;
   onSiteAdditions: { label: string; amount: number }[]; // 현장 추가
@@ -597,9 +611,16 @@ export interface ContractSignature {
   createdAt: string;
 }
 
-// 세금계산서 — 계약금액(CONTRACT)·정산금액(SETTLEMENT) 공용. 발행 → 입금신청 → 입금확인,
-// 발행 후 미입금 상태가 5일 이상 지속되면 알림이 재발송된다(lastReminderAt 기준 lazy 체크).
-export type InvoicePurpose = "CONTRACT" | "SETTLEMENT";
+// 세금계산서 — 계약금(CONTRACT)·잔금(CONTRACT_BALANCE)·정산금액(SETTLEMENT) 공용.
+// 발행 → 입금신청 → 입금확인, 발행 후 미입금 상태가 5일 이상 지속되면 알림이
+// 재발송된다(lastReminderAt 기준 lazy 체크).
+//
+// CONTRACT_BALANCE(잔금, 2026-08-22 대관료 정산프로세스 반영)는 계약금(CONTRACT)과
+// 별개로, 계약 확정 후 운영자가 필요할 때 직접 금액을 정해 만든다 — 계약금:잔금 비율이
+// 항상 고정인지, 청구 시점(D-n)을 몇일로 할지는 아직 사내에서 확정되지 않아 자동으로
+// 만들지 않는다(AGENTS.md에 남긴 검토 필요 사항). PENDING 상태로 미리 만들어두는 CONTRACT와
+// 달리, CONTRACT_BALANCE는 존재 자체가 "잔금 청구서를 만들었는지" 여부를 뜻한다.
+export type InvoicePurpose = "CONTRACT" | "CONTRACT_BALANCE" | "SETTLEMENT";
 export type InvoiceStatus = "PENDING" | "ISSUED" | "REPORTED" | "PAID";
 
 export interface TaxInvoice {
@@ -795,6 +816,7 @@ export type AuditLogAction =
   | "DEPOSIT_CONFIRMED"
   | "SIGNED_VENUE"
   | "SIGNED_APPLICANT"
+  | "CONTRACT_ADDENDUM"
   | "INVOICE_ISSUED"
   | "INVOICE_PAYMENT_REPORTED"
   | "INVOICE_PAYMENT_CONFIRMED"

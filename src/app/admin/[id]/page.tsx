@@ -13,6 +13,7 @@ import {
   getTicketOpenByQuoteId,
   listAttachments,
   listAuditLogsForQuote,
+  listContractAddendums,
 } from "@/lib/db";
 import { num, won } from "@/lib/format";
 import { resolveSelectedDates } from "@/lib/pricing/dateRange";
@@ -36,6 +37,7 @@ import { SettlementForm } from "@/components/admin/SettlementForm";
 import { DepositPanel } from "@/components/DepositPanel";
 import { AttachmentsPanel } from "@/components/AttachmentsPanel";
 import { ContractSignaturePanel } from "@/components/ContractSignaturePanel";
+import { ContractAddendumsPanel } from "@/components/ContractAddendumsPanel";
 import { TaxInvoicePanel } from "@/components/TaxInvoicePanel";
 import { TicketOpenPanel } from "@/components/TicketOpenPanel";
 import { FacilityMeetingPanel } from "@/components/FacilityMeetingPanel";
@@ -124,6 +126,7 @@ const STAGE_LABEL: Record<string, string> = {
   DEPOSIT_CONFIRMED: "보증금 입금확인",
   SIGNED_VENUE: "계약서 날인(공연장)",
   SIGNED_APPLICANT: "계약서 날인(대관사)",
+  CONTRACT_ADDENDUM: "부속합의 등록",
   INVOICE_ISSUED: "세금계산서 발행",
   INVOICE_PAYMENT_REPORTED: "세금계산서 입금신청",
   INVOICE_PAYMENT_CONFIRMED: "세금계산서 입금확인",
@@ -154,7 +157,9 @@ export default async function AdminQuoteDetailPage({
     quote.status === "ESTIMATE" ? (await findApprovedWeekConflict(quote)) ?? null : null;
   const signature = (await getContractSignatureByQuoteId(id)) ?? null;
   const contractInvoice = (await getTaxInvoice(id, "CONTRACT")) ?? null;
+  const balanceInvoice = (await getTaxInvoice(id, "CONTRACT_BALANCE")) ?? null;
   const settlementInvoice = (await getTaxInvoice(id, "SETTLEMENT")) ?? null;
+  const addendums = quote.contract ? await listContractAddendums(id) : [];
   const ticketOpen = (await getTicketOpenByQuoteId(id)) ?? null;
   const facilityMeeting = (await getFacilityMeetingByQuoteId(id)) ?? null;
   const ticketOpenMaterials = await listAttachments(id, "TICKET_OPEN");
@@ -401,6 +406,17 @@ export default async function AdminQuoteDetailPage({
 
           {quote.contract && (
             <div className="mt-6">
+              <ContractAddendumsPanel
+                quoteId={quote.id}
+                contractTotal={quote.contract.contractTotal}
+                addendums={addendums}
+                viewerRole="ADMIN"
+              />
+            </div>
+          )}
+
+          {quote.contract && (
+            <div className="mt-6">
               <ContractSignaturePanel quoteId={quote.id} signature={signature} viewerRole="ADMIN" />
             </div>
           )}
@@ -414,6 +430,14 @@ export default async function AdminQuoteDetailPage({
                 invoice={contractInvoice}
                 viewerRole="ADMIN"
               />
+              <TaxInvoicePanel
+                quoteId={quote.id}
+                purpose="CONTRACT_BALANCE"
+                title="세금계산서 (잔금)"
+                invoice={balanceInvoice}
+                viewerRole="ADMIN"
+                allowCreate
+              />
             </div>
           )}
 
@@ -422,6 +446,7 @@ export default async function AdminQuoteDetailPage({
               <TicketOpenPanel
                 quoteId={quote.id}
                 depositConfirmed={deposit?.status === "CONFIRMED"}
+                balanceInvoicePaid={balanceInvoice ? balanceInvoice.status === "PAID" : null}
                 ticketOpen={ticketOpen}
                 materials={ticketOpenMaterials}
                 viewerRole="ADMIN"

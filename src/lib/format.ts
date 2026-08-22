@@ -23,10 +23,19 @@ export function num(amount: number): string {
 */
 
 const KST_DATE = new Intl.DateTimeFormat("ko-KR", { timeZone: "Asia/Seoul", dateStyle: "medium" });
+// timeStyle: "short" 만 쓰면 오전/오후 표기가 서버 Node ICU와 브라우저 ICU에서 서로
+// 다른 문자열("오전" vs "AM")로 나와 하이드레이션이 깨진다(2026-08-22, ContractAddendumsPanel
+// 발견) — dayPeriod 문자열 자체가 없는 24시간제(hourCycle: "h23")로 고정해 이 어긋남의
+// 근본 원인을 없앤다. dateStyle/timeStyle은 hour·minute·hourCycle 같은 개별 필드와
+// 함께 쓸 수 없어(RangeError), "medium" 날짜 표기와 같은 형태를 개별 필드로 재현한다.
 const KST_DATETIME = new Intl.DateTimeFormat("ko-KR", {
   timeZone: "Asia/Seoul",
-  dateStyle: "medium",
-  timeStyle: "short",
+  year: "numeric",
+  month: "numeric",
+  day: "numeric",
+  hourCycle: "h23",
+  hour: "2-digit",
+  minute: "2-digit",
 });
 const KST_MONTH_DAY = new Intl.DateTimeFormat("ko-KR", {
   timeZone: "Asia/Seoul",

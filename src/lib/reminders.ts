@@ -32,6 +32,7 @@ import type { InvoicePurpose } from "./pricing/types";
 
 const PURPOSE_LABEL: Record<InvoicePurpose, string> = {
   CONTRACT: "계약금",
+  CONTRACT_BALANCE: "잔금",
   SETTLEMENT: "정산금",
 };
 
