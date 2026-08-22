@@ -75,14 +75,22 @@ function AudienceFields({
   info,
   onChange,
   audienceSummary,
+  showMidHallRate,
 }: {
   info: PerformanceInfo;
   onChange: (info: PerformanceInfo) => void;
   audienceSummary: { arenaLine: string | null; midHallLine: string | null; totalLine: string | null };
+  showMidHallRate: boolean;
 }) {
   function set<K extends keyof PerformanceInfo>(key: K, value: PerformanceInfo[K]) {
     onChange({ ...info, [key]: value });
   }
+
+  function clampRate(raw: string): number {
+    return Math.max(0, Math.min(100, Number(raw) || 0));
+  }
+
+  const hasSummaryRow = audienceSummary.arenaLine || audienceSummary.midHallLine || audienceSummary.totalLine;
 
   return (
     /* 단계 안의 블록은 박스로 싸지 않는다 — 굵은 헤어라인 + H6 으로만 나눈다
@@ -94,48 +102,74 @@ function AudienceFields({
       </p>
 
       <div className="mt-4 space-y-4">
-        {audienceSummary.arenaLine && (
-          <div>
-            <label className="mb-1.5 block text-xs font-bold text-muted">1회당 예상 관객 수 — 아레나</label>
-            <div className="flex h-10 items-center border border-border-soft px-3.5 text-s text-foreground">
-              {audienceSummary.arenaLine}
-            </div>
-            <p className="mt-1 text-xs text-muted">구성 · 옵션 값과 연동 — 수정은 구성 · 옵션에서</p>
+        {/* 아레나/중형/총 예상 관객 수를 세 칸씩 쌓지 않고 한 줄로 — 눈이 세로로 오르내리지
+            않게 한다(2026-08-22, 한 줄 배치 요청). 셋 중 화면에 없는 값은 그 칸만 빠진다. */}
+        {hasSummaryRow && (
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+            {audienceSummary.arenaLine && (
+              <div>
+                <label className="mb-1.5 block text-xs font-bold text-muted">1회당 예상 관객 수 — 아레나</label>
+                <div className="flex h-10 items-center border border-border-soft px-3.5 text-s text-foreground">
+                  {audienceSummary.arenaLine}
+                </div>
+              </div>
+            )}
+            {audienceSummary.midHallLine && (
+              <div>
+                <label className="mb-1.5 block text-xs font-bold text-muted">1회당 예상 관객 수 — 중형</label>
+                <div className="flex h-10 items-center border border-border-soft px-3.5 text-s text-foreground">
+                  {audienceSummary.midHallLine}
+                </div>
+              </div>
+            )}
+            {audienceSummary.totalLine && (
+              <div>
+                <label className="mb-1.5 block text-xs font-bold text-muted">총 예상 관객 수</label>
+                <div className="flex h-10 items-center border border-border-soft px-3.5 text-s text-foreground">
+                  {audienceSummary.totalLine}
+                </div>
+              </div>
+            )}
           </div>
         )}
-
-        {audienceSummary.midHallLine && (
-          <div>
-            <label className="mb-1.5 block text-xs font-bold text-muted">1회당 예상 관객 수 — 중형</label>
-            <div className="flex h-10 items-center border border-border-soft px-3.5 text-s text-foreground">
-              {audienceSummary.midHallLine}
-            </div>
-            <p className="mt-1 text-xs text-muted">구성 · 옵션 값과 연동 — 수정은 구성 · 옵션에서</p>
-          </div>
+        {(audienceSummary.arenaLine || audienceSummary.midHallLine) && (
+          <p className="-mt-2 text-xs text-muted">구성 · 옵션 값과 연동 — 수정은 구성 · 옵션에서</p>
         )}
 
-        {audienceSummary.totalLine && (
+        {/* 예상 유료 판매율도 같은 이유로 한 줄로 — 동시 대관이면 아레나/중형을 각각 입력한다. */}
+        <div className={showMidHallRate ? "grid max-w-md grid-cols-2 gap-4" : "max-w-xs"}>
           <div>
-            <label className="mb-1.5 block text-xs font-bold text-muted">총 예상 관객 수</label>
-            <div className="flex h-10 items-center border border-border-soft px-3.5 text-s text-foreground">
-              {audienceSummary.totalLine}
+            <label className="mb-1.5 block text-xs font-bold text-muted">
+              예상 유료 판매율{showMidHallRate ? " — 아레나" : ""}
+            </label>
+            <div className="flex items-center gap-2">
+              <input
+                type="number"
+                min={0}
+                max={100}
+                value={info.expectedPaidSalesRate || ""}
+                onChange={(e) => set("expectedPaidSalesRate", clampRate(e.target.value))}
+                className="field-base w-24"
+              />
+              <span className="text-s text-muted">%</span>
             </div>
           </div>
-        )}
-
-        <div className="max-w-xs">
-          <label className="mb-1.5 block text-xs font-bold text-muted">예상 유료 판매율</label>
-          <div className="flex items-center gap-2">
-            <input
-              type="number"
-              min={0}
-              max={100}
-              value={info.expectedPaidSalesRate || ""}
-              onChange={(e) => set("expectedPaidSalesRate", Math.max(0, Math.min(100, Number(e.target.value) || 0)))}
-              className="field-base w-24"
-            />
-            <span className="text-s text-muted">%</span>
-          </div>
+          {showMidHallRate && (
+            <div>
+              <label className="mb-1.5 block text-xs font-bold text-muted">예상 유료 판매율 — 중형</label>
+              <div className="flex items-center gap-2">
+                <input
+                  type="number"
+                  min={0}
+                  max={100}
+                  value={info.expectedPaidSalesRateMidHall || ""}
+                  onChange={(e) => set("expectedPaidSalesRateMidHall", clampRate(e.target.value))}
+                  className="field-base w-24"
+                />
+                <span className="text-s text-muted">%</span>
+              </div>
+            </div>
+          )}
         </div>
 
         <div>
@@ -234,6 +268,7 @@ export function StepAudience({
               midHallLine: isMidHallInvolved ? `${selection.secondaryAudience.toLocaleString()}명` : null,
               totalLine,
             }}
+            showMidHallRate={isMidHallInvolved}
           />
         )}
         {effectiveTab === "ARENA" && (
@@ -245,6 +280,7 @@ export function StepAudience({
               midHallLine: null,
               totalLine,
             }}
+            showMidHallRate={false}
           />
         )}
         {effectiveTab === "MIDHALL" && midHallInfo && (
@@ -256,6 +292,7 @@ export function StepAudience({
               midHallLine: `${selection.secondaryAudience.toLocaleString()}명`,
               totalLine: null,
             }}
+            showMidHallRate={false}
           />
         )}
       </div>

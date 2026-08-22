@@ -21,6 +21,7 @@ export const INITIAL_PERFORMANCE_INFO: PerformanceInfo = {
   teardownCompletionTime: "",
   ticketOpenExpectedDate: "",
   expectedPaidSalesRate: 0,
+  expectedPaidSalesRateMidHall: 0,
   ancillaryBusinessPlans: [],
   castContractStatus: null,
   foreignArtistNotes: "",

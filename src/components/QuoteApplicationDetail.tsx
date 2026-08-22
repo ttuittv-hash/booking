@@ -331,7 +331,16 @@ export function QuoteApplicationDetail({
           {hasMidHall && (
             <Row label="1회당 예상 관객 수 (중형)" value={`${selection.secondaryAudience.toLocaleString()}명`} />
           )}
-          <Row label="예상 유료 판매율" value={`${selection.performanceInfo.expectedPaidSalesRate}%`} />
+          <Row
+            label={hasMidHall ? "예상 유료 판매율 (아레나)" : "예상 유료 판매율"}
+            value={`${selection.performanceInfo.expectedPaidSalesRate}%`}
+          />
+          {hasMidHall && (
+            <Row
+              label="예상 유료 판매율 (중형)"
+              value={`${selection.performanceInfo.expectedPaidSalesRateMidHall ?? 0}%`}
+            />
+          )}
           <Row
             label="부대사업 계획"
             value={

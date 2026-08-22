@@ -383,7 +383,10 @@ export interface PerformanceInfo {
   ticketOpenExpectedDate: string; // 티켓 오픈 예정일
 
   // 예상 관객 및 사업규모 · 공공성 (STEP 3-2)
-  expectedPaidSalesRate: number; // 예상 유료 판매율(%)
+  expectedPaidSalesRate: number; // 예상 유료 판매율(%) — 아레나
+  // optional — 아레나/중형을 한 화면에서 나눠 입력하게 된(2026-08-22) 이후 추가된 필드라
+  // 그 전에 저장된 신청서에는 없다.
+  expectedPaidSalesRateMidHall?: number; // 예상 유료 판매율(%) — 중형
   ancillaryBusinessPlans: AncillaryBusinessPlan[]; // 부대사업 계획
 
   // 개최 신뢰도 및 안전관리 (STEP 3-3) — 회원 유형이 기획사 직접 신청이면 화면에서 섹션 숨김
