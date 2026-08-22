@@ -32,8 +32,8 @@ const STAGE_GROUPS: StageGroup[] = [
     steps: [
       { step: 3, label: "신청자 정보" },
       { step: 4, label: "규모" },
-      { step: 5, label: "공공/공익성 반영 여부" },
-      { step: 6, label: "마케팅 협조 및 계획" },
+      { step: 5, label: "공공/공익 참여 여부" },
+      { step: 6, label: "홍보 및 서비스 계획" },
       { step: 7, label: "안전관리 서약서" },
     ],
   },

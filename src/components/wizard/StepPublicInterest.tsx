@@ -61,7 +61,7 @@ export function StepPublicInterest({
 
   return (
     <section>
-      <h2 className="type-kr-heading text-h5-m sm:text-h5">공공/공익성 반영 여부</h2>
+      <h2 className="type-kr-heading text-h5-m sm:text-h5">공공/공익 참여 여부</h2>
       <p className="mt-1.5 text-s text-muted">
         아래 9개 항목을 참고해 계획을 하나의 파일로 정리해 첨부합니다.
       </p>
@@ -80,7 +80,7 @@ export function StepPublicInterest({
           동일하게 유지된다 — 04 기본 정보 그룹의 다른 두 화면과 탭 구조만 맞춘다
           (2026-08-19, 형식상 탭 추가 요청). */}
       <div className="mt-10 border-t-2 border-foreground pt-5">
-        <h3 className="type-kr-heading text-h6-m">공공/공익성 반영 및 연계 프로그램</h3>
+        <h3 className="type-kr-heading text-h6-m">공공/공익 참여 및 연계 프로그램</h3>
         <p className="mt-1 text-xs leading-5 text-muted">
           아래 항목을 참고해 계획을 하나의 파일로 정리해 첨부해 주세요. 미확정 사항은 &lsquo;검토
           중&rsquo;으로 기재 가능합니다.
@@ -104,7 +104,7 @@ export function StepPublicInterest({
       <div className="mt-10 border-t-2 border-foreground pt-5">
         <h3 className="type-kr-heading text-h6-m">자료 첨부</h3>
         <p className="mt-1 mb-2.5 text-xs leading-5 text-muted">
-          공공/공익성 반영 및 연계 프로그램 계획서(PDF/HWP/DOCX, 9개 항목 통합 1개 파일)를 첨부하세요.
+          공공/공익 참여 및 연계 프로그램 계획서(PDF/HWP/DOCX, 9개 항목 통합 1개 파일)를 첨부하세요.
         </p>
 
         {files.length > 0 && (

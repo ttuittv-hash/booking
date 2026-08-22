@@ -68,7 +68,7 @@ export function StepMarketingCooperation({
 
   return (
     <section>
-      <StepHeading title="마케팅 협조 및 계획" lead="프로모션 및 협업 관련 정보를 입력해 주세요." />
+      <StepHeading title="홍보 및 서비스 계획" lead="프로모션 및 협업 관련 정보를 입력해 주세요." />
 
       <StepForm>
         <div className="border-t border-border/25 pt-5">
@@ -137,7 +137,8 @@ export function StepMarketingCooperation({
               <p className="text-xs font-bold text-foreground">활용 대상</p>
               <p className="mt-1.5 break-keep text-xs leading-6 text-muted">
                 공연명·일정·장소·소개, 출연 아티스트, 공식 포스터·이미지·영상, 예매 관련
-                정보 등 대관사가 제공했거나 공개를 승인한 자료
+                정보 등 대관사가 제공했거나 공개를 승인한 자료, 공연 이미지·영상 등
+                2차 제작물의 서울아레나 채널 활용
               </p>
             </div>
             <div className="rounded-lg border border-border/25 bg-surface p-4">
@@ -170,6 +171,9 @@ export function StepMarketingCooperation({
               비동의
             </button>
           </div>
+          <p className="mt-2.5 break-keep text-xs text-muted">
+            사전 동의 시, 세부 내역은 별도 협의를 통해 진행됩니다.
+          </p>
         </div>
 
         <div className="mt-8 border-t border-border/25 pt-5">
