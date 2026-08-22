@@ -7,6 +7,7 @@ import type {
   Pair,
   RatesContent,
   RulesContent,
+  ScreenTextContent,
   SeoulArenaContent,
   VenueFacilityContent,
   VenueRateContent,
@@ -270,16 +271,6 @@ export function GuideForm({ content }: { content: GuidePageContent }) {
             <Rich label="" value={v.intro} onChange={(intro) => patch({ intro })} />
           </Section>
 
-          <Section title="RATE STRUCTURE" help="공간별 요금 체계 설명입니다. 금액은 대관료 화면이 소유합니다.">
-            <PairList
-              items={v.rateStructure}
-              onChange={(rateStructure) => patch({ rateStructure })}
-              labelName="공간"
-              valueName="설명"
-              addLabel="+ 공간 추가"
-            />
-          </Section>
-
           <Section
             title="대관 절차"
             help="한 줄에 4박스씩 두 줄로 그려집니다. 8단계를 기준으로 하되 개수는 자유입니다."
@@ -519,11 +510,82 @@ export function DocumentsForm({ content }: { content: DocumentsContent }) {
           <Section title="리드 문단">
             <Area label="" rows={3} value={v.lead} onChange={(lead) => patch({ lead })} />
           </Section>
+          <Section
+            title="시설소개 탭 자료"
+            help="두 공간을 함께 담은 자료입니다. 아레나·중형 탭에 같은 파일을 또 올리지 않습니다."
+          >
+            <DocList items={v.facility} onChange={(facility) => patch({ facility })} />
+          </Section>
           <Section title="아레나 탭 자료">
             <DocList items={v.arena} onChange={(arena) => patch({ arena })} />
           </Section>
           <Section title="중형공연장 탭 자료">
             <DocList items={v.liveHall} onChange={(liveHall) => patch({ liveHall })} />
+          </Section>
+          <Section title="자료가 없는 탭의 안내 문구">
+            <Text
+              label=""
+              value={v.emptyNote}
+              onChange={(emptyNote) => patch({ emptyNote })}
+              help="목록이 빈 탭에서 자료 목록 자리에 대신 나옵니다."
+            />
+          </Section>
+        </>
+      )}
+    </ContentFormShell>
+  );
+}
+
+/* ------------------------------------------------------- 화면 문구 ------- */
+
+export function ScreenTextForm({ content }: { content: ScreenTextContent }) {
+  return (
+    <ContentFormShell page="screenText" initial={content}>
+      {(v, patch) => (
+        <>
+          <Section title="공지사항" help="공지사항 목록 화면(/notices)의 문구입니다.">
+            <Area
+              label="리드 문단"
+              rows={3}
+              value={v.noticesLead}
+              onChange={(noticesLead) => patch({ noticesLead })}
+            />
+            <Area
+              label="공지가 없을 때 안내"
+              rows={2}
+              value={v.noticesEmptyDesc}
+              onChange={(noticesEmptyDesc) => patch({ noticesEmptyDesc })}
+            />
+          </Section>
+
+          <Section title="FAQ" help="자주 묻는 질문 화면(/faq)의 리드입니다.">
+            <Area label="" rows={3} value={v.faqLead} onChange={(faqLead) => patch({ faqLead })} />
+          </Section>
+
+          <Section title="대관 신청" help="신청 위저드 화면(/apply) 상단의 리드입니다.">
+            <Area label="" rows={3} value={v.applyLead} onChange={(applyLead) => patch({ applyLead })} />
+          </Section>
+
+          <Section title="오시는 길" help="오시는길 화면(/location)의 리드와 안내 표입니다.">
+            <Area
+              label="리드 문단"
+              rows={3}
+              value={v.locationLead}
+              onChange={(locationLead) => patch({ locationLead })}
+            />
+            <ListEditor
+              label="안내 표"
+              items={v.locationRows}
+              onChange={(locationRows) => patch({ locationRows })}
+              blank={() => ({ label: "", value: "" })}
+              titleOf={(it) => it.label || "항목"}
+              render={(it, p) => (
+                <div className="grid gap-2 sm:grid-cols-[minmax(0,10rem)_minmax(0,1fr)]">
+                  <Text label="항목" value={it.label} onChange={(label) => p({ label })} />
+                  <Text label="내용" value={it.value} onChange={(value) => p({ value })} />
+                </div>
+              )}
+            />
           </Section>
         </>
       )}
@@ -538,6 +600,19 @@ export function RulesForm({ content }: { content: RulesContent }) {
     <ContentFormShell page="rules" initial={content}>
       {(v, patch) => (
         <>
+          <Section title="리드 문단" help="페이지 상단 제목 아래에 나오는 소개 문장입니다.">
+            <Area label="" rows={3} value={v.intro} onChange={(intro) => patch({ intro })} />
+          </Section>
+
+          <Section title="개정 안내 박스" help="판본 아래 회색 박스 문구입니다. 비우면 박스가 나오지 않습니다.">
+            <Area
+              label=""
+              rows={3}
+              value={v.revisionNote}
+              onChange={(revisionNote) => patch({ revisionNote })}
+            />
+          </Section>
+
           <Section title="판본">
             <div className="grid gap-2 sm:grid-cols-3">
               <Text label="문서명" value={v.title} onChange={(title) => patch({ title })} />
@@ -559,7 +634,13 @@ export function RulesForm({ content }: { content: RulesContent }) {
               "목차는 장 제목으로 자동 생성됩니다."
             }
           >
-            <Area label="" rows={28} value={v.body} onChange={(body) => patch({ body })} />
+            <Area
+              label=""
+              rows={28}
+              paragraph={false}
+              value={v.body}
+              onChange={(body) => patch({ body })}
+            />
           </Section>
         </>
       )}

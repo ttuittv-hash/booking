@@ -2,17 +2,13 @@ import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { getCurrentUser, isPendingApplicant } from "@/lib/auth";
 import { getDocumentsContent } from "@/lib/db";
-import type { DocumentBlock } from "@/lib/content/pageContent";
+import type { DocumentBlock, DocumentsContent } from "@/lib/content/pageContent";
 import type { DocItem } from "@/components/ui/kit";
 import { PublicHeader } from "@/components/PublicHeader";
 import { SiteFooter } from "@/components/ui/SiteFooter";
 import { QueryTabs } from "@/components/ui/QueryTabs";
 import { VENUE_TABS, VENUE_TAB_PARAM } from "@/components/ui/nav-items";
-import {
-  Band,
-  DocumentList,
-  PageHead,
-} from "@/components/ui/kit";
+import { Band, DocumentList, PageHead, Prose } from "@/components/ui/kit";
 
 export const metadata: Metadata = {
   title: "대관 자료 | 서울아레나",
@@ -29,6 +25,35 @@ function toDocItem(d: DocumentBlock): DocItem {
   };
 }
 
+function DocPanel({
+  en,
+  ko,
+  items,
+  content,
+}: {
+  en: string;
+  ko: string;
+  items: DocumentBlock[];
+  content: DocumentsContent;
+}) {
+  return (
+    <Band tone="light" size="lg">
+      <PageHead en={en} ko={ko} lead={<Prose text={content.lead} />} />
+      <div className="mt-10">
+        <DocumentList items={items.map(toDocItem)} emptyNote={content.emptyNote} />
+      </div>
+    </Band>
+  );
+}
+
+/**
+ * BOOK IT › 대관 자료 — 탭: 시설소개 / 아레나 / 중형공연장.
+ *
+ * 시설소개자료는 두 공간을 함께 담은 하나의 문서이므로 공간 탭마다 같은 파일을
+ * 걸지 않고 `시설소개` 탭이 소유한다. 기본 탭도 자료가 실제로 있는 이 탭이다.
+ */
+const DOC_TABS = [{ value: "facility", label: "시설소개" }, ...VENUE_TABS] as const;
+
 export default async function DocumentsPage() {
   const [currentUser, content] = await Promise.all([getCurrentUser(), getDocumentsContent()]);
   if (!currentUser) redirect("/login");
@@ -41,33 +66,35 @@ export default async function DocumentsPage() {
       <main className="flex flex-1 flex-col">
         <QueryTabs
           param={VENUE_TAB_PARAM}
-          ariaLabel="공간 선택"
-          items={VENUE_TABS.map((t) => ({
+          ariaLabel="자료 구분"
+          items={DOC_TABS.map((t) => ({
             value: t.value,
             label: t.label,
             panel:
-              t.value === "arena" ? (
-                <Band tone="light" size="lg">
-                  <PageHead en="ARENA DOCUMENTS" ko="아레나 대관 자료" lead={content.lead} />
-                  <div className="mt-10">
-                    <DocumentList items={content.arena.map(toDocItem)} />
-                  </div>
-                </Band>
+              t.value === "facility" ? (
+                <DocPanel
+                  en="FACILITY DOCUMENTS"
+                  ko="시설소개 자료"
+                  items={content.facility}
+                  content={content}
+                />
+              ) : t.value === "arena" ? (
+                <DocPanel
+                  en="ARENA DOCUMENTS"
+                  ko="아레나 대관 자료"
+                  items={content.arena}
+                  content={content}
+                />
               ) : (
-                <Band tone="light" size="lg">
-                  <PageHead
-                    en="LIVE HALL DOCUMENTS"
-                    ko="중형공연장 대관 자료"
-                    lead={content.lead}
-                  />
-                  <div className="mt-10">
-                    <DocumentList items={content.liveHall.map(toDocItem)} />
-                  </div>
-                </Band>
+                <DocPanel
+                  en="LIVE HALL DOCUMENTS"
+                  ko="중형공연장 대관 자료"
+                  items={content.liveHall}
+                  content={content}
+                />
               ),
           }))}
         />
-
       </main>
 
       <SiteFooter />

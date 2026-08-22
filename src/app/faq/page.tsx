@@ -1,11 +1,11 @@
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { getCurrentUser, isPendingApplicant } from "@/lib/auth";
-import { listFaqs } from "@/lib/db";
+import { getScreenTextContent, listFaqs } from "@/lib/db";
 import { FaqAccordion } from "@/components/FaqAccordion";
 import { PublicHeader } from "@/components/PublicHeader";
 import { SiteFooter } from "@/components/ui/SiteFooter";
-import { ArrowRight, Band, ButtonLink, EmptyState, PageHead } from "@/components/ui/kit";
+import { ArrowRight, Band, ButtonLink, EmptyState, PageHead, Prose } from "@/components/ui/kit";
 
 export const metadata: Metadata = {
   title: "FAQ | 서울아레나",
@@ -16,7 +16,7 @@ export default async function FaqPage() {
   if (!currentUser) redirect("/login");
   if (isPendingApplicant(currentUser)) redirect("/pending");
 
-  const faqs = await listFaqs();
+  const [faqs, screenText] = await Promise.all([listFaqs(), getScreenTextContent()]);
 
   return (
     <div className="flex flex-1 flex-col">
@@ -27,7 +27,7 @@ export default async function FaqPage() {
           <PageHead
             en="FAQ"
             ko="자주 묻는 질문"
-            lead="신청부터 심의, 계약·정산, 공연 당일까지 자주 묻는 질문을 단계별로 모았습니다. 찾는 내용이 없다면 1:1 문의로 남겨 주세요."
+            lead={<Prose text={screenText.faqLead} />}
             actions={
               <ButtonLink href="/mypage/inquiries/new" variant="primary">
                 문의 작성

@@ -120,7 +120,7 @@ export const SEED_PACKAGES: RentalPackage[] = [
     venueId: "arena",
     name: "프리미엄",
     tagline: "풀서비스",
-    audienceTier: { min: 18_001, max: 99_999, label: "20,000석+ 규모" },
+    audienceTier: { min: 18_001, max: 99_999, label: "~22,500석 규모" },
     baseFeePerWeek: 660_000_000, // [확정 2026-08-14] 패키지 요금표 시트
     bowlFee: 220_000_000, // [패키지 구성 산정표] 2.2만명 x 2회 x 5,000원/인
     includedWeeks: 1,

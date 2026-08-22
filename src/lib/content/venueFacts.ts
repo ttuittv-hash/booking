@@ -28,13 +28,13 @@ export interface VenueHeroCopy {
 export const VENUE_HEROES: VenueHeroCopy[] = [
   {
     title: "아레나",
-    eyebrow: "18,269석 · 최대 28,000명",
+    eyebrow: "최대 22,500명",
     image: "/images/arena.jpg",
     desc: "국내외 대형 콘서트와 라이브 공연을 위한 전문 공연장. 공연 연출에 따라 다양한 좌석 배치와 무대 구성이 가능하며, 최신 무대·음향·조명·반입반출 시스템을 갖춰 투어 공연은 물론 대규모 시상식, 방송 행사, 기업 이벤트까지 폭넓게 운영합니다.",
   },
   {
     title: "중형공연장",
-    eyebrow: "2,000석 · 최대 7,000명",
+    eyebrow: "최대 3,500명",
     image: "/images/live-hall.jpg",
     desc: "콘서트, 뮤지컬, 팬미팅, 쇼케이스, 기업행사 등 중형 규모 콘텐츠에 적합한 공연장. 관객과 아티스트 간 높은 몰입감을 제공하는 공간으로, 공연 특성에 맞는 유연한 운영이 가능합니다.",
   },

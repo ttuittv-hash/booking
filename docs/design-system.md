@@ -213,6 +213,15 @@ Figma 가 stretch 로 잡혀 있어서 넓은 화면에서는 컬럼이 같이 �
   어긋난다. 수량은 숫자만, 금액은 셀마다 `₩` (`won()`), 그 밖의 단위는 항목명 옆에
 - 해당 없음은 `—`, 포함은 `✓` · 숫자는 `tabular-nums`
 - `dense` 옵션으로 밀도를 높일 수 있다 (백오피스·긴 목록)
+- **같은 화면에 `SpecTable`·`GroupedSpecTable` 과 나란히 놓일 때는 `labelWidth="12rem"`.**
+  라벨 열 폭을 두 표가 맞춰야 값이 같은 세로선에서 시작한다 (대관료의 RATE ↔ RATE
+  INCLUDES ↔ ADDITIONAL CHARGES). 이때 값 열도 `align: "left"` 로 맞춘다
+- **열마다 같은 값이 들어가는 행은 표에 넣지 않는다.** 첫 열만 채우고 나머지를 비우면
+  빈 칸이 생긴다 — `footer` 로 표 밖 한 줄로 내린다 (대관 기간)
+- **`GroupedSpecTable` 은 위 테두리를 두지 않는다.** 첫 묶음 제목에 이미 아래 테두리가
+  있어 섹션 제목과 첫 묶음 사이에 줄이 두 개 겹친다
+- **옵션표와 기본 조건을 같은 표로 그리지 않는다.** 신청 항목이 아닌 기준값(기준 공연시간·
+  이용 제한시간)은 표가 아니라 그 섹션의 문장으로 싣는다
 
 ### 페이지 그리드
 
@@ -300,6 +309,7 @@ const SPLIT = "grid gap-8 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.6fr)] lg:items-
 | `Badge` | 상태 배지 |
 | `EmptyState` | 준비 중 콘텐츠. 위아래 헤어라인 사이 빈 블록 — **점선 보더를 쓰지 않는다**(Figma 시스템에 점선이 없다) |
 | `Multiline` | seed 의 `\n` 유지 렌더 |
+| `Prose` | 운영자가 콘텐츠 관리에서 입력한 **평문**을 문단으로 싣는다. 빈 줄 = 새 문단, 한 번의 줄바꿈 = 줄바꿈. 리드·설명처럼 여러 문단이 들어올 수 있는 자리에 `{text}` 를 그대로 그리지 마라 — HTML 이 줄바꿈을 공백으로 접어 운영자가 나눈 문단이 사라진다 |
 | 입력 필드 | `field-base` 유틸리티. 배경은 지면과 같고 1px 보더로만 구분 |
 
 주의: Tailwind v4 에서 base 에 `outline-none` 을 넣으면 이후 `focus:outline-2` 가 죽는다. 쓰지 마라.
@@ -350,10 +360,10 @@ const SPLIT = "grid gap-8 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.6fr)] lg:items-
 중앙 (읽는 곳 — 카테고리 타이틀일 뿐 페이지가 아니다)
   YOUR STAGE   서울아레나 /seoularena   (탭: 시설개요 · 시설 특징)
                시설 소개  /features      (탭: 아레나 · 중형공연장)
-  YOUR GUIDE   대관 안내  /guide         (탭: 대관 안내 · 대관 절차)
+  YOUR GUIDE   대관 안내  /guide         (탭 없음 — 안내 + 절차 8단계 한 장)
                대관료     /rates         (탭: 아레나 · 중형공연장)
                대관 규약  /rules
-               대관 자료  /documents     (탭: 아레나 · 중형공연장)
+               대관 자료  /documents     (탭: 시설소개 · 아레나 · 중형공연장)
 중앙 (누르는 곳 — 유일한 액션)
   BOOK IT      /apply → 대관 신청 위저드로 바로 간다
 
@@ -363,6 +373,15 @@ const SPLIT = "grid gap-8 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.6fr)] lg:items-
                · 대관 진행 내역 /mypage/history
   로그아웃      (비로그인 → 회원가입 · 로그인)
 ```
+
+대관 안내는 탭을 두지 않는다. 두 탭이 담던 것이 안내 문단 하나와 절차 8단계 하나여서
+누르게 만들 이유가 없었다. 요금 체계 설명(RATE STRUCTURE)은 금액을 소유한 대관료와
+내용이 겹쳐 삭제했다.
+
+대관 자료의 `시설소개` 탭은 두 공간을 함께 담은 자료(시설소개자료)를 소유한다. 같은 파일을
+공간 탭마다 걸면 같은 자료를 두 번 내려받게 된다. 공간 탭에는 그 공간에만 해당하는 자료만
+올리고, 없으면 항목을 세우지 않고 한 줄 안내로 비워 둔다 — "준비 중" 항목을 세워 두면
+목록이 있는 것처럼 보인다. 시설 소개(`/features`)에서 이 탭으로 보내는 `CTABand` 를 둔다.
 
 **이름이 왜 이런가** — 명사 둘 + 동사 하나. 문법만으로 "둘은 읽는 곳, 하나는 누르는 곳"이
 읽힌다. `YOUR GUIDE` 는 "가이드"가 국내 실무에서 번역 없이 통하는 몇 안 되는 영어 명사라
@@ -397,7 +416,13 @@ src/lib/content/*Facts.ts   →  pageContent.ts 의 DEFAULT_*  →  site_content
 - `*Facts.ts` 는 **초기값의 출처**다. 운영 중에 값을 고칠 때 여기를 고치면 안 된다 —
   이미 저장된 DB 값이 이기므로 화면이 안 바뀐다
 - 편집 화면은 `/admin/content` 한 곳 (`ContentManager`), 저장은
-  `PUT /api/admin/content/[page]` (`seoularena`·`features`·`guide`·`rates`·`rules`·`documents`)
+  `PUT /api/admin/content/[page]`
+  (`seoularena`·`features`·`guide`·`rates`·`rules`·`documents`·`screenText`)
+- **본문이 게시물·폼인 화면의 문구도 코드에 박지 않는다.** 공지사항·FAQ·대관 신청·
+  오시는 길의 리드는 `screenText` 키가 갖는다(`화면 문구` 탭). 페이지마다 콘텐츠
+  편집기를 새로 만들지 않고 이 한 키에 모은다
+- **여러 줄 칸(`Area`)은 줄바꿈을 그대로 저장한다.** 화면에서는 `Prose` 로 그려야
+  문단이 살아난다. 줄 단위로 파싱하는 칸(규약 전문)만 `paragraph={false}` 로 안내를 끈다
 - 폼은 `components/admin/fields.tsx` 의 조각(`Text`·`Area`·`Rich`·`StringList`·
   `ListEditor`·`ContentFormShell`)을 조합해 만든다. 화면마다 폼을 새로 짜지 않는다
 - **대관 규약은 조문을 한 칸씩 고치는 문서가 아니다.** 판본을 통째로 갈아 끼우는 문서라

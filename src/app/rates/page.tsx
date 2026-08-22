@@ -22,6 +22,12 @@ export const metadata: Metadata = {
 };
 
 /**
+ * 라벨 열 폭 — `SpecTable`·`GroupedSpecTable` 의 라벨 열과 같은 값이다.
+ * RATE · RATE INCLUDES · ADDITIONAL CHARGES 세 표의 값이 같은 세로선에서 시작한다.
+ */
+const SPEC_LABEL_WIDTH = "12rem";
+
+/**
  * ADDITIONAL CHARGES — 구분으로 묶는다. 열 배치는 RATE INCLUDES 와 같은
  * 라벨(12rem) + 값 이라, 두 표의 값 열이 같은 세로선에서 시작한다.
  */
@@ -39,20 +45,19 @@ function chargeGroups(rows: ChargeBlock[]): SpecGroup[] {
 }
 
 function RatePanel({ en, ko, c }: { en: string; ko: string; c: VenueRateContent }) {
-  const cols = c.columns.map((r) => ({ key: r.key, title: r.name }));
-  const detailCols = c.detailColumns.map((r) => ({ key: r.key, title: r.name }));
+  // 값 열은 좌측 정렬로 둔다 — 같은 화면의 RATE INCLUDES·ADDITIONAL CHARGES 가
+  // 라벨 + 좌측 정렬 값이므로, 이 표만 우측 정렬이면 세로 기준선이 어긋난다.
+  const cols = c.columns.map((r) => ({ key: r.key, title: r.name, align: "left" as const }));
+  const detailCols = c.detailColumns.map((r) => ({
+    key: r.key,
+    title: r.name,
+    align: "left" as const,
+  }));
 
   const rows = c.rowLabels.map((label, i) => ({
     label,
     cells: c.columns.map((col) => col.values[i] ?? ""),
   }));
-  if (c.rentalPeriod) {
-    // 대관 기간은 열마다 같은 값이므로 첫 열에만 적고 나머지는 비운다
-    rows.splice(rows.length - 1, 0, {
-      label: "대관 기간",
-      cells: c.columns.map((_, i) => (i === 0 ? c.rentalPeriod : "")),
-    });
-  }
 
   return (
     <>
@@ -63,7 +68,23 @@ function RatePanel({ en, ko, c }: { en: string; ko: string; c: VenueRateContent 
           <SectionHead title="RATE" />
         </div>
         <div className="mt-10">
-          <ComparisonTable rowLabel="구분" columns={cols} rows={rows} />
+          {/*
+            대관 기간은 열마다 같은 값이라 표 안에 행으로 넣으면 첫 열만 채워지고
+            나머지 열이 빈칸으로 남는다. 표 밖 한 줄로 내린다.
+          */}
+          <ComparisonTable
+            rowLabel="구분"
+            labelWidth={SPEC_LABEL_WIDTH}
+            columns={cols}
+            rows={rows}
+            footer={
+              c.rentalPeriod ? (
+                <p className="break-keep text-s text-muted">
+                  <span className="font-bold text-foreground">대관 기간</span> {c.rentalPeriod}
+                </p>
+              ) : undefined
+            }
+          />
         </div>
 
         {c.detailLabels.length > 0 && (
@@ -73,6 +94,7 @@ function RatePanel({ en, ko, c }: { en: string; ko: string; c: VenueRateContent 
               <ComparisonTable
                 dense
                 rowLabel="구분"
+                labelWidth={SPEC_LABEL_WIDTH}
                 columns={detailCols}
                 rows={c.detailLabels.map((label, i) => ({
                   label,
@@ -84,13 +106,30 @@ function RatePanel({ en, ko, c }: { en: string; ko: string; c: VenueRateContent 
         )}
       </Band>
 
-      {c.includes.length > 0 && (
+      {(c.includes.length > 0 || c.limits.length > 0) && (
         <Band tone="light">
           <SectionHead title="RATE INCLUDES" />
-          <SpecTable
-            className="mt-10"
-            rows={c.includes.map((p) => [p.label, p.value] as [string, string])}
-          />
+          {c.includes.length > 0 && (
+            <SpecTable
+              className="mt-10"
+              rows={c.includes.map((p) => [p.label, p.value] as [string, string])}
+            />
+          )}
+          {/*
+            기준 공연시간·이용시간은 항목별로 신청하는 옵션이 아니라 대관에 딸린
+            기본 조건이다. 옵션표와 같은 표로 그리면 신청 항목처럼 읽히므로
+            표를 쓰지 않고 이 섹션의 문장으로 싣는다.
+          */}
+          {c.limits.length > 0 && (
+            <div className="measure mt-8 space-y-2">
+              {c.limits.map((p, i) => (
+                <p key={`${p.label}-${i}`} className="break-keep text-s leading-7">
+                  <span className="font-bold">{p.label}</span>
+                  <span className="text-muted"> — {p.value}</span>
+                </p>
+              ))}
+            </div>
+          )}
         </Band>
       )}
 
@@ -100,14 +139,6 @@ function RatePanel({ en, ko, c }: { en: string; ko: string; c: VenueRateContent 
             <SectionHead title="ADDITIONAL CHARGES" />
             <GroupedSpecTable className="mt-10" groups={chargeGroups(c.charges)} />
           </>
-        )}
-
-        {c.limits.length > 0 && (
-          <SpecTable
-            className="mt-10"
-            dense
-            rows={c.limits.map((p) => [p.label, p.value] as [string, string])}
-          />
         )}
 
         {c.notes.length > 0 && (

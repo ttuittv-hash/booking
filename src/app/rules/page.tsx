@@ -6,7 +6,7 @@ import { parseRules } from "@/lib/content/pageContent";
 import { PublicHeader } from "@/components/PublicHeader";
 import { SiteFooter } from "@/components/ui/SiteFooter";
 import { ArticleLayout } from "@/components/ui/ArticleLayout";
-import { Band, Note, PageHead } from "@/components/ui/kit";
+import { Band, Note, PageHead, Prose } from "@/components/ui/kit";
 
 export const metadata: Metadata = {
   title: "대관 규약 | 서울아레나",
@@ -34,7 +34,7 @@ export default async function RulesPage() {
           <PageHead
             en="BOOKING AGREEMENT"
             ko="대관 규약"
-            lead={`${content.title} 전문입니다. 대관을 신청하시면 이 규약에 동의하신 것으로 보며, 신청서 제출 단계에서 동의를 확인합니다.`}
+            lead={<Prose text={content.intro} />}
           />
           <dl className="mt-10 flex flex-wrap gap-x-10 gap-y-3">
             {(
@@ -50,10 +50,11 @@ export default async function RulesPage() {
               </div>
             ))}
           </dl>
-          <Note className="measure mt-8">
-            개정된 내용은 홈페이지 공지 또는 별도 통지 중 빠른 시점 이후 신규 체결되는
-            대관계약부터 적용합니다. 이미 체결된 대관계약에는 계약 체결 시점의 규약을 적용합니다.
-          </Note>
+          {(content.revisionNote ?? "").trim() && (
+            <Note className="measure mt-8">
+              <Prose text={content.revisionNote} gap="mt-3" />
+            </Note>
+          )}
         </Band>
 
         <Band tone="white">

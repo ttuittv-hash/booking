@@ -25,9 +25,14 @@ import {
   LIVE_HALL_RATES,
   LIVE_HALL_RATE_INCLUDES,
   LIVE_HALL_RATE_NOTES,
-  RATE_STRUCTURE,
 } from "./rateFacts";
-import { ARENA_DOCUMENTS, DOCUMENTS_LEAD, LIVE_HALL_DOCUMENTS } from "./documentFacts";
+import {
+  ARENA_DOCUMENTS,
+  DOCUMENTS_EMPTY_NOTE,
+  DOCUMENTS_LEAD,
+  FACILITY_DOCUMENTS,
+  LIVE_HALL_DOCUMENTS,
+} from "./documentFacts";
 import { RULES_EFFECTIVE_DATE, RULES_TITLE, RULES_VERSION, RULE_CHAPTERS } from "./rulesFacts";
 
 /* ============================================================================
@@ -140,13 +145,11 @@ export interface ProcessBlock {
 
 export interface GuidePageContent {
   intro: string;
-  rateStructure: Pair[];
   process: ProcessBlock[];
 }
 
 export const DEFAULT_GUIDE_PAGE_CONTENT: GuidePageContent = {
   intro: GUIDE_LEAD,
-  rateStructure: RATE_STRUCTURE.map((r) => ({ label: r.venue, value: r.desc })),
   process: RENTAL_PROCESS.map((p) => ({ ...p })),
 };
 
@@ -232,6 +235,37 @@ export const DEFAULT_RATES_CONTENT: RatesContent = {
   },
 };
 
+/* --------------------------------------------- 화면 문구 (`screenText`) --- */
+
+/**
+ * 페이지 하나를 위한 콘텐츠 편집기가 없는 화면들의 문구.
+ * 공지사항·FAQ·대관 신청·오시는 길처럼 본문이 게시물이나 폼인 화면도
+ * 상단 리드 한 줄은 운영자가 고쳐야 하므로 여기 모아 둔다.
+ */
+export interface ScreenTextContent {
+  noticesLead: string;
+  noticesEmptyDesc: string;
+  faqLead: string;
+  applyLead: string;
+  locationLead: string;
+  locationRows: Pair[];
+}
+
+export const DEFAULT_SCREEN_TEXT_CONTENT: ScreenTextContent = {
+  noticesLead: "대관 접수 일정과 변경 사항, 시설·요금 안내를 확인하세요.",
+  noticesEmptyDesc: "대관 공고와 운영 안내가 등록되면 이곳에 표시됩니다.",
+  faqLead:
+    "신청부터 심의, 계약·정산, 공연 당일까지 자주 묻는 질문을 단계별로 모았습니다. " +
+    "찾는 내용이 없다면 1:1 문의로 남겨 주세요.",
+  applyLead: "주차와 규모를 입력하면 예상 대관료를 바로 확인하고, 그대로 신청서까지 제출할 수 있습니다.",
+  locationLead: "주소 · 대중교통 · 주차 안내는 준비 중입니다. 확정되는 대로 이 페이지에 업데이트됩니다.",
+  locationRows: [
+    { label: "주소", value: "서울특별시 도봉구 창동 1-24" },
+    { label: "대중교통", value: "확정 후 안내" },
+    { label: "주차", value: "확정 후 안내" },
+  ],
+};
+
 /* ---------------------------------------------- 대관 자료 (`/documents`) - */
 
 export interface DocumentBlock {
@@ -246,8 +280,12 @@ export interface DocumentBlock {
 
 export interface DocumentsContent {
   lead: string;
+  /** 시설소개 탭 — 두 공간을 함께 담은 자료 */
+  facility: DocumentBlock[];
   arena: DocumentBlock[];
   liveHall: DocumentBlock[];
+  /** 목록이 빈 탭에 나오는 한 줄 */
+  emptyNote: string;
 }
 
 function toDocBlock(d: (typeof ARENA_DOCUMENTS)[number]): DocumentBlock {
@@ -262,8 +300,10 @@ function toDocBlock(d: (typeof ARENA_DOCUMENTS)[number]): DocumentBlock {
 
 export const DEFAULT_DOCUMENTS_CONTENT: DocumentsContent = {
   lead: DOCUMENTS_LEAD,
+  facility: FACILITY_DOCUMENTS.map(toDocBlock),
   arena: ARENA_DOCUMENTS.map(toDocBlock),
   liveHall: LIVE_HALL_DOCUMENTS.map(toDocBlock),
+  emptyNote: DOCUMENTS_EMPTY_NOTE,
 };
 
 /* ------------------------------------------------- 대관 규약 (`/rules`) -- */
@@ -277,6 +317,10 @@ export interface RulesContent {
   title: string;
   version: string;
   effectiveDate: string;
+  /** 페이지 상단 리드 — 운영자가 콘텐츠 관리에서 고친다 */
+  intro: string;
+  /** 판본 아래 안내 박스 문구 */
+  revisionNote: string;
   /** 규약 전문 — `제N장 …` / `제N조 (…)` 로 시작하는 줄이 제목이 된다 */
   body: string;
 }
@@ -291,6 +335,12 @@ export const DEFAULT_RULES_CONTENT: RulesContent = {
   title: RULES_TITLE,
   version: RULES_VERSION,
   effectiveDate: RULES_EFFECTIVE_DATE,
+  intro:
+    `${RULES_TITLE} 전문입니다. 대관을 신청하시면 이 규약에 동의하신 것으로 보며, ` +
+    "신청서 제출 단계에서 동의를 확인합니다.",
+  revisionNote:
+    "개정된 내용은 홈페이지 공지 또는 별도 통지 중 빠른 시점 이후 신규 체결되는 " +
+    "대관계약부터 적용합니다. 이미 체결된 대관계약에는 계약 체결 시점의 규약을 적용합니다.",
   body: chaptersToText(),
 };
 

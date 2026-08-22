@@ -1,10 +1,16 @@
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { getCurrentUser, isPendingApplicant } from "@/lib/auth";
-import { findCompanyById, getCurrentRateTable, listDateBlocks, listWeekDemand } from "@/lib/db";
+import {
+  findCompanyById,
+  getCurrentRateTable,
+  getScreenTextContent,
+  listDateBlocks,
+  listWeekDemand,
+} from "@/lib/db";
 import { PublicHeader } from "@/components/PublicHeader";
 import { SiteFooter } from "@/components/ui/SiteFooter";
-import { Band, PageHead } from "@/components/ui/kit";
+import { Band, PageHead, Prose } from "@/components/ui/kit";
 import { WizardShell } from "@/components/wizard/WizardShell";
 
 export const metadata: Metadata = {
@@ -26,13 +32,15 @@ export default async function ApplyPage({
   if (!currentUser) redirect("/login");
   if (isPendingApplicant(currentUser)) redirect("/pending");
 
-  const [{ new: startFreshParam }, rateTable, weekDemand, dateBlocks, company] = await Promise.all([
-    searchParams,
-    getCurrentRateTable(),
-    listWeekDemand(),
-    listDateBlocks(),
-    currentUser.companyId ? findCompanyById(currentUser.companyId) : Promise.resolve(undefined),
-  ]);
+  const [{ new: startFreshParam }, rateTable, weekDemand, dateBlocks, company, screenText] =
+    await Promise.all([
+      searchParams,
+      getCurrentRateTable(),
+      listWeekDemand(),
+      listDateBlocks(),
+      currentUser.companyId ? findCompanyById(currentUser.companyId) : Promise.resolve(undefined),
+      getScreenTextContent(),
+    ]);
 
   // [화면 뼈대 2026-08-19, STEP 3-1 "신청자 정보"] 대관신청사명·사업자등록번호·담당자·
   // 담당자연락처는 회원정보에서 자동 입력하고 수정은 계속 허용한다.
@@ -53,7 +61,7 @@ export default async function ApplyPage({
             as="h2"
             en="APPLY"
             ko="대관 신청"
-            lead="주차와 규모를 입력하면 예상 대관료를 바로 확인하고, 그대로 신청서까지 제출할 수 있습니다."
+            lead={<Prose text={screenText.applyLead} />}
           />
         </Band>
 

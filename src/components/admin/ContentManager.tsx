@@ -10,6 +10,7 @@ import type {
   GuidePageContent,
   RatesContent,
   RulesContent,
+  ScreenTextContent,
   SeoulArenaContent,
 } from "@/lib/content/pageContent";
 import { TagBadge } from "@/components/TagBadge";
@@ -23,6 +24,7 @@ import {
   GuideForm,
   RatesForm,
   RulesForm,
+  ScreenTextForm,
   SeoulArenaForm,
 } from "./PageContentForms";
 import {
@@ -55,6 +57,7 @@ type Tab =
   | "rates"
   | "rules"
   | "documents"
+  | "screenText"
   | "legal";
 
 function isHtmlBodyEmpty(html: string): boolean {
@@ -76,6 +79,7 @@ export function ContentManager({
   ratesContent,
   rulesContent,
   documentsContent,
+  screenTextContent,
   termsContent,
   privacyContent,
 }: {
@@ -88,6 +92,7 @@ export function ContentManager({
   ratesContent: RatesContent;
   rulesContent: RulesContent;
   documentsContent: DocumentsContent;
+  screenTextContent: ScreenTextContent;
   termsContent: LegalContent;
   privacyContent: LegalContent;
 }) {
@@ -110,6 +115,7 @@ export function ContentManager({
             ["rates", "대관료"],
             ["rules", "대관 규약"],
             ["documents", "대관 자료"],
+            ["screenText", "화면 문구"],
             ["legal", "약관 · 정책"],
           ] as const
         ).map(([key, label]) => (
@@ -129,6 +135,7 @@ export function ContentManager({
         {tab === "rates" && <RatesForm content={ratesContent} />}
         {tab === "rules" && <RulesForm content={rulesContent} />}
         {tab === "documents" && <DocumentsForm content={documentsContent} />}
+        {tab === "screenText" && <ScreenTextForm content={screenTextContent} />}
         {tab === "legal" && (
           <div className="space-y-10">
             <LegalContentForm

@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { getCurrentUser, isPendingApplicant } from "@/lib/auth";
-import { listNoticesPaged, normalizePage } from "@/lib/db";
+import { getScreenTextContent, listNoticesPaged, normalizePage } from "@/lib/db";
 import { PublicHeader } from "@/components/PublicHeader";
 import { TagBadge, isPinnedTag } from "@/components/TagBadge";
 import { Breadcrumb } from "@/components/ui/Breadcrumb";
@@ -11,6 +11,7 @@ import {
   ButtonLink,
   EmptyState,
   PageHead,
+  Prose,
   Row,
   RowList,
 } from "@/components/ui/kit";
@@ -59,7 +60,10 @@ export default async function NoticesPage({
 
   const { page: pageParam } = await searchParams;
   const page = normalizePage(pageParam);
-  const { items: notices, total, totalPages } = await listNoticesPaged(page);
+  const [{ items: notices, total, totalPages }, screenText] = await Promise.all([
+    listNoticesPaged(page),
+    getScreenTextContent(),
+  ]);
 
   // 표시 레벨 정렬만 한다 — 데이터(정렬: 최신순)는 그대로 두고 대관 공고 계열 태그를
   // 상단 고정 그룹으로 끌어올린다. Notion 기획 › 공지사항 "진행 중 대관 공고 우선 노출".
@@ -77,7 +81,7 @@ export default async function NoticesPage({
           <PageHead
             en="NOTICES"
             ko="공지사항"
-            lead="대관 접수 일정과 변경 사항, 시설·요금 안내를 확인하세요."
+            lead={<Prose text={screenText.noticesLead} />}
           />
         </Band>
 
@@ -85,7 +89,7 @@ export default async function NoticesPage({
           <Band tone="white" size="md">
             <EmptyState
               title="등록된 공지가 없습니다"
-              desc="대관 공고와 운영 안내가 등록되면 이곳에 표시됩니다."
+              desc={screenText.noticesEmptyDesc}
               action={
                 <ButtonLink href="/guide" variant="secondary">
                   대관 안내 보기

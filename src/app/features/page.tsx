@@ -8,7 +8,10 @@ import { SiteFooter } from "@/components/ui/SiteFooter";
 import { QueryTabs } from "@/components/ui/QueryTabs";
 import { VENUE_TABS, VENUE_TAB_PARAM } from "@/components/ui/nav-items";
 import {
+  ArrowRight,
   Band,
+  ButtonLink,
+  CTABand,
   FeatureList,
   LabeledList,
   PageHead,
@@ -34,7 +37,37 @@ function OverviewCards({ items }: { items: Pair[] }) {
   );
 }
 
-function VenuePanel({ en, ko, c }: { en: string; ko: string; c: VenueFacilityContent }) {
+/**
+ * 자료로 넘기는 노랑 CTA. 아레나 탭은 STAGE & CAPACITY 바로 아래(수치를 보고
+ * 더 깊이 보려는 지점), 중형공연장 탭은 페이지 끝에 둔다.
+ */
+function DocumentsCta() {
+  return (
+    <CTABand
+      title="무대가 펼쳐질 공간의 가능성을 확인하세요."
+      lead="자세한 시설 정보를 자료를 통해 확인하세요."
+      actions={
+        <ButtonLink href="/documents?venue=facility" variant="primary">
+          대관 자료
+          <ArrowRight />
+        </ButtonLink>
+      }
+    />
+  );
+}
+
+function VenuePanel({
+  en,
+  ko,
+  c,
+  ctaAfter,
+}: {
+  en: string;
+  ko: string;
+  c: VenueFacilityContent;
+  /** CTA 밴드를 어디에 놓을지 — 수치 바로 뒤 또는 페이지 끝 */
+  ctaAfter: "capacity" | "end";
+}) {
   return (
     <>
       <Band tone="light" size="lg">
@@ -87,6 +120,8 @@ function VenuePanel({ en, ko, c }: { en: string; ko: string; c: VenueFacilityCon
         </Band>
       )}
 
+      {ctaAfter === "capacity" && <DocumentsCta />}
+
       {c.features.length > 0 && (
         <Band tone="dark">
           <SectionHead title="FEATURES" />
@@ -106,6 +141,8 @@ function VenuePanel({ en, ko, c }: { en: string; ko: string; c: VenueFacilityCon
           </div>
         </Band>
       )}
+
+      {ctaAfter === "end" && <DocumentsCta />}
     </>
   );
 }
@@ -129,9 +166,9 @@ export default async function FeaturesPage() {
             label: t.label,
             panel:
               t.value === "arena" ? (
-                <VenuePanel en="ARENA" ko="아레나" c={content.arena} />
+                <VenuePanel en="ARENA" ko="아레나" c={content.arena} ctaAfter="capacity" />
               ) : (
-                <VenuePanel en="LIVE HALL" ko="중형공연장" c={content.liveHall} />
+                <VenuePanel en="LIVE HALL" ko="중형공연장" c={content.liveHall} ctaAfter="end" />
               ),
           }))}
         />

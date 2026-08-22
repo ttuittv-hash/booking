@@ -28,14 +28,17 @@ import {
   DEFAULT_GUIDE_PAGE_CONTENT,
   DEFAULT_RATES_CONTENT,
   DEFAULT_RULES_CONTENT,
+  DEFAULT_SCREEN_TEXT_CONTENT,
   DEFAULT_SEOULARENA_CONTENT,
   type DocumentsContent,
   type FeaturesContent,
   type GuidePageContent,
   type RatesContent,
   type RulesContent,
+  type ScreenTextContent,
   type SeoulArenaContent,
 } from "./content/pageContent";
+import { FACILITY_DOCUMENT_TITLE } from "./content/documentFacts";
 import type {
   ApprovalStatus,
   CompanyVerification,
@@ -3795,7 +3798,15 @@ export async function saveRatesContent(data: RatesContent) {
 }
 
 export async function getDocumentsContent(): Promise<DocumentsContent> {
-  return getPageContent("documents", DEFAULT_DOCUMENTS_CONTENT);
+  const content = await getPageContent("documents", DEFAULT_DOCUMENTS_CONTENT);
+  // 시설소개자료는 `시설소개` 탭이 소유한다. 탭을 나누기 전에 저장된 콘텐츠에는
+  // 같은 자료가 아레나·중형 목록에도 남아 있으므로 읽을 때 걸러낸다.
+  const notFacility = (d: { title: string }) => d.title !== FACILITY_DOCUMENT_TITLE;
+  return {
+    ...content,
+    arena: content.arena.filter(notFacility),
+    liveHall: content.liveHall.filter(notFacility),
+  };
 }
 export async function saveDocumentsContent(data: DocumentsContent) {
   return saveSiteContent("documents", data);
@@ -3806,6 +3817,13 @@ export async function getRulesContent(): Promise<RulesContent> {
 }
 export async function saveRulesContent(data: RulesContent) {
   return saveSiteContent("rules", data);
+}
+
+export async function getScreenTextContent(): Promise<ScreenTextContent> {
+  return getPageContent("screenText", DEFAULT_SCREEN_TEXT_CONTENT);
+}
+export async function saveScreenTextContent(data: ScreenTextContent) {
+  return saveSiteContent("screenText", data);
 }
 
 export async function getHomeContent(): Promise<HomeContent> {

@@ -1,6 +1,38 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
 import { Reveal } from "@/components/ui/Reveal";
+import { splitParagraphs } from "@/lib/content/prose";
+
+/* ------------------------------------------------------------- 평문 문단 --- */
+
+/**
+ * 운영자가 콘텐츠 관리에서 입력한 평문을 문단으로 싣는다.
+ * 빈 줄이 새 문단, 한 번의 줄바꿈은 줄바꿈이다. 리드·설명처럼 여러 문단이
+ * 들어올 수 있는 자리에는 `{text}` 를 그대로 그리지 말고 이것을 쓴다 —
+ * HTML 은 줄바꿈을 공백으로 접기 때문에 운영자가 나눈 문단이 사라진다.
+ */
+export function Prose({
+  text,
+  className = "",
+  gap = "mt-4",
+}: {
+  text: string | null | undefined;
+  className?: string;
+  /** 문단 사이 간격 — 리드처럼 좁게 붙는 자리에서 바꿔 쓴다 */
+  gap?: string;
+}) {
+  const blocks = splitParagraphs(text);
+  if (blocks.length === 0) return null;
+  return (
+    <div className={className}>
+      {blocks.map((block, i) => (
+        <p key={i} className={`whitespace-pre-line break-keep ${i > 0 ? gap : ""}`}>
+          {block}
+        </p>
+      ))}
+    </div>
+  );
+}
 
 /* ============================================================================
    Seoul Arena — Business layer UI kit
@@ -636,6 +668,7 @@ export function ComparisonTable({
   groups,
   footer,
   dense = false,
+  labelWidth,
 }: {
   /** 좌측 상단 라벨 열 제목 */
   rowLabel?: string;
@@ -645,6 +678,12 @@ export function ComparisonTable({
   groups?: CompareGroup[];
   footer?: ReactNode;
   dense?: boolean;
+  /**
+   * 라벨 열 폭을 고정한다(예: `"12rem"`). `SpecTable`·`GroupedSpecTable` 과 같은
+   * 화면에 놓여 값 열이 같은 세로선에서 시작해야 할 때만 쓴다. 비우면 열 수에
+   * 따른 기본 비율(`LABEL_PCT`)을 쓴다.
+   */
+  labelWidth?: string;
 }) {
   const body: CompareGroup[] = groups ?? (rows ? [{ title: "", rows }] : []);
   const n = Math.max(columns.length, 1);
@@ -660,9 +699,12 @@ export function ComparisonTable({
     <div className="overflow-x-auto">
       <table className="w-full table-fixed border-collapse text-left" style={{ minWidth }}>
         <colgroup>
-          <col style={{ width: `${labelPct}%` }} />
+          <col style={{ width: labelWidth ?? `${labelPct}%` }} />
           {columns.map((c) => (
-            <col key={c.key} style={{ width: `${colPct}%` }} />
+            <col
+              key={c.key}
+              style={{ width: labelWidth ? `calc((100% - ${labelWidth}) / ${n})` : `${colPct}%` }}
+            />
           ))}
         </colgroup>
         <thead>
@@ -845,8 +887,10 @@ export function GroupedSpecTable({
   dense?: boolean;
 }) {
   const pad = dense ? "py-2.5" : "py-4";
+  // 첫 묶음 제목에 이미 아래 테두리가 있다. 감싸는 요소에 위 테두리를 또 두면
+  // 섹션 제목과 첫 묶음 사이에 줄이 두 개 겹쳐 보인다 — 위 테두리는 두지 않는다.
   return (
-    <div className={`border-t border-border/25 ${className}`}>
+    <div className={className}>
       {groups.map((g, gi) => (
         <section key={`${g.title}-${gi}`}>
           <h4
@@ -997,8 +1041,9 @@ export function CTABand({
         className="flex flex-col justify-center gap-8 lg:flex-row lg:items-center lg:justify-between"
       >
         <div className="max-w-2xl">
-          <h2 className="type-kr-heading text-h3-m sm:text-h3">{title}</h2>
-          {lead && <p className="mt-4 text-s">{lead}</p>}
+          {/* 국문 제목은 어절 단위로 끊는다 — `break-keep` 없이는 "확인하 / 세요" 처럼 잘린다 */}
+          <h2 className="type-kr-heading break-keep text-h3-m sm:text-h3">{title}</h2>
+          {lead && <p className="mt-4 break-keep text-s">{lead}</p>}
         </div>
         <div className="flex shrink-0 flex-wrap gap-3 lg:justify-end">{actions}</div>
       </div>
@@ -1185,7 +1230,11 @@ export function PhotoHero({
         <h2 className="type-kr-heading text-h3-m sm:text-h3">{title}</h2>
         {eyebrow && <p className="mt-6 text-s font-bold">{eyebrow}</p>}
         {desc && (
-          <p className="mt-6 max-w-[41.5rem] break-keep text-m leading-8">{desc}</p>
+          <Prose
+            text={desc}
+            className="mt-6 max-w-[41.5rem] text-m leading-8"
+            gap="mt-5"
+          />
         )}
       </div>
     </section>
@@ -1348,7 +1397,19 @@ export interface DocItem {
 }
 
 /** 첨부파일 다운로드 모듈 — 자료명 / 설명 / 형식·버전·갱신일 / 버튼 순서를 고정한다. */
-export function DocumentList({ items }: { items: DocItem[] }) {
+export function DocumentList({
+  items,
+  emptyNote = "우선 다운로드할 대관자료가 없습니다.",
+}: {
+  items: DocItem[];
+  /** 자료가 아직 없을 때 목록 자리에 대신 나오는 한 줄 */
+  emptyNote?: string;
+}) {
+  if (items.length === 0) {
+    return (
+      <p className="border-t border-border/25 pt-7 text-s text-muted">{emptyNote}</p>
+    );
+  }
   return (
     <ul className="border-t border-border/25">
       {items.map((d) => (

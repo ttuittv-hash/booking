@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { calculateQuote } from "@/lib/pricing/calculateQuote";
+import { ARENA_MAX_AUDIENCE } from "@/lib/content/rateFacts";
 import {
   findAddon,
   findPackage,
@@ -265,8 +266,8 @@ export function WizardShell({
 
   // [개정 2026-08-20] 구성·옵션 화면에서 관객 규모 입력창을 없애고 패키지 카드만 남겼다 —
   // 청소비 등에 쓰는 expectedAudience는 이제 고른 패키지의 관객 등급에서 대표값을 끌어와
-  // 자동으로 채운다(패키지 4처럼 상한이 없는 등급은 앱 전역에서 써 온 22,000명 상한으로
-  // 갈음한다).
+  // 자동으로 채운다(패키지 4처럼 상한이 없는 등급은 아레나 최대 수용인원으로 갈음한다 —
+  // 숫자는 `ARENA_MAX_AUDIENCE` 한 곳에서만 정한다).
   function selectPackage(packageId: number) {
     const pkg = findPackage(rateTable, packageId);
     setSelection((prev) =>
@@ -275,7 +276,9 @@ export function WizardShell({
         : {
             ...prev,
             packageId,
-            expectedAudience: pkg ? Math.min(pkg.audienceTier.max, 22000) : prev.expectedAudience,
+            expectedAudience: pkg
+              ? Math.min(pkg.audienceTier.max, ARENA_MAX_AUDIENCE)
+              : prev.expectedAudience,
           },
     );
     setSubmittedId(null);

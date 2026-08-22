@@ -44,19 +44,27 @@ export function Text({
   );
 }
 
+/** 여러 줄 입력칸의 공통 안내 — 저장한 줄바꿈이 화면에 그대로 나간다는 사실을 알린다 */
+export const PARAGRAPH_HINT =
+  "Enter 로 줄을 바꾸고, 빈 줄을 한 줄 넣으면 새 문단이 됩니다. 화면에도 그대로 나갑니다.";
+
 export function Area({
   label,
   value,
   onChange,
   rows = 3,
   help,
+  paragraph = true,
 }: {
   label: string;
   value: string;
   onChange: (v: string) => void;
   rows?: number;
   help?: string;
+  /** 문단 안내를 붙일지 — 줄 단위로 파싱하는 칸(규약 전문 등)에서는 끈다 */
+  paragraph?: boolean;
 }) {
+  const note = [help, paragraph ? PARAGRAPH_HINT : null].filter(Boolean).join(" ");
   return (
     <label className="block">
       <span className={FIELD_LABEL}>{label}</span>
@@ -66,7 +74,7 @@ export function Area({
         onChange={(e) => onChange(e.target.value)}
         className={FIELD}
       />
-      {help && <span className={`mt-1 block ${HELP}`}>{help}</span>}
+      {note && <span className={`mt-1 block ${HELP}`}>{note}</span>}
     </label>
   );
 }

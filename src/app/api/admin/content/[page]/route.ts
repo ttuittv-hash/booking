@@ -6,12 +6,14 @@ import {
   getGuidePageContent,
   getRatesContent,
   getRulesContent,
+  getScreenTextContent,
   getSeoulArenaContent,
   saveDocumentsContent,
   saveFeaturesContent,
   saveGuidePageContent,
   saveRatesContent,
   saveRulesContent,
+  saveScreenTextContent,
   saveSeoulArenaContent,
 } from "@/lib/db";
 
@@ -33,6 +35,7 @@ const PAGES: Record<string, Loader> = {
   rates: { get: getRatesContent, save: saveRatesContent },
   documents: { get: getDocumentsContent, save: saveDocumentsContent },
   rules: { get: getRulesContent, save: saveRulesContent },
+  screenText: { get: getScreenTextContent, save: saveScreenTextContent },
 };
 
 export async function GET(_request: Request, ctx: { params: Promise<{ page: string }> }) {

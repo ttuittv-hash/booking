@@ -2,72 +2,23 @@ import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { getCurrentUser, isPendingApplicant } from "@/lib/auth";
 import { getGuidePageContent } from "@/lib/db";
-import type { GuidePageContent } from "@/lib/content/pageContent";
 import { sanitizeRichText } from "@/lib/sanitizeHtml";
 import { PublicHeader } from "@/components/PublicHeader";
 import { SiteFooter } from "@/components/ui/SiteFooter";
-import { QueryTabs } from "@/components/ui/QueryTabs";
-import { CONTENT_TAB_PARAM } from "@/components/ui/nav-items";
-import {
-  ArrowRight,
-  Band,
-  ButtonLink,
-  PageHead,
-  ProcessSteps,
-  SectionHead,
-} from "@/components/ui/kit";
+import { ArrowRight, Band, ButtonLink, PageHead, ProcessSteps } from "@/components/ui/kit";
 
 export const metadata: Metadata = {
   title: "대관 안내 | 서울아레나",
 };
 
-function HowToBookPanel({ c, introHtml }: { c: GuidePageContent; introHtml: string }) {
-  return (
-    <>
-      <Band tone="light" size="lg">
-        <PageHead
-          en="HOW TO BOOK"
-          ko="대관 안내"
-          lead={<div dangerouslySetInnerHTML={{ __html: introHtml }} />}
-        />
-      </Band>
-
-      <Band tone="white">
-        <SectionHead title="RATE STRUCTURE" lead="요금 체계는 공간에 따라 다릅니다." />
-        <dl className="mt-10 border-t border-border/25">
-          {c.rateStructure.map((r) => (
-            <div
-              key={r.label}
-              className="grid gap-3 border-b border-border/15 py-7 lg:grid-cols-[minmax(0,12rem)_minmax(0,1fr)] lg:gap-[var(--gutter)]"
-            >
-              <dt className="type-kr-heading text-h5-m sm:text-h5">{r.label}</dt>
-              <dd className="measure break-keep text-s text-muted">{r.value}</dd>
-            </div>
-          ))}
-        </dl>
-        <div className="mt-10">
-          <ButtonLink href="/rates" variant="primary">
-            대관료 보기
-            <ArrowRight />
-          </ButtonLink>
-        </div>
-      </Band>
-    </>
-  );
-}
-
-function HowItWorksPanel({ c }: { c: GuidePageContent }) {
-  // 머리글만 있는 밴드를 따로 두면 제목과 절차 사이가 지나치게 벌어진다 — 한 밴드에 담는다.
-  return (
-    <Band tone="light" size="lg">
-      <PageHead en="HOW IT WORKS" ko="대관 절차" />
-      <div className="mt-10">
-        <ProcessSteps steps={c.process} />
-      </div>
-    </Band>
-  );
-}
-
+/**
+ * BOOK IT › 대관 안내 — 한 장짜리 화면이다.
+ *
+ * 탭(대관 안내 / 대관 절차)은 두지 않는다. 두 탭이 담던 것이 "안내 문단"과
+ * "절차 8단계" 하나씩이어서, 탭을 누르게 만드는 대신 위아래로 이어 붙였다.
+ * 요금 체계 설명(RATE STRUCTURE)은 금액을 소유한 대관료 화면과 내용이 겹쳐
+ * 삭제하고, 그 자리에 대관 절차를 놓는다.
+ */
 export default async function GuidePage() {
   const [currentUser, content] = await Promise.all([getCurrentUser(), getGuidePageContent()]);
   if (!currentUser) redirect("/login");
@@ -79,15 +30,26 @@ export default async function GuidePage() {
       <PublicHeader active="/guide" currentUser={currentUser} />
 
       <main className="flex flex-1 flex-col">
-        <QueryTabs
-          param={CONTENT_TAB_PARAM}
-          ariaLabel="대관 안내"
-          items={[
-            { value: "book", label: "대관 안내", panel: <HowToBookPanel c={content} introHtml={introHtml} /> },
-            { value: "process", label: "대관 절차", panel: <HowItWorksPanel c={content} /> },
-          ]}
-        />
+        <Band tone="light" size="lg">
+          <PageHead
+            en="HOW TO BOOK"
+            ko="대관 안내"
+            lead={<div dangerouslySetInnerHTML={{ __html: introHtml }} />}
+          />
+        </Band>
 
+        <Band tone="white">
+          <PageHead as="h2" en="HOW IT WORKS" ko="대관 절차" />
+          <div className="mt-10">
+            <ProcessSteps steps={content.process} />
+          </div>
+          <div className="mt-10">
+            <ButtonLink href="/rates" variant="primary">
+              대관료 보기
+              <ArrowRight />
+            </ButtonLink>
+          </div>
+        </Band>
       </main>
 
       <SiteFooter />

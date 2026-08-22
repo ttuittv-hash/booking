@@ -81,7 +81,7 @@ export const ARENA_RATES: ArenaRate[] = [
   {
     key: "D",
     name: "Rate D",
-    capacity: "약 22,000명",
+    capacity: "약 22,500명",
     stageType: "센터 스테이지",
     seatingType: "플로어 스탠딩",
     total: 660_000_000,
@@ -95,8 +95,12 @@ export const ARENA_RATES: ArenaRate[] = [
 
 export const ARENA_RENTAL_PERIOD = "1주 (6일 — 셋업 4일⋅공연 2일)";
 
-/** 아레나 패키지 최대 수용인원 — 위저드 입력 상한과 같은 값을 쓴다 */
-export const ARENA_MAX_AUDIENCE = 22_000;
+/**
+ * 아레나 최대 수용인원 — 화면에 나가는 모든 수용인원 표기의 기준값이다.
+ * (엔드 스테이지 · 플로어 스탠딩 구성) 공간 소개의 최대 인원, 패키지 4의
+ * 수용 규모, 위저드 입력 상한이 서로 다른 숫자를 말하지 않도록 여기서만 정한다.
+ */
+export const ARENA_MAX_AUDIENCE = 22_500;
 
 export const ARENA_RATE_INCLUDES: [string, string][] = [
   ["공간", "야외광장⋅티켓박스⋅전용 콘코스"],
