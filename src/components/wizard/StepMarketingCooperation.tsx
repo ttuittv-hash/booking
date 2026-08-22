@@ -4,6 +4,16 @@ import { toggleClass } from "@/components/ui/kit";
 import type { MarketingCooperation } from "@/lib/pricing/types";
 import { StepHeading, StepForm } from "./StepHeading";
 
+// 홍보 및 서비스 노출 동의는 무조건 선택해야 다음 단계로 넘어간다(2026-08-22,
+// "홍보 및 서비스 노출 동의/비동의 -> 이거 선택은 무조건 필수"). 나머지(채널·스폰서십)는
+// 선택 항목이라 여기서 검사하지 않는다.
+export function validateMarketingCooperationStep(info: MarketingCooperation): string | null {
+  if (info.seoulArenaPromotionConsent === null) {
+    return "홍보 및 서비스 노출 동의 여부를 선택해 주세요.";
+  }
+  return null;
+}
+
 const EMPTY_CHANNEL = { platform: "", handle: "", followers: "" };
 
 // 티켓 판매량·판매율 데이터 제공 체크박스가 정확히 무엇을 포함하는지 보여주는
@@ -75,7 +85,7 @@ export function StepMarketingCooperation({
       <StepForm>
         <div className="border-t border-border/25 pt-5">
           <div className="mb-2.5 flex items-center justify-between">
-            <h3 className="type-kr-heading text-h6-m">프로모션 채널</h3>
+            <h3 className="type-kr-heading text-h6-m">프로모션 채널(선택)</h3>
             <button type="button" onClick={addChannel} className={toggleClass(false)}>
               ＋ 채널 추가
             </button>
@@ -183,7 +193,7 @@ export function StepMarketingCooperation({
 
         <div className="mt-8 border-t border-border/25 pt-5">
           <div className="mb-2.5 flex items-center justify-between">
-            <h3 className="type-kr-heading text-h6-m">공동 스폰서십 · 브랜드 협업 연계</h3>
+            <h3 className="type-kr-heading text-h6-m">공동 스폰서십 · 브랜드 협업 연계(선택)</h3>
             <button type="button" onClick={addSponsorship} className={toggleClass(false)}>
               ＋ 항목 추가
             </button>

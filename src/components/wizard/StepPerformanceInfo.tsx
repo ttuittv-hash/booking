@@ -60,15 +60,17 @@ const ALLOWED_MIME = new Set([
 // 중 어느 쪽이 비었는지 메시지에 알려준다.
 export function validatePerformanceInfoStep(info: PerformanceInfo, venueLabel?: string): string | null {
   const prefix = venueLabel ? `${venueLabel} ` : "";
+  // 소속은 선택으로 바뀌어(2026-08-22, "책임자들 넣는거 소속(선택)으로해") 성명·연락처만 본다.
   const person = (value: ResponsiblePerson, label: string) => {
-    if (!value.name.trim() || !value.title.trim() || !value.phone.trim()) {
-      return `${prefix}${label}(성명·소속·연락처)을 모두 입력해 주세요.`;
+    if (!value.name.trim() || !value.phone.trim()) {
+      return `${prefix}${label}(성명·연락처)을 모두 입력해 주세요.`;
     }
     return null;
   };
 
-  if (!info.applicantCompanyName.trim()) return `${prefix}대관신청사명을 입력해 주세요.`;
-  if (!info.applicantBusinessRegistrationNumber.trim()) return `${prefix}사업자등록번호를 입력해 주세요.`;
+  // 대관신청사명·사업자등록번호는 더 이상 이 화면에서 입력하지 않고 가입 계정에서
+  // 그대로 가져와 읽기 전용으로 보여준다(2026-08-22) — 계정 데이터라 여기서 필수값
+  // 검사를 하지 않는다(비어 있다면 계정 쪽 문제다).
   if (!info.applicantCompanyType) return `${prefix}신청 기업 유형을 선택해 주세요.`;
   if (!info.applicantContactName.trim()) return `${prefix}담당자를 입력해 주세요.`;
   if (!info.applicantContactPhone.trim()) return `${prefix}담당자 연락처를 입력해 주세요.`;
@@ -86,7 +88,6 @@ export function validatePerformanceInfoStep(info: PerformanceInfo, venueLabel?: 
     return `${prefix}연령제한 상세를 입력해 주세요.`;
   }
 
-  if (!info.teardownCompletionTime.trim()) return `${prefix}철수 완료 예정시간을 입력해 주세요.`;
   if (!info.ticketOpenExpectedDate.trim()) return `${prefix}티켓 오픈 예정일을 입력해 주세요.`;
 
   if (info.seatingTypes.length === 0) return `${prefix}객석형태를 하나 이상 선택해 주세요.`;
@@ -251,7 +252,7 @@ function ResponsiblePersonFields({
         />
         <input
           value={value.title}
-          placeholder="소속"
+          placeholder="소속 (선택)"
           onChange={(e) => onChange({ ...value, title: e.target.value })}
           className="field-base w-full"
         />
@@ -315,20 +316,12 @@ function PerformanceInfoFields({
         {/* 신청자 정보 */}
         <div className="border-t-2 border-foreground pt-5">
           <h3 className="type-kr-heading text-h6-m">신청자 정보</h3>
-          <p className="mt-1 text-xs text-muted">회원정보에서 자동 입력 · 수정 가능</p>
+          <p className="mt-1 text-xs text-muted">가입한 계정 정보에서 자동으로 불러옵니다</p>
 
           <div className="mt-4 space-y-4">
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-              <TextField
-                label="대관신청사명"
-                value={info.applicantCompanyName}
-                onChange={(v) => set("applicantCompanyName", v)}
-              />
-              <TextField
-                label="사업자등록번호"
-                value={info.applicantBusinessRegistrationNumber}
-                onChange={(v) => set("applicantBusinessRegistrationNumber", v)}
-              />
+              <ReadOnlyRow label="대관신청사명" value={info.applicantCompanyName || "—"} />
+              <ReadOnlyRow label="사업자등록번호" value={info.applicantBusinessRegistrationNumber || "—"} />
             </div>
 
             <div>
@@ -512,7 +505,7 @@ function PerformanceInfoFields({
                     <ReadOnlyRow label="총 공연 횟수" value={`${scheduleSummary.showsTotal}회 (자동 계산)`} />
                   )}
                   <TextField
-                    label="철수 완료 예정시간"
+                    label="철수 완료 예정시간(선택)"
                     value={info.teardownCompletionTime}
                     placeholder="예: 당일 24:00"
                     onChange={(v) => set("teardownCompletionTime", v)}
@@ -526,8 +519,12 @@ function PerformanceInfoFields({
                   <div className="flex items-center gap-2">
                     <input
                       type="date"
-                      value={info.ticketOpenExpectedDate === "미정" ? "" : info.ticketOpenExpectedDate}
-                      disabled={info.ticketOpenExpectedDate === "미정"}
+                      value={
+                        info.ticketOpenExpectedDate === "미정" || info.ticketOpenExpectedDate === "협의중"
+                          ? ""
+                          : info.ticketOpenExpectedDate
+                      }
+                      disabled={info.ticketOpenExpectedDate === "미정" || info.ticketOpenExpectedDate === "협의중"}
                       onChange={(e) => set("ticketOpenExpectedDate", e.target.value)}
                       className="field-base tabular-nums sm:w-52"
                     />
@@ -539,6 +536,15 @@ function PerformanceInfoFields({
                       className={toggleClass(info.ticketOpenExpectedDate === "미정")}
                     >
                       미정
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() =>
+                        set("ticketOpenExpectedDate", info.ticketOpenExpectedDate === "협의중" ? "" : "협의중")
+                      }
+                      className={toggleClass(info.ticketOpenExpectedDate === "협의중")}
+                    >
+                      협의 중
                     </button>
                   </div>
                 </div>
@@ -617,7 +623,7 @@ function PerformanceInfoFields({
 
         <div className="mt-5">
           <TextField
-            label="해외 아티스트 추가사항"
+            label="해외 아티스트 추가사항(선택)"
             value={info.foreignArtistNotes}
             placeholder="비자 · 입국 일정 및 국내 에이전시"
             onChange={(v) => set("foreignArtistNotes", v)}
@@ -704,7 +710,18 @@ export function StepPerformanceInfo({
   const effectiveTab: VenueSplitTab = midHallDifferent ? (activeTab === "MIDHALL" ? "MIDHALL" : "ARENA") : "COMMON";
 
   function splitAndSelect(tab: "ARENA" | "MIDHALL") {
-    if (!midHallDifferent) onChangeMidHallInfo(midHallInfo ?? { ...INITIAL_PERFORMANCE_INFO });
+    // 대관신청사명·사업자등록번호는 이제 읽기 전용(계정에서 가져옴)이라, 중형 사본을
+    // 빈 기본값으로 새로 만들면 고칠 방법 없이 빈칸으로 굳어버린다 — 원본(info)의
+    // 계정 정보를 그대로 이어받는다(2026-08-22).
+    if (!midHallDifferent) {
+      onChangeMidHallInfo(
+        midHallInfo ?? {
+          ...INITIAL_PERFORMANCE_INFO,
+          applicantCompanyName: info.applicantCompanyName,
+          applicantBusinessRegistrationNumber: info.applicantBusinessRegistrationNumber,
+        },
+      );
+    }
     setActiveTab(tab);
   }
 
@@ -755,7 +772,7 @@ export function StepPerformanceInfo({
       </div>
 
       <div className="mt-10 border-t-2 border-foreground pt-5">
-        <h3 className="type-kr-heading text-h6-m">자료 첨부</h3>
+        <h3 className="type-kr-heading text-h6-m">자료 첨부(선택)</h3>
         <p className="mt-1 mb-2.5 text-xs text-muted">
           공연기획서 · 무대 도면, 출연 계약 증빙, 행사 안전관리계획서 등을 첨부하세요. (PDF/이미지/문서,
           파일당 최대 20MB) 신청서 제출 시 함께 업로드됩니다.

@@ -33,8 +33,8 @@ import { Step5Estimate } from "./Step5Estimate";
 import { StepPerformanceInfo, validatePerformanceInfoStep } from "./StepPerformanceInfo";
 import { StepAudience, validateAudienceStep } from "./StepAudience";
 import { StepPublicInterest } from "./StepPublicInterest";
-import { StepMarketingCooperation } from "./StepMarketingCooperation";
-import { StepSafetyPledge } from "./StepSafetyPledge";
+import { StepMarketingCooperation, validateMarketingCooperationStep } from "./StepMarketingCooperation";
+import { StepSafetyPledge, validateSafetyPledgeStep } from "./StepSafetyPledge";
 import { Step6Submit } from "./Step6Submit";
 
 const TOTAL_STEPS = 9;
@@ -279,6 +279,12 @@ export function WizardShell({
   const step4Blocked =
     validateAudienceStep(selection.performanceInfo, selection.midHallPerformanceInfo ? "아레나" : undefined) ??
     (selection.midHallPerformanceInfo && validateAudienceStep(selection.midHallPerformanceInfo, "중형공연장"));
+  // 홍보 및 서비스 노출 동의(6단계)·안전관리 서약(7단계)도 필수라 그 다음 단계로
+  // 못 넘어가게 막는다(2026-08-22, "무조건 필수").
+  const step6Blocked = validateMarketingCooperationStep(
+    selection.marketingCooperation ?? DEFAULT_MARKETING_COOPERATION,
+  );
+  const step7Blocked = validateSafetyPledgeStep(selection.safetyPledge ?? DEFAULT_SAFETY_PLEDGE);
   const maxUnlockedStep = !selection.venueId
     ? 1
     : midHallOnly && !hasMidHallSelection
@@ -289,7 +295,11 @@ export function WizardShell({
           ? 3
           : step4Blocked
             ? 4
-            : TOTAL_STEPS;
+            : step6Blocked
+              ? 6
+              : step7Blocked
+                ? 7
+                : TOTAL_STEPS;
   // 패키지 선택 전에도 기본 공연일수를 보여줘야 하므로, 모든 패키지가 공유하는 기본값(2일)을 임시로 사용한다.
   const effectivePkg = findPackage(rateTable, effectivePackageId);
   const defaultPerformanceDays = effectivePkg?.defaultPerformanceDays ?? 2;
@@ -464,6 +474,14 @@ export function WizardShell({
             }
             if (step === 4 && step4Blocked) {
               toast.error(step4Blocked);
+              return;
+            }
+            if (step === 6 && step6Blocked) {
+              toast.error(step6Blocked);
+              return;
+            }
+            if (step === 7 && step7Blocked) {
+              toast.error(step7Blocked);
               return;
             }
             goTo(step + 1);

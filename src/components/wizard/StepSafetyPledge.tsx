@@ -10,6 +10,15 @@ const PLEDGE_ITEMS: { key: keyof Omit<SafetyPledge, "signature">; label: string 
   { key: "incidentReporting", label: "사고 발생 시 관리사무소 및 관계 기관에 즉시 보고합니다." },
 ];
 
+// 서약 항목을 전부 체크하고 서명까지 해야 다음 단계로 넘어간다(2026-08-22,
+// "안전관리 서약서는 무조건 체크하고 서명해야지 다음단계로 넘어감 => 필수").
+export function validateSafetyPledgeStep(pledge: SafetyPledge): string | null {
+  const unchecked = PLEDGE_ITEMS.some((item) => !pledge[item.key]);
+  if (unchecked) return "안전관리 서약 항목을 모두 체크해 주세요.";
+  if (!pledge.signature.trim()) return "서명(담당자 성명)을 입력해 주세요.";
+  return null;
+}
+
 export function StepSafetyPledge({
   pledge,
   onChange,
