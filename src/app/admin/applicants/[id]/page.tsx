@@ -7,6 +7,7 @@ import { num } from "@/lib/format";
 import type { AppUser, Company, CompanyVerification, Quote } from "@/lib/pricing/types";
 import { ArrowRight, Badge } from "@/components/ui/kit";
 import { AdminNav } from "@/components/admin/AdminNav";
+import { SetCompanyMasterButton } from "@/components/admin/SetCompanyMasterButton";
 import { buildVerificationBadges, overallVerdict } from "@/lib/verificationBadges";
 import {
   HELP,
@@ -92,17 +93,20 @@ export default async function AdminApplicantDetailPage({
     ],
     [
       "회사 내 권한",
-      target.companyRole === "MASTER" ? (
-        <span key="role" className="border border-accent px-2 py-0.5 text-xs text-accent">
-          대표 담당자
-        </span>
-      ) : target.companyRole === "STAFF" ? (
-        <span key="role" className="border border-border-soft px-2 py-0.5 text-xs text-muted">
-          소속 담당자
-        </span>
-      ) : (
-        NONE
-      ),
+      <span key="role" className="flex flex-col items-start gap-2">
+        {target.companyRole === "MASTER" ? (
+          <span className="border border-accent px-2 py-0.5 text-xs text-accent">대표 담당자</span>
+        ) : target.companyRole === "STAFF" ? (
+          <span className="border border-border-soft px-2 py-0.5 text-xs text-muted">소속 담당자</span>
+        ) : (
+          NONE
+        )}
+        {/* 대표가 부재·퇴사했거나 처음부터 잘못 지정된 경우의 안전망(기획서 A10) —
+            회원 상세에서 바로 대표를 지정할 수 있어야 회원 관리 화면을 벗어나지 않는다. */}
+        {company && target.companyRole !== "MASTER" && target.approvalStatus === "APPROVED" && (
+          <SetCompanyMasterButton companyId={company.id} targetId={target.id} targetName={target.name} />
+        )}
+      </span>,
     ],
     ["본인인증", target.identityVerifiedAt ? new Date(target.identityVerifiedAt).toLocaleString("ko-KR") : "미인증"],
     ["가입일", new Date(target.createdAt).toLocaleString("ko-KR")],
