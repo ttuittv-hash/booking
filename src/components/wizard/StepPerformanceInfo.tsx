@@ -391,97 +391,112 @@ function PerformanceInfoFields({
           <h3 className="type-kr-heading text-h6-m">공연 기본정보</h3>
           <p className="mt-1 text-xs text-muted">입력한 내용은 대관심의 및 계약서 작성에 활용됩니다</p>
 
-          <div className="mt-4 space-y-4">
-            <TextField label="공연(행사)명" value={info.eventName} onChange={(v) => set("eventName", v)} />
-            <TextField label="아티스트 / 출연진" value={info.artist} onChange={(v) => set("artist", v)} />
-            <TextField label="주최 · 주관 · 기획" value={info.organizer} onChange={(v) => set("organizer", v)} />
-
-            {scheduleSummary?.arenaLine && (
-              <ReadOnlyRow label="대관기간 — 아레나" value={scheduleSummary.arenaLine} note="수정은 일정 선택에서" />
-            )}
-            {scheduleSummary?.midHallLine && (
-              <ReadOnlyRow label="대관기간 — 중형" value={scheduleSummary.midHallLine} note="수정은 일정 선택에서" />
-            )}
-            {scheduleSummary?.showsTotal != null && (
-              <ReadOnlyRow label="총 공연 횟수" value={`${scheduleSummary.showsTotal}회 (자동 계산)`} />
-            )}
-          </div>
-
-          <div className="mt-6">
-            <div className="mb-2.5 text-xs font-bold text-muted">행사유형</div>
-            <div className="flex flex-wrap gap-2">
-              {EVENT_TYPES.map((type) => (
-                <CheckboxChip
-                  key={type}
-                  label={EVENT_TYPE_LABEL[type]}
-                  checked={info.eventTypes.includes(type)}
-                  onChange={() => set("eventTypes", toggleInArray(info.eventTypes, type))}
-                />
-              ))}
+          {/* 화면당 두 항목씩 짝지어 한 줄로 보여준다(2026-08-22, "밑에 기재한 각 컬럼마다
+              한행으로 합쳐" 요청) — 무대형태만 짝이 없어 단독 줄로 남는다. */}
+          <div className="mt-4 space-y-6">
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+              <TextField label="공연(행사)명" value={info.eventName} onChange={(v) => set("eventName", v)} />
+              <TextField label="아티스트 / 출연진" value={info.artist} onChange={(v) => set("artist", v)} />
             </div>
-          </div>
 
-          <div className="mt-6">
-            <div className="mb-2.5 text-xs font-bold text-muted">공연등급</div>
-            <div className="flex flex-wrap gap-2">
-              {AGE_RATINGS.map((rating) => (
-                <CheckboxChip
-                  key={rating}
-                  label={AGE_RATING_LABEL[rating]}
-                  checked={info.ageRating === rating}
-                  onChange={() => set("ageRating", info.ageRating === rating ? null : rating)}
-                />
-              ))}
-            </div>
-            {info.ageRating === "AGE_LIMIT" && (
-              <input
-                value={info.ageLimitDetail}
-                placeholder="예: 15세 이상 관람가"
-                onChange={(e) => set("ageLimitDetail", e.target.value)}
-                className="field-base mt-2 w-full max-w-xs"
-              />
+            {(scheduleSummary?.arenaLine || scheduleSummary?.midHallLine) && (
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                {scheduleSummary?.arenaLine && (
+                  <ReadOnlyRow label="대관기간 — 아레나" value={scheduleSummary.arenaLine} note="수정은 일정 선택에서" />
+                )}
+                {scheduleSummary?.midHallLine && (
+                  <ReadOnlyRow label="대관기간 — 중형" value={scheduleSummary.midHallLine} note="수정은 일정 선택에서" />
+                )}
+              </div>
             )}
-          </div>
 
-          <div className="mt-6">
-            <div className="mb-2.5 text-xs font-bold text-muted">객석형태</div>
-            <div className="flex flex-wrap gap-2">
-              {SEATING_TYPES.map((type) => (
-                <CheckboxChip
-                  key={type}
-                  label={SEATING_TYPE_LABEL[type]}
-                  checked={info.seatingTypes.includes(type)}
-                  onChange={() => set("seatingTypes", toggleInArray(info.seatingTypes, type))}
-                />
-              ))}
+            <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
+              <div>
+                <div className="mb-2.5 text-xs font-bold text-muted">행사유형</div>
+                <div className="flex flex-wrap gap-2">
+                  {EVENT_TYPES.map((type) => (
+                    <CheckboxChip
+                      key={type}
+                      label={EVENT_TYPE_LABEL[type]}
+                      checked={info.eventTypes.includes(type)}
+                      onChange={() => set("eventTypes", toggleInArray(info.eventTypes, type))}
+                    />
+                  ))}
+                </div>
+              </div>
+
+              <div>
+                <div className="mb-2.5 text-xs font-bold text-muted">공연등급</div>
+                <div className="flex flex-wrap gap-2">
+                  {AGE_RATINGS.map((rating) => (
+                    <CheckboxChip
+                      key={rating}
+                      label={AGE_RATING_LABEL[rating]}
+                      checked={info.ageRating === rating}
+                      onChange={() => set("ageRating", info.ageRating === rating ? null : rating)}
+                    />
+                  ))}
+                </div>
+                {info.ageRating === "AGE_LIMIT" && (
+                  <input
+                    value={info.ageLimitDetail}
+                    placeholder="예: 15세 이상 관람가"
+                    onChange={(e) => set("ageLimitDetail", e.target.value)}
+                    className="field-base mt-2 w-full max-w-xs"
+                  />
+                )}
+              </div>
             </div>
-          </div>
 
-          <div className="mt-6">
-            <div className="mb-2.5 text-xs font-bold text-muted">무대형태</div>
-            <div className="flex flex-wrap gap-2">
-              {STAGE_TYPES.map((type) => (
-                <CheckboxChip
-                  key={type}
-                  label={STAGE_TYPE_LABEL[type]}
-                  checked={info.stageTypes.includes(type)}
-                  onChange={() => set("stageTypes", toggleInArray(info.stageTypes, type))}
-                />
-              ))}
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+              <TextField label="주최 · 주관 · 기획" value={info.organizer} onChange={(v) => set("organizer", v)} />
+              {scheduleSummary?.showsTotal != null && (
+                <ReadOnlyRow label="총 공연 횟수" value={`${scheduleSummary.showsTotal}회 (자동 계산)`} />
+              )}
             </div>
-          </div>
 
-          <div className="mt-6">
-            <div className="mb-2.5 text-xs font-bold text-muted">수납식 객석 사용여부</div>
-            <div className="flex flex-wrap gap-2">
-              {RETRACTABLE_USES.map((use) => (
-                <CheckboxChip
-                  key={use}
-                  label={RETRACTABLE_SEAT_USE_LABEL[use]}
-                  checked={info.retractableSeatUse === use}
-                  onChange={() => set("retractableSeatUse", info.retractableSeatUse === use ? null : use)}
-                />
-              ))}
+            <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
+              <div>
+                <div className="mb-2.5 text-xs font-bold text-muted">객석형태</div>
+                <div className="flex flex-wrap gap-2">
+                  {SEATING_TYPES.map((type) => (
+                    <CheckboxChip
+                      key={type}
+                      label={SEATING_TYPE_LABEL[type]}
+                      checked={info.seatingTypes.includes(type)}
+                      onChange={() => set("seatingTypes", toggleInArray(info.seatingTypes, type))}
+                    />
+                  ))}
+                </div>
+              </div>
+
+              <div>
+                <div className="mb-2.5 text-xs font-bold text-muted">수납식 객석 사용여부</div>
+                <div className="flex flex-wrap gap-2">
+                  {RETRACTABLE_USES.map((use) => (
+                    <CheckboxChip
+                      key={use}
+                      label={RETRACTABLE_SEAT_USE_LABEL[use]}
+                      checked={info.retractableSeatUse === use}
+                      onChange={() => set("retractableSeatUse", info.retractableSeatUse === use ? null : use)}
+                    />
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            <div>
+              <div className="mb-2.5 text-xs font-bold text-muted">무대형태</div>
+              <div className="flex flex-wrap gap-2">
+                {STAGE_TYPES.map((type) => (
+                  <CheckboxChip
+                    key={type}
+                    label={STAGE_TYPE_LABEL[type]}
+                    checked={info.stageTypes.includes(type)}
+                    onChange={() => set("stageTypes", toggleInArray(info.stageTypes, type))}
+                  />
+                ))}
+              </div>
             </div>
           </div>
 
