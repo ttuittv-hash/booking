@@ -180,6 +180,14 @@ export function WizardShell({
     return { year: w.year, month: w.month };
   });
   const [submittedId, setSubmittedId] = useState<string | null>(null);
+  // 최종 제출(서명까지 완료)한 뒤에는 "수정하기"를 눌러야만 이전 단계로 돌아갈 수 있다
+  // (2026-08-22, "수정버튼 누르기 전에는 그 전단계로 못넘어감"). 매 제출 성공마다 다시
+  // 잠긴다 — editUnlocked로 이번 제출 이후 잠금이 풀렸는지만 추적한다.
+  const [editUnlocked, setEditUnlocked] = useState(false);
+  // 배너 문구("접수되었습니다" vs "수정되었습니다")는 이번 세션에서 이미 한 번 제출한
+  // 적이 있었는지로 갈린다 — submittedId 자체는 재제출 후에도 계속 값이 있어 이걸로는
+  // 구분할 수 없어 별도로 기억한다.
+  const [lastActionWasEdit, setLastActionWasEdit] = useState(isEditing);
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [attachmentError, setAttachmentError] = useState<string | null>(null);
@@ -303,11 +311,20 @@ export function WizardShell({
   // 패키지 선택 전에도 기본 공연일수를 보여줘야 하므로, 모든 패키지가 공유하는 기본값(2일)을 임시로 사용한다.
   const effectivePkg = findPackage(rateTable, effectivePackageId);
   const defaultPerformanceDays = effectivePkg?.defaultPerformanceDays ?? 2;
+  // 최종 제출까지 마치면 "수정하기"를 누르기 전까지 다른 단계로 이동할 수 없다.
+  const submissionLocked = !!submittedId && !editUnlocked;
 
   function goTo(target: number) {
     if (target < 1 || target > TOTAL_STEPS) return;
     if (target > maxUnlockedStep) return;
+    if (submissionLocked && target !== step) return;
     setStep(target);
+    if (typeof window !== "undefined") window.scrollTo({ top: 0, behavior: "smooth" });
+  }
+
+  function requestEdit() {
+    setEditUnlocked(true);
+    setStep(1);
     if (typeof window !== "undefined") window.scrollTo({ top: 0, behavior: "smooth" });
   }
 
@@ -402,12 +419,17 @@ export function WizardShell({
 
   async function submit() {
     if (!currentUser) return;
+    // 이번 세션에서 이미 한 번 제출해 신청서가 생성돼 있으면("수정하기"로 되돌아와
+    // 다시 제출하는 경우 포함), 새로 만들지 않고 같은 신청서를 갱신한다(PUT) — 그래야
+    // 접수번호가 그대로 유지된다.
+    const isUpdate = isEditing || !!submittedId;
+    const targetId = editingQuoteId ?? submittedId;
     setSubmitting(true);
     setSubmitError(null);
     setAttachmentError(null);
     try {
-      const res = await fetch(isEditing ? `/api/quotes/${editingQuoteId}` : "/api/quotes", {
-        method: isEditing ? "PUT" : "POST",
+      const res = await fetch(isUpdate ? `/api/quotes/${targetId}` : "/api/quotes", {
+        method: isUpdate ? "PUT" : "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ selection: resolvedSelection }),
       });
@@ -417,10 +439,12 @@ export function WizardShell({
           setSessionExpired(true);
           return;
         }
-        setSubmitError(data.error || (isEditing ? "신청서 수정에 실패했습니다." : "신청서 제출에 실패했습니다."));
+        setSubmitError(data.error || (isUpdate ? "신청서 수정에 실패했습니다." : "신청서 제출에 실패했습니다."));
         return;
       }
       setSubmittedId(data.quote.id);
+      setLastActionWasEdit(isUpdate);
+      setEditUnlocked(false);
       await uploadPendingFiles(data.quote.id);
       if (!isEditing) clearWizardDraft();
     } catch {
@@ -444,7 +468,7 @@ export function WizardShell({
     <div className="mt-10 flex items-center justify-between gap-3 border-t border-border/25 pt-6">
       <button
         type="button"
-        disabled={step === 1}
+        disabled={step === 1 || submissionLocked}
         onClick={() => goTo(step - 1)}
         className={btnClass("secondary", "lg")}
       >
@@ -500,7 +524,7 @@ export function WizardShell({
     // 콘텐츠 트랙은 minmax(0,1fr) + min-w-0 로 묶어 스텝 전환 시 폭이 변하지 않게 한다.
     <div className="container-site grid w-full grid-cols-1 gap-10 py-10 sm:py-12 lg:grid-cols-[minmax(0,1fr)_360px] lg:gap-14">
       <div className="min-w-0">
-        <StepNav step={step} maxUnlockedStep={maxUnlockedStep} onJump={goTo} />
+        <StepNav step={step} maxUnlockedStep={maxUnlockedStep} locked={submissionLocked} onJump={goTo} />
 
         {step === 1 && (
           <section>
@@ -665,13 +689,16 @@ export function WizardShell({
             quote={quote}
             selection={resolvedSelection}
             isLoggedIn={!!currentUser && !sessionExpired}
-            isEditing={isEditing}
+            isEditing={isEditing || !!submittedId}
+            confirmationVisible={submissionLocked}
+            justEdited={lastActionWasEdit}
             submitting={submitting}
             submittedId={submittedId}
             error={submitError}
             attachmentError={attachmentError}
             fileCount={pendingFiles.length + audienceFiles.length + publicInterestFiles.length}
             onSubmit={submit}
+            onRequestEdit={requestEdit}
           />
         )}
 

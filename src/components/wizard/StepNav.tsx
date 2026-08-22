@@ -70,11 +70,14 @@ export function StepNav({
   step,
   maxUnlockedStep,
   hiddenSteps,
+  locked,
   onJump,
 }: {
   step: number;
   maxUnlockedStep: number;
   hiddenSteps?: number[];
+  /** 최종 제출까지 마친 뒤에는 "수정하기"를 누르기 전까지 다른 단계로 못 옮긴다(2026-08-22). */
+  locked?: boolean;
   onJump: (step: number) => void;
 }) {
   const groupsWithVisibleSteps = STAGE_GROUPS.map((group) => ({
@@ -95,7 +98,8 @@ export function StepNav({
         {groupsWithVisibleSteps.map((group) => {
           const entryStep = group.visibleSteps[0]?.step;
           const isActive = group.visibleSteps.some((s) => s.step === step);
-          const disabled = entryStep === undefined || entryStep > maxUnlockedStep;
+          const disabled =
+            entryStep === undefined || entryStep > maxUnlockedStep || (locked && entryStep !== step);
           return (
             <li key={group.label} className="shrink-0">
               <button
@@ -124,7 +128,7 @@ export function StepNav({
           {activeGroup.visibleSteps.map((s, i) => {
             const isCurrent = s.step === step;
             const isDone = s.step < step;
-            const disabled = s.step > maxUnlockedStep;
+            const disabled = s.step > maxUnlockedStep || (locked && s.step !== step);
             return (
               <li key={s.step} className="flex shrink-0 items-center gap-1.5">
                 {i > 0 && <Chevron />}

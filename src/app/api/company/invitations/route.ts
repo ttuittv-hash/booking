@@ -49,9 +49,13 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "휴대폰 번호 형식을 확인해주세요." }, { status: 400 });
   }
   const phone = rawPhone || null;
-  // 가입 전에도 초대 목록에서 누구인지 알아볼 수 있게 미리 받아두는 값(2026-08-22) —
-  // 선택 입력이며, 실제 가입 시 본인이 입력하는 이름을 대체하지 않는다.
-  const inviteeName = typeof body?.name === "string" && body.name.trim() ? body.name.trim() : null;
+  // 가입 전에도 초대 목록에서 누구를 초대했는지 알아볼 수 있게 받아두는 값(2026-08-22).
+  // 이름은 필수, 소속은 선택이다("이름은 선택 아닌데" 피드백) — 이름은 실제 가입 시
+  // 본인이 입력하는 이름을 대체하지 않고, 가입 전까지의 표시용으로만 쓰인다.
+  const inviteeName = typeof body?.name === "string" ? body.name.trim() : "";
+  if (!inviteeName) {
+    return NextResponse.json({ error: "초대할 담당자 이름을 입력해주세요." }, { status: 400 });
+  }
   const inviteeTitle = typeof body?.title === "string" && body.title.trim() ? body.title.trim() : null;
 
   // 원문 토큰은 링크로만 나가고 DB 에는 해시만 남는다.

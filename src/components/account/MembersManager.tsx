@@ -236,7 +236,7 @@ export function MembersManager() {
             type="text"
             value={name}
             onChange={(e) => setName(e.target.value)}
-            placeholder="이름 (선택)"
+            placeholder="이름"
             className="field-base min-w-40 flex-1"
           />
           <input
@@ -266,12 +266,12 @@ export function MembersManager() {
           <button
             type="button"
             data-testid="invite-send"
-            disabled={busy || !email}
+            disabled={busy || !email || !name.trim()}
             onClick={async () => {
               const data = await act("/api/company/invitations", {
                 email,
                 phone: phone || undefined,
-                name: name || undefined,
+                name,
                 title: title || undefined,
               });
               if (data?.inviteUrl) {

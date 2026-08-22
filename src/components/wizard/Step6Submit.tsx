@@ -62,24 +62,34 @@ export function Step6Submit({
   selection,
   isLoggedIn,
   isEditing = false,
+  confirmationVisible,
+  justEdited = false,
   submitting,
   submittedId,
   error,
   attachmentError,
   fileCount = 0,
   onSubmit,
+  onRequestEdit,
 }: {
   rateTable: RateTable;
   quote: EstimatedQuote;
   selection: QuoteSelection;
   isLoggedIn: boolean;
+  /** 신청서가 이미 존재해 이번 제출이 갱신(PUT)이 될지 — 화면 문구(제목·버튼)에 쓴다. */
   isEditing?: boolean;
+  /** 제출 완료 배너를 보여줄지 — "수정하기"로 잠금이 풀리면 submittedId가 있어도 다시 폼을 보여준다. */
+  confirmationVisible?: boolean;
+  /** 방금 완료된 제출이 최초 접수였는지 수정이었는지(배너 문구 구분용). */
+  justEdited?: boolean;
   submitting: boolean;
   submittedId: string | null;
   error: string | null;
   attachmentError?: string | null;
   fileCount?: number;
   onSubmit: () => void;
+  /** 제출 완료 배너 옆의 "수정하기" 버튼 — 누르면 1단계로 돌아가 다시 수정할 수 있다. */
+  onRequestEdit?: () => void;
 }) {
   const toast = useToast();
   const pkg = findPackage(rateTable, selection.packageId);
@@ -108,6 +118,7 @@ export function Step6Submit({
     );
   }
 
+  const showConfirmation = confirmationVisible ?? !!submittedId;
   const blockingIssues = quote.blockingIssues;
 
   /**
@@ -224,9 +235,20 @@ export function Step6Submit({
         </dl>
       </div>
 
-      {submittedId ? (
+      {showConfirmation ? (
         <div className="mt-8 border-t-2 border-foreground pt-5 text-s text-foreground">
-          <p className="font-bold">{isEditing ? "신청 내용이 수정되었습니다." : "신청이 접수되었습니다."}</p>
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <p className="font-bold">{justEdited ? "신청 내용이 수정되었습니다." : "신청이 접수되었습니다."}</p>
+            {onRequestEdit && (
+              <button
+                type="button"
+                onClick={onRequestEdit}
+                className="shrink-0 text-xs font-bold text-muted underline underline-offset-4 transition-colors hover:text-foreground"
+              >
+                수정하기
+              </button>
+            )}
+          </div>
           <p className="mt-1.5 leading-6">
             운영자 심사 → 계약 → 정산 순으로 진행되며, 각 단계가 완료되면
             알림으로 안내해 드립니다.
