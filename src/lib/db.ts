@@ -279,6 +279,17 @@ async function initSchema(pool: Pool) {
     );
     ALTER TABLE date_blocks ADD COLUMN IF NOT EXISTS venue_id TEXT NOT NULL DEFAULT 'ALL';
 
+    -- AI 분석의 "심사 기준" 문서 — 신청서 전체에 공통으로 적용되는 정책 문서 한 건만
+    -- 유지한다(신청서마다 따로 올리는 게 아니라 심사 기준 자체가 바뀔 때만 교체).
+    CREATE TABLE IF NOT EXISTS review_criteria_documents (
+      id TEXT PRIMARY KEY,
+      file_name TEXT NOT NULL,
+      mime_type TEXT NOT NULL,
+      file_path TEXT NOT NULL,
+      uploaded_by TEXT NOT NULL REFERENCES users(id),
+      uploaded_at TEXT NOT NULL
+    );
+
     CREATE TABLE IF NOT EXISTS contract_signatures (
       id TEXT PRIMARY KEY,
       quote_id TEXT NOT NULL UNIQUE REFERENCES quotes(id),
@@ -2836,6 +2847,76 @@ export async function blockDate(
  */
 export async function unblockDate(date: string, venueId: "arena" | "medium-hall") {
   await q("DELETE FROM date_blocks WHERE date = $1 AND (venue_id = $2 OR venue_id = 'ALL')", [date, venueId]);
+}
+
+// ---------------------------------------------------------------------------
+// AI 분석 — 심사 기준 문서 (전체 신청서 공통, 한 건만 유지)
+// ---------------------------------------------------------------------------
+
+export interface ReviewCriteriaDoc {
+  id: string;
+  fileName: string;
+  mimeType: string;
+  filePath: string;
+  uploadedBy: string;
+  uploadedAt: string;
+}
+
+interface ReviewCriteriaDocRow {
+  id: string;
+  file_name: string;
+  mime_type: string;
+  file_path: string;
+  uploaded_by: string;
+  uploaded_at: string;
+}
+
+function toReviewCriteriaDoc(row: ReviewCriteriaDocRow): ReviewCriteriaDoc {
+  return {
+    id: row.id,
+    fileName: row.file_name,
+    mimeType: row.mime_type,
+    filePath: row.file_path,
+    uploadedBy: row.uploaded_by,
+    uploadedAt: row.uploaded_at,
+  };
+}
+
+export async function getReviewCriteriaDoc(): Promise<ReviewCriteriaDoc | null> {
+  const row = await one<ReviewCriteriaDocRow>(
+    "SELECT * FROM review_criteria_documents ORDER BY uploaded_at DESC LIMIT 1",
+  );
+  return row ? toReviewCriteriaDoc(row) : null;
+}
+
+/** 새 심사 기준 문서를 올리면 이전 것은 지운다 — 한 번에 하나만 유지한다. */
+export async function setReviewCriteriaDoc(input: {
+  fileName: string;
+  mimeType: string;
+  filePath: string;
+  uploadedBy: string;
+}): Promise<ReviewCriteriaDoc> {
+  const doc: ReviewCriteriaDoc = {
+    id: crypto.randomUUID(),
+    fileName: input.fileName,
+    mimeType: input.mimeType,
+    filePath: input.filePath,
+    uploadedBy: input.uploadedBy,
+    uploadedAt: new Date().toISOString(),
+  };
+  await withTransaction(async () => {
+    await q("DELETE FROM review_criteria_documents", []);
+    await q(
+      `INSERT INTO review_criteria_documents (id, file_name, mime_type, file_path, uploaded_by, uploaded_at)
+       VALUES ($1, $2, $3, $4, $5, $6)`,
+      [doc.id, doc.fileName, doc.mimeType, doc.filePath, doc.uploadedBy, doc.uploadedAt],
+    );
+  });
+  return doc;
+}
+
+export async function deleteReviewCriteriaDoc(): Promise<void> {
+  await q("DELETE FROM review_criteria_documents", []);
 }
 
 // ESTIMATE 단계 신청서를 신청자가 직접 수정할 때 사용 — 심사 전 재계산된 산출내역으로 덮어쓴다.
