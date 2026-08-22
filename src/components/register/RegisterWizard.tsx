@@ -15,7 +15,10 @@ import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { btnClass } from "@/components/ui/kit";
 import { useToast } from "@/components/ui/Toast";
+import { InputCheckMark, PasswordMatchHint } from "@/components/ui/PasswordMatchHint";
 import {
+  sanitizePasswordInput,
+  sanitizeUsernameInput,
   checkBusinessNumber,
   checkEmail,
   checkPassword,
@@ -350,11 +353,11 @@ export function RegisterWizard() {
           setBrnCheck={setBrnCheck}
           idCheck={idCheck}
           setIdCheck={setIdCheck}
-          onOpenSearch={() => setSearchOpen(true)}
-          onLockCompany={(name) =>
-            setPickedCompany({ id: "", name, businessNumberMasked: null, region: null })
-          }
-          onClearCompany={() => {
+          onUnlock={() => {
+            // 기업 정보를 통째로 비운다. 처음에는 값을 남겼는데, 사용자가 다른 사업자번호를
+            // 입력해 진위확인을 하면 이전 회사의 상호·대표자·주소가 그대로 남아 새 번호와
+            // 섞였다 — 그 상태로 제출되면 남의 회사 정보로 가입하는 셈이다.
+            // [취소] 는 "직접 입력하겠다"는 뜻이므로 빈 종이에서 시작하는 것이 맞다.
             setPickedCompany(null);
             setBrnCheck(null);
             setForm((f) => ({
@@ -370,6 +373,32 @@ export function RegisterWizard() {
               addressDetail: "",
             }));
           }}
+          onOpenSearch={() => {
+            // 불러온 회사가 잠겨 있는 상태에서 다시 열면, 그 회사 정보는 지우고 시작한다.
+            // 잠금만 풀고 값을 남겼더니 창을 그냥 닫은 뒤 다른 번호로 진위확인을 하면
+            // 이전 회사의 상호·대표자·주소가 새 번호와 섞였다.
+            // 직접 타이핑한 내용(잠기지 않은 상태)은 건드리지 않는다.
+            if (pickedCompany) {
+              setPickedCompany(null);
+              setBrnCheck(null);
+              setForm((f) => ({
+                ...f,
+                companyName: "",
+                businessRegistrationNumber: "",
+                representativeName: "",
+                companyPhone: "",
+                companyFax: "",
+                corporateNumber: "",
+                postalCode: "",
+                address: "",
+                addressDetail: "",
+              }));
+            }
+            setSearchOpen(true);
+          }}
+          onLockCompany={(name) =>
+            setPickedCompany({ id: "", name, businessNumberMasked: null, region: null })
+          }
           onPostcode={openPostcode}
           loading={loading}
           onPrev={() => setStep(3)}
@@ -403,6 +432,8 @@ export function RegisterWizard() {
                   corporateNumber: c.corporateNumber ?? "",
                   postalCode: c.postalCode ?? "",
                   address: c.address ?? "",
+                  // 직접 입력해 둔 상세주소가 남으면 다른 회사 주소에 붙는다.
+                  addressDetail: "",
                 }));
                 return;
               }
@@ -664,7 +695,7 @@ function StepInfo({
   idCheck,
   setIdCheck,
   onOpenSearch,
-  onClearCompany,
+  onUnlock,
   onLockCompany,
   onPostcode,
   loading,
@@ -681,7 +712,8 @@ function StepInfo({
   idCheck: { available: boolean; message: string } | null;
   setIdCheck: React.Dispatch<React.SetStateAction<{ available: boolean; message: string } | null>>;
   onOpenSearch: () => void;
-  onClearCompany: () => void;
+  /** 불러온 회사를 되돌린다 — 잠금을 풀고 직접 입력할 수 있게 한다 */
+  onUnlock: () => void;
   /** 이미 등록된 회사로 확인되면 기업정보를 잠근다. */
   onLockCompany: (name: string) => void;
   onPostcode: () => void;
@@ -689,6 +721,7 @@ function StepInfo({
   onPrev: () => void;
   onSubmit: () => void;
 }) {
+  const toast = useToast();
   const [checking, setChecking] = useState<"brn" | "id" | null>(null);
   const set =
     (k: keyof FormState) =>
@@ -698,6 +731,11 @@ function StepInfo({
 
   // 사업자등록번호 중복확인 + 국세청 진위확인 (기획서 A5 · 1-34)
   async function verifyBrn() {
+    const invalid = firstFailure(checkBusinessNumber(form.businessRegistrationNumber));
+    if (invalid) {
+      toast.error(invalid);
+      return;
+    }
     setChecking("brn");
     try {
       const res = await fetch("/api/companies/verify-brn", {
@@ -706,11 +744,18 @@ function StepInfo({
         body: JSON.stringify({ businessRegistrationNumber: form.businessRegistrationNumber }),
       });
       const data = await res.json();
-      setBrnCheck({
-        state: data.state ?? "ERROR",
-        title: data.title ?? "인증 실패",
-        message: data.message ?? data.error ?? "",
-      });
+      const state: string = data.state ?? "ERROR";
+      const title: string = data.title ?? "인증 실패";
+      const message: string = data.message ?? data.error ?? "";
+      setBrnCheck({ state, title, message });
+
+      // 버튼을 누른 결과는 화면 안 문구뿐 아니라 토스트로도 알린다.
+      // 문구만 있으면 스크롤 위치에 따라 눈에 안 들어온다 — 눌렀는데 아무 일도
+      // 없는 것처럼 보인다는 지적이 실제로 있었다.
+      const notice = message ? `${title} — ${message}` : title;
+      if (state === "VERIFIED") toast.success(notice);
+      else if (state === "REGISTERED" || state === "UNCHECKED") toast.info(notice);
+      else toast.error(notice);
 
       // 이미 등록된 회사면 저장된 기업정보를 그대로 채운다 — 회사정보 불러오기와 같다.
       if (data.state === "REGISTERED" && data.company) {
@@ -740,6 +785,11 @@ function StepInfo({
           representativeName: data.representativeName || p.representativeName,
         }));
       }
+    } catch {
+      // 예전에는 여기서 조용히 끝났다 — 버튼만 멈추고 아무 말이 없었다.
+      const message = "확인 중 문제가 발생했습니다. 잠시 후 다시 시도해 주세요.";
+      setBrnCheck({ state: "ERROR", title: "인증 실패", message });
+      toast.error(message);
     } finally {
       setChecking(null);
     }
@@ -754,7 +804,14 @@ function StepInfo({
         body: JSON.stringify({ username: form.username }),
       });
       const data = await res.json();
-      setIdCheck({ available: data.available === true, message: data.message ?? data.error ?? "" });
+      const available = data.available === true;
+      const message: string = data.message ?? data.error ?? "";
+      setIdCheck({ available, message });
+      if (message) (available ? toast.success : toast.error)(message);
+    } catch {
+      const message = "확인 중 문제가 발생했습니다. 잠시 후 다시 시도해 주세요.";
+      setIdCheck({ available: false, message });
+      toast.error(message);
     } finally {
       setChecking(null);
     }
@@ -784,27 +841,12 @@ function StepInfo({
       </div>
       <p className="mt-2 break-keep text-xs text-muted">* 표시는 필수 입력 항목입니다.</p>
 
-      {pickedCompany ? (
-        <p
-          data-testid="picked-company"
-          className="mt-4 flex flex-wrap items-center justify-between gap-3 border border-accent px-4 py-3 text-s"
-        >
-          <span className="break-keep">
-            불러온 회사 <b>{pickedCompany.name}</b>
-            <span className="ml-2 text-muted">{pickedCompany.businessNumberMasked}</span>
-          </span>
-          <button type="button" onClick={onClearCompany} className="underline underline-offset-4">
-            다시 선택
-          </button>
-        </p>
-      ) : null}
-
       <h3 className="mt-8 text-s font-bold">① 기업 정보</h3>
-      <p className="mt-1 break-keep text-xs leading-6 text-muted">
-        {locked
-          ? "불러온 회사의 기업 정보입니다. 수정하려면 [다시 선택]을 눌러 주세요."
-          : "이미 등록된 회사라면 [회사정보 불러오기]로 채우세요."}
-      </p>
+      {locked ? null : (
+        <p className="mt-1 break-keep text-xs leading-6 text-muted">
+          이미 등록된 회사라면 [회사정보 불러오기]로 채우세요.
+        </p>
+      )}
       <div className="mt-4 grid gap-x-6 gap-y-5 sm:grid-cols-2">
         {/* 사업자등록번호가 먼저다 — 진위확인을 거치면 아래 회사명·대표자가 채워진다. */}
         <div className="sm:col-span-2">
@@ -821,15 +863,29 @@ function StepInfo({
                 placeholder="120-81-47521"
                 className={`${inputCls(locked)} flex-1`}
               />
-              <button
-                type="button"
-                data-testid="verify-brn"
-                disabled={locked || checking === "brn" || !form.businessRegistrationNumber}
-                onClick={verifyBrn}
-                className={`${btnClass("secondary", "md")} whitespace-nowrap`}
-              >
-                {checking === "brn" ? "확인 중…" : "중복·진위확인"}
-              </button>
+              {/* 불러온 회사는 등록 때 이미 확인이 끝났으니 "확인 완료"를 보여줬는데,
+                  불러왔다가 직접 입력하고 싶어질 때 되돌릴 길이 없었다.
+                  상태 표시보다 되돌리기가 더 필요하다 — [취소] 로 바꾼다. */}
+              {locked ? (
+                <button
+                  type="button"
+                  data-testid="brn-cancel"
+                  onClick={onUnlock}
+                  className={btnClass("secondary", "md")}
+                >
+                  취소
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  data-testid="verify-brn"
+                  disabled={checking === "brn"}
+                  onClick={verifyBrn}
+                  className={`${btnClass("secondary", "md")} whitespace-nowrap`}
+                >
+                  {checking === "brn" ? "확인 중…" : "중복·진위확인"}
+                </button>
+              )}
             </span>
           </Field>
           {brnCheck ? (
@@ -844,7 +900,8 @@ function StepInfo({
               ) : null}
               {brnCheck.state === "REGISTERED" ? (
                 <p className="mt-1 text-muted">
-                  등록된 기업 정보가 그대로 채워집니다. 개인 정보만 입력해 주세요.
+                  등록된 기업 정보가 확인되었습니다. 개인 정보만 입력하면 해당 기업의 구성원으로
+                  가입할 수 있습니다.
                 </p>
               ) : null}
             </div>
@@ -912,7 +969,8 @@ function StepInfo({
                 data-testid="f-username"
                 value={form.username}
                 onChange={(e) => {
-                  set("username")(e);
+                  // 한글 IME 입력을 걸러 영문·숫자만 받는다
+                  setForm((f) => ({ ...f, username: sanitizeUsernameInput(e.target.value) }));
                   setIdCheck(null);
                 }}
                 className={`${inputCls(false)} flex-1`}
@@ -942,10 +1000,33 @@ function StepInfo({
           <input data-testid="f-email" type="email" value={form.email} onChange={set("email")} className={inputCls(false)} />
         </Field>
         <Field label="비밀번호" required hint={PASSWORD_HINT}>
-          <input data-testid="f-password" type="password" value={form.password} onChange={set("password")} className={inputCls(false)} />
+          <div className="relative">
+            <input
+              data-testid="f-password"
+              type="password"
+              name="new-password"
+              autoComplete="new-password"
+              value={form.password}
+              onChange={(e) => setForm((f) => ({ ...f, password: sanitizePasswordInput(e.target.value) }))}
+              className={`${inputCls(false)} pr-9`}
+            />
+            <InputCheckMark show={checkPassword(form.password).ok} />
+          </div>
         </Field>
         <Field label="비밀번호 확인" required>
-          <input data-testid="f-passwordConfirm" type="password" value={form.passwordConfirm} onChange={set("passwordConfirm")} className={inputCls(false)} />
+          <div className="relative">
+            <input
+              data-testid="f-passwordConfirm"
+              type="password"
+              name="confirm-password"
+              autoComplete="new-password"
+              value={form.passwordConfirm}
+              onChange={(e) => setForm((f) => ({ ...f, passwordConfirm: sanitizePasswordInput(e.target.value) }))}
+              className={`${inputCls(false)} pr-9`}
+            />
+            <InputCheckMark show={form.passwordConfirm.length > 0 && form.password === form.passwordConfirm} />
+          </div>
+          <PasswordMatchHint password={form.password} confirm={form.passwordConfirm} />
         </Field>
         <Field label="전화번호">
           <input data-testid="f-personalPhone" value={form.personalPhone} onChange={set("personalPhone")} placeholder="02-544-1651" className={inputCls(false)} />
@@ -1017,6 +1098,20 @@ function CompanySearchDialog({
     <div
       className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 sm:p-8"
       data-testid="company-search"
+      role="dialog"
+      aria-modal="true"
+      aria-label="회사정보 불러오기"
+      // 어두운 바깥을 누르거나 Esc 를 누르면 닫힌다 — 창을 띄웠으면 그렇게 닫히리라 기대한다.
+      // 안쪽을 눌렀을 때 닫히면 안 되므로 대상이 이 겹판 자신일 때만 닫는다.
+      onMouseDown={(e) => {
+        if (e.target === e.currentTarget) onClose();
+      }}
+      onKeyDown={(e) => {
+        if (e.key === "Escape") onClose();
+      }}
+      /* 포커스는 열릴 때 딱 한 번 검색창으로 보낸다.
+         인라인 ref 로 겹판에 focus() 를 걸었더니 렌더마다 다시 실행돼, 글자 하나 칠 때마다
+         입력칸에서 커서를 빼앗았다 — 실사용에서 바로 신고된 버그다. */
     >
       <div className="flex max-h-[85vh] w-full max-w-3xl flex-col overflow-y-auto bg-background p-7 sm:p-9">
         <div className="flex items-center justify-between">
@@ -1041,6 +1136,7 @@ function CompanySearchDialog({
           </select>
           <input
             data-testid="search-keyword"
+            autoFocus
             value={keyword}
             onChange={(e) => setKeyword(e.target.value)}
             onKeyDown={(e) => {

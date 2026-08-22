@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
-import { redirect } from "next/navigation";
-import { getCurrentUser, isPendingApplicant } from "@/lib/auth";
+import { getCurrentUser, requireAccess } from "@/lib/auth";
 import { getDocumentsContent } from "@/lib/db";
 import type { DocumentBlock, DocumentsContent } from "@/lib/content/pageContent";
 import type { DocItem } from "@/components/ui/kit";
@@ -55,9 +54,9 @@ function DocPanel({
 const DOC_TABS = [{ value: "facility", label: "시설소개" }, ...VENUE_TABS] as const;
 
 export default async function DocumentsPage() {
+  // 기획서 A15 접근권한 매트릭스 — 규칙은 accessPolicy.ts 한 곳에만 둔다
+  await requireAccess("/documents");
   const [currentUser, content] = await Promise.all([getCurrentUser(), getDocumentsContent()]);
-  if (!currentUser) redirect("/login");
-  if (isPendingApplicant(currentUser)) redirect("/pending");
 
   return (
     <div className="flex flex-1 flex-col">

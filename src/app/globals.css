@@ -263,6 +263,12 @@ body {
     -apple-system, BlinkMacSystemFont, sans-serif;
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;
+  /* 한글은 어절 단위로 끊어야 읽힌다. 없으면 "권리"가 "권/리"로 잘린다.
+     지금까지는 화면마다 break-keep 을 붙여 왔는데, 새 화면이 생길 때마다 빠졌다
+     (2026-08 IA 재구성으로 들어온 페이지들이 그랬다). 기본값을 여기서 정한다.
+     URL·이메일처럼 끊을 자리가 없는 긴 문자열은 넘치는 대신 강제로 접는다. */
+  word-break: keep-all;
+  overflow-wrap: break-word;
 }
 
 * {
@@ -408,6 +414,18 @@ input[type="number"]::-webkit-inner-spin-button {
   from {
     opacity: 0;
     transform: translateY(16px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* 토스트는 화면 아래에서 올라온다. */
+@keyframes toast-in {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
   }
   to {
     opacity: 1;

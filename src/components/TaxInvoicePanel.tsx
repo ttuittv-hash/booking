@@ -2,9 +2,10 @@
 
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-import { won } from "@/lib/format";
+import { won, formatDate, formatDateTime } from "@/lib/format";
 import type { InvoicePurpose, InvoiceStatus, TaxInvoice, UserRole } from "@/lib/pricing/types";
 import { Badge, SpecTable, btnClass } from "@/components/ui/kit";
+import { useToast } from "@/components/ui/Toast";
 
 type BadgeTone = "neutral" | "warn" | "accent" | "good";
 
@@ -34,11 +35,16 @@ export function TaxInvoicePanel({
   viewerRole: UserRole;
 }) {
   const router = useRouter();
+  const toast = useToast();
   const [payerName, setPayerName] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   async function act(action: "issue" | "report" | "confirm") {
+    if (action === "report" && !payerName.trim()) {
+      toast.error("입금자명을 입력해 주세요.");
+      return;
+    }
     setBusy(true);
     setError(null);
     try {
@@ -72,18 +78,18 @@ export function TaxInvoicePanel({
 
   const rows: [string, string][] = [["금액", won(invoice.amount)]];
   if (invoice.status === "ISSUED" && invoice.issuedAt) {
-    rows.push(["발행일", new Date(invoice.issuedAt).toLocaleDateString("ko-KR")]);
+    rows.push(["발행일", formatDate(invoice.issuedAt)]);
   }
   if (invoice.status === "REPORTED") {
     rows.push([
       "입금자명",
-      [invoice.payerName, invoice.reportedAt && new Date(invoice.reportedAt).toLocaleString("ko-KR")]
+      [invoice.payerName, invoice.reportedAt && formatDateTime(invoice.reportedAt)]
         .filter(Boolean)
         .join(" · "),
     ]);
   }
   if (invoice.status === "PAID" && invoice.paidAt) {
-    rows.push(["입금 확인", new Date(invoice.paidAt).toLocaleString("ko-KR")]);
+    rows.push(["입금 확인", formatDateTime(invoice.paidAt)]);
   }
 
   return (
@@ -122,7 +128,7 @@ export function TaxInvoicePanel({
             />
             <button
               type="button"
-              disabled={busy || !payerName.trim()}
+              disabled={busy}
               onClick={() => act("report")}
               className={`${btnClass("primary", "md")} shrink-0`}
             >

@@ -5,8 +5,9 @@ import { useState } from "react";
 import { IdentityGate } from "@/components/account/IdentityGate";
 import { btnClass } from "@/components/ui/kit";
 import { useToast } from "@/components/ui/Toast";
-import { checkPassword, checkUsername, firstFailure, PASSWORD_HINT } from "@/lib/validation";
+import { checkPassword, checkUsername, firstFailure, PASSWORD_HINT, sanitizePasswordInput, sanitizeUsernameInput } from "@/lib/validation";
 import { hashPasswordForTransport } from "@/lib/clientPassword";
+import { PasswordMatchHint } from "@/components/ui/PasswordMatchHint";
 
 // 3단계: 아이디 입력 → 본인인증 → 새 비밀번호 입력
 export function ResetPasswordForm() {
@@ -74,15 +75,19 @@ export function ResetPasswordForm() {
             <input
               data-testid="reset-username"
               value={username}
-              onChange={(e) => setUsername(e.target.value)}
+              onChange={(e) => setUsername(sanitizeUsernameInput(e.target.value))}
               className="w-full border border-border-soft bg-background px-3 py-2 text-s"
             />
           </label>
           <button
             type="button"
             data-testid="reset-next"
-            disabled={!username.trim()}
             onClick={() => {
+              // 버튼을 잠그지 않는다 — 눌러도 반응이 없으면 고장으로 보인다. 이유를 알려 준다.
+              if (!username.trim()) {
+                toast.error("아이디를 입력해 주세요.");
+                return;
+              }
               const invalid = firstFailure(checkUsername(username));
               if (invalid) {
                 toast.error(invalid);
@@ -111,9 +116,11 @@ export function ResetPasswordForm() {
             <span className="mb-1.5 block text-xs font-bold">새 비밀번호</span>
             <input
               data-testid="reset-password-new"
+              name="new-password"
+              autoComplete="new-password"
               type="password"
               value={password}
-              onChange={(e) => setPassword(e.target.value)}
+              onChange={(e) => setPassword(sanitizePasswordInput(e.target.value))}
               className="w-full border border-border-soft bg-background px-3 py-2 text-s"
             />
           </label>
@@ -121,11 +128,14 @@ export function ResetPasswordForm() {
             <span className="mb-1.5 block text-xs font-bold">새 비밀번호 확인</span>
             <input
               data-testid="reset-password-confirm"
+              name="confirm-password"
+              autoComplete="new-password"
               type="password"
               value={confirm}
-              onChange={(e) => setConfirm(e.target.value)}
+              onChange={(e) => setConfirm(sanitizePasswordInput(e.target.value))}
               className="w-full border border-border-soft bg-background px-3 py-2 text-s"
             />
+            <PasswordMatchHint password={password} confirm={confirm} />
           </label>
           <p className="break-keep text-xs leading-6 text-muted">{PASSWORD_HINT}</p>
           <button

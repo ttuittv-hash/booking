@@ -17,6 +17,8 @@ import { TagBadge } from "@/components/TagBadge";
 import { btnClass } from "@/components/ui/kit";
 import { NoticeEditor } from "./NoticeEditor";
 import { HomeContentForm } from "./HomeContentForm";
+import { formatDateTime } from "@/lib/format";
+import { useQueryTab } from "@/components/admin/useQueryTab";
 import { LegalContentForm } from "./LegalContentForm";
 import {
   DocumentsForm,
@@ -97,7 +99,12 @@ export function ContentManager({
   privacyContent: LegalContent;
 }) {
   const router = useRouter();
-  const [tab, setTab] = useState<Tab>("notices");
+  // 탭을 URL(?tab=)에 싣는다 — 새로고침해도 유지되고 특정 탭을 링크로 줄 수 있다.
+  const [tab, setTab] = useQueryTab<Tab>(
+    "tab",
+    ["notices", "faq", "home", "seoularena", "features", "guide", "rates", "rules", "documents", "legal"],
+    "notices",
+  );
   const [notices, setNotices] = useState(initialNotices);
   const [faqs, setFaqs] = useState(initialFaqs);
 
@@ -310,7 +317,7 @@ function NoticesTab({
                     </div>
                     <p className={`mt-1.5 ${HELP}`}>{stripHtml(notice.body)}</p>
                     <div className="mt-2 flex items-center gap-2 text-xs tabular-nums text-muted">
-                      {new Date(notice.createdAt).toLocaleString("ko-KR")}
+                      {formatDateTime(notice.createdAt)}
                       {notice.attachmentUrl && <span className="font-bold text-foreground">· 첨부파일</span>}
                     </div>
                   </div>

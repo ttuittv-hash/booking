@@ -54,8 +54,10 @@ export function QueryTabs({
 
   function select(value: string) {
     const next = new URLSearchParams(search.toString());
-    if (value === items[0].value) next.delete(param);
-    else next.set(param, value);
+    // 항상 파라미터를 적는다. 예전에는 첫 탭이면 지웠는데, 그러면 탭을 오갈 때
+    // /features ↔ /features?venue=live-hall 로 주소 모양이 들쭉날쭉했다.
+    // 파라미터 없이 들어온 첫 진입만 기본 탭으로 볼 뿐, 클릭 뒤에는 항상 명시한다.
+    next.set(param, value);
     const qs = next.toString();
     router.replace(qs ? `?${qs}` : "?", { scroll: false });
     headerRef.current?.scrollIntoView({ block: "start", behavior: "auto" });
@@ -138,7 +140,8 @@ export function QueryTabs({
               key={it.value}
               {...tabProps(it.value)}
               // 라벨 크기는 상단바 메뉴(14)와 같게 둔다 — 탭이 페이지 제목보다 커 보이면 안 된다
-              className={`h-8 shrink-0 whitespace-nowrap rounded-full px-5 text-s font-bold transition-colors ${
+              // 모바일에서는 44px 을 확보한다 — 32px 알약은 손가락으로 누르기 작다. sm 부터 디자인 규격.
+              className={`h-11 shrink-0 whitespace-nowrap rounded-full px-5 text-s font-bold transition-colors sm:h-8 ${
                 it.value === active
                   ? "bg-n-white text-n-darkest"
                   : "text-n-white/70 hover:text-n-white"

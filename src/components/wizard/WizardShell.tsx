@@ -12,6 +12,7 @@ import type { AppUser, DateBlock, QuoteSelection, RateTable, SafetyPledge, WeekD
 import { DEFAULT_VENUE_ID } from "@/lib/pricing/types";
 import { INITIAL_PERFORMANCE_INFO } from "@/lib/pricing/performanceInfoDefaults";
 import { clearWizardDraft, loadWizardDraft, saveWizardDraft } from "@/lib/quotesStore";
+import { useToast } from "@/components/ui/Toast";
 import { ArrowRight, btnClass } from "@/components/ui/kit";
 import { StepNav } from "./StepNav";
 import { StepHeading } from "./StepHeading";
@@ -111,6 +112,7 @@ export function WizardShell({
   };
 }) {
   const isEditing = !!editingQuoteId;
+  const toast = useToast();
   const [step, setStep] = useState(1);
   // [화면 뼈대 2026-08-19, STEP 3-1 "신청자 정보"] 신규 신청서에 한해 회원정보로 미리
   // 채운다 — 기존 신청서 수정(initialSelection.performanceInfo 존재)이나 임시저장
@@ -377,11 +379,22 @@ export function WizardShell({
       {step < TOTAL_STEPS && (
         <button
           type="button"
-          disabled={
-            (step === 1 && (!selection.venueId || (midHallOnly && !hasMidHallSelection))) ||
-            (step === 2 && needsPackage && !selection.packageId)
-          }
-          onClick={() => goTo(step + 1)}
+          onClick={() => {
+            // 버튼을 잠그지 않는다 — 눌러도 반응이 없으면 고장으로 보인다(고객 신고 패턴).
+            if (step === 1 && !selection.venueId) {
+              toast.error("먼저 대관하실 시설을 선택해 주세요.");
+              return;
+            }
+            if (step === 1 && midHallOnly && !hasMidHallSelection) {
+              toast.error("대관 일정을 선택해 주세요.");
+              return;
+            }
+            if (step === 2 && needsPackage && !selection.packageId) {
+              toast.error("패키지를 선택해 주세요.");
+              return;
+            }
+            goTo(step + 1);
+          }}
           className={btnClass("primary", "lg")}
         >
           다음

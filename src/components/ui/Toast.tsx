@@ -5,6 +5,10 @@
 // 예전에는 위저드 상단에 오류 문단을 붙였는데, 스크롤을 내려 입력하다 [다음]을 누르면
 // 메시지가 화면 밖에 떠서 왜 안 넘어가는지 알 수 없었다. 토스트는 보고 있는 자리에 뜬다.
 //
+// 화면 아래에서 올라온다(2026-08-21 확정). 위로 옮겨 봤지만 사용자가 아래를 선호했다.
+// 아래에 둘 때의 진짜 문제는 위치가 아니라 **반투명 배경**이었다 — bg-danger/10 은
+// 뒤 콘텐츠가 비쳐서 글자가 묻혔다. 배경은 불투명하게 깔고 색은 테두리·글자로 낸다.
+//
 // 접근성: role="status" + aria-live="polite" 로 스크린리더가 읽는다.
 // 오류는 assertive 로 즉시 읽게 한다.
 
@@ -38,10 +42,11 @@ export function useToast(): ToastApi {
   return useContext(ToastContext) ?? NOOP;
 }
 
+// 배경은 불투명한 바탕색 — 반투명이면 뒤 콘텐츠가 비쳐 글자가 묻힌다.
 const TONE_CLASS: Record<ToastTone, string> = {
-  error: "border-danger bg-danger/10 text-danger",
-  info: "border-foreground bg-surface text-foreground",
-  success: "border-ok bg-ok/10 text-ok",
+  error: "border-danger bg-background text-danger",
+  info: "border-foreground bg-background text-foreground",
+  success: "border-ok bg-background text-ok",
 };
 
 export function ToastProvider({ children }: { children: React.ReactNode }) {
@@ -70,7 +75,7 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
     <ToastContext.Provider value={api}>
       {children}
       <div
-        className="pointer-events-none fixed inset-x-0 bottom-6 z-[100] flex flex-col items-center gap-2 px-4 sm:bottom-8"
+        className="pointer-events-none fixed inset-x-0 bottom-6 z-[200] flex flex-col items-center gap-2 px-4 sm:bottom-8"
         aria-live="polite"
       >
         {items.map((t) => (
@@ -92,7 +97,7 @@ function Toast({ item, onDone }: { item: ToastItem; onDone: () => void }) {
       data-testid="toast"
       data-tone={item.tone}
       role={item.tone === "error" ? "alert" : "status"}
-      className={`pointer-events-auto flex w-full max-w-md items-start gap-3 border px-4 py-3 shadow-lg ${TONE_CLASS[item.tone]}`}
+      className={`pointer-events-auto flex w-full max-w-md items-start gap-3 border-2 px-4 py-3 shadow-xl animate-[toast-in_180ms_ease-out] ${TONE_CLASS[item.tone]}`}
     >
       <span className="mt-0.5 shrink-0 text-xs font-bold" aria-hidden>
         {item.tone === "error" ? "!" : item.tone === "success" ? "✓" : "i"}

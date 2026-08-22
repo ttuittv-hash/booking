@@ -8,6 +8,7 @@ import {
   type InquiryCategory,
 } from "@/lib/inquiryCategories";
 import { btnClass } from "@/components/ui/kit";
+import { useToast } from "@/components/ui/Toast";
 
 const TITLE_MAX = 60;
 const CONTENT_MAX = 2000;
@@ -21,6 +22,7 @@ export function NewInquiryForm({
   notifyEmail: string;
 }) {
   const router = useRouter();
+  const toast = useToast();
   const [categoryId, setCategoryId] = useState("");
   const [quoteId, setQuoteId] = useState("");
   const [title, setTitle] = useState("");
@@ -32,13 +34,26 @@ export function NewInquiryForm({
   const showQuote = !!category && category.quote !== "NONE";
   const quoteRequired = category?.quote === "REQUIRED";
 
-  const ready =
-    !!categoryId &&
-    title.trim().length > 0 &&
-    content.trim().length > 0 &&
-    (!quoteRequired || quoteId.trim().length > 0);
+  /**
+   * 못 채운 칸이 있으면 그게 뭔지 돌려준다.
+   * 버튼을 잠가 두면 눌러도 아무 일이 없어서 고장으로 보인다 — 고객이 실제로 그렇게 신고했다.
+   * 그래서 버튼은 열어 두고, 누르면 무엇이 빠졌는지 알려 준다.
+   */
+  function firstMissing(): string | null {
+    if (!categoryId) return "문의 유형을 선택해 주세요.";
+    if (quoteRequired && !quoteId.trim()) return "이 유형은 신청번호가 필요합니다.";
+    if (!title.trim()) return "제목을 입력해 주세요.";
+    if (!content.trim()) return "문의 내용을 입력해 주세요.";
+    return null;
+  }
 
   async function submit() {
+    const missing = firstMissing();
+    if (missing) {
+      setError(missing);
+      toast.error(missing);
+      return;
+    }
     setBusy(true);
     setError(null);
     try {
@@ -54,7 +69,9 @@ export function NewInquiryForm({
       });
       const data = await res.json();
       if (!res.ok) {
-        setError(data.error || "문의를 등록하지 못했습니다. 잠시 후 다시 시도해 주세요.");
+        const message = data.error || "문의를 등록하지 못했습니다. 잠시 후 다시 시도해 주세요.";
+        setError(message);
+        toast.error(message);
         return;
       }
       router.push(`/mypage/inquiries/${data.inquiry.id}`);
@@ -175,7 +192,7 @@ export function NewInquiryForm({
 
       <button
         type="button"
-        disabled={busy || !ready}
+        disabled={busy}
         onClick={submit}
         className={`${btnClass("primary")} mt-6 w-full sm:w-auto`}
       >

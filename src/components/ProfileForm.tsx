@@ -7,6 +7,7 @@ import { btnClass } from "@/components/ui/kit";
 import { FIELD, FIELD_LABEL } from "@/components/admin/adminUi";
 import { hashPasswordForTransport } from "@/lib/clientPassword";
 import type { AppUser, Company } from "@/lib/pricing/types";
+import { useToast } from "@/components/ui/Toast";
 
 /* 입력·라벨은 시스템 토큰만 쓴다 — 한 줄 입력의 높이는 field-base 가 40 으로 못 박아
    같은 줄 버튼(40)과 아래위가 맞는다 */
@@ -16,6 +17,7 @@ const labelCls = FIELD_LABEL;
 
 export function ProfileForm({ user, company }: { user: AppUser; company: Company | null }) {
   const router = useRouter();
+  const toast = useToast();
   const [name, setName] = useState(user.name);
   const [phone, setPhone] = useState(user.phone ?? "");
   const [username, setUsername] = useState(user.username);
@@ -108,6 +110,14 @@ export function ProfileForm({ user, company }: { user: AppUser; company: Company
   }
 
   async function savePassword() {
+    if (!currentPassword) {
+      toast.error("현재 비밀번호를 입력해 주세요.");
+      return;
+    }
+    if (newPassword.length < 8) {
+      toast.error("새 비밀번호는 8자 이상이어야 합니다.");
+      return;
+    }
     setSavingPassword(true);
     setPasswordError(null);
     setPasswordMessage(null);
@@ -354,7 +364,7 @@ export function ProfileForm({ user, company }: { user: AppUser; company: Company
         {passwordMessage && <p className="mt-3 text-s text-good">{passwordMessage}</p>}
         <button
           type="button"
-          disabled={savingPassword || !currentPassword || newPassword.length < 8}
+          disabled={savingPassword}
           onClick={savePassword}
           className={`mt-4 ${btnClass("secondary", "md")}`}
         >

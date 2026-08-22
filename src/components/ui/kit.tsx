@@ -257,9 +257,21 @@ const BTN_VARIANT: Record<BtnVariant, string> = {
   danger: "border-danger bg-transparent text-danger hover:bg-danger hover:text-background",
 };
 
+/**
+ * Figma Style Guide › UI Elements › Buttons 는 높이 48 / 40 두 가지다.
+ *
+ * 크기는 "누가 쓰나"가 아니라 **"어디에 놓이나"** 로 정한다. 같은 역할의 버튼이
+ * 화면마다 다른 크기로 나오지 않게 하는 규칙이다.
+ *   lg(48) — 페이지·섹션의 주 액션. 히어로 · 섹션 말미 · CTA 배너 · EmptyState.
+ *            `ButtonLink` 의 기본값이므로 공개 페이지에서는 size 를 적지 않는다.
+ *   md(40) — 폼 제출 버튼. 백오피스·인증 화면 등 밀도가 높은 폼 전용.
+ *   sm(32) — 카드·표 안의 인라인 액션. 본문 흐름을 끊지 않아야 하는 자리.
+ */
+// 모바일에서는 어떤 크기든 44px 을 확보한다 — h-8(32px)·h-10(40px)은 손가락으로
+// 누르기에 작다. sm 브레이크포인트부터는 원래 높이로 돌아가 촘촘한 표가 유지된다.
 const BTN_SIZE: Record<BtnSize, string> = {
-  sm: "h-8 px-4 text-xs",
-  md: "h-10 px-5 text-s",
+  sm: "h-11 px-4 text-xs sm:h-8",
+  md: "h-11 px-5 text-s sm:h-10",
   lg: "h-12 px-6 text-s",
 };
 

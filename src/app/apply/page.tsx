@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
-import { redirect } from "next/navigation";
-import { getCurrentUser, isPendingApplicant } from "@/lib/auth";
+import { requireAccessedUser } from "@/lib/auth";
 import {
   findCompanyById,
   getCurrentRateTable,
@@ -28,9 +27,8 @@ export default async function ApplyPage({
 }: {
   searchParams: Promise<{ new?: string }>;
 }) {
-  const currentUser = await getCurrentUser();
-  if (!currentUser) redirect("/login");
-  if (isPendingApplicant(currentUser)) redirect("/pending");
+  // 기획서 A15 접근권한 매트릭스 — 규칙은 accessPolicy.ts 한 곳에만 둔다
+  const currentUser = await requireAccessedUser("/apply");
 
   const [{ new: startFreshParam }, rateTable, weekDemand, dateBlocks, company, screenText] =
     await Promise.all([

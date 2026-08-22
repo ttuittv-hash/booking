@@ -358,9 +358,14 @@ describe("calculateQuote — 중형공연장(DAILY) 요금 엔진", () => {
       }),
       RATE_TABLE,
     );
-    const cleaningLine = quote.lineItems.find((i) => i.addonId === "midhall_cleaning")!;
-    expect(cleaningLine.requested).toBe(2000 * 3); // 회차 합계 3
-    expect(cleaningLine.amount).toBe(2000 * 3 * cfg.cleaningUnitPrice);
+    if (cfg.cleaningUnitPrice > 0) {
+      const cleaningLine = quote.lineItems.find((i) => i.addonId === "midhall_cleaning")!;
+      expect(cleaningLine.requested).toBe(2000 * 3); // 회차 합계 3
+      expect(cleaningLine.amount).toBe(2000 * 3 * cfg.cleaningUnitPrice);
+    } else {
+      // 기본 클리닝이 대관료에 포함된 요금표(현 시드) — 0원 줄을 만들지 않는다.
+      expect(quote.lineItems.find((i) => i.addonId === "midhall_cleaning")).toBeUndefined();
+    }
   });
 
   it("중형 일정이 없으면 중형 라인아이템이 생기지 않는다", () => {

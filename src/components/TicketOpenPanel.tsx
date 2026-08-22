@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { useRef, useState } from "react";
 import type { Attachment, TicketOpen, UserRole } from "@/lib/pricing/types";
 import { Badge, btnClass, FILE_INPUT } from "@/components/ui/kit";
+import { useToast } from "@/components/ui/Toast";
 
 const FILE_FIELD = `${FILE_INPUT} min-w-0 flex-1`;
 
@@ -28,11 +29,16 @@ export function TicketOpenPanel({
 }) {
   const router = useRouter();
   const fileInput = useRef<HTMLInputElement>(null);
+  const toast = useToast();
   const [openDate, setOpenDate] = useState(ticketOpen?.openDate ?? "");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   async function saveDate() {
+    if (!openDate) {
+      toast.error("티켓 오픈일을 선택해 주세요.");
+      return;
+    }
     if (!openDate) return;
     setBusy(true);
     setError(null);
@@ -108,7 +114,7 @@ export function TicketOpenPanel({
           />
           <button
             type="button"
-            disabled={busy || !openDate}
+            disabled={busy}
             onClick={saveDate}
             className={`${btnClass("primary", "md")} shrink-0`}
           >

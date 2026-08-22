@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
-import { redirect } from "next/navigation";
-import { getCurrentUser, isPendingApplicant } from "@/lib/auth";
+import { getCurrentUser, requireAccess } from "@/lib/auth";
 import { getFeaturesContent } from "@/lib/db";
 import type { Pair, VenueFacilityContent } from "@/lib/content/pageContent";
 import { PublicHeader } from "@/components/PublicHeader";
@@ -148,10 +147,10 @@ function VenuePanel({
 }
 
 export default async function FeaturesPage() {
+  // 기획서 A15 접근권한 매트릭스 — 규칙은 accessPolicy.ts 한 곳에만 둔다
+  await requireAccess("/features");
   // 시설 소개부터는 로그인한 대관사에게만 공개한다 (Notion 확정 정보구조).
   const [currentUser, content] = await Promise.all([getCurrentUser(), getFeaturesContent()]);
-  if (!currentUser) redirect("/login");
-  if (isPendingApplicant(currentUser)) redirect("/pending");
 
   return (
     <div className="flex flex-1 flex-col">

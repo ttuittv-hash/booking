@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import type { Review, ReviewDecision } from "@/lib/pricing/types";
 import { Badge, btnClass } from "@/components/ui/kit";
+import { formatDateTime } from "@/lib/format";
 import {
   ERROR_NOTE,
   FIELD,
@@ -110,7 +111,7 @@ export function ReviewForm({
 
       {review && (
         <p className="mt-3 text-xs tabular-nums text-muted">
-          최종 결정: {new Date(review.decidedAt).toLocaleString("ko-KR")}
+          최종 결정: {formatDateTime(review.decidedAt)}
         </p>
       )}
 

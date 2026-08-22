@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import type { AppUser } from "@/lib/pricing/types";
 import { Badge, btnClass } from "@/components/ui/kit";
+import { formatDate } from "@/lib/format";
 import {
   LINK_BTN,
   NONE,
@@ -125,7 +126,7 @@ export function ApplicantApprovalTable({
                   </td>
                   <td className={TD_MUTED}>{a.email}</td>
                   <td className={`${TD_NUM} text-muted`}>
-                    {new Date(a.createdAt).toLocaleDateString("ko-KR")}
+                    {formatDate(a.createdAt)}
                   </td>
                   <td className={TD}>
                     <Badge tone={STATUS_TONE[a.approvalStatus]}>{STATUS_LABEL[a.approvalStatus]}</Badge>

@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
-import { redirect } from "next/navigation";
-import { getCurrentUser, isPendingApplicant } from "@/lib/auth";
+import { getCurrentUser, requireAccess } from "@/lib/auth";
 import { getRulesContent } from "@/lib/db";
 import { parseRules } from "@/lib/content/pageContent";
 import { PublicHeader } from "@/components/PublicHeader";
@@ -18,9 +17,9 @@ export const metadata: Metadata = {
  * (좌 스티키 목차 + 우 본문).
  */
 export default async function RulesPage() {
+  // 기획서 A15 접근권한 매트릭스 — 규칙은 accessPolicy.ts 한 곳에만 둔다
+  await requireAccess("/rules");
   const [currentUser, content] = await Promise.all([getCurrentUser(), getRulesContent()]);
-  if (!currentUser) redirect("/login");
-  if (isPendingApplicant(currentUser)) redirect("/pending");
 
   const chapters = parseRules(content.body);
   const articleCount = chapters.reduce((n, c) => n + c.articles.length, 0);

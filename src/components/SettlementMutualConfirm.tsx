@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import type { Settlement, UserRole } from "@/lib/pricing/types";
 import { btnClass } from "@/components/ui/kit";
+import { formatDateTime } from "@/lib/format";
 
 export function SettlementMutualConfirm({
   quoteId,
@@ -37,7 +38,7 @@ export function SettlementMutualConfirm({
   if (settlement.mutualConfirmedAt) {
     return (
       <p className="mt-4 text-s text-good">
-        상호 확인 완료 · {new Date(settlement.mutualConfirmedAt).toLocaleString("ko-KR")}
+        상호 확인 완료 · {formatDateTime(settlement.mutualConfirmedAt)}
       </p>
     );
   }

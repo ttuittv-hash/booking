@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
-import { getCurrentRateTable, saveNewRateTableVersion } from "@/lib/db";
-import type { AddonCategory, AddonItem, RateTable } from "@/lib/pricing/types";
+import { getCurrentRateTable, getRatesContent, saveNewRateTableVersion, saveRatesContent } from "@/lib/db";
+import type { AddonCategory, AddonItem, MidHallFeeBreakdown, RateTable } from "@/lib/pricing/types";
 
 const ADDON_CATEGORIES: AddonCategory[] = [
   "SCHEDULE",
@@ -60,17 +60,38 @@ export async function PUT(request: Request) {
 
   const current = await getCurrentRateTable();
 
-  const midHallField = (key: keyof RateTable["midHall"]): number => {
+  type MidHallNumberKey = Exclude<keyof RateTable["midHall"], "breakdown">;
+  const midHallField = (key: MidHallNumberKey): number => {
     const value = midHallOverride?.[key];
-    return typeof value === "number" && value >= 0 ? value : current.midHall[key];
+    return typeof value === "number" && value >= 0 ? value : (current.midHall[key] as number);
   };
+
+  // 전용/시설 내역 — 넘어오면 검증해서 담고, 총액은 내역의 합으로 강제한다.
+  // 총액과 내역을 따로 받으면 언젠가 어긋난다 — 내역이 있으면 내역이 정본이다.
+  const parseBreakdown = (raw: unknown): MidHallFeeBreakdown | null => {
+    if (!raw || typeof raw !== "object") return null;
+    const r = raw as Record<string, unknown>;
+    const exclusive = Number(r.exclusive);
+    const facility = Number(r.facility);
+    if (!Number.isFinite(exclusive) || exclusive < 0) return null;
+    if (!Number.isFinite(facility) || facility < 0) return null;
+    return { exclusive, facility };
+  };
+  const rawBreakdown = midHallOverride?.breakdown as Record<string, unknown> | undefined;
+  const setup = parseBreakdown(rawBreakdown?.setup);
+  const weekday = parseBreakdown(rawBreakdown?.weekday);
+  const weekend = parseBreakdown(rawBreakdown?.weekend);
+  const breakdown =
+    setup && weekday && weekend ? { setup, weekday, weekend } : current.midHall.breakdown;
+
   const midHall: RateTable["midHall"] = {
-    setupDayFee: midHallField("setupDayFee"),
-    performanceWeekdayFee: midHallField("performanceWeekdayFee"),
-    performanceWeekendFee: midHallField("performanceWeekendFee"),
+    setupDayFee: setup ? setup.exclusive + setup.facility : midHallField("setupDayFee"),
+    performanceWeekdayFee: weekday ? weekday.exclusive + weekday.facility : midHallField("performanceWeekdayFee"),
+    performanceWeekendFee: weekend ? weekend.exclusive + weekend.facility : midHallField("performanceWeekendFee"),
     extraHourFee: midHallField("extraHourFee"),
     secondShowSurchargeRatio: midHallField("secondShowSurchargeRatio"),
     cleaningUnitPrice: midHallField("cleaningUnitPrice"),
+    ...(breakdown ? { breakdown } : {}),
   };
 
   const packages = current.packages.map((pkg) => {
@@ -109,6 +130,28 @@ export async function PUT(request: Request) {
     addons,
     midHall,
   });
+
+  // 내역이 저장됐으면 공개 대관료 페이지 표기도 같은 값으로 갱신한다.
+  // 요금표(견적 정본)와 공개 표기(콘텐츠)는 별도 데이터라, 여기서 묶어 주지 않으면
+  // 운영자가 두 화면을 오가며 손으로 맞춰야 하고 실제로 어긋난 채 운영된 적이 있다.
+  if (setup && weekday && weekend) {
+    const fmt = (n: number) => `${n.toLocaleString("ko-KR")}원`;
+    const rows: Record<string, MidHallFeeBreakdown> = { setup, weekday, weekend };
+    const content = await getRatesContent();
+    const liveHall = content.liveHall;
+    for (const col of liveHall.columns) {
+      const b = rows[col.key];
+      if (b && col.values.length > 0) col.values[0] = `${(b.exclusive + b.facility).toLocaleString("ko-KR")}원/일당`;
+    }
+    for (const col of liveHall.detailColumns) {
+      const b = rows[col.key];
+      if (b && col.values.length >= 2) {
+        col.values[0] = fmt(b.exclusive);
+        col.values[1] = fmt(b.facility);
+      }
+    }
+    await saveRatesContent(content);
+  }
 
   return NextResponse.json({ rateTable: next });
 }

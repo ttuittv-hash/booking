@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
-import { redirect } from "next/navigation";
-import { getCurrentUser, isPendingApplicant } from "@/lib/auth";
+import { getCurrentUser, requireAccess } from "@/lib/auth";
 import { getSeoulArenaContent } from "@/lib/db";
 import { sanitizeRichText } from "@/lib/sanitizeHtml";
 import type { SeoulArenaContent } from "@/lib/content/pageContent";
@@ -87,8 +86,9 @@ function WhyPanel({ c, whyHtml }: { c: SeoulArenaContent; whyHtml: string }) {
 }
 
 export default async function SeoulArenaPage() {
+  // 기획서 A15 접근권한 매트릭스 — 규칙은 accessPolicy.ts 한 곳에만 둔다
+  await requireAccess("/seoularena");
   const [currentUser, content] = await Promise.all([getCurrentUser(), getSeoulArenaContent()]);
-  if (currentUser && isPendingApplicant(currentUser)) redirect("/pending");
 
   const introHtml = sanitizeRichText(content.aboutLead);
   const whyHtml = sanitizeRichText(content.whyLead);

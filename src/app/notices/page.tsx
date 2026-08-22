@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
-import { redirect } from "next/navigation";
-import { getCurrentUser, isPendingApplicant } from "@/lib/auth";
+import { getCurrentUser, requireAccess } from "@/lib/auth";
 import { getScreenTextContent, listNoticesPaged, normalizePage } from "@/lib/db";
 import { PublicHeader } from "@/components/PublicHeader";
 import { TagBadge, isPinnedTag } from "@/components/TagBadge";
@@ -54,9 +53,9 @@ export default async function NoticesPage({
 }: {
   searchParams: Promise<{ page?: string }>;
 }) {
+  // 기획서 A15 접근권한 매트릭스 — 규칙은 accessPolicy.ts 한 곳에만 둔다
+  await requireAccess("/notices");
   const currentUser = await getCurrentUser();
-  if (!currentUser) redirect("/login");
-  if (isPendingApplicant(currentUser)) redirect("/pending");
 
   const { page: pageParam } = await searchParams;
   const page = normalizePage(pageParam);

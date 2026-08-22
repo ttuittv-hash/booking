@@ -2,6 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { useQueryTab } from "@/components/admin/useQueryTab";
 import { ADDON_CATEGORY_LABEL, VENUES, type AddonCategory, type RateTable } from "@/lib/pricing/types";
 import { btnClass } from "@/components/ui/kit";
 import {
@@ -25,7 +26,25 @@ function slugify(name: string): string {
   return (base || "item") + "_" + Math.random().toString(36).slice(2, 6);
 }
 
-export function RatesForm({ rateTable }: { rateTable: RateTable }) {
+// URL 은 공개 화면과 같은 이름(?venue=arena|live-hall)을 쓰고, 내부 venueId 와 매핑한다.
+const VENUE_URL_VALUES = ["arena", "live-hall"] as const;
+const URL_TO_VENUE: Record<string, "arena" | "medium-hall"> = { arena: "arena", "live-hall": "medium-hall" };
+const VENUE_TO_URL: Record<"arena" | "medium-hall", "arena" | "live-hall"> = { arena: "arena", "medium-hall": "live-hall" };
+
+export interface PublicMidHallRef {
+  total: number | null;
+  exclusive: number | null;
+  facility: number | null;
+}
+
+export function RatesForm({
+  rateTable,
+  publicMidHall,
+}: {
+  rateTable: RateTable;
+  /** 공개 대관료 페이지(/rates)에 표기된 중형 금액 — 입력칸 옆 대조용 */
+  publicMidHall?: Record<"setup" | "weekday" | "weekend", PublicMidHallRef>;
+}) {
   const router = useRouter();
   const [addons, setAddons] = useState(
     rateTable.addons.map((a) => ({
@@ -42,7 +61,24 @@ export function RatesForm({ rateTable }: { rateTable: RateTable }) {
     rateTable.dayExclusionDiscountRatio,
   );
   const [midHall, setMidHall] = useState(rateTable.midHall);
-  const [venueTab, setVenueTab] = useState<"arena" | "medium-hall">("arena");
+  // 전용/시설 내역 — 요금표에 저장된 값 → 없으면 공개 페이지 표기 → 그것도 없으면 총액을 전용에
+  const initialBreakdown = rateTable.midHall.breakdown ?? {
+    setup: {
+      exclusive: publicMidHall?.setup.exclusive ?? rateTable.midHall.setupDayFee,
+      facility: publicMidHall?.setup.facility ?? 0,
+    },
+    weekday: {
+      exclusive: publicMidHall?.weekday.exclusive ?? rateTable.midHall.performanceWeekdayFee,
+      facility: publicMidHall?.weekday.facility ?? 0,
+    },
+    weekend: {
+      exclusive: publicMidHall?.weekend.exclusive ?? rateTable.midHall.performanceWeekendFee,
+      facility: publicMidHall?.weekend.facility ?? 0,
+    },
+  };
+  const [breakdown, setBreakdown] = useState(initialBreakdown);
+  const [venueUrl, setVenueUrl] = useQueryTab("venue", VENUE_URL_VALUES, "arena");
+  const venueTab = URL_TO_VENUE[venueUrl];
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const [newItemCategory, setNewItemCategory] = useState<AddonCategory | null>(null);
@@ -103,7 +139,7 @@ export function RatesForm({ rateTable }: { rateTable: RateTable }) {
           dayExclusionDiscountRatio,
           addons: addons.map((a) => ({ id: a.id, unitPrice: a.unitPrice })),
           newAddons,
-          midHall,
+          midHall: { ...midHall, breakdown },
         }),
       });
       const data = await res.json();
@@ -123,7 +159,7 @@ export function RatesForm({ rateTable }: { rateTable: RateTable }) {
       {/* 1뎁스: 공간 — 아레나와 중형공연장은 요율 체계가 달라 화면을 나눈다(그쪽 개편). */}
       <div className="flex gap-1 border-b border-border/20">
         {(["arena", "medium-hall"] as const).map((v) => (
-          <button key={v} type="button" onClick={() => setVenueTab(v)} className={tabCls(venueTab === v)}>
+          <button key={v} type="button" onClick={() => setVenueUrl(VENUE_TO_URL[v])} className={tabCls(venueTab === v)}>
             {VENUES.find((venue) => venue.id === v)?.name ?? v}
           </button>
         ))}
@@ -185,9 +221,61 @@ export function RatesForm({ rateTable }: { rateTable: RateTable }) {
 
         {(
           [
-            ["setupDayFee", "셋업 Load-In (1일, 평일/주말 동일)"],
-            ["performanceWeekdayFee", "공연 Show — 평일 (1일)"],
-            ["performanceWeekendFee", "공연 Show — 주말 (1일)"],
+            ["setup", "셋업 Load-In (1일, 평일/주말 동일)"],
+            ["weekday", "공연 Show — 평일 (1일)"],
+            ["weekend", "공연 Show — 주말 (1일)"],
+          ] as const
+        ).map(([key, label]) => {
+          const row = breakdown[key];
+          const total = row.exclusive + row.facility;
+          const setPart = (part: "exclusive" | "facility", raw: string) => {
+            const value = Math.max(0, Number(raw) || 0);
+            setBreakdown((prev) => {
+              const nextRow = { ...prev[key], [part]: value };
+              // 총액은 내역의 합 — 견적 엔진이 쓰는 필드를 함께 갱신한다
+              const totalKey =
+                key === "setup" ? "setupDayFee" : key === "weekday" ? "performanceWeekdayFee" : "performanceWeekendFee";
+              setMidHall((mh) => ({ ...mh, [totalKey]: nextRow.exclusive + nextRow.facility }));
+              return { ...prev, [key]: nextRow };
+            });
+          };
+          return (
+            <div key={key} className="mt-4 border-t border-border-soft pt-4">
+              <div className="flex flex-wrap items-baseline justify-between gap-2">
+                <div className={SUB_TITLE}>{label}</div>
+                <div className="text-s font-bold tabular-nums">
+                  합계 {total.toLocaleString("ko-KR")}원
+                  <span className={`ml-2 font-normal ${HELP}`}>견적 계산·공개 페이지에 함께 적용</span>
+                </div>
+              </div>
+              <div className="mt-2 grid grid-cols-1 gap-2 sm:grid-cols-2 sm:gap-3">
+                <label>
+                  <span className={`mb-1 block ${HELP}`}>전용 사용료 / 일당</span>
+                  <input
+                    type="number"
+                    min={0}
+                    value={row.exclusive}
+                    onChange={(e) => setPart("exclusive", e.target.value)}
+                    className={FIELD_NUM}
+                  />
+                </label>
+                <label>
+                  <span className={`mb-1 block ${HELP}`}>시설 사용료 / 일당</span>
+                  <input
+                    type="number"
+                    min={0}
+                    value={row.facility}
+                    onChange={(e) => setPart("facility", e.target.value)}
+                    className={FIELD_NUM}
+                  />
+                </label>
+              </div>
+            </div>
+          );
+        })}
+
+        {(
+          [
             ["extraHourFee", "셋업 연장 · 철수 Load-Out (시간당)"],
             ["cleaningUnitPrice", "청소비 (원/인)"],
           ] as const

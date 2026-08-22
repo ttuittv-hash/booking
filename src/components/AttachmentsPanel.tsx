@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { useRef, useState } from "react";
 import type { Attachment } from "@/lib/pricing/types";
 import { btnClass, FILE_INPUT } from "@/components/ui/kit";
+import { formatDate } from "@/lib/format";
 
 function formatSize(bytes: number): string {
   if (bytes < 1024) return `${bytes}B`;
@@ -82,7 +83,7 @@ export function AttachmentsPanel({
               </a>
               <div className="flex shrink-0 items-center gap-4 text-xs text-muted tabular-nums">
                 <span>{formatSize(file.size)}</span>
-                <span>{new Date(file.createdAt).toLocaleDateString("ko-KR")}</span>
+                <span>{formatDate(file.createdAt)}</span>
                 <button
                   type="button"
                   onClick={() => remove(file.id)}

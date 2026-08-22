@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
-import { redirect } from "next/navigation";
-import { getCurrentUser, isPendingApplicant } from "@/lib/auth";
+import { getCurrentUser, requireAccess } from "@/lib/auth";
 import { getScreenTextContent, listFaqs } from "@/lib/db";
 import { FaqAccordion } from "@/components/FaqAccordion";
 import { PublicHeader } from "@/components/PublicHeader";
@@ -12,9 +11,9 @@ export const metadata: Metadata = {
 };
 
 export default async function FaqPage() {
+  // 기획서 A15 접근권한 매트릭스 — 규칙은 accessPolicy.ts 한 곳에만 둔다
+  await requireAccess("/faq");
   const currentUser = await getCurrentUser();
-  if (!currentUser) redirect("/login");
-  if (isPendingApplicant(currentUser)) redirect("/pending");
 
   const [faqs, screenText] = await Promise.all([listFaqs(), getScreenTextContent()]);
 

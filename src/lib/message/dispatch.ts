@@ -14,7 +14,7 @@ import {
 } from "@/lib/db";
 import { audienceOrigin } from "@/lib/publicUrl";
 import { inAppAdapter } from "./inapp";
-import { kakaoBizTalkAdapter } from "./kakaoBizTalk";
+import { kakaoBizTalkAdapter, xmsAdapter } from "./kakaoBizTalk";
 import { renderTemplate, findTemplate, TemplateVariableError } from "./templates";
 import type { ChannelAdapter, SendRequest, SendResult } from "./types";
 
@@ -50,6 +50,29 @@ export interface DispatchOutcome {
  * 한 이벤트를 발송한다.
  * 실패해도 예외를 던지지 않는다 — 알림 실패로 본 업무(가입 승인 등)가 되돌아가면 안 된다.
  */
+/**
+ * 응답을 막지 않고 발송한다.
+ *
+ * 가입·승인 라우트는 알림 결과를 쓰지 않는다. 그런데 await 하고 있어서, 외부 발송처가
+ * 느리거나 닿지 않으면 그 시간만큼 사용자가 빈 화면을 본다 — DKT 검증 환경 방화벽이
+ * 닫혀 있던 동안 회원가입이 10초 넘게 걸렸다. 알림이 늦는 것과 가입이 안 되는 것은
+ * 다른 문제다.
+ *
+ * 발송 시도는 보내기 전에 이미 message_sends 에 QUEUED 로 남으므로, 응답을 먼저
+ * 돌려줘도 "무엇을 보내려 했는지"는 사라지지 않는다.
+ *
+ * next start 는 오래 사는 프로세스라 응답 뒤에도 이 작업이 이어진다. 롤링 업데이트로
+ * 파드가 내려가는 순간에 걸린 건은 QUEUED 로 남는다 — 그건 이력에서 보인다.
+ */
+export function dispatchMessageInBackground(input: DispatchInput): void {
+  void dispatchMessage(input).catch((error) => {
+    console.error(
+      `[message] 백그라운드 발송 실패 template=${input.templateCode} key=${input.idempotencyKey}`,
+      error,
+    );
+  });
+}
+
 export async function dispatchMessage(input: DispatchInput): Promise<DispatchOutcome> {
   // ② 중복 발송 차단. 배치 재실행·재시도에서 같은 메시지가 두 번 가는 것이 가장 흔한 사고다.
   if (await findSendByIdempotencyKey(input.idempotencyKey)) {
@@ -122,9 +145,40 @@ export async function dispatchMessage(input: DispatchInput): Promise<DispatchOut
       sentAt: result.ok ? new Date().toISOString() : null,
     });
     // ⑦ 도달 불가(미가입·차단·수신거부)는 문자 대체발송 대상이다.
-    //    LMS 계약이 아직 없어 지금은 인앱으로만 떨어진다.
+    //    대체발송을 DKT 에 맡기지 않고 우리가 하는 이유는, 맡기면 대체발송 사실이
+    //    우리 이력에 남지 않아 "왜 문자로 갔는지"를 나중에 설명할 수 없기 때문이다.
     if (!result.ok && result.failure === "UNREACHABLE") {
-      results.push({ ok: false, channel: "LMS", failure: "UNREACHABLE", resultMessage: "LMS 미설정" });
+      if (!xmsAdapter.isConfigured()) {
+        // 발신번호 사전등록 전에는 문자를 보낼 수 없다(DKT 유저웹에서 등록한다).
+        results.push({
+          ok: false,
+          channel: "LMS",
+          failure: "UNREACHABLE",
+          resultMessage: "문자 미설정 — 발신번호 사전등록 필요",
+        });
+      } else {
+        const fallbackId = crypto.randomUUID();
+        await recordSendAttempt({
+          id: fallbackId,
+          idempotencyKey: `${input.idempotencyKey}:LMS`,
+          templateCode: input.templateCode,
+          recipientId: input.recipient.userId,
+          recipientPhone: input.recipient.phone,
+          channel: "LMS",
+          status: "QUEUED",
+          payloadJson: JSON.stringify(variables),
+          createdAt: new Date().toISOString(),
+        });
+        const fallback = await xmsAdapter.send({ ...request, variables: { ...variables, __sendId: fallbackId } });
+        results.push(fallback);
+        // 문자는 접수 응답만 동기로 온다 — 최종 결과는 폴링이 채운다(FALLBACK 로 남긴다).
+        await updateSendResult(fallbackId, {
+          status: fallback.ok ? "FALLBACK" : "FAILED",
+          resultCode: fallback.resultCode ?? null,
+          resultMessage: fallback.resultMessage ?? null,
+          sentAt: fallback.ok ? new Date().toISOString() : null,
+        });
+      }
     }
   }
 

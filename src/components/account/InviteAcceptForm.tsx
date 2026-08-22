@@ -5,8 +5,9 @@ import { useState } from "react";
 import { IdentityGate } from "@/components/account/IdentityGate";
 import { btnClass } from "@/components/ui/kit";
 import { useToast } from "@/components/ui/Toast";
-import { checkPassword, checkUsername, firstFailure, PASSWORD_HINT, USERNAME_HINT } from "@/lib/validation";
+import { checkPassword, checkUsername, firstFailure, PASSWORD_HINT, USERNAME_HINT, sanitizePasswordInput, sanitizeUsernameInput } from "@/lib/validation";
 import { hashPasswordForTransport } from "@/lib/clientPassword";
+import { PasswordMatchHint } from "@/components/ui/PasswordMatchHint";
 
 export function InviteAcceptForm({ token }: { token: string }) {
   const toast = useToast();
@@ -84,7 +85,7 @@ export function InviteAcceptForm({ token }: { token: string }) {
             <input
               data-testid="invite-username"
               value={username}
-              onChange={(e) => setUsername(e.target.value)}
+              onChange={(e) => setUsername(sanitizeUsernameInput(e.target.value))}
               className="w-full border border-border-soft bg-background px-3 py-2 text-s"
             />
           </label>
@@ -92,9 +93,11 @@ export function InviteAcceptForm({ token }: { token: string }) {
             <span className="mb-1.5 block break-keep text-xs font-bold">비밀번호 ({PASSWORD_HINT})</span>
             <input
               data-testid="invite-password"
+              name="new-password"
+              autoComplete="new-password"
               type="password"
               value={password}
-              onChange={(e) => setPassword(e.target.value)}
+              onChange={(e) => setPassword(sanitizePasswordInput(e.target.value))}
               className="w-full border border-border-soft bg-background px-3 py-2 text-s"
             />
           </label>
@@ -102,11 +105,14 @@ export function InviteAcceptForm({ token }: { token: string }) {
             <span className="mb-1.5 block text-xs font-bold">비밀번호 확인</span>
             <input
               data-testid="invite-password-confirm"
+              name="confirm-password"
+              autoComplete="new-password"
               type="password"
               value={confirm}
-              onChange={(e) => setConfirm(e.target.value)}
+              onChange={(e) => setConfirm(sanitizePasswordInput(e.target.value))}
               className="w-full border border-border-soft bg-background px-3 py-2 text-s"
             />
+            <PasswordMatchHint password={password} confirm={confirm} />
           </label>
           <button
             type="button"

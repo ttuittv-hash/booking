@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import type { AppNotification } from "@/lib/pricing/types";
+import { formatDateTime, formatMonthDay } from "@/lib/format";
 
 export function NotificationBell({ role }: { role: "ADMIN" | "APPLICANT" }) {
   const [open, setOpen] = useState(false);
@@ -85,7 +86,7 @@ export function NotificationBell({ role }: { role: "ADMIN" | "APPLICANT" }) {
 
   function relativeTime(iso: string) {
     // 기준 시각이 아직 없으면(첫 렌더) 절대 날짜로 보여준다.
-    if (now === null) return new Date(iso).toLocaleString("ko-KR");
+    if (now === null) return formatDateTime(iso);
     const diff = now - Date.parse(iso);
     const min = Math.floor(diff / 60000);
     if (min < 1) return "방금 전";
@@ -94,7 +95,7 @@ export function NotificationBell({ role }: { role: "ADMIN" | "APPLICANT" }) {
     if (hour < 24) return `${hour}시간 전`;
     const day = Math.floor(hour / 24);
     if (day < 7) return `${day}일 전`;
-    return new Date(iso).toLocaleDateString("ko-KR", { month: "long", day: "numeric" });
+    return formatMonthDay(iso);
   }
 
   return (
@@ -102,7 +103,7 @@ export function NotificationBell({ role }: { role: "ADMIN" | "APPLICANT" }) {
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
-        className="relative flex h-7 w-7 items-center justify-center text-foreground transition-colors hover:text-accent"
+        className="relative flex h-11 w-11 items-center justify-center text-foreground transition-colors hover:text-accent sm:h-7 sm:w-7"
         aria-label={unreadCount > 0 ? `알림 ${unreadCount}건` : "알림"}
         aria-expanded={open}
       >

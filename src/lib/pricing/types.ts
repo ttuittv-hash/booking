@@ -187,6 +187,12 @@ export type DayTag = "PREP" | "PERFORMANCE" | "LOAD_OUT";
 // 중형공연장 일 단위 요금표(DAILY) — 패키지가 없어 RentalPackage와 별도 구조로 관리한다.
 // 관리자 화면(요금표 관리)에서 편집 가능. 2회 공연 초과(3회 이상)는 자동 계산하지 않고
 // 운영자 확인이 필요한 항목으로 남긴다(계산 엔진에서 별도 처리).
+/** 중형 일 요금의 내역 — 전용 사용료 + 시설 사용료 = 총액 */
+export interface MidHallFeeBreakdown {
+  exclusive: number; // 전용 사용료 / 일당
+  facility: number; // 시설 사용료 / 일당
+}
+
 export interface MidHallRateConfig {
   setupDayFee: number; // 셋업 Load-In 1일 — 평일/주말 동일
   performanceWeekdayFee: number; // 공연 1일 — 평일
@@ -194,6 +200,16 @@ export interface MidHallRateConfig {
   extraHourFee: number; // 셋업 연장(22:00~24:00) · 철수 Load-Out 시간당
   secondShowSurchargeRatio: number; // 1일 2회 공연 시 그 날 요금에 곱하는 할증 비율 (0.5=50%)
   cleaningUnitPrice: number; // 청소비 원/인 — (1회당 예상 관객 수 × 총 공연 횟수)에 곱한다
+  /**
+   * 전용/시설 내역 — 합이 위 세 총액이 된다. 견적 엔진은 총액만 쓰고, 내역은
+   * 공개 대관료 페이지 표기용이다. 요금표 저장 시 공개 콘텐츠도 이 값으로 갱신된다.
+   * (내역 도입 전에 저장된 버전에는 없다 — 없으면 화면이 공개 콘텐츠에서 가져온다.)
+   */
+  breakdown?: {
+    setup: MidHallFeeBreakdown;
+    weekday: MidHallFeeBreakdown;
+    weekend: MidHallFeeBreakdown;
+  };
 }
 
 export type BookingMode = "SINGLE" | "SIMULTANEOUS";

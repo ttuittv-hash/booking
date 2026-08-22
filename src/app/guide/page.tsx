@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
-import { redirect } from "next/navigation";
-import { getCurrentUser, isPendingApplicant } from "@/lib/auth";
+import { getCurrentUser, requireAccess } from "@/lib/auth";
 import { getGuidePageContent } from "@/lib/db";
 import { sanitizeRichText } from "@/lib/sanitizeHtml";
 import { PublicHeader } from "@/components/PublicHeader";
@@ -28,9 +27,10 @@ export const metadata: Metadata = {
  * 삭제하고, 그 자리에 대관 절차를 놓는다.
  */
 export default async function GuidePage() {
+  // 기획서 A15 — 비로그인 차단, 로그인하면 승인 전에도 열람 가능.
+  // 규칙은 accessPolicy.ts 한 곳에만 둔다(예전의 isPendingApplicant 게이트는 매트릭스와 반대였다).
+  await requireAccess("/guide");
   const [currentUser, content] = await Promise.all([getCurrentUser(), getGuidePageContent()]);
-  if (!currentUser) redirect("/login");
-  if (isPendingApplicant(currentUser)) redirect("/pending");
   const introHtml = sanitizeRichText(content.intro);
 
   return (

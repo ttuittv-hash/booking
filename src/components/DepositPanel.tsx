@@ -2,9 +2,10 @@
 
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-import { won } from "@/lib/format";
+import { won, formatDateTime } from "@/lib/format";
 import type { Deposit } from "@/lib/pricing/types";
 import { Badge, btnClass } from "@/components/ui/kit";
+import { useToast } from "@/components/ui/Toast";
 
 const PLACEHOLDER_BANK_INFO = "예시은행 000-0000-0000-00 (예금주: 서울아레나) — 실제 확정 계좌로 교체 필요";
 
@@ -18,6 +19,7 @@ export function DepositPanel({
   viewerRole: "ADMIN" | "APPLICANT";
 }) {
   const router = useRouter();
+  const toast = useToast();
   const [depositorName, setDepositorName] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -35,6 +37,10 @@ export function DepositPanel({
   }
 
   async function report() {
+    if (!depositorName.trim()) {
+      toast.error("입금자명을 입력해 주세요.");
+      return;
+    }
     setSubmitting(true);
     setError(null);
     try {
@@ -100,7 +106,7 @@ export function DepositPanel({
             />
             <button
               type="button"
-              disabled={submitting || !depositorName.trim()}
+              disabled={submitting}
               onClick={report}
               className={`${btnClass("primary", "md")} shrink-0`}
             >
@@ -118,7 +124,7 @@ export function DepositPanel({
         <div className="mt-5 space-y-3">
           <p className="text-s text-muted">
             입금자명 <b className="text-foreground">{deposit.depositorName}</b> ·{" "}
-            {deposit.reportedAt && new Date(deposit.reportedAt).toLocaleString("ko-KR")} 입금신청됨
+            {deposit.reportedAt && formatDateTime(deposit.reportedAt)} 입금신청됨
           </p>
           {viewerRole === "ADMIN" ? (
             <button
@@ -137,7 +143,7 @@ export function DepositPanel({
 
       {deposit.status === "CONFIRMED" && (
         <p className="mt-5 text-s text-good">
-          {deposit.confirmedAt && new Date(deposit.confirmedAt).toLocaleString("ko-KR")} 입금 확인 완료
+          {deposit.confirmedAt && formatDateTime(deposit.confirmedAt)} 입금 확인 완료
         </p>
       )}
 

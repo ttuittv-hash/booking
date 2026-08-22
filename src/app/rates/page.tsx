@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
-import { redirect } from "next/navigation";
-import { getCurrentUser, isPendingApplicant } from "@/lib/auth";
+import { getCurrentUser, requireAccess } from "@/lib/auth";
 import { getRatesContent } from "@/lib/db";
 import type { ChargeBlock, VenueRateContent } from "@/lib/content/pageContent";
 import { PublicHeader } from "@/components/PublicHeader";
@@ -156,10 +155,10 @@ function RatePanel({ en, ko, c }: { en: string; ko: string; c: VenueRateContent 
 }
 
 export default async function RatesPage() {
+  // 기획서 A15 접근권한 매트릭스 — 규칙은 accessPolicy.ts 한 곳에만 둔다
+  await requireAccess("/rates");
   // 요금은 계약 조건과 직접 연결되므로 승인된 대관사 계정에게만 공개한다.
   const [currentUser, content] = await Promise.all([getCurrentUser(), getRatesContent()]);
-  if (!currentUser) redirect("/login");
-  if (isPendingApplicant(currentUser)) redirect("/pending");
 
   return (
     <div className="flex flex-1 flex-col">

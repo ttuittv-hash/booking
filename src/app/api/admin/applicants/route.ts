@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
-import { dispatchMessage } from "@/lib/message/dispatch";
+import { dispatchMessageInBackground } from "@/lib/message/dispatch";
 import {
   ensureCompanyMaster,
   findUserById,
@@ -95,7 +95,7 @@ export async function POST(request: Request) {
   }
 
   // MB-02 가입 승인 / MB-03 가입 반려
-  await dispatchMessage({
+  dispatchMessageInBackground({
     templateCode: approved ? "MB-02" : "MB-03",
     idempotencyKey: `${approved ? "MB-02" : "MB-03"}:${id}`,
     recipient: { userId: id, phone: target.phone, email: target.email, name: target.name },

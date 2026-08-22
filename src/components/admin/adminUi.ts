@@ -66,9 +66,13 @@ export const ADD_BTN_LG =
 export const REMOVE_BTN =
   "shrink-0 text-xs font-bold text-danger transition-colors hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-danger";
 
-/** 텍스트 링크형 보조 동작 */
+/**
+ * 텍스트 링크형 보조 동작.
+ * 모바일에서는 글자 높이(18px)만으로는 누르기 어려워 44px 을 확보하고,
+ * sm 부터는 원래대로 돌아가 표가 촘촘하게 유지된다.
+ */
 export const LINK_BTN =
-  "text-xs font-bold text-foreground underline decoration-accent decoration-2 underline-offset-4 transition-colors hover:text-muted-strong";
+  "inline-flex min-h-11 items-center text-xs font-bold text-foreground underline decoration-accent decoration-2 underline-offset-4 transition-colors hover:text-muted-strong sm:min-h-0";
 
 /** 조용한 취소 */
 export const QUIET_BTN = "text-xs text-muted transition-colors hover:text-foreground";
@@ -145,7 +149,7 @@ export const TD_MUTED = `${TD} text-muted`;
 /** 행 우측 끝의 상세 링크 셀 */
 export const TD_LINK = `${TD} text-right`;
 export const ROW_LINK =
-  "inline-flex items-center gap-1.5 text-xs font-bold transition-colors hover:text-muted-strong";
+  "inline-flex min-h-11 items-center gap-1.5 text-xs font-bold transition-colors hover:text-muted-strong sm:min-h-0";
 /** 비어 있는 표의 안내 셀 */
 export const TD_EMPTY = "px-3 py-10 text-center text-s text-muted";
 

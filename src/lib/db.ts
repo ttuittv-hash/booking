@@ -13,6 +13,7 @@ import { SEED_FAQS } from "./content/faqSeed";
 import { FEATURE_SPEC_SEED } from "./featureSpecSeed";
 import { FEATURE_SPEC_SHEET_KEYS } from "./pricing/types";
 import { sha256Hex } from "./passwordScheme";
+import { INITIAL_PERFORMANCE_INFO } from "./pricing/performanceInfoDefaults";
 import {
   blindIndex,
   blindIndexOptional,
@@ -705,7 +706,23 @@ async function seedData(pool: Pool) {
 
   // 회사정보 불러오기(기획서 A6)를 바로 시험해 볼 수 있게 표본 회사를 하나 둔다.
   // 승인 완료 상태여야 검색에 잡힌다. 이미 있으면 건드리지 않는다.
+  //
+  // SEED_SAMPLE_COMPANY=true 인 환경(dev)에서만 만든다. 조건 없이 돌렸더니 운영 첫
+  // 기동에서 가짜 사업자번호를 단 "주식회사 서울아레나"가 실DB에 들어갔다 — 운영사
+  // 이름을 단 허위 회사라, 신청자가 불러오기로 합류 신청까지 할 수 있는 상태였다.
   const sampleBrn = "1018116510";
+  if (process.env.SEED_SAMPLE_COMPANY !== "true") {
+    // 운영에는 만들지 않는다. 과거에 시드된 것이 남아 있으면 그대로 두지 않고 지운다
+    // (담당자가 붙기 전 초기 상태에서만 — 사용자가 딸린 회사는 건드리지 않는다).
+    await pool.query(
+      `DELETE FROM companies c
+        WHERE c.business_registration_number = $1
+          AND c.name = '주식회사 서울아레나'
+          AND c.representative_name = '박○○'
+          AND NOT EXISTS (SELECT 1 FROM users u WHERE u.company_id = c.id)`,
+      [sampleBrn],
+    );
+  } else {
   const sampleExists = (
     await pool.query("SELECT 1 FROM companies WHERE business_registration_number = $1", [sampleBrn])
   ).rowCount;
@@ -723,6 +740,7 @@ async function seedData(pool: Pool) {
       [crypto.randomUUID(), sampleBrn, new Date().toISOString()],
     );
     console.log("[seoularena] 표본 회사(주식회사 서울아레나)를 등록했습니다 — 회사정보 불러오기 시험용");
+  }
   }
 
   // 서울아레나 소개 / 대관 안내 하위 페이지 — 최초 1회만 기본 콘텐츠로 시드한다.
@@ -2446,12 +2464,47 @@ interface QuoteRow {
   settlement_json: string | null;
 }
 
+/**
+ * 저장된 selection 을 현행 스키마로 보정한다.
+ *
+ * 신청서는 저장 시점의 위저드 스키마로 굳는데, 스키마는 계속 자란다(중형 일 단위 ·
+ * 동시 대관 · 안전 서약 …). 예전 신청서를 새 코드가 읽으면 없는 필드에서
+ * Object.keys(undefined) 로 상세 화면이 통째로 죽는다 — v1.0.0 운영 검수에서
+ * 7월 신청서(SA-6AF9D211)가 실제로 500 을 냈다. 읽기 경계인 여기 한 곳에서
+ * 기본값을 채워 모든 화면(운영자 상세 · 마이페이지 · 인쇄)이 안전해지게 한다.
+ * 저장본은 건드리지 않는다.
+ */
+function normalizeStoredSelection(raw: string): Quote["selection"] {
+  const s = JSON.parse(raw) as Partial<Quote["selection"]>;
+  return {
+    ...s,
+    venueId: s.venueId ?? null,
+    bookingMode: s.bookingMode ?? "SINGLE",
+    dayTags: s.dayTags ?? {},
+    dayShowCounts: s.dayShowCounts ?? {},
+    midHallDays: s.midHallDays ?? {},
+    addons: Array.isArray(s.addons) ? s.addons : [],
+    excludedDays: Array.isArray(s.excludedDays) ? s.excludedDays : [],
+    extraDays: Array.isArray(s.extraDays) ? s.extraDays : [],
+    secondaryAudience: s.secondaryAudience ?? 0,
+    performanceInfo: { ...INITIAL_PERFORMANCE_INFO, ...(s.performanceInfo ?? {}) },
+    safetyPledge: {
+      fireSafety: false,
+      managerDesignated: false,
+      facilityInspected: false,
+      incidentReporting: false,
+      signature: "",
+      ...(s.safetyPledge ?? {}),
+    },
+  } as Quote["selection"];
+}
+
 function toQuote(row: QuoteRow): Quote {
   return {
     id: row.id,
     applicantId: row.applicant_id,
     rateTableVersion: row.rate_table_version,
-    selection: JSON.parse(row.selection_json),
+    selection: normalizeStoredSelection(row.selection_json),
     lineItems: JSON.parse(row.line_items_json),
     subtotal: row.subtotal,
     vat: row.vat,

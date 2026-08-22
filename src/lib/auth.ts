@@ -1,6 +1,6 @@
 import { hash as bcryptHash, verify as bcryptVerify } from "@node-rs/bcrypt";
 import { jwtVerify, SignJWT } from "jose";
-import { cookies } from "next/headers";
+import { cookies, headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { findSessionEpoch, findUserById, isUserWithdrawn } from "./db";
 import { accountStateOf, canAccess, redirectFor } from "./accessPolicy";
@@ -89,6 +89,27 @@ async function verifySession(
   }
 }
 
+/*
+  세션 쿠키의 Domain.
+
+  운영자는 partner.* 에서 로그인한 채 "운영자 백오피스"를 눌러 bo.* 로 넘어간다.
+  Domain 없이 host 전용 쿠키를 구우면 bo.* 에는 세션이 없어 다시 로그인해야 한다.
+  bo./partner. 를 뗀 부모 도메인(dev.seoularena.net / seoularena.net)으로 구워
+  두 호스트가 세션을 공유하게 한다. localhost 같은 단일 호스트에서는 붙이지 않는다.
+*/
+function sessionCookieDomain(host: string | null): string | undefined {
+  if (!host) return undefined;
+  const bare = host.split(":")[0];
+  const m = /^(?:bo|partner)\.(.+)$/.exec(bare);
+  if (!m || !m[1].includes(".")) return undefined;
+  return m[1];
+}
+
+async function cookieDomainFromRequest(): Promise<string | undefined> {
+  const h = await headers();
+  return sessionCookieDomain(h.get("x-forwarded-host") ?? h.get("host"));
+}
+
 /** Route Handler / Server Function 안에서만 호출 가능 (쿠키 쓰기) */
 export async function createSession(userId: string, role: UserRole) {
   const now = Math.floor(Date.now() / 1000);
@@ -99,6 +120,7 @@ export async function createSession(userId: string, role: UserRole) {
     secure: process.env.NODE_ENV === "production",
     sameSite: "lax",
     path: "/",
+    domain: await cookieDomainFromRequest(),
     maxAge: ABSOLUTE_TTL_SECONDS,
   });
 }
@@ -116,15 +138,34 @@ export async function touchSession(session: { sub: string; role: UserRole; lif: 
     secure: process.env.NODE_ENV === "production",
     sameSite: "lax",
     path: "/",
+    domain: await cookieDomainFromRequest(),
     // 쿠키 수명은 최초 로그인 기준 절대 상한까지만 남긴다.
     maxAge: Math.max(0, session.lif + ABSOLUTE_TTL_SECONDS - now),
   });
 }
 
-/** Route Handler / Server Function 안에서만 호출 가능 (쿠키 쓰기) */
-export async function clearSession() {
-  const cookieStore = await cookies();
-  cookieStore.delete(SESSION_COOKIE);
+/**
+ * 세션 쿠키를 지운다 — 응답에 직접 Set-Cookie 를 싣는다.
+ *
+ * cookies() API 로는 안 된다: 같은 이름은 하나만 내보내서, Domain 붙인 삭제와
+ * host 전용 삭제를 둘 다 걸면 뒤의 것이 앞의 것을 덮는다. 실제로 그렇게 배포됐고
+ * Domain 없는 삭제만 나가 도메인 쿠키가 살아남았다 — "로그아웃이 안 된다"는
+ * 신고가 이것이다. 두 변형(도메인 공유 쿠키 + 공유 이전의 host 전용 쿠키)을
+ * 각각의 Set-Cookie 헤더로 내보내야 한다.
+ */
+export async function appendSessionClear(response: Response): Promise<void> {
+  const expired = [
+    `${SESSION_COOKIE}=`,
+    "Path=/",
+    "Expires=Thu, 01 Jan 1970 00:00:00 GMT",
+    "Max-Age=0",
+    "HttpOnly",
+    "SameSite=Lax",
+    ...(process.env.NODE_ENV === "production" ? ["Secure"] : []),
+  ].join("; ");
+  response.headers.append("Set-Cookie", expired);
+  const domain = await cookieDomainFromRequest();
+  if (domain) response.headers.append("Set-Cookie", `${expired}; Domain=${domain}`);
 }
 
 /** Server Component/Route Handler 어디서든 호출 가능 (쿠키 읽기 전용) */
@@ -183,6 +224,17 @@ export async function requireAccess(pathname: string): Promise<AppUser | null> {
   if (!canAccess(pathname, state)) {
     redirect(redirectFor(state, pathname));
   }
+  return user;
+}
+
+/**
+ * 비로그인이 막히는 경로 전용 requireAccess.
+ * 통과했다면 매트릭스상 반드시 로그인 상태이므로, 호출부가 매번 null 을 풀지 않아도 된다.
+ */
+export async function requireAccessedUser(pathname: string): Promise<AppUser> {
+  const user = await requireAccess(pathname);
+  // 매트릭스상 도달하지 않는다(GUEST 는 위에서 막힌다). 타입을 좁히려고 남겨 둔다.
+  if (!user) redirect("/login");
   return user;
 }
 

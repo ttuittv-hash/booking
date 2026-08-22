@@ -14,17 +14,17 @@ export function Breadcrumb({ items }: { items: { label: string; href?: string }[
       <div className="container-site flex h-12 items-center gap-2 overflow-x-auto whitespace-nowrap text-xs text-muted">
         <Link
           href="/"
-          className="font-extrabold uppercase tracking-[0.08em] [font-family:Archivo,sans-serif] hover:text-foreground"
+          className="flex h-full items-center font-extrabold uppercase tracking-[0.08em] [font-family:Archivo,sans-serif] hover:text-foreground"
         >
           Home
         </Link>
         {items.map((item) => (
-          <span key={item.label} className="flex items-center gap-2">
+          <span key={item.label} className="flex h-full items-center gap-2">
             <span aria-hidden className="opacity-40">
               /
             </span>
             {item.href ? (
-              <Link href={item.href} className="hover:text-foreground">
+              <Link href={item.href} className="flex h-full items-center hover:text-foreground">
                 {item.label}
               </Link>
             ) : (

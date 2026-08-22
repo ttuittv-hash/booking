@@ -4,15 +4,25 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { btnClass } from "@/components/ui/kit";
 import { hashPasswordForTransport } from "@/lib/clientPassword";
+import { useToast } from "@/components/ui/Toast";
 
 export function WithdrawForm() {
   const router = useRouter();
+  const toast = useToast();
   const [password, setPassword] = useState("");
   const [confirmed, setConfirmed] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   async function withdraw() {
+    if (!password) {
+      toast.error("비밀번호를 입력해 주세요.");
+      return;
+    }
+    if (!confirmed) {
+      toast.error("탈퇴 유의사항 확인에 동의해 주세요.");
+      return;
+    }
     setBusy(true);
     setError(null);
     try {
@@ -56,6 +66,7 @@ export function WithdrawForm() {
         <span className="mb-2 block text-xs text-muted-strong">비밀번호 확인</span>
         <input
           type="password"
+              autoComplete="current-password"
           value={password}
           onChange={(e) => setPassword(e.target.value)}
           className="field-base max-w-xs"
@@ -72,7 +83,7 @@ export function WithdrawForm() {
         위 내용을 확인했으며 탈퇴에 동의합니다.
       </label>
 
-      <button type="button" disabled={busy || !password || !confirmed} onClick={withdraw} className={`${btnClass("secondary", "md")} mt-6`}>
+      <button type="button" disabled={busy} onClick={withdraw} className={`${btnClass("secondary", "md")} mt-6`}>
         {busy ? "처리 중..." : "탈퇴하기"}
       </button>
       {error && (

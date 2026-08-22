@@ -443,6 +443,11 @@ function RateTableFields({
 export function RatesForm({ content }: { content: RatesContent }) {
   return (
     <ContentFormShell page="rates" initial={content}>
+      {/*
+        주의 — 이 표는 공개 /rates 페이지의 "보여주는" 콘텐츠다.
+        대관 신청의 견적 계산은 "요금표 관리"의 요금표를 쓴다. 두 곳이 어긋나면
+        공개 페이지의 금액과 실제 견적이 달라지므로, 요금을 바꿀 때는 함께 확인할 것.
+      */}
       {(v, patch) => (
         <>
           <Section title="아레나 탭">

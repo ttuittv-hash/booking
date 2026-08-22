@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import type { AppUser } from "@/lib/pricing/types";
 import { LogoutButton } from "@/components/LogoutButton";
 import { NotificationBell } from "@/components/NotificationBell";
@@ -37,6 +37,32 @@ const PANEL_LINK = "block whitespace-nowrap py-1.5 text-xs transition-colors hov
  * 중앙 메뉴(Archivo 대문자 14)보다 커 보이지 않게 국문은 한 단 작게 둔다 —
  * 같은 14 라도 국문이 시각적으로 더 크고 무거워서 도구가 여정보다 앞서 읽힌다.
  */
+/**
+ * 운영자 백오피스 주소.
+ * 파트너 호스트에서 /admin 으로 링크하면 프록시가 막고 홈으로 돌려보낸다 —
+ * "백오피스 버튼이 동작을 안 한다"는 신고가 이것이다. partner. 를 bo. 로 바꾼
+ * 절대 주소로 보낸다. 세션 쿠키는 부모 도메인으로 굽기 때문에 로그인이 유지된다.
+ * 프록시 없는 환경(localhost)에서는 같은 호스트의 /admin 이 그대로 동작한다.
+ *
+ * 렌더 중에 window 를 읽으면 서버 값("/admin")과 어긋나 하이드레이션이 그 속성을
+ * 버린다 — 실제로 버튼이 계속 /admin 을 가리켰다. 마운트 후 상태로 채운다.
+ */
+function useBackofficeHref(): string {
+  // 초기값 계산을 지연 이니셜라이저로 미룬다 — effect 안 setState 는 재렌더를 한 번 더 유발한다.
+  // useState 이니셜라이저는 클라이언트 첫 렌더(하이드레이션)에서 실행되므로 window 를 읽어도
+  // 되지만, 서버 마크업("/admin")과 속성이 어긋나는 문제는 suppressHydrationWarning 대신
+  // useSyncExternalStore 로 푸는 것이 정석이다. 여기서는 값이 정적이라 그걸로 충분하다.
+  return useSyncExternalStore(
+    () => () => {},
+    () => {
+      const { protocol, host } = window.location;
+      const m = /^partner\.(.+)$/.exec(host);
+      return m ? `${protocol}//bo.${m[1]}/` : "/admin";
+    },
+    () => "/admin",
+  );
+}
+
 const UTIL_BASE =
   "flex items-center gap-1 whitespace-nowrap text-xs font-bold text-foreground transition-colors";
 /**
@@ -124,6 +150,7 @@ export function PublicHeader({
   active: string;
   currentUser: AppUser | null;
 }) {
+  const backofficeHref = useBackofficeHref();
   /** 펼쳐진 드롭다운의 키 (카테고리 라벨 · "지원" · "계정") */
   const [openKey, setOpenKey] = useState<string | null>(null);
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -209,10 +236,12 @@ export function PublicHeader({
         그래서 절대 위치로 화면 중앙에 고정한다(마진이 좌우 대칭이라 컨테이너 중앙 = 화면 중앙).
       */}
       <div className="container-site relative flex h-[var(--header-h)] items-center justify-between gap-6">
+        {/* 글자 높이만큼만 잡히면 터치 타깃이 18~24px 밖에 안 된다.
+            헤더 높이만큼 세로를 채워 누르기 쉽게 한다. */}
         <Link
           href="/"
           onMouseEnter={closeNow}
-          className="type-display shrink-0 text-h6-m leading-none"
+          className="type-display flex h-full shrink-0 items-center text-h6-m leading-none"
           aria-label="Seoul Arena 홈"
         >
           Seoul Arena
@@ -295,9 +324,9 @@ export function PublicHeader({
           {currentUser ? (
             <>
               {currentUser.role === "ADMIN" ? (
-                <Link href="/admin" className={UTIL_LINK} onMouseEnter={closeNow}>
+                <a href={backofficeHref} className={UTIL_LINK} onMouseEnter={closeNow}>
                   운영자 백오피스
-                </Link>
+                </a>
               ) : (
                 /* 이름 자체가 마이페이지 링크다 — 드롭다운을 두지 않고 밑줄로만 표시한다 */
                 <Link
@@ -441,13 +470,13 @@ export function PublicHeader({
                   <ul className="mt-3 space-y-2">
                     {currentUser.role === "ADMIN" ? (
                       <li>
-                        <Link
-                          href="/admin"
+                        <a
+                          href={backofficeHref}
                           onClick={() => setMobileOpen(false)}
                           className="text-s text-muted"
                         >
                           운영자 백오피스
-                        </Link>
+                        </a>
                       </li>
                     ) : (
                       <li>
