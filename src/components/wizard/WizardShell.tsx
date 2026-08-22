@@ -220,7 +220,25 @@ export function WizardShell({
         midHallDays: draft.selection.midHallDays ?? {},
         // 중첩 객체는 **초기값 위에 얹는다** — 스키마가 늘어난 뒤 복원된 초안에
         // 새 필드가 없으면 배열·객체 접근에서 렌더가 터진다.
-        performanceInfo: { ...initialPerformanceInfo, ...(draft.selection.performanceInfo ?? {}) },
+        // 대관신청사명·사업자등록번호는 더 이상 이 화면에서 입력하지 않고 계정에서
+        // 읽기 전용으로 보여주는 값이다 — 예전에 저장된 임시저장본에 빈 문자열로
+        // 남아있으면 그 빈 값이 계정 값을 덮어써 화면에 "—"만 보이고 고칠 방법이
+        // 없었다("기업정보가 있는데도 대관신청 위저드에서는 그냥 - 이렇게 나옴",
+        // 2026-08-22) — 이 두 값만은 임시저장본을 무시하고 항상 계정 값을 쓴다.
+        performanceInfo: {
+          ...initialPerformanceInfo,
+          ...(draft.selection.performanceInfo ?? {}),
+          applicantCompanyName: initialPerformanceInfo.applicantCompanyName,
+          applicantBusinessRegistrationNumber: initialPerformanceInfo.applicantBusinessRegistrationNumber,
+        },
+        // 동시 대관에서 "공간별로 다르게 입력"한 사본에도 같은 문제가 있어 똑같이 덮어쓴다.
+        midHallPerformanceInfo: draft.selection.midHallPerformanceInfo
+          ? {
+              ...draft.selection.midHallPerformanceInfo,
+              applicantCompanyName: initialPerformanceInfo.applicantCompanyName,
+              applicantBusinessRegistrationNumber: initialPerformanceInfo.applicantBusinessRegistrationNumber,
+            }
+          : (draft.selection.midHallPerformanceInfo ?? null),
         safetyPledge: { ...DEFAULT_SAFETY_PLEDGE, ...(draft.selection.safetyPledge ?? {}) },
         marketingCooperation: {
           ...DEFAULT_MARKETING_COOPERATION,

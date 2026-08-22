@@ -6,12 +6,9 @@ import { LogoutButton } from "@/components/LogoutButton";
 import { NotificationBell } from "@/components/NotificationBell";
 import type { AppUser } from "@/lib/pricing/types";
 
-// 자주 들여다보는 화면과 패키지 · 요금표 · 일정 관리는 원뎁스(한 줄에 직접)로 둔다 —
-// 이 셋은 대관 운영에서 매일 들여다보는 화면이라 드롭다운 안에 숨기면 안 된다는
-// 피드백(2026-08-22, "패키지 관리, 요금관리, 일정관리는 다 원뎁스로 다시 빼"). 그보다
-// 덜 자주 쓰는 콘텐츠 · 알림 · 운영자 계정 · 계정 설정만 "설정" 드롭다운으로 묶는다 —
-// 항목이 11개까지 늘면서 좁은 데스크톱 폭에서도 가로 스크롤이 생겼던 문제
-// ("지앤비 메뉴가 스크롤이 생기네?", 2026-08-22)는 그대로 유지한 채 줄인다.
+// 계정 관련 화면(운영자 계정 · 계정 설정) 둘만 마우스오버 드롭다운으로 묶고, 나머지는
+// 전부 원뎁스로 GNB에 직접 둔다(2026-08-22, "콘텐츠 관리, 알림 관리도 gnb 메뉴로
+// 다시 빼" · "계정 관리로 빼고.. 마우스오버 하면 운영자계정/계정 설정 넣어").
 const PRIMARY_LINKS = [
   { href: "/admin", label: "신청 현황", masterOnly: false },
   { href: "/admin/reports", label: "리포트", masterOnly: false },
@@ -19,14 +16,14 @@ const PRIMARY_LINKS = [
   { href: "/admin/packages", label: "패키지 관리", masterOnly: false },
   { href: "/admin/rates", label: "요금표 관리", masterOnly: false },
   { href: "/admin/schedule", label: "일정 관리", masterOnly: false },
+  { href: "/admin/content", label: "콘텐츠 관리", masterOnly: false },
+  { href: "/admin/notification-rules", label: "알림 관리", masterOnly: false },
   { href: "/admin/inquiries", label: "1:1 문의", masterOnly: false },
 ];
 
-const SETTINGS_GROUP = {
-  label: "설정",
+const ACCOUNT_GROUP = {
+  label: "계정 관리",
   links: [
-    { href: "/admin/content", label: "콘텐츠 관리", masterOnly: false },
-    { href: "/admin/notification-rules", label: "알림 관리", masterOnly: false },
     { href: "/admin/users", label: "운영자 계정", masterOnly: false },
     { href: "/admin/account", label: "계정 설정", masterOnly: false },
   ],
@@ -42,10 +39,16 @@ function navLinkCls(isActive: boolean) {
   }`;
 }
 
-function SettingsMenu({ active, master }: { active: string; master: boolean }) {
+// 마우스오버로 열고, 트리거→패널로 넘어갈 때 살짝 여유를 줘서 깜빡이지 않게 한다
+// (2026-08-22, "마우스오버 하면 운영자계정/계정 설정 넣어"). 클릭으로도 열리고
+// 닫힌다 — 터치 기기나 키보드 접근에는 호버가 없기 때문이다.
+const HOVER_CLOSE_DELAY_MS = 150;
+
+function AccountMenu({ active, master }: { active: string; master: boolean }) {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
-  const links = SETTINGS_GROUP.links.filter((link) => !link.masterOnly || master);
+  const closeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const links = ACCOUNT_GROUP.links.filter((link) => !link.masterOnly || master);
   const isActiveGroup = links.some((l) => l.href === active);
 
   useEffect(() => {
@@ -57,8 +60,29 @@ function SettingsMenu({ active, master }: { active: string; master: boolean }) {
     return () => document.removeEventListener("mousedown", onClickOutside);
   }, [open]);
 
+  useEffect(() => () => {
+    if (closeTimer.current) clearTimeout(closeTimer.current);
+  }, []);
+
+  function openNow() {
+    if (closeTimer.current) {
+      clearTimeout(closeTimer.current);
+      closeTimer.current = null;
+    }
+    setOpen(true);
+  }
+
+  function closeSoon() {
+    closeTimer.current = setTimeout(() => setOpen(false), HOVER_CLOSE_DELAY_MS);
+  }
+
   return (
-    <div ref={ref} className="relative flex h-full shrink-0 items-center">
+    <div
+      ref={ref}
+      className="relative flex h-full shrink-0 items-center"
+      onMouseEnter={openNow}
+      onMouseLeave={closeSoon}
+    >
       <button
         type="button"
         aria-expanded={open}
@@ -66,7 +90,7 @@ function SettingsMenu({ active, master }: { active: string; master: boolean }) {
         onClick={() => setOpen((v) => !v)}
         className={navLinkCls(isActiveGroup || open)}
       >
-        {SETTINGS_GROUP.label}
+        {ACCOUNT_GROUP.label}
         <svg aria-hidden viewBox="0 0 12 12" className="ml-1 h-3 w-3" fill="none" stroke="currentColor">
           <path d="M2.5 4.5l3.5 3 3.5-3" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" />
         </svg>
@@ -130,7 +154,7 @@ export function AdminNav({ active, user }: { active: string; user?: AppUser | nu
               {link.label}
             </Link>
           ))}
-          <SettingsMenu active={active} master={master} />
+          <AccountMenu active={active} master={master} />
         </nav>
 
         <div className="flex shrink-0 items-center gap-x-4 text-xs text-muted">
