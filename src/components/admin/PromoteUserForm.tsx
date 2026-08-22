@@ -4,7 +4,7 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import type { AdminTier } from "@/lib/pricing/types";
 import { btnClass } from "@/components/ui/kit";
-import { FIELD, FIELD_LABEL, PANEL, SECTION_TITLE } from "@/components/admin/adminUi";
+import { FIELD, FIELD_LABEL, INFO_NOTE, PANEL, SECTION_TITLE } from "@/components/admin/adminUi";
 
 const TIER_LABEL: Record<AdminTier, string> = {
   BASIC: "일반관리자",
@@ -54,7 +54,24 @@ export function PromoteUserForm() {
         비밀번호는 그대로 유지되며, 새 계정을 만드는 것이 아닙니다.
       </p>
 
-      <div className="mt-5 grid grid-cols-1 gap-4 sm:grid-cols-3">
+      {/* 등급별 권한 차이를 눈에 보이는 화면 접근 기준으로 정리한다(2026-08-22,
+          "각각의 권한이 달랐자나" 피드백에 대한 답 — 실제로는 마스터 관리자만
+          구분되고, 일반관리자·프로 관리자는 현재 접근 가능 화면이 동일하다). */}
+      <div className={`mt-4 max-w-2xl ${INFO_NOTE}`}>
+        <p className="font-bold">등급별로 실제로 무엇이 갈리나요</p>
+        <ul className="mt-1.5 list-disc space-y-1 pl-4">
+          <li>
+            <b>일반관리자 · 프로 관리자</b> — 신청 현황·회원 관리·패키지·요금표 등 운영 화면은
+            둘 다 동일하게 접근합니다. 지금은 두 등급이 화면 접근상 구분되지 않습니다.
+          </li>
+          <li>
+            <b>마스터 관리자</b>만 ① 다른 운영자의 등급을 올리고 내릴 수 있고 ② 기능정의서(내부
+            기획 문서) 화면에 들어갈 수 있습니다.
+          </li>
+        </ul>
+      </div>
+
+      <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-3">
         <label className="block sm:col-span-2">
           <span className={FIELD_LABEL}>이미 가입된 이메일</span>
           <input
