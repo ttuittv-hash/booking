@@ -199,6 +199,11 @@ export function Step1Calendar({
   function setRole(iso: string, role: DayTag | "REMOVE") {
     const dayKind = dayKindForDate(iso);
     if (!dayKind) return;
+    // 막힌 날짜로의 확장은 막는다 — 화~일 6일 중 막힌 날은 selectWeek() 단계에서 이미
+    // 걸러지지만, 월요일부터 시작하는 연장일(추가일)은 blockedFor() 의 화~일(1~6) 검사
+    // 범위 밖이라 여기서 다시 한번 직접 확인해야 한다(대관 불가 날짜가 연장으로 뚫리던
+    // 버그, 2026-08-22). 이미 추가된 날을 빼는 것(REMOVE)은 막지 않는다.
+    if (role !== "REMOVE" && blockedByDate.has(iso)) return;
 
     if (dayKind.kind === "base") {
       const isExcluded = excludedDays.includes(dayKind.weekday);
@@ -297,7 +302,11 @@ export function Step1Calendar({
                   const dayKind = dayKindForDate(iso);
                   const isExtendable = dayKind?.kind === "extend";
                   const interactable = dayKind !== null;
-                  const cellDisabled = !!blocked || (isMonday && !interactable) || (!isSelectable && !interactable);
+                  // 행 단위 block 은 화~일(1~6)만 보므로, 월요일부터 시작하는 연장일은
+                  // 이 날짜 자신의 차단 여부를 따로 확인해야 놓치지 않는다.
+                  const cellBlocked = blocked ?? blockedByDate.get(iso);
+                  const cellDisabled =
+                    !!cellBlocked || (isMonday && !interactable) || (!isSelectable && !interactable);
                   return (
                     <button
                       key={di}
@@ -312,7 +321,7 @@ export function Step1Calendar({
                       }}
                       className={[
                         "flex h-9 flex-col items-center justify-center gap-0.5 text-xs sm:h-11 sm:text-s",
-                        blocked
+                        cellBlocked
                           ? "cursor-not-allowed text-muted line-through"
                           : isActive
                             ? "cursor-pointer bg-accent-soft font-bold text-foreground"
