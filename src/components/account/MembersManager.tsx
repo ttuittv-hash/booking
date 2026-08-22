@@ -12,7 +12,7 @@ type Member = {
   approvalStatus: string;
   createdAt: string;
 };
-type Invitation = { id: string; email: string; status: string; expiresAt: string };
+type Invitation = { id: string; email: string; phone: string | null; status: string; expiresAt: string };
 
 const APPROVAL_LABEL: Record<string, string> = {
   APPROVED: "정상",
@@ -24,6 +24,7 @@ export function MembersManager() {
   const [members, setMembers] = useState<Member[]>([]);
   const [invitations, setInvitations] = useState<Invitation[]>([]);
   const [email, setEmail] = useState("");
+  const [phone, setPhone] = useState("");
   const [inviteUrl, setInviteUrl] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
@@ -205,15 +206,24 @@ export function MembersManager() {
             placeholder="초대할 담당자 이메일"
             className="field-base min-w-64 flex-1"
           />
+          <input
+            data-testid="invite-phone"
+            type="tel"
+            value={phone}
+            onChange={(e) => setPhone(e.target.value)}
+            placeholder="휴대폰 번호 (선택 — 알림톡 발송용)"
+            className="field-base min-w-48 flex-1"
+          />
           <button
             type="button"
             data-testid="invite-send"
             disabled={busy || !email}
             onClick={async () => {
-              const data = await act("/api/company/invitations", { email });
+              const data = await act("/api/company/invitations", { email, phone: phone || undefined });
               if (data?.inviteUrl) {
                 setInviteUrl(data.inviteUrl);
                 setEmail("");
+                setPhone("");
               }
             }}
             className={btnClass("primary", "md")}
@@ -221,13 +231,18 @@ export function MembersManager() {
             초대 링크 발급
           </button>
         </div>
+        <p className="mt-1.5 text-xs text-muted">
+          휴대폰 번호를 입력하면 알림톡으로 초대 링크가 자동 발송됩니다. 비워두면 알림톡이 나가지
+          않으니 아래 링크를 직접 전달해 주세요(이메일 발송은 아직 연결 전입니다).
+        </p>
 
         {inviteUrl ? (
           <div data-testid="invite-url" className="mt-4 border border-accent px-4 py-3 text-s">
             <p className="font-bold">초대 링크가 발급되었습니다</p>
             <p className="mt-2 break-all font-mono text-xs">{inviteUrl}</p>
             <p className="mt-2 text-xs text-muted">
-              메일 발송이 연결되기 전까지는 이 링크를 직접 전달해 주세요.
+              휴대폰 번호를 입력했다면 알림톡으로도 이미 발송됐습니다. 도착하지 않으면 이 링크를
+              직접 전달해 주세요.
             </p>
           </div>
         ) : null}
@@ -236,6 +251,7 @@ export function MembersManager() {
           <thead>
             <tr className="border-b border-border text-xs text-muted">
               <th className="py-2 text-left">이메일</th>
+              <th className="py-2 text-left">휴대폰</th>
               <th className="py-2 text-left">상태</th>
               <th className="py-2 text-left">만료</th>
               <th className="py-2 text-left">조치</th>
@@ -245,6 +261,7 @@ export function MembersManager() {
             {invitations.map((iv) => (
               <tr key={iv.id} className="border-b border-border/40">
                 <td className="py-3">{iv.email}</td>
+                <td className="py-3 text-muted">{iv.phone ?? "—"}</td>
                 <td className="py-3">{iv.status}</td>
                 <td className="py-3 text-muted">{iv.expiresAt.slice(0, 10)}</td>
                 <td className="py-3">
@@ -266,7 +283,7 @@ export function MembersManager() {
             ))}
             {invitations.length === 0 ? (
               <tr>
-                <td colSpan={4} className="py-6 text-center text-muted">
+                <td colSpan={5} className="py-6 text-center text-muted">
                   발급한 초대가 없습니다.
                 </td>
               </tr>

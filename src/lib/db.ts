@@ -518,6 +518,11 @@ async function initSchema(pool: Pool) {
     -- 본문에 URL 을 그대로 적어 넣었다 — 링크로 저장해 화면에서 누르게 한다.
     ALTER TABLE notifications ADD COLUMN IF NOT EXISTS link TEXT;
 
+    -- 초대장에 전화번호를 받아둔다. 알림톡 채널은 이메일이 아니라 휴대폰 번호로
+    -- 발송한다(kakaoBizTalkAdapter.send 참고) — 이게 없으면 알림톡 키를 설정해도
+    -- 초대 알림은 "수신번호 없음"으로 항상 실패한다.
+    ALTER TABLE company_invitations ADD COLUMN IF NOT EXISTS phone TEXT;
+
     -- 회사의 유일 키는 회사명이 아니라 사업자등록번호다.
     -- 동명 회사가 실제로 있어서 name UNIQUE 는 오히려 정상 가입을 막는다.
     ALTER TABLE companies DROP CONSTRAINT IF EXISTS companies_name_key;
@@ -1335,6 +1340,7 @@ export interface CompanyInvitation {
   id: string;
   companyId: string;
   email: string;
+  phone: string | null;
   status: string;
   expiresAt: string;
   createdAt: string;
@@ -1352,18 +1358,20 @@ export async function createCompanyInvitation(input: {
   companyId: string;
   invitedBy: string;
   email: string;
+  phone: string | null;
   tokenHash: string;
   expiresAt: string;
   createdAt: string;
 }): Promise<void> {
   await q(
-    `INSERT INTO company_invitations (id, company_id, invited_by, email, token_hash, status, expires_at, created_at)
-     VALUES ($1, $2, $3, $4, $5, 'PENDING', $6, $7)`,
+    `INSERT INTO company_invitations (id, company_id, invited_by, email, phone, token_hash, status, expires_at, created_at)
+     VALUES ($1, $2, $3, $4, $5, $6, 'PENDING', $7, $8)`,
     [
       input.id,
       input.companyId,
       input.invitedBy,
       input.email.toLowerCase(),
+      input.phone,
       input.tokenHash,
       input.expiresAt,
       input.createdAt,
@@ -1376,11 +1384,12 @@ export async function listCompanyInvitations(companyId: string): Promise<Company
     id: string;
     company_id: string;
     email: string;
+    phone: string | null;
     status: string;
     expires_at: string;
     created_at: string;
   }>(
-    `SELECT id, company_id, email, status, expires_at, created_at
+    `SELECT id, company_id, email, phone, status, expires_at, created_at
        FROM company_invitations WHERE company_id = $1 ORDER BY created_at DESC`,
     [companyId],
   );
@@ -1388,6 +1397,7 @@ export async function listCompanyInvitations(companyId: string): Promise<Company
     id: r.id,
     companyId: r.company_id,
     email: r.email,
+    phone: r.phone,
     status: r.status,
     expiresAt: r.expires_at,
     createdAt: r.created_at,
