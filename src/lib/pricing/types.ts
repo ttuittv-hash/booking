@@ -826,6 +826,34 @@ export interface Faq {
 }
 
 // ---------------------------------------------------------------------------
+// 알림 트리거 (운영자가 등록·수정하는 알림 발송 규칙)
+// ---------------------------------------------------------------------------
+
+/**
+ * typeCode 가 아래 셋 중 하나인 규칙만 스케줄러(runReminderSweep)가 실제로 평가한다
+ * (reminders.ts 참고). 그 외 typeCode는 운영자가 직접 추가한 카탈로그 항목으로,
+ * 화면에 안내 문구로만 노출되고 자동 발송에 연동되지 않는다 — isSystem이 그 구분이다.
+ */
+export type NotificationRuleTypeCode = "INVOICE_UNPAID" | "TICKET_OPEN_MISSING" | "FACILITY_MEETING_MISSING";
+
+export interface NotificationRule {
+  id: string;
+  typeCode: string;
+  label: string;
+  description: string;
+  enabled: boolean;
+  /** 시스템 기본 3종(true)은 삭제할 수 없고 typeCode도 바꿀 수 없다. */
+  isSystem: boolean;
+  /** 마감일 기준 며칠 전부터 알릴지 (D-30, D-7 등). 간격형 알림(세금계산서)은 null. */
+  thresholdDays: number | null;
+  /** 조건이 유지되는 동안 재발송 간격(일). */
+  repeatIntervalDays: number | null;
+  messageTemplate: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+// ---------------------------------------------------------------------------
 // 정적 안내 페이지 (서울아레나 소개 / 대관 안내 하위 페이지 트리, 운영자 편집)
 // ---------------------------------------------------------------------------
 

@@ -64,6 +64,8 @@ import type {
   InvoicePurpose,
   InvoiceStatus,
   Notice,
+  NotificationRule,
+  NotificationRuleTypeCode,
   PageGroup,
   Quote,
   QuoteStatus,
@@ -241,6 +243,20 @@ async function initSchema(pool: Pool) {
       tag TEXT,
       question TEXT NOT NULL,
       answer TEXT NOT NULL,
+      created_at TEXT NOT NULL,
+      updated_at TEXT NOT NULL
+    );
+
+    CREATE TABLE IF NOT EXISTS notification_rules (
+      id TEXT PRIMARY KEY,
+      type_code TEXT NOT NULL UNIQUE,
+      label TEXT NOT NULL,
+      description TEXT NOT NULL,
+      enabled INTEGER NOT NULL DEFAULT 1,
+      is_system INTEGER NOT NULL DEFAULT 0,
+      threshold_days INTEGER,
+      repeat_interval_days INTEGER,
+      message_template TEXT NOT NULL,
       created_at TEXT NOT NULL,
       updated_at TEXT NOT NULL
     );
@@ -639,6 +655,43 @@ async function initSchema(pool: Pool) {
   `);
 }
 
+// 스케줄러(reminders.ts)가 실제로 평가하는 시스템 알림 트리거 3종의 기본값.
+// 여기 적힌 문구·간격이 최초 시딩값이고, 운영자가 /admin/notification-rules 에서
+// 자유롭게 바꿀 수 있다 — 이후로는 이 상수를 다시 읽지 않는다(ON CONFLICT DO NOTHING).
+const SYSTEM_NOTIFICATION_RULES: {
+  typeCode: NotificationRuleTypeCode;
+  label: string;
+  description: string;
+  thresholdDays: number | null;
+  repeatIntervalDays: number | null;
+  messageTemplate: string;
+}[] = [
+  {
+    typeCode: "INVOICE_UNPAID",
+    label: "세금계산서 미입금",
+    description: "계약금·정산금 세금계산서가 발행됐는데 입금 확인이 안 된 상태가 이어지면, 아래 간격마다 신청자와 운영자 모두에게 재발송합니다.",
+    thresholdDays: null,
+    repeatIntervalDays: 5,
+    messageTemplate: "{quoteId}의 {purposeLabel} 세금계산서가 미입금 상태입니다. 입금 후 입금신청을 진행해주세요.",
+  },
+  {
+    typeCode: "TICKET_OPEN_MISSING",
+    label: "티켓오픈 자료 미업로드",
+    description: "등록된 티켓오픈일까지 아래 일수 이내로 남았는데 자료(포스터/상세페이지/좌석배치도)가 업로드되지 않았으면, 매일 재발송합니다.",
+    thresholdDays: 30,
+    repeatIntervalDays: 1,
+    messageTemplate: "{quoteId}의 티켓오픈일({openDate})이 다가오는데 자료(포스터/상세페이지/좌석배치도)가 업로드되지 않았습니다.",
+  },
+  {
+    typeCode: "FACILITY_MEETING_MISSING",
+    label: "시설회의 자료 미업로드",
+    description: "등록된 시설회의일까지 아래 일수 이내로 남았는데 자료(운영 매뉴얼/프로덕션 노트)가 업로드되지 않았으면, 매일 재발송합니다.",
+    thresholdDays: 7,
+    repeatIntervalDays: 1,
+    messageTemplate: "{quoteId}의 시설회의일({meetingDate})이 다가오는데 자료(운영 매뉴얼/프로덕션 노트)가 업로드되지 않았습니다.",
+  },
+];
+
 async function seedData(pool: Pool) {
   // admin_tier 컬럼 도입 이전에 만들어진 운영자 계정 부트스트랩:
   // 마스터 관리자가 한 명도 없으면, 가장 먼저 만들어진 운영자 계정을 마스터로 승격하고
@@ -902,6 +955,29 @@ async function seedData(pool: Pool) {
     await pool.query(
       "UPDATE feature_spec_sheets SET data = $1, updated_at = $2 WHERE sheet_key = $3",
       [JSON.stringify(fixed), new Date().toISOString(), key],
+    );
+  }
+
+  // 알림 트리거 3종(세금계산서 미입금/티켓오픈 자료 미업로드/시설회의 자료 미업로드) —
+  // 스케줄러가 실제로 평가하는 시스템 규칙이라 typeCode로 존재 여부만 확인하고, 이미
+  // 있으면(운영자가 간격·문구를 수정했을 수 있으므로) 건드리지 않는다.
+  const now = new Date().toISOString();
+  for (const rule of SYSTEM_NOTIFICATION_RULES) {
+    await pool.query(
+      `INSERT INTO notification_rules
+         (id, type_code, label, description, enabled, is_system, threshold_days, repeat_interval_days, message_template, created_at, updated_at)
+       VALUES ($1, $2, $3, $4, 1, 1, $5, $6, $7, $8, $8)
+       ON CONFLICT (type_code) DO NOTHING`,
+      [
+        crypto.randomUUID(),
+        rule.typeCode,
+        rule.label,
+        rule.description,
+        rule.thresholdDays,
+        rule.repeatIntervalDays,
+        rule.messageTemplate,
+        now,
+      ],
     );
   }
 }
@@ -3372,13 +3448,20 @@ export async function listAllTicketOpens(): Promise<TicketOpen[]> {
   return rows.map(toTicketOpen);
 }
 
-// D-30 미업로드 알림 대상 — 오픈일까지 30일 이하 남았고, 자료 미업로드 상태
-export function isTicketOpenReminderDue(ticketOpen: TicketOpen, now: Date): boolean {
+// D-30 미업로드 알림 대상 — 오픈일까지 thresholdDays 이하 남았고, 자료 미업로드 상태.
+// 기본값(30/1일)은 notification_rules 시스템 규칙의 초기값과 같다 — 호출부가 규칙을
+// 못 읽어온 예외 상황에서도 예전 하드코딩 동작과 동일하게 동작하도록 남겨둔다.
+export function isTicketOpenReminderDue(
+  ticketOpen: TicketOpen,
+  now: Date,
+  thresholdDays = 30,
+  repeatIntervalDays = 1,
+): boolean {
   if (!ticketOpen.openDate || ticketOpen.materialsUploadedAt) return false;
   const daysUntilOpen = (new Date(ticketOpen.openDate).getTime() - now.getTime()) / (24 * 60 * 60 * 1000);
-  if (daysUntilOpen > 30) return false;
+  if (daysUntilOpen > thresholdDays) return false;
   if (!ticketOpen.lastReminderAt) return true;
-  return now.getTime() - new Date(ticketOpen.lastReminderAt).getTime() >= 24 * 60 * 60 * 1000;
+  return now.getTime() - new Date(ticketOpen.lastReminderAt).getTime() >= repeatIntervalDays * 24 * 60 * 60 * 1000;
 }
 
 export async function touchTicketOpenReminder(quoteId: string, at: string) {
@@ -3460,13 +3543,18 @@ export async function listAllFacilityMeetings(): Promise<FacilityMeeting[]> {
   return rows.map(toFacilityMeeting);
 }
 
-// D-7 미업로드 알림 대상 — 회의일까지 7일 이하 남았고, 자료 미업로드 상태
-export function isFacilityMeetingReminderDue(meeting: FacilityMeeting, now: Date): boolean {
+// D-7 미업로드 알림 대상 — 회의일까지 thresholdDays 이하 남았고, 자료 미업로드 상태
+export function isFacilityMeetingReminderDue(
+  meeting: FacilityMeeting,
+  now: Date,
+  thresholdDays = 7,
+  repeatIntervalDays = 1,
+): boolean {
   if (!meeting.meetingDate || meeting.materialsUploadedAt) return false;
   const daysUntilMeeting = (new Date(meeting.meetingDate).getTime() - now.getTime()) / (24 * 60 * 60 * 1000);
-  if (daysUntilMeeting > 7) return false;
+  if (daysUntilMeeting > thresholdDays) return false;
   if (!meeting.lastReminderAt) return true;
-  return now.getTime() - new Date(meeting.lastReminderAt).getTime() >= 24 * 60 * 60 * 1000;
+  return now.getTime() - new Date(meeting.lastReminderAt).getTime() >= repeatIntervalDays * 24 * 60 * 60 * 1000;
 }
 
 export async function touchFacilityMeetingReminder(quoteId: string, at: string) {
@@ -3922,6 +4010,132 @@ export async function updateFaq(
 
 export async function deleteFaq(id: string) {
   await q("DELETE FROM faqs WHERE id = $1", [id]);
+}
+
+// ---------------------------------------------------------------------------
+// 알림 트리거
+// ---------------------------------------------------------------------------
+
+interface NotificationRuleRow {
+  id: string;
+  type_code: string;
+  label: string;
+  description: string;
+  enabled: number;
+  is_system: number;
+  threshold_days: number | null;
+  repeat_interval_days: number | null;
+  message_template: string;
+  created_at: string;
+  updated_at: string;
+}
+
+function toNotificationRule(row: NotificationRuleRow): NotificationRule {
+  return {
+    id: row.id,
+    typeCode: row.type_code,
+    label: row.label,
+    description: row.description,
+    enabled: !!row.enabled,
+    isSystem: !!row.is_system,
+    thresholdDays: row.threshold_days,
+    repeatIntervalDays: row.repeat_interval_days,
+    messageTemplate: row.message_template,
+    createdAt: row.created_at,
+    updatedAt: row.updated_at,
+  };
+}
+
+// 시스템 규칙(is_system)이 먼저, 그다음은 등록순 — 스케줄러에 연동된 규칙을 화면
+// 위쪽에서 바로 보여준다.
+export async function listNotificationRules(): Promise<NotificationRule[]> {
+  const rows = await q<NotificationRuleRow>(
+    "SELECT * FROM notification_rules ORDER BY is_system DESC, created_at ASC",
+  );
+  return rows.map(toNotificationRule);
+}
+
+export async function getNotificationRuleById(id: string): Promise<NotificationRule | undefined> {
+  const row = await one<NotificationRuleRow>("SELECT * FROM notification_rules WHERE id = $1", [id]);
+  return row ? toNotificationRule(row) : undefined;
+}
+
+// 스케줄러(runReminderSweep)가 typeCode로 시스템 규칙을 찾을 때 쓴다.
+export async function getNotificationRuleByTypeCode(
+  typeCode: NotificationRuleTypeCode,
+): Promise<NotificationRule | undefined> {
+  const row = await one<NotificationRuleRow>("SELECT * FROM notification_rules WHERE type_code = $1", [typeCode]);
+  return row ? toNotificationRule(row) : undefined;
+}
+
+// 운영자가 직접 추가하는 규칙은 카탈로그 성격(안내 문구만)이라 is_system은 항상 false다.
+export async function createNotificationRule(input: {
+  id: string;
+  typeCode: string;
+  label: string;
+  description: string;
+  enabled: boolean;
+  thresholdDays: number | null;
+  repeatIntervalDays: number | null;
+  messageTemplate: string;
+  createdAt: string;
+}): Promise<NotificationRule> {
+  await q(
+    `INSERT INTO notification_rules
+       (id, type_code, label, description, enabled, is_system, threshold_days, repeat_interval_days, message_template, created_at, updated_at)
+     VALUES ($1, $2, $3, $4, $5, 0, $6, $7, $8, $9, $9)`,
+    [
+      input.id,
+      input.typeCode,
+      input.label,
+      input.description,
+      input.enabled ? 1 : 0,
+      input.thresholdDays,
+      input.repeatIntervalDays,
+      input.messageTemplate,
+      input.createdAt,
+    ],
+  );
+  return (await getNotificationRuleById(input.id))!;
+}
+
+// typeCode/isSystem은 여기서 바꾸지 않는다 — 시스템 규칙은 스케줄러가 코드에서 참조하는
+// 식별자라 화면에서 바뀌면 더 이상 매칭되지 않고, 커스텀 규칙은 애초에 연동 대상이 아니다.
+export async function updateNotificationRule(
+  id: string,
+  input: {
+    label: string;
+    description: string;
+    enabled: boolean;
+    thresholdDays: number | null;
+    repeatIntervalDays: number | null;
+    messageTemplate: string;
+    updatedAt: string;
+  },
+): Promise<NotificationRule | undefined> {
+  await q(
+    `UPDATE notification_rules
+        SET label = $1, description = $2, enabled = $3, threshold_days = $4,
+            repeat_interval_days = $5, message_template = $6, updated_at = $7
+      WHERE id = $8`,
+    [
+      input.label,
+      input.description,
+      input.enabled ? 1 : 0,
+      input.thresholdDays,
+      input.repeatIntervalDays,
+      input.messageTemplate,
+      input.updatedAt,
+      id,
+    ],
+  );
+  return getNotificationRuleById(id);
+}
+
+// 시스템 규칙은 스케줄러가 참조하므로 지울 수 없다 — 호출부(API 라우트)에서 isSystem을
+// 먼저 확인해 막지만, DB 계층에서도 한 번 더 막아 다른 호출부가 생겨도 안전하다.
+export async function deleteNotificationRule(id: string) {
+  await q("DELETE FROM notification_rules WHERE id = $1 AND is_system = 0", [id]);
 }
 
 // ---------------------------------------------------------------------------

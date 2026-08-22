@@ -11,6 +11,7 @@ const LINKS = [
   { href: "/admin/rates", label: "요금표 관리", masterOnly: false },
   { href: "/admin/schedule", label: "일정 관리", masterOnly: false },
   { href: "/admin/content", label: "콘텐츠 관리", masterOnly: false },
+  { href: "/admin/notification-rules", label: "알림 관리", masterOnly: false },
   { href: "/admin/inquiries", label: "1:1 문의", masterOnly: false },
   { href: "/admin/users", label: "운영자 계정", masterOnly: false },
   { href: "/admin/account", label: "계정 설정", masterOnly: false },
