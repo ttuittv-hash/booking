@@ -13,6 +13,7 @@ export function InviteAcceptForm({ token }: { token: string }) {
   const toast = useToast();
   const [step, setStep] = useState<1 | 2 | 3>(token ? 1 : 0 as 1);
   const [ticket, setTicket] = useState("");
+  const [name, setName] = useState("");
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [confirm, setConfirm] = useState("");
@@ -31,6 +32,7 @@ export function InviteAcceptForm({ token }: { token: string }) {
   async function submit() {
     setError(null);
     const invalid = firstFailure(
+      name.trim() ? null : { ok: false, message: "이름을 입력해주세요." },
       checkUsername(username),
       checkPassword(password),
       password === confirm ? null : { ok: false, message: "비밀번호가 일치하지 않습니다." },
@@ -46,6 +48,7 @@ export function InviteAcceptForm({ token }: { token: string }) {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           token,
+          name: name.trim(),
           username,
           identityTicket: ticket,
           passwordHash: await hashPasswordForTransport(password),
@@ -80,6 +83,16 @@ export function InviteAcceptForm({ token }: { token: string }) {
         />
       ) : step === 2 ? (
         <div className="space-y-4">
+          <label className="block">
+            <span className="mb-1.5 block text-xs font-bold">이름</span>
+            <input
+              data-testid="invite-name"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              placeholder="담당자 이름"
+              className="w-full border border-border-soft bg-background px-3 py-2 text-s"
+            />
+          </label>
           <label className="block">
             <span className="mb-1.5 block text-xs font-bold">아이디 ({USERNAME_HINT})</span>
             <input
@@ -117,7 +130,7 @@ export function InviteAcceptForm({ token }: { token: string }) {
           <button
             type="button"
             data-testid="invite-submit"
-            disabled={loading || !username || !password}
+            disabled={loading || !name.trim() || !username || !password}
             onClick={submit}
             className={`${btnClass("primary", "md")} w-full`}
           >

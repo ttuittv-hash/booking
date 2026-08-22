@@ -23,6 +23,7 @@ import { hashInviteToken } from "@/lib/invitation";
 export async function POST(request: Request) {
   const body = await request.json().catch(() => null);
   const token = typeof body?.token === "string" ? body.token : "";
+  const name = typeof body?.name === "string" ? body.name.trim() : "";
   const username = typeof body?.username === "string" ? body.username.trim().toLowerCase() : "";
   const passwordHash = typeof body?.passwordHash === "string" ? body.passwordHash.toLowerCase() : "";
   const identityTicket = typeof body?.identityTicket === "string" ? body.identityTicket : "";
@@ -34,7 +35,7 @@ export async function POST(request: Request) {
       { status: 400 },
     );
   }
-  if (!username || !SHA256_HEX_RE.test(passwordHash)) {
+  if (!name || !username || !SHA256_HEX_RE.test(passwordHash)) {
     return NextResponse.json({ error: "입력값을 확인해주세요." }, { status: 400 });
   }
   if (await findUserByUsername(username)) {
@@ -67,7 +68,10 @@ export async function POST(request: Request) {
     email: invitation.email,
     phone: identity?.mobileNo ?? null,
     passwordHash: await hashPassword(passwordHash),
-    name: identity?.name ?? username,
+    // 본인인증이 설정된 환경에서는 인증 결과 이름을 정본으로 쓴다. 그게 없으면(NICE
+    // 미설정 — 프리뷰 환경 등) 직접 입력한 이름을 쓴다. 예전엔 이 경우 이름이 아예 없어
+    // 아이디로 대체됐는데, 담당자 목록에서 그대로 보여 "이름이 이상하다"는 지적을 받았다.
+    name: identity?.name ?? name ?? username,
     companyName: company?.name ?? null,
     companyId: invitation.companyId,
     role: "APPLICANT",
