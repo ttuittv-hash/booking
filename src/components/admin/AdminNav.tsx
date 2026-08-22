@@ -106,8 +106,12 @@ export function AdminNav({ active, user }: { active: string; user?: AppUser | nu
   const primaryLinks = PRIMARY_LINKS.filter((link) => !link.masterOnly || master);
 
   return (
+    // 이 줄에 overflow-x-auto 를 넣지 않는다 — overflow-x 를 visible이 아닌 값으로
+    // 두면 overflow-y도 함께 auto로 계산돼(스펙), "설정" 드롭다운 패널(하단으로
+    // 튀어나오는 절대배치 요소)이 통째로 잘려 안 보이게 된다("설정 하위 메뉴가
+    // 없는데?", 2026-08-22) — 실제로 겪은 회귀라 다시 넣지 않는다.
     <header className="sticky top-0 z-20 border-b border-border/20 bg-background/95 backdrop-blur-md">
-      <div className="mx-auto flex h-14 max-w-6xl items-center gap-x-4 overflow-x-auto px-4 sm:h-16 sm:px-6">
+      <div className="mx-auto flex h-14 max-w-6xl items-center gap-x-4 px-4 sm:h-16 sm:px-6">
         <Link
           href="/"
           className="type-display flex h-full shrink-0 items-center whitespace-nowrap text-h6-m leading-none"
