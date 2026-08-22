@@ -40,7 +40,7 @@ export function StepMarketingCooperation({
       <StepHeading title="마케팅 협조 및 계획" lead="프로모션 및 협업 관련 정보를 입력해 주세요." />
 
       <StepForm>
-        <div className="border-t-2 border-foreground pt-5">
+        <div className="border-t border-border/25 pt-5">
           <div className="mb-2.5 flex items-center justify-between">
             <h3 className="type-kr-heading text-h6-m">프로모션 채널</h3>
             <button type="button" onClick={addChannel} className={toggleClass(false)}>
@@ -85,7 +85,7 @@ export function StepMarketingCooperation({
           </div>
         </div>
 
-        <div className="mt-8 flex flex-wrap items-center justify-between gap-3 border-t-2 border-foreground pt-5">
+        <div className="mt-8 flex flex-wrap items-center justify-between gap-3 border-t border-border/25 pt-5">
           <div>
             <h3 className="type-kr-heading text-h6-m">서울아레나 콘텐츠 공동 프로모션 협조</h3>
             <p className="mt-1 text-xs text-muted">공연 이미지·영상 등 2차 제작물의 서울아레나 채널 활용 협조 동의</p>
@@ -108,7 +108,7 @@ export function StepMarketingCooperation({
           </div>
         </div>
 
-        <div className="mt-8 border-t-2 border-foreground pt-5">
+        <div className="mt-8 border-t border-border/25 pt-5">
           <h3 className="type-kr-heading text-h6-m">공동 스폰서십 · 브랜드 협업 연계</h3>
           <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2">
             <div>
@@ -130,7 +130,7 @@ export function StepMarketingCooperation({
           </div>
         </div>
 
-        <div className="mt-8 border-t-2 border-foreground pt-5">
+        <div className="mt-8 border-t border-border/25 pt-5">
           <h3 className="type-kr-heading text-h6-m">세일즈 · 실적 데이터 제공 협조</h3>
           <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:gap-8">
             <label className="flex cursor-pointer items-center gap-2 text-s">

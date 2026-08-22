@@ -48,7 +48,13 @@ const DEFAULT_SAFETY_PLEDGE: SafetyPledge = {
 };
 
 const DEFAULT_MARKETING_COOPERATION: MarketingCooperation = {
-  channels: [],
+  // 가장 흔한 3개 채널을 기본 행으로 미리 채워 둔다 — 신청자가 "+ 채널 추가"부터
+  // 눌러야 하는 빈 상태로 시작하지 않게 한다. 그 외 채널은 직접 추가·삭제한다.
+  channels: [
+    { platform: "인스타그램", handle: "", followers: "" },
+    { platform: "유튜브", handle: "", followers: "" },
+    { platform: "X (트위터)", handle: "", followers: "" },
+  ],
   seoulArenaPromotionConsent: null,
   sponsorBrandName: "",
   sponsorCampaignSummary: "",
@@ -212,7 +218,7 @@ export function WizardShell({
           ...(draft.selection.marketingCooperation ?? {}),
           channels: Array.isArray(draft.selection.marketingCooperation?.channels)
             ? draft.selection.marketingCooperation.channels
-            : [],
+            : DEFAULT_MARKETING_COOPERATION.channels,
         },
         addons: Array.isArray(draft.selection.addons) ? draft.selection.addons : [],
         excludedDays: Array.isArray(draft.selection.excludedDays) ? draft.selection.excludedDays : [],
