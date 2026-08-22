@@ -6,16 +6,18 @@ import { StepHeading, StepForm } from "./StepHeading";
 
 const EMPTY_CHANNEL = { platform: "", handle: "", followers: "" };
 
-// 세일즈 · 실적 데이터 제공 협조 체크박스가 정확히 무엇에 동의하는 건지 보여주는
-// 참고표 — 항목·취득 가능 여부·근거·협상 난이도(2026-08-22 요청).
+// 세일즈 · 실적 데이터 제공 협조에서 요청하는 데이터 항목 — "취득 가능 여부 ·
+// 왜 못 얻나 · 협상 난이도"는 서울아레나 내부 검토용 관점이라 대관사에게 보여줄
+// 필요가 없다(2026-08-22, "취득 어쩌구는 우리 서울아레나 입장" 피드백). 대관사에게는
+// 어떤 데이터를 요청하는지만 부드럽게 안내한다.
 const SALES_DATA_ITEMS = [
-  { no: 25, data: "총 판매 매수", available: true, reason: "예매처↔주최자 계약 데이터", difficulty: "상 — 최소 요구 세트 ①" },
-  { no: 26, data: "유료 판매율", available: true, reason: "〃", difficulty: "상 — 아티스트 가치평가에 직결" },
-  { no: 27, data: "좌석등급별 판매율", available: true, reason: "〃", difficulty: "상" },
-  { no: 28, data: "일자별 판매 곡선 · 매진 시각", available: true, reason: "〃", difficulty: "상 — 마케팅 효과 측정의 핵심이라 더 민감" },
-  { no: 29, data: "평균 객단가 · 티켓 가격대", available: true, reason: "〃", difficulty: "상" },
-  { no: 30, data: "총 티켓 매출액", available: true, reason: "〃", difficulty: "최상 — L3 해외 DB 등록의 필수 항목" },
-  { no: 31, data: "예매처별 판매 비중", available: true, reason: "〃", difficulty: "중" },
+  "총 판매 매수",
+  "유료 판매율",
+  "좌석등급별 판매율",
+  "일자별 판매 곡선 · 매진 시각",
+  "평균 객단가 · 티켓 가격대",
+  "총 티켓 매출액",
+  "예매처별 판매 비중",
 ];
 
 export function StepMarketingCooperation({
@@ -121,52 +123,30 @@ export function StepMarketingCooperation({
         <div className="mt-8 border-t border-border/25 pt-5">
           <h3 className="type-kr-heading text-h6-m">홍보 및 서비스 노출</h3>
 
-          <div className="mt-3 space-y-4 break-keep text-xs leading-6 text-muted">
+          {/* 항목을 대상/범위로 쪼개 나열하면 약관처럼 딱딱해진다 — 대관사가 부담 없이
+              읽을 수 있게 하나의 부드러운 안내 박스 안에 문장으로 풀어 쓴다
+              (2026-08-22, "대관사가 잘 이해할 수 있게 부드럽게" 피드백). 홍보(SNS·사이니지 등
+              알리는 채널)와 서비스(웹·앱 안에서 정보를 보여주는 영역)를 한 문단씩 나눈다. */}
+          <div className="mt-3 rounded-lg border border-border/25 bg-surface p-5 text-xs leading-6 text-muted break-keep">
             <p>
-              서울아레나는 공연·행사의 홍보 및 관람객 대상 서비스 제공을 위해 대관사가 제공한
-              공연·행사 관련 정보 및 콘텐츠를 서울아레나가 운영하는 온·오프라인 서비스 및
-              채널에 노출·활용할 수 있습니다.
+              서울아레나는 공연·행사를 더 많은 관람객에게 알리고, 예매·관람에 필요한 정보를
+              전달하기 위해 대관사가 제공한 공연 정보와 이미지·영상 등의 콘텐츠를 활용할 수
+              있습니다.
             </p>
-
-            <div>
-              <p className="font-bold text-foreground">활용 대상</p>
-              <ul className="mt-1.5 list-disc space-y-1 pl-4">
-                <li>공연·행사명, 일정, 장소 및 공연 소개</li>
-                <li>출연 아티스트 및 관련 정보</li>
-                <li>공연 포스터, 대표 이미지, 영상 등 공식 홍보 콘텐츠</li>
-                <li>티켓 오픈 및 예매 관련 정보</li>
-                <li>기타 대관사가 제공하거나 공개를 승인한 공연·행사 관련 정보 및 콘텐츠</li>
-              </ul>
-            </div>
-
-            <div>
-              <p className="font-bold text-foreground">노출 및 활용 범위</p>
-              <div className="mt-1.5 grid grid-cols-1 gap-3 sm:grid-cols-2">
-                <div className="border border-border/25 p-3">
-                  <p className="text-xs font-bold text-foreground">홍보</p>
-                  <ul className="mt-1.5 list-disc space-y-1 pl-4">
-                    <li>서울아레나 공식 SNS, 뉴스레터 등 디지털 채널</li>
-                    <li>서울아레나 내 디지털 사이니지, 미디어월 등 온·오프라인 안내·홍보 매체</li>
-                  </ul>
-                </div>
-                <div className="border border-border/25 p-3">
-                  <p className="text-xs font-bold text-foreground">서비스</p>
-                  <ul className="mt-1.5 list-disc space-y-1 pl-4">
-                    <li>서울아레나 공식 웹사이트 및 모바일 서비스(모바일 앱 등)</li>
-                    <li>공연·행사 상세, 일정, 아티스트 정보, 추천·큐레이션 등 서울아레나 서비스 내 관련 영역</li>
-                  </ul>
-                </div>
-              </div>
-            </div>
-
-            <p>
-              제공된 정보 및 콘텐츠는 해당 공연·행사의 안내·홍보, 관람객 편의 제공 및
-              서울아레나 서비스 내 콘텐츠 제공·운영을 목적으로 활용될 수 있습니다.
+            <p className="mt-3">
+              <b className="text-foreground">홍보</b> — 서울아레나 공식 SNS·뉴스레터, 현장 디지털
+              사이니지·미디어월 등에서 공연을 소개하고 알립니다.
             </p>
-            <p>
-              대관사는 제공하는 이미지, 영상, 아티스트 관련 콘텐츠 등에 대해 필요한 사용
-              권한을 확보한 범위 내에서 제공하며, 별도의 협의가 필요한 콘텐츠의 경우
-              서울아레나와 사전 협의할 수 있습니다.
+            <p className="mt-3">
+              <b className="text-foreground">서비스</b> — 서울아레나 웹사이트·앱의 공연 상세,
+              일정, 아티스트 정보, 추천·큐레이션 등에서 관람객이 필요한 정보를 확인할 수 있게
+              보여줍니다.
+            </p>
+            <p className="mt-3">
+              소개되는 내용은 공연명·일정·장소·소개, 출연 아티스트, 공식 포스터·이미지·영상,
+              예매 관련 정보 등 대관사가 제공했거나 공개를 승인한 자료로 한정됩니다. 이미지·영상
+              등의 사용 권한은 대관사가 미리 확보한 범위 내에서 제공해 주시면 되고, 별도 협의가
+              필요한 콘텐츠는 서울아레나와 미리 상의해 주세요.
             </p>
           </div>
 
@@ -232,29 +212,21 @@ export function StepMarketingCooperation({
         <div className="mt-8 border-t border-border/25 pt-5">
           <h3 className="type-kr-heading text-h6-m">공연 관련 데이터 제공 협조</h3>
 
-          <div className="mt-3 overflow-x-auto [contain:paint]">
-            <table className="w-full min-w-[36rem] border-collapse text-xs">
-              <thead>
-                <tr className="border-b border-border/40">
-                  <th scope="col" className="py-2 pr-4 text-left font-bold text-muted">#</th>
-                  <th scope="col" className="py-2 pr-4 text-left font-bold text-muted">데이터</th>
-                  <th scope="col" className="py-2 pr-4 text-left font-bold text-muted">취득</th>
-                  <th scope="col" className="py-2 pr-4 text-left font-bold text-muted">왜 못 얻나</th>
-                  <th scope="col" className="py-2 text-left font-bold text-muted">협상 난이도</th>
-                </tr>
-              </thead>
-              <tbody>
-                {SALES_DATA_ITEMS.map((item) => (
-                  <tr key={item.no} className="border-b border-border/15">
-                    <td className="py-2 pr-4 align-top text-muted">{item.no}</td>
-                    <td className="py-2 pr-4 align-top text-foreground">{item.data}</td>
-                    <td className="py-2 pr-4 align-top">{item.available ? "○" : "×"}</td>
-                    <td className="py-2 pr-4 align-top text-muted">{item.reason}</td>
-                    <td className="py-2 align-top text-muted">{item.difficulty}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+          <div className="mt-3 rounded-lg border border-border/25 bg-surface p-5 text-xs leading-6 text-muted break-keep">
+            <p>
+              서울아레나는 공연 홍보 효과를 분석하고 아티스트·공연의 가치를 소개하는 데 활용하기
+              위해 아래와 같은 판매 데이터 제공을 요청드릴 수 있습니다.
+            </p>
+            <div className="mt-3 flex flex-wrap gap-1.5">
+              {SALES_DATA_ITEMS.map((item) => (
+                <span
+                  key={item}
+                  className="border border-border/40 bg-background px-2.5 py-1 text-xs text-foreground"
+                >
+                  {item}
+                </span>
+              ))}
+            </div>
           </div>
 
           <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:gap-8">
