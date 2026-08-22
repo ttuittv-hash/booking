@@ -220,6 +220,13 @@ export function WizardShell({
 
   const quote = useMemo(() => calculateQuote(resolvedSelection, rateTable), [resolvedSelection, rateTable]);
   const hasMidHallSelection = Object.keys(selection.midHallDays).length > 0;
+  // [개정 2026-08-22] STEP 1(공간/일정) 요약 패널에는 항목을 보여주지 않는다. 아레나는
+  // 패키지가 없으면 calculateQuote가 애초에 라인아이템을 만들지 않아 자연히 비어 있는데,
+  // 중형(DAILY)은 패키지 없이 캘린더 선택(selection.midHallDays)만으로 바로 금액이 잡혀서
+  // 같은 화면에서 공간에 따라 있다/없다가 갈렸다. STEP 2(구성·옵션)에 들어가기 전까지는
+  // 두 공간 모두 동일하게 "공간과 일정을 선택하면 예상 금액이 표시됩니다" 자리표시자만
+  // 보이게 맞춘다 — 실제 계산(quote)은 그대로 두고 요약 패널에 넘기는 표시용 값만 비운다.
+  const summaryQuote = step === 1 ? { ...quote, lineItems: [], subtotal: 0, vat: 0, total: 0 } : quote;
 
   // [개정 2026-08-20, 재재개정] "공간 선택"과 "일정 선택"은 다시 하나의 스텝(탭)으로
   // 합치되, 화면 안에서는 "공간 선택" 슬롯과 "일정 선택" 슬롯 두 섹션으로 나눠 보여준다 —
@@ -579,11 +586,12 @@ export function WizardShell({
       </div>
 
       <SummaryPanel
-        quote={quote}
+        quote={summaryQuote}
         /*
-          요약 패널은 처음부터 **실시간 견적 요약**이다 — 대관료·항목·합계를 함께 보여준다.
+          요약 패널은 **실시간 견적 요약**이다 — 대관료·항목·합계를 함께 보여준다.
           한동안 STEP 1·2 에서 금액을 감췄는데, 신청자가 구성을 고르는 동안 값이 얼마나
           움직이는지 볼 수 없어 되돌렸다. "예상 금액 · 확정 아님" 고지를 함께 둔다.
+          단, STEP 1(공간/일정 선택)만은 계속 비워 둔다 — summaryQuote 참고.
         */
       />
     </div>
