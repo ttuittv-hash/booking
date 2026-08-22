@@ -236,6 +236,23 @@ export interface SafetyPledge {
   signature: string;
 }
 
+export interface MarketingChannel {
+  platform: string; // 채널명 (인스타그램, 유튜브, X 등)
+  handle: string; // 계정 · URL
+  followers: string; // 구독자·팔로워 수 — 참고용 문자열, 형식 강제 안 함
+}
+
+export interface MarketingCooperation {
+  channels: MarketingChannel[];
+  // 미선택은 null — 동의/비동의 둘 다 아직 고르지 않은 상태와 "비동의를 골랐다"를
+  // 구분해야 해서 boolean 대신 tri-state로 둔다.
+  seoulArenaPromotionConsent: boolean | null;
+  sponsorBrandName: string;
+  sponsorCampaignSummary: string;
+  ticketSalesDataConsent: boolean;
+  pollstarConsent: boolean;
+}
+
 export interface QuoteSelection {
   venueId: string | null; // 0단계: 공간 선택
   bookingMode: BookingMode; // SIMULTANEOUS = 아레나 + 중형을 신청서 1건으로 묶는 동시 대관(2-13, 할인 없음)
@@ -258,6 +275,8 @@ export interface QuoteSelection {
   midHallPerformanceInfo: PerformanceInfo | null;
   // optional — 이 필드가 추가되기 전에 제출된 기존 신청서(DB의 selection_json)에는 없다.
   safetyPledge?: SafetyPledge;
+  // optional — 마케팅 협조 및 계획 탭(2026-08-22 추가) 도입 이전 신청서에는 없다.
+  marketingCooperation?: MarketingCooperation;
 }
 
 // ---------------------------------------------------------------------------

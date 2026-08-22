@@ -33,14 +33,15 @@ const STAGE_GROUPS: StageGroup[] = [
       { step: 3, label: "신청자 정보" },
       { step: 4, label: "관객" },
       { step: 5, label: "공공성" },
-      { step: 6, label: "안전관리 서약서" },
+      { step: 6, label: "마케팅 협조 및 계획" },
+      { step: 7, label: "안전관리 서약서" },
     ],
   },
   {
     label: "04 신청서 제출",
     steps: [
-      { step: 7, label: "예상 대관료" },
-      { step: 8, label: "최종 제출" },
+      { step: 8, label: "예상 대관료" },
+      { step: 9, label: "최종 제출" },
     ],
   },
 ];

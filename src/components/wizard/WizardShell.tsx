@@ -8,7 +8,15 @@ import {
   findPackage,
   isAddonAvailable,
 } from "@/lib/pricing/rateTableUtils";
-import type { AppUser, DateBlock, QuoteSelection, RateTable, SafetyPledge, WeekDemand } from "@/lib/pricing/types";
+import type {
+  AppUser,
+  DateBlock,
+  MarketingCooperation,
+  QuoteSelection,
+  RateTable,
+  SafetyPledge,
+  WeekDemand,
+} from "@/lib/pricing/types";
 import { DEFAULT_VENUE_ID } from "@/lib/pricing/types";
 import { INITIAL_PERFORMANCE_INFO } from "@/lib/pricing/performanceInfoDefaults";
 import { clearWizardDraft, loadWizardDraft, saveWizardDraft } from "@/lib/quotesStore";
@@ -25,10 +33,11 @@ import { Step5Estimate } from "./Step5Estimate";
 import { StepPerformanceInfo } from "./StepPerformanceInfo";
 import { StepAudience } from "./StepAudience";
 import { StepPublicInterest } from "./StepPublicInterest";
+import { StepMarketingCooperation } from "./StepMarketingCooperation";
 import { StepSafetyPledge } from "./StepSafetyPledge";
 import { Step6Submit } from "./Step6Submit";
 
-const TOTAL_STEPS = 8;
+const TOTAL_STEPS = 9;
 
 const DEFAULT_SAFETY_PLEDGE: SafetyPledge = {
   fireSafety: false,
@@ -36,6 +45,15 @@ const DEFAULT_SAFETY_PLEDGE: SafetyPledge = {
   facilityInspected: false,
   incidentReporting: false,
   signature: "",
+};
+
+const DEFAULT_MARKETING_COOPERATION: MarketingCooperation = {
+  channels: [],
+  seoulArenaPromotionConsent: null,
+  sponsorBrandName: "",
+  sponsorCampaignSummary: "",
+  ticketSalesDataConsent: false,
+  pollstarConsent: false,
 };
 
 // 중형공연장 단독(패키지 없음)일 때는 STEP 2(구성·옵션)의 내용이 달라질 뿐, 별도
@@ -72,6 +90,7 @@ const INITIAL_SELECTION: QuoteSelection = {
   performanceInfo: INITIAL_PERFORMANCE_INFO,
   midHallPerformanceInfo: null,
   safetyPledge: DEFAULT_SAFETY_PLEDGE,
+  marketingCooperation: DEFAULT_MARKETING_COOPERATION,
 };
 
 function pruneUnavailableAddons(
@@ -188,6 +207,13 @@ export function WizardShell({
         // 새 필드가 없으면 배열·객체 접근에서 렌더가 터진다.
         performanceInfo: { ...initialPerformanceInfo, ...(draft.selection.performanceInfo ?? {}) },
         safetyPledge: { ...DEFAULT_SAFETY_PLEDGE, ...(draft.selection.safetyPledge ?? {}) },
+        marketingCooperation: {
+          ...DEFAULT_MARKETING_COOPERATION,
+          ...(draft.selection.marketingCooperation ?? {}),
+          channels: Array.isArray(draft.selection.marketingCooperation?.channels)
+            ? draft.selection.marketingCooperation.channels
+            : [],
+        },
         addons: Array.isArray(draft.selection.addons) ? draft.selection.addons : [],
         excludedDays: Array.isArray(draft.selection.excludedDays) ? draft.selection.excludedDays : [],
       });
@@ -560,13 +586,19 @@ export function WizardShell({
           />
         )}
         {step === 6 && (
+          <StepMarketingCooperation
+            info={selection.marketingCooperation ?? DEFAULT_MARKETING_COOPERATION}
+            onChange={(marketingCooperation) => setSelection((prev) => ({ ...prev, marketingCooperation }))}
+          />
+        )}
+        {step === 7 && (
           <StepSafetyPledge
             pledge={selection.safetyPledge ?? DEFAULT_SAFETY_PLEDGE}
             onChange={(safetyPledge) => setSelection((prev) => ({ ...prev, safetyPledge }))}
           />
         )}
-        {step === 7 && <Step5Estimate rateTable={rateTable} quote={quote} selection={resolvedSelection} />}
-        {step === 8 && (
+        {step === 8 && <Step5Estimate rateTable={rateTable} quote={quote} selection={resolvedSelection} />}
+        {step === 9 && (
           <Step6Submit
             rateTable={rateTable}
             quote={quote}
