@@ -17,7 +17,6 @@ import {
   ContentFormShell,
   ImageField,
   ListEditor,
-  Rich,
   Section,
   StringList,
   Text,
@@ -77,7 +76,7 @@ export function SeoulArenaForm({ content }: { content: SeoulArenaContent }) {
       {(v, patch) => (
         <>
           <Section title="시설개요 — 리드 문단">
-            <Rich label="" value={v.aboutLead} onChange={(aboutLead) => patch({ aboutLead })} />
+            <Area label="" rows={6} value={v.aboutLead} onChange={(aboutLead) => patch({ aboutLead })} />
           </Section>
 
           <Section
@@ -125,7 +124,7 @@ export function SeoulArenaForm({ content }: { content: SeoulArenaContent }) {
           </Section>
 
           <Section title="시설 특징 — 리드 문단">
-            <Rich label="" value={v.whyLead} onChange={(whyLead) => patch({ whyLead })} />
+            <Area label="" rows={6} value={v.whyLead} onChange={(whyLead) => patch({ whyLead })} />
           </Section>
 
           <Section
@@ -268,7 +267,7 @@ export function GuideForm({ content }: { content: GuidePageContent }) {
       {(v, patch) => (
         <>
           <Section title="대관 안내 — 리드 문단">
-            <Rich label="" value={v.intro} onChange={(intro) => patch({ intro })} />
+            <Area label="" rows={6} value={v.intro} onChange={(intro) => patch({ intro })} />
           </Section>
 
           <Section

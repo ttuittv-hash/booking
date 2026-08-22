@@ -38,7 +38,14 @@ import {
   type ScreenTextContent,
   type SeoulArenaContent,
 } from "./content/pageContent";
-import { FACILITY_DOCUMENT_TITLE } from "./content/documentFacts";
+import {
+  DOCUMENTS_EMPTY_NOTE,
+  DOCUMENTS_LEAD,
+  FACILITY_DOCUMENT_TITLE,
+  LEGACY_DOCUMENTS_EMPTY_NOTE,
+  LEGACY_DOCUMENTS_LEAD,
+} from "./content/documentFacts";
+import { htmlToPlain } from "./content/prose";
 import type {
   ApprovalStatus,
   CompanyVerification,
@@ -3770,7 +3777,13 @@ async function getPageContent<T>(key: string, fallback: T): Promise<T> {
 }
 
 export async function getSeoulArenaContent(): Promise<SeoulArenaContent> {
-  return getPageContent("seoularena", DEFAULT_SEOULARENA_CONTENT);
+  const content = await getPageContent("seoularena", DEFAULT_SEOULARENA_CONTENT);
+  // 리드는 리치텍스트에서 평문으로 되돌렸다 — 예전에 저장된 HTML 은 읽을 때 평문으로 옮긴다.
+  return {
+    ...content,
+    aboutLead: htmlToPlain(content.aboutLead),
+    whyLead: htmlToPlain(content.whyLead),
+  };
 }
 export async function saveSeoulArenaContent(data: SeoulArenaContent) {
   return saveSiteContent("seoularena", data);
@@ -3784,7 +3797,8 @@ export async function saveFeaturesContent(data: FeaturesContent) {
 }
 
 export async function getGuidePageContent(): Promise<GuidePageContent> {
-  return getPageContent("guide", DEFAULT_GUIDE_PAGE_CONTENT);
+  const content = await getPageContent("guide", DEFAULT_GUIDE_PAGE_CONTENT);
+  return { ...content, intro: htmlToPlain(content.intro) };
 }
 export async function saveGuidePageContent(data: GuidePageContent) {
   return saveSiteContent("guide", data);
@@ -3804,6 +3818,12 @@ export async function getDocumentsContent(): Promise<DocumentsContent> {
   const notFacility = (d: { title: string }) => d.title !== FACILITY_DOCUMENT_TITLE;
   return {
     ...content,
+    // 문구가 옛 기본값 그대로면 새 기본값으로 바꾼다. 운영자가 고친 문구는 그대로 둔다.
+    lead: content.lead === LEGACY_DOCUMENTS_LEAD ? DOCUMENTS_LEAD : content.lead,
+    emptyNote:
+      content.emptyNote === LEGACY_DOCUMENTS_EMPTY_NOTE
+        ? DOCUMENTS_EMPTY_NOTE
+        : content.emptyNote,
     arena: content.arena.filter(notFacility),
     liveHall: content.liveHall.filter(notFacility),
   };

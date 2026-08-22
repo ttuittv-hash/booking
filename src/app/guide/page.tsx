@@ -2,7 +2,6 @@ import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { getCurrentUser, isPendingApplicant } from "@/lib/auth";
 import { getGuidePageContent } from "@/lib/db";
-import { sanitizeRichText } from "@/lib/sanitizeHtml";
 import { PublicHeader } from "@/components/PublicHeader";
 import { SiteFooter } from "@/components/ui/SiteFooter";
 import {
@@ -11,7 +10,7 @@ import {
   ButtonLink,
   PageHead,
   ProcessSteps,
-  RichText,
+  Prose,
   SectionHead,
 } from "@/components/ui/kit";
 
@@ -31,7 +30,6 @@ export default async function GuidePage() {
   const [currentUser, content] = await Promise.all([getCurrentUser(), getGuidePageContent()]);
   if (!currentUser) redirect("/login");
   if (isPendingApplicant(currentUser)) redirect("/pending");
-  const introHtml = sanitizeRichText(content.intro);
 
   return (
     <div className="flex flex-1 flex-col">
@@ -42,7 +40,7 @@ export default async function GuidePage() {
           <PageHead
             en="HOW TO BOOK"
             ko="대관 안내"
-            lead={<RichText html={introHtml} />}
+            lead={<Prose text={content.intro} />}
           />
         </Band>
 

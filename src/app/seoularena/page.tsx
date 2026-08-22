@@ -2,7 +2,6 @@ import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { getCurrentUser, isPendingApplicant } from "@/lib/auth";
 import { getSeoulArenaContent } from "@/lib/db";
-import { sanitizeRichText } from "@/lib/sanitizeHtml";
 import type { SeoulArenaContent } from "@/lib/content/pageContent";
 import { PublicHeader } from "@/components/PublicHeader";
 import { SiteFooter } from "@/components/ui/SiteFooter";
@@ -13,7 +12,7 @@ import {
   FeatureList,
   PageHead,
   PhotoHero,
-  RichText,
+  Prose,
   SectionHead,
 } from "@/components/ui/kit";
 
@@ -30,14 +29,14 @@ export const metadata: Metadata = {
  * 문구·사진·항목은 모두 콘텐츠 관리에서 편집한다.
  */
 
-function AboutPanel({ c, introHtml }: { c: SeoulArenaContent; introHtml: string }) {
+function AboutPanel({ c }: { c: SeoulArenaContent }) {
   return (
     <>
       <Band tone="light" size="lg">
         <PageHead
           en="ABOUT SEOUL ARENA"
           ko="시설 개요"
-          lead={<RichText html={introHtml} />}
+          lead={<Prose text={c.aboutLead} />}
         />
       </Band>
 
@@ -63,14 +62,14 @@ function AboutPanel({ c, introHtml }: { c: SeoulArenaContent; introHtml: string 
   );
 }
 
-function WhyPanel({ c, whyHtml }: { c: SeoulArenaContent; whyHtml: string }) {
+function WhyPanel({ c }: { c: SeoulArenaContent }) {
   return (
     <>
       <Band tone="light" size="lg">
         <PageHead
           en="WHY SEOUL ARENA"
           ko="시설 특징"
-          lead={<RichText html={whyHtml} />}
+          lead={<Prose text={c.whyLead} />}
         />
       </Band>
 
@@ -90,9 +89,6 @@ export default async function SeoulArenaPage() {
   const [currentUser, content] = await Promise.all([getCurrentUser(), getSeoulArenaContent()]);
   if (currentUser && isPendingApplicant(currentUser)) redirect("/pending");
 
-  const introHtml = sanitizeRichText(content.aboutLead);
-  const whyHtml = sanitizeRichText(content.whyLead);
-
   return (
     <div className="flex flex-1 flex-col">
       <PublicHeader active="/seoularena" currentUser={currentUser} />
@@ -102,8 +98,8 @@ export default async function SeoulArenaPage() {
           param={CONTENT_TAB_PARAM}
           ariaLabel="서울아레나 소개"
           items={[
-            { value: "about", label: "시설개요", panel: <AboutPanel c={content} introHtml={introHtml} /> },
-            { value: "features", label: "시설 특징", panel: <WhyPanel c={content} whyHtml={whyHtml} /> },
+            { value: "about", label: "시설개요", panel: <AboutPanel c={content} /> },
+            { value: "features", label: "시설 특징", panel: <WhyPanel c={content} /> },
           ]}
         />
 
