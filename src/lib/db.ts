@@ -2,7 +2,7 @@ import { Pool, type PoolClient } from "pg";
 import { AsyncLocalStorage } from "node:async_hooks";
 import { hash as bcryptHash } from "@node-rs/bcrypt";
 import crypto from "node:crypto";
-import { buildSeedRateTable, SEED_MID_HALL_RATE_CONFIG } from "./pricing/seed";
+import { buildSeedRateTable, SEED_MID_HALL_RATE_CONFIG, SEED_PACKAGES } from "./pricing/seed";
 import { SEED_PAGES } from "./pricing/pageSeed";
 import {
   DEFAULT_HOME_CONTENT,
@@ -952,10 +952,28 @@ interface RateTableRow {
 
 function toRateTable(row: RateTableRow): RateTable {
   // 과거 버전(할인율 필드 추가 이전)에 저장된 패키지는 discountRatio가 없을 수 있으므로 기본값 0으로 보정한다.
+  // setupExtraDayFee/performanceExtraDayFee/defaultPerformanceDays 도 마찬가지다(확정 추가일 단가,
+  // 2026-08-14 기능정의서 2-38 도입 이전 버전에는 이 필드들이 아예 없다) — undefined 상태로 견적
+  // 계산에 들어가면 "추가 일수" 등의 금액이 NaN 이 되고 소계·합계까지 전부 오염된다. 같은 id의
+  // 시드 패키지 값으로 보정한다(패키지별로 다른 값이라 전역 상수로는 대체할 수 없다).
   const rawPackages = JSON.parse(row.packages_json) as Array<
-    RateTable["packages"][number] & { discountRatio?: number }
+    RateTable["packages"][number] & {
+      discountRatio?: number;
+      setupExtraDayFee?: number;
+      performanceExtraDayFee?: number;
+      defaultPerformanceDays?: number;
+    }
   >;
-  const packages = rawPackages.map((pkg) => ({ ...pkg, discountRatio: pkg.discountRatio ?? 0 }));
+  const packages = rawPackages.map((pkg) => {
+    const seedMatch = SEED_PACKAGES.find((s) => s.id === pkg.id);
+    return {
+      ...pkg,
+      discountRatio: pkg.discountRatio ?? 0,
+      setupExtraDayFee: pkg.setupExtraDayFee ?? seedMatch?.setupExtraDayFee ?? 0,
+      performanceExtraDayFee: pkg.performanceExtraDayFee ?? seedMatch?.performanceExtraDayFee ?? 0,
+      defaultPerformanceDays: pkg.defaultPerformanceDays ?? seedMatch?.defaultPerformanceDays ?? 0,
+    };
+  });
   // mid_hall_json 컬럼 추가(2026-08-19) 이전에 저장된 버전은 NULL이므로 시드 기본값으로 보정한다.
   const midHall = row.mid_hall_json ? JSON.parse(row.mid_hall_json) : SEED_MID_HALL_RATE_CONFIG;
   return {
