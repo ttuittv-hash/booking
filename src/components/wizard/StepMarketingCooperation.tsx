@@ -10,11 +10,13 @@ const EMPTY_CHANNEL = { platform: "", handle: "", followers: "" };
 // 항목 — 표나 박스가 아니라 체크박스 라벨 밑에 텍스트로만 나열한다(2026-08-22,
 // "취득 어쩌구는 우리 서울아레나 입장" · "표로 넣지 말고 텍스트로 나열" 피드백).
 const SALES_DATA_ITEMS = [
-  "총 판매 매수",
+  "총 판매매수",
   "유료 판매율",
+  "판매가능 객석수",
   "좌석등급별 판매율",
-  "일자별 판매 곡선 · 매진 시각",
-  "평균 객단가 · 티켓 가격대",
+  "일자별 판매 추이",
+  "평균 객단가",
+  "티켓 가격대",
   "총 티켓 매출액",
   "예매처별 판매 비중",
 ];
@@ -229,28 +231,49 @@ export function StepMarketingCooperation({
                 <input
                   type="checkbox"
                   checked={info.ticketSalesDataConsent}
-                  onChange={(e) => set("ticketSalesDataConsent", e.target.checked)}
+                  onChange={(e) => {
+                    const checked = e.target.checked;
+                    // 오른쪽(외부 제공 동의)은 이 실적 데이터를 서울아레나가 받아야
+                    // 성립하는 항목이라, 왼쪽을 끄면 같이 꺼서 논리적으로 불가능한
+                    // 조합(왼쪽 비동의 + 오른쪽 동의)이 저장되지 않게 한다(2026-08-22).
+                    onChange({
+                      ...info,
+                      ticketSalesDataConsent: checked,
+                      pollstarConsent: checked ? info.pollstarConsent : false,
+                    });
+                  }}
                   className="h-4 w-4 accent-[var(--accent)]"
                 />
-                티켓판매량/판매율 등 데이터
+                공연 실적 데이터 제공
               </label>
               <p className="mt-1.5 pl-6 break-keep text-xs leading-5 text-muted">
-                {SALES_DATA_ITEMS.join(", ")}
+                {SALES_DATA_ITEMS.join(", ")} 등
               </p>
             </div>
             <div>
-              <label className="flex cursor-pointer items-center gap-2 text-s">
+              <label
+                className={`flex items-center gap-2 text-s ${
+                  info.ticketSalesDataConsent ? "cursor-pointer" : "cursor-not-allowed opacity-50"
+                }`}
+              >
                 <input
                   type="checkbox"
                   checked={info.pollstarConsent}
+                  disabled={!info.ticketSalesDataConsent}
                   onChange={(e) => set("pollstarConsent", e.target.checked)}
                   className="h-4 w-4 accent-[var(--accent)]"
                 />
-                해외 DB 등록 동의(Pollstar 등)
+                공연 데이터 외부 제공 동의 (Pollstar 등)
               </label>
               <p className="mt-1.5 pl-6 break-keep text-xs leading-5 text-muted">
-                여러 공연을 합산한 통계가 아니라 이 공연(아티스트·일자·장소)의 매출·판매량·객석
-                점유율이 그대로 노출될 수 있습니다
+                동의 시 아티스트, 공연일자, 공연장 정보와 함께 티켓 판매량, 판매가능 객석수,
+                판매율, 티켓 가격 및 매출 등 개별 공연의 실적 정보가 외부 공연산업
+                데이터베이스에 제공·공개될 수 있습니다.
+                {!info.ticketSalesDataConsent && (
+                  <span className="mt-1 block text-muted/80">
+                    (좌측 공연 실적 데이터 제공에 동의해야 선택할 수 있습니다)
+                  </span>
+                )}
               </p>
             </div>
           </div>
