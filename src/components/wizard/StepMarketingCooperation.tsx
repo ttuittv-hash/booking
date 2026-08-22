@@ -88,12 +88,50 @@ export function StepMarketingCooperation({
           </div>
         </div>
 
-        <div className="mt-8 flex flex-wrap items-center justify-between gap-3 border-t border-border/25 pt-5">
-          <div>
-            <h3 className="type-kr-heading text-h6-m">서울아레나 콘텐츠 공동 프로모션 협조</h3>
-            <p className="mt-1 text-xs text-muted">공연 이미지·영상 등 2차 제작물의 서울아레나 채널 활용 협조 동의</p>
+        <div className="mt-8 border-t border-border/25 pt-5">
+          <h3 className="type-kr-heading text-h6-m">홍보 및 서비스 노출</h3>
+
+          <div className="mt-3 space-y-4 break-keep text-xs leading-6 text-muted">
+            <p>
+              서울아레나는 공연·행사의 홍보 및 관람객 대상 서비스 제공을 위해 대관사가 제공한
+              공연·행사 관련 정보 및 콘텐츠를 서울아레나가 운영하는 온·오프라인 서비스 및
+              채널에 노출·활용할 수 있습니다.
+            </p>
+
+            <div>
+              <p className="font-bold text-foreground">활용 대상</p>
+              <ul className="mt-1.5 list-disc space-y-1 pl-4">
+                <li>공연·행사명, 일정, 장소 및 공연 소개</li>
+                <li>출연 아티스트 및 관련 정보</li>
+                <li>공연 포스터, 대표 이미지, 영상 등 공식 홍보 콘텐츠</li>
+                <li>티켓 오픈 및 예매 관련 정보</li>
+                <li>기타 대관사가 제공하거나 공개를 승인한 공연·행사 관련 정보 및 콘텐츠</li>
+              </ul>
+            </div>
+
+            <div>
+              <p className="font-bold text-foreground">노출 및 활용 범위</p>
+              <ul className="mt-1.5 list-disc space-y-1 pl-4">
+                <li>서울아레나 공식 웹사이트 및 모바일 서비스(모바일 앱 등)</li>
+                <li>공연·행사 상세, 일정, 아티스트 정보, 추천·큐레이션 등 서울아레나 서비스 내 관련 영역</li>
+                <li>서울아레나 공식 SNS, 뉴스레터 등 디지털 채널</li>
+                <li>서울아레나 내 디지털 사이니지, 미디어월 등 온·오프라인 안내·홍보 매체</li>
+                <li>공연·행사 홍보, 프로모션 및 관람객 대상 마케팅</li>
+              </ul>
+            </div>
+
+            <p>
+              제공된 정보 및 콘텐츠는 해당 공연·행사의 안내·홍보, 관람객 편의 제공 및
+              서울아레나 서비스 내 콘텐츠 제공·운영을 목적으로 활용될 수 있습니다.
+            </p>
+            <p>
+              대관사는 제공하는 이미지, 영상, 아티스트 관련 콘텐츠 등에 대해 필요한 사용
+              권한을 확보한 범위 내에서 제공하며, 별도의 협의가 필요한 콘텐츠의 경우
+              서울아레나와 사전 협의할 수 있습니다.
+            </p>
           </div>
-          <div className="flex gap-2">
+
+          <div className="mt-4 flex gap-2">
             <button
               type="button"
               onClick={() => set("seoulArenaPromotionConsent", true)}
