@@ -85,6 +85,28 @@ function PackagePicker({
             >
               <div className="text-s font-bold">{p.name}</div>
               <div className="mt-0.5 text-xs text-muted">{p.tagline}</div>
+              {/* 대관료 페이지(/rates)의 Rate A~D 표와 같은 항목을 카드에도 보여준다
+                  (2026-08-22, "권장 무대/객석 정보도... 위저드에서 rate 선택하는
+                  내용에 정보 추가해줘") — 신청자가 카드만 보고도 규모·형태·금액을
+                  가늠할 수 있게 한다. */}
+              <dl className="mt-2.5 space-y-1 border-t border-border/25 pt-2.5 text-xs">
+                <div className="flex items-baseline justify-between gap-2">
+                  <dt className="text-muted">최대 수용인원</dt>
+                  <dd className="font-bold tabular-nums">{p.audienceTier.label}</dd>
+                </div>
+                <div className="flex items-baseline justify-between gap-2">
+                  <dt className="text-muted">권장 무대</dt>
+                  <dd className="font-bold">{p.stageType}</dd>
+                </div>
+                <div className="flex items-baseline justify-between gap-2">
+                  <dt className="text-muted">권장 객석</dt>
+                  <dd className="font-bold">{p.seatingType}</dd>
+                </div>
+                <div className="flex items-baseline justify-between gap-2">
+                  <dt className="text-muted">대관료</dt>
+                  <dd className="font-bold tabular-nums">{won(p.baseFeePerWeek)}</dd>
+                </div>
+              </dl>
             </button>
           );
         })}

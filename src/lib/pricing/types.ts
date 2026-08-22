@@ -109,9 +109,11 @@ export interface RentalPackage {
   waitingRoomNote: string; // 대기실 상세 — "지하 4실 · 지상 3실" (패키지별 상이)
   sideFacilities: string; // 부속공간 — 패키지별 상이
 
-  // 아래 항목은 명세서 기준 "대관시스템 미노출" 항목 — 내부 참고용이며 신청자 화면에는 표시하지 않습니다.
-  seatingType: string; // 객석 운영 형태
-  stageType: string; // 무대형태
+  // 원래는 명세서 기준 "대관시스템 미노출"(내부 참고용) 항목이었으나, 위저드 구성·옵션
+  // 화면의 패키지 카드에 대관료 페이지(/rates)의 권장 무대·객석 정보와 같은 값을
+  // 보여주기로 하면서 신청자 화면에도 노출한다(2026-08-22).
+  seatingType: string; // 객석 운영 형태 — 위저드 패키지 카드 "권장 객석"
+  stageType: string; // 무대형태 — 위저드 패키지 카드 "권장 무대"
 }
 
 export type AvailabilityMode = "ALWAYS" | "IF_PACKAGE_IN" | "IF_NOT_INCLUDED";
