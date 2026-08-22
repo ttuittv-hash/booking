@@ -2,7 +2,10 @@
 
 import { won } from "@/lib/format";
 import { Note } from "@/components/ui/kit";
-import type { EstimatedQuote } from "@/lib/pricing/types";
+import { VENUES } from "@/lib/pricing/types";
+import type { EstimatedQuote, LineItem } from "@/lib/pricing/types";
+
+const VENUE_NAME: Record<string, string> = Object.fromEntries(VENUES.map((v) => [v.id, v.name]));
 
 /**
  * 우측 sticky 요약 — **실시간 견적 요약**. 카드 박스 없이 헤어라인 표(SpecTable 리듬)로만.
@@ -17,6 +20,17 @@ export function SummaryPanel({ quote }: { quote: EstimatedQuote }) {
   // 않는다 — quote.subtotal/total은 전체 lineItems 기준으로 이미 계산돼 있어 여기서 걸러내도
   // 총액에는 영향이 없다.
   const visibleItems = quote.lineItems.filter((item) => item.visibility !== "HIDDEN");
+  // 동시 대관에서는 아레나·중형 항목이 한 목록에 섞여 어느 공간 몫인지 구분이 안 된다는
+  // 지적으로 공간별 소제목을 넣었다(2026-08-22) — 항목에 실제로 두 공간이 섞여 있을 때만
+  // 나눈다. 한 공간만 선택했을 때는 예전처럼 소제목 없이 밋밋한 목록 그대로 보여준다.
+  const venuesPresent = new Set(visibleItems.map((item) => item.venue).filter(Boolean));
+  const groups: { venue?: string; items: LineItem[] }[] =
+    venuesPresent.size > 1
+      ? VENUES.filter((v) => venuesPresent.has(v.id as LineItem["venue"])).map((v) => ({
+          venue: v.id,
+          items: visibleItems.filter((item) => item.venue === v.id),
+        }))
+      : [{ items: visibleItems }];
 
   return (
     <aside className="w-full min-w-0 lg:sticky lg:top-28 lg:self-start">
@@ -32,22 +46,29 @@ export function SummaryPanel({ quote }: { quote: EstimatedQuote }) {
               공간과 일정을 선택하면 예상 금액이 표시됩니다.
             </div>
           ) : (
-            visibleItems.map((item) => (
-              <div
-                key={item.addonId}
-                className="flex items-baseline justify-between gap-4 border-b border-border/15 py-3"
-              >
-                <dt className={item.addonId === "BASE_FEE" ? "text-s font-bold" : "text-s text-muted"}>
-                  {item.label}
-                  {item.billable > 0 && item.included > 0 && (
-                    <span className="ml-1 text-xs text-muted">
-                      (초과 {item.billable.toLocaleString()})
-                    </span>
-                  )}
-                </dt>
-                <dd className="shrink-0 text-s font-bold tabular-nums text-foreground">
-                  {won(item.amount)}
-                </dd>
+            groups.map((group) => (
+              <div key={group.venue ?? "single"}>
+                {group.venue && (
+                  <div className="pt-3 text-xs font-bold text-muted">{VENUE_NAME[group.venue] ?? group.venue}</div>
+                )}
+                {group.items.map((item) => (
+                  <div
+                    key={`${group.venue ?? "single"}-${item.addonId}`}
+                    className="flex items-baseline justify-between gap-4 border-b border-border/15 py-3"
+                  >
+                    <dt className={item.addonId === "BASE_FEE" ? "text-s font-bold" : "text-s text-muted"}>
+                      {item.label}
+                      {item.billable > 0 && item.included > 0 && (
+                        <span className="ml-1 text-xs text-muted">
+                          (초과 {item.billable.toLocaleString()})
+                        </span>
+                      )}
+                    </dt>
+                    <dd className="shrink-0 text-s font-bold tabular-nums text-foreground">
+                      {won(item.amount)}
+                    </dd>
+                  </div>
+                ))}
               </div>
             ))
           )}

@@ -214,6 +214,12 @@ export function calculateQuote(selection: QuoteSelection, rateTable: RateTable):
         ),
       );
     }
+
+    // 여기까지 쌓인 항목은 전부 아레나 몫이다 — 동시 대관에서 아래 중형 항목과 한 목록에
+    // 섞이므로, 화면(SummaryPanel)이 공간별로 나눠 보여줄 수 있게 표시해 둔다.
+    items.forEach((item) => {
+      item.venue = "arena";
+    });
   }
 
   // (5) 중형공연장(DAILY) — 중형 단독 또는 동시 대관일 때 아레나 계산과 별개로 합산한다
@@ -221,7 +227,7 @@ export function calculateQuote(selection: QuoteSelection, rateTable: RateTable):
   let blockingIssues: string[] = [];
   if (selection.venueId === "medium-hall" || selection.bookingMode === "SIMULTANEOUS") {
     const midHall = calculateMidHallLineItems(selection, rateTable);
-    items.push(...midHall.items);
+    items.push(...midHall.items.map((item) => ({ ...item, venue: "medium-hall" as const })));
     blockingIssues = midHall.blockingIssues;
   }
 

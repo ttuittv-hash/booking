@@ -404,6 +404,10 @@ export interface LineItem {
   amount: number; // billable * unitPrice
   phase: BillingPhase;
   visibility: LineItemVisibility; // 신청자 화면 노출 등급 (2-71)
+  // 동시 대관(SIMULTANEOUS)에서 아레나·중형 항목이 한 목록에 섞여 어느 공간 몫인지
+  // 구분이 안 된다는 지적으로 추가(2026-08-22). calculateQuote가 채운다 — 기존에
+  // 저장된 신청서(이 필드 도입 전)는 undefined일 수 있으므로 optional로 둔다.
+  venue?: "arena" | "medium-hall";
 }
 
 export interface Quote {
