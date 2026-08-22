@@ -75,10 +75,13 @@ export function StepMarketingCooperation({
                 <button
                   type="button"
                   onClick={() => removeChannel(i)}
-                  aria-label="삭제"
-                  className={`${toggleClass(false)} shrink-0`}
+                  aria-label="채널 삭제"
+                  // 입력 필드와 같은 무게의 버튼(보더·박스)이 아니라 옆에 딸린 보조
+                  // 동작이라는 걸 보여주려고 아이콘만 둔다 — 삭제 버튼이 입력창과
+                  // 같은 위계로 보인다는 지적으로 바꿨다.
+                  className="flex h-10 w-10 shrink-0 items-center justify-center text-muted transition-colors hover:text-danger"
                 >
-                  삭제
+                  ✕
                 </button>
               </div>
             ))}
