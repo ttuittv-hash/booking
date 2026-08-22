@@ -13,6 +13,7 @@ import {
   updateSendResult,
 } from "@/lib/db";
 import { audienceOrigin } from "@/lib/publicUrl";
+import { emailAdapter } from "./email";
 import { inAppAdapter } from "./inapp";
 import { kakaoBizTalkAdapter, xmsAdapter } from "./kakaoBizTalk";
 import { renderTemplate, findTemplate, TemplateVariableError } from "./templates";
@@ -20,11 +21,12 @@ import type { ChannelAdapter, SendRequest, SendResult } from "./types";
 
 /**
  * 채널 우선순위.
- * 알림톡이 설정되면 그것이 주 채널이 되고, 아직 키가 없으면 인앱만 나간다.
- * 어느 경우든 인앱은 항상 함께 남긴다(기획서 1-62).
+ * 알림톡·이메일 중 설정된 것이 모두 주 채널로 나간다 — 알림톡 사전심사를 기다리는
+ * 동안에도 이메일로는 같은 이벤트가 나가야 한다(types.ts 상단 주석). 둘 다 설정 전이면
+ * 인앱만 나간다. 어느 경우든 인앱은 항상 함께 남긴다(기획서 1-62).
  */
 function primaryAdapters(): ChannelAdapter[] {
-  return [kakaoBizTalkAdapter].filter((a) => a.isConfigured());
+  return [kakaoBizTalkAdapter, emailAdapter].filter((a) => a.isConfigured());
 }
 
 export interface DispatchInput {

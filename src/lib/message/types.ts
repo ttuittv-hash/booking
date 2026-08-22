@@ -19,6 +19,8 @@ export type FailureKind =
   | "TRANSIENT"
   /** 문자 오류·결번 → 발송 중단, 운영자에게 표기 */
   | "INVALID_NUMBER"
+  /** 이메일 주소 없음 → 발송 중단(이메일 채널 전용, 문자 대체발송 대상 아님) */
+  | "INVALID_ADDRESS"
   /** 그 외 */
   | "UNKNOWN";
 
