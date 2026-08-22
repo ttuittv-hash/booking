@@ -13,6 +13,7 @@ import {
   FeatureList,
   PageHead,
   PhotoHero,
+  RichText,
   SectionHead,
 } from "@/components/ui/kit";
 
@@ -36,7 +37,7 @@ function AboutPanel({ c, introHtml }: { c: SeoulArenaContent; introHtml: string 
         <PageHead
           en="ABOUT SEOUL ARENA"
           ko="시설 개요"
-          lead={<div dangerouslySetInnerHTML={{ __html: introHtml }} />}
+          lead={<RichText html={introHtml} />}
         />
       </Band>
 
@@ -69,7 +70,7 @@ function WhyPanel({ c, whyHtml }: { c: SeoulArenaContent; whyHtml: string }) {
         <PageHead
           en="WHY SEOUL ARENA"
           ko="시설 특징"
-          lead={<div dangerouslySetInnerHTML={{ __html: whyHtml }} />}
+          lead={<RichText html={whyHtml} />}
         />
       </Band>
 

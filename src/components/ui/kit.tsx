@@ -3,6 +3,30 @@ import type { ReactNode } from "react";
 import { Reveal } from "@/components/ui/Reveal";
 import { splitParagraphs } from "@/lib/content/prose";
 
+/* --------------------------------------------------------- 리치텍스트 ----- */
+
+/**
+ * 운영자가 리치텍스트 편집기로 쓴 HTML 의 문단 간격.
+ * **편집기 입력칸과 화면이 같은 클래스를 쓴다** — 편집기에서 Enter 로 나눈 문단이
+ * 화면에서 붙어 보이면 운영자는 문단이 만들어지지 않았다고 판단한다.
+ */
+export const RICH_TEXT = [
+  "[&_p]:mt-4 [&_p]:first:mt-0",
+  "[&_strong]:font-bold [&_em]:italic",
+  "[&_ul]:mt-4 [&_ul]:list-disc [&_ul]:pl-5 [&_ol]:mt-4 [&_ol]:list-decimal [&_ol]:pl-5 [&_li]:mt-1",
+  "[&_a]:underline [&_a]:decoration-1 [&_a]:underline-offset-4",
+].join(" ");
+
+/** 검사를 마친 리치텍스트 HTML 을 문단 간격과 함께 그린다 */
+export function RichText({ html, className = "" }: { html: string; className?: string }) {
+  return (
+    <div
+      className={`${RICH_TEXT} ${className}`}
+      dangerouslySetInnerHTML={{ __html: html }}
+    />
+  );
+}
+
 /* ------------------------------------------------------------- 평문 문단 --- */
 
 /**

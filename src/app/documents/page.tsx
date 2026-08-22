@@ -73,7 +73,7 @@ export default async function DocumentsPage() {
             panel:
               t.value === "facility" ? (
                 <DocPanel
-                  en="FACILITY DOCUMENTS"
+                  en="VENUE OVERVIEW"
                   ko="시설소개 자료"
                   items={content.facility}
                   content={content}

@@ -5,7 +5,15 @@ import { getGuidePageContent } from "@/lib/db";
 import { sanitizeRichText } from "@/lib/sanitizeHtml";
 import { PublicHeader } from "@/components/PublicHeader";
 import { SiteFooter } from "@/components/ui/SiteFooter";
-import { ArrowRight, Band, ButtonLink, PageHead, ProcessSteps } from "@/components/ui/kit";
+import {
+  ArrowRight,
+  Band,
+  ButtonLink,
+  PageHead,
+  ProcessSteps,
+  RichText,
+  SectionHead,
+} from "@/components/ui/kit";
 
 export const metadata: Metadata = {
   title: "대관 안내 | 서울아레나",
@@ -34,12 +42,12 @@ export default async function GuidePage() {
           <PageHead
             en="HOW TO BOOK"
             ko="대관 안내"
-            lead={<div dangerouslySetInnerHTML={{ __html: introHtml }} />}
+            lead={<RichText html={introHtml} />}
           />
         </Band>
 
         <Band tone="white">
-          <PageHead as="h2" en="HOW IT WORKS" ko="대관 절차" />
+          <SectionHead title="HOW IT WORKS" lead="대관 절차" />
           <div className="mt-10">
             <ProcessSteps steps={content.process} />
           </div>

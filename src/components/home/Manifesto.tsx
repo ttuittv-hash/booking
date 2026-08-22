@@ -1,4 +1,5 @@
 import type { HomeNarrativeStatement } from "@/lib/content/types";
+import { splitParagraphs } from "@/lib/content/prose";
 
 /**
  * `**강조**` 만 지원하는 최소 인라인 렌더.
@@ -53,12 +54,9 @@ export function Manifesto({
           </span>
         ))}
       </h2>
-      {/* 리드는 빈 줄로 문단을 나눈다 */}
+      {/* 리드의 문단 규칙은 `splitParagraphs` 한 곳에서 정한다 — Enter 한 번이 새 문단 */}
       <div className="mt-6 max-w-3xl space-y-4 break-keep text-m text-muted">
-        {lead
-          .split(/\n{2,}/)
-          .map((para) => para.trim())
-          .filter(Boolean)
+        {splitParagraphs(lead)
           .map((para, i) => (
             <p key={i}>
               <Emphasized text={para} />

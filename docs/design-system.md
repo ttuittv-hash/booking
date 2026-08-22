@@ -309,7 +309,8 @@ const SPLIT = "grid gap-8 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.6fr)] lg:items-
 | `Badge` | 상태 배지 |
 | `EmptyState` | 준비 중 콘텐츠. 위아래 헤어라인 사이 빈 블록 — **점선 보더를 쓰지 않는다**(Figma 시스템에 점선이 없다) |
 | `Multiline` | seed 의 `\n` 유지 렌더 |
-| `Prose` | 운영자가 콘텐츠 관리에서 입력한 **평문**을 문단으로 싣는다. 빈 줄 = 새 문단, 한 번의 줄바꿈 = 줄바꿈. 리드·설명처럼 여러 문단이 들어올 수 있는 자리에 `{text}` 를 그대로 그리지 마라 — HTML 이 줄바꿈을 공백으로 접어 운영자가 나눈 문단이 사라진다 |
+| `Prose` | 운영자가 콘텐츠 관리에서 입력한 **평문**을 문단으로 싣는다. **Enter 한 번이 새 문단**(`splitParagraphs`). 리드·설명처럼 여러 문단이 들어올 수 있는 자리에 `{text}` 를 그대로 그리지 마라 — HTML 이 줄바꿈을 공백으로 접어 운영자가 나눈 문단이 사라진다 |
+| `RichText` / `RICH_TEXT` | 리치텍스트 편집기로 쓴 HTML 의 문단 간격. **편집기 입력칸과 화면이 같은 클래스를 쓴다** — 편집기에서 나눈 문단이 화면에서 붙어 보이면 운영자는 문단이 안 만들어졌다고 판단한다. 공지 본문처럼 표·이미지까지 나오는 긴 글은 그 화면의 `PROSE` 를 쓴다 |
 | 입력 필드 | `field-base` 유틸리티. 배경은 지면과 같고 1px 보더로만 구분 |
 
 주의: Tailwind v4 에서 base 에 `outline-none` 을 넣으면 이후 `focus:outline-2` 가 죽는다. 쓰지 마라.
@@ -376,7 +377,9 @@ const SPLIT = "grid gap-8 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.6fr)] lg:items-
 
 대관 안내는 탭을 두지 않는다. 두 탭이 담던 것이 안내 문단 하나와 절차 8단계 하나여서
 누르게 만들 이유가 없었다. 요금 체계 설명(RATE STRUCTURE)은 금액을 소유한 대관료와
-내용이 겹쳐 삭제했다.
+내용이 겹쳐 삭제했다. 페이지 제목은 `PageHead`(HOW TO BOOK / 대관 안내), 그 아래
+절차는 `SectionHead`(HOW IT WORKS) 다 — 대관료의 ARENA RATES › RATE 와 같은 위계다.
+한 화면에 `PageHead` 를 두 번 쓰면 어느 것이 페이지 제목인지 알 수 없다.
 
 대관 자료의 `시설소개` 탭은 두 공간을 함께 담은 자료(시설소개자료)를 소유한다. 같은 파일을
 공간 탭마다 걸면 같은 자료를 두 번 내려받게 된다. 공간 탭에는 그 공간에만 해당하는 자료만
@@ -423,6 +426,11 @@ src/lib/content/*Facts.ts   →  pageContent.ts 의 DEFAULT_*  →  site_content
   편집기를 새로 만들지 않고 이 한 키에 모은다
 - **여러 줄 칸(`Area`)은 줄바꿈을 그대로 저장한다.** 화면에서는 `Prose` 로 그려야
   문단이 살아난다. 줄 단위로 파싱하는 칸(규약 전문)만 `paragraph={false}` 로 안내를 끈다
+- **문단 규칙은 한 가지다 — Enter 한 번이 새 문단.** 여러 줄 입력칸과 리치텍스트 편집기가
+  같은 규칙·같은 안내 문구(`PARAGRAPH_HINT`)를 쓴다. 운영자에게 둘은 같은 기능이므로
+  동작이나 안내가 갈라지면 다른 기능처럼 읽힌다. 줄만 바뀌는 칸(홈 히어로 카피처럼
+  `Multiline` 로 그리는 제목)은 `LINE_HINT` 를 쓰고, 라벨에 `(줄바꿈 가능)` 같은
+  괄호 설명을 붙이지 않는다 — 안내는 입력칸 아래 한 자리에만 둔다
 - 폼은 `components/admin/fields.tsx` 의 조각(`Text`·`Area`·`Rich`·`StringList`·
   `ListEditor`·`ContentFormShell`)을 조합해 만든다. 화면마다 폼을 새로 짜지 않는다
 - **대관 규약은 조문을 한 칸씩 고치는 문서가 아니다.** 판본을 통째로 갈아 끼우는 문서라

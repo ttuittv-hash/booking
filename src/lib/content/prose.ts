@@ -6,14 +6,16 @@
    그리면 운영자가 Enter 로 나눈 문단이 화면에서 한 덩어리로 붙어 버린다.
    그래서 렌더링 직전에 이 함수로 문단을 나눈다.
 
-   규칙은 문서 편집기와 같게 둔다 — **빈 줄이 새 문단, 한 번의 줄바꿈은 줄바꿈.**
+   규칙은 리치텍스트 편집기와 같게 둔다 — **Enter 한 번이 새 문단.**
+   두 편집 방식(여러 줄 입력칸 · 리치텍스트 편집기)이 같은 기능이라고 안내하면서
+   동작이 다르면 안 되기 때문이다. 빈 줄을 여러 줄 넣어도 문단 하나만 늘어난다.
    ========================================================================= */
 
 /** 평문을 문단 배열로 나눈다. 빈 문단은 버린다. */
 export function splitParagraphs(text: string | null | undefined): string[] {
   return (text ?? "")
     .replace(/\r\n?/g, "\n")
-    .split(/\n{2,}/)
+    .split(/\n+/)
     .map((block) => block.trim())
     .filter(Boolean);
 }
@@ -44,6 +46,6 @@ export function proseToHtml(text: string | null | undefined): string {
   if (!raw) return "";
   if (/<(p|div|ul|ol|h[1-4]|blockquote|table|br)\b/i.test(raw)) return raw;
   return splitParagraphs(raw)
-    .map((block) => `<p>${escapeHtml(block).replace(/\n/g, "<br />")}</p>`)
+    .map((block) => `<p>${escapeHtml(block)}</p>`)
     .join("");
 }

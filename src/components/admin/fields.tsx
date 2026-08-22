@@ -44,9 +44,16 @@ export function Text({
   );
 }
 
-/** 여러 줄 입력칸의 공통 안내 — 저장한 줄바꿈이 화면에 그대로 나간다는 사실을 알린다 */
-export const PARAGRAPH_HINT =
-  "Enter 로 줄을 바꾸고, 빈 줄을 한 줄 넣으면 새 문단이 됩니다. 화면에도 그대로 나갑니다.";
+/* ----------------------------------------------------------- 입력 안내 --- */
+
+/**
+ * 문단이 나뉘는 칸의 공통 안내. 여러 줄 입력칸과 리치텍스트 편집기가 **같은 문구**를 쓴다 —
+ * 두 방식은 운영자에게 같은 기능이므로 안내가 달라지면 다른 기능처럼 읽힌다.
+ */
+export const PARAGRAPH_HINT = "Enter 를 누르면 새 문단이 됩니다. 나눈 대로 화면에 나갑니다.";
+
+/** 줄만 바뀌는 칸(제목·디스플레이 카피)의 안내. 문단이 아니라 줄이라는 점만 다르다 */
+export const LINE_HINT = "Enter 를 누르면 줄이 바뀝니다. 나눈 대로 화면에 나갑니다.";
 
 export function Area({
   label,
@@ -90,10 +97,12 @@ export function Rich({
   onChange: (v: string) => void;
   help?: string;
 }) {
+  // 안내 문구는 여러 줄 입력칸과 같다 — 운영자에게는 같은 기능이다.
+  const note = [help, PARAGRAPH_HINT].filter(Boolean).join(" ");
   return (
     <div>
       <span className={FIELD_LABEL}>{label}</span>
-      {help && <p className={`mb-2 ${HELP}`}>{help}</p>}
+      <p className={`mb-2 ${HELP}`}>{note}</p>
       <NoticeEditor value={value} onChange={onChange} />
     </div>
   );

@@ -15,10 +15,13 @@ import {
   REMOVE_BTN,
   SUB_TITLE,
 } from "./adminUi";
+import { LINE_HINT, PARAGRAPH_HINT } from "./fields";
 
 /* 필드 구조는 브랜드 내러티브 스키마 그대로 두고 시각 토큰만 교체한다 */
 const inputCls = FIELD;
 const labelCls = FIELD_LABEL;
+/** 입력칸 아래 안내 — 백오피스 전체가 같은 문구·같은 자리를 쓴다 */
+const hintCls = "mt-1 block text-xs text-muted";
 const cardCls = CARD;
 const addBtnCls = ADD_BTN;
 const removeBtnCls = REMOVE_BTN;
@@ -114,12 +117,14 @@ export function HomeContentForm({ content: initial }: { content: HomeContent }) 
       <section>
         <h3 className={SUB_TITLE}>히어로 (상단 이미지 + 카피 + 버튼)</h3>
         <label className="mt-3 block">
-          <span className={labelCls}>영문 디스플레이 (줄바꿈 가능)</span>
+          <span className={labelCls}>영문 디스플레이</span>
           <textarea rows={2} value={content.heroTitle} onChange={(e) => patch({ heroTitle: e.target.value })} className={inputCls} />
+          <span className={hintCls}>{LINE_HINT}</span>
         </label>
         <label className="mt-3 block">
-          <span className={labelCls}>국문 리드 (줄바꿈 가능)</span>
+          <span className={labelCls}>국문 리드</span>
           <textarea rows={3} value={content.heroSubtitle} onChange={(e) => patch({ heroSubtitle: e.target.value })} className={inputCls} />
+          <span className={hintCls}>{LINE_HINT}</span>
         </label>
         <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2">
           <label>
@@ -192,14 +197,15 @@ export function HomeContentForm({ content: initial }: { content: HomeContent }) 
           </label>
         </div>
         <label className="mt-3 block">
-          <span className={labelCls}>제목 (줄바꿈 가능)</span>
+          <span className={labelCls}>제목</span>
           <textarea rows={2} value={content.narrativeTitle} onChange={(e) => patch({ narrativeTitle: e.target.value })} className={inputCls} />
+          <span className={hintCls}>{LINE_HINT}</span>
         </label>
         <label className="mt-3 block">
           <span className={labelCls}>리드 문구</span>
           <textarea rows={5} value={content.narrativeLead} onChange={(e) => patch({ narrativeLead: e.target.value })} className={inputCls} />
-          <span className="mt-1 block text-xs text-muted">
-            빈 줄을 넣으면 문단이 나뉩니다. <b className="text-foreground">**감싼 부분**</b> 은 굵게 나옵니다.
+          <span className={hintCls}>
+            {PARAGRAPH_HINT} <b className="text-foreground">**감싼 부분**</b> 은 굵게 나옵니다.
           </span>
         </label>
 

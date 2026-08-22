@@ -125,7 +125,7 @@ function RatePanel({ en, ko, c }: { en: string; ko: string; c: VenueRateContent 
               {c.limits.map((p, i) => (
                 <p key={`${p.label}-${i}`} className="break-keep text-s leading-7">
                   <span className="font-bold">{p.label}</span>
-                  <span className="text-muted"> — {p.value}</span>
+                  <span className="text-muted">: {p.value}</span>
                 </p>
               ))}
             </div>
