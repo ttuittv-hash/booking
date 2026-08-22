@@ -1185,6 +1185,13 @@ function toRateTable(row: RateTableRow): RateTable {
       setupExtraDayFee: pkg.setupExtraDayFee ?? seedMatch?.setupExtraDayFee ?? 0,
       performanceExtraDayFee: pkg.performanceExtraDayFee ?? seedMatch?.performanceExtraDayFee ?? 0,
       defaultPerformanceDays: pkg.defaultPerformanceDays ?? seedMatch?.defaultPerformanceDays ?? 0,
+      // audienceTier/seatingType/stageType 도 같은 이유로 보정한다 — 이 필드들이 추가되기
+      // 전에 저장된 패키지는 값이 아예 없어(undefined), 카드·어드민 패키지 관리 화면에서
+      // `.audienceTier.label`처럼 바로 접근하는 곳이 전부 그대로 죽는다("패키지 관리 화면이
+      // 안 뜬다", 2026-08-22).
+      audienceTier: pkg.audienceTier ?? seedMatch?.audienceTier ?? { min: 0, max: 0, label: "" },
+      seatingType: pkg.seatingType ?? seedMatch?.seatingType ?? "",
+      stageType: pkg.stageType ?? seedMatch?.stageType ?? "",
     };
   });
   // mid_hall_json 컬럼 추가(2026-08-19) 이전에 저장된 버전은 NULL이므로 시드 기본값으로 보정한다.

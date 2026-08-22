@@ -23,13 +23,18 @@ export function MoneyInput({
   className?: string;
 } & Omit<React.InputHTMLAttributes<HTMLInputElement>, "value" | "onChange" | "type">) {
   const [draft, setDraft] = useState<string | null>(null);
+  // 필드가 추가되기 전에 저장된 레거시 데이터는 이 값이 undefined일 수 있다 —
+  // .toLocaleString()이 그대로 죽어 화면 전체가 렌더링되지 않았다("패키지 관리
+  // 화면이 안 뜬다", 2026-08-22). 표시용 안전값만 0으로 보정하고, onChange로
+  // 넘기는 실제 값은 그대로 둔다.
+  const safeValue = Number.isFinite(value) ? value : 0;
 
   return (
     <input
       type="text"
       inputMode="numeric"
-      value={draft ?? value.toLocaleString("ko-KR")}
-      onFocus={() => setDraft(value.toLocaleString("ko-KR"))}
+      value={draft ?? safeValue.toLocaleString("ko-KR")}
+      onFocus={() => setDraft(safeValue.toLocaleString("ko-KR"))}
       onChange={(e) => setDraft(e.target.value)}
       onBlur={() => {
         const digits = (draft ?? "").replace(/[^\d-]/g, "");
