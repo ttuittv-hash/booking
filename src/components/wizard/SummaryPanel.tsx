@@ -46,17 +46,25 @@ export function SummaryPanel({ quote }: { quote: EstimatedQuote }) {
               공간과 일정을 선택하면 예상 금액이 표시됩니다.
             </div>
           ) : (
-            groups.map((group) => (
+            groups.map((group, groupIndex) => (
               <div key={group.venue ?? "single"}>
                 {group.venue && (
-                  <div className="pt-3 text-xs font-bold text-muted">{VENUE_NAME[group.venue] ?? group.venue}</div>
+                  <div
+                    className={`border-t-2 border-foreground pt-2.5 text-left text-s font-bold text-foreground ${
+                      groupIndex === 0 ? "" : "mt-4"
+                    }`}
+                  >
+                    {VENUE_NAME[group.venue] ?? group.venue}
+                  </div>
                 )}
                 {group.items.map((item) => (
                   <div
                     key={`${group.venue ?? "single"}-${item.addonId}`}
-                    className="flex items-baseline justify-between gap-4 border-b border-border/15 py-3"
+                    className={`flex items-baseline justify-between gap-4 border-b border-border/15 py-3 ${
+                      group.venue ? "pl-3" : ""
+                    }`}
                   >
-                    <dt className={item.addonId === "BASE_FEE" ? "text-s font-bold" : "text-s text-muted"}>
+                    <dt className="text-s text-muted">
                       {item.label}
                       {item.billable > 0 && item.included > 0 && (
                         <span className="ml-1 text-xs text-muted">
@@ -77,8 +85,8 @@ export function SummaryPanel({ quote }: { quote: EstimatedQuote }) {
         <div className="mt-5">
             <dl>
               <div className="flex items-baseline justify-between gap-4 border-b border-border/15 py-2.5">
-                <dt className="text-s text-muted">소계 (VAT 별도)</dt>
-                <dd className="text-s tabular-nums text-muted">{won(quote.subtotal)}</dd>
+                <dt className="text-s font-bold text-foreground">소계 (VAT 별도)</dt>
+                <dd className="text-s font-bold tabular-nums text-foreground">{won(quote.subtotal)}</dd>
               </div>
               <div className="flex items-baseline justify-between gap-4 border-b border-border/15 py-2.5">
                 <dt className="text-s text-muted">부가세 10%</dt>
@@ -86,7 +94,7 @@ export function SummaryPanel({ quote }: { quote: EstimatedQuote }) {
               </div>
             </dl>
             <div className="flex flex-wrap items-baseline justify-between gap-3 border-b-2 border-foreground py-3">
-              <span className="text-s text-muted">합계</span>
+              <span className="text-s font-bold text-foreground">합계</span>
               <span className="type-display text-h5-m tabular-nums sm:text-h5">
                 {won(quote.total)}
               </span>
