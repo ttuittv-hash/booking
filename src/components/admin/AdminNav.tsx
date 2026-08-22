@@ -6,24 +6,25 @@ import { LogoutButton } from "@/components/LogoutButton";
 import { NotificationBell } from "@/components/NotificationBell";
 import type { AppUser } from "@/lib/pricing/types";
 
-// 자주 들여다보는 화면만 한 줄에 직접 노출한다. 설정류(패키지 · 요금표 · 일정 · 콘텐츠 ·
-// 알림 · 운영자 계정 · 계정 설정)는 "설정" 드롭다운 하나로 묶는다 — 항목이 11개까지
-// 늘면서 좁은 데스크톱 폭에서도 가로 스크롤이 생겼다("지앤비 메뉴가 스크롤이 생기네?",
-// 2026-08-22). 헤더 높이는 그대로 두어(다른 화면의 스티키 탭 바 오프셋과 맞물려 있다)
-// 항목 수만 줄인다.
+// 자주 들여다보는 화면과 패키지 · 요금표 · 일정 관리는 원뎁스(한 줄에 직접)로 둔다 —
+// 이 셋은 대관 운영에서 매일 들여다보는 화면이라 드롭다운 안에 숨기면 안 된다는
+// 피드백(2026-08-22, "패키지 관리, 요금관리, 일정관리는 다 원뎁스로 다시 빼"). 그보다
+// 덜 자주 쓰는 콘텐츠 · 알림 · 운영자 계정 · 계정 설정만 "설정" 드롭다운으로 묶는다 —
+// 항목이 11개까지 늘면서 좁은 데스크톱 폭에서도 가로 스크롤이 생겼던 문제
+// ("지앤비 메뉴가 스크롤이 생기네?", 2026-08-22)는 그대로 유지한 채 줄인다.
 const PRIMARY_LINKS = [
   { href: "/admin", label: "신청 현황", masterOnly: false },
   { href: "/admin/reports", label: "리포트", masterOnly: false },
   { href: "/admin/applicants", label: "회원 관리", masterOnly: false },
+  { href: "/admin/packages", label: "패키지 관리", masterOnly: false },
+  { href: "/admin/rates", label: "요금표 관리", masterOnly: false },
+  { href: "/admin/schedule", label: "일정 관리", masterOnly: false },
   { href: "/admin/inquiries", label: "1:1 문의", masterOnly: false },
 ];
 
 const SETTINGS_GROUP = {
   label: "설정",
   links: [
-    { href: "/admin/packages", label: "패키지 관리", masterOnly: false },
-    { href: "/admin/rates", label: "요금표 관리", masterOnly: false },
-    { href: "/admin/schedule", label: "일정 관리", masterOnly: false },
     { href: "/admin/content", label: "콘텐츠 관리", masterOnly: false },
     { href: "/admin/notification-rules", label: "알림 관리", masterOnly: false },
     { href: "/admin/users", label: "운영자 계정", masterOnly: false },
