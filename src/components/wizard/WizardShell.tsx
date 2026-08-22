@@ -329,6 +329,15 @@ export function WizardShell({
     setSubmittedId(null);
   }
 
+  // "Custom" 카드는 rateTable.packages에 없는 자리표시자라 selectPackage로는 고를 수
+  // 없다 — 그런데 이미 실제 패키지를 고른 상태에서 Custom을 누르면 packageId가 그대로
+  // 남아 카드 두 개가 동시에 선택된 것처럼 보였다(2026-08-22 리포트). Custom을 누르면
+  // 기존 패키지 선택을 지운다.
+  function clearPackage() {
+    setSelection((prev) => (prev.packageId === null ? prev : { ...prev, packageId: null }));
+    setSubmittedId(null);
+  }
+
   function setAddonQuantity(addonId: string, quantity: number) {
     setSelection((prev) => {
       const rest = prev.addons.filter((a) => a.addonId !== addonId);
@@ -556,6 +565,7 @@ export function WizardShell({
               setSelection((prev) => ({ ...prev, expectedRevenue: value }))
             }
             onSelectPackage={selectPackage}
+            onClearPackage={clearPackage}
           />
         )}
         {step === 3 && (

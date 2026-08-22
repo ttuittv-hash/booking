@@ -46,7 +46,7 @@ export const SEED_PACKAGES: RentalPackage[] = [
   {
     id: 1,
     venueId: "arena",
-    name: "베이직",
+    name: "Rate A",
     tagline: "기본형",
     audienceTier: { min: 0, max: 12_000, label: "~12,000석 규모" },
     baseFeePerWeek: 518_000_000, // [확정 2026-08-14] 패키지 요금표 시트 — VAT 별도, 준비 4일+공연 2일 기준
@@ -70,7 +70,7 @@ export const SEED_PACKAGES: RentalPackage[] = [
   {
     id: 2,
     venueId: "arena",
-    name: "스탠다드",
+    name: "Rate B",
     tagline: "인기",
     audienceTier: { min: 12_001, max: 15_000, label: "~15,000석 규모" },
     baseFeePerWeek: 548_000_000, // [확정 2026-08-14] 패키지 요금표 시트
@@ -94,7 +94,7 @@ export const SEED_PACKAGES: RentalPackage[] = [
   {
     id: 3,
     venueId: "arena",
-    name: "플러스",
+    name: "Rate C",
     tagline: "확장형",
     audienceTier: { min: 15_001, max: 18_000, label: "~18,000석 규모" },
     baseFeePerWeek: 613_000_000, // [확정 2026-08-14] 패키지 요금표 시트
@@ -118,7 +118,7 @@ export const SEED_PACKAGES: RentalPackage[] = [
   {
     id: 4,
     venueId: "arena",
-    name: "프리미엄",
+    name: "Rate D",
     tagline: "풀서비스",
     audienceTier: { min: 18_001, max: 99_999, label: "~22,500석 규모" },
     baseFeePerWeek: 660_000_000, // [확정 2026-08-14] 패키지 요금표 시트

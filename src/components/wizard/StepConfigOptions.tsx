@@ -49,23 +49,25 @@ function arenaSummaryLine(selection: QuoteSelection, defaultPerformanceDays: num
 // [개정 2026-08-20] 아레나 패키지 4개는 기본 구성이 전부 동일하고 관객 규모 등급(Bowl
 // 사용료)만 다르다 — 카드로 나열해 신청자가 직접 하나를 고르게 한다. 고른 패키지에 따라
 // 바로 아래 "선택 옵션" 슬롯의 항목이 달라진다(isAddonAvailable).
-// [개정 2026-08-21] "커스텀" 카드는 실제 패키지가 아니다 — 클릭해도 견적 계산에 참여하지
+// [개정 2026-08-21] "Custom" 카드는 실제 패키지가 아니다 — 클릭해도 견적 계산에 참여하지
 // 않고 운영자 문의 안내만 보여주는 자리표시자다. rateTable.packages에 없는 항목이라
 // packages 배열과 별개로 하드코딩한다.
 function PackagePicker({
   packages,
   selectedId,
   onSelect,
+  onClear,
 }: {
   packages: RentalPackage[];
   selectedId: number | null;
   onSelect: (id: number) => void;
+  onClear: () => void;
 }) {
   const [showCustomNotice, setShowCustomNotice] = useState(false);
 
   return (
     <div className="mb-6 border-b border-border pb-6">
-      <label className="block text-s font-bold text-foreground">패키지 선택 *</label>
+      <label className="block text-s font-bold text-foreground">구성 선택 *</label>
       <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-5">
         {packages.map((p) => {
           const active = selectedId === p.id;
@@ -88,11 +90,18 @@ function PackagePicker({
         })}
         <button
           type="button"
-          onClick={() => setShowCustomNotice(true)}
+          onClick={() => {
+            // Custom은 실제 패키지가 아니라 packageId로 표현할 수 없다 — 이전에 고른
+            // 패키지가 남아 있으면 카드 두 개가 동시에 선택된 것처럼 보이므로 여기서
+            // 함께 지운다(2026-08-22, "커스텀 선택 시 다른 패키지가 선택 해제되지
+            // 않는다" 리포트).
+            onClear();
+            setShowCustomNotice(true);
+          }}
           style={showCustomNotice ? CHOICE_SELECTED_VARS : undefined}
           className={`${choiceClass(showCustomNotice, { dense: true })} border-dashed`}
         >
-          <div className="text-s font-bold">커스텀</div>
+          <div className="text-s font-bold">Custom</div>
           <div className="mt-0.5 text-xs text-muted">직접구성</div>
         </button>
       </div>
@@ -107,7 +116,7 @@ function PackagePicker({
         <div className="mt-4 border border-border/30 bg-panel/40 px-4 py-3">
           <span className="bg-foreground px-2 py-0.5 text-xs font-bold text-background">기본 포함</span>
           <p className="mt-1.5 text-xs leading-5 text-foreground">
-            모든 패키지에는 공연 운영에 필요한 기본 시설과 장비가 모두 포함되어 있습니다
+            모든 구성에는 공연 운영에 필요한 기본 시설과 장비가 모두 포함되어 있습니다
             <br />
             자세한 포함 옵션은 신청서 제출 시 최종 옵션을 확인해 주세요
           </p>
@@ -126,6 +135,7 @@ export function StepConfigOptions({
   onChangeQuantity,
   onChangeRevenue,
   onSelectPackage,
+  onClearPackage,
 }: {
   rateTable: RateTable;
   selection: QuoteSelection;
@@ -135,6 +145,7 @@ export function StepConfigOptions({
   onChangeQuantity: (addonId: string, quantity: number) => void;
   onChangeRevenue: (value: number) => void;
   onSelectPackage: (packageId: number) => void;
+  onClearPackage: () => void;
 }) {
   const midHallOnly = selection.venueId === "medium-hall" && selection.bookingMode === "SINGLE";
   const isSimultaneous = selection.bookingMode === "SIMULTANEOUS";
@@ -204,11 +215,16 @@ export function StepConfigOptions({
       )}
 
       <div className="mt-8">
-        <PackagePicker packages={arenaPackages} selectedId={selection.packageId} onSelect={onSelectPackage} />
+        <PackagePicker
+          packages={arenaPackages}
+          selectedId={selection.packageId}
+          onSelect={onSelectPackage}
+          onClear={onClearPackage}
+        />
       </div>
 
       {!pkg ? (
-        <p className="text-s text-muted">위에서 패키지를 선택하면 선택 옵션을 확인할 수 있습니다.</p>
+        <p className="text-s text-muted">위에서 구성을 선택하면 선택 옵션을 확인할 수 있습니다.</p>
       ) : (
         /* 선택 옵션 = 아웃라인 박스. 색면을 쓰지 않는다 — 안의 항목도 아웃라인만이다 */
         <div className="mt-6 border border-border/25 p-5">
@@ -340,9 +356,15 @@ function AddonRow({
         <div className="flex flex-wrap items-center gap-1.5">
           <span className="text-xs font-bold">{addon.name}</span>
           {included > 0 && (
-            <span className="border border-border/40 px-1.5 py-0.5 text-xs font-bold text-muted">
-              {included} 기본포함
-            </span>
+            <>
+              {/* 숫자와 "기본포함" 라벨이 한 뱃지 안에 붙어 있으면 "14기본포함"처럼
+                  읽혀 헷갈린다("뱃지는 따로 분리" 피드백) — 개수는 일반 텍스트로,
+                  "기본 포함"은 별도 뱃지로 나눈다. */}
+              <span className="border border-border/40 bg-panel px-1.5 py-0.5 text-xs font-bold text-foreground">
+                기본 포함
+              </span>
+              <span className="text-xs font-bold text-muted">{included}개</span>
+            </>
           )}
           {ruleTag && (
             <span className="border border-border/40 px-1.5 py-0.5 text-xs font-bold text-muted">
