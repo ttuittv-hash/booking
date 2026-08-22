@@ -136,40 +136,44 @@ function AudienceFields({
           <p className="-mt-2 text-xs text-muted">구성 · 옵션 값과 연동 — 수정은 구성 · 옵션에서</p>
         )}
 
-        {/* 예상 유료 판매율도 같은 이유로 한 줄로 — 동시 대관이면 아레나/중형을 각각 입력한다. */}
-        <div className={showMidHallRate ? "grid max-w-md grid-cols-2 gap-4" : "max-w-xs"}>
-          <div>
-            <label className="mb-1.5 block text-xs font-bold text-muted">
-              예상 유료 판매율{showMidHallRate ? " — 아레나" : ""}
-            </label>
-            <div className="flex items-center gap-2">
-              <input
-                type="number"
-                min={0}
-                max={100}
-                value={info.expectedPaidSalesRate || ""}
-                onChange={(e) => set("expectedPaidSalesRate", clampRate(e.target.value))}
-                className="field-base w-24"
-              />
-              <span className="text-s text-muted">%</span>
-            </div>
-          </div>
-          {showMidHallRate && (
+        {/* 예상 유료 판매율도 같은 이유로 한 줄로 — 동시 대관이면 아레나/중형을 각각 입력한다.
+            "예상 유료 판매율 — 아레나/중형" 을 매번 반복하지 않고, 대관기간 행처럼 상위
+            라벨 하나로 묶은 뒤 아레나/중형은 짧은 하위 라벨로만 구분한다(2026-08-22,
+            "예상 유료 판매율로 묶고 아레나, 중형 보여주면" 요청). */}
+        <div>
+          <label className="mb-1.5 block text-xs font-bold text-muted">예상 유료 판매율</label>
+          <div className={showMidHallRate ? "grid max-w-md grid-cols-2 gap-4" : "max-w-xs"}>
             <div>
-              <label className="mb-1.5 block text-xs font-bold text-muted">예상 유료 판매율 — 중형</label>
+              {showMidHallRate && <div className="mb-1 text-xs text-muted">아레나</div>}
               <div className="flex items-center gap-2">
                 <input
                   type="number"
                   min={0}
                   max={100}
-                  value={info.expectedPaidSalesRateMidHall || ""}
-                  onChange={(e) => set("expectedPaidSalesRateMidHall", clampRate(e.target.value))}
+                  value={info.expectedPaidSalesRate || ""}
+                  onChange={(e) => set("expectedPaidSalesRate", clampRate(e.target.value))}
                   className="field-base w-24"
                 />
                 <span className="text-s text-muted">%</span>
               </div>
             </div>
-          )}
+            {showMidHallRate && (
+              <div>
+                <div className="mb-1 text-xs text-muted">중형</div>
+                <div className="flex items-center gap-2">
+                  <input
+                    type="number"
+                    min={0}
+                    max={100}
+                    value={info.expectedPaidSalesRateMidHall || ""}
+                    onChange={(e) => set("expectedPaidSalesRateMidHall", clampRate(e.target.value))}
+                    className="field-base w-24"
+                  />
+                  <span className="text-s text-muted">%</span>
+                </div>
+              </div>
+            )}
+          </div>
         </div>
 
         <div>
