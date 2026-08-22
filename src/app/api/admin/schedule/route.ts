@@ -5,6 +5,7 @@ import { isoDate, resolveSelectedDates } from "@/lib/pricing/dateRange";
 import type { DayTag, MidHallDayRole, Quote } from "@/lib/pricing/types";
 
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
+const VENUE_IDS = ["arena", "medium-hall"] as const;
 
 export interface ScheduleOccupancyEntry {
   quoteId: string;
@@ -110,13 +111,14 @@ export async function POST(request: Request) {
 
   const body = await request.json().catch(() => null);
   const date = typeof body?.date === "string" ? body.date : "";
+  const venueId = body?.venueId;
   const reason = typeof body?.reason === "string" ? body.reason.trim() || null : null;
 
-  if (!DATE_RE.test(date)) {
+  if (!DATE_RE.test(date) || !VENUE_IDS.includes(venueId)) {
     return NextResponse.json({ error: "잘못된 요청입니다." }, { status: 400 });
   }
 
-  const block = await blockDate(date, reason);
+  const block = await blockDate(date, venueId, reason);
   return NextResponse.json({ block });
 }
 
@@ -128,10 +130,11 @@ export async function DELETE(request: Request) {
 
   const body = await request.json().catch(() => null);
   const date = typeof body?.date === "string" ? body.date : "";
-  if (!DATE_RE.test(date)) {
+  const venueId = body?.venueId;
+  if (!DATE_RE.test(date) || !VENUE_IDS.includes(venueId)) {
     return NextResponse.json({ error: "잘못된 요청입니다." }, { status: 400 });
   }
 
-  await unblockDate(date);
+  await unblockDate(date, venueId);
   return NextResponse.json({ ok: true });
 }

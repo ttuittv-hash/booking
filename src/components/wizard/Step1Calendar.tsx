@@ -120,7 +120,11 @@ export function Step1Calendar({
   const [openDate, setOpenDate] = useState<string | null>(null);
 
   const calendarWeeks = buildCalendarWeeks(week.year, week.month);
-  const blockedByDate = new Map(dateBlocks.map((b) => [b.date, b]));
+  // 아레나 전용 설정 또는 공간공통(ALL, 과거 이관 데이터)만 이 화면에 적용한다 —
+  // 중형공연장 전용으로 막힌 날짜는 아레나에서는 그대로 선택 가능해야 한다.
+  const blockedByDate = new Map(
+    dateBlocks.filter((b) => b.venueId === "arena" || b.venueId === "ALL").map((b) => [b.date, b]),
+  );
   const today = new Date();
   const usedDayCount = 6 - excludedDays.length;
   const totalDays = usedDayCount + extraDays;
@@ -446,10 +450,6 @@ export function Step1Calendar({
                         </button>
                       </div>
                     )}
-                  <p className="mt-2 text-xs text-muted">
-                    1일 2회 이상 공연 할증은 아직 협의 중입니다(요금 엔진 연동 후 반영) — 회차는
-                    지금도 지정해 두시면 이후 반영 시 그대로 적용됩니다.
-                  </p>
                 </div>
               )}
 

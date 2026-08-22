@@ -423,6 +423,9 @@ export interface WeekDemand {
 
 export interface DateBlock {
   date: string; // ISO yyyy-mm-dd
+  // "ALL" = 두 공간 모두(과거 이관 데이터 · 공간 구분 없이 막던 시절의 값). 2026-08-22부터는
+  // 새로 등록하는 대관 불가 일정은 항상 특정 공간(arena/medium-hall) 하나로만 등록된다.
+  venueId: "arena" | "medium-hall" | "ALL";
   reason: string | null; // 예: "정기 대관", "내부 행사"
 }
 

@@ -105,7 +105,11 @@ export function ScheduleManager({ initialYear, initialMonth }: { initialYear: nu
     setMonth(nextMonth);
   }
 
-  const blockedByDate = new Map(blocks.map((b) => [b.date, b]));
+  // 이 탭(공간) 전용 설정 또는 공간공통(ALL, 과거 이관 데이터)만 이 탭에 보인다 —
+  // 아레나에서 막은 날짜가 중형공연장 탭에서는 그대로 신청 가능으로 보여야 한다.
+  const blockedByDate = new Map(
+    blocks.filter((b) => b.venueId === venueTab || b.venueId === "ALL").map((b) => [b.date, b]),
+  );
   const calendarWeeks = buildCalendarWeeks(year, month);
   const today = new Date();
 
@@ -118,10 +122,13 @@ export function ScheduleManager({ initialYear, initialMonth }: { initialYear: nu
     const res = await fetch("/api/admin/schedule", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ date: openDate, reason: reasonDraft.trim() || null }),
+      body: JSON.stringify({ date: openDate, venueId: venueTab, reason: reasonDraft.trim() || null }),
     });
     if (!res.ok) return;
-    setBlocks((prev) => [...prev.filter((b) => b.date !== openDate), { date: openDate, reason: reasonDraft.trim() || null }]);
+    setBlocks((prev) => [
+      ...prev.filter((b) => !(b.date === openDate && (b.venueId === venueTab || b.venueId === "ALL"))),
+      { date: openDate, venueId: venueTab, reason: reasonDraft.trim() || null },
+    ]);
     setReasonDraft("");
   }
 
@@ -130,10 +137,10 @@ export function ScheduleManager({ initialYear, initialMonth }: { initialYear: nu
     const res = await fetch("/api/admin/schedule", {
       method: "DELETE",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ date: openDate }),
+      body: JSON.stringify({ date: openDate, venueId: venueTab }),
     });
     if (!res.ok) return;
-    setBlocks((prev) => prev.filter((b) => b.date !== openDate));
+    setBlocks((prev) => prev.filter((b) => !(b.date === openDate && (b.venueId === venueTab || b.venueId === "ALL"))));
   }
 
   return (
@@ -159,9 +166,10 @@ export function ScheduleManager({ initialYear, initialMonth }: { initialYear: nu
 
       <p className="mt-3 text-xs leading-6 text-muted">
         공간마다 예약 구조가 달라 탭으로 나눠 보여줍니다. 날짜를 누르면 그 날짜의 예약 현황을
-        확인하고, 대관 신청 가능/불가를 바로 전환할 수 있습니다(신청 불가 설정은 공간과
-        무관하게 그 날짜 전체에 적용됩니다). 막힌 날짜가 하나라도 포함된 주는 아레나 신청 화면
-        달력에서 선택할 수 없고, 중형공연장은 해당 날짜만 선택할 수 없습니다.
+        확인하고, 대관 불가 일정으로 설정하거나 되돌릴 수 있습니다(공간별로 각각 설정 —
+        아레나에서 대관 불가로 설정해도 중형공연장은 그대로 신청받을 수 있습니다). 대관 불가
+        일정이 하나라도 포함된 주는 아레나 신청 화면 달력에서 선택할 수 없고, 중형공연장은
+        해당 날짜만 선택할 수 없습니다.
       </p>
 
       <div className="mt-4 flex gap-1 border-b border-border-soft">
@@ -188,7 +196,7 @@ export function ScheduleManager({ initialYear, initialMonth }: { initialYear: nu
           {venueTab === "arena" ? "아레나 예약" : "중형 예약"}
         </span>
         <span className="flex items-center gap-1.5">
-          <span className="h-2 w-2 rounded-full bg-danger" /> 신청 불가(관리자 지정 · 공간 공통)
+          <span className="h-2 w-2 rounded-full bg-danger" /> 대관 불가 일정(관리자 지정 · {venueLabel(venueTab)} 전용)
         </span>
       </div>
 
@@ -304,7 +312,7 @@ export function ScheduleManager({ initialYear, initialMonth }: { initialYear: nu
                         {blockedByDate.get(openDate) ? (
                           <div className="space-y-2">
                             <p className="text-xs text-danger">
-                              신청 불가로 지정됨
+                              {venueLabel(venueTab)} 대관 불가 일정으로 설정됨
                               {blockedByDate.get(openDate)?.reason ? ` · ${blockedByDate.get(openDate)?.reason}` : ""}
                             </p>
                             <button
@@ -321,7 +329,7 @@ export function ScheduleManager({ initialYear, initialMonth }: { initialYear: nu
                               type="text"
                               value={reasonDraft}
                               onChange={(e) => setReasonDraft(e.target.value)}
-                              placeholder="막을 사유(선택) — 예: 정기 대관, 내부 행사"
+                              placeholder="대관 불가 사유(선택) — 예: 정기 대관, 내부 행사"
                               className={`${FIELD_SM} min-w-0 flex-1`}
                             />
                             <button
@@ -329,7 +337,7 @@ export function ScheduleManager({ initialYear, initialMonth }: { initialYear: nu
                               onClick={blockOpenDate}
                               className={`shrink-0 ${btnClass("danger", "sm")}`}
                             >
-                              이 날짜 막기
+                              {venueLabel(venueTab)} 대관 불가로 설정
                             </button>
                           </div>
                         )}

@@ -277,6 +277,7 @@ async function initSchema(pool: Pool) {
       reason TEXT,
       created_at TEXT NOT NULL
     );
+    ALTER TABLE date_blocks ADD COLUMN IF NOT EXISTS venue_id TEXT NOT NULL DEFAULT 'ALL';
 
     CREATE TABLE IF NOT EXISTS contract_signatures (
       id TEXT PRIMARY KEY,
@@ -559,6 +560,24 @@ async function initSchema(pool: Pool) {
     CREATE INDEX IF NOT EXISTS idx_message_sends_recipient ON message_sends(recipient_id);
     CREATE INDEX IF NOT EXISTS idx_message_sends_scheduled
       ON message_sends(scheduled_at) WHERE scheduled_at IS NOT NULL;
+  `);
+
+  // date_blocks PK를 date 단독 → (date, venue_id) 복합키로 바꾼다 — 아레나/중형공연장을
+  // 각각 따로 대관 불가로 설정할 수 있어야 한다("아레나 세팅하면 중형공연장도 동일하게
+  // 세팅됨" 리포트, 2026-08-22). 이미 바뀐 뒤에는 다시 실행하지 않도록 현재 PK가 아직
+  // date 단독인지 확인한다.
+  await pool.query(`
+    DO $$
+    BEGIN
+      IF (
+        SELECT COUNT(*) FROM pg_attribute a
+        JOIN pg_constraint c ON a.attnum = ANY(c.conkey) AND a.attrelid = c.conrelid
+        WHERE c.conrelid = 'date_blocks'::regclass AND c.contype = 'p'
+      ) = 1 THEN
+        ALTER TABLE date_blocks DROP CONSTRAINT date_blocks_pkey;
+        ALTER TABLE date_blocks ADD CONSTRAINT date_blocks_pkey PRIMARY KEY (date, venue_id);
+      END IF;
+    END $$;
   `);
 
   // 사업자등록번호는 숫자만 남긴 형태로 통일한다 — 하이픈 유무로 같은 회사가
@@ -2767,40 +2786,56 @@ export async function listWeekDemand(): Promise<WeekDemand[]> {
 
 interface DateBlockRow {
   date: string;
+  venue_id: string;
   reason: string | null;
 }
 
 function toDateBlock(row: DateBlockRow): DateBlock {
-  return { date: row.date, reason: row.reason };
+  return { date: row.date, venueId: row.venue_id as DateBlock["venueId"], reason: row.reason };
 }
 
+/** 모든 공간의 대관 불가 일정 — 어드민 일정 관리 화면(공간 무관 전체 표시)에서 쓴다. */
 export async function listDateBlocks(): Promise<DateBlock[]> {
   const rows = await q<DateBlockRow>("SELECT * FROM date_blocks ORDER BY date ASC");
   return rows.map(toDateBlock);
 }
 
-// 신청서가 실제로 차지하는 날짜 목록(제외 요일 반영, 추가 일수 포함) 중 막힌 날짜가 있는지 확인한다.
-export async function findBlockedDatesAmong(dates: string[]): Promise<DateBlock[]> {
+// 신청서가 실제로 차지하는 날짜 목록(제외 요일 반영, 추가 일수 포함) 중 이 공간에 대해
+// 막힌 날짜가 있는지 확인한다. venue_id가 이 공간이거나(전용 설정), 'ALL'(과거 이관 데이터
+// · 공간 구분 없이 막던 시절의 값)이면 이 공간도 막힌 것으로 본다.
+export async function findBlockedDatesAmong(
+  dates: string[],
+  venueId: "arena" | "medium-hall",
+): Promise<DateBlock[]> {
   if (dates.length === 0) return [];
-  const placeholders = dates.map((_, i) => `$${i + 1}`).join(",");
+  const placeholders = dates.map((_, i) => `$${i + 2}`).join(",");
   const rows = await q<DateBlockRow>(
-    `SELECT * FROM date_blocks WHERE date IN (${placeholders})`,
-    dates,
+    `SELECT * FROM date_blocks WHERE date IN (${placeholders}) AND (venue_id = $1 OR venue_id = 'ALL')`,
+    [venueId, ...dates],
   );
   return rows.map(toDateBlock);
 }
 
-export async function blockDate(date: string, reason: string | null): Promise<DateBlock> {
+export async function blockDate(
+  date: string,
+  venueId: "arena" | "medium-hall",
+  reason: string | null,
+): Promise<DateBlock> {
   await q(
-    `INSERT INTO date_blocks (date, reason, created_at) VALUES ($1, $2, $3)
-     ON CONFLICT(date) DO UPDATE SET reason = excluded.reason`,
-    [date, reason, new Date().toISOString()],
+    `INSERT INTO date_blocks (date, venue_id, reason, created_at) VALUES ($1, $2, $3, $4)
+     ON CONFLICT (date, venue_id) DO UPDATE SET reason = excluded.reason`,
+    [date, venueId, reason, new Date().toISOString()],
   );
-  return { date, reason };
+  return { date, venueId, reason };
 }
 
-export async function unblockDate(date: string) {
-  await q("DELETE FROM date_blocks WHERE date = $1", [date]);
+/**
+ * 이 공간 전용 설정과, 과거에 남아있을 수 있는 공간공통("ALL") 설정을 모두 지운다 —
+ * 이 공간 탭에서 "신청 가능으로 되돌리기"를 눌렀을 때 실제로 이 공간이 다시 열리게
+ * 하기 위함(ALL 행이 남아있으면 findBlockedDatesAmong에서 계속 막힌 것으로 보임).
+ */
+export async function unblockDate(date: string, venueId: "arena" | "medium-hall") {
+  await q("DELETE FROM date_blocks WHERE date = $1 AND (venue_id = $2 OR venue_id = 'ALL')", [date, venueId]);
 }
 
 // ESTIMATE 단계 신청서를 신청자가 직접 수정할 때 사용 — 심사 전 재계산된 산출내역으로 덮어쓴다.

@@ -84,7 +84,11 @@ export function MidHallCalendar({
   const [openDate, setOpenDate] = useState<string | null>(null);
 
   const weeks = buildMonthGrid(year, month);
-  const blockedByDate = new Map(dateBlocks.map((b) => [b.date, b]));
+  // 중형공연장 전용 설정 또는 공간공통(ALL, 과거 이관 데이터)만 이 화면에 적용한다 —
+  // 아레나 전용으로 막힌 날짜는 중형공연장에서는 그대로 선택 가능해야 한다.
+  const blockedByDate = new Map(
+    dateBlocks.filter((b) => b.venueId === "medium-hall" || b.venueId === "ALL").map((b) => [b.date, b]),
+  );
   const today = new Date();
   const selectedDates = Object.keys(days).sort();
   const setupCount = selectedDates.filter((d) => days[d].role === "SETUP").length;

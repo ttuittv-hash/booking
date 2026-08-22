@@ -59,7 +59,10 @@ export async function POST(request: Request) {
 
   const arenaDates = needsPackage ? resolveSelectedDates(selection) : [];
   const midHallDates = needsMidHall ? Object.keys(selection.midHallDays ?? {}) : [];
-  const blockedDates = await findBlockedDatesAmong([...arenaDates, ...midHallDates]);
+  const blockedDates = [
+    ...(await findBlockedDatesAmong(arenaDates, "arena")),
+    ...(await findBlockedDatesAmong(midHallDates, "medium-hall")),
+  ];
   if (blockedDates.length > 0) {
     return NextResponse.json({ error: formatBlockedDatesError(blockedDates) }, { status: 409 });
   }

@@ -59,7 +59,10 @@ export async function PUT(request: Request, ctx: { params: Promise<{ id: string 
 
   const arenaDates = needsPackage ? resolveSelectedDates(selection) : [];
   const midHallDates = needsMidHall ? Object.keys(selection.midHallDays ?? {}) : [];
-  const blockedDates = await findBlockedDatesAmong([...arenaDates, ...midHallDates]);
+  const blockedDates = [
+    ...(await findBlockedDatesAmong(arenaDates, "arena")),
+    ...(await findBlockedDatesAmong(midHallDates, "medium-hall")),
+  ];
   if (blockedDates.length > 0) {
     const list = blockedDates.map((b) => `${b.date}${b.reason ? ` (${b.reason})` : ""}`).join(", ");
     return NextResponse.json(
