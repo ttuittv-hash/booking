@@ -224,9 +224,7 @@ export function StepAudience({
   const arenaAudienceTotal = selection.expectedAudience * arenaShows;
   const midHallAudienceTotal = selection.secondaryAudience * midHallShows;
   const totalAudience = arenaAudienceTotal + midHallAudienceTotal;
-  const totalLine = isMidHallInvolved
-    ? `아레나 ${arenaAudienceTotal.toLocaleString()} + 중형 ${midHallAudienceTotal.toLocaleString()} = ${totalAudience.toLocaleString()}명 (자동)`
-    : `${totalAudience.toLocaleString()}명 (자동)`;
+  const totalLine = `${totalAudience.toLocaleString()}명 (자동)`;
 
   const midHallDifferent = isSimultaneous && midHallInfo !== null;
   const effectiveTab: VenueSplitTab = midHallDifferent ? (activeTab === "MIDHALL" ? "MIDHALL" : "ARENA") : "COMMON";

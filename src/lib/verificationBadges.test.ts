@@ -20,6 +20,7 @@ const baseCompany = {
   representativePhone: null,
   representativeFax: null,
   corporateRegistrationNumber: null,
+  companyType: null,
   verification: {
     status: "VERIFIED" as const,
     companyName: "테스트",

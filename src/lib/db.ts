@@ -41,6 +41,7 @@ import {
 } from "./content/pageContent";
 import { FACILITY_DOCUMENT_TITLE } from "./content/documentFacts";
 import type {
+  ApplicantCompanyType,
   ApprovalStatus,
   CompanyVerification,
   AppNotification,
@@ -495,6 +496,9 @@ async function initSchema(pool: Pool) {
     ALTER TABLE companies ADD COLUMN IF NOT EXISTS company_phone TEXT;
     ALTER TABLE companies ADD COLUMN IF NOT EXISTS company_fax TEXT;
     ALTER TABLE companies ADD COLUMN IF NOT EXISTS corporate_number TEXT;
+    -- 신청 기업 유형(기획사/제작사/대행사/아티스트 소속사/기타) — 신청서의
+    -- applicantCompanyType 과 같은 분류를 회사 단위로도 저장한다(가입 시 설정).
+    ALTER TABLE companies ADD COLUMN IF NOT EXISTS company_type TEXT;
 
     -- 진행 중인 본인인증 건을 콜백에서 다시 집어들기 위한 값들.
     -- pod 가 여러 개라 프로세스 메모리에 두면 콜백이 다른 pod 로 가서 깨진다.
@@ -1043,6 +1047,7 @@ interface CompanyRow {
   company_phone: string | null;
   company_fax: string | null;
   corporate_number: string | null;
+  company_type: string | null;
 }
 
 function toCompany(row: CompanyRow): Company {
@@ -1063,6 +1068,7 @@ function toCompany(row: CompanyRow): Company {
     companyPhone: row.company_phone ?? null,
     companyFax: row.company_fax ?? null,
     corporateNumber: row.corporate_number ?? null,
+    companyType: (row.company_type as ApplicantCompanyType | null) ?? null,
     masterUserId: row.master_user_id ?? null,
     verification: row.verification_status
       ? {
@@ -1138,6 +1144,7 @@ export async function findOrCreateCompany(
     companyPhone?: string;
     companyFax?: string;
     corporateNumber?: string;
+    companyType?: ApplicantCompanyType | null;
   },
 ): Promise<Company> {
   const trimmed = name.trim();
@@ -1186,6 +1193,7 @@ export async function findOrCreateCompany(
     company_phone: extra?.companyPhone?.trim() || null,
     company_fax: extra?.companyFax?.trim() || null,
     corporate_number: extra?.corporateNumber?.replace(/\D/g, "") || null,
+    company_type: extra?.companyType ?? null,
   };
   // 같은 사업자번호로 동시에 가입하면 조회-후-삽입 사이에 경합이 나서 한쪽이 UNIQUE 위반으로 실패한다.
   // 충돌 시 무시하고 아래에서 기존 행을 다시 읽는다.
@@ -1193,8 +1201,8 @@ export async function findOrCreateCompany(
   await q(
     `INSERT INTO companies
       (id, name, business_registration_number, representative_name, postal_code, address, business_cert_url, business_cert_name, created_at,
-       company_phone, company_fax, corporate_number)
-     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
+       company_phone, company_fax, corporate_number, company_type)
+     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
      ON CONFLICT (business_registration_number) WHERE business_registration_number IS NOT NULL DO NOTHING`,
     [
       row.id,
@@ -1209,6 +1217,7 @@ export async function findOrCreateCompany(
       row.company_phone,
       row.company_fax,
       row.corporate_number,
+      row.company_type,
     ],
   );
   // 경합에 밀렸으면 먼저 들어간 행이 정본이다. 사업자번호가 있으면 그걸로 다시 읽는다.

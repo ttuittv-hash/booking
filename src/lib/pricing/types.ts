@@ -677,6 +677,8 @@ export interface Company {
   corporateNumber: string | null;
   /** 사업자 진위확인(NICE 법인실명확인) 결과 — 확인 이력이 없으면 null */
   verification: CompanyVerification | null;
+  /** 신청 기업 유형(기획사/제작사/대행사/아티스트 소속사/기타) — 가입 시 설정, 미설정이면 null */
+  companyType: ApplicantCompanyType | null;
 }
 
 export interface AppUser {

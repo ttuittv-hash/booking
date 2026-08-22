@@ -34,6 +34,7 @@ export async function GET(request: Request, context: { params: Promise<{ id: str
       companyPhone: company.companyPhone,
       companyFax: company.companyFax,
       corporateNumber: company.corporateNumber,
+      companyType: company.companyType,
     },
   });
 }

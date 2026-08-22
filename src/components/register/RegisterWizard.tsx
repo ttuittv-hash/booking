@@ -13,7 +13,10 @@
 
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
-import { btnClass } from "@/components/ui/kit";
+import { btnClass, toggleClass } from "@/components/ui/kit";
+import { APPLICANT_COMPANY_TYPE_LABEL, type ApplicantCompanyType } from "@/lib/pricing/types";
+
+const APPLICANT_COMPANY_TYPES = Object.keys(APPLICANT_COMPANY_TYPE_LABEL) as ApplicantCompanyType[];
 import { useToast } from "@/components/ui/Toast";
 import { InputCheckMark, PasswordMatchHint } from "@/components/ui/PasswordMatchHint";
 import {
@@ -61,6 +64,7 @@ type FormState = {
   passwordConfirm: string;
   email: string;
   companyName: string;
+  companyType: ApplicantCompanyType | null;
   businessRegistrationNumber: string;
   representativeName: string;
   companyPhone: string;
@@ -97,6 +101,7 @@ export function RegisterWizard() {
     passwordConfirm: "",
     email: "",
     companyName: "",
+    companyType: null,
     businessRegistrationNumber: "",
     representativeName: "",
     companyPhone: "",
@@ -285,6 +290,7 @@ export function RegisterWizard() {
           phone: identity?.mobileNo ?? "",
           identityTicket: identity?.ticket ?? "",
           companyName: form.companyName,
+          companyType: form.companyType,
           businessRegistrationNumber: form.businessRegistrationNumber,
           representativeName: form.representativeName,
           companyPhone: form.companyPhone,
@@ -363,6 +369,7 @@ export function RegisterWizard() {
             setForm((f) => ({
               ...f,
               companyName: "",
+              companyType: null,
               businessRegistrationNumber: "",
               representativeName: "",
               companyPhone: "",
@@ -425,6 +432,7 @@ export function RegisterWizard() {
                 setForm((f) => ({
                   ...f,
                   companyName: c.name ?? hit.name,
+                  companyType: (c.companyType ?? null) as ApplicantCompanyType | null,
                   businessRegistrationNumber: c.businessRegistrationNumber ?? "",
                   representativeName: c.representativeName ?? "",
                   companyPhone: c.companyPhone ?? "",
@@ -763,6 +771,7 @@ function StepInfo({
         setForm((p) => ({
           ...p,
           companyName: c.name ?? p.companyName,
+          companyType: (c.companyType ?? null) as ApplicantCompanyType | null,
           businessRegistrationNumber: c.businessRegistrationNumber ?? p.businessRegistrationNumber,
           representativeName: c.representativeName ?? "",
           companyPhone: c.companyPhone ?? "",
@@ -914,6 +923,27 @@ function StepInfo({
         <Field label="대표자 성명" required>
           <input data-testid="f-representativeName" readOnly={locked} value={form.representativeName} onChange={set("representativeName")} className={inputCls(locked)} />
         </Field>
+
+        {/* 신청 기업 유형은 회사를 새로 등록하는 사람(대표 담당자)만 정한다 — 이미 등록된
+            회사로 합류하는 사람은 그 회사의 값을 그대로 물려받을 뿐 바꿀 수 없다. */}
+        {!locked && (
+          <div className="sm:col-span-2">
+            <span className="mb-2 block break-keep text-xs leading-5 font-bold">신청 기업 유형</span>
+            <div className="flex flex-wrap gap-2">
+              {APPLICANT_COMPANY_TYPES.map((type) => (
+                <button
+                  key={type}
+                  type="button"
+                  data-testid={`f-companyType-${type}`}
+                  onClick={() => setForm((f) => ({ ...f, companyType: f.companyType === type ? null : type }))}
+                  className={toggleClass(form.companyType === type)}
+                >
+                  {APPLICANT_COMPANY_TYPE_LABEL[type]}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
 
         <Field label="대표번호">
           <input data-testid="f-companyPhone" readOnly={locked} value={form.companyPhone} onChange={set("companyPhone")} placeholder="02-1234-5678" className={inputCls(locked)} />

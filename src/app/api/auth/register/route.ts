@@ -31,6 +31,7 @@ import {
 } from "@/lib/db";
 import { SHA256_HEX_RE, sha256Hex } from "@/lib/passwordScheme";
 import { clientIpFrom, rateLimit } from "@/lib/rateLimit";
+import { APPLICANT_COMPANY_TYPE_LABEL, type ApplicantCompanyType } from "@/lib/pricing/types";
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 // 규칙은 src/lib/validation.ts 한 곳에만 둔다 — 예전에는 여기와 중복확인 API 가
@@ -58,6 +59,11 @@ export async function POST(request: Request) {
   const businessRegistrationNumber =
     typeof body?.businessRegistrationNumber === "string" ? body.businessRegistrationNumber.trim() : "";
   const representativeName = typeof body?.representativeName === "string" ? body.representativeName.trim() : "";
+  const companyType =
+    typeof body?.companyType === "string" &&
+    (Object.keys(APPLICANT_COMPANY_TYPE_LABEL) as string[]).includes(body.companyType)
+      ? (body.companyType as ApplicantCompanyType)
+      : null;
   const companyPhone = typeof body?.companyPhone === "string" ? body.companyPhone.trim() : "";
   const companyFax = typeof body?.companyFax === "string" ? body.companyFax.trim() : "";
   const corporateNumber = typeof body?.corporateNumber === "string" ? body.corporateNumber.trim() : "";
@@ -245,6 +251,7 @@ export async function POST(request: Request) {
       companyPhone,
       companyFax,
       corporateNumber,
+      companyType,
     });
 
     // 조회된 상호·대표자명이 입력값과 다르면 그대로 기록해 둔다 — 가입은 막지 않고

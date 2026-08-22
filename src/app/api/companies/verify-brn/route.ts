@@ -59,6 +59,7 @@ export async function POST(request: Request) {
         companyPhone: c.companyPhone,
         companyFax: c.companyFax,
         corporateNumber: c.corporateNumber,
+        companyType: c.companyType,
       },
       message:
         join.kind === "JOIN_PENDING"
