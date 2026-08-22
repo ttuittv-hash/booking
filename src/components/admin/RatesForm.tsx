@@ -5,6 +5,7 @@ import { useState } from "react";
 import { useQueryTab } from "@/components/admin/useQueryTab";
 import { ADDON_CATEGORY_LABEL, VENUES, type AddonCategory, type RateTable } from "@/lib/pricing/types";
 import { btnClass } from "@/components/ui/kit";
+import { MoneyInput } from "@/components/ui/MoneyInput";
 import {
   FIELD,
   FIELD_NUM,
@@ -251,21 +252,17 @@ export function RatesForm({
               <div className="mt-2 grid grid-cols-1 gap-2 sm:grid-cols-2 sm:gap-3">
                 <label>
                   <span className={`mb-1 block ${HELP}`}>전용 사용료 / 일당</span>
-                  <input
-                    type="number"
-                    min={0}
+                  <MoneyInput
                     value={row.exclusive}
-                    onChange={(e) => setPart("exclusive", e.target.value)}
+                    onChange={(value) => setPart("exclusive", String(value))}
                     className={FIELD_NUM}
                   />
                 </label>
                 <label>
                   <span className={`mb-1 block ${HELP}`}>시설 사용료 / 일당</span>
-                  <input
-                    type="number"
-                    min={0}
+                  <MoneyInput
                     value={row.facility}
-                    onChange={(e) => setPart("facility", e.target.value)}
+                    onChange={(value) => setPart("facility", String(value))}
                     className={FIELD_NUM}
                   />
                 </label>
@@ -285,11 +282,9 @@ export function RatesForm({
             className="mt-4 grid grid-cols-1 items-center gap-2 border-t border-border-soft pt-4 sm:grid-cols-[1fr_200px] sm:gap-3"
           >
             <div className={SUB_TITLE}>{label}</div>
-            <input
-              type="number"
-              min={0}
+            <MoneyInput
               value={midHall[key]}
-              onChange={(e) => setMidHall((prev) => ({ ...prev, [key]: Math.max(0, Number(e.target.value) || 0) }))}
+              onChange={(value) => setMidHall((prev) => ({ ...prev, [key]: Math.max(0, value) }))}
               className={FIELD_NUM}
             />
           </div>
@@ -345,15 +340,11 @@ export function RatesForm({
                         {addon.name} <span className="text-xs text-muted">({addon.unitLabel})</span>
                       </span>
                       {addon.editable ? (
-                        <input
-                          type="number"
-                          min={0}
+                        <MoneyInput
                           value={addon.unitPrice}
-                          onChange={(e) =>
+                          onChange={(value) =>
                             setAddons((prev) =>
-                              prev.map((a, idx) =>
-                                idx === globalIndex ? { ...a, unitPrice: Number(e.target.value) || 0 } : a,
-                              ),
+                              prev.map((a, idx) => (idx === globalIndex ? { ...a, unitPrice: value } : a)),
                             )
                           }
                           className={`${FIELD} text-right tabular-nums`}
@@ -390,12 +381,9 @@ export function RatesForm({
                     onChange={(e) => setNewItemUnitLabel(e.target.value)}
                     className={`w-32 ${FIELD}`}
                   />
-                  <input
-                    type="number"
-                    min={0}
-                    placeholder="단가"
+                  <MoneyInput
                     value={newItemPrice}
-                    onChange={(e) => setNewItemPrice(Math.max(0, Number(e.target.value) || 0))}
+                    onChange={(value) => setNewItemPrice(Math.max(0, value))}
                     className={`w-28 ${FIELD} text-right tabular-nums`}
                   />
                   <div className="flex gap-2">

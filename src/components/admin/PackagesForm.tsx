@@ -5,6 +5,7 @@ import { useState } from "react";
 import { useQueryTab } from "@/components/admin/useQueryTab";
 import { num, won } from "@/lib/format";
 import { btnClass } from "@/components/ui/kit";
+import { MoneyInput } from "@/components/ui/MoneyInput";
 import {
   FIELD,
   FIELD_LABEL,
@@ -404,43 +405,27 @@ export function PackagesForm({ rateTable }: { rateTable: RateTable }) {
             </label>
             <label className="block">
               <span className="mb-1 block text-xs text-muted">기본 대관료 (원/주, 화~일) — 신청자 노출 총액</span>
-              <input
-                type="number"
-                min={0}
-                value={active.baseFeePerWeek}
-                onChange={(e) => update({ baseFeePerWeek: Number(e.target.value) || 0 })}
-                className={FIELD}
-              />
+              <MoneyInput value={active.baseFeePerWeek} onChange={(value) => update({ baseFeePerWeek: value })} className={FIELD} />
             </label>
             <label className="block">
               <span className="mb-1 block text-xs text-muted">
                 Bowl 사용료 (원/주) — 신청자 비노출, 위 기본 대관료에 이미 포함된 참고값
               </span>
-              <input
-                type="number"
-                min={0}
-                value={active.bowlFee}
-                onChange={(e) => update({ bowlFee: Number(e.target.value) || 0 })}
-                className={`w-full ${FIELD}`}
-              />
+              <MoneyInput value={active.bowlFee} onChange={(value) => update({ bowlFee: value })} className={`w-full ${FIELD}`} />
             </label>
             <label className="block">
               <span className="mb-1 block text-xs text-muted">셋업(준비일) 추가/차감 단가 (원/일)</span>
-              <input
-                type="number"
-                min={0}
+              <MoneyInput
                 value={active.setupExtraDayFee}
-                onChange={(e) => update({ setupExtraDayFee: Number(e.target.value) || 0 })}
+                onChange={(value) => update({ setupExtraDayFee: value })}
                 className={`w-full ${FIELD}`}
               />
             </label>
             <label className="block">
               <span className="mb-1 block text-xs text-muted">공연일 추가/차감 단가 (원/일)</span>
-              <input
-                type="number"
-                min={0}
+              <MoneyInput
                 value={active.performanceExtraDayFee}
-                onChange={(e) => update({ performanceExtraDayFee: Number(e.target.value) || 0 })}
+                onChange={(value) => update({ performanceExtraDayFee: value })}
                 className={`w-full ${FIELD}`}
               />
             </label>
@@ -468,25 +453,17 @@ export function PackagesForm({ rateTable }: { rateTable: RateTable }) {
             </label>
             <label className="block">
               <span className={FIELD_LABEL}>객석 규모 최소</span>
-              <input
-                type="number"
-                min={0}
+              <MoneyInput
                 value={active.audienceTier.min}
-                onChange={(e) =>
-                  update({ audienceTier: { ...active.audienceTier, min: Number(e.target.value) || 0 } })
-                }
+                onChange={(value) => update({ audienceTier: { ...active.audienceTier, min: value } })}
                 className={FIELD}
               />
             </label>
             <label className="block">
               <span className={FIELD_LABEL}>객석 규모 최대</span>
-              <input
-                type="number"
-                min={0}
+              <MoneyInput
                 value={active.audienceTier.max}
-                onChange={(e) =>
-                  update({ audienceTier: { ...active.audienceTier, max: Number(e.target.value) || 0 } })
-                }
+                onChange={(value) => update({ audienceTier: { ...active.audienceTier, max: value } })}
                 className={FIELD}
               />
             </label>
@@ -687,12 +664,9 @@ export function PackagesForm({ rateTable }: { rateTable: RateTable }) {
                   onChange={(e) => setNewItemUnitLabel(e.target.value)}
                   className={`w-32 ${FIELD}`}
                 />
-                <input
-                  type="number"
-                  min={0}
-                  placeholder="단가"
+                <MoneyInput
                   value={newItemPrice}
-                  onChange={(e) => setNewItemPrice(Math.max(0, Number(e.target.value) || 0))}
+                  onChange={(value) => setNewItemPrice(Math.max(0, value))}
                   className={`w-28 ${FIELD_NUM}`}
                 />
                 <div className="flex gap-2">
@@ -763,11 +737,9 @@ export function PackagesForm({ rateTable }: { rateTable: RateTable }) {
                             </label>
                             <label className="flex items-center gap-1.5">
                               <span className="text-xs text-muted">단가</span>
-                              <input
-                                type="number"
-                                min={0}
+                              <MoneyInput
                                 value={addon.unitPrice}
-                                onChange={(e) => updateAddonPrice(addon.id, Math.max(0, Number(e.target.value) || 0))}
+                                onChange={(value) => updateAddonPrice(addon.id, Math.max(0, value))}
                                 className={`w-32 ${FIELD_NUM}`}
                               />
                             </label>
@@ -810,12 +782,9 @@ export function PackagesForm({ rateTable }: { rateTable: RateTable }) {
                         onChange={(e) => setNewItemUnitLabel(e.target.value)}
                         className={`w-32 ${FIELD}`}
                       />
-                      <input
-                        type="number"
-                        min={0}
-                        placeholder="단가"
+                      <MoneyInput
                         value={newItemPrice}
-                        onChange={(e) => setNewItemPrice(Math.max(0, Number(e.target.value) || 0))}
+                        onChange={(value) => setNewItemPrice(Math.max(0, value))}
                         className={`w-28 ${FIELD_NUM}`}
                       />
                       <div className="flex gap-2">

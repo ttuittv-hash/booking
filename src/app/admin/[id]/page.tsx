@@ -8,13 +8,15 @@ import {
   getDepositByQuoteId,
   getFacilityMeetingByQuoteId,
   getQuoteById,
+  getRateTableByVersion,
   getTaxInvoice,
   getTicketOpenByQuoteId,
   listAttachments,
   listAuditLogsForQuote,
 } from "@/lib/db";
 import { num, won } from "@/lib/format";
-import { totalRentalDays } from "@/lib/pricing/rateTableUtils";
+import { resolveSelectedDates } from "@/lib/pricing/dateRange";
+import { defaultDayTags, effectiveDayTag, findPackage, totalRentalDays } from "@/lib/pricing/rateTableUtils";
 import {
   DEFAULT_VENUE_ID,
   EVENT_TYPE_LABEL,
@@ -22,6 +24,8 @@ import {
   SEATING_TYPE_LABEL,
   STAGE_TYPE_LABEL,
   VENUES,
+  type DayTag,
+  type MidHallDayRole,
   type QuoteSelection,
 } from "@/lib/pricing/types";
 import { SpecTable } from "@/components/ui/kit";
@@ -66,6 +70,45 @@ function midHallSummaryLine(selection: QuoteSelection): string | null {
   const performanceDates = dates.filter((d) => selection.midHallDays[d].role === "PERFORMANCE");
   const shows = performanceDates.reduce((sum, d) => sum + selection.midHallDays[d].shows, 0);
   return `총 ${dates.length}일 (셋업 ${setup} · 공연 ${performanceDates.length} · 회차 ${shows}) · 관객 ${selection.secondaryAudience.toLocaleString()}명`;
+}
+
+const WEEKDAY_SHORT_KO = ["일", "월", "화", "수", "목", "금", "토"];
+
+function formatDateShort(iso: string): string {
+  const [, m, d] = iso.split("-").map(Number);
+  return `${m}/${d}(${WEEKDAY_SHORT_KO[new Date(iso).getDay()]})`;
+}
+
+const DAY_TAG_LABEL: Record<DayTag, string> = { PREP: "셋업", PERFORMANCE: "공연", LOAD_OUT: "철수" };
+const MID_HALL_ROLE_LABEL: Record<MidHallDayRole, string> = { SETUP: "셋업", PERFORMANCE: "공연", LOAD_OUT: "철수" };
+
+// 신청 상세에서 "언제 어떤 용도로 예약했는지" 날짜별로 풀어서 보여준다("공연정보 슬롯에서
+// 대관 부킹한 기간을 상세히 노출해달라" 요청, 2026-08-22) — 헤더의 "총 6일" 요약만으로는
+// 어느 날짜가 셋업/공연/철수인지 알 수 없었다.
+function groupArenaDatesByTag(
+  selection: QuoteSelection,
+  defaultPerformanceDays: number,
+): { tag: DayTag; dates: string[] }[] {
+  const dates = resolveSelectedDates(selection);
+  const defaults = defaultDayTags(dates, defaultPerformanceDays);
+  const buckets = new Map<DayTag, string[]>();
+  for (const date of dates) {
+    const tag = effectiveDayTag(date, selection.dayTags, defaults);
+    (buckets.get(tag) ?? buckets.set(tag, []).get(tag)!).push(date);
+  }
+  return (["PREP", "PERFORMANCE", "LOAD_OUT"] as DayTag[])
+    .filter((tag) => buckets.has(tag))
+    .map((tag) => ({ tag, dates: buckets.get(tag)! }));
+}
+
+function groupMidHallDatesByRole(selection: QuoteSelection): { role: MidHallDayRole; dates: string[] }[] {
+  const buckets = new Map<MidHallDayRole, string[]>();
+  for (const [date, day] of Object.entries(selection.midHallDays).sort(([a], [b]) => a.localeCompare(b))) {
+    (buckets.get(day.role) ?? buckets.set(day.role, []).get(day.role)!).push(date);
+  }
+  return (["SETUP", "PERFORMANCE", "LOAD_OUT"] as MidHallDayRole[])
+    .filter((role) => buckets.has(role))
+    .map((role) => ({ role, dates: buckets.get(role)! }));
 }
 
 const STAGE_LABEL: Record<string, string> = {
@@ -116,6 +159,13 @@ export default async function AdminQuoteDetailPage({
   const facilityMeeting = (await getFacilityMeetingByQuoteId(id)) ?? null;
   const ticketOpenMaterials = await listAttachments(id, "TICKET_OPEN");
   const facilityMeetingMaterials = await listAttachments(id, "FACILITY_MEETING");
+
+  const needsArenaDates = quote.selection.venueId !== "medium-hall" || quote.selection.bookingMode === "SIMULTANEOUS";
+  const rateTable = needsArenaDates ? await getRateTableByVersion(quote.rateTableVersion) : null;
+  const pkg = rateTable ? findPackage(rateTable, quote.selection.packageId) : null;
+  const arenaDateGroups =
+    needsArenaDates && pkg ? groupArenaDatesByTag(quote.selection, pkg.defaultPerformanceDays) : [];
+  const midHallDateGroups = groupMidHallDatesByRole(quote.selection);
 
   return (
     <div className="flex flex-1 flex-col">
@@ -178,10 +228,38 @@ export default async function AdminQuoteDetailPage({
           </p>
         </header>
 
-        {quote.selection.performanceInfo && (
-          <section className={`mt-6 ${PANEL}`}>
-            <h2 className={SECTION_TITLE}>공연 정보</h2>
-            <div className="mt-4 grid gap-x-10 lg:grid-cols-2">
+        <section className={`mt-6 ${PANEL}`}>
+          <h2 className={SECTION_TITLE}>공연 정보</h2>
+
+          <div className="mt-4 space-y-2.5">
+            {arenaDateGroups.length > 0 && (
+              <p className="text-s">
+                <span className="font-bold text-foreground">아레나</span>{" "}
+                {arenaDateGroups.map(({ tag, dates }, i) => (
+                  <span key={tag} className="text-muted">
+                    {i > 0 && " · "}
+                    <span className="font-bold text-foreground">{DAY_TAG_LABEL[tag]}</span>{" "}
+                    {dates.map(formatDateShort).join(", ")}
+                  </span>
+                ))}
+              </p>
+            )}
+            {midHallDateGroups.length > 0 && (
+              <p className="text-s">
+                <span className="font-bold text-foreground">중형공연장</span>{" "}
+                {midHallDateGroups.map(({ role, dates }, i) => (
+                  <span key={role} className="text-muted">
+                    {i > 0 && " · "}
+                    <span className="font-bold text-foreground">{MID_HALL_ROLE_LABEL[role]}</span>{" "}
+                    {dates.map(formatDateShort).join(", ")}
+                  </span>
+                ))}
+              </p>
+            )}
+          </div>
+
+          {quote.selection.performanceInfo && (
+            <div className="mt-4 grid gap-x-10 border-t border-border-soft pt-4 lg:grid-cols-2">
               <SpecTable
                 rows={[
                   ["공연(행사)명", quote.selection.performanceInfo.eventName || NONE],
@@ -225,8 +303,8 @@ export default async function AdminQuoteDetailPage({
                 ]}
               />
             </div>
-          </section>
-        )}
+          )}
+        </section>
 
         <section className={`mt-6 ${TABLE_CARD}`}>
           <div className={TABLE_HEAD}>
