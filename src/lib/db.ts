@@ -646,6 +646,38 @@ async function seedData(pool: Pool) {
     await insertRateTable(pool, buildSeedRateTable());
   }
 
+  // 패키지 이름을 "베이직/스탠다드/플러스/프리미엄" → "Rate A/B/C/D"로 바꿨다(2026-08-22).
+  // 이미 시딩된 DB는 packages_json에 옛 이름이 그대로 저장돼 있어 seed.ts만 고쳐서는
+  // 화면에 반영되지 않는다 — 운영자가 직접 다른 이름으로 바꿨을 수 있으므로, 옛 이름과
+  // 정확히 일치할 때만 새 이름으로 바꾼다.
+  const LEGACY_PACKAGE_NAMES: Record<string, string> = {
+    베이직: "Rate A",
+    스탠다드: "Rate B",
+    플러스: "Rate C",
+    프리미엄: "Rate D",
+  };
+  const packageNameRows = (await pool.query("SELECT version, packages_json FROM rate_tables")).rows as {
+    version: string;
+    packages_json: string;
+  }[];
+  for (const row of packageNameRows) {
+    const packages = JSON.parse(row.packages_json) as Array<{ name: string; [key: string]: unknown }>;
+    let changed = false;
+    for (const pkg of packages) {
+      const newName = LEGACY_PACKAGE_NAMES[pkg.name];
+      if (newName) {
+        pkg.name = newName;
+        changed = true;
+      }
+    }
+    if (changed) {
+      await pool.query("UPDATE rate_tables SET packages_json = $1 WHERE version = $2", [
+        JSON.stringify(packages),
+        row.version,
+      ]);
+    }
+  }
+
   const adminCount = (
     await pool.query("SELECT COUNT(*)::int as n FROM users WHERE role = 'ADMIN'")
   ).rows[0] as { n: number };

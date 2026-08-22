@@ -454,9 +454,7 @@ export function Step1Calendar({
               )}
 
               {blocked ? (
-                <div className="px-0.5 pt-0.5 text-right text-xs font-bold text-danger">
-                  대관 불가{blocked.reason ? ` · ${blocked.reason}` : ""}
-                </div>
+                <div className="px-0.5 pt-0.5 text-right text-xs font-bold text-danger">대관 불가</div>
               ) : (
                 demand > 0 && (
                   <div className="px-0.5 pt-0.5 text-right text-xs text-muted">
