@@ -2,6 +2,7 @@ import type { PerformanceInfo } from "./types";
 
 export const INITIAL_PERFORMANCE_INFO: PerformanceInfo = {
   applicantCompanyName: "",
+  applicantCompanyType: null,
   applicantBusinessRegistrationNumber: "",
   applicantContactName: "",
   applicantContactPhone: "",

@@ -9,12 +9,14 @@ import { resolveSelectedDates } from "@/lib/pricing/dateRange";
 import { defaultDayTags, effectiveDayTag } from "@/lib/pricing/rateTableUtils";
 import {
   AGE_RATING_LABEL,
+  APPLICANT_COMPANY_TYPE_LABEL,
   CAST_CONTRACT_STATUS_LABEL,
   EVENT_TYPE_LABEL,
   RETRACTABLE_SEAT_USE_LABEL,
   SEATING_TYPE_LABEL,
   STAGE_TYPE_LABEL,
   type AgeRating,
+  type ApplicantCompanyType,
   type CastContractStatus,
   type EventType,
   type PastPerformanceRecord,
@@ -27,6 +29,7 @@ import {
 } from "@/lib/pricing/types";
 
 const EVENT_TYPES = Object.keys(EVENT_TYPE_LABEL) as EventType[];
+const APPLICANT_COMPANY_TYPES = Object.keys(APPLICANT_COMPANY_TYPE_LABEL) as ApplicantCompanyType[];
 const STAGE_TYPES = Object.keys(STAGE_TYPE_LABEL) as StageType[];
 const SEATING_TYPES = Object.keys(SEATING_TYPE_LABEL) as SeatingType[];
 const RETRACTABLE_USES = Object.keys(RETRACTABLE_SEAT_USE_LABEL) as RetractableSeatUse[];
@@ -279,6 +282,21 @@ function PerformanceInfoFields({
                 onChange={(v) => set("applicantBusinessRegistrationNumber", v)}
               />
             </div>
+
+            <div>
+              <div className="mb-2.5 text-xs font-bold text-muted">신청 기업 유형</div>
+              <div className="flex flex-wrap gap-2">
+                {APPLICANT_COMPANY_TYPES.map((type) => (
+                  <CheckboxChip
+                    key={type}
+                    label={APPLICANT_COMPANY_TYPE_LABEL[type]}
+                    checked={info.applicantCompanyType === type}
+                    onChange={() => set("applicantCompanyType", info.applicantCompanyType === type ? null : type)}
+                  />
+                ))}
+              </div>
+            </div>
+
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <TextField
                 label="담당자"

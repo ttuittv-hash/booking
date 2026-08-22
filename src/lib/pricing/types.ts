@@ -283,6 +283,18 @@ export interface QuoteSelection {
 // 공연 정보 입력 — 예상 대관료 확인 이후, 신청서 제출 전 공통 프로세스
 // ---------------------------------------------------------------------------
 
+// 신청하는 기업의 유형 — 회원가입 화면의 "공연 기획사 · 제작사 · 대행사 등" 문구와
+// 같은 분류를 쓴다. optional — 이 필드가 추가되기 전에 제출된 기존 신청서에는 없다.
+export type ApplicantCompanyType = "PROMOTER" | "PRODUCER" | "AGENCY" | "ARTIST_MANAGEMENT" | "OTHER";
+
+export const APPLICANT_COMPANY_TYPE_LABEL: Record<ApplicantCompanyType, string> = {
+  PROMOTER: "기획사",
+  PRODUCER: "제작사",
+  AGENCY: "대행사",
+  ARTIST_MANAGEMENT: "아티스트 소속사",
+  OTHER: "기타",
+};
+
 export type EventType = "CONCERT" | "FANMEETING_CONCERT" | "CORPORATE" | "PUBLIC";
 
 export const EVENT_TYPE_LABEL: Record<EventType, string> = {
@@ -361,6 +373,8 @@ export const ANCILLARY_BUSINESS_PLAN_LABEL: Record<AncillaryBusinessPlan, string
 export interface PerformanceInfo {
   // 신청자 정보 (STEP 3-1 좌측) — 회원정보에서 자동 입력되나 수정 가능
   applicantCompanyName: string; // 대관신청사명
+  // optional — 이 필드가 추가되기 전에 제출된 기존 신청서에는 없다.
+  applicantCompanyType?: ApplicantCompanyType | null; // 신청 기업 유형
   applicantBusinessRegistrationNumber: string; // 사업자등록번호
   applicantContactName: string; // 담당자
   applicantContactPhone: string; // 담당자 연락처

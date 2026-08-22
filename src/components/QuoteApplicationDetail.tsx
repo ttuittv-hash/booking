@@ -3,6 +3,7 @@ import { EYEBROW } from "@/components/ui/kit";
 import {
   AGE_RATING_LABEL,
   ANCILLARY_BUSINESS_PLAN_LABEL,
+  APPLICANT_COMPANY_TYPE_LABEL,
   CAST_CONTRACT_STATUS_LABEL,
   DEFAULT_VENUE_ID,
   EVENT_TYPE_LABEL,
@@ -70,6 +71,10 @@ function performanceInfoFields(info: PerformanceInfo) {
         <p className={`${EYEBROW} text-muted`}>신청자 기본정보</p>
         <dl className="mt-1.5 divide-y divide-border/60 text-s">
           <Row label="대관신청사명" value={info.applicantCompanyName || "-"} />
+          <Row
+            label="신청 기업 유형"
+            value={info.applicantCompanyType ? APPLICANT_COMPANY_TYPE_LABEL[info.applicantCompanyType] : "-"}
+          />
           <Row label="사업자등록번호" value={info.applicantBusinessRegistrationNumber || "-"} />
           <Row label="담당자" value={info.applicantContactName || "-"} />
           <Row label="담당자 연락처" value={info.applicantContactPhone || "-"} />
