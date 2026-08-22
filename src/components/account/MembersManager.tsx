@@ -6,6 +6,7 @@ import { btnClass } from "@/components/ui/kit";
 type Member = {
   id: string;
   name: string;
+  companyName: string | null;
   email: string;
   phone: string | null;
   companyRole: string | null;
@@ -97,6 +98,7 @@ export function MembersManager() {
           <table className="w-full min-w-[36rem] text-s" data-testid="members-table">
             <thead>
               <tr className="border-b border-border text-xs text-muted">
+                <th className="py-2 text-left">기업명</th>
                 <th className="py-2 text-left">이름</th>
                 <th className="py-2 text-left">이메일</th>
                 <th className="py-2 text-left">권한</th>
@@ -107,6 +109,7 @@ export function MembersManager() {
             <tbody>
               {members.map((m) => (
                 <tr key={m.id} className="border-b border-border/40" data-testid={`member-${m.id}`}>
+                  <td className="py-3 text-muted">{m.companyName || "—"}</td>
                   <td className="py-3">{m.name}</td>
                   <td className="py-3 text-muted">{m.email}</td>
                   <td className="py-3">
@@ -182,7 +185,7 @@ export function MembersManager() {
               ))}
               {members.length === 0 ? (
                 <tr>
-                  <td colSpan={5} className="py-6 text-center text-muted">
+                  <td colSpan={6} className="py-6 text-center text-muted">
                     소속 담당자가 없습니다.
                   </td>
                 </tr>

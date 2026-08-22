@@ -20,6 +20,7 @@ export async function GET() {
     members: members.map((m) => ({
       id: m.id,
       name: m.name,
+      companyName: m.companyName,
       email: m.email,
       phone: m.phone,
       companyRole: m.companyRole,
