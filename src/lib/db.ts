@@ -646,27 +646,26 @@ async function seedData(pool: Pool) {
     await insertRateTable(pool, buildSeedRateTable());
   }
 
-  // 패키지 이름을 "베이직/스탠다드/플러스/프리미엄" → "Rate A/B/C/D"로 바꿨다(2026-08-22).
-  // 이미 시딩된 DB는 packages_json에 옛 이름이 그대로 저장돼 있어 seed.ts만 고쳐서는
-  // 화면에 반영되지 않는다 — 운영자가 직접 다른 이름으로 바꿨을 수 있으므로, 옛 이름과
-  // 정확히 일치할 때만 새 이름으로 바꾼다.
-  const LEGACY_PACKAGE_NAMES: Record<string, string> = {
-    베이직: "Rate A",
-    스탠다드: "Rate B",
-    플러스: "Rate C",
-    프리미엄: "Rate D",
-  };
+  // 패키지 이름을 Rate A/B/C/D로 바꿨다(2026-08-22). 이미 시딩된 DB는 packages_json에
+  // 옛 이름이 그대로 저장돼 있어 seed.ts만 고쳐서는 화면에 반영되지 않는다 — DB마다
+  // 시딩된 시점이 달라 "베이직/스탠다드/플러스/프리미엄"(중간 개정)일 수도, 그보다도
+  // 이전의 자리표시자 이름 "패키지 1/2/3/4"(PackagesForm.blankPackage 기본값과 같은
+  // 패턴)일 수도 있다 — 두 세대 다 잡는다. 운영자가 직접 다른 이름으로 바꿨을 수 있으므로,
+  // 알려진 옛 이름과 정확히 일치할 때만 현재 시드 이름(같은 id 기준)으로 바꾼다.
+  const LEGACY_TIER_NAMES = new Set(["베이직", "스탠다드", "플러스", "프리미엄"]);
   const packageNameRows = (await pool.query("SELECT version, packages_json FROM rate_tables")).rows as {
     version: string;
     packages_json: string;
   }[];
   for (const row of packageNameRows) {
-    const packages = JSON.parse(row.packages_json) as Array<{ name: string; [key: string]: unknown }>;
+    const packages = JSON.parse(row.packages_json) as Array<{ id: number; name: string; [key: string]: unknown }>;
     let changed = false;
     for (const pkg of packages) {
-      const newName = LEGACY_PACKAGE_NAMES[pkg.name];
-      if (newName) {
-        pkg.name = newName;
+      const isLegacyName = LEGACY_TIER_NAMES.has(pkg.name) || pkg.name === `패키지 ${pkg.id}`;
+      if (!isLegacyName) continue;
+      const seedMatch = SEED_PACKAGES.find((s) => s.id === pkg.id);
+      if (seedMatch && pkg.name !== seedMatch.name) {
+        pkg.name = seedMatch.name;
         changed = true;
       }
     }
