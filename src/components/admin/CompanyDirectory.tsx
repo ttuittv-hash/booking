@@ -5,7 +5,6 @@ import { useCallback, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
   FIELD,
-  FIELD_SM,
   LINK_BTN,
   QUIET_BTN,
   TABLE,
@@ -85,7 +84,7 @@ export function CompanyDirectory({
           <select
             value={status}
             onChange={(e) => search(q, e.target.value)}
-            className={FIELD_SM}
+            className={FIELD}
           >
             <option value="">전체</option>
             <option value="PENDING">심사 중</option>

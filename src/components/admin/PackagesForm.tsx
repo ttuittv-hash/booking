@@ -774,7 +774,7 @@ export function PackagesForm({ rateTable }: { rateTable: RateTable }) {
                             <select
                               value={addon.visibility}
                               onChange={(e) => updateAddonVisibility(addon.id, e.target.value as LineItemVisibility)}
-                              className={FIELD_SM}
+                              className={FIELD}
                             >
                               <option value="ITEM_ONLY">기본 내역</option>
                               <option value="HIDDEN">비노출</option>
