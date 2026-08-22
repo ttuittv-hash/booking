@@ -220,7 +220,7 @@ export function StepMarketingCooperation({
         <div className="mt-8 border-t border-border/25 pt-5">
           <h3 className="type-kr-heading text-h6-m">공연 관련 데이터 제공 협조</h3>
 
-          <div className="mt-4 flex flex-col gap-4 sm:flex-row sm:gap-8">
+          <div className="mt-4 grid grid-cols-1 gap-x-6 gap-y-5 sm:grid-cols-2">
             <div>
               <label className="flex cursor-pointer items-center gap-2 text-s">
                 <input
@@ -229,7 +229,7 @@ export function StepMarketingCooperation({
                   onChange={(e) => set("ticketSalesDataConsent", e.target.checked)}
                   className="h-4 w-4 accent-[var(--accent)]"
                 />
-                티켓 판매량·판매율 데이터 제공
+                티켓판매량/판매율 등 데이터
               </label>
               <p className="mt-1.5 pl-6 break-keep text-xs leading-5 text-muted">
                 {SALES_DATA_ITEMS.join(", ")}
@@ -242,7 +242,7 @@ export function StepMarketingCooperation({
                 onChange={(e) => set("pollstarConsent", e.target.checked)}
                 className="h-4 w-4 accent-[var(--accent)]"
               />
-              Pollstar 등 해외 DB 등록 동의
+              해외 DB 등록 동의(Pollstar 등)
             </label>
           </div>
         </div>
