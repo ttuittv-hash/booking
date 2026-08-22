@@ -393,8 +393,9 @@ function PerformanceInfoFields({
 
           {/* 그냥 항목을 순서대로 나열하면 왜 이 둘이 한 줄인지 알 수 없어서
               (2026-08-22, "비슷한 유형끼리는 그룹핑을 해서" 피드백), 성격이 같은
-              항목끼리 소제목으로 묶은 뒤 그 안에서 짝을 짓는다. */}
-          <div className="mt-4 space-y-8">
+              항목끼리 소제목으로 묶은 뒤 그 안에서 짝을 짓는다. 소제목 굵기만으로는
+              구분이 약해서("각 구분마다 옅은 선을 추가") 그룹 사이에 옅은 구분선도 넣는다. */}
+          <div className="mt-4 space-y-6">
             <div>
               <div className="mb-3 text-xs font-bold tracking-wide text-muted uppercase">공연 개요</div>
               <div className="space-y-4">
@@ -406,7 +407,7 @@ function PerformanceInfoFields({
               </div>
             </div>
 
-            <div>
+            <div className="border-t border-border/15 pt-6">
               <div className="mb-3 text-xs font-bold tracking-wide text-muted uppercase">분류</div>
               <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
                 <div>
@@ -447,7 +448,7 @@ function PerformanceInfoFields({
               </div>
             </div>
 
-            <div>
+            <div className="border-t border-border/15 pt-6">
               <div className="mb-3 text-xs font-bold tracking-wide text-muted uppercase">일정</div>
               <div className="space-y-4">
                 {(scheduleSummary?.arenaLine || scheduleSummary?.midHallLine) && (
@@ -480,7 +481,7 @@ function PerformanceInfoFields({
               </div>
             </div>
 
-            <div>
+            <div className="border-t border-border/15 pt-6">
               <div className="mb-3 text-xs font-bold tracking-wide text-muted uppercase">공간 구성</div>
               <div className="space-y-4">
                 <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
