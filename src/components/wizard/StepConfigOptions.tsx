@@ -142,7 +142,7 @@ function PackagePicker({
           <p className="mt-1.5 text-xs leading-5 text-foreground">
             모든 구성에는 공연 운영에 필요한 기본 시설과 장비가 모두 포함되어 있습니다
             <br />
-            자세한 포함 옵션은 신청서 제출 시 최종 옵션을 확인해 주세요
+            자세한 내역은 신청서 제출 시 최종 내역을 확인해 주세요
           </p>
         </div>
       )}
