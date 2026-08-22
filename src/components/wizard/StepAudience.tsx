@@ -242,7 +242,7 @@ export function StepAudience({
   return (
     <section>
       <StepHeading
-        title="관객"
+        title="규모"
         lead="관객 수는 공간별로 자동 산정되며, 객석배치도는 계획안 기준으로 별도 첨부합니다."
       />
 

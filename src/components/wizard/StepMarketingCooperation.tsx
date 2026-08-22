@@ -6,6 +6,18 @@ import { StepHeading, StepForm } from "./StepHeading";
 
 const EMPTY_CHANNEL = { platform: "", handle: "", followers: "" };
 
+// 세일즈 · 실적 데이터 제공 협조 체크박스가 정확히 무엇에 동의하는 건지 보여주는
+// 참고표 — 항목·취득 가능 여부·근거·협상 난이도(2026-08-22 요청).
+const SALES_DATA_ITEMS = [
+  { no: 25, data: "총 판매 매수", available: true, reason: "예매처↔주최자 계약 데이터", difficulty: "상 — 최소 요구 세트 ①" },
+  { no: 26, data: "유료 판매율", available: true, reason: "〃", difficulty: "상 — 아티스트 가치평가에 직결" },
+  { no: 27, data: "좌석등급별 판매율", available: true, reason: "〃", difficulty: "상" },
+  { no: 28, data: "일자별 판매 곡선 · 매진 시각", available: true, reason: "〃", difficulty: "상 — 마케팅 효과 측정의 핵심이라 더 민감" },
+  { no: 29, data: "평균 객단가 · 티켓 가격대", available: true, reason: "〃", difficulty: "상" },
+  { no: 30, data: "총 티켓 매출액", available: true, reason: "〃", difficulty: "최상 — L3 해외 DB 등록의 필수 항목" },
+  { no: 31, data: "예매처별 판매 비중", available: true, reason: "〃", difficulty: "중" },
+];
+
 export function StepMarketingCooperation({
   info,
   onChange,
@@ -172,7 +184,33 @@ export function StepMarketingCooperation({
         </div>
 
         <div className="mt-8 border-t border-border/25 pt-5">
-          <h3 className="type-kr-heading text-h6-m">세일즈 · 실적 데이터 제공 협조</h3>
+          <h3 className="type-kr-heading text-h6-m">공연 관련 데이터 제공 협조</h3>
+
+          <div className="mt-3 overflow-x-auto [contain:paint]">
+            <table className="w-full min-w-[36rem] border-collapse text-xs">
+              <thead>
+                <tr className="border-b border-border/40">
+                  <th scope="col" className="py-2 pr-4 text-left font-bold text-muted">#</th>
+                  <th scope="col" className="py-2 pr-4 text-left font-bold text-muted">데이터</th>
+                  <th scope="col" className="py-2 pr-4 text-left font-bold text-muted">취득</th>
+                  <th scope="col" className="py-2 pr-4 text-left font-bold text-muted">왜 못 얻나</th>
+                  <th scope="col" className="py-2 text-left font-bold text-muted">협상 난이도</th>
+                </tr>
+              </thead>
+              <tbody>
+                {SALES_DATA_ITEMS.map((item) => (
+                  <tr key={item.no} className="border-b border-border/15">
+                    <td className="py-2 pr-4 align-top text-muted">{item.no}</td>
+                    <td className="py-2 pr-4 align-top text-foreground">{item.data}</td>
+                    <td className="py-2 pr-4 align-top">{item.available ? "○" : "×"}</td>
+                    <td className="py-2 pr-4 align-top text-muted">{item.reason}</td>
+                    <td className="py-2 align-top text-muted">{item.difficulty}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+
           <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:gap-8">
             <label className="flex cursor-pointer items-center gap-2 text-s">
               <input

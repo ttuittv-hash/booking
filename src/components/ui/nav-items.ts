@@ -3,7 +3,7 @@
  *
  * 2026-08 재구성 (2차) — 중앙은 여정, 우측은 도구로 나눈다.
  *
- *   중앙  YOUR STAGE · YOUR GUIDE  (카테고리 타이틀. 링크가 아니다)
+ *   중앙  YOUR STAGE · GUIDE  (카테고리 타이틀. 링크가 아니다)
  *         BOOK IT                 (유일한 액션 — 대관 신청 위저드로 바로 간다)
  *   우측  지원 / 계정              (여정이 아니라 도구라 우측 유틸리티로 뺀다)
  *
@@ -32,7 +32,7 @@ export const NAV_CATEGORIES: NavCategory[] = [
     ],
   },
   {
-    label: "Your Guide",
+    label: "Guide",
     pages: [
       { href: "/guide", label: "대관 안내", loginRequired: true },
       { href: "/rates", label: "대관료", loginRequired: true },

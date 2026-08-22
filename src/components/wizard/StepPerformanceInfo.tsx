@@ -405,8 +405,6 @@ function PerformanceInfoFields({
             {scheduleSummary?.showsTotal != null && (
               <ReadOnlyRow label="총 공연 횟수" value={`${scheduleSummary.showsTotal}회 (자동 계산)`} />
             )}
-
-            <TextField label="행사규모" value={info.eventScale} onChange={(v) => set("eventScale", v)} />
           </div>
 
           <div className="mt-6">
