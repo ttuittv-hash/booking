@@ -6,6 +6,7 @@ import type { AppUser } from "@/lib/pricing/types";
 
 const LINKS = [
   { href: "/admin", label: "신청 현황", masterOnly: false },
+  { href: "/admin/reports", label: "리포트", masterOnly: false },
   { href: "/admin/applicants", label: "회원 관리", masterOnly: false },
   { href: "/admin/packages", label: "패키지 관리", masterOnly: false },
   { href: "/admin/rates", label: "요금표 관리", masterOnly: false },

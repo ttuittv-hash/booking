@@ -49,6 +49,10 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "휴대폰 번호 형식을 확인해주세요." }, { status: 400 });
   }
   const phone = rawPhone || null;
+  // 가입 전에도 초대 목록에서 누구인지 알아볼 수 있게 미리 받아두는 값(2026-08-22) —
+  // 선택 입력이며, 실제 가입 시 본인이 입력하는 이름을 대체하지 않는다.
+  const inviteeName = typeof body?.name === "string" && body.name.trim() ? body.name.trim() : null;
+  const inviteeTitle = typeof body?.title === "string" && body.title.trim() ? body.title.trim() : null;
 
   // 원문 토큰은 링크로만 나가고 DB 에는 해시만 남는다.
   const token = issueInviteToken();
@@ -60,6 +64,8 @@ export async function POST(request: Request) {
     invitedBy: user.id,
     email,
     phone,
+    inviteeName,
+    inviteeTitle,
     tokenHash: hashInviteToken(token),
     expiresAt,
     createdAt: new Date().toISOString(),
@@ -75,7 +81,7 @@ export async function POST(request: Request) {
   await dispatchMessage({
     templateCode: "MB-06",
     idempotencyKey: `MB-06:${id}`,
-    recipient: { userId: null, phone, email, name: null },
+    recipient: { userId: null, phone, email, name: inviteeName },
     variables: { 회사명: user.companyName ?? "", 초대링크: inviteUrl },
     request,
   });

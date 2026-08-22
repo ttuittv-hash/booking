@@ -17,6 +17,8 @@ type Invitation = {
   id: string;
   email: string;
   phone: string | null;
+  inviteeName: string | null;
+  inviteeTitle: string | null;
   status: string;
   expiresAt: string;
   acceptedUserId: string | null;
@@ -50,6 +52,8 @@ function inviteState(iv: Invitation): {
 export function MembersManager() {
   const [members, setMembers] = useState<Member[]>([]);
   const [invitations, setInvitations] = useState<Invitation[]>([]);
+  const [name, setName] = useState("");
+  const [title, setTitle] = useState("");
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
   const [inviteUrl, setInviteUrl] = useState<string | null>(null);
@@ -228,6 +232,22 @@ export function MembersManager() {
         </p>
         <div className="mt-3 flex flex-wrap gap-2">
           <input
+            data-testid="invite-name"
+            type="text"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            placeholder="이름 (선택)"
+            className="field-base min-w-40 flex-1"
+          />
+          <input
+            data-testid="invite-title"
+            type="text"
+            value={title}
+            onChange={(e) => setTitle(e.target.value)}
+            placeholder="소속 (선택)"
+            className="field-base min-w-40 flex-1"
+          />
+          <input
             data-testid="invite-email"
             type="email"
             value={email}
@@ -248,9 +268,16 @@ export function MembersManager() {
             data-testid="invite-send"
             disabled={busy || !email}
             onClick={async () => {
-              const data = await act("/api/company/invitations", { email, phone: phone || undefined });
+              const data = await act("/api/company/invitations", {
+                email,
+                phone: phone || undefined,
+                name: name || undefined,
+                title: title || undefined,
+              });
               if (data?.inviteUrl) {
                 setInviteUrl(data.inviteUrl);
+                setName("");
+                setTitle("");
                 setEmail("");
                 setPhone("");
               }
@@ -294,8 +321,8 @@ export function MembersManager() {
               const state = inviteState(iv);
               return (
                 <tr key={iv.id} className="border-b border-border/40">
-                  <td className="py-3 text-muted">{iv.companyName}</td>
-                  <td className="py-3">{iv.acceptedUserName ?? "—"}</td>
+                  <td className="py-3 text-muted">{iv.inviteeTitle ?? "—"}</td>
+                  <td className="py-3">{iv.acceptedUserName ?? iv.inviteeName ?? "—"}</td>
                   <td className="py-3">{iv.email}</td>
                   <td className="py-3 text-muted">{iv.phone ?? "—"}</td>
                   <td className="py-3">{state.label}</td>

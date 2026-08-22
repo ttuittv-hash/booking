@@ -523,12 +523,24 @@ function PerformanceInfoFields({
                     관례(TicketOpenPanel 등)와 같이 폭을 좁게 고정한다. */}
                 <div>
                   <label className="mb-1.5 block text-xs font-bold text-muted">티켓 오픈 예정일</label>
-                  <input
-                    type="date"
-                    value={info.ticketOpenExpectedDate}
-                    onChange={(e) => set("ticketOpenExpectedDate", e.target.value)}
-                    className="field-base tabular-nums sm:w-52"
-                  />
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="date"
+                      value={info.ticketOpenExpectedDate === "미정" ? "" : info.ticketOpenExpectedDate}
+                      disabled={info.ticketOpenExpectedDate === "미정"}
+                      onChange={(e) => set("ticketOpenExpectedDate", e.target.value)}
+                      className="field-base tabular-nums sm:w-52"
+                    />
+                    <button
+                      type="button"
+                      onClick={() =>
+                        set("ticketOpenExpectedDate", info.ticketOpenExpectedDate === "미정" ? "" : "미정")
+                      }
+                      className={toggleClass(info.ticketOpenExpectedDate === "미정")}
+                    >
+                      미정
+                    </button>
+                  </div>
                 </div>
               </div>
             </div>

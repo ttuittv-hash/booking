@@ -146,7 +146,10 @@ function AudienceFields({
             "예상 유료 판매율로 묶고 아레나, 중형 보여주면" 요청). */}
         <div>
           <label className="mb-1.5 block text-xs font-bold text-muted">예상 유료 판매율 (선택)</label>
-          <div className={showMidHallRate ? "grid max-w-md grid-cols-2 gap-4" : "max-w-xs"}>
+          {/* grid-cols-2였을 때 칸 폭이 내용보다 훨씬 넓어 두 입력이 멀리 떨어져 보였다
+              (2026-08-22, "간격 너무 떨어져있는것도 이상하니까" 피드백) — 내용 폭만큼만
+              차지하는 flex로 바꿔 붙여 놓는다. */}
+          <div className={showMidHallRate ? "flex flex-wrap gap-8" : "max-w-xs"}>
             <div>
               {showMidHallRate && <div className="mb-1 text-xs text-muted">아레나</div>}
               <div className="flex items-center gap-2">

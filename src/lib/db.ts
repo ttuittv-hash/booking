@@ -370,6 +370,13 @@ async function initSchema(pool: Pool) {
       reset_at TIMESTAMPTZ NOT NULL
     );
 
+    -- 신청번호(SA-2027-00125) 채번 카운터. 연도별 순번이며 rate_limits 와 같은
+    -- upsert-and-return 방식으로 여러 pod 가 동시에 접수해도 겹치지 않는다.
+    CREATE TABLE IF NOT EXISTS quote_number_seq (
+      year INTEGER PRIMARY KEY,
+      seq INTEGER NOT NULL
+    );
+
     CREATE TABLE IF NOT EXISTS inquiries (
       id TEXT PRIMARY KEY,
       user_id TEXT NOT NULL REFERENCES users(id),
@@ -567,6 +574,11 @@ async function initSchema(pool: Pool) {
     -- 발송한다(kakaoBizTalkAdapter.send 참고) — 이게 없으면 알림톡 키를 설정해도
     -- 초대 알림은 "수신번호 없음"으로 항상 실패한다.
     ALTER TABLE company_invitations ADD COLUMN IF NOT EXISTS phone TEXT;
+    -- 초대 발급 시점에 미리 입력해두는 정보(2026-08-22, "소속, 이름 항목도 추가해") —
+    -- 초대받은 사람이 실제 가입할 때 입력하는 users.name과는 별개다. 가입 전에도
+    -- 초대 목록에서 누구를 초대했는지 알아볼 수 있게 한다.
+    ALTER TABLE company_invitations ADD COLUMN IF NOT EXISTS invitee_name TEXT;
+    ALTER TABLE company_invitations ADD COLUMN IF NOT EXISTS invitee_title TEXT;
 
     -- 회사의 유일 키는 회사명이 아니라 사업자등록번호다.
     -- 동명 회사가 실제로 있어서 name UNIQUE 는 오히려 정상 가입을 막는다.
@@ -701,6 +713,43 @@ const SYSTEM_NOTIFICATION_RULES: {
     thresholdDays: 7,
     repeatIntervalDays: 1,
     messageTemplate: "{quoteId}의 시설회의일({meetingDate})이 다가오는데 자료(운영 매뉴얼/프로덕션 노트)가 업로드되지 않았습니다.",
+  },
+];
+
+// 가입 심사(승인·보류·거절) 알림 카탈로그 — 스케줄러가 아니라 운영자의 승인/거절
+// 액션 시점에 나가는 이벤트형 알림이라 threshold/repeat 는 없다. 인앱 알림·상태 전환은
+// 이미 구현돼 있고, 카카오 알림톡·이메일 채널은 아직 연동 전이라 이 항목들은 "안내용"
+// 카탈로그(is_system=0)로 남긴다 — 실제 자동 발송에 연동하려면 개발 작업이 필요하다는
+// 점을 description에 그대로 남겨 둔다(가입 심사 알림 플로우 기획 문서, 2026-08-22).
+const SIGNUP_NOTIFICATION_CATALOG: {
+  typeCode: string;
+  label: string;
+  description: string;
+  messageTemplate: string;
+}[] = [
+  {
+    typeCode: "SIGNUP_APPROVED",
+    label: "회원가입 승인",
+    description:
+      "운영자가 /admin/applicants 에서 가입을 승인하면 나가는 안내입니다. 상태 전환과 인앱 알림은 이미 구현되어 있고, 카카오 알림톡·이메일 발송 채널은 아직 연동되지 않았습니다.",
+    messageTemplate:
+      "{담당자명}님, 서울아레나 대관 신청 계정 가입이 승인되었습니다. 지금부터 패키지 안내 확인, 예상 대관료 산출, 대관 신청서 작성이 모두 가능합니다.",
+  },
+  {
+    typeCode: "SIGNUP_ON_HOLD",
+    label: "회원가입 심사 보류 (신규 상태값 필요)",
+    description:
+      "서류·정보 보완이 필요해 판단을 미루는 상태입니다. 지금 시스템엔 없는 상태값(ApprovalStatus.ON_HOLD)이라 상태값 추가, 운영자 화면의 보류 사유 입력란, /pending 안내 문구, 신청자 재제출 경로가 함께 개발되어야 실제로 동작합니다.",
+    messageTemplate:
+      "{담당자명}님, 제출해 주신 가입 신청은 확인이 더 필요해 일시 보류되었습니다. 보류 사유: {보류사유}. 안내에 따라 자료를 보완해 다시 제출해 주시면 심사가 이어집니다.",
+  },
+  {
+    typeCode: "SIGNUP_REJECTED",
+    label: "회원가입 승인 불가 (거절)",
+    description:
+      "상태 전환과 인앱 알림은 이미 구현되어 있습니다. 다만 현재 거절 액션에는 사유를 입력하는 칸이 없어, 이 문구의 {거절사유}를 실제로 채우려면 거절 액션에 사유 입력란을 추가해야 합니다. 카카오 알림톡·이메일 발송 채널도 아직 연동 전입니다.",
+    messageTemplate:
+      "{담당자명}님, 제출해 주신 가입 신청은 아래 사유로 이번엔 승인이 어려운 것으로 확인되었습니다. 사유: {거절사유}. 자세한 사항은 대관운영팀으로 문의해 주세요.",
   },
 ];
 
@@ -990,6 +1039,17 @@ async function seedData(pool: Pool) {
         rule.messageTemplate,
         now,
       ],
+    );
+  }
+
+  // 가입 심사 알림 카탈로그(승인/보류/거절) — 위와 같은 이유로 typeCode 존재 여부만 확인한다.
+  for (const rule of SIGNUP_NOTIFICATION_CATALOG) {
+    await pool.query(
+      `INSERT INTO notification_rules
+         (id, type_code, label, description, enabled, is_system, threshold_days, repeat_interval_days, message_template, created_at, updated_at)
+       VALUES ($1, $2, $3, $4, 1, 0, NULL, NULL, $5, $6, $6)
+       ON CONFLICT (type_code) DO NOTHING`,
+      [crypto.randomUUID(), rule.typeCode, rule.label, rule.description, rule.messageTemplate, now],
     );
   }
 }
@@ -1535,6 +1595,10 @@ export interface CompanyInvitation {
   companyId: string;
   email: string;
   phone: string | null;
+  // 초대 발급 시 미리 입력해두는 값 — 가입 전에도 초대 목록에서 누구인지 알아볼 수
+  // 있게 한다. 실제 가입 시 입력하는 users.name과는 별개(2026-08-22).
+  inviteeName: string | null;
+  inviteeTitle: string | null;
   status: string;
   expiresAt: string;
   createdAt: string;
@@ -1561,19 +1625,24 @@ export async function createCompanyInvitation(input: {
   invitedBy: string;
   email: string;
   phone: string | null;
+  inviteeName: string | null;
+  inviteeTitle: string | null;
   tokenHash: string;
   expiresAt: string;
   createdAt: string;
 }): Promise<void> {
   await q(
-    `INSERT INTO company_invitations (id, company_id, invited_by, email, phone, token_hash, status, expires_at, created_at)
-     VALUES ($1, $2, $3, $4, $5, $6, 'PENDING', $7, $8)`,
+    `INSERT INTO company_invitations
+       (id, company_id, invited_by, email, phone, invitee_name, invitee_title, token_hash, status, expires_at, created_at)
+     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, 'PENDING', $9, $10)`,
     [
       input.id,
       input.companyId,
       input.invitedBy,
       input.email.toLowerCase(),
       input.phone,
+      input.inviteeName,
+      input.inviteeTitle,
       input.tokenHash,
       input.expiresAt,
       input.createdAt,
@@ -1587,6 +1656,8 @@ export async function listCompanyInvitations(companyId: string): Promise<Company
     company_id: string;
     email: string;
     phone: string | null;
+    invitee_name: string | null;
+    invitee_title: string | null;
     status: string;
     expires_at: string;
     created_at: string;
@@ -1595,7 +1666,8 @@ export async function listCompanyInvitations(companyId: string): Promise<Company
     accepted_user_name: string | null;
     company_name: string;
   }>(
-    `SELECT i.id, i.company_id, i.email, i.phone, i.status, i.expires_at, i.created_at,
+    `SELECT i.id, i.company_id, i.email, i.phone, i.invitee_name, i.invitee_title,
+            i.status, i.expires_at, i.created_at,
             i.accepted_user_id, u.approval_status AS accepted_user_approval_status, u.name AS accepted_user_name,
             c.name AS company_name
        FROM company_invitations i
@@ -1609,6 +1681,8 @@ export async function listCompanyInvitations(companyId: string): Promise<Company
     companyId: r.company_id,
     email: r.email,
     phone: r.phone,
+    inviteeName: r.invitee_name,
+    inviteeTitle: r.invitee_title,
     status: r.status,
     expiresAt: r.expires_at,
     createdAt: r.created_at,
@@ -2652,6 +2726,24 @@ export async function consumeRateLimit(
 // 만료된 카운터 정리 — 알림 스케줄러가 하루 한 번 함께 호출한다.
 export async function purgeExpiredRateLimits(): Promise<void> {
   await q("DELETE FROM rate_limits WHERE reset_at <= now()");
+}
+
+// 신청번호를 "SA-2027-00125" 형식(연도 + 연도별 5자리 순번)으로 채번한다 — 예전에는
+// UUID 조각(SA-6AF9D211)을 그대로 썼는데, 대관시스템 기준으로 순서를 알아볼 수 있어야
+// 한다는 피드백(2026-08-22)으로 바꿨다. rate_limits 와 같은 upsert-and-return 패턴이라
+// 여러 pod 가 동시에 접수해도 원자적으로 겹치지 않는다.
+export async function nextQuoteNumber(now: Date): Promise<string> {
+  const year = Number(
+    new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Seoul", year: "numeric" }).format(now),
+  );
+  const row = await one<{ seq: number }>(
+    `INSERT INTO quote_number_seq (year, seq)
+     VALUES ($1, 1)
+     ON CONFLICT (year) DO UPDATE SET seq = quote_number_seq.seq + 1
+     RETURNING seq`,
+    [year],
+  );
+  return `SA-${year}-${String(row!.seq).padStart(5, "0")}`;
 }
 
 // ---------------------------------------------------------------------------

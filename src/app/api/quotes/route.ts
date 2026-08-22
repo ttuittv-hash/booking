@@ -9,6 +9,7 @@ import {
   findBlockedDatesAmong,
   getCurrentRateTable,
   listQuotes,
+  nextQuoteNumber,
   notifyAdmins,
 } from "@/lib/db";
 import { calculateQuote } from "@/lib/pricing/calculateQuote";
@@ -77,7 +78,7 @@ export async function POST(request: Request) {
   // 신청서·이력·알림은 한 묶음이다 — 중간에 실패하면 전부 되돌린다.
   const quote = await withTransaction(async () => {
     const quote = await createQuote({
-      id: `SA-${crypto.randomUUID().slice(0, 8).toUpperCase()}`,
+      id: await nextQuoteNumber(new Date()),
       applicantId: user.id,
       rateTableVersion: computed.rateTableVersion,
       selection: computed.selection,
