@@ -34,7 +34,9 @@ export function calculateQuote(selection: QuoteSelection, rateTable: RateTable):
   if (pkg) {
     // (1) 패키지 가격 — 요금표 고정값 그 자체 (Ⓐ 구성항목·Ⓑ Bowl 사용료가 내재된 표시 대관료)
     const price = packagePrice(rateTable, pkg);
-    items.push(makeLine("BASE_FEE", "기본 대관료", "FIXED_PER_WEEK", 1, 0, 1, price, price, "VISIBLE"));
+    items.push(
+      makeLine("BASE_FEE", `기본 대관료(${pkg.name})`, "FIXED_PER_WEEK", 1, 0, 1, price, price, "VISIBLE"),
+    );
 
     // (1-1) 패키지 할인 — 관리자가 설정한 경우에만 기본 대관료에 적용
     if (pkg.discountRatio > 0) {
