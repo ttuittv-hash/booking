@@ -1649,6 +1649,20 @@ export async function saveTermsAgreements(
   }
 }
 
+/** 특정 종류(kind)의 가장 최근 약관 동의 이력. 이력이 없으면 null(=물어본 적 없음). */
+export async function getLatestTermsAgreement(
+  userId: string,
+  kind: string,
+): Promise<{ agreed: boolean; agreedAt: string } | null> {
+  const row = await one<{ agreed: number; agreed_at: string }>(
+    `SELECT agreed, agreed_at FROM terms_agreements
+     WHERE user_id = $1 AND terms_kind = $2
+     ORDER BY agreed_at DESC LIMIT 1`,
+    [userId, kind],
+  );
+  return row ? { agreed: row.agreed === 1, agreedAt: row.agreed_at } : null;
+}
+
 // ── 본인인증 (NICE 통합인증) ────────────────────────────────────────────────
 
 export interface IdentityPending {

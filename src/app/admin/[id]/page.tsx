@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
-import { getCurrentUser } from "@/lib/auth";
+import { getCurrentUser, isProAdminOrAbove } from "@/lib/auth";
 import {
   findApprovedWeekConflict,
   findUserById,
@@ -25,6 +25,7 @@ import {
   type QuoteSelection,
 } from "@/lib/pricing/types";
 import { SpecTable } from "@/components/ui/kit";
+import { AiReviewBox } from "@/components/admin/AiReviewBox";
 import { ContractForm } from "@/components/admin/ContractForm";
 import { ReviewForm } from "@/components/admin/ReviewForm";
 import { SettlementForm } from "@/components/admin/SettlementForm";
@@ -270,11 +271,14 @@ export default async function AdminQuoteDetailPage({
         </section>
 
         <div className="mt-6 space-y-6">
+          {quote.status === "ESTIMATE" && <AiReviewBox quoteId={quote.id} />}
+
           {quote.status === "ESTIMATE" && (
             <ReviewForm
               quoteId={quote.id}
               review={quote.review}
               conflict={weekConflict ? { companyName: weekConflict.companyName } : null}
+              canReview={isProAdminOrAbove(user)}
             />
           )}
 

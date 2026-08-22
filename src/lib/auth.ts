@@ -205,6 +205,12 @@ export function isMasterAdmin(user: AppUser | null): boolean {
   return !!user && user.role === "ADMIN" && user.adminTier === "MASTER";
 }
 
+// 심사(승인/보류/거절) 등 프로 관리자 이상만 할 수 있는 동작에 사용.
+// 일반관리자(BASIC)는 심사 권한이 없다(2026-08-22 정정 — "일반 관리자는 심사 못해").
+export function isProAdminOrAbove(user: AppUser | null): boolean {
+  return !!user && user.role === "ADMIN" && (user.adminTier === "PRO" || user.adminTier === "MASTER");
+}
+
 export async function requireMasterAdmin(): Promise<AppUser | null> {
   const user = await getCurrentUser();
   return isMasterAdmin(user) ? user : null;

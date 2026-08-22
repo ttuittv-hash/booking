@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import crypto from "node:crypto";
-import { getCurrentUser } from "@/lib/auth";
+import { getCurrentUser, isProAdminOrAbove } from "@/lib/auth";
 import {
   addAuditLog,
   createNotification,
@@ -22,6 +22,9 @@ export async function POST(request: Request, ctx: { params: Promise<{ id: string
   const user = await getCurrentUser();
   if (!user || user.role !== "ADMIN") {
     return NextResponse.json({ error: "운영자 로그인이 필요합니다." }, { status: 401 });
+  }
+  if (!isProAdminOrAbove(user)) {
+    return NextResponse.json({ error: "심사 권한이 없습니다 — 프로 관리자 이상만 심사할 수 있습니다." }, { status: 403 });
   }
 
   const { id } = await ctx.params;

@@ -43,10 +43,13 @@ export function ReviewForm({
   quoteId,
   review,
   conflict,
+  canReview,
 }: {
   quoteId: string;
   review: Review | null;
   conflict?: { companyName: string | null } | null;
+  /** 프로 관리자 이상만 심사할 수 있다(2026-08-22 정정) — 일반관리자는 열람만. */
+  canReview: boolean;
 }) {
   const router = useRouter();
   const [score, setScore] = useState(review?.score?.toString() ?? "");
@@ -81,8 +84,9 @@ export function ReviewForm({
         {review && <Badge tone={DECISION_TONE[review.decision]}>{DECISION_LABEL[review.decision]}</Badge>}
       </div>
       <p className={`mt-2 ${HELP}`}>
-        공연 내용·시설 적합성 등을 검토하고 점수/근거를 기록한 뒤 승인·보류·거절을 결정하세요.
-        승인해야 계약 단계로 진행할 수 있습니다.
+        {canReview
+          ? "공연 내용·시설 적합성 등을 검토하고 점수/근거를 기록한 뒤 승인·보류·거절을 결정하세요. 승인해야 계약 단계로 진행할 수 있습니다."
+          : "심사는 프로 관리자 이상만 할 수 있습니다 — 아래 내용은 열람만 가능합니다."}
       </p>
 
       <div className="mt-5 space-y-4">
@@ -93,6 +97,7 @@ export function ReviewForm({
             min={0}
             max={100}
             value={score}
+            disabled={!canReview}
             onChange={(e) => setScore(e.target.value)}
             className={`w-24 ${FIELD} text-right tabular-nums`}
           />
@@ -102,6 +107,7 @@ export function ReviewForm({
           <textarea
             rows={3}
             value={rationale}
+            disabled={!canReview}
             onChange={(e) => setRationale(e.target.value)}
             placeholder="예: 공연 내용 및 시설 적합성 양호, 대관 일정 문제 없음"
             className={FIELD}
@@ -124,32 +130,34 @@ export function ReviewForm({
 
       {error && <p className={`mt-4 ${ERROR_NOTE}`}>{error}</p>}
 
-      <div className="mt-5 flex flex-wrap gap-2">
-        <button
-          type="button"
-          disabled={!!submitting || (!!conflict && review?.decision !== "APPROVED")}
-          onClick={() => decide("APPROVED")}
-          className={btnClass("primary", "md")}
-        >
-          {submitting === "APPROVED" ? "처리 중..." : "승인"}
-        </button>
-        <button
-          type="button"
-          disabled={!!submitting}
-          onClick={() => decide("HOLD")}
-          className={btnClass("secondary", "md")}
-        >
-          {submitting === "HOLD" ? "처리 중..." : "보류"}
-        </button>
-        <button
-          type="button"
-          disabled={!!submitting}
-          onClick={() => decide("REJECTED")}
-          className={DANGER_BTN}
-        >
-          {submitting === "REJECTED" ? "처리 중..." : "거절"}
-        </button>
-      </div>
+      {canReview && (
+        <div className="mt-5 flex flex-wrap gap-2">
+          <button
+            type="button"
+            disabled={!!submitting || (!!conflict && review?.decision !== "APPROVED")}
+            onClick={() => decide("APPROVED")}
+            className={btnClass("primary", "md")}
+          >
+            {submitting === "APPROVED" ? "처리 중..." : "승인"}
+          </button>
+          <button
+            type="button"
+            disabled={!!submitting}
+            onClick={() => decide("HOLD")}
+            className={btnClass("secondary", "md")}
+          >
+            {submitting === "HOLD" ? "처리 중..." : "보류"}
+          </button>
+          <button
+            type="button"
+            disabled={!!submitting}
+            onClick={() => decide("REJECTED")}
+            className={DANGER_BTN}
+          >
+            {submitting === "REJECTED" ? "처리 중..." : "거절"}
+          </button>
+        </div>
+      )}
     </div>
   );
 }
