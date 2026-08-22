@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useCallback, useState } from "react";
 import { useRouter } from "next/navigation";
+import { num } from "@/lib/format";
 import {
   FIELD,
   LINK_BTN,
@@ -106,7 +107,7 @@ export function CompanyDirectory({
       <div className={`${TABLE_CARD} mt-5`}>
         <div className={TABLE_HEAD}>
           <div>
-            <p className={TABLE_HEAD_TITLE}>회사 목록 ({total})</p>
+            <p className={TABLE_HEAD_TITLE}>회사 목록 ({num(total)})</p>
             <p className={TABLE_HEAD_DESC}>
               회사를 누르면 상세 페이지로 이동합니다 — 담당자 목록과 대표 지정이 거기 있습니다.
             </p>
@@ -172,7 +173,7 @@ function CompanyRow({ company }: { company: Company }) {
           </Link>
           {company.pendingCount > 0 ? (
             <span className="border border-accent bg-accent px-1.5 text-[10px] leading-4 text-on-accent tabular-nums">
-              대기 {company.pendingCount}
+              대기 {num(company.pendingCount)}
             </span>
           ) : null}
         </span>
@@ -181,7 +182,7 @@ function CompanyRow({ company }: { company: Company }) {
         {company.businessRegistrationNumber ?? "—"}
       </td>
       <td className="px-4 py-3">{company.masterName ?? <span className="text-muted">미지정</span>}</td>
-      <td className="px-4 py-3 text-right tabular-nums">{company.memberCount}</td>
+      <td className="px-4 py-3 text-right tabular-nums">{num(company.memberCount)}</td>
       <td className="px-4 py-3 text-muted">{STATUS_LABEL[company.status] ?? company.status}</td>
     </tr>
   );

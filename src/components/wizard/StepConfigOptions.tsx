@@ -237,6 +237,7 @@ export function StepConfigOptions({
               <AddonRow
                 key={addon.id}
                 addon={addon}
+                packages={arenaPackages}
                 included={includedQuantity(pkg, addon.id)}
                 quantity={addonQuantities[addon.id] ?? 0}
                 expectedRevenue={expectedRevenue}
@@ -310,6 +311,7 @@ export function StepConfigOptions({
 
 function AddonRow({
   addon,
+  packages,
   included,
   quantity,
   expectedRevenue,
@@ -317,6 +319,7 @@ function AddonRow({
   onChangeRevenue,
 }: {
   addon: AddonItem;
+  packages: RentalPackage[];
   included: number;
   quantity: number;
   expectedRevenue: number;
@@ -327,7 +330,11 @@ function AddonRow({
   const isRevenue = addon.pricingType === "REVENUE_PERCENT";
   const ruleTag =
     addon.availability.mode === "IF_PACKAGE_IN"
-      ? `패키지 ${addon.availability.packages?.join("·")} 전용`
+      ? // "패키지 1·2 전용"처럼 원본 id를 그대로 보여주면 Rate A/B/C/D 이름 변경과
+        // 어긋나 헷갈린다(2026-08-22) — 이름으로 바꿔 보여준다.
+        `${(addon.availability.packages ?? [])
+          .map((id) => packages.find((p) => p.id === id)?.name ?? String(id))
+          .join("·")} 전용`
       : addon.availability.mode === "IF_NOT_INCLUDED"
         ? "미포함 시 선택"
         : null;
