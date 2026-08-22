@@ -219,13 +219,8 @@ export function StepMarketingCooperation({
 
         <div className="mt-8 border-t border-border/25 pt-5">
           <h3 className="type-kr-heading text-h6-m">공연 관련 데이터 제공 협조</h3>
-          {/* Pollstar 등 해외 박스오피스 집계는 익명·합산 통계가 아니라 공연(아티스트·
-              일자·장소) 단위로 매출·판매량이 그대로 노출되는 랭킹 구조다 — 뭉뚱그려
-              보여진다고 오해하지 않도록 명시한다(2026-08-22 질의). */}
           <p className="mt-2 break-keep text-xs leading-6 text-muted">
-            제공된 데이터는 서울아레나의 공연장 운영 통계에 활용되며, Pollstar 등 해외 DB에
-            등록하는 경우 여러 공연을 합산한 통계가 아니라 이 공연(아티스트·일자·장소) 단위로
-            매출·판매량·객석 점유율이 그대로 노출될 수 있습니다.
+            제공된 데이터는 서울아레나의 공연장 운영 통계에 활용됩니다.
           </p>
 
           <div className="mt-4 grid grid-cols-1 gap-x-6 gap-y-5 sm:grid-cols-2">
@@ -243,15 +238,21 @@ export function StepMarketingCooperation({
                 {SALES_DATA_ITEMS.join(", ")}
               </p>
             </div>
-            <label className="flex cursor-pointer items-center gap-2 text-s">
-              <input
-                type="checkbox"
-                checked={info.pollstarConsent}
-                onChange={(e) => set("pollstarConsent", e.target.checked)}
-                className="h-4 w-4 accent-[var(--accent)]"
-              />
-              해외 DB 등록 동의(Pollstar 등)
-            </label>
+            <div>
+              <label className="flex cursor-pointer items-center gap-2 text-s">
+                <input
+                  type="checkbox"
+                  checked={info.pollstarConsent}
+                  onChange={(e) => set("pollstarConsent", e.target.checked)}
+                  className="h-4 w-4 accent-[var(--accent)]"
+                />
+                해외 DB 등록 동의(Pollstar 등)
+              </label>
+              <p className="mt-1.5 pl-6 break-keep text-xs leading-5 text-muted">
+                여러 공연을 합산한 통계가 아니라 이 공연(아티스트·일자·장소)의 매출·판매량·객석
+                점유율이 그대로 노출될 수 있습니다
+              </p>
+            </div>
           </div>
         </div>
       </StepForm>
