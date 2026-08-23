@@ -671,12 +671,6 @@ export function WizardShell({
             }
             onSelectPackage={selectPackage}
             onClearPackage={clearPackage}
-            onChangeMidHallExtraSetupHours={(value) =>
-              setSelection((prev) => ({ ...prev, midHallExtraSetupHours: value }))
-            }
-            onChangeMidHallExtraLoadOutHours={(value) =>
-              setSelection((prev) => ({ ...prev, midHallExtraLoadOutHours: value }))
-            }
           />
         )}
         {step === 3 && (

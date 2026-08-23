@@ -19,7 +19,7 @@ import {
   type RentalPackage,
 } from "@/lib/pricing/types";
 import type { ChargeBlock, VenueRateContent } from "@/lib/content/pageContent";
-import { CHOICE_SELECTED_VARS, ComparisonTable, ICON_BTN_SM, choiceClass, type SpecGroup } from "@/components/ui/kit";
+import { CHOICE_SELECTED_VARS, ComparisonTable, choiceClass, type SpecGroup } from "@/components/ui/kit";
 import { StepHeading } from "./StepHeading";
 
 // ADDITIONAL CHARGES를 "구분"으로 묶는다 — /rates 공개 페이지(app/rates/page.tsx)의
@@ -38,25 +38,22 @@ function chargeGroups(rows: ChargeBlock[]): SpecGroup[] {
   }));
 }
 
-/** 시간 단위 옵션(셋업 연장·철수 Load-Out) — MidHallCalendar(STEP 1)의 스테퍼와 같은
- * 상태(selection.midHallExtraSetupHours/LoadOutHours)를 여기서도 보여주고 조정한다.
- * "앞에서 이미 세팅된 내역은 값이 이미 입력된 상태로 노출"(2026-08-23) — 같은 필드를
- * 공유하므로 STEP 1에서 정한 값이 여기 그대로 보이고, 여기서 바꾸면 STEP 1에도 반영된다.
+/** 시간 단위 옵션(셋업 연장·철수 Load-Out) — MidHallCalendar(STEP 1)에서 정한 값을
+ * 그대로 보여주기만 하는 읽기 전용 박스다. 처음에는 여기서도 +/− 로 바로 조정할 수
+ * 있게 했지만(2026-08-23), 값을 두 군데서 고칠 수 있어 헷갈린다는 요청으로 수정은
+ * STEP 1 캘린더에서만 하도록 되돌렸다(2026-08-23, "셋업 연장,철수연장은 앞에
+ * 달력에서 체크한대로만 노출하고 수정 못하게해.. 수정하려면 캘린더가서 가능하도록").
  */
 function MidHallHourBox({
   label,
   hint,
   hours,
-  max,
   unitFee,
-  onChange,
 }: {
   label: string;
   hint: string;
   hours: number;
-  max: number;
   unitFee: number;
-  onChange: (value: number) => void;
 }) {
   return (
     <div className="flex flex-col gap-1.5 border border-border-soft px-3 py-2">
@@ -66,15 +63,7 @@ function MidHallHourBox({
       </div>
       <div className="flex items-center justify-between gap-2">
         <span className="whitespace-nowrap text-xs text-muted">{won(unitFee)} / 시간</span>
-        <div className="flex shrink-0 items-center gap-1.5">
-          <button type="button" onClick={() => onChange(Math.max(0, hours - 1))} className={ICON_BTN_SM}>
-            −
-          </button>
-          <span className="w-5 text-center text-xs font-bold tabular-nums">{hours}</span>
-          <button type="button" onClick={() => onChange(Math.min(max, hours + 1))} className={ICON_BTN_SM}>
-            +
-          </button>
-        </div>
+        <span className="text-xs font-bold tabular-nums">{hours}시간</span>
       </div>
     </div>
   );
@@ -111,15 +100,11 @@ function MidHallRateCard({
   extraHourFee,
   extraSetupHours,
   extraLoadOutHours,
-  onChangeExtraSetupHours,
-  onChangeExtraLoadOutHours,
 }: {
   content: VenueRateContent;
   extraHourFee: number;
   extraSetupHours: number;
   extraLoadOutHours: number;
-  onChangeExtraSetupHours: (value: number) => void;
-  onChangeExtraLoadOutHours: (value: number) => void;
 }) {
   // [2026-08-23] "컬럼값이 두번 반복되는게 이상해" — Details를 별도 표로 그리면
   // 같은 열 제목(평일/주말 셋업 등)이 헤더 행으로 두 번 찍혀 보였다. 표 하나에
@@ -187,8 +172,9 @@ function MidHallRateCard({
         <div className="mt-10 border-t border-border/25 pt-5">
           <h2 className="type-kr-heading text-h6-m sm:text-h6">옵션</h2>
           <p className="mt-1.5 text-xs leading-6 text-muted">
-            추가대관 시간은 바로 조정할 수 있고(STEP 1 캘린더와 값이 같이 반영됩니다), 나머지
-            항목은 참고용 안내이며 예상 대관료에는 자동 반영되지 않습니다 — 필요 시 별도로 협의합니다.
+            추가대관 시간은 STEP 1 캘린더에서 설정한 값이 그대로 표시됩니다 — 여기서는 수정할 수
+            없고, 바꾸려면 STEP 1로 돌아가 캘린더에서 조정하세요. 나머지 항목은 참고용 안내이며
+            예상 대관료에는 자동 반영되지 않습니다 — 필요 시 별도로 협의합니다.
           </p>
 
           <div className="mt-4">
@@ -198,17 +184,13 @@ function MidHallRateCard({
                 label="셋업 연장 (22:00~24:00)"
                 hint="전체 일정 공통 적용"
                 hours={extraSetupHours}
-                max={2}
                 unitFee={extraHourFee}
-                onChange={onChangeExtraSetupHours}
               />
               <MidHallHourBox
                 label="철수 Load-Out 연장"
                 hint="전체 일정 공통 적용"
                 hours={extraLoadOutHours}
-                max={6}
                 unitFee={extraHourFee}
-                onChange={onChangeExtraLoadOutHours}
               />
             </div>
           </div>
@@ -381,8 +363,6 @@ export function StepConfigOptions({
   onChangeRevenue,
   onSelectPackage,
   onClearPackage,
-  onChangeMidHallExtraSetupHours,
-  onChangeMidHallExtraLoadOutHours,
 }: {
   rateTable: RateTable;
   liveHallRateContent: VenueRateContent;
@@ -394,8 +374,6 @@ export function StepConfigOptions({
   onChangeRevenue: (value: number) => void;
   onSelectPackage: (packageId: number) => void;
   onClearPackage: () => void;
-  onChangeMidHallExtraSetupHours: (value: number) => void;
-  onChangeMidHallExtraLoadOutHours: (value: number) => void;
 }) {
   const midHallOnly = selection.venueId === "medium-hall" && selection.bookingMode === "SINGLE";
   const isSimultaneous = selection.bookingMode === "SIMULTANEOUS";
@@ -416,8 +394,6 @@ export function StepConfigOptions({
           extraHourFee={rateTable.midHall.extraHourFee}
           extraSetupHours={selection.midHallExtraSetupHours}
           extraLoadOutHours={selection.midHallExtraLoadOutHours}
-          onChangeExtraSetupHours={onChangeMidHallExtraSetupHours}
-          onChangeExtraLoadOutHours={onChangeMidHallExtraLoadOutHours}
         />
       </section>
     );
@@ -518,8 +494,6 @@ export function StepConfigOptions({
       extraHourFee={rateTable.midHall.extraHourFee}
       extraSetupHours={selection.midHallExtraSetupHours}
       extraLoadOutHours={selection.midHallExtraLoadOutHours}
-      onChangeExtraSetupHours={onChangeMidHallExtraSetupHours}
-      onChangeExtraLoadOutHours={onChangeMidHallExtraLoadOutHours}
     />
   );
 
