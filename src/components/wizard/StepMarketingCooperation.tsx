@@ -196,32 +196,45 @@ export function StepMarketingCooperation({
           <h3 className="type-kr-heading text-h6-m">홍보 및 서비스 노출</h3>
 
           {/* 대관사가 부담 없이 읽을 수 있게 문장은 부드럽게 풀어 쓰되(2026-08-22,
-              "대관사가 잘 이해할 수 있게 부드럽게" 피드백), "무엇을(활용 대상)"과
-              "어디에(노출 및 활용 범위)"는 서로 다른 질문이라 한 박스로 뭉치지 않고
-              두 박스로 나눠 보여준다("활용대상 박스, 노출/활용 범위박스를 두개 나눠서"). */}
+              "대관사가 잘 이해할 수 있게 부드럽게" 피드백), "무엇을(제공 정보 및 콘텐츠)"과
+              "어떻게(활용 목적 및 범위)"는 서로 다른 질문이라 한 박스로 뭉치지 않고
+              두 박스로 나눠 보여준다("활용대상 박스, 노출/활용 범위박스를 두개 나눠서").
+              문구는 2026-08-23에 정식 조항 텍스트로 교체됨. */}
           <p className="mt-3 break-keep text-xs leading-6 text-muted">
-            서울아레나는 공연·행사를 더 많은 관람객에게 알리고, 예매·관람에 필요한 정보를
-            전달하기 위해 대관사가 제공한 공연 정보와 이미지·영상 등의 콘텐츠를 활용할 수
-            있습니다.
+            서울아레나는 관람객에게 원활한 공연·이벤트 정보 및 서비스를 제공하기 위해
+            대관사가 제공하는 공연 정보 및 관련 콘텐츠를 서울아레나 Web/App Service 등
+            온·오프라인 채널에서 활용할 수 있습니다.
           </p>
 
           <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2">
             <div className="rounded-lg border border-border/25 bg-surface p-4">
-              <p className="text-xs font-bold text-foreground">활용 대상</p>
-              <p className="mt-1.5 break-keep text-xs leading-6 text-muted">
-                공연명·일정·장소·소개, 출연 아티스트, 공식 포스터·이미지·영상, 예매 관련
-                정보 등 대관사가 제공했거나 공개를 승인한 자료, 공연 이미지·영상 등
-                2차 제작물의 서울아레나 채널 활용
-              </p>
+              <p className="text-xs font-bold text-foreground">제공 정보 및 콘텐츠</p>
+              <ul className="mt-1.5 list-disc space-y-1 break-keep pl-4 text-xs leading-6 text-muted">
+                <li>공연·이벤트명, 아티스트, 공연 일정 및 프로그램 등 공연 기본 정보</li>
+                <li>공연 소개, 포스터, 공식 이미지·영상 등 홍보 콘텐츠</li>
+                <li>티켓 오픈·예매 및 관람 관련 정보</li>
+                <li>입·퇴장, 운영시간, MD·F&amp;B, 부대행사 등 관람객 안내에 필요한 정보</li>
+                <li>기타 공연 및 관람객 서비스 운영을 위해 상호 협의한 정보</li>
+              </ul>
             </div>
             <div className="rounded-lg border border-border/25 bg-surface p-4">
-              <p className="text-xs font-bold text-foreground">노출 및 활용 범위</p>
-              <p className="mt-1.5 break-keep text-xs leading-6 text-muted">
-                서울아레나 웹사이트·app 서비스, 채널, 공식 SNS·뉴스레터, 현장 디지털 사이니지 등
-                서울아레나가 운영하는 온·오프라인 서비스
-              </p>
+              <p className="text-xs font-bold text-foreground">활용 목적 및 범위</p>
+              <ul className="mt-1.5 list-disc space-y-1 break-keep pl-4 text-xs leading-6 text-muted">
+                <li>서울아레나 Web/App Service 내 공연·이벤트 정보 제공</li>
+                <li>공연 상세, 아티스트, 일정 등 공연 관련 콘텐츠 구성 및 노출</li>
+                <li>공연·이벤트 홍보 및 프로모션</li>
+                <li>관람객 특성 및 공연 일정에 따른 맞춤형 정보 제공·큐레이션</li>
+                <li>입·퇴장, 혼잡시간, 시설 이용 등 관람객 안내 및 안전·질서 관리</li>
+                <li>공연 및 관람객 서비스의 운영·개선</li>
+                <li>공연장 운영 현황 분석 및 통계 데이터 구축·활용</li>
+              </ul>
             </div>
           </div>
+
+          <p className="mt-3 break-keep text-xs leading-6 text-muted">
+            제공된 정보 및 콘텐츠는 해당 공연·이벤트의 관람객 서비스 제공, 홍보, 안전한
+            공연장 운영 및 서울아레나 서비스 개선을 위한 목적으로 활용될 수 있습니다.
+          </p>
 
           <p className="mt-3 break-keep text-xs leading-6 text-muted">
             이미지·영상 등의 사용 권한은 대관사가 미리 확보한 범위 내에서 제공해 주시면 되고,
