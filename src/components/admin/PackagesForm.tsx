@@ -184,11 +184,17 @@ export function PackagesForm({ rateTable }: { rateTable: RateTable }) {
     setAddons((prev) => prev.map((a) => (a.id === addonId ? { ...a, visibility } : a)));
   }
 
+  /** 이 addon이 pkg에 무상 포함(기본 수량 > 0)돼 있는지 — IF_NOT_INCLUDED 판정에 쓴다. */
+  function packageIncludesAddon(pkg: EditablePackage, addonId: string): boolean {
+    return pkg.includedItems.some((i) => i.addonId === addonId && i.quantity > 0);
+  }
+
   /**
    * ③ 선택 가능 옵션 전용 — "이 패키지에서 노출되는가"(2026-08-23, "체크한것만 노출되는걸로
-   * 바꿔라" · "제공이 아닌 노출로 변경"). availability.mode가 ALWAYS/IF_PACKAGE_IN인 항목만
-   * 대상이다(IF_NOT_INCLUDED는 "이미 포함돼 있지 않을 때만"이라는 별도 자동 규칙이라 이
-   * 토글 대상이 아니다).
+   * 바꿔라" → "모든 항목은 노출여부를 관리자가 설정할 수 있어야 한다"). 항목 전부가 대상이다
+   * — IF_NOT_INCLUDED(마더트러스 등 "패키지에 이미 무상 포함돼 있지 않을 때만 자동 노출")도
+   * 더 이상 예외로 두지 않고, 지금까지의 자동 판정 결과를 그대로 보여주는 체크 상태로
+   * 시작해서 수동으로 켜고 끌 수 있게 한다.
    *
    * 무상 포함 수량(includedItems)과는 완전히 별개 값이다 — 노출만 켜고 무상 수량은 0으로
    * 둘 수 있어야, 무상 제공 없이 "유상으로 살 수 있게만" 하는 패키지를 만들 수 있다.
@@ -197,17 +203,25 @@ export function PackagesForm({ rateTable }: { rateTable: RateTable }) {
     if (addon.availability.mode === "IF_PACKAGE_IN") {
       return !!addon.availability.packages?.includes(active.id);
     }
-    return true; // ALWAYS · IF_NOT_INCLUDED — 토글 없이 항상 노출로 취급
+    if (addon.availability.mode === "IF_NOT_INCLUDED") {
+      return !packageIncludesAddon(active, addon.id);
+    }
+    return true; // ALWAYS — 토글 없이 항상 노출로 취급하던 값의 시작 상태
   }
 
   function setExposedForActive(addon: AddonItem, exposed: boolean) {
     setAddons((prev) =>
       prev.map((a) => {
         if (a.id !== addon.id) return a;
-        // ALWAYS였다면 지금까지 전 패키지에 노출되던 상태다 — 그 노출을 그대로 유지한 채
-        // (전 패키지 id를 명시적으로 채워서) 이 패키지만 빼거나 넣는다. 그래야 이 패키지에서
-        // 한 번 껐다고 다른 패키지에서까지 갑자기 안 보이는 회귀가 안 생긴다.
-        const base = a.availability.mode === "IF_PACKAGE_IN" ? (a.availability.packages ?? []) : packages.map((p) => p.id);
+        // 지금까지 이 항목이 각 패키지에서 노출되던 상태를 그대로 유지한 채(다른 패키지의
+        // 계산 결과를 명시적으로 packages 목록에 채워서) 이 패키지만 빼거나 넣는다 — 그래야
+        // 이 패키지에서 한 번 껐다고 다른 패키지에서까지 갑자기 달라지는 회귀가 안 생긴다.
+        const base =
+          a.availability.mode === "IF_PACKAGE_IN"
+            ? (a.availability.packages ?? [])
+            : a.availability.mode === "IF_NOT_INCLUDED"
+              ? packages.filter((p) => !packageIncludesAddon(p, a.id)).map((p) => p.id)
+              : packages.map((p) => p.id); // ALWAYS
         const next = exposed ? Array.from(new Set([...base, active.id])) : base.filter((id) => id !== active.id);
         return { ...a, availability: { mode: "IF_PACKAGE_IN", packages: next } };
       }),
@@ -745,7 +759,6 @@ export function PackagesForm({ rateTable }: { rateTable: RateTable }) {
                       const qty = includedQty(addon.id);
                       const checked = qty > 0;
                       const isVisibleOption = visibility === "VISIBLE";
-                      const autoExposed = addon.availability.mode === "IF_NOT_INCLUDED";
                       const exposed = isExposedForActive(addon);
                       return (
                         <div
@@ -753,24 +766,16 @@ export function PackagesForm({ rateTable }: { rateTable: RateTable }) {
                           className="flex flex-col gap-2 border-b border-border/50 pb-1.5 sm:flex-row sm:items-center sm:justify-between"
                         >
                           <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-s">
-                            {isVisibleOption &&
-                              (autoExposed ? (
-                                <span
-                                  className="shrink-0 px-1.5 py-0.5 text-[10px] font-bold text-muted"
-                                  title="이 패키지에 무상 포함되어 있지 않을 때만 자동으로 노출됩니다"
-                                >
-                                  자동
-                                </span>
-                              ) : (
-                                <label className="flex shrink-0 items-center gap-1.5">
-                                  <input
-                                    type="checkbox"
-                                    checked={exposed}
-                                    onChange={(e) => setExposedForActive(addon, e.target.checked)}
-                                  />
-                                  <span className="text-xs font-bold text-foreground">노출</span>
-                                </label>
-                              ))}
+                            {isVisibleOption && (
+                              <label className="flex shrink-0 items-center gap-1.5">
+                                <input
+                                  type="checkbox"
+                                  checked={exposed}
+                                  onChange={(e) => setExposedForActive(addon, e.target.checked)}
+                                />
+                                <span className="text-xs font-bold text-foreground">노출</span>
+                              </label>
+                            )}
                             <label className="flex items-center gap-2">
                               <input
                                 type="checkbox"
