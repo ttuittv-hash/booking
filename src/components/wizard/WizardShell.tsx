@@ -168,7 +168,6 @@ export function WizardShell({
   // (안전관리계획서·출연자 계약서)는 각자 다른 서류라 슬롯을 분리한다 — 제출 시점에
   // 하나로 합쳐 업로드한다.
   const [pendingFiles, setPendingFiles] = useState<File[]>([]);
-  const [audienceFiles, setAudienceFiles] = useState<File[]>([]);
   const [publicInterestFiles, setPublicInterestFiles] = useState<File[]>([]);
   // 안전관리계획서 · 출연자 계약서는 목업상 필수 단일 슬롯 2개다 — 다른 단계처럼 자유
   // 목록이 아니라 슬롯당 파일 1개(재선택 시 교체)로 둔다.
@@ -434,7 +433,6 @@ export function WizardShell({
   async function uploadPendingFiles(quoteId: string) {
     const allFiles = [
       ...pendingFiles,
-      ...audienceFiles,
       ...publicInterestFiles,
       ...(safetyPlanFile ? [safetyPlanFile] : []),
       ...(castContractFile ? [castContractFile] : []),
@@ -460,7 +458,6 @@ export function WizardShell({
       );
     } else {
       setPendingFiles([]);
-      setAudienceFiles([]);
       setPublicInterestFiles([]);
     }
   }
@@ -706,8 +703,6 @@ export function WizardShell({
                 setSelection((prev) => ({ ...prev, midHallPerformanceInfo }))
               }
               selection={resolvedSelection}
-              files={audienceFiles}
-              onFilesChange={setAudienceFiles}
               showHeading={false}
             />
           </>
@@ -757,7 +752,6 @@ export function WizardShell({
             attachmentError={attachmentError}
             fileCount={
               pendingFiles.length +
-              audienceFiles.length +
               publicInterestFiles.length +
               (safetyPlanFile ? 1 : 0) +
               (castContractFile ? 1 : 0)

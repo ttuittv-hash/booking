@@ -1,6 +1,6 @@
 "use client";
 
-import { CHOICE_SELECTED_VARS, FILE_INPUT } from "@/components/ui/kit";
+import { CHOICE_SELECTED_VARS } from "@/components/ui/kit";
 
 import { useState } from "react";
 import { defaultDayTags, effectiveDayTag } from "@/lib/pricing/rateTableUtils";
@@ -207,8 +207,6 @@ export function StepAudience({
   midHallInfo,
   onChangeMidHallInfo,
   selection,
-  files,
-  onFilesChange,
   showHeading = true,
 }: {
   info: PerformanceInfo;
@@ -216,22 +214,11 @@ export function StepAudience({
   midHallInfo: PerformanceInfo | null;
   onChangeMidHallInfo: (info: PerformanceInfo | null) => void;
   selection: QuoteSelection;
-  files: File[];
-  onFilesChange: (files: File[]) => void;
   // [2026-08-23] "신청자 정보"·"규모" 탭을 하나로 합치면서, 합친 화면에서는 큰 제목이
   // 두 번 나오지 않게 이 컴포넌트만 자기 제목(StepHeading)을 생략할 수 있게 했다.
   showHeading?: boolean;
 }) {
   const [activeTab, setActiveTab] = useState<VenueSplitTab>(midHallInfo ? "ARENA" : "COMMON");
-
-  function addFiles(selected: FileList | null) {
-    if (!selected || selected.length === 0) return;
-    onFilesChange([...files, ...Array.from(selected)]);
-  }
-
-  function removeFile(index: number) {
-    onFilesChange(files.filter((_, i) => i !== index));
-  }
 
   const isSimultaneous = selection.bookingMode === "SIMULTANEOUS";
   const isMidHallInvolved = isSimultaneous || selection.venueId === "medium-hall";
@@ -256,12 +243,7 @@ export function StepAudience({
 
   return (
     <section>
-      {showHeading && (
-        <StepHeading
-          title="규모"
-          lead="관객 수는 공간별로 자동 산정되며, 객석배치도는 계획안 기준으로 별도 첨부합니다."
-        />
-      )}
+      {showHeading && <StepHeading title="규모" lead="관객 수는 공간별로 자동 산정됩니다." />}
 
       {isSimultaneous && (
         <VenueSplitTabBar
@@ -310,47 +292,6 @@ export function StepAudience({
             showMidHallRate={false}
           />
         )}
-      </div>
-
-      <div className="mt-10 border-t-2 border-foreground pt-5">
-        <h3 className="type-kr-heading text-h6-m">자료 첨부</h3>
-        <p className="mt-1 mb-2.5 text-xs leading-5 text-muted">
-          객석배치도(PDF/이미지)를 첨부하세요.
-          {isSimultaneous && " 동시 대관은 두 공간의 객석배치도를 각각 첨부합니다."}
-          {" "}객석배치도는 계획안 기준으로 제출할 수 있으며, 승인 후 변경 시 사전 협의가
-          필요합니다.
-        </p>
-
-        {files.length > 0 && (
-          /* 첨부 목록도 신청자 정보와 같은 헤어라인 목록이다 — 화면마다 다른 파일칩을 만들지 않는다 */
-          <ul className="mt-5 border-t border-border/25">
-            {files.map((file, i) => (
-              <li
-                key={`${file.name}-${i}`}
-                className="flex items-center justify-between gap-4 border-b border-border/25 py-4"
-              >
-                <span className="min-w-0 truncate text-s font-bold">{file.name}</span>
-                <button
-                  type="button"
-                  onClick={() => removeFile(i)}
-                  className="shrink-0 cursor-pointer text-xs text-muted transition-colors hover:text-danger"
-                >
-                  삭제
-                </button>
-              </li>
-            ))}
-          </ul>
-        )}
-
-        <input
-          type="file"
-          multiple
-          onChange={(e) => {
-            addFiles(e.target.files);
-            e.target.value = "";
-          }}
-          className={FILE_INPUT}
-        />
       </div>
     </section>
   );

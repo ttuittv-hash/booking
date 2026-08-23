@@ -772,11 +772,24 @@ export function StepPerformanceInfo({
       </div>
 
       <div className="mt-10 border-t-2 border-foreground pt-5">
+        {/* [2026-08-23] "신청자 정보 및 규모"로 탭을 합치면서 자료 첨부 슬롯도 하나로
+            합쳤다("첨부파일 슬롯이 두개인데 하나 슬롯으로 합치고.. 반반해서 양쪽으로
+            구성해") — 공연 자료(舊 신청자 정보 탭)와 객석배치도(舊 규모 탭)를 좌우
+            절반씩 안내하고, 목록·업로드 입력은 하나만 둔다. */}
         <h3 className="type-kr-heading text-h6-m">자료 첨부(선택)</h3>
-        <p className="mt-1 mb-2.5 text-xs text-muted">
-          공연기획서 · 무대 도면, 출연 계약 증빙, 행사 안전관리계획서 등을 첨부하세요. (PDF/이미지/문서,
-          파일당 최대 20MB) 신청서 제출 시 함께 업로드됩니다.
-          {isSimultaneous && " 동시 대관은 두 공간의 배치도를 각각 첨부합니다."}
+        <div className="mt-2 grid grid-cols-1 gap-x-8 gap-y-1.5 sm:grid-cols-2">
+          <p className="text-xs leading-5 text-muted">
+            <span className="font-bold text-foreground">공연 관련 자료</span> — 공연기획서 · 무대
+            도면, 출연 계약 증빙, 행사 안전관리계획서 등
+          </p>
+          <p className="text-xs leading-5 text-muted">
+            <span className="font-bold text-foreground">객석배치도</span> — 계획안 기준으로 제출할
+            수 있으며, 승인 후 변경 시 사전 협의가 필요합니다
+          </p>
+        </div>
+        <p className="mt-2 mb-2.5 text-xs text-muted">
+          PDF/이미지/문서, 파일당 최대 20MB. 신청서 제출 시 함께 업로드됩니다.
+          {isSimultaneous && " 동시 대관은 두 공간의 자료를 각각 첨부합니다."}
         </p>
 
         {files.length > 0 && (
