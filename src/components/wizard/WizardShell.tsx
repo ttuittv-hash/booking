@@ -61,6 +61,7 @@ const DEFAULT_MARKETING_COOPERATION: MarketingCooperation = {
   sponsorships: [{ brandName: "", campaignSummary: "" }],
   ticketSalesDataConsent: false,
   pollstarConsent: false,
+  executionPlan: { targetDefinition: "", mediaMix: "", budget: "", timeline: "" },
 };
 
 // 중형공연장 단독(패키지 없음)일 때는 STEP 2(구성·옵션)의 내용이 달라질 뿐, 별도
@@ -249,6 +250,12 @@ export function WizardShell({
           sponsorships: Array.isArray(draft.selection.marketingCooperation?.sponsorships)
             ? draft.selection.marketingCooperation.sponsorships
             : DEFAULT_MARKETING_COOPERATION.sponsorships,
+          // 이 필드가 없던 시점(2026-08-23 이전)에 저장된 임시저장본을 열어도
+          // 깨지지 않게 기본값과 병합한다.
+          executionPlan: {
+            ...DEFAULT_MARKETING_COOPERATION.executionPlan,
+            ...(draft.selection.marketingCooperation?.executionPlan ?? {}),
+          },
         },
         addons: Array.isArray(draft.selection.addons) ? draft.selection.addons : [],
         excludedDays: Array.isArray(draft.selection.excludedDays) ? draft.selection.excludedDays : [],

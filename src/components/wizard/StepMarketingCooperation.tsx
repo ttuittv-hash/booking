@@ -78,12 +78,70 @@ export function StepMarketingCooperation({
     );
   }
 
+  function updateExecutionPlan(patch: Partial<MarketingCooperation["executionPlan"]>) {
+    set("executionPlan", { ...info.executionPlan, ...patch });
+  }
+
   return (
     <section>
       <StepHeading title="홍보 및 서비스 계획" lead="프로모션 및 협업 관련 정보를 입력해 주세요." />
 
       <StepForm>
         <div className="border-t border-border/25 pt-5">
+          <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
+            <h3 className="type-kr-heading text-h6-m">마케팅 실행 계획(선택)</h3>
+            <p className="text-xs text-muted">
+              4요소 중 2개 이상을 구체적 수치·금액·일자로 작성해 주세요.
+            </p>
+          </div>
+          <p className="mt-1 mb-3 break-keep text-xs leading-6 text-muted">
+            공연 홍보를 어떻게 진행할 계획인지 대략적인 방향을 입력해 주세요.
+          </p>
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+            <div>
+              <label className="mb-1.5 block text-xs font-bold text-foreground">타겟 정의</label>
+              <textarea
+                value={info.executionPlan.targetDefinition}
+                onChange={(e) => updateExecutionPlan({ targetDefinition: e.target.value })}
+                placeholder="예: 20~30대 여성, 수도권 거주"
+                rows={3}
+                className="field-base"
+              />
+            </div>
+            <div>
+              <label className="mb-1.5 block text-xs font-bold text-foreground">매체 믹스</label>
+              <textarea
+                value={info.executionPlan.mediaMix}
+                onChange={(e) => updateExecutionPlan({ mediaMix: e.target.value })}
+                placeholder="예: SNS 광고 60%, 옥외광고 30%, 언론 10%"
+                rows={3}
+                className="field-base"
+              />
+            </div>
+            <div>
+              <label className="mb-1.5 block text-xs font-bold text-foreground">집행 예산(원)</label>
+              <textarea
+                value={info.executionPlan.budget}
+                onChange={(e) => updateExecutionPlan({ budget: e.target.value })}
+                placeholder="예: 총 50,000,000원"
+                rows={3}
+                className="field-base"
+              />
+            </div>
+            <div>
+              <label className="mb-1.5 block text-xs font-bold text-foreground">타임라인(기간)</label>
+              <textarea
+                value={info.executionPlan.timeline}
+                onChange={(e) => updateExecutionPlan({ timeline: e.target.value })}
+                placeholder="예: 티켓 오픈 4주 전부터 공연일까지"
+                rows={3}
+                className="field-base"
+              />
+            </div>
+          </div>
+        </div>
+
+        <div className="mt-8 border-t border-border/25 pt-5">
           <div className="mb-2.5 flex items-center justify-between">
             <h3 className="type-kr-heading text-h6-m">프로모션 채널(선택)</h3>
             <button type="button" onClick={addChannel} className={toggleClass(false)}>

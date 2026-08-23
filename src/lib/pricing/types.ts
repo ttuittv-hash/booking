@@ -249,6 +249,18 @@ export interface MarketingSponsorship {
   campaignSummary: string; // 연계 캠페인 개요
 }
 
+// [신규 2026-08-23] "마케팅 실행 계획" — 4요소 모두 자유 서술 문자열이다(구체적
+// 수치·금액·일자를 문장으로 받는 게 목적이라 formatting을 강제하지 않는다, followers와
+// 동일한 패턴). 4개 중 몇 개를 채워야 하는지는 검사하지 않는다 — 안내 문구
+// ("4요소 중 2개 이상을 구체적 수치·금액·일자로 작성해 주세요")로만 유도하고 이 단계
+// 전체가 선택 항목이라 필수 검증 대상이 아니다.
+export interface MarketingExecutionPlan {
+  targetDefinition: string; // 타겟 정의
+  mediaMix: string; // 매체 믹스
+  budget: string; // 집행 예산(원)
+  timeline: string; // 타임라인(기간)
+}
+
 export interface MarketingCooperation {
   channels: MarketingChannel[];
   // 미선택은 null — 동의/비동의 둘 다 아직 고르지 않은 상태와 "비동의를 골랐다"를
@@ -257,6 +269,7 @@ export interface MarketingCooperation {
   sponsorships: MarketingSponsorship[];
   ticketSalesDataConsent: boolean;
   pollstarConsent: boolean;
+  executionPlan: MarketingExecutionPlan;
 }
 
 export interface QuoteSelection {
