@@ -33,6 +33,39 @@ function isCoreLine(item: LineItem): boolean {
   return CORE_LINE_IDS.has(item.addonId) || item.addonId.startsWith("midhall_show_");
 }
 
+// [개정 2026-08-23] "대관료는 하위 내역으로 나눠서 정리해서 보여줘" 요청에 따라 표를
+// 기본 대관료 · 전용 사용료 · 옵션 사용료 3단으로 묶는다.
+//  - 기본 대관료: 패키지 대관료 원가(BASE_FEE)와 그에 딸린 할인
+//  - 전용 사용료: 준비일/공연일 등 실제 사용 일수에 따라 붙는 요금(추가일·평일제외
+//    할인·중형 셋업/철수일 등) — "셋업일, 공연일" 단위로 매겨지는 항목들
+//  - 옵션 사용료: 신청자가 직접 고른 선택 옵션(부대시설 등) — 그 외 나머지는 청소비·
+//    유틸리티처럼 패키지에 고정으로 딸려오는 항목이라 기본 대관료 쪽에 둔다
+type FeeGroup = "BASE" | "EXCLUSIVE" | "OPTION";
+
+const EXCLUSIVE_USAGE_LINE_IDS = new Set([
+  "extra_days",
+  "performance_day_adjustment",
+  "day_exclusion_discount_prep",
+  "day_exclusion_discount_performance",
+  "midhall_setup",
+  "midhall_loadout_day",
+  "midhall_extra_setup_hours",
+  "midhall_extra_loadout_hours",
+]);
+
+function feeGroupOf(item: LineItem): FeeGroup {
+  if (!isCoreLine(item)) return "OPTION";
+  if (EXCLUSIVE_USAGE_LINE_IDS.has(item.addonId) || item.addonId.startsWith("midhall_show_")) return "EXCLUSIVE";
+  return "BASE";
+}
+
+const FEE_GROUP_LABEL: Record<FeeGroup, string> = {
+  BASE: "기본 대관료",
+  EXCLUSIVE: "전용 사용료",
+  OPTION: "옵션 사용료",
+};
+const FEE_GROUP_ORDER: FeeGroup[] = ["BASE", "EXCLUSIVE", "OPTION"];
+
 // [공유 2026-08-20] 위저드(Step5Estimate) · 마이페이지 신청 상세 · 인쇄용 신청서, 세 화면
 // 모두 같은 산출내역 표를 보여줘야 한다는 요청에 따라, 표 렌더링을 이 한 컴포넌트로
 // 공유한다 — 세 화면이 서로 다른 내용으로 보이는 것을 막는다. 동시 대관은 아레나/중형
@@ -105,43 +138,58 @@ function LineItemTable({
                 </td>
               </tr>
             ) : (
-              items.map((item) => {
-                const isIncluded = item.included > 0 && item.billable === 0 && item.amount === 0;
-                const isOptionalAddon = !isIncluded && !isCoreLine(item);
-                return (
-                  <tr key={item.addonId} className="border-b border-border/70 tabular-nums">
-                    <td className={`${cellPad} text-left`}>
-                      <div className="flex flex-wrap items-center gap-1.5">
-                        <span className="font-bold">{item.label}</span>
-                        {isIncluded && (
-                          <span className="bg-good-soft px-1.5 py-0.5 text-xs font-bold text-good">
-                            기본 포함
-                          </span>
-                        )}
-                        {isOptionalAddon && (
-                          <span className="bg-warn-soft px-1.5 py-0.5 text-xs font-bold text-warn">
-                            선택 옵션
-                          </span>
-                        )}
-                      </div>
+              FEE_GROUP_ORDER.flatMap((group) => {
+                const groupItems = items.filter((item) => feeGroupOf(item) === group);
+                if (groupItems.length === 0) return [];
+                const groupSubtotal = groupItems.reduce((sum, item) => sum + item.amount, 0);
+                return [
+                  <tr key={`group-${group}`} className="bg-panel/60">
+                    <td colSpan={3} className={`${cellPad} text-left text-xs font-bold text-muted`}>
+                      {FEE_GROUP_LABEL[group]}
                     </td>
-                    <td className={`${cellPad} text-right`}>
-                      {item.pricingType === "REVENUE_PERCENT"
-                        ? `${won(expectedRevenue)} × ${item.unitPrice}%`
-                        : item.requested.toLocaleString()}
+                    <td className={`${cellPad} text-right text-xs font-bold text-muted tabular-nums`}>
+                      {won(groupSubtotal)}
                     </td>
-                    <td className={`${cellPad} text-right ${isIncluded ? "text-good" : ""}`}>
-                      {isIncluded
-                        ? "포함"
-                        : item.pricingType === "REVENUE_PERCENT"
-                          ? "-"
-                          : won(item.unitPrice)}
-                    </td>
-                    <td className={`${cellPad} text-right font-bold ${isIncluded ? "text-good" : ""}`}>
-                      {isIncluded ? "포함" : won(item.amount)}
-                    </td>
-                  </tr>
-                );
+                  </tr>,
+                  ...groupItems.map((item) => {
+                    const isIncluded = item.included > 0 && item.billable === 0 && item.amount === 0;
+                    const isOptionalAddon = !isIncluded && !isCoreLine(item);
+                    return (
+                      <tr key={item.addonId} className="border-b border-border/70 tabular-nums">
+                        <td className={`${cellPad} pl-4 text-left`}>
+                          <div className="flex flex-wrap items-center gap-1.5">
+                            <span className="font-bold">{item.label}</span>
+                            {isIncluded && (
+                              <span className="bg-good-soft px-1.5 py-0.5 text-xs font-bold text-good">
+                                기본 포함
+                              </span>
+                            )}
+                            {isOptionalAddon && (
+                              <span className="bg-warn-soft px-1.5 py-0.5 text-xs font-bold text-warn">
+                                선택 옵션
+                              </span>
+                            )}
+                          </div>
+                        </td>
+                        <td className={`${cellPad} text-right`}>
+                          {item.pricingType === "REVENUE_PERCENT"
+                            ? `${won(expectedRevenue)} × ${item.unitPrice}%`
+                            : item.requested.toLocaleString()}
+                        </td>
+                        <td className={`${cellPad} text-right ${isIncluded ? "text-good" : ""}`}>
+                          {isIncluded
+                            ? "포함"
+                            : item.pricingType === "REVENUE_PERCENT"
+                              ? "-"
+                              : won(item.unitPrice)}
+                        </td>
+                        <td className={`${cellPad} text-right font-bold ${isIncluded ? "text-good" : ""}`}>
+                          {isIncluded ? "포함" : won(item.amount)}
+                        </td>
+                      </tr>
+                    );
+                  }),
+                ];
               })
             )}
           </tbody>
