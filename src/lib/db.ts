@@ -2812,6 +2812,24 @@ function normalizeStoredSelection(raw: string): Quote["selection"] {
       signature: "",
       ...(s.safetyPledge ?? {}),
     },
+    // marketingCooperation.executionPlan(2026-08-23 추가)이 없던 시점에 저장된
+    // selection_json을 열면 executionPlan이 undefined인 채로 남아 위저드 STEP5
+    // 렌더가 그대로 터졌다("기본정보>홍보/서비스 누르면 갑자기 This page couldn't
+    // load 에러") — marketingCooperation 필드 자체는 있어도(2026-08-22 도입)
+    // executionPlan은 없을 수 있으니 안쪽까지 기본값과 병합한다.
+    ...(s.marketingCooperation
+      ? {
+          marketingCooperation: {
+            ...s.marketingCooperation,
+            executionPlan: {
+              targetDefinition: s.marketingCooperation.executionPlan?.targetDefinition ?? "",
+              mediaMix: s.marketingCooperation.executionPlan?.mediaMix ?? "",
+              budget: s.marketingCooperation.executionPlan?.budget ?? "",
+              timeline: s.marketingCooperation.executionPlan?.timeline ?? "",
+            },
+          },
+        }
+      : {}),
   } as Quote["selection"];
 }
 
