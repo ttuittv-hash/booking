@@ -123,8 +123,8 @@ function CalendarBody() {
         </span>
       </div>
 
-      <div className="mt-4 border border-border-soft bg-panel/60 p-4">
-        <div className="grid grid-cols-7 gap-1 text-center text-xs font-bold text-muted">
+      <div className="mt-4 border border-border-soft bg-panel/60 p-5">
+        <div className="grid grid-cols-7 gap-1.5 text-center text-xs font-bold text-muted">
           {DOW_LABELS.map((label, i) => (
             <div key={label} className={i === 6 ? "opacity-50" : ""}>
               {label}
@@ -132,9 +132,9 @@ function CalendarBody() {
           ))}
         </div>
 
-        <div className="mt-1 space-y-1">
+        <div className="mt-1.5 space-y-1.5">
           {calendarWeeks.map((week, wi) => (
-            <div key={wi} className="grid grid-cols-7 gap-1">
+            <div key={wi} className="grid grid-cols-7 gap-1.5">
               {week.map((date) => {
                 const inMonth = date.getMonth() === month - 1;
                 const dateStr = isoDate(date);
@@ -148,7 +148,7 @@ function CalendarBody() {
                   <div
                     key={dateStr}
                     className={[
-                      "flex h-14 flex-col items-center justify-center gap-0.5 px-1 text-xs",
+                      "flex h-16 flex-col items-center justify-center gap-1 px-1 text-s",
                       !inMonth
                         ? "text-muted/30"
                         : isBlocked
@@ -205,7 +205,7 @@ export function BookingCalendarLauncher() {
           onClick={() => setOpen(false)}
         >
           <div
-            className="max-h-[90vh] w-full max-w-lg overflow-y-auto border border-border bg-background p-5"
+            className="max-h-[92vh] w-full max-w-2xl overflow-y-auto border border-border bg-background p-6"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex items-center justify-between gap-3">
