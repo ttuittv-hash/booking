@@ -113,6 +113,17 @@ export function StepSafetyPledge({
   castContractFile: File | null;
   onCastContractFileChange: (file: File | null) => void;
 }) {
+  const allChecked = PLEDGE_ITEMS.every((item) => pledge[item.key]);
+
+  // 항목을 하나씩 다 누르기 번거롭다는 요청(2026-08-23, "체크박스 다 체크하기
+  // 귀찮으니.. 전체 동의 체크박스를 하나 추가해줘")에 따른 일괄 체크. 다시 누르면
+  // 전부 해제된다 — 일부만 체크된 상태에서 눌러도 "전체 동의"로 확실히 밀어준다.
+  function toggleAll(checked: boolean) {
+    const next = { ...pledge };
+    for (const item of PLEDGE_ITEMS) next[item.key] = checked;
+    onChange(next);
+  }
+
   return (
     <section>
       <StepHeading
@@ -120,7 +131,17 @@ export function StepSafetyPledge({
         lead="공연 안전 관리를 위한 서약 항목을 확인하고 동의해 주세요."
       />
 
-      <div className="mt-8 border border-border">
+      <label className="mt-8 flex cursor-pointer items-center gap-2.5 border border-border bg-panel px-5 py-3.5">
+        <input
+          type="checkbox"
+          checked={allChecked}
+          onChange={(e) => toggleAll(e.target.checked)}
+          className="h-4 w-4 accent-[var(--accent)]"
+        />
+        <span className="text-s font-bold text-foreground">전체 동의</span>
+      </label>
+
+      <div className="border border-t-0 border-border">
         {PLEDGE_ITEMS.map((item, i) => (
           <label
             key={item.key}
