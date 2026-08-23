@@ -866,13 +866,20 @@ export function PackagesForm({ rateTable }: { rateTable: RateTable }) {
                     <span className="text-s font-bold text-foreground">
                       {ADDON_CATEGORY_LABEL[category as keyof typeof ADDON_CATEGORY_LABEL] ?? category}
                     </span>
-                    <button
-                      type="button"
-                      onClick={() => openNewItemForm(category as AddonCategory, visibility)}
-                      className="px-2 py-1 text-xs font-bold text-foreground hover:underline"
-                    >
-                      + 항목 추가
-                    </button>
+                    <div className="flex items-center gap-1">
+                      <button
+                        type="button"
+                        onClick={() => openNewItemForm(category as AddonCategory, visibility)}
+                        className="px-2 py-1 text-xs font-bold text-foreground hover:underline"
+                      >
+                        + 항목 추가
+                      </button>
+                      <ExistingItemPicker
+                        targetVisibility={visibility}
+                        addons={addons}
+                        onPick={(addon) => pickExistingItem(addon, visibility)}
+                      />
+                    </div>
                   </div>
                   {/* 항목 행 — 카테고리보다 한 단계 더 들여써서 소속을 눈으로 바로 알 수 있게 한다. */}
                   <div className="ml-2.5 space-y-1.5 border-l border-border/40 pl-3.5">
