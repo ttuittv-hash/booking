@@ -74,7 +74,7 @@ function FileSlot({
 }) {
   const inputRef = useRef<HTMLInputElement>(null);
   return (
-    <div className="flex flex-col gap-1.5 sm:flex-row sm:items-center sm:justify-between sm:gap-3">
+    <div className="flex items-center justify-between gap-3 px-5 py-4">
       <div className="min-w-0">
         <span className="text-s font-bold text-foreground">
           {label} <span className="text-danger">*</span>
@@ -90,7 +90,7 @@ function FileSlot({
       <button
         type="button"
         onClick={() => inputRef.current?.click()}
-        className={`${btnClass("primary", "md")} shrink-0`}
+        className={`${btnClass("primary", "sm")} shrink-0`}
       >
         업로드
       </button>
@@ -158,13 +158,15 @@ export function StepSafetyPledge({
         <p className="mt-1 mb-4 break-keep text-xs leading-6 text-muted">
           아래 서류를 준비해 각각 업로드해 주세요.
         </p>
-        <div className="space-y-4">
+        <div className="border border-border">
           <FileSlot
             label="공연·행사 안전관리계획서"
             file={safetyPlanFile}
             onChange={onSafetyPlanFileChange}
           />
-          <FileSlot label="출연자 계약서" file={castContractFile} onChange={onCastContractFileChange} />
+          <div className="border-t border-border">
+            <FileSlot label="출연자 계약서" file={castContractFile} onChange={onCastContractFileChange} />
+          </div>
         </div>
       </div>
     </section>
