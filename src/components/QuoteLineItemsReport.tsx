@@ -10,9 +10,11 @@ function isMidHallLineItem(item: LineItem): boolean {
 // [개정 2026-08-21] 표는 "항목/수량/단가/금액" 4열로 단순하게 유지한다 — 기본 대관료는
 // 패키지 구성을 풀어 헤치지 않고 통으로 한 줄, 그 아래는 신청자가 실제로 고른 옵션만
 // 이어 붙인다(패키지 기본 구성을 전부 나열하는 별도 카드/행은 넣지 않음, 2026-08-21
-// 확정). 엔진이 자동으로 만드는 기본 요금·할인·유틸리티 라인에는 배지를 달지 않고,
-// 신청자가 직접 고른 부대시설에만 "선택 옵션" 배지를, 선택한 수량이 패키지 기본 포함
-// 범위 안에 들어 과금이 0원인 경우에만 "기본 포함" 배지를 붙인다.
+// 확정).
+// [개정 2026-08-23] "선택 옵션"·"기본 포함" 배지는 뺐다 — 이제 기본/전용/옵션 그룹
+// 헤더가 이미 그 구분을 보여주므로 항목마다 배지를 또 붙이면 중복이라는 지적
+// ("이미 상단에서 기본, 옵션 등으로나누어서 들어가니까 뱃지는 필요없어"). 대신 무상
+// 포함이라 과금이 0원인 항목은 단가·금액 칸에 "포함"(녹색)으로만 표시한다.
 const CORE_LINE_IDS = new Set([
   "BASE_FEE",
   "package_discount",
@@ -138,59 +140,51 @@ function LineItemTable({
                 </td>
               </tr>
             ) : (
-              FEE_GROUP_ORDER.flatMap((group) => {
-                const groupItems = items.filter((item) => feeGroupOf(item) === group);
-                if (groupItems.length === 0) return [];
-                const groupSubtotal = groupItems.reduce((sum, item) => sum + item.amount, 0);
-                return [
-                  <tr key={`group-${group}`} className="bg-panel/60">
-                    <td colSpan={3} className={`${cellPad} text-left text-xs font-bold text-muted`}>
-                      {FEE_GROUP_LABEL[group]}
-                    </td>
-                    <td className={`${cellPad} text-right text-xs font-bold text-muted tabular-nums`}>
-                      {won(groupSubtotal)}
-                    </td>
-                  </tr>,
-                  ...groupItems.map((item) => {
-                    const isIncluded = item.included > 0 && item.billable === 0 && item.amount === 0;
-                    const isOptionalAddon = !isIncluded && !isCoreLine(item);
-                    return (
-                      <tr key={item.addonId} className="border-b border-border/70 tabular-nums">
-                        <td className={`${cellPad} pl-4 text-left`}>
-                          <div className="flex flex-wrap items-center gap-1.5">
+              (() => {
+                const activeGroups = FEE_GROUP_ORDER.filter((g) => items.some((item) => feeGroupOf(item) === g));
+                return activeGroups.flatMap((group, gi) => {
+                  const groupItems = items.filter((item) => feeGroupOf(item) === group);
+                  const groupSubtotal = groupItems.reduce((sum, item) => sum + item.amount, 0);
+                  return [
+                    // 그룹 라벨은 옅은 배경 대신 굵은 텍스트 + 위 여백만으로 구분한다 —
+                    // 배경을 칠하면 표 안에서 붕 뜬 "회색 줄"처럼 보인다는 지적(2026-08-23,
+                    // "하얗게 들어가게 너무 이상해")에 따른 수정.
+                    <tr key={`group-${group}`} className={gi > 0 ? "border-t border-border/60" : undefined}>
+                      <td colSpan={3} className="pt-5 pb-1.5 text-left text-xs font-bold text-foreground">
+                        {FEE_GROUP_LABEL[group]}
+                      </td>
+                      <td className="pt-5 pb-1.5 text-right text-xs font-bold text-muted tabular-nums">
+                        {won(groupSubtotal)}
+                      </td>
+                    </tr>,
+                    ...groupItems.map((item) => {
+                      const isIncluded = item.included > 0 && item.billable === 0 && item.amount === 0;
+                      return (
+                        <tr key={item.addonId} className="border-b border-border/70 tabular-nums">
+                          <td className={`${cellPad} pl-4 text-left`}>
                             <span className="font-bold">{item.label}</span>
-                            {isIncluded && (
-                              <span className="bg-good-soft px-1.5 py-0.5 text-xs font-bold text-good">
-                                기본 포함
-                              </span>
-                            )}
-                            {isOptionalAddon && (
-                              <span className="bg-warn-soft px-1.5 py-0.5 text-xs font-bold text-warn">
-                                선택 옵션
-                              </span>
-                            )}
-                          </div>
-                        </td>
-                        <td className={`${cellPad} text-right`}>
-                          {item.pricingType === "REVENUE_PERCENT"
-                            ? `${won(expectedRevenue)} × ${item.unitPrice}%`
-                            : item.requested.toLocaleString()}
-                        </td>
-                        <td className={`${cellPad} text-right ${isIncluded ? "text-good" : ""}`}>
-                          {isIncluded
-                            ? "포함"
-                            : item.pricingType === "REVENUE_PERCENT"
-                              ? "-"
-                              : won(item.unitPrice)}
-                        </td>
-                        <td className={`${cellPad} text-right font-bold ${isIncluded ? "text-good" : ""}`}>
-                          {isIncluded ? "포함" : won(item.amount)}
-                        </td>
-                      </tr>
-                    );
-                  }),
-                ];
-              })
+                          </td>
+                          <td className={`${cellPad} text-right`}>
+                            {item.pricingType === "REVENUE_PERCENT"
+                              ? `${won(expectedRevenue)} × ${item.unitPrice}%`
+                              : item.requested.toLocaleString()}
+                          </td>
+                          <td className={`${cellPad} text-right ${isIncluded ? "text-good" : ""}`}>
+                            {isIncluded
+                              ? "포함"
+                              : item.pricingType === "REVENUE_PERCENT"
+                                ? "-"
+                                : won(item.unitPrice)}
+                          </td>
+                          <td className={`${cellPad} text-right font-bold ${isIncluded ? "text-good" : ""}`}>
+                            {isIncluded ? "포함" : won(item.amount)}
+                          </td>
+                        </tr>
+                      );
+                    }),
+                  ];
+                });
+              })()
             )}
           </tbody>
           <tfoot>
