@@ -185,21 +185,22 @@ export function PackagesForm({ rateTable }: { rateTable: RateTable }) {
   }
 
   /**
-   * ③ 선택 가능 옵션 전용 — "이 패키지에서 제공하는가"(2026-08-23, "체크한것만 노출되는걸로
-   * 바꿔라"). availability.mode가 ALWAYS/IF_PACKAGE_IN인 항목만 대상이다(IF_NOT_INCLUDED는
-   * "이미 포함돼 있지 않을 때만"이라는 별도 자동 규칙이라 이 토글 대상이 아니다).
+   * ③ 선택 가능 옵션 전용 — "이 패키지에서 노출되는가"(2026-08-23, "체크한것만 노출되는걸로
+   * 바꿔라" · "제공이 아닌 노출로 변경"). availability.mode가 ALWAYS/IF_PACKAGE_IN인 항목만
+   * 대상이다(IF_NOT_INCLUDED는 "이미 포함돼 있지 않을 때만"이라는 별도 자동 규칙이라 이
+   * 토글 대상이 아니다).
    *
    * 무상 포함 수량(includedItems)과는 완전히 별개 값이다 — 노출만 켜고 무상 수량은 0으로
    * 둘 수 있어야, 무상 제공 없이 "유상으로 살 수 있게만" 하는 패키지를 만들 수 있다.
    */
-  function isOfferedForActive(addon: AddonItem): boolean {
+  function isExposedForActive(addon: AddonItem): boolean {
     if (addon.availability.mode === "IF_PACKAGE_IN") {
       return !!addon.availability.packages?.includes(active.id);
     }
-    return true; // ALWAYS · IF_NOT_INCLUDED — 토글 없이 항상 제공으로 취급
+    return true; // ALWAYS · IF_NOT_INCLUDED — 토글 없이 항상 노출로 취급
   }
 
-  function setOfferedForActive(addon: AddonItem, offered: boolean) {
+  function setExposedForActive(addon: AddonItem, exposed: boolean) {
     setAddons((prev) =>
       prev.map((a) => {
         if (a.id !== addon.id) return a;
@@ -207,7 +208,7 @@ export function PackagesForm({ rateTable }: { rateTable: RateTable }) {
         // (전 패키지 id를 명시적으로 채워서) 이 패키지만 빼거나 넣는다. 그래야 이 패키지에서
         // 한 번 껐다고 다른 패키지에서까지 갑자기 안 보이는 회귀가 안 생긴다.
         const base = a.availability.mode === "IF_PACKAGE_IN" ? (a.availability.packages ?? []) : packages.map((p) => p.id);
-        const next = offered ? Array.from(new Set([...base, active.id])) : base.filter((id) => id !== active.id);
+        const next = exposed ? Array.from(new Set([...base, active.id])) : base.filter((id) => id !== active.id);
         return { ...a, availability: { mode: "IF_PACKAGE_IN", packages: next } };
       }),
     );
@@ -261,7 +262,7 @@ export function PackagesForm({ rateTable }: { rateTable: RateTable }) {
       unitPrice: Math.max(0, newItemPrice || 0),
       unitLabel: newItemUnitLabel.trim() || "원",
       // 선택 옵션으로 새로 만드는 항목은 지금 편집 중인 이 패키지에만 우선 노출한다 —
-      // 다른 패키지에서도 팔려면 그 패키지 편집 화면에서 "제공" 체크를 따로 켜야 한다.
+      // 다른 패키지에서도 팔려면 그 패키지 편집 화면에서 "노출" 체크를 따로 켜야 한다.
       availability:
         newItemVisibility === "VISIBLE" ? { mode: "IF_PACKAGE_IN", packages: [activeId] } : { mode: "ALWAYS" },
       billingPhase: "ESTIMATE",
@@ -647,7 +648,7 @@ export function PackagesForm({ rateTable }: { rateTable: RateTable }) {
               badge: "항목 · 금액 노출",
               badgeClass: "bg-accent text-on-accent",
               slotClass: "border-accent/60 bg-accent-soft/15",
-              desc: "신청자가 STEP 2(구성·옵션)에서 직접 수량을 정해 선택하는 항목 — 항목명·단가·금액이 모두 노출된다. 항목마다 있는 \"제공\" 체크를 켠 패키지의 신청자에게만 노출된다(껐다고 다른 패키지에서도 사라지지는 않는다) — 무상 포함 수량과는 별개다.",
+              desc: "신청자가 STEP 2(구성·옵션)에서 직접 수량을 정해 선택하는 항목 — 항목명·단가·금액이 모두 노출된다. 항목마다 있는 \"노출\" 체크를 켠 패키지의 신청자에게만 노출된다(껐다고 다른 패키지에서도 사라지지는 않는다) — 무상 포함 수량과는 별개다.",
             },
           ]
         ).map(({ visibility, grouped: groupedByVisibility, title, badge, badgeClass, slotClass, desc }) => (
@@ -744,8 +745,8 @@ export function PackagesForm({ rateTable }: { rateTable: RateTable }) {
                       const qty = includedQty(addon.id);
                       const checked = qty > 0;
                       const isVisibleOption = visibility === "VISIBLE";
-                      const autoOffered = addon.availability.mode === "IF_NOT_INCLUDED";
-                      const offered = isOfferedForActive(addon);
+                      const autoExposed = addon.availability.mode === "IF_NOT_INCLUDED";
+                      const exposed = isExposedForActive(addon);
                       return (
                         <div
                           key={addon.id}
@@ -753,7 +754,7 @@ export function PackagesForm({ rateTable }: { rateTable: RateTable }) {
                         >
                           <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-s">
                             {isVisibleOption &&
-                              (autoOffered ? (
+                              (autoExposed ? (
                                 <span
                                   className="shrink-0 px-1.5 py-0.5 text-[10px] font-bold text-muted"
                                   title="이 패키지에 무상 포함되어 있지 않을 때만 자동으로 노출됩니다"
@@ -764,10 +765,10 @@ export function PackagesForm({ rateTable }: { rateTable: RateTable }) {
                                 <label className="flex shrink-0 items-center gap-1.5">
                                   <input
                                     type="checkbox"
-                                    checked={offered}
-                                    onChange={(e) => setOfferedForActive(addon, e.target.checked)}
+                                    checked={exposed}
+                                    onChange={(e) => setExposedForActive(addon, e.target.checked)}
                                   />
-                                  <span className="text-xs font-bold text-foreground">제공</span>
+                                  <span className="text-xs font-bold text-foreground">노출</span>
                                 </label>
                               ))}
                             <label className="flex items-center gap-2">
