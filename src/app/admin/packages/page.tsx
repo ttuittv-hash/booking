@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/lib/auth";
-import { getCurrentRateTable } from "@/lib/db";
+import { getCurrentRateTable, getRatesContent } from "@/lib/db";
 import { AdminNav } from "@/components/admin/AdminNav";
 import { PackagesForm } from "@/components/admin/PackagesForm";
 import { PAGE_LEAD, PAGE_TITLE } from "@/components/admin/adminUi";
@@ -10,7 +10,7 @@ export default async function AdminPackagesPage() {
   if (!user) redirect("/admin/login");
   if (user.role !== "ADMIN") redirect("/apply");
 
-  const rateTable = await getCurrentRateTable();
+  const [rateTable, ratesContent] = await Promise.all([getCurrentRateTable(), getRatesContent()]);
 
   return (
     <div className="flex flex-1 flex-col">
@@ -26,7 +26,7 @@ export default async function AdminPackagesPage() {
           </p>
         </header>
 
-        <PackagesForm rateTable={rateTable} />
+        <PackagesForm rateTable={rateTable} ratesContent={ratesContent} />
       </main>
     </div>
   );

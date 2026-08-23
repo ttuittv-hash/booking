@@ -45,6 +45,7 @@ import {
   type MediaTier,
   type RateTable,
 } from "@/lib/pricing/types";
+import type { ChargeBlock, Pair, RatesContent } from "@/lib/content/pageContent";
 
 type EditablePackage = RateTable["packages"][number];
 
@@ -180,7 +181,7 @@ const VENUE_URL_VALUES = ["arena", "live-hall"] as const;
 const URL_TO_VENUE: Record<string, "arena" | "medium-hall"> = { arena: "arena", "live-hall": "medium-hall" };
 const VENUE_TO_URL: Record<"arena" | "medium-hall", "arena" | "live-hall"> = { arena: "arena", "medium-hall": "live-hall" };
 
-export function PackagesForm({ rateTable }: { rateTable: RateTable }) {
+export function PackagesForm({ rateTable, ratesContent }: { rateTable: RateTable; ratesContent: RatesContent }) {
   const router = useRouter();
   const [packages, setPackages] = useState<EditablePackage[]>(rateTable.packages);
   const [activeId, setActiveId] = useState(rateTable.packages[0]?.id ?? 1);
@@ -196,6 +197,17 @@ export function PackagesForm({ rateTable }: { rateTable: RateTable }) {
   const [newItemUnitLabel, setNewItemUnitLabel] = useState("");
   const [newItemPrice, setNewItemPrice] = useState(0);
   const [pickerCategory, setPickerCategory] = useState<AddonCategory>(ADDON_CATEGORIES[0]);
+
+  // 중형공연장 "기본 항목"/"옵션" 슬롯 — 대관 신청 위저드 STEP2(구성·옵션)의
+  // MidHallRateCard가 그대로 읽는 정본(RatesContent.liveHall.includes/charges)을
+  // 여기서 직접 편집한다(2026-08-23, "어드민서 중형공연장 패키지도 기본 항목 추가,
+  // 옵션 항목 추가하는 슬롯설정으로 만들어달라" · "프론트 노출 기준으로 어드민도
+  // 세팅"). 아레나 슬롯과 저장 대상만 다를 뿐 같은 화면(패키지 관리)에 같은 모양의
+  // "추가" 버튼을 둔다. 저장은 패키지·addons와 별도 API(rates 콘텐츠)라 버튼도 분리한다.
+  const [midHallIncludes, setMidHallIncludes] = useState<Pair[]>(ratesContent.liveHall.includes);
+  const [midHallCharges, setMidHallCharges] = useState<ChargeBlock[]>(ratesContent.liveHall.charges);
+  const [midHallSaving, setMidHallSaving] = useState(false);
+  const [midHallMessage, setMidHallMessage] = useState<string | null>(null);
 
   const active = packages.find((p) => p.id === activeId)!;
   const venuePackages = packages.filter((p) => (p.venueId ?? DEFAULT_VENUE_ID) === venueTab);
@@ -416,6 +428,51 @@ export function PackagesForm({ rateTable }: { rateTable: RateTable }) {
       router.refresh();
     } finally {
       setSaving(false);
+    }
+  }
+
+  function addMidHallInclude() {
+    setMidHallIncludes((prev) => [...prev, { label: "", value: "" }]);
+  }
+  function updateMidHallInclude(index: number, patch: Partial<Pair>) {
+    setMidHallIncludes((prev) => prev.map((it, i) => (i === index ? { ...it, ...patch } : it)));
+  }
+  function removeMidHallInclude(index: number) {
+    setMidHallIncludes((prev) => prev.filter((_, i) => i !== index));
+  }
+
+  function addMidHallCharge() {
+    setMidHallCharges((prev) => [...prev, { group: "", item: "", cost: "", note: "" }]);
+  }
+  function updateMidHallCharge(index: number, patch: Partial<ChargeBlock>) {
+    setMidHallCharges((prev) => prev.map((it, i) => (i === index ? { ...it, ...patch } : it)));
+  }
+  function removeMidHallCharge(index: number) {
+    setMidHallCharges((prev) => prev.filter((_, i) => i !== index));
+  }
+
+  async function saveMidHallRates() {
+    setMidHallSaving(true);
+    setMidHallMessage(null);
+    try {
+      const content: RatesContent = {
+        ...ratesContent,
+        liveHall: { ...ratesContent.liveHall, includes: midHallIncludes, charges: midHallCharges },
+      };
+      const res = await fetch("/api/admin/content/rates", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ content }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setMidHallMessage(data.error || "저장에 실패했습니다.");
+        return;
+      }
+      setMidHallMessage("저장되었습니다. 대관 신청 위저드 STEP2에 바로 반영됩니다.");
+      router.refresh();
+    } finally {
+      setMidHallSaving(false);
     }
   }
 
@@ -737,16 +794,137 @@ export function PackagesForm({ rateTable }: { rateTable: RateTable }) {
         </section>
 
         {venueTab === "medium-hall" && (
-          <p className="border-l-2 border-accent bg-accent-soft/40 px-4 py-3 text-xs leading-5 text-foreground">
-            중형공연장은 이 목록(추가 옵션)을 쓰지 않습니다 — 대관 신청 위저드의 &ldquo;구성 · 옵션&rdquo;
-            화면에 노출되는 <strong>기본 항목</strong> / <strong>옵션</strong> 구분은{" "}
-            <Link href="/admin/content?tab=rates" className="underline hover:no-underline">
-              콘텐츠 관리 &gt; 대관료
-            </Link>{" "}
-            화면의 &ldquo;중형공연장 탭&rdquo; 안 &ldquo;기본 항목(RATE INCLUDES)&rdquo; /
-            &ldquo;옵션(ADDITIONAL CHARGES)&rdquo; 목록에서 세팅합니다. 여기서는 STEP 2(구성·옵션)에
-            표시되는 기본 구성 안내 문구만 편집합니다.
-          </p>
+          <section>
+            <p className="mb-4 border-l-2 border-accent bg-accent-soft/40 px-4 py-3 text-xs leading-5 text-foreground">
+              중형공연장은 패키지가 아니라 대관료(요금표 관리)에 딸린 <strong>기본 항목</strong> /{" "}
+              <strong>옵션</strong> 두 슬롯으로 구성을 관리합니다 — 여기서 추가·수정·삭제한 내용이
+              대관 신청 위저드 STEP 2(구성·옵션)의 중형공연장 화면과{" "}
+              <Link href="/rates" className="underline hover:no-underline">
+                대관료 안내(/rates)
+              </Link>{" "}
+              페이지에 그대로 노출됩니다.
+            </p>
+
+            <section className="border-l-4 border-good/60 bg-good/5 p-4">
+              <div className="flex flex-wrap items-center gap-2">
+                <h2 className="type-kr-heading text-h6-m">① 기본 항목</h2>
+                <span className="bg-good px-2 py-0.5 text-xs font-bold text-white">기본 포함</span>
+              </div>
+              <p className="mt-1 text-xs text-muted">
+                대관료에 이미 포함된 항목 — 신청자 화면에는 항목명·내용만 노출되고 금액은 없습니다
+                (예: 냉난방, 공간, 장비, 주차, 미화).
+              </p>
+
+              <div className="mt-4 grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3">
+                {midHallIncludes.map((item, i) => (
+                  <div key={i} className="flex flex-col gap-1.5 border border-border-soft bg-panel px-3 py-2">
+                    <input
+                      type="text"
+                      placeholder="구분 (예: 냉난방)"
+                      value={item.label}
+                      onChange={(e) => updateMidHallInclude(i, { label: e.target.value })}
+                      className={FIELD_SM}
+                    />
+                    <input
+                      type="text"
+                      placeholder="포함 내용"
+                      value={item.value}
+                      onChange={(e) => updateMidHallInclude(i, { value: e.target.value })}
+                      className={FIELD_SM}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => removeMidHallInclude(i)}
+                      className={`self-end ${REMOVE_BTN}`}
+                    >
+                      삭제
+                    </button>
+                  </div>
+                ))}
+              </div>
+              <button
+                type="button"
+                onClick={addMidHallInclude}
+                className="mt-3 px-2 py-1 text-xs font-bold text-foreground hover:underline"
+              >
+                + 기본 항목 추가
+              </button>
+            </section>
+
+            <section className="mt-6 border-l-4 border-accent/60 bg-accent-soft/15 p-4">
+              <div className="flex flex-wrap items-center gap-2">
+                <h2 className="type-kr-heading text-h6-m">② 옵션</h2>
+                <span className="bg-accent px-2 py-0.5 text-xs font-bold text-on-accent">항목 · 금액 노출</span>
+              </div>
+              <p className="mt-1 text-xs text-muted">
+                추가 비용이 발생하는 항목 — &ldquo;구분&rdquo;은 위저드 화면에서 항목을 묶는 그룹
+                제목으로 쓰입니다(예: 추가대관, 공간·프로모션, 기타). &ldquo;추가대관&rdquo; 그룹은
+                위저드에서 시간 단위로 직접 조정할 수 있게 이미 연동돼 있고, 그 외 그룹은 금액을
+                그대로 보여주는 참고용으로 노출됩니다.
+              </p>
+
+              <div className="mt-4 grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3">
+                {midHallCharges.map((item, i) => (
+                  <div key={i} className="flex flex-col gap-1.5 border border-border-soft bg-panel px-3 py-2">
+                    <input
+                      type="text"
+                      placeholder="구분 (그룹)"
+                      value={item.group}
+                      onChange={(e) => updateMidHallCharge(i, { group: e.target.value })}
+                      className={FIELD_SM}
+                    />
+                    <input
+                      type="text"
+                      placeholder="항목"
+                      value={item.item}
+                      onChange={(e) => updateMidHallCharge(i, { item: e.target.value })}
+                      className={FIELD_SM}
+                    />
+                    <input
+                      type="text"
+                      placeholder="비용"
+                      value={item.cost}
+                      onChange={(e) => updateMidHallCharge(i, { cost: e.target.value })}
+                      className={FIELD_SM}
+                    />
+                    <input
+                      type="text"
+                      placeholder="비고"
+                      value={item.note}
+                      onChange={(e) => updateMidHallCharge(i, { note: e.target.value })}
+                      className={FIELD_SM}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => removeMidHallCharge(i)}
+                      className={`self-end ${REMOVE_BTN}`}
+                    >
+                      삭제
+                    </button>
+                  </div>
+                ))}
+              </div>
+              <button
+                type="button"
+                onClick={addMidHallCharge}
+                className="mt-3 px-2 py-1 text-xs font-bold text-foreground hover:underline"
+              >
+                + 옵션 항목 추가
+              </button>
+            </section>
+
+            <div className="mt-5 flex items-center gap-3">
+              <button
+                type="button"
+                onClick={saveMidHallRates}
+                disabled={midHallSaving}
+                className={btnClass("primary", "md")}
+              >
+                {midHallSaving ? "저장 중..." : "기본 항목 · 옵션 저장"}
+              </button>
+              {midHallMessage && <p className="text-xs text-muted">{midHallMessage}</p>}
+            </div>
+          </section>
         )}
 
         {venueTab === "arena" && (
