@@ -23,6 +23,143 @@ import { CHOICE_SELECTED_VARS, choiceClass } from "@/components/ui/kit";
 import { BaseCompositionCard } from "./BaseCompositionCard";
 import { StepHeading } from "./StepHeading";
 
+const RATE_INCLUDES = [
+  { item: "냉난방", detail: "기준 이용시간" },
+  { item: "공간", detail: "야외광장 및 티켓박스 · 대기실 4개실 및 퀵체인지룸" },
+  { item: "장비", detail: "무대리프트 · 팔로우스팟 4개 · 프로덕션 전력(3000A) · 샤막" },
+  { item: "주차", detail: "100대" },
+  { item: "미화", detail: "객석 기본 클리닝(특효류 포함)" },
+];
+
+const ADDITIONAL_CHARGES = [
+  { group: "온라인 콘서트 진행", item: "진행 여부", cost: "온라인 매출의 5%" },
+  { group: "추가대관", item: "09:00~24:00", cost: "1,000,000원/시간당" },
+  { group: "추가대관", item: "24:00~06:00", cost: "1,500,000원/시간당" },
+  { group: "공간·프로모션", item: "팝업 공간", cost: "2,000,000원/1일 · 20평 기준" },
+  { group: "공간·프로모션", item: "B1F 연습실", cost: "1,000,000원/1일 기준" },
+  { group: "공간·프로모션", item: "옥외 광고", cost: "별도 협의(위치·규격에 따라 산정)" },
+  { group: "공간·프로모션", item: "송출 수수료", cost: "별도 협의(매출의 3% or 정액)" },
+  { group: "기타", item: "수도광열비", cost: "실비(실사용량 기준)" },
+  { group: "기타", item: "추가 주차권", cost: "15,000원/1일권 · 대당" },
+];
+
+// [신규 2026-08-23] 중형공연장 구성·옵션 탭에 Live Hall RATE 카드를 그대로 노출한다
+// ("구성/옵션 탭 > 중형공연장 탭 구성 노출하는게 중요해"). 대관료·전용/시설 사용료는
+// rateTable.midHall(admin에서 이미 관리 중인 실제 값)에서 그대로 가져오고, RATE
+// INCLUDES·ADDITIONAL CHARGES는 목업 문구를 그대로 참고용으로 보여준다 — 후자는 "별도
+// 협의"·"실비" 항목이 섞여 있어 이번 단계에서는 견적 계산에 자동 반영하지 않는다.
+function MidHallRateCard({ rateTable }: { rateTable: RateTable }) {
+  const mh = rateTable.midHall;
+  const bd = mh.breakdown;
+  const columns: { label: string; total: number; exclusive?: number; facility?: number }[] = [
+    { label: "평일/주말 셋업", total: mh.setupDayFee, exclusive: bd?.setup.exclusive, facility: bd?.setup.facility },
+    {
+      label: "평일 공연",
+      total: mh.performanceWeekdayFee,
+      exclusive: bd?.weekday.exclusive,
+      facility: bd?.weekday.facility,
+    },
+    {
+      label: "주말 공연",
+      total: mh.performanceWeekendFee,
+      exclusive: bd?.weekend.exclusive,
+      facility: bd?.weekend.facility,
+    },
+  ];
+
+  return (
+    <div className="mt-10 border-t-2 border-foreground pt-5">
+      <h2 className="type-kr-heading text-h6-m sm:text-h6">일자별 대관료</h2>
+      <div className="mt-4 overflow-x-auto">
+        <table className="w-full min-w-[420px] border-collapse text-s">
+          <thead>
+            <tr className="border-b border-border text-xs font-bold text-muted">
+              <th className="py-2 text-left">구분</th>
+              {columns.map((c) => (
+                <th key={c.label} className="py-2 text-right">
+                  {c.label}
+                </th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            <tr className="border-b border-border/70 tabular-nums">
+              <td className="py-2.5 text-left font-bold">대관료</td>
+              {columns.map((c) => (
+                <td key={c.label} className="py-2.5 text-right font-bold">
+                  {won(c.total)}
+                </td>
+              ))}
+            </tr>
+            {bd && (
+              <>
+                <tr className="border-b border-border/50 tabular-nums text-muted">
+                  <td className="py-2 pl-3 text-left">ㄴ 전용 사용료</td>
+                  {columns.map((c) => (
+                    <td key={c.label} className="py-2 text-right">
+                      {won(c.exclusive ?? 0)}
+                    </td>
+                  ))}
+                </tr>
+                <tr className="border-b border-border/50 tabular-nums text-muted">
+                  <td className="py-2 pl-3 text-left">ㄴ 시설 사용료</td>
+                  {columns.map((c) => (
+                    <td key={c.label} className="py-2 text-right">
+                      {won(c.facility ?? 0)}
+                    </td>
+                  ))}
+                </tr>
+              </>
+            )}
+          </tbody>
+        </table>
+      </div>
+
+      <h2 className="type-kr-heading mt-10 text-h6-m sm:text-h6">기본 제공(RATE INCLUDES)</h2>
+      <dl className="mt-4 divide-y divide-border/40 border-t border-border/40">
+        {RATE_INCLUDES.map((row) => (
+          <div key={row.item} className="flex flex-col gap-1 py-2.5 sm:flex-row sm:gap-4">
+            <dt className="shrink-0 text-xs font-bold text-muted sm:w-20">{row.item}</dt>
+            <dd className="text-s text-foreground">{row.detail}</dd>
+          </div>
+        ))}
+      </dl>
+
+      <h2 className="type-kr-heading mt-10 text-h6-m sm:text-h6">추가 비용 안내(ADDITIONAL CHARGES)</h2>
+      <p className="mt-1.5 text-xs leading-6 text-muted">
+        참고용 안내이며 예상 대관료에는 자동 반영되지 않습니다. 필요 시 별도로 협의합니다.
+      </p>
+      <div className="mt-4 overflow-x-auto">
+        <table className="w-full min-w-[420px] border-collapse text-s">
+          <thead>
+            <tr className="border-b border-border text-xs font-bold text-muted">
+              <th className="py-2 text-left">구분</th>
+              <th className="py-2 text-left">항목</th>
+              <th className="py-2 text-right">비용</th>
+            </tr>
+          </thead>
+          <tbody>
+            {ADDITIONAL_CHARGES.map((row, i) => (
+              <tr key={`${row.group}-${row.item}`} className="border-b border-border/50 text-xs">
+                {(i === 0 || ADDITIONAL_CHARGES[i - 1].group !== row.group) && (
+                  <td
+                    className="py-2 text-left font-bold text-foreground"
+                    rowSpan={ADDITIONAL_CHARGES.filter((r) => r.group === row.group).length}
+                  >
+                    {row.group}
+                  </td>
+                )}
+                <td className="py-2 text-left text-muted">{row.item}</td>
+                <td className="py-2 text-right tabular-nums">{row.cost}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+}
+
 // [화면 뼈대 2026-08-18, 화면시나리오 SCREEN 05/12] "규모/패키지 선택 → 기본 포함사항 →
 // 추가 옵션" 3개 화면을 STEP 2(구성·옵션) 한 화면으로 합친다.
 // [개정 2026-08-20] 패키지는 더 이상 관객 규모로 자동 결정하지 않는다 — 아레나 탭 안에
@@ -196,9 +333,7 @@ export function StepConfigOptions({
           note="대관료에 이미 포함된 구성 — 예약 일수와 무관하게 동일하게 제공됩니다"
         />
 
-        <p className="mt-6 text-s text-muted">
-          추가 옵션(시설사용료 · 센터리프트 등) 선택 화면은 다음 업데이트에서 반영됩니다.
-        </p>
+        <MidHallRateCard rateTable={rateTable} />
       </section>
     );
   }
@@ -304,9 +439,7 @@ export function StepConfigOptions({
         note="대관료에 이미 포함된 구성 — 예약 일수와 무관하게 동일하게 제공됩니다"
       />
 
-      <p className="mt-6 text-s text-muted">
-        추가 옵션(시설사용료 · 센터리프트 등) 선택 화면은 다음 업데이트에서 반영됩니다.
-      </p>
+      <MidHallRateCard rateTable={rateTable} />
     </>
   );
 
