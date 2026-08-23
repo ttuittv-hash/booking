@@ -13,6 +13,9 @@ import { CHOICE_SELECTED_VARS } from "@/components/ui/kit";
 // 있었다("구성/옵션 -> 신청서 제출로 넘어가는 부분 오류.. 기본 정보로 넘어가야지"). 내부
 // 스텝 번호 자체를 그룹 순서와 일치하도록 재배치해 3~6을 기본 정보(신청자 정보·관객·
 // 공공성·안전관리 서약서), 7~8을 신청서 제출(예상 대관료·최종 제출)로 바꿨다.
+// [개정 2026-08-23] "신청자 정보"·"규모" 두 하위 탭을 STEP 3 하나로 합쳤다
+// ("신청자 정보 탭을 신청자 정보 및 규모로 변경하고, 규모 탭 내역을 합쳐") — 그만큼
+// 기본 정보 그룹의 나머지 스텝 번호가 하나씩 당겨진다.
 interface SubStep {
   step: number;
   label: string;
@@ -29,18 +32,17 @@ const STAGE_GROUPS: StageGroup[] = [
   {
     label: "03 기본 정보",
     steps: [
-      { step: 3, label: "신청자 정보" },
-      { step: 4, label: "규모" },
-      { step: 5, label: "공공/공익 참여 여부" },
-      { step: 6, label: "홍보 및 서비스 계획" },
-      { step: 7, label: "안전관리 서약서" },
+      { step: 3, label: "신청자 정보 및 규모" },
+      { step: 4, label: "공공/공익 참여 여부" },
+      { step: 5, label: "홍보 및 서비스 계획" },
+      { step: 6, label: "안전관리 서약서" },
     ],
   },
   {
     label: "04 신청서 제출",
     steps: [
-      { step: 8, label: "예상 대관료" },
-      { step: 9, label: "최종 제출" },
+      { step: 7, label: "예상 대관료" },
+      { step: 8, label: "최종 제출" },
     ],
   },
 ];

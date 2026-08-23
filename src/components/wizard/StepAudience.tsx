@@ -209,6 +209,7 @@ export function StepAudience({
   selection,
   files,
   onFilesChange,
+  showHeading = true,
 }: {
   info: PerformanceInfo;
   onChange: (info: PerformanceInfo) => void;
@@ -217,6 +218,9 @@ export function StepAudience({
   selection: QuoteSelection;
   files: File[];
   onFilesChange: (files: File[]) => void;
+  // [2026-08-23] "신청자 정보"·"규모" 탭을 하나로 합치면서, 합친 화면에서는 큰 제목이
+  // 두 번 나오지 않게 이 컴포넌트만 자기 제목(StepHeading)을 생략할 수 있게 했다.
+  showHeading?: boolean;
 }) {
   const [activeTab, setActiveTab] = useState<VenueSplitTab>(midHallInfo ? "ARENA" : "COMMON");
 
@@ -252,10 +256,12 @@ export function StepAudience({
 
   return (
     <section>
-      <StepHeading
-        title="규모"
-        lead="관객 수는 공간별로 자동 산정되며, 객석배치도는 계획안 기준으로 별도 첨부합니다."
-      />
+      {showHeading && (
+        <StepHeading
+          title="규모"
+          lead="관객 수는 공간별로 자동 산정되며, 객석배치도는 계획안 기준으로 별도 첨부합니다."
+        />
+      )}
 
       {isSimultaneous && (
         <VenueSplitTabBar

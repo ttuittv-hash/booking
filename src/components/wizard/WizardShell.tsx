@@ -37,7 +37,7 @@ import { StepMarketingCooperation, validateMarketingCooperationStep } from "./St
 import { StepSafetyPledge, validateSafetyPledgeStep } from "./StepSafetyPledge";
 import { Step6Submit } from "./Step6Submit";
 
-const TOTAL_STEPS = 9;
+const TOTAL_STEPS = 8;
 
 const DEFAULT_SAFETY_PLEDGE: SafetyPledge = {
   safetyStructure: false,
@@ -314,18 +314,20 @@ export function WizardShell({
   // [개정 2026-08-22] "신청자 정보"·"규모"의 필수값을 채우지 않으면 그 다음 단계로도
   // 못 넘어가게 한다("다음" 버튼뿐 아니라 스텝 탭을 직접 눌러 건너뛰는 것도 막는다) —
   // 자료 첨부만 선택이고 나머지는 필수라는 요청(2026-08-22)의 연장.
+  // [개정 2026-08-23] "신청자 정보"·"규모" 탭을 STEP 3 하나로 합쳤다 — 두 화면의
+  // 필수값을 한 게이트에서 같이 검사한다.
   const step3Blocked =
     validatePerformanceInfoStep(selection.performanceInfo, selection.midHallPerformanceInfo ? "아레나" : undefined) ??
-    (selection.midHallPerformanceInfo && validatePerformanceInfoStep(selection.midHallPerformanceInfo, "중형공연장"));
-  const step4Blocked =
+    (selection.midHallPerformanceInfo && validatePerformanceInfoStep(selection.midHallPerformanceInfo, "중형공연장")) ??
     validateAudienceStep(selection.performanceInfo, selection.midHallPerformanceInfo ? "아레나" : undefined) ??
     (selection.midHallPerformanceInfo && validateAudienceStep(selection.midHallPerformanceInfo, "중형공연장"));
-  // 홍보 및 서비스 노출 동의(6단계)·안전관리 서약(7단계)도 필수라 그 다음 단계로
-  // 못 넘어가게 막는다(2026-08-22, "무조건 필수").
-  const step6Blocked = validateMarketingCooperationStep(
+  // 홍보 및 서비스 노출 동의(STEP 5)·안전관리 서약(STEP 6)도 필수라 그 다음 단계로
+  // 못 넘어가게 막는다(2026-08-22, "무조건 필수"). STEP 4(공공/공익 참여 여부)는
+  // 선택 항목이라 별도 게이트가 없다 — 통과 여부와 무관하게 STEP 5까지는 열린다.
+  const step5Blocked = validateMarketingCooperationStep(
     selection.marketingCooperation ?? DEFAULT_MARKETING_COOPERATION,
   );
-  const step7Blocked = validateSafetyPledgeStep(selection.safetyPledge ?? DEFAULT_SAFETY_PLEDGE, {
+  const step6Blocked = validateSafetyPledgeStep(selection.safetyPledge ?? DEFAULT_SAFETY_PLEDGE, {
     safetyPlanFile,
     castContractFile,
   });
@@ -337,13 +339,11 @@ export function WizardShell({
         ? 2
         : step3Blocked
           ? 3
-          : step4Blocked
-            ? 4
+          : step5Blocked
+            ? 5
             : step6Blocked
               ? 6
-              : step7Blocked
-                ? 7
-                : TOTAL_STEPS;
+              : TOTAL_STEPS;
   // 패키지 선택 전에도 기본 공연일수를 보여줘야 하므로, 모든 패키지가 공유하는 기본값(2일)을 임시로 사용한다.
   const effectivePkg = findPackage(rateTable, effectivePackageId);
   const defaultPerformanceDays = effectivePkg?.defaultPerformanceDays ?? 2;
@@ -538,16 +538,12 @@ export function WizardShell({
               toast.error(step3Blocked);
               return;
             }
-            if (step === 4 && step4Blocked) {
-              toast.error(step4Blocked);
+            if (step === 5 && step5Blocked) {
+              toast.error(step5Blocked);
               return;
             }
             if (step === 6 && step6Blocked) {
               toast.error(step6Blocked);
-              return;
-            }
-            if (step === 7 && step7Blocked) {
-              toast.error(step7Blocked);
               return;
             }
             goTo(step + 1);
@@ -674,32 +670,36 @@ export function WizardShell({
           />
         )}
         {step === 3 && (
-          <StepPerformanceInfo
-            info={selection.performanceInfo}
-            onChange={(performanceInfo) => setSelection((prev) => ({ ...prev, performanceInfo }))}
-            midHallInfo={selection.midHallPerformanceInfo}
-            onChangeMidHallInfo={(midHallPerformanceInfo) =>
-              setSelection((prev) => ({ ...prev, midHallPerformanceInfo }))
-            }
-            selection={resolvedSelection}
-            files={pendingFiles}
-            onFilesChange={setPendingFiles}
-          />
+          <>
+            <StepPerformanceInfo
+              info={selection.performanceInfo}
+              onChange={(performanceInfo) => setSelection((prev) => ({ ...prev, performanceInfo }))}
+              midHallInfo={selection.midHallPerformanceInfo}
+              onChangeMidHallInfo={(midHallPerformanceInfo) =>
+                setSelection((prev) => ({ ...prev, midHallPerformanceInfo }))
+              }
+              selection={resolvedSelection}
+              files={pendingFiles}
+              onFilesChange={setPendingFiles}
+            />
+            {/* [2026-08-23] "신청자 정보 및 규모" — 두 탭을 하나로 합쳤다("신청자 정보
+                탭을 신청자 정보 및 규모로 변경하고, 규모 탭 내역을 합쳐"). 규모(StepAudience)
+                는 자기 제목을 생략하고 신청자 정보 아래로 이어 붙는다. */}
+            <StepAudience
+              info={selection.performanceInfo}
+              onChange={(performanceInfo) => setSelection((prev) => ({ ...prev, performanceInfo }))}
+              midHallInfo={selection.midHallPerformanceInfo}
+              onChangeMidHallInfo={(midHallPerformanceInfo) =>
+                setSelection((prev) => ({ ...prev, midHallPerformanceInfo }))
+              }
+              selection={resolvedSelection}
+              files={audienceFiles}
+              onFilesChange={setAudienceFiles}
+              showHeading={false}
+            />
+          </>
         )}
         {step === 4 && (
-          <StepAudience
-            info={selection.performanceInfo}
-            onChange={(performanceInfo) => setSelection((prev) => ({ ...prev, performanceInfo }))}
-            midHallInfo={selection.midHallPerformanceInfo}
-            onChangeMidHallInfo={(midHallPerformanceInfo) =>
-              setSelection((prev) => ({ ...prev, midHallPerformanceInfo }))
-            }
-            selection={resolvedSelection}
-            files={audienceFiles}
-            onFilesChange={setAudienceFiles}
-          />
-        )}
-        {step === 5 && (
           <StepPublicInterest
             info={selection.performanceInfo}
             onChange={(performanceInfo) => setSelection((prev) => ({ ...prev, performanceInfo }))}
@@ -712,13 +712,13 @@ export function WizardShell({
             onFilesChange={setPublicInterestFiles}
           />
         )}
-        {step === 6 && (
+        {step === 5 && (
           <StepMarketingCooperation
             info={selection.marketingCooperation ?? DEFAULT_MARKETING_COOPERATION}
             onChange={(marketingCooperation) => setSelection((prev) => ({ ...prev, marketingCooperation }))}
           />
         )}
-        {step === 7 && (
+        {step === 6 && (
           <StepSafetyPledge
             pledge={selection.safetyPledge ?? DEFAULT_SAFETY_PLEDGE}
             onChange={(safetyPledge) => setSelection((prev) => ({ ...prev, safetyPledge }))}
@@ -728,8 +728,8 @@ export function WizardShell({
             onCastContractFileChange={setCastContractFile}
           />
         )}
-        {step === 8 && <Step5Estimate rateTable={rateTable} quote={quote} selection={resolvedSelection} />}
-        {step === 9 && (
+        {step === 7 && <Step5Estimate rateTable={rateTable} quote={quote} selection={resolvedSelection} />}
+        {step === 8 && (
           <Step6Submit
             rateTable={rateTable}
             quote={quote}
