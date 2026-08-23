@@ -101,12 +101,22 @@ export default async function MyPage({
             settlement: q.settlement ? won(q.settlement.finalTotal) : "—",
             status: <Badge tone={QUOTE_STATUS_TONE[q.status]}>{QUOTE_STATUS_LABEL[q.status]}</Badge>,
             detail: (
-              <Link
-                href={`/mypage/${q.id}`}
-                className="whitespace-nowrap text-s font-bold underline underline-offset-4 hover:text-accent"
-              >
-                상세
-              </Link>
+              <span className="whitespace-nowrap text-s font-bold">
+                <Link href={`/mypage/${q.id}`} className="underline underline-offset-4 hover:text-accent">
+                  상세
+                </Link>
+                {/* 심사가 시작되면(review 기록 생김) 신청자가 직접 수정할 수 없다 — 상세
+                    화면과 같은 조건("신청 내용 수정" 링크, 2026-08-22)을 목록에서도 바로
+                    눌러 들어갈 수 있게 한다. */}
+                {q.status === "ESTIMATE" && !q.review && (
+                  <>
+                    {" · "}
+                    <Link href={`/apply/edit/${q.id}`} className="underline underline-offset-4 hover:text-accent">
+                      수정
+                    </Link>
+                  </>
+                )}
+              </span>
             ),
           },
         }))}
