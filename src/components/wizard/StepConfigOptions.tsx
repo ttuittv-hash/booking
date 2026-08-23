@@ -19,143 +19,220 @@ import {
   type RateTable,
   type RentalPackage,
 } from "@/lib/pricing/types";
-import { CHOICE_SELECTED_VARS, choiceClass } from "@/components/ui/kit";
+import type { ChargeBlock, VenueRateContent } from "@/lib/content/pageContent";
+import { CHOICE_SELECTED_VARS, ComparisonTable, ICON_BTN_SM, choiceClass, type SpecGroup } from "@/components/ui/kit";
 import { BaseCompositionCard } from "./BaseCompositionCard";
 import { StepHeading } from "./StepHeading";
 
-const RATE_INCLUDES = [
-  { item: "냉난방", detail: "기준 이용시간" },
-  { item: "공간", detail: "야외광장 및 티켓박스 · 대기실 4개실 및 퀵체인지룸" },
-  { item: "장비", detail: "무대리프트 · 팔로우스팟 4개 · 프로덕션 전력(3000A) · 샤막" },
-  { item: "주차", detail: "100대" },
-  { item: "미화", detail: "객석 기본 클리닝(특효류 포함)" },
-];
+// ADDITIONAL CHARGES를 "구분"으로 묶는다 — /rates 공개 페이지(app/rates/page.tsx)의
+// chargeGroups()와 완전히 같은 로직이다. 콘텐츠 자체를 공유하니 묶는 방식도 같아야
+// 두 화면이 서로 다르게 보이지 않는다.
+function chargeGroups(rows: ChargeBlock[]): SpecGroup[] {
+  const order: string[] = [];
+  rows.forEach((r) => {
+    if (!order.includes(r.group)) order.push(r.group);
+  });
+  return order.map((g) => ({
+    title: g,
+    rows: rows
+      .filter((r) => r.group === g)
+      .map((r) => ({ label: r.item, value: r.cost, note: r.note || undefined })),
+  }));
+}
 
-const ADDITIONAL_CHARGES = [
-  { group: "온라인 콘서트 진행", item: "진행 여부", cost: "온라인 매출의 5%" },
-  { group: "추가대관", item: "09:00~24:00", cost: "1,000,000원/시간당" },
-  { group: "추가대관", item: "24:00~06:00", cost: "1,500,000원/시간당" },
-  { group: "공간·프로모션", item: "팝업 공간", cost: "2,000,000원/1일 · 20평 기준" },
-  { group: "공간·프로모션", item: "B1F 연습실", cost: "1,000,000원/1일 기준" },
-  { group: "공간·프로모션", item: "옥외 광고", cost: "별도 협의(위치·규격에 따라 산정)" },
-  { group: "공간·프로모션", item: "송출 수수료", cost: "별도 협의(매출의 3% or 정액)" },
-  { group: "기타", item: "수도광열비", cost: "실비(실사용량 기준)" },
-  { group: "기타", item: "추가 주차권", cost: "15,000원/1일권 · 대당" },
-];
+/** 시간 단위 옵션(셋업 연장·철수 Load-Out) — MidHallCalendar(STEP 1)의 스테퍼와 같은
+ * 상태(selection.midHallExtraSetupHours/LoadOutHours)를 여기서도 보여주고 조정한다.
+ * "앞에서 이미 세팅된 내역은 값이 이미 입력된 상태로 노출"(2026-08-23) — 같은 필드를
+ * 공유하므로 STEP 1에서 정한 값이 여기 그대로 보이고, 여기서 바꾸면 STEP 1에도 반영된다.
+ */
+function MidHallHourBox({
+  label,
+  hint,
+  hours,
+  max,
+  unitFee,
+  onChange,
+}: {
+  label: string;
+  hint: string;
+  hours: number;
+  max: number;
+  unitFee: number;
+  onChange: (value: number) => void;
+}) {
+  return (
+    <div className="flex flex-col gap-1.5 border border-border-soft px-3 py-2">
+      <div>
+        <span className="text-xs font-bold">{label}</span>
+        <div className="mt-0.5 text-xs text-muted">{hint}</div>
+      </div>
+      <div className="flex items-center justify-between gap-2">
+        <span className="whitespace-nowrap text-xs text-muted">{won(unitFee)} / 시간</span>
+        <div className="flex shrink-0 items-center gap-1.5">
+          <button type="button" onClick={() => onChange(Math.max(0, hours - 1))} className={ICON_BTN_SM}>
+            −
+          </button>
+          <span className="w-5 text-center text-xs font-bold tabular-nums">{hours}</span>
+          <button type="button" onClick={() => onChange(Math.min(max, hours + 1))} className={ICON_BTN_SM}>
+            +
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
 
-// [신규 2026-08-23] 중형공연장 구성·옵션 탭에 Live Hall RATE 카드를 그대로 노출한다
-// ("구성/옵션 탭 > 중형공연장 탭 구성 노출하는게 중요해"). 대관료·전용/시설 사용료는
-// rateTable.midHall(admin에서 이미 관리 중인 실제 값)에서 그대로 가져오고, RATE
-// INCLUDES·ADDITIONAL CHARGES는 목업 문구를 그대로 참고용으로 보여준다 — 후자는 "별도
-// 협의"·"실비" 항목이 섞여 있어 이번 단계에서는 견적 계산에 자동 반영하지 않는다.
-function MidHallRateCard({ rateTable }: { rateTable: RateTable }) {
-  const mh = rateTable.midHall;
-  const bd = mh.breakdown;
-  const columns: { label: string; total: number; exclusive?: number; facility?: number }[] = [
-    { label: "평일/주말 셋업", total: mh.setupDayFee, exclusive: bd?.setup.exclusive, facility: bd?.setup.facility },
-    {
-      label: "평일 공연",
-      total: mh.performanceWeekdayFee,
-      exclusive: bd?.weekday.exclusive,
-      facility: bd?.weekday.facility,
-    },
-    {
-      label: "주말 공연",
-      total: mh.performanceWeekendFee,
-      exclusive: bd?.weekend.exclusive,
-      facility: bd?.weekend.facility,
-    },
-  ];
+/** 참고용 박스 — 가격이 "별도 협의"·"실비"라 수량을 받아도 견적에 반영할 수 없는
+ * 항목(팝업 공간·옥외 광고·수도광열비 등)은 안내만 하는 카드로 보여준다. */
+function MidHallReferenceBox({ label, value, note }: { label: string; value: string; note?: string }) {
+  return (
+    <div className="flex flex-col gap-1.5 border border-border-soft px-3 py-2">
+      <span className="text-xs font-bold">{label}</span>
+      <span className="text-xs text-muted">
+        {value}
+        {note ? ` · ${note}` : ""}
+      </span>
+      <span className="text-xs font-bold text-muted">별도 문의</span>
+    </div>
+  );
+}
+
+// [신규 2026-08-23] 중형공연장 구성·옵션 탭에 Live Hall RATE 카드를 노출한다
+// ("구성/옵션 탭 > 중형공연장 탭 구성 노출하는게 중요해" · "어드민에서 중형공연장
+// 패키지 내역에 이런 구조를 반영해줘"). RATE·RATE INCLUDES·ADDITIONAL CHARGES는
+// /rates 공개 페이지와 완전히 같은 콘텐츠(RatesContent.liveHall — /admin/rates에서
+// 관리자가 이미 편집하는 정본)를 그대로 재사용한다 — 값은 어드민에서만 고치면 이
+// 화면과 /rates 양쪽에 동시에 반영된다.
+// [개정 2026-08-23] "기본 항목"·"옵션"을 아레나처럼 박스형태로 구분해 보여 달라는
+// 요청에 따라 표(SpecTable/GroupedSpecTable) 대신 AddonRow와 같은 박스 그리드로
+// 바꿨다. "추가대관"(셋업 연장·철수 Load-Out)은 이미 있는 필드라 수량 스테퍼로
+// 즉시 조정 가능하게 했고, 나머지(공간·프로모션·기타·온라인 콘서트 진행)는 "별도
+// 협의"·"실비" 금액이 섞여 있어 참고용 박스로만 보여준다(견적에 자동 반영 안 함).
+function MidHallRateCard({
+  content,
+  extraHourFee,
+  extraSetupHours,
+  extraLoadOutHours,
+  onChangeExtraSetupHours,
+  onChangeExtraLoadOutHours,
+}: {
+  content: VenueRateContent;
+  extraHourFee: number;
+  extraSetupHours: number;
+  extraLoadOutHours: number;
+  onChangeExtraSetupHours: (value: number) => void;
+  onChangeExtraLoadOutHours: (value: number) => void;
+}) {
+  const cols = content.columns.map((r) => ({ key: r.key, title: r.name, align: "left" as const }));
+  const detailCols = content.detailColumns.map((r) => ({ key: r.key, title: r.name, align: "left" as const }));
+  const rows = content.rowLabels.map((label, i) => ({
+    label,
+    cells: content.columns.map((col) => col.values[i] ?? ""),
+  }));
+  const otherGroups = chargeGroups(content.charges).filter((g) => g.title !== "추가대관");
 
   return (
     <div className="mt-10 border-t-2 border-foreground pt-5">
       <h2 className="type-kr-heading text-h6-m sm:text-h6">일자별 대관료</h2>
-      <div className="mt-4 overflow-x-auto">
-        <table className="w-full min-w-[420px] border-collapse text-s">
-          <thead>
-            <tr className="border-b border-border text-xs font-bold text-muted">
-              <th className="py-2 text-left">구분</th>
-              {columns.map((c) => (
-                <th key={c.label} className="py-2 text-right">
-                  {c.label}
-                </th>
-              ))}
-            </tr>
-          </thead>
-          <tbody>
-            <tr className="border-b border-border/70 tabular-nums">
-              <td className="py-2.5 text-left font-bold">대관료</td>
-              {columns.map((c) => (
-                <td key={c.label} className="py-2.5 text-right font-bold">
-                  {won(c.total)}
-                </td>
-              ))}
-            </tr>
-            {bd && (
-              <>
-                <tr className="border-b border-border/50 tabular-nums text-muted">
-                  <td className="py-2 pl-3 text-left">ㄴ 전용 사용료</td>
-                  {columns.map((c) => (
-                    <td key={c.label} className="py-2 text-right">
-                      {won(c.exclusive ?? 0)}
-                    </td>
-                  ))}
-                </tr>
-                <tr className="border-b border-border/50 tabular-nums text-muted">
-                  <td className="py-2 pl-3 text-left">ㄴ 시설 사용료</td>
-                  {columns.map((c) => (
-                    <td key={c.label} className="py-2 text-right">
-                      {won(c.facility ?? 0)}
-                    </td>
-                  ))}
-                </tr>
-              </>
-            )}
-          </tbody>
-        </table>
+      <div className="mt-4">
+        <ComparisonTable rowLabel="구분" columns={cols} rows={rows} />
       </div>
 
-      <h2 className="type-kr-heading mt-10 text-h6-m sm:text-h6">기본 제공(RATE INCLUDES)</h2>
-      <dl className="mt-4 divide-y divide-border/40 border-t border-border/40">
-        {RATE_INCLUDES.map((row) => (
-          <div key={row.item} className="flex flex-col gap-1 py-2.5 sm:flex-row sm:gap-4">
-            <dt className="shrink-0 text-xs font-bold text-muted sm:w-20">{row.item}</dt>
-            <dd className="text-s text-foreground">{row.detail}</dd>
+      {content.detailLabels.length > 0 && (
+        <details className="mt-6 border-t border-border/25 pt-4">
+          <summary className="cursor-pointer text-s font-bold">Details</summary>
+          <div className="mt-4">
+            <ComparisonTable
+              dense
+              rowLabel="구분"
+              columns={detailCols}
+              rows={content.detailLabels.map((label, i) => ({
+                label,
+                cells: content.detailColumns.map((col) => col.values[i] ?? ""),
+              }))}
+            />
           </div>
-        ))}
-      </dl>
+        </details>
+      )}
 
-      <h2 className="type-kr-heading mt-10 text-h6-m sm:text-h6">추가 비용 안내(ADDITIONAL CHARGES)</h2>
-      <p className="mt-1.5 text-xs leading-6 text-muted">
-        참고용 안내이며 예상 대관료에는 자동 반영되지 않습니다. 필요 시 별도로 협의합니다.
-      </p>
-      <div className="mt-4 overflow-x-auto">
-        <table className="w-full min-w-[420px] border-collapse text-s">
-          <thead>
-            <tr className="border-b border-border text-xs font-bold text-muted">
-              <th className="py-2 text-left">구분</th>
-              <th className="py-2 text-left">항목</th>
-              <th className="py-2 text-right">비용</th>
-            </tr>
-          </thead>
-          <tbody>
-            {ADDITIONAL_CHARGES.map((row, i) => (
-              <tr key={`${row.group}-${row.item}`} className="border-b border-border/50 text-xs">
-                {(i === 0 || ADDITIONAL_CHARGES[i - 1].group !== row.group) && (
-                  <td
-                    className="py-2 text-left font-bold text-foreground"
-                    rowSpan={ADDITIONAL_CHARGES.filter((r) => r.group === row.group).length}
-                  >
-                    {row.group}
-                  </td>
-                )}
-                <td className="py-2 text-left text-muted">{row.item}</td>
-                <td className="py-2 text-right tabular-nums">{row.cost}</td>
-              </tr>
+      {content.includes.length > 0 && (
+        <div className="mt-10 border-t border-border/25 pt-5">
+          <h2 className="type-kr-heading text-h6-m sm:text-h6">기본 항목</h2>
+          <p className="mt-1.5 text-xs leading-6 text-muted">대관료에 이미 포함된 기본 제공 사항입니다.</p>
+          <div className="mt-4 grid grid-cols-1 gap-1.5 sm:grid-cols-2 lg:grid-cols-3">
+            {content.includes.map((p, i) => (
+              <div key={`${p.label}-${i}`} className="flex flex-col gap-1.5 border border-border-soft px-3 py-2">
+                <span className="text-xs font-bold">{p.label}</span>
+                <span className="text-xs text-muted">{p.value}</span>
+                <span className="text-xs font-bold text-good">기본 포함</span>
+              </div>
             ))}
-          </tbody>
-        </table>
-      </div>
+          </div>
+          {content.limits.length > 0 && (
+            <div className="mt-4 space-y-2 border-t border-border/25 pt-4">
+              {content.limits.map((p, i) => (
+                <p key={`${p.label}-${i}`} className="break-keep text-s leading-7">
+                  <span className="font-bold">{p.label}</span>
+                  <span className="text-muted">: {p.value}</span>
+                </p>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
+      {content.charges.length > 0 && (
+        <div className="mt-10 border-t border-border/25 pt-5">
+          <h2 className="type-kr-heading text-h6-m sm:text-h6">옵션</h2>
+          <p className="mt-1.5 text-xs leading-6 text-muted">
+            추가대관 시간은 바로 조정할 수 있고(STEP 1 캘린더와 값이 같이 반영됩니다), 나머지
+            항목은 참고용 안내이며 예상 대관료에는 자동 반영되지 않습니다 — 필요 시 별도로 협의합니다.
+          </p>
+
+          <div className="mt-4">
+            <div className="mb-2 text-xs font-bold text-muted">추가대관</div>
+            <div className="grid grid-cols-1 gap-1.5 sm:grid-cols-2 lg:grid-cols-3">
+              <MidHallHourBox
+                label="셋업 연장 (22:00~24:00)"
+                hint="전체 일정 공통 적용"
+                hours={extraSetupHours}
+                max={2}
+                unitFee={extraHourFee}
+                onChange={onChangeExtraSetupHours}
+              />
+              <MidHallHourBox
+                label="철수 Load-Out 연장"
+                hint="전체 일정 공통 적용"
+                hours={extraLoadOutHours}
+                max={6}
+                unitFee={extraHourFee}
+                onChange={onChangeExtraLoadOutHours}
+              />
+            </div>
+          </div>
+
+          {otherGroups.map((g) => (
+            <div key={g.title} className="mt-6">
+              <div className="mb-2 text-xs font-bold text-muted">{g.title}</div>
+              <div className="grid grid-cols-1 gap-1.5 sm:grid-cols-2 lg:grid-cols-3">
+                {g.rows.map((r, i) => (
+                  <MidHallReferenceBox key={`${r.label}-${i}`} label={r.label} value={r.value} note={r.note} />
+                ))}
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {content.notes.length > 0 && (
+        <ul className="mt-8 space-y-2">
+          {content.notes.map((t, i) => (
+            <li key={`${t}-${i}`} className="break-keep text-xs leading-5 text-muted">
+              ※ {t}
+            </li>
+          ))}
+        </ul>
+      )}
     </div>
   );
 }
@@ -293,6 +370,7 @@ function PackagePicker({
 
 export function StepConfigOptions({
   rateTable,
+  liveHallRateContent,
   selection,
   defaultPerformanceDays,
   addonQuantities,
@@ -301,8 +379,11 @@ export function StepConfigOptions({
   onChangeRevenue,
   onSelectPackage,
   onClearPackage,
+  onChangeMidHallExtraSetupHours,
+  onChangeMidHallExtraLoadOutHours,
 }: {
   rateTable: RateTable;
+  liveHallRateContent: VenueRateContent;
   selection: QuoteSelection;
   defaultPerformanceDays: number;
   addonQuantities: Record<string, number>;
@@ -311,6 +392,8 @@ export function StepConfigOptions({
   onChangeRevenue: (value: number) => void;
   onSelectPackage: (packageId: number) => void;
   onClearPackage: () => void;
+  onChangeMidHallExtraSetupHours: (value: number) => void;
+  onChangeMidHallExtraLoadOutHours: (value: number) => void;
 }) {
   const midHallOnly = selection.venueId === "medium-hall" && selection.bookingMode === "SINGLE";
   const isSimultaneous = selection.bookingMode === "SIMULTANEOUS";
@@ -333,7 +416,14 @@ export function StepConfigOptions({
           note="대관료에 이미 포함된 구성 — 예약 일수와 무관하게 동일하게 제공됩니다"
         />
 
-        <MidHallRateCard rateTable={rateTable} />
+        <MidHallRateCard
+          content={liveHallRateContent}
+          extraHourFee={rateTable.midHall.extraHourFee}
+          extraSetupHours={selection.midHallExtraSetupHours}
+          extraLoadOutHours={selection.midHallExtraLoadOutHours}
+          onChangeExtraSetupHours={onChangeMidHallExtraSetupHours}
+          onChangeExtraLoadOutHours={onChangeMidHallExtraLoadOutHours}
+        />
       </section>
     );
   }
@@ -439,7 +529,14 @@ export function StepConfigOptions({
         note="대관료에 이미 포함된 구성 — 예약 일수와 무관하게 동일하게 제공됩니다"
       />
 
-      <MidHallRateCard rateTable={rateTable} />
+      <MidHallRateCard
+          content={liveHallRateContent}
+          extraHourFee={rateTable.midHall.extraHourFee}
+          extraSetupHours={selection.midHallExtraSetupHours}
+          extraLoadOutHours={selection.midHallExtraLoadOutHours}
+          onChangeExtraSetupHours={onChangeMidHallExtraSetupHours}
+          onChangeExtraLoadOutHours={onChangeMidHallExtraLoadOutHours}
+        />
     </>
   );
 

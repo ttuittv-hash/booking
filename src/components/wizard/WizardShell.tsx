@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { calculateQuote } from "@/lib/pricing/calculateQuote";
 import { ARENA_MAX_AUDIENCE } from "@/lib/content/rateFacts";
+import type { VenueRateContent } from "@/lib/content/pageContent";
 import {
   findAddon,
   findPackage,
@@ -126,6 +127,7 @@ export function WizardShell({
   initialSelection,
   startFresh,
   applicantPrefill,
+  liveHallRateContent,
 }: {
   rateTable: RateTable;
   currentUser: AppUser | null;
@@ -140,6 +142,10 @@ export function WizardShell({
     contactName: string;
     contactPhone: string;
   };
+  // 중형공연장 구성·옵션 탭의 Live Hall RATE 카드 — /admin/rates에서 관리자가
+  // 편집하는 것과 같은 콘텐츠(RatesContent.liveHall)를 그대로 재사용한다
+  // (2026-08-23, "어드민에서 중형공연장 패키지 내역에 이런 구조를 반영해줘").
+  liveHallRateContent: VenueRateContent;
 }) {
   const isEditing = !!editingQuoteId;
   const toast = useToast();
@@ -657,6 +663,7 @@ export function WizardShell({
         {step === 2 && (
           <StepConfigOptions
             rateTable={rateTable}
+            liveHallRateContent={liveHallRateContent}
             selection={resolvedSelection}
             defaultPerformanceDays={defaultPerformanceDays}
             addonQuantities={addonQuantities}
@@ -667,6 +674,12 @@ export function WizardShell({
             }
             onSelectPackage={selectPackage}
             onClearPackage={clearPackage}
+            onChangeMidHallExtraSetupHours={(value) =>
+              setSelection((prev) => ({ ...prev, midHallExtraSetupHours: value }))
+            }
+            onChangeMidHallExtraLoadOutHours={(value) =>
+              setSelection((prev) => ({ ...prev, midHallExtraLoadOutHours: value }))
+            }
           />
         )}
         {step === 3 && (
