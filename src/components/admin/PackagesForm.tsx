@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { useQueryTab } from "@/components/admin/useQueryTab";
@@ -737,8 +738,13 @@ export function PackagesForm({ rateTable }: { rateTable: RateTable }) {
 
         {venueTab === "medium-hall" && (
           <p className="border-l-2 border-accent bg-accent-soft/40 px-4 py-3 text-xs leading-5 text-foreground">
-            중형공연장은 이 목록(추가 옵션)을 쓰지 않습니다 — 가격은 &ldquo;요금표 관리&rdquo;의
-            &ldquo;중형공연장 요금&rdquo; 섹션에서 따로 관리합니다. 여기서는 STEP 2(구성·옵션)에
+            중형공연장은 이 목록(추가 옵션)을 쓰지 않습니다 — 대관 신청 위저드의 &ldquo;구성 · 옵션&rdquo;
+            화면에 노출되는 <strong>기본 항목</strong> / <strong>옵션</strong> 구분은{" "}
+            <Link href="/admin/content?tab=rates" className="underline hover:no-underline">
+              콘텐츠 관리 &gt; 대관료
+            </Link>{" "}
+            화면의 &ldquo;중형공연장 탭&rdquo; 안 &ldquo;기본 항목(RATE INCLUDES)&rdquo; /
+            &ldquo;옵션(ADDITIONAL CHARGES)&rdquo; 목록에서 세팅합니다. 여기서는 STEP 2(구성·옵션)에
             표시되는 기본 구성 안내 문구만 편집합니다.
           </p>
         )}

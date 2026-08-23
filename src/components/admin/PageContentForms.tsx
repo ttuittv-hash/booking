@@ -396,24 +396,26 @@ function RateTableFields({
       />
 
       <PairList
-        label="RATE INCLUDES"
+        label="기본 항목 (RATE INCLUDES)"
+        help="대관료에 무상으로 포함되는 항목입니다. 중형공연장은 대관 신청 위저드의 '구성 · 옵션' 화면에 '기본 항목' 박스로 그대로 노출됩니다."
         items={value.includes}
         onChange={(includes) => p({ includes })}
         labelName="구분"
         valueName="포함 내용"
-        addLabel="+ 포함 항목 추가"
+        addLabel="+ 기본 항목 추가"
       />
 
       <ListEditor
-        label="ADDITIONAL CHARGES"
+        label="옵션 (ADDITIONAL CHARGES)"
+        help="추가 비용이 발생하는 항목입니다. '구분'은 위저드 화면에서 항목을 묶는 그룹 제목으로 쓰입니다(예: 추가대관, 공간·프로모션, 기타). 중형공연장의 '추가대관' 그룹은 위저드에서 시간 단위로 직접 조정할 수 있게 연동되어 있고, 그 외 항목은 금액을 그대로 보여주는 참고용으로 노출됩니다."
         items={value.charges}
         onChange={(charges) => p({ charges })}
         blank={() => ({ group: "", item: "", cost: "", note: "" })}
-        addLabel="+ 부대사용료 추가"
+        addLabel="+ 옵션 항목 추가"
         titleOf={(it, i) => `${it.group || "-"} · ${it.item || i + 1}`}
         render={(it, patch) => (
           <div className="grid gap-2 sm:grid-cols-2">
-            <Text label="구분" value={it.group} onChange={(group) => patch({ group })} />
+            <Text label="구분 (그룹)" value={it.group} onChange={(group) => patch({ group })} />
             <Text label="항목" value={it.item} onChange={(item) => patch({ item })} />
             <Text label="비용" value={it.cost} onChange={(cost) => patch({ cost })} />
             <Text label="비고" value={it.note} onChange={(note) => patch({ note })} />
@@ -423,6 +425,7 @@ function RateTableFields({
 
       <PairList
         label="기준·제한 사항"
+        help="기본 항목 박스 아래에 안내 문구로 함께 노출됩니다(예: 기준 이용시간, 1일 2회 공연 할증 등)."
         items={value.limits}
         onChange={(limits) => p({ limits })}
         labelName="구분"
