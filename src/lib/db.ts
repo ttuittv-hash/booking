@@ -580,6 +580,9 @@ async function initSchema(pool: Pool) {
     ALTER TABLE company_invitations ADD COLUMN IF NOT EXISTS invitee_name TEXT;
     ALTER TABLE company_invitations ADD COLUMN IF NOT EXISTS invitee_title TEXT;
 
+    -- 공지 상세에 "대관 현황 캘린더" 아이콘을 붙일지 여부(2026-08-23).
+    ALTER TABLE notices ADD COLUMN IF NOT EXISTS show_booking_calendar INTEGER NOT NULL DEFAULT 0;
+
     -- 회사의 유일 키는 회사명이 아니라 사업자등록번호다.
     -- 동명 회사가 실제로 있어서 name UNIQUE 는 오히려 정상 가입을 막는다.
     ALTER TABLE companies DROP CONSTRAINT IF EXISTS companies_name_key;
@@ -4025,6 +4028,7 @@ interface NoticeRow {
   image_url: string | null;
   attachment_url: string | null;
   attachment_name: string | null;
+  show_booking_calendar: number;
   created_at: string;
   updated_at: string;
 }
@@ -4038,6 +4042,7 @@ function toNotice(row: NoticeRow): Notice {
     imageUrl: row.image_url,
     attachmentUrl: row.attachment_url,
     attachmentName: row.attachment_name,
+    showBookingCalendar: row.show_booking_calendar === 1,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
   };
@@ -4070,10 +4075,11 @@ export async function createNotice(input: {
   imageUrl?: string | null;
   attachmentUrl?: string | null;
   attachmentName?: string | null;
+  showBookingCalendar?: boolean;
   createdAt: string;
 }): Promise<Notice> {
   await q(
-    "INSERT INTO notices (id, tag, title, body, image_url, attachment_url, attachment_name, created_at, updated_at) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)",
+    "INSERT INTO notices (id, tag, title, body, image_url, attachment_url, attachment_name, show_booking_calendar, created_at, updated_at) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)",
     [
       input.id,
       input.tag ?? null,
@@ -4082,6 +4088,7 @@ export async function createNotice(input: {
       input.imageUrl ?? null,
       input.attachmentUrl ?? null,
       input.attachmentName ?? null,
+      input.showBookingCalendar ? 1 : 0,
       input.createdAt,
       input.createdAt,
     ],
@@ -4098,11 +4105,12 @@ export async function updateNotice(
     imageUrl?: string | null;
     attachmentUrl?: string | null;
     attachmentName?: string | null;
+    showBookingCalendar?: boolean;
     updatedAt: string;
   },
 ): Promise<Notice | undefined> {
   await q(
-    "UPDATE notices SET tag = $1, title = $2, body = $3, image_url = $4, attachment_url = $5, attachment_name = $6, updated_at = $7 WHERE id = $8",
+    "UPDATE notices SET tag = $1, title = $2, body = $3, image_url = $4, attachment_url = $5, attachment_name = $6, show_booking_calendar = $7, updated_at = $8 WHERE id = $9",
     [
       input.tag ?? null,
       input.title,
@@ -4110,6 +4118,7 @@ export async function updateNotice(
       input.imageUrl ?? null,
       input.attachmentUrl ?? null,
       input.attachmentName ?? null,
+      input.showBookingCalendar ? 1 : 0,
       input.updatedAt,
       id,
     ],

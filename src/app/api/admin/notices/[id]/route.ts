@@ -19,6 +19,7 @@ export async function PUT(request: Request, ctx: { params: Promise<{ id: string 
     typeof body?.attachmentUrl === "string" && body.attachmentUrl.trim() ? body.attachmentUrl.trim() : null;
   const attachmentName =
     typeof body?.attachmentName === "string" && body.attachmentName.trim() ? body.attachmentName.trim() : null;
+  const showBookingCalendar = body?.showBookingCalendar === true;
   if (!title || !noticeBody) {
     return NextResponse.json({ error: "제목과 내용을 입력하세요." }, { status: 400 });
   }
@@ -30,6 +31,7 @@ export async function PUT(request: Request, ctx: { params: Promise<{ id: string 
     imageUrl,
     attachmentUrl,
     attachmentName,
+    showBookingCalendar,
     updatedAt: new Date().toISOString(),
   });
   if (!notice) return NextResponse.json({ error: "공지사항을 찾을 수 없습니다." }, { status: 404 });

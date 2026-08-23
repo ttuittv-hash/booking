@@ -179,6 +179,7 @@ function NoticesTab({
   const [imageUrl, setImageUrl] = useState<string | null>(null);
   const [attachmentUrl, setAttachmentUrl] = useState<string | null>(null);
   const [attachmentName, setAttachmentName] = useState<string | null>(null);
+  const [showBookingCalendar, setShowBookingCalendar] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
@@ -193,6 +194,7 @@ function NoticesTab({
     setImageUrl(null);
     setAttachmentUrl(null);
     setAttachmentName(null);
+    setShowBookingCalendar(false);
     setError(null);
   }
 
@@ -204,6 +206,7 @@ function NoticesTab({
     setImageUrl(notice.imageUrl);
     setAttachmentUrl(notice.attachmentUrl);
     setAttachmentName(notice.attachmentName);
+    setShowBookingCalendar(notice.showBookingCalendar);
   }
 
   function resetForm() {
@@ -214,6 +217,7 @@ function NoticesTab({
     setImageUrl(null);
     setAttachmentUrl(null);
     setAttachmentName(null);
+    setShowBookingCalendar(false);
     setError(null);
   }
 
@@ -262,7 +266,7 @@ function NoticesTab({
       const res = await fetch(isNew ? "/api/admin/notices" : `/api/admin/notices/${editingId}`, {
         method: isNew ? "POST" : "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ tag, title, body, imageUrl, attachmentUrl, attachmentName }),
+        body: JSON.stringify({ tag, title, body, imageUrl, attachmentUrl, attachmentName, showBookingCalendar }),
       });
       const data = await res.json();
       if (!res.ok) {
@@ -424,6 +428,16 @@ function NoticesTab({
               )}
               {uploadingAttachment && <p className={`mt-1 ${HELP}`}>업로드 중...</p>}
             </div>
+
+            <label className="flex cursor-pointer items-center gap-2 text-s">
+              <input
+                type="checkbox"
+                checked={showBookingCalendar}
+                onChange={(e) => setShowBookingCalendar(e.target.checked)}
+                className="h-4 w-4 accent-[var(--accent)]"
+              />
+              공지 상세에 &ldquo;대관 현황 캘린더&rdquo; 아이콘 표시(아레나·중형 예약 가능일 조회)
+            </label>
 
             {error && <p className={ERROR_NOTE}>{error}</p>}
             <div className="flex items-center gap-4">

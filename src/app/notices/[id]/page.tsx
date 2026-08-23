@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { getCurrentUser, requireAccess } from "@/lib/auth";
 import { getNoticeById } from "@/lib/db";
 import { sanitizeRichText } from "@/lib/sanitizeHtml";
+import { BookingCalendarLauncher } from "@/components/BookingAvailabilityCalendar";
 import { PublicHeader } from "@/components/PublicHeader";
 import { TagBadge } from "@/components/TagBadge";
 import { Breadcrumb } from "@/components/ui/Breadcrumb";
@@ -76,6 +77,11 @@ export default async function NoticeDetailPage({
                 </span>
               }
             />
+            {notice.showBookingCalendar && (
+              <div className="mt-5">
+                <BookingCalendarLauncher />
+              </div>
+            )}
           </div>
         </Band>
 

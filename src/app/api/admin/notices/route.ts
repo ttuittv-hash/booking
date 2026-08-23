@@ -23,6 +23,7 @@ export async function POST(request: Request) {
     typeof body?.attachmentUrl === "string" && body.attachmentUrl.trim() ? body.attachmentUrl.trim() : null;
   const attachmentName =
     typeof body?.attachmentName === "string" && body.attachmentName.trim() ? body.attachmentName.trim() : null;
+  const showBookingCalendar = body?.showBookingCalendar === true;
   if (!title || !noticeBody) {
     return NextResponse.json({ error: "제목과 내용을 입력하세요." }, { status: 400 });
   }
@@ -35,6 +36,7 @@ export async function POST(request: Request) {
     imageUrl,
     attachmentUrl,
     attachmentName,
+    showBookingCalendar,
     createdAt: new Date().toISOString(),
   });
   return NextResponse.json({ notice });

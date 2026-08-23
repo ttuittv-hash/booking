@@ -903,6 +903,10 @@ export interface Notice {
   imageUrl: string | null;
   attachmentUrl: string | null; // 첨부파일(규약/상세문서 등) 다운로드 링크
   attachmentName: string | null; // 첨부파일 원본 파일명
+  // [신규 2026-08-23] 켜면 공지 상세에 "대관 현황 캘린더" 아이콘이 붙고, 누르면 아레나/
+  // 중형 예약 현황(가능/불가만, 회사명·quoteId 등 기업 정보는 노출하지 않음)을 레이어로
+  // 보여준다. 티켓오픈 공지처럼 캘린더를 같이 보여줘야 하는 공지에만 켠다.
+  showBookingCalendar: boolean;
   createdAt: string;
   updatedAt: string;
 }
