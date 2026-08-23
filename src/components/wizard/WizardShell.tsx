@@ -40,10 +40,13 @@ import { Step6Submit } from "./Step6Submit";
 const TOTAL_STEPS = 9;
 
 const DEFAULT_SAFETY_PLEDGE: SafetyPledge = {
-  fireSafety: false,
-  managerDesignated: false,
-  facilityInspected: false,
-  incidentReporting: false,
+  safetyStructure: false,
+  legalInspection: false,
+  staffSafetyTraining: false,
+  followVenueGuidance: false,
+  audienceSafetyMeasures: false,
+  insuranceCoverage: false,
+  consequenceAcknowledged: false,
   signature: "",
 };
 
@@ -155,11 +158,16 @@ export function WizardShell({
     : INITIAL_PERFORMANCE_INFO;
   // File은 JSON 직렬화가 안 되므로 selection과 분리해 별도 상태로 두고
   // localStorage 임시저장 대상에서도 제외한다 (새로고침 시 다시 선택 필요).
-  // 신청자 정보(공연기획서 등) · 관객(객석배치도) · 공공성(연계 프로그램 계획서)은
-  // 각자 다른 서류라 슬롯을 분리한다 — 제출 시점에 하나로 합쳐 업로드한다.
+  // 신청자 정보(공연기획서 등) · 관객(객석배치도) · 공공성(연계 프로그램 계획서) · 안전관리
+  // (안전관리계획서·출연자 계약서)는 각자 다른 서류라 슬롯을 분리한다 — 제출 시점에
+  // 하나로 합쳐 업로드한다.
   const [pendingFiles, setPendingFiles] = useState<File[]>([]);
   const [audienceFiles, setAudienceFiles] = useState<File[]>([]);
   const [publicInterestFiles, setPublicInterestFiles] = useState<File[]>([]);
+  // 안전관리계획서 · 출연자 계약서는 목업상 필수 단일 슬롯 2개다 — 다른 단계처럼 자유
+  // 목록이 아니라 슬롯당 파일 1개(재선택 시 교체)로 둔다.
+  const [safetyPlanFile, setSafetyPlanFile] = useState<File | null>(null);
+  const [castContractFile, setCastContractFile] = useState<File | null>(null);
   const [selection, setSelection] = useState<QuoteSelection>(
     initialSelection
       ? {
@@ -317,7 +325,10 @@ export function WizardShell({
   const step6Blocked = validateMarketingCooperationStep(
     selection.marketingCooperation ?? DEFAULT_MARKETING_COOPERATION,
   );
-  const step7Blocked = validateSafetyPledgeStep(selection.safetyPledge ?? DEFAULT_SAFETY_PLEDGE);
+  const step7Blocked = validateSafetyPledgeStep(selection.safetyPledge ?? DEFAULT_SAFETY_PLEDGE, {
+    safetyPlanFile,
+    castContractFile,
+  });
   const maxUnlockedStep = !selection.venueId
     ? 1
     : midHallOnly && !hasMidHallSelection
@@ -415,7 +426,13 @@ export function WizardShell({
   }
 
   async function uploadPendingFiles(quoteId: string) {
-    const allFiles = [...pendingFiles, ...audienceFiles, ...publicInterestFiles];
+    const allFiles = [
+      ...pendingFiles,
+      ...audienceFiles,
+      ...publicInterestFiles,
+      ...(safetyPlanFile ? [safetyPlanFile] : []),
+      ...(castContractFile ? [castContractFile] : []),
+    ];
     if (allFiles.length === 0) return;
     const failed: string[] = [];
     for (const file of allFiles) {
@@ -705,6 +722,10 @@ export function WizardShell({
           <StepSafetyPledge
             pledge={selection.safetyPledge ?? DEFAULT_SAFETY_PLEDGE}
             onChange={(safetyPledge) => setSelection((prev) => ({ ...prev, safetyPledge }))}
+            safetyPlanFile={safetyPlanFile}
+            onSafetyPlanFileChange={setSafetyPlanFile}
+            castContractFile={castContractFile}
+            onCastContractFileChange={setCastContractFile}
           />
         )}
         {step === 8 && <Step5Estimate rateTable={rateTable} quote={quote} selection={resolvedSelection} />}
@@ -721,7 +742,13 @@ export function WizardShell({
             submittedId={submittedId}
             error={submitError}
             attachmentError={attachmentError}
-            fileCount={pendingFiles.length + audienceFiles.length + publicInterestFiles.length}
+            fileCount={
+              pendingFiles.length +
+              audienceFiles.length +
+              publicInterestFiles.length +
+              (safetyPlanFile ? 1 : 0) +
+              (castContractFile ? 1 : 0)
+            }
             onSubmit={submit}
             onRequestEdit={requestEdit}
           />

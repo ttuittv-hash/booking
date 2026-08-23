@@ -230,11 +230,16 @@ export interface MidHallDaySelection {
 // [신규 2026-08-21] "기본 정보" 그룹의 4번째 서브탭 — 공연 안전 관리 서약서. 아레나/중형
 // 동시 대관이어도 행사 전체에 대한 서약 1건으로 충분하다고 보고 venue별로 나누지 않는다
 // (performanceInfo처럼 midHall 전용 값을 따로 두지 않음).
+// [개정 2026-08-23] 서약 항목 4개 → 6개(+미준수 시 조치 동의 1개, 총 7개)로 확장하고
+// 제출 서류(안전관리계획서·출연자 계약서) 2건을 추가했다(목업 반영).
 export interface SafetyPledge {
-  fireSafety: boolean; // 화재 예방 및 비상 대피 수칙 준수
-  managerDesignated: boolean; // 안전관리 총괄 책임자 지정 및 연락처 최신화
-  facilityInspected: boolean; // 무대·시설 안전 점검 결과 사전 확인
-  incidentReporting: boolean; // 사고 발생 시 관리사무소·관계 기관 즉시 보고
+  safetyStructure: boolean; // 안전관리 체계 구성(가이드 준수·재해대책계획/안전관리계획 수립·책임자 지정)
+  legalInspection: boolean; // 염·전기안전·임시구조물·특수효과 등 법정 안전검사 및 서류 기한 내 완료·제출
+  staffSafetyTraining: boolean; // 출연자·스태프 안전교육 이수 및 비상대피훈련 등 조치 이행
+  followVenueGuidance: boolean; // 서울아레나 안전 가이드·담당자 지시 준수, 공연 지연·중단·시설사용제한 조치 협조
+  audienceSafetyMeasures: boolean; // 승인 수용인원·객석 운영기준 준수, 스탠딩 밀집관리·이동약자 관람환경 확보
+  insuranceCoverage: boolean; // 영업배상책임보험·단체상해보험 가입, 시설손상·제3자 피해 책임 부담
+  consequenceAcknowledged: boolean; // 미준수 시 시설사용 제한·계약 해지·향후 신청 제한 등 조치 동의
   signature: string;
 }
 
