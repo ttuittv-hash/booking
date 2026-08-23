@@ -667,8 +667,11 @@ export function PackagesForm({ rateTable }: { rateTable: RateTable }) {
           ]
         ).map(({ visibility, grouped: groupedByVisibility, title, badge, badgeClass, slotClass, desc }) => (
           <section key={visibility} className={`border-l-4 p-4 ${slotClass}`}>
-            <div className="flex items-center gap-2">
-              <h2 className={SUB_TITLE}>{title}</h2>
+            {/* 슬롯 제목을 카테고리·항목보다 눈에 띄게 키운다 — 전에는 전부 text-xs~text-s로
+                같은 레벨이라 제목/카테고리/항목이 구분 안 됐다(2026-08-23, "다 시작점이 같은
+                x좌표, 너무 다 똑같은 레벨로 보임"). */}
+            <div className="flex flex-wrap items-center gap-2">
+              <h2 className="type-kr-heading text-h6-m">{title}</h2>
               <span className={`px-2 py-0.5 text-xs font-bold ${badgeClass}`}>{badge}</span>
             </div>
             <p className="mt-1 text-xs text-muted">{desc}</p>
@@ -741,9 +744,11 @@ export function PackagesForm({ rateTable }: { rateTable: RateTable }) {
 
             <div className="mt-4 space-y-5">
               {[...groupedByVisibility.entries()].map(([category, items]) => (
-                <div key={category}>
-                  <div className="mb-2 flex items-center justify-between">
-                    <span className="text-xs font-bold text-foreground">
+                <div key={category} className="pl-1">
+                  {/* 카테고리 레이블 — 슬롯 제목보다 한 단계 작고, 왼쪽에 짧은 눈금으로
+                      "슬롯 > 카테고리 > 항목" 순서임을 표시한다. */}
+                  <div className="mb-2 flex items-center justify-between border-l-2 border-border pl-2.5">
+                    <span className="text-s font-bold text-foreground">
                       {ADDON_CATEGORY_LABEL[category as keyof typeof ADDON_CATEGORY_LABEL] ?? category}
                     </span>
                     <button
@@ -754,7 +759,8 @@ export function PackagesForm({ rateTable }: { rateTable: RateTable }) {
                       + 항목 추가
                     </button>
                   </div>
-                  <div className="space-y-1.5">
+                  {/* 항목 행 — 카테고리보다 한 단계 더 들여써서 소속을 눈으로 바로 알 수 있게 한다. */}
+                  <div className="ml-2.5 space-y-1.5 border-l border-border/40 pl-3.5">
                     {items.map((addon) => {
                       const qty = includedQty(addon.id);
                       const checked = qty > 0;
