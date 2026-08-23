@@ -4,7 +4,6 @@ import { useState } from "react";
 import { won } from "@/lib/format";
 import { resolveSelectedDates } from "@/lib/pricing/dateRange";
 import {
-  baseCompositionTiles,
   defaultDayTags,
   effectiveDayTag,
   findPackage,
@@ -21,7 +20,6 @@ import {
 } from "@/lib/pricing/types";
 import type { ChargeBlock, VenueRateContent } from "@/lib/content/pageContent";
 import { CHOICE_SELECTED_VARS, ComparisonTable, ICON_BTN_SM, choiceClass, type SpecGroup } from "@/components/ui/kit";
-import { BaseCompositionCard } from "./BaseCompositionCard";
 import { StepHeading } from "./StepHeading";
 
 // ADDITIONAL CHARGES를 "구분"으로 묶는다 — /rates 공개 페이지(app/rates/page.tsx)의
@@ -402,18 +400,11 @@ export function StepConfigOptions({
   const [venueTab, setVenueTab] = useState<"arena" | "medium-hall">("arena");
 
   if (midHallOnly) {
-    const midHallPkg = packagesForVenue(rateTable, "medium-hall")[0];
-    const midHallTiles = midHallPkg ? baseCompositionTiles(midHallPkg, rateTable, { includeSchedule: false }) : [];
     return (
       <section>
         <StepHeading
           title="구성 · 옵션"
           lead="중형공연장은 패키지가 없는 일 단위 요금제입니다 — 아래는 예약 일수와 무관하게 항상 포함되는 기본 구성입니다."
-        />
-
-        <BaseCompositionCard
-          tiles={midHallTiles}
-          note="대관료에 이미 포함된 구성 — 예약 일수와 무관하게 동일하게 제공됩니다"
         />
 
         <MidHallRateCard
@@ -517,27 +508,15 @@ export function StepConfigOptions({
     return <section>{arenaSection}</section>;
   }
 
-  const midHallPkgForTab = packagesForVenue(rateTable, "medium-hall")[0];
-  const midHallTilesForTab = midHallPkgForTab
-    ? baseCompositionTiles(midHallPkgForTab, rateTable, { includeSchedule: false })
-    : [];
-
   const midHallSection = (
-    <>
-      <BaseCompositionCard
-        tiles={midHallTilesForTab}
-        note="대관료에 이미 포함된 구성 — 예약 일수와 무관하게 동일하게 제공됩니다"
-      />
-
-      <MidHallRateCard
-          content={liveHallRateContent}
-          extraHourFee={rateTable.midHall.extraHourFee}
-          extraSetupHours={selection.midHallExtraSetupHours}
-          extraLoadOutHours={selection.midHallExtraLoadOutHours}
-          onChangeExtraSetupHours={onChangeMidHallExtraSetupHours}
-          onChangeExtraLoadOutHours={onChangeMidHallExtraLoadOutHours}
-        />
-    </>
+    <MidHallRateCard
+      content={liveHallRateContent}
+      extraHourFee={rateTable.midHall.extraHourFee}
+      extraSetupHours={selection.midHallExtraSetupHours}
+      extraLoadOutHours={selection.midHallExtraLoadOutHours}
+      onChangeExtraSetupHours={onChangeMidHallExtraSetupHours}
+      onChangeExtraLoadOutHours={onChangeMidHallExtraLoadOutHours}
+    />
   );
 
   return (
