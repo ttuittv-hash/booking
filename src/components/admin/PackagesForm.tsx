@@ -58,6 +58,88 @@ function slugify(name: string): string {
 
 const ADDON_CATEGORIES = Object.keys(ADDON_CATEGORY_LABEL) as AddonCategory[];
 
+const VISIBILITY_LABEL: Record<LineItemVisibility, string> = {
+  ITEM_ONLY: "기본 내역",
+  HIDDEN: "비노출",
+  VISIBLE: "선택 옵션",
+};
+
+/**
+ * "+ 새 카테고리로 항목 추가"는 항상 새 항목을 처음부터 입력해야 했다 — 요금표에
+ * 이미 있는 항목(다른 슬롯에 속해 있거나 다른 패키지에서만 쓰던 항목)을 그대로
+ * 재사용할 방법이 없었다(2026-08-23, "옵션 항목은 요금표에 넣으면 들어가던데
+ * 기본항목은 아니더라고" — VISIBLE은 전 패키지에 자동 노출돼 그렇게 보였을 뿐,
+ * ITEM_ONLY/HIDDEN은 애초에 그런 자동 노출이 없다). 검색해서 고르면 그 항목을 이
+ * 슬롯 소속으로 재배정한다.
+ */
+function ExistingItemPicker({
+  targetVisibility,
+  addons,
+  onPick,
+}: {
+  targetVisibility: LineItemVisibility;
+  addons: AddonItem[];
+  onPick: (addon: AddonItem) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const [query, setQuery] = useState("");
+  const options = addons.filter((a) => a.visibility !== targetVisibility && a.pricingType !== "METERED");
+  if (options.length === 0) return null;
+
+  const filtered = query.trim()
+    ? options.filter((a) => a.name.toLowerCase().includes(query.trim().toLowerCase()))
+    : options;
+
+  return (
+    <div
+      className="relative inline-block"
+      onBlur={(e) => {
+        if (!e.currentTarget.contains(e.relatedTarget as Node | null)) setOpen(false);
+      }}
+    >
+      <button
+        type="button"
+        onClick={() => setOpen((v) => !v)}
+        className="px-2 py-1 text-xs font-bold text-foreground hover:underline"
+      >
+        + 기존 항목에서 선택
+      </button>
+      {open && (
+        <div className="absolute left-0 z-10 mt-1 w-80 border border-border bg-panel shadow-lg">
+          <input
+            autoFocus
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder="항목 검색"
+            className={`${FIELD_SM} w-full border-x-0 border-t-0`}
+          />
+          <ul className="max-h-56 overflow-y-auto">
+            {filtered.length === 0 && <li className="px-3 py-2 text-xs text-muted">검색 결과가 없습니다.</li>}
+            {filtered.map((a) => (
+              <li key={a.id}>
+                <button
+                  type="button"
+                  onClick={() => {
+                    onPick(a);
+                    setOpen(false);
+                    setQuery("");
+                  }}
+                  className="flex w-full items-center justify-between gap-2 px-3 py-2 text-left text-xs hover:bg-background"
+                >
+                  <span className="truncate">{a.name}</span>
+                  <span className="shrink-0 text-muted">
+                    {ADDON_CATEGORY_LABEL[a.category]} · 현재 {VISIBILITY_LABEL[a.visibility]}
+                  </span>
+                </button>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+    </div>
+  );
+}
+
 const MEDIA_OPTIONS: { value: MediaTier; label: string }[] = [
   { value: null, label: "미포함" },
   { value: "BASIC", label: MEDIA_TIER_LABEL.BASIC },
@@ -226,6 +308,34 @@ export function PackagesForm({ rateTable }: { rateTable: RateTable }) {
         return { ...a, availability: { mode: "IF_PACKAGE_IN", packages: next } };
       }),
     );
+  }
+
+  /**
+   * "기존 항목에서 선택" — 다른 슬롯(또는 다른 카테고리)에 있던 항목을 이 슬롯 소속으로
+   * 재배정하고 이 패키지에도 바로 반영한다(2026-08-23). visibility는 전역 값이라 다른
+   * 패키지의 화면에도 영향을 준다 — 그 항목이 속한 슬롯 자체가 바뀌는 것이므로 의도된
+   * 동작이다.
+   */
+  function pickExistingItem(addon: AddonItem, targetVisibility: LineItemVisibility) {
+    setAddons((prev) =>
+      prev.map((a) => {
+        if (a.id !== addon.id) return a;
+        if (targetVisibility !== "VISIBLE") return { ...a, visibility: targetVisibility };
+        // 선택 옵션으로 옮기면 지금 편집 중인 이 패키지에서는 바로 노출되게 한다 —
+        // setExposedForActive와 같은 규칙으로 packages 목록을 채운다.
+        const base =
+          a.availability.mode === "IF_PACKAGE_IN"
+            ? (a.availability.packages ?? [])
+            : a.availability.mode === "IF_NOT_INCLUDED"
+              ? packages.filter((p) => !packageIncludesAddon(p, a.id)).map((p) => p.id)
+              : packages.map((p) => p.id);
+        const next = Array.from(new Set([...base, active.id]));
+        return { ...a, visibility: targetVisibility, availability: { mode: "IF_PACKAGE_IN", packages: next } };
+      }),
+    );
+    if (targetVisibility !== "VISIBLE" && includedQty(addon.id) === 0) {
+      setIncludedQty(addon.id, 1);
+    }
   }
 
   /**
@@ -695,6 +805,11 @@ export function PackagesForm({ rateTable }: { rateTable: RateTable }) {
               >
                 + 새 카테고리로 항목 추가
               </button>
+              <ExistingItemPicker
+                targetVisibility={visibility}
+                addons={addons}
+                onPick={(addon) => pickExistingItem(addon, visibility)}
+              />
             </div>
 
             {newItemCategory && newItemVisibility === visibility && !groupedByVisibility.has(newItemCategory) && (
