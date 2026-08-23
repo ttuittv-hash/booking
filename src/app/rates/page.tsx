@@ -3,12 +3,12 @@ import { getCurrentUser, requireAccess } from "@/lib/auth";
 import { getRatesContent } from "@/lib/db";
 import type { ChargeBlock, VenueRateContent } from "@/lib/content/pageContent";
 import { PublicHeader } from "@/components/PublicHeader";
+import { RateTableWithDetails } from "@/components/RateTableWithDetails";
 import { SiteFooter } from "@/components/ui/SiteFooter";
 import { QueryTabs } from "@/components/ui/QueryTabs";
 import { VENUE_TABS, VENUE_TAB_PARAM } from "@/components/ui/nav-items";
 import {
   Band,
-  ComparisonTable,
   GroupedSpecTable,
   PageHead,
   SectionHead,
@@ -47,16 +47,6 @@ function RatePanel({ en, ko, c }: { en: string; ko: string; c: VenueRateContent 
   // 값 열은 좌측 정렬로 둔다 — 같은 화면의 RATE INCLUDES·ADDITIONAL CHARGES 가
   // 라벨 + 좌측 정렬 값이므로, 이 표만 우측 정렬이면 세로 기준선이 어긋난다.
   const cols = c.columns.map((r) => ({ key: r.key, title: r.name, align: "left" as const }));
-  const detailCols = c.detailColumns.map((r) => ({
-    key: r.key,
-    title: r.name,
-    align: "left" as const,
-  }));
-
-  const rows = c.rowLabels.map((label, i) => ({
-    label,
-    cells: c.columns.map((col) => col.values[i] ?? ""),
-  }));
 
   return (
     <>
@@ -66,43 +56,25 @@ function RatePanel({ en, ko, c }: { en: string; ko: string; c: VenueRateContent 
         <div className="mt-12">
           <SectionHead title="RATE" />
         </div>
-        <div className="mt-10">
-          {/*
-            대관 기간은 열마다 같은 값이라 표 안에 행으로 넣으면 첫 열만 채워지고
-            나머지 열이 빈칸으로 남는다. 표 밖 한 줄로 내린다.
-          */}
-          <ComparisonTable
-            rowLabel="구분"
-            labelWidth={SPEC_LABEL_WIDTH}
-            columns={cols}
-            rows={rows}
-            footer={
-              c.rentalPeriod ? (
-                <p className="break-keep text-s text-muted">
-                  <span className="font-bold text-foreground">대관 기간</span> {c.rentalPeriod}
-                </p>
-              ) : undefined
-            }
-          />
-        </div>
-
-        {c.detailLabels.length > 0 && (
-          <details className="mt-10 border-t border-border/25 pt-5">
-            <summary className="cursor-pointer text-s font-bold">Details</summary>
-            <div className="mt-6">
-              <ComparisonTable
-                dense
-                rowLabel="구분"
-                labelWidth={SPEC_LABEL_WIDTH}
-                columns={detailCols}
-                rows={c.detailLabels.map((label, i) => ({
-                  label,
-                  cells: c.detailColumns.map((col) => col.values[i] ?? ""),
-                }))}
-              />
-            </div>
-          </details>
-        )}
+        {/*
+          대관 기간은 열마다 같은 값이라 표 안에 행으로 넣으면 첫 열만 채워지고
+          나머지 열이 빈칸으로 남는다. 표 밖 한 줄로 내린다.
+        */}
+        <RateTableWithDetails
+          cols={cols}
+          rowLabels={c.rowLabels}
+          columns={c.columns}
+          detailLabels={c.detailLabels}
+          detailColumns={c.detailColumns}
+          labelWidth={SPEC_LABEL_WIDTH}
+          footer={
+            c.rentalPeriod ? (
+              <p className="break-keep text-s text-muted">
+                <span className="font-bold text-foreground">대관 기간</span> {c.rentalPeriod}
+              </p>
+            ) : undefined
+          }
+        />
       </Band>
 
       {(c.includes.length > 0 || c.limits.length > 0) && (

@@ -121,36 +121,40 @@ function MidHallRateCard({
   onChangeExtraSetupHours: (value: number) => void;
   onChangeExtraLoadOutHours: (value: number) => void;
 }) {
+  // [2026-08-23] "컬럼값이 두번 반복되는게 이상해" — Details를 별도 표로 그리면
+  // 같은 열 제목(평일/주말 셋업 등)이 헤더 행으로 두 번 찍혀 보였다. 표 하나에
+  // 행만 더 붙이는 방식으로 바꿔 헤더는 한 번만 나오게 한다.
   const cols = content.columns.map((r) => ({ key: r.key, title: r.name, align: "left" as const }));
-  const detailCols = content.detailColumns.map((r) => ({ key: r.key, title: r.name, align: "left" as const }));
-  const rows = content.rowLabels.map((label, i) => ({
+  const baseRows = content.rowLabels.map((label, i) => ({
     label,
     cells: content.columns.map((col) => col.values[i] ?? ""),
   }));
+  const detailRows = content.detailLabels.map((label, i) => ({
+    label,
+    cells: cols.map((col) => content.detailColumns.find((dc) => dc.key === col.key)?.values[i] ?? ""),
+  }));
+  const [detailsOpen, setDetailsOpen] = useState(false);
   const otherGroups = chargeGroups(content.charges).filter((g) => g.title !== "추가대관");
 
   return (
     <div className="mt-10 border-t-2 border-foreground pt-5">
       <h2 className="type-kr-heading text-h6-m sm:text-h6">일자별 대관료</h2>
       <div className="mt-4">
-        <ComparisonTable rowLabel="구분" columns={cols} rows={rows} />
+        <ComparisonTable
+          rowLabel="구분"
+          columns={cols}
+          rows={detailsOpen ? [...baseRows, ...detailRows] : baseRows}
+        />
       </div>
 
-      {content.detailLabels.length > 0 && (
-        <details className="mt-6 border-t border-border/25 pt-4">
-          <summary className="cursor-pointer text-s font-bold">Details</summary>
-          <div className="mt-4">
-            <ComparisonTable
-              dense
-              rowLabel="구분"
-              columns={detailCols}
-              rows={content.detailLabels.map((label, i) => ({
-                label,
-                cells: content.detailColumns.map((col) => col.values[i] ?? ""),
-              }))}
-            />
-          </div>
-        </details>
+      {detailRows.length > 0 && (
+        <button
+          type="button"
+          onClick={() => setDetailsOpen((v) => !v)}
+          className="mt-3 cursor-pointer text-s font-bold"
+        >
+          {detailsOpen ? "Details ▲" : "Details ▼"}
+        </button>
       )}
 
       {content.includes.length > 0 && (
