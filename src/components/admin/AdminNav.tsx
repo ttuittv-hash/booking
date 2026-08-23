@@ -11,7 +11,6 @@ import type { AppUser } from "@/lib/pricing/types";
 // 다시 빼" · "계정 관리로 빼고.. 마우스오버 하면 운영자계정/계정 설정 넣어").
 const PRIMARY_LINKS = [
   { href: "/admin", label: "신청 현황", masterOnly: false },
-  { href: "/admin/reports", label: "리포트", masterOnly: false },
   { href: "/admin/applicants", label: "회원 관리", masterOnly: false },
   { href: "/admin/packages", label: "패키지 관리", masterOnly: false },
   { href: "/admin/rates", label: "요금표 관리", masterOnly: false },
@@ -19,6 +18,7 @@ const PRIMARY_LINKS = [
   { href: "/admin/content", label: "콘텐츠 관리", masterOnly: false },
   { href: "/admin/notification-rules", label: "알림 관리", masterOnly: false },
   { href: "/admin/inquiries", label: "1:1 문의", masterOnly: false },
+  { href: "/admin/reports", label: "리포트", masterOnly: false },
 ];
 
 const ACCOUNT_GROUP = {
