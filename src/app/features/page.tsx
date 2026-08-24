@@ -27,17 +27,14 @@ export const metadata: Metadata = {
 /**
  * 개요 카드 — 제목은 eyebrow, 내용은 H5 (Notion 지정).
  *
- * **6칼럼 그리드 위에 2칼럼씩 놓는다(3-up).** 예전에는 한 줄에 4개를 균등 분할했는데,
- * 6을 4로 나눌 수 없어서 카드 경계가 페이지 그리드와 어긋났다 — 두 번째 카드가
- * 아래 두 칼럼 섹션의 오른쪽 칼럼(3칼럼째)보다 왼쪽에서 시작해 축이 두 개로 보였다.
- * 2칼럼씩 두면 두 번째 카드가 정확히 오른쪽 칼럼과 같은 선에서 시작한다.
- * (정본 §2.1 — 스팬은 2col=3-up · 3col=2-up · 4col · 6col 만 쓴다)
+ * **12칼럼 그리드 위에 3칼럼씩(4-up).** 항목이 4개라 한 줄에 딱 들어가고, 카드 경계가
+ * 모두 컬럼 경계에 떨어진다. 항목 수가 3개면 4col 씩(3-up), 2개면 6col 씩(2-up) 이다.
  */
 function OverviewCards({ items }: { items: Pair[] }) {
   return (
-    <ul className="grid gap-x-[var(--gutter)] gap-y-10 sm:grid-cols-2 lg:grid-cols-6">
+    <ul className="grid gap-x-[var(--gutter)] gap-y-10 sm:grid-cols-2 lg:grid-cols-12">
       {items.map((c, i) => (
-        <li key={`${c.label}-${i}`} className="border-t-2 border-border pt-5 lg:col-span-2">
+        <li key={`${c.label}-${i}`} className="border-t-2 border-border pt-5 lg:col-span-3">
           <p className="text-xs font-bold text-muted">{c.label}</p>
           <p className="type-kr-heading mt-3 break-keep text-h5-m sm:text-h5">{c.value}</p>
         </li>
@@ -103,13 +100,13 @@ function VenuePanel({
               return (
                 <div key={`${cap.stage}-${i}`} className="grid-site gap-y-5">
                   {cap.stage && (
-                    <h4 className="type-kr-heading break-keep text-h5-m sm:text-h5 lg:col-span-2 lg:col-start-1 lg:row-start-1">
+                    <h4 className="type-kr-heading break-keep text-h5-m sm:text-h5 lg:col-span-4 lg:col-start-1 lg:row-start-1">
                       {cap.stage}
                     </h4>
                   )}
                   {hasSeats && (
                     <dl
-                      className={`flex flex-wrap gap-x-12 gap-y-3 lg:col-span-2 lg:col-start-1 ${
+                      className={`flex flex-wrap gap-x-12 gap-y-3 lg:col-span-4 lg:col-start-1 ${
                         cap.stage ? "lg:row-start-2" : "lg:row-start-1"
                       }`}
                     >
@@ -132,7 +129,7 @@ function VenuePanel({
                     </dl>
                   )}
                   {cap.floors.length > 0 && (
-                    <div className={`min-w-0 lg:col-span-4 lg:col-start-3 ${tableRow}`}>
+                    <div className={`min-w-0 lg:col-span-8 lg:col-start-5 ${tableRow}`}>
                       <SpecTable
                         rows={cap.floors.map((f) => [f.label, f.value] as [string, string])}
                       />

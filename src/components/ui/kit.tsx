@@ -1224,11 +1224,11 @@ export function SplitSection({
 }) {
   return (
     <div className={`grid-site ${className}`}>
-      <div className="lg:col-span-2">
+      <div className="lg:col-span-4">
         <h3 className={`${headingFontClass(title)} break-keep text-h3-m sm:text-h3`}>{title}</h3>
         {aside && <div className="mt-6">{aside}</div>}
       </div>
-      <div className="min-w-0 lg:col-span-4">{children}</div>
+      <div className="min-w-0 lg:col-span-8">{children}</div>
     </div>
   );
 }
@@ -1321,16 +1321,19 @@ export function FeatureList({
       {items.map((it, i) => (
         <li
           key={it.title}
-          className={`flex gap-6 border-b border-border/15 py-7 sm:gap-8 ${
-            columns === 2 && i === 1 ? "lg:border-t-0" : ""
-          }`}
+          className={`border-b border-border/15 py-7 ${
+            numbered
+              ? /* 번호는 1칼럼, 본문은 남은 11칼럼 — 글머리도 그리드 위에 올린다 */
+                "grid grid-cols-[2.5rem_minmax(0,1fr)] gap-x-6 sm:gap-x-8 lg:grid-cols-12 lg:gap-x-[var(--gutter)]"
+              : "flex gap-6 sm:gap-8"
+          } ${columns === 2 && i === 1 ? "lg:border-t-0" : ""}`}
         >
           {numbered && (
-            <span className="type-display w-10 shrink-0 text-h6-m tabular-nums text-muted sm:text-h6">
+            <span className="type-display text-h6-m tabular-nums text-muted sm:text-h6 lg:col-span-1">
               {String(i + 1).padStart(2, "0")}
             </span>
           )}
-          <div className="min-w-0">
+          <div className={`min-w-0 ${numbered ? "lg:col-span-11" : ""}`}>
             <h4 className="type-kr-heading break-keep text-h5-m sm:text-h5">{it.title}</h4>
             {it.lines.length > 0 && (
               <div className="measure mt-3 space-y-1">
@@ -1385,36 +1388,31 @@ function StepArrow({ className = "" }: { className?: string }) {
 }
 
 /**
- * 대관 절차 — **한 줄에 4박스씩 두 줄**, 박스 사이에 화살표.
- * 순서가 있는 내용이므로 카드 그리드가 아니라 화살표로 이어진 흐름으로 그린다.
- * 좁은 화면에서는 한 줄에 하나씩 쌓이고 화살표는 아래를 향한다.
+ * 대관 절차 — **12칼럼 그리드 위에 3칼럼씩(4-up), 두 줄.** 박스 사이 거터에 화살표가 놓인다.
+ * 순서가 있는 내용이므로 카드 그리드가 아니라 화살표로 이어진 흐름으로 읽힌다.
+ * 좁은 화면에서는 한 줄에 하나(640 미만) / 둘(640~1023)씩 쌓이고 화살표는 사라진다.
  */
 export function ProcessSteps({ steps }: { steps: ProcessStep[] }) {
-  const rows: ProcessStep[][] = [];
-  for (let i = 0; i < steps.length; i += 4) rows.push(steps.slice(i, i + 4));
-
   return (
-    <ol className="space-y-[var(--gutter)]">
-      {rows.map((row, ri) => (
-        <li key={ri}>
-          <ul className="grid gap-3 sm:grid-cols-2 lg:flex lg:items-stretch lg:gap-0">
-            {row.map((s, i) => (
-              <li key={s.no} className="flex items-stretch lg:min-w-0 lg:flex-1">
-                <div className="min-w-0 flex-1 border border-border/25 bg-panel p-6">
-                  <span className="type-display block text-h6-m tabular-nums sm:text-h6">
-                    {s.no}
-                  </span>
-                  <h4 className="type-kr-heading mt-3 break-keep text-h6-m sm:text-h6">{s.title}</h4>
-                  <p className="mt-3 break-keep text-s text-muted">{s.desc}</p>
-                </div>
-                {i < row.length - 1 && (
-                  <StepArrow className="mx-2 hidden self-center text-muted lg:block" />
-                )}
-              </li>
-            ))}
-          </ul>
-        </li>
-      ))}
+    <ol className="grid gap-[var(--gutter)] sm:grid-cols-2 lg:grid-cols-12">
+      {steps.map((s, i) => {
+        // 줄 끝(4·8번째)과 마지막 박스에는 화살표를 두지 않는다
+        const hasArrow = i % 4 !== 3 && i !== steps.length - 1;
+        return (
+          <li key={s.no} className="relative lg:col-span-3">
+            <div className="h-full border border-border/25 bg-panel p-6">
+              <span className="type-display block text-h6-m tabular-nums sm:text-h6">{s.no}</span>
+              <h4 className="type-kr-heading mt-3 break-keep text-h6-m sm:text-h6">{s.title}</h4>
+              <p className="mt-3 break-keep text-s text-muted">{s.desc}</p>
+            </div>
+            {hasArrow && (
+              /* 화살표는 박스 사이 거터의 가운데에 뜬다 — 박스 폭을 줄여 자리를 만들지
+                 않는다(박스가 컬럼에서 벗어난다) */
+              <StepArrow className="absolute left-[calc(100%_+_var(--gutter)/2)] top-1/2 hidden -translate-x-1/2 -translate-y-1/2 text-muted lg:block" />
+            )}
+          </li>
+        );
+      })}
     </ol>
   );
 }

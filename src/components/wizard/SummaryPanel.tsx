@@ -19,7 +19,7 @@ export function SummaryPanel({ quote }: { quote: EstimatedQuote }) {
   const visibleItems = quote.lineItems.filter((item) => item.visibility !== "HIDDEN");
 
   return (
-    <aside className="w-full min-w-0 lg:col-span-2 lg:sticky lg:top-28 lg:self-start">
+    <aside className="w-full min-w-0 lg:col-span-4 lg:sticky lg:top-28 lg:self-start">
       <div className="border-t-2 border-foreground pt-5">
         <h3 className="type-kr-heading text-h6-m sm:text-h6">실시간 견적 요약</h3>
         <p className="mt-2 text-xs text-muted">

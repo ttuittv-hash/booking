@@ -92,9 +92,11 @@ Figma 가 stretch 로 잡혀 있어서 넓은 화면에서는 컬럼이 같이 �
 | <768 | 20 | 16 |
 
 - `container-site` — 좌우 마진만 준다(전폭). 모든 밴드 안쪽 래퍼가 이걸 쓴다
-- `grid-site` — lg 이상에서 6컬럼 · `gap: var(--gutter)`
+- `grid-site` — lg 이상에서 **12컬럼** · `gap: var(--gutter)`. 12 는 2·3·4·6 으로 나뉘어
+  2-up·3-up·4-up·6-up 과 1/3+2/3 분할이 전부 컬럼 경계에 떨어진다
 - `measure` — 본문 가독 폭(48rem). 긴 문단은 6컬럼을 다 채우지 않는다
-- 스팬 환산(1497 기준, 콘텐츠 1369): 1열 194.8 / 2열 429.7 / 3열 664.5 / 4열 899.3
+- 스팬 환산(1497 기준, 콘텐츠 1369): 1열 77.4 / 2열 194.8 / 3열 **312.3** / 4열 **429.7** /
+  6열 **664.5** / 8열 **899.3** / 12열 1369 — 거터가 같아 짝수 스팬은 예전 6칼럼 값과 같다
 
 **기본은 좌측 정렬 1컬럼.** 카드처럼 대등한 항목이 나열될 때만 멀티컬럼을 쓴다.
 
@@ -109,19 +111,19 @@ Figma 가 stretch 로 잡혀 있어서 넓은 화면에서는 컬럼이 같이 �
 
 | 콘텐츠 | 스팬 | 한 줄에 | 코드 |
 |---|---|---|---|
-| 히어로 · 전면 사진 · 푸터 워드마크 | 6col | 1 | `container-site` |
-| 스텝 다이어그램(대관 절차) · 풀폭 비교표 | 6col | 1 | `ProcessSteps` · `ComparisonTable` |
-| 목차/제목/메뉴 + 본문·표·폼 | 2col + 4col | — | `ArticleLayout` · `MyPageShell` · `FaqAccordion` · `SplitSection` · `WizardShell` |
-| 카드 — 제목 + 2~3줄 | 2col | 3 | `OverviewCards` |
-| 카드 — 제목 + 문단 · 이미지 카드 | 3col | 2 | `FeatureList columns={2}` · `LayoutAlternating` |
-| 표의 라벨 열 | 1col | — | `SPEC_LABEL_WIDTH` |
+| 히어로 · 전면 사진 · 푸터 워드마크 · 풀폭 비교표 | 12col | 1 | `container-site` · `ComparisonTable` |
+| 목차/제목/메뉴 + 본문·표·폼 | **4col + 8col** | — | `ArticleLayout` · `MyPageShell` · `FaqAccordion` · `SplitSection` · `WizardShell` |
+| 카드 — 제목 + 2~3줄 (4개) | **3col** | 4 | `OverviewCards` |
+| 카드 — 제목 + 2~3줄 (3개) | 4col | 3 | — |
+| 카드 — 제목 + 문단 · 이미지 카드 | **6col** | 2 | `FeatureList columns={2}` · `LayoutAlternating` |
+| 절차 다이어그램의 박스 | **3col** | 4 (두 줄) | `ProcessSteps` |
+| 번호 + 문장 목록의 글머리 | 1col | — | `Manifesto` · `FeatureList numbered` |
+| 표의 라벨 열 | 2col | — | `SPEC_LABEL_WIDTH` |
 
-**한 줄에 4개를 균등 분할하지 않는다** — 6 을 4 로 나눌 수 없어(1.5칼럼) 어떤 거터로도
-컬럼 경계에 떨어지지 않는다. 4개짜리는 `2col × 3-up + 남는 하나`로 두 줄이 된다.
-순서가 있어 4개씩 두 줄로 보여야 하는 것(대관 절차)은 **다이어그램 한 블록(6col)** 이고,
-그 안의 박스 배치는 가이드 §8 이 정한다.
+**항목 수에 스팬을 맞춘다** — 4개면 3col × 4, 3개면 4col × 3, 2개면 6col × 2.
+남는 칸이 생기는 배치를 고르지 않는다.
 
-**두 칼럼은 항상 2col + 4col.** 사이드바 폭은 고정 픽셀이 아니라 2col 스팬으로 잡는다.
+**두 칼럼은 항상 4col + 8col.** 사이드바 폭은 고정 픽셀이 아니라 4col 스팬으로 잡는다.
 
 푸터 워드마크(`type-wordmark`)는 컨테이너 폭에 비례해 **크기만** 커지고 마진 안에 딱 들어온다
 (`13.65cqw` — Archivo 자폭에 맞춘 값). 글자를 늘려서 폭을 채우지 않는다.
