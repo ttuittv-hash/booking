@@ -68,6 +68,7 @@ for (const [label, cid] of [["메시지 고유 ID", "check-" + process.pid], ["�
         sender_key: SENDER_KEY,
         template_code: "__connectivity_check__",
         phone_number: "",
+        sender_no: process.env.BIZTALK_SENDER_NO || "",
         message: "",
         fall_back_yn: false,
       }),
@@ -75,7 +76,10 @@ for (const [label, cid] of [["메시지 고유 ID", "check-" + process.pid], ["�
     });
     const body = (await res.text()).slice(0, 160);
     // 404 면 그 경로 형태가 아니다. 400/유효성 오류면 경로는 맞고 본문만 틀린 것이다.
+    // 2026-08-25 실측: 두 형태 모두 경로로 인정됐고, 전부 채워도 API_402(발송 권한 없음)가
+    // 났다 — cid 문제가 아니라 DKT 쪽 계정 활성화(발신번호 등록·템플릿 승인) 전 상태다.
     line(res.status !== 404, `cid = ${label}`, `status ${res.status} · ${body}`);
+    if (body.includes("API_402")) console.log("       ↳ 발송 권한 미개통 — DKT 에 계정 활성화를 요청할 것(발신번호 등록·템플릿 승인 선행)");
   } catch (e) {
     line(false, `cid = ${label}`, String(e.message || e));
   }

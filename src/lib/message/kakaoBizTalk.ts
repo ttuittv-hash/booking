@@ -79,18 +79,24 @@ function baseUrl(): string {
   return (process.env.BIZTALK_BASE_URL || "").replace(/\/+$/, "");
 }
 
+/**
+ * 알림톡도 발신번호(sender_no)가 필수다 — 2026-08-25 검증 서버 실측:
+ * sender_no 없이 보내면 API_4611 "sender_no는 필수값입니다". 문자 대체발송용인 줄
+ * 알았는데 카카오 발송에도 요구한다. 발신번호 사전등록(유저웹) 전에는 채널을 켜지 않는다.
+ */
 export function isBizTalkConfigured(): boolean {
   return Boolean(
     process.env.BIZTALK_BASE_URL &&
       process.env.BIZTALK_CLIENT_ID &&
       process.env.BIZTALK_CLIENT_SECRET &&
-      process.env.BIZTALK_SENDER_KEY,
+      process.env.BIZTALK_SENDER_KEY &&
+      process.env.BIZTALK_SENDER_NO,
   );
 }
 
-/** 문자 발송은 발신번호 사전등록을 마친 번호가 있어야 한다. */
+/** 문자 발송 조건은 알림톡과 같다(발신번호 포함). */
 export function isXmsConfigured(): boolean {
-  return isBizTalkConfigured() && Boolean(process.env.BIZTALK_SENDER_NO);
+  return isBizTalkConfigured();
 }
 
 /**
@@ -150,6 +156,7 @@ export function classifyBizTalkCode(code: string | number | null | undefined): F
     case "410":
     case "420":
     case "400":
+    case "API_4611": // 파라미터 오류 — 재시도해도 같다
       // 유효성·파일 오류는 템플릿·변수 문제다. 재시도해도 같은 결과라 중단한다.
       return "TEMPLATE";
     case "100":
@@ -158,6 +165,9 @@ export function classifyBizTalkCode(code: string | number | null | undefined): F
     case "520":
       // 처리중·재처리·브로커·시스템 오류는 일시적일 수 있다.
       return "TRANSIENT";
+    case "API_402":
+      // 발송 권한 없음 — DKT 쪽 계정 활성화 문제. 재시도할 일이 아니다.
+      return "UNKNOWN";
     default:
       return "UNKNOWN";
   }
@@ -201,7 +211,7 @@ export const kakaoBizTalkAdapter: ChannelAdapter = {
         // DKT 에 맡기면 우리 이력에 대체발송 사실이 남지 않는다.
         fall_back_yn: false,
       };
-      if (process.env.BIZTALK_SENDER_NO) body.sender_no = process.env.BIZTALK_SENDER_NO;
+      body.sender_no = process.env.BIZTALK_SENDER_NO;
       if (request.button) {
         body.button = [
           {

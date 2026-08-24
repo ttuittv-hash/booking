@@ -102,3 +102,20 @@ pod 를 여러 개 띄울 수 있으므로, **프로세스 메모리에 상태�
   ② 기획서 A13 링크·A15 매트릭스 ③ 잠긴 버튼 패턴 ④ toLocale* 시간대 의존.
 - 운영/개발 환경 차이는 시크릿·env 로만 낸다. dev 전용: `NICE_AUTH_DEV_STUB`,
   `SEED_SAMPLE_COMPANY=true`. 운영 전용: 별도 `FIELD_*` 암호화 키.
+
+
+## 카카오 알림톡 (DK테크인 BizMsg)
+
+`src/lib/message/kakaoBizTalk.ts`. 환경변수 `BIZTALK_*` 5종(BASE_URL·CLIENT_ID·CLIENT_SECRET·
+SENDER_KEY·**SENDER_NO**)이 모두 있어야 채널이 켜진다 — 없으면 인앱 알림만 나간다.
+
+2026-08-25 검증(CBT) 서버 실측으로 확정된 것:
+- **알림톡도 `sender_no`(발신번호) 필수**. 발신번호 사전등록은 유저웹(서류 첨부)에서만 된다.
+- 발송 경로 `/v2/request/{cid}/kakao` 의 cid 는 어떤 값이든 경로로 인정된다(발송 이력 id 사용,
+  `BIZTALK_CID` 로 덮어쓰기 가능).
+- 템플릿은 MNG API(`/mng/v1/template/create`, 토큰은 `/mng/v1/oauth/token`)로 등록한다.
+  MB-01~07 은 등록됨(kepStatus I=검수 진행중). 본문은 `templates.ts` 와 글자 단위로 같아야 한다 —
+  템플릿 문구를 고치면 MNG 에서도 수정(`template/modify`)해야 발송이 거절되지 않는다.
+- `API_402 발송 권한 없음` 은 코드 문제가 아니라 DKT 쪽 계정 활성화 전 상태다.
+- 점검: `kubectl -n arena-dev exec deploy/arena -- node scripts/biztalk-check.mjs` (클러스터 안에서만
+  닿는다 — 방화벽이 발신 IP 211.213.60.30 기준).

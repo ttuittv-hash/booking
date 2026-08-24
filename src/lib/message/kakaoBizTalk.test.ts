@@ -56,9 +56,9 @@ const request = {
 
 describe("설정 판정", () => {
   it("키가 다 있으면 알림톡이 켜진다", () => expect(isBizTalkConfigured()).toBe(true));
-  it("발신번호가 없으면 문자는 꺼진다 — 발신번호 사전등록이 선행되어야 한다", () => {
+  it("발신번호가 없으면 알림톡·문자 모두 꺼진다 — DKT 가 알림톡에도 sender_no 를 요구한다", () => {
     delete process.env.BIZTALK_SENDER_NO;
-    expect(isBizTalkConfigured()).toBe(true);
+    expect(isBizTalkConfigured()).toBe(false);
     expect(isXmsConfigured()).toBe(false);
   });
 });
