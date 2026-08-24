@@ -33,7 +33,7 @@ const PROSE = [
   "whitespace-pre-wrap text-m leading-8 text-muted-strong",
   "[&_h2]:type-kr-heading [&_h2]:mt-12 [&_h2]:text-h5-m [&_h2]:text-foreground sm:[&_h2]:text-h5",
   "[&_h3]:type-kr-heading [&_h3]:mt-10 [&_h3]:text-h6-m [&_h3]:text-foreground [&_h3]:first:mt-0 sm:[&_h3]:text-h6",
-  "[&_p]:my-4 [&_p]:first:mt-0 [&_p]:last:mb-0",
+  "[&_p]:my-0",
   "[&_strong]:font-bold [&_strong]:text-foreground",
   "[&_a]:underline [&_a]:decoration-1 [&_a]:underline-offset-4 [&_a]:text-foreground hover:[&_a]:text-muted",
   "[&_ul]:mt-4 [&_ul]:list-disc [&_ul]:pl-5 [&_ol]:mt-4 [&_ol]:list-decimal [&_ol]:pl-5",
@@ -46,12 +46,6 @@ const PROSE = [
   "[&_summary]:cursor-pointer [&_summary]:font-bold [&_summary]:text-foreground",
   "[&_[data-type=detailsContent]]:mt-3",
 ].join(" ");
-
-/**
- * 대관 캘린더 마커로 잘린 조각을 그릴 때 쓴다 — first:mt-0/last:mb-0를 빼서
- * 각 조각의 경계가 위·아래 캘린더 버튼에 바짝 붙지 않게 한다.
- */
-const PROSE_SEGMENT = PROSE.replace(/\[&_p\]:first:mt-0 /, "").replace(/\[&_p\]:last:mb-0/, "");
 
 export default async function NoticeDetailPage({
   params,
@@ -111,10 +105,7 @@ export default async function NoticeDetailPage({
               return segments.map((segment, i) => (
                 <Fragment key={i}>
                   {segment.trim() && (
-                    <div
-                      className={segments.length > 1 ? PROSE_SEGMENT : PROSE}
-                      dangerouslySetInnerHTML={{ __html: segment }}
-                    />
+                    <div className={PROSE} dangerouslySetInnerHTML={{ __html: segment }} />
                   )}
                   {i < segments.length - 1 && (
                     <div className="my-6">
