@@ -2470,6 +2470,21 @@ export async function setAdminTier(id: string, tier: AdminTier): Promise<AppUser
   return (await findUserById(id))!;
 }
 
+/**
+ * 마스터 관리자 권한 이관 — 대상 계정을 MASTER 로 올리고, 이관하는 본인은 PRO 로
+ * 내린다. 승격 → 본인 강등을 화면에서 따로따로 시키는 대신 한 트랜잭션으로 묶어,
+ * 그 사이에 "마스터가 둘"이거나 "마스터가 없음" 상태가 잠깐이라도 남지 않게 한다
+ * (2026-08-24, "마스터 관리자가 권한을 이관하는것도 추가해"). 대상을 먼저 올리므로
+ * setAdminTier의 마지막 마스터 보호 로직에는 걸리지 않는다.
+ */
+export async function transferMasterAdmin(fromId: string, toId: string): Promise<AppUser> {
+  return withTransaction(async () => {
+    const to = await setAdminTier(toId, "MASTER");
+    await setAdminTier(fromId, "PRO");
+    return to;
+  });
+}
+
 // 비밀번호 해시 없이 이메일로 계정을 찾는다(역할 무관 — 신청자든 운영자든).
 // "기존 회원을 운영자로 승급" 기능에서 사용.
 export async function findUserByEmail(email: string): Promise<AppUser | undefined> {

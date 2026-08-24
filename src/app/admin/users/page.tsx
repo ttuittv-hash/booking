@@ -8,6 +8,7 @@ import {
   AdminTierControl,
   TierBadge,
 } from "@/components/admin/AdminTierControl";
+import { MasterTransferForm } from "@/components/admin/MasterTransferForm";
 import { PromoteUserForm } from "@/components/admin/PromoteUserForm";
 import {
   PAGE_LEAD,
@@ -35,6 +36,9 @@ export default async function AdminUsersPage() {
 
   const admins = await listUsers({ role: "ADMIN" });
   const master = isMasterAdmin(user);
+  const transferCandidates = admins
+    .filter((a) => a.id !== user.id)
+    .map((a) => ({ id: a.id, name: a.name, email: a.email }));
 
   return (
     <div className="flex flex-1 flex-col">
@@ -95,6 +99,12 @@ export default async function AdminUsersPage() {
             </table>
           </div>
         </div>
+
+        {master && transferCandidates.length > 0 && (
+          <div className="mt-8">
+            <MasterTransferForm candidates={transferCandidates} />
+          </div>
+        )}
 
         {master && (
           <div className="mt-8">
