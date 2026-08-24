@@ -202,19 +202,10 @@ export function PublicHeader({
   return (
     <header className="sticky top-0 z-40" onMouseLeave={closeSoon}>
       {/*
-        배경은 두 겹이다 — 상단바 높이만큼은 그대로 덮고(위), 그 아래 20px 이
-        마스크로 사라진다(아래). 아랫변을 상단바 높이에 딱 맞춰 자르면 스크롤할 때
-        본문 위에 자른 띠가 얹힌 것처럼 보인다. 마스크라서 blur 도 함께 사라진다.
-        (한 겹으로 두고 마스크만 걸면 상단바 글자 뒤부터 배경이 옅어진다)
+        배경은 한 겹이고 아래로 갈수록 투명해진다(`header-veil`). 아랫변을 상단바
+        높이에 딱 맞춰 자르면 스크롤할 때 본문 위에 자른 띠가 얹힌 것처럼 보인다.
       */}
-      <div
-        aria-hidden
-        className={`pointer-events-none absolute inset-x-0 top-0 h-[var(--header-h)] transition-colors ${veil}`}
-      />
-      <div
-        aria-hidden
-        className={`mask-fade-b pointer-events-none absolute inset-x-0 top-[var(--header-h)] h-5 transition-colors ${veil}`}
-      />
+      <div aria-hidden className={`header-veil transition-colors ${veil}`} />
       {/*
         중앙 메뉴는 좌우 요소 사이 공간의 가운데가 아니라 **화면의 가운데**에 와야 한다 —
         워드마크와 우측 유틸의 폭이 다르므로 flex 로만 두면 아래 알약 탭과 축이 어긋난다.

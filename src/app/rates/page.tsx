@@ -137,20 +137,21 @@ function RatePanel({ en, ko, c }: { en: string; ko: string; c: VenueRateContent 
       )}
 
       <Band tone="white">
-        {c.charges.length > 0 && (
+        {(c.charges.length > 0 || c.notes.length > 0) && (
           <SplitSection title="ADDITIONAL CHARGES">
-            <GroupedSpecTable groups={chargeGroups(c.charges)} />
+            {c.charges.length > 0 && <GroupedSpecTable groups={chargeGroups(c.charges)} />}
+            {/* ※ 안내는 표에 딸린 주석이므로 표와 같은 칼럼 아래에 붙인다 —
+                지면 전체 폭으로 빼면 어느 표의 주석인지 끊긴다 */}
+            {c.notes.length > 0 && (
+              <ul className="mt-8 space-y-2">
+                {c.notes.map((t, i) => (
+                  <li key={`${t}-${i}`} className="break-keep text-xs leading-5 text-muted">
+                    ※ {t}
+                  </li>
+                ))}
+              </ul>
+            )}
           </SplitSection>
-        )}
-
-        {c.notes.length > 0 && (
-          <ul className="measure mt-10 space-y-2">
-            {c.notes.map((t, i) => (
-              <li key={`${t}-${i}`} className="break-keep text-xs leading-5 text-muted">
-                ※ {t}
-              </li>
-            ))}
-          </ul>
         )}
       </Band>
     </>
