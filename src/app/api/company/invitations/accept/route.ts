@@ -1,3 +1,4 @@
+import { dispatchMessageInBackground } from "@/lib/message/dispatch";
 import { NextResponse } from "next/server";
 import crypto from "node:crypto";
 import { hashPassword, createSession } from "@/lib/auth";
@@ -5,6 +6,7 @@ import {
   assignCompanyRoleOnJoin,
   attachIdentityToUser,
   consumeInvitation,
+  findUserById,
   createUser,
   findCompanyById,
   findCompletedIdentity,
@@ -88,6 +90,18 @@ export async function POST(request: Request) {
   await assignCompanyRoleOnJoin(user.id, invitation.companyId);
   await consumeInvitation(invitation.id, user.id);
   await createSession(user.id, user.role);
+
+  // MB-08 담당자 등록 완료(초대) → 합류한 본인
+  {
+    const master = company?.masterUserId ? await findUserById(company.masterUserId) : null;
+    dispatchMessageInBackground({
+      templateCode: "MB-08",
+      idempotencyKey: `MB-08:${user.id}`,
+      recipient: { userId: user.id, phone: user.phone, email: user.email, name: user.name },
+      variables: { 신청자명: user.name, 마스터: master?.name ?? "대표 담당자", 회사명: company?.name ?? "소속 회사" },
+      request,
+    });
+  }
 
   return NextResponse.json({ ok: true, companyName: company?.name ?? null });
 }

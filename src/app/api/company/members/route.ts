@@ -1,3 +1,4 @@
+import { dispatchMessageInBackground } from "@/lib/message/dispatch";
 import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
 import {
@@ -61,6 +62,21 @@ export async function POST(request: Request) {
       );
     }
     await transferCompanyMaster(user.companyId, user.id, targetId);
+    // MB-09 권한을 받은 사람 / MB-10 넘긴 사람 (카카오 정본 00006·00007)
+    dispatchMessageInBackground({
+      templateCode: "MB-09",
+      idempotencyKey: `MB-09:${targetId}:${Date.now()}`,
+      recipient: { userId: targetId, phone: target.phone, email: target.email, name: target.name },
+      variables: { 신청자명: target.name },
+      request,
+    });
+    dispatchMessageInBackground({
+      templateCode: "MB-10",
+      idempotencyKey: `MB-10:${user.id}:${Date.now()}`,
+      recipient: { userId: user.id, phone: user.phone, email: user.email, name: user.name },
+      variables: { 마스터: user.name, 신청자명: target.name },
+      request,
+    });
     const now = new Date().toISOString();
     for (const [rid, msg] of [
       [targetId, "대표 담당자 권한이 이관되었습니다."],

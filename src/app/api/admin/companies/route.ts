@@ -1,7 +1,8 @@
 import { NextResponse } from "next/server";
 import crypto from "node:crypto";
 import { getCurrentUser } from "@/lib/auth";
-import { createNotification, findCompanyById, setCompanyMasterByAdmin } from "@/lib/db";
+import { createNotification, findCompanyById, findUserById, setCompanyMasterByAdmin } from "@/lib/db";
+import { dispatchMessageInBackground } from "@/lib/message/dispatch";
 
 // 운영자의 대표 담당자 변경 (기획서 A10 — 마스터 부재·퇴사 시 운영자가 안전망).
 export async function POST(request: Request) {
@@ -23,6 +24,30 @@ export async function POST(request: Request) {
   const previousMasterId = company.masterUserId;
   const result = await setCompanyMasterByAdmin(companyId, targetId);
   if (!result.ok) return NextResponse.json({ error: result.error }, { status: 400 });
+
+  // MB-09 새 대표 / MB-10 이전 대표 — 알림톡(카카오 정본 00006·00007)
+  {
+    const next = await findUserById(targetId);
+    const prev = previousMasterId && previousMasterId !== targetId ? await findUserById(previousMasterId) : null;
+    if (next) {
+      dispatchMessageInBackground({
+        templateCode: "MB-09",
+        idempotencyKey: `MB-09:${targetId}:${Date.now()}`,
+        recipient: { userId: next.id, phone: next.phone, email: next.email, name: next.name },
+        variables: { 신청자명: next.name },
+        request,
+      });
+    }
+    if (prev) {
+      dispatchMessageInBackground({
+        templateCode: "MB-10",
+        idempotencyKey: `MB-10:${prev.id}:${Date.now()}`,
+        recipient: { userId: prev.id, phone: prev.phone, email: prev.email, name: prev.name },
+        variables: { 마스터: prev.name, 신청자명: next?.name ?? "" },
+        request,
+      });
+    }
+  }
 
   // 바뀐 사실을 양쪽에 알린다 — 권한이 조용히 바뀌면 아무도 모른다.
   const now = new Date().toISOString();

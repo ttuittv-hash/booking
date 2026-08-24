@@ -99,7 +99,7 @@ export async function POST(request: Request) {
     templateCode: approved ? "MB-02" : "MB-03",
     idempotencyKey: `${approved ? "MB-02" : "MB-03"}:${id}`,
     recipient: { userId: id, phone: target.phone, email: target.email, name: target.name },
-    variables: approved ? {} : { 반려사유: rejectReason },
+    variables: approved ? { 신청자명: target.name } : { 신청자명: target.name, 거절사유: rejectReason },
     request,
   });
 

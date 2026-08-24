@@ -28,6 +28,7 @@ import {
   notifyAdmins,
   saveCompanyVerification,
   withTransaction,
+  findUserById,
 } from "@/lib/db";
 import { SHA256_HEX_RE, sha256Hex } from "@/lib/passwordScheme";
 import { clientIpFrom, rateLimit } from "@/lib/rateLimit";
@@ -345,13 +346,19 @@ export async function POST(request: Request) {
       createdAt,
     });
 
-    // MB-04 합류 신청 발생 → 그 회사 마스터
+    // MB-04 합류 신청 발생 → 그 회사 마스터 (카카오 정본은 마스터 이름을 본문에 쓴다)
     if (company && created.companyRole === "STAFF" && company.masterUserId) {
+      const master = await findUserById(company.masterUserId);
       dispatchMessageInBackground({
         templateCode: "MB-04",
         idempotencyKey: `MB-04:${created.id}`,
-        recipient: { userId: company.masterUserId, phone: null, email: null, name: null },
-        variables: { 신청자명: name },
+        recipient: {
+          userId: company.masterUserId,
+          phone: master?.phone ?? null,
+          email: master?.email ?? null,
+          name: master?.name ?? null,
+        },
+        variables: { 신청자명: name, 마스터: master?.name ?? "대표 담당자" },
         request,
       });
     }
@@ -359,13 +366,17 @@ export async function POST(request: Request) {
     return created;
   });
 
-  // MB-01 가입 신청 접수 → 신청자 본인
-  dispatchMessageInBackground({
-    templateCode: "MB-01",
-    idempotencyKey: `MB-01:${user.id}`,
-    recipient: { userId: user.id, phone, email, name },
-    request,
-  });
+  // MB-01 가입 신청 접수 → 신청자 본인 (기존 회사 합류면 카카오 정본이 따로 있어 MB-01J)
+  {
+    const code = user.companyRole === "STAFF" ? "MB-01J" : "MB-01";
+    dispatchMessageInBackground({
+      templateCode: code,
+      idempotencyKey: `${code}:${user.id}`,
+      recipient: { userId: user.id, phone, email, name },
+      variables: { 신청자명: name },
+      request,
+    });
+  }
   // MB-05 회사 신규 등록 → 운영자
   if (company && user.companyRole === "MASTER") {
     for (const admin of await listUsers({ role: "ADMIN" })) {

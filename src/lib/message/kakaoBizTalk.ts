@@ -204,9 +204,12 @@ export const kakaoBizTalkAdapter: ChannelAdapter = {
       const body: Record<string, unknown> = {
         message_type: "AT",
         sender_key: process.env.BIZTALK_SENDER_KEY,
-        template_code: request.templateCode,
+        // DKT 에 등록된 코드로 보낸다 — 내부 코드(MB-xx)는 이력용이다.
+        template_code: request.kakaoTemplateCode ?? request.templateCode,
         phone_number: request.recipient.phone.replace(/\D/g, ""),
         message: request.body,
+        // 강조표기형(TEXT) 템플릿은 핵심 문구가 등록값과 같아야 한다.
+        ...(request.emphasis ? { title: request.emphasis.title, subtitle: request.emphasis.subtitle } : {}),
         // 대체발송은 파이프라인이 직접 관리한다 — 어떤 실패에 무엇으로 보낼지 규칙이 우리 쪽에 있다.
         // DKT 에 맡기면 우리 이력에 대체발송 사실이 남지 않는다.
         fall_back_yn: false,

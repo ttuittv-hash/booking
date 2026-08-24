@@ -10,9 +10,9 @@ import { classifyBizTalkCode, isBizTalkConfigured } from "./kakaoBizTalk";
 
 // 기획서 B2 — 1차 오픈(8/24) 회원가입 5종.
 describe("1차 오픈 템플릿", () => {
-  it("MB-01~05 다섯 개가 1차 오픈 대상이다", () => {
+  it("MB-01~05(+합류용 MB-01J)가 1차 오픈 대상이다", () => {
     const first = TEMPLATES.filter((t) => t.release === "FIRST").map((t) => t.code);
-    expect(first).toEqual(["MB-01", "MB-02", "MB-03", "MB-04", "MB-05"]);
+    expect(first).toEqual(["MB-01", "MB-01J", "MB-02", "MB-03", "MB-04", "MB-05"]);
   });
 
   it("선언한 변수와 본문의 자리표시자가 일치한다", () => {
@@ -22,16 +22,16 @@ describe("1차 오픈 템플릿", () => {
     }
   });
 
-  it("MB-03 은 반려사유가 필수 변수다", () => {
-    expect(findTemplate("MB-03")?.variables).toEqual(["반려사유"]);
+  it("MB-03 은 신청자명·거절사유가 필수 변수다", () => {
+    expect(findTemplate("MB-03")?.variables).toEqual(["신청자명", "거절사유"]);
   });
 });
 
 describe("변수 바인딩 (기획서 1-54)", () => {
   it("변수를 채워 본문을 만든다", () => {
-    expect(renderTemplate("MB-03", { 반려사유: "사업자 상태 확인 불가" })).toContain(
-      "사유: 사업자 상태 확인 불가",
-    );
+    const body = renderTemplate("MB-03", { 신청자명: "홍길동", 거절사유: "사업자 상태 확인 불가" });
+    expect(body).toContain("홍길동님");
+    expect(body).toContain("▪︎사유\n사업자 상태 확인 불가");
   });
 
   it("변수가 없으면 발송 전에 막는다", () => {
@@ -39,11 +39,11 @@ describe("변수 바인딩 (기획서 1-54)", () => {
   });
 
   it("빈 문자열·공백도 누락으로 본다", () => {
-    expect(() => renderTemplate("MB-03", { 반려사유: "   " })).toThrow(/변수 누락/);
+    expect(() => renderTemplate("MB-03", { 신청자명: "홍길동", 거절사유: "   " })).toThrow(/변수 누락/);
   });
 
   it("변수가 없는 템플릿은 그대로 렌더링된다", () => {
-    expect(renderTemplate("MB-02", {})).toContain("회원가입이 승인되었습니다");
+    expect(renderTemplate("MB-02", { 신청자명: "홍길동" })).toContain("가입이 승인되었습니다");
   });
 
   it("없는 템플릿은 오류다", () => {

@@ -121,12 +121,15 @@ export async function dispatchMessage(input: DispatchInput): Promise<DispatchOut
             : def.button.path,
         }
       : null,
+    kakaoTemplateCode: def.kakaoTemplateCode ?? null,
+    emphasis: def.emphasis ?? null,
   };
 
   const results: SendResult[] = [];
 
-  // ⑥ 주 채널 발송 (설정된 것이 없으면 건너뛴다)
-  for (const adapter of primaryAdapters()) {
+  // ⑥ 주 채널 발송 (설정된 것이 없으면 건너뛴다).
+  //    카카오 정본에 없는 문안(운영자용 등)은 kakaoTemplateCode 가 없다 — 인앱만 남긴다.
+  for (const adapter of def.kakaoTemplateCode ? primaryAdapters() : []) {
     await recordSendAttempt({
       id: sendId,
       idempotencyKey: input.idempotencyKey,
