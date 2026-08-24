@@ -252,16 +252,32 @@ function arenaSummaryLine(selection: QuoteSelection, defaultPerformanceDays: num
 // packages 배열과 별개로 하드코딩한다.
 function PackagePicker({
   packages,
+  addons,
   selectedId,
   onSelect,
   onClear,
 }: {
   packages: RentalPackage[];
+  addons: AddonItem[];
   selectedId: number | null;
   onSelect: (id: number) => void;
   onClear: () => void;
 }) {
   const [showCustomNotice, setShowCustomNotice] = useState(false);
+
+  // [2026-08-24, "아레나 패키지의 기본 내역이 뭔지 박스로 보여지게 해줘. 수정은
+  // 불가능하겠지만"] 이전에는 "기본 시설과 장비가 모두 포함되어 있습니다"라는
+  // 안내 문장만 있고 실제 항목은 신청서 제출 후에야 볼 수 있었다 — 패키지 관리
+  // (어드민)의 "① 기본 내역"에서 이 패키지에 체크된 항목(ITEM_ONLY)을 그대로
+  // 읽기 전용으로 나열한다. 수량 조정은 여기서 하지 않는다(선택 옵션이 아니다).
+  const selectedPkg = packages.find((p) => p.id === selectedId);
+  const baseItems = (selectedPkg?.includedItems ?? [])
+    .map((inc) => {
+      const addon = addons.find((a) => a.id === inc.addonId);
+      if (!addon) return null;
+      return { key: inc.addonId, name: addon.name, quantity: inc.quantity, unit: addon.unitLabel.replace("원/", "") };
+    })
+    .filter((item): item is { key: string; name: string; quantity: number; unit: string } => item != null);
 
   return (
     <div className="mb-6 border-b border-border pb-6">
@@ -342,10 +358,23 @@ function PackagePicker({
         <div className="mt-4 border border-border/30 bg-panel/40 px-4 py-3">
           <span className="bg-foreground px-2 py-0.5 text-xs font-bold text-background">기본 포함</span>
           <p className="mt-1.5 text-xs leading-5 text-foreground">
-            모든 구성에는 공연 운영에 필요한 기본 시설과 장비가 모두 포함되어 있습니다
-            <br />
-            자세한 내역은 신청서 제출 시 최종 내역을 확인해 주세요
+            이 구성에는 아래 항목이 별도 비용 없이 기본 포함되어 있습니다.
           </p>
+          {baseItems.length > 0 ? (
+            <div className="mt-3 grid grid-cols-1 gap-1.5 sm:grid-cols-2 lg:grid-cols-3">
+              {baseItems.map((item) => (
+                <div key={item.key} className="border border-border-soft bg-panel px-3 py-2 text-xs">
+                  <span className="font-bold text-foreground">{item.name}</span>
+                  <span className="ml-1.5 text-muted">
+                    {item.quantity}
+                    {item.unit}
+                  </span>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <p className="mt-3 text-xs text-muted">등록된 기본 포함 항목이 없습니다.</p>
+          )}
         </div>
       )}
     </div>
@@ -441,6 +470,7 @@ export function StepConfigOptions({
       <div className="mt-8">
         <PackagePicker
           packages={arenaPackages}
+          addons={rateTable.addons}
           selectedId={selection.packageId}
           onSelect={onSelectPackage}
           onClear={onClearPackage}
