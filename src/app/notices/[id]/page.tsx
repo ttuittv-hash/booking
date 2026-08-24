@@ -39,7 +39,7 @@ const PROSE = [
   "[&_ul]:mt-4 [&_ul]:list-disc [&_ul]:pl-5 [&_ol]:mt-4 [&_ol]:list-decimal [&_ol]:pl-5",
   "[&_li]:mt-2",
   "[&_img]:mt-6 [&_img]:max-w-full",
-  "[&_table]:mt-6 [&_table]:w-full [&_table]:border-collapse [&_table]:text-s",
+  "[&_table]:mt-4 [&_table]:block [&_table]:max-w-full [&_table]:overflow-x-auto [&_table]:border-collapse [&_table]:text-s",
   "[&_th]:border [&_th]:border-border-soft [&_th]:bg-background [&_th]:px-3 [&_th]:py-2.5 [&_th]:text-left [&_th]:font-bold [&_th]:text-foreground",
   "[&_td]:border [&_td]:border-border-soft [&_td]:px-3 [&_td]:py-2.5",
   "[&_details]:mt-6 [&_details]:border [&_details]:border-border-soft [&_details]:px-4 [&_details]:py-3",

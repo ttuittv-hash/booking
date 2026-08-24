@@ -54,15 +54,17 @@ await toastGone(p);
 await inqBtn.click(); await p.waitForTimeout(3500);
 say(!p.url().includes("/new"), "다 채우면 정상 저장된다", p.url().replace(B,""));
 
-// ── 대관 신청 위저드 — 시설 미선택 상태에서 [다음]
+// ── 대관 신청 위저드 — STEP2 패키지 미선택에서 [다음]
+// (개편 후 STEP1 은 아레나 사전 선택 + 기본 주차라 "시설 미선택" 상태가 없다)
 await toastGone(p);
 await p.goto(B+"/apply?new=1",{waitUntil:"networkidle"});
 const next=p.locator('button:has-text("다음")').last();
 if (await next.count()) {
   say(!(await next.isDisabled()), "위저드 [다음]이 잠겨 있지 않다");
-  await next.click(); await p.waitForTimeout(1200);
+  await next.click(); await p.waitForTimeout(1400); // STEP1 → STEP2 (구성·옵션)
+  await next.click(); await p.waitForTimeout(1200); // 패키지 없이 다음
   t=await toastOf(p);
-  say(/시설|일정/.test(t), "시설 미선택이면 이유를 알려준다", t.slice(0,40));
+  say(/패키지/.test(t), "패키지 미선택이면 이유를 알려준다", t.slice(0,40));
 } else say(false, "위저드 [다음] 버튼을 찾지 못함");
 
 // ── 회원 탈퇴 — 빈 상태

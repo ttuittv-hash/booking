@@ -100,7 +100,7 @@ export default async function AdminInquiriesPage({
                         <td className={TD_ID}>
                           <Link
                             href={`/admin/inquiries/${inquiry.id}`}
-                            className="transition-colors hover:text-muted-strong"
+                            className="inline-flex min-h-11 items-center transition-colors hover:text-muted-strong sm:min-h-0"
                           >
                             {inquiry.title}
                           </Link>

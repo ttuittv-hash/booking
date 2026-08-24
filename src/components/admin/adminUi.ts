@@ -64,7 +64,7 @@ export const ADD_BTN_LG =
 
 /** 삭제/제거 — 파괴적 동작은 색(text-danger)으로만 신호한다 */
 export const REMOVE_BTN =
-  "shrink-0 text-xs font-bold text-danger transition-colors hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-danger";
+  "inline-flex min-h-11 shrink-0 items-center text-xs font-bold text-danger sm:min-h-0 transition-colors hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-danger";
 
 /**
  * 텍스트 링크형 보조 동작.

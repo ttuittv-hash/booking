@@ -20,7 +20,8 @@ const RICH = [
   "[&_ul]:mt-3 [&_ul]:list-disc [&_ul]:space-y-2 [&_ul]:pl-5",
   "[&_li]:break-keep",
   "[&_strong]:font-bold [&_strong]:text-foreground",
-  "[&_table]:mt-4 [&_table]:w-full [&_table]:border-collapse [&_table]:text-s",
+  // 표는 좁은 화면에서 옆으로 넘칠 수 있다 — 페이지가 아니라 표 스스로 가로 스크롤한다.
+  "[&_table]:mt-4 [&_table]:block [&_table]:max-w-full [&_table]:overflow-x-auto [&_table]:border-collapse [&_table]:text-s",
   "[&_th]:border-b [&_th]:border-border/40 [&_th]:py-2.5 [&_th]:pr-4 [&_th]:text-left [&_th]:text-xs [&_th]:font-bold [&_th]:text-muted",
   "[&_td]:border-b [&_td]:border-border/15 [&_td]:py-2.5 [&_td]:pr-4 [&_td]:align-top",
 ].join(" ");

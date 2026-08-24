@@ -102,7 +102,7 @@ function ExistingItemPicker({
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
-        className="px-2 py-1 text-xs font-bold text-foreground hover:underline"
+        className="inline-flex min-h-11 items-center px-2 py-1 text-xs font-bold text-foreground hover:underline sm:min-h-0"
       >
         + 기존 항목에서 선택
       </button>
@@ -985,7 +985,7 @@ export function PackagesForm({ rateTable, ratesContent }: { rateTable: RateTable
               <button
                 type="button"
                 onClick={() => openNewItemForm(pickerCategory, visibility)}
-                className="px-2 py-1 text-xs font-bold text-foreground hover:underline"
+                className="inline-flex min-h-11 items-center px-2 py-1 text-xs font-bold text-foreground hover:underline sm:min-h-0"
               >
                 + 새 카테고리로 항목 추가
               </button>
@@ -1054,7 +1054,7 @@ export function PackagesForm({ rateTable, ratesContent }: { rateTable: RateTable
                       <button
                         type="button"
                         onClick={() => openNewItemForm(category as AddonCategory, visibility)}
-                        className="px-2 py-1 text-xs font-bold text-foreground hover:underline"
+                        className="inline-flex min-h-11 items-center px-2 py-1 text-xs font-bold text-foreground hover:underline sm:min-h-0"
                       >
                         + 항목 추가
                       </button>
