@@ -18,7 +18,7 @@ import {
   type RateTable,
   type RentalPackage,
 } from "@/lib/pricing/types";
-import type { ChargeBlock, VenueRateContent } from "@/lib/content/pageContent";
+import type { ChargeBlock, VenueRateContent, WizardStepTexts } from "@/lib/content/pageContent";
 import { CHOICE_SELECTED_VARS, ComparisonTable, choiceClass, type SpecGroup } from "@/components/ui/kit";
 import { StepHeading } from "./StepHeading";
 
@@ -384,6 +384,7 @@ function PackagePicker({
 export function StepConfigOptions({
   rateTable,
   liveHallRateContent,
+  stepText,
   selection,
   defaultPerformanceDays,
   addonQuantities,
@@ -395,6 +396,7 @@ export function StepConfigOptions({
 }: {
   rateTable: RateTable;
   liveHallRateContent: VenueRateContent;
+  stepText: WizardStepTexts;
   selection: QuoteSelection;
   defaultPerformanceDays: number;
   addonQuantities: Record<string, number>;
@@ -413,10 +415,7 @@ export function StepConfigOptions({
   if (midHallOnly) {
     return (
       <section>
-        <StepHeading
-          title="구성 · 옵션"
-          lead="중형공연장은 패키지가 없는 일 단위 요금제입니다 — 아래는 예약 일수와 무관하게 항상 포함되는 기본 구성입니다."
-        />
+        <StepHeading title={stepText.configMidHallOnlyTitle} lead={stepText.configMidHallOnlyLead} />
 
         <MidHallRateCard
           content={liveHallRateContent}
@@ -462,7 +461,7 @@ export function StepConfigOptions({
           이 헤더가 화면의 유일한 제목이라 남긴다. */}
       {!isSimultaneous && (
         <StepHeading
-          title="아레나"
+          title={stepText.configArenaTitle}
           lead={
             pkg
               ? `${pkg.name} · ${pkg.audienceTier.label} · 예상 관객 ${selection.expectedAudience.toLocaleString()}명 · ${arenaSummaryLine(selection, defaultPerformanceDays)}`
@@ -532,7 +531,7 @@ export function StepConfigOptions({
 
   return (
     <section>
-      <StepHeading title="구성 · 옵션" lead="동시 대관은 두 공간의 구성이 서로 달라 탭으로 나눠 보여줍니다." />
+      <StepHeading title={stepText.configSimultaneousTitle} lead={stepText.configSimultaneousLead} />
 
       <div className="mt-8 flex gap-1 border-b border-border">
         {(["arena", "medium-hall"] as const).map((tab) => (

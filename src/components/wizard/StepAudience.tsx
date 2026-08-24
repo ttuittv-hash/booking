@@ -208,6 +208,8 @@ export function StepAudience({
   onChangeMidHallInfo,
   selection,
   showHeading = true,
+  title,
+  lead,
 }: {
   info: PerformanceInfo;
   onChange: (info: PerformanceInfo) => void;
@@ -217,6 +219,8 @@ export function StepAudience({
   // [2026-08-23] "신청자 정보"·"규모" 탭을 하나로 합치면서, 합친 화면에서는 큰 제목이
   // 두 번 나오지 않게 이 컴포넌트만 자기 제목(StepHeading)을 생략할 수 있게 했다.
   showHeading?: boolean;
+  title: string;
+  lead: string;
 }) {
   const [activeTab, setActiveTab] = useState<VenueSplitTab>(midHallInfo ? "ARENA" : "COMMON");
 
@@ -243,7 +247,7 @@ export function StepAudience({
 
   return (
     <section>
-      {showHeading && <StepHeading title="규모" lead="관객 수는 공간별로 자동 산정됩니다." />}
+      {showHeading && <StepHeading title={title} lead={lead} />}
 
       {/* [2026-08-24] "공통" 하나뿐일 때(분리 전)는 탭 줄 + "공간별로 다르게 입력" 버튼이
           예상 관객 및 사업규모 위에 불필요한 영역으로 남아 삭제 요청됨. 분리는 다른 탭

@@ -7,6 +7,7 @@ import { findPackage, totalRentalDays } from "@/lib/pricing/rateTableUtils";
 import { useToast } from "@/components/ui/Toast";
 import { btnClass } from "@/components/ui/kit";
 import { StepHeading } from "./StepHeading";
+import type { WizardStepTexts } from "@/lib/content/pageContent";
 import {
   DEFAULT_VENUE_ID,
   EVENT_TYPE_LABEL,
@@ -71,6 +72,7 @@ export function Step6Submit({
   fileCount = 0,
   onSubmit,
   onRequestEdit,
+  stepText,
 }: {
   rateTable: RateTable;
   quote: EstimatedQuote;
@@ -90,6 +92,7 @@ export function Step6Submit({
   onSubmit: () => void;
   /** 제출 완료 배너 옆의 "수정하기" 버튼 — 누르면 1단계로 돌아가 다시 수정할 수 있다. */
   onRequestEdit?: () => void;
+  stepText: WizardStepTexts;
 }) {
   const toast = useToast();
   const pkg = findPackage(rateTable, selection.packageId);
@@ -144,12 +147,8 @@ export function Step6Submit({
   return (
     <section>
       <StepHeading
-        title={<>{isEditing ? "신청서 수정" : "최종 제출"}</>}
-        lead={
-          isEditing
-            ? "아래 산출내역으로 신청서 내용이 수정됩니다. 신청금액은 예상금액이며, 이후 심사·계약에서 확정됩니다."
-            : "아래 산출내역으로 대관 신청서가 생성됩니다. 신청금액은 예상금액이며, 이후 심사·계약에서 확정됩니다."
-        }
+        title={isEditing ? stepText.submitEditingTitle : stepText.submitNewTitle}
+        lead={isEditing ? stepText.submitEditingLead : stepText.submitNewLead}
       />
 
       <div className="mt-10 flex flex-wrap items-center justify-between gap-4 border-t-2 border-foreground pt-6">

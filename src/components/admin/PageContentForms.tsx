@@ -597,6 +597,54 @@ export function ScreenTextForm({ content }: { content: ScreenTextContent }) {
               )}
             />
           </Section>
+
+          <Section
+            title="대관 위저드 — 스텝 제목·설명"
+            help="신청 위저드(/apply) 각 스텝 상단의 제목과 설명(리드) 문구입니다. 예상 대관료·최종 제출 등 일부 스텝은 리드 없이 제목만 있습니다."
+          >
+            {(
+              [
+                ["venuePickerTitle", "venuePickerLead", "공간 선택"],
+                ["audienceTitle", "audienceLead", "규모"],
+                ["configSimultaneousTitle", "configSimultaneousLead", "구성·옵션 (동시 대관)"],
+                ["configMidHallOnlyTitle", "configMidHallOnlyLead", "구성·옵션 (중형공연장 단독)"],
+                ["marketingTitle", "marketingLead", "홍보 및 서비스 계획"],
+                ["safetyPledgeTitle", "safetyPledgeLead", "안전관리 서약서"],
+                ["submitNewTitle", "submitNewLead", "최종 제출 (신규 신청)"],
+                ["submitEditingTitle", "submitEditingLead", "최종 제출 (신청서 수정)"],
+              ] as const
+            ).map(([titleKey, leadKey, groupLabel]) => (
+              <div key={titleKey} className="grid gap-2 sm:grid-cols-[minmax(0,14rem)_minmax(0,1fr)]">
+                <Text
+                  label={`${groupLabel} — 제목`}
+                  value={v.wizardSteps[titleKey]}
+                  onChange={(val) => patch({ wizardSteps: { ...v.wizardSteps, [titleKey]: val } })}
+                />
+                <Text
+                  label={`${groupLabel} — 설명`}
+                  value={v.wizardSteps[leadKey]}
+                  onChange={(val) => patch({ wizardSteps: { ...v.wizardSteps, [leadKey]: val } })}
+                />
+              </div>
+            ))}
+
+            {/* 리드가 동적으로 만들어지거나 아예 없는 스텝은 제목만 편집한다 */}
+            {(
+              [
+                ["configArenaTitle", "아레나 (단독 대관 · 리드는 선택한 패키지 정보로 자동 생성)"],
+                ["performanceInfoTitle", "신청자 정보"],
+                ["publicInterestTitle", "공공/공익 참여 여부"],
+                ["estimateTitle", "예상 대관료"],
+              ] as const
+            ).map(([titleKey, groupLabel]) => (
+              <Text
+                key={titleKey}
+                label={`${groupLabel} — 제목`}
+                value={v.wizardSteps[titleKey]}
+                onChange={(val) => patch({ wizardSteps: { ...v.wizardSteps, [titleKey]: val } })}
+              />
+            ))}
+          </Section>
         </>
       )}
     </ContentFormShell>
