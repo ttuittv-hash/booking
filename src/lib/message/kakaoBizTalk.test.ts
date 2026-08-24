@@ -141,18 +141,21 @@ describe("결과 폴링", () => {
     vi.stubGlobal("fetch", mockFetch((u) =>
       u.includes("/oauth/token")
         ? { access_token: "T", expires_in: 21600 }
-        : { report_group_number: "RG1", results: [{ cid: "send-1", uid: "U1", state_code: "200" }] }));
+        : { report_group_no: "RG1", results: [{ cid: "send-1", uid: "U1", state_code: "200" }] }));
     const batch = await pollMessageResults();
     expect(batch.reportGroupNumber).toBe("RG1");
     expect(batch.results[0]).toMatchObject({ cid: "send-1", stateCode: "200" });
   });
 
-  it("완료 처리는 리포트그룹번호를 경로에 담는다 — 빼먹으면 같은 결과가 계속 내려온다", async () => {
-    vi.stubGlobal("fetch", mockFetch(() => ({ access_token: "T", expires_in: 21600 })));
-    await completePoll("RG1");
+  it("완료 처리는 PUT 으로 리포트그룹번호를 경로에 담는다 — 빼먹으면 같은 결과가 계속 내려온다", async () => {
+    vi.stubGlobal("fetch", mockFetch((u) =>
+      u.includes("/oauth/token") ? { access_token: "T", expires_in: 21600 } : { code: "200" }));
+    const ok = await completePoll("RG1");
+    expect(ok).toBe(true);
     expect(calls.at(-1)?.url).toBe(
       "https://cbt-web.dktechinmsg.com/v2/info/message/results/complete/RG1",
     );
+    expect(calls.at(-1)?.init?.method).toBe("PUT");
   });
 });
 

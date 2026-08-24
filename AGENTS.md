@@ -117,5 +117,7 @@ SENDER_KEY·**SENDER_NO**)이 모두 있어야 채널이 켜진다 — 없으면
   MB-01~07 은 등록됨(kepStatus I=검수 진행중). 본문은 `templates.ts` 와 글자 단위로 같아야 한다 —
   템플릿 문구를 고치면 MNG 에서도 수정(`template/modify`)해야 발송이 거절되지 않는다.
 - `API_402 발송 권한 없음` 은 코드 문제가 아니라 DKT 쪽 계정 활성화 전 상태다.
+- 결과 폴링 응답의 그룹번호 키는 `report_group_no`. 완료 처리는 **PUT** `/v2/info/message/results/complete/{그룹번호}`
+  — HTTP 는 항상 200 이고 본문 `code` 로 성패. 안내 메일의 `cbt-ceb` 호스트는 DNS 없는 오타.
 - 점검: `kubectl -n arena-dev exec deploy/arena -- node scripts/biztalk-check.mjs` (클러스터 안에서만
   닿는다 — 방화벽이 발신 IP 211.213.60.30 기준).

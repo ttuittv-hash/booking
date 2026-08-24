@@ -332,13 +332,16 @@ export async function pollMessageResults(): Promise<PollBatch> {
     headers: { Authorization: `Bearer ${token}` },
     signal: AbortSignal.timeout(15_000),
   });
+  // 실측(2026-08-25): 그룹번호 키는 report_group_no 다(가이드 표기와 다름). 옛 표기도 받아 둔다.
   const json = (await res.json().catch(() => ({}))) as {
+    report_group_no?: string;
     report_group_number?: string;
     results?: Array<{ cid?: string; uid?: string; state_code?: string; message?: string }>;
+    data?: Array<{ cid?: string; uid?: string; state_code?: string; message?: string }>;
   };
   return {
-    reportGroupNumber: json.report_group_number ?? null,
-    results: (json.results ?? []).map((r) => ({
+    reportGroupNumber: json.report_group_no ?? json.report_group_number ?? null,
+    results: (json.results ?? json.data ?? []).map((r) => ({
       cid: r.cid ?? null,
       uid: r.uid ?? null,
       stateCode: r.state_code ?? null,
@@ -347,12 +350,22 @@ export async function pollMessageResults(): Promise<PollBatch> {
   };
 }
 
-/** ⑤ 폴링 완료 처리 — 이걸 빼먹으면 같은 결과가 계속 다시 내려온다. */
+/**
+ * ⑤ 폴링 완료 처리 — 이걸 빼먹으면 같은 결과가 계속 다시 내려온다.
+ * 실측(2026-08-25): 메서드는 PUT 이고, HTTP 는 항상 200 이며 본문 code 로 성패를 말한다
+ * (GET/POST 는 "method is not supported"). 가이드의 cbt-ceb 호스트는 DNS 가 없는 오타 —
+ * 다른 API 와 같은 호스트를 쓴다.
+ */
 export async function completePoll(reportGroupNumber: string): Promise<boolean> {
   const token = await issueBizTalkToken();
   const res = await fetch(
     `${baseUrl()}${RESULTS_PATH}/complete/${encodeURIComponent(reportGroupNumber)}`,
-    { headers: { Authorization: `Bearer ${token}` }, signal: AbortSignal.timeout(15_000) },
+    {
+      method: "PUT",
+      headers: { Authorization: `Bearer ${token}` },
+      signal: AbortSignal.timeout(15_000),
+    },
   );
-  return res.ok;
+  const json = (await res.json().catch(() => ({}))) as { code?: string | number };
+  return res.ok && String(json.code) === "200";
 }
