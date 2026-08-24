@@ -119,5 +119,10 @@ SENDER_KEY·**SENDER_NO**)이 모두 있어야 채널이 켜진다 — 없으면
 - `API_402 발송 권한 없음` 은 코드 문제가 아니라 DKT 쪽 계정 활성화 전 상태다.
 - 결과 폴링 응답의 그룹번호 키는 `report_group_no`. 완료 처리는 **PUT** `/v2/info/message/results/complete/{그룹번호}`
   — HTTP 는 항상 200 이고 본문 `code` 로 성패. 안내 메일의 `cbt-ceb` 호스트는 DNS 없는 오타.
+- 공식 스펙(v2.2.1, 2026-05-28 개정) 기준으로 맞춘 것: 발송 body 에 `subtitle` 은 없다(강조 부제목은 템플릿
+  등록값 고정, `title` ≤50자만 보냄) / 폴링 결과 필드는 `status_code`·`error_message`·`kko_status_code`
+  (`state_code` 는 구 표기) / 실패 상세코드 `result.detail_code`(ERRxxxxx) 로 분류 — ERR11000 수신거부→문자 대체,
+  ERR50025 번호 오류, ERR41001 미등록 템플릿·ERR42009 세칙검사 불통과→템플릿 오류. 결과 수신은 polling 외에
+  webhook(POST JSON, 2xx 응답, uid/cid 멱등)도 가능하나 URL 을 DKT(Kicm.dkt@kakaocorp.com)에 등록해야 해서 미도입.
 - 점검: `kubectl -n arena-dev exec deploy/arena -- node scripts/biztalk-check.mjs` (클러스터 안에서만
   닿는다 — 방화벽이 발신 IP 211.213.60.30 기준).

@@ -167,6 +167,22 @@ describe("결과 코드 분류", () => {
     for (const c of ["100", "500", "510", "520"]) expect(classifyBizTalkCode(c)).toBe("TRANSIENT");
   });
   it("숫자로 와도 같게 판정한다", () => expect(classifyBizTalkCode(410)).toBe("TEMPLATE"));
+  it("상세코드(Appendix A)가 있으면 그쪽을 우선한다", () => {
+    expect(classifyBizTalkCode("410", "ERR11000")).toBe("UNREACHABLE");
+    expect(classifyBizTalkCode("410", "ERR50025")).toBe("INVALID_NUMBER");
+    expect(classifyBizTalkCode("500", "ERR41001")).toBe("TEMPLATE");
+  });
+});
+
+describe("폴링 필드명(v2.2.1)", () => {
+  it("status_code / error_message 를 읽는다", async () => {
+    vi.stubGlobal("fetch", mockFetch((u) =>
+      u.includes("/oauth/token")
+        ? { access_token: "T", expires_in: 21600 }
+        : { report_group_no: "RG2", results: [{ cid: "send-2", status_code: "510", error_message: "전송실패" }] }));
+    const batch = await pollMessageResults();
+    expect(batch.results[0]).toMatchObject({ cid: "send-2", stateCode: "510", message: "전송실패" });
+  });
 });
 
 describe("회로 차단기", () => {

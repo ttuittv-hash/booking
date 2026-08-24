@@ -149,7 +149,22 @@ export async function issueBizTalkToken(): Promise<string> {
 }
 
 /** 결과 코드를 우리 실패 분류로 옮긴다(가이드 state_code 기준). */
-export function classifyBizTalkCode(code: string | number | null | undefined): FailureKind {
+export function classifyBizTalkCode(
+  code: string | number | null | undefined,
+  detailCode?: string | null,
+): FailureKind {
+  // 상세코드(가이드 v2.2.1 Appendix A)가 있으면 그쪽이 더 정확하다.
+  switch (detailCode ?? "") {
+    case "ERR11000": // 수신 거부 대상 → 문자 대체
+      return "UNREACHABLE";
+    case "ERR50025": // 수신자 번호 유효하지 않음
+    case "ERR50028":
+    case "ERR50029":
+      return "INVALID_NUMBER";
+    case "ERR41001": // 미등록 템플릿
+    case "ERR42009": // 세칙검사 불통과(템플릿 본문 불일치)
+      return "TEMPLATE";
+  }
   switch (String(code ?? "")) {
     case "200":
       return "UNKNOWN"; // 성공 — 호출부에서 ok 로 처리한다
@@ -208,8 +223,9 @@ export const kakaoBizTalkAdapter: ChannelAdapter = {
         template_code: request.kakaoTemplateCode ?? request.templateCode,
         phone_number: request.recipient.phone.replace(/\D/g, ""),
         message: request.body,
-        // 강조표기형(TEXT) 템플릿은 핵심 문구가 등록값과 같아야 한다.
-        ...(request.emphasis ? { title: request.emphasis.title, subtitle: request.emphasis.subtitle } : {}),
+        // 강조표기형 템플릿의 강조 문구(title, ≤50자). 부제목은 DKT 발송 스펙(v2.2.1)에 없고
+        // 템플릿 등록값이 그대로 쓰이므로 보내지 않는다.
+        ...(request.emphasis ? { title: request.emphasis.title } : {}),
         // 대체발송은 파이프라인이 직접 관리한다 — 어떤 실패에 무엇으로 보낼지 규칙이 우리 쪽에 있다.
         // DKT 에 맡기면 우리 이력에 대체발송 사실이 남지 않는다.
         fall_back_yn: false,
@@ -240,7 +256,7 @@ export const kakaoBizTalkAdapter: ChannelAdapter = {
         channel: "ALIMTALK",
         resultCode: json.result?.detail_code ?? String(json.code ?? status),
         resultMessage: json.result?.detail_message ?? null,
-        failure: classifyBizTalkCode(json.code),
+        failure: classifyBizTalkCode(json.code, json.result?.detail_code),
       };
     } catch (error) {
       // 타임아웃·네트워크 오류는 재시도 대상이다. 이어지면 잠시 채널을 닫는다.
@@ -295,7 +311,7 @@ export const xmsAdapter: ChannelAdapter = {
         channel: "LMS",
         resultCode: json.result?.detail_code ?? String(json.code ?? status),
         resultMessage: json.result?.detail_message ?? null,
-        failure: classifyBizTalkCode(json.code),
+        failure: classifyBizTalkCode(json.code, json.result?.detail_code),
       };
     } catch (error) {
       noteTransportFailure();
@@ -317,6 +333,16 @@ export interface PolledResult {
   message: string | null;
 }
 
+interface PolledRow {
+  cid?: string;
+  uid?: string;
+  status_code?: string;
+  state_code?: string;
+  kko_status_code?: string;
+  error_message?: string;
+  message?: string;
+}
+
 export interface PollBatch {
   reportGroupNumber: string | null;
   results: PolledResult[];
@@ -336,16 +362,17 @@ export async function pollMessageResults(): Promise<PollBatch> {
   const json = (await res.json().catch(() => ({}))) as {
     report_group_no?: string;
     report_group_number?: string;
-    results?: Array<{ cid?: string; uid?: string; state_code?: string; message?: string }>;
-    data?: Array<{ cid?: string; uid?: string; state_code?: string; message?: string }>;
+    results?: PolledRow[];
+    data?: PolledRow[];
   };
   return {
     reportGroupNumber: json.report_group_no ?? json.report_group_number ?? null,
+    // 가이드 v2.2.1 필드는 status_code / error_message (state_code·message 는 구 표기).
     results: (json.results ?? json.data ?? []).map((r) => ({
       cid: r.cid ?? null,
       uid: r.uid ?? null,
-      stateCode: r.state_code ?? null,
-      message: r.message ?? null,
+      stateCode: r.status_code ?? r.state_code ?? null,
+      message: r.error_message ?? r.message ?? r.kko_status_code ?? null,
     })),
   };
 }
