@@ -750,9 +750,7 @@ export function ComparisonTable({
             </th>
             {columns.map((c) => (
               <th key={c.key} scope="col" className={`${cellPad} pl-4 align-bottom ${align(c)}`}>
-                <span className="type-kr-heading block break-keep text-h6-m sm:text-h6">
-                  {c.title}
-                </span>
+                <span className="block break-keep text-s font-bold">{c.title}</span>
               </th>
             ))}
           </tr>
