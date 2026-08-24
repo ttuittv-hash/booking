@@ -12,6 +12,8 @@ const OPTIONS: sanitizeHtml.IOptions = {
     "ul", "ol", "li",
     "a", "img",
     "table", "thead", "tbody", "tr", "th", "td", "colgroup", "col",
+    // HTML 소스 모드에서 접고 펼치는 문단을 만들 때 쓴다(NoticeEditor) — 네이티브 토글이라 JS가 없다.
+    "details", "summary",
   ],
   allowedAttributes: {
     a: ["href", "target", "rel"],

@@ -27,7 +27,7 @@ describe("서울아레나 소개 — 3단계 모두 열람", () => {
 
 describe("IA 재구성으로 새로 생긴 페이지 — 비로그인 차단", () => {
   for (const [path, label] of [
-    ["/features", "시설 소개"],
+    ["/features", "시설 제원"],
     ["/rates", "대관료"],
     ["/rules", "대관 규약"],
     ["/documents", "대관 자료"],

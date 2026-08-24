@@ -16,7 +16,7 @@ import {
 } from "@/components/ui/kit";
 
 export const metadata: Metadata = {
-  title: "시설 소개 | 서울아레나",
+  title: "시설 제원 | 서울아레나",
 };
 
 /** 개요 카드 4개 — 제목은 eyebrow, 내용은 H5 (Notion 지정) */
@@ -112,7 +112,7 @@ function VenuePanel({ en, ko, c }: { en: string; ko: string; c: VenueFacilityCon
 export default async function FeaturesPage() {
   // 기획서 A15 접근권한 매트릭스 — 규칙은 accessPolicy.ts 한 곳에만 둔다
   await requireAccess("/features");
-  // 시설 소개부터는 로그인한 대관사에게만 공개한다 (Notion 확정 정보구조).
+  // 시설 제원부터는 로그인한 대관사에게만 공개한다 (Notion 확정 정보구조).
   const [currentUser, content] = await Promise.all([getCurrentUser(), getFeaturesContent()]);
 
   return (

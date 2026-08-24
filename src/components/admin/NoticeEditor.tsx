@@ -82,6 +82,13 @@ export function NoticeEditor({
   const fileInput = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState(false);
   const [fontSizeInput, setFontSizeInput] = useState(String(DEFAULT_FONT_SIZE));
+  /**
+   * HTML 소스 모드 — 일반 에디터가 모르는 태그(`<details>` 접기/펼치기 등)를 쓸 때를 위한 탈출구.
+   * 소스 모드에서 일반 모드로 되돌아가면 에디터가 이해하는 태그만 남는다(스키마 밖 태그는 풀린다) —
+   * 워드프레스 "텍스트/비주얼" 전환과 같은 제약이다. `<details>` 를 쓴 상태로는 저장만 하고
+   * 일반 모드로 되돌아가지 않는 편이 안전하다.
+   */
+  const [mode, setMode] = useState<"visual" | "html">("visual");
 
   const editor = useEditor({
     immediatelyRender: false,
@@ -261,9 +268,25 @@ export function NoticeEditor({
             e.target.value = "";
           }}
         />
+
+        <span className="mx-1 h-4 w-px bg-border/30" />
+
+        <button
+          type="button"
+          onClick={() => {
+            if (mode === "html") {
+              // 소스 모드에서 편집한 HTML을 에디터에 반영한다 — 스키마 밖 태그(예: <details>)는 여기서 풀린다.
+              editor.commands.setContent(value);
+            }
+            setMode(mode === "visual" ? "html" : "visual");
+          }}
+          className={toolBtn(mode === "html")}
+        >
+          {mode === "html" ? "일반 편집" : "HTML 소스"}
+        </button>
       </div>
 
-      {isImageActive && (
+      {isImageActive && mode === "visual" && (
         <div className="flex flex-wrap items-center gap-1 border-x border-b border-border-soft bg-background px-2 py-1.5">
           <span className="mr-1 text-xs text-muted">이미지 크기</span>
           {IMAGE_WIDTHS.map((w) => (
@@ -279,7 +302,25 @@ export function NoticeEditor({
         </div>
       )}
 
-      <EditorContent editor={editor} />
+      {mode === "html" ? (
+        <div>
+          <textarea
+            value={value}
+            onChange={(e) => onChange(e.target.value)}
+            rows={16}
+            spellCheck={false}
+            className="min-h-[180px] w-full border border-t-0 border-border-soft bg-surface px-3 py-2.5 font-mono text-xs leading-6 focus:border-foreground focus:outline-2 focus:outline-accent"
+          />
+          <p className="mt-1.5 text-xs text-muted">
+            HTML을 직접 씁니다. 접고 펼치는 문단은{" "}
+            <code className="font-mono">{"<details><summary>제목</summary>내용</details>"}</code>{" "}
+            로 만들 수 있습니다. 이 태그가 있는 상태로 &ldquo;일반 편집&rdquo;으로 돌아가면 태그가
+            풀리니, 쓴 뒤에는 저장만 하고 돌아가지 마세요.
+          </p>
+        </div>
+      ) : (
+        <EditorContent editor={editor} />
+      )}
     </div>
   );
 }

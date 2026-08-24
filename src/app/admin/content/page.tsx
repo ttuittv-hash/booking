@@ -56,7 +56,7 @@ export default async function AdminContentPage() {
         <header className="border-b border-border/20 pb-6">
           <h1 className={PAGE_TITLE}>콘텐츠 관리</h1>
           <p className={PAGE_LEAD}>
-            공지사항·FAQ와 공개 화면(홈 · 서울아레나 · 시설 소개 · 대관 안내 · 대관료 · 대관 규약 ·
+            공지사항·FAQ와 공개 화면(홈 · 서울아레나 · 시설 제원 · 대관 안내 · 대관료 · 대관 규약 ·
             대관 자료)의 내용을 여기서 관리합니다. 저장하면 해당 화면에 바로 반영됩니다.
           </p>
         </header>

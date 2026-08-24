@@ -28,7 +28,7 @@ export const NAV_CATEGORIES: NavCategory[] = [
     label: "Your Stage",
     pages: [
       { href: "/seoularena", label: "서울아레나" },
-      { href: "/features", label: "시설 소개", loginRequired: true },
+      { href: "/features", label: "시설 제원", loginRequired: true },
     ],
   },
   {
@@ -70,7 +70,7 @@ export const FOOTER_CATEGORIES: NavCategory[] = [
 
 /* --------------------------------------------------------------- 탭 축 --- */
 
-/** 공간 축 — 시설 소개·대관료·대관 자료가 공유한다. 기본 탭은 아레나. */
+/** 공간 축 — 시설 제원·대관료·대관 자료가 공유한다. 기본 탭은 아레나. */
 export const VENUE_TAB_PARAM = "venue";
 export const VENUE_TABS = [
   { value: "arena", label: "아레나" },

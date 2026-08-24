@@ -61,7 +61,7 @@ function PairList({
       render={(it, patch) => (
         <div className="grid gap-2 sm:grid-cols-[minmax(0,1fr)_minmax(0,2fr)]">
           <Text label={labelName} value={it.label} onChange={(label) => patch({ label })} />
-          <Text label={valueName} value={it.value} onChange={(value) => patch({ value })} />
+          <Area label={valueName} rows={2} value={it.value} onChange={(value) => patch({ value })} />
         </div>
       )}
     />
@@ -129,7 +129,7 @@ export function SeoulArenaForm({ content }: { content: SeoulArenaContent }) {
 
           <Section
             title="시설 특징 — FEATURES"
-            help="시설 소개(아레나 탭)의 FEATURES 와는 별개로 관리됩니다."
+            help="시설 제원(아레나 탭)의 FEATURES 와는 별개로 관리됩니다."
           >
             <FeatureListEditor
               items={v.stageFeatures}
@@ -171,7 +171,7 @@ function FeatureListEditor({
   );
 }
 
-/* --------------------------------------------------------- 시설 소개 ----- */
+/* --------------------------------------------------------- 시설 제원 ----- */
 
 function VenueFacilityFields({
   value,
@@ -354,9 +354,10 @@ function RateTableFields({
           <div className="space-y-2">
             <Text label="열 이름" value={it.name} onChange={(name) => patch({ name })} />
             {value.rowLabels.map((rl, ri) => (
-              <Text
+              <Area
                 key={ri}
                 label={rl}
+                rows={2}
                 value={it.values[ri] ?? ""}
                 onChange={(nv) =>
                   patch({ values: value.rowLabels.map((_, k) => (k === ri ? nv : it.values[k] ?? "")) })
@@ -389,9 +390,10 @@ function RateTableFields({
           <div className="space-y-2">
             <Text label="열 이름" value={it.name} onChange={(name) => patch({ name })} />
             {value.detailLabels.map((rl, ri) => (
-              <Text
+              <Area
                 key={ri}
                 label={rl}
+                rows={2}
                 value={it.values[ri] ?? ""}
                 onChange={(nv) =>
                   patch({
