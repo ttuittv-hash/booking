@@ -119,7 +119,7 @@ export function ContentManager({
             ["home", "홈"],
             ["seoularena", "서울아레나"],
             ["features", "시설 제원"],
-            ["guide", "대관 안내"],
+            ["guide", "대관 절차"],
             ["rates", "대관료"],
             ["rules", "대관 규약"],
             ["documents", "대관 자료"],

@@ -13,7 +13,7 @@
 //
 //   기획서 메뉴          → 현재 경로
 //   시설 제원            → /venue, /venue/*
-//   대관안내             → /guide, /guide/*, /packages
+//   대관 절차             → /guide, /guide/*, /packages
 //   대관현황(공고 목록)  → /notices, /notices/*
 //   대관신청             → /apply, /apply/*
 //   대관신청내역         → /mypage, /mypage/[id]
@@ -72,7 +72,7 @@ const RULES: MenuRule[] = [
   // /venue·/packages 는 사라지고, 공개 소개는 /seoularena 가, 상세 스펙은 /features 가 맡는다.
   { prefix: "/seoularena", label: "서울아레나", allow: OPEN_ALL },
   { prefix: "/features", label: "시설 제원", allow: LOGIN_ONLY },
-  { prefix: "/guide", label: "대관 안내", allow: LOGIN_ONLY },
+  { prefix: "/guide", label: "대관 절차", allow: LOGIN_ONLY },
   { prefix: "/rates", label: "대관료", allow: LOGIN_ONLY },
   { prefix: "/rules", label: "대관 규약", allow: LOGIN_ONLY },
   { prefix: "/documents", label: "대관 자료", allow: LOGIN_ONLY },

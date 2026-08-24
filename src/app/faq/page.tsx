@@ -43,7 +43,7 @@ export default async function FaqPage() {
               desc="자주 묻는 질문이 등록되면 이곳에 표시됩니다."
               action={
                 <ButtonLink href="/guide" variant="secondary">
-                  대관 안내 보기
+                  대관 절차 보기
                 </ButtonLink>
               }
             />

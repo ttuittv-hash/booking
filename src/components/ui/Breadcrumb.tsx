@@ -3,7 +3,7 @@ import Link from "next/link";
 /**
  * 2차 헤더(브레드크럼)는 3뎁스 페이지에서만 노출한다.
  *   HOME / 내 신청 내역 / 1:1 문의   ← 여기서부터
- *   HOME / 대관 안내                ← 이 레벨은 표시하지 않음
+ *   HOME / 대관 절차                ← 이 레벨은 표시하지 않음
  * 그래서 items 가 2개 미만이면 아무것도 렌더하지 않는다.
  */
 export function Breadcrumb({ items }: { items: { label: string; href?: string }[] }) {

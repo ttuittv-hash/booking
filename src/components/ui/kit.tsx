@@ -17,16 +17,6 @@ export const RICH_TEXT = [
   "[&_a]:underline [&_a]:decoration-1 [&_a]:underline-offset-4",
 ].join(" ");
 
-/** 검사를 마친 리치텍스트 HTML 을 문단 간격과 함께 그린다 */
-export function RichText({ html, className = "" }: { html: string; className?: string }) {
-  return (
-    <div
-      className={`${RICH_TEXT} ${className}`}
-      dangerouslySetInnerHTML={{ __html: html }}
-    />
-  );
-}
-
 /* ------------------------------------------------------------- 평문 문단 --- */
 
 /**
@@ -1433,7 +1423,7 @@ export interface DocItem {
 /** 첨부파일 다운로드 모듈 — 자료명 / 설명 / 형식·버전·갱신일 / 버튼 순서를 고정한다. */
 export function DocumentList({
   items,
-  emptyNote = "우선 다운로드할 대관자료가 없습니다.",
+  emptyNote = "다운로드할 대관자료가 없습니다.",
 }: {
   items: DocItem[];
   /** 자료가 아직 없을 때 목록 자리에 대신 나오는 한 줄 */

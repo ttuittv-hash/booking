@@ -23,7 +23,7 @@ import {
 
 const GROUP_LABEL: Record<PageGroup, string> = {
   VENUE: "서울아레나 소개",
-  GUIDE: "대관 안내",
+  GUIDE: "대관 절차",
 };
 
 function blankForm() {

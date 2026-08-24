@@ -9,7 +9,7 @@ export const dynamic = "force-dynamic";
 export const metadata: Metadata = {
   title: "SEOUL ARENA | 대관 견적·신청",
   description:
-    "한계 없는 인프라 위에서 당신만의 무대를 지휘하세요. 서울아레나 대관 안내·견적 산출·신청 시스템.",
+    "한계 없는 인프라 위에서 당신만의 무대를 지휘하세요. 서울아레나 대관 절차·견적 산출·신청 시스템.",
 };
 
 export default function RootLayout({

@@ -91,7 +91,7 @@ export default async function NoticesPage({
               desc={screenText.noticesEmptyDesc}
               action={
                 <ButtonLink href="/guide" variant="secondary">
-                  대관 안내 보기
+                  대관 절차 보기
                 </ButtonLink>
               }
             />

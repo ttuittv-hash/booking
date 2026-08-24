@@ -244,7 +244,7 @@ export async function requireAccessedUser(pathname: string): Promise<AppUser> {
   return user;
 }
 
-// 승인 대기·거절 상태의 신청자(대관사) 계정 여부 — 대관 안내/신청 관련 화면 접근 제한에 사용
+// 승인 대기·거절 상태의 신청자(대관사) 계정 여부 — 대관 절차/신청 관련 화면 접근 제한에 사용
 export function isPendingApplicant(user: AppUser): boolean {
   return user.role === "APPLICANT" && user.approvalStatus !== "APPROVED";
 }

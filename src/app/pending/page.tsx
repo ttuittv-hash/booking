@@ -61,7 +61,7 @@ export default async function PendingPage() {
 
             <div className="mt-10 flex flex-wrap gap-3 border-t border-border/25 pt-8">
               <ButtonLink href="/guide" variant="secondary">
-                대관 안내 보기
+                대관 절차 보기
               </ButtonLink>
               <ButtonLink href="/faq" variant="tertiary">
                 대관 문의

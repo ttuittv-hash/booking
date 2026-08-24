@@ -33,10 +33,21 @@ export const ARENA_DOCUMENTS: DocItem[] = [];
 export const LIVE_HALL_DOCUMENTS: DocItem[] = [];
 
 /** 공간별 탭이 비었을 때 목록 자리에 나오는 한 줄 */
-export const DOCUMENTS_EMPTY_NOTE = "우선 다운로드할 대관자료가 없습니다.";
+export const DOCUMENTS_EMPTY_NOTE = "다운로드할 대관자료가 없습니다.";
+
+/**
+ * 예전 기본값들. DB 에 저장된 콘텐츠는 기본값을 이기므로, 기본값만 바뀐 문구는
+ * 저장된 값이 옛 문구 그대로일 때만 새 문구로 바꿔 준다 — 운영자가 직접 고친 문구는
+ * 건드리지 않는다.
+ */
+export const LEGACY_DOCUMENTS_EMPTY_NOTE = "우선 다운로드할 대관자료가 없습니다.";
+export const LEGACY_DOCUMENTS_LEAD =
+  "대관 검토와 공연 준비에 필요한 자료를 내려받으실 수 있습니다. 자료는 개정될 때마다 최신본으로 교체되므로, 내려받으신 파일의 버전과 갱신일을 확인해 주세요.";
 
 /** 시설소개자료 문서명 — 공간별 목록에서 같은 자료를 걸러낼 때 기준이 된다 */
 export const FACILITY_DOCUMENT_TITLE = FACILITY_OVERVIEW.title;
 
+/** 두 문장은 한 문단 안에서 줄만 바꾼다 — 문단을 새로 열면 간격이 벌어져 딴 이야기처럼 보인다 */
 export const DOCUMENTS_LEAD =
-  "대관 검토와 공연 준비에 필요한 자료를 내려받으실 수 있습니다. 자료는 개정될 때마다 최신본으로 교체되므로, 내려받으신 파일의 버전과 갱신일을 확인해 주세요.";
+  "대관 검토와 공연 준비에 필요한 자료를 내려받으실 수 있습니다.\n" +
+  "자료는 개정될 때마다 최신본으로 교체되므로, 내려받으신 파일의 버전과 갱신일을 확인해 주세요.";
