@@ -103,7 +103,19 @@ export function ContentManager({
   // 탭을 URL(?tab=)에 싣는다 — 새로고침해도 유지되고 특정 탭을 링크로 줄 수 있다.
   const [tab, setTab] = useQueryTab<Tab>(
     "tab",
-    ["notices", "faq", "home", "seoularena", "features", "guide", "rates", "rules", "documents", "legal"],
+    [
+      "notices",
+      "faq",
+      "home",
+      "seoularena",
+      "features",
+      "guide",
+      "rates",
+      "rules",
+      "documents",
+      "screenText",
+      "legal",
+    ],
     "notices",
   );
   const [notices, setNotices] = useState(initialNotices);
