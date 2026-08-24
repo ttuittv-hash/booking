@@ -105,7 +105,10 @@ export function NoticeEditor({
       TableRow,
       TableHeader,
       TableCell,
-      Details,
+      // persist: true — 열림/닫힘 상태를 문서에 저장한다. 그래야 삽입 직후 강제로
+      // 열어서(아래 setDetails 클릭 핸들러) 운영자가 바로 내용을 쓸 수 있다.
+      // 기본값(false)이면 항상 접힌 채로 시작해 편집기 안에서도 안 보이고 못 썼다.
+      Details.configure({ persist: true }),
       DetailsSummary,
       DetailsContent,
     ],
@@ -115,7 +118,7 @@ export function NoticeEditor({
       attributes: {
         // RICH_TEXT — 화면과 같은 문단 간격. Enter 로 나눈 문단이 편집기에서도 벌어져야
         // 운영자가 문단이 만들어졌다는 것을 알 수 있다.
-        class: `${RICH_TEXT} min-h-[180px] border border-t-0 border-border-soft bg-surface px-3 py-2.5 text-s leading-6 focus:border-foreground focus:outline-2 focus:outline-accent [&_img]:mt-2 [&_img]:max-w-full [&_table]:mt-3 [&_table]:w-full [&_table]:border-collapse [&_td]:border [&_td]:border-border-soft [&_td]:px-2.5 [&_td]:py-1.5 [&_th]:border [&_th]:border-border-soft [&_th]:bg-background [&_th]:px-2.5 [&_th]:py-1.5 [&_th]:text-left`,
+        class: `${RICH_TEXT} min-h-[180px] border border-t-0 border-border-soft bg-surface px-3 py-2.5 text-s leading-6 focus:border-foreground focus:outline-2 focus:outline-accent [&_img]:mt-2 [&_img]:max-w-full [&_table]:mt-3 [&_table]:w-full [&_table]:border-collapse [&_td]:border [&_td]:border-border-soft [&_td]:px-2.5 [&_td]:py-1.5 [&_th]:border [&_th]:border-border-soft [&_th]:bg-background [&_th]:px-2.5 [&_th]:py-1.5 [&_th]:text-left [&_[data-type=details]]:mt-3 [&_[data-type=details]]:border [&_[data-type=details]]:border-border-soft [&_[data-type=details]]:p-2.5 [&_[data-type=details]>button]:mr-2 [&_[data-type=details]>button]:inline-flex [&_[data-type=details]>button]:h-4 [&_[data-type=details]>button]:w-4 [&_[data-type=details]>button]:shrink-0 [&_[data-type=details]>button]:cursor-pointer [&_[data-type=details]>button]:border [&_[data-type=details]>button]:border-muted [&_[data-type=details]_summary]:inline [&_[data-type=details]_summary]:cursor-text [&_[data-type=details]_summary]:font-bold [&_[data-type=detailsContent]]:mt-2 [&_[data-type=detailsContent]]:min-h-[1.6em] [&_[data-type=detailsContent]]:border-t [&_[data-type=detailsContent]]:border-dashed [&_[data-type=detailsContent]]:border-border-soft [&_[data-type=detailsContent]]:pt-2`,
       },
     },
   });
@@ -262,11 +265,13 @@ export function NoticeEditor({
             if (editor.isActive("details")) {
               editor.chain().focus().unsetDetails().run();
             } else {
-              editor.chain().focus().setDetails().run();
+              // 삽입 직후 열어 둔다 — 접힌 채면 편집기에서도 내용 영역이 안 보여
+              // 클릭해서 쓸 수가 없다. 닫힌 채로 두고 싶으면 저장 전에 ▶ 를 눌러 접으면 된다.
+              editor.chain().focus().setDetails().updateAttributes("details", { open: true }).run();
             }
           }}
           className={toolBtn(editor.isActive("details"))}
-          title="선택한 문단을 접고 펼치는 영역으로 묶습니다. 다시 누르면 풉니다."
+          title="선택한 문단을 접고 펼치는 영역으로 묶습니다(바로 펼쳐진 채로 만들어져 안의 내용을 쓸 수 있습니다). 다시 누르면 풉니다. 저장할 때 접혀 있으면 화면에도 접힌 채로, 펼쳐져 있으면 펼쳐진 채로 나갑니다."
         >
           {editor.isActive("details") ? "접기/펼치기 해제" : "+ 접기/펼치기"}
         </button>
