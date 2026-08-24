@@ -179,6 +179,7 @@ try {
   await invitee.click('[data-testid="identity-start"]');
   await invitee.waitForSelector('[data-testid="invite-username"]', { timeout: 20000 });
   check("A11-2", "초대받은 사람이 본인인증을 거친다", true);
+  await invitee.fill('[data-testid="invite-name"]', "초대수락테스트");
   await invitee.fill('[data-testid="invite-username"]', "s" + t);
   await invitee.fill('[data-testid="invite-password"]', "Test1234!");
   await invitee.fill('[data-testid="invite-password-confirm"]', "Test1234!");
@@ -191,6 +192,7 @@ try {
   await reuse.goto(inviteUrl, { waitUntil: "domcontentloaded" });
   await reuse.click('[data-testid="identity-start"]').catch(() => {});
   await reuse.waitForSelector('[data-testid="invite-username"]', { timeout: 20000 }).catch(() => {});
+  await reuse.fill('[data-testid="invite-name"]', "재사용테스트").catch(() => {});
   await reuse.fill('[data-testid="invite-username"]', "x" + t).catch(() => {});
   await reuse.fill('[data-testid="invite-password"]', "Test1234!").catch(() => {});
   await reuse.fill('[data-testid="invite-password-confirm"]', "Test1234!").catch(() => {});

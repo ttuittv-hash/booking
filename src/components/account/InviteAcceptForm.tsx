@@ -30,6 +30,19 @@ export function InviteAcceptForm({ token }: { token: string }) {
   }
 
   async function submit() {
+    // 버튼을 잠그지 않는다 — 눌러도 반응이 없으면 고장으로 보인다(반복 신고 패턴).
+    if (!name.trim()) {
+      toast.error("이름을 입력해 주세요.");
+      return;
+    }
+    if (!username.trim()) {
+      toast.error("로그인 ID 를 입력해 주세요.");
+      return;
+    }
+    if (!password) {
+      toast.error("비밀번호를 입력해 주세요.");
+      return;
+    }
     setError(null);
     const invalid = firstFailure(
       name.trim() ? null : { ok: false, message: "이름을 입력해주세요." },
@@ -130,7 +143,7 @@ export function InviteAcceptForm({ token }: { token: string }) {
           <button
             type="button"
             data-testid="invite-submit"
-            disabled={loading || !name.trim() || !username || !password}
+            disabled={loading}
             onClick={submit}
             className={`${btnClass("primary", "md")} w-full`}
           >
