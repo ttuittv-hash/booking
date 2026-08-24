@@ -847,10 +847,12 @@ export const CHOICE_SELECTED_VARS: React.CSSProperties = {
 
 /** 보조 고지문 — 색면·좌측 바를 쓰지 않고 헤어라인 위 작은 글씨로만 */
 export function Note({ children, className = "" }: { children: ReactNode; className?: string }) {
+  // 문단이 여러 개인 고지문(`Prose`)도 들어오므로 `<p>` 가 아니라 `<div>` 다 —
+  // p 안의 p·div 는 잘못된 중첩이라 하이드레이션이 깨진다(규약 화면에서 실제로 깨졌다).
   return (
-    <p className={`border-t border-border/25 pt-3 text-xs leading-5 text-muted ${className}`}>
+    <div className={`border-t border-border/25 pt-3 text-xs leading-5 text-muted ${className}`}>
       {children}
-    </p>
+    </div>
   );
 }
 
@@ -921,11 +923,11 @@ export function GroupedSpecTable({
                 className={`grid gap-1 border-b border-border/15 ${pad} sm:grid-cols-[minmax(0,12rem)_minmax(0,1fr)] sm:gap-6`}
               >
                 <dt className="text-s text-muted">{r.label}</dt>
+                {/* 보조 문구(단위·조건)는 값 **옆에** 붙인다 — 아래 줄로 내리면 한 항목이
+                    두 줄이 되어 목록의 행 리듬이 깨진다 */}
                 <dd className="text-s font-bold">
                   {r.value}
-                  {r.note && (
-                    <span className="mt-1 block text-xs font-normal text-muted">{r.note}</span>
-                  )}
+                  {r.note && <span className="ml-2 text-xs font-normal text-muted">{r.note}</span>}
                 </dd>
               </div>
             ))}
@@ -1194,6 +1196,39 @@ export function SectionHead({
         {lead && <div className="measure mt-3 break-keep text-m text-muted">{lead}</div>}
       </div>
       {actions && <div className="flex shrink-0 flex-wrap gap-3">{actions}</div>}
+    </div>
+  );
+}
+
+/**
+ * 섹션을 두 칼럼으로 — **좌 2col 제목(+보조 문장) / 우 4col 표·목록.**
+ *
+ * 규약 목차 + 본문, 마이페이지 메뉴 + 본문, FAQ 묶음 + 질문과 같은 `grid-site` 2/4
+ * 분할이다. 제목이 표 위에 가로로 눕는 대신 왼쪽에 서면, 표가 화면 폭을 다 쓰지 않고
+ * 읽기 좋은 폭으로 좁아진다 — 값이 라벨에서 멀리 떨어지지 않는다.
+ *
+ * 제목은 `SectionHead` 와 같은 H3 다. 2col(1440 에서 410px) 안에서 두 줄로 접히는
+ * 것은 정상이다(ADDITIONAL CHARGES).
+ */
+export function SplitSection({
+  title,
+  aside,
+  children,
+  className = "",
+}: {
+  title: string;
+  /** 제목 아래 보조 문장 — 표에 넣으면 신청 항목처럼 읽히는 기본 조건 등 */
+  aside?: ReactNode;
+  children: ReactNode;
+  className?: string;
+}) {
+  return (
+    <div className={`grid-site ${className}`}>
+      <div className="lg:col-span-2">
+        <h3 className={`${headingFontClass(title)} break-keep text-h3-m sm:text-h3`}>{title}</h3>
+        {aside && <div className="mt-6">{aside}</div>}
+      </div>
+      <div className="min-w-0 lg:col-span-4">{children}</div>
     </div>
   );
 }

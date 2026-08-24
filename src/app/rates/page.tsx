@@ -14,6 +14,7 @@ import {
   PageHead,
   SectionHead,
   SpecTable,
+  SplitSection,
   type SpecGroup,
 } from "@/components/ui/kit";
 
@@ -108,37 +109,38 @@ function RatePanel({ en, ko, c }: { en: string; ko: string; c: VenueRateContent 
 
       {(c.includes.length > 0 || c.limits.length > 0) && (
         <Band tone="light">
-          <SectionHead title="RATE INCLUDES" />
-          {c.includes.length > 0 && (
-            <SpecTable
-              className="mt-10"
-              rows={c.includes.map((p) => [p.label, p.value] as [string, string])}
-            />
-          )}
           {/*
             기준 공연시간·이용시간은 항목별로 신청하는 옵션이 아니라 대관에 딸린
             기본 조건이다. 옵션표와 같은 표로 그리면 신청 항목처럼 읽히므로
-            표를 쓰지 않고 이 섹션의 문장으로 싣는다.
+            표를 쓰지 않고 제목 아래(좌측 칼럼) 문장으로 싣는다.
           */}
-          {c.limits.length > 0 && (
-            <div className="measure mt-8 space-y-2">
-              {c.limits.map((p, i) => (
-                <p key={`${p.label}-${i}`} className="break-keep text-s leading-7">
-                  <span className="font-bold">{p.label}</span>
-                  <span className="text-muted">: {p.value}</span>
-                </p>
-              ))}
-            </div>
-          )}
+          <SplitSection
+            title="RATE INCLUDES"
+            aside={
+              c.limits.length > 0 ? (
+                <div className="space-y-2">
+                  {c.limits.map((p, i) => (
+                    <p key={`${p.label}-${i}`} className="break-keep text-s leading-7">
+                      <span className="font-bold">{p.label}</span>
+                      <span className="text-muted">: {p.value}</span>
+                    </p>
+                  ))}
+                </div>
+              ) : undefined
+            }
+          >
+            {c.includes.length > 0 && (
+              <SpecTable rows={c.includes.map((p) => [p.label, p.value] as [string, string])} />
+            )}
+          </SplitSection>
         </Band>
       )}
 
       <Band tone="white">
         {c.charges.length > 0 && (
-          <>
-            <SectionHead title="ADDITIONAL CHARGES" />
-            <GroupedSpecTable className="mt-10" groups={chargeGroups(c.charges)} />
-          </>
+          <SplitSection title="ADDITIONAL CHARGES">
+            <GroupedSpecTable groups={chargeGroups(c.charges)} />
+          </SplitSection>
         )}
 
         {c.notes.length > 0 && (

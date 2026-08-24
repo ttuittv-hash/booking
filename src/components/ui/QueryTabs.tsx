@@ -1,14 +1,15 @@
 "use client";
 
 import { useRouter, useSearchParams } from "next/navigation";
-import { useRef, type ReactNode } from "react";
+import type { ReactNode } from "react";
 
 /* ============================================================================
    URL 쿼리를 정본으로 삼는 탭.
 
      · 딥링크 — 선택 상태를 URL 쿼리에 반영한다 (`/features?venue=live-hall`).
        탭 상태를 클라이언트 상태로만 두면 뒤로가기와 공유 링크에서 어긋난다.
-     · 전환 시 스크롤은 페이지 최상단이 아니라 탭 헤더 위치로 되돌린다.
+     · 전환 시 스크롤을 **페이지 맨 위로** 되돌린다. 탭 헤더 위치로만 올리면
+       머리글(제목·리드)이 화면 위로 잘린 채 새 탭이 시작된다.
      · 인쇄·PDF 저장 시에는 모든 탭 내용을 출력한다. 기술 검토 단계에서 페이지를
        PDF 로 저장해 내부 공유하는 일이 잦은데, 활성 탭만 나오면 절반이 빈 문서가 된다.
 
@@ -47,7 +48,6 @@ export function QueryTabs({
 }) {
   const router = useRouter();
   const search = useSearchParams();
-  const headerRef = useRef<HTMLDivElement>(null);
 
   const raw = search.get(param);
   const active = items.some((i) => i.value === raw) ? (raw as string) : items[0].value;
@@ -58,7 +58,7 @@ export function QueryTabs({
     else next.set(param, value);
     const qs = next.toString();
     router.replace(qs ? `?${qs}` : "?", { scroll: false });
-    headerRef.current?.scrollIntoView({ block: "start", behavior: "auto" });
+    window.scrollTo({ top: 0, behavior: "auto" });
   }
 
   const panels = items.map((it) => {
@@ -91,7 +91,7 @@ export function QueryTabs({
   if (variant === "line") {
     return (
       <div className={className}>
-        <div ref={headerRef} className={`scroll-mt-[calc(var(--header-h)+1rem)] ${tablistClassName}`}>
+        <div className={`scroll-mt-[calc(var(--header-h)+1rem)] ${tablistClassName}`}>
           <div
             role="tablist"
             aria-label={ariaLabel}
@@ -123,7 +123,6 @@ export function QueryTabs({
   return (
     <div className={className}>
       <div
-        ref={headerRef}
         className={`sticky top-[var(--header-h)] z-30 flex justify-center px-[var(--margin-x)] py-4 print:hidden ${tablistClassName}`}
         style={{ pointerEvents: "none" }}
       >

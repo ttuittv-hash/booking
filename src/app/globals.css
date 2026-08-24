@@ -312,6 +312,15 @@ input[type="number"]::-webkit-inner-spin-button {
   }
 }
 
+/*
+  아래로 갈수록 사라지는 마스크 — 상단바 배경의 아랫변이 딱 끊기지 않게 한다(페더).
+  색면과 blur 를 함께 지우려면 opacity 그라디언트가 아니라 마스크를 써야 한다.
+*/
+@utility mask-fade-b {
+  -webkit-mask-image: linear-gradient(to bottom, #000, transparent);
+  mask-image: linear-gradient(to bottom, #000, transparent);
+}
+
 /* 산문 문단의 최대 폭 — 컬럼 스팬과 무관한 절대값 */
 @utility measure {
   max-width: var(--measure);

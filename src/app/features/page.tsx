@@ -17,6 +17,7 @@ import {
   PageHead,
   SectionHead,
   SpecTable,
+  SplitSection,
 } from "@/components/ui/kit";
 
 export const metadata: Metadata = {
@@ -83,39 +84,55 @@ function VenuePanel({
         <Band tone="white">
           <SectionHead title="STAGE & CAPACITY" />
           <div className="mt-10 space-y-10">
-            {c.capacity.map((cap, i) => (
-              <div key={`${cap.stage}-${i}`}>
-                {cap.stage && (
-                  <h4 className="type-kr-heading text-h5-m sm:text-h5">{cap.stage}</h4>
-                )}
-                {(cap.seated || cap.standing) && (
-                  <dl className="mt-5 flex flex-wrap gap-x-12 gap-y-3">
-                    {cap.seated && (
-                      <div>
-                        <dt className="text-xs font-bold text-muted">SEATED</dt>
-                        <dd className="type-display mt-1 text-h5-m tabular-nums sm:text-h5">
-                          {cap.seated}
-                        </dd>
-                      </div>
-                    )}
-                    {cap.standing && (
-                      <div>
-                        <dt className="text-xs font-bold text-muted">STANDING</dt>
-                        <dd className="type-display mt-1 text-h5-m tabular-nums sm:text-h5">
-                          {cap.standing}
-                        </dd>
-                      </div>
-                    )}
-                  </dl>
-                )}
-                {cap.floors.length > 0 && (
-                  <SpecTable
-                    className="mt-8"
-                    rows={cap.floors.map((f) => [f.label, f.value] as [string, string])}
-                  />
-                )}
-              </div>
-            ))}
+            {c.capacity.map((cap, i) => {
+              const hasSeats = Boolean(cap.seated || cap.standing);
+              /*
+                두 칼럼 — 좌: 무대 이름 + 수용인원 / 우: 층별 표.
+                표는 **수용인원(SEATED · STANDING)과 같은 행**에서 시작한다. 그리드 행을
+                직접 지정해 맞춘다(위 여백을 계산해 맞추면 무대 이름이 두 줄이 될 때 어긋난다).
+              */
+              const tableRow = hasSeats && cap.stage ? "lg:row-start-2" : "lg:row-start-1";
+              return (
+                <div key={`${cap.stage}-${i}`} className="grid-site gap-y-5">
+                  {cap.stage && (
+                    <h4 className="type-kr-heading break-keep text-h5-m sm:text-h5 lg:col-span-2 lg:col-start-1 lg:row-start-1">
+                      {cap.stage}
+                    </h4>
+                  )}
+                  {hasSeats && (
+                    <dl
+                      className={`flex flex-wrap gap-x-12 gap-y-3 lg:col-span-2 lg:col-start-1 ${
+                        cap.stage ? "lg:row-start-2" : "lg:row-start-1"
+                      }`}
+                    >
+                      {cap.seated && (
+                        <div>
+                          <dt className="text-xs font-bold text-muted">SEATED</dt>
+                          <dd className="type-display mt-1 text-h5-m tabular-nums sm:text-h5">
+                            {cap.seated}
+                          </dd>
+                        </div>
+                      )}
+                      {cap.standing && (
+                        <div>
+                          <dt className="text-xs font-bold text-muted">STANDING</dt>
+                          <dd className="type-display mt-1 text-h5-m tabular-nums sm:text-h5">
+                            {cap.standing}
+                          </dd>
+                        </div>
+                      )}
+                    </dl>
+                  )}
+                  {cap.floors.length > 0 && (
+                    <div className={`min-w-0 lg:col-span-4 lg:col-start-3 ${tableRow}`}>
+                      <SpecTable
+                        rows={cap.floors.map((f) => [f.label, f.value] as [string, string])}
+                      />
+                    </div>
+                  )}
+                </div>
+              );
+            })}
           </div>
         </Band>
       )}
@@ -133,12 +150,11 @@ function VenuePanel({
 
       {c.facilities.length > 0 && (
         <Band tone="light">
-          <SectionHead title="ADDITIONAL FACILITIES" />
-          <div className="mt-10">
+          <SplitSection title="ADDITIONAL FACILITIES">
             <LabeledList
               items={c.facilities.map((f) => ({ label: f.label, desc: f.value || undefined }))}
             />
-          </div>
+          </SplitSection>
         </Band>
       )}
 
