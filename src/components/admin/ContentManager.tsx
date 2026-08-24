@@ -581,18 +581,19 @@ function FaqTab({
           <h3 className={SUB_TITLE}>{editingId === "__new__" ? "새 FAQ 등록" : "FAQ 수정"}</h3>
           <div className="mt-4 space-y-4">
             <div className="flex gap-2">
-              <select
+              <input
+                type="text"
+                list="faq-tag-options"
+                placeholder="말머리 (예: 대관 신청)"
                 value={tag}
                 onChange={(e) => setTag(e.target.value)}
                 className={`w-40 shrink-0 ${FIELD}`}
-              >
-                <option value="">말머리 없음</option>
+              />
+              <datalist id="faq-tag-options">
                 {FAQ_TAGS.map((t) => (
-                  <option key={t} value={t}>
-                    {t}
-                  </option>
+                  <option key={t} value={t} />
                 ))}
-              </select>
+              </datalist>
               <input
                 type="text"
                 placeholder="질문"
