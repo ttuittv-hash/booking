@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { btnClass } from "@/components/ui/kit";
+import { useToast } from "@/components/ui/Toast";
 
 type Member = {
   id: string;
@@ -50,6 +51,7 @@ function inviteState(iv: Invitation): {
 }
 
 export function MembersManager() {
+  const toast = useToast();
   const [members, setMembers] = useState<Member[]>([]);
   const [invitations, setInvitations] = useState<Invitation[]>([]);
   const [name, setName] = useState("");
@@ -266,8 +268,17 @@ export function MembersManager() {
           <button
             type="button"
             data-testid="invite-send"
-            disabled={busy || !email || !name.trim()}
+            disabled={busy}
             onClick={async () => {
+              // 버튼을 잠그지 않는다 — 눌러도 반응이 없으면 고장으로 보인다(반복 신고 패턴).
+              if (!name.trim()) {
+                toast.error("초대할 담당자의 이름을 입력해 주세요.");
+                return;
+              }
+              if (!email.trim()) {
+                toast.error("초대할 담당자의 이메일을 입력해 주세요.");
+                return;
+              }
               const data = await act("/api/company/invitations", {
                 email,
                 phone: phone || undefined,

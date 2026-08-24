@@ -164,6 +164,8 @@ try {
   await page.goto(`${BASE}/mypage/members`, { waitUntil: "domcontentloaded" });
   check("A10-1", "마스터에게 담당자 관리 화면이 열린다", page.url().includes("/mypage/members"));
   await page.waitForSelector('[data-testid="members-table"]');
+  // 초대는 이름이 필수다(2026-08-22 기획 반영)
+  await page.fill('[data-testid="invite-name"]', "초대테스트");
   await page.fill('[data-testid="invite-email"]', `staff${t}@seoul-ent.co.kr`);
   await page.click('[data-testid="invite-send"]');
   await page.waitForSelector('[data-testid="invite-url"]', { timeout: 15000 });
