@@ -103,7 +103,8 @@ async function fillStep3() {
     for (const group of Object.values(byName)) {
       if (group.some((r) => r.checked)) continue;
       const prefer = group.find((r) => /동의/.test(r.closest("label")?.textContent || "")) || group[0];
-      prefer.closest("label")?.click() || prefer.click();
+      const wrap = prefer.closest("label");
+      if (wrap) wrap.click(); else prefer.click();
     }
   });
   // 셀렉트가 있으면 두 번째 옵션
