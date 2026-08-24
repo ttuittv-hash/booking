@@ -3,6 +3,7 @@
 import { useRef } from "react";
 import { btnClass } from "@/components/ui/kit";
 import type { SafetyPledge } from "@/lib/pricing/types";
+import { SignaturePad } from "./SignaturePad";
 import { StepHeading } from "./StepHeading";
 
 type PledgeCheckKey = keyof Omit<SafetyPledge, "signature">;
@@ -57,7 +58,7 @@ export function validateSafetyPledgeStep(
 ): string | null {
   const unchecked = PLEDGE_ITEMS.some((item) => !pledge[item.key]);
   if (unchecked) return "안전관리 서약 항목을 모두 체크해 주세요.";
-  if (!pledge.signature.trim()) return "서명(담당자 성명)을 입력해 주세요.";
+  if (!pledge.signature.trim()) return "서명란에 서명해 주세요.";
   if (files && !files.safetyPlanFile) return "공연·행사 안전관리계획서를 업로드해 주세요.";
   if (files && !files.castContractFile) return "출연자 계약서를 업로드해 주세요.";
   return null;
@@ -165,12 +166,10 @@ export function StepSafetyPledge({
 
       <div className="mt-6">
         <label className="block text-s font-bold text-foreground">서명</label>
-        <textarea
+        <p className="mt-1 mb-2 text-xs text-muted">담당자 본인이 아래 캔버스에 직접 서명해 주세요.</p>
+        <SignaturePad
           value={pledge.signature}
-          onChange={(e) => onChange({ ...pledge, signature: e.target.value })}
-          placeholder="담당자 성명을 입력해 서명을 대신합니다."
-          rows={3}
-          className="field-base mt-2"
+          onChange={(signature) => onChange({ ...pledge, signature })}
         />
       </div>
 
