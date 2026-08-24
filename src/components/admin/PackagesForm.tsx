@@ -589,7 +589,7 @@ export function PackagesForm({ rateTable, ratesContent }: { rateTable: RateTable
                             e.stopPropagation();
                             duplicatePackage(p.id);
                           }}
-                          className="text-xs font-bold text-foreground hover:underline"
+                          className="inline-flex min-h-11 items-center text-xs font-bold text-foreground hover:underline sm:min-h-0"
                         >
                           복제
                         </button>
