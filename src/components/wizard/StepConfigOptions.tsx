@@ -434,6 +434,10 @@ export function StepConfigOptions({
       if (!isAddonAvailable(addon, pkg)) continue;
       if (addon.visibility === "HIDDEN") continue; // 자동 산입 항목 — 신청자가 선택하는 화면이 아니다 (2-71)
       if (addon.visibility === "ITEM_ONLY") continue; // 기본 구성 전용 항목 — 별도 구매 옵션이 아니다
+      // 유틸리티(전기·수도·냉난방 등)는 사후 정산 항목이라 신청자가 고르는 화면이
+      // 아니다 — visibility가 VISIBLE로 잘못 설정돼 있어도 반드시 제외한다
+      // (2026-08-24, "일반전기,상하수도 등은 옵션에 선택을 안했는데 노출이 되고 있어").
+      if (addon.billingPhase === "SETTLEMENT") continue;
       const list = grouped.get(addon.category) ?? [];
       list.push(addon);
       grouped.set(addon.category, list);
@@ -445,7 +449,7 @@ export function StepConfigOptions({
   // 대관료)에서 처음 확인한다.
   const selectedOptionCount = [...grouped.values()]
     .flat()
-    .filter((addon) => addon.billingPhase !== "SETTLEMENT" && (addonQuantities[addon.id] ?? 0) > 0).length;
+    .filter((addon) => (addonQuantities[addon.id] ?? 0) > 0).length;
 
   // [개정 2026-08-21] 선택 옵션 목록은 더 이상 카테고리로 묶지 않는다 — 단일 세로 목록으로
   // 평탄화해서 더 가벼운 화면으로 보여준다(요청 시안 기준).
@@ -568,7 +572,6 @@ function AddonRow({
   onChangeQuantity: (addonId: string, quantity: number) => void;
   onChangeRevenue: (value: number) => void;
 }) {
-  const isUtil = addon.billingPhase === "SETTLEMENT";
   const isRevenue = addon.pricingType === "REVENUE_PERCENT";
 
   const maxTotal =
@@ -576,21 +579,14 @@ function AddonRow({
       ? included + addon.availability.maxAddQuantity
       : undefined;
 
-  const priceLabel = isUtil
-    ? "실사용 정산"
-    : isRevenue
-      ? `매출 ${addon.unitPrice}%`
-      : `${won(addon.unitPrice)} / ${addon.unitLabel.replace("원/", "")}`;
+  const priceLabel = isRevenue
+    ? `매출 ${addon.unitPrice}%`
+    : `${won(addon.unitPrice)} / ${addon.unitLabel.replace("원/", "")}`;
 
   // 항목은 아웃라인만이다. 선택 여부로 면 색을 바꾸지 않는다 —
   // 수량을 적는 칸이 안에 있어서 면 색이 바뀌면 입력한 숫자가 묻힌다.
   return (
-    <div
-      className={[
-        "flex flex-col gap-1.5 border border-border-soft px-3 py-2",
-        isUtil ? "opacity-60" : "",
-      ].join(" ")}
-    >
+    <div className="flex flex-col gap-1.5 border border-border-soft px-3 py-2">
       <div className="min-w-0">
         <div className="flex flex-wrap items-center gap-1.5">
           <span className="text-xs font-bold">{addon.name}</span>
@@ -604,9 +600,7 @@ function AddonRow({
       <div className="flex shrink-0 items-center justify-between gap-2">
         <span className="whitespace-nowrap text-xs text-muted">{priceLabel}</span>
 
-        {isUtil ? (
-          <span className="whitespace-nowrap text-xs text-muted">정산 단계 부과</span>
-        ) : isRevenue ? (
+        {isRevenue ? (
           <div className="flex items-center gap-1.5">
             <label className="flex items-center gap-1 whitespace-nowrap text-xs text-muted">
               <input
