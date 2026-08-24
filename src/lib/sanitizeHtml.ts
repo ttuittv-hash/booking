@@ -12,8 +12,9 @@ const OPTIONS: sanitizeHtml.IOptions = {
     "ul", "ol", "li",
     "a", "img",
     "table", "thead", "tbody", "tr", "th", "td", "colgroup", "col",
-    // HTML 소스 모드에서 접고 펼치는 문단을 만들 때 쓴다(NoticeEditor) — 네이티브 토글이라 JS가 없다.
-    "details", "summary",
+    // 접고 펼치는 문단(NoticeEditor의 "+ 접기/펼치기" 버튼, @tiptap/extension-details) —
+    // 네이티브 <details>/<summary> 토글이라 JS가 없다. div는 그 안의 detailsContent 래퍼 전용.
+    "details", "summary", "div",
   ],
   allowedAttributes: {
     a: ["href", "target", "rel"],
@@ -21,6 +22,8 @@ const OPTIONS: sanitizeHtml.IOptions = {
     th: ["colspan", "rowspan", "colwidth"],
     td: ["colspan", "rowspan", "colwidth"],
     col: ["span", "style"],
+    details: ["open"],
+    div: ["data-type"],
     "*": ["style"],
   },
   // style은 TipTap이 쓰는 색상/정렬만 허용한다 (expression·url 등 위험한 값 차단)

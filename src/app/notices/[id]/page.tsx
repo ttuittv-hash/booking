@@ -3,7 +3,9 @@ import { notFound } from "next/navigation";
 import { getCurrentUser, requireAccess } from "@/lib/auth";
 import { getNoticeById } from "@/lib/db";
 import { sanitizeRichText } from "@/lib/sanitizeHtml";
+import { splitNoticeBodyAtCalendarMarker } from "@/lib/content/noticeCalendarMarker";
 import { BookingCalendarLauncher } from "@/components/BookingAvailabilityCalendar";
+import { Fragment } from "react";
 import { PublicHeader } from "@/components/PublicHeader";
 import { TagBadge } from "@/components/TagBadge";
 import { Breadcrumb } from "@/components/ui/Breadcrumb";
@@ -42,7 +44,14 @@ const PROSE = [
   "[&_td]:border [&_td]:border-border-soft [&_td]:px-3 [&_td]:py-2.5",
   "[&_details]:mt-6 [&_details]:border [&_details]:border-border-soft [&_details]:px-4 [&_details]:py-3",
   "[&_summary]:cursor-pointer [&_summary]:font-bold [&_summary]:text-foreground",
+  "[&_[data-type=detailsContent]]:mt-3",
 ].join(" ");
+
+/**
+ * 대관 캘린더 마커로 잘린 조각을 그릴 때 쓴다 — first:mt-0/last:mb-0를 빼서
+ * 각 조각의 경계가 위·아래 캘린더 버튼에 바짝 붙지 않게 한다.
+ */
+const PROSE_SEGMENT = PROSE.replace(/\[&_p\]:first:mt-0 /, "").replace(/\[&_p\]:last:mb-0/, "");
 
 export default async function NoticeDetailPage({
   params,
@@ -94,11 +103,27 @@ export default async function NoticeDetailPage({
               <Media src={notice.imageUrl} alt={notice.title} ratio="auto" className="mb-10" />
             )}
 
-            {/* 운영자 리치 에디터 HTML — 스크립트·이벤트 핸들러를 제거한 뒤 렌더한다 */}
-            <div
-              className={PROSE}
-              dangerouslySetInnerHTML={{ __html: sanitizeRichText(notice.body) }}
-            />
+            {/* 운영자 리치 에디터 HTML — 스크립트·이벤트 핸들러를 제거한 뒤 렌더한다.
+                "+ 대관 캘린더" 버튼으로 넣은 마커는 실시간 데이터를 불러오는 컴포넌트라
+                정적 HTML에 섞을 수 없어, 마커 기준으로 잘라 그 사이에 실제 컴포넌트를 끼운다. */}
+            {(() => {
+              const segments = splitNoticeBodyAtCalendarMarker(sanitizeRichText(notice.body));
+              return segments.map((segment, i) => (
+                <Fragment key={i}>
+                  {segment.trim() && (
+                    <div
+                      className={segments.length > 1 ? PROSE_SEGMENT : PROSE}
+                      dangerouslySetInnerHTML={{ __html: segment }}
+                    />
+                  )}
+                  {i < segments.length - 1 && (
+                    <div className="my-6">
+                      <BookingCalendarLauncher />
+                    </div>
+                  )}
+                </Fragment>
+              ));
+            })()}
 
             {notice.attachmentUrl && (
               <div className="mt-12 border-t border-border/25 pt-8">

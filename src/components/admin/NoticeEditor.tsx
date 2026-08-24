@@ -11,8 +11,10 @@ import { Table } from "@tiptap/extension-table";
 import { TableRow } from "@tiptap/extension-table-row";
 import { TableHeader } from "@tiptap/extension-table-header";
 import { TableCell } from "@tiptap/extension-table-cell";
+import { Details, DetailsContent, DetailsSummary } from "@tiptap/extension-details";
 import { useRef, useState } from "react";
 import { RICH_TEXT } from "@/components/ui/kit";
+import { NOTICE_CALENDAR_MARKER_HTML } from "@/lib/content/noticeCalendarMarker";
 import { FIELD_SM } from "./adminUi";
 
 // 기본 TextStyle 확장은 font-size 속성을 지원하지 않아 별도로 추가한다.
@@ -103,6 +105,9 @@ export function NoticeEditor({
       TableRow,
       TableHeader,
       TableCell,
+      Details,
+      DetailsSummary,
+      DetailsContent,
     ],
     content: value,
     onUpdate: ({ editor }) => onChange(editor.getHTML()),
@@ -253,6 +258,34 @@ export function NoticeEditor({
 
         <button
           type="button"
+          onClick={() => {
+            if (editor.isActive("details")) {
+              editor.chain().focus().unsetDetails().run();
+            } else {
+              editor.chain().focus().setDetails().run();
+            }
+          }}
+          className={toolBtn(editor.isActive("details"))}
+          title="선택한 문단을 접고 펼치는 영역으로 묶습니다. 다시 누르면 풉니다."
+        >
+          {editor.isActive("details") ? "접기/펼치기 해제" : "+ 접기/펼치기"}
+        </button>
+
+        <span className="mx-1 h-4 w-px bg-border/30" />
+
+        <button
+          type="button"
+          onClick={() => editor.chain().focus().insertContent(NOTICE_CALENDAR_MARKER_HTML).run()}
+          className={toolBtn(false)}
+          title="본문의 이 위치에 '대관 현황 캘린더' 보기 버튼을 넣습니다."
+        >
+          + 대관 캘린더
+        </button>
+
+        <span className="mx-1 h-4 w-px bg-border/30" />
+
+        <button
+          type="button"
           disabled={uploading}
           onClick={() => fileInput.current?.click()}
           className={`${toolBtn(false)} disabled:opacity-50`}
@@ -314,10 +347,13 @@ export function NoticeEditor({
             className="min-h-[180px] w-full border border-t-0 border-border-soft bg-surface px-3 py-2.5 font-mono text-xs leading-6 focus:border-foreground focus:outline-2 focus:outline-accent"
           />
           <p className="mt-1.5 text-xs text-muted">
-            HTML을 직접 씁니다. 접고 펼치는 문단은{" "}
-            <code className="font-mono">{"<details><summary>제목</summary>내용</details>"}</code>{" "}
-            로 만들 수 있습니다. 이 태그가 있는 상태로 &ldquo;일반 편집&rdquo;으로 돌아가면 태그가
-            풀리니, 쓴 뒤에는 저장만 하고 돌아가지 마세요.
+            HTML을 직접 씁니다. 접고 펼치는 문단은 툴바의 &ldquo;+ 접기/펼치기&rdquo; 버튼으로
+            만드는 편이 안전합니다(일반 편집으로 되돌아가도 유지됩니다). 여기서 직접{" "}
+            <code className="font-mono">{"<details>"}</code> 태그를 썼다면 구조가 정확히
+            <code className="font-mono">
+              {"<details><summary>제목</summary><div data-type=\"detailsContent\">내용</div></details>"}
+            </code>
+            를 따라야 일반 편집에서도 인식됩니다.
           </p>
         </div>
       ) : (

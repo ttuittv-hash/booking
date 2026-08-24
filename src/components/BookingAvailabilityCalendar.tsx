@@ -29,6 +29,7 @@ function buildCalendarWeeks(year: number, month: number): Date[][] {
 }
 
 type VenueTab = "arena" | "medium-hall";
+type DateStatus = "CONFIRMED" | "COMPETING" | null;
 
 // 공지사항 "캘린더 보기" 아이콘에서 여는 레이어 — /admin/schedule(ScheduleManager)와
 // 같은 날짜 그리드를 쓰지만 회사명·quoteId 등은 절대 보여주지 않는, 읽기 전용
@@ -41,6 +42,8 @@ function CalendarBody() {
   const [venueTab, setVenueTab] = useState<VenueTab>("arena");
   const [blocks, setBlocks] = useState<DateBlock[]>([]);
   const [occupancy, setOccupancy] = useState<Record<string, { arena: number; mediumHall: number }>>({});
+  const [demand, setDemand] = useState<Record<string, { arena: number; mediumHall: number }>>({});
+  const [status, setStatus] = useState<Record<string, { arena: DateStatus; mediumHall: DateStatus }>>({});
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -51,10 +54,14 @@ function CalendarBody() {
       .then((data) => {
         setBlocks(data.blocks ?? []);
         setOccupancy(data.occupancy ?? {});
+        setDemand(data.demand ?? {});
+        setStatus(data.status ?? {});
       })
       .catch(() => {
         setBlocks([]);
         setOccupancy({});
+        setDemand({});
+        setStatus({});
       })
       .finally(() => setLoading(false));
   }, [year, month]);
@@ -121,6 +128,12 @@ function CalendarBody() {
         <span className="flex items-center gap-1.5">
           <span className="h-2 w-2 rounded-full bg-danger" /> 대관 불가 일정
         </span>
+        <span className="flex items-center gap-1.5">
+          <span className="h-2 w-2 rounded-full bg-foreground" /> 대관사 확정
+        </span>
+        <span className="flex items-center gap-1.5">
+          <span className="h-2 w-2 rounded-full bg-warn" /> 경합 중
+        </span>
       </div>
 
       <div className="mt-4 border border-border-soft bg-panel/60 p-5">
@@ -144,11 +157,21 @@ function CalendarBody() {
                     ? (occupancy[dateStr]?.arena ?? 0)
                     : (occupancy[dateStr]?.mediumHall ?? 0)
                   : 0;
+                const companyCount = inMonth
+                  ? venueTab === "arena"
+                    ? (demand[dateStr]?.arena ?? 0)
+                    : (demand[dateStr]?.mediumHall ?? 0)
+                  : 0;
+                const dateStatus: DateStatus = inMonth
+                  ? venueTab === "arena"
+                    ? (status[dateStr]?.arena ?? null)
+                    : (status[dateStr]?.mediumHall ?? null)
+                  : null;
                 return (
                   <div
                     key={dateStr}
                     className={[
-                      "flex h-16 flex-col items-center justify-center gap-1 px-1 text-s",
+                      "flex min-h-20 flex-col items-center justify-center gap-1 px-1 py-1.5 text-s",
                       !inMonth
                         ? "text-muted/30"
                         : isBlocked
@@ -165,6 +188,16 @@ function CalendarBody() {
                         ].join(" ")}
                       >
                         {count}건
+                      </span>
+                    )}
+                    {inMonth && dateStatus === "CONFIRMED" && (
+                      <span className="text-center text-xs leading-tight font-bold text-foreground">
+                        대관사 확정
+                      </span>
+                    )}
+                    {inMonth && dateStatus === "COMPETING" && (
+                      <span className="text-center text-xs leading-tight font-bold text-warn">
+                        경합 중 · {companyCount}개사
                       </span>
                     )}
                   </div>
@@ -205,7 +238,7 @@ export function BookingCalendarLauncher() {
           onClick={() => setOpen(false)}
         >
           <div
-            className="max-h-[92vh] w-full max-w-2xl overflow-y-auto border border-border bg-background p-6"
+            className="max-h-[92vh] w-full max-w-4xl overflow-y-auto border border-border bg-background p-6"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex items-center justify-between gap-3">
@@ -219,9 +252,6 @@ export function BookingCalendarLauncher() {
                 닫기 ✕
               </button>
             </div>
-            <p className="mt-1.5 text-xs leading-6 text-muted">
-              공간마다 예약 구조가 달라 탭으로 나눠 보여줍니다. 표시된 건수는 해당 날짜의 대관 신청 건수입니다.
-            </p>
             <div className="mt-4">
               <CalendarBody />
             </div>
