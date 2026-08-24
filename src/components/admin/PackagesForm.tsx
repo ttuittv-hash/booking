@@ -246,6 +246,28 @@ export function PackagesForm({ rateTable, ratesContent }: { rateTable: RateTable
     setActiveId(nextId);
   }
 
+  /**
+   * 패키지 복제 — 같은 구성을 요금·규모만 다르게 여러 타입으로 만들어야 하는
+   * 경우가 있다(2026-08-24, "지금은 동일한 패키지를 여러타입으로 만들어야되는
+   * 경우가 있으므로"). 기본 내역(includedItems)까지 통째로 복사해 새 패키지로
+   * 추가하고, 이름 끝에 "사본"을 붙여 원본과 구분한다 — 그 자리에서 바로
+   * 이름·금액만 고치면 된다.
+   */
+  function duplicatePackage(id: number) {
+    const source = packages.find((p) => p.id === id);
+    if (!source) return;
+    const nextId = Math.max(0, ...packages.map((p) => p.id)) + 1;
+    const copy: EditablePackage = {
+      ...source,
+      id: nextId,
+      name: `${source.name} 사본`,
+      audienceTier: { ...source.audienceTier },
+      includedItems: source.includedItems.map((item) => ({ ...item })),
+    };
+    setPackages((prev) => [...prev, copy]);
+    setActiveId(nextId);
+  }
+
   /** 패키지 삭제 — 공간별 마지막 하나는 남긴다(고를 것이 없으면 신청이 막힌다) */
   function removePackage(id: number) {
     const target = packages.find((p) => p.id === id);
@@ -536,7 +558,7 @@ export function PackagesForm({ rateTable, ratesContent }: { rateTable: RateTable
                 <th className={TH_NUM}>총 패키지 가격 (₩)</th>
                 <th className={TH_NUM}>할인 적용가 (₩)</th>
                 <th className={TH}>
-                  <span className="sr-only">삭제</span>
+                  <span className="sr-only">작업</span>
                 </th>
               </tr>
             </thead>
@@ -560,16 +582,28 @@ export function PackagesForm({ rateTable, ratesContent }: { rateTable: RateTable
                       )}
                     </td>
                     <td className="px-4 py-3 text-right">
-                      <button
-                        type="button"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          removePackage(p.id);
-                        }}
-                        className={REMOVE_BTN}
-                      >
-                        삭제
-                      </button>
+                      <span className="inline-flex items-center gap-3">
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            duplicatePackage(p.id);
+                          }}
+                          className="text-xs font-bold text-foreground hover:underline"
+                        >
+                          복제
+                        </button>
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            removePackage(p.id);
+                          }}
+                          className={REMOVE_BTN}
+                        >
+                          삭제
+                        </button>
+                      </span>
                     </td>
                   </tr>
                 );
