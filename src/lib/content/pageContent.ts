@@ -135,7 +135,7 @@ export const DEFAULT_FEATURES_CONTENT: FeaturesContent = {
   },
 };
 
-/* ------------------------------------------------- 대관 안내 (`/guide`) --- */
+/* ------------------------------------------------- 대관 절차 (`/guide`) --- */
 
 export interface ProcessBlock {
   no: string;

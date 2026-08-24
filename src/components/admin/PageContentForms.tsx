@@ -259,14 +259,14 @@ export function FeaturesForm({ content }: { content: FeaturesContent }) {
   );
 }
 
-/* --------------------------------------------------------- 대관 안내 ----- */
+/* --------------------------------------------------------- 대관 절차 ----- */
 
 export function GuideForm({ content }: { content: GuidePageContent }) {
   return (
     <ContentFormShell page="guide" initial={content}>
       {(v, patch) => (
         <>
-          <Section title="대관 안내 — 리드 문단">
+          <Section title="대관 절차 — 리드 문단">
             <Area label="" rows={6} value={v.intro} onChange={(intro) => patch({ intro })} />
           </Section>
 

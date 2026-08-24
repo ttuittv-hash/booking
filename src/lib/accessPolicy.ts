@@ -13,7 +13,7 @@
 //
 //   기획서 메뉴          → 현재 경로
 //   시설 소개            → /venue, /venue/*
-//   대관안내             → /guide, /guide/*, /packages
+//   대관 절차            → /guide, /guide/*, /packages
 //   대관현황(공고 목록)  → /notices, /notices/*
 //   대관신청             → /apply, /apply/*
 //   대관신청내역         → /mypage, /mypage/[id]
@@ -69,7 +69,7 @@ const RULES: MenuRule[] = [
   { prefix: "/apply", label: "대관신청", allow: APPROVED_ONLY },
 
   { prefix: "/venue", label: "시설 소개", allow: OPEN_ALL },
-  { prefix: "/guide", label: "대관안내", allow: LOGIN_ONLY },
+  { prefix: "/guide", label: "대관 절차", allow: LOGIN_ONLY },
   { prefix: "/packages", label: "대관 패키지", allow: LOGIN_ONLY },
   { prefix: "/notices", label: "대관현황", allow: LOGIN_ONLY },
   { prefix: "/faq", label: "FAQ", allow: OPEN_ALL },

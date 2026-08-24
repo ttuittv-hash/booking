@@ -727,7 +727,7 @@ async function seedData(pool: Pool) {
     console.log("[seoularena] 표본 회사(주식회사 서울아레나)를 등록했습니다 — 회사정보 불러오기 시험용");
   }
 
-  // 서울아레나 소개 / 대관 안내 하위 페이지 — 최초 1회만 기본 콘텐츠로 시드한다.
+  // 서울아레나 소개 / 대관 절차 하위 페이지 — 최초 1회만 기본 콘텐츠로 시드한다.
   const pageCount = (await pool.query("SELECT COUNT(*)::int as n FROM pages")).rows[0] as { n: number };
   if (pageCount.n === 0) {
     const now = new Date().toISOString();
@@ -3660,7 +3660,7 @@ export async function deleteFaq(id: string) {
 }
 
 // ---------------------------------------------------------------------------
-// 정적 안내 페이지 (서울아레나 소개 / 대관 안내)
+// 정적 안내 페이지 (서울아레나 소개 / 대관 절차)
 // ---------------------------------------------------------------------------
 
 interface PageRow {

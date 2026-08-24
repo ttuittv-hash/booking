@@ -22,9 +22,9 @@ describe("시설 소개 — 3단계 모두 열람", () => {
   it("하위 경로도 열린다", () => expect(canAccess("/venue/specs", "GUEST")).toBe(true));
 });
 
-describe("대관안내·대관현황 — 비로그인 차단, 로그인하면 승인 전에도 열람", () => {
-  it("비로그인은 대관안내가 막힌다", () => expect(canAccess("/guide", "GUEST")).toBe(false));
-  it("승인 대기도 대관안내를 본다", () => expect(canAccess("/guide", "PENDING")).toBe(true));
+describe("대관 절차·대관현황 — 비로그인 차단, 로그인하면 승인 전에도 열람", () => {
+  it("비로그인은 대관 절차가 막힌다", () => expect(canAccess("/guide", "GUEST")).toBe(false));
+  it("승인 대기도 대관 절차를 본다", () => expect(canAccess("/guide", "PENDING")).toBe(true));
   it("비로그인은 대관현황이 막힌다", () => expect(canAccess("/notices", "GUEST")).toBe(false));
   it("승인 대기도 대관현황을 본다", () => expect(canAccess("/notices", "PENDING")).toBe(true));
 });

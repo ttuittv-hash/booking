@@ -34,7 +34,7 @@ export const NAV_CATEGORIES: NavCategory[] = [
   {
     label: "Your Guide",
     pages: [
-      { href: "/guide", label: "대관 안내", loginRequired: true },
+      { href: "/guide", label: "대관 절차", loginRequired: true },
       { href: "/rates", label: "대관료", loginRequired: true },
       { href: "/rules", label: "대관 규약", loginRequired: true },
       { href: "/documents", label: "대관 자료", loginRequired: true },
@@ -78,5 +78,5 @@ export const VENUE_TABS = [
 ] as const;
 export type VenueTabValue = (typeof VENUE_TABS)[number]["value"];
 
-/** 내용 축 — 서울아레나(시설개요 / 시설 특징), 대관 안내(대관 안내 / 대관 절차) */
+/** 내용 축 — 서울아레나(시설개요 / 시설 특징), 대관료·대관 자료(아레나 / 중형공연장) */
 export const CONTENT_TAB_PARAM = "tab";

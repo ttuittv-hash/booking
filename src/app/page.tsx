@@ -58,10 +58,10 @@ export default async function Home() {
         {/* ── 전환 CTA ───────────────────────────────────────────────────── */}
         <CTABand
           title="당신의 무대를 지금 설계하세요."
-          lead="대관 안내와 절차를 먼저 확인해 보세요."
+          lead="대관 절차와 단계별 준비 사항을 먼저 확인해 보세요."
           actions={
             <ButtonLink href="/guide" variant="primary">
-              대관 안내
+              대관 절차
               <ArrowRight />
             </ButtonLink>
           }
