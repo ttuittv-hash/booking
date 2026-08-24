@@ -13,9 +13,22 @@ import { TableHeader } from "@tiptap/extension-table-header";
 import { TableCell } from "@tiptap/extension-table-cell";
 import { Details, DetailsContent, DetailsSummary } from "@tiptap/extension-details";
 import { useRef, useState } from "react";
-import { RICH_TEXT } from "@/components/ui/kit";
 import { NOTICE_CALENDAR_MARKER_HTML } from "@/lib/content/noticeCalendarMarker";
 import { FIELD_SM } from "./adminUi";
+
+/**
+ * 공지 본문의 편집기 안 문단 간격 — 공개 화면(notices/[id]/page.tsx의 PROSE)과 똑같이
+ * margin 없이 줄간격만 쓴다. `@/components/ui/kit`의 RICH_TEXT([&_p]:mt-4)를 그대로
+ * 쓰면 편집기에서만 문단 사이가 눈에 띄게 벌어져 보여서(운영자가 "줄바꿈 간격이 넓다"고
+ * 느낀 원인) 이 컴포넌트만 따로 정의한다. RICH_TEXT는 공지 이외의 리치텍스트(약관 등)에서
+ * 계속 쓰이므로 거기엔 손대지 않는다.
+ */
+const NOTICE_RICH_TEXT = [
+  "[&_p]:mt-0",
+  "[&_strong]:font-bold [&_em]:italic",
+  "[&_ul]:mt-4 [&_ul]:list-disc [&_ul]:pl-5 [&_ol]:mt-4 [&_ol]:list-decimal [&_ol]:pl-5 [&_li]:mt-1",
+  "[&_a]:underline [&_a]:decoration-1 [&_a]:underline-offset-4",
+].join(" ");
 
 // 기본 TextStyle 확장은 font-size 속성을 지원하지 않아 별도로 추가한다.
 const FontSize = TextStyle.extend({
@@ -116,9 +129,9 @@ export function NoticeEditor({
     onUpdate: ({ editor }) => onChange(editor.getHTML()),
     editorProps: {
       attributes: {
-        // RICH_TEXT — 화면과 같은 문단 간격. Enter 로 나눈 문단이 편집기에서도 벌어져야
-        // 운영자가 문단이 만들어졌다는 것을 알 수 있다.
-        class: `${RICH_TEXT} min-h-[180px] border border-t-0 border-border-soft bg-surface px-3 py-2.5 text-s leading-6 focus:border-foreground focus:outline-2 focus:outline-accent [&_img]:mt-2 [&_img]:max-w-full [&_table]:mt-3 [&_table]:w-full [&_table]:border-collapse [&_td]:border [&_td]:border-border-soft [&_td]:px-2.5 [&_td]:py-1.5 [&_th]:border [&_th]:border-border-soft [&_th]:bg-background [&_th]:px-2.5 [&_th]:py-1.5 [&_th]:text-left [&_[data-type=details]]:mt-3 [&_[data-type=details]]:border [&_[data-type=details]]:border-border-soft [&_[data-type=details]]:p-2.5 [&_[data-type=details]>button]:mr-2 [&_[data-type=details]>button]:inline-flex [&_[data-type=details]>button]:h-4 [&_[data-type=details]>button]:w-4 [&_[data-type=details]>button]:shrink-0 [&_[data-type=details]>button]:cursor-pointer [&_[data-type=details]>button]:border [&_[data-type=details]>button]:border-muted [&_[data-type=details]_summary]:inline [&_[data-type=details]_summary]:cursor-text [&_[data-type=details]_summary]:font-bold [&_[data-type=detailsContent]]:mt-2 [&_[data-type=detailsContent]]:min-h-[1.6em] [&_[data-type=detailsContent]]:border-t [&_[data-type=detailsContent]]:border-dashed [&_[data-type=detailsContent]]:border-border-soft [&_[data-type=detailsContent]]:pt-2`,
+        // 문단 간격은 공개 화면과 똑같이 margin 없이 줄간격(leading)만 쓴다 — RICH_TEXT의
+        // [&_p]:mt-4 를 그대로 쓰면 편집기에서만 문단 사이가 눈에 띄게 벌어져 보인다.
+        class: `${NOTICE_RICH_TEXT} min-h-[180px] border border-t-0 border-border-soft bg-surface px-3 py-2.5 text-s leading-6 focus:border-foreground focus:outline-2 focus:outline-accent [&_img]:mt-2 [&_img]:max-w-full [&_table]:mt-3 [&_table]:w-full [&_table]:border-collapse [&_td]:border [&_td]:border-border-soft [&_td]:px-2.5 [&_td]:py-1.5 [&_th]:border [&_th]:border-border-soft [&_th]:bg-background [&_th]:px-2.5 [&_th]:py-1.5 [&_th]:text-left [&_[data-type=details]]:mt-3 [&_[data-type=details]]:border [&_[data-type=details]]:border-border-soft [&_[data-type=details]]:p-2.5 [&_[data-type=details]>button]:mr-2 [&_[data-type=details]>button]:inline-flex [&_[data-type=details]>button]:h-4 [&_[data-type=details]>button]:w-4 [&_[data-type=details]>button]:shrink-0 [&_[data-type=details]>button]:cursor-pointer [&_[data-type=details]>button]:border [&_[data-type=details]>button]:border-muted [&_[data-type=details]_summary]:inline [&_[data-type=details]_summary]:cursor-text [&_[data-type=details]_summary]:font-bold [&_[data-type=detailsContent]]:mt-2 [&_[data-type=detailsContent]]:min-h-[1.6em] [&_[data-type=detailsContent]]:border-t [&_[data-type=detailsContent]]:border-dashed [&_[data-type=detailsContent]]:border-border-soft [&_[data-type=detailsContent]]:pt-2`,
       },
     },
   });
