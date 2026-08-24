@@ -661,43 +661,14 @@ export function StepPerformanceInfo({
   midHallInfo,
   onChangeMidHallInfo,
   selection,
-  files,
-  onFilesChange,
 }: {
   info: PerformanceInfo;
   onChange: (info: PerformanceInfo) => void;
   midHallInfo: PerformanceInfo | null;
   onChangeMidHallInfo: (info: PerformanceInfo | null) => void;
   selection: QuoteSelection;
-  files: File[];
-  onFilesChange: (files: File[]) => void;
 }) {
   const [activeTab, setActiveTab] = useState<VenueSplitTab>(midHallInfo ? "ARENA" : "COMMON");
-
-  function addFiles(selected: FileList | null) {
-    if (!selected || selected.length === 0) return;
-    const accepted: File[] = [];
-    const rejected: string[] = [];
-    for (const file of Array.from(selected)) {
-      if (file.size > MAX_FILE_SIZE) {
-        rejected.push(`${file.name} (20MB 초과)`);
-        continue;
-      }
-      if (file.type && !ALLOWED_MIME.has(file.type)) {
-        rejected.push(`${file.name} (지원하지 않는 형식)`);
-        continue;
-      }
-      accepted.push(file);
-    }
-    if (accepted.length > 0) onFilesChange([...files, ...accepted]);
-    if (rejected.length > 0) {
-      window.alert(`다음 파일은 첨부할 수 없습니다:\n${rejected.join("\n")}`);
-    }
-  }
-
-  function removeFile(index: number) {
-    onFilesChange(files.filter((_, i) => i !== index));
-  }
 
   const arenaLine = arenaSummary(selection);
   const midHallLine = midHallSummary(selection);
@@ -770,61 +741,104 @@ export function StepPerformanceInfo({
           />
         )}
       </div>
+    </section>
+  );
+}
 
-      <div className="mt-10 border-t-2 border-foreground pt-5">
-        {/* [2026-08-23] "신청자 정보 및 규모"로 탭을 합치면서 자료 첨부 슬롯도 하나로
-            합쳤다("첨부파일 슬롯이 두개인데 하나 슬롯으로 합치고.. 반반해서 양쪽으로
-            구성해") — 공연 자료(舊 신청자 정보 탭)와 객석배치도(舊 규모 탭)를 좌우
-            절반씩 안내하고, 목록·업로드 입력은 하나만 둔다. */}
-        <h3 className="type-kr-heading text-h6-m">자료 첨부(선택)</h3>
-        <div className="mt-2 grid grid-cols-1 gap-x-8 gap-y-1.5 sm:grid-cols-2">
-          <p className="text-xs leading-5 text-muted">
-            <span className="font-bold text-foreground">공연 관련 자료</span> — 공연기획서 · 무대
-            도면, 출연 계약 증빙, 행사 안전관리계획서 등
-          </p>
-          <p className="text-xs leading-5 text-muted">
-            <span className="font-bold text-foreground">객석배치도</span> — 계획안 기준으로 제출할
-            수 있으며, 승인 후 변경 시 사전 협의가 필요합니다
-          </p>
-        </div>
-        <p className="mt-2 mb-2.5 text-xs text-muted">
-          PDF/이미지/문서, 파일당 최대 20MB. 신청서 제출 시 함께 업로드됩니다.
-          {isSimultaneous && " 동시 대관은 두 공간의 자료를 각각 첨부합니다."}
+/**
+ * 자료 첨부(선택) — "신청자 정보 및 규모"(STEP 3) 맨 아래에 둔다.
+ * [2026-08-24] 원래 StepPerformanceInfo 안에 있어 "신청자 정보" 필드와 StepAudience의
+ * "규모" 필드 사이에 끼어 있었는데, 합친 탭의 가장 하단으로 옮겨 달라는 요청으로 별도
+ * 컴포넌트로 뽑아 WizardShell에서 StepAudience 다음에 렌더한다.
+ * [2026-08-23] "신청자 정보 및 규모"로 탭을 합치면서 자료 첨부 슬롯도 하나로 합쳤다
+ * ("첨부파일 슬롯이 두개인데 하나 슬롯으로 합치고.. 반반해서 양쪽으로 구성해") —
+ * 공연 자료(舊 신청자 정보 탭)와 객석배치도(舊 규모 탭)를 좌우 절반씩 안내하고,
+ * 목록·업로드 입력은 하나만 둔다.
+ */
+export function StepAttachments({
+  files,
+  onFilesChange,
+  isSimultaneous,
+}: {
+  files: File[];
+  onFilesChange: (files: File[]) => void;
+  isSimultaneous: boolean;
+}) {
+  function addFiles(selected: FileList | null) {
+    if (!selected || selected.length === 0) return;
+    const accepted: File[] = [];
+    const rejected: string[] = [];
+    for (const file of Array.from(selected)) {
+      if (file.size > MAX_FILE_SIZE) {
+        rejected.push(`${file.name} (20MB 초과)`);
+        continue;
+      }
+      if (file.type && !ALLOWED_MIME.has(file.type)) {
+        rejected.push(`${file.name} (지원하지 않는 형식)`);
+        continue;
+      }
+      accepted.push(file);
+    }
+    if (accepted.length > 0) onFilesChange([...files, ...accepted]);
+    if (rejected.length > 0) {
+      window.alert(`다음 파일은 첨부할 수 없습니다:\n${rejected.join("\n")}`);
+    }
+  }
+
+  function removeFile(index: number) {
+    onFilesChange(files.filter((_, i) => i !== index));
+  }
+
+  return (
+    <section className="mt-10 border-t-2 border-foreground pt-5">
+      <h3 className="type-kr-heading text-h6-m">자료 첨부(선택)</h3>
+      <div className="mt-2 grid grid-cols-1 gap-x-8 gap-y-1.5 sm:grid-cols-2">
+        <p className="text-xs leading-5 text-muted">
+          <span className="font-bold text-foreground">공연 관련 자료</span> — 공연기획서 · 무대
+          도면, 출연 계약 증빙, 행사 안전관리계획서 등
         </p>
-
-        {files.length > 0 && (
-          <ul className="mt-5 border-t border-border/25">
-            {files.map((file, i) => (
-              <li
-                key={`${file.name}-${i}`}
-                className="flex items-center justify-between gap-4 border-b border-border/25 py-4"
-              >
-                <span className="min-w-0 truncate text-s font-bold">{file.name}</span>
-                <div className="flex shrink-0 items-center gap-4 text-xs text-muted tabular-nums">
-                  <span>{formatSize(file.size)}</span>
-                  <button
-                    type="button"
-                    onClick={() => removeFile(i)}
-                    className="cursor-pointer transition-colors hover:text-danger"
-                  >
-                    삭제
-                  </button>
-                </div>
-              </li>
-            ))}
-          </ul>
-        )}
-
-        <input
-          type="file"
-          multiple
-          onChange={(e) => {
-            addFiles(e.target.files);
-            e.target.value = "";
-          }}
-          className={`${FILE_INPUT} mt-5 text-muted`}
-        />
+        <p className="text-xs leading-5 text-muted">
+          <span className="font-bold text-foreground">객석배치도</span> — 계획안 기준으로 제출할
+          수 있으며, 승인 후 변경 시 사전 협의가 필요합니다
+        </p>
       </div>
+      <p className="mt-2 mb-2.5 text-xs text-muted">
+        PDF/이미지/문서, 파일당 최대 20MB. 신청서 제출 시 함께 업로드됩니다.
+        {isSimultaneous && " 동시 대관은 두 공간의 자료를 각각 첨부합니다."}
+      </p>
+
+      {files.length > 0 && (
+        <ul className="mt-5 border-t border-border/25">
+          {files.map((file, i) => (
+            <li
+              key={`${file.name}-${i}`}
+              className="flex items-center justify-between gap-4 border-b border-border/25 py-4"
+            >
+              <span className="min-w-0 truncate text-s font-bold">{file.name}</span>
+              <div className="flex shrink-0 items-center gap-4 text-xs text-muted tabular-nums">
+                <span>{formatSize(file.size)}</span>
+                <button
+                  type="button"
+                  onClick={() => removeFile(i)}
+                  className="cursor-pointer transition-colors hover:text-danger"
+                >
+                  삭제
+                </button>
+              </div>
+            </li>
+          ))}
+        </ul>
+      )}
+
+      <input
+        type="file"
+        multiple
+        onChange={(e) => {
+          addFiles(e.target.files);
+          e.target.value = "";
+        }}
+        className={`${FILE_INPUT} mt-5 text-muted`}
+      />
     </section>
   );
 }

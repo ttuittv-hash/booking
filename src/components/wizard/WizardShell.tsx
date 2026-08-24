@@ -31,7 +31,7 @@ import { Step1Calendar } from "./Step1Calendar";
 import { MidHallCalendar } from "./MidHallCalendar";
 import { StepConfigOptions } from "./StepConfigOptions";
 import { Step5Estimate } from "./Step5Estimate";
-import { StepPerformanceInfo, validatePerformanceInfoStep } from "./StepPerformanceInfo";
+import { StepAttachments, StepPerformanceInfo, validatePerformanceInfoStep } from "./StepPerformanceInfo";
 import { StepAudience, validateAudienceStep } from "./StepAudience";
 import { StepPublicInterest } from "./StepPublicInterest";
 import { StepMarketingCooperation, validateMarketingCooperationStep } from "./StepMarketingCooperation";
@@ -683,8 +683,6 @@ export function WizardShell({
                 setSelection((prev) => ({ ...prev, midHallPerformanceInfo }))
               }
               selection={resolvedSelection}
-              files={pendingFiles}
-              onFilesChange={setPendingFiles}
             />
             {/* [2026-08-23] "신청자 정보 및 규모" — 두 탭을 하나로 합쳤다("신청자 정보
                 탭을 신청자 정보 및 규모로 변경하고, 규모 탭 내역을 합쳐"). 규모(StepAudience)
@@ -698,6 +696,13 @@ export function WizardShell({
               }
               selection={resolvedSelection}
               showHeading={false}
+            />
+            {/* [2026-08-24] 자료 첨부는 합친 탭의 가장 아래로 — "신청자 정보 및 규모 탭에서
+                자료 첨부(선택)를 가장 하위에 노출". */}
+            <StepAttachments
+              files={pendingFiles}
+              onFilesChange={setPendingFiles}
+              isSimultaneous={resolvedSelection.bookingMode === "SIMULTANEOUS"}
             />
           </>
         )}

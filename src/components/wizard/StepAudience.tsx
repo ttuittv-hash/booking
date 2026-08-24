@@ -245,7 +245,11 @@ export function StepAudience({
     <section>
       {showHeading && <StepHeading title="규모" lead="관객 수는 공간별로 자동 산정됩니다." />}
 
-      {isSimultaneous && (
+      {/* [2026-08-24] "공통" 하나뿐일 때(분리 전)는 탭 줄 + "공간별로 다르게 입력" 버튼이
+          예상 관객 및 사업규모 위에 불필요한 영역으로 남아 삭제 요청됨. 분리는 다른 탭
+          (신청자 정보·공공성)에서 시작할 수 있고, 이미 분리된 상태에서는 여기서도
+          아레나/중형 전환이 필요하므로 그 경우에만 탭 바를 보여준다. */}
+      {isSimultaneous && midHallDifferent && (
         <VenueSplitTabBar
           midHallDifferent={midHallDifferent}
           activeTab={effectiveTab}
