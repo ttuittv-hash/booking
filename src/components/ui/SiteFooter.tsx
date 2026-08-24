@@ -46,7 +46,7 @@ function BrandIcon({ path }: { path: string }) {
 export function SiteFooter() {
   return (
     <footer className="mt-auto bg-surface">
-      <div className="container-site pb-10 pt-12 sm:pt-16">
+      <div className="container-site pb-10 pt-14 sm:pt-20">
         {/* 상단 — 좌: 연락처 + SNS / 우: 사이트맵 */}
         <div className="grid gap-10 lg:grid-cols-[minmax(0,1fr)_auto] lg:gap-14">
           <div className="space-y-6">
@@ -110,7 +110,7 @@ export function SiteFooter() {
           `type-wordmark` 가 컨테이너 폭(cqw)에 비례해 font-size 만 키우므로
           자폭 비율은 언제나 그대로다. textLength 로 억지로 늘리면 자형이 망가진다.
         */}
-        <div className="mt-14 sm:mt-16 [container-type:inline-size]">
+        <div className="mt-16 sm:mt-24 [container-type:inline-size]">
           <Link
             href="/"
             aria-label="Seoul Arena 홈"
@@ -122,7 +122,7 @@ export function SiteFooter() {
         </div>
 
         {/* 하단 — 헤어라인 + 카피라이트 / 약관·정책 */}
-        <div className="mt-8 flex flex-col gap-4 border-t border-border/25 pt-6 text-xs text-muted sm:flex-row sm:items-center sm:justify-between">
+        <div className="mt-10 flex flex-col gap-4 border-t border-border/25 pt-6 text-xs text-muted sm:flex-row sm:items-center sm:justify-between">
           <p>© {new Date().getFullYear()} Seoul Arena. All rights reserved.</p>
           <div className="flex flex-wrap items-center gap-x-6 gap-y-2">
             <Link href="/terms" className="flex min-h-11 items-center hover:text-foreground">

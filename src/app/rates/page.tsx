@@ -65,7 +65,7 @@ function RatePanel({ en, ko, c }: { en: string; ko: string; c: VenueRateContent 
       {/* 머리글만 있는 밴드를 따로 두면 두 밴드의 세로 패딩이 더해져 지나치게 벌어진다 */}
       <Band tone="light" size="lg">
         <PageHead en={en} ko={ko} />
-        <div className="mt-12">
+        <div className="mt-10">
           <SectionHead title="RATE" />
         </div>
         <div className="mt-10">
@@ -91,7 +91,7 @@ function RatePanel({ en, ko, c }: { en: string; ko: string; c: VenueRateContent 
         {c.detailLabels.length > 0 && (
           <details className="mt-10 border-t border-border/25 pt-5">
             <summary className="cursor-pointer text-s font-bold">Details</summary>
-            <div className="mt-6">
+            <div className="mt-10">
               <ComparisonTable
                 dense
                 rowLabel="구분"

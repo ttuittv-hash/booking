@@ -93,7 +93,7 @@ export default async function NoticeDetailPage({
             />
 
             {notice.attachmentUrl && (
-              <div className="mt-12 border-t border-border/25 pt-8">
+              <div className="mt-10 border-t border-border/25 pt-10">
                 <h2 className="type-kr-heading mb-4 text-h6-m sm:text-h6">첨부파일</h2>
                 <a
                   href={`${notice.attachmentUrl}?name=${encodeURIComponent(notice.attachmentName ?? "첨부파일")}`}
@@ -109,7 +109,7 @@ export default async function NoticeDetailPage({
               </div>
             )}
 
-            <div className="mt-14 border-t border-border/25 pt-8">
+            <div className="mt-10 border-t border-border/25 pt-10">
               <ButtonLink href="/notices" variant="secondary">
                 공지사항 목록
                 <ArrowRight />
