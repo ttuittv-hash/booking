@@ -491,7 +491,6 @@ export function StepConfigOptions({
               <AddonRow
                 key={addon.id}
                 addon={addon}
-                packages={arenaPackages}
                 included={includedQuantity(pkg, addon.id)}
                 quantity={addonQuantities[addon.id] ?? 0}
                 expectedRevenue={expectedRevenue}
@@ -556,7 +555,6 @@ export function StepConfigOptions({
 
 function AddonRow({
   addon,
-  packages,
   included,
   quantity,
   expectedRevenue,
@@ -564,7 +562,6 @@ function AddonRow({
   onChangeRevenue,
 }: {
   addon: AddonItem;
-  packages: RentalPackage[];
   included: number;
   quantity: number;
   expectedRevenue: number;
@@ -573,16 +570,6 @@ function AddonRow({
 }) {
   const isUtil = addon.billingPhase === "SETTLEMENT";
   const isRevenue = addon.pricingType === "REVENUE_PERCENT";
-  const ruleTag =
-    addon.availability.mode === "IF_PACKAGE_IN"
-      ? // "패키지 1·2 전용"처럼 원본 id를 그대로 보여주면 Rate A/B/C/D 이름 변경과
-        // 어긋나 헷갈린다(2026-08-22) — 이름으로 바꿔 보여준다.
-        `${(addon.availability.packages ?? [])
-          .map((id) => packages.find((p) => p.id === id)?.name ?? String(id))
-          .join("·")} 전용`
-      : addon.availability.mode === "IF_NOT_INCLUDED"
-        ? "미포함 시 선택"
-        : null;
 
   const maxTotal =
     addon.availability.maxAddQuantity && addon.availability.maxAddQuantity !== "UNLIMITED"
@@ -607,22 +594,6 @@ function AddonRow({
       <div className="min-w-0">
         <div className="flex flex-wrap items-center gap-1.5">
           <span className="text-xs font-bold">{addon.name}</span>
-          {included > 0 && (
-            <>
-              {/* 숫자와 "기본포함" 라벨이 한 뱃지 안에 붙어 있으면 "14기본포함"처럼
-                  읽혀 헷갈린다("뱃지는 따로 분리" 피드백) — 개수는 일반 텍스트로,
-                  "기본 포함"은 별도 뱃지로 나눈다. */}
-              <span className="border border-border/40 bg-panel px-1.5 py-0.5 text-xs font-bold text-foreground">
-                기본 포함
-              </span>
-              <span className="text-xs font-bold text-muted">{included}개</span>
-            </>
-          )}
-          {ruleTag && (
-            <span className="border border-border/40 px-1.5 py-0.5 text-xs font-bold text-muted">
-              {ruleTag}
-            </span>
-          )}
         </div>
         <div className="mt-0.5 text-xs text-muted">
           {addon.unitLabel}
