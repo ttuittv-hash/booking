@@ -54,7 +54,7 @@ export function RateTableWithDetails({
         <button
           type="button"
           onClick={() => setDetailsOpen((v) => !v)}
-          className="mt-5 cursor-pointer text-s font-bold"
+          className="mt-5 inline-flex min-h-11 cursor-pointer items-center text-s font-bold sm:min-h-0"
         >
           {detailsOpen ? "Details ▲" : "Details ▼"}
         </button>

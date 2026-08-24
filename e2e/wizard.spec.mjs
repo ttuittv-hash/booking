@@ -44,7 +44,7 @@ await next();
 
 // STEP2 구성·옵션 — 패키지 수동 선택(개편으로 자동 산정에서 바뀜)
 say(/구성.*옵션|패키지/.test(await text()), "STEP2 구성·옵션 도달");
-await p.locator('button, [role=button], label').filter({hasText:/^패키지 1/}).first().click().catch(()=>{});
+await p.locator('button, [role=button], label').filter({hasText:/PACKAGE 1/}).first().click().catch(()=>{});
 await p.waitForTimeout(900);
 await next();
 

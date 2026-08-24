@@ -246,7 +246,7 @@ export function ProfileForm({ user, company }: { user: AppUser; company: Company
             <p className="text-xs text-muted">
               회사명·사업자등록번호는 다른 회사로 바뀌는 것과 같아 여기서 바로 수정할 수 없습니다. 변경이
               필요하면{" "}
-              <Link href="/mypage/withdraw" className="text-accent hover:underline">
+              <Link href="/mypage/withdraw" className="inline-flex min-h-11 items-center text-accent hover:underline sm:min-h-0">
                 회원 탈퇴
               </Link>{" "}
               후 새 정보로 다시 가입해주세요.

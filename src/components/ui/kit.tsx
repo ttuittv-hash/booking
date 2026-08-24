@@ -824,7 +824,7 @@ export function choiceClass(
  */
 export function toggleClass(selected: boolean, disabled = false) {
   return [
-    "inline-flex h-8 items-center justify-center gap-1 whitespace-nowrap border px-3 text-xs font-bold",
+    "inline-flex h-11 items-center justify-center gap-1 whitespace-nowrap border px-3 text-xs font-bold sm:h-8",
     "transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2",
     "focus-visible:outline-foreground",
     disabled
@@ -858,9 +858,12 @@ export const CHOICE_SELECTED_VARS: React.CSSProperties = {
 /** 보조 고지문 — 색면·좌측 바를 쓰지 않고 헤어라인 위 작은 글씨로만 */
 export function Note({ children, className = "" }: { children: ReactNode; className?: string }) {
   return (
-    <p className={`border-t border-border/25 pt-3 text-xs leading-5 text-muted ${className}`}>
+    // p 가 아니라 div — 호출부가 Prose(div) 같은 블록을 자식으로 넘기는데,
+    // p 안의 div 는 잘못된 중첩이라 브라우저가 파싱 중 재배치해 하이드레이션이
+    // 통째로 깨진다(/rules 에서 React #418 로 실제 발생).
+    <div className={`border-t border-border/25 pt-3 text-xs leading-5 text-muted ${className}`}>
       {children}
-    </p>
+    </div>
   );
 }
 

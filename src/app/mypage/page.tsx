@@ -85,7 +85,7 @@ export default async function MyPage({
         empty={
           <>
             아직 신청 내역이 없습니다.{" "}
-            <Link href="/apply" className="font-bold text-foreground underline underline-offset-4">
+            <Link href="/apply" className="inline-flex min-h-11 items-center font-bold text-foreground underline underline-offset-4 sm:min-h-0">
               대관 신청하기
             </Link>
           </>
