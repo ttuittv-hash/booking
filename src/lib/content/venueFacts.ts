@@ -205,38 +205,81 @@ export const LIVE_HALL_CAPACITY: StageCapacity[] = [
   },
 ];
 
-export const ARENA_FACILITIES: { label: string; desc?: string }[] = [
-  { label: "VIP 라운지", desc: "VIP·관계자 전용 휴게 공간 (수량·규모 추후 확정 예정)" },
-  { label: "스카이박스", desc: "프리미엄 관람석 겸 프라이빗 라운지 (좌석 수 추후 확정 예정)" },
-  { label: "라운지", desc: "관객·참석자를 위한 휴게 공간 (규모 추후 확정 예정)" },
-  { label: "광장", desc: "야외 이벤트·팬 행사 등에 활용 가능한 옥외 공용 공간" },
-  { label: "로비", desc: "출입구 연계 메인 로비 및 안내 공간" },
+/**
+ * 부대시설 — **카테고리 카드**로 보여준다(Figma 2608 「additional facilities」).
+ * 한 줄에 두 장(6col × 2)이고, 카드 안은 [시설명 → 부연] 목록이다.
+ * 목록이 20줄 넘는 표 하나로는 어느 것이 무엇인지 읽히지 않아 묶음으로 나눈다.
+ */
+export interface FacilityGroupFact {
+  title: string;
+  items: { label: string; desc?: string }[];
+}
+
+export const ARENA_FACILITY_GROUPS: FacilityGroupFact[] = [
   {
-    label: "프레스룸",
-    desc: "기자간담회·인터뷰 등에 활용하며, 애프터파티 공간으로도 가변 운영이 가능합니다.",
+    title: "VIP 공간",
+    items: [
+      { label: "VIP 라운지", desc: "VIP·관계자 전용 휴게 공간 (수량·규모 추후 확정 예정)" },
+      { label: "스카이박스", desc: "프리미엄 관람석 겸 프라이빗 라운지 (좌석 수 추후 확정 예정)" },
+    ],
   },
-  { label: "아티스트 대기실", desc: "출연진 분장 및 대기 공간" },
-  { label: "프로덕션 오피스", desc: "공연 제작 및 운영 스태프 업무공간" },
-  { label: "샤워실", desc: "총 18개소 (공용 12개소, 대기실 내부 6개소)" },
-  { label: "의무실", desc: "최대 3개소 운영 가능" },
-  { label: "하역장", desc: "대형 공연장비 반입·반출 전용" },
-  { label: "화물용 엘리베이터", desc: "공연 장비 운반 전용" },
-  { label: "FOH 컨트롤 포지션", desc: "음향·조명·영상 운영 공간" },
-  { label: "관계자 주차", desc: "최대 200대 제공 (패키지별 상이)" },
-  { label: "대형·중형버스 주차", desc: "대형버스 최대 7대 / 중형버스 최대 5대" },
-  { label: "휠체어석", desc: "20석 (동반석 20석 별도)" },
-  { label: "화장실 및 장애인 화장실", desc: "전층 운영" },
-  { label: "운영지원 공간" },
+  {
+    title: "관객 공간",
+    items: [
+      { label: "로비", desc: "출입구 연계 메인 로비 및 안내 공간" },
+      { label: "라운지", desc: "관객·참석자를 위한 휴게 공간 (규모 추후 확정 예정)" },
+      { label: "광장", desc: "야외 이벤트·팬 행사 등에 활용 가능한 옥외 공용 공간" },
+      {
+        label: "프레스룸",
+        desc: "기자간담회·인터뷰 등에 활용하며, 애프터파티 공간으로도 가변 운영이 가능합니다.",
+      },
+      { label: "휠체어석", desc: "20석 (동반석 20석 별도)" },
+      { label: "화장실 및 장애인 화장실", desc: "전층 운영" },
+    ],
+  },
+  {
+    title: "아티스트 공간",
+    items: [
+      { label: "아티스트 대기실", desc: "출연진 분장 및 대기 공간" },
+      { label: "샤워실", desc: "총 18개소 (공용 12개소, 대기실 내부 6개소)" },
+      { label: "의무실", desc: "최대 3개소 운영 가능" },
+    ],
+  },
+  {
+    title: "운영 · BOH 공간",
+    items: [
+      { label: "프로덕션 오피스", desc: "공연 제작 및 운영 스태프 업무공간" },
+      { label: "FOH 컨트롤 포지션", desc: "음향·조명·영상 운영 공간" },
+      { label: "하역장", desc: "대형 공연장비 반입·반출 전용" },
+      { label: "화물용 엘리베이터", desc: "공연 장비 운반 전용" },
+      { label: "관계자 주차", desc: "최대 200대 제공 (패키지별 상이)" },
+      { label: "대형·중형버스 주차", desc: "대형버스 최대 7대 / 중형버스 최대 5대" },
+      { label: "운영지원 공간" },
+    ],
+  },
 ];
 
-export const LIVE_HALL_FACILITIES: { label: string; desc?: string }[] = [
-  { label: "아티스트 대기실", desc: "출연진 분장 및 대기 공간 (실수 확정 후 안내)" },
-  { label: "프로덕션 오피스" },
-  { label: "의무실", desc: "2개소" },
-  { label: "하역장" },
-  { label: "화물용 엘리베이터" },
-  { label: "FOH 컨트롤 포지션" },
-  { label: "관계자 주차", desc: "제공 대수 추후 확정 예정" },
-  { label: "휠체어석", desc: "총 20석 (1층 6석, 2층 14석 / 동반석 별도)" },
-  { label: "운영지원 공간" },
+export const LIVE_HALL_FACILITY_GROUPS: FacilityGroupFact[] = [
+  {
+    title: "아티스트 공간",
+    items: [
+      { label: "아티스트 대기실", desc: "출연진 분장 및 대기 공간 (실수 확정 후 안내)" },
+      { label: "의무실", desc: "2개소" },
+    ],
+  },
+  {
+    title: "운영 · BOH 공간",
+    items: [
+      { label: "프로덕션 오피스" },
+      { label: "FOH 컨트롤 포지션" },
+      { label: "하역장" },
+      { label: "화물용 엘리베이터" },
+      { label: "관계자 주차", desc: "제공 대수 추후 확정 예정" },
+      { label: "운영지원 공간" },
+    ],
+  },
+  {
+    title: "관객 공간",
+    items: [{ label: "휠체어석", desc: "총 20석 (1층 6석, 2층 14석 / 동반석 별도)" }],
+  },
 ];

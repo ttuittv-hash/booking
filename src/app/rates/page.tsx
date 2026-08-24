@@ -3,16 +3,16 @@ import { getCurrentUser, requireAccess } from "@/lib/auth";
 import { getRatesContent } from "@/lib/db";
 import type { ChargeBlock, VenueRateContent } from "@/lib/content/pageContent";
 import { PublicHeader } from "@/components/PublicHeader";
-import { RateTableWithDetails } from "@/components/RateTableWithDetails";
 import { SiteFooter } from "@/components/ui/SiteFooter";
 import { QueryTabs } from "@/components/ui/QueryTabs";
 import { VENUE_TABS, VENUE_TAB_PARAM } from "@/components/ui/nav-items";
 import {
   Band,
+  ComparisonTable,
   GroupedSpecTable,
   PageHead,
-  SectionHead,
   SpecTable,
+  SplitSection,
   type SpecGroup,
 } from "@/components/ui/kit";
 
@@ -47,79 +47,113 @@ function RatePanel({ en, ko, c }: { en: string; ko: string; c: VenueRateContent 
   // 값 열은 좌측 정렬로 둔다 — 같은 화면의 RATE INCLUDES·ADDITIONAL CHARGES 가
   // 라벨 + 좌측 정렬 값이므로, 이 표만 우측 정렬이면 세로 기준선이 어긋난다.
   const cols = c.columns.map((r) => ({ key: r.key, title: r.name, align: "left" as const }));
+  const detailCols = c.detailColumns.map((r) => ({
+    key: r.key,
+    title: r.name,
+    align: "left" as const,
+  }));
+
+  const rows = c.rowLabels.map((label, i) => ({
+    label,
+    cells: c.columns.map((col) => col.values[i] ?? ""),
+  }));
 
   return (
     <>
       {/* 머리글만 있는 밴드를 따로 두면 두 밴드의 세로 패딩이 더해져 지나치게 벌어진다 */}
       <Band tone="light" size="lg">
         <PageHead en={en} ko={ko} />
-        <div className="mt-12">
-          <SectionHead title="RATE" />
-        </div>
         {/*
-          대관 기간은 열마다 같은 값이라 표 안에 행으로 넣으면 첫 열만 채워지고
-          나머지 열이 빈칸으로 남는다. 표 밖 한 줄로 내린다.
+          표가 있는 섹션은 **모두** 제목을 옆(3col)에 세운다 — 이 화면의 세 표(RATE ·
+          RATE INCLUDES · ADDITIONAL CHARGES)가 같은 x 에서 시작해야 한다. 한 섹션만
+          제목을 위에 두면 그 표만 왼쪽으로 튀어나와 페이지에 축이 두 개 생긴다.
         */}
-        <RateTableWithDetails
-          cols={cols}
-          rowLabels={c.rowLabels}
-          columns={c.columns}
-          detailLabels={c.detailLabels}
-          detailColumns={c.detailColumns}
-          labelWidth={SPEC_LABEL_WIDTH}
-          footer={
-            c.rentalPeriod ? (
-              <p className="break-keep text-s text-muted">
-                <span className="font-bold text-foreground">대관 기간</span> {c.rentalPeriod}
-              </p>
-            ) : undefined
-          }
-        />
+        <div className="mt-10">
+          <SplitSection title="RATE">
+            {/*
+              대관 기간은 열마다 같은 값이라 표 안에 행으로 넣으면 첫 열만 채워지고
+              나머지 열이 빈칸으로 남는다. 표 밖 한 줄로 내린다.
+            */}
+            <ComparisonTable
+              rowLabel="구분"
+              labelWidth={SPEC_LABEL_WIDTH}
+              columns={cols}
+              rows={rows}
+              footer={
+                c.rentalPeriod ? (
+                  <p className="break-keep text-s text-muted">
+                    <span className="font-bold text-foreground">대관 기간</span> {c.rentalPeriod}
+                  </p>
+                ) : undefined
+              }
+            />
+
+            {c.detailLabels.length > 0 && (
+              <details className="mt-10 border-t border-border/25 pt-5">
+                <summary className="cursor-pointer text-s font-bold">Details</summary>
+                <div className="mt-10">
+                  <ComparisonTable
+                    dense
+                    rowLabel="구분"
+                    labelWidth={SPEC_LABEL_WIDTH}
+                    columns={detailCols}
+                    rows={c.detailLabels.map((label, i) => ({
+                      label,
+                      cells: c.detailColumns.map((col) => col.values[i] ?? ""),
+                    }))}
+                  />
+                </div>
+              </details>
+            )}
+          </SplitSection>
+        </div>
       </Band>
 
       {(c.includes.length > 0 || c.limits.length > 0) && (
         <Band tone="light">
-          <SectionHead title="RATE INCLUDES" />
-          {c.includes.length > 0 && (
-            <SpecTable
-              className="mt-10"
-              rows={c.includes.map((p) => [p.label, p.value] as [string, string])}
-            />
-          )}
           {/*
             기준 공연시간·이용시간은 항목별로 신청하는 옵션이 아니라 대관에 딸린
             기본 조건이다. 옵션표와 같은 표로 그리면 신청 항목처럼 읽히므로
-            표를 쓰지 않고 이 섹션의 문장으로 싣는다.
+            표를 쓰지 않고 제목 아래(좌측 칼럼) 문장으로 싣는다.
           */}
-          {c.limits.length > 0 && (
-            <div className="measure mt-8 space-y-2">
-              {c.limits.map((p, i) => (
-                <p key={`${p.label}-${i}`} className="break-keep text-s leading-7">
-                  <span className="font-bold">{p.label}</span>
-                  <span className="text-muted">: {p.value}</span>
-                </p>
-              ))}
-            </div>
-          )}
+          <SplitSection
+            title="RATE INCLUDES"
+            aside={
+              c.limits.length > 0 ? (
+                <div className="space-y-2">
+                  {c.limits.map((p, i) => (
+                    <p key={`${p.label}-${i}`} className="break-keep text-s leading-7">
+                      <span className="font-bold">{p.label}</span>
+                      <span className="text-muted">: {p.value}</span>
+                    </p>
+                  ))}
+                </div>
+              ) : undefined
+            }
+          >
+            {c.includes.length > 0 && (
+              <SpecTable rows={c.includes.map((p) => [p.label, p.value] as [string, string])} />
+            )}
+          </SplitSection>
         </Band>
       )}
 
       <Band tone="white">
-        {c.charges.length > 0 && (
-          <>
-            <SectionHead title="ADDITIONAL CHARGES" />
-            <GroupedSpecTable className="mt-10" groups={chargeGroups(c.charges)} />
-          </>
-        )}
-
-        {c.notes.length > 0 && (
-          <ul className="measure mt-10 space-y-2">
-            {c.notes.map((t, i) => (
-              <li key={`${t}-${i}`} className="break-keep text-xs leading-5 text-muted">
-                ※ {t}
-              </li>
-            ))}
-          </ul>
+        {(c.charges.length > 0 || c.notes.length > 0) && (
+          <SplitSection title="ADDITIONAL CHARGES">
+            {c.charges.length > 0 && <GroupedSpecTable groups={chargeGroups(c.charges)} />}
+            {/* ※ 안내는 표에 딸린 주석이므로 표와 같은 칼럼 아래에 붙인다 —
+                지면 전체 폭으로 빼면 어느 표의 주석인지 끊긴다 */}
+            {c.notes.length > 0 && (
+              <ul className="mt-8 space-y-2">
+                {c.notes.map((t, i) => (
+                  <li key={`${t}-${i}`} className="break-keep text-xs leading-5 text-muted">
+                    ※ {t}
+                  </li>
+                ))}
+              </ul>
+            )}
+          </SplitSection>
         )}
       </Band>
     </>
@@ -127,9 +161,9 @@ function RatePanel({ en, ko, c }: { en: string; ko: string; c: VenueRateContent 
 }
 
 export default async function RatesPage() {
-  // 기획서 A15 접근권한 매트릭스 — 규칙은 accessPolicy.ts 한 곳에만 둔다
+  // 기획서 A15 — 비로그인 차단, 로그인하면 승인 전에도 열람 가능.
+  // 규칙은 accessPolicy.ts 한 곳에만 둔다(예전 게이트는 승인 대기까지 막아 매트릭스와 반대였다).
   await requireAccess("/rates");
-  // 요금은 계약 조건과 직접 연결되므로 승인된 대관사 계정에게만 공개한다.
   const [currentUser, content] = await Promise.all([getCurrentUser(), getRatesContent()]);
 
   return (

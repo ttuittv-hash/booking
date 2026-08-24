@@ -270,7 +270,7 @@ export function ArticleLayout({
   return (
     <div className="grid-site">
       {/* 검색 + 목차 */}
-      <nav aria-label="목차" className="lg:col-span-2">
+      <nav aria-label="목차" className="lg:col-span-3">
         <div className="lg:sticky lg:top-[calc(var(--header-h)+2.5rem)]">
           {searchLabel !== undefined && (
             <div className="mb-6 print:hidden">
@@ -399,7 +399,7 @@ export function ArticleLayout({
       </nav>
 
       {/* 본문 — 검색 중에도 조를 걷어내지 않는다 */}
-      <div className="min-w-0 lg:col-span-4">
+      <div className="min-w-0 lg:col-span-9">
         {searching && total === 0 && (
           <p className="mb-8 text-s text-muted">「{query}」 이(가) 들어간 조문이 없습니다.</p>
         )}

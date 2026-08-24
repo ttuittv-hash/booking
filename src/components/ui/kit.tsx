@@ -857,6 +857,8 @@ export const CHOICE_SELECTED_VARS: React.CSSProperties = {
 
 /** 보조 고지문 — 색면·좌측 바를 쓰지 않고 헤어라인 위 작은 글씨로만 */
 export function Note({ children, className = "" }: { children: ReactNode; className?: string }) {
+  // 문단이 여러 개인 고지문(`Prose`)도 들어오므로 `<p>` 가 아니라 `<div>` 다 —
+  // p 안의 p·div 는 잘못된 중첩이라 하이드레이션이 깨진다(규약 화면에서 실제로 깨졌다).
   return (
     // p 가 아니라 div — 호출부가 Prose(div) 같은 블록을 자식으로 넘기는데,
     // p 안의 div 는 잘못된 중첩이라 브라우저가 파싱 중 재배치해 하이드레이션이
@@ -934,11 +936,11 @@ export function GroupedSpecTable({
                 className={`grid gap-1 border-b border-border/15 ${pad} sm:grid-cols-[minmax(0,12rem)_minmax(0,1fr)] sm:gap-6`}
               >
                 <dt className="text-s text-muted">{r.label}</dt>
-                <dd className="whitespace-pre-wrap text-s font-bold">
+                {/* 보조 문구(단위·조건)는 값 **옆에** 붙인다 — 아래 줄로 내리면 한 항목이
+                    두 줄이 되어 목록의 행 리듬이 깨진다 */}
+                <dd className="text-s font-bold">
                   {r.value}
-                  {r.note && (
-                    <span className="mt-1 block text-xs font-normal text-muted">{r.note}</span>
-                  )}
+                  {r.note && <span className="ml-2 text-xs font-normal text-muted">{r.note}</span>}
                 </dd>
               </div>
             ))}
@@ -1144,8 +1146,7 @@ export function Multiline({ text }: { text: string }) {
    국문(시설 개요 · 아레나 대관료 …)을 같은 크기로 쓴다.
    사진 전면 섹션의 공간명은 H2, 항목 제목은 H5 다.
 
-   디자인 가이드 §3 의 "페이지 타이틀 = Display/D2 96" 규칙과 충돌하는데,
-   이 구조에서는 **Notion 을 우선**한다.
+   d2(96)는 홈 히어로·선언문 전용이다(가이드 §2.2) — 페이지 타이틀에는 쓰지 않는다.
    ========================================================================== */
 
 /** 영문 대문자 키워드인지 — 그렇다면 Archivo, 아니면 국문 헤딩 서체를 쓴다 */
@@ -1207,6 +1208,39 @@ export function SectionHead({
         {lead && <div className="measure mt-3 break-keep text-m text-muted">{lead}</div>}
       </div>
       {actions && <div className="flex shrink-0 flex-wrap gap-3">{actions}</div>}
+    </div>
+  );
+}
+
+/**
+ * 섹션을 두 칼럼으로 — **좌 2col 제목(+보조 문장) / 우 4col 표·목록.**
+ *
+ * 규약 목차 + 본문, 마이페이지 메뉴 + 본문, FAQ 묶음 + 질문과 같은 `grid-site` 2/4
+ * 분할이다. 제목이 표 위에 가로로 눕는 대신 왼쪽에 서면, 표가 화면 폭을 다 쓰지 않고
+ * 읽기 좋은 폭으로 좁아진다 — 값이 라벨에서 멀리 떨어지지 않는다.
+ *
+ * 제목은 `SectionHead` 와 같은 H3 다. 2col(1440 에서 410px) 안에서 두 줄로 접히는
+ * 것은 정상이다(ADDITIONAL CHARGES).
+ */
+export function SplitSection({
+  title,
+  aside,
+  children,
+  className = "",
+}: {
+  title: string;
+  /** 제목 아래 보조 문장 — 표에 넣으면 신청 항목처럼 읽히는 기본 조건 등 */
+  aside?: ReactNode;
+  children: ReactNode;
+  className?: string;
+}) {
+  return (
+    <div className={`grid-site ${className}`}>
+      <div className="lg:col-span-3">
+        <h3 className={`${headingFontClass(title)} break-keep text-h3-m sm:text-h3`}>{title}</h3>
+        {aside && <div className="mt-6">{aside}</div>}
+      </div>
+      <div className="min-w-0 lg:col-span-9">{children}</div>
     </div>
   );
 }
@@ -1363,36 +1397,31 @@ function StepArrow({ className = "" }: { className?: string }) {
 }
 
 /**
- * 대관 절차 — **한 줄에 4박스씩 두 줄**, 박스 사이에 화살표.
- * 순서가 있는 내용이므로 카드 그리드가 아니라 화살표로 이어진 흐름으로 그린다.
- * 좁은 화면에서는 한 줄에 하나씩 쌓이고 화살표는 아래를 향한다.
+ * 대관 절차 — **12칼럼 그리드 위에 3칼럼씩(4-up), 두 줄.** 박스 사이 거터에 화살표가 놓인다.
+ * 순서가 있는 내용이므로 카드 그리드가 아니라 화살표로 이어진 흐름으로 읽힌다.
+ * 좁은 화면에서는 한 줄에 하나(640 미만) / 둘(640~1023)씩 쌓이고 화살표는 사라진다.
  */
 export function ProcessSteps({ steps }: { steps: ProcessStep[] }) {
-  const rows: ProcessStep[][] = [];
-  for (let i = 0; i < steps.length; i += 4) rows.push(steps.slice(i, i + 4));
-
   return (
-    <ol className="space-y-[var(--gutter)]">
-      {rows.map((row, ri) => (
-        <li key={ri}>
-          <ul className="grid gap-3 sm:grid-cols-2 lg:flex lg:items-stretch lg:gap-0">
-            {row.map((s, i) => (
-              <li key={s.no} className="flex items-stretch lg:min-w-0 lg:flex-1">
-                <div className="min-w-0 flex-1 border border-border/25 bg-panel p-6">
-                  <span className="type-display block text-h6-m tabular-nums sm:text-h6">
-                    {s.no}
-                  </span>
-                  <h4 className="type-kr-heading mt-3 break-keep text-h6-m sm:text-h6">{s.title}</h4>
-                  <p className="mt-3 break-keep text-s text-muted">{s.desc}</p>
-                </div>
-                {i < row.length - 1 && (
-                  <StepArrow className="mx-2 hidden self-center text-muted lg:block" />
-                )}
-              </li>
-            ))}
-          </ul>
-        </li>
-      ))}
+    <ol className="grid gap-[var(--gutter)] sm:grid-cols-2 lg:grid-cols-12">
+      {steps.map((s, i) => {
+        // 줄 끝(4·8번째)과 마지막 박스에는 화살표를 두지 않는다
+        const hasArrow = i % 4 !== 3 && i !== steps.length - 1;
+        return (
+          <li key={s.no} className="relative lg:col-span-3">
+            <div className="h-full border border-border/25 bg-panel p-6">
+              <span className="type-display block text-h6-m tabular-nums sm:text-h6">{s.no}</span>
+              <h4 className="type-kr-heading mt-3 break-keep text-h6-m sm:text-h6">{s.title}</h4>
+              <p className="mt-3 break-keep text-s text-muted">{s.desc}</p>
+            </div>
+            {hasArrow && (
+              /* 화살표는 박스 사이 거터의 가운데에 뜬다 — 박스 폭을 줄여 자리를 만들지
+                 않는다(박스가 컬럼에서 벗어난다) */
+              <StepArrow className="absolute left-[calc(100%_+_var(--gutter)/2)] top-1/2 hidden -translate-x-1/2 -translate-y-1/2 text-muted lg:block" />
+            )}
+          </li>
+        );
+      })}
     </ol>
   );
 }

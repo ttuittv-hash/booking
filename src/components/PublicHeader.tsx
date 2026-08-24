@@ -155,7 +155,6 @@ export function PublicHeader({
   const [openKey, setOpenKey] = useState<string | null>(null);
   const [mobileOpen, setMobileOpen] = useState(false);
   const [unread, setUnread] = useState(0);
-  const [scrolled, setScrolled] = useState(false);
   const closeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
@@ -190,15 +189,6 @@ export function PublicHeader({
   }, []);
 
   useEffect(() => {
-    function onScroll() {
-      setScrolled(window.scrollY > 4);
-    }
-    onScroll();
-    window.addEventListener("scroll", onScroll, { passive: true });
-    return () => window.removeEventListener("scroll", onScroll);
-  }, []);
-
-  useEffect(() => {
     document.body.style.overflow = mobileOpen ? "hidden" : "";
     return () => {
       document.body.style.overflow = "";
@@ -224,12 +214,9 @@ export function PublicHeader({
   }
 
   return (
-    <header
-      className={`sticky top-0 z-40 transition-colors ${
-        scrolled ? "bg-background/85 backdrop-blur-md" : "bg-background"
-      }`}
-      onMouseLeave={closeSoon}
-    >
+    <header className="sticky top-0 z-40" onMouseLeave={closeSoon}>
+      {/* 배경 — Figma `Header_rev` (지면색 80% → 아랫변 0, 블러 없음). `header-veil` 참조 */}
+      <div aria-hidden className="header-veil" />
       {/*
         중앙 메뉴는 좌우 요소 사이 공간의 가운데가 아니라 **화면의 가운데**에 와야 한다 —
         워드마크와 우측 유틸의 폭이 다르므로 flex 로만 두면 아래 알약 탭과 축이 어긋난다.
@@ -273,8 +260,11 @@ export function PublicHeader({
                   </button>
 
                   {isOpen && (
+                    /* 카테고리 **바로 아래**, 가운데 정렬. 폭은 내용에 맞춘다 —
+                       48(192px)은 「대관 절차」 같은 4~5자 항목에 비해 너무 넓어
+                       패널의 무게 중심이 카테고리에서 왼쪽으로 밀려 보였다 */
                     <div
-                      className="absolute left-1/2 top-full z-50 min-w-48 -translate-x-1/2 animate-[dropdown-in_0.14s_ease-out] bg-background p-4 shadow-md"
+                      className="absolute left-1/2 top-full z-50 min-w-36 -translate-x-1/2 animate-[dropdown-in_0.14s_ease-out] bg-background p-4 text-center shadow-md"
                       onMouseEnter={() => openWithCancel(cat.label)}
                     >
                       <ul>

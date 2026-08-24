@@ -566,11 +566,15 @@ export function WizardShell({
   );
 
   return (
-    // 좌: 스텝 콘텐츠 / 우: sticky 요약 패널.
-    // 콘텐츠 트랙은 minmax(0,1fr) + min-w-0 로 묶어 스텝 전환 시 폭이 변하지 않게 한다.
-    <div className="container-site grid w-full grid-cols-1 gap-10 py-10 sm:py-12 lg:grid-cols-[minmax(0,1fr)_360px] lg:gap-14">
-      <div className="min-w-0">
-        <StepNav step={step} maxUnlockedStep={maxUnlockedStep} locked={submissionLocked} onJump={goTo} />
+    /*
+      좌: 스텝 콘텐츠(4col) / 우: sticky 요약 패널(2col) — 페이지 그리드 위에 올린다.
+      예전에는 사이드바를 360px 고정 + gap 56 으로 뒀는데, 그러면 두 칼럼의 경계가
+      6칼럼 그리드와 어긋나 같은 화면 안에 축이 두 개가 됐다(정본 §7.4 = 4col + 2col).
+      콘텐츠 트랙은 min-w-0 로 묶어 스텝 전환 시 폭이 변하지 않게 한다.
+    */
+    <div className="container-site grid-site w-full gap-y-10 py-10 sm:py-12">
+      <div className="min-w-0 lg:col-span-9">
+        <StepNav step={step} maxUnlockedStep={maxUnlockedStep} onJump={goTo} />
 
         {step === 1 && (
           <section>
