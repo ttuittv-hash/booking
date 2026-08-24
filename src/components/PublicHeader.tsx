@@ -202,8 +202,8 @@ export function PublicHeader({
   return (
     <header className="sticky top-0 z-40" onMouseLeave={closeSoon}>
       {/*
-        배경은 한 겹이고 아래로 갈수록 투명해진다(`header-veil`). 아랫변을 상단바
-        높이에 딱 맞춰 자르면 스크롤할 때 본문 위에 자른 띠가 얹힌 것처럼 보인다.
+        배경은 상단바 높이 안에서만 그리고, 마지막 몇 px 에서만 투명해진다(`header-veil`).
+        아랫변이 딱 끊기면 본문 위에 자른 띠가 얹힌 것처럼 보이므로 그 선만 지운다.
       */}
       <div aria-hidden className={`header-veil transition-colors ${veil}`} />
       {/*

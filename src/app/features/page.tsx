@@ -24,12 +24,20 @@ export const metadata: Metadata = {
   title: "시설 소개 | 서울아레나",
 };
 
-/** 개요 카드 4개 — 제목은 eyebrow, 내용은 H5 (Notion 지정) */
+/**
+ * 개요 카드 — 제목은 eyebrow, 내용은 H5 (Notion 지정).
+ *
+ * **6칼럼 그리드 위에 2칼럼씩 놓는다(3-up).** 예전에는 한 줄에 4개를 균등 분할했는데,
+ * 6을 4로 나눌 수 없어서 카드 경계가 페이지 그리드와 어긋났다 — 두 번째 카드가
+ * 아래 두 칼럼 섹션의 오른쪽 칼럼(3칼럼째)보다 왼쪽에서 시작해 축이 두 개로 보였다.
+ * 2칼럼씩 두면 두 번째 카드가 정확히 오른쪽 칼럼과 같은 선에서 시작한다.
+ * (정본 §2.1 — 스팬은 2col=3-up · 3col=2-up · 4col · 6col 만 쓴다)
+ */
 function OverviewCards({ items }: { items: Pair[] }) {
   return (
-    <ul className="grid gap-x-[var(--gutter)] gap-y-10 sm:grid-cols-2 lg:grid-cols-4">
+    <ul className="grid gap-x-[var(--gutter)] gap-y-10 sm:grid-cols-2 lg:grid-cols-6">
       {items.map((c, i) => (
-        <li key={`${c.label}-${i}`} className="border-t-2 border-border pt-5">
+        <li key={`${c.label}-${i}`} className="border-t-2 border-border pt-5 lg:col-span-2">
           <p className="text-xs font-bold text-muted">{c.label}</p>
           <p className="type-kr-heading mt-3 break-keep text-h5-m sm:text-h5">{c.value}</p>
         </li>
