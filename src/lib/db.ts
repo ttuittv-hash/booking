@@ -37,6 +37,7 @@ import {
   type RulesContent,
   type ScreenTextContent,
   type SeoulArenaContent,
+  type VenueFacilityContent,
 } from "./content/pageContent";
 import {
   DOCUMENTS_EMPTY_NOTE,
@@ -3789,8 +3790,25 @@ export async function saveSeoulArenaContent(data: SeoulArenaContent) {
   return saveSiteContent("seoularena", data);
 }
 
+/**
+ * 부대시설이 평면 목록(`facilities`)으로 저장돼 있던 시절의 콘텐츠를 카드 묶음으로 옮긴다.
+ * 카테고리를 알 수 없으므로 「부대시설」 한 장에 담고, 이후 운영자가 나눠 담는다.
+ */
+function withFacilityGroups(v: VenueFacilityContent): VenueFacilityContent {
+  if (Array.isArray(v?.facilityGroups)) return v;
+  const legacy = (v as unknown as { facilities?: { label: string; value: string }[] }).facilities;
+  return {
+    ...v,
+    facilityGroups: legacy?.length ? [{ title: "부대시설", items: legacy }] : [],
+  };
+}
+
 export async function getFeaturesContent(): Promise<FeaturesContent> {
-  return getPageContent("features", DEFAULT_FEATURES_CONTENT);
+  const content = await getPageContent("features", DEFAULT_FEATURES_CONTENT);
+  return {
+    arena: withFacilityGroups(content.arena),
+    liveHall: withFacilityGroups(content.liveHall),
+  };
 }
 export async function saveFeaturesContent(data: FeaturesContent) {
   return saveSiteContent("features", data);

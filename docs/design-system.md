@@ -109,21 +109,25 @@ Figma 가 stretch 로 잡혀 있어서 넓은 화면에서는 컬럼이 같이 �
 2. **블록 안쪽은 내용이 정한다.** 표의 라벨 열(12rem), 번호 글머리, 버튼 폭,
    통계 쌍(SEATED · STANDING), 다이어그램 안의 박스는 컬럼으로 세지 않는다.
 
-| 콘텐츠 | 스팬 | 한 줄에 | 코드 |
+**블록의 시작점은 1 · 4 · 7 · 10 컬럼뿐이고, 스팬은 3의 배수(3 · 6 · 9 · 12)다.**
+아무 칸에서나 시작하면 한 화면에 세로 기준선이 여러 개 생긴다 — 4-up 은 4·7·10,
+3-up(4col)은 5·9 에서 시작해 서로 어긋난다.
+
+| 콘텐츠 | 배치 | 시작점 | 코드 |
 |---|---|---|---|
 | 히어로 · 전면 사진 · 푸터 워드마크 · 풀폭 비교표 | 12col | 1 | `container-site` · `ComparisonTable` |
-| 목차/제목/메뉴 + 본문·표·폼 | **4col + 8col** | — | `ArticleLayout` · `MyPageShell` · `FaqAccordion` · `SplitSection` · `WizardShell` |
-| 카드 — 제목 + 2~3줄 (4개) | **3col** | 4 | `OverviewCards` |
-| 카드 — 제목 + 2~3줄 (3개) | 4col | 3 | — |
-| 카드 — 제목 + 문단 · 이미지 카드 | **6col** | 2 | `FeatureList columns={2}` · `LayoutAlternating` |
-| 절차 다이어그램의 박스 | **3col** | 4 (두 줄) | `ProcessSteps` |
-| 번호 + 문장 목록의 글머리 | 1col | — | `Manifesto` · `FeatureList numbered` |
-| 표의 라벨 열 | 2col | — | `SPEC_LABEL_WIDTH` |
+| 카드 — 제목 + 한 줄 값 (4개) | **3col × 4** | 1·4·7·10 | `OverviewCards` |
+| 카드 — 제목 + 목록 (부대시설·수용인원) | **6col × 2** | 1·7 | `FacilityCard` · `CapacityCard` · `FeatureList columns={2}` |
+| 절차 다이어그램의 박스 | **3col × 4**, 두 줄 | 1·4·7·10 | `ProcessSteps` |
+| 목차/제목/메뉴 + 본문·표·폼 | **3col + 9col** | 1·4 | `ArticleLayout` · `MyPageShell` · `FaqAccordion` · `SplitSection` |
+| 폼 + 요약 사이드바 | **9col + 3col** | 1·10 | `WizardShell` |
 
-**항목 수에 스팬을 맞춘다** — 4개면 3col × 4, 3개면 4col × 3, 2개면 6col × 2.
-남는 칸이 생기는 배치를 고르지 않는다.
+**두 칼럼의 좁은 쪽은 카드 한 장(3col)과 같은 폭**이라, 4-up 카드 아래에 두 칼럼 섹션이
+와도 오른쪽 칼럼이 두 번째 카드와 같은 선에서 시작한다 — 화면의 세로 기준선이 하나다.
 
-**두 칼럼은 항상 4col + 8col.** 사이드바 폭은 고정 픽셀이 아니라 4col 스팬으로 잡는다.
+**항목이 3개면 3col × 3 으로 놓고 마지막 3칸은 비운다.** `4col × 3` 은 그 줄만 다른
+기준선(5·9)을 만들기 때문에 쓰지 않는다. 1col·2col 은 **블록 안쪽**에만 쓴다
+(번호 글머리, 표의 라벨 열).
 
 푸터 워드마크(`type-wordmark`)는 컨테이너 폭에 비례해 **크기만** 커지고 마진 안에 딱 들어온다
 (`13.65cqw` — Archivo 자폭에 맞춘 값). 글자를 늘려서 폭을 채우지 않는다.

@@ -2,7 +2,13 @@ import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { getCurrentUser, isPendingApplicant } from "@/lib/auth";
 import { getFeaturesContent } from "@/lib/db";
-import type { Pair, VenueFacilityContent } from "@/lib/content/pageContent";
+import type { ReactNode } from "react";
+import type {
+  CapacityBlock,
+  FacilityGroup,
+  Pair,
+  VenueFacilityContent,
+} from "@/lib/content/pageContent";
 import { PublicHeader } from "@/components/PublicHeader";
 import { SiteFooter } from "@/components/ui/SiteFooter";
 import { QueryTabs } from "@/components/ui/QueryTabs";
@@ -13,11 +19,10 @@ import {
   ButtonLink,
   CTABand,
   FeatureList,
-  LabeledList,
+  INVERSE_SURFACE_VARS,
   PageHead,
   SectionHead,
   SpecTable,
-  SplitSection,
 } from "@/components/ui/kit";
 
 export const metadata: Metadata = {
@@ -62,6 +67,83 @@ function DocumentsCta() {
   );
 }
 
+/** 카드 껍데기 — 검정 머리(제목) + 흰 본문. 시설 소개의 카드는 모두 이 모양이다 */
+function Card({ title, children }: { title: string; children: ReactNode }) {
+  return (
+    <article className="flex h-full min-w-0 flex-col border border-border/25 bg-panel lg:col-span-6">
+      {title && (
+        <header
+          className="bg-inverse-bg px-6 py-5 text-inverse-fg"
+          style={INVERSE_SURFACE_VARS}
+        >
+          <h4 className="type-kr-heading break-keep text-h5-m sm:text-h5">{title}</h4>
+        </header>
+      )}
+      <div className="flex-1 p-6">{children}</div>
+    </article>
+  );
+}
+
+/** 무대 배치별 수용인원 카드. 층별 표는 배치가 둘 이상일 때 Details 로 접는다 */
+function CapacityCard({ cap, collapsed }: { cap: CapacityBlock; collapsed: boolean }) {
+  const table =
+    cap.floors.length > 0 ? (
+      <SpecTable dense rows={cap.floors.map((f) => [f.label, f.value] as [string, string])} />
+    ) : null;
+  return (
+    <Card title={cap.stage}>
+      {(cap.seated || cap.standing) && (
+        <dl className="flex flex-wrap gap-x-10 gap-y-4">
+          {cap.seated && (
+            <div>
+              <dt className="text-xs font-bold text-muted">SEATED</dt>
+              <dd className="type-display mt-1 text-h5-m tabular-nums sm:text-h5">{cap.seated}</dd>
+            </div>
+          )}
+          {cap.standing && (
+            <div>
+              <dt className="text-xs font-bold text-muted">STANDING</dt>
+              <dd className="type-display mt-1 text-h5-m tabular-nums sm:text-h5">
+                {cap.standing}
+              </dd>
+            </div>
+          )}
+        </dl>
+      )}
+      {table &&
+        (collapsed ? (
+          <details className="mt-6 border-t border-border/25 pt-4">
+            <summary className="cursor-pointer text-s font-bold">Details</summary>
+            <div className="mt-4">{table}</div>
+          </details>
+        ) : (
+          <div className="mt-6">{table}</div>
+        ))}
+    </Card>
+  );
+}
+
+/** 부대시설 카테고리 카드 — [시설명 → 부연] 목록 */
+function FacilityCard({ group }: { group: FacilityGroup }) {
+  return (
+    <Card title={group.title}>
+      <dl className="space-y-4">
+        {group.items.map((it, i) => (
+          <div key={`${it.label}-${i}`}>
+            <dt className="text-s font-bold">{it.label}</dt>
+            {it.value && (
+              <dd className="mt-1 flex gap-2 break-keep text-s text-muted">
+                <span aria-hidden>·</span>
+                <span>{it.value}</span>
+              </dd>
+            )}
+          </div>
+        ))}
+      </dl>
+    </Card>
+  );
+}
+
 function VenuePanel({
   en,
   ko,
@@ -88,56 +170,16 @@ function VenuePanel({
       {c.capacity.length > 0 && (
         <Band tone="white">
           <SectionHead title="STAGE & CAPACITY" />
-          <div className="mt-10 space-y-10">
-            {c.capacity.map((cap, i) => {
-              const hasSeats = Boolean(cap.seated || cap.standing);
-              /*
-                두 칼럼 — 좌: 무대 이름 + 수용인원 / 우: 층별 표.
-                표는 **수용인원(SEATED · STANDING)과 같은 행**에서 시작한다. 그리드 행을
-                직접 지정해 맞춘다(위 여백을 계산해 맞추면 무대 이름이 두 줄이 될 때 어긋난다).
-              */
-              const tableRow = hasSeats && cap.stage ? "lg:row-start-2" : "lg:row-start-1";
-              return (
-                <div key={`${cap.stage}-${i}`} className="grid-site gap-y-5">
-                  {cap.stage && (
-                    <h4 className="type-kr-heading break-keep text-h5-m sm:text-h5 lg:col-span-4 lg:col-start-1 lg:row-start-1">
-                      {cap.stage}
-                    </h4>
-                  )}
-                  {hasSeats && (
-                    <dl
-                      className={`flex flex-wrap gap-x-12 gap-y-3 lg:col-span-4 lg:col-start-1 ${
-                        cap.stage ? "lg:row-start-2" : "lg:row-start-1"
-                      }`}
-                    >
-                      {cap.seated && (
-                        <div>
-                          <dt className="text-xs font-bold text-muted">SEATED</dt>
-                          <dd className="type-display mt-1 text-h5-m tabular-nums sm:text-h5">
-                            {cap.seated}
-                          </dd>
-                        </div>
-                      )}
-                      {cap.standing && (
-                        <div>
-                          <dt className="text-xs font-bold text-muted">STANDING</dt>
-                          <dd className="type-display mt-1 text-h5-m tabular-nums sm:text-h5">
-                            {cap.standing}
-                          </dd>
-                        </div>
-                      )}
-                    </dl>
-                  )}
-                  {cap.floors.length > 0 && (
-                    <div className={`min-w-0 lg:col-span-8 lg:col-start-5 ${tableRow}`}>
-                      <SpecTable
-                        rows={cap.floors.map((f) => [f.label, f.value] as [string, string])}
-                      />
-                    </div>
-                  )}
-                </div>
-              );
-            })}
+          {/*
+            무대 배치마다 카드 한 장(6col × 2). 카드는 [검정 머리 + 흰 본문] —
+            부대시설 카드와 같은 언어다(Figma 2608 「additional facilities」).
+            배치가 둘 이상이면 층별 표를 Details 안에 접어 둔다 — 두 카드가 표까지 펼쳐져
+            있으면 정작 비교해야 하는 수용인원이 아래로 밀린다. 배치가 하나면 펼쳐 둔다.
+          */}
+          <div className="grid-site mt-10">
+            {c.capacity.map((cap, i) => (
+              <CapacityCard key={`${cap.stage}-${i}`} cap={cap} collapsed={c.capacity.length > 1} />
+            ))}
           </div>
         </Band>
       )}
@@ -153,13 +195,15 @@ function VenuePanel({
         </Band>
       )}
 
-      {c.facilities.length > 0 && (
+      {c.facilityGroups.length > 0 && (
         <Band tone="light">
-          <SplitSection title="ADDITIONAL FACILITIES">
-            <LabeledList
-              items={c.facilities.map((f) => ({ label: f.label, desc: f.value || undefined }))}
-            />
-          </SplitSection>
+          <SectionHead title="ADDITIONAL FACILITIES" />
+          {/* 카테고리 카드 6col × 2 — 20줄 넘는 표 하나로는 무엇이 어디 있는지 읽히지 않는다 */}
+          <div className="grid-site mt-10">
+            {c.facilityGroups.map((g, i) => (
+              <FacilityCard key={`${g.title}-${i}`} group={g} />
+            ))}
+          </div>
         </Band>
       )}
 

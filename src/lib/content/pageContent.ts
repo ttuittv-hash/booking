@@ -1,12 +1,12 @@
 import {
   ABOUT_LEAD,
   ARENA_CAPACITY,
-  ARENA_FACILITIES,
+  ARENA_FACILITY_GROUPS,
   ARENA_OVERVIEW,
   COMPLEX_FEATURES,
   COMPLEX_FEATURES_LEAD,
   LIVE_HALL_CAPACITY,
-  LIVE_HALL_FACILITIES,
+  LIVE_HALL_FACILITY_GROUPS,
   LIVE_HALL_OVERVIEW,
   STAGE_FEATURES,
   VENUE_HEROES,
@@ -98,11 +98,17 @@ export interface CapacityBlock {
   floors: Pair[];
 }
 
+/** 부대시설 카드 한 장 — 카테고리 제목 + [시설명 · 부연] 목록 */
+export interface FacilityGroup {
+  title: string;
+  items: Pair[];
+}
+
 export interface VenueFacilityContent {
   overview: Pair[];
   capacity: CapacityBlock[];
   features: FeatureBlock[];
-  facilities: Pair[];
+  facilityGroups: FacilityGroup[];
 }
 
 export interface FeaturesContent {
@@ -120,7 +126,10 @@ export const DEFAULT_FEATURES_CONTENT: FeaturesContent = {
       floors: c.floors.map(([label, value]) => ({ label, value })),
     })),
     features: STAGE_FEATURES.map((f) => ({ title: f.title, lines: [...f.lines] })),
-    facilities: ARENA_FACILITIES.map((f) => ({ label: f.label, value: f.desc ?? "" })),
+    facilityGroups: ARENA_FACILITY_GROUPS.map((g) => ({
+      title: g.title,
+      items: g.items.map((f) => ({ label: f.label, value: f.desc ?? "" })),
+    })),
   },
   liveHall: {
     overview: LIVE_HALL_OVERVIEW.map((c) => ({ label: c.label, value: c.value })),
@@ -131,7 +140,10 @@ export const DEFAULT_FEATURES_CONTENT: FeaturesContent = {
       floors: c.floors.map(([label, value]) => ({ label, value })),
     })),
     features: [],
-    facilities: LIVE_HALL_FACILITIES.map((f) => ({ label: f.label, value: f.desc ?? "" })),
+    facilityGroups: LIVE_HALL_FACILITY_GROUPS.map((g) => ({
+      title: g.title,
+      items: g.items.map((f) => ({ label: f.label, value: f.desc ?? "" })),
+    })),
   },
 };
 

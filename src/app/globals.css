@@ -318,14 +318,11 @@ input[type="number"]::-webkit-inner-spin-button {
 }
 
 /*
-  상단바 배경 — **상단바 높이 안에서만** 그리고, 마지막 몇 px 에서 투명해진다.
+  상단바 배경 — Figma 2608 › `Header_rev` 의 배경을 그대로 옮긴 것.
 
-  아랫변이 딱 끊기면 본문 위에 자른 띠가 얹힌 것처럼 보인다. 그 선만 지우는 것이 목적이라
-  페이드 구간은 짧게(높이의 14%, 64 기준 약 9px) 둔다 — 상단바 밖으로 배경을 늘려 넓게
-  흐리면 아래 콘텐츠가 뭉개져 오히려 어색하다.
-
-  색면과 blur 를 함께 없애야 하므로 background 의 alpha 가 아니라 마스크를 쓴다
-  (알파만 줄이면 backdrop-filter 는 그대로 남아 아랫변이 다시 잘려 보인다).
+  지면색 **80%** 로 시작해 상단바 아랫변에서 **0** 이 된다(위 절반은 80% 유지, 그 뒤 페이드).
+  블러는 쓰지 않는다 — 흐린 띠를 만들지 않고 색면만 옅어지므로 아랫변의 자른 선이 사라진다.
+  높이는 상단바 높이 그대로여서 배경이 본문 위로 번지지 않는다.
 */
 @utility header-veil {
   position: absolute;
@@ -333,8 +330,19 @@ input[type="number"]::-webkit-inner-spin-button {
   top: 0;
   height: var(--header-h);
   pointer-events: none;
-  -webkit-mask-image: linear-gradient(to bottom, #000 0%, #000 86%, transparent 100%);
-  mask-image: linear-gradient(to bottom, #000 0%, #000 86%, transparent 100%);
+  /* 구형 브라우저 폴백 — 아래 선언을 이해하면 이 줄은 덮인다 */
+  background-image: linear-gradient(
+    to bottom,
+    var(--background) 0%,
+    var(--background) 52%,
+    transparent 100%
+  );
+  background-image: linear-gradient(
+    to bottom,
+    rgb(from var(--background) r g b / 0.8) 0%,
+    rgb(from var(--background) r g b / 0.8) 52%,
+    rgb(from var(--background) r g b / 0) 100%
+  );
 }
 
 /* 산문 문단의 최대 폭 — 컬럼 스팬과 무관한 절대값 */

@@ -69,14 +69,13 @@ export function Manifesto({
         {statements.map((s, i) => (
           <li
             key={s.title}
-            /* 번호는 1칼럼, 본문은 남은 11칼럼 — 12칼럼에서 1칼럼(≈71px)이 번호 폭에
-               맞아떨어져 글머리를 그리드 위에 그대로 올릴 수 있다 */
-            className="grid grid-cols-[3rem_minmax(0,1fr)] gap-x-5 border-b border-border/30 py-7 sm:gap-x-8 sm:py-8 lg:grid-cols-12 lg:gap-x-[var(--gutter)]"
+            /* 번호는 글머리다 — 블록 안쪽이므로 칼럼으로 세지 않고 글자 폭만 잡는다 */
+            className="grid grid-cols-[3rem_minmax(0,1fr)] gap-x-5 border-b border-border/30 py-7 sm:grid-cols-[3.5rem_minmax(0,1fr)] sm:gap-x-8 sm:py-8"
           >
-            <span className="type-display text-h5-m leading-none tabular-nums sm:text-h3 lg:col-span-1">
+            <span className="type-display text-h5-m leading-none tabular-nums sm:text-h3">
               {String(i + 1).padStart(2, "0")}
             </span>
-            <div className="lg:col-span-11">
+            <div>
               <h3 className="type-display text-h5-m leading-none sm:text-h3">
                 {s.title}
               </h3>

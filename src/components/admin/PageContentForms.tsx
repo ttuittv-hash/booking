@@ -230,13 +230,28 @@ function VenueFacilityFields({
         </div>
       </div>
 
-      <PairList
+      {/* 부대시설은 카테고리 카드로 나온다 — 묶음마다 카드 한 장(Figma 「additional facilities」) */}
+      <ListEditor
         label="ADDITIONAL FACILITIES"
-        items={value.facilities}
-        onChange={(facilities) => p({ facilities })}
-        labelName="시설명"
-        valueName="설명"
-        addLabel="+ 시설 추가"
+        help="카테고리마다 카드 한 장이 나옵니다. 카드는 한 줄에 두 장씩 놓입니다."
+        items={value.facilityGroups}
+        onChange={(facilityGroups) => p({ facilityGroups })}
+        blank={() => ({ title: "", items: [] })}
+        addLabel="+ 카테고리 추가"
+        titleOf={(it, i) => it.title || `카테고리 ${i + 1}`}
+        render={(it, patch) => (
+          <div className="space-y-3">
+            <Text label="카테고리명" value={it.title} onChange={(title) => patch({ title })} />
+            <PairList
+              label="시설"
+              items={it.items}
+              onChange={(items) => patch({ items })}
+              labelName="시설명"
+              valueName="설명"
+              addLabel="+ 시설 추가"
+            />
+          </div>
+        )}
       />
     </div>
   );

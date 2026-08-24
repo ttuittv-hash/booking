@@ -399,7 +399,7 @@ export function WizardShell({
       콘텐츠 트랙은 min-w-0 로 묶어 스텝 전환 시 폭이 변하지 않게 한다.
     */
     <div className="container-site grid-site w-full gap-y-10 py-10 sm:py-12">
-      <div className="min-w-0 lg:col-span-8">
+      <div className="min-w-0 lg:col-span-9">
         <StepNav step={step} maxUnlockedStep={maxUnlockedStep} onJump={goTo} />
 
         {step === 1 && (

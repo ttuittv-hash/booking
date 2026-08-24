@@ -1224,11 +1224,11 @@ export function SplitSection({
 }) {
   return (
     <div className={`grid-site ${className}`}>
-      <div className="lg:col-span-4">
+      <div className="lg:col-span-3">
         <h3 className={`${headingFontClass(title)} break-keep text-h3-m sm:text-h3`}>{title}</h3>
         {aside && <div className="mt-6">{aside}</div>}
       </div>
-      <div className="min-w-0 lg:col-span-8">{children}</div>
+      <div className="min-w-0 lg:col-span-9">{children}</div>
     </div>
   );
 }
@@ -1321,19 +1321,16 @@ export function FeatureList({
       {items.map((it, i) => (
         <li
           key={it.title}
-          className={`border-b border-border/15 py-7 ${
-            numbered
-              ? /* 번호는 1칼럼, 본문은 남은 11칼럼 — 글머리도 그리드 위에 올린다 */
-                "grid grid-cols-[2.5rem_minmax(0,1fr)] gap-x-6 sm:gap-x-8 lg:grid-cols-12 lg:gap-x-[var(--gutter)]"
-              : "flex gap-6 sm:gap-8"
-          } ${columns === 2 && i === 1 ? "lg:border-t-0" : ""}`}
+          className={`flex gap-6 border-b border-border/15 py-7 sm:gap-8 ${
+            columns === 2 && i === 1 ? "lg:border-t-0" : ""
+          }`}
         >
           {numbered && (
-            <span className="type-display text-h6-m tabular-nums text-muted sm:text-h6 lg:col-span-1">
+            <span className="type-display w-10 shrink-0 text-h6-m tabular-nums text-muted sm:text-h6">
               {String(i + 1).padStart(2, "0")}
             </span>
           )}
-          <div className={`min-w-0 ${numbered ? "lg:col-span-11" : ""}`}>
+          <div className="min-w-0">
             <h4 className="type-kr-heading break-keep text-h5-m sm:text-h5">{it.title}</h4>
             {it.lines.length > 0 && (
               <div className="measure mt-3 space-y-1">
