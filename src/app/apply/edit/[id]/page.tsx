@@ -1,7 +1,14 @@
 import type { Metadata } from "next";
 import { notFound, redirect } from "next/navigation";
 import { canAccessQuote, requireAccessedUser } from "@/lib/auth";
-import { getCurrentRateTable, getQuoteById, getRatesContent, listDateBlocks, listWeekDemand } from "@/lib/db";
+import {
+  getCurrentRateTable,
+  getQuoteById,
+  getRatesContent,
+  getScreenTextContent,
+  listDateBlocks,
+  listWeekDemand,
+} from "@/lib/db";
 import { PublicHeader } from "@/components/PublicHeader";
 import { Breadcrumb } from "@/components/ui/Breadcrumb";
 import { SiteFooter } from "@/components/ui/SiteFooter";
@@ -29,11 +36,12 @@ export default async function EditQuotePage({
   // PUT /api/quotes/[id]와 같은 기준(2026-08-22).
   if (quote.review) redirect(`/mypage/${id}`);
 
-  const [rateTable, weekDemand, dateBlocks, ratesContent] = await Promise.all([
+  const [rateTable, weekDemand, dateBlocks, ratesContent, screenText] = await Promise.all([
     getCurrentRateTable(),
     listWeekDemand(),
     listDateBlocks(),
     getRatesContent(),
+    getScreenTextContent(),
   ]);
 
   return (
@@ -63,6 +71,7 @@ export default async function EditQuotePage({
           editingQuoteId={quote.id}
           initialSelection={quote.selection}
           liveHallRateContent={ratesContent.liveHall}
+          wizardStepText={screenText.wizardSteps}
         />
       </main>
 

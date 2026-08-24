@@ -29,6 +29,7 @@ export function StepPublicInterest({
   onChangeMidHallInfo,
   files,
   onFilesChange,
+  title,
 }: {
   info: PerformanceInfo;
   onChange: (info: PerformanceInfo) => void;
@@ -37,6 +38,7 @@ export function StepPublicInterest({
   onChangeMidHallInfo: (info: PerformanceInfo | null) => void;
   files: File[];
   onFilesChange: (files: File[]) => void;
+  title: string;
 }) {
   const selectedItems = info.publicInterestItems ?? [];
   const [activeTab, setActiveTab] = useState<VenueSplitTab>(midHallInfo ? "ARENA" : "COMMON");
@@ -66,7 +68,7 @@ export function StepPublicInterest({
 
   return (
     <section>
-      <h2 className="type-kr-heading text-h5-m sm:text-h5">공공/공익 참여 여부</h2>
+      <h2 className="type-kr-heading text-h5-m sm:text-h5">{title}</h2>
       <p className="mt-1.5 text-s text-muted">
         해당하는 항목을 선택하고, 계획 상세는 하나의 파일로 정리해 첨부합니다. 선택사항입니다.
       </p>

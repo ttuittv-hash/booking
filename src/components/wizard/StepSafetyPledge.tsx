@@ -106,6 +106,8 @@ export function StepSafetyPledge({
   onSafetyPlanFileChange,
   castContractFile,
   onCastContractFileChange,
+  title,
+  lead,
 }: {
   pledge: SafetyPledge;
   onChange: (pledge: SafetyPledge) => void;
@@ -113,6 +115,8 @@ export function StepSafetyPledge({
   onSafetyPlanFileChange: (file: File | null) => void;
   castContractFile: File | null;
   onCastContractFileChange: (file: File | null) => void;
+  title: string;
+  lead: string;
 }) {
   const allChecked = PLEDGE_ITEMS.every((item) => pledge[item.key]);
 
@@ -127,10 +131,7 @@ export function StepSafetyPledge({
 
   return (
     <section>
-      <StepHeading
-        title="안전관리 서약서"
-        lead="공연 안전 관리를 위한 서약 항목을 확인하고 동의해 주세요."
-      />
+      <StepHeading title={title} lead={lead} />
 
       <label className="mt-8 flex cursor-pointer items-center gap-2.5 border border-border bg-panel px-5 py-3.5">
         <input

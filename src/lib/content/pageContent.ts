@@ -242,6 +242,60 @@ export const DEFAULT_RATES_CONTENT: RatesContent = {
  * 공지사항·FAQ·대관 신청·오시는 길처럼 본문이 게시물이나 폼인 화면도
  * 상단 리드 한 줄은 운영자가 고쳐야 하므로 여기 모아 둔다.
  */
+/**
+ * 대관 신청 위저드 각 STEP의 제목·리드 문구 — StepHeading(제목 + 리드)을 쓰는
+ * 화면과, 리드 없이 제목만 있는 화면을 함께 담는다(2026-08-24, "대관 위저드
+ * 프로세스에서 시스템 메시지들이 많은데 이런 부분도 운영툴에서 수정할수
+ * 있도록"). 위저드 컴포넌트는 이 값을 기본값처럼 그대로 쓴다 — 값이 비어
+ * 있어도 별도 fallback을 두지 않는다(다른 screenText 필드와 동일한 규칙).
+ */
+export interface WizardStepTexts {
+  venuePickerTitle: string;
+  venuePickerLead: string;
+  configArenaTitle: string; // 리드는 선택한 패키지 정보로 동적 생성돼 편집 대상이 아니다
+  configMidHallOnlyTitle: string;
+  configMidHallOnlyLead: string;
+  configSimultaneousTitle: string;
+  configSimultaneousLead: string;
+  audienceTitle: string;
+  audienceLead: string;
+  performanceInfoTitle: string;
+  publicInterestTitle: string;
+  marketingTitle: string;
+  marketingLead: string;
+  safetyPledgeTitle: string;
+  safetyPledgeLead: string;
+  estimateTitle: string;
+  submitNewTitle: string;
+  submitNewLead: string;
+  submitEditingTitle: string;
+  submitEditingLead: string;
+}
+
+export const DEFAULT_WIZARD_STEP_TEXTS: WizardStepTexts = {
+  venuePickerTitle: "공간 선택",
+  venuePickerLead: "아레나, 중형공연장, 동시 대관 중 이용할 공간을 선택하세요.",
+  configArenaTitle: "아레나",
+  configMidHallOnlyTitle: "구성 · 옵션",
+  configMidHallOnlyLead:
+    "중형공연장은 패키지가 없는 일 단위 요금제입니다 — 아래는 예약 일수와 무관하게 항상 포함되는 기본 구성입니다.",
+  configSimultaneousTitle: "구성 · 옵션",
+  configSimultaneousLead: "동시 대관은 두 공간의 구성이 서로 달라 탭으로 나눠 보여줍니다.",
+  audienceTitle: "규모",
+  audienceLead: "관객 수는 공간별로 자동 산정됩니다.",
+  performanceInfoTitle: "신청자 정보",
+  publicInterestTitle: "공공/공익 참여 여부",
+  marketingTitle: "홍보 및 서비스 계획",
+  marketingLead: "프로모션 및 협업 관련 정보를 입력해 주세요.",
+  safetyPledgeTitle: "안전관리 서약서",
+  safetyPledgeLead: "공연 안전 관리를 위한 서약 항목을 확인하고 동의해 주세요.",
+  estimateTitle: "예상 대관료",
+  submitNewTitle: "최종 제출",
+  submitNewLead: "아래 산출내역으로 대관 신청서가 생성됩니다. 신청금액은 예상금액이며, 이후 심사·계약에서 확정됩니다.",
+  submitEditingTitle: "신청서 수정",
+  submitEditingLead: "아래 산출내역으로 신청서 내용이 수정됩니다. 신청금액은 예상금액이며, 이후 심사·계약에서 확정됩니다.",
+};
+
 export interface ScreenTextContent {
   noticesLead: string;
   noticesEmptyDesc: string;
@@ -249,6 +303,7 @@ export interface ScreenTextContent {
   applyLead: string;
   locationLead: string;
   locationRows: Pair[];
+  wizardSteps: WizardStepTexts;
 }
 
 export const DEFAULT_SCREEN_TEXT_CONTENT: ScreenTextContent = {
@@ -264,6 +319,7 @@ export const DEFAULT_SCREEN_TEXT_CONTENT: ScreenTextContent = {
     { label: "대중교통", value: "확정 후 안내" },
     { label: "주차", value: "확정 후 안내" },
   ],
+  wizardSteps: DEFAULT_WIZARD_STEP_TEXTS,
 };
 
 /* ---------------------------------------------- 대관 자료 (`/documents`) - */

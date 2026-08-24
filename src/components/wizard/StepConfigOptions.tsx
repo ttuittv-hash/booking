@@ -18,7 +18,7 @@ import {
   type RateTable,
   type RentalPackage,
 } from "@/lib/pricing/types";
-import type { ChargeBlock, VenueRateContent } from "@/lib/content/pageContent";
+import type { ChargeBlock, VenueRateContent, WizardStepTexts } from "@/lib/content/pageContent";
 import { CHOICE_SELECTED_VARS, ComparisonTable, choiceClass, type SpecGroup } from "@/components/ui/kit";
 import { StepHeading } from "./StepHeading";
 
@@ -252,16 +252,32 @@ function arenaSummaryLine(selection: QuoteSelection, defaultPerformanceDays: num
 // packages 배열과 별개로 하드코딩한다.
 function PackagePicker({
   packages,
+  addons,
   selectedId,
   onSelect,
   onClear,
 }: {
   packages: RentalPackage[];
+  addons: AddonItem[];
   selectedId: number | null;
   onSelect: (id: number) => void;
   onClear: () => void;
 }) {
   const [showCustomNotice, setShowCustomNotice] = useState(false);
+
+  // [2026-08-24, "아레나 패키지의 기본 내역이 뭔지 박스로 보여지게 해줘. 수정은
+  // 불가능하겠지만"] 이전에는 "기본 시설과 장비가 모두 포함되어 있습니다"라는
+  // 안내 문장만 있고 실제 항목은 신청서 제출 후에야 볼 수 있었다 — 패키지 관리
+  // (어드민)의 "① 기본 내역"에서 이 패키지에 체크된 항목(ITEM_ONLY)을 그대로
+  // 읽기 전용으로 나열한다. 수량 조정은 여기서 하지 않는다(선택 옵션이 아니다).
+  const selectedPkg = packages.find((p) => p.id === selectedId);
+  const baseItems = (selectedPkg?.includedItems ?? [])
+    .map((inc) => {
+      const addon = addons.find((a) => a.id === inc.addonId);
+      if (!addon) return null;
+      return { key: inc.addonId, name: addon.name, quantity: inc.quantity, unit: addon.unitLabel.replace("원/", "") };
+    })
+    .filter((item): item is { key: string; name: string; quantity: number; unit: string } => item != null);
 
   return (
     <div className="mb-6 border-b border-border pb-6">
@@ -342,10 +358,23 @@ function PackagePicker({
         <div className="mt-4 border border-border/30 bg-panel/40 px-4 py-3">
           <span className="bg-foreground px-2 py-0.5 text-xs font-bold text-background">기본 포함</span>
           <p className="mt-1.5 text-xs leading-5 text-foreground">
-            모든 구성에는 공연 운영에 필요한 기본 시설과 장비가 모두 포함되어 있습니다
-            <br />
-            자세한 내역은 신청서 제출 시 최종 내역을 확인해 주세요
+            이 구성에는 아래 항목이 별도 비용 없이 기본 포함되어 있습니다.
           </p>
+          {baseItems.length > 0 ? (
+            <div className="mt-3 grid grid-cols-1 gap-1.5 sm:grid-cols-2 lg:grid-cols-3">
+              {baseItems.map((item) => (
+                <div key={item.key} className="border border-border-soft bg-panel px-3 py-2 text-xs">
+                  <span className="font-bold text-foreground">{item.name}</span>
+                  <span className="ml-1.5 text-muted">
+                    {item.quantity}
+                    {item.unit}
+                  </span>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <p className="mt-3 text-xs text-muted">등록된 기본 포함 항목이 없습니다.</p>
+          )}
         </div>
       )}
     </div>
@@ -355,6 +384,7 @@ function PackagePicker({
 export function StepConfigOptions({
   rateTable,
   liveHallRateContent,
+  stepText,
   selection,
   defaultPerformanceDays,
   addonQuantities,
@@ -366,6 +396,7 @@ export function StepConfigOptions({
 }: {
   rateTable: RateTable;
   liveHallRateContent: VenueRateContent;
+  stepText: WizardStepTexts;
   selection: QuoteSelection;
   defaultPerformanceDays: number;
   addonQuantities: Record<string, number>;
@@ -384,10 +415,7 @@ export function StepConfigOptions({
   if (midHallOnly) {
     return (
       <section>
-        <StepHeading
-          title="구성 · 옵션"
-          lead="중형공연장은 패키지가 없는 일 단위 요금제입니다 — 아래는 예약 일수와 무관하게 항상 포함되는 기본 구성입니다."
-        />
+        <StepHeading title={stepText.configMidHallOnlyTitle} lead={stepText.configMidHallOnlyLead} />
 
         <MidHallRateCard
           content={liveHallRateContent}
@@ -405,6 +433,10 @@ export function StepConfigOptions({
       if (!isAddonAvailable(addon, pkg)) continue;
       if (addon.visibility === "HIDDEN") continue; // 자동 산입 항목 — 신청자가 선택하는 화면이 아니다 (2-71)
       if (addon.visibility === "ITEM_ONLY") continue; // 기본 구성 전용 항목 — 별도 구매 옵션이 아니다
+      // 유틸리티(전기·수도·냉난방 등)는 사후 정산 항목이라 신청자가 고르는 화면이
+      // 아니다 — visibility가 VISIBLE로 잘못 설정돼 있어도 반드시 제외한다
+      // (2026-08-24, "일반전기,상하수도 등은 옵션에 선택을 안했는데 노출이 되고 있어").
+      if (addon.billingPhase === "SETTLEMENT") continue;
       const list = grouped.get(addon.category) ?? [];
       list.push(addon);
       grouped.set(addon.category, list);
@@ -416,7 +448,7 @@ export function StepConfigOptions({
   // 대관료)에서 처음 확인한다.
   const selectedOptionCount = [...grouped.values()]
     .flat()
-    .filter((addon) => addon.billingPhase !== "SETTLEMENT" && (addonQuantities[addon.id] ?? 0) > 0).length;
+    .filter((addon) => (addonQuantities[addon.id] ?? 0) > 0).length;
 
   // [개정 2026-08-21] 선택 옵션 목록은 더 이상 카테고리로 묶지 않는다 — 단일 세로 목록으로
   // 평탄화해서 더 가벼운 화면으로 보여준다(요청 시안 기준).
@@ -429,7 +461,7 @@ export function StepConfigOptions({
           이 헤더가 화면의 유일한 제목이라 남긴다. */}
       {!isSimultaneous && (
         <StepHeading
-          title="아레나"
+          title={stepText.configArenaTitle}
           lead={
             pkg
               ? `${pkg.name} · ${pkg.audienceTier.label} · 예상 관객 ${selection.expectedAudience.toLocaleString()}명 · ${arenaSummaryLine(selection, defaultPerformanceDays)}`
@@ -441,6 +473,7 @@ export function StepConfigOptions({
       <div className="mt-8">
         <PackagePicker
           packages={arenaPackages}
+          addons={rateTable.addons}
           selectedId={selection.packageId}
           onSelect={onSelectPackage}
           onClear={onClearPackage}
@@ -461,7 +494,6 @@ export function StepConfigOptions({
               <AddonRow
                 key={addon.id}
                 addon={addon}
-                packages={arenaPackages}
                 included={includedQuantity(pkg, addon.id)}
                 quantity={addonQuantities[addon.id] ?? 0}
                 expectedRevenue={expectedRevenue}
@@ -499,7 +531,7 @@ export function StepConfigOptions({
 
   return (
     <section>
-      <StepHeading title="구성 · 옵션" lead="동시 대관은 두 공간의 구성이 서로 달라 탭으로 나눠 보여줍니다." />
+      <StepHeading title={stepText.configSimultaneousTitle} lead={stepText.configSimultaneousLead} />
 
       <div className="mt-8 flex gap-1 border-b border-border">
         {(["arena", "medium-hall"] as const).map((tab) => (
@@ -526,7 +558,6 @@ export function StepConfigOptions({
 
 function AddonRow({
   addon,
-  packages,
   included,
   quantity,
   expectedRevenue,
@@ -534,65 +565,30 @@ function AddonRow({
   onChangeRevenue,
 }: {
   addon: AddonItem;
-  packages: RentalPackage[];
   included: number;
   quantity: number;
   expectedRevenue: number;
   onChangeQuantity: (addonId: string, quantity: number) => void;
   onChangeRevenue: (value: number) => void;
 }) {
-  const isUtil = addon.billingPhase === "SETTLEMENT";
   const isRevenue = addon.pricingType === "REVENUE_PERCENT";
-  const ruleTag =
-    addon.availability.mode === "IF_PACKAGE_IN"
-      ? // "패키지 1·2 전용"처럼 원본 id를 그대로 보여주면 Rate A/B/C/D 이름 변경과
-        // 어긋나 헷갈린다(2026-08-22) — 이름으로 바꿔 보여준다.
-        `${(addon.availability.packages ?? [])
-          .map((id) => packages.find((p) => p.id === id)?.name ?? String(id))
-          .join("·")} 전용`
-      : addon.availability.mode === "IF_NOT_INCLUDED"
-        ? "미포함 시 선택"
-        : null;
 
   const maxTotal =
     addon.availability.maxAddQuantity && addon.availability.maxAddQuantity !== "UNLIMITED"
       ? included + addon.availability.maxAddQuantity
       : undefined;
 
-  const priceLabel = isUtil
-    ? "실사용 정산"
-    : isRevenue
-      ? `매출 ${addon.unitPrice}%`
-      : `${won(addon.unitPrice)} / ${addon.unitLabel.replace("원/", "")}`;
+  const priceLabel = isRevenue
+    ? `매출 ${addon.unitPrice}%`
+    : `${won(addon.unitPrice)} / ${addon.unitLabel.replace("원/", "")}`;
 
   // 항목은 아웃라인만이다. 선택 여부로 면 색을 바꾸지 않는다 —
   // 수량을 적는 칸이 안에 있어서 면 색이 바뀌면 입력한 숫자가 묻힌다.
   return (
-    <div
-      className={[
-        "flex flex-col gap-1.5 border border-border-soft px-3 py-2",
-        isUtil ? "opacity-60" : "",
-      ].join(" ")}
-    >
+    <div className="flex flex-col gap-1.5 border border-border-soft px-3 py-2">
       <div className="min-w-0">
         <div className="flex flex-wrap items-center gap-1.5">
           <span className="text-xs font-bold">{addon.name}</span>
-          {included > 0 && (
-            <>
-              {/* 숫자와 "기본포함" 라벨이 한 뱃지 안에 붙어 있으면 "14기본포함"처럼
-                  읽혀 헷갈린다("뱃지는 따로 분리" 피드백) — 개수는 일반 텍스트로,
-                  "기본 포함"은 별도 뱃지로 나눈다. */}
-              <span className="border border-border/40 bg-panel px-1.5 py-0.5 text-xs font-bold text-foreground">
-                기본 포함
-              </span>
-              <span className="text-xs font-bold text-muted">{included}개</span>
-            </>
-          )}
-          {ruleTag && (
-            <span className="border border-border/40 px-1.5 py-0.5 text-xs font-bold text-muted">
-              {ruleTag}
-            </span>
-          )}
         </div>
         <div className="mt-0.5 text-xs text-muted">
           {addon.unitLabel}
@@ -603,9 +599,7 @@ function AddonRow({
       <div className="flex shrink-0 items-center justify-between gap-2">
         <span className="whitespace-nowrap text-xs text-muted">{priceLabel}</span>
 
-        {isUtil ? (
-          <span className="whitespace-nowrap text-xs text-muted">정산 단계 부과</span>
-        ) : isRevenue ? (
+        {isRevenue ? (
           <div className="flex items-center gap-1.5">
             <label className="flex items-center gap-1 whitespace-nowrap text-xs text-muted">
               <input

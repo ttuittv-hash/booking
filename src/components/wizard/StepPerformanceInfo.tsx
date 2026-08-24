@@ -661,12 +661,14 @@ export function StepPerformanceInfo({
   midHallInfo,
   onChangeMidHallInfo,
   selection,
+  title,
 }: {
   info: PerformanceInfo;
   onChange: (info: PerformanceInfo) => void;
   midHallInfo: PerformanceInfo | null;
   onChangeMidHallInfo: (info: PerformanceInfo | null) => void;
   selection: QuoteSelection;
+  title: string;
 }) {
   const [activeTab, setActiveTab] = useState<VenueSplitTab>(midHallInfo ? "ARENA" : "COMMON");
 
@@ -703,7 +705,7 @@ export function StepPerformanceInfo({
 
   return (
     <section>
-      <h2 className="type-kr-heading text-h5-m sm:text-h5">신청자 정보</h2>
+      <h2 className="type-kr-heading text-h5-m sm:text-h5">{title}</h2>
       <p className="mt-3 text-s text-muted">
         신청서는 두 공간을 합쳐 1건입니다. 대관기간만 공간별로 나눠 표기합니다.
       </p>

@@ -24,10 +24,12 @@ export function Step5Estimate({
   rateTable,
   quote,
   selection,
+  title,
 }: {
   rateTable: RateTable;
   quote: EstimatedQuote;
   selection: QuoteSelection;
+  title: string;
 }) {
   const pkg = findPackage(rateTable, selection.packageId);
   const hasMidHall = Object.keys(selection.midHallDays).length > 0;
@@ -54,7 +56,7 @@ export function Step5Estimate({
 
   return (
     <section>
-      <h2 className="type-kr-heading text-h5-m sm:text-h5">예상 대관료</h2>
+      <h2 className="type-kr-heading text-h5-m sm:text-h5">{title}</h2>
       <p className="measure mt-3 break-keep text-s text-muted">
         {isSimultaneous ? (
           <>

@@ -34,9 +34,13 @@ const SALES_DATA_ITEMS = [
 export function StepMarketingCooperation({
   info,
   onChange,
+  title,
+  lead,
 }: {
   info: MarketingCooperation;
   onChange: (info: MarketingCooperation) => void;
+  title: string;
+  lead: string;
 }) {
   function set<K extends keyof MarketingCooperation>(key: K, value: MarketingCooperation[K]) {
     onChange({ ...info, [key]: value });
@@ -84,7 +88,7 @@ export function StepMarketingCooperation({
 
   return (
     <section>
-      <StepHeading title="홍보 및 서비스 계획" lead="프로모션 및 협업 관련 정보를 입력해 주세요." />
+      <StepHeading title={title} lead={lead} />
 
       <StepForm>
         <div className="border-t border-border/25 pt-5">

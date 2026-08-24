@@ -79,6 +79,7 @@ export default async function ApplyPage({
           startFresh={!!startFreshParam}
           applicantPrefill={applicantPrefill}
           liveHallRateContent={ratesContent.liveHall}
+          wizardStepText={screenText.wizardSteps}
         />
       </main>
 

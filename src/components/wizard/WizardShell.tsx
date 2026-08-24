@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { calculateQuote } from "@/lib/pricing/calculateQuote";
 import { ARENA_MAX_AUDIENCE } from "@/lib/content/rateFacts";
-import type { VenueRateContent } from "@/lib/content/pageContent";
+import type { VenueRateContent, WizardStepTexts } from "@/lib/content/pageContent";
 import {
   findAddon,
   findPackage,
@@ -128,6 +128,7 @@ export function WizardShell({
   startFresh,
   applicantPrefill,
   liveHallRateContent,
+  wizardStepText,
 }: {
   rateTable: RateTable;
   currentUser: AppUser | null;
@@ -146,6 +147,10 @@ export function WizardShell({
   // 편집하는 것과 같은 콘텐츠(RatesContent.liveHall)를 그대로 재사용한다
   // (2026-08-23, "어드민에서 중형공연장 패키지 내역에 이런 구조를 반영해줘").
   liveHallRateContent: VenueRateContent;
+  // 각 STEP 제목·리드 문구 — /admin/content "화면 문구"에서 운영자가 편집한다
+  // (2026-08-24, "대관 위저드 프로세스에서 시스템 메시지들이 많은데 이런 부분도
+  // 운영툴에서 수정할수 있도록").
+  wizardStepText: WizardStepTexts;
 }) {
   const isEditing = !!editingQuoteId;
   const toast = useToast();
@@ -569,7 +574,7 @@ export function WizardShell({
 
         {step === 1 && (
           <section>
-            <StepHeading title="공간 선택" lead="아레나, 중형공연장, 동시 대관 중 이용할 공간을 선택하세요." />
+            <StepHeading title={wizardStepText.venuePickerTitle} lead={wizardStepText.venuePickerLead} />
             <div className="mt-8">
               <VenuePicker venueId={selection.venueId} bookingMode={selection.bookingMode} onSelectVenue={selectVenue} />
             </div>
@@ -661,6 +666,7 @@ export function WizardShell({
           <StepConfigOptions
             rateTable={rateTable}
             liveHallRateContent={liveHallRateContent}
+            stepText={wizardStepText}
             selection={resolvedSelection}
             defaultPerformanceDays={defaultPerformanceDays}
             addonQuantities={addonQuantities}
@@ -683,6 +689,7 @@ export function WizardShell({
                 setSelection((prev) => ({ ...prev, midHallPerformanceInfo }))
               }
               selection={resolvedSelection}
+              title={wizardStepText.performanceInfoTitle}
             />
             {/* [2026-08-23] "신청자 정보 및 규모" — 두 탭을 하나로 합쳤다("신청자 정보
                 탭을 신청자 정보 및 규모로 변경하고, 규모 탭 내역을 합쳐"). 규모(StepAudience)
@@ -696,6 +703,8 @@ export function WizardShell({
               }
               selection={resolvedSelection}
               showHeading={false}
+              title={wizardStepText.audienceTitle}
+              lead={wizardStepText.audienceLead}
             />
             {/* [2026-08-24] 자료 첨부는 합친 탭의 가장 아래로 — "신청자 정보 및 규모 탭에서
                 자료 첨부(선택)를 가장 하위에 노출". */}
@@ -717,12 +726,15 @@ export function WizardShell({
             }
             files={publicInterestFiles}
             onFilesChange={setPublicInterestFiles}
+            title={wizardStepText.publicInterestTitle}
           />
         )}
         {step === 5 && (
           <StepMarketingCooperation
             info={selection.marketingCooperation ?? DEFAULT_MARKETING_COOPERATION}
             onChange={(marketingCooperation) => setSelection((prev) => ({ ...prev, marketingCooperation }))}
+            title={wizardStepText.marketingTitle}
+            lead={wizardStepText.marketingLead}
           />
         )}
         {step === 6 && (
@@ -733,9 +745,18 @@ export function WizardShell({
             onSafetyPlanFileChange={setSafetyPlanFile}
             castContractFile={castContractFile}
             onCastContractFileChange={setCastContractFile}
+            title={wizardStepText.safetyPledgeTitle}
+            lead={wizardStepText.safetyPledgeLead}
           />
         )}
-        {step === 7 && <Step5Estimate rateTable={rateTable} quote={quote} selection={resolvedSelection} />}
+        {step === 7 && (
+          <Step5Estimate
+            rateTable={rateTable}
+            quote={quote}
+            selection={resolvedSelection}
+            title={wizardStepText.estimateTitle}
+          />
+        )}
         {step === 8 && (
           <Step6Submit
             rateTable={rateTable}
@@ -743,6 +764,7 @@ export function WizardShell({
             selection={resolvedSelection}
             isLoggedIn={!!currentUser && !sessionExpired}
             isEditing={isEditing || !!submittedId}
+            stepText={wizardStepText}
             confirmationVisible={submissionLocked}
             justEdited={lastActionWasEdit}
             submitting={submitting}
