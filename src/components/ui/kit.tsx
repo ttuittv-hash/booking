@@ -784,7 +784,7 @@ export function ComparisonTable({
                 {r.cells.map((cell, i) => (
                   <td
                     key={columns[i]?.key ?? i}
-                    className={`${cellPad} pl-4 align-top text-s font-bold tabular-nums ${
+                    className={`${cellPad} whitespace-pre-wrap pl-4 align-top text-s font-bold tabular-nums ${
                       columns[i]?.align === "left" ? "break-keep text-left" : "text-right"
                     }`}
                   >
@@ -896,7 +896,7 @@ export function SpecTable({
           className={`grid gap-1 border-b border-border/15 ${pad} sm:grid-cols-[minmax(0,12rem)_minmax(0,1fr)] sm:gap-6`}
         >
           <dt className="text-s text-muted">{k}</dt>
-          <dd className="text-s font-bold">{v}</dd>
+          <dd className="whitespace-pre-wrap text-s font-bold">{v}</dd>
         </div>
       ))}
     </dl>
@@ -943,7 +943,7 @@ export function GroupedSpecTable({
                 className={`grid gap-1 border-b border-border/15 ${pad} sm:grid-cols-[minmax(0,12rem)_minmax(0,1fr)] sm:gap-6`}
               >
                 <dt className="text-s text-muted">{r.label}</dt>
-                <dd className="text-s font-bold">
+                <dd className="whitespace-pre-wrap text-s font-bold">
                   {r.value}
                   {r.note && (
                     <span className="mt-1 block text-xs font-normal text-muted">{r.note}</span>
@@ -1348,7 +1348,7 @@ export function LabeledList({ items }: { items: { label: string; desc?: string }
           className="grid gap-1 border-b border-border/15 py-4 sm:grid-cols-[minmax(0,14rem)_minmax(0,1fr)] sm:gap-8"
         >
           <dt className="text-s font-bold">{it.label}</dt>
-          {it.desc && <dd className="break-keep text-s text-muted">{it.desc}</dd>}
+          {it.desc && <dd className="whitespace-pre-wrap break-keep text-s text-muted">{it.desc}</dd>}
         </div>
       ))}
     </dl>

@@ -14,7 +14,8 @@ import type {
   SeoulArenaContent,
 } from "@/lib/content/pageContent";
 import { TagBadge } from "@/components/TagBadge";
-import { btnClass } from "@/components/ui/kit";
+import { FAQ_TAGS } from "@/lib/content/faqSeed";
+import { Badge, btnClass } from "@/components/ui/kit";
 import { NoticeEditor } from "./NoticeEditor";
 import { HomeContentForm } from "./HomeContentForm";
 import { formatDateTime } from "@/lib/format";
@@ -117,7 +118,7 @@ export function ContentManager({
             ["faq", `FAQ (${faqs.length})`],
             ["home", "홈"],
             ["seoularena", "서울아레나"],
-            ["features", "시설 소개"],
+            ["features", "시설 제원"],
             ["guide", "대관 안내"],
             ["rates", "대관료"],
             ["rules", "대관 규약"],
@@ -547,8 +548,12 @@ function FaqTab({
             <li key={faq.id} className={CARD}>
               <div className="flex items-start justify-between gap-4">
                 <button type="button" onClick={() => startEdit(faq)} className="min-w-0 flex-1 text-left">
-                  <div className="flex items-center text-s font-bold">
-                    <TagBadge tag={faq.tag} />
+                  <div className="flex items-center gap-2 text-s font-bold">
+                    {faq.tag && (
+                      <span className="inline-flex align-middle">
+                        <Badge tone="neutral">{faq.tag}</Badge>
+                      </span>
+                    )}
                     Q. {faq.question}
                   </div>
                   <p className={`mt-1.5 whitespace-pre-wrap ${HELP}`}>A. {faq.answer}</p>
@@ -576,13 +581,18 @@ function FaqTab({
           <h3 className={SUB_TITLE}>{editingId === "__new__" ? "새 FAQ 등록" : "FAQ 수정"}</h3>
           <div className="mt-4 space-y-4">
             <div className="flex gap-2">
-              <input
-                type="text"
-                placeholder="말머리 (예: 신청, 정산)"
+              <select
                 value={tag}
                 onChange={(e) => setTag(e.target.value)}
-                className={`w-32 shrink-0 ${FIELD}`}
-              />
+                className={`w-40 shrink-0 ${FIELD}`}
+              >
+                <option value="">말머리 없음</option>
+                {FAQ_TAGS.map((t) => (
+                  <option key={t} value={t}>
+                    {t}
+                  </option>
+                ))}
+              </select>
               <input
                 type="text"
                 placeholder="질문"

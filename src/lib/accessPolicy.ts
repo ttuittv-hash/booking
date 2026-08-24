@@ -12,7 +12,7 @@
 // 두 구조가 달라 아래처럼 대응시켰다. 기획 확정 시 이 표만 고치면 된다.
 //
 //   기획서 메뉴          → 현재 경로
-//   시설 소개            → /venue, /venue/*
+//   시설 제원            → /venue, /venue/*
 //   대관안내             → /guide, /guide/*, /packages
 //   대관현황(공고 목록)  → /notices, /notices/*
 //   대관신청             → /apply, /apply/*
@@ -71,7 +71,7 @@ const RULES: MenuRule[] = [
   // 2026-08 IA 재구성(Notion 확정안)으로 경로가 바뀌었다.
   // /venue·/packages 는 사라지고, 공개 소개는 /seoularena 가, 상세 스펙은 /features 가 맡는다.
   { prefix: "/seoularena", label: "서울아레나", allow: OPEN_ALL },
-  { prefix: "/features", label: "시설 소개", allow: LOGIN_ONLY },
+  { prefix: "/features", label: "시설 제원", allow: LOGIN_ONLY },
   { prefix: "/guide", label: "대관 안내", allow: LOGIN_ONLY },
   { prefix: "/rates", label: "대관료", allow: LOGIN_ONLY },
   { prefix: "/rules", label: "대관 규약", allow: LOGIN_ONLY },

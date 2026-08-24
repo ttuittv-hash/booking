@@ -59,7 +59,7 @@ export default async function AdminContentPage() {
         <header className="border-b border-border/20 pb-6">
           <h1 className={PAGE_TITLE}>콘텐츠 관리</h1>
           <p className={PAGE_LEAD}>
-            공지사항·FAQ와 공개 화면(홈 · 서울아레나 · 시설 소개 · 대관 안내 · 대관료 · 대관 규약 ·
+            공지사항·FAQ와 공개 화면(홈 · 서울아레나 · 시설 제원 · 대관 안내 · 대관료 · 대관 규약 ·
             대관 자료)의 내용을 여기서 관리합니다. 공지사항·FAQ·대관 신청·오시는 길처럼 본문이
             게시물이나 폼인 화면의 문구는 `화면 문구` 탭에 있습니다. 여러 줄 입력칸에서는 Enter 로
             줄을 바꾸고 빈 줄로 문단을 나누면 화면에도 그대로 나갑니다. 저장하면 해당 화면에 바로
