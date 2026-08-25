@@ -145,12 +145,24 @@ function LivePreview({ children }: { children: ReactNode }) {
  * 편집 입력으로 바꿔치기한다. contentEditable + onBlur 커밋을 쓰는 이유: 값을 매
  * 타이핑마다 state로 올리면(controlled input) 리렌더 때 커서 위치가 튄다 — 여기서는
  * blur(포커스 아웃)할 때만 한 번 커밋해서 그 문제를 피한다. pointer-events-auto를
- * 직접 달아서 LivePreview의 pointer-events-none을 이 노드에서만 되살린다. */
+ * 직접 달아서 LivePreview의 pointer-events-none을 이 노드에서만 되살린다.
+ *
+ * onClick에서 preventDefault를 거는 이유: 안전관리 서약서 체크박스 항목처럼 이
+ * 텍스트가 <label>(체크박스와 함께) 안에 있는 경우, "라벨 클릭 = 연결된 입력
+ * 활성화"는 그 click 이벤트가 label까지 버블링됐을 때 브라우저가 처리하는
+ * **기본 동작**이다 — stopPropagation(리스너 전파 차단)으로도, mousedown에
+ * preventDefault를 거는 것으로도 안 막혔고(둘 다 실제로 시도해서 체크박스가
+ * 계속 포커스를 가져가는 걸 확인함), click 이벤트 자체에 preventDefault를 걸어야
+ * 막혔다 — 같은 이벤트가 버블링되는 동안 어느 시점에서든 preventDefault를 부르면
+ * 그 이벤트가 나중에 label에 도달했을 때의 기본 동작이 취소된다.
+ * contentEditable의 포커스·캐럿 배치는 mousedown 시점에 이미 끝나 있어(클릭은
+ * mousedown 다음에 온다) 이 preventDefault와 무관하게 정상 동작한다. */
 function InlineEditText({ value, onChange }: { value: string; onChange: (v: string) => void }) {
   return (
     <span
       contentEditable
       suppressContentEditableWarning
+      onClick={(e) => e.preventDefault()}
       onBlur={(e) => {
         const next = e.currentTarget.textContent ?? "";
         if (next !== value) onChange(next);
