@@ -55,6 +55,8 @@ say(/이관|마스터/.test(ub), "운영자 계정 — 권한 이관 UI", (ub.ma
 // ── 서명패드 — 위저드 최종 단계 캔버스
 const w=await (await b.newContext({viewport:{width:1440,height:1200}})).newPage();
 await w.goto(`${B}/login`,{waitUntil:"domcontentloaded"});
+// U = 승인된 신청자 아이디(full-flow 가 만든 m로 시작하는 계정). 없으면 로그인부터 못 하니 미리 알린다.
+if (!process.env.U) throw new Error("환경변수 U(승인된 신청자 아이디)가 필요하다 — 예: U=m397315 node e2e/features.spec.mjs");
 const k=w.locator("input"); await k.nth(0).fill(process.env.U); await k.nth(1).fill("Test1234!");
 await w.locator('button[type="submit"]').first().click(); await w.waitForTimeout(2000);
 await w.goto(`${B}/apply?new=1`,{waitUntil:"domcontentloaded"}); await w.waitForTimeout(2500);
