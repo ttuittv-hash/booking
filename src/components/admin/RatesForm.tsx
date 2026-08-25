@@ -57,6 +57,10 @@ export function RatesForm({
       editable: a.pricingType !== "METERED",
     })),
   );
+  // 삭제한 id를 따로 모아 저장 요청에 실어 보낸다 — 그렇지 않으면 서버가 요청에
+  // 없는 항목도 현재 저장된 값에서 그대로 되살려서 삭제가 저장되지 않는다
+  // (2026-08-24, "선택옵션들이 삭제해도 rate card에 그대로 남아있는 오류").
+  const [removedAddonIds, setRemovedAddonIds] = useState<string[]>([]);
   const [extraWeekRatio, setExtraWeekRatio] = useState(rateTable.extraWeekRatio);
   const [dayExclusionDiscountRatio, setDayExclusionDiscountRatio] = useState(
     rateTable.dayExclusionDiscountRatio,
@@ -105,6 +109,7 @@ export function RatesForm({
   function removeAddon(addonId: string, name: string) {
     if (!confirm(`「${name}」 항목을 삭제할까요? 이 항목은 이후 견적에 나타나지 않습니다.`)) return;
     setAddons((prev) => prev.filter((a) => a.id !== addonId));
+    setRemovedAddonIds((prev) => [...prev, addonId]);
   }
 
   function confirmNewItem() {
@@ -140,6 +145,7 @@ export function RatesForm({
           dayExclusionDiscountRatio,
           addons: addons.map((a) => ({ id: a.id, unitPrice: a.unitPrice })),
           newAddons,
+          removedAddonIds,
           midHall: { ...midHall, breakdown },
         }),
       });
@@ -149,6 +155,7 @@ export function RatesForm({
         return;
       }
       setMessage(`저장되었습니다. 새 버전: ${data.rateTable.version}`);
+      setRemovedAddonIds([]);
       router.refresh();
     } finally {
       setSaving(false);

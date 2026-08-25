@@ -201,33 +201,61 @@ export async function PUT(request: Request) {
   const body = await request.json().catch(() => null);
   const overrides = Array.isArray(body?.packages) ? (body.packages as unknown[]) : [];
   const addonOverrides = Array.isArray(body?.addons) ? (body.addons as unknown[]) : [];
+  // 화면에서 지운 항목은 여기(removedXxxIds)로만 실제 삭제된다 — 그 전에는 요청에
+  // 없는 id를 "빠졌으니 삭제"로 판단하지 않았기 때문에, 서버가 current에서 그대로
+  // 다시 채워 넣어 삭제 버튼이 화면에서만 사라지고 저장하면 되살아났다(2026-08-24,
+  // "선택옵션들이 삭제해도 rate card에 그대로 남아있는 오류"). id를 아는 항목만
+  // 확실히 지우고, 다른 화면(요금표 관리)에서 그 사이 추가된 항목까지 "요청에
+  // 없다"는 이유로 함께 지워버리는 사고를 피한다.
+  const removedPackageIds = new Set(
+    (Array.isArray(body?.removedPackageIds) ? (body.removedPackageIds as unknown[]) : [])
+      .filter((v): v is number => Number.isFinite(Number(v)))
+      .map(Number),
+  );
+  const removedAddonIds = new Set(
+    (Array.isArray(body?.removedAddonIds) ? (body.removedAddonIds as unknown[]) : []).filter(
+      (v): v is string => typeof v === "string",
+    ),
+  );
 
   const current = await getCurrentRateTable();
-  const currentIds = new Set(current.packages.map((pkg) => pkg.id));
 
-  const updatedExisting = current.packages.map((pkg) => {
-    const override = overrides.find(
-      (p) => p && typeof p === "object" && (p as Record<string, unknown>).id === pkg.id,
-    );
-    return sanitizePackage(pkg, override);
-  });
+  // 패키지 관리 화면(PackagesForm)은 항상 전체 패키지 목록을 자기 로컬 상태로
+  // 들고 있다가 통째로 보낸다(부분 패치가 아니다) — 그래서 요청에 담긴 순서를
+  // 그대로 저장 순서로 써도 안전하다. 그 순서가 신청자 화면의 패키지 카드
+  // 순서이기도 하다(2026-08-24, "어드민> 패키지 순서 변경 가능하도록"). 요금표
+  // 관리(RatesForm) 등 다른 화면은 packages 필드 자체를 보내지 않으므로(빈
+  // 배열), 그때는 기존 순서를 그대로 둔다.
+  const packages =
+    overrides.length > 0
+      ? overrides
+          .filter(
+            (p): p is Record<string, unknown> =>
+              !!p && typeof p === "object" && Number.isFinite(Number((p as Record<string, unknown>).id)),
+          )
+          .map((p) => {
+            const id = Number(p.id);
+            const base = current.packages.find((pkg) => pkg.id === id) ?? blankPackage(id);
+            return sanitizePackage(base, p);
+          })
+          .filter((pkg) => !removedPackageIds.has(pkg.id))
+      : current.packages;
 
-  const newOnes = overrides
-    .filter(
-      (p): p is Record<string, unknown> =>
-        !!p && typeof p === "object" && Number.isFinite(Number((p as Record<string, unknown>).id)) && !currentIds.has(Number((p as Record<string, unknown>).id)),
-    )
-    .map((p) => sanitizePackage(blankPackage(Number(p.id)), p));
-
-  const packages = [...updatedExisting, ...newOnes];
+  const packagesWithCleanedItems = packages.map((pkg) =>
+    removedAddonIds.size === 0
+      ? pkg
+      : { ...pkg, includedItems: pkg.includedItems.filter((it) => !removedAddonIds.has(it.addonId)) },
+  );
 
   const currentAddonIds = new Set(current.addons.map((a) => a.id));
-  const updatedExistingAddons = current.addons.map((addon) => {
-    const override = addonOverrides.find(
-      (a) => a && typeof a === "object" && (a as Record<string, unknown>).id === addon.id,
-    );
-    return override ? sanitizeAddonUpdate(addon, override) : addon;
-  });
+  const updatedExistingAddons = current.addons
+    .filter((addon) => !removedAddonIds.has(addon.id))
+    .map((addon) => {
+      const override = addonOverrides.find(
+        (a) => a && typeof a === "object" && (a as Record<string, unknown>).id === addon.id,
+      );
+      return override ? sanitizeAddonUpdate(addon, override) : addon;
+    });
   const newAddons = addonOverrides
     .filter(
       (a): a is Record<string, unknown> =>
@@ -241,7 +269,7 @@ export async function PUT(request: Request) {
     vatRate: current.vatRate,
     extraWeekRatio: current.extraWeekRatio,
     dayExclusionDiscountRatio: current.dayExclusionDiscountRatio,
-    packages,
+    packages: packagesWithCleanedItems,
     addons,
     midHall: current.midHall,
   });

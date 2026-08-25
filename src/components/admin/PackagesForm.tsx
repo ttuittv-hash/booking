@@ -189,6 +189,14 @@ export function PackagesForm({ rateTable, ratesContent }: { rateTable: RateTable
   const venueTab = URL_TO_VENUE[venueUrl];
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
+  // 삭제는 화면에서 빼는 것만으로는 저장되지 않는다 — 저장 API가 항목을 id로 찾아
+  // 덮어쓰기만 하고 "요청에 없으면 지운다"는 판단을 하지 않아서, 로컬에서 지운
+  // 항목도 서버가 그대로 되살렸다(2026-08-24, "선택옵션들이 삭제해도 rate card에
+  // 그대로 남아있는 오류"). 그래서 삭제한 id를 따로 모아 요청에 실어 보낸다 —
+  // "요청에 없는 건 삭제"로 판단하면, 다른 화면(요금표 관리)에서 방금 추가한
+  // 항목이 이 화면의 오래된 스냅샷 때문에 함께 지워지는 사고가 날 수 있어서다.
+  const [removedAddonIds, setRemovedAddonIds] = useState<string[]>([]);
+  const [removedPackageIds, setRemovedPackageIds] = useState<number[]>([]);
 
   const [addons, setAddons] = useState<AddonItem[]>(rateTable.addons);
   const [newItemCategory, setNewItemCategory] = useState<AddonCategory | null>(null);
@@ -268,6 +276,28 @@ export function PackagesForm({ rateTable, ratesContent }: { rateTable: RateTable
     setActiveId(nextId);
   }
 
+  /**
+   * 패키지 순서 변경 — 신청자 화면(패키지 선택 카드)·이 표 모두 packages 배열
+   * 순서 그대로 보여준다(2026-08-24, "어드민> 패키지 순서 변경 가능하도록").
+   * 같은 공간(venueTab) 안에서만 이동한다 — 다른 공간 패키지와 뒤섞이지 않게
+   * 그 공간이 차지한 자리(슬롯)끼리만 맞바꾼다.
+   */
+  function movePackage(id: number, direction: -1 | 1) {
+    setPackages((prev) => {
+      const target = prev.find((p) => p.id === id);
+      if (!target) return prev;
+      const groupVenue = target.venueId ?? DEFAULT_VENUE_ID;
+      const group = prev.filter((p) => (p.venueId ?? DEFAULT_VENUE_ID) === groupVenue);
+      const idx = group.findIndex((p) => p.id === id);
+      const swapIdx = idx + direction;
+      if (idx === -1 || swapIdx < 0 || swapIdx >= group.length) return prev;
+      const reordered = [...group];
+      [reordered[idx], reordered[swapIdx]] = [reordered[swapIdx], reordered[idx]];
+      let i = 0;
+      return prev.map((p) => ((p.venueId ?? DEFAULT_VENUE_ID) === groupVenue ? reordered[i++] : p));
+    });
+  }
+
   /** 패키지 삭제 — 공간별 마지막 하나는 남긴다(고를 것이 없으면 신청이 막힌다) */
   function removePackage(id: number) {
     const target = packages.find((p) => p.id === id);
@@ -279,6 +309,7 @@ export function PackagesForm({ rateTable, ratesContent }: { rateTable: RateTable
     if (!confirm(`「${target.name}」 패키지를 삭제할까요?`)) return;
     const rest = packages.filter((p) => p.id !== id);
     setPackages(rest);
+    setRemovedPackageIds((prev) => [...prev, id]);
     if (activeId === id) setActiveId(rest[0]?.id ?? 0);
   }
 
@@ -387,6 +418,7 @@ export function PackagesForm({ rateTable, ratesContent }: { rateTable: RateTable
         includedItems: pkg.includedItems.filter((it) => it.addonId !== addonId),
       })),
     );
+    setRemovedAddonIds((prev) => [...prev, addonId]);
   }
 
   function openNewItemForm(category: AddonCategory, visibility: LineItemVisibility) {
@@ -439,7 +471,7 @@ export function PackagesForm({ rateTable, ratesContent }: { rateTable: RateTable
       const res = await fetch("/api/admin/packages", {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ packages, addons }),
+        body: JSON.stringify({ packages, addons, removedAddonIds, removedPackageIds }),
       });
       const data = await res.json();
       if (!res.ok) {
@@ -447,6 +479,8 @@ export function PackagesForm({ rateTable, ratesContent }: { rateTable: RateTable
         return;
       }
       setMessage(`저장되었습니다. 새 버전: ${data.rateTable.version}`);
+      setRemovedAddonIds([]);
+      setRemovedPackageIds([]);
       router.refresh();
     } finally {
       setSaving(false);
@@ -565,6 +599,10 @@ export function PackagesForm({ rateTable, ratesContent }: { rateTable: RateTable
             <tbody>
               {packages.map((p) => {
                 const t = computeTotals(p);
+                const group = packages.filter((g) => (g.venueId ?? DEFAULT_VENUE_ID) === (p.venueId ?? DEFAULT_VENUE_ID));
+                const idxInGroup = group.findIndex((g) => g.id === p.id);
+                const isFirst = idxInGroup <= 0;
+                const isLast = idxInGroup === group.length - 1;
                 return (
                   <tr
                     key={p.id}
@@ -583,6 +621,32 @@ export function PackagesForm({ rateTable, ratesContent }: { rateTable: RateTable
                     </td>
                     <td className="px-4 py-3 text-right">
                       <span className="inline-flex items-center gap-3">
+                        <span className="inline-flex flex-col leading-none">
+                          <button
+                            type="button"
+                            disabled={isFirst}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              movePackage(p.id, -1);
+                            }}
+                            aria-label="위로 이동"
+                            className="px-1 text-xs text-muted hover:text-foreground disabled:cursor-not-allowed disabled:opacity-30"
+                          >
+                            ▲
+                          </button>
+                          <button
+                            type="button"
+                            disabled={isLast}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              movePackage(p.id, 1);
+                            }}
+                            aria-label="아래로 이동"
+                            className="px-1 text-xs text-muted hover:text-foreground disabled:cursor-not-allowed disabled:opacity-30"
+                          >
+                            ▼
+                          </button>
+                        </span>
                         <button
                           type="button"
                           onClick={(e) => {
