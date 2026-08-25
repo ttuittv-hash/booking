@@ -248,7 +248,7 @@ export function StepMarketingCooperation({
 
         <div className="mt-8 border-t border-border/25 pt-5">
           <h3 className="type-kr-heading text-h6-m">
-            {t("marketing.serviceLinkHeading", "서울아레나 웹·앱 서비스 연계")}
+            {t("marketing.serviceLinkHeading", "마케팅 및 서비스연계(web, app)")}
           </h3>
 
           {/* 2026-08-25, "서비스 에 대한 꼭지를 슬롯으로 하나 분리해서... 앱.웹서비스에 노출
@@ -317,7 +317,7 @@ export function StepMarketingCooperation({
 
           <div className="mt-4">
             <p className="text-xs font-bold text-foreground">
-              {t("marketing.serviceConsentHeading", "서비스 연계 동의")}
+              {t("marketing.serviceConsentHeading", "마케팅/서비스 연계 동의")}
             </p>
             <label className="mt-2 flex cursor-pointer items-start gap-2 text-s">
               <input
