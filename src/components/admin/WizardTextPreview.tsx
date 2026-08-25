@@ -2,6 +2,7 @@
 
 import { useMemo, useState, type ReactNode } from "react";
 import type { ScreenTextContent, VenueRateContent, WizardStepTexts } from "@/lib/content/pageContent";
+import { WizardTextContext, type WizardTextApi } from "@/lib/content/wizardText";
 import { calculateQuote } from "@/lib/pricing/calculateQuote";
 import { packagesForVenue } from "@/lib/pricing/rateTableUtils";
 import { resolveSelectedDates } from "@/lib/pricing/dateRange";
@@ -140,9 +141,106 @@ function LivePreview({ children }: { children: ReactNode }) {
   return <div className="pointer-events-none select-none">{children}</div>;
 }
 
+/** t()가 편집 모드에서 반환하는 값 — 실제로 보이는 텍스트 노드 그 자리를 그대로
+ * 편집 입력으로 바꿔치기한다. contentEditable + onBlur 커밋을 쓰는 이유: 값을 매
+ * 타이핑마다 state로 올리면(controlled input) 리렌더 때 커서 위치가 튄다 — 여기서는
+ * blur(포커스 아웃)할 때만 한 번 커밋해서 그 문제를 피한다. pointer-events-auto를
+ * 직접 달아서 LivePreview의 pointer-events-none을 이 노드에서만 되살린다. */
+function InlineEditText({ value, onChange }: { value: string; onChange: (v: string) => void }) {
+  return (
+    <span
+      contentEditable
+      suppressContentEditableWarning
+      onBlur={(e) => {
+        const next = e.currentTarget.textContent ?? "";
+        if (next !== value) onChange(next);
+      }}
+      className="inline whitespace-pre-wrap break-words border-b border-dashed border-border-soft pointer-events-auto outline-none focus:border-accent"
+    >
+      {value}
+    </span>
+  );
+}
+
+/** t()를 통하지 않고 tStr()로만 노출되는 문구(placeholder·aria-label 등 DOM
+ * 속성값 — 화면에 상시 보이는 자리가 없어 그 위치에 편집 입력을 끼워 넣을 수 없다)를
+ * 모아 보여주는 보충 패널. 컴포넌트 트리를 하나하나 손으로 나열하지 않고, 렌더링
+ * 중 tStr() 호출 자체가 자기 key·fallback을 이 Map에 등록하게 해서 자동으로
+ * 모은다 — 나중에 어떤 컴포넌트가 새 tStr()을 추가해도 이 목록에 자동으로 잡힌다. */
+function AttrFieldsPanel({
+  fields,
+  overrides,
+  onChangeString,
+}: {
+  fields: Map<string, string>;
+  overrides: Record<string, string>;
+  onChangeString: (key: string, value: string) => void;
+}) {
+  if (fields.size === 0) return null;
+  return (
+    <div className="mt-6 border border-dashed border-border-soft bg-panel/60 p-3">
+      <p className="mb-2 text-2xs font-bold uppercase tracking-wide text-muted">
+        ✎ 속성 문구(placeholder 등) — 화면에 항상 보이는 자리가 없어 여기 따로 모았습니다
+      </p>
+      <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+        {[...fields.entries()].map(([key, fallback]) => (
+          <label key={key} className="block">
+            <input
+              type="text"
+              value={overrides[key] ?? fallback}
+              onChange={(e) => onChangeString(key, e.target.value)}
+              className={`${EDITABLE_INPUT} border-border-soft px-2 py-1`}
+            />
+          </label>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+/** t()/tStr() 호출을 자동으로 편집 가능하게 만드는 경계. 이 안에서 렌더되는 실제
+ * 컴포넌트 트리(StepConfigOptions 등)가 부르는 t()/tStr()은 개별 필드를 일일이
+ * 나열하지 않아도 전부 자동으로 여기 연결된다 — 나중에 컴포넌트에 새 t() 호출이
+ * 추가돼도 이 경계 코드는 손댈 필요가 없다.
+ * tStr() 등록이 AttrFieldsPanel에서 보이는 이유: children이 먼저 렌더되며
+ * fields Map을 채우고, Provider의 다음 형제인 AttrFieldsPanel은 React가 트리 순서대로
+ * 렌더링하므로 같은 렌더 패스 안에서 이미 채워진 Map을 그대로 읽는다. */
+function EditableSubtree({
+  overrides,
+  onChangeString,
+  children,
+}: {
+  overrides: Record<string, string>;
+  onChangeString: (key: string, value: string) => void;
+  children: ReactNode;
+}) {
+  const fields = new Map<string, string>();
+  const api: WizardTextApi = {
+    t: (key, fallback) => (
+      <InlineEditText
+        key={key}
+        value={overrides[key] ?? fallback}
+        onChange={(v) => onChangeString(key, v)}
+      />
+    ),
+    tStr: (key, fallback) => {
+      fields.set(key, fallback);
+      return overrides[key] ?? fallback;
+    },
+  };
+  return (
+    <WizardTextContext.Provider value={api}>
+      {children}
+      <AttrFieldsPanel fields={fields} overrides={overrides} onChangeString={onChangeString} />
+    </WizardTextContext.Provider>
+  );
+}
+
 interface RenderCtx {
   wizardSteps: WizardStepTexts;
   setStep: (patch: Partial<WizardStepTexts>) => void;
+  wizardStrings: Record<string, string>;
+  setString: (key: string, value: string) => void;
   rateTable: RateTable;
   liveHallRateContent: VenueRateContent;
   mocks: ReturnType<typeof useMockSelections>;
@@ -506,13 +604,25 @@ export function WizardTextPreview({
         function setStep(stepPatch: Partial<WizardStepTexts>) {
           patch({ wizardSteps: { ...v.wizardSteps, ...stepPatch } });
         }
-        const ctx: RenderCtx = { wizardSteps: v.wizardSteps, setStep, rateTable, liveHallRateContent, mocks };
+        function setString(key: string, value: string) {
+          patch({ wizardStrings: { ...v.wizardStrings, [key]: value } });
+        }
+        const ctx: RenderCtx = {
+          wizardSteps: v.wizardSteps,
+          setStep,
+          wizardStrings: v.wizardStrings,
+          setString,
+          rateTable,
+          liveHallRateContent,
+          mocks,
+        };
         return (
           <div>
             <p className={HELP}>
               대관 위저드(/apply)와 같은 탭 구조입니다. 탭을 누르면 그 STEP의 실제 화면이 그대로
-              나오고(화면은 클릭·입력이 안 됩니다), 점선 밑줄이 있는 제목·리드 문구는 그 자리에서 바로
-              고칠 수 있습니다 — 고치는 즉시 같은 자리에 반영됩니다.
+              나오고(화면은 클릭·입력이 안 됩니다), 점선 밑줄이 있는 문구는 그 자리에서 바로 고칠 수
+              있습니다 — 고치는 즉시 같은 자리에 반영됩니다. placeholder처럼 화면에 상시 보이지 않는
+              문구는 화면 아래 별도 칸에 모아 둡니다.
             </p>
 
             <nav className="mt-5 border-b border-border/25">
@@ -562,7 +672,11 @@ export function WizardTextPreview({
               </ol>
             )}
 
-            <div className="mt-8 border border-dashed border-border-soft bg-panel/40 p-5">{subTab.render(ctx)}</div>
+            <div className="mt-8 border border-dashed border-border-soft bg-panel/40 p-5">
+              <EditableSubtree overrides={ctx.wizardStrings} onChangeString={ctx.setString}>
+                {subTab.render(ctx)}
+              </EditableSubtree>
+            </div>
           </div>
         );
       }}
