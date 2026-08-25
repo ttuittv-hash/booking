@@ -264,48 +264,56 @@ export function StepMarketingCooperation({
             )}
           </p>
 
-          <p className="mt-4 text-xs font-bold text-foreground">
-            {t("marketing.serviceScopeHeading", "주요 활용 범위")}
-          </p>
-          <ul className="mt-2 space-y-3">
-            {SERVICE_SCOPE_ITEMS.map((item) => (
-              <li key={item.key}>
-                <p className="text-xs font-bold text-foreground">
-                  {t(`marketing.serviceScope.${item.key}.title`, item.defaultTitle)}
-                </p>
-                <p className="mt-1 break-keep text-xs leading-6 text-muted">
-                  {t(`marketing.serviceScope.${item.key}.desc`, item.defaultDesc)}
-                </p>
-              </li>
-            ))}
-          </ul>
-
-          <p className="mt-4 text-xs font-bold text-foreground">
-            {t("marketing.serviceNoticeHeading", "안내사항")}
-          </p>
-          <ul className="mt-1.5 list-disc space-y-1 break-keep pl-4 text-xs leading-6 text-muted">
-            <li>
-              {t(
-                "marketing.serviceNoticeItem1",
-                "실제 활용되는 정보 및 콘텐츠의 제공 범위, 공개 여부, 노출 시점 등은 공연 준비 " +
-                  "과정에서 대관사와 협의하여 확정합니다.",
-              )}
-            </li>
-            <li>
-              {t(
-                "marketing.serviceNoticeItem2",
-                "대관 신청 단계에서는 별도의 콘텐츠 파일을 제출하지 않으며, 필요한 자료는 공연 " +
-                  "준비 과정에서 별도로 요청할 수 있습니다.",
-              )}
-            </li>
-            <li>
-              {t(
-                "marketing.serviceNoticeItem3",
-                "대관사가 제공하는 이미지·영상 등 콘텐츠는 서울아레나 웹·앱 서비스에서 활용 " +
-                  "가능한 권리를 확보한 자료를 기준으로 합니다.",
-              )}
-            </li>
-          </ul>
+          {/* 2026-08-25, "너무 나열이야.. 박스 형태로.. 주요활용 범위, 안내 사항을 가로 축을
+              반으로 나눠서" 피드백 — 세로로 죽 나열하던 두 섹션을 예전 "제공 정보 및
+              콘텐츠 / 활용 목적 및 범위" 두 박스 레이아웃과 같은 grid-cols-2 박스로 되돌림. */}
+          <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2">
+            <div className="rounded-lg border border-border/25 bg-surface p-4">
+              <p className="text-xs font-bold text-foreground">
+                {t("marketing.serviceScopeHeading", "주요 활용 범위")}
+              </p>
+              <ul className="mt-2 space-y-3">
+                {SERVICE_SCOPE_ITEMS.map((item) => (
+                  <li key={item.key}>
+                    <p className="text-xs font-bold text-foreground">
+                      {t(`marketing.serviceScope.${item.key}.title`, item.defaultTitle)}
+                    </p>
+                    <p className="mt-1 break-keep text-xs leading-6 text-muted">
+                      {t(`marketing.serviceScope.${item.key}.desc`, item.defaultDesc)}
+                    </p>
+                  </li>
+                ))}
+              </ul>
+            </div>
+            <div className="rounded-lg border border-border/25 bg-surface p-4">
+              <p className="text-xs font-bold text-foreground">
+                {t("marketing.serviceNoticeHeading", "안내사항")}
+              </p>
+              <ul className="mt-2 list-disc space-y-1.5 break-keep pl-4 text-xs leading-6 text-muted">
+                <li>
+                  {t(
+                    "marketing.serviceNoticeItem1",
+                    "실제 활용되는 정보 및 콘텐츠의 제공 범위, 공개 여부, 노출 시점 등은 공연 준비 " +
+                      "과정에서 대관사와 협의하여 확정합니다.",
+                  )}
+                </li>
+                <li>
+                  {t(
+                    "marketing.serviceNoticeItem2",
+                    "대관 신청 단계에서는 별도의 콘텐츠 파일을 제출하지 않으며, 필요한 자료는 공연 " +
+                      "준비 과정에서 별도로 요청할 수 있습니다.",
+                  )}
+                </li>
+                <li>
+                  {t(
+                    "marketing.serviceNoticeItem3",
+                    "대관사가 제공하는 이미지·영상 등 콘텐츠는 서울아레나 웹·앱 서비스에서 활용 " +
+                      "가능한 권리를 확보한 자료를 기준으로 합니다.",
+                  )}
+                </li>
+              </ul>
+            </div>
+          </div>
 
           <div className="mt-4">
             <p className="text-xs font-bold text-foreground">
