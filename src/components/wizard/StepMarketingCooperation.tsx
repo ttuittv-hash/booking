@@ -52,6 +52,21 @@ const SERVICE_SCOPE_ITEMS = [
 
 const EMPTY_CHANNEL = { platform: "", handle: "", followers: "" };
 
+// 티켓 판매량·판매율 데이터 제공 체크박스가 정확히 무엇을 포함하는지 보여주는
+// 항목 — 표나 박스가 아니라 체크박스 라벨 밑에 텍스트로만 나열한다(2026-08-22,
+// "취득 어쩌구는 우리 서울아레나 입장" · "표로 넣지 말고 텍스트로 나열" 피드백).
+const SALES_DATA_ITEMS = [
+  "총 판매매수",
+  "유료 판매율",
+  "판매가능 객석수",
+  "좌석등급별 판매율",
+  "일자별 판매 추이",
+  "평균 객단가",
+  "티켓 가격대",
+  "총 티켓 매출액",
+  "예매처별 판매 비중",
+];
+
 export function StepMarketingCooperation({
   info,
   onChange,
@@ -367,12 +382,21 @@ export function StepMarketingCooperation({
               </div>
             </div>
           </div>
+        </div>
 
-          <div className="mt-4 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-            <p className="text-s font-bold text-foreground">
-              {t("marketing.salesDataConsentHeading", "세일즈·실적 데이터 제공 협조")}
-            </p>
-            <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-6">
+        {/* 2026-08-25, "세일즈·실적 데이터 제공 협조 이거 박스형태로 있던거 그대로
+            유지해야지.. 이 슬롯 기존대로 복구" — 위 "협조 동의 항목"에 합쳤던 걸
+            되돌리고, 원래대로 독립 슬롯 + 2단 박스 레이아웃을 유지한다. */}
+        <div className="mt-8 border-t border-border/25 pt-5">
+          <h3 className="type-kr-heading text-h6-m">
+            {t("marketing.dataConsentHeading", "공연 관련 데이터 제공 협조")}
+          </h3>
+          <p className="mt-2 break-keep text-xs leading-6 text-muted">
+            {t("marketing.dataConsentHint", "제공된 데이터는 서울아레나의 공연장 운영 통계에 활용됩니다.")}
+          </p>
+
+          <div className="mt-4 grid grid-cols-1 gap-x-6 gap-y-5 sm:grid-cols-2">
+            <div>
               <label className="flex cursor-pointer items-center gap-2 text-s">
                 <input
                   type="checkbox"
@@ -390,8 +414,14 @@ export function StepMarketingCooperation({
                   }}
                   className="h-4 w-4 accent-[var(--accent)]"
                 />
-                {t("marketing.salesDataConsentLabel", "등급별 티켓 판매 수량 등 세일즈 Data 제공 동의")}
+                {t("marketing.salesDataConsentLabel", "공연 실적 데이터 제공")}
               </label>
+              <p className="mt-1.5 pl-6 break-keep text-xs leading-5 text-muted">
+                {t("marketing.salesDataItemsList", SALES_DATA_ITEMS.join(", "))}{" "}
+                {t("marketing.salesDataItemsSuffix", "등")}
+              </p>
+            </div>
+            <div>
               <label
                 className={`flex items-center gap-2 text-s ${
                   info.ticketSalesDataConsent ? "cursor-pointer" : "cursor-not-allowed opacity-50"
@@ -404,8 +434,24 @@ export function StepMarketingCooperation({
                   onChange={(e) => set("pollstarConsent", e.target.checked)}
                   className="h-4 w-4 accent-[var(--accent)]"
                 />
-                {t("marketing.pollstarConsentLabel", "글로벌 공연 DB (Pollstar 등)에 Data 등록 동의")}
+                {t("marketing.pollstarConsentLabel", "공연 데이터 외부 제공 동의 (Pollstar 등)")}
               </label>
+              <p className="mt-1.5 pl-6 break-keep text-xs leading-5 text-muted">
+                {t(
+                  "marketing.pollstarConsentHint",
+                  "동의 시 아티스트, 공연일자, 공연장 정보와 함께 티켓 판매량, 판매가능 객석수, " +
+                    "판매율, 티켓 가격 및 매출 등 개별 공연의 실적 정보가 외부 공연산업 " +
+                    "데이터베이스에 제공·공개될 수 있습니다.",
+                )}
+                {!info.ticketSalesDataConsent && (
+                  <span className="mt-1 block text-muted/80">
+                    {t(
+                      "marketing.pollstarConsentDisabledNote",
+                      "(좌측 공연 실적 데이터 제공에 동의해야 선택할 수 있습니다)",
+                    )}
+                  </span>
+                )}
+              </p>
             </div>
           </div>
         </div>
