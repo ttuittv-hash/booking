@@ -2,7 +2,7 @@
 
 import { CHOICE_SELECTED_VARS } from "@/components/ui/kit";
 
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
 import { defaultDayTags, effectiveDayTag } from "@/lib/pricing/rateTableUtils";
 import { resolveSelectedDates } from "@/lib/pricing/dateRange";
 import { INITIAL_PERFORMANCE_INFO } from "@/lib/pricing/performanceInfoDefaults";
@@ -219,8 +219,8 @@ export function StepAudience({
   // [2026-08-23] "신청자 정보"·"규모" 탭을 하나로 합치면서, 합친 화면에서는 큰 제목이
   // 두 번 나오지 않게 이 컴포넌트만 자기 제목(StepHeading)을 생략할 수 있게 했다.
   showHeading?: boolean;
-  title: string;
-  lead: string;
+  title: ReactNode;
+  lead: ReactNode;
 }) {
   const [activeTab, setActiveTab] = useState<VenueSplitTab>(midHallInfo ? "ARENA" : "COMMON");
 

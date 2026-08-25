@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
 import { won } from "@/lib/format";
 import { findPackage, totalRentalDays } from "@/lib/pricing/rateTableUtils";
 import { useToast } from "@/components/ui/Toast";
@@ -73,6 +73,7 @@ export function Step6Submit({
   onSubmit,
   onRequestEdit,
   stepText,
+  headingOverride,
 }: {
   rateTable: RateTable;
   quote: EstimatedQuote;
@@ -93,6 +94,8 @@ export function Step6Submit({
   /** 제출 완료 배너 옆의 "수정하기" 버튼 — 누르면 1단계로 돌아가 다시 수정할 수 있다. */
   onRequestEdit?: () => void;
   stepText: WizardStepTexts;
+  /** 관리자 문구 미리보기 전용 — 제목·리드를 편집 가능한 입력으로 바꿔치기한다. */
+  headingOverride?: { title: ReactNode; lead?: ReactNode };
 }) {
   const toast = useToast();
   const pkg = findPackage(rateTable, selection.packageId);
@@ -147,8 +150,8 @@ export function Step6Submit({
   return (
     <section>
       <StepHeading
-        title={isEditing ? stepText.submitEditingTitle : stepText.submitNewTitle}
-        lead={isEditing ? stepText.submitEditingLead : stepText.submitNewLead}
+        title={headingOverride?.title ?? (isEditing ? stepText.submitEditingTitle : stepText.submitNewTitle)}
+        lead={headingOverride?.lead ?? (isEditing ? stepText.submitEditingLead : stepText.submitNewLead)}
       />
 
       <div className="mt-10 flex flex-wrap items-center justify-between gap-4 border-t-2 border-foreground pt-6">

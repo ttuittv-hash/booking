@@ -1,5 +1,6 @@
 "use client";
 
+import type { ReactNode } from "react";
 import { won } from "@/lib/format";
 import { findPackage, totalRentalDays } from "@/lib/pricing/rateTableUtils";
 import type { EstimatedQuote, LineItem, QuoteSelection, RateTable } from "@/lib/pricing/types";
@@ -29,7 +30,7 @@ export function Step5Estimate({
   rateTable: RateTable;
   quote: EstimatedQuote;
   selection: QuoteSelection;
-  title: string;
+  title: ReactNode;
 }) {
   const pkg = findPackage(rateTable, selection.packageId);
   const hasMidHall = Object.keys(selection.midHallDays).length > 0;

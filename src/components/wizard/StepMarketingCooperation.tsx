@@ -1,5 +1,6 @@
 "use client";
 
+import type { ReactNode } from "react";
 import { toggleClass } from "@/components/ui/kit";
 import type { MarketingCooperation } from "@/lib/pricing/types";
 import { StepHeading, StepForm } from "./StepHeading";
@@ -39,8 +40,8 @@ export function StepMarketingCooperation({
 }: {
   info: MarketingCooperation;
   onChange: (info: MarketingCooperation) => void;
-  title: string;
-  lead: string;
+  title: ReactNode;
+  lead: ReactNode;
 }) {
   function set<K extends keyof MarketingCooperation>(key: K, value: MarketingCooperation[K]) {
     onChange({ ...info, [key]: value });

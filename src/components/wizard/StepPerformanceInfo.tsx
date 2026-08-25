@@ -2,7 +2,7 @@
 
 import { FILE_INPUT, toggleClass } from "@/components/ui/kit";
 
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
 import { INITIAL_PERFORMANCE_INFO } from "@/lib/pricing/performanceInfoDefaults";
 import { VenueSplitTabBar, type VenueSplitTab } from "./VenueSplitTabBar";
 import { resolveSelectedDates } from "@/lib/pricing/dateRange";
@@ -668,7 +668,7 @@ export function StepPerformanceInfo({
   midHallInfo: PerformanceInfo | null;
   onChangeMidHallInfo: (info: PerformanceInfo | null) => void;
   selection: QuoteSelection;
-  title: string;
+  title: ReactNode;
 }) {
   const [activeTab, setActiveTab] = useState<VenueSplitTab>(midHallInfo ? "ARENA" : "COMMON");
 

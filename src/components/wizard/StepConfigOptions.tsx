@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
 import { won } from "@/lib/format";
 import { resolveSelectedDates } from "@/lib/pricing/dateRange";
 import {
@@ -393,6 +393,7 @@ export function StepConfigOptions({
   onChangeRevenue,
   onSelectPackage,
   onClearPackage,
+  headingOverride,
 }: {
   rateTable: RateTable;
   liveHallRateContent: VenueRateContent;
@@ -405,6 +406,8 @@ export function StepConfigOptions({
   onChangeRevenue: (value: number) => void;
   onSelectPackage: (packageId: number) => void;
   onClearPackage: () => void;
+  /** 관리자 문구 미리보기 전용 — 제목·리드를 편집 가능한 입력으로 바꿔치기한다. */
+  headingOverride?: { title: ReactNode; lead?: ReactNode };
 }) {
   const midHallOnly = selection.venueId === "medium-hall" && selection.bookingMode === "SINGLE";
   const isSimultaneous = selection.bookingMode === "SIMULTANEOUS";
@@ -415,7 +418,10 @@ export function StepConfigOptions({
   if (midHallOnly) {
     return (
       <section>
-        <StepHeading title={stepText.configMidHallOnlyTitle} lead={stepText.configMidHallOnlyLead} />
+        <StepHeading
+          title={headingOverride?.title ?? stepText.configMidHallOnlyTitle}
+          lead={headingOverride?.lead ?? stepText.configMidHallOnlyLead}
+        />
 
         <MidHallRateCard
           content={liveHallRateContent}
@@ -461,7 +467,7 @@ export function StepConfigOptions({
           이 헤더가 화면의 유일한 제목이라 남긴다. */}
       {!isSimultaneous && (
         <StepHeading
-          title={stepText.configArenaTitle}
+          title={headingOverride?.title ?? stepText.configArenaTitle}
           lead={
             pkg
               ? `${pkg.name} · ${pkg.audienceTier.label} · 예상 관객 ${selection.expectedAudience.toLocaleString()}명 · ${arenaSummaryLine(selection, defaultPerformanceDays)}`
@@ -531,7 +537,10 @@ export function StepConfigOptions({
 
   return (
     <section>
-      <StepHeading title={stepText.configSimultaneousTitle} lead={stepText.configSimultaneousLead} />
+      <StepHeading
+        title={headingOverride?.title ?? stepText.configSimultaneousTitle}
+        lead={headingOverride?.lead ?? stepText.configSimultaneousLead}
+      />
 
       <div className="mt-8 flex gap-1 border-b border-border">
         {(["arena", "medium-hall"] as const).map((tab) => (

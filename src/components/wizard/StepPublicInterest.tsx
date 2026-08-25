@@ -2,7 +2,7 @@
 
 import { CHOICE_SELECTED_VARS, FILE_INPUT, toggleClass } from "@/components/ui/kit";
 
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
 import { INITIAL_PERFORMANCE_INFO } from "@/lib/pricing/performanceInfoDefaults";
 import {
   PUBLIC_INTEREST_ITEM_HINT,
@@ -38,7 +38,7 @@ export function StepPublicInterest({
   onChangeMidHallInfo: (info: PerformanceInfo | null) => void;
   files: File[];
   onFilesChange: (files: File[]) => void;
-  title: string;
+  title: ReactNode;
 }) {
   const selectedItems = info.publicInterestItems ?? [];
   const [activeTab, setActiveTab] = useState<VenueSplitTab>(midHallInfo ? "ARENA" : "COMMON");

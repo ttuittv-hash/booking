@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef } from "react";
+import { useRef, type ReactNode } from "react";
 import { btnClass } from "@/components/ui/kit";
 import type { SafetyPledge } from "@/lib/pricing/types";
 import { SignaturePad } from "./SignaturePad";
@@ -115,8 +115,8 @@ export function StepSafetyPledge({
   onSafetyPlanFileChange: (file: File | null) => void;
   castContractFile: File | null;
   onCastContractFileChange: (file: File | null) => void;
-  title: string;
-  lead: string;
+  title: ReactNode;
+  lead: ReactNode;
 }) {
   const allChecked = PLEDGE_ITEMS.every((item) => pledge[item.key]);
 
