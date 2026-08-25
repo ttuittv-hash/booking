@@ -72,6 +72,7 @@ export default async function EditQuotePage({
           initialSelection={quote.selection}
           liveHallRateContent={ratesContent.liveHall}
           wizardStepText={screenText.wizardSteps}
+          wizardStrings={screenText.wizardStrings}
         />
       </main>
 

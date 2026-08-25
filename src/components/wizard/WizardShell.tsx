@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { calculateQuote } from "@/lib/pricing/calculateQuote";
 import { ARENA_MAX_AUDIENCE } from "@/lib/content/rateFacts";
 import type { VenueRateContent, WizardStepTexts } from "@/lib/content/pageContent";
+import { WizardTextProvider } from "@/lib/content/wizardText";
 import {
   findAddon,
   findPackage,
@@ -129,6 +130,7 @@ export function WizardShell({
   applicantPrefill,
   liveHallRateContent,
   wizardStepText,
+  wizardStrings,
 }: {
   rateTable: RateTable;
   currentUser: AppUser | null;
@@ -151,6 +153,9 @@ export function WizardShell({
   // (2026-08-24, "대관 위저드 프로세스에서 시스템 메시지들이 많은데 이런 부분도
   // 운영툴에서 수정할수 있도록").
   wizardStepText: WizardStepTexts;
+  // 스텝 제목·리드를 뺀 나머지 모든 위저드 문구(체크박스 라벨, 안내 문단, 서약 조항
+  // 전문 등) — key → 값의 평평한 맵. src/lib/content/wizardText.tsx 참고.
+  wizardStrings: Record<string, string>;
 }) {
   const isEditing = !!editingQuoteId;
   const toast = useToast();
@@ -566,8 +571,9 @@ export function WizardShell({
   );
 
   return (
-    // 좌: 스텝 콘텐츠 / 우: sticky 요약 패널.
-    // 콘텐츠 트랙은 minmax(0,1fr) + min-w-0 로 묶어 스텝 전환 시 폭이 변하지 않게 한다.
+    <WizardTextProvider overrides={wizardStrings}>
+    {/* 좌: 스텝 콘텐츠 / 우: sticky 요약 패널.
+        콘텐츠 트랙은 minmax(0,1fr) + min-w-0 로 묶어 스텝 전환 시 폭이 변하지 않게 한다. */}
     <div className="container-site grid w-full grid-cols-1 gap-10 py-10 sm:py-12 lg:grid-cols-[minmax(0,1fr)_360px] lg:gap-14">
       <div className="min-w-0">
         <StepNav step={step} maxUnlockedStep={maxUnlockedStep} locked={submissionLocked} onJump={goTo} />
@@ -795,5 +801,6 @@ export function WizardShell({
         */
       />
     </div>
+    </WizardTextProvider>
   );
 }

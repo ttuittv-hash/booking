@@ -80,6 +80,7 @@ export default async function ApplyPage({
           applicantPrefill={applicantPrefill}
           liveHallRateContent={ratesContent.liveHall}
           wizardStepText={screenText.wizardSteps}
+          wizardStrings={screenText.wizardStrings}
         />
       </main>
 
