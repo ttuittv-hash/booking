@@ -6,15 +6,49 @@ import type { MarketingCooperation } from "@/lib/pricing/types";
 import { useWizardText } from "@/lib/content/wizardText";
 import { StepHeading, StepForm } from "./StepHeading";
 
-// 홍보 및 서비스 노출 동의는 무조건 선택해야 다음 단계로 넘어간다(2026-08-22,
-// "홍보 및 서비스 노출 동의/비동의 -> 이거 선택은 무조건 필수"). 나머지(채널·스폰서십)는
-// 선택 항목이라 여기서 검사하지 않는다.
+// 서비스 연계 동의는 무조건 체크해야 다음 단계로 넘어간다(2026-08-22, "이거 선택은
+// 무조건 필수" 합의가 유지됨). 2026-08-25에 동의/비동의 두 버튼에서 단일 체크박스로
+// 개편됐지만 필수 검사 자체는 그대로다 — 체크 안 하면(null) 통과 못 한다.
+// 나머지(채널·스폰서십)는 선택 항목이라 여기서 검사하지 않는다.
 export function validateMarketingCooperationStep(info: MarketingCooperation): string | null {
-  if (info.seoulArenaPromotionConsent === null) {
-    return "홍보 및 서비스 노출 동의 여부를 선택해 주세요.";
+  if (info.seoulArenaPromotionConsent !== true) {
+    return "서비스 연계 동의에 체크해 주세요.";
   }
   return null;
 }
+
+// "주요 활용 범위" 5항목 — 제목+설명 쌍. PLEDGE_ITEMS(StepSafetyPledge)와 같은 패턴으로
+// key는 t() 키 조합에만 쓰고 화면에 노출되지 않는다.
+const SERVICE_SCOPE_ITEMS = [
+  {
+    key: "info",
+    defaultTitle: "공연·아티스트 정보 제공 및 홍보",
+    defaultDesc: "공연 일정, 공연 소개, 아티스트 정보 등을 활용하여 공연 정보를 제공하고 공연 및 아티스트의 홍보를 지원합니다.",
+  },
+  {
+    key: "content",
+    defaultTitle: "공연 콘텐츠 제공",
+    defaultDesc:
+      "공연 포스터, 아티스트 이미지, 공식 사진·영상, 공연 프로그램, 세트리스트 등 공연과 관련된 콘텐츠를 관람객에게 제공할 수 있습니다.",
+  },
+  {
+    key: "md",
+    defaultTitle: "MD·팝업·이벤트 정보 제공",
+    defaultDesc: "공식 MD, 팝업스토어, 팬 이벤트, 프로모션 등 공연과 연계된 현장 프로그램 및 부대 콘텐츠를 안내할 수 있습니다.",
+  },
+  {
+    key: "guide",
+    defaultTitle: "관람객 안내 및 편의 서비스",
+    defaultDesc:
+      "공연 일정 및 운영 정보, 입장·퇴장, 교통, 시설 이용, 현장 프로그램 등 관람에 필요한 정보를 서울아레나 웹·앱 서비스와 연계하여 제공할 수 있습니다.",
+  },
+  {
+    key: "safety",
+    defaultTitle: "현장 운영 및 안전·질서 안내",
+    defaultDesc:
+      "공연별 운영 정보와 현장 상황을 기반으로 관람객 동선, 혼잡 관리, 안전 및 질서 유지 등을 위한 안내 서비스에 활용할 수 있습니다.",
+  },
+] as const;
 
 const EMPTY_CHANNEL = { platform: "", handle: "", followers: "" };
 
@@ -213,86 +247,86 @@ export function StepMarketingCooperation({
         </div>
 
         <div className="mt-8 border-t border-border/25 pt-5">
-          <h3 className="type-kr-heading text-h6-m">{t("marketing.exposureHeading", "홍보 및 서비스 노출")}</h3>
+          <h3 className="type-kr-heading text-h6-m">
+            {t("marketing.serviceLinkHeading", "서울아레나 웹·앱 서비스 연계")}
+          </h3>
 
-          {/* 대관사가 부담 없이 읽을 수 있게 문장은 부드럽게 풀어 쓰되(2026-08-22,
-              "대관사가 잘 이해할 수 있게 부드럽게" 피드백), "무엇을(제공 정보 및 콘텐츠)"과
-              "어떻게(활용 목적 및 범위)"는 서로 다른 질문이라 한 박스로 뭉치지 않고
-              두 박스로 나눠 보여준다("활용대상 박스, 노출/활용 범위박스를 두개 나눠서").
-              문구는 2026-08-23에 정식 조항 텍스트로 교체됨. */}
+          {/* 2026-08-25, "서비스 에 대한 꼭지를 슬롯으로 하나 분리해서... 앱.웹서비스에 노출
+              범위를 조정" 요청으로 기존 "홍보 및 서비스 노출"(제공 정보/활용 목적 두 박스 +
+              동의/비동의 버튼)을 대체. 법무 검토용으로 전달받은 문구를 그대로 옮긴다 —
+              임의로 다듬지 않는다. */}
           <p className="mt-3 break-keep text-xs leading-6 text-muted">
             {t(
-              "marketing.exposureLead",
-              "서울아레나는 관람객에게 원활한 공연·이벤트 정보 및 서비스를 제공하기 위해 " +
-                "대관사가 제공하는 공연 정보 및 관련 콘텐츠를 서울아레나 Web/App Service 등 " +
-                "온·오프라인 채널에서 활용할 수 있습니다.",
+              "marketing.serviceLinkLead",
+              "서울아레나는 관람객에게 보다 편리하고 풍부한 공연 경험을 제공하기 위해, 대관사가 " +
+                "제공하는 공연·아티스트 관련 정보 및 콘텐츠를 서울아레나 공식 웹사이트 및 모바일 " +
+                "서비스에 연계하여 제공할 수 있습니다.",
             )}
           </p>
 
-          <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2">
-            <div className="rounded-lg border border-border/25 bg-surface p-4">
-              <p className="text-xs font-bold text-foreground">
-                {t("marketing.providedContentBoxTitle", "제공 정보 및 콘텐츠")}
-              </p>
-              <ul className="mt-1.5 list-disc space-y-1 break-keep pl-4 text-xs leading-6 text-muted">
-                <li>{t("marketing.providedContentItem1", "공연·이벤트명, 아티스트, 공연 일정 및 프로그램 등 공연 기본 정보")}</li>
-                <li>{t("marketing.providedContentItem2", "공연 소개, 포스터, 공식 이미지·영상 등 홍보 콘텐츠")}</li>
-                <li>{t("marketing.providedContentItem3", "티켓 오픈·예매 및 관람 관련 정보")}</li>
-                <li>{t("marketing.providedContentItem4", "입·퇴장, 운영시간, MD·F&B, 부대행사 등 관람객 안내에 필요한 정보")}</li>
-                <li>{t("marketing.providedContentItem5", "기타 공연 및 관람객 서비스 운영을 위해 상호 협의한 정보")}</li>
-              </ul>
-            </div>
-            <div className="rounded-lg border border-border/25 bg-surface p-4">
-              <p className="text-xs font-bold text-foreground">
-                {t("marketing.usagePurposeBoxTitle", "활용 목적 및 범위")}
-              </p>
-              <ul className="mt-1.5 list-disc space-y-1 break-keep pl-4 text-xs leading-6 text-muted">
-                <li>{t("marketing.usagePurposeItem1", "서울아레나 Web/App Service 내 공연·이벤트 정보 제공")}</li>
-                <li>{t("marketing.usagePurposeItem2", "공연 상세, 아티스트, 일정 등 공연 관련 콘텐츠 구성 및 노출")}</li>
-                <li>{t("marketing.usagePurposeItem3", "공연·이벤트 홍보 및 프로모션")}</li>
-                <li>{t("marketing.usagePurposeItem4", "관람객 특성 및 공연 일정에 따른 맞춤형 정보 제공·큐레이션")}</li>
-                <li>{t("marketing.usagePurposeItem5", "입·퇴장, 혼잡시간, 시설 이용 등 관람객 안내 및 안전·질서 관리")}</li>
-                <li>{t("marketing.usagePurposeItem6", "공연 및 관람객 서비스의 운영·개선")}</li>
-                <li>{t("marketing.usagePurposeItem7", "공연장 운영 현황 분석 및 통계 데이터 구축·활용")}</li>
-              </ul>
-            </div>
+          <p className="mt-4 text-xs font-bold text-foreground">
+            {t("marketing.serviceScopeHeading", "주요 활용 범위")}
+          </p>
+          <ul className="mt-2 space-y-3">
+            {SERVICE_SCOPE_ITEMS.map((item) => (
+              <li key={item.key}>
+                <p className="text-xs font-bold text-foreground">
+                  {t(`marketing.serviceScope.${item.key}.title`, item.defaultTitle)}
+                </p>
+                <p className="mt-1 break-keep text-xs leading-6 text-muted">
+                  {t(`marketing.serviceScope.${item.key}.desc`, item.defaultDesc)}
+                </p>
+              </li>
+            ))}
+          </ul>
+
+          <p className="mt-4 text-xs font-bold text-foreground">
+            {t("marketing.serviceNoticeHeading", "안내사항")}
+          </p>
+          <ul className="mt-1.5 list-disc space-y-1 break-keep pl-4 text-xs leading-6 text-muted">
+            <li>
+              {t(
+                "marketing.serviceNoticeItem1",
+                "실제 활용되는 정보 및 콘텐츠의 제공 범위, 공개 여부, 노출 시점 등은 공연 준비 " +
+                  "과정에서 대관사와 협의하여 확정합니다.",
+              )}
+            </li>
+            <li>
+              {t(
+                "marketing.serviceNoticeItem2",
+                "대관 신청 단계에서는 별도의 콘텐츠 파일을 제출하지 않으며, 필요한 자료는 공연 " +
+                  "준비 과정에서 별도로 요청할 수 있습니다.",
+              )}
+            </li>
+            <li>
+              {t(
+                "marketing.serviceNoticeItem3",
+                "대관사가 제공하는 이미지·영상 등 콘텐츠는 서울아레나 웹·앱 서비스에서 활용 " +
+                  "가능한 권리를 확보한 자료를 기준으로 합니다.",
+              )}
+            </li>
+          </ul>
+
+          <div className="mt-4">
+            <p className="text-xs font-bold text-foreground">
+              {t("marketing.serviceConsentHeading", "서비스 연계 동의")}
+            </p>
+            <label className="mt-2 flex cursor-pointer items-start gap-2 text-s">
+              <input
+                type="checkbox"
+                checked={info.seoulArenaPromotionConsent === true}
+                onChange={(e) => set("seoulArenaPromotionConsent", e.target.checked ? true : null)}
+                className="mt-0.5 h-4 w-4 shrink-0 accent-[var(--accent)]"
+              />
+              <span className="break-keep leading-6">
+                {t(
+                  "marketing.serviceConsentLabel",
+                  "위 내용을 확인하였으며, 공연·아티스트 관련 정보 및 콘텐츠를 상기 목적에 따라 " +
+                    "서울아레나 공식 웹사이트 및 모바일 서비스에 연계·활용하는 것에 동의합니다.",
+                )}
+              </span>
+            </label>
           </div>
-
-          <p className="mt-3 break-keep text-xs leading-6 text-muted">
-            {t(
-              "marketing.exposurePurposeNote",
-              "제공된 정보 및 콘텐츠는 해당 공연·이벤트의 관람객 서비스 제공, 홍보, 안전한 " +
-                "공연장 운영 및 서울아레나 서비스 개선을 위한 목적으로 활용될 수 있습니다.",
-            )}
-          </p>
-
-          <p className="mt-3 break-keep text-xs leading-6 text-muted">
-            {t(
-              "marketing.exposureImageRightsNote",
-              "이미지·영상 등의 사용 권한은 대관사가 미리 확보한 범위 내에서 제공해 주시면 되고, " +
-                "별도 협의가 필요한 콘텐츠는 서울아레나와 미리 상의해 주세요.",
-            )}
-          </p>
-
-          <div className="mt-4 flex gap-2">
-            <button
-              type="button"
-              onClick={() => set("seoulArenaPromotionConsent", true)}
-              className={toggleClass(info.seoulArenaPromotionConsent === true)}
-            >
-              {t("marketing.consentYes", "동의")}
-            </button>
-            <button
-              type="button"
-              onClick={() => set("seoulArenaPromotionConsent", false)}
-              className={toggleClass(info.seoulArenaPromotionConsent === false)}
-            >
-              {t("marketing.consentNo", "비동의")}
-            </button>
-          </div>
-          <p className="mt-2.5 break-keep text-xs text-muted">
-            {t("marketing.consentDetailNote", "사전 동의 시, 세부 내역은 별도 협의를 통해 진행됩니다.")}
-          </p>
         </div>
 
         <div className="mt-8 border-t border-border/25 pt-5">
