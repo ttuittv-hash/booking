@@ -52,6 +52,14 @@ export async function PUT(request: Request) {
   const addonOverrides = Array.isArray(body?.addons)
     ? (body.addons as { id: string; unitPrice: number }[])
     : [];
+  // 화면에서 지운 항목은 여기(removedAddonIds)로만 실제 삭제된다 — 그 전에는
+  // 요청에 없는 id를 current에서 그대로 되살려서 삭제가 저장되지 않았다
+  // (2026-08-24, "선택옵션들이 삭제해도 rate card에 그대로 남아있는 오류").
+  const removedAddonIds = new Set(
+    (Array.isArray(body?.removedAddonIds) ? (body.removedAddonIds as unknown[]) : []).filter(
+      (v): v is string => typeof v === "string",
+    ),
+  );
   const extraWeekRatio = typeof body?.extraWeekRatio === "number" ? body.extraWeekRatio : undefined;
   const dayExclusionDiscountRatio =
     typeof body?.dayExclusionDiscountRatio === "number" ? body.dayExclusionDiscountRatio : undefined;
@@ -96,18 +104,26 @@ export async function PUT(request: Request) {
 
   const packages = current.packages.map((pkg) => {
     const override = packageOverrides.find((p) => p.id === pkg.id);
-    return override && Number.isFinite(override.baseFeePerWeek) && override.baseFeePerWeek >= 0
-      ? { ...pkg, baseFeePerWeek: override.baseFeePerWeek }
-      : pkg;
+    const next =
+      override && Number.isFinite(override.baseFeePerWeek) && override.baseFeePerWeek >= 0
+        ? { ...pkg, baseFeePerWeek: override.baseFeePerWeek }
+        : pkg;
+    // 삭제한 항목이 다른 패키지의 "기본 포함"으로 남아 견적에는 계속 잡히는
+    // 유령 항목이 되지 않도록, 어느 화면에서 지웠든 여기서 함께 정리한다.
+    return removedAddonIds.size === 0
+      ? next
+      : { ...next, includedItems: next.includedItems.filter((it) => !removedAddonIds.has(it.addonId)) };
   });
 
   const currentAddonIds = new Set(current.addons.map((a) => a.id));
-  const updatedExistingAddons = current.addons.map((addon) => {
-    const override = addonOverrides.find((a) => a.id === addon.id);
-    return override && Number.isFinite(override.unitPrice) && override.unitPrice >= 0
-      ? { ...addon, unitPrice: override.unitPrice }
-      : addon;
-  });
+  const updatedExistingAddons = current.addons
+    .filter((addon) => !removedAddonIds.has(addon.id))
+    .map((addon) => {
+      const override = addonOverrides.find((a) => a.id === addon.id);
+      return override && Number.isFinite(override.unitPrice) && override.unitPrice >= 0
+        ? { ...addon, unitPrice: override.unitPrice }
+        : addon;
+    });
   const newAddonsRaw = Array.isArray(body?.newAddons) ? (body.newAddons as unknown[]) : [];
   const newAddons = newAddonsRaw
     .filter(
