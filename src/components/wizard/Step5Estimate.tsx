@@ -4,6 +4,7 @@ import type { ReactNode } from "react";
 import { won } from "@/lib/format";
 import { findPackage, totalRentalDays } from "@/lib/pricing/rateTableUtils";
 import type { EstimatedQuote, LineItem, QuoteSelection, RateTable } from "@/lib/pricing/types";
+import { useWizardText } from "@/lib/content/wizardText";
 import { QuoteLineItemsReport } from "@/components/QuoteLineItemsReport";
 
 function midHallSummaryLine(selection: QuoteSelection): string | null {
@@ -32,6 +33,7 @@ export function Step5Estimate({
   selection: QuoteSelection;
   title: ReactNode;
 }) {
+  const { t } = useWizardText();
   const pkg = findPackage(rateTable, selection.packageId);
   const hasMidHall = Object.keys(selection.midHallDays).length > 0;
   const isSimultaneous = selection.bookingMode === "SIMULTANEOUS";
@@ -39,7 +41,9 @@ export function Step5Estimate({
   if (!pkg && !hasMidHall) {
     return (
       <section>
-        <p className="text-s text-muted">먼저 1단계에서 패키지를 선택하거나 중형공연장 일정을 선택하세요.</p>
+        <p className="text-s text-muted">
+          {t("estimate.pickPackageOrScheduleFirst", "먼저 1단계에서 패키지를 선택하거나 중형공연장 일정을 선택하세요.")}
+        </p>
       </section>
     );
   }
@@ -61,9 +65,9 @@ export function Step5Estimate({
       <p className="measure mt-3 break-keep text-s text-muted">
         {isSimultaneous ? (
           <>
-            아레나 — {arenaLine}
+            {t("estimate.arenaLinePrefix", "아레나")} — {arenaLine}
             <br />
-            중형공연장 — {midHallLine}
+            {t("estimate.midHallLinePrefix", "중형공연장")} — {midHallLine}
           </>
         ) : (
           arenaLine ?? midHallLine
@@ -84,22 +88,22 @@ export function Step5Estimate({
       <div className="mt-6 border border-border bg-panel/40 p-5">
         {isSimultaneous && (
           <div className="mb-3 flex items-center justify-between border-b border-border pb-3 text-s">
-            <span className="text-muted">아레나 소계 + 중형공연장 소계</span>
+            <span className="text-muted">{t("estimate.arenaPlusMidHallSubtotalLabel", "아레나 소계 + 중형공연장 소계")}</span>
             <span className="tabular-nums text-foreground">
               {won(arenaVisibleSubtotal)} + {won(midHallVisibleSubtotal)}
             </span>
           </div>
         )}
         <div className="flex justify-between text-s text-muted">
-          <span>소계 (VAT 별도)</span>
+          <span>{t("estimate.subtotalLabel", "소계 (VAT 별도)")}</span>
           <span className="tabular-nums">{won(quote.subtotal)}</span>
         </div>
         <div className="mt-1.5 flex justify-between text-s text-muted">
-          <span>부가세 10%</span>
+          <span>{t("estimate.vatLabel", "부가세 10%")}</span>
           <span className="tabular-nums">{won(quote.vat)}</span>
         </div>
         <div className="mt-2.5 flex items-baseline justify-between border-t border-border pt-2.5">
-          <span className="text-s font-bold">합계</span>
+          <span className="text-s font-bold">{t("estimate.totalLabel", "합계")}</span>
           <span className="text-h6-m sm:text-h6 font-bold tabular-nums">{won(quote.total)}</span>
         </div>
       </div>
@@ -108,13 +112,21 @@ export function Step5Estimate({
           같은 언어를 쓴다. 박스를 두르면 금액표와 무게가 비슷해져 어느 쪽이 결과인지
           흐려진다 */}
       <p className="mt-6 text-xs leading-5 text-muted">
-        {quote.meteredNotice} 본 금액은 <b className="font-bold text-foreground">예상</b>이며 확정 금액이 아닙니다.
-        {isSimultaneous && " 위 금액은 아레나 + 중형공연장 합산입니다(할인 없이 두 소계를 단순 합산)."}
+        {quote.meteredNotice} {t("estimate.estimateNoticePrefix", "본 금액은")}{" "}
+        <b className="font-bold text-foreground">{t("estimate.estimateNoticeEmphasis", "예상")}</b>
+        {t("estimate.estimateNoticeSuffix", "이며 확정 금액이 아닙니다.")}
+        {isSimultaneous &&
+          ` ${t(
+            "estimate.simultaneousSumNote",
+            "위 금액은 아레나 + 중형공연장 합산입니다(할인 없이 두 소계를 단순 합산).",
+          )}`}
       </p>
 
       {quote.blockingIssues.length > 0 && (
         <div className="mt-4 text-xs leading-5 text-muted">
-          <p className="font-bold text-foreground">운영자 확인이 필요해 아직 신청서를 제출할 수 없습니다.</p>
+          <p className="font-bold text-foreground">
+            {t("estimate.blockingIssuesHeading", "운영자 확인이 필요해 아직 신청서를 제출할 수 없습니다.")}
+          </p>
           <ul className="mt-1.5 list-disc space-y-1 pl-4">
             {quote.blockingIssues.map((issue) => (
               <li key={issue}>{issue}</li>
