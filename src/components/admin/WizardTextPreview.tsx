@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState, type ReactNode } from "react";
+import { useQueryTab } from "./useQueryTab";
 import type { ScreenTextContent, VenueRateContent, WizardStepTexts } from "@/lib/content/pageContent";
 import { calculateQuote } from "@/lib/pricing/calculateQuote";
 import { packagesForVenue } from "@/lib/pricing/rateTableUtils";
@@ -453,6 +454,8 @@ const STAGE_GROUPS: StageGroup[] = [
   },
 ];
 
+const STEP_VALUES = ["1", "2", "3", "4"] as const;
+
 export function WizardTextPreview({
   content,
   rateTable,
@@ -462,7 +465,10 @@ export function WizardTextPreview({
   rateTable: RateTable;
   liveHallRateContent: VenueRateContent;
 }) {
-  const [groupIdx, setGroupIdx] = useState(0);
+  // STEP 탭은 다른 운영 화면과 같이 URL(?step=1~4)에 싣는다 — 새로고침·링크 공유 유지.
+  const [stepParam, setStepParam] = useQueryTab("step", STEP_VALUES, "1");
+  const groupIdx = Math.min(Number(stepParam) - 1, STAGE_GROUPS.length - 1);
+  const setGroupIdx = (i: number) => setStepParam(STEP_VALUES[i] ?? "1");
   const [subIdx, setSubIdx] = useState(0);
   const mocks = useMockSelections(rateTable);
   const group = STAGE_GROUPS[groupIdx];
