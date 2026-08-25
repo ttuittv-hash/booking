@@ -3,6 +3,7 @@
 import { CHOICE_SELECTED_VARS, FILE_INPUT, toggleClass } from "@/components/ui/kit";
 
 import { useState, type ReactNode } from "react";
+import { useWizardText } from "@/lib/content/wizardText";
 import { INITIAL_PERFORMANCE_INFO } from "@/lib/pricing/performanceInfoDefaults";
 import {
   PUBLIC_INTEREST_ITEM_HINT,
@@ -40,6 +41,7 @@ export function StepPublicInterest({
   onFilesChange: (files: File[]) => void;
   title: ReactNode;
 }) {
+  const { t } = useWizardText();
   const selectedItems = info.publicInterestItems ?? [];
   const [activeTab, setActiveTab] = useState<VenueSplitTab>(midHallInfo ? "ARENA" : "COMMON");
 
@@ -70,7 +72,10 @@ export function StepPublicInterest({
     <section>
       <h2 className="type-kr-heading text-h5-m sm:text-h5">{title}</h2>
       <p className="mt-1.5 text-s text-muted">
-        해당하는 항목을 선택하고, 계획 상세는 하나의 파일로 정리해 첨부합니다. 선택사항입니다.
+        {t(
+          "publicInterest.lead",
+          "해당하는 항목을 선택하고, 계획 상세는 하나의 파일로 정리해 첨부합니다. 선택사항입니다.",
+        )}
       </p>
 
       {isSimultaneous && (
@@ -87,10 +92,14 @@ export function StepPublicInterest({
           동일하게 유지된다 — 04 기본 정보 그룹의 다른 두 화면과 탭 구조만 맞춘다
           (2026-08-19, 형식상 탭 추가 요청). */}
       <div className="mt-10 border-t-2 border-foreground pt-5">
-        <h3 className="type-kr-heading text-h6-m">공공/공익 참여 및 연계 프로그램 (선택)</h3>
+        <h3 className="type-kr-heading text-h6-m">
+          {t("publicInterest.itemsSectionHeading", "공공/공익 참여 및 연계 프로그램 (선택)")}
+        </h3>
         <p className="mt-1 text-xs leading-5 text-muted">
-          해당하는 항목을 모두 선택하세요(복수 선택 가능). 미확정 사항은 &lsquo;검토 중&rsquo;을
-          선택할 수 있습니다.
+          {t(
+            "publicInterest.itemsSectionHint",
+            "해당하는 항목을 모두 선택하세요(복수 선택 가능). 미확정 사항은 '검토 중'을 선택할 수 있습니다.",
+          )}
         </p>
 
         <div className="mt-4 grid grid-cols-1 gap-2.5 sm:grid-cols-3">
@@ -126,9 +135,12 @@ export function StepPublicInterest({
       </div>
 
       <div className="mt-10 border-t-2 border-foreground pt-5">
-        <h3 className="type-kr-heading text-h6-m">자료 첨부 (선택)</h3>
+        <h3 className="type-kr-heading text-h6-m">{t("publicInterest.attachmentsSectionHeading", "자료 첨부 (선택)")}</h3>
         <p className="mt-1 mb-2.5 text-xs leading-5 text-muted">
-          위에서 선택한 항목의 계획을 하나의 파일(PDF/HWP/DOCX)로 정리해 첨부하세요.
+          {t(
+            "publicInterest.attachmentsSectionHint",
+            "위에서 선택한 항목의 계획을 하나의 파일(PDF/HWP/DOCX)로 정리해 첨부하세요.",
+          )}
         </p>
 
         {files.length > 0 && (
@@ -140,7 +152,7 @@ export function StepPublicInterest({
               >
                 <span className="truncate text-s font-bold">{file.name}</span>
                 <button type="button" onClick={() => removeFile(i)} className={`${toggleClass(false)} shrink-0`}>
-                  삭제
+                  {t("publicInterest.removeFileButton", "삭제")}
                 </button>
               </li>
             ))}
