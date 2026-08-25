@@ -216,20 +216,32 @@ export function WizardShell({
   // 최초 렌더의 currentUser 값과 별개로 제출 시점에 401을 감지해 로그인 안내로 전환한다.
   const [sessionExpired, setSessionExpired] = useState(false);
 
+  // localStorage 복원이 실제로 state에 반영되기 전까지는 임시저장(아래 save-effect)이
+  // 뛰면 안 된다 — 복원 effect가 setSelection/setStep을 "예약"만 한 시점(같은 렌더
+  // 패스 안, 아직 반영 전)에 save-effect가 먼저 실행되면 그 순간의 **아직 갱신 안 된
+  // 이전 state**(대개 빈 초기값)를 그대로 localStorage에 덮어써 버린다 — 방금 복원한
+  // 내용을 화면에 보여주기도 전에 지워버리는 경쟁 상태다. restored로 문을 잠가
+  // "복원 시도가 끝나 state에 실제로 반영된 렌더" 이후에만 저장하게 한다.
+  const [restored, setRestored] = useState(false);
+
   // 로그인 리다이렉트 등으로 페이지를 이탈했다가 돌아와도 입력값을 복원한다.
   // (기존 신청서 수정 중에는 새 신청서용 임시저장 내용을 불러오지 않는다.
   //  "대관 신청 시작하기"처럼 새 신청을 명시적으로 시작하는 진입점에서는
   //  이전에 남아있던 임시저장 내용을 무시하고 공간 선택부터 새로 시작한다.)
   useEffect(() => {
-    if (isEditing) return;
+    if (isEditing) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setRestored(true);
+      return;
+    }
     if (startFresh) {
       clearWizardDraft();
+      setRestored(true);
       return;
     }
     // localStorage는 리액트 외부 저장소이므로 마운트 시 1회만 복원한다.
     const draft = loadWizardDraft();
     if (draft) {
-      // eslint-disable-next-line react-hooks/set-state-in-effect
       setSelection({
         ...INITIAL_SELECTION,
         ...draft.selection,
@@ -282,13 +294,15 @@ export function WizardShell({
       });
       setStep(draft.step);
     }
+    setRestored(true);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {
+    if (!restored) return;
     if (isEditing || submittedId) return;
     saveWizardDraft({ step, selection });
-  }, [step, selection, submittedId, isEditing]);
+  }, [restored, step, selection, submittedId, isEditing]);
 
   const midHallOnly = isMidHallOnly(selection);
   // [개정 2026-08-20] 패키지는 이제 관객 규모로 자동 결정하지 않고, 구성·옵션 화면에서
