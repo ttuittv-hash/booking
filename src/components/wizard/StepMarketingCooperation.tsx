@@ -230,7 +230,7 @@ export function StepMarketingCooperation({
 
         <div className="mt-8 border-t border-border/25 pt-5">
           <h3 className="type-kr-heading text-h6-m">
-            {t("marketing.serviceLinkHeading", "마케팅 및 서비스연계(web, app)")}
+            {t("marketing.serviceLinkHeading", "마케팅 및 서비스연계")}
           </h3>
 
           {/* 2026-08-25, "서비스 에 대한 꼭지를 슬롯으로 하나 분리해서... 앱.웹서비스에 노출
