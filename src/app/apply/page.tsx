@@ -12,6 +12,7 @@ import { PublicHeader } from "@/components/PublicHeader";
 import { SiteFooter } from "@/components/ui/SiteFooter";
 import { Band, PageHead, Prose } from "@/components/ui/kit";
 import { WizardShell } from "@/components/wizard/WizardShell";
+import { WizardTextProvider } from "@/lib/content/wizardText";
 
 export const metadata: Metadata = {
   title: "대관 신청 | 서울아레나",
@@ -71,17 +72,18 @@ export default async function ApplyPage({
           />
         </Band>
 
-        <WizardShell
-          rateTable={rateTable}
-          currentUser={currentUser}
-          weekDemand={weekDemand}
-          dateBlocks={dateBlocks}
-          startFresh={!!startFreshParam}
-          applicantPrefill={applicantPrefill}
-          liveHallRateContent={ratesContent.liveHall}
-          wizardStepText={screenText.wizardSteps}
-          wizardStrings={screenText.wizardStrings}
-        />
+        <WizardTextProvider overrides={screenText.wizardStrings}>
+          <WizardShell
+            rateTable={rateTable}
+            currentUser={currentUser}
+            weekDemand={weekDemand}
+            dateBlocks={dateBlocks}
+            startFresh={!!startFreshParam}
+            applicantPrefill={applicantPrefill}
+            liveHallRateContent={ratesContent.liveHall}
+            wizardStepText={screenText.wizardSteps}
+          />
+        </WizardTextProvider>
       </main>
 
       <SiteFooter />

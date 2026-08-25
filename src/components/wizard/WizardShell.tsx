@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { calculateQuote } from "@/lib/pricing/calculateQuote";
 import { ARENA_MAX_AUDIENCE } from "@/lib/content/rateFacts";
 import type { VenueRateContent, WizardStepTexts } from "@/lib/content/pageContent";
-import { WizardTextProvider } from "@/lib/content/wizardText";
+import { useWizardText } from "@/lib/content/wizardText";
 import {
   findAddon,
   findPackage,
@@ -130,7 +130,6 @@ export function WizardShell({
   applicantPrefill,
   liveHallRateContent,
   wizardStepText,
-  wizardStrings,
 }: {
   rateTable: RateTable;
   currentUser: AppUser | null;
@@ -153,11 +152,9 @@ export function WizardShell({
   // (2026-08-24, "대관 위저드 프로세스에서 시스템 메시지들이 많은데 이런 부분도
   // 운영툴에서 수정할수 있도록").
   wizardStepText: WizardStepTexts;
-  // 스텝 제목·리드를 뺀 나머지 모든 위저드 문구(체크박스 라벨, 안내 문단, 서약 조항
-  // 전문 등) — key → 값의 평평한 맵. src/lib/content/wizardText.tsx 참고.
-  wizardStrings: Record<string, string>;
 }) {
   const isEditing = !!editingQuoteId;
+  const { t, tStr } = useWizardText();
   const toast = useToast();
   const [step, setStep] = useState(1);
   // [화면 뼈대 2026-08-19, STEP 3-1 "신청자 정보"] 신규 신청서에 한해 회원정보로 미리
@@ -494,7 +491,12 @@ export function WizardShell({
           setSessionExpired(true);
           return;
         }
-        setSubmitError(data.error || (isUpdate ? "신청서 수정에 실패했습니다." : "신청서 제출에 실패했습니다."));
+        setSubmitError(
+          data.error ||
+            (isUpdate
+              ? tStr("wizardShell.submitFailedEdit", "신청서 수정에 실패했습니다.")
+              : tStr("wizardShell.submitFailedNew", "신청서 제출에 실패했습니다.")),
+        );
         return;
       }
       setSubmittedId(data.quote.id);
@@ -503,7 +505,7 @@ export function WizardShell({
       await uploadPendingFiles(data.quote.id);
       if (!isEditing) clearWizardDraft();
     } catch {
-      setSubmitError("네트워크 오류로 처리에 실패했습니다. 다시 시도해주세요.");
+      setSubmitError(tStr("wizardShell.submitFailedNetwork", "네트워크 오류로 처리에 실패했습니다. 다시 시도해주세요."));
     } finally {
       setSubmitting(false);
     }
@@ -528,7 +530,7 @@ export function WizardShell({
         className={btnClass("secondary", "lg")}
       >
         <ArrowRight className="rotate-180" />
-        이전
+        {t("wizardShell.prevButton", "이전")}
       </button>
       {step < TOTAL_STEPS && (
         <button
@@ -536,15 +538,15 @@ export function WizardShell({
           onClick={() => {
             // 버튼을 잠그지 않는다 — 눌러도 반응이 없으면 고장으로 보인다(고객 신고 패턴).
             if (step === 1 && !selection.venueId) {
-              toast.error("먼저 대관하실 시설을 선택해 주세요.");
+              toast.error(tStr("wizardShell.toastNeedVenue", "먼저 대관하실 시설을 선택해 주세요."));
               return;
             }
             if (step === 1 && midHallOnly && !hasMidHallSelection) {
-              toast.error("대관 일정을 선택해 주세요.");
+              toast.error(tStr("wizardShell.toastNeedSchedule", "대관 일정을 선택해 주세요."));
               return;
             }
             if (step === 2 && needsPackage && !selection.packageId) {
-              toast.error("패키지를 선택해 주세요.");
+              toast.error(tStr("wizardShell.toastNeedPackage", "패키지를 선택해 주세요."));
               return;
             }
             if (step === 3 && step3Blocked) {
@@ -563,7 +565,7 @@ export function WizardShell({
           }}
           className={btnClass("primary", "lg")}
         >
-          다음
+          {t("wizardShell.nextButton", "다음")}
           <ArrowRight />
         </button>
       )}
@@ -571,9 +573,8 @@ export function WizardShell({
   );
 
   return (
-    <WizardTextProvider overrides={wizardStrings}>
-    {/* 좌: 스텝 콘텐츠 / 우: sticky 요약 패널.
-        콘텐츠 트랙은 minmax(0,1fr) + min-w-0 로 묶어 스텝 전환 시 폭이 변하지 않게 한다. */}
+    // 좌: 스텝 콘텐츠 / 우: sticky 요약 패널.
+    // 콘텐츠 트랙은 minmax(0,1fr) + min-w-0 로 묶어 스텝 전환 시 폭이 변하지 않게 한다.
     <div className="container-site grid w-full grid-cols-1 gap-10 py-10 sm:py-12 lg:grid-cols-[minmax(0,1fr)_360px] lg:gap-14">
       <div className="min-w-0">
         <StepNav step={step} maxUnlockedStep={maxUnlockedStep} locked={submissionLocked} onJump={goTo} />
@@ -589,10 +590,13 @@ export function WizardShell({
               /* 한 단계 안의 두 번째 블록 — 박스로 싸지 않고 굵은 헤어라인으로만 나눈다
                  (신청자 정보의 "자료 첨부"와 같은 규칙) */
               <div className="mt-10 border-t-2 border-foreground pt-5">
-                <h3 className="type-kr-heading text-h6-m">일정 선택</h3>
+                <h3 className="type-kr-heading text-h6-m">{t("wizardShell.scheduleHeading", "일정 선택")}</h3>
                 {selection.bookingMode === "SIMULTANEOUS" && (
                   <p className="mt-1.5 text-s text-muted">
-                    동시 대관에서는 두 공간의 일정을 탭으로 나눠 각각 선택합니다.
+                    {t(
+                      "wizardShell.simultaneousScheduleHint",
+                      "동시 대관에서는 두 공간의 일정을 탭으로 나눠 각각 선택합니다.",
+                    )}
                   </p>
                 )}
                 {/* [개정 2026-08-21] 아레나만/중형만/동시 대관 세 경우 모두 같은 탭 구조를
@@ -616,7 +620,9 @@ export function WizardShell({
                               : "cursor-not-allowed border-transparent text-muted/40",
                         ].join(" ")}
                       >
-                        {tab === "arena" ? "아레나 일정" : "중형 일정"}
+                        {tab === "arena"
+                          ? t("wizardShell.arenaTabLabel", "아레나 일정")
+                          : t("wizardShell.mediumHallTabLabel", "중형 일정")}
                       </button>
                     );
                   })}
@@ -801,6 +807,5 @@ export function WizardShell({
         */
       />
     </div>
-    </WizardTextProvider>
   );
 }

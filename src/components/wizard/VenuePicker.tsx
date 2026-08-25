@@ -1,6 +1,7 @@
 "use client";
 
 import type { BookingMode } from "@/lib/pricing/types";
+import { useWizardText } from "@/lib/content/wizardText";
 
 // [화면 뼈대 2026-08-19, 화면시나리오 STEP 1-1] 이용 시설은 "메인 아레나 / 중형공연장 /
 // 동시 대관" 3개 중 하나만 고르는 토글 버튼이다 — 라디오+체크박스 조합(중복 체크로
@@ -28,18 +29,34 @@ export function VenuePicker({
   bookingMode: BookingMode;
   onSelectVenue: (venueId: string, bookingMode: BookingMode) => void;
 }) {
+  const { t } = useWizardText();
   const isSimultaneous = bookingMode === "SIMULTANEOUS";
   const primaryVenue = primaryVenueOf(venueId, bookingMode);
 
   return (
     <div className="grid grid-cols-1 gap-x-8 gap-y-3 sm:grid-cols-[7rem_1fr] sm:items-center">
-      <label className="text-s font-bold text-foreground">이용 시설 *</label>
+      <label className="text-s font-bold text-foreground">{t("venuePicker.fieldLabel", "이용 시설")} *</label>
       <div className="flex flex-wrap gap-2">
         {(
           [
-            { key: "arena", label: "메인 아레나", active: primaryVenue === "arena" && !isSimultaneous, onClick: () => onSelectVenue("arena", "SINGLE") },
-            { key: "medium-hall", label: "중형공연장", active: primaryVenue === "medium-hall" && !isSimultaneous, onClick: () => onSelectVenue("medium-hall", "SINGLE") },
-            { key: "simultaneous", label: "동시 대관", active: isSimultaneous, onClick: () => onSelectVenue("arena", "SIMULTANEOUS") },
+            {
+              key: "arena",
+              label: t("venuePicker.arenaOption", "메인 아레나"),
+              active: primaryVenue === "arena" && !isSimultaneous,
+              onClick: () => onSelectVenue("arena", "SINGLE"),
+            },
+            {
+              key: "medium-hall",
+              label: t("venuePicker.mediumHallOption", "중형공연장"),
+              active: primaryVenue === "medium-hall" && !isSimultaneous,
+              onClick: () => onSelectVenue("medium-hall", "SINGLE"),
+            },
+            {
+              key: "simultaneous",
+              label: t("venuePicker.simultaneousOption", "동시 대관"),
+              active: isSimultaneous,
+              onClick: () => onSelectVenue("arena", "SIMULTANEOUS"),
+            },
           ] as const
         ).map((opt) => (
           <button
