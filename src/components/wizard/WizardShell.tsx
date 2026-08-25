@@ -64,6 +64,8 @@ const DEFAULT_MARKETING_COOPERATION: MarketingCooperation = {
   // 빈 목록으로 시작하면 "+ 항목 추가"부터 눌러야 해서, 입력 행 1개를 비운 채로
   // 미리 열어 둔다(2026-08-22, "항목 1개가 디폴트로 열린 형태로" 요청).
   sponsorships: [{ brandName: "", campaignSummary: "" }],
+  coPromotionConsent: null,
+  coSponsorshipConsent: null,
   ticketSalesDataConsent: false,
   pollstarConsent: false,
   executionPlan: { targetDefinition: "", mediaMix: "", budget: "", timeline: "" },

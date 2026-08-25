@@ -47,6 +47,8 @@ const DEFAULT_MARKETING_COOPERATION: MarketingCooperation = {
   channels: [{ platform: "인스타그램", handle: "", followers: "" }],
   seoulArenaPromotionConsent: null,
   sponsorships: [{ brandName: "", campaignSummary: "" }],
+  coPromotionConsent: null,
+  coSponsorshipConsent: null,
   ticketSalesDataConsent: false,
   pollstarConsent: false,
   executionPlan: { targetDefinition: "", mediaMix: "", budget: "", timeline: "" },

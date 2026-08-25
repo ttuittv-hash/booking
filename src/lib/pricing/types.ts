@@ -272,6 +272,10 @@ export interface MarketingCooperation {
   // 구분해야 해서 boolean 대신 tri-state로 둔다.
   seoulArenaPromotionConsent: boolean | null;
   sponsorships: MarketingSponsorship[];
+  // [신규 2026-08-25] "협조 동의 항목" — 공동 프로모션/스폰서십 협업 자체에 대한
+  // 동의·비동의. 위 seoulArenaPromotionConsent와 같은 이유로 tri-state.
+  coPromotionConsent: boolean | null;
+  coSponsorshipConsent: boolean | null;
   ticketSalesDataConsent: boolean;
   pollstarConsent: boolean;
   executionPlan: MarketingExecutionPlan;
