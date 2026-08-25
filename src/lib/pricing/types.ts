@@ -409,6 +409,7 @@ export type PublicInterestItem =
   | "LOCAL_COMMUNITY_PROGRAM"
   | "PUBLIC_INTEREST_SEATS"
   | "FACILITY_LINKED_PROGRAM"
+  | "COMPLAINT_REDUCTION_PLEDGE"
   | "OTHER"
   | "UNDER_REVIEW"
   | "NONE";
@@ -423,6 +424,7 @@ export const PUBLIC_INTEREST_ITEM_LABEL: Record<PublicInterestItem, string> = {
   LOCAL_COMMUNITY_PROGRAM: "지역상생 프로그램",
   PUBLIC_INTEREST_SEATS: "공익 목적 객석 제공",
   FACILITY_LINKED_PROGRAM: "시설 연계 프로그램",
+  COMPLAINT_REDUCTION_PLEDGE: "민원 저감 및 책임 서약",
   OTHER: "그외 기타",
   UNDER_REVIEW: "검토 중",
   NONE: "없음",
@@ -438,6 +440,7 @@ export const PUBLIC_INTEREST_ITEM_HINT: Record<PublicInterestItem, string> = {
   LOCAL_COMMUNITY_PROGRAM: "지역 업체 · 인력, 주민 프로그램",
   PUBLIC_INTEREST_SEATS: "제공 대상과 좌석 수",
   FACILITY_LINKED_PROGRAM: "판매시설, 중형공연장, MD 팝업",
+  COMPLAINT_REDUCTION_PLEDGE: "소음 · 교통완화계획",
   OTHER: "위 항목에 해당하지 않는 참여 · 연계 계획",
   UNDER_REVIEW: "아직 확정되지 않은 항목",
   NONE: "해당 없음",
