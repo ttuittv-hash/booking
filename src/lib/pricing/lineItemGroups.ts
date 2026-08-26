@@ -72,6 +72,14 @@ export const SECTION_LABEL: Record<ContractSection, string> = {
   ADDITIONAL: "추가 예상 금액",
 };
 
+// [개정 2026-08-26] 소계 줄의 라벨은 섹션 제목과 다르게 부른다 — "패키지 분은 '실제
+// 계약금액', 옵션분은 '추가 예상 금액'" 요청. 섹션 제목("계약 내역")은 표 위 소제목으로
+// 그대로 두고, 금액 옆에 붙는 라벨만 이걸로 바꾼다.
+export const SECTION_SUBTOTAL_LABEL: Record<ContractSection, string> = {
+  CONTRACT: "실제 계약금액",
+  ADDITIONAL: "추가 예상 금액",
+};
+
 export const SECTION_GROUPS: Record<ContractSection, FeeGroup[]> = {
   CONTRACT: ["BASE", "EXCLUSIVE"],
   ADDITIONAL: ["OPTION"],

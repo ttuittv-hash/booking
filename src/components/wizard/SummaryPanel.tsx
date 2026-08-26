@@ -4,7 +4,12 @@ import { won } from "@/lib/format";
 import { Note } from "@/components/ui/kit";
 import { VENUES } from "@/lib/pricing/types";
 import type { EstimatedQuote, LineItem } from "@/lib/pricing/types";
-import { SECTION_LABEL, sectionOf, type ContractSection } from "@/lib/pricing/lineItemGroups";
+import {
+  SECTION_LABEL,
+  SECTION_SUBTOTAL_LABEL,
+  sectionOf,
+  type ContractSection,
+} from "@/lib/pricing/lineItemGroups";
 
 const VENUE_NAME: Record<string, string> = Object.fromEntries(VENUES.map((v) => [v.id, v.name]));
 // "계약 내역"(패키지에 묶인 금액)을 먼저, "추가 예상 금액"(옵션)을 그 아래에 둔다 —
@@ -89,7 +94,7 @@ export function SummaryPanel({ quote }: { quote: EstimatedQuote }) {
                       </dl>
                     )}
                     <div className="mt-1.5 flex justify-between text-xs text-muted">
-                      <span>{SECTION_LABEL[section]} 소계</span>
+                      <span>{SECTION_SUBTOTAL_LABEL[section]}</span>
                       <span className="tabular-nums">{won(subtotal)}</span>
                     </div>
                   </div>

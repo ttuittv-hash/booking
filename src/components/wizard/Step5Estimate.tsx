@@ -95,7 +95,7 @@ export function Step5Estimate({
           </div>
         )}
         <div className="flex justify-between text-s text-muted">
-          <span>{t("estimate.contractSectionLabel", "계약 내역")}</span>
+          <span>{t("estimate.contractSectionLabel", "실제 계약금액")}</span>
           <span className="tabular-nums">{won(contractSubtotal)}</span>
         </div>
         <div className="mt-1.5 flex justify-between text-s text-muted">

@@ -4,6 +4,7 @@ import {
   FEE_GROUP_LABEL,
   SECTION_GROUPS,
   SECTION_LABEL,
+  SECTION_SUBTOTAL_LABEL,
   feeGroupOf,
   isMidHallLineItem,
   type ContractSection,
@@ -158,7 +159,7 @@ function SectionTable({
           <tfoot>
             <tr>
               <td colSpan={3} className="pt-2.5 text-right text-s font-bold">
-                {SECTION_LABEL[section]} 소계
+                {SECTION_SUBTOTAL_LABEL[section]}
               </td>
               <td className="pt-2.5 text-right text-s font-bold tabular-nums">{won(subtotal)}</td>
             </tr>
