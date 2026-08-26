@@ -51,7 +51,7 @@ const request = {
   body: "본문",
   recipient: { userId: "u1", phone: "010-1234-5678", email: null, name: "홍길동" },
   variables: { __sendId: "send-1" },
-  button: { name: "확인하기", url: "https://partner.example/notice" },
+  button: { name: "확인하기", url: "https://partner.example/notice", kakaoUrl: "https://partner.seoularena.net/" },
 };
 
 describe("설정 판정", () => {
@@ -124,8 +124,8 @@ describe("알림톡 발송", () => {
     expect(body.fall_back_yn).toBe(false);
     expect(body.sender_key).toBe("4bcf1b2c");
     expect(body.phone_number).toBe("01012345678");
-    // 버튼은 템플릿 등록값을 카카오가 붙인다 — 요청에 실으면 등록값과 달라 3027 로 거절된다(2026-08-26 실측).
-    expect(body.button).toBeUndefined();
+    // 버튼은 카카오 등록값(kakaoUrl)만, url_pc 없이 — 환경별 url 을 보내면 3027 로 거절된다(2026-08-26 실측).
+    expect(body.button).toEqual([{ name: "확인하기", type: "WL", url_mobile: "https://partner.seoularena.net/" }]);
   });
 
   it("수신번호가 없으면 보내지 않는다", async () => {

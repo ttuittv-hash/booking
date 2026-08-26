@@ -19,12 +19,20 @@ export interface TemplateDef {
   release: "FIRST" | "SECOND" | "TBD";
   /** 이 메시지를 받는 사람이 쓰는 화면 — 버튼 링크의 호스트를 이걸로 정한다. */
   audience: "APPLICANT" | "ADMIN";
-  button?: { name: string; path: string };
+  /**
+   * 버튼. path 는 인앱·이메일 링크(환경별 호스트를 붙인다).
+   * kakaoUrl 은 카카오 템플릿에 등록된 웹링크 그대로 — 알림톡 요청은 등록값과 글자 단위로
+   * 같아야 하며(이름·타입·링크), 다르거나 빼면 3027 NoMatchedTemplateButtonException 이다.
+   */
+  button?: { name: string; path: string; kakaoUrl?: string };
   /** DKT 에 등록된 카카오 템플릿 코드. 없으면 알림톡을 보내지 않는다(인앱만). */
   kakaoTemplateCode?: string;
   /** 강조표기형(TEXT) 템플릿의 핵심 문구·보조 문구 — 등록값과 같아야 한다. */
   emphasis?: { title: string; subtitle: string };
 }
+
+/** 카카오 템플릿(CTSELARNA0_00002·3·5·6·8·9)에 등록된 웹링크 — 운영 신청자 화면 고정값. */
+const KAKAO_PARTNER_URL = "https://partner.seoularena.net/";
 
 export const TEMPLATES: TemplateDef[] = [
   {
@@ -57,7 +65,7 @@ export const TEMPLATES: TemplateDef[] = [
     variables: ["신청자명"],
     release: "FIRST",
     emphasis: { title: "회원가입 승인 완료", subtitle: "서울아레나 대관시스템" },
-    button: { name: "서울아레나 대관시스템 가기", path: "/" },
+    button: { name: "서울아레나 대관시스템 가기", path: "/", kakaoUrl: KAKAO_PARTNER_URL },
   },
   {
     code: "MB-03",
@@ -68,7 +76,7 @@ export const TEMPLATES: TemplateDef[] = [
     variables: ["신청자명", "거절사유"],
     release: "FIRST",
     emphasis: { title: "회원가입 반려 안내", subtitle: "서울아레나 대관시스템" },
-    button: { name: "1:1 문의", path: "/" },
+    button: { name: "1:1 문의", path: "/", kakaoUrl: KAKAO_PARTNER_URL },
   },
   {
     code: "MB-04",
@@ -79,7 +87,7 @@ export const TEMPLATES: TemplateDef[] = [
     variables: ["마스터", "신청자명"],
     release: "FIRST",
     emphasis: { title: "회원가입 승인 요청", subtitle: "서울아레나 대관시스템" },
-    button: { name: "신청 내용 확인", path: "/" },
+    button: { name: "신청 내용 확인", path: "/", kakaoUrl: KAKAO_PARTNER_URL },
   },
   {
     // 운영자에게 가는 알림 — 카카오 정본에 운영자용 템플릿이 없다. 인앱으로만 나간다.
@@ -112,7 +120,7 @@ export const TEMPLATES: TemplateDef[] = [
     variables: ["신청자명", "회사명"],
     release: "SECOND",
     emphasis: { title: "담당자 등록 완료", subtitle: "서울아레나 대관시스템" },
-    button: { name: "대관시스템 바로가기", path: "/" },
+    button: { name: "대관시스템 바로가기", path: "/", kakaoUrl: KAKAO_PARTNER_URL },
   },
   {
     // 초대 링크로 합류를 마쳤을 때
@@ -124,7 +132,7 @@ export const TEMPLATES: TemplateDef[] = [
     variables: ["신청자명", "마스터", "회사명"],
     release: "SECOND",
     emphasis: { title: "담당자 등록 완료", subtitle: "서울아레나 대관시스템" },
-    button: { name: "대관시스템 바로가기", path: "/" },
+    button: { name: "대관시스템 바로가기", path: "/", kakaoUrl: KAKAO_PARTNER_URL },
   },
   {
     // 대표 담당자 권한을 넘겨받은 사람에게
@@ -136,7 +144,7 @@ export const TEMPLATES: TemplateDef[] = [
     variables: ["신청자명"],
     release: "SECOND",
     emphasis: { title: "마스터 권한 위임 완료", subtitle: "서울아레나 대관시스템" },
-    button: { name: "링크 바로가기", path: "/" },
+    button: { name: "링크 바로가기", path: "/", kakaoUrl: KAKAO_PARTNER_URL },
   },
   {
     // 권한을 넘긴 이전 대표 담당자에게

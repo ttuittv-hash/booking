@@ -121,6 +121,7 @@ export async function dispatchMessage(input: DispatchInput): Promise<DispatchOut
           url: input.request
             ? `${audienceOrigin(input.request, def.audience)}${def.button.path}`
             : def.button.path,
+          kakaoUrl: def.button.kakaoUrl ?? null,
         }
       : null,
     kakaoTemplateCode: def.kakaoTemplateCode ?? null,

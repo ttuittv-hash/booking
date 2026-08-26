@@ -237,11 +237,12 @@ export const kakaoBizTalkAdapter: ChannelAdapter = {
         fall_back_yn: false,
       };
       body.sender_no = process.env.BIZTALK_SENDER_NO;
-      // 버튼은 보내지 않는다 — 카카오는 템플릿에 등록된 버튼(이름·타입·링크)을 그대로 붙이고,
-      // 요청의 버튼이 등록값과 조금이라도 다르면 3027 NoMatchedTemplateButtonException 으로
-      // 거절한다(실측 2026-08-26: 등록 링크는 https://partner.seoularena.net/ 고정인데 dev 주소를
-      // 보내 실패). 링크에 변수를 쓰는 템플릿이 생기면 그때 등록 URL 형식에 맞춰 보낸다.
-      // 인앱·이메일 채널은 request.button 을 그대로 쓴다(환경별 주소).
+      // 버튼은 카카오 템플릿 등록값과 글자 단위로 같아야 한다(이름·WL·url_mobile). 실측 2026-08-26:
+      // dev 주소를 보내도, 버튼을 아예 빼도 3027 NoMatchedTemplateButtonException. 등록된 링크는
+      // url_mobile 만 있으므로 url_pc 는 싣지 않는다. 인앱·이메일은 환경별 주소(request.button.url)를 쓴다.
+      if (request.button?.kakaoUrl) {
+        body.button = [{ name: request.button.name, type: "WL", url_mobile: request.button.kakaoUrl }];
+      }
 
       const { status, json } = await postJson(
         `/v2/request/${encodeURIComponent(requestCid(request))}/kakao`,

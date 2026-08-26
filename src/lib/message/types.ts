@@ -39,7 +39,8 @@ export interface SendRequest {
   /** 템플릿 변수 — 로그·재발송에 쓴다 */
   variables: Record<string, string>;
   /** 버튼(딥링크). 알림톡에서만 쓰이고 다른 채널은 본문 끝에 URL 로 붙인다. */
-  button?: { name: string; url: string } | null;
+  /** url 은 인앱·이메일용(환경별). kakaoUrl 은 카카오 템플릿 등록 링크 그대로(알림톡 전용). */
+  button?: { name: string; url: string; kakaoUrl?: string | null } | null;
   /** DKT 에 등록된 카카오 템플릿 코드 — 내부 코드(templateCode)와 다르다. 없으면 알림톡을 보내지 않는다. */
   kakaoTemplateCode?: string | null;
   /** 강조표기형 템플릿의 핵심·보조 문구 — 등록값과 같아야 발송이 승인된다. */
