@@ -108,6 +108,12 @@ export function isXmsConfigured(): boolean {
  * BIZTALK_CID 로 덮어쓸 수 있게 뒀다 — 방화벽이 열리면 스웨거로 확정할 것.
  * (scripts/biztalk-check.mjs 가 두 형태를 모두 찔러 본다.)
  */
+/** 발송 요청이 접수된 코드 — 100(처리중) / 200(성공). */
+export function isAcceptedCode(code: string | number | null | undefined): boolean {
+  const c = String(code ?? "");
+  return c === "100" || c === "200";
+}
+
 function requestCid(request: SendRequest): string {
   return process.env.BIZTALK_CID || request.variables.__sendId || request.templateCode;
 }
@@ -248,8 +254,16 @@ export const kakaoBizTalkAdapter: ChannelAdapter = {
         body,
       );
 
-      if (String(json.code) === "200") {
-        return { ok: true, channel: "ALIMTALK", providerMessageId: json.uid ?? null, resultCode: "200" };
+      // 실측(2026-08-26): 접수 응답은 code "100"(처리중, 카카오발송접수성공)이다 — 최종 성패는
+      // 폴링(reconcile.ts)이 채운다. "200" 도 성공으로 본다(가이드 Appendix A).
+      if (isAcceptedCode(json.code)) {
+        return {
+          ok: true,
+          channel: "ALIMTALK",
+          providerMessageId: json.uid ?? null,
+          resultCode: String(json.code),
+          resultMessage: json.result?.detail_message ?? null,
+        };
       }
       return {
         ok: false,
@@ -302,9 +316,15 @@ export const xmsAdapter: ChannelAdapter = {
           message: request.body,
         },
       );
-      if (String(json.code) === "200") {
+      if (isAcceptedCode(json.code)) {
         // 접수만 된 상태다. 최종 결과는 폴링으로 갱신한다.
-        return { ok: true, channel: "LMS", providerMessageId: json.uid ?? null, resultCode: "200" };
+        return {
+          ok: true,
+          channel: "LMS",
+          providerMessageId: json.uid ?? null,
+          resultCode: String(json.code),
+          resultMessage: json.result?.detail_message ?? null,
+        };
       }
       return {
         ok: false,

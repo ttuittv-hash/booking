@@ -97,6 +97,17 @@ describe("알림톡 발송", () => {
     expect(send?.url).toBe("https://cbt-web.dktechinmsg.com/v2/request/send-1/kakao");
   });
 
+  it("접수 응답 code 100(처리중)도 성공으로 본다 — 실측 2026-08-26, 최종 결과는 폴링이 채운다", async () => {
+    vi.stubGlobal("fetch", mockFetch((u) =>
+      u.includes("/oauth/token")
+        ? { access_token: "T", expires_in: 21600 }
+        : { code: "100", uid: "U2", result: { detail_code: "", detail_message: "카카오발송접수성공" } }));
+    const result = await kakaoBizTalkAdapter.send(request);
+    expect(result.ok).toBe(true);
+    expect(result.resultCode).toBe("100");
+    expect(result.resultMessage).toBe("카카오발송접수성공");
+  });
+
   it("cid 는 BIZTALK_CID 로 덮어쓸 수 있다 — 계약 ID 였을 경우에 대비한다", async () => {
     process.env.BIZTALK_CID = "CTSELARNA0";
     vi.stubGlobal("fetch", mockFetch((u) =>

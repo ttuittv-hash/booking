@@ -12,6 +12,7 @@
 // 그 종류는 이번 스윕에서 건너뛴다. 시스템 규칙 자체가 없는(마이그레이션 전) 예외적인 경우에는
 // db.ts 함수들의 기본 파라미터(예전 하드코딩과 같은 값)로 동작한다.
 import crypto from "node:crypto";
+import { reconcileMessageResults } from "./message/reconcile";
 import {
   createNotification,
   getNotificationRuleByTypeCode,
@@ -141,5 +142,7 @@ export async function runReminderSweep(now = new Date()): Promise<ReminderSweepR
   // 만료된 레이트리밋 카운터도 이 참에 정리한다(별도 잡을 두지 않기 위함).
   await purgeExpiredRateLimits();
 
+  // 알림톡·문자의 미확정 결과를 하루 한 번은 반드시 받아 온다(접수 직후 대사가 놓친 건).
+  await reconcileMessageResults();
   return result;
 }

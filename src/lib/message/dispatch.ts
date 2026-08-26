@@ -14,6 +14,7 @@ import {
 } from "@/lib/db";
 import { audienceOrigin } from "@/lib/publicUrl";
 import { isRecipientAllowed } from "./allowlist";
+import { scheduleReconcile } from "./reconcile";
 import { emailAdapter } from "./email";
 import { inAppAdapter } from "./inapp";
 import { kakaoBizTalkAdapter, xmsAdapter } from "./kakaoBizTalk";
@@ -168,6 +169,8 @@ export async function dispatchMessage(input: DispatchInput): Promise<DispatchOut
       resultMessage: result.resultMessage ?? null,
       sentAt: result.ok ? new Date().toISOString() : null,
     });
+    // 알림톡은 접수만 된 상태다 — 잠시 뒤 카카오 최종 결과를 받아 이력을 확정한다.
+    if (result.ok && adapter.channel === "ALIMTALK") scheduleReconcile();
     // ⑦ 도달 불가(미가입·차단·수신거부)는 문자 대체발송 대상이다.
     //    대체발송을 DKT 에 맡기지 않고 우리가 하는 이유는, 맡기면 대체발송 사실이
     //    우리 이력에 남지 않아 "왜 문자로 갔는지"를 나중에 설명할 수 없기 때문이다.
