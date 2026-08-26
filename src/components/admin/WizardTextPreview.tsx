@@ -503,6 +503,7 @@ const STAGE_GROUPS: StageGroup[] = [
                   onChange={noop}
                   safetyPlanFile={null}
                   onSafetyPlanFileChange={noop}
+                  companyName="(주)와이지엔터테인먼트"
                   title={field("safetyPledgeTitle")}
                   lead={lead("safetyPledgeLead")}
                 />

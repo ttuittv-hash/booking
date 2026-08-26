@@ -60,7 +60,9 @@ const DEFAULT_MARKETING_COOPERATION: MarketingCooperation = {
     { platform: "유튜브", handle: "", followers: "" },
     { platform: "X (트위터)", handle: "", followers: "" },
   ],
-  seoulArenaPromotionConsent: null,
+  // [개정 2026-08-26] "연계 동의는 디폴트로 체크 + 체크 해제 불가능" — 필수 동의라
+  // 화면에서 항상 체크된 채로 잠가 보여주므로 기본값도 true 로 시작한다.
+  seoulArenaPromotionConsent: true,
   // 빈 목록으로 시작하면 "+ 항목 추가"부터 눌러야 해서, 입력 행 1개를 비운 채로
   // 미리 열어 둔다(2026-08-22, "항목 1개가 디폴트로 열린 형태로" 요청).
   sponsorships: [{ brandName: "", campaignSummary: "" }],
@@ -289,6 +291,9 @@ export function WizardShell({
         marketingCooperation: {
           ...DEFAULT_MARKETING_COOPERATION,
           ...(draft.selection.marketingCooperation ?? {}),
+          // 필수 동의라 항상 true — 예전(체크 해제 가능하던 시절) 임시저장본에 false/null
+          // 이 남아 있어도 지금은 잠긴 체크박스로만 보여주므로 값도 같이 강제한다.
+          seoulArenaPromotionConsent: true,
           channels: Array.isArray(draft.selection.marketingCooperation?.channels)
             ? draft.selection.marketingCooperation.channels
             : DEFAULT_MARKETING_COOPERATION.channels,
@@ -780,6 +785,7 @@ export function WizardShell({
             onChange={(safetyPledge) => setSelection((prev) => ({ ...prev, safetyPledge }))}
             safetyPlanFile={safetyPlanFile}
             onSafetyPlanFileChange={setSafetyPlanFile}
+            companyName={selection.performanceInfo.applicantCompanyName || undefined}
             title={wizardStepText.safetyPledgeTitle}
             lead={wizardStepText.safetyPledgeLead}
           />

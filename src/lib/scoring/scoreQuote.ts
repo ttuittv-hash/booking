@@ -182,18 +182,20 @@ function scorePublic(info: PerformanceInfo): ScoreCategory {
 function scoreMarketing(mkt: MarketingCooperation | undefined): ScoreCategory {
   const items: ScoreItem[] = [];
   const plan = mkt?.executionPlan;
+  // [개정 2026-08-26] "타겟 정의·집행 예산·타임라인은 제외" 요청으로 마케팅 실행
+  // 계획 입력을 온라인/오프라인 계획 2가지로 줄였다 — 채점 요소도 그에 맞춘다.
   const concreteCount = plan
-    ? [plan.targetDefinition, plan.mediaMix, plan.budget, plan.timeline].filter(hasConcreteContent).length
+    ? [plan.mediaMixOnline ?? "", plan.mediaMixOffline ?? ""].filter(hasConcreteContent).length
     : 0;
-  const mktScore = concreteCount === 4 ? 5 : concreteCount === 3 ? 3 : concreteCount === 2 ? 1 : 0;
+  const mktScore = concreteCount === 2 ? 5 : concreteCount === 1 ? 2 : 0;
   items.push({
     code: "A-MKT-01",
     label: "마케팅 실행 계획",
     maxScore: 5,
     score: mktScore,
     confidence: "PROVISIONAL",
-    rule: "타겟정의·매체믹스·집행예산·타임라인 4요소 중 수치·금액·일자 포함 개수 — 4개 5·3개 3·2개 1·그외 0",
-    evidence: `구체적 서술 ${concreteCount}/4요소`,
+    rule: "온라인/오프라인 마케팅 계획 중 수치·금액·일자 포함 개수 — 2개 5·1개 2·0개 0",
+    evidence: `구체적 서술 ${concreteCount}/2요소`,
     note: "자유 서술 텍스트에 숫자가 포함되어 있는지로만 '구체성'을 근사합니다 — 실제 내용 타당성은 위원이 읽고 판단해야 합니다.",
   });
 
@@ -304,13 +306,41 @@ function scoreBonuses(info: PerformanceInfo): BonusItem[] {
       confidence: "PROVISIONAL",
       note: "제공 좌석 수를 입력받는 필드가 없어 체크 여부로만 판정합니다. 문화소외계층 초청석(A-PUB-01①)과 같은 좌석을 중복 신고했는지 위원이 확인하세요(13-N #39-d).",
     },
+    // [신규 2026-08-26] 신청서에 경합 시 추가 제안 대관료 범위(competitionFeeOptionMin/
+    // Max)와 티켓 매출 RS 요율(ticketRevenueShareRate) 입력란이 생겨, 더 이상
+    // UNAVAILABLE이 아니다 — 둘 중 하나라도 제시했으면 만점, 아니면 0으로 잠정 산정한다.
+    (() => {
+      const hasFeeRange =
+        typeof info.competitionFeeOptionMax === "number" && info.competitionFeeOptionMax > 0;
+      const hasRsRate =
+        typeof info.ticketRevenueShareRate === "number" && info.ticketRevenueShareRate > 0;
+      const offered = hasFeeRange || hasRsRate;
+      const parts: string[] = [];
+      if (hasFeeRange) {
+        parts.push(
+          `대관료 옵션 ${info.competitionFeeOptionMin?.toLocaleString() ?? 0}~${info.competitionFeeOptionMax?.toLocaleString()}원`,
+        );
+      }
+      if (hasRsRate) parts.push(`티켓 매출 RS ${info.ticketRevenueShareRate}%`);
+      const bonus: BonusItem = {
+        code: "A-BON-03",
+        label: "경합 추가 대관료 제안",
+        maxScore: 10,
+        score: offered ? 10 : 0,
+        confidence: "PROVISIONAL",
+        note:
+          (parts.length > 0 ? `제안 내용: ${parts.join(" · ")}. ` : "제안 없음. ") +
+          "자유 입력값이라 실제 이행 가능성·적정성은 위원이 직접 검토해야 합니다.",
+      };
+      return bonus;
+    })(),
     {
-      code: "A-BON-03",
-      label: "경합 추가 대관료 제안",
-      maxScore: 10,
-      score: null,
-      confidence: "UNAVAILABLE",
-      note: "신청서에 입력란 자체가 없어 신청자가 제안할 방법이 없습니다(기능정의서 13-N #39-h).",
+      code: "A-BON-04",
+      label: "지역 상생 및 공연장 활성화 특화 프로그램",
+      maxScore: 5,
+      score: selected.includes("REGIONAL_VENUE_ACTIVATION_PROGRAM") ? 5 : 0,
+      confidence: "PROVISIONAL",
+      note: "프로그램 구체성·이행 가능성은 위원이 직접 검토해야 합니다.",
     },
   ];
   return bonuses;

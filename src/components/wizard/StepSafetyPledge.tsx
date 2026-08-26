@@ -110,6 +110,7 @@ export function StepSafetyPledge({
   onChange,
   safetyPlanFile,
   onSafetyPlanFileChange,
+  companyName,
   title,
   lead,
 }: {
@@ -117,6 +118,8 @@ export function StepSafetyPledge({
   onChange: (pledge: SafetyPledge) => void;
   safetyPlanFile: File | null;
   onSafetyPlanFileChange: (file: File | null) => void;
+  /** 대관신청사명 — 있으면 서명란에 옅게 깔아 따라 쓸 수 있게 한다. */
+  companyName?: string;
   title: ReactNode;
   lead: ReactNode;
 }) {
@@ -135,18 +138,6 @@ export function StepSafetyPledge({
   return (
     <section>
       <StepHeading title={title} lead={lead} />
-
-      {/* [신규 2026-08-26] "안전관리 서약서 화면에서 대관 규약 보기 링크가 있어야함" —
-          서약 항목이 대관규약을 근거로 하므로(consequenceAcknowledged 문구 참고) 원문을
-          바로 확인할 수 있게 새 탭 링크를 둔다. */}
-      <Link
-        href="/rules"
-        target="_blank"
-        rel="noopener noreferrer"
-        className="mt-3 inline-flex items-center gap-1 text-s font-bold text-foreground underline decoration-accent decoration-2 underline-offset-4"
-      >
-        {t("safetyPledge.viewRulesLinkLabel", "대관 규약 보기")} ↗
-      </Link>
 
       <label className="mt-6 flex cursor-pointer items-center gap-2.5 border border-border bg-panel px-5 py-3.5">
         <input
@@ -180,6 +171,18 @@ export function StepSafetyPledge({
         ))}
       </div>
 
+      {/* [신규 2026-08-26, 2026-08-26 위치 조정] "대관 규약 보기는 항목들 밑에 넣는게
+          나을듯" — 서약 항목을 다 읽은 다음 근거 원문을 확인하도록 체크리스트 바로
+          아래로 옮겼다(서약 항목이 대관규약을 근거로 한다, consequenceAcknowledged 참고). */}
+      <Link
+        href="/rules"
+        target="_blank"
+        rel="noopener noreferrer"
+        className="mt-4 inline-flex items-center gap-1 text-s font-bold text-foreground underline decoration-accent decoration-2 underline-offset-4"
+      >
+        {t("safetyPledge.viewRulesLinkLabel", "대관 규약 보기")} ↗
+      </Link>
+
       <div className="mt-6">
         <label className="block text-s font-bold text-foreground">{t("safetyPledge.signatureLabel", "서명")}</label>
         <p className="mt-1 mb-2 text-xs text-muted">
@@ -188,6 +191,7 @@ export function StepSafetyPledge({
         <SignaturePad
           value={pledge.signature}
           onChange={(signature) => onChange({ ...pledge, signature })}
+          watermarkText={companyName}
         />
       </div>
 

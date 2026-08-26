@@ -11,9 +11,14 @@ import { btnClass } from "@/components/ui/kit";
 export function SignaturePad({
   value,
   onChange,
+  watermarkText,
 }: {
   value: string;
   onChange: (dataUrl: string) => void;
+  /** [신규 2026-08-26] 대관신청사명을 서명란에 옅게 깔아 따라 쓸 수 있게 한다
+      ("서명란은 워터마크처럼... 대관신청사명이 써저있어야 한다"). 캔버스는 투명
+      배경으로 그려 밑에 깔린 워터마크가 비치게 하고, 흰 배경은 감싸는 div가 진다. */
+  watermarkText?: string;
 }) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const padRef = useRef<SignaturePadLib | null>(null);
@@ -23,7 +28,7 @@ export function SignaturePad({
     const canvas = canvasRef.current;
     if (!canvas) return;
 
-    const pad = new SignaturePadLib(canvas, { backgroundColor: "#ffffff" });
+    const pad = new SignaturePadLib(canvas, { backgroundColor: "rgba(0,0,0,0)" });
     padRef.current = pad;
 
     // 캔버스는 리사이즈(브라우저 폭 변경 등) 시 픽셀 버퍼가 지워지므로, 그리기 전에
@@ -69,8 +74,16 @@ export function SignaturePad({
   return (
     <div>
       <div className="relative border border-border bg-white">
-        <canvas ref={canvasRef} className="block h-48 w-full touch-none" />
-        {isEmpty && (
+        {watermarkText && (
+          <span
+            aria-hidden="true"
+            className="pointer-events-none absolute inset-0 flex items-center justify-center break-keep px-4 text-center text-h5-m font-bold text-foreground/10 select-none"
+          >
+            {watermarkText}
+          </span>
+        )}
+        <canvas ref={canvasRef} className="relative block h-48 w-full touch-none" />
+        {isEmpty && !watermarkText && (
           <span className="pointer-events-none absolute inset-0 flex items-center justify-center text-s text-muted">
             이 영역에 마우스나 손가락으로 서명해 주세요
           </span>

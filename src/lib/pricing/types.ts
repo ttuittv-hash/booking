@@ -467,6 +467,7 @@ export type PublicInterestItem =
   | "CONSUMER_PROTECTION"
   | "PUBLIC_AGENCY_LINKED_EVENT"
   | "LOCAL_COMMUNITY_PROGRAM"
+  | "REGIONAL_VENUE_ACTIVATION_PROGRAM"
   | "PUBLIC_INTEREST_SEATS"
   | "FACILITY_LINKED_PROGRAM"
   | "COMPLAINT_REDUCTION_PLEDGE"
@@ -482,6 +483,7 @@ export const PUBLIC_INTEREST_ITEM_LABEL: Record<PublicInterestItem, string> = {
   CONSUMER_PROTECTION: "소비자 보호계획",
   PUBLIC_AGENCY_LINKED_EVENT: "공공기관 · 지자체 연계 행사",
   LOCAL_COMMUNITY_PROGRAM: "지역상생 프로그램",
+  REGIONAL_VENUE_ACTIVATION_PROGRAM: "지역 상생 및 공연장 활성화 특화 프로그램",
   PUBLIC_INTEREST_SEATS: "공익 목적 객석 제공",
   FACILITY_LINKED_PROGRAM: "시설 연계 프로그램",
   COMPLAINT_REDUCTION_PLEDGE: "민원 저감 및 책임 서약",
@@ -498,6 +500,7 @@ export const PUBLIC_INTEREST_ITEM_HINT: Record<PublicInterestItem, string> = {
   CONSUMER_PROTECTION: "공정 운영, 환불 · 취소, 민원 대응",
   PUBLIC_AGENCY_LINKED_EVENT: "기관명, 주최 · 주관 · 후원 관계",
   LOCAL_COMMUNITY_PROGRAM: "지역 업체 · 인력, 주민 프로그램",
+  REGIONAL_VENUE_ACTIVATION_PROGRAM: "지역 상권 연계, 공연장 활성화 협력 계획",
   PUBLIC_INTEREST_SEATS: "제공 대상과 좌석 수",
   FACILITY_LINKED_PROGRAM: "판매시설, 중형공연장, MD 팝업",
   COMPLAINT_REDUCTION_PLEDGE: "소음 · 교통완화계획",

@@ -6,15 +6,44 @@ import type { MarketingCooperation } from "@/lib/pricing/types";
 import { useWizardText } from "@/lib/content/wizardText";
 import { StepHeading, StepForm } from "./StepHeading";
 
-// 서비스 연계 동의는 무조건 체크해야 다음 단계로 넘어간다(2026-08-22, "이거 선택은
-// 무조건 필수" 합의가 유지됨). 2026-08-25에 동의/비동의 두 버튼에서 단일 체크박스로
-// 개편됐지만 필수 검사 자체는 그대로다 — 체크 안 하면(null) 통과 못 한다.
-// 나머지(채널·스폰서십)는 선택 항목이라 여기서 검사하지 않는다.
+// [개정 2026-08-26] "연계 동의는 디폴트로 체크 + 체크 해제 불가능" — 화면에서 항상
+// true로 고정해 보여주므로(아래 체크박스가 disabled) 이 검사는 이제 실패할 일이
+// 없지만, 옛 임시저장본을 열었을 때의 방어선으로 남겨둔다.
 export function validateMarketingCooperationStep(info: MarketingCooperation): string | null {
   if (info.seoulArenaPromotionConsent !== true) {
     return "서비스 연계 동의에 체크해 주세요.";
   }
   return null;
+}
+
+// "행마다 앞에 가운데 점" — 마케팅 실행 계획(온라인/오프라인)은 줄글이 아니라 항목을
+// 한 줄씩 나열하는 용도라, FeatureSpecManager의 "상세" 칸과 같은 방식으로 첫 입력과
+// Enter 줄바꿈마다 "· "를 자동으로 붙인다.
+function bulletOnChange(current: string, next: string, onUpdate: (value: string) => void) {
+  if (current === "" && next !== "" && !next.startsWith("· ")) {
+    onUpdate("· " + next);
+    return;
+  }
+  onUpdate(next);
+}
+
+function bulletOnKeyDown(
+  e: React.KeyboardEvent<HTMLTextAreaElement>,
+  current: string,
+  onUpdate: (value: string) => void,
+) {
+  if (e.key !== "Enter") return;
+  e.preventDefault();
+  const el = e.currentTarget;
+  const start = el.selectionStart;
+  const end = el.selectionEnd;
+  const insertion = "\n· ";
+  const nextValue = current.slice(0, start) + insertion + current.slice(end);
+  onUpdate(nextValue);
+  requestAnimationFrame(() => {
+    const pos = start + insertion.length;
+    el.selectionStart = el.selectionEnd = pos;
+  });
 }
 
 // "주요 활용 범위" 5항목 — 제목+설명 쌍. PLEDGE_ITEMS(StepSafetyPledge)와 같은 패턴으로
@@ -133,35 +162,28 @@ export function StepMarketingCooperation({
               {t("marketing.executionPlanHeading", "마케팅 실행 계획(선택)")}
             </h3>
             <p className="text-xs text-muted">
-              {t("marketing.executionPlanRequirementHint", "4요소 중 2개 이상을 구체적 수치·금액·일자로 작성해 주세요.")}
+              {t("marketing.executionPlanRequirementHint", "온라인·오프라인 중 1개 이상을 구체적 수치·금액·일자로 작성해 주세요.")}
             </p>
           </div>
           <p className="mt-1 mb-3 break-keep text-xs leading-6 text-muted">
-            {t("marketing.executionPlanLead", "공연 홍보를 어떻게 진행할 계획인지 대략적인 방향을 입력해 주세요.")}
+            {t("marketing.executionPlanLead", "공연 홍보를 어떻게 진행할 계획인지 대략적인 방향을 항목별로 나눠 입력해 주세요.")}
           </p>
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-            <div>
-              <label className="mb-1.5 block text-xs font-bold text-foreground">
-                {t("marketing.targetDefinitionLabel", "타겟 정의")}
-              </label>
-              <textarea
-                value={info.executionPlan.targetDefinition}
-                onChange={(e) => updateExecutionPlan({ targetDefinition: e.target.value })}
-                placeholder={tStr("marketing.targetDefinitionPlaceholder", "예: 20~30대 여성, 수도권 거주")}
-                rows={3}
-                className="field-base"
-              />
-            </div>
             <div>
               <label className="mb-1.5 block text-xs font-bold text-foreground">
                 {t("marketing.mediaMixOnlineLabel", "온라인 마케팅 계획")}
               </label>
               <textarea
                 value={info.executionPlan.mediaMixOnline ?? ""}
-                onChange={(e) => updateMediaMix({ online: e.target.value })}
+                onChange={(e) =>
+                  bulletOnChange(info.executionPlan.mediaMixOnline ?? "", e.target.value, (v) => updateMediaMix({ online: v }))
+                }
+                onKeyDown={(e) =>
+                  bulletOnKeyDown(e, info.executionPlan.mediaMixOnline ?? "", (v) => updateMediaMix({ online: v }))
+                }
                 placeholder={tStr("marketing.mediaMixOnlinePlaceholder", "예: SNS 광고 60%, 포털 배너 20%")}
-                rows={3}
-                className="field-base"
+                rows={4}
+                className="field-base whitespace-pre-wrap"
               />
             </div>
             <div>
@@ -170,34 +192,15 @@ export function StepMarketingCooperation({
               </label>
               <textarea
                 value={info.executionPlan.mediaMixOffline ?? ""}
-                onChange={(e) => updateMediaMix({ offline: e.target.value })}
+                onChange={(e) =>
+                  bulletOnChange(info.executionPlan.mediaMixOffline ?? "", e.target.value, (v) => updateMediaMix({ offline: v }))
+                }
+                onKeyDown={(e) =>
+                  bulletOnKeyDown(e, info.executionPlan.mediaMixOffline ?? "", (v) => updateMediaMix({ offline: v }))
+                }
                 placeholder={tStr("marketing.mediaMixOfflinePlaceholder", "예: 옥외광고 30%, 지하철 광고, 언론 10%")}
-                rows={3}
-                className="field-base"
-              />
-            </div>
-            <div>
-              <label className="mb-1.5 block text-xs font-bold text-foreground">
-                {t("marketing.budgetLabel", "집행 예산(원)")}
-              </label>
-              <textarea
-                value={info.executionPlan.budget}
-                onChange={(e) => updateExecutionPlan({ budget: e.target.value })}
-                placeholder={tStr("marketing.budgetPlaceholder", "예: 총 50,000,000원")}
-                rows={3}
-                className="field-base"
-              />
-            </div>
-            <div>
-              <label className="mb-1.5 block text-xs font-bold text-foreground">
-                {t("marketing.timelineLabel", "타임라인(기간)")}
-              </label>
-              <textarea
-                value={info.executionPlan.timeline}
-                onChange={(e) => updateExecutionPlan({ timeline: e.target.value })}
-                placeholder={tStr("marketing.timelinePlaceholder", "예: 티켓 오픈 4주 전부터 공연일까지")}
-                rows={3}
-                className="field-base"
+                rows={4}
+                className="field-base whitespace-pre-wrap"
               />
             </div>
           </div>
@@ -258,7 +261,7 @@ export function StepMarketingCooperation({
 
         <div className="mt-8 border-t border-border/25 pt-5">
           <h3 className="type-kr-heading text-h6-m">
-            {t("marketing.serviceLinkHeading", "마케팅 및 서비스연계")}
+            {t("marketing.serviceLinkHeading", "마케팅 및 서비스 연계 안내")}
           </h3>
 
           {/* 2026-08-25, "서비스 에 대한 꼭지를 슬롯으로 하나 분리해서... 앱.웹서비스에 노출
@@ -329,11 +332,13 @@ export function StepMarketingCooperation({
             <p className="text-xs font-bold text-foreground">
               {t("marketing.serviceConsentHeading", "마케팅/서비스 연계 동의")}
             </p>
-            <label className="mt-2 flex cursor-pointer items-start gap-2 text-s">
+            {/* [개정 2026-08-26] "연계 동의는 디폴트로 체크 + 체크 해제 불가능" —
+                필수 동의 항목이라 항상 체크된 상태로 고정해 보여준다(disabled). */}
+            <label className="mt-2 flex cursor-not-allowed items-start gap-2 text-s">
               <input
                 type="checkbox"
-                checked={info.seoulArenaPromotionConsent === true}
-                onChange={(e) => set("seoulArenaPromotionConsent", e.target.checked ? true : null)}
+                checked
+                disabled
                 className="mt-0.5 h-4 w-4 shrink-0 accent-[var(--accent)]"
               />
               <span className="break-keep leading-6">
