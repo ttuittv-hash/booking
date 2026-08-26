@@ -124,6 +124,7 @@ export function RegisterWizard() {
   const [idCheck, setIdCheck] = useState<{ available: boolean; message: string } | null>(null);
   const [searchOpen, setSearchOpen] = useState(false);
   const [joinNotice, setJoinNotice] = useState<string | null>(null);
+  const [isNewMaster, setIsNewMaster] = useState(false);
 
   useEffect(() => {
     fetch("/api/terms")
@@ -311,6 +312,10 @@ export function RegisterWizard() {
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "가입에 실패했습니다.");
       setJoinNotice(data.joinNotice ?? null);
+      // joinKind가 "NEW"(회사 신규 등록)일 때만 이 계정이 회사 마스터가 된다 — 합류
+      // 신청(JOIN_*)은 항상 STAFF 로 시작하므로 companyRole 만 봐도 동치이지만, 의도를
+      // 명시적으로 드러내기 위해 joinKind 도 같이 확인한다.
+      setIsNewMaster(data.joinKind === "NEW" && data.user?.companyRole === "MASTER");
       setStep(5);
     } catch (e) {
       setError(e instanceof Error ? e.message : "가입에 실패했습니다.");
@@ -412,7 +417,7 @@ export function RegisterWizard() {
           onSubmit={submit}
         />
       ) : (
-        <StepDone notice={joinNotice} />
+        <StepDone notice={joinNotice} isNewMaster={isNewMaster} companyName={form.companyName} />
       )}
 
       {searchOpen ? (
@@ -1081,7 +1086,15 @@ function StepInfo({
   );
 }
 
-function StepDone({ notice }: { notice: string | null }) {
+function StepDone({
+  notice,
+  isNewMaster,
+  companyName,
+}: {
+  notice: string | null;
+  isNewMaster: boolean;
+  companyName: string;
+}) {
   return (
     <section className="mt-12 text-center" data-testid="step-done">
       <h2 className="type-kr-heading break-keep text-h5-m sm:text-h5">가입 신청이 접수되었습니다</h2>
@@ -1089,6 +1102,15 @@ function StepDone({ notice }: { notice: string | null }) {
       {notice ? (
         <p data-testid="join-notice" className="mx-auto mt-5 max-w-lg break-keep border border-border-soft px-5 py-4 text-s leading-6">
           {notice}
+        </p>
+      ) : null}
+      {isNewMaster ? (
+        <p
+          data-testid="master-account-notice"
+          className="mx-auto mt-5 max-w-lg break-keep border border-accent px-5 py-4 text-s leading-6"
+        >
+          {companyName || "회사"}의 <b>마스터 계정</b>으로 가입되었습니다. 승인 후 마이메뉴 &gt; 담당자
+          관리에서 소속 담당자를 초대하고, 합류 신청을 승인·반려하거나 대표 권한을 이관할 수 있습니다.
         </p>
       ) : null}
       <p className="mt-3 break-keep text-xs leading-6 text-muted">

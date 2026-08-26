@@ -33,6 +33,23 @@ const APPROVAL_LABEL: Record<string, string> = {
   REJECTED: "비활성",
 };
 
+// [신규 2026-08-26] "마스터 계정표기 텍스트 옆에 ? 아이콘, 마우스오버하면 안내" 요청.
+// 이 화면(/mypage/members)은 대표 담당자만 열 수 있으므로 MASTER 배지는 늘 보는 사람 본인이다.
+export const MASTER_ROLE_TOOLTIP = "당신은 마스터 계정으로 소속담당자 승인/관리가 가능합니다.";
+
+function MasterInfoIcon() {
+  return (
+    <span
+      data-testid="master-role-info"
+      title={MASTER_ROLE_TOOLTIP}
+      aria-label={MASTER_ROLE_TOOLTIP}
+      className="ml-1 inline-flex h-3.5 w-3.5 shrink-0 cursor-help items-center justify-center rounded-full border border-current text-[9px] leading-none"
+    >
+      ?
+    </span>
+  );
+}
+
 // [개정 2026-08-26] "같은 회사 소속 계정들이 한 리스트에, 상태값(가입/미가입)과
 // 상태별 실행 버튼(가입승인/가입반려 등)이 보여야 한다" 요청으로 "담당자 목록"(이미
 // 계정이 있는 사람)과 "담당자 초대"(아직 계정이 없는 사람)를 한 표로 합친다.
@@ -231,14 +248,17 @@ export function MembersManager() {
                   <td className="py-3 text-muted">{row.phone ?? "—"}</td>
                   <td className="py-3">
                     {row.companyRole ? (
-                      <span
-                        className={`inline-block border px-2 py-0.5 text-xs ${
-                          row.companyRole === "MASTER"
-                            ? "border-accent text-accent"
-                            : "border-border-soft text-muted"
-                        }`}
-                      >
-                        {row.companyRole === "MASTER" ? "대표 담당자" : "소속 담당자"}
+                      <span className="inline-flex items-center">
+                        <span
+                          className={`inline-block border px-2 py-0.5 text-xs ${
+                            row.companyRole === "MASTER"
+                              ? "border-accent text-accent"
+                              : "border-border-soft text-muted"
+                          }`}
+                        >
+                          {row.companyRole === "MASTER" ? "대표 담당자" : "소속 담당자"}
+                        </span>
+                        {row.companyRole === "MASTER" ? <MasterInfoIcon /> : null}
                       </span>
                     ) : (
                       <span className="text-muted">—</span>
