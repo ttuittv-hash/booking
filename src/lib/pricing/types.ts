@@ -604,7 +604,9 @@ export interface Settlement {
 }
 
 // ---------------------------------------------------------------------------
-// 보증금 (계좌이체 확인 방식 — 실제 PG 연동 전 임시 운영 방식)
+// 계약금 (계좌이체 확인 방식 — 실제 PG 연동 전 임시 운영 방식)
+// 화면 문구는 "계약금"이다(2026-08-26, "보증금 아니고 계약금이야" 정정) — 타입·필드명은
+// Deposit/depositRate 그대로 두고 화면에 노출되는 한글 문구만 바꿨다.
 // ---------------------------------------------------------------------------
 
 export type DepositStatus = "PENDING" | "REPORTED" | "CONFIRMED";
@@ -613,7 +615,7 @@ export interface Deposit {
   id: string;
   quoteId: string;
   requiredAmount: number;
-  depositRate: number; // 계약금액 대비 보증금 비율 (%)
+  depositRate: number; // 계약금액 대비 계약금 비율 (%)
   status: DepositStatus;
   depositorName: string | null; // 신청자가 입금신청 시 입력한 입금자명
   reportedAt: string | null;
@@ -624,7 +626,7 @@ export interface Deposit {
 
 // ---------------------------------------------------------------------------
 // 대관 현황 — 계약 이후 진행 단계 (전자 날인 / 세금계산서 / 티켓오픈 / 시설회의)
-// 명세상 정식 연동 서비스(전자서명·세금계산서 발행 API) 도입 전까지는, 보증금과 동일하게
+// 명세상 정식 연동 서비스(전자서명·세금계산서 발행 API) 도입 전까지는, 계약금과 동일하게
 // 운영자가 수동으로 상태를 체크하는 방식으로 운영한다.
 // ---------------------------------------------------------------------------
 
@@ -669,7 +671,7 @@ export interface TaxInvoice {
 export interface TicketOpen {
   id: string;
   quoteId: string;
-  openDate: string | null; // ISO yyyy-mm-dd — 보증금 입금 확인 후 운영자가 등록
+  openDate: string | null; // ISO yyyy-mm-dd — 계약금 입금 확인 후 운영자가 등록
   materialsUploadedAt: string | null; // 포스터/상세페이지/좌석배치도 등 자료 업로드 시점
   lastReminderAt: string | null; // 오픈일 D-30 미업로드 알림 최근 발송 시점
   createdAt: string;

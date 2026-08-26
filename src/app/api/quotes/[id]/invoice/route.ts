@@ -21,8 +21,8 @@ const PURPOSE_LABEL: Record<InvoicePurpose, string> = {
 };
 
 // 세금계산서 발행/입금신청/입금확인 — 계약금(CONTRACT)·잔금(CONTRACT_BALANCE)·정산(SETTLEMENT)
-// 공용 엔드포인트. 정식 세금계산서 발행 서비스 연동 전까지는 보증금과 동일한 운영자 수동
-// 확인 방식으로 운영한다.
+// 공용 엔드포인트. 정식 세금계산서 발행 서비스 연동 전까지는 계약금(Deposit)과 동일한
+// 운영자 수동 확인 방식으로 운영한다.
 export async function POST(request: Request, ctx: { params: Promise<{ id: string }> }) {
   const user = await getCurrentUser();
   if (!user) return NextResponse.json({ error: "로그인이 필요합니다." }, { status: 401 });

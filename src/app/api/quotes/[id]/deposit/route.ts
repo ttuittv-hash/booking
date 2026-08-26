@@ -27,9 +27,9 @@ export async function POST(request: Request, ctx: { params: Promise<{ id: string
     }
 
     const deposit = await getDepositByQuoteId(id);
-    if (!deposit) return NextResponse.json({ error: "보증금 안내가 아직 없습니다." }, { status: 404 });
+    if (!deposit) return NextResponse.json({ error: "계약금 안내가 아직 없습니다." }, { status: 404 });
     if (deposit.status !== "PENDING") {
-      return NextResponse.json({ error: "이미 입금신청되었거나 확인된 보증금입니다." }, { status: 409 });
+      return NextResponse.json({ error: "이미 입금신청되었거나 확인된 계약금입니다." }, { status: 409 });
     }
 
     const depositorName = typeof body?.depositorName === "string" ? body.depositorName.trim() : "";
@@ -49,7 +49,7 @@ export async function POST(request: Request, ctx: { params: Promise<{ id: string
     });
     await notifyAdmins({
       quoteId: id,
-      message: `${id}의 보증금 입금신청이 접수되었습니다. (입금자명: ${depositorName})`,
+      message: `${id}의 계약금 입금신청이 접수되었습니다. (입금자명: ${depositorName})`,
       createdAt,
     });
     return NextResponse.json({ deposit: updated });
@@ -64,7 +64,7 @@ export async function POST(request: Request, ctx: { params: Promise<{ id: string
     if (!quote) return NextResponse.json({ error: "신청서를 찾을 수 없습니다." }, { status: 404 });
 
     const deposit = await getDepositByQuoteId(id);
-    if (!deposit) return NextResponse.json({ error: "보증금 안내가 없습니다." }, { status: 404 });
+    if (!deposit) return NextResponse.json({ error: "계약금 안내가 없습니다." }, { status: 404 });
     if (deposit.status !== "REPORTED") {
       return NextResponse.json({ error: "입금신청 상태가 아닙니다." }, { status: 409 });
     }
@@ -83,7 +83,7 @@ export async function POST(request: Request, ctx: { params: Promise<{ id: string
       id: crypto.randomUUID(),
       recipientId: quote.applicantId,
       quoteId: id,
-      message: `${id}의 보증금 입금이 확인되었습니다.`,
+      message: `${id}의 계약금 입금이 확인되었습니다.`,
       createdAt,
     });
     return NextResponse.json({ deposit: updated });

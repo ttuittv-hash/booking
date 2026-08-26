@@ -15,7 +15,7 @@ export async function POST(request: Request, ctx: { params: Promise<{ id: string
 
   const deposit = await getDepositByQuoteId(id);
   if (!deposit || deposit.status !== "CONFIRMED") {
-    return NextResponse.json({ error: "보증금 입금 확인 후 등록할 수 있습니다." }, { status: 409 });
+    return NextResponse.json({ error: "계약금 입금 확인 후 등록할 수 있습니다." }, { status: 409 });
   }
 
   const body = await request.json().catch(() => null);
