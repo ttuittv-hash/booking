@@ -33,6 +33,8 @@ import { SpecTable } from "@/components/ui/kit";
 import { AiReviewBox } from "@/components/admin/AiReviewBox";
 import { ContractForm } from "@/components/admin/ContractForm";
 import { ReviewForm } from "@/components/admin/ReviewForm";
+import { ScoringPanel } from "@/components/admin/ScoringPanel";
+import { scoreQuote } from "@/lib/scoring/scoreQuote";
 import { SettlementForm } from "@/components/admin/SettlementForm";
 import { DepositPanel } from "@/components/DepositPanel";
 import { AttachmentsPanel } from "@/components/AttachmentsPanel";
@@ -355,6 +357,8 @@ export default async function AdminQuoteDetailPage({
         </section>
 
         <div className="mt-6 space-y-6">
+          {quote.status === "ESTIMATE" && <ScoringPanel breakdown={scoreQuote(quote.selection)} />}
+
           {quote.status === "ESTIMATE" && <AiReviewBox quoteId={quote.id} />}
 
           {quote.status === "ESTIMATE" && (
