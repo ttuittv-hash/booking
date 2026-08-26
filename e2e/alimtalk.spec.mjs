@@ -82,7 +82,8 @@ try {
   check("MB-02", "운영자 승인 → MB-02 발송 이벤트 발생", true);
   console.log(`USERNAME=${username}`);
 } catch (e) {
-  check("ERR", "예외", false, e.message.split("\n")[0]);
+  const toast = await page.locator('[data-testid="toast"]').first().innerText().catch(() => "");
+  check("ERR", "예외", false, e.message.split("\n")[0] + (toast ? ` / 토스트: ${toast.replace(/\s+/g, " ")}` : ""));
   await page.screenshot({ path: "e2e-failure.png" }).catch(() => {});
 }
 await browser.close();

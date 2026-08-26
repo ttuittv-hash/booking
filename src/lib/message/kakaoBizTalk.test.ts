@@ -124,7 +124,8 @@ describe("알림톡 발송", () => {
     expect(body.fall_back_yn).toBe(false);
     expect(body.sender_key).toBe("4bcf1b2c");
     expect(body.phone_number).toBe("01012345678");
-    expect(body.button[0]).toMatchObject({ type: "WL", url_mobile: "https://partner.example/notice" });
+    // 버튼은 템플릿 등록값을 카카오가 붙인다 — 요청에 실으면 등록값과 달라 3027 로 거절된다(2026-08-26 실측).
+    expect(body.button).toBeUndefined();
   });
 
   it("수신번호가 없으면 보내지 않는다", async () => {
