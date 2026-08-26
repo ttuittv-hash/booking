@@ -13,6 +13,7 @@ import {
   updateSendResult,
 } from "@/lib/db";
 import { audienceOrigin } from "@/lib/publicUrl";
+import { isRecipientAllowed } from "./allowlist";
 import { emailAdapter } from "./email";
 import { inAppAdapter } from "./inapp";
 import { kakaoBizTalkAdapter, xmsAdapter } from "./kakaoBizTalk";
@@ -129,7 +130,25 @@ export async function dispatchMessage(input: DispatchInput): Promise<DispatchOut
 
   // ⑥ 주 채널 발송 (설정된 것이 없으면 건너뛴다).
   //    카카오 정본에 없는 문안(운영자용 등)은 kakaoTemplateCode 가 없다 — 인앱만 남긴다.
-  for (const adapter of def.kakaoTemplateCode ? primaryAdapters() : []) {
+  //    개발 환경 허용 목록 밖의 번호는 외부 발송을 건너뛰고 이력에 SKIPPED 로 남긴다(allowlist.ts).
+  const externalAdapters = def.kakaoTemplateCode ? primaryAdapters() : [];
+  if (externalAdapters.length > 0 && !isRecipientAllowed(input.recipient.phone)) {
+    await recordSendAttempt({
+      id: sendId,
+      idempotencyKey: input.idempotencyKey,
+      templateCode: input.templateCode,
+      recipientId: input.recipient.userId,
+      recipientPhone: input.recipient.phone,
+      channel: "ALIMTALK",
+      status: "SKIPPED",
+      resultCode: "ALLOWLIST",
+      resultMessage: "개발 허용 목록 밖의 번호 — 외부 발송 생략",
+      payloadJson: JSON.stringify(variables),
+      createdAt: new Date().toISOString(),
+    });
+    externalAdapters.length = 0;
+  }
+  for (const adapter of externalAdapters) {
     await recordSendAttempt({
       id: sendId,
       idempotencyKey: input.idempotencyKey,

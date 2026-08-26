@@ -158,12 +158,23 @@ export function RegisterWizard() {
   }, [toast]);
 
   async function startIdentity(options?: { bypass?: boolean }) {
+    // 개발 우회일 때만: 알림톡을 실제로 받아 볼 번호를 물어본다(비우면 가짜 번호).
+    // 운영에는 우회 버튼 자체가 없다(NICE_AUTH_DEV_STUB 없음).
+    let stubPhone: string | undefined;
+    if (options?.bypass) {
+      const typed = window.prompt(
+        "개발용 우회 인증입니다.\n알림톡을 받아 볼 휴대폰 번호를 입력하세요(비우면 가짜 번호로 진행).",
+        "",
+      );
+      if (typed === null) return;
+      stubPhone = typed.replace(/\D/g, "") || undefined;
+    }
     setLoading(true);
     try {
       const res = await fetch("/api/auth/nice/start", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ purpose: "REGISTER", devBypass: options?.bypass === true }),
+        body: JSON.stringify({ purpose: "REGISTER", devBypass: options?.bypass === true, stubPhone }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "본인인증을 시작하지 못했습니다.");
