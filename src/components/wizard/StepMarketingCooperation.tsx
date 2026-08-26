@@ -106,6 +106,22 @@ export function StepMarketingCooperation({
     set("executionPlan", { ...info.executionPlan, ...patch });
   }
 
+  // [개정 2026-08-26] "온라인/오프라인 마케팅 계획을 구분해서 입력" 요청 — 매체 믹스를
+  // 둘로 나눈다. mediaMix(단일 텍스트)는 scoreQuote.ts의 A-MKT 채점이 그대로 읽고
+  // 있어, 두 필드가 바뀔 때마다 합성해 하위호환을 유지한다.
+  function updateMediaMix(patch: { online?: string; offline?: string }) {
+    const online = patch.online ?? info.executionPlan.mediaMixOnline ?? "";
+    const offline = patch.offline ?? info.executionPlan.mediaMixOffline ?? "";
+    const parts = [online.trim() && `온라인: ${online.trim()}`, offline.trim() && `오프라인: ${offline.trim()}`].filter(
+      Boolean,
+    );
+    updateExecutionPlan({
+      mediaMixOnline: online,
+      mediaMixOffline: offline,
+      mediaMix: parts.join(" / "),
+    });
+  }
+
   return (
     <section>
       <StepHeading title={title} lead={lead} />
@@ -138,12 +154,24 @@ export function StepMarketingCooperation({
             </div>
             <div>
               <label className="mb-1.5 block text-xs font-bold text-foreground">
-                {t("marketing.mediaMixLabel", "매체 믹스")}
+                {t("marketing.mediaMixOnlineLabel", "온라인 마케팅 계획")}
               </label>
               <textarea
-                value={info.executionPlan.mediaMix}
-                onChange={(e) => updateExecutionPlan({ mediaMix: e.target.value })}
-                placeholder={tStr("marketing.mediaMixPlaceholder", "예: SNS 광고 60%, 옥외광고 30%, 언론 10%")}
+                value={info.executionPlan.mediaMixOnline ?? ""}
+                onChange={(e) => updateMediaMix({ online: e.target.value })}
+                placeholder={tStr("marketing.mediaMixOnlinePlaceholder", "예: SNS 광고 60%, 포털 배너 20%")}
+                rows={3}
+                className="field-base"
+              />
+            </div>
+            <div>
+              <label className="mb-1.5 block text-xs font-bold text-foreground">
+                {t("marketing.mediaMixOfflineLabel", "오프라인 마케팅 계획")}
+              </label>
+              <textarea
+                value={info.executionPlan.mediaMixOffline ?? ""}
+                onChange={(e) => updateMediaMix({ offline: e.target.value })}
+                placeholder={tStr("marketing.mediaMixOfflinePlaceholder", "예: 옥외광고 30%, 지하철 광고, 언론 10%")}
                 rows={3}
                 className="field-base"
               />

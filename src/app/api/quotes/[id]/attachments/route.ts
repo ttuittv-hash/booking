@@ -15,7 +15,9 @@ import type { AttachmentCategory } from "@/lib/pricing/types";
 const VALID_CATEGORIES: AttachmentCategory[] = ["TICKET_OPEN", "FACILITY_MEETING"];
 
 const UPLOAD_ROOT = path.join(DATA_DIR, "uploads");
-const MAX_SIZE = 20 * 1024 * 1024; // 20MB
+// [개정 2026-08-26] "첨부 용량은 500메가까지 가능하게함" — 클라이언트 쪽 한도
+// (StepPerformanceInfo.tsx MAX_FILE_SIZE)도 함께 올렸다.
+const MAX_SIZE = 500 * 1024 * 1024; // 500MB
 const ALLOWED_MIME = new Set([
   "application/pdf",
   "image/png",
@@ -60,7 +62,7 @@ export async function POST(request: Request, ctx: { params: Promise<{ id: string
     return NextResponse.json({ error: "업로드할 파일을 선택하세요." }, { status: 400 });
   }
   if (file.size === 0 || file.size > MAX_SIZE) {
-    return NextResponse.json({ error: "파일 크기는 20MB 이하여야 합니다." }, { status: 400 });
+    return NextResponse.json({ error: "파일 크기는 500MB 이하여야 합니다." }, { status: 400 });
   }
   if (file.type && !ALLOWED_MIME.has(file.type)) {
     return NextResponse.json(

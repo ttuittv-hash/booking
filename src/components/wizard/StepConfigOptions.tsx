@@ -641,6 +641,7 @@ function AddonRow({
         </div>
         <div className="mt-0.5 text-xs text-muted">
           {addon.unitLabel}
+          {addon.spec ? ` · ${addon.spec}` : ""}
           {addon.note ? ` · ${addon.note}` : ""}
         </div>
       </div>

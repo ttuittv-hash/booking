@@ -132,7 +132,7 @@ function CalendarBody() {
           <span className="h-2 w-2 rounded-full bg-foreground" /> 대관사 확정
         </span>
         <span className="flex items-center gap-1.5">
-          <span className="h-2 w-2 rounded-full bg-warn" /> 경합 중
+          <span className="h-2 w-2 rounded-full bg-warn" /> 검토 중
         </span>
       </div>
 
@@ -197,7 +197,7 @@ function CalendarBody() {
                     )}
                     {inMonth && dateStatus === "COMPETING" && (
                       <span className="text-center text-xs leading-tight font-bold text-warn">
-                        경합 중 · {companyCount}개사
+                        검토 중 · {companyCount}개사
                       </span>
                     )}
                   </div>

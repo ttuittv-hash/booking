@@ -145,6 +145,9 @@ export interface AddonItem {
   billingPhase: BillingPhase; // 예상견적 포함 여부 (유틸리티=SETTLEMENT)
   visibility: LineItemVisibility; // 신청자 화면 노출 등급 (2-71)
   note?: string;
+  // optional — 항목 스펙(규격·사양) 참고용 텍스트(2026-08-26 추가). 과금·계산에는
+  // 관여하지 않는다. 신청자 화면(StepConfigOptions AddonRow)에도 note 옆에 노출한다.
+  spec?: string;
 }
 
 export interface RateTable {
@@ -261,7 +264,13 @@ export interface MarketingSponsorship {
 // 전체가 선택 항목이라 필수 검증 대상이 아니다.
 export interface MarketingExecutionPlan {
   targetDefinition: string; // 타겟 정의
-  mediaMix: string; // 매체 믹스
+  // 매체 믹스 — mediaMixOnline/mediaMixOffline에서 자동 합성(하위호환).
+  // scoreQuote.ts의 A-MKT 채점이 이 필드를 그대로 읽는다.
+  mediaMix: string;
+  // optional — "온라인/오프라인 마케팅 계획을 구분해서 입력" 요청(2026-08-26)으로
+  // 매체 믹스를 둘로 나눴다. 화면은 이 두 필드만 입력받는다.
+  mediaMixOnline?: string;
+  mediaMixOffline?: string;
   budget: string; // 집행 예산(원)
   timeline: string; // 타임라인(기간)
 }
@@ -332,19 +341,21 @@ export const EVENT_TYPE_LABEL: Record<EventType, string> = {
   PUBLIC: "공공행사",
 };
 
-export type StageType = "END_STAGE" | "CENTER_STAGE" | "UNDECIDED";
+export type StageType = "END_STAGE" | "CENTER_STAGE" | "UNDECIDED" | "OTHER";
 
 export const STAGE_TYPE_LABEL: Record<StageType, string> = {
   END_STAGE: "엔드 스테이지",
   CENTER_STAGE: "센터 스테이지",
   UNDECIDED: "미정",
+  OTHER: "기타",
 };
 
-export type SeatingType = "SEATED" | "STANDING";
+export type SeatingType = "SEATED" | "STANDING" | "OTHER";
 
 export const SEATING_TYPE_LABEL: Record<SeatingType, string> = {
   SEATED: "객석",
   STANDING: "스탠딩",
+  OTHER: "기타",
 };
 
 export type RetractableSeatUse = "USE" | "NOT_USE";
@@ -369,6 +380,55 @@ export interface PastPerformanceRecord {
   period: string;
   audience: string;
   role: string; // 주최·주관 역할
+}
+
+// [신규 2026-08-26] "공연 주최, 공연 주관, 공연 기획 따로따로 별도의 행으로 추가할수
+// 있게" 요청 — 기존 organizer(단일 텍스트)를 역할별 반복 행으로 바꾼다. organizer
+// 문자열 필드는 지우지 않고 이 배열이 바뀔 때마다 자동으로 합성해 채운다 — 인쇄본·
+// 관리자 화면·채점 로직이 이미 organizer를 그대로 읽고 있어(하위호환) 여기서 새로
+// 손대지 않는다.
+export type OrganizerRole = "HOST" | "ORGANIZER" | "PRODUCTION";
+
+export const ORGANIZER_ROLE_LABEL: Record<OrganizerRole, string> = {
+  HOST: "주최",
+  ORGANIZER: "주관",
+  PRODUCTION: "기획",
+};
+
+export interface OrganizerEntry {
+  role: OrganizerRole;
+  name: string;
+}
+
+// [신규 2026-08-26] "아티스트 이력" — 기존 artist(단일 텍스트, "아티스트 / 출연진")와는
+// 별개로 신설한다. artist 필드는 그대로 두고(인쇄본·관리자 화면이 이미 참조), 이
+// 두 배열은 더 상세한 이력 확인용으로 추가된 것이다.
+export interface ArtistMainHistoryRecord {
+  artistName: string; // 아티스트명
+  agency: string; // 소속사
+  debutYear: string; // 데뷔연도
+  achievements: string; // 주요 활동 및 수상·성과
+}
+
+export interface ArtistRecentPerformanceRecord {
+  eventName: string; // 공연명
+  eventDate: string; // 공연일
+  venue: string; // 공연장
+  cityCountry: string; // 도시·국가
+  showCount: string; // 공연 횟수
+  seatsPerShow: string; // 회당 객석 규모
+  audience: string; // 관객 수
+  sellRate: string; // 티켓 판매율
+}
+
+// [신규 2026-08-26] "티켓 유형별로 행 추가(R석, VIP석 등), 티켓가·예상 판매율을 각각"
+// 요청 — 기존 단일 expectedPaidSalesRate(%)를 유형별 반복 행으로 대체한다.
+// expectedPaidSalesRate/expectedPaidSalesRateMidHall 필드는 과거 신청서 하위호환을
+// 위해 타입에는 남기되(이미 제출된 신청서 표시용), 새 화면에서는 이 배열만 입력받는다.
+export interface TicketTypeRecord {
+  label: string; // "R석", "VIP석" 등 티켓 유형명
+  price: number; // 티켓가(원)
+  expectedSalesRate: number; // 예상 판매율(%)
 }
 
 export type CastContractStatus = "COMPLETED" | "IN_PROGRESS" | "PLANNED";
@@ -452,6 +512,8 @@ export interface PerformanceInfo {
   // optional — 이 필드가 추가되기 전에 제출된 기존 신청서에는 없다.
   applicantCompanyType?: ApplicantCompanyType | null; // 신청 기업 유형
   applicantBusinessRegistrationNumber: string; // 사업자등록번호
+  // optional — 대표자명(2026-08-26 추가, 계정/회사 정보에서 자동 입력·읽기 전용)
+  applicantRepresentativeName?: string;
   applicantContactName: string; // 담당자
   applicantContactPhone: string; // 담당자 연락처
   operationsResponsible: ResponsiblePerson; // 공연 운영 총괄 책임자
@@ -461,22 +523,36 @@ export interface PerformanceInfo {
   // 공연 기본정보 (STEP 3-1 우측)
   eventName: string; // 공연(행사)명
   artist: string; // 아티스트
-  organizer: string; // 주최·주관·기획
+  organizer: string; // 주최·주관·기획 — organizers 배열에서 자동 합성(하위호환용)
+  // optional — 2026-08-26 추가. 화면은 이 배열만 입력받고, organizer(string)는 여기서 파생된다.
+  organizers?: OrganizerEntry[];
   eventScale: string; // 행사규모
   eventTypes: EventType[]; // 행사유형
   ageRating: AgeRating | null; // 공연등급
   ageLimitDetail: string; // 연령제한 상세(예: 15세 이상)
   stageTypes: StageType[]; // 무대형태
+  // optional — 무대형태 "기타" 선택 시 상세 설명(2026-08-26 추가)
+  stageTypeOtherDetail?: string;
   seatingTypes: SeatingType[]; // 객석형태
+  // optional — 객석형태 "기타" 선택 시 상세 설명(2026-08-26 추가)
+  seatingTypeOtherDetail?: string;
   retractableSeatUse: RetractableSeatUse | null; // 수납식 객석 사용여부
   teardownCompletionTime: string; // 철수 완료 예정시간
   ticketOpenExpectedDate: string; // 티켓 오픈 예정일
 
+  // 아티스트 이력(2026-08-26 추가) — artist(요약 텍스트)와는 별개로 상세 이력을 받는다.
+  artistMainHistory?: ArtistMainHistoryRecord[]; // ① 아티스트 주요 이력
+  artistRecentPerformances?: ArtistRecentPerformanceRecord[]; // ② 최근 공연 이력(최대 3~5건 권장)
+
   // 예상 관객 및 사업규모 · 공공성 (STEP 3-2)
-  expectedPaidSalesRate: number; // 예상 유료 판매율(%) — 아레나
+  // [2026-08-26] 화면은 이제 ticketTypes(티켓 유형별 가격·판매율)만 입력받는다 — 아래 두
+  // 필드는 그 이전에 제출된 신청서를 그대로 보여주기 위한 하위호환용으로만 남긴다.
+  expectedPaidSalesRate: number; // 예상 유료 판매율(%) — 아레나 (레거시)
   // optional — 아레나/중형을 한 화면에서 나눠 입력하게 된(2026-08-22) 이후 추가된 필드라
   // 그 전에 저장된 신청서에는 없다.
-  expectedPaidSalesRateMidHall?: number; // 예상 유료 판매율(%) — 중형
+  expectedPaidSalesRateMidHall?: number; // 예상 유료 판매율(%) — 중형 (레거시)
+  // optional — 2026-08-26 추가. 티켓 유형(R석·VIP석 등)별 가격·예상 판매율 반복 입력.
+  ticketTypes?: TicketTypeRecord[];
   ancillaryBusinessPlans: AncillaryBusinessPlan[]; // 부대사업 계획
 
   // 공공/공익 참여 여부 (STEP 3-2.5) — 선택사항. optional: 선택형으로 바뀌기 전(2026-08-22)

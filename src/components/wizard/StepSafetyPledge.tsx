@@ -1,6 +1,7 @@
 "use client";
 
 import { useRef, type ReactNode } from "react";
+import Link from "next/link";
 import { btnClass } from "@/components/ui/kit";
 import type { SafetyPledge } from "@/lib/pricing/types";
 import { useWizardText } from "@/lib/content/wizardText";
@@ -139,7 +140,19 @@ export function StepSafetyPledge({
     <section>
       <StepHeading title={title} lead={lead} />
 
-      <label className="mt-8 flex cursor-pointer items-center gap-2.5 border border-border bg-panel px-5 py-3.5">
+      {/* [신규 2026-08-26] "안전관리 서약서 화면에서 대관 규약 보기 링크가 있어야함" —
+          서약 항목이 대관규약을 근거로 하므로(consequenceAcknowledged 문구 참고) 원문을
+          바로 확인할 수 있게 새 탭 링크를 둔다. */}
+      <Link
+        href="/rules"
+        target="_blank"
+        rel="noopener noreferrer"
+        className="mt-3 inline-flex items-center gap-1 text-s font-bold text-foreground underline decoration-accent decoration-2 underline-offset-4"
+      >
+        {t("safetyPledge.viewRulesLinkLabel", "대관 규약 보기")} ↗
+      </Link>
+
+      <label className="mt-6 flex cursor-pointer items-center gap-2.5 border border-border bg-panel px-5 py-3.5">
         <input
           type="checkbox"
           checked={allChecked}

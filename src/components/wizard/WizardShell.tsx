@@ -68,7 +68,14 @@ const DEFAULT_MARKETING_COOPERATION: MarketingCooperation = {
   coSponsorshipConsent: null,
   ticketSalesDataConsent: false,
   pollstarConsent: false,
-  executionPlan: { targetDefinition: "", mediaMix: "", budget: "", timeline: "" },
+  executionPlan: {
+    targetDefinition: "",
+    mediaMix: "",
+    mediaMixOnline: "",
+    mediaMixOffline: "",
+    budget: "",
+    timeline: "",
+  },
 };
 
 // 중형공연장 단독(패키지 없음)일 때는 STEP 2(구성·옵션)의 내용이 달라질 뿐, 별도
@@ -143,6 +150,7 @@ export function WizardShell({
   applicantPrefill?: {
     companyName: string;
     businessRegistrationNumber: string;
+    representativeName: string;
     contactName: string;
     contactPhone: string;
   };
@@ -167,6 +175,7 @@ export function WizardShell({
         ...INITIAL_PERFORMANCE_INFO,
         applicantCompanyName: applicantPrefill.companyName,
         applicantBusinessRegistrationNumber: applicantPrefill.businessRegistrationNumber,
+        applicantRepresentativeName: applicantPrefill.representativeName,
         applicantContactName: applicantPrefill.contactName,
         applicantContactPhone: applicantPrefill.contactPhone,
       }
@@ -265,6 +274,7 @@ export function WizardShell({
           ...(draft.selection.performanceInfo ?? {}),
           applicantCompanyName: initialPerformanceInfo.applicantCompanyName,
           applicantBusinessRegistrationNumber: initialPerformanceInfo.applicantBusinessRegistrationNumber,
+          applicantRepresentativeName: initialPerformanceInfo.applicantRepresentativeName,
         },
         // 동시 대관에서 "공간별로 다르게 입력"한 사본에도 같은 문제가 있어 똑같이 덮어쓴다.
         midHallPerformanceInfo: draft.selection.midHallPerformanceInfo
@@ -272,6 +282,7 @@ export function WizardShell({
               ...draft.selection.midHallPerformanceInfo,
               applicantCompanyName: initialPerformanceInfo.applicantCompanyName,
               applicantBusinessRegistrationNumber: initialPerformanceInfo.applicantBusinessRegistrationNumber,
+              applicantRepresentativeName: initialPerformanceInfo.applicantRepresentativeName,
             }
           : (draft.selection.midHallPerformanceInfo ?? null),
         safetyPledge: { ...DEFAULT_SAFETY_PLEDGE, ...(draft.selection.safetyPledge ?? {}) },

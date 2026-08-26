@@ -13,13 +13,18 @@ import {
   APPLICANT_COMPANY_TYPE_LABEL,
   CAST_CONTRACT_STATUS_LABEL,
   EVENT_TYPE_LABEL,
+  ORGANIZER_ROLE_LABEL,
   RETRACTABLE_SEAT_USE_LABEL,
   SEATING_TYPE_LABEL,
   STAGE_TYPE_LABEL,
   type AgeRating,
   type ApplicantCompanyType,
+  type ArtistMainHistoryRecord,
+  type ArtistRecentPerformanceRecord,
   type CastContractStatus,
   type EventType,
+  type OrganizerEntry,
+  type OrganizerRole,
   type PastPerformanceRecord,
   type PerformanceInfo,
   type QuoteSelection,
@@ -36,10 +41,23 @@ const SEATING_TYPES = Object.keys(SEATING_TYPE_LABEL) as SeatingType[];
 const RETRACTABLE_USES = Object.keys(RETRACTABLE_SEAT_USE_LABEL) as RetractableSeatUse[];
 const AGE_RATINGS = Object.keys(AGE_RATING_LABEL) as AgeRating[];
 const CAST_CONTRACT_STATUSES = Object.keys(CAST_CONTRACT_STATUS_LABEL) as CastContractStatus[];
+const ORGANIZER_ROLES = Object.keys(ORGANIZER_ROLE_LABEL) as OrganizerRole[];
+
+// organizers(역할별 반복 행)이 바뀔 때마다 organizer(단일 텍스트)를 자동으로 합성한다 —
+// 인쇄본·관리자 화면·채점 로직이 이미 organizer 문자열을 그대로 읽고 있어 하위호환을
+// 이렇게 유지한다(2026-08-26).
+function deriveOrganizerSummary(organizers: OrganizerEntry[]): string {
+  return organizers
+    .filter((o) => o.name.trim())
+    .map((o) => `${ORGANIZER_ROLE_LABEL[o.role]} ${o.name.trim()}`)
+    .join(" / ");
+}
 
 // 신청서 제출(POST /api/quotes)이 성공한 뒤 /api/quotes/[id]/attachments로 업로드되므로,
 // 서버 쪽 검증 기준(src/app/api/quotes/[id]/attachments/route.ts)과 동일하게 맞춘다.
-const MAX_FILE_SIZE = 20 * 1024 * 1024;
+// [개정 2026-08-26] "첨부 용량은 500메가까지 가능하게함" — 서버 쪽 한도
+// (api/quotes/[id]/attachments/route.ts)도 함께 올렸다.
+const MAX_FILE_SIZE = 500 * 1024 * 1024;
 const ALLOWED_MIME = new Set([
   "application/pdf",
   "image/png",
@@ -82,7 +100,12 @@ export function validatePerformanceInfoStep(info: PerformanceInfo, venueLabel?: 
 
   if (!info.eventName.trim()) return `${prefix}공연(행사)명을 입력해 주세요.`;
   if (!info.artist.trim()) return `${prefix}아티스트 / 출연진을 입력해 주세요.`;
-  if (!info.organizer.trim()) return `${prefix}주최 · 주관 · 기획을 입력해 주세요.`;
+  // organizer(단일 텍스트)는 organizers(역할별 반복 행)에서 자동 합성되므로, 배열에 이름이
+  // 하나라도 있으면 통과시킨다 — 합성 전 옛 신청서는 organizer 문자열만으로 판단한다.
+  const hasOrganizerEntry = (info.organizers ?? []).some((o) => o.name.trim());
+  if (!hasOrganizerEntry && !info.organizer.trim()) {
+    return `${prefix}주최 · 주관 · 기획을 하나 이상 입력해 주세요.`;
+  }
   if (info.eventTypes.length === 0) return `${prefix}행사유형을 하나 이상 선택해 주세요.`;
   if (!info.ageRating) return `${prefix}공연등급을 선택해 주세요.`;
   if (info.ageRating === "AGE_LIMIT" && !info.ageLimitDetail.trim()) {
@@ -92,8 +115,14 @@ export function validatePerformanceInfoStep(info: PerformanceInfo, venueLabel?: 
   if (!info.ticketOpenExpectedDate.trim()) return `${prefix}티켓 오픈 예정일을 입력해 주세요.`;
 
   if (info.seatingTypes.length === 0) return `${prefix}객석형태를 하나 이상 선택해 주세요.`;
+  if (info.seatingTypes.includes("OTHER") && !info.seatingTypeOtherDetail?.trim()) {
+    return `${prefix}객석형태 "기타" 상세를 입력해 주세요.`;
+  }
   if (!info.retractableSeatUse) return `${prefix}수납식 객석 사용여부를 선택해 주세요.`;
   if (info.stageTypes.length === 0) return `${prefix}무대형태를 하나 이상 선택해 주세요.`;
+  if (info.stageTypes.includes("OTHER") && !info.stageTypeOtherDetail?.trim()) {
+    return `${prefix}무대형태 "기타" 상세를 입력해 주세요.`;
+  }
 
   if (!info.castContractStatus) return `${prefix}주요 출연진 계약 상태를 선택해 주세요.`;
   if (!info.sensitiveInfoMaskingAcknowledged) {
@@ -277,6 +306,24 @@ const EMPTY_PAST_PERFORMANCE: PastPerformanceRecord = {
   role: "",
 };
 
+const EMPTY_ORGANIZER_ENTRY: OrganizerEntry = { role: "HOST", name: "" };
+const EMPTY_ARTIST_MAIN_HISTORY: ArtistMainHistoryRecord = {
+  artistName: "",
+  agency: "",
+  debutYear: "",
+  achievements: "",
+};
+const EMPTY_ARTIST_RECENT_PERFORMANCE: ArtistRecentPerformanceRecord = {
+  eventName: "",
+  eventDate: "",
+  venue: "",
+  cityCountry: "",
+  showCount: "",
+  seatsPerShow: "",
+  audience: "",
+  sellRate: "",
+};
+
 // 동시 대관에서 "각각 다르게 입력"을 켰을 때 아레나/중형 두 벌을 그리기 위해
 // 신청자 정보 · 공연 기본정보 · 개최 신뢰도 카드 자체를 분리했다.
 // scheduleSummary가 null이면(중형 전용 사본) 대관기간/총 공연 횟수 행은 표시하지 않는다 —
@@ -314,6 +361,66 @@ function PerformanceInfoFields({
     );
   }
 
+  // organizers(주최·주관·기획 반복 행) — 행이 바뀔 때마다 organizer(단일 텍스트)를
+  // 함께 합성해 하위호환을 유지한다(인쇄본·관리자 화면·채점 로직이 그 문자열을 읽는다).
+  const organizers = info.organizers ?? [];
+
+  function setOrganizers(next: OrganizerEntry[]) {
+    onChange({ ...info, organizers: next, organizer: deriveOrganizerSummary(next) });
+  }
+
+  function addOrganizer() {
+    setOrganizers([...organizers, { ...EMPTY_ORGANIZER_ENTRY }]);
+  }
+
+  function updateOrganizer(index: number, patch: Partial<OrganizerEntry>) {
+    setOrganizers(organizers.map((row, i) => (i === index ? { ...row, ...patch } : row)));
+  }
+
+  function removeOrganizer(index: number) {
+    setOrganizers(organizers.filter((_, i) => i !== index));
+  }
+
+  // 아티스트 이력 — ① 주요 이력, ② 최근 공연 이력(최대 3~5건 권장)
+  const artistMainHistory = info.artistMainHistory ?? [];
+  const artistRecentPerformances = info.artistRecentPerformances ?? [];
+
+  function addArtistMainHistory() {
+    set("artistMainHistory", [...artistMainHistory, { ...EMPTY_ARTIST_MAIN_HISTORY }]);
+  }
+
+  function updateArtistMainHistory(index: number, patch: Partial<ArtistMainHistoryRecord>) {
+    set(
+      "artistMainHistory",
+      artistMainHistory.map((row, i) => (i === index ? { ...row, ...patch } : row)),
+    );
+  }
+
+  function removeArtistMainHistory(index: number) {
+    set(
+      "artistMainHistory",
+      artistMainHistory.filter((_, i) => i !== index),
+    );
+  }
+
+  function addArtistRecentPerformance() {
+    set("artistRecentPerformances", [...artistRecentPerformances, { ...EMPTY_ARTIST_RECENT_PERFORMANCE }]);
+  }
+
+  function updateArtistRecentPerformance(index: number, patch: Partial<ArtistRecentPerformanceRecord>) {
+    set(
+      "artistRecentPerformances",
+      artistRecentPerformances.map((row, i) => (i === index ? { ...row, ...patch } : row)),
+    );
+  }
+
+  function removeArtistRecentPerformance(index: number) {
+    set(
+      "artistRecentPerformances",
+      artistRecentPerformances.filter((_, i) => i !== index),
+    );
+  }
+
   return (
     <>
       <div className="flex flex-col gap-6">
@@ -333,6 +440,12 @@ function PerformanceInfoFields({
               <ReadOnlyRow
                 label={t("performanceInfo.applicantBrnLabel", "사업자등록번호")}
                 value={info.applicantBusinessRegistrationNumber || "—"}
+              />
+              {/* [신규 2026-08-26] 대표자명 — 대관신청사명·사업자등록번호와 같은 이유로
+                  가입 계정(회사 정보)에서 그대로 가져와 읽기 전용으로 보여준다. */}
+              <ReadOnlyRow
+                label={t("performanceInfo.applicantRepresentativeNameLabel", "대표자명")}
+                value={info.applicantRepresentativeName || "—"}
               />
             </div>
 
@@ -455,10 +568,9 @@ function PerformanceInfoFields({
               항목끼리 소제목으로 묶은 뒤 그 안에서 짝을 짓는다. 소제목 굵기만으로는
               구분이 약해서("각 구분마다 옅은 선을 추가") 그룹 사이에 옅은 구분선도 넣는다. */}
           <div className="mt-4 space-y-6">
+            {/* [개정 2026-08-26] "공연개요 워딩은 삭제" 요청으로 소제목 라벨을 뺐다 —
+                필드 자체는 그대로 남는다. */}
             <div>
-              <div className="mb-3 text-xs font-bold tracking-wide text-muted uppercase">
-                {t("performanceInfo.overviewGroupLabel", "공연 개요")}
-              </div>
               <div className="space-y-4">
                 <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                   <TextField
@@ -472,11 +584,204 @@ function PerformanceInfoFields({
                     onChange={(v) => set("artist", v)}
                   />
                 </div>
-                <TextField
-                  label={t("performanceInfo.organizerLabel", "주최 · 주관 · 기획")}
-                  value={info.organizer}
-                  onChange={(v) => set("organizer", v)}
-                />
+
+                {/* [개정 2026-08-26] "공연 주최, 공연 주관, 공연 기획 따로따로 별도의
+                    행으로 추가할수 있게" — 단일 텍스트 입력을 역할별 반복 행으로
+                    바꾼다. organizer(단일 텍스트)는 이 배열에서 자동 합성돼 인쇄본·
+                    관리자 화면과의 하위호환을 유지한다(deriveOrganizerSummary). */}
+                <div>
+                  <div className="mb-2.5 flex items-center justify-between">
+                    <label className="text-xs font-bold text-muted">
+                      {t("performanceInfo.organizerLabel", "주최 · 주관 · 기획")}
+                    </label>
+                    <button type="button" onClick={addOrganizer} className={toggleClass(false)}>
+                      {t("performanceInfo.addRowButton", "＋ 행 추가")}
+                    </button>
+                  </div>
+                  <div className="space-y-2">
+                    {organizers.map((row, i) => (
+                      <div key={i} className="flex items-center gap-1.5 border-b border-border/15 py-2">
+                        <select
+                          value={row.role}
+                          onChange={(e) => updateOrganizer(i, { role: e.target.value as OrganizerRole })}
+                          className="field-base w-28 shrink-0"
+                        >
+                          {ORGANIZER_ROLES.map((role) => (
+                            <option key={role} value={role}>
+                              {ORGANIZER_ROLE_LABEL[role]}
+                            </option>
+                          ))}
+                        </select>
+                        <input
+                          value={row.name}
+                          placeholder={tStr("performanceInfo.organizerNamePlaceholder", "업체명 · 단체명")}
+                          onChange={(e) => updateOrganizer(i, { name: e.target.value })}
+                          className="field-base w-full"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => removeOrganizer(i)}
+                          aria-label={tStr("performanceInfo.removeRowAriaLabel", "삭제")}
+                          className={`${toggleClass(false)} shrink-0`}
+                        >
+                          {t("performanceInfo.removeRowButton", "삭제")}
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* [신규 2026-08-26] 아티스트 이력 — artist(요약 텍스트)와는 별개로 상세
+                이력을 받는다. 기본으로 한 행씩 열려 있고(INITIAL_PERFORMANCE_INFO),
+                무엇을 적어야 하는지 예시 문구를 각 표 위에 안내한다(관리자가 문구
+                수정 가능 — t()). */}
+            <div className="border-t border-border/15 pt-6">
+              <div className="mb-3 text-xs font-bold tracking-wide text-muted uppercase">
+                {t("performanceInfo.artistHistoryGroupLabel", "아티스트 이력")}
+              </div>
+
+              <div>
+                <div className="mb-2.5 flex items-center justify-between">
+                  <label className="text-xs font-bold text-muted">
+                    {t("performanceInfo.artistMainHistoryLabel", "① 아티스트 주요 이력")}
+                  </label>
+                  <button type="button" onClick={addArtistMainHistory} className={toggleClass(false)}>
+                    {t("performanceInfo.addRowButton", "＋ 행 추가")}
+                  </button>
+                </div>
+                <p className="mb-2 text-xs text-muted">
+                  {t(
+                    "performanceInfo.artistMainHistoryExample",
+                    "예시: 아티스트명 / 소속사 / 데뷔연도 / 주요 활동 및 수상·성과",
+                  )}
+                </p>
+                <div className="space-y-2">
+                  {artistMainHistory.map((row, i) => (
+                    <div key={i} className="grid grid-cols-5 gap-1.5 border-b border-border/15 py-2">
+                      <input
+                        value={row.artistName}
+                        placeholder={tStr("performanceInfo.artistNamePlaceholder", "아티스트명")}
+                        onChange={(e) => updateArtistMainHistory(i, { artistName: e.target.value })}
+                        className="field-base"
+                      />
+                      <input
+                        value={row.agency}
+                        placeholder={tStr("performanceInfo.agencyPlaceholder", "소속사")}
+                        onChange={(e) => updateArtistMainHistory(i, { agency: e.target.value })}
+                        className="field-base"
+                      />
+                      <input
+                        value={row.debutYear}
+                        placeholder={tStr("performanceInfo.debutYearPlaceholder", "데뷔연도")}
+                        onChange={(e) => updateArtistMainHistory(i, { debutYear: e.target.value })}
+                        className="field-base"
+                      />
+                      <div className="col-span-2 flex items-center gap-1">
+                        <input
+                          value={row.achievements}
+                          placeholder={tStr("performanceInfo.achievementsPlaceholder", "주요 활동 및 수상·성과")}
+                          onChange={(e) => updateArtistMainHistory(i, { achievements: e.target.value })}
+                          className="field-base w-full"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => removeArtistMainHistory(i)}
+                          aria-label={tStr("performanceInfo.removeRowAriaLabel", "삭제")}
+                          className={`${toggleClass(false)} shrink-0`}
+                        >
+                          {t("performanceInfo.removeRowButton", "삭제")}
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <div className="mt-5">
+                <div className="mb-2.5 flex items-center justify-between">
+                  <label className="text-xs font-bold text-muted">
+                    {t("performanceInfo.artistRecentPerformancesLabel", "② 최근 공연 이력 — 최대 3~5건")}
+                  </label>
+                  <button type="button" onClick={addArtistRecentPerformance} className={toggleClass(false)}>
+                    {t("performanceInfo.addRowButton", "＋ 행 추가")}
+                  </button>
+                </div>
+                <p className="mb-2 text-xs text-muted">
+                  {t(
+                    "performanceInfo.artistRecentPerformancesExample",
+                    "예시: 공연명 / 공연일 / 공연장 / 도시·국가 / 공연 횟수 / 회당 객석 규모 / 관객 수 / 티켓 판매율",
+                  )}
+                </p>
+                <div className="space-y-2">
+                  {artistRecentPerformances.map((row, i) => (
+                    <div key={i} className="space-y-1.5 border-b border-border/15 py-2">
+                      <div className="grid grid-cols-4 gap-1.5">
+                        <input
+                          value={row.eventName}
+                          placeholder={tStr("performanceInfo.artistPastEventNamePlaceholder", "공연명")}
+                          onChange={(e) => updateArtistRecentPerformance(i, { eventName: e.target.value })}
+                          className="field-base"
+                        />
+                        <input
+                          value={row.eventDate}
+                          placeholder={tStr("performanceInfo.artistPastEventDatePlaceholder", "공연일")}
+                          onChange={(e) => updateArtistRecentPerformance(i, { eventDate: e.target.value })}
+                          className="field-base"
+                        />
+                        <input
+                          value={row.venue}
+                          placeholder={tStr("performanceInfo.artistPastVenuePlaceholder", "공연장")}
+                          onChange={(e) => updateArtistRecentPerformance(i, { venue: e.target.value })}
+                          className="field-base"
+                        />
+                        <input
+                          value={row.cityCountry}
+                          placeholder={tStr("performanceInfo.artistPastCityCountryPlaceholder", "도시 · 국가")}
+                          onChange={(e) => updateArtistRecentPerformance(i, { cityCountry: e.target.value })}
+                          className="field-base"
+                        />
+                      </div>
+                      <div className="grid grid-cols-4 gap-1.5">
+                        <input
+                          value={row.showCount}
+                          placeholder={tStr("performanceInfo.artistPastShowCountPlaceholder", "공연 횟수")}
+                          onChange={(e) => updateArtistRecentPerformance(i, { showCount: e.target.value })}
+                          className="field-base"
+                        />
+                        <input
+                          value={row.seatsPerShow}
+                          placeholder={tStr("performanceInfo.artistPastSeatsPerShowPlaceholder", "회당 객석 규모")}
+                          onChange={(e) => updateArtistRecentPerformance(i, { seatsPerShow: e.target.value })}
+                          className="field-base"
+                        />
+                        <input
+                          value={row.audience}
+                          placeholder={tStr("performanceInfo.artistPastAudiencePlaceholder", "관객 수")}
+                          onChange={(e) => updateArtistRecentPerformance(i, { audience: e.target.value })}
+                          className="field-base"
+                        />
+                        <div className="flex items-center gap-1">
+                          <input
+                            value={row.sellRate}
+                            placeholder={tStr("performanceInfo.artistPastSellRatePlaceholder", "티켓 판매율")}
+                            onChange={(e) => updateArtistRecentPerformance(i, { sellRate: e.target.value })}
+                            className="field-base w-full"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => removeArtistRecentPerformance(i)}
+                            aria-label={tStr("performanceInfo.removeRowAriaLabel", "삭제")}
+                            className={`${toggleClass(false)} shrink-0`}
+                          >
+                            {t("performanceInfo.removeRowButton", "삭제")}
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
               </div>
             </div>
 
@@ -626,6 +931,14 @@ function PerformanceInfoFields({
                         />
                       ))}
                     </div>
+                    {info.seatingTypes.includes("OTHER") && (
+                      <input
+                        value={info.seatingTypeOtherDetail ?? ""}
+                        placeholder={tStr("performanceInfo.seatingTypeOtherDetailPlaceholder", "기타 객석형태 설명")}
+                        onChange={(e) => set("seatingTypeOtherDetail", e.target.value)}
+                        className="field-base mt-2 w-full max-w-xs"
+                      />
+                    )}
                   </div>
 
                   <div>
@@ -659,6 +972,14 @@ function PerformanceInfoFields({
                       />
                     ))}
                   </div>
+                  {info.stageTypes.includes("OTHER") && (
+                    <input
+                      value={info.stageTypeOtherDetail ?? ""}
+                      placeholder={tStr("performanceInfo.stageTypeOtherDetailPlaceholder", "기타 무대형태 설명")}
+                      onChange={(e) => set("stageTypeOtherDetail", e.target.value)}
+                      className="field-base mt-2 w-full max-w-xs"
+                    />
+                  )}
                 </div>
               </div>
             </div>
@@ -768,6 +1089,7 @@ export function StepPerformanceInfo({
           ...INITIAL_PERFORMANCE_INFO,
           applicantCompanyName: info.applicantCompanyName,
           applicantBusinessRegistrationNumber: info.applicantBusinessRegistrationNumber,
+          applicantRepresentativeName: info.applicantRepresentativeName,
         },
       );
     }
@@ -853,7 +1175,7 @@ export function StepAttachments({
     const rejected: string[] = [];
     for (const file of Array.from(selected)) {
       if (file.size > MAX_FILE_SIZE) {
-        rejected.push(`${file.name} (${tStr("attachments.tooLargeSuffix", "20MB 초과")})`);
+        rejected.push(`${file.name} (${tStr("attachments.tooLargeSuffix", "500MB 초과")})`);
         continue;
       }
       if (file.type && !ALLOWED_MIME.has(file.type)) {
@@ -877,24 +1199,17 @@ export function StepAttachments({
   return (
     <section className="mt-10 border-t-2 border-foreground pt-5">
       <h3 className="type-kr-heading text-h6-m">{t("attachments.sectionHeading", "자료 첨부(선택)")}</h3>
-      <div className="mt-2 grid grid-cols-1 gap-x-8 gap-y-1.5 sm:grid-cols-2">
-        <p className="text-xs leading-5 text-muted">
-          <span className="font-bold text-foreground">{t("attachments.performanceMaterialsLabel", "공연 관련 자료")}</span> —{" "}
-          {t(
-            "attachments.performanceMaterialsHint",
-            "공연기획서 · 무대 도면, 출연 계약 증빙, 행사 안전관리계획서 등",
-          )}
-        </p>
-        <p className="text-xs leading-5 text-muted">
-          <span className="font-bold text-foreground">{t("attachments.seatingPlanLabel", "객석배치도")}</span> —{" "}
-          {t(
-            "attachments.seatingPlanHint",
-            "계획안 기준으로 제출할 수 있으며, 승인 후 변경 시 사전 협의가 필요합니다",
-          )}
-        </p>
-      </div>
+      {/* [개정 2026-08-26] "객석 배치도 첨부 영역은 삭제" 요청으로 두 항목 안내 중
+          객석배치도 쪽을 뺐다 — 공연 관련 자료 안내만 남는다. */}
+      <p className="mt-2 text-xs leading-5 text-muted">
+        <span className="font-bold text-foreground">{t("attachments.performanceMaterialsLabel", "공연 관련 자료")}</span> —{" "}
+        {t(
+          "attachments.performanceMaterialsHint",
+          "공연기획서 · 무대 도면, 출연 계약 증빙, 행사 안전관리계획서 등",
+        )}
+      </p>
       <p className="mt-2 mb-2.5 text-xs text-muted">
-        {t("attachments.fileRulesHint", "PDF/이미지/문서, 파일당 최대 20MB. 신청서 제출 시 함께 업로드됩니다.")}
+        {t("attachments.fileRulesHint", "PDF/이미지/문서, 파일당 최대 500MB. 신청서 제출 시 함께 업로드됩니다.")}
         {isSimultaneous &&
           ` ${t("attachments.simultaneousHint", "동시 대관은 두 공간의 자료를 각각 첨부합니다.")}`}
       </p>

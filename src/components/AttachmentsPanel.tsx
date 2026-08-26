@@ -59,7 +59,7 @@ export function AttachmentsPanel({
         첨부서류
       </h3>
       <p className="mt-3 text-xs text-muted">
-        사업자등록증, 공연기획서 등 관련 서류를 첨부하세요. (PDF/이미지/문서, 최대 20MB)
+        사업자등록증, 공연기획서 등 관련 서류를 첨부하세요. (PDF/이미지/문서, 최대 500MB)
       </p>
 
       <ul className="mt-6 border-t border-border/25">

@@ -54,6 +54,7 @@ export default async function ApplyPage({
   const applicantPrefill = {
     companyName: company?.name ?? currentUser.companyName ?? "",
     businessRegistrationNumber: company?.businessRegistrationNumber ?? "",
+    representativeName: company?.representativeName ?? "",
     contactName: currentUser.name,
     contactPhone: currentUser.phone ?? "",
   };
