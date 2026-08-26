@@ -38,6 +38,13 @@ export async function POST(request: Request) {
   if (!name || !username || !SHA256_HEX_RE.test(passwordHash)) {
     return NextResponse.json({ error: "입력값을 확인해주세요." }, { status: 400 });
   }
+  // [신규 2026-08-26] 초대장이 특정 이름(invitee_name)을 지정했다면 그 이름을 정본으로
+  // 쓴다 — 클라이언트가 보낸 이름을 그대로 믿으면 "김승기" 앞으로 온 링크를 다른 사람이
+  // 열어 자기 이름("테드")으로 가입할 수 있었다("노라이름으로 초대한 링크를 테드한테
+  // 보내도 가입이 됩니다"). 폼에서도 이 경우 이름 입력을 잠가 두지만, 서버가 최종
+  // 판정자여야 폼을 우회해도 막힌다. invitee_name이 비어 있던 옛 초대는 그대로 입력값을
+  // 쓴다.
+  const effectiveName = invitation.inviteeName?.trim() || name;
   if (await findUserByUsername(username)) {
     return NextResponse.json({ error: "이미 사용 중인 아이디입니다." }, { status: 409 });
   }
@@ -71,7 +78,7 @@ export async function POST(request: Request) {
     // 본인인증이 설정된 환경에서는 인증 결과 이름을 정본으로 쓴다. 그게 없으면(NICE
     // 미설정 — 프리뷰 환경 등) 직접 입력한 이름을 쓴다. 예전엔 이 경우 이름이 아예 없어
     // 아이디로 대체됐는데, 담당자 목록에서 그대로 보여 "이름이 이상하다"는 지적을 받았다.
-    name: identity?.name ?? name ?? username,
+    name: identity?.name ?? effectiveName ?? username,
     companyName: company?.name ?? null,
     companyId: invitation.companyId,
     role: "APPLICANT",

@@ -503,8 +503,6 @@ const STAGE_GROUPS: StageGroup[] = [
                   onChange={noop}
                   safetyPlanFile={null}
                   onSafetyPlanFileChange={noop}
-                  castContractFile={null}
-                  onCastContractFileChange={noop}
                   title={field("safetyPledgeTitle")}
                   lead={lead("safetyPledgeLead")}
                 />

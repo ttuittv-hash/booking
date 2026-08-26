@@ -20,6 +20,7 @@ import {
   attachIdentityToUser,
   findCompletedIdentity,
   findUserByDi,
+  freeRejectedIdentity,
   saveTermsAgreements,
   listUsers,
   findUserByEmailWithPasswordHash,
@@ -71,6 +72,9 @@ export async function POST(request: Request) {
   const address = typeof body?.address === "string" ? body.address.trim() : "";
   const businessCertUrl = typeof body?.businessCertUrl === "string" ? body.businessCertUrl.trim() : "";
   const businessCertName = typeof body?.businessCertName === "string" ? body.businessCertName.trim() : "";
+  // 재직증명서(선택) — 사업자등록증과 달리 회사가 아닌 가입자 개인 소속 증빙이라 users에 저장한다.
+  const employmentCertUrl = typeof body?.employmentCertUrl === "string" ? body.employmentCertUrl.trim() : "";
+  const employmentCertName = typeof body?.employmentCertName === "string" ? body.employmentCertName.trim() : "";
   // 본인인증 티켓 — 인증을 마친 사람만 가입할 수 있다(기획서 A4).
   // 미설정 환경(로컬 등)에서는 인증 단계를 건너뛰므로 티켓이 없어도 진행한다.
   const identityTicket = typeof body?.identityTicket === "string" ? body.identityTicket : "";
@@ -117,30 +121,40 @@ export async function POST(request: Request) {
   if (await findUserByUsername(username)) {
     return NextResponse.json({ error: "이미 사용 중인 아이디입니다." }, { status: 409 });
   }
+  // 운영자가 반려(REJECTED)한 신청자는 재가입할 수 있어야 한다(R5) — 막는 대신 예전
+  // 반려 계정의 이메일·아이디 자리를 비우고 계속 진행한다. 계정 자체(및 이력)는 남는다.
   const existingByEmail = await findUserByEmailWithPasswordHash(email);
   if (existingByEmail) {
-    return NextResponse.json(
-      {
-        error:
-          existingByEmail.approvalStatus === "PENDING"
-            ? `이미 신청이 접수된 ${existingByEmail.name}님입니다. 운영자 승인을 기다려주세요.`
-            : "이미 가입된 이메일입니다.",
-      },
-      { status: 409 },
-    );
+    if (existingByEmail.approvalStatus === "REJECTED") {
+      await freeRejectedIdentity(existingByEmail.id);
+    } else {
+      return NextResponse.json(
+        {
+          error:
+            existingByEmail.approvalStatus === "PENDING"
+              ? `이미 신청이 접수된 ${existingByEmail.name}님입니다. 운영자 승인을 기다려주세요.`
+              : "이미 가입된 이메일입니다.",
+        },
+        { status: 409 },
+      );
+    }
   }
   // 승인 대기 중에 이메일만 바꿔 중복으로 재신청하는 것을 막기 위해 전화번호도 함께 확인한다.
   const existingByPhone = await findUserByPhone(phone);
   if (existingByPhone) {
-    return NextResponse.json(
-      {
-        error:
-          existingByPhone.approvalStatus === "PENDING"
-            ? `이미 신청이 접수된 ${existingByPhone.name}님입니다. 운영자 승인을 기다려주세요.`
-            : "이미 가입된 휴대폰 번호입니다.",
-      },
-      { status: 409 },
-    );
+    if (existingByPhone.approvalStatus === "REJECTED") {
+      await freeRejectedIdentity(existingByPhone.id);
+    } else {
+      return NextResponse.json(
+        {
+          error:
+            existingByPhone.approvalStatus === "PENDING"
+              ? `이미 신청이 접수된 ${existingByPhone.name}님입니다. 운영자 승인을 기다려주세요.`
+              : "이미 가입된 휴대폰 번호입니다.",
+        },
+        { status: 409 },
+      );
+    }
   }
 
   // 본인인증 결과 확인. 티켓은 서명돼 있고, 실제 값은 서버가 이력에서 다시 읽는다 —
@@ -298,6 +312,8 @@ export async function POST(request: Request) {
       approvalStatus: "PENDING",
       termsAgreedAt: createdAt,
       privacyAgreedAt: createdAt,
+      employmentCertUrl: employmentCertUrl || null,
+      employmentCertName: employmentCertName || null,
       createdAt,
     });
 

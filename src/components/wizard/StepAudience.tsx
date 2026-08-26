@@ -229,6 +229,65 @@ function AudienceFields({
           </div>
         </div>
 
+        {/* [신규 2026-08-26] 같은 주차에 여러 신청이 몰려 경합이 붙었을 때 심사에서
+            참고하는 경쟁력 지표 2종 — 대관료 옵션 추가 범위(최소~최대)와 티켓 매출 RS 요율. */}
+        <div>
+          <div className="mb-2.5">
+            <label className="text-xs font-bold text-muted">
+              {t("audience.competitionFeeOptionLabel", "대관 경합 시 대관료 옵션 추가 가능 범위")}
+            </label>
+            <p className="mt-1 text-xs text-muted">
+              {t(
+                "audience.competitionFeeOptionHint",
+                "같은 주차에 다른 신청과 경합이 붙을 경우, 추가로 제시할 수 있는 대관료 옵션의 범위입니다.",
+              )}
+            </p>
+          </div>
+          <div className="flex items-center gap-2">
+            <div className="flex flex-1 items-center gap-1.5">
+              <input
+                type="number"
+                min={0}
+                value={info.competitionFeeOptionMin ?? ""}
+                placeholder={tStr("audience.competitionFeeOptionMinPlaceholder", "최소")}
+                onChange={(e) => set("competitionFeeOptionMin", Math.max(0, Number(e.target.value) || 0))}
+                className="field-base w-full"
+              />
+              <span className="text-xs text-muted">{t("audience.wonUnit", "원")}</span>
+            </div>
+            <span className="text-xs text-muted">~</span>
+            <div className="flex flex-1 items-center gap-1.5">
+              <input
+                type="number"
+                min={0}
+                value={info.competitionFeeOptionMax ?? ""}
+                placeholder={tStr("audience.competitionFeeOptionMaxPlaceholder", "최대")}
+                onChange={(e) => set("competitionFeeOptionMax", Math.max(0, Number(e.target.value) || 0))}
+                className="field-base w-full"
+              />
+              <span className="text-xs text-muted">{t("audience.wonUnit", "원")}</span>
+            </div>
+          </div>
+        </div>
+
+        <div>
+          <label className="mb-1.5 block text-xs font-bold text-muted">
+            {t("audience.ticketRevenueShareRateLabel", "티켓 매출 RS 요율")}
+          </label>
+          <div className="flex w-1/2 items-center gap-1.5 sm:w-1/3">
+            <input
+              type="number"
+              min={0}
+              max={100}
+              value={info.ticketRevenueShareRate ?? ""}
+              placeholder={tStr("audience.ticketRevenueShareRatePlaceholder", "요율")}
+              onChange={(e) => set("ticketRevenueShareRate", clampRate(e.target.value))}
+              className="field-base w-full"
+            />
+            <span className="text-xs text-muted">%</span>
+          </div>
+        </div>
+
         <div>
           <div className="mb-2 text-xs font-bold text-muted">{t("audience.ancillaryPlansLabel", "부대사업 계획")}</div>
           <div className="flex flex-wrap gap-2">

@@ -183,14 +183,14 @@ export function WizardShell({
   // File은 JSON 직렬화가 안 되므로 selection과 분리해 별도 상태로 두고
   // localStorage 임시저장 대상에서도 제외한다 (새로고침 시 다시 선택 필요).
   // 신청자 정보(공연기획서 등) · 관객(객석배치도) · 공공성(연계 프로그램 계획서) · 안전관리
-  // (안전관리계획서·출연자 계약서)는 각자 다른 서류라 슬롯을 분리한다 — 제출 시점에
-  // 하나로 합쳐 업로드한다.
+  // (안전관리계획서)는 각자 다른 서류라 슬롯을 분리한다 — 제출 시점에 하나로 합쳐
+  // 업로드한다. 출연자 계약서는 "신청자 정보 및 규모" 탭에서 이미 받으므로 여기 없다
+  // (2026-08-26, 중복 제거).
   const [pendingFiles, setPendingFiles] = useState<File[]>([]);
   const [publicInterestFiles, setPublicInterestFiles] = useState<File[]>([]);
-  // 안전관리계획서 · 출연자 계약서는 목업상 필수 단일 슬롯 2개다 — 다른 단계처럼 자유
-  // 목록이 아니라 슬롯당 파일 1개(재선택 시 교체)로 둔다.
+  // 안전관리계획서는 목업상 필수 단일 슬롯이다 — 다른 단계처럼 자유 목록이 아니라
+  // 슬롯당 파일 1개(재선택 시 교체)로 둔다.
   const [safetyPlanFile, setSafetyPlanFile] = useState<File | null>(null);
-  const [castContractFile, setCastContractFile] = useState<File | null>(null);
   const [selection, setSelection] = useState<QuoteSelection>(
     initialSelection
       ? {
@@ -368,7 +368,6 @@ export function WizardShell({
   );
   const step6Blocked = validateSafetyPledgeStep(selection.safetyPledge ?? DEFAULT_SAFETY_PLEDGE, {
     safetyPlanFile,
-    castContractFile,
   });
   const maxUnlockedStep = !selection.venueId
     ? 1
@@ -469,7 +468,6 @@ export function WizardShell({
       ...pendingFiles,
       ...publicInterestFiles,
       ...(safetyPlanFile ? [safetyPlanFile] : []),
-      ...(castContractFile ? [castContractFile] : []),
     ];
     if (allFiles.length === 0) return;
     const failed: string[] = [];
@@ -782,8 +780,6 @@ export function WizardShell({
             onChange={(safetyPledge) => setSelection((prev) => ({ ...prev, safetyPledge }))}
             safetyPlanFile={safetyPlanFile}
             onSafetyPlanFileChange={setSafetyPlanFile}
-            castContractFile={castContractFile}
-            onCastContractFileChange={setCastContractFile}
             title={wizardStepText.safetyPledgeTitle}
             lead={wizardStepText.safetyPledgeLead}
           />
@@ -813,8 +809,7 @@ export function WizardShell({
             fileCount={
               pendingFiles.length +
               publicInterestFiles.length +
-              (safetyPlanFile ? 1 : 0) +
-              (castContractFile ? 1 : 0)
+              (safetyPlanFile ? 1 : 0)
             }
             onSubmit={submit}
             onRequestEdit={requestEdit}

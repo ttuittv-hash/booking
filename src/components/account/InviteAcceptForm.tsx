@@ -9,11 +9,21 @@ import { checkPassword, checkUsername, firstFailure, PASSWORD_HINT, USERNAME_HIN
 import { hashPasswordForTransport } from "@/lib/clientPassword";
 import { PasswordMatchHint } from "@/components/ui/PasswordMatchHint";
 
-export function InviteAcceptForm({ token }: { token: string }) {
+export function InviteAcceptForm({
+  token,
+  inviteeName,
+  companyName: invitationCompanyName,
+}: {
+  token: string;
+  /** 초대장에 지정된 이름 — 있으면 이름 입력을 이 값으로 잠근다(2026-08-26). */
+  inviteeName?: string | null;
+  companyName?: string | null;
+}) {
   const toast = useToast();
   const [step, setStep] = useState<1 | 2 | 3>(token ? 1 : 0 as 1);
   const [ticket, setTicket] = useState("");
-  const [name, setName] = useState("");
+  const [name, setName] = useState(inviteeName ?? "");
+  const nameLocked = !!inviteeName?.trim();
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [confirm, setConfirm] = useState("");
@@ -83,15 +93,26 @@ export function InviteAcceptForm({ token }: { token: string }) {
         />
       ) : step === 2 ? (
         <div className="space-y-4">
+          {invitationCompanyName && (
+            <p className="text-xs text-muted">
+              <span className="font-bold text-foreground">{invitationCompanyName}</span>의 초대로 가입합니다.
+            </p>
+          )}
           <label className="block">
             <span className="mb-1.5 block text-xs font-bold">이름</span>
             <input
               data-testid="invite-name"
               value={name}
               onChange={(e) => setName(e.target.value)}
+              readOnly={nameLocked}
               placeholder="담당자 이름"
-              className="w-full border border-border-soft bg-background px-3 py-2 text-s"
+              className={`w-full border border-border-soft px-3 py-2 text-s ${
+                nameLocked ? "bg-panel/60 text-muted" : "bg-background"
+              }`}
             />
+            {nameLocked && (
+              <p className="mt-1 text-xs text-muted">초대장에 지정된 이름입니다. 다르다면 초대를 보낸 담당자에게 문의해 주세요.</p>
+            )}
           </label>
           <label className="block">
             <span className="mb-1.5 block text-xs font-bold">아이디 ({USERNAME_HINT})</span>

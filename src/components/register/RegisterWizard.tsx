@@ -74,7 +74,22 @@ type FormState = {
   postalCode: string;
   address: string;
   addressDetail: string;
+  businessCertUrl: string;
+  businessCertName: string;
+  employmentCertUrl: string;
+  employmentCertName: string;
 };
+
+// 회원가입 중(비로그인)에도 쓸 수 있는 공개 업로드 엔드포인트 — 사업자등록증/재직증명서
+// 둘 다 여기로 올린다(PDF/JPG/PNG, 10MB 이하).
+async function uploadRegisterAttachment(file: File): Promise<{ url: string; name: string }> {
+  const body = new FormData();
+  body.append("file", file);
+  const res = await fetch("/api/auth/register/attachment", { method: "POST", body });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.error || "파일 업로드에 실패했습니다.");
+  return { url: data.url, name: data.name };
+}
 
 const STEP_LABELS = ["회원 유형", "약관 동의", "본인인증", "정보 입력", "가입완료"];
 
@@ -111,6 +126,10 @@ export function RegisterWizard() {
     postalCode: "",
     address: "",
     addressDetail: "",
+    businessCertUrl: "",
+    businessCertName: "",
+    employmentCertUrl: "",
+    employmentCertName: "",
   });
   const [pickedCompany, setPickedCompany] = useState<CompanyHit | null>(null);
   // 개발 환경에서 본인인증을 건너뛴 상태인지 — 화면에 그대로 표시해 착각을 막는다.
@@ -299,6 +318,10 @@ export function RegisterWizard() {
           corporateNumber: form.corporateNumber,
           postalCode: form.postalCode,
           address: [form.address, form.addressDetail].filter(Boolean).join(" "),
+          businessCertUrl: form.businessCertUrl,
+          businessCertName: form.businessCertName,
+          employmentCertUrl: form.employmentCertUrl,
+          employmentCertName: form.employmentCertName,
           agreedTerms: !!agreed.SERVICE,
           agreedPrivacy: !!agreed.PRIVACY_REQUIRED,
           agreements: terms.map((t) => ({
@@ -383,6 +406,8 @@ export function RegisterWizard() {
               postalCode: "",
               address: "",
               addressDetail: "",
+              businessCertUrl: "",
+              businessCertName: "",
             }));
           }}
           onOpenSearch={() => {
@@ -736,11 +761,32 @@ function StepInfo({
 }) {
   const toast = useToast();
   const [checking, setChecking] = useState<"brn" | "id" | null>(null);
+  const [uploading, setUploading] = useState<"biz" | "employment" | null>(null);
   const set =
     (k: keyof FormState) =>
     (e: React.ChangeEvent<HTMLInputElement>) =>
       setForm((p) => ({ ...p, [k]: e.target.value }));
   const locked = !!pickedCompany;
+
+  async function handleCertUpload(
+    kind: "biz" | "employment",
+    urlKey: keyof FormState,
+    nameKey: keyof FormState,
+    e: React.ChangeEvent<HTMLInputElement>,
+  ) {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file) return;
+    setUploading(kind);
+    try {
+      const { url, name } = await uploadRegisterAttachment(file);
+      setForm((p) => ({ ...p, [urlKey]: url, [nameKey]: name }));
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "파일 업로드에 실패했습니다.");
+    } finally {
+      setUploading(null);
+    }
+  }
 
   // 사업자등록번호 중복확인 + 국세청 진위확인 (기획서 A5 · 1-34)
   async function verifyBrn() {
@@ -961,6 +1007,31 @@ function StepInfo({
         </Field>
         <div />
 
+        {locked ? null : (
+          <div className="sm:col-span-2">
+            <Field label="사업자등록증" hint="선택 · PDF/JPG/PNG · 10MB 이하">
+              <span className="flex flex-wrap items-center gap-3">
+                <label className={`${btnClass("secondary", "md")} cursor-pointer whitespace-nowrap`}>
+                  {uploading === "biz" ? "업로드 중…" : "파일 선택"}
+                  <input
+                    type="file"
+                    data-testid="f-businessCert"
+                    accept=".pdf,.jpg,.jpeg,.png"
+                    disabled={uploading === "biz"}
+                    onChange={(e) => handleCertUpload("biz", "businessCertUrl", "businessCertName", e)}
+                    className="hidden"
+                  />
+                </label>
+                {form.businessCertName ? (
+                  <span data-testid="business-cert-name" className="break-all text-s text-muted">
+                    {form.businessCertName}
+                  </span>
+                ) : null}
+              </span>
+            </Field>
+          </div>
+        )}
+
         <div className="sm:col-span-2">
           <Field label="회사주소" required>
             <span className="flex flex-wrap gap-2">
@@ -1066,6 +1137,28 @@ function StepInfo({
         <Field label="전화번호">
           <input data-testid="f-personalPhone" value={form.personalPhone} onChange={set("personalPhone")} placeholder="02-544-1651" className={inputCls(false)} />
         </Field>
+        <div className="sm:col-span-2">
+          <Field label="재직증명서" hint="선택 · PDF/JPG/PNG · 10MB 이하">
+            <span className="flex flex-wrap items-center gap-3">
+              <label className={`${btnClass("secondary", "md")} cursor-pointer whitespace-nowrap`}>
+                {uploading === "employment" ? "업로드 중…" : "파일 선택"}
+                <input
+                  type="file"
+                  data-testid="f-employmentCert"
+                  accept=".pdf,.jpg,.jpeg,.png"
+                  disabled={uploading === "employment"}
+                  onChange={(e) => handleCertUpload("employment", "employmentCertUrl", "employmentCertName", e)}
+                  className="hidden"
+                />
+              </label>
+              {form.employmentCertName ? (
+                <span data-testid="employment-cert-name" className="break-all text-s text-muted">
+                  {form.employmentCertName}
+                </span>
+              ) : null}
+            </span>
+          </Field>
+        </div>
       </div>
 
       <div className="mt-10 flex gap-3">

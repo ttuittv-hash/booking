@@ -109,6 +109,20 @@ export default async function AdminApplicantDetailPage({
       </span>,
     ],
     ["본인인증", target.identityVerifiedAt ? new Date(target.identityVerifiedAt).toLocaleString("ko-KR") : "미인증"],
+    [
+      "재직증명서",
+      target.employmentCertUrl ? (
+        <a
+          key="employment-cert"
+          href={`${target.employmentCertUrl}${target.employmentCertName ? `?name=${encodeURIComponent(target.employmentCertName)}` : ""}`}
+          className={LINK_BTN}
+        >
+          {target.employmentCertName || "첨부파일"} 열기
+        </a>
+      ) : (
+        NONE
+      ),
+    ],
     ["가입일", new Date(target.createdAt).toLocaleString("ko-KR")],
     ["계정 ID", target.id],
   ];

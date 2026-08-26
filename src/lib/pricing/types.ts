@@ -553,6 +553,12 @@ export interface PerformanceInfo {
   expectedPaidSalesRateMidHall?: number; // 예상 유료 판매율(%) — 중형 (레거시)
   // optional — 2026-08-26 추가. 티켓 유형(R석·VIP석 등)별 가격·예상 판매율 반복 입력.
   ticketTypes?: TicketTypeRecord[];
+  // optional — 2026-08-26 추가. 같은 주차에 여러 신청이 몰려 경합이 붙었을 때, 신청자가
+  // 추가로 제시할 수 있는 대관료 옵션의 범위(최소~최대, 원)와 티켓 매출 중 서울아레나에
+  // 배분하는 RS(Revenue Share) 요율(%) — 둘 다 경합 심사에서 참고하는 경쟁력 지표다.
+  competitionFeeOptionMin?: number;
+  competitionFeeOptionMax?: number;
+  ticketRevenueShareRate?: number; // 티켓 매출 RS 요율(%)
   ancillaryBusinessPlans: AncillaryBusinessPlan[]; // 부대사업 계획
 
   // 공공/공익 참여 여부 (STEP 3-2.5) — 선택사항. optional: 선택형으로 바뀌기 전(2026-08-22)
@@ -870,6 +876,9 @@ export interface AppUser {
   phone: string | null;
   officePhone: string | null;
   faxNumber: string | null;
+  // 재직증명서(선택) — 가입 시 첨부한 파일. 미첨부면 둘 다 null.
+  employmentCertUrl: string | null;
+  employmentCertName: string | null;
   name: string;
   companyName: string | null;
   companyId: string | null;

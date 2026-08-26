@@ -191,6 +191,15 @@ export function MembersManager() {
         iv.status === "PENDING"
           ? [
               {
+                key: "resend",
+                label: "재발송",
+                variant: "secondary",
+                onClick: () =>
+                  void act("/api/company/invitations", { action: "resend", id: iv.id }).then((data) => {
+                    if (data?.inviteUrl) setInviteUrl(data.inviteUrl);
+                  }),
+              },
+              {
                 key: "cancel",
                 label: "초대 취소",
                 variant: "tertiary",

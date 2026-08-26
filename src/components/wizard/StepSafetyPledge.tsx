@@ -54,18 +54,18 @@ const PLEDGE_ITEMS: { key: PledgeCheckKey; defaultLabel: string; emphasize?: boo
   },
 ];
 
-// 서약 항목 7개를 전부 체크하고 서명, 제출 서류(안전관리계획서·출연자 계약서) 2건을
-// 모두 채워야 다음 단계로 넘어간다(2026-08-22, "안전관리 서약서는 무조건 체크하고
-// 서명해야지 다음단계로 넘어감 => 필수" · 2026-08-23 목업에서 제출 서류 2건 필수로 추가).
+// 서약 항목 7개를 전부 체크하고 서명, 제출 서류(안전관리계획서) 1건을 채워야
+// 다음 단계로 넘어간다(2026-08-22, "안전관리 서약서는 무조건 체크하고 서명해야지
+// 다음단계로 넘어감 => 필수"). 출연자 계약서는 "신청자 정보 및 규모" 탭의 주요
+// 출연진 계약 상태 슬롯에서 이미 받으므로 여기서는 중복 요구하지 않는다(2026-08-26).
 export function validateSafetyPledgeStep(
   pledge: SafetyPledge,
-  files?: { safetyPlanFile: File | null; castContractFile: File | null },
+  files?: { safetyPlanFile: File | null },
 ): string | null {
   const unchecked = PLEDGE_ITEMS.some((item) => !pledge[item.key]);
   if (unchecked) return "안전관리 서약 항목을 모두 체크해 주세요.";
   if (!pledge.signature.trim()) return "서명란에 서명해 주세요.";
   if (files && !files.safetyPlanFile) return "공연·행사 안전관리계획서를 업로드해 주세요.";
-  if (files && !files.castContractFile) return "출연자 계약서를 업로드해 주세요.";
   return null;
 }
 
@@ -110,8 +110,6 @@ export function StepSafetyPledge({
   onChange,
   safetyPlanFile,
   onSafetyPlanFileChange,
-  castContractFile,
-  onCastContractFileChange,
   title,
   lead,
 }: {
@@ -119,8 +117,6 @@ export function StepSafetyPledge({
   onChange: (pledge: SafetyPledge) => void;
   safetyPlanFile: File | null;
   onSafetyPlanFileChange: (file: File | null) => void;
-  castContractFile: File | null;
-  onCastContractFileChange: (file: File | null) => void;
   title: ReactNode;
   lead: ReactNode;
 }) {
@@ -206,13 +202,6 @@ export function StepSafetyPledge({
             file={safetyPlanFile}
             onChange={onSafetyPlanFileChange}
           />
-          <div className="border-t border-border">
-            <FileSlot
-              label={t("safetyPledge.castContractLabel", "출연자 계약서")}
-              file={castContractFile}
-              onChange={onCastContractFileChange}
-            />
-          </div>
         </div>
       </div>
     </section>

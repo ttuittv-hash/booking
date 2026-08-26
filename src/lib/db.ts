@@ -533,6 +533,10 @@ async function initSchema(pool: Pool) {
     -- 세션 일괄 무효화 기준시각. 세션은 서명 토큰이라 서버에 목록이 없어서,
     -- 이 값보다 먼저 발급된 토큰을 전부 무효로 본다(비밀번호 변경·탈퇴·강제 로그아웃).
     ALTER TABLE users ADD COLUMN IF NOT EXISTS session_epoch TEXT;
+    -- 재직증명서(가입 시 첨부, 선택) — 사업자등록증(companies.business_cert_*)과 달리
+    -- 개인(가입자)이 그 회사 소속임을 증명하는 서류라 users 테이블에 둔다.
+    ALTER TABLE users ADD COLUMN IF NOT EXISTS employment_cert_url TEXT;
+    ALTER TABLE users ADD COLUMN IF NOT EXISTS employment_cert_name TEXT;
 
     -- 초대로 만들어진 계정은 본인이 비밀번호를 정하기 전까지 해시가 없다.
     ALTER TABLE users ALTER COLUMN password_hash DROP NOT NULL;
@@ -1706,7 +1710,7 @@ export async function listCompanyInvitations(companyId: string): Promise<Company
 
 /** 토큰 해시로 유효한 초대를 찾는다. 만료·소비된 건은 돌려주지 않는다. */
 export async function findValidInvitation(tokenHash: string): Promise<
-  { id: string; companyId: string; email: string; companyName: string } | undefined
+  { id: string; companyId: string; email: string; companyName: string; inviteeName: string | null } | undefined
 > {
   const row = await one<{
     id: string;
@@ -1714,8 +1718,9 @@ export async function findValidInvitation(tokenHash: string): Promise<
     email: string;
     expires_at: string;
     company_name: string;
+    invitee_name: string | null;
   }>(
-    `SELECT i.id, i.company_id, i.email, i.expires_at, c.name AS company_name
+    `SELECT i.id, i.company_id, i.email, i.expires_at, c.name AS company_name, i.invitee_name
        FROM company_invitations i JOIN companies c ON c.id = i.company_id
       WHERE i.token_hash = $1 AND i.status = 'PENDING'`,
     [tokenHash],
@@ -1727,6 +1732,7 @@ export async function findValidInvitation(tokenHash: string): Promise<
     companyId: row.company_id,
     email: row.email,
     companyName: row.company_name,
+    inviteeName: row.invitee_name,
   };
 }
 
@@ -1744,6 +1750,29 @@ export async function cancelInvitation(id: string, companyId: string): Promise<v
     "UPDATE company_invitations SET status = 'CANCELLED' WHERE id = $1 AND company_id = $2 AND status = 'PENDING'",
     [id, companyId],
   );
+}
+
+/**
+ * 초대 재발송 — 새 토큰을 발급하고 만료일을 늘린 뒤, 다시 보낼 수 있게 이메일·전화번호·
+ * 이름을 돌려준다("각각의 초대링크 재발송 버튼이 필요할것 같습니다", 2026-08-26). 기존
+ * 토큰은 해시가 덮어써지므로 즉시 무효가 된다 — 옛 링크를 다시 눌러도 안 열린다.
+ * PENDING 건이 아니면(취소·수락·만료 후 등) 아무 것도 하지 않고 undefined를 반환한다.
+ */
+export async function resendInvitation(
+  id: string,
+  companyId: string,
+  tokenHash: string,
+  expiresAt: string,
+): Promise<{ email: string; phone: string | null; inviteeName: string | null } | undefined> {
+  const row = await one<{ email: string; phone: string | null; invitee_name: string | null }>(
+    `UPDATE company_invitations
+        SET token_hash = $3, expires_at = $4
+      WHERE id = $1 AND company_id = $2 AND status = 'PENDING'
+      RETURNING email, phone, invitee_name`,
+    [id, companyId, tokenHash, expiresAt],
+  );
+  if (!row) return undefined;
+  return { email: row.email, phone: row.phone, inviteeName: row.invitee_name };
 }
 
 /** 이 계정이 자기 회사의 마스터인가 — 담당자 관리·합류 승인 권한 검사에 쓴다. */
@@ -2242,6 +2271,8 @@ interface UserRow {
   phone: string | null;
   office_phone: string | null;
   fax_number: string | null;
+  employment_cert_url: string | null;
+  employment_cert_name: string | null;
   password_hash: string | null;
   password_scheme: PasswordScheme;
   member_type: string | null;
@@ -2269,6 +2300,8 @@ function toAppUser(row: UserRow): AppUser {
     phone: row.phone,
     officePhone: row.office_phone,
     faxNumber: row.fax_number,
+    employmentCertUrl: row.employment_cert_url,
+    employmentCertName: row.employment_cert_name,
     name: row.name,
     companyName: row.company_name,
     companyId: row.company_id,
@@ -2301,6 +2334,9 @@ export async function createUser(input: {
   memberType?: MemberType;
   // 회사 소속 신청자의 회사 내 권한. 최초 가입자는 MASTER, 합류자는 STAFF.
   companyRole?: CompanyRole | null;
+  // 재직증명서(선택) — 가입 시 첨부한 파일. /api/auth/register/attachment 업로드 결과.
+  employmentCertUrl?: string | null;
+  employmentCertName?: string | null;
   createdAt: string;
 }): Promise<AppUser> {
   const approvalStatus = input.approvalStatus ?? "APPROVED";
@@ -2309,9 +2345,11 @@ export async function createUser(input: {
   const adminTier: AdminTier | null = input.role === "ADMIN" ? (input.adminTier ?? "BASIC") : null;
   const memberType: MemberType = input.memberType ?? "CORPORATE";
   const companyRole: CompanyRole | null = input.role === "APPLICANT" ? (input.companyRole ?? null) : null;
+  const employmentCertUrl = input.employmentCertUrl ?? null;
+  const employmentCertName = input.employmentCertName ?? null;
   await q(
-    `INSERT INTO users (id, username, email, phone, password_hash, password_scheme, name, company_name, company_id, role, approval_status, admin_tier, terms_agreed_at, privacy_agreed_at, member_type, company_role, created_at)
-     VALUES ($1, $2, $3, $4, $5, 'v2', $6, $7, $8, $9, $10, $11, $12, $13, $15, $16, $14)`,
+    `INSERT INTO users (id, username, email, phone, password_hash, password_scheme, name, company_name, company_id, role, approval_status, admin_tier, terms_agreed_at, privacy_agreed_at, member_type, company_role, created_at, employment_cert_url, employment_cert_name)
+     VALUES ($1, $2, $3, $4, $5, 'v2', $6, $7, $8, $9, $10, $11, $12, $13, $15, $16, $14, $17, $18)`,
     [
       input.id,
       input.username,
@@ -2329,6 +2367,8 @@ export async function createUser(input: {
       input.createdAt,
       memberType,
       companyRole,
+      employmentCertUrl,
+      employmentCertName,
     ],
   );
   return {
@@ -2338,6 +2378,8 @@ export async function createUser(input: {
     phone,
     officePhone: null,
     faxNumber: null,
+    employmentCertUrl,
+    employmentCertName,
     name: input.name,
     companyName: input.companyName,
     companyId,
@@ -2363,14 +2405,25 @@ export async function findUserByEmailWithPasswordHash(
 }
 
 // 승인 대기 중인 신청도 포함해 동일 전화번호로 이미 가입된 계정이 있는지 확인한다
-// (승인 전에 이메일만 바꿔 중복 신청하는 것을 막기 위함).
+// (승인 전에 이메일만 바꿔 중복 신청하는 것을 막기 위함). 탈퇴한 계정은 제외한다 —
+// 안 그러면 탈퇴 후 같은 번호로 재가입할 때마다 "이미 가입된 번호"로 막힌다
+// (2026-08-26, "탈퇴를 하고 다시 가입하려고 해도 이미 가입되어있는 번호라고 경고").
 export async function findUserByPhone(phone: string): Promise<AppUser | undefined> {
-  const row = await one<UserRow>("SELECT * FROM users WHERE phone = $1", [phone.trim()]);
+  const row = await one<UserRow>(
+    "SELECT * FROM users WHERE phone = $1 AND withdrawn_at IS NULL",
+    [phone.trim()],
+  );
   return row ? toAppUser(row) : undefined;
 }
 
+// 탈퇴한 계정의 아이디는 새 가입(재가입 포함)이 다시 쓸 수 있어야 한다 — 이 함수는
+// 전부 "이 아이디를 새로 써도 되는가"를 묻는 중복 확인 용도로만 호출된다(로그인
+// 조회는 findUserByLoginIdWithPasswordHash를 따로 쓴다).
 export async function findUserByUsername(username: string): Promise<AppUser | undefined> {
-  const row = await one<UserRow>("SELECT * FROM users WHERE username = $1", [username.trim()]);
+  const row = await one<UserRow>(
+    "SELECT * FROM users WHERE username = $1 AND withdrawn_at IS NULL",
+    [username.trim()],
+  );
   return row ? toAppUser(row) : undefined;
 }
 
@@ -2561,8 +2614,37 @@ export async function findUserPasswordHash(
 }
 
 // 탈퇴는 신청서(applicant_id FK)·감사로그 등 기존 기록 보존을 위해 소프트 삭제로 처리한다.
+//
+// email 컬럼은 UNIQUE NOT NULL(하드 제약)이라, 탈퇴한 행이 원래 이메일을 그대로 들고
+// 있으면 같은 이메일로 재가입할 때 INSERT 자체가 DB 제약 위반으로 터진다 — 로그인
+// (findUserByLoginIdWithPasswordHash)은 이미 withdrawn_at을 걸러 이 값으로 다시 못
+// 들어오므로, 이메일을 알아볼 수 있는 형태로 바꿔치기해 원래 값을 비워준다(2026-08-26,
+// "탈퇴를 하고 다시 가입하려고 해도 이미 가입되어있는 번호라고 경고가 뜹니다"의
+// 이메일판 — 같은 근본 원인). username도 함께 비운다(부분 유니크 인덱스,
+// WHERE username IS NOT NULL이라 NULL이면 충돌하지 않는다).
 export async function withdrawUser(id: string, withdrawnAt: string) {
-  await q("UPDATE users SET withdrawn_at = $1 WHERE id = $2", [withdrawnAt, id]);
+  await q(
+    `UPDATE users
+        SET withdrawn_at = $1,
+            username = NULL,
+            email = 'withdrawn+' || id || '+' || email
+      WHERE id = $2`,
+    [withdrawnAt, id],
+  );
+}
+
+// 반려(REJECTED)된 신청자가 같은 이메일·아이디로 재가입할 수 있게 자리를 비운다(R5).
+// 탈퇴(withdrawUser)와 같은 방식이지만 withdrawn_at 은 건드리지 않는다 — 반려는 탈퇴가
+// 아니라 "재신청 가능" 상태이므로 계정 자체는 남아 있되 새 가입에 자리만 내준다.
+// 이미 비운 행을 다시 비워도 안전하도록 approval_status·email 접두어를 조건에 건다.
+export async function freeRejectedIdentity(id: string): Promise<void> {
+  await q(
+    `UPDATE users
+        SET username = NULL,
+            email = 'rejected+' || id || '+' || email
+      WHERE id = $1 AND approval_status = 'REJECTED' AND email NOT LIKE 'rejected+%' AND email NOT LIKE 'withdrawn+%'`,
+    [id],
+  );
 }
 
 export async function isUserWithdrawn(id: string): Promise<boolean> {
