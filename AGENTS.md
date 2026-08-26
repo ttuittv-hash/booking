@@ -124,5 +124,9 @@ SENDER_KEY·**SENDER_NO**)이 모두 있어야 채널이 켜진다 — 없으면
   (`state_code` 는 구 표기) / 실패 상세코드 `result.detail_code`(ERRxxxxx) 로 분류 — ERR11000 수신거부→문자 대체,
   ERR50025 번호 오류, ERR41001 미등록 템플릿·ERR42009 세칙검사 불통과→템플릿 오류. 결과 수신은 polling 외에
   webhook(POST JSON, 2xx 응답, uid/cid 멱등)도 가능하나 URL 을 DKT(Kicm.dkt@kakaocorp.com)에 등록해야 해서 미도입.
+- 2026-08-26 CBT 실발송 성공(발신번호 070-8080-5634, DKT 등록). dev 매니페스트에 `BIZTALK_SENDER_NO` 와
+  **`BIZTALK_RECIPIENT_ALLOWLIST`**(쉼표 구분 번호)가 있다 — 목록 밖 번호는 외부 발송을 건너뛰고
+  `message_sends.status='SKIPPED'` 로 남긴다(E2E 가짜 번호 오발송 방지, `src/lib/message/allowlist.ts`).
+  운영에는 허용목록을 두지 않는다. 회원가입 "개발용 우회" 버튼은 알림톡 받을 번호를 물어 `stubPhone` 으로 보낸다.
 - 점검: `kubectl -n arena-dev exec deploy/arena -- node scripts/biztalk-check.mjs` (클러스터 안에서만
   닿는다 — 방화벽이 발신 IP 211.213.60.30 기준).
