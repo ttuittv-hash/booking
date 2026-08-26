@@ -69,6 +69,7 @@ import type {
   NotificationRuleTypeCode,
   PageGroup,
   Quote,
+  QuoteSelection,
   QuoteStatus,
   RateTable,
   Review,
@@ -2997,6 +2998,50 @@ export async function findApprovedWeekConflict(
     return { quote: other, companyName: row.applicant_company_name };
   }
   return undefined;
+}
+
+// [신규 2026-08-26] 어드민 심사 슬롯 "동일 기간 내 다른 대관사 비교" — findApprovedWeekConflict와
+// 같은 인덱스(week_year/month/week_of_month)로 같은 주차 신청서를 골라오되, 승인 건 1개만
+// 찾고 멈추지 않고 "다른 회사"의 전체 신청서를 상태 무관하게 반환한다. 아레나/중형공연장은
+// 서로 다른 공간이라 겹치는 신청서만 남긴다(동시 대관은 두 공간 모두와 겹친다고 본다).
+function effectiveVenuesForCompetition(selection: QuoteSelection): ("arena" | "medium-hall")[] {
+  if (selection.bookingMode === "SIMULTANEOUS") return ["arena", "medium-hall"];
+  return selection.venueId === "medium-hall" ? ["medium-hall"] : ["arena"];
+}
+
+export async function listCompetingQuotesForWeek(
+  quote: Quote,
+): Promise<{ quote: Quote; companyName: string | null }[]> {
+  const week = quote.selection?.week;
+  if (!week) return [];
+
+  const rows = await q<QuoteRow & { applicant_company_id: string | null; applicant_company_name: string | null }>(
+    `SELECT q.*, u.company_id AS applicant_company_id, u.company_name AS applicant_company_name
+       FROM quotes q JOIN users u ON u.id = q.applicant_id
+      WHERE q.week_year = $1 AND q.week_month = $2 AND q.week_of_month = $3 AND q.id <> $4
+      ORDER BY q.created_at ASC`,
+    [week.year, week.month, week.weekOfMonth, quote.id],
+  );
+  if (rows.length === 0) return [];
+
+  const applicant = await findUserById(quote.applicantId);
+  const companyId = applicant?.companyId ?? null;
+  const myVenues = effectiveVenuesForCompetition(quote.selection);
+
+  const result: { quote: Quote; companyName: string | null }[] = [];
+  for (const row of rows) {
+    const other = toQuote(row);
+    const otherCompanyId = row.applicant_company_id;
+    const sameCompany =
+      companyId && otherCompanyId ? companyId === otherCompanyId : quote.applicantId === other.applicantId;
+    if (sameCompany) continue;
+
+    const otherVenues = effectiveVenuesForCompetition(other.selection);
+    if (!otherVenues.some((v) => myVenues.includes(v))) continue;
+
+    result.push({ quote: other, companyName: row.applicant_company_name });
+  }
+  return result;
 }
 
 // 캘린더 경합 현황 — 주차별로 신청서를 낸 회사(신청자) 수를 집계한다.
