@@ -3,7 +3,8 @@
 import type { ReactNode } from "react";
 import { won } from "@/lib/format";
 import { findPackage, totalRentalDays } from "@/lib/pricing/rateTableUtils";
-import type { EstimatedQuote, LineItem, QuoteSelection, RateTable } from "@/lib/pricing/types";
+import type { EstimatedQuote, QuoteSelection, RateTable } from "@/lib/pricing/types";
+import { isMidHallLineItem, sectionSubtotal } from "@/lib/pricing/lineItemGroups";
 import { useWizardText } from "@/lib/content/wizardText";
 import { QuoteLineItemsReport } from "@/components/QuoteLineItemsReport";
 
@@ -14,12 +15,6 @@ function midHallSummaryLine(selection: QuoteSelection): string | null {
   const performanceDates = dates.filter((d) => selection.midHallDays[d].role === "PERFORMANCE");
   const shows = performanceDates.reduce((sum, d) => sum + selection.midHallDays[d].shows, 0);
   return `${dates.length}일 (셋업 ${setup} · 공연 ${performanceDates.length} · 회차 ${shows}) · 관객 ${selection.secondaryAudience.toLocaleString()}명`;
-}
-
-// 중형공연장 라인아이템은 addonId가 전부 "midhall"로 시작한다(calculateMidHallQuote.ts) —
-// 계산 엔진을 건드리지 않고 화면에서만 아레나/중형으로 갈라 보여주는 데 이 규칙을 쓴다.
-function isMidHallLineItem(item: LineItem): boolean {
-  return item.addonId.startsWith("midhall");
 }
 
 export function Step5Estimate({
@@ -58,6 +53,11 @@ export function Step5Estimate({
   const midHallItems = visibleItems.filter(isMidHallLineItem);
   const arenaVisibleSubtotal = arenaItems.reduce((sum, item) => sum + item.amount, 0);
   const midHallVisibleSubtotal = midHallItems.reduce((sum, item) => sum + item.amount, 0);
+  // 패키지에 묶인 항목(계약 내역)과 신청자가 고른 옵션(추가 예상 금액)은 성격이 달라
+  // 슬롯을 나눈다(2026-08-26) — "실제 계약금액은 패키지에 대한 내역이고, 옵션 선택한
+  // 것들은 추가 예상 예산".
+  const contractSubtotal = sectionSubtotal(visibleItems, "CONTRACT");
+  const additionalSubtotal = sectionSubtotal(visibleItems, "ADDITIONAL");
 
   return (
     <section>
@@ -95,6 +95,14 @@ export function Step5Estimate({
           </div>
         )}
         <div className="flex justify-between text-s text-muted">
+          <span>{t("estimate.contractSectionLabel", "계약 내역")}</span>
+          <span className="tabular-nums">{won(contractSubtotal)}</span>
+        </div>
+        <div className="mt-1.5 flex justify-between text-s text-muted">
+          <span>{t("estimate.additionalSectionLabel", "추가 예상 금액")}</span>
+          <span className="tabular-nums">{won(additionalSubtotal)}</span>
+        </div>
+        <div className="mt-2.5 flex justify-between border-t border-border/60 pt-2.5 text-s text-muted">
           <span>{t("estimate.subtotalLabel", "소계 (VAT 별도)")}</span>
           <span className="tabular-nums">{won(quote.subtotal)}</span>
         </div>
@@ -108,7 +116,7 @@ export function Step5Estimate({
         </div>
       </div>
 
-      {/* 고지문은 색면 박스가 아니라 작은 글씨다 — 사이드바의 「실시간 견적 요약」 고지와
+      {/* 고지문은 색면 박스가 아니라 작은 글씨다 — 사이드바의 「실시간 대관신청 내역」 고지와
           같은 언어를 쓴다. 박스를 두르면 금액표와 무게가 비슷해져 어느 쪽이 결과인지
           흐려진다 */}
       <p className="mt-6 text-xs leading-5 text-muted">
