@@ -68,6 +68,7 @@ import type {
   NotificationRule,
   NotificationRuleTypeCode,
   PageGroup,
+  PublicInterestItem,
   Quote,
   QuoteSelection,
   QuoteStatus,
@@ -506,6 +507,10 @@ async function initSchema(pool: Pool) {
     ALTER TABLE companies ADD COLUMN IF NOT EXISTS corporate_registration_number TEXT;
     ALTER TABLE users ADD COLUMN IF NOT EXISTS office_phone TEXT;
     ALTER TABLE users ADD COLUMN IF NOT EXISTS fax_number TEXT;
+
+    -- 공공/공익 STEP 에서 항목별로 올린 자료(2026-08-27). 어느 항목의 자료인지 표시할 뿐이라
+    -- 값 검증은 API 쪽 화이트리스트가 하고, 그 밖의 첨부는 NULL 로 남는다.
+    ALTER TABLE attachments ADD COLUMN IF NOT EXISTS public_interest_item TEXT;
 
     CREATE UNIQUE INDEX IF NOT EXISTS idx_users_username ON users(username) WHERE username IS NOT NULL;
 
@@ -3912,6 +3917,7 @@ interface AttachmentRow {
   size: number;
   uploaded_by: string;
   category: string | null;
+  public_interest_item: string | null;
   created_at: string;
 }
 
@@ -3925,6 +3931,7 @@ function toAttachment(row: AttachmentRow): Attachment {
     size: row.size,
     uploadedBy: row.uploaded_by,
     category: (row.category as AttachmentCategory) ?? null,
+    publicInterestItem: (row.public_interest_item as PublicInterestItem | null) ?? null,
     createdAt: row.created_at,
   };
 }
@@ -3938,11 +3945,12 @@ export async function createAttachment(input: {
   size: number;
   uploadedBy: string;
   category?: AttachmentCategory;
+  publicInterestItem?: PublicInterestItem | null;
   createdAt: string;
 }): Promise<Attachment> {
   await q(
-    `INSERT INTO attachments (id, quote_id, stored_name, original_name, mime_type, size, uploaded_by, category, created_at)
-     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)`,
+    `INSERT INTO attachments (id, quote_id, stored_name, original_name, mime_type, size, uploaded_by, category, public_interest_item, created_at)
+     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)`,
     [
       input.id,
       input.quoteId,
@@ -3952,6 +3960,7 @@ export async function createAttachment(input: {
       input.size,
       input.uploadedBy,
       input.category ?? null,
+      input.publicInterestItem ?? null,
       input.createdAt,
     ],
   );

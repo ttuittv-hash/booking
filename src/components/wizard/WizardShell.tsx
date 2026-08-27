@@ -34,7 +34,7 @@ import { StepConfigOptions } from "./StepConfigOptions";
 import { Step5Estimate } from "./Step5Estimate";
 import { StepAttachments, StepPerformanceInfo, validatePerformanceInfoStep } from "./StepPerformanceInfo";
 import { StepAudience, validateAudienceStep } from "./StepAudience";
-import { StepPublicInterest } from "./StepPublicInterest";
+import { StepPublicInterest, type PublicInterestFile } from "./StepPublicInterest";
 import { StepMarketingCooperation, validateMarketingCooperationStep } from "./StepMarketingCooperation";
 import { StepSafetyPledge, validateSafetyPledgeStep } from "./StepSafetyPledge";
 import { Step6Submit } from "./Step6Submit";
@@ -189,7 +189,7 @@ export function WizardShell({
   // 업로드한다. 출연자 계약서는 "신청자 정보 및 규모" 탭에서 이미 받으므로 여기 없다
   // (2026-08-26, 중복 제거).
   const [pendingFiles, setPendingFiles] = useState<File[]>([]);
-  const [publicInterestFiles, setPublicInterestFiles] = useState<File[]>([]);
+  const [publicInterestFiles, setPublicInterestFiles] = useState<PublicInterestFile[]>([]);
   // 안전관리계획서는 목업상 필수 단일 슬롯이다 — 다른 단계처럼 자유 목록이 아니라
   // 슬롯당 파일 1개(재선택 시 교체)로 둔다.
   const [safetyPlanFile, setSafetyPlanFile] = useState<File | null>(null);
@@ -365,10 +365,11 @@ export function WizardShell({
     (selection.midHallPerformanceInfo && validatePerformanceInfoStep(selection.midHallPerformanceInfo, "중형공연장")) ??
     validateAudienceStep(selection.performanceInfo, selection.midHallPerformanceInfo ? "아레나" : undefined) ??
     (selection.midHallPerformanceInfo && validateAudienceStep(selection.midHallPerformanceInfo, "중형공연장"));
-  // 홍보 및 서비스 노출 동의(STEP 5)·안전관리 서약(STEP 6)도 필수라 그 다음 단계로
-  // 못 넘어가게 막는다(2026-08-22, "무조건 필수"). STEP 4(공공/공익 참여 여부)는
-  // 선택 항목이라 별도 게이트가 없다 — 통과 여부와 무관하게 STEP 5까지는 열린다.
-  const step5Blocked = validateMarketingCooperationStep(
+  // 홍보 및 마케팅(STEP 4)·안전관리 서약(STEP 6)도 필수라 그 다음 단계로 못 넘어가게
+  // 막는다(2026-08-22, "무조건 필수"). STEP 5(공공/공익 참여 여부)는 선택 항목이라 별도
+  // 게이트가 없다 — 통과 여부와 무관하게 STEP 6까지는 열린다.
+  // [개정 2026-08-27] 홍보와 공공/공익의 순서를 맞바꾸면서 게이트도 STEP 5 → 4 로 옮겼다.
+  const step4Blocked = validateMarketingCooperationStep(
     selection.marketingCooperation ?? DEFAULT_MARKETING_COOPERATION,
   );
   const step6Blocked = validateSafetyPledgeStep(selection.safetyPledge ?? DEFAULT_SAFETY_PLEDGE, {
@@ -382,8 +383,8 @@ export function WizardShell({
         ? 2
         : step3Blocked
           ? 3
-          : step5Blocked
-            ? 5
+          : step4Blocked
+            ? 4
             : step6Blocked
               ? 6
               : TOTAL_STEPS;
@@ -469,17 +470,20 @@ export function WizardShell({
   }
 
   async function uploadPendingFiles(quoteId: string) {
-    const allFiles = [
-      ...pendingFiles,
-      ...publicInterestFiles,
-      ...(safetyPlanFile ? [safetyPlanFile] : []),
+    // 공공/공익 자료는 어느 항목에 붙은 것인지 함께 올린다(2026-08-27) — 첨부 목록에서
+    // 그 항목 이름이 같이 보여야 심사에서 되묻지 않는다.
+    const allFiles: { file: File; publicInterestItem?: string }[] = [
+      ...pendingFiles.map((file) => ({ file })),
+      ...publicInterestFiles.map(({ file, item }) => ({ file, publicInterestItem: item })),
+      ...(safetyPlanFile ? [{ file: safetyPlanFile }] : []),
     ];
     if (allFiles.length === 0) return;
     const failed: string[] = [];
-    for (const file of allFiles) {
+    for (const { file, publicInterestItem } of allFiles) {
       try {
         const formData = new FormData();
         formData.append("file", file);
+        if (publicInterestItem) formData.append("publicInterestItem", publicInterestItem);
         const res = await fetch(`/api/quotes/${quoteId}/attachments`, {
           method: "POST",
           body: formData,
@@ -583,8 +587,8 @@ export function WizardShell({
               toast.error(step3Blocked);
               return;
             }
-            if (step === 5 && step5Blocked) {
-              toast.error(step5Blocked);
+            if (step === 4 && step4Blocked) {
+              toast.error(step4Blocked);
               return;
             }
             if (step === 6 && step6Blocked) {
@@ -758,6 +762,14 @@ export function WizardShell({
           </>
         )}
         {step === 4 && (
+          <StepMarketingCooperation
+            info={selection.marketingCooperation ?? DEFAULT_MARKETING_COOPERATION}
+            onChange={(marketingCooperation) => setSelection((prev) => ({ ...prev, marketingCooperation }))}
+            title={wizardStepText.marketingTitle}
+            lead={wizardStepText.marketingLead}
+          />
+        )}
+        {step === 5 && (
           <StepPublicInterest
             info={selection.performanceInfo}
             onChange={(performanceInfo) => setSelection((prev) => ({ ...prev, performanceInfo }))}
@@ -769,14 +781,6 @@ export function WizardShell({
             files={publicInterestFiles}
             onFilesChange={setPublicInterestFiles}
             title={wizardStepText.publicInterestTitle}
-          />
-        )}
-        {step === 5 && (
-          <StepMarketingCooperation
-            info={selection.marketingCooperation ?? DEFAULT_MARKETING_COOPERATION}
-            onChange={(marketingCooperation) => setSelection((prev) => ({ ...prev, marketingCooperation }))}
-            title={wizardStepText.marketingTitle}
-            lead={wizardStepText.marketingLead}
           />
         )}
         {step === 6 && (

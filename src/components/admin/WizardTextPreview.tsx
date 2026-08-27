@@ -450,6 +450,25 @@ const STAGE_GROUPS: StageGroup[] = [
         },
       },
       {
+        label: "홍보 및 서비스 계획",
+        render: (ctx) => {
+          const field = makeFieldEditor(ctx);
+          const lead = makeLeadEditor(ctx);
+          return (
+            <LivePreview>
+              <div className="[&_input]:pointer-events-auto [&_textarea]:pointer-events-auto">
+                <StepMarketingCooperation
+                  info={DEFAULT_MARKETING_COOPERATION}
+                  onChange={noop}
+                  title={field("marketingTitle")}
+                  lead={lead("marketingLead")}
+                />
+              </div>
+            </LivePreview>
+          );
+        },
+      },
+      {
         label: "공공/공익 참여 여부",
         render: (ctx) => {
           const field = makeFieldEditor(ctx);
@@ -465,25 +484,6 @@ const STAGE_GROUPS: StageGroup[] = [
                   files={[]}
                   onFilesChange={noop}
                   title={field("publicInterestTitle")}
-                />
-              </div>
-            </LivePreview>
-          );
-        },
-      },
-      {
-        label: "홍보 및 서비스 계획",
-        render: (ctx) => {
-          const field = makeFieldEditor(ctx);
-          const lead = makeLeadEditor(ctx);
-          return (
-            <LivePreview>
-              <div className="[&_input]:pointer-events-auto [&_textarea]:pointer-events-auto">
-                <StepMarketingCooperation
-                  info={DEFAULT_MARKETING_COOPERATION}
-                  onChange={noop}
-                  title={field("marketingTitle")}
-                  lead={lead("marketingLead")}
                 />
               </div>
             </LivePreview>

@@ -10,9 +10,15 @@ import {
   markFacilityMeetingMaterialsUploaded,
   markTicketOpenMaterialsUploaded,
 } from "@/lib/db";
-import type { AttachmentCategory } from "@/lib/pricing/types";
+import {
+  PUBLIC_INTEREST_ITEM_LABEL,
+  type AttachmentCategory,
+  type PublicInterestItem,
+} from "@/lib/pricing/types";
 
 const VALID_CATEGORIES: AttachmentCategory[] = ["TICKET_OPEN", "FACILITY_MEETING"];
+// 공공/공익 STEP 이 항목별로 올리는 자료(2026-08-27) — 라벨 표에 있는 키만 받는다.
+const VALID_PUBLIC_INTEREST_ITEMS = new Set(Object.keys(PUBLIC_INTEREST_ITEM_LABEL));
 
 const UPLOAD_ROOT = path.join(DATA_DIR, "uploads");
 // [개정 2026-08-26] "첨부 용량은 500메가까지 가능하게함" — 클라이언트 쪽 한도
@@ -83,6 +89,12 @@ export async function POST(request: Request, ctx: { params: Promise<{ id: string
     ? (categoryInput as AttachmentCategory)
     : null;
 
+  const publicInterestInput = formData?.get("publicInterestItem");
+  const publicInterestItem =
+    typeof publicInterestInput === "string" && VALID_PUBLIC_INTEREST_ITEMS.has(publicInterestInput)
+      ? (publicInterestInput as PublicInterestItem)
+      : null;
+
   const attachmentId = crypto.randomUUID();
   const storedName = `${attachmentId}${extension}`;
   const quoteDir = path.join(UPLOAD_ROOT, id);
@@ -100,6 +112,7 @@ export async function POST(request: Request, ctx: { params: Promise<{ id: string
     size: file.size,
     uploadedBy: user.id,
     category,
+    publicInterestItem,
     createdAt: now,
   });
 

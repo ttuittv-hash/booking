@@ -509,6 +509,50 @@ export const PUBLIC_INTEREST_ITEM_HINT: Record<PublicInterestItem, string> = {
   NONE: "해당 없음",
 };
 
+// [개정 2026-08-27] 항목을 성격별로 묶어 보여준다("각 항목들은 성격에 맞게 그룹핑").
+// 화면 순서는 이 배열이 정하고, 항목에 붙는 번호는 아래 PUBLIC_INTEREST_ITEM_NUMBER 가
+// 정한다 — 그룹을 다시 나눠도 심사표·기획서가 가리키는 번호가 흔들리지 않게 분리했다.
+export interface PublicInterestGroup {
+  key: string;
+  label: string;
+  items: PublicInterestItem[];
+}
+
+export const PUBLIC_INTEREST_GROUPS: PublicInterestGroup[] = [
+  {
+    key: "ACCESS",
+    label: "접근성 · 사회공헌",
+    items: ["DISCOUNT_ACCESS", "ACCESSIBILITY_SUPPORT", "PUBLIC_INTEREST_SEATS"],
+  },
+  {
+    key: "CONSUMER",
+    label: "소비자 보호 · 공정거래",
+    items: ["ANTI_SCALPING", "CONSUMER_PROTECTION", "COMPLAINT_REDUCTION_PLEDGE"],
+  },
+  {
+    key: "LOCAL",
+    label: "지역상생 · 공연장 활성화",
+    items: [
+      "LOCAL_COMMUNITY_PROGRAM",
+      "REGIONAL_VENUE_ACTIVATION_PROGRAM",
+      "PUBLIC_AGENCY_LINKED_EVENT",
+    ],
+  },
+  {
+    key: "FACILITY",
+    label: "시설 · 연계사업",
+    items: ["VENUE_LINKED_PROGRAM", "FACILITY_LINKED_PROGRAM", "OTHER"],
+  },
+];
+
+// 참여 항목이 아니라 "아직 못 정했다 / 해당 없다"는 응답이라, 그룹 밖 맨 아래에 따로 둔다.
+export const PUBLIC_INTEREST_STATUS_ITEMS: PublicInterestItem[] = ["UNDER_REVIEW", "NONE"];
+
+// 화면에 붙는 번호(1~14) — PUBLIC_INTEREST_ITEM_LABEL 선언 순서가 정본이다.
+export const PUBLIC_INTEREST_ITEM_NUMBER: Record<PublicInterestItem, number> = Object.fromEntries(
+  (Object.keys(PUBLIC_INTEREST_ITEM_LABEL) as PublicInterestItem[]).map((item, i) => [item, i + 1]),
+) as Record<PublicInterestItem, number>;
+
 export interface PerformanceInfo {
   // 신청자 정보 (STEP 3-1 좌측) — 회원정보에서 자동 입력되나 수정 가능
   applicantCompanyName: string; // 대관신청사명
@@ -567,6 +611,10 @@ export interface PerformanceInfo {
   // 공공/공익 참여 여부 (STEP 3-2.5) — 선택사항. optional: 선택형으로 바뀌기 전(2026-08-22)
   // 저장된 신청서에는 없을 수 있다.
   publicInterestItems?: PublicInterestItem[];
+  // optional — 2026-08-27 추가. 체크한 항목별 상세 기입란. 체크를 풀어도 값은 남겨두므로
+  // (실수로 푼 뒤 다시 켜면 쓰던 글이 살아난다) 읽는 쪽은 publicInterestItems 에 든
+  // 항목만 유효한 것으로 본다.
+  publicInterestDetails?: Partial<Record<PublicInterestItem, string>>;
 
   // 개최 신뢰도 및 안전관리 (STEP 3-3) — 회원 유형이 기획사 직접 신청이면 화면에서 섹션 숨김
   castContractStatus: CastContractStatus | null; // 주요 출연진 계약 상태
@@ -786,6 +834,9 @@ export interface Attachment {
   size: number;
   uploadedBy: string;
   category: AttachmentCategory; // null = 일반 신청서류, 그 외 = 티켓오픈/시설회의 전용 자료
+  // optional — 2026-08-27 추가. 공공/공익 STEP 에서 항목별로 올린 자료면 그 항목 키가 들어간다.
+  // 그 밖의 첨부는 null.
+  publicInterestItem?: PublicInterestItem | null;
   createdAt: string;
 }
 

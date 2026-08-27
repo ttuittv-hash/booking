@@ -58,6 +58,7 @@ export const INITIAL_PERFORMANCE_INFO: PerformanceInfo = {
   ticketTypes: [{ ...EMPTY_TICKET_TYPE_ROW }],
   ancillaryBusinessPlans: [],
   publicInterestItems: [],
+  publicInterestDetails: {},
   castContractStatus: null,
   foreignArtistNotes: "",
   sensitiveInfoMaskingAcknowledged: false,

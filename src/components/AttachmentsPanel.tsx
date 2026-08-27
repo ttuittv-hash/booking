@@ -2,7 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useRef, useState } from "react";
-import type { Attachment } from "@/lib/pricing/types";
+import { PUBLIC_INTEREST_ITEM_LABEL, type Attachment } from "@/lib/pricing/types";
 import { btnClass, FILE_INPUT } from "@/components/ui/kit";
 import { formatDate } from "@/lib/format";
 
@@ -81,6 +81,13 @@ export function AttachmentsPanel({
               >
                 {file.originalName}
               </a>
+              {/* 공공/공익 STEP 에서 항목에 붙여 올린 자료면 어느 항목인지 같이 보여준다
+                  (2026-08-27) — 그전에는 파일명만 남아 심사에서 되물어야 했다. */}
+              {file.publicInterestItem && (
+                <span className="shrink-0 border border-border/25 px-2 py-1 text-xs text-muted">
+                  공공/공익 · {PUBLIC_INTEREST_ITEM_LABEL[file.publicInterestItem]}
+                </span>
+              )}
               <div className="flex shrink-0 items-center gap-4 text-xs text-muted tabular-nums">
                 <span>{formatSize(file.size)}</span>
                 <span>{formatDate(file.createdAt)}</span>

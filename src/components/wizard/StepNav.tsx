@@ -16,6 +16,10 @@ import { CHOICE_SELECTED_VARS } from "@/components/ui/kit";
 // [개정 2026-08-23] "신청자 정보"·"규모" 두 하위 탭을 STEP 3 하나로 합쳤다
 // ("신청자 정보 탭을 신청자 정보 및 규모로 변경하고, 규모 탭 내역을 합쳐") — 그만큼
 // 기본 정보 그룹의 나머지 스텝 번호가 하나씩 당겨진다.
+// [개정 2026-08-27] 기본 정보 그룹 안에서 홍보와 공공/공익의 순서를 맞바꿨다(시안 지시:
+// "신청자 정보 및 규모 > 홍보 및 마케팅 > 공공/공익(부대사업) > 안전관리 서약서"). 필수인
+// 홍보 계획이 선택 항목인 공공/공익 뒤에 있어, 선택 화면을 지나야 필수 화면이 나오는
+// 순서였다. 게이트도 같이 옮겼다 — WizardShell 의 step4Blocked 참고.
 interface SubStep {
   step: number;
   label: string;
@@ -33,8 +37,8 @@ const STAGE_GROUPS: StageGroup[] = [
     label: "03 기본 정보",
     steps: [
       { step: 3, label: "신청자 정보 및 규모" },
-      { step: 4, label: "공공/공익 참여 여부" },
-      { step: 5, label: "홍보 및 서비스 계획" },
+      { step: 4, label: "홍보 및 서비스 계획" },
+      { step: 5, label: "공공/공익 참여 여부" },
       { step: 6, label: "안전관리 서약서" },
     ],
   },
