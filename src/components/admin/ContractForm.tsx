@@ -102,8 +102,8 @@ export function ContractForm({ quoteId, baseTotal }: { quoteId: string; baseTota
 
       <div className="mt-6 grid grid-cols-1 items-center gap-3 border-t border-border/15 pt-5 sm:grid-cols-[1fr_140px]">
         <div>
-          <div className="text-s font-bold">보증금 비율</div>
-          <div className={HELP}>계약금액 대비 보증금 비율 (계좌이체 확인 방식)</div>
+          <div className="text-s font-bold">계약금 비율</div>
+          <div className={HELP}>계약금액 대비 계약금 비율 (계좌이체 확인 방식)</div>
         </div>
         <div className="flex items-center gap-2">
           <input
@@ -123,7 +123,7 @@ export function ContractForm({ quoteId, baseTotal }: { quoteId: string; baseTota
           <div className={HELP}>계약금액 (신청 예상금액 {won(baseTotal)} ± 조정)</div>
           <div className="type-display mt-1 text-h5-m tabular-nums sm:text-h5">{won(contractTotal)}</div>
           <div className={`mt-1.5 ${HELP}`}>
-            보증금 요청액: <span className="font-bold tabular-nums text-foreground">{won(requiredDeposit)}</span>
+            계약금 요청액: <span className="font-bold tabular-nums text-foreground">{won(requiredDeposit)}</span>
           </div>
         </div>
         <button

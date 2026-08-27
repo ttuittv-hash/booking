@@ -1,8 +1,8 @@
 "use client";
 
-import { CHOICE_SELECTED_VARS } from "@/components/ui/kit";
+import { CHOICE_SELECTED_VARS, toggleClass } from "@/components/ui/kit";
 
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
 import { defaultDayTags, effectiveDayTag } from "@/lib/pricing/rateTableUtils";
 import { resolveSelectedDates } from "@/lib/pricing/dateRange";
 import { INITIAL_PERFORMANCE_INFO } from "@/lib/pricing/performanceInfoDefaults";
@@ -11,7 +11,9 @@ import {
   type AncillaryBusinessPlan,
   type PerformanceInfo,
   type QuoteSelection,
+  type TicketTypeRecord,
 } from "@/lib/pricing/types";
+import { useWizardText } from "@/lib/content/wizardText";
 import { VenueSplitTabBar, type VenueSplitTab } from "./VenueSplitTabBar";
 import { StepHeading } from "./StepHeading";
 
@@ -85,13 +87,13 @@ function AudienceFields({
   info,
   onChange,
   audienceSummary,
-  showMidHallRate,
 }: {
   info: PerformanceInfo;
   onChange: (info: PerformanceInfo) => void;
   audienceSummary: { arenaLine: string | null; midHallLine: string | null; totalLine: string | null };
-  showMidHallRate: boolean;
 }) {
+  const { t, tStr } = useWizardText();
+
   function set<K extends keyof PerformanceInfo>(key: K, value: PerformanceInfo[K]) {
     onChange({ ...info, [key]: value });
   }
@@ -100,13 +102,34 @@ function AudienceFields({
     return Math.max(0, Math.min(100, Number(raw) || 0));
   }
 
+  // [신규 2026-08-26] 티켓 유형별 가격 · 예상 판매율 반복 행.
+  const ticketTypes = info.ticketTypes ?? [];
+
+  function addTicketType() {
+    set("ticketTypes", [...ticketTypes, { label: "", price: 0, expectedSalesRate: 0 }]);
+  }
+
+  function updateTicketType(index: number, patch: Partial<TicketTypeRecord>) {
+    set(
+      "ticketTypes",
+      ticketTypes.map((row, i) => (i === index ? { ...row, ...patch } : row)),
+    );
+  }
+
+  function removeTicketType(index: number) {
+    set(
+      "ticketTypes",
+      ticketTypes.filter((_, i) => i !== index),
+    );
+  }
+
   const hasSummaryRow = audienceSummary.arenaLine || audienceSummary.midHallLine || audienceSummary.totalLine;
 
   return (
     /* 단계 안의 블록은 박스로 싸지 않는다 — 굵은 헤어라인 + H6 으로만 나눈다
        (신청자 정보·공공성과 같은 규칙) */
     <div className="border-t-2 border-foreground pt-5">
-      <h3 className="type-kr-heading text-h6-m">예상 관객 및 사업규모</h3>
+      <h3 className="type-kr-heading text-h6-m">{t("audience.sectionHeading", "예상 관객 및 사업규모")}</h3>
 
       <div className="mt-4 space-y-4">
         {/* 아레나/중형/총 예상 관객 수를 세 칸씩 쌓지 않고 한 줄로 — 눈이 세로로 오르내리지
@@ -115,7 +138,9 @@ function AudienceFields({
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
             {audienceSummary.arenaLine && (
               <div>
-                <label className="mb-1.5 block text-xs font-bold text-muted">1회당 예상 관객 수 — 아레나</label>
+                <label className="mb-1.5 block text-xs font-bold text-muted">
+                  {t("audience.expectedAudiencePerShowArenaLabel", "1회당 예상 관객 수 — 아레나")}
+                </label>
                 <div className="flex h-10 items-center border border-border-soft px-3.5 text-s text-foreground">
                   {audienceSummary.arenaLine}
                 </div>
@@ -123,7 +148,9 @@ function AudienceFields({
             )}
             {audienceSummary.midHallLine && (
               <div>
-                <label className="mb-1.5 block text-xs font-bold text-muted">1회당 예상 관객 수 — 중형</label>
+                <label className="mb-1.5 block text-xs font-bold text-muted">
+                  {t("audience.expectedAudiencePerShowMidHallLabel", "1회당 예상 관객 수 — 중형")}
+                </label>
                 <div className="flex h-10 items-center border border-border-soft px-3.5 text-s text-foreground">
                   {audienceSummary.midHallLine}
                 </div>
@@ -131,7 +158,9 @@ function AudienceFields({
             )}
             {audienceSummary.totalLine && (
               <div>
-                <label className="mb-1.5 block text-xs font-bold text-muted">총 예상 관객 수</label>
+                <label className="mb-1.5 block text-xs font-bold text-muted">
+                  {t("audience.totalExpectedAudienceLabel", "총 예상 관객 수")}
+                </label>
                 <div className="flex h-10 items-center border border-border-soft px-3.5 text-s text-foreground">
                   {audienceSummary.totalLine}
                 </div>
@@ -140,51 +169,127 @@ function AudienceFields({
           </div>
         )}
 
-        {/* 예상 유료 판매율도 같은 이유로 한 줄로 — 동시 대관이면 아레나/중형을 각각 입력한다.
-            "예상 유료 판매율 — 아레나/중형" 을 매번 반복하지 않고, 대관기간 행처럼 상위
-            라벨 하나로 묶은 뒤 아레나/중형은 짧은 하위 라벨로만 구분한다(2026-08-22,
-            "예상 유료 판매율로 묶고 아레나, 중형 보여주면" 요청). */}
+        {/* [개정 2026-08-26] "티켓 유형별로 행 추가(R석, VIP석 등), 티켓가·예상
+            판매율을 각각" 요청 — 단일 "예상 유료 판매율(%)" 입력을 유형별 반복
+            행으로 대체한다. expectedPaidSalesRate(레거시)는 과거 신청서 표시용으로만
+            타입에 남아 있고, 이 화면은 더 이상 그 필드를 읽거나 쓰지 않는다. */}
         <div>
-          <label className="mb-1.5 block text-xs font-bold text-muted">예상 유료 판매율 (선택)</label>
-          {/* grid-cols-2였을 때 칸 폭이 내용보다 훨씬 넓어 두 입력이 멀리 떨어져 보였다
-              (2026-08-22, "간격 너무 떨어져있는것도 이상하니까" 피드백) — 내용 폭만큼만
-              차지하는 flex로 바꿔 붙여 놓는다. */}
-          <div className={showMidHallRate ? "flex flex-wrap gap-8" : "max-w-xs"}>
-            <div>
-              {showMidHallRate && <div className="mb-1 text-xs text-muted">아레나</div>}
-              <div className="flex items-center gap-2">
+          <div className="mb-2.5 flex items-center justify-between">
+            <label className="text-xs font-bold text-muted">
+              {t("audience.ticketTypesLabel", "티켓 유형별 가격 · 예상 판매율")}
+            </label>
+            <button type="button" onClick={addTicketType} className={toggleClass(false)}>
+              {t("audience.addTicketTypeButton", "＋ 행 추가")}
+            </button>
+          </div>
+          <div className="space-y-2">
+            {ticketTypes.map((row, i) => (
+              <div key={i} className="grid grid-cols-4 gap-1.5 border-b border-border/15 py-2">
                 <input
-                  type="number"
-                  min={0}
-                  max={100}
-                  value={info.expectedPaidSalesRate || ""}
-                  onChange={(e) => set("expectedPaidSalesRate", clampRate(e.target.value))}
-                  className="field-base w-24"
+                  value={row.label}
+                  placeholder={tStr("audience.ticketTypeLabelPlaceholder", "예: R석, VIP석")}
+                  onChange={(e) => updateTicketType(i, { label: e.target.value })}
+                  className="field-base"
                 />
-                <span className="text-s text-muted">%</span>
-              </div>
-            </div>
-            {showMidHallRate && (
-              <div>
-                <div className="mb-1 text-xs text-muted">중형</div>
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-1.5">
+                  <input
+                    type="number"
+                    min={0}
+                    value={row.price || ""}
+                    placeholder={tStr("audience.ticketPricePlaceholder", "티켓가")}
+                    onChange={(e) => updateTicketType(i, { price: Math.max(0, Number(e.target.value) || 0) })}
+                    className="field-base w-full"
+                  />
+                  <span className="text-xs text-muted">{t("audience.wonUnit", "원")}</span>
+                </div>
+                <div className="flex items-center gap-1.5">
                   <input
                     type="number"
                     min={0}
                     max={100}
-                    value={info.expectedPaidSalesRateMidHall || ""}
-                    onChange={(e) => set("expectedPaidSalesRateMidHall", clampRate(e.target.value))}
-                    className="field-base w-24"
+                    value={row.expectedSalesRate || ""}
+                    placeholder={tStr("audience.expectedSalesRatePlaceholder", "예상 판매율")}
+                    onChange={(e) => updateTicketType(i, { expectedSalesRate: clampRate(e.target.value) })}
+                    className="field-base w-full"
                   />
-                  <span className="text-s text-muted">%</span>
+                  <span className="text-xs text-muted">%</span>
+                </div>
+                <div className="flex items-center justify-end">
+                  <button
+                    type="button"
+                    onClick={() => removeTicketType(i)}
+                    aria-label={tStr("audience.removeTicketTypeAriaLabel", "삭제")}
+                    className={toggleClass(false)}
+                  >
+                    {t("audience.removeTicketTypeButton", "삭제")}
+                  </button>
                 </div>
               </div>
-            )}
+            ))}
+          </div>
+        </div>
+
+        {/* [신규 2026-08-26, 2026-08-26 레이아웃 정리] 같은 주차에 여러 신청이 몰려
+            경합이 붙었을 때 심사에서 참고하는 경쟁력 지표 2종 — 대관료 옵션 추가
+            범위(최소~최대)와 티켓 매출 RS 요율. "한 행에 다 넣어달라"는 요청으로
+            한 줄에 같이 배치한다. */}
+        <div>
+          <div className="mb-2.5">
+            <label className="text-xs font-bold text-muted">
+              {t("audience.competitionFeeOptionLabel", "대관 경합 시 대관료 옵션 추가 가능 범위")}
+            </label>
+            <p className="mt-1 text-xs text-muted">
+              {t(
+                "audience.competitionFeeOptionHint",
+                "같은 주차에 다른 신청과 경합이 붙을 경우, 추가로 제시할 수 있는 대관료 옵션의 범위입니다.",
+              )}
+            </p>
+          </div>
+          <div className="flex flex-wrap items-center gap-2">
+            <div className="flex flex-1 items-center gap-1.5">
+              <input
+                type="number"
+                min={0}
+                value={info.competitionFeeOptionMin ?? ""}
+                placeholder={tStr("audience.competitionFeeOptionMinPlaceholder", "최소")}
+                onChange={(e) => set("competitionFeeOptionMin", Math.max(0, Number(e.target.value) || 0))}
+                className="field-base w-full"
+              />
+              <span className="text-xs text-muted">{t("audience.wonUnit", "원")}</span>
+            </div>
+            <span className="text-xs text-muted">~</span>
+            <div className="flex flex-1 items-center gap-1.5">
+              <input
+                type="number"
+                min={0}
+                value={info.competitionFeeOptionMax ?? ""}
+                placeholder={tStr("audience.competitionFeeOptionMaxPlaceholder", "최대")}
+                onChange={(e) => set("competitionFeeOptionMax", Math.max(0, Number(e.target.value) || 0))}
+                className="field-base w-full"
+              />
+              <span className="text-xs text-muted">{t("audience.wonUnit", "원")}</span>
+            </div>
+            <span className="mx-1 h-6 w-px bg-border/40" aria-hidden="true" />
+            <label className="text-xs font-bold whitespace-nowrap text-muted">
+              {t("audience.ticketRevenueShareRateLabel", "티켓 매출 RS 요율")}
+            </label>
+            <div className="flex w-28 items-center gap-1.5">
+              <input
+                type="number"
+                min={0}
+                max={100}
+                value={info.ticketRevenueShareRate ?? ""}
+                placeholder={tStr("audience.ticketRevenueShareRatePlaceholder", "요율")}
+                onChange={(e) => set("ticketRevenueShareRate", clampRate(e.target.value))}
+                className="field-base w-full"
+              />
+              <span className="text-xs text-muted">%</span>
+            </div>
           </div>
         </div>
 
         <div>
-          <div className="mb-2 text-xs font-bold text-muted">부대사업 계획</div>
+          <div className="mb-2 text-xs font-bold text-muted">{t("audience.ancillaryPlansLabel", "부대사업 계획")}</div>
           <div className="flex flex-wrap gap-2">
             {ANCILLARY_PLANS.map((plan) => (
               <CheckboxChip
@@ -219,9 +324,10 @@ export function StepAudience({
   // [2026-08-23] "신청자 정보"·"규모" 탭을 하나로 합치면서, 합친 화면에서는 큰 제목이
   // 두 번 나오지 않게 이 컴포넌트만 자기 제목(StepHeading)을 생략할 수 있게 했다.
   showHeading?: boolean;
-  title: string;
-  lead: string;
+  title: ReactNode;
+  lead: ReactNode;
 }) {
+  const { tStr } = useWizardText();
   const [activeTab, setActiveTab] = useState<VenueSplitTab>(midHallInfo ? "ARENA" : "COMMON");
 
   const isSimultaneous = selection.bookingMode === "SIMULTANEOUS";
@@ -230,7 +336,8 @@ export function StepAudience({
   const arenaAudienceTotal = selection.expectedAudience * arenaShows;
   const midHallAudienceTotal = selection.secondaryAudience * midHallShows;
   const totalAudience = arenaAudienceTotal + midHallAudienceTotal;
-  const totalLine = `${totalAudience.toLocaleString()}명 (자동)`;
+  const peopleUnit = tStr("audience.peopleUnit", "명");
+  const totalLine = `${totalAudience.toLocaleString()}${peopleUnit} ${tStr("audience.autoCalcSuffix", "(자동)")}`;
 
   const midHallDifferent = isSimultaneous && midHallInfo !== null;
   const effectiveTab: VenueSplitTab = midHallDifferent ? (activeTab === "MIDHALL" ? "MIDHALL" : "ARENA") : "COMMON";
@@ -269,11 +376,10 @@ export function StepAudience({
             info={info}
             onChange={onChange}
             audienceSummary={{
-              arenaLine: `${selection.expectedAudience.toLocaleString()}명`,
-              midHallLine: isMidHallInvolved ? `${selection.secondaryAudience.toLocaleString()}명` : null,
+              arenaLine: `${selection.expectedAudience.toLocaleString()}${peopleUnit}`,
+              midHallLine: isMidHallInvolved ? `${selection.secondaryAudience.toLocaleString()}${peopleUnit}` : null,
               totalLine,
             }}
-            showMidHallRate={isMidHallInvolved}
           />
         )}
         {effectiveTab === "ARENA" && (
@@ -281,11 +387,10 @@ export function StepAudience({
             info={info}
             onChange={onChange}
             audienceSummary={{
-              arenaLine: `${selection.expectedAudience.toLocaleString()}명`,
+              arenaLine: `${selection.expectedAudience.toLocaleString()}${peopleUnit}`,
               midHallLine: null,
               totalLine,
             }}
-            showMidHallRate={false}
           />
         )}
         {effectiveTab === "MIDHALL" && midHallInfo && (
@@ -294,10 +399,9 @@ export function StepAudience({
             onChange={onChangeMidHallInfo}
             audienceSummary={{
               arenaLine: null,
-              midHallLine: `${selection.secondaryAudience.toLocaleString()}명`,
+              midHallLine: `${selection.secondaryAudience.toLocaleString()}${peopleUnit}`,
               totalLine: null,
             }}
-            showMidHallRate={false}
           />
         )}
       </div>

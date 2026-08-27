@@ -94,7 +94,7 @@ export function TicketOpenPanel({
         <h3 className="type-kr-heading border-t-2 border-foreground pt-4 text-h6-m sm:text-h6">
           티켓오픈
         </h3>
-        <p className="mt-3 text-s text-muted">보증금 입금 확인 후 티켓오픈일을 등록할 수 있습니다.</p>
+        <p className="mt-3 text-s text-muted">계약금 입금 확인 후 티켓오픈일을 등록할 수 있습니다.</p>
       </div>
     );
   }

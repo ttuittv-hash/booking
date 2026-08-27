@@ -76,7 +76,9 @@ import type {
   NotificationRule,
   NotificationRuleTypeCode,
   PageGroup,
+  PublicInterestItem,
   Quote,
+  QuoteSelection,
   QuoteStatus,
   RateTable,
   Review,
@@ -514,6 +516,16 @@ async function initSchema(pool: Pool) {
     ALTER TABLE users ADD COLUMN IF NOT EXISTS office_phone TEXT;
     ALTER TABLE users ADD COLUMN IF NOT EXISTS fax_number TEXT;
 
+    -- 가입자 본인이 올린 사업자등록증(2026-08-27). 회사 행(companies.business_cert_url)은
+    -- 회사를 처음 등록한 사람의 것 하나뿐이라, 기존 회사에 합류하는 사람이 올린 파일은
+    -- 그대로 버려지고 있었다. 신청자 심사 화면에서 재직증명서 옆에 같이 보여준다.
+    ALTER TABLE users ADD COLUMN IF NOT EXISTS business_cert_url TEXT;
+    ALTER TABLE users ADD COLUMN IF NOT EXISTS business_cert_name TEXT;
+
+    -- 공공/공익 STEP 에서 항목별로 올린 자료(2026-08-27). 어느 항목의 자료인지 표시할 뿐이라
+    -- 값 검증은 API 쪽 화이트리스트가 하고, 그 밖의 첨부는 NULL 로 남는다.
+    ALTER TABLE attachments ADD COLUMN IF NOT EXISTS public_interest_item TEXT;
+
     CREATE UNIQUE INDEX IF NOT EXISTS idx_users_username ON users(username) WHERE username IS NOT NULL;
 
     -- 외래키 컬럼 인덱스. 없으면 신청서 상세·첨부 목록·알림 조회가 전부 테이블 전체 스캔이 된다.
@@ -540,6 +552,10 @@ async function initSchema(pool: Pool) {
     -- 세션 일괄 무효화 기준시각. 세션은 서명 토큰이라 서버에 목록이 없어서,
     -- 이 값보다 먼저 발급된 토큰을 전부 무효로 본다(비밀번호 변경·탈퇴·강제 로그아웃).
     ALTER TABLE users ADD COLUMN IF NOT EXISTS session_epoch TEXT;
+    -- 재직증명서(가입 시 첨부, 선택) — 사업자등록증(companies.business_cert_*)과 달리
+    -- 개인(가입자)이 그 회사 소속임을 증명하는 서류라 users 테이블에 둔다.
+    ALTER TABLE users ADD COLUMN IF NOT EXISTS employment_cert_url TEXT;
+    ALTER TABLE users ADD COLUMN IF NOT EXISTS employment_cert_name TEXT;
 
     -- 초대로 만들어진 계정은 본인이 비밀번호를 정하기 전까지 해시가 없다.
     ALTER TABLE users ALTER COLUMN password_hash DROP NOT NULL;
@@ -1461,21 +1477,47 @@ export async function findOrCreateCompany(
  * 기동 시 백필만으로는 부족하다 — 백필 이후에 만들어지는 회사는 마스터가 0명인 채로
  * 남아 소속 담당자를 승인할 사람이 없어진다. 그래서 합류 시점에 매번 정한다.
  * 동시 가입 경합에서 두 명이 동시에 MASTER 가 되지 않도록 회사 행을 잠그고 판단한다.
+ *
+ * [수정 2026-08-27] 판단 근거를 companies.master_user_id 에서 users 테이블로 옮겼다.
+ * 그 포인터는 탈퇴·회원 삭제 뒤 ensureCompanyMaster 가 후보를 못 찾으면 NULL 이 되는데,
+ * 그때도 company_role='MASTER' 를 쥔 행은 그대로 남는다. 포인터만 보고 "마스터가 없다"고
+ * 판단해 합류자를 MASTER 로 올리려 들면 idx_users_company_master(회사당 MASTER 1명)
+ * 유니크 위반이 나고, 가입 라우트는 이 UPDATE 를 트랜잭션 안에서 부르므로 **가입 전체가
+ * 롤백된다**. 계정이 아예 만들어지지 않으니 대표 담당자의 담당자 관리 목록에도 당연히
+ * 나타나지 않는다 — "동일 회사 신규 가입자가 목록에 안 뜬다"의 정체가 이것이었다.
  */
 export async function assignCompanyRoleOnJoin(
   userId: string,
   companyId: string,
 ): Promise<CompanyRole> {
-  const locked = await one<{ master_user_id: string | null }>(
-    "SELECT master_user_id FROM companies WHERE id = $1 FOR UPDATE",
+  // 회사 행을 잠근다 — 같은 회사에 동시에 두 사람이 들어와도 MASTER 는 하나여야 한다.
+  await one<{ id: string }>("SELECT id FROM companies WHERE id = $1 FOR UPDATE", [companyId]);
+
+  // 탈퇴한 옛 대표가 MASTER 표시를 쥔 채 남아 있으면 먼저 내린다. 그대로 두면 아래에서
+  // 새 대표를 세울 때 유니크 인덱스에 걸린다(인덱스는 withdrawn_at 을 가리지 않는다).
+  await q(
+    `UPDATE users SET company_role = 'STAFF'
+      WHERE company_id = $1 AND company_role = 'MASTER' AND withdrawn_at IS NOT NULL`,
     [companyId],
   );
-  const isFirst = !locked?.master_user_id;
-  const role: CompanyRole = isFirst ? "MASTER" : "STAFF";
+
+  const existingMaster = await one<{ id: string }>(
+    `SELECT id FROM users
+      WHERE company_id = $1
+        AND role = 'APPLICANT'
+        AND company_role = 'MASTER'
+        AND withdrawn_at IS NULL
+        AND id <> $2
+      LIMIT 1`,
+    [companyId, userId],
+  );
+  const role: CompanyRole = existingMaster ? "STAFF" : "MASTER";
   await q("UPDATE users SET company_role = $1 WHERE id = $2", [role, userId]);
-  if (isFirst) {
-    await q("UPDATE companies SET master_user_id = $1 WHERE id = $2", [userId, companyId]);
-  }
+  // 포인터를 실제 대표에 맞춘다 — 어긋나 있었다면 여기서 낫는다.
+  await q("UPDATE companies SET master_user_id = $1 WHERE id = $2", [
+    existingMaster?.id ?? userId,
+    companyId,
+  ]);
   return role;
 }
 
@@ -1551,11 +1593,12 @@ export async function ensureCompanyMaster(companyId: string): Promise<void> {
                             WHERE u2.id = companies.master_user_id AND u2.withdrawn_at IS NULL))`,
     [companyId],
   );
-  // 회사당 MASTER 는 한 명(idx_users_company_master). 탈퇴한 옛 대표가 MASTER 로 남아 있으면
-  // 새 대표를 올릴 때 유니크 충돌이 난다(2026-08-27 실측) — 대표가 아닌 MASTER 를 먼저 내린다.
+  // 승격 전에 다른 MASTER 를 내린다. 옛 대표가 표시를 쥔 채 남아 있으면 회사당 1명
+  // 유니크 인덱스(idx_users_company_master)에 걸려 이 UPDATE 자체가 실패한다(2026-08-27, 양쪽 세션에서 같은 수정).
   await q(
     `UPDATE users SET company_role = 'STAFF'
-      WHERE company_id = $1 AND company_role = 'MASTER'
+      WHERE company_id = $1
+        AND company_role = 'MASTER'
         AND id IS DISTINCT FROM (SELECT master_user_id FROM companies WHERE id = $1)`,
     [companyId],
   );
@@ -1810,30 +1853,25 @@ export async function listCompanyInvitations(companyId: string): Promise<Company
   }));
 }
 
-/** 토큰 해시로 유효한 초대를 찾는다. 만료·소비된 건은 돌려주지 않는다. */
-export async function findValidInvitation(tokenHash: string): Promise<
-  { id: string; companyId: string; email: string; companyName: string } | undefined
-> {
-  const row = await one<{
-    id: string;
-    company_id: string;
-    email: string;
-    expires_at: string;
-    company_name: string;
-  }>(
-    `SELECT i.id, i.company_id, i.email, i.expires_at, c.name AS company_name
-       FROM company_invitations i JOIN companies c ON c.id = i.company_id
-      WHERE i.token_hash = $1 AND i.status = 'PENDING'`,
-    [tokenHash],
+/**
+ * 그 회사로 보낸, 아직 살아 있는 초대장을 이메일로 찾는다.
+ *
+ * [2026-08-27] 초대 링크가 토큰 없이 회원가입 페이지로 가도록 바뀌면서, 초대받은 사람은
+ * 일반 가입 흐름을 그대로 탄다. 그러면 초대장을 소진시킬 열쇠가 없어 담당자 관리 화면에
+ * "초대 발송"(미가입) 행과 방금 가입한 담당자 행이 같은 사람으로 두 줄 남는다.
+ * 가입 이메일이 초대장 주소와 같으면 그 초대장을 받은 사람으로 보고 소진한다.
+ */
+export async function findPendingInvitationByEmail(
+  companyId: string,
+  email: string,
+): Promise<{ id: string } | undefined> {
+  return await one<{ id: string }>(
+    `SELECT id FROM company_invitations
+      WHERE company_id = $1 AND lower(email) = lower($2) AND status = 'PENDING'
+      ORDER BY created_at ASC
+      LIMIT 1`,
+    [companyId, email],
   );
-  if (!row) return undefined;
-  if (Date.parse(row.expires_at) < Date.now()) return undefined;
-  return {
-    id: row.id,
-    companyId: row.company_id,
-    email: row.email,
-    companyName: row.company_name,
-  };
 }
 
 export async function consumeInvitation(id: string, userId: string): Promise<void> {
@@ -1850,6 +1888,29 @@ export async function cancelInvitation(id: string, companyId: string): Promise<v
     "UPDATE company_invitations SET status = 'CANCELLED' WHERE id = $1 AND company_id = $2 AND status = 'PENDING'",
     [id, companyId],
   );
+}
+
+/**
+ * 초대 재발송 — 새 토큰을 발급하고 만료일을 늘린 뒤, 다시 보낼 수 있게 이메일·전화번호·
+ * 이름을 돌려준다("각각의 초대링크 재발송 버튼이 필요할것 같습니다", 2026-08-26). 기존
+ * 토큰은 해시가 덮어써지므로 즉시 무효가 된다 — 옛 링크를 다시 눌러도 안 열린다.
+ * PENDING 건이 아니면(취소·수락·만료 후 등) 아무 것도 하지 않고 undefined를 반환한다.
+ */
+export async function resendInvitation(
+  id: string,
+  companyId: string,
+  tokenHash: string,
+  expiresAt: string,
+): Promise<{ email: string; phone: string | null; inviteeName: string | null } | undefined> {
+  const row = await one<{ email: string; phone: string | null; invitee_name: string | null }>(
+    `UPDATE company_invitations
+        SET token_hash = $3, expires_at = $4
+      WHERE id = $1 AND company_id = $2 AND status = 'PENDING'
+      RETURNING email, phone, invitee_name`,
+    [id, companyId, tokenHash, expiresAt],
+  );
+  if (!row) return undefined;
+  return { email: row.email, phone: row.phone, inviteeName: row.invitee_name };
 }
 
 /** 이 계정이 자기 회사의 마스터인가 — 담당자 관리·합류 승인 권한 검사에 쓴다. */
@@ -2348,6 +2409,10 @@ interface UserRow {
   phone: string | null;
   office_phone: string | null;
   fax_number: string | null;
+  employment_cert_url: string | null;
+  employment_cert_name: string | null;
+  business_cert_url: string | null;
+  business_cert_name: string | null;
   password_hash: string | null;
   password_scheme: PasswordScheme;
   member_type: string | null;
@@ -2375,6 +2440,10 @@ function toAppUser(row: UserRow): AppUser {
     phone: row.phone,
     officePhone: row.office_phone,
     faxNumber: row.fax_number,
+    employmentCertUrl: row.employment_cert_url,
+    employmentCertName: row.employment_cert_name,
+    businessCertUrl: row.business_cert_url ?? null,
+    businessCertName: row.business_cert_name ?? null,
     name: row.name,
     companyName: row.company_name,
     companyId: row.company_id,
@@ -2407,6 +2476,11 @@ export async function createUser(input: {
   memberType?: MemberType;
   // 회사 소속 신청자의 회사 내 권한. 최초 가입자는 MASTER, 합류자는 STAFF.
   companyRole?: CompanyRole | null;
+  // 재직증명서(선택) — 가입 시 첨부한 파일. /api/auth/register/attachment 업로드 결과.
+  employmentCertUrl?: string | null;
+  employmentCertName?: string | null;
+  businessCertUrl?: string | null;
+  businessCertName?: string | null;
   createdAt: string;
 }): Promise<AppUser> {
   const approvalStatus = input.approvalStatus ?? "APPROVED";
@@ -2415,9 +2489,13 @@ export async function createUser(input: {
   const adminTier: AdminTier | null = input.role === "ADMIN" ? (input.adminTier ?? "BASIC") : null;
   const memberType: MemberType = input.memberType ?? "CORPORATE";
   const companyRole: CompanyRole | null = input.role === "APPLICANT" ? (input.companyRole ?? null) : null;
+  const employmentCertUrl = input.employmentCertUrl ?? null;
+  const employmentCertName = input.employmentCertName ?? null;
+  const businessCertUrl = input.businessCertUrl ?? null;
+  const businessCertName = input.businessCertName ?? null;
   await q(
-    `INSERT INTO users (id, username, email, phone, password_hash, password_scheme, name, company_name, company_id, role, approval_status, admin_tier, terms_agreed_at, privacy_agreed_at, member_type, company_role, created_at)
-     VALUES ($1, $2, $3, $4, $5, 'v2', $6, $7, $8, $9, $10, $11, $12, $13, $15, $16, $14)`,
+    `INSERT INTO users (id, username, email, phone, password_hash, password_scheme, name, company_name, company_id, role, approval_status, admin_tier, terms_agreed_at, privacy_agreed_at, member_type, company_role, created_at, employment_cert_url, employment_cert_name, business_cert_url, business_cert_name)
+     VALUES ($1, $2, $3, $4, $5, 'v2', $6, $7, $8, $9, $10, $11, $12, $13, $15, $16, $14, $17, $18, $19, $20)`,
     [
       input.id,
       input.username,
@@ -2435,6 +2513,10 @@ export async function createUser(input: {
       input.createdAt,
       memberType,
       companyRole,
+      employmentCertUrl,
+      employmentCertName,
+      businessCertUrl,
+      businessCertName,
     ],
   );
   return {
@@ -2444,6 +2526,10 @@ export async function createUser(input: {
     phone,
     officePhone: null,
     faxNumber: null,
+    employmentCertUrl,
+    employmentCertName,
+    businessCertUrl,
+    businessCertName,
     name: input.name,
     companyName: input.companyName,
     companyId,
@@ -2469,14 +2555,25 @@ export async function findUserByEmailWithPasswordHash(
 }
 
 // 승인 대기 중인 신청도 포함해 동일 전화번호로 이미 가입된 계정이 있는지 확인한다
-// (승인 전에 이메일만 바꿔 중복 신청하는 것을 막기 위함).
+// (승인 전에 이메일만 바꿔 중복 신청하는 것을 막기 위함). 탈퇴한 계정은 제외한다 —
+// 안 그러면 탈퇴 후 같은 번호로 재가입할 때마다 "이미 가입된 번호"로 막힌다
+// (2026-08-26, "탈퇴를 하고 다시 가입하려고 해도 이미 가입되어있는 번호라고 경고").
 export async function findUserByPhone(phone: string): Promise<AppUser | undefined> {
-  const row = await one<UserRow>("SELECT * FROM users WHERE phone = $1", [phone.trim()]);
+  const row = await one<UserRow>(
+    "SELECT * FROM users WHERE phone = $1 AND withdrawn_at IS NULL",
+    [phone.trim()],
+  );
   return row ? toAppUser(row) : undefined;
 }
 
+// 탈퇴한 계정의 아이디는 새 가입(재가입 포함)이 다시 쓸 수 있어야 한다 — 이 함수는
+// 전부 "이 아이디를 새로 써도 되는가"를 묻는 중복 확인 용도로만 호출된다(로그인
+// 조회는 findUserByLoginIdWithPasswordHash를 따로 쓴다).
 export async function findUserByUsername(username: string): Promise<AppUser | undefined> {
-  const row = await one<UserRow>("SELECT * FROM users WHERE username = $1", [username.trim()]);
+  const row = await one<UserRow>(
+    "SELECT * FROM users WHERE username = $1 AND withdrawn_at IS NULL",
+    [username.trim()],
+  );
   return row ? toAppUser(row) : undefined;
 }
 
@@ -2667,8 +2764,37 @@ export async function findUserPasswordHash(
 }
 
 // 탈퇴는 신청서(applicant_id FK)·감사로그 등 기존 기록 보존을 위해 소프트 삭제로 처리한다.
+//
+// email 컬럼은 UNIQUE NOT NULL(하드 제약)이라, 탈퇴한 행이 원래 이메일을 그대로 들고
+// 있으면 같은 이메일로 재가입할 때 INSERT 자체가 DB 제약 위반으로 터진다 — 로그인
+// (findUserByLoginIdWithPasswordHash)은 이미 withdrawn_at을 걸러 이 값으로 다시 못
+// 들어오므로, 이메일을 알아볼 수 있는 형태로 바꿔치기해 원래 값을 비워준다(2026-08-26,
+// "탈퇴를 하고 다시 가입하려고 해도 이미 가입되어있는 번호라고 경고가 뜹니다"의
+// 이메일판 — 같은 근본 원인). username도 함께 비운다(부분 유니크 인덱스,
+// WHERE username IS NOT NULL이라 NULL이면 충돌하지 않는다).
 export async function withdrawUser(id: string, withdrawnAt: string) {
-  await q("UPDATE users SET withdrawn_at = $1 WHERE id = $2", [withdrawnAt, id]);
+  await q(
+    `UPDATE users
+        SET withdrawn_at = $1,
+            username = NULL,
+            email = 'withdrawn+' || id || '+' || email
+      WHERE id = $2`,
+    [withdrawnAt, id],
+  );
+}
+
+// 반려(REJECTED)된 신청자가 같은 이메일·아이디로 재가입할 수 있게 자리를 비운다(R5).
+// 탈퇴(withdrawUser)와 같은 방식이지만 withdrawn_at 은 건드리지 않는다 — 반려는 탈퇴가
+// 아니라 "재신청 가능" 상태이므로 계정 자체는 남아 있되 새 가입에 자리만 내준다.
+// 이미 비운 행을 다시 비워도 안전하도록 approval_status·email 접두어를 조건에 건다.
+export async function freeRejectedIdentity(id: string): Promise<void> {
+  await q(
+    `UPDATE users
+        SET username = NULL,
+            email = 'rejected+' || id || '+' || email
+      WHERE id = $1 AND approval_status = 'REJECTED' AND email NOT LIKE 'rejected+%' AND email NOT LIKE 'withdrawn+%'`,
+    [id],
+  );
 }
 
 export async function isUserWithdrawn(id: string): Promise<boolean> {
@@ -3106,6 +3232,50 @@ export async function findApprovedWeekConflict(
   return undefined;
 }
 
+// [신규 2026-08-26] 어드민 심사 슬롯 "동일 기간 내 다른 대관사 비교" — findApprovedWeekConflict와
+// 같은 인덱스(week_year/month/week_of_month)로 같은 주차 신청서를 골라오되, 승인 건 1개만
+// 찾고 멈추지 않고 "다른 회사"의 전체 신청서를 상태 무관하게 반환한다. 아레나/중형공연장은
+// 서로 다른 공간이라 겹치는 신청서만 남긴다(동시 대관은 두 공간 모두와 겹친다고 본다).
+function effectiveVenuesForCompetition(selection: QuoteSelection): ("arena" | "medium-hall")[] {
+  if (selection.bookingMode === "SIMULTANEOUS") return ["arena", "medium-hall"];
+  return selection.venueId === "medium-hall" ? ["medium-hall"] : ["arena"];
+}
+
+export async function listCompetingQuotesForWeek(
+  quote: Quote,
+): Promise<{ quote: Quote; companyName: string | null }[]> {
+  const week = quote.selection?.week;
+  if (!week) return [];
+
+  const rows = await q<QuoteRow & { applicant_company_id: string | null; applicant_company_name: string | null }>(
+    `SELECT q.*, u.company_id AS applicant_company_id, u.company_name AS applicant_company_name
+       FROM quotes q JOIN users u ON u.id = q.applicant_id
+      WHERE q.week_year = $1 AND q.week_month = $2 AND q.week_of_month = $3 AND q.id <> $4
+      ORDER BY q.created_at ASC`,
+    [week.year, week.month, week.weekOfMonth, quote.id],
+  );
+  if (rows.length === 0) return [];
+
+  const applicant = await findUserById(quote.applicantId);
+  const companyId = applicant?.companyId ?? null;
+  const myVenues = effectiveVenuesForCompetition(quote.selection);
+
+  const result: { quote: Quote; companyName: string | null }[] = [];
+  for (const row of rows) {
+    const other = toQuote(row);
+    const otherCompanyId = row.applicant_company_id;
+    const sameCompany =
+      companyId && otherCompanyId ? companyId === otherCompanyId : quote.applicantId === other.applicantId;
+    if (sameCompany) continue;
+
+    const otherVenues = effectiveVenuesForCompetition(other.selection);
+    if (!otherVenues.some((v) => myVenues.includes(v))) continue;
+
+    result.push({ quote: other, companyName: row.applicant_company_name });
+  }
+  return result;
+}
+
 // 캘린더 경합 현황 — 주차별로 신청서를 낸 회사(신청자) 수를 집계한다.
 export async function listWeekDemand(): Promise<WeekDemand[]> {
   // 집계를 DB에서 끝낸다 — 예전에는 전체 신청서를 읽어 앱에서 JSON 을 파싱해 세었다.
@@ -3345,7 +3515,7 @@ export async function listAuditLogsForQuote(quoteId: string): Promise<AuditLogEn
 }
 
 // ---------------------------------------------------------------------------
-// 보증금 (계좌이체 확인 방식)
+// 계약금 (계좌이체 확인 방식)
 // ---------------------------------------------------------------------------
 
 interface DepositRow {
@@ -3892,6 +4062,7 @@ interface AttachmentRow {
   size: number;
   uploaded_by: string;
   category: string | null;
+  public_interest_item: string | null;
   created_at: string;
 }
 
@@ -3905,6 +4076,7 @@ function toAttachment(row: AttachmentRow): Attachment {
     size: row.size,
     uploadedBy: row.uploaded_by,
     category: (row.category as AttachmentCategory) ?? null,
+    publicInterestItem: (row.public_interest_item as PublicInterestItem | null) ?? null,
     createdAt: row.created_at,
   };
 }
@@ -3918,11 +4090,12 @@ export async function createAttachment(input: {
   size: number;
   uploadedBy: string;
   category?: AttachmentCategory;
+  publicInterestItem?: PublicInterestItem | null;
   createdAt: string;
 }): Promise<Attachment> {
   await q(
-    `INSERT INTO attachments (id, quote_id, stored_name, original_name, mime_type, size, uploaded_by, category, created_at)
-     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)`,
+    `INSERT INTO attachments (id, quote_id, stored_name, original_name, mime_type, size, uploaded_by, category, public_interest_item, created_at)
+     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)`,
     [
       input.id,
       input.quoteId,
@@ -3932,6 +4105,7 @@ export async function createAttachment(input: {
       input.size,
       input.uploadedBy,
       input.category ?? null,
+      input.publicInterestItem ?? null,
       input.createdAt,
     ],
   );

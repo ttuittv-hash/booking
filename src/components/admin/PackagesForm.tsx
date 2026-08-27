@@ -332,6 +332,23 @@ export function PackagesForm({ rateTable, ratesContent }: { rateTable: RateTable
     setAddons((prev) => prev.map((a) => (a.id === addonId ? { ...a, visibility } : a)));
   }
 
+  // [신규 2026-08-26] 항목 스펙(규격·사양) 참고용 텍스트 — 과금에는 관여하지 않는다.
+  function updateAddonSpec(addonId: string, spec: string) {
+    setAddons((prev) => prev.map((a) => (a.id === addonId ? { ...a, spec } : a)));
+  }
+
+  // [신규 2026-08-26] "옵션 항목 선택 개수도 리미트가 필요해.. 항목별로 제한 내역을
+  // 설정 가능하게" — availability.maxAddQuantity는 이미 있던 필드지만 어드민에서
+  // 고칠 UI가 없었다. 빈 값 = 무제한(undefined), 숫자를 넣으면 그 값이 기본 포함
+  // 수량 위에 더 얹을 수 있는 상한이 된다(StepConfigOptions AddonRow의 maxTotal 계산).
+  function updateAddonMaxAddQuantity(addonId: string, raw: string) {
+    const trimmed = raw.trim();
+    const maxAddQuantity: number | undefined = trimmed === "" ? undefined : Math.max(0, Number(trimmed) || 0);
+    setAddons((prev) =>
+      prev.map((a) => (a.id === addonId ? { ...a, availability: { ...a.availability, maxAddQuantity } } : a)),
+    );
+  }
+
   /** 이 addon이 pkg에 무상 포함(기본 수량 > 0)돼 있는지 — IF_NOT_INCLUDED 판정에 쓴다. */
   function packageIncludesAddon(pkg: EditablePackage, addonId: string): boolean {
     return pkg.includedItems.some((i) => i.addonId === addonId && i.quantity > 0);
@@ -1195,17 +1212,47 @@ export function PackagesForm({ rateTable, ratesContent }: { rateTable: RateTable
                               {addon.name}
                               <span className="text-xs text-muted">({addon.unitLabel})</span>
                             </label>
+                            {/* [신규 2026-08-26] 항목 스펙(규격·사양) — 과금과 무관한 참고용 텍스트. */}
+                            <input
+                              type="text"
+                              value={addon.spec ?? ""}
+                              placeholder="스펙 (선택)"
+                              onChange={(e) => updateAddonSpec(addon.id, e.target.value)}
+                              className={`w-32 ${FIELD}`}
+                            />
                           </div>
                           <div className="flex items-center gap-3">
+                            {isVisibleOption && (
+                              <label className="flex items-center gap-1.5">
+                                <span className="text-xs text-muted">선택 제한</span>
+                                <input
+                                  type="number"
+                                  min={0}
+                                  value={
+                                    addon.availability.maxAddQuantity !== undefined &&
+                                    addon.availability.maxAddQuantity !== "UNLIMITED"
+                                      ? addon.availability.maxAddQuantity
+                                      : ""
+                                  }
+                                  placeholder="무제한"
+                                  onChange={(e) => updateAddonMaxAddQuantity(addon.id, e.target.value)}
+                                  className={`w-16 ${FIELD_NUM}`}
+                                />
+                              </label>
+                            )}
                             <label className="flex items-center gap-1.5">
                               <span className="text-xs text-muted">기본 수량</span>
                               <input
                                 type="number"
-                                min={1}
+                                min={0}
                                 disabled={!checked}
                                 value={checked ? qty : ""}
                                 placeholder="-"
-                                onChange={(e) => setIncludedQty(addon.id, Math.max(1, Number(e.target.value) || 1))}
+                                // "수량 부분에 0이 입력이 안됨" — 0을 그대로 받는다. 빈 문자열(지움)만
+                                // 0으로 보정하고, 그 외에는 입력한 숫자를 그대로 쓴다(2026-08-26).
+                                onChange={(e) =>
+                                  setIncludedQty(addon.id, e.target.value === "" ? 0 : Math.max(0, Number(e.target.value) || 0))
+                                }
                                 className={`w-16 disabled:opacity-40 ${FIELD_NUM}`}
                               />
                             </label>

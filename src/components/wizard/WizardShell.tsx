@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { calculateQuote } from "@/lib/pricing/calculateQuote";
 import { ARENA_MAX_AUDIENCE } from "@/lib/content/rateFacts";
 import type { VenueRateContent, WizardStepTexts } from "@/lib/content/pageContent";
+import { useWizardText } from "@/lib/content/wizardText";
 import {
   findAddon,
   findPackage,
@@ -33,8 +34,8 @@ import { StepConfigOptions } from "./StepConfigOptions";
 import { Step5Estimate } from "./Step5Estimate";
 import { StepAttachments, StepPerformanceInfo, validatePerformanceInfoStep } from "./StepPerformanceInfo";
 import { StepAudience, validateAudienceStep } from "./StepAudience";
-import { StepPublicInterest } from "./StepPublicInterest";
-import { StepMarketingCooperation, validateMarketingCooperationStep } from "./StepMarketingCooperation";
+import { StepPublicInterest, type PublicInterestFile } from "./StepPublicInterest";
+import { StepMarketingCooperation } from "./StepMarketingCooperation";
 import { StepSafetyPledge, validateSafetyPledgeStep } from "./StepSafetyPledge";
 import { Step6Submit } from "./Step6Submit";
 
@@ -59,13 +60,24 @@ const DEFAULT_MARKETING_COOPERATION: MarketingCooperation = {
     { platform: "유튜브", handle: "", followers: "" },
     { platform: "X (트위터)", handle: "", followers: "" },
   ],
-  seoulArenaPromotionConsent: null,
+  // [개정 2026-08-26] "연계 동의는 디폴트로 체크 + 체크 해제 불가능" — 필수 동의라
+  // 화면에서 항상 체크된 채로 잠가 보여주므로 기본값도 true 로 시작한다.
+  seoulArenaPromotionConsent: true,
   // 빈 목록으로 시작하면 "+ 항목 추가"부터 눌러야 해서, 입력 행 1개를 비운 채로
   // 미리 열어 둔다(2026-08-22, "항목 1개가 디폴트로 열린 형태로" 요청).
   sponsorships: [{ brandName: "", campaignSummary: "" }],
+  coPromotionConsent: null,
+  coSponsorshipConsent: null,
   ticketSalesDataConsent: false,
   pollstarConsent: false,
-  executionPlan: { targetDefinition: "", mediaMix: "", budget: "", timeline: "" },
+  executionPlan: {
+    targetDefinition: "",
+    mediaMix: "",
+    mediaMixOnline: "",
+    mediaMixOffline: "",
+    budget: "",
+    timeline: "",
+  },
 };
 
 // 중형공연장 단독(패키지 없음)일 때는 STEP 2(구성·옵션)의 내용이 달라질 뿐, 별도
@@ -140,6 +152,7 @@ export function WizardShell({
   applicantPrefill?: {
     companyName: string;
     businessRegistrationNumber: string;
+    representativeName: string;
     contactName: string;
     contactPhone: string;
   };
@@ -153,6 +166,7 @@ export function WizardShell({
   wizardStepText: WizardStepTexts;
 }) {
   const isEditing = !!editingQuoteId;
+  const { t, tStr } = useWizardText();
   const toast = useToast();
   const [step, setStep] = useState(1);
   // [화면 뼈대 2026-08-19, STEP 3-1 "신청자 정보"] 신규 신청서에 한해 회원정보로 미리
@@ -163,6 +177,7 @@ export function WizardShell({
         ...INITIAL_PERFORMANCE_INFO,
         applicantCompanyName: applicantPrefill.companyName,
         applicantBusinessRegistrationNumber: applicantPrefill.businessRegistrationNumber,
+        applicantRepresentativeName: applicantPrefill.representativeName,
         applicantContactName: applicantPrefill.contactName,
         applicantContactPhone: applicantPrefill.contactPhone,
       }
@@ -170,14 +185,17 @@ export function WizardShell({
   // File은 JSON 직렬화가 안 되므로 selection과 분리해 별도 상태로 두고
   // localStorage 임시저장 대상에서도 제외한다 (새로고침 시 다시 선택 필요).
   // 신청자 정보(공연기획서 등) · 관객(객석배치도) · 공공성(연계 프로그램 계획서) · 안전관리
-  // (안전관리계획서·출연자 계약서)는 각자 다른 서류라 슬롯을 분리한다 — 제출 시점에
-  // 하나로 합쳐 업로드한다.
+  // (안전관리계획서)는 각자 다른 서류라 슬롯을 분리한다 — 제출 시점에 하나로 합쳐
+  // 업로드한다. 출연자 계약서는 "신청자 정보 및 규모" 탭에서 이미 받으므로 여기 없다
+  // (2026-08-26, 중복 제거).
   const [pendingFiles, setPendingFiles] = useState<File[]>([]);
-  const [publicInterestFiles, setPublicInterestFiles] = useState<File[]>([]);
-  // 안전관리계획서 · 출연자 계약서는 목업상 필수 단일 슬롯 2개다 — 다른 단계처럼 자유
-  // 목록이 아니라 슬롯당 파일 1개(재선택 시 교체)로 둔다.
+  const [publicInterestFiles, setPublicInterestFiles] = useState<PublicInterestFile[]>([]);
+  // 출연 계약 증빙(계약서·출연확약서) — STEP 3 "개최 신뢰도 및 이력 확인" 슬롯에서 받는다.
+  // 일반 첨부와 같은 취급(category 없음)이라 상세 화면의 첨부서류 목록에 그대로 들어간다.
+  const [castContractFiles, setCastContractFiles] = useState<File[]>([]);
+  // 안전관리계획서는 목업상 필수 단일 슬롯이다 — 다른 단계처럼 자유 목록이 아니라
+  // 슬롯당 파일 1개(재선택 시 교체)로 둔다.
   const [safetyPlanFile, setSafetyPlanFile] = useState<File | null>(null);
-  const [castContractFile, setCastContractFile] = useState<File | null>(null);
   const [selection, setSelection] = useState<QuoteSelection>(
     initialSelection
       ? {
@@ -214,20 +232,32 @@ export function WizardShell({
   // 최초 렌더의 currentUser 값과 별개로 제출 시점에 401을 감지해 로그인 안내로 전환한다.
   const [sessionExpired, setSessionExpired] = useState(false);
 
+  // localStorage 복원이 실제로 state에 반영되기 전까지는 임시저장(아래 save-effect)이
+  // 뛰면 안 된다 — 복원 effect가 setSelection/setStep을 "예약"만 한 시점(같은 렌더
+  // 패스 안, 아직 반영 전)에 save-effect가 먼저 실행되면 그 순간의 **아직 갱신 안 된
+  // 이전 state**(대개 빈 초기값)를 그대로 localStorage에 덮어써 버린다 — 방금 복원한
+  // 내용을 화면에 보여주기도 전에 지워버리는 경쟁 상태다. restored로 문을 잠가
+  // "복원 시도가 끝나 state에 실제로 반영된 렌더" 이후에만 저장하게 한다.
+  const [restored, setRestored] = useState(false);
+
   // 로그인 리다이렉트 등으로 페이지를 이탈했다가 돌아와도 입력값을 복원한다.
   // (기존 신청서 수정 중에는 새 신청서용 임시저장 내용을 불러오지 않는다.
   //  "대관 신청 시작하기"처럼 새 신청을 명시적으로 시작하는 진입점에서는
   //  이전에 남아있던 임시저장 내용을 무시하고 공간 선택부터 새로 시작한다.)
   useEffect(() => {
-    if (isEditing) return;
+    if (isEditing) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setRestored(true);
+      return;
+    }
     if (startFresh) {
       clearWizardDraft();
+      setRestored(true);
       return;
     }
     // localStorage는 리액트 외부 저장소이므로 마운트 시 1회만 복원한다.
     const draft = loadWizardDraft();
     if (draft) {
-      // eslint-disable-next-line react-hooks/set-state-in-effect
       setSelection({
         ...INITIAL_SELECTION,
         ...draft.selection,
@@ -249,6 +279,7 @@ export function WizardShell({
           ...(draft.selection.performanceInfo ?? {}),
           applicantCompanyName: initialPerformanceInfo.applicantCompanyName,
           applicantBusinessRegistrationNumber: initialPerformanceInfo.applicantBusinessRegistrationNumber,
+          applicantRepresentativeName: initialPerformanceInfo.applicantRepresentativeName,
         },
         // 동시 대관에서 "공간별로 다르게 입력"한 사본에도 같은 문제가 있어 똑같이 덮어쓴다.
         midHallPerformanceInfo: draft.selection.midHallPerformanceInfo
@@ -256,12 +287,16 @@ export function WizardShell({
               ...draft.selection.midHallPerformanceInfo,
               applicantCompanyName: initialPerformanceInfo.applicantCompanyName,
               applicantBusinessRegistrationNumber: initialPerformanceInfo.applicantBusinessRegistrationNumber,
+              applicantRepresentativeName: initialPerformanceInfo.applicantRepresentativeName,
             }
           : (draft.selection.midHallPerformanceInfo ?? null),
         safetyPledge: { ...DEFAULT_SAFETY_PLEDGE, ...(draft.selection.safetyPledge ?? {}) },
         marketingCooperation: {
           ...DEFAULT_MARKETING_COOPERATION,
           ...(draft.selection.marketingCooperation ?? {}),
+          // 필수 동의라 항상 true — 예전(체크 해제 가능하던 시절) 임시저장본에 false/null
+          // 이 남아 있어도 지금은 잠긴 체크박스로만 보여주므로 값도 같이 강제한다.
+          seoulArenaPromotionConsent: true,
           channels: Array.isArray(draft.selection.marketingCooperation?.channels)
             ? draft.selection.marketingCooperation.channels
             : DEFAULT_MARKETING_COOPERATION.channels,
@@ -280,13 +315,15 @@ export function WizardShell({
       });
       setStep(draft.step);
     }
+    setRestored(true);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {
+    if (!restored) return;
     if (isEditing || submittedId) return;
     saveWizardDraft({ step, selection });
-  }, [step, selection, submittedId, isEditing]);
+  }, [restored, step, selection, submittedId, isEditing]);
 
   const midHallOnly = isMidHallOnly(selection);
   // [개정 2026-08-20] 패키지는 이제 관객 규모로 자동 결정하지 않고, 구성·옵션 화면에서
@@ -331,15 +368,12 @@ export function WizardShell({
     (selection.midHallPerformanceInfo && validatePerformanceInfoStep(selection.midHallPerformanceInfo, "중형공연장")) ??
     validateAudienceStep(selection.performanceInfo, selection.midHallPerformanceInfo ? "아레나" : undefined) ??
     (selection.midHallPerformanceInfo && validateAudienceStep(selection.midHallPerformanceInfo, "중형공연장"));
-  // 홍보 및 서비스 노출 동의(STEP 5)·안전관리 서약(STEP 6)도 필수라 그 다음 단계로
-  // 못 넘어가게 막는다(2026-08-22, "무조건 필수"). STEP 4(공공/공익 참여 여부)는
-  // 선택 항목이라 별도 게이트가 없다 — 통과 여부와 무관하게 STEP 5까지는 열린다.
-  const step5Blocked = validateMarketingCooperationStep(
-    selection.marketingCooperation ?? DEFAULT_MARKETING_COOPERATION,
-  );
+  // 안전관리 서약(STEP 6)은 필수라 그 다음 단계로 못 넘어가게 막는다(2026-08-22,
+  // "무조건 필수"). STEP 4(홍보 및 서비스 계획)·STEP 5(공공/공익 참여 여부)는 게이트가
+  // 없다 — 공공/공익은 원래 선택이고, 홍보는 유일한 필수값이던 "서비스 연계 동의"를
+  // 화면에서 뺐다(2026-08-27).
   const step6Blocked = validateSafetyPledgeStep(selection.safetyPledge ?? DEFAULT_SAFETY_PLEDGE, {
     safetyPlanFile,
-    castContractFile,
   });
   const maxUnlockedStep = !selection.venueId
     ? 1
@@ -349,11 +383,9 @@ export function WizardShell({
         ? 2
         : step3Blocked
           ? 3
-          : step5Blocked
-            ? 5
-            : step6Blocked
-              ? 6
-              : TOTAL_STEPS;
+          : step6Blocked
+            ? 6
+            : TOTAL_STEPS;
   // 패키지 선택 전에도 기본 공연일수를 보여줘야 하므로, 모든 패키지가 공유하는 기본값(2일)을 임시로 사용한다.
   const effectivePkg = findPackage(rateTable, effectivePackageId);
   const defaultPerformanceDays = effectivePkg?.defaultPerformanceDays ?? 2;
@@ -436,18 +468,21 @@ export function WizardShell({
   }
 
   async function uploadPendingFiles(quoteId: string) {
-    const allFiles = [
-      ...pendingFiles,
-      ...publicInterestFiles,
-      ...(safetyPlanFile ? [safetyPlanFile] : []),
-      ...(castContractFile ? [castContractFile] : []),
+    // 공공/공익 자료는 어느 항목에 붙은 것인지 함께 올린다(2026-08-27) — 첨부 목록에서
+    // 그 항목 이름이 같이 보여야 심사에서 되묻지 않는다.
+    const allFiles: { file: File; publicInterestItem?: string }[] = [
+      ...pendingFiles.map((file) => ({ file })),
+      ...castContractFiles.map((file) => ({ file })),
+      ...publicInterestFiles.map(({ file, item }) => ({ file, publicInterestItem: item })),
+      ...(safetyPlanFile ? [{ file: safetyPlanFile }] : []),
     ];
     if (allFiles.length === 0) return;
     const failed: string[] = [];
-    for (const file of allFiles) {
+    for (const { file, publicInterestItem } of allFiles) {
       try {
         const formData = new FormData();
         formData.append("file", file);
+        if (publicInterestItem) formData.append("publicInterestItem", publicInterestItem);
         const res = await fetch(`/api/quotes/${quoteId}/attachments`, {
           method: "POST",
           body: formData,
@@ -464,6 +499,7 @@ export function WizardShell({
     } else {
       setPendingFiles([]);
       setPublicInterestFiles([]);
+      setCastContractFiles([]);
     }
   }
 
@@ -489,7 +525,12 @@ export function WizardShell({
           setSessionExpired(true);
           return;
         }
-        setSubmitError(data.error || (isUpdate ? "신청서 수정에 실패했습니다." : "신청서 제출에 실패했습니다."));
+        setSubmitError(
+          data.error ||
+            (isUpdate
+              ? tStr("wizardShell.submitFailedEdit", "신청서 수정에 실패했습니다.")
+              : tStr("wizardShell.submitFailedNew", "신청서 제출에 실패했습니다.")),
+        );
         return;
       }
       setSubmittedId(data.quote.id);
@@ -498,7 +539,7 @@ export function WizardShell({
       await uploadPendingFiles(data.quote.id);
       if (!isEditing) clearWizardDraft();
     } catch {
-      setSubmitError("네트워크 오류로 처리에 실패했습니다. 다시 시도해주세요.");
+      setSubmitError(tStr("wizardShell.submitFailedNetwork", "네트워크 오류로 처리에 실패했습니다. 다시 시도해주세요."));
     } finally {
       setSubmitting(false);
     }
@@ -523,7 +564,7 @@ export function WizardShell({
         className={btnClass("secondary", "lg")}
       >
         <ArrowRight className="rotate-180" />
-        이전
+        {t("wizardShell.prevButton", "이전")}
       </button>
       {step < TOTAL_STEPS && (
         <button
@@ -531,23 +572,19 @@ export function WizardShell({
           onClick={() => {
             // 버튼을 잠그지 않는다 — 눌러도 반응이 없으면 고장으로 보인다(고객 신고 패턴).
             if (step === 1 && !selection.venueId) {
-              toast.error("먼저 대관하실 시설을 선택해 주세요.");
+              toast.error(tStr("wizardShell.toastNeedVenue", "먼저 대관하실 시설을 선택해 주세요."));
               return;
             }
             if (step === 1 && midHallOnly && !hasMidHallSelection) {
-              toast.error("대관 일정을 선택해 주세요.");
+              toast.error(tStr("wizardShell.toastNeedSchedule", "대관 일정을 선택해 주세요."));
               return;
             }
             if (step === 2 && needsPackage && !selection.packageId) {
-              toast.error("패키지를 선택해 주세요.");
+              toast.error(tStr("wizardShell.toastNeedPackage", "패키지를 선택해 주세요."));
               return;
             }
             if (step === 3 && step3Blocked) {
               toast.error(step3Blocked);
-              return;
-            }
-            if (step === 5 && step5Blocked) {
-              toast.error(step5Blocked);
               return;
             }
             if (step === 6 && step6Blocked) {
@@ -558,7 +595,7 @@ export function WizardShell({
           }}
           className={btnClass("primary", "lg")}
         >
-          다음
+          {t("wizardShell.nextButton", "다음")}
           <ArrowRight />
         </button>
       )}
@@ -587,10 +624,13 @@ export function WizardShell({
               /* 한 단계 안의 두 번째 블록 — 박스로 싸지 않고 굵은 헤어라인으로만 나눈다
                  (신청자 정보의 "자료 첨부"와 같은 규칙) */
               <div className="mt-10 border-t-2 border-foreground pt-5">
-                <h3 className="type-kr-heading text-h6-m">일정 선택</h3>
+                <h3 className="type-kr-heading text-h6-m">{t("wizardShell.scheduleHeading", "일정 선택")}</h3>
                 {selection.bookingMode === "SIMULTANEOUS" && (
                   <p className="mt-1.5 text-s text-muted">
-                    동시 대관에서는 두 공간의 일정을 탭으로 나눠 각각 선택합니다.
+                    {t(
+                      "wizardShell.simultaneousScheduleHint",
+                      "동시 대관에서는 두 공간의 일정을 탭으로 나눠 각각 선택합니다.",
+                    )}
                   </p>
                 )}
                 {/* [개정 2026-08-21] 아레나만/중형만/동시 대관 세 경우 모두 같은 탭 구조를
@@ -614,7 +654,9 @@ export function WizardShell({
                               : "cursor-not-allowed border-transparent text-muted/40",
                         ].join(" ")}
                       >
-                        {tab === "arena" ? "아레나 일정" : "중형 일정"}
+                        {tab === "arena"
+                          ? t("wizardShell.arenaTabLabel", "아레나 일정")
+                          : t("wizardShell.mediumHallTabLabel", "중형 일정")}
                       </button>
                     );
                   })}
@@ -694,6 +736,8 @@ export function WizardShell({
               }
               selection={resolvedSelection}
               title={wizardStepText.performanceInfoTitle}
+              castContractFiles={castContractFiles}
+              onCastContractFilesChange={setCastContractFiles}
             />
             {/* [2026-08-23] "신청자 정보 및 규모" — 두 탭을 하나로 합쳤다("신청자 정보
                 탭을 신청자 정보 및 규모로 변경하고, 규모 탭 내역을 합쳐"). 규모(StepAudience)
@@ -720,6 +764,14 @@ export function WizardShell({
           </>
         )}
         {step === 4 && (
+          <StepMarketingCooperation
+            info={selection.marketingCooperation ?? DEFAULT_MARKETING_COOPERATION}
+            onChange={(marketingCooperation) => setSelection((prev) => ({ ...prev, marketingCooperation }))}
+            title={wizardStepText.marketingTitle}
+            lead={wizardStepText.marketingLead}
+          />
+        )}
+        {step === 5 && (
           <StepPublicInterest
             info={selection.performanceInfo}
             onChange={(performanceInfo) => setSelection((prev) => ({ ...prev, performanceInfo }))}
@@ -733,22 +785,13 @@ export function WizardShell({
             title={wizardStepText.publicInterestTitle}
           />
         )}
-        {step === 5 && (
-          <StepMarketingCooperation
-            info={selection.marketingCooperation ?? DEFAULT_MARKETING_COOPERATION}
-            onChange={(marketingCooperation) => setSelection((prev) => ({ ...prev, marketingCooperation }))}
-            title={wizardStepText.marketingTitle}
-            lead={wizardStepText.marketingLead}
-          />
-        )}
         {step === 6 && (
           <StepSafetyPledge
             pledge={selection.safetyPledge ?? DEFAULT_SAFETY_PLEDGE}
             onChange={(safetyPledge) => setSelection((prev) => ({ ...prev, safetyPledge }))}
             safetyPlanFile={safetyPlanFile}
             onSafetyPlanFileChange={setSafetyPlanFile}
-            castContractFile={castContractFile}
-            onCastContractFileChange={setCastContractFile}
+            companyName={selection.performanceInfo.applicantCompanyName || undefined}
             title={wizardStepText.safetyPledgeTitle}
             lead={wizardStepText.safetyPledgeLead}
           />
@@ -778,8 +821,8 @@ export function WizardShell({
             fileCount={
               pendingFiles.length +
               publicInterestFiles.length +
-              (safetyPlanFile ? 1 : 0) +
-              (castContractFile ? 1 : 0)
+              castContractFiles.length +
+              (safetyPlanFile ? 1 : 0)
             }
             onSubmit={submit}
             onRequestEdit={requestEdit}
@@ -792,7 +835,7 @@ export function WizardShell({
       <SummaryPanel
         quote={summaryQuote}
         /*
-          요약 패널은 **실시간 견적 요약**이다 — 대관료·항목·합계를 함께 보여준다.
+          요약 패널은 **실시간 대관신청 내역**이다(2026-08-26 개칭) — 대관료·항목·합계를 함께 보여준다.
           한동안 STEP 1·2 에서 금액을 감췄는데, 신청자가 구성을 고르는 동안 값이 얼마나
           움직이는지 볼 수 없어 되돌렸다. "예상 금액 · 확정 아님" 고지를 함께 둔다.
           단, STEP 1(공간/일정 선택)만은 계속 비워 둔다 — summaryQuote 참고.

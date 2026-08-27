@@ -10,12 +10,20 @@ import {
   markFacilityMeetingMaterialsUploaded,
   markTicketOpenMaterialsUploaded,
 } from "@/lib/db";
-import type { AttachmentCategory } from "@/lib/pricing/types";
+import {
+  PUBLIC_INTEREST_ITEM_LABEL,
+  type AttachmentCategory,
+  type PublicInterestItem,
+} from "@/lib/pricing/types";
 
 const VALID_CATEGORIES: AttachmentCategory[] = ["TICKET_OPEN", "FACILITY_MEETING"];
+// 공공/공익 STEP 이 항목별로 올리는 자료(2026-08-27) — 라벨 표에 있는 키만 받는다.
+const VALID_PUBLIC_INTEREST_ITEMS = new Set(Object.keys(PUBLIC_INTEREST_ITEM_LABEL));
 
 const UPLOAD_ROOT = path.join(DATA_DIR, "uploads");
-const MAX_SIZE = 20 * 1024 * 1024; // 20MB
+// [개정 2026-08-26] "첨부 용량은 500메가까지 가능하게함" — 클라이언트 쪽 한도
+// (StepPerformanceInfo.tsx MAX_FILE_SIZE)도 함께 올렸다.
+const MAX_SIZE = 500 * 1024 * 1024; // 500MB
 const ALLOWED_MIME = new Set([
   "application/pdf",
   "image/png",
@@ -60,7 +68,7 @@ export async function POST(request: Request, ctx: { params: Promise<{ id: string
     return NextResponse.json({ error: "업로드할 파일을 선택하세요." }, { status: 400 });
   }
   if (file.size === 0 || file.size > MAX_SIZE) {
-    return NextResponse.json({ error: "파일 크기는 20MB 이하여야 합니다." }, { status: 400 });
+    return NextResponse.json({ error: "파일 크기는 500MB 이하여야 합니다." }, { status: 400 });
   }
   if (file.type && !ALLOWED_MIME.has(file.type)) {
     return NextResponse.json(
@@ -81,6 +89,12 @@ export async function POST(request: Request, ctx: { params: Promise<{ id: string
     ? (categoryInput as AttachmentCategory)
     : null;
 
+  const publicInterestInput = formData?.get("publicInterestItem");
+  const publicInterestItem =
+    typeof publicInterestInput === "string" && VALID_PUBLIC_INTEREST_ITEMS.has(publicInterestInput)
+      ? (publicInterestInput as PublicInterestItem)
+      : null;
+
   const attachmentId = crypto.randomUUID();
   const storedName = `${attachmentId}${extension}`;
   const quoteDir = path.join(UPLOAD_ROOT, id);
@@ -98,6 +112,7 @@ export async function POST(request: Request, ctx: { params: Promise<{ id: string
     size: file.size,
     uploadedBy: user.id,
     category,
+    publicInterestItem,
     createdAt: now,
   });
 

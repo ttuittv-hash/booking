@@ -34,21 +34,41 @@ const APPROVAL_LABEL: Record<string, string> = {
   REJECTED: "비활성",
 };
 
-// 초대장 자체의 상태(PENDING/ACCEPTED/CANCELLED)는 개발 용어라 그대로 보여주면
-// "이게 뭔 뜻이지" 소리가 나온다 — 링크를 받은 사람이 지금 어느 단계인지로
-// 다시 정의한다: 초대 발송 → 가입 신청(승인 버튼) → 승인 완료(승인 취소 버튼)
-// (2026-08-22, "pending 이런식은 너무 개발 언어" 피드백).
-function inviteState(iv: Invitation): {
-  label: string;
-  action: "approve" | "revoke" | "cancel" | null;
-} {
-  if (iv.status === "CANCELLED") return { label: "초대 취소됨", action: null };
-  if (iv.status === "PENDING") return { label: "초대 발송", action: "cancel" };
-  // ACCEPTED — 링크를 받은 사람이 가입까지는 마쳤고, 승인 여부만 남았다.
-  if (iv.acceptedUserApprovalStatus === "APPROVED") return { label: "승인 완료", action: "revoke" };
-  if (iv.acceptedUserApprovalStatus === "REJECTED") return { label: "가입 반려됨", action: null };
-  return { label: "가입 신청", action: "approve" };
+// [신규 2026-08-26] "마스터 계정표기 텍스트 옆에 ? 아이콘, 마우스오버하면 안내" 요청.
+// 이 화면(/mypage/members)은 대표 담당자만 열 수 있으므로 MASTER 배지는 늘 보는 사람 본인이다.
+export const MASTER_ROLE_TOOLTIP = "당신은 마스터 계정으로 소속담당자 승인/관리가 가능합니다.";
+
+function MasterInfoIcon() {
+  return (
+    <span
+      data-testid="master-role-info"
+      title={MASTER_ROLE_TOOLTIP}
+      aria-label={MASTER_ROLE_TOOLTIP}
+      className="ml-1 inline-flex h-3.5 w-3.5 shrink-0 cursor-help items-center justify-center rounded-full border border-current text-[9px] leading-none"
+    >
+      ?
+    </span>
+  );
 }
+
+// [개정 2026-08-26] "같은 회사 소속 계정들이 한 리스트에, 상태값(가입/미가입)과
+// 상태별 실행 버튼(가입승인/가입반려 등)이 보여야 한다" 요청으로 "담당자 목록"(이미
+// 계정이 있는 사람)과 "담당자 초대"(아직 계정이 없는 사람)를 한 표로 합친다.
+// 초대를 수락(ACCEPTED)한 사람은 users 테이블에 company_id가 이미 잡혀 있어
+// listCompanyMembers에도 같이 뜬다 — 그대로 합치면 같은 사람이 두 줄로 중복되므로,
+// 초대 쪽에서는 "아직 계정이 없는" PENDING/CANCELLED만 남기고 ACCEPTED는 뺀다
+// (그 사람은 이미 members 쪽 행으로 나온다).
+type RowAction = { key: string; label: string; variant: "primary" | "secondary" | "tertiary"; onClick: () => void };
+type UnifiedRow = {
+  key: string;
+  name: string;
+  email: string;
+  phone: string | null;
+  companyRole: string | null; // MASTER | STAFF | null(아직 계정 없음)
+  joined: boolean; // 가입 여부 — 상태 컬럼의 1차 값
+  detailLabel: string; // 상태 컬럼의 부가 설명(정상/승인 대기/초대 발송 등)
+  actions: RowAction[];
+};
 
 export function MembersManager() {
   const toast = useToast();
@@ -112,6 +132,97 @@ export function MembersManager() {
     }
   }
 
+  const memberRows: UnifiedRow[] = members.map((m) => {
+    const actions: RowAction[] = [];
+    if (m.companyRole !== "MASTER") {
+      if (m.approvalStatus === "PENDING") {
+        actions.push(
+          {
+            key: "approve",
+            label: "가입승인",
+            variant: "primary",
+            onClick: () => void act("/api/admin/applicants", { id: m.id, action: "approve" }),
+          },
+          {
+            key: "reject",
+            label: "가입반려",
+            variant: "secondary",
+            onClick: () => {
+              // MB-03 의 필수 변수라 사유 없이 반려할 수 없다.
+              const reason = window.prompt("반려 사유를 입력해주세요. 신청자에게 그대로 안내됩니다.");
+              if (!reason?.trim()) return;
+              void act("/api/admin/applicants", { id: m.id, action: "reject", reason: reason.trim() });
+            },
+          },
+        );
+      } else if (m.approvalStatus === "APPROVED") {
+        actions.push(
+          {
+            key: "transfer",
+            label: "대표 이관",
+            variant: "secondary",
+            onClick: () => void act("/api/company/members", { action: "transfer", targetId: m.id }),
+          },
+          {
+            key: "remove",
+            label: "소속 해제",
+            variant: "tertiary",
+            onClick: () => void act("/api/company/members", { action: "remove", targetId: m.id }),
+          },
+        );
+      }
+    }
+    return {
+      key: `member-${m.id}`,
+      name: m.name,
+      email: m.email,
+      phone: m.phone,
+      companyRole: m.companyRole,
+      joined: true,
+      detailLabel: APPROVAL_LABEL[m.approvalStatus] ?? m.approvalStatus,
+      actions,
+    };
+  });
+
+  // 초대를 수락(ACCEPTED)한 사람은 이미 users 테이블에 계정이 있어 위 members 쪽
+  // 행으로 나온다 — 여기서 또 넣으면 같은 사람이 두 줄로 중복되므로 뺀다.
+  const inviteRows: UnifiedRow[] = invitations
+    .filter((iv) => iv.status !== "ACCEPTED")
+    .map((iv) => {
+      const actions: RowAction[] =
+        iv.status === "PENDING"
+          ? [
+              {
+                key: "resend",
+                label: "재발송",
+                variant: "secondary",
+                onClick: () =>
+                  void act("/api/company/invitations", { action: "resend", id: iv.id }).then((data) => {
+                    if (data?.inviteUrl) setInviteUrl(data.inviteUrl);
+                  }),
+              },
+              {
+                key: "cancel",
+                label: "초대 취소",
+                variant: "tertiary",
+                onClick: () => void act("/api/company/invitations", { action: "cancel", id: iv.id }),
+              },
+            ]
+          : [];
+      return {
+        key: `invite-${iv.id}`,
+        name: iv.inviteeName ?? "—",
+        email: iv.email,
+        phone: iv.phone,
+        companyRole: null,
+        joined: false,
+        detailLabel: iv.status === "PENDING" ? "초대 발송" : "초대 취소됨",
+        actions,
+      };
+    });
+
+  const unifiedRows = [...memberRows, ...inviteRows];
+
   return (
     <div className="mt-8" data-testid="members-manager">
       {error ? (
@@ -124,98 +235,75 @@ export function MembersManager() {
         <h2 className="text-s font-bold">담당자 목록</h2>
         <p className="mt-1 break-keep text-xs leading-6 text-muted">
           회사를 처음 등록한 분이 <b>대표 담당자</b>가 되고, 이후 합류한 분은 <b>소속 담당자</b>가
-          됩니다. 대표 담당자만 초대 · 합류 승인 · 소속 해제 · 대표 이관을 할 수 있습니다.
+          됩니다. 대표 담당자만 초대 · 합류 승인 · 소속 해제 · 대표 이관을 할 수 있습니다. 아래
+          이메일로 초대는 보냈지만 아직 본인인증·비밀번호 설정을 마치지 않은 분은 <b>미가입</b>으로
+          표시됩니다.
         </p>
         <div className="mt-3 overflow-x-auto">
-          <table className="w-full min-w-[36rem] text-s" data-testid="members-table">
+          <table className="w-full min-w-[40rem] text-s" data-testid="members-table">
             <thead>
               <tr className="border-b border-border text-xs text-muted">
-                <th className="py-2 text-left">기업명</th>
                 <th className="py-2 text-left">이름</th>
                 <th className="py-2 text-left">이메일</th>
+                <th className="py-2 text-left">휴대폰</th>
                 <th className="py-2 text-left">권한</th>
                 <th className="py-2 text-left">상태</th>
                 <th className="py-2 text-left">조치</th>
               </tr>
             </thead>
             <tbody>
-              {members.map((m) => (
-                <tr key={m.id} className="border-b border-border/40" data-testid={`member-${m.id}`}>
-                  <td className="py-3 text-muted">{m.companyName || "—"}</td>
-                  <td className="py-3">{m.name}</td>
-                  <td className="py-3 text-muted">{m.email}</td>
+              {unifiedRows.map((row) => (
+                <tr key={row.key} className="border-b border-border/40" data-testid={row.key}>
+                  <td className="py-3">{row.name}</td>
+                  <td className="py-3 text-muted">{row.email}</td>
+                  <td className="py-3 text-muted">{row.phone ?? "—"}</td>
                   <td className="py-3">
-                    <span
-                      className={`inline-block border px-2 py-0.5 text-xs ${
-                        m.companyRole === "MASTER"
-                          ? "border-accent text-accent"
-                          : "border-border-soft text-muted"
-                      }`}
-                    >
-                      {m.companyRole === "MASTER" ? "대표 담당자" : "소속 담당자"}
-                    </span>
+                    {row.companyRole ? (
+                      <span className="inline-flex items-center">
+                        <span
+                          className={`inline-block border px-2 py-0.5 text-xs ${
+                            row.companyRole === "MASTER"
+                              ? "border-accent text-accent"
+                              : "border-border-soft text-muted"
+                          }`}
+                        >
+                          {row.companyRole === "MASTER" ? "대표 담당자" : "소속 담당자"}
+                        </span>
+                        {row.companyRole === "MASTER" ? <MasterInfoIcon /> : null}
+                      </span>
+                    ) : (
+                      <span className="text-muted">—</span>
+                    )}
                   </td>
-                  <td className="py-3">{APPROVAL_LABEL[m.approvalStatus] ?? m.approvalStatus}</td>
                   <td className="py-3">
-                    {m.companyRole === "MASTER" ? (
+                    <span className={`font-bold ${row.joined ? "text-foreground" : "text-muted"}`}>
+                      {row.joined ? "가입" : "미가입"}
+                    </span>
+                    <span className="ml-1.5 text-xs text-muted">({row.detailLabel})</span>
+                  </td>
+                  <td className="py-3">
+                    {row.actions.length === 0 ? (
                       <span className="text-muted">—</span>
                     ) : (
                       <span className="flex flex-wrap gap-2">
-                        {m.approvalStatus === "PENDING" ? (
-                          <>
-                            <button
-                              type="button"
-                              data-testid="approve-member"
-                              disabled={busy}
-                              onClick={() => act("/api/admin/applicants", { id: m.id, action: "approve" })}
-                              className={btnClass("primary", "sm")}
-                            >
-                              승인
-                            </button>
-                            <button
-                              type="button"
-                              data-testid="reject-member"
-                              disabled={busy}
-                              onClick={() => {
-                                // MB-03 의 필수 변수라 사유 없이 반려할 수 없다.
-                                const reason = window.prompt("반려 사유를 입력해주세요. 신청자에게 그대로 안내됩니다.");
-                                if (!reason?.trim()) return;
-                                void act("/api/admin/applicants", { id: m.id, action: "reject", reason: reason.trim() });
-                              }}
-                              className={btnClass("secondary", "sm")}
-                            >
-                              거절
-                            </button>
-                          </>
-                        ) : null}
-                        {m.approvalStatus === "APPROVED" ? (
-                          <>
-                            <button
-                              type="button"
-                              data-testid="transfer-master"
-                              disabled={busy}
-                              onClick={() => act("/api/company/members", { action: "transfer", targetId: m.id })}
-                              className={btnClass("secondary", "sm")}
-                            >
-                              대표 이관
-                            </button>
-                            <button
-                              type="button"
-                              data-testid="remove-member"
-                              disabled={busy}
-                              onClick={() => act("/api/company/members", { action: "remove", targetId: m.id })}
-                              className={btnClass("tertiary", "sm")}
-                            >
-                              소속 해제
-                            </button>
-                          </>
-                        ) : null}
+                        {row.actions.map((a) => (
+                          <button
+                            key={a.key}
+                            type="button"
+                            data-testid={`${row.key}-${a.key}`}
+                            disabled={busy}
+                            onClick={a.onClick}
+                            className={btnClass(a.variant, "sm")}
+                          >
+                            {a.label}
+                          </button>
+                        ))}
                       </span>
                     )}
                   </td>
                 </tr>
               ))}
-              {members.length === 0 ? (
+              {unifiedRows.length === 0 ? (
                 <tr>
                   <td colSpan={6} className="py-6 text-center text-muted">
                     소속 담당자가 없습니다.
@@ -305,87 +393,18 @@ export function MembersManager() {
 
         {inviteUrl ? (
           <div data-testid="invite-url" className="mt-4 border border-accent px-4 py-3 text-s">
-            <p className="font-bold">초대 링크가 발급되었습니다</p>
+            <p className="font-bold">초대가 발송되었습니다</p>
             <p className="mt-2 break-all font-mono text-xs">{inviteUrl}</p>
+            {/* [개정 2026-08-27] 링크는 회원가입 페이지다 — 초대받은 사람은 전용 화면이
+                아니라 일반 가입을 그대로 밟는다. 회사는 사업자등록번호로 찾아 붙고, 승인은
+                아래 담당자 목록에서 한다. */}
             <p className="mt-2 text-xs text-muted">
-              휴대폰 번호를 입력했다면 알림톡으로도 이미 발송됐습니다. 도착하지 않으면 이 링크를
-              직접 전달해 주세요.
+              휴대폰 번호를 입력했다면 알림톡으로도 이미 발송됐습니다. 도착하지 않으면 이 회원가입
+              링크를 직접 전달해 주세요. 초대한 분이 <b>같은 이메일</b>로 가입하면 아래 목록의
+              <b> 미가입</b> 행이 자동으로 정리되고, 가입 승인은 대표 담당자가 처리합니다.
             </p>
           </div>
         ) : null}
-
-        <div className="mt-6 overflow-x-auto">
-        <table className="w-full min-w-[42rem] text-s" data-testid="invitations-table">
-          <thead>
-            <tr className="border-b border-border text-xs text-muted">
-              <th className="py-2 text-left">소속</th>
-              <th className="py-2 text-left">이름</th>
-              <th className="py-2 text-left">이메일</th>
-              <th className="py-2 text-left">휴대폰</th>
-              <th className="py-2 text-left">상태</th>
-              <th className="py-2 text-left">만료</th>
-              <th className="py-2 text-left">조치</th>
-            </tr>
-          </thead>
-          <tbody>
-            {invitations.map((iv) => {
-              const state = inviteState(iv);
-              return (
-                <tr key={iv.id} className="border-b border-border/40">
-                  <td className="py-3 text-muted">{iv.inviteeTitle ?? "—"}</td>
-                  <td className="py-3">{iv.acceptedUserName ?? iv.inviteeName ?? "—"}</td>
-                  <td className="py-3">{iv.email}</td>
-                  <td className="py-3 text-muted">{iv.phone ?? "—"}</td>
-                  <td className="py-3">{state.label}</td>
-                  <td className="py-3 text-muted">{iv.expiresAt.slice(0, 10)}</td>
-                  <td className="py-3">
-                    {state.action === "cancel" ? (
-                      <button
-                        type="button"
-                        data-testid="cancel-invite"
-                        disabled={busy}
-                        onClick={() => act("/api/company/invitations", { action: "cancel", id: iv.id })}
-                        className={btnClass("tertiary", "sm")}
-                      >
-                        취소
-                      </button>
-                    ) : state.action === "approve" ? (
-                      <button
-                        type="button"
-                        data-testid="approve-invite"
-                        disabled={busy || !iv.acceptedUserId}
-                        onClick={() => act("/api/admin/applicants", { id: iv.acceptedUserId, action: "approve" })}
-                        className={btnClass("primary", "sm")}
-                      >
-                        승인
-                      </button>
-                    ) : state.action === "revoke" ? (
-                      <button
-                        type="button"
-                        data-testid="revoke-invite"
-                        disabled={busy || !iv.acceptedUserId}
-                        onClick={() => act("/api/company/members", { action: "revoke", targetId: iv.acceptedUserId })}
-                        className={btnClass("tertiary", "sm")}
-                      >
-                        승인 취소
-                      </button>
-                    ) : (
-                      <span className="text-muted">—</span>
-                    )}
-                  </td>
-                </tr>
-              );
-            })}
-            {invitations.length === 0 ? (
-              <tr>
-                <td colSpan={7} className="py-6 text-center text-muted">
-                  발급한 초대가 없습니다.
-                </td>
-              </tr>
-            ) : null}
-          </tbody>
-        </table>
-        </div>
       </section>
     </div>
   );

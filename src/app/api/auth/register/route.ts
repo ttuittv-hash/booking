@@ -20,6 +20,7 @@ import {
   attachIdentityToUser,
   findCompletedIdentity,
   findUserByDi,
+  freeRejectedIdentity,
   saveTermsAgreements,
   listUsers,
   findUserByEmailWithPasswordHash,
@@ -29,6 +30,8 @@ import {
   saveCompanyVerification,
   withTransaction,
   findUserById,
+  findPendingInvitationByEmail,
+  consumeInvitation,
 } from "@/lib/db";
 import { SHA256_HEX_RE, sha256Hex } from "@/lib/passwordScheme";
 import { clientIpFrom, rateLimit } from "@/lib/rateLimit";
@@ -72,6 +75,9 @@ export async function POST(request: Request) {
   const address = typeof body?.address === "string" ? body.address.trim() : "";
   const businessCertUrl = typeof body?.businessCertUrl === "string" ? body.businessCertUrl.trim() : "";
   const businessCertName = typeof body?.businessCertName === "string" ? body.businessCertName.trim() : "";
+  // 재직증명서(선택) — 사업자등록증과 달리 회사가 아닌 가입자 개인 소속 증빙이라 users에 저장한다.
+  const employmentCertUrl = typeof body?.employmentCertUrl === "string" ? body.employmentCertUrl.trim() : "";
+  const employmentCertName = typeof body?.employmentCertName === "string" ? body.employmentCertName.trim() : "";
   // 본인인증 티켓 — 인증을 마친 사람만 가입할 수 있다(기획서 A4).
   // 미설정 환경(로컬 등)에서는 인증 단계를 건너뛰므로 티켓이 없어도 진행한다.
   const identityTicket = typeof body?.identityTicket === "string" ? body.identityTicket : "";
@@ -118,30 +124,40 @@ export async function POST(request: Request) {
   if (await findUserByUsername(username)) {
     return NextResponse.json({ error: "이미 사용 중인 아이디입니다." }, { status: 409 });
   }
+  // 운영자가 반려(REJECTED)한 신청자는 재가입할 수 있어야 한다(R5) — 막는 대신 예전
+  // 반려 계정의 이메일·아이디 자리를 비우고 계속 진행한다. 계정 자체(및 이력)는 남는다.
   const existingByEmail = await findUserByEmailWithPasswordHash(email);
   if (existingByEmail) {
-    return NextResponse.json(
-      {
-        error:
-          existingByEmail.approvalStatus === "PENDING"
-            ? `이미 신청이 접수된 ${existingByEmail.name}님입니다. 운영자 승인을 기다려주세요.`
-            : "이미 가입된 이메일입니다.",
-      },
-      { status: 409 },
-    );
+    if (existingByEmail.approvalStatus === "REJECTED") {
+      await freeRejectedIdentity(existingByEmail.id);
+    } else {
+      return NextResponse.json(
+        {
+          error:
+            existingByEmail.approvalStatus === "PENDING"
+              ? `이미 신청이 접수된 ${existingByEmail.name}님입니다. 운영자 승인을 기다려주세요.`
+              : "이미 가입된 이메일입니다.",
+        },
+        { status: 409 },
+      );
+    }
   }
   // 승인 대기 중에 이메일만 바꿔 중복으로 재신청하는 것을 막기 위해 전화번호도 함께 확인한다.
   const existingByPhone = await findUserByPhone(phone);
   if (existingByPhone) {
-    return NextResponse.json(
-      {
-        error:
-          existingByPhone.approvalStatus === "PENDING"
-            ? `이미 신청이 접수된 ${existingByPhone.name}님입니다. 운영자 승인을 기다려주세요.`
-            : "이미 가입된 휴대폰 번호입니다.",
-      },
-      { status: 409 },
-    );
+    if (existingByPhone.approvalStatus === "REJECTED") {
+      await freeRejectedIdentity(existingByPhone.id);
+    } else {
+      return NextResponse.json(
+        {
+          error:
+            existingByPhone.approvalStatus === "PENDING"
+              ? `이미 신청이 접수된 ${existingByPhone.name}님입니다. 운영자 승인을 기다려주세요.`
+              : "이미 가입된 휴대폰 번호입니다.",
+        },
+        { status: 409 },
+      );
+    }
   }
 
   // 본인인증 결과 확인. 티켓은 서명돼 있고, 실제 값은 서버가 이력에서 다시 읽는다 —
@@ -299,6 +315,12 @@ export async function POST(request: Request) {
       approvalStatus: "PENDING",
       termsAgreedAt: createdAt,
       privacyAgreedAt: createdAt,
+      employmentCertUrl: employmentCertUrl || null,
+      employmentCertName: employmentCertName || null,
+      // 회사 행에는 회사를 처음 등록한 사람의 것만 남는다 — 합류 가입자가 올린 사업자등록증도
+      // 버리지 않고 계정에 함께 남겨 심사 화면에서 보이게 한다(2026-08-27).
+      businessCertUrl: businessCertUrl || null,
+      businessCertName: businessCertName || null,
       createdAt,
     });
 
@@ -334,6 +356,25 @@ export async function POST(request: Request) {
     // 회사에 붙은 계정이면 최초 가입자인지 판정해 MASTER/STAFF 를 정한다.
     if (company) {
       created.companyRole = await assignCompanyRoleOnJoin(created.id, company.id);
+    }
+
+    // 그 회사로 보낸 초대장의 주소로 가입했다면 그 초대장을 소진한다. 안 하면 담당자 관리
+    // 화면에 "초대 발송"(미가입) 행과 방금 가입한 담당자 행이 같은 사람으로 두 줄 남는다.
+    if (company) {
+      const pendingInvite = await findPendingInvitationByEmail(company.id, email);
+      if (pendingInvite) {
+        await consumeInvitation(pendingInvite.id, created.id);
+        // MB-08 초대받은 담당자 등록 완료 → 본인. 전용 수락 화면이 사라지고 회원가입으로
+        // 합쳐졌으므로(2026-08-28 병합) 초대장이 소진되는 이 지점이 "초대 수락"이다.
+        const master = company.masterUserId ? await findUserById(company.masterUserId) : null;
+        dispatchMessageInBackground({
+          templateCode: "MB-08",
+          idempotencyKey: `MB-08:${created.id}`,
+          recipient: { userId: created.id, phone, email, name },
+          variables: { 신청자명: name, 마스터: master?.name ?? "대표 담당자", 회사명: company.name },
+          request,
+        });
+      }
     }
 
     // 최초 가입자는 운영자가 전담하고, 이후 가입자는 그 회사 마스터도 처리할 수 있다(기획서 1-42).

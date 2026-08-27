@@ -233,6 +233,30 @@ export function calculateQuote(selection: QuoteSelection, rateTable: RateTable):
     blockingIssues = midHall.blockingIssues;
   }
 
+  // (6) 경합 시 추가 대관료 옵션(선택) — 신청자가 제시한 최대값을 "추가 예상 금액"에
+  // 반영한다(2026-08-26, "이 추가 대관료 가능 금액도 대관 신청 마지막 단계 계산서에
+  // 반영되어야지.. 우측 플로팅 박스에도 추가 예상 금액에 포함시켜야 하고"). 공간을
+  // 분리하지 않은 경우(공통 탭)는 아레나·중형 어느 한쪽에만 반영해 이중 계상을 막는다 —
+  // 아레나가 있으면 아레나 몫으로, 아레나 없이 중형만 있으면 중형 몫으로 본다.
+  function pushCompetitionFeeLine(amount: number | undefined, venue: "arena" | "medium-hall") {
+    if (typeof amount !== "number" || amount <= 0) return;
+    const addonId = venue === "medium-hall" ? "midhall_competition_fee_option" : "competition_fee_option";
+    items.push({
+      ...makeLine(addonId, "경합 시 추가 대관료 옵션(최대)", "FIXED_PER_WEEK", 1, 0, 1, amount, amount, "VISIBLE"),
+      venue,
+    });
+  }
+  if (pkg) {
+    pushCompetitionFeeLine(selection.performanceInfo.competitionFeeOptionMax, "arena");
+  }
+  if (selection.venueId === "medium-hall" || selection.bookingMode === "SIMULTANEOUS") {
+    if (selection.midHallPerformanceInfo) {
+      pushCompetitionFeeLine(selection.midHallPerformanceInfo.competitionFeeOptionMax, "medium-hall");
+    } else if (!pkg) {
+      pushCompetitionFeeLine(selection.performanceInfo.competitionFeeOptionMax, "medium-hall");
+    }
+  }
+
   const subtotal = items.reduce((sum, item) => sum + item.amount, 0);
   const vat = Math.round(subtotal * rateTable.vatRate);
 

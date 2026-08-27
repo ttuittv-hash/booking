@@ -74,7 +74,22 @@ type FormState = {
   postalCode: string;
   address: string;
   addressDetail: string;
+  businessCertUrl: string;
+  businessCertName: string;
+  employmentCertUrl: string;
+  employmentCertName: string;
 };
+
+// 회원가입 중(비로그인)에도 쓸 수 있는 공개 업로드 엔드포인트 — 사업자등록증/재직증명서
+// 둘 다 여기로 올린다(PDF/JPG/PNG, 10MB 이하).
+async function uploadRegisterAttachment(file: File): Promise<{ url: string; name: string }> {
+  const body = new FormData();
+  body.append("file", file);
+  const res = await fetch("/api/auth/register/attachment", { method: "POST", body });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.error || "파일 업로드에 실패했습니다.");
+  return { url: data.url, name: data.name };
+}
 
 const STEP_LABELS = ["회원 유형", "약관 동의", "본인인증", "정보 입력", "가입완료"];
 
@@ -111,6 +126,10 @@ export function RegisterWizard() {
     postalCode: "",
     address: "",
     addressDetail: "",
+    businessCertUrl: "",
+    businessCertName: "",
+    employmentCertUrl: "",
+    employmentCertName: "",
   });
   const [pickedCompany, setPickedCompany] = useState<CompanyHit | null>(null);
   // 개발 환경에서 본인인증을 건너뛴 상태인지 — 화면에 그대로 표시해 착각을 막는다.
@@ -124,6 +143,7 @@ export function RegisterWizard() {
   const [idCheck, setIdCheck] = useState<{ available: boolean; message: string } | null>(null);
   const [searchOpen, setSearchOpen] = useState(false);
   const [joinNotice, setJoinNotice] = useState<string | null>(null);
+  const [isNewMaster, setIsNewMaster] = useState(false);
 
   useEffect(() => {
     fetch("/api/terms")
@@ -309,6 +329,10 @@ export function RegisterWizard() {
           corporateNumber: form.corporateNumber,
           postalCode: form.postalCode,
           address: [form.address, form.addressDetail].filter(Boolean).join(" "),
+          businessCertUrl: form.businessCertUrl,
+          businessCertName: form.businessCertName,
+          employmentCertUrl: form.employmentCertUrl,
+          employmentCertName: form.employmentCertName,
           agreedTerms: !!agreed.SERVICE,
           agreedPrivacy: !!agreed.PRIVACY_REQUIRED,
           agreements: terms.map((t) => ({
@@ -322,6 +346,10 @@ export function RegisterWizard() {
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "가입에 실패했습니다.");
       setJoinNotice(data.joinNotice ?? null);
+      // joinKind가 "NEW"(회사 신규 등록)일 때만 이 계정이 회사 마스터가 된다 — 합류
+      // 신청(JOIN_*)은 항상 STAFF 로 시작하므로 companyRole 만 봐도 동치이지만, 의도를
+      // 명시적으로 드러내기 위해 joinKind 도 같이 확인한다.
+      setIsNewMaster(data.joinKind === "NEW" && data.user?.companyRole === "MASTER");
       setStep(5);
     } catch (e) {
       setError(e instanceof Error ? e.message : "가입에 실패했습니다.");
@@ -389,6 +417,8 @@ export function RegisterWizard() {
               postalCode: "",
               address: "",
               addressDetail: "",
+              businessCertUrl: "",
+              businessCertName: "",
             }));
           }}
           onOpenSearch={() => {
@@ -423,7 +453,7 @@ export function RegisterWizard() {
           onSubmit={submit}
         />
       ) : (
-        <StepDone notice={joinNotice} />
+        <StepDone notice={joinNotice} isNewMaster={isNewMaster} companyName={form.companyName} />
       )}
 
       {searchOpen ? (
@@ -742,11 +772,32 @@ function StepInfo({
 }) {
   const toast = useToast();
   const [checking, setChecking] = useState<"brn" | "id" | null>(null);
+  const [uploading, setUploading] = useState<"biz" | "employment" | null>(null);
   const set =
     (k: keyof FormState) =>
     (e: React.ChangeEvent<HTMLInputElement>) =>
       setForm((p) => ({ ...p, [k]: e.target.value }));
   const locked = !!pickedCompany;
+
+  async function handleCertUpload(
+    kind: "biz" | "employment",
+    urlKey: keyof FormState,
+    nameKey: keyof FormState,
+    e: React.ChangeEvent<HTMLInputElement>,
+  ) {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file) return;
+    setUploading(kind);
+    try {
+      const { url, name } = await uploadRegisterAttachment(file);
+      setForm((p) => ({ ...p, [urlKey]: url, [nameKey]: name }));
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "파일 업로드에 실패했습니다.");
+    } finally {
+      setUploading(null);
+    }
+  }
 
   // 사업자등록번호 중복확인 + 국세청 진위확인 (기획서 A5 · 1-34)
   async function verifyBrn() {
@@ -856,7 +907,7 @@ function StepInfo({
           onClick={onOpenSearch}
           className={btnClass("secondary", "sm")}
         >
-          회사정보 불러오기
+          등록된 회사정보 불러오기
         </button>
       </div>
       <p className="mt-2 break-keep text-xs text-muted">* 표시는 필수 입력 항목입니다.</p>
@@ -864,7 +915,7 @@ function StepInfo({
       <h3 className="mt-8 text-s font-bold">① 기업 정보</h3>
       {locked ? null : (
         <p className="mt-1 break-keep text-xs leading-6 text-muted">
-          이미 등록된 회사라면 [회사정보 불러오기]로 채우세요.
+          이미 등록된 회사라면 [등록된 회사정보 불러오기]로 채우세요.
         </p>
       )}
       <div className="mt-4 grid gap-x-6 gap-y-5 sm:grid-cols-2">
@@ -966,6 +1017,40 @@ function StepInfo({
           <input data-testid="f-corporateNumber" readOnly={locked} value={form.corporateNumber} onChange={set("corporateNumber")} placeholder="110111-1234567" className={inputCls(locked)} />
         </Field>
         <div />
+
+        {/* [개정 2026-08-27] 기존 회사를 불러온 뒤에도(locked) 사업자등록증 첨부를 남겨 둔다.
+            예전에는 통째로 숨겨서 합류 가입자는 낼 방법이 없었다. 회사 행에 저장된 등록증은
+            회사를 처음 등록한 사람의 것 하나뿐이라, 합류자가 올린 파일은 그 사람 계정에
+            따로 남아 운영자 심사 화면에 보인다. */}
+        <div className="sm:col-span-2">
+            <Field
+              label="사업자등록증"
+              hint={
+                locked
+                  ? "선택 · PDF/JPG/PNG · 10MB 이하 · 불러온 회사에는 이미 등록된 서류가 있습니다"
+                  : "선택 · PDF/JPG/PNG · 10MB 이하"
+              }
+            >
+              <span className="flex flex-wrap items-center gap-3">
+                <label className={`${btnClass("secondary", "md")} cursor-pointer whitespace-nowrap`}>
+                  {uploading === "biz" ? "업로드 중…" : "파일 선택"}
+                  <input
+                    type="file"
+                    data-testid="f-businessCert"
+                    accept=".pdf,.jpg,.jpeg,.png"
+                    disabled={uploading === "biz"}
+                    onChange={(e) => handleCertUpload("biz", "businessCertUrl", "businessCertName", e)}
+                    className="hidden"
+                  />
+                </label>
+                {form.businessCertName ? (
+                  <span data-testid="business-cert-name" className="break-all text-s text-muted">
+                    {form.businessCertName}
+                  </span>
+                ) : null}
+              </span>
+            </Field>
+        </div>
 
         <div className="sm:col-span-2">
           <Field label="회사주소" required>
@@ -1072,6 +1157,28 @@ function StepInfo({
         <Field label="전화번호">
           <input data-testid="f-personalPhone" value={form.personalPhone} onChange={set("personalPhone")} placeholder="02-544-1651" className={inputCls(false)} />
         </Field>
+        <div className="sm:col-span-2">
+          <Field label="재직증명서" hint="선택 · PDF/JPG/PNG · 10MB 이하">
+            <span className="flex flex-wrap items-center gap-3">
+              <label className={`${btnClass("secondary", "md")} cursor-pointer whitespace-nowrap`}>
+                {uploading === "employment" ? "업로드 중…" : "파일 선택"}
+                <input
+                  type="file"
+                  data-testid="f-employmentCert"
+                  accept=".pdf,.jpg,.jpeg,.png"
+                  disabled={uploading === "employment"}
+                  onChange={(e) => handleCertUpload("employment", "employmentCertUrl", "employmentCertName", e)}
+                  className="hidden"
+                />
+              </label>
+              {form.employmentCertName ? (
+                <span data-testid="employment-cert-name" className="break-all text-s text-muted">
+                  {form.employmentCertName}
+                </span>
+              ) : null}
+            </span>
+          </Field>
+        </div>
       </div>
 
       <div className="mt-10 flex gap-3">
@@ -1092,7 +1199,15 @@ function StepInfo({
   );
 }
 
-function StepDone({ notice }: { notice: string | null }) {
+function StepDone({
+  notice,
+  isNewMaster,
+  companyName,
+}: {
+  notice: string | null;
+  isNewMaster: boolean;
+  companyName: string;
+}) {
   return (
     <section className="mt-12 text-center" data-testid="step-done">
       <h2 className="type-kr-heading break-keep text-h5-m sm:text-h5">가입 신청이 접수되었습니다</h2>
@@ -1100,6 +1215,15 @@ function StepDone({ notice }: { notice: string | null }) {
       {notice ? (
         <p data-testid="join-notice" className="mx-auto mt-5 max-w-lg break-keep border border-border-soft px-5 py-4 text-s leading-6">
           {notice}
+        </p>
+      ) : null}
+      {isNewMaster ? (
+        <p
+          data-testid="master-account-notice"
+          className="mx-auto mt-5 max-w-lg break-keep border border-accent px-5 py-4 text-s leading-6"
+        >
+          {companyName || "회사"}의 <b>마스터 계정</b>으로 가입되었습니다. 승인 후 마이메뉴 &gt; 담당자
+          관리에서 소속 담당자를 초대하고, 합류 신청을 승인·반려하거나 대표 권한을 이관할 수 있습니다.
         </p>
       ) : null}
       <p className="mt-3 break-keep text-xs leading-6 text-muted">
@@ -1141,7 +1265,7 @@ function CompanySearchDialog({
       data-testid="company-search"
       role="dialog"
       aria-modal="true"
-      aria-label="회사정보 불러오기"
+      aria-label="등록된 회사정보 불러오기"
       // 어두운 바깥을 누르거나 Esc 를 누르면 닫힌다 — 창을 띄웠으면 그렇게 닫히리라 기대한다.
       // 안쪽을 눌렀을 때 닫히면 안 되므로 대상이 이 겹판 자신일 때만 닫는다.
       onMouseDown={(e) => {
@@ -1156,7 +1280,7 @@ function CompanySearchDialog({
     >
       <div className="flex max-h-[85vh] w-full max-w-3xl flex-col overflow-y-auto bg-background p-7 sm:p-9">
         <div className="flex items-center justify-between">
-          <h3 className="text-h5-m font-bold sm:text-h5">회사정보 불러오기</h3>
+          <h3 className="text-h5-m font-bold sm:text-h5">등록된 회사정보 불러오기</h3>
           <button type="button" data-testid="search-close" onClick={onClose} aria-label="닫기" className="text-muted">
             ✕
           </button>

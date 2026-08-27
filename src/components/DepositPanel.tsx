@@ -29,9 +29,9 @@ export function DepositPanel({
       <div>
         {/* 같은 행의 AttachmentsPanel 과 헤딩 규격을 맞춘다 (2px 룰 + type-kr-heading) */}
         <h3 className="type-kr-heading border-t-2 border-foreground pt-4 text-h6-m sm:text-h6">
-          보증금
+          계약금
         </h3>
-        <p className="mt-3 text-s text-muted">계약 확정 후 보증금 안내가 제공됩니다.</p>
+        <p className="mt-3 text-s text-muted">계약 확정 후 계약금 안내가 제공됩니다.</p>
       </div>
     );
   }
@@ -83,7 +83,7 @@ export function DepositPanel({
   return (
     <div>
       <div className="flex flex-wrap items-baseline justify-between gap-3 border-t-2 border-foreground pt-4">
-        <h3 className="type-kr-heading text-h6-m sm:text-h6">보증금</h3>
+        <h3 className="type-kr-heading text-h6-m sm:text-h6">계약금</h3>
         <StatusBadge status={deposit.status} />
       </div>
       <p className="mt-3 text-s text-muted">

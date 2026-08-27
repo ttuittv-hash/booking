@@ -1,18 +1,69 @@
 "use client";
 
-import { toggleClass } from "@/components/ui/kit";
+import type { ReactNode } from "react";
+import { ICON_BTN_SM, toggleClass } from "@/components/ui/kit";
 import type { MarketingCooperation } from "@/lib/pricing/types";
+import { useWizardText } from "@/lib/content/wizardText";
 import { StepHeading, StepForm } from "./StepHeading";
 
-// 홍보 및 서비스 노출 동의는 무조건 선택해야 다음 단계로 넘어간다(2026-08-22,
-// "홍보 및 서비스 노출 동의/비동의 -> 이거 선택은 무조건 필수"). 나머지(채널·스폰서십)는
-// 선택 항목이라 여기서 검사하지 않는다.
-export function validateMarketingCooperationStep(info: MarketingCooperation): string | null {
-  if (info.seoulArenaPromotionConsent === null) {
-    return "홍보 및 서비스 노출 동의 여부를 선택해 주세요.";
-  }
-  return null;
+// [개정 2026-08-27] "마케팅 및 서비스 연계 안내" 슬롯에서 동의 항목을 뺐다. 해제할 수
+// 없는 잠긴 체크박스라 고를 것이 없었고, 그 하나 때문에 이 STEP 이 필수 게이트로 잡혀
+// 있었다(validateMarketingCooperationStep 도 같이 삭제). 안내 문구는 그대로 남는다 —
+// selection.marketingCooperation.seoulArenaPromotionConsent 는 계속 true 로 저장된다.
+// true로 고정해 보여주므로(아래 체크박스가 disabled) 이 검사는 이제 실패할 일이
+// 없지만, 옛 임시저장본을 열었을 때의 방어선으로 남겨둔다.
+
+/*
+  마케팅 실행 계획(온라인/오프라인)은 줄글이 아니라 항목을 하나씩 쌓는 자리다.
+  예전에는 textarea 한 칸에 "· " 를 자동으로 붙여 여러 줄로 받았는데, 지우고 다시 쓰기가
+  번거로워 항목 단위 행으로 바꿨다(2026-08-27). 저장은 배열로 하고, 예전 신청서·심사 채점이
+  읽는 mediaMixOnline/mediaMixOffline 문자열은 이 배열에서 합성해 계속 채운다.
+*/
+function planItems(raw: string | undefined, items: string[] | undefined): string[] {
+  if (Array.isArray(items)) return items.length > 0 ? items : [""];
+  // 배열이 없던 시절 임시저장본 — 줄바꿈으로 나누고 앞의 가운데 점을 떼어 항목으로 읽는다.
+  const parsed = (raw ?? "")
+    .split("\n")
+    .map((line) => line.replace(/^[·•-]\s*/, "").trim())
+    .filter(Boolean);
+  return parsed.length > 0 ? parsed : [""];
 }
+
+/** 항목 배열 → 예전 문자열. 빈 항목은 버린다. */
+function joinPlanItems(items: string[]): string {
+  return items.map((v) => v.trim()).filter(Boolean).join("\n");
+}
+
+const SERVICE_SCOPE_ITEMS = [
+  {
+    key: "info",
+    defaultTitle: "공연·아티스트 정보 제공 및 홍보",
+    defaultDesc: "공연 일정, 공연 소개, 아티스트 정보 등을 활용하여 공연 정보를 제공하고 공연 및 아티스트의 홍보를 지원합니다.",
+  },
+  {
+    key: "content",
+    defaultTitle: "공연 콘텐츠 제공",
+    defaultDesc:
+      "공연 포스터, 아티스트 이미지, 공식 사진·영상, 공연 프로그램, 세트리스트 등 공연과 관련된 콘텐츠를 관람객에게 제공할 수 있습니다.",
+  },
+  {
+    key: "md",
+    defaultTitle: "MD·팝업·이벤트 정보 제공",
+    defaultDesc: "공식 MD, 팝업스토어, 팬 이벤트, 프로모션 등 공연과 연계된 현장 프로그램 및 부대 콘텐츠를 안내할 수 있습니다.",
+  },
+  {
+    key: "guide",
+    defaultTitle: "관람객 안내 및 편의 서비스",
+    defaultDesc:
+      "공연 일정 및 운영 정보, 입장·퇴장, 교통, 시설 이용, 현장 프로그램 등 관람에 필요한 정보를 서울아레나 웹·앱 서비스와 연계하여 제공할 수 있습니다.",
+  },
+  {
+    key: "safety",
+    defaultTitle: "현장 운영 및 안전·질서 안내",
+    defaultDesc:
+      "공연별 운영 정보와 현장 상황을 기반으로 관람객 동선, 혼잡 관리, 안전 및 질서 유지 등을 위한 안내 서비스에 활용할 수 있습니다.",
+  },
+] as const;
 
 const EMPTY_CHANNEL = { platform: "", handle: "", followers: "" };
 
@@ -39,9 +90,11 @@ export function StepMarketingCooperation({
 }: {
   info: MarketingCooperation;
   onChange: (info: MarketingCooperation) => void;
-  title: string;
-  lead: string;
+  title: ReactNode;
+  lead: ReactNode;
 }) {
+  const { t, tStr } = useWizardText();
+
   function set<K extends keyof MarketingCooperation>(key: K, value: MarketingCooperation[K]) {
     onChange({ ...info, [key]: value });
   }
@@ -64,26 +117,29 @@ export function StepMarketingCooperation({
     );
   }
 
-  function addSponsorship() {
-    set("sponsorships", [...info.sponsorships, { brandName: "", campaignSummary: "" }]);
-  }
-
-  function updateSponsorship(index: number, patch: Partial<MarketingCooperation["sponsorships"][number]>) {
-    set(
-      "sponsorships",
-      info.sponsorships.map((row, i) => (i === index ? { ...row, ...patch } : row)),
-    );
-  }
-
-  function removeSponsorship(index: number) {
-    set(
-      "sponsorships",
-      info.sponsorships.filter((_, i) => i !== index),
-    );
-  }
-
   function updateExecutionPlan(patch: Partial<MarketingCooperation["executionPlan"]>) {
     set("executionPlan", { ...info.executionPlan, ...patch });
+  }
+
+  // [개정 2026-08-26] "온라인/오프라인 마케팅 계획을 구분해서 입력" 요청 — 매체 믹스를
+  // 둘로 나눈다. mediaMix(단일 텍스트)는 scoreQuote.ts의 A-MKT 채점이 그대로 읽고
+  // 있어, 항목이 바뀔 때마다 합성해 하위호환을 유지한다.
+  const onlineItems = planItems(info.executionPlan.mediaMixOnline, info.executionPlan.mediaMixOnlineItems);
+  const offlineItems = planItems(info.executionPlan.mediaMixOffline, info.executionPlan.mediaMixOfflineItems);
+
+  function updateMediaMix(patch: { online?: string[]; offline?: string[] }) {
+    const online = patch.online ?? onlineItems;
+    const offline = patch.offline ?? offlineItems;
+    const onlineText = joinPlanItems(online);
+    const offlineText = joinPlanItems(offline);
+    const parts = [onlineText && `온라인: ${onlineText}`, offlineText && `오프라인: ${offlineText}`].filter(Boolean);
+    updateExecutionPlan({
+      mediaMixOnlineItems: online,
+      mediaMixOfflineItems: offline,
+      mediaMixOnline: onlineText,
+      mediaMixOffline: offlineText,
+      mediaMix: parts.join(" / "),
+    });
   }
 
   return (
@@ -93,69 +149,97 @@ export function StepMarketingCooperation({
       <StepForm>
         <div className="border-t border-border/25 pt-5">
           <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
-            <h3 className="type-kr-heading text-h6-m">마케팅 실행 계획(선택)</h3>
+            <h3 className="type-kr-heading text-h6-m">
+              {t("marketing.executionPlanHeading", "마케팅 실행 계획(선택)")}
+            </h3>
             <p className="text-xs text-muted">
-              4요소 중 2개 이상을 구체적 수치·금액·일자로 작성해 주세요.
+              {t("marketing.executionPlanRequirementHint", "온라인·오프라인 중 1개 이상을 구체적 수치·금액·일자로 작성해 주세요.")}
             </p>
           </div>
           <p className="mt-1 mb-3 break-keep text-xs leading-6 text-muted">
-            공연 홍보를 어떻게 진행할 계획인지 대략적인 방향을 입력해 주세요.
+            {t("marketing.executionPlanLead", "공연 홍보를 어떻게 진행할 계획인지 대략적인 방향을 항목별로 나눠 입력해 주세요.")}
           </p>
-          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-            <div>
-              <label className="mb-1.5 block text-xs font-bold text-foreground">타겟 정의</label>
-              <textarea
-                value={info.executionPlan.targetDefinition}
-                onChange={(e) => updateExecutionPlan({ targetDefinition: e.target.value })}
-                placeholder="예: 20~30대 여성, 수도권 거주"
-                rows={3}
-                className="field-base"
-              />
-            </div>
-            <div>
-              <label className="mb-1.5 block text-xs font-bold text-foreground">매체 믹스</label>
-              <textarea
-                value={info.executionPlan.mediaMix}
-                onChange={(e) => updateExecutionPlan({ mediaMix: e.target.value })}
-                placeholder="예: SNS 광고 60%, 옥외광고 30%, 언론 10%"
-                rows={3}
-                className="field-base"
-              />
-            </div>
-            <div>
-              <label className="mb-1.5 block text-xs font-bold text-foreground">집행 예산(원)</label>
-              <textarea
-                value={info.executionPlan.budget}
-                onChange={(e) => updateExecutionPlan({ budget: e.target.value })}
-                placeholder="예: 총 50,000,000원"
-                rows={3}
-                className="field-base"
-              />
-            </div>
-            <div>
-              <label className="mb-1.5 block text-xs font-bold text-foreground">타임라인(기간)</label>
-              <textarea
-                value={info.executionPlan.timeline}
-                onChange={(e) => updateExecutionPlan({ timeline: e.target.value })}
-                placeholder="예: 티켓 오픈 4주 전부터 공연일까지"
-                rows={3}
-                className="field-base"
-              />
-            </div>
+          <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
+            {(
+              [
+                {
+                  key: "online" as const,
+                  items: onlineItems,
+                  label: t("marketing.mediaMixOnlineLabel", "온라인 마케팅 계획"),
+                  addLabel: t("marketing.mediaMixOnlineAdd", "＋ 항목 추가"),
+                  placeholder: tStr("marketing.mediaMixOnlinePlaceholder", "예: SNS 광고 60%, 포털 배너 20%"),
+                },
+                {
+                  key: "offline" as const,
+                  items: offlineItems,
+                  label: t("marketing.mediaMixOfflineLabel", "오프라인 마케팅 계획"),
+                  addLabel: t("marketing.mediaMixOfflineAdd", "＋ 항목 추가"),
+                  placeholder: tStr("marketing.mediaMixOfflinePlaceholder", "예: 옥외광고 30%, 지하철 광고, 언론 10%"),
+                },
+              ]
+            ).map((group) => (
+              <div key={group.key}>
+                <div className="mb-1.5 flex items-center justify-between gap-3">
+                  <label className="block text-xs font-bold text-foreground">{group.label}</label>
+                  <button
+                    type="button"
+                    onClick={() => updateMediaMix({ [group.key]: [...group.items, ""] })}
+                    className={toggleClass(false)}
+                  >
+                    {group.addLabel}
+                  </button>
+                </div>
+                <div className="space-y-2">
+                  {group.items.map((value, i) => (
+                    <div key={i} className="flex items-center gap-2">
+                      <input
+                        value={value}
+                        onChange={(e) =>
+                          updateMediaMix({
+                            [group.key]: group.items.map((v, j) => (j === i ? e.target.value : v)),
+                          })
+                        }
+                        placeholder={group.placeholder}
+                        className="field-base min-w-0 flex-1"
+                      />
+                      {/* 마지막 한 줄은 지우지 않고 비운다 — 행이 0개면 "＋ 항목 추가"를
+                          눌러야만 다시 쓸 수 있어 빈 화면처럼 보인다. */}
+                      <button
+                        type="button"
+                        aria-label={tStr("marketing.mediaMixRemoveItem", "항목 삭제")}
+                        onClick={() =>
+                          updateMediaMix({
+                            [group.key]:
+                              group.items.length > 1
+                                ? group.items.filter((_, j) => j !== i)
+                                : [""],
+                          })
+                        }
+                        className={ICON_BTN_SM}
+                      >
+                        ×
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ))}
           </div>
         </div>
 
         <div className="mt-8 border-t border-border/25 pt-5">
           <div className="mb-2.5 flex items-center justify-between">
-            <h3 className="type-kr-heading text-h6-m">프로모션 채널(선택)</h3>
+            <h3 className="type-kr-heading text-h6-m">{t("marketing.channelsHeading", "프로모션 채널(선택)")}</h3>
             <button type="button" onClick={addChannel} className={toggleClass(false)}>
-              ＋ 채널 추가
+              {t("marketing.addChannelButton", "＋ 채널 추가")}
             </button>
           </div>
           <p className="mt-1 mb-3 break-keep text-xs leading-6 text-muted">
-            공연 운영 채널이 있다면 입력해주세요. 서울아레나와 연계하여 홍보 가능합니다.
+            {t("marketing.channelsHint", "공연 운영 채널이 있다면 입력해주세요. 서울아레나와 연계하여 홍보 가능합니다.")}
           </p>
-          {info.channels.length === 0 && <p className="text-xs text-muted">등록된 채널이 없습니다.</p>}
+          {info.channels.length === 0 && (
+            <p className="text-xs text-muted">{t("marketing.channelsEmpty", "등록된 채널이 없습니다.")}</p>
+          )}
           <div className="space-y-2">
             {info.channels.map((row, i) => (
               <div
@@ -164,26 +248,26 @@ export function StepMarketingCooperation({
               >
                 <input
                   value={row.platform}
-                  placeholder="채널 (예: 인스타그램)"
+                  placeholder={tStr("marketing.channelPlatformPlaceholder", "채널 (예: 인스타그램)")}
                   onChange={(e) => updateChannel(i, { platform: e.target.value })}
                   className="field-base"
                 />
                 <input
                   value={row.handle}
-                  placeholder="계정 / URL"
+                  placeholder={tStr("marketing.channelHandlePlaceholder", "계정 / URL")}
                   onChange={(e) => updateChannel(i, { handle: e.target.value })}
                   className="field-base"
                 />
                 <input
                   value={row.followers}
-                  placeholder="구독자·팔로워 수"
+                  placeholder={tStr("marketing.channelFollowersPlaceholder", "구독자·팔로워 수")}
                   onChange={(e) => updateChannel(i, { followers: e.target.value })}
                   className="field-base"
                 />
                 <button
                   type="button"
                   onClick={() => removeChannel(i)}
-                  aria-label="채널 삭제"
+                  aria-label={tStr("marketing.removeChannelAriaLabel", "채널 삭제")}
                   // 입력 필드와 같은 무게의 버튼(보더·박스)이 아니라 옆에 딸린 보조
                   // 동작이라는 걸 보여주려고 아이콘만 둔다 — 삭제 버튼이 입력창과
                   // 같은 위계로 보인다는 지적으로 바꿨다.
@@ -197,125 +281,150 @@ export function StepMarketingCooperation({
         </div>
 
         <div className="mt-8 border-t border-border/25 pt-5">
-          <h3 className="type-kr-heading text-h6-m">홍보 및 서비스 노출</h3>
+          <h3 className="type-kr-heading text-h6-m">
+            {t("marketing.serviceLinkHeading", "마케팅 및 서비스 연계 안내")}
+          </h3>
 
-          {/* 대관사가 부담 없이 읽을 수 있게 문장은 부드럽게 풀어 쓰되(2026-08-22,
-              "대관사가 잘 이해할 수 있게 부드럽게" 피드백), "무엇을(제공 정보 및 콘텐츠)"과
-              "어떻게(활용 목적 및 범위)"는 서로 다른 질문이라 한 박스로 뭉치지 않고
-              두 박스로 나눠 보여준다("활용대상 박스, 노출/활용 범위박스를 두개 나눠서").
-              문구는 2026-08-23에 정식 조항 텍스트로 교체됨. */}
+          {/* 2026-08-25, "서비스 에 대한 꼭지를 슬롯으로 하나 분리해서... 앱.웹서비스에 노출
+              범위를 조정" 요청으로 기존 "홍보 및 서비스 노출"(제공 정보/활용 목적 두 박스 +
+              동의/비동의 버튼)을 대체. 법무 검토용으로 전달받은 문구를 그대로 옮긴다 —
+              임의로 다듬지 않는다. */}
           <p className="mt-3 break-keep text-xs leading-6 text-muted">
-            서울아레나는 관람객에게 원활한 공연·이벤트 정보 및 서비스를 제공하기 위해
-            대관사가 제공하는 공연 정보 및 관련 콘텐츠를 서울아레나 Web/App Service 등
-            온·오프라인 채널에서 활용할 수 있습니다.
+            {t(
+              "marketing.serviceLinkLead",
+              "서울아레나는 관람객에게 보다 편리하고 풍부한 공연 경험을 제공하기 위해, 대관사가 " +
+                "제공하는 공연·아티스트 관련 정보 및 콘텐츠를 서울아레나 공식 웹사이트 및 모바일 " +
+                "서비스에 연계하여 제공할 수 있습니다.",
+            )}
           </p>
 
+          {/* 2026-08-25, "너무 나열이야.. 박스 형태로.. 주요활용 범위, 안내 사항을 가로 축을
+              반으로 나눠서" 피드백 — 세로로 죽 나열하던 두 섹션을 예전 "제공 정보 및
+              콘텐츠 / 활용 목적 및 범위" 두 박스 레이아웃과 같은 grid-cols-2 박스로 되돌림. */}
           <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2">
             <div className="rounded-lg border border-border/25 bg-surface p-4">
-              <p className="text-xs font-bold text-foreground">제공 정보 및 콘텐츠</p>
-              <ul className="mt-1.5 list-disc space-y-1 break-keep pl-4 text-xs leading-6 text-muted">
-                <li>공연·이벤트명, 아티스트, 공연 일정 및 프로그램 등 공연 기본 정보</li>
-                <li>공연 소개, 포스터, 공식 이미지·영상 등 홍보 콘텐츠</li>
-                <li>티켓 오픈·예매 및 관람 관련 정보</li>
-                <li>입·퇴장, 운영시간, MD·F&amp;B, 부대행사 등 관람객 안내에 필요한 정보</li>
-                <li>기타 공연 및 관람객 서비스 운영을 위해 상호 협의한 정보</li>
+              <p className="text-xs font-bold text-foreground">
+                {t("marketing.serviceScopeHeading", "주요 활용 범위")}
+              </p>
+              <ul className="mt-2 space-y-3">
+                {SERVICE_SCOPE_ITEMS.map((item) => (
+                  <li key={item.key}>
+                    <p className="text-xs font-bold text-foreground">
+                      {t(`marketing.serviceScope.${item.key}.title`, item.defaultTitle)}
+                    </p>
+                    <p className="mt-1 break-keep text-xs leading-6 text-muted">
+                      {t(`marketing.serviceScope.${item.key}.desc`, item.defaultDesc)}
+                    </p>
+                  </li>
+                ))}
               </ul>
             </div>
             <div className="rounded-lg border border-border/25 bg-surface p-4">
-              <p className="text-xs font-bold text-foreground">활용 목적 및 범위</p>
-              <ul className="mt-1.5 list-disc space-y-1 break-keep pl-4 text-xs leading-6 text-muted">
-                <li>서울아레나 Web/App Service 내 공연·이벤트 정보 제공</li>
-                <li>공연 상세, 아티스트, 일정 등 공연 관련 콘텐츠 구성 및 노출</li>
-                <li>공연·이벤트 홍보 및 프로모션</li>
-                <li>관람객 특성 및 공연 일정에 따른 맞춤형 정보 제공·큐레이션</li>
-                <li>입·퇴장, 혼잡시간, 시설 이용 등 관람객 안내 및 안전·질서 관리</li>
-                <li>공연 및 관람객 서비스의 운영·개선</li>
-                <li>공연장 운영 현황 분석 및 통계 데이터 구축·활용</li>
+              <p className="text-xs font-bold text-foreground">
+                {t("marketing.serviceNoticeHeading", "안내사항")}
+              </p>
+              <ul className="mt-2 list-disc space-y-1.5 break-keep pl-4 text-xs leading-6 text-muted">
+                <li>
+                  {t(
+                    "marketing.serviceNoticeItem1",
+                    "실제 활용되는 정보 및 콘텐츠의 제공 범위, 공개 여부, 노출 시점 등은 공연 준비 " +
+                      "과정에서 대관사와 협의하여 확정합니다.",
+                  )}
+                </li>
+                <li>
+                  {t(
+                    "marketing.serviceNoticeItem2",
+                    "대관 신청 단계에서는 별도의 콘텐츠 파일을 제출하지 않으며, 필요한 자료는 공연 " +
+                      "준비 과정에서 별도로 요청할 수 있습니다.",
+                  )}
+                </li>
+                <li>
+                  {t(
+                    "marketing.serviceNoticeItem3",
+                    "대관사가 제공하는 이미지·영상 등 콘텐츠는 서울아레나 웹·앱 서비스에서 활용 " +
+                      "가능한 권리를 확보한 자료를 기준으로 합니다.",
+                  )}
+                </li>
               </ul>
             </div>
           </div>
 
-          <p className="mt-3 break-keep text-xs leading-6 text-muted">
-            제공된 정보 및 콘텐츠는 해당 공연·이벤트의 관람객 서비스 제공, 홍보, 안전한
-            공연장 운영 및 서울아레나 서비스 개선을 위한 목적으로 활용될 수 있습니다.
-          </p>
-
-          <p className="mt-3 break-keep text-xs leading-6 text-muted">
-            이미지·영상 등의 사용 권한은 대관사가 미리 확보한 범위 내에서 제공해 주시면 되고,
-            별도 협의가 필요한 콘텐츠는 서울아레나와 미리 상의해 주세요.
-          </p>
-
-          <div className="mt-4 flex gap-2">
-            <button
-              type="button"
-              onClick={() => set("seoulArenaPromotionConsent", true)}
-              className={toggleClass(info.seoulArenaPromotionConsent === true)}
-            >
-              동의
-            </button>
-            <button
-              type="button"
-              onClick={() => set("seoulArenaPromotionConsent", false)}
-              className={toggleClass(info.seoulArenaPromotionConsent === false)}
-            >
-              비동의
-            </button>
-          </div>
-          <p className="mt-2.5 break-keep text-xs text-muted">
-            사전 동의 시, 세부 내역은 별도 협의를 통해 진행됩니다.
-          </p>
         </div>
 
+        {/* 2026-08-25, "공동스폰서십 슬롯은 삭제하고 이 내용을 넣어줘" — 자유 서술형
+            스폰서십 목록 입력 슬롯과 아래 "공연 관련 데이터 제공 협조" 슬롯을 없애고,
+            전달받은 디자인 시안 그대로 "협조 동의 항목" 한 슬롯으로 합쳤다. */}
         <div className="mt-8 border-t border-border/25 pt-5">
-          <div className="mb-2.5 flex items-center justify-between">
-            <h3 className="type-kr-heading text-h6-m">공동 스폰서십 · 브랜드 협업 연계(선택)</h3>
-            <button type="button" onClick={addSponsorship} className={toggleClass(false)}>
-              ＋ 항목 추가
-            </button>
-          </div>
-          <p className="mt-1 mb-3 break-keep text-xs leading-6 text-muted">
-            서울아레나의 공식 파트너 및 제휴 브랜드와 연계한 공동 스폰서십·프로모션 등 협업
-            기회를 검토할 수 있습니다. 선택 시 공연·행사의 특성과 브랜드 적합성을 고려하여
-            별도 협의를 통해 진행됩니다.
-          </p>
-          {info.sponsorships.length === 0 && (
-            <p className="text-xs text-muted">등록된 스폰서십 · 협업 내역이 없습니다.</p>
-          )}
-          <div className="space-y-2">
-            {info.sponsorships.map((row, i) => (
-              <div
-                key={i}
-                className="grid grid-cols-1 gap-1.5 border-b border-border/15 py-2 sm:grid-cols-[1fr_2fr_auto]"
-              >
-                <input
-                  value={row.brandName}
-                  placeholder="스폰서 / 브랜드사명"
-                  onChange={(e) => updateSponsorship(i, { brandName: e.target.value })}
-                  className="field-base"
-                />
-                <input
-                  value={row.campaignSummary}
-                  placeholder="연계 캠페인 개요"
-                  onChange={(e) => updateSponsorship(i, { campaignSummary: e.target.value })}
-                  className="field-base"
-                />
-                <button
-                  type="button"
-                  onClick={() => removeSponsorship(i)}
-                  aria-label="항목 삭제"
-                  className="flex h-10 w-10 shrink-0 items-center justify-center text-muted transition-colors hover:text-danger"
-                >
-                  ✕
-                </button>
+          <h3 className="type-kr-heading text-h6-m">
+            {t("marketing.cooperationConsentHeading", "협조 동의 항목")}
+          </h3>
+
+          <div className="mt-3 space-y-2">
+            <div className="flex flex-col gap-2 border border-border/25 p-4 sm:flex-row sm:items-center sm:justify-between">
+              <p className="text-s font-bold text-foreground">
+                {t("marketing.coPromotionLabel", "공동 프로모션 협조")}
+              </p>
+              <div className="flex flex-wrap items-center gap-3">
+                <p className="text-xs text-muted">
+                  {t("marketing.coPromotionHint", "2차 제작물 채널 활용 동의(좀 더 구체설명 예정)")}
+                </p>
+                <div className="flex gap-2">
+                  <button
+                    type="button"
+                    onClick={() => set("coPromotionConsent", true)}
+                    className={toggleClass(info.coPromotionConsent === true)}
+                  >
+                    {t("marketing.consentYes", "동의")}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => set("coPromotionConsent", false)}
+                    className={toggleClass(info.coPromotionConsent === false)}
+                  >
+                    {t("marketing.consentNo", "비동의")}
+                  </button>
+                </div>
               </div>
-            ))}
+            </div>
+
+            <div className="flex flex-col gap-2 border border-border/25 p-4 sm:flex-row sm:items-center sm:justify-between">
+              <p className="text-s font-bold text-foreground">
+                {t("marketing.coSponsorshipLabel", "공동 스폰서십·브랜딩 협업")}
+              </p>
+              <div className="flex flex-wrap items-center gap-3">
+                <p className="text-xs text-muted">
+                  {t("marketing.coSponsorshipHint", "확보 시 즉시 통보·협업 의무(좀 더 구체 설명 예정)")}
+                </p>
+                <div className="flex gap-2">
+                  <button
+                    type="button"
+                    onClick={() => set("coSponsorshipConsent", true)}
+                    className={toggleClass(info.coSponsorshipConsent === true)}
+                  >
+                    {t("marketing.consentYes", "동의")}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => set("coSponsorshipConsent", false)}
+                    className={toggleClass(info.coSponsorshipConsent === false)}
+                  >
+                    {t("marketing.consentNo", "비동의")}
+                  </button>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
 
+        {/* 2026-08-25, "세일즈·실적 데이터 제공 협조 이거 박스형태로 있던거 그대로
+            유지해야지.. 이 슬롯 기존대로 복구" — 위 "협조 동의 항목"에 합쳤던 걸
+            되돌리고, 원래대로 독립 슬롯 + 2단 박스 레이아웃을 유지한다. */}
         <div className="mt-8 border-t border-border/25 pt-5">
-          <h3 className="type-kr-heading text-h6-m">공연 관련 데이터 제공 협조</h3>
+          <h3 className="type-kr-heading text-h6-m">
+            {t("marketing.dataConsentHeading", "공연 관련 데이터 제공 협조")}
+          </h3>
           <p className="mt-2 break-keep text-xs leading-6 text-muted">
-            제공된 데이터는 서울아레나의 공연장 운영 통계에 활용됩니다.
+            {t("marketing.dataConsentHint", "제공된 데이터는 서울아레나의 공연장 운영 통계에 활용됩니다.")}
           </p>
 
           <div className="mt-4 grid grid-cols-1 gap-x-6 gap-y-5 sm:grid-cols-2">
@@ -337,10 +446,11 @@ export function StepMarketingCooperation({
                   }}
                   className="h-4 w-4 accent-[var(--accent)]"
                 />
-                공연 실적 데이터 제공
+                {t("marketing.salesDataConsentLabel", "공연 실적 데이터 제공")}
               </label>
               <p className="mt-1.5 pl-6 break-keep text-xs leading-5 text-muted">
-                {SALES_DATA_ITEMS.join(", ")} 등
+                {t("marketing.salesDataItemsList", SALES_DATA_ITEMS.join(", "))}{" "}
+                {t("marketing.salesDataItemsSuffix", "등")}
               </p>
             </div>
             <div>
@@ -356,15 +466,21 @@ export function StepMarketingCooperation({
                   onChange={(e) => set("pollstarConsent", e.target.checked)}
                   className="h-4 w-4 accent-[var(--accent)]"
                 />
-                공연 데이터 외부 제공 동의 (Pollstar 등)
+                {t("marketing.pollstarConsentLabel", "공연 데이터 외부 제공 동의 (Pollstar 등)")}
               </label>
               <p className="mt-1.5 pl-6 break-keep text-xs leading-5 text-muted">
-                동의 시 아티스트, 공연일자, 공연장 정보와 함께 티켓 판매량, 판매가능 객석수,
-                판매율, 티켓 가격 및 매출 등 개별 공연의 실적 정보가 외부 공연산업
-                데이터베이스에 제공·공개될 수 있습니다.
+                {t(
+                  "marketing.pollstarConsentHint",
+                  "동의 시 아티스트, 공연일자, 공연장 정보와 함께 티켓 판매량, 판매가능 객석수, " +
+                    "판매율, 티켓 가격 및 매출 등 개별 공연의 실적 정보가 외부 공연산업 " +
+                    "데이터베이스에 제공·공개될 수 있습니다.",
+                )}
                 {!info.ticketSalesDataConsent && (
                   <span className="mt-1 block text-muted/80">
-                    (좌측 공연 실적 데이터 제공에 동의해야 선택할 수 있습니다)
+                    {t(
+                      "marketing.pollstarConsentDisabledNote",
+                      "(좌측 공연 실적 데이터 제공에 동의해야 선택할 수 있습니다)",
+                    )}
                   </span>
                 )}
               </p>

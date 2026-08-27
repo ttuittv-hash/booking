@@ -170,38 +170,50 @@ try {
   await page.click('[data-testid="invite-send"]');
   await page.waitForSelector('[data-testid="invite-url"]', { timeout: 15000 });
   const inviteUrl = (await page.locator('[data-testid="invite-url"] .font-mono').innerText()).trim();
-  check("A11-1", "초대 링크가 발급된다", inviteUrl.includes("/invite?token="));
+  check("A11-1", "초대 링크가 회원가입 페이지로 발급된다", inviteUrl.includes("/register"));
 
-  // 초대 수락 — 다른 브라우저 컨텍스트(= 다른 사람)
+  // 초대받은 사람의 가입 — 다른 브라우저 컨텍스트(= 다른 사람).
+  // [개정 2026-08-27] 전용 수락 화면을 없앴다. 초대받은 사람은 일반 회원가입을 그대로 밟고
+  // (사업자등록번호로 같은 회사에 합류), 대표 담당자가 담당자 관리에서 승인한다.
   const inviteeCtx = await newCtx();
   const invitee = await inviteeCtx.newPage();
   await invitee.goto(inviteUrl, { waitUntil: "domcontentloaded" });
+  await invitee.click('[data-testid="pick-corporate"]');
+  await invitee.check('[data-testid="agree-SERVICE"]');
+  await invitee.check('[data-testid="agree-PRIVACY_REQUIRED"]');
+  await invitee.click('[data-testid="terms-next"]');
   await invitee.click('[data-testid="identity-start"]');
-  await invitee.waitForSelector('[data-testid="invite-username"]', { timeout: 20000 });
-  check("A11-2", "초대받은 사람이 본인인증을 거친다", true);
-  await invitee.fill('[data-testid="invite-name"]', "초대수락테스트");
-  await invitee.fill('[data-testid="invite-username"]', "s" + t);
-  await invitee.fill('[data-testid="invite-password"]', "Test1234!");
-  await invitee.fill('[data-testid="invite-password-confirm"]', "Test1234!");
-  await invitee.click('[data-testid="invite-submit"]');
-  await invitee.waitForSelector('[data-testid="invite-done"]', { timeout: 30000 });
-  check("A11-3", "본인이 비밀번호를 직접 정해 합류한다", true);
+  await invitee.waitForSelector('[data-testid="step-info"]', { timeout: 20000 });
+  check("A11-2", "초대받은 사람이 일반 회원가입 흐름을 그대로 밟는다", true);
+  // 같은 회사 = 같은 사업자등록번호. 진위확인을 거치면 "이미 등록된 회사"로 잠긴다.
+  await invitee.fill('[data-testid="f-brn"]', "120-81-47521");
+  await invitee.click('[data-testid="verify-brn"]');
+  await invitee.waitForSelector('[data-testid="brn-check-message"]', { timeout: 25000 });
+  check("A11-3", "사업자등록번호로 같은 회사에 합류로 판정된다",
+    (await invitee.locator('[data-testid="f-companyName"]').getAttribute("readonly")) !== null);
+  await fillIfEditable(invitee, '[data-testid="f-postalCode"]', "13529");
+  await fillIfEditable(invitee, '[data-testid="f-address"]', "경기도 성남시 분당구 판교역로 166");
+  await invitee.fill('[data-testid="f-username"]', "s" + t);
+  // 초대장과 같은 이메일로 가입해야 "미가입" 초대 행이 자동 정리된다.
+  await invitee.fill('[data-testid="f-email"]', `staff${t}@seoul-ent.co.kr`);
+  await invitee.fill('[data-testid="f-password"]', "Test1234!");
+  await invitee.fill('[data-testid="f-passwordConfirm"]', "Test1234!");
+  await invitee.click('[data-testid="check-username"]');
+  await invitee.waitForSelector('[data-testid="id-check-message"]', { timeout: 20000 });
+  await invitee.click('[data-testid="submit-register"]');
+  await invitee.waitForSelector('[data-testid="step-done"]', { timeout: 30000 });
+  check("A11-4", "초대받은 사람이 합류 신청으로 가입된다",
+    (await invitee.locator('[data-testid="step-done"]').innerText()).includes("합류"));
 
-  // 같은 링크 재사용 차단
-  const reuse = await (await newCtx()).newPage();
-  await reuse.goto(inviteUrl, { waitUntil: "domcontentloaded" });
-  await reuse.click('[data-testid="identity-start"]').catch(() => {});
-  await reuse.waitForSelector('[data-testid="invite-username"]', { timeout: 20000 }).catch(() => {});
-  await reuse.fill('[data-testid="invite-name"]', "재사용테스트").catch(() => {});
-  await reuse.fill('[data-testid="invite-username"]', "x" + t).catch(() => {});
-  await reuse.fill('[data-testid="invite-password"]', "Test1234!").catch(() => {});
-  await reuse.fill('[data-testid="invite-password-confirm"]', "Test1234!").catch(() => {});
-  await reuse.click('[data-testid="invite-submit"]').catch(() => {});
-  await reuse.waitForSelector('[data-testid="invite-error"]', { timeout: 15000 }).catch(() => {});
-  const reuseErr = await reuse.locator('[data-testid="invite-error"]').innerText().catch(() => "");
-  const stillOnForm = await reuse.locator('[data-testid="invite-done"]').isVisible().catch(() => false);
-  check("A11-4", "쓴 초대 링크는 다시 못 쓴다",
-    !stillOnForm && (reuseErr.includes("만료") || reuseErr.includes("사용")), reuseErr.slice(0, 40));
+  // 대표 담당자 화면 — 합류 신청이 목록에 뜨고, 초대 행은 소진돼 중복으로 남지 않는다.
+  await page.reload({ waitUntil: "domcontentloaded" });
+  await page.waitForSelector('[data-testid="members-table"]');
+  const rows = await page.locator('[data-testid="members-table"] tbody tr').allInnerTexts();
+  check("A11-5", "합류 신청이 대표 담당자 목록에 보인다",
+    rows.some((r) => r.includes("승인 대기")));
+  check("A11-6", "가입한 사람의 초대 행은 중복으로 남지 않는다",
+    rows.filter((r) => r.includes(`staff${t}@seoul-ent.co.kr`)).length === 1,
+    rows.filter((r) => r.includes(`staff${t}@seoul-ent.co.kr`)).length + "행");
 
   // ── A13 계정 복구 ─────────────────────────────────────────
   const rec = await (await newCtx()).newPage();

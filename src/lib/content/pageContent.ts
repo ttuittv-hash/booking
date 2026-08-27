@@ -316,6 +316,15 @@ export interface ScreenTextContent {
   locationLead: string;
   locationRows: Pair[];
   wizardSteps: WizardStepTexts;
+  /**
+   * [2026-08-25] "모든 텍스트 수정 가능" — 위저드 스텝 제목·리드(20개, wizardSteps) 밖의
+   * 나머지 문구(체크박스 라벨, 안내 문단, 서약 조항 전문 등)는 필드를 하나하나 타입으로
+   * 선언하지 않고 key → 값의 평평한 맵으로 둔다. 각 스텝 컴포넌트는 useWizardText()의
+   * t(key, fallback)/tStr(key, fallback)로 문자열을 읽고, 여기 맵에 key가 없으면
+   * fallback(컴포넌트에 남아있는 원래 한국어 문구)을 그대로 쓴다 — 그래서 이 맵은 항상
+   * 빈 값({})에서 시작해도 되고, 관리자가 고친 문구만 여기 쌓인다.
+   */
+  wizardStrings: Record<string, string>;
 }
 
 export const DEFAULT_SCREEN_TEXT_CONTENT: ScreenTextContent = {
@@ -331,6 +340,7 @@ export const DEFAULT_SCREEN_TEXT_CONTENT: ScreenTextContent = {
     { label: "대중교통", value: "확정 후 안내" },
     { label: "주차", value: "확정 후 안내" },
   ],
+  wizardStrings: {},
   wizardSteps: DEFAULT_WIZARD_STEP_TEXTS,
 };
 

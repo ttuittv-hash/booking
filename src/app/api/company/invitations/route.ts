@@ -9,6 +9,7 @@ import {
   createCompanyInvitation,
   isCompanyMaster,
   listCompanyInvitations,
+  resendInvitation,
 } from "@/lib/db";
 
 export async function GET() {
@@ -34,6 +35,28 @@ export async function POST(request: Request) {
     if (!id) return NextResponse.json({ error: "잘못된 요청입니다." }, { status: 400 });
     await cancelInvitation(id, user.companyId);
     return NextResponse.json({ ok: true });
+  }
+
+  // [신규 2026-08-26] 재발송 — 새 토큰으로 링크를 다시 만들고 알림톡을 다시 보낸다.
+  if (action === "resend") {
+    const id = typeof body?.id === "string" ? body.id : "";
+    if (!id) return NextResponse.json({ error: "잘못된 요청입니다." }, { status: 400 });
+    const token = issueInviteToken();
+    const expiresAt = inviteExpiresAt();
+    const invitation = await resendInvitation(id, user.companyId, hashInviteToken(token), expiresAt);
+    if (!invitation) {
+      return NextResponse.json({ error: "재발송할 수 없는 초대입니다." }, { status: 400 });
+    }
+    const origin = publicOrigin(request);
+    const inviteUrl = `${origin}/register`;
+    await dispatchMessage({
+      templateCode: "MB-06",
+      idempotencyKey: `MB-06:${id}:${Date.now()}`,
+      recipient: { userId: null, phone: invitation.phone, email: invitation.email, name: invitation.inviteeName },
+      variables: { 회사명: user.companyName ?? "", 초대링크: inviteUrl },
+      request,
+    });
+    return NextResponse.json({ ok: true, inviteUrl, expiresAt });
   }
 
   const email = typeof body?.email === "string" ? body.email.trim().toLowerCase() : "";
@@ -76,7 +99,10 @@ export async function POST(request: Request) {
   });
 
   const origin = publicOrigin(request);
-  const inviteUrl = `${origin}/invite?token=${token}`;
+  // [개정 2026-08-27] 링크에 토큰을 싣지 않는다 — 초대받은 사람은 전용 수락 화면이 아니라
+  // 일반 회원가입을 그대로 밟는다(사업자등록번호로 같은 회사에 합류 → 대표 담당자가 승인).
+  // 토큰 자체는 초대 행의 식별자로 계속 발급·저장한다(token_hash 유니크 인덱스).
+  const inviteUrl = `${origin}/register`;
 
   // 초대받은 사람은 아직 계정이 없어 인앱 알림이 성립하지 않는다(recipient.userId
   // null) — dispatchMessage가 이를 감지해 인앱은 건너뛰고 알림톡으로만 나간다.

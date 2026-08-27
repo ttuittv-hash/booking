@@ -46,8 +46,8 @@ export async function POST(request: Request, ctx: { params: Promise<{ id: string
     decidedBy: user.id,
   };
 
-  // 계약 확정은 신청서 상태·감사로그·보증금·전자날인·세금계산서·알림이 한 묶음이다.
-  // 중간에 실패해서 "계약은 확정됐는데 보증금 레코드가 없는" 상태가 남으면 안 된다.
+  // 계약 확정은 신청서 상태·감사로그·계약금·전자날인·세금계산서·알림이 한 묶음이다.
+  // 중간에 실패해서 "계약은 확정됐는데 계약금 레코드가 없는" 상태가 남으면 안 된다.
   const { updated, deposit } = await withTransaction(async () => {
     const updated = await setQuoteContract(id, contract);
     await addAuditLog({

@@ -13,6 +13,7 @@
 
 import fs from "node:fs/promises";
 import mammoth from "mammoth";
+import type { CompetingCandidateFacts } from "./scoring/competingCandidate";
 
 const API_URL = "https://api.anthropic.com/v1/messages";
 const DEFAULT_MODEL = "claude-haiku-4-5-20251001";
@@ -108,6 +109,100 @@ async function buildCriteriaBlock(
     type: "text",
     text: `[심사 기준 문서: ${criteria.fileName}]\n${text.slice(0, MAX_DOCX_CHARS)}${truncated ? "\n(이하 생략)" : ""}`,
   };
+}
+
+// [신규 2026-08-26] "동일 기간 내 다른 대관사 비교" 슬롯의 AI 추천. 단일 신청서 요약과
+// 같은 원칙 — 구조화된 값(자동 채점 초안 점수, 신청 규모·금액, 상태)만 근거로 삼고
+// 첨부파일 원문은 읽지 않는다. 자동 채점 자체가 이미 여러 "확인 필요"·"잠정치" 캐비어트를
+// 달고 있으므로(scoreQuote.ts), 프롬프트에도 그 한계를 그대로 전달해 AI가 확정적으로
+// 단정하지 않게 한다. CompetingCandidateFacts 자체는 lib/scoring/competingCandidate.ts가
+// 정본이다 — 표 렌더링과 이 프롬프트가 같은 모양의 데이터를 공유한다.
+export type { CompetingCandidateFacts };
+
+function buildCompetingFactsSection(candidates: CompetingCandidateFacts[]): string {
+  return candidates
+    .map((c, i) => {
+      const lines = [
+        `${i + 1}. ${c.companyName ?? "회사명 미상"} (${c.quoteId}${c.isCurrent ? " — 지금 보고 있는 신청서" : ""})`,
+        `   - 공간: ${c.venueLabel} / 상태: ${c.statusLabel}`,
+        `   - 자동 채점 초안 잠정 합계: ${c.provisionalScore}점 (미산정 ${c.unresolvedMax}점 별도, 잠정 ${c.eligible ? "적격" : "미달"})`,
+        `   - 예상 관객 ${c.expectedAudience.toLocaleString("ko-KR")}명 · 예상금액(VAT포함) ${c.total.toLocaleString("ko-KR")}원`,
+      ];
+      return lines.join("\n");
+    })
+    .join("\n");
+}
+
+export async function generateCompetingRecommendation(
+  candidates: CompetingCandidateFacts[],
+): Promise<AiReviewResult> {
+  const apiKey = process.env.ANTHROPIC_API_KEY;
+  if (!apiKey) return { status: "UNCONFIGURED" };
+  if (candidates.length < 2) {
+    return { status: "ERROR", message: "비교할 다른 신청서가 없습니다." };
+  }
+
+  try {
+    const prompt = `당신은 공연장 대관 신청을 심사하는 운영자를 돕는 보조입니다. 아래는 같은
+기간(주차)에 겹치는 신청서 ${candidates.length}건의 구조화된 데이터입니다 — 자동 채점은
+「대관 심의 평가 세부 기준」 항목 중 정형 필드로 산정 가능한 부분의 잠정 초안이며,
+일부 항목은 아직 산정되지 않았거나(미산정) 필드 부족으로 잠정치입니다. 첨부파일 원문은
+제공되지 않으니 내용을 추측하지 마세요.
+
+${buildCompetingFactsSection(candidates)}
+
+위 정보만 근거로, 운영자가 경합 판단에 참고할 요약을 한국어로 작성하세요.
+- 정확히 4줄. 번호·불릿·따옴표 없이 줄바꿈으로만 구분.
+- 각 줄은 한 문장, 50자 내외.
+- 1번째 줄: 잠정 점수·적격 여부 기준으로 가장 우위인 신청서(회사명)와 그 이유.
+- 2번째 줄: 미산정 배점이 커서 순위가 바뀔 수 있는 신청서가 있다면 그 리스크.
+- 3번째 줄: 점수 외에 운영자가 추가로 확인해야 할 점(정성 항목·부적격 게이트 등).
+- 4번째 줄: 최종 판단은 심의위원의 몫이라는 점을 짧게 명시.
+- 제공되지 않은 정보는 언급하지 말고, 위 데이터에 없는 사실을 지어내지 마세요.`;
+
+    const response = await fetch(API_URL, {
+      method: "POST",
+      headers: {
+        "x-api-key": apiKey,
+        "anthropic-version": "2023-06-01",
+        "content-type": "application/json",
+      },
+      body: JSON.stringify({
+        model: process.env.AI_REVIEW_MODEL || DEFAULT_MODEL,
+        max_tokens: 400,
+        messages: [{ role: "user", content: [{ type: "text", text: prompt }] }],
+      }),
+      signal: AbortSignal.timeout(20_000),
+    });
+
+    if (!response.ok) {
+      return { status: "ERROR", message: `AI 추천 응답 오류 (HTTP ${response.status})` };
+    }
+
+    const json = (await response.json()) as {
+      content?: { type: string; text?: string }[];
+    };
+    const text = json.content
+      ?.filter((block) => block.type === "text")
+      .map((block) => block.text ?? "")
+      .join("\n")
+      .trim();
+    if (!text) return { status: "ERROR", message: "AI 추천 응답이 비어 있습니다." };
+
+    const lines = text
+      .split("\n")
+      .map((line) => line.trim())
+      .filter(Boolean)
+      .slice(0, 4);
+    if (lines.length === 0) return { status: "ERROR", message: "AI 추천 응답을 해석하지 못했습니다." };
+
+    return { status: "OK", lines };
+  } catch (error) {
+    return {
+      status: "ERROR",
+      message: `AI 추천 중 오류가 발생했습니다. (${error instanceof Error ? error.message : "알 수 없음"})`,
+    };
+  }
 }
 
 export async function generateQuoteAiReview(

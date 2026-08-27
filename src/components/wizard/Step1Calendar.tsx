@@ -458,7 +458,7 @@ export function Step1Calendar({
               ) : (
                 demand > 0 && (
                   <div className="px-0.5 pt-0.5 text-right text-xs text-muted">
-                    {demand > 1 && <span className="font-bold text-warn">경합 중 · </span>}
+                    {demand > 1 && <span className="font-bold text-warn">검토 중 · </span>}
                     <span className="font-bold text-foreground">{demand}</span>
                     <span>개사 신청</span>
                   </div>

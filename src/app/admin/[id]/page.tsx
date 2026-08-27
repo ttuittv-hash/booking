@@ -13,6 +13,7 @@ import {
   getTicketOpenByQuoteId,
   listAttachments,
   listAuditLogsForQuote,
+  listCompetingQuotesForWeek,
   listContractAddendums,
 } from "@/lib/db";
 import { num, won } from "@/lib/format";
@@ -33,6 +34,10 @@ import { SpecTable } from "@/components/ui/kit";
 import { AiReviewBox } from "@/components/admin/AiReviewBox";
 import { ContractForm } from "@/components/admin/ContractForm";
 import { ReviewForm } from "@/components/admin/ReviewForm";
+import { ScoringPanel } from "@/components/admin/ScoringPanel";
+import { CompetingQuotesPanel } from "@/components/admin/CompetingQuotesPanel";
+import { scoreQuote } from "@/lib/scoring/scoreQuote";
+import { buildCandidateFacts } from "@/lib/scoring/competingCandidate";
 import { SettlementForm } from "@/components/admin/SettlementForm";
 import { DepositPanel } from "@/components/DepositPanel";
 import { AttachmentsPanel } from "@/components/AttachmentsPanel";
@@ -122,8 +127,8 @@ const STAGE_LABEL: Record<string, string> = {
   REVIEW_APPROVED: "심사 승인",
   REVIEW_HOLD: "심사 보류",
   REVIEW_REJECTED: "심사 반려",
-  DEPOSIT_REPORTED: "보증금 입금신청",
-  DEPOSIT_CONFIRMED: "보증금 입금확인",
+  DEPOSIT_REPORTED: "계약금 입금신청",
+  DEPOSIT_CONFIRMED: "계약금 입금확인",
   SIGNED_VENUE: "계약서 날인(공연장)",
   SIGNED_APPLICANT: "계약서 날인(대관사)",
   CONTRACT_ADDENDUM: "부속합의 등록",
@@ -155,6 +160,16 @@ export default async function AdminQuoteDetailPage({
   const attachments = await listAttachments(id, null);
   const weekConflict =
     quote.status === "ESTIMATE" ? (await findApprovedWeekConflict(quote)) ?? null : null;
+  const competingQuotes = quote.status === "ESTIMATE" ? await listCompetingQuotesForWeek(quote) : [];
+  const competingCandidates =
+    competingQuotes.length > 0
+      ? [
+          buildCandidateFacts(quote, applicant, true),
+          ...(await Promise.all(
+            competingQuotes.map(async ({ quote: q }) => buildCandidateFacts(q, await findUserById(q.applicantId), false)),
+          )),
+        ]
+      : [];
   const signature = (await getContractSignatureByQuoteId(id)) ?? null;
   const contractInvoice = (await getTaxInvoice(id, "CONTRACT")) ?? null;
   const balanceInvoice = (await getTaxInvoice(id, "CONTRACT_BALANCE")) ?? null;
@@ -355,6 +370,14 @@ export default async function AdminQuoteDetailPage({
         </section>
 
         <div className="mt-6 space-y-6">
+          {quote.status === "ESTIMATE" && <ScoringPanel breakdown={scoreQuote(quote.selection)} />}
+
+          {competingCandidates.length > 0 && (
+            <div className={PANEL}>
+              <CompetingQuotesPanel quoteId={quote.id} candidates={competingCandidates} />
+            </div>
+          )}
+
           {quote.status === "ESTIMATE" && <AiReviewBox quoteId={quote.id} />}
 
           {quote.status === "ESTIMATE" && (

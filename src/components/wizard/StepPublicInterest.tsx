@@ -1,12 +1,16 @@
 "use client";
 
-import { CHOICE_SELECTED_VARS, FILE_INPUT, toggleClass } from "@/components/ui/kit";
+import { FILE_INPUT, toggleClass } from "@/components/ui/kit";
 
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
+import { useWizardText } from "@/lib/content/wizardText";
 import { INITIAL_PERFORMANCE_INFO } from "@/lib/pricing/performanceInfoDefaults";
 import {
+  PUBLIC_INTEREST_GROUPS,
   PUBLIC_INTEREST_ITEM_HINT,
   PUBLIC_INTEREST_ITEM_LABEL,
+  PUBLIC_INTEREST_ITEM_NUMBER,
+  PUBLIC_INTEREST_STATUS_ITEMS,
   type PerformanceInfo,
   type PublicInterestItem,
   type QuoteSelection,
@@ -14,8 +18,17 @@ import {
 import { VenueSplitTabBar, type VenueSplitTab } from "./VenueSplitTabBar";
 
 // [화면 뼈대 2026-08-18, 화면시나리오 SCREEN 07/12 #4 → 2026-08-22 선택형으로 전환]
-// 신청자가 해당하는 항목을 직접 골라 표시하고, 계획 상세는 별도 파일 1건으로 첨부한다.
-const PUBLIC_INTEREST_ITEMS = Object.keys(PUBLIC_INTEREST_ITEM_LABEL) as PublicInterestItem[];
+// [개정 2026-08-27] 3열 카드 격자를 **가로형 체크박스 한 줄**로 바꾸고, 항목을 성격별로
+// 묶었다(시안 지시: "전체적인 심사 및 가점 항목에 대해 가로형 체크박스로 변경 / 각 항목들은
+// 성격에 맞게 그룹핑 / 항목 체크시 텍스트박스 기입하거나 자료 첨부기능 추가"). 계획 상세를
+// 파일 1건으로만 받던 하단 첨부 슬롯은 없앴다 — 어느 항목의 계획인지 알 수 없어 심사에서
+// 되묻는 일이 반복됐다. 이제 상세 텍스트도 파일도 항목에 붙는다.
+
+/** 항목에 붙여서 올리는 파일 — 어느 항목의 자료인지 함께 들고 다닌다. */
+export interface PublicInterestFile {
+  item: PublicInterestItem;
+  file: File;
+}
 
 function toggleInArray<T>(list: T[], value: T): T[] {
   return list.includes(value) ? list.filter((v) => v !== value) : [...list, value];
@@ -36,16 +49,34 @@ export function StepPublicInterest({
   selection: QuoteSelection;
   midHallInfo: PerformanceInfo | null;
   onChangeMidHallInfo: (info: PerformanceInfo | null) => void;
-  files: File[];
-  onFilesChange: (files: File[]) => void;
-  title: string;
+  files: PublicInterestFile[];
+  onFilesChange: (files: PublicInterestFile[]) => void;
+  title: ReactNode;
 }) {
+  const { t, tStr } = useWizardText();
   const selectedItems = info.publicInterestItems ?? [];
+  const details = info.publicInterestDetails ?? {};
   const [activeTab, setActiveTab] = useState<VenueSplitTab>(midHallInfo ? "ARENA" : "COMMON");
 
-  function addFiles(selected: FileList | null) {
+  // "없음"은 다른 항목과 같이 설 수 없다 — 예전 격자에서는 "없음"과 참여 항목이 동시에
+  // 체크된 신청서가 실제로 들어왔다. 한쪽을 켜면 다른 쪽을 끈다.
+  function toggleItem(item: PublicInterestItem) {
+    let next: PublicInterestItem[];
+    if (item === "NONE") {
+      next = selectedItems.includes("NONE") ? [] : ["NONE"];
+    } else {
+      next = toggleInArray(selectedItems, item).filter((v) => v !== "NONE");
+    }
+    onChange({ ...info, publicInterestItems: next });
+  }
+
+  function setDetail(item: PublicInterestItem, value: string) {
+    onChange({ ...info, publicInterestDetails: { ...details, [item]: value } });
+  }
+
+  function addFiles(item: PublicInterestItem, selected: FileList | null) {
     if (!selected || selected.length === 0) return;
-    onFilesChange([...files, ...Array.from(selected)]);
+    onFilesChange([...files, ...Array.from(selected).map((file) => ({ item, file }))]);
   }
 
   function removeFile(index: number) {
@@ -66,11 +97,92 @@ export function StepPublicInterest({
     setActiveTab("COMMON");
   }
 
+  /*
+    항목 한 줄 — 왼쪽에 번호·이름·힌트, 오른쪽 끝에 체크박스. 체크하면 아래가 펼쳐진다.
+    컴포넌트로 빼지 않고 **함수 호출**로 쓴다: 렌더마다 새 컴포넌트 타입이 되면 React가
+    그 자리를 통째로 다시 마운트해 상세 텍스트박스가 한 글자마다 포커스를 잃는다.
+  */
+  function itemRow(item: PublicInterestItem) {
+    const checked = selectedItems.includes(item);
+    // "검토 중"·"없음"은 참여 계획이 아니라 상태 응답이라 상세·첨부를 받지 않는다.
+    const expandable = !PUBLIC_INTEREST_STATUS_ITEMS.includes(item);
+    const itemFiles = files.map((f, i) => ({ ...f, index: i })).filter((f) => f.item === item);
+
+    return (
+      <div key={item} className={`border-b border-border/25 ${checked ? "bg-panel" : ""}`}>
+        <label className="flex cursor-pointer items-center justify-between gap-4 px-3 py-3.5">
+          <span className="min-w-0">
+            <span className="block text-s font-bold">
+              {PUBLIC_INTEREST_ITEM_NUMBER[item]}. {PUBLIC_INTEREST_ITEM_LABEL[item]}
+            </span>
+            <span className="mt-0.5 block text-xs leading-5 text-muted">
+              {PUBLIC_INTEREST_ITEM_HINT[item]}
+            </span>
+          </span>
+          <input
+            type="checkbox"
+            checked={checked}
+            onChange={() => toggleItem(item)}
+            className="h-4 w-4 shrink-0 accent-[var(--foreground)]"
+          />
+        </label>
+
+        {checked && expandable && (
+          <div className="space-y-2.5 px-3 pb-4">
+            <textarea
+              value={details[item] ?? ""}
+              onChange={(e) => setDetail(item, e.target.value)}
+              placeholder={tStr(
+                "publicInterest.detailPlaceholder",
+                "계획을 간단히 적어주세요. 자료가 있으면 아래에 첨부하셔도 됩니다.",
+              )}
+              rows={3}
+              className="field-base whitespace-pre-wrap"
+            />
+
+            {itemFiles.length > 0 && (
+              <ul className="space-y-2">
+                {itemFiles.map((f) => (
+                  <li
+                    key={`${f.file.name}-${f.index}`}
+                    className="flex items-center justify-between gap-3 border border-border/25 bg-background px-3.5 py-2.5"
+                  >
+                    <span className="truncate text-s font-bold">{f.file.name}</span>
+                    <button
+                      type="button"
+                      onClick={() => removeFile(f.index)}
+                      className={`${toggleClass(false)} shrink-0`}
+                    >
+                      {t("publicInterest.removeFileButton", "삭제")}
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            )}
+
+            <input
+              type="file"
+              multiple
+              onChange={(e) => {
+                addFiles(item, e.target.files);
+                e.target.value = "";
+              }}
+              className={FILE_INPUT}
+            />
+          </div>
+        )}
+      </div>
+    );
+  }
+
   return (
     <section>
       <h2 className="type-kr-heading text-h5-m sm:text-h5">{title}</h2>
       <p className="mt-1.5 text-s text-muted">
-        해당하는 항목을 선택하고, 계획 상세는 하나의 파일로 정리해 첨부합니다. 선택사항입니다.
+        {t(
+          "publicInterest.lead",
+          "해당하는 항목을 선택하고, 항목마다 계획을 적거나 자료를 첨부합니다. 선택사항입니다.",
+        )}
       </p>
 
       {isSimultaneous && (
@@ -83,79 +195,41 @@ export function StepPublicInterest({
         />
       )}
 
-      {/* 공공성 항목은 공간별로 달라지는 입력값이 없어 탭을 넘겨도 아래 안내 · 첨부는
-          동일하게 유지된다 — 04 기본 정보 그룹의 다른 두 화면과 탭 구조만 맞춘다
+      {/* 공공성 항목은 공간별로 달라지는 입력값이 없어 탭을 넘겨도 아래 목록은 동일하게
+          유지된다 — 04 기본 정보 그룹의 다른 화면과 탭 구조만 맞춘다
           (2026-08-19, 형식상 탭 추가 요청). */}
       <div className="mt-10 border-t-2 border-foreground pt-5">
-        <h3 className="type-kr-heading text-h6-m">공공/공익 참여 및 연계 프로그램 (선택)</h3>
+        <h3 className="type-kr-heading text-h6-m">
+          {t("publicInterest.itemsSectionHeading", "공공/공익 참여 및 연계 프로그램 (선택)")}
+        </h3>
         <p className="mt-1 text-xs leading-5 text-muted">
-          해당하는 항목을 모두 선택하세요(복수 선택 가능). 미확정 사항은 &lsquo;검토 중&rsquo;을
-          선택할 수 있습니다.
+          {t(
+            "publicInterest.itemsSectionHint",
+            "해당하는 항목을 모두 선택하세요(복수 선택 가능). 미확정 사항은 '검토 중'을 선택할 수 있습니다.",
+          )}
         </p>
 
-        <div className="mt-4 grid grid-cols-1 gap-2.5 sm:grid-cols-3">
-          {PUBLIC_INTEREST_ITEMS.map((item, i) => {
-            const checked = selectedItems.includes(item);
-            return (
-              <label
-                key={item}
-                style={checked ? CHOICE_SELECTED_VARS : undefined}
-                className={[
-                  "flex cursor-pointer items-start gap-2 border p-4 transition-colors",
-                  checked ? "border-foreground bg-inverse-bg text-inverse-fg" : "border-border/25 hover:border-foreground",
-                ].join(" ")}
-              >
-                <input
-                  type="checkbox"
-                  checked={checked}
-                  onChange={() => onChange({ ...info, publicInterestItems: toggleInArray(selectedItems, item) })}
-                  className={`mt-0.5 h-4 w-4 shrink-0 ${checked ? "accent-[var(--background)]" : "accent-[var(--foreground)]"}`}
-                />
-                <div>
-                  <div className="text-s font-bold">
-                    {i + 1}. {PUBLIC_INTEREST_ITEM_LABEL[item]}
-                  </div>
-                  <div className={`mt-0.5 text-xs ${checked ? "text-inverse-fg/70" : "text-muted"}`}>
-                    {PUBLIC_INTEREST_ITEM_HINT[item]}
-                  </div>
-                </div>
-              </label>
-            );
-          })}
+        <div className="mt-6 space-y-8">
+          {PUBLIC_INTEREST_GROUPS.map((group) => (
+            <div key={group.key}>
+              <h4 className="border-b border-foreground pb-2 text-xs font-bold tracking-wide text-foreground">
+                {t(`publicInterest.group.${group.key}`, group.label)}
+              </h4>
+              <div className="border-t border-border/25">
+                {group.items.map((item) => itemRow(item))}
+              </div>
+            </div>
+          ))}
+
+          <div>
+            <h4 className="border-b border-foreground pb-2 text-xs font-bold tracking-wide text-foreground">
+              {t("publicInterest.group.STATUS", "해당 없음 · 미확정")}
+            </h4>
+            <div className="border-t border-border/25">
+              {PUBLIC_INTEREST_STATUS_ITEMS.map((item) => itemRow(item))}
+            </div>
+          </div>
         </div>
-      </div>
-
-      <div className="mt-10 border-t-2 border-foreground pt-5">
-        <h3 className="type-kr-heading text-h6-m">자료 첨부 (선택)</h3>
-        <p className="mt-1 mb-2.5 text-xs leading-5 text-muted">
-          위에서 선택한 항목의 계획을 하나의 파일(PDF/HWP/DOCX)로 정리해 첨부하세요.
-        </p>
-
-        {files.length > 0 && (
-          <ul className="mb-3 space-y-2">
-            {files.map((file, i) => (
-              <li
-                key={`${file.name}-${i}`}
-                className="flex items-center justify-between border border-border/25 bg-panel px-3.5 py-2.5"
-              >
-                <span className="truncate text-s font-bold">{file.name}</span>
-                <button type="button" onClick={() => removeFile(i)} className={`${toggleClass(false)} shrink-0`}>
-                  삭제
-                </button>
-              </li>
-            ))}
-          </ul>
-        )}
-
-        <input
-          type="file"
-          multiple
-          onChange={(e) => {
-            addFiles(e.target.files);
-            e.target.value = "";
-          }}
-          className={FILE_INPUT}
-        />
       </div>
     </section>
   );

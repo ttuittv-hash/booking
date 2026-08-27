@@ -336,16 +336,14 @@ export function QuoteApplicationDetail({
           {hasMidHall && (
             <Row label="1회당 예상 관객 수 (중형)" value={`${selection.secondaryAudience.toLocaleString()}명`} />
           )}
-          <Row
-            label={hasMidHall ? "예상 유료 판매율 (아레나)" : "예상 유료 판매율"}
-            value={`${selection.performanceInfo.expectedPaidSalesRate}%`}
-          />
-          {hasMidHall && (
-            <Row
-              label="예상 유료 판매율 (중형)"
-              value={`${selection.performanceInfo.expectedPaidSalesRateMidHall ?? 0}%`}
-            />
+        </dl>
+        {ticketTypeFields(selection.performanceInfo, hasMidHall ? "아레나" : undefined)}
+        {hasMidHall &&
+          ticketTypeFields(
+            selection.midHallPerformanceInfo ?? selection.performanceInfo,
+            "중형",
           )}
+        <dl className="mt-1.5 divide-y divide-border/60 text-s">
           <Row
             label="부대사업 계획"
             value={
@@ -358,6 +356,61 @@ export function QuoteApplicationDetail({
           />
         </dl>
       </Section>
+    </div>
+  );
+}
+
+// [신규 2026-08-26] 티켓 유형별 가격·예상 판매율(2026-08-26 도입)과, 대관 경합 시
+// 제시한 추가 대관료 옵션·티켓 매출 RS 요율을 보여준다 — 신청서 제출/심사 화면에서
+// "추가 가능한 대관료"로 확인할 수 있어야 한다는 요청 반영. ticketTypes 가 없는
+// 옛 신청서는 레거시 단일 판매율 필드로 대체 표시한다(하위호환).
+function ticketTypeFields(info: PerformanceInfo, venueLabel?: string) {
+  const suffix = venueLabel ? ` (${venueLabel})` : "";
+  const ticketTypes = info.ticketTypes ?? [];
+  const hasCompetitionFee =
+    (typeof info.competitionFeeOptionMin === "number" && info.competitionFeeOptionMin > 0) ||
+    (typeof info.competitionFeeOptionMax === "number" && info.competitionFeeOptionMax > 0);
+  const hasRsRate = typeof info.ticketRevenueShareRate === "number" && info.ticketRevenueShareRate > 0;
+
+  return (
+    <div className="mt-1.5">
+      {ticketTypes.length > 0 ? (
+        <div className="overflow-x-auto">
+          <table className="w-full min-w-[360px] border-collapse text-xs">
+            <thead>
+              <tr className="border-b border-border text-left text-muted">
+                <th className="py-1.5 pr-2">티켓 유형{suffix}</th>
+                <th className="py-1.5 pr-2">티켓가</th>
+                <th className="py-1.5">예상 판매율</th>
+              </tr>
+            </thead>
+            <tbody>
+              {ticketTypes.map((row, i) => (
+                <tr key={i} className="border-b border-border/60">
+                  <td className="py-1.5 pr-2">{row.label || "-"}</td>
+                  <td className="py-1.5 pr-2">{row.price.toLocaleString()}원</td>
+                  <td className="py-1.5">{row.expectedSalesRate}%</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      ) : (
+        <dl className="divide-y divide-border/60 text-s">
+          <Row label={`예상 유료 판매율${suffix}`} value={`${info.expectedPaidSalesRate}%`} />
+        </dl>
+      )}
+      {(hasCompetitionFee || hasRsRate) && (
+        <dl className="mt-1.5 divide-y divide-border/60 text-s">
+          {hasCompetitionFee && (
+            <Row
+              label={`대관 경합 시 추가 가능한 대관료${suffix}`}
+              value={`${(info.competitionFeeOptionMin ?? 0).toLocaleString()}~${(info.competitionFeeOptionMax ?? 0).toLocaleString()}원`}
+            />
+          )}
+          {hasRsRate && <Row label={`티켓 매출 RS 요율${suffix}`} value={`${info.ticketRevenueShareRate}%`} />}
+        </dl>
+      )}
     </div>
   );
 }
