@@ -90,11 +90,18 @@ async function fillStep3() {
   const groups=await w.locator("main .flex.flex-wrap").filter({has:w.locator('input[type="checkbox"]')}).all();
   for (const g of groups) {
     const anyChecked=await g.locator('input[type="checkbox"]:checked').count();
-    if (!anyChecked) await g.locator("label").first().click().catch(()=>{});
+    // "기타"는 상세 입력칸이 따로 열려(2026-08-28 기획 병합) 한 바퀴 더 돌아야 한다 — 기타가 아닌 첫 칩을 고른다.
+    if (!anyChecked) {
+      const plain = g.locator("label").filter({ hasNotText: "기타" }).first();
+      if (await plain.count()) await plain.click().catch(()=>{});
+      else await g.locator("label").first().click().catch(()=>{});
+    }
   }
   // 남은 미체크 체크박스 전부 — 단독 동의류(마스킹 허용·확약서 작성 완료 등)가 계속 늘어난다
   await w.evaluate(() => {
     for (const cb of document.querySelectorAll('main input[type="checkbox"]')) {
+      // "기타" 칩은 상세 입력칸을 요구한다 — 여기서 켜면 채울 기회가 없다.
+      if (/기타/.test(cb.closest("label")?.textContent || "")) continue;
       if (!cb.checked) cb.closest("label")?.click();
     }
     // 라디오 그룹 — 그룹에 선택이 없으면 첫 항목("동의" 우선)을 고른다
@@ -124,8 +131,11 @@ for (let s2=0;s2<8;s2++){
   if (toast) console.log("  진행 토스트:", toast.slice(0,44));
   await w.locator('[data-testid="toast"]').first().waitFor({state:"detached",timeout:6000}).catch(()=>{});
 }
+console.log("  캔버스 발견 시점:", await w.locator('[aria-current="step"], [data-testid="wizard-step-title"], main h2').first().innerText().catch(()=>"?"), "| canvas 수:", await w.locator("canvas").count());
 const canvas=w.locator("canvas").first();
 if (await canvas.count()) {
+  // 마우스 좌표는 뷰포트 기준이다 — 서명란이 화면 아래(폴드 밖)에 있으면 이벤트가 캔버스에 닿지 않는다.
+  await canvas.scrollIntoViewIfNeeded(); await w.waitForTimeout(300);
   const box=await canvas.boundingBox();
   await w.mouse.move(box.x+30, box.y+30);
   await w.mouse.down(); await w.mouse.move(box.x+150, box.y+60, {steps:8}); await w.mouse.up();
