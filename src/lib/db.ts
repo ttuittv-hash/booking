@@ -1551,6 +1551,14 @@ export async function ensureCompanyMaster(companyId: string): Promise<void> {
                             WHERE u2.id = companies.master_user_id AND u2.withdrawn_at IS NULL))`,
     [companyId],
   );
+  // 회사당 MASTER 는 한 명(idx_users_company_master). 탈퇴한 옛 대표가 MASTER 로 남아 있으면
+  // 새 대표를 올릴 때 유니크 충돌이 난다(2026-08-27 실측) — 대표가 아닌 MASTER 를 먼저 내린다.
+  await q(
+    `UPDATE users SET company_role = 'STAFF'
+      WHERE company_id = $1 AND company_role = 'MASTER'
+        AND id IS DISTINCT FROM (SELECT master_user_id FROM companies WHERE id = $1)`,
+    [companyId],
+  );
   await q(
     `UPDATE users SET company_role = 'MASTER'
       WHERE id = (SELECT master_user_id FROM companies WHERE id = $1)
@@ -1588,8 +1596,14 @@ export async function deleteUserCascade(userId: string): Promise<DeleteUserResul
 
     const removed: Record<string, number> = {};
 
-    // 회사가 이 사람을 대표로 붙잡고 있으면 먼저 놓는다(FK).
-    await q("UPDATE companies SET master_user_id = NULL WHERE master_user_id = $1", [userId]);
+    // 회사가 이 사람을 대표로 붙잡고 있으면 먼저 놓는다(FK). 대표였을 때만 뒤에서 새 대표를 뽑는다 —
+    // 대표가 아니었는데 ensureCompanyMaster 를 부르면 기존 대표와 company_role 이 어긋난 회사에서
+    // idx_users_company_master(회사당 MASTER 1명) 충돌로 삭제 전체가 되돌아간다(2026-08-27 실측).
+    const unlinked = await q<{ id: string }>(
+      "UPDATE companies SET master_user_id = NULL WHERE master_user_id = $1 RETURNING id",
+      [userId],
+    );
+    const wasMaster = unlinked.length > 0;
 
     const fks = await q<{ tbl: string; col: string }>(
       `SELECT tc.table_name AS tbl, kcu.column_name AS col
@@ -1636,7 +1650,7 @@ export async function deleteUserCascade(userId: string): Promise<DeleteUserResul
         await q("DELETE FROM company_invitations WHERE company_id = $1", [user.company_id]);
         await q("DELETE FROM companies WHERE id = $1", [user.company_id]);
         deletedCompany = true;
-      } else {
+      } else if (wasMaster) {
         await ensureCompanyMaster(user.company_id);
       }
     }
