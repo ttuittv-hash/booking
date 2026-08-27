@@ -137,5 +137,11 @@ SENDER_KEY·**SENDER_NO**)이 모두 있어야 채널이 켜진다 — 없으면
   **`BIZTALK_RECIPIENT_ALLOWLIST`**(쉼표 구분 번호)가 있다 — 목록 밖 번호는 외부 발송을 건너뛰고
   `message_sends.status='SKIPPED'` 로 남긴다(E2E 가짜 번호 오발송 방지, `src/lib/message/allowlist.ts`).
   운영에는 허용목록을 두지 않는다. 회원가입 "개발용 우회" 버튼은 알림톡 받을 번호를 물어 `stubPhone` 으로 보낸다.
+- 2026-08-28: dev 허용목록 제거(전원 발송, 실사용 테스트). 신청서(대관) 이벤트 알림톡 **RT-01~09**
+  (`templates.ts` QUOTE_TEMPLATES, 코드 = 카카오 코드) — `src/lib/message/quoteEvents.ts`
+  `notifyQuoteApplicant()` 로 보내며 라우트의 기존 인앱 알림(createNotification)은 그대로 두고
+  `inApp:false` 로 알림톡만 얹는다. **트랜잭션 밖에서 호출**할 것(백그라운드 발송이 커밋된
+  커넥션을 물면 안 된다). 템플릿 등록은 `scripts/biztalk-register-templates.mjs`(MNG create, 파드 안에서).
+  MNG 로 만든 템플릿은 바로 검수 진행(kepStatus I)에 들어간다 — 승인(O) 전엔 카카오가 거절한다.
 - 점검: `kubectl -n arena-dev exec deploy/arena -- node scripts/biztalk-check.mjs` (클러스터 안에서만
   닿는다 — 방화벽이 발신 IP 211.213.60.30 기준).
