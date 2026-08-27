@@ -229,8 +229,10 @@ function AudienceFields({
           </div>
         </div>
 
-        {/* [신규 2026-08-26] 같은 주차에 여러 신청이 몰려 경합이 붙었을 때 심사에서
-            참고하는 경쟁력 지표 2종 — 대관료 옵션 추가 범위(최소~최대)와 티켓 매출 RS 요율. */}
+        {/* [신규 2026-08-26, 2026-08-26 레이아웃 정리] 같은 주차에 여러 신청이 몰려
+            경합이 붙었을 때 심사에서 참고하는 경쟁력 지표 2종 — 대관료 옵션 추가
+            범위(최소~최대)와 티켓 매출 RS 요율. "한 행에 다 넣어달라"는 요청으로
+            한 줄에 같이 배치한다. */}
         <div>
           <div className="mb-2.5">
             <label className="text-xs font-bold text-muted">
@@ -243,7 +245,7 @@ function AudienceFields({
               )}
             </p>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
             <div className="flex flex-1 items-center gap-1.5">
               <input
                 type="number"
@@ -267,24 +269,22 @@ function AudienceFields({
               />
               <span className="text-xs text-muted">{t("audience.wonUnit", "원")}</span>
             </div>
-          </div>
-        </div>
-
-        <div>
-          <label className="mb-1.5 block text-xs font-bold text-muted">
-            {t("audience.ticketRevenueShareRateLabel", "티켓 매출 RS 요율")}
-          </label>
-          <div className="flex w-1/2 items-center gap-1.5 sm:w-1/3">
-            <input
-              type="number"
-              min={0}
-              max={100}
-              value={info.ticketRevenueShareRate ?? ""}
-              placeholder={tStr("audience.ticketRevenueShareRatePlaceholder", "요율")}
-              onChange={(e) => set("ticketRevenueShareRate", clampRate(e.target.value))}
-              className="field-base w-full"
-            />
-            <span className="text-xs text-muted">%</span>
+            <span className="mx-1 h-6 w-px bg-border/40" aria-hidden="true" />
+            <label className="text-xs font-bold whitespace-nowrap text-muted">
+              {t("audience.ticketRevenueShareRateLabel", "티켓 매출 RS 요율")}
+            </label>
+            <div className="flex w-28 items-center gap-1.5">
+              <input
+                type="number"
+                min={0}
+                max={100}
+                value={info.ticketRevenueShareRate ?? ""}
+                placeholder={tStr("audience.ticketRevenueShareRatePlaceholder", "요율")}
+                onChange={(e) => set("ticketRevenueShareRate", clampRate(e.target.value))}
+                className="field-base w-full"
+              />
+              <span className="text-xs text-muted">%</span>
+            </div>
           </div>
         </div>
 
