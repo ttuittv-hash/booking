@@ -1754,32 +1754,25 @@ export async function listCompanyInvitations(companyId: string): Promise<Company
   }));
 }
 
-/** 토큰 해시로 유효한 초대를 찾는다. 만료·소비된 건은 돌려주지 않는다. */
-export async function findValidInvitation(tokenHash: string): Promise<
-  { id: string; companyId: string; email: string; companyName: string; inviteeName: string | null } | undefined
-> {
-  const row = await one<{
-    id: string;
-    company_id: string;
-    email: string;
-    expires_at: string;
-    company_name: string;
-    invitee_name: string | null;
-  }>(
-    `SELECT i.id, i.company_id, i.email, i.expires_at, c.name AS company_name, i.invitee_name
-       FROM company_invitations i JOIN companies c ON c.id = i.company_id
-      WHERE i.token_hash = $1 AND i.status = 'PENDING'`,
-    [tokenHash],
+/**
+ * 그 회사로 보낸, 아직 살아 있는 초대장을 이메일로 찾는다.
+ *
+ * [2026-08-27] 초대 링크가 토큰 없이 회원가입 페이지로 가도록 바뀌면서, 초대받은 사람은
+ * 일반 가입 흐름을 그대로 탄다. 그러면 초대장을 소진시킬 열쇠가 없어 담당자 관리 화면에
+ * "초대 발송"(미가입) 행과 방금 가입한 담당자 행이 같은 사람으로 두 줄 남는다.
+ * 가입 이메일이 초대장 주소와 같으면 그 초대장을 받은 사람으로 보고 소진한다.
+ */
+export async function findPendingInvitationByEmail(
+  companyId: string,
+  email: string,
+): Promise<{ id: string } | undefined> {
+  return await one<{ id: string }>(
+    `SELECT id FROM company_invitations
+      WHERE company_id = $1 AND lower(email) = lower($2) AND status = 'PENDING'
+      ORDER BY created_at ASC
+      LIMIT 1`,
+    [companyId, email],
   );
-  if (!row) return undefined;
-  if (Date.parse(row.expires_at) < Date.now()) return undefined;
-  return {
-    id: row.id,
-    companyId: row.company_id,
-    email: row.email,
-    companyName: row.company_name,
-    inviteeName: row.invitee_name,
-  };
 }
 
 export async function consumeInvitation(id: string, userId: string): Promise<void> {

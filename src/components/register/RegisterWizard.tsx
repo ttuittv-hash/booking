@@ -92,38 +92,10 @@ async function uploadRegisterAttachment(file: File): Promise<{ url: string; name
 }
 
 const STEP_LABELS = ["회원 유형", "약관 동의", "본인인증", "정보 입력", "가입완료"];
-// 초대 링크로 들어오면 회원 유형은 물어볼 것이 없다(법인 담당자 합류로 정해져 있다).
-const INVITE_STEP_LABELS = ["약관 동의", "본인인증", "정보 입력", "가입완료"];
 
-/**
- * 초대 링크로 들어온 사람이 이 가입 폼을 그대로 쓸 때 넘어오는 값(2026-08-27).
- * 예전에는 /invite 전용 화면에서 이름·아이디·비밀번호만 받아 약관 동의도 재직증명서도
- * 남지 않았다 — "초대받은 사람 랜딩도 기존과 같이 회원가입으로" 요청으로 되돌렸다.
- * 회사·이메일·이름은 초대장이 정본이라 화면에서 잠기고, 서버도 초대장 값으로 덮어쓴다.
- */
-export interface RegisterInvite {
-  token: string;
-  companyName: string;
-  email: string;
-  inviteeName: string | null;
-  company: {
-    id: string;
-    name: string;
-    companyType: ApplicantCompanyType | null;
-    businessRegistrationNumber: string | null;
-    representativeName: string | null;
-    companyPhone: string | null;
-    companyFax: string | null;
-    corporateNumber: string | null;
-    postalCode: string | null;
-    address: string | null;
-  } | null;
-}
-
-export function RegisterWizard({ invite }: { invite?: RegisterInvite | null } = {}) {
+export function RegisterWizard() {
   const toast = useToast();
-  // 초대는 회원 유형 단계를 건너뛰고 약관 동의(2)부터 시작한다.
-  const [step, setStep] = useState(invite ? 2 : 1);
+  const [step, setStep] = useState(1);
   const [loading, setLoading] = useState(false);
   // 오류는 토스트로 띄운다. 위저드 상단에 붙이면 스크롤을 내려 입력하다 [다음]을 눌렀을 때
   // 메시지가 화면 밖에 떠서 왜 안 넘어가는지 알 수 없다.
@@ -158,32 +130,8 @@ export function RegisterWizard({ invite }: { invite?: RegisterInvite | null } = 
     businessCertName: "",
     employmentCertUrl: "",
     employmentCertName: "",
-    ...(invite
-      ? {
-          email: invite.email,
-          companyName: invite.company?.name ?? invite.companyName,
-          companyType: invite.company?.companyType ?? null,
-          businessRegistrationNumber: invite.company?.businessRegistrationNumber ?? "",
-          representativeName: invite.company?.representativeName ?? "",
-          companyPhone: invite.company?.companyPhone ?? "",
-          companyFax: invite.company?.companyFax ?? "",
-          corporateNumber: invite.company?.corporateNumber ?? "",
-          postalCode: invite.company?.postalCode ?? "",
-          address: invite.company?.address ?? "",
-        }
-      : {}),
   });
-  // 초대장의 회사는 처음부터 잠긴 상태로 시작한다 — [등록된 회사정보 불러오기]로 고른 것과 같다.
-  const [pickedCompany, setPickedCompany] = useState<CompanyHit | null>(
-    invite
-      ? {
-          id: invite.company?.id ?? "",
-          name: invite.company?.name ?? invite.companyName,
-          businessNumberMasked: null,
-          region: null,
-        }
-      : null,
-  );
+  const [pickedCompany, setPickedCompany] = useState<CompanyHit | null>(null);
   // 개발 환경에서 본인인증을 건너뛴 상태인지 — 화면에 그대로 표시해 착각을 막는다.
   const [stubMode, setStubMode] = useState(false);
   // 개발 환경에서만 우회 버튼을 보여준다.
@@ -191,16 +139,7 @@ export function RegisterWizard({ invite }: { invite?: RegisterInvite | null } = 
   // 인증 결과를 기다리는 중인지. 팝업 감시와 메시지 수신이 서로를 덮어쓰지 않게 ref 로 둔다.
   const awaitingAuth = useRef(false);
   // 사업자등록번호 중복·진위확인, 아이디 중복확인 결과
-  // 초대장의 회사는 등록될 때 이미 중복·진위확인을 마쳤다 — 다시 묻지 않는다(기획서 A5).
-  const [brnCheck, setBrnCheck] = useState<{ state: string; title: string; message: string } | null>(
-    invite
-      ? {
-          state: "REGISTERED",
-          title: "초대받은 회사",
-          message: `${invite.company?.name ?? invite.companyName} — 담당자로 합류합니다.`,
-        }
-      : null,
-  );
+  const [brnCheck, setBrnCheck] = useState<{ state: string; title: string; message: string } | null>(null);
   const [idCheck, setIdCheck] = useState<{ available: boolean; message: string } | null>(null);
   const [searchOpen, setSearchOpen] = useState(false);
   const [joinNotice, setJoinNotice] = useState<string | null>(null);
@@ -364,7 +303,6 @@ export function RegisterWizard({ invite }: { invite?: RegisterInvite | null } = 
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           accountType: "CORPORATE",
-          inviteToken: invite?.token,
           username: form.username,
           email: form.email,
           passwordHash: await hashPasswordForTransport(form.password),
@@ -410,8 +348,8 @@ export function RegisterWizard({ invite }: { invite?: RegisterInvite | null } = 
   }
 
   return (
-    <div data-testid="register-wizard" data-step={step} data-invited={invite ? "true" : undefined}>
-      <StepBar step={invite ? step - 1 : step} labels={invite ? INVITE_STEP_LABELS : STEP_LABELS} />
+    <div data-testid="register-wizard" data-step={step}>
+      <StepBar step={step} />
 
       {step === 1 ? (
         <StepMemberType onNext={() => setStep(2)} />
@@ -421,7 +359,7 @@ export function RegisterWizard({ invite }: { invite?: RegisterInvite | null } = 
           agreed={agreed}
           setAgreed={setAgreed}
           canNext={requiredAllAgreed}
-          onPrev={invite ? undefined : () => setStep(1)}
+          onPrev={() => setStep(1)}
           onNext={() => {
             if (!requiredAllAgreed) {
               toast.error("필수 약관 2건에 모두 동의해 주세요.");
@@ -440,7 +378,6 @@ export function RegisterWizard({ invite }: { invite?: RegisterInvite | null } = 
         />
       ) : step === 4 ? (
         <StepInfo
-          invited={!!invite}
           form={form}
           setForm={setForm}
           identity={identity}
@@ -549,10 +486,10 @@ export function RegisterWizard({ invite }: { invite?: RegisterInvite | null } = 
   );
 }
 
-function StepBar({ step, labels }: { step: number; labels: string[] }) {
+function StepBar({ step }: { step: number }) {
   return (
     <ol className="flex flex-wrap items-center gap-x-4 gap-y-2.5 text-xs" data-testid="step-bar">
-      {labels.map((label, i) => {
+      {STEP_LABELS.map((label, i) => {
         const n = i + 1;
         const state = n === step ? "current" : n < step ? "done" : "todo";
         return (
@@ -660,8 +597,7 @@ function StepTerms({
   agreed: Record<string, boolean>;
   setAgreed: React.Dispatch<React.SetStateAction<Record<string, boolean>>>;
   canNext: boolean;
-  /** 초대 링크로 들어오면 앞 단계(회원 유형)가 없어 [이전]을 숨긴다. */
-  onPrev?: () => void;
+  onPrev: () => void;
   onNext: () => void;
 }) {
   return (
@@ -703,11 +639,9 @@ function StepTerms({
         ))}
       </div>
       <div className="mt-9 flex gap-3">
-        {onPrev ? (
-          <button type="button" onClick={onPrev} className={`${btnClass("secondary", "md")} justify-center`}>
-            이전
-          </button>
-        ) : null}
+        <button type="button" onClick={onPrev} className={`${btnClass("secondary", "md")} justify-center`}>
+          이전
+        </button>
         {/* disabled 로 막아두면 왜 안 넘어가는지 알 수 없다 — 누르면 이유를 알려준다. */}
         <button
           type="button"
@@ -789,7 +723,6 @@ function StepIdentity({
 }
 
 function StepInfo({
-  invited,
   form,
   setForm,
   identity,
@@ -807,8 +740,6 @@ function StepInfo({
   onPrev,
   onSubmit,
 }: {
-  /** 초대 링크로 들어온 가입인지 — 회사·이메일이 초대장으로 고정된다. */
-  invited: boolean;
   form: FormState;
   setForm: React.Dispatch<React.SetStateAction<FormState>>;
   identity: { name: string; mobileNo: string; mobileCo: string | null } | null;
@@ -959,26 +890,19 @@ function StepInfo({
     <section className="mt-8" data-testid="step-info">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <h2 className="type-kr-heading text-h6-m sm:text-h6">회원 정보를 입력해 주세요.</h2>
-        {/* 초대로 들어온 사람은 회사가 초대장으로 정해져 있다 — 다른 회사를 고를 수 없다. */}
-        {invited ? null : (
-          <button
-            type="button"
-            data-testid="open-company-search"
-            onClick={onOpenSearch}
-            className={btnClass("secondary", "sm")}
-          >
-            등록된 회사정보 불러오기
-          </button>
-        )}
+        <button
+          type="button"
+          data-testid="open-company-search"
+          onClick={onOpenSearch}
+          className={btnClass("secondary", "sm")}
+        >
+          등록된 회사정보 불러오기
+        </button>
       </div>
       <p className="mt-2 break-keep text-xs text-muted">* 표시는 필수 입력 항목입니다.</p>
 
       <h3 className="mt-8 text-s font-bold">① 기업 정보</h3>
-      {invited ? (
-        <p className="mt-1 break-keep text-xs leading-6 text-muted">
-          초대받은 회사의 정보입니다. 이 회사의 담당자로 합류합니다.
-        </p>
-      ) : locked ? null : (
+      {locked ? null : (
         <p className="mt-1 break-keep text-xs leading-6 text-muted">
           이미 등록된 회사라면 [등록된 회사정보 불러오기]로 채우세요.
         </p>
@@ -1002,7 +926,7 @@ function StepInfo({
               {/* 불러온 회사는 등록 때 이미 확인이 끝났으니 "확인 완료"를 보여줬는데,
                   불러왔다가 직접 입력하고 싶어질 때 되돌릴 길이 없었다.
                   상태 표시보다 되돌리기가 더 필요하다 — [취소] 로 바꾼다. */}
-              {invited ? null : locked ? (
+              {locked ? (
                 <button
                   type="button"
                   data-testid="brn-cancel"
@@ -1187,21 +1111,8 @@ function StepInfo({
           ) : null}
         </div>
 
-        <Field
-          label="이메일"
-          required
-          hint={invited ? "초대장을 받은 주소입니다" : undefined}
-        >
-          {/* 초대장이 지정한 주소로 고정한다 — 다른 주소로 바꾸면 초대장과 어긋난다.
-              서버도 초대장 값으로 덮으므로 여기서 고쳐도 반영되지 않는다(2026-08-27). */}
-          <input
-            data-testid="f-email"
-            type="email"
-            value={form.email}
-            onChange={set("email")}
-            readOnly={invited}
-            className={inputCls(invited)}
-          />
+        <Field label="이메일" required>
+          <input data-testid="f-email" type="email" value={form.email} onChange={set("email")} className={inputCls(false)} />
         </Field>
         <Field label="비밀번호" required hint={PASSWORD_HINT}>
           <div className="relative">

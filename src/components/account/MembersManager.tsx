@@ -382,11 +382,15 @@ export function MembersManager() {
 
         {inviteUrl ? (
           <div data-testid="invite-url" className="mt-4 border border-accent px-4 py-3 text-s">
-            <p className="font-bold">초대 링크가 발급되었습니다</p>
+            <p className="font-bold">초대가 발송되었습니다</p>
             <p className="mt-2 break-all font-mono text-xs">{inviteUrl}</p>
+            {/* [개정 2026-08-27] 링크는 회원가입 페이지다 — 초대받은 사람은 전용 화면이
+                아니라 일반 가입을 그대로 밟는다. 회사는 사업자등록번호로 찾아 붙고, 승인은
+                아래 담당자 목록에서 한다. */}
             <p className="mt-2 text-xs text-muted">
-              휴대폰 번호를 입력했다면 알림톡으로도 이미 발송됐습니다. 도착하지 않으면 이 링크를
-              직접 전달해 주세요. 발급한 초대는 위 담당자 목록에 <b>미가입</b> 상태로 나타납니다.
+              휴대폰 번호를 입력했다면 알림톡으로도 이미 발송됐습니다. 도착하지 않으면 이 회원가입
+              링크를 직접 전달해 주세요. 초대한 분이 <b>같은 이메일</b>로 가입하면 아래 목록의
+              <b> 미가입</b> 행이 자동으로 정리되고, 가입 승인은 대표 담당자가 처리합니다.
             </p>
           </div>
         ) : null}
