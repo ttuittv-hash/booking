@@ -431,6 +431,8 @@ const STAGE_GROUPS: StageGroup[] = [
                     onChangeMidHallInfo={noop}
                     selection={ctx.mocks.arena}
                     title={field("performanceInfoTitle")}
+                    castContractFiles={[]}
+                    onCastContractFilesChange={noop}
                   />
                   <StepAudience
                     info={ctx.mocks.arena.performanceInfo}

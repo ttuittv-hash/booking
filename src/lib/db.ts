@@ -1463,21 +1463,47 @@ export async function findOrCreateCompany(
  * 기동 시 백필만으로는 부족하다 — 백필 이후에 만들어지는 회사는 마스터가 0명인 채로
  * 남아 소속 담당자를 승인할 사람이 없어진다. 그래서 합류 시점에 매번 정한다.
  * 동시 가입 경합에서 두 명이 동시에 MASTER 가 되지 않도록 회사 행을 잠그고 판단한다.
+ *
+ * [수정 2026-08-27] 판단 근거를 companies.master_user_id 에서 users 테이블로 옮겼다.
+ * 그 포인터는 탈퇴·회원 삭제 뒤 ensureCompanyMaster 가 후보를 못 찾으면 NULL 이 되는데,
+ * 그때도 company_role='MASTER' 를 쥔 행은 그대로 남는다. 포인터만 보고 "마스터가 없다"고
+ * 판단해 합류자를 MASTER 로 올리려 들면 idx_users_company_master(회사당 MASTER 1명)
+ * 유니크 위반이 나고, 가입 라우트는 이 UPDATE 를 트랜잭션 안에서 부르므로 **가입 전체가
+ * 롤백된다**. 계정이 아예 만들어지지 않으니 대표 담당자의 담당자 관리 목록에도 당연히
+ * 나타나지 않는다 — "동일 회사 신규 가입자가 목록에 안 뜬다"의 정체가 이것이었다.
  */
 export async function assignCompanyRoleOnJoin(
   userId: string,
   companyId: string,
 ): Promise<CompanyRole> {
-  const locked = await one<{ master_user_id: string | null }>(
-    "SELECT master_user_id FROM companies WHERE id = $1 FOR UPDATE",
+  // 회사 행을 잠근다 — 같은 회사에 동시에 두 사람이 들어와도 MASTER 는 하나여야 한다.
+  await one<{ id: string }>("SELECT id FROM companies WHERE id = $1 FOR UPDATE", [companyId]);
+
+  // 탈퇴한 옛 대표가 MASTER 표시를 쥔 채 남아 있으면 먼저 내린다. 그대로 두면 아래에서
+  // 새 대표를 세울 때 유니크 인덱스에 걸린다(인덱스는 withdrawn_at 을 가리지 않는다).
+  await q(
+    `UPDATE users SET company_role = 'STAFF'
+      WHERE company_id = $1 AND company_role = 'MASTER' AND withdrawn_at IS NOT NULL`,
     [companyId],
   );
-  const isFirst = !locked?.master_user_id;
-  const role: CompanyRole = isFirst ? "MASTER" : "STAFF";
+
+  const existingMaster = await one<{ id: string }>(
+    `SELECT id FROM users
+      WHERE company_id = $1
+        AND role = 'APPLICANT'
+        AND company_role = 'MASTER'
+        AND withdrawn_at IS NULL
+        AND id <> $2
+      LIMIT 1`,
+    [companyId, userId],
+  );
+  const role: CompanyRole = existingMaster ? "STAFF" : "MASTER";
   await q("UPDATE users SET company_role = $1 WHERE id = $2", [role, userId]);
-  if (isFirst) {
-    await q("UPDATE companies SET master_user_id = $1 WHERE id = $2", [userId, companyId]);
-  }
+  // 포인터를 실제 대표에 맞춘다 — 어긋나 있었다면 여기서 낫는다.
+  await q("UPDATE companies SET master_user_id = $1 WHERE id = $2", [
+    existingMaster?.id ?? userId,
+    companyId,
+  ]);
   return role;
 }
 
@@ -1551,6 +1577,15 @@ export async function ensureCompanyMaster(companyId: string): Promise<void> {
        AND (master_user_id IS NULL
             OR NOT EXISTS (SELECT 1 FROM users u2
                             WHERE u2.id = companies.master_user_id AND u2.withdrawn_at IS NULL))`,
+    [companyId],
+  );
+  // 승격 전에 다른 MASTER 를 내린다. 옛 대표가 표시를 쥔 채 남아 있으면 회사당 1명
+  // 유니크 인덱스에 걸려 이 UPDATE 자체가 실패한다(2026-08-27).
+  await q(
+    `UPDATE users SET company_role = 'STAFF'
+      WHERE company_id = $1
+        AND company_role = 'MASTER'
+        AND id IS DISTINCT FROM (SELECT master_user_id FROM companies WHERE id = $1)`,
     [companyId],
   );
   await q(

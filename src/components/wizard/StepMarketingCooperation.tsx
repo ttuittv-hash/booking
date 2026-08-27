@@ -1,53 +1,39 @@
 "use client";
 
 import type { ReactNode } from "react";
-import { toggleClass } from "@/components/ui/kit";
+import { ICON_BTN_SM, toggleClass } from "@/components/ui/kit";
 import type { MarketingCooperation } from "@/lib/pricing/types";
 import { useWizardText } from "@/lib/content/wizardText";
 import { StepHeading, StepForm } from "./StepHeading";
 
-// [개정 2026-08-26] "연계 동의는 디폴트로 체크 + 체크 해제 불가능" — 화면에서 항상
+// [개정 2026-08-27] "마케팅 및 서비스 연계 안내" 슬롯에서 동의 항목을 뺐다. 해제할 수
+// 없는 잠긴 체크박스라 고를 것이 없었고, 그 하나 때문에 이 STEP 이 필수 게이트로 잡혀
+// 있었다(validateMarketingCooperationStep 도 같이 삭제). 안내 문구는 그대로 남는다 —
+// selection.marketingCooperation.seoulArenaPromotionConsent 는 계속 true 로 저장된다.
 // true로 고정해 보여주므로(아래 체크박스가 disabled) 이 검사는 이제 실패할 일이
 // 없지만, 옛 임시저장본을 열었을 때의 방어선으로 남겨둔다.
-export function validateMarketingCooperationStep(info: MarketingCooperation): string | null {
-  if (info.seoulArenaPromotionConsent !== true) {
-    return "서비스 연계 동의에 체크해 주세요.";
-  }
-  return null;
+
+/*
+  마케팅 실행 계획(온라인/오프라인)은 줄글이 아니라 항목을 하나씩 쌓는 자리다.
+  예전에는 textarea 한 칸에 "· " 를 자동으로 붙여 여러 줄로 받았는데, 지우고 다시 쓰기가
+  번거로워 항목 단위 행으로 바꿨다(2026-08-27). 저장은 배열로 하고, 예전 신청서·심사 채점이
+  읽는 mediaMixOnline/mediaMixOffline 문자열은 이 배열에서 합성해 계속 채운다.
+*/
+function planItems(raw: string | undefined, items: string[] | undefined): string[] {
+  if (Array.isArray(items)) return items.length > 0 ? items : [""];
+  // 배열이 없던 시절 임시저장본 — 줄바꿈으로 나누고 앞의 가운데 점을 떼어 항목으로 읽는다.
+  const parsed = (raw ?? "")
+    .split("\n")
+    .map((line) => line.replace(/^[·•-]\s*/, "").trim())
+    .filter(Boolean);
+  return parsed.length > 0 ? parsed : [""];
 }
 
-// "행마다 앞에 가운데 점" — 마케팅 실행 계획(온라인/오프라인)은 줄글이 아니라 항목을
-// 한 줄씩 나열하는 용도라, FeatureSpecManager의 "상세" 칸과 같은 방식으로 첫 입력과
-// Enter 줄바꿈마다 "· "를 자동으로 붙인다.
-function bulletOnChange(current: string, next: string, onUpdate: (value: string) => void) {
-  if (current === "" && next !== "" && !next.startsWith("· ")) {
-    onUpdate("· " + next);
-    return;
-  }
-  onUpdate(next);
+/** 항목 배열 → 예전 문자열. 빈 항목은 버린다. */
+function joinPlanItems(items: string[]): string {
+  return items.map((v) => v.trim()).filter(Boolean).join("\n");
 }
 
-function bulletOnKeyDown(
-  e: React.KeyboardEvent<HTMLTextAreaElement>,
-  current: string,
-  onUpdate: (value: string) => void,
-) {
-  if (e.key !== "Enter") return;
-  e.preventDefault();
-  const el = e.currentTarget;
-  const start = el.selectionStart;
-  const end = el.selectionEnd;
-  const insertion = "\n· ";
-  const nextValue = current.slice(0, start) + insertion + current.slice(end);
-  onUpdate(nextValue);
-  requestAnimationFrame(() => {
-    const pos = start + insertion.length;
-    el.selectionStart = el.selectionEnd = pos;
-  });
-}
-
-// "주요 활용 범위" 5항목 — 제목+설명 쌍. PLEDGE_ITEMS(StepSafetyPledge)와 같은 패턴으로
-// key는 t() 키 조합에만 쓰고 화면에 노출되지 않는다.
 const SERVICE_SCOPE_ITEMS = [
   {
     key: "info",
@@ -137,16 +123,21 @@ export function StepMarketingCooperation({
 
   // [개정 2026-08-26] "온라인/오프라인 마케팅 계획을 구분해서 입력" 요청 — 매체 믹스를
   // 둘로 나눈다. mediaMix(단일 텍스트)는 scoreQuote.ts의 A-MKT 채점이 그대로 읽고
-  // 있어, 두 필드가 바뀔 때마다 합성해 하위호환을 유지한다.
-  function updateMediaMix(patch: { online?: string; offline?: string }) {
-    const online = patch.online ?? info.executionPlan.mediaMixOnline ?? "";
-    const offline = patch.offline ?? info.executionPlan.mediaMixOffline ?? "";
-    const parts = [online.trim() && `온라인: ${online.trim()}`, offline.trim() && `오프라인: ${offline.trim()}`].filter(
-      Boolean,
-    );
+  // 있어, 항목이 바뀔 때마다 합성해 하위호환을 유지한다.
+  const onlineItems = planItems(info.executionPlan.mediaMixOnline, info.executionPlan.mediaMixOnlineItems);
+  const offlineItems = planItems(info.executionPlan.mediaMixOffline, info.executionPlan.mediaMixOfflineItems);
+
+  function updateMediaMix(patch: { online?: string[]; offline?: string[] }) {
+    const online = patch.online ?? onlineItems;
+    const offline = patch.offline ?? offlineItems;
+    const onlineText = joinPlanItems(online);
+    const offlineText = joinPlanItems(offline);
+    const parts = [onlineText && `온라인: ${onlineText}`, offlineText && `오프라인: ${offlineText}`].filter(Boolean);
     updateExecutionPlan({
-      mediaMixOnline: online,
-      mediaMixOffline: offline,
+      mediaMixOnlineItems: online,
+      mediaMixOfflineItems: offline,
+      mediaMixOnline: onlineText,
+      mediaMixOffline: offlineText,
       mediaMix: parts.join(" / "),
     });
   }
@@ -168,41 +159,71 @@ export function StepMarketingCooperation({
           <p className="mt-1 mb-3 break-keep text-xs leading-6 text-muted">
             {t("marketing.executionPlanLead", "공연 홍보를 어떻게 진행할 계획인지 대략적인 방향을 항목별로 나눠 입력해 주세요.")}
           </p>
-          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-            <div>
-              <label className="mb-1.5 block text-xs font-bold text-foreground">
-                {t("marketing.mediaMixOnlineLabel", "온라인 마케팅 계획")}
-              </label>
-              <textarea
-                value={info.executionPlan.mediaMixOnline ?? ""}
-                onChange={(e) =>
-                  bulletOnChange(info.executionPlan.mediaMixOnline ?? "", e.target.value, (v) => updateMediaMix({ online: v }))
-                }
-                onKeyDown={(e) =>
-                  bulletOnKeyDown(e, info.executionPlan.mediaMixOnline ?? "", (v) => updateMediaMix({ online: v }))
-                }
-                placeholder={tStr("marketing.mediaMixOnlinePlaceholder", "예: SNS 광고 60%, 포털 배너 20%")}
-                rows={4}
-                className="field-base whitespace-pre-wrap"
-              />
-            </div>
-            <div>
-              <label className="mb-1.5 block text-xs font-bold text-foreground">
-                {t("marketing.mediaMixOfflineLabel", "오프라인 마케팅 계획")}
-              </label>
-              <textarea
-                value={info.executionPlan.mediaMixOffline ?? ""}
-                onChange={(e) =>
-                  bulletOnChange(info.executionPlan.mediaMixOffline ?? "", e.target.value, (v) => updateMediaMix({ offline: v }))
-                }
-                onKeyDown={(e) =>
-                  bulletOnKeyDown(e, info.executionPlan.mediaMixOffline ?? "", (v) => updateMediaMix({ offline: v }))
-                }
-                placeholder={tStr("marketing.mediaMixOfflinePlaceholder", "예: 옥외광고 30%, 지하철 광고, 언론 10%")}
-                rows={4}
-                className="field-base whitespace-pre-wrap"
-              />
-            </div>
+          <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
+            {(
+              [
+                {
+                  key: "online" as const,
+                  items: onlineItems,
+                  label: t("marketing.mediaMixOnlineLabel", "온라인 마케팅 계획"),
+                  addLabel: t("marketing.mediaMixOnlineAdd", "＋ 항목 추가"),
+                  placeholder: tStr("marketing.mediaMixOnlinePlaceholder", "예: SNS 광고 60%, 포털 배너 20%"),
+                },
+                {
+                  key: "offline" as const,
+                  items: offlineItems,
+                  label: t("marketing.mediaMixOfflineLabel", "오프라인 마케팅 계획"),
+                  addLabel: t("marketing.mediaMixOfflineAdd", "＋ 항목 추가"),
+                  placeholder: tStr("marketing.mediaMixOfflinePlaceholder", "예: 옥외광고 30%, 지하철 광고, 언론 10%"),
+                },
+              ]
+            ).map((group) => (
+              <div key={group.key}>
+                <div className="mb-1.5 flex items-center justify-between gap-3">
+                  <label className="block text-xs font-bold text-foreground">{group.label}</label>
+                  <button
+                    type="button"
+                    onClick={() => updateMediaMix({ [group.key]: [...group.items, ""] })}
+                    className={toggleClass(false)}
+                  >
+                    {group.addLabel}
+                  </button>
+                </div>
+                <div className="space-y-2">
+                  {group.items.map((value, i) => (
+                    <div key={i} className="flex items-center gap-2">
+                      <input
+                        value={value}
+                        onChange={(e) =>
+                          updateMediaMix({
+                            [group.key]: group.items.map((v, j) => (j === i ? e.target.value : v)),
+                          })
+                        }
+                        placeholder={group.placeholder}
+                        className="field-base min-w-0 flex-1"
+                      />
+                      {/* 마지막 한 줄은 지우지 않고 비운다 — 행이 0개면 "＋ 항목 추가"를
+                          눌러야만 다시 쓸 수 있어 빈 화면처럼 보인다. */}
+                      <button
+                        type="button"
+                        aria-label={tStr("marketing.mediaMixRemoveItem", "항목 삭제")}
+                        onClick={() =>
+                          updateMediaMix({
+                            [group.key]:
+                              group.items.length > 1
+                                ? group.items.filter((_, j) => j !== i)
+                                : [""],
+                          })
+                        }
+                        className={ICON_BTN_SM}
+                      >
+                        ×
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ))}
           </div>
         </div>
 
@@ -328,28 +349,6 @@ export function StepMarketingCooperation({
             </div>
           </div>
 
-          <div className="mt-4">
-            <p className="text-xs font-bold text-foreground">
-              {t("marketing.serviceConsentHeading", "마케팅/서비스 연계 동의")}
-            </p>
-            {/* [개정 2026-08-26] "연계 동의는 디폴트로 체크 + 체크 해제 불가능" —
-                필수 동의 항목이라 항상 체크된 상태로 고정해 보여준다(disabled). */}
-            <label className="mt-2 flex cursor-not-allowed items-start gap-2 text-s">
-              <input
-                type="checkbox"
-                checked
-                disabled
-                className="mt-0.5 h-4 w-4 shrink-0 accent-[var(--accent)]"
-              />
-              <span className="break-keep leading-6">
-                {t(
-                  "marketing.serviceConsentLabel",
-                  "위 내용을 확인하였으며, 공연·아티스트 관련 정보 및 콘텐츠를 상기 목적에 따라 " +
-                    "서울아레나 공식 웹사이트 및 모바일 서비스에 연계·활용하는 것에 동의합니다.",
-                )}
-              </span>
-            </label>
-          </div>
         </div>
 
         {/* 2026-08-25, "공동스폰서십 슬롯은 삭제하고 이 내용을 넣어줘" — 자유 서술형

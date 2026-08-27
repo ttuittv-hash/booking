@@ -273,6 +273,12 @@ export interface MarketingExecutionPlan {
   mediaMixOffline?: string;
   budget: string; // 집행 예산(원)
   timeline: string; // 타임라인(기간)
+  // optional — 2026-08-27 추가. 온라인/오프라인 각각을 줄글 하나로 받던 걸 항목 목록으로
+  // 바꿨다("크게 온오프라인만 구분하고 그 하위에 다양한 항목을 추가/삭제"). 위
+  // mediaMixOnline/mediaMixOffline 은 이 배열에서 합성해 계속 채운다 — 심사 채점(A-MKT)과
+  // 예전 신청서가 그 문자열을 읽는다.
+  mediaMixOnlineItems?: string[];
+  mediaMixOfflineItems?: string[];
 }
 
 export interface MarketingCooperation {

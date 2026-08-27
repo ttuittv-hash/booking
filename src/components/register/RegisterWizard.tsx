@@ -896,7 +896,7 @@ function StepInfo({
           onClick={onOpenSearch}
           className={btnClass("secondary", "sm")}
         >
-          회사정보 불러오기
+          등록된 회사정보 불러오기
         </button>
       </div>
       <p className="mt-2 break-keep text-xs text-muted">* 표시는 필수 입력 항목입니다.</p>
@@ -904,7 +904,7 @@ function StepInfo({
       <h3 className="mt-8 text-s font-bold">① 기업 정보</h3>
       {locked ? null : (
         <p className="mt-1 break-keep text-xs leading-6 text-muted">
-          이미 등록된 회사라면 [회사정보 불러오기]로 채우세요.
+          이미 등록된 회사라면 [등록된 회사정보 불러오기]로 채우세요.
         </p>
       )}
       <div className="mt-4 grid gap-x-6 gap-y-5 sm:grid-cols-2">
@@ -1245,7 +1245,7 @@ function CompanySearchDialog({
       data-testid="company-search"
       role="dialog"
       aria-modal="true"
-      aria-label="회사정보 불러오기"
+      aria-label="등록된 회사정보 불러오기"
       // 어두운 바깥을 누르거나 Esc 를 누르면 닫힌다 — 창을 띄웠으면 그렇게 닫히리라 기대한다.
       // 안쪽을 눌렀을 때 닫히면 안 되므로 대상이 이 겹판 자신일 때만 닫는다.
       onMouseDown={(e) => {
@@ -1260,7 +1260,7 @@ function CompanySearchDialog({
     >
       <div className="flex max-h-[85vh] w-full max-w-3xl flex-col overflow-y-auto bg-background p-7 sm:p-9">
         <div className="flex items-center justify-between">
-          <h3 className="text-h5-m font-bold sm:text-h5">회사정보 불러오기</h3>
+          <h3 className="text-h5-m font-bold sm:text-h5">등록된 회사정보 불러오기</h3>
           <button type="button" data-testid="search-close" onClick={onClose} aria-label="닫기" className="text-muted">
             ✕
           </button>

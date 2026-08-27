@@ -35,7 +35,7 @@ import { Step5Estimate } from "./Step5Estimate";
 import { StepAttachments, StepPerformanceInfo, validatePerformanceInfoStep } from "./StepPerformanceInfo";
 import { StepAudience, validateAudienceStep } from "./StepAudience";
 import { StepPublicInterest, type PublicInterestFile } from "./StepPublicInterest";
-import { StepMarketingCooperation, validateMarketingCooperationStep } from "./StepMarketingCooperation";
+import { StepMarketingCooperation } from "./StepMarketingCooperation";
 import { StepSafetyPledge, validateSafetyPledgeStep } from "./StepSafetyPledge";
 import { Step6Submit } from "./Step6Submit";
 
@@ -190,6 +190,9 @@ export function WizardShell({
   // (2026-08-26, 중복 제거).
   const [pendingFiles, setPendingFiles] = useState<File[]>([]);
   const [publicInterestFiles, setPublicInterestFiles] = useState<PublicInterestFile[]>([]);
+  // 출연 계약 증빙(계약서·출연확약서) — STEP 3 "개최 신뢰도 및 이력 확인" 슬롯에서 받는다.
+  // 일반 첨부와 같은 취급(category 없음)이라 상세 화면의 첨부서류 목록에 그대로 들어간다.
+  const [castContractFiles, setCastContractFiles] = useState<File[]>([]);
   // 안전관리계획서는 목업상 필수 단일 슬롯이다 — 다른 단계처럼 자유 목록이 아니라
   // 슬롯당 파일 1개(재선택 시 교체)로 둔다.
   const [safetyPlanFile, setSafetyPlanFile] = useState<File | null>(null);
@@ -365,13 +368,10 @@ export function WizardShell({
     (selection.midHallPerformanceInfo && validatePerformanceInfoStep(selection.midHallPerformanceInfo, "중형공연장")) ??
     validateAudienceStep(selection.performanceInfo, selection.midHallPerformanceInfo ? "아레나" : undefined) ??
     (selection.midHallPerformanceInfo && validateAudienceStep(selection.midHallPerformanceInfo, "중형공연장"));
-  // 홍보 및 마케팅(STEP 4)·안전관리 서약(STEP 6)도 필수라 그 다음 단계로 못 넘어가게
-  // 막는다(2026-08-22, "무조건 필수"). STEP 5(공공/공익 참여 여부)는 선택 항목이라 별도
-  // 게이트가 없다 — 통과 여부와 무관하게 STEP 6까지는 열린다.
-  // [개정 2026-08-27] 홍보와 공공/공익의 순서를 맞바꾸면서 게이트도 STEP 5 → 4 로 옮겼다.
-  const step4Blocked = validateMarketingCooperationStep(
-    selection.marketingCooperation ?? DEFAULT_MARKETING_COOPERATION,
-  );
+  // 안전관리 서약(STEP 6)은 필수라 그 다음 단계로 못 넘어가게 막는다(2026-08-22,
+  // "무조건 필수"). STEP 4(홍보 및 서비스 계획)·STEP 5(공공/공익 참여 여부)는 게이트가
+  // 없다 — 공공/공익은 원래 선택이고, 홍보는 유일한 필수값이던 "서비스 연계 동의"를
+  // 화면에서 뺐다(2026-08-27).
   const step6Blocked = validateSafetyPledgeStep(selection.safetyPledge ?? DEFAULT_SAFETY_PLEDGE, {
     safetyPlanFile,
   });
@@ -383,11 +383,9 @@ export function WizardShell({
         ? 2
         : step3Blocked
           ? 3
-          : step4Blocked
-            ? 4
-            : step6Blocked
-              ? 6
-              : TOTAL_STEPS;
+          : step6Blocked
+            ? 6
+            : TOTAL_STEPS;
   // 패키지 선택 전에도 기본 공연일수를 보여줘야 하므로, 모든 패키지가 공유하는 기본값(2일)을 임시로 사용한다.
   const effectivePkg = findPackage(rateTable, effectivePackageId);
   const defaultPerformanceDays = effectivePkg?.defaultPerformanceDays ?? 2;
@@ -474,6 +472,7 @@ export function WizardShell({
     // 그 항목 이름이 같이 보여야 심사에서 되묻지 않는다.
     const allFiles: { file: File; publicInterestItem?: string }[] = [
       ...pendingFiles.map((file) => ({ file })),
+      ...castContractFiles.map((file) => ({ file })),
       ...publicInterestFiles.map(({ file, item }) => ({ file, publicInterestItem: item })),
       ...(safetyPlanFile ? [{ file: safetyPlanFile }] : []),
     ];
@@ -500,6 +499,7 @@ export function WizardShell({
     } else {
       setPendingFiles([]);
       setPublicInterestFiles([]);
+      setCastContractFiles([]);
     }
   }
 
@@ -585,10 +585,6 @@ export function WizardShell({
             }
             if (step === 3 && step3Blocked) {
               toast.error(step3Blocked);
-              return;
-            }
-            if (step === 4 && step4Blocked) {
-              toast.error(step4Blocked);
               return;
             }
             if (step === 6 && step6Blocked) {
@@ -736,6 +732,8 @@ export function WizardShell({
               }
               selection={resolvedSelection}
               title={wizardStepText.performanceInfoTitle}
+              castContractFiles={castContractFiles}
+              onCastContractFilesChange={setCastContractFiles}
             />
             {/* [2026-08-23] "신청자 정보 및 규모" — 두 탭을 하나로 합쳤다("신청자 정보
                 탭을 신청자 정보 및 규모로 변경하고, 규모 탭 내역을 합쳐"). 규모(StepAudience)
@@ -819,6 +817,7 @@ export function WizardShell({
             fileCount={
               pendingFiles.length +
               publicInterestFiles.length +
+              castContractFiles.length +
               (safetyPlanFile ? 1 : 0)
             }
             onSubmit={submit}

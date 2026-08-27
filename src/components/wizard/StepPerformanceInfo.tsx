@@ -332,10 +332,16 @@ function PerformanceInfoFields({
   info,
   onChange,
   scheduleSummary,
+  castContractFiles,
+  onCastContractFilesChange,
 }: {
   info: PerformanceInfo;
   onChange: (info: PerformanceInfo) => void;
   scheduleSummary: { arenaLine: string | null; midHallLine: string | null; showsTotal: number | null } | null;
+  // 출연 계약 증빙은 공간(아레나/중형)별로 갈리는 자료가 아니라 탭과 무관하게 같은 목록을
+  // 공유한다 — 그래서 info 가 아니라 위저드 상태에서 그대로 내려온다.
+  castContractFiles: File[];
+  onCastContractFilesChange: (files: File[]) => void;
 }) {
   const { t, tStr } = useWizardText();
 
@@ -1036,6 +1042,57 @@ function PerformanceInfoFields({
           )}
         </label>
 
+        {/* [신규 2026-08-27] 증빙을 "허용합니다"라고 동의만 받고 낼 자리가 없었다 —
+            바로 이 자리에서 첨부한다. 신청서 제출 시 다른 첨부와 함께 올라가 상세 화면의
+            첨부서류 목록에 들어간다. */}
+        <div className="mt-4">
+          <div className="mb-2 text-xs font-bold text-muted">
+            {t("performanceInfo.castContractFilesLabel", "출연 계약 증빙 첨부(선택)")}
+          </div>
+          <p className="mb-2.5 text-xs leading-5 text-muted">
+            {t(
+              "performanceInfo.castContractFilesHint",
+              "계약서 · 출연확약서 등. PDF/이미지/문서, 파일당 최대 500MB. 금액 · 개인정보는 가려서 올리셔도 됩니다.",
+            )}
+          </p>
+          {castContractFiles.length > 0 && (
+            <ul className="mb-3 border-t border-border/25">
+              {castContractFiles.map((file, i) => (
+                <li
+                  key={`${file.name}-${i}`}
+                  className="flex items-center justify-between gap-4 border-b border-border/25 py-3"
+                >
+                  <span className="min-w-0 truncate text-s font-bold">{file.name}</span>
+                  <div className="flex shrink-0 items-center gap-4 text-xs text-muted tabular-nums">
+                    <span>{formatSize(file.size)}</span>
+                    <button
+                      type="button"
+                      onClick={() => onCastContractFilesChange(castContractFiles.filter((_, j) => j !== i))}
+                      className="cursor-pointer transition-colors hover:text-danger"
+                    >
+                      {t("performanceInfo.castContractRemoveButton", "삭제")}
+                    </button>
+                  </div>
+                </li>
+              ))}
+            </ul>
+          )}
+          <input
+            type="file"
+            multiple
+            data-testid="cast-contract-files"
+            onChange={(e) => {
+              const picked = Array.from(e.target.files ?? []).filter((f) => f.size <= MAX_FILE_SIZE);
+              if (picked.length > 0) onCastContractFilesChange([...castContractFiles, ...picked]);
+              if (picked.length < (e.target.files?.length ?? 0)) {
+                window.alert(tStr("performanceInfo.castContractTooLarge", "500MB를 넘는 파일은 첨부할 수 없습니다."));
+              }
+              e.target.value = "";
+            }}
+            className={`${FILE_INPUT} text-muted`}
+          />
+        </div>
+
         <label className="mt-3 flex cursor-pointer items-start gap-2.5 text-xs text-muted">
           <input
             type="checkbox"
@@ -1058,6 +1115,8 @@ export function StepPerformanceInfo({
   onChangeMidHallInfo,
   selection,
   title,
+  castContractFiles,
+  onCastContractFilesChange,
 }: {
   info: PerformanceInfo;
   onChange: (info: PerformanceInfo) => void;
@@ -1065,6 +1124,8 @@ export function StepPerformanceInfo({
   onChangeMidHallInfo: (info: PerformanceInfo | null) => void;
   selection: QuoteSelection;
   title: ReactNode;
+  castContractFiles: File[];
+  onCastContractFilesChange: (files: File[]) => void;
 }) {
   const { t } = useWizardText();
   const [activeTab, setActiveTab] = useState<VenueSplitTab>(midHallInfo ? "ARENA" : "COMMON");
@@ -1127,6 +1188,8 @@ export function StepPerformanceInfo({
             info={info}
             onChange={onChange}
             scheduleSummary={{ arenaLine, midHallLine: isMidHallInvolved ? midHallLine : null, showsTotal }}
+            castContractFiles={castContractFiles}
+            onCastContractFilesChange={onCastContractFilesChange}
           />
         )}
         {effectiveTab === "ARENA" && (
@@ -1134,6 +1197,8 @@ export function StepPerformanceInfo({
             info={info}
             onChange={onChange}
             scheduleSummary={{ arenaLine, midHallLine: null, showsTotal }}
+            castContractFiles={castContractFiles}
+            onCastContractFilesChange={onCastContractFilesChange}
           />
         )}
         {effectiveTab === "MIDHALL" && midHallInfo && (
@@ -1141,6 +1206,8 @@ export function StepPerformanceInfo({
             info={midHallInfo}
             onChange={onChangeMidHallInfo}
             scheduleSummary={{ arenaLine: null, midHallLine, showsTotal: null }}
+            castContractFiles={castContractFiles}
+            onCastContractFilesChange={onCastContractFilesChange}
           />
         )}
       </div>
