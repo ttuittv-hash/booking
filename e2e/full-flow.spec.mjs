@@ -170,33 +170,40 @@ try {
   const inviteUrl = (await page.locator('[data-testid="invite-url"] .font-mono').innerText()).trim();
   check("A11-1", "초대 링크가 발급된다", inviteUrl.includes("/invite?token="));
 
-  // 초대 수락 — 다른 브라우저 컨텍스트(= 다른 사람)
+  // 초대 수락 — 다른 브라우저 컨텍스트(= 다른 사람).
+  // [개정 2026-08-27] 초대 랜딩이 전용 수락 폼에서 회원가입 위저드로 바뀌었다 —
+  // 약관 동의 → 본인인증 → 정보 입력을 일반 가입과 똑같이 거친다.
   const inviteeCtx = await newCtx();
   const invitee = await inviteeCtx.newPage();
   await invitee.goto(inviteUrl, { waitUntil: "domcontentloaded" });
+  await invitee.waitForSelector('[data-testid="step-terms"]', { timeout: 20000 });
+  check("A11-2", "초대 랜딩이 회원가입 위저드로 열린다",
+    await invitee.locator('[data-testid="register-wizard"][data-invited="true"]').isVisible());
+  await invitee.check('[data-testid="agree-SERVICE"]');
+  await invitee.check('[data-testid="agree-PRIVACY_REQUIRED"]');
+  await invitee.click('[data-testid="terms-next"]');
   await invitee.click('[data-testid="identity-start"]');
-  await invitee.waitForSelector('[data-testid="invite-username"]', { timeout: 20000 });
-  check("A11-2", "초대받은 사람이 본인인증을 거친다", true);
-  await invitee.fill('[data-testid="invite-username"]', "s" + t);
-  await invitee.fill('[data-testid="invite-password"]', "Test1234!");
-  await invitee.fill('[data-testid="invite-password-confirm"]', "Test1234!");
-  await invitee.click('[data-testid="invite-submit"]');
-  await invitee.waitForSelector('[data-testid="invite-done"]', { timeout: 30000 });
-  check("A11-3", "본인이 비밀번호를 직접 정해 합류한다", true);
+  await invitee.waitForSelector('[data-testid="step-info"]', { timeout: 20000 });
+  check("A11-3", "초대받은 사람이 약관 동의와 본인인증을 거친다", true);
+  // 회사·이메일은 초대장이 정본이라 잠겨 있다.
+  check("A11-4", "초대장의 회사·이메일이 잠긴 채 채워진다",
+    (await invitee.locator('[data-testid="f-brn"]').getAttribute("readonly")) !== null &&
+      (await invitee.locator('[data-testid="f-email"]').getAttribute("readonly")) !== null);
+  await invitee.fill('[data-testid="f-username"]', "s" + t);
+  await invitee.fill('[data-testid="f-password"]', "Test1234!");
+  await invitee.fill('[data-testid="f-passwordConfirm"]', "Test1234!");
+  await invitee.click('[data-testid="check-username"]');
+  await invitee.waitForSelector('[data-testid="id-check-message"]', { timeout: 20000 });
+  await invitee.click('[data-testid="submit-register"]');
+  await invitee.waitForSelector('[data-testid="step-done"]', { timeout: 30000 });
+  check("A11-5", "본인이 비밀번호를 직접 정해 합류한다", true);
 
-  // 같은 링크 재사용 차단
+  // 같은 링크 재사용 차단 — 소진된 링크는 랜딩부터 오류를 보여준다.
   const reuse = await (await newCtx()).newPage();
   await reuse.goto(inviteUrl, { waitUntil: "domcontentloaded" });
-  await reuse.click('[data-testid="identity-start"]').catch(() => {});
-  await reuse.waitForSelector('[data-testid="invite-username"]', { timeout: 20000 }).catch(() => {});
-  await reuse.fill('[data-testid="invite-username"]', "x" + t).catch(() => {});
-  await reuse.fill('[data-testid="invite-password"]', "Test1234!").catch(() => {});
-  await reuse.fill('[data-testid="invite-password-confirm"]', "Test1234!").catch(() => {});
-  await reuse.click('[data-testid="invite-submit"]').catch(() => {});
-  await reuse.waitForSelector('[data-testid="invite-error"]', { timeout: 15000 }).catch(() => {});
   const reuseErr = await reuse.locator('[data-testid="invite-error"]').innerText().catch(() => "");
-  const stillOnForm = await reuse.locator('[data-testid="invite-done"]').isVisible().catch(() => false);
-  check("A11-4", "쓴 초대 링크는 다시 못 쓴다",
+  const stillOnForm = await reuse.locator('[data-testid="step-terms"]').isVisible().catch(() => false);
+  check("A11-6", "쓴 초대 링크는 다시 못 쓴다",
     !stillOnForm && (reuseErr.includes("만료") || reuseErr.includes("사용")), reuseErr.slice(0, 40));
 
   // ── A13 계정 복구 ─────────────────────────────────────────

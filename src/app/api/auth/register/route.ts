@@ -29,7 +29,10 @@ import {
   notifyAdmins,
   saveCompanyVerification,
   withTransaction,
+  findValidInvitation,
+  consumeInvitation,
 } from "@/lib/db";
+import { hashInviteToken } from "@/lib/invitation";
 import { SHA256_HEX_RE, sha256Hex } from "@/lib/passwordScheme";
 import { clientIpFrom, rateLimit } from "@/lib/rateLimit";
 import { APPLICANT_COMPANY_TYPE_LABEL, type ApplicantCompanyType } from "@/lib/pricing/types";
@@ -49,14 +52,18 @@ export async function POST(request: Request) {
 
   const body = await request.json().catch(() => null);
   const username = typeof body?.username === "string" ? body.username.trim().toLowerCase() : "";
-  const email = typeof body?.email === "string" ? body.email.trim() : "";
+  const emailInput = typeof body?.email === "string" ? body.email.trim() : "";
   const passwordHashInput = typeof body?.passwordHash === "string" ? body.passwordHash.toLowerCase() : "";
   const password = typeof body?.password === "string" ? body.password : "";
-  const name = typeof body?.name === "string" ? body.name.trim() : "";
+  const nameInput = typeof body?.name === "string" ? body.name.trim() : "";
   const phone = typeof body?.phone === "string" ? body.phone.trim() : "";
   const accountType = body?.accountType === "INDIVIDUAL" ? "INDIVIDUAL" : "CORPORATE";
   const companyName = typeof body?.companyName === "string" ? body.companyName.trim() : "";
   const companyId = typeof body?.companyId === "string" ? body.companyId.trim() : "";
+  // [개정 2026-08-27] 초대 링크로 들어온 사람도 이 가입 폼을 그대로 쓴다. 예전에는 /invite
+  // 전용 화면에서 이름·아이디·비밀번호만 받아 약관 동의도 재직증명서도 남지 않았다.
+  // 토큰이 있으면 회사·이메일·이름은 초대장이 정본이고, 폼 값은 참고만 한다.
+  const inviteToken = typeof body?.inviteToken === "string" ? body.inviteToken.trim() : "";
   const businessRegistrationNumber =
     typeof body?.businessRegistrationNumber === "string" ? body.businessRegistrationNumber.trim() : "";
   const representativeName = typeof body?.representativeName === "string" ? body.representativeName.trim() : "";
@@ -82,6 +89,18 @@ export async function POST(request: Request) {
   const agreements = Array.isArray(body?.agreements) ? body.agreements : [];
   const agreedTerms = body?.agreedTerms === true;
   const agreedPrivacy = body?.agreedPrivacy === true;
+
+  // 초대장이 있으면 회사·이메일·이름의 정본은 초대장이다. 폼에서 무엇을 보냈든 서버가
+  // 초대장 값으로 덮는다 — 폼을 우회해도 남의 이메일로 가입되지 않는다.
+  const invitation = inviteToken ? await findValidInvitation(hashInviteToken(inviteToken)) : undefined;
+  if (inviteToken && !invitation) {
+    return NextResponse.json(
+      { error: "초대 링크가 만료되었거나 이미 사용되었습니다. 대표 담당자에게 재발송을 요청해주세요." },
+      { status: 400 },
+    );
+  }
+  const email = invitation?.email ?? emailInput;
+  const name = invitation?.inviteeName?.trim() || nameInput;
 
   if (!USERNAME_RE.test(username)) {
     return NextResponse.json(
@@ -193,7 +212,18 @@ export async function POST(request: Request) {
   let company;
   // 기업회원 가입의 합류 판정 결과 — 가입 완료 응답에 안내 문구로 실린다.
   let joinKind: import("@/lib/db").CompanyJoinKind = "NEW";
-  if (accountType === "INDIVIDUAL") {
+  if (invitation) {
+    // 초대장이 회사를 정한다. 사업자등록번호 중복·진위확인은 그 회사를 처음 등록할 때
+    // 이미 끝났으므로 다시 묻지 않는다(기획서 A5 와 같은 이유).
+    company = await findCompanyById(invitation.companyId);
+    if (!company) {
+      return NextResponse.json(
+        { error: "초대한 회사를 찾을 수 없습니다. 대표 담당자에게 문의해주세요." },
+        { status: 400 },
+      );
+    }
+    joinKind = "JOIN_APPROVED";
+  } else if (accountType === "INDIVIDUAL") {
     if (companyId) {
       company = await findCompanyById(companyId);
       if (!company) {
@@ -309,7 +339,8 @@ export async function POST(request: Request) {
       companyName: company?.name ?? null,
       companyId: company?.id ?? null,
       role: "APPLICANT",
-      approvalStatus: "PENDING",
+      // 초대는 마스터가 직접 부른 사람이라 합류 승인이 이미 끝난 셈이다(기존 초대 수락과 동일).
+      approvalStatus: invitation ? "APPROVED" : "PENDING",
       termsAgreedAt: createdAt,
       privacyAgreedAt: createdAt,
       employmentCertUrl: employmentCertUrl || null,
@@ -355,18 +386,27 @@ export async function POST(request: Request) {
       created.companyRole = await assignCompanyRoleOnJoin(created.id, company.id);
     }
 
+    // 초대장은 계정과 한 묶음으로 소진한다 — 계정만 만들어지고 링크가 살아 있으면
+    // 같은 링크로 한 사람이 더 들어온다.
+    if (invitation) {
+      await consumeInvitation(invitation.id, created.id);
+    }
+
     // 최초 가입자는 운영자가 전담하고, 이후 가입자는 그 회사 마스터도 처리할 수 있다(기획서 1-42).
     // 마스터가 부재·지연이어도 운영자가 안전망이므로 운영자 알림은 두 경우 모두 보낸다.
-    const joinLabel =
-      created.companyRole === "MASTER" ? "회사 신규 등록" : `${company?.name ?? ""} 합류 신청`;
-    await notifyAdmins({
-      quoteId: "applicants",
-      message: `신규 가입 승인 요청: ${name} (${company?.name ?? "소속 없음"}, ${accountType === "INDIVIDUAL" ? "개인회원" : "법인회원"}, ${joinLabel})`,
-      createdAt,
-    });
+    // 초대로 들어온 사람은 승인할 것이 없어(이미 APPROVED) 승인 요청을 만들지 않는다.
+    if (!invitation) {
+      const joinLabel =
+        created.companyRole === "MASTER" ? "회사 신규 등록" : `${company?.name ?? ""} 합류 신청`;
+      await notifyAdmins({
+        quoteId: "applicants",
+        message: `신규 가입 승인 요청: ${name} (${company?.name ?? "소속 없음"}, ${accountType === "INDIVIDUAL" ? "개인회원" : "법인회원"}, ${joinLabel})`,
+        createdAt,
+      });
+    }
 
-    // MB-04 합류 신청 발생 → 그 회사 마스터
-    if (company && created.companyRole === "STAFF" && company.masterUserId) {
+    // MB-04 합류 신청 발생 → 그 회사 마스터. 마스터가 직접 부른 사람은 알릴 것이 없다.
+    if (!invitation && company && created.companyRole === "STAFF" && company.masterUserId) {
       dispatchMessageInBackground({
         templateCode: "MB-04",
         idempotencyKey: `MB-04:${created.id}`,
@@ -379,13 +419,15 @@ export async function POST(request: Request) {
     return created;
   });
 
-  // MB-01 가입 신청 접수 → 신청자 본인
-  dispatchMessageInBackground({
-    templateCode: "MB-01",
-    idempotencyKey: `MB-01:${user.id}`,
-    recipient: { userId: user.id, phone, email, name },
-    request,
-  });
+  // MB-01 가입 신청 접수 → 신청자 본인. 초대로 들어온 사람은 접수·대기가 없으므로 보내지 않는다.
+  if (!invitation) {
+    dispatchMessageInBackground({
+      templateCode: "MB-01",
+      idempotencyKey: `MB-01:${user.id}`,
+      recipient: { userId: user.id, phone, email, name },
+      request,
+    });
+  }
   // MB-05 회사 신규 등록 → 운영자
   if (company && user.companyRole === "MASTER") {
     for (const admin of await listUsers({ role: "ADMIN" })) {
@@ -402,8 +444,9 @@ export async function POST(request: Request) {
   await createSession(user.id, user.role);
   // 합류 상황에 따라 안내 문구가 달라진다 — "심사 중인 회사"인지 "미승인 이력이 있는 회사"인지
   // 알려주지 않으면 사용자는 왜 대기가 길어지는지 알 수 없다.
-  const joinNotice =
-    joinKind === "JOIN_PENDING"
+  const joinNotice = invitation
+    ? `${company?.name ?? ""} 담당자로 합류했습니다. 바로 이용하실 수 있습니다.`
+    : joinKind === "JOIN_PENDING"
       ? "이미 심사가 진행 중인 회사입니다. 앞선 심사가 끝난 뒤 함께 처리됩니다."
       : joinKind === "REAPPLY_REJECTED"
         ? "이전에 미승인 처리된 회사입니다. 운영자가 다시 심사합니다."
