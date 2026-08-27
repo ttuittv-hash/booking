@@ -1559,6 +1559,91 @@ export async function ensureCompanyMaster(companyId: string): Promise<void> {
   );
 }
 
+export interface DeleteUserResult {
+  deletedUser: boolean;
+  /** 남은 담당자가 없어 회사까지 지운 경우 */
+  deletedCompany: boolean;
+  /** 지운 부속 데이터 건수(테이블별) — 화면 안내용 */
+  removed: Record<string, number>;
+}
+
+/**
+ * 신청자 계정을 기록째 지운다 — 운영자 전용(가입 테스트 초기화, 반려 뒤 재가입 허용).
+ *
+ * 탈퇴(withdrawn_at)와 다르다: 탈퇴는 명의·휴대폰이 남아 같은 사람이 다시 가입하지 못한다.
+ * 이건 그 흔적까지 지워 처음부터 다시 가입할 수 있게 한다.
+ *
+ * users 를 참조하는 테이블을 손으로 나열하지 않고 카탈로그에서 읽는다 — 새 테이블이 생길 때마다
+ * 여기서 빠뜨려 FK 오류로 실패하던 문제(e2e/reset-dev.sh 와 같은 이유)를 피한다.
+ * 회사에 남는 담당자가 없으면 회사도 지운다 — 그래야 같은 사업자번호로 "최초 가입자"로 다시 올 수 있다.
+ */
+export async function deleteUserCascade(userId: string): Promise<DeleteUserResult> {
+  return withTransaction(async () => {
+    const user = await one<{ id: string; company_id: string | null; role: string }>(
+      "SELECT id, company_id, role FROM users WHERE id = $1",
+      [userId],
+    );
+    if (!user) return { deletedUser: false, deletedCompany: false, removed: {} };
+    if (user.role === "ADMIN") throw new Error("운영자 계정은 지울 수 없습니다.");
+
+    const removed: Record<string, number> = {};
+
+    // 회사가 이 사람을 대표로 붙잡고 있으면 먼저 놓는다(FK).
+    await q("UPDATE companies SET master_user_id = NULL WHERE master_user_id = $1", [userId]);
+
+    const fks = await q<{ tbl: string; col: string }>(
+      `SELECT tc.table_name AS tbl, kcu.column_name AS col
+         FROM information_schema.table_constraints tc
+         JOIN information_schema.key_column_usage kcu ON tc.constraint_name = kcu.constraint_name
+         JOIN information_schema.constraint_column_usage ccu ON tc.constraint_name = ccu.constraint_name
+        WHERE tc.constraint_type = 'FOREIGN KEY' AND ccu.table_name = 'users' AND tc.table_name <> 'companies'`,
+    );
+    // 신청서(quotes)처럼 다른 테이블이 다시 참조하는 행은 그 자식부터 지워야 한다 — 두 바퀴 돌려
+    // 첫 바퀴에서 FK 로 막힌 것을 두 번째 바퀴에서 정리한다(자식 → 부모 순서를 카탈로그로 알 수 없어서).
+    // 실패한 DELETE 는 트랜잭션 전체를 깨뜨리므로 세이브포인트로 감싸 되돌리고 다음 바퀴에 다시 시도한다.
+    let pendingFks = fks;
+    for (let pass = 0; pass < 3 && pendingFks.length > 0; pass += 1) {
+      const failed: typeof fks = [];
+      for (const fk of pendingFks) {
+        await q("SAVEPOINT del_fk");
+        try {
+          const rows = await q<{ n: string }>(
+            `WITH d AS (DELETE FROM "${fk.tbl}" WHERE "${fk.col}" = $1 RETURNING 1) SELECT count(*)::text AS n FROM d`,
+            [userId],
+          );
+          await q("RELEASE SAVEPOINT del_fk");
+          const n = Number(rows[0]?.n ?? 0);
+          if (n > 0) removed[fk.tbl] = (removed[fk.tbl] ?? 0) + n;
+        } catch {
+          await q("ROLLBACK TO SAVEPOINT del_fk");
+          failed.push(fk);
+        }
+      }
+      if (failed.length === pendingFks.length) {
+        throw new Error(`연결된 데이터를 지우지 못했습니다: ${failed.map((f) => f.tbl).join(", ")}`);
+      }
+      pendingFks = failed;
+    }
+    await q("DELETE FROM users WHERE id = $1", [userId]);
+
+    let deletedCompany = false;
+    if (user.company_id) {
+      const left = await one<{ n: string }>(
+        "SELECT count(*)::text AS n FROM users WHERE company_id = $1",
+        [user.company_id],
+      );
+      if (Number(left?.n ?? 0) === 0) {
+        await q("DELETE FROM company_invitations WHERE company_id = $1", [user.company_id]);
+        await q("DELETE FROM companies WHERE id = $1", [user.company_id]);
+        deletedCompany = true;
+      } else {
+        await ensureCompanyMaster(user.company_id);
+      }
+    }
+    return { deletedUser: true, deletedCompany, removed };
+  });
+}
+
 /** 회사 소속 담당자 목록 — 마스터의 담당자 관리 화면(기획서 A10). */
 export async function listCompanyMembers(companyId: string): Promise<AppUser[]> {
   const rows = await q<UserRow>(

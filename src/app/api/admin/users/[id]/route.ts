@@ -1,42 +1,33 @@
 import { NextResponse } from "next/server";
-import { getCurrentUser, requireMasterAdmin } from "@/lib/auth";
-import { demoteAdminToApplicant, listUsers } from "@/lib/db";
+import { getCurrentUser } from "@/lib/auth";
+import { deleteUserCascade, findUserById } from "@/lib/db";
 
-/**
- * 운영자 권한 해제 — 계정을 삭제하지 않고 신청자로 되돌린다.
- * 계정을 지우면 그 사람이 남긴 심사·정산 기록의 작성자가 사라져 이력을 못 읽는다.
- *
- * 두 가지를 막는다.
- *   · 자기 자신은 해제할 수 없다 (스스로 백오피스에서 잠겨 나가는 것)
- *   · 마지막 마스터 관리자는 해제할 수 없다 (등급을 올릴 사람이 아무도 남지 않는다)
- */
-export async function DELETE(_request: Request, ctx: { params: Promise<{ id: string }> }) {
-  const master = await requireMasterAdmin();
-  if (!master) {
+// 신청자 계정 삭제 — 운영자 전용.
+//
+// 반려된 계정은 명의(DI)·휴대폰·이메일이 남아 같은 사람이 다시 가입할 수 없다(2026-08-27,
+// 팀 가입 테스트 중 "반려시켰더니 재가입이 안 된다"). 탈퇴와 달리 기록째 지워 처음부터
+// 다시 가입할 수 있게 한다. 신청서·알림 이력 등 그 사람에게 매인 데이터가 함께 사라지므로
+// 화면에서 한 번 더 확인을 받는다.
+export async function DELETE(_request: Request, context: { params: Promise<{ id: string }> }) {
+  const actor = await getCurrentUser();
+  if (!actor) return NextResponse.json({ error: "로그인이 필요합니다." }, { status: 401 });
+  if (actor.role !== "ADMIN") return NextResponse.json({ error: "운영자만 삭제할 수 있습니다." }, { status: 403 });
+
+  const { id } = await context.params;
+  const target = await findUserById(id);
+  if (!target) return NextResponse.json({ error: "대상 계정을 찾을 수 없습니다." }, { status: 404 });
+  if (target.role !== "APPLICANT") {
+    return NextResponse.json({ error: "신청자 계정만 삭제할 수 있습니다." }, { status: 400 });
+  }
+
+  try {
+    const result = await deleteUserCascade(id);
+    return NextResponse.json(result);
+  } catch (error) {
+    console.error("[admin] 계정 삭제 실패", id, error);
     return NextResponse.json(
-      { error: "마스터 관리자만 운영자 권한을 해제할 수 있습니다." },
-      { status: 403 },
+      { error: "삭제하지 못했습니다. 연결된 데이터가 있어 실패했을 수 있습니다." },
+      { status: 500 },
     );
   }
-
-  const { id } = await ctx.params;
-  const me = await getCurrentUser();
-  if (me?.id === id) {
-    return NextResponse.json({ error: "자신의 운영자 권한은 해제할 수 없습니다." }, { status: 400 });
-  }
-
-  const admins = await listUsers({ role: "ADMIN" });
-  const target = admins.find((a) => a.id === id);
-  if (!target) {
-    return NextResponse.json({ error: "운영자 계정을 찾을 수 없습니다." }, { status: 404 });
-  }
-  if (target.adminTier === "MASTER" && admins.filter((a) => a.adminTier === "MASTER").length <= 1) {
-    return NextResponse.json(
-      { error: "마지막 마스터 관리자는 해제할 수 없습니다. 다른 계정을 마스터로 올린 뒤 해제하세요." },
-      { status: 400 },
-    );
-  }
-
-  const updated = await demoteAdminToApplicant(id);
-  return NextResponse.json({ user: updated });
 }

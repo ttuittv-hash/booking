@@ -77,6 +77,38 @@ export function ApplicantApprovalTable({
     }
   }
 
+  // 기록째 삭제 — 반려된 사람이 다시 가입하려면 명의·휴대폰이 지워져야 한다(2026-08-27 팀 요청).
+  // 승인된 계정도 지울 수 있지만 신청서·알림 이력이 함께 사라지므로 두 번 확인한다.
+  async function remove(a: AppUser) {
+    const first = window.confirm(
+      `${a.name}(${a.email}) 계정을 기록째 삭제합니다.\n\n` +
+        "이 사람의 신청서·알림 이력·초대가 함께 지워지고, 회사에 남는 담당자가 없으면 회사 정보도 지워집니다.\n" +
+        "삭제하면 같은 명의·휴대폰으로 처음부터 다시 가입할 수 있습니다.\n\n계속할까요?",
+    );
+    if (!first) return;
+    if (a.approvalStatus === "APPROVED") {
+      const typed = window.prompt("승인된 계정입니다. 정말 지우려면 담당자명을 그대로 입력하세요.");
+      if (typed?.trim() !== a.name) return;
+    }
+    setBusyId(a.id);
+    try {
+      const res = await fetch(`/api/admin/users/${a.id}`, { method: "DELETE" });
+      const data = await res.json().catch(() => null);
+      if (res.ok) {
+        window.alert(
+          data?.deletedCompany
+            ? "계정과 회사 정보를 삭제했습니다. 같은 사업자번호로 다시 가입할 수 있습니다."
+            : "계정을 삭제했습니다.",
+        );
+        router.refresh();
+      } else {
+        window.alert(data?.error ?? "삭제하지 못했습니다.");
+      }
+    } finally {
+      setBusyId(null);
+    }
+  }
+
   return (
     <div className={TABLE_CARD}>
       <div className={TABLE_HEAD}>
@@ -102,13 +134,13 @@ export function ApplicantApprovalTable({
               <th className={TH}>이메일</th>
               <th className={TH_NUM}>가입일</th>
               <th className={TH}>상태</th>
-              {pending && <th className={TH} />}
+              <th className={TH} />
             </tr>
           </thead>
           <tbody>
             {applicants.length === 0 ? (
               <tr>
-                <td colSpan={pending ? 7 : 6} className={TD_EMPTY}>
+                <td colSpan={7} className={TD_EMPTY}>
                   {pending ? "승인 대기 중인 신청이 없습니다." : "처리 내역이 없습니다."}
                 </td>
               </tr>
@@ -131,28 +163,40 @@ export function ApplicantApprovalTable({
                   <td className={TD}>
                     <Badge tone={STATUS_TONE[a.approvalStatus]}>{STATUS_LABEL[a.approvalStatus]}</Badge>
                   </td>
-                  {pending && (
-                    <td className={TD}>
-                      <div className="flex justify-end gap-2">
-                        <button
-                          type="button"
-                          disabled={busyId === a.id}
-                          onClick={() => act(a.id, "reject")}
-                          className={btnClass("secondary", "sm")}
-                        >
-                          거절
-                        </button>
-                        <button
-                          type="button"
-                          disabled={busyId === a.id}
-                          onClick={() => act(a.id, "approve")}
-                          className={btnClass("primary", "sm")}
-                        >
-                          승인
-                        </button>
-                      </div>
-                    </td>
-                  )}
+                  <td className={TD}>
+                    <div className="flex justify-end gap-2">
+                      {pending && (
+                        <>
+                          <button
+                            type="button"
+                            disabled={busyId === a.id}
+                            onClick={() => act(a.id, "reject")}
+                            className={btnClass("secondary", "sm")}
+                          >
+                            거절
+                          </button>
+                          <button
+                            type="button"
+                            disabled={busyId === a.id}
+                            onClick={() => act(a.id, "approve")}
+                            className={btnClass("primary", "sm")}
+                          >
+                            승인
+                          </button>
+                        </>
+                      )}
+                      <button
+                        type="button"
+                        disabled={busyId === a.id}
+                        onClick={() => remove(a)}
+                        data-testid={`delete-user-${a.id}`}
+                        className={btnClass("secondary", "sm")}
+                        title="계정을 기록째 삭제 — 같은 명의로 다시 가입할 수 있게 됩니다"
+                      >
+                        삭제
+                      </button>
+                    </div>
+                  </td>
                 </tr>
               ))
             )}
