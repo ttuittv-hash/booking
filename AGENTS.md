@@ -104,6 +104,15 @@ pod 를 여러 개 띄울 수 있으므로, **프로세스 메모리에 상태�
   `SEED_SAMPLE_COMPANY=true`. 운영 전용: 별도 `FIELD_*` 암호화 키.
 
 
+## 회원 삭제(운영자) — 탈퇴와 다르다
+
+`/admin/applicants` 승인 대기·처리 완료 표의 [삭제] → `DELETE /api/admin/users/{id}` →
+`deleteUserCascade()`. 탈퇴(`withdrawn_at`)는 명의·휴대폰이 남아 같은 사람이 재가입 못 하지만,
+삭제는 users 를 참조하는 모든 테이블을 카탈로그에서 찾아 지우고(세이브포인트로 자식→부모 재시도),
+담당자가 남지 않으면 회사도 지워 같은 사업자번호로 최초 가입자로 다시 올 수 있게 한다.
+회사당 MASTER 는 유니크(`idx_users_company_master`) — 대표를 바꿀 때 `ensureCompanyMaster` 가
+옛 MASTER 표시를 먼저 내린다(탈퇴한 옛 대표가 MASTER 로 남아 충돌한 적 있음, 2026-08-27).
+
 ## 카카오 알림톡 (DK테크인 BizMsg)
 
 `src/lib/message/kakaoBizTalk.ts`. 환경변수 `BIZTALK_*` 5종(BASE_URL·CLIENT_ID·CLIENT_SECRET·
