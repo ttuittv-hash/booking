@@ -508,6 +508,12 @@ async function initSchema(pool: Pool) {
     ALTER TABLE users ADD COLUMN IF NOT EXISTS office_phone TEXT;
     ALTER TABLE users ADD COLUMN IF NOT EXISTS fax_number TEXT;
 
+    -- 가입자 본인이 올린 사업자등록증(2026-08-27). 회사 행(companies.business_cert_url)은
+    -- 회사를 처음 등록한 사람의 것 하나뿐이라, 기존 회사에 합류하는 사람이 올린 파일은
+    -- 그대로 버려지고 있었다. 신청자 심사 화면에서 재직증명서 옆에 같이 보여준다.
+    ALTER TABLE users ADD COLUMN IF NOT EXISTS business_cert_url TEXT;
+    ALTER TABLE users ADD COLUMN IF NOT EXISTS business_cert_name TEXT;
+
     -- 공공/공익 STEP 에서 항목별로 올린 자료(2026-08-27). 어느 항목의 자료인지 표시할 뿐이라
     -- 값 검증은 API 쪽 화이트리스트가 하고, 그 밖의 첨부는 NULL 로 남는다.
     ALTER TABLE attachments ADD COLUMN IF NOT EXISTS public_interest_item TEXT;
@@ -2313,6 +2319,8 @@ interface UserRow {
   fax_number: string | null;
   employment_cert_url: string | null;
   employment_cert_name: string | null;
+  business_cert_url: string | null;
+  business_cert_name: string | null;
   password_hash: string | null;
   password_scheme: PasswordScheme;
   member_type: string | null;
@@ -2342,6 +2350,8 @@ function toAppUser(row: UserRow): AppUser {
     faxNumber: row.fax_number,
     employmentCertUrl: row.employment_cert_url,
     employmentCertName: row.employment_cert_name,
+    businessCertUrl: row.business_cert_url ?? null,
+    businessCertName: row.business_cert_name ?? null,
     name: row.name,
     companyName: row.company_name,
     companyId: row.company_id,
@@ -2377,6 +2387,8 @@ export async function createUser(input: {
   // 재직증명서(선택) — 가입 시 첨부한 파일. /api/auth/register/attachment 업로드 결과.
   employmentCertUrl?: string | null;
   employmentCertName?: string | null;
+  businessCertUrl?: string | null;
+  businessCertName?: string | null;
   createdAt: string;
 }): Promise<AppUser> {
   const approvalStatus = input.approvalStatus ?? "APPROVED";
@@ -2387,9 +2399,11 @@ export async function createUser(input: {
   const companyRole: CompanyRole | null = input.role === "APPLICANT" ? (input.companyRole ?? null) : null;
   const employmentCertUrl = input.employmentCertUrl ?? null;
   const employmentCertName = input.employmentCertName ?? null;
+  const businessCertUrl = input.businessCertUrl ?? null;
+  const businessCertName = input.businessCertName ?? null;
   await q(
-    `INSERT INTO users (id, username, email, phone, password_hash, password_scheme, name, company_name, company_id, role, approval_status, admin_tier, terms_agreed_at, privacy_agreed_at, member_type, company_role, created_at, employment_cert_url, employment_cert_name)
-     VALUES ($1, $2, $3, $4, $5, 'v2', $6, $7, $8, $9, $10, $11, $12, $13, $15, $16, $14, $17, $18)`,
+    `INSERT INTO users (id, username, email, phone, password_hash, password_scheme, name, company_name, company_id, role, approval_status, admin_tier, terms_agreed_at, privacy_agreed_at, member_type, company_role, created_at, employment_cert_url, employment_cert_name, business_cert_url, business_cert_name)
+     VALUES ($1, $2, $3, $4, $5, 'v2', $6, $7, $8, $9, $10, $11, $12, $13, $15, $16, $14, $17, $18, $19, $20)`,
     [
       input.id,
       input.username,
@@ -2409,6 +2423,8 @@ export async function createUser(input: {
       companyRole,
       employmentCertUrl,
       employmentCertName,
+      businessCertUrl,
+      businessCertName,
     ],
   );
   return {
@@ -2420,6 +2436,8 @@ export async function createUser(input: {
     faxNumber: null,
     employmentCertUrl,
     employmentCertName,
+    businessCertUrl,
+    businessCertName,
     name: input.name,
     companyName: input.companyName,
     companyId,

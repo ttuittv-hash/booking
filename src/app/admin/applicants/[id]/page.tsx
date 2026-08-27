@@ -123,6 +123,23 @@ export default async function AdminApplicantDetailPage({
         NONE
       ),
     ],
+    // 회사 행의 사업자등록증(아래 기업 정보 카드)은 회사를 처음 등록한 사람의 것 하나뿐이다.
+    // 기존 회사에 합류하는 사람이 직접 올린 등록증은 계정에 남으므로 여기 따로 보여준다
+    // (2026-08-27). 안 올렸으면 줄 자체를 빼서 화면을 늘리지 않는다.
+    ...(target.businessCertUrl
+      ? ([
+          [
+            "사업자등록증(본인 첨부)",
+            <a
+              key="user-business-cert"
+              href={`${target.businessCertUrl}${target.businessCertName ? `?name=${encodeURIComponent(target.businessCertName)}` : ""}`}
+              className={LINK_BTN}
+            >
+              {target.businessCertName || "첨부파일"} 열기
+            </a>,
+          ],
+        ] as [string, React.ReactNode][])
+      : []),
     ["가입일", new Date(target.createdAt).toLocaleString("ko-KR")],
     ["계정 ID", target.id],
   ];

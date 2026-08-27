@@ -314,6 +314,10 @@ export async function POST(request: Request) {
       privacyAgreedAt: createdAt,
       employmentCertUrl: employmentCertUrl || null,
       employmentCertName: employmentCertName || null,
+      // 회사 행에는 회사를 처음 등록한 사람의 것만 남는다 — 합류 가입자가 올린 사업자등록증도
+      // 버리지 않고 계정에 함께 남겨 심사 화면에서 보이게 한다(2026-08-27).
+      businessCertUrl: businessCertUrl || null,
+      businessCertName: businessCertName || null,
       createdAt,
     });
 

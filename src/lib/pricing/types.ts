@@ -939,6 +939,10 @@ export interface AppUser {
   // 재직증명서(선택) — 가입 시 첨부한 파일. 미첨부면 둘 다 null.
   employmentCertUrl: string | null;
   employmentCertName: string | null;
+  // 가입자 본인이 올린 사업자등록증(2026-08-27). 회사 행(Company.businessCertUrl)은 회사를
+  // 처음 등록한 사람의 것 하나뿐이라, 기존 회사에 합류하는 사람이 올린 파일을 여기 따로 남긴다.
+  businessCertUrl: string | null;
+  businessCertName: string | null;
   name: string;
   companyName: string | null;
   companyId: string | null;

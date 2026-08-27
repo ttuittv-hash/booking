@@ -1007,9 +1007,19 @@ function StepInfo({
         </Field>
         <div />
 
-        {locked ? null : (
-          <div className="sm:col-span-2">
-            <Field label="사업자등록증" hint="선택 · PDF/JPG/PNG · 10MB 이하">
+        {/* [개정 2026-08-27] 기존 회사를 불러온 뒤에도(locked) 사업자등록증 첨부를 남겨 둔다.
+            예전에는 통째로 숨겨서 합류 가입자는 낼 방법이 없었다. 회사 행에 저장된 등록증은
+            회사를 처음 등록한 사람의 것 하나뿐이라, 합류자가 올린 파일은 그 사람 계정에
+            따로 남아 운영자 심사 화면에 보인다. */}
+        <div className="sm:col-span-2">
+            <Field
+              label="사업자등록증"
+              hint={
+                locked
+                  ? "선택 · PDF/JPG/PNG · 10MB 이하 · 불러온 회사에는 이미 등록된 서류가 있습니다"
+                  : "선택 · PDF/JPG/PNG · 10MB 이하"
+              }
+            >
               <span className="flex flex-wrap items-center gap-3">
                 <label className={`${btnClass("secondary", "md")} cursor-pointer whitespace-nowrap`}>
                   {uploading === "biz" ? "업로드 중…" : "파일 선택"}
@@ -1029,8 +1039,7 @@ function StepInfo({
                 ) : null}
               </span>
             </Field>
-          </div>
-        )}
+        </div>
 
         <div className="sm:col-span-2">
           <Field label="회사주소" required>
