@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { notifyQuoteApplicant } from "@/lib/message/quoteEvents";
 import crypto from "node:crypto";
 import { getCurrentUser, isProAdminOrAbove } from "@/lib/auth";
 import {
@@ -89,5 +90,14 @@ export async function POST(request: Request, ctx: { params: Promise<{ id: string
     return updated;
   });
 
+  // RT-02 — 트랜잭션 밖에서 보낸다. 사유가 없으면 변수를 비우지 않고 "-" 로 채운다(빈 변수는 발송 거절).
+  notifyQuoteApplicant({
+    templateCode: "RT-02",
+    quoteId: id,
+    applicantId: quote.applicantId,
+    eventKey: review.decidedAt,
+    variables: { 심사결과: DECISION_LABEL[decision], 안내: rationale || "-" },
+    request,
+  });
   return NextResponse.json({ quote: updated });
 }

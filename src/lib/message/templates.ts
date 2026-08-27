@@ -160,7 +160,7 @@ export const TEMPLATES: TemplateDef[] = [
 ];
 
 export function findTemplate(code: string): TemplateDef | undefined {
-  return TEMPLATES.find((t) => t.code === code);
+  return TEMPLATES.find((t) => t.code === code) ?? QUOTE_TEMPLATES.find((t) => t.code === code);
 }
 
 /** 자리표시자 추출 — 본문과 variables 선언이 어긋나는 것을 막는다. */
@@ -174,6 +174,104 @@ export class TemplateVariableError extends Error {}
  * 변수를 채워 본문을 만든다.
  * 빈 값이 그대로 나가면 신뢰가 즉시 깨지므로(기획서 1-54), 누락은 발송 전에 막는다.
  */
+/**
+ * 신청서(대관) 이벤트 알림 — RT 계열. 2026-08-28 CBT 에 MNG API 로 등록(코드 = 우리 코드 그대로).
+ * 본문은 등록값과 글자 단위로 같아야 한다. 버튼 없음(강조표기형 TEXT).
+ */
+const RT_SUBTITLE = "서울아레나 대관시스템";
+export const QUOTE_TEMPLATES: TemplateDef[] = [
+  {
+    code: "RT-01",
+    kakaoTemplateCode: "RT-01",
+    audience: "APPLICANT",
+    title: "대관 신청 접수",
+    body: "#{신청자명}님, 안녕하세요.\n대관 신청서 #{신청번호}가 정상 접수되었습니다.\n\n운영자 심사 후 결과를 다시 안내드리겠습니다.",
+    variables: ["신청자명", "신청번호"],
+    release: "FIRST",
+    emphasis: { title: "대관 신청 접수 완료", subtitle: RT_SUBTITLE },
+  },
+  {
+    code: "RT-02",
+    kakaoTemplateCode: "RT-02",
+    audience: "APPLICANT",
+    title: "대관 심사 결과",
+    body: "#{신청자명}님, 안녕하세요.\n대관 신청서 #{신청번호}의 심사 결과를 안내드립니다.\n\n▪︎ 심사 결과: #{심사결과}\n▪︎ 안내: #{안내}\n\n자세한 내용은 대관시스템에서 확인해 주세요.",
+    variables: ["신청자명", "신청번호", "심사결과", "안내"],
+    release: "FIRST",
+    emphasis: { title: "대관 심사 결과 안내", subtitle: RT_SUBTITLE },
+  },
+  {
+    code: "RT-03",
+    kakaoTemplateCode: "RT-03",
+    audience: "APPLICANT",
+    title: "계약금액 확정",
+    body: "#{신청자명}님, 안녕하세요.\n대관 신청서 #{신청번호}의 계약금액이 확정되었습니다.\n\n▪︎ 계약금액: #{금액}원\n\n계약 절차 안내는 대관시스템에서 확인해 주세요.",
+    variables: ["신청자명", "신청번호", "금액"],
+    release: "FIRST",
+    emphasis: { title: "계약금액 확정", subtitle: RT_SUBTITLE },
+  },
+  {
+    code: "RT-04",
+    kakaoTemplateCode: "RT-04",
+    audience: "APPLICANT",
+    title: "계약서 날인 요청",
+    body: "#{신청자명}님, 안녕하세요.\n대관 신청서 #{신청번호}의 계약서에 공연장측 날인이 완료되었습니다.\n\n대관시스템에서 계약서를 확인하시고 날인을 진행해 주세요.",
+    variables: ["신청자명", "신청번호"],
+    release: "FIRST",
+    emphasis: { title: "계약서 날인 요청", subtitle: RT_SUBTITLE },
+  },
+  {
+    code: "RT-05",
+    kakaoTemplateCode: "RT-05",
+    audience: "APPLICANT",
+    title: "세금계산서 발행",
+    body: "#{신청자명}님, 안녕하세요.\n대관 신청서 #{신청번호}의 #{구분} 세금계산서가 발행되었습니다.\n\n입금 후 대관시스템에서 입금신청을 진행해 주세요.",
+    variables: ["신청자명", "신청번호", "구분"],
+    release: "FIRST",
+    emphasis: { title: "세금계산서 발행 안내", subtitle: RT_SUBTITLE },
+  },
+  {
+    code: "RT-06",
+    kakaoTemplateCode: "RT-06",
+    audience: "APPLICANT",
+    title: "입금 확인",
+    body: "#{신청자명}님, 안녕하세요.\n대관 신청서 #{신청번호}의 #{구분} 입금이 확인되었습니다.\n\n감사합니다.",
+    variables: ["신청자명", "신청번호", "구분"],
+    release: "FIRST",
+    emphasis: { title: "입금 확인", subtitle: RT_SUBTITLE },
+  },
+  {
+    code: "RT-07",
+    kakaoTemplateCode: "RT-07",
+    audience: "APPLICANT",
+    title: "보증금 입금 확인",
+    body: "#{신청자명}님, 안녕하세요.\n대관 신청서 #{신청번호}의 보증금 입금이 확인되었습니다.\n\n감사합니다.",
+    variables: ["신청자명", "신청번호"],
+    release: "FIRST",
+    emphasis: { title: "보증금 입금 확인", subtitle: RT_SUBTITLE },
+  },
+  {
+    code: "RT-08",
+    kakaoTemplateCode: "RT-08",
+    audience: "APPLICANT",
+    title: "최종 정산금액 확정",
+    body: "#{신청자명}님, 안녕하세요.\n대관 신청서 #{신청번호}의 최종 정산금액이 확정되었습니다.\n\n▪︎ 정산금액: #{금액}원\n\n자세한 내역은 대관시스템에서 확인해 주세요.",
+    variables: ["신청자명", "신청번호", "금액"],
+    release: "FIRST",
+    emphasis: { title: "최종 정산금액 확정", subtitle: RT_SUBTITLE },
+  },
+  {
+    code: "RT-09",
+    kakaoTemplateCode: "RT-09",
+    audience: "APPLICANT",
+    title: "부속합의 등록",
+    body: "#{신청자명}님, 안녕하세요.\n대관 신청서 #{신청번호}에 부속합의가 등록되었습니다.\n\n▪︎ 내용: #{내용}\n▪︎ 금액 변동: #{금액변동}원\n\n자세한 내역은 대관시스템에서 확인해 주세요.",
+    variables: ["신청자명", "신청번호", "내용", "금액변동"],
+    release: "FIRST",
+    emphasis: { title: "부속합의 등록 안내", subtitle: RT_SUBTITLE },
+  },
+];
+
 export function renderTemplate(code: string, variables: Record<string, string>): string {
   const def = findTemplate(code);
   if (!def) throw new TemplateVariableError(`템플릿을 찾을 수 없습니다: ${code}`);

@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { formatAmount, notifyQuoteApplicant } from "@/lib/message/quoteEvents";
 import crypto from "node:crypto";
 import { getCurrentUser } from "@/lib/auth";
 import {
@@ -78,5 +79,13 @@ export async function POST(request: Request, ctx: { params: Promise<{ id: string
     return updated;
   });
 
+  // RT-08 — 트랜잭션 밖에서 보낸다(백그라운드 발송이 커밋된 커넥션을 물지 않게).
+  notifyQuoteApplicant({
+    templateCode: "RT-08",
+    quoteId: id,
+    applicantId: quote.applicantId,
+    variables: { 금액: formatAmount(finalTotal) },
+    request,
+  });
   return NextResponse.json({ quote: updated });
 }

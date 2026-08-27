@@ -1,5 +1,6 @@
 import { describe, it, expect } from "vitest";
 import {
+  QUOTE_TEMPLATES,
   TEMPLATES,
   findTemplate,
   placeholdersIn,
@@ -20,6 +21,18 @@ describe("1차 오픈 템플릿", () => {
     for (const t of TEMPLATES) {
       expect(new Set(placeholdersIn(t.body))).toEqual(new Set(t.variables));
     }
+  });
+
+  it("신청서 이벤트(RT-01~09)도 변수·자리표시자가 일치하고 카카오 코드가 있다", () => {
+    expect(QUOTE_TEMPLATES.map((t) => t.code)).toEqual([
+      "RT-01", "RT-02", "RT-03", "RT-04", "RT-05", "RT-06", "RT-07", "RT-08", "RT-09",
+    ]);
+    for (const t of QUOTE_TEMPLATES) {
+      expect(new Set(placeholdersIn(t.body))).toEqual(new Set(t.variables));
+      expect(t.kakaoTemplateCode).toBe(t.code);
+      expect(t.variables).toContain("신청번호");
+    }
+    expect(renderTemplate("RT-03", { 신청자명: "홍길동", 신청번호: "Q-1", 금액: "1,000" })).toContain("1,000원");
   });
 
   it("MB-03 은 신청자명·거절사유가 필수 변수다", () => {

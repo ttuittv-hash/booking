@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { formatAmount, notifyQuoteApplicant } from "@/lib/message/quoteEvents";
 import crypto from "node:crypto";
 import { getCurrentUser } from "@/lib/auth";
 import { addAuditLog, createContractAddendum, createNotification, getQuoteById } from "@/lib/db";
@@ -58,6 +59,14 @@ export async function POST(request: Request, ctx: { params: Promise<{ id: string
     quoteId: id,
     message: `${id}에 부속합의가 등록되었습니다 — ${description} (${amountDeltaInput >= 0 ? "+" : ""}${amountDeltaInput.toLocaleString("ko-KR")}원)`,
     createdAt: now,
+  });
+  notifyQuoteApplicant({
+    templateCode: "RT-09",
+    quoteId: id,
+    applicantId: quote.applicantId,
+    eventKey: addendum.id,
+    variables: { 내용: description, 금액변동: `${amountDeltaInput >= 0 ? "+" : ""}${formatAmount(amountDeltaInput)}` },
+    request,
   });
 
   return NextResponse.json({ addendum });

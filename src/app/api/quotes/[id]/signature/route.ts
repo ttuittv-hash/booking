@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { notifyQuoteApplicant } from "@/lib/message/quoteEvents";
 import crypto from "node:crypto";
 import { canAccessQuote, getCurrentUser } from "@/lib/auth";
 import {
@@ -45,6 +46,7 @@ export async function POST(request: Request, ctx: { params: Promise<{ id: string
       message: `${id} 계약서에 공연장측 날인이 완료되었습니다. 확인 후 날인해주세요.`,
       createdAt: now,
     });
+    notifyQuoteApplicant({ templateCode: "RT-04", quoteId: id, applicantId: quote.applicantId, variables: {}, request });
     return NextResponse.json({ signature });
   }
 

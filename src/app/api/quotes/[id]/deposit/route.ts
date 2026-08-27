@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { notifyQuoteApplicant } from "@/lib/message/quoteEvents";
 import crypto from "node:crypto";
 import { canAccessQuote, getCurrentUser } from "@/lib/auth";
 import {
@@ -86,6 +87,7 @@ export async function POST(request: Request, ctx: { params: Promise<{ id: string
       message: `${id}의 보증금 입금이 확인되었습니다.`,
       createdAt,
     });
+    notifyQuoteApplicant({ templateCode: "RT-07", quoteId: id, applicantId: quote.applicantId, variables: {}, request });
     return NextResponse.json({ deposit: updated });
   }
 

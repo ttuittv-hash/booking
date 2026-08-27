@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { notifyQuoteApplicant } from "@/lib/message/quoteEvents";
 import crypto from "node:crypto";
 import { getCurrentUser } from "@/lib/auth";
 import {
@@ -115,6 +116,9 @@ export async function POST(request: Request) {
 
     return quote;
   });
+
+  // RT-01 대관 신청 접수 — 트랜잭션 밖에서 보낸다(백그라운드 발송이 커밋된 커넥션을 물지 않게).
+  notifyQuoteApplicant({ templateCode: "RT-01", quoteId: quote.id, applicantId: user.id, variables: {}, request });
 
   return NextResponse.json({ quote });
 }

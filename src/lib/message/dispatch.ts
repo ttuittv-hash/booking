@@ -43,6 +43,11 @@ export interface DispatchInput {
    * 그대로 쓰면 운영자가 승인했다는 이유로 신청자에게 bo 주소가 나간다.
    */
   request?: Request;
+  /**
+   * false 면 인앱 알림을 여기서 만들지 않는다 — 신청서 이벤트처럼 호출부가 이미 신청서에
+   * 매인 인앱 알림(quoteId·링크 포함)을 만든 경우. 기본은 인앱도 남긴다(기획서 1-62).
+   */
+  inApp?: boolean;
 }
 
 export interface DispatchOutcome {
@@ -211,6 +216,7 @@ export async function dispatchMessage(input: DispatchInput): Promise<DispatchOut
   }
 
   // 인앱은 항상 남긴다. 위에서 이미 기록한 sendId 와 겹치지 않게 별도 행으로 남긴다.
+  if (input.inApp === false) return { results };
   const inAppId = crypto.randomUUID();
   await recordSendAttempt({
     id: inAppId,

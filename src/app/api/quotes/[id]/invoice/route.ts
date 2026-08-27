@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { notifyQuoteApplicant } from "@/lib/message/quoteEvents";
 import crypto from "node:crypto";
 import { canAccessQuote, getCurrentUser } from "@/lib/auth";
 import {
@@ -93,6 +94,7 @@ export async function POST(request: Request, ctx: { params: Promise<{ id: string
       message: `${id}의 ${label} 세금계산서가 발행되었습니다. 입금 후 입금신청을 진행해주세요.`,
       createdAt: now,
     });
+    notifyQuoteApplicant({ templateCode: "RT-05", quoteId: id, applicantId: quote.applicantId, eventKey: purpose, variables: { 구분: label }, request });
     return NextResponse.json({ invoice: updated });
   }
 
@@ -142,6 +144,7 @@ export async function POST(request: Request, ctx: { params: Promise<{ id: string
       message: `${id}의 ${label} 입금이 확인되었습니다.`,
       createdAt: now,
     });
+    notifyQuoteApplicant({ templateCode: "RT-06", quoteId: id, applicantId: quote.applicantId, eventKey: purpose, variables: { 구분: label }, request });
     return NextResponse.json({ invoice: updated });
   }
 
