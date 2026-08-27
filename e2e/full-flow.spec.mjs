@@ -208,15 +208,17 @@ try {
   // 대표 담당자 화면 — 합류 신청이 목록에 뜨고, 초대 행은 소진돼 중복으로 남지 않는다.
   // 합류 직후 바로 새로고침하면 목록에 아직 안 보일 수 있다(2026-08-28 실측) — 몇 번 다시 읽는다.
   let rows = [];
-  for (let attempt = 0; attempt < 4; attempt += 1) {
+  for (let attempt = 0; attempt < 3; attempt += 1) {
     await page.reload({ waitUntil: "domcontentloaded" });
-    await page.waitForSelector('[data-testid="members-table"]');
+    // 표는 먼저 그려지고 목록은 API 로 뒤늦게 채워진다 — 행이 뜰 때까지 기다린다.
+    await page
+      .waitForSelector(`[data-testid="members-table"] tbody tr:has-text("staff${t}@seoul-ent.co.kr")`, { timeout: 8000 })
+      .catch(() => {});
     rows = await page.locator('[data-testid="members-table"] tbody tr').allInnerTexts();
     if (rows.some((r) => r.includes(`staff${t}@seoul-ent.co.kr`))) break;
-    await page.waitForTimeout(1500);
   }
   check("A11-5", "합류 신청이 대표 담당자 목록에 보인다",
-    rows.some((r) => r.includes("승인 대기")));
+    rows.some((r) => r.includes("승인 대기")), `${page.url()} rows=${rows.length} ${rows.map((r) => r.replace(/\s+/g, " ").slice(0, 60)).join(" | ")}`);
   check("A11-6", "가입한 사람의 초대 행은 중복으로 남지 않는다",
     rows.filter((r) => r.includes(`staff${t}@seoul-ent.co.kr`)).length === 1,
     rows.filter((r) => r.includes(`staff${t}@seoul-ent.co.kr`)).length + "행");

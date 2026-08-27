@@ -83,6 +83,8 @@ export function MembersManager() {
   const [inviteUrl, setInviteUrl] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  // 목록은 API 로 뒤늦게 채워진다 — 그 전에 "없습니다"를 보이면 잠깐 빈 것처럼 보인다(E2E 도 이걸 잘못 읽었다).
+  const [loaded, setLoaded] = useState(false);
 
   const load = useCallback(async () => {
     const [m, i] = await Promise.all([
@@ -106,6 +108,7 @@ export function MembersManager() {
         if (!alive) return;
         setMembers(data.members);
         setInvitations(data.invitations);
+        setLoaded(true);
       })
       .catch(() => {});
     return () => {
@@ -314,8 +317,8 @@ export function MembersManager() {
               ))}
               {unifiedRows.length === 0 ? (
                 <tr>
-                  <td colSpan={6} className="py-6 text-center text-muted">
-                    소속 담당자가 없습니다.
+                  <td colSpan={6} className="py-6 text-center text-muted" data-testid="members-empty">
+                    {loaded ? "소속 담당자가 없습니다." : "불러오는 중…"}
                   </td>
                 </tr>
               ) : null}
