@@ -22,16 +22,6 @@ export const NOTICE_TAGS = [
 
 export type NoticeTag = (typeof NOTICE_TAGS)[number];
 
-/** 각 말머리를 언제 쓰는지 — 관리 화면 보조 문구 */
-export const NOTICE_TAG_HELP: Record<NoticeTag, string> = {
-  대관공고: "대관 접수를 개시하는 공고 본문. 대상 공간·자격·접수 기간·심사 방식을 담는 게시물",
-  접수일정: "접수 개시일·마감일의 확정, 연장, 변경, 심사 결과 통보 시점 안내",
-  요금안내: "대관료·부대사용료 항목이나 산정 기준의 변경",
-  시설안내: "개관 일정, 시설·장비·공간 구성의 변경",
-  시스템: "사이트 점검, 장애, 기능 공개 일정",
-  일반안내: "위 다섯 가지에 들어가지 않는 안내",
-};
-
 /** 상단 승격 대상 — `대관공고` 하나뿐이며 완전 일치로만 판정한다. */
 export const PINNED_NOTICE_TAG: NoticeTag = "대관공고";
 

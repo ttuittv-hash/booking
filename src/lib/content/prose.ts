@@ -20,35 +20,7 @@ export function splitParagraphs(text: string | null | undefined): string[] {
     .filter(Boolean);
 }
 
-/** 평문에 실제 내용이 있는지 */
-export function hasProse(text: string | null | undefined): boolean {
-  return splitParagraphs(text).length > 0;
-}
 
-const ESCAPE: Record<string, string> = {
-  "&": "&amp;",
-  "<": "&lt;",
-  ">": "&gt;",
-  '"': "&quot;",
-};
-
-function escapeHtml(text: string): string {
-  return text.replace(/[&<>"]/g, (ch) => ESCAPE[ch] ?? ch);
-}
-
-/**
- * 평문을 `<p>` 문단 HTML 로 바꾼다. 이미 HTML 태그로 저장된 값(리치텍스트
- * 편집기로 쓴 공지·리드 등)은 손대지 않고 그대로 돌려준다 —
- * 두 저장 형식이 한 필드에 섞여 있어도 같은 함수를 통과시킬 수 있어야 한다.
- */
-export function proseToHtml(text: string | null | undefined): string {
-  const raw = (text ?? "").trim();
-  if (!raw) return "";
-  if (/<(p|div|ul|ol|h[1-4]|blockquote|table|br)\b/i.test(raw)) return raw;
-  return splitParagraphs(raw)
-    .map((block) => `<p>${escapeHtml(block).replace(/\n/g, "<br />")}</p>`)
-    .join("");
-}
 
 /**
  * 리치텍스트로 저장된 값을 평문으로 되돌린다.

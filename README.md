@@ -53,7 +53,6 @@ DB 없이도 `npm run build`가 성공합니다.
 Render 쉘(Shell 탭)에서 한 번 실행:
 
 ```bash
-node scripts/migrate-sqlite-to-pg.mjs   # $DATA_DIR/app.db → PostgreSQL
 ```
 
 - 이미 존재하는 행(PK 충돌)은 건너뜁니다. 새로 시드된 admin/test 계정과

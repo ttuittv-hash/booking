@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { notifyQuoteApplicant } from "@/lib/message/quoteEvents";
 import crypto from "node:crypto";
-import { getCurrentUser } from "@/lib/auth";
+import { canActOnQuotes, getCurrentUser } from "@/lib/auth";
 import {
   addAuditLog,
   withTransaction,
@@ -10,6 +10,7 @@ import {
   findBlockedDatesAmong,
   getCurrentRateTable,
   listQuotes,
+  listQuotesPaged,
   nextQuoteNumber,
   notifyAdmins,
 } from "@/lib/db";
@@ -30,7 +31,7 @@ export async function GET() {
 
   const quotes =
     user.role === "ADMIN"
-      ? await listQuotes()
+      ? (await listQuotesPaged({}, 1, 100)).items // 전체 덤프는 막는다 — 운영 목록은 페이지 화면이 따로 있다
       : user.companyId
         ? await listQuotes({ companyId: user.companyId })
         : await listQuotes({ applicantId: user.id });
@@ -41,6 +42,10 @@ export async function POST(request: Request) {
   const user = await getCurrentUser();
   if (!user) {
     return NextResponse.json({ error: "로그인이 필요합니다." }, { status: 401 });
+  }
+  // 화면(/apply)은 승인 완료 계정만 열리지만 API 는 로그인만 보고 있었다(2026-08-28 보안 점검).
+  if (!canActOnQuotes(user)) {
+    return NextResponse.json({ error: "승인 완료 후 이용할 수 있습니다." }, { status: 403 });
   }
 
   const body = await request.json().catch(() => null);

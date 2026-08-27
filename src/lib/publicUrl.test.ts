@@ -16,8 +16,14 @@ describe("publicOrigin", () => {
 
   it("X-Forwarded-Proto 를 존중한다", () => {
     expect(
-      publicOrigin(req({ "x-forwarded-host": "example.com", "x-forwarded-proto": "http" })),
-    ).toBe("http://example.com");
+      publicOrigin(req({ "x-forwarded-host": "partner.seoularena.net", "x-forwarded-proto": "http" })),
+    ).toBe("http://partner.seoularena.net");
+  });
+
+  it("우리 도메인이 아닌 호스트 헤더는 믿지 않는다 — 위조된 값이 초대·인증 링크에 박히면 안 된다", () => {
+    expect(publicOrigin(req({ "x-forwarded-host": "evil.example", host: "evil.example" }))).toBe(
+      "http://localhost:3000",
+    );
   });
 
   it("Forwarded 헤더가 없으면 Host 를 쓴다", () => {

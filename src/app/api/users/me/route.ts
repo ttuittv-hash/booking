@@ -7,6 +7,7 @@ import {
   findUserPasswordHash,
   updateCompanyProfile,
   updateUserProfile,
+  isCompanyMaster,
 } from "@/lib/db";
 import { SHA256_HEX_RE, sha256Hex } from "@/lib/passwordScheme";
 
@@ -95,8 +96,9 @@ export async function PUT(request: Request) {
     faxNumber: faxNumber || null,
   });
 
-  // 기업 정보(회사명·사업자등록번호 제외)는 소속 회사가 있을 때만 갱신한다.
-  if (user.companyId) {
+  // 기업 정보(회사명·사업자등록번호 제외)는 소속 회사가 있을 때만, 그리고 대표 담당자만 갱신한다 —
+  // 소속 담당자가 회사 전체 정보(대표자명·법인번호·주소)를 덮어쓸 수 있었다(2026-08-28 보안 점검).
+  if (user.companyId && isCompanyMaster(user)) {
     const company = await findCompanyById(user.companyId);
     if (company) {
       await updateCompanyProfile(user.companyId, {

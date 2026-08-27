@@ -56,8 +56,6 @@ export const FEE_GROUP_LABEL: Record<FeeGroup, string> = {
   EXCLUSIVE: "전용 사용료",
   OPTION: "옵션",
 };
-export const FEE_GROUP_ORDER: FeeGroup[] = ["BASE", "EXCLUSIVE", "OPTION"];
-
 // [신규 2026-08-26] "패키지에 대한 실제 계약금액과 옵션 선택분(추가 예상 예산)은
 // 성격이 다르니 슬롯을 나눠 보여달라"는 요청 — 기본 대관료·전용 사용료(패키지에
 // 묶인 항목)는 "계약 내역"으로, 옵션 사용료는 "추가 예상 금액"으로 묶는다.

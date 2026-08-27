@@ -2,7 +2,6 @@
 
 import { useState, type ReactNode } from "react";
 import { btnClass } from "@/components/ui/kit";
-import { NoticeEditor } from "./NoticeEditor";
 import { ADD_BTN, CARD, ERROR_NOTE, FIELD, FIELD_LABEL, HELP, OK_NOTE, REMOVE_BTN, SUB_TITLE } from "./adminUi";
 
 /** 파일 선택 input — 샤프 코너 · border-soft */
@@ -84,28 +83,6 @@ export function Area({
       />
       {note && <span className={`mt-1 block ${HELP}`}>{note}</span>}
     </label>
-  );
-}
-
-export function Rich({
-  label,
-  value,
-  onChange,
-  help,
-}: {
-  label: string;
-  value: string;
-  onChange: (v: string) => void;
-  help?: string;
-}) {
-  // 안내 문구는 여러 줄 입력칸과 같다 — 운영자에게는 같은 기능이다.
-  const note = [help, PARAGRAPH_HINT].filter(Boolean).join(" ");
-  return (
-    <div>
-      <span className={FIELD_LABEL}>{label}</span>
-      <p className={`mb-2 ${HELP}`}>{note}</p>
-      <NoticeEditor value={value} onChange={onChange} />
-    </div>
   );
 }
 

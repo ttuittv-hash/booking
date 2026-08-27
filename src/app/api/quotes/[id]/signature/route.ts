@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { notifyQuoteApplicant } from "@/lib/message/quoteEvents";
 import crypto from "node:crypto";
-import { canAccessQuote, getCurrentUser } from "@/lib/auth";
+import { canAccessQuote, canActOnQuotes, getCurrentUser } from "@/lib/auth";
 import {
   addAuditLog,
   createNotification,
@@ -22,6 +22,9 @@ export async function POST(request: Request, ctx: { params: Promise<{ id: string
   if (!quote) return NextResponse.json({ error: "신청서를 찾을 수 없습니다." }, { status: 404 });
   if (!(await canAccessQuote(user, quote))) {
     return NextResponse.json({ error: "접근 권한이 없습니다." }, { status: 403 });
+  }
+  if (!canActOnQuotes(user)) {
+    return NextResponse.json({ error: "승인 완료 후 이용할 수 있습니다." }, { status: 403 });
   }
   if (!quote.contract) {
     return NextResponse.json({ error: "계약 확정 후 날인할 수 있습니다." }, { status: 409 });

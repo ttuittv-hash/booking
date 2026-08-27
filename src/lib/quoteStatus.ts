@@ -19,14 +19,6 @@ export const QUOTE_STATUS_LABEL: Record<Quote["status"], string> = {
   SETTLED: "정산 완료",
 };
 
-/** 상태 배지 아래 한 줄 — 상태만 보여 주면 무엇을 기다려야 하는지 알 수 없다. */
-export const QUOTE_STATUS_DESC: Record<Quote["status"], string> = {
-  ESTIMATE:
-    "신청서가 접수되었습니다. 심사 순서를 기다리고 있으며, 제출하신 내용으로 계산한 예상 대관료를 확인하실 수 있습니다.",
-  CONTRACTED: "계약과 입금이 완료되어 대관이 확정되었습니다.",
-  SETTLED: "정산이 완료되어 대관 절차가 종료되었습니다.",
-};
-
 export const QUOTE_STATUS_TONE: Record<Quote["status"], "warn" | "accent" | "good"> = {
   ESTIMATE: "warn",
   CONTRACTED: "accent",

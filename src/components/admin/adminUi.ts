@@ -45,9 +45,6 @@ export const PANEL = "border border-border-soft bg-panel p-4 sm:p-5";
 /** 반복 항목 카드 */
 export const CARD = "border border-border-soft bg-panel p-4";
 
-/** 카드 안에 다시 들어가는 카드 */
-export const CARD_NESTED = "border border-border-soft bg-background p-3";
-
 /* ------------------------------------------------------------- 버튼 ------ */
 /* 버튼은 kit 의 btnClass(primary | secondary | tertiary | danger) 만 쓴다.
    높이도 kit 의 세 단(48 / 40 / 32)을 그대로 따른다 — 백오피스라고 더 작게 만들지
@@ -132,11 +129,6 @@ export const TABLE = "w-full border-collapse text-s";
 export const THEAD_ROW = "border-b border-border-soft bg-background text-left";
 export const TH = "px-3 py-2.5 text-xs font-bold text-muted";
 export const TH_NUM = `${TH} text-right`;
-/** 정렬 가능한 컬럼 — 라벨 뒤에 SORT_MARK 를 붙인다 */
-export const TH_SORT = `${TH} cursor-pointer select-none transition-colors hover:text-foreground`;
-/** 정렬 방향 표시 */
-export const SORT_MARK = "↓";
-
 /** 데이터 행 — 헤어라인 구분 */
 export const TR = "border-b border-border-soft last:border-b-0";
 export const TR_HOVER = `${TR} transition-colors hover:bg-foreground/[0.03]`;
@@ -155,22 +147,8 @@ export const TD_EMPTY = "px-3 py-10 text-center text-s text-muted";
 
 /** 값 없음은 —, 포함은 ✓ (텍스트로 "포함" 이라 쓰지 않는다) */
 export const NONE = "—";
-export const YES = "✓";
-
 /* 표 아래 페이지네이션 — 좌 Prev / 중앙 페이지 번호 / 우 Next.
    실제로 페이지를 나누는 목록에서만 쓴다 (없는 곳에 껍데기를 두지 않는다). */
-export const PAGER =
-  "flex items-center justify-between gap-4 border-t border-border-soft px-4 py-3 text-xs";
-export const PAGER_STEP =
-  "font-bold text-foreground transition-colors hover:text-muted-strong disabled:cursor-not-allowed disabled:opacity-40";
-export const PAGER_PAGES = "flex items-center gap-1 tabular-nums";
-export function pagerPageCls(active: boolean) {
-  return [
-    "min-w-6 px-1.5 py-0.5 text-center transition-colors",
-    active ? "font-bold text-foreground underline decoration-accent decoration-2 underline-offset-4" : "text-muted hover:text-foreground",
-  ].join(" ");
-}
-
 /* ------------------------------------------------------------- 타이포 ----- */
 
 /** 화면 타이틀 */
@@ -183,10 +161,6 @@ export const SECTION_TITLE = "type-kr-heading text-h6-m";
 export const SUB_TITLE = "text-s font-bold";
 /** 보조 설명 */
 export const HELP = "text-xs text-muted";
-/** 영문 전용 대문자 라벨 (Archivo). 국문에는 쓰지 않는다 — 한글 글립이 없다 */
-export const LABEL_CAPS =
-  "text-xs font-extrabold uppercase tracking-[0.08em] [font-family:Archivo,sans-serif]";
-
 /* ------------------------------------------------------------- 알림문 ----- */
 
 export const ERROR_NOTE = "border-l-2 border-danger bg-danger-soft px-3 py-2 text-s text-danger";

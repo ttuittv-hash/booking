@@ -5,6 +5,7 @@ import { useState } from "react";
 import { btnClass } from "@/components/ui/kit";
 import type { LegalContent } from "@/lib/content/types";
 import { NoticeEditor } from "./NoticeEditor";
+import { sanitizeRichText } from "@/lib/sanitizeHtml";
 
 const RICH_TEXT_PREVIEW_CLS =
   "[&_h2]:mt-6 [&_h2]:text-h6-m [&_h2]:font-bold [&_h2]:text-foreground [&_h2]:first:mt-0 [&_p]:my-2 [&_ul]:list-disc [&_ul]:pl-5 [&_li]:mt-1 [&_table]:mt-3 [&_table]:w-full [&_table]:border-collapse [&_td]:border [&_td]:border-border [&_td]:px-2.5 [&_td]:py-1.5 [&_th]:border [&_th]:border-border [&_th]:bg-panel-strong [&_th]:px-2.5 [&_th]:py-1.5 [&_th]:text-left";
@@ -70,7 +71,7 @@ export function LegalContentForm({
             <p className="text-xs text-muted">시행일: {content.effectiveDate}</p>
             <div
               className={`mt-4 text-s leading-7 text-muted ${RICH_TEXT_PREVIEW_CLS}`}
-              dangerouslySetInnerHTML={{ __html: content.bodyHtml }}
+              dangerouslySetInnerHTML={{ __html: sanitizeRichText(content.bodyHtml) }}
             />
           </div>
         </div>

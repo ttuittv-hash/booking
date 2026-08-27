@@ -104,6 +104,19 @@ pod 를 여러 개 띄울 수 있으므로, **프로세스 메모리에 상태�
   `SEED_SAMPLE_COMPANY=true`. 운영 전용: 별도 `FIELD_*` 암호화 키.
 
 
+## 2026-08-28 보안·성능 점검에서 정한 것
+
+- 신청서 API(`/api/quotes*` 의 신청자 쪽 변경)는 `canActOnQuotes(user)`(승인 완료 또는 운영자)를 거친다 —
+  화면만 막고 API 는 로그인만 보던 구멍. 새 신청자 변경 라우트를 만들면 이 검사를 넣을 것.
+- `/api/admin/feature-spec/*` 는 운영자 로그인 필수(예전 "로그인 없이" 요청은 인증 자체가 없어 외부에서 덮어쓸 수 있었음).
+- `publicOrigin()` 은 호스트 헤더를 우리 도메인(`(bo|partner).(dev.)?seoularena.net`, localhost)만 믿는다.
+  다른 호스트는 `PUBLIC_TRUSTED_HOSTS`(쉼표) 로 추가. 위조 헤더가 초대·인증 링크에 박히는 걸 막는다.
+- 회원가입은 본인인증 결과의 휴대폰(`identity.mobileNo`)을 저장한다(입력값 무시). 첨부 URL 은
+  `/api/auth/register/attachment/{uuid}.{ext}` 형식만 받는다. 회사 정보 수정은 대표 담당자만.
+- `getCurrentUser` 는 `React.cache` — 요청당 1회. `notifyAdmins` 는 INSERT…SELECT 한 문장.
+  운영자 신청서 상세는 독립 조회를 `Promise.all` 로. 자주 쓰는 WHERE/ORDER 컬럼 인덱스는 `initSchema` 끝에 추가.
+- 미사용 export·기본 SVG·SQLite 이관 스크립트는 지웠다. 새로 지울 땐 grep 으로 확인 후 삭제(자동 도구 없음).
+
 ## 회원 삭제(운영자) — 탈퇴와 다르다
 
 `/admin/applicants` 승인 대기·처리 완료 표의 [삭제] → `DELETE /api/admin/users/{id}` →

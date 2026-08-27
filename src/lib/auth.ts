@@ -2,6 +2,7 @@ import { hash as bcryptHash, verify as bcryptVerify } from "@node-rs/bcrypt";
 import { jwtVerify, SignJWT } from "jose";
 import { cookies, headers } from "next/headers";
 import { redirect } from "next/navigation";
+import { cache } from "react";
 import { findSessionEpoch, findUserById, isUserWithdrawn } from "./db";
 import { accountStateOf, canAccess, redirectFor } from "./accessPolicy";
 import type { AppUser, Quote, UserRole } from "./pricing/types";
@@ -62,7 +63,7 @@ async function signSession(payload: SessionPayload): Promise<string> {
     .sign(getSecretKey());
 }
 
-export type SessionExpiry = "IDLE" | "ABSOLUTE" | null;
+type SessionExpiry = "IDLE" | "ABSOLUTE" | null;
 
 async function verifySession(
   token: string,
@@ -126,25 +127,6 @@ export async function createSession(userId: string, role: UserRole) {
 }
 
 /**
- * 활동이 있었으니 유휴 시계를 되감는다(절대 상한은 그대로 둔다).
- * 쿠키 쓰기가 가능한 곳(Route Handler·Server Action)에서만 호출할 수 있다.
- */
-export async function touchSession(session: { sub: string; role: UserRole; lif: number }) {
-  const now = Math.floor(Date.now() / 1000);
-  const token = await signSession({ sub: session.sub, role: session.role, lif: session.lif, lat: now });
-  const cookieStore = await cookies();
-  cookieStore.set(SESSION_COOKIE, token, {
-    httpOnly: true,
-    secure: process.env.NODE_ENV === "production",
-    sameSite: "lax",
-    path: "/",
-    domain: await cookieDomainFromRequest(),
-    // 쿠키 수명은 최초 로그인 기준 절대 상한까지만 남긴다.
-    maxAge: Math.max(0, session.lif + ABSOLUTE_TTL_SECONDS - now),
-  });
-}
-
-/**
  * 세션 쿠키를 지운다 — 응답에 직접 Set-Cookie 를 싣는다.
  *
  * cookies() API 로는 안 된다: 같은 이름은 하나만 내보내서, Domain 붙인 삭제와
@@ -168,8 +150,12 @@ export async function appendSessionClear(response: Response): Promise<void> {
   if (domain) response.headers.append("Set-Cookie", `${expired}; Domain=${domain}`);
 }
 
-/** Server Component/Route Handler 어디서든 호출 가능 (쿠키 읽기 전용) */
-export async function getCurrentUser(): Promise<AppUser | null> {
+/**
+ * Server Component/Route Handler 어디서든 호출 가능 (쿠키 읽기 전용).
+ * React cache 로 감싼다 — 한 요청 안에서 requireAccess → 페이지 → 헤더가 각각 부르면
+ * 같은 사용자 행을 3회×3쿼리씩 다시 읽었다(2026-08-28 성능 점검). 요청 단위로 한 번만 읽는다.
+ */
+export const getCurrentUser = cache(async function getCurrentUser(): Promise<AppUser | null> {
   const cookieStore = await cookies();
   const token = cookieStore.get(SESSION_COOKIE)?.value;
   if (!token) return null;
@@ -181,23 +167,14 @@ export async function getCurrentUser(): Promise<AppUser | null> {
   if (epoch && payload.lif * 1000 < Date.parse(epoch)) return null;
   const user = await findUserById(payload.sub);
   return user ?? null;
-}
+});
 
-/** 현재 세션의 원시 값 — 유휴 연장(touchSession)에 필요하다. */
-export async function getSessionRaw(): Promise<{ sub: string; role: UserRole; lif: number } | null> {
-  const cookieStore = await cookies();
-  const token = cookieStore.get(SESSION_COOKIE)?.value;
-  if (!token) return null;
-  const { payload } = await verifySession(token);
-  return payload ? { sub: payload.sub, role: payload.role, lif: payload.lif } : null;
-}
-
-/** 왜 끊겼는지 구분한다 — 화면에서 "유휴로 종료" 와 "기간 만료" 안내를 다르게 하기 위함. */
-export async function getSessionExpiry(): Promise<SessionExpiry> {
-  const cookieStore = await cookies();
-  const token = cookieStore.get(SESSION_COOKIE)?.value;
-  if (!token) return null;
-  return (await verifySession(token)).expired;
+/**
+ * 신청서를 만들고 고치는 쪽(신청자)은 승인 완료 계정이어야 한다 — 화면(/apply)은 A15 매트릭스로
+ * 막혀 있었지만 API 는 로그인만 보고 있었다(2026-08-28 보안 점검). 운영자는 통과.
+ */
+export function canActOnQuotes(user: AppUser): boolean {
+  return user.role === "ADMIN" || user.approvalStatus === "APPROVED";
 }
 
 // 마스터 관리자 전용 화면/API에서 사용. role=ADMIN이면서 adminTier=MASTER인 계정만 통과시킨다.

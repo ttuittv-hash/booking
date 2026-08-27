@@ -87,6 +87,3 @@ export function DataTable({
 }
 
 /** 목록 아래 총 건수 — 페이지네이션이 없을 때도 항상 같은 자리에 둔다 */
-export function TableCount({ total }: { total: number }) {
-  return <p className="mt-5 text-xs tabular-nums text-muted">전체 {total}건</p>;
-}

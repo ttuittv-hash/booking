@@ -227,12 +227,3 @@ function timingSafeEqualStr(a: string, b: string): boolean {
   return ba.length === bb.length && crypto.timingSafeEqual(ba, bb);
 }
 
-/** 통신사 코드 라벨. 알뜰폰(5·6·7)은 별도 표기해 인증 불가 문의를 구분하는 데 쓴다. */
-export const MOBILE_CO_LABEL: Record<string, string> = {
-  "1": "SKT",
-  "2": "KT",
-  "3": "LG U+",
-  "5": "SKT 알뜰폰",
-  "6": "KT 알뜰폰",
-  "7": "LG U+ 알뜰폰",
-};

@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import crypto from "node:crypto";
-import { canAccessQuote, getCurrentUser } from "@/lib/auth";
+import { canAccessQuote, canActOnQuotes, getCurrentUser } from "@/lib/auth";
 import {
   addAuditLog,
   findBlockedDatesAmong,
@@ -23,6 +23,9 @@ export async function GET(_request: Request, ctx: { params: Promise<{ id: string
   if (!(await canAccessQuote(user, quote))) {
     return NextResponse.json({ error: "접근 권한이 없습니다." }, { status: 403 });
   }
+  if (!canActOnQuotes(user)) {
+    return NextResponse.json({ error: "승인 완료 후 이용할 수 있습니다." }, { status: 403 });
+  }
 
   const auditLog = user.role === "ADMIN" ? await listAuditLogsForQuote(id) : [];
   return NextResponse.json({ quote, auditLog });
@@ -38,6 +41,9 @@ export async function PUT(request: Request, ctx: { params: Promise<{ id: string 
   if (!quote) return NextResponse.json({ error: "신청서를 찾을 수 없습니다." }, { status: 404 });
   if (!(await canAccessQuote(user, quote))) {
     return NextResponse.json({ error: "접근 권한이 없습니다." }, { status: 403 });
+  }
+  if (!canActOnQuotes(user)) {
+    return NextResponse.json({ error: "승인 완료 후 이용할 수 있습니다." }, { status: 403 });
   }
   if (quote.status !== "ESTIMATE") {
     return NextResponse.json({ error: "심사가 시작된 신청서는 수정할 수 없습니다." }, { status: 409 });

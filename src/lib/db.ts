@@ -638,6 +638,13 @@ async function initSchema(pool: Pool) {
     CREATE INDEX IF NOT EXISTS idx_message_sends_recipient ON message_sends(recipient_id);
     CREATE INDEX IF NOT EXISTS idx_message_sends_scheduled
       ON message_sends(scheduled_at) WHERE scheduled_at IS NOT NULL;
+    -- 2026-08-28 성능 점검: 실제 WHERE/ORDER BY 에 쓰이는데 인덱스가 없던 것들.
+    CREATE INDEX IF NOT EXISTS idx_quotes_status_created ON quotes(status, created_at DESC);
+    CREATE INDEX IF NOT EXISTS idx_quotes_created ON quotes(created_at DESC);
+    CREATE INDEX IF NOT EXISTS idx_users_role_status ON users(role, approval_status, created_at);
+    CREATE INDEX IF NOT EXISTS idx_notifications_recipient_created ON notifications(recipient_id, created_at DESC);
+    CREATE INDEX IF NOT EXISTS idx_inquiries_created ON inquiries(created_at DESC);
+    CREATE INDEX IF NOT EXISTS idx_companies_lower_name ON companies(lower(name));
   `);
 
   // date_blocks PK를 date 단독 → (date, venue_id) 복합키로 바꾼다 — 아레나/중형공연장을
@@ -2311,25 +2318,6 @@ export async function updateSendResult(
   );
 }
 
-/** 백오피스 발송 이력 조회 (기획서 1-60). */
-export async function listMessageSends(limit = 100) {
-  return q<{
-    id: string;
-    template_code: string;
-    channel: string;
-    status: string;
-    recipient_phone: string | null;
-    result_code: string | null;
-    result_message: string | null;
-    created_at: string;
-    sent_at: string | null;
-  }>(
-    `SELECT id, template_code, channel, status, recipient_phone, result_code, result_message, created_at, sent_at
-       FROM message_sends ORDER BY created_at DESC LIMIT $1`,
-    [limit],
-  );
-}
-
 /** 마스킹된 아이디 — 전체를 그대로 보여주면 목록화가 가능해진다(기획서 A13). */
 export function maskUsername(username: string): string {
   if (username.length <= 2) return username[0] + "*";
@@ -2705,15 +2693,6 @@ export async function promoteUserToAdmin(id: string, tier: AdminTier): Promise<A
     tier,
     id,
   ]);
-  return (await findUserById(id))!;
-}
-
-/**
- * 운영자 권한 해제 — 계정을 지우지 않고 신청자로 되돌린다.
- * 계정을 삭제하면 그 사람이 남긴 심사·정산 기록의 작성자가 사라져 이력을 못 읽는다.
- */
-export async function demoteAdminToApplicant(id: string): Promise<AppUser> {
-  await q("UPDATE users SET role = 'APPLICANT', admin_tier = NULL WHERE id = $1", [id]);
   return (await findUserById(id))!;
 }
 
@@ -4190,15 +4169,13 @@ export async function createNotification(input: {
 }
 
 export async function notifyAdmins(input: { quoteId: string; message: string; createdAt: string }) {
-  for (const admin of await listUsers({ role: "ADMIN" })) {
-    await createNotification({
-      id: crypto.randomUUID(),
-      recipientId: admin.id,
-      quoteId: input.quoteId,
-      message: input.message,
-      createdAt: input.createdAt,
-    });
-  }
+  // 운영자 수만큼 INSERT 를 따로 날리지 않고 한 문장으로 — 신청서 제출 트랜잭션 안에서 불린다.
+  await q(
+    `INSERT INTO notifications (id, recipient_id, quote_id, link, message, is_read, created_at)
+     SELECT gen_random_uuid()::text, u.id, $1, NULL, $2, 0, $3
+       FROM users u WHERE u.role = 'ADMIN' AND u.withdrawn_at IS NULL`,
+    [input.quoteId, input.message, input.createdAt],
+  );
 }
 
 export async function listNotifications(recipientId: string, limit = 30): Promise<AppNotification[]> {

@@ -270,10 +270,6 @@ export function termsBodyHash(body: string): string {
   return crypto.createHash("sha256").update(body, "utf8").digest("hex");
 }
 
-export function findTerms(kind: string): TermsDocument | undefined {
-  return TERMS.find((t) => t.kind === kind);
-}
-
 /** 화면에 내려줄 목록 — 본문 해시를 함께 실어 클라이언트가 무엇에 동의했는지 되짚을 수 있게 한다. */
 export function termsForClient() {
   return TERMS.map((t) => ({

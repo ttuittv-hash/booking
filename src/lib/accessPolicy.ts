@@ -109,7 +109,3 @@ export function redirectFor(state: AccountState, pathname: string): string {
   return "/pending";
 }
 
-/** 화면(내비게이션)에서 잠금 표시를 하기 위한 목록. */
-export function menuAccessList(state: AccountState) {
-  return RULES.map((r) => ({ prefix: r.prefix, label: r.label, open: r.allow[state] === "OPEN" }));
-}

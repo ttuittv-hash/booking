@@ -24,9 +24,6 @@ export const FAQ_TAGS = [
 
 export type FaqTag = (typeof FAQ_TAGS)[number];
 
-/** 답변이 아직 없는 문항에 넣는 자리표시 문구 */
-export const FAQ_ANSWER_PENDING = "답변없음";
-
 export interface SeedFaq {
   tag: FaqTag;
   /** 원본 시트의 「공간」 — 공통 / 아레나 / 중형공연장 */

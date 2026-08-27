@@ -15,6 +15,7 @@ import {
   listAuditLogsForQuote,
   listCompetingQuotesForWeek,
   listContractAddendums,
+  listUsersByIds,
 } from "@/lib/db";
 import { num, won } from "@/lib/format";
 import { resolveSelectedDates } from "@/lib/pricing/dateRange";
@@ -154,35 +155,58 @@ export default async function AdminQuoteDetailPage({
   if (!quote) notFound();
 
 
-  const applicant = await findUserById(quote.applicantId);
-  const auditLog = await listAuditLogsForQuote(id);
-  const deposit = (await getDepositByQuoteId(id)) ?? null;
-  const attachments = await listAttachments(id, null);
-  const weekConflict =
-    quote.status === "ESTIMATE" ? (await findApprovedWeekConflict(quote)) ?? null : null;
-  const competingQuotes = quote.status === "ESTIMATE" ? await listCompetingQuotesForWeek(quote) : [];
+  // 서로 독립인 조회 17건을 직렬로 기다리면 페이지 지연이 왕복 시간의 합이 된다 — 한 번에 띄운다(2026-08-28 성능 점검).
+  const isEstimate = quote.status === "ESTIMATE";
+  const [
+    applicant,
+    auditLog,
+    deposit,
+    attachments,
+    weekConflict,
+    competingQuotes,
+    signature,
+    contractInvoice,
+    balanceInvoice,
+    settlementInvoice,
+    addendums,
+    ticketOpen,
+    facilityMeeting,
+    ticketOpenMaterials,
+    facilityMeetingMaterials,
+    rateTable,
+  ] = await Promise.all([
+    findUserById(quote.applicantId),
+    listAuditLogsForQuote(id),
+    getDepositByQuoteId(id).then((d) => d ?? null),
+    listAttachments(id, null),
+    isEstimate ? findApprovedWeekConflict(quote).then((c) => c ?? null) : Promise.resolve(null),
+    isEstimate ? listCompetingQuotesForWeek(quote) : Promise.resolve([]),
+    getContractSignatureByQuoteId(id).then((s) => s ?? null),
+    getTaxInvoice(id, "CONTRACT").then((v) => v ?? null),
+    getTaxInvoice(id, "CONTRACT_BALANCE").then((v) => v ?? null),
+    getTaxInvoice(id, "SETTLEMENT").then((v) => v ?? null),
+    quote.contract ? listContractAddendums(id) : Promise.resolve([]),
+    getTicketOpenByQuoteId(id).then((v) => v ?? null),
+    getFacilityMeetingByQuoteId(id).then((v) => v ?? null),
+    listAttachments(id, "TICKET_OPEN"),
+    listAttachments(id, "FACILITY_MEETING"),
+    // 정산 폼의 "요금표에서 선택" 기능에도 쓰이므로 공간 종류와 무관하게 항상 가져온다.
+    getRateTableByVersion(quote.rateTableVersion),
+  ]);
+  // 경합 신청자는 행마다 findUserById 하지 않고 한 번에 읽는다(N+1).
+  const competingApplicants = competingQuotes.length
+    ? await listUsersByIds(competingQuotes.map(({ quote: q }) => q.applicantId))
+    : [];
+  const applicantById = new Map(competingApplicants.map((u) => [u.id, u]));
   const competingCandidates =
     competingQuotes.length > 0
       ? [
           buildCandidateFacts(quote, applicant, true),
-          ...(await Promise.all(
-            competingQuotes.map(async ({ quote: q }) => buildCandidateFacts(q, await findUserById(q.applicantId), false)),
-          )),
+          ...competingQuotes.map(({ quote: q }) => buildCandidateFacts(q, applicantById.get(q.applicantId), false)),
         ]
       : [];
-  const signature = (await getContractSignatureByQuoteId(id)) ?? null;
-  const contractInvoice = (await getTaxInvoice(id, "CONTRACT")) ?? null;
-  const balanceInvoice = (await getTaxInvoice(id, "CONTRACT_BALANCE")) ?? null;
-  const settlementInvoice = (await getTaxInvoice(id, "SETTLEMENT")) ?? null;
-  const addendums = quote.contract ? await listContractAddendums(id) : [];
-  const ticketOpen = (await getTicketOpenByQuoteId(id)) ?? null;
-  const facilityMeeting = (await getFacilityMeetingByQuoteId(id)) ?? null;
-  const ticketOpenMaterials = await listAttachments(id, "TICKET_OPEN");
-  const facilityMeetingMaterials = await listAttachments(id, "FACILITY_MEETING");
 
   const needsArenaDates = quote.selection.venueId !== "medium-hall" || quote.selection.bookingMode === "SIMULTANEOUS";
-  // 정산 폼의 "요금표에서 선택" 기능에도 쓰이므로 공간 종류와 무관하게 항상 가져온다.
-  const rateTable = await getRateTableByVersion(quote.rateTableVersion);
   const pkg = needsArenaDates ? findPackage(rateTable, quote.selection.packageId) : null;
   const arenaDateGroups =
     needsArenaDates && pkg ? groupArenaDatesByTag(quote.selection, pkg.defaultPerformanceDays) : [];

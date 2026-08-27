@@ -16,13 +16,6 @@ export function packagesForVenue(rateTable: RateTable, venueId: string): RentalP
   return rateTable.packages.filter((p) => (p.venueId ?? "arena") === venueId);
 }
 
-export function recommendPackage(rateTable: RateTable, expectedAudience: number, venueId: string): number | null {
-  const match = packagesForVenue(rateTable, venueId).find(
-    (p) => expectedAudience >= p.audienceTier.min && expectedAudience <= p.audienceTier.max,
-  );
-  return match ? match.id : null;
-}
-
 // 패키지 가격 = 요금표에 등록된 표시 대관료 고정값 그 자체.
 // [개정 2026-08-14, 기능정의서 2-20/2-42/부록A] 기존 "기본 대관료 + 기본 포함 항목 단가 합계"
 // 역산 규칙은 폐기됐다 — 구성 항목(includedItems)은 신청자 화면에 항목·수량만 보여주는 용도
@@ -45,17 +38,6 @@ export function isAddonAvailable(addonItem: AddonItem, pkg: RentalPackage | unde
   if (mode === "IF_PACKAGE_IN") return !!packages?.includes(pkg.id);
   if (mode === "IF_NOT_INCLUDED") return includedQuantity(pkg, addonItem.id) === 0;
   return false;
-}
-
-// [폐기 2026-08-14, 기능정의서 2-38/부록A] "기본 대관료 × 60% ÷ 6" 임시 규칙 — 확정 단가
-// (pkg.setupExtraDayFee / pkg.performanceExtraDayFee)로 대체됐다. 중형공연장(medium-hall)
-// 플레이스홀더 패키지가 아직 이 비율을 참조하므로 함수 자체는 남겨둔다.
-export function extraWeekPrice(rateTable: RateTable, pkg: RentalPackage): number {
-  return Math.round(pkg.baseFeePerWeek * rateTable.extraWeekRatio);
-}
-
-export function extraDayPrice(rateTable: RateTable, pkg: RentalPackage): number {
-  return Math.round(extraWeekPrice(rateTable, pkg) / 6);
 }
 
 // 화~일 6일 중 해당 요일이 패키지 기본값상 "공연일"인지 — WEEKDAYS 배열의 뒤쪽

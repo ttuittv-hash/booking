@@ -56,7 +56,7 @@ export async function POST(request: Request) {
   const passwordHashInput = typeof body?.passwordHash === "string" ? body.passwordHash.toLowerCase() : "";
   const password = typeof body?.password === "string" ? body.password : "";
   const name = typeof body?.name === "string" ? body.name.trim() : "";
-  const phone = typeof body?.phone === "string" ? body.phone.trim() : "";
+  let phone = typeof body?.phone === "string" ? body.phone.trim() : "";
   const accountType = body?.accountType === "INDIVIDUAL" ? "INDIVIDUAL" : "CORPORATE";
   const companyName = typeof body?.companyName === "string" ? body.companyName.trim() : "";
   const companyId = typeof body?.companyId === "string" ? body.companyId.trim() : "";
@@ -77,6 +77,14 @@ export async function POST(request: Request) {
   const businessCertName = typeof body?.businessCertName === "string" ? body.businessCertName.trim() : "";
   // 재직증명서(선택) — 사업자등록증과 달리 회사가 아닌 가입자 개인 소속 증빙이라 users에 저장한다.
   const employmentCertUrl = typeof body?.employmentCertUrl === "string" ? body.employmentCertUrl.trim() : "";
+  // 첨부 URL 은 우리가 발급한 업로드 주소만 받는다 — 임의 링크가 심사 화면에 그대로 걸리면
+  // 운영자를 향한 피싱 링크가 된다(2026-08-28 보안 점검).
+  const ATTACHMENT_URL_RE = /^\/api\/auth\/register\/attachment\/[0-9a-f-]{36}\.[a-z0-9]{1,10}$/;
+  for (const url of [businessCertUrl, employmentCertUrl]) {
+    if (url && !ATTACHMENT_URL_RE.test(url)) {
+      return NextResponse.json({ error: "첨부 파일 주소가 올바르지 않습니다. 다시 업로드해주세요." }, { status: 400 });
+    }
+  }
   const employmentCertName = typeof body?.employmentCertName === "string" ? body.employmentCertName.trim() : "";
   // 본인인증 티켓 — 인증을 마친 사람만 가입할 수 있다(기획서 A4).
   // 미설정 환경(로컬 등)에서는 인증 단계를 건너뛰므로 티켓이 없어도 진행한다.
@@ -175,6 +183,9 @@ export async function POST(request: Request) {
       );
     }
     identity = await findCompletedIdentity(payload.verificationId);
+    // 본인인증으로 확인된 번호를 쓴다 — 화면 입력값을 그대로 저장하면 남의 번호로 알림톡을 보낼 수 있다
+    // (2026-08-28 보안 점검). 인증 결과에 번호가 없을 때만 입력값을 쓴다.
+    if (identity?.mobileNo) phone = identity.mobileNo.replace(/\D/g, "");
     if (!identity || !identity.di) {
       return NextResponse.json(
         { error: "본인인증 결과를 확인할 수 없습니다. 다시 인증해주세요." },
