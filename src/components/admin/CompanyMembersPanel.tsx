@@ -4,6 +4,7 @@
 // 회사별 담당자 탭의 아코디언에서 쓰던 것을 상세 페이지로 옮겨 온 것이다.
 
 import Link from "next/link";
+import { useDialog } from "@/components/ui/Dialog";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { LINK_BTN } from "@/components/admin/adminUi";
@@ -31,11 +32,12 @@ export function CompanyMembersPanel({
   members: CompanyMember[];
 }) {
   const router = useRouter();
+  const dialog = useDialog();
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   async function setMaster(m: CompanyMember) {
-    if (!window.confirm(`${m.name}님을 대표 담당자로 지정합니다. 기존 대표는 소속 담당자가 됩니다.`)) {
+    if (!(await dialog.confirm(`${m.name}님을 대표 담당자로 지정합니다.\n기존 대표는 소속 담당자가 됩니다.`, { okLabel: "지정" }))) {
       return;
     }
     setError(null);

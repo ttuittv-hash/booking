@@ -1,6 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
+import { useDialog } from "@/components/ui/Dialog";
 import { useState } from "react";
 import { useQueryTab } from "@/components/admin/useQueryTab";
 import { ADDON_CATEGORY_LABEL, VENUES, type AddonCategory, type RateTable } from "@/lib/pricing/types";
@@ -46,6 +47,7 @@ export function RatesForm({
   /** 공개 대관료 페이지(/rates)에 표기된 중형 금액 — 입력칸 옆 대조용 */
   publicMidHall?: Record<"setup" | "weekday" | "weekend", PublicMidHallRef>;
 }) {
+  const dialog = useDialog();
   const router = useRouter();
   const [addons, setAddons] = useState(
     rateTable.addons.map((a) => ({
@@ -106,8 +108,8 @@ export function RatesForm({
   }
 
   /** 부대시설 항목 삭제 — 요금표에서 빼면 견적에서도 사라진다 */
-  function removeAddon(addonId: string, name: string) {
-    if (!confirm(`「${name}」 항목을 삭제할까요? 이 항목은 이후 견적에 나타나지 않습니다.`)) return;
+  async function removeAddon(addonId: string, name: string) {
+    if (!(await dialog.confirm(`「${name}」 항목을 삭제할까요?\n이 항목은 이후 견적에 나타나지 않습니다.`, { okLabel: "삭제" }))) return;
     setAddons((prev) => prev.filter((a) => a.id !== addonId));
     setRemovedAddonIds((prev) => [...prev, addonId]);
   }

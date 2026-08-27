@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { ToastProvider } from "@/components/ui/Toast";
+import { DialogProvider } from "@/components/ui/Dialog";
 import "./globals.css";
 
 // 모든 페이지가 PostgreSQL에서 데이터를 읽으므로 빌드 시점 정적 프리렌더링을 끈다 —
@@ -39,7 +40,10 @@ export default function RootLayout({
       </head>
       <body className="min-h-full flex flex-col bg-background text-foreground">
         {/* 입력 오류·안내는 토스트로 띄운다 — 화면 어디를 보고 있든 눈에 들어온다. */}
-        <ToastProvider>{children}</ToastProvider>
+        <ToastProvider>
+          {/* 확인·알림·입력은 브라우저 기본 대화상자 대신 우리 팝업으로(useDialog). */}
+          <DialogProvider>{children}</DialogProvider>
+        </ToastProvider>
       </body>
     </html>
   );

@@ -1,6 +1,7 @@
 "use client";
 
 import { FILE_INPUT, toggleClass } from "@/components/ui/kit";
+import { useDialog } from "@/components/ui/Dialog";
 
 import { useState, type ReactNode } from "react";
 import { useWizardText } from "@/lib/content/wizardText";
@@ -343,6 +344,7 @@ function PerformanceInfoFields({
   castContractFiles: File[];
   onCastContractFilesChange: (files: File[]) => void;
 }) {
+  const dialog = useDialog();
   const { t, tStr } = useWizardText();
 
   function set<K extends keyof PerformanceInfo>(key: K, value: PerformanceInfo[K]) {
@@ -1085,7 +1087,7 @@ function PerformanceInfoFields({
               const picked = Array.from(e.target.files ?? []).filter((f) => f.size <= MAX_FILE_SIZE);
               if (picked.length > 0) onCastContractFilesChange([...castContractFiles, ...picked]);
               if (picked.length < (e.target.files?.length ?? 0)) {
-                window.alert(tStr("performanceInfo.castContractTooLarge", "500MB를 넘는 파일은 첨부할 수 없습니다."));
+                void dialog.alert(tStr("performanceInfo.castContractTooLarge", "500MB를 넘는 파일은 첨부할 수 없습니다."));
               }
               e.target.value = "";
             }}
@@ -1234,6 +1236,7 @@ export function StepAttachments({
   onFilesChange: (files: File[]) => void;
   isSimultaneous: boolean;
 }) {
+  const dialog = useDialog();
   const { t, tStr } = useWizardText();
 
   function addFiles(selected: FileList | null) {
@@ -1253,7 +1256,7 @@ export function StepAttachments({
     }
     if (accepted.length > 0) onFilesChange([...files, ...accepted]);
     if (rejected.length > 0) {
-      window.alert(
+      void dialog.alert(
         `${tStr("attachments.rejectedFilesAlert", "다음 파일은 첨부할 수 없습니다:")}\n${rejected.join("\n")}`,
       );
     }

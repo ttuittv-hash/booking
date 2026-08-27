@@ -206,9 +206,15 @@ try {
     (await invitee.locator('[data-testid="step-done"]').innerText()).includes("합류"));
 
   // 대표 담당자 화면 — 합류 신청이 목록에 뜨고, 초대 행은 소진돼 중복으로 남지 않는다.
-  await page.reload({ waitUntil: "domcontentloaded" });
-  await page.waitForSelector('[data-testid="members-table"]');
-  const rows = await page.locator('[data-testid="members-table"] tbody tr').allInnerTexts();
+  // 합류 직후 바로 새로고침하면 목록에 아직 안 보일 수 있다(2026-08-28 실측) — 몇 번 다시 읽는다.
+  let rows = [];
+  for (let attempt = 0; attempt < 4; attempt += 1) {
+    await page.reload({ waitUntil: "domcontentloaded" });
+    await page.waitForSelector('[data-testid="members-table"]');
+    rows = await page.locator('[data-testid="members-table"] tbody tr').allInnerTexts();
+    if (rows.some((r) => r.includes(`staff${t}@seoul-ent.co.kr`))) break;
+    await page.waitForTimeout(1500);
+  }
   check("A11-5", "합류 신청이 대표 담당자 목록에 보인다",
     rows.some((r) => r.includes("승인 대기")));
   check("A11-6", "가입한 사람의 초대 행은 중복으로 남지 않는다",

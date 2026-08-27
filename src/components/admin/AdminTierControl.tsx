@@ -1,6 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
+import { useDialog } from "@/components/ui/Dialog";
 import { useState } from "react";
 import type { AdminTier } from "@/lib/pricing/types";
 import { FIELD_SM, REMOVE_BTN } from "@/components/admin/adminUi";
@@ -86,11 +87,12 @@ export function AdminTierControl({ userId, tier }: { userId: string; tier: Admin
  */
 export function AdminDemoteButton({ userId, name }: { userId: string; name: string }) {
   const router = useRouter();
+  const dialog = useDialog();
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   async function demote() {
-    if (!confirm(`「${name}」 계정의 운영자 권한을 해제할까요?\n계정은 남고 신청자로 되돌립니다.`)) return;
+    if (!(await dialog.confirm(`「${name}」 계정의 운영자 권한을 해제할까요?\n계정은 남고 신청자로 되돌립니다.`, { okLabel: "해제" }))) return;
     setSaving(true);
     setError(null);
     try {

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useDialog } from "@/components/ui/Dialog";
 import type { NotificationRule } from "@/lib/pricing/types";
 import { btnClass } from "@/components/ui/kit";
 import { ADD_BTN_LG, CARD, FIELD, FIELD_LABEL, HELP, INFO_NOTE, REMOVE_BTN, SECTION_TITLE } from "./adminUi";
@@ -138,6 +139,7 @@ function RuleCard({
   onDeleted: (id: string) => void;
 }) {
   const [draft, setDraft] = useState<Draft>(toDraft(rule));
+  const dialog = useDialog();
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -171,7 +173,7 @@ function RuleCard({
   }
 
   async function remove() {
-    if (!confirm(`"${rule.label}" 트리거를 삭제할까요?`)) return;
+    if (!(await dialog.confirm(`"${rule.label}" 트리거를 삭제할까요?`, { okLabel: "삭제" }))) return;
     setDeleting(true);
     setError(null);
     try {

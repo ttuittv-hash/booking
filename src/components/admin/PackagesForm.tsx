@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useDialog } from "@/components/ui/Dialog";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { useQueryTab } from "@/components/admin/useQueryTab";
@@ -183,6 +184,7 @@ const VENUE_TO_URL: Record<"arena" | "medium-hall", "arena" | "live-hall"> = { a
 
 export function PackagesForm({ rateTable, ratesContent }: { rateTable: RateTable; ratesContent: RatesContent }) {
   const router = useRouter();
+  const dialog = useDialog();
   const [packages, setPackages] = useState<EditablePackage[]>(rateTable.packages);
   const [activeId, setActiveId] = useState(rateTable.packages[0]?.id ?? 1);
   const [venueUrl, setVenueUrl] = useQueryTab("venue", VENUE_URL_VALUES, "arena");
@@ -299,14 +301,14 @@ export function PackagesForm({ rateTable, ratesContent }: { rateTable: RateTable
   }
 
   /** 패키지 삭제 — 공간별 마지막 하나는 남긴다(고를 것이 없으면 신청이 막힌다) */
-  function removePackage(id: number) {
+  async function removePackage(id: number) {
     const target = packages.find((p) => p.id === id);
     if (!target) return;
     if (packages.filter((p) => p.venueId === target.venueId).length <= 1) {
-      alert("이 공간의 마지막 패키지는 삭제할 수 없습니다. 새 패키지를 먼저 추가하세요.");
+      await dialog.alert("이 공간의 마지막 패키지는 삭제할 수 없습니다.\n새 패키지를 먼저 추가하세요.");
       return;
     }
-    if (!confirm(`「${target.name}」 패키지를 삭제할까요?`)) return;
+    if (!(await dialog.confirm(`「${target.name}」 패키지를 삭제할까요?`, { okLabel: "삭제" }))) return;
     const rest = packages.filter((p) => p.id !== id);
     setPackages(rest);
     setRemovedPackageIds((prev) => [...prev, id]);
@@ -425,9 +427,9 @@ export function PackagesForm({ rateTable, ratesContent }: { rateTable: RateTable
    * 항목 삭제 — 목록에서 빼고, 모든 패키지의 기본 포함 수량에서도 함께 지운다.
    * 한쪽만 지우면 화면에는 안 보이는데 견적에는 남는 유령 항목이 된다.
    */
-  function removeAddon(addonId: string) {
+  async function removeAddon(addonId: string) {
     const addon = addons.find((a) => a.id === addonId);
-    if (!confirm(`「${addon?.name ?? addonId}」 항목을 삭제할까요?\n모든 패키지의 기본 포함 설정에서도 함께 지워집니다.`)) return;
+    if (!(await dialog.confirm(`「${addon?.name ?? addonId}」 항목을 삭제할까요?\n모든 패키지의 기본 포함 설정에서도 함께 지워집니다.`, { okLabel: "삭제" }))) return;
     setAddons((prev) => prev.filter((a) => a.id !== addonId));
     setPackages((prev) =>
       prev.map((pkg) => ({

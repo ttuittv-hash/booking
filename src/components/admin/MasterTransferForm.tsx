@@ -1,6 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
+import { useDialog } from "@/components/ui/Dialog";
 import { useState } from "react";
 import { btnClass } from "@/components/ui/kit";
 import { FIELD, FIELD_LABEL, INFO_NOTE, PANEL, SECTION_TITLE } from "@/components/admin/adminUi";
@@ -15,6 +16,7 @@ export function MasterTransferForm({
 }: {
   candidates: { id: string; name: string; email: string }[];
 }) {
+  const dialog = useDialog();
   const router = useRouter();
   const [targetId, setTargetId] = useState(candidates[0]?.id ?? "");
   const [submitting, setSubmitting] = useState(false);
@@ -26,10 +28,11 @@ export function MasterTransferForm({
     const target = candidates.find((c) => c.id === targetId);
     if (!target) return;
     if (
-      !confirm(
+      !(await dialog.confirm(
         `마스터 관리자 권한을 「${target.name}」(${target.email})에게 이관합니다.\n` +
           "이관 즉시 그 계정이 마스터 관리자가 되고, 내 계정은 프로 관리자로 내려갑니다.\n계속할까요?",
-      )
+        { okLabel: "이관" },
+      ))
     ) {
       return;
     }

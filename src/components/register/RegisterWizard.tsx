@@ -12,6 +12,7 @@
 // "개인회원이 나중에 열린다는 사실을 첫 화면에서 알린다".
 
 import Link from "next/link";
+import { useDialog } from "@/components/ui/Dialog";
 import { useEffect, useRef, useState } from "react";
 import { btnClass, toggleClass } from "@/components/ui/kit";
 import { APPLICANT_COMPANY_TYPE_LABEL, type ApplicantCompanyType } from "@/lib/pricing/types";
@@ -95,6 +96,7 @@ const STEP_LABELS = ["회원 유형", "약관 동의", "본인인증", "정보 �
 
 export function RegisterWizard() {
   const toast = useToast();
+  const dialog = useDialog();
   const [step, setStep] = useState(1);
   const [loading, setLoading] = useState(false);
   // 오류는 토스트로 띄운다. 위저드 상단에 붙이면 스크롤을 내려 입력하다 [다음]을 눌렀을 때
@@ -182,9 +184,9 @@ export function RegisterWizard() {
     // 운영에는 우회 버튼 자체가 없다(NICE_AUTH_DEV_STUB 없음).
     let stubPhone: string | undefined;
     if (options?.bypass) {
-      const typed = window.prompt(
+      const typed = await dialog.prompt(
         "개발용 우회 인증입니다.\n알림톡을 받아 볼 휴대폰 번호를 입력하세요(비우면 가짜 번호로 진행).",
-        "",
+        { title: "인증 없이 다음 (개발용)", placeholder: "010-0000-0000", required: false, okLabel: "진행" },
       );
       if (typed === null) return;
       stubPhone = typed.replace(/\D/g, "") || undefined;

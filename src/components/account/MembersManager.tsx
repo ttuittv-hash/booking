@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import { useDialog } from "@/components/ui/Dialog";
 import { btnClass } from "@/components/ui/kit";
 import { useToast } from "@/components/ui/Toast";
 
@@ -74,6 +75,7 @@ export function MembersManager() {
   const toast = useToast();
   const [members, setMembers] = useState<Member[]>([]);
   const [invitations, setInvitations] = useState<Invitation[]>([]);
+  const dialog = useDialog();
   const [name, setName] = useState("");
   const [title, setTitle] = useState("");
   const [email, setEmail] = useState("");
@@ -149,9 +151,16 @@ export function MembersManager() {
             variant: "secondary",
             onClick: () => {
               // MB-03 의 필수 변수라 사유 없이 반려할 수 없다.
-              const reason = window.prompt("반려 사유를 입력해주세요. 신청자에게 그대로 안내됩니다.");
-              if (!reason?.trim()) return;
-              void act("/api/admin/applicants", { id: m.id, action: "reject", reason: reason.trim() });
+              void (async () => {
+                const reason = await dialog.prompt("반려 사유를 입력해주세요.\n신청자에게 그대로 안내됩니다.", {
+                  title: "가입 반려",
+                  okLabel: "반려",
+                  placeholder: "예: 사업자 정보가 확인되지 않습니다",
+                  multiline: true,
+                });
+                if (!reason) return;
+                await act("/api/admin/applicants", { id: m.id, action: "reject", reason });
+              })();
             },
           },
         );

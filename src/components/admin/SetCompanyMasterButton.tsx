@@ -6,6 +6,7 @@
 // 실제 승격 로직·안전장치(승인 완료 상태 확인 등)는 /api/admin/companies가 그대로 맡는다.
 
 import { useState } from "react";
+import { useDialog } from "@/components/ui/Dialog";
 import { useRouter } from "next/navigation";
 import { LINK_BTN } from "@/components/admin/adminUi";
 
@@ -19,11 +20,12 @@ export function SetCompanyMasterButton({
   targetName: string;
 }) {
   const router = useRouter();
+  const dialog = useDialog();
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   async function setMaster() {
-    if (!window.confirm(`${targetName}님을 대표 담당자로 지정합니다. 기존 대표는 소속 담당자가 됩니다.`)) {
+    if (!(await dialog.confirm(`${targetName}님을 대표 담당자로 지정합니다.\n기존 대표는 소속 담당자가 됩니다.`, { okLabel: "지정" }))) {
       return;
     }
     setError(null);

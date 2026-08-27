@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useMainSiteHref } from "@/components/ui/hostLinks";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { hashPasswordForTransport } from "@/lib/clientPassword";
@@ -9,6 +10,7 @@ import { ERROR_NOTE, FIELD, FIELD_LABEL } from "@/components/admin/adminUi";
 
 export default function AdminLoginPage() {
   const router = useRouter();
+  const mainHref = useMainSiteHref();
   const [form, setForm] = useState({ username: "", password: "" });
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
@@ -96,9 +98,10 @@ export default function AdminLoginPage() {
         </form>
 
         <p className="mt-8 border-t border-border/15 pt-5 text-center text-s text-muted">
-          <Link href="/" className="transition-colors hover:text-foreground">
+          {/* bo. 호스트의 "/" 는 백오피스 자신이다 — 메인은 신청자 사이트(partner.) 로 보낸다. */}
+          <a href={mainHref} className="transition-colors hover:text-foreground">
             ← 메인으로
-          </Link>
+          </a>
         </p>
       </div>
     </div>
