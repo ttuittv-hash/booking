@@ -1669,6 +1669,25 @@ export async function approveCompanyIfMemberApproved(companyId: string): Promise
   );
 }
 
+/**
+ * 그 회사의 실제 대표 담당자를 찾는다.
+ *
+ * [신규 2026-08-28] companies.master_user_id 포인터가 아니라 users 를 본다. 포인터는
+ * 탈퇴·삭제·이관 중간 상태에서 어긋날 수 있고, 어긋난 포인터를 믿고 알림을 보내면 엉뚱한
+ * 사람에게 간다 — "릴리를 초대한 대표는 노라인데 합류 신청 알림톡이 테드에게 갔다"가 그것.
+ * company_role='MASTER' 는 회사당 1명 유니크 인덱스가 지키므로 이쪽이 정본이다.
+ */
+export async function findCompanyMaster(companyId: string): Promise<AppUser | undefined> {
+  const row = await one<UserRow>(
+    `SELECT * FROM users
+      WHERE company_id = $1 AND role = 'APPLICANT' AND company_role = 'MASTER'
+        AND withdrawn_at IS NULL
+      LIMIT 1`,
+    [companyId],
+  );
+  return row ? toAppUser(row) : undefined;
+}
+
 /** 그 회사에 승인 완료된 담당자가 한 명이라도 있는지. 첫 승인인지 판정할 때 쓴다. */
 export async function companyHasApprovedMember(
   companyId: string,

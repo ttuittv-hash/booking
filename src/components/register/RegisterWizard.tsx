@@ -267,6 +267,14 @@ export function RegisterWizard() {
       form.password === form.passwordConfirm
         ? null
         : { ok: false, message: "비밀번호가 일치하지 않습니다." },
+      // [개정 2026-08-28] 두 서류를 필수로 바꿨다. 예전에는 선택이라 첨부 없이 접수된 건이
+      // 그대로 심사로 넘어가, 운영자가 판단 근거 없이 되묻는 일이 반복됐다.
+      form.businessCertUrl
+        ? null
+        : { ok: false, message: "사업자등록증을 첨부해 주세요." },
+      form.employmentCertUrl
+        ? null
+        : { ok: false, message: "재직증명서를 첨부해 주세요." },
     );
     if (invalid) {
       toast.error(invalid);
@@ -1014,10 +1022,11 @@ function StepInfo({
         <div className="sm:col-span-2">
             <Field
               label="사업자등록증"
+              required
               hint={
                 locked
-                  ? "선택 · PDF/JPG/PNG · 10MB 이하 · 불러온 회사에는 이미 등록된 서류가 있습니다"
-                  : "선택 · PDF/JPG/PNG · 10MB 이하"
+                  ? "필수 · PDF/JPG/PNG · 10MB 이하 · 불러온 회사에 등록된 서류가 있어도 본인 확인용으로 첨부해 주세요"
+                  : "필수 · PDF/JPG/PNG · 10MB 이하"
               }
             >
               <span className="flex flex-wrap items-center gap-3">
@@ -1147,7 +1156,7 @@ function StepInfo({
           <input data-testid="f-personalPhone" value={form.personalPhone} onChange={set("personalPhone")} placeholder="02-544-1651" className={inputCls(false)} />
         </Field>
         <div className="sm:col-span-2">
-          <Field label="재직증명서" hint="선택 · PDF/JPG/PNG · 10MB 이하">
+          <Field label="재직증명서" required hint="필수 · PDF/JPG/PNG · 10MB 이하">
             <span className="flex flex-wrap items-center gap-3">
               <label className={`${btnClass("secondary", "md")} cursor-pointer whitespace-nowrap`}>
                 {uploading === "employment" ? "업로드 중…" : "파일 선택"}

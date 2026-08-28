@@ -29,6 +29,7 @@ import {
   notifyAdmins,
   saveCompanyVerification,
   withTransaction,
+  findCompanyMaster,
   findPendingInvitationByEmail,
   consumeInvitation,
 } from "@/lib/db";
@@ -222,8 +223,15 @@ export async function POST(request: Request) {
     if (!postalCode || !address) {
       return NextResponse.json({ error: "우편번호 찾기로 주소를 입력하세요." }, { status: 400 });
     }
-    // 사업자등록증 첨부는 권장이되 필수는 아니다 — 입력값은 사업자번호 진위확인으로 검증되고,
-    // 첨부 여부는 운영자 심사 화면에 그대로 표시돼 판단에 쓰인다.
+    // [개정 2026-08-28] 사업자등록증·재직증명서를 필수로 바꿨다. 예전에는 선택이라 첨부
+    // 없이 접수된 건이 그대로 심사로 넘어가, 운영자가 판단 근거 없이 되묻는 일이 반복됐다.
+    // 화면에서도 막지만 서버가 최종 판정자여야 폼을 우회해도 막힌다.
+    if (!businessCertUrl) {
+      return NextResponse.json({ error: "사업자등록증을 첨부해주세요." }, { status: 400 });
+    }
+    if (!employmentCertUrl) {
+      return NextResponse.json({ error: "재직증명서를 첨부해주세요." }, { status: 400 });
+    }
     // 등록 이력을 먼저 본다. 순서가 중요하다 —
     // 이미 등록된 회사에 합류하는 경우까지 국세청에 다시 물으면, 최초 등록 때 확인이
     // 끝난 회사인데도 조회가 실패하면 합류가 막힌다(실제로 그랬다).
@@ -364,23 +372,37 @@ export async function POST(request: Request) {
       if (pendingInvite) await consumeInvitation(pendingInvite.id, created.id);
     }
 
-    // 최초 가입자는 운영자가 전담하고, 이후 가입자는 그 회사 마스터도 처리할 수 있다(기획서 1-42).
-    // 마스터가 부재·지연이어도 운영자가 안전망이므로 운영자 알림은 두 경우 모두 보낸다.
-    const joinLabel =
-      created.companyRole === "MASTER" ? "회사 신규 등록" : `${company?.name ?? ""} 합류 신청`;
+    // 회사의 첫 건은 운영자가 전담하고, 이후 가입자는 그 회사 대표도 처리할 수 있다(기획서 1-42).
+    // 대표가 부재·지연이어도 운영자가 안전망이므로 운영자 알림은 두 경우 모두 보낸다.
+    //
+    // [개정 2026-08-28] "회사 신규 등록"인지를 created.companyRole === 'MASTER' 로 보던 걸
+    // 대표 담당자의 존재 여부로 바꿨다 — 대표는 이제 가입이 아니라 첫 승인이 정하므로
+    // 가입 시점에는 아무도 MASTER 가 아니다.
+    //
+    // 수신자도 companies.master_user_id 포인터가 아니라 users 의 실제 대표를 읽는다.
+    // 포인터가 어긋나 있으면 엉뚱한 사람에게 알림이 갔다("초대한 대표는 노라인데 합류 신청
+    // 알림이 테드에게 발송").
+    const master = company ? await findCompanyMaster(company.id) : undefined;
+    const joinLabel = master ? `${company?.name ?? ""} 합류 신청` : "회사 신규 등록";
     await notifyAdmins({
       quoteId: "applicants",
       message: `신규 가입 승인 요청: ${name} (${company?.name ?? "소속 없음"}, ${accountType === "INDIVIDUAL" ? "개인회원" : "법인회원"}, ${joinLabel})`,
       createdAt,
     });
 
-    // MB-04 합류 신청 발생 → 그 회사 마스터
-    if (company && created.companyRole === "STAFF" && company.masterUserId) {
+    // MB-04 합류 신청 발생 → 그 회사 대표. 인앱 알림을 누르면 그 신청자의 상세로 바로 간다.
+    if (company && master) {
       dispatchMessageInBackground({
         templateCode: "MB-04",
         idempotencyKey: `MB-04:${created.id}`,
-        recipient: { userId: company.masterUserId, phone: null, email: null, name: null },
+        recipient: {
+          userId: master.id,
+          phone: master.phone,
+          email: master.email,
+          name: master.name,
+        },
         variables: { 신청자명: name },
+        inAppLink: `/mypage/members/${created.id}`,
         request,
       });
     }

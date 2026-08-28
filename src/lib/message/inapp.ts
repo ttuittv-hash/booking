@@ -20,7 +20,7 @@ export const inAppAdapter: ChannelAdapter = {
       recipientId: request.recipient.userId,
       // 비즈메시지는 신청서에 매인 알림이 아니다.
       quoteId: null,
-      link: request.button?.url ?? null,
+      link: request.inAppLink ?? request.button?.url ?? null,
       message: request.body,
       createdAt: new Date().toISOString(),
     });

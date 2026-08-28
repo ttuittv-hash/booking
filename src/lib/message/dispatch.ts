@@ -41,6 +41,8 @@ export interface DispatchInput {
    * 그대로 쓰면 운영자가 승인했다는 이유로 신청자에게 bo 주소가 나간다.
    */
   request?: Request;
+  /** 인앱 알림을 눌렀을 때 갈 곳(건마다 달라지는 상세 화면 등). */
+  inAppLink?: string | null;
 }
 
 export interface DispatchOutcome {
@@ -121,6 +123,7 @@ export async function dispatchMessage(input: DispatchInput): Promise<DispatchOut
             : def.button.path,
         }
       : null,
+    inAppLink: input.inAppLink ?? null,
   };
 
   const results: SendResult[] = [];
