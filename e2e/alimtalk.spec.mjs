@@ -60,6 +60,10 @@ try {
   await page.fill('[data-testid="f-email"]', `${username}@seoul-ent.co.kr`);
   await page.fill('[data-testid="f-password"]', "Test1234!");
   await page.fill('[data-testid="f-passwordConfirm"]', "Test1234!");
+  // 사업자등록증·재직증명서는 필수 첨부(2026-08-28 기획 개정) — 더미 파일을 올린다.
+  await page.setInputFiles('[data-testid="f-businessCert"]', new URL("./fixtures/dummy.png", import.meta.url).pathname);
+  await page.setInputFiles('[data-testid="f-employmentCert"]', new URL("./fixtures/dummy.png", import.meta.url).pathname);
+  await page.waitForTimeout(2500);
   await page.click('[data-testid="check-username"]');
   await page.waitForSelector('[data-testid="id-check-message"]', { timeout: 20000 });
   await page.click('[data-testid="submit-register"]');

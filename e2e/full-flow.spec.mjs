@@ -89,6 +89,10 @@ try {
   await page.fill('[data-testid="f-email"]', `${masterUser}@seoul-ent.co.kr`);
   await page.fill('[data-testid="f-password"]', "Test1234!");
   await page.fill('[data-testid="f-passwordConfirm"]', "Test1234!");
+  // 사업자등록증·재직증명서는 필수 첨부(2026-08-28 기획 개정) — 더미 파일을 올린다.
+  await page.setInputFiles('[data-testid="f-businessCert"]', new URL("./fixtures/dummy.png", import.meta.url).pathname);
+  await page.setInputFiles('[data-testid="f-employmentCert"]', new URL("./fixtures/dummy.png", import.meta.url).pathname);
+  await page.waitForTimeout(2500);
   // 로그인 ID 도 [중복확인]을 거쳐야 한다
   await page.click('[data-testid="check-username"]');
   await page.waitForSelector('[data-testid="id-check-message"]', { timeout: 20000 });
@@ -198,6 +202,10 @@ try {
   await invitee.fill('[data-testid="f-email"]', `staff${t}@seoul-ent.co.kr`);
   await invitee.fill('[data-testid="f-password"]', "Test1234!");
   await invitee.fill('[data-testid="f-passwordConfirm"]', "Test1234!");
+  // 사업자등록증·재직증명서는 필수 첨부(2026-08-28 기획 개정) — 더미 파일을 올린다.
+  await invitee.setInputFiles('[data-testid="f-businessCert"]', new URL("./fixtures/dummy.png", import.meta.url).pathname);
+  await invitee.setInputFiles('[data-testid="f-employmentCert"]', new URL("./fixtures/dummy.png", import.meta.url).pathname);
+  await invitee.waitForTimeout(2500);
   await invitee.click('[data-testid="check-username"]');
   await invitee.waitForSelector('[data-testid="id-check-message"]', { timeout: 20000 });
   await invitee.click('[data-testid="submit-register"]');
