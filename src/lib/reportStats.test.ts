@@ -127,3 +127,44 @@ describe("buildReportStats", () => {
     expect(stats.monthly.every((b) => b.count === 0)).toBe(true);
   });
 });
+
+describe("공간 탭 필터", () => {
+  const arena = makeQuote({ id: "A", createdAt: "2026-08-10T00:00:00.000Z" });
+  const mid = makeQuote({
+    id: "M",
+    createdAt: "2026-08-10T00:00:00.000Z",
+    selection: { venueId: "medium-hall", bookingMode: "SINGLE" } as Quote["selection"],
+  });
+  const both = makeQuote({
+    id: "S",
+    createdAt: "2026-08-10T00:00:00.000Z",
+    selection: { venueId: "arena", bookingMode: "SIMULTANEOUS" } as Quote["selection"],
+  });
+  const all = [arena, mid, both];
+  const now = new Date("2026-08-27T00:00:00.000Z");
+
+  it("전체는 모든 신청서를 센다", () => {
+    expect(buildReportStats(all, [], now, 6, "all").totalQuotes).toBe(3);
+  });
+
+  it("아레나 탭은 아레나 단독 + 동시 대관을 센다", () => {
+    expect(buildReportStats(all, [], now, 6, "arena").totalQuotes).toBe(2);
+  });
+
+  it("중형 탭은 중형 단독 + 동시 대관을 센다", () => {
+    expect(buildReportStats(all, [], now, 6, "medium-hall").totalQuotes).toBe(2);
+  });
+
+  it("동시 대관은 양쪽에 잡히므로 탭 합이 전체보다 클 수 있다", () => {
+    const a = buildReportStats(all, [], now, 6, "arena").totalQuotes;
+    const m = buildReportStats(all, [], now, 6, "medium-hall").totalQuotes;
+    expect(a + m).toBeGreaterThan(buildReportStats(all, [], now, 6, "all").totalQuotes);
+  });
+
+  it("법인회원 승인 현황은 공간 탭과 무관하다", () => {
+    const companies = [makeCompany("APPROVED"), makeCompany("PENDING")];
+    const allTab = buildReportStats(all, companies, now, 6, "all").companyBreakdown;
+    const arenaTab = buildReportStats(all, companies, now, 6, "arena").companyBreakdown;
+    expect(arenaTab).toEqual(allTab);
+  });
+});

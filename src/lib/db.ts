@@ -220,6 +220,25 @@ async function initSchema(pool: Pool) {
       created_at TEXT NOT NULL
     );
 
+    -- 트래픽 지표(2026-08-27) — 리포트 화면의 페이지뷰·순방문자(UV)·대관신청 버튼 클릭수.
+    -- 한 줄이 이벤트 하나다. UV 는 visitor_id 를 DISTINCT 로 세어 구한다.
+    --
+    -- visitor_id 는 브라우저 쿠키에 담긴 난수다 — IP 도 UA 도 저장하지 않는다. 개인을
+    -- 식별하려는 값이 아니라 "같은 브라우저의 재방문"을 묶기 위한 값이다.
+    -- user_id 에 외래키를 걸지 않는다: 회원을 삭제해도 지난 지표는 남아야 한다.
+    --
+    -- day 는 **KST 기준 날짜**다. 서버 타임존에 따라 집계가 하루씩 밀리지 않도록
+    -- 애플리케이션이 아니라 SQL 에서 (now() AT TIME ZONE 'Asia/Seoul')::date 로 채운다.
+    CREATE TABLE IF NOT EXISTS analytics_events (
+      id TEXT PRIMARY KEY,
+      event_type TEXT NOT NULL,
+      path TEXT NOT NULL,
+      visitor_id TEXT NOT NULL,
+      user_id TEXT,
+      day DATE NOT NULL,
+      created_at TEXT NOT NULL
+    );
+
     CREATE TABLE IF NOT EXISTS notifications (
       id TEXT PRIMARY KEY,
       recipient_id TEXT NOT NULL REFERENCES users(id),
@@ -523,6 +542,8 @@ async function initSchema(pool: Pool) {
     -- 외래키 컬럼 인덱스. 없으면 신청서 상세·첨부 목록·알림 조회가 전부 테이블 전체 스캔이 된다.
     CREATE INDEX IF NOT EXISTS idx_quotes_applicant ON quotes(applicant_id);
     CREATE INDEX IF NOT EXISTS idx_quotes_week ON quotes(week_year, week_month, week_of_month);
+    CREATE INDEX IF NOT EXISTS idx_analytics_events_day ON analytics_events(day);
+    CREATE INDEX IF NOT EXISTS idx_analytics_events_type_day ON analytics_events(event_type, day);
     CREATE INDEX IF NOT EXISTS idx_attachments_quote ON attachments(quote_id);
     CREATE INDEX IF NOT EXISTS idx_audit_logs_quote ON audit_logs(quote_id);
     CREATE INDEX IF NOT EXISTS idx_notifications_recipient ON notifications(recipient_id, is_read);
@@ -3979,6 +4000,136 @@ function toAttachment(row: AttachmentRow): Attachment {
     category: (row.category as AttachmentCategory) ?? null,
     publicInterestItem: (row.public_interest_item as PublicInterestItem | null) ?? null,
     createdAt: row.created_at,
+  };
+}
+
+// ---------------------------------------------------------------------------
+// 트래픽 지표 (2026-08-27) — 리포트 화면의 페이지뷰 · UV · 대관신청 버튼 클릭수
+// ---------------------------------------------------------------------------
+
+export type AnalyticsEventType = "PAGE_VIEW" | "APPLY_CLICK";
+
+/** 이벤트 한 건을 남긴다. day 는 서버 타임존과 무관하게 SQL 에서 KST 로 계산한다. */
+export async function recordAnalyticsEvent(input: {
+  id: string;
+  eventType: AnalyticsEventType;
+  path: string;
+  visitorId: string;
+  userId: string | null;
+  createdAt: string;
+}): Promise<void> {
+  await q(
+    `INSERT INTO analytics_events (id, event_type, path, visitor_id, user_id, day, created_at)
+     VALUES ($1, $2, $3, $4, $5, (now() AT TIME ZONE 'Asia/Seoul')::date, $6)`,
+    [input.id, input.eventType, input.path.slice(0, 500), input.visitorId, input.userId, input.createdAt],
+  );
+}
+
+/** 오래된 이벤트를 지운다 — 지표 테이블은 그대로 두면 끝없이 자란다. */
+export async function pruneAnalyticsEvents(keepDays: number): Promise<number> {
+  const rows = await q<{ id: string }>(
+    `DELETE FROM analytics_events
+      WHERE day < ((now() AT TIME ZONE 'Asia/Seoul')::date - $1::int)
+      RETURNING id`,
+    [keepDays],
+  );
+  return rows.length;
+}
+
+export interface TrafficDay {
+  day: string; // "2026-08-27" (KST)
+  pageViews: number;
+  uniqueVisitors: number;
+  applyClicks: number;
+}
+
+export interface TrafficStats {
+  /** 최근 rangeDays 일 합계 */
+  pageViews: number;
+  /** 기간 전체를 통틀어 센 순방문자 — 일별 UV 의 합과 같지 않다(같은 사람이 여러 날 오면 1) */
+  uniqueVisitors: number;
+  applyClicks: number;
+  /** 집계 시작일(KST) 이후 일별 추이. 이벤트가 없는 날은 행이 없다. */
+  daily: TrafficDay[];
+  rangeDays: number;
+}
+
+export async function getTrafficStats(rangeDays = 30): Promise<TrafficStats> {
+  const [totals, daily] = await Promise.all([
+    one<{ page_views: string; unique_visitors: string; apply_clicks: string }>(
+      `SELECT
+         COUNT(*) FILTER (WHERE event_type = 'PAGE_VIEW')            AS page_views,
+         COUNT(DISTINCT visitor_id)                                  AS unique_visitors,
+         COUNT(*) FILTER (WHERE event_type = 'APPLY_CLICK')          AS apply_clicks
+       FROM analytics_events
+       WHERE day > ((now() AT TIME ZONE 'Asia/Seoul')::date - $1::int)`,
+      [rangeDays],
+    ),
+    q<{ day: string; page_views: string; unique_visitors: string; apply_clicks: string }>(
+      `SELECT
+         to_char(day, 'YYYY-MM-DD')                                  AS day,
+         COUNT(*) FILTER (WHERE event_type = 'PAGE_VIEW')            AS page_views,
+         COUNT(DISTINCT visitor_id) FILTER (WHERE event_type = 'PAGE_VIEW') AS unique_visitors,
+         COUNT(*) FILTER (WHERE event_type = 'APPLY_CLICK')          AS apply_clicks
+       FROM analytics_events
+       WHERE day > ((now() AT TIME ZONE 'Asia/Seoul')::date - $1::int)
+       GROUP BY day
+       ORDER BY day DESC`,
+      [rangeDays],
+    ),
+  ]);
+  return {
+    pageViews: Number(totals?.page_views ?? 0),
+    uniqueVisitors: Number(totals?.unique_visitors ?? 0),
+    applyClicks: Number(totals?.apply_clicks ?? 0),
+    daily: daily.map((r) => ({
+      day: r.day,
+      pageViews: Number(r.page_views),
+      uniqueVisitors: Number(r.unique_visitors),
+      applyClicks: Number(r.apply_clicks),
+    })),
+    rangeDays,
+  };
+}
+
+export interface SignupStats {
+  /** 가입자 수 — 신청자 계정만 센다(운영자 계정 제외). 탈퇴한 계정은 빼고 센다. */
+  totalUsers: number;
+  newUsersThisMonth: number;
+  /** 가입 회사 수 — 상태와 무관한 전체 등록 회사 */
+  totalCompanies: number;
+  newCompaniesThisMonth: number;
+}
+
+export async function getSignupStats(): Promise<SignupStats> {
+  // created_at 은 UTC ISO 문자열(TEXT)이다. 문자열 앞자리로 "YYYY-MM" 을 비교하면 월초·월말
+  // 9시간이 옆 달로 새므로, timestamptz 로 파싱해 KST 로 옮긴 뒤 이번 달과 견준다.
+  const row = await one<{
+    total_users: string;
+    new_users: string;
+    total_companies: string;
+    new_companies: string;
+  }>(
+    `WITH bounds AS (
+       SELECT date_trunc('month', (now() AT TIME ZONE 'Asia/Seoul'))::date AS month_start
+     )
+     SELECT
+       (SELECT COUNT(*) FROM users
+         WHERE role = 'APPLICANT' AND withdrawn_at IS NULL)                      AS total_users,
+       (SELECT COUNT(*) FROM users, bounds
+         WHERE role = 'APPLICANT' AND withdrawn_at IS NULL
+           AND (users.created_at::timestamptz AT TIME ZONE 'Asia/Seoul')::date
+               >= bounds.month_start)                                           AS new_users,
+       (SELECT COUNT(*) FROM companies)                                          AS total_companies,
+       (SELECT COUNT(*) FROM companies, bounds
+         WHERE (companies.created_at::timestamptz AT TIME ZONE 'Asia/Seoul')::date
+               >= bounds.month_start)                                            AS new_companies`,
+  );
+  return {
+    totalUsers: Number(row?.total_users ?? 0),
+    newUsersThisMonth: Number(row?.new_users ?? 0),
+    totalCompanies: Number(row?.total_companies ?? 0),
+    newCompaniesThisMonth: Number(row?.new_companies ?? 0),
   };
 }
 
