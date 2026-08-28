@@ -232,10 +232,10 @@ export function MembersManager() {
       <section>
         <h2 className="text-s font-bold">담당자 목록</h2>
         <p className="mt-1 break-keep text-xs leading-6 text-muted">
-          회사를 처음 등록한 분이 <b>대표 담당자</b>가 되고, 이후 합류한 분은 <b>소속 담당자</b>가
-          됩니다. 대표 담당자만 초대 · 합류 승인 · 소속 해제 · 대표 이관을 할 수 있습니다. 아래
-          이메일로 초대는 보냈지만 아직 본인인증·비밀번호 설정을 마치지 않은 분은 <b>미가입</b>으로
-          표시됩니다.
+          회사에서 <b>가장 먼저 승인된 분</b>이 <b>대표 담당자</b>가 되고, 이후 합류한 분은{" "}
+          <b>소속 담당자</b>가 됩니다. 대표 담당자만 초대 · 합류 승인 · 소속 해제 · 대표 이관을 할
+          수 있습니다. 아래 이메일로 초대는 보냈지만 아직 본인인증·비밀번호 설정을 마치지 않은
+          분은 <b>미가입</b>으로 표시됩니다.
         </p>
         <div className="mt-3 overflow-x-auto">
           <table className="w-full min-w-[40rem] text-s" data-testid="members-table">

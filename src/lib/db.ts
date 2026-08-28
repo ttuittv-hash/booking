@@ -680,33 +680,56 @@ async function initSchema(pool: Pool) {
        AND business_registration_number <> regexp_replace(business_registration_number, '\\D', '', 'g')
   `);
 
-  // 회사별 최초 가입자를 마스터로 세운다. 마스터가 0명인 회사가 생기면
-  // 소속 담당자를 승인할 사람이 없어져 가입 흐름이 멈춘다.
+  // 회사별 대표 담당자 정합성. [개정 2026-08-28] 대표는 **승인 완료된 담당자**만 될 수
+  // 있다 — 예전에는 최초 가입자를 승인 전에 대표로 세워, 심사도 통과하지 못한 사람이
+  // 회사 목록에 대표로 박혔다("무조건 최초신청이 대표담당자이면 안됨").
+  //
+  // 순서가 중요하다: 자격 없는 대표를 먼저 내려야 아래 승격이 회사당 1명 유니크 인덱스에
+  // 걸리지 않는다.
   await pool.query(`
-    UPDATE users SET company_role = 'MASTER'
-     WHERE company_role IS NULL
-       AND role = 'APPLICANT'
+    UPDATE users SET company_role = 'STAFF'
+     WHERE company_role = 'MASTER'
        AND company_id IS NOT NULL
-       AND id = (
-         SELECT u2.id FROM users u2
-          WHERE u2.company_id = users.company_id
-            AND u2.role = 'APPLICANT'
-            AND u2.withdrawn_at IS NULL
-          ORDER BY u2.created_at ASC
-          LIMIT 1
-       )
+       AND (withdrawn_at IS NOT NULL OR approval_status <> 'APPROVED')
   `);
   await pool.query(`
     UPDATE users SET company_role = 'STAFF'
      WHERE company_role IS NULL AND role = 'APPLICANT' AND company_id IS NOT NULL
   `);
+  // 대표가 비어 있는 회사는 승인 완료된 담당자 중 가장 먼저 가입한 사람으로 채운다.
+  await pool.query(`
+    UPDATE users SET company_role = 'MASTER'
+     WHERE role = 'APPLICANT'
+       AND company_id IS NOT NULL
+       AND approval_status = 'APPROVED'
+       AND withdrawn_at IS NULL
+       AND NOT EXISTS (
+         SELECT 1 FROM users m
+          WHERE m.company_id = users.company_id AND m.company_role = 'MASTER'
+       )
+       AND id = (
+         SELECT u2.id FROM users u2
+          WHERE u2.company_id = users.company_id
+            AND u2.role = 'APPLICANT'
+            AND u2.withdrawn_at IS NULL
+            AND u2.approval_status = 'APPROVED'
+          ORDER BY u2.created_at ASC
+          LIMIT 1
+       )
+  `);
+  // 포인터를 실제 대표에 맞춘다. 대표가 없는 회사는 NULL 로 남는다 — 아직 아무도 승인되지
+  // 않았다는 뜻이고, 그 회사의 합류 승인은 운영자가 처리한다.
   await pool.query(`
     UPDATE companies SET master_user_id = (
       SELECT u.id FROM users u
        WHERE u.company_id = companies.id AND u.company_role = 'MASTER'
        ORDER BY u.created_at ASC LIMIT 1
     )
-    WHERE master_user_id IS NULL
+    WHERE master_user_id IS DISTINCT FROM (
+      SELECT u.id FROM users u
+       WHERE u.company_id = companies.id AND u.company_role = 'MASTER'
+       ORDER BY u.created_at ASC LIMIT 1
+    )
   `);
 
   // 주차 컬럼 도입 이전에 저장된 신청서는 selection_json 에서 값을 뽑아 한 번 채운다.
@@ -1484,54 +1507,22 @@ export async function findOrCreateCompany(
 }
 
 /**
- * 회사에 합류한 계정의 회사 내 권한을 정한다.
- * 마스터가 아직 없으면 이 사람이 최초 가입자이므로 MASTER, 있으면 STAFF 다(기획서 1-38·1-42).
+ * 회사에 합류한 계정을 소속 담당자로 붙인다.
  *
- * 기동 시 백필만으로는 부족하다 — 백필 이후에 만들어지는 회사는 마스터가 0명인 채로
- * 남아 소속 담당자를 승인할 사람이 없어진다. 그래서 합류 시점에 매번 정한다.
- * 동시 가입 경합에서 두 명이 동시에 MASTER 가 되지 않도록 회사 행을 잠그고 판단한다.
+ * [개정 2026-08-28] **가입 시점에는 대표 담당자를 정하지 않는다.** 예전에는 회사의 첫
+ * 가입자를 곧바로 MASTER 로 올렸는데, 그러면 아직 심사도 통과하지 못한 사람이 회사
+ * 목록에 "대표 담당자"로 박힌다("무조건 최초신청이 대표담당자이면 안됨"). 승인 여부와
+ * 무관하게 이름이 걸리는 것도 문제지만, 그 사람이 반려되면 대표 자리가 비어 버린다.
  *
- * [수정 2026-08-27] 판단 근거를 companies.master_user_id 에서 users 테이블로 옮겼다.
- * 그 포인터는 탈퇴·회원 삭제 뒤 ensureCompanyMaster 가 후보를 못 찾으면 NULL 이 되는데,
- * 그때도 company_role='MASTER' 를 쥔 행은 그대로 남는다. 포인터만 보고 "마스터가 없다"고
- * 판단해 합류자를 MASTER 로 올리려 들면 idx_users_company_master(회사당 MASTER 1명)
- * 유니크 위반이 나고, 가입 라우트는 이 UPDATE 를 트랜잭션 안에서 부르므로 **가입 전체가
- * 롤백된다**. 계정이 아예 만들어지지 않으니 대표 담당자의 담당자 관리 목록에도 당연히
- * 나타나지 않는다 — "동일 회사 신규 가입자가 목록에 안 뜬다"의 정체가 이것이었다.
+ * 이제 대표는 **첫 승인**이 정한다 — 승인·반려를 처리한 뒤 ensureCompanyMaster 가
+ * "승인 완료된 담당자 중 가장 먼저 가입한 사람"을 대표로 앉힌다. 그때까지 회사에는
+ * 대표가 없고(master_user_id IS NULL), 합류 승인은 운영자만 할 수 있다.
  */
-export async function assignCompanyRoleOnJoin(
-  userId: string,
-  companyId: string,
-): Promise<CompanyRole> {
-  // 회사 행을 잠근다 — 같은 회사에 동시에 두 사람이 들어와도 MASTER 는 하나여야 한다.
+export async function joinCompanyAsStaff(userId: string, companyId: string): Promise<CompanyRole> {
+  // 회사 행을 잠근다 — 같은 회사에 동시에 두 사람이 들어와도 순서대로 처리되게 한다.
   await one<{ id: string }>("SELECT id FROM companies WHERE id = $1 FOR UPDATE", [companyId]);
-
-  // 탈퇴한 옛 대표가 MASTER 표시를 쥔 채 남아 있으면 먼저 내린다. 그대로 두면 아래에서
-  // 새 대표를 세울 때 유니크 인덱스에 걸린다(인덱스는 withdrawn_at 을 가리지 않는다).
-  await q(
-    `UPDATE users SET company_role = 'STAFF'
-      WHERE company_id = $1 AND company_role = 'MASTER' AND withdrawn_at IS NOT NULL`,
-    [companyId],
-  );
-
-  const existingMaster = await one<{ id: string }>(
-    `SELECT id FROM users
-      WHERE company_id = $1
-        AND role = 'APPLICANT'
-        AND company_role = 'MASTER'
-        AND withdrawn_at IS NULL
-        AND id <> $2
-      LIMIT 1`,
-    [companyId, userId],
-  );
-  const role: CompanyRole = existingMaster ? "STAFF" : "MASTER";
-  await q("UPDATE users SET company_role = $1 WHERE id = $2", [role, userId]);
-  // 포인터를 실제 대표에 맞춘다 — 어긋나 있었다면 여기서 낫는다.
-  await q("UPDATE companies SET master_user_id = $1 WHERE id = $2", [
-    existingMaster?.id ?? userId,
-    companyId,
-  ]);
-  return role;
+  await q("UPDATE users SET company_role = 'STAFF' WHERE id = $1", [userId]);
+  return "STAFF";
 }
 
 /**
@@ -1593,21 +1584,37 @@ export async function setCompanyStatus(companyId: string, status: CompanyStatus)
  * 마스터가 0명이면 소속 담당자의 합류를 승인할 사람이 없어져 가입 흐름이 멈춘다.
  */
 export async function ensureCompanyMaster(companyId: string): Promise<void> {
+  // 1) 자격을 잃은 대표를 먼저 내린다. 탈퇴했거나 승인 상태가 아니게 된(반려·승인취소)
+  //    사람이 표시를 쥔 채 남아 있으면 아래 승격이 유니크 인덱스에 걸려 통째로 실패한다.
+  await q(
+    `UPDATE users SET company_role = 'STAFF'
+      WHERE company_id = $1
+        AND company_role = 'MASTER'
+        AND (withdrawn_at IS NOT NULL OR approval_status <> 'APPROVED')`,
+    [companyId],
+  );
+
+  // 2) 포인터가 가리키는 사람이 더 이상 자격이 없으면(비어 있는 경우 포함) 다시 뽑는다.
+  //    자격이 있는 대표가 앉아 있으면 건드리지 않는다 — 그래야 대표 이관이 되돌려지지 않는다.
   await q(
     `UPDATE companies SET master_user_id = (
        SELECT u.id FROM users u
-        WHERE u.company_id = $1 AND u.role = 'APPLICANT' AND u.withdrawn_at IS NULL
-        ORDER BY (u.approval_status = 'APPROVED') DESC, u.created_at ASC
+        WHERE u.company_id = $1
+          AND u.role = 'APPLICANT'
+          AND u.withdrawn_at IS NULL
+          AND u.approval_status = 'APPROVED'
+        ORDER BY u.created_at ASC
         LIMIT 1
      )
      WHERE id = $1
-       AND (master_user_id IS NULL
-            OR NOT EXISTS (SELECT 1 FROM users u2
-                            WHERE u2.id = companies.master_user_id AND u2.withdrawn_at IS NULL))`,
+       AND NOT EXISTS (SELECT 1 FROM users u2
+                        WHERE u2.id = companies.master_user_id
+                          AND u2.withdrawn_at IS NULL
+                          AND u2.approval_status = 'APPROVED')`,
     [companyId],
   );
-  // 승격 전에 다른 MASTER 를 내린다. 옛 대표가 표시를 쥔 채 남아 있으면 회사당 1명
-  // 유니크 인덱스에 걸려 이 UPDATE 자체가 실패한다(2026-08-27).
+
+  // 3) 포인터와 어긋난 MASTER 표시를 내리고, 4) 포인터가 가리키는 사람을 올린다.
   await q(
     `UPDATE users SET company_role = 'STAFF'
       WHERE company_id = $1
@@ -1621,6 +1628,24 @@ export async function ensureCompanyMaster(companyId: string): Promise<void> {
         AND company_role IS DISTINCT FROM 'MASTER'`,
     [companyId],
   );
+}
+
+/** 그 회사에 승인 완료된 담당자가 한 명이라도 있는지. 첫 승인인지 판정할 때 쓴다. */
+export async function companyHasApprovedMember(
+  companyId: string,
+  exceptUserId?: string,
+): Promise<boolean> {
+  const row = await one<{ id: string }>(
+    `SELECT id FROM users
+      WHERE company_id = $1
+        AND role = 'APPLICANT'
+        AND approval_status = 'APPROVED'
+        AND withdrawn_at IS NULL
+        AND ($2::text IS NULL OR id <> $2)
+      LIMIT 1`,
+    [companyId, exceptUserId ?? null],
+  );
+  return !!row;
 }
 
 /** 회사 소속 담당자 목록 — 마스터의 담당자 관리 화면(기획서 A10). */

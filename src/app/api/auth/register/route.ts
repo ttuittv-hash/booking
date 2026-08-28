@@ -15,7 +15,7 @@ import {
   createUser,
   findCompanyById,
   findOrCreateCompany,
-  assignCompanyRoleOnJoin,
+  joinCompanyAsStaff,
   resolveCompanyJoin,
   attachIdentityToUser,
   findCompletedIdentity,
@@ -354,7 +354,7 @@ export async function POST(request: Request) {
 
     // 회사에 붙은 계정이면 최초 가입자인지 판정해 MASTER/STAFF 를 정한다.
     if (company) {
-      created.companyRole = await assignCompanyRoleOnJoin(created.id, company.id);
+      created.companyRole = await joinCompanyAsStaff(created.id, company.id);
     }
 
     // 그 회사로 보낸 초대장의 주소로 가입했다면 그 초대장을 소진한다. 안 하면 담당자 관리

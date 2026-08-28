@@ -2,10 +2,12 @@ import { NextResponse } from "next/server";
 import crypto from "node:crypto";
 import { getCurrentUser, hashPassword } from "@/lib/auth";
 import {
-  assignCompanyRoleOnJoin,
+  ensureCompanyMaster,
+  joinCompanyAsStaff,
   createUser,
   findOrCreateCompany,
   findUserByEmailWithPasswordHash,
+  findUserById,
   findUserByUsername,
 } from "@/lib/db";
 import { dispatchMessage } from "@/lib/message/dispatch";
@@ -71,10 +73,13 @@ export async function POST(request: Request) {
     createdAt,
   });
 
-  // 운영자가 직접 만든 계정도 회사에 붙으면 마스터 여부를 정해야 한다 —
-  // 안 그러면 마스터가 0명인 회사가 만들어진다.
+  // 운영자가 직접 만든 계정은 곧바로 승인 상태다. 회사에 붙였는데 대표가 없으면
+  // 이 계정이 대표가 된다 — 대표가 0명인 회사가 만들어지면 이후 합류를 승인할 사람이 없다.
   if (company) {
-    user.companyRole = await assignCompanyRoleOnJoin(user.id, company.id);
+    user.companyRole = await joinCompanyAsStaff(user.id, company.id);
+    await ensureCompanyMaster(company.id);
+    const refreshed = await findUserById(user.id);
+    if (refreshed) user.companyRole = refreshed.companyRole;
   }
 
   // 비밀번호는 운영자가 안전한 채널로 직접 전달하므로 메시지에는 담지 않는다 —

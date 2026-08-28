@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
 import { dispatchMessageInBackground } from "@/lib/message/dispatch";
 import {
+  companyHasApprovedMember,
   ensureCompanyMaster,
   findUserById,
   setCompanyStatus,
@@ -11,8 +12,13 @@ import {
 // 가입 승인/반려.
 //
 // 승인 주체가 둘이다(기획서 1-42):
-//   - 최초 가입자(회사를 새로 등록한 사람)는 운영자 전담. 진위확인 결과를 보고 판단해야 한다.
-//   - 이후 가입자(기존 회사 합류)는 운영자와 그 회사 마스터 양쪽 큐에 뜨고, 먼저 처리한 쪽이 확정된다.
+//   - 회사의 첫 승인 건은 운영자 전담. 진위확인 결과를 보고 판단해야 하고, 애초에 그 회사엔
+//     아직 대표 담당자가 없어 승인해 줄 사람도 없다.
+//   - 이후 가입자(기존 회사 합류)는 운영자와 그 회사 대표 양쪽 큐에 뜨고, 먼저 처리한 쪽이 확정된다.
+//
+// [개정 2026-08-28] "회사의 첫 건"을 target.companyRole === 'MASTER' 로 판정하던 걸
+// **그 회사에 승인 완료된 담당자가 아직 없는가**로 바꿨다. 대표는 가입 시점이 아니라
+// 첫 승인이 정하므로(joinCompanyAsStaff 주석 참고), 심사 전에는 아무도 MASTER 가 아니다.
 //
 // 먼저 처리한 쪽이 확정되므로 이미 처리된 건에 다시 들어오면 409 로 되돌린다 —
 // 두 사람이 동시에 열어 두고 각각 승인/반려를 누르는 상황이 실제로 생긴다.
@@ -36,19 +42,22 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "대상 계정을 찾을 수 없습니다." }, { status: 404 });
   }
 
-  const isFirstMember = target.companyRole === "MASTER";
+  // 그 회사의 첫 승인 결정인가 — 본인을 빼고 승인 완료된 담당자가 아직 없으면 그렇다.
+  const isFirstDecision = target.companyId
+    ? !(await companyHasApprovedMember(target.companyId, target.id))
+    : false;
   const isAdmin = actor.role === "ADMIN";
 
   if (!isAdmin) {
-    // 마스터가 처리할 수 있는 건 자기 회사의 합류 신청뿐이다.
+    // 대표가 처리할 수 있는 건 자기 회사의 합류 신청뿐이다.
     const actorIsMaster = actor.role === "APPLICANT" && actor.companyRole === "MASTER";
     const sameCompany = !!actor.companyId && actor.companyId === target.companyId;
     if (!actorIsMaster || !sameCompany) {
       return NextResponse.json({ error: "승인 권한이 없습니다." }, { status: 403 });
     }
-    if (isFirstMember) {
+    if (isFirstDecision) {
       return NextResponse.json(
-        { error: "회사 신규 등록 건은 운영자가 처리합니다." },
+        { error: "회사의 첫 가입 승인은 운영자가 처리합니다." },
         { status: 403 },
       );
     }
@@ -84,13 +93,15 @@ export async function POST(request: Request) {
   const approved = action === "approve";
   const updated = await setUserApprovalStatus(id, approved ? "APPROVED" : "REJECTED");
 
-  // 최초 가입자의 심사 결과가 그대로 회사의 상태가 된다(기획서 1-37).
+  // 회사의 첫 심사 결과가 그대로 회사의 상태가 된다(기획서 1-37).
   // 이후 가입자의 반려는 그 사람만의 문제라 회사 상태를 건드리지 않는다.
-  if (isFirstMember && target.companyId) {
+  if (isFirstDecision && target.companyId) {
     await setCompanyStatus(target.companyId, approved ? "APPROVED" : "REJECTED");
   }
   if (target.companyId) {
-    // 반려로 마스터 자리가 비면 남은 승인 계정 중 가장 오래된 사람으로 채운다.
+    // 대표 담당자는 여기서 정해진다 — 회사에 대표가 없으면 방금 승인된 사람(= 승인 완료된
+    // 담당자 중 가장 먼저 가입한 사람)이 대표가 된다. 반대로 대표가 반려·승인취소되면
+    // 자격을 잃고 내려오며, 남은 승인 계정이 있으면 그 자리를 잇는다.
     await ensureCompanyMaster(target.companyId);
   }
 
