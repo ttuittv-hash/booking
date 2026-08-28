@@ -732,6 +732,20 @@ async function initSchema(pool: Pool) {
     )
   `);
 
+  // 승인된 담당자가 있는데 회사만 "심사 중"에 남은 행을 바로잡는다(2026-08-28).
+  // companies.status 를 쓰는 곳이 가입 승인 라우트뿐이라, 그 경로를 타지 않고 승인된
+  // 계정이 생기면(운영자가 회원 관리에서 직접 만든 계정 등) 회사가 PENDING 에 갇혔다.
+  // REJECTED·SUSPENDED 는 운영자 결정과 휴·폐업 확인 결과라 그대로 둔다.
+  await pool.query(`
+    UPDATE companies SET status = 'APPROVED'
+     WHERE status = 'PENDING'
+       AND EXISTS (SELECT 1 FROM users u
+                    WHERE u.company_id = companies.id
+                      AND u.role = 'APPLICANT'
+                      AND u.approval_status = 'APPROVED'
+                      AND u.withdrawn_at IS NULL)
+  `);
+
   // 주차 컬럼 도입 이전에 저장된 신청서는 selection_json 에서 값을 뽑아 한 번 채운다.
   await pool.query(`
     UPDATE quotes SET
@@ -1626,6 +1640,31 @@ export async function ensureCompanyMaster(companyId: string): Promise<void> {
     `UPDATE users SET company_role = 'MASTER'
       WHERE id = (SELECT master_user_id FROM companies WHERE id = $1)
         AND company_role IS DISTINCT FROM 'MASTER'`,
+    [companyId],
+  );
+}
+
+/**
+ * 승인된 담당자가 생겼는데 회사가 아직 "심사 중"이면 승인 완료로 올린다.
+ *
+ * [신규 2026-08-28] companies.status 를 쓰는 곳이 가입 승인 라우트 한 군데뿐이라,
+ * 그 경로를 타지 않고 승인된 계정이 생기면 회사만 PENDING 에 남았다. 운영자가 회원 관리에서
+ * 계정을 직접 만드는 경로(approval_status='APPROVED' 로 바로 생성)가 그렇다 — 대표
+ * 담당자는 승인 상태인데 회사는 "심사 중"으로 뜨는 어긋남이 여기서 나온다.
+ *
+ * REJECTED·SUSPENDED 는 건드리지 않는다. 각각 운영자의 반려 결정과 국세청 휴·폐업 확인
+ * 결과라, 승인된 담당자가 있다고 해서 뒤집을 값이 아니다.
+ */
+export async function approveCompanyIfMemberApproved(companyId: string): Promise<void> {
+  await q(
+    `UPDATE companies SET status = 'APPROVED'
+      WHERE id = $1
+        AND status = 'PENDING'
+        AND EXISTS (SELECT 1 FROM users u
+                     WHERE u.company_id = companies.id
+                       AND u.role = 'APPLICANT'
+                       AND u.approval_status = 'APPROVED'
+                       AND u.withdrawn_at IS NULL)`,
     [companyId],
   );
 }

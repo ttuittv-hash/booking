@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import crypto from "node:crypto";
 import { getCurrentUser, hashPassword } from "@/lib/auth";
 import {
+  approveCompanyIfMemberApproved,
   ensureCompanyMaster,
   joinCompanyAsStaff,
   createUser,
@@ -78,6 +79,8 @@ export async function POST(request: Request) {
   if (company) {
     user.companyRole = await joinCompanyAsStaff(user.id, company.id);
     await ensureCompanyMaster(company.id);
+    // 이 계정은 이미 승인 상태다 — 회사가 "심사 중"에 갇히지 않게 함께 올린다.
+    await approveCompanyIfMemberApproved(company.id);
     const refreshed = await findUserById(user.id);
     if (refreshed) user.companyRole = refreshed.companyRole;
   }
