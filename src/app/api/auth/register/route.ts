@@ -3,6 +3,7 @@ import { isNiceAuthConfigured } from "@/lib/niceAuth";
 import { dispatchMessageInBackground } from "@/lib/message/dispatch";
 import { verifyIdentityTicket } from "@/lib/identityTicket";
 import { USERNAME_HINT, USERNAME_RE } from "@/lib/validation";
+import { hashInviteToken, invitePhoneMatches } from "@/lib/invitation";
 import crypto from "node:crypto";
 import { createSession, hashPassword } from "@/lib/auth";
 import {
@@ -15,7 +16,7 @@ import {
   createUser,
   findCompanyById,
   findOrCreateCompany,
-  assignCompanyRoleOnJoin,
+  joinCompanyAsStaff,
   resolveCompanyJoin,
   attachIdentityToUser,
   findCompletedIdentity,
@@ -30,6 +31,8 @@ import {
   saveCompanyVerification,
   withTransaction,
   findUserById,
+  findCompanyMaster,
+  findValidInvitation,
   findPendingInvitationByEmail,
   consumeInvitation,
 } from "@/lib/db";
@@ -60,6 +63,8 @@ export async function POST(request: Request) {
   const accountType = body?.accountType === "INDIVIDUAL" ? "INDIVIDUAL" : "CORPORATE";
   const companyName = typeof body?.companyName === "string" ? body.companyName.trim() : "";
   const companyId = typeof body?.companyId === "string" ? body.companyId.trim() : "";
+  // 초대 링크로 들어온 경우에만 실린다. 회사를 정하고, 본인인증 번호 대조의 기준이 된다.
+  const inviteToken = typeof body?.inviteToken === "string" ? body.inviteToken.trim() : "";
   const businessRegistrationNumber =
     typeof body?.businessRegistrationNumber === "string" ? body.businessRegistrationNumber.trim() : "";
   const representativeName = typeof body?.representativeName === "string" ? body.representativeName.trim() : "";
@@ -201,13 +206,47 @@ export async function POST(request: Request) {
     }
   }
 
+  /*
+    초대 링크 가입 (2026-08-28, 마일스 의견).
+
+    대표 담당자가 이미 "이 번호의 이 사람"을 지목해 부른 것이므로, 운영자·대표가 다시
+    심사하지 않고 바로 승인한다. 다만 링크는 전달되다 새어 나갈 수 있으므로 **본인인증한
+    휴대폰 번호가 초대장에 적힌 번호와 같을 때만** 그 특권을 준다.
+
+    번호가 다르면 가입을 막지 않는다 — 초대장만 무시하고 평범한 합류 신청으로 흘려보낸다.
+    링크를 잘못 받은 사람도 정상 경로로는 가입할 수 있어야 하고, 그 편이 "왜 가입이
+    안 되냐"는 문의보다 낫다.
+  */
+  const invitation = inviteToken ? await findValidInvitation(hashInviteToken(inviteToken)) : undefined;
+  // 대조 규칙은 invitePhoneMatches 한 곳에 있다(테스트로 고정). 본인인증을 쓰지 않는
+  // 환경에서는 identity 가 없어 항상 불일치 — 인증 없이 번호만 맞춰 적으면 통과하는
+  // 문이 되어서는 안 된다.
+  const invitePhoneMatched = !!invitation && invitePhoneMatches(identity?.mobileNo, invitation.phone);
+
   // 법인회원 = 회사를 새로 등록(또는 동일명 회사에 합류).
   // 개인회원 = 목록에서 기존 회사를 선택하거나, 목록에 없으면 이름을 직접 입력(신규 등록)하거나, 소속 회사 없이 가입 가능.
   // 어느 경우든 같은 company_id를 공유하는 사용자끼리 서로의 신청 내역을 함께 관리할 수 있다.
   let company;
   // 기업회원 가입의 합류 판정 결과 — 가입 완료 응답에 안내 문구로 실린다.
   let joinKind: import("@/lib/db").CompanyJoinKind = "NEW";
-  if (accountType === "INDIVIDUAL") {
+  if (invitePhoneMatched && invitation) {
+    // 초대장이 회사를 정한다. 그 회사는 초대를 보낼 때 이미 등록·확인이 끝난 상태라
+    // 사업자번호 중복확인·진위확인을 다시 묻지 않는다(기획서 A5 와 같은 이유).
+    company = await findCompanyById(invitation.companyId);
+    if (!company) {
+      return NextResponse.json(
+        { error: "초대한 회사를 찾을 수 없습니다. 대표 담당자에게 문의해주세요." },
+        { status: 400 },
+      );
+    }
+    joinKind = "JOIN_APPROVED";
+    // 사업자등록증은 묻지 않는다 — 회사는 초대장이 정했고 등록증은 이미 회사 행에 있다.
+    // 재직증명서는 받는다: 심사를 건너뛰는 경로일수록 "이 사람이 그 회사 소속"이라는
+    // 근거를 남겨 둬야 나중에 되짚을 수 있다.
+    if (!employmentCertUrl) {
+      return NextResponse.json({ error: "재직증명서를 첨부해주세요." }, { status: 400 });
+    }
+  } else if (accountType === "INDIVIDUAL") {
     if (companyId) {
       company = await findCompanyById(companyId);
       if (!company) {
@@ -234,8 +273,15 @@ export async function POST(request: Request) {
     if (!postalCode || !address) {
       return NextResponse.json({ error: "우편번호 찾기로 주소를 입력하세요." }, { status: 400 });
     }
-    // 사업자등록증 첨부는 권장이되 필수는 아니다 — 입력값은 사업자번호 진위확인으로 검증되고,
-    // 첨부 여부는 운영자 심사 화면에 그대로 표시돼 판단에 쓰인다.
+    // [개정 2026-08-28] 사업자등록증·재직증명서를 필수로 바꿨다. 예전에는 선택이라 첨부
+    // 없이 접수된 건이 그대로 심사로 넘어가, 운영자가 판단 근거 없이 되묻는 일이 반복됐다.
+    // 화면에서도 막지만 서버가 최종 판정자여야 폼을 우회해도 막힌다.
+    if (!businessCertUrl) {
+      return NextResponse.json({ error: "사업자등록증을 첨부해주세요." }, { status: 400 });
+    }
+    if (!employmentCertUrl) {
+      return NextResponse.json({ error: "재직증명서를 첨부해주세요." }, { status: 400 });
+    }
     // 등록 이력을 먼저 본다. 순서가 중요하다 —
     // 이미 등록된 회사에 합류하는 경우까지 국세청에 다시 물으면, 최초 등록 때 확인이
     // 끝난 회사인데도 조회가 실패하면 합류가 막힌다(실제로 그랬다).
@@ -323,7 +369,8 @@ export async function POST(request: Request) {
       companyName: company?.name ?? null,
       companyId: company?.id ?? null,
       role: "APPLICANT",
-      approvalStatus: "PENDING",
+      // 초대장의 번호로 본인인증까지 마친 사람은 대표가 이미 지목한 사람이라 심사를 건너뛴다.
+      approvalStatus: invitePhoneMatched ? "APPROVED" : "PENDING",
       termsAgreedAt: createdAt,
       privacyAgreedAt: createdAt,
       employmentCertUrl: employmentCertUrl || null,
@@ -366,12 +413,15 @@ export async function POST(request: Request) {
 
     // 회사에 붙은 계정이면 최초 가입자인지 판정해 MASTER/STAFF 를 정한다.
     if (company) {
-      created.companyRole = await assignCompanyRoleOnJoin(created.id, company.id);
+      created.companyRole = await joinCompanyAsStaff(created.id, company.id);
     }
 
-    // 그 회사로 보낸 초대장의 주소로 가입했다면 그 초대장을 소진한다. 안 하면 담당자 관리
-    // 화면에 "초대 발송"(미가입) 행과 방금 가입한 담당자 행이 같은 사람으로 두 줄 남는다.
-    if (company) {
+    // 초대장을 소진한다. 안 하면 담당자 관리 화면에 "초대 발송"(미가입) 행과 방금 가입한
+    // 담당자 행이 같은 사람으로 두 줄 남는다. 토큰으로 들어왔으면 그 초대장을, 아니면
+    // 같은 회사·같은 이메일로 보낸 초대장을 찾아 닫는다.
+    if (invitation) {
+      await consumeInvitation(invitation.id, created.id);
+    } else if (company) {
       const pendingInvite = await findPendingInvitationByEmail(company.id, email);
       if (pendingInvite) {
         await consumeInvitation(pendingInvite.id, created.id);
@@ -388,29 +438,40 @@ export async function POST(request: Request) {
       }
     }
 
-    // 최초 가입자는 운영자가 전담하고, 이후 가입자는 그 회사 마스터도 처리할 수 있다(기획서 1-42).
-    // 마스터가 부재·지연이어도 운영자가 안전망이므로 운영자 알림은 두 경우 모두 보낸다.
-    const joinLabel =
-      created.companyRole === "MASTER" ? "회사 신규 등록" : `${company?.name ?? ""} 합류 신청`;
-    await notifyAdmins({
-      quoteId: "applicants",
-      message: `신규 가입 승인 요청: ${name} (${company?.name ?? "소속 없음"}, ${accountType === "INDIVIDUAL" ? "개인회원" : "법인회원"}, ${joinLabel})`,
-      createdAt,
-    });
+    // 회사의 첫 건은 운영자가 전담하고, 이후 가입자는 그 회사 대표도 처리할 수 있다(기획서 1-42).
+    // 대표가 부재·지연이어도 운영자가 안전망이므로 운영자 알림은 두 경우 모두 보낸다.
+    //
+    // [개정 2026-08-28] "회사 신규 등록"인지를 created.companyRole === 'MASTER' 로 보던 걸
+    // 대표 담당자의 존재 여부로 바꿨다 — 대표는 이제 가입이 아니라 첫 승인이 정하므로
+    // 가입 시점에는 아무도 MASTER 가 아니다.
+    //
+    // 수신자도 companies.master_user_id 포인터가 아니라 users 의 실제 대표를 읽는다.
+    // 포인터가 어긋나 있으면 엉뚱한 사람에게 알림이 갔다("초대한 대표는 노라인데 합류 신청
+    // 알림이 테드에게 발송").
+    const master = company ? await findCompanyMaster(company.id) : undefined;
+    const joinLabel = master ? `${company?.name ?? ""} 합류 신청` : "회사 신규 등록";
+    // 초대 링크로 들어와 이미 승인된 계정은 승인할 것이 없다 — 요청 알림을 만들지 않는다.
+    if (!invitePhoneMatched) {
+      await notifyAdmins({
+        quoteId: "applicants",
+        message: `신규 가입 승인 요청: ${name} (${company?.name ?? "소속 없음"}, ${accountType === "INDIVIDUAL" ? "개인회원" : "법인회원"}, ${joinLabel})`,
+        createdAt,
+      });
+    }
 
-    // MB-04 합류 신청 발생 → 그 회사 마스터 (카카오 정본은 마스터 이름을 본문에 쓴다)
-    if (company && created.companyRole === "STAFF" && company.masterUserId) {
-      const master = await findUserById(company.masterUserId);
+    // MB-04 합류 신청 발생 → 그 회사 대표. 인앱 알림을 누르면 그 신청자의 상세로 바로 간다.
+    if (company && master && !invitePhoneMatched) {
       dispatchMessageInBackground({
         templateCode: "MB-04",
         idempotencyKey: `MB-04:${created.id}`,
         recipient: {
-          userId: company.masterUserId,
-          phone: master?.phone ?? null,
-          email: master?.email ?? null,
-          name: master?.name ?? null,
+          userId: master.id,
+          phone: master.phone,
+          email: master.email,
+          name: master.name,
         },
-        variables: { 신청자명: name, 마스터: master?.name ?? "대표 담당자" },
+        variables: { 신청자명: name, 마스터: master.name },
+        inAppLink: `/mypage/members/${created.id}`,
         request,
       });
     }
@@ -418,9 +479,10 @@ export async function POST(request: Request) {
     return created;
   });
 
-  // MB-01 가입 신청 접수 → 신청자 본인 (기존 회사 합류면 카카오 정본이 따로 있어 MB-01J)
+  // MB-01 가입 신청 접수 → 신청자 본인 (기존 회사 합류면 카카오 정본이 따로 있어 MB-01J).
+  // 초대로 곧장 승인된 계정은 "접수됐으니 기다리라"는 안내가 맞지 않아 대신 승인 완료(MB-02)를 보낸다.
   {
-    const code = user.companyRole === "STAFF" ? "MB-01J" : "MB-01";
+    const code = invitePhoneMatched ? "MB-02" : user.companyRole === "STAFF" ? "MB-01J" : "MB-01";
     dispatchMessageInBackground({
       templateCode: code,
       idempotencyKey: `${code}:${user.id}`,
@@ -445,8 +507,9 @@ export async function POST(request: Request) {
   await createSession(user.id, user.role);
   // 합류 상황에 따라 안내 문구가 달라진다 — "심사 중인 회사"인지 "미승인 이력이 있는 회사"인지
   // 알려주지 않으면 사용자는 왜 대기가 길어지는지 알 수 없다.
-  const joinNotice =
-    joinKind === "JOIN_PENDING"
+  const joinNotice = invitePhoneMatched
+    ? `${company?.name ?? ""} 담당자로 합류했습니다. 바로 이용하실 수 있습니다.`
+    : joinKind === "JOIN_PENDING"
       ? "이미 심사가 진행 중인 회사입니다. 앞선 심사가 끝난 뒤 함께 처리됩니다."
       : joinKind === "REAPPLY_REJECTED"
         ? "이전에 미승인 처리된 회사입니다. 운영자가 다시 심사합니다."

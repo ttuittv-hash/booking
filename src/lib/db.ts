@@ -228,6 +228,25 @@ async function initSchema(pool: Pool) {
       created_at TEXT NOT NULL
     );
 
+    -- 트래픽 지표(2026-08-27) — 리포트 화면의 페이지뷰·순방문자(UV)·대관신청 버튼 클릭수.
+    -- 한 줄이 이벤트 하나다. UV 는 visitor_id 를 DISTINCT 로 세어 구한다.
+    --
+    -- visitor_id 는 브라우저 쿠키에 담긴 난수다 — IP 도 UA 도 저장하지 않는다. 개인을
+    -- 식별하려는 값이 아니라 "같은 브라우저의 재방문"을 묶기 위한 값이다.
+    -- user_id 에 외래키를 걸지 않는다: 회원을 삭제해도 지난 지표는 남아야 한다.
+    --
+    -- day 는 **KST 기준 날짜**다. 서버 타임존에 따라 집계가 하루씩 밀리지 않도록
+    -- 애플리케이션이 아니라 SQL 에서 (now() AT TIME ZONE 'Asia/Seoul')::date 로 채운다.
+    CREATE TABLE IF NOT EXISTS analytics_events (
+      id TEXT PRIMARY KEY,
+      event_type TEXT NOT NULL,
+      path TEXT NOT NULL,
+      visitor_id TEXT NOT NULL,
+      user_id TEXT,
+      day DATE NOT NULL,
+      created_at TEXT NOT NULL
+    );
+
     CREATE TABLE IF NOT EXISTS notifications (
       id TEXT PRIMARY KEY,
       recipient_id TEXT NOT NULL REFERENCES users(id),
@@ -531,6 +550,8 @@ async function initSchema(pool: Pool) {
     -- 외래키 컬럼 인덱스. 없으면 신청서 상세·첨부 목록·알림 조회가 전부 테이블 전체 스캔이 된다.
     CREATE INDEX IF NOT EXISTS idx_quotes_applicant ON quotes(applicant_id);
     CREATE INDEX IF NOT EXISTS idx_quotes_week ON quotes(week_year, week_month, week_of_month);
+    CREATE INDEX IF NOT EXISTS idx_analytics_events_day ON analytics_events(day);
+    CREATE INDEX IF NOT EXISTS idx_analytics_events_type_day ON analytics_events(event_type, day);
     CREATE INDEX IF NOT EXISTS idx_attachments_quote ON attachments(quote_id);
     CREATE INDEX IF NOT EXISTS idx_audit_logs_quote ON audit_logs(quote_id);
     CREATE INDEX IF NOT EXISTS idx_notifications_recipient ON notifications(recipient_id, is_read);
@@ -674,33 +695,70 @@ async function initSchema(pool: Pool) {
        AND business_registration_number <> regexp_replace(business_registration_number, '\\D', '', 'g')
   `);
 
-  // 회사별 최초 가입자를 마스터로 세운다. 마스터가 0명인 회사가 생기면
-  // 소속 담당자를 승인할 사람이 없어져 가입 흐름이 멈춘다.
+  // 회사별 대표 담당자 정합성. [개정 2026-08-28] 대표는 **승인 완료된 담당자**만 될 수
+  // 있다 — 예전에는 최초 가입자를 승인 전에 대표로 세워, 심사도 통과하지 못한 사람이
+  // 회사 목록에 대표로 박혔다("무조건 최초신청이 대표담당자이면 안됨").
+  //
+  // 순서가 중요하다: 자격 없는 대표를 먼저 내려야 아래 승격이 회사당 1명 유니크 인덱스에
+  // 걸리지 않는다.
   await pool.query(`
-    UPDATE users SET company_role = 'MASTER'
-     WHERE company_role IS NULL
-       AND role = 'APPLICANT'
+    UPDATE users SET company_role = 'STAFF'
+     WHERE company_role = 'MASTER'
        AND company_id IS NOT NULL
-       AND id = (
-         SELECT u2.id FROM users u2
-          WHERE u2.company_id = users.company_id
-            AND u2.role = 'APPLICANT'
-            AND u2.withdrawn_at IS NULL
-          ORDER BY u2.created_at ASC
-          LIMIT 1
-       )
+       AND (withdrawn_at IS NOT NULL OR approval_status <> 'APPROVED')
   `);
   await pool.query(`
     UPDATE users SET company_role = 'STAFF'
      WHERE company_role IS NULL AND role = 'APPLICANT' AND company_id IS NOT NULL
   `);
+  // 대표가 비어 있는 회사는 승인 완료된 담당자 중 가장 먼저 가입한 사람으로 채운다.
+  await pool.query(`
+    UPDATE users SET company_role = 'MASTER'
+     WHERE role = 'APPLICANT'
+       AND company_id IS NOT NULL
+       AND approval_status = 'APPROVED'
+       AND withdrawn_at IS NULL
+       AND NOT EXISTS (
+         SELECT 1 FROM users m
+          WHERE m.company_id = users.company_id AND m.company_role = 'MASTER'
+       )
+       AND id = (
+         SELECT u2.id FROM users u2
+          WHERE u2.company_id = users.company_id
+            AND u2.role = 'APPLICANT'
+            AND u2.withdrawn_at IS NULL
+            AND u2.approval_status = 'APPROVED'
+          ORDER BY u2.created_at ASC
+          LIMIT 1
+       )
+  `);
+  // 포인터를 실제 대표에 맞춘다. 대표가 없는 회사는 NULL 로 남는다 — 아직 아무도 승인되지
+  // 않았다는 뜻이고, 그 회사의 합류 승인은 운영자가 처리한다.
   await pool.query(`
     UPDATE companies SET master_user_id = (
       SELECT u.id FROM users u
        WHERE u.company_id = companies.id AND u.company_role = 'MASTER'
        ORDER BY u.created_at ASC LIMIT 1
     )
-    WHERE master_user_id IS NULL
+    WHERE master_user_id IS DISTINCT FROM (
+      SELECT u.id FROM users u
+       WHERE u.company_id = companies.id AND u.company_role = 'MASTER'
+       ORDER BY u.created_at ASC LIMIT 1
+    )
+  `);
+
+  // 승인된 담당자가 있는데 회사만 "심사 중"에 남은 행을 바로잡는다(2026-08-28).
+  // companies.status 를 쓰는 곳이 가입 승인 라우트뿐이라, 그 경로를 타지 않고 승인된
+  // 계정이 생기면(운영자가 회원 관리에서 직접 만든 계정 등) 회사가 PENDING 에 갇혔다.
+  // REJECTED·SUSPENDED 는 운영자 결정과 휴·폐업 확인 결과라 그대로 둔다.
+  await pool.query(`
+    UPDATE companies SET status = 'APPROVED'
+     WHERE status = 'PENDING'
+       AND EXISTS (SELECT 1 FROM users u
+                    WHERE u.company_id = companies.id
+                      AND u.role = 'APPLICANT'
+                      AND u.approval_status = 'APPROVED'
+                      AND u.withdrawn_at IS NULL)
   `);
 
   // 주차 컬럼 도입 이전에 저장된 신청서는 selection_json 에서 값을 뽑아 한 번 채운다.
@@ -1478,54 +1536,22 @@ export async function findOrCreateCompany(
 }
 
 /**
- * 회사에 합류한 계정의 회사 내 권한을 정한다.
- * 마스터가 아직 없으면 이 사람이 최초 가입자이므로 MASTER, 있으면 STAFF 다(기획서 1-38·1-42).
+ * 회사에 합류한 계정을 소속 담당자로 붙인다.
  *
- * 기동 시 백필만으로는 부족하다 — 백필 이후에 만들어지는 회사는 마스터가 0명인 채로
- * 남아 소속 담당자를 승인할 사람이 없어진다. 그래서 합류 시점에 매번 정한다.
- * 동시 가입 경합에서 두 명이 동시에 MASTER 가 되지 않도록 회사 행을 잠그고 판단한다.
+ * [개정 2026-08-28] **가입 시점에는 대표 담당자를 정하지 않는다.** 예전에는 회사의 첫
+ * 가입자를 곧바로 MASTER 로 올렸는데, 그러면 아직 심사도 통과하지 못한 사람이 회사
+ * 목록에 "대표 담당자"로 박힌다("무조건 최초신청이 대표담당자이면 안됨"). 승인 여부와
+ * 무관하게 이름이 걸리는 것도 문제지만, 그 사람이 반려되면 대표 자리가 비어 버린다.
  *
- * [수정 2026-08-27] 판단 근거를 companies.master_user_id 에서 users 테이블로 옮겼다.
- * 그 포인터는 탈퇴·회원 삭제 뒤 ensureCompanyMaster 가 후보를 못 찾으면 NULL 이 되는데,
- * 그때도 company_role='MASTER' 를 쥔 행은 그대로 남는다. 포인터만 보고 "마스터가 없다"고
- * 판단해 합류자를 MASTER 로 올리려 들면 idx_users_company_master(회사당 MASTER 1명)
- * 유니크 위반이 나고, 가입 라우트는 이 UPDATE 를 트랜잭션 안에서 부르므로 **가입 전체가
- * 롤백된다**. 계정이 아예 만들어지지 않으니 대표 담당자의 담당자 관리 목록에도 당연히
- * 나타나지 않는다 — "동일 회사 신규 가입자가 목록에 안 뜬다"의 정체가 이것이었다.
+ * 이제 대표는 **첫 승인**이 정한다 — 승인·반려를 처리한 뒤 ensureCompanyMaster 가
+ * "승인 완료된 담당자 중 가장 먼저 가입한 사람"을 대표로 앉힌다. 그때까지 회사에는
+ * 대표가 없고(master_user_id IS NULL), 합류 승인은 운영자만 할 수 있다.
  */
-export async function assignCompanyRoleOnJoin(
-  userId: string,
-  companyId: string,
-): Promise<CompanyRole> {
-  // 회사 행을 잠근다 — 같은 회사에 동시에 두 사람이 들어와도 MASTER 는 하나여야 한다.
+export async function joinCompanyAsStaff(userId: string, companyId: string): Promise<CompanyRole> {
+  // 회사 행을 잠근다 — 같은 회사에 동시에 두 사람이 들어와도 순서대로 처리되게 한다.
   await one<{ id: string }>("SELECT id FROM companies WHERE id = $1 FOR UPDATE", [companyId]);
-
-  // 탈퇴한 옛 대표가 MASTER 표시를 쥔 채 남아 있으면 먼저 내린다. 그대로 두면 아래에서
-  // 새 대표를 세울 때 유니크 인덱스에 걸린다(인덱스는 withdrawn_at 을 가리지 않는다).
-  await q(
-    `UPDATE users SET company_role = 'STAFF'
-      WHERE company_id = $1 AND company_role = 'MASTER' AND withdrawn_at IS NOT NULL`,
-    [companyId],
-  );
-
-  const existingMaster = await one<{ id: string }>(
-    `SELECT id FROM users
-      WHERE company_id = $1
-        AND role = 'APPLICANT'
-        AND company_role = 'MASTER'
-        AND withdrawn_at IS NULL
-        AND id <> $2
-      LIMIT 1`,
-    [companyId, userId],
-  );
-  const role: CompanyRole = existingMaster ? "STAFF" : "MASTER";
-  await q("UPDATE users SET company_role = $1 WHERE id = $2", [role, userId]);
-  // 포인터를 실제 대표에 맞춘다 — 어긋나 있었다면 여기서 낫는다.
-  await q("UPDATE companies SET master_user_id = $1 WHERE id = $2", [
-    existingMaster?.id ?? userId,
-    companyId,
-  ]);
-  return role;
+  await q("UPDATE users SET company_role = 'STAFF' WHERE id = $1", [userId]);
+  return "STAFF";
 }
 
 /**
@@ -1587,17 +1613,33 @@ export async function setCompanyStatus(companyId: string, status: CompanyStatus)
  * 마스터가 0명이면 소속 담당자의 합류를 승인할 사람이 없어져 가입 흐름이 멈춘다.
  */
 export async function ensureCompanyMaster(companyId: string): Promise<void> {
+  // 1) 자격을 잃은 대표를 먼저 내린다. 탈퇴했거나 승인 상태가 아니게 된(반려·승인취소)
+  //    사람이 표시를 쥔 채 남아 있으면 아래 승격이 유니크 인덱스에 걸려 통째로 실패한다.
+  await q(
+    `UPDATE users SET company_role = 'STAFF'
+      WHERE company_id = $1
+        AND company_role = 'MASTER'
+        AND (withdrawn_at IS NOT NULL OR approval_status <> 'APPROVED')`,
+    [companyId],
+  );
+
+  // 2) 포인터가 가리키는 사람이 더 이상 자격이 없으면(비어 있는 경우 포함) 다시 뽑는다.
+  //    자격이 있는 대표가 앉아 있으면 건드리지 않는다 — 그래야 대표 이관이 되돌려지지 않는다.
   await q(
     `UPDATE companies SET master_user_id = (
        SELECT u.id FROM users u
-        WHERE u.company_id = $1 AND u.role = 'APPLICANT' AND u.withdrawn_at IS NULL
-        ORDER BY (u.approval_status = 'APPROVED') DESC, u.created_at ASC
+        WHERE u.company_id = $1
+          AND u.role = 'APPLICANT'
+          AND u.withdrawn_at IS NULL
+          AND u.approval_status = 'APPROVED'
+        ORDER BY u.created_at ASC
         LIMIT 1
      )
      WHERE id = $1
-       AND (master_user_id IS NULL
-            OR NOT EXISTS (SELECT 1 FROM users u2
-                            WHERE u2.id = companies.master_user_id AND u2.withdrawn_at IS NULL))`,
+       AND NOT EXISTS (SELECT 1 FROM users u2
+                        WHERE u2.id = companies.master_user_id
+                          AND u2.withdrawn_at IS NULL
+                          AND u2.approval_status = 'APPROVED')`,
     [companyId],
   );
   // 승격 전에 다른 MASTER 를 내린다. 옛 대표가 표시를 쥔 채 남아 있으면 회사당 1명
@@ -1706,6 +1748,68 @@ export async function deleteUserCascade(userId: string): Promise<DeleteUserResul
     }
     return { deletedUser: true, deletedCompany, removed };
   });
+}
+
+/**
+ * 승인된 담당자가 생겼는데 회사가 아직 "심사 중"이면 승인 완료로 올린다.
+ *
+ * [신규 2026-08-28] companies.status 를 쓰는 곳이 가입 승인 라우트 한 군데뿐이라,
+ * 그 경로를 타지 않고 승인된 계정이 생기면 회사만 PENDING 에 남았다. 운영자가 회원 관리에서
+ * 계정을 직접 만드는 경로(approval_status='APPROVED' 로 바로 생성)가 그렇다 — 대표
+ * 담당자는 승인 상태인데 회사는 "심사 중"으로 뜨는 어긋남이 여기서 나온다.
+ *
+ * REJECTED·SUSPENDED 는 건드리지 않는다. 각각 운영자의 반려 결정과 국세청 휴·폐업 확인
+ * 결과라, 승인된 담당자가 있다고 해서 뒤집을 값이 아니다.
+ */
+export async function approveCompanyIfMemberApproved(companyId: string): Promise<void> {
+  await q(
+    `UPDATE companies SET status = 'APPROVED'
+      WHERE id = $1
+        AND status = 'PENDING'
+        AND EXISTS (SELECT 1 FROM users u
+                     WHERE u.company_id = companies.id
+                       AND u.role = 'APPLICANT'
+                       AND u.approval_status = 'APPROVED'
+                       AND u.withdrawn_at IS NULL)`,
+    [companyId],
+  );
+}
+
+/**
+ * 그 회사의 실제 대표 담당자를 찾는다.
+ *
+ * [신규 2026-08-28] companies.master_user_id 포인터가 아니라 users 를 본다. 포인터는
+ * 탈퇴·삭제·이관 중간 상태에서 어긋날 수 있고, 어긋난 포인터를 믿고 알림을 보내면 엉뚱한
+ * 사람에게 간다 — "릴리를 초대한 대표는 노라인데 합류 신청 알림톡이 테드에게 갔다"가 그것.
+ * company_role='MASTER' 는 회사당 1명 유니크 인덱스가 지키므로 이쪽이 정본이다.
+ */
+export async function findCompanyMaster(companyId: string): Promise<AppUser | undefined> {
+  const row = await one<UserRow>(
+    `SELECT * FROM users
+      WHERE company_id = $1 AND role = 'APPLICANT' AND company_role = 'MASTER'
+        AND withdrawn_at IS NULL
+      LIMIT 1`,
+    [companyId],
+  );
+  return row ? toAppUser(row) : undefined;
+}
+
+/** 그 회사에 승인 완료된 담당자가 한 명이라도 있는지. 첫 승인인지 판정할 때 쓴다. */
+export async function companyHasApprovedMember(
+  companyId: string,
+  exceptUserId?: string,
+): Promise<boolean> {
+  const row = await one<{ id: string }>(
+    `SELECT id FROM users
+      WHERE company_id = $1
+        AND role = 'APPLICANT'
+        AND approval_status = 'APPROVED'
+        AND withdrawn_at IS NULL
+        AND ($2::text IS NULL OR id <> $2)
+      LIMIT 1`,
+    [companyId, exceptUserId ?? null],
+  );
+  return !!row;
 }
 
 /** 회사 소속 담당자 목록 — 마스터의 담당자 관리 화면(기획서 A10). */
@@ -1858,6 +1962,50 @@ export async function listCompanyInvitations(companyId: string): Promise<Company
     acceptedUserName: r.accepted_user_name,
     companyName: r.company_name,
   }));
+}
+
+export interface ValidInvitation {
+  id: string;
+  companyId: string;
+  companyName: string;
+  email: string;
+  phone: string | null;
+  inviteeName: string | null;
+}
+
+/**
+ * 토큰으로 아직 살아 있는(PENDING·미만료) 초대장을 찾는다.
+ *
+ * [재도입 2026-08-28] 초대 링크에 토큰을 다시 실으면서 되살렸다. 초대로 들어온 사람은
+ * 일반 회원가입 화면을 그대로 쓰되, 이 초대장이 회사를 정하고 본인인증 번호 대조의
+ * 기준값(phone)을 준다.
+ */
+export async function findValidInvitation(tokenHash: string): Promise<ValidInvitation | undefined> {
+  const row = await one<{
+    id: string;
+    company_id: string;
+    company_name: string;
+    email: string;
+    phone: string | null;
+    invitee_name: string | null;
+  }>(
+    `SELECT i.id, i.company_id, c.name AS company_name, i.email, i.phone, i.invitee_name
+       FROM company_invitations i
+       JOIN companies c ON c.id = i.company_id
+      WHERE i.token_hash = $1 AND i.status = 'PENDING' AND i.expires_at > $2
+      LIMIT 1`,
+    [tokenHash, new Date().toISOString()],
+  );
+  return row
+    ? {
+        id: row.id,
+        companyId: row.company_id,
+        companyName: row.company_name,
+        email: row.email,
+        phone: row.phone,
+        inviteeName: row.invitee_name,
+      }
+    : undefined;
 }
 
 /**
@@ -4057,6 +4205,245 @@ function toAttachment(row: AttachmentRow): Attachment {
     category: (row.category as AttachmentCategory) ?? null,
     publicInterestItem: (row.public_interest_item as PublicInterestItem | null) ?? null,
     createdAt: row.created_at,
+  };
+}
+
+// ---------------------------------------------------------------------------
+// 트래픽 지표 (2026-08-27) — 리포트 화면의 페이지뷰 · UV · 대관신청 버튼 클릭수
+// ---------------------------------------------------------------------------
+
+export type AnalyticsEventType = "PAGE_VIEW" | "APPLY_CLICK";
+
+/** 이벤트 한 건을 남긴다. day 는 서버 타임존과 무관하게 SQL 에서 KST 로 계산한다. */
+export async function recordAnalyticsEvent(input: {
+  id: string;
+  eventType: AnalyticsEventType;
+  path: string;
+  visitorId: string;
+  userId: string | null;
+  createdAt: string;
+}): Promise<void> {
+  await q(
+    `INSERT INTO analytics_events (id, event_type, path, visitor_id, user_id, day, created_at)
+     VALUES ($1, $2, $3, $4, $5, (now() AT TIME ZONE 'Asia/Seoul')::date, $6)`,
+    [input.id, input.eventType, input.path.slice(0, 500), input.visitorId, input.userId, input.createdAt],
+  );
+}
+
+/** 오래된 이벤트를 지운다 — 지표 테이블은 그대로 두면 끝없이 자란다. */
+export async function pruneAnalyticsEvents(keepDays: number): Promise<number> {
+  const rows = await q<{ id: string }>(
+    `DELETE FROM analytics_events
+      WHERE day < ((now() AT TIME ZONE 'Asia/Seoul')::date - $1::int)
+      RETURNING id`,
+    [keepDays],
+  );
+  return rows.length;
+}
+
+/** 유입 추이를 묶어 보는 단위. 값은 URL(?g=)에 그대로 실린다. */
+export type TrafficGranularity = "day" | "week" | "month";
+
+// date_trunc 에 넘길 문자열. **사용자 입력을 SQL 에 그대로 넣지 않기 위해** 고정 표에서만
+// 꺼낸다 — 키는 위 유니온이라 표에 없는 값은 타입 단계에서 걸린다.
+const TRAFFIC_TRUNC: Record<TrafficGranularity, string> = {
+  day: "day",
+  week: "week",
+  month: "month",
+};
+
+export interface TrafficBucket {
+  /** 구간 시작일(KST) — 일간이면 그 날, 주간이면 그 주 월요일, 월간이면 1일 */
+  bucket: string;
+  pageViews: number;
+  /** 그 구간 안에서 센 순방문자. 구간이 넓을수록 중복이 더 걷혀 합보다 작아진다. */
+  uniqueVisitors: number;
+  applyClicks: number;
+}
+
+export interface TrafficStats {
+  /** 조회 기간 합계 */
+  pageViews: number;
+  /** 기간 전체를 통틀어 센 순방문자 — 구간별 UV 의 합과 같지 않다(같은 사람이 여러 날 오면 1) */
+  uniqueVisitors: number;
+  applyClicks: number;
+  /** 최신 구간이 먼저. 이벤트가 없는 구간은 행이 없다. */
+  buckets: TrafficBucket[];
+  from: string; // "YYYY-MM-DD" (KST, 포함)
+  to: string; // "YYYY-MM-DD" (KST, 포함)
+  granularity: TrafficGranularity;
+}
+
+/**
+ * 유입 지표를 기간(from~to, KST 날짜, 양끝 포함)과 단위(일/주/월)로 집계한다.
+ *
+ * 주간은 Postgres date_trunc('week') 기준이라 **월요일 시작**이다. 구간 경계에 걸친 주·달은
+ * 잘린 채로 집계된다 — 기간을 그대로 존중하는 편이 "1월 1~3일만 골랐는데 1월 전체가 나온다"
+ * 보다 덜 놀랍다.
+ */
+export async function getTrafficStats(opts: {
+  from: string;
+  to: string;
+  granularity: TrafficGranularity;
+}): Promise<TrafficStats> {
+  const trunc = TRAFFIC_TRUNC[opts.granularity];
+  const [totals, buckets] = await Promise.all([
+    one<{ page_views: string; unique_visitors: string; apply_clicks: string }>(
+      `SELECT
+         COUNT(*) FILTER (WHERE event_type = 'PAGE_VIEW')            AS page_views,
+         COUNT(DISTINCT visitor_id)                                  AS unique_visitors,
+         COUNT(*) FILTER (WHERE event_type = 'APPLY_CLICK')          AS apply_clicks
+       FROM analytics_events
+       WHERE day >= $1::date AND day <= $2::date`,
+      [opts.from, opts.to],
+    ),
+    q<{ bucket: string; page_views: string; unique_visitors: string; apply_clicks: string }>(
+      `SELECT
+         to_char(date_trunc('${trunc}', day)::date, 'YYYY-MM-DD')    AS bucket,
+         COUNT(*) FILTER (WHERE event_type = 'PAGE_VIEW')            AS page_views,
+         COUNT(DISTINCT visitor_id) FILTER (WHERE event_type = 'PAGE_VIEW') AS unique_visitors,
+         COUNT(*) FILTER (WHERE event_type = 'APPLY_CLICK')          AS apply_clicks
+       FROM analytics_events
+       WHERE day >= $1::date AND day <= $2::date
+       GROUP BY 1
+       ORDER BY 1 DESC`,
+      [opts.from, opts.to],
+    ),
+  ]);
+  return {
+    pageViews: Number(totals?.page_views ?? 0),
+    uniqueVisitors: Number(totals?.unique_visitors ?? 0),
+    applyClicks: Number(totals?.apply_clicks ?? 0),
+    buckets: buckets.map((r) => ({
+      bucket: r.bucket,
+      pageViews: Number(r.page_views),
+      uniqueVisitors: Number(r.unique_visitors),
+      applyClicks: Number(r.apply_clicks),
+    })),
+    from: opts.from,
+    to: opts.to,
+    granularity: opts.granularity,
+  };
+}
+
+export interface TrafficPathRow {
+  path: string;
+  pageViews: number;
+  uniqueVisitors: number;
+}
+
+/** 유입 상세 — 기간 안에서 많이 열린 화면 순위. */
+export async function getTrafficByPath(opts: {
+  from: string;
+  to: string;
+  limit?: number;
+}): Promise<TrafficPathRow[]> {
+  const rows = await q<{ path: string; page_views: string; unique_visitors: string }>(
+    `SELECT path,
+            COUNT(*)                    AS page_views,
+            COUNT(DISTINCT visitor_id)  AS unique_visitors
+       FROM analytics_events
+      WHERE event_type = 'PAGE_VIEW' AND day >= $1::date AND day <= $2::date
+      GROUP BY path
+      ORDER BY page_views DESC, path ASC
+      LIMIT $3::int`,
+    [opts.from, opts.to, opts.limit ?? 50],
+  );
+  return rows.map((r) => ({
+    path: r.path,
+    pageViews: Number(r.page_views),
+    uniqueVisitors: Number(r.unique_visitors),
+  }));
+}
+
+export interface SignupBucket {
+  bucket: string;
+  users: number;
+  companies: number;
+}
+
+/**
+ * 가입 상세 — 기간 안의 구간별 신규 가입자·신규 회사.
+ *
+ * created_at 이 UTC ISO 문자열(TEXT)이라 KST 날짜로 옮긴 뒤 묶는다. 사용자와 회사를 한
+ * 쿼리에서 UNION 으로 모아 구간을 맞춘다 — 따로 뽑으면 한쪽에만 있는 구간이 빠진다.
+ */
+export async function getSignupTrend(opts: {
+  from: string;
+  to: string;
+  granularity: TrafficGranularity;
+}): Promise<SignupBucket[]> {
+  const trunc = TRAFFIC_TRUNC[opts.granularity];
+  const rows = await q<{ bucket: string; users: string; companies: string }>(
+    `WITH events AS (
+       SELECT (created_at::timestamptz AT TIME ZONE 'Asia/Seoul')::date AS d, 1 AS is_user, 0 AS is_company
+         FROM users WHERE role = 'APPLICANT' AND withdrawn_at IS NULL
+       UNION ALL
+       SELECT (created_at::timestamptz AT TIME ZONE 'Asia/Seoul')::date AS d, 0 AS is_user, 1 AS is_company
+         FROM companies
+     )
+     SELECT to_char(date_trunc('${trunc}', d)::date, 'YYYY-MM-DD') AS bucket,
+            SUM(is_user)    AS users,
+            SUM(is_company) AS companies
+       FROM events
+      WHERE d >= $1::date AND d <= $2::date
+      GROUP BY 1
+      ORDER BY 1 DESC`,
+    [opts.from, opts.to],
+  );
+  return rows.map((r) => ({
+    bucket: r.bucket,
+    users: Number(r.users),
+    companies: Number(r.companies),
+  }));
+}
+
+/** 오늘(KST) 날짜. 서버 타임존과 무관하게 DB 에게 묻는다. */
+export async function todayInSeoul(): Promise<string> {
+  const row = await one<{ d: string }>(
+    "SELECT to_char((now() AT TIME ZONE 'Asia/Seoul')::date, 'YYYY-MM-DD') AS d",
+  );
+  return row?.d ?? new Date().toISOString().slice(0, 10);
+}
+
+export interface SignupStats {
+  /** 가입자 수 — 신청자 계정만 센다(운영자 계정 제외). 탈퇴한 계정은 빼고 센다. */
+  totalUsers: number;
+  newUsersThisMonth: number;
+  /** 가입 회사 수 — 상태와 무관한 전체 등록 회사 */
+  totalCompanies: number;
+  newCompaniesThisMonth: number;
+}
+
+export async function getSignupStats(): Promise<SignupStats> {
+  // created_at 은 UTC ISO 문자열(TEXT)이다. 문자열 앞자리로 "YYYY-MM" 을 비교하면 월초·월말
+  // 9시간이 옆 달로 새므로, timestamptz 로 파싱해 KST 로 옮긴 뒤 이번 달과 견준다.
+  const row = await one<{
+    total_users: string;
+    new_users: string;
+    total_companies: string;
+    new_companies: string;
+  }>(
+    `WITH bounds AS (
+       SELECT date_trunc('month', (now() AT TIME ZONE 'Asia/Seoul'))::date AS month_start
+     )
+     SELECT
+       (SELECT COUNT(*) FROM users
+         WHERE role = 'APPLICANT' AND withdrawn_at IS NULL)                      AS total_users,
+       (SELECT COUNT(*) FROM users, bounds
+         WHERE role = 'APPLICANT' AND withdrawn_at IS NULL
+           AND (users.created_at::timestamptz AT TIME ZONE 'Asia/Seoul')::date
+               >= bounds.month_start)                                           AS new_users,
+       (SELECT COUNT(*) FROM companies)                                          AS total_companies,
+       (SELECT COUNT(*) FROM companies, bounds
+         WHERE (companies.created_at::timestamptz AT TIME ZONE 'Asia/Seoul')::date
+               >= bounds.month_start)                                            AS new_companies`,
+  );
+  return {
+    totalUsers: Number(row?.total_users ?? 0),
+    newUsersThisMonth: Number(row?.new_users ?? 0),
+    totalCompanies: Number(row?.total_companies ?? 0),
+    newCompaniesThisMonth: Number(row?.new_companies ?? 0),
   };
 }
 

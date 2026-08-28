@@ -64,8 +64,9 @@ export default async function AdminApplicantsPage({
           <h1 className={PAGE_TITLE}>회원 관리</h1>
           <p className={PAGE_LEAD}>
             신청자(대관사) 계정은 운영자 승인이 있어야 대관 패키지 안내와 견적 산출을 이용할 수
-            있습니다. 회사를 처음 등록한 분이 대표 담당자가 되고, 이후 합류한 분은 소속 담당자가
-            됩니다.
+            있습니다. 회사에서 <b>가장 먼저 승인된 분</b>이 대표 담당자가 되고, 이후 합류한 분은
+            소속 담당자가 됩니다. 아직 아무도 승인되지 않은 회사는 대표 담당자가 &ldquo;미지정&rdquo;
+            으로 표시되며, 그 회사의 첫 승인은 운영자가 처리합니다.
           </p>
         </header>
 

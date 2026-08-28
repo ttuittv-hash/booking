@@ -48,7 +48,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "재발송할 수 없는 초대입니다." }, { status: 400 });
     }
     const origin = publicOrigin(request);
-    const inviteUrl = `${origin}/register`;
+    const inviteUrl = `${origin}/register?invite=${token}`;
     await dispatchMessage({
       templateCode: "MB-06",
       idempotencyKey: `MB-06:${id}:${Date.now()}`,
@@ -67,11 +67,17 @@ export async function POST(request: Request) {
   // 없으면 알림톡 키를 설정해도 초대 알림이 "수신번호 없음"으로 항상 실패한다.
   // 필수까지는 아니고(대신 인앱·이메일 채널이 생기면 그쪽으로 대체 가능), 최소
   // 숫자 9자리 이상만 확인한다.
+  // [개정 2026-08-28] 휴대폰 번호를 필수로 받는다. 초대로 들어온 사람은 심사 없이 바로
+  // 승인되는데, 그 근거가 "본인인증한 번호 = 초대장에 적힌 번호"이기 때문이다. 번호가
+  // 없으면 대조할 기준이 없어 검사 자체가 성립하지 않는다.
   const rawPhone = typeof body?.phone === "string" ? body.phone.trim() : "";
-  if (rawPhone && rawPhone.replace(/\D/g, "").length < 9) {
-    return NextResponse.json({ error: "휴대폰 번호 형식을 확인해주세요." }, { status: 400 });
-  }
   const phone = rawPhone || null;
+  if (!phone || phone.replace(/\D/g, "").length < 9) {
+    return NextResponse.json(
+      { error: "초대할 담당자의 휴대폰 번호를 입력해주세요. 본인인증 번호와 대조해 승인합니다." },
+      { status: 400 },
+    );
+  }
   // 가입 전에도 초대 목록에서 누구를 초대했는지 알아볼 수 있게 받아두는 값(2026-08-22).
   // 이름은 필수, 소속은 선택이다("이름은 선택 아닌데" 피드백) — 이름은 실제 가입 시
   // 본인이 입력하는 이름을 대체하지 않고, 가입 전까지의 표시용으로만 쓰인다.
@@ -99,10 +105,10 @@ export async function POST(request: Request) {
   });
 
   const origin = publicOrigin(request);
-  // [개정 2026-08-27] 링크에 토큰을 싣지 않는다 — 초대받은 사람은 전용 수락 화면이 아니라
-  // 일반 회원가입을 그대로 밟는다(사업자등록번호로 같은 회사에 합류 → 대표 담당자가 승인).
-  // 토큰 자체는 초대 행의 식별자로 계속 발급·저장한다(token_hash 유니크 인덱스).
-  const inviteUrl = `${origin}/register`;
+  // [개정 2026-08-28] 링크에 토큰을 다시 싣는다. 초대받은 사람은 일반 회원가입 화면을
+  // 그대로 쓰되(약관·본인인증·서류 첨부 동일), 토큰이 있으면 회사가 초대장으로 정해지고
+  // 본인인증 번호가 초대장 번호와 같을 때 심사 없이 승인된다.
+  const inviteUrl = `${origin}/register?invite=${token}`;
 
   // 초대받은 사람은 아직 계정이 없어 인앱 알림이 성립하지 않는다(recipient.userId
   // null) — dispatchMessage가 이를 감지해 인앱은 건너뛰고 알림톡으로만 나간다.

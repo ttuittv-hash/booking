@@ -44,6 +44,23 @@ const COMPANY_STATUS_LABEL: Record<Company["status"], string> = {
   SUSPENDED: "정지",
 };
 
+/**
+ * 리포트의 공간 탭(2026-08-27). "전체" 외에는 VENUES 의 공간 하나로 좁혀서 본다.
+ *
+ * 동시 대관(아레나+중형) 건은 **양쪽 탭에 모두** 잡힌다 — 한쪽에서만 세면 두 탭의 합이
+ * 전체와 어긋나고, 어느 쪽에서 봐도 "그 공간에 걸린 신청"이 빠져 보인다. 그래서 탭별
+ * 건수의 합은 전체보다 클 수 있다.
+ */
+export type ReportVenueTab = "all" | string; // "all" | Venue["id"]
+
+export function quoteMatchesVenue(quote: Quote, tab: ReportVenueTab): boolean {
+  if (tab === "all") return true;
+  if (quote.selection.bookingMode === "SIMULTANEOUS") {
+    return tab === "arena" || tab === "medium-hall";
+  }
+  return (quote.selection.venueId ?? "arena") === tab;
+}
+
 function venueLabel(quote: Quote): string {
   if (quote.selection.bookingMode === "SIMULTANEOUS") return "동시 대관(아레나+중형)";
   if (quote.selection.venueId === "medium-hall") return "중형공연장";
@@ -70,8 +87,12 @@ export function buildReportStats(
   companies: Company[],
   now: Date,
   monthsBack = 6,
+  venueTab: ReportVenueTab = "all",
 ): ReportStats {
   const thisMonthKey = monthKey(now.toISOString());
+  // 공간 탭은 신청서에 걸린 지표에만 적용된다. 법인회원 승인 현황(companies)은 공간과
+  // 무관하므로 아래에서 원본 목록을 그대로 쓴다.
+  quotes = quotes.filter((quote) => quoteMatchesVenue(quote, venueTab));
 
   const reviewCounts = new Map<string, number>();
   const venueCounts = new Map<string, BreakdownRow>();

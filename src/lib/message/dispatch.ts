@@ -49,6 +49,8 @@ export interface DispatchInput {
    * 매인 인앱 알림(quoteId·링크 포함)을 만든 경우. 기본은 인앱도 남긴다(기획서 1-62).
    */
   inApp?: boolean;
+  /** 인앱 알림을 눌렀을 때 갈 곳(건마다 달라지는 상세 화면 등). */
+  inAppLink?: string | null;
 }
 
 export interface DispatchOutcome {
@@ -133,6 +135,7 @@ export async function dispatchMessage(input: DispatchInput): Promise<DispatchOut
       : null,
     kakaoTemplateCode: resolveKakaoTemplateCode(def.code, def.kakaoTemplateCode),
     emphasis: def.emphasis ?? null,
+    inAppLink: input.inAppLink ?? null,
   };
 
   const results: SendResult[] = [];

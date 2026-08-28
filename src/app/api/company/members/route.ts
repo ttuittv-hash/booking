@@ -2,6 +2,7 @@ import { dispatchMessageInBackground } from "@/lib/message/dispatch";
 import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
 import {
+  ensureCompanyMaster,
   isCompanyMaster,
   listCompanyMembers,
   removeCompanyMember,
@@ -97,6 +98,9 @@ export async function POST(request: Request) {
       );
     }
     await setUserApprovalStatus(targetId, "PENDING");
+    // 대표는 승인 완료된 계정만 될 수 있다 — 승인이 취소된 사람이 대표 표시를 쥐고 있으면
+    // 여기서 내려오고, 남은 승인 계정이 있으면 그 자리를 잇는다(2026-08-28).
+    await ensureCompanyMaster(user.companyId);
     await createNotification({
       id: crypto.randomUUID(),
       recipientId: targetId,

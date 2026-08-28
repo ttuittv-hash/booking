@@ -24,6 +24,7 @@ import {
   listAllTicketOpens,
   listQuotes,
   listUsers,
+  pruneAnalyticsEvents,
   purgeExpiredRateLimits,
   touchFacilityMeetingReminder,
   touchInvoiceReminder,
@@ -37,10 +38,15 @@ const PURPOSE_LABEL: Record<InvoicePurpose, string> = {
   SETTLEMENT: "정산금",
 };
 
+/** 트래픽 이벤트 보존기간(일). 리포트는 최근 30일만 쓰지만 전년 동월 비교 여지를 남긴다. */
+const ANALYTICS_RETENTION_DAYS = 400;
+
 export interface ReminderSweepResult {
   invoice: number;
   ticketOpen: number;
   facilityMeeting: number;
+  /** 보존기간이 지나 지운 트래픽 이벤트 수 */
+  analyticsPruned: number;
 }
 
 function renderTemplate(template: string, vars: Record<string, string>): string {
@@ -49,7 +55,7 @@ function renderTemplate(template: string, vars: Record<string, string>): string 
 
 export async function runReminderSweep(now = new Date()): Promise<ReminderSweepResult> {
   const nowIso = now.toISOString();
-  const result: ReminderSweepResult = { invoice: 0, ticketOpen: 0, facilityMeeting: 0 };
+  const result: ReminderSweepResult = { invoice: 0, ticketOpen: 0, facilityMeeting: 0, analyticsPruned: 0 };
 
   // 대상 판정에 필요한 데이터를 종류별로 한 번씩만 읽는다(신청서마다 조회하면 N+1).
   const [quotes, invoices, ticketOpens, facilityMeetings, users, invoiceRule, ticketOpenRule, facilityMeetingRule] =
@@ -144,5 +150,10 @@ export async function runReminderSweep(now = new Date()): Promise<ReminderSweepR
 
   // 알림톡·문자의 미확정 결과를 하루 한 번은 반드시 받아 온다(접수 직후 대사가 놓친 건).
   await reconcileMessageResults();
+
+  // 트래픽 이벤트는 한 줄이 방문 한 번이라 그대로 두면 끝없이 자란다. 리포트가 최근
+  // 30일만 보여주므로 넉넉히 400일치만 남긴다(전년 동월 비교까지는 가능한 길이).
+  result.analyticsPruned = await pruneAnalyticsEvents(ANALYTICS_RETENTION_DAYS);
+
   return result;
 }

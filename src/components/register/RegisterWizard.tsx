@@ -94,9 +94,19 @@ async function uploadRegisterAttachment(file: File): Promise<{ url: string; name
 
 const STEP_LABELS = ["회원 유형", "약관 동의", "본인인증", "정보 입력", "가입완료"];
 
+/*
+  초대 링크 가입 (2026-08-28) — 링크의 ?invite= 토큰을 그대로 서버에 넘긴다.
+
+  화면은 일반 가입과 같다(약관·본인인증·정보 입력). 다른 점은 서버 쪽에 있다: 토큰이
+  살아 있고 **본인인증한 번호가 초대장 번호와 같으면** 회사가 초대장으로 정해지고 심사
+  없이 승인된다. 번호가 다르면 토큰은 무시되고 평범한 합류 신청이 된다.
+*/
 export function RegisterWizard() {
   const toast = useToast();
   const dialog = useDialog();
+  // 링크의 토큰. useSearchParams 는 Suspense 경계를 요구하므로 마운트 후 한 번만 읽는다.
+  const [inviteToken, setInviteToken] = useState("");
+  const [inviteNotice, setInviteNotice] = useState<string | null>(null);
   const [step, setStep] = useState(1);
   const [loading, setLoading] = useState(false);
   // 오류는 토스트로 띄운다. 위저드 상단에 붙이면 스크롤을 내려 입력하다 [다음]을 눌렀을 때
@@ -134,6 +144,8 @@ export function RegisterWizard() {
     employmentCertName: "",
   });
   const [pickedCompany, setPickedCompany] = useState<CompanyHit | null>(null);
+
+
   // 개발 환경에서 본인인증을 건너뛴 상태인지 — 화면에 그대로 표시해 착각을 막는다.
   const [stubMode, setStubMode] = useState(false);
   // 개발 환경에서만 우회 버튼을 보여준다.
@@ -144,6 +156,52 @@ export function RegisterWizard() {
   const [brnCheck, setBrnCheck] = useState<{ state: string; title: string; message: string } | null>(null);
   const [idCheck, setIdCheck] = useState<{ available: boolean; message: string } | null>(null);
   const [searchOpen, setSearchOpen] = useState(false);
+
+  useEffect(() => {
+    const token = new URLSearchParams(window.location.search).get("invite") ?? "";
+    if (!token) return;
+    // 초대장이 회사를 정하므로 기업정보를 미리 채우고 잠근다 — 초대받은 사람이 회사의
+    // 사업자등록번호·주소를 알고 있으리라 기대할 수 없다.
+    void (async () => {
+      try {
+        const res = await fetch(`/api/company/invitations/preview?token=${encodeURIComponent(token)}`);
+        const data = await res.json();
+        if (data?.state !== "OK") {
+          setInviteNotice(data?.message ?? "초대 링크를 확인할 수 없습니다. 일반 가입으로 진행해 주세요.");
+          return;
+        }
+        const c = data.company;
+        // 여기까지 왔으면 살아 있는 초대장이다 — 이제야 토큰을 들고 간다.
+        setInviteToken(token);
+        setPickedCompany({ id: c.id, name: c.name, businessNumberMasked: null, region: null });
+        setBrnCheck({
+          state: "REGISTERED",
+          title: "초대받은 회사",
+          message: `${c.name} — 초대로 합류합니다.`,
+        });
+        setForm((f) => ({
+          ...f,
+          companyName: c.name ?? "",
+          companyType: (c.companyType ?? null) as ApplicantCompanyType | null,
+          businessRegistrationNumber: c.businessRegistrationNumber ?? "",
+          representativeName: c.representativeName ?? "",
+          companyPhone: c.companyPhone ?? "",
+          companyFax: c.companyFax ?? "",
+          corporateNumber: c.corporateNumber ?? "",
+          postalCode: c.postalCode ?? "",
+          address: c.address ?? "",
+          addressDetail: "",
+          email: data.invitee?.email ?? f.email,
+        }));
+        setInviteNotice(
+          `${c.name} 의 초대로 가입합니다. 초대장에 적힌 번호로 본인인증하시면 별도 승인 없이 바로 이용하실 수 있습니다.`,
+        );
+      } catch {
+        setInviteNotice("초대 링크를 확인하지 못했습니다. 일반 가입으로 진행해 주세요.");
+      }
+    })();
+  }, []);
+
   const [joinNotice, setJoinNotice] = useState<string | null>(null);
   const [isNewMaster, setIsNewMaster] = useState(false);
 
@@ -280,6 +338,15 @@ export function RegisterWizard() {
       form.password === form.passwordConfirm
         ? null
         : { ok: false, message: "비밀번호가 일치하지 않습니다." },
+      // [개정 2026-08-28] 두 서류를 필수로 바꿨다. 예전에는 선택이라 첨부 없이 접수된 건이
+      // 그대로 심사로 넘어가, 운영자가 판단 근거 없이 되묻는 일이 반복됐다.
+      // 초대로 들어오면 회사는 초대장이 정하고 등록증은 이미 회사에 있다 — 재직증명서만 받는다.
+      inviteToken || form.businessCertUrl
+        ? null
+        : { ok: false, message: "사업자등록증을 첨부해 주세요." },
+      form.employmentCertUrl
+        ? null
+        : { ok: false, message: "재직증명서를 첨부해 주세요." },
     );
     if (invalid) {
       toast.error(invalid);
@@ -331,6 +398,7 @@ export function RegisterWizard() {
           corporateNumber: form.corporateNumber,
           postalCode: form.postalCode,
           address: [form.address, form.addressDetail].filter(Boolean).join(" "),
+          inviteToken,
           businessCertUrl: form.businessCertUrl,
           businessCertName: form.businessCertName,
           employmentCertUrl: form.employmentCertUrl,
@@ -391,6 +459,7 @@ export function RegisterWizard() {
         />
       ) : step === 4 ? (
         <StepInfo
+          inviteNotice={inviteNotice}
           form={form}
           setForm={setForm}
           identity={identity}
@@ -752,6 +821,7 @@ function StepInfo({
   loading,
   onPrev,
   onSubmit,
+  inviteNotice,
 }: {
   form: FormState;
   setForm: React.Dispatch<React.SetStateAction<FormState>>;
@@ -771,6 +841,8 @@ function StepInfo({
   loading: boolean;
   onPrev: () => void;
   onSubmit: () => void;
+  /** 초대 링크로 열었을 때의 안내(회사·승인 생략 조건). 일반 가입이면 null. */
+  inviteNotice: string | null;
 }) {
   const toast = useToast();
   const [checking, setChecking] = useState<"brn" | "id" | null>(null);
@@ -912,6 +984,14 @@ function StepInfo({
           등록된 회사정보 불러오기
         </button>
       </div>
+      {inviteNotice ? (
+        <p
+          data-testid="invite-notice"
+          className="mt-3 border border-accent px-4 py-3 text-s leading-6 break-keep"
+        >
+          {inviteNotice}
+        </p>
+      ) : null}
       <p className="mt-2 break-keep text-xs text-muted">* 표시는 필수 입력 항목입니다.</p>
 
       <h3 className="mt-8 text-s font-bold">① 기업 정보</h3>
@@ -1027,10 +1107,11 @@ function StepInfo({
         <div className="sm:col-span-2">
             <Field
               label="사업자등록증"
+              required
               hint={
                 locked
-                  ? "선택 · PDF/JPG/PNG · 10MB 이하 · 불러온 회사에는 이미 등록된 서류가 있습니다"
-                  : "선택 · PDF/JPG/PNG · 10MB 이하"
+                  ? "필수 · PDF/JPG/PNG · 10MB 이하 · 불러온 회사에 등록된 서류가 있어도 본인 확인용으로 첨부해 주세요"
+                  : "필수 · PDF/JPG/PNG · 10MB 이하"
               }
             >
               <span className="flex flex-wrap items-center gap-3">
@@ -1160,7 +1241,7 @@ function StepInfo({
           <input data-testid="f-personalPhone" value={form.personalPhone} onChange={set("personalPhone")} placeholder="02-544-1651" className={inputCls(false)} />
         </Field>
         <div className="sm:col-span-2">
-          <Field label="재직증명서" hint="선택 · PDF/JPG/PNG · 10MB 이하">
+          <Field label="재직증명서" required hint="필수 · PDF/JPG/PNG · 10MB 이하">
             <span className="flex flex-wrap items-center gap-3">
               <label className={`${btnClass("secondary", "md")} cursor-pointer whitespace-nowrap`}>
                 {uploading === "employment" ? "업로드 중…" : "파일 선택"}

@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { AnalyticsBeacon } from "@/components/AnalyticsBeacon";
 import { ToastProvider } from "@/components/ui/Toast";
 import { DialogProvider } from "@/components/ui/Dialog";
 import "./globals.css";
@@ -39,6 +40,8 @@ export default function RootLayout({
         />
       </head>
       <body className="min-h-full flex flex-col bg-background text-foreground">
+        {/* 리포트의 페이지뷰·UV·대관신청 클릭수를 모으는 비콘. 아무것도 그리지 않는다. */}
+        <AnalyticsBeacon />
         {/* 입력 오류·안내는 토스트로 띄운다 — 화면 어디를 보고 있든 눈에 들어온다. */}
         <ToastProvider>
           {/* 확인·알림·입력은 브라우저 기본 대화상자 대신 우리 팝업으로(useDialog). */}

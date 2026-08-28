@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 import { useDialog } from "@/components/ui/Dialog";
 import { btnClass } from "@/components/ui/kit";
@@ -68,6 +69,8 @@ type UnifiedRow = {
   companyRole: string | null; // MASTER | STAFF | null(아직 계정 없음)
   joined: boolean; // 가입 여부 — 상태 컬럼의 1차 값
   detailLabel: string; // 상태 컬럼의 부가 설명(정상/승인 대기/초대 발송 등)
+  /** 계정이 있는 사람만 상세 화면이 있다. 초대 행(아직 계정 없음)은 갈 곳이 없다. */
+  href?: string;
   actions: RowAction[];
 };
 
@@ -82,6 +85,9 @@ export function MembersManager() {
   const [phone, setPhone] = useState("");
   const [inviteUrl, setInviteUrl] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  // 눌러도 화면이 그대로면 처리가 됐는지 알 수 없다 — 재발송·대표 이관처럼 목록 모양이
+  // 크게 바뀌지 않는 동작일수록 한 줄 안내가 필요하다(2026-08-28).
+  const [notice, setNotice] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   // 목록은 API 로 뒤늦게 채워진다 — 그 전에 "없습니다"를 보이면 잠깐 빈 것처럼 보인다(E2E 도 이걸 잘못 읽었다).
   const [loaded, setLoaded] = useState(false);
@@ -118,6 +124,7 @@ export function MembersManager() {
 
   async function act(url: string, body: Record<string, unknown>) {
     setError(null);
+    setNotice(null);
     setBusy(true);
     try {
       const res = await fetch(url, {
@@ -173,7 +180,13 @@ export function MembersManager() {
             key: "transfer",
             label: "대표 이관",
             variant: "secondary",
-            onClick: () => void act("/api/company/members", { action: "transfer", targetId: m.id }),
+            onClick: () =>
+              void act("/api/company/members", { action: "transfer", targetId: m.id }).then((data) => {
+                if (!data) return;
+                // 이관하면 본인은 소속 담당자가 되어 이 화면의 권한도 사라진다. 목록만
+                // 새로 그리면 무엇이 일어났는지 알기 어려워 문장으로 알린다.
+                setNotice(`대표 담당자를 ${m.name}님께 이관했습니다. 이제 회원님은 소속 담당자입니다.`);
+              }),
           },
           {
             key: "remove",
@@ -186,6 +199,7 @@ export function MembersManager() {
     }
     return {
       key: `member-${m.id}`,
+      href: `/mypage/members/${m.id}`,
       name: m.name,
       email: m.email,
       phone: m.phone,
@@ -210,7 +224,9 @@ export function MembersManager() {
                 variant: "secondary",
                 onClick: () =>
                   void act("/api/company/invitations", { action: "resend", id: iv.id }).then((data) => {
-                    if (data?.inviteUrl) setInviteUrl(data.inviteUrl);
+                    if (!data) return;
+                    if (data.inviteUrl) setInviteUrl(data.inviteUrl);
+                    setNotice(`${iv.email} 로 초대를 다시 발송했습니다.`);
                   }),
               },
               {
@@ -242,14 +258,20 @@ export function MembersManager() {
           {error}
         </p>
       ) : null}
+      {notice ? (
+        <p data-testid="members-notice" className="mb-4 border border-accent px-4 py-3 text-s">
+          {notice}
+        </p>
+      ) : null}
 
       <section>
         <h2 className="text-s font-bold">담당자 목록</h2>
         <p className="mt-1 break-keep text-xs leading-6 text-muted">
-          회사를 처음 등록한 분이 <b>대표 담당자</b>가 되고, 이후 합류한 분은 <b>소속 담당자</b>가
-          됩니다. 대표 담당자만 초대 · 합류 승인 · 소속 해제 · 대표 이관을 할 수 있습니다. 아래
-          이메일로 초대는 보냈지만 아직 본인인증·비밀번호 설정을 마치지 않은 분은 <b>미가입</b>으로
-          표시됩니다.
+          이름을 누르면 그 담당자의 신청 상세(첨부 서류 포함)를 볼 수 있습니다. 회사에서{" "}
+          <b>가장 먼저 승인된 분</b>이 <b>대표 담당자</b>가 되고, 이후 합류한 분은{" "}
+          <b>소속 담당자</b>가 됩니다. 대표 담당자만 초대 · 합류 승인 · 소속 해제 · 대표 이관을 할
+          수 있습니다. 아래 이메일로 초대는 보냈지만 아직 본인인증·비밀번호 설정을 마치지 않은
+          분은 <b>미가입</b>으로 표시됩니다.
         </p>
         <div className="mt-3 overflow-x-auto">
           <table className="w-full min-w-[40rem] text-s" data-testid="members-table">
@@ -266,7 +288,18 @@ export function MembersManager() {
             <tbody>
               {unifiedRows.map((row) => (
                 <tr key={row.key} className="border-b border-border/40" data-testid={row.key}>
-                  <td className="py-3">{row.name}</td>
+                  <td className="py-3">
+                    {row.href ? (
+                      <Link
+                        href={row.href}
+                        className="font-bold text-foreground underline decoration-accent decoration-2 underline-offset-4"
+                      >
+                        {row.name}
+                      </Link>
+                    ) : (
+                      row.name
+                    )}
+                  </td>
                   <td className="py-3 text-muted">{row.email}</td>
                   <td className="py-3 text-muted">{row.phone ?? "—"}</td>
                   <td className="py-3">
