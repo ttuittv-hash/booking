@@ -1,11 +1,13 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/lib/auth";
-import { getSignupStats, getTrafficStats, listCompanies, listQuotes } from "@/lib/db";
+import { getSignupStats, getTrafficStats, listCompanies, listQuotes, todayInSeoul } from "@/lib/db";
 import { buildReportStats, type ReportVenueTab } from "@/lib/reportStats";
+import { bucketLabel, parseGranularity, resolveRange } from "@/lib/trafficRange";
 import { num } from "@/lib/format";
 import { VENUES } from "@/lib/pricing/types";
 import { AdminNav } from "@/components/admin/AdminNav";
+import { TrafficControls, trafficHref, type TrafficQuery } from "@/components/admin/TrafficControls";
 import {
   CARD,
   PAGE_LEAD,
@@ -25,7 +27,7 @@ import {
   TR,
 } from "@/components/admin/adminUi";
 
-const TRAFFIC_RANGE_DAYS = 30;
+const GRANULARITY_LABEL: Record<string, string> = { day: "일간", week: "주간", month: "월간" };
 
 /** 공간 탭 — "전체" + 등록된 공간들. 값은 URL(?venue=)에 그대로 실린다. */
 const VENUE_TABS: { key: ReportVenueTab; label: string }[] = [
@@ -37,13 +39,34 @@ function resolveVenueTab(raw: string | undefined): ReportVenueTab {
   return VENUE_TABS.some((t) => t.key === raw) ? (raw as ReportVenueTab) : "all";
 }
 
-function StatCard({ label, value, sub }: { label: string; value: string; sub?: string }) {
-  return (
-    <div className={CARD}>
+/** href 를 주면 카드 전체가 상세 화면으로 가는 링크가 된다. */
+function StatCard({
+  label,
+  value,
+  sub,
+  href,
+}: {
+  label: string;
+  value: string;
+  sub?: string;
+  href?: string;
+}) {
+  const body = (
+    <>
       <p className="text-xs text-muted">{label}</p>
       <p className="mt-1.5 type-kr-heading text-h5-m tabular-nums">{value}</p>
       {sub && <p className="mt-1 text-xs text-muted">{sub}</p>}
-    </div>
+    </>
+  );
+  if (!href) return <div className={CARD}>{body}</div>;
+  return (
+    <Link
+      href={href}
+      className={`${CARD} block transition-colors hover:border-foreground focus-visible:border-foreground`}
+    >
+      {body}
+      <p className="mt-2 text-xs font-bold text-foreground">자세히 보기 →</p>
+    </Link>
   );
 }
 
@@ -95,21 +118,40 @@ function BreakdownTable({
 export default async function AdminReportsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ venue?: string }>;
+  searchParams: Promise<{
+    venue?: string;
+    g?: string;
+    days?: string;
+    from?: string;
+    to?: string;
+  }>;
 }) {
   const user = await getCurrentUser();
   if (!user) redirect("/admin/login");
   if (user.role !== "ADMIN") redirect("/apply");
 
-  const venueTab = resolveVenueTab((await searchParams).venue);
+  const sp = await searchParams;
+  const venueTab = resolveVenueTab(sp.venue);
+  const granularity = parseGranularity(sp.g);
+  const range = resolveRange({ from: sp.from, to: sp.to, days: sp.days, today: await todayInSeoul() });
+
   const [quotes, companies, traffic, signups] = await Promise.all([
     listQuotes(),
     listCompanies(),
-    getTrafficStats(TRAFFIC_RANGE_DAYS),
+    getTrafficStats({ from: range.from, to: range.to, granularity }),
     getSignupStats(),
   ]);
   const stats = buildReportStats(quotes, companies, new Date(), 6, venueTab);
   const venueLabel = VENUE_TABS.find((t) => t.key === venueTab)?.label ?? "전체";
+
+  // 공간 탭은 유입 조작부의 링크·폼에도 그대로 실려야 탭이 풀리지 않는다.
+  const query: TrafficQuery = {
+    granularity,
+    range,
+    extra: { venue: venueTab === "all" ? undefined : venueTab },
+  };
+  const trafficDetailHref = trafficHref("/admin/reports/traffic", { granularity, range }, {});
+  const signupDetailHref = trafficHref("/admin/reports/signups", { granularity, range }, {});
 
   return (
     <div className="flex flex-1 flex-col">
@@ -127,22 +169,26 @@ export default async function AdminReportsPage({
             유입(페이지뷰·UV·대관신청 클릭)과 가입은 특정 공간에 묶이지 않는다.
             그래서 아래 공간 탭 **바깥**에 둔다 — 탭을 바꿔도 이 숫자는 그대로다. */}
         <section className="mt-2">
-          <h2 className={SECTION_TITLE}>유입 (최근 {TRAFFIC_RANGE_DAYS}일)</h2>
-          <div className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-3">
+          <h2 className={SECTION_TITLE}>유입</h2>
+          <TrafficControls basePath="/admin/reports" query={query} />
+          <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3">
             <StatCard
               label="페이지뷰"
               value={`${traffic.pageViews.toLocaleString("ko-KR")}회`}
               sub="화면 전환마다 1회"
+              href={trafficDetailHref}
             />
             <StatCard
               label="순방문자(UV)"
               value={`${traffic.uniqueVisitors.toLocaleString("ko-KR")}명`}
               sub="브라우저 기준 · 기간 전체 중복 제거"
+              href={trafficDetailHref}
             />
             <StatCard
               label="대관신청 버튼 클릭"
               value={`${traffic.applyClicks.toLocaleString("ko-KR")}회`}
               sub="/apply 로 가는 모든 버튼"
+              href={trafficDetailHref}
             />
           </div>
         </section>
@@ -154,49 +200,55 @@ export default async function AdminReportsPage({
               label="가입자 수"
               value={`${signups.totalUsers.toLocaleString("ko-KR")}명`}
               sub="탈퇴 계정 제외"
+              href={signupDetailHref}
             />
             <StatCard
               label="이번 달 신규 가입자"
               value={`${signups.newUsersThisMonth.toLocaleString("ko-KR")}명`}
+              href={signupDetailHref}
             />
             <StatCard
               label="가입 회사 수"
               value={`${signups.totalCompanies.toLocaleString("ko-KR")}곳`}
               sub="승인 여부 무관"
+              href={signupDetailHref}
             />
             <StatCard
               label="이번 달 신규 회사"
               value={`${signups.newCompaniesThisMonth.toLocaleString("ko-KR")}곳`}
+              href={signupDetailHref}
             />
           </div>
         </section>
 
         <section className="mt-8">
-          <h2 className={SECTION_TITLE}>일별 유입 추이</h2>
+          <h2 className={SECTION_TITLE}>
+            {GRANULARITY_LABEL[granularity]} 유입 추이
+          </h2>
           <div className={`mt-3 ${TABLE_CARD}`}>
             <div className={TABLE_SCROLL}>
               <table className={TABLE}>
                 <thead>
                   <tr className={THEAD_ROW}>
-                    <th className={TH}>날짜</th>
+                    <th className={TH}>구간</th>
                     <th className={TH_NUM}>페이지뷰</th>
                     <th className={TH_NUM}>순방문자</th>
                     <th className={TH_NUM}>대관신청 클릭</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {traffic.daily.map((d) => (
-                    <tr key={d.day} className={TR}>
-                      <td className={TD_ID}>{d.day}</td>
-                      <td className={TD_NUM}>{d.pageViews.toLocaleString("ko-KR")}</td>
-                      <td className={TD_NUM}>{d.uniqueVisitors.toLocaleString("ko-KR")}</td>
-                      <td className={TD_NUM}>{d.applyClicks.toLocaleString("ko-KR")}</td>
+                  {traffic.buckets.map((b) => (
+                    <tr key={b.bucket} className={TR}>
+                      <td className={TD_ID}>{bucketLabel(b.bucket, granularity)}</td>
+                      <td className={TD_NUM}>{b.pageViews.toLocaleString("ko-KR")}</td>
+                      <td className={TD_NUM}>{b.uniqueVisitors.toLocaleString("ko-KR")}</td>
+                      <td className={TD_NUM}>{b.applyClicks.toLocaleString("ko-KR")}</td>
                     </tr>
                   ))}
-                  {traffic.daily.length === 0 && (
+                  {traffic.buckets.length === 0 && (
                     <tr className={TR}>
                       <td className={`${TD_MUTED} text-center`} colSpan={4}>
-                        아직 수집된 방문 기록이 없습니다.
+                        이 기간에 수집된 방문 기록이 없습니다.
                       </td>
                     </tr>
                   )}
@@ -204,6 +256,12 @@ export default async function AdminReportsPage({
               </table>
             </div>
           </div>
+          {/* 구간별 UV 를 세로로 더해도 위 카드의 순방문자와 맞지 않는다 — 같은 사람이
+              여러 구간에 오면 각 구간에서 1로 세기 때문이다. 미리 적어 둔다. */}
+          <p className="mt-2 text-xs text-muted">
+            구간별 순방문자를 더한 값은 위 순방문자 합계와 다릅니다 — 같은 방문자가 여러 구간에
+            나타나면 각 구간에서 한 번씩 세기 때문입니다.
+          </p>
         </section>
 
         {/* ── 공간별 지표 ─────────────────────────────────────────────────

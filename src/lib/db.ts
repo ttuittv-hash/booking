@@ -4036,60 +4036,169 @@ export async function pruneAnalyticsEvents(keepDays: number): Promise<number> {
   return rows.length;
 }
 
-export interface TrafficDay {
-  day: string; // "2026-08-27" (KST)
+/** 유입 추이를 묶어 보는 단위. 값은 URL(?g=)에 그대로 실린다. */
+export type TrafficGranularity = "day" | "week" | "month";
+
+// date_trunc 에 넘길 문자열. **사용자 입력을 SQL 에 그대로 넣지 않기 위해** 고정 표에서만
+// 꺼낸다 — 키는 위 유니온이라 표에 없는 값은 타입 단계에서 걸린다.
+const TRAFFIC_TRUNC: Record<TrafficGranularity, string> = {
+  day: "day",
+  week: "week",
+  month: "month",
+};
+
+export interface TrafficBucket {
+  /** 구간 시작일(KST) — 일간이면 그 날, 주간이면 그 주 월요일, 월간이면 1일 */
+  bucket: string;
   pageViews: number;
+  /** 그 구간 안에서 센 순방문자. 구간이 넓을수록 중복이 더 걷혀 합보다 작아진다. */
   uniqueVisitors: number;
   applyClicks: number;
 }
 
 export interface TrafficStats {
-  /** 최근 rangeDays 일 합계 */
+  /** 조회 기간 합계 */
   pageViews: number;
-  /** 기간 전체를 통틀어 센 순방문자 — 일별 UV 의 합과 같지 않다(같은 사람이 여러 날 오면 1) */
+  /** 기간 전체를 통틀어 센 순방문자 — 구간별 UV 의 합과 같지 않다(같은 사람이 여러 날 오면 1) */
   uniqueVisitors: number;
   applyClicks: number;
-  /** 집계 시작일(KST) 이후 일별 추이. 이벤트가 없는 날은 행이 없다. */
-  daily: TrafficDay[];
-  rangeDays: number;
+  /** 최신 구간이 먼저. 이벤트가 없는 구간은 행이 없다. */
+  buckets: TrafficBucket[];
+  from: string; // "YYYY-MM-DD" (KST, 포함)
+  to: string; // "YYYY-MM-DD" (KST, 포함)
+  granularity: TrafficGranularity;
 }
 
-export async function getTrafficStats(rangeDays = 30): Promise<TrafficStats> {
-  const [totals, daily] = await Promise.all([
+/**
+ * 유입 지표를 기간(from~to, KST 날짜, 양끝 포함)과 단위(일/주/월)로 집계한다.
+ *
+ * 주간은 Postgres date_trunc('week') 기준이라 **월요일 시작**이다. 구간 경계에 걸친 주·달은
+ * 잘린 채로 집계된다 — 기간을 그대로 존중하는 편이 "1월 1~3일만 골랐는데 1월 전체가 나온다"
+ * 보다 덜 놀랍다.
+ */
+export async function getTrafficStats(opts: {
+  from: string;
+  to: string;
+  granularity: TrafficGranularity;
+}): Promise<TrafficStats> {
+  const trunc = TRAFFIC_TRUNC[opts.granularity];
+  const [totals, buckets] = await Promise.all([
     one<{ page_views: string; unique_visitors: string; apply_clicks: string }>(
       `SELECT
          COUNT(*) FILTER (WHERE event_type = 'PAGE_VIEW')            AS page_views,
          COUNT(DISTINCT visitor_id)                                  AS unique_visitors,
          COUNT(*) FILTER (WHERE event_type = 'APPLY_CLICK')          AS apply_clicks
        FROM analytics_events
-       WHERE day > ((now() AT TIME ZONE 'Asia/Seoul')::date - $1::int)`,
-      [rangeDays],
+       WHERE day >= $1::date AND day <= $2::date`,
+      [opts.from, opts.to],
     ),
-    q<{ day: string; page_views: string; unique_visitors: string; apply_clicks: string }>(
+    q<{ bucket: string; page_views: string; unique_visitors: string; apply_clicks: string }>(
       `SELECT
-         to_char(day, 'YYYY-MM-DD')                                  AS day,
+         to_char(date_trunc('${trunc}', day)::date, 'YYYY-MM-DD')    AS bucket,
          COUNT(*) FILTER (WHERE event_type = 'PAGE_VIEW')            AS page_views,
          COUNT(DISTINCT visitor_id) FILTER (WHERE event_type = 'PAGE_VIEW') AS unique_visitors,
          COUNT(*) FILTER (WHERE event_type = 'APPLY_CLICK')          AS apply_clicks
        FROM analytics_events
-       WHERE day > ((now() AT TIME ZONE 'Asia/Seoul')::date - $1::int)
-       GROUP BY day
-       ORDER BY day DESC`,
-      [rangeDays],
+       WHERE day >= $1::date AND day <= $2::date
+       GROUP BY 1
+       ORDER BY 1 DESC`,
+      [opts.from, opts.to],
     ),
   ]);
   return {
     pageViews: Number(totals?.page_views ?? 0),
     uniqueVisitors: Number(totals?.unique_visitors ?? 0),
     applyClicks: Number(totals?.apply_clicks ?? 0),
-    daily: daily.map((r) => ({
-      day: r.day,
+    buckets: buckets.map((r) => ({
+      bucket: r.bucket,
       pageViews: Number(r.page_views),
       uniqueVisitors: Number(r.unique_visitors),
       applyClicks: Number(r.apply_clicks),
     })),
-    rangeDays,
+    from: opts.from,
+    to: opts.to,
+    granularity: opts.granularity,
   };
+}
+
+export interface TrafficPathRow {
+  path: string;
+  pageViews: number;
+  uniqueVisitors: number;
+}
+
+/** 유입 상세 — 기간 안에서 많이 열린 화면 순위. */
+export async function getTrafficByPath(opts: {
+  from: string;
+  to: string;
+  limit?: number;
+}): Promise<TrafficPathRow[]> {
+  const rows = await q<{ path: string; page_views: string; unique_visitors: string }>(
+    `SELECT path,
+            COUNT(*)                    AS page_views,
+            COUNT(DISTINCT visitor_id)  AS unique_visitors
+       FROM analytics_events
+      WHERE event_type = 'PAGE_VIEW' AND day >= $1::date AND day <= $2::date
+      GROUP BY path
+      ORDER BY page_views DESC, path ASC
+      LIMIT $3::int`,
+    [opts.from, opts.to, opts.limit ?? 50],
+  );
+  return rows.map((r) => ({
+    path: r.path,
+    pageViews: Number(r.page_views),
+    uniqueVisitors: Number(r.unique_visitors),
+  }));
+}
+
+export interface SignupBucket {
+  bucket: string;
+  users: number;
+  companies: number;
+}
+
+/**
+ * 가입 상세 — 기간 안의 구간별 신규 가입자·신규 회사.
+ *
+ * created_at 이 UTC ISO 문자열(TEXT)이라 KST 날짜로 옮긴 뒤 묶는다. 사용자와 회사를 한
+ * 쿼리에서 UNION 으로 모아 구간을 맞춘다 — 따로 뽑으면 한쪽에만 있는 구간이 빠진다.
+ */
+export async function getSignupTrend(opts: {
+  from: string;
+  to: string;
+  granularity: TrafficGranularity;
+}): Promise<SignupBucket[]> {
+  const trunc = TRAFFIC_TRUNC[opts.granularity];
+  const rows = await q<{ bucket: string; users: string; companies: string }>(
+    `WITH events AS (
+       SELECT (created_at::timestamptz AT TIME ZONE 'Asia/Seoul')::date AS d, 1 AS is_user, 0 AS is_company
+         FROM users WHERE role = 'APPLICANT' AND withdrawn_at IS NULL
+       UNION ALL
+       SELECT (created_at::timestamptz AT TIME ZONE 'Asia/Seoul')::date AS d, 0 AS is_user, 1 AS is_company
+         FROM companies
+     )
+     SELECT to_char(date_trunc('${trunc}', d)::date, 'YYYY-MM-DD') AS bucket,
+            SUM(is_user)    AS users,
+            SUM(is_company) AS companies
+       FROM events
+      WHERE d >= $1::date AND d <= $2::date
+      GROUP BY 1
+      ORDER BY 1 DESC`,
+    [opts.from, opts.to],
+  );
+  return rows.map((r) => ({
+    bucket: r.bucket,
+    users: Number(r.users),
+    companies: Number(r.companies),
+  }));
+}
+
+/** 오늘(KST) 날짜. 서버 타임존과 무관하게 DB 에게 묻는다. */
+export async function todayInSeoul(): Promise<string> {
+  const row = await one<{ d: string }>(
+    "SELECT to_char((now() AT TIME ZONE 'Asia/Seoul')::date, 'YYYY-MM-DD') AS d",
+  );
+  return row?.d ?? new Date().toISOString().slice(0, 10);
 }
 
 export interface SignupStats {
