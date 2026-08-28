@@ -193,9 +193,13 @@ try {
   await invitee.waitForSelector('[data-testid="step-info"]', { timeout: 20000 });
   check("A11-2", "초대받은 사람이 일반 회원가입 흐름을 그대로 밟는다", true);
   // 같은 회사 = 같은 사업자등록번호. 진위확인을 거치면 "이미 등록된 회사"로 잠긴다.
-  await invitee.fill('[data-testid="f-brn"]', "120-81-47521");
-  await invitee.click('[data-testid="verify-brn"]');
-  await invitee.waitForSelector('[data-testid="brn-check-message"]', { timeout: 25000 });
+  // 초대 토큰으로 들어오면(2026-08-28 개정) 회사가 초대장으로 미리 정해져 사업자번호 칸이 잠겨 있다 —
+  // 그때는 진위확인 단계가 없다.
+  if ((await invitee.locator('[data-testid="f-brn"]').getAttribute("readonly")) === null) {
+    await invitee.fill('[data-testid="f-brn"]', "120-81-47521");
+    await invitee.click('[data-testid="verify-brn"]');
+    await invitee.waitForSelector('[data-testid="brn-check-message"]', { timeout: 25000 });
+  }
   check("A11-3", "사업자등록번호로 같은 회사에 합류로 판정된다",
     (await invitee.locator('[data-testid="f-companyName"]').getAttribute("readonly")) !== null);
   await fillIfEditable(invitee, '[data-testid="f-postalCode"]', "13529");
