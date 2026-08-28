@@ -16,6 +16,18 @@ const TEMPLATES = [
   ["RT-09", "대관_부속합의등록", "부속합의 등록 안내", "#{신청자명}님, 안녕하세요.\n대관 신청서 #{신청번호}에 부속합의가 등록되었습니다.\n\n▪︎ 내용: #{내용}\n▪︎ 금액 변동: #{금액변동}원\n\n자세한 내역은 대관시스템에서 확인해 주세요."],
 ];
 
+// dev 링크 버튼 달린 신규본(2026-08-28). 기존 CTSELARNA0_0000x 는 운영 링크(partner.seoularena.net)로
+// 승인돼 있어 손대지 않는다 — 승인되면 BIZTALK_TEMPLATE_OVERRIDES / BIZTALK_BUTTON_URL 로 갈아탄다.
+const DEV_URL = "https://partner.dev.seoularena.net/";
+const DEV_BUTTON_TEMPLATES = [
+  ["MB-02-DEV", "회원가입_승인완료(dev)", "회원가입 승인 완료", "서울아레나 대관시스템 가기", "#{신청자명}님, 안녕하세요.\n서울아레나 대관 신청 계정 가입이 승인되었습니다. \n\n이제 대관시스템에 로그인하여 대관 신청·조회를 이용하실 수 있습니다."],
+  ["MB-03-DEV", "회원가입_반려안내(dev)", "회원가입 반려 안내", "1:1 문의", "#{신청자명}님, 안녕하세요.\n제출해 주신 가입 신청은 아래 사유로 승인이 반려되었습니다.\n\n▪︎사유\n#{거절사유}"],
+  ["MB-04-DEV", "회원가입_기업합류승인요청(dev)", "회원가입 승인 요청", "신청 내용 확인", "#{마스터}님, 안녕하세요. \n귀사 소속된 #{신청자명}님이 가입을 신청하였습니다.\n\n신청 내용을 확인하고 승인해주세요."],
+  ["MB-07-DEV", "회원가입_담당자등록완료(dev)", "담당자 등록 완료", "대관시스템 바로가기", "#{신청자명}님, 안녕하세요.\n#{회사명}의 담당자로 등록되었습니다. \n\n이제 대관 신청 및 관련 업무를 진행하실 수 있습니다."],
+  ["MB-08-DEV", "회원가입_담당자등록완료_초대(dev)", "담당자 등록 완료", "대관시스템 바로가기", "#{신청자명}님, 안녕하세요.\n#{마스터}님의 초대로 #{회사명}의 담당자로 등록되었습니다. \n\n이제 서울아레나 대관시스템을 이용하실 수 있습니다."],
+  ["MB-09-DEV", "회원가입_권한위임완료(dev)", "마스터 권한 위임 완료", "링크 바로가기", "#{신청자명}님, 안녕하세요.\n서울아레나 대관 신청 시스템의 마스터 권한을 위임받으셨습니다. \n\n이제 회원·대관 관리 권한을 사용하실 수 있습니다."],
+];
+
 const base = (process.env.BIZTALK_BASE_URL || "").replace(/\/$/, "");
 if (!base || !process.env.BIZTALK_CLIENT_ID || !process.env.BIZTALK_SENDER_KEY) {
   console.error("BIZTALK_* 환경변수가 없다 — 클러스터 파드 안에서 실행할 것");
@@ -32,7 +44,11 @@ const tok = await fetch(`${base}/mng/v1/oauth/token`, {
 }).then((r) => r.json());
 const headers = { Authorization: `Bearer ${tok.access_token}`, "Content-Type": "application/json" };
 
-for (const [code, name, title, content] of TEMPLATES) {
+const ALL = [
+  ...TEMPLATES.map(([code, name, title, content]) => ({ code, name, title, content, button: null })),
+  ...DEV_BUTTON_TEMPLATES.map(([code, name, title, btn, content]) => ({ code, name, title, content, button: btn })),
+];
+for (const { code, name, title, content, button } of ALL) {
   if (wanted.size > 0 && !wanted.has(code)) continue;
   const res = await fetch(`${base}/mng/v1/template/create`, {
     method: "POST",
@@ -48,6 +64,7 @@ for (const [code, name, title, content] of TEMPLATES) {
       templateSubtitle: SUB,
       categoryCode: "001001",
       securityFlag: false,
+      ...(button ? { buttons: [{ ordering: 1, name: button, linkType: "WL", linkMo: DEV_URL }] } : {}),
     }),
   });
   console.log(code, res.status, (await res.text()).slice(0, 160));

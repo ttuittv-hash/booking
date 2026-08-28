@@ -156,5 +156,9 @@ SENDER_KEY·**SENDER_NO**)이 모두 있어야 채널이 켜진다 — 없으면
   `inApp:false` 로 알림톡만 얹는다. **트랜잭션 밖에서 호출**할 것(백그라운드 발송이 커밋된
   커넥션을 물면 안 된다). 템플릿 등록은 `scripts/biztalk-register-templates.mjs`(MNG create, 파드 안에서).
   MNG 로 만든 템플릿은 바로 검수 진행(kepStatus I)에 들어간다 — 승인(O) 전엔 카카오가 거절한다.
+- 2026-08-28 버튼 링크는 템플릿 등록값 고정(수정 시 재검수·발송 중단). dev 링크용 **신규** 템플릿
+  `MB-02/03/04/07/08/09-DEV` 를 CBT 에 등록(검수 중). 승인되면 dev 매니페스트에
+  `BIZTALK_TEMPLATE_OVERRIDES=MB-02=MB-02-DEV,…` + `BIZTALK_BUTTON_URL=https://partner.dev.seoularena.net/`
+  를 넣어 갈아탄다(`src/lib/message/templateOverrides.ts`, 코드 배포 불필요). 둘은 항상 함께.
 - 점검: `kubectl -n arena-dev exec deploy/arena -- node scripts/biztalk-check.mjs` (클러스터 안에서만
   닿는다 — 방화벽이 발신 IP 211.213.60.30 기준).

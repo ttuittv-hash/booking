@@ -15,6 +15,7 @@ import {
 import { audienceOrigin } from "@/lib/publicUrl";
 import { isRecipientAllowed } from "./allowlist";
 import { scheduleReconcile } from "./reconcile";
+import { resolveKakaoButtonUrl, resolveKakaoTemplateCode } from "./templateOverrides";
 import { emailAdapter } from "./email";
 import { inAppAdapter } from "./inapp";
 import { kakaoBizTalkAdapter, xmsAdapter } from "./kakaoBizTalk";
@@ -126,10 +127,11 @@ export async function dispatchMessage(input: DispatchInput): Promise<DispatchOut
           url: input.request
             ? `${audienceOrigin(input.request, def.audience)}${def.button.path}`
             : def.button.path,
-          kakaoUrl: def.button.kakaoUrl ?? null,
+          // 환경별 신규 템플릿(예: MB-02-DEV)에 등록된 링크로 덮어쓸 수 있다(templateOverrides.ts).
+          kakaoUrl: resolveKakaoButtonUrl(def.button.kakaoUrl),
         }
       : null,
-    kakaoTemplateCode: def.kakaoTemplateCode ?? null,
+    kakaoTemplateCode: resolveKakaoTemplateCode(def.code, def.kakaoTemplateCode),
     emphasis: def.emphasis ?? null,
   };
 
