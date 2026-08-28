@@ -1858,6 +1858,50 @@ export async function listCompanyInvitations(companyId: string): Promise<Company
   }));
 }
 
+export interface ValidInvitation {
+  id: string;
+  companyId: string;
+  companyName: string;
+  email: string;
+  phone: string | null;
+  inviteeName: string | null;
+}
+
+/**
+ * 토큰으로 아직 살아 있는(PENDING·미만료) 초대장을 찾는다.
+ *
+ * [재도입 2026-08-28] 초대 링크에 토큰을 다시 실으면서 되살렸다. 초대로 들어온 사람은
+ * 일반 회원가입 화면을 그대로 쓰되, 이 초대장이 회사를 정하고 본인인증 번호 대조의
+ * 기준값(phone)을 준다.
+ */
+export async function findValidInvitation(tokenHash: string): Promise<ValidInvitation | undefined> {
+  const row = await one<{
+    id: string;
+    company_id: string;
+    company_name: string;
+    email: string;
+    phone: string | null;
+    invitee_name: string | null;
+  }>(
+    `SELECT i.id, i.company_id, c.name AS company_name, i.email, i.phone, i.invitee_name
+       FROM company_invitations i
+       JOIN companies c ON c.id = i.company_id
+      WHERE i.token_hash = $1 AND i.status = 'PENDING' AND i.expires_at > $2
+      LIMIT 1`,
+    [tokenHash, new Date().toISOString()],
+  );
+  return row
+    ? {
+        id: row.id,
+        companyId: row.company_id,
+        companyName: row.company_name,
+        email: row.email,
+        phone: row.phone,
+        inviteeName: row.invitee_name,
+      }
+    : undefined;
+}
+
 /**
  * 그 회사로 보낸, 아직 살아 있는 초대장을 이메일로 찾는다.
  *

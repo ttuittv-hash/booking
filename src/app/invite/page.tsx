@@ -2,14 +2,17 @@ import { redirect } from "next/navigation";
 
 // 담당자 초대 (기획서 A11).
 //
-// [개정 2026-08-27] 초대 링크의 랜딩을 회원가입 페이지로 되돌렸다. 초대받은 사람은 전용
-// 화면이 아니라 일반 회원가입을 그대로 밟는다 — 사업자등록번호로 같은 회사에 합류하고,
-// 대표 담당자가 담당자 관리에서 승인한다. 전용 수락 화면은 이름·아이디·비밀번호만 받아
-// 약관 동의 이력도 재직증명서도 남지 않아, 같은 회사 담당자인데 가입 경로에 따라 보관하는
-// 자료가 달라지는 문제가 있었다.
+// [개정 2026-08-28] 초대 랜딩은 회원가입 화면이다. 초대받은 사람은 전용 수락 화면이 아니라
+// 일반 회원가입을 그대로 밟되(약관·본인인증·재직증명서 동일), 토큰이 회사를 정하고
+// 본인인증한 번호가 초대장 번호와 같으면 심사 없이 바로 승인된다.
 //
-// 새로 발급되는 초대 링크는 곧장 /register 를 가리킨다. 이 경로는 이미 나간 링크(그리고
-// 토큰이 붙은 예전 링크)가 404 로 끊기지 않도록 남겨 둔 리다이렉트다.
-export default function InvitePage() {
-  redirect("/register");
+// 새로 발급되는 링크는 곧장 /register?invite=... 를 가리킨다. 이 경로는 이미 나간 예전
+// 링크(/invite?token=...)가 끊기지 않도록 토큰을 그대로 옮겨 주는 리다이렉트다.
+export default async function InvitePage({
+  searchParams,
+}: {
+  searchParams: Promise<{ token?: string }>;
+}) {
+  const { token } = await searchParams;
+  redirect(token ? `/register?invite=${encodeURIComponent(token)}` : "/register");
 }
