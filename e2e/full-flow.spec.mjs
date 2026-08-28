@@ -171,6 +171,9 @@ try {
   // 초대는 이름이 필수다(2026-08-22 기획 반영)
   await page.fill('[data-testid="invite-name"]', "초대테스트");
   await page.fill('[data-testid="invite-email"]', `staff${t}@seoul-ent.co.kr`);
+  // 휴대폰 번호도 필수(2026-08-28 개정: 본인인증 번호와 대조해 심사 생략). 가짜 번호라 대조는 안 맞고
+  // 평범한 합류 신청이 된다 — 아래 A11-4~6 은 그 경로를 확인한다.
+  await page.fill('[data-testid="invite-phone"]', "010-0000-0001");
   await page.click('[data-testid="invite-send"]');
   await page.waitForSelector('[data-testid="invite-url"]', { timeout: 15000 });
   const inviteUrl = (await page.locator('[data-testid="invite-url"] .font-mono').innerText()).trim();

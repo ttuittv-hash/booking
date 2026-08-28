@@ -395,7 +395,7 @@ export function MembersManager() {
             type="tel"
             value={phone}
             onChange={(e) => setPhone(e.target.value)}
-            placeholder="휴대폰 번호 (선택 — 알림톡 발송용)"
+            placeholder="휴대폰 번호 (필수 — 본인인증 번호와 대조해 승인)"
             className="field-base min-w-48 flex-1"
           />
           <button
