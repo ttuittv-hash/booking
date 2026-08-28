@@ -241,7 +241,16 @@ export const kakaoBizTalkAdapter: ChannelAdapter = {
       // dev 주소를 보내도, 버튼을 아예 빼도 3027 NoMatchedTemplateButtonException. 등록된 링크는
       // url_mobile 만 있으므로 url_pc 는 싣지 않는다. 인앱·이메일은 환경별 주소(request.button.url)를 쓴다.
       if (request.button?.kakaoUrl) {
-        body.button = [{ name: request.button.name, type: "WL", url_mobile: request.button.kakaoUrl }];
+        // url_pc 는 템플릿에 PC 링크(linkPc)가 등록된 경우에만 — 없는데 보내면 3027 로 거절된다.
+        // PC 카카오톡은 PC 링크가 있어야 버튼을 보여준다(없으면 "모바일에서 확인해 주세요").
+        body.button = [
+          {
+            name: request.button.name,
+            type: "WL",
+            url_mobile: request.button.kakaoUrl,
+            ...(process.env.BIZTALK_BUTTON_PC === "true" ? { url_pc: request.button.kakaoUrl } : {}),
+          },
+        ];
       }
 
       const { status, json } = await postJson(

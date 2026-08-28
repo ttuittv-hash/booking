@@ -47,8 +47,11 @@ const headers = { Authorization: `Bearer ${tok.access_token}`, "Content-Type": "
 const ALL = [
   ...TEMPLATES.map(([code, name, title, content]) => ({ code, name, title, content, button: null })),
   ...DEV_BUTTON_TEMPLATES.map(([code, name, title, btn, content]) => ({ code, name, title, content, button: btn })),
+  // PC 카카오톡에도 버튼이 보이려면 linkPc 가 등록돼 있어야 한다(없으면 "모바일에서 확인해 주세요").
+  // 검수 중인 템플릿은 수정이 막혀(API_4434) PC 링크 포함본을 별도 코드(-PC)로 등록한다(2026-08-29).
+  ...DEV_BUTTON_TEMPLATES.map(([code, name, title, btn, content]) => ({ code: `${code}-PC`, name: `${name.replace("(dev)", "(dev·PC)")}`, title, content, button: btn, pc: true })),
 ];
-for (const { code, name, title, content, button } of ALL) {
+for (const { code, name, title, content, button, pc } of ALL) {
   if (wanted.size > 0 && !wanted.has(code)) continue;
   const res = await fetch(`${base}/mng/v1/template/create`, {
     method: "POST",
@@ -64,7 +67,7 @@ for (const { code, name, title, content, button } of ALL) {
       templateSubtitle: SUB,
       categoryCode: "001001",
       securityFlag: false,
-      ...(button ? { buttons: [{ ordering: 1, name: button, linkType: "WL", linkMo: DEV_URL }] } : {}),
+      ...(button ? { buttons: [{ ordering: 1, name: button, linkType: "WL", linkMo: DEV_URL, ...(pc ? { linkPc: DEV_URL } : {}) }] } : {}),
     }),
   });
   console.log(code, res.status, (await res.text()).slice(0, 160));

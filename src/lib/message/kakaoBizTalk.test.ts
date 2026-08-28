@@ -128,6 +128,19 @@ describe("알림톡 발송", () => {
     expect(body.button).toEqual([{ name: "확인하기", type: "WL", url_mobile: "https://partner.seoularena.net/" }]);
   });
 
+  it("BIZTALK_BUTTON_PC=true 면 url_pc 도 보낸다 — PC 링크가 등록된 템플릿(…-PC)에서만 켠다", async () => {
+    process.env.BIZTALK_BUTTON_PC = "true";
+    try {
+      vi.stubGlobal("fetch", mockFetch((u) =>
+        u.includes("/oauth/token") ? { access_token: "T", expires_in: 21600 } : { code: "200" }));
+      await kakaoBizTalkAdapter.send(request);
+      const body = JSON.parse(String(calls.find((c) => c.url.includes("/kakao"))?.init?.body));
+      expect(body.button[0]).toMatchObject({ url_mobile: "https://partner.seoularena.net/", url_pc: "https://partner.seoularena.net/" });
+    } finally {
+      delete process.env.BIZTALK_BUTTON_PC;
+    }
+  });
+
   it("수신번호가 없으면 보내지 않는다", async () => {
     const result = await kakaoBizTalkAdapter.send({ ...request, recipient: { ...request.recipient, phone: null } });
     expect(result.ok).toBe(false);

@@ -160,5 +160,8 @@ SENDER_KEY·**SENDER_NO**)이 모두 있어야 채널이 켜진다 — 없으면
   `MB-02/03/04/07/08/09-DEV` 를 CBT 에 등록(검수 중). 승인되면 dev 매니페스트에
   `BIZTALK_TEMPLATE_OVERRIDES=MB-02=MB-02-DEV,…` + `BIZTALK_BUTTON_URL=https://partner.dev.seoularena.net/`
   를 넣어 갈아탄다(`src/lib/message/templateOverrides.ts`, 코드 배포 불필요). 둘은 항상 함께.
+  PC 카카오톡에 버튼이 보이려면 템플릿에 `linkPc` 가 있어야 한다 — `MB-0x-DEV-PC` 6종을 PC 링크 포함으로
+  따로 등록(검수 중은 수정 불가 API_4434, 삭제 API 없음). 그걸로 갈아탈 땐 `BIZTALK_BUTTON_PC=true` 도 같이
+  (없는데 url_pc 를 보내면 3027). 운영 템플릿 등록 때도 PC 링크를 넣을 것.
 - 점검: `kubectl -n arena-dev exec deploy/arena -- node scripts/biztalk-check.mjs` (클러스터 안에서만
   닿는다 — 방화벽이 발신 IP 211.213.60.30 기준).
