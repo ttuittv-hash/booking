@@ -8,6 +8,7 @@ import {
   setCompanyStatus,
   setUserApprovalStatus,
 } from "@/lib/db";
+import { revalidateMemberViews } from "@/lib/revalidateAdmin";
 
 // 가입 승인/반려.
 //
@@ -113,6 +114,10 @@ export async function POST(request: Request) {
     variables: approved ? { 신청자명: target.name } : { 신청자명: target.name, 거절사유: rejectReason },
     request,
   });
+
+  // 승인·반려는 회사 상태와 대표 담당자까지 바꾼다(위 setCompanyStatus·ensureCompanyMaster).
+  // 화면 쪽 router.refresh() 는 보고 있던 탭만 새로 받으므로 여기서 전부 무효화한다.
+  revalidateMemberViews();
 
   return NextResponse.json({ user: updated, processedBy: isAdmin ? "ADMIN" : "MASTER" });
 }

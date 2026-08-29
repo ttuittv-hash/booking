@@ -3,6 +3,7 @@ import crypto from "node:crypto";
 import { getCurrentUser } from "@/lib/auth";
 import { createNotification, findCompanyById, findUserById, setCompanyMasterByAdmin } from "@/lib/db";
 import { dispatchMessageInBackground } from "@/lib/message/dispatch";
+import { revalidateMemberViews } from "@/lib/revalidateAdmin";
 
 // 운영자의 대표 담당자 변경 (기획서 A10 — 마스터 부재·퇴사 시 운영자가 안전망).
 export async function POST(request: Request) {
@@ -69,6 +70,9 @@ export async function POST(request: Request) {
       createdAt: now,
     });
   }
+
+  // 대표가 바뀌면 회사별 담당자 목록의 '대표 담당자' 칸도 바뀐다.
+  revalidateMemberViews();
 
   return NextResponse.json({ ok: true });
 }
