@@ -5,6 +5,7 @@ import { useCallback, useEffect, useState } from "react";
 import { useDialog } from "@/components/ui/Dialog";
 import { btnClass } from "@/components/ui/kit";
 import { useToast } from "@/components/ui/Toast";
+import { displayEmail } from "@/lib/format";
 
 type Member = {
   id: string;
@@ -38,17 +39,65 @@ const APPROVAL_LABEL: Record<string, string> = {
 
 // [신규 2026-08-26] "마스터 계정표기 텍스트 옆에 ? 아이콘, 마우스오버하면 안내" 요청.
 // 이 화면(/mypage/members)은 대표 담당자만 열 수 있으므로 MASTER 배지는 늘 보는 사람 본인이다.
+//
+// [개정 2026-08-29] 브라우저 기본 title 툴팁을 안내 레이어로 바꿨다. title 은 나타나는 데
+// 1초쯤 걸리고, 꾸밀 수 없으며, 터치 기기에서는 아예 뜨지 않는다. 눌러서도 뜨게 한다.
 export const MASTER_ROLE_TOOLTIP = "당신은 마스터 계정으로 소속담당자 승인/관리가 가능합니다.";
 
+const MASTER_ROLE_ABILITIES = [
+  "소속 담당자 초대",
+  "합류 신청 승인 · 반려",
+  "소속 해제",
+  "대표 권한 이관",
+];
+
 function MasterInfoIcon() {
+  const [open, setOpen] = useState(false);
+
   return (
     <span
-      data-testid="master-role-info"
-      title={MASTER_ROLE_TOOLTIP}
-      aria-label={MASTER_ROLE_TOOLTIP}
-      className="ml-1 inline-flex h-3.5 w-3.5 shrink-0 cursor-help items-center justify-center rounded-full border border-current text-[9px] leading-none"
+      className="relative ml-1 inline-flex"
+      onMouseEnter={() => setOpen(true)}
+      onMouseLeave={() => setOpen(false)}
     >
-      ?
+      <button
+        type="button"
+        data-testid="master-role-info"
+        aria-label="대표 담당자 역할 안내"
+        aria-expanded={open}
+        onClick={() => setOpen((v) => !v)}
+        // 키보드로도 열린다 — 마우스가 없으면 아무 설명도 못 보는 안내는 안내가 아니다.
+        onFocus={() => setOpen(true)}
+        onBlur={() => setOpen(false)}
+        onKeyDown={(e) => {
+          if (e.key === "Escape") setOpen(false);
+        }}
+        className="inline-flex h-3.5 w-3.5 shrink-0 cursor-help items-center justify-center rounded-full border border-current text-[9px] leading-none"
+      >
+        ?
+      </button>
+      {open ? (
+        <span
+          role="tooltip"
+          data-testid="master-role-layer"
+          // 표 안이라 위로 띄우면 잘린다. 아이콘 아래에 붙이고 가로는 중앙 정렬한다.
+          className="absolute left-1/2 top-full z-30 mt-2 w-64 -translate-x-1/2 cursor-default border border-border-soft bg-background px-4 py-3 text-left text-xs leading-6 font-normal text-foreground shadow-lg"
+        >
+          <b className="block text-s">대표 담당자</b>
+          <span className="mt-1 block break-keep text-muted">
+            회사에서 가장 먼저 승인된 분이 자동으로 지정되며, 회사당 한 명입니다.
+          </span>
+          <span className="mt-2 block break-keep">할 수 있는 일</span>
+          <ul className="mt-1 list-disc space-y-0.5 pl-4 text-muted">
+            {MASTER_ROLE_ABILITIES.map((ability) => (
+              <li key={ability}>{ability}</li>
+            ))}
+          </ul>
+          <span className="mt-2 block break-keep text-muted">
+            소속 담당자의 가입 신청 알림도 대표 담당자에게 갑니다.
+          </span>
+        </span>
+      ) : null}
     </span>
   );
 }
@@ -67,6 +116,8 @@ type UnifiedRow = {
   email: string;
   phone: string | null;
   companyRole: string | null; // MASTER | STAFF | null(아직 계정 없음)
+  /** 이 행이 지금 보고 있는 본인인지 — 표에서 내 줄과 남의 줄이 구분돼야 한다. */
+  isMe: boolean;
   joined: boolean; // 가입 여부 — 상태 컬럼의 1차 값
   detailLabel: string; // 상태 컬럼의 부가 설명(정상/승인 대기/초대 발송 등)
   /** 계정이 있는 사람만 상세 화면이 있다. 초대 행(아직 계정 없음)은 갈 곳이 없다. */
@@ -74,7 +125,7 @@ type UnifiedRow = {
   actions: RowAction[];
 };
 
-export function MembersManager() {
+export function MembersManager({ currentUserId }: { currentUserId: string }) {
   const toast = useToast();
   const [members, setMembers] = useState<Member[]>([]);
   const [invitations, setInvitations] = useState<Invitation[]>([]);
@@ -199,6 +250,7 @@ export function MembersManager() {
     }
     return {
       key: `member-${m.id}`,
+      isMe: m.id === currentUserId,
       href: `/mypage/members/${m.id}`,
       name: m.name,
       email: m.email,
@@ -239,6 +291,8 @@ export function MembersManager() {
           : [];
       return {
         key: `invite-${iv.id}`,
+        // 초대 행은 아직 계정이 없거나 남의 초대다 — 본인일 수 없다.
+        isMe: false,
         name: iv.inviteeName ?? "—",
         email: iv.email,
         phone: iv.phone,
@@ -287,20 +341,36 @@ export function MembersManager() {
             </thead>
             <tbody>
               {unifiedRows.map((row) => (
-                <tr key={row.key} className="border-b border-border/40" data-testid={row.key}>
+                <tr
+                  key={row.key}
+                  // 내 줄은 옅은 바탕으로 깔아 둔다 — 이름 옆 표시만으로는 표를 훑을 때 놓친다.
+                  className={`border-b border-border/40 ${row.isMe ? "bg-surface" : ""}`}
+                  data-testid={row.key}
+                >
                   <td className="py-3">
-                    {row.href ? (
-                      <Link
-                        href={row.href}
-                        className="font-bold text-foreground underline decoration-accent decoration-2 underline-offset-4"
-                      >
-                        {row.name}
-                      </Link>
-                    ) : (
-                      row.name
-                    )}
+                    <span className="flex flex-wrap items-center gap-1.5">
+                      {row.href ? (
+                        <Link
+                          href={row.href}
+                          className="font-bold text-foreground underline decoration-accent decoration-2 underline-offset-4"
+                        >
+                          {row.name}
+                        </Link>
+                      ) : (
+                        row.name
+                      )}
+                      {row.isMe ? (
+                        <span
+                          data-testid="me-marker"
+                          className="inline-block border border-accent px-1.5 py-0.5 text-[10px] leading-none text-accent"
+                        >
+                          나
+                        </span>
+                      ) : null}
+                    </span>
                   </td>
-                  <td className="py-3 text-muted">{row.email}</td>
+                  {/* 탈퇴 계정은 이메일이 "withdrawn+{uuid}+..." 로 보관된다 — 원래 주소만 보여 준다. */}
+                  <td className="py-3 text-muted">{displayEmail(row.email)}</td>
                   <td className="py-3 text-muted">{row.phone ?? "—"}</td>
                   <td className="py-3">
                     {row.companyRole ? (
@@ -433,7 +503,7 @@ export function MembersManager() {
         </div>
         <p className="mt-1.5 text-xs text-muted">
           휴대폰 번호를 입력하면 알림톡으로 초대 링크가 자동 발송됩니다. 비워두면 알림톡이 나가지
-          않으니 아래 링크를 직접 전달해 주세요(이메일 발송은 아직 연결 전입니다).
+          않으니 아래 링크를 직접 전달해 주세요.
         </p>
 
         {inviteUrl ? (

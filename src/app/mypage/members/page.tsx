@@ -20,7 +20,7 @@ export default async function MembersPage() {
       ko="담당자 관리"
       lead={`${user.companyName} · 대표 담당자로서 소속 담당자를 초대하고 합류 신청을 승인합니다.`}
     >
-      <MembersManager />
+      <MembersManager currentUserId={user.id} />
     </MyPageShell>
   );
 }
