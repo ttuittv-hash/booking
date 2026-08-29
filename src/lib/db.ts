@@ -578,6 +578,13 @@ async function initSchema(pool: Pool) {
     ALTER TABLE users ADD COLUMN IF NOT EXISTS employment_cert_url TEXT;
     ALTER TABLE users ADD COLUMN IF NOT EXISTS employment_cert_name TEXT;
 
+    -- [신규 2026-08-29] 가입 승인·반려를 누가 언제 했는지. 승인은 운영자와 회사 대표
+    -- 담당자 둘 다 할 수 있는데 기록이 없어, 처리 완료 목록에서 주체를 알 수 없었다.
+    -- FK 를 걸지 않는다 — 처리한 사람이 나중에 지워져도 "누가 했었다"는 기록은 남아야
+    -- 하고, deleteUserCascade 가 이 컬럼 때문에 막히면 안 된다.
+    ALTER TABLE users ADD COLUMN IF NOT EXISTS approval_decided_by TEXT;
+    ALTER TABLE users ADD COLUMN IF NOT EXISTS approval_decided_at TEXT;
+
     -- 초대로 만들어진 계정은 본인이 비밀번호를 정하기 전까지 해시가 없다.
     ALTER TABLE users ALTER COLUMN password_hash DROP NOT NULL;
 
@@ -1812,9 +1819,72 @@ export async function companyHasApprovedMember(
   return !!row;
 }
 
+/*
+  승인 대기 화면이 "이 사람을 승인하면 대표가 되는가"를 알기 위한 값 (2026-08-29).
+
+  대표는 회사의 첫 승인 때 정해진다(ensureCompanyMaster). 그런데 표에는 그 사실이
+  드러나지 않아, 운영자가 무심코 누른 승인이 대표를 정해 버렸다. 회사에 이미 승인된
+  사람이 있는지와, 이 사람이 회사에서 몇 번째로 신청했는지를 함께 보여 준다.
+
+  행마다 조회하면 N+1 이라 한 문장으로 읽는다.
+*/
+export interface CompanyJoinContext {
+  /** 회사 안에서 몇 번째로 가입 신청했는지(1부터). 탈퇴자는 세지 않는다. */
+  joinOrder: number;
+  /** 회사에 이미 승인된 담당자가 있는지. false 면 이 사람의 승인이 대표를 정한다. */
+  companyHasApproved: boolean;
+}
+
+export async function getCompanyJoinContexts(
+  userIds: string[],
+): Promise<Map<string, CompanyJoinContext>> {
+  const result = new Map<string, CompanyJoinContext>();
+  if (userIds.length === 0) return result;
+
+  const rows = await q<{ id: string; join_order: string; approved_count: string }>(
+    `WITH target AS (
+       SELECT DISTINCT company_id FROM users
+        WHERE id = ANY($1::text[]) AND company_id IS NOT NULL
+     ),
+     ranked AS (
+       SELECT u.id, u.company_id,
+              ROW_NUMBER() OVER (
+                PARTITION BY u.company_id ORDER BY u.created_at ASC, u.id ASC
+              ) AS join_order
+         FROM users u
+         JOIN target t ON t.company_id = u.company_id
+        WHERE u.role = 'APPLICANT' AND u.withdrawn_at IS NULL
+     ),
+     approved AS (
+       SELECT u.company_id, COUNT(*)::text AS n
+         FROM users u
+         JOIN target t ON t.company_id = u.company_id
+        WHERE u.role = 'APPLICANT'
+          AND u.approval_status = 'APPROVED'
+          AND u.withdrawn_at IS NULL
+        GROUP BY u.company_id
+     )
+     SELECT r.id, r.join_order::text AS join_order, COALESCE(a.n, '0') AS approved_count
+       FROM ranked r
+       LEFT JOIN approved a ON a.company_id = r.company_id
+      WHERE r.id = ANY($1::text[])`,
+    [userIds],
+  );
+
+  for (const row of rows) {
+    result.set(row.id, {
+      joinOrder: Number(row.join_order),
+      companyHasApproved: Number(row.approved_count) > 0,
+    });
+  }
+  return result;
+}
+
 /** 회사 소속 담당자 목록 — 마스터의 담당자 관리 화면(기획서 A10). */
 export async function listCompanyMembers(companyId: string): Promise<AppUser[]> {
   const rows = await q<UserRow>(
+    // 탈퇴자도 그대로 준다 — 회사 이력에서 지워지면 "그 사람이 있었다"는 사실이 사라진다.
+    // 대신 화면에서 [탈퇴] 로 표시하고 액션(승인·소속 해제·대표 이관) 대상에서 뺀다.
     `SELECT * FROM users
       WHERE company_id = $1 AND role = 'APPLICANT'
       ORDER BY (company_role = 'MASTER') DESC, created_at ASC`,
@@ -2565,6 +2635,8 @@ interface UserRow {
   approval_status: ApprovalStatus;
   admin_tier: AdminTier | null;
   withdrawn_at: string | null;
+  approval_decided_by: string | null;
+  approval_decided_at: string | null;
   created_at: string;
 }
 
@@ -2589,6 +2661,9 @@ function toAppUser(row: UserRow): AppUser {
     memberType: (row.member_type as MemberType | null) ?? "CORPORATE",
     companyRole: row.role === "APPLICANT" ? ((row.company_role as CompanyRole | null) ?? null) : null,
     identityVerifiedAt: row.identity_verified_at ?? null,
+    withdrawnAt: row.withdrawn_at ?? null,
+    approvalDecidedBy: row.approval_decided_by ?? null,
+    approvalDecidedAt: row.approval_decided_at ?? null,
     createdAt: row.created_at,
   };
 }
@@ -2675,6 +2750,10 @@ export async function createUser(input: {
     memberType,
     companyRole,
     identityVerifiedAt: null,
+    // 방금 만든 계정이라 탈퇴했을 리 없다.
+    withdrawnAt: null,
+    approvalDecidedBy: null,
+    approvalDecidedAt: null,
     createdAt: input.createdAt,
   };
 }
@@ -2757,7 +2836,17 @@ export async function listUsers(filter?: {
 }
 
 export async function listUsersPaged(
-  filter: { role?: UserRole; approvalStatus?: ApprovalStatus; excludeApprovalStatus?: ApprovalStatus } = {},
+  filter: {
+    role?: UserRole;
+    approvalStatus?: ApprovalStatus;
+    excludeApprovalStatus?: ApprovalStatus;
+    /**
+     * "company" 는 같은 회사 신청자를 붙여 놓고 회사 안에서는 가입 순으로 세운다
+     * (승인 대기 화면 — 대표는 첫 승인이 정하므로 순서를 보고 판단해야 한다).
+     * 기본값은 가입 순이다.
+     */
+    orderBy?: "createdAt" | "company";
+  } = {},
   page = 1,
   pageSize = DEFAULT_PAGE_SIZE,
 ): Promise<Paged<AppUser>> {
@@ -2779,14 +2868,34 @@ export async function listUsersPaged(
 
   const countRow = await one<{ n: number }>(`SELECT COUNT(*)::int AS n FROM users ${where}`, params);
   const rows = await q<UserRow>(
-    `SELECT * FROM users ${where} ORDER BY created_at ASC LIMIT $${params.length + 1} OFFSET $${params.length + 2}`,
+    `SELECT * FROM users ${where} ORDER BY ${
+      // 값은 고정 문자열 두 개뿐이라 사용자 입력이 SQL 에 닿지 않는다.
+      filter.orderBy === "company"
+        ? "company_name ASC NULLS LAST, company_id ASC, created_at ASC"
+        : "created_at ASC"
+    } LIMIT $${params.length + 1} OFFSET $${params.length + 2}`,
     [...params, pageSize, (page - 1) * pageSize],
   );
   return toPaged(rows.map(toAppUser), countRow?.n ?? 0, page, pageSize);
 }
 
-export async function setUserApprovalStatus(id: string, approvalStatus: ApprovalStatus): Promise<AppUser> {
-  await q("UPDATE users SET approval_status = $1 WHERE id = $2", [approvalStatus, id]);
+export async function setUserApprovalStatus(
+  id: string,
+  approvalStatus: ApprovalStatus,
+  /**
+   * 처리한 사람. 승인은 운영자와 회사 대표 담당자 둘 다 할 수 있어, 나중에 되짚으려면
+   * 누가 했는지가 남아야 한다. 승인 대기로 되돌리는 경우처럼 처리자가 없으면 비운다.
+   */
+  decidedBy?: string | null,
+): Promise<AppUser> {
+  await q(
+    `UPDATE users
+        SET approval_status = $1,
+            approval_decided_by = $3,
+            approval_decided_at = CASE WHEN $3::text IS NULL THEN NULL ELSE $4 END
+      WHERE id = $2`,
+    [approvalStatus, id, decidedBy ?? null, new Date().toISOString()],
+  );
   return (await findUserById(id))!;
 }
 
@@ -3857,6 +3966,22 @@ export async function listContractAddendums(quoteId: string): Promise<ContractAd
     [quoteId],
   );
   return rows.map(toContractAddendum);
+}
+
+/**
+ * 신청서별 부속합의 금액 합 — 리포트 매출 집계용 (2026-08-29).
+ *
+ * 부속합의는 계약금액(contractTotal)을 건드리지 않고 append-only 로 쌓이므로, 매출을
+ * 집계하려면 따로 더해야 한다. 신청서마다 listContractAddendums 를 부르면 N+1 이라
+ * 한 문장으로 읽는다.
+ */
+export async function sumContractAddendumsByQuote(): Promise<Map<string, number>> {
+  const rows = await q<{ quote_id: string; total: string }>(
+    `SELECT quote_id, COALESCE(SUM(amount_delta), 0)::text AS total
+       FROM contract_addendums
+      GROUP BY quote_id`,
+  );
+  return new Map(rows.map((r) => [r.quote_id, Number(r.total)]));
 }
 
 export async function createContractAddendum(input: {

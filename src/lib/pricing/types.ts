@@ -956,6 +956,13 @@ export interface AppUser {
   companyRole: CompanyRole | null;
   // 휴대폰 본인인증을 마친 시각. null 이면 미인증 계정이다.
   identityVerifiedAt: string | null;
+  // 탈퇴 시각. null 이면 유효한 계정이다. 탈퇴해도 행은 남으므로(신청서·감사로그의
+  // 작성자를 잃지 않기 위해) 목록에서는 이 값으로 구분해 표시해야 한다.
+  withdrawnAt: string | null;
+  // 가입 승인·반려를 처리한 사람의 id 와 시각. 승인은 운영자와 회사 대표 담당자 둘 다
+  // 할 수 있어, 처리 완료 목록에서 주체를 밝히려면 남겨야 한다.
+  approvalDecidedBy: string | null;
+  approvalDecidedAt: string | null;
   createdAt: string;
 }
 
@@ -971,6 +978,10 @@ export const FEATURE_SPEC_SHEET_KEYS = [
   "메뉴트리(어드민)",
   "기능정의(프론트)",
   "기능정의(어드민)",
+  // [신규 2026-08-29] 회원가입·관리·권한·알림톡을 한자리에 모은 시트.
+  // 계정 관련 규칙이 프론트/어드민 두 시트에 흩어져 있어 "누가 무엇을 할 수 있는가"를
+  // 한 번에 볼 수 없었다. 새 키라 다음 기동 때 시드가 들어간다(기존 시트는 안 덮인다).
+  "회원·권한",
   "버그",
   "약관",
   "추가 개발 내역",

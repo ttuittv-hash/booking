@@ -57,3 +57,18 @@ export function formatDateTime(iso: string | number | Date): string {
 export function formatMonthDay(iso: string | number | Date): string {
   return KST_MONTH_DAY.format(new Date(iso));
 }
+
+/*
+  탈퇴한 계정의 이메일에서 보관용 접두사를 떼어 낸다.
+
+  withdrawUser 는 이메일을 "withdrawn+{uuid}+{원래 주소}" 로 비틀어 저장한다 — 같은
+  주소로 다시 가입할 수 있게 하면서도 원래 값을 잃지 않기 위해서다. 그 문자열을 표에
+  그대로 그리면 60자가 넘어 열이 밀리고 가로 스크롤이 생긴다(운영자 회원 관리에서 실제로
+  그랬다). 화면에는 원래 주소만 보여 준다.
+*/
+const WITHDRAWN_EMAIL_PREFIX =
+  /^withdrawn\+[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}\+/;
+
+export function displayEmail(email: string): string {
+  return email.replace(WITHDRAWN_EMAIL_PREFIX, "");
+}

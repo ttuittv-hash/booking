@@ -1,8 +1,16 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/lib/auth";
-import { getSignupStats, getTrafficStats, listCompanies, listQuotes, todayInSeoul } from "@/lib/db";
+import {
+  getSignupStats,
+  getTrafficStats,
+  listCompanies,
+  listQuotes,
+  sumContractAddendumsByQuote,
+  todayInSeoul,
+} from "@/lib/db";
 import { buildReportStats, type ReportVenueTab } from "@/lib/reportStats";
+import { buildRevenueStats } from "@/lib/revenueStats";
 import { bucketLabel, parseGranularity, resolveRange } from "@/lib/trafficRange";
 import { num } from "@/lib/format";
 import { VENUES } from "@/lib/pricing/types";
@@ -15,6 +23,9 @@ import {
   SECTION_TITLE,
   TABLE,
   TABLE_CARD,
+  TABLE_HEAD,
+  TABLE_HEAD_DESC,
+  TABLE_HEAD_TITLE,
   TABLE_SCROLL,
   tabCls,
   TD,
@@ -135,13 +146,15 @@ export default async function AdminReportsPage({
   const granularity = parseGranularity(sp.g);
   const range = resolveRange({ from: sp.from, to: sp.to, days: sp.days, today: await todayInSeoul() });
 
-  const [quotes, companies, traffic, signups] = await Promise.all([
+  const [quotes, companies, traffic, signups, addendumByQuote] = await Promise.all([
     listQuotes(),
     listCompanies(),
     getTrafficStats({ from: range.from, to: range.to, granularity }),
     getSignupStats(),
+    sumContractAddendumsByQuote(),
   ]);
   const stats = buildReportStats(quotes, companies, new Date(), 6, venueTab);
+  const revenue = buildRevenueStats(quotes, addendumByQuote, new Date(), 6, venueTab);
   const venueLabel = VENUE_TABS.find((t) => t.key === venueTab)?.label ?? "전체";
 
   // 공간 탭은 유입 조작부의 링크·폼에도 그대로 실려야 탭이 풀리지 않는다.
@@ -315,6 +328,83 @@ export default async function AdminReportsPage({
             <p className="mt-1 text-xs text-muted">
               계약 확정 {stats.contractedCount.toLocaleString("ko-KR")}건 중 정산까지 마친 건수입니다.
             </p>
+          </div>
+        </section>
+
+        {/* ── 매출 ───────────────────────────────────────────────────────
+            금액은 접수 → 계약 → 확정 세 단계를 지난다. 한 숫자로 뭉치면
+            "얼마를 벌었나"에 답할 수 없다. 공간 탭이 그대로 적용된다. */}
+        <section className="mt-10 border-t border-border/20 pt-6">
+          <h2 className={SECTION_TITLE}>매출 · {venueLabel}</h2>
+          <p className="mt-2 text-xs leading-6 text-muted">
+            <b>접수</b>는 신청 시점의 견적, <b>계약</b>은 계약금액(부속합의 반영),{" "}
+            <b>확정 매출</b>은 정산까지 끝난 최종 금액입니다. 계약만 되고 정산 전인 건은 금액이 더
+            움직일 수 있어 확정 매출에 넣지 않고 따로 셉니다.
+          </p>
+          <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-4">
+            <StatCard
+              label="접수 건수"
+              value={`${revenue.submittedCount.toLocaleString("ko-KR")}건`}
+              sub={`견적 합계 ${num(revenue.submittedTotal)}원`}
+            />
+            <StatCard
+              label="계약 건수"
+              value={`${revenue.contractedCount.toLocaleString("ko-KR")}건`}
+              sub={`계약금액 ${num(revenue.contractedTotal)}원`}
+            />
+            <StatCard
+              label="총 확정 매출"
+              value={`${num(revenue.settledTotal)}원`}
+              sub={`정산 완료 ${revenue.settledCount.toLocaleString("ko-KR")}건`}
+            />
+            <StatCard
+              label="정산 예정"
+              value={`${num(revenue.pendingSettlementTotal)}원`}
+              sub={`계약 후 정산 전 ${revenue.pendingSettlementCount.toLocaleString("ko-KR")}건`}
+            />
+          </div>
+          {revenue.addendumTotal !== 0 && (
+            <p className="mt-3 text-xs text-muted">
+              계약금액에는 부속합의 {num(revenue.addendumTotal)}원이 반영되어 있습니다.
+            </p>
+          )}
+
+          <div className={`mt-4 ${TABLE_CARD}`}>
+            <div className={TABLE_HEAD}>
+              <div>
+                <p className={TABLE_HEAD_TITLE}>월별 매출 추이 (최근 6개월)</p>
+                <p className={TABLE_HEAD_DESC}>
+                  단계마다 잡히는 날짜가 다릅니다 — 접수는 신청일, 계약은 계약금액 확정일, 확정
+                  매출은 정산 확정일 기준입니다. 그래서 한 건이 서로 다른 달에 나타날 수 있습니다.
+                </p>
+              </div>
+            </div>
+            <div className={TABLE_SCROLL}>
+              <table className={`${TABLE} min-w-[640px]`}>
+                <thead>
+                  <tr className={THEAD_ROW}>
+                    <th className={TH}>월</th>
+                    <th className={TH_NUM}>접수</th>
+                    <th className={TH_NUM}>견적 금액</th>
+                    <th className={TH_NUM}>계약</th>
+                    <th className={TH_NUM}>계약금액</th>
+                    <th className={TH_NUM}>확정 매출</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {revenue.monthly.map((m) => (
+                    <tr key={m.key} className={TR}>
+                      <td className={TD_ID}>{m.label}</td>
+                      <td className={TD_NUM}>{m.submittedCount.toLocaleString("ko-KR")}건</td>
+                      <td className={TD_NUM}>{num(m.submittedTotal)}원</td>
+                      <td className={TD_NUM}>{m.contractedCount.toLocaleString("ko-KR")}건</td>
+                      <td className={TD_NUM}>{num(m.contractedTotal)}원</td>
+                      <td className={TD_NUM}>{num(m.settledTotal)}원</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           </div>
         </section>
 

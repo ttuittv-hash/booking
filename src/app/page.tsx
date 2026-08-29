@@ -13,12 +13,40 @@ import { ArrowRight, Band, ButtonLink, CTABand, Media, Multiline } from "@/compo
      → 옐로 CTA
    ========================================================================= */
 
-export default async function Home() {
-  const [user, content] = await Promise.all([getCurrentUser(), getHomeContent()]);
+export default async function Home({
+  searchParams,
+}: {
+  searchParams: Promise<{ welcome?: string }>;
+}) {
+  const [user, content, params] = await Promise.all([
+    getCurrentUser(),
+    getHomeContent(),
+    searchParams,
+  ]);
+
+  // 승인 대기 화면(/pending)에서 승인이 확인되면 ?welcome=approved 를 달고 여기로 보낸다.
+  // 그냥 홈만 열리면 화면이 조용히 바뀌어 무슨 일이 일어난 건지 알 수 없다.
+  //
+  // 주소로 붙일 수 있는 값이라 로그인 상태를 함께 본다 — 승인 완료된 신청자에게만 뜬다.
+  const justApproved =
+    params.welcome === "approved" &&
+    user?.role === "APPLICANT" &&
+    user.approvalStatus === "APPROVED";
 
   return (
     <div className="flex flex-1 flex-col">
       <PublicHeader active="/" currentUser={user} />
+
+      {justApproved ? (
+        <div className="border-b border-accent bg-accent-soft">
+          <p className="container-site flex flex-wrap items-center gap-x-3 gap-y-1 py-3 text-s leading-6 break-keep">
+            <b>가입이 승인되었습니다.</b>
+            <span className="text-muted">
+              이제 대관 패키지 안내와 예상 견적, 대관 신청을 이용하실 수 있습니다.
+            </span>
+          </p>
+        </div>
+      ) : null}
 
       <main className="flex flex-1 flex-col">
         {/* ── 히어로 ─────────────────────────────────────────────────────── */}

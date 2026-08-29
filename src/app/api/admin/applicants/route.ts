@@ -92,7 +92,9 @@ export async function POST(request: Request) {
   }
 
   const approved = action === "approve";
-  const updated = await setUserApprovalStatus(id, approved ? "APPROVED" : "REJECTED");
+  // 처리자를 남긴다 — 운영자와 대표 담당자 둘 다 승인할 수 있어, 나중에 "누가 승인했나"를
+  // 되짚으려면 여기서 박아 두는 수밖에 없다(회원 승인은 audit_logs 대상이 아니다).
+  const updated = await setUserApprovalStatus(id, approved ? "APPROVED" : "REJECTED", actor.id);
 
   // 회사의 첫 심사 결과가 그대로 회사의 상태가 된다(기획서 1-37).
   // 이후 가입자의 반려는 그 사람만의 문제라 회사 상태를 건드리지 않는다.

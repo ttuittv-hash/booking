@@ -24,7 +24,16 @@ const NOTICE: Record<"PENDING" | "REJECTED", { title: string; desc: string }> = 
 export default async function PendingPage() {
   const currentUser = await getCurrentUser();
   if (!currentUser) redirect("/login");
-  if (currentUser.role !== "APPLICANT" || currentUser.approvalStatus === "APPROVED") redirect("/apply");
+  // [개정 2026-08-29] 승인이 끝난 사람은 홈으로 보낸다.
+  //
+  // 예전에는 /apply(대관 신청 상세)로 곧장 보냈다. 승인 대기 화면을 띄워 둔 채 기다리다
+  // 승인이 나서 새로고침하면, 승인됐다는 말도 없이 신청서 작성 화면이 열려 당황스러웠다.
+  // 홈으로 보내면 무엇이 열렸는지 보고 스스로 다음 걸음을 고를 수 있다.
+  //
+  // ?welcome=approved 는 홈에서 "가입이 승인되었습니다" 한 줄을 띄우는 표시다 —
+  // 이 표시가 없으면 화면만 조용히 바뀌어 승인된 줄 모른다.
+  if (currentUser.role !== "APPLICANT") redirect("/");
+  if (currentUser.approvalStatus === "APPROVED") redirect("/?welcome=approved");
 
   const notice = NOTICE[currentUser.approvalStatus];
   const isRejected = currentUser.approvalStatus === "REJECTED";

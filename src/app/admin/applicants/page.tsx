@@ -2,7 +2,9 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/lib/auth";
 import {
+  getCompanyJoinContexts,
   listCompanies,
+  listUsersByIds,
   listCompaniesPaged,
   listUsersPaged,
   normalizePage,
@@ -96,14 +98,25 @@ export default async function AdminApplicantsPage({
 }
 
 async function PendingTab({ page, brns }: { page: number; brns: Record<string, string | null> }) {
+  // 회사끼리 붙여 놓고 회사 안에서는 가입 순으로 세운다 — 누가 먼저 신청했는지 보고
+  // 승인해야 대표가 엉뚱하게 정해지지 않는다.
   const { items, total, totalPages } = await listUsersPaged(
-    { role: "APPLICANT", approvalStatus: "PENDING" },
+    { role: "APPLICANT", approvalStatus: "PENDING", orderBy: "company" },
     page,
+  );
+  // 승인이 곧 대표 지정인지 표에서 보이게 한다 — 대표는 회사의 첫 승인 때 정해진다.
+  const joinContexts = Object.fromEntries(
+    await getCompanyJoinContexts(items.map((u) => u.id)),
   );
   return (
     <>
       <div className="mt-8">
-        <ApplicantApprovalTable applicants={items} pending businessRegistrationNumbers={brns} />
+        <ApplicantApprovalTable
+          applicants={items}
+          pending
+          businessRegistrationNumbers={brns}
+          joinContexts={joinContexts}
+        />
       </div>
       <Pagination page={page} totalPages={totalPages} total={total} basePath="/admin/applicants" />
       <div className="mt-10">
@@ -118,6 +131,14 @@ async function DecidedTab({ page, brns }: { page: number; brns: Record<string, s
     { role: "APPLICANT", excludeApprovalStatus: "PENDING" },
     page,
   );
+  // 처리자 이름은 한 번에 읽어 Map 으로 만든다 — 행마다 findUserById 면 N+1 이다.
+  const deciderIds = [...new Set(items.map((u) => u.approvalDecidedBy).filter((v): v is string => !!v))];
+  const deciders = Object.fromEntries(
+    (await listUsersByIds(deciderIds)).map((u) => [
+      u.id,
+      { name: u.name, isAdmin: u.role === "ADMIN" },
+    ]),
+  );
   return (
     <>
       <div className="mt-8">
@@ -125,6 +146,7 @@ async function DecidedTab({ page, brns }: { page: number; brns: Record<string, s
           applicants={items}
           pending={false}
           businessRegistrationNumbers={brns}
+          deciders={deciders}
         />
       </div>
       <Pagination

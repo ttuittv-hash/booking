@@ -1,12 +1,10 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter } from "next/navigation";
-import { useState } from "react";
-import { useDialog } from "@/components/ui/Dialog";
+import { useMemberActions } from "./useMemberActions";
 import type { AppUser } from "@/lib/pricing/types";
 import { Badge, btnClass } from "@/components/ui/kit";
-import { formatDate } from "@/lib/format";
+import { displayEmail, formatDate } from "@/lib/format";
 import {
   LINK_BTN,
   NONE,
@@ -44,82 +42,19 @@ export function ApplicantApprovalTable({
   applicants,
   pending,
   businessRegistrationNumbers = {},
+  joinContexts = {},
+  deciders = {},
 }: {
   applicants: AppUser[];
   pending: boolean;
   businessRegistrationNumbers?: Record<string, string | null>;
+  /** 승인 대기 표에서만 쓴다 — 회사 안 가입 순서와, 이미 승인된 사람이 있는지. */
+  joinContexts?: Record<string, { joinOrder: number; companyHasApproved: boolean }>;
+  /** 처리 완료 표에서만 쓴다 — 승인·반려를 처리한 사람(운영자 또는 회사 대표 담당자). */
+  deciders?: Record<string, { name: string; isAdmin: boolean }>;
 }) {
-  const router = useRouter();
-  const dialog = useDialog();
-  const [busyId, setBusyId] = useState<string | null>(null);
-
-  async function act(id: string, action: "approve" | "reject") {
-    // 반려 사유는 MB-03 알림톡의 필수 변수다. 비워두면 신청자에게 빈 사유가 나간다.
-    let reason = "";
-    if (action === "reject") {
-      const input = await dialog.prompt("반려 사유를 입력해주세요.\n신청자에게 그대로 안내됩니다.", {
-        title: "가입 반려",
-        okLabel: "반려",
-        placeholder: "예: 사업자 정보가 확인되지 않습니다",
-        multiline: true,
-      });
-      if (!input) return;
-      reason = input;
-    }
-    setBusyId(id);
-    try {
-      const res = await fetch("/api/admin/applicants", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ id, action, reason }),
-      });
-      if (res.ok) {
-        router.refresh();
-      } else {
-        const data = await res.json().catch(() => null);
-        await dialog.alert(data?.error ?? "처리하지 못했습니다.");
-      }
-    } finally {
-      setBusyId(null);
-    }
-  }
-
-  // 기록째 삭제 — 반려된 사람이 다시 가입하려면 명의·휴대폰이 지워져야 한다(2026-08-27 팀 요청).
-  // 승인된 계정도 지울 수 있지만 신청서·알림 이력이 함께 사라지므로 두 번 확인한다.
-  async function remove(a: AppUser) {
-    const first = await dialog.confirm(
-      `${a.name}(${a.email}) 계정을 기록째 삭제합니다.\n\n` +
-        "이 사람의 신청서·알림 이력·초대가 함께 지워지고, 회사에 남는 담당자가 없으면 회사 정보도 지워집니다.\n" +
-        "삭제하면 같은 명의·휴대폰으로 처음부터 다시 가입할 수 있습니다.\n\n계속할까요?",
-      { title: "계정 삭제", okLabel: "삭제" },
-    );
-    if (!first) return;
-    if (a.approvalStatus === "APPROVED") {
-      const typed = await dialog.prompt("승인된 계정입니다.\n정말 지우려면 담당자명을 그대로 입력하세요.", {
-        title: "삭제 확인",
-        okLabel: "삭제",
-        placeholder: a.name,
-      });
-      if (typed !== a.name) return;
-    }
-    setBusyId(a.id);
-    try {
-      const res = await fetch(`/api/admin/users/${a.id}`, { method: "DELETE" });
-      const data = await res.json().catch(() => null);
-      if (res.ok) {
-        await dialog.alert(
-          data?.deletedCompany
-            ? "계정과 회사 정보를 삭제했습니다.\n같은 사업자번호로 다시 가입할 수 있습니다."
-            : "계정을 삭제했습니다.",
-        );
-        router.refresh();
-      } else {
-        await dialog.alert(data?.error ?? "삭제하지 못했습니다.");
-      }
-    } finally {
-      setBusyId(null);
-    }
-  }
+  // 승인·반려·삭제는 회사 상세의 담당자 목록과 같은 동작이다 — useMemberActions 하나를 쓴다.
+  const { busyId, decide, remove } = useMemberActions();
 
   return (
     <div className={TABLE_CARD}>
@@ -145,6 +80,11 @@ export function ApplicantApprovalTable({
               <th className={TH_NUM}>사업자등록번호</th>
               <th className={TH}>이메일</th>
               <th className={TH_NUM}>가입일</th>
+              {/* 승인 대기에서는 "승인하면 대표가 되는 사람인가"를, 처리 완료에서는
+                  "대표로 승인됐는가"를 보여 준다 — 같은 자리, 다른 질문이다. */}
+              {pending ? <th className={TH}>가입순</th> : <th className={TH}>구분</th>}
+              {/* 승인·반려는 운영자와 회사 대표 담당자 둘 다 할 수 있다 — 누가 했는지 밝힌다. */}
+              {pending ? null : <th className={TH}>처리자</th>}
               <th className={TH}>상태</th>
               <th className={TH} />
             </tr>
@@ -152,7 +92,7 @@ export function ApplicantApprovalTable({
           <tbody>
             {applicants.length === 0 ? (
               <tr>
-                <td colSpan={7} className={TD_EMPTY}>
+                <td colSpan={pending ? 8 : 9} className={TD_EMPTY}>
                   {pending ? "승인 대기 중인 신청이 없습니다." : "처리 내역이 없습니다."}
                 </td>
               </tr>
@@ -168,12 +108,70 @@ export function ApplicantApprovalTable({
                   <td className={`${TD_NUM} text-muted`}>
                     {(a.companyId && businessRegistrationNumbers[a.companyId]) || NONE}
                   </td>
-                  <td className={TD_MUTED}>{a.email}</td>
-                  <td className={`${TD_NUM} text-muted`}>
+                  <td className={TD_MUTED}>
+                    {/* 긴 주소 하나가 표 전체를 밀어 가로 스크롤을 만들었다 — 폭을 묶고
+                        넘치면 잘라 보여 준다. 전체 값은 title 로 확인할 수 있다. */}
+                    <span className="block max-w-[16rem] truncate" title={a.email}>
+                      {displayEmail(a.email)}
+                    </span>
+                  </td>
+                  <td className={`${TD_NUM} whitespace-nowrap text-muted`}>
                     {formatDate(a.createdAt)}
                   </td>
+                  {pending ? (
+                    <td className={TD}>
+                      {joinContexts[a.id] ? (
+                        <span className="flex flex-wrap items-center gap-1.5 whitespace-nowrap">
+                          <span className="text-s text-muted">
+                            {joinContexts[a.id].joinOrder}번째
+                          </span>
+                          {/* 회사에 승인된 사람이 아직 없다 = 이 승인이 대표를 정한다. */}
+                          {joinContexts[a.id].companyHasApproved ? null : (
+                            <Badge tone="warn">대표 지정</Badge>
+                          )}
+                        </span>
+                      ) : (
+                        <span className="text-muted">{NONE}</span>
+                      )}
+                    </td>
+                  ) : (
+                    <td className={TD}>
+                      {/* 승인된 사람에게만 의미가 있다 — 반려된 계정의 company_role 은
+                          STAFF 로 남아 있을 뿐 대표/소속을 가리키지 않는다. */}
+                      {a.withdrawnAt || a.approvalStatus !== "APPROVED" ? (
+                        <span className="text-muted">{NONE}</span>
+                      ) : a.companyRole === "MASTER" ? (
+                        <Badge tone="good">대표 담당자</Badge>
+                      ) : (
+                        <span className="text-s text-muted">소속 담당자</span>
+                      )}
+                    </td>
+                  )}
+                  {pending ? null : (
+                    <td className={TD}>
+                      {(() => {
+                        const decider = a.approvalDecidedBy ? deciders[a.approvalDecidedBy] : undefined;
+                        // 이 컬럼이 생기기 전에 처리된 건은 기록이 없다 — 없는 걸 지어내지 않는다.
+                        if (!decider) return <span className="text-muted">{NONE}</span>;
+                        return (
+                          <span className="flex flex-wrap items-center gap-1.5 whitespace-nowrap">
+                            <span className="text-s">{decider.name}</span>
+                            <span className="text-xs text-muted">
+                              {decider.isAdmin ? "운영자" : "대표 담당자"}
+                            </span>
+                          </span>
+                        );
+                      })()}
+                    </td>
+                  )}
                   <td className={TD}>
-                    <Badge tone={STATUS_TONE[a.approvalStatus]}>{STATUS_LABEL[a.approvalStatus]}</Badge>
+                    {/* 탈퇴한 계정은 승인 상태가 그대로 남아 있어 "승인됨"으로 보였다.
+                        이미 떠난 사람이므로 탈퇴를 먼저 알린다. */}
+                    {a.withdrawnAt ? (
+                      <Badge tone="neutral">탈퇴</Badge>
+                    ) : (
+                      <Badge tone={STATUS_TONE[a.approvalStatus]}>{STATUS_LABEL[a.approvalStatus]}</Badge>
+                    )}
                   </td>
                   <td className={TD}>
                     <div className="flex justify-end gap-2">
@@ -182,7 +180,7 @@ export function ApplicantApprovalTable({
                           <button
                             type="button"
                             disabled={busyId === a.id}
-                            onClick={() => act(a.id, "reject")}
+                            onClick={() => decide(a.id, "reject")}
                             className={btnClass("secondary", "sm")}
                           >
                             거절
@@ -190,7 +188,14 @@ export function ApplicantApprovalTable({
                           <button
                             type="button"
                             disabled={busyId === a.id}
-                            onClick={() => act(a.id, "approve")}
+                            onClick={() =>
+                              decide(a.id, "approve", {
+                                // 회사에 승인된 사람이 아직 없으면 이 승인이 대표를 정한다.
+                                willBecomeMaster: joinContexts[a.id]?.companyHasApproved === false,
+                                name: a.name,
+                                companyName: a.companyName,
+                              })
+                            }
                             className={btnClass("primary", "sm")}
                           >
                             승인
