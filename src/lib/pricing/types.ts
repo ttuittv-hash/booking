@@ -956,6 +956,9 @@ export interface AppUser {
   companyRole: CompanyRole | null;
   // 휴대폰 본인인증을 마친 시각. null 이면 미인증 계정이다.
   identityVerifiedAt: string | null;
+  // 탈퇴 시각. null 이면 유효한 계정이다. 탈퇴해도 행은 남으므로(신청서·감사로그의
+  // 작성자를 잃지 않기 위해) 목록에서는 이 값으로 구분해 표시해야 한다.
+  withdrawnAt: string | null;
   createdAt: string;
 }
 

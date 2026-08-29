@@ -2589,6 +2589,7 @@ function toAppUser(row: UserRow): AppUser {
     memberType: (row.member_type as MemberType | null) ?? "CORPORATE",
     companyRole: row.role === "APPLICANT" ? ((row.company_role as CompanyRole | null) ?? null) : null,
     identityVerifiedAt: row.identity_verified_at ?? null,
+    withdrawnAt: row.withdrawn_at ?? null,
     createdAt: row.created_at,
   };
 }
@@ -2675,6 +2676,8 @@ export async function createUser(input: {
     memberType,
     companyRole,
     identityVerifiedAt: null,
+    // 방금 만든 계정이라 탈퇴했을 리 없다.
+    withdrawnAt: null,
     createdAt: input.createdAt,
   };
 }

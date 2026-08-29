@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useMemberActions } from "./useMemberActions";
 import type { AppUser } from "@/lib/pricing/types";
 import { Badge, btnClass } from "@/components/ui/kit";
-import { formatDate } from "@/lib/format";
+import { displayEmail, formatDate } from "@/lib/format";
 import {
   LINK_BTN,
   NONE,
@@ -100,15 +100,21 @@ export function ApplicantApprovalTable({
                   <td className={`${TD_NUM} text-muted`}>
                     {(a.companyId && businessRegistrationNumbers[a.companyId]) || NONE}
                   </td>
-                  <td className={TD_MUTED}>{a.email}</td>
-                  <td className={`${TD_NUM} text-muted`}>
+                  <td className={TD_MUTED}>
+                    {/* 긴 주소 하나가 표 전체를 밀어 가로 스크롤을 만들었다 — 폭을 묶고
+                        넘치면 잘라 보여 준다. 전체 값은 title 로 확인할 수 있다. */}
+                    <span className="block max-w-[16rem] truncate" title={a.email}>
+                      {displayEmail(a.email)}
+                    </span>
+                  </td>
+                  <td className={`${TD_NUM} whitespace-nowrap text-muted`}>
                     {formatDate(a.createdAt)}
                   </td>
                   {pending ? null : (
                     <td className={TD}>
                       {/* 승인된 사람에게만 의미가 있다 — 반려된 계정의 company_role 은
                           STAFF 로 남아 있을 뿐 대표/소속을 가리키지 않는다. */}
-                      {a.approvalStatus !== "APPROVED" ? (
+                      {a.withdrawnAt || a.approvalStatus !== "APPROVED" ? (
                         <span className="text-muted">{NONE}</span>
                       ) : a.companyRole === "MASTER" ? (
                         <Badge tone="good">대표 담당자</Badge>
@@ -118,7 +124,13 @@ export function ApplicantApprovalTable({
                     </td>
                   )}
                   <td className={TD}>
-                    <Badge tone={STATUS_TONE[a.approvalStatus]}>{STATUS_LABEL[a.approvalStatus]}</Badge>
+                    {/* 탈퇴한 계정은 승인 상태가 그대로 남아 있어 "승인됨"으로 보였다.
+                        이미 떠난 사람이므로 탈퇴를 먼저 알린다. */}
+                    {a.withdrawnAt ? (
+                      <Badge tone="neutral">탈퇴</Badge>
+                    ) : (
+                      <Badge tone={STATUS_TONE[a.approvalStatus]}>{STATUS_LABEL[a.approvalStatus]}</Badge>
+                    )}
                   </td>
                   <td className={TD}>
                     <div className="flex justify-end gap-2">
