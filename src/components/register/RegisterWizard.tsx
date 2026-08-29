@@ -37,11 +37,20 @@ declare global {
   interface Window {
     daum?: {
       Postcode: new (options: {
-        oncomplete: (data: { zonecode: string; roadAddress: string; jibunAddress: string }) => void;
+        oncomplete: (data: {
+          zonecode: string;
+          roadAddress: string;
+          jibunAddress: string;
+          /** 등기된 건물명. 없는 건물이 많아 빈 문자열로 온다. */
+          buildingName?: string;
+        }) => void;
       }) => { open: () => void };
     };
   }
 }
+
+const POSTCODE_LOAD_ERROR =
+  "우편번호 찾기를 불러오지 못했습니다. 우편번호와 회사주소를 직접 입력해 주세요.";
 
 type TermsItem = {
   kind: string;
@@ -302,22 +311,37 @@ export function RegisterWizard() {
     }
   }
 
+  // 다음(카카오) 우편번호 서비스. 원본은 행정안전부 도로명주소 DB라, 검색되는 건
+  // 도로명 · 지번 · 등기된 건물명뿐이다 — 상호로는 찾을 수 없다("와이지엔터테인먼트"는
+  // 그 건물 임차인 이름이지 건물명이 아니다). 아직 준공되지 않은 건물도 주소가 없어
+  // 나오지 않는다. 그래서 검색이 실패하는 건 정상이고, 직접 입력 경로가 늘 열려 있어야 한다.
   function openPostcode() {
     const launch = () => {
-      if (!window.daum) return;
+      if (!window.daum) {
+        setError(POSTCODE_LOAD_ERROR);
+        return;
+      }
       new window.daum.Postcode({
-        oncomplete: (d) =>
+        oncomplete: (d) => {
+          // 건물명을 버리지 않는다 — 회사 주소는 건물명으로 식별하는 경우가 많고,
+          // 운영자가 심사할 때도 "○○빌딩"이 있어야 사업자등록증과 대조가 된다.
+          const base = d.roadAddress || d.jibunAddress;
+          const building = d.buildingName?.trim();
           setForm((f) => ({
             ...f,
             postalCode: d.zonecode,
-            address: d.roadAddress || d.jibunAddress,
-          })),
+            address: building ? `${base} (${building})` : base,
+          }));
+        },
       }).open();
     };
     if (window.daum) return launch();
     const s = document.createElement("script");
     s.src = "https://t1.daumcdn.net/mapjsapi/bundle/postcode/prod/postcode.v2.js";
     s.onload = launch;
+    // 사내망 차단이나 CDN 장애로 스크립트를 못 받으면 예전에는 버튼을 눌러도 아무 일이
+    // 일어나지 않았다. 조용히 죽는 대신 직접 입력하라고 알려준다.
+    s.onerror = () => setError(POSTCODE_LOAD_ERROR);
     document.head.appendChild(s);
   }
 
@@ -330,7 +354,8 @@ export function RegisterWizard() {
       form.representativeName.trim() ? null : { ok: false, message: "대표자 성명을 입력해 주세요." },
       form.postalCode.trim() && form.address.trim()
         ? null
-        : { ok: false, message: "우편번호 찾기로 회사주소를 입력해 주세요." },
+        // "우편번호 찾기로"라고 적었더니 검색이 안 되는 주소에서 길이 막힌 것처럼 읽혔다.
+        : { ok: false, message: "우편번호와 회사주소를 입력해 주세요. 검색되지 않으면 직접 입력하셔도 됩니다." },
       identity ? null : { ok: false, message: "휴대폰 본인인증을 먼저 진행해 주세요." },
       checkUsername(form.username),
       checkEmail(form.email),
@@ -533,7 +558,7 @@ export function RegisterWizard() {
           onPick={async (hit) => {
             setPickedCompany(hit);
             // 불러온 회사는 이미 확인된 번호다 — 중복확인·진위확인을 생략한다(기획서 A5).
-            setBrnCheck({ state: "REGISTERED", title: "이미 등록된 회사", message: `${hit.name} — 합류 신청됩니다.` });
+            setBrnCheck({ state: "REGISTERED", title: "이미 등록된 회사입니다", message: "" });
             setSearchOpen(false);
             // 기업정보 전 항목을 채운다. 채워진 칸은 읽기 전용이 된다.
             try {
@@ -698,18 +723,18 @@ function StepTerms({
                   ({t.required ? "필수" : "선택"})
                 </span>
               </span>
-              <span className="flex items-center gap-2">
-                <span className="text-xs text-muted">v{t.version}</span>
-                <input
-                  type="checkbox"
-                  data-testid={`agree-${t.kind}`}
-                  checked={!!agreed[t.kind]}
-                  onChange={(e) =>
-                    setAgreed((p) => ({ ...p, [t.kind]: e.target.checked }))
-                  }
-                  className="h-4 w-4"
-                />
-              </span>
+              {/* 약관 버전(t.version)은 화면에 내보이지 않는다 — 동의 이력을 특정하려고
+                  들고 있는 내부 값이라, 사용자에게는 읽을 이유가 없는 기호다.
+                  제출할 때는 그대로 실어 보낸다(위 submit 페이로드). */}
+              <input
+                type="checkbox"
+                data-testid={`agree-${t.kind}`}
+                checked={!!agreed[t.kind]}
+                onChange={(e) =>
+                  setAgreed((p) => ({ ...p, [t.kind]: e.target.checked }))
+                }
+                className="h-4 w-4"
+              />
             </label>
             <pre
               data-testid={`terms-body-${t.kind}`}
@@ -1044,7 +1069,9 @@ function StepInfo({
           {brnCheck ? (
             <div data-testid="brn-check-message" className="mt-2.5 break-keep text-xs leading-6">
               <span className={`font-bold ${brnTone}`}>{brnCheck.title}</span>
-              <span className="ml-2 text-muted">{brnCheck.message}</span>
+              {/* 합류 신청처럼 덧붙일 말이 없는 상태는 message 가 빈 문자열이다 —
+                  빈 span 이 앞 여백만 남기지 않도록 아예 그리지 않는다. */}
+              {brnCheck.message ? <span className="ml-2 text-muted">{brnCheck.message}</span> : null}
               {brnCheck.state === "VERIFIED" || brnCheck.state === "UNCHECKED" ? (
                 <p className="mt-1 text-muted">
                   회사명 · 대표자 성명은 국세청 등록 정보로 채워집니다. 주소 · 대표번호는 직접
@@ -1053,8 +1080,8 @@ function StepInfo({
               ) : null}
               {brnCheck.state === "REGISTERED" ? (
                 <p className="mt-1 text-muted">
-                  등록된 기업 정보가 확인되었습니다. 개인 정보만 입력하면 해당 기업의 구성원으로
-                  가입할 수 있습니다.
+                  회사 정보가 확인되었습니다. 개인 정보를 입력하면 해당 기업의 구성원으로
+                  가입을 신청할 수 있습니다.
                 </p>
               ) : null}
             </div>
@@ -1148,10 +1175,21 @@ function StepInfo({
             <input data-testid="f-address" readOnly={locked} value={form.address} onChange={set("address")} placeholder="회사주소" className={inputCls(locked)} />
             <input data-testid="f-addressDetail" readOnly={locked} value={form.addressDetail} onChange={set("addressDetail")} placeholder="상세주소" className={inputCls(locked)} />
           </div>
+          {/* 회사명으로 검색해 놓고 "주소가 없다"고 막히는 일이 잦았다. 무엇으로 찾는
+              검색인지, 못 찾으면 어떻게 하는지를 검색창 옆이 아니라 여기서 알려 준다. */}
+          {locked ? null : (
+            <p className="mt-2 break-keep text-xs leading-6 text-muted">
+              도로명 · 지번 · 건물명으로 검색됩니다. <b>회사명으로는 찾을 수 없습니다.</b>{" "}
+              아직 주소가 부여되지 않은 신축 건물처럼 검색되지 않는 주소는 우편번호와 회사주소를
+              직접 입력해 주세요.
+            </p>
+          )}
         </div>
       </div>
 
-      <h3 className="mt-10 text-s font-bold">② 개인 정보</h3>
+      {/* 기업 정보와 개인 정보 사이를 선으로 끊는다 — 칸이 계속 이어져 어디까지가 회사
+          이야기인지 한눈에 안 잡혔다. 구분선은 관리자 폼과 같은 border/15 를 쓴다. */}
+      <h3 className="mt-10 border-t border-border/15 pt-8 text-s font-bold">② 개인 정보</h3>
       <p className="mt-1 break-keep text-xs text-muted">
         이름 · 휴대폰번호는 본인인증 결과가 그대로 들어가며 수정할 수 없습니다.
       </p>

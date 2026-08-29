@@ -46,7 +46,7 @@ export async function POST(request: Request) {
     const c = join.company;
     return NextResponse.json({
       state: "REGISTERED",
-      title: "이미 등록된 회사",
+      title: "이미 등록된 회사입니다",
       joinKind: join.kind,
       companyName: c.name,
       company: {
@@ -61,12 +61,15 @@ export async function POST(request: Request) {
         corporateNumber: c.corporateNumber,
         companyType: c.companyType,
       },
+      // 회사명을 문구에 끼워 넣지 않는다 — 제목 옆에 이어 붙어 "이미 등록된 회사주식회사
+      // ○○"처럼 읽혔고, 어차피 바로 아래 회사명 칸이 그 값으로 채워진다.
+      // 평범한 합류는 화면이 고정 안내문을 쓰므로 여기서는 빈 문자열을 준다.
       message:
         join.kind === "JOIN_PENDING"
-          ? `${c.name} — 이미 심사가 진행 중입니다. 앞선 심사가 끝난 뒤 함께 처리됩니다.`
+          ? "이미 심사가 진행 중입니다. 앞선 심사가 끝난 뒤 함께 처리됩니다."
           : join.kind === "REAPPLY_REJECTED"
-            ? `${c.name} — 이전에 미승인 처리된 회사입니다. 운영자가 다시 심사합니다.`
-            : `${c.name} — 합류 신청됩니다. 회사 대표 담당자 또는 운영자가 승인합니다.`,
+            ? "이전에 미승인 처리된 회사입니다. 운영자가 다시 심사합니다."
+            : "",
     });
   }
 
