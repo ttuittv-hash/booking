@@ -685,18 +685,18 @@ function StepTerms({
                   ({t.required ? "필수" : "선택"})
                 </span>
               </span>
-              <span className="flex items-center gap-2">
-                <span className="text-xs text-muted">v{t.version}</span>
-                <input
-                  type="checkbox"
-                  data-testid={`agree-${t.kind}`}
-                  checked={!!agreed[t.kind]}
-                  onChange={(e) =>
-                    setAgreed((p) => ({ ...p, [t.kind]: e.target.checked }))
-                  }
-                  className="h-4 w-4"
-                />
-              </span>
+              {/* 약관 버전(t.version)은 화면에 내보이지 않는다 — 동의 이력을 특정하려고
+                  들고 있는 내부 값이라, 사용자에게는 읽을 이유가 없는 기호다.
+                  제출할 때는 그대로 실어 보낸다(위 submit 페이로드). */}
+              <input
+                type="checkbox"
+                data-testid={`agree-${t.kind}`}
+                checked={!!agreed[t.kind]}
+                onChange={(e) =>
+                  setAgreed((p) => ({ ...p, [t.kind]: e.target.checked }))
+                }
+                className="h-4 w-4"
+              />
             </label>
             <pre
               data-testid={`terms-body-${t.kind}`}
