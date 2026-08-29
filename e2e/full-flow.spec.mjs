@@ -171,13 +171,24 @@ try {
   check("A10-1", "마스터에게 담당자 관리 화면이 열린다", page.url().includes("/mypage/members"));
   await page.waitForSelector('[data-testid="members-table"]');
   // 초대는 이름이 필수다(2026-08-22 기획 반영)
-  await page.fill('[data-testid="invite-name"]', "초대테스트");
-  await page.fill('[data-testid="invite-email"]', `staff${t}@seoul-ent.co.kr`);
   // 휴대폰 번호도 필수(2026-08-28 개정: 본인인증 번호와 대조해 심사 생략). 가짜 번호라 대조는 안 맞고
   // 평범한 합류 신청이 된다 — 아래 A11-4~6 은 그 경로를 확인한다.
-  await page.fill('[data-testid="invite-phone"]', "010-0000-0001");
-  await page.click('[data-testid="invite-send"]');
-  await page.waitForSelector('[data-testid="invite-url"]', { timeout: 15000 });
+  // 하이드레이션 전에 채우면 React 상태가 비어 발급이 안 된다(fillAndAdvance 와 같은 이유) — 결과로 확인하며 재시도.
+  await page.waitForLoadState("networkidle").catch(() => {});
+  for (let i = 0; i < 6; i++) {
+    for (const [sel, v] of [
+      ['[data-testid="invite-name"]', "초대테스트"],
+      ['[data-testid="invite-email"]', `staff${t}@seoul-ent.co.kr`],
+      ['[data-testid="invite-phone"]', "010-0000-0001"],
+    ]) {
+      await page.fill(sel, "");
+      await page.fill(sel, v);
+    }
+    await page.click('[data-testid="invite-send"]');
+    if (await page.waitForSelector('[data-testid="invite-url"]', { timeout: 5000 }).then(() => true).catch(() => false)) break;
+    if (i === 5) throw new Error("초대 링크가 발급되지 않음");
+    await page.waitForTimeout(800);
+  }
   const inviteUrl = (await page.locator('[data-testid="invite-url"] .font-mono').innerText()).trim();
   check("A11-1", "초대 링크가 회원가입 페이지로 발급된다", inviteUrl.includes("/register"));
 
