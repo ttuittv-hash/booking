@@ -520,7 +520,7 @@ export function RegisterWizard() {
           onPick={async (hit) => {
             setPickedCompany(hit);
             // 불러온 회사는 이미 확인된 번호다 — 중복확인·진위확인을 생략한다(기획서 A5).
-            setBrnCheck({ state: "REGISTERED", title: "이미 등록된 회사", message: `${hit.name} — 합류 신청됩니다.` });
+            setBrnCheck({ state: "REGISTERED", title: "이미 등록된 회사입니다", message: "" });
             setSearchOpen(false);
             // 기업정보 전 항목을 채운다. 채워진 칸은 읽기 전용이 된다.
             try {
@@ -1031,7 +1031,9 @@ function StepInfo({
           {brnCheck ? (
             <div data-testid="brn-check-message" className="mt-2.5 break-keep text-xs leading-6">
               <span className={`font-bold ${brnTone}`}>{brnCheck.title}</span>
-              <span className="ml-2 text-muted">{brnCheck.message}</span>
+              {/* 합류 신청처럼 덧붙일 말이 없는 상태는 message 가 빈 문자열이다 —
+                  빈 span 이 앞 여백만 남기지 않도록 아예 그리지 않는다. */}
+              {brnCheck.message ? <span className="ml-2 text-muted">{brnCheck.message}</span> : null}
               {brnCheck.state === "VERIFIED" || brnCheck.state === "UNCHECKED" ? (
                 <p className="mt-1 text-muted">
                   회사명 · 대표자 성명은 국세청 등록 정보로 채워집니다. 주소 · 대표번호는 직접
@@ -1040,8 +1042,8 @@ function StepInfo({
               ) : null}
               {brnCheck.state === "REGISTERED" ? (
                 <p className="mt-1 text-muted">
-                  등록된 기업 정보가 확인되었습니다. 개인 정보만 입력하면 해당 기업의 구성원으로
-                  가입할 수 있습니다.
+                  회사 정보가 확인되었습니다. 개인 정보를 입력하면 해당 기업의 구성원으로
+                  가입을 신청할 수 있습니다.
                 </p>
               ) : null}
             </div>
