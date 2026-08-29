@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
 import { deleteUserCascade, findUserById } from "@/lib/db";
+import { revalidateMemberViews } from "@/lib/revalidateAdmin";
 
 // 신청자 계정 삭제 — 운영자 전용.
 //
@@ -22,6 +23,9 @@ export async function DELETE(_request: Request, context: { params: Promise<{ id:
 
   try {
     const result = await deleteUserCascade(id);
+    // 남은 사람이 없으면 회사까지 지워진다 — 회사별 담당자 탭도 같이 무효화해야
+    // 지운 회사가 계속 보이지 않는다.
+    revalidateMemberViews();
     return NextResponse.json(result);
   } catch (error) {
     console.error("[admin] 계정 삭제 실패", id, error);

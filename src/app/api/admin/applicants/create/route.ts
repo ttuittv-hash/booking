@@ -13,6 +13,7 @@ import {
 } from "@/lib/db";
 import { dispatchMessage } from "@/lib/message/dispatch";
 import { sha256Hex } from "@/lib/passwordScheme";
+import { revalidateMemberViews } from "@/lib/revalidateAdmin";
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const USERNAME_RE = /^[a-z0-9][a-z0-9_]{3,19}$/;
@@ -95,6 +96,9 @@ export async function POST(request: Request) {
     variables: { 신청자명: user.name, 회사명: user.companyName ?? "소속 회사" },
     request,
   });
+
+  // 운영자가 만든 계정은 회사를 새로 만들 수도 있다 — 회사별 담당자 탭까지 새로 받게 한다.
+  revalidateMemberViews();
 
   return NextResponse.json({ user });
 }
