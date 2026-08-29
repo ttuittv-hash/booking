@@ -36,7 +36,12 @@ export function RulesBot() {
 
   async function ask(text: string) {
     const trimmed = text.trim();
-    if (!trimmed || busy) return;
+    if (busy) return;
+    // 비어 있어도 버튼은 잠그지 않는다(잠긴 버튼 패턴 금지) — 눌렀을 때 이유를 알려 준다.
+    if (!trimmed) {
+      setError("질문을 입력해 주세요.");
+      return;
+    }
     setError(null);
     setQuestion("");
     // 보낸 질문을 먼저 붙여 둔다 — 답을 기다리는 동안 화면이 비면 눌렸는지 알 수 없다.
@@ -139,7 +144,7 @@ export function RulesBot() {
             className="w-full border border-border-soft bg-background px-3 py-2 text-s"
           />
         </label>
-        <button type="submit" disabled={busy || !question.trim()} className={btnClass("primary", "md")}>
+        <button type="submit" disabled={busy} className={btnClass("primary", "md")}>
           {busy ? "찾는 중…" : "질문"}
         </button>
       </form>
