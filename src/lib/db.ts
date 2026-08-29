@@ -3968,6 +3968,22 @@ export async function listContractAddendums(quoteId: string): Promise<ContractAd
   return rows.map(toContractAddendum);
 }
 
+/**
+ * 신청서별 부속합의 금액 합 — 리포트 매출 집계용 (2026-08-29).
+ *
+ * 부속합의는 계약금액(contractTotal)을 건드리지 않고 append-only 로 쌓이므로, 매출을
+ * 집계하려면 따로 더해야 한다. 신청서마다 listContractAddendums 를 부르면 N+1 이라
+ * 한 문장으로 읽는다.
+ */
+export async function sumContractAddendumsByQuote(): Promise<Map<string, number>> {
+  const rows = await q<{ quote_id: string; total: string }>(
+    `SELECT quote_id, COALESCE(SUM(amount_delta), 0)::text AS total
+       FROM contract_addendums
+      GROUP BY quote_id`,
+  );
+  return new Map(rows.map((r) => [r.quote_id, Number(r.total)]));
+}
+
 export async function createContractAddendum(input: {
   id: string;
   quoteId: string;
