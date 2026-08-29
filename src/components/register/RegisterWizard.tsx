@@ -36,11 +36,20 @@ declare global {
   interface Window {
     daum?: {
       Postcode: new (options: {
-        oncomplete: (data: { zonecode: string; roadAddress: string; jibunAddress: string }) => void;
+        oncomplete: (data: {
+          zonecode: string;
+          roadAddress: string;
+          jibunAddress: string;
+          /** 등기된 건물명. 없는 건물이 많아 빈 문자열로 온다. */
+          buildingName?: string;
+        }) => void;
       }) => { open: () => void };
     };
   }
 }
+
+const POSTCODE_LOAD_ERROR =
+  "우편번호 찾기를 불러오지 못했습니다. 우편번호와 회사주소를 직접 입력해 주세요.";
 
 type TermsItem = {
   kind: string;
@@ -289,22 +298,37 @@ export function RegisterWizard() {
     }
   }
 
+  // 다음(카카오) 우편번호 서비스. 원본은 행정안전부 도로명주소 DB라, 검색되는 건
+  // 도로명 · 지번 · 등기된 건물명뿐이다 — 상호로는 찾을 수 없다("와이지엔터테인먼트"는
+  // 그 건물 임차인 이름이지 건물명이 아니다). 아직 준공되지 않은 건물도 주소가 없어
+  // 나오지 않는다. 그래서 검색이 실패하는 건 정상이고, 직접 입력 경로가 늘 열려 있어야 한다.
   function openPostcode() {
     const launch = () => {
-      if (!window.daum) return;
+      if (!window.daum) {
+        setError(POSTCODE_LOAD_ERROR);
+        return;
+      }
       new window.daum.Postcode({
-        oncomplete: (d) =>
+        oncomplete: (d) => {
+          // 건물명을 버리지 않는다 — 회사 주소는 건물명으로 식별하는 경우가 많고,
+          // 운영자가 심사할 때도 "○○빌딩"이 있어야 사업자등록증과 대조가 된다.
+          const base = d.roadAddress || d.jibunAddress;
+          const building = d.buildingName?.trim();
           setForm((f) => ({
             ...f,
             postalCode: d.zonecode,
-            address: d.roadAddress || d.jibunAddress,
-          })),
+            address: building ? `${base} (${building})` : base,
+          }));
+        },
       }).open();
     };
     if (window.daum) return launch();
     const s = document.createElement("script");
     s.src = "https://t1.daumcdn.net/mapjsapi/bundle/postcode/prod/postcode.v2.js";
     s.onload = launch;
+    // 사내망 차단이나 CDN 장애로 스크립트를 못 받으면 예전에는 버튼을 눌러도 아무 일이
+    // 일어나지 않았다. 조용히 죽는 대신 직접 입력하라고 알려준다.
+    s.onerror = () => setError(POSTCODE_LOAD_ERROR);
     document.head.appendChild(s);
   }
 
@@ -317,7 +341,8 @@ export function RegisterWizard() {
       form.representativeName.trim() ? null : { ok: false, message: "대표자 성명을 입력해 주세요." },
       form.postalCode.trim() && form.address.trim()
         ? null
-        : { ok: false, message: "우편번호 찾기로 회사주소를 입력해 주세요." },
+        // "우편번호 찾기로"라고 적었더니 검색이 안 되는 주소에서 길이 막힌 것처럼 읽혔다.
+        : { ok: false, message: "우편번호와 회사주소를 입력해 주세요. 검색되지 않으면 직접 입력하셔도 됩니다." },
       identity ? null : { ok: false, message: "휴대폰 본인인증을 먼저 진행해 주세요." },
       checkUsername(form.username),
       checkEmail(form.email),
@@ -1137,6 +1162,15 @@ function StepInfo({
             <input data-testid="f-address" readOnly={locked} value={form.address} onChange={set("address")} placeholder="회사주소" className={inputCls(locked)} />
             <input data-testid="f-addressDetail" readOnly={locked} value={form.addressDetail} onChange={set("addressDetail")} placeholder="상세주소" className={inputCls(locked)} />
           </div>
+          {/* 회사명으로 검색해 놓고 "주소가 없다"고 막히는 일이 잦았다. 무엇으로 찾는
+              검색인지, 못 찾으면 어떻게 하는지를 검색창 옆이 아니라 여기서 알려 준다. */}
+          {locked ? null : (
+            <p className="mt-2 break-keep text-xs leading-6 text-muted">
+              도로명 · 지번 · 건물명으로 검색됩니다. <b>회사명으로는 찾을 수 없습니다.</b>{" "}
+              아직 주소가 부여되지 않은 신축 건물처럼 검색되지 않는 주소는 우편번호와 회사주소를
+              직접 입력해 주세요.
+            </p>
+          )}
         </div>
       </div>
 
