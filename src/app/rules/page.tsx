@@ -1,10 +1,12 @@
 import type { Metadata } from "next";
 import { getCurrentUser, requireAccess } from "@/lib/auth";
 import { getRulesContent } from "@/lib/db";
+import { isRulesBotConfigured } from "@/lib/rulesBot";
 import { parseRules } from "@/lib/content/pageContent";
 import { PublicHeader } from "@/components/PublicHeader";
 import { SiteFooter } from "@/components/ui/SiteFooter";
 import { ArticleLayout } from "@/components/ui/ArticleLayout";
+import { RulesBot } from "@/components/rules/RulesBot";
 import { Band, Note, PageHead, Prose } from "@/components/ui/kit";
 
 export const metadata: Metadata = {
@@ -55,6 +57,16 @@ export default async function RulesPage() {
             </Note>
           )}
         </Band>
+
+        {/* 문답을 전문 위에 둔다 — 규약을 처음부터 읽을 사람은 적고, 대개 한 가지를
+            확인하러 온다. 키가 없는 환경(로컬·미설정)에서는 아예 그리지 않는다. */}
+        {isRulesBotConfigured() && (
+          <Band tone="white">
+            <div className="measure">
+              <RulesBot />
+            </div>
+          </Band>
+        )}
 
         <Band tone="white">
           <ArticleLayout
