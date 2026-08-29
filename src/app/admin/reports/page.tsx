@@ -21,6 +21,7 @@ import {
   PAGE_LEAD,
   PAGE_TITLE,
   SECTION_TITLE,
+  TAB_BAR,
   TABLE,
   TABLE_CARD,
   TABLE_HEAD,
@@ -48,6 +49,36 @@ const VENUE_TABS: { key: ReportVenueTab; label: string }[] = [
 
 function resolveVenueTab(raw: string | undefined): ReportVenueTab {
   return VENUE_TABS.some((t) => t.key === raw) ? (raw as ReportVenueTab) : "all";
+}
+
+/*
+  리포트 최상위 탭 (2026-08-29).
+
+    유입  사람이 들어오고 가입하는 흐름 — 공간과 무관하다.
+    매출  신청서에 걸린 돈의 흐름 — 공간 탭(아레나/중형)이 그 안에서 다시 나뉜다.
+
+  한 화면에 다 쌓으니 스크롤이 길어져 "지금 무엇을 보는 중인지" 가 흐려졌다.
+*/
+type ReportTab = "traffic" | "revenue";
+
+const REPORT_TABS: { key: ReportTab; label: string }[] = [
+  { key: "traffic", label: "유입" },
+  { key: "revenue", label: "매출" },
+];
+
+function resolveReportTab(raw: string | undefined): ReportTab {
+  return raw === "revenue" ? "revenue" : "traffic";
+}
+
+/** 탭을 옮겨도 기간·공간 같은 조건은 유지한다 — 탭이 바뀔 때마다 다시 고르게 하면 안 된다. */
+function reportTabHref(tab: ReportTab, sp: Record<string, string | undefined>): string {
+  const params = new URLSearchParams();
+  if (tab !== "traffic") params.set("tab", tab);
+  for (const key of ["venue", "g", "days", "from", "to"] as const) {
+    if (sp[key]) params.set(key, sp[key]!);
+  }
+  const qs = params.toString();
+  return qs ? `/admin/reports?${qs}` : "/admin/reports";
 }
 
 /** href 를 주면 카드 전체가 상세 화면으로 가는 링크가 된다. */
@@ -130,6 +161,7 @@ export default async function AdminReportsPage({
   searchParams,
 }: {
   searchParams: Promise<{
+    tab?: string;
     venue?: string;
     g?: string;
     days?: string;
@@ -142,6 +174,7 @@ export default async function AdminReportsPage({
   if (user.role !== "ADMIN") redirect("/apply");
 
   const sp = await searchParams;
+  const reportTab = resolveReportTab(sp.tab);
   const venueTab = resolveVenueTab(sp.venue);
   const granularity = parseGranularity(sp.g);
   const range = resolveRange({ from: sp.from, to: sp.to, days: sp.days, today: await todayInSeoul() });
@@ -178,9 +211,19 @@ export default async function AdminReportsPage({
           </p>
         </header>
 
-        {/* ── 공간과 무관한 지표 ───────────────────────────────────────────
+        <nav className={TAB_BAR} aria-label="리포트 탭">
+          {REPORT_TABS.map((t) => (
+            <Link key={t.key} href={reportTabHref(t.key, sp)} className={tabCls(t.key === reportTab)}>
+              {t.label}
+            </Link>
+          ))}
+        </nav>
+
+        {/* ── 유입 탭 ─────────────────────────────────────────────────────
             유입(페이지뷰·UV·대관신청 클릭)과 가입은 특정 공간에 묶이지 않는다.
-            그래서 아래 공간 탭 **바깥**에 둔다 — 탭을 바꿔도 이 숫자는 그대로다. */}
+            그래서 공간 탭은 매출 탭 안에만 둔다. */}
+        {reportTab === "traffic" ? (
+        <>
         <section className="mt-2">
           <h2 className={SECTION_TITLE}>유입</h2>
           <TrafficControls basePath="/admin/reports" query={query} />
@@ -277,10 +320,13 @@ export default async function AdminReportsPage({
           </p>
         </section>
 
-        {/* ── 공간별 지표 ─────────────────────────────────────────────────
+        </>
+        ) : (
+        <>
+        {/* ── 매출 탭 ─────────────────────────────────────────────────────
             아래 지표는 전부 신청서에 걸려 있어 공간(아레나/중형)으로 나뉜다.
-            탭 상태는 URL(?venue=)에 남긴다 — 다른 운영 화면의 탭 규칙과 같다. */}
-        <section className="mt-10 border-t border-border/20 pt-6">
+            공간 탭 상태는 URL(?venue=)에 남긴다 — 다른 운영 화면의 탭 규칙과 같다. */}
+        <section className="mt-2">
           <h2 className={SECTION_TITLE}>공간별 신청 현황</h2>
           {/* 페이지 상단 탭(TAB_BAR)이 아니라 섹션 안의 하위 탭이다 — sticky·full-bleed
               없이 탭 모양(tabCls)만 같이 쓴다. */}
@@ -291,7 +337,7 @@ export default async function AdminReportsPage({
             {VENUE_TABS.map((t) => (
               <Link
                 key={t.key}
-                href={t.key === "all" ? "/admin/reports" : `/admin/reports?venue=${t.key}`}
+                href={reportTabHref(reportTab, { ...sp, venue: t.key === "all" ? undefined : t.key })}
                 className={tabCls(t.key === venueTab)}
               >
                 {t.label}
@@ -433,6 +479,8 @@ export default async function AdminReportsPage({
             </div>
           </div>
         </section>
+        </>
+        )}
       </main>
     </div>
   );

@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useDialog } from "@/components/ui/Dialog";
 import { btnClass } from "@/components/ui/kit";
 import { useToast } from "@/components/ui/Toast";
@@ -54,21 +54,48 @@ const MASTER_ROLE_ABILITIES = [
 
 function MasterInfoIcon() {
   const [open, setOpen] = useState(false);
+  // 표가 overflow-x-auto 로 감싸여 있어 안쪽에 절대배치하면 레이어가 잘린다(z-index 로는
+  // overflow 를 못 벗어난다). 그래서 버튼 위치를 재서 뷰포트 기준(fixed)으로 띄운다.
+  const [pos, setPos] = useState<{ top: number; left: number } | null>(null);
+  const btnRef = useRef<HTMLButtonElement>(null);
+
+  const place = useCallback(() => {
+    const rect = btnRef.current?.getBoundingClientRect();
+    if (!rect) return;
+    // 화면 오른쪽 끝에서 열려도 잘리지 않게 좌우로 가둔다(레이어 폭 256px 의 절반 + 여백).
+    const half = 136;
+    const left = Math.min(Math.max(rect.left + rect.width / 2, half), window.innerWidth - half);
+    setPos({ top: rect.bottom + 8, left });
+  }, []);
+
+  const show = useCallback(() => {
+    place();
+    setOpen(true);
+  }, [place]);
+
+  // 열어 둔 채 스크롤하면 레이어만 제자리에 남는다 — 그때는 닫는다.
+  useEffect(() => {
+    if (!open) return;
+    const close = () => setOpen(false);
+    window.addEventListener("scroll", close, true);
+    window.addEventListener("resize", close);
+    return () => {
+      window.removeEventListener("scroll", close, true);
+      window.removeEventListener("resize", close);
+    };
+  }, [open]);
 
   return (
-    <span
-      className="relative ml-1 inline-flex"
-      onMouseEnter={() => setOpen(true)}
-      onMouseLeave={() => setOpen(false)}
-    >
+    <span className="ml-1 inline-flex" onMouseEnter={show} onMouseLeave={() => setOpen(false)}>
       <button
+        ref={btnRef}
         type="button"
         data-testid="master-role-info"
         aria-label="대표 담당자 역할 안내"
         aria-expanded={open}
-        onClick={() => setOpen((v) => !v)}
+        onClick={() => (open ? setOpen(false) : show())}
         // 키보드로도 열린다 — 마우스가 없으면 아무 설명도 못 보는 안내는 안내가 아니다.
-        onFocus={() => setOpen(true)}
+        onFocus={show}
         onBlur={() => setOpen(false)}
         onKeyDown={(e) => {
           if (e.key === "Escape") setOpen(false);
@@ -77,12 +104,12 @@ function MasterInfoIcon() {
       >
         ?
       </button>
-      {open ? (
+      {open && pos ? (
         <span
           role="tooltip"
           data-testid="master-role-layer"
-          // 표 안이라 위로 띄우면 잘린다. 아이콘 아래에 붙이고 가로는 중앙 정렬한다.
-          className="absolute left-1/2 top-full z-30 mt-2 w-64 -translate-x-1/2 cursor-default border border-border-soft bg-background px-4 py-3 text-left text-xs leading-6 font-normal text-foreground shadow-lg"
+          style={{ position: "fixed", top: pos.top, left: pos.left }}
+          className="z-50 w-64 -translate-x-1/2 cursor-default border border-border-soft bg-background px-4 py-3 text-left text-xs leading-6 font-normal text-foreground shadow-lg"
         >
           <b className="block text-s">대표 담당자</b>
           <span className="mt-1 block break-keep text-muted">
@@ -371,9 +398,12 @@ export function MembersManager({ currentUserId }: { currentUserId: string }) {
                         row.name
                       )}
                       {row.isMe ? (
+                        // 테두리 박스로 두면 밑줄 친 이름과 굵기가 겨루고, leading-none 에
+                        // 한글을 담아 글자가 위로 떠 보였다. 탭 뱃지와 같은 채운 칩으로
+                        // 바꾸고 높이를 고정해 가운데 정렬한다.
                         <span
                           data-testid="me-marker"
-                          className="inline-block border border-accent px-1.5 py-0.5 text-[10px] leading-none text-accent"
+                          className="inline-flex h-[18px] shrink-0 items-center bg-accent px-1.5 text-[10px] font-bold leading-none text-on-accent"
                         >
                           나
                         </span>
