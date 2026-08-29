@@ -74,6 +74,9 @@ export function ApplicantApprovalTable({
               <th className={TH_NUM}>사업자등록번호</th>
               <th className={TH}>이메일</th>
               <th className={TH_NUM}>가입일</th>
+              {/* 대표/소속은 첫 승인 때 정해진다 — 승인 대기 탭에서는 아직 아무도 대표가
+                  아니라 칸을 두면 전부 "소속 담당자"로 보여 오해를 부른다. */}
+              {pending ? null : <th className={TH}>구분</th>}
               <th className={TH}>상태</th>
               <th className={TH} />
             </tr>
@@ -81,7 +84,7 @@ export function ApplicantApprovalTable({
           <tbody>
             {applicants.length === 0 ? (
               <tr>
-                <td colSpan={7} className={TD_EMPTY}>
+                <td colSpan={pending ? 7 : 8} className={TD_EMPTY}>
                   {pending ? "승인 대기 중인 신청이 없습니다." : "처리 내역이 없습니다."}
                 </td>
               </tr>
@@ -101,6 +104,19 @@ export function ApplicantApprovalTable({
                   <td className={`${TD_NUM} text-muted`}>
                     {formatDate(a.createdAt)}
                   </td>
+                  {pending ? null : (
+                    <td className={TD}>
+                      {/* 승인된 사람에게만 의미가 있다 — 반려된 계정의 company_role 은
+                          STAFF 로 남아 있을 뿐 대표/소속을 가리키지 않는다. */}
+                      {a.approvalStatus !== "APPROVED" ? (
+                        <span className="text-muted">{NONE}</span>
+                      ) : a.companyRole === "MASTER" ? (
+                        <Badge tone="good">대표 담당자</Badge>
+                      ) : (
+                        <span className="text-s text-muted">소속 담당자</span>
+                      )}
+                    </td>
+                  )}
                   <td className={TD}>
                     <Badge tone={STATUS_TONE[a.approvalStatus]}>{STATUS_LABEL[a.approvalStatus]}</Badge>
                   </td>
