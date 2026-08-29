@@ -350,8 +350,12 @@ export function MembersManager({ currentUserId }: { currentUserId: string }) {
               {unifiedRows.map((row) => (
                 <tr
                   key={row.key}
-                  // 내 줄은 옅은 바탕으로 깔아 둔다 — 이름 옆 표시만으로는 표를 훑을 때 놓친다.
-                  className={`border-b border-border/40 ${row.isMe ? "bg-surface" : ""}`}
+                  // 내 줄은 왼쪽 강조선 + 옅은 바탕으로 확실히 띄운다. 이름 옆 [나] 표시만
+                  // 두면 표를 훑을 때 그냥 지나친다 — 대표 이관처럼 되돌리기 어려운 동작이
+                  // 같은 표에 있어서, 어느 줄이 나인지 한눈에 잡혀야 한다.
+                  className={`border-b border-border/40 ${
+                    row.isMe ? "border-l-2 border-l-accent bg-accent-soft/40" : ""
+                  }`}
                   data-testid={row.key}
                 >
                   <td className="py-3">
