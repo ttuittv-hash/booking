@@ -85,6 +85,14 @@ pod 를 여러 개 띄울 수 있으므로, **프로세스 메모리에 상태�
   운영자 심사 화면(`/admin/applicants/[id]`)에 뱃지와 함께 노출된다.
 - 접근 IP 제한이 있는 서비스다 — 서버 아웃바운드 IP를 NICE 이용기관 포털에 등록해야 한다.
 
+# E2E 실행 전제 (dev)
+
+E2E 스펙은 `/tmp/arena-dev-stub.env`(`NICE_AUTH_DEV_STUB=…`)를 읽어 우회 인증 헤더를 붙인다. `/tmp` 는
+재부팅·계정 전환으로 비워지므로 `ENOENT: /tmp/arena-dev-stub.env` 가 나면 dev 시크릿에서 복원한다:
+`kubectl --kubeconfig=../tmp/pangyo/kubeconfig/pangyo-kubeconfig --insecure-skip-tls-verify -n arena-dev get secret arena-secret -o jsonpath='{.data.NICE_AUTH_DEV_STUB}' | base64 -d`
+→ `NICE_AUTH_DEV_STUB=<값>` 한 줄로 저장. 실행 순서: `./e2e/reset-dev.sh` → full-flow → register → wizard → validation → api →
+layout → admin-layout → `U=<승인된 m… 아이디> node e2e/features.spec.mjs` → `PHONE=<번호> node e2e/alimtalk.spec.mjs`.
+
 # 브랜치 운영 (2026-08-21 합의)
 
 | 브랜치 | 역할 | 배포 대상 |
