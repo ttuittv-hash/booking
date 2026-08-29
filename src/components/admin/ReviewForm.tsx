@@ -39,17 +39,32 @@ const DECISION_TONE: Record<ReviewDecision, "good" | "warn" | "danger"> = {
   REJECTED: "danger",
 };
 
+/** 자동 채점 결과 중 화면에 필요한 만큼만 — 상세 내역은 위 ScoringPanel 이 이미 보여 준다. */
+export interface AutoScoreHint {
+  venueLabel: string;
+  /** 산정된 점수 합 + 가점 − 감점 */
+  provisionalFinal: number;
+  /** 아직 정해지지 않은 배점 합. 0 보다 크면 확정 점수가 아니다. */
+  unresolvedMax: number;
+}
+
 export function ReviewForm({
   quoteId,
   review,
   conflict,
   canReview,
+  autoScores = [],
 }: {
   quoteId: string;
   review: Review | null;
   conflict?: { companyName: string | null } | null;
   /** 프로 관리자 이상만 심사할 수 있다(2026-08-22 정정) — 일반관리자는 열람만. */
   canReview: boolean;
+  /**
+   * 자동 채점 점수(참고용). 동시 대관은 아레나·중형을 따로 심사하므로 2건이 온다.
+   * 최종 점수는 사람이 정한다 — 여기서는 보여 주고 [불러오기] 로 칸에 옮겨만 준다.
+   */
+  autoScores?: AutoScoreHint[];
 }) {
   const router = useRouter();
   const [score, setScore] = useState(review?.score?.toString() ?? "");
@@ -90,18 +105,55 @@ export function ReviewForm({
       </p>
 
       <div className="mt-5 space-y-4">
-        <label className="block">
+        <div>
           <span className={FIELD_LABEL}>심사 점수 (0~100, 선택)</span>
-          <input
-            type="number"
-            min={0}
-            max={100}
-            value={score}
-            disabled={!canReview}
-            onChange={(e) => setScore(e.target.value)}
-            className={`w-24 ${FIELD} text-right tabular-nums`}
-          />
-        </label>
+          <div className="flex flex-wrap items-center gap-3">
+            <input
+              type="number"
+              min={0}
+              max={100}
+              value={score}
+              disabled={!canReview}
+              onChange={(e) => setScore(e.target.value)}
+              aria-label="심사 점수"
+              className={`w-24 ${FIELD} text-right tabular-nums`}
+            />
+            {/* 자동 채점은 참고값이다 — 자동으로 칸을 채우지 않는다. 채워 두면 사람이
+                확인 없이 그대로 제출하게 되고, 그 점수가 심사 근거가 돼 버린다. */}
+            {autoScores.map((auto) => (
+              <span
+                key={auto.venueLabel}
+                data-testid="auto-score"
+                className="inline-flex flex-wrap items-center gap-2 border border-border-soft px-3 py-1.5 text-xs"
+              >
+                <span className="text-muted">
+                  자동 채점{autoScores.length > 1 ? ` · ${auto.venueLabel}` : ""}
+                </span>
+                <b className="tabular-nums">{auto.provisionalFinal}점</b>
+                {auto.unresolvedMax > 0 && (
+                  <span className="text-muted">
+                    (미정 배점 {auto.unresolvedMax}점 — 확정값 아님)
+                  </span>
+                )}
+                {canReview && (
+                  <button
+                    type="button"
+                    onClick={() => setScore(String(auto.provisionalFinal))}
+                    className="font-bold underline decoration-border-soft underline-offset-4 hover:decoration-accent"
+                  >
+                    불러오기
+                  </button>
+                )}
+              </span>
+            ))}
+          </div>
+          {autoScores.length > 0 && (
+            <p className={`mt-2 ${HELP}`}>
+              자동 채점은 위 &ldquo;자동 심사&rdquo; 표를 그대로 합산한 참고값입니다. 최종 점수는
+              운영자가 정하며, 불러온 뒤 고쳐도 됩니다.
+            </p>
+          )}
+        </div>
         <label className="block">
           <span className={FIELD_LABEL}>심사 근거 / 코멘트</span>
           <textarea

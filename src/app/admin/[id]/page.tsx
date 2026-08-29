@@ -206,6 +206,10 @@ export default async function AdminQuoteDetailPage({
         ]
       : [];
 
+  // 자동 채점은 한 번만 계산해 자동 심사 표와 심사 점수 칸이 나눠 쓴다 — 같은 화면에서
+  // 두 번 계산하면 규칙이 바뀔 때 한쪽만 고쳐질 수 있다.
+  const autoScore = scoreQuote(quote.selection);
+
   const needsArenaDates = quote.selection.venueId !== "medium-hall" || quote.selection.bookingMode === "SIMULTANEOUS";
   const pkg = needsArenaDates ? findPackage(rateTable, quote.selection.packageId) : null;
   const arenaDateGroups =
@@ -394,7 +398,7 @@ export default async function AdminQuoteDetailPage({
         </section>
 
         <div className="mt-6 space-y-6">
-          {quote.status === "ESTIMATE" && <ScoringPanel breakdown={scoreQuote(quote.selection)} />}
+          {quote.status === "ESTIMATE" && <ScoringPanel breakdown={autoScore} />}
 
           {competingCandidates.length > 0 && (
             <div className={PANEL}>
@@ -410,6 +414,12 @@ export default async function AdminQuoteDetailPage({
               review={quote.review}
               conflict={weekConflict ? { companyName: weekConflict.companyName } : null}
               canReview={isProAdminOrAbove(user)}
+              // 같은 계산 결과를 위 자동 심사 표와 심사 점수 칸이 함께 쓴다.
+              autoScores={autoScore.results.map((r) => ({
+                venueLabel: r.venueLabel,
+                provisionalFinal: r.provisionalFinal,
+                unresolvedMax: r.unresolvedMax,
+              }))}
             />
           )}
 
