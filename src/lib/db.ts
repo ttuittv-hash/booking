@@ -399,7 +399,7 @@ async function initSchema(pool: Pool) {
       reset_at TIMESTAMPTZ NOT NULL
     );
 
-    -- 신청번호(SA-2027-00125) 채번 카운터. 연도별 순번이며 rate_limits 와 같은
+    -- 신청번호(2027-00125) 채번 카운터. 연도별 순번이며 rate_limits 와 같은
     -- upsert-and-return 방식으로 여러 pod 가 동시에 접수해도 겹치지 않는다.
     CREATE TABLE IF NOT EXISTS quote_number_seq (
       year INTEGER PRIMARY KEY,
@@ -3113,10 +3113,24 @@ export async function purgeExpiredRateLimits(): Promise<void> {
   await q("DELETE FROM rate_limits WHERE reset_at <= now()");
 }
 
-// 신청번호를 "SA-2027-00125" 형식(연도 + 연도별 5자리 순번)으로 채번한다 — 예전에는
+// 신청번호를 "2027-00125" 형식(연도 + 연도별 5자리 순번)으로 채번한다 — 예전에는
 // UUID 조각(SA-6AF9D211)을 그대로 썼는데, 대관시스템 기준으로 순서를 알아볼 수 있어야
 // 한다는 피드백(2026-08-22)으로 바꿨다. rate_limits 와 같은 upsert-and-return 패턴이라
 // 여러 pod 가 동시에 접수해도 원자적으로 겹치지 않는다.
+//
+// [개정 2026-08-29] "SA-" 접두사를 뗐다. 서울아레나를 줄인 표기라 브랜드가 바뀌면 같이
+// 틀려지는데, 이 값은 quotes 의 기본키라 URL(/quotes/{id})과 업로드 경로(uploads/{id}/)에
+// 그대로 박혀 소급 변경이 불가능하다. 발급된 건이 적은 지금 떼어 두면 나중에 브랜드가
+// 무엇이 되든 신청번호는 손댈 일이 없다.
+//
+// 이미 발급된 "SA-…" 번호는 그대로 둔다 — 바꾸면 그 신청서의 링크와 첨부파일 경로가
+// 전부 끊긴다. 두 형식이 섞이지만 어느 쪽도 파싱하는 코드가 없어(접두사로 검증하거나
+// 잘라 쓰는 곳 없음) 문제되지 않는다. 접두사를 되살리거나 형식을 다시 바꾸지 말 것.
+/** 채번 결과를 신청번호 문자열로 만든다. 형식을 테스트로 잠가 두려고 따로 뺐다. */
+export function formatQuoteNumber(year: number, seq: number): string {
+  return `${year}-${String(seq).padStart(5, "0")}`;
+}
+
 export async function nextQuoteNumber(now: Date): Promise<string> {
   const year = Number(
     new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Seoul", year: "numeric" }).format(now),
@@ -3128,7 +3142,7 @@ export async function nextQuoteNumber(now: Date): Promise<string> {
      RETURNING seq`,
     [year],
   );
-  return `SA-${year}-${String(row!.seq).padStart(5, "0")}`;
+  return formatQuoteNumber(year, row!.seq);
 }
 
 // ---------------------------------------------------------------------------
