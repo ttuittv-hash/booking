@@ -959,6 +959,10 @@ export interface AppUser {
   // 탈퇴 시각. null 이면 유효한 계정이다. 탈퇴해도 행은 남으므로(신청서·감사로그의
   // 작성자를 잃지 않기 위해) 목록에서는 이 값으로 구분해 표시해야 한다.
   withdrawnAt: string | null;
+  // 가입 승인·반려를 처리한 사람의 id 와 시각. 승인은 운영자와 회사 대표 담당자 둘 다
+  // 할 수 있어, 처리 완료 목록에서 주체를 밝히려면 남겨야 한다.
+  approvalDecidedBy: string | null;
+  approvalDecidedAt: string | null;
   createdAt: string;
 }
 

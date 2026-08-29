@@ -43,12 +43,15 @@ export function ApplicantApprovalTable({
   pending,
   businessRegistrationNumbers = {},
   joinContexts = {},
+  deciders = {},
 }: {
   applicants: AppUser[];
   pending: boolean;
   businessRegistrationNumbers?: Record<string, string | null>;
   /** 승인 대기 표에서만 쓴다 — 회사 안 가입 순서와, 이미 승인된 사람이 있는지. */
   joinContexts?: Record<string, { joinOrder: number; companyHasApproved: boolean }>;
+  /** 처리 완료 표에서만 쓴다 — 승인·반려를 처리한 사람(운영자 또는 회사 대표 담당자). */
+  deciders?: Record<string, { name: string; isAdmin: boolean }>;
 }) {
   // 승인·반려·삭제는 회사 상세의 담당자 목록과 같은 동작이다 — useMemberActions 하나를 쓴다.
   const { busyId, decide, remove } = useMemberActions();
@@ -80,6 +83,8 @@ export function ApplicantApprovalTable({
               {/* 승인 대기에서는 "승인하면 대표가 되는 사람인가"를, 처리 완료에서는
                   "대표로 승인됐는가"를 보여 준다 — 같은 자리, 다른 질문이다. */}
               {pending ? <th className={TH}>가입순</th> : <th className={TH}>구분</th>}
+              {/* 승인·반려는 운영자와 회사 대표 담당자 둘 다 할 수 있다 — 누가 했는지 밝힌다. */}
+              {pending ? null : <th className={TH}>처리자</th>}
               <th className={TH}>상태</th>
               <th className={TH} />
             </tr>
@@ -87,7 +92,7 @@ export function ApplicantApprovalTable({
           <tbody>
             {applicants.length === 0 ? (
               <tr>
-                <td colSpan={8} className={TD_EMPTY}>
+                <td colSpan={pending ? 8 : 9} className={TD_EMPTY}>
                   {pending ? "승인 대기 중인 신청이 없습니다." : "처리 내역이 없습니다."}
                 </td>
               </tr>
@@ -140,6 +145,23 @@ export function ApplicantApprovalTable({
                       ) : (
                         <span className="text-s text-muted">소속 담당자</span>
                       )}
+                    </td>
+                  )}
+                  {pending ? null : (
+                    <td className={TD}>
+                      {(() => {
+                        const decider = a.approvalDecidedBy ? deciders[a.approvalDecidedBy] : undefined;
+                        // 이 컬럼이 생기기 전에 처리된 건은 기록이 없다 — 없는 걸 지어내지 않는다.
+                        if (!decider) return <span className="text-muted">{NONE}</span>;
+                        return (
+                          <span className="flex flex-wrap items-center gap-1.5 whitespace-nowrap">
+                            <span className="text-s">{decider.name}</span>
+                            <span className="text-xs text-muted">
+                              {decider.isAdmin ? "운영자" : "대표 담당자"}
+                            </span>
+                          </span>
+                        );
+                      })()}
                     </td>
                   )}
                   <td className={TD}>

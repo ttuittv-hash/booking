@@ -578,6 +578,13 @@ async function initSchema(pool: Pool) {
     ALTER TABLE users ADD COLUMN IF NOT EXISTS employment_cert_url TEXT;
     ALTER TABLE users ADD COLUMN IF NOT EXISTS employment_cert_name TEXT;
 
+    -- [신규 2026-08-29] 가입 승인·반려를 누가 언제 했는지. 승인은 운영자와 회사 대표
+    -- 담당자 둘 다 할 수 있는데 기록이 없어, 처리 완료 목록에서 주체를 알 수 없었다.
+    -- FK 를 걸지 않는다 — 처리한 사람이 나중에 지워져도 "누가 했었다"는 기록은 남아야
+    -- 하고, deleteUserCascade 가 이 컬럼 때문에 막히면 안 된다.
+    ALTER TABLE users ADD COLUMN IF NOT EXISTS approval_decided_by TEXT;
+    ALTER TABLE users ADD COLUMN IF NOT EXISTS approval_decided_at TEXT;
+
     -- 초대로 만들어진 계정은 본인이 비밀번호를 정하기 전까지 해시가 없다.
     ALTER TABLE users ALTER COLUMN password_hash DROP NOT NULL;
 
@@ -2630,6 +2637,8 @@ interface UserRow {
   approval_status: ApprovalStatus;
   admin_tier: AdminTier | null;
   withdrawn_at: string | null;
+  approval_decided_by: string | null;
+  approval_decided_at: string | null;
   created_at: string;
 }
 
@@ -2655,6 +2664,8 @@ function toAppUser(row: UserRow): AppUser {
     companyRole: row.role === "APPLICANT" ? ((row.company_role as CompanyRole | null) ?? null) : null,
     identityVerifiedAt: row.identity_verified_at ?? null,
     withdrawnAt: row.withdrawn_at ?? null,
+    approvalDecidedBy: row.approval_decided_by ?? null,
+    approvalDecidedAt: row.approval_decided_at ?? null,
     createdAt: row.created_at,
   };
 }
@@ -2743,6 +2754,8 @@ export async function createUser(input: {
     identityVerifiedAt: null,
     // 방금 만든 계정이라 탈퇴했을 리 없다.
     withdrawnAt: null,
+    approvalDecidedBy: null,
+    approvalDecidedAt: null,
     createdAt: input.createdAt,
   };
 }
@@ -2868,8 +2881,23 @@ export async function listUsersPaged(
   return toPaged(rows.map(toAppUser), countRow?.n ?? 0, page, pageSize);
 }
 
-export async function setUserApprovalStatus(id: string, approvalStatus: ApprovalStatus): Promise<AppUser> {
-  await q("UPDATE users SET approval_status = $1 WHERE id = $2", [approvalStatus, id]);
+export async function setUserApprovalStatus(
+  id: string,
+  approvalStatus: ApprovalStatus,
+  /**
+   * 처리한 사람. 승인은 운영자와 회사 대표 담당자 둘 다 할 수 있어, 나중에 되짚으려면
+   * 누가 했는지가 남아야 한다. 승인 대기로 되돌리는 경우처럼 처리자가 없으면 비운다.
+   */
+  decidedBy?: string | null,
+): Promise<AppUser> {
+  await q(
+    `UPDATE users
+        SET approval_status = $1,
+            approval_decided_by = $3,
+            approval_decided_at = CASE WHEN $3::text IS NULL THEN NULL ELSE $4 END
+      WHERE id = $2`,
+    [approvalStatus, id, decidedBy ?? null, new Date().toISOString()],
+  );
   return (await findUserById(id))!;
 }
 

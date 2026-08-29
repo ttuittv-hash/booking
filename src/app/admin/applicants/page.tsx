@@ -4,6 +4,7 @@ import { getCurrentUser } from "@/lib/auth";
 import {
   getCompanyJoinContexts,
   listCompanies,
+  listUsersByIds,
   listCompaniesPaged,
   listUsersPaged,
   normalizePage,
@@ -130,6 +131,14 @@ async function DecidedTab({ page, brns }: { page: number; brns: Record<string, s
     { role: "APPLICANT", excludeApprovalStatus: "PENDING" },
     page,
   );
+  // 처리자 이름은 한 번에 읽어 Map 으로 만든다 — 행마다 findUserById 면 N+1 이다.
+  const deciderIds = [...new Set(items.map((u) => u.approvalDecidedBy).filter((v): v is string => !!v))];
+  const deciders = Object.fromEntries(
+    (await listUsersByIds(deciderIds)).map((u) => [
+      u.id,
+      { name: u.name, isAdmin: u.role === "ADMIN" },
+    ]),
+  );
   return (
     <>
       <div className="mt-8">
@@ -137,6 +146,7 @@ async function DecidedTab({ page, brns }: { page: number; brns: Record<string, s
           applicants={items}
           pending={false}
           businessRegistrationNumbers={brns}
+          deciders={deciders}
         />
       </div>
       <Pagination
