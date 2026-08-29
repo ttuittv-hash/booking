@@ -152,6 +152,8 @@ try {
   const row = bo.locator("tr", { hasText: `${masterUser}@seoul-ent.co.kr` }).first();
   await row.waitFor({ timeout: 20000 });
   await row.getByRole("button", { name: "승인" }).click();
+  // 회사의 첫 승인은 "대표 담당자로 지정됩니다" 확인 팝업이 뜬다(2026-08-29 기획) — 확인을 누른다.
+  await bo.locator('[data-testid="dialog-ok"]').click({ timeout: 3000 }).catch(() => {});
   // 승인되면 승인 대기 목록에서 빠진다
   await row.waitFor({ state: "detached", timeout: 20000 }).catch(() => {});
   const stillPending = await bo

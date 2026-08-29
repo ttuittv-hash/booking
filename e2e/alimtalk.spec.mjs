@@ -82,6 +82,8 @@ try {
   const row = bo.locator("tr", { hasText: `${username}@seoul-ent.co.kr` }).first();
   await row.waitFor({ timeout: 20000 });
   await row.getByRole("button", { name: "승인" }).click();
+  // 회사의 첫 승인은 "대표 담당자로 지정됩니다" 확인 팝업이 뜬다(2026-08-29 기획) — 확인을 누른다.
+  await bo.locator('[data-testid="dialog-ok"]').click({ timeout: 3000 }).catch(() => {});
   await row.waitFor({ state: "detached", timeout: 20000 }).catch(() => {});
   check("MB-02", "운영자 승인 → MB-02 발송 이벤트 발생", true);
   console.log(`USERNAME=${username}`);
