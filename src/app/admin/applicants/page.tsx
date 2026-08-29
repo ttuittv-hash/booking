@@ -2,6 +2,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/lib/auth";
 import {
+  getCompanyJoinContexts,
   listCompanies,
   listCompaniesPaged,
   listUsersPaged,
@@ -96,14 +97,25 @@ export default async function AdminApplicantsPage({
 }
 
 async function PendingTab({ page, brns }: { page: number; brns: Record<string, string | null> }) {
+  // 회사끼리 붙여 놓고 회사 안에서는 가입 순으로 세운다 — 누가 먼저 신청했는지 보고
+  // 승인해야 대표가 엉뚱하게 정해지지 않는다.
   const { items, total, totalPages } = await listUsersPaged(
-    { role: "APPLICANT", approvalStatus: "PENDING" },
+    { role: "APPLICANT", approvalStatus: "PENDING", orderBy: "company" },
     page,
+  );
+  // 승인이 곧 대표 지정인지 표에서 보이게 한다 — 대표는 회사의 첫 승인 때 정해진다.
+  const joinContexts = Object.fromEntries(
+    await getCompanyJoinContexts(items.map((u) => u.id)),
   );
   return (
     <>
       <div className="mt-8">
-        <ApplicantApprovalTable applicants={items} pending businessRegistrationNumbers={brns} />
+        <ApplicantApprovalTable
+          applicants={items}
+          pending
+          businessRegistrationNumbers={brns}
+          joinContexts={joinContexts}
+        />
       </div>
       <Pagination page={page} totalPages={totalPages} total={total} basePath="/admin/applicants" />
       <div className="mt-10">

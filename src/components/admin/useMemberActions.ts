@@ -26,7 +26,25 @@ export function useMemberActions(options?: {
   const dialog = useDialog();
   const [busyId, setBusyId] = useState<string | null>(null);
 
-  async function decide(id: string, action: "approve" | "reject") {
+  async function decide(
+    id: string,
+    action: "approve" | "reject",
+    /** 승인이 곧 대표 지정이 되는 경우, 그 사실을 먼저 확인받기 위한 값. */
+    master?: { willBecomeMaster: boolean; name: string; companyName: string | null },
+  ) {
+    // 대표는 회사의 첫 승인 때 자동으로 정해진다(ensureCompanyMaster). 표에서 무심코
+    // 누른 승인이 대표까지 정해 버리는 일이 있어, 그 경우에는 한 번 되묻는다.
+    if (action === "approve" && master?.willBecomeMaster) {
+      const ok = await dialog.confirm(
+        `${master.name}님은 ${master.companyName || "이 회사"}의 첫 승인 대상입니다.\n` +
+          "승인하면 이 분이 대표 담당자로 지정됩니다.\n" +
+          "대표 담당자는 소속 담당자를 초대하고 합류 신청을 승인·반려할 수 있습니다.\n\n" +
+          "대표 담당자로 지정하며 승인할까요?",
+        { title: "대표 담당자 지정", okLabel: "승인" },
+      );
+      if (!ok) return;
+    }
+
     // 반려 사유는 MB-03 알림톡의 필수 변수다. 비워두면 신청자에게 빈 사유가 나간다.
     let reason = "";
     if (action === "reject") {

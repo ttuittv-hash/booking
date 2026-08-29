@@ -42,10 +42,13 @@ export function ApplicantApprovalTable({
   applicants,
   pending,
   businessRegistrationNumbers = {},
+  joinContexts = {},
 }: {
   applicants: AppUser[];
   pending: boolean;
   businessRegistrationNumbers?: Record<string, string | null>;
+  /** 승인 대기 표에서만 쓴다 — 회사 안 가입 순서와, 이미 승인된 사람이 있는지. */
+  joinContexts?: Record<string, { joinOrder: number; companyHasApproved: boolean }>;
 }) {
   // 승인·반려·삭제는 회사 상세의 담당자 목록과 같은 동작이다 — useMemberActions 하나를 쓴다.
   const { busyId, decide, remove } = useMemberActions();
@@ -74,9 +77,9 @@ export function ApplicantApprovalTable({
               <th className={TH_NUM}>사업자등록번호</th>
               <th className={TH}>이메일</th>
               <th className={TH_NUM}>가입일</th>
-              {/* 대표/소속은 첫 승인 때 정해진다 — 승인 대기 탭에서는 아직 아무도 대표가
-                  아니라 칸을 두면 전부 "소속 담당자"로 보여 오해를 부른다. */}
-              {pending ? null : <th className={TH}>구분</th>}
+              {/* 승인 대기에서는 "승인하면 대표가 되는 사람인가"를, 처리 완료에서는
+                  "대표로 승인됐는가"를 보여 준다 — 같은 자리, 다른 질문이다. */}
+              {pending ? <th className={TH}>가입순</th> : <th className={TH}>구분</th>}
               <th className={TH}>상태</th>
               <th className={TH} />
             </tr>
@@ -84,7 +87,7 @@ export function ApplicantApprovalTable({
           <tbody>
             {applicants.length === 0 ? (
               <tr>
-                <td colSpan={pending ? 7 : 8} className={TD_EMPTY}>
+                <td colSpan={8} className={TD_EMPTY}>
                   {pending ? "승인 대기 중인 신청이 없습니다." : "처리 내역이 없습니다."}
                 </td>
               </tr>
@@ -110,7 +113,23 @@ export function ApplicantApprovalTable({
                   <td className={`${TD_NUM} whitespace-nowrap text-muted`}>
                     {formatDate(a.createdAt)}
                   </td>
-                  {pending ? null : (
+                  {pending ? (
+                    <td className={TD}>
+                      {joinContexts[a.id] ? (
+                        <span className="flex flex-wrap items-center gap-1.5 whitespace-nowrap">
+                          <span className="text-s text-muted">
+                            {joinContexts[a.id].joinOrder}번째
+                          </span>
+                          {/* 회사에 승인된 사람이 아직 없다 = 이 승인이 대표를 정한다. */}
+                          {joinContexts[a.id].companyHasApproved ? null : (
+                            <Badge tone="warn">대표 지정</Badge>
+                          )}
+                        </span>
+                      ) : (
+                        <span className="text-muted">{NONE}</span>
+                      )}
+                    </td>
+                  ) : (
                     <td className={TD}>
                       {/* 승인된 사람에게만 의미가 있다 — 반려된 계정의 company_role 은
                           STAFF 로 남아 있을 뿐 대표/소속을 가리키지 않는다. */}
@@ -147,7 +166,14 @@ export function ApplicantApprovalTable({
                           <button
                             type="button"
                             disabled={busyId === a.id}
-                            onClick={() => decide(a.id, "approve")}
+                            onClick={() =>
+                              decide(a.id, "approve", {
+                                // 회사에 승인된 사람이 아직 없으면 이 승인이 대표를 정한다.
+                                willBecomeMaster: joinContexts[a.id]?.companyHasApproved === false,
+                                name: a.name,
+                                companyName: a.companyName,
+                              })
+                            }
                             className={btnClass("primary", "sm")}
                           >
                             승인

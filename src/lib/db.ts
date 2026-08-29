@@ -1812,6 +1812,67 @@ export async function companyHasApprovedMember(
   return !!row;
 }
 
+/*
+  승인 대기 화면이 "이 사람을 승인하면 대표가 되는가"를 알기 위한 값 (2026-08-29).
+
+  대표는 회사의 첫 승인 때 정해진다(ensureCompanyMaster). 그런데 표에는 그 사실이
+  드러나지 않아, 운영자가 무심코 누른 승인이 대표를 정해 버렸다. 회사에 이미 승인된
+  사람이 있는지와, 이 사람이 회사에서 몇 번째로 신청했는지를 함께 보여 준다.
+
+  행마다 조회하면 N+1 이라 한 문장으로 읽는다.
+*/
+export interface CompanyJoinContext {
+  /** 회사 안에서 몇 번째로 가입 신청했는지(1부터). 탈퇴자는 세지 않는다. */
+  joinOrder: number;
+  /** 회사에 이미 승인된 담당자가 있는지. false 면 이 사람의 승인이 대표를 정한다. */
+  companyHasApproved: boolean;
+}
+
+export async function getCompanyJoinContexts(
+  userIds: string[],
+): Promise<Map<string, CompanyJoinContext>> {
+  const result = new Map<string, CompanyJoinContext>();
+  if (userIds.length === 0) return result;
+
+  const rows = await q<{ id: string; join_order: string; approved_count: string }>(
+    `WITH target AS (
+       SELECT DISTINCT company_id FROM users
+        WHERE id = ANY($1::text[]) AND company_id IS NOT NULL
+     ),
+     ranked AS (
+       SELECT u.id, u.company_id,
+              ROW_NUMBER() OVER (
+                PARTITION BY u.company_id ORDER BY u.created_at ASC, u.id ASC
+              ) AS join_order
+         FROM users u
+         JOIN target t ON t.company_id = u.company_id
+        WHERE u.role = 'APPLICANT' AND u.withdrawn_at IS NULL
+     ),
+     approved AS (
+       SELECT u.company_id, COUNT(*)::text AS n
+         FROM users u
+         JOIN target t ON t.company_id = u.company_id
+        WHERE u.role = 'APPLICANT'
+          AND u.approval_status = 'APPROVED'
+          AND u.withdrawn_at IS NULL
+        GROUP BY u.company_id
+     )
+     SELECT r.id, r.join_order::text AS join_order, COALESCE(a.n, '0') AS approved_count
+       FROM ranked r
+       LEFT JOIN approved a ON a.company_id = r.company_id
+      WHERE r.id = ANY($1::text[])`,
+    [userIds],
+  );
+
+  for (const row of rows) {
+    result.set(row.id, {
+      joinOrder: Number(row.join_order),
+      companyHasApproved: Number(row.approved_count) > 0,
+    });
+  }
+  return result;
+}
+
 /** 회사 소속 담당자 목록 — 마스터의 담당자 관리 화면(기획서 A10). */
 export async function listCompanyMembers(companyId: string): Promise<AppUser[]> {
   const rows = await q<UserRow>(
@@ -2760,7 +2821,17 @@ export async function listUsers(filter?: {
 }
 
 export async function listUsersPaged(
-  filter: { role?: UserRole; approvalStatus?: ApprovalStatus; excludeApprovalStatus?: ApprovalStatus } = {},
+  filter: {
+    role?: UserRole;
+    approvalStatus?: ApprovalStatus;
+    excludeApprovalStatus?: ApprovalStatus;
+    /**
+     * "company" 는 같은 회사 신청자를 붙여 놓고 회사 안에서는 가입 순으로 세운다
+     * (승인 대기 화면 — 대표는 첫 승인이 정하므로 순서를 보고 판단해야 한다).
+     * 기본값은 가입 순이다.
+     */
+    orderBy?: "createdAt" | "company";
+  } = {},
   page = 1,
   pageSize = DEFAULT_PAGE_SIZE,
 ): Promise<Paged<AppUser>> {
@@ -2782,7 +2853,12 @@ export async function listUsersPaged(
 
   const countRow = await one<{ n: number }>(`SELECT COUNT(*)::int AS n FROM users ${where}`, params);
   const rows = await q<UserRow>(
-    `SELECT * FROM users ${where} ORDER BY created_at ASC LIMIT $${params.length + 1} OFFSET $${params.length + 2}`,
+    `SELECT * FROM users ${where} ORDER BY ${
+      // 값은 고정 문자열 두 개뿐이라 사용자 입력이 SQL 에 닿지 않는다.
+      filter.orderBy === "company"
+        ? "company_name ASC NULLS LAST, company_id ASC, created_at ASC"
+        : "created_at ASC"
+    } LIMIT $${params.length + 1} OFFSET $${params.length + 2}`,
     [...params, pageSize, (page - 1) * pageSize],
   );
   return toPaged(rows.map(toAppUser), countRow?.n ?? 0, page, pageSize);
