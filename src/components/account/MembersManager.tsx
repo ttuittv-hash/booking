@@ -15,6 +15,7 @@ type Member = {
   phone: string | null;
   companyRole: string | null;
   approvalStatus: string;
+  withdrawnAt: string | null;
   createdAt: string;
 };
 type Invitation = {
@@ -118,6 +119,8 @@ type UnifiedRow = {
   companyRole: string | null; // MASTER | STAFF | null(아직 계정 없음)
   /** 이 행이 지금 보고 있는 본인인지 — 표에서 내 줄과 남의 줄이 구분돼야 한다. */
   isMe: boolean;
+  /** 탈퇴한 사람. 목록에는 남기되(회사 이력) 승인·소속 해제·대표 이관 대상에서는 뺀다. */
+  withdrawn: boolean;
   joined: boolean; // 가입 여부 — 상태 컬럼의 1차 값
   detailLabel: string; // 상태 컬럼의 부가 설명(정상/승인 대기/초대 발송 등)
   /** 계정이 있는 사람만 상세 화면이 있다. 초대 행(아직 계정 없음)은 갈 곳이 없다. */
@@ -197,7 +200,9 @@ export function MembersManager({ currentUserId }: { currentUserId: string }) {
 
   const memberRows: UnifiedRow[] = members.map((m) => {
     const actions: RowAction[] = [];
-    if (m.companyRole !== "MASTER") {
+    // 탈퇴자는 목록에 남기되 손댈 수 없다 — 이미 회사를 떠난 사람을 승인하거나
+    // 대표로 세우거나 소속 해제하는 건 말이 되지 않는다.
+    if (m.companyRole !== "MASTER" && !m.withdrawnAt) {
       if (m.approvalStatus === "PENDING") {
         actions.push(
           {
@@ -251,6 +256,7 @@ export function MembersManager({ currentUserId }: { currentUserId: string }) {
     return {
       key: `member-${m.id}`,
       isMe: m.id === currentUserId,
+      withdrawn: !!m.withdrawnAt,
       href: `/mypage/members/${m.id}`,
       name: m.name,
       email: m.email,
@@ -293,6 +299,7 @@ export function MembersManager({ currentUserId }: { currentUserId: string }) {
         key: `invite-${iv.id}`,
         // 초대 행은 아직 계정이 없거나 남의 초대다 — 본인일 수 없다.
         isMe: false,
+        withdrawn: false,
         name: iv.inviteeName ?? "—",
         email: iv.email,
         phone: iv.phone,
@@ -391,10 +398,18 @@ export function MembersManager({ currentUserId }: { currentUserId: string }) {
                     )}
                   </td>
                   <td className="py-3">
-                    <span className={`font-bold ${row.joined ? "text-foreground" : "text-muted"}`}>
-                      {row.joined ? "가입" : "미가입"}
-                    </span>
-                    <span className="ml-1.5 text-xs text-muted">({row.detailLabel})</span>
+                    {/* 탈퇴자는 승인 상태가 그대로 남아 "가입 (정상)" 으로 보였다.
+                        이미 떠난 사람이므로 탈퇴를 먼저 알린다. */}
+                    {row.withdrawn ? (
+                      <span className="font-bold text-muted">탈퇴</span>
+                    ) : (
+                      <>
+                        <span className={`font-bold ${row.joined ? "text-foreground" : "text-muted"}`}>
+                          {row.joined ? "가입" : "미가입"}
+                        </span>
+                        <span className="ml-1.5 text-xs text-muted">({row.detailLabel})</span>
+                      </>
+                    )}
                   </td>
                   <td className="py-3">
                     {row.actions.length === 0 ? (

@@ -100,6 +100,7 @@ export default async function AdminCompanyDetailPage({
               email: m.email,
               companyRole: m.companyRole,
               approvalStatus: m.approvalStatus,
+              withdrawnAt: m.withdrawnAt,
             }))}
           />
         </div>

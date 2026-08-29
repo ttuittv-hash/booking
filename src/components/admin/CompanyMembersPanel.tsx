@@ -14,6 +14,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { LINK_BTN } from "@/components/admin/adminUi";
 import { btnClass } from "@/components/ui/kit";
+import { displayEmail } from "@/lib/format";
 import { useMemberActions } from "./useMemberActions";
 
 export interface CompanyMember {
@@ -23,6 +24,8 @@ export interface CompanyMember {
   email: string;
   companyRole: string | null;
   approvalStatus: string;
+  /** 탈퇴 시각. 있으면 목록에는 남기되 [탈퇴] 로 표시하고 손대지 않는다. */
+  withdrawnAt: string | null;
 }
 
 const APPROVAL_LABEL: Record<string, string> = {
@@ -102,20 +105,23 @@ export function CompanyMembersPanel({
                   {m.name}
                 </Link>
                 <span className="text-muted">{m.username}</span>
-                <span className="text-muted">{m.email}</span>
-                <span className="text-xs text-muted">{APPROVAL_LABEL[m.approvalStatus] ?? m.approvalStatus}</span>
+                <span className="text-muted">{displayEmail(m.email)}</span>
+                <span className="text-xs text-muted">
+                  {/* 탈퇴자는 승인 상태가 그대로 남아 "정상" 으로 보였다. */}
+                  {m.withdrawnAt ? "탈퇴" : (APPROVAL_LABEL[m.approvalStatus] ?? m.approvalStatus)}
+                </span>
               </span>
               <span className="flex shrink-0 flex-wrap items-center gap-2">
                 <Link href={`/admin/applicants/${m.id}`} className={LINK_BTN}>
                   상세
                 </Link>
-                {!isMaster && m.approvalStatus === "APPROVED" ? (
+                {m.withdrawnAt ? null : !isMaster && m.approvalStatus === "APPROVED" ? (
                   <button type="button" disabled={busy} onClick={() => setMaster(m)} className={LINK_BTN}>
                     대표로 지정
                   </button>
                 ) : null}
                 {/* 회원 관리 표와 같은 규칙 — 승인 대기인 사람에게만 승인·반려가 뜬다. */}
-                {m.approvalStatus === "PENDING" ? (
+                {!m.withdrawnAt && m.approvalStatus === "PENDING" ? (
                   <>
                     <button
                       type="button"
@@ -135,6 +141,7 @@ export function CompanyMembersPanel({
                     </button>
                   </>
                 ) : null}
+                {m.withdrawnAt ? null : (
                 <button
                   type="button"
                   disabled={busyId === m.id}
@@ -145,6 +152,7 @@ export function CompanyMembersPanel({
                 >
                   삭제
                 </button>
+                )}
               </span>
             </li>
           );

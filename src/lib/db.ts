@@ -1883,12 +1883,10 @@ export async function getCompanyJoinContexts(
 /** 회사 소속 담당자 목록 — 마스터의 담당자 관리 화면(기획서 A10). */
 export async function listCompanyMembers(companyId: string): Promise<AppUser[]> {
   const rows = await q<UserRow>(
-    // [개정 2026-08-29] 탈퇴자를 뺀다. 예전에는 그대로 나와, 회사를 떠난 사람이
-    // 담당자 목록에 소속 담당자로 남고 대표 이관 대상으로도 뽑혔다.
-    // 탈퇴해도 users 행은 남는다(신청서·감사로그의 작성자를 잃지 않으려고) —
-    // "회사의 담당자"를 묻는 이 조회에서는 걸러야 한다.
+    // 탈퇴자도 그대로 준다 — 회사 이력에서 지워지면 "그 사람이 있었다"는 사실이 사라진다.
+    // 대신 화면에서 [탈퇴] 로 표시하고 액션(승인·소속 해제·대표 이관) 대상에서 뺀다.
     `SELECT * FROM users
-      WHERE company_id = $1 AND role = 'APPLICANT' AND withdrawn_at IS NULL
+      WHERE company_id = $1 AND role = 'APPLICANT'
       ORDER BY (company_role = 'MASTER') DESC, created_at ASC`,
     [companyId],
   );

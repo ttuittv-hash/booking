@@ -28,6 +28,8 @@ export async function GET() {
       phone: m.phone,
       companyRole: m.companyRole,
       approvalStatus: m.approvalStatus,
+      // 탈퇴자도 목록에 남긴다 — 화면이 [탈퇴] 로 표시하고 액션에서 빼려면 알아야 한다.
+      withdrawnAt: m.withdrawnAt,
       createdAt: m.createdAt,
     })),
     isMaster: isCompanyMaster(user),
