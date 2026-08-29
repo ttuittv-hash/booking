@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useState, type ReactNode } from "react";
 import { btnClass } from "@/components/ui/kit";
+import { useDialog } from "@/components/ui/Dialog";
 
 /*
   합류 신청 상세 — 대표 담당자가 한 사람의 신청 내용을 보고 승인/반려하는 화면(2026-08-28).
@@ -69,6 +70,7 @@ export function MemberApprovalPanel({
   isSelf: boolean;
 }) {
   const router = useRouter();
+  const dialog = useDialog();
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [done, setDone] = useState<string | null>(null);
@@ -77,8 +79,14 @@ export function MemberApprovalPanel({
     let reason = "";
     if (action === "reject") {
       // MB-03 의 필수 변수라 사유 없이 반려할 수 없다.
-      reason = window.prompt("반려 사유를 입력해주세요. 신청자에게 그대로 안내됩니다.")?.trim() ?? "";
-      if (!reason) return;
+      const input = await dialog.prompt("반려 사유를 입력해주세요.\n신청자에게 그대로 안내됩니다.", {
+        title: "가입 반려",
+        okLabel: "반려",
+        placeholder: "예: 사업자 정보가 확인되지 않습니다",
+        multiline: true,
+      });
+      if (!input) return;
+      reason = input;
     }
     setBusy(true);
     setError(null);
