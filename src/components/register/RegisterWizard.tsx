@@ -1171,18 +1171,33 @@ function StepInfo({
               </button>
             </span>
           </Field>
-          <div className="mt-2 grid gap-3 sm:grid-cols-2">
-            <input data-testid="f-address" readOnly={locked} value={form.address} onChange={set("address")} placeholder="회사주소" className={inputCls(locked)} />
-            <input data-testid="f-addressDetail" readOnly={locked} value={form.addressDetail} onChange={set("addressDetail")} placeholder="상세주소" className={inputCls(locked)} />
-          </div>
-          {/* 회사명으로 검색해 놓고 "주소가 없다"고 막히는 일이 잦았다. 무엇으로 찾는
-              검색인지, 못 찾으면 어떻게 하는지를 검색창 옆이 아니라 여기서 알려 준다. */}
-          {locked ? null : (
-            <p className="mt-2 break-keep text-xs leading-6 text-muted">
-              도로명 · 지번 · 건물명으로 검색됩니다. <b>회사명으로는 찾을 수 없습니다.</b>{" "}
-              아직 주소가 부여되지 않은 신축 건물처럼 검색되지 않는 주소는 우편번호와 회사주소를
-              직접 입력해 주세요.
-            </p>
+          {/* [개정 2026-08-29] 이미 등록된 회사에는 상세주소 칸을 두지 않는다.
+              회사주소는 최초 등록 때 상세주소까지 합쳐 저장되고(제출 시 address +
+              addressDetail 를 이어 붙인다), 합류 가입에서는 서버가 기존 회사 값을
+              그대로 유지한다(findOrCreateCompany). 그래서 여기서 더 받아 봐야 조용히
+              버려진다 — 빈 칸을 열어 두는 것보다 아예 안 보이는 게 낫다. */}
+          {locked ? (
+            <div className="mt-2">
+              <input data-testid="f-address" readOnly value={form.address} placeholder="회사주소" className={inputCls(true)} />
+              <p className="mt-2 break-keep text-xs leading-6 text-muted">
+                등록된 회사 주소입니다. 바꾸려면 대표 담당자가 가입 후 [회사 정보 수정]에서
+                변경해 주세요.
+              </p>
+            </div>
+          ) : (
+            <>
+              <div className="mt-2 grid gap-3 sm:grid-cols-2">
+                <input data-testid="f-address" value={form.address} onChange={set("address")} placeholder="회사주소" className={inputCls(false)} />
+                <input data-testid="f-addressDetail" value={form.addressDetail} onChange={set("addressDetail")} placeholder="상세주소 (동 · 층 · 호)" className={inputCls(false)} />
+              </div>
+              {/* 회사명으로 검색해 놓고 "주소가 없다"고 막히는 일이 잦았다. 무엇으로 찾는
+                  검색인지, 못 찾으면 어떻게 하는지를 검색창 옆이 아니라 여기서 알려 준다. */}
+              <p className="mt-2 break-keep text-xs leading-6 text-muted">
+                도로명 · 지번 · 건물명으로 검색됩니다. <b>회사명으로는 찾을 수 없습니다.</b>{" "}
+                아직 주소가 부여되지 않은 신축 건물처럼 검색되지 않는 주소는 우편번호와 회사주소를
+                직접 입력해 주세요.
+              </p>
+            </>
           )}
         </div>
       </div>
