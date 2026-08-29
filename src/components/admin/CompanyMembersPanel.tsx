@@ -1,13 +1,20 @@
 "use client";
 
-// 회사 상세의 담당자 목록 — 대표/소속 구분, 회원 상세 이동, 대표 담당자 지정.
+// 회사 상세의 담당자 목록 — 대표/소속 구분, 회원 상세 이동, 대표 담당자 지정,
+// 그리고 승인·반려·삭제(2026-08-29 추가).
 // 회사별 담당자 탭의 아코디언에서 쓰던 것을 상세 페이지로 옮겨 온 것이다.
+//
+// 예전에는 여기서 보기만 되고 처리하려면 회원 관리 표로 되돌아 나가야 했다. 승인 대기가
+// 있는 회사를 열어 놓고 정작 승인은 다른 화면에서 해야 하는 게 어색해서, 표와 같은
+// 동작(useMemberActions)을 그대로 붙였다.
 
 import Link from "next/link";
 import { useDialog } from "@/components/ui/Dialog";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { LINK_BTN } from "@/components/admin/adminUi";
+import { btnClass } from "@/components/ui/kit";
+import { useMemberActions } from "./useMemberActions";
 
 export interface CompanyMember {
   id: string;
@@ -35,6 +42,10 @@ export function CompanyMembersPanel({
   const dialog = useDialog();
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // 마지막 담당자를 지우면 회사도 함께 사라진다 — 이 페이지에 머물면 404 라 목록으로 보낸다.
+  const { busyId, decide, remove } = useMemberActions({
+    onCompanyDeleted: () => router.push("/admin/applicants?tab=companies"),
+  });
 
   async function setMaster(m: CompanyMember) {
     if (!(await dialog.confirm(`${m.name}님을 대표 담당자로 지정합니다.\n기존 대표는 소속 담당자가 됩니다.`, { okLabel: "지정" }))) {
@@ -94,7 +105,7 @@ export function CompanyMembersPanel({
                 <span className="text-muted">{m.email}</span>
                 <span className="text-xs text-muted">{APPROVAL_LABEL[m.approvalStatus] ?? m.approvalStatus}</span>
               </span>
-              <span className="flex shrink-0 items-center gap-3">
+              <span className="flex shrink-0 flex-wrap items-center gap-2">
                 <Link href={`/admin/applicants/${m.id}`} className={LINK_BTN}>
                   상세
                 </Link>
@@ -103,6 +114,37 @@ export function CompanyMembersPanel({
                     대표로 지정
                   </button>
                 ) : null}
+                {/* 회원 관리 표와 같은 규칙 — 승인 대기인 사람에게만 승인·반려가 뜬다. */}
+                {m.approvalStatus === "PENDING" ? (
+                  <>
+                    <button
+                      type="button"
+                      disabled={busyId === m.id}
+                      onClick={() => decide(m.id, "reject")}
+                      className={btnClass("secondary", "sm")}
+                    >
+                      거절
+                    </button>
+                    <button
+                      type="button"
+                      disabled={busyId === m.id}
+                      onClick={() => decide(m.id, "approve")}
+                      className={btnClass("primary", "sm")}
+                    >
+                      승인
+                    </button>
+                  </>
+                ) : null}
+                <button
+                  type="button"
+                  disabled={busyId === m.id}
+                  onClick={() => remove(m)}
+                  data-testid={`delete-user-${m.id}`}
+                  className={btnClass("secondary", "sm")}
+                  title="계정을 기록째 삭제 — 같은 명의로 다시 가입할 수 있게 됩니다"
+                >
+                  삭제
+                </button>
               </span>
             </li>
           );
