@@ -122,7 +122,9 @@ export function CompanyDirectory({
                 <th className="px-4 py-2.5 text-left">사업자등록번호</th>
                 <th className="px-4 py-2.5 text-left">대표 담당자</th>
                 <th className="px-4 py-2.5 text-right">소속</th>
-                <th className="px-4 py-2.5 text-left">상태</th>
+                {/* 담당자 개개인의 승인 상태가 아니라 회사(사업자) 자체의 상태다 —
+                    이름 옆 [대기 N] 칩과 헷갈린다는 지적이 있어 머리글에 "회사"를 붙였다. */}
+                <th className="px-4 py-2.5 text-left">회사 상태</th>
               </tr>
             </thead>
             <tbody>

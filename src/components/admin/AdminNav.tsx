@@ -9,7 +9,12 @@ import type { AppUser } from "@/lib/pricing/types";
 // 계정 관련 화면(운영자 계정 · 계정 설정) 둘만 마우스오버 드롭다운으로 묶고, 나머지는
 // 전부 원뎁스로 GNB에 직접 둔다(2026-08-22, "콘텐츠 관리, 알림 관리도 gnb 메뉴로
 // 다시 빼" · "계정 관리로 빼고.. 마우스오버 하면 운영자계정/계정 설정 넣어").
+//
+// 리포트를 맨 앞에 둔다(2026-08-30, "어드민 맨 앞 탭을 리포트로 해줘") — 운영자가
+// 백오피스를 열었을 때 먼저 보는 건 개별 신청 건이 아니라 유입·매출 지표다.
+// /admin(신청 현황)은 여전히 백오피스의 기본 주소이므로 링크는 남겨 두고 순서만 바꾼다.
 const PRIMARY_LINKS = [
+  { href: "/admin/reports", label: "리포트", masterOnly: false },
   { href: "/admin", label: "신청 현황", masterOnly: false },
   { href: "/admin/applicants", label: "회원 관리", masterOnly: false },
   { href: "/admin/packages", label: "패키지 관리", masterOnly: false },
@@ -18,7 +23,6 @@ const PRIMARY_LINKS = [
   { href: "/admin/content", label: "콘텐츠 관리", masterOnly: false },
   { href: "/admin/notification-rules", label: "알림 관리", masterOnly: false },
   { href: "/admin/inquiries", label: "1:1 문의", masterOnly: false },
-  { href: "/admin/reports", label: "리포트", masterOnly: false },
 ];
 
 const ACCOUNT_GROUP = {
