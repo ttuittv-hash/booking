@@ -44,13 +44,131 @@ declare global {
           /** 등기된 건물명. 없는 건물이 많아 빈 문자열로 온다. */
           buildingName?: string;
         }) => void;
-      }) => { open: () => void };
+        // open({ q }) 로 검색어를 미리 넣어 열 수 있다.
+      }) => { open: (options?: { q?: string }) => void };
     };
   }
 }
 
+/** 상호명 검색 결과 한 건 — /api/address/places 응답. */
+type PlaceHit = {
+  name: string;
+  roadAddress: string;
+  jibunAddress: string;
+  category: string;
+};
+
 const POSTCODE_LOAD_ERROR =
   "우편번호 찾기를 불러오지 못했습니다. 우편번호와 회사주소를 직접 입력해 주세요.";
+
+/**
+ * 상호명으로 주소 찾기 (2026-08-30).
+ *
+ * 우편번호 위젯은 도로명주소 DB 라 상호가 없다 — 가입자는 자기 회사 이름을 치는 게
+ * 당연한데 계속 "검색 결과 없음"으로 막혔다. 여기서는 장소 DB 로 상호를 찾아
+ * **도로명주소까지만** 얻고, 고르면 그 주소로 우편번호 위젯을 열어 우편번호를 확정한다.
+ * 주소 한 벌을 두 출처에서 섞어 만들지 않으려는 것이다.
+ *
+ * 서버에 키가 없으면(503) 이 블록은 스스로 사라진다 — 쓸 수 없는 버튼을 두지 않는다.
+ */
+function PlaceSearch({
+  defaultQuery,
+  onPick,
+}: {
+  defaultQuery: string;
+  onPick: (roadAddress: string) => void;
+}) {
+  const [q, setQ] = useState(defaultQuery);
+  const [places, setPlaces] = useState<PlaceHit[] | null>(null);
+  const [busy, setBusy] = useState(false);
+  const [message, setMessage] = useState<string | null>(null);
+  const [available, setAvailable] = useState(true);
+
+  async function run() {
+    const query = q.trim();
+    if (query.length < 2) {
+      setMessage("두 글자 이상 입력해 주세요.");
+      return;
+    }
+    setBusy(true);
+    setMessage(null);
+    try {
+      const res = await fetch(`/api/address/places?q=${encodeURIComponent(query)}`);
+      if (res.status === 503) {
+        setAvailable(false);
+        return;
+      }
+      const data = await res.json();
+      if (!res.ok) {
+        setMessage(data.error ?? "검색하지 못했습니다.");
+        return;
+      }
+      setPlaces(data.places ?? []);
+      if ((data.places ?? []).length === 0) {
+        setMessage("검색 결과가 없습니다. 주소로 찾거나 직접 입력해 주세요.");
+      }
+    } catch {
+      setMessage("검색하지 못했습니다. 주소로 찾거나 직접 입력해 주세요.");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  if (!available) return null;
+
+  return (
+    <div className="mt-3" data-testid="place-search">
+      <span className="flex flex-wrap gap-2">
+        <input
+          value={q}
+          onChange={(e) => setQ(e.target.value)}
+          // form 안이라 Enter 가 제출로 새어 나가면 안 된다.
+          onKeyDown={(e) => {
+            if (e.key === "Enter") {
+              e.preventDefault();
+              void run();
+            }
+          }}
+          maxLength={60}
+          placeholder="상호명으로 찾기 (예: 와이지엔터테인먼트)"
+          className="min-w-0 flex-1 border border-border-soft bg-background px-3 py-2 text-s"
+          data-testid="place-query"
+        />
+        <button
+          type="button"
+          onClick={() => void run()}
+          disabled={busy}
+          className={`${btnClass("secondary", "md")} whitespace-nowrap`}
+          data-testid="place-search-go"
+        >
+          {busy ? "찾는 중…" : "상호명으로 찾기"}
+        </button>
+      </span>
+
+      {places && places.length > 0 ? (
+        <ul className="mt-2 max-h-56 divide-y divide-border/40 overflow-y-auto border border-border-soft">
+          {places.map((p, i) => (
+            <li key={`${p.name}-${i}`}>
+              <button
+                type="button"
+                // 고른 주소로 우편번호 위젯을 연다 — 우편번호는 거기서 확정된다.
+                onClick={() => onPick(p.roadAddress || p.jibunAddress)}
+                className="block w-full px-3 py-2.5 text-left transition-colors hover:bg-accent-soft/40"
+              >
+                <span className="block text-s font-bold">{p.name}</span>
+                <span className="mt-0.5 block break-keep text-xs leading-5 text-muted">
+                  {p.roadAddress || p.jibunAddress}
+                </span>
+              </button>
+            </li>
+          ))}
+        </ul>
+      ) : null}
+
+      {message ? <p className="mt-2 text-xs leading-6 text-muted">{message}</p> : null}
+    </div>
+  );
+}
 
 type TermsItem = {
   kind: string;
@@ -315,13 +433,17 @@ export function RegisterWizard() {
   // 도로명 · 지번 · 등기된 건물명뿐이다 — 상호로는 찾을 수 없다("와이지엔터테인먼트"는
   // 그 건물 임차인 이름이지 건물명이 아니다). 아직 준공되지 않은 건물도 주소가 없어
   // 나오지 않는다. 그래서 검색이 실패하는 건 정상이고, 직접 입력 경로가 늘 열려 있어야 한다.
-  function openPostcode() {
+  //
+  // initialQuery 를 주면 그 말로 검색창을 미리 채워 연다. 상호명 검색(아래)에서 고른
+  // 도로명주소를 넘겨, 우편번호는 결국 이 위젯이 확정하게 하려는 것이다 — 주소 한 벌을
+  // 두 출처에서 섞어 만들지 않는다.
+  function openPostcode(initialQuery?: string) {
     const launch = () => {
       if (!window.daum) {
         setError(POSTCODE_LOAD_ERROR);
         return;
       }
-      new window.daum.Postcode({
+      const widget = new window.daum.Postcode({
         oncomplete: (d) => {
           // 건물명을 버리지 않는다 — 회사 주소는 건물명으로 식별하는 경우가 많고,
           // 운영자가 심사할 때도 "○○빌딩"이 있어야 사업자등록증과 대조가 된다.
@@ -333,7 +455,10 @@ export function RegisterWizard() {
             address: building ? `${base} (${building})` : base,
           }));
         },
-      }).open();
+      });
+      const q = initialQuery?.trim();
+      if (q) widget.open({ q });
+      else widget.open();
     };
     if (window.daum) return launch();
     const s = document.createElement("script");
@@ -862,7 +987,8 @@ function StepInfo({
   onUnlock: () => void;
   /** 이미 등록된 회사로 확인되면 기업정보를 잠근다. */
   onLockCompany: (name: string) => void;
-  onPostcode: () => void;
+  /** q 를 주면 우편번호 위젯을 그 검색어로 미리 채워 연다(상호명 검색에서 고른 주소). */
+  onPostcode: (q?: string) => void;
   loading: boolean;
   onPrev: () => void;
   onSubmit: () => void;
@@ -1166,7 +1292,7 @@ function StepInfo({
           <Field label="회사주소" required>
             <span className="flex flex-wrap gap-2">
               <input data-testid="f-postalCode" readOnly={locked} value={form.postalCode} onChange={set("postalCode")} placeholder="우편번호" className={inputCls(locked, "w-36")} />
-              <button type="button" data-testid="open-postcode" disabled={locked} onClick={onPostcode} className={`${btnClass("secondary", "md")} whitespace-nowrap`}>
+              <button type="button" data-testid="open-postcode" disabled={locked} onClick={() => onPostcode()} className={`${btnClass("secondary", "md")} whitespace-nowrap`}>
                 우편번호 찾기
               </button>
             </span>
@@ -1190,12 +1316,14 @@ function StepInfo({
                 <input data-testid="f-address" value={form.address} onChange={set("address")} placeholder="회사주소" className={inputCls(false)} />
                 <input data-testid="f-addressDetail" value={form.addressDetail} onChange={set("addressDetail")} placeholder="상세주소 (동 · 층 · 호)" className={inputCls(false)} />
               </div>
+              <PlaceSearch defaultQuery={form.companyName} onPick={(road) => onPostcode(road)} />
               {/* 회사명으로 검색해 놓고 "주소가 없다"고 막히는 일이 잦았다. 무엇으로 찾는
                   검색인지, 못 찾으면 어떻게 하는지를 검색창 옆이 아니라 여기서 알려 준다. */}
               <p className="mt-2 break-keep text-xs leading-6 text-muted">
-                도로명 · 지번 · 건물명으로 검색됩니다. <b>회사명으로는 찾을 수 없습니다.</b>{" "}
-                아직 주소가 부여되지 않은 신축 건물처럼 검색되지 않는 주소는 우편번호와 회사주소를
-                직접 입력해 주세요.
+                <b>우편번호 찾기</b>는 도로명 · 지번 · <b>건물명</b>으로 찾습니다.{" "}
+                <b>상호명으로 찾기</b>는 &ldquo;와이지엔터테인먼트&rdquo;처럼 간판에 걸린 이름으로
+                찾습니다. 아직 주소가 부여되지 않은 신축 건물처럼 어느 쪽으로도 나오지 않으면
+                우편번호와 회사주소를 직접 입력해 주세요.
               </p>
             </>
           )}
