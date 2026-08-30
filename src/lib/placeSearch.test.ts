@@ -24,7 +24,7 @@ describe("searchPlaces", () => {
     expect(await searchPlaces("와이지엔터테인먼트")).toEqual({ status: "UNCONFIGURED" });
   });
 
-  it("상호명과 도로명주소를 뽑아 준다", async () => {
+  it("법인명과 도로명주소를 뽑아 준다", async () => {
     process.env[KEY] = "test-key";
     stubFetch({
       documents: [

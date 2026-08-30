@@ -50,7 +50,7 @@ declare global {
   }
 }
 
-/** 상호명 검색 결과 한 건 — /api/address/places 응답. */
+/** 법인명 검색 결과 한 건 — /api/address/places 응답. */
 type PlaceHit = {
   name: string;
   roadAddress: string;
@@ -62,10 +62,10 @@ const POSTCODE_LOAD_ERROR =
   "우편번호 찾기를 불러오지 못했습니다. 우편번호와 회사주소를 직접 입력해 주세요.";
 
 /**
- * 상호명으로 주소 찾기 (2026-08-30).
+ * 법인명으로 주소 찾기 (2026-08-30).
  *
- * 우편번호 위젯은 도로명주소 DB 라 상호가 없다 — 가입자는 자기 회사 이름을 치는 게
- * 당연한데 계속 "검색 결과 없음"으로 막혔다. 여기서는 장소 DB 로 상호를 찾아
+ * 우편번호 위젯은 도로명주소 DB 라 회사 이름이 없다 — 가입자는 자기 법인명을 치는 게
+ * 당연한데 계속 "검색 결과 없음"으로 막혔다. 여기서는 장소 DB 로 회사 이름을 찾아
  * **도로명주소까지만** 얻고, 고르면 그 주소로 우편번호 위젯을 열어 우편번호를 확정한다.
  * 주소 한 벌을 두 출처에서 섞어 만들지 않으려는 것이다.
  *
@@ -130,7 +130,7 @@ function PlaceSearch({
             }
           }}
           maxLength={60}
-          placeholder="상호명으로 찾기 (예: 와이지엔터테인먼트)"
+          placeholder="법인명으로 찾기 (예: 와이지엔터테인먼트)"
           className="min-w-0 flex-1 border border-border-soft bg-background px-3 py-2 text-s"
           data-testid="place-query"
         />
@@ -141,7 +141,7 @@ function PlaceSearch({
           className={`${btnClass("secondary", "md")} whitespace-nowrap`}
           data-testid="place-search-go"
         >
-          {busy ? "찾는 중…" : "상호명으로 찾기"}
+          {busy ? "찾는 중…" : "법인명으로 찾기"}
         </button>
       </span>
 
@@ -430,11 +430,11 @@ export function RegisterWizard() {
   }
 
   // 다음(카카오) 우편번호 서비스. 원본은 행정안전부 도로명주소 DB라, 검색되는 건
-  // 도로명 · 지번 · 등기된 건물명뿐이다 — 상호로는 찾을 수 없다("와이지엔터테인먼트"는
+  // 도로명 · 지번 · 등기된 건물명뿐이다 — 법인명으로는 찾을 수 없다("와이지엔터테인먼트"는
   // 그 건물 임차인 이름이지 건물명이 아니다). 아직 준공되지 않은 건물도 주소가 없어
   // 나오지 않는다. 그래서 검색이 실패하는 건 정상이고, 직접 입력 경로가 늘 열려 있어야 한다.
   //
-  // initialQuery 를 주면 그 말로 검색창을 미리 채워 연다. 상호명 검색(아래)에서 고른
+  // initialQuery 를 주면 그 말로 검색창을 미리 채워 연다. 법인명 검색(아래)에서 고른
   // 도로명주소를 넘겨, 우편번호는 결국 이 위젯이 확정하게 하려는 것이다 — 주소 한 벌을
   // 두 출처에서 섞어 만들지 않는다.
   function openPostcode(initialQuery?: string) {
@@ -987,7 +987,7 @@ function StepInfo({
   onUnlock: () => void;
   /** 이미 등록된 회사로 확인되면 기업정보를 잠근다. */
   onLockCompany: (name: string) => void;
-  /** q 를 주면 우편번호 위젯을 그 검색어로 미리 채워 연다(상호명 검색에서 고른 주소). */
+  /** q 를 주면 우편번호 위젯을 그 검색어로 미리 채워 연다(법인명 검색에서 고른 주소). */
   onPostcode: (q?: string) => void;
   loading: boolean;
   onPrev: () => void;
@@ -1321,8 +1321,9 @@ function StepInfo({
                   검색인지, 못 찾으면 어떻게 하는지를 검색창 옆이 아니라 여기서 알려 준다. */}
               <p className="mt-2 break-keep text-xs leading-6 text-muted">
                 <b>우편번호 찾기</b>는 도로명 · 지번 · <b>건물명</b>으로 찾습니다.{" "}
-                <b>상호명으로 찾기</b>는 &ldquo;와이지엔터테인먼트&rdquo;처럼 간판에 걸린 이름으로
-                찾습니다. 아직 주소가 부여되지 않은 신축 건물처럼 어느 쪽으로도 나오지 않으면
+                <b>법인명으로 찾기</b>는 회사 이름으로 찾습니다 — 장소 정보에 등록된 이름을
+                따르므로, 법인명 그대로 안 나오면 &ldquo;주식회사&rdquo;를 빼거나 줄여서 다시
+                찾아 보세요. 아직 주소가 부여되지 않은 신축 건물처럼 어느 쪽으로도 나오지 않으면
                 우편번호와 회사주소를 직접 입력해 주세요.
               </p>
             </>

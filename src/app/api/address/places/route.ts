@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { clientIpFrom, rateLimit } from "@/lib/rateLimit";
 import { isPlaceSearchConfigured, searchPlaces } from "@/lib/placeSearch";
 
-// 상호명으로 주소 찾기 (2026-08-30).
+// 법인명으로 주소 찾기 (2026-08-30).
 //
 // 회원가입은 비로그인 화면이라 사람 단위로 셀 수 없다 — IP 로만 막는다. 카카오 로컬은
 // 일 호출량이 정해져 있어, 한 사람이 창을 열어 두고 계속 두드리면 다른 가입자가 못 쓴다.
@@ -13,7 +13,7 @@ const MAX_QUERY_CHARS = 60;
 
 export async function GET(request: Request) {
   if (!isPlaceSearchConfigured()) {
-    return NextResponse.json({ error: "상호명 검색이 설정되지 않았습니다." }, { status: 503 });
+    return NextResponse.json({ error: "법인명 검색이 설정되지 않았습니다." }, { status: 503 });
   }
   if (!(await rateLimit(`place-search:${clientIpFrom(request)}`, LIMIT_PER_IP, WINDOW_MS))) {
     return NextResponse.json(
@@ -30,7 +30,7 @@ export async function GET(request: Request) {
   const result = await searchPlaces(q);
   if (result.status === "OK") return NextResponse.json({ places: result.places });
   if (result.status === "UNCONFIGURED") {
-    return NextResponse.json({ error: "상호명 검색이 설정되지 않았습니다." }, { status: 503 });
+    return NextResponse.json({ error: "법인명 검색이 설정되지 않았습니다." }, { status: 503 });
   }
   return NextResponse.json({ error: result.message }, { status: 502 });
 }
