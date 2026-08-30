@@ -377,33 +377,36 @@ export function MembersManager({ currentUserId }: { currentUserId: string }) {
               {unifiedRows.map((row) => (
                 <tr
                   key={row.key}
-                  // 내 줄은 왼쪽 강조선 + 옅은 바탕으로 확실히 띄운다. 이름 옆 [나] 표시만
-                  // 두면 표를 훑을 때 그냥 지나친다 — 대표 이관처럼 되돌리기 어려운 동작이
-                  // 같은 표에 있어서, 어느 줄이 나인지 한눈에 잡혀야 한다.
-                  className={`border-b border-border/40 ${
-                    row.isMe ? "border-l-2 border-l-accent bg-accent-soft/40" : ""
-                  }`}
+                  // 내 줄은 옅은 바탕으로 띄운다. 이름 옆 [나] 표시만 두면 표를 훑을 때
+                  // 그냥 지나친다 — 대표 이관처럼 되돌리기 어려운 동작이 같은 표에 있어서,
+                  // 어느 줄이 나인지 한눈에 잡혀야 한다.
+                  //
+                  // 강조를 왼쪽 세로선(border-l)으로 준 적이 있는데, 표는
+                  // border-collapse: collapse(Tailwind preflight)라 tr 의 좌우 테두리가
+                  // 같은 tr 의 border-b 와 겹쳐 행 높이가 들쭉날쭉해졌다. 바탕색만 쓴다.
+                  className={`border-b border-border/40 ${row.isMe ? "bg-accent-soft/40" : ""}`}
                   data-testid={row.key}
                 >
+                  {/* 이름 칸은 운영자 회사 목록(CompanyDirectory)과 같은 짜임으로 맞춘다 —
+                      flex items-center + 얇은 밑줄 + 한 줄짜리 칩. flex-wrap 과 두꺼운
+                      밑줄(decoration-2 underline-offset-4)을 같이 쓰던 때는 칩이 아래로
+                      내려가거나 글자가 떠 보여 줄마다 높이가 달랐다. */}
                   <td className="py-3">
-                    <span className="flex flex-wrap items-center gap-1.5">
+                    <span className="flex items-center gap-2 whitespace-nowrap">
                       {row.href ? (
                         <Link
                           href={row.href}
-                          className="font-bold text-foreground underline decoration-accent decoration-2 underline-offset-4"
+                          className="font-bold underline decoration-border-soft underline-offset-4 transition-colors hover:decoration-accent"
                         >
                           {row.name}
                         </Link>
                       ) : (
-                        row.name
+                        <span>{row.name}</span>
                       )}
                       {row.isMe ? (
-                        // 테두리 박스로 두면 밑줄 친 이름과 굵기가 겨루고, leading-none 에
-                        // 한글을 담아 글자가 위로 떠 보였다. 탭 뱃지와 같은 채운 칩으로
-                        // 바꾸고 높이를 고정해 가운데 정렬한다.
                         <span
                           data-testid="me-marker"
-                          className="inline-flex h-[18px] shrink-0 items-center bg-accent px-1.5 text-[10px] font-bold leading-none text-on-accent"
+                          className="border border-accent bg-accent px-1.5 text-[10px] leading-4 text-on-accent"
                         >
                           나
                         </span>
