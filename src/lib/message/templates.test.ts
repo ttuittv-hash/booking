@@ -11,9 +11,12 @@ import { classifyBizTalkCode, isBizTalkConfigured } from "./kakaoBizTalk";
 
 // 기획서 B2 — 1차 오픈(8/24) 회원가입 5종.
 describe("1차 오픈 템플릿", () => {
-  it("MB-01~05(+합류용 MB-01J)가 1차 오픈 대상이다", () => {
+  it("MB-01~05(+합류용 MB-01J)와 2026-09-01 ARENA 연동분이 1차 오픈 대상이다", () => {
     const first = TEMPLATES.filter((t) => t.release === "FIRST").map((t) => t.code);
-    expect(first).toEqual(["MB-01", "MB-01J", "MB-02", "MB-03", "MB-04", "MB-05"]);
+    expect(first).toEqual([
+      "MB-01", "MB-01J", "MB-02", "MB-03", "MB-04", "MB-05",
+      "ARENA-0003", "ARENA-0004", "ARENA-0012", "ARENA-0010", "ARENA-0009",
+    ]);
   });
 
   it("선언한 변수와 본문의 자리표시자가 일치한다", () => {
@@ -64,7 +67,7 @@ describe("변수 바인딩 (기획서 1-54)", () => {
   });
 
   it("자리표시자가 남지 않는다", () => {
-    const body = renderTemplate("MB-05", { 회사명: "카카오", 신청자명: "홍길동" });
+    const body = renderTemplate("MB-05", { 운영자명: "관리자" });
     expect(body).not.toContain("#{");
   });
 });

@@ -4,6 +4,7 @@ import { dispatchMessageInBackground } from "@/lib/message/dispatch";
 import {
   companyHasApprovedMember,
   ensureCompanyMaster,
+  findCompanyById,
   findUserById,
   setCompanyStatus,
   setUserApprovalStatus,
@@ -108,14 +109,26 @@ export async function POST(request: Request) {
     await ensureCompanyMaster(target.companyId);
   }
 
-  // MB-02 가입 승인 / MB-03 가입 반려
+  // 승인 → ARENA-0003(가입 승인) / 반려 → MB-03(가입 반려)
   dispatchMessageInBackground({
-    templateCode: approved ? "MB-02" : "MB-03",
-    idempotencyKey: `${approved ? "MB-02" : "MB-03"}:${id}`,
+    templateCode: approved ? "ARENA-0003" : "MB-03",
+    idempotencyKey: `${approved ? "ARENA-0003" : "MB-03"}:${id}`,
     recipient: { userId: id, phone: target.phone, email: target.email, name: target.name },
     variables: approved ? { 신청자명: target.name } : { 신청자명: target.name, 거절사유: rejectReason },
     request,
   });
+  // 최초 가입자를 승인하면 그 사람이 대표 담당자로 지정된다(위 ensureCompanyMaster) —
+  // 승인 알림에 이어 "대표 담당자 등록 완료"(ARENA-0004)를 순차로 보낸다. (2026-09-01 팀 요청)
+  if (approved && isFirstDecision && target.companyId) {
+    const company = await findCompanyById(target.companyId);
+    dispatchMessageInBackground({
+      templateCode: "ARENA-0004",
+      idempotencyKey: `ARENA-0004:${id}`,
+      recipient: { userId: id, phone: target.phone, email: target.email, name: target.name },
+      variables: { 신청자명: target.name, 회사명: company?.name ?? "" },
+      request,
+    });
+  }
 
   // 승인·반려는 회사 상태와 대표 담당자까지 바꾼다(위 setCompanyStatus·ensureCompanyMaster).
   // 화면 쪽 router.refresh() 는 보고 있던 탭만 새로 받으므로 여기서 전부 무효화한다.

@@ -1,7 +1,8 @@
 import { NextResponse } from "next/server";
 import crypto from "node:crypto";
 import { getCurrentUser } from "@/lib/auth";
-import { answerInquiry, createNotification, getInquiryById } from "@/lib/db";
+import { answerInquiry, createNotification, findUserById, getInquiryById } from "@/lib/db";
+import { dispatchMessageInBackground } from "@/lib/message/dispatch";
 
 export async function POST(request: Request, ctx: { params: Promise<{ id: string }> }) {
   const user = await getCurrentUser();
@@ -26,6 +27,17 @@ export async function POST(request: Request, ctx: { params: Promise<{ id: string
     message: `1:1 문의 "${inquiry.title}"에 답변이 등록되었습니다.`,
     createdAt: now,
   });
+  // 문의 등록자에게 답변 완료 알림톡(ARENA-0009). (2026-09-01 팀 요청)
+  const registrant = await findUserById(inquiry.userId);
+  if (registrant) {
+    dispatchMessageInBackground({
+      templateCode: "ARENA-0009",
+      idempotencyKey: `ARENA-0009:${id}:${now}`,
+      recipient: { userId: registrant.id, phone: registrant.phone, email: registrant.email, name: registrant.name },
+      variables: { 등록자명: registrant.name },
+      request,
+    });
+  }
 
   return NextResponse.json({ inquiry: updated });
 }

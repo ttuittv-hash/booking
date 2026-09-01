@@ -498,7 +498,7 @@ export async function POST(request: Request) {
         templateCode: "MB-05",
         idempotencyKey: `MB-05:${company.id}:${admin.id}`,
         recipient: { userId: admin.id, phone: admin.phone, email: admin.email, name: admin.name },
-        variables: { 회사명: company.name, 신청자명: name },
+        variables: { 운영자명: admin.name },
         request,
       });
     }

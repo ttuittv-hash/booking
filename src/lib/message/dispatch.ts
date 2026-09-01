@@ -131,6 +131,8 @@ export async function dispatchMessage(input: DispatchInput): Promise<DispatchOut
             : def.button.path,
           // 환경별 신규 템플릿(예: MB-02-DEV)에 등록된 링크로 덮어쓸 수 있다(templateOverrides.ts).
           kakaoUrl: resolveKakaoButtonUrl(def.button.kakaoUrl),
+          // 템플릿에 PC 링크(linkPc)가 등록된 경우에만 채운다 — 있으면 url_pc 로 그대로 보낸다.
+          kakaoUrlPc: def.button.kakaoUrlPc ?? null,
         }
       : null,
     kakaoTemplateCode: resolveKakaoTemplateCode(def.code, def.kakaoTemplateCode),

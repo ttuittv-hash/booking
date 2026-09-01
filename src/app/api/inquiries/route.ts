@@ -3,6 +3,7 @@ import crypto from "node:crypto";
 import { getCurrentUser } from "@/lib/auth";
 import { createInquiry, listInquiries, notifyAdmins } from "@/lib/db";
 import { findInquiryCategory } from "@/lib/inquiryCategories";
+import { dispatchMessageInBackground } from "@/lib/message/dispatch";
 
 export async function GET() {
   const user = await getCurrentUser();
@@ -54,6 +55,14 @@ export async function POST(request: Request) {
     quoteId: quoteId ?? "",
     message: `새 1:1 문의가 등록되었습니다 (${category.label}): ${title}`,
     createdAt,
+  });
+  // 등록자 본인에게 접수 알림톡(ARENA-0010). (2026-09-01 팀 요청)
+  dispatchMessageInBackground({
+    templateCode: "ARENA-0010",
+    idempotencyKey: `ARENA-0010:${inquiry.id}`,
+    recipient: { userId: user.id, phone: user.phone, email: user.email, name: user.name },
+    variables: { 등록자명: user.name },
+    request,
   });
 
   return NextResponse.json({ inquiry });

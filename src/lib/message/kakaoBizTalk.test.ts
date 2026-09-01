@@ -141,6 +141,20 @@ describe("알림톡 발송", () => {
     }
   });
 
+  it("버튼에 kakaoUrlPc 가 있으면 전역 env 없이도 url_pc 를 보낸다 (ARENA_ 세트 linkPc)", async () => {
+    vi.stubGlobal("fetch", mockFetch((u) =>
+      u.includes("/oauth/token") ? { access_token: "T", expires_in: 21600 } : { code: "200" }));
+    await kakaoBizTalkAdapter.send({
+      ...request,
+      button: { name: "확인하기", url: "x", kakaoUrl: "https://partner.seoularena.net/mypage/members", kakaoUrlPc: "https://partner.seoularena.net/mypage/members" },
+    });
+    const body = JSON.parse(String(calls.find((c) => c.url.includes("/kakao"))?.init?.body));
+    expect(body.button[0]).toMatchObject({
+      url_mobile: "https://partner.seoularena.net/mypage/members",
+      url_pc: "https://partner.seoularena.net/mypage/members",
+    });
+  });
+
   it("수신번호가 없으면 보내지 않는다", async () => {
     const result = await kakaoBizTalkAdapter.send({ ...request, recipient: { ...request.recipient, phone: null } });
     expect(result.ok).toBe(false);
