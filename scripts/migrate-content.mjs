@@ -2,8 +2,12 @@
 /*
   콘텐츠 데이터 이관 — preview → dev (2026-08-30).
 
-  운영자가 백오피스에서 등록·편집한 것을 옮긴다 — 요금표(패키지·옵션 포함), 페이지 콘텐츠,
-  공지·FAQ·안내 페이지, 알림 규칙, 일정 차단일, 기능정의서.
+  옮기는 것은 운영자가 백오피스에서 등록·편집한 것들이다 — 요금표(패키지·옵션 포함),
+  콘텐츠 관리 내역(페이지 콘텐츠·화면 문구·공지·FAQ), 안내 페이지, 알림 규칙,
+  일정 차단일, 기능정의서.
+
+  실행이 끝나면 화면 단위로 "무엇이 몇 건 옮겨졌는지" 를 다시 한 번 정리해 준다 —
+  표 이름만 봐서는 요금표·패키지·콘텐츠가 실제로 갔는지 알기 어렵기 때문이다.
 
   회원·신청서·계약·정산처럼 그 환경에서 생긴 업무 데이터는 건드리지 않는다 — 환경마다
   계정과 번호 체계가 달라 섞으면 되돌릴 수 없다.
@@ -41,23 +45,29 @@ const TARGET = process.env.TARGET_DATABASE_URL;
  * 한 쪽만 보고 넣으면 다른 쪽 제약에 걸리므로, 넣기 전에 두 열쇠 모두로 지운다.
  */
 const TABLES = [
-  { name: "site_content", keys: [["page"]], label: "페이지 콘텐츠(홈·소개·요금·규약·화면 문구 등)" },
-  { name: "feature_spec_sheets", keys: [["sheet_key"]], label: "기능정의서 시트" },
-  { name: "notices", keys: [["id"]], label: "공지사항", files: ["image_url", "attachment_url"] },
-  { name: "faqs", keys: [["id"]], label: "FAQ" },
-  { name: "pages", keys: [["id"], ["page_group", "slug"]], label: "안내 페이지", files: ["body"] },
-  { name: "notification_rules", keys: [["id"], ["type_code"]], label: "알림 규칙" },
-  { name: "date_blocks", keys: [["date"]], label: "일정 차단일" },
   // 패키지와 옵션은 별도 표가 아니라 요금표 안(packages_json · addons_json)에 있다 —
   // 어드민의 [요금표 관리]와 [패키지 관리]가 같은 행을 본다.
   {
     name: "rate_tables",
     keys: [["version"]],
     label: "요금표 · 패키지 · 옵션",
+    screen: "요금표 관리 · 패키지 관리",
     warn:
       "화면에 뜨는 요금표는 updated_at 이 가장 늦은 행이다. 대상에 더 늦게 손댄 행이 있으면 " +
       "옮겨도 그쪽이 계속 현재 요금표로 남는다(이관 후 어느 버전이 현재인지 아래에 찍는다)",
   },
+  {
+    name: "site_content",
+    keys: [["page"]],
+    label: "페이지 콘텐츠 · 화면 문구",
+    screen: "콘텐츠 관리",
+  },
+  { name: "notices", keys: [["id"]], label: "공지사항", screen: "콘텐츠 관리", files: ["image_url", "attachment_url"] },
+  { name: "faqs", keys: [["id"]], label: "FAQ", screen: "콘텐츠 관리" },
+  { name: "pages", keys: [["id"], ["page_group", "slug"]], label: "안내 페이지", screen: "페이지 관리", files: ["body"] },
+  { name: "notification_rules", keys: [["id"], ["type_code"]], label: "알림 규칙", screen: "알림 관리" },
+  { name: "date_blocks", keys: [["date"]], label: "일정 차단일", screen: "일정 관리" },
+  { name: "feature_spec_sheets", keys: [["sheet_key"]], label: "기능정의서 시트", screen: "기능정의서" },
 ];
 
 /**
@@ -175,7 +185,7 @@ try {
     console.log(
       `  ${t.name.padEnd(26)} 원본 ${String(rows.length).padStart(4)}건  대상(전) ${String(before).padStart(4)}건` +
         (APPLY ? `  → 삭제 ${deleted} / 삽입 ${rows.length}` : "  → 덮어쓸 예정") +
-        `   ${t.label}`,
+        `   ${t.label}${t.screen ? ` [${t.screen}]` : ""}`,
     );
     if (t.warn) console.log(`      ⚠ ${t.warn}`);
   }
@@ -217,6 +227,49 @@ try {
 } finally {
   await source.end();
   await target.end();
+}
+
+/*
+  화면 단위 확인 — 표 이름만 봐서는 "요금표·패키지·콘텐츠가 실제로 갔나" 를 알 수 없다.
+  이관이 끝난 뒤 대상 DB 를 다시 읽어, 어드민 화면 기준으로 원본과 건수가 맞는지 본다.
+  건수만 보는 것이라 내용까지 같다는 보장은 아니지만, 통째로 빠진 것은 여기서 잡힌다.
+*/
+if (APPLY) {
+  const src2 = new pg.Client({ connectionString: SOURCE });
+  const dst2 = new pg.Client({ connectionString: TARGET });
+  await src2.connect();
+  await dst2.connect();
+  console.log(`\n확인 — 어드민 화면 기준`);
+  console.log("─".repeat(72));
+  const byScreen = new Map();
+  for (const t of picked) {
+    const k = t.screen ?? t.label;
+    if (!byScreen.has(k)) byScreen.set(k, []);
+    byScreen.get(k).push(t);
+  }
+  for (const [screen, list] of byScreen) {
+    const parts = [];
+    let ok = true;
+    for (const t of list) {
+      const n = async (c) =>
+        Number((await c.query(`SELECT COUNT(*)::int AS n FROM "${t.name}"`)).rows[0].n);
+      const [a, b] = await Promise.all([n(src2), n(dst2)]);
+      if (b < a) ok = false;
+      parts.push(`${t.label} ${b}/${a}건`);
+    }
+    console.log(`  ${ok ? "✓" : "✗"} ${screen.padEnd(22)} ${parts.join(" · ")}`);
+  }
+  console.log(`  (대상/원본 건수. 대상이 더 많으면 원본에 없던 행이 대상에 남아 있는 것입니다)`);
+  await src2.end();
+  await dst2.end();
+}
+
+const skipped = [...TABLES, ...OPT_IN].filter((t) => !picked.some((p) => p.name === t.name));
+if (skipped.length) {
+  console.log(`\n이번에 옮기지 않은 것 — 필요하면 --include= 로 이름을 주세요.`);
+  for (const t of skipped) {
+    console.log(`    ${t.name.padEnd(26)} ${t.label}${t.screen ? ` [${t.screen}]` : ""}`);
+  }
 }
 
 if (fileRefs.length) {
