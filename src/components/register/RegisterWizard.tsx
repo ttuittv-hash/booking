@@ -33,6 +33,7 @@ import {
   USERNAME_HINT,
 } from "@/lib/validation";
 import { hashPasswordForTransport } from "@/lib/clientPassword";
+import { DEFAULT_REGISTER_INTRO, type RegisterIntroTexts } from "@/lib/content/pageContent";
 
 declare global {
   interface Window {
@@ -229,7 +230,13 @@ const STEP_LABELS = ["회원 유형", "약관 동의", "본인인증", "정보 �
   살아 있고 **본인인증한 번호가 초대장 번호와 같으면** 회사가 초대장으로 정해지고 심사
   없이 승인된다. 번호가 다르면 토큰은 무시되고 평범한 합류 신청이 된다.
 */
-export function RegisterWizard() {
+export function RegisterWizard({
+  // 서버에서 읽은 편집 문구. 넘기지 않은 호출부는 기본값으로 돈다 — 문구 하나 때문에
+  // 화면이 비지 않게 한다.
+  intro = DEFAULT_REGISTER_INTRO,
+}: {
+  intro?: RegisterIntroTexts;
+} = {}) {
   const toast = useToast();
   const dialog = useDialog();
   // 링크의 토큰. useSearchParams 는 Suspense 경계를 요구하므로 마운트 후 한 번만 읽는다.
@@ -584,7 +591,7 @@ export function RegisterWizard() {
       <StepBar step={step} />
 
       {step === 1 ? (
-        <StepMemberType onNext={() => setStep(2)} />
+        <StepMemberType onNext={() => setStep(2)} intro={intro} />
       ) : step === 2 ? (
         <StepTerms
           terms={terms}
@@ -746,47 +753,56 @@ function StepBar({ step }: { step: number }) {
   );
 }
 
-function StepMemberType({ onNext }: { onNext: () => void }) {
+function StepMemberType({ onNext, intro }: { onNext: () => void; intro: RegisterIntroTexts }) {
   return (
     <section className="mt-10" data-testid="step-member-type">
-      <h2 className="type-kr-heading break-keep text-h6-m sm:text-h6">
-        기업회원으로 가입합니다.
-      </h2>
+      <h2 className="type-kr-heading break-keep text-h6-m sm:text-h6">{intro.heading}</h2>
 
       {/* [개정 2026-08-30] 개인회원 카드를 뺐다. 예전에는 "나중에 열린다"는 사실을 첫 화면에서
           알리려고 비활성 카드를 남겨 뒀는데(기획서 A2), 고를 수 없는 선택지를 나란히 두면
-          유형을 고르는 화면처럼 보인다. 고를 것이 하나뿐이므로 한 장으로 세운다. */}
-      <div className="mt-6 max-w-xl">
+          유형을 고르는 화면처럼 보인다. 고를 것이 하나뿐이므로 한 장으로 세운다.
+          폭은 좁히지 않는다 — AuthShell width="lg" 안에서 카드만 좁히면 오른쪽이 비어
+          다른 스텝(약관·정보 입력)과 어긋나 보인다. */}
+      <div className="mt-6">
         <button
           type="button"
           data-testid="pick-corporate"
           onClick={onNext}
-          /* 선택 카드 — kit 의 choiceClass 와 같은 패딩(20)을 쓴다. 여기만 flex 배치가 필요해
-             (카드 바닥에 버튼을 붙인다) 클래스를 직접 적는다 */
-          className="flex h-full flex-col border border-foreground p-5 text-left transition-colors hover:bg-surface"
+          /* 안내 카드 겸 진입 버튼 — kit 의 choiceClass 와 같은 패딩(20)을 쓴다.
+             flex-col 은 CTA 를 본문 아래로 떨어뜨리려는 것이다(카드가 하나뿐이라
+             예전처럼 두 장의 높이를 맞출 일은 없어 h-full 은 뺐다). */
+          className="flex w-full flex-col border border-foreground p-5 text-left transition-colors hover:bg-surface"
         >
           <span className="flex-1">
-            <span className="block text-xs font-bold text-foreground">가입 가능</span>
-            <span className="mt-2 block text-h6-m font-bold">기업회원</span>
+            <span className="block text-xs font-bold text-foreground">{intro.badge}</span>
+            <span className="mt-2 block text-h6-m font-bold">{intro.title}</span>
             <span className="mt-1.5 block break-keep text-s leading-6 text-muted">
-              사업자등록증이 있는 법인 · 개인사업자
+              {intro.subtitle}
             </span>
             {/* [개정 2026-08-30] 예전 문구는 회사의 첫 가입자 경로만 설명했고, "진위확인으로
                 즉시 심사" 는 사실과도 달랐다 — 진위확인은 휴·폐업을 거르는 것이지 승인이
                 아니고, 접수된 계정은 승인 대기로 남는다. 한 회사에서 여러 담당자가 들어오는
                 구조이므로 첫 가입자와 이후 담당자를 나눠 적는다. */}
-            <span className="mt-4 block space-y-2 break-keep text-s leading-6 text-muted">
-              <span className="block">· 공연 기획사 · 제작사 · 대행사 등</span>
-              <span className="block">· 대관 신청 · 계약 · 정산 전 과정 이용</span>
-              <span className="block">
-                · 회사의 <b>첫 가입자</b>가 회사 정보를 등록하면, 이후 담당자는 사업자등록번호만
-                넣으면 회사 정보가 자동으로 채워집니다
-              </span>
-              <span className="block">· 접수 후 심사를 거쳐 승인되면 이용할 수 있습니다</span>
+            {/* 카드가 button 이라 안에 ul/li 를 넣을 수 없다(button 은 phrasing content 만 받는다).
+                span 을 flex 로 세워 글머리표와 본문을 나눈다 — "· 텍스트" 를 한 덩어리로 두면
+                두 번째 줄이 글머리표 아래로 파고들어 들여쓰기가 어긋난다. */}
+            <span className="mt-4 flex max-w-2xl flex-col gap-2 break-keep text-s leading-6 text-muted">
+              {intro.bullets.map((line, i) => (
+                <span key={i} className="flex gap-2">
+                  <span aria-hidden className="shrink-0">
+                    ·
+                  </span>
+                  <span>{line}</span>
+                </span>
+              ))}
             </span>
           </span>
-          <span className={`${btnClass("primary", "md")} mt-7 w-full justify-center text-center`}>
-            기업회원으로 가입하기
+          {/* 카드가 넓어져 w-full 버튼은 검은 띠처럼 보인다. 좁은 화면에서만 꽉 채우고
+              그 위로는 글줄 시작점에 맞춰 제 폭으로 세운다. */}
+          <span
+            className={`${btnClass("primary", "md")} mt-7 w-full justify-center text-center sm:w-auto sm:self-start sm:px-10`}
+          >
+            {intro.cta}
           </span>
         </button>
 
@@ -794,9 +810,7 @@ function StepMemberType({ onNext }: { onNext: () => void }) {
 
       {/* 개인회원 카드를 뺀 대신 한 줄로만 남긴다 — 사업자등록증이 없는 사람이 여기서
           헤매지 않도록, 지금은 받지 않는다는 사실은 계속 알려야 한다. */}
-      <p className="mt-5 break-keep text-s leading-6 text-muted">
-        사업자등록증이 없는 개인 회원 가입은 준비 중입니다. 열리면 공지사항으로 안내드립니다.
-      </p>
+      <p className="mt-5 break-keep text-s leading-6 text-muted">{intro.individualNote}</p>
 
       <p className="mt-7 break-keep text-s text-muted">
         이미 계정이 있으신가요?{" "}

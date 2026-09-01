@@ -568,6 +568,53 @@ export function ScreenTextForm({ content }: { content: ScreenTextContent }) {
     <ContentFormShell page="screenText" initial={content}>
       {(v, patch) => (
         <>
+          <Section
+            title="회원가입 안내 카드"
+            help="회원가입 첫 화면(/register STEP1)의 안내 카드입니다. 가입 조건과 심사 흐름을 여기서 알립니다."
+          >
+            <Text
+              label="화면 제목"
+              value={v.registerIntro.heading}
+              onChange={(heading) => patch({ registerIntro: { ...v.registerIntro, heading } })}
+            />
+            <div className="grid gap-3 sm:grid-cols-[minmax(0,10rem)_minmax(0,1fr)]">
+              <Text
+                label="상태 표시"
+                value={v.registerIntro.badge}
+                onChange={(badge) => patch({ registerIntro: { ...v.registerIntro, badge } })}
+              />
+              <Text
+                label="카드 제목"
+                value={v.registerIntro.title}
+                onChange={(title) => patch({ registerIntro: { ...v.registerIntro, title } })}
+              />
+            </div>
+            <Text
+              label="카드 부제"
+              value={v.registerIntro.subtitle}
+              onChange={(subtitle) => patch({ registerIntro: { ...v.registerIntro, subtitle } })}
+            />
+            <StringList
+              label="안내 항목"
+              items={v.registerIntro.bullets}
+              placeholder="예: 접수 후 심사를 거쳐 승인되면 이용할 수 있습니다"
+              onChange={(bullets) => patch({ registerIntro: { ...v.registerIntro, bullets } })}
+            />
+            <Text
+              label="버튼 문구"
+              value={v.registerIntro.cta}
+              onChange={(cta) => patch({ registerIntro: { ...v.registerIntro, cta } })}
+            />
+            <Area
+              label="개인회원 안내"
+              rows={2}
+              value={v.registerIntro.individualNote}
+              onChange={(individualNote) =>
+                patch({ registerIntro: { ...v.registerIntro, individualNote } })
+              }
+            />
+          </Section>
+
           <Section title="공지사항" help="공지사항 목록 화면(/notices)의 문구입니다.">
             <Area
               label="리드 문단"

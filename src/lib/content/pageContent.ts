@@ -308,6 +308,42 @@ export const DEFAULT_WIZARD_STEP_TEXTS: WizardStepTexts = {
   submitEditingLead: "아래 산출내역으로 신청서 내용이 수정됩니다. 신청금액은 예상금액이며, 이후 심사·계약에서 확정됩니다.",
 };
 
+/* ---------------------------------------------- 회원가입 STEP1 안내 카드 --- */
+
+/**
+ * 회원가입 첫 화면(STEP1)의 안내 카드. 가입 조건·심사 흐름은 운영하면서 계속 다듬게 되는
+ * 문구라 코드에 박아 두지 않고 백오피스에서 고칠 수 있게 한다(2026-08-30).
+ * 카드 자체가 "기업회원으로 가입하기" 버튼이므로 항목 수는 자유롭게 늘리고 줄일 수 있다.
+ */
+export interface RegisterIntroTexts {
+  /** 화면 제목. 고를 유형이 하나뿐이라 "선택하세요" 가 아니다 */
+  heading: string;
+  /** 카드 왼쪽 위 작은 표시 */
+  badge: string;
+  title: string;
+  subtitle: string;
+  bullets: string[];
+  cta: string;
+  /** 카드 아래 한 줄 — 개인회원을 아직 받지 않는다는 안내 */
+  individualNote: string;
+}
+
+export const DEFAULT_REGISTER_INTRO: RegisterIntroTexts = {
+  heading: "기업회원으로 가입합니다.",
+  badge: "가입 가능",
+  title: "기업회원",
+  subtitle: "사업자등록증이 있는 법인 · 개인사업자",
+  bullets: [
+    "공연 기획사 · 제작사 · 대행사 등",
+    "대관 신청 · 계약 · 정산 전 과정 이용",
+    "기업 정보가 등록된 기업의 담당자는 개인 정보만 추가 입력하시면 됩니다",
+    "접수 후 심사를 거쳐 승인되면 이용할 수 있습니다",
+  ],
+  cta: "기업회원으로 가입하기",
+  individualNote:
+    "사업자등록증이 없는 개인 회원 가입은 준비 중입니다. 열리면 공지사항으로 안내드립니다.",
+};
+
 export interface ScreenTextContent {
   noticesLead: string;
   noticesEmptyDesc: string;
@@ -316,6 +352,8 @@ export interface ScreenTextContent {
   locationLead: string;
   locationRows: Pair[];
   wizardSteps: WizardStepTexts;
+  /** 회원가입 STEP1 안내 카드 */
+  registerIntro: RegisterIntroTexts;
   /**
    * [2026-08-25] "모든 텍스트 수정 가능" — 위저드 스텝 제목·리드(20개, wizardSteps) 밖의
    * 나머지 문구(체크박스 라벨, 안내 문단, 서약 조항 전문 등)는 필드를 하나하나 타입으로
@@ -342,6 +380,7 @@ export const DEFAULT_SCREEN_TEXT_CONTENT: ScreenTextContent = {
   ],
   wizardStrings: {},
   wizardSteps: DEFAULT_WIZARD_STEP_TEXTS,
+  registerIntro: DEFAULT_REGISTER_INTRO,
 };
 
 /* ---------------------------------------------- 대관 자료 (`/documents`) - */
