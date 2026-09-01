@@ -37,11 +37,12 @@ try {
     (await page.getAttribute('[data-testid="register-wizard"]', "data-step")) === "1");
   check("A2-2", "기업회원은 가입 가능으로 노출된다",
     (await page.locator('[data-testid="pick-corporate"]').innerText()).includes("가입 가능"));
-  const indiv = page.locator('[data-testid="pick-individual"]');
-  check("A2-3", "개인회원은 감추지 않고 준비 중으로 노출된다",
-    await indiv.isVisible() && (await indiv.innerText()).includes("준비 중"));
-  check("A2-4", "개인회원 버튼은 비활성이다",
-    await indiv.locator("button").isDisabled() && (await indiv.getAttribute("aria-disabled")) === "true");
+  // [개정 2026-08-30] 개인회원 카드를 뺐다 — 고를 수 없는 카드를 나란히 두면 유형을 고르는
+  // 화면처럼 보인다. 다만 "지금은 안 받는다"는 사실은 한 줄 안내로 남아 있어야 한다.
+  check("A2-3", "개인회원 카드는 노출되지 않는다",
+    (await page.locator('[data-testid="pick-individual"]').count()) === 0);
+  check("A2-4", "개인회원 준비 중 안내는 한 줄로 남아 있다",
+    (await page.locator('[data-testid="step-member-type"]').innerText()).includes("준비 중입니다"));
 
   await page.click('[data-testid="pick-corporate"]');
 

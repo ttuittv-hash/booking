@@ -2,14 +2,15 @@
 
 // 회원가입 5스텝 (기획서 A2~A8).
 //
-//   STEP 1 회원 유형 선택 — 기업회원만 활성, 개인회원은 비활성 상태로 노출
+//   STEP 1 기업회원 안내  — 기업회원 카드 한 장
 //   STEP 2 약관 동의     — 필수 2건 모두 체크해야 다음으로 간다
 //   STEP 3 본인인증      — 휴대폰 단일(NICE 표준창 팝업)
 //   STEP 4 정보 입력     — 기업정보 + 개인정보, 이름·휴대폰은 인증 결과로 고정
 //   STEP 5 가입완료      — 보류 상태로 생성되고 승인 안내가 뜬다
 //
-// 개인회원 탭을 감추지 않는 이유는 기획서 A2 에 있다 —
-// "개인회원이 나중에 열린다는 사실을 첫 화면에서 알린다".
+// [개정 2026-08-30] 개인회원 카드를 뺐다. 기획서 A2 는 "개인회원이 나중에 열린다는 사실을
+// 첫 화면에서 알린다"고 했지만, 고를 수 없는 카드를 나란히 두면 유형을 고르는 화면처럼
+// 보인다. 알려야 할 사실은 카드 대신 카드 아래 한 줄로 남겼다.
 
 import Link from "next/link";
 import { useDialog } from "@/components/ui/Dialog";
@@ -749,12 +750,13 @@ function StepMemberType({ onNext }: { onNext: () => void }) {
   return (
     <section className="mt-10" data-testid="step-member-type">
       <h2 className="type-kr-heading break-keep text-h6-m sm:text-h6">
-        가입하실 회원 유형을 선택해 주세요.
+        기업회원으로 가입합니다.
       </h2>
 
-      {/* items-stretch(기본)로 두 카드 높이를 맞추고, 각 카드 안에서 버튼을 바닥에 붙인다.
-          높이가 다르면 두 버튼이 어긋나 보인다. */}
-      <div className="mt-6 grid gap-5 sm:grid-cols-2">
+      {/* [개정 2026-08-30] 개인회원 카드를 뺐다. 예전에는 "나중에 열린다"는 사실을 첫 화면에서
+          알리려고 비활성 카드를 남겨 뒀는데(기획서 A2), 고를 수 없는 선택지를 나란히 두면
+          유형을 고르는 화면처럼 보인다. 고를 것이 하나뿐이므로 한 장으로 세운다. */}
+      <div className="mt-6 max-w-xl">
         <button
           type="button"
           data-testid="pick-corporate"
@@ -769,10 +771,18 @@ function StepMemberType({ onNext }: { onNext: () => void }) {
             <span className="mt-1.5 block break-keep text-s leading-6 text-muted">
               사업자등록증이 있는 법인 · 개인사업자
             </span>
+            {/* [개정 2026-08-30] 예전 문구는 회사의 첫 가입자 경로만 설명했고, "진위확인으로
+                즉시 심사" 는 사실과도 달랐다 — 진위확인은 휴·폐업을 거르는 것이지 승인이
+                아니고, 접수된 계정은 승인 대기로 남는다. 한 회사에서 여러 담당자가 들어오는
+                구조이므로 첫 가입자와 이후 담당자를 나눠 적는다. */}
             <span className="mt-4 block space-y-2 break-keep text-s leading-6 text-muted">
               <span className="block">· 공연 기획사 · 제작사 · 대행사 등</span>
               <span className="block">· 대관 신청 · 계약 · 정산 전 과정 이용</span>
-              <span className="block">· 사업자등록번호 진위확인으로 즉시 심사</span>
+              <span className="block">
+                · 회사의 <b>첫 가입자</b>가 회사 정보를 등록하면, 이후 담당자는 사업자등록번호만
+                넣으면 회사 정보가 자동으로 채워집니다
+              </span>
+              <span className="block">· 접수 후 심사를 거쳐 승인되면 이용할 수 있습니다</span>
             </span>
           </span>
           <span className={`${btnClass("primary", "md")} mt-7 w-full justify-center text-center`}>
@@ -780,32 +790,13 @@ function StepMemberType({ onNext }: { onNext: () => void }) {
           </span>
         </button>
 
-        <div
-          data-testid="pick-individual"
-          aria-disabled="true"
-          className="flex h-full flex-col border border-border-soft p-5 opacity-60"
-        >
-          <div className="flex-1">
-            <p className="text-xs font-bold text-muted">준비 중</p>
-            <p className="mt-2 text-h6-m font-bold text-muted">개인회원</p>
-            <p className="mt-1.5 break-keep text-s leading-6 text-muted">
-              사업자등록증이 없는 개인
-            </p>
-            <ul className="mt-4 space-y-2 break-keep text-s leading-6 text-muted">
-              <li>· 동호회 · 개인 주최자 등</li>
-              <li>· 현재 기업회원만 가입할 수 있습니다</li>
-              <li>· 오픈 시 공지사항으로 안내</li>
-            </ul>
-          </div>
-          <button
-            type="button"
-            disabled
-            className={`${btnClass("secondary", "md")} mt-7 w-full justify-center text-center`}
-          >
-            준비 중입니다
-          </button>
-        </div>
       </div>
+
+      {/* 개인회원 카드를 뺀 대신 한 줄로만 남긴다 — 사업자등록증이 없는 사람이 여기서
+          헤매지 않도록, 지금은 받지 않는다는 사실은 계속 알려야 한다. */}
+      <p className="mt-5 break-keep text-s leading-6 text-muted">
+        사업자등록증이 없는 개인 회원 가입은 준비 중입니다. 열리면 공지사항으로 안내드립니다.
+      </p>
 
       <p className="mt-7 break-keep text-s text-muted">
         이미 계정이 있으신가요?{" "}
