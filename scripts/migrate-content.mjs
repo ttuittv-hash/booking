@@ -19,6 +19,10 @@
     node scripts/migrate-content.mjs --apply            # 실제 이관
     node scripts/migrate-content.mjs --apply --replace  # 원본에 없는 행은 지워 원본과 똑같이
 
+  Render 의 External Database URL 로 붙을 때는 SSL 이 필요하다. 주소 끝에 ?sslmode=require
+  가 없으면 붙여 주고, 그래도 "self-signed certificate" 로 막히면 --ssl-no-verify 를 준다
+  (관리형 DB 가 사설 CA 를 쓰는 경우다 — 이관은 한 번 쓰고 마는 작업이라 이 정도로 둔다).
+
   환경변수:
     SOURCE_DATABASE_URL   가져올 곳 (preview)
     TARGET_DATABASE_URL   넣을 곳   (dev)
@@ -32,6 +36,7 @@ import pg from "pg";
 
 const APPLY = process.argv.includes("--apply");
 const REPLACE = process.argv.includes("--replace");
+const NO_VERIFY = process.argv.includes("--ssl-no-verify");
 const only = process.argv.find((a) => a.startsWith("--tables="));
 const extra = process.argv.find((a) => a.startsWith("--include="));
 
@@ -119,11 +124,34 @@ async function commonColumns(src, dst, table) {
   return a.rows.map((r) => r.column_name).filter((c) => bs.has(c));
 }
 
-const source = new pg.Client({ connectionString: SOURCE });
-const target = new pg.Client({ connectionString: TARGET });
+/**
+ * 관리형 DB(Render 등)는 외부 접속에 SSL 을 요구하는데 인증서가 사설 CA 인 경우가 있다.
+ * 주소에 sslmode 가 적혀 있으면 pg 가 알아서 처리하고, --ssl-no-verify 를 주면
+ * 인증서 검증만 끈다. localhost 로 포워딩해 붙는 쪽은 그대로 둔다.
+ */
+function clientFor(url) {
+  const local = /@(localhost|127\.0\.0\.1|\/)/.test(url) || url.includes("host=/");
+  return new pg.Client({
+    connectionString: url,
+    ...(NO_VERIFY && !local ? { ssl: { rejectUnauthorized: false } } : {}),
+  });
+}
 
-await source.connect();
-await target.connect();
+const source = clientFor(SOURCE);
+const target = clientFor(TARGET);
+
+try {
+  await source.connect();
+} catch (e) {
+  die(`원본(preview) 에 접속하지 못했습니다.\n  ${e.message}\n` +
+      `  Render 주소라면 끝에 ?sslmode=require 를 붙이고, 그래도 인증서 오류가 나면 --ssl-no-verify 를 주세요.`);
+}
+try {
+  await target.connect();
+} catch (e) {
+  await source.end().catch(() => {});
+  die(`대상(dev) 에 접속하지 못했습니다.\n  ${e.message}`);
+}
 
 console.log(`\n콘텐츠 이관 ${APPLY ? "(실제 실행)" : "(연습 실행 — 아무 것도 바뀌지 않습니다)"}`);
 if (REPLACE) console.log("원본에 없는 행은 대상에서 지웁니다(--replace).");
@@ -235,8 +263,8 @@ try {
   건수만 보는 것이라 내용까지 같다는 보장은 아니지만, 통째로 빠진 것은 여기서 잡힌다.
 */
 if (APPLY) {
-  const src2 = new pg.Client({ connectionString: SOURCE });
-  const dst2 = new pg.Client({ connectionString: TARGET });
+  const src2 = clientFor(SOURCE);
+  const dst2 = clientFor(TARGET);
   await src2.connect();
   await dst2.connect();
   console.log(`\n확인 — 어드민 화면 기준`);
