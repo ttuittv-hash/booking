@@ -64,7 +64,11 @@ const wnext=async()=>{await w.locator('button:has-text("다음")').last().click(
 const cells=w.locator('button:not([disabled])').filter({hasText:/^\d{1,2}$/});
 await cells.nth(Math.floor(await cells.count()*0.6)).click(); await w.waitForTimeout(900);
 await wnext();
-await w.locator('button, [role=button], label').filter({hasText:/PACKAGE 1/}).first().click().catch(()=>{});
+// 패키지명은 운영자가 바꿀 수 있다(예: PACKAGE 1 → Rate A). 이름에 묶지 말고,
+// 구성·옵션 단계에서 고를 수 있는 패키지 선택지 중 첫 번째를 누른다.
+const pkg = w.locator('button, [role=button], label').filter({hasText:/PACKAGE\s*\d|Rate\s*[A-D]|패키지/}).first();
+if (await pkg.count()) { await pkg.click().catch(()=>{}); }
+else { await w.locator('button, [role=button], label').filter({hasText:/\S/}).first().click().catch(()=>{}); }
 await w.waitForTimeout(800);
 await wnext(); // → 기본 정보
 
