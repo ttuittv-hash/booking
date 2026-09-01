@@ -2,8 +2,11 @@
 /*
   콘텐츠 데이터 이관 — preview → dev (2026-08-30).
 
-  운영자가 백오피스에서 만든 "콘텐츠"만 옮긴다. 회원·신청서·계약·정산처럼 그 환경에서
-  생긴 업무 데이터는 건드리지 않는다 — 환경마다 계정과 번호 체계가 달라 섞으면 되돌릴 수 없다.
+  운영자가 백오피스에서 등록·편집한 것을 옮긴다 — 요금표(패키지·옵션 포함), 페이지 콘텐츠,
+  공지·FAQ·안내 페이지, 알림 규칙, 일정 차단일, 기능정의서.
+
+  회원·신청서·계약·정산처럼 그 환경에서 생긴 업무 데이터는 건드리지 않는다 — 환경마다
+  계정과 번호 체계가 달라 섞으면 되돌릴 수 없다.
 
   기본은 **연습 실행(dry run)** 이다. 무엇이 몇 건 바뀌는지 먼저 찍어 보고,
   확인한 뒤에 --apply 를 붙여 실제로 쓴다.
@@ -45,6 +48,16 @@ const TABLES = [
   { name: "pages", keys: [["id"], ["page_group", "slug"]], label: "안내 페이지", files: ["body"] },
   { name: "notification_rules", keys: [["id"], ["type_code"]], label: "알림 규칙" },
   { name: "date_blocks", keys: [["date"]], label: "일정 차단일" },
+  // 패키지와 옵션은 별도 표가 아니라 요금표 안(packages_json · addons_json)에 있다 —
+  // 어드민의 [요금표 관리]와 [패키지 관리]가 같은 행을 본다.
+  {
+    name: "rate_tables",
+    keys: [["version"]],
+    label: "요금표 · 패키지 · 옵션",
+    warn:
+      "화면에 뜨는 요금표는 updated_at 이 가장 늦은 행이다. 대상에 더 늦게 손댄 행이 있으면 " +
+      "옮겨도 그쪽이 계속 현재 요금표로 남는다(이관 후 어느 버전이 현재인지 아래에 찍는다)",
+  },
 ];
 
 /**
@@ -52,12 +65,6 @@ const TABLES = [
  * 그냥 옮기면 사고가 나는 것들이라 일부러 손이 한 번 더 가게 뒀다.
  */
 const OPT_IN = [
-  {
-    name: "rate_tables",
-    keys: [["version"]],
-    label: "요금표",
-    warn: "신청서(quotes)가 version 을 참조한다. 같은 버전을 덮어쓰면 이미 접수된 신청서의 산출 근거가 바뀐다",
-  },
   {
     name: "message_templates",
     keys: [["code"]],
@@ -176,6 +183,31 @@ try {
   if (APPLY) {
     await target.query("COMMIT");
     console.log(`\n✓ 이관 완료 — 삽입 ${totalIn}건 / 삭제 ${totalDel}건`);
+
+    // 요금표는 "가장 늦게 손댄 행"이 현재 요금표가 된다(getCurrentRateTable).
+    // 옮겼는데 대상의 다른 행이 더 늦으면 화면은 그대로다 — 그 경우를 눈에 띄게 알린다.
+    if (picked.some((t) => t.name === "rate_tables")) {
+      const cur = (
+        await target.query(
+          "SELECT version, updated_at FROM rate_tables ORDER BY updated_at DESC LIMIT 1",
+        )
+      ).rows[0];
+      const src = (
+        await source.query(
+          "SELECT version, updated_at FROM rate_tables ORDER BY updated_at DESC LIMIT 1",
+        )
+      ).rows[0];
+      if (cur) {
+        console.log(`\n현재 요금표(대상): ${cur.version}  (updated_at ${cur.updated_at})`);
+        if (src && cur.version !== src.version) {
+          console.log(
+            `  ⚠ 원본의 최신은 ${src.version}(${src.updated_at}) 인데 대상에서는 위 버전이 현재입니다.\n` +
+              `    대상에 더 늦게 손댄 행이 있다는 뜻입니다 — 원본 것을 쓰려면 그 행의 updated_at 을\n` +
+              `    올리거나 --replace 로 대상 요금표를 원본과 똑같이 맞추세요.`,
+          );
+        }
+      }
+    }
   } else {
     console.log(`\n연습 실행이라 대상 DB 는 그대로입니다. 실제로 옮기려면 --apply 를 붙이세요.`);
   }
