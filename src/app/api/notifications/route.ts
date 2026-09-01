@@ -6,10 +6,11 @@ export async function GET() {
   const user = await getCurrentUser();
   if (!user) return NextResponse.json({ error: "로그인이 필요합니다." }, { status: 401 });
 
-  return NextResponse.json({
-    notifications: await listNotifications(user.id),
-    unreadCount: await countUnreadNotifications(user.id),
-  });
+  const [notifications, unreadCount] = await Promise.all([
+    listNotifications(user.id),
+    countUnreadNotifications(user.id),
+  ]);
+  return NextResponse.json({ notifications, unreadCount });
 }
 
 export async function POST(request: Request) {
@@ -25,8 +26,9 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "알 수 없는 요청입니다." }, { status: 400 });
   }
 
-  return NextResponse.json({
-    notifications: await listNotifications(user.id),
-    unreadCount: await countUnreadNotifications(user.id),
-  });
+  const [notifications, unreadCount] = await Promise.all([
+    listNotifications(user.id),
+    countUnreadNotifications(user.id),
+  ]);
+  return NextResponse.json({ notifications, unreadCount });
 }

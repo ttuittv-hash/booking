@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { notifyQuoteApplicant } from "@/lib/message/quoteEvents";
 import crypto from "node:crypto";
-import { canAccessQuote, getCurrentUser } from "@/lib/auth";
+import { canAccessQuote, canActOnQuotes, getCurrentUser } from "@/lib/auth";
 import {
   addAuditLog,
   confirmTaxInvoicePayment,
@@ -99,6 +99,10 @@ export async function POST(request: Request, ctx: { params: Promise<{ id: string
   }
 
   if (body.action === "report") {
+    // 신청자 쪽 변경(입금신청)은 deposit report 와 같은 선에서 승인 완료(또는 운영자)만.
+    if (!canActOnQuotes(user)) {
+      return NextResponse.json({ error: "권한이 없습니다." }, { status: 403 });
+    }
     if (invoice.status !== "ISSUED") {
       return NextResponse.json({ error: "발행된 세금계산서만 입금신청할 수 있습니다." }, { status: 409 });
     }
