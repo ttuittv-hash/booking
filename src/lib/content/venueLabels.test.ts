@@ -25,9 +25,9 @@ describe("venueLabel", () => {
 });
 
 describe("VENUES", () => {
-  it("스페셜홀이 세 번째 공간으로 있다", () => {
+  it("세 번째 공간이 있고 기본 이름은 \"패키지\" 다", () => {
     expect(VENUES.map((v) => v.id)).toEqual(["arena", "medium-hall", SPECIAL_VENUE_ID]);
-    expect(defaultVenueName(SPECIAL_VENUE_ID)).toBe("스페셜홀");
+    expect(defaultVenueName(SPECIAL_VENUE_ID)).toBe("패키지");
   });
 
   it("공간 id 는 중복되지 않는다 — 패키지가 id 로 공간에 붙는다", () => {
