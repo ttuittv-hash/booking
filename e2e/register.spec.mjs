@@ -41,8 +41,10 @@ try {
     (await page.locator('[data-testid="step-member-type"]').count()) === 0);
   check("A2-3", "기업회원 안내가 첫 화면에 남아 있다",
     (await page.locator('[data-testid="register-intro"]').innerText()).includes("기업회원"));
-  check("A2-4", "개인회원 준비 중 안내는 한 줄로 남아 있다",
-    (await page.locator('[data-testid="step-terms"]').innerText()).includes("준비 중입니다"));
+  // [개정 2026-09-02] '가입 가능' 표시와 개인회원 '준비 중' 안내를 STEP1 에서 삭제(featureSpecSeed 참조).
+  // 예전엔 그 문구가 한 줄로 남아 있는지 봤지만, 이제는 사라졌는지를 확인한다.
+  check("A2-4", "개인회원 '준비 중' 안내는 2026-09-02 기획대로 삭제됐다",
+    !(await page.locator('[data-testid="step-terms"]').innerText()).includes("준비 중입니다"));
 
   // ── A3 STEP 1 약관 동의 ───────────────────────────────────
   const nextBtn = page.locator('[data-testid="terms-next"]');
