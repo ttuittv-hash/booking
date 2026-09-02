@@ -33,6 +33,7 @@ import {
   DEFAULT_SEOULARENA_CONTENT,
   FEATURES_CONTENT_VERSION,
   RATES_CONTENT_VERSION,
+  normalizeRatesContent,
   type DocumentsContent,
   type FeaturesContent,
   type GuidePageContent,
@@ -41,7 +42,6 @@ import {
   type ScreenTextContent,
   type SeoulArenaContent,
   type VenueFacilityContent,
-  type VenueRateContent,
 } from "./content/pageContent";
 import {
   DEFAULT_NOTICE_CALENDAR_WINDOW,
@@ -5425,23 +5425,8 @@ export async function saveGuidePageContent(data: GuidePageContent) {
  * 통째로 기본값으로 되돌릴 이유가 없고, 되돌리면 운영자가 고친 금액이 화면에서 사라진다.
  * 이번 개편에서 **새로 생긴 자리만** 기본값으로 채운다.
  */
-function withNewRateFields(v: VenueRateContent, fallback: VenueRateContent): VenueRateContent {
-  return {
-    ...v,
-    intro: v.intro ?? fallback.intro,
-    includes: Array.isArray(v?.includes) ? v.includes : fallback.includes,
-    includesLead: v.includesLead ?? fallback.includesLead,
-    includeGroups: Array.isArray(v?.includeGroups) ? v.includeGroups : fallback.includeGroups,
-  };
-}
-
 export async function getRatesContent(): Promise<RatesContent> {
-  const content = await getPageContent("rates", DEFAULT_RATES_CONTENT);
-  return {
-    version: RATES_CONTENT_VERSION,
-    arena: withNewRateFields(content.arena, DEFAULT_RATES_CONTENT.arena),
-    liveHall: withNewRateFields(content.liveHall, DEFAULT_RATES_CONTENT.liveHall),
-  };
+  return normalizeRatesContent(await getPageContent("rates", DEFAULT_RATES_CONTENT));
 }
 export async function saveRatesContent(data: RatesContent) {
   return saveSiteContent("rates", { ...data, version: RATES_CONTENT_VERSION });
