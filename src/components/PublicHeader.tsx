@@ -171,7 +171,15 @@ export function PublicHeader({
     ...cat,
     pages: cat.pages.filter((p) => allowed(p.href)),
   })).filter((cat) => cat.pages.length > 0);
-  const visibleSupportPages = SUPPORT_MENU.pages.filter((p) => allowed(p.href));
+  /*
+    비로그인에게 1:1 문의는 공개 접수 화면(/inquiry)으로 보낸다 (2026-09-02).
+    마이페이지 안의 문의 목록은 로그인해야 열리는데, 가입 전에도 물어볼 곳은 있어야 한다.
+  */
+  const visibleSupportPages = SUPPORT_MENU.pages
+    .filter((p) => allowed(p.href))
+    .map((p) =>
+      p.href === "/mypage/inquiries" && accountState === "GUEST" ? { ...p, href: "/inquiry" } : p,
+    );
 
   /** 펼쳐진 드롭다운의 키 (카테고리 라벨 · "지원" · "계정") */
   const [openKey, setOpenKey] = useState<string | null>(null);

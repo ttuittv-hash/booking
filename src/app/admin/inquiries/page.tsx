@@ -51,7 +51,8 @@ export default async function AdminInquiriesPage({
   const { page: pageParam } = await searchParams;
   const page = normalizePage(pageParam);
   const { items: inquiries, total, totalPages } = await listInquiriesPaged({}, page);
-  const authorIds = [...new Set(inquiries.map((i) => i.userId))];
+  // 비회원 문의는 계정이 없다 — 이름은 문의에 적힌 연락처에서 읽는다.
+  const authorIds = [...new Set(inquiries.map((i) => i.userId).filter((id): id is string => !!id))];
   const authorById = new Map((await listUsersByIds(authorIds)).map((u) => [u.id, u]));
   const openCount = inquiries.filter((i) => i.status === "OPEN").length;
 
@@ -94,7 +95,7 @@ export default async function AdminInquiriesPage({
                   </tr>
                 ) : (
                   inquiries.map((inquiry) => {
-                    const author = authorById.get(inquiry.userId);
+                    const author = inquiry.userId ? authorById.get(inquiry.userId) : undefined;
                     return (
                       <tr key={inquiry.id} className={TR_HOVER}>
                         <td className={TD_ID}>

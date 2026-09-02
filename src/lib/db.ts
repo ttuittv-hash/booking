@@ -536,6 +536,8 @@ async function initSchema(pool: Pool) {
     ALTER TABLE inquiries ADD COLUMN IF NOT EXISTS category TEXT;
     ALTER TABLE inquiries ADD COLUMN IF NOT EXISTS quote_id TEXT;
     -- 답변받을 곳(2026-09-02). 계정 정보와 다를 수 있어 문의마다 따로 받는다.
+    -- 비회원(비로그인) 문의도 받으므로 user_id 는 비어 있을 수 있다.
+    ALTER TABLE inquiries ALTER COLUMN user_id DROP NOT NULL;
     ALTER TABLE inquiries ADD COLUMN IF NOT EXISTS contact_name TEXT;
     ALTER TABLE inquiries ADD COLUMN IF NOT EXISTS contact_email TEXT;
     ALTER TABLE inquiries ADD COLUMN IF NOT EXISTS contact_phone TEXT;
@@ -4937,7 +4939,7 @@ export async function markAllNotificationsRead(recipientId: string) {
 
 interface InquiryRow {
   id: string;
-  user_id: string;
+  user_id: string | null;
   category: string | null;
   quote_id: string | null;
   title: string;
@@ -4973,7 +4975,8 @@ function toInquiry(row: InquiryRow): Inquiry {
 
 export async function createInquiry(input: {
   id: string;
-  userId: string;
+  /** 비회원 문의는 계정이 없다 — 연락처(contact*)로만 답한다. */
+  userId: string | null;
   category?: string | null;
   quoteId?: string | null;
   title: string;

@@ -19,7 +19,7 @@ export default async function AdminInquiryDetailPage({
   const { id } = await params;
   const inquiry = await getInquiryById(id);
   if (!inquiry) notFound();
-  const author = await findUserById(inquiry.userId);
+  const author = inquiry.userId ? await findUserById(inquiry.userId) : undefined;
 
   const answered = inquiry.status === "ANSWERED";
 

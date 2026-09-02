@@ -4,6 +4,7 @@ import { getCurrentUser } from "@/lib/auth";
 import { createInquiry, listInquiries, notifyAdmins } from "@/lib/db";
 import { findInquiryCategory } from "@/lib/inquiryCategories";
 import { dispatchMessageInBackground } from "@/lib/message/dispatch";
+import { clientIpFrom, rateLimit } from "@/lib/rateLimit";
 
 export async function GET() {
   const user = await getCurrentUser();
@@ -14,10 +15,28 @@ export async function GET() {
 }
 
 export async function POST(request: Request) {
+  /*
+    비회원 문의 (2026-09-02).
+
+    가입 전에 물어볼 곳이 있어야 한다 — 대관 조건을 알아야 가입할지 정하는데, 문의가
+    로그인 뒤에만 열려 있으면 순서가 거꾸로다. 그래서 로그인 없이도 접수하고, 답은
+    문의에 적은 이메일·휴대폰으로 보낸다(계정이 없으니 인앱 알림은 없다).
+
+    로그인 없이 쓰는 입구라 IP 로 접수 수를 제한한다 — 프로세스 메모리가 아니라
+    rate_limits 테이블을 쓴다(파드가 여러 개다).
+  */
   const user = await getCurrentUser();
-  if (!user) return NextResponse.json({ error: "로그인이 필요합니다." }, { status: 401 });
-  if (user.role === "ADMIN") {
+  if (user?.role === "ADMIN") {
     return NextResponse.json({ error: "운영자 계정으로는 문의를 등록할 수 없습니다." }, { status: 403 });
+  }
+  if (!user) {
+    const ip = clientIpFrom(request);
+    if (!(await rateLimit(`guest-inquiry:${ip}`, 5, 60 * 60 * 1000))) {
+      return NextResponse.json(
+        { error: "문의가 너무 많이 접수되었습니다. 잠시 후 다시 시도해 주세요." },
+        { status: 429 },
+      );
+    }
   }
 
   const body = await request.json().catch(() => null);
@@ -39,6 +58,13 @@ export async function POST(request: Request) {
   const contactEmail = (typeof body?.contactEmail === "string" ? body.contactEmail.trim() : "").slice(0, 120);
   const contactPhone = (typeof body?.contactPhone === "string" ? body.contactPhone.trim() : "").slice(0, 20);
 
+  // 회원은 비우면 계정 정보로 채우지만, 비회원은 여기가 유일한 회신 경로다.
+  if (!user && (!contactName || !contactEmail || !contactPhone)) {
+    return NextResponse.json(
+      { error: "답변받으실 이름 · 이메일 · 전화번호를 모두 입력해 주세요." },
+      { status: 400 },
+    );
+  }
   if (contactEmail && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(contactEmail)) {
     return NextResponse.json({ error: "연락받을 이메일 주소를 정확히 입력해 주세요." }, { status: 400 });
   }
@@ -63,19 +89,19 @@ export async function POST(request: Request) {
   const createdAt = new Date().toISOString();
   const inquiry = await createInquiry({
     id: crypto.randomUUID(),
-    userId: user.id,
+    userId: user?.id ?? null,
     category: category.id,
     quoteId: category.quote === "NONE" ? null : quoteId,
     title,
     content,
-    contactName: contactName || user.name,
-    contactEmail: contactEmail || user.email,
-    contactPhone: contactPhone || user.phone,
+    contactName: contactName || user?.name || null,
+    contactEmail: contactEmail || user?.email || null,
+    contactPhone: contactPhone || user?.phone || null,
     createdAt,
   });
   await notifyAdmins({
     quoteId: quoteId ?? "",
-    message: `새 1:1 문의가 등록되었습니다 (${category.label}): ${title}`,
+    message: `새 1:1 문의가 등록되었습니다${user ? "" : " (비회원)"} (${category.label}): ${title}`,
     createdAt,
   });
   // 등록자 본인에게 접수 알림톡·메일(ARENA-0010). (2026-09-01 팀 요청)
@@ -84,12 +110,12 @@ export async function POST(request: Request) {
     templateCode: "ARENA-0010",
     idempotencyKey: `ARENA-0010:${inquiry.id}`,
     recipient: {
-      userId: user.id,
-      phone: inquiry.contactPhone ?? user.phone,
-      email: inquiry.contactEmail ?? user.email,
-      name: inquiry.contactName ?? user.name,
+      userId: user?.id ?? null,
+      phone: inquiry.contactPhone ?? user?.phone ?? null,
+      email: inquiry.contactEmail ?? user?.email ?? null,
+      name: inquiry.contactName ?? user?.name ?? "",
     },
-    variables: { 등록자명: inquiry.contactName ?? user.name },
+    variables: { 등록자명: inquiry.contactName ?? user?.name ?? "고객" },
     request,
   });
 

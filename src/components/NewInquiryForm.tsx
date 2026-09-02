@@ -18,12 +18,15 @@ export function NewInquiryForm({
   notifyEmail,
   defaultName,
   defaultPhone,
+  guest = false,
 }: {
   /** 로그인 계정이 제출한 신청번호 — 직접 입력은 예비 수단으로만 둔다 */
   myQuoteIds: string[];
   notifyEmail: string;
   defaultName: string;
   defaultPhone: string;
+  /** 비로그인 접수(/inquiry) — 신청번호 칸을 두지 않고, 끝나면 접수 안내를 보여 준다 */
+  guest?: boolean;
 }) {
   const router = useRouter();
   const toast = useToast();
@@ -42,9 +45,12 @@ export function NewInquiryForm({
   const [contactPhone, setContactPhone] = useState(defaultPhone);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  /** 비회원은 돌아갈 목록이 없다 — 접수됐다는 사실을 이 화면에서 알린다 */
+  const [done, setDone] = useState(false);
 
   const category: InquiryCategory | undefined = findInquiryCategory(categoryId);
-  const showQuote = !!category && category.quote !== "NONE";
+  // 비회원은 신청 건이 있을 수 없다 — 칸을 두면 채우라는 뜻으로 읽힌다.
+  const showQuote = !guest && !!category && category.quote !== "NONE";
   const quoteRequired = category?.quote === "REQUIRED";
 
   /**
@@ -54,7 +60,8 @@ export function NewInquiryForm({
    */
   function firstMissing(): string | null {
     if (!categoryId) return "문의 유형을 선택해 주세요.";
-    if (quoteRequired && !quoteId.trim()) return "이 유형은 신청번호가 필요합니다.";
+    if (guest && quoteRequired) return "이 유형은 로그인 후 신청 건을 선택해 문의해 주세요.";
+    if (!guest && quoteRequired && !quoteId.trim()) return "이 유형은 신청번호가 필요합니다.";
     if (!title.trim()) return "제목을 입력해 주세요.";
     if (!content.trim()) return "문의 내용을 입력해 주세요.";
     if (!contactName.trim()) return "답변받으실 분의 이름을 입력해 주세요.";
@@ -93,11 +100,27 @@ export function NewInquiryForm({
         toast.error(message);
         return;
       }
+      if (guest) {
+        setDone(true);
+        return;
+      }
       router.push(`/mypage/inquiries/${data.inquiry.id}`);
       router.refresh();
     } finally {
       setBusy(false);
     }
+  }
+
+  if (done) {
+    return (
+      <div className="border-t border-border/25 pt-6">
+        <h2 className="type-kr-heading text-h6-m">문의가 접수되었습니다</h2>
+        <p className="mt-4 break-keep text-s leading-7 text-muted">
+          답변이 등록되면 <strong className="text-foreground">{contactEmail}</strong> 로 메일과
+          카카오 알림톡을 보내 드립니다. 접수 순서대로 확인하며, 영업일 기준으로 답변드립니다.
+        </p>
+      </div>
+    );
   }
 
   return (
@@ -192,8 +215,9 @@ export function NewInquiryForm({
         <div className="border-t border-border/25 pt-6">
           <span className="block text-xs font-bold">답변받으실 곳</span>
           <p className="mt-2 text-xs text-muted">
-            답변이 등록되면 아래 이메일과 카카오 알림톡으로 알려 드립니다. 계정 정보로
-            채워 두었으니, 다른 분이 받으셔야 하면 고쳐 주세요.
+            {guest
+              ? "답변이 등록되면 아래 이메일과 카카오 알림톡으로 알려 드립니다. 연락 가능한 곳으로 적어 주세요."
+              : "답변이 등록되면 아래 이메일과 카카오 알림톡으로 알려 드립니다. 계정 정보로 채워 두었으니, 다른 분이 받으셔야 하면 고쳐 주세요."}
           </p>
           <div className="mt-4 grid gap-4 sm:grid-cols-3">
             <label className="block">

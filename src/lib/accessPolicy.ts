@@ -63,6 +63,8 @@ const RULES: MenuRule[] = [
   { prefix: "/mypage/profile", label: "회원정보 수정", allow: LOGIN_ONLY },
   { prefix: "/mypage/withdraw", label: "회원 탈퇴", allow: LOGIN_ONLY },
   { prefix: "/mypage/inquiries", label: "1:1 문의", allow: LOGIN_ONLY },
+  // 비회원 문의 접수 — 가입 전에 물어볼 곳이다(2026-09-02). 답은 적어 준 메일·번호로 간다.
+  { prefix: "/inquiry", label: "1:1 문의(비회원)", allow: OPEN_ALL },
   // 신청 내역은 승인 완료여야 본다.
   { prefix: "/mypage", label: "대관신청내역", allow: APPROVED_ONLY },
 

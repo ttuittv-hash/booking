@@ -73,6 +73,12 @@ describe("승인 대기에 열려 있는 곳", () => {
   it("대관 절차도 누구나 열린다", () => expect(canAccess("/guide", "PENDING")).toBe(true));
   it("회원정보 수정", () => expect(canAccess("/mypage/profile", "PENDING")).toBe(true));
   it("회원 탈퇴", () => expect(canAccess("/mypage/withdraw", "PENDING")).toBe(true));
+  // [신규 2026-09-02] 가입 전에도 물어볼 곳이 있어야 한다 — 대관 조건을 알아야
+  // 가입할지 정하는데, 문의가 로그인 뒤에만 열려 있으면 순서가 거꾸로다.
+  it("비회원 문의 접수는 로그인 없이 열린다", () => {
+    expect(canAccess("/inquiry", "GUEST")).toBe(true);
+    expect(findRule("/inquiry")?.label).toBe("1:1 문의(비회원)");
+  });
   it("1:1 문의 — 대기·반려 상태에서 물어볼 곳이 남아야 한다", () => {
     expect(canAccess("/mypage/inquiries", "PENDING")).toBe(true);
     expect(canAccess("/mypage/inquiries", "REJECTED")).toBe(true);
