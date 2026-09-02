@@ -3100,6 +3100,42 @@ export async function updateUserProfile(
   return (await findUserById(id))!;
 }
 
+/**
+ * 제출 서류 다시 올리기 (2026-09-02).
+ *
+ * 반려된 사람이 재심사를 요청하려면 서류부터 고쳐야 하는데, 회원정보 수정에는 서류를
+ * 바꿀 자리가 아예 없었다(가입 화면에서만 올릴 수 있었다). 반려 사유가 "재직증명서가
+ * 흐리다" 같은 것이면 그대로는 다시 신청할 방법이 없다.
+ *
+ * 값을 준 항목만 바꾼다 — 한쪽만 다시 올렸을 때 다른 쪽이 지워지면 안 된다.
+ */
+export async function updateUserCertificates(
+  id: string,
+  input: {
+    employmentCertUrl?: string | null;
+    employmentCertName?: string | null;
+    businessCertUrl?: string | null;
+    businessCertName?: string | null;
+  },
+): Promise<AppUser> {
+  const sets: string[] = [];
+  const params: unknown[] = [];
+  const push = (col: string, value: string | null | undefined) => {
+    if (value === undefined) return;
+    params.push(value);
+    sets.push(`${col} = $${params.length}`);
+  };
+  push("employment_cert_url", input.employmentCertUrl);
+  push("employment_cert_name", input.employmentCertName);
+  push("business_cert_url", input.businessCertUrl);
+  push("business_cert_name", input.businessCertName);
+  if (sets.length > 0) {
+    params.push(id);
+    await q(`UPDATE users SET ${sets.join(", ")} WHERE id = $${params.length}`, params);
+  }
+  return (await findUserById(id))!;
+}
+
 // 비밀번호를 변경하면 항상 현행 v2 스킴(bcrypt(sha256(비밀번호)))으로 저장한다 —
 // 레거시(v1) 계정도 비밀번호 변경/로그인 승격 시점에 v2로 전환된다.
 export async function updateUserPassword(id: string, passwordHash: string) {

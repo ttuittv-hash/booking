@@ -34,6 +34,37 @@ export function ProfileForm({ user, company }: { user: AppUser; company: Company
   const [postalCode, setPostalCode] = useState(company?.postalCode ?? "");
   const [address, setAddress] = useState(company?.address ?? "");
 
+  /*
+    제출 서류 다시 올리기 (2026-09-02).
+
+    반려 사유가 "재직증명서가 흐리다" 같은 것이면 서류를 고쳐야 재심사를 요청할 수
+    있는데, 서류를 바꿀 자리가 가입 화면에만 있었다. 여기서 다시 올린다 —
+    새로 올린 것만 저장되고, 손대지 않은 쪽은 그대로 남는다.
+  */
+  const [employmentCert, setEmploymentCert] = useState<{ url: string; name: string } | null>(null);
+  const [businessCert, setBusinessCert] = useState<{ url: string; name: string } | null>(null);
+  const [uploading, setUploading] = useState<"employment" | "business" | null>(null);
+
+  async function uploadCert(kind: "employment" | "business", file: File) {
+    setUploading(kind);
+    setProfileError(null);
+    try {
+      const body = new FormData();
+      body.append("file", file);
+      const res = await fetch("/api/auth/register/attachment", { method: "POST", body });
+      const data = await res.json().catch(() => null);
+      if (!res.ok) {
+        setProfileError(data?.error ?? "파일을 올리지 못했습니다.");
+        return;
+      }
+      const next = { url: data.url as string, name: data.name as string };
+      if (kind === "employment") setEmploymentCert(next);
+      else setBusinessCert(next);
+    } finally {
+      setUploading(null);
+    }
+  }
+
   const [confirmPassword, setConfirmPassword] = useState("");
   const [savingProfile, setSavingProfile] = useState(false);
   const [profileMessage, setProfileMessage] = useState<string | null>(null);
@@ -71,6 +102,10 @@ export function ProfileForm({ user, company }: { user: AppUser; company: Company
           corporateRegistrationNumber,
           postalCode,
           address,
+          employmentCertUrl: employmentCert?.url ?? "",
+          employmentCertName: employmentCert?.name ?? "",
+          businessCertUrl: businessCert?.url ?? "",
+          businessCertName: businessCert?.name ?? "",
           currentPasswordHash,
         }),
       });
@@ -91,6 +126,10 @@ export function ProfileForm({ user, company }: { user: AppUser; company: Company
             corporateRegistrationNumber,
             postalCode,
             address,
+            employmentCertUrl: employmentCert?.url ?? "",
+            employmentCertName: employmentCert?.name ?? "",
+            businessCertUrl: businessCert?.url ?? "",
+            businessCertName: businessCert?.name ?? "",
             currentPasswordHash,
             currentPassword: confirmPassword,
           }),
@@ -103,6 +142,8 @@ export function ProfileForm({ user, company }: { user: AppUser; company: Company
       }
       setProfileMessage("회원정보가 수정되었습니다.");
       setConfirmPassword("");
+      setEmploymentCert(null);
+      setBusinessCert(null);
       router.refresh();
     } finally {
       setSavingProfile(false);
@@ -307,6 +348,48 @@ export function ProfileForm({ user, company }: { user: AppUser; company: Company
         ) : (
           <p className="mt-3 text-s text-muted">소속된 회사가 없습니다.</p>
         )}
+      </section>
+
+      <section className="border border-border bg-background p-5">
+        <h2 className="type-kr-heading text-h6-m">제출 서류</h2>
+        <p className="mt-2 text-s text-muted">
+          심사에 쓰이는 서류입니다. 반려 사유가 서류 문제였다면 여기서 다시 올린 뒤
+          재심사를 요청해 주세요. PDF · JPG · PNG · 10MB 이하.
+        </p>
+        <div className="mt-4 grid gap-4 sm:grid-cols-2">
+          {(
+            [
+              ["employment", "재직증명서", user.employmentCertName, employmentCert] as const,
+              ["business", "사업자등록증", user.businessCertName, businessCert] as const,
+            ]
+          ).map(([kind, label, savedName, picked]) => (
+            <div key={kind}>
+              <span className={labelCls}>{label}</span>
+              <div className="flex flex-wrap items-center gap-3">
+                <label className={`${btnClass("secondary", "md")} cursor-pointer whitespace-nowrap`}>
+                  {uploading === kind ? "업로드 중…" : "파일 선택"}
+                  <input
+                    type="file"
+                    accept=".pdf,.jpg,.jpeg,.png"
+                    disabled={uploading !== null}
+                    className="hidden"
+                    onChange={(e) => {
+                      const file = e.target.files?.[0];
+                      e.target.value = "";
+                      if (file) void uploadCert(kind, file);
+                    }}
+                  />
+                </label>
+                <span className="break-all text-s text-muted">
+                  {picked ? `${picked.name} (저장 대기)` : savedName || "첨부된 파일 없음"}
+                </span>
+              </div>
+            </div>
+          ))}
+        </div>
+        <p className="mt-3 text-xs text-muted">
+          파일을 고른 뒤 아래 [정보 저장]까지 눌러야 반영됩니다.
+        </p>
       </section>
 
       <section className="border border-border bg-background p-5">

@@ -7,6 +7,7 @@ import {
   findUserPasswordHash,
   updateCompanyProfile,
   updateUserProfile,
+  updateUserCertificates,
   isCompanyMaster,
 } from "@/lib/db";
 import { SHA256_HEX_RE, sha256Hex } from "@/lib/passwordScheme";
@@ -34,6 +35,31 @@ export async function PUT(request: Request) {
     typeof body?.corporateRegistrationNumber === "string" ? body.corporateRegistrationNumber.trim() : "";
   const postalCode = typeof body?.postalCode === "string" ? body.postalCode.trim() : "";
   const address = typeof body?.address === "string" ? body.address.trim() : "";
+  /*
+    제출 서류 다시 올리기 (2026-09-02).
+
+    반려 사유가 서류 문제일 때 고칠 자리가 없었다 — 가입 화면에서만 올릴 수 있어서,
+    반려된 사람은 재심사를 요청할 방법이 없었다. 여기서 다시 받는다.
+    주소는 우리가 발급한 업로드 주소만 받는다(2026-08-28 보안 점검과 같은 규칙) —
+    임의 링크가 심사 화면에 걸리면 운영자를 향한 피싱 링크가 된다.
+  */
+  const ATTACHMENT_URL_RE = /^\/api\/auth\/register\/attachment\/[0-9a-f-]{36}\.[a-z0-9]{1,10}$/;
+  const certUrl = (value: unknown) => (typeof value === "string" ? value.trim() : "");
+  const employmentCertUrl = certUrl(body?.employmentCertUrl);
+  const businessCertUrl = certUrl(body?.businessCertUrl);
+  for (const url of [employmentCertUrl, businessCertUrl]) {
+    if (url && !ATTACHMENT_URL_RE.test(url)) {
+      return NextResponse.json(
+        { error: "첨부 파일 주소가 올바르지 않습니다. 다시 업로드해주세요." },
+        { status: 400 },
+      );
+    }
+  }
+  const employmentCertName =
+    typeof body?.employmentCertName === "string" ? body.employmentCertName.trim().slice(0, 200) : "";
+  const businessCertName =
+    typeof body?.businessCertName === "string" ? body.businessCertName.trim().slice(0, 200) : "";
+
   const currentPasswordHash =
     typeof body?.currentPasswordHash === "string" ? body.currentPasswordHash.toLowerCase() : "";
   const currentPassword = typeof body?.currentPassword === "string" ? body.currentPassword : "";
@@ -85,6 +111,16 @@ export async function PUT(request: Request) {
     if (existing && existing.id !== user.id) {
       return NextResponse.json({ error: "이미 사용 중인 이메일입니다." }, { status: 409 });
     }
+  }
+
+  // 새로 올린 것만 바꾼다 — 한쪽만 다시 올렸을 때 다른 쪽이 지워지면 안 된다.
+  if (employmentCertUrl || businessCertUrl) {
+    await updateUserCertificates(user.id, {
+      employmentCertUrl: employmentCertUrl || undefined,
+      employmentCertName: employmentCertUrl ? employmentCertName || null : undefined,
+      businessCertUrl: businessCertUrl || undefined,
+      businessCertName: businessCertUrl ? businessCertName || null : undefined,
+    });
   }
 
   const updated = await updateUserProfile(user.id, {
