@@ -181,7 +181,22 @@ function facilityCards(groups: FacilityGroup[]): SpecCard[] {
   return groups.flatMap((g) => g.items.map((it) => ({ label: "", value: it.label, desc: it.value })));
 }
 
-function VenuePanel({ en, ko, c }: { en: string; ko: string; c: VenueFacilityContent }) {
+function VenuePanel({
+  en,
+  ko,
+  c,
+  overviewSize,
+}: {
+  en: string;
+  ko: string;
+  c: VenueFacilityContent;
+  /**
+   * 상위 4개 포인트의 크기. 아레나는 값이 `22,500` 같은 수치 한 덩어리라 H3(lg)로
+   * 두지만, 중형은 `좌석형 · 스탠딩형 가변 구성` 같은 서술문이라 같은 크기면 카드마다
+   * 세 줄까지 접힌다 — 한 단 낮춘 H4(md)로 둔다.
+   */
+  overviewSize: "md" | "lg";
+}) {
   const facilities = facilityCards(c.facilityGroups);
   const darkSections = [
     ...c.specGroups,
@@ -196,7 +211,7 @@ function VenuePanel({ en, ko, c }: { en: string; ko: string; c: VenueFacilityCon
         <PageHead en={en} ko={ko} />
         {c.overview.length > 0 && (
           <div className="mt-10">
-            <StatCards items={c.overview} size="lg" />
+            <StatCards items={c.overview} size={overviewSize} />
           </div>
         )}
       </Band>
@@ -262,9 +277,14 @@ export default async function FeaturesPage() {
             label: t.label,
             panel:
               t.value === "arena" ? (
-                <VenuePanel en="ARENA" ko="아레나" c={content.arena} />
+                <VenuePanel en="ARENA" ko="아레나" c={content.arena} overviewSize="lg" />
               ) : (
-                <VenuePanel en="LIVE HALL" ko="중형공연장" c={content.liveHall} />
+                <VenuePanel
+                  en="LIVE HALL"
+                  ko="중형공연장"
+                  c={content.liveHall}
+                  overviewSize="md"
+                />
               ),
           }))}
         />

@@ -760,17 +760,26 @@ export function valueHeadingClass(text: string): string {
 /**
  * 4-up 스탯 카드 — 굵은 윗선 + 작은 라벨 + 큰 값(+ 부연 한 줄).
  * 시설 제원의 상위 4개 포인트와 대관료의 기본 이용 기준이 같은 레이아웃을 쓴다.
- * 12칼럼에서 3칼럼씩 떨어진다.
+ * 12칼럼에서 3칼럼씩 떨어진다. 값에 줄바꿈을 넣으면 그대로 줄이 나뉜다.
  *
- * `size="lg"` 는 값이 주인공인 자리(시설 제원 키포인트) — H3 로 키우고, 수치면
- * Archivo 로 쓴다. 값에 줄바꿈을 넣으면 그대로 줄이 나뉜다.
+ * 크기는 **값이 얼마나 짧은가**로 고른다.
+ *   lg (H3)  `22,500` 처럼 수치 한 덩어리 — 한 줄에 떨어진다
+ *   md (H4)  `좌석형 · 스탠딩형 가변 구성` 처럼 서술문 — H3 로 두면 3줄까지 접힌다
+ *   sm (H5)  기본. 표 옆이나 밀도 높은 자리
+ * lg·md 는 수치면 Archivo 로 쓰고, sm 은 국문 헤딩으로 고정한다.
  */
+const STAT_VALUE_SIZE = {
+  sm: "text-h5-m sm:text-h5",
+  md: "text-h4-m sm:text-h4",
+  lg: "text-h3-m sm:text-h3",
+} as const;
+
 export function StatCards({
   items,
-  size = "md",
+  size = "sm",
 }: {
   items: { label: string; value: string; note?: string }[];
-  size?: "md" | "lg";
+  size?: keyof typeof STAT_VALUE_SIZE;
 }) {
   return (
     <ul className="grid gap-x-[var(--gutter)] gap-y-10 sm:grid-cols-2 lg:grid-cols-12">
@@ -779,10 +788,8 @@ export function StatCards({
           <p className="text-xs font-bold text-muted">{it.label}</p>
           <p
             className={`mt-3 whitespace-pre-line break-keep ${
-              size === "lg"
-                ? `${valueHeadingClass(it.value)} text-h3-m sm:text-h3`
-                : "type-kr-heading text-h5-m sm:text-h5"
-            }`}
+              size === "sm" ? "type-kr-heading" : valueHeadingClass(it.value)
+            } ${STAT_VALUE_SIZE[size]}`}
           >
             {it.value}
           </p>
