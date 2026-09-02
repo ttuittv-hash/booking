@@ -1125,63 +1125,74 @@ async function seedData(pool: Pool) {
     손댔는지는 `updated_at <> created_at` 으로 본다. 갈아 끼울 때도 두 값을 같게 두어
     다음 배포에서 또 따라올 수 있게 한다.
   */
-  // 공고문 원본(PDF)을 업로드 폴더로 복사한다 — 첨부 라우트가 그 폴더만 읽는다.
-  // 복사에 실패해도 공지는 넣는다(본문 안내는 남고, 첨부만 비어 보인다).
-  let noticeAttachmentUrl: string | null = null;
+  /*
+    시드는 실패해도 앱을 세우지 않는다 (2026-09-02).
+
+    initSchema 는 첫 쿼리 앞에서 한 번 도는 공통 경로라, 여기서 던지면 **모든 화면이**
+    500 이 된다. 공고 하나 못 넣은 것과 서비스가 안 뜨는 것은 다른 문제다 —
+    실패는 로그로 남기고 넘어간다.
+  */
   try {
-    const dir = path.join(DATA_DIR, "uploads", "notice-attachments");
-    await fs.mkdir(dir, { recursive: true });
-    const target = path.join(dir, SEED_NOTICE.attachmentStoredName);
-    const exists = await fs.stat(target).then(() => true).catch(() => false);
-    if (!exists) {
-      await fs.copyFile(
-        path.join(process.cwd(), "assets", "seed", SEED_NOTICE.attachmentFile),
-        target,
+    // 공고문 원본(PDF)을 업로드 폴더로 복사한다 — 첨부 라우트가 그 폴더만 읽는다.
+    // 복사에 실패해도 공지는 넣는다(본문 안내는 남고, 첨부만 비어 보인다).
+    let noticeAttachmentUrl: string | null = null;
+    try {
+      const dir = path.join(DATA_DIR, "uploads", "notice-attachments");
+      await fs.mkdir(dir, { recursive: true });
+      const target = path.join(dir, SEED_NOTICE.attachmentStoredName);
+      const exists = await fs.stat(target).then(() => true).catch(() => false);
+      if (!exists) {
+        await fs.copyFile(
+          path.join(process.cwd(), "assets", "seed", SEED_NOTICE.attachmentFile),
+          target,
+        );
+      }
+      noticeAttachmentUrl = SEED_NOTICE.attachmentUrl;
+    } catch (error) {
+      console.error("[seed] 공고문 첨부 복사 실패", error);
+    }
+
+    const seededNotice = (
+      await pool.query("SELECT created_at, updated_at FROM notices WHERE id = $1", [SEED_NOTICE.id])
+    ).rows[0] as { created_at: string; updated_at: string } | undefined;
+    const noticeUntouched = !!seededNotice && seededNotice.created_at === seededNotice.updated_at;
+
+    if (!seededNotice) {
+      const at = new Date().toISOString();
+      await pool.query(
+        `INSERT INTO notices (id, tag, title, body, image_url, attachment_url, attachment_name,
+                              show_booking_calendar, created_at, updated_at)
+         VALUES ($1, $2, $3, $4, NULL, $5, $6, $7, $8, $8)`,
+        [
+          SEED_NOTICE.id,
+          SEED_NOTICE.tag,
+          SEED_NOTICE.title,
+          SEED_NOTICE.body,
+          noticeAttachmentUrl,
+          noticeAttachmentUrl ? SEED_NOTICE.attachmentName : null,
+          SEED_NOTICE.showBookingCalendar ? 1 : 0,
+          at,
+        ],
+      );
+    } else if (noticeUntouched) {
+      await pool.query(
+        `UPDATE notices
+            SET tag = $2, title = $3, body = $4, attachment_url = $5, attachment_name = $6,
+                show_booking_calendar = $7, updated_at = created_at
+          WHERE id = $1`,
+        [
+          SEED_NOTICE.id,
+          SEED_NOTICE.tag,
+          SEED_NOTICE.title,
+          SEED_NOTICE.body,
+          noticeAttachmentUrl,
+          noticeAttachmentUrl ? SEED_NOTICE.attachmentName : null,
+          SEED_NOTICE.showBookingCalendar ? 1 : 0,
+        ],
       );
     }
-    noticeAttachmentUrl = SEED_NOTICE.attachmentUrl;
   } catch (error) {
-    console.error("[seed] 공고문 첨부 복사 실패", error);
-  }
-
-  const seededNotice = (
-    await pool.query("SELECT created_at, updated_at FROM notices WHERE id = $1", [SEED_NOTICE.id])
-  ).rows[0] as { created_at: string; updated_at: string } | undefined;
-  const noticeUntouched = !!seededNotice && seededNotice.created_at === seededNotice.updated_at;
-
-  if (!seededNotice) {
-    const at = new Date().toISOString();
-    await pool.query(
-      `INSERT INTO notices (id, tag, title, body, image_url, attachment_url, attachment_name,
-                            show_booking_calendar, created_at, updated_at)
-       VALUES ($1, $2, $3, $4, NULL, $5, $6, $7, $8, $8)`,
-      [
-        SEED_NOTICE.id,
-        SEED_NOTICE.tag,
-        SEED_NOTICE.title,
-        SEED_NOTICE.body,
-        noticeAttachmentUrl,
-        noticeAttachmentUrl ? SEED_NOTICE.attachmentName : null,
-        SEED_NOTICE.showBookingCalendar ? 1 : 0,
-        at,
-      ],
-    );
-  } else if (noticeUntouched) {
-    await pool.query(
-      `UPDATE notices
-          SET tag = $2, title = $3, body = $4, attachment_url = $5, attachment_name = $6,
-              show_booking_calendar = $7, updated_at = created_at
-        WHERE id = $1`,
-      [
-        SEED_NOTICE.id,
-        SEED_NOTICE.tag,
-        SEED_NOTICE.title,
-        SEED_NOTICE.body,
-        noticeAttachmentUrl,
-        noticeAttachmentUrl ? SEED_NOTICE.attachmentName : null,
-        SEED_NOTICE.showBookingCalendar ? 1 : 0,
-      ],
-    );
+    console.error("[seed] 첫 공지 등록/갱신 실패", error);
   }
 
   // 기능정의서(내부 기획 문서) — 시트별로 없는 것만 채운다. 이미 운영 중인 DB에 나중에
