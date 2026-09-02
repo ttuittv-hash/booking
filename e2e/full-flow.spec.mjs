@@ -115,7 +115,8 @@ try {
   await page.goto(`${BASE}/apply`, { waitUntil: "domcontentloaded" });
   check("A15-1", "승인 대기는 대관신청이 막힌다", page.url().includes("/pending"));
   await page.goto(`${BASE}/guide`, { waitUntil: "domcontentloaded" });
-  check("A15-2", "승인 대기도 대관안내는 열람한다", page.url().includes("/guide"));
+  // [개정 2026-09-02] 승인 완료 전에는 대관 절차·료·규약·자료·공지가 막힌다(Your Stage·마이페이지만).
+  check("A15-2", "승인 대기는 대관 절차가 막힌다", !page.url().includes("/guide"));
   await page.goto(`${BASE}/seoularena`, { waitUntil: "domcontentloaded" });
   check("A15-3", "서울아레나 소개는 누구나 열람한다", page.url().includes("/seoularena"));
   // IA 재구성으로 상세 스펙(시설 소개)은 로그인이 필요한 /features 로 분리됐다.
@@ -219,7 +220,9 @@ try {
   await fillIfEditable(invitee, '[data-testid="f-address"]', "경기도 성남시 분당구 판교역로 166");
   await invitee.fill('[data-testid="f-username"]', "s" + t);
   // 초대장과 같은 이메일로 가입해야 "미가입" 초대 행이 자동 정리된다.
-  await invitee.fill('[data-testid="f-email"]', `staff${t}@seoul-ent.co.kr`);
+  // [개정 2026-09-02] 초대(inviteMode)로 들어오면 이메일이 초대장 주소로 고정(readonly)되므로
+  // editable 일 때만 채운다 — 이미 초대장 주소로 미리 채워져 있다.
+  await fillIfEditable(invitee, '[data-testid="f-email"]', `staff${t}@seoul-ent.co.kr`);
   await invitee.fill('[data-testid="f-password"]', "Test1234!");
   await invitee.fill('[data-testid="f-passwordConfirm"]', "Test1234!");
   // 사업자등록증·재직증명서는 필수 첨부(2026-08-28 기획 개정) — 더미 파일을 올린다.
