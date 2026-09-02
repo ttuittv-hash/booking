@@ -477,8 +477,42 @@ export function Step1Calendar({
                     </button>
                   </div>
 
-                  {/* 중형 줄 — 아레나와 같은 6일 안에서 따로 짠다. 같은 역할을 다시
-                      누르면 그 날짜의 중형 사용을 뗀다(아레나처럼 [삭제] 를 따로 두면
+                  {activeDateKeys.has(dateKey(new Date(openDate))) &&
+                    effectiveDayTag(openDate, dayTags, dayTagDefaults) === "PERFORMANCE" && (
+                      <div
+                        className={[
+                          "mt-2.5 flex items-center gap-2",
+                          // 공간이 하나뿐일 때는 버튼 줄과 회차를 헤어라인으로 나눈다.
+                          // 두 줄일 때는 바로 아래 「중형 공연장」 구분선이 그 일을 하므로
+                          // 선을 겹쳐 긋지 않는다.
+                          twoVenueRoles ? "" : "border-t border-foreground/20 pt-2.5",
+                        ].join(" ")}
+                      >
+                        <span className="text-xs text-muted">
+                          {twoVenueRoles ? "아레나 공연 회차" : "공연 회차"}
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => setShowCount(openDate, (dayShowCounts[openDate] ?? 1) - 1)}
+                          className={ICON_BTN_SM}
+                        >
+                          −
+                        </button>
+                        <span className="w-4 text-center text-xs font-bold tabular-nums">
+                          {dayShowCounts[openDate] ?? 1}
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => setShowCount(openDate, (dayShowCounts[openDate] ?? 1) + 1)}
+                          className={ICON_BTN_SM}
+                        >
+                          +
+                        </button>
+                      </div>
+                    )}
+
+                  {/* 중형 줄 — 아레나와 같은 6일 안에서 따로 짠다. 고른 역할을 다시
+                      누르면 그 날짜의 중형 사용이 빠진다(아레나처럼 [삭제] 를 따로 두면
                       "이 날짜를 통째로 뺀다"는 위 버튼과 뜻이 겹친다). */}
                   {twoVenueRoles && (
                     <>
@@ -507,11 +541,6 @@ export function Step1Calendar({
                             {label}
                           </button>
                         ))}
-                        <span className="inline-flex h-8 items-center text-xs text-muted">
-                          {midHall[openDate]
-                            ? "다시 누르면 이 날짜의 중형 사용을 뗍니다"
-                            : "이 날짜에 중형을 쓰지 않습니다"}
-                        </span>
                       </div>
 
                       {midHall[openDate]?.role === "PERFORMANCE" && (
@@ -554,29 +583,6 @@ export function Step1Calendar({
                       )}
                     </>
                   )}
-                  {activeDateKeys.has(dateKey(new Date(openDate))) &&
-                    effectiveDayTag(openDate, dayTags, dayTagDefaults) === "PERFORMANCE" && (
-                      <div className="mt-2.5 flex items-center gap-2 border-t border-foreground/20 pt-2.5">
-                        <span className="text-xs text-muted">공연 회차</span>
-                        <button
-                          type="button"
-                          onClick={() => setShowCount(openDate, (dayShowCounts[openDate] ?? 1) - 1)}
-                          className={ICON_BTN_SM}
-                        >
-                          −
-                        </button>
-                        <span className="w-4 text-center text-xs font-bold tabular-nums">
-                          {dayShowCounts[openDate] ?? 1}
-                        </span>
-                        <button
-                          type="button"
-                          onClick={() => setShowCount(openDate, (dayShowCounts[openDate] ?? 1) + 1)}
-                          className={ICON_BTN_SM}
-                        >
-                          +
-                        </button>
-                      </div>
-                    )}
                 </div>
               )}
 
