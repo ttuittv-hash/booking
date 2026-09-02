@@ -13,6 +13,7 @@ import { SEED_FAQS } from "./content/faqSeed";
 import { FEATURE_SPEC_SEED } from "./featureSpecSeed";
 import { FEATURE_SPEC_SHEET_KEYS } from "./pricing/types";
 import { sha256Hex } from "./passwordScheme";
+import { approvedQuoteBlocks } from "./schedule/approvedBlocks";
 import { INITIAL_PERFORMANCE_INFO } from "./pricing/performanceInfoDefaults";
 import {
   blindIndex,
@@ -3748,6 +3749,15 @@ export async function findBlockedDatesAmong(
     [venueId, ...dates],
   );
   return rows.map(toDateBlock);
+}
+
+/**
+ * 승인된 신청서가 잡아 둔 날짜를 대관 불가 일정처럼 돌려준다 (2026-09-02).
+ * 규칙은 `approvedQuoteBlocks` 한 곳에 있고, 여기서는 신청서를 읽어 넘기기만 한다.
+ */
+export async function listApprovedQuoteBlocks(excludeQuoteId?: string): Promise<DateBlock[]> {
+  const quotes = await listQuotes();
+  return approvedQuoteBlocks(quotes, excludeQuoteId);
 }
 
 export async function blockDate(

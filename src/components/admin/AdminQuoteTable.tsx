@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-import type { QuoteStatus } from "@/lib/pricing/types";
+import type { QuoteStatus, ReviewDecision } from "@/lib/pricing/types";
 import { ArrowRight, Badge, btnClass } from "@/components/ui/kit";
 import { useDialog } from "@/components/ui/Dialog";
 import {
@@ -42,6 +42,18 @@ const STATUS_TONE: Record<QuoteStatus, "warn" | "accent" | "good"> = {
   SETTLED: "good",
 };
 
+/** 심사 결과 — 진행 단계(status)와 별개다. 승인해도 계약 전까지는 ESTIMATE 다. */
+const REVIEW_LABEL: Record<ReviewDecision, string> = {
+  APPROVED: "심사 승인",
+  HOLD: "심사 보류",
+  REJECTED: "심사 거절",
+};
+const REVIEW_TONE: Record<ReviewDecision, "good" | "warn" | "danger"> = {
+  APPROVED: "good",
+  HOLD: "warn",
+  REJECTED: "danger",
+};
+
 export interface AdminQuoteRow {
   id: string;
   createdAtLabel: string;
@@ -51,6 +63,8 @@ export interface AdminQuoteRow {
   audienceLabel: string;
   totalLabel: string;
   status: QuoteStatus;
+  /** 심사 결과(없으면 아직 심사 전) */
+  reviewDecision?: ReviewDecision | null;
 }
 
 export function AdminQuoteTable({
@@ -196,7 +210,21 @@ export function AdminQuoteTable({
                     <td className={TD_NUM}>{row.audienceLabel}</td>
                     <td className={`${TD_NUM} font-bold`}>{row.totalLabel}</td>
                     <td className={TD}>
-                      <Badge tone={STATUS_TONE[row.status]}>{STATUS_LABEL[row.status]}</Badge>
+                      {/* 심사 결과가 있으면 그것을 먼저 보여 준다 — 운영자가 목록에서
+                          찾는 것은 "이 건을 심사했는가" 다. 진행 단계는 그 아래 줄. */}
+                      <span className="flex flex-col items-start gap-1">
+                        {row.reviewDecision && (
+                          <Badge tone={REVIEW_TONE[row.reviewDecision]}>
+                            {REVIEW_LABEL[row.reviewDecision]}
+                          </Badge>
+                        )}
+                        <Badge tone={STATUS_TONE[row.status]}>
+                          {/* 심사를 마친 건에 "심사 대기" 가 같이 뜨면 서로 어긋나 보인다 */}
+                          {row.status === "ESTIMATE" && row.reviewDecision
+                            ? "계약 대기"
+                            : STATUS_LABEL[row.status]}
+                        </Badge>
+                      </span>
                     </td>
                     <td className={TD_LINK}>
                       <span className="flex items-center justify-end gap-3">

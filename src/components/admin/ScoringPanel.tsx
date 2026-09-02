@@ -9,6 +9,7 @@ import {
   TABLE_HEAD,
   TABLE_HEAD_DESC,
   TABLE_HEAD_TITLE,
+  HELP,
   TABLE_SCROLL,
   TD,
   TD_ID,
@@ -74,6 +75,99 @@ function BonusRow({ item }: { item: BonusItem }) {
   );
 }
 
+
+/* ============================================================================
+   채점 요약 도식 (2026-09-02)
+
+   자동 산정 결과가 표 다섯 장으로만 나와서, 운영자가 "몇 점인지 · 어디서 깎였는지"를
+   숫자를 훑어 더해야 알 수 있었다. 맨 위에 총점 하나와 항목별 막대를 둔다.
+
+   형태: 크기(magnitude) 비교 한 종류뿐이라 색으로 계열을 나누지 않는다 — 지면과 같은
+   단색에 농도만 셋으로 쓴다(산정 / 보류 / 남은 배점). 값은 모두 막대 옆에 직접 적으므로
+   범례 대신 이 세 마디를 위쪽 한 줄에 적어 둔다.
+   ========================================================================= */
+
+interface CategoryStat {
+  key: string;
+  label: string;
+  earned: number;
+  pending: number;
+  max: number;
+}
+
+/** 카테고리별 [산정 점수 / 보류 배점 / 만점]. 표에 이미 있는 값을 그대로 더한다. */
+function categoryStats(result: VenueScoreResult): CategoryStat[] {
+  return result.categories.map((cat) => {
+    let earned = 0;
+    let pending = 0;
+    for (const item of cat.items) {
+      if (item.score !== null) earned += item.score;
+      else if (item.confidence !== "EXCLUDED") pending += item.maxScore;
+    }
+    return { key: cat.key, label: cat.label, earned, pending, max: cat.nominalMax };
+  });
+}
+
+/** 한 줄짜리 막대 — 산정분·보류분·남은 배점. 사이는 2px 씩 띄워 경계를 만든다. */
+function ScoreBar({ earned, pending, max }: { earned: number; pending: number; max: number }) {
+  const span = Math.max(max, earned + pending, 1);
+  const pct = (v: number) => `${Math.max(0, Math.min(100, (v / span) * 100))}%`;
+  return (
+    <div className="flex h-2.5 w-full gap-0.5 bg-border-soft" aria-hidden>
+      <div className="bg-foreground" style={{ width: pct(earned) }} />
+      {pending > 0 && <div className="bg-muted/45" style={{ width: pct(pending) }} />}
+    </div>
+  );
+}
+
+function ScoreSummary({ result }: { result: VenueScoreResult }) {
+  const stats = categoryStats(result);
+  const nominalTotal = stats.reduce((sum, c) => sum + c.max, 0);
+
+  return (
+    <div className="border-b border-border-soft p-4 sm:p-5">
+      <div className="flex flex-wrap items-end justify-between gap-4">
+        <div>
+          <p className={HELP}>잠정 총점</p>
+          <p className="type-display mt-1 text-h4-m tabular-nums sm:text-h4">
+            {result.provisionalFinal}
+            <span className="text-h6-m text-muted"> / {nominalTotal}점</span>
+          </p>
+        </div>
+        <p className={HELP}>
+          산정 {result.computedSubtotal} · 보류 {result.unresolvedMax} · 가점 +{result.bonusTotal} ·
+          감점 −{result.penaltyTotal}
+        </p>
+      </div>
+
+      <div className="mt-3">
+        <ScoreBar
+          earned={result.computedSubtotal}
+          pending={result.unresolvedMax}
+          max={nominalTotal}
+        />
+      </div>
+
+      {/* 항목별 — 어디서 깎였는지는 결국 이 줄들에서 읽힌다 */}
+      <dl className="mt-5 space-y-2.5">
+        {stats.map((c) => (
+          <div key={c.key} className="grid grid-cols-[8.5rem_1fr_5.5rem] items-center gap-3">
+            <dt className="truncate text-xs text-muted-strong">{c.label}</dt>
+            <dd>
+              <ScoreBar earned={c.earned} pending={c.pending} max={c.max} />
+            </dd>
+            <dd className="text-right text-xs tabular-nums">
+              <span className="font-bold">{c.earned}</span>
+              <span className="text-muted"> / {c.max}점</span>
+              {c.pending > 0 && <span className="block text-2xs text-muted">보류 {c.pending}</span>}
+            </dd>
+          </div>
+        ))}
+      </dl>
+    </div>
+  );
+}
+
 function VenueScoreBlock({ result }: { result: VenueScoreResult }) {
   const autoDq = result.disqualifiers.find((d) => d.auto && d.triggered);
   return (
@@ -92,6 +186,8 @@ function VenueScoreBlock({ result }: { result: VenueScoreResult }) {
           </div>
         </div>
       </div>
+
+      <ScoreSummary result={result} />
 
       {autoDq && <div className={`${ERROR_NOTE} m-4`}>부적격 게이트 자동 발동 — {autoDq.label}. 점수와 무관하게 대관 불가입니다.</div>}
 

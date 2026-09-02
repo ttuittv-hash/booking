@@ -40,6 +40,9 @@ export default async function AdminPage({
       audienceLabel: q.selection.expectedAudience.toLocaleString("ko-KR"),
       totalLabel: num(q.total),
       status: q.status,
+      // [신규 2026-09-02] 승인해도 목록은 "예상견적(심사 대기)" 그대로였다 —
+      // 상태 열이 진행 단계(status)만 보고 심사 결과를 안 읽었기 때문이다.
+      reviewDecision: q.review?.decision ?? null,
     };
   });
 

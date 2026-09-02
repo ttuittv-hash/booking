@@ -5,6 +5,7 @@ import {
   getCurrentRateTable,
   getRatesContent,
   getScreenTextContent,
+  listApprovedQuoteBlocks,
   listDateBlocks,
   listWeekDemand,
 } from "@/lib/db";
@@ -32,16 +33,30 @@ export default async function ApplyPage({
   // 기획서 A15 접근권한 매트릭스 — 규칙은 accessPolicy.ts 한 곳에만 둔다
   const currentUser = await requireAccessedUser("/apply");
 
-  const [{ new: startFreshParam }, rateTable, weekDemand, dateBlocks, company, screenText, ratesContent] =
+  const [
+    { new: startFreshParam },
+    rateTable,
+    weekDemand,
+    adminBlocks,
+    approvedBlocks,
+    company,
+    screenText,
+    ratesContent,
+  ] =
     await Promise.all([
       searchParams,
       getCurrentRateTable(),
       listWeekDemand(),
       listDateBlocks(),
+      // 승인된 신청서가 잡은 날짜도 대관 불가로 본다 — 대관사가 확정된 날을
+      // 다른 회사가 계속 신청할 수 있으면 안 된다(2026-09-02).
+      listApprovedQuoteBlocks(),
       currentUser.companyId ? findCompanyById(currentUser.companyId) : Promise.resolve(undefined),
       getScreenTextContent(),
       getRatesContent(),
     ]);
+
+  const dateBlocks = [...adminBlocks, ...approvedBlocks];
 
   // [화면 뼈대 2026-08-19, STEP 3-1 "신청자 정보"] 대관신청사명·사업자등록번호는
   // 회원정보에서 자동 입력하고(2026-08-22부터 읽기 전용), 담당자·담당자연락처는

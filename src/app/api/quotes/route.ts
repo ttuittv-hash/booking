@@ -8,6 +8,7 @@ import {
   createNotification,
   createQuote,
   findBlockedDatesAmong,
+  listApprovedQuoteBlocks,
   getCurrentRateTable,
   listQuotes,
   listQuotesPaged,
@@ -68,9 +69,16 @@ export async function POST(request: Request) {
   // 「패키지」는 needsMidHall 이 false 지만 중형 날짜를 잡는다 — 조건을 걸면 운영자가
   // 막아 둔 중형 날짜가 그대로 통과한다(2026-09-02). 잡힌 날짜가 있으면 늘 검사한다.
   const midHallDates = Object.keys(selection.midHallDays ?? {});
+  // 운영자가 막아 둔 날짜 + 승인된 신청서가 잡은 날짜(2026-09-02). 승인은 곧 그 날짜를
+  // 내준다는 뜻이라, 화면에서 막는 것으로 끝내지 않고 저장 직전에 서버가 다시 본다.
+  const approvedBlocks = await listApprovedQuoteBlocks();
+  const takenIn = (dates: string[], venueId: "arena" | "medium-hall") =>
+    approvedBlocks.filter((b) => b.venueId === venueId && dates.includes(b.date));
   const blockedDates = [
     ...(await findBlockedDatesAmong(arenaDates, "arena")),
     ...(await findBlockedDatesAmong(midHallDates, "medium-hall")),
+    ...takenIn(arenaDates, "arena"),
+    ...takenIn(midHallDates, "medium-hall"),
   ];
   if (blockedDates.length > 0) {
     return NextResponse.json({ error: formatBlockedDatesError(blockedDates) }, { status: 409 });

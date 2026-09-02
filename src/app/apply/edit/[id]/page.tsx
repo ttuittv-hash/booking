@@ -6,6 +6,7 @@ import {
   getQuoteById,
   getRatesContent,
   getScreenTextContent,
+  listApprovedQuoteBlocks,
   listDateBlocks,
   listWeekDemand,
 } from "@/lib/db";
@@ -37,13 +38,18 @@ export default async function EditQuotePage({
   // PUT /api/quotes/[id]와 같은 기준(2026-08-22).
   if (quote.review) redirect(`/mypage/${id}`);
 
-  const [rateTable, weekDemand, dateBlocks, ratesContent, screenText] = await Promise.all([
-    getCurrentRateTable(),
-    listWeekDemand(),
-    listDateBlocks(),
-    getRatesContent(),
-    getScreenTextContent(),
-  ]);
+  const [rateTable, weekDemand, adminBlocks, approvedBlocks, ratesContent, screenText] =
+    await Promise.all([
+      getCurrentRateTable(),
+      listWeekDemand(),
+      listDateBlocks(),
+      // 승인된 신청서가 잡은 날짜도 막는다. 자기 자신은 뺀다 — 자기가 잡은 날짜에
+      // 막혀 수정이 안 되면 안 된다(2026-09-02).
+      listApprovedQuoteBlocks(id),
+      getRatesContent(),
+      getScreenTextContent(),
+    ]);
+  const dateBlocks = [...adminBlocks, ...approvedBlocks];
 
   return (
     <div className="flex flex-1 flex-col">

@@ -4,6 +4,7 @@ import { canAccessQuote, canActOnQuotes, getCurrentUser } from "@/lib/auth";
 import {
   addAuditLog,
   findBlockedDatesAmong,
+  listApprovedQuoteBlocks,
   getCurrentRateTable,
   getQuoteById,
   listAuditLogsForQuote,
@@ -75,9 +76,16 @@ export async function PUT(request: Request, ctx: { params: Promise<{ id: string 
 
   const arenaDates = needsPackage ? resolveSelectedDates(selection) : [];
   const midHallDates = needsMidHall ? Object.keys(selection.midHallDays ?? {}) : [];
+  // 운영자가 막아 둔 날짜 + 승인된 신청서가 잡은 날짜(2026-09-02). 승인은 곧 그 날짜를
+  // 내준다는 뜻이라, 화면에서 막는 것으로 끝내지 않고 저장 직전에 서버가 다시 본다.
+  const approvedBlocks = await listApprovedQuoteBlocks(id);
+  const takenIn = (dates: string[], venueId: "arena" | "medium-hall") =>
+    approvedBlocks.filter((b) => b.venueId === venueId && dates.includes(b.date));
   const blockedDates = [
     ...(await findBlockedDatesAmong(arenaDates, "arena")),
     ...(await findBlockedDatesAmong(midHallDates, "medium-hall")),
+    ...takenIn(arenaDates, "arena"),
+    ...takenIn(midHallDates, "medium-hall"),
   ];
   if (blockedDates.length > 0) {
     const list = blockedDates.map((b) => `${b.date}${b.reason ? ` (${b.reason})` : ""}`).join(", ");

@@ -29,9 +29,15 @@ import {
    ========================================================================= */
 
 const CAT_BTN = "flex h-full items-center px-3 type-display text-s text-foreground";
-/** BOOK IT — 사이트의 유일한 액션이라 상단바에서 유일하게 채움 버튼이다 */
+/**
+ * BOOK IT — 사이트의 유일한 액션.
+ *
+ * [수정 2026-09-02] 검정 채움을 뺐다. 상단바 지면이 밝고 글자가 검정인데 이 버튼만
+ * 검정 면이라, 옆 메뉴와 나란히 놓이면 **눌려 있는 상태**로 읽혔다("꼭 버튼이 눌린
+ * 느낌"). 테두리만 남겨 누를 수 있다는 신호는 지키고, 채움은 호버에서만 준다.
+ */
 const ACTION_BTN =
-  "flex h-8 items-center border border-transparent bg-[var(--btn-primary-bg)] px-5 type-display text-s text-[var(--btn-primary-fg)] transition-colors hover:bg-[var(--btn-primary-bg-hover)]";
+  "flex h-8 items-center border border-foreground px-5 type-display text-s text-foreground transition-colors hover:bg-[var(--btn-primary-bg)] hover:text-[var(--btn-primary-fg)]";
 const PANEL_LINK = "block whitespace-nowrap py-1.5 text-xs transition-colors hover:text-accent";
 /**
  * 우측 유틸 — 채움·아웃라인 없는 텍스트 버튼.
