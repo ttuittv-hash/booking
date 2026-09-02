@@ -42,7 +42,12 @@ export default async function NewInquiryPage() {
 
         <Band tone="white" size="sm">
           <div className="max-w-2xl">
-            <NewInquiryForm myQuoteIds={quotes.map((q) => q.id)} notifyEmail={user.email} />
+            <NewInquiryForm
+              myQuoteIds={quotes.map((q) => q.id)}
+              notifyEmail={user.email}
+              defaultName={user.name}
+              defaultPhone={user.phone ?? ""}
+            />
           </div>
         </Band>
       </main>

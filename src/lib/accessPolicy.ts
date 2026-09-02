@@ -71,8 +71,9 @@ const RULES: MenuRule[] = [
   // 2026-08 IA 재구성(Notion 확정안)으로 경로가 바뀌었다.
   // /venue·/packages 는 사라지고, 공개 소개는 /seoularena 가, 상세 스펙은 /features 가 맡는다.
   { prefix: "/seoularena", label: "서울아레나", allow: OPEN_ALL },
-  // 시설 제원은 Your Stage(서울아레나 소개) 묶음이라 로그인만 하면 열린다.
-  { prefix: "/features", label: "시설 제원", allow: LOGIN_ONLY },
+  // [개정 2026-09-02] 시설 제원은 로그인 없이도 본다. 어떤 공연장인지 보고 나서
+  // 가입을 결정하는 순서라, 로그인을 먼저 요구하면 소개가 반쪽이 된다.
+  { prefix: "/features", label: "시설 제원", allow: OPEN_ALL },
 
   /*
     [개정 2026-09-02] 승인 완료 전에는 Your Stage 와 마이페이지만 본다.
@@ -82,7 +83,8 @@ const RULES: MenuRule[] = [
     통과한 대관사에게만 준다는 것이 확정된 선이다.
 
     열어 두는 것:
-      · 서울아레나 소개(/seoularena) · 시설 제원(/features)  — Your Stage
+      · 서울아레나 소개(/seoularena) · 시설 제원(/features) · 대관 절차(/guide)
+        — 가입을 결정하기 전에 봐야 하는 소개·안내라 로그인도 걸지 않는다
       · 회원정보 수정 · 탈퇴 · 1:1 문의                        — 마이페이지
 
     [개정 2026-09-02] FAQ 도 승인 완료 전용으로 내린다.
@@ -91,7 +93,9 @@ const RULES: MenuRule[] = [
     자체가 신청·정산·시설 운영 같은 대관 업무 안내다(QA 지적). 승인 전에는 서울아레나
     소개 · 시설 제원 · 1:1 문의만 남는다 — 궁금한 것은 1:1 문의로 받는다.
   */
-  { prefix: "/guide", label: "대관 절차", allow: APPROVED_ONLY },
+  // [개정 2026-09-02] 대관 절차도 공개다 — 어떻게 신청하는지는 가입을 결정하기
+  // 전에 알아야 하는 정보다. 실제 금액·규약·자료·공고는 그대로 승인 완료 전용이다.
+  { prefix: "/guide", label: "대관 절차", allow: OPEN_ALL },
   { prefix: "/rates", label: "대관료", allow: APPROVED_ONLY },
   { prefix: "/rules", label: "대관 규약", allow: APPROVED_ONLY },
   { prefix: "/documents", label: "대관 자료", allow: APPROVED_ONLY },

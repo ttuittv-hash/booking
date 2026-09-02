@@ -1093,6 +1093,16 @@ export interface Inquiry {
   quoteId: string | null;
   title: string;
   content: string;
+  /*
+    답변받을 곳 (2026-09-02).
+
+    계정 정보(가입 명의)와 다를 수 있어 문의마다 따로 받는다 — 승인 전 회원은 대개
+    담당자가 정해지기 전이고, 회신은 실무자 메일·번호로 받는 편이 빠르다.
+    비우고 저장된 옛 문의는 계정 정보로 대신 보낸다.
+  */
+  contactName: string | null;
+  contactEmail: string | null;
+  contactPhone: string | null;
   status: InquiryStatus;
   answer: string | null;
   answeredAt: string | null;

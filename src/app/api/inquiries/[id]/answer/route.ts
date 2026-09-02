@@ -27,14 +27,19 @@ export async function POST(request: Request, ctx: { params: Promise<{ id: string
     message: `1:1 문의 "${inquiry.title}"에 답변이 등록되었습니다.`,
     createdAt: now,
   });
-  // 문의 등록자에게 답변 완료 알림톡(ARENA-0009). (2026-09-01 팀 요청)
+  // 문의 등록자에게 답변 완료 알림톡·메일(ARENA-0009). (2026-09-01 팀 요청)
+  // [수정 2026-09-02] 문의에 적은 연락처로 보낸다 — 계정 정보로만 보내면 가입 명의
+  // (대개 대표 담당자) 앞으로 가서, 정작 물어본 실무자는 답변을 못 봤다.
   const registrant = await findUserById(inquiry.userId);
-  if (registrant) {
+  const phone = inquiry.contactPhone ?? registrant?.phone ?? null;
+  const email = inquiry.contactEmail ?? registrant?.email ?? null;
+  const name = inquiry.contactName ?? registrant?.name ?? "";
+  if (registrant || phone || email) {
     dispatchMessageInBackground({
       templateCode: "ARENA-0009",
       idempotencyKey: `ARENA-0009:${id}:${now}`,
-      recipient: { userId: registrant.id, phone: registrant.phone, email: registrant.email, name: registrant.name },
-      variables: { 등록자명: registrant.name },
+      recipient: { userId: registrant?.id ?? null, phone, email, name },
+      variables: { 등록자명: name },
       request,
     });
   }

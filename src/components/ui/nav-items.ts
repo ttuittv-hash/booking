@@ -28,13 +28,13 @@ export const NAV_CATEGORIES: NavCategory[] = [
     label: "Your Stage",
     pages: [
       { href: "/seoularena", label: "서울아레나" },
-      { href: "/features", label: "시설 제원", loginRequired: true },
+      { href: "/features", label: "시설 제원" },
     ],
   },
   {
     label: "Guide",
     pages: [
-      { href: "/guide", label: "대관 절차", loginRequired: true },
+      { href: "/guide", label: "대관 절차" },
       { href: "/rates", label: "대관료", loginRequired: true },
       { href: "/rules", label: "대관 규약", loginRequired: true },
       { href: "/documents", label: "대관 자료", loginRequired: true },

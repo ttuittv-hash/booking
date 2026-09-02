@@ -52,6 +52,27 @@ export default async function AdminInquiryDetailPage({
           <p className="mt-3 whitespace-pre-wrap text-s leading-7">{inquiry.content}</p>
         </div>
 
+        {/* [신규 2026-09-02] 답변받을 곳 — 등록자가 문의에 적은 연락처다. 계정 명의와
+            다를 수 있고(대표 담당자 ≠ 실무자), 답변 알림톡·메일도 이 값으로 나간다.
+            전화로 회신해야 할 때 운영자가 여기서 바로 본다. */}
+        <div className={`mt-6 ${PANEL}`}>
+          <h2 className={SECTION_TITLE}>답변받을 곳</h2>
+          <dl className="mt-3 grid gap-x-6 gap-y-2 text-s sm:grid-cols-3">
+            <div>
+              <dt className={HELP}>이름</dt>
+              <dd className="mt-0.5">{inquiry.contactName ?? author?.name ?? NONE}</dd>
+            </div>
+            <div>
+              <dt className={HELP}>이메일</dt>
+              <dd className="mt-0.5 break-all">{inquiry.contactEmail ?? author?.email ?? NONE}</dd>
+            </div>
+            <div>
+              <dt className={HELP}>전화번호</dt>
+              <dd className="mt-0.5 tabular-nums">{inquiry.contactPhone ?? NONE}</dd>
+            </div>
+          </dl>
+        </div>
+
         <div className="mt-6">
           {inquiry.answer ? (
             <div className={PANEL}>

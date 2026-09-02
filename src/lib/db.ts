@@ -535,6 +535,10 @@ async function initSchema(pool: Pool) {
     -- 넘길지, 어느 신청 건에 관한 문의인지 본문을 읽어야만 알 수 있었다.
     ALTER TABLE inquiries ADD COLUMN IF NOT EXISTS category TEXT;
     ALTER TABLE inquiries ADD COLUMN IF NOT EXISTS quote_id TEXT;
+    -- 답변받을 곳(2026-09-02). 계정 정보와 다를 수 있어 문의마다 따로 받는다.
+    ALTER TABLE inquiries ADD COLUMN IF NOT EXISTS contact_name TEXT;
+    ALTER TABLE inquiries ADD COLUMN IF NOT EXISTS contact_email TEXT;
+    ALTER TABLE inquiries ADD COLUMN IF NOT EXISTS contact_phone TEXT;
     ALTER TABLE companies ADD COLUMN IF NOT EXISTS verification_status TEXT;
     ALTER TABLE companies ADD COLUMN IF NOT EXISTS verified_company_name TEXT;
     ALTER TABLE companies ADD COLUMN IF NOT EXISTS verified_representative_name TEXT;
@@ -4864,6 +4868,9 @@ interface InquiryRow {
   quote_id: string | null;
   title: string;
   content: string;
+  contact_name: string | null;
+  contact_email: string | null;
+  contact_phone: string | null;
   status: InquiryStatus;
   answer: string | null;
   answered_at: string | null;
@@ -4879,6 +4886,9 @@ function toInquiry(row: InquiryRow): Inquiry {
     quoteId: row.quote_id,
     title: row.title,
     content: row.content,
+    contactName: row.contact_name,
+    contactEmail: row.contact_email,
+    contactPhone: row.contact_phone,
     status: row.status,
     answer: row.answer,
     answeredAt: row.answered_at,
@@ -4894,11 +4904,16 @@ export async function createInquiry(input: {
   quoteId?: string | null;
   title: string;
   content: string;
+  contactName?: string | null;
+  contactEmail?: string | null;
+  contactPhone?: string | null;
   createdAt: string;
 }): Promise<Inquiry> {
   await q(
-    `INSERT INTO inquiries (id, user_id, category, quote_id, title, content, status, created_at)
-     VALUES ($1, $2, $3, $4, $5, $6, 'OPEN', $7)`,
+    `INSERT INTO inquiries
+       (id, user_id, category, quote_id, title, content,
+        contact_name, contact_email, contact_phone, status, created_at)
+     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, 'OPEN', $10)`,
     [
       input.id,
       input.userId,
@@ -4906,6 +4921,9 @@ export async function createInquiry(input: {
       input.quoteId ?? null,
       input.title,
       input.content,
+      input.contactName ?? null,
+      input.contactEmail ?? null,
+      input.contactPhone ?? null,
       input.createdAt,
     ],
   );

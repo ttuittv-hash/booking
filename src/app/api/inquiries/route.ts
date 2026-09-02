@@ -27,6 +27,25 @@ export async function POST(request: Request) {
   const quoteId =
     typeof body?.quoteId === "string" && body.quoteId.trim() ? body.quoteId.trim() : null;
 
+  /*
+    답변받을 곳 (2026-09-02).
+
+    승인 전 회원도 문의를 남긴다 — 그런데 답변을 계정 정보로만 보내면 가입 명의(대표)
+    앞으로 가서 정작 물어본 실무자는 못 본다. 그래서 문의마다 이름·이메일·휴대폰을
+    따로 받고, 답변 알림(메일·알림톡)은 이 값으로 보낸다.
+    비워 보내면 계정 정보를 그대로 쓴다(옛 화면 호환).
+  */
+  const contactName = (typeof body?.contactName === "string" ? body.contactName.trim() : "").slice(0, 40);
+  const contactEmail = (typeof body?.contactEmail === "string" ? body.contactEmail.trim() : "").slice(0, 120);
+  const contactPhone = (typeof body?.contactPhone === "string" ? body.contactPhone.trim() : "").slice(0, 20);
+
+  if (contactEmail && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(contactEmail)) {
+    return NextResponse.json({ error: "연락받을 이메일 주소를 정확히 입력해 주세요." }, { status: 400 });
+  }
+  if (contactPhone && !/^0\d{1,2}-?\d{3,4}-?\d{4}$/.test(contactPhone)) {
+    return NextResponse.json({ error: "연락받을 전화번호를 정확히 입력해 주세요." }, { status: 400 });
+  }
+
   if (!category) {
     return NextResponse.json({ error: "문의 유형을 선택해 주세요." }, { status: 400 });
   }
@@ -49,6 +68,9 @@ export async function POST(request: Request) {
     quoteId: category.quote === "NONE" ? null : quoteId,
     title,
     content,
+    contactName: contactName || user.name,
+    contactEmail: contactEmail || user.email,
+    contactPhone: contactPhone || user.phone,
     createdAt,
   });
   await notifyAdmins({
@@ -56,12 +78,18 @@ export async function POST(request: Request) {
     message: `새 1:1 문의가 등록되었습니다 (${category.label}): ${title}`,
     createdAt,
   });
-  // 등록자 본인에게 접수 알림톡(ARENA-0010). (2026-09-01 팀 요청)
+  // 등록자 본인에게 접수 알림톡·메일(ARENA-0010). (2026-09-01 팀 요청)
+  // 받는 곳은 문의에 적은 연락처다 — 계정 명의가 아니라 물어본 사람에게 가야 한다.
   dispatchMessageInBackground({
     templateCode: "ARENA-0010",
     idempotencyKey: `ARENA-0010:${inquiry.id}`,
-    recipient: { userId: user.id, phone: user.phone, email: user.email, name: user.name },
-    variables: { 등록자명: user.name },
+    recipient: {
+      userId: user.id,
+      phone: inquiry.contactPhone ?? user.phone,
+      email: inquiry.contactEmail ?? user.email,
+      name: inquiry.contactName ?? user.name,
+    },
+    variables: { 등록자명: inquiry.contactName ?? user.name },
     request,
   });
 

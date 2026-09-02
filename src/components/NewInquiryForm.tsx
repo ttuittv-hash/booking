@@ -16,10 +16,14 @@ const CONTENT_MAX = 2000;
 export function NewInquiryForm({
   myQuoteIds,
   notifyEmail,
+  defaultName,
+  defaultPhone,
 }: {
   /** 로그인 계정이 제출한 신청번호 — 직접 입력은 예비 수단으로만 둔다 */
   myQuoteIds: string[];
   notifyEmail: string;
+  defaultName: string;
+  defaultPhone: string;
 }) {
   const router = useRouter();
   const toast = useToast();
@@ -27,6 +31,15 @@ export function NewInquiryForm({
   const [quoteId, setQuoteId] = useState("");
   const [title, setTitle] = useState("");
   const [content, setContent] = useState("");
+  /*
+    답변받을 곳 (2026-09-02).
+
+    계정 정보로 채워 두되 고칠 수 있게 둔다 — 가입 명의는 대표 담당자인데 실제로
+    답을 기다리는 사람은 실무자일 때가 많다. 답변 메일·알림톡은 여기 적은 곳으로 간다.
+  */
+  const [contactName, setContactName] = useState(defaultName);
+  const [contactEmail, setContactEmail] = useState(notifyEmail);
+  const [contactPhone, setContactPhone] = useState(defaultPhone);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -44,6 +57,9 @@ export function NewInquiryForm({
     if (quoteRequired && !quoteId.trim()) return "이 유형은 신청번호가 필요합니다.";
     if (!title.trim()) return "제목을 입력해 주세요.";
     if (!content.trim()) return "문의 내용을 입력해 주세요.";
+    if (!contactName.trim()) return "답변받으실 분의 이름을 입력해 주세요.";
+    if (!contactEmail.trim()) return "답변받으실 이메일 주소를 입력해 주세요.";
+    if (!contactPhone.trim()) return "답변받으실 전화번호를 입력해 주세요.";
     return null;
   }
 
@@ -65,6 +81,9 @@ export function NewInquiryForm({
           quoteId: showQuote ? quoteId.trim() || null : null,
           title,
           content,
+          contactName: contactName.trim(),
+          contactEmail: contactEmail.trim(),
+          contactPhone: contactPhone.trim(),
         }),
       });
       const data = await res.json();
@@ -170,12 +189,45 @@ export function NewInquiryForm({
           </span>
         </label>
 
-        <div>
-          <span className="mb-2 block text-xs font-bold">답변 알림 이메일</span>
-          <p className="break-all text-s">{notifyEmail}</p>
-          <span className="mt-2 block text-xs text-muted">
-            답변이 등록되면 이 주소로 알려 드립니다. 주소를 바꾸시려면 내 정보에서 수정해 주세요.
-          </span>
+        <div className="border-t border-border/25 pt-6">
+          <span className="block text-xs font-bold">답변받으실 곳</span>
+          <p className="mt-2 text-xs text-muted">
+            답변이 등록되면 아래 이메일과 카카오 알림톡으로 알려 드립니다. 계정 정보로
+            채워 두었으니, 다른 분이 받으셔야 하면 고쳐 주세요.
+          </p>
+          <div className="mt-4 grid gap-4 sm:grid-cols-3">
+            <label className="block">
+              <span className="mb-2 block text-xs font-bold">이름</span>
+              <input
+                type="text"
+                value={contactName}
+                maxLength={40}
+                onChange={(e) => setContactName(e.target.value)}
+                className="field-base"
+              />
+            </label>
+            <label className="block">
+              <span className="mb-2 block text-xs font-bold">이메일</span>
+              <input
+                type="email"
+                value={contactEmail}
+                maxLength={120}
+                onChange={(e) => setContactEmail(e.target.value)}
+                className="field-base"
+              />
+            </label>
+            <label className="block">
+              <span className="mb-2 block text-xs font-bold">전화번호</span>
+              <input
+                type="tel"
+                value={contactPhone}
+                maxLength={20}
+                placeholder="010-0000-0000"
+                onChange={(e) => setContactPhone(e.target.value)}
+                className="field-base"
+              />
+            </label>
+          </div>
         </div>
       </div>
 

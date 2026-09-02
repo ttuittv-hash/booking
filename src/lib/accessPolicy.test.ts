@@ -25,18 +25,24 @@ describe("서울아레나 소개 — 3단계 모두 열람", () => {
   it("규칙이 실제로 등록돼 있다", () => expect(findRule("/seoularena")?.label).toBe("서울아레나"));
 });
 
-describe("시설 제원 — 로그인하면 승인 전에도 열람", () => {
-  it("비로그인은 막힌다", () => expect(canAccess("/features", "GUEST")).toBe(false));
-  it("승인 대기도 열람한다 — 심사를 기다리는 사람이 준비할 수 있어야 한다", () =>
-    expect(canAccess("/features", "PENDING")).toBe(true));
-  it("규칙이 등록돼 있다", () => expect(findRule("/features")?.label).toBe("시설 제원"));
+// [개정 2026-09-02] 시설 제원·대관 절차는 로그인 없이 본다 — 어떤 공연장인지,
+// 어떻게 신청하는지는 가입을 결정하기 전에 알아야 하는 정보다.
+describe("시설 제원 · 대관 절차 — 비로그인도 열람", () => {
+  for (const [path, label] of [
+    ["/features", "시설 제원"],
+    ["/guide", "대관 절차"],
+  ] as const) {
+    it(`${label} 은 비로그인도 본다`, () => expect(canAccess(path, "GUEST")).toBe(true));
+    it(`${label} 은 승인 대기도 본다`, () => expect(canAccess(path, "PENDING")).toBe(true));
+    it(`${label} 은 반려된 계정도 본다`, () => expect(canAccess(path, "REJECTED")).toBe(true));
+    it(`${label} 규칙이 등록돼 있다`, () => expect(findRule(path)?.label).toBe(label));
+  }
 });
 
 // [개정 2026-09-02] 승인 완료 전에는 Your Stage 와 마이페이지만 본다.
 // 대관 업무에 관한 내용(절차·요금·규약·자료·공지)은 심사를 통과한 대관사에게만 준다.
 describe("대관 업무 메뉴 — 승인 완료 전용", () => {
   for (const [path, label] of [
-    ["/guide", "대관 절차"],
     ["/rates", "대관료"],
     ["/rules", "대관 규약"],
     ["/documents", "대관 자료"],
@@ -63,7 +69,8 @@ describe("사라진 경로", () => {
 describe("승인 대기에 열려 있는 곳", () => {
   it("서울아레나 소개는 비로그인부터 열린다", () =>
     expect(canAccess("/seoularena", "PENDING")).toBe(true));
-  it("시설 제원은 로그인하면 열린다", () => expect(canAccess("/features", "PENDING")).toBe(true));
+  it("시설 제원은 누구나 열린다", () => expect(canAccess("/features", "PENDING")).toBe(true));
+  it("대관 절차도 누구나 열린다", () => expect(canAccess("/guide", "PENDING")).toBe(true));
   it("회원정보 수정", () => expect(canAccess("/mypage/profile", "PENDING")).toBe(true));
   it("회원 탈퇴", () => expect(canAccess("/mypage/withdraw", "PENDING")).toBe(true));
   it("1:1 문의 — 대기·반려 상태에서 물어볼 곳이 남아야 한다", () => {
