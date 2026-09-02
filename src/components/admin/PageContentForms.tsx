@@ -13,6 +13,7 @@ import type {
   VenueFacilityContent,
   VenueRateContent,
 } from "@/lib/content/pageContent";
+import { EMPTY_VENUE_RATE_CONTENT } from "@/lib/content/pageContent";
 import {
   Area,
   ContentFormShell,
@@ -24,7 +25,7 @@ import {
   Text,
 } from "./fields";
 import { HELP } from "./adminUi";
-import { VENUES } from "@/lib/pricing/types";
+import { SPECIAL_VENUE_ID, VENUES } from "@/lib/pricing/types";
 import { defaultVenueName, venueLabelKey } from "@/lib/content/venueLabels";
 
 /* ============================================================================
@@ -573,6 +574,16 @@ export function RatesForm({ content }: { content: RatesContent }) {
           </Section>
           <Section title="중형공연장 탭">
             <RateTableFields value={v.liveHall} onChange={(liveHall) => patch({ liveHall })} />
+          </Section>
+          {/* [신규 2026-09-02] 세 번째 공간 탭. 예전 저장본에는 없어 기본 빈 값으로 연다. */}
+          <Section
+            title={`${defaultVenueName(SPECIAL_VENUE_ID)} 탭`}
+            help="이름은 「공간 이름」에서 바꿉니다. 비워 두면 대관료 페이지의 해당 탭이 빈 화면으로 나옵니다."
+          >
+            <RateTableFields
+              value={v.special ?? EMPTY_VENUE_RATE_CONTENT}
+              onChange={(special) => patch({ special })}
+            />
           </Section>
         </>
       )}

@@ -441,11 +441,7 @@ export function StepConfigOptions({
   const midHallOnly = selection.venueId === MID_HALL_VENUE_ID && selection.bookingMode === "SINGLE";
   const isSimultaneous = selection.bookingMode === "SIMULTANEOUS";
   const pkg = findPackage(rateTable, selection.packageId);
-  // [개정 2026-09-02] 아레나 전용이던 자리를 "패키지를 쓰는 공간" 으로 일반화했다.
-  // 스페셜홀도 아레나와 같은 패키지 모델이라, 공간 id 만 갈아 끼우면 같은 화면이 선다.
-  const packageVenueId =
-    selection.venueId === SPECIAL_VENUE_ID && !isSimultaneous ? SPECIAL_VENUE_ID : "arena";
-  const venuePackages = packagesForVenue(rateTable, packageVenueId);
+  const venuePackages = packagesForVenue(rateTable, "arena");
   const [venueTab, setVenueTab] = useState<string>("arena");
 
   if (midHallOnly) {
@@ -580,9 +576,9 @@ export function StepConfigOptions({
     />
   );
 
-  // 스페셜홀은 아레나와 같은 패키지 모델이라 구성 목록을 그대로 보여준다. 다만 동시
-  // 대관(아레나+중형) 요금 계산에는 아직 들어가지 않으므로, 여기서는 "무엇이 있는지"를
-  // 읽는 자리다 — 실제 신청은 STEP1 에서 스페셜홀을 단독으로 골라야 한다.
+  // 세 번째 공간("패키지")은 아레나와 같은 패키지 모델이라 구성 목록을 그대로 보여준다.
+  // 동시 대관 요금 계산에는 아직 들어가지 않으므로 여기서는 "무엇이 있는지"를 읽는
+  // 자리다 — 금액이 합산되는 것처럼 보이지 않게 선택은 받지 않는다.
   const specialPackages = packagesForVenue(rateTable, SPECIAL_VENUE_ID);
   const specialSection =
     specialPackages.length > 0 ? (
@@ -626,7 +622,7 @@ export function StepConfigOptions({
         lead={headingOverride?.lead ?? stepText.configSimultaneousLead}
       />
 
-      {/* [개정 2026-09-02] 스페셜홀 탭을 중형 옆에 세운다. 패키지가 등록돼 있을 때만
+      {/* [개정 2026-09-02] "패키지" 탭을 중형 옆에 세운다. 등록된 패키지가 있을 때만
           내보낸다 — 요금표에 아무것도 없는 공간의 탭은 눌러도 빈 화면이라, 있는 것처럼
           보이기만 하고 신청은 못 하는 상태가 된다. */}
       <div className="mt-8 flex gap-1 border-b border-border">

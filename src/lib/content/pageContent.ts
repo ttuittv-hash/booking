@@ -275,7 +275,29 @@ export interface RatesContent {
   version?: number;
   arena: VenueRateContent;
   liveHall: VenueRateContent;
+  /**
+   * [신규 2026-09-02] 세 번째 공간("패키지") 탭. 예전 저장본에는 없으므로 optional 이고,
+   * 읽는 쪽은 `EMPTY_VENUE_RATE_CONTENT` 로 채워 빈 탭을 그린다 — 운영자가 대관료
+   * 관리에서 내용을 넣기 전까지는 표가 비어 있는 게 맞다.
+   */
+  special?: VenueRateContent;
 }
+
+/** 아직 아무것도 안 채운 공간의 대관료 탭 — 필드를 비워 두면 화면이 터진다. */
+export const EMPTY_VENUE_RATE_CONTENT: VenueRateContent = {
+  intro: "",
+  rowLabels: [],
+  columns: [],
+  detailLabels: [],
+  detailColumns: [],
+  rentalPeriod: "",
+  includes: [],
+  includesLead: "",
+  includeGroups: [],
+  charges: [],
+  limits: [],
+  notes: [],
+};
 
 function won(n: number): string {
   return `${n.toLocaleString("ko-KR")}원`;

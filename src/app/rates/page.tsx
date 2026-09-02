@@ -1,12 +1,15 @@
 import type { Metadata } from "next";
 import { getCurrentUser, requireAccess } from "@/lib/auth";
-import { getRatesContent } from "@/lib/db";
+import { getRatesContent, getScreenTextContent } from "@/lib/db";
+import { EMPTY_VENUE_RATE_CONTENT } from "@/lib/content/pageContent";
 import type {
   ChargeBlock,
   RateColumn,
   RateIncludeGroup,
   VenueRateContent,
 } from "@/lib/content/pageContent";
+import { SPECIAL_VENUE_ID } from "@/lib/pricing/types";
+import { venueLabel } from "@/lib/content/venueLabels";
 import { PublicHeader } from "@/components/PublicHeader";
 import { SiteFooter } from "@/components/ui/SiteFooter";
 import { QueryTabs } from "@/components/ui/QueryTabs";
@@ -202,26 +205,48 @@ export default async function RatesPage() {
   // 기획서 A15 — 비로그인 차단, 로그인하면 승인 전에도 열람 가능.
   // 규칙은 accessPolicy.ts 한 곳에만 둔다(예전 게이트는 승인 대기까지 막아 매트릭스와 반대였다).
   await requireAccess("/rates");
-  const [currentUser, content] = await Promise.all([getCurrentUser(), getRatesContent()]);
+  const [currentUser, content, screenText] = await Promise.all([
+    getCurrentUser(),
+    getRatesContent(),
+    getScreenTextContent(),
+  ]);
+  const specialLabel = venueLabel(SPECIAL_VENUE_ID, screenText.wizardStrings);
 
   return (
     <div className="flex flex-1 flex-col">
       <PublicHeader active="/rates" currentUser={currentUser} />
 
       <main className="flex flex-1 flex-col">
+        {/* [개정 2026-09-02] 세 번째 공간 탭을 아레나·중형 오른쪽에 붙인다. 이름은
+            운영자가 문구 관리에서 바꾼 값을 쓴다 — 위저드·패키지 관리와 같은 말이어야
+            한다. 아직 내용을 안 채웠으면 빈 표가 나오는 게 맞다(감추면 운영자가
+            어디에 넣어야 하는지 알 수 없다). */}
         <QueryTabs
           param={VENUE_TAB_PARAM}
           ariaLabel="공간 선택"
-          items={VENUE_TABS.map((t) => ({
-            value: t.value,
-            label: t.label,
-            panel:
-              t.value === "arena" ? (
-                <RatePanel en="ARENA RATES" ko="아레나 대관료" c={content.arena} />
-              ) : (
-                <RatePanel en="LIVE HALL RATES" ko="중형공연장 대관료" c={content.liveHall} />
+          items={[
+            ...VENUE_TABS.map((t) => ({
+              value: t.value,
+              label: t.label,
+              panel:
+                t.value === "arena" ? (
+                  <RatePanel en="ARENA RATES" ko="아레나 대관료" c={content.arena} />
+                ) : (
+                  <RatePanel en="LIVE HALL RATES" ko="중형공연장 대관료" c={content.liveHall} />
+                ),
+            })),
+            {
+              value: "special",
+              label: specialLabel,
+              panel: (
+                <RatePanel
+                  en="PACKAGE RATES"
+                  ko={`${specialLabel} 대관료`}
+                  c={content.special ?? EMPTY_VENUE_RATE_CONTENT}
+                />
               ),
-          }))}
+            },
+          ]}
         />
 
       </main>

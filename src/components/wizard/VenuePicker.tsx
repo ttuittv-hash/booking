@@ -1,6 +1,8 @@
 "use client";
 
-import { MID_HALL_VENUE_ID, SPECIAL_VENUE_ID, type BookingMode } from "@/lib/pricing/types";
+import { MID_HALL_VENUE_ID, type BookingMode } from "@/lib/pricing/types";
+// [개정 2026-09-02] 세 번째 공간("패키지")은 여기 이용 시설 버튼에 두지 않는다 —
+// 동시 대관을 고른 뒤 구성·옵션 화면의 탭으로만 보여 준다.
 import { defaultVenueName, venueLabelKey } from "@/lib/content/venueLabels";
 import { useWizardText } from "@/lib/content/wizardText";
 
@@ -57,13 +59,6 @@ export function VenuePicker({
               ),
               active: primaryVenue === MID_HALL_VENUE_ID && !isSimultaneous,
               onClick: () => onSelectVenue(MID_HALL_VENUE_ID, "SINGLE"),
-            },
-            {
-              // [신규 2026-09-02] 세 번째 공간. 이름은 운영자가 문구 관리에서 바꾼다.
-              key: SPECIAL_VENUE_ID,
-              label: tStr(venueLabelKey(SPECIAL_VENUE_ID), defaultVenueName(SPECIAL_VENUE_ID)),
-              active: primaryVenue === SPECIAL_VENUE_ID && !isSimultaneous,
-              onClick: () => onSelectVenue(SPECIAL_VENUE_ID, "SINGLE"),
             },
             {
               key: "simultaneous",
