@@ -77,6 +77,14 @@ describe("마이 — 승인 대기여도 본인 정보 수정은 가능", () => 
     expect(canAccess("/mypage/withdraw", "PENDING")).toBe(true));
   it("더 긴 접두사가 먼저 잡혀 /mypage 규칙에 삼켜지지 않는다", () =>
     expect(findRule("/mypage/profile")?.label).toBe("회원정보 수정"));
+
+  // [신규 2026-09-02] 반려 안내 화면(/pending)이 이 두 경로로 링크한다 —
+  // "정보를 고쳐 재심사 요청" 과 "탈퇴" 가 반려된 사람의 유일한 출구다.
+  // 여기가 막히면 반려된 사람은 다시 아무것도 할 수 없게 된다.
+  it("반려된 계정도 정보수정에 들어간다", () =>
+    expect(canAccess("/mypage/profile", "REJECTED")).toBe(true));
+  it("반려된 계정도 탈퇴할 수 있다", () =>
+    expect(canAccess("/mypage/withdraw", "REJECTED")).toBe(true));
 });
 
 describe("차단 시 이동 경로", () => {

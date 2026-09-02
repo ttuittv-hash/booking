@@ -132,6 +132,18 @@ export default async function AdminApplicantDetailPage({
       </span>,
     ],
     ["본인인증", target.identityVerifiedAt ? new Date(target.identityVerifiedAt).toLocaleString("ko-KR") : "미인증"],
+    // 반려 사유(2026-09-02) — 재심사 요청으로 다시 올라온 건을 볼 때 "지난번에 왜
+    // 반려했는지"가 같은 화면에 있어야 판단이 된다. 승인·재심사 요청 시 지워진다.
+    ...(target.approvalRejectReason
+      ? ([
+          [
+            "반려 사유",
+            <span key="reject-reason" className="whitespace-pre-wrap break-keep font-normal text-danger">
+              {target.approvalRejectReason}
+            </span>,
+          ],
+        ] as [string, React.ReactNode][])
+      : []),
     [
       "재직증명서",
       target.employmentCertUrl ? (

@@ -963,6 +963,8 @@ export interface AppUser {
   // 할 수 있어, 처리 완료 목록에서 주체를 밝히려면 남겨야 한다.
   approvalDecidedBy: string | null;
   approvalDecidedAt: string | null;
+  /** 반려 사유 — REJECTED 일 때만 값이 있다(승인·재심사 요청 시 지워진다) */
+  approvalRejectReason: string | null;
   createdAt: string;
 }
 

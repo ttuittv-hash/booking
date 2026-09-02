@@ -598,6 +598,9 @@ async function initSchema(pool: Pool) {
     -- 하고, deleteUserCascade 가 이 컬럼 때문에 막히면 안 된다.
     ALTER TABLE users ADD COLUMN IF NOT EXISTS approval_decided_by TEXT;
     ALTER TABLE users ADD COLUMN IF NOT EXISTS approval_decided_at TEXT;
+    -- 반려 사유(2026-09-02). 예전에는 알림톡 본문으로만 나가고 어디에도 남지 않아,
+    -- 반려된 사람이 화면에서 이유를 다시 볼 방법이 없었다(알림톡을 지우면 끝).
+    ALTER TABLE users ADD COLUMN IF NOT EXISTS approval_reject_reason TEXT;
 
     -- 초대로 만들어진 계정은 본인이 비밀번호를 정하기 전까지 해시가 없다.
     ALTER TABLE users ALTER COLUMN password_hash DROP NOT NULL;
@@ -2715,6 +2718,7 @@ interface UserRow {
   withdrawn_at: string | null;
   approval_decided_by: string | null;
   approval_decided_at: string | null;
+  approval_reject_reason: string | null;
   created_at: string;
 }
 
@@ -2742,6 +2746,7 @@ function toAppUser(row: UserRow): AppUser {
     withdrawnAt: row.withdrawn_at ?? null,
     approvalDecidedBy: row.approval_decided_by ?? null,
     approvalDecidedAt: row.approval_decided_at ?? null,
+    approvalRejectReason: row.approval_reject_reason ?? null,
     createdAt: row.created_at,
   };
 }
@@ -2832,6 +2837,7 @@ export async function createUser(input: {
     withdrawnAt: null,
     approvalDecidedBy: null,
     approvalDecidedAt: null,
+    approvalRejectReason: null,
     createdAt: input.createdAt,
   };
 }
@@ -2965,14 +2971,20 @@ export async function setUserApprovalStatus(
    * 누가 했는지가 남아야 한다. 승인 대기로 되돌리는 경우처럼 처리자가 없으면 비운다.
    */
   decidedBy?: string | null,
+  /**
+   * 반려 사유(2026-09-02). REJECTED 일 때만 남기고, 승인·대기로 바뀌면 지운다 —
+   * 재심사를 요청한 사람의 화면에 옛 사유가 남아 있으면 안 된다.
+   */
+  rejectReason?: string | null,
 ): Promise<AppUser> {
   await q(
     `UPDATE users
         SET approval_status = $1,
             approval_decided_by = $3,
-            approval_decided_at = CASE WHEN $3::text IS NULL THEN NULL ELSE $4 END
+            approval_decided_at = CASE WHEN $3::text IS NULL THEN NULL ELSE $4 END,
+            approval_reject_reason = CASE WHEN $1 = 'REJECTED' THEN $5 ELSE NULL END
       WHERE id = $2`,
-    [approvalStatus, id, decidedBy ?? null, new Date().toISOString()],
+    [approvalStatus, id, decidedBy ?? null, new Date().toISOString(), rejectReason ?? null],
   );
   return (await findUserById(id))!;
 }

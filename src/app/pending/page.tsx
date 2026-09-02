@@ -5,6 +5,7 @@ import { PublicHeader } from "@/components/PublicHeader";
 import { Breadcrumb } from "@/components/ui/Breadcrumb";
 import { SiteFooter } from "@/components/ui/SiteFooter";
 import { Badge, Band, ButtonLink, PageHeading } from "@/components/ui/kit";
+import { ReapplyButton } from "@/components/account/ReapplyButton";
 
 export const metadata: Metadata = {
   title: "가입 승인 대기 | 서울아레나",
@@ -17,7 +18,7 @@ const NOTICE: Record<"PENDING" | "REJECTED", { title: string; desc: string }> = 
   },
   REJECTED: {
     title: "가입이 승인되지 않았습니다",
-    desc: "자세한 사항은 운영자에게 문의해주세요.",
+    desc: "아래 사유를 확인하시고, 회원정보를 수정한 뒤 재심사를 요청하실 수 있습니다.",
   },
 };
 
@@ -68,14 +69,52 @@ export default async function PendingPage() {
               <PageHeading size="md" title={notice.title} lead={notice.desc} />
             </div>
 
-            <div className="mt-10 flex flex-wrap gap-3 border-t border-border/25 pt-8">
-              <ButtonLink href="/guide" variant="secondary">
-                대관 절차 보기
-              </ButtonLink>
-              <ButtonLink href="/faq" variant="tertiary">
-                대관 문의
-              </ButtonLink>
-            </div>
+            {/* [신규 2026-09-02] 반려 사유를 화면에 남긴다.
+                예전에는 알림톡 본문으로만 나가고 어디에도 저장되지 않아, 알림톡을
+                지우면 왜 반려됐는지 다시 볼 방법이 없었다. */}
+            {isRejected && currentUser.approvalRejectReason ? (
+              <div
+                data-testid="reject-reason"
+                className="mt-8 border-l-2 border-danger bg-danger-soft px-4 py-3.5"
+              >
+                <p className="text-xs font-bold text-danger">반려 사유</p>
+                <p className="mt-2 whitespace-pre-wrap break-keep text-s leading-6 text-danger">
+                  {currentUser.approvalRejectReason}
+                </p>
+              </div>
+            ) : null}
+
+            {isRejected ? (
+              <div className="mt-10 border-t border-border/25 pt-8">
+                <p className="break-keep text-s leading-7 text-muted">
+                  반려 사유에 해당하는 내용을 회원정보에서 고친 뒤 재심사를 요청하시면
+                  다시 심사합니다. 더 이상 이용하지 않으시려면 회원 탈퇴를 진행해 주세요.
+                </p>
+                <div className="mt-6 flex flex-wrap items-start gap-3">
+                  <ButtonLink href="/mypage/profile" variant="secondary">
+                    회원정보 수정
+                  </ButtonLink>
+                  <ReapplyButton />
+                </div>
+                <div className="mt-6 flex flex-wrap gap-3">
+                  <ButtonLink href="/faq" variant="tertiary">
+                    대관 문의
+                  </ButtonLink>
+                  <ButtonLink href="/mypage/withdraw" variant="tertiary">
+                    회원 탈퇴
+                  </ButtonLink>
+                </div>
+              </div>
+            ) : (
+              <div className="mt-10 flex flex-wrap gap-3 border-t border-border/25 pt-8">
+                <ButtonLink href="/guide" variant="secondary">
+                  대관 절차 보기
+                </ButtonLink>
+                <ButtonLink href="/faq" variant="tertiary">
+                  대관 문의
+                </ButtonLink>
+              </div>
+            )}
           </div>
         </div>
       </main>

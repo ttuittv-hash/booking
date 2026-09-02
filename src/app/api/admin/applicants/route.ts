@@ -94,7 +94,14 @@ export async function POST(request: Request) {
   const approved = action === "approve";
   // 처리자를 남긴다 — 운영자와 대표 담당자 둘 다 승인할 수 있어, 나중에 "누가 승인했나"를
   // 되짚으려면 여기서 박아 두는 수밖에 없다(회원 승인은 audit_logs 대상이 아니다).
-  const updated = await setUserApprovalStatus(id, approved ? "APPROVED" : "REJECTED", actor.id);
+  // 반려 사유를 함께 남긴다(2026-09-02). 예전에는 알림톡 본문으로만 나가고 어디에도
+  // 저장되지 않아, 반려된 사람이 화면에서 이유를 다시 볼 방법이 없었다.
+  const updated = await setUserApprovalStatus(
+    id,
+    approved ? "APPROVED" : "REJECTED",
+    actor.id,
+    approved ? null : rejectReason,
+  );
 
   // 회사의 첫 심사 결과가 그대로 회사의 상태가 된다(기획서 1-37).
   // 이후 가입자의 반려는 그 사람만의 문제라 회사 상태를 건드리지 않는다.
