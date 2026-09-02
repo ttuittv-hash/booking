@@ -13,7 +13,7 @@ import type {
   VenueFacilityContent,
   VenueRateContent,
 } from "@/lib/content/pageContent";
-import { EMPTY_VENUE_RATE_CONTENT } from "@/lib/content/pageContent";
+import { DEFAULT_RATE_SECTION_TITLES, EMPTY_VENUE_RATE_CONTENT } from "@/lib/content/pageContent";
 import {
   Area,
   ContentFormShell,
@@ -393,6 +393,28 @@ function RateTableFields({
         value={value.intro}
         onChange={(intro) => p({ intro })}
       />
+
+      {/* [신규 2026-09-02] 섹션 제목(대분류) — 화면에 코드로 박혀 있어 못 고쳤다.
+          요금 체계가 바뀌면 같이 바뀌는 말이라 운영자 손에 둔다. */}
+      <div className="grid gap-3 sm:grid-cols-2">
+        {(
+          [
+            ["packages", "1. 패키지 섹션 제목"],
+            ["includes", "2. 포함 항목 섹션 제목"],
+            ["limits", "3. 이용 기준 섹션 제목"],
+            ["charges", "4. 추가 사용료 섹션 제목"],
+          ] as const
+        ).map(([key, label]) => (
+          <Text
+            key={key}
+            label={label}
+            value={value.sectionTitles?.[key] ?? ""}
+            placeholder={DEFAULT_RATE_SECTION_TITLES[key]}
+            onChange={(next) => p({ sectionTitles: { ...value.sectionTitles, [key]: next } })}
+            help="비우면 기본 제목이 나갑니다."
+          />
+        ))}
+      </div>
 
       <Text
         label="대관 기간 표기 (비우면 행이 나오지 않습니다)"

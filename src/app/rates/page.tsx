@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { getCurrentUser, requireAccess } from "@/lib/auth";
 import { getRatesContent, getScreenTextContent } from "@/lib/db";
-import { EMPTY_VENUE_RATE_CONTENT } from "@/lib/content/pageContent";
+import { EMPTY_VENUE_RATE_CONTENT, rateSectionTitle } from "@/lib/content/pageContent";
 import type {
   ChargeBlock,
   RateColumn,
@@ -173,13 +173,10 @@ function RatePanel({ en, ko, c }: { en: string; ko: string; c: VenueRateContent 
         <PageHead en={en} ko={ko} lead={<Prose text={c.intro} gap="mt-3" />} />
         <div className="mt-14">
           <SectionHead
-            title="기본 대관 패키지"
-            lead={
-              <>
-                {c.rentalPeriod && <span className="block">대관 기간 {c.rentalPeriod}</span>}
-                <span className="block">금액은 부가세 별도</span>
-              </>
-            }
+            title={rateSectionTitle(c, "packages")}
+            // [삭제 2026-09-02] "금액은 부가세 별도" 는 뺐다 — 같은 화면 아래 유의사항에
+            // 이미 있고, 대관 기간 바로 밑에 붙어 있어 기간 설명처럼 읽혔다.
+            lead={c.rentalPeriod ? <span className="block">대관 기간 {c.rentalPeriod}</span> : undefined}
           />
           {/*
             [개정 2026-09-02] 접었다 펴는 [Details] 토글은 없앤다 — 토글 뒤에 있으면
@@ -196,7 +193,7 @@ function RatePanel({ en, ko, c }: { en: string; ko: string; c: VenueRateContent 
       {c.includeGroups.length > 0 && (
         <Band tone="white">
           <SectionHead
-            title="기본 대관료 포함 항목"
+            title={rateSectionTitle(c, "includes")}
             lead={<Prose text={c.includesLead} gap="mt-3" />}
           />
           <div className="grid-site mt-10">
@@ -210,7 +207,7 @@ function RatePanel({ en, ko, c }: { en: string; ko: string; c: VenueRateContent 
       {/* 섹션 3 — 기본 이용 기준 */}
       {c.limits.length > 0 && (
         <Band tone="light">
-          <SectionHead title="기본 이용 기준" />
+          <SectionHead title={rateSectionTitle(c, "limits")} />
           <div className="mt-10">
             <StatCards items={c.limits} />
           </div>
@@ -220,7 +217,7 @@ function RatePanel({ en, ko, c }: { en: string; ko: string; c: VenueRateContent 
       {/* 섹션 4 — 추가 사용료 */}
       {(c.charges.length > 0 || c.notes.length > 0) && (
         <Band tone="white">
-          <SectionHead title="추가 사용료" />
+          <SectionHead title={rateSectionTitle(c, "charges")} />
           {c.charges.length > 0 && <ChargeTable rows={c.charges} />}
           {c.notes.length > 0 && (
             <ul className="mt-8 space-y-2">

@@ -33,24 +33,53 @@ function formatDateTime(iso: string): string {
   return `${d.getFullYear()}.${pad(d.getMonth() + 1)}.${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
 }
 
-/* 본문(운영자 리치 에디터 HTML) 타이포 — 전부 디자인 토큰으로. 라운딩 없음. */
+/*
+  본문(운영자 리치 에디터 HTML) 타이포 — 전부 디자인 토큰으로. 라운딩 없음.
+
+  [개정 2026-09-02] 읽기 리듬을 다시 잡았다. 문단 여백이 0(`[&_p]:my-0`)이라 본문이
+  글자 벽처럼 붙어 나왔고, `whitespace-pre-wrap` 때문에 에디터가 뱉은 HTML 의 들여쓰기
+  공백까지 지면에 그대로 찍혔다. 문단 사이를 띄우고, 줄바꿈만 살리는 `pre-line` 으로
+  바꾼다. 예전 본문이 줄바꿈용으로 넣어 둔 빈 문단은 이제 여백이 대신하므로 감춘다.
+*/
 const PROSE = [
-  "whitespace-pre-wrap text-m leading-8 text-muted-strong",
-  "[&_h2]:type-kr-heading [&_h2]:mt-12 [&_h2]:text-h5-m [&_h2]:text-foreground sm:[&_h2]:text-h5",
-  "[&_h3]:type-kr-heading [&_h3]:mt-10 [&_h3]:text-h6-m [&_h3]:text-foreground [&_h3]:first:mt-0 sm:[&_h3]:text-h6",
-  "[&_p]:my-0",
+  "whitespace-pre-line break-keep text-m leading-8 text-muted-strong",
+
+  // 문단 — 한 칸 띄우되 첫/끝 문단은 섹션 여백과 겹치지 않게 붙인다
+  "[&_p]:my-5 [&_p:first-child]:mt-0 [&_p:last-child]:mb-0",
+  "[&_p:empty]:hidden",
+
+  // 제목 — 위 여백을 넉넉히 주고 아래는 붙여, 제목이 아래 문단에 속해 보이게 한다
+  "[&_h2]:type-kr-heading [&_h2]:mt-14 [&_h2]:mb-4 [&_h2]:text-h5-m [&_h2]:text-foreground sm:[&_h2]:text-h5",
+  "[&_h3]:type-kr-heading [&_h3]:mt-10 [&_h3]:mb-3 [&_h3]:text-h6-m [&_h3]:text-foreground sm:[&_h3]:text-h6",
+  "[&_h2:first-child]:mt-0 [&_h3:first-child]:mt-0",
+
   "[&_strong]:font-bold [&_strong]:text-foreground",
-  "[&_a]:underline [&_a]:decoration-1 [&_a]:underline-offset-4 [&_a]:text-foreground hover:[&_a]:text-muted",
-  "[&_ul]:mt-4 [&_ul]:list-disc [&_ul]:pl-5 [&_ol]:mt-4 [&_ol]:list-decimal [&_ol]:pl-5",
-  "[&_li]:mt-2",
-  "[&_img]:mt-6 [&_img]:max-w-full",
-  "[&_table]:mt-4 [&_table]:block [&_table]:max-w-full [&_table]:overflow-x-auto [&_table]:border-collapse [&_table]:text-s",
-  "[&_th]:border [&_th]:border-border-soft [&_th]:bg-background [&_th]:px-3 [&_th]:py-2.5 [&_th]:text-left [&_th]:font-bold [&_th]:text-foreground",
-  "[&_td]:border [&_td]:border-border-soft [&_td]:px-3 [&_td]:py-2.5",
-  "[&_details]:mt-6 [&_details]:border [&_details]:border-border-soft [&_details]:px-4 [&_details]:py-3",
+  "[&_em]:italic",
+  "[&_a]:font-bold [&_a]:text-foreground [&_a]:underline [&_a]:decoration-border [&_a]:decoration-1 [&_a]:underline-offset-4 hover:[&_a]:decoration-foreground",
+
+  // 목록 — 불릿은 본문보다 옅게 둬서 글자가 먼저 읽히게 한다
+  "[&_ul]:my-5 [&_ul]:list-disc [&_ul]:pl-5 [&_ol]:my-5 [&_ol]:list-decimal [&_ol]:pl-5",
+  "[&_li]:mt-2 [&_li]:pl-1 [&_li]:marker:text-muted",
+  "[&_li>ul]:my-2 [&_li>ol]:my-2",
+
+  "[&_blockquote]:my-6 [&_blockquote]:border-l-2 [&_blockquote]:border-foreground [&_blockquote]:pl-5 [&_blockquote]:text-muted",
+  "[&_hr]:my-10 [&_hr]:border-0 [&_hr]:border-t [&_hr]:border-border/40",
+
+  "[&_img]:my-8 [&_img]:w-full",
+
+  // 표 — 열 너비는 표가 정하게 두고(block 으로 만들면 열이 제각각 눕는다), 좁은 화면에서는
+  // 이 블록(아래 PROSE_BLOCK)이 가로로 스크롤된다.
+  "[&_table]:my-6 [&_table]:w-auto [&_table]:min-w-full [&_table]:border-collapse [&_table]:text-s",
+  "[&_th]:border [&_th]:border-border-soft [&_th]:bg-panel [&_th]:px-3 [&_th]:py-2.5 [&_th]:text-left [&_th]:font-bold [&_th]:text-foreground",
+  "[&_td]:border [&_td]:border-border-soft [&_td]:px-3 [&_td]:py-2.5 [&_td]:align-top",
+
+  "[&_details]:my-6 [&_details]:border [&_details]:border-border-soft [&_details]:px-4 [&_details]:py-3",
   "[&_summary]:cursor-pointer [&_summary]:font-bold [&_summary]:text-foreground",
   "[&_[data-type=detailsContent]]:mt-3",
 ].join(" ");
+
+/** 본문 조각을 감싸는 블록 — 넓은 표는 지면을 밀지 않고 이 안에서 가로로 스크롤된다. */
+const PROSE_BLOCK = "overflow-x-auto";
 
 export default async function NoticeDetailPage({
   params,
@@ -121,7 +150,9 @@ export default async function NoticeDetailPage({
               return segments.map((segment, i) => (
                 <Fragment key={i}>
                   {segment.trim() && (
-                    <div className={PROSE} dangerouslySetInnerHTML={{ __html: segment }} />
+                    <div className={PROSE_BLOCK}>
+                      <div className={PROSE} dangerouslySetInnerHTML={{ __html: segment }} />
+                    </div>
                   )}
                   {i < segments.length - 1 && (
                     <div className="my-6">{calendarSlot}</div>

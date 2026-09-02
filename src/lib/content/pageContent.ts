@@ -273,6 +273,33 @@ export interface VenueRateContent {
   /** 섹션 3 기본 이용 기준 — 라벨/값/부연 */
   limits: SpecRow[];
   notes: string[];
+  /**
+   * 섹션 제목 4종 (2026-09-02). 화면에 코드로 박혀 있어 운영자가 못 고쳤다 —
+   * 「기본 대관 패키지」·「기본 대관료 포함 항목」 같은 대분류 이름은 요금 체계가
+   * 바뀌면 같이 바뀌는 말이다. 예전 저장본에는 없으므로 optional 이고, 비면 기본값을 쓴다.
+   */
+  sectionTitles?: {
+    packages?: string;
+    includes?: string;
+    limits?: string;
+    charges?: string;
+  };
+}
+
+/** 섹션 제목 기본값 — 운영자가 비워 두면 이 말이 나간다. */
+export const DEFAULT_RATE_SECTION_TITLES = {
+  packages: "기본 대관 패키지",
+  includes: "기본 대관료 포함 항목",
+  limits: "기본 이용 기준",
+  charges: "추가 사용료",
+} as const;
+
+/** 저장본에 없거나 비어 있으면 기본 제목으로 되돌린다 — 빈 제목은 섹션을 잃어버린 것처럼 보인다. */
+export function rateSectionTitle(
+  content: VenueRateContent,
+  key: keyof typeof DEFAULT_RATE_SECTION_TITLES,
+): string {
+  return content.sectionTitles?.[key]?.trim() || DEFAULT_RATE_SECTION_TITLES[key];
 }
 
 /**

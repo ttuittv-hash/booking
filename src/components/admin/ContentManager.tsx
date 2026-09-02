@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import type { Faq, Notice } from "@/lib/pricing/types";
 import type { HomeContent, LegalContent } from "@/lib/content/types";
@@ -211,7 +211,15 @@ function NoticesTab({
     setError(null);
   }
 
+  // 편집 폼은 목록 아래에 있어 목록이 길면 화면 밖에 열린다 — 눌러도 아무 일이
+  // 없어 보이지 않게 폼으로 데려간다.
+  const formRef = useRef<HTMLDivElement>(null);
+  function scrollToForm() {
+    requestAnimationFrame(() => formRef.current?.scrollIntoView({ block: "start" }));
+  }
+
   function startEdit(notice: Notice) {
+    scrollToForm();
     setEditingId(notice.id);
     setTag(notice.tag ?? "");
     setTitle(notice.title);
@@ -358,7 +366,11 @@ function NoticesTab({
       </ul>
 
       {editingId ? (
-        <div className={`mt-6 ${PANEL}`}>
+        // [수정 2026-09-02] key 로 편집 대상마다 폼을 새로 만든다. 본문 편집기(TipTap)는
+        // content 를 마운트할 때 한 번만 읽어서, 폼이 이미 열려 있는 상태로 다른 공지의
+        // [수정] 을 누르면 제목만 바뀌고 본문은 앞 공지의 것이 그대로 남았다 —
+        // 화면이 안 바뀌니 "버튼이 안 눌린다"로 보였다.
+        <div key={editingId} ref={formRef} className={`mt-6 ${PANEL}`}>
           <h3 className={SUB_TITLE}>{editingId === "__new__" ? "새 공지사항 등록" : "공지사항 수정"}</h3>
           <div className="mt-4 space-y-4">
             <div className="flex gap-2">
@@ -501,7 +513,13 @@ function FaqTab({
     setError(null);
   }
 
+  const formRef = useRef<HTMLDivElement>(null);
+  function scrollToForm() {
+    requestAnimationFrame(() => formRef.current?.scrollIntoView({ block: "start" }));
+  }
+
   function startEdit(faq: Faq) {
+    scrollToForm();
     setEditingId(faq.id);
     setTag(faq.tag ?? "");
     setQuestion(faq.question);
@@ -589,7 +607,8 @@ function FaqTab({
       </ul>
 
       {editingId ? (
-        <div className={`mt-6 ${PANEL}`}>
+        // 공지와 같은 이유로 편집 대상마다 폼을 새로 만든다(위 주석 참고).
+        <div key={editingId} ref={formRef} className={`mt-6 ${PANEL}`}>
           <h3 className={SUB_TITLE}>{editingId === "__new__" ? "새 FAQ 등록" : "FAQ 수정"}</h3>
           <div className="mt-4 space-y-4">
             <div className="flex gap-2">
