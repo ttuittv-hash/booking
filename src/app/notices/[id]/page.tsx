@@ -42,43 +42,49 @@ function formatDateTime(iso: string): string {
   바꾼다. 예전 본문이 줄바꿈용으로 넣어 둔 빈 문단은 이제 여백이 대신하므로 감춘다.
 */
 const PROSE = [
-  "whitespace-pre-line break-keep text-m leading-8 text-muted-strong",
+  // 본문 기본값 — 글자를 한 단 키우고 줄 간격을 넉넉히. 공지는 훑는 글이 아니라
+  // 처음부터 끝까지 읽는 글이라, 좁은 줄 길이(`measure`)와 큰 행간이 읽기를 돕는다.
+  "whitespace-pre-line break-keep text-[1.0625rem] leading-[1.85] tracking-[-0.01em] text-muted-strong",
 
   // 문단 — 한 칸 띄우되 첫/끝 문단은 섹션 여백과 겹치지 않게 붙인다
-  "[&_p]:my-5 [&_p:first-child]:mt-0 [&_p:last-child]:mb-0",
+  "[&_p]:my-6 [&_p:first-child]:mt-0 [&_p:last-child]:mb-0",
   "[&_p:empty]:hidden",
 
-  // 제목 — 위 여백을 넉넉히 주고 아래는 붙여, 제목이 아래 문단에 속해 보이게 한다
-  "[&_h2]:type-kr-heading [&_h2]:mt-14 [&_h2]:mb-4 [&_h2]:text-h5-m [&_h2]:text-foreground sm:[&_h2]:text-h5",
-  "[&_h3]:type-kr-heading [&_h3]:mt-10 [&_h3]:mb-3 [&_h3]:text-h6-m [&_h3]:text-foreground sm:[&_h3]:text-h6",
+  // 제목 — 위는 크게 비우고 아래는 붙여, 제목이 아래 문단에 속해 보이게 한다.
+  // 자간을 좁혀 국문 제목이 뭉툭해 보이지 않게 한다.
+  "[&_h2]:type-kr-heading [&_h2]:mt-16 [&_h2]:mb-5 [&_h2]:text-h5-m [&_h2]:tracking-[-0.02em] [&_h2]:text-foreground sm:[&_h2]:text-h5",
+  "[&_h3]:type-kr-heading [&_h3]:mt-12 [&_h3]:mb-3 [&_h3]:text-h6-m [&_h3]:tracking-[-0.02em] [&_h3]:text-foreground sm:[&_h3]:text-h6",
   "[&_h2:first-child]:mt-0 [&_h3:first-child]:mt-0",
 
   "[&_strong]:font-bold [&_strong]:text-foreground",
   "[&_em]:italic",
-  "[&_a]:font-bold [&_a]:text-foreground [&_a]:underline [&_a]:decoration-border [&_a]:decoration-1 [&_a]:underline-offset-4 hover:[&_a]:decoration-foreground",
+  // 링크 — 밑줄은 옅게 깔고 올렸을 때만 또렷해진다. 본문 흐름을 끊지 않는다.
+  "[&_a]:font-bold [&_a]:text-foreground [&_a]:underline [&_a]:decoration-border [&_a]:decoration-1 [&_a]:underline-offset-[0.3em] [&_a]:transition-colors hover:[&_a]:decoration-foreground",
 
   // 목록 — 불릿은 본문보다 옅게 둬서 글자가 먼저 읽히게 한다
-  "[&_ul]:my-5 [&_ul]:list-disc [&_ul]:pl-5 [&_ol]:my-5 [&_ol]:list-decimal [&_ol]:pl-5",
-  "[&_li]:mt-2 [&_li]:pl-1 [&_li]:marker:text-muted",
-  "[&_li>ul]:my-2 [&_li>ol]:my-2",
+  "[&_ul]:my-6 [&_ul]:list-disc [&_ul]:pl-5 [&_ol]:my-6 [&_ol]:list-decimal [&_ol]:pl-5",
+  "[&_li]:mt-2.5 [&_li]:pl-1.5 [&_li]:marker:text-muted",
+  "[&_li>ul]:my-2.5 [&_li>ol]:my-2.5",
 
-  "[&_blockquote]:my-6 [&_blockquote]:border-l-2 [&_blockquote]:border-foreground [&_blockquote]:pl-5 [&_blockquote]:text-muted",
-  "[&_hr]:my-10 [&_hr]:border-0 [&_hr]:border-t [&_hr]:border-border/40",
+  // 인용 — 선은 가늘게, 글자는 한 단 옅게. 본문과 구분되되 튀지 않는다.
+  "[&_blockquote]:my-8 [&_blockquote]:border-l [&_blockquote]:border-foreground/30 [&_blockquote]:pl-6 [&_blockquote]:text-muted",
+  "[&_hr]:mx-auto [&_hr]:my-14 [&_hr]:w-16 [&_hr]:border-0 [&_hr]:border-t [&_hr]:border-border",
 
-  "[&_img]:my-8 [&_img]:w-full",
+  // 이미지 — 위아래로 크게 띄워 한 장씩 숨을 쉬게 한다
+  "[&_img]:my-12 [&_img]:w-full",
 
-  // 표 — 열 너비는 표가 정하게 두고(block 으로 만들면 열이 제각각 눕는다), 좁은 화면에서는
-  // 이 블록(아래 PROSE_BLOCK)이 가로로 스크롤된다.
-  "[&_table]:my-6 [&_table]:w-auto [&_table]:min-w-full [&_table]:border-collapse [&_table]:text-s",
-  "[&_th]:border [&_th]:border-border-soft [&_th]:bg-panel [&_th]:px-3 [&_th]:py-2.5 [&_th]:text-left [&_th]:font-bold [&_th]:text-foreground",
-  "[&_td]:border [&_td]:border-border-soft [&_td]:px-3 [&_td]:py-2.5 [&_td]:align-top",
+  // 표 — 세로선을 걷어내고 가로선만 남긴다. 머리행은 굵은 선으로 눌러 준다.
+  "[&_table]:my-8 [&_table]:w-auto [&_table]:min-w-full [&_table]:border-collapse [&_table]:text-s",
+  "[&_thead]:border-b-2 [&_thead]:border-foreground",
+  "[&_th]:px-3 [&_th]:py-3 [&_th]:text-left [&_th]:font-bold [&_th]:text-foreground",
+  "[&_tbody_tr]:border-b [&_tbody_tr]:border-border-soft",
+  "[&_td]:px-3 [&_td]:py-3 [&_td]:align-top",
 
-  "[&_details]:my-6 [&_details]:border [&_details]:border-border-soft [&_details]:px-4 [&_details]:py-3",
+  "[&_details]:my-8 [&_details]:border-y [&_details]:border-border-soft [&_details]:py-4",
   "[&_summary]:cursor-pointer [&_summary]:font-bold [&_summary]:text-foreground",
-  "[&_[data-type=detailsContent]]:mt-3",
+  "[&_[data-type=detailsContent]]:mt-4",
 ].join(" ");
 
-/** 본문 조각을 감싸는 블록 — 넓은 표는 지면을 밀지 않고 이 안에서 가로로 스크롤된다. */
 const PROSE_BLOCK = "overflow-x-auto";
 
 export default async function NoticeDetailPage({
