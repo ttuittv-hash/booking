@@ -194,17 +194,17 @@ function VenueFacilityFields({
       />
 
       <ListEditor
-        label="STAGE & CAPACITY"
-        help="무대 배치별로 하나씩 만듭니다. 배치 구분이 없으면 배치명을 비워 두세요."
+        label="CAPACITY & CONFIGURATION"
+        help="구성마다 카드 한 장입니다. SEATED·STANDING 을 비우면 아래 '층별 구성'이 카드의 줄이 됩니다(중형 FIXED SEATS)."
         items={value.capacity}
         onChange={(capacity) => p({ capacity })}
-        blank={() => ({ stage: "", seated: "", standing: "", floors: [] })}
-        addLabel="+ 배치 추가"
+        blank={() => ({ stage: "", desc: "", seated: "", standing: "", floors: [] })}
+        addLabel="+ 구성 추가"
         titleOf={(it, i) => it.stage || `구성 ${i + 1}`}
         render={(it, patch) => (
           <div className="space-y-3">
             <div className="grid gap-2 sm:grid-cols-3">
-              <Text label="배치명" value={it.stage} onChange={(stage) => patch({ stage })} />
+              <Text label="카드 제목" value={it.stage} onChange={(stage) => patch({ stage })} />
               <Text label="SEATED" value={it.seated} onChange={(seated) => patch({ seated })} />
               <Text
                 label="STANDING"
@@ -212,8 +212,14 @@ function VenueFacilityFields({
                 onChange={(standing) => patch({ standing })}
               />
             </div>
+            <Text
+              label="카드 부제 (한 줄 설명)"
+              value={it.desc ?? ""}
+              onChange={(desc) => patch({ desc })}
+            />
             <PairList
               label="층별 구성"
+              help="SEATED·STANDING 이 비어 있을 때만 카드에 나옵니다."
               items={it.floors}
               onChange={(floors) => patch({ floors })}
               labelName="층"
@@ -225,16 +231,57 @@ function VenueFacilityFields({
       />
 
       <div>
-        <p className={HELP}>FEATURES — 비워 두면 해당 탭에서 섹션이 나오지 않습니다.</p>
+        <p className={HELP}>FLOOR &amp; SEATING — 비워 두면 해당 탭에서 섹션이 나오지 않습니다.</p>
         <div className="mt-2">
           <FeatureListEditor items={value.features} onChange={(features) => p({ features })} />
         </div>
       </div>
 
+      {/* 검정 지면 위 4칼럼 스펙 카드 — PRODUCTION & RIGGING · LOAD-IN & SUPPORT 등 */}
+      <ListEditor
+        label="스펙 카드 섹션 (검정 지면)"
+        help="섹션마다 제목 하나 + 카드 4칼럼입니다. 카드는 [라벨 / 큰 수치 / 설명] 세 줄입니다."
+        items={value.specGroups}
+        onChange={(specGroups) => p({ specGroups })}
+        blank={() => ({ title: "", cards: [] })}
+        addLabel="+ 섹션 추가"
+        titleOf={(it, i) => it.title || `섹션 ${i + 1}`}
+        render={(it, patch) => (
+          <div className="space-y-3">
+            <Text label="섹션 제목" value={it.title} onChange={(title) => patch({ title })} />
+            <ListEditor
+              label="카드"
+              items={it.cards}
+              onChange={(cards) => patch({ cards })}
+              blank={() => ({ label: "", value: "", desc: "" })}
+              addLabel="+ 카드 추가"
+              titleOf={(card, i) => card.label || `카드 ${i + 1}`}
+              render={(card, cardPatch) => (
+                <div className="space-y-2">
+                  <div className="grid gap-2 sm:grid-cols-2">
+                    <Text
+                      label="라벨"
+                      value={card.label}
+                      onChange={(label) => cardPatch({ label })}
+                    />
+                    <Text
+                      label="수치 (큰 글씨)"
+                      value={card.value}
+                      onChange={(v) => cardPatch({ value: v })}
+                    />
+                  </div>
+                  <Text label="설명" value={card.desc} onChange={(desc) => cardPatch({ desc })} />
+                </div>
+              )}
+            />
+          </div>
+        )}
+      />
+
       {/* 부대시설은 카테고리 카드로 나온다 — 묶음마다 카드 한 장(Figma 「additional facilities」) */}
       <ListEditor
-        label="ADDITIONAL FACILITIES"
-        help="카테고리마다 카드 한 장이 나옵니다. 카드는 한 줄에 두 장씩 놓입니다."
+        label="ADDITIONAL FACILITIES (카테고리 카드)"
+        help="카테고리마다 카드 한 장이 나옵니다. 카드는 한 줄에 두 장씩 놓입니다. 비워 두면 섹션이 나오지 않습니다."
         items={value.facilityGroups}
         onChange={(facilityGroups) => p({ facilityGroups })}
         blank={() => ({ title: "", items: [] })}
@@ -336,6 +383,12 @@ function RateTableFields({
 
   return (
     <div className="space-y-7">
+      <Area
+        label="페이지 리드 (제목 아래 한 문단)"
+        value={value.intro}
+        onChange={(intro) => p({ intro })}
+      />
+
       <Text
         label="대관 기간 표기 (비우면 행이 나오지 않습니다)"
         value={value.rentalPeriod}
@@ -413,13 +466,42 @@ function RateTableFields({
       />
 
       <PairList
-        label="기본 항목 (RATE INCLUDES)"
-        help="대관료에 무상으로 포함되는 항목입니다. 중형공연장은 대관 신청 위저드의 '구성 · 옵션' 화면에 '기본 항목' 박스로 그대로 노출됩니다."
+        label="기본 항목 — 위저드용 (RATE INCLUDES)"
+        help="중형공연장 대관 신청 위저드의 '구성 · 옵션' 화면에 '기본 항목' 박스로 그대로 노출됩니다. 대관료 화면에는 아래 '포함 항목 카드'가 나갑니다 — 두 곳의 내용이 어긋나지 않게 함께 고쳐 주세요."
         items={value.includes}
         onChange={(includes) => p({ includes })}
         labelName="구분"
         valueName="포함 내용"
         addLabel="+ 기본 항목 추가"
+      />
+
+      <Area
+        label="포함 항목 섹션 리드"
+        value={value.includesLead}
+        onChange={(includesLead) => p({ includesLead })}
+      />
+
+      <ListEditor
+        label="포함 항목 카드 (대관료 화면)"
+        help="카드 한 장씩 나옵니다. 카드 안은 [항목 / 설명] 두 열이고, 한 줄에 두 장씩 놓입니다."
+        items={value.includeGroups}
+        onChange={(includeGroups) => p({ includeGroups })}
+        blank={() => ({ title: "", rows: [] })}
+        addLabel="+ 카드 추가"
+        titleOf={(it, i) => it.title || `카드 ${i + 1}`}
+        render={(it, patch) => (
+          <div className="space-y-3">
+            <Text label="카드 제목" value={it.title} onChange={(title) => patch({ title })} />
+            <PairList
+              label="항목"
+              items={it.rows}
+              onChange={(rows) => patch({ rows })}
+              labelName="항목"
+              valueName="설명"
+              addLabel="+ 항목 추가"
+            />
+          </div>
+        )}
       />
 
       <ListEditor
@@ -440,14 +522,27 @@ function RateTableFields({
         )}
       />
 
-      <PairList
-        label="기준·제한 사항"
-        help="기본 항목 박스 아래에 안내 문구로 함께 노출됩니다(예: 기준 이용시간, 1일 2회 공연 할증 등)."
+      <ListEditor
+        label="기본 이용 기준"
+        help="대관료 화면에 4-up 카드로 나오고(라벨 · 큰 값 · 부연), 위저드의 기본 항목 박스 아래에도 안내 문구로 함께 노출됩니다."
         items={value.limits}
         onChange={(limits) => p({ limits })}
-        labelName="구분"
-        valueName="내용"
+        blank={() => ({ label: "", value: "", note: "" })}
         addLabel="+ 기준 추가"
+        titleOf={(it, i) => it.label || `기준 ${i + 1}`}
+        render={(it, patch) => (
+          <div className="space-y-2">
+            <div className="grid gap-2 sm:grid-cols-2">
+              <Text label="라벨" value={it.label} onChange={(label) => patch({ label })} />
+              <Text label="값 (큰 글씨)" value={it.value} onChange={(v) => patch({ value: v })} />
+            </div>
+            <Text
+              label="부연 (한 줄)"
+              value={it.note ?? ""}
+              onChange={(note) => patch({ note })}
+            />
+          </div>
+        )}
       />
 
       <StringList

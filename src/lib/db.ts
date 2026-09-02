@@ -31,6 +31,8 @@ import {
   DEFAULT_RULES_CONTENT,
   DEFAULT_SCREEN_TEXT_CONTENT,
   DEFAULT_SEOULARENA_CONTENT,
+  FEATURES_CONTENT_VERSION,
+  RATES_CONTENT_VERSION,
   type DocumentsContent,
   type FeaturesContent,
   type GuidePageContent,
@@ -39,6 +41,7 @@ import {
   type ScreenTextContent,
   type SeoulArenaContent,
   type VenueFacilityContent,
+  type VenueRateContent,
 } from "./content/pageContent";
 import {
   DOCUMENTS_EMPTY_NOTE,
@@ -5364,24 +5367,34 @@ export async function saveSeoulArenaContent(data: SeoulArenaContent) {
  * 부대시설이 평면 목록(`facilities`)으로 저장돼 있던 시절의 콘텐츠를 카드 묶음으로 옮긴다.
  * 카테고리를 알 수 없으므로 「부대시설」 한 장에 담고, 이후 운영자가 나눠 담는다.
  */
-function withFacilityGroups(v: VenueFacilityContent): VenueFacilityContent {
-  if (Array.isArray(v?.facilityGroups)) return v;
-  const legacy = (v as unknown as { facilities?: { label: string; value: string }[] }).facilities;
+/** 새 판에서 늘어난 자리를 채운다 — 판번호가 맞는 저장본에도 없을 수 있다(부분 저장) */
+function withNewFields(v: VenueFacilityContent): VenueFacilityContent {
   return {
     ...v,
-    facilityGroups: legacy?.length ? [{ title: "부대시설", items: legacy }] : [],
+    specGroups: Array.isArray(v?.specGroups) ? v.specGroups : [],
+    facilityGroups: Array.isArray(v?.facilityGroups) ? v.facilityGroups : [],
   };
 }
 
+/**
+ * 2026-09-02 개편 이전 저장본은 섹션 구성 자체가 달라(FEATURES · 배치별 층별 표 ·
+ * 카테고리형 ADDITIONAL FACILITIES) 새 화면과 필드 단위로 섞으면 옛 섹션과 새 섹션이
+ * 함께 나온다. 판번호가 다르면 부분 병합하지 않고 기본값을 통째로 쓴다 —
+ * 개편 후 운영자가 콘텐츠 관리에서 저장하면 판번호가 찍혀 그때부터 편집분이 유지된다.
+ */
 export async function getFeaturesContent(): Promise<FeaturesContent> {
   const content = await getPageContent("features", DEFAULT_FEATURES_CONTENT);
+  if (content.version !== FEATURES_CONTENT_VERSION) return DEFAULT_FEATURES_CONTENT;
   return {
-    arena: withFacilityGroups(content.arena),
-    liveHall: withFacilityGroups(content.liveHall),
+    version: content.version,
+    arena: withNewFields(content.arena),
+    liveHall: withNewFields(content.liveHall),
   };
 }
 export async function saveFeaturesContent(data: FeaturesContent) {
-  return saveSiteContent("features", data);
+  // 저장할 때 판번호를 찍는다 — 이 판으로 편집한 콘텐츠는 다음 읽기에서 기본값에
+  // 덮이지 않고 그대로 유지된다.
+  return saveSiteContent("features", { ...data, version: FEATURES_CONTENT_VERSION });
 }
 
 export async function getGuidePageContent(): Promise<GuidePageContent> {
@@ -5392,11 +5405,32 @@ export async function saveGuidePageContent(data: GuidePageContent) {
   return saveSiteContent("guide", data);
 }
 
+/**
+ * 대관료는 시설 제원과 달리 **판번호로 덮어쓰지 않는다.**
+ * 개편 전 저장본의 필드(요금표 행·열 · 옵션 · 기준)가 새 레이아웃에 그대로 얹히므로
+ * 통째로 기본값으로 되돌릴 이유가 없고, 되돌리면 운영자가 고친 금액이 화면에서 사라진다.
+ * 이번 개편에서 **새로 생긴 자리만** 기본값으로 채운다.
+ */
+function withNewRateFields(v: VenueRateContent, fallback: VenueRateContent): VenueRateContent {
+  return {
+    ...v,
+    intro: v.intro ?? fallback.intro,
+    includes: Array.isArray(v?.includes) ? v.includes : fallback.includes,
+    includesLead: v.includesLead ?? fallback.includesLead,
+    includeGroups: Array.isArray(v?.includeGroups) ? v.includeGroups : fallback.includeGroups,
+  };
+}
+
 export async function getRatesContent(): Promise<RatesContent> {
-  return getPageContent("rates", DEFAULT_RATES_CONTENT);
+  const content = await getPageContent("rates", DEFAULT_RATES_CONTENT);
+  return {
+    version: RATES_CONTENT_VERSION,
+    arena: withNewRateFields(content.arena, DEFAULT_RATES_CONTENT.arena),
+    liveHall: withNewRateFields(content.liveHall, DEFAULT_RATES_CONTENT.liveHall),
+  };
 }
 export async function saveRatesContent(data: RatesContent) {
-  return saveSiteContent("rates", data);
+  return saveSiteContent("rates", { ...data, version: RATES_CONTENT_VERSION });
 }
 
 export async function getDocumentsContent(): Promise<DocumentsContent> {

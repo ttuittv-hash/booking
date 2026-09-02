@@ -1,13 +1,14 @@
 import {
   ABOUT_LEAD,
   ARENA_CAPACITY,
-  ARENA_FACILITY_GROUPS,
+  ARENA_FLOOR_SEATING,
   ARENA_OVERVIEW,
+  ARENA_SPEC_GROUPS,
   COMPLEX_FEATURES,
   COMPLEX_FEATURES_LEAD,
   LIVE_HALL_CAPACITY,
-  LIVE_HALL_FACILITY_GROUPS,
   LIVE_HALL_OVERVIEW,
+  LIVE_HALL_SPEC_GROUPS,
   STAGE_FEATURES,
   VENUE_HEROES,
   WHY_LEAD,
@@ -15,16 +16,22 @@ import {
 import { GUIDE_LEAD, RENTAL_PROCESS } from "./processFacts";
 import {
   ARENA_ADDITIONAL_CHARGES,
-  ARENA_LIMITS,
+  ARENA_INCLUDES_LEAD,
+  ARENA_INCLUDE_GROUPS,
   ARENA_RATES,
   ARENA_RATE_INCLUDES,
+  ARENA_RATE_INTRO,
   ARENA_RATE_NOTES,
   ARENA_RENTAL_PERIOD,
+  ARENA_STANDARD_CONDITIONS,
   LIVE_HALL_ADDITIONAL_CHARGES,
-  LIVE_HALL_LIMITS,
+  LIVE_HALL_INCLUDES_LEAD,
+  LIVE_HALL_INCLUDE_GROUPS,
   LIVE_HALL_RATES,
   LIVE_HALL_RATE_INCLUDES,
+  LIVE_HALL_RATE_INTRO,
   LIVE_HALL_RATE_NOTES,
+  LIVE_HALL_STANDARD_CONDITIONS,
 } from "./rateFacts";
 import {
   ARENA_DOCUMENTS,
@@ -90,12 +97,20 @@ export const DEFAULT_SEOULARENA_CONTENT: SeoulArenaContent = {
 
 /* ---------------------------------------------- 시설 소개 (`/features`) --- */
 
+/** 라벨/값에 부연 한 줄이 더 붙는 행. `Pair` 의 상위 호환이라 예전 저장본도 그대로 읽힌다 */
+export interface SpecRow extends Pair {
+  note?: string;
+}
+
 export interface CapacityBlock {
-  /** 무대 배치 이름. 비우면 배치 구분 없이 표만 나온다 */
+  /** 무대 배치 이름. 비우면 배치 구분 없이 수치만 나온다 */
   stage: string;
+  /** 카드 부제 — 이 구성이 어떤 공연에 맞는지 한 줄 */
+  desc?: string;
   seated: string;
   standing: string;
-  floors: Pair[];
+  /** 층별 내역. 비우면 SEATED/STANDING 만 나온다 */
+  floors: SpecRow[];
 }
 
 /** 부대시설 카드 한 장 — 카테고리 제목 + [시설명 · 부연] 목록 */
@@ -104,46 +119,80 @@ export interface FacilityGroup {
   items: Pair[];
 }
 
+/** 4칼럼 스펙 카드 — 라벨 / 큰 수치 / 설명 */
+export interface SpecCard {
+  label: string;
+  value: string;
+  desc: string;
+}
+
+/** 스펙 카드 섹션 하나 (PRODUCTION & RIGGING · LOAD-IN & SUPPORT …) */
+export interface SpecCardGroup {
+  title: string;
+  cards: SpecCard[];
+}
+
 export interface VenueFacilityContent {
   overview: Pair[];
   capacity: CapacityBlock[];
+  /** FLOOR & SEATING — 라인으로 나뉜 층별 구성 */
   features: FeatureBlock[];
+  /** 검정 지면 위 4칼럼 스펙 카드 섹션들 */
+  specGroups: SpecCardGroup[];
   facilityGroups: FacilityGroup[];
 }
 
+/**
+ * 시설 제원 콘텐츠 판번호.
+ *
+ * 2026-09-02 디자인 개편으로 섹션 구성이 통째로 바뀌었다(FEATURES → FLOOR & SEATING,
+ * 스펙 카드 섹션 신설, 배치 카드에서 층별 표 제거). 이전 판으로 저장된 콘텐츠를
+ * 필드 단위로 섞으면 옛 섹션과 새 섹션이 함께 나와 화면이 무너지므로,
+ * 판번호가 다르면 기본값을 통째로 쓴다(`getFeaturesContent`).
+ */
+export const FEATURES_CONTENT_VERSION = 2;
+
 export interface FeaturesContent {
+  /** 없으면 개편 이전 저장본이다 */
+  version?: number;
   arena: VenueFacilityContent;
   liveHall: VenueFacilityContent;
 }
 
+const capacityBlocks = (rows: typeof ARENA_CAPACITY): CapacityBlock[] =>
+  rows.map((c) => ({
+    stage: c.stage,
+    desc: c.desc,
+    seated: c.seated,
+    standing: c.standing,
+    floors: c.floors.map(([label, value, note]) => ({ label, value, ...(note ? { note } : {}) })),
+  }));
+
+const specGroups = (groups: typeof ARENA_SPEC_GROUPS): SpecCardGroup[] =>
+  groups.map((g) => ({ title: g.title, cards: g.cards.map((c) => ({ ...c })) }));
+
+/*
+  [2026-09-02 디자인 개편]
+  · 아레나 ADDITIONAL FACILITIES 는 없앴다 — 그 내용(스카이박스·대기실·하역)이
+    LOAD-IN & SUPPORT 스펙 카드로 옮겨 갔고, 같은 사실을 두 섹션이 말하게 되기 때문이다.
+    원본 목록은 `venueFacts.ts` 의 ARENA_FACILITY_GROUPS 에 그대로 남아 있다.
+  · 중형공연장 ADDITIONAL FACILITIES 는 스펙 카드 4장(임시 내용)으로 대체했다.
+*/
 export const DEFAULT_FEATURES_CONTENT: FeaturesContent = {
+  version: FEATURES_CONTENT_VERSION,
   arena: {
     overview: ARENA_OVERVIEW.map((c) => ({ label: c.label, value: c.value })),
-    capacity: ARENA_CAPACITY.map((c) => ({
-      stage: c.stage,
-      seated: c.seated,
-      standing: c.standing,
-      floors: c.floors.map(([label, value]) => ({ label, value })),
-    })),
-    features: STAGE_FEATURES.map((f) => ({ title: f.title, lines: [...f.lines] })),
-    facilityGroups: ARENA_FACILITY_GROUPS.map((g) => ({
-      title: g.title,
-      items: g.items.map((f) => ({ label: f.label, value: f.desc ?? "" })),
-    })),
+    capacity: capacityBlocks(ARENA_CAPACITY),
+    features: ARENA_FLOOR_SEATING.map((f) => ({ title: f.title, lines: [...f.lines] })),
+    specGroups: specGroups(ARENA_SPEC_GROUPS),
+    facilityGroups: [],
   },
   liveHall: {
     overview: LIVE_HALL_OVERVIEW.map((c) => ({ label: c.label, value: c.value })),
-    capacity: LIVE_HALL_CAPACITY.map((c) => ({
-      stage: c.stage,
-      seated: c.seated,
-      standing: c.standing,
-      floors: c.floors.map(([label, value]) => ({ label, value })),
-    })),
+    capacity: capacityBlocks(LIVE_HALL_CAPACITY),
     features: [],
-    facilityGroups: LIVE_HALL_FACILITY_GROUPS.map((g) => ({
-      title: g.title,
-      items: g.items.map((f) => ({ label: f.label, value: f.desc ?? "" })),
-    })),
+    specGroups: specGroups(LIVE_HALL_SPEC_GROUPS),
+    facilityGroups: [],
   },
 };
 
@@ -181,7 +230,15 @@ export interface ChargeBlock {
   note: string;
 }
 
+/** 포함 항목 카드 한 장 — 카드 제목 + [항목 / 설명] 행 */
+export interface RateIncludeGroup {
+  title: string;
+  rows: Pair[];
+}
+
 export interface VenueRateContent {
+  /** 섹션 1 리드 — 패키지 카드 위 한 문단 */
+  intro: string;
   /** 요금표 행 이름 (최대 수용인원 · 대관료 …) */
   rowLabels: string[];
   columns: RateColumn[];
@@ -189,13 +246,33 @@ export interface VenueRateContent {
   detailLabels: string[];
   detailColumns: RateColumn[];
   rentalPeriod: string;
+  /**
+   * 대관료에 무상 포함되는 항목의 **평면 목록**.
+   * 대관료 화면은 아래 `includeGroups`(카드)를 쓰지만, 이 필드는 지우면 안 된다 —
+   * 중형공연장 **대관 신청 위저드**의 「기본 항목」 박스(`StepConfigOptions`)와
+   * 어드민 `PackagesForm` 이 이 값을 그대로 읽는다.
+   */
   includes: Pair[];
+  /** 섹션 2 리드 */
+  includesLead: string;
+  /** 섹션 2 — 카드 한 장씩. 대관료 화면 전용이다 */
+  includeGroups: RateIncludeGroup[];
   charges: ChargeBlock[];
-  limits: Pair[];
+  /** 섹션 3 기본 이용 기준 — 라벨/값/부연 */
+  limits: SpecRow[];
   notes: string[];
 }
 
+/**
+ * 대관료 콘텐츠 판번호 — 시설 제원과 같은 이유다.
+ * 2026-09-02 개편으로 섹션 구성(원칼럼 · 포함 항목 카드화 · 기본 이용 기준 4-up)이
+ * 바뀌어 이전 저장본을 필드 단위로 섞으면 빈 섹션이 생긴다.
+ */
+export const RATES_CONTENT_VERSION = 2;
+
 export interface RatesContent {
+  /** 없으면 개편 이전 저장본이다 */
+  version?: number;
   arena: VenueRateContent;
   liveHall: VenueRateContent;
 }
@@ -204,8 +281,16 @@ function won(n: number): string {
   return `${n.toLocaleString("ko-KR")}원`;
 }
 
+const includeGroups = (groups: typeof ARENA_INCLUDE_GROUPS): RateIncludeGroup[] =>
+  groups.map((g) => ({ title: g.title, rows: g.rows.map(([label, value]) => ({ label, value })) }));
+
+const conditions = (rows: typeof ARENA_STANDARD_CONDITIONS): SpecRow[] =>
+  rows.map(([label, value, note]) => ({ label, value, note }));
+
 export const DEFAULT_RATES_CONTENT: RatesContent = {
+  version: RATES_CONTENT_VERSION,
   arena: {
+    intro: ARENA_RATE_INTRO,
     rowLabels: ["최대 수용인원", "권장 무대 형태", "권장 객석 형태", "대관료"],
     columns: ARENA_RATES.map((r) => ({
       key: r.key,
@@ -226,11 +311,14 @@ export const DEFAULT_RATES_CONTENT: RatesContent = {
     })),
     rentalPeriod: ARENA_RENTAL_PERIOD,
     includes: ARENA_RATE_INCLUDES.map(([label, value]) => ({ label, value })),
+    includesLead: ARENA_INCLUDES_LEAD,
+    includeGroups: includeGroups(ARENA_INCLUDE_GROUPS),
     charges: ARENA_ADDITIONAL_CHARGES.map((c) => ({ ...c, note: c.note ?? "" })),
-    limits: ARENA_LIMITS.map(([label, value]) => ({ label, value })),
+    limits: conditions(ARENA_STANDARD_CONDITIONS),
     notes: [...ARENA_RATE_NOTES],
   },
   liveHall: {
+    intro: LIVE_HALL_RATE_INTRO,
     rowLabels: ["대관료"],
     columns: LIVE_HALL_RATES.map((r) => ({ key: r.key, name: r.name, values: [r.total] })),
     detailLabels: ["전용 사용료 / 일당", "시설 사용료 / 일당"],
@@ -241,8 +329,10 @@ export const DEFAULT_RATES_CONTENT: RatesContent = {
     })),
     rentalPeriod: "",
     includes: LIVE_HALL_RATE_INCLUDES.map(([label, value]) => ({ label, value })),
+    includesLead: LIVE_HALL_INCLUDES_LEAD,
+    includeGroups: includeGroups(LIVE_HALL_INCLUDE_GROUPS),
     charges: LIVE_HALL_ADDITIONAL_CHARGES.map((c) => ({ ...c, note: c.note ?? "" })),
-    limits: LIVE_HALL_LIMITS.map(([label, value]) => ({ label, value })),
+    limits: conditions(LIVE_HALL_STANDARD_CONDITIONS),
     notes: [...LIVE_HALL_RATE_NOTES],
   },
 };

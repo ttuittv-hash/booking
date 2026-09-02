@@ -37,25 +37,35 @@ export default async function RulesPage() {
             ko="대관 규약"
             lead={<Prose text={content.intro} />}
           />
-          <dl className="mt-10 flex flex-wrap gap-x-10 gap-y-3">
-            {(
-              [
-                ["버전", content.version],
-                ["시행일", content.effectiveDate],
-                ["구성", `${chapters.length}개 장 · ${articleCount}개 조`],
-              ] as [string, string][]
-            ).map(([k, v]) => (
-              <div key={k}>
-                <dt className="text-xs font-bold text-muted">{k}</dt>
-                <dd className="mt-1 text-s font-bold tabular-nums">{v}</dd>
-              </div>
-            ))}
-          </dl>
-          {(content.revisionNote ?? "").trim() && (
-            <Note className="measure mt-8">
-              <Prose text={content.revisionNote} gap="mt-3" />
-            </Note>
-          )}
+          {/*
+            버전·시행일·구성과 그 아래 개정 안내는 **지면의 절반**(12칼럼 중 6)에서 끝난다.
+            `measure`(768px 고정)로 잡아 두었더니 이 블록만 컬럼 경계에서 벗어나 끝나서,
+            아래 규약 본문(목차 3 : 본문 9)과 세로선이 맞지 않았다. 아래 두 페이지와
+            같은 그리드 위에 올린다.
+          */}
+          <div className="grid-site mt-10">
+            <div className="lg:col-span-6">
+              <dl className="flex flex-wrap gap-x-10 gap-y-3">
+                {(
+                  [
+                    ["버전", content.version],
+                    ["시행일", content.effectiveDate],
+                    ["구성", `${chapters.length}개 장 · ${articleCount}개 조`],
+                  ] as [string, string][]
+                ).map(([k, v]) => (
+                  <div key={k}>
+                    <dt className="text-xs font-bold text-muted">{k}</dt>
+                    <dd className="mt-1 text-s font-bold tabular-nums">{v}</dd>
+                  </div>
+                ))}
+              </dl>
+              {(content.revisionNote ?? "").trim() && (
+                <Note className="mt-8">
+                  <Prose text={content.revisionNote} gap="mt-3" />
+                </Note>
+              )}
+            </div>
+          </div>
         </Band>
 
         {/* 문답을 전문 위에 둔다 — 규약을 처음부터 읽을 사람은 적고, 대개 한 가지를
