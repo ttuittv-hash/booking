@@ -44,6 +44,10 @@ import {
   type VenueRateContent,
 } from "./content/pageContent";
 import {
+  DEFAULT_NOTICE_CALENDAR_WINDOW,
+  type NoticeCalendarWindow,
+} from "./content/noticeCalendarWindow";
+import {
   DOCUMENTS_EMPTY_NOTE,
   DOCUMENTS_LEAD,
   FACILITY_DOCUMENT_TITLE,
@@ -5495,6 +5499,17 @@ export async function getRulesContent(): Promise<RulesContent> {
 }
 export async function saveRulesContent(data: RulesContent) {
   return saveSiteContent("rules", data);
+}
+
+/**
+ * 공지 캘린더 공개 기간(2026-09-02). 페이지 콘텐츠와 같은 site_content 에 둔다 —
+ * 표 하나 만들 만큼의 데이터가 아니고, 운영자가 백오피스에서 고치는 설정이라는 점도 같다.
+ */
+export async function getNoticeCalendarWindow(): Promise<NoticeCalendarWindow> {
+  return getPageContent("noticeCalendarWindow", DEFAULT_NOTICE_CALENDAR_WINDOW);
+}
+export async function saveNoticeCalendarWindow(data: NoticeCalendarWindow) {
+  return saveSiteContent("noticeCalendarWindow", data);
 }
 
 export async function getScreenTextContent(): Promise<ScreenTextContent> {

@@ -1,7 +1,10 @@
 import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/lib/auth";
+import { getNoticeCalendarWindow } from "@/lib/db";
+import { kstNowLocal } from "@/lib/content/noticeCalendarWindow";
 import { AdminNav } from "@/components/admin/AdminNav";
 import { ScheduleManager } from "@/components/admin/ScheduleManager";
+import { NoticeCalendarWindowForm } from "@/components/admin/NoticeCalendarWindowForm";
 import { PAGE_LEAD, PAGE_TITLE } from "@/components/admin/adminUi";
 
 export default async function AdminSchedulePage() {
@@ -10,6 +13,7 @@ export default async function AdminSchedulePage() {
   if (user.role !== "ADMIN") redirect("/apply");
 
   const now = new Date();
+  const calendarWindow = await getNoticeCalendarWindow();
 
   return (
     <div className="flex flex-1 flex-col">
@@ -25,6 +29,8 @@ export default async function AdminSchedulePage() {
         </header>
 
         <ScheduleManager initialYear={now.getFullYear()} initialMonth={now.getMonth() + 1} />
+
+        <NoticeCalendarWindowForm initial={calendarWindow} nowLocal={kstNowLocal(now)} />
       </main>
     </div>
   );

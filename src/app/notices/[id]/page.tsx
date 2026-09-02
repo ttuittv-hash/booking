@@ -1,9 +1,14 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { getCurrentUser, requireAccess } from "@/lib/auth";
-import { getNoticeById } from "@/lib/db";
+import { getNoticeById, getNoticeCalendarWindow } from "@/lib/db";
 import { sanitizeRichText } from "@/lib/sanitizeHtml";
 import { splitNoticeBodyAtCalendarMarker } from "@/lib/content/noticeCalendarMarker";
+import {
+  kstNowLocal,
+  noticeCalendarClosedMessage,
+  noticeCalendarWindowState,
+} from "@/lib/content/noticeCalendarWindow";
 import { BookingCalendarLauncher } from "@/components/BookingAvailabilityCalendar";
 import { Fragment } from "react";
 import { PublicHeader } from "@/components/PublicHeader";
@@ -57,8 +62,21 @@ export default async function NoticeDetailPage({
   const currentUser = await getCurrentUser();
 
   const { id } = await params;
-  const notice = await getNoticeById(id);
+  const [notice, calendarWindow] = await Promise.all([getNoticeById(id), getNoticeCalendarWindow()]);
   if (!notice) notFound();
+
+  // 공개 기간 밖이면 캘린더 자리에 안내 문구를 놓는다(2026-09-02). 대관 접수는 회차로
+  // 돌기 때문에 접수 기간이 아닐 때 현황 캘린더가 열려 있으면 신청할 수 있다고 읽힌다.
+  const calendarState = noticeCalendarWindowState(calendarWindow, kstNowLocal(new Date()));
+  const calendarClosedNote = noticeCalendarClosedMessage(calendarWindow, calendarState);
+  const calendarSlot =
+    calendarState === "OPEN" ? (
+      <BookingCalendarLauncher />
+    ) : (
+      <p className="border-l-2 border-foreground bg-warn-soft px-4 py-3 text-s text-muted-strong">
+        {calendarClosedNote}
+      </p>
+    );
 
   return (
     <div className="flex flex-1 flex-col">
@@ -83,9 +101,7 @@ export default async function NoticeDetailPage({
               }
             />
             {notice.showBookingCalendar && (
-              <div className="mt-5">
-                <BookingCalendarLauncher />
-              </div>
+              <div className="mt-5">{calendarSlot}</div>
             )}
           </div>
         </Band>
@@ -108,9 +124,7 @@ export default async function NoticeDetailPage({
                     <div className={PROSE} dangerouslySetInnerHTML={{ __html: segment }} />
                   )}
                   {i < segments.length - 1 && (
-                    <div className="my-6">
-                      <BookingCalendarLauncher />
-                    </div>
+                    <div className="my-6">{calendarSlot}</div>
                   )}
                 </Fragment>
               ));
