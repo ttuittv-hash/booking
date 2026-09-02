@@ -19,7 +19,8 @@ import type {
   SafetyPledge,
   WeekDemand,
 } from "@/lib/pricing/types";
-import { DEFAULT_VENUE_ID } from "@/lib/pricing/types";
+import { DEFAULT_VENUE_ID, SPECIAL_VENUE_ID } from "@/lib/pricing/types";
+import { defaultVenueName, venueLabelKey } from "@/lib/content/venueLabels";
 import { INITIAL_PERFORMANCE_INFO } from "@/lib/pricing/performanceInfoDefaults";
 import { clearWizardDraft, loadWizardDraft, saveWizardDraft } from "@/lib/quotesStore";
 import { useToast } from "@/components/ui/Toast";
@@ -392,6 +393,11 @@ export function WizardShell({
   // 패키지 선택 전에도 기본 공연일수를 보여줘야 하므로, 모든 패키지가 공유하는 기본값(2일)을 임시로 사용한다.
   const effectivePkg = findPackage(rateTable, effectivePackageId);
   const defaultPerformanceDays = effectivePkg?.defaultPerformanceDays ?? 2;
+  // 「패키지」 공간은 아레나와 같은 주 단위 일정을 쓴다 — 일정 탭·달력은 아레나 것을
+  // 그대로 쓰되 이름만 고른 공간으로 바꾼다(2026-09-02).
+  const isSpecialSchedule =
+    selection.venueId === SPECIAL_VENUE_ID && selection.bookingMode !== "SIMULTANEOUS";
+  const specialVenueName = tStr(venueLabelKey(SPECIAL_VENUE_ID), defaultVenueName(SPECIAL_VENUE_ID));
   // 최종 제출까지 마치면 "수정하기"를 누르기 전까지 다른 단계로 이동할 수 없다.
   const submissionLocked = !!submittedId && !editUnlocked;
 
@@ -644,7 +650,13 @@ export function WizardShell({
                     남아, 캘린더 슬롯 디자인 자체가 공간 선택에 따라 달라 보이지 않게 한다. */}
                 <div className="mt-5 flex gap-1 border-b border-border">
                   {(["arena", "medium-hall"] as const).map((tab) => {
-                    const enabled = selection.bookingMode === "SIMULTANEOUS" || selection.venueId === tab;
+                    // [수정 2026-09-02] 「패키지」 공간은 아레나와 같은 주 단위 일정을 쓴다.
+                    // 예전 조건(venueId === tab)은 공간 id 가 정확히 arena·medium-hall 일
+                    // 때만 열려서, 패키지를 고르면 두 탭이 모두 잠긴 채 달력만 떠 있었다.
+                    const enabled =
+                      selection.bookingMode === "SIMULTANEOUS" ||
+                      selection.venueId === tab ||
+                      (isSpecialSchedule && tab === "arena");
                     return (
                       <button
                         key={tab}
@@ -661,7 +673,11 @@ export function WizardShell({
                         ].join(" ")}
                       >
                         {tab === "arena"
-                          ? t("wizardShell.arenaTabLabel", "아레나 일정")
+                          ? isSpecialSchedule
+                            ? // 아레나 달력을 그대로 쓰지만 고른 공간은 패키지다 —
+                              // 라벨까지 "아레나"로 두면 다른 공간을 잡는 것처럼 읽힌다.
+                              `${specialVenueName} 일정`
+                            : t("wizardShell.arenaTabLabel", "아레나 일정")
                           : t("wizardShell.mediumHallTabLabel", "중형 일정")}
                       </button>
                     );
