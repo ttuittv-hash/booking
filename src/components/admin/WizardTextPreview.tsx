@@ -463,6 +463,8 @@ const STAGE_GROUPS: StageGroup[] = [
                 <StepMarketingCooperation
                   info={DEFAULT_MARKETING_COOPERATION}
                   onChange={noop}
+                  planFiles={[]}
+                  onPlanFilesChange={noop}
                   title={field("marketingTitle")}
                   lead={lead("marketingLead")}
                 />

@@ -829,7 +829,14 @@ export interface FacilityMeeting {
 // 첨부서류
 // ---------------------------------------------------------------------------
 
-export type AttachmentCategory = "TICKET_OPEN" | "FACILITY_MEETING" | null;
+// [2026-09-02] MARKETING_PLAN — 마케팅 실행 계획을 글이 아니라 파일로 받는다.
+// 자유 서술로 받던 온라인·오프라인 계획이 한 줄짜리 메모가 되기 일쑤라, 기획사가
+// 이미 만들어 둔 계획서를 그대로 올리게 바꿨다.
+export type AttachmentCategory =
+  | "TICKET_OPEN"
+  | "FACILITY_MEETING"
+  | "MARKETING_PLAN"
+  | null;
 
 export interface Attachment {
   id: string;

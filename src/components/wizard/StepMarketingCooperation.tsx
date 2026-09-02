@@ -1,7 +1,7 @@
 "use client";
 
 import type { ReactNode } from "react";
-import { ICON_BTN_SM, toggleClass } from "@/components/ui/kit";
+import { FILE_INPUT, toggleClass } from "@/components/ui/kit";
 import type { MarketingCooperation } from "@/lib/pricing/types";
 import { useWizardText } from "@/lib/content/wizardText";
 import { StepHeading, StepForm } from "./StepHeading";
@@ -14,25 +14,11 @@ import { StepHeading, StepForm } from "./StepHeading";
 // 없지만, 옛 임시저장본을 열었을 때의 방어선으로 남겨둔다.
 
 /*
-  마케팅 실행 계획(온라인/오프라인)은 줄글이 아니라 항목을 하나씩 쌓는 자리다.
-  예전에는 textarea 한 칸에 "· " 를 자동으로 붙여 여러 줄로 받았는데, 지우고 다시 쓰기가
-  번거로워 항목 단위 행으로 바꿨다(2026-08-27). 저장은 배열로 하고, 예전 신청서·심사 채점이
-  읽는 mediaMixOnline/mediaMixOffline 문자열은 이 배열에서 합성해 계속 채운다.
+  [개정 2026-09-02] 온라인·오프라인 마케팅 계획을 직접 쓰던 칸은 첨부파일로 바뀌었다.
+  줄글을 항목 배열로 읽어 주던 planItems/joinPlanItems 도 함께 지웠다 — 이미 제출된
+  신청서의 executionPlan.mediaMix* 값은 그대로 남아 있고 심사 채점(scoreQuote A-MKT)과
+  운영자 상세 화면이 계속 읽는다. 새로 채우지 않을 뿐이다.
 */
-function planItems(raw: string | undefined, items: string[] | undefined): string[] {
-  if (Array.isArray(items)) return items.length > 0 ? items : [""];
-  // 배열이 없던 시절 임시저장본 — 줄바꿈으로 나누고 앞의 가운데 점을 떼어 항목으로 읽는다.
-  const parsed = (raw ?? "")
-    .split("\n")
-    .map((line) => line.replace(/^[·•-]\s*/, "").trim())
-    .filter(Boolean);
-  return parsed.length > 0 ? parsed : [""];
-}
-
-/** 항목 배열 → 예전 문자열. 빈 항목은 버린다. */
-function joinPlanItems(items: string[]): string {
-  return items.map((v) => v.trim()).filter(Boolean).join("\n");
-}
 
 const SERVICE_SCOPE_ITEMS = [
   {
@@ -85,11 +71,16 @@ const SALES_DATA_ITEMS = [
 export function StepMarketingCooperation({
   info,
   onChange,
+  planFiles,
+  onPlanFilesChange,
   title,
   lead,
 }: {
   info: MarketingCooperation;
   onChange: (info: MarketingCooperation) => void;
+  /** 마케팅 실행 계획서 — 제출 시 MARKETING_PLAN 분류로 함께 올라간다 */
+  planFiles: File[];
+  onPlanFilesChange: (files: File[]) => void;
   title: ReactNode;
   lead: ReactNode;
 }) {
@@ -117,31 +108,6 @@ export function StepMarketingCooperation({
     );
   }
 
-  function updateExecutionPlan(patch: Partial<MarketingCooperation["executionPlan"]>) {
-    set("executionPlan", { ...info.executionPlan, ...patch });
-  }
-
-  // [개정 2026-08-26] "온라인/오프라인 마케팅 계획을 구분해서 입력" 요청 — 매체 믹스를
-  // 둘로 나눈다. mediaMix(단일 텍스트)는 scoreQuote.ts의 A-MKT 채점이 그대로 읽고
-  // 있어, 항목이 바뀔 때마다 합성해 하위호환을 유지한다.
-  const onlineItems = planItems(info.executionPlan.mediaMixOnline, info.executionPlan.mediaMixOnlineItems);
-  const offlineItems = planItems(info.executionPlan.mediaMixOffline, info.executionPlan.mediaMixOfflineItems);
-
-  function updateMediaMix(patch: { online?: string[]; offline?: string[] }) {
-    const online = patch.online ?? onlineItems;
-    const offline = patch.offline ?? offlineItems;
-    const onlineText = joinPlanItems(online);
-    const offlineText = joinPlanItems(offline);
-    const parts = [onlineText && `온라인: ${onlineText}`, offlineText && `오프라인: ${offlineText}`].filter(Boolean);
-    updateExecutionPlan({
-      mediaMixOnlineItems: online,
-      mediaMixOfflineItems: offline,
-      mediaMixOnline: onlineText,
-      mediaMixOffline: offlineText,
-      mediaMix: parts.join(" / "),
-    });
-  }
-
   return (
     <section>
       <StepHeading title={title} lead={lead} />
@@ -153,77 +119,52 @@ export function StepMarketingCooperation({
               {t("marketing.executionPlanHeading", "마케팅 실행 계획(선택)")}
             </h3>
             <p className="text-xs text-muted">
-              {t("marketing.executionPlanRequirementHint", "온라인·오프라인 중 1개 이상을 구체적 수치·금액·일자로 작성해 주세요.")}
+              {t("marketing.executionPlanRequirementHint", "온라인·오프라인 계획을 담은 계획서를 첨부해 주세요.")}
             </p>
           </div>
           <p className="mt-1 mb-3 break-keep text-xs leading-6 text-muted">
-            {t("marketing.executionPlanLead", "공연 홍보를 어떻게 진행할 계획인지 대략적인 방향을 항목별로 나눠 입력해 주세요.")}
+            {t("marketing.executionPlanLead", "공연 홍보를 어떻게 진행할 계획인지 담은 자료를 첨부해 주세요. 구체적 수치·금액·일자가 있으면 심사에 도움이 됩니다.")}
           </p>
-          <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
-            {(
-              [
-                {
-                  key: "online" as const,
-                  items: onlineItems,
-                  label: t("marketing.mediaMixOnlineLabel", "온라인 마케팅 계획"),
-                  addLabel: t("marketing.mediaMixOnlineAdd", "＋ 항목 추가"),
-                  placeholder: tStr("marketing.mediaMixOnlinePlaceholder", "예: SNS 광고 60%, 포털 배너 20%"),
-                },
-                {
-                  key: "offline" as const,
-                  items: offlineItems,
-                  label: t("marketing.mediaMixOfflineLabel", "오프라인 마케팅 계획"),
-                  addLabel: t("marketing.mediaMixOfflineAdd", "＋ 항목 추가"),
-                  placeholder: tStr("marketing.mediaMixOfflinePlaceholder", "예: 옥외광고 30%, 지하철 광고, 언론 10%"),
-                },
-              ]
-            ).map((group) => (
-              <div key={group.key}>
-                <div className="mb-1.5 flex items-center justify-between gap-3">
-                  <label className="block text-xs font-bold text-foreground">{group.label}</label>
-                  <button
-                    type="button"
-                    onClick={() => updateMediaMix({ [group.key]: [...group.items, ""] })}
-                    className={toggleClass(false)}
+          {/* [개정 2026-09-02] 온라인·오프라인 계획을 직접 쓰던 칸을 첨부파일로 바꿨다.
+              자유 서술로 받으면 "SNS 광고" 한 줄이 되기 일쑤였는데, 기획사는 이미
+              계획서를 만들어 두고 신청한다 — 그 파일을 그대로 받는 편이 심사에 쓸모가 있다.
+              업로드는 신청서 제출과 함께 일어난다(MARKETING_PLAN 분류). */}
+          <div>
+            {planFiles.length > 0 && (
+              <ul className="mb-2.5 space-y-2">
+                {planFiles.map((file, i) => (
+                  <li
+                    key={`${file.name}-${i}`}
+                    className="flex items-center justify-between gap-3 border border-border/25 bg-background px-3.5 py-2.5"
                   >
-                    {group.addLabel}
-                  </button>
-                </div>
-                <div className="space-y-2">
-                  {group.items.map((value, i) => (
-                    <div key={i} className="flex items-center gap-2">
-                      <input
-                        value={value}
-                        onChange={(e) =>
-                          updateMediaMix({
-                            [group.key]: group.items.map((v, j) => (j === i ? e.target.value : v)),
-                          })
-                        }
-                        placeholder={group.placeholder}
-                        className="field-base min-w-0 flex-1"
-                      />
-                      {/* 마지막 한 줄은 지우지 않고 비운다 — 행이 0개면 "＋ 항목 추가"를
-                          눌러야만 다시 쓸 수 있어 빈 화면처럼 보인다. */}
-                      <button
-                        type="button"
-                        aria-label={tStr("marketing.mediaMixRemoveItem", "항목 삭제")}
-                        onClick={() =>
-                          updateMediaMix({
-                            [group.key]:
-                              group.items.length > 1
-                                ? group.items.filter((_, j) => j !== i)
-                                : [""],
-                          })
-                        }
-                        className={ICON_BTN_SM}
-                      >
-                        ×
-                      </button>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            ))}
+                    <span className="min-w-0 truncate text-s font-bold">{file.name}</span>
+                    <button
+                      type="button"
+                      onClick={() => onPlanFilesChange(planFiles.filter((_, j) => j !== i))}
+                      className={`${toggleClass(false)} shrink-0`}
+                    >
+                      {t("marketing.planFileRemove", "삭제")}
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            )}
+            <input
+              type="file"
+              multiple
+              onChange={(e) => {
+                const picked = e.target.files ? Array.from(e.target.files) : [];
+                if (picked.length > 0) onPlanFilesChange([...planFiles, ...picked]);
+                e.target.value = "";
+              }}
+              className={FILE_INPUT}
+            />
+            <p className="mt-2 break-keep text-xs leading-5 text-muted">
+              {t(
+                "marketing.planFileHint",
+                "PDF · 이미지 · 문서, 파일당 최대 500MB. 신청서 제출 시 함께 업로드됩니다.",
+              )}
+            </p>
           </div>
         </div>
 

@@ -16,7 +16,13 @@ import {
   type PublicInterestItem,
 } from "@/lib/pricing/types";
 
-const VALID_CATEGORIES: AttachmentCategory[] = ["TICKET_OPEN", "FACILITY_MEETING"];
+// 신청자가 신청 단계에서 올릴 수 있는 분류. 티켓오픈·시설회의 자료는 승인 이후
+// 단계라 여기 목록과 별개로 각자의 화면에서 올린다.
+const VALID_CATEGORIES: AttachmentCategory[] = [
+  "TICKET_OPEN",
+  "FACILITY_MEETING",
+  "MARKETING_PLAN",
+];
 // 공공/공익 STEP 이 항목별로 올리는 자료(2026-08-27) — 라벨 표에 있는 키만 받는다.
 const VALID_PUBLIC_INTEREST_ITEMS = new Set(Object.keys(PUBLIC_INTEREST_ITEM_LABEL));
 
