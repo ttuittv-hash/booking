@@ -13,7 +13,6 @@ import { QueryTabs } from "@/components/ui/QueryTabs";
 import { VENUE_TABS, VENUE_TAB_PARAM } from "@/components/ui/nav-items";
 import {
   Band,
-  ComparisonTable,
   PageHead,
   Prose,
   SectionHead,
@@ -144,29 +143,13 @@ function RatePanel({ en, ko, c }: { en: string; ko: string; c: VenueRateContent 
             title="기본 대관 패키지"
             lead={c.rentalPeriod ? `대관 기간 ${c.rentalPeriod}` : undefined}
           />
+          {/*
+            Details 토글(셋업일·공연일 전용 사용료 · 시설 사용료 …)은 두지 않는다.
+            카드가 답해야 하는 것은 "이 패키지가 얼마인가" 하나이고, 내역은 견적서에서
+            본다. **데이터(`detailLabels`/`detailColumns`)는 지우지 않았다** — 요금 API
+            (`/api/rates`) · 대관 신청 위저드 · 어드민 요금 관리가 같은 값을 읽는다.
+          */}
           <RateCards rowLabels={c.rowLabels} columns={c.columns} />
-
-          {c.detailLabels.length > 0 && (
-            <details className="mt-10 border-t border-border pt-5">
-              <summary className="cursor-pointer text-s font-bold">Details</summary>
-              <div className="mt-10">
-                <ComparisonTable
-                  dense
-                  rowLabel="구분"
-                  labelWidth="12rem"
-                  columns={c.detailColumns.map((r) => ({
-                    key: r.key,
-                    title: r.name,
-                    align: "left" as const,
-                  }))}
-                  rows={c.detailLabels.map((label, i) => ({
-                    label,
-                    cells: c.detailColumns.map((col) => col.values[i] ?? ""),
-                  }))}
-                />
-              </div>
-            </details>
-          )}
         </div>
       </Band>
 
