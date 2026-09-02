@@ -139,11 +139,17 @@ export interface OverviewCard {
   value: string;
 }
 
+/*
+  [2026-09-02 디자인 개편] 상위 4개 포인트는 "공연장 형태 / 실내 아레나" 처럼
+  분류를 말하던 자리였는데, 라벨이 곧 설명이고 값이 수치인 형태로 바꿨다 —
+  첫 화면에서 규모를 숫자로 먼저 보여주기 위해서다. 라벨이 길어지는 대신
+  값은 짧은 수치 한 덩어리가 된다.
+*/
 export const ARENA_OVERVIEW: OverviewCard[] = [
-  { label: "공연장 형태", value: "실내 아레나" },
-  { label: "공연 가능 형태", value: "콘서트, 시상식, 팬미팅, 방송행사, 기업행사 등" },
-  { label: "좌석 운영", value: "공연 형태에 따라 가변 운영" },
-  { label: "무대 구성", value: "END 360 STAGE" },
+  { label: "무대·객석 구성에 따른 최대 수용 인원", value: "22,500" },
+  { label: "최대 49m × 79.9m 플로어", value: "3,553㎡" },
+  { label: "플로어 기준 테크니컬 그리드 높이", value: "35m" },
+  { label: "작업 높이까지 하강 가능한 마더트러스", value: "180t" },
 ];
 
 export const LIVE_HALL_OVERVIEW: OverviewCard[] = [
@@ -156,51 +162,128 @@ export const LIVE_HALL_OVERVIEW: OverviewCard[] = [
 export interface StageCapacity {
   /** 무대 배치 이름 */
   stage: string;
+  /** 카드 부제 — 이 구성이 어떤 공연에 맞는지 한 줄 */
+  desc: string;
   seated: string;
   standing: string;
-  floors: [string, string][];
+  /** 층별 내역. `[층, 좌석, 부연]` — 부연은 생략할 수 있다 */
+  floors: [string, string, string?][];
 }
 
+/*
+  [2026-09-02 디자인 개편] 층별 표(Details)를 카드에서 뺐다 — 층별 내역은 아래
+  FLOOR & SEATING 섹션이 한 축으로 모아 보여준다. 카드에는 배치 이름 · 한 줄 설명 ·
+  SEATED / STANDING 수치만 남는다.
+*/
 export const ARENA_CAPACITY: StageCapacity[] = [
   {
-    stage: "센터 스테이지",
-    seated: "15,000 ~ 17,000",
-    standing: "18,000 ~ 22,500",
+    stage: "CENTER STAGE",
+    desc: "360° 관람 구조를 활용한 최대 규모 구성",
+    seated: "15,000–17,000",
+    standing: "18,000–22,500",
+    floors: [],
+  },
+  {
+    stage: "END STAGE",
+    desc: "대형 콘서트와 투어링 프로덕션에 적합한 대표 구성",
+    seated: "10,000–13,000",
+    standing: "12,000–18,000",
+    floors: [],
+  },
+];
+
+/**
+ * 아레나 층별 구성 — FLOOR & SEATING 섹션.
+ * 배치별 카드에 접혀 있던 층별 표를 한 축으로 폈다. 배치가 달라도 층 자체의
+ * 물리 제원은 같으므로 배치마다 반복할 이유가 없다.
+ */
+export const ARENA_FLOOR_SEATING: FeatureItem[] = [
+  { title: "ARENA FLOOR", lines: ["49 × 79.9m", "최대 3,553㎡", "수납식 객석 1,848석"] },
+  { title: "2F FIXED SEATING", lines: ["2,950석", "휠체어석·보호자석 별도"] },
+  { title: "3F FIXED SEATING", lines: ["6,431석", "수납식 객석 156석 별도"] },
+  { title: "4F PREMIUM", lines: ["706석", "스카이박스 52실 포함"] },
+  { title: "5F FIXED SEATING", lines: ["3,038석", "상층 고정 객석"] },
+];
+
+/**
+ * 중형공연장 객석 — 아레나와 같은 카드 규격으로 맞춘다.
+ * 총계(CAPACITY)와 층별 고정석(FIXED SEATS)을 카드 두 장으로 나눈다.
+ * 2층·3층 합(1,524+12+446+28)이 정확히 2,010이라 총계와 내역이 맞아떨어진다.
+ */
+export const LIVE_HALL_CAPACITY: StageCapacity[] = [
+  {
+    stage: "CAPACITY",
+    desc: "공연 형태에 따라 가변 운영",
+    seated: "2,010석",
+    standing: "최대 3,060석",
+    floors: [],
+  },
+  {
+    stage: "FIXED SEATS",
+    desc: "층별 고정 객석 구성",
+    seated: "",
+    standing: "",
     floors: [
-      ["플로어", "1,075평 (수납식 객석 1,848석)"],
-      ["2층", "2,970석 (휠체어석 20석, 보호자석 20석 별도)"],
-      ["3층", "6,587석 (수납식 객석 156석 별도)"],
-      ["4층", "706석 (스카이박스 52개실 / 휠체어석 4석, 보호자석 4석 별도)"],
-      ["5층", "3,038석"],
+      ["2층", "1,524석", "장애인석 12석 별도"],
+      ["3층", "446석", "장애인석 28석 별도"],
+    ],
+  },
+];
+
+/* ---------------------------------------------------- 스펙 카드 묶음 ----- */
+
+/**
+ * 4칼럼 스펙 카드 — [라벨 / 큰 수치 / 설명] 세 줄.
+ * PRODUCTION & RIGGING · LOAD-IN & SUPPORT 처럼 "수치가 주인공인" 섹션에 쓴다.
+ * 카드 안이 목록인 ADDITIONAL FACILITIES 카드와는 다른 물건이다.
+ */
+export interface SpecCardFact {
+  label: string;
+  value: string;
+  desc: string;
+}
+
+export interface SpecCardGroupFact {
+  title: string;
+  cards: SpecCardFact[];
+}
+
+export const ARENA_SPEC_GROUPS: SpecCardGroupFact[] = [
+  {
+    title: "PRODUCTION & RIGGING",
+    cards: [
+      { label: "GRID IRON", value: "2,549㎡", desc: "테크니컬 그리드 아이언" },
+      { label: "MOTHER TRUSS", value: "5 SET · 180t", desc: "작업 높이까지 하강 가능한 마더트러스" },
+      { label: "SMART STAGE", value: "2 EA", desc: "전 방향 이동·회전 가능한 이동형 스테이지" },
+      { label: "CENTER LIFT", value: "4.8 × 4.8m", desc: "최대 운행 높이 약 4.6m" },
+      { label: "DELAY SPEAKER", value: "72 EA", desc: "대형 공연용 상설 딜레이 스피커" },
+      { label: "3D FLYING POWER", value: "8 SET", desc: "상부 연출 장비 운용 전기 인프라" },
     ],
   },
   {
-    stage: "엔드 스테이지",
-    seated: "10,000 ~ 13,000",
-    standing: "12,000 ~ 18,000",
-    floors: [
-      ["플로어", "1,075평 (수납식 객석 1,848석)"],
-      ["2층", "1,700~1,900석 (휠체어석 20석, 보호자석 20석 별도)"],
-      ["3층", "3,900~4,100석 (수납식 객석 156석 별도)"],
-      ["4층", "400~450석 (스카이박스 40개실)"],
-      ["5층", "1,100~1,800석"],
+    title: "LOAD-IN & SUPPORT",
+    cards: [
+      { label: "INDOOR LOADING AREA", value: "604㎡", desc: "대형 화물차량의 플로어 직접 진입" },
+      { label: "ARTIST / PRODUCTION", value: "30+ SPACES", desc: "대기실·연습실·프로덕션 오피스" },
+      { label: "MEDICAL ROOM", value: "MAX. 3", desc: "공연 규모에 따라 최대 3개소" },
+      { label: "SKYBOX", value: "52실", desc: "프라이빗 관람 및 호스피탈리티" },
     ],
   },
 ];
 
 /**
- * 중형공연장 객석 — 아레나와 같은 SEATED / STANDING 규격으로 맞춘다.
- * 원본은 "플로어 2010석 (2층 1524+12(장애인석) / 3층 446+28(장애인석))" 한 줄이었고,
- * 2층·3층 합(1,524+12+446+28)이 정확히 2,010이라 총계와 층별 내역으로 나눴다.
+ * 중형공연장 ADDITIONAL FACILITIES — 아레나 스펙 카드와 같은 디자인으로 맞췄다.
+ * **내용은 임시값이다**(디자인 확인용). 확정 제원이 나오면 운영자 콘텐츠 관리에서
+ * 갈아 끼우거나 이 상수를 고친다.
  */
-export const LIVE_HALL_CAPACITY: StageCapacity[] = [
+export const LIVE_HALL_SPEC_GROUPS: SpecCardGroupFact[] = [
   {
-    stage: "",
-    seated: "2,010석",
-    standing: "최대 3,060석",
-    floors: [
-      ["2층", "1,524석 (장애인석 12석 별도)"],
-      ["3층", "446석 (장애인석 28석 별도)"],
+    title: "ADDITIONAL FACILITIES",
+    cards: [
+      { label: "LOADING AREA", value: "TBD", desc: "임시 내용 — 확정 제원 반영 예정" },
+      { label: "DRESSING ROOM", value: "TBD", desc: "임시 내용 — 확정 제원 반영 예정" },
+      { label: "REHEARSAL ROOM", value: "TBD", desc: "임시 내용 — 확정 제원 반영 예정" },
+      { label: "LOUNGE", value: "TBD", desc: "임시 내용 — 확정 제원 반영 예정" },
     ],
   },
 ];

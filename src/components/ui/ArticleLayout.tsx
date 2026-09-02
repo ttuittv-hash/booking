@@ -164,7 +164,7 @@ function ClearIcon() {
 
 /** 검색 이동 버튼 — 샤프 코너 · 아웃라인, 최소 터치 40 */
 const STEP_BTN =
-  "flex h-10 w-10 items-center justify-center border border-border/25 text-foreground transition-colors hover:border-foreground disabled:cursor-not-allowed disabled:opacity-30";
+  "flex h-10 w-10 items-center justify-center border border-border text-foreground transition-colors hover:border-foreground disabled:cursor-not-allowed disabled:opacity-30";
 
 export function ArticleLayout({
   sections,
@@ -370,11 +370,11 @@ export function ArticleLayout({
           )}
 
           <p className="type-display text-xs tracking-[0.08em] text-muted">TABLE OF CONTENTS</p>
-          <ul className="mt-4 max-h-[50vh] overflow-y-auto border-t border-border/25 print:max-h-none print:overflow-visible">
+          <ul className="mt-4 max-h-[50vh] overflow-y-auto border-t border-border print:max-h-none print:overflow-visible">
             {sections.map((s) => {
               const hits = perSection[s.id] ?? 0;
               return (
-                <li key={s.id} className="border-b border-border/15">
+                <li key={s.id} className="border-b border-border">
                   <a
                     href={`#${s.id}`}
                     onClick={() => setActiveId(s.id)}

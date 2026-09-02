@@ -128,6 +128,19 @@ const BAND_VARS: Record<BandTone, React.CSSProperties> = {
  */
 export const INVERSE_SURFACE_VARS: React.CSSProperties = BAND_VARS.dark;
 
+/**
+ * `INVERSE_SURFACE_VARS` 의 반대 — **검정 밴드 안의 카드 한 장만** 다시 밝은 면으로
+ * 되돌린다. 검정 지면에서는 `--border`·`--foreground` 가 흰색으로 뒤집혀 있으므로,
+ * 이걸 걸지 않고 흰 카드를 그리면 흰 배경에 흰 글자·흰 보더가 나온다.
+ */
+export const PLAIN_SURFACE_VARS: React.CSSProperties = {
+  ["--background" as string]: "var(--n-white)",
+  ["--foreground" as string]: "var(--n-darkest)",
+  ["--muted" as string]: "var(--n-mid)",
+  ["--border" as string]: "var(--n-darkest)",
+  ["--border-soft" as string]: "var(--n-lighter)",
+};
+
 export function Band({
   tone = "light",
   children,
@@ -166,7 +179,7 @@ export function Band({
         위 패딩을 지워 간격을 하나로 만든다(globals.css 의 `[data-band]` 규칙).
       */
       data-band={tone === "light" || tone === "white" ? "plain" : tone}
-      className={`${BAND_TONE[tone]} ${pad} ${divide ? "border-t border-border/15" : ""} ${className}`}
+      className={`${BAND_TONE[tone]} ${pad} ${divide ? "border-t border-border" : ""} ${className}`}
     >
       <div className="container-site">{children}</div>
     </section>
@@ -479,7 +492,7 @@ export function ComparisonTable({
           ))}
         </colgroup>
         <thead>
-          <tr className="border-b border-border/25">
+          <tr className="border-b border-border">
             <th scope="col" className={`${cellPad} pr-4 align-bottom text-xs font-bold text-muted`}>
               {rowLabel}
             </th>
@@ -497,7 +510,7 @@ export function ComparisonTable({
                 <th
                   scope="colgroup"
                   colSpan={n + 1}
-                  className={`border-b border-border/25 pb-2 text-left text-xs font-bold text-muted ${
+                  className={`border-b border-border pb-2 text-left text-xs font-bold text-muted ${
                     gi === 0 ? "pt-5" : "pt-9"
                   }`}
                 >
@@ -506,7 +519,7 @@ export function ComparisonTable({
               </tr>
             )}
             {group.rows.map((r, ri) => (
-              <tr key={ri} className="border-b border-border/15">
+              <tr key={ri} className="border-b border-border">
                 <th
                   scope="row"
                   className={`${cellPad} pr-4 align-top text-s font-normal text-muted`}
@@ -608,7 +621,7 @@ export function Note({ children, className = "" }: { children: ReactNode; classN
     // p 가 아니라 div — 호출부가 Prose(div) 같은 블록을 자식으로 넘기는데,
     // p 안의 div 는 잘못된 중첩이라 브라우저가 파싱 중 재배치해 하이드레이션이
     // 통째로 깨진다(/rules 에서 React #418 로 실제 발생).
-    <div className={`border-t border-border/25 pt-3 text-xs leading-5 text-muted ${className}`}>
+    <div className={`border-t border-border pt-3 text-xs leading-5 text-muted ${className}`}>
       {children}
     </div>
   );
@@ -626,12 +639,12 @@ export function SpecTable({
 }) {
   const pad = dense ? "py-2.5" : "py-4";
   return (
-    <dl className={`border-t border-border/25 ${className}`}>
+    <dl className={`border-t border-border ${className}`}>
       {/* 같은 라벨이 반복되는 표가 있다(RATE INCLUDES 의 "공간" 두 행) — 인덱스를 키에 섞는다 */}
       {rows.map(([k, v], i) => (
         <div
           key={`${k}-${i}`}
-          className={`grid gap-1 border-b border-border/15 ${pad} sm:grid-cols-[minmax(0,12rem)_minmax(0,1fr)] sm:gap-6`}
+          className={`grid gap-1 border-b border-border ${pad} sm:grid-cols-[minmax(0,12rem)_minmax(0,1fr)] sm:gap-6`}
         >
           <dt className="text-s text-muted">{k}</dt>
           <dd className="whitespace-pre-wrap text-s font-bold">{v}</dd>
@@ -668,7 +681,7 @@ export function GroupedSpecTable({
       {groups.map((g, gi) => (
         <section key={`${g.title}-${gi}`}>
           <h4
-            className={`border-b border-border/25 pb-2 text-xs font-bold text-muted ${
+            className={`border-b border-border pb-2 text-xs font-bold text-muted ${
               gi === 0 ? "pt-4" : "pt-8"
             }`}
           >
@@ -678,7 +691,7 @@ export function GroupedSpecTable({
             {g.rows.map((r, i) => (
               <div
                 key={`${r.label}-${i}`}
-                className={`grid gap-1 border-b border-border/15 ${pad} sm:grid-cols-[minmax(0,12rem)_minmax(0,1fr)] sm:gap-6`}
+                className={`grid gap-1 border-b border-border ${pad} sm:grid-cols-[minmax(0,12rem)_minmax(0,1fr)] sm:gap-6`}
               >
                 <dt className="text-s text-muted">{r.label}</dt>
                 {/* 보조 문구(단위·조건)는 값 **옆에** 붙인다 — 아래 줄로 내리면 한 항목이
@@ -693,6 +706,59 @@ export function GroupedSpecTable({
         </section>
       ))}
     </div>
+  );
+}
+
+/* ------------------------------------------------------- 카드 / 스탯 ----- */
+
+/**
+ * 검정 머리(제목) + 흰 본문 카드. 아웃라인은 검정 실선이다.
+ * 12칼럼에서 6칼럼씩(2-up) 놓이며, 시설 제원의 수용인원 카드와 대관료의
+ * 포함 항목 카드가 같은 물건을 쓴다.
+ */
+export function TitledCard({
+  title,
+  children,
+  className = "",
+}: {
+  title: string;
+  children: ReactNode;
+  className?: string;
+}) {
+  return (
+    <article
+      className={`flex h-full min-w-0 flex-col border border-border bg-panel lg:col-span-6 ${className}`}
+    >
+      {title && (
+        <header className="bg-inverse-bg px-6 py-5 text-inverse-fg" style={INVERSE_SURFACE_VARS}>
+          <h4 className={`${headingFontClass(title)} break-keep text-h5-m sm:text-h5`}>{title}</h4>
+        </header>
+      )}
+      <div className="flex-1 p-6">{children}</div>
+    </article>
+  );
+}
+
+/**
+ * 4-up 스탯 카드 — 굵은 윗선 + 작은 라벨 + 큰 값(+ 부연 한 줄).
+ * 시설 제원의 상위 4개 포인트와 대관료의 기본 이용 기준이 같은 레이아웃을 쓴다.
+ * 12칼럼에서 3칼럼씩 떨어진다.
+ */
+export function StatCards({
+  items,
+}: {
+  items: { label: string; value: string; note?: string }[];
+}) {
+  return (
+    <ul className="grid gap-x-[var(--gutter)] gap-y-10 sm:grid-cols-2 lg:grid-cols-12">
+      {items.map((it, i) => (
+        <li key={`${it.label}-${i}`} className="border-t-2 border-border pt-5 lg:col-span-3">
+          <p className="text-xs font-bold text-muted">{it.label}</p>
+          <p className="type-kr-heading mt-3 break-keep text-h5-m sm:text-h5">{it.value}</p>
+          {it.note && <p className="mt-3 break-keep text-s text-muted">{it.note}</p>}
+        </li>
+      ))}
+    </ul>
   );
 }
 
@@ -731,7 +797,7 @@ export function RowList({
           {controls && <div className="flex shrink-0 flex-wrap gap-3">{controls}</div>}
         </div>
       )}
-      <ul className="border-t border-border/25">{children}</ul>
+      <ul className="border-t border-border">{children}</ul>
     </div>
   );
 }
@@ -772,7 +838,7 @@ export function Row({
     </div>
   );
   return (
-    <li className="border-b border-border/15">
+    <li className="border-b border-border">
       {href ? (
         <Link href={href} className="group block transition-colors hover:bg-foreground/[0.04]">
           {inner}
@@ -838,7 +904,7 @@ export function EmptyState({
 }) {
   // Figma 시스템에는 점선 보더가 없다 — 위아래 헤어라인 사이의 빈 블록으로 둔다.
   return (
-    <div className="border-y border-border/25 px-6 py-16 text-center">
+    <div className="border-y border-border px-6 py-16 text-center">
       <p className="type-kr-heading text-h6-m sm:text-h6">{title}</p>
       {desc && <p className="mx-auto mt-3 max-w-md break-keep text-s text-muted">{desc}</p>}
       {action && <div className="mt-8 flex justify-center">{action}</div>}
@@ -854,10 +920,10 @@ export function Badge({
   tone?: "neutral" | "accent" | "good" | "warn" | "danger" | "inverse";
 }) {
   const map = {
-    neutral: "border-border/30 text-muted",
+    neutral: "border-border text-muted",
     accent: "border-foreground bg-accent text-on-accent",
     good: "border-good/40 bg-good-soft text-good",
-    warn: "border-border/30 bg-warn-soft text-warn",
+    warn: "border-border bg-warn-soft text-warn",
     danger: "border-danger/40 bg-danger-soft text-danger",
     inverse: "border-inverse-fg/40 text-inverse-fg",
   } as const;
@@ -899,7 +965,8 @@ function isLatinHeading(text: ReactNode): boolean {
   return typeof text === "string" && /^[\x20-\x7E]+$/.test(text);
 }
 
-function headingFontClass(text: ReactNode): string {
+/** 영문 캡스면 Archivo, 국문이면 국문 헤딩 서체 — 카드 제목처럼 kit 밖에서도 쓴다 */
+export function headingFontClass(text: ReactNode): string {
   return isLatinHeading(text) ? "type-display" : "type-kr-heading";
 }
 
@@ -1071,14 +1138,14 @@ export function FeatureList({
 }) {
   return (
     <ul
-      className={`border-t border-border/25 ${
+      className={`border-t border-border ${
         columns === 2 ? "lg:grid lg:grid-cols-2 lg:gap-x-[var(--gutter)]" : ""
       }`}
     >
       {items.map((it, i) => (
         <li
           key={it.title}
-          className={`flex gap-6 border-b border-border/15 py-7 sm:gap-8 ${
+          className={`flex gap-6 border-b border-border py-7 sm:gap-8 ${
             columns === 2 && i === 1 ? "lg:border-t-0" : ""
           }`}
         >
@@ -1134,7 +1201,7 @@ export function ProcessSteps({ steps }: { steps: ProcessStep[] }) {
         const hasArrow = i % 4 !== 3 && i !== steps.length - 1;
         return (
           <li key={s.no} className="relative lg:col-span-3">
-            <div className="h-full border border-border/25 bg-panel p-6">
+            <div className="h-full border border-border bg-panel p-6">
               <span className="type-display block text-h6-m tabular-nums sm:text-h6">{s.no}</span>
               <h4 className="type-kr-heading mt-3 break-keep text-h6-m sm:text-h6">{s.title}</h4>
               <p className="mt-3 break-keep text-s text-muted">
@@ -1190,15 +1257,15 @@ export function DocumentList({
 }) {
   if (items.length === 0) {
     return (
-      <p className="border-t border-border/25 pt-7 text-s text-muted">{emptyNote}</p>
+      <p className="border-t border-border pt-7 text-s text-muted">{emptyNote}</p>
     );
   }
   return (
-    <ul className="border-t border-border/25">
+    <ul className="border-t border-border">
       {items.map((d) => (
         <li
           key={d.title}
-          className="flex flex-col gap-5 border-b border-border/15 py-7 lg:flex-row lg:items-start lg:justify-between lg:gap-12"
+          className="flex flex-col gap-5 border-b border-border py-7 lg:flex-row lg:items-start lg:justify-between lg:gap-12"
         >
           <div className="min-w-0">
             <h4 className="type-kr-heading break-keep text-h5-m sm:text-h5">{d.title}</h4>

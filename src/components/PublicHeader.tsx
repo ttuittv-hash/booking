@@ -119,8 +119,11 @@ function UtilMenu({
         <Caret />
       </button>
       {isOpen && (
+        /* 트리거 **바로 아래**, 가운데 정렬 — 중앙 카테고리 드롭다운과 같은 규격
+           (min-w-36 · p-4 · text-center). 우측 끝에 붙여 놓으면(right-0) 이 패널만
+           다른 드롭다운과 정렬 축도 폭도 달라 상단바에 기준이 두 개 생긴다. */
         <div
-          className="absolute right-0 top-full z-50 min-w-44 animate-[dropdown-in_0.14s_ease-out] bg-background p-4 shadow-md"
+          className="absolute left-1/2 top-full z-50 min-w-36 -translate-x-1/2 animate-[dropdown-in_0.14s_ease-out] bg-background p-4 text-center shadow-md"
           onMouseEnter={() => onOpen(id)}
         >
           <ul>
@@ -459,7 +462,7 @@ export function PublicHeader({
               ) : null}
             </ul>
 
-            <div className="mt-10 border-t border-border/20 pt-6">
+            <div className="mt-10 border-t border-border pt-6">
               <h2 className="text-s font-bold">{SUPPORT_MENU.label}</h2>
               <ul className="mt-3 space-y-2">
                 {visibleSupportPages.map((p) => (
@@ -478,7 +481,7 @@ export function PublicHeader({
               </ul>
             </div>
 
-            <div className="mt-8 border-t border-border/20 pt-6">
+            <div className="mt-8 border-t border-border pt-6">
               {currentUser ? (
                 <>
                   <h2 className="text-s font-bold">{currentUser.name} 님</h2>

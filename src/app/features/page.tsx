@@ -1,11 +1,10 @@
 import type { Metadata } from "next";
 import { getCurrentUser, requireAccess } from "@/lib/auth";
 import { getFeaturesContent } from "@/lib/db";
-import type { ReactNode } from "react";
 import type {
   CapacityBlock,
   FacilityGroup,
-  Pair,
+  SpecCard,
   VenueFacilityContent,
 } from "@/lib/content/pageContent";
 import { PublicHeader } from "@/components/PublicHeader";
@@ -18,10 +17,11 @@ import {
   ButtonLink,
   CTABand,
   FeatureList,
-  INVERSE_SURFACE_VARS,
+  PLAIN_SURFACE_VARS,
   PageHead,
   SectionHead,
-  SpecTable,
+  StatCards,
+  TitledCard,
 } from "@/components/ui/kit";
 
 export const metadata: Metadata = {
@@ -29,27 +29,8 @@ export const metadata: Metadata = {
 };
 
 /**
- * 개요 카드 — 제목은 eyebrow, 내용은 H5 (Notion 지정).
- *
- * **12칼럼 그리드 위에 3칼럼씩(4-up).** 항목이 4개라 한 줄에 딱 들어가고, 카드 경계가
- * 모두 컬럼 경계에 떨어진다. 항목 수가 3개면 4col 씩(3-up), 2개면 6col 씩(2-up) 이다.
- */
-function OverviewCards({ items }: { items: Pair[] }) {
-  return (
-    <ul className="grid gap-x-[var(--gutter)] gap-y-10 sm:grid-cols-2 lg:grid-cols-12">
-      {items.map((c, i) => (
-        <li key={`${c.label}-${i}`} className="border-t-2 border-border pt-5 lg:col-span-3">
-          <p className="text-xs font-bold text-muted">{c.label}</p>
-          <p className="type-kr-heading mt-3 break-keep text-h5-m sm:text-h5">{c.value}</p>
-        </li>
-      ))}
-    </ul>
-  );
-}
-
-/**
- * 자료로 넘기는 노랑 CTA. 아레나 탭은 STAGE & CAPACITY 바로 아래(수치를 보고
- * 더 깊이 보려는 지점), 중형공연장 탭은 페이지 끝에 둔다.
+ * 자료로 넘기는 노랑 CTA. 수치(개요 · 수용인원 · 층별 구성)를 다 보고 나서
+ * 더 깊이 들어가려는 지점 — FLOOR & SEATING 바로 아래에 둔다.
  */
 function DocumentsCta() {
   return (
@@ -66,66 +47,78 @@ function DocumentsCta() {
   );
 }
 
-/** 카드 껍데기 — 검정 머리(제목) + 흰 본문. 시설 소개의 카드는 모두 이 모양이다 */
-function Card({ title, children }: { title: string; children: ReactNode }) {
+/**
+ * 무대 배치별 수용인원 카드.
+ *
+ * [2026-09-02] 좌우 두 칼럼(SEATED | STANDING)으로 나눠 놓았더니 카드가 넓어질수록
+ * 두 수치가 멀어져 한눈에 비교되지 않았다. **한 칼럼으로 쌓고 수치를 H1 까지 키운다** —
+ * 카드가 말하는 것이 수치 하나뿐이라는 것이 분명해진다.
+ * 층별 표(Details)는 카드에서 뺐다. 층별 구성은 아래 FLOOR & SEATING 이 맡는다.
+ */
+function CapacityCard({ cap }: { cap: CapacityBlock }) {
+  // SEATED/STANDING 이 있으면 그 두 줄, 없으면 층별 내역이 그대로 카드의 줄이 된다
+  // (중형공연장 FIXED SEATS 카드).
+  const rows: { label: string; value: string; note?: string }[] =
+    cap.seated || cap.standing
+      ? [
+          ...(cap.seated ? [{ label: "SEATED", value: cap.seated }] : []),
+          ...(cap.standing ? [{ label: "STANDING", value: cap.standing }] : []),
+        ]
+      : cap.floors.map((f) => ({ label: f.label, value: f.value, note: f.note }));
+
   return (
-    <article className="flex h-full min-w-0 flex-col border border-border/25 bg-panel lg:col-span-6">
-      {title && (
-        <header
-          className="bg-inverse-bg px-6 py-5 text-inverse-fg"
-          style={INVERSE_SURFACE_VARS}
-        >
-          <h4 className="type-kr-heading break-keep text-h5-m sm:text-h5">{title}</h4>
-        </header>
+    <TitledCard title={cap.stage}>
+      {cap.desc && <p className="break-keep text-s text-muted">{cap.desc}</p>}
+      {rows.length > 0 && (
+        <dl className={`space-y-7 ${cap.desc ? "mt-7" : ""}`}>
+          {rows.map((r, i) => (
+            <div key={`${r.label}-${i}`}>
+              <dt className="text-xs font-bold text-muted">{r.label}</dt>
+              <dd className="type-display mt-2 break-keep text-h1-m normal-case tabular-nums sm:text-h1">
+                {r.value}
+              </dd>
+              {r.note && <p className="mt-2 break-keep text-s text-muted">{r.note}</p>}
+            </div>
+          ))}
+        </dl>
       )}
-      <div className="flex-1 p-6">{children}</div>
-    </article>
+    </TitledCard>
   );
 }
 
-/** 무대 배치별 수용인원 카드. 층별 표는 배치가 둘 이상일 때 Details 로 접는다 */
-function CapacityCard({ cap, collapsed }: { cap: CapacityBlock; collapsed: boolean }) {
-  const table =
-    cap.floors.length > 0 ? (
-      <SpecTable dense rows={cap.floors.map((f) => [f.label, f.value] as [string, string])} />
-    ) : null;
+/**
+ * 스펙 카드 4-up — 검정 지면 위 **흰 배경 · 검정 아웃라인** 박스.
+ * 한 장은 [라벨 / 큰 수치 / 설명] 세 줄이고, 12칼럼에서 3칼럼씩 떨어진다.
+ * 스냅은 4 → 2 → 1 이다.
+ */
+function SpecCardGrid({ cards }: { cards: SpecCard[] }) {
   return (
-    <Card title={cap.stage}>
-      {(cap.seated || cap.standing) && (
-        <dl className="flex flex-wrap gap-x-10 gap-y-4">
-          {cap.seated && (
-            <div>
-              <dt className="text-xs font-bold text-muted">SEATED</dt>
-              <dd className="type-display mt-1 text-h5-m tabular-nums sm:text-h5">{cap.seated}</dd>
-            </div>
-          )}
-          {cap.standing && (
-            <div>
-              <dt className="text-xs font-bold text-muted">STANDING</dt>
-              <dd className="type-display mt-1 text-h5-m tabular-nums sm:text-h5">
-                {cap.standing}
-              </dd>
-            </div>
-          )}
-        </dl>
-      )}
-      {table &&
-        (collapsed ? (
-          <details className="mt-6 border-t border-border/25 pt-4">
-            <summary className="cursor-pointer text-s font-bold">Details</summary>
-            <div className="mt-4">{table}</div>
-          </details>
-        ) : (
-          <div className="mt-6">{table}</div>
-        ))}
-    </Card>
+    <ul className="mt-10 grid gap-[var(--gutter)] sm:grid-cols-2 lg:grid-cols-12">
+      {cards.map((card, i) => (
+        <li key={`${card.label}-${i}`} className="lg:col-span-3">
+          {/* 검정 밴드 안이라 토큰을 밝은 면으로 되돌린다 — 안 그러면 흰 배경에 흰 글자다 */}
+          <article
+            className="flex h-full min-w-0 flex-col border border-border bg-background p-6 text-foreground"
+            style={PLAIN_SURFACE_VARS}
+          >
+            <p className="text-xs font-bold text-muted">{card.label}</p>
+            {/* `type-display` 은 대문자로 바꾼다 — 수치는 끈다. 단위는 대소문자로 뜻이
+                갈린다(180t 톤 ↔ 180T 테슬라, 4.8m 미터 ↔ 4.8M 메가). */}
+            <p className="type-display mt-3 break-keep text-h4-m normal-case tabular-nums sm:text-h4">
+              {card.value}
+            </p>
+            <p className="mt-3 break-keep text-s text-muted">{card.desc}</p>
+          </article>
+        </li>
+      ))}
+    </ul>
   );
 }
 
 /** 부대시설 카테고리 카드 — [시설명 → 부연] 목록 */
 function FacilityCard({ group }: { group: FacilityGroup }) {
   return (
-    <Card title={group.title}>
+    <TitledCard title={group.title}>
       <dl className="space-y-4">
         {group.items.map((it, i) => (
           <div key={`${it.label}-${i}`}>
@@ -139,65 +132,63 @@ function FacilityCard({ group }: { group: FacilityGroup }) {
           </div>
         ))}
       </dl>
-    </Card>
+    </TitledCard>
   );
 }
 
-function VenuePanel({
-  en,
-  ko,
-  c,
-  ctaAfter,
-}: {
-  en: string;
-  ko: string;
-  c: VenueFacilityContent;
-  /** CTA 밴드를 어디에 놓을지 — 수치 바로 뒤 또는 페이지 끝 */
-  ctaAfter: "capacity" | "end";
-}) {
+function VenuePanel({ en, ko, c }: { en: string; ko: string; c: VenueFacilityContent }) {
   return (
     <>
       <Band tone="light" size="lg">
         <PageHead en={en} ko={ko} />
         {c.overview.length > 0 && (
           <div className="mt-10">
-            <OverviewCards items={c.overview} />
+            <StatCards items={c.overview} />
           </div>
         )}
       </Band>
 
       {c.capacity.length > 0 && (
         <Band tone="white">
-          <SectionHead title="STAGE & CAPACITY" />
-          {/*
-            무대 배치마다 카드 한 장(6col × 2). 카드는 [검정 머리 + 흰 본문] —
-            부대시설 카드와 같은 언어다(Figma 2608 「additional facilities」).
-            배치가 둘 이상이면 층별 표를 Details 안에 접어 둔다 — 두 카드가 표까지 펼쳐져
-            있으면 정작 비교해야 하는 수용인원이 아래로 밀린다. 배치가 하나면 펼쳐 둔다.
-          */}
+          <SectionHead title="CAPACITY & CONFIGURATION" />
           <div className="grid-site mt-10">
             {c.capacity.map((cap, i) => (
-              <CapacityCard key={`${cap.stage}-${i}`} cap={cap} collapsed={c.capacity.length > 1} />
+              <CapacityCard key={`${cap.stage}-${i}`} cap={cap} />
             ))}
           </div>
         </Band>
       )}
 
-      {ctaAfter === "capacity" && <DocumentsCta />}
-
+      {/* 층별 구성 — 배치가 달라도 층의 물리 제원은 같으므로 한 축으로 모은다 */}
       {c.features.length > 0 && (
-        <Band tone="dark">
-          <SectionHead title="FEATURES" />
+        <Band tone="light">
+          <SectionHead title="FLOOR & SEATING" />
           <div className="mt-10">
             <FeatureList items={c.features} />
           </div>
         </Band>
       )}
 
+      <DocumentsCta />
+
+      {/*
+        스펙 카드 섹션들은 **밴드 하나** 안에 이어 놓는다. 밴드를 나누면 검정 지면이
+        같아도 아래 패딩 + 위 패딩이 더해져 두 섹션 사이만 유난히 벌어진다.
+      */}
+      {c.specGroups.length > 0 && (
+        <Band tone="dark">
+          {c.specGroups.map((g, i) => (
+            <section key={`${g.title}-${i}`} className={i > 0 ? "mt-16 sm:mt-20" : ""}>
+              <SectionHead title={g.title} />
+              <SpecCardGrid cards={g.cards} />
+            </section>
+          ))}
+        </Band>
+      )}
+
       {c.facilityGroups.length > 0 && (
         <Band tone="light">
           <SectionHead title="ADDITIONAL FACILITIES" />
-          {/* 카테고리 카드 6col × 2 — 20줄 넘는 표 하나로는 무엇이 어디 있는지 읽히지 않는다 */}
           <div className="grid-site mt-10">
             {c.facilityGroups.map((g, i) => (
               <FacilityCard key={`${g.title}-${i}`} group={g} />
@@ -205,8 +196,6 @@ function VenuePanel({
           </div>
         </Band>
       )}
-
-      {ctaAfter === "end" && <DocumentsCta />}
     </>
   );
 }
@@ -230,9 +219,9 @@ export default async function FeaturesPage() {
             label: t.label,
             panel:
               t.value === "arena" ? (
-                <VenuePanel en="ARENA" ko="아레나" c={content.arena} ctaAfter="capacity" />
+                <VenuePanel en="ARENA" ko="아레나" c={content.arena} />
               ) : (
-                <VenuePanel en="LIVE HALL" ko="중형공연장" c={content.liveHall} ctaAfter="end" />
+                <VenuePanel en="LIVE HALL" ko="중형공연장" c={content.liveHall} />
               ),
           }))}
         />

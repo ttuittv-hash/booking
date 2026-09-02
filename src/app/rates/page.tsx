@@ -1,157 +1,199 @@
 import type { Metadata } from "next";
 import { getCurrentUser, requireAccess } from "@/lib/auth";
 import { getRatesContent } from "@/lib/db";
-import type { ChargeBlock, VenueRateContent } from "@/lib/content/pageContent";
+import type {
+  ChargeBlock,
+  RateColumn,
+  RateIncludeGroup,
+  VenueRateContent,
+} from "@/lib/content/pageContent";
 import { PublicHeader } from "@/components/PublicHeader";
 import { SiteFooter } from "@/components/ui/SiteFooter";
 import { QueryTabs } from "@/components/ui/QueryTabs";
 import { VENUE_TABS, VENUE_TAB_PARAM } from "@/components/ui/nav-items";
 import {
   Band,
-  ComparisonTable,
-  GroupedSpecTable,
   PageHead,
-  SpecTable,
-  SplitSection,
-  type SpecGroup,
+  Prose,
+  SectionHead,
+  StatCards,
+  TitledCard,
 } from "@/components/ui/kit";
 
 export const metadata: Metadata = {
   title: "대관료",
 };
 
-/**
- * 라벨 열 폭 — `SpecTable`·`GroupedSpecTable` 의 라벨 열과 같은 값이다.
- * RATE · RATE INCLUDES · ADDITIONAL CHARGES 세 표의 값이 같은 세로선에서 시작한다.
- */
-const SPEC_LABEL_WIDTH = "12rem";
+/* ============================================================================
+   [2026-09-02 개편] 좌 3col 제목 | 우 9col 표 였던 `SplitSection` 구성을 버리고
+   **원칼럼**으로 폈다. 제목이 왼쪽에 서 있으면 표가 화면 폭의 3/4 로 좁아지는데,
+   추가 사용료처럼 열이 셋인 표는 그 폭에서 부연이 계속 접혔다.
+   카드(패키지 · 포함 항목 · 이용 기준)만 여러 칼럼이고, 나머지는 한 칼럼이다.
+   ========================================================================= */
 
 /**
- * ADDITIONAL CHARGES — 구분으로 묶는다. 열 배치는 RATE INCLUDES 와 같은
- * 라벨(12rem) + 값 이라, 두 표의 값 열이 같은 세로선에서 시작한다.
+ * 기본 대관 패키지 카드 — 흰 배경 · 검정 아웃라인. 12칼럼에서 3칼럼씩(4-up).
+ * 마지막 행(대관료)만 헤어라인 아래로 내려 큰 글씨로 둔다 — 카드가 답하는 질문이
+ * "얼마인가" 하나이기 때문이다. 시안의 "PACKAGE RATE" 머리말은 두지 않는다.
  */
-function chargeGroups(rows: ChargeBlock[]): SpecGroup[] {
+function RateCards({ rowLabels, columns }: { rowLabels: string[]; columns: RateColumn[] }) {
+  const priceIndex = rowLabels.length - 1;
+  return (
+    <ul className="mt-10 grid gap-[var(--gutter)] sm:grid-cols-2 lg:grid-cols-12">
+      {columns.map((col) => (
+        <li key={col.key} className="lg:col-span-3">
+          <article className="flex h-full min-w-0 flex-col border border-border bg-panel p-6">
+            <p className="type-display break-keep text-h4-m sm:text-h4">{col.name}</p>
+            {priceIndex > 0 && (
+              <dl className="mt-6 flex-1 space-y-4">
+                {rowLabels.slice(0, priceIndex).map((label, i) => (
+                  <div key={`${label}-${i}`}>
+                    <dt className="text-xs font-bold text-muted">{label}</dt>
+                    <dd className="mt-1 break-keep text-s">{col.values[i] ?? ""}</dd>
+                  </div>
+                ))}
+              </dl>
+            )}
+            <dl className={`border-t border-border pt-4 ${priceIndex > 0 ? "mt-6" : "mt-6 flex-1"}`}>
+              <dt className="text-xs font-bold text-muted">{rowLabels[priceIndex]}</dt>
+              <dd className="type-display mt-1 break-keep text-h5-m normal-case tabular-nums sm:text-h5">
+                {col.values[priceIndex] ?? ""}
+              </dd>
+            </dl>
+          </article>
+        </li>
+      ))}
+    </ul>
+  );
+}
+
+/**
+ * 포함 항목 카드 — 카드 안은 헤어라인으로 나뉜 [항목 / 설명] 표다.
+ * 두 열의 비율은 **1:1** 이라, 6칼럼 카드 안에서 각 열이 3칼럼 폭에 떨어진다.
+ * 시안의 영문 소제목(AUDIENCE FACILITIES · FLEXIBLE USE SPACES …)은 두지 않는다 —
+ * 카드 제목이 이미 그 묶음을 말하고 있어 한 카드에 제목이 두 겹으로 쌓였다.
+ */
+function IncludeCard({ group }: { group: RateIncludeGroup }) {
+  return (
+    <TitledCard title={group.title}>
+      <dl className="border-t border-border">
+        {group.rows.map((r, i) => (
+          <div
+            key={`${r.label}-${i}`}
+            className="grid gap-1 border-b border-border py-4 last:border-b-0 sm:grid-cols-2 sm:gap-6"
+          >
+            <dt className="break-keep text-s font-bold">{r.label}</dt>
+            <dd className="break-keep text-s text-muted">{r.value}</dd>
+          </div>
+        ))}
+      </dl>
+    </TitledCard>
+  );
+}
+
+/**
+ * 추가 사용료 — 구분으로 묶고, 한 행은 [항목 / 금액 / 조건] 세 열이다.
+ * 화면 4칼럼 기준 **1 : 1 : 2** — 조건 문장이 가장 길어 두 칸을 준다.
+ * 시안에 있던 묶음 번호(01 · 02 …)는 두지 않는다.
+ */
+function ChargeTable({ rows }: { rows: ChargeBlock[] }) {
   const order: string[] = [];
   rows.forEach((r) => {
     if (!order.includes(r.group)) order.push(r.group);
   });
-  return order.map((g) => ({
-    title: g,
-    rows: rows
-      .filter((r) => r.group === g)
-      .map((r) => ({ label: r.item, value: r.cost, note: r.note || undefined })),
-  }));
+  return (
+    <div className="mt-10">
+      {order.map((group, gi) => (
+        <section key={group}>
+          <h4
+            className={`border-b border-border pb-2 text-xs font-bold text-muted ${
+              gi === 0 ? "" : "pt-10"
+            }`}
+          >
+            {group}
+          </h4>
+          <dl>
+            {rows
+              .filter((r) => r.group === group)
+              .map((r, i) => (
+                <div
+                  key={`${r.item}-${i}`}
+                  className="grid gap-1 border-b border-border py-4 sm:grid-cols-4 sm:gap-6"
+                >
+                  <dt className="break-keep text-s font-bold">{r.item}</dt>
+                  <dd className="break-keep text-s tabular-nums">{r.cost}</dd>
+                  <dd className="break-keep text-s text-muted sm:col-span-2">{r.note}</dd>
+                </div>
+              ))}
+          </dl>
+        </section>
+      ))}
+    </div>
+  );
 }
 
 function RatePanel({ en, ko, c }: { en: string; ko: string; c: VenueRateContent }) {
-  // 값 열은 좌측 정렬로 둔다 — 같은 화면의 RATE INCLUDES·ADDITIONAL CHARGES 가
-  // 라벨 + 좌측 정렬 값이므로, 이 표만 우측 정렬이면 세로 기준선이 어긋난다.
-  const cols = c.columns.map((r) => ({ key: r.key, title: r.name, align: "left" as const }));
-
-  /*
-    [개정 2026-09-02] 셋업·공연 변경 대관료를 접었다 펴는 [Details] 토글을 없애고
-    본 표에 이어 붙인다. 전용사용료·옵션사용료를 숨겨야 할 이유가 없어졌고,
-    토글 뒤에 있으면 아무도 열지 않아 표가 반쪽으로 읽혔다.
-
-    열은 두 벌(columns · detailColumns)이 같은 요금제에서 만들어지지만, 운영자가
-    콘텐츠 관리에서 따로 고칠 수 있으므로 키로 맞춘다 — 순서만 믿으면 한쪽 열이
-    늘거나 줄었을 때 값이 엉뚱한 요금제 아래로 들어간다.
-  */
-  const rows = [
-    ...c.rowLabels.map((label, i) => ({
-      label,
-      cells: c.columns.map((col) => col.values[i] ?? ""),
-    })),
-    ...c.detailLabels.map((label, i) => ({
-      label,
-      cells: c.columns.map((col) => {
-        const detail = c.detailColumns.find((d) => d.key === col.key);
-        return detail?.values[i] ?? "";
-      }),
-    })),
-  ];
-
   return (
     <>
-      {/* 머리글만 있는 밴드를 따로 두면 두 밴드의 세로 패딩이 더해져 지나치게 벌어진다 */}
+      {/* 섹션 1 — 기본 대관 패키지 */}
       <Band tone="light" size="lg">
-        <PageHead en={en} ko={ko} />
-        {/*
-          표가 있는 섹션은 **모두** 제목을 옆(3col)에 세운다 — 이 화면의 세 표(RATE ·
-          RATE INCLUDES · ADDITIONAL CHARGES)가 같은 x 에서 시작해야 한다. 한 섹션만
-          제목을 위에 두면 그 표만 왼쪽으로 튀어나와 페이지에 축이 두 개 생긴다.
-        */}
-        <div className="mt-10">
-          <SplitSection title="RATE">
-            {/*
-              대관 기간은 열마다 같은 값이라 표 안에 행으로 넣으면 첫 열만 채워지고
-              나머지 열이 빈칸으로 남는다. 표 밖 한 줄로 내린다.
-            */}
-            <ComparisonTable
-              rowLabel="구분"
-              labelWidth={SPEC_LABEL_WIDTH}
-              columns={cols}
-              rows={rows}
-              footer={
-                c.rentalPeriod ? (
-                  <p className="break-keep text-s text-muted">
-                    <span className="font-bold text-foreground">대관 기간</span> {c.rentalPeriod}
-                  </p>
-                ) : undefined
-              }
-            />
-
-          </SplitSection>
+        <PageHead en={en} ko={ko} lead={<Prose text={c.intro} gap="mt-3" />} />
+        <div className="mt-14">
+          <SectionHead
+            title="기본 대관 패키지"
+            lead={c.rentalPeriod ? `대관 기간 ${c.rentalPeriod}` : undefined}
+          />
+          {/*
+            Details 토글(셋업일·공연일 전용 사용료 · 시설 사용료 …)은 두지 않는다.
+            카드가 답해야 하는 것은 "이 패키지가 얼마인가" 하나이고, 내역은 견적서에서
+            본다. **데이터(`detailLabels`/`detailColumns`)는 지우지 않았다** — 요금 API
+            (`/api/rates`) · 대관 신청 위저드 · 어드민 요금 관리가 같은 값을 읽는다.
+          */}
+          <RateCards rowLabels={c.rowLabels} columns={c.columns} />
         </div>
       </Band>
 
-      {(c.includes.length > 0 || c.limits.length > 0) && (
-        <Band tone="light">
-          {/*
-            기준 공연시간·이용시간은 항목별로 신청하는 옵션이 아니라 대관에 딸린
-            기본 조건이다. 옵션표와 같은 표로 그리면 신청 항목처럼 읽히므로
-            표를 쓰지 않고 제목 아래(좌측 칼럼) 문장으로 싣는다.
-          */}
-          <SplitSection
-            title="RATE INCLUDES"
-            aside={
-              c.limits.length > 0 ? (
-                <div className="space-y-2">
-                  {c.limits.map((p, i) => (
-                    <p key={`${p.label}-${i}`} className="break-keep text-s leading-7">
-                      <span className="font-bold">{p.label}</span>
-                      <span className="text-muted">: {p.value}</span>
-                    </p>
-                  ))}
-                </div>
-              ) : undefined
-            }
-          >
-            {c.includes.length > 0 && (
-              <SpecTable rows={c.includes.map((p) => [p.label, p.value] as [string, string])} />
-            )}
-          </SplitSection>
+      {/* 섹션 2 — 기본 대관료 포함 항목 */}
+      {c.includeGroups.length > 0 && (
+        <Band tone="white">
+          <SectionHead
+            title="기본 대관료 포함 항목"
+            lead={<Prose text={c.includesLead} gap="mt-3" />}
+          />
+          <div className="grid-site mt-10">
+            {c.includeGroups.map((g, i) => (
+              <IncludeCard key={`${g.title}-${i}`} group={g} />
+            ))}
+          </div>
         </Band>
       )}
 
-      <Band tone="white">
-        {(c.charges.length > 0 || c.notes.length > 0) && (
-          <SplitSection title="ADDITIONAL CHARGES">
-            {c.charges.length > 0 && <GroupedSpecTable groups={chargeGroups(c.charges)} />}
-            {/* ※ 안내는 표에 딸린 주석이므로 표와 같은 칼럼 아래에 붙인다 —
-                지면 전체 폭으로 빼면 어느 표의 주석인지 끊긴다 */}
-            {c.notes.length > 0 && (
-              <ul className="mt-8 space-y-2">
-                {c.notes.map((t, i) => (
-                  <li key={`${t}-${i}`} className="break-keep text-xs leading-5 text-muted">
-                    ※ {t}
-                  </li>
-                ))}
-              </ul>
-            )}
-          </SplitSection>
-        )}
-      </Band>
+      {/* 섹션 3 — 기본 이용 기준 */}
+      {c.limits.length > 0 && (
+        <Band tone="light">
+          <SectionHead title="기본 이용 기준" />
+          <div className="mt-10">
+            <StatCards items={c.limits} />
+          </div>
+        </Band>
+      )}
+
+      {/* 섹션 4 — 추가 사용료 */}
+      {(c.charges.length > 0 || c.notes.length > 0) && (
+        <Band tone="white">
+          <SectionHead title="추가 사용료" />
+          {c.charges.length > 0 && <ChargeTable rows={c.charges} />}
+          {c.notes.length > 0 && (
+            <ul className="mt-8 space-y-2">
+              {c.notes.map((t, i) => (
+                <li key={`${t}-${i}`} className="break-keep text-xs leading-5 text-muted">
+                  ※ {t}
+                </li>
+              ))}
+            </ul>
+          )}
+        </Band>
+      )}
     </>
   );
 }
