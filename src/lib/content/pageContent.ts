@@ -332,12 +332,17 @@ export const DEFAULT_REGISTER_INTRO: RegisterIntroTexts = {
   heading: "기업회원으로 가입합니다.",
   badge: "가입 가능",
   title: "기업회원",
-  subtitle: "사업자등록증이 있는 법인 · 개인사업자",
+  // [개정 2026-09-02] 한 기업에서 여러 담당자가 들어오는 구조(대표 담당자 → 구성원 추가)를
+  // 안내에 명시한다. 예전 문구는 회사의 첫 가입자 경로만 설명해, 이미 등록된 기업의
+  // 담당자가 자기도 가입할 수 있는지 알 수 없었다.
+  subtitle: "사업자등록증이 있는 법인 · 개인사업자 및 소속 임직원",
   bullets: [
-    "공연 기획사 · 제작사 · 대행사 등",
+    "공연 기획사 · 제작사 · 대행사 등 대관 업무 관련 기업의 담당자",
+    "기업에서 최초로 승인된 가입자가 대표 담당자로 지정됩니다.",
+    "대표 담당자는 소속 임직원을 구성원으로 추가할 수 있습니다.",
+    "이미 등록된 기업의 담당자는 개인 정보만 추가 입력하여 가입할 수 있습니다.",
+    "가입 신청 후 심사를 거쳐 승인 시 이용 가능",
     "대관 신청 · 계약 · 정산 전 과정 이용",
-    "기업 정보가 등록된 기업의 담당자는 개인 정보만 추가 입력하시면 됩니다",
-    "접수 후 심사를 거쳐 승인되면 이용할 수 있습니다",
   ],
   cta: "기업회원으로 가입하기",
   individualNote:
@@ -479,6 +484,10 @@ export interface ParsedRuleChapter {
 
 const RE_CHAPTER = /^제\s*\d+\s*장/;
 const RE_ARTICLE = /^제\s*\d+\s*조/;
+// [신규 2026-09-02] 부칙도 목차에 오른다. 장 번호가 없어 RE_CHAPTER 에 걸리지 않아
+// 본문에는 있는데 좌측 목차에서만 빠졌고, 시행일을 찾으려면 끝까지 스크롤해야 했다.
+// "부칙" 한 단어이거나 "부칙 (2026.9.1.)" 처럼 뒤에 날짜가 붙는 형태를 받는다.
+const RE_ADDENDUM = /^부\s*칙(\s|$|[(（])/;
 
 /** 규약 원문을 장·조로 파싱한다. 장·조로 시작하지 않는 줄은 직전 조의 항이 된다. */
 export function parseRules(body: string): ParsedRuleChapter[] {
@@ -489,7 +498,7 @@ export function parseRules(body: string): ParsedRuleChapter[] {
   for (const raw of body.split("\n")) {
     const line = raw.trim();
     if (!line) continue;
-    if (RE_CHAPTER.test(line)) {
+    if (RE_CHAPTER.test(line) || RE_ADDENDUM.test(line)) {
       chapter = { id: `chapter-${chapters.length + 1}`, title: line, articles: [] };
       chapters.push(chapter);
       article = null;

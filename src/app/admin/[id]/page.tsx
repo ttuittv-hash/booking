@@ -30,6 +30,7 @@ import {
   type DayTag,
   type MidHallDayRole,
   type QuoteSelection,
+  type QuoteStatus,
 } from "@/lib/pricing/types";
 import { SpecTable } from "@/components/ui/kit";
 import { AiReviewBox } from "@/components/admin/AiReviewBox";
@@ -48,6 +49,7 @@ import { TaxInvoicePanel } from "@/components/TaxInvoicePanel";
 import { TicketOpenPanel } from "@/components/TicketOpenPanel";
 import { FacilityMeetingPanel } from "@/components/FacilityMeetingPanel";
 import { SettlementMutualConfirm } from "@/components/SettlementMutualConfirm";
+import { QuoteDetailSheetButton } from "@/components/admin/QuoteDetailSheet";
 import {
   ERROR_NOTE,
   INFO_NOTE,
@@ -88,6 +90,12 @@ function formatDateShort(iso: string): string {
 }
 
 const DAY_TAG_LABEL: Record<DayTag, string> = { PREP: "셋업", PERFORMANCE: "공연", LOAD_OUT: "철수" };
+// 신청 내역 레이어에 찍는 상태 — 목록 화면(AdminQuoteTable)과 같은 말을 쓴다.
+const QUOTE_STATUS_LABEL: Record<QuoteStatus, string> = {
+  ESTIMATE: "예상견적 (심사 대기)",
+  CONTRACTED: "계약 확정 (정산 대기)",
+  SETTLED: "정산 완료",
+};
 const MID_HALL_ROLE_LABEL: Record<MidHallDayRole, string> = { SETUP: "셋업", PERFORMANCE: "공연", LOAD_OUT: "철수" };
 
 // 신청 상세에서 "언제 어떤 용도로 예약했는지" 날짜별로 풀어서 보여준다("공연정보 슬롯에서
@@ -282,6 +290,36 @@ export default async function AdminQuoteDetailPage({
             {" "}({applicant?.email ?? NONE}) · 회사{" "}
             <span className="font-bold text-foreground">{applicant?.companyName ?? NONE}</span>
           </p>
+
+          {/* [신규 2026-09-02] 심사하려면 신청서 전체를 한눈에 봐야 한다. 이 화면은
+              심사·계약·정산 패널이 함께 있어 신청 내용이 그 사이에 흩어져 있고, 책임자·
+              아티스트 이력·티켓 가격·공공 참여·마케팅 협조는 아예 보이지 않았다.
+              화면을 떠나지 않고 신청서만 통째로 펼쳐 보는 레이어를 연다(읽기 전용). */}
+          <div className="mt-5">
+            <QuoteDetailSheetButton
+              quote={quote}
+              meta={{
+                applicantName: applicant?.name ?? NONE,
+                applicantEmail: applicant?.email ?? NONE,
+                companyName: applicant?.companyName ?? NONE,
+                // 날짜·통화 포맷은 서버에서 문자열로 만들어 넘긴다 — 클라이언트에서
+                // toLocale* 를 부르면 서버 렌더 결과와 갈려 하이드레이션이 어긋난다.
+                createdAtLabel: new Date(quote.createdAt).toLocaleString("ko-KR"),
+                statusLabel: QUOTE_STATUS_LABEL[quote.status],
+                scheduleLines: [
+                  ...arenaDateGroups.map(
+                    ({ tag, dates }) =>
+                      `아레나 ${DAY_TAG_LABEL[tag]} ${dates.map(formatDateShort).join(", ")}`,
+                  ),
+                  ...midHallDateGroups.map(
+                    ({ role, dates }) =>
+                      `중형공연장 ${MID_HALL_ROLE_LABEL[role]} ${dates.map(formatDateShort).join(", ")}`,
+                  ),
+                ],
+                attachmentNames: attachments.map((a) => a.originalName),
+              }}
+            />
+          </div>
         </header>
 
         <section className={`mt-6 ${PANEL}`}>
