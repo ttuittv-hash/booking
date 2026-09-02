@@ -71,7 +71,6 @@ let masterUser = "m" + t;
 
 try {
   await page.goto(`${BASE}/register`, { waitUntil: "domcontentloaded" });
-  await page.click('[data-testid="pick-corporate"]');
   await page.check('[data-testid="agree-SERVICE"]');
   await page.check('[data-testid="agree-PRIVACY_REQUIRED"]');
   await page.click('[data-testid="terms-next"]');
@@ -199,7 +198,6 @@ try {
   const inviteeCtx = await newCtx();
   const invitee = await inviteeCtx.newPage();
   await invitee.goto(inviteUrl, { waitUntil: "domcontentloaded" });
-  await invitee.click('[data-testid="pick-corporate"]');
   await invitee.check('[data-testid="agree-SERVICE"]');
   await invitee.check('[data-testid="agree-PRIVACY_REQUIRED"]');
   await invitee.click('[data-testid="terms-next"]');
