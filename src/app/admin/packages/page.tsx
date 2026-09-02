@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/lib/auth";
-import { getCurrentRateTable, getRatesContent } from "@/lib/db";
+import { getCurrentRateTable, getRatesContent, getScreenTextContent } from "@/lib/db";
 import { AdminNav } from "@/components/admin/AdminNav";
 import { PackagesForm } from "@/components/admin/PackagesForm";
 import { PAGE_LEAD, PAGE_TITLE } from "@/components/admin/adminUi";
@@ -10,7 +10,12 @@ export default async function AdminPackagesPage() {
   if (!user) redirect("/admin/login");
   if (user.role !== "ADMIN") redirect("/apply");
 
-  const [rateTable, ratesContent] = await Promise.all([getCurrentRateTable(), getRatesContent()]);
+  const [rateTable, ratesContent, screenText] = await Promise.all([
+    getCurrentRateTable(),
+    getRatesContent(),
+    // 공간 탭 이름은 운영자가 문구 관리에서 바꾼 값을 쓴다 — 위저드와 같은 말이어야 한다.
+    getScreenTextContent(),
+  ]);
 
   return (
     <div className="flex flex-1 flex-col">
@@ -26,7 +31,11 @@ export default async function AdminPackagesPage() {
           </p>
         </header>
 
-        <PackagesForm rateTable={rateTable} ratesContent={ratesContent} />
+        <PackagesForm
+          rateTable={rateTable}
+          ratesContent={ratesContent}
+          wizardStrings={screenText.wizardStrings}
+        />
       </main>
     </div>
   );
