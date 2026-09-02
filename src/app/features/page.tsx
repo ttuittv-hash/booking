@@ -102,11 +102,15 @@ function SpecCardGrid({ cards }: { cards: SpecCard[] }) {
             className="flex h-full min-w-0 flex-col border border-border bg-background p-6 text-foreground"
             style={PLAIN_SURFACE_VARS}
           >
-            <p className="text-xs font-bold text-muted">{card.label}</p>
+            {/* 라벨은 있을 때만 그린다 — 빈 문자열이면 줄과 여백까지 함께 빠진다
+                (부대시설 카드는 라벨 없이 시설명부터 시작한다) */}
+            {card.label && <p className="text-xs font-bold text-muted">{card.label}</p>}
             {/* 수치면 Archivo(대문자 변환은 끈다 — 180t 톤 ↔ 180T 테슬라), 시설명처럼
                 한글이 섞이면 국문 헤딩 서체. Archivo 에는 한글 글립이 없다. */}
             <p
-              className={`${valueHeadingClass(card.value)} mt-3 break-keep text-h4-m tabular-nums sm:text-h4`}
+              className={`${valueHeadingClass(card.value)} break-keep text-h4-m tabular-nums sm:text-h4 ${
+                card.label ? "mt-3" : ""
+              }`}
             >
               {card.value}
             </p>
@@ -156,12 +160,13 @@ function FloorList({ items }: { items: FeatureBlock[] }) {
  *
  * 카테고리 한 장에 시설 목록을 담아 두었더니 카드마다 줄 수가 제각각이라 격자가
  * 무너졌고, 정작 읽어야 하는 시설 이름이 목록 속 한 줄로 작아졌다.
- * 카드는 [카테고리(라벨) / 시설명 / 부연] 으로, 위 스펙 카드와 같은 규격이다.
+ * 카드는 [시설명 / 부연] 이고, 위 스펙 카드와 같은 규격이다.
+ *
+ * 카테고리 이름(「부대시설」)은 카드에 넣지 않는다 — 섹션 제목이 이미
+ * ADDITIONAL FACILITIES 라, 카드마다 같은 말을 한 번 더 얹는 꼴이었다.
  */
 function facilityCards(groups: FacilityGroup[]): SpecCard[] {
-  return groups.flatMap((g) =>
-    g.items.map((it) => ({ label: g.title, value: it.label, desc: it.value })),
-  );
+  return groups.flatMap((g) => g.items.map((it) => ({ label: "", value: it.label, desc: it.value })));
 }
 
 function VenuePanel({ en, ko, c }: { en: string; ko: string; c: VenueFacilityContent }) {
