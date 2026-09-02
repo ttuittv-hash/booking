@@ -84,6 +84,10 @@ export async function GET(request: Request) {
   );
 
   const occupancy: Record<string, { arena: number; mediumHall: number }> = {};
+  // [신규 2026-09-02] 확정 건수를 따로 센다 — 어드민 일정 관리와 같은 말로 보여 주기
+  // 위해서다. 예전에는 총 건수만 내려줘, 같은 주가 어드민에서는 "대관사 확정"인데
+  // 공지 캘린더에서는 "1건"으로만 나와 두 화면이 서로 다른 사실을 말했다.
+  const confirmed: Record<string, { arena: number; mediumHall: number }> = {};
   const demandCompanies: Record<string, { arena: Set<string>; mediumHall: Set<string> }> = {};
   const approved: Record<string, { arena: boolean; mediumHall: boolean }> = {};
   for (const quote of quotes) {
@@ -94,13 +98,18 @@ export async function GET(request: Request) {
       const bucket = (occupancy[entry.date] ??= { arena: 0, mediumHall: 0 });
       const demandBucket = (demandCompanies[entry.date] ??= { arena: new Set(), mediumHall: new Set() });
       const approvedBucket = (approved[entry.date] ??= { arena: false, mediumHall: false });
+      const confirmedBucket = (confirmed[entry.date] ??= { arena: 0, mediumHall: 0 });
+      // 승인·계약·정산은 이미 그 날짜를 내준 것이다 — 나머지는 아직 심사 중이다.
+      const isSettled = isApproved || quote.status === "CONTRACTED" || quote.status === "SETTLED";
       if (entry.venueId === "arena") {
         bucket.arena += 1;
         demandBucket.arena.add(companyKey);
+        if (isSettled) confirmedBucket.arena += 1;
         if (isApproved) approvedBucket.arena = true;
       } else {
         bucket.mediumHall += 1;
         demandBucket.mediumHall.add(companyKey);
+        if (isSettled) confirmedBucket.mediumHall += 1;
         if (isApproved) approvedBucket.mediumHall = true;
       }
     }
@@ -108,11 +117,16 @@ export async function GET(request: Request) {
 
   // 회사명 자체는 절대 내려주지 않는다 — 몇 개 회사가 겹쳤는지 개수와, 대관사가
   // 확정됐는지(승인된 신청이 있는지) 여부만 넘긴다.
-  type Status = "CONFIRMED" | "COMPETING" | null;
+  type Status = "CONFIRMED" | "COMPETING" | "REVIEWING" | null;
   const demand: Record<string, { arena: number; mediumHall: number }> = {};
   const status: Record<string, { arena: Status; mediumHall: Status }> = {};
+  /*
+    [개정 2026-09-02] 한 회사만 신청한 날은 아무 말도 하지 않아, 어드민에서 "심사 중"인
+    날이 여기서는 그냥 "1건"으로 보였다. 겨루는 중인지(2개사 이상)와 심사 중인지를
+    나눠 말한다 — 두 화면이 같은 사실을 같은 말로 해야 한다.
+  */
   const statusOf = (isApproved: boolean, companyCount: number): Status =>
-    isApproved ? "CONFIRMED" : companyCount > 1 ? "COMPETING" : null;
+    isApproved ? "CONFIRMED" : companyCount > 1 ? "COMPETING" : companyCount > 0 ? "REVIEWING" : null;
   for (const [date, sets] of Object.entries(demandCompanies)) {
     demand[date] = { arena: sets.arena.size, mediumHall: sets.mediumHall.size };
     const approvedBucket = approved[date] ?? { arena: false, mediumHall: false };
@@ -122,5 +136,5 @@ export async function GET(request: Request) {
     };
   }
 
-  return NextResponse.json({ blocks, occupancy, demand, status });
+  return NextResponse.json({ blocks, occupancy, confirmed, demand, status });
 }

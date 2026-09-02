@@ -29,7 +29,7 @@ function buildCalendarWeeks(year: number, month: number): Date[][] {
 }
 
 type VenueTab = "arena" | "medium-hall";
-type DateStatus = "CONFIRMED" | "COMPETING" | null;
+type DateStatus = "CONFIRMED" | "COMPETING" | "REVIEWING" | null;
 
 // 공지사항 "캘린더 보기" 아이콘에서 여는 레이어 — /admin/schedule(ScheduleManager)와
 // 같은 날짜 그리드를 쓰지만 회사명·quoteId 등은 절대 보여주지 않는, 읽기 전용
@@ -64,6 +64,8 @@ function CalendarBody({ initialMonth, startMonth, endMonth }: CalendarMonthRange
   const [venueTab, setVenueTab] = useState<VenueTab>("arena");
   const [blocks, setBlocks] = useState<DateBlock[]>([]);
   const [occupancy, setOccupancy] = useState<Record<string, { arena: number; mediumHall: number }>>({});
+  // 확정 건수 — 어드민 일정 관리와 같은 [확정 n][심사 n] 표기를 쓰기 위해 따로 받는다.
+  const [confirmed, setConfirmed] = useState<Record<string, { arena: number; mediumHall: number }>>({});
   const [demand, setDemand] = useState<Record<string, { arena: number; mediumHall: number }>>({});
   const [status, setStatus] = useState<Record<string, { arena: DateStatus; mediumHall: DateStatus }>>({});
   const [loading, setLoading] = useState(true);
@@ -76,12 +78,14 @@ function CalendarBody({ initialMonth, startMonth, endMonth }: CalendarMonthRange
       .then((data) => {
         setBlocks(data.blocks ?? []);
         setOccupancy(data.occupancy ?? {});
+        setConfirmed(data.confirmed ?? {});
         setDemand(data.demand ?? {});
         setStatus(data.status ?? {});
       })
       .catch(() => {
         setBlocks([]);
         setOccupancy({});
+        setConfirmed({});
         setDemand({});
         setStatus({});
       })
@@ -168,19 +172,18 @@ function CalendarBody({ initialMonth, startMonth, endMonth }: CalendarMonthRange
         ))}
       </div>
 
+      {/* [개정 2026-09-02] 어드민 일정 관리와 같은 세 마디를 쓴다 — 같은 날을 두고
+          한쪽은 "대관사 확정", 한쪽은 "1건" 이라고 말하면 어느 쪽이 맞는지 알 수 없다. */}
       <div className="mt-3 flex flex-wrap items-center gap-4 text-xs text-muted">
-        <span className="flex items-center gap-1.5">
-          <span className={["h-2 w-2 rounded-full", venueTab === "arena" ? "bg-accent" : "bg-good"].join(" ")} />
-          {venueTab === "arena" ? "아레나 예약 있음" : "중형 예약 있음"}
-        </span>
-        <span className="flex items-center gap-1.5">
-          <span className="h-2 w-2 rounded-full bg-danger" /> 대관 불가 일정
-        </span>
         <span className="flex items-center gap-1.5">
           <span className="h-2 w-2 rounded-full bg-foreground" /> 대관사 확정
         </span>
         <span className="flex items-center gap-1.5">
-          <span className="h-2 w-2 rounded-full bg-warn" /> 검토 중
+          <span className={["h-2 w-2 rounded-full", venueTab === "arena" ? "bg-accent" : "bg-good"].join(" ")} />
+          심사 중
+        </span>
+        <span className="flex items-center gap-1.5">
+          <span className="h-2 w-2 rounded-full bg-danger" /> 대관 불가 일정
         </span>
       </div>
 
@@ -205,6 +208,12 @@ function CalendarBody({ initialMonth, startMonth, endMonth }: CalendarMonthRange
                     ? (occupancy[dateStr]?.arena ?? 0)
                     : (occupancy[dateStr]?.mediumHall ?? 0)
                   : 0;
+                const confirmedCount = inMonth
+                  ? venueTab === "arena"
+                    ? (confirmed[dateStr]?.arena ?? 0)
+                    : (confirmed[dateStr]?.mediumHall ?? 0)
+                  : 0;
+                const reviewingCount = Math.max(0, count - confirmedCount);
                 const companyCount = inMonth
                   ? venueTab === "arena"
                     ? (demand[dateStr]?.arena ?? 0)
@@ -228,14 +237,26 @@ function CalendarBody({ initialMonth, startMonth, endMonth }: CalendarMonthRange
                     ].join(" ")}
                   >
                     <span className={isBlocked ? "line-through" : ""}>{date.getDate()}</span>
+                    {/* 어드민 일정 관리와 같은 표기 — [확정 n][심사 n] */}
                     {inMonth && count > 0 && (
-                      <span
-                        className={[
-                          "px-1 text-xs font-bold",
-                          venueTab === "arena" ? "bg-accent-soft text-foreground" : "bg-good-soft text-good",
-                        ].join(" ")}
-                      >
-                        {count}건
+                      <span className="flex items-center gap-0.5">
+                        {confirmedCount > 0 && (
+                          <span className="bg-foreground px-1 text-xs font-bold text-background">
+                            확정 {confirmedCount}
+                          </span>
+                        )}
+                        {reviewingCount > 0 && (
+                          <span
+                            className={[
+                              "px-1 text-xs font-bold",
+                              venueTab === "arena"
+                                ? "bg-accent-soft text-foreground"
+                                : "bg-good-soft text-good",
+                            ].join(" ")}
+                          >
+                            심사 {reviewingCount}
+                          </span>
+                        )}
                       </span>
                     )}
                     {inMonth && dateStatus === "CONFIRMED" && (
@@ -245,7 +266,12 @@ function CalendarBody({ initialMonth, startMonth, endMonth }: CalendarMonthRange
                     )}
                     {inMonth && dateStatus === "COMPETING" && (
                       <span className="text-center text-xs leading-tight font-bold text-warn">
-                        검토 중 · {companyCount}개사
+                        심사 중 · {companyCount}개사
+                      </span>
+                    )}
+                    {inMonth && dateStatus === "REVIEWING" && (
+                      <span className="text-center text-xs leading-tight font-bold text-warn">
+                        심사 중
                       </span>
                     )}
                   </div>

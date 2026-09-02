@@ -168,13 +168,23 @@ function AttachmentRow({ quoteId, file }: { quoteId: string; file: Attachment })
 
 export default async function AdminQuoteApplicationPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ id: string }>;
+  /**
+   * `?embed=1` — 레이어(모달) 안에서 열릴 때. 상단바·되돌아가기 링크를 빼고 본문만 낸다.
+   *
+   * 같은 내용을 두 벌로 만들지 않기 위해 레이어는 이 화면을 그대로 띄운다(2026-09-02).
+   * 심사 화면에서 곁눈질로 확인할 때는 레이어가 빠르고, 첨부를 새 탭으로 열거나 주소를
+   * 담당자끼리 주고받을 때는 페이지가 낫다 — 어느 쪽을 쓸지는 운영자가 고른다.
+   */
+  searchParams?: Promise<{ embed?: string }>;
 }) {
   const admin = await getCurrentUser();
   if (!admin) redirect("/admin/login");
   if (admin.role !== "ADMIN") redirect("/apply");
 
+  const embed = ((await searchParams) ?? {}).embed === "1";
   const { id } = await params;
   const quote = await getQuoteById(id);
   if (!quote) notFound();
@@ -209,14 +219,24 @@ export default async function AdminQuoteApplicationPage({
 
   return (
     <div className="flex flex-1 flex-col">
-      <AdminNav active="/admin" user={admin} />
+      {!embed && <AdminNav active="/admin" user={admin} />}
 
-      <main className="mx-auto w-full max-w-4xl flex-1 px-6 py-8 sm:py-10">
-        <Link href={`/admin/${quote.id}`} className={LINK_BTN}>
-          ← 신청서 상세
-        </Link>
+      <main
+        className={
+          embed
+            ? "mx-auto w-full max-w-4xl flex-1 px-1 pb-6"
+            : "mx-auto w-full max-w-4xl flex-1 px-6 py-8 sm:py-10"
+        }
+      >
+        {!embed && (
+          <Link href={`/admin/${quote.id}`} className={LINK_BTN}>
+            ← 신청서 상세
+          </Link>
+        )}
 
-        <header className="mt-5 flex flex-wrap items-start justify-between gap-4 border-b border-border/20 pb-6">
+        <header
+          className={`flex flex-wrap items-start justify-between gap-4 border-b border-border/20 pb-6 ${embed ? "" : "mt-5"}`}
+        >
           <div className="min-w-0">
             <h1 className={PAGE_TITLE}>신청 내역</h1>
             <p className="mt-2 break-keep text-s text-muted">

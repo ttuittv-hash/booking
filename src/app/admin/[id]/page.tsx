@@ -33,6 +33,7 @@ import {
 } from "@/lib/pricing/types";
 import { SpecTable } from "@/components/ui/kit";
 import { AiReviewBox } from "@/components/admin/AiReviewBox";
+import { ApplicationViewToggle } from "@/components/admin/ApplicationViewToggle";
 import { ContractForm } from "@/components/admin/ContractForm";
 import { ReviewForm } from "@/components/admin/ReviewForm";
 import { ScoringPanel } from "@/components/admin/ScoringPanel";
@@ -288,13 +289,11 @@ export default async function AdminQuoteDetailPage({
               아티스트 이력·티켓 가격·공공 참여·마케팅 협조는 아예 보이지 않았다.
               신청서만 통째로 읽는 별도 상세 페이지로 보낸다 — 팝업이면 첨부를 새 탭으로
               열 때 레이어가 닫히고, 주소를 담당자끼리 주고받을 수도 없다. */}
+          {/* [개정 2026-09-02] 페이지와 레이어 중에 고른다 — 고른 방식은 다음에도 쓴다.
+              곁눈질로 확인할 때는 레이어가 빠르고, 첨부를 새 탭으로 열거나 주소를
+              주고받을 때는 페이지가 낫다. */}
           <div className="mt-5">
-            <Link
-              href={`/admin/${quote.id}/application`}
-              className="inline-flex items-center rounded-full border border-foreground bg-foreground px-5 py-2 text-xs font-bold text-background transition-colors hover:bg-transparent hover:text-foreground"
-            >
-              신청 내역 보기
-            </Link>
+            <ApplicationViewToggle quoteId={quote.id} />
           </div>
         </header>
 
