@@ -441,7 +441,12 @@ export function StepConfigOptions({
   const midHallOnly = selection.venueId === MID_HALL_VENUE_ID && selection.bookingMode === "SINGLE";
   const isSimultaneous = selection.bookingMode === "SIMULTANEOUS";
   const pkg = findPackage(rateTable, selection.packageId);
-  const venuePackages = packagesForVenue(rateTable, "arena");
+  // 패키지 공간을 단독으로 고르면 그 공간의 패키지를 보여 준다 — 아레나와 같은
+  // 패키지 모델이라 공간 id 만 갈아 끼우면 같은 화면이 선다.
+  const venuePackages = packagesForVenue(
+    rateTable,
+    selection.venueId === SPECIAL_VENUE_ID && !isSimultaneous ? SPECIAL_VENUE_ID : "arena",
+  );
   const [venueTab, setVenueTab] = useState<string>("arena");
 
   if (midHallOnly) {
