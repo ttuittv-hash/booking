@@ -36,6 +36,7 @@ function AboutPanel({ c }: { c: SeoulArenaContent }) {
           en="ABOUT SEOUL ARENA"
           ko="시설 개요"
           lead={<Prose text={c.aboutLead} />}
+          wideLead
         />
       </Band>
 
@@ -69,6 +70,7 @@ function WhyPanel({ c }: { c: SeoulArenaContent }) {
           en="WHY SEOUL ARENA"
           ko="시설 특징"
           lead={<Prose text={c.whyLead} />}
+          wideLead
         />
       </Band>
 

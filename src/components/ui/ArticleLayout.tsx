@@ -284,7 +284,10 @@ export function ArticleLayout({
     <div className="grid-site">
       {/* 검색 + 목차 */}
       <nav aria-label="목차" className="lg:col-span-3">
-        <div className="lg:sticky lg:top-[calc(var(--header-h)+2.5rem)]">
+        {/* [수정 2026-09-02] 목차 자체에 max-h-[50vh] 를 걸어 두어, 장이 열댓 개인 규약에서
+            화면이 남아도는데도 좁은 상자 안에서만 스크롤됐다. 스티키 기둥 전체를 화면
+            높이에 맞추고(검색 + 목차가 한 덩어리로 스크롤) 목차의 자체 상한은 없앤다. */}
+        <div className="lg:sticky lg:top-[calc(var(--header-h)+2.5rem)] lg:max-h-[calc(100vh-var(--header-h)-4rem)] lg:overflow-y-auto lg:pr-1">
           {searchLabel !== undefined && (
             <div className="mb-6 print:hidden">
               <label htmlFor="article-search" className="text-xs font-bold text-muted">
@@ -383,7 +386,7 @@ export function ArticleLayout({
           )}
 
           <p className="type-display text-xs tracking-[0.08em] text-muted">TABLE OF CONTENTS</p>
-          <ul className="mt-4 max-h-[50vh] overflow-y-auto border-t border-border print:max-h-none print:overflow-visible">
+          <ul className="mt-4 border-t border-border">
             {sections.map((s) => {
               const hits = perSection[s.id] ?? 0;
               return (

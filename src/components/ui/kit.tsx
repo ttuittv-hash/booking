@@ -1018,6 +1018,7 @@ export function PageHead({
   lead,
   actions,
   as: As = "h1",
+  wideLead = false,
 }: {
   /** H1 — 영문 슬로건 (ABOUT SEOUL ARENA · ARENA RATES …) */
   en: string;
@@ -1026,6 +1027,12 @@ export function PageHead({
   lead?: ReactNode;
   actions?: ReactNode;
   as?: "h1" | "h2";
+  /**
+   * 리드의 한 줄 길이 상한(`measure`)을 푼다 (2026-09-02).
+   * 읽기 편한 줄 길이는 산문의 기본이지만, 시설 개요처럼 운영자가 쓴 소개 문단은
+   * 상한 때문에 지면이 남는데도 줄이 일찍 꺾여 답답해 보인다는 요청이 있었다.
+   */
+  wideLead?: boolean;
 }) {
   return (
     <div className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
@@ -1034,7 +1041,13 @@ export function PageHead({
         {ko && (
           <h3 className="type-kr-heading mt-4 text-h3-m sm:text-h3">{ko}</h3>
         )}
-        {lead && <div className="measure mt-4 break-keep text-m text-muted">{lead}</div>}
+        {lead && (
+          <div
+            className={`mt-4 break-keep text-m text-muted ${wideLead ? "" : "measure"}`}
+          >
+            {lead}
+          </div>
+        )}
       </div>
       {actions && <div className="flex shrink-0 flex-wrap gap-3">{actions}</div>}
     </div>
