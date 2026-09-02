@@ -324,10 +324,13 @@ input[type="number"]::-webkit-inner-spin-button {
 }
 
 /*
-  상단바 배경 — Figma 2608 › `Header_rev` 의 배경을 그대로 옮긴 것.
+  상단바 배경 — Figma 2608 › `Header_rev` 의 배경을 옮긴 것.
 
-  지면색 **80%** 로 시작해 상단바 아랫변에서 **0** 이 된다(위 절반은 80% 유지, 그 뒤 페이드).
-  블러는 쓰지 않는다 — 흐린 띠를 만들지 않고 색면만 옅어지므로 아랫변의 자른 선이 사라진다.
+  아랫변에서 0 으로 사라지는 페이드는 그대로 둔다(블러를 쓰지 않고 색면만 옅어지므로
+  아랫변의 자른 선이 생기지 않는다). 다만 **글자가 놓이는 구간은 지면색 100%** 다 —
+  [수정 2026-09-02] 예전에는 위쪽도 80% 라 본문이 밑으로 지나갈 때 워드마크·메뉴 뒤로
+  입력칸과 본문이 그대로 비쳤다(대관 신청 위저드처럼 빽빽한 화면에서 특히). 페이드는
+  아랫변 근처에서만 일어나면 되고, 그 위는 덮어야 한다.
   높이는 상단바 높이 그대로여서 배경이 본문 위로 번지지 않는다.
 */
 @utility header-veil {
@@ -340,13 +343,13 @@ input[type="number"]::-webkit-inner-spin-button {
   background-image: linear-gradient(
     to bottom,
     var(--background) 0%,
-    var(--background) 52%,
+    var(--background) 84%,
     transparent 100%
   );
   background-image: linear-gradient(
     to bottom,
-    rgb(from var(--background) r g b / 0.8) 0%,
-    rgb(from var(--background) r g b / 0.8) 52%,
+    rgb(from var(--background) r g b / 1) 0%,
+    rgb(from var(--background) r g b / 1) 84%,
     rgb(from var(--background) r g b / 0) 100%
   );
 }

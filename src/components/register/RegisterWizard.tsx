@@ -840,9 +840,6 @@ function StepTerms({
       <h2 className="type-kr-heading mt-10 break-keep text-h6-m sm:text-h6">
         약관에 동의해 주세요.
       </h2>
-      <p className="mt-2 break-keep text-s text-muted">
-        필수 항목 2건에 모두 동의하셔야 다음 단계로 진행할 수 있습니다.
-      </p>
       <div className="mt-6 space-y-5">
         {terms.map((t) => (
           <div key={t.kind} className="border border-border-soft">
