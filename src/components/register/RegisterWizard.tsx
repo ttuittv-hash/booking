@@ -824,8 +824,7 @@ function StepTerms({
           필요한지" 는 첫 화면에서 여전히 읽혀야 한다. 카드가 아니라 안내 블록이라
           button 이 아니므로 이제 ul/li 를 그대로 쓸 수 있다. */}
       <div data-testid="register-intro" className="border border-border-soft p-5">
-        <p className="text-xs font-bold text-foreground">{intro.badge}</p>
-        <p className="mt-2 text-h6-m font-bold">{intro.title}</p>
+        <p className="text-h6-m font-bold">{intro.title}</p>
         <p className="mt-1.5 break-keep text-s leading-6 text-muted">{intro.subtitle}</p>
         <ul className="mt-4 flex max-w-2xl flex-col gap-2 break-keep text-s leading-6 text-muted">
           {intro.bullets.map((line, i) => (
@@ -838,9 +837,6 @@ function StepTerms({
           ))}
         </ul>
       </div>
-      {/* 사업자등록증이 없는 사람이 여기서 헤매지 않도록, 지금은 받지 않는다는 사실을 남긴다. */}
-      <p className="mt-5 break-keep text-s leading-6 text-muted">{intro.individualNote}</p>
-
       <h2 className="type-kr-heading mt-10 break-keep text-h6-m sm:text-h6">
         약관에 동의해 주세요.
       </h2>
