@@ -144,49 +144,6 @@ export default async function AdminApplicantDetailPage({
           ],
         ] as [string, React.ReactNode][])
       : []),
-    [
-      "재직증명서",
-      target.employmentCertUrl ? (
-        <a
-          key="employment-cert"
-          href={`${target.employmentCertUrl}${target.employmentCertName ? `?name=${encodeURIComponent(target.employmentCertName)}` : ""}`}
-          className={LINK_BTN}
-        >
-          {target.employmentCertName || "첨부파일"} 열기
-        </a>
-      ) : (
-        NONE
-      ),
-    ],
-    // 회사 행의 사업자등록증(아래 기업 정보 카드)은 회사를 처음 등록한 사람의 것 하나뿐이다.
-    // 기존 회사에 합류하는 사람이 직접 올린 등록증은 계정에 남으므로 여기 따로 보여준다
-    // (2026-08-27). 안 올렸으면 줄 자체를 빼서 화면을 늘리지 않는다.
-    ...(target.businessCertUrl
-      ? ([
-          [
-            "사업자등록증(본인 첨부)",
-            <span key="user-business-cert" className="flex flex-col items-start">
-              <a
-                href={`${target.businessCertUrl}${target.businessCertName ? `?name=${encodeURIComponent(target.businessCertName)}` : ""}`}
-                className={LINK_BTN}
-              >
-                {target.businessCertName || "첨부파일"} 열기
-              </a>
-              {/* 회사 첨부와 같은 대조를 여기서도 돌린다. 합류 가입자가 올린 등록증이
-                  회사 행의 것과 다른 회사일 수 있어, 이쪽이야말로 대조가 필요하다. */}
-              {company ? (
-                <BusinessCertCheck
-                  companyId={company.id}
-                  fileUrl={target.businessCertUrl}
-                  configured={certOcrConfigured}
-                  initial={(userCertOcr?.result as CertCheckView | undefined) ?? null}
-                  checkedByName={certCheckerName(userCertOcr?.checkedBy)}
-                />
-              ) : null}
-            </span>,
-          ],
-        ] as [string, React.ReactNode][])
-      : []),
     ["가입일", new Date(target.createdAt).toLocaleString("ko-KR")],
     ["계정 ID", target.id],
   ];
@@ -236,6 +193,75 @@ export default async function AdminApplicantDetailPage({
           ))}
         </dl>
 
+        {/*
+          [신규 2026-09-02] 첨부 서류를 한자리에 모은다. 예전에는 재직증명서와 본인 첨부
+          사업자등록증이 위 프로필 표 칸 안에, 회사 사업자등록증은 아래 「사업자 확인」
+          패널 맨 끝에 있어 심사할 때 세 군데를 훑어야 했고, 어느 서류가 아예 안 왔는지도
+          한눈에 안 보였다. 미첨부도 줄을 남겨 빠진 서류가 드러나게 한다.
+        */}
+        <section className={`mt-8 ${TABLE_CARD}`}>
+          <div className={TABLE_HEAD}>
+            <div>
+              <p className={TABLE_HEAD_TITLE}>첨부 서류</p>
+              <p className={TABLE_HEAD_DESC}>
+                가입 신청 시 제출한 서류입니다. [열기] 는 새 탭에서 바로 보여 줍니다.
+              </p>
+            </div>
+          </div>
+          <ul className="divide-y divide-border-soft">
+            <CertRow
+              label="사업자등록증"
+              note={company ? "회사를 처음 등록한 담당자가 첨부한 것" : "소속 회사 없음"}
+              url={company?.businessCertUrl ?? null}
+              name={company?.businessCertName ?? null}
+              missingNote="미첨부 — 신청자가 직접 입력한 정보로 신청했습니다."
+            >
+              {/* 첨부된 등록증을 실제로 읽어 가입 입력값과 맞춰 본다(2026-09-02).
+                  예전에는 상호가 달라도 화면에 아무 표시가 없어 운영자가 파일을 일일이
+                  열어 대조해야 했다. */}
+              {company?.businessCertUrl ? (
+                <BusinessCertCheck
+                  companyId={company.id}
+                  fileUrl={company.businessCertUrl}
+                  configured={certOcrConfigured}
+                  initial={(companyCertOcr?.result as CertCheckView | undefined) ?? null}
+                  checkedByName={certCheckerName(companyCertOcr?.checkedBy)}
+                />
+              ) : null}
+            </CertRow>
+
+            {/* 기존 회사에 합류하는 사람이 직접 올린 등록증은 계정에 남는다(2026-08-27).
+                회사 행의 것과 다른 회사일 수 있어 이쪽이야말로 대조가 필요하다.
+                합류 가입이 아니면 애초에 받지 않는 서류라 없으면 줄을 빼는 게 맞다. */}
+            {target.businessCertUrl && (
+              <CertRow
+                label="사업자등록증 (본인 첨부)"
+                note="기존 회사에 합류하며 본인이 올린 것"
+                url={target.businessCertUrl}
+                name={target.businessCertName}
+              >
+                {company ? (
+                  <BusinessCertCheck
+                    companyId={company.id}
+                    fileUrl={target.businessCertUrl}
+                    configured={certOcrConfigured}
+                    initial={(userCertOcr?.result as CertCheckView | undefined) ?? null}
+                    checkedByName={certCheckerName(userCertOcr?.checkedBy)}
+                  />
+                ) : null}
+              </CertRow>
+            )}
+
+            <CertRow
+              label="재직증명서"
+              note="본인이 그 회사 소속임을 확인하는 서류"
+              url={target.employmentCertUrl}
+              name={target.employmentCertName}
+              missingNote="미첨부 — 소속 확인이 되지 않았습니다."
+            />
+          </ul>
+        </section>
+
         {/* 기획서 A9 — 승인 판단 근거 7종. 목록 화면과 같은 판정 로직을 쓴다. */}
         <section className={`mt-8 ${TABLE_CARD}`}>
           <div className={TABLE_HEAD}>
@@ -263,14 +289,7 @@ export default async function AdminApplicantDetailPage({
           </ul>
         </section>
 
-        {company && (
-          <BusinessCheckPanel
-            company={company}
-            certOcrConfigured={certOcrConfigured}
-            certOcr={(companyCertOcr?.result as CertCheckView | undefined) ?? null}
-            certCheckedByName={certCheckerName(companyCertOcr?.checkedBy)}
-          />
-        )}
+        {company && <BusinessCheckPanel company={company} />}
 
         <div className={`mt-10 ${TABLE_CARD}`}>
           <div className={TABLE_HEAD}>
@@ -347,17 +366,7 @@ function VerificationBadge({ verification }: { verification: CompanyVerification
 
 // 입력값과 국세청 등록값을 나란히 놓고 대조한다. 운영자가 승인 전에 볼 화면이라
 // 불일치 항목만 눈에 띄게 하고, 서류는 필요할 때만 열어보게 한다.
-function BusinessCheckPanel({
-  company,
-  certOcrConfigured,
-  certOcr,
-  certCheckedByName,
-}: {
-  company: Company;
-  certOcrConfigured: boolean;
-  certOcr: CertCheckView | null;
-  certCheckedByName: string | null;
-}) {
+function BusinessCheckPanel({ company }: { company: Company }) {
   const verification = company.verification;
   const rows: { label: string; input: string | null; registered: string | null }[] = [
     { label: "상호", input: company.name, registered: verification?.companyName ?? null },
@@ -447,33 +456,55 @@ function BusinessCheckPanel({
         </div>
       )}
 
-      <div className="border-t border-border-soft px-4 py-3.5">
-        <p className={HELP}>사업자등록증</p>
-        {company.businessCertUrl ? (
-          <>
-            <a
-              href={`${company.businessCertUrl}${company.businessCertName ? `?name=${encodeURIComponent(company.businessCertName)}` : ""}`}
-              className={`mt-2 inline-block ${LINK_BTN}`}
-            >
-              {company.businessCertName || "첨부파일"} 열기
-            </a>
-            {/* 첨부된 등록증을 실제로 읽어 가입 입력값과 맞춰 본다(2026-09-02).
-                예전에는 상호가 달라도 화면에 아무 표시가 없어 운영자가 파일을 일일이
-                열어 대조해야 했다. */}
-            <BusinessCertCheck
-              companyId={company.id}
-              fileUrl={company.businessCertUrl}
-              configured={certOcrConfigured}
-              initial={certOcr}
-              checkedByName={certCheckedByName}
-            />
-          </>
-        ) : (
-          <p className={`mt-2 ${WARN_NOTE}`}>
-            미첨부 — 신청자가 직접 입력한 정보로 신청했습니다.
-          </p>
-        )}
-      </div>
     </div>
+  );
+}
+
+/**
+ * 첨부 서류 한 줄. 파일이 있으면 [열기](새 탭 · 미리보기)와 [내려받기]를 함께 준다 —
+ * 심사는 화면에서 훑어보는 일이고, 보관이 필요할 때만 내려받으면 된다.
+ * 파일이 없으면 빈칸으로 두지 않고 왜 비었는지를 적는다.
+ */
+function CertRow({
+  label,
+  note,
+  url,
+  name,
+  missingNote,
+  children,
+}: {
+  label: string;
+  note: string;
+  url: string | null;
+  name: string | null;
+  missingNote?: string;
+  children?: ReactNode;
+}) {
+  const query = name ? `?name=${encodeURIComponent(name)}` : "";
+  return (
+    <li className="px-4 py-3.5">
+      <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
+        <div className="min-w-0">
+          <p className="text-s font-bold">{label}</p>
+          <p className={`mt-0.5 ${HELP}`}>{note}</p>
+        </div>
+        {url ? (
+          <span className="flex shrink-0 items-center gap-3">
+            <a href={`${url}${query}`} target="_blank" rel="noreferrer" className={LINK_BTN}>
+              열기
+            </a>
+            <a href={`${url}${query ? `${query}&` : "?"}download=1`} className={LINK_BTN}>
+              내려받기
+            </a>
+          </span>
+        ) : null}
+      </div>
+      {url ? (
+        <p className="mt-1 break-all text-xs text-muted">{name || "파일명 없음"}</p>
+      ) : (
+        <p className={`mt-1 ${WARN_NOTE}`}>{missingNote ?? "미첨부"}</p>
+      )}
+      {children}
+    </li>
   );
 }
