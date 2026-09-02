@@ -114,7 +114,9 @@ export function NoticeEditor({
       Color,
       ResizableImage.configure({ inline: false }),
       TextAlign.configure({ types: ["heading", "paragraph", "image"] }),
-      Table.configure({ resizable: false }),
+      // resizable: true — 열 경계를 끌어 폭을 조절한다(colwidth 로 저장되고,
+      // sanitizeRichText 가 th/td 의 colwidth 와 colgroup 을 허용한다).
+      Table.configure({ resizable: true }),
       TableRow,
       TableHeader,
       TableCell,
@@ -131,7 +133,7 @@ export function NoticeEditor({
       attributes: {
         // 문단 간격은 공개 화면과 똑같이 margin 없이 줄간격(leading)만 쓴다 — RICH_TEXT의
         // [&_p]:mt-4 를 그대로 쓰면 편집기에서만 문단 사이가 눈에 띄게 벌어져 보인다.
-        class: `${NOTICE_RICH_TEXT} min-h-[180px] border border-t-0 border-border-soft bg-surface px-3 py-2.5 text-s leading-6 focus:border-foreground focus:outline-2 focus:outline-accent [&_img]:mt-2 [&_img]:max-w-full [&_table]:mt-3 [&_table]:w-full [&_table]:border-collapse [&_td]:border [&_td]:border-border-soft [&_td]:px-2.5 [&_td]:py-1.5 [&_th]:border [&_th]:border-border-soft [&_th]:bg-background [&_th]:px-2.5 [&_th]:py-1.5 [&_th]:text-left [&_[data-type=details]]:mt-3 [&_[data-type=details]]:border [&_[data-type=details]]:border-border-soft [&_[data-type=details]]:p-2.5 [&_[data-type=details]>button]:mr-2 [&_[data-type=details]>button]:inline-flex [&_[data-type=details]>button]:h-4 [&_[data-type=details]>button]:w-4 [&_[data-type=details]>button]:shrink-0 [&_[data-type=details]>button]:cursor-pointer [&_[data-type=details]>button]:border [&_[data-type=details]>button]:border-muted [&_[data-type=details]_summary]:inline [&_[data-type=details]_summary]:cursor-text [&_[data-type=details]_summary]:font-bold [&_[data-type=detailsContent]]:mt-2 [&_[data-type=detailsContent]]:min-h-[1.6em] [&_[data-type=detailsContent]]:border-t [&_[data-type=detailsContent]]:border-dashed [&_[data-type=detailsContent]]:border-border-soft [&_[data-type=detailsContent]]:pt-2`,
+        class: `${NOTICE_RICH_TEXT} min-h-[180px] border border-t-0 border-border-soft bg-surface px-3 py-2.5 text-s leading-6 focus:border-foreground focus:outline-2 focus:outline-accent [&_img]:mt-2 [&_img]:max-w-full [&_table]:mt-3 [&_table]:w-full [&_table]:table-fixed [&_table]:border-collapse [&_td]:relative [&_th]:relative [&_.column-resize-handle]:absolute [&_.column-resize-handle]:-right-px [&_.column-resize-handle]:top-0 [&_.column-resize-handle]:h-full [&_.column-resize-handle]:w-1 [&_.column-resize-handle]:cursor-col-resize [&_.column-resize-handle]:bg-accent [&_td]:border [&_td]:border-border-soft [&_td]:px-2.5 [&_td]:py-1.5 [&_th]:border [&_th]:border-border-soft [&_th]:bg-background [&_th]:px-2.5 [&_th]:py-1.5 [&_th]:text-left [&_[data-type=details]]:mt-3 [&_[data-type=details]]:border [&_[data-type=details]]:border-border-soft [&_[data-type=details]]:p-2.5 [&_[data-type=details]>button]:mr-2 [&_[data-type=details]>button]:inline-flex [&_[data-type=details]>button]:h-4 [&_[data-type=details]>button]:w-4 [&_[data-type=details]>button]:shrink-0 [&_[data-type=details]>button]:cursor-pointer [&_[data-type=details]>button]:border [&_[data-type=details]>button]:border-muted [&_[data-type=details]_summary]:inline [&_[data-type=details]_summary]:cursor-text [&_[data-type=details]_summary]:font-bold [&_[data-type=detailsContent]]:mt-2 [&_[data-type=detailsContent]]:min-h-[1.6em] [&_[data-type=detailsContent]]:border-t [&_[data-type=detailsContent]]:border-dashed [&_[data-type=detailsContent]]:border-border-soft [&_[data-type=detailsContent]]:pt-2`,
       },
     },
   });
@@ -139,6 +141,13 @@ export function NoticeEditor({
   const isImageActive = useEditorState({
     editor,
     selector: ({ editor }) => !!editor?.isActive("image"),
+  });
+
+  // 커서가 표 안에 있을 때만 표 편집 줄을 띄운다 — 툴바에 항상 두면 아홉 개 버튼이
+  // 놀고 있고, 정작 표를 만든 뒤에는 행·열을 못 늘려 3×3 그대로 써야 했다.
+  const isTableActive = useEditorState({
+    editor,
+    selector: ({ editor }) => !!editor?.isActive("table"),
   });
 
   async function uploadAndInsertImage(file: File) {
@@ -338,6 +347,31 @@ export function NoticeEditor({
           {mode === "html" ? "일반 편집" : "HTML 소스"}
         </button>
       </div>
+
+      {isTableActive && mode === "visual" && (
+        <div className="flex flex-wrap items-center gap-1 border-x border-b border-border-soft bg-background px-2 py-1.5">
+          <span className="mr-1 text-xs text-muted">표</span>
+          {(
+            [
+              ["행 ↑", () => editor.chain().focus().addRowBefore().run()],
+              ["행 ↓", () => editor.chain().focus().addRowAfter().run()],
+              ["행 삭제", () => editor.chain().focus().deleteRow().run()],
+              ["열 ←", () => editor.chain().focus().addColumnBefore().run()],
+              ["열 →", () => editor.chain().focus().addColumnAfter().run()],
+              ["열 삭제", () => editor.chain().focus().deleteColumn().run()],
+              ["머리행", () => editor.chain().focus().toggleHeaderRow().run()],
+              ["셀 합치기", () => editor.chain().focus().mergeCells().run()],
+              ["셀 나누기", () => editor.chain().focus().splitCell().run()],
+              ["표 삭제", () => editor.chain().focus().deleteTable().run()],
+            ] as const
+          ).map(([label, run]) => (
+            <button key={label} type="button" onClick={run} className={toolBtn(false)}>
+              {label}
+            </button>
+          ))}
+          <span className="ml-1 text-xs text-muted">열 폭은 경계선을 끌어 조절합니다</span>
+        </div>
+      )}
 
       {isImageActive && mode === "visual" && (
         <div className="flex flex-wrap items-center gap-1 border-x border-b border-border-soft bg-background px-2 py-1.5">
