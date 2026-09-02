@@ -4,6 +4,7 @@ import { getFeaturesContent } from "@/lib/db";
 import type {
   CapacityBlock,
   FacilityGroup,
+  FeatureBlock,
   SpecCard,
   VenueFacilityContent,
 } from "@/lib/content/pageContent";
@@ -16,12 +17,12 @@ import {
   Band,
   ButtonLink,
   CTABand,
-  FeatureList,
   PLAIN_SURFACE_VARS,
   PageHead,
   SectionHead,
   StatCards,
   TitledCard,
+  valueHeadingClass,
 } from "@/components/ui/kit";
 
 export const metadata: Metadata = {
@@ -74,7 +75,7 @@ function CapacityCard({ cap }: { cap: CapacityBlock }) {
           {rows.map((r, i) => (
             <div key={`${r.label}-${i}`}>
               <dt className="text-xs font-bold text-muted">{r.label}</dt>
-              <dd className="type-display mt-2 break-keep text-h1-m normal-case tabular-nums sm:text-h1">
+              <dd className="type-display mt-2 break-keep text-h3-m normal-case tabular-nums sm:text-h3">
                 {r.value}
               </dd>
               {r.note && <p className="mt-2 break-keep text-s text-muted">{r.note}</p>}
@@ -101,13 +102,19 @@ function SpecCardGrid({ cards }: { cards: SpecCard[] }) {
             className="flex h-full min-w-0 flex-col border border-border bg-background p-6 text-foreground"
             style={PLAIN_SURFACE_VARS}
           >
-            <p className="text-xs font-bold text-muted">{card.label}</p>
-            {/* `type-display` 은 대문자로 바꾼다 — 수치는 끈다. 단위는 대소문자로 뜻이
-                갈린다(180t 톤 ↔ 180T 테슬라, 4.8m 미터 ↔ 4.8M 메가). */}
-            <p className="type-display mt-3 break-keep text-h4-m normal-case tabular-nums sm:text-h4">
+            {/* 라벨은 있을 때만 그린다 — 빈 문자열이면 줄과 여백까지 함께 빠진다
+                (부대시설 카드는 라벨 없이 시설명부터 시작한다) */}
+            {card.label && <p className="text-xs font-bold text-muted">{card.label}</p>}
+            {/* 수치면 Archivo(대문자 변환은 끈다 — 180t 톤 ↔ 180T 테슬라), 시설명처럼
+                한글이 섞이면 국문 헤딩 서체. Archivo 에는 한글 글립이 없다. */}
+            <p
+              className={`${valueHeadingClass(card.value)} break-keep text-h4-m tabular-nums sm:text-h4 ${
+                card.label ? "mt-3" : ""
+              }`}
+            >
               {card.value}
             </p>
-            <p className="mt-3 break-keep text-s text-muted">{card.desc}</p>
+            {card.desc && <p className="mt-3 break-keep text-s text-muted">{card.desc}</p>}
           </article>
         </li>
       ))}
@@ -115,35 +122,96 @@ function SpecCardGrid({ cards }: { cards: SpecCard[] }) {
   );
 }
 
-/** 부대시설 카테고리 카드 — [시설명 → 부연] 목록 */
-function FacilityCard({ group }: { group: FacilityGroup }) {
+/**
+ * FLOOR & SEATING — 층 이름은 **라벨**, 제원 숫자가 **헤딩**이다.
+ *
+ * `FeatureList`(제목 H5 + 설명 작은 글씨)를 그대로 쓰면 층 이름이 주인공이 되는데,
+ * 이 섹션에서 읽어야 하는 것은 층 이름이 아니라 면적·좌석 수다. 위계를 뒤집는다.
+ * `FeatureList` 는 `/seoularena` 가 함께 쓰므로 건드리지 않고 여기서 따로 그린다.
+ *
+ * 줄은 모두 국문 헤딩 서체로 둔다 — 한 블록 안에서 "49 × 79.9m"(영문)와
+ * "수납식 객석 1,848석"(국문)이 다른 서체로 갈리면 목록이 흔들려 보인다.
+ */
+function FloorList({ items }: { items: FeatureBlock[] }) {
   return (
-    <TitledCard title={group.title}>
-      <dl className="space-y-4">
-        {group.items.map((it, i) => (
-          <div key={`${it.label}-${i}`}>
-            <dt className="text-s font-bold">{it.label}</dt>
-            {it.value && (
-              <dd className="mt-1 flex gap-2 break-keep text-s text-muted">
-                <span aria-hidden>·</span>
-                <span>{it.value}</span>
-              </dd>
+    <ul className="border-t border-border">
+      {items.map((it, i) => {
+        /*
+          줄이 둘 이상이면 **마지막 줄은 부연**이다 — 면적·좌석 수 같은 제원이 먼저 오고,
+          "수납식 객석 156석 별도" 처럼 조건을 덧붙이는 문장이 끝에 붙는다. 부연까지
+          헤딩으로 키우면 어느 숫자가 그 층의 제원인지 구분되지 않으므로 본문 크기로 둔다.
+          줄이 하나뿐이면 그 줄이 제원이다.
+        */
+        const hasNote = it.lines.length > 1;
+        const figures = hasNote ? it.lines.slice(0, -1) : it.lines;
+        const note = hasNote ? it.lines[it.lines.length - 1] : "";
+        return (
+          <li key={`${it.title}-${i}`} className="border-b border-border py-7">
+            <p className="text-xs font-extrabold uppercase tracking-[0.08em] text-muted [font-family:Archivo,sans-serif]">
+              {it.title}
+            </p>
+            {figures.length > 0 && (
+              <div className="mt-3 space-y-1">
+                {figures.map((line) => (
+                  <p key={line} className="type-kr-heading break-keep text-h5-m sm:text-h5">
+                    {line}
+                  </p>
+                ))}
+              </div>
             )}
-          </div>
-        ))}
-      </dl>
-    </TitledCard>
+            {note && <p className="mt-2 break-keep text-s text-muted">{note}</p>}
+          </li>
+        );
+      })}
+    </ul>
   );
 }
 
-function VenuePanel({ en, ko, c }: { en: string; ko: string; c: VenueFacilityContent }) {
+/**
+ * 부대시설을 스펙 카드로 편다 — **한 시설이 카드 한 장**이다.
+ *
+ * 카테고리 한 장에 시설 목록을 담아 두었더니 카드마다 줄 수가 제각각이라 격자가
+ * 무너졌고, 정작 읽어야 하는 시설 이름이 목록 속 한 줄로 작아졌다.
+ * 카드는 [시설명 / 부연] 이고, 위 스펙 카드와 같은 규격이다.
+ *
+ * 카테고리 이름(「부대시설」)은 카드에 넣지 않는다 — 섹션 제목이 이미
+ * ADDITIONAL FACILITIES 라, 카드마다 같은 말을 한 번 더 얹는 꼴이었다.
+ */
+function facilityCards(groups: FacilityGroup[]): SpecCard[] {
+  return groups.flatMap((g) => g.items.map((it) => ({ label: "", value: it.label, desc: it.value })));
+}
+
+function VenuePanel({
+  en,
+  ko,
+  c,
+  overviewSize,
+}: {
+  en: string;
+  ko: string;
+  c: VenueFacilityContent;
+  /**
+   * 상위 4개 포인트의 크기. 아레나는 값이 `22,500` 같은 수치 한 덩어리라 H3(lg)로
+   * 두지만, 중형은 `좌석형 · 스탠딩형 가변 구성` 같은 서술문이라 같은 크기면 카드마다
+   * 세 줄까지 접힌다 — 한 단 낮춘 H4(md)로 둔다.
+   */
+  overviewSize: "md" | "lg";
+}) {
+  const facilities = facilityCards(c.facilityGroups);
+  const darkSections = [
+    ...c.specGroups,
+    ...(facilities.length > 0
+      ? [{ title: "ADDITIONAL FACILITIES", cards: facilities }]
+      : []),
+  ];
+
   return (
     <>
       <Band tone="light" size="lg">
         <PageHead en={en} ko={ko} />
         {c.overview.length > 0 && (
           <div className="mt-10">
-            <StatCards items={c.overview} />
+            <StatCards items={c.overview} size={overviewSize} />
           </div>
         )}
       </Band>
@@ -164,7 +232,7 @@ function VenuePanel({ en, ko, c }: { en: string; ko: string; c: VenueFacilityCon
         <Band tone="light">
           <SectionHead title="FLOOR & SEATING" />
           <div className="mt-10">
-            <FeatureList items={c.features} />
+            <FloorList items={c.features} />
           </div>
         </Band>
       )}
@@ -172,28 +240,18 @@ function VenuePanel({ en, ko, c }: { en: string; ko: string; c: VenueFacilityCon
       <DocumentsCta />
 
       {/*
-        스펙 카드 섹션들은 **밴드 하나** 안에 이어 놓는다. 밴드를 나누면 검정 지면이
-        같아도 아래 패딩 + 위 패딩이 더해져 두 섹션 사이만 유난히 벌어진다.
+        검정 지면의 카드 섹션들은 **밴드 하나** 안에 이어 놓는다. 밴드를 나누면 지면이
+        같아도 아래 패딩 + 위 패딩이 더해져 그 사이만 유난히 벌어진다.
+        부대시설도 같은 규격의 카드라 여기에 이어 붙인다.
       */}
-      {c.specGroups.length > 0 && (
+      {darkSections.length > 0 && (
         <Band tone="dark">
-          {c.specGroups.map((g, i) => (
+          {darkSections.map((g, i) => (
             <section key={`${g.title}-${i}`} className={i > 0 ? "mt-16 sm:mt-20" : ""}>
               <SectionHead title={g.title} />
               <SpecCardGrid cards={g.cards} />
             </section>
           ))}
-        </Band>
-      )}
-
-      {c.facilityGroups.length > 0 && (
-        <Band tone="light">
-          <SectionHead title="ADDITIONAL FACILITIES" />
-          <div className="grid-site mt-10">
-            {c.facilityGroups.map((g, i) => (
-              <FacilityCard key={`${g.title}-${i}`} group={g} />
-            ))}
-          </div>
         </Band>
       )}
     </>
@@ -219,9 +277,14 @@ export default async function FeaturesPage() {
             label: t.label,
             panel:
               t.value === "arena" ? (
-                <VenuePanel en="ARENA" ko="아레나" c={content.arena} />
+                <VenuePanel en="ARENA" ko="아레나" c={content.arena} overviewSize="lg" />
               ) : (
-                <VenuePanel en="LIVE HALL" ko="중형공연장" c={content.liveHall} />
+                <VenuePanel
+                  en="LIVE HALL"
+                  ko="중형공연장"
+                  c={content.liveHall}
+                  overviewSize="md"
+                />
               ),
           }))}
         />

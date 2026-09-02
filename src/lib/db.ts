@@ -5377,28 +5377,38 @@ export async function saveSeoulArenaContent(data: SeoulArenaContent) {
  * 부대시설이 평면 목록(`facilities`)으로 저장돼 있던 시절의 콘텐츠를 카드 묶음으로 옮긴다.
  * 카테고리를 알 수 없으므로 「부대시설」 한 장에 담고, 이후 운영자가 나눠 담는다.
  */
-/** 새 판에서 늘어난 자리를 채운다 — 판번호가 맞는 저장본에도 없을 수 있다(부분 저장) */
-function withNewFields(v: VenueFacilityContent): VenueFacilityContent {
+/**
+ * 새 판에서 늘어난 자리를 기본값으로 채운다.
+ *
+ * `getPageContent` 는 **얕은 병합**이라(`{...기본값, ...저장본}`) 저장본에 `arena` 키가
+ * 있으면 그 안쪽은 통째로 저장본이 된다 — 이번 개편으로 생긴 자리(`specGroups`)는
+ * 저장본에 없으므로 여기서 채워 주지 않으면 섹션이 통째로 사라진다.
+ */
+function withNewFields(
+  v: VenueFacilityContent,
+  fallback: VenueFacilityContent,
+): VenueFacilityContent {
   return {
     ...v,
-    specGroups: Array.isArray(v?.specGroups) ? v.specGroups : [],
-    facilityGroups: Array.isArray(v?.facilityGroups) ? v.facilityGroups : [],
+    specGroups: Array.isArray(v?.specGroups) ? v.specGroups : fallback.specGroups,
+    facilityGroups: Array.isArray(v?.facilityGroups) ? v.facilityGroups : fallback.facilityGroups,
   };
 }
 
 /**
- * 2026-09-02 개편 이전 저장본은 섹션 구성 자체가 달라(FEATURES · 배치별 층별 표 ·
- * 카테고리형 ADDITIONAL FACILITIES) 새 화면과 필드 단위로 섞으면 옛 섹션과 새 섹션이
- * 함께 나온다. 판번호가 다르면 부분 병합하지 않고 기본값을 통째로 쓴다 —
- * 개편 후 운영자가 콘텐츠 관리에서 저장하면 판번호가 찍혀 그때부터 편집분이 유지된다.
+ * **저장본(운영자 편집분)이 이긴다.** 이 파일의 기본값은 시드일 뿐이다.
+ *
+ * 한때 판번호로 옛 저장본을 기본값으로 덮어쓰려 했으나 두 가지가 틀렸다 —
+ * ① `getPageContent` 의 얕은 병합 때문에 `version` 이 늘 기본값에서 채워져 게이트가
+ * 한 번도 작동하지 않았고, ② 작동했더라도 운영자가 콘텐츠 관리에서 다듬어 온 문구를
+ * 코드가 되돌리는 셈이었다. 화면 문구의 정본은 DB 다.
  */
 export async function getFeaturesContent(): Promise<FeaturesContent> {
   const content = await getPageContent("features", DEFAULT_FEATURES_CONTENT);
-  if (content.version !== FEATURES_CONTENT_VERSION) return DEFAULT_FEATURES_CONTENT;
   return {
-    version: content.version,
-    arena: withNewFields(content.arena),
-    liveHall: withNewFields(content.liveHall),
+    version: FEATURES_CONTENT_VERSION,
+    arena: withNewFields(content.arena, DEFAULT_FEATURES_CONTENT.arena),
+    liveHall: withNewFields(content.liveHall, DEFAULT_FEATURES_CONTENT.liveHall),
   };
 }
 export async function saveFeaturesContent(data: FeaturesContent) {
@@ -5416,14 +5426,29 @@ export async function saveGuidePageContent(data: GuidePageContent) {
 }
 
 /**
- * 대관료는 시설 제원과 달리 **판번호로 덮어쓰지 않는다.**
- * 개편 전 저장본의 필드(요금표 행·열 · 옵션 · 기준)가 새 레이아웃에 그대로 얹히므로
- * 통째로 기본값으로 되돌릴 이유가 없고, 되돌리면 운영자가 고친 금액이 화면에서 사라진다.
- * 이번 개편에서 **새로 생긴 자리만** 기본값으로 채운다.
+ * 대관료는 시설 제원과 달리 **통째로 기본값으로 되돌리지 않는다.**
+ *
+ * 요금표에서 온 값(`columns`·`detailColumns`)은 `/api/rates` 가 요금표를 저장할 때
+ * 여기에 옮겨 적는다 — 되돌리면 운영자가 고친 금액이 공개 화면에서 시드 값으로
+ * 되돌아간다. 그래서 **요금 쪽은 저장본을 지키고**, 이번 개편에서 새로 쓴 카피
+ * (리드·포함 항목 카드·추가 사용료·이용 기준·주석)만 기본값으로 갈아 끼운다.
+ *
+ * 카드 하단의 `extras`(준비일·공연일 추가)는 개편으로 새로 생긴 자리라 저장본에
+ * 없다 — 열 키로 기본값에서 찾아 붙인다(순서를 믿으면 열이 늘거나 줄었을 때
+ * 엉뚱한 요금제 밑으로 들어간다).
  */
 function withNewRateFields(v: VenueRateContent, fallback: VenueRateContent): VenueRateContent {
+  // 카드 하단 `extras`(준비일·공연일 추가)는 개편으로 생긴 자리라 저장본에 없다.
+  // 열 키로 기본값에서 찾아 붙인다 — 순서를 믿으면 열이 늘거나 줄었을 때 엉뚱한
+  // 요금제 밑으로 들어간다.
+  const columns = (Array.isArray(v?.columns) ? v.columns : fallback.columns).map((col) =>
+    col.extras
+      ? col
+      : { ...col, extras: fallback.columns.find((d) => d.key === col.key)?.extras ?? [] },
+  );
   return {
     ...v,
+    columns,
     intro: v.intro ?? fallback.intro,
     includes: Array.isArray(v?.includes) ? v.includes : fallback.includes,
     includesLead: v.includesLead ?? fallback.includesLead,
@@ -5431,6 +5456,7 @@ function withNewRateFields(v: VenueRateContent, fallback: VenueRateContent): Ven
   };
 }
 
+/** 시설 제원과 같다 — 저장본이 이기고, 이번 개편으로 생긴 자리만 기본값으로 채운다 */
 export async function getRatesContent(): Promise<RatesContent> {
   const content = await getPageContent("rates", DEFAULT_RATES_CONTENT);
   return {

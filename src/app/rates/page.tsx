@@ -33,33 +33,58 @@ export const metadata: Metadata = {
 
 /**
  * 기본 대관 패키지 카드 — 흰 배경 · 검정 아웃라인. 12칼럼에서 3칼럼씩(4-up).
- * 마지막 행(대관료)만 헤어라인 아래로 내려 큰 글씨로 둔다 — 카드가 답하는 질문이
- * "얼마인가" 하나이기 때문이다. 시안의 "PACKAGE RATE" 머리말은 두지 않는다.
+ *
+ * 위계는 [요금제 이름은 라벨 / 수용 규모가 헤딩 / 구성은 값만 / 대관료 / 일 단위 추가].
+ * 요금제 이름(RATE A)을 크게 두면 카드가 "A 라는 것"을 말하게 되는데, 신청자가
+ * 카드를 고르는 기준은 이름이 아니라 **몇 명을 담느냐**다. 무대·객석 형태는 라벨을
+ * 떼고 값만 남긴다 — 라벨이 붙으면 카드가 다시 표처럼 읽힌다.
+ * 시안의 "PACKAGE RATE" 머리말은 두지 않는다.
  */
 function RateCards({ rowLabels, columns }: { rowLabels: string[]; columns: RateColumn[] }) {
   const priceIndex = rowLabels.length - 1;
+  // 중형공연장은 행이 「대관료」 하나뿐이라 수용 규모·구성 줄이 없다.
+  const hasSpecRows = priceIndex > 0;
   return (
     <ul className="mt-10 grid gap-[var(--gutter)] sm:grid-cols-2 lg:grid-cols-12">
       {columns.map((col) => (
         <li key={col.key} className="lg:col-span-3">
           <article className="flex h-full min-w-0 flex-col border border-border bg-panel p-6">
-            <p className="type-display break-keep text-h4-m sm:text-h4">{col.name}</p>
-            {priceIndex > 0 && (
-              <dl className="mt-6 flex-1 space-y-4">
-                {rowLabels.slice(0, priceIndex).map((label, i) => (
-                  <div key={`${label}-${i}`}>
-                    <dt className="text-xs font-bold text-muted">{label}</dt>
-                    <dd className="mt-1 break-keep text-s">{col.values[i] ?? ""}</dd>
-                  </div>
-                ))}
-              </dl>
+            <p className="text-xs font-extrabold uppercase tracking-[0.08em] text-muted [font-family:Archivo,sans-serif]">
+              {col.name}
+            </p>
+            {hasSpecRows && (
+              <>
+                <p className="type-kr-heading mt-3 break-keep text-h4-m sm:text-h4">
+                  {col.values[0] ?? ""}
+                </p>
+                <div className="mt-4 flex-1 space-y-1">
+                  {col.values.slice(1, priceIndex).map((v, i) => (
+                    <p key={`${v}-${i}`} className="break-keep text-s text-muted">
+                      {v}
+                    </p>
+                  ))}
+                </div>
+              </>
             )}
-            <dl className={`border-t border-border pt-4 ${priceIndex > 0 ? "mt-6" : "mt-6 flex-1"}`}>
+            <dl className={`border-t border-border pt-4 ${hasSpecRows ? "mt-6" : "mt-6 flex-1"}`}>
               <dt className="text-xs font-bold text-muted">{rowLabels[priceIndex]}</dt>
               <dd className="type-display mt-1 break-keep text-h5-m normal-case tabular-nums sm:text-h5">
                 {col.values[priceIndex] ?? ""}
               </dd>
             </dl>
+            {col.extras && col.extras.length > 0 && (
+              <dl className="mt-4 space-y-2 border-t border-border pt-4">
+                {col.extras.map((e, i) => (
+                  <div
+                    key={`${e.label}-${i}`}
+                    className="flex flex-wrap items-baseline justify-between gap-x-3"
+                  >
+                    <dt className="text-xs text-muted">{e.label}</dt>
+                    <dd className="break-keep text-s font-bold tabular-nums">{e.value}</dd>
+                  </div>
+                ))}
+              </dl>
+            )}
           </article>
         </li>
       ))}
@@ -105,9 +130,11 @@ function ChargeTable({ rows }: { rows: ChargeBlock[] }) {
     <div className="mt-10">
       {order.map((group, gi) => (
         <section key={group}>
+          {/* 묶음 제목은 헤딩이다 — 작은 라벨로 두었더니 표가 한 덩어리로 흘러
+              어디서 묶음이 갈리는지 읽히지 않았다. */}
           <h4
-            className={`border-b border-border pb-2 text-xs font-bold text-muted ${
-              gi === 0 ? "" : "pt-10"
+            className={`type-kr-heading border-b border-border pb-3 text-h5-m sm:text-h5 ${
+              gi === 0 ? "" : "pt-12"
             }`}
           >
             {group}
@@ -121,7 +148,10 @@ function ChargeTable({ rows }: { rows: ChargeBlock[] }) {
                   className="grid gap-1 border-b border-border py-4 sm:grid-cols-4 sm:gap-6"
                 >
                   <dt className="break-keep text-s font-bold">{r.item}</dt>
-                  <dd className="break-keep text-s tabular-nums">{r.cost}</dd>
+                  <dd className="break-keep text-s tabular-nums">
+                    {r.cost}
+                    {r.unit && <span className="mt-1 block text-xs text-muted">{r.unit}</span>}
+                  </dd>
                   <dd className="break-keep text-s text-muted sm:col-span-2">{r.note}</dd>
                 </div>
               ))}
@@ -141,13 +171,19 @@ function RatePanel({ en, ko, c }: { en: string; ko: string; c: VenueRateContent 
         <div className="mt-14">
           <SectionHead
             title="기본 대관 패키지"
-            lead={c.rentalPeriod ? `대관 기간 ${c.rentalPeriod}` : undefined}
+            lead={
+              <>
+                {c.rentalPeriod && <span className="block">대관 기간 {c.rentalPeriod}</span>}
+                <span className="block">금액은 부가세 별도</span>
+              </>
+            }
           />
           {/*
-            Details 토글(셋업일·공연일 전용 사용료 · 시설 사용료 …)은 두지 않는다.
-            카드가 답해야 하는 것은 "이 패키지가 얼마인가" 하나이고, 내역은 견적서에서
-            본다. **데이터(`detailLabels`/`detailColumns`)는 지우지 않았다** — 요금 API
-            (`/api/rates`) · 대관 신청 위저드 · 어드민 요금 관리가 같은 값을 읽는다.
+            [개정 2026-09-02] 접었다 펴는 [Details] 토글은 없앤다 — 토글 뒤에 있으면
+            아무도 열지 않아 표가 반쪽으로 읽혔다. 셋업·공연 **변경** 대관료는 카드
+            하단(`extras`)으로 올라와 늘 보이고, 전용/시설 사용료 내역은 견적서에서 본다.
+            **데이터(`detailLabels`/`detailColumns`)는 지우지 않았다** — 요금 API
+            (`/api/rates`) · 대관 신청 위저드 · 어드민 요금 관리가 같은 값을 쓴다.
           */}
           <RateCards rowLabels={c.rowLabels} columns={c.columns} />
         </div>

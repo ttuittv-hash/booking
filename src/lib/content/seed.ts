@@ -10,8 +10,9 @@ import type { HomeContent, LegalContent } from "./types";
  */
 export const DEFAULT_HOME_CONTENT: HomeContent = {
   heroImage: "/images/hero.jpg",
-  heroTitle: "BRING THE VISION,\nWE BUILD THE STAGE",
-  heroSubtitle: "한계 없는 인프라 위에서\n당신만의 무대를 지휘하세요.",
+  // [2026-09-02] dev(partner.dev.seoularena.net)에서 운영 중인 문구로 맞췄다.
+  heroTitle: "WHERE YOUR VISION\nTAKES THE STAGE",
+  heroSubtitle: "공연을 위해 설계된 공간에서,\n상상은 더 큰 가능성을 만납니다.",
   heroPrimaryLabel: "대관 신청",
   heroPrimaryHref: "/apply",
   heroSecondaryLabel: "서울아레나 알아보기",
@@ -26,8 +27,8 @@ export const DEFAULT_HOME_CONTENT: HomeContent = {
   */
   narrativeLabel: "Manifesto",
   narrativeTitle: "LIMITLESS SPACE,\nABSOLUTE CONTROL",
-  narrativeLead:
-    "서울아레나는 원하는 공연을 그대로 실현할 수 있도록 설계된 공간입니다.",
+  // dev 에서는 비워 둔 상태다 — 선언 네 줄이 곧 리드 역할을 한다.
+  narrativeLead: "",
   narrativeStatements: [
     {
       title: "EVERY SEAT IS THE STAGE",

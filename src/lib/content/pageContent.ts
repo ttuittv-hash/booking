@@ -1,12 +1,14 @@
 import {
   ABOUT_LEAD,
   ARENA_CAPACITY,
+  ARENA_FACILITY_GROUPS,
   ARENA_FLOOR_SEATING,
   ARENA_OVERVIEW,
   ARENA_SPEC_GROUPS,
   COMPLEX_FEATURES,
   COMPLEX_FEATURES_LEAD,
   LIVE_HALL_CAPACITY,
+  LIVE_HALL_FACILITY_GROUPS,
   LIVE_HALL_OVERVIEW,
   LIVE_HALL_SPEC_GROUPS,
   STAGE_FEATURES,
@@ -171,12 +173,15 @@ const capacityBlocks = (rows: typeof ARENA_CAPACITY): CapacityBlock[] =>
 const specGroups = (groups: typeof ARENA_SPEC_GROUPS): SpecCardGroup[] =>
   groups.map((g) => ({ title: g.title, cards: g.cards.map((c) => ({ ...c })) }));
 
+const facilityGroups = (groups: typeof ARENA_FACILITY_GROUPS): FacilityGroup[] =>
+  groups.map((g) => ({
+    title: g.title,
+    items: g.items.map((f) => ({ label: f.label, value: f.desc ?? "" })),
+  }));
+
 /*
-  [2026-09-02 디자인 개편]
-  · 아레나 ADDITIONAL FACILITIES 는 없앴다 — 그 내용(스카이박스·대기실·하역)이
-    LOAD-IN & SUPPORT 스펙 카드로 옮겨 갔고, 같은 사실을 두 섹션이 말하게 되기 때문이다.
-    원본 목록은 `venueFacts.ts` 의 ARENA_FACILITY_GROUPS 에 그대로 남아 있다.
-  · 중형공연장 ADDITIONAL FACILITIES 는 스펙 카드 4장(임시 내용)으로 대체했다.
+  [2026-09-02] ADDITIONAL FACILITIES 는 dev 운영본을 그대로 옮겼다.
+  화면에서는 **한 시설이 카드 한 장**으로 펴진다(`features/page.tsx` 의 `facilityCards`).
 */
 export const DEFAULT_FEATURES_CONTENT: FeaturesContent = {
   version: FEATURES_CONTENT_VERSION,
@@ -185,14 +190,14 @@ export const DEFAULT_FEATURES_CONTENT: FeaturesContent = {
     capacity: capacityBlocks(ARENA_CAPACITY),
     features: ARENA_FLOOR_SEATING.map((f) => ({ title: f.title, lines: [...f.lines] })),
     specGroups: specGroups(ARENA_SPEC_GROUPS),
-    facilityGroups: [],
+    facilityGroups: facilityGroups(ARENA_FACILITY_GROUPS),
   },
   liveHall: {
     overview: LIVE_HALL_OVERVIEW.map((c) => ({ label: c.label, value: c.value })),
     capacity: capacityBlocks(LIVE_HALL_CAPACITY),
     features: [],
     specGroups: specGroups(LIVE_HALL_SPEC_GROUPS),
-    facilityGroups: [],
+    facilityGroups: facilityGroups(LIVE_HALL_FACILITY_GROUPS),
   },
 };
 
@@ -221,12 +226,19 @@ export interface RateColumn {
   name: string;
   /** 표에 세로로 쌓이는 행 값들 — rowLabels 와 순서가 같다 */
   values: string[];
+  /**
+   * 카드 맨 아래 헤어라인 아래에 붙는 [라벨 / 금액] 행 (준비일 추가 · 공연일 추가).
+   * 접혀 있던 [Details] 를 없애면서, 늘 봐야 하는 일 단위 추가 요금만 카드로 올렸다.
+   */
+  extras?: Pair[];
 }
 
 export interface ChargeBlock {
   group: string;
   item: string;
   cost: string;
+  /** 금액에 딸린 단위·조건 (시간당 · 09:00–24:00) — 금액 바로 아래 작게 붙는다 */
+  unit?: string;
   note: string;
 }
 
@@ -296,6 +308,11 @@ export const DEFAULT_RATES_CONTENT: RatesContent = {
       key: r.key,
       name: r.name,
       values: [r.capacity, r.stageType, r.seatingType, won(r.total)],
+      // 일 단위 추가 요금은 카드 하단에 늘 보이게 둔다(옛 Details 의 두 행).
+      extras: [
+        { label: "준비일 추가", value: r.setupChange },
+        { label: "공연일 추가", value: r.showChange },
+      ],
     })),
     detailLabels: [
       "셋업일 전용 사용료",
