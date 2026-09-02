@@ -436,6 +436,20 @@ async function initSchema(pool: Pool) {
       request_ip TEXT
     );
 
+    -- 사업자등록증 첨부파일 판독·대조 결과(2026-09-02). 심사 화면에서 운영자가
+    -- 실행하면 여기 쌓인다.
+    --
+    -- 회사·회원이 아니라 "파일" 을 키로 잡는다. 사업자등록증은 회사 행(companies)에도
+    -- 붙고 합류한 담당자 계정(users)에도 붙는데, 판독 대상은 어느 쪽이든 그 파일 하나다.
+    -- 파일이 새로 올라오면 URL 이 바뀌므로 옛 결과가 새 파일에 잘못 붙는 일이 없다.
+    CREATE TABLE IF NOT EXISTS cert_ocr_results (
+      file_url TEXT PRIMARY KEY,
+      status TEXT NOT NULL,            -- MATCH / PARTIAL / MISMATCH / UNREADABLE / NOT_CERT / ERROR
+      result_json TEXT NOT NULL,       -- CertCheckResult 전문 (항목별 대조 + 판독값)
+      checked_by TEXT REFERENCES users(id),
+      checked_at TIMESTAMPTZ NOT NULL
+    );
+
     -- 본인인증(NICE 통합인증) 시도 이력. 성공 건만이 아니라 실패도 남겨야
     -- "누가 언제 인증했는가"를 되짚을 수 있다. CI/DI 는 암호문으로만 들어간다.
     CREATE TABLE IF NOT EXISTS identity_verifications (
@@ -2255,6 +2269,70 @@ export async function getLatestTermsAgreement(
     [userId, kind],
   );
   return row ? { agreed: row.agreed === 1, agreedAt: row.agreed_at } : null;
+}
+
+// ── 사업자등록증 판독·대조 결과 ─────────────────────────────────────────────
+//
+// 결과 전문은 JSON 문자열로 둔다. 판정 로직(businessCertOcr.ts)이 바뀌면 항목이
+// 늘거나 줄기 때문에 컬럼으로 펼치면 그때마다 스키마를 건드려야 한다. 여기서 필요한
+// 건 "이 파일을 언제 누가 봤고 결과가 무엇이었나" 뿐이라 status 만 컬럼으로 뺐다.
+// 판독 자체는 외부 호출이라 db.ts 는 businessCertOcr.ts 를 import 하지 않는다.
+
+export interface StoredCertOcrResult {
+  fileUrl: string;
+  status: string;
+  /** businessCertOcr.CertCheckResult — 호출부에서 좁혀 쓴다 */
+  result: unknown;
+  checkedBy: string | null;
+  checkedAt: string;
+}
+
+export async function getCertOcrResult(fileUrl: string): Promise<StoredCertOcrResult | null> {
+  const row = await one<{
+    file_url: string;
+    status: string;
+    result_json: string;
+    checked_by: string | null;
+    checked_at: string;
+  }>(
+    `SELECT file_url, status, result_json, checked_by, checked_at
+     FROM cert_ocr_results WHERE file_url = $1`,
+    [fileUrl],
+  );
+  if (!row) return null;
+  let result: unknown = null;
+  try {
+    result = JSON.parse(row.result_json);
+  } catch {
+    // 저장된 JSON 이 깨졌으면 결과 없이 다시 판독하게 둔다.
+    return null;
+  }
+  return {
+    fileUrl: row.file_url,
+    status: row.status,
+    result,
+    checkedBy: row.checked_by,
+    checkedAt: new Date(row.checked_at).toISOString(),
+  };
+}
+
+/** 같은 파일을 다시 판독하면 최신 결과로 덮어쓴다(이력을 쌓을 이유가 없다). */
+export async function saveCertOcrResult(
+  fileUrl: string,
+  status: string,
+  result: unknown,
+  checkedBy: string | null,
+): Promise<void> {
+  await q(
+    `INSERT INTO cert_ocr_results (file_url, status, result_json, checked_by, checked_at)
+     VALUES ($1, $2, $3, $4, now())
+     ON CONFLICT (file_url) DO UPDATE
+       SET status = EXCLUDED.status,
+           result_json = EXCLUDED.result_json,
+           checked_by = EXCLUDED.checked_by,
+           checked_at = EXCLUDED.checked_at`,
+    [fileUrl, status, JSON.stringify(result), checkedBy],
+  );
 }
 
 // ── 본인인증 (NICE 통합인증) ────────────────────────────────────────────────

@@ -2,12 +2,20 @@ import type { ReactNode } from "react";
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { getCurrentUser } from "@/lib/auth";
-import { findCompanyById, findUserById, listQuotes } from "@/lib/db";
+import {
+  findCompanyById,
+  findUserById,
+  getCertOcrResult,
+  listQuotes,
+  listUsersByIds,
+} from "@/lib/db";
+import { isBusinessCertOcrConfigured } from "@/lib/businessCertOcr";
 import { num } from "@/lib/format";
 import type { AppUser, Company, CompanyVerification, Quote } from "@/lib/pricing/types";
 import { ArrowRight, Badge } from "@/components/ui/kit";
 import { AdminNav } from "@/components/admin/AdminNav";
 import { SetCompanyMasterButton } from "@/components/admin/SetCompanyMasterButton";
+import { BusinessCertCheck, type CertCheckView } from "@/components/admin/BusinessCertCheck";
 import { buildVerificationBadges, overallVerdict } from "@/lib/verificationBadges";
 import {
   HELP,
@@ -78,6 +86,21 @@ export default async function AdminApplicantDetailPage({
     ? await listQuotes({ companyId: target.companyId })
     : await listQuotes({ applicantId: target.id });
 
+  // 사업자등록증 자동 대조 결과. 파일 단위로 저장돼 있으므로 회사 첨부와 본인 첨부를
+  // 각각 읽는다. 아직 대조하지 않았으면 null 이고, 화면에서 [대조] 버튼만 뜬다.
+  const companyCertUrl = company?.businessCertUrl ?? null;
+  const [companyCertOcr, userCertOcr] = await Promise.all([
+    companyCertUrl ? getCertOcrResult(companyCertUrl) : Promise.resolve(null),
+    target.businessCertUrl ? getCertOcrResult(target.businessCertUrl) : Promise.resolve(null),
+  ]);
+  const certCheckerIds = [companyCertOcr?.checkedBy, userCertOcr?.checkedBy].filter(
+    (v): v is string => !!v,
+  );
+  const certCheckers = certCheckerIds.length ? await listUsersByIds(certCheckerIds) : [];
+  const certCheckerName = (userId: string | null | undefined) =>
+    userId ? (certCheckers.find((u) => u.id === userId)?.name ?? null) : null;
+  const certOcrConfigured = isBusinessCertOcrConfigured();
+
   const profile: [string, ReactNode][] = [
     ["이름", target.name],
     ["로그인 ID", target.username || NONE],
@@ -130,13 +153,25 @@ export default async function AdminApplicantDetailPage({
       ? ([
           [
             "사업자등록증(본인 첨부)",
-            <a
-              key="user-business-cert"
-              href={`${target.businessCertUrl}${target.businessCertName ? `?name=${encodeURIComponent(target.businessCertName)}` : ""}`}
-              className={LINK_BTN}
-            >
-              {target.businessCertName || "첨부파일"} 열기
-            </a>,
+            <span key="user-business-cert" className="flex flex-col items-start">
+              <a
+                href={`${target.businessCertUrl}${target.businessCertName ? `?name=${encodeURIComponent(target.businessCertName)}` : ""}`}
+                className={LINK_BTN}
+              >
+                {target.businessCertName || "첨부파일"} 열기
+              </a>
+              {/* 회사 첨부와 같은 대조를 여기서도 돌린다. 합류 가입자가 올린 등록증이
+                  회사 행의 것과 다른 회사일 수 있어, 이쪽이야말로 대조가 필요하다. */}
+              {company ? (
+                <BusinessCertCheck
+                  companyId={company.id}
+                  fileUrl={target.businessCertUrl}
+                  configured={certOcrConfigured}
+                  initial={(userCertOcr?.result as CertCheckView | undefined) ?? null}
+                  checkedByName={certCheckerName(userCertOcr?.checkedBy)}
+                />
+              ) : null}
+            </span>,
           ],
         ] as [string, React.ReactNode][])
       : []),
@@ -216,7 +251,14 @@ export default async function AdminApplicantDetailPage({
           </ul>
         </section>
 
-        {company && <BusinessCheckPanel company={company} />}
+        {company && (
+          <BusinessCheckPanel
+            company={company}
+            certOcrConfigured={certOcrConfigured}
+            certOcr={(companyCertOcr?.result as CertCheckView | undefined) ?? null}
+            certCheckedByName={certCheckerName(companyCertOcr?.checkedBy)}
+          />
+        )}
 
         <div className={`mt-10 ${TABLE_CARD}`}>
           <div className={TABLE_HEAD}>
@@ -293,7 +335,17 @@ function VerificationBadge({ verification }: { verification: CompanyVerification
 
 // 입력값과 국세청 등록값을 나란히 놓고 대조한다. 운영자가 승인 전에 볼 화면이라
 // 불일치 항목만 눈에 띄게 하고, 서류는 필요할 때만 열어보게 한다.
-function BusinessCheckPanel({ company }: { company: Company }) {
+function BusinessCheckPanel({
+  company,
+  certOcrConfigured,
+  certOcr,
+  certCheckedByName,
+}: {
+  company: Company;
+  certOcrConfigured: boolean;
+  certOcr: CertCheckView | null;
+  certCheckedByName: string | null;
+}) {
   const verification = company.verification;
   const rows: { label: string; input: string | null; registered: string | null }[] = [
     { label: "상호", input: company.name, registered: verification?.companyName ?? null },
@@ -386,12 +438,24 @@ function BusinessCheckPanel({ company }: { company: Company }) {
       <div className="border-t border-border-soft px-4 py-3.5">
         <p className={HELP}>사업자등록증</p>
         {company.businessCertUrl ? (
-          <a
-            href={`${company.businessCertUrl}${company.businessCertName ? `?name=${encodeURIComponent(company.businessCertName)}` : ""}`}
-            className={`mt-2 inline-block ${LINK_BTN}`}
-          >
-            {company.businessCertName || "첨부파일"} 열기
-          </a>
+          <>
+            <a
+              href={`${company.businessCertUrl}${company.businessCertName ? `?name=${encodeURIComponent(company.businessCertName)}` : ""}`}
+              className={`mt-2 inline-block ${LINK_BTN}`}
+            >
+              {company.businessCertName || "첨부파일"} 열기
+            </a>
+            {/* 첨부된 등록증을 실제로 읽어 가입 입력값과 맞춰 본다(2026-09-02).
+                예전에는 상호가 달라도 화면에 아무 표시가 없어 운영자가 파일을 일일이
+                열어 대조해야 했다. */}
+            <BusinessCertCheck
+              companyId={company.id}
+              fileUrl={company.businessCertUrl}
+              configured={certOcrConfigured}
+              initial={certOcr}
+              checkedByName={certCheckedByName}
+            />
+          </>
         ) : (
           <p className={`mt-2 ${WARN_NOTE}`}>
             미첨부 — 신청자가 직접 입력한 정보로 신청했습니다.

@@ -84,7 +84,6 @@ function PlaceSearch({
   const [places, setPlaces] = useState<PlaceHit[] | null>(null);
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
-  const [available, setAvailable] = useState(true);
 
   async function run() {
     const query = q.trim();
@@ -96,8 +95,12 @@ function PlaceSearch({
     setMessage(null);
     try {
       const res = await fetch(`/api/address/places?q=${encodeURIComponent(query)}`);
+      // [수정 2026-09-02] 예전에는 503(키 미설정)이면 검색줄을 통째로 감췄다. QA 에서
+      // "버튼을 누르니 버튼이 사라지고 아무것도 안 채워진다"로 잡혔다 — 누른 것이
+      // 사라지는 건 고장으로 보인다. 화면은 그대로 두고 대안을 알려 준다.
+      // (평상시에는 서버가 placeSearchEnabled=false 로 이 줄 자체를 렌더하지 않는다.)
       if (res.status === 503) {
-        setAvailable(false);
+        setMessage("법인명 검색은 현재 사용할 수 없습니다. [우편번호 찾기]로 도로명 · 건물명을 찾거나 직접 입력해 주세요.");
         return;
       }
       const data = await res.json();
@@ -115,8 +118,6 @@ function PlaceSearch({
       setBusy(false);
     }
   }
-
-  if (!available) return null;
 
   return (
     <div className="mt-3" data-testid="place-search">
@@ -234,8 +235,12 @@ export function RegisterWizard({
   // 서버에서 읽은 편집 문구. 넘기지 않은 호출부는 기본값으로 돈다 — 문구 하나 때문에
   // 화면이 비지 않게 한다.
   intro = DEFAULT_REGISTER_INTRO,
+  // 법인명 검색은 외부 장소 검색(KAKAO_REST_API_KEY)에 기대므로 환경에 따라 없다.
+  // 켜졌는지를 서버에서 판정해 내려받는다 — 눌러 봐야 아는 버튼을 두지 않기 위해서다.
+  placeSearchEnabled = false,
 }: {
   intro?: RegisterIntroTexts;
+  placeSearchEnabled?: boolean;
 } = {}) {
   const toast = useToast();
   const dialog = useDialog();
@@ -618,6 +623,7 @@ export function RegisterWizard({
       ) : step === 4 ? (
         <StepInfo
           inviteNotice={inviteNotice}
+          placeSearchEnabled={placeSearchEnabled}
           form={form}
           setForm={setForm}
           identity={identity}
@@ -977,6 +983,7 @@ function StepInfo({
   onPrev,
   onSubmit,
   inviteNotice,
+  placeSearchEnabled,
 }: {
   form: FormState;
   setForm: React.Dispatch<React.SetStateAction<FormState>>;
@@ -999,6 +1006,8 @@ function StepInfo({
   onSubmit: () => void;
   /** 초대 링크로 열었을 때의 안내(회사·승인 생략 조건). 일반 가입이면 null. */
   inviteNotice: string | null;
+  /** 법인명 검색(외부 장소 검색)이 이 환경에서 켜져 있는가 */
+  placeSearchEnabled: boolean;
 }) {
   const toast = useToast();
   const [checking, setChecking] = useState<"brn" | "id" | null>(null);
@@ -1321,15 +1330,24 @@ function StepInfo({
                 <input data-testid="f-address" value={form.address} onChange={set("address")} placeholder="회사주소" className={inputCls(false)} />
                 <input data-testid="f-addressDetail" value={form.addressDetail} onChange={set("addressDetail")} placeholder="상세주소 (동 · 층 · 호)" className={inputCls(false)} />
               </div>
-              <PlaceSearch defaultQuery={form.companyName} onPick={(road) => onPostcode(road)} />
+              {placeSearchEnabled ? (
+                <PlaceSearch defaultQuery={form.companyName} onPick={(road) => onPostcode(road)} />
+              ) : null}
               {/* 회사명으로 검색해 놓고 "주소가 없다"고 막히는 일이 잦았다. 무엇으로 찾는
-                  검색인지, 못 찾으면 어떻게 하는지를 검색창 옆이 아니라 여기서 알려 준다. */}
+                  검색인지, 못 찾으면 어떻게 하는지를 검색창 옆이 아니라 여기서 알려 준다.
+                  법인명 검색이 꺼진 환경에서는 그 문장도 빼야 한다 — 없는 버튼을 설명하는
+                  안내가 남아 있으면 그것대로 고장으로 읽힌다(2026-09-02 QA). */}
               <p className="mt-2 break-keep text-xs leading-6 text-muted">
                 <b>우편번호 찾기</b>는 도로명 · 지번 · <b>건물명</b>으로 찾습니다.{" "}
-                <b>법인명으로 찾기</b>는 회사 이름으로 찾습니다 — 장소 정보에 등록된 이름을
-                따르므로, 법인명 그대로 안 나오면 &ldquo;주식회사&rdquo;를 빼거나 줄여서 다시
-                찾아 보세요. 아직 주소가 부여되지 않은 신축 건물처럼 어느 쪽으로도 나오지 않으면
-                우편번호와 회사주소를 직접 입력해 주세요.
+                {placeSearchEnabled ? (
+                  <>
+                    <b>법인명으로 찾기</b>는 회사 이름으로 찾습니다 — 장소 정보에 등록된 이름을
+                    따르므로, 법인명 그대로 안 나오면 &ldquo;주식회사&rdquo;를 빼거나 줄여서 다시
+                    찾아 보세요.{" "}
+                  </>
+                ) : null}
+                아직 주소가 부여되지 않은 신축 건물처럼 어느 쪽으로도 나오지 않으면 우편번호와
+                회사주소를 직접 입력해 주세요.
               </p>
             </>
           )}
