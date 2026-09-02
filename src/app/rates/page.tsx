@@ -8,8 +8,8 @@ import type {
   RateIncludeGroup,
   VenueRateContent,
 } from "@/lib/content/pageContent";
-import { SPECIAL_VENUE_ID } from "@/lib/pricing/types";
-import { venueLabel } from "@/lib/content/venueLabels";
+import { MID_HALL_VENUE_ID, SPECIAL_VENUE_ID } from "@/lib/pricing/types";
+import { venueLabel, venueRateTab } from "@/lib/content/venueLabels";
 import { PublicHeader } from "@/components/PublicHeader";
 import { SiteFooter } from "@/components/ui/SiteFooter";
 import { QueryTabs } from "@/components/ui/QueryTabs";
@@ -61,8 +61,10 @@ function RateCards({ rowLabels, columns }: { rowLabels: string[]; columns: RateC
                   {col.values[0] ?? ""}
                 </p>
                 <div className="mt-4 flex-1 space-y-1">
+                  {/* [수정 2026-09-02] 운영자가 여러 줄로 넣은 설명은 여러 줄로 나간다 —
+                      입력칸은 여러 줄인데 화면에서 한 줄로 이어 붙던 자리다. */}
                   {col.values.slice(1, priceIndex).map((v, i) => (
-                    <p key={`${v}-${i}`} className="break-keep text-s text-muted">
+                    <p key={`${v}-${i}`} className="whitespace-pre-line break-keep text-s text-muted">
                       {v}
                     </p>
                   ))}
@@ -71,7 +73,7 @@ function RateCards({ rowLabels, columns }: { rowLabels: string[]; columns: RateC
             )}
             <dl className={`border-t border-border pt-4 ${hasSpecRows ? "mt-6" : "mt-6 flex-1"}`}>
               <dt className="text-xs font-bold text-muted">{rowLabels[priceIndex]}</dt>
-              <dd className="type-display mt-1 break-keep text-h5-m normal-case tabular-nums sm:text-h5">
+              <dd className="type-display mt-1 whitespace-pre-line break-keep text-h5-m normal-case tabular-nums sm:text-h5">
                 {col.values[priceIndex] ?? ""}
               </dd>
             </dl>
@@ -82,8 +84,10 @@ function RateCards({ rowLabels, columns }: { rowLabels: string[]; columns: RateC
                     key={`${e.label}-${i}`}
                     className="flex flex-wrap items-baseline justify-between gap-x-3"
                   >
-                    <dt className="text-xs text-muted">{e.label}</dt>
-                    <dd className="break-keep text-s font-bold tabular-nums">{e.value}</dd>
+                    <dt className="whitespace-pre-line text-xs text-muted">{e.label}</dt>
+                    <dd className="whitespace-pre-line break-keep text-s font-bold tabular-nums">
+                      {e.value}
+                    </dd>
                   </div>
                 ))}
               </dl>
@@ -110,8 +114,8 @@ function IncludeCard({ group }: { group: RateIncludeGroup }) {
             key={`${r.label}-${i}`}
             className="grid gap-1 border-b border-border py-4 last:border-b-0 sm:grid-cols-2 sm:gap-6"
           >
-            <dt className="break-keep text-s font-bold">{r.label}</dt>
-            <dd className="break-keep text-s text-muted">{r.value}</dd>
+            <dt className="whitespace-pre-line break-keep text-s font-bold">{r.label}</dt>
+            <dd className="whitespace-pre-line break-keep text-s text-muted">{r.value}</dd>
           </div>
         ))}
       </dl>
@@ -150,12 +154,18 @@ function ChargeTable({ rows }: { rows: ChargeBlock[] }) {
                   key={`${r.item}-${i}`}
                   className="grid gap-1 border-b border-border py-4 sm:grid-cols-4 sm:gap-6"
                 >
-                  <dt className="break-keep text-s font-bold">{r.item}</dt>
-                  <dd className="break-keep text-s tabular-nums">
+                  <dt className="whitespace-pre-line break-keep text-s font-bold">{r.item}</dt>
+                  <dd className="whitespace-pre-line break-keep text-s tabular-nums">
                     {r.cost}
-                    {r.unit && <span className="mt-1 block text-xs text-muted">{r.unit}</span>}
+                    {r.unit && (
+                      <span className="mt-1 block whitespace-pre-line text-xs text-muted">
+                        {r.unit}
+                      </span>
+                    )}
                   </dd>
-                  <dd className="break-keep text-s text-muted sm:col-span-2">{r.note}</dd>
+                  <dd className="whitespace-pre-line break-keep text-s text-muted sm:col-span-2">
+                    {r.note}
+                  </dd>
                 </div>
               ))}
           </dl>
@@ -244,6 +254,9 @@ export default async function RatesPage() {
     getScreenTextContent(),
   ]);
   const specialLabel = venueLabel(SPECIAL_VENUE_ID, screenText.wizardStrings);
+  // 투뎁스(요금표) 탭은 영문 표기다 — ARENA / Live Hall / All in One.
+  // 운영자가 문구 관리에서 탭마다 따로 바꾼다(공간 이름과 별개 key).
+  const rateTab = (venueId: string) => venueRateTab(venueId, screenText.wizardStrings);
 
   return (
     <div className="flex flex-1 flex-col">
@@ -260,20 +273,28 @@ export default async function RatesPage() {
           items={[
             ...VENUE_TABS.map((t) => ({
               value: t.value,
-              label: t.label,
+              label: t.value === "arena" ? rateTab("arena") : rateTab(MID_HALL_VENUE_ID),
               panel:
                 t.value === "arena" ? (
-                  <RatePanel en="ARENA RATES" ko="아레나 대관료" c={content.arena} />
+                  <RatePanel
+                    en={`${rateTab("arena")} RATE`}
+                    ko={`${venueLabel("arena", screenText.wizardStrings)} 대관료`}
+                    c={content.arena}
+                  />
                 ) : (
-                  <RatePanel en="LIVE HALL RATES" ko="중형공연장 대관료" c={content.liveHall} />
+                  <RatePanel
+                    en={`${rateTab(MID_HALL_VENUE_ID)} RATE`}
+                    ko={`${venueLabel(MID_HALL_VENUE_ID, screenText.wizardStrings)} 대관료`}
+                    c={content.liveHall}
+                  />
                 ),
             })),
             {
               value: "special",
-              label: specialLabel,
+              label: rateTab(SPECIAL_VENUE_ID),
               panel: (
                 <RatePanel
-                  en="PACKAGE RATES"
+                  en={`${rateTab(SPECIAL_VENUE_ID)} RATE`}
                   ko={`${specialLabel} 대관료`}
                   c={content.special ?? EMPTY_VENUE_RATE_CONTENT}
                 />

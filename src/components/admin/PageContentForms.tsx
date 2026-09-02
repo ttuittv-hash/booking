@@ -27,7 +27,12 @@ import {
 import { HELP } from "./adminUi";
 import { RuleBodyEditor } from "./RuleBodyEditor";
 import { SPECIAL_VENUE_ID, VENUES } from "@/lib/pricing/types";
-import { defaultVenueName, venueLabelKey } from "@/lib/content/venueLabels";
+import {
+  defaultVenueName,
+  defaultVenueRateTab,
+  venueLabelKey,
+  venueRateTabKey,
+} from "@/lib/content/venueLabels";
 
 /* ============================================================================
    페이지별 콘텐츠 편집 폼.
@@ -423,7 +428,8 @@ function RateTableFields({
       />
 
       <StringList
-        label="요금표 행 이름"
+        label="요금표 항목 (행) 추가·삭제"
+        help="항목 이름은 아래 각 열 안에서도 고칠 수 있습니다 — 이름은 모든 열이 함께 씁니다."
         items={value.rowLabels}
         onChange={(next) => setRowLabels(next, "rowLabels")}
         addLabel="+ 행 추가"
@@ -444,16 +450,34 @@ function RateTableFields({
         render={(it, patch) => (
           <div className="space-y-2">
             <Text label="열 이름" value={it.name} onChange={(name) => patch({ name })} />
+            {/* [신규 2026-09-02] 항목 이름을 값 바로 위에서 고친다. 예전에는 위쪽
+                「요금표 행 이름」 목록에서만 바꿀 수 있어, 값을 보면서 이름을 못 고쳤다.
+                이름은 모든 열이 함께 쓰는 값이라 한 곳만 고쳐도 전부 바뀐다. */}
             {value.rowLabels.map((rl, ri) => (
-              <Area
-                key={ri}
-                label={rl}
-                rows={2}
-                value={it.values[ri] ?? ""}
-                onChange={(nv) =>
-                  patch({ values: value.rowLabels.map((_, k) => (k === ri ? nv : it.values[k] ?? "")) })
-                }
-              />
+              <div key={ri} className="border-l-2 border-border-soft pl-3">
+                <Text
+                  label={`항목 ${ri + 1} 이름 (모든 열 공통)`}
+                  value={rl}
+                  onChange={(nextLabel) =>
+                    setRowLabels(
+                      value.rowLabels.map((v, k) => (k === ri ? nextLabel : v)),
+                      "rowLabels",
+                    )
+                  }
+                />
+                <div className="mt-2">
+                  <Area
+                    label={rl || `항목 ${ri + 1}`}
+                    rows={2}
+                    value={it.values[ri] ?? ""}
+                    onChange={(nv) =>
+                      patch({
+                        values: value.rowLabels.map((_, k) => (k === ri ? nv : it.values[k] ?? "")),
+                      })
+                    }
+                  />
+                </div>
+              </div>
             ))}
             {/* [신규 2026-09-02] 카드 맨 아래 헤어라인 밑에 붙는 행(준비일 추가 · 공연일 추가).
                 화면에는 나가는데 편집할 자리가 없어 금액도 문구도 못 고쳤다. */}
@@ -739,6 +763,28 @@ export function ScreenTextForm({ content }: { content: ScreenTextContent }) {
                 onChange={(name) =>
                   patch({
                     wizardStrings: { ...v.wizardStrings, [venueLabelKey(venue.id)]: name },
+                  })
+                }
+              />
+            ))}
+          </Section>
+
+          {/* [신규 2026-09-02] 대관료 페이지의 투뎁스 탭만 영문 표기를 쓴다
+              (ARENA / Live Hall / All in One). 공간 이름과 같은 값을 쓰면 위저드까지
+              영문이 되므로 key 를 따로 둔다. */}
+          <Section
+            title="대관료 페이지 탭 이름"
+            help="대관료 화면 위쪽 토글에만 쓰는 이름입니다. 비워 두면 ARENA · Live Hall · All in One 으로 나갑니다."
+          >
+            {VENUES.map((venue) => (
+              <Text
+                key={venue.id}
+                label={`${defaultVenueName(venue.id)} 탭 (${venue.id})`}
+                placeholder={defaultVenueRateTab(venue.id)}
+                value={v.wizardStrings[venueRateTabKey(venue.id)] ?? ""}
+                onChange={(name) =>
+                  patch({
+                    wizardStrings: { ...v.wizardStrings, [venueRateTabKey(venue.id)]: name },
                   })
                 }
               />

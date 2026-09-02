@@ -204,11 +204,18 @@ export async function POST(request: Request) {
       );
     }
     // 인증 시점 이후에 같은 명의로 가입이 끼어들 수 있으므로 여기서 한 번 더 본다.
-    if (await findUserByDi(identity.di)) {
-      return NextResponse.json(
-        { error: "이미 가입된 명의입니다. 아이디 찾기로 진행해주세요." },
-        { status: 409 },
-      );
+    // 반려된 계정이면 이메일·휴대폰과 같은 규칙으로 자리를 비워 주고 계속 진행한다 —
+    // di_index 는 유니크라 비우지 않으면 INSERT 자체가 실패한다.
+    const existingByDi = await findUserByDi(identity.di);
+    if (existingByDi) {
+      if (existingByDi.approvalStatus === "REJECTED") {
+        await freeRejectedIdentity(existingByDi.id);
+      } else {
+        return NextResponse.json(
+          { error: "이미 가입된 명의입니다. 아이디 찾기로 진행해주세요." },
+          { status: 409 },
+        );
+      }
     }
   }
 

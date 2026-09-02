@@ -19,10 +19,14 @@ import {
   splitRuleBody,
   type RuleBodyBlock,
 } from "@/lib/content/ruleBodyBlocks";
-import { FIELD, HELP, LINK_BTN, REMOVE_BTN } from "@/components/admin/adminUi";
+import { HELP, LINK_BTN, REMOVE_BTN } from "@/components/admin/adminUi";
 
 const CELL =
   "w-full min-w-28 border border-border-soft bg-background px-2 py-1.5 text-xs outline-none focus:border-foreground";
+/* 글 상자 — 문서 한 장처럼 보이도록 테두리를 지운다. 블록마다 상자를 두르면 표가
+   본문에서 떨어져 나온 것처럼 읽힌다. */
+const DOC_TEXT =
+  "w-full resize-none border-0 bg-transparent px-4 py-2 text-s leading-6 outline-none focus:ring-0";
 const MINI_BTN =
   "inline-flex h-7 items-center border border-border-soft px-2 text-xs text-muted transition-colors hover:border-foreground hover:text-foreground";
 
@@ -169,34 +173,41 @@ export function RuleBodyEditor({
         {error && <span className="text-xs text-danger">{error}</span>}
       </div>
       <p className={HELP}>
-        방금 손댄 자리 아래에 표가 들어갑니다. 표는 조(제N조) 안에 있어야 화면에 나옵니다.
+        커서를 둔 자리에 표가 들어갑니다. 표는 조(제N조) 안에 있어야 화면에 나옵니다.
       </p>
 
-      {blocks.map((block, i) =>
-        block.kind === "text" ? (
-          <textarea
-            key={i}
-            ref={(el) => {
-              textRefs.current[i] = el;
-            }}
-            rows={Math.min(30, Math.max(6, block.text.split("\n").length + 1))}
-            value={block.text}
-            onFocus={() => setFocused(i)}
-            onChange={(e) => replaceBlock(i, { kind: "text", text: e.target.value })}
-            className={`${FIELD} h-auto whitespace-pre leading-6`}
-            spellCheck={false}
-          />
-        ) : (
-          <TableBlock
-            key={i}
-            block={block}
-            onChange={(next) => replaceBlock(i, next)}
-            onRemove={() => removeBlock(i)}
-            onMove={(d) => moveBlock(i, d)}
-            onFocus={() => setFocused(i)}
-          />
-        ),
-      )}
+      {/* 글과 표를 한 상자 안에 이어 붙인다 — 문서 한 장처럼 보여야 표가 규약 "안에"
+          들어간 것으로 읽힌다. 블록마다 테두리를 두르면 표가 본문에서 떨어져 나온
+          조각처럼 보인다(2026-09-02). */}
+      <div className="border border-border-soft bg-background py-2">
+        {blocks.map((block, i) =>
+          block.kind === "text" ? (
+            <textarea
+              key={i}
+              ref={(el) => {
+                textRefs.current[i] = el;
+              }}
+              // 조각난 글은 짧다 — 최소 높이를 크게 잡으면 표 앞에 빈 자리가 생겨
+              // 표가 멀리 떨어져 보인다. 내용 줄 수에 맞춘다.
+              rows={Math.min(40, Math.max(1, block.text.split("\n").length))}
+              value={block.text}
+              onFocus={() => setFocused(i)}
+              onChange={(e) => replaceBlock(i, { kind: "text", text: e.target.value })}
+              className={`${DOC_TEXT} whitespace-pre`}
+              spellCheck={false}
+            />
+          ) : (
+            <TableBlock
+              key={i}
+              block={block}
+              onChange={(next) => replaceBlock(i, next)}
+              onRemove={() => removeBlock(i)}
+              onMove={(d) => moveBlock(i, d)}
+              onFocus={() => setFocused(i)}
+            />
+          ),
+        )}
+      </div>
     </div>
   );
 }
@@ -242,7 +253,8 @@ function TableBlock({
     patch({ head: block.head.slice(0, -1), rows: block.rows.map((row) => row.slice(0, -1)) });
 
   return (
-    <div className="border border-border-soft bg-panel p-3" onFocus={onFocus}>
+    // 본문 흐름 안의 표 — 좌우 여백을 글과 맞추고 위아래 헤어라인으로만 구분한다.
+    <div className="my-2 border-y border-border-soft bg-panel px-4 py-3" onFocus={onFocus}>
       <div className="mb-2 flex flex-wrap items-center gap-2">
         <span className="text-xs font-bold">표</span>
         <button type="button" onClick={addRow} className={MINI_BTN}>

@@ -164,16 +164,19 @@ export function StringList({
   onChange,
   placeholder,
   addLabel = "+ 항목 추가",
+  help,
 }: {
   label?: string;
   items: string[];
   onChange: (items: string[]) => void;
   placeholder?: string;
   addLabel?: string;
+  help?: string;
 }) {
   return (
     <div>
       {label && <span className={FIELD_LABEL}>{label}</span>}
+      {help && <p className={`mb-2 ${HELP}`}>{help}</p>}
       <div className="space-y-2">
         {items.map((item, i) => (
           <div key={i} className="flex items-center gap-2">

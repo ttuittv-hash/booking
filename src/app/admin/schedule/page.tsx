@@ -28,9 +28,11 @@ export default async function AdminSchedulePage() {
           </p>
         </header>
 
-        <ScheduleManager initialYear={now.getFullYear()} initialMonth={now.getMonth() + 1} />
-
+        {/* [수정 2026-09-02] 달력보다 위에 둔다. 달력 + 날짜별 설정이 길어 아래에 두면
+            화면 밖이라, 기능이 없는 것으로 읽혔다. */}
         <NoticeCalendarWindowForm initial={calendarWindow} nowLocal={kstNowLocal(now)} />
+
+        <ScheduleManager initialYear={now.getFullYear()} initialMonth={now.getMonth() + 1} />
       </main>
     </div>
   );

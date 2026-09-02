@@ -2875,8 +2875,15 @@ export async function findUserByEmailWithPasswordHash(
 // 안 그러면 탈퇴 후 같은 번호로 재가입할 때마다 "이미 가입된 번호"로 막힌다
 // (2026-08-26, "탈퇴를 하고 다시 가입하려고 해도 이미 가입되어있는 번호라고 경고").
 export async function findUserByPhone(phone: string): Promise<AppUser | undefined> {
+  // 반려된 계정은 번호가 그대로 남는다(운영자 화면에서 이력을 봐야 하므로). 같은 번호에
+  // 반려 이력과 살아 있는 계정이 함께 있으면 **살아 있는 쪽**을 돌려줘야 한다 —
+  // 이 함수는 "이 번호로 또 가입해도 되는가"를 묻는 자리에서만 쓰이는데, 반려 행이
+  // 먼저 잡히면 이미 가입한 사람이 한 번 더 가입할 수 있었다(ORDER BY 없는 LIMIT 1).
   const row = await one<UserRow>(
-    "SELECT * FROM users WHERE phone = $1 AND withdrawn_at IS NULL",
+    `SELECT * FROM users
+      WHERE phone = $1 AND withdrawn_at IS NULL
+      ORDER BY (approval_status = 'REJECTED'), created_at DESC
+      LIMIT 1`,
     [phone.trim()],
   );
   return row ? toAppUser(row) : undefined;
@@ -3131,11 +3138,22 @@ export async function withdrawUser(id: string, withdrawnAt: string) {
 // 아니라 "재신청 가능" 상태이므로 계정 자체는 남아 있되 새 가입에 자리만 내준다.
 // 이미 비운 행을 다시 비워도 안전하도록 approval_status·email 접두어를 조건에 건다.
 export async function freeRejectedIdentity(id: string): Promise<void> {
+  // [수정 2026-09-02] di_index 도 같이 비운다. 반려된 사람이 다시 가입하려 하면 본인인증
+  // 단계에서 "이미 가입된 명의입니다" 로 막혔는데(di_index 는 유니크), 반려는 가입이 아니다.
+  // 아이디·이메일만 비우던 예전 판은 이 검사에 걸려 재가입이 끝내 안 됐다.
+  //
+  // 한 번에 두 번 불릴 수 있어(이메일·휴대폰·명의 각각의 갈래) 여러 번 불러도 같은
+  // 결과가 되게 쓴다 — 예전 WHERE 의 `email NOT LIKE 'rejected+%'` 는 두 번째 호출을
+  // 통째로 건너뛰어, 이메일로 먼저 풀린 계정의 di_index 가 남는 구멍이 있었다.
   await q(
     `UPDATE users
         SET username = NULL,
-            email = 'rejected+' || id || '+' || email
-      WHERE id = $1 AND approval_status = 'REJECTED' AND email NOT LIKE 'rejected+%' AND email NOT LIKE 'withdrawn+%'`,
+            email = CASE
+                      WHEN email LIKE 'rejected+%' OR email LIKE 'withdrawn+%' THEN email
+                      ELSE 'rejected+' || id || '+' || email
+                    END,
+            di_index = NULL
+      WHERE id = $1 AND approval_status = 'REJECTED'`,
     [id],
   );
 }

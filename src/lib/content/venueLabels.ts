@@ -27,3 +27,29 @@ export function venueLabel(venueId: string, overrides?: Record<string, string>):
   const custom = overrides?.[venueLabelKey(venueId)]?.trim();
   return custom || defaultVenueName(venueId);
 }
+
+/**
+ * 대관료 페이지(투뎁스) 탭 이름 (2026-09-02).
+ *
+ * 대관료 화면의 토글만 영문 표기를 쓴다 — 위저드·신청 내역은 한글 공간 이름 그대로다.
+ * 그래서 `venue.<id>.name` 과는 다른 key 를 둔다. 하나만 고쳐도 다른 화면이 따라
+ * 바뀌면 안 되기 때문이다.
+ */
+export function venueRateTabKey(venueId: string): string {
+  return `venue.${venueId}.rateTab`;
+}
+
+const DEFAULT_RATE_TAB: Record<string, string> = {
+  arena: "ARENA",
+  "medium-hall": "Live Hall",
+  "special-hall": "All in One",
+};
+
+export function defaultVenueRateTab(venueId: string): string {
+  return DEFAULT_RATE_TAB[venueId] ?? defaultVenueName(venueId);
+}
+
+export function venueRateTab(venueId: string, overrides?: Record<string, string>): string {
+  const custom = overrides?.[venueRateTabKey(venueId)]?.trim();
+  return custom || defaultVenueRateTab(venueId);
+}

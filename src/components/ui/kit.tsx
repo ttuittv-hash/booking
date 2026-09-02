@@ -793,7 +793,9 @@ export function StatCards({
           >
             {it.value}
           </p>
-          {it.note && <p className="mt-3 break-keep text-s text-muted">{it.note}</p>}
+          {it.note && (
+            <p className="mt-3 whitespace-pre-line break-keep text-s text-muted">{it.note}</p>
+          )}
         </li>
       ))}
     </ul>
