@@ -356,11 +356,14 @@ export const STAGE_TYPE_LABEL: Record<StageType, string> = {
   OTHER: "기타",
 };
 
-export type SeatingType = "SEATED" | "STANDING" | "OTHER";
+// [개정 2026-09-02] "객석"을 "지정석"으로 고치고 "혼합"을 더했다 — 아레나는 한 공연
+// 안에서 플로어는 스탠딩, 2·3층은 지정석으로 파는 경우가 흔한데 고를 값이 없었다.
+export type SeatingType = "SEATED" | "STANDING" | "MIXED" | "OTHER";
 
 export const SEATING_TYPE_LABEL: Record<SeatingType, string> = {
-  SEATED: "객석",
+  SEATED: "지정석",
   STANDING: "스탠딩",
+  MIXED: "혼합",
   OTHER: "기타",
 };
 
@@ -369,6 +372,18 @@ export type RetractableSeatUse = "USE" | "NOT_USE";
 export const RETRACTABLE_SEAT_USE_LABEL: Record<RetractableSeatUse, string> = {
   USE: "사용",
   NOT_USE: "미사용",
+};
+
+/**
+ * 수납식 객석은 1층·3층에 따로 있고 층마다 쓰고 안 쓰고가 갈린다 (2026-09-02).
+ * 위의 retractableSeatUse 는 "쓰긴 쓰는가" 를 묻는 상위 답이고, [사용] 을 고른 뒤
+ * 층별로 다시 받는다. [미사용] 이면 층별 값은 비운다.
+ */
+export type RetractableSeatFloor = "FLOOR_1" | "FLOOR_3";
+
+export const RETRACTABLE_SEAT_FLOOR_LABEL: Record<RetractableSeatFloor, string> = {
+  FLOOR_1: "1층 수납식 객석",
+  FLOOR_3: "3층 수납식 객석",
 };
 
 // [화면 뼈대 2026-08-18, 화면시나리오 SCREEN 06/12 · 08/12] STEP 3-1(신청자 정보 · 공연
@@ -590,6 +605,8 @@ export interface PerformanceInfo {
   // optional — 객석형태 "기타" 선택 시 상세 설명(2026-08-26 추가)
   seatingTypeOtherDetail?: string;
   retractableSeatUse: RetractableSeatUse | null; // 수납식 객석 사용여부
+  // optional — 위에서 [사용]을 고른 경우 층별 사용여부(2026-09-02). 예전 신청서에는 없다.
+  retractableSeatFloorUse?: Partial<Record<RetractableSeatFloor, RetractableSeatUse>>;
   teardownCompletionTime: string; // 철수 완료 예정시간
   ticketOpenExpectedDate: string; // 티켓 오픈 예정일
 

@@ -22,6 +22,22 @@ const CORE_LINE_IDS = new Set([
   "midhall_cleaning",
 ]);
 
+/**
+ * 신청자 화면(우측 실시간 내역)에서 줄로 보여주지 않는 항목 (2026-09-02).
+ *
+ * 청소비는 신청자가 고르는 항목이 아니라 예상 관객수로 자동 산출되는 값이다. 그런데
+ * 계약 내역에 제 줄로 서 있어서 "이건 왜 여기만 따로 있느냐"는 물음이 반복됐다 —
+ * 유틸리티(utility_bundle)와 성격이 같으므로 같이 감춘다.
+ *
+ * **합계에서 빼는 게 아니다.** quote.subtotal/total 은 전체 lineItems 로 이미 계산돼
+ * 있고, 운영자 화면은 언제나 전체 내역을 그대로 본다(기능정의서 2-71).
+ */
+export const APPLICANT_HIDDEN_LINE_IDS = new Set(["cleaning", "midhall_cleaning"]);
+
+export function isHiddenFromApplicant(item: LineItem): boolean {
+  return item.visibility === "HIDDEN" || APPLICANT_HIDDEN_LINE_IDS.has(item.addonId);
+}
+
 function isCoreLine(item: LineItem): boolean {
   return CORE_LINE_IDS.has(item.addonId) || item.addonId.startsWith("midhall_show_");
 }

@@ -12,6 +12,7 @@ import type { WizardStepTexts } from "@/lib/content/pageContent";
 import {
   DEFAULT_VENUE_ID,
   EVENT_TYPE_LABEL,
+  RETRACTABLE_SEAT_FLOOR_LABEL,
   RETRACTABLE_SEAT_USE_LABEL,
   SEATING_TYPE_LABEL,
   STAGE_TYPE_LABEL,
@@ -19,6 +20,7 @@ import {
   type EstimatedQuote,
   type QuoteSelection,
   type RateTable,
+  type RetractableSeatFloor,
 } from "@/lib/pricing/types";
 
 function midHallSummaryLine(selection: QuoteSelection): string | null {
@@ -256,6 +258,16 @@ export function Step6Submit({
             <dt className="text-muted">{t("submit.retractableSeatUseLabel", "수납식 객석 사용여부")}</dt>
             <dd className="font-bold">
               {info.retractableSeatUse ? RETRACTABLE_SEAT_USE_LABEL[info.retractableSeatUse] : "-"}
+              {/* [사용]이면 층별 답까지 보여 준다 — 어느 층을 펴는지가 객석 구성을 가른다(2026-09-02) */}
+              {info.retractableSeatUse === "USE" && info.retractableSeatFloorUse
+                ? ` (${(Object.keys(RETRACTABLE_SEAT_FLOOR_LABEL) as RetractableSeatFloor[])
+                    .filter((floor) => info.retractableSeatFloorUse?.[floor])
+                    .map(
+                      (floor) =>
+                        `${RETRACTABLE_SEAT_FLOOR_LABEL[floor]} ${RETRACTABLE_SEAT_USE_LABEL[info.retractableSeatFloorUse![floor]!]}`,
+                    )
+                    .join(" · ")})`
+                : ""}
             </dd>
           </div>
         </dl>
