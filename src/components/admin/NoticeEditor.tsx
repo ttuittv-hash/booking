@@ -25,6 +25,11 @@ import { FIELD_SM } from "./adminUi";
  */
 const NOTICE_RICH_TEXT = [
   "[&_p]:mt-0",
+  // 공개 화면과 같은 절 머리 — 영문 눈썹(<span>)이 국문 제목 위로 떨어진다.
+  // 편집기에서 한 줄로 붙어 보이면 운영자가 저장 전에 결과를 알 수 없다.
+  "[&_h2]:mt-5 [&_h2]:text-s [&_h2]:font-bold",
+  "[&_h2>span:first-child]:mb-1 [&_h2>span:first-child]:block [&_h2>span:first-child]:text-2xs [&_h2>span:first-child]:uppercase [&_h2>span:first-child]:tracking-[0.14em] [&_h2>span:first-child]:text-muted",
+  "[&_h3]:mt-4 [&_h3]:text-s [&_h3]:font-bold",
   "[&_strong]:font-bold [&_em]:italic",
   "[&_ul]:mt-4 [&_ul]:list-disc [&_ul]:pl-5 [&_ol]:mt-4 [&_ol]:list-decimal [&_ol]:pl-5 [&_li]:mt-1",
   "[&_a]:underline [&_a]:decoration-1 [&_a]:underline-offset-4",

@@ -10,7 +10,9 @@ describe("첫 공지 시드", () => {
   it("표와 소제목이 살아남는다", () => {
     expect(clean).toContain("<table>");
     expect(clean).toContain("<th>신청 자격</th>");
-    expect(clean).toContain("<h2>01 OVERVIEW — 공고 개요</h2>");
+    // 절 제목은 [영문 눈썹 + 국문 제목] 두 줄 구조다 — 이 형태라야 화면에서
+    // 원본 문서처럼 눈썹이 위로 떨어진다(PROSE 의 h2>span 규칙).
+    expect(clean).toContain("<h2><span>01 OVERVIEW</span>공고 개요</h2>");
     expect(clean).toContain("<h3>아레나 대관료</h3>");
   });
 

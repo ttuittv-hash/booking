@@ -44,19 +44,28 @@ function formatDateTime(iso: string): string {
 const PROSE = [
   /*
     [개정 2026-09-02] 첨부해 주신 보고서(2027 대관 계획 PDF)의 조판을 옮겼다.
-    그 문서에서 뽑은 실제 값: 제목 20pt · 소제목 14pt · 본문 9pt · 표/각주 7~8.5pt,
-    괘선은 0.5~0.75pt 헤어라인 하나뿐이고 색면·박스·음영은 한 군데도 쓰지 않는다.
+    그 문서에서 뽑은 실제 값: 제목 24/20pt · 절 제목 14pt(위에 영문 눈썹 9pt) ·
+    본문 9~9.5pt · 표 8~8.5pt · 각주 7pt. 괘선은 0.53~0.75pt 한 겹(#DDD)뿐이고,
+    쓰는 색면은 **지면(#F2F0EF) 위의 흰 표 면(#FFF)** 하나다.
     (본문 9pt 는 A4 기준이라 화면에서는 16px 로 옮기고, 위계 비율만 그대로 가져온다.)
 
-    그래서 이 화면의 규칙은 세 줄이다.
-      · 구조는 헤어라인으로만 만든다 — 테두리 상자도, 배경 색면도 쓰지 않는다.
-      · 소제목은 그 위의 가로선에 얹힌다. 선이 곧 절 구분이다.
-      · 표는 세로선을 긋지 않는다. 머리행만 굵은 선으로 눌러 준다.
+    그래서 이 화면의 규칙은 네 줄이다.
+      · 구조는 헤어라인으로만 만든다 — 그림자도 라운딩도 없다.
+      · 절 제목은 [영문 눈썹 + 국문 제목] 두 줄이고, 위의 가로선에 얹힌다.
+      · 표는 지면 위에 흰 면으로 얹고, 세로선을 긋지 않는다. 머리행만 굵은 선으로.
+      · 표 바로 아래 한 줄은 각주다 — 한 단 더 작고 옅게.
   */
   "whitespace-pre-line break-keep text-[1rem] leading-[1.8] tracking-[-0.005em] text-muted-strong",
 
   "[&_p]:my-5 [&_p:first-child]:mt-0 [&_p:last-child]:mb-0",
   "[&_p:empty]:hidden",
+
+  /*
+    [개정 2026-09-02] 원본 문서(Pages)의 절 머리를 그대로 옮긴다 — 작은 영문 눈썹
+    (01 OVERVIEW, 9pt 상당) 아래에 국문 제목(14pt 상당)이 오는 두 줄 구조다.
+    `<h2><span>01 OVERVIEW</span>공고 개요</h2>` 처럼 쓰면 이 규칙이 걸린다.
+  */
+  "[&_h2>span:first-child]:mb-1.5 [&_h2>span:first-child]:block [&_h2>span:first-child]:text-xs [&_h2>span:first-child]:font-bold [&_h2>span:first-child]:uppercase [&_h2>span:first-child]:tracking-[0.14em] [&_h2>span:first-child]:text-muted [&_h2>span:first-child]:[font-family:Archivo,sans-serif]",
 
   // 소제목 — 위에 헤어라인을 깔고 그 위에 얹는다(보고서의 절 구분)
   "[&_h2]:type-kr-heading [&_h2]:mt-14 [&_h2]:mb-5 [&_h2]:border-t [&_h2]:border-foreground [&_h2]:pt-5 [&_h2]:text-h6-m [&_h2]:tracking-[-0.02em] [&_h2]:text-foreground sm:[&_h2]:text-h6",
@@ -78,9 +87,12 @@ const PROSE = [
 
   "[&_img]:my-10 [&_img]:w-full",
 
-  // 표 — 세로선 없이 가로 헤어라인만. 숫자가 자리를 맞추도록 tabular.
-  // 본문보다 한 단 작게 두는 것도 원본과 같다(본문 9pt / 표 7.5~8.5pt).
-  "[&_table]:my-7 [&_table]:w-auto [&_table]:min-w-full [&_table]:border-collapse [&_table]:text-s [&_table]:leading-6 [&_table]:tabular-nums",
+  /*
+    표 — 원본은 따뜻한 회백색 지면 위에 **흰 면**으로 얹혀 있다(PDF 실측: 지면
+    #F2F0EF · 표 면 #FFF · 괘선 #DDD 0.53~0.75pt). 우리 토큰으로는 지면이
+    background, 흰 면이 panel, 괘선이 border-soft 다.
+  */
+  "[&_table]:my-7 [&_table]:w-auto [&_table]:min-w-full [&_table]:border-collapse [&_table]:bg-panel [&_table]:text-s [&_table]:leading-6 [&_table]:tabular-nums",
   "[&_thead]:border-y [&_thead]:border-foreground",
   "[&_th]:px-3 [&_th]:py-2.5 [&_th]:text-left [&_th]:font-bold [&_th]:text-foreground",
   // 머리행이 아니라 **행 이름**으로 쓴 th(왼쪽 첫 칸) — 값 열이 들쭉날쭉하지 않게
