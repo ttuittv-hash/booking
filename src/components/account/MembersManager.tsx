@@ -484,8 +484,16 @@ export function MembersManager({ currentUserId }: { currentUserId: string }) {
 
       <section className="mt-12">
         <h2 className="text-s font-bold">담당자 초대</h2>
-        <p className="mt-2 text-s text-muted">
+        <p className="mt-2 break-keep text-s leading-6 text-muted">
           초대 링크를 받은 분이 직접 본인인증을 하고 비밀번호를 설정합니다. 유효기간은 7일입니다.
+        </p>
+        {/* [신규 2026-09-02] 링크는 전달된다 — 초대받은 사람이 다른 사람에게 넘기면
+            그 사람이 가입해 버렸다. 이제 셋이 다 맞아야 가입이 되므로, 대표가 값을
+            정확히 적어야 한다는 걸 입력칸 위에서 알려 준다. */}
+        <p className="mt-2 break-keep text-s leading-6 text-muted">
+          아래 <b>이름 · 이메일 · 휴대폰 번호</b>가 본인인증·가입 정보와 모두 같아야 가입됩니다.
+          이름은 본인인증에 쓰는 <b>실명</b>으로, 직함·약칭 없이 적어 주세요. 잘못 적었다면
+          [재발송]으로 새 링크를 보내면 됩니다 — 이전 링크는 그 즉시 쓸 수 없습니다.
         </p>
         <div className="mt-3 flex flex-wrap gap-2">
           <input
@@ -493,7 +501,7 @@ export function MembersManager({ currentUserId }: { currentUserId: string }) {
             type="text"
             value={name}
             onChange={(e) => setName(e.target.value)}
-            placeholder="이름"
+            placeholder="이름 (실명)"
             className="field-base min-w-40 flex-1"
           />
           <input

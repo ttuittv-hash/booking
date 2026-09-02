@@ -73,9 +73,18 @@ const RULES: MenuRule[] = [
   { prefix: "/seoularena", label: "서울아레나", allow: OPEN_ALL },
   { prefix: "/features", label: "시설 제원", allow: LOGIN_ONLY },
   { prefix: "/guide", label: "대관 절차", allow: LOGIN_ONLY },
-  { prefix: "/rates", label: "대관료", allow: LOGIN_ONLY },
-  { prefix: "/rules", label: "대관 규약", allow: LOGIN_ONLY },
-  { prefix: "/documents", label: "대관 자료", allow: LOGIN_ONLY },
+
+  // [개정 2026-09-02] 대관료·대관 규약·대관 자료는 승인 완료여야 본다.
+  //
+  // 예전에는 로그인만 하면 열렸다. QA 에서 "승인 반려된 계정(=미가입 상태)에서도
+  // 대관료가 그대로 보인다" 로 잡혔다 — 요금·규약·내부 자료는 심사를 통과한
+  // 대관사에게만 주는 정보인데, 반려된 사람이나 아직 심사 중인 사람이 로그인만으로
+  // 다 볼 수 있었다.
+  //
+  // 시설 제원·대관 절차는 그대로 둔다. 심사를 기다리는 사람이 준비할 수 있어야 한다.
+  { prefix: "/rates", label: "대관료", allow: APPROVED_ONLY },
+  { prefix: "/rules", label: "대관 규약", allow: APPROVED_ONLY },
+  { prefix: "/documents", label: "대관 자료", allow: APPROVED_ONLY },
   { prefix: "/notices", label: "공지사항", allow: LOGIN_ONLY },
   { prefix: "/faq", label: "FAQ", allow: OPEN_ALL },
 ];

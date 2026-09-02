@@ -25,15 +25,25 @@ describe("서울아레나 소개 — 3단계 모두 열람", () => {
   it("규칙이 실제로 등록돼 있다", () => expect(findRule("/seoularena")?.label).toBe("서울아레나"));
 });
 
-describe("IA 재구성으로 새로 생긴 페이지 — 비로그인 차단", () => {
+describe("시설 제원 — 로그인하면 승인 전에도 열람", () => {
+  it("비로그인은 막힌다", () => expect(canAccess("/features", "GUEST")).toBe(false));
+  it("승인 대기도 열람한다 — 심사를 기다리는 사람이 준비할 수 있어야 한다", () =>
+    expect(canAccess("/features", "PENDING")).toBe(true));
+  it("규칙이 등록돼 있다", () => expect(findRule("/features")?.label).toBe("시설 제원"));
+});
+
+// [개정 2026-09-02] QA — "승인 반려된 계정(=미가입)에서도 대관료가 그대로 보인다".
+// 요금·규약·내부 자료는 심사를 통과한 대관사에게만 주는 정보다.
+describe("대관료·대관 규약·대관 자료 — 승인 완료 전용", () => {
   for (const [path, label] of [
-    ["/features", "시설 제원"],
     ["/rates", "대관료"],
     ["/rules", "대관 규약"],
     ["/documents", "대관 자료"],
   ] as const) {
     it(`${label} 은 비로그인이 막힌다`, () => expect(canAccess(path, "GUEST")).toBe(false));
-    it(`${label} 은 승인 대기도 열람한다`, () => expect(canAccess(path, "PENDING")).toBe(true));
+    it(`${label} 은 승인 대기가 막힌다`, () => expect(canAccess(path, "PENDING")).toBe(false));
+    it(`${label} 은 반려된 계정이 막힌다`, () => expect(canAccess(path, "REJECTED")).toBe(false));
+    it(`${label} 은 승인 완료만 본다`, () => expect(canAccess(path, "APPROVED")).toBe(true));
     it(`${label} 규칙이 등록돼 있다`, () => expect(findRule(path)?.label).toBe(label));
   }
 });

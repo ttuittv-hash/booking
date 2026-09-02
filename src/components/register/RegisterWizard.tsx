@@ -33,6 +33,7 @@ import {
   USERNAME_HINT,
 } from "@/lib/validation";
 import { hashPasswordForTransport } from "@/lib/clientPassword";
+import { invitePhoneLooksMatched } from "@/lib/inviteMatch";
 import { DEFAULT_REGISTER_INTRO, type RegisterIntroTexts } from "@/lib/content/pageContent";
 
 declare global {
@@ -247,6 +248,10 @@ export function RegisterWizard({
   // 링크의 토큰. useSearchParams 는 Suspense 경계를 요구하므로 마운트 후 한 번만 읽는다.
   const [inviteToken, setInviteToken] = useState("");
   const [inviteNotice, setInviteNotice] = useState<string | null>(null);
+  /** 죽은 초대 링크 — 값이 있으면 위저드 대신 안내만 보여 준다. */
+  const [inviteBlocked, setInviteBlocked] = useState<string | null>(null);
+  /** 초대장에 적힌 번호(가운데 가림). 본인인증 결과와 어긋나면 미리 알려 준다. */
+  const [invitePhoneMasked, setInvitePhoneMasked] = useState("");
   const [step, setStep] = useState(1);
   const [loading, setLoading] = useState(false);
   // 오류는 토스트로 띄운다. 위저드 상단에 붙이면 스크롤을 내려 입력하다 [다음]을 눌렀을 때
@@ -306,13 +311,22 @@ export function RegisterWizard({
       try {
         const res = await fetch(`/api/company/invitations/preview?token=${encodeURIComponent(token)}`);
         const data = await res.json();
+        // [개정 2026-09-02] 죽은 링크는 화면을 통째로 막는다.
+        //
+        // 예전에는 안내만 띄우고 일반 가입으로 흘려보냈는데, 그 안내가 STEP4 에서야
+        // 보여서 재발송 뒤 옛 링크를 연 사람은 끝까지 진행한 다음에야 알았다.
+        // QA 에서 "재발송해도 이전 링크로 가입이 된다"로 잡힌 것이 이것이다.
         if (data?.state !== "OK") {
-          setInviteNotice(data?.message ?? "초대 링크를 확인할 수 없습니다. 일반 가입으로 진행해 주세요.");
+          setInviteBlocked(
+            data?.message ??
+              "초대 링크가 만료되었거나 이미 사용되었습니다. 대표 담당자에게 재발송을 요청해주세요.",
+          );
           return;
         }
         const c = data.company;
         // 여기까지 왔으면 살아 있는 초대장이다 — 이제야 토큰을 들고 간다.
         setInviteToken(token);
+        setInvitePhoneMasked(data.invitee?.phoneMasked ?? "");
         setPickedCompany({ id: c.id, name: c.name, businessNumberMasked: null, region: null });
         setBrnCheck({
           state: "REGISTERED",
@@ -333,10 +347,13 @@ export function RegisterWizard({
           addressDetail: "",
           email: data.invitee?.email ?? f.email,
         }));
+        const masked = data.invitee?.phoneMasked ?? "";
         setInviteNotice(
-          `${c.name} 의 초대로 가입합니다. 초대장에 적힌 번호로 본인인증하시면 별도 승인 없이 바로 이용하실 수 있습니다.`,
+          `${c.name} 의 초대로 가입합니다. 초대장에 적힌 이름 · 이메일 · 휴대폰 번호${masked ? `(${masked})` : ""}가 본인인증·가입 정보와 모두 같아야 가입됩니다 — 맞으면 별도 승인 없이 바로 이용하실 수 있습니다. 초대받은 본인이 아니거나 정보가 다르면 이 링크로는 가입되지 않습니다.`,
         );
       } catch {
+        // 네트워크 오류로 확인하지 못한 것까지 막지는 않는다 — 다만 토큰을 들고 가지
+        // 않으므로 서버가 초대 특권을 주지 않고, 평범한 합류 신청으로 접수된다.
         setInviteNotice("초대 링크를 확인하지 못했습니다. 일반 가입으로 진행해 주세요.");
       }
     })();
@@ -591,6 +608,28 @@ export function RegisterWizard({
     }
   }
 
+  // 죽은 초대 링크로 들어왔다 — 재발송으로 무효가 된 이전 링크이거나, 만료·취소된
+  // 초대다. 위저드를 열지 않고 여기서 끝낸다. 진행할 길은 두 가지뿐이고 둘 다 적어 준다.
+  if (inviteBlocked) {
+    return (
+      <div data-testid="invite-blocked" className="py-4">
+        <h2 className="type-kr-heading text-h6-m">초대 링크를 사용할 수 없습니다</h2>
+        <p className="mt-4 break-keep text-s leading-7 text-muted">{inviteBlocked}</p>
+        <p className="mt-6 break-keep text-s leading-7 text-muted">
+          초대 없이 가입하시려면 아래 버튼으로 일반 회원가입을 진행해 주세요.
+        </p>
+        <span className="mt-6 flex flex-wrap gap-3">
+          <a href="/register" className={btnClass("primary", "md")}>
+            일반 회원가입으로 진행
+          </a>
+          <a href="/faq" className={btnClass("secondary", "md")}>
+            대관 문의
+          </a>
+        </span>
+      </div>
+    );
+  }
+
   return (
     <div data-testid="register-wizard" data-step={step}>
       <StepBar step={step} />
@@ -623,6 +662,8 @@ export function RegisterWizard({
       ) : step === 4 ? (
         <StepInfo
           inviteNotice={inviteNotice}
+          inviteMode={!!inviteToken}
+          invitePhoneMasked={invitePhoneMasked}
           placeSearchEnabled={placeSearchEnabled}
           form={form}
           setForm={setForm}
@@ -983,6 +1024,8 @@ function StepInfo({
   onPrev,
   onSubmit,
   inviteNotice,
+  inviteMode,
+  invitePhoneMasked,
   placeSearchEnabled,
 }: {
   form: FormState;
@@ -1006,6 +1049,10 @@ function StepInfo({
   onSubmit: () => void;
   /** 초대 링크로 열었을 때의 안내(회사·승인 생략 조건). 일반 가입이면 null. */
   inviteNotice: string | null;
+  /** 살아 있는 초대장으로 들어왔는가 — 이메일을 초대장 주소로 고정한다. */
+  inviteMode: boolean;
+  /** 초대장에 적힌 번호(가운데 가림). 본인인증 번호와 어긋나면 미리 알려 준다. */
+  invitePhoneMasked: string;
   /** 법인명 검색(외부 장소 검색)이 이 환경에서 켜져 있는가 */
   placeSearchEnabled: boolean;
 }) {
@@ -1017,6 +1064,12 @@ function StepInfo({
     (e: React.ChangeEvent<HTMLInputElement>) =>
       setForm((p) => ({ ...p, [k]: e.target.value }));
   const locked = !!pickedCompany;
+  // 초대로 들어왔는데 본인인증한 번호가 초대장 번호와 다르다 — 가입해도 서버가 막는다.
+  const invitePhoneMismatch =
+    inviteMode &&
+    !!invitePhoneMasked &&
+    !!identity?.mobileNo &&
+    !invitePhoneLooksMatched(identity.mobileNo, invitePhoneMasked);
 
   async function handleCertUpload(
     kind: "biz" | "employment",
@@ -1374,6 +1427,15 @@ function StepInfo({
         </Field>
         <Field label="휴대폰번호" hint="본인인증 결과">
           <input data-testid="f-phone" value={identity?.mobileNo ?? ""} readOnly className={inputCls(true)} />
+          {/* 초대장 번호와 어긋나면 제출 전에 알려 준다(2026-09-02). 서버가 전체 번호로
+              다시 판정하므로 여기서 통과해도 최종 판정은 아니다 — 여기 있는 이유는
+              끝까지 채운 다음에야 막히는 일을 줄이는 것뿐이다. */}
+          {invitePhoneMismatch ? (
+            <p data-testid="invite-phone-mismatch" className="mt-2 break-keep text-xs leading-6 text-danger">
+              초대장에 적힌 번호({invitePhoneMasked})와 다릅니다. 그 번호로 다시 본인인증하시거나,
+              초대 링크가 아닌 회원가입 페이지에서 진행해 주세요.
+            </p>
+          ) : null}
         </Field>
 
         <div>
@@ -1410,8 +1472,18 @@ function StepInfo({
           ) : null}
         </div>
 
-        <Field label="이메일" required>
-          <input data-testid="f-email" type="email" value={form.email} onChange={set("email")} className={inputCls(false)} />
+        {/* 초대로 들어왔으면 이메일은 초대장 주소로 고정한다(2026-09-02).
+            다른 주소로 가입하면 서버가 막는데, 고칠 수 있는 칸으로 열어 두면
+            끝까지 채운 뒤에야 막히는 걸 알게 된다. */}
+        <Field label="이메일" required hint={inviteMode ? "초대장에 적힌 주소" : undefined}>
+          <input
+            data-testid="f-email"
+            type="email"
+            value={form.email}
+            onChange={set("email")}
+            readOnly={inviteMode}
+            className={inputCls(inviteMode)}
+          />
         </Field>
         <Field label="비밀번호" required hint={PASSWORD_HINT}>
           <div className="relative">
@@ -1476,7 +1548,7 @@ function StepInfo({
         <button
           type="button"
           data-testid="submit-register"
-          disabled={loading}
+          disabled={loading || invitePhoneMismatch}
           onClick={onSubmit}
           className={`${btnClass("primary", "md")} flex-1 justify-center`}
         >

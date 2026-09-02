@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { findCompanyById, findValidInvitation } from "@/lib/db";
-import { hashInviteToken } from "@/lib/invitation";
+import { hashInviteToken, maskInvitePhone } from "@/lib/invitation";
 import { clientIpFrom, rateLimit } from "@/lib/rateLimit";
 
 // 초대 링크로 연 회원가입 화면이 회사 정보를 미리 채우기 위해 부른다(2026-08-28).
@@ -31,7 +31,13 @@ export async function GET(request: Request) {
 
   return NextResponse.json({
     state: "OK",
-    invitee: { email: invitation.email, name: invitation.inviteeName },
+    // 번호는 가운데를 가려 준다(2026-09-02) — 링크를 쥔 사람에게 "어느 번호로
+    // 인증해야 하는지"는 알려 주되 번호 전체는 주지 않는다. 실제 대조는 서버가 한다.
+    invitee: {
+      email: invitation.email,
+      name: invitation.inviteeName,
+      phoneMasked: maskInvitePhone(invitation.phone),
+    },
     company: {
       id: company.id,
       name: company.name,

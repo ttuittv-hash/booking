@@ -8,10 +8,27 @@ import "./globals.css";
 // 빌드 머신에서 DB에 접속할 수 없어도 빌드가 성공하고, 콘텐츠는 항상 요청 시점에 조회된다.
 export const dynamic = "force-dynamic";
 
+// 브라우저 탭 제목이자 링크를 공유했을 때 미리보기에 뜨는 이름이다.
+// [개정 2026-09-02] "대관 견적·신청" 은 기능 설명이라 공유 링크에서 무슨 서비스인지
+// 읽히지 않았다. 서비스 이름으로 바꾼다.
 export const metadata: Metadata = {
-  title: "SEOUL ARENA | 대관 견적·신청",
+  title: "서울아레나 대관 플랫폼",
   description:
-    "한계 없는 인프라 위에서 당신만의 무대를 지휘하세요. 서울아레나 대관 절차·견적 산출·신청 시스템.",
+    "한계 없는 인프라 위에서 당신만의 무대를 지휘하세요. 서울아레나 대관 절차·견적 산출·신청 플랫폼.",
+  openGraph: {
+    title: "서울아레나 대관 플랫폼",
+    description:
+      "한계 없는 인프라 위에서 당신만의 무대를 지휘하세요. 서울아레나 대관 절차·견적 산출·신청 플랫폼.",
+    siteName: "서울아레나 대관 플랫폼",
+    locale: "ko_KR",
+    type: "website",
+  },
+  twitter: {
+    card: "summary",
+    title: "서울아레나 대관 플랫폼",
+    description:
+      "한계 없는 인프라 위에서 당신만의 무대를 지휘하세요. 서울아레나 대관 절차·견적 산출·신청 플랫폼.",
+  },
 };
 
 export default function RootLayout({

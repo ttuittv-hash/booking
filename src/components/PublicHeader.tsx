@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import type { AppUser } from "@/lib/pricing/types";
+import { accountStateOf, canAccess } from "@/lib/accessPolicy";
 import { LogoutButton } from "@/components/LogoutButton";
 import { NotificationBell } from "@/components/NotificationBell";
 import {
@@ -151,6 +152,21 @@ export function PublicHeader({
   currentUser: AppUser | null;
 }) {
   const backofficeHref = useBackofficeHref();
+
+  // 접근 매트릭스(accessPolicy)로 못 여는 메뉴는 아예 띄우지 않는다.
+  // [개정 2026-09-02] 예전에는 전부 띄우고 눌렀을 때만 /pending 으로 돌려보냈다.
+  // 승인 대기·반려 상태에서 대관료가 메뉴에 그대로 보여 "열리는 메뉴"처럼 읽혔고,
+  // 눌러야 막힌 걸 알았다. 판정 로직은 페이지 쪽 requireAccess 와 같은 함수를 쓴다 —
+  // 여기서 따로 계산하면 표와 어긋나기 시작한다. (메뉴를 감추는 건 편의지 보안 경계가
+  // 아니다. 실제 차단은 각 페이지의 requireAccess 가 한다.)
+  const accountState = accountStateOf(currentUser);
+  const allowed = (href: string) => canAccess(href, accountState);
+  const visibleCategories = NAV_CATEGORIES.map((cat) => ({
+    ...cat,
+    pages: cat.pages.filter((p) => allowed(p.href)),
+  })).filter((cat) => cat.pages.length > 0);
+  const visibleSupportPages = SUPPORT_MENU.pages.filter((p) => allowed(p.href));
+
   /** 펼쳐진 드롭다운의 키 (카테고리 라벨 · "지원" · "계정") */
   const [openKey, setOpenKey] = useState<string | null>(null);
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -240,7 +256,7 @@ export function PublicHeader({
           className="absolute left-1/2 hidden h-full -translate-x-1/2 lg:flex"
         >
           <ul className="flex h-full items-stretch">
-            {NAV_CATEGORIES.map((cat) => {
+            {visibleCategories.map((cat) => {
               const isOpen = openKey === cat.label;
               return (
                 <li
@@ -305,7 +321,7 @@ export function PublicHeader({
           <UtilMenu
             id="support"
             label={SUPPORT_MENU.label}
-            pages={SUPPORT_MENU.pages}
+            pages={visibleSupportPages}
             active={active}
             openKey={openKey}
             onOpen={openWithCancel}
@@ -402,7 +418,7 @@ export function PublicHeader({
 
           <nav aria-label="전체 메뉴" className="container-site flex-1 py-6">
             <ul className="space-y-8">
-              {NAV_CATEGORIES.map((cat) => (
+              {visibleCategories.map((cat) => (
                 <li key={cat.label}>
                   <h2 className="type-display text-h6-m">{cat.label}</h2>
                   <ul className="mt-3 space-y-2">
@@ -437,7 +453,7 @@ export function PublicHeader({
             <div className="mt-10 border-t border-border/20 pt-6">
               <h2 className="text-s font-bold">{SUPPORT_MENU.label}</h2>
               <ul className="mt-3 space-y-2">
-                {SUPPORT_MENU.pages.map((p) => (
+                {visibleSupportPages.map((p) => (
                   <li key={p.href}>
                     <Link
                       href={p.href}

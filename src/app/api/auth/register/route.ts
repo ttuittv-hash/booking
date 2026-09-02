@@ -3,7 +3,13 @@ import { isNiceAuthConfigured } from "@/lib/niceAuth";
 import { dispatchMessageInBackground } from "@/lib/message/dispatch";
 import { verifyIdentityTicket } from "@/lib/identityTicket";
 import { USERNAME_HINT, USERNAME_RE } from "@/lib/validation";
-import { hashInviteToken, invitePhoneMatches } from "@/lib/invitation";
+import {
+  hashInviteToken,
+  inviteEmailMatches,
+  inviteNameMatches,
+  invitePhoneMatches,
+  maskInvitePhone,
+} from "@/lib/invitation";
 import crypto from "node:crypto";
 import { createSession, hashPassword } from "@/lib/auth";
 import {
@@ -207,21 +213,70 @@ export async function POST(request: Request) {
   }
 
   /*
-    초대 링크 가입 (2026-08-28, 마일스 의견).
+    초대 링크 가입 (2026-08-28, 마일스 의견 / 2026-09-02 개정).
 
     대표 담당자가 이미 "이 번호의 이 사람"을 지목해 부른 것이므로, 운영자·대표가 다시
     심사하지 않고 바로 승인한다. 다만 링크는 전달되다 새어 나갈 수 있으므로 **본인인증한
-    휴대폰 번호가 초대장에 적힌 번호와 같을 때만** 그 특권을 준다.
+    휴대폰 번호와 가입 이메일이 초대장과 같을 때만** 그 특권을 준다.
 
-    번호가 다르면 가입을 막지 않는다 — 초대장만 무시하고 평범한 합류 신청으로 흘려보낸다.
-    링크를 잘못 받은 사람도 정상 경로로는 가입할 수 있어야 하고, 그 편이 "왜 가입이
-    안 되냐"는 문의보다 낫다.
+    [개정 2026-09-02] 어긋나면 가입 자체를 막는다.
+
+    예전에는 초대장만 무시하고 평범한 합류 신청으로 흘려보냈다. 그런데 그러면
+      · 다른 번호로 인증해도 가입이 되고,
+      · 다른 이메일로 가입하면 초대장이 소진되지 않아 담당자 관리 목록에 같은 사람이
+        "초대 발송(미가입)" 행과 가입자 행으로 두 줄 남았다(대표가 직접 지워야 했다).
+    링크를 잘못 받은 사람은 초대 링크가 아니라 /register 로 들어오면 되므로,
+    안내에 그 경로를 적어 준다.
   */
   const invitation = inviteToken ? await findValidInvitation(hashInviteToken(inviteToken)) : undefined;
-  // 대조 규칙은 invitePhoneMatches 한 곳에 있다(테스트로 고정). 본인인증을 쓰지 않는
-  // 환경에서는 identity 가 없어 항상 불일치 — 인증 없이 번호만 맞춰 적으면 통과하는
-  // 문이 되어서는 안 된다.
-  const invitePhoneMatched = !!invitation && invitePhoneMatches(identity?.mobileNo, invitation.phone);
+
+  if (inviteToken) {
+    // 토큰이 있는데 살아 있는 초대장이 아니다 — 만료·취소·이미 사용됐거나, 재발송으로
+    // 무효가 된 이전 링크다. 여기서 막지 않으면 옛 링크로도 가입이 되어 "재발송하면
+    // 이전 링크는 못 쓴다"가 지켜지지 않는다.
+    if (!invitation) {
+      return NextResponse.json(
+        {
+          error:
+            "초대 링크가 만료되었거나 이미 사용되었습니다. 대표 담당자에게 재발송을 요청해주세요.",
+        },
+        { status: 400 },
+      );
+    }
+    // 대조 규칙은 invitation.ts 한 곳에 있다(테스트로 고정). 본인인증을 쓰지 않는
+    // 환경에서는 identity 가 없어 항상 불일치 — 인증 없이 번호만 맞춰 적으면 통과하는
+    // 문이 되어서는 안 된다.
+    if (!invitePhoneMatches(identity?.mobileNo, invitation.phone)) {
+      return NextResponse.json(
+        {
+          error: `초대장을 받은 휴대폰 번호(${maskInvitePhone(invitation.phone)})로 본인인증해 주세요. 다른 번호로 가입하시려면 초대 링크가 아닌 회원가입 페이지에서 진행해주세요.`,
+        },
+        { status: 400 },
+      );
+    }
+    if (!inviteEmailMatches(email, invitation.email)) {
+      return NextResponse.json(
+        {
+          error: `초대장을 받은 이메일(${invitation.email})로 가입해 주세요. 다른 이메일로 가입하시려면 초대 링크가 아닌 회원가입 페이지에서 진행해주세요.`,
+        },
+        { status: 400 },
+      );
+    }
+    // 링크는 전달된다 — 초대받은 1 이 2 에게 넘기면 2 가 가입할 수 있었다.
+    // 이름은 본인인증 결과라 신청자가 바꿀 수 없어, 번호·이메일과 함께 보면
+    // "링크를 받은 그 사람인가"를 가장 확실하게 가른다.
+    if (!inviteNameMatches(identity?.name ?? name, invitation.inviteeName)) {
+      return NextResponse.json(
+        {
+          error: `초대장에 적힌 이름과 본인인증한 이름이 다릅니다. 초대받은 본인만 이 링크로 가입할 수 있습니다. 이름이 잘못 적혔다면 대표 담당자에게 초대 재발송을 요청해주세요.`,
+        },
+        { status: 400 },
+      );
+    }
+  }
+
+  // 여기까지 왔으면 초대장이 있는 경우 번호·이메일이 모두 맞은 것이다.
+  const invitePhoneMatched = !!invitation;
 
   // 법인회원 = 회사를 새로 등록(또는 동일명 회사에 합류).
   // 개인회원 = 목록에서 기존 회사를 선택하거나, 목록에 없으면 이름을 직접 입력(신규 등록)하거나, 소속 회사 없이 가입 가능.
