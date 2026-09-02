@@ -135,22 +135,34 @@ function SpecCardGrid({ cards }: { cards: SpecCard[] }) {
 function FloorList({ items }: { items: FeatureBlock[] }) {
   return (
     <ul className="border-t border-border">
-      {items.map((it, i) => (
-        <li key={`${it.title}-${i}`} className="border-b border-border py-7">
-          <p className="text-xs font-extrabold uppercase tracking-[0.08em] text-muted [font-family:Archivo,sans-serif]">
-            {it.title}
-          </p>
-          {it.lines.length > 0 && (
-            <div className="mt-3 space-y-1">
-              {it.lines.map((line) => (
-                <p key={line} className="type-kr-heading break-keep text-h5-m sm:text-h5">
-                  {line}
-                </p>
-              ))}
-            </div>
-          )}
-        </li>
-      ))}
+      {items.map((it, i) => {
+        /*
+          줄이 둘 이상이면 **마지막 줄은 부연**이다 — 면적·좌석 수 같은 제원이 먼저 오고,
+          "수납식 객석 156석 별도" 처럼 조건을 덧붙이는 문장이 끝에 붙는다. 부연까지
+          헤딩으로 키우면 어느 숫자가 그 층의 제원인지 구분되지 않으므로 본문 크기로 둔다.
+          줄이 하나뿐이면 그 줄이 제원이다.
+        */
+        const hasNote = it.lines.length > 1;
+        const figures = hasNote ? it.lines.slice(0, -1) : it.lines;
+        const note = hasNote ? it.lines[it.lines.length - 1] : "";
+        return (
+          <li key={`${it.title}-${i}`} className="border-b border-border py-7">
+            <p className="text-xs font-extrabold uppercase tracking-[0.08em] text-muted [font-family:Archivo,sans-serif]">
+              {it.title}
+            </p>
+            {figures.length > 0 && (
+              <div className="mt-3 space-y-1">
+                {figures.map((line) => (
+                  <p key={line} className="type-kr-heading break-keep text-h5-m sm:text-h5">
+                    {line}
+                  </p>
+                ))}
+              </div>
+            )}
+            {note && <p className="mt-2 break-keep text-s text-muted">{note}</p>}
+          </li>
+        );
+      })}
     </ul>
   );
 }
