@@ -38,6 +38,12 @@ describe("첫 공지 시드", () => {
     expect(clean).toContain("서울아레나의 첫 무대가 열립니다");
     expect(clean).toContain("<h2><span>01 OVERVIEW</span>공고 개요</h2>");
     expect(clean).toContain("<th>신청 자격</th>");
+    // PDF 텍스트 레이어에서 그대로 옮긴 값들 — 여기가 어긋나면 공고가 틀린 금액을 낸다.
+    expect(clean).toContain("466,470,000원"); // Rate A
+    expect(clean).toContain("594,270,000원"); // Rate D
+    expect(clean).toContain("945,000,000원"); // ALL-inclusive
+    expect(clean).toContain("<td>40</td>"); // 심의 배점
+    expect(clean).toContain("booking.arena@kakaocorp.com");
     expect(clean.length).toBeGreaterThan(SEED_NOTICE.body.length * 0.95);
   });
 

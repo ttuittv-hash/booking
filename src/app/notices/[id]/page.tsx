@@ -91,18 +91,25 @@ const PROSE = [
   "[&_img]:my-10 [&_img]:w-full",
 
   /*
-    표 — 원본은 따뜻한 회백색 지면 위에 **흰 면**으로 얹혀 있다(PDF 실측: 지면
-    #F2F0EF · 표 면 #FFF · 괘선 #DDD 0.53~0.75pt). 우리 토큰으로는 지면이
-    background, 흰 면이 panel, 괘선이 border-soft 다.
+    표 — 원본 문서를 그대로 옮긴다 (2026-09-02, PDF 페이지를 직접 렌더해 확인).
+
+      · 머리행: **검정 면 + 흰 글자** (헤어라인이 아니라 꽉 찬 띠다)
+      · 본문 칸: 회백색 지면(#F2F0EF) 위의 흰 면
+      · 왼쪽 항목열: 옅은 회색 면 + 오른쪽 세로 괘선 — 값 열과 눈으로 갈린다
+      · 나머지 괘선: #DDD 한 겹. 표 바깥 테두리는 없다
   */
   "[&_table]:my-7 [&_table]:w-auto [&_table]:min-w-full [&_table]:border-collapse [&_table]:bg-panel [&_table]:text-s [&_table]:leading-6 [&_table]:tabular-nums",
-  "[&_thead]:border-y [&_thead]:border-foreground",
-  "[&_th]:px-3 [&_th]:py-2.5 [&_th]:text-left [&_th]:font-bold [&_th]:text-foreground",
-  // 머리행이 아니라 **행 이름**으로 쓴 th(왼쪽 첫 칸) — 값 열이 들쭉날쭉하지 않게
-  // 폭을 잡아 주고 위로 붙인다. 보고서의 좌측 항목열과 같은 자리다.
-  "[&_tbody_th]:w-40 [&_tbody_th]:align-top [&_tbody_th]:text-muted-strong",
+  "[&_thead]:bg-foreground",
+  "[&_thead_th]:bg-foreground [&_thead_th]:text-background",
+  "[&_th]:px-3 [&_th]:py-2 [&_th]:text-left [&_th]:font-bold",
+  // 행 이름으로 쓴 th(왼쪽 첫 칸) — 원본의 회색 항목열
+  "[&_tbody_th]:w-44 [&_tbody_th]:border-r [&_tbody_th]:border-border-soft [&_tbody_th]:bg-panel-strong [&_tbody_th]:align-top [&_tbody_th]:text-foreground",
   "[&_tbody_tr]:border-b [&_tbody_tr]:border-border-soft",
-  "[&_td]:px-3 [&_td]:py-2.5 [&_td]:align-top",
+  "[&_td]:px-3 [&_td]:py-2 [&_td]:align-top",
+  // 값 열 사이 세로 괘선 — 요금표처럼 열이 여럿인 표에서 숫자가 섞이지 않게
+  "[&_td+td]:border-l [&_td+td]:border-border-soft",
+  // 정가에 그은 취소선(원본의 할인 표기)
+  "[&_s]:text-muted [&_s]:decoration-muted",
   // 표 바로 아래 한 줄은 각주다 — 원본처럼 한 단 더 작고 옅게
   "[&_table+p]:mt-3 [&_table+p]:text-xs [&_table+p]:leading-6 [&_table+p]:text-muted",
 
