@@ -30,24 +30,21 @@ const page = await ctx.newPage();
 const t = String(Date.now()).slice(-6);
 
 try {
-  // ── A2 STEP 1 회원 유형 ───────────────────────────────────
+  // ── A2 STEP 1 약관 동의 ───────────────────────────────────
+  // [개정 2026-09-02] "회원 유형" 단계를 뺐다 — 기업회원만 받으므로 고를 것이 하나뿐인
+  // 화면이었다. 기업회원 안내는 첫 화면(약관 동의) 위에 안내 블록으로 남는다.
   await page.goto(`${BASE}/register`, { waitUntil: "domcontentloaded" });
-  await page.waitForSelector('[data-testid="step-member-type"]');
-  check("A2-1", "STEP1 회원 유형 화면이 먼저 나온다",
-    (await page.getAttribute('[data-testid="register-wizard"]', "data-step")) === "1");
-  check("A2-2", "기업회원은 가입 가능으로 노출된다",
-    (await page.locator('[data-testid="pick-corporate"]').innerText()).includes("가입 가능"));
-  // [개정 2026-08-30] 개인회원 카드를 뺐다 — 고를 수 없는 카드를 나란히 두면 유형을 고르는
-  // 화면처럼 보인다. 다만 "지금은 안 받는다"는 사실은 한 줄 안내로 남아 있어야 한다.
-  check("A2-3", "개인회원 카드는 노출되지 않는다",
-    (await page.locator('[data-testid="pick-individual"]').count()) === 0);
-  check("A2-4", "개인회원 준비 중 안내는 한 줄로 남아 있다",
-    (await page.locator('[data-testid="step-member-type"]').innerText()).includes("준비 중입니다"));
-
-  await page.click('[data-testid="pick-corporate"]');
-
-  // ── A3 STEP 2 약관 동의 ───────────────────────────────────
   await page.waitForSelector('[data-testid="step-terms"]');
+  check("A2-1", "STEP1 은 약관 동의다",
+    (await page.getAttribute('[data-testid="register-wizard"]', "data-step")) === "1");
+  check("A2-2", "회원 유형을 고르는 단계는 없다",
+    (await page.locator('[data-testid="step-member-type"]').count()) === 0);
+  check("A2-3", "기업회원 안내가 첫 화면에 남아 있다",
+    (await page.locator('[data-testid="register-intro"]').innerText()).includes("기업회원"));
+  check("A2-4", "개인회원 준비 중 안내는 한 줄로 남아 있다",
+    (await page.locator('[data-testid="step-terms"]').innerText()).includes("준비 중입니다"));
+
+  // ── A3 STEP 1 약관 동의 ───────────────────────────────────
   const nextBtn = page.locator('[data-testid="terms-next"]');
   // 버튼을 잠그는 대신 누르면 이유를 알려준다 — 검증할 것은 "넘어가지지 않는가" 다.
   const blocked = async () => {
@@ -81,7 +78,7 @@ try {
   // ── A5 STEP 4 정보 입력 ───────────────────────────────────
   await page.waitForSelector('[data-testid="step-info"]', { timeout: 20000 });
   check("A4-4", "인증을 마치면 정보 입력 단계로 넘어간다",
-    (await page.getAttribute('[data-testid="register-wizard"]', "data-step")) === "4");
+    (await page.getAttribute('[data-testid="register-wizard"]', "data-step")) === "3");
   check("A5-1", "이름이 인증 결과로 채워지고 읽기 전용이다",
     (await page.inputValue('[data-testid="f-name"]')) !== "" &&
       (await page.locator('[data-testid="f-name"]').getAttribute("readonly")) !== null);

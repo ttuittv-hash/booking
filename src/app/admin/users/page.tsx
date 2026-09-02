@@ -66,6 +66,8 @@ export default async function AdminUsersPage() {
                 <tr className={THEAD_ROW}>
                   <th className={TH}>이름</th>
                   <th className={TH}>이메일</th>
+                  {/* 운영자 앞 알림톡 수신번호 — 비어 있으면 그 계정은 알림톡을 못 받는다(2026-09-02) */}
+                  <th className={TH}>휴대폰 번호</th>
                   <th className={TH_NUM}>가입일</th>
                   <th className={TH_NUM}>등급</th>
                 </tr>
@@ -78,6 +80,9 @@ export default async function AdminUsersPage() {
                       {a.id === user.id && <span className="font-normal text-muted">(나)</span>}
                     </td>
                     <td className={TD_MUTED}>{a.email}</td>
+                    <td className={a.phone ? TD_MUTED : `${TD} text-warn`}>
+                      {a.phone || "미등록"}
+                    </td>
                     <td className={`${TD_NUM} text-muted`}>
                       {new Date(a.createdAt).toLocaleDateString("ko-KR")}
                     </td>

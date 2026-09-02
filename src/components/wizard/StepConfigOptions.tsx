@@ -385,12 +385,12 @@ function PackagePicker({
           {baseItems.length > 0 ? (
             <div className="mt-3 grid grid-cols-1 gap-1.5 sm:grid-cols-2 lg:grid-cols-3">
               {baseItems.map((item) => (
+                /* [개정 2026-09-02] 수량·단위("2공연일")를 뺐다. 여기는 이 구성에 무엇이
+                   들어 있는지 보는 곳이지 몇 개인지 세는 곳이 아니다 — 구성항목(스펙)
+                   이름만 남긴다. 수량은 요금표 관리에서 계속 관리하고 금액 계산에도
+                   그대로 쓰인다. */
                 <div key={item.key} className="border border-border-soft bg-panel px-3 py-2 text-xs">
                   <span className="font-bold text-foreground">{item.name}</span>
-                  <span className="ml-1.5 text-muted">
-                    {item.quantity}
-                    {item.unit}
-                  </span>
                 </div>
               ))}
             </div>

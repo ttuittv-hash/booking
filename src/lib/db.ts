@@ -2551,6 +2551,16 @@ export async function findUserByDi(di: string): Promise<AppUser | undefined> {
   return row ? toAppUser(row) : undefined;
 }
 
+/**
+ * 휴대폰 번호를 바꾼다(2026-09-02).
+ *
+ * 신청자 계정의 번호는 본인인증 결과라 여기서 손대지 않는다 — 운영자 계정 관리에서
+ * 운영자에게 번호를 채워 넣을 때만 쓴다(운영자 앞 알림톡 수신번호).
+ */
+export async function setUserPhone(userId: string, phone: string): Promise<void> {
+  await q("UPDATE users SET phone = $1 WHERE id = $2 AND role = 'ADMIN'", [phone, userId]);
+}
+
 /** 이 시각보다 먼저 발급된 세션을 모두 무효로 만든다. */
 export async function setSessionEpoch(userId: string, at: string): Promise<void> {
   await q("UPDATE users SET session_epoch = $1 WHERE id = $2", [at, userId]);

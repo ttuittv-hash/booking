@@ -4,10 +4,7 @@ import { getGuidePageContent } from "@/lib/db";
 import { PublicHeader } from "@/components/PublicHeader";
 import { SiteFooter } from "@/components/ui/SiteFooter";
 import {
-  ArrowRight,
   Band,
-  ButtonLink,
-  CTABand,
   PageHead,
   ProcessSteps,
   Prose,
@@ -52,17 +49,9 @@ export default async function GuidePage() {
           <ProcessSteps steps={content.process} />
         </Band>
 
-        {/* 페이지 말미는 옐로 CTA 하나로 닫는다 — 홈과 같은 `CTABand` 규격(높이 고정) */}
-        <CTABand
-          title="당신의 무대를 신청하세요."
-          lead="현재 진행 중인 대관 공고와 접수 일정을 확인해 보세요."
-          actions={
-            <ButtonLink href="/notices" variant="primary">
-              대관공고 확인
-              <ArrowRight />
-            </ButtonLink>
-          }
-        />
+        {/* [개정 2026-09-02] 페이지 말미의 CTA 밴드를 없앴다. 절차 설명 안의 문구가
+            대관료·규약·공지사항으로 바로 이어지므로, 아래에서 한 곳만 다시 가리키는
+            버튼은 그 흐름을 좁힌다. */}
       </main>
 
       <SiteFooter />

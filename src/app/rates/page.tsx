@@ -47,16 +47,29 @@ function RatePanel({ en, ko, c }: { en: string; ko: string; c: VenueRateContent 
   // 값 열은 좌측 정렬로 둔다 — 같은 화면의 RATE INCLUDES·ADDITIONAL CHARGES 가
   // 라벨 + 좌측 정렬 값이므로, 이 표만 우측 정렬이면 세로 기준선이 어긋난다.
   const cols = c.columns.map((r) => ({ key: r.key, title: r.name, align: "left" as const }));
-  const detailCols = c.detailColumns.map((r) => ({
-    key: r.key,
-    title: r.name,
-    align: "left" as const,
-  }));
 
-  const rows = c.rowLabels.map((label, i) => ({
-    label,
-    cells: c.columns.map((col) => col.values[i] ?? ""),
-  }));
+  /*
+    [개정 2026-09-02] 셋업·공연 변경 대관료를 접었다 펴는 [Details] 토글을 없애고
+    본 표에 이어 붙인다. 전용사용료·옵션사용료를 숨겨야 할 이유가 없어졌고,
+    토글 뒤에 있으면 아무도 열지 않아 표가 반쪽으로 읽혔다.
+
+    열은 두 벌(columns · detailColumns)이 같은 요금제에서 만들어지지만, 운영자가
+    콘텐츠 관리에서 따로 고칠 수 있으므로 키로 맞춘다 — 순서만 믿으면 한쪽 열이
+    늘거나 줄었을 때 값이 엉뚱한 요금제 아래로 들어간다.
+  */
+  const rows = [
+    ...c.rowLabels.map((label, i) => ({
+      label,
+      cells: c.columns.map((col) => col.values[i] ?? ""),
+    })),
+    ...c.detailLabels.map((label, i) => ({
+      label,
+      cells: c.columns.map((col) => {
+        const detail = c.detailColumns.find((d) => d.key === col.key);
+        return detail?.values[i] ?? "";
+      }),
+    })),
+  ];
 
   return (
     <>
@@ -88,23 +101,6 @@ function RatePanel({ en, ko, c }: { en: string; ko: string; c: VenueRateContent 
               }
             />
 
-            {c.detailLabels.length > 0 && (
-              <details className="mt-10 border-t border-border/25 pt-5">
-                <summary className="cursor-pointer text-s font-bold">Details</summary>
-                <div className="mt-10">
-                  <ComparisonTable
-                    dense
-                    rowLabel="구분"
-                    labelWidth={SPEC_LABEL_WIDTH}
-                    columns={detailCols}
-                    rows={c.detailLabels.map((label, i) => ({
-                      label,
-                      cells: c.detailColumns.map((col) => col.values[i] ?? ""),
-                    }))}
-                  />
-                </div>
-              </details>
-            )}
           </SplitSection>
         </div>
       </Band>

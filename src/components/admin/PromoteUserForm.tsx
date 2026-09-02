@@ -17,6 +17,7 @@ const TIERS: AdminTier[] = ["BASIC", "PRO", "MASTER"];
 export function PromoteUserForm() {
   const router = useRouter();
   const [email, setEmail] = useState("");
+  const [phone, setPhone] = useState("");
   const [tier, setTier] = useState<AdminTier>("BASIC");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -30,7 +31,7 @@ export function PromoteUserForm() {
       const res = await fetch("/api/admin/users/promote", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, tier }),
+        body: JSON.stringify({ email, tier, phone }),
       });
       const data = await res.json();
       if (!res.ok) {
@@ -39,6 +40,7 @@ export function PromoteUserForm() {
       }
       setSuccess(`${data.user.name} (${data.user.email}) 계정을 운영자로 승급했습니다.`);
       setEmail("");
+      setPhone("");
       setTier("BASIC");
       router.refresh();
     } finally {
@@ -51,7 +53,8 @@ export function PromoteUserForm() {
       <h2 className={SECTION_TITLE}>기존 회원을 운영자로 승급</h2>
       <p className="mt-2 max-w-2xl text-s text-muted">
         이미 가입된 계정(신청자로 가입했던 계정 포함)을 이메일로 찾아 운영자로 전환합니다.
-        비밀번호는 그대로 유지되며, 새 계정을 만드는 것이 아닙니다.
+        비밀번호는 그대로 유지되며, 새 계정을 만드는 것이 아닙니다. 휴대폰 번호를 함께
+        적으면 그 계정의 번호로 저장됩니다 — 운영자 앞으로 나가는 알림톡이 이 번호로 갑니다.
       </p>
 
       {/* 등급별 권한 차이를 눈에 보이는 화면 접근 기준으로 정리한다(2026-08-22,
@@ -76,7 +79,7 @@ export function PromoteUserForm() {
       </div>
 
       <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-3">
-        <label className="block sm:col-span-2">
+        <label className="block">
           <span className={FIELD_LABEL}>이미 가입된 이메일</span>
           <input
             type="email"
@@ -84,6 +87,20 @@ export function PromoteUserForm() {
             placeholder="name@example.com"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
+            className={FIELD}
+          />
+        </label>
+        {/* [신규 2026-09-02] 운영자 앞으로 나가는 알림톡(신규 회사 등록 등)은 휴대폰
+            번호로 발송된다. 신청자로 가입했던 계정은 번호가 있지만 시드로 만든 운영자
+            계정에는 없어, 여기서 채워 넣을 수 있게 한다. 비워 두면 기존 번호를 그대로 둔다. */}
+        <label className="block">
+          <span className={FIELD_LABEL}>휴대폰 번호 (선택)</span>
+          <input
+            type="tel"
+            autoComplete="off"
+            placeholder="010-0000-0000"
+            value={phone}
+            onChange={(e) => setPhone(e.target.value)}
             className={FIELD}
           />
         </label>

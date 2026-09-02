@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { requireMasterAdmin } from "@/lib/auth";
-import { findUserByEmail, promoteUserToAdmin } from "@/lib/db";
+import { findUserByEmail, promoteUserToAdmin, setUserPhone } from "@/lib/db";
 import type { AdminTier } from "@/lib/pricing/types";
 
 const VALID_TIERS: AdminTier[] = ["BASIC", "PRO", "MASTER"];
@@ -16,6 +16,9 @@ export async function POST(request: Request) {
   const body = await request.json().catch(() => null);
   const email = typeof body?.email === "string" ? body.email.trim() : "";
   const tier = body?.tier as AdminTier | undefined;
+  // [신규 2026-09-02] 운영자 앞으로 나가는 알림톡은 휴대폰 번호로 발송된다. 시드로 만든
+  // 운영자 계정에는 번호가 없어 여기서 채워 넣을 수 있게 한다. 비우면 기존 번호를 그대로 둔다.
+  const phone = typeof body?.phone === "string" ? body.phone.trim() : "";
 
   if (!email) {
     return NextResponse.json({ error: "이메일을 입력하세요." }, { status: 400 });
@@ -32,6 +35,11 @@ export async function POST(request: Request) {
     );
   }
 
+  if (phone && phone.replace(/\D/g, "").length < 9) {
+    return NextResponse.json({ error: "휴대폰 번호 형식을 확인해주세요." }, { status: 400 });
+  }
+
   const promoted = await promoteUserToAdmin(target.id, tier);
-  return NextResponse.json({ user: promoted });
+  if (phone) await setUserPhone(target.id, phone);
+  return NextResponse.json({ user: phone ? { ...promoted, phone } : promoted });
 }

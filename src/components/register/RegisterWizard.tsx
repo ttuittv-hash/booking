@@ -223,7 +223,10 @@ async function uploadRegisterAttachment(file: File): Promise<{ url: string; name
   return { url: data.url, name: data.name };
 }
 
-const STEP_LABELS = ["회원 유형", "약관 동의", "본인인증", "정보 입력", "가입완료"];
+// [개정 2026-09-02] "회원 유형" 단계를 뺐다. 기업회원만 받으므로 고를 것이 하나뿐인
+// 화면이었고, 고를 것이 없는 선택 단계는 클릭 한 번을 더 받을 뿐이다. 기업회원 안내는
+// 첫 화면(약관 동의) 위에 그대로 남는다.
+const STEP_LABELS = ["약관 동의", "본인인증", "사업자 인증 · 정보 입력", "가입완료"];
 
 /*
   초대 링크 가입 (2026-08-28) — 링크의 ?invite= 토큰을 그대로 서버에 넘긴다.
@@ -388,7 +391,7 @@ export function RegisterWizard({
         return;
       }
       setIdentity({ ticket: p.ticket, name: p.name, mobileNo: p.mobileNo, mobileCo: p.mobileCo });
-      setStep(4);
+      setStep(3);
     }
     window.addEventListener("message", onMessage);
     return () => window.removeEventListener("message", onMessage);
@@ -426,7 +429,7 @@ export function RegisterWizard({
           mobileNo: data.mobileNo ?? "",
           mobileCo: null,
         });
-        setStep(4);
+        setStep(3);
         return;
       }
 
@@ -600,7 +603,7 @@ export function RegisterWizard({
       // 신청(JOIN_*)은 항상 STAFF 로 시작하므로 companyRole 만 봐도 동치이지만, 의도를
       // 명시적으로 드러내기 위해 joinKind 도 같이 확인한다.
       setIsNewMaster(data.joinKind === "NEW" && data.user?.companyRole === "MASTER");
-      setStep(5);
+      setStep(4);
     } catch (e) {
       setError(e instanceof Error ? e.message : "가입에 실패했습니다.");
     } finally {
@@ -635,31 +638,29 @@ export function RegisterWizard({
       <StepBar step={step} />
 
       {step === 1 ? (
-        <StepMemberType onNext={() => setStep(2)} intro={intro} />
-      ) : step === 2 ? (
         <StepTerms
+          intro={intro}
           terms={terms}
           agreed={agreed}
           setAgreed={setAgreed}
           canNext={requiredAllAgreed}
-          onPrev={() => setStep(1)}
           onNext={() => {
             if (!requiredAllAgreed) {
               toast.error("필수 약관 2건에 모두 동의해 주세요.");
               return;
             }
-            setStep(3);
+            setStep(2);
           }}
         />
-      ) : step === 3 ? (
+      ) : step === 2 ? (
         <StepIdentity
           loading={loading}
           devBypass={devBypass}
           onStart={() => startIdentity()}
           onBypass={() => startIdentity({ bypass: true })}
-          onPrev={() => setStep(2)}
+          onPrev={() => setStep(1)}
         />
-      ) : step === 4 ? (
+      ) : step === 3 ? (
         <StepInfo
           inviteNotice={inviteNotice}
           inviteMode={!!inviteToken}
@@ -725,7 +726,7 @@ export function RegisterWizard({
           }
           onPostcode={openPostcode}
           loading={loading}
-          onPrev={() => setStep(3)}
+          onPrev={() => setStep(2)}
           onSubmit={submit}
         />
       ) : (
@@ -800,93 +801,49 @@ function StepBar({ step }: { step: number }) {
   );
 }
 
-function StepMemberType({ onNext, intro }: { onNext: () => void; intro: RegisterIntroTexts }) {
-  return (
-    <section className="mt-10" data-testid="step-member-type">
-      <h2 className="type-kr-heading break-keep text-h6-m sm:text-h6">{intro.heading}</h2>
-
-      {/* [개정 2026-08-30] 개인회원 카드를 뺐다. 예전에는 "나중에 열린다"는 사실을 첫 화면에서
-          알리려고 비활성 카드를 남겨 뒀는데(기획서 A2), 고를 수 없는 선택지를 나란히 두면
-          유형을 고르는 화면처럼 보인다. 고를 것이 하나뿐이므로 한 장으로 세운다.
-          폭은 좁히지 않는다 — AuthShell width="lg" 안에서 카드만 좁히면 오른쪽이 비어
-          다른 스텝(약관·정보 입력)과 어긋나 보인다. */}
-      <div className="mt-6">
-        <button
-          type="button"
-          data-testid="pick-corporate"
-          onClick={onNext}
-          /* 안내 카드 겸 진입 버튼 — kit 의 choiceClass 와 같은 패딩(20)을 쓴다.
-             flex-col 은 CTA 를 본문 아래로 떨어뜨리려는 것이다(카드가 하나뿐이라
-             예전처럼 두 장의 높이를 맞출 일은 없어 h-full 은 뺐다). */
-          className="flex w-full flex-col border border-foreground p-5 text-left transition-colors hover:bg-surface"
-        >
-          <span className="flex-1">
-            <span className="block text-xs font-bold text-foreground">{intro.badge}</span>
-            <span className="mt-2 block text-h6-m font-bold">{intro.title}</span>
-            <span className="mt-1.5 block break-keep text-s leading-6 text-muted">
-              {intro.subtitle}
-            </span>
-            {/* [개정 2026-08-30] 예전 문구는 회사의 첫 가입자 경로만 설명했고, "진위확인으로
-                즉시 심사" 는 사실과도 달랐다 — 진위확인은 휴·폐업을 거르는 것이지 승인이
-                아니고, 접수된 계정은 승인 대기로 남는다. 한 회사에서 여러 담당자가 들어오는
-                구조이므로 첫 가입자와 이후 담당자를 나눠 적는다. */}
-            {/* 카드가 button 이라 안에 ul/li 를 넣을 수 없다(button 은 phrasing content 만 받는다).
-                span 을 flex 로 세워 글머리표와 본문을 나눈다 — "· 텍스트" 를 한 덩어리로 두면
-                두 번째 줄이 글머리표 아래로 파고들어 들여쓰기가 어긋난다. */}
-            <span className="mt-4 flex max-w-2xl flex-col gap-2 break-keep text-s leading-6 text-muted">
-              {intro.bullets.map((line, i) => (
-                <span key={i} className="flex gap-2">
-                  <span aria-hidden className="shrink-0">
-                    ·
-                  </span>
-                  <span>{line}</span>
-                </span>
-              ))}
-            </span>
-          </span>
-          {/* 카드가 넓어져 w-full 버튼은 검은 띠처럼 보인다. 좁은 화면에서만 꽉 채우고
-              그 위로는 글줄 시작점에 맞춰 제 폭으로 세운다. */}
-          <span
-            className={`${btnClass("primary", "md")} mt-7 w-full justify-center text-center sm:w-auto sm:self-start sm:px-10`}
-          >
-            {intro.cta}
-          </span>
-        </button>
-
-      </div>
-
-      {/* 개인회원 카드를 뺀 대신 한 줄로만 남긴다 — 사업자등록증이 없는 사람이 여기서
-          헤매지 않도록, 지금은 받지 않는다는 사실은 계속 알려야 한다. */}
-      <p className="mt-5 break-keep text-s leading-6 text-muted">{intro.individualNote}</p>
-
-      <p className="mt-7 break-keep text-s text-muted">
-        이미 계정이 있으신가요?{" "}
-        <Link href="/login" className="underline underline-offset-4">
-          로그인
-        </Link>
-      </p>
-    </section>
-  );
-}
-
 function StepTerms({
+  intro,
   terms,
   agreed,
   setAgreed,
   canNext,
-  onPrev,
   onNext,
 }: {
+  /** 기업회원 안내 — 백오피스(콘텐츠 관리 > 화면 문구)에서 고친다 */
+  intro: RegisterIntroTexts;
   terms: TermsItem[];
   agreed: Record<string, boolean>;
   setAgreed: React.Dispatch<React.SetStateAction<Record<string, boolean>>>;
   canNext: boolean;
-  onPrev: () => void;
   onNext: () => void;
 }) {
   return (
     <section className="mt-8" data-testid="step-terms">
-      <h2 className="type-kr-heading break-keep text-h6-m sm:text-h6">약관에 동의해 주세요.</h2>
+      {/* [개정 2026-09-02] "회원 유형" 단계를 없애면서, 그 화면에 있던 기업회원 안내를
+          여기로 옮겼다. 고를 것이 없는 선택 화면은 뺐지만 "누가 가입할 수 있고 무엇이
+          필요한지" 는 첫 화면에서 여전히 읽혀야 한다. 카드가 아니라 안내 블록이라
+          button 이 아니므로 이제 ul/li 를 그대로 쓸 수 있다. */}
+      <div data-testid="register-intro" className="border border-border-soft p-5">
+        <p className="text-xs font-bold text-foreground">{intro.badge}</p>
+        <p className="mt-2 text-h6-m font-bold">{intro.title}</p>
+        <p className="mt-1.5 break-keep text-s leading-6 text-muted">{intro.subtitle}</p>
+        <ul className="mt-4 flex max-w-2xl flex-col gap-2 break-keep text-s leading-6 text-muted">
+          {intro.bullets.map((line, i) => (
+            <li key={i} className="flex gap-2">
+              <span aria-hidden className="shrink-0">
+                ·
+              </span>
+              <span>{line}</span>
+            </li>
+          ))}
+        </ul>
+      </div>
+      {/* 사업자등록증이 없는 사람이 여기서 헤매지 않도록, 지금은 받지 않는다는 사실을 남긴다. */}
+      <p className="mt-5 break-keep text-s leading-6 text-muted">{intro.individualNote}</p>
+
+      <h2 className="type-kr-heading mt-10 break-keep text-h6-m sm:text-h6">
+        약관에 동의해 주세요.
+      </h2>
       <p className="mt-2 break-keep text-s text-muted">
         필수 항목 2건에 모두 동의하셔야 다음 단계로 진행할 수 있습니다.
       </p>
@@ -922,10 +879,8 @@ function StepTerms({
           </div>
         ))}
       </div>
+      {/* 첫 단계라 [이전] 이 없다 — 예전에는 회원 유형 단계로 돌아갔다(2026-09-02 개정). */}
       <div className="mt-9 flex gap-3">
-        <button type="button" onClick={onPrev} className={`${btnClass("secondary", "md")} justify-center`}>
-          이전
-        </button>
         {/* disabled 로 막아두면 왜 안 넘어가는지 알 수 없다 — 누르면 이유를 알려준다. */}
         <button
           type="button"
@@ -936,6 +891,12 @@ function StepTerms({
           다음
         </button>
       </div>
+      <p className="mt-7 break-keep text-s text-muted">
+        이미 계정이 있으신가요?{" "}
+        <Link href="/login" className="underline underline-offset-4">
+          로그인
+        </Link>
+      </p>
     </section>
   );
 }
