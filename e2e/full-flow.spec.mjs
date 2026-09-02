@@ -71,7 +71,6 @@ let masterUser = "m" + t;
 
 try {
   await page.goto(`${BASE}/register`, { waitUntil: "domcontentloaded" });
-  await page.click('[data-testid="pick-corporate"]');
   await page.check('[data-testid="agree-SERVICE"]');
   await page.check('[data-testid="agree-PRIVACY_REQUIRED"]');
   await page.click('[data-testid="terms-next"]');
@@ -115,7 +114,8 @@ try {
   await page.goto(`${BASE}/apply`, { waitUntil: "domcontentloaded" });
   check("A15-1", "승인 대기는 대관신청이 막힌다", page.url().includes("/pending"));
   await page.goto(`${BASE}/guide`, { waitUntil: "domcontentloaded" });
-  check("A15-2", "승인 대기도 대관안내는 열람한다", page.url().includes("/guide"));
+  // [개정 2026-09-02] 승인 완료 전에는 대관 절차·료·규약·자료·공지가 막힌다(Your Stage·마이페이지만).
+  check("A15-2", "승인 대기는 대관 절차가 막힌다", !page.url().includes("/guide"));
   await page.goto(`${BASE}/seoularena`, { waitUntil: "domcontentloaded" });
   check("A15-3", "서울아레나 소개는 누구나 열람한다", page.url().includes("/seoularena"));
   // IA 재구성으로 상세 스펙(시설 소개)은 로그인이 필요한 /features 로 분리됐다.
@@ -177,7 +177,9 @@ try {
   await page.waitForLoadState("networkidle").catch(() => {});
   for (let i = 0; i < 6; i++) {
     for (const [sel, v] of [
-      ['[data-testid="invite-name"]', "초대테스트"],
+      // [개정 2026-09-02] 초대는 이름·이메일·번호가 초대장과 모두 같아야 가입된다.
+      // 초대자는 개발 우회 스텁으로 인증하는데 그 기본 이름이 "테스트사용자"라, 초대장 이름도 맞춘다.
+      ['[data-testid="invite-name"]', "테스트사용자"],
       ['[data-testid="invite-email"]', `staff${t}@seoul-ent.co.kr`],
       ['[data-testid="invite-phone"]', "010-0000-0001"],
     ]) {
@@ -198,11 +200,14 @@ try {
   const inviteeCtx = await newCtx();
   const invitee = await inviteeCtx.newPage();
   await invitee.goto(inviteUrl, { waitUntil: "domcontentloaded" });
-  await invitee.click('[data-testid="pick-corporate"]');
   await invitee.check('[data-testid="agree-SERVICE"]');
   await invitee.check('[data-testid="agree-PRIVACY_REQUIRED"]');
   await invitee.click('[data-testid="terms-next"]');
-  await invitee.click('[data-testid="identity-start"]');
+  // [개정 2026-09-02] 초대는 초대장 번호로 본인인증한 사람만 가입된다(invitePhoneMismatch → 제출 잠김).
+  // 스텁 기본 번호는 랜덤이라 초대장(010-0000-0001)과 안 맞으므로, 개발 우회로 그 번호를 넣어 맞춘다.
+  await invitee.click('[data-testid="identity-bypass"]');
+  await invitee.fill('[data-testid="dialog-input"]', "01000000001");
+  await invitee.click('[data-testid="dialog-ok"]');
   await invitee.waitForSelector('[data-testid="step-info"]', { timeout: 20000 });
   check("A11-2", "초대받은 사람이 일반 회원가입 흐름을 그대로 밟는다", true);
   // 같은 회사 = 같은 사업자등록번호. 진위확인을 거치면 "이미 등록된 회사"로 잠긴다.
@@ -219,7 +224,9 @@ try {
   await fillIfEditable(invitee, '[data-testid="f-address"]', "경기도 성남시 분당구 판교역로 166");
   await invitee.fill('[data-testid="f-username"]', "s" + t);
   // 초대장과 같은 이메일로 가입해야 "미가입" 초대 행이 자동 정리된다.
-  await invitee.fill('[data-testid="f-email"]', `staff${t}@seoul-ent.co.kr`);
+  // [개정 2026-09-02] 초대(inviteMode)로 들어오면 이메일이 초대장 주소로 고정(readonly)되므로
+  // editable 일 때만 채운다 — 이미 초대장 주소로 미리 채워져 있다.
+  await fillIfEditable(invitee, '[data-testid="f-email"]', `staff${t}@seoul-ent.co.kr`);
   await invitee.fill('[data-testid="f-password"]', "Test1234!");
   await invitee.fill('[data-testid="f-passwordConfirm"]', "Test1234!");
   // 사업자등록증·재직증명서는 필수 첨부(2026-08-28 기획 개정) — 더미 파일을 올린다.

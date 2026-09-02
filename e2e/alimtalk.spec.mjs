@@ -38,7 +38,6 @@ await page.route("**/api/auth/nice/start", async (route) => {
 
 try {
   await page.goto(`${BASE}/register`, { waitUntil: "domcontentloaded" });
-  await page.click('[data-testid="pick-corporate"]');
   await page.waitForSelector('[data-testid="step-terms"]');
   await page.check('[data-testid="agree-SERVICE"]');
   await page.check('[data-testid="agree-PRIVACY_REQUIRED"]');
