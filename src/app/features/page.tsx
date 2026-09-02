@@ -22,6 +22,7 @@ import {
   SectionHead,
   StatCards,
   TitledCard,
+  valueHeadingClass,
 } from "@/components/ui/kit";
 
 export const metadata: Metadata = {
@@ -102,12 +103,14 @@ function SpecCardGrid({ cards }: { cards: SpecCard[] }) {
             style={PLAIN_SURFACE_VARS}
           >
             <p className="text-xs font-bold text-muted">{card.label}</p>
-            {/* `type-display` 은 대문자로 바꾼다 — 수치는 끈다. 단위는 대소문자로 뜻이
-                갈린다(180t 톤 ↔ 180T 테슬라, 4.8m 미터 ↔ 4.8M 메가). */}
-            <p className="type-display mt-3 break-keep text-h4-m normal-case tabular-nums sm:text-h4">
+            {/* 수치면 Archivo(대문자 변환은 끈다 — 180t 톤 ↔ 180T 테슬라), 시설명처럼
+                한글이 섞이면 국문 헤딩 서체. Archivo 에는 한글 글립이 없다. */}
+            <p
+              className={`${valueHeadingClass(card.value)} mt-3 break-keep text-h4-m tabular-nums sm:text-h4`}
+            >
               {card.value}
             </p>
-            <p className="mt-3 break-keep text-s text-muted">{card.desc}</p>
+            {card.desc && <p className="mt-3 break-keep text-s text-muted">{card.desc}</p>}
           </article>
         </li>
       ))}

@@ -749,6 +749,15 @@ function isNumericValue(text: string): boolean {
 }
 
 /**
+ * 카드·스탯의 **값** 한 덩어리에 붙일 서체 클래스.
+ * 수치면 Archivo(대문자 변환은 끈다 — 단위는 대소문자로 뜻이 갈린다),
+ * 한글이 섞이면 국문 헤딩 서체.
+ */
+export function valueHeadingClass(text: string): string {
+  return isNumericValue(text) ? "type-display normal-case" : "type-kr-heading";
+}
+
+/**
  * 4-up 스탯 카드 — 굵은 윗선 + 작은 라벨 + 큰 값(+ 부연 한 줄).
  * 시설 제원의 상위 4개 포인트와 대관료의 기본 이용 기준이 같은 레이아웃을 쓴다.
  * 12칼럼에서 3칼럼씩 떨어진다.
@@ -771,9 +780,7 @@ export function StatCards({
           <p
             className={`mt-3 whitespace-pre-line break-keep ${
               size === "lg"
-                ? `${
-                    isNumericValue(it.value) ? "type-display normal-case" : "type-kr-heading"
-                  } text-h3-m sm:text-h3`
+                ? `${valueHeadingClass(it.value)} text-h3-m sm:text-h3`
                 : "type-kr-heading text-h5-m sm:text-h5"
             }`}
           >
