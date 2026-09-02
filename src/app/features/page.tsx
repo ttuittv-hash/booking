@@ -25,7 +25,7 @@ import {
 } from "@/components/ui/kit";
 
 export const metadata: Metadata = {
-  title: "시설 제원 | 서울아레나",
+  title: "시설 제원",
 };
 
 /**

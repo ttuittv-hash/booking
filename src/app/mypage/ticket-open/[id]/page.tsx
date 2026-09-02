@@ -8,7 +8,7 @@ import { Note } from "@/components/ui/kit";
 import { TicketOpenPanel } from "@/components/TicketOpenPanel";
 
 export const metadata: Metadata = {
-  title: "티켓 오픈 정보 | 서울아레나",
+  title: "티켓 오픈 정보",
 };
 
 const STAGE_LABEL: Record<string, string> = {

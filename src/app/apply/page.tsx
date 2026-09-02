@@ -15,7 +15,7 @@ import { WizardShell } from "@/components/wizard/WizardShell";
 import { WizardTextProvider } from "@/lib/content/wizardText";
 
 export const metadata: Metadata = {
-  title: "대관 신청 | 서울아레나",
+  title: "대관 신청",
 };
 
 /**

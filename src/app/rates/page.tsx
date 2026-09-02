@@ -17,7 +17,7 @@ import {
 } from "@/components/ui/kit";
 
 export const metadata: Metadata = {
-  title: "대관료 | 서울아레나",
+  title: "대관료",
 };
 
 /**

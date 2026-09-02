@@ -10,7 +10,7 @@ import { VENUE_TABS, VENUE_TAB_PARAM } from "@/components/ui/nav-items";
 import { Band, DocumentList, PageHead, Prose } from "@/components/ui/kit";
 
 export const metadata: Metadata = {
-  title: "대관 자료 | 서울아레나",
+  title: "대관 자료",
 };
 
 /** CMS 블록 → 표시용 아이템. 파일 주소가 비면 안내 문구가 버튼을 대신한다. */

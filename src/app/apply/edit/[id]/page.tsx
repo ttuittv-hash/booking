@@ -17,7 +17,7 @@ import { WizardShell } from "@/components/wizard/WizardShell";
 import { WizardTextProvider } from "@/lib/content/wizardText";
 
 export const metadata: Metadata = {
-  title: "신청서 수정 | 서울아레나",
+  title: "신청서 수정",
 };
 
 export default async function EditQuotePage({

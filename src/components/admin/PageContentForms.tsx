@@ -16,6 +16,7 @@ import type {
 import {
   Area,
   ContentFormShell,
+  DocumentField,
   ImageField,
   ListEditor,
   Section,
@@ -713,6 +714,22 @@ export function RulesForm({ content }: { content: RulesContent }) {
                 onChange={(effectiveDate) => patch({ effectiveDate })}
               />
             </div>
+          </Section>
+
+          <Section
+            title="규약 파일"
+            help={
+              "화면 상단에 [대관 규약 내려받기] 버튼으로 나옵니다. 웹 본문(아래 규약 전문)이 " +
+              "정본이고 이 파일은 사본이므로, 규약을 고칠 때 파일도 함께 올려 주세요. " +
+              "승인 완료된 회원만 내려받을 수 있습니다."
+            }
+          >
+            <DocumentField
+              label=""
+              url={v.fileUrl}
+              name={v.fileName}
+              onChange={({ url, name }) => patch({ fileUrl: url, fileName: name })}
+            />
           </Section>
 
           <Section

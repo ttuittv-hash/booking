@@ -440,6 +440,14 @@ export interface RulesContent {
   revisionNote: string;
   /** 규약 전문 — `제N장 …` / `제N조 (…)` 로 시작하는 줄이 제목이 된다 */
   body: string;
+  /**
+   * 내려받기용 규약 파일 (2026-09-02). 콘텐츠 관리에서 올리면 채워지고, 비어 있으면
+   * 화면에 내려받기 버튼이 나오지 않는다. 웹 본문(body)이 정본이고 이 파일은 사본이다 —
+   * 규약을 고칠 때 파일도 함께 올려야 둘이 어긋나지 않는다.
+   */
+  fileUrl: string;
+  /** 내려받을 때 쓸 원본 파일명 */
+  fileName: string;
 }
 
 function chaptersToText(): string {
@@ -459,6 +467,8 @@ export const DEFAULT_RULES_CONTENT: RulesContent = {
     "개정된 내용은 홈페이지 공지 또는 별도 통지 중 빠른 시점 이후 신규 체결되는 " +
     "대관계약부터 적용합니다. 이미 체결된 대관계약에는 계약 체결 시점의 규약을 적용합니다.",
   body: chaptersToText(),
+  fileUrl: "",
+  fileName: "",
 };
 
 export interface ParsedRuleChapter {

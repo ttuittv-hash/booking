@@ -6,7 +6,7 @@ import { SiteFooter } from "@/components/ui/SiteFooter";
 import { Band, PageHead, Prose, SpecTable } from "@/components/ui/kit";
 
 export const metadata: Metadata = {
-  title: "오시는길 | 서울아레나",
+  title: "오시는길",
 };
 
 /**

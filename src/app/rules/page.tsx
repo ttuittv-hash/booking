@@ -7,10 +7,10 @@ import { PublicHeader } from "@/components/PublicHeader";
 import { SiteFooter } from "@/components/ui/SiteFooter";
 import { ArticleLayout } from "@/components/ui/ArticleLayout";
 import { RulesBot } from "@/components/rules/RulesBot";
-import { Band, Note, PageHead, Prose } from "@/components/ui/kit";
+import { Band, ButtonLink, DownloadIcon, Note, PageHead, Prose } from "@/components/ui/kit";
 
 export const metadata: Metadata = {
-  title: "대관 규약 | 서울아레나",
+  title: "대관 규약",
 };
 
 /**
@@ -56,6 +56,26 @@ export default async function RulesPage() {
               <Prose text={content.revisionNote} gap="mt-3" />
             </Note>
           )}
+
+          {/* [신규 2026-09-02] 규약 파일 내려받기. 웹 본문이 정본이고 이 파일은 사본이라,
+              올려 두지 않은 동안에는 버튼 자체를 띄우지 않는다 — 눌러야 없다는 걸 아는
+              버튼은 고장으로 보인다. */}
+          {/* 주소는 우리 업로드 라우트가 발급한 것만 링크로 만든다 — 콘텐츠에 임의
+              URL 이 들어가면 규약 화면이 외부 링크를 내보내는 통로가 된다. */}
+          {content.fileUrl.startsWith("/api/content/document/") ? (
+            <div className="mt-8">
+              <ButtonLink
+                href={`${content.fileUrl}${content.fileName ? `?name=${encodeURIComponent(content.fileName)}` : ""}`}
+                variant="secondary"
+              >
+                <DownloadIcon />
+                대관 규약 내려받기
+              </ButtonLink>
+              {content.fileName ? (
+                <p className="mt-2 text-xs text-muted">{content.fileName}</p>
+              ) : null}
+            </div>
+          ) : null}
         </Band>
 
         {/* 문답을 전문 위에 둔다 — 규약을 처음부터 읽을 사람은 적고, 대개 한 가지를

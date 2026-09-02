@@ -348,6 +348,82 @@ export function ContentFormShell<T>({
   );
 }
 
+/**
+ * 내려받기용 문서 한 칸 (2026-09-02).
+ *
+ * 파일을 고르면 곧바로 올리고 주소·원본 파일명을 돌려준다. 예전에는 운영자가 파일
+ * 주소를 직접 타이핑해야 했고(대관 자료 목록의 href), 오타 하나로 링크가 죽었다.
+ * 저장은 폼 전체 저장 때 함께 일어난다 — 여기서는 값만 바꿔 둔다.
+ */
+export function DocumentField({
+  label,
+  help,
+  url,
+  name,
+  onChange,
+}: {
+  label: string;
+  help?: string;
+  url: string;
+  name: string;
+  onChange: (next: { url: string; name: string }) => void;
+}) {
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  async function upload(file: File) {
+    setError(null);
+    setBusy(true);
+    try {
+      const body = new FormData();
+      body.append("file", file);
+      const res = await fetch("/api/admin/content/document-upload", { method: "POST", body });
+      const data = await res.json().catch(() => null);
+      if (!res.ok) throw new Error(data?.error || "올리지 못했습니다.");
+      onChange({ url: data.url, name: data.name });
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "올리지 못했습니다.");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <div>
+      <span className={FIELD_LABEL}>{label}</span>
+      {help && <p className={`mb-2 ${HELP}`}>{help}</p>}
+      {url ? (
+        <div className="mb-2 flex flex-wrap items-center gap-3 border border-border-soft bg-panel px-3 py-2">
+          <a href={url} className="min-w-0 truncate text-s font-bold underline underline-offset-4">
+            {name || "첨부파일"}
+          </a>
+          <button
+            type="button"
+            onClick={() => onChange({ url: "", name: "" })}
+            className={REMOVE_BTN}
+          >
+            제거
+          </button>
+        </div>
+      ) : (
+        <p className={`mb-2 ${HELP}`}>올려 둔 파일이 없습니다. 화면에 내려받기 버튼이 나오지 않습니다.</p>
+      )}
+      <input
+        type="file"
+        disabled={busy}
+        onChange={(e) => {
+          const file = e.target.files?.[0];
+          e.target.value = "";
+          if (file) void upload(file);
+        }}
+        className={FILE_INPUT}
+      />
+      {busy && <p className={`mt-2 ${HELP}`}>올리는 중…</p>}
+      {error && <p className="mt-2 text-xs text-danger">{error}</p>}
+    </div>
+  );
+}
+
 export function Section({ title, help, children }: { title: string; help?: string; children: ReactNode }) {
   return (
     <section className="border-t border-border/15 pt-7 first:border-t-0 first:pt-0">

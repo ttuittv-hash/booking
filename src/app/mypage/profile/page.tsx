@@ -10,7 +10,7 @@ import { Band, PageHead } from "@/components/ui/kit";
 import { ProfileForm } from "@/components/ProfileForm";
 
 export const metadata: Metadata = {
-  title: "나의 정보 수정 | 서울아레나",
+  title: "나의 정보 수정",
 };
 
 export default async function ProfilePage() {

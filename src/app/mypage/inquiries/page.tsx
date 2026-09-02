@@ -15,7 +15,7 @@ import { Pagination } from "@/components/Pagination";
 import { inquiryCategoryLabel } from "@/lib/inquiryCategories";
 
 export const metadata: Metadata = {
-  title: "1:1 문의 | 서울아레나",
+  title: "1:1 문의",
 };
 
 const STATUS_LABEL: Record<string, string> = {
