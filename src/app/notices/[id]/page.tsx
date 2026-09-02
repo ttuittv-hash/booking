@@ -42,47 +42,55 @@ function formatDateTime(iso: string): string {
   바꾼다. 예전 본문이 줄바꿈용으로 넣어 둔 빈 문단은 이제 여백이 대신하므로 감춘다.
 */
 const PROSE = [
-  // 본문 기본값 — 글자를 한 단 키우고 줄 간격을 넉넉히. 공지는 훑는 글이 아니라
-  // 처음부터 끝까지 읽는 글이라, 좁은 줄 길이(`measure`)와 큰 행간이 읽기를 돕는다.
-  "whitespace-pre-line break-keep text-[1.0625rem] leading-[1.85] tracking-[-0.01em] text-muted-strong",
+  /*
+    [개정 2026-09-02] 첨부해 주신 보고서(2027 대관 계획 PDF)의 조판을 옮겼다.
+    그 문서에서 뽑은 실제 값: 제목 20pt · 소제목 14pt · 본문 9pt · 표/각주 7~8.5pt,
+    괘선은 0.5~0.75pt 헤어라인 하나뿐이고 색면·박스·음영은 한 군데도 쓰지 않는다.
+    (본문 9pt 는 A4 기준이라 화면에서는 16px 로 옮기고, 위계 비율만 그대로 가져온다.)
 
-  // 문단 — 한 칸 띄우되 첫/끝 문단은 섹션 여백과 겹치지 않게 붙인다
-  "[&_p]:my-6 [&_p:first-child]:mt-0 [&_p:last-child]:mb-0",
+    그래서 이 화면의 규칙은 세 줄이다.
+      · 구조는 헤어라인으로만 만든다 — 테두리 상자도, 배경 색면도 쓰지 않는다.
+      · 소제목은 그 위의 가로선에 얹힌다. 선이 곧 절 구분이다.
+      · 표는 세로선을 긋지 않는다. 머리행만 굵은 선으로 눌러 준다.
+  */
+  "whitespace-pre-line break-keep text-[1rem] leading-[1.8] tracking-[-0.005em] text-muted-strong",
+
+  "[&_p]:my-5 [&_p:first-child]:mt-0 [&_p:last-child]:mb-0",
   "[&_p:empty]:hidden",
 
-  // 제목 — 위는 크게 비우고 아래는 붙여, 제목이 아래 문단에 속해 보이게 한다.
-  // 자간을 좁혀 국문 제목이 뭉툭해 보이지 않게 한다.
-  "[&_h2]:type-kr-heading [&_h2]:mt-16 [&_h2]:mb-5 [&_h2]:text-h5-m [&_h2]:tracking-[-0.02em] [&_h2]:text-foreground sm:[&_h2]:text-h5",
-  "[&_h3]:type-kr-heading [&_h3]:mt-12 [&_h3]:mb-3 [&_h3]:text-h6-m [&_h3]:tracking-[-0.02em] [&_h3]:text-foreground sm:[&_h3]:text-h6",
-  "[&_h2:first-child]:mt-0 [&_h3:first-child]:mt-0",
+  // 소제목 — 위에 헤어라인을 깔고 그 위에 얹는다(보고서의 절 구분)
+  "[&_h2]:type-kr-heading [&_h2]:mt-14 [&_h2]:mb-5 [&_h2]:border-t [&_h2]:border-foreground [&_h2]:pt-5 [&_h2]:text-h6-m [&_h2]:tracking-[-0.02em] [&_h2]:text-foreground sm:[&_h2]:text-h6",
+  "[&_h2:first-child]:mt-0 [&_h2:first-child]:border-t-0 [&_h2:first-child]:pt-0",
+  // 그 아래 단계는 선 없이 굵기만으로 — 선을 두 겹 그으면 위계가 뭉갠다
+  "[&_h3]:type-kr-heading [&_h3]:mt-9 [&_h3]:mb-2.5 [&_h3]:text-s [&_h3]:font-bold [&_h3]:tracking-[-0.01em] [&_h3]:text-foreground",
+  "[&_h3:first-child]:mt-0",
 
   "[&_strong]:font-bold [&_strong]:text-foreground",
   "[&_em]:italic",
-  // 링크 — 밑줄은 옅게 깔고 올렸을 때만 또렷해진다. 본문 흐름을 끊지 않는다.
   "[&_a]:font-bold [&_a]:text-foreground [&_a]:underline [&_a]:decoration-border [&_a]:decoration-1 [&_a]:underline-offset-[0.3em] [&_a]:transition-colors hover:[&_a]:decoration-foreground",
 
-  // 목록 — 불릿은 본문보다 옅게 둬서 글자가 먼저 읽히게 한다
-  "[&_ul]:my-6 [&_ul]:list-disc [&_ul]:pl-5 [&_ol]:my-6 [&_ol]:list-decimal [&_ol]:pl-5",
-  "[&_li]:mt-2.5 [&_li]:pl-1.5 [&_li]:marker:text-muted",
-  "[&_li>ul]:my-2.5 [&_li>ol]:my-2.5",
+  "[&_ul]:my-5 [&_ul]:list-disc [&_ul]:pl-5 [&_ol]:my-5 [&_ol]:list-decimal [&_ol]:pl-5",
+  "[&_li]:mt-2 [&_li]:pl-1.5 [&_li]:marker:text-muted",
+  "[&_li>ul]:my-2 [&_li>ol]:my-2",
 
-  // 인용 — 선은 가늘게, 글자는 한 단 옅게. 본문과 구분되되 튀지 않는다.
-  "[&_blockquote]:my-8 [&_blockquote]:border-l [&_blockquote]:border-foreground/30 [&_blockquote]:pl-6 [&_blockquote]:text-muted",
-  "[&_hr]:mx-auto [&_hr]:my-14 [&_hr]:w-16 [&_hr]:border-0 [&_hr]:border-t [&_hr]:border-border",
+  "[&_blockquote]:my-7 [&_blockquote]:border-l [&_blockquote]:border-foreground/30 [&_blockquote]:pl-5 [&_blockquote]:text-muted",
+  "[&_hr]:my-12 [&_hr]:border-0 [&_hr]:border-t [&_hr]:border-border",
 
-  // 이미지 — 위아래로 크게 띄워 한 장씩 숨을 쉬게 한다
-  "[&_img]:my-12 [&_img]:w-full",
+  "[&_img]:my-10 [&_img]:w-full",
 
-  // 표 — 세로선을 걷어내고 가로선만 남긴다. 머리행은 굵은 선으로 눌러 준다.
-  "[&_table]:my-8 [&_table]:w-auto [&_table]:min-w-full [&_table]:border-collapse [&_table]:text-s",
-  "[&_thead]:border-b-2 [&_thead]:border-foreground",
-  "[&_th]:px-3 [&_th]:py-3 [&_th]:text-left [&_th]:font-bold [&_th]:text-foreground",
+  // 표 — 세로선 없이 가로 헤어라인만. 숫자가 자리를 맞추도록 tabular.
+  // 본문보다 한 단 작게 두는 것도 원본과 같다(본문 9pt / 표 7.5~8.5pt).
+  "[&_table]:my-7 [&_table]:w-auto [&_table]:min-w-full [&_table]:border-collapse [&_table]:text-s [&_table]:leading-6 [&_table]:tabular-nums",
+  "[&_thead]:border-y [&_thead]:border-foreground",
+  "[&_th]:px-3 [&_th]:py-2.5 [&_th]:text-left [&_th]:font-bold [&_th]:text-foreground",
   "[&_tbody_tr]:border-b [&_tbody_tr]:border-border-soft",
-  "[&_td]:px-3 [&_td]:py-3 [&_td]:align-top",
+  "[&_td]:px-3 [&_td]:py-2.5 [&_td]:align-top",
+  // 표 바로 아래 한 줄은 각주다 — 원본처럼 한 단 더 작고 옅게
+  "[&_table+p]:mt-3 [&_table+p]:text-xs [&_table+p]:leading-6 [&_table+p]:text-muted",
 
-  "[&_details]:my-8 [&_details]:border-y [&_details]:border-border-soft [&_details]:py-4",
+  "[&_details]:my-7 [&_details]:border-y [&_details]:border-border-soft [&_details]:py-4",
   "[&_summary]:cursor-pointer [&_summary]:font-bold [&_summary]:text-foreground",
-  "[&_[data-type=detailsContent]]:mt-4",
+  "[&_[data-type=detailsContent]]:mt-3",
 ].join(" ");
 
 const PROSE_BLOCK = "overflow-x-auto";
@@ -127,7 +135,9 @@ export default async function NoticeDetailPage({
               size="md"
               title={notice.title}
               lead={
-                <span className="flex flex-wrap items-center gap-3 border-t border-border/25 pt-5 text-xs text-muted">
+                /* 보고서 표지처럼 — 제목 아래 굵은 선 하나로 머리와 본문을 가른다.
+                   말머리·날짜는 그 선 위에 얹는 최소한의 서지 정보다(2026-09-02). */
+                <span className="flex flex-wrap items-center gap-3 border-t border-foreground pt-4 text-xs text-muted">
                   <TagBadge tag={notice.tag} spacing={false} />
                   <time className="tabular-nums" dateTime={notice.createdAt}>
                     {formatDateTime(notice.createdAt)}
