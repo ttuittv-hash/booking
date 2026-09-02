@@ -669,6 +669,17 @@ export function isRuleTableParagraph(paragraph: string): boolean {
   return /^<table[\s>]/i.test(paragraph.trim());
 }
 
+/**
+ * 표 말고도 본문에 섞이는 태그가 있다 — 첨부 파일 링크(`<a>`), 강조 등.
+ * 이런 항은 평문으로 찍으면 태그가 글자로 보이므로 sanitize 후 HTML 로 그린다.
+ * 대신 검색 하이라이트를 끼울 수 없어 검색 대상에서는 빠진다.
+ */
+const RULE_HTML_RE = /<(table|a|strong|em|b|i|u|s|br|span)[\s/>]/i;
+
+export function isRuleHtmlParagraph(paragraph: string): boolean {
+  return RULE_HTML_RE.test(paragraph);
+}
+
 export function parseRules(body: string): ParsedRuleChapter[] {
   const chapters: ParsedRuleChapter[] = [];
   let chapter: ParsedRuleChapter | null = null;

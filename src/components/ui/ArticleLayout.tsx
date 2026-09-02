@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
-import { isRuleTableParagraph } from "@/lib/content/pageContent";
+import { isRuleHtmlParagraph, isRuleTableParagraph } from "@/lib/content/pageContent";
 import { sanitizeRichText } from "@/lib/sanitizeHtml";
 
 /* 규약 본문 표 — 좁은 화면에서 지면을 밀지 않도록 표만 가로로 스크롤한다. */
@@ -131,7 +131,7 @@ function buildMatchIndex(sections: ArticleSection[], q: string): MatchIndex {
         // 표 항은 HTML 이라 하이라이트를 끼워 넣을 수 없다 — 검색 대상에서 뺀다.
         ...a.paragraphs
           .map((p, pi) => [`p${pi}`, p] as [string, string])
-          .filter(([, textValue]) => !isRuleTableParagraph(textValue)),
+          .filter(([, textValue]) => !isRuleHtmlParagraph(textValue)),
       ];
       fields.forEach(([key, text]) => {
         const n = countIn(text, needle);
@@ -472,10 +472,16 @@ export function Article({
         {paragraphs.map((p, i) =>
           // 규약 본문에 넣은 표(2026-09-02). 좁은 화면에서 지면을 밀지 않도록 표만
           // 가로 스크롤되게 감싼다.
-          isRuleTableParagraph(p) ? (
-            <div key={i} className={RULE_TABLE}>
-              <div dangerouslySetInnerHTML={{ __html: sanitizeRichText(p) }} />
-            </div>
+          isRuleHtmlParagraph(p) ? (
+            <div
+              key={i}
+              className={
+                isRuleTableParagraph(p)
+                  ? RULE_TABLE
+                  : "measure break-keep text-s leading-7 text-muted-strong [&_a]:underline [&_a]:underline-offset-4 hover:[&_a]:text-foreground"
+              }
+              dangerouslySetInnerHTML={{ __html: sanitizeRichText(p) }}
+            />
           ) : (
             <p key={i} className="measure break-keep text-s leading-7 text-muted-strong">
               <Highlight

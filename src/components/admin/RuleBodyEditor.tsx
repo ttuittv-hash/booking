@@ -37,20 +37,21 @@ export function RuleBodyEditor({
   const ref = useRef<HTMLTextAreaElement>(null);
   const [rows, setRows] = useState(2);
   const [cols, setCols] = useState(3);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  function insertTable() {
+  /** 커서 자리에 한 줄(또는 블록)을 끼운다. 포커스가 없으면 맨 뒤에 붙인다 —
+   *  아무 일도 안 일어난 것처럼 보이는 것보다 낫다. */
+  function insertAtCursor(text: string, asBlock: boolean) {
     const el = ref.current;
-    // 커서 위치를 모르면(포커스가 없으면) 맨 뒤에 붙인다 — 아무 일도 안 일어난 것처럼
-    // 보이는 것보다 낫다.
     const at = el ? el.selectionStart : value.length;
     const before = value.slice(0, at);
     const after = value.slice(at);
-    // 표는 제 줄을 통째로 차지하는 블록이다 — 앞뒤에 빈 줄을 넣어 다른 항과 붙지 않게 한다.
-    const block = `${before.endsWith("\n") || before === "" ? "" : "\n"}${tableSkeleton(rows, cols)}\n${
-      after.startsWith("\n") ? "" : "\n"
-    }`;
+    // 블록(표)은 제 줄을 통째로 차지한다 — 앞뒤에 줄바꿈을 넣어 다른 항과 붙지 않게 한다.
+    const lead = asBlock && before !== "" && !before.endsWith("\n") ? "\n" : "";
+    const tail = asBlock && !after.startsWith("\n") ? "\n" : "";
+    const block = `${lead}${text}${tail}`;
     onChange(before + block + after);
-    // 삽입한 표 끝으로 커서를 옮겨 이어서 칠 수 있게 한다.
     requestAnimationFrame(() => {
       if (!el) return;
       const pos = (before + block).length;
@@ -59,10 +60,37 @@ export function RuleBodyEditor({
     });
   }
 
+  async function attachFile(file: File) {
+    setError(null);
+    setBusy(true);
+    try {
+      const body = new FormData();
+      body.append("file", file);
+      const res = await fetch("/api/admin/content/document-upload", { method: "POST", body });
+      const data = await res.json().catch(() => null);
+      if (!res.ok) {
+        setError(data?.error ?? "파일을 올리지 못했습니다.");
+        return;
+      }
+      // 규약 본문은 평문이라 링크는 <a> 로 넣는다 — 화면에서 sanitize 를 거쳐 그려진다.
+      // 파일명을 ?name= 으로 붙여야 이용자 컴퓨터에 원래 이름으로 저장된다.
+      const href = `${data.url}?name=${encodeURIComponent(data.name)}`;
+      insertAtCursor(`<a href="${href}">${data.name}</a>`, false);
+    } catch {
+      setError("파일을 올리지 못했습니다. 잠시 후 다시 시도해 주세요.");
+    } finally {
+      setBusy(false);
+    }
+  }
+
   return (
     <div className="space-y-2">
       <div className="flex flex-wrap items-center gap-2">
-        <button type="button" onClick={insertTable} className={LINK_BTN}>
+        <button
+          type="button"
+          onClick={() => insertAtCursor(tableSkeleton(rows, cols), true)}
+          className={LINK_BTN}
+        >
           + 표 넣기
         </button>
         <label className="flex items-center gap-1 text-xs text-muted">
@@ -88,6 +116,26 @@ export function RuleBodyEditor({
           />
         </label>
         <span className={HELP}>커서 자리에 표 뼈대를 넣습니다. 칸 안의 내용은 직접 채우세요.</span>
+      </div>
+
+      {/* [신규 2026-09-02] 규약 본문 안에서 바로 파일을 올려 링크로 건다 — 별표·서식처럼
+          본문에 딸린 문서를 따로 올리고 주소를 옮겨 적을 필요가 없다. */}
+      <div className="flex flex-wrap items-center gap-2">
+        <label className={`${LINK_BTN} cursor-pointer`}>
+          {busy ? "올리는 중..." : "+ 파일 첨부"}
+          <input
+            type="file"
+            className="hidden"
+            disabled={busy}
+            onChange={(e) => {
+              const file = e.target.files?.[0];
+              e.target.value = "";
+              if (file) void attachFile(file);
+            }}
+          />
+        </label>
+        <span className={HELP}>커서 자리에 내려받기 링크를 넣습니다.</span>
+        {error && <span className="text-xs text-danger">{error}</span>}
       </div>
 
       <textarea

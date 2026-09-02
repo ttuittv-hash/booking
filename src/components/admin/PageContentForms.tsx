@@ -411,7 +411,12 @@ function RateTableFields({
         label="요금표 열 (요금 구분)"
         items={value.columns}
         onChange={(columns) => p({ columns })}
-        blank={() => ({ key: `col${Date.now()}`, name: "", values: value.rowLabels.map(() => "") })}
+        blank={() => ({
+          key: `col${Date.now()}`,
+          name: "",
+          values: value.rowLabels.map(() => ""),
+          extras: [],
+        })}
         addLabel="+ 열 추가"
         titleOf={(it, i) => it.name || `열 ${i + 1}`}
         render={(it, patch) => (
@@ -428,6 +433,17 @@ function RateTableFields({
                 }
               />
             ))}
+            {/* [신규 2026-09-02] 카드 맨 아래 헤어라인 밑에 붙는 행(준비일 추가 · 공연일 추가).
+                화면에는 나가는데 편집할 자리가 없어 금액도 문구도 못 고쳤다. */}
+            <PairList
+              label="카드 하단 추가 요금 (준비일 추가 · 공연일 추가)"
+              help="라벨과 금액을 그대로 찍습니다. 비우면 카드 아래 헤어라인과 이 행이 나오지 않습니다."
+              items={it.extras ?? []}
+              onChange={(extras) => patch({ extras })}
+              labelName="라벨"
+              valueName="금액"
+              addLabel="+ 행 추가"
+            />
           </div>
         )}
       />
