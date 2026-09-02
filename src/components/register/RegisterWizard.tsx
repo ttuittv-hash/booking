@@ -625,8 +625,10 @@ export function RegisterWizard({
           <a href="/register" className={btnClass("primary", "md")}>
             일반 회원가입으로 진행
           </a>
-          <a href="/faq" className={btnClass("secondary", "md")}>
-            대관 문의
+          {/* [수정 2026-09-02] FAQ 는 승인 완료 전용이 됐다 — 로그인도 안 한 사람에게
+              주면 로그인 화면으로 튕긴다. 공개된 소개 화면으로 보낸다. */}
+          <a href="/seoularena" className={btnClass("secondary", "md")}>
+            서울아레나 소개
           </a>
         </span>
       </div>

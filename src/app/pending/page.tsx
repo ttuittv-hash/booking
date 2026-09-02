@@ -97,8 +97,10 @@ export default async function PendingPage() {
                   <ReapplyButton />
                 </div>
                 <div className="mt-6 flex flex-wrap gap-3">
-                  <ButtonLink href="/faq" variant="tertiary">
-                    대관 문의
+                  {/* [수정 2026-09-02] FAQ 가 승인 완료 전용이 되면서 여기서 누르면
+                      이 화면으로 되돌아왔다. 승인 전에 실제로 열리는 1:1 문의로 보낸다. */}
+                  <ButtonLink href="/mypage/inquiries" variant="tertiary">
+                    1:1 문의
                   </ButtonLink>
                   <ButtonLink href="/mypage/withdraw" variant="tertiary">
                     회원 탈퇴

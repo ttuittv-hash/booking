@@ -84,14 +84,19 @@ const RULES: MenuRule[] = [
     열어 두는 것:
       · 서울아레나 소개(/seoularena) · 시설 제원(/features)  — Your Stage
       · 회원정보 수정 · 탈퇴 · 1:1 문의                        — 마이페이지
-      · FAQ — 비로그인에게도 공개된 페이지라 대기 상태만 막을 이유가 없다
+
+    [개정 2026-09-02] FAQ 도 승인 완료 전용으로 내린다.
+
+    "비로그인에게도 공개라 대기 상태만 막을 이유가 없다"고 열어 뒀는데, FAQ 내용
+    자체가 신청·정산·시설 운영 같은 대관 업무 안내다(QA 지적). 승인 전에는 서울아레나
+    소개 · 시설 제원 · 1:1 문의만 남는다 — 궁금한 것은 1:1 문의로 받는다.
   */
   { prefix: "/guide", label: "대관 절차", allow: APPROVED_ONLY },
   { prefix: "/rates", label: "대관료", allow: APPROVED_ONLY },
   { prefix: "/rules", label: "대관 규약", allow: APPROVED_ONLY },
   { prefix: "/documents", label: "대관 자료", allow: APPROVED_ONLY },
   { prefix: "/notices", label: "공지사항", allow: APPROVED_ONLY },
-  { prefix: "/faq", label: "FAQ", allow: OPEN_ALL },
+  { prefix: "/faq", label: "FAQ", allow: APPROVED_ONLY },
 ];
 
 export function accountStateOf(

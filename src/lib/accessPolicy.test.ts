@@ -41,6 +41,8 @@ describe("대관 업무 메뉴 — 승인 완료 전용", () => {
     ["/rules", "대관 규약"],
     ["/documents", "대관 자료"],
     ["/notices", "공지사항"],
+    // [추가 2026-09-02] FAQ 도 대관 업무 안내다 — 승인 전에는 1:1 문의로 받는다.
+    ["/faq", "FAQ"],
   ] as const) {
     it(`${label} 은 비로그인이 막힌다`, () => expect(canAccess(path, "GUEST")).toBe(false));
     it(`${label} 은 승인 대기가 막힌다`, () => expect(canAccess(path, "PENDING")).toBe(false));
@@ -68,8 +70,13 @@ describe("승인 대기에 열려 있는 곳", () => {
     expect(canAccess("/mypage/inquiries", "PENDING")).toBe(true);
     expect(canAccess("/mypage/inquiries", "REJECTED")).toBe(true);
   });
-  it("FAQ 는 비로그인에게도 공개라 대기 상태만 막지 않는다", () =>
-    expect(canAccess("/faq", "PENDING")).toBe(true));
+  // [개정 2026-09-02] 승인 전에 열려 있는 것은 이 셋뿐이다 — 서울아레나 소개 ·
+  // 시설 제원 · 1:1 문의(+ 정보수정·탈퇴). FAQ 는 여기서 빠졌다.
+  it("FAQ 는 승인 전에 막힌다 — 궁금한 것은 1:1 문의로 받는다", () => {
+    expect(canAccess("/faq", "GUEST")).toBe(false);
+    expect(canAccess("/faq", "PENDING")).toBe(false);
+    expect(canAccess("/faq", "REJECTED")).toBe(false);
+  });
 });
 
 describe("대관신청·신청내역 — 승인 완료 필수", () => {

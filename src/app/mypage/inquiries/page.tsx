@@ -48,7 +48,7 @@ export default async function MyInquiriesPage({
       active="/mypage/inquiries"
       en="INQUIRIES"
       ko="1:1 문의"
-      lead="FAQ에서 답을 찾지 못하셨다면 이곳에 문의를 남겨 주세요. 담당 부서가 확인 후 답변드립니다."
+      lead="궁금한 점을 남겨 주시면 담당 부서가 확인 후 답변드립니다."
       actions={
         <ButtonLink href="/mypage/inquiries/new" variant="primary">
           문의 작성
@@ -67,9 +67,13 @@ export default async function MyInquiriesPage({
                     문의 작성
                     <ArrowRight />
                   </ButtonLink>
-                  <ButtonLink href="/faq" variant="secondary">
-                    FAQ 먼저 보기
-                  </ButtonLink>
+                  {/* [수정 2026-09-02] FAQ 는 승인 완료 전용이다 — 승인 전 회원에게
+                      주면 이 화면으로 되돌아온다. 승인된 회원에게만 보인다. */}
+                  {user.approvalStatus === "APPROVED" && (
+                    <ButtonLink href="/faq" variant="secondary">
+                      FAQ 먼저 보기
+                    </ButtonLink>
+                  )}
                 </span>
               }
             />
