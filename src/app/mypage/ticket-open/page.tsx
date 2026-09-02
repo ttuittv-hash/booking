@@ -10,7 +10,7 @@ import { Badge } from "@/components/ui/kit";
 import type { TicketOpen } from "@/lib/pricing/types";
 
 export const metadata: Metadata = {
-  title: "티켓 오픈 정보 | 서울아레나",
+  title: "티켓 오픈 정보",
 };
 
 const COLUMNS: Column[] = [

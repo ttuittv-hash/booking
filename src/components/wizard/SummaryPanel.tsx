@@ -5,6 +5,7 @@ import { Note } from "@/components/ui/kit";
 import { VENUES } from "@/lib/pricing/types";
 import type { EstimatedQuote, LineItem } from "@/lib/pricing/types";
 import {
+  isHiddenFromApplicant,
   SECTION_LABEL,
   SECTION_SUBTOTAL_LABEL,
   sectionOf,
@@ -26,13 +27,17 @@ const SECTION_ORDER: ContractSection[] = ["CONTRACT", "ADDITIONAL"];
  * 한 목록에 섞어 보여주면 어디까지가 계약금액인지 헷갈린다는 지적으로 슬롯을 나눴다.
  *
  * 한동안 STEP 1·2 에서 금액을 감췄는데, 신청자가 구성을 고르는 동안 값이 얼마나 움직이는지
- * 볼 수 없어 되돌렸다. 대신 "예상 금액 · 확정 아님" 고지를 항상 위에 둔다.
+ * 볼 수 없어 되돌렸다.
+ *
+ * [개정 2026-09-02] 제목 아래의 "※ 예상 금액 — 확정 아님" 한 줄을 뺐다. 같은 뜻이
+ * 화면 곳곳(제출 단계 안내·신청 완료 문구)에 이미 있고, 값이 움직일 때마다 보이는
+ * 자리에 경고를 붙여 두면 읽히지 않는 문구가 된다.
  */
 export function SummaryPanel({ quote }: { quote: EstimatedQuote }) {
-  // Bowl 사용료·유틸리티(HIDDEN)는 합계에는 포함하되 신청자 화면에는 항목·금액 모두 노출하지
-  // 않는다 — quote.subtotal/total은 전체 lineItems 기준으로 이미 계산돼 있어 여기서 걸러내도
-  // 총액에는 영향이 없다.
-  const visibleItems = quote.lineItems.filter((item) => item.visibility !== "HIDDEN");
+  // Bowl 사용료·유틸리티(HIDDEN)와 청소비는 합계에는 포함하되 신청자 화면에는 항목·금액을
+  // 노출하지 않는다 — quote.subtotal/total 은 전체 lineItems 기준으로 이미 계산돼 있어
+  // 여기서 걸러내도 총액에는 영향이 없다. 무엇을 감출지는 lineItemGroups 한 곳에서 정한다.
+  const visibleItems = quote.lineItems.filter((item) => !isHiddenFromApplicant(item));
   // 동시 대관에서는 아레나·중형 항목이 한 목록에 섞여 어느 공간 몫인지 구분이 안 된다는
   // 지적으로 공간별 소제목을 넣었다(2026-08-22) — 항목에 실제로 두 공간이 섞여 있을 때만
   // 나눈다. 한 공간만 선택했을 때는 예전처럼 소제목 없이 밋밋한 목록 그대로 보여준다.
@@ -49,9 +54,6 @@ export function SummaryPanel({ quote }: { quote: EstimatedQuote }) {
     <aside className="w-full min-w-0 lg:col-span-3 lg:sticky lg:top-28 lg:self-start">
       <div className="border-t-2 border-foreground pt-5">
         <h3 className="type-kr-heading text-h6-m sm:text-h6">실시간 대관신청 내역</h3>
-        <p className="mt-2 text-xs text-muted">
-          ※ 예상 금액 — 확정 아님 (신청 → 계약 → 정산 단계에서 확정)
-        </p>
 
         {visibleItems.length === 0 ? (
           <div className="mt-5 border-t border-border/25 border-b border-border/15 py-4 text-s text-muted">

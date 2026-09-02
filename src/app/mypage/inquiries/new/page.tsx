@@ -9,7 +9,7 @@ import { SiteFooter } from "@/components/ui/SiteFooter";
 import { Band, PageHead } from "@/components/ui/kit";
 
 export const metadata: Metadata = {
-  title: "문의 작성 | 서울아레나",
+  title: "문의 작성",
 };
 
 export default async function NewInquiryPage() {

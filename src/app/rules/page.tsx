@@ -7,10 +7,10 @@ import { PublicHeader } from "@/components/PublicHeader";
 import { SiteFooter } from "@/components/ui/SiteFooter";
 import { ArticleLayout } from "@/components/ui/ArticleLayout";
 import { RulesBot } from "@/components/rules/RulesBot";
-import { Band, Note, PageHead, Prose } from "@/components/ui/kit";
+import { Band, ButtonLink, DownloadIcon, Note, PageHead, Prose } from "@/components/ui/kit";
 
 export const metadata: Metadata = {
-  title: "대관 규약 | 서울아레나",
+  title: "대관 규약",
 };
 
 /**
@@ -38,10 +38,10 @@ export default async function RulesPage() {
             lead={<Prose text={content.intro} />}
           />
           {/*
-            버전·시행일·구성과 그 아래 개정 안내는 **지면의 절반**(12칼럼 중 6)에서 끝난다.
-            `measure`(768px 고정)로 잡아 두었더니 이 블록만 컬럼 경계에서 벗어나 끝나서,
-            아래 규약 본문(목차 3 : 본문 9)과 세로선이 맞지 않았다. 아래 두 페이지와
-            같은 그리드 위에 올린다.
+            버전·시행일·구성, 개정 안내, 내려받기 버튼은 **지면의 절반**(12칼럼 중 6)에서
+            끝난다. `measure`(768px 고정)로 잡아 두었더니 이 블록만 컬럼 경계에서 벗어나
+            끝나서, 아래 규약 본문(목차 3 : 본문 9)과 세로선이 맞지 않았다.
+            아래 두 페이지와 같은 그리드 위에 올린다.
           */}
           <div className="grid-site mt-10">
             <div className="lg:col-span-6">
@@ -64,6 +64,26 @@ export default async function RulesPage() {
                   <Prose text={content.revisionNote} gap="mt-3" />
                 </Note>
               )}
+
+              {/* [신규 2026-09-02] 규약 파일 내려받기. 웹 본문이 정본이고 이 파일은 사본이라,
+                  올려 두지 않은 동안에는 버튼 자체를 띄우지 않는다 — 눌러야 없다는 걸 아는
+                  버튼은 고장으로 보인다. */}
+              {/* 주소는 우리 업로드 라우트가 발급한 것만 링크로 만든다 — 콘텐츠에 임의
+                  URL 이 들어가면 규약 화면이 외부 링크를 내보내는 통로가 된다. */}
+              {content.fileUrl.startsWith("/api/content/document/") ? (
+                <div className="mt-8">
+                  <ButtonLink
+                    href={`${content.fileUrl}${content.fileName ? `?name=${encodeURIComponent(content.fileName)}` : ""}`}
+                    variant="secondary"
+                  >
+                    <DownloadIcon />
+                    대관 규약 내려받기
+                  </ButtonLink>
+                  {content.fileName ? (
+                    <p className="mt-2 text-xs text-muted">{content.fileName}</p>
+                  ) : null}
+                </div>
+              ) : null}
             </div>
           </div>
         </Band>

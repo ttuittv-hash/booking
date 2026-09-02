@@ -221,12 +221,19 @@ export interface RateColumn {
   name: string;
   /** 표에 세로로 쌓이는 행 값들 — rowLabels 와 순서가 같다 */
   values: string[];
+  /**
+   * 카드 맨 아래 헤어라인 아래에 붙는 [라벨 / 금액] 행 (준비일 추가 · 공연일 추가).
+   * 접혀 있던 [Details] 를 없애면서, 늘 봐야 하는 일 단위 추가 요금만 카드로 올렸다.
+   */
+  extras?: Pair[];
 }
 
 export interface ChargeBlock {
   group: string;
   item: string;
   cost: string;
+  /** 금액에 딸린 단위·조건 (시간당 · 09:00–24:00) — 금액 바로 아래 작게 붙는다 */
+  unit?: string;
   note: string;
 }
 
@@ -296,6 +303,11 @@ export const DEFAULT_RATES_CONTENT: RatesContent = {
       key: r.key,
       name: r.name,
       values: [r.capacity, r.stageType, r.seatingType, won(r.total)],
+      // 일 단위 추가 요금은 카드 하단에 늘 보이게 둔다(옛 Details 의 두 행).
+      extras: [
+        { label: "준비일 추가", value: r.setupChange },
+        { label: "공연일 추가", value: r.showChange },
+      ],
     })),
     detailLabels: [
       "셋업일 전용 사용료",
@@ -530,6 +542,14 @@ export interface RulesContent {
   revisionNote: string;
   /** 규약 전문 — `제N장 …` / `제N조 (…)` 로 시작하는 줄이 제목이 된다 */
   body: string;
+  /**
+   * 내려받기용 규약 파일 (2026-09-02). 콘텐츠 관리에서 올리면 채워지고, 비어 있으면
+   * 화면에 내려받기 버튼이 나오지 않는다. 웹 본문(body)이 정본이고 이 파일은 사본이다 —
+   * 규약을 고칠 때 파일도 함께 올려야 둘이 어긋나지 않는다.
+   */
+  fileUrl: string;
+  /** 내려받을 때 쓸 원본 파일명 */
+  fileName: string;
 }
 
 function chaptersToText(): string {
@@ -549,6 +569,8 @@ export const DEFAULT_RULES_CONTENT: RulesContent = {
     "개정된 내용은 홈페이지 공지 또는 별도 통지 중 빠른 시점 이후 신규 체결되는 " +
     "대관계약부터 적용합니다. 이미 체결된 대관계약에는 계약 체결 시점의 규약을 적용합니다.",
   body: chaptersToText(),
+  fileUrl: "",
+  fileName: "",
 };
 
 export interface ParsedRuleChapter {

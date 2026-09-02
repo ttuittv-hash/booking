@@ -10,7 +10,7 @@ import { Badge } from "@/components/ui/kit";
 import type { FacilityMeeting } from "@/lib/pricing/types";
 
 export const metadata: Metadata = {
-  title: "시설 회의 | 서울아레나",
+  title: "시설 회의",
 };
 
 const COLUMNS: Column[] = [

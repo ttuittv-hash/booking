@@ -7,7 +7,7 @@ import { SiteFooter } from "@/components/ui/SiteFooter";
 import { ArrowRight, Band, ButtonLink, EmptyState, PageHead, Prose } from "@/components/ui/kit";
 
 export const metadata: Metadata = {
-  title: "FAQ | 서울아레나",
+  title: "FAQ",
 };
 
 export default async function FaqPage() {

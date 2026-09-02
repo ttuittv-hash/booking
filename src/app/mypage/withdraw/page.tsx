@@ -5,7 +5,7 @@ import { MyPageShell } from "@/components/mypage/MyPageShell";
 import { WithdrawForm } from "@/components/WithdrawForm";
 
 export const metadata: Metadata = {
-  title: "회원 탈퇴 | 서울아레나",
+  title: "회원 탈퇴",
 };
 
 export default async function WithdrawPage() {

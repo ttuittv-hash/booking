@@ -4,11 +4,12 @@ import { useState, type ReactNode } from "react";
 import { won } from "@/lib/format";
 import { resolveSelectedDates } from "@/lib/pricing/dateRange";
 import {
+  clampAddonQuantity,
   defaultDayTags,
   effectiveDayTag,
   findPackage,
-  includedQuantity,
   isAddonAvailable,
+  maxRequestableQuantity,
   packagesForVenue,
 } from "@/lib/pricing/rateTableUtils";
 import {
@@ -385,12 +386,12 @@ function PackagePicker({
           {baseItems.length > 0 ? (
             <div className="mt-3 grid grid-cols-1 gap-1.5 sm:grid-cols-2 lg:grid-cols-3">
               {baseItems.map((item) => (
+                /* [개정 2026-09-02] 수량·단위("2공연일")를 뺐다. 여기는 이 구성에 무엇이
+                   들어 있는지 보는 곳이지 몇 개인지 세는 곳이 아니다 — 구성항목(스펙)
+                   이름만 남긴다. 수량은 요금표 관리에서 계속 관리하고 금액 계산에도
+                   그대로 쓰인다. */
                 <div key={item.key} className="border border-border-soft bg-panel px-3 py-2 text-xs">
                   <span className="font-bold text-foreground">{item.name}</span>
-                  <span className="ml-1.5 text-muted">
-                    {item.quantity}
-                    {item.unit}
-                  </span>
                 </div>
               ))}
             </div>
@@ -530,7 +531,7 @@ export function StepConfigOptions({
               <AddonRow
                 key={addon.id}
                 addon={addon}
-                included={includedQuantity(pkg, addon.id)}
+                pkg={pkg}
                 quantity={addonQuantities[addon.id] ?? 0}
                 expectedRevenue={expectedRevenue}
                 onChangeQuantity={onChangeQuantity}
@@ -606,14 +607,14 @@ export function StepConfigOptions({
 
 function AddonRow({
   addon,
-  included,
+  pkg,
   quantity,
   expectedRevenue,
   onChangeQuantity,
   onChangeRevenue,
 }: {
   addon: AddonItem;
-  included: number;
+  pkg: RentalPackage | undefined;
   quantity: number;
   expectedRevenue: number;
   onChangeQuantity: (addonId: string, quantity: number) => void;
@@ -622,10 +623,9 @@ function AddonRow({
   const { t, tStr } = useWizardText();
   const isRevenue = addon.pricingType === "REVENUE_PERCENT";
 
-  const maxTotal =
-    addon.availability.maxAddQuantity && addon.availability.maxAddQuantity !== "UNLIMITED"
-      ? included + addon.availability.maxAddQuantity
-      : undefined;
+  // 운영자가 요금표 관리에서 정한 상한. 판정은 rateTableUtils 한 곳에서 하고 금액
+  // 계산도 같은 함수로 자른다 — 화면에서만 막으면 폼을 우회한 요청이 그대로 통과한다.
+  const maxTotal = maxRequestableQuantity(addon, pkg);
 
   const priceLabel = isRevenue
     ? `${tStr("configOptions.revenuePrefix", "매출")} ${addon.unitPrice}%`
@@ -672,17 +672,27 @@ function AddonRow({
             />
           </div>
         ) : (
-          <input
-            type="number"
-            min={0}
-            max={maxTotal}
-            value={quantity || ""}
-            placeholder="0"
-            onChange={(e) =>
-              onChangeQuantity(addon.id, Math.max(0, Number(e.target.value) || 0))
-            }
-            className="w-14 shrink-0 border border-border bg-background px-2 py-1 text-right text-xs outline-none focus:border-foreground"
-          />
+          /* [개정 2026-09-02] number 입력의 max 속성은 **타이핑을 막지 못한다** —
+             상한이 3인 항목에 6 을 그대로 칠 수 있었고 그 값이 제출됐다.
+             입력 시점에 잘라 넣고, 상한이 있으면 칸 옆에 적어 준다. */
+          <span className="flex shrink-0 items-center gap-1.5">
+            {maxTotal !== undefined ? (
+              <span className="whitespace-nowrap text-xs text-muted">
+                {t("configOptions.maxQuantityHint", "최대")} {maxTotal}
+              </span>
+            ) : null}
+            <input
+              type="number"
+              min={0}
+              max={maxTotal}
+              value={quantity || ""}
+              placeholder="0"
+              onChange={(e) =>
+                onChangeQuantity(addon.id, clampAddonQuantity(addon, pkg, Number(e.target.value)))
+              }
+              className="w-14 shrink-0 border border-border bg-background px-2 py-1 text-right text-xs outline-none focus:border-foreground"
+            />
+          </span>
         )}
       </div>
     </div>

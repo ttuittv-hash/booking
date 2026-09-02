@@ -16,6 +16,7 @@ import type {
 import {
   Area,
   ContentFormShell,
+  DocumentField,
   ImageField,
   ListEditor,
   Section,
@@ -509,7 +510,7 @@ function RateTableFields({
         help="추가 비용이 발생하는 항목입니다. '구분'은 위저드 화면에서 항목을 묶는 그룹 제목으로 쓰입니다(예: 추가대관, 공간·프로모션, 기타). 중형공연장의 '추가대관' 그룹은 위저드에서 시간 단위로 직접 조정할 수 있게 연동되어 있고, 그 외 항목은 금액을 그대로 보여주는 참고용으로 노출됩니다."
         items={value.charges}
         onChange={(charges) => p({ charges })}
-        blank={() => ({ group: "", item: "", cost: "", note: "" })}
+        blank={() => ({ group: "", item: "", cost: "", unit: "", note: "" })}
         addLabel="+ 옵션 항목 추가"
         titleOf={(it, i) => `${it.group || "-"} · ${it.item || i + 1}`}
         render={(it, patch) => (
@@ -517,6 +518,11 @@ function RateTableFields({
             <Text label="구분 (그룹)" value={it.group} onChange={(group) => patch({ group })} />
             <Text label="항목" value={it.item} onChange={(item) => patch({ item })} />
             <Text label="비용" value={it.cost} onChange={(cost) => patch({ cost })} />
+            <Text
+              label="단위·조건 (금액 아래 작게)"
+              value={it.unit ?? ""}
+              onChange={(unit) => patch({ unit })}
+            />
             <Text label="비고" value={it.note} onChange={(note) => patch({ note })} />
           </div>
         )}
@@ -808,6 +814,22 @@ export function RulesForm({ content }: { content: RulesContent }) {
                 onChange={(effectiveDate) => patch({ effectiveDate })}
               />
             </div>
+          </Section>
+
+          <Section
+            title="규약 파일"
+            help={
+              "화면 상단에 [대관 규약 내려받기] 버튼으로 나옵니다. 웹 본문(아래 규약 전문)이 " +
+              "정본이고 이 파일은 사본이므로, 규약을 고칠 때 파일도 함께 올려 주세요. " +
+              "승인 완료된 회원만 내려받을 수 있습니다."
+            }
+          >
+            <DocumentField
+              label=""
+              url={v.fileUrl}
+              name={v.fileName}
+              onChange={({ url, name }) => patch({ fileUrl: url, fileName: name })}
+            />
           </Section>
 
           <Section

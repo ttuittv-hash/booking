@@ -7,7 +7,7 @@ import { SiteFooter } from "@/components/ui/SiteFooter";
 import { Band, PageHead } from "@/components/ui/kit";
 
 export const metadata: Metadata = {
-  title: "이용약관 | 서울아레나",
+  title: "이용약관",
 };
 
 /**

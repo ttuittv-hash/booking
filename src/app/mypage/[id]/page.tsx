@@ -68,7 +68,8 @@ export default async function MyQuoteDetailPage({
 
   const [
     depositRaw,
-    attachments,
+    generalAttachments,
+    marketingPlanAttachments,
     signatureRaw,
     contractInvoiceRaw,
     balanceInvoiceRaw,
@@ -81,7 +82,10 @@ export default async function MyQuoteDetailPage({
     addendumsRaw,
   ] = await Promise.all([
     getDepositByQuoteId(id),
+    // 마케팅 실행 계획서는 MARKETING_PLAN 분류로 올라가 category IS NULL 목록에
+    // 잡히지 않는다 — 따로 읽어 같은 첨부 목록에 이어 붙인다(2026-09-02).
     listAttachments(id, null),
+    listAttachments(id, "MARKETING_PLAN"),
     getContractSignatureByQuoteId(id),
     getTaxInvoice(id, "CONTRACT"),
     getTaxInvoice(id, "CONTRACT_BALANCE"),
@@ -93,6 +97,9 @@ export default async function MyQuoteDetailPage({
     getRateTableByVersion(quote.rateTableVersion),
     quote.contract ? listContractAddendums(id) : Promise.resolve([]),
   ]);
+  // 마케팅 실행 계획서는 분류가 붙어 별도 조회로 읽어 왔다. 화면에서는 한 목록으로 본다 —
+  // 신청서에 딸린 서류라는 점이 같고, 분류별로 상자를 나누면 찾기만 번거로워진다.
+  const attachments = [...generalAttachments, ...marketingPlanAttachments];
   const deposit = depositRaw ?? null;
   const signature = signatureRaw ?? null;
   const contractInvoice = contractInvoiceRaw ?? null;

@@ -30,6 +30,39 @@ export function includedQuantity(pkg: RentalPackage | undefined, addonId: string
   return item ? item.quantity : 0;
 }
 
+/**
+ * 이 항목을 최대 몇까지 신청할 수 있는가 (2026-09-02).
+ *
+ * 운영자가 요금표 관리에서 정한 `availability.maxAddQuantity` 는 **기본 포함 위에 더
+ * 얹을 수 있는 양**이다. 신청 화면이 다루는 값은 총 수량이므로 기본 포함을 더해 준다.
+ * 상한을 두지 않았으면 undefined(무제한).
+ */
+export function maxRequestableQuantity(
+  addonItem: AddonItem,
+  pkg: RentalPackage | undefined,
+): number | undefined {
+  const max = addonItem.availability.maxAddQuantity;
+  if (max === undefined || max === "UNLIMITED") return undefined;
+  return includedQuantity(pkg, addonItem.id) + max;
+}
+
+/**
+ * 신청 수량을 상한 안으로 자른다.
+ *
+ * 화면(number 입력)의 max 속성은 **타이핑을 막지 못한다** — 6 을 그대로 칠 수 있고
+ * 그 값이 그대로 제출됐다. 그래서 화면과 금액 계산 양쪽에서 같은 함수로 자른다.
+ * 계산 쪽이 최종 방어선이다(폼을 우회한 요청도 상한을 넘지 못한다).
+ */
+export function clampAddonQuantity(
+  addonItem: AddonItem,
+  pkg: RentalPackage | undefined,
+  requested: number,
+): number {
+  const safe = Math.max(0, Math.floor(requested) || 0);
+  const max = maxRequestableQuantity(addonItem, pkg);
+  return max === undefined ? safe : Math.min(safe, max);
+}
+
 // 패키지 선택에 따라 부대시설이 선택 가능한지 판단 (명세서 3.4)
 export function isAddonAvailable(addonItem: AddonItem, pkg: RentalPackage | undefined): boolean {
   if (!pkg) return false;

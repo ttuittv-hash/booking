@@ -2,6 +2,7 @@ import Link from "next/link";
 import type { ReactNode } from "react";
 import { Reveal } from "@/components/ui/Reveal";
 import { splitParagraphs } from "@/lib/content/prose";
+import { parseInlineLinks } from "@/lib/content/inlineLinks";
 
 /* --------------------------------------------------------- 리치텍스트 ----- */
 
@@ -13,6 +14,31 @@ import { splitParagraphs } from "@/lib/content/prose";
  * 들어올 수 있는 자리에는 `{text}` 를 그대로 그리지 말고 이것을 쓴다 —
  * HTML 은 줄바꿈을 공백으로 접기 때문에 운영자가 나눈 문단이 사라진다.
  */
+/**
+ * `[대관료](/rates)` 표기를 링크로 그린다 (2026-09-02).
+ * 무엇을 링크로 볼지(우리 사이트 안만)는 content/inlineLinks.ts 가 정한다 — 그쪽에
+ * 테스트가 붙어 있다.
+ */
+export function InlineLinks({ text }: { text: string }) {
+  return (
+    <>
+      {parseInlineLinks(text).map((part, i) =>
+        part.type === "link" ? (
+          <Link
+            key={i}
+            href={part.href}
+            className="underline decoration-border-soft underline-offset-4 transition-colors hover:decoration-accent"
+          >
+            {part.text}
+          </Link>
+        ) : (
+          <span key={i}>{part.text}</span>
+        ),
+      )}
+    </>
+  );
+}
+
 export function Prose({
   text,
   className = "",
@@ -29,7 +55,7 @@ export function Prose({
     <div className={className}>
       {blocks.map((block, i) => (
         <p key={i} className={`whitespace-pre-line break-keep ${i > 0 ? gap : ""}`}>
-          {block}
+          <InlineLinks text={block} />
         </p>
       ))}
     </div>
@@ -1202,7 +1228,9 @@ export function ProcessSteps({ steps }: { steps: ProcessStep[] }) {
             <div className="h-full border border-border bg-panel p-6">
               <span className="type-display block text-h6-m tabular-nums sm:text-h6">{s.no}</span>
               <h4 className="type-kr-heading mt-3 break-keep text-h6-m sm:text-h6">{s.title}</h4>
-              <p className="mt-3 break-keep text-s text-muted">{s.desc}</p>
+              <p className="mt-3 break-keep text-s text-muted">
+              <InlineLinks text={s.desc} />
+            </p>
             </div>
             {hasArrow && (
               /* 화살표는 박스 사이 거터의 가운데에 뜬다 — 박스 폭을 줄여 자리를 만들지

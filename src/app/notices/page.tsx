@@ -18,7 +18,7 @@ import { Pagination } from "@/components/Pagination";
 import type { Notice } from "@/lib/pricing/types";
 
 export const metadata: Metadata = {
-  title: "공지사항 | 서울아레나",
+  title: "공지사항",
 };
 
 function formatDate(iso: string): string {

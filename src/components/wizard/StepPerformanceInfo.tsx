@@ -15,6 +15,7 @@ import {
   CAST_CONTRACT_STATUS_LABEL,
   EVENT_TYPE_LABEL,
   ORGANIZER_ROLE_LABEL,
+  RETRACTABLE_SEAT_FLOOR_LABEL,
   RETRACTABLE_SEAT_USE_LABEL,
   SEATING_TYPE_LABEL,
   STAGE_TYPE_LABEL,
@@ -30,6 +31,7 @@ import {
   type PerformanceInfo,
   type QuoteSelection,
   type ResponsiblePerson,
+  type RetractableSeatFloor,
   type RetractableSeatUse,
   type SeatingType,
   type StageType,
@@ -40,6 +42,7 @@ const APPLICANT_COMPANY_TYPES = Object.keys(APPLICANT_COMPANY_TYPE_LABEL) as App
 const STAGE_TYPES = Object.keys(STAGE_TYPE_LABEL) as StageType[];
 const SEATING_TYPES = Object.keys(SEATING_TYPE_LABEL) as SeatingType[];
 const RETRACTABLE_USES = Object.keys(RETRACTABLE_SEAT_USE_LABEL) as RetractableSeatUse[];
+const RETRACTABLE_FLOORS = Object.keys(RETRACTABLE_SEAT_FLOOR_LABEL) as RetractableSeatFloor[];
 const AGE_RATINGS = Object.keys(AGE_RATING_LABEL) as AgeRating[];
 const CAST_CONTRACT_STATUSES = Object.keys(CAST_CONTRACT_STATUS_LABEL) as CastContractStatus[];
 const ORGANIZER_ROLES = Object.keys(ORGANIZER_ROLE_LABEL) as OrganizerRole[];
@@ -120,6 +123,14 @@ export function validatePerformanceInfoStep(info: PerformanceInfo, venueLabel?: 
     return `${prefix}객석형태 "기타" 상세를 입력해 주세요.`;
   }
   if (!info.retractableSeatUse) return `${prefix}수납식 객석 사용여부를 선택해 주세요.`;
+  // [사용]을 골랐으면 층별로도 답해야 한다 — 어느 층을 펴는지에 따라 객석 구성이 달라져서
+  // "사용" 한 마디만으로는 심사도 시공도 진행되지 않는다(2026-09-02).
+  if (info.retractableSeatUse === "USE") {
+    const floors = info.retractableSeatFloorUse ?? {};
+    if (!floors.FLOOR_1 || !floors.FLOOR_3) {
+      return `${prefix}수납식 객석을 사용하시면 1층·3층 각각 사용여부를 선택해 주세요.`;
+    }
+  }
   if (info.stageTypes.length === 0) return `${prefix}무대형태를 하나 이상 선택해 주세요.`;
   if (info.stageTypes.includes("OTHER") && !info.stageTypeOtherDetail?.trim()) {
     return `${prefix}무대형태 "기타" 상세를 입력해 주세요.`;
@@ -230,6 +241,34 @@ function ReadOnlyRow({ label, value, note }: { label: ReactNode; value: string; 
       </div>
       {note && <p className="mt-1 text-xs text-muted">{note}</p>}
     </div>
+  );
+}
+
+/**
+ * 라벨 옆의 물음표 — 커서를 올리면 설명이 뜬다 (2026-09-02).
+ *
+ * CSS 만으로 그린다(group-hover + focus-within). 상태를 들고 있으면 칸마다 리렌더가
+ * 생기고, 이 화면은 입력 칸이 많아 한 글자마다 전체가 다시 그려진다.
+ * 키보드로도 닿게 button 으로 두고 tabIndex 를 살린다 — 마우스 없이는 못 보는 안내가
+ * 되면 안 된다.
+ */
+function HelpTip({ text }: { text: string }) {
+  return (
+    <span className="group relative inline-flex">
+      <button
+        type="button"
+        aria-label={text}
+        className="flex h-4 w-4 cursor-help items-center justify-center rounded-full border border-border-soft text-[10px] font-bold text-muted transition-colors hover:border-foreground hover:text-foreground"
+      >
+        ?
+      </button>
+      <span
+        role="tooltip"
+        className="pointer-events-none absolute bottom-full left-1/2 z-20 mb-2 hidden w-64 -translate-x-1/2 break-keep border border-border-soft bg-panel px-3 py-2 text-xs leading-5 font-normal text-foreground shadow-md group-hover:block group-focus-within:block"
+      >
+        {text}
+      </span>
+    </span>
   );
 }
 
@@ -950,8 +989,16 @@ function PerformanceInfoFields({
                   </div>
 
                   <div>
-                    <div className="mb-2.5 text-xs font-bold text-muted">
+                    <div className="mb-2.5 flex items-center gap-1.5 text-xs font-bold text-muted">
                       {t("performanceInfo.retractableSeatUseLabel", "수납식 객석 사용여부")}
+                      {/* 물음표에 커서를 올리면 설명이 뜬다(2026-09-02) — 라벨 옆에 다 적으면
+                          줄이 길어지고, 안 적으면 무엇을 묻는지 모른 채 고르게 된다. */}
+                      <HelpTip
+                        text={tStr(
+                          "performanceInfo.retractableSeatUseHelp",
+                          "1층·3층에 각각 수납식 객석이 있습니다. 접어 두면 플로어 스탠딩 면적이 늘고, 펴면 지정석이 늘어납니다. 사용을 고르시면 층별로 다시 여쭙니다.",
+                        )}
+                      />
                     </div>
                     <div className="flex flex-wrap gap-2">
                       {RETRACTABLE_USES.map((use) => (
@@ -959,10 +1006,47 @@ function PerformanceInfoFields({
                           key={use}
                           label={RETRACTABLE_SEAT_USE_LABEL[use]}
                           checked={info.retractableSeatUse === use}
-                          onChange={() => set("retractableSeatUse", info.retractableSeatUse === use ? null : use)}
+                          onChange={() => {
+                            const next = info.retractableSeatUse === use ? null : use;
+                            // [미사용]·해제로 돌아가면 층별 답을 지운다 — 안 그러면 화면에서
+                            // 사라진 값이 제출까지 따라간다.
+                            onChange({
+                              ...info,
+                              retractableSeatUse: next,
+                              retractableSeatFloorUse: next === "USE" ? info.retractableSeatFloorUse : undefined,
+                            });
+                          }}
                         />
                       ))}
                     </div>
+
+                    {info.retractableSeatUse === "USE" && (
+                      <div className="mt-3 space-y-2.5 border-l-2 border-border-soft pl-3">
+                        {RETRACTABLE_FLOORS.map((floor) => (
+                          <div key={floor}>
+                            <div className="mb-1.5 text-xs text-muted">
+                              {RETRACTABLE_SEAT_FLOOR_LABEL[floor]}
+                            </div>
+                            <div className="flex flex-wrap gap-2">
+                              {RETRACTABLE_USES.map((use) => (
+                                <CheckboxChip
+                                  key={use}
+                                  label={RETRACTABLE_SEAT_USE_LABEL[use]}
+                                  checked={info.retractableSeatFloorUse?.[floor] === use}
+                                  onChange={() => {
+                                    const current = info.retractableSeatFloorUse ?? {};
+                                    const next = { ...current };
+                                    if (next[floor] === use) delete next[floor];
+                                    else next[floor] = use;
+                                    set("retractableSeatFloorUse", next);
+                                  }}
+                                />
+                              ))}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
                   </div>
                 </div>
 

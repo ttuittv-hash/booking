@@ -2554,6 +2554,16 @@ export async function findUserByDi(di: string): Promise<AppUser | undefined> {
   return row ? toAppUser(row) : undefined;
 }
 
+/**
+ * 휴대폰 번호를 바꾼다(2026-09-02).
+ *
+ * 신청자 계정의 번호는 본인인증 결과라 여기서 손대지 않는다 — 운영자 계정 관리에서
+ * 운영자에게 번호를 채워 넣을 때만 쓴다(운영자 앞 알림톡 수신번호).
+ */
+export async function setUserPhone(userId: string, phone: string): Promise<void> {
+  await q("UPDATE users SET phone = $1 WHERE id = $2 AND role = 'ADMIN'", [phone, userId]);
+}
+
 /** 이 시각보다 먼저 발급된 세션을 모두 무효로 만든다. */
 export async function setSessionEpoch(userId: string, at: string): Promise<void> {
   await q("UPDATE users SET session_epoch = $1 WHERE id = $2", [at, userId]);
@@ -5406,27 +5416,58 @@ export async function saveGuidePageContent(data: GuidePageContent) {
 }
 
 /**
- * 대관료는 시설 제원과 달리 **판번호로 덮어쓰지 않는다.**
- * 개편 전 저장본의 필드(요금표 행·열 · 옵션 · 기준)가 새 레이아웃에 그대로 얹히므로
- * 통째로 기본값으로 되돌릴 이유가 없고, 되돌리면 운영자가 고친 금액이 화면에서 사라진다.
- * 이번 개편에서 **새로 생긴 자리만** 기본값으로 채운다.
+ * 대관료는 시설 제원과 달리 **통째로 기본값으로 되돌리지 않는다.**
+ *
+ * 요금표에서 온 값(`columns`·`detailColumns`)은 `/api/rates` 가 요금표를 저장할 때
+ * 여기에 옮겨 적는다 — 되돌리면 운영자가 고친 금액이 공개 화면에서 시드 값으로
+ * 되돌아간다. 그래서 **요금 쪽은 저장본을 지키고**, 이번 개편에서 새로 쓴 카피
+ * (리드·포함 항목 카드·추가 사용료·이용 기준·주석)만 기본값으로 갈아 끼운다.
+ *
+ * 카드 하단의 `extras`(준비일·공연일 추가)는 개편으로 새로 생긴 자리라 저장본에
+ * 없다 — 열 키로 기본값에서 찾아 붙인다(순서를 믿으면 열이 늘거나 줄었을 때
+ * 엉뚱한 요금제 밑으로 들어간다).
  */
-function withNewRateFields(v: VenueRateContent, fallback: VenueRateContent): VenueRateContent {
+function withNewRateFields(
+  v: VenueRateContent,
+  fallback: VenueRateContent,
+  stale: boolean,
+): VenueRateContent {
+  const columns = (Array.isArray(v?.columns) ? v.columns : fallback.columns).map((col) =>
+    col.extras
+      ? col
+      : { ...col, extras: fallback.columns.find((d) => d.key === col.key)?.extras ?? [] },
+  );
+  if (!stale) {
+    return {
+      ...v,
+      columns,
+      intro: v.intro ?? fallback.intro,
+      includes: Array.isArray(v?.includes) ? v.includes : fallback.includes,
+      includesLead: v.includesLead ?? fallback.includesLead,
+      includeGroups: Array.isArray(v?.includeGroups) ? v.includeGroups : fallback.includeGroups,
+    };
+  }
   return {
     ...v,
-    intro: v.intro ?? fallback.intro,
-    includes: Array.isArray(v?.includes) ? v.includes : fallback.includes,
-    includesLead: v.includesLead ?? fallback.includesLead,
-    includeGroups: Array.isArray(v?.includeGroups) ? v.includeGroups : fallback.includeGroups,
+    columns,
+    // 개편으로 다시 쓴 카피 — 저장본이 옛 판이면 기본값이 정본이다
+    intro: fallback.intro,
+    includes: fallback.includes,
+    includesLead: fallback.includesLead,
+    includeGroups: fallback.includeGroups,
+    charges: fallback.charges,
+    limits: fallback.limits,
+    notes: fallback.notes,
   };
 }
 
 export async function getRatesContent(): Promise<RatesContent> {
   const content = await getPageContent("rates", DEFAULT_RATES_CONTENT);
+  const stale = content.version !== RATES_CONTENT_VERSION;
   return {
     version: RATES_CONTENT_VERSION,
-    arena: withNewRateFields(content.arena, DEFAULT_RATES_CONTENT.arena),
-    liveHall: withNewRateFields(content.liveHall, DEFAULT_RATES_CONTENT.liveHall),
+    arena: withNewRateFields(content.arena, DEFAULT_RATES_CONTENT.arena, stale),
+    liveHall: withNewRateFields(content.liveHall, DEFAULT_RATES_CONTENT.liveHall, stale),
   };
 }
 export async function saveRatesContent(data: RatesContent) {

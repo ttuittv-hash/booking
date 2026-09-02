@@ -161,7 +161,8 @@ export default async function AdminQuoteDetailPage({
     applicant,
     auditLog,
     deposit,
-    attachments,
+    generalAttachments,
+    marketingPlanAttachments,
     weekConflict,
     competingQuotes,
     signature,
@@ -178,7 +179,10 @@ export default async function AdminQuoteDetailPage({
     findUserById(quote.applicantId),
     listAuditLogsForQuote(id),
     getDepositByQuoteId(id).then((d) => d ?? null),
+    // 마케팅 실행 계획서는 MARKETING_PLAN 분류로 올라가 category IS NULL 목록에
+    // 잡히지 않는다 — 따로 읽어 같은 첨부 목록에 이어 붙인다(2026-09-02).
     listAttachments(id, null),
+    listAttachments(id, "MARKETING_PLAN"),
     isEstimate ? findApprovedWeekConflict(quote).then((c) => c ?? null) : Promise.resolve(null),
     isEstimate ? listCompetingQuotesForWeek(quote) : Promise.resolve([]),
     getContractSignatureByQuoteId(id).then((s) => s ?? null),
@@ -193,6 +197,9 @@ export default async function AdminQuoteDetailPage({
     // 정산 폼의 "요금표에서 선택" 기능에도 쓰이므로 공간 종류와 무관하게 항상 가져온다.
     getRateTableByVersion(quote.rateTableVersion),
   ]);
+  // 마케팅 실행 계획서는 분류가 붙어 별도 조회로 읽어 왔다. 화면에서는 한 목록으로 본다 —
+  // 신청서에 딸린 서류라는 점이 같고, 분류별로 상자를 나누면 찾기만 번거로워진다.
+  const attachments = [...generalAttachments, ...marketingPlanAttachments];
   // 경합 신청자는 행마다 findUserById 하지 않고 한 번에 읽는다(N+1).
   const competingApplicants = competingQuotes.length
     ? await listUsersByIds(competingQuotes.map(({ quote: q }) => q.applicantId))

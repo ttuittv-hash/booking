@@ -10,7 +10,7 @@ import { SettlementMutualConfirm } from "@/components/SettlementMutualConfirm";
 import { TaxInvoicePanel } from "@/components/TaxInvoicePanel";
 
 export const metadata: Metadata = {
-  title: "정산 | 서울아레나",
+  title: "정산",
 };
 
 const STAGE_LABEL: Record<string, string> = {

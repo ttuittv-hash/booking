@@ -8,7 +8,7 @@ import { Badge, Band, ButtonLink, PageHeading } from "@/components/ui/kit";
 import { ReapplyButton } from "@/components/account/ReapplyButton";
 
 export const metadata: Metadata = {
-  title: "가입 승인 대기 | 서울아레나",
+  title: "가입 승인 대기",
 };
 
 const NOTICE: Record<"PENDING" | "REJECTED", { title: string; desc: string }> = {

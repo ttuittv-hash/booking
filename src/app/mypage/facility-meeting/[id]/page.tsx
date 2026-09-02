@@ -8,7 +8,7 @@ import { Note } from "@/components/ui/kit";
 import { FacilityMeetingPanel } from "@/components/FacilityMeetingPanel";
 
 export const metadata: Metadata = {
-  title: "시설 회의 | 서울아레나",
+  title: "시설 회의",
 };
 
 const STAGE_LABEL: Record<string, string> = {

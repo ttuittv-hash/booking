@@ -193,6 +193,9 @@ export function WizardShell({
   // 출연 계약 증빙(계약서·출연확약서) — STEP 3 "개최 신뢰도 및 이력 확인" 슬롯에서 받는다.
   // 일반 첨부와 같은 취급(category 없음)이라 상세 화면의 첨부서류 목록에 그대로 들어간다.
   const [castContractFiles, setCastContractFiles] = useState<File[]>([]);
+  // 마케팅 실행 계획서(2026-09-02) — 온라인·오프라인 계획을 글로 받던 자리를 파일로
+  // 바꿨다. 분류를 붙여 올려야 심사 화면에서 다른 첨부와 섞이지 않는다.
+  const [marketingPlanFiles, setMarketingPlanFiles] = useState<File[]>([]);
   // 안전관리계획서는 목업상 필수 단일 슬롯이다 — 다른 단계처럼 자유 목록이 아니라
   // 슬롯당 파일 1개(재선택 시 교체)로 둔다.
   const [safetyPlanFile, setSafetyPlanFile] = useState<File | null>(null);
@@ -470,19 +473,21 @@ export function WizardShell({
   async function uploadPendingFiles(quoteId: string) {
     // 공공/공익 자료는 어느 항목에 붙은 것인지 함께 올린다(2026-08-27) — 첨부 목록에서
     // 그 항목 이름이 같이 보여야 심사에서 되묻지 않는다.
-    const allFiles: { file: File; publicInterestItem?: string }[] = [
+    const allFiles: { file: File; publicInterestItem?: string; category?: string }[] = [
       ...pendingFiles.map((file) => ({ file })),
       ...castContractFiles.map((file) => ({ file })),
       ...publicInterestFiles.map(({ file, item }) => ({ file, publicInterestItem: item })),
+      ...marketingPlanFiles.map((file) => ({ file, category: "MARKETING_PLAN" })),
       ...(safetyPlanFile ? [{ file: safetyPlanFile }] : []),
     ];
     if (allFiles.length === 0) return;
     const failed: string[] = [];
-    for (const { file, publicInterestItem } of allFiles) {
+    for (const { file, publicInterestItem, category } of allFiles) {
       try {
         const formData = new FormData();
         formData.append("file", file);
         if (publicInterestItem) formData.append("publicInterestItem", publicInterestItem);
+        if (category) formData.append("category", category);
         const res = await fetch(`/api/quotes/${quoteId}/attachments`, {
           method: "POST",
           body: formData,
@@ -500,6 +505,7 @@ export function WizardShell({
       setPendingFiles([]);
       setPublicInterestFiles([]);
       setCastContractFiles([]);
+      setMarketingPlanFiles([]);
     }
   }
 
@@ -767,6 +773,8 @@ export function WizardShell({
           <StepMarketingCooperation
             info={selection.marketingCooperation ?? DEFAULT_MARKETING_COOPERATION}
             onChange={(marketingCooperation) => setSelection((prev) => ({ ...prev, marketingCooperation }))}
+            planFiles={marketingPlanFiles}
+            onPlanFilesChange={setMarketingPlanFiles}
             title={wizardStepText.marketingTitle}
             lead={wizardStepText.marketingLead}
           />
@@ -837,7 +845,8 @@ export function WizardShell({
         /*
           요약 패널은 **실시간 대관신청 내역**이다(2026-08-26 개칭) — 대관료·항목·합계를 함께 보여준다.
           한동안 STEP 1·2 에서 금액을 감췄는데, 신청자가 구성을 고르는 동안 값이 얼마나
-          움직이는지 볼 수 없어 되돌렸다. "예상 금액 · 확정 아님" 고지를 함께 둔다.
+          움직이는지 볼 수 없어 되돌렸다. (2026-09-02: 패널 안의 "예상 금액 · 확정 아님"
+          한 줄은 뺐다 — 같은 뜻이 제출 단계 안내에 이미 있다.)
           단, STEP 1(공간/일정 선택)만은 계속 비워 둔다 — summaryQuote 참고.
         */
       />

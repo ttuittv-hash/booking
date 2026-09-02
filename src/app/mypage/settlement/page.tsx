@@ -11,7 +11,7 @@ import { Badge } from "@/components/ui/kit";
 import type { Quote } from "@/lib/pricing/types";
 
 export const metadata: Metadata = {
-  title: "정산 | 서울아레나",
+  title: "정산",
 };
 
 const COLUMNS: Column[] = [

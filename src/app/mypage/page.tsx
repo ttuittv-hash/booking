@@ -12,7 +12,7 @@ import { DataTable, type Column } from "@/components/mypage/DataTable";
 import { ArrowRight, Badge, ButtonLink } from "@/components/ui/kit";
 
 export const metadata: Metadata = {
-  title: "대관 진행 내역 | 서울아레나",
+  title: "대관 진행 내역",
 };
 
 const COLUMNS: Column[] = [
