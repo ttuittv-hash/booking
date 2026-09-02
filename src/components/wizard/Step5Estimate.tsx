@@ -116,9 +116,10 @@ export function Step5Estimate({
         </div>
       </div>
 
-      {/* 고지문은 색면 박스가 아니라 작은 글씨다 — 사이드바의 「실시간 대관신청 내역」 고지와
-          같은 언어를 쓴다. 박스를 두르면 금액표와 무게가 비슷해져 어느 쪽이 결과인지
-          흐려진다 */}
+      {/* 고지문은 색면 박스가 아니라 작은 글씨다 — 박스를 두르면 금액표와 무게가 비슷해져
+          어느 쪽이 결과인지 흐려진다. 2026-09-02 부터 "예상 금액" 고지는 여기 한 곳이다
+          (사이드바 요약에 있던 같은 문구는 뺐다 — 값이 움직일 때마다 보이는 자리에 경고를
+          붙여 두면 읽히지 않는 문구가 된다) */}
       <p className="mt-6 text-xs leading-5 text-muted">
         {quote.meteredNotice} {t("estimate.estimateNoticePrefix", "본 금액은")}{" "}
         <b className="font-bold text-foreground">{t("estimate.estimateNoticeEmphasis", "예상")}</b>
