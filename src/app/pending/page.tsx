@@ -106,12 +106,14 @@ export default async function PendingPage() {
                 </div>
               </div>
             ) : (
+              /* [개정 2026-09-02] 대관 절차가 승인 완료 전용이 되면서 [대관 절차 보기]는
+                 여기로 되돌아오는 링크가 됐다. 승인 전에 실제로 열리는 곳으로 보낸다. */
               <div className="mt-10 flex flex-wrap gap-3 border-t border-border/25 pt-8">
-                <ButtonLink href="/guide" variant="secondary">
-                  대관 절차 보기
+                <ButtonLink href="/seoularena" variant="secondary">
+                  서울아레나 둘러보기
                 </ButtonLink>
-                <ButtonLink href="/faq" variant="tertiary">
-                  대관 문의
+                <ButtonLink href="/mypage/inquiries" variant="tertiary">
+                  1:1 문의
                 </ButtonLink>
               </div>
             )}

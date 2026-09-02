@@ -32,13 +32,15 @@ describe("시설 제원 — 로그인하면 승인 전에도 열람", () => {
   it("규칙이 등록돼 있다", () => expect(findRule("/features")?.label).toBe("시설 제원"));
 });
 
-// [개정 2026-09-02] QA — "승인 반려된 계정(=미가입)에서도 대관료가 그대로 보인다".
-// 요금·규약·내부 자료는 심사를 통과한 대관사에게만 주는 정보다.
-describe("대관료·대관 규약·대관 자료 — 승인 완료 전용", () => {
+// [개정 2026-09-02] 승인 완료 전에는 Your Stage 와 마이페이지만 본다.
+// 대관 업무에 관한 내용(절차·요금·규약·자료·공지)은 심사를 통과한 대관사에게만 준다.
+describe("대관 업무 메뉴 — 승인 완료 전용", () => {
   for (const [path, label] of [
+    ["/guide", "대관 절차"],
     ["/rates", "대관료"],
     ["/rules", "대관 규약"],
     ["/documents", "대관 자료"],
+    ["/notices", "공지사항"],
   ] as const) {
     it(`${label} 은 비로그인이 막힌다`, () => expect(canAccess(path, "GUEST")).toBe(false));
     it(`${label} 은 승인 대기가 막힌다`, () => expect(canAccess(path, "PENDING")).toBe(false));
@@ -54,11 +56,20 @@ describe("사라진 경로", () => {
   it("/packages 규칙은 남아 있지 않다", () => expect(findRule("/packages")).toBeUndefined());
 });
 
-describe("대관 절차·대관현황 — 비로그인 차단, 로그인하면 승인 전에도 열람", () => {
-  it("비로그인은 대관 절차가 막힌다", () => expect(canAccess("/guide", "GUEST")).toBe(false));
-  it("승인 대기도 대관 절차를 본다", () => expect(canAccess("/guide", "PENDING")).toBe(true));
-  it("비로그인은 대관현황이 막힌다", () => expect(canAccess("/notices", "GUEST")).toBe(false));
-  it("승인 대기도 대관현황을 본다", () => expect(canAccess("/notices", "PENDING")).toBe(true));
+// 승인 대기 상태에서 실제로 열려 있어야 하는 것 — 이게 "Your Stage 와 마이페이지" 다.
+// /pending 화면이 이 경로들로 링크하므로, 막히면 안내에서 갈 곳이 없어진다.
+describe("승인 대기에 열려 있는 곳", () => {
+  it("서울아레나 소개는 비로그인부터 열린다", () =>
+    expect(canAccess("/seoularena", "PENDING")).toBe(true));
+  it("시설 제원은 로그인하면 열린다", () => expect(canAccess("/features", "PENDING")).toBe(true));
+  it("회원정보 수정", () => expect(canAccess("/mypage/profile", "PENDING")).toBe(true));
+  it("회원 탈퇴", () => expect(canAccess("/mypage/withdraw", "PENDING")).toBe(true));
+  it("1:1 문의 — 대기·반려 상태에서 물어볼 곳이 남아야 한다", () => {
+    expect(canAccess("/mypage/inquiries", "PENDING")).toBe(true);
+    expect(canAccess("/mypage/inquiries", "REJECTED")).toBe(true);
+  });
+  it("FAQ 는 비로그인에게도 공개라 대기 상태만 막지 않는다", () =>
+    expect(canAccess("/faq", "PENDING")).toBe(true));
 });
 
 describe("대관신청·신청내역 — 승인 완료 필수", () => {

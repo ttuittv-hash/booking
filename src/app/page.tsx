@@ -1,4 +1,5 @@
 import { getCurrentUser } from "@/lib/auth";
+import { accountStateOf, canAccess } from "@/lib/accessPolicy";
 import { getHomeContent } from "@/lib/db";
 import { PublicHeader } from "@/components/PublicHeader";
 import { Manifesto } from "@/components/home/Manifesto";
@@ -83,17 +84,44 @@ export default async function Home({
           />
         </Band>
 
-        {/* ── 전환 CTA ───────────────────────────────────────────────────── */}
-        <CTABand
-          title="당신의 무대를 지금 설계하세요."
-          lead="대관 절차와 단계별 준비 사항을 먼저 확인해 보세요."
-          actions={
-            <ButtonLink href="/guide" variant="primary">
-              대관 절차
-              <ArrowRight />
-            </ButtonLink>
-          }
-        />
+        {/* ── 전환 CTA ─────────────────────────────────────────────────────
+            [개정 2026-09-02] 대관 절차가 승인 완료 전용이 되면서, 승인 전 계정에게는
+            누르면 대기 안내로 되돌아오는 버튼이 됐다. 상태별로 갈 수 있는 곳을 준다.
+            판정은 헤더 메뉴와 같은 accessPolicy 를 쓴다. */}
+        {canAccess("/guide", accountStateOf(user)) ? (
+          <CTABand
+            title="당신의 무대를 지금 설계하세요."
+            lead="대관 절차와 단계별 준비 사항을 먼저 확인해 보세요."
+            actions={
+              <ButtonLink href="/guide" variant="primary">
+                대관 절차
+                <ArrowRight />
+              </ButtonLink>
+            }
+          />
+        ) : user ? (
+          <CTABand
+            title="승인이 완료되면 바로 시작할 수 있습니다."
+            lead="심사 결과는 알림으로 안내해 드립니다. 그동안 서울아레나를 둘러보세요."
+            actions={
+              <ButtonLink href="/seoularena" variant="primary">
+                서울아레나 둘러보기
+                <ArrowRight />
+              </ButtonLink>
+            }
+          />
+        ) : (
+          <CTABand
+            title="당신의 무대를 지금 설계하세요."
+            lead="회원가입 후 승인이 완료되면 대관 절차와 예상 견적을 확인할 수 있습니다."
+            actions={
+              <ButtonLink href="/register" variant="primary">
+                회원가입
+                <ArrowRight />
+              </ButtonLink>
+            }
+          />
+        )}
       </main>
 
       <SiteFooter />

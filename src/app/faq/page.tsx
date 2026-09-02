@@ -41,9 +41,11 @@ export default async function FaqPage() {
             <EmptyState
               title="등록된 질문이 없습니다"
               desc="자주 묻는 질문이 등록되면 이곳에 표시됩니다."
+              /* 대관 절차는 승인 완료 전용이라, FAQ(공개 페이지)에서 링크하면
+                 승인 전 방문자에게는 막다른 길이 된다(2026-09-02). */
               action={
-                <ButtonLink href="/guide" variant="secondary">
-                  대관 절차 보기
+                <ButtonLink href="/seoularena" variant="secondary">
+                  서울아레나 둘러보기
                 </ButtonLink>
               }
             />

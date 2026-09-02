@@ -160,7 +160,10 @@ export function PublicHeader({
   // 여기서 따로 계산하면 표와 어긋나기 시작한다. (메뉴를 감추는 건 편의지 보안 경계가
   // 아니다. 실제 차단은 각 페이지의 requireAccess 가 한다.)
   const accountState = accountStateOf(currentUser);
-  const allowed = (href: string) => canAccess(href, accountState);
+  // 비로그인에게는 그대로 다 보여 준다 — 무엇을 하는 곳인지 보여야 가입으로 이어지고,
+  // 눌렀을 때 가는 곳(로그인)이 막다른 길이 아니라 다음 걸음이다.
+  // 로그인한 사람에게만 감춘다. 그 사람에게 "지금은 못 여는 메뉴"는 안내가 아니라 벽이다.
+  const allowed = (href: string) => accountState === "GUEST" || canAccess(href, accountState);
   const visibleCategories = NAV_CATEGORIES.map((cat) => ({
     ...cat,
     pages: cat.pages.filter((p) => allowed(p.href)),
@@ -308,11 +311,15 @@ export function PublicHeader({
               닫힘 유예(120ms)만 믿으면 YOUR GUIDE → BOOK IT 으로 지나가는 동안
               드롭다운이 버튼을 덮은 채로 남아 엉뚱한 페이지로 들어가게 된다.
             */}
-            <li className="ml-2 flex items-center" onMouseEnter={closeNow} onFocus={closeNow}>
-              <Link href={NAV_ACTION.href} className={ACTION_BTN}>
-                {NAV_ACTION.label}
-              </Link>
-            </li>
+            {/* 승인 완료 전에는 신청 자체가 막혀 있다 — 누르면 안내 화면으로 되돌아오는
+                버튼을 상단바에 남겨 두지 않는다(2026-09-02). */}
+            {allowed(NAV_ACTION.href) ? (
+              <li className="ml-2 flex items-center" onMouseEnter={closeNow} onFocus={closeNow}>
+                <Link href={NAV_ACTION.href} className={ACTION_BTN}>
+                  {NAV_ACTION.label}
+                </Link>
+              </li>
+            ) : null}
           </ul>
         </nav>
 
@@ -438,16 +445,18 @@ export function PublicHeader({
                   </ul>
                 </li>
               ))}
-              <li>
-                {/* 좁은 화면에서도 유일한 액션이라 채움 버튼으로 둔다 */}
-                <Link
-                  href={NAV_ACTION.href}
-                  onClick={() => setMobileOpen(false)}
-                  className="flex h-12 items-center justify-center border border-transparent bg-[var(--btn-primary-bg)] type-display text-s text-[var(--btn-primary-fg)]"
-                >
-                  {NAV_ACTION.label}
-                </Link>
-              </li>
+              {allowed(NAV_ACTION.href) ? (
+                <li>
+                  {/* 좁은 화면에서도 유일한 액션이라 채움 버튼으로 둔다 */}
+                  <Link
+                    href={NAV_ACTION.href}
+                    onClick={() => setMobileOpen(false)}
+                    className="flex h-12 items-center justify-center border border-transparent bg-[var(--btn-primary-bg)] type-display text-s text-[var(--btn-primary-fg)]"
+                  >
+                    {NAV_ACTION.label}
+                  </Link>
+                </li>
+              ) : null}
             </ul>
 
             <div className="mt-10 border-t border-border/20 pt-6">

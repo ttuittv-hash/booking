@@ -12,8 +12,8 @@
 // 두 구조가 달라 아래처럼 대응시켰다. 기획 확정 시 이 표만 고치면 된다.
 //
 //   기획서 메뉴          → 현재 경로
-//   시설 제원            → /venue, /venue/*
-//   대관 절차             → /guide, /guide/*, /packages
+//   시설 제원            → /features
+//   대관 절차             → /guide, /guide/*
 //   대관현황(공고 목록)  → /notices, /notices/*
 //   대관신청             → /apply, /apply/*
 //   대관신청내역         → /mypage, /mypage/[id]
@@ -71,21 +71,26 @@ const RULES: MenuRule[] = [
   // 2026-08 IA 재구성(Notion 확정안)으로 경로가 바뀌었다.
   // /venue·/packages 는 사라지고, 공개 소개는 /seoularena 가, 상세 스펙은 /features 가 맡는다.
   { prefix: "/seoularena", label: "서울아레나", allow: OPEN_ALL },
+  // 시설 제원은 Your Stage(서울아레나 소개) 묶음이라 로그인만 하면 열린다.
   { prefix: "/features", label: "시설 제원", allow: LOGIN_ONLY },
-  { prefix: "/guide", label: "대관 절차", allow: LOGIN_ONLY },
 
-  // [개정 2026-09-02] 대관료·대관 규약·대관 자료는 승인 완료여야 본다.
-  //
-  // 예전에는 로그인만 하면 열렸다. QA 에서 "승인 반려된 계정(=미가입 상태)에서도
-  // 대관료가 그대로 보인다" 로 잡혔다 — 요금·규약·내부 자료는 심사를 통과한
-  // 대관사에게만 주는 정보인데, 반려된 사람이나 아직 심사 중인 사람이 로그인만으로
-  // 다 볼 수 있었다.
-  //
-  // 시설 제원·대관 절차는 그대로 둔다. 심사를 기다리는 사람이 준비할 수 있어야 한다.
+  /*
+    [개정 2026-09-02] 승인 완료 전에는 Your Stage 와 마이페이지만 본다.
+
+    1차로 대관료·대관 규약·대관 자료를 올렸고("승인 반려된 계정에서도 대관료가 그대로
+    보인다" QA), 2차로 대관 절차·공지사항까지 올렸다. 대관 업무에 관한 내용은 심사를
+    통과한 대관사에게만 준다는 것이 확정된 선이다.
+
+    열어 두는 것:
+      · 서울아레나 소개(/seoularena) · 시설 제원(/features)  — Your Stage
+      · 회원정보 수정 · 탈퇴 · 1:1 문의                        — 마이페이지
+      · FAQ — 비로그인에게도 공개된 페이지라 대기 상태만 막을 이유가 없다
+  */
+  { prefix: "/guide", label: "대관 절차", allow: APPROVED_ONLY },
   { prefix: "/rates", label: "대관료", allow: APPROVED_ONLY },
   { prefix: "/rules", label: "대관 규약", allow: APPROVED_ONLY },
   { prefix: "/documents", label: "대관 자료", allow: APPROVED_ONLY },
-  { prefix: "/notices", label: "공지사항", allow: LOGIN_ONLY },
+  { prefix: "/notices", label: "공지사항", allow: APPROVED_ONLY },
   { prefix: "/faq", label: "FAQ", allow: OPEN_ALL },
 ];
 
