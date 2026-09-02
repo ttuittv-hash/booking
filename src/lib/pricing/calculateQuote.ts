@@ -2,6 +2,7 @@ import { calculateMidHallLineItems } from "./calculateMidHallQuote";
 import { resolveSelectedDates } from "./dateRange";
 import { makeLine } from "./lineItem";
 import {
+  clampAddonQuantity,
   countPerformanceDays,
   findAddon,
   findPackage,
@@ -193,7 +194,10 @@ export function calculateQuote(selection: QuoteSelection, rateTable: RateTable):
       if (addonItem.visibility === "HIDDEN") continue; // 자동 산입 항목은 위에서 별도 처리
 
       const included = includedQuantity(pkg, addonItem.id);
-      const billable = Math.max(selected.requestedQuantity - included, 0);
+      // 상한을 넘겨 들어온 수량은 여기서 자른다(2026-09-02). 화면의 number 입력 max 는
+      // 타이핑을 막지 못하고, 폼을 우회한 요청도 있을 수 있어 계산 쪽이 최종 방어선이다.
+      const requested = clampAddonQuantity(addonItem, pkg, selected.requestedQuantity);
+      const billable = Math.max(requested - included, 0);
 
       let amount: number;
       if (addonItem.pricingType === "REVENUE_PERCENT") {
@@ -207,7 +211,7 @@ export function calculateQuote(selection: QuoteSelection, rateTable: RateTable):
           addonItem.id,
           addonItem.name,
           addonItem.pricingType,
-          selected.requestedQuantity,
+          requested,
           included,
           billable,
           addonItem.unitPrice,

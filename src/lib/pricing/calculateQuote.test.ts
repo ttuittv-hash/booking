@@ -1,9 +1,16 @@
 import { describe, expect, it } from "vitest";
 import { calculateQuote } from "./calculateQuote";
 import { resolveSelectedDates } from "./dateRange";
-import { findAddon, findPackage, includedQuantity, packagePrice } from "./rateTableUtils";
+import {
+  clampAddonQuantity,
+  findAddon,
+  findPackage,
+  includedQuantity,
+  maxRequestableQuantity,
+  packagePrice,
+} from "./rateTableUtils";
 import { buildSeedRateTable } from "./seed";
-import type { QuoteSelection } from "./types";
+import type { AddonItem, QuoteSelection } from "./types";
 
 const RATE_TABLE = buildSeedRateTable();
 
@@ -385,5 +392,49 @@ describe("calculateQuote — 중형공연장(DAILY) 요금 엔진", () => {
     expect(combined.subtotal).toBe(arenaOnly.subtotal + midHallOnly.subtotal);
     expect(combined.lineItems.some((i) => i.addonId === "BASE_FEE")).toBe(true);
     expect(combined.lineItems.some((i) => i.addonId === "midhall_show_weekday-1")).toBe(true);
+  });
+});
+
+// [신규 2026-09-02] 선택 옵션 수량 상한.
+// 화면의 number 입력 max 는 타이핑을 막지 못해 상한을 넘긴 값이 그대로 제출됐다.
+// 금액 계산이 최종 방어선이다 — 폼을 우회한 요청도 상한을 넘지 못해야 한다.
+describe("선택 옵션 수량 상한", () => {
+  function addonWithMax(max: number | "UNLIMITED" | undefined): AddonItem {
+    return {
+      id: "smart_stage",
+      category: "FACILITY",
+      name: "스마트스테이지",
+      pricingType: "PER_DAY",
+      unitPrice: 1_500_000,
+      unitLabel: "원/일",
+      availability: { mode: "ALWAYS", maxAddQuantity: max },
+      billingPhase: "ESTIMATE",
+      visibility: "VISIBLE",
+    };
+  }
+
+  it("상한을 넘겨 들어온 수량은 상한까지만 과금한다", () => {
+    const addon = addonWithMax(3);
+    expect(clampAddonQuantity(addon, undefined, 6)).toBe(3);
+  });
+
+  it("기본 포함 수량은 상한 위에 더해진다 — 상한은 '더 얹을 수 있는 양'이다", () => {
+    const addon = addonWithMax(3);
+    const pkg = { includedItems: [{ addonId: "smart_stage", quantity: 2 }] } as never;
+    expect(maxRequestableQuantity(addon, pkg)).toBe(5);
+    expect(clampAddonQuantity(addon, pkg, 9)).toBe(5);
+  });
+
+  it("상한을 두지 않았으면 자르지 않는다", () => {
+    expect(maxRequestableQuantity(addonWithMax(undefined), undefined)).toBeUndefined();
+    expect(clampAddonQuantity(addonWithMax(undefined), undefined, 99)).toBe(99);
+    expect(clampAddonQuantity(addonWithMax("UNLIMITED"), undefined, 99)).toBe(99);
+  });
+
+  it("음수·소수는 정수 0 이상으로 정리한다", () => {
+    const addon = addonWithMax(3);
+    expect(clampAddonQuantity(addon, undefined, -5)).toBe(0);
+    expect(clampAddonQuantity(addon, undefined, 2.7)).toBe(2);
+    expect(clampAddonQuantity(addon, undefined, Number.NaN)).toBe(0);
   });
 });
