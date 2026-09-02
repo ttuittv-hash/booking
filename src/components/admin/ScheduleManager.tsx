@@ -65,6 +65,27 @@ function statusLabel(status: string, reviewDecision: string | null): string {
   return "심사중";
 }
 
+/**
+ * 날짜 칸을 열었을 때의 묶음 (2026-09-02).
+ *
+ * 예전에는 그 날짜에 걸린 신청서를 한 줄씩 죽 늘어놓기만 해서, 운영자가 "이 날이
+ * 잡힌 날인지 아직 겨루는 중인지"를 줄마다 꼬리표를 읽어 판단해야 했다.
+ * 대관 확정 · 심사 중 · 대관 불가 일정 셋으로 나눠 보여 준다.
+ */
+type DayGroupKey = "CONFIRMED" | "REVIEWING";
+
+const DAY_GROUP_LABEL: Record<DayGroupKey, string> = {
+  CONFIRMED: "대관 확정",
+  REVIEWING: "심사 중",
+};
+
+/** 승인·계약·정산은 이미 이 날짜를 내준 것이다 — 나머지는 아직 겨루는 중이다. */
+function dayGroupOf(entry: ScheduleOccupancyEntry): DayGroupKey {
+  if (entry.reviewDecision === "APPROVED") return "CONFIRMED";
+  if (entry.status === "CONTRACTED" || entry.status === "SETTLED") return "CONFIRMED";
+  return "REVIEWING";
+}
+
 export function ScheduleManager({ initialYear, initialMonth }: { initialYear: number; initialMonth: number }) {
   const [year, setYear] = useState(initialYear);
   const [month, setMonth] = useState(initialMonth);
@@ -192,8 +213,11 @@ export function ScheduleManager({ initialYear, initialMonth }: { initialYear: nu
 
       <div className="mt-3 flex flex-wrap items-center gap-4 text-xs text-muted">
         <span className="flex items-center gap-1.5">
+          <span className="h-2 w-2 rounded-full bg-foreground" /> 대관 확정(승인 · 계약 · 정산)
+        </span>
+        <span className="flex items-center gap-1.5">
           <span className={["h-2 w-2 rounded-full", venueTab === "arena" ? "bg-accent" : "bg-good"].join(" ")} />
-          {venueTab === "arena" ? "아레나 예약" : "중형 예약"}
+          심사 중({venueLabel(venueTab)} 신청)
         </span>
         <span className="flex items-center gap-1.5">
           <span className="h-2 w-2 rounded-full bg-danger" /> 대관 불가 일정(관리자 지정 · {venueLabel(venueTab)} 전용)
@@ -221,6 +245,8 @@ export function ScheduleManager({ initialYear, initialMonth }: { initialYear: nu
                     const existingBlock = inMonth ? blockedByDate.get(dateStr) : undefined;
                     const isBlocked = !!existingBlock;
                     const entries = (occupancy[dateStr] ?? []).filter((e) => e.venueId === venueTab);
+                    const confirmedCount = entries.filter((e) => dayGroupOf(e) === "CONFIRMED").length;
+                    const reviewingCount = entries.length - confirmedCount;
                     const isToday = isSameDate(date, today);
                     return (
                       <button
@@ -243,14 +269,31 @@ export function ScheduleManager({ initialYear, initialMonth }: { initialYear: nu
                         ].join(" ")}
                       >
                         <span className={isBlocked ? "line-through" : ""}>{date.getDate()}</span>
+                        {/* [개정 2026-09-02] "N건" 한 덩어리로는 잡힌 날인지 겨루는
+                            날인지 알 수 없었다. 확정과 심사 중을 갈라 놓는다. */}
                         {inMonth && entries.length > 0 && (
-                          <span
-                            className={[
-                              "px-1 text-xs font-bold",
-                              venueTab === "arena" ? "bg-accent-soft text-foreground" : "bg-good-soft text-good",
-                            ].join(" ")}
-                          >
-                            {entries.length}건
+                          <span className="flex items-center gap-0.5">
+                            {confirmedCount > 0 && (
+                              <span
+                                className="bg-foreground px-1 text-xs font-bold text-background"
+                                title="대관 확정"
+                              >
+                                확정 {confirmedCount}
+                              </span>
+                            )}
+                            {reviewingCount > 0 && (
+                              <span
+                                className={[
+                                  "px-1 text-xs font-bold",
+                                  venueTab === "arena"
+                                    ? "bg-accent-soft text-foreground"
+                                    : "bg-good-soft text-good",
+                                ].join(" ")}
+                                title="심사 중"
+                              >
+                                심사 {reviewingCount}
+                              </span>
+                            )}
                           </span>
                         )}
                       </button>
@@ -281,26 +324,79 @@ export function ScheduleManager({ initialYear, initialMonth }: { initialYear: nu
                           const allEntries = occupancy[openDate] ?? [];
                           const tabEntries = allEntries.filter((e) => e.venueId === venueTab);
                           const otherVenueCount = allEntries.length - tabEntries.length;
-                          return tabEntries.length === 0 ? (
+                          const block = blockedByDate.get(openDate);
+                          const grouped: Record<DayGroupKey, ScheduleOccupancyEntry[]> = {
+                            CONFIRMED: [],
+                            REVIEWING: [],
+                          };
+                          for (const entry of tabEntries) grouped[dayGroupOf(entry)].push(entry);
+                          const hasAny = tabEntries.length > 0 || !!block;
+
+                          return !hasAny ? (
                             <p className="text-xs text-muted">
                               이 날짜에 {venueLabel(venueTab)} 예약이 없습니다.
                               {otherVenueCount > 0 && ` (다른 공간 예약 ${otherVenueCount}건 있음 — 탭 전환해서 확인)`}
                             </p>
                           ) : (
-                            <ul className="space-y-1.5">
-                              {tabEntries.map((entry, i) => (
-                                <li
-                                  key={`${entry.quoteId}-${i}`}
-                                  className="flex flex-wrap items-center gap-x-2 gap-y-1 bg-background px-2.5 py-1.5 text-xs"
-                                >
-                                  <span className="text-muted">{roleLabel(entry.role)}</span>
-                                  <Link href={`/admin/${entry.quoteId}`} className="font-bold text-foreground hover:text-foreground hover:underline">
-                                    {entry.companyName}
-                                  </Link>
-                                  <span className="text-xs text-muted">· {statusLabel(entry.status, entry.reviewDecision)}</span>
-                                </li>
-                              ))}
-                            </ul>
+                            <div className="space-y-3">
+                              {(["CONFIRMED", "REVIEWING"] as const).map((key) =>
+                                grouped[key].length === 0 ? null : (
+                                  <div key={key}>
+                                    <div className="mb-1 flex items-center gap-1.5 text-xs font-bold">
+                                      <span
+                                        className={`h-2 w-2 rounded-full ${
+                                          key === "CONFIRMED" ? "bg-foreground" : "bg-warn"
+                                        }`}
+                                      />
+                                      {DAY_GROUP_LABEL[key]}
+                                      <span className="font-normal text-muted">
+                                        {grouped[key].length}건
+                                      </span>
+                                    </div>
+                                    <ul className="space-y-1.5">
+                                      {grouped[key].map((entry, i) => (
+                                        <li
+                                          key={`${entry.quoteId}-${i}`}
+                                          className="flex flex-wrap items-center gap-x-2 gap-y-1 bg-background px-2.5 py-1.5 text-xs"
+                                        >
+                                          <span className="text-muted">{roleLabel(entry.role)}</span>
+                                          <Link
+                                            href={`/admin/${entry.quoteId}`}
+                                            className="font-bold text-foreground hover:text-foreground hover:underline"
+                                          >
+                                            {entry.companyName}
+                                          </Link>
+                                          <span className="text-xs text-muted">
+                                            · {statusLabel(entry.status, entry.reviewDecision)}
+                                          </span>
+                                        </li>
+                                      ))}
+                                    </ul>
+                                  </div>
+                                ),
+                              )}
+
+                              {/* 대관 불가 일정도 이 날짜의 상태다 — 오른쪽 「설정」에만
+                                  두면 목록을 다 읽고도 왜 신청이 안 되는지 모른다. */}
+                              {block && (
+                                <div>
+                                  <div className="mb-1 flex items-center gap-1.5 text-xs font-bold">
+                                    <span className="h-2 w-2 rounded-full bg-danger" />
+                                    대관 불가 일정
+                                  </div>
+                                  <p className="bg-background px-2.5 py-1.5 text-xs text-danger">
+                                    {venueLabel(venueTab)} 대관 불가
+                                    {block.reason ? ` · ${block.reason}` : " (관리자 지정)"}
+                                  </p>
+                                </div>
+                              )}
+
+                              {tabEntries.length === 0 && otherVenueCount > 0 && (
+                                <p className="text-xs text-muted">
+                                  다른 공간 예약 {otherVenueCount}건 있음 — 탭 전환해서 확인
+                                </p>
+                              )}
+                            </div>
                           );
                         })()}
                       </div>
