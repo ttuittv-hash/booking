@@ -28,10 +28,32 @@ describe("첫 공지 시드", () => {
     expect(SEED_NOTICE.attachmentName.toLowerCase().endsWith(".pdf")).toBe(true);
   });
 
-  it("본문은 짧은 안내만 두고 필터를 통과한다", () => {
+  /*
+    [회귀 2026-09-02] 본문을 짧은 안내로 줄이고 PDF 만 남긴 적이 있다. 그 환경에
+    첨부 파일이 없자 화면에 아무것도 남지 않았다("공지가 엑박으로 나온다").
+    글은 어느 환경에서나 뜬다 — 전문은 본문에 있어야 한다.
+  */
+  it("본문에 공고 전문이 있고 필터를 통과한다", () => {
     const clean = sanitizeRichText(SEED_NOTICE.body);
     expect(clean).toContain("서울아레나의 첫 무대가 열립니다");
+    expect(clean).toContain("<h2><span>01 OVERVIEW</span>공고 개요</h2>");
+    expect(clean).toContain("<th>신청 자격</th>");
     expect(clean.length).toBeGreaterThan(SEED_NOTICE.body.length * 0.95);
+  });
+
+  it("공고의 뼈대(01~08)가 모두 있다", () => {
+    for (const section of [
+      "01 OVERVIEW",
+      "02 SCHEDULE",
+      "03 HOW TO APPLY",
+      "04 RENTAL RATES",
+      "05 EVALUATION",
+      "06 CONTRACT",
+      "07 NOTE",
+      "08 CONTACT",
+    ]) {
+      expect(SEED_NOTICE.body).toContain(section);
+    }
   });
 
   it("외부 링크를 넣지 않는다 — 운영자 편집 콘텐츠의 규칙", () => {

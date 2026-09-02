@@ -1,5 +1,8 @@
 import type { Metadata } from "next";
+import fs from "node:fs/promises";
+import path from "node:path";
 import { notFound } from "next/navigation";
+import { DATA_DIR } from "@/lib/dataDir";
 import { getCurrentUser, requireAccess } from "@/lib/auth";
 import { getNoticeById, getNoticeCalendarWindow } from "@/lib/db";
 import { sanitizeRichText } from "@/lib/sanitizeHtml";
@@ -125,6 +128,22 @@ export default async function NoticeDetailPage({
 
   // 캘린더가 보여 줄 달의 범위(2026-09-02). 이번 회차에 신청받는 달만 넘겨 보게 한다 —
   // 접수와 무관한 달까지 넘겨 볼 수 있으면 그 달도 신청할 수 있다고 읽힌다.
+  /*
+    첨부가 실제로 있는지 본다 (2026-09-02).
+
+    주소만 있고 파일이 없으면 화면에는 깨진 상자(엑박)만 남는다 — 환경을 옮기거나
+    디스크가 비면 실제로 그렇게 됐다. 파일이 없으면 첨부 자리를 아예 내지 않는다.
+  */
+  const attachmentFile = /^\/api\/notices\/attachment\/([0-9a-f-]{36}\.[a-z0-9]{1,10})$/.exec(
+    notice.attachmentUrl ?? "",
+  )?.[1];
+  const attachmentExists = attachmentFile
+    ? await fs
+        .stat(path.join(DATA_DIR, "uploads", "notice-attachments", attachmentFile))
+        .then(() => true)
+        .catch(() => false)
+    : false;
+
   const calendarBounds = noticeCalendarMonthBounds(calendarWindow);
   const calendarSlot = (
     <BookingCalendarLauncher
@@ -190,7 +209,7 @@ export default async function NoticeDetailPage({
               ));
             })()}
 
-            {notice.attachmentUrl && (
+            {notice.attachmentUrl && attachmentExists && (
               <div className="mt-10 border-t border-border/25 pt-10">
                 <h2 className="type-kr-heading mb-4 text-h6-m sm:text-h6">첨부파일</h2>
                 {/* [신규 2026-09-02] PDF 는 화면에서 그대로 펼친다 — 공고문을 PDF 로
