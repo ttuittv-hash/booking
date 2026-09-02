@@ -171,8 +171,10 @@ try {
   check("A10-1", "마스터에게 담당자 관리 화면이 열린다", page.url().includes("/mypage/members"));
   await page.waitForSelector('[data-testid="members-table"]');
   // 초대는 이름이 필수다(2026-08-22 기획 반영)
-  // 휴대폰 번호도 필수(2026-08-28 개정: 본인인증 번호와 대조해 심사 생략). 가짜 번호라 대조는 안 맞고
-  // 평범한 합류 신청이 된다 — 아래 A11-4~6 은 그 경로를 확인한다.
+  // 휴대폰 번호도 필수(2026-08-28 개정: 본인인증 번호와 대조해 심사 생략).
+  // [개정 2026-09-02] 초대장의 이름·이메일·번호가 본인인증·가입 정보와 모두 같으면 서버가
+  // 승인을 생략하고 곧바로 소속 담당자로 가입시킨다(JOIN_APPROVED). 세 값이 하나라도 다르면
+  // 서버가 400 으로 막아 초대 링크로는 가입 자체가 안 된다 — 아래 A11-4~6 은 그 "일치 → 즉시 가입" 경로를 확인한다.
   // 하이드레이션 전에 채우면 React 상태가 비어 발급이 안 된다(fillAndAdvance 와 같은 이유) — 결과로 확인하며 재시도.
   await page.waitForLoadState("networkidle").catch(() => {});
   for (let i = 0; i < 6; i++) {
@@ -237,11 +239,11 @@ try {
   await invitee.waitForSelector('[data-testid="id-check-message"]', { timeout: 20000 });
   await invitee.click('[data-testid="submit-register"]');
   await invitee.waitForSelector('[data-testid="step-done"]', { timeout: 30000 });
-  check("A11-4", "초대받은 사람이 합류 신청으로 가입된다",
+  check("A11-4", "초대받은 사람이 합류로 가입 완료된다",
     (await invitee.locator('[data-testid="step-done"]').innerText()).includes("합류"));
 
-  // 대표 담당자 화면 — 합류 신청이 목록에 뜨고, 초대 행은 소진돼 중복으로 남지 않는다.
-  // 합류 직후 바로 새로고침하면 목록에 아직 안 보일 수 있다(2026-08-28 실측) — 몇 번 다시 읽는다.
+  // 대표 담당자 화면 — 초대 수락자가 소속 담당자로 목록에 뜨고, 초대 행은 소진돼 중복으로 남지 않는다.
+  // 가입 직후 바로 새로고침하면 목록에 아직 안 보일 수 있다(2026-08-28 실측) — 몇 번 다시 읽는다.
   let rows = [];
   for (let attempt = 0; attempt < 3; attempt += 1) {
     await page.reload({ waitUntil: "domcontentloaded" });
@@ -252,8 +254,9 @@ try {
     rows = await page.locator('[data-testid="members-table"] tbody tr').allInnerTexts();
     if (rows.some((r) => r.includes(`staff${t}@seoul-ent.co.kr`))) break;
   }
-  check("A11-5", "합류 신청이 대표 담당자 목록에 보인다",
-    rows.some((r) => r.includes("승인 대기")), `${page.url()} rows=${rows.length} ${rows.map((r) => r.replace(/\s+/g, " ").slice(0, 60)).join(" | ")}`);
+  check("A11-5", "초대 수락자가 소속 담당자로 목록에 보인다(승인 생략)",
+    rows.some((r) => r.includes(`staff${t}@seoul-ent.co.kr`) && r.includes("소속 담당자")),
+    `${page.url()} rows=${rows.length} ${rows.map((r) => r.replace(/\s+/g, " ").slice(0, 60)).join(" | ")}`);
   check("A11-6", "가입한 사람의 초대 행은 중복으로 남지 않는다",
     rows.filter((r) => r.includes(`staff${t}@seoul-ent.co.kr`)).length === 1,
     rows.filter((r) => r.includes(`staff${t}@seoul-ent.co.kr`)).length + "행");
