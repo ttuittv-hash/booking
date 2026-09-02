@@ -1226,7 +1226,8 @@ export function PackagesForm({ rateTable, ratesContent }: { rateTable: RateTable
                           <div className="flex items-center gap-3">
                             {isVisibleOption && (
                               <label className="flex items-center gap-1.5">
-                                <span className="text-xs text-muted">선택 제한</span>
+                                {/* 이 값이 신청 화면의 수량 상한이 된다. 비우면 무제한(2026-09-02) */}
+                                <span className="text-xs text-muted">수량 제한</span>
                                 <input
                                   type="number"
                                   min={0}

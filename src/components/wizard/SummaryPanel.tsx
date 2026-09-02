@@ -5,6 +5,7 @@ import { Note } from "@/components/ui/kit";
 import { VENUES } from "@/lib/pricing/types";
 import type { EstimatedQuote, LineItem } from "@/lib/pricing/types";
 import {
+  isHiddenFromApplicant,
   SECTION_LABEL,
   SECTION_SUBTOTAL_LABEL,
   sectionOf,
@@ -29,10 +30,10 @@ const SECTION_ORDER: ContractSection[] = ["CONTRACT", "ADDITIONAL"];
  * 볼 수 없어 되돌렸다. 대신 "예상 금액 · 확정 아님" 고지를 항상 위에 둔다.
  */
 export function SummaryPanel({ quote }: { quote: EstimatedQuote }) {
-  // Bowl 사용료·유틸리티(HIDDEN)는 합계에는 포함하되 신청자 화면에는 항목·금액 모두 노출하지
-  // 않는다 — quote.subtotal/total은 전체 lineItems 기준으로 이미 계산돼 있어 여기서 걸러내도
-  // 총액에는 영향이 없다.
-  const visibleItems = quote.lineItems.filter((item) => item.visibility !== "HIDDEN");
+  // Bowl 사용료·유틸리티(HIDDEN)와 청소비는 합계에는 포함하되 신청자 화면에는 항목·금액을
+  // 노출하지 않는다 — quote.subtotal/total 은 전체 lineItems 기준으로 이미 계산돼 있어
+  // 여기서 걸러내도 총액에는 영향이 없다. 무엇을 감출지는 lineItemGroups 한 곳에서 정한다.
+  const visibleItems = quote.lineItems.filter((item) => !isHiddenFromApplicant(item));
   // 동시 대관에서는 아레나·중형 항목이 한 목록에 섞여 어느 공간 몫인지 구분이 안 된다는
   // 지적으로 공간별 소제목을 넣었다(2026-08-22) — 항목에 실제로 두 공간이 섞여 있을 때만
   // 나눈다. 한 공간만 선택했을 때는 예전처럼 소제목 없이 밋밋한 목록 그대로 보여준다.
