@@ -705,6 +705,14 @@ export function WizardShell({
                       onChangeDayShowCounts={(dayShowCounts) =>
                         setSelection((prev) => ({ ...prev, dayShowCounts }))
                       }
+                      // 「패키지」는 기본 6일 안에서 아레나와 중형을 함께 짠다 — 이 두
+                      // props 가 있을 때만 역할 선택이 두 줄(아레나/중형)로 열린다.
+                      midHallDays={isSpecialSchedule ? selection.midHallDays : undefined}
+                      onChangeMidHallDays={
+                        isSpecialSchedule
+                          ? (midHallDays) => setSelection((prev) => ({ ...prev, midHallDays }))
+                          : undefined
+                      }
                     />
                   ) : (
                     <MidHallCalendar

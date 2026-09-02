@@ -37,7 +37,13 @@ function resolveQuoteDatesInRange(
 ): Array<{ date: string; venueId: "arena" | "medium-hall"; role: DayTag | MidHallDayRole | null }> {
   const selection = quote.selection;
   const hasArenaPart = selection.venueId !== "medium-hall" || selection.bookingMode === "SIMULTANEOUS";
-  const hasMidHallPart = selection.venueId === "medium-hall" || selection.bookingMode === "SIMULTANEOUS";
+  // [개정 2026-09-02] 「패키지」는 공간 id 가 medium-hall 도 아니고 동시 대관도 아니지만
+  // 기본 6일 안에서 중형을 함께 쓴다 — 조건을 공간 id 로만 보면 그 예약이 중형 달력에
+  // 안 잡혀 이중 예약이 난다. 실제로 중형 날짜를 잡았는지로 판단한다.
+  const hasMidHallPart =
+    selection.venueId === "medium-hall" ||
+    selection.bookingMode === "SIMULTANEOUS" ||
+    Object.keys(selection.midHallDays ?? {}).length > 0;
 
   const entries: Array<{ date: string; venueId: "arena" | "medium-hall"; role: DayTag | MidHallDayRole | null }> = [];
 

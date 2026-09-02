@@ -27,6 +27,7 @@ import {
   VENUES,
   type Attachment,
   type DayTag,
+  type MidHallDayRole,
   type QuoteStatus,
   type RetractableSeatFloor,
 } from "@/lib/pricing/types";
@@ -54,6 +55,12 @@ const STATUS_LABEL: Record<QuoteStatus, string> = {
   ESTIMATE: "예상견적 (심사 대기)",
   CONTRACTED: "계약 확정 (정산 대기)",
   SETTLED: "정산 완료",
+};
+
+const MID_HALL_ROLE_LABEL: Record<MidHallDayRole, string> = {
+  SETUP: "셋업",
+  PERFORMANCE: "공연",
+  LOAD_OUT: "철수",
 };
 
 const DAY_TAG_LABEL: Record<DayTag, string> = {
@@ -188,6 +195,10 @@ export default async function AdminQuoteApplicationPage({
   const dates = resolveSelectedDates(s);
   const pkg = findPackage(rateTable, s.packageId);
   const defaults = defaultDayTags(dates, pkg?.defaultPerformanceDays ?? 1);
+  const midHallByRole = new Map<MidHallDayRole, string[]>();
+  for (const [date, day] of Object.entries(s.midHallDays ?? {})) {
+    midHallByRole.set(day.role, [...(midHallByRole.get(day.role) ?? []), date].sort());
+  }
   const byTag = new Map<DayTag, string[]>();
   for (const date of dates) {
     const tag = effectiveDayTag(date, s.dayTags ?? {}, defaults);
@@ -257,6 +268,16 @@ export default async function AdminQuoteApplicationPage({
               value={list.map(formatDateShort).join(", ")}
             />
           ))}
+          {/* 「패키지」·동시 대관은 같은 기간 안에서 중형 일정도 함께 잡는다 — 아레나
+              태그만 찍으면 심사자가 중형 일정을 못 본다(2026-09-02). */}
+          {midHallByRole.size > 0 &&
+            [...midHallByRole.entries()].map(([role, list]) => (
+              <Row
+                key={role}
+                label={`중형 ${MID_HALL_ROLE_LABEL[role]}`}
+                value={list.map(formatDateShort).join(", ")}
+              />
+            ))}
           <Row label="총 대관일수" value={`${totalRentalDays(s)}일`} />
           <Row label="주차" value={`${s.week.year}.${s.week.month} ${s.week.weekOfMonth}주차`} />
           <Row label="예상 관객" value={`${s.expectedAudience.toLocaleString("ko-KR")}명`} />

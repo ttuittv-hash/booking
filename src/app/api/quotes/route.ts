@@ -65,7 +65,9 @@ export async function POST(request: Request) {
   }
 
   const arenaDates = needsPackage ? resolveSelectedDates(selection) : [];
-  const midHallDates = needsMidHall ? Object.keys(selection.midHallDays ?? {}) : [];
+  // 「패키지」는 needsMidHall 이 false 지만 중형 날짜를 잡는다 — 조건을 걸면 운영자가
+  // 막아 둔 중형 날짜가 그대로 통과한다(2026-09-02). 잡힌 날짜가 있으면 늘 검사한다.
+  const midHallDates = Object.keys(selection.midHallDays ?? {});
   const blockedDates = [
     ...(await findBlockedDatesAmong(arenaDates, "arena")),
     ...(await findBlockedDatesAmong(midHallDates, "medium-hall")),

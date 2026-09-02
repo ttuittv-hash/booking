@@ -9,6 +9,8 @@ import {
   WEEKDAYS,
   type DateBlock,
   type DayTag,
+  type MidHallDayRole,
+  type MidHallDaySelection,
   type QuoteSelection,
   type WeekDay,
   type WeekDemand,
@@ -96,6 +98,8 @@ export function Step1Calendar({
   onChangeDayTags,
   onChangeDayShowCounts,
   heading,
+  midHallDays,
+  onChangeMidHallDays,
 }: {
   week: QuoteSelection["week"];
   excludedDays: WeekDay[];
@@ -113,11 +117,37 @@ export function Step1Calendar({
   // 동시 대관에서는 상위 venueTab("아레나 일정")이 이미 공간을 구분해 보여주므로,
   // 탭 이름과 탭 바로 아래 제목이 다른 문구로 겹치지 않도록 상위에서 맞춰 넘긴다.
   heading?: string;
+  /**
+   * [신규 2026-09-02] 「패키지」 공간 — 기본 6일 안에서 **아레나와 중형을 함께** 짠다.
+   * 이 콜백이 있으면 역할 선택 레이어가 두 줄(아레나 공연장 / 중형 공연장)로 열린다.
+   * 아레나 역할은 기존 `dayTags`, 중형 역할은 `midHallDays` 에 그대로 쌓으므로
+   * 요금 계산·심사 화면은 손대지 않아도 두 공간을 모두 읽는다.
+   */
+  midHallDays?: Record<string, MidHallDaySelection>;
+  onChangeMidHallDays?: (days: Record<string, MidHallDaySelection>) => void;
 }) {
   // [화면 뼈대 2026-08-18, 화면시나리오 SCREEN 02/12 · INTERACTION] 역할 지정은 팝업이 아니라
   // 클릭한 날짜 아래에 바로 펼쳐지는 드롭다운으로 처리한다 — 이전의 "사용 요일 토글 행" +
   // "공연/세팅 설정 목록" 2개 섹션을 이 하나의 인터랙션으로 통합한다.
   const [openDate, setOpenDate] = useState<string | null>(null);
+  // 두 공간을 함께 짜는 예약(「패키지」)인지 — 상위가 중형 일정 콜백을 넘겼는지로 판단한다.
+  const twoVenueRoles = !!onChangeMidHallDays;
+  const midHall = midHallDays ?? {};
+
+  /** 중형 역할 지정 — 같은 역할을 다시 누르면 그 날짜의 중형 사용을 해제한다. */
+  function setMidHallRole(date: string, role: MidHallDayRole) {
+    if (!onChangeMidHallDays) return;
+    const current = midHall[date];
+    if (current?.role === role) {
+      onChangeMidHallDays(omit(midHall, date));
+      return;
+    }
+    // 회차는 공연일에만 의미가 있다. 셋업·철수로 바꾸면 1로 되돌려 흔적을 남기지 않는다.
+    onChangeMidHallDays({
+      ...midHall,
+      [date]: { role, shows: role === "PERFORMANCE" ? (current?.shows ?? 1) : 1 },
+    });
+  }
 
   const calendarWeeks = buildCalendarWeeks(week.year, week.month);
   // 아레나 전용 설정 또는 공간공통(ALL, 과거 이관 데이터)만 이 화면에 적용한다 —
@@ -343,9 +373,22 @@ export function Step1Calendar({
                       <span>{date.getDate()}</span>
                       {tag && (
                         <span className="text-xs font-bold leading-none">
+                          {twoVenueRoles ? "아레나 " : ""}
                           {tag === "PERFORMANCE"
                             ? `공연×${dayShowCounts[iso] ?? 1}`
                             : tag === "LOAD_OUT"
+                              ? "철수"
+                              : "세팅"}
+                        </span>
+                      )}
+                      {/* 두 공간을 함께 짤 때만 중형 역할을 한 줄 더 찍는다 — 어느 날에
+                          무엇이 잡혔는지 달력만 보고 알 수 있어야 한다. */}
+                      {twoVenueRoles && midHall[iso] && (
+                        <span className="text-xs font-bold leading-none text-muted">
+                          중형{" "}
+                          {midHall[iso].role === "PERFORMANCE"
+                            ? `공연×${midHall[iso].shows ?? 1}`
+                            : midHall[iso].role === "LOAD_OUT"
                               ? "철수"
                               : "세팅"}
                         </span>
@@ -372,6 +415,13 @@ export function Step1Calendar({
                       닫기 ✕
                     </button>
                   </div>
+                  {/* [신규 2026-09-02] 「패키지」는 기본 6일 안에서 아레나와 중형을 함께
+                      짠다 — 한 날짜가 두 공간에서 서로 다른 역할을 가질 수 있으므로
+                      역할 줄을 공간별로 나눈다. 공간이 하나뿐인 예약에서는 라벨 없이
+                      예전 그대로 한 줄만 나온다. */}
+                  {twoVenueRoles && (
+                    <p className="mt-2 text-xs font-bold text-muted">아레나 공연장</p>
+                  )}
                   <div className="mt-2 flex flex-wrap gap-1.5">
                     <button
                       type="button"
@@ -427,6 +477,84 @@ export function Step1Calendar({
                       삭제
                     </button>
                   </div>
+
+                  {/* 중형 줄 — 아레나와 같은 6일 안에서 따로 짠다. 같은 역할을 다시
+                      누르면 그 날짜의 중형 사용을 뗀다(아레나처럼 [삭제] 를 따로 두면
+                      "이 날짜를 통째로 뺀다"는 위 버튼과 뜻이 겹친다). */}
+                  {twoVenueRoles && (
+                    <>
+                      <p className="mt-3 border-t border-border/25 pt-2.5 text-xs font-bold text-muted">
+                        중형 공연장
+                      </p>
+                      <div className="mt-2 flex flex-wrap gap-1.5">
+                        {(
+                          [
+                            ["SETUP", "셋업"],
+                            ["PERFORMANCE", "공연일"],
+                            ["LOAD_OUT", "철수"],
+                          ] as const
+                        ).map(([role, label]) => (
+                          <button
+                            key={role}
+                            type="button"
+                            onClick={() => setMidHallRole(openDate, role)}
+                            className={[
+                              "inline-flex h-8 items-center border px-3 text-xs font-bold transition-colors",
+                              midHall[openDate]?.role === role
+                                ? "border-foreground bg-inverse-bg text-inverse-fg"
+                                : "border border-border/25 text-muted hover:border-foreground hover:text-foreground",
+                            ].join(" ")}
+                          >
+                            {label}
+                          </button>
+                        ))}
+                        <span className="inline-flex h-8 items-center text-xs text-muted">
+                          {midHall[openDate]
+                            ? "다시 누르면 이 날짜의 중형 사용을 뗍니다"
+                            : "이 날짜에 중형을 쓰지 않습니다"}
+                        </span>
+                      </div>
+
+                      {midHall[openDate]?.role === "PERFORMANCE" && (
+                        <div className="mt-2.5 flex items-center gap-2">
+                          <span className="text-xs text-muted">중형 공연 회차</span>
+                          <button
+                            type="button"
+                            onClick={() =>
+                              onChangeMidHallDays?.({
+                                ...midHall,
+                                [openDate]: {
+                                  role: "PERFORMANCE",
+                                  shows: Math.max(1, (midHall[openDate]?.shows ?? 1) - 1),
+                                },
+                              })
+                            }
+                            className={ICON_BTN_SM}
+                          >
+                            −
+                          </button>
+                          <span className="w-6 text-center text-xs font-bold tabular-nums">
+                            {midHall[openDate]?.shows ?? 1}
+                          </span>
+                          <button
+                            type="button"
+                            onClick={() =>
+                              onChangeMidHallDays?.({
+                                ...midHall,
+                                [openDate]: {
+                                  role: "PERFORMANCE",
+                                  shows: Math.min(4, (midHall[openDate]?.shows ?? 1) + 1),
+                                },
+                              })
+                            }
+                            className={ICON_BTN_SM}
+                          >
+                            +
+                          </button>
+                        </div>
+                      )}
+                    </>
+                  )}
                   {activeDateKeys.has(dateKey(new Date(openDate))) &&
                     effectiveDayTag(openDate, dayTags, dayTagDefaults) === "PERFORMANCE" && (
                       <div className="mt-2.5 flex items-center gap-2 border-t border-foreground/20 pt-2.5">
