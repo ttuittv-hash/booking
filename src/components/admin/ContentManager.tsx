@@ -289,9 +289,26 @@ function NoticesTab({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ tag, title, body, imageUrl, attachmentUrl, attachmentName, showBookingCalendar }),
       });
-      const data = await res.json();
+      /*
+        [수정 2026-09-02] 응답이 JSON 이 아닐 수 있다.
+
+        페이지·워드에서 붙여넣은 본문은 이미지가 data: URL 로 딸려 와 수 MB 가 되는데,
+        그러면 앞단(프록시)이 413 을 HTML 로 돌려준다. 예전 코드는 `res.json()` 에서
+        그대로 예외가 나 catch 도 없이 끝났고, 화면에는 아무 일도 안 일어나
+        "저장 버튼이 안 눌린다"로 보였다.
+      */
+      const data = await res.json().catch(() => null);
       if (!res.ok) {
-        setError(data.error || "저장에 실패했습니다.");
+        setError(
+          data?.error ??
+            (res.status === 413
+              ? "본문이 너무 큽니다. 붙여넣은 이미지는 [이미지 삽입] 버튼으로 올려 주세요."
+              : `저장에 실패했습니다. (오류 ${res.status})`),
+        );
+        return;
+      }
+      if (!data?.notice) {
+        setError("저장 결과를 읽지 못했습니다. 새로고침 후 다시 확인해 주세요.");
         return;
       }
       if (isNew) {
@@ -301,6 +318,8 @@ function NoticesTab({
       }
       resetForm();
       router.refresh();
+    } catch {
+      setError("저장하지 못했습니다. 연결 상태를 확인한 뒤 다시 시도해 주세요.");
     } finally {
       setSaving(false);
     }
@@ -544,9 +563,9 @@ function FaqTab({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ tag, question, answer }),
       });
-      const data = await res.json();
+      const data = await res.json().catch(() => null);
       if (!res.ok) {
-        setError(data.error || "저장에 실패했습니다.");
+        setError(data?.error ?? `저장에 실패했습니다. (오류 ${res.status})`);
         return;
       }
       if (isNew) {
