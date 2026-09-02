@@ -177,7 +177,9 @@ try {
   await page.waitForLoadState("networkidle").catch(() => {});
   for (let i = 0; i < 6; i++) {
     for (const [sel, v] of [
-      ['[data-testid="invite-name"]', "초대테스트"],
+      // [개정 2026-09-02] 초대는 이름·이메일·번호가 초대장과 모두 같아야 가입된다.
+      // 초대자는 개발 우회 스텁으로 인증하는데 그 기본 이름이 "테스트사용자"라, 초대장 이름도 맞춘다.
+      ['[data-testid="invite-name"]', "테스트사용자"],
       ['[data-testid="invite-email"]', `staff${t}@seoul-ent.co.kr`],
       ['[data-testid="invite-phone"]', "010-0000-0001"],
     ]) {
