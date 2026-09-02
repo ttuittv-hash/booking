@@ -154,11 +154,12 @@ export const ARENA_OVERVIEW: OverviewCard[] = [
   { label: "작업 높이까지 하강 가능한 마더트러스", value: "180t" },
 ];
 
+/* [2026-09-02] dev 운영본. 아레나 키포인트와 달리 이쪽은 수치가 아니라 분류다. */
 export const LIVE_HALL_OVERVIEW: OverviewCard[] = [
-  { label: "공연장 형태", value: "실내 공연장" },
-  { label: "공연 가능 형태", value: "콘서트, 팬미팅, 쇼케이스, 뮤지컬, 기업행사 등" },
-  { label: "좌석 운영", value: "공연 특성에 따라 운영 가능" },
-  { label: "무대 구성", value: "다양한 공연 형태에 대응 가능한 무대 운영" },
+  { label: "공연장 형태", value: "프로시니엄 공연장" },
+  { label: "공연 유형", value: "콘서트 · 팬미팅 · 쇼케이스 · 기업행사" },
+  { label: "객석 운영", value: "좌석형 · 스탠딩형 가변 구성" },
+  { label: "무대 구성", value: "엔드 스테이지" },
 ];
 
 export interface StageCapacity {
@@ -281,30 +282,7 @@ export const ARENA_SPEC_GROUPS: SpecCardGroupFact[] = [
  * 하는 시설 이름이 목록 속 한 줄로 작아졌다. 카드는 [카테고리(라벨) / 시설명 / 부연] 이다.
  * 값이 한글이므로 서체는 국문 헤딩으로 잡힌다(`valueHeadingClass`).
  */
-export const LIVE_HALL_SPEC_GROUPS: SpecCardGroupFact[] = [
-  {
-    title: "ADDITIONAL FACILITIES",
-    cards: [
-      {
-        label: "아티스트 공간",
-        value: "아티스트 대기실",
-        desc: "출연진 분장 및 대기 공간 (실수 확정 후 안내)",
-      },
-      { label: "아티스트 공간", value: "의무실", desc: "2개소" },
-      { label: "운영 · BOH", value: "프로덕션 오피스", desc: "" },
-      { label: "운영 · BOH", value: "FOH 컨트롤 포지션", desc: "" },
-      { label: "운영 · BOH", value: "하역장", desc: "" },
-      { label: "운영 · BOH", value: "화물용 엘리베이터", desc: "" },
-      { label: "운영 · BOH", value: "관계자 주차", desc: "제공 대수 추후 확정 예정" },
-      { label: "운영 · BOH", value: "운영지원 공간", desc: "" },
-      {
-        label: "관객 공간",
-        value: "휠체어석",
-        desc: "총 20석 (1층 6석, 2층 14석 / 동반석 별도)",
-      },
-    ],
-  },
-];
+export const LIVE_HALL_SPEC_GROUPS: SpecCardGroupFact[] = [];
 
 /**
  * 부대시설 — **카테고리 카드**로 보여준다(Figma 2608 「additional facilities」).
@@ -318,69 +296,33 @@ export interface FacilityGroupFact {
 
 export const ARENA_FACILITY_GROUPS: FacilityGroupFact[] = [
   {
-    title: "VIP 공간",
+    title: "부대시설",
     items: [
-      { label: "VIP 라운지", desc: "VIP·관계자 전용 휴게 공간 (수량·규모 추후 확정 예정)" },
-      { label: "스카이박스", desc: "프리미엄 관람석 겸 프라이빗 라운지 (좌석 수 추후 확정 예정)" },
-    ],
-  },
-  {
-    title: "관객 공간",
-    items: [
-      { label: "로비", desc: "출입구 연계 메인 로비 및 안내 공간" },
-      { label: "라운지", desc: "관객·참석자를 위한 휴게 공간 (규모 추후 확정 예정)" },
-      { label: "광장", desc: "야외 이벤트·팬 행사 등에 활용 가능한 옥외 공용 공간" },
-      {
-        label: "프레스룸",
-        desc: "기자간담회·인터뷰 등에 활용하며, 애프터파티 공간으로도 가변 운영이 가능합니다.",
-      },
-      { label: "휠체어석", desc: "20석 (동반석 20석 별도)" },
-      { label: "화장실 및 장애인 화장실", desc: "전층 운영" },
-    ],
-  },
-  {
-    title: "아티스트 공간",
-    items: [
-      { label: "아티스트 대기실", desc: "출연진 분장 및 대기 공간" },
-      { label: "샤워실", desc: "총 18개소 (공용 12개소, 대기실 내부 6개소)" },
-      { label: "의무실", desc: "최대 3개소 운영 가능" },
-    ],
-  },
-  {
-    title: "운영 · BOH 공간",
-    items: [
-      { label: "프로덕션 오피스", desc: "공연 제작 및 운영 스태프 업무공간" },
-      { label: "FOH 컨트롤 포지션", desc: "음향·조명·영상 운영 공간" },
-      { label: "하역장", desc: "대형 공연장비 반입·반출 전용" },
-      { label: "화물용 엘리베이터", desc: "공연 장비 운반 전용" },
-      { label: "관계자 주차", desc: "최대 200대 제공 (패키지별 상이)" },
-      { label: "대형·중형버스 주차", desc: "대형버스 최대 7대 / 중형버스 최대 5대" },
-      { label: "운영지원 공간" },
+      { label: "VIP 라운지", desc: "VIP 및 관계자 전용 휴게 공간" },
+      { label: "스카이박스", desc: "공연 관람과 휴식을 위한 프라이빗 관람 공간" },
+      { label: "메인 로비", desc: "입·퇴장과 안내 기능을 갖춘 관객 맞이 공간" },
+      { label: "관객 라운지", desc: "관객 및 행사 참석자를 위한 휴게 공간" },
+      { label: "프레스룸", desc: "기자간담회·인터뷰·미디어 운영을 위한 가변형 공간" },
+      { label: "아티스트 대기실", desc: "출연진의 분장과 공연 준비를 위한 대기 공간" },
+      { label: "프로덕션 오피스", desc: "제작·운영 스태프를 위한 업무 공간" },
+      { label: "샤워실", desc: "총 18개소 / 공용 12개소·대기실 내부 6개소" },
+      { label: "의무실", desc: "최대 3개소 운영이 가능한 응급 지원 공간" },
+      { label: "야외광장", desc: "야외 이벤트·팬 행사 등에 활용 가능한 옥외 공용 공간" },
+      { label: "하역장", desc: "대형 세트와 공연장비 반입·반출을 위한 전용 공간" },
+      { label: "대형·중형버스 주차", desc: "대형버스 최대 7대·중형버스 최대 5대" },
     ],
   },
 ];
 
 export const LIVE_HALL_FACILITY_GROUPS: FacilityGroupFact[] = [
   {
-    title: "아티스트 공간",
+    title: "부대시설",
     items: [
-      { label: "아티스트 대기실", desc: "출연진 분장 및 대기 공간 (실수 확정 후 안내)" },
-      { label: "의무실", desc: "2개소" },
+      { label: "퀵체인지룸", desc: "무대 뒷편 직전 대기와 휴식이 가능한 대기 공간" },
+      { label: "아티스트 대기실", desc: "출연진의 분장과 공연 준비를 위한 대기 공간" },
+      { label: "의무실", desc: "2개소 운영이 가능한 응급 지원 공간" },
+      { label: "하역장", desc: "공연 세트와 장비의 반입·반출을 위한 전용 공간" },
+      { label: "화물용 엘리베이터", desc: "8톤급·5톤급 화물용 엘리베이터 각 1기" },
     ],
-  },
-  {
-    title: "운영 · BOH 공간",
-    items: [
-      { label: "프로덕션 오피스" },
-      { label: "FOH 컨트롤 포지션" },
-      { label: "하역장" },
-      { label: "화물용 엘리베이터" },
-      { label: "관계자 주차", desc: "제공 대수 추후 확정 예정" },
-      { label: "운영지원 공간" },
-    ],
-  },
-  {
-    title: "관객 공간",
-    items: [{ label: "휠체어석", desc: "총 20석 (1층 6석, 2층 14석 / 동반석 별도)" }],
   },
 ];

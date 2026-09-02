@@ -151,28 +151,28 @@ function FloorList({ items }: { items: FeatureBlock[] }) {
   );
 }
 
-/** 부대시설 카테고리 카드 — [시설명 → 부연] 목록 */
-function FacilityCard({ group }: { group: FacilityGroup }) {
-  return (
-    <TitledCard title={group.title}>
-      <dl className="space-y-4">
-        {group.items.map((it, i) => (
-          <div key={`${it.label}-${i}`}>
-            <dt className="text-s font-bold">{it.label}</dt>
-            {it.value && (
-              <dd className="mt-1 flex gap-2 break-keep text-s text-muted">
-                <span aria-hidden>·</span>
-                <span>{it.value}</span>
-              </dd>
-            )}
-          </div>
-        ))}
-      </dl>
-    </TitledCard>
+/**
+ * 부대시설을 스펙 카드로 편다 — **한 시설이 카드 한 장**이다.
+ *
+ * 카테고리 한 장에 시설 목록을 담아 두었더니 카드마다 줄 수가 제각각이라 격자가
+ * 무너졌고, 정작 읽어야 하는 시설 이름이 목록 속 한 줄로 작아졌다.
+ * 카드는 [카테고리(라벨) / 시설명 / 부연] 으로, 위 스펙 카드와 같은 규격이다.
+ */
+function facilityCards(groups: FacilityGroup[]): SpecCard[] {
+  return groups.flatMap((g) =>
+    g.items.map((it) => ({ label: g.title, value: it.label, desc: it.value })),
   );
 }
 
 function VenuePanel({ en, ko, c }: { en: string; ko: string; c: VenueFacilityContent }) {
+  const facilities = facilityCards(c.facilityGroups);
+  const darkSections = [
+    ...c.specGroups,
+    ...(facilities.length > 0
+      ? [{ title: "ADDITIONAL FACILITIES", cards: facilities }]
+      : []),
+  ];
+
   return (
     <>
       <Band tone="light" size="lg">
@@ -208,28 +208,18 @@ function VenuePanel({ en, ko, c }: { en: string; ko: string; c: VenueFacilityCon
       <DocumentsCta />
 
       {/*
-        스펙 카드 섹션들은 **밴드 하나** 안에 이어 놓는다. 밴드를 나누면 검정 지면이
-        같아도 아래 패딩 + 위 패딩이 더해져 두 섹션 사이만 유난히 벌어진다.
+        검정 지면의 카드 섹션들은 **밴드 하나** 안에 이어 놓는다. 밴드를 나누면 지면이
+        같아도 아래 패딩 + 위 패딩이 더해져 그 사이만 유난히 벌어진다.
+        부대시설도 같은 규격의 카드라 여기에 이어 붙인다.
       */}
-      {c.specGroups.length > 0 && (
+      {darkSections.length > 0 && (
         <Band tone="dark">
-          {c.specGroups.map((g, i) => (
+          {darkSections.map((g, i) => (
             <section key={`${g.title}-${i}`} className={i > 0 ? "mt-16 sm:mt-20" : ""}>
               <SectionHead title={g.title} />
               <SpecCardGrid cards={g.cards} />
             </section>
           ))}
-        </Band>
-      )}
-
-      {c.facilityGroups.length > 0 && (
-        <Band tone="light">
-          <SectionHead title="ADDITIONAL FACILITIES" />
-          <div className="grid-site mt-10">
-            {c.facilityGroups.map((g, i) => (
-              <FacilityCard key={`${g.title}-${i}`} group={g} />
-            ))}
-          </div>
         </Band>
       )}
     </>
