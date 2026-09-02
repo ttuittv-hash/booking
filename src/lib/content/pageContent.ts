@@ -408,19 +408,14 @@ export const DEFAULT_WIZARD_STEP_TEXTS: WizardStepTexts = {
 export interface RegisterIntroTexts {
   /** 화면 제목. 고를 유형이 하나뿐이라 "선택하세요" 가 아니다 */
   heading: string;
-  /** 카드 왼쪽 위 작은 표시 */
-  badge: string;
   title: string;
   subtitle: string;
   bullets: string[];
   cta: string;
-  /** 카드 아래 한 줄 — 개인회원을 아직 받지 않는다는 안내 */
-  individualNote: string;
 }
 
 export const DEFAULT_REGISTER_INTRO: RegisterIntroTexts = {
   heading: "기업회원으로 가입합니다.",
-  badge: "가입 가능",
   title: "기업회원",
   // [개정 2026-09-02] 한 기업에서 여러 담당자가 들어오는 구조(대표 담당자 → 구성원 추가)를
   // 안내에 명시한다. 예전 문구는 회사의 첫 가입자 경로만 설명해, 이미 등록된 기업의
@@ -435,8 +430,6 @@ export const DEFAULT_REGISTER_INTRO: RegisterIntroTexts = {
     "대관 신청 · 계약 · 정산 전 과정 이용",
   ],
   cta: "기업회원으로 가입하기",
-  individualNote:
-    "사업자등록증이 없는 개인 회원 가입은 준비 중입니다. 열리면 공지사항으로 안내드립니다.",
 };
 
 export interface ScreenTextContent {

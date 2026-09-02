@@ -673,18 +673,11 @@ export function ScreenTextForm({ content }: { content: ScreenTextContent }) {
               value={v.registerIntro.heading}
               onChange={(heading) => patch({ registerIntro: { ...v.registerIntro, heading } })}
             />
-            <div className="grid gap-3 sm:grid-cols-[minmax(0,10rem)_minmax(0,1fr)]">
-              <Text
-                label="상태 표시"
-                value={v.registerIntro.badge}
-                onChange={(badge) => patch({ registerIntro: { ...v.registerIntro, badge } })}
-              />
-              <Text
-                label="카드 제목"
-                value={v.registerIntro.title}
-                onChange={(title) => patch({ registerIntro: { ...v.registerIntro, title } })}
-              />
-            </div>
+            <Text
+              label="카드 제목"
+              value={v.registerIntro.title}
+              onChange={(title) => patch({ registerIntro: { ...v.registerIntro, title } })}
+            />
             <Text
               label="카드 부제"
               value={v.registerIntro.subtitle}
@@ -700,14 +693,6 @@ export function ScreenTextForm({ content }: { content: ScreenTextContent }) {
               label="버튼 문구"
               value={v.registerIntro.cta}
               onChange={(cta) => patch({ registerIntro: { ...v.registerIntro, cta } })}
-            />
-            <Area
-              label="개인회원 안내"
-              rows={2}
-              value={v.registerIntro.individualNote}
-              onChange={(individualNote) =>
-                patch({ registerIntro: { ...v.registerIntro, individualNote } })
-              }
             />
           </Section>
 
