@@ -373,6 +373,10 @@ export function Step1Calendar({
                       <span>{date.getDate()}</span>
                       {tag && (
                         <span className="text-xs font-bold leading-none">
+                          {/* 두 공간을 함께 짤 때는 공간을 앞에 붙인다 — "세팅"만 찍으면
+                              아래 "중형 세팅" 과 나란히 놓였을 때 어느 공간 것인지
+                              알 수 없다. 공간이 하나뿐이면 붙이지 않는다. */}
+                          {twoVenueRoles ? "아레나 " : ""}
                           {tag === "PERFORMANCE"
                             ? `공연×${dayShowCounts[iso] ?? 1}`
                             : tag === "LOAD_OUT"
