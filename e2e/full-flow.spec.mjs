@@ -201,7 +201,11 @@ try {
   await invitee.check('[data-testid="agree-SERVICE"]');
   await invitee.check('[data-testid="agree-PRIVACY_REQUIRED"]');
   await invitee.click('[data-testid="terms-next"]');
-  await invitee.click('[data-testid="identity-start"]');
+  // [개정 2026-09-02] 초대는 초대장 번호로 본인인증한 사람만 가입된다(invitePhoneMismatch → 제출 잠김).
+  // 스텁 기본 번호는 랜덤이라 초대장(010-0000-0001)과 안 맞으므로, 개발 우회로 그 번호를 넣어 맞춘다.
+  await invitee.click('[data-testid="identity-bypass"]');
+  await invitee.fill('[data-testid="dialog-input"]', "01000000001");
+  await invitee.click('[data-testid="dialog-ok"]');
   await invitee.waitForSelector('[data-testid="step-info"]', { timeout: 20000 });
   check("A11-2", "초대받은 사람이 일반 회원가입 흐름을 그대로 밟는다", true);
   // 같은 회사 = 같은 사업자등록번호. 진위확인을 거치면 "이미 등록된 회사"로 잠긴다.
