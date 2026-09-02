@@ -1115,33 +1115,41 @@ async function seedData(pool: Pool) {
   /*
     첫 공지 — 2027년 하반기 정기대관 공고 (2026-09-02).
 
-    공고문은 화면을 여는 순간 있어야 하는 내용이라 코드에 싣는다. **이 id 의 공지가
-    이미 있으면 손대지 않는다** — 운영자가 고친 문구를 배포가 되돌리면 안 된다
-    (FAQ 시드와 같은 원칙).
-  */
-  const noticeSeeded = (
-    await pool.query("SELECT COUNT(*)::int as n FROM notices WHERE id = $1", [SEED_NOTICE.id])
-  ).rows[0] as { n: number };
-  if (noticeSeeded.n === 0) {
-    // 공고문 원본(PDF)을 업로드 폴더로 한 번 복사한다 — 첨부 라우트가 그 폴더만 읽는다.
-    // 복사에 실패해도 공지는 넣는다(본문 안내는 남고, 첨부만 비어 보인다).
-    let attachmentUrl: string | null = null;
-    try {
-      const dir = path.join(DATA_DIR, "uploads", "notice-attachments");
-      await fs.mkdir(dir, { recursive: true });
-      const target = path.join(dir, SEED_NOTICE.attachmentStoredName);
-      const exists = await fs.stat(target).then(() => true).catch(() => false);
-      if (!exists) {
-        await fs.copyFile(
-          path.join(process.cwd(), "assets", "seed", SEED_NOTICE.attachmentFile),
-          target,
-        );
-      }
-      attachmentUrl = SEED_NOTICE.attachmentUrl;
-    } catch (error) {
-      console.error("[seed] 공고문 첨부 복사 실패", error);
-    }
+    공고문은 화면을 여는 순간 있어야 하는 내용이라 코드에 싣는다.
 
+    갱신 규칙은 FAQ 시드와 같다:
+      없으면                  → 넣는다
+      있는데 손대지 않았으면    → 시드 내용으로 갈아 끼운다(공고문이 바뀌면 따라간다)
+      운영자가 한 번이라도 고쳤으면 → 건드리지 않는다 (운영자 편집이 항상 이긴다)
+
+    손댔는지는 `updated_at <> created_at` 으로 본다. 갈아 끼울 때도 두 값을 같게 두어
+    다음 배포에서 또 따라올 수 있게 한다.
+  */
+  // 공고문 원본(PDF)을 업로드 폴더로 복사한다 — 첨부 라우트가 그 폴더만 읽는다.
+  // 복사에 실패해도 공지는 넣는다(본문 안내는 남고, 첨부만 비어 보인다).
+  let noticeAttachmentUrl: string | null = null;
+  try {
+    const dir = path.join(DATA_DIR, "uploads", "notice-attachments");
+    await fs.mkdir(dir, { recursive: true });
+    const target = path.join(dir, SEED_NOTICE.attachmentStoredName);
+    const exists = await fs.stat(target).then(() => true).catch(() => false);
+    if (!exists) {
+      await fs.copyFile(
+        path.join(process.cwd(), "assets", "seed", SEED_NOTICE.attachmentFile),
+        target,
+      );
+    }
+    noticeAttachmentUrl = SEED_NOTICE.attachmentUrl;
+  } catch (error) {
+    console.error("[seed] 공고문 첨부 복사 실패", error);
+  }
+
+  const seededNotice = (
+    await pool.query("SELECT created_at, updated_at FROM notices WHERE id = $1", [SEED_NOTICE.id])
+  ).rows[0] as { created_at: string; updated_at: string } | undefined;
+  const noticeUntouched = !!seededNotice && seededNotice.created_at === seededNotice.updated_at;
+
+  if (!seededNotice) {
     const at = new Date().toISOString();
     await pool.query(
       `INSERT INTO notices (id, tag, title, body, image_url, attachment_url, attachment_name,
@@ -1152,10 +1160,26 @@ async function seedData(pool: Pool) {
         SEED_NOTICE.tag,
         SEED_NOTICE.title,
         SEED_NOTICE.body,
-        attachmentUrl,
-        attachmentUrl ? SEED_NOTICE.attachmentName : null,
+        noticeAttachmentUrl,
+        noticeAttachmentUrl ? SEED_NOTICE.attachmentName : null,
         SEED_NOTICE.showBookingCalendar ? 1 : 0,
         at,
+      ],
+    );
+  } else if (noticeUntouched) {
+    await pool.query(
+      `UPDATE notices
+          SET tag = $2, title = $3, body = $4, attachment_url = $5, attachment_name = $6,
+              show_booking_calendar = $7, updated_at = created_at
+        WHERE id = $1`,
+      [
+        SEED_NOTICE.id,
+        SEED_NOTICE.tag,
+        SEED_NOTICE.title,
+        SEED_NOTICE.body,
+        noticeAttachmentUrl,
+        noticeAttachmentUrl ? SEED_NOTICE.attachmentName : null,
+        SEED_NOTICE.showBookingCalendar ? 1 : 0,
       ],
     );
   }

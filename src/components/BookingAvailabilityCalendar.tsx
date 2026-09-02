@@ -259,19 +259,12 @@ function CalendarBody({ initialMonth, startMonth, endMonth }: CalendarMonthRange
                         )}
                       </span>
                     )}
-                    {inMonth && dateStatus === "CONFIRMED" && (
-                      <span className="text-center text-xs leading-tight font-bold text-foreground">
-                        대관사 확정
-                      </span>
-                    )}
+                    {/* [수정 2026-09-02] 뱃지가 이미 "확정 1 / 심사 1" 이라고 말한다 —
+                        그 아래 "대관사 확정 / 심사 중" 을 또 적으면 같은 말이 두 줄이다.
+                        뱃지에 없는 사실(몇 개사가 겹쳤는지)만 덧붙인다. */}
                     {inMonth && dateStatus === "COMPETING" && (
-                      <span className="text-center text-xs leading-tight font-bold text-warn">
-                        심사 중 · {companyCount}개사
-                      </span>
-                    )}
-                    {inMonth && dateStatus === "REVIEWING" && (
-                      <span className="text-center text-xs leading-tight font-bold text-warn">
-                        심사 중
+                      <span className="text-center text-xs leading-tight text-muted">
+                        {companyCount}개사 경합
                       </span>
                     )}
                   </div>

@@ -34,10 +34,11 @@ const CAT_BTN = "flex h-full items-center px-3 type-display text-s text-foregrou
  *
  * [수정 2026-09-02] 검정 채움을 뺐다. 상단바 지면이 밝고 글자가 검정인데 이 버튼만
  * 검정 면이라, 옆 메뉴와 나란히 놓이면 **눌려 있는 상태**로 읽혔다("꼭 버튼이 눌린
- * 느낌"). 테두리만 남겨 누를 수 있다는 신호는 지키고, 채움은 호버에서만 준다.
+ * 느낌"). 테두리도 뺀다 — 이것만 상자를 두르면 다시 혼자 튄다. 상단바에서는 옆 메뉴와
+ * 같은 텍스트로 두고, 누를 수 있다는 신호는 호버 색으로 준다.
  */
 const ACTION_BTN =
-  "flex h-8 items-center border border-foreground px-5 type-display text-s text-foreground transition-colors hover:bg-[var(--btn-primary-bg)] hover:text-[var(--btn-primary-fg)]";
+  "flex h-8 items-center px-3 type-display text-s text-foreground transition-colors hover:text-accent";
 const PANEL_LINK = "block whitespace-nowrap py-1.5 text-xs transition-colors hover:text-accent";
 /**
  * 우측 유틸 — 채움·아웃라인 없는 텍스트 버튼.
@@ -464,11 +465,11 @@ export function PublicHeader({
               ))}
               {allowed(NAV_ACTION.href) ? (
                 <li>
-                  {/* 좁은 화면에서도 유일한 액션이라 채움 버튼으로 둔다 */}
+                  {/* [수정 2026-09-02] 상단바와 같은 결로 — 검정 채움을 빼고 텍스트로 둔다. */}
                   <Link
                     href={NAV_ACTION.href}
                     onClick={() => setMobileOpen(false)}
-                    className="flex h-12 items-center justify-center border border-transparent bg-[var(--btn-primary-bg)] type-display text-s text-[var(--btn-primary-fg)]"
+                    className="flex h-12 items-center justify-center type-display text-s text-foreground"
                   >
                     {NAV_ACTION.label}
                   </Link>
