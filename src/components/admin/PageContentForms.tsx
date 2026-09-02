@@ -24,6 +24,8 @@ import {
   Text,
 } from "./fields";
 import { HELP } from "./adminUi";
+import { VENUES } from "@/lib/pricing/types";
+import { defaultVenueName, venueLabelKey } from "@/lib/content/venueLabels";
 
 /* ============================================================================
    페이지별 콘텐츠 편집 폼.
@@ -669,6 +671,27 @@ export function ScreenTextForm({ content }: { content: ScreenTextContent }) {
     <ContentFormShell page="screenText" initial={content}>
       {(v, patch) => (
         <>
+          {/* [신규 2026-09-02] 공간 이름 — 대관 신청 위저드의 이용 시설 버튼·구성/옵션
+              탭과 백오피스 패키지 관리 탭이 모두 이 값을 읽는다. 예전에는 코드에 박혀
+              있어 이름 하나 바꾸려면 배포를 해야 했다. 비우면 기본 이름으로 돌아간다. */}
+          <Section
+            title="공간 이름"
+            help="대관 신청 위저드의 이용 시설 버튼 · 구성/옵션 탭과 패키지 관리 탭에 함께 쓰입니다. 비워 두면 기본 이름으로 돌아갑니다."
+          >
+            {VENUES.map((venue) => (
+              <Text
+                key={venue.id}
+                label={`${defaultVenueName(venue.id)} (${venue.id})`}
+                value={v.wizardStrings[venueLabelKey(venue.id)] ?? ""}
+                onChange={(name) =>
+                  patch({
+                    wizardStrings: { ...v.wizardStrings, [venueLabelKey(venue.id)]: name },
+                  })
+                }
+              />
+            ))}
+          </Section>
+
           <Section
             title="회원가입 안내 카드"
             help="회원가입 첫 화면(/register STEP1)의 안내 카드입니다. 가입 조건과 심사 흐름을 여기서 알립니다."

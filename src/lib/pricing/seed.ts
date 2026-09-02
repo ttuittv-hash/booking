@@ -1,3 +1,4 @@
+import { SPECIAL_VENUE_ID } from "./types";
 import type { AddonItem, MidHallRateConfig, PackageInclusion, RateTable, RentalPackage } from "./types";
 
 // 모든 금액은 확정 전 값입니다. Rate Card 확정 시 운영자 백오피스(요금표 관리)에서
@@ -167,6 +168,33 @@ export const SEED_PACKAGES: RentalPackage[] = [
       { addonId: "waiting_room", quantity: 2 },
       { addonId: "intercom_wireless", quantity: 4 },
     ],
+  },
+  {
+    // [신규 2026-09-02] 세 번째 공간(스페셜홀). 아레나와 같은 패키지 모델이라 여기에
+    // 시작점 하나만 둔다 — 실제 금액·구성은 운영자가 패키지 관리에서 채운다.
+    // 이 줄이 없으면 패키지 관리에 공간 탭만 있고 편집할 것이 없어 빈 화면이 된다.
+    id: 6,
+    venueId: SPECIAL_VENUE_ID,
+    name: "스페셜홀 패키지",
+    tagline: "소규모 기획 공연·행사를 위한 기본 패키지",
+    audienceTier: { min: 0, max: 800, label: "~800석 규모" },
+    baseFeePerWeek: 0,
+    bowlFee: 0,
+    includedWeeks: 1,
+    mediaTier: null,
+    discountRatio: 0,
+    setupExtraDayFee: 0,
+    performanceExtraDayFee: 0,
+    dayBreakdown: "준비 1일 + 공연 1일",
+    defaultPerformanceDays: 1,
+    rentalHours: "09:00 ~ 22:00",
+    outdoorPlazaIncluded: false,
+    parkingPerDay: "-",
+    waitingRoomNote: "-",
+    sideFacilities: "-",
+    seatingType: "-",
+    stageType: "-",
+    includedItems: [],
   },
 ];
 

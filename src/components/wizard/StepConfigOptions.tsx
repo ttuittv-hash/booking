@@ -13,6 +13,8 @@ import {
   packagesForVenue,
 } from "@/lib/pricing/rateTableUtils";
 import {
+  MID_HALL_VENUE_ID,
+  SPECIAL_VENUE_ID,
   type AddonCategory,
   type AddonItem,
   type QuoteSelection,
@@ -22,6 +24,7 @@ import {
 import type { ChargeBlock, VenueRateContent, WizardStepTexts } from "@/lib/content/pageContent";
 import { useWizardText } from "@/lib/content/wizardText";
 import { CHOICE_SELECTED_VARS, ComparisonTable, choiceClass, type SpecGroup } from "@/components/ui/kit";
+import { defaultVenueName, venueLabelKey } from "@/lib/content/venueLabels";
 import { StepHeading } from "./StepHeading";
 
 // ADDITIONAL CHARGES를 "구분"으로 묶는다 — /rates 공개 페이지(app/rates/page.tsx)의
@@ -434,12 +437,16 @@ export function StepConfigOptions({
   /** 관리자 문구 미리보기 전용 — 제목·리드를 편집 가능한 입력으로 바꿔치기한다. */
   headingOverride?: { title: ReactNode; lead?: ReactNode };
 }) {
-  const { t } = useWizardText();
-  const midHallOnly = selection.venueId === "medium-hall" && selection.bookingMode === "SINGLE";
+  const { t, tStr } = useWizardText();
+  const midHallOnly = selection.venueId === MID_HALL_VENUE_ID && selection.bookingMode === "SINGLE";
   const isSimultaneous = selection.bookingMode === "SIMULTANEOUS";
   const pkg = findPackage(rateTable, selection.packageId);
-  const arenaPackages = packagesForVenue(rateTable, "arena");
-  const [venueTab, setVenueTab] = useState<"arena" | "medium-hall">("arena");
+  // [개정 2026-09-02] 아레나 전용이던 자리를 "패키지를 쓰는 공간" 으로 일반화했다.
+  // 스페셜홀도 아레나와 같은 패키지 모델이라, 공간 id 만 갈아 끼우면 같은 화면이 선다.
+  const packageVenueId =
+    selection.venueId === SPECIAL_VENUE_ID && !isSimultaneous ? SPECIAL_VENUE_ID : "arena";
+  const venuePackages = packagesForVenue(rateTable, packageVenueId);
+  const [venueTab, setVenueTab] = useState<string>("arena");
 
   if (midHallOnly) {
     return (
@@ -504,7 +511,7 @@ export function StepConfigOptions({
 
       <div className="mt-8">
         <PackagePicker
-          packages={arenaPackages}
+          packages={venuePackages}
           addons={rateTable.addons}
           selectedId={selection.packageId}
           onSelect={onSelectPackage}
@@ -573,6 +580,45 @@ export function StepConfigOptions({
     />
   );
 
+  // 스페셜홀은 아레나와 같은 패키지 모델이라 구성 목록을 그대로 보여준다. 다만 동시
+  // 대관(아레나+중형) 요금 계산에는 아직 들어가지 않으므로, 여기서는 "무엇이 있는지"를
+  // 읽는 자리다 — 실제 신청은 STEP1 에서 스페셜홀을 단독으로 골라야 한다.
+  const specialPackages = packagesForVenue(rateTable, SPECIAL_VENUE_ID);
+  const specialSection =
+    specialPackages.length > 0 ? (
+      <PackagePicker
+        packages={specialPackages}
+        addons={rateTable.addons}
+        selectedId={null}
+        onSelect={() => {}}
+        onClear={() => {}}
+      />
+    ) : null;
+
+  // 탭 이름의 정본은 venue.<id>.name(문구 관리 「공간 이름」) — 위저드·패키지 관리가
+  // 같은 말을 쓰도록 한 곳에서 읽는다. 예전 key 로 고쳐 둔 문구는 잃지 않게 뒤로 물린다.
+  const venueTabs = [
+    {
+      id: "arena",
+      label: tStr(venueLabelKey("arena"), tStr("configOptions.arenaTabLabel", defaultVenueName("arena"))),
+    },
+    {
+      id: MID_HALL_VENUE_ID,
+      label: tStr(
+        venueLabelKey(MID_HALL_VENUE_ID),
+        tStr("configOptions.mediumHallTabLabel", defaultVenueName(MID_HALL_VENUE_ID)),
+      ),
+    },
+    ...(specialSection
+      ? [
+          {
+            id: SPECIAL_VENUE_ID,
+            label: tStr(venueLabelKey(SPECIAL_VENUE_ID), defaultVenueName(SPECIAL_VENUE_ID)),
+          },
+        ]
+      : []),
+  ];
+
   return (
     <section>
       <StepHeading
@@ -580,27 +626,34 @@ export function StepConfigOptions({
         lead={headingOverride?.lead ?? stepText.configSimultaneousLead}
       />
 
+      {/* [개정 2026-09-02] 스페셜홀 탭을 중형 옆에 세운다. 패키지가 등록돼 있을 때만
+          내보낸다 — 요금표에 아무것도 없는 공간의 탭은 눌러도 빈 화면이라, 있는 것처럼
+          보이기만 하고 신청은 못 하는 상태가 된다. */}
       <div className="mt-8 flex gap-1 border-b border-border">
-        {(["arena", "medium-hall"] as const).map((tab) => (
+        {venueTabs.map((tab) => (
           <button
-            key={tab}
+            key={tab.id}
             type="button"
-            onClick={() => setVenueTab(tab)}
+            onClick={() => setVenueTab(tab.id)}
             className={[
               "flex h-10 items-center border-b-2 px-4 text-s font-bold transition-colors",
-              venueTab === tab
+              venueTab === tab.id
                 ? "border-foreground text-foreground"
                 : "border-transparent text-muted hover:text-foreground",
             ].join(" ")}
           >
-            {tab === "arena"
-              ? t("configOptions.arenaTabLabel", "아레나")
-              : t("configOptions.mediumHallTabLabel", "중형공연장")}
+            {tab.label}
           </button>
         ))}
       </div>
 
-      <div className="mt-6">{venueTab === "arena" ? arenaSection : midHallSection}</div>
+      <div className="mt-6">
+        {venueTab === MID_HALL_VENUE_ID
+          ? midHallSection
+          : venueTab === SPECIAL_VENUE_ID
+            ? specialSection
+            : arenaSection}
+      </div>
     </section>
   );
 }

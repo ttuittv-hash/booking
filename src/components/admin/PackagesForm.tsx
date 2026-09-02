@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useDialog } from "@/components/ui/Dialog";
 import { useRouter } from "next/navigation";
+import { venueLabel } from "@/lib/content/venueLabels";
 import { useState } from "react";
 import { useQueryTab } from "@/components/admin/useQueryTab";
 import { num, won } from "@/lib/format";
@@ -39,6 +40,8 @@ import {
   ADDON_CATEGORY_LABEL,
   DEFAULT_VENUE_ID,
   MEDIA_TIER_LABEL,
+  MID_HALL_VENUE_ID,
+  SPECIAL_VENUE_ID,
   VENUES,
   type AddonCategory,
   type AddonItem,
@@ -178,17 +181,37 @@ function blankPackage(id: number, venueId: string): EditablePackage {
 }
 
 // URL 은 공개 화면과 같은 이름(?venue=arena|live-hall)을 쓰고, 내부 venueId 와 매핑한다.
-const VENUE_URL_VALUES = ["arena", "live-hall"] as const;
-const URL_TO_VENUE: Record<string, "arena" | "medium-hall"> = { arena: "arena", "live-hall": "medium-hall" };
-const VENUE_TO_URL: Record<"arena" | "medium-hall", "arena" | "live-hall"> = { arena: "arena", "medium-hall": "live-hall" };
+// [개정 2026-09-02] 공간이 셋으로 늘어 표를 VENUES 에서 만든다 — 공간을 추가할 때
+// 여기 목록을 같이 고치는 걸 잊으면 새 탭이 열리지 않는다.
+const VENUE_URL_BY_ID: Record<string, string> = {
+  arena: "arena",
+  [MID_HALL_VENUE_ID]: "live-hall",
+  [SPECIAL_VENUE_ID]: "special",
+};
+const VENUE_URL_VALUES = VENUES.map((v) => VENUE_URL_BY_ID[v.id] ?? v.id) as unknown as readonly [
+  string,
+  ...string[],
+];
+const URL_TO_VENUE: Record<string, string> = Object.fromEntries(
+  VENUES.map((v) => [VENUE_URL_BY_ID[v.id] ?? v.id, v.id]),
+);
 
-export function PackagesForm({ rateTable, ratesContent }: { rateTable: RateTable; ratesContent: RatesContent }) {
+export function PackagesForm({
+  rateTable,
+  ratesContent,
+  /** 운영자가 문구 관리에서 바꾼 공간 이름 — 탭 라벨을 위저드와 같은 말로 쓴다 */
+  wizardStrings = {},
+}: {
+  rateTable: RateTable;
+  ratesContent: RatesContent;
+  wizardStrings?: Record<string, string>;
+}) {
   const router = useRouter();
   const dialog = useDialog();
   const [packages, setPackages] = useState<EditablePackage[]>(rateTable.packages);
   const [activeId, setActiveId] = useState(rateTable.packages[0]?.id ?? 1);
   const [venueUrl, setVenueUrl] = useQueryTab("venue", VENUE_URL_VALUES, "arena");
-  const venueTab = URL_TO_VENUE[venueUrl];
+  const venueTab = URL_TO_VENUE[venueUrl] ?? DEFAULT_VENUE_ID;
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   // 삭제는 화면에서 빼는 것만으로는 저장되지 않는다 — 저장 API가 항목을 id로 찾아
@@ -222,10 +245,20 @@ export function PackagesForm({ rateTable, ratesContent }: { rateTable: RateTable
   const active = packages.find((p) => p.id === activeId)!;
   const venuePackages = packages.filter((p) => (p.venueId ?? DEFAULT_VENUE_ID) === venueTab);
 
-  function selectVenueTab(v: "arena" | "medium-hall") {
-    setVenueUrl(VENUE_TO_URL[v]);
+  function selectVenueTab(v: string) {
+    setVenueUrl(VENUE_URL_BY_ID[v] ?? v);
     const first = packages.find((p) => (p.venueId ?? DEFAULT_VENUE_ID) === v);
-    if (first) setActiveId(first.id);
+    if (first) {
+      setActiveId(first.id);
+      return;
+    }
+    // [신규 2026-09-02] 그 공간에 패키지가 아직 없을 때. 아래 편집기는 항상 패키지
+    // 하나를 붙들고 있어서, 비워 두면 방금 떠나온 공간의 패키지를 계속 만지게 된다 —
+    // 그 상태로 저장하면 엉뚱한 공간의 패키지가 바뀐다. 빈 패키지를 만들어 편집기를
+    // 이 공간에 붙인다(저장을 눌러야 실제로 저장된다).
+    const nextId = Math.max(0, ...packages.map((p) => p.id)) + 1;
+    setPackages((prev) => [...prev, blankPackage(nextId, v)]);
+    setActiveId(nextId);
   }
 
   // [화면 뼈대 2026-08-19] 패키지 구성을 신청자 노출 등급 기준 3분류로 나눠 보여준다 —
@@ -555,14 +588,14 @@ export function PackagesForm({ rateTable, ratesContent }: { rateTable: RateTable
     <div className="mt-8">
       {/* 1뎁스: 공간 — 패키지가 늘어 한 줄에 다 못 들어간다(그쪽 개편). */}
       <div className="flex gap-1 border-b border-border/20">
-        {(["arena", "medium-hall"] as const).map((v) => (
+        {VENUES.map((v) => (
           <button
-            key={v}
+            key={v.id}
             type="button"
-            onClick={() => selectVenueTab(v)}
-            className={tabCls(venueTab === v)}
+            onClick={() => selectVenueTab(v.id)}
+            className={tabCls(venueTab === v.id)}
           >
-            {VENUES.find((venue) => venue.id === v)?.name ?? v}
+            {venueLabel(v.id, wizardStrings)}
           </button>
         ))}
       </div>
@@ -910,7 +943,7 @@ export function PackagesForm({ rateTable, ratesContent }: { rateTable: RateTable
           </div>
         </section>
 
-        {venueTab === "medium-hall" && (
+        {venueTab === MID_HALL_VENUE_ID && (
           <section>
             <p className="mb-4 border-l-2 border-accent bg-accent-soft/40 px-4 py-3 text-xs leading-5 text-foreground">
               중형공연장은 패키지가 아니라 대관료(요금표 관리)에 딸린 <strong>기본 항목</strong> /{" "}
