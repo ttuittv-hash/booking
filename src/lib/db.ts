@@ -2,6 +2,8 @@ import { Pool, type PoolClient } from "pg";
 import { AsyncLocalStorage } from "node:async_hooks";
 import { hash as bcryptHash } from "@node-rs/bcrypt";
 import crypto from "node:crypto";
+import fs from "node:fs/promises";
+import path from "node:path";
 import { buildSeedRateTable, SEED_MID_HALL_RATE_CONFIG, SEED_PACKAGES } from "./pricing/seed";
 import { SEED_PAGES } from "./pricing/pageSeed";
 import {
@@ -13,6 +15,7 @@ import { SEED_FAQS } from "./content/faqSeed";
 import { SEED_NOTICE } from "./content/noticeSeed";
 import { FEATURE_SPEC_SEED } from "./featureSpecSeed";
 import { FEATURE_SPEC_SHEET_KEYS } from "./pricing/types";
+import { DATA_DIR } from "./dataDir";
 import { sha256Hex } from "./passwordScheme";
 import { approvedQuoteBlocks } from "./schedule/approvedBlocks";
 import { INITIAL_PERFORMANCE_INFO } from "./pricing/performanceInfoDefaults";
@@ -1120,16 +1123,37 @@ async function seedData(pool: Pool) {
     await pool.query("SELECT COUNT(*)::int as n FROM notices WHERE id = $1", [SEED_NOTICE.id])
   ).rows[0] as { n: number };
   if (noticeSeeded.n === 0) {
+    // 공고문 원본(PDF)을 업로드 폴더로 한 번 복사한다 — 첨부 라우트가 그 폴더만 읽는다.
+    // 복사에 실패해도 공지는 넣는다(본문 안내는 남고, 첨부만 비어 보인다).
+    let attachmentUrl: string | null = null;
+    try {
+      const dir = path.join(DATA_DIR, "uploads", "notice-attachments");
+      await fs.mkdir(dir, { recursive: true });
+      const target = path.join(dir, SEED_NOTICE.attachmentStoredName);
+      const exists = await fs.stat(target).then(() => true).catch(() => false);
+      if (!exists) {
+        await fs.copyFile(
+          path.join(process.cwd(), "assets", "seed", SEED_NOTICE.attachmentFile),
+          target,
+        );
+      }
+      attachmentUrl = SEED_NOTICE.attachmentUrl;
+    } catch (error) {
+      console.error("[seed] 공고문 첨부 복사 실패", error);
+    }
+
     const at = new Date().toISOString();
     await pool.query(
       `INSERT INTO notices (id, tag, title, body, image_url, attachment_url, attachment_name,
                             show_booking_calendar, created_at, updated_at)
-       VALUES ($1, $2, $3, $4, NULL, NULL, NULL, $5, $6, $6)`,
+       VALUES ($1, $2, $3, $4, NULL, $5, $6, $7, $8, $8)`,
       [
         SEED_NOTICE.id,
         SEED_NOTICE.tag,
         SEED_NOTICE.title,
         SEED_NOTICE.body,
+        attachmentUrl,
+        attachmentUrl ? SEED_NOTICE.attachmentName : null,
         SEED_NOTICE.showBookingCalendar ? 1 : 0,
         at,
       ],

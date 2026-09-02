@@ -33,6 +33,8 @@ COPY package.json next.config.ts tsconfig.json ./
 # 운영 점검용 스크립트. 외부 연동은 아웃바운드 IP 기준으로 열리므로 클러스터 안에서 돌려야 한다
 # (예: scripts/biztalk-check.mjs — DKT 비즈메시지 방화벽·토큰·경로 확인).
 COPY scripts ./scripts
+# 시드 자산(첫 공지의 공고문 PDF) — 기동 때 업로드 폴더로 한 번 복사한다.
+COPY assets ./assets
 RUN mkdir -p /data && chown -R node:node /data /app/.next
 USER node
 EXPOSE 3000
