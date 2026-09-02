@@ -277,13 +277,13 @@ export default async function RatesPage() {
               panel:
                 t.value === "arena" ? (
                   <RatePanel
-                    en={`${rateTab("arena")} RATE`}
+                    en={rateTab("arena")}
                     ko={`${venueLabel("arena", screenText.wizardStrings)} 대관료`}
                     c={content.arena}
                   />
                 ) : (
                   <RatePanel
-                    en={`${rateTab(MID_HALL_VENUE_ID)} RATE`}
+                    en={rateTab(MID_HALL_VENUE_ID)}
                     ko={`${venueLabel(MID_HALL_VENUE_ID, screenText.wizardStrings)} 대관료`}
                     c={content.liveHall}
                   />
@@ -294,7 +294,7 @@ export default async function RatesPage() {
               label: rateTab(SPECIAL_VENUE_ID),
               panel: (
                 <RatePanel
-                  en={`${rateTab(SPECIAL_VENUE_ID)} RATE`}
+                  en={rateTab(SPECIAL_VENUE_ID)}
                   ko={`${specialLabel} 대관료`}
                   c={content.special ?? EMPTY_VENUE_RATE_CONTENT}
                 />

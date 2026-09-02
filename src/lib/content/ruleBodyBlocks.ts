@@ -135,6 +135,54 @@ export function joinRuleBody(blocks: RuleBodyBlock[]): string {
     .replace(/\n{3,}/g, "\n\n");
 }
 
+/**
+ * 붙여넣기로 들어온 표를 읽는다 (2026-09-02).
+ *
+ * `parseTableHtml` 은 **우리가 저장한 표**만 받는다(속성이 붙으면 null) — 되돌리기에서
+ * 원문을 잃지 않기 위한 규칙이다. 하지만 페이지·워드·스프레드시트에서 복사한 표는
+ * class·style·colspan 이 잔뜩 붙은 HTML 이라 그 규칙에 걸려 통째로 글이 돼 버렸다.
+ *
+ * 붙여넣기는 성격이 다르다 — 원문을 보존할 것이 없고, 칸 값만 건지면 된다. 그래서
+ * 여기서는 태그를 다 벗기고 격자만 만든다. 병합된 칸(colspan)은 늘려서 채우지 않고
+ * 값만 첫 칸에 넣는다(맞춰 늘리면 없던 칸이 생겨 표가 틀어진다).
+ */
+export function parsePastedTableHtml(html: string): { head: string[]; rows: string[][] } | null {
+  const table = /<table[\s\S]*?<\/table>/i.exec(html ?? "");
+  if (!table) return null;
+  const trs = table[0].match(/<tr[^>]*>[\s\S]*?<\/tr>/gi);
+  if (!trs || trs.length === 0) return null;
+
+  const parsed = trs
+    .map((tr) => ({
+      isHead: /<th[\s>]/i.test(tr),
+      cells: (tr.match(/<(th|td)[^>]*>[\s\S]*?<\/(th|td)>/gi) ?? []).map((cell) =>
+        // 줄바꿈 태그는 줄바꿈으로 살리고 나머지 태그는 벗긴다.
+        decodeCell(cell.replace(/<br\s*\/?>/gi, "\n").replace(/<\/p>/gi, "\n")),
+      ),
+    }))
+    .filter((r) => r.cells.length > 0);
+  if (parsed.length === 0) return null;
+
+  const head = parsed[0].isHead ? parsed[0].cells : [];
+  const rows = (head.length > 0 ? parsed.slice(1) : parsed).map((r) => r.cells);
+  if (rows.length === 0) rows.push(new Array(Math.max(1, head.length)).fill(""));
+  return { head, rows };
+}
+
+/**
+ * 탭으로 나뉜 글(스프레드시트·페이지에서 복사하면 HTML 없이 이것만 올 때가 있다).
+ * 두 줄 이상이고 탭이 있어야 표로 본다 — 문장 하나에 탭이 끼었다고 표로 만들면
+ * 글을 쓰다가 표가 튀어나온다.
+ */
+export function parsePastedTsv(text: string): { head: string[]; rows: string[][] } | null {
+  const lines = (text ?? "").replace(/\r\n?/g, "\n").split("\n").filter((l) => l.trim() !== "");
+  if (lines.length < 2 || !lines.every((l) => l.includes("\t"))) return null;
+  const grid = lines.map((l) => l.split("\t").map((c) => c.trim()));
+  const width = Math.max(...grid.map((r) => r.length));
+  const pad = (r: string[]) => Array.from({ length: width }, (_, i) => r[i] ?? "");
+  return { head: pad(grid[0]), rows: grid.slice(1).map(pad) };
+}
+
 /** 새 표 한 장 — 머리행 + 빈 행들. */
 export function blankTable(rows: number, cols: number): RuleBodyBlock {
   return {

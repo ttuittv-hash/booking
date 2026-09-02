@@ -45,14 +45,14 @@ describe("VENUES", () => {
 // [신규 2026-09-02] 대관료 투뎁스 탭은 영문 표기이고, 공간 이름과 별개로 바뀐다.
 describe("venueRateTab", () => {
   it("기본값은 영문 표기다", () => {
-    expect(defaultVenueRateTab("arena")).toBe("ARENA");
-    expect(defaultVenueRateTab("medium-hall")).toBe("Live Hall");
-    expect(defaultVenueRateTab(SPECIAL_VENUE_ID)).toBe("All in One");
+    expect(defaultVenueRateTab("arena")).toBe("ARENA RATE");
+    expect(defaultVenueRateTab("medium-hall")).toBe("Live Hall RATE");
+    expect(defaultVenueRateTab(SPECIAL_VENUE_ID)).toBe("All in One RATE");
   });
 
   it("공간 이름을 바꿔도 요금표 탭은 따라 바뀌지 않는다", () => {
     const overrides = { [venueLabelKey(SPECIAL_VENUE_ID)]: "패키지" };
-    expect(venueRateTab(SPECIAL_VENUE_ID, overrides)).toBe("All in One");
+    expect(venueRateTab(SPECIAL_VENUE_ID, overrides)).toBe("All in One RATE");
   });
 
   it("요금표 탭만 따로 덮어쓴다", () => {
@@ -62,6 +62,6 @@ describe("venueRateTab", () => {
   });
 
   it("공백만 넣으면 기본값으로 돌아간다", () => {
-    expect(venueRateTab("arena", { [venueRateTabKey("arena")]: "  " })).toBe("ARENA");
+    expect(venueRateTab("arena", { [venueRateTabKey("arena")]: "  " })).toBe("ARENA RATE");
   });
 });

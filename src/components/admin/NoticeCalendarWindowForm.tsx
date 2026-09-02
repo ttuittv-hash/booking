@@ -1,22 +1,20 @@
 "use client";
 
 /*
-  공지 캘린더 공개 기간 (2026-09-02).
+  공지 캘린더 노출 월 (2026-09-02).
 
-  공지사항 본문에 넣는 「대관 현황 캘린더」는 지금까지 공지가 살아 있는 한 계속 열려
-  있었다. 대관 접수는 회차로 돌기 때문에 접수 기간이 아닐 때는 캘린더 대신 안내 문구가
-  나가야 한다. 그 기간을 여기서 정한다.
-
-  시각은 한국 시각으로 그대로 저장한다(`datetime-local` 값 = 저장값). 운영자가 한국
-  시각으로 넣고 이용자도 한국 시각으로 보므로, 중간에 UTC 로 바꿔 담으면 배포 환경의
-  서버 TZ 에 따라 한 시간씩 밀리기만 한다.
+  공지사항 본문에 넣는 「대관 현황 캘린더」가 **어느 달을 보여 줄지**를 정한다.
+  이번 회차가 2027년 하반기면 2027-07 ~ 2027-12 만 넘겨 보게 두는 식이다.
+  캘린더를 켜고 끄는 설정이 아니다 — 캘린더는 늘 열려 있고, 여기서 정하는 건
+  첫 화면에 뜨는 달과 이전/다음 달로 넘길 수 있는 범위다.
 */
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import {
-  formatWindowMoment,
-  noticeCalendarWindowState,
+  formatMonth,
+  initialCalendarMonth,
+  noticeCalendarMonthBounds,
   type NoticeCalendarWindow,
 } from "@/lib/content/noticeCalendarWindow";
 import { btnClass } from "@/components/ui/kit";
@@ -34,11 +32,11 @@ import {
 
 export function NoticeCalendarWindowForm({
   initial,
-  /** 서버에서 만든 "지금"(한국 시각). 클라이언트에서 만들면 서버 렌더 결과와 갈린다 */
-  nowLocal,
+  /** 서버에서 만든 "이번 달"(한국 시각 `YYYY-MM`). 클라이언트에서 만들면 서버 렌더와 갈린다 */
+  nowMonth,
 }: {
   initial: NoticeCalendarWindow;
-  nowLocal: string;
+  nowMonth: string;
 }) {
   const router = useRouter();
   const [value, setValue] = useState(initial);
@@ -53,8 +51,14 @@ export function NoticeCalendarWindowForm({
   };
 
   // 저장된 값이 아니라 지금 입력 중인 값으로 판정한다 — 저장을 누르기 전에 결과를 본다.
-  const state = noticeCalendarWindowState(value, nowLocal);
-  const invalidRange = !!(value.enabled && value.startAt && value.endAt && value.startAt > value.endAt);
+  const invalidRange = !!(
+    value.enabled &&
+    value.startMonth &&
+    value.endMonth &&
+    value.startMonth > value.endMonth
+  );
+  const bounds = noticeCalendarMonthBounds(value);
+  const opensAt = formatMonth(initialCalendarMonth(value, nowMonth));
 
   async function save() {
     setSaving(true);
@@ -85,10 +89,10 @@ export function NoticeCalendarWindowForm({
     <section className={`mt-10 ${TABLE_CARD}`}>
       <div className={TABLE_HEAD}>
         <div>
-          <p className={TABLE_HEAD_TITLE}>공지 캘린더 공개 기간</p>
+          <p className={TABLE_HEAD_TITLE}>공지 캘린더 노출 월</p>
           <p className={TABLE_HEAD_DESC}>
-            공지사항에 넣은 「대관 현황 캘린더」가 화면에 보이는 기간입니다. 기간 밖에는
-            캘린더 대신 아래 안내 문구가 나갑니다.
+            공지사항에 넣은 「대관 현황 캘린더」가 보여 줄 달의 범위입니다. 이번 회차에
+            신청받는 달만 넘겨 볼 수 있게 하고, 범위 밖의 달로는 넘어가지 않습니다.
           </p>
         </div>
       </div>
@@ -102,9 +106,9 @@ export function NoticeCalendarWindowForm({
             className="mt-0.5"
           />
           <span>
-            <span className="text-s font-bold">공개 기간 사용</span>
+            <span className="text-s font-bold">노출 월 제한 사용</span>
             <span className={`mt-0.5 block ${HELP}`}>
-              끄면 기간 제한 없이 항상 보입니다(지금까지의 동작).
+              끄면 제한 없이 어느 달이든 넘겨 볼 수 있습니다(지금까지의 동작).
             </span>
           </span>
         </label>
@@ -112,76 +116,46 @@ export function NoticeCalendarWindowForm({
         <div className="grid gap-4 sm:grid-cols-2">
           <div>
             <label className={FIELD_LABEL} htmlFor="calendar-window-start">
-              공개 시작 (한국 시각)
+              시작 달
             </label>
             <input
               id="calendar-window-start"
-              type="datetime-local"
-              value={value.startAt ?? ""}
+              type="month"
+              value={value.startMonth ?? ""}
               disabled={!value.enabled}
-              onChange={(e) => patch({ startAt: e.target.value || null })}
+              onChange={(e) => patch({ startMonth: e.target.value || null })}
               className={FIELD}
             />
-            <p className={`mt-1 ${HELP}`}>비우면 시작 제한 없음</p>
+            <p className={`mt-1 ${HELP}`}>비우면 앞쪽 제한 없음</p>
           </div>
           <div>
             <label className={FIELD_LABEL} htmlFor="calendar-window-end">
-              공개 종료 (한국 시각)
+              종료 달
             </label>
             <input
               id="calendar-window-end"
-              type="datetime-local"
-              value={value.endAt ?? ""}
+              type="month"
+              value={value.endMonth ?? ""}
               disabled={!value.enabled}
-              onChange={(e) => patch({ endAt: e.target.value || null })}
+              onChange={(e) => patch({ endMonth: e.target.value || null })}
               className={FIELD}
             />
-            <p className={`mt-1 ${HELP}`}>비우면 종료 제한 없음 · 입력한 분까지 열립니다</p>
+            <p className={`mt-1 ${HELP}`}>비우면 뒤쪽 제한 없음 · 이 달까지 보입니다</p>
           </div>
         </div>
 
-        <div className="grid gap-4 sm:grid-cols-2">
-          <div>
-            <label className={FIELD_LABEL} htmlFor="calendar-window-before">
-              시작 전 안내 문구
-            </label>
-            <input
-              id="calendar-window-before"
-              type="text"
-              value={value.beforeMessage}
-              disabled={!value.enabled}
-              onChange={(e) => patch({ beforeMessage: e.target.value })}
-              className={FIELD}
-            />
-          </div>
-          <div>
-            <label className={FIELD_LABEL} htmlFor="calendar-window-after">
-              종료 후 안내 문구
-            </label>
-            <input
-              id="calendar-window-after"
-              type="text"
-              value={value.afterMessage}
-              disabled={!value.enabled}
-              onChange={(e) => patch({ afterMessage: e.target.value })}
-              className={FIELD}
-            />
-          </div>
-        </div>
-
-        {/* 지금 이 설정으로 이용자에게 무엇이 보이는지. 기간을 넣어 두고 왜 안 보이는지
-            묻는 일이 없도록, 저장 전에 결과를 문장으로 알려 준다. */}
+        {/* 지금 이 설정으로 이용자에게 무엇이 보이는지. 달을 넣어 두고 왜 그 달이
+            안 보이는지 묻는 일이 없도록, 저장 전에 결과를 문장으로 알려 준다. */}
         {invalidRange ? (
           <p className={WARN_NOTE}>
-            공개 시작이 종료보다 늦습니다 — 이대로면 캘린더가 열리지 않습니다.
+            시작 달이 종료 달보다 뒤입니다 — 이대로면 볼 수 있는 달이 없습니다.
           </p>
         ) : (
           <p className={INFO_NOTE}>
-            {state === "OPEN"
-              ? "지금은 이용자에게 캘린더가 보입니다."
-              : state === "BEFORE"
-                ? `지금은 캘린더 대신 안내 문구가 나갑니다. ${formatWindowMoment(value.startAt) ?? "설정한 시각"}부터 열립니다.`
-                : `지금은 캘린더 대신 안내 문구가 나갑니다. ${formatWindowMoment(value.endAt) ?? "설정한 시각"}에 마감되었습니다.`}
+            캘린더는 <strong>{opensAt}</strong> 부터 열립니다.
+            {bounds.start || bounds.end
+              ? ` 넘겨 볼 수 있는 범위는 ${formatMonth(bounds.start) ?? "제한 없음"} ~ ${formatMonth(bounds.end) ?? "제한 없음"} 입니다.`
+              : " 넘겨 볼 수 있는 달에 제한이 없습니다."}
           </p>
         )}
 

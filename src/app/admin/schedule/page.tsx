@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/lib/auth";
 import { getNoticeCalendarWindow } from "@/lib/db";
-import { kstNowLocal } from "@/lib/content/noticeCalendarWindow";
+import { kstNowMonth } from "@/lib/content/noticeCalendarWindow";
 import { AdminNav } from "@/components/admin/AdminNav";
 import { ScheduleManager } from "@/components/admin/ScheduleManager";
 import { NoticeCalendarWindowForm } from "@/components/admin/NoticeCalendarWindowForm";
@@ -30,7 +30,7 @@ export default async function AdminSchedulePage() {
 
         {/* [수정 2026-09-02] 달력보다 위에 둔다. 달력 + 날짜별 설정이 길어 아래에 두면
             화면 밖이라, 기능이 없는 것으로 읽혔다. */}
-        <NoticeCalendarWindowForm initial={calendarWindow} nowLocal={kstNowLocal(now)} />
+        <NoticeCalendarWindowForm initial={calendarWindow} nowMonth={kstNowMonth(now)} />
 
         <ScheduleManager initialYear={now.getFullYear()} initialMonth={now.getMonth() + 1} />
       </main>

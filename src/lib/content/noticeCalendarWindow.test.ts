@@ -1,96 +1,110 @@
 import { describe, expect, it } from "vitest";
 import {
   DEFAULT_NOTICE_CALENDAR_WINDOW,
-  formatWindowMoment,
-  kstNowLocal,
-  noticeCalendarClosedMessage,
-  noticeCalendarWindowState,
-  normalizeWindowMoment,
+  formatMonth,
+  initialCalendarMonth,
+  isMonthInRange,
+  kstNowMonth,
+  noticeCalendarMonthBounds,
+  normalizeMonth,
+  toMonthKey,
   type NoticeCalendarWindow,
 } from "./noticeCalendarWindow";
 
+// 2027년 하반기 정기대관 — 캘린더는 그 여섯 달만 보여 준다.
 const base: NoticeCalendarWindow = {
   ...DEFAULT_NOTICE_CALENDAR_WINDOW,
   enabled: true,
-  startAt: "2026-09-10T09:00",
-  endAt: "2026-09-30T18:00",
+  startMonth: "2027-07",
+  endMonth: "2027-12",
 };
 
-describe("noticeCalendarWindowState", () => {
-  it("기간을 끄면 언제든 열려 있다", () => {
-    expect(noticeCalendarWindowState({ ...base, enabled: false }, "2100-01-01T00:00")).toBe("OPEN");
+describe("isMonthInRange", () => {
+  it("제한을 끄면 어느 달이든 본다", () => {
+    expect(isMonthInRange("2030-01", { ...base, enabled: false })).toBe(true);
   });
 
-  it("시작 전 · 기간 안 · 종료 후를 나눈다", () => {
-    expect(noticeCalendarWindowState(base, "2026-09-09T23:59")).toBe("BEFORE");
-    expect(noticeCalendarWindowState(base, "2026-09-10T09:00")).toBe("OPEN");
-    expect(noticeCalendarWindowState(base, "2026-09-20T12:00")).toBe("OPEN");
-    expect(noticeCalendarWindowState(base, "2026-09-30T18:00")).toBe("OPEN");
-    expect(noticeCalendarWindowState(base, "2026-09-30T18:01")).toBe("AFTER");
+  it("범위 안의 달만 본다 — 양 끝은 포함이다", () => {
+    expect(isMonthInRange("2027-06", base)).toBe(false);
+    expect(isMonthInRange("2027-07", base)).toBe(true);
+    expect(isMonthInRange("2027-10", base)).toBe(true);
+    expect(isMonthInRange("2027-12", base)).toBe(true);
+    expect(isMonthInRange("2028-01", base)).toBe(false);
   });
 
-  // 운영자가 체크만 하고 시각을 안 넣는 일이 실제로 생긴다 — 그때 캘린더가 조용히
-  // 사라지면 "공지에 넣었는데 안 보인다"는 신고가 된다.
-  it("켜 두고 시각을 비우면 제한이 없다", () => {
-    const open = { ...base, startAt: null, endAt: null };
-    expect(noticeCalendarWindowState(open, "2026-01-01T00:00")).toBe("OPEN");
+  it("한쪽만 넣으면 그쪽만 막는다", () => {
+    expect(isMonthInRange("2030-01", { ...base, endMonth: null })).toBe(true);
+    expect(isMonthInRange("2020-01", { ...base, startMonth: null })).toBe(true);
   });
 
-  it("한쪽만 넣어도 그쪽만 본다", () => {
-    expect(noticeCalendarWindowState({ ...base, endAt: null }, "2099-01-01T00:00")).toBe("OPEN");
-    expect(noticeCalendarWindowState({ ...base, startAt: null }, "2026-01-01T00:00")).toBe("OPEN");
+  // 운영자가 체크만 하고 달을 안 넣는 일이 실제로 생긴다 — 그때 캘린더가 한 달에
+  // 갇히거나 텅 비면 "공지에 넣었는데 안 보인다"는 신고가 된다.
+  it("켜 두고 달을 비우면 제한이 없다", () => {
+    const open = { ...base, startMonth: null, endMonth: null };
+    expect(isMonthInRange("2020-01", open)).toBe(true);
+    expect(isMonthInRange("2099-12", open)).toBe(true);
   });
-});
 
-describe("kstNowLocal", () => {
-  it("서버 TZ 와 무관하게 한국 시각으로 만든다", () => {
-    // 2026-09-02T00:30Z = 한국 시각 09:30 (같은 날)
-    expect(kstNowLocal(new Date("2026-09-02T00:30:00Z"))).toBe("2026-09-02T09:30");
-    // 2026-09-01T16:00Z = 한국 시각 다음 날 01:00 — 날짜가 넘어가야 한다
-    expect(kstNowLocal(new Date("2026-09-01T16:00:00Z"))).toBe("2026-09-02T01:00");
+  it("시작이 끝보다 뒤면 잠그지 않고 제한을 푼다", () => {
+    const wrong = { ...base, startMonth: "2027-12", endMonth: "2027-07" };
+    expect(noticeCalendarMonthBounds(wrong)).toEqual({ start: null, end: null });
+    expect(isMonthInRange("2027-01", wrong)).toBe(true);
   });
 });
 
-describe("normalizeWindowMoment", () => {
-  it("분까지만 남긴다", () => {
-    expect(normalizeWindowMoment("2026-09-10T09:00:00")).toBe("2026-09-10T09:00");
-    expect(normalizeWindowMoment("2026-09-10T09:00")).toBe("2026-09-10T09:00");
+describe("initialCalendarMonth", () => {
+  it("이번 달이 범위 안이면 이번 달을 연다", () => {
+    expect(initialCalendarMonth(base, "2027-09")).toBe("2027-09");
+  });
+
+  it("범위보다 앞이면 첫 달, 뒤면 마지막 달을 연다 — 빈 화면으로 열지 않는다", () => {
+    expect(initialCalendarMonth(base, "2026-09")).toBe("2027-07");
+    expect(initialCalendarMonth(base, "2028-03")).toBe("2027-12");
+  });
+
+  it("제한이 없으면 이번 달 그대로", () => {
+    expect(initialCalendarMonth({ ...base, enabled: false }, "2026-09")).toBe("2026-09");
+  });
+});
+
+describe("kstNowMonth", () => {
+  it("서버 TZ 와 무관하게 한국 기준 달을 만든다", () => {
+    expect(kstNowMonth(new Date("2026-09-02T00:30:00Z"))).toBe("2026-09");
+    // 2026-08-31T16:00Z = 한국 시각 9월 1일 01:00 — 달이 넘어가야 한다
+    expect(kstNowMonth(new Date("2026-08-31T16:00:00Z"))).toBe("2026-09");
+  });
+});
+
+describe("normalizeMonth", () => {
+  it("`YYYY-MM` 만 받는다", () => {
+    expect(normalizeMonth("2027-07")).toBe("2027-07");
+    expect(normalizeMonth(" 2027-07 ")).toBe("2027-07");
   });
 
   it("형식이 어긋나면 비운다", () => {
-    expect(normalizeWindowMoment("")).toBeNull();
-    expect(normalizeWindowMoment("2026-09-10")).toBeNull();
-    expect(normalizeWindowMoment("내일부터")).toBeNull();
-    expect(normalizeWindowMoment(undefined)).toBeNull();
+    expect(normalizeMonth("")).toBeNull();
+    expect(normalizeMonth("2027-13")).toBeNull();
+    expect(normalizeMonth("2027-00")).toBeNull();
+    expect(normalizeMonth("2027-07-01")).toBe("2027-07"); // 앞 7자만 본다
+    expect(normalizeMonth("올해 하반기")).toBeNull();
+    expect(normalizeMonth(undefined)).toBeNull();
   });
 });
 
-describe("noticeCalendarClosedMessage", () => {
-  it("상태에 맞는 문구를 고른다", () => {
-    const w = { ...base, beforeMessage: "곧 열립니다", afterMessage: "마감했습니다" };
-    expect(noticeCalendarClosedMessage(w, "BEFORE")).toBe("곧 열립니다");
-    expect(noticeCalendarClosedMessage(w, "AFTER")).toBe("마감했습니다");
-    expect(noticeCalendarClosedMessage(w, "OPEN")).toBe("");
-  });
-
-  it("비워 두면 기본 문구로 채운다 — 빈 자리를 남기지 않는다", () => {
-    const w = { ...base, beforeMessage: "   ", afterMessage: "" };
-    expect(noticeCalendarClosedMessage(w, "BEFORE")).toBe(
-      DEFAULT_NOTICE_CALENDAR_WINDOW.beforeMessage,
-    );
-    expect(noticeCalendarClosedMessage(w, "AFTER")).toBe(
-      DEFAULT_NOTICE_CALENDAR_WINDOW.afterMessage,
-    );
+describe("toMonthKey", () => {
+  it("캘린더가 넘기는 연·월을 저장 형식으로 맞춘다", () => {
+    expect(toMonthKey(2027, 7)).toBe("2027-07");
+    expect(toMonthKey(2027, 12)).toBe("2027-12");
   });
 });
 
-describe("formatWindowMoment", () => {
+describe("formatMonth", () => {
   it("한국식 표기로 바꾼다", () => {
-    expect(formatWindowMoment("2026-09-10T09:00")).toBe("2026년 9월 10일 09:00");
+    expect(formatMonth("2027-07")).toBe("2027년 7월");
   });
 
   it("값이 없거나 형식이 어긋나면 null", () => {
-    expect(formatWindowMoment(null)).toBeNull();
-    expect(formatWindowMoment("2026-09-10")).toBeNull();
+    expect(formatMonth(null)).toBeNull();
+    expect(formatMonth("2027")).toBeNull();
   });
 });

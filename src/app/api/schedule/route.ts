@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
 import { getNoticeCalendarWindow, listDateBlocks, listQuotes, listUsersByIds } from "@/lib/db";
-import { kstNowLocal, noticeCalendarWindowState } from "@/lib/content/noticeCalendarWindow";
+import { isMonthInRange, toMonthKey } from "@/lib/content/noticeCalendarWindow";
 import { isoDate, resolveSelectedDates } from "@/lib/pricing/dateRange";
 import type { Quote } from "@/lib/pricing/types";
 
@@ -56,20 +56,21 @@ export async function GET(request: Request) {
     return NextResponse.json({ error: "로그인이 필요합니다." }, { status: 401 });
   }
 
-  // 공개 기간(2026-09-02)은 화면에서 버튼을 감추는 것으로 끝내지 않는다 — 주소를 아는
-  // 사람이 그대로 부르면 기간과 무관하게 현황이 나가기 때문이다. 운영자는 설정을
-  // 확인해야 하므로 기간과 상관없이 통과시킨다.
-  if (user.role !== "ADMIN") {
-    const window = await getNoticeCalendarWindow();
-    if (noticeCalendarWindowState(window, kstNowLocal(new Date())) !== "OPEN") {
-      return NextResponse.json({ error: "대관 현황 공개 기간이 아닙니다." }, { status: 403 });
-    }
-  }
-
   const { searchParams } = new URL(request.url);
   const now = new Date();
   const year = Number(searchParams.get("year")) || now.getFullYear();
   const month = Number(searchParams.get("month")) || now.getMonth() + 1;
+
+  // 노출 월 제한(2026-09-02)은 화면에서 이전/다음 버튼을 잠그는 것으로 끝내지 않는다 —
+  // 주소를 아는 사람이 연·월을 바꿔 부르면 범위 밖 현황이 그대로 나가기 때문이다.
+  // 운영자는 설정을 확인해야 하므로 범위와 상관없이 통과시킨다.
+  if (user.role !== "ADMIN") {
+    const window = await getNoticeCalendarWindow();
+    if (!isMonthInRange(toMonthKey(year, month), window)) {
+      return NextResponse.json({ error: "공개된 대관 현황 기간이 아닙니다." }, { status: 403 });
+    }
+  }
+
   const { start, end } = monthGridRange(year, month);
 
   const [blocks, quotes] = await Promise.all([listDateBlocks(), listQuotes()]);

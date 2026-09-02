@@ -5,9 +5,9 @@ import { getNoticeById, getNoticeCalendarWindow } from "@/lib/db";
 import { sanitizeRichText } from "@/lib/sanitizeHtml";
 import { splitNoticeBodyAtCalendarMarker } from "@/lib/content/noticeCalendarMarker";
 import {
-  kstNowLocal,
-  noticeCalendarClosedMessage,
-  noticeCalendarWindowState,
+  initialCalendarMonth,
+  kstNowMonth,
+  noticeCalendarMonthBounds,
 } from "@/lib/content/noticeCalendarWindow";
 import { BookingCalendarLauncher } from "@/components/BookingAvailabilityCalendar";
 import { Fragment } from "react";
@@ -111,18 +111,16 @@ export default async function NoticeDetailPage({
   const [notice, calendarWindow] = await Promise.all([getNoticeById(id), getNoticeCalendarWindow()]);
   if (!notice) notFound();
 
-  // 공개 기간 밖이면 캘린더 자리에 안내 문구를 놓는다(2026-09-02). 대관 접수는 회차로
-  // 돌기 때문에 접수 기간이 아닐 때 현황 캘린더가 열려 있으면 신청할 수 있다고 읽힌다.
-  const calendarState = noticeCalendarWindowState(calendarWindow, kstNowLocal(new Date()));
-  const calendarClosedNote = noticeCalendarClosedMessage(calendarWindow, calendarState);
-  const calendarSlot =
-    calendarState === "OPEN" ? (
-      <BookingCalendarLauncher />
-    ) : (
-      <p className="border-l-2 border-foreground bg-warn-soft px-4 py-3 text-s text-muted-strong">
-        {calendarClosedNote}
-      </p>
-    );
+  // 캘린더가 보여 줄 달의 범위(2026-09-02). 이번 회차에 신청받는 달만 넘겨 보게 한다 —
+  // 접수와 무관한 달까지 넘겨 볼 수 있으면 그 달도 신청할 수 있다고 읽힌다.
+  const calendarBounds = noticeCalendarMonthBounds(calendarWindow);
+  const calendarSlot = (
+    <BookingCalendarLauncher
+      initialMonth={initialCalendarMonth(calendarWindow, kstNowMonth(new Date()))}
+      startMonth={calendarBounds.start}
+      endMonth={calendarBounds.end}
+    />
+  );
 
   return (
     <div className="flex flex-1 flex-col">
@@ -183,6 +181,22 @@ export default async function NoticeDetailPage({
             {notice.attachmentUrl && (
               <div className="mt-10 border-t border-border/25 pt-10">
                 <h2 className="type-kr-heading mb-4 text-h6-m sm:text-h6">첨부파일</h2>
+                {/* [신규 2026-09-02] PDF 는 화면에서 그대로 펼친다 — 공고문을 PDF 로
+                    올렸을 때 내려받아야만 볼 수 있으면 공지를 열어도 내용이 없다.
+                    브라우저 뷰어가 없으면(구형·일부 모바일) 아래 내려받기로 간다. */}
+                {(notice.attachmentName ?? notice.attachmentUrl).toLowerCase().endsWith(".pdf") && (
+                  <object
+                    data={`${notice.attachmentUrl}?inline=1&name=${encodeURIComponent(notice.attachmentName ?? "첨부파일.pdf")}`}
+                    type="application/pdf"
+                    className="mb-4 h-[80vh] w-full border border-border/25"
+                    aria-label={notice.attachmentName ?? "첨부 PDF"}
+                  >
+                    <p className="px-5 py-4 text-s text-muted">
+                      이 브라우저에서는 PDF 미리보기를 열 수 없습니다. 아래에서 내려받아
+                      확인해 주세요.
+                    </p>
+                  </object>
+                )}
                 <a
                   href={`${notice.attachmentUrl}?name=${encodeURIComponent(notice.attachmentName ?? "첨부파일")}`}
                   className="group flex items-center justify-between gap-6 border border-border/25 px-5 py-4 transition-colors hover:border-foreground"

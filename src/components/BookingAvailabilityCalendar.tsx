@@ -35,10 +35,32 @@ type DateStatus = "CONFIRMED" | "COMPETING" | null;
 // 같은 날짜 그리드를 쓰지만 회사명·quoteId 등은 절대 보여주지 않는, 읽기 전용
 // 대관 가능/불가 조회 화면이다(2026-08-23, "대관 현황 캘린더 > 레이블아이콘을
 // 클릭시, 레이어로 캘린더가 열리게... 아레나/중형 구분되어있고").
-function CalendarBody() {
+/** `"2027-07"` → `[2027, 7]`. 형식이 아니면 null. */
+function parseMonthKey(value: string | null | undefined): [number, number] | null {
+  const m = /^(\d{4})-(\d{2})$/.exec(value ?? "");
+  if (!m) return null;
+  const month = Number(m[2]);
+  if (month < 1 || month > 12) return null;
+  return [Number(m[1]), month];
+}
+
+function monthKey(year: number, month: number): string {
+  return `${String(year).padStart(4, "0")}-${String(month).padStart(2, "0")}`;
+}
+
+export interface CalendarMonthRange {
+  /** 처음 열었을 때 보여 줄 달 (`YYYY-MM`). 비우면 이번 달 */
+  initialMonth?: string | null;
+  /** 넘겨 볼 수 있는 첫 달 · 마지막 달. 비우면 그쪽 제한 없음 */
+  startMonth?: string | null;
+  endMonth?: string | null;
+}
+
+function CalendarBody({ initialMonth, startMonth, endMonth }: CalendarMonthRange) {
   const now = new Date();
-  const [year, setYear] = useState(now.getFullYear());
-  const [month, setMonth] = useState(now.getMonth() + 1);
+  const opening = parseMonthKey(initialMonth) ?? [now.getFullYear(), now.getMonth() + 1];
+  const [year, setYear] = useState(opening[0]);
+  const [month, setMonth] = useState(opening[1]);
   const [venueTab, setVenueTab] = useState<VenueTab>("arena");
   const [blocks, setBlocks] = useState<DateBlock[]>([]);
   const [occupancy, setOccupancy] = useState<Record<string, { arena: number; mediumHall: number }>>({});
@@ -66,7 +88,7 @@ function CalendarBody() {
       .finally(() => setLoading(false));
   }, [year, month]);
 
-  function goToMonth(delta: number) {
+  function stepMonth(delta: number): [number, number] {
     let nextMonth = month + delta;
     let nextYear = year;
     if (nextMonth > 12) {
@@ -76,6 +98,22 @@ function CalendarBody() {
       nextMonth = 12;
       nextYear -= 1;
     }
+    return [nextYear, nextMonth];
+  }
+
+  // 운영자가 정한 노출 월 밖으로는 넘어가지 않는다(2026-09-02) — 이번 회차에 신청받는
+  // 달만 보여 준다. 서버(/api/schedule)도 같은 범위를 다시 검사한다.
+  function canGo(delta: number): boolean {
+    const [y, m] = stepMonth(delta);
+    const key = monthKey(y, m);
+    if (startMonth && key < startMonth) return false;
+    if (endMonth && key > endMonth) return false;
+    return true;
+  }
+
+  function goToMonth(delta: number) {
+    if (!canGo(delta)) return;
+    const [nextYear, nextMonth] = stepMonth(delta);
     setYear(nextYear);
     setMonth(nextMonth);
   }
@@ -88,7 +126,12 @@ function CalendarBody() {
   return (
     <div>
       <div className="flex items-center justify-between gap-3">
-        <button type="button" onClick={() => goToMonth(-1)} className={btnClass("secondary", "sm")}>
+        <button
+          type="button"
+          onClick={() => goToMonth(-1)}
+          disabled={!canGo(-1)}
+          className={`${btnClass("secondary", "sm")} disabled:cursor-not-allowed disabled:opacity-40`}
+        >
           ‹ 이전 달
         </button>
         <div className="flex items-center gap-2">
@@ -97,7 +140,12 @@ function CalendarBody() {
           </span>
           <span className="text-xs text-muted">{loading && "불러오는 중..."}</span>
         </div>
-        <button type="button" onClick={() => goToMonth(1)} className={btnClass("secondary", "sm")}>
+        <button
+          type="button"
+          onClick={() => goToMonth(1)}
+          disabled={!canGo(1)}
+          className={`${btnClass("secondary", "sm")} disabled:cursor-not-allowed disabled:opacity-40`}
+        >
           다음 달 ›
         </button>
       </div>
@@ -212,7 +260,7 @@ function CalendarBody() {
 }
 
 /** 공지사항 상세의 캘린더 아이콘 — 누르면 대관 현황 캘린더를 레이어로 연다. */
-export function BookingCalendarLauncher() {
+export function BookingCalendarLauncher(range: CalendarMonthRange) {
   const [open, setOpen] = useState(false);
 
   return (
@@ -253,7 +301,7 @@ export function BookingCalendarLauncher() {
               </button>
             </div>
             <div className="mt-4">
-              <CalendarBody />
+              <CalendarBody {...range} />
             </div>
           </div>
         </div>

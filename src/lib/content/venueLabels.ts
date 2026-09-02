@@ -40,9 +40,9 @@ export function venueRateTabKey(venueId: string): string {
 }
 
 const DEFAULT_RATE_TAB: Record<string, string> = {
-  arena: "ARENA",
-  "medium-hall": "Live Hall",
-  "special-hall": "All in One",
+  arena: "ARENA RATE",
+  "medium-hall": "Live Hall RATE",
+  "special-hall": "All in One RATE",
 };
 
 export function defaultVenueRateTab(venueId: string): string {

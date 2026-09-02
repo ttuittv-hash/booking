@@ -16,6 +16,8 @@ import { useMemo, useRef, useState } from "react";
 import {
   blankTable,
   joinRuleBody,
+  parsePastedTableHtml,
+  parsePastedTsv,
   splitRuleBody,
   type RuleBodyBlock,
 } from "@/lib/content/ruleBodyBlocks";
@@ -92,6 +94,37 @@ export function RuleBodyEditor({
     commit(next);
     // 표가 커서 자리에서 열리므로 화면 밖으로 밀리지 않는다 — 새로 생긴 표로 데려간다.
     setFocused(at + 1);
+  }
+
+  /**
+   * 페이지·워드·스프레드시트에서 복사한 표를 붙여넣으면 표로 들어간다 (2026-09-02).
+   *
+   * 그냥 두면 표가 태그 덩어리(또는 탭이 낀 한 줄)로 글 상자에 박혀, 운영자가 칸을
+   * 하나하나 다시 옮겨 적어야 했다. 클립보드의 HTML 을 먼저 보고, 없으면 탭으로
+   * 나뉜 글을 본다. 표가 아니면 손대지 않는다(평범한 붙여넣기 그대로).
+   */
+  function pasteIntoText(i: number, e: React.ClipboardEvent<HTMLTextAreaElement>) {
+    const html = e.clipboardData.getData("text/html");
+    const plain = e.clipboardData.getData("text/plain");
+    const parsed = (html && parsePastedTableHtml(html)) || parsePastedTsv(plain);
+    if (!parsed) return;
+
+    e.preventDefault();
+    const target = blocks[i];
+    if (target?.kind !== "text") return;
+    const el = textRefs.current[i];
+    const start = el ? el.selectionStart : target.text.length;
+    const end = el ? el.selectionEnd : target.text.length;
+    const next = [...blocks];
+    next.splice(
+      i,
+      1,
+      { kind: "text", text: target.text.slice(0, start) },
+      { kind: "table", head: parsed.head, rows: parsed.rows },
+      { kind: "text", text: target.text.slice(end) },
+    );
+    commit(next);
+    setFocused(i + 1);
   }
 
   async function attachFile(file: File) {
@@ -173,7 +206,8 @@ export function RuleBodyEditor({
         {error && <span className="text-xs text-danger">{error}</span>}
       </div>
       <p className={HELP}>
-        커서를 둔 자리에 표가 들어갑니다. 표는 조(제N조) 안에 있어야 화면에 나옵니다.
+        커서를 둔 자리에 표가 들어갑니다. 페이지·워드·엑셀에서 복사한 표를 그대로
+        붙여넣어도 표로 들어옵니다. 표는 조(제N조) 안에 있어야 화면에 나옵니다.
       </p>
 
       {/* 글과 표를 한 상자 안에 이어 붙인다 — 문서 한 장처럼 보여야 표가 규약 "안에"
@@ -192,6 +226,7 @@ export function RuleBodyEditor({
               rows={Math.min(40, Math.max(1, block.text.split("\n").length))}
               value={block.text}
               onFocus={() => setFocused(i)}
+              onPaste={(e) => pasteIntoText(i, e)}
               onChange={(e) => replaceBlock(i, { kind: "text", text: e.target.value })}
               className={`${DOC_TEXT} whitespace-pre`}
               spellCheck={false}

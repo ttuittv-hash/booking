@@ -2,6 +2,8 @@ import { describe, expect, it } from "vitest";
 import {
   blankTable,
   joinRuleBody,
+  parsePastedTableHtml,
+  parsePastedTsv,
   parseTableHtml,
   splitRuleBody,
   tableToHtml,
@@ -128,5 +130,57 @@ describe("커서 자리에 표 넣기", () => {
     expect(chapters[0].articles.map((a) => a.title)).toEqual(["제1조 (앞)", "제2조 (뒤)"]);
     expect(chapters[0].articles[0].paragraphs.some((p) => p.startsWith("<table"))).toBe(true);
     expect(chapters[0].articles[1].paragraphs).toEqual(["① 라마바"]);
+  });
+});
+
+// [신규 2026-09-02] 페이지·워드에서 복사한 표는 class·style·colspan 이 붙어 있어
+// 저장본용 엄격한 파서(parseTableHtml)에 걸린다. 붙여넣기는 원문을 보존할 것이
+// 없으므로 태그를 벗기고 칸 값만 건진다.
+describe("parsePastedTableHtml", () => {
+  it("속성이 붙은 표도 격자로 읽는다", () => {
+    const html = `<meta charset="utf-8"><table class="x" style="width:400px">
+      <tr><th style="a">구분</th><th>금액</th></tr>
+      <tr><td class="c"><p>기본</p></td><td>100원</td></tr>
+    </table>`;
+    expect(parsePastedTableHtml(html)).toEqual({
+      head: ["구분", "금액"],
+      rows: [["기본", "100원"]],
+    });
+  });
+
+  it("<br> 은 줄바꿈으로 살린다", () => {
+    const html = "<table><tr><td>가<br>나</td></tr></table>";
+    const parsed = parsePastedTableHtml(html);
+    expect(parsed?.rows[0][0]).toBe("가\n나");
+  });
+
+  it("머리행이 없으면 전부 본문 행이다", () => {
+    const html = "<table><tr><td>가</td><td>나</td></tr></table>";
+    expect(parsePastedTableHtml(html)).toEqual({ head: [], rows: [["가", "나"]] });
+  });
+
+  it("표가 아니면 손대지 않는다", () => {
+    expect(parsePastedTableHtml("<p>그냥 글</p>")).toBeNull();
+    expect(parsePastedTableHtml("")).toBeNull();
+  });
+});
+
+describe("parsePastedTsv", () => {
+  it("탭으로 나뉜 두 줄 이상이면 표로 본다", () => {
+    expect(parsePastedTsv("구분\t금액\n기본\t100원")).toEqual({
+      head: ["구분", "금액"],
+      rows: [["기본", "100원"]],
+    });
+  });
+
+  it("칸 수가 모자란 줄은 빈 칸으로 채운다", () => {
+    const parsed = parsePastedTsv("가\t나\t다\n라\t마");
+    expect(parsed?.rows[0]).toEqual(["라", "마", ""]);
+  });
+
+  // 글을 쓰다 탭이 낀 문장을 붙여넣었다고 표가 튀어나오면 안 된다.
+  it("한 줄이거나 탭이 없으면 표로 보지 않는다", () => {
+    expect(parsePastedTsv("구분\t금액")).toBeNull();
+    expect(parsePastedTsv("제1조 (목적)\n① 이 규약은…")).toBeNull();
   });
 });
