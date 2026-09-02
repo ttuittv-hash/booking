@@ -373,7 +373,6 @@ export function Step1Calendar({
                       <span>{date.getDate()}</span>
                       {tag && (
                         <span className="text-xs font-bold leading-none">
-                          {twoVenueRoles ? "아레나 " : ""}
                           {tag === "PERFORMANCE"
                             ? `공연×${dayShowCounts[iso] ?? 1}`
                             : tag === "LOAD_OUT"
