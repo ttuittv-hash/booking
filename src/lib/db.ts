@@ -10,6 +10,7 @@ import {
   DEFAULT_TERMS_CONTENT,
 } from "./content/seed";
 import { SEED_FAQS } from "./content/faqSeed";
+import { SEED_NOTICE } from "./content/noticeSeed";
 import { FEATURE_SPEC_SEED } from "./featureSpecSeed";
 import { FEATURE_SPEC_SHEET_KEYS } from "./pricing/types";
 import { sha256Hex } from "./passwordScheme";
@@ -1105,6 +1106,33 @@ async function seedData(pool: Pool) {
       `INSERT INTO site_content (page, data, updated_at) VALUES ('faq_seed_hash', $1, $2)
        ON CONFLICT (page) DO UPDATE SET data = EXCLUDED.data, updated_at = EXCLUDED.updated_at`,
       [JSON.stringify(faqSeedHash), new Date().toISOString()],
+    );
+  }
+
+  /*
+    첫 공지 — 2027년 하반기 정기대관 공고 (2026-09-02).
+
+    공고문은 화면을 여는 순간 있어야 하는 내용이라 코드에 싣는다. **이 id 의 공지가
+    이미 있으면 손대지 않는다** — 운영자가 고친 문구를 배포가 되돌리면 안 된다
+    (FAQ 시드와 같은 원칙).
+  */
+  const noticeSeeded = (
+    await pool.query("SELECT COUNT(*)::int as n FROM notices WHERE id = $1", [SEED_NOTICE.id])
+  ).rows[0] as { n: number };
+  if (noticeSeeded.n === 0) {
+    const at = new Date().toISOString();
+    await pool.query(
+      `INSERT INTO notices (id, tag, title, body, image_url, attachment_url, attachment_name,
+                            show_booking_calendar, created_at, updated_at)
+       VALUES ($1, $2, $3, $4, NULL, NULL, NULL, $5, $6, $6)`,
+      [
+        SEED_NOTICE.id,
+        SEED_NOTICE.tag,
+        SEED_NOTICE.title,
+        SEED_NOTICE.body,
+        SEED_NOTICE.showBookingCalendar ? 1 : 0,
+        at,
+      ],
     );
   }
 
