@@ -33,6 +33,7 @@ import {
   DEFAULT_SEOULARENA_CONTENT,
   FEATURES_CONTENT_VERSION,
   RATES_CONTENT_VERSION,
+  normalizeRatesContent,
   type DocumentsContent,
   type FeaturesContent,
   type GuidePageContent,
@@ -41,7 +42,6 @@ import {
   type ScreenTextContent,
   type SeoulArenaContent,
   type VenueFacilityContent,
-  type VenueRateContent,
 } from "./content/pageContent";
 import {
   DEFAULT_NOTICE_CALENDAR_WINDOW,
@@ -5441,33 +5441,8 @@ export async function saveGuidePageContent(data: GuidePageContent) {
  * 없다 — 열 키로 기본값에서 찾아 붙인다(순서를 믿으면 열이 늘거나 줄었을 때
  * 엉뚱한 요금제 밑으로 들어간다).
  */
-function withNewRateFields(v: VenueRateContent, fallback: VenueRateContent): VenueRateContent {
-  // 카드 하단 `extras`(준비일·공연일 추가)는 개편으로 생긴 자리라 저장본에 없다.
-  // 열 키로 기본값에서 찾아 붙인다 — 순서를 믿으면 열이 늘거나 줄었을 때 엉뚱한
-  // 요금제 밑으로 들어간다.
-  const columns = (Array.isArray(v?.columns) ? v.columns : fallback.columns).map((col) =>
-    col.extras
-      ? col
-      : { ...col, extras: fallback.columns.find((d) => d.key === col.key)?.extras ?? [] },
-  );
-  return {
-    ...v,
-    columns,
-    intro: v.intro ?? fallback.intro,
-    includes: Array.isArray(v?.includes) ? v.includes : fallback.includes,
-    includesLead: v.includesLead ?? fallback.includesLead,
-    includeGroups: Array.isArray(v?.includeGroups) ? v.includeGroups : fallback.includeGroups,
-  };
-}
-
-/** 시설 제원과 같다 — 저장본이 이기고, 이번 개편으로 생긴 자리만 기본값으로 채운다 */
 export async function getRatesContent(): Promise<RatesContent> {
-  const content = await getPageContent("rates", DEFAULT_RATES_CONTENT);
-  return {
-    version: RATES_CONTENT_VERSION,
-    arena: withNewRateFields(content.arena, DEFAULT_RATES_CONTENT.arena),
-    liveHall: withNewRateFields(content.liveHall, DEFAULT_RATES_CONTENT.liveHall),
-  };
+  return normalizeRatesContent(await getPageContent("rates", DEFAULT_RATES_CONTENT));
 }
 export async function saveRatesContent(data: RatesContent) {
   return saveSiteContent("rates", { ...data, version: RATES_CONTENT_VERSION });

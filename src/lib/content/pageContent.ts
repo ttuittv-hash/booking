@@ -295,6 +295,43 @@ export interface RatesContent {
   special?: VenueRateContent;
 }
 
+/**
+ * 저장본을 화면이 쓸 모양으로 맞춘다.
+ *
+ * 예전 저장본에는 나중에 생긴 필드가 없어 그대로 쓰면 섹션이 비거나 map 에서 터진다.
+ * **공간 탭을 추가하면 여기도 같이 늘려야 한다** — 이 함수는 필드를 나열해 새 객체를
+ * 만들기 때문에, 여기 없는 키는 저장돼 있어도 화면에 닿지 않는다(2026-09-02, 「패키지」
+ * 탭을 어드민에서 채워도 대관료 페이지가 그대로였던 원인).
+ */
+export function normalizeRatesContent(content: RatesContent): RatesContent {
+  const withNewFields = (v: VenueRateContent, fallback: VenueRateContent): VenueRateContent => {
+    // 카드 하단 `extras`(준비일·공연일 추가)는 개편으로 생긴 자리라 저장본에 없다.
+    // 열 키로 기본값에서 찾아 붙인다 — 순서를 믿으면 열이 늘거나 줄었을 때 엉뚱한
+    // 요금제 밑으로 들어간다.
+    const columns = (Array.isArray(v?.columns) ? v.columns : fallback.columns).map((col) =>
+      col.extras
+        ? col
+        : { ...col, extras: fallback.columns.find((d) => d.key === col.key)?.extras ?? [] },
+    );
+    return {
+      ...v,
+      columns,
+      intro: v.intro ?? fallback.intro,
+      includes: Array.isArray(v?.includes) ? v.includes : fallback.includes,
+      includesLead: v.includesLead ?? fallback.includesLead,
+      includeGroups: Array.isArray(v?.includeGroups) ? v.includeGroups : fallback.includeGroups,
+    };
+  };
+  return {
+    version: RATES_CONTENT_VERSION,
+    arena: withNewFields(content.arena, DEFAULT_RATES_CONTENT.arena),
+    liveHall: withNewFields(content.liveHall, DEFAULT_RATES_CONTENT.liveHall),
+    special: content.special
+      ? withNewFields(content.special, EMPTY_VENUE_RATE_CONTENT)
+      : undefined,
+  };
+}
+
 /** 아직 아무것도 안 채운 공간의 대관료 탭 — 필드를 비워 두면 화면이 터진다. */
 export const EMPTY_VENUE_RATE_CONTENT: VenueRateContent = {
   intro: "",
