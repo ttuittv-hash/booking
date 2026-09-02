@@ -3801,6 +3801,80 @@ export async function deleteReviewCriteriaDoc(): Promise<void> {
   await q("DELETE FROM review_criteria_documents", []);
 }
 
+/**
+ * 신청서 삭제 (운영자, 2026-09-02).
+ *
+ * 신청 현황에서 잘못 들어온 건·시험 삼아 넣은 건을 운영자가 지운다. 신청서를 참조하는
+ * 행(심사·계약금·계약·정산·첨부·이력·알림)이 여럿이라 그냥 지우면 FK 로 막힌다 —
+ * `deleteUserCascade` 와 같은 방식으로 카탈로그에서 참조 테이블을 찾아 자식부터 지운다
+ * (순서를 카탈로그로는 알 수 없어 세이브포인트로 되돌리며 여러 바퀴 돈다).
+ *
+ * 1:1 문의는 지우지 않는다 — 문의 자체는 신청서와 별개의 대화라, 신청서를 지웠다고
+ * 물어본 사람의 문의까지 사라지면 안 된다. 연결만 끊는다.
+ *
+ * 되돌릴 수 없는 작업이므로 화면에서 신청번호를 직접 입력받아 확인한다.
+ */
+export async function deleteQuoteCascade(quoteId: string): Promise<Record<string, number>> {
+  return withTransaction(async () => {
+    const exists = await one<{ id: string }>("SELECT id FROM quotes WHERE id = $1", [quoteId]);
+    if (!exists) return {};
+
+    const removed: Record<string, number> = {};
+    const bump = (tbl: string, n: number) => {
+      if (n > 0) removed[tbl] = (removed[tbl] ?? 0) + n;
+    };
+
+    // 문의는 남기고 연결만 끊는다.
+    const unlinked = await q<{ id: string }>(
+      "UPDATE inquiries SET quote_id = NULL WHERE quote_id = $1 RETURNING id",
+      [quoteId],
+    );
+    if (unlinked.length > 0) removed["inquiries(연결 해제)"] = unlinked.length;
+
+    // FK 가 걸린 자식 테이블 + FK 없이 quote_id 만 들고 있는 테이블(감사 이력·알림)
+    const fks = await q<{ tbl: string; col: string }>(
+      `SELECT tc.table_name AS tbl, kcu.column_name AS col
+         FROM information_schema.table_constraints tc
+         JOIN information_schema.key_column_usage kcu ON tc.constraint_name = kcu.constraint_name
+         JOIN information_schema.constraint_column_usage ccu ON tc.constraint_name = ccu.constraint_name
+        WHERE tc.constraint_type = 'FOREIGN KEY' AND ccu.table_name = 'quotes'`,
+    );
+    const loose = await q<{ tbl: string; col: string }>(
+      `SELECT table_name AS tbl, column_name AS col
+         FROM information_schema.columns
+        WHERE column_name = 'quote_id' AND table_schema = current_schema()
+          AND table_name NOT IN ('inquiries')`,
+    );
+    const targets = [...fks, ...loose].filter(
+      (t, i, all) => all.findIndex((o) => o.tbl === t.tbl && o.col === t.col) === i,
+    );
+
+    let pending = targets;
+    for (let pass = 0; pass < 3 && pending.length > 0; pass += 1) {
+      const failed: typeof targets = [];
+      for (const t of pending) {
+        await q("SAVEPOINT del_quote_fk");
+        try {
+          const rows = await q<{ n: string }>(
+            `WITH d AS (DELETE FROM "${t.tbl}" WHERE "${t.col}" = $1 RETURNING 1) SELECT count(*)::text AS n FROM d`,
+            [quoteId],
+          );
+          await q("RELEASE SAVEPOINT del_quote_fk");
+          bump(t.tbl, Number(rows[0]?.n ?? 0));
+        } catch {
+          await q("ROLLBACK TO SAVEPOINT del_quote_fk");
+          failed.push(t);
+        }
+      }
+      pending = failed;
+    }
+
+    const gone = await q<{ id: string }>("DELETE FROM quotes WHERE id = $1 RETURNING id", [quoteId]);
+    bump("quotes", gone.length);
+    return removed;
+  });
+}
+
 // ESTIMATE 단계 신청서를 신청자가 직접 수정할 때 사용 — 심사 전 재계산된 산출내역으로 덮어쓴다.
 export async function updateQuoteSelection(
   id: string,

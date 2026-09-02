@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import type { QuoteStatus } from "@/lib/pricing/types";
 import { ArrowRight, Badge, btnClass } from "@/components/ui/kit";
+import { useDialog } from "@/components/ui/Dialog";
 import {
   ROW_LINK,
   TABLE,
@@ -20,6 +21,7 @@ import {
   TD_LINK,
   TD_MUTED,
   TD_NUM,
+  REMOVE_BTN,
   TH,
   TH_NUM,
   THEAD_ROW,
@@ -51,9 +53,55 @@ export interface AdminQuoteRow {
   status: QuoteStatus;
 }
 
-export function AdminQuoteTable({ rows }: { rows: AdminQuoteRow[] }) {
+export function AdminQuoteTable({
+  rows,
+  canDelete = false,
+}: {
+  rows: AdminQuoteRow[];
+  /** 삭제는 되돌릴 수 없어 PRO 등급 이상에게만 보인다(서버도 같은 선에서 막는다) */
+  canDelete?: boolean;
+}) {
   const router = useRouter();
+  const dialog = useDialog();
   const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [busyId, setBusyId] = useState<string | null>(null);
+
+  /**
+   * 신청서 삭제 (2026-09-02).
+   *
+   * 심사·계약금·계약·정산·첨부·이력이 함께 사라지고 되돌릴 수 없다. 회원 삭제와 같은
+   * 방식으로 두 번 확인한다 — 두 번째는 신청번호를 그대로 받아친다(표에서 옆 행을
+   * 잘못 누르는 사고가 실제로 계정 삭제에서 있었다).
+   */
+  async function remove(row: AdminQuoteRow) {
+    const ok = await dialog.confirm(
+      `신청서 ${row.id} (${row.companyName} · ${row.applicantName})를 삭제합니다.\n\n` +
+        "심사 결과 · 계약금 · 계약 · 정산 · 첨부 · 처리 이력이 함께 지워지고 되돌릴 수 없습니다.\n" +
+        "달력의 신청 현황에서도 빠집니다.\n\n계속할까요?",
+      { title: "신청서 삭제", okLabel: "삭제" },
+    );
+    if (!ok) return;
+    const typed = await dialog.prompt("정말 지우려면 신청번호를 그대로 입력하세요.", {
+      title: "삭제 확인",
+      okLabel: "삭제",
+      placeholder: row.id,
+    });
+    if (typed !== row.id) return;
+
+    setBusyId(row.id);
+    try {
+      const res = await fetch(`/api/admin/quotes/${row.id}`, { method: "DELETE" });
+      const data = await res.json().catch(() => null);
+      if (res.ok) {
+        await dialog.alert(`신청서 ${row.id} 를 삭제했습니다.`);
+        router.refresh();
+      } else {
+        await dialog.alert(data?.error ?? "삭제하지 못했습니다.");
+      }
+    } finally {
+      setBusyId(null);
+    }
+  }
 
   function toggle(id: string) {
     setSelected((prev) => {
@@ -151,10 +199,22 @@ export function AdminQuoteTable({ rows }: { rows: AdminQuoteRow[] }) {
                       <Badge tone={STATUS_TONE[row.status]}>{STATUS_LABEL[row.status]}</Badge>
                     </td>
                     <td className={TD_LINK}>
-                      <Link href={`/admin/${row.id}`} className={ROW_LINK}>
-                        상세
-                        <ArrowRight />
-                      </Link>
+                      <span className="flex items-center justify-end gap-3">
+                        <Link href={`/admin/${row.id}`} className={ROW_LINK}>
+                          상세
+                          <ArrowRight />
+                        </Link>
+                        {canDelete && (
+                        <button
+                          type="button"
+                          disabled={busyId === row.id}
+                          onClick={() => void remove(row)}
+                          className={REMOVE_BTN}
+                        >
+                          {busyId === row.id ? "삭제 중..." : "삭제"}
+                        </button>
+                        )}
+                      </span>
                     </td>
                   </tr>
                 );

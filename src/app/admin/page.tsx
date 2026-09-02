@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { getCurrentUser } from "@/lib/auth";
+import { getCurrentUser, isProAdminOrAbove } from "@/lib/auth";
 import { listCompanies, listQuotesPaged, listUsersByIds, normalizePage } from "@/lib/db";
 import { num } from "@/lib/format";
 import { Pagination } from "@/components/Pagination";
@@ -84,7 +84,7 @@ export default async function AdminPage({
         </form>
 
         <div className="mt-6">
-          <AdminQuoteTable rows={rows} />
+          <AdminQuoteTable rows={rows} canDelete={isProAdminOrAbove(user)} />
           <Pagination
             page={page}
             totalPages={totalPages}
