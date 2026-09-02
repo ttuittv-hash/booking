@@ -83,6 +83,9 @@ const PROSE = [
   "[&_table]:my-7 [&_table]:w-auto [&_table]:min-w-full [&_table]:border-collapse [&_table]:text-s [&_table]:leading-6 [&_table]:tabular-nums",
   "[&_thead]:border-y [&_thead]:border-foreground",
   "[&_th]:px-3 [&_th]:py-2.5 [&_th]:text-left [&_th]:font-bold [&_th]:text-foreground",
+  // 머리행이 아니라 **행 이름**으로 쓴 th(왼쪽 첫 칸) — 값 열이 들쭉날쭉하지 않게
+  // 폭을 잡아 주고 위로 붙인다. 보고서의 좌측 항목열과 같은 자리다.
+  "[&_tbody_th]:w-40 [&_tbody_th]:align-top [&_tbody_th]:text-muted-strong",
   "[&_tbody_tr]:border-b [&_tbody_tr]:border-border-soft",
   "[&_td]:px-3 [&_td]:py-2.5 [&_td]:align-top",
   // 표 바로 아래 한 줄은 각주다 — 원본처럼 한 단 더 작고 옅게
