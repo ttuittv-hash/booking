@@ -714,21 +714,45 @@ export function TitledCard({
 }
 
 /**
+ * 값이 **수치**인지 — 한글이 없고 숫자가 있으면 수치로 보고 Archivo 를 쓴다.
+ * `isLatinHeading` 은 ASCII 만 통과시켜 `3,553㎡` 같은 기호 섞인 수치를 놓쳤다.
+ * 한글이 섞인 값(`최대 3,060석`)에는 절대 Archivo 를 걸지 않는다 — 한글 글립이 없다.
+ */
+function isNumericValue(text: string): boolean {
+  return /\d/.test(text) && !/[가-힣]/.test(text);
+}
+
+/**
  * 4-up 스탯 카드 — 굵은 윗선 + 작은 라벨 + 큰 값(+ 부연 한 줄).
  * 시설 제원의 상위 4개 포인트와 대관료의 기본 이용 기준이 같은 레이아웃을 쓴다.
  * 12칼럼에서 3칼럼씩 떨어진다.
+ *
+ * `size="lg"` 는 값이 주인공인 자리(시설 제원 키포인트) — H3 로 키우고, 수치면
+ * Archivo 로 쓴다. 값에 줄바꿈을 넣으면 그대로 줄이 나뉜다.
  */
 export function StatCards({
   items,
+  size = "md",
 }: {
   items: { label: string; value: string; note?: string }[];
+  size?: "md" | "lg";
 }) {
   return (
     <ul className="grid gap-x-[var(--gutter)] gap-y-10 sm:grid-cols-2 lg:grid-cols-12">
       {items.map((it, i) => (
         <li key={`${it.label}-${i}`} className="border-t-2 border-border pt-5 lg:col-span-3">
           <p className="text-xs font-bold text-muted">{it.label}</p>
-          <p className="type-kr-heading mt-3 break-keep text-h5-m sm:text-h5">{it.value}</p>
+          <p
+            className={`mt-3 whitespace-pre-line break-keep ${
+              size === "lg"
+                ? `${
+                    isNumericValue(it.value) ? "type-display normal-case" : "type-kr-heading"
+                  } text-h3-m sm:text-h3`
+                : "type-kr-heading text-h5-m sm:text-h5"
+            }`}
+          >
+            {it.value}
+          </p>
           {it.note && <p className="mt-3 break-keep text-s text-muted">{it.note}</p>}
         </li>
       ))}

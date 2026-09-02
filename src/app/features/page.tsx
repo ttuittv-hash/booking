@@ -4,6 +4,7 @@ import { getFeaturesContent } from "@/lib/db";
 import type {
   CapacityBlock,
   FacilityGroup,
+  FeatureBlock,
   SpecCard,
   VenueFacilityContent,
 } from "@/lib/content/pageContent";
@@ -16,7 +17,6 @@ import {
   Band,
   ButtonLink,
   CTABand,
-  FeatureList,
   PLAIN_SURFACE_VARS,
   PageHead,
   SectionHead,
@@ -74,7 +74,7 @@ function CapacityCard({ cap }: { cap: CapacityBlock }) {
           {rows.map((r, i) => (
             <div key={`${r.label}-${i}`}>
               <dt className="text-xs font-bold text-muted">{r.label}</dt>
-              <dd className="type-display mt-2 break-keep text-h1-m normal-case tabular-nums sm:text-h1">
+              <dd className="type-display mt-2 break-keep text-h3-m normal-case tabular-nums sm:text-h3">
                 {r.value}
               </dd>
               {r.note && <p className="mt-2 break-keep text-s text-muted">{r.note}</p>}
@@ -115,6 +115,39 @@ function SpecCardGrid({ cards }: { cards: SpecCard[] }) {
   );
 }
 
+/**
+ * FLOOR & SEATING — 층 이름은 **라벨**, 제원 숫자가 **헤딩**이다.
+ *
+ * `FeatureList`(제목 H5 + 설명 작은 글씨)를 그대로 쓰면 층 이름이 주인공이 되는데,
+ * 이 섹션에서 읽어야 하는 것은 층 이름이 아니라 면적·좌석 수다. 위계를 뒤집는다.
+ * `FeatureList` 는 `/seoularena` 가 함께 쓰므로 건드리지 않고 여기서 따로 그린다.
+ *
+ * 줄은 모두 국문 헤딩 서체로 둔다 — 한 블록 안에서 "49 × 79.9m"(영문)와
+ * "수납식 객석 1,848석"(국문)이 다른 서체로 갈리면 목록이 흔들려 보인다.
+ */
+function FloorList({ items }: { items: FeatureBlock[] }) {
+  return (
+    <ul className="border-t border-border">
+      {items.map((it, i) => (
+        <li key={`${it.title}-${i}`} className="border-b border-border py-7">
+          <p className="text-xs font-extrabold uppercase tracking-[0.08em] text-muted [font-family:Archivo,sans-serif]">
+            {it.title}
+          </p>
+          {it.lines.length > 0 && (
+            <div className="mt-3 space-y-1">
+              {it.lines.map((line) => (
+                <p key={line} className="type-kr-heading break-keep text-h5-m sm:text-h5">
+                  {line}
+                </p>
+              ))}
+            </div>
+          )}
+        </li>
+      ))}
+    </ul>
+  );
+}
+
 /** 부대시설 카테고리 카드 — [시설명 → 부연] 목록 */
 function FacilityCard({ group }: { group: FacilityGroup }) {
   return (
@@ -143,7 +176,7 @@ function VenuePanel({ en, ko, c }: { en: string; ko: string; c: VenueFacilityCon
         <PageHead en={en} ko={ko} />
         {c.overview.length > 0 && (
           <div className="mt-10">
-            <StatCards items={c.overview} />
+            <StatCards items={c.overview} size="lg" />
           </div>
         )}
       </Band>
@@ -164,7 +197,7 @@ function VenuePanel({ en, ko, c }: { en: string; ko: string; c: VenueFacilityCon
         <Band tone="light">
           <SectionHead title="FLOOR & SEATING" />
           <div className="mt-10">
-            <FeatureList items={c.features} />
+            <FloorList items={c.features} />
           </div>
         </Band>
       )}
