@@ -243,12 +243,19 @@ export const kakaoBizTalkAdapter: ChannelAdapter = {
       if (request.button?.kakaoUrl) {
         // url_pc 는 템플릿에 PC 링크(linkPc)가 등록된 경우에만 — 없는데 보내면 3027 로 거절된다.
         // PC 카카오톡은 PC 링크가 있어야 버튼을 보여준다(없으면 "모바일에서 확인해 주세요").
+        // url_pc 는 템플릿에 PC 링크(linkPc)가 등록됐을 때만 실어 등록값과 정확히 맞춘다.
+        // 우선순위: 템플릿별 kakaoUrlPc(ARENA_ 세트) → 없으면 전역 BIZTALK_BUTTON_PC 호환 경로.
+        const urlPc = request.button.kakaoUrlPc
+          ? request.button.kakaoUrlPc
+          : process.env.BIZTALK_BUTTON_PC === "true"
+            ? request.button.kakaoUrl
+            : null;
         body.button = [
           {
             name: request.button.name,
             type: "WL",
             url_mobile: request.button.kakaoUrl,
-            ...(process.env.BIZTALK_BUTTON_PC === "true" ? { url_pc: request.button.kakaoUrl } : {}),
+            ...(urlPc ? { url_pc: urlPc } : {}),
           },
         ];
       }

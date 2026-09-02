@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { getCurrentUser } from "@/lib/auth";
+import { getCurrentUser, isProAdminOrAbove } from "@/lib/auth";
 import { deleteUserCascade, findUserById } from "@/lib/db";
 import { revalidateMemberViews } from "@/lib/revalidateAdmin";
 
@@ -12,7 +12,11 @@ import { revalidateMemberViews } from "@/lib/revalidateAdmin";
 export async function DELETE(_request: Request, context: { params: Promise<{ id: string }> }) {
   const actor = await getCurrentUser();
   if (!actor) return NextResponse.json({ error: "로그인이 필요합니다." }, { status: 401 });
-  if (actor.role !== "ADMIN") return NextResponse.json({ error: "운영자만 삭제할 수 있습니다." }, { status: 403 });
+  // 계정+회사까지 카탈로그 전체를 되돌릴 수 없이 지우는 파괴적 작업이라, 등급/대표이관·심사와
+  // 같은 선에서 PRO 이상만 허용한다(BASIC 관리자는 캐스케이드 삭제 불가).
+  if (!isProAdminOrAbove(actor)) {
+    return NextResponse.json({ error: "PRO 등급 이상 운영자만 삭제할 수 있습니다." }, { status: 403 });
+  }
 
   const { id } = await context.params;
   const target = await findUserById(id);

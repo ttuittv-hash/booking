@@ -24,7 +24,7 @@ export interface TemplateDef {
    * kakaoUrl 은 카카오 템플릿에 등록된 웹링크 그대로 — 알림톡 요청은 등록값과 글자 단위로
    * 같아야 하며(이름·타입·링크), 다르거나 빼면 3027 NoMatchedTemplateButtonException 이다.
    */
-  button?: { name: string; path: string; kakaoUrl?: string };
+  button?: { name: string; path: string; kakaoUrl?: string; kakaoUrlPc?: string };
   /** DKT 에 등록된 카카오 템플릿 코드. 없으면 알림톡을 보내지 않는다(인앱만). */
   kakaoTemplateCode?: string;
   /** 강조표기형(TEXT) 템플릿의 핵심 문구·보조 문구 — 등록값과 같아야 한다. */
@@ -90,14 +90,22 @@ export const TEMPLATES: TemplateDef[] = [
     button: { name: "신청 내용 확인", path: "/", kakaoUrl: KAKAO_PARTNER_URL },
   },
   {
-    // 운영자에게 가는 알림 — 카카오 정본에 운영자용 템플릿이 없다. 인앱으로만 나간다.
+    // 신규 회사 등록 신청 → 운영자 (2026-09-01 팀 요청, 카카오 ARENA_0013 승인분 연동).
+    // 버튼·본문은 bo 백오피스 심사 화면 기준.
     code: "MB-05",
+    kakaoTemplateCode: "ARENA_0013",
     audience: "ADMIN",
     title: "회사 신규 등록 (운영자)",
-    body: "신규 회사 등록 신청이 접수되었습니다.\n회사명: #{회사명}\n신청자: #{신청자명}",
-    variables: ["회사명", "신청자명"],
+    body: "#{운영자명}님, 안녕하세요. \n신규 회사등록 신청이 접수되었습니다. \n\n아래 링크에서 신청 내용을 확인해주세요.",
+    variables: ["운영자명"],
     release: "FIRST",
-    button: { name: "심사 화면", path: "/admin/applicants" },
+    emphasis: { title: "신규 회사 등록 신청 접수", subtitle: "서울아레나 대관시스템" },
+    button: {
+      name: "신청 내용 확인하기",
+      path: "/admin/applicants",
+      kakaoUrl: "https://bo.seoularena.net/admin/applicants",
+      kakaoUrlPc: "https://bo.seoularena.net/admin/applicants",
+    },
   },
   {
     // 대표 담당자가 링크로 담당자를 초대할 때 — 계정이 없는 수신자라 링크를 본문 변수로 담는다.
@@ -156,6 +164,76 @@ export const TEMPLATES: TemplateDef[] = [
     variables: ["마스터", "신청자명"],
     release: "SECOND",
     emphasis: { title: "마스터 권한 이관 완료", subtitle: "서울아레나 대관시스템" },
+  },
+  // ── 2026-09-01 팀 요청 신규 연동 (카카오 ARENA_ 세트, 본문은 등록값과 글자 단위 동일) ──
+  {
+    // 가입 승인 → 신청자 본인. 최초 가입자(대표 지정) 승인 시 ARENA-0004 와 순차 발송.
+    code: "ARENA-0003",
+    kakaoTemplateCode: "ARENA_0003",
+    audience: "APPLICANT",
+    title: "가입 승인",
+    body: "#{신청자명}님, 안녕하세요.\n서울아레나 대관시스템 회원가입이 승인되었습니다.\n\n이제 로그인하여 대관 신청·조회 서비스를 이용하실 수 있습니다.",
+    variables: ["신청자명"],
+    release: "FIRST",
+    emphasis: { title: "회원가입 승인 완료", subtitle: "서울아레나 대관시스템" },
+    button: { name: "대관시스템 바로가기", path: "/login", kakaoUrl: "https://partner.seoularena.net/login" },
+  },
+  {
+    // 최초 가입자가 대표 담당자로 등록될 때 → 그 사람에게.
+    code: "ARENA-0004",
+    kakaoTemplateCode: "ARENA_0004",
+    audience: "APPLICANT",
+    title: "대표 담당자 등록 완료",
+    body: "#{신청자명}님, 안녕하세요. \n#{회사명}의 대표 담당자로 등록되었습니다. \n\n이제 회원 승인 권한을 이용하실 수 있습니다.",
+    variables: ["신청자명", "회사명"],
+    release: "FIRST",
+    emphasis: { title: "대표 담당자 등록 완료", subtitle: "서울아레나 대관시스템" },
+    button: {
+      name: "대관시스템 바로가기",
+      path: "/mypage/members",
+      kakaoUrl: "https://partner.seoularena.net/mypage/members",
+      kakaoUrlPc: "https://partner.seoularena.net/mypage/members",
+    },
+  },
+  {
+    // 대표 담당자가 담당자를 소속 해제할 때 → 해제 대상자에게.
+    // ARENA_0012 는 2026-09-01 기준 카카오 검수 중(I) — 승인되면 자동으로 발송된다.
+    code: "ARENA-0012",
+    kakaoTemplateCode: "ARENA_0012",
+    audience: "APPLICANT",
+    title: "소속 해제",
+    body: "#{신청자명}님, 안녕하세요.\n#{회사명}의 대표 담당자 요청으로 담당자 소속이 해제되었습니다.\n\n해당 회사의 대관 업무를 더 이상 이용하실 수 없습니다.",
+    variables: ["신청자명", "회사명"],
+    release: "FIRST",
+    emphasis: { title: "소속 해제 안내", subtitle: "서울아레나 대관시스템" },
+  },
+  {
+    // 1:1 문의 등록 완료 → 등록자 본인. (버튼 없음)
+    code: "ARENA-0010",
+    kakaoTemplateCode: "ARENA_0010",
+    audience: "APPLICANT",
+    title: "1:1 문의 등록",
+    body: "#{등록자명}님, 안녕하세요. \n1:1 문의 등록이 완료되었습니다. \n\n답변이 등록되면 안내드리겠습니다.",
+    variables: ["등록자명"],
+    release: "FIRST",
+    emphasis: { title: "1:1 문의 등록 완료", subtitle: "서울아레나 대관시스템" },
+  },
+  {
+    // 1:1 문의 답변 등록 완료 → 문의 등록자에게.
+    code: "ARENA-0009",
+    kakaoTemplateCode: "ARENA_0009",
+    audience: "APPLICANT",
+    title: "1:1 문의 답변 완료",
+    body: "#{등록자명}님, 안녕하세요. \n1:1문의에 답변이 등록되었습니다.",
+    variables: ["등록자명"],
+    release: "FIRST",
+    emphasis: { title: "1:1문의 답변 완료", subtitle: "서울아레나 대관시스템" },
+    button: {
+      name: "1:1 문의 바로가기",
+      path: "/mypage/inquiries",
+      kakaoUrl: "https://partner.seoularena.net/mypage/inquiries",
+      kakaoUrlPc: "https://partner.seoularena.net/mypage/inquiries",
+    },
   },
 ];
 

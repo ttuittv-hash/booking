@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
 import {
   ensureCompanyMaster,
+  findCompanyById,
   isCompanyMaster,
   listCompanyMembers,
   removeCompanyMember,
@@ -122,6 +123,15 @@ export async function POST(request: Request) {
       quoteId: null,
       message: "소속이 해제되었습니다. 자세한 사항은 회사 대표 담당자에게 문의해주세요.",
       createdAt: new Date().toISOString(),
+    });
+    // 해제 대상자에게 소속 해제 알림톡(ARENA-0012). (2026-09-01 팀 요청, 카카오 검수 승인 후 발송)
+    const company = await findCompanyById(user.companyId);
+    dispatchMessageInBackground({
+      templateCode: "ARENA-0012",
+      idempotencyKey: `ARENA-0012:${targetId}:${Date.now()}`,
+      recipient: { userId: targetId, phone: target.phone, email: target.email, name: target.name },
+      variables: { 신청자명: target.name, 회사명: company?.name ?? "" },
+      request,
     });
     return NextResponse.json({ ok: true });
   }

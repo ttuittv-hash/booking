@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
-import { findUserById, getQuoteById, listCompetingQuotesForWeek } from "@/lib/db";
+import { getQuoteById, listCompetingQuotesForWeek, listUsersByIds } from "@/lib/db";
 import { generateCompetingRecommendation, isAiReviewConfigured } from "@/lib/aiReview";
 import { buildCandidateFacts } from "@/lib/scoring/competingCandidate";
 
@@ -23,12 +23,12 @@ export async function POST(_request: Request, ctx: { params: Promise<{ id: strin
     return NextResponse.json({ status: "ERROR", message: "같은 기간에 겹치는 다른 대관사 신청서가 없습니다." });
   }
 
-  const currentApplicant = await findUserById(quote.applicantId);
+  // 현재 신청자 + 경합 신청자들을 한 번에 조회한다(행마다 findUserById N+1 금지).
+  const applicantIds = [quote.applicantId, ...competing.map(({ quote: q }) => q.applicantId)];
+  const userMap = new Map((await listUsersByIds(applicantIds)).map((u) => [u.id, u]));
   const candidates = [
-    buildCandidateFacts(quote, currentApplicant, true),
-    ...(await Promise.all(
-      competing.map(async ({ quote: q }) => buildCandidateFacts(q, await findUserById(q.applicantId), false)),
-    )),
+    buildCandidateFacts(quote, userMap.get(quote.applicantId) ?? null, true),
+    ...competing.map(({ quote: q }) => buildCandidateFacts(q, userMap.get(q.applicantId) ?? null, false)),
   ];
 
   const result = await generateCompetingRecommendation(candidates);
