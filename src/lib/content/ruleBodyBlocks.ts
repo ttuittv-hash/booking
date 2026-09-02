@@ -78,7 +78,10 @@ export function tableToHtml(head: string[], rows: string[][]): string {
   return lines.join("\n");
 }
 
-export function splitRuleBody(body: string): RuleBodyBlock[] {
+export function splitRuleBody(body: string | null | undefined): RuleBodyBlock[] {
+  // 저장본이 없는 화면(신규 판본 등)에서 값이 비어 들어올 수 있다 — 여기서 터지면
+  // 편집기 전체가 안 뜨고, 버튼이 안 눌리는 것처럼 보인다.
+  if (!body) return [{ kind: "text", text: "" }];
   const blocks: RuleBodyBlock[] = [];
   let text: string[] = [];
   let table: string[] | null = null;
