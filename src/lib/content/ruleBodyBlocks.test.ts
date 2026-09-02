@@ -100,3 +100,33 @@ describe("blankTable", () => {
     expect(t.kind === "table" && t.rows[0]).toEqual(["", "", ""]);
   });
 });
+
+// [회귀 2026-09-02] 규약 본문은 통째로 글 상자 하나다. 표를 "현재 블록 다음"에 넣으면
+// 어디에 커서를 두든 문서 맨 끝(부칙·별표 뒤)에 붙어, 긴 본문에서는 화면 밖이라
+// "표가 안 들어간다"로 보였다. 커서 자리에서 글을 쪼개 그 사이에 넣어야 한다.
+describe("커서 자리에 표 넣기", () => {
+  function insertAtCursor(body: string, cursor: number) {
+    const blocks = splitRuleBody(body);
+    const target = blocks[0];
+    if (target.kind !== "text") throw new Error("글 블록이 아니다");
+    const next: RuleBodyBlock[] = [
+      { kind: "text", text: target.text.slice(0, cursor) },
+      blankTable(1, 2),
+      { kind: "text", text: target.text.slice(cursor) },
+      ...blocks.slice(1),
+    ];
+    return joinRuleBody(next);
+  }
+
+  it("표가 문서 끝이 아니라 커서 자리에 들어간다", () => {
+    const body = "제1조 (앞)\n① 가나다\n제2조 (뒤)\n① 라마바";
+    const out = insertAtCursor(body, body.indexOf("제2조"));
+    const kinds = splitRuleBody(out).map((b) => b.kind);
+    expect(kinds).toEqual(["text", "table", "text"]);
+    // 표는 제1조 뒤, 제2조 앞이다 — 뒤 조문이 표 아래에 그대로 남아야 한다
+    const chapters = parseRules(out);
+    expect(chapters[0].articles.map((a) => a.title)).toEqual(["제1조 (앞)", "제2조 (뒤)"]);
+    expect(chapters[0].articles[0].paragraphs.some((p) => p.startsWith("<table"))).toBe(true);
+    expect(chapters[0].articles[1].paragraphs).toEqual(["① 라마바"]);
+  });
+});

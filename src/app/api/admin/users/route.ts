@@ -4,6 +4,8 @@ import { getCurrentUser, hashPassword } from "@/lib/auth";
 import { createUser, findUserByEmailWithPasswordHash, findUserByUsername, listUsers } from "@/lib/db";
 import { sha256Hex } from "@/lib/passwordScheme";
 
+/** 하이픈 있는 형태만 받는다 — 저장 형식을 하나로 두어야 발송 쪽에서 갈리지 않는다 */
+const PHONE_RE = /^01[016789]-\d{3,4}-\d{4}$/;
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const USERNAME_RE = /^[a-z0-9][a-z0-9_]{3,19}$/;
 
@@ -26,6 +28,9 @@ export async function POST(request: Request) {
   const email = typeof body?.email === "string" ? body.email.trim() : "";
   const password = typeof body?.password === "string" ? body.password : "";
   const name = typeof body?.name === "string" ? body.name.trim() : "";
+  // 알림톡 수신번호 — 없으면 그 운영자는 알림톡을 못 받는다. 필수는 아니지만
+  // 형식이 어긋나면 발송 때 조용히 실패하므로 여기서 막는다(2026-09-02).
+  const phone = typeof body?.phone === "string" ? body.phone.trim() : "";
 
   if (!USERNAME_RE.test(username)) {
     return NextResponse.json(
@@ -42,6 +47,12 @@ export async function POST(request: Request) {
   if (!name) {
     return NextResponse.json({ error: "이름을 입력하세요." }, { status: 400 });
   }
+  if (phone && !PHONE_RE.test(phone)) {
+    return NextResponse.json(
+      { error: "휴대폰 번호는 010-1234-5678 형식으로 입력하세요." },
+      { status: 400 },
+    );
+  }
   if (await findUserByUsername(username)) {
     return NextResponse.json({ error: "이미 사용 중인 아이디입니다." }, { status: 409 });
   }
@@ -53,6 +64,7 @@ export async function POST(request: Request) {
     id: crypto.randomUUID(),
     username,
     email,
+    phone: phone || null,
     passwordHash: await hashPassword(sha256Hex(password)),
     name,
     companyName: null,

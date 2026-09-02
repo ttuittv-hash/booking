@@ -59,14 +59,35 @@ export function RuleBodyEditor({
     commit(next);
   };
 
-  /** 표는 글 사이에 들어간다 — 뒤에 글 상자가 없으면 하나 만들어 이어 쓸 수 있게 한다. */
+  /**
+   * 표는 **커서가 있던 자리**에 들어간다.
+   *
+   * [수정 2026-09-02] 예전에는 "지금 글 상자 다음"에 넣었는데, 규약 본문은 통째로
+   * 글 상자 하나라서 어디에 커서를 두든 표가 문서 맨 끝(부칙·별표 뒤)에 붙었다.
+   * 긴 본문에서는 화면 밖이라 "표가 안 들어간다"로 보였다. 커서 위치에서 글을 둘로
+   * 쪼개고 그 사이에 표를 넣는다.
+   */
   function insertTable() {
     const at = Math.min(focused, blocks.length - 1);
+    const target = blocks[at];
+    const table = blankTable(rows, cols);
     const next = [...blocks];
-    const tail: RuleBodyBlock[] =
-      next[at + 1]?.kind === "text" ? [] : [{ kind: "text", text: "" }];
-    next.splice(at + 1, 0, blankTable(rows, cols), ...tail);
+
+    if (target?.kind !== "text") {
+      // 표에 커서가 있으면 그 표 바로 뒤에 새 표를 놓는다.
+      next.splice(at + 1, 0, table, { kind: "text", text: "" });
+      commit(next);
+      return;
+    }
+
+    const el = textRefs.current[at];
+    const pos = el ? el.selectionStart : target.text.length;
+    const before = target.text.slice(0, pos);
+    const after = target.text.slice(pos);
+    next.splice(at, 1, { kind: "text", text: before }, table, { kind: "text", text: after });
     commit(next);
+    // 표가 커서 자리에서 열리므로 화면 밖으로 밀리지 않는다 — 새로 생긴 표로 데려간다.
+    setFocused(at + 1);
   }
 
   async function attachFile(file: File) {

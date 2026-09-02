@@ -7,7 +7,7 @@ import { ERROR_NOTE, FIELD, HELP, OK_NOTE, PANEL, SECTION_TITLE } from "./adminU
 
 export function AddAdminForm() {
   const router = useRouter();
-  const [form, setForm] = useState({ username: "", email: "", password: "", name: "" });
+  const [form, setForm] = useState({ username: "", email: "", password: "", name: "", phone: "" });
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
@@ -28,7 +28,7 @@ export function AddAdminForm() {
         return;
       }
       setSuccess(`${data.user.username} 계정이 생성되었습니다.`);
-      setForm({ username: "", email: "", password: "", name: "" });
+      setForm({ username: "", email: "", password: "", name: "", phone: "" });
       router.refresh();
     } finally {
       setSubmitting(false);
@@ -40,10 +40,11 @@ export function AddAdminForm() {
       <h2 className={SECTION_TITLE}>운영자 계정 추가</h2>
       <p className={`mt-2 ${HELP}`}>
         이메일/임시 비밀번호를 직접 전달해 새 운영자를 등록하세요. (이메일 발송 기능은
-        아직 없어 비밀번호를 안전한 채널로 별도 전달해야 합니다.)
+        아직 없어 비밀번호를 안전한 채널로 별도 전달해야 합니다.) 휴대폰 번호를 비우면
+        그 계정은 알림톡을 받지 못합니다.
       </p>
 
-      <div className="mt-5 grid grid-cols-1 gap-3 sm:grid-cols-4">
+      <div className="mt-5 grid grid-cols-1 gap-3 sm:grid-cols-5">
         <input
           type="text"
           placeholder="아이디 (영문 소문자/숫자, 4~20자)"
@@ -63,6 +64,16 @@ export function AddAdminForm() {
           placeholder="이름"
           value={form.name}
           onChange={(e) => setForm({ ...form, name: e.target.value })}
+          className={FIELD}
+        />
+        {/* [신규 2026-09-02] 운영자 앞 알림톡 수신번호. 목록에는 컬럼이 있는데 채울
+            자리가 없어 늘 "미등록"이었다. 필수는 아니지만 비우면 그 계정은
+            알림톡을 못 받는다. */}
+        <input
+          type="tel"
+          placeholder="휴대폰 번호 (010-1234-5678)"
+          value={form.phone}
+          onChange={(e) => setForm({ ...form, phone: e.target.value })}
           className={FIELD}
         />
         <input
