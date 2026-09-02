@@ -649,7 +649,10 @@ export function WizardShell({
                     쓴다 — 선택하지 않은 공간의 탭은 감춰지지 않고 비활성(disabled)으로만
                     남아, 캘린더 슬롯 디자인 자체가 공간 선택에 따라 달라 보이지 않게 한다. */}
                 <div className="mt-5 flex gap-1 border-b border-border">
-                  {(["arena", "medium-hall"] as const).map((tab) => {
+                  {/* 「패키지」는 한 달력에서 아레나·중형을 함께 짠다(역할 선택이 두 줄) —
+                      중형 탭을 따로 두면 같은 일정을 두 군데서 잡는 것처럼 읽힌다.
+                      그래서 이때는 탭을 하나만 세운다(2026-09-02). */}
+                  {(isSpecialSchedule ? (["arena"] as const) : (["arena", "medium-hall"] as const)).map((tab) => {
                     // [수정 2026-09-02] 「패키지」 공간은 아레나와 같은 주 단위 일정을 쓴다.
                     // 예전 조건(venueId === tab)은 공간 id 가 정확히 arena·medium-hall 일
                     // 때만 열려서, 패키지를 고르면 두 탭이 모두 잠긴 채 달력만 떠 있었다.
