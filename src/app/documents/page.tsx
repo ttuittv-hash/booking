@@ -19,7 +19,9 @@ function toDocItem(d: DocumentBlock): DocItem {
     title: d.title,
     desc: d.desc || undefined,
     meta: d.meta.map((m) => [m.label, m.value] as [string, string]),
-    href: d.href || undefined,
+    // 원본 파일명이 있으면 그 이름으로 내려가게 붙인다 — 저장 경로는 uuid 라
+    // 그대로 두면 이용자 컴퓨터에 뜻 모를 이름으로 저장된다(2026-09-02).
+    href: d.href ? (d.fileName ? `${d.href}?name=${encodeURIComponent(d.fileName)}` : d.href) : undefined,
     pendingNote: d.pendingNote || undefined,
   };
 }

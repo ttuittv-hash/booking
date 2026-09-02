@@ -25,6 +25,7 @@ import {
   Text,
 } from "./fields";
 import { HELP } from "./adminUi";
+import { RuleBodyEditor } from "./RuleBodyEditor";
 import { SPECIAL_VENUE_ID, VENUES } from "@/lib/pricing/types";
 import { defaultVenueName, venueLabelKey } from "@/lib/content/venueLabels";
 
@@ -609,7 +610,7 @@ function DocList({
     <ListEditor
       items={items}
       onChange={onChange}
-      blank={() => ({ title: "", desc: "", meta: [], href: "", pendingNote: "" })}
+      blank={() => ({ title: "", desc: "", meta: [], href: "", fileName: "", pendingNote: "" })}
       addLabel="+ 자료 추가"
       titleOf={(it, i) => it.title || `자료 ${i + 1}`}
       render={(it, p) => (
@@ -624,11 +625,14 @@ function DocList({
             valueName="값"
             addLabel="+ 메타 추가"
           />
-          <Text
-            label="파일 주소"
-            value={it.href}
-            onChange={(href) => p({ href })}
+          {/* [신규 2026-09-02] 파일을 백오피스에서 바로 올린다 — 예전에는 주소를 손으로
+              적어야 해서, 파일을 어딘가에 먼저 올려 둔 사람만 자료를 등록할 수 있었다. */}
+          <DocumentField
+            label="파일"
             help="비워 두면 다운로드 버튼 대신 아래 안내 문구가 나옵니다."
+            url={it.href}
+            name={it.fileName ?? ""}
+            onChange={({ url, name }) => p({ href: url, fileName: name })}
           />
           <Text
             label="파일 미등록 안내"
@@ -857,16 +861,11 @@ export function RulesForm({ content }: { content: RulesContent }) {
               "규약은 조문을 한 칸씩 고치는 문서가 아니라 판본을 통째로 갈아 끼우는 문서입니다. " +
               "확정본 원문을 그대로 붙여 넣으세요. `제N장 …` 으로 시작하는 줄은 장 제목, " +
               "`제N조 (…)` 로 시작하는 줄은 조 제목이 되고, 나머지 줄은 그 조의 항이 됩니다. " +
-              "목차는 장 제목으로 자동 생성됩니다."
+              "목차는 장 제목으로 자동 생성됩니다. 표가 필요하면 [+ 표 넣기] 로 조 안에 " +
+              "끼워 넣으세요 — 표는 조(제N조) 안에서만 화면에 나옵니다."
             }
           >
-            <Area
-              label=""
-              rows={28}
-              paragraph={false}
-              value={v.body}
-              onChange={(body) => patch({ body })}
-            />
+            <RuleBodyEditor value={v.body} onChange={(body) => patch({ body })} />
           </Section>
         </>
       )}

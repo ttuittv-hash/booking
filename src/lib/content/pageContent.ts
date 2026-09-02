@@ -556,6 +556,11 @@ export interface DocumentBlock {
   meta: Pair[];
   /** 업로드된 파일 경로. 비우면 pendingNote 가 대신 나온다 */
   href: string;
+  /**
+   * 내려받을 때 쓸 원본 파일명 (2026-09-02). 예전 저장본에는 없어 optional 이다 —
+   * 비어 있으면 저장 경로의 파일명으로 내려간다.
+   */
+  fileName?: string;
   pendingNote: string;
 }
 
@@ -647,17 +652,52 @@ const RE_ARTICLE = /^제\s*\d+\s*조/;
 // 본문에는 있는데 좌측 목차에서만 빠졌고, 시행일을 찾으려면 끝까지 스크롤해야 했다.
 // "부칙" 한 단어이거나 "부칙 (2026.9.1.)" 처럼 뒤에 날짜가 붙는 형태를 받는다.
 const RE_ADDENDUM = /^부\s*칙(\s|$|[(（])/;
+// [신규 2026-09-02] 별표도 목차에 오른다. 규약 뒤에 붙는 별표 1·2 는 장 번호가 없어
+// 본문에는 있는데 왼쪽에서 찾아갈 수가 없었다. 대괄호·홑화살괄호 표기도 함께 받는다.
+const RE_ANNEX = /^[[<(]?\s*별\s*표\s*\d/;
 
 /** 규약 원문을 장·조로 파싱한다. 장·조로 시작하지 않는 줄은 직전 조의 항이 된다. */
+/**
+ * 규약 본문에 표를 넣을 수 있게 한다 (2026-09-02).
+ *
+ * 본문은 줄 단위 평문이고 그 위에 장·조 구조와 왼쪽 목차가 서 있다 — 통째로 리치텍스트로
+ * 바꾸면 그 구조가 무너진다. 그래서 `<table>` 로 시작해 `</table>` 로 끝나는 덩어리만
+ * 한 항(paragraph)으로 묶어 HTML 그대로 들고 간다. 렌더링하는 쪽이
+ * `isRuleTableParagraph()` 로 갈라 표는 sanitize 후 그리고, 나머지는 평문으로 찍는다.
+ */
+export function isRuleTableParagraph(paragraph: string): boolean {
+  return /^<table[\s>]/i.test(paragraph.trim());
+}
+
 export function parseRules(body: string): ParsedRuleChapter[] {
   const chapters: ParsedRuleChapter[] = [];
   let chapter: ParsedRuleChapter | null = null;
   let article: { title: string; paragraphs: string[] } | null = null;
+  // 표는 여러 줄에 걸쳐 있다 — 닫는 태그를 만날 때까지 모아 한 항으로 넣는다.
+  let tableLines: string[] | null = null;
 
   for (const raw of body.split("\n")) {
     const line = raw.trim();
+    if (tableLines) {
+      tableLines.push(line);
+      if (/<\/table>/i.test(line)) {
+        if (article) article.paragraphs.push(tableLines.join("\n"));
+        tableLines = null;
+      }
+      continue;
+    }
     if (!line) continue;
-    if (RE_CHAPTER.test(line) || RE_ADDENDUM.test(line)) {
+    if (/^<table[\s>]/i.test(line)) {
+      // 조 안에서만 의미가 있다 — 조 밖의 표는 붙일 자리가 없어 버린다.
+      if (!article) continue;
+      if (/<\/table>/i.test(line)) {
+        article.paragraphs.push(line);
+      } else {
+        tableLines = [line];
+      }
+      continue;
+    }
+    if (RE_CHAPTER.test(line) || RE_ADDENDUM.test(line) || RE_ANNEX.test(line)) {
       chapter = { id: `chapter-${chapters.length + 1}`, title: line, articles: [] };
       chapters.push(chapter);
       article = null;
