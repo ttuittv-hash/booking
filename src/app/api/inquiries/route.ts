@@ -97,6 +97,8 @@ export async function POST(request: Request) {
     contactName: contactName || user?.name || null,
     contactEmail: contactEmail || user?.email || null,
     contactPhone: contactPhone || user?.phone || null,
+    // 비회원은 로그인으로 답변을 볼 수 없다 — 링크에 담을 열쇠를 만들어 둔다.
+    accessToken: user ? null : crypto.randomUUID(),
     createdAt,
   });
   await notifyAdmins({

@@ -1104,6 +1104,8 @@ export interface Inquiry {
   contactName: string | null;
   contactEmail: string | null;
   contactPhone: string | null;
+  /** 비회원 문의를 링크로 열어 보게 하는 열쇠. 회원 문의는 없다(로그인으로 연다). */
+  accessToken: string | null;
   status: InquiryStatus;
   answer: string | null;
   answeredAt: string | null;

@@ -3,6 +3,7 @@ import crypto from "node:crypto";
 import { getCurrentUser } from "@/lib/auth";
 import { answerInquiry, createNotification, findUserById, getInquiryById } from "@/lib/db";
 import { dispatchMessageInBackground } from "@/lib/message/dispatch";
+import { audienceOrigin } from "@/lib/publicUrl";
 
 export async function POST(request: Request, ctx: { params: Promise<{ id: string }> }) {
   const user = await getCurrentUser();
@@ -38,9 +39,20 @@ export async function POST(request: Request, ctx: { params: Promise<{ id: string
   const email = inquiry.contactEmail ?? registrant?.email ?? null;
   const name = inquiry.contactName ?? registrant?.name ?? "";
   if (registrant || phone || email) {
+    /*
+      비회원 문의는 로그인으로 답변을 볼 수 없다 — 메일 본문의 링크를 그 문의 하나를
+      여는 주소로 바꾼다(열쇠 포함). 카카오 쪽 링크는 템플릿 등록값 고정이라 그대로
+      두고(수정하면 재검수), 우리가 만드는 메일 본문만 바꾼다.
+    */
+    const guestLink =
+      inquiry.accessToken && !inquiry.userId
+        ? `${audienceOrigin(request, "APPLICANT")}/inquiry/${id}?t=${encodeURIComponent(inquiry.accessToken)}`
+        : null;
+
     dispatchMessageInBackground({
       templateCode: "ARENA-0009",
       idempotencyKey: `ARENA-0009:${id}:${now}`,
+      buttonUrl: guestLink,
       recipient: { userId: registrant?.id ?? null, phone, email, name },
       variables: { 등록자명: name },
       request,

@@ -51,6 +51,14 @@ export interface DispatchInput {
   inApp?: boolean;
   /** 인앱 알림을 눌렀을 때 갈 곳(건마다 달라지는 상세 화면 등). */
   inAppLink?: string | null;
+  /**
+   * 메일 본문에 넣을 버튼 링크를 건마다 바꾼다 (2026-09-02).
+   *
+   * 카카오 쪽 링크(kakaoUrl)는 템플릿 등록값 고정이라 건드리지 않는다 — 여기서 바꾸는
+   * 것은 우리가 직접 만드는 메일 본문뿐이다. 비회원 문의처럼 로그인 화면이 아니라
+   * 그 건 하나를 여는 링크를 줘야 할 때 쓴다.
+   */
+  buttonUrl?: string | null;
 }
 
 export interface DispatchOutcome {
@@ -126,9 +134,11 @@ export async function dispatchMessage(input: DispatchInput): Promise<DispatchOut
     button: def.button
       ? {
           name: def.button.name,
-          url: input.request
-            ? `${audienceOrigin(input.request, def.audience)}${def.button.path}`
-            : def.button.path,
+          url:
+            input.buttonUrl ??
+            (input.request
+              ? `${audienceOrigin(input.request, def.audience)}${def.button.path}`
+              : def.button.path),
           // 환경별 신규 템플릿(예: MB-02-DEV)에 등록된 링크로 덮어쓸 수 있다(templateOverrides.ts).
           kakaoUrl: resolveKakaoButtonUrl(def.button.kakaoUrl),
           // 템플릿에 PC 링크(linkPc)가 등록된 경우에만 채운다 — 있으면 url_pc 로 그대로 보낸다.

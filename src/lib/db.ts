@@ -538,6 +538,9 @@ async function initSchema(pool: Pool) {
     -- 답변받을 곳(2026-09-02). 계정 정보와 다를 수 있어 문의마다 따로 받는다.
     -- 비회원(비로그인) 문의도 받으므로 user_id 는 비어 있을 수 있다.
     ALTER TABLE inquiries ALTER COLUMN user_id DROP NOT NULL;
+    -- 비회원 문의를 열어 보는 열쇠. 계정이 없어 로그인으로는 답변을 볼 수 없으므로,
+    -- 접수할 때 만든 이 값이 든 링크로만 그 문의 하나를 연다(2026-09-02).
+    ALTER TABLE inquiries ADD COLUMN IF NOT EXISTS access_token TEXT;
     ALTER TABLE inquiries ADD COLUMN IF NOT EXISTS contact_name TEXT;
     ALTER TABLE inquiries ADD COLUMN IF NOT EXISTS contact_email TEXT;
     ALTER TABLE inquiries ADD COLUMN IF NOT EXISTS contact_phone TEXT;
@@ -4942,6 +4945,7 @@ interface InquiryRow {
   user_id: string | null;
   category: string | null;
   quote_id: string | null;
+  access_token: string | null;
   title: string;
   content: string;
   contact_name: string | null;
@@ -4962,6 +4966,7 @@ function toInquiry(row: InquiryRow): Inquiry {
     quoteId: row.quote_id,
     title: row.title,
     content: row.content,
+    accessToken: row.access_token,
     contactName: row.contact_name,
     contactEmail: row.contact_email,
     contactPhone: row.contact_phone,
@@ -4984,13 +4989,15 @@ export async function createInquiry(input: {
   contactName?: string | null;
   contactEmail?: string | null;
   contactPhone?: string | null;
+  /** 비회원 문의를 링크로 열어 보게 하는 열쇠 */
+  accessToken?: string | null;
   createdAt: string;
 }): Promise<Inquiry> {
   await q(
     `INSERT INTO inquiries
        (id, user_id, category, quote_id, title, content,
-        contact_name, contact_email, contact_phone, status, created_at)
-     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, 'OPEN', $10)`,
+        contact_name, contact_email, contact_phone, access_token, status, created_at)
+     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, 'OPEN', $11)`,
     [
       input.id,
       input.userId,
@@ -5001,10 +5008,25 @@ export async function createInquiry(input: {
       input.contactName ?? null,
       input.contactEmail ?? null,
       input.contactPhone ?? null,
+      input.accessToken ?? null,
       input.createdAt,
     ],
   );
   return (await getInquiryById(input.id))!;
+}
+
+/**
+ * 비회원 문의 조회 — 링크에 담긴 열쇠가 맞을 때만 준다 (2026-09-02).
+ * 계정이 없어 로그인으로는 못 여는 문의라, 이 열쇠가 유일한 열람 경로다.
+ * 비교는 길이가 달라도 시간이 새지 않도록 상수 시간으로 한다.
+ */
+export async function getInquiryByToken(id: string, token: string): Promise<Inquiry | undefined> {
+  if (!token) return undefined;
+  const row = await one<InquiryRow>(
+    "SELECT * FROM inquiries WHERE id = $1 AND access_token IS NOT NULL AND access_token = $2",
+    [id, token],
+  );
+  return row ? toInquiry(row) : undefined;
 }
 
 export async function getInquiryById(id: string): Promise<Inquiry | undefined> {
