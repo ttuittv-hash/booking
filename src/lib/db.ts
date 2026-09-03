@@ -1813,7 +1813,14 @@ export async function deleteUserCascade(userId: string): Promise<DeleteUserResul
       [userId],
     );
     if (!user) return { deletedUser: false, deletedCompany: false, removed: {} };
-    if (user.role === "ADMIN") throw new Error("운영자 계정은 지울 수 없습니다.");
+    /*
+      [수정 2026-09-03] 운영자 계정도 지울 수 있다.
+
+      예전에는 여기서 막았다 — 실수로 운영자를 지우면 백오피스에 못 들어가기 때문이다.
+      그런데 퇴사자 계정을 없앨 방법이 아예 없어졌다("권한 해제 말고도 삭제가 필요").
+      막는 자리를 여기가 아니라 **호출부**로 옮긴다: 라우트가 마스터 관리자인지,
+      자기 자신이 아닌지, 마지막 마스터가 아닌지를 본다.
+    */
 
     const removed: Record<string, number> = {};
 
@@ -3108,6 +3115,40 @@ export async function setUserApprovalStatus(
       WHERE id = $2`,
     [approvalStatus, id, decidedBy ?? null, new Date().toISOString(), rejectReason ?? null],
   );
+  return (await findUserById(id))!;
+}
+
+/** 마스터 관리자 수 — 마지막 한 명을 내리거나 지우지 못하게 막을 때 쓴다. */
+export async function countMasterAdmins(): Promise<number> {
+  const row = await one<{ n: number }>(
+    "SELECT COUNT(*)::int as n FROM users WHERE role = 'ADMIN' AND admin_tier = 'MASTER'",
+  );
+  return row?.n ?? 0;
+}
+
+/**
+ * 운영자 권한 해제 — 계정은 남기고 신청자로 되돌린다 (2026-09-03).
+ *
+ * 백오피스 접근만 거두는 동작이라 계정·이력은 그대로 둔다. 「삭제」와 다르다 —
+ * 삭제는 `deleteUserCascade` 로 기록째 지운다.
+ *
+ * 마지막 마스터는 막는다. 마스터가 0명이 되면 등급·이관 화면을 아무도 못 여는데,
+ * 그 상태를 화면에서 되돌릴 방법이 없다.
+ */
+export async function demoteAdminToApplicant(id: string): Promise<AppUser> {
+  const target = await findUserById(id);
+  if (!target || target.role !== "ADMIN") throw new Error("운영자 계정이 아닙니다.");
+  if (target.adminTier === "MASTER") {
+    const masters = await one<{ n: number }>(
+      "SELECT COUNT(*)::int as n FROM users WHERE role = 'ADMIN' AND admin_tier = 'MASTER'",
+    );
+    if ((masters?.n ?? 0) <= 1) {
+      throw new Error("마지막 남은 마스터 관리자는 권한을 해제할 수 없습니다.");
+    }
+  }
+  // 신청자로 돌아가면 운영자 등급은 의미가 없다 — 남겨 두면 다시 운영자로 올렸을 때
+  // 예전 등급이 조용히 따라 올라온다.
+  await q("UPDATE users SET role = 'APPLICANT', admin_tier = NULL WHERE id = $1", [id]);
   return (await findUserById(id))!;
 }
 

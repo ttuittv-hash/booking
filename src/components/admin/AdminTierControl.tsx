@@ -82,37 +82,75 @@ export function AdminTierControl({ userId, tier }: { userId: string; tier: Admin
 }
 
 /**
- * 운영자 권한 해제 — 계정을 삭제하지 않고 신청자로 되돌린다.
- * 자기 자신과 마지막 마스터는 서버가 막는다.
+ * 운영자 계정에 할 수 있는 두 가지 (2026-09-03).
+ *
+ *   권한 해제 — 계정은 남기고 신청자로 되돌린다. 백오피스 접근만 거둔다.
+ *   삭제      — 계정과 그 사람에게 매인 기록을 지운다. 되돌릴 수 없다.
+ *
+ * 둘은 결과가 아주 달라 한 버튼에 담을 수 없다. 퇴사자 계정을 실제로 없애려면
+ * 해제만으로는 부족했다("권한 해제 말고도 삭제가 필요합니다").
+ *
+ * [고침] 예전 [권한 해제] 는 계정 삭제 라우트(DELETE)를 불렀는데 그 라우트는 신청자만
+ * 받아, 눌러도 「신청자 계정만 삭제할 수 있습니다」로 되돌아오는 버튼이었다.
+ *
+ * 자기 자신·마지막 마스터는 서버가 막는다.
  */
 export function AdminDemoteButton({ userId, name }: { userId: string; name: string }) {
   const router = useRouter();
   const dialog = useDialog();
-  const [saving, setSaving] = useState(false);
+  const [busy, setBusy] = useState<null | "demote" | "delete">(null);
   const [error, setError] = useState<string | null>(null);
 
-  async function demote() {
-    if (!(await dialog.confirm(`「${name}」 계정의 운영자 권한을 해제할까요?\n계정은 남고 신청자로 되돌립니다.`, { okLabel: "해제" }))) return;
-    setSaving(true);
+  async function run(kind: "demote" | "delete") {
+    const ok =
+      kind === "demote"
+        ? await dialog.confirm(
+            `「${name}」 계정의 운영자 권한을 해제할까요?\n계정은 남고 신청자로 되돌립니다.`,
+            { okLabel: "해제" },
+          )
+        : await dialog.confirm(
+            `「${name}」 계정을 삭제할까요?\n계정과 이 계정에 매인 기록이 함께 지워지며 되돌릴 수 없습니다.`,
+            { okLabel: "삭제", tone: "danger" },
+          );
+    if (!ok) return;
+    setBusy(kind);
     setError(null);
     try {
-      const res = await fetch(`/api/admin/users/${userId}`, { method: "DELETE" });
+      const res = await fetch(
+        kind === "demote" ? `/api/admin/users/${userId}/demote` : `/api/admin/users/${userId}`,
+        { method: kind === "demote" ? "POST" : "DELETE" },
+      );
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
-        setError(data.error || "권한을 해제하지 못했습니다.");
+        setError(data.error || (kind === "demote" ? "권한을 해제하지 못했습니다." : "삭제하지 못했습니다."));
         return;
       }
       router.refresh();
     } finally {
-      setSaving(false);
+      setBusy(null);
     }
   }
 
   return (
     <span className="inline-flex flex-col items-end gap-1">
-      <button type="button" onClick={demote} disabled={saving} className={REMOVE_BTN}>
-        {saving ? "처리 중…" : "권한 해제"}
-      </button>
+      <span className="flex items-center gap-2">
+        <button
+          type="button"
+          onClick={() => run("demote")}
+          disabled={busy !== null}
+          className={REMOVE_BTN}
+        >
+          {busy === "demote" ? "처리 중…" : "권한 해제"}
+        </button>
+        <button
+          type="button"
+          onClick={() => run("delete")}
+          disabled={busy !== null}
+          className={`${REMOVE_BTN} text-danger`}
+        >
+          {busy === "delete" ? "삭제 중…" : "삭제"}
+        </button>
+      </span>
       {error && <span className="text-xs text-danger">{error}</span>}
     </span>
   );
