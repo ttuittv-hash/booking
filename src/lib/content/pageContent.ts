@@ -545,6 +545,15 @@ export const DEFAULT_BOOK_IT_NOTICE: BookItNoticeTexts = {
   body: "대관 신청은 준비 중입니다.\n접수 시작 일정은 공지사항으로 안내드립니다.",
 };
 
+/**
+ * 줄바꿈을 넣기 전 기본값(2026-09-03 초판). 화면 문구가 한 번이라도 저장된 적
+ * 있으면 그 시점의 bookItNotice 통째로 DB 에 남아, 나중에 기본값을 고쳐도(줄바꿈
+ * 추가) 반영되지 않는다 — `LEGACY_DOCUMENTS_LEAD` 와 같은 이유·같은 처방이다.
+ * 저장된 본문이 이 옛 문구와 글자 하나까지 같을 때만 새 기본값으로 바꾼다.
+ */
+export const LEGACY_BOOK_IT_NOTICE_BODY =
+  "대관 신청은 준비 중입니다. 접수 시작 일정은 공지사항으로 안내드립니다.";
+
 export const DEFAULT_REGISTER_INTRO: RegisterIntroTexts = {
   heading: "기업회원으로 가입합니다.",
   title: "기업회원",

@@ -311,7 +311,14 @@ export function MembersManager({ currentUserId }: { currentUserId: string }) {
                   void act("/api/company/invitations", { action: "resend", id: iv.id }).then((data) => {
                     if (!data) return;
                     if (data.inviteUrl) setInviteUrl(data.inviteUrl);
-                    setNotice(`${iv.email} 로 초대를 다시 발송했습니다.`);
+                    // 재발송은 휴대폰 번호로 알림톡을 다시 보낸다(/api/company/invitations
+                    // 의 MB-06) — 실제로 나가는 채널과 다르게 "이메일로"라고 알려 왔던
+                    // 문구를 고친다(2026-09-03 피드백). 휴대폰이 없는 옛 초대만 이메일로 남는다.
+                    setNotice(
+                      iv.phone
+                        ? `${iv.phone} 로 알림톡을 다시 발송했습니다.`
+                        : `${iv.email} 로 초대를 다시 발송했습니다.`,
+                    );
                   }),
               },
               {

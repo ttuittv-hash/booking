@@ -236,6 +236,54 @@ export function parsePastedTsv(text: string): { head: string[]; rows: string[][]
   return { head: pad(grid[0]), rows: grid.slice(1).map(pad) };
 }
 
+/**
+ * 규약 본문은 **한 줄 = 한 항(paragraph)** 이다(`parseRules`). PDF·워드 뷰어에서 복사한
+ * 조문은 화면 너비에 맞춰 강제로 줄바꿈된 상태 그대로 클립보드에 담기는 일이 흔하고,
+ * 그 강제 줄바꿈은 한글 조사·쉼표 뒤처럼 자연스러운 개행 지점에서 특히 자주 일어난다.
+ * 그걸 그대로 받으면 한 문장이 문장 중간, 흔히 쉼표 바로 뒤에서 툭 끊긴 채 별개의
+ * 항으로 저장되고, 화면에는 문장 중간에 줄바꿈이 노출된다
+ * ("쉼표 있을 때 또는 간헐적으로 줄바꿈" 신고, 2026-09-03).
+ *
+ * 붙여넣은 글에서 **문장이 끝나지 않은 줄**(마침표 등으로 끝나지 않고, 다음 줄도
+ * 새 장·조·항목 표식으로 시작하지 않는 경우)은 다음 줄과 이어 붙여 되돌린다.
+ * 이 문서의 실제 관례(장·조·부칙·별표·가나다라 항목·원문자 항은 늘 새 줄에서
+ * 시작한다, 완결된 문장도 새 줄에서 시작한다)를 그대로 규칙으로 쓴다 — 표식이나
+ * 마침표로 이미 끝난 문장은 손대지 않으므로 정상적으로 한 줄씩 써 둔 본문에는
+ * 아무 효과가 없다(원본을 복사해 다시 붙여넣어도 그대로 유지된다).
+ */
+const STRUCTURAL_LINE_RE =
+  /^(제\s*\d+\s*장|제\s*\d+\s*조|부\s*칙(\s|$|[(（])|[[<(]?\s*별\s*표\s*\d|[①②③④⑤⑥⑦⑧⑨⑩⑪⑫⑬⑭⑮]|[가-힣]\.\s|\d+\.\s)/;
+
+/** 문장이 끝났다고 볼 수 있는 줄(빈 줄 포함) — 이 뒤는 새 줄로 이어 붙이지 않는다. */
+function endsLikeSentence(trimmed: string): boolean {
+  if (trimmed === "") return true;
+  return /[.!?:)"'）」』】]$/.test(trimmed);
+}
+
+export function dewrapPastedText(text: string): string {
+  const rawLines = (text ?? "").replace(/\r\n?/g, "\n").split("\n");
+  const out: string[] = [];
+  for (const raw of rawLines) {
+    const trimmed = raw.trim();
+    if (trimmed === "") {
+      out.push("");
+      continue;
+    }
+    const prev = out.length > 0 ? out[out.length - 1] : null;
+    const prevTrimmed = prev?.trim() ?? "";
+    const isStructural = STRUCTURAL_LINE_RE.test(trimmed);
+    if (prev !== null && prevTrimmed !== "" && !isStructural && !endsLikeSentence(prevTrimmed)) {
+      out[out.length - 1] = `${prevTrimmed} ${trimmed}`;
+    } else {
+      out.push(trimmed);
+    }
+  }
+  return out
+    .join("\n")
+    .replace(/\n{3,}/g, "\n\n")
+    .trim();
+}
+
 /** 새 표 한 장 — 머리행 + 빈 행들. */
 export function blankTable(rows: number, cols: number): RuleBodyBlock {
   return {

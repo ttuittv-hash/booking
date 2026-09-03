@@ -15,6 +15,7 @@
 import { useMemo, useRef, useState } from "react";
 import {
   blankTable,
+  dewrapPastedText,
   joinRuleBody,
   parsePastedBlocks,
   parsePastedTsv,
@@ -116,10 +117,27 @@ export function RuleBodyEditor({
       글이 전부 사라졌고, 본문을 다 선택한 채 붙여넣었다면 규약 전문이 표 한 장으로
       바뀌었다 — 되돌릴 방법이 없다.
     */
-    const pasted: RuleBodyBlock[] | null =
+    const pastedBlocks: RuleBodyBlock[] | null =
       (html ? parsePastedBlocks(html) : null) ??
       ((tsv) => (tsv ? [{ kind: "table" as const, ...tsv }] : null))(parsePastedTsv(plain));
-    if (!pasted || pasted.length === 0) return;
+
+    /*
+      [신규 2026-09-03] 표도 탭 구분 글도 아닌 보통 문단 붙여넣기.
+      PDF·워드 뷰어에서 조문을 복사하면 화면 너비에 맞춰 강제로 줄바꿈된 상태 그대로
+      클립보드에 담긴다 — 그 줄바꿈이 한글 조사·쉼표 뒤 같은 자연스러운 지점에서
+      자주 일어난다. 그대로 브라우저 기본 붙여넣기에 맡기면 한 문장이 문장 중간(흔히
+      쉼표 바로 뒤)에서 끊긴 채 별개의 항으로 들어가고, 화면에도 문장 중간에 줄바꿈이
+      드러난다("쉼표 있을 때 또는 간헐적으로 줄바꿈" 신고). 문장이 끝나지 않은 줄은
+      다음 줄과 이어 붙여서 넣는다(dewrapPastedText) — 이미 한 줄씩 잘 써 둔 본문을
+      복사해 붙여넣으면 아무것도 바뀌지 않는다.
+    */
+    const pasted: RuleBodyBlock[] =
+      pastedBlocks && pastedBlocks.length > 0
+        ? pastedBlocks
+        : plain.trim()
+          ? [{ kind: "text" as const, text: dewrapPastedText(plain) }]
+          : [];
+    if (pasted.length === 0) return;
 
     e.preventDefault();
     const target = blocks[i];

@@ -38,6 +38,7 @@ import {
   DEFAULT_SCREEN_TEXT_CONTENT,
   DEFAULT_SEOULARENA_CONTENT,
   FEATURES_CONTENT_VERSION,
+  LEGACY_BOOK_IT_NOTICE_BODY,
   RATES_CONTENT_VERSION,
   normalizeRatesContent,
   type DocumentsContent,
@@ -5828,9 +5829,19 @@ export async function saveNoticeCalendarWindow(data: NoticeCalendarWindow) {
 /**
  * 화면 문구는 상단바(모든 화면)가 읽는다 — 요청당 한 번만 조회한다.
  * `getCurrentUser` 와 같은 관례다.
+ *
+ * BOOK IT 오픈 예정 안내(bookItNotice)는 저장본이 있으면 그 객체 전체가 기본값을
+ * 덮어써서(얕은 병합), 나중에 기본 문구를 고쳐도(줄바꿈 추가) 이미 한 번 저장된
+ * 화면 문구에는 반영되지 않는다 — `getDocumentsContent` 의 legacy 문구 교체와 같은
+ * 이유다. 저장된 본문이 줄바꿈 넣기 전 옛 문구와 글자 하나까지 같을 때만 새 기본값
+ * (줄바꿈 포함)으로 바꾼다. 운영자가 직접 고친 문구는 건드리지 않는다.
  */
 export const getScreenTextContent = cache(async function getScreenTextContent(): Promise<ScreenTextContent> {
-  return getPageContent("screenText", DEFAULT_SCREEN_TEXT_CONTENT);
+  const content = await getPageContent("screenText", DEFAULT_SCREEN_TEXT_CONTENT);
+  if (content.bookItNotice?.body === LEGACY_BOOK_IT_NOTICE_BODY) {
+    return { ...content, bookItNotice: { ...content.bookItNotice, body: DEFAULT_SCREEN_TEXT_CONTENT.bookItNotice.body } };
+  }
+  return content;
 });
 export async function saveScreenTextContent(data: ScreenTextContent) {
   return saveSiteContent("screenText", data);
