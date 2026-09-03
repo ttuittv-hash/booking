@@ -1,6 +1,7 @@
 "use client";
 
 import { useRef, useState } from "react";
+import { useDialog } from "@/components/ui/Dialog";
 import { useRouter } from "next/navigation";
 import type { Faq, Notice } from "@/lib/pricing/types";
 import type { HomeContent, LegalContent } from "@/lib/content/types";
@@ -197,6 +198,7 @@ function NoticesTab({
   setNotices: (n: Notice[]) => void;
   router: ReturnType<typeof useRouter>;
 }) {
+  const dialog = useDialog();
   const [tag, setTag] = useState("");
   const [title, setTitle] = useState("");
   const [body, setBody] = useState("");
@@ -336,7 +338,13 @@ function NoticesTab({
     }
   }
 
-  async function remove(id: string) {
+  // [신규 2026-09-04] 삭제는 되돌릴 수 없으니 디자인 다이얼로그로 한 번 더 묻는다(브라우저 confirm 대신).
+  async function remove(id: string, title: string) {
+    const ok = await dialog.confirm(
+      `"${title}" 공지를 삭제할까요?\n삭제한 공지는 되돌릴 수 없습니다.`,
+      { okLabel: "삭제", cancelLabel: "취소", tone: "danger" },
+    );
+    if (!ok) return;
     await fetch(`/api/admin/notices/${id}`, { method: "DELETE" });
     setNotices(notices.filter((n) => n.id !== id));
     if (editingId === id) resetForm();
@@ -385,7 +393,7 @@ function NoticesTab({
                   >
                     수정
                   </button>
-                  <button type="button" onClick={() => remove(notice.id)} className={REMOVE_BTN}>
+                  <button type="button" onClick={() => remove(notice.id, notice.title)} className={REMOVE_BTN}>
                     삭제
                   </button>
                 </div>
@@ -528,6 +536,7 @@ function FaqTab({
   setFaqs: (f: Faq[]) => void;
   router: ReturnType<typeof useRouter>;
 }) {
+  const dialog = useDialog();
   const [tag, setTag] = useState("");
   const [question, setQuestion] = useState("");
   const [answer, setAnswer] = useState("");
@@ -591,7 +600,12 @@ function FaqTab({
     }
   }
 
-  async function remove(id: string) {
+  async function remove(id: string, question: string) {
+    const ok = await dialog.confirm(
+      `"${question}" FAQ를 삭제할까요?\n삭제한 FAQ는 되돌릴 수 없습니다.`,
+      { okLabel: "삭제", cancelLabel: "취소", tone: "danger" },
+    );
+    if (!ok) return;
     await fetch(`/api/admin/faq/${id}`, { method: "DELETE" });
     setFaqs(faqs.filter((f) => f.id !== id));
     if (editingId === id) resetForm();
@@ -626,7 +640,7 @@ function FaqTab({
                   >
                     수정
                   </button>
-                  <button type="button" onClick={() => remove(faq.id)} className={REMOVE_BTN}>
+                  <button type="button" onClick={() => remove(faq.id, faq.question)} className={REMOVE_BTN}>
                     삭제
                   </button>
                 </div>
