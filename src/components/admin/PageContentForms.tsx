@@ -873,7 +873,7 @@ export function ScreenTextForm({ content }: { content: ScreenTextContent }) {
               신청이 열리는 날 배포 없이 여기서 끈다. */}
           <Section
             title="BOOK IT 「오픈 예정」 안내"
-            help="켜면 상단바 BOOK IT 이 신청 화면으로 가지 않고, 올려 두거나 누를 때 아래 안내를 띄웁니다. 신청 접수를 시작하면 끄세요."
+            help="켜면 상단바 BOOK IT 이 신청 화면으로 가지 않고, 올려 두거나 누를 때 아래 안내를 띄웁니다. 운영자로 로그인했을 때는 그대로 신청 화면이 열립니다. 신청 접수를 시작하면 끄세요."
           >
             <label className="flex items-center gap-2 text-s">
               <input

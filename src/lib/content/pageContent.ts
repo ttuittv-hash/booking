@@ -541,7 +541,8 @@ export interface BookItNoticeTexts {
 export const DEFAULT_BOOK_IT_NOTICE: BookItNoticeTexts = {
   enabled: true,
   title: "오픈 예정",
-  body: "대관 신청은 준비 중입니다. 접수 시작 일정은 공지사항으로 안내드립니다.",
+  // 줄바꿈은 화면에 그대로 나간다 — 운영자가 나눈 대로 읽힌다.
+  body: "대관 신청은 준비 중입니다.\n접수 시작 일정은 공지사항으로 안내드립니다.",
 };
 
 export const DEFAULT_REGISTER_INTRO: RegisterIntroTexts = {

@@ -46,11 +46,16 @@ export const NAV_CATEGORIES: NavCategory[] = [
 export const NAV_ACTION = { href: "/apply", label: "Book It" } as const;
 
 /**
- * 1차 오픈(2026-09-03) 기준 Book It 메뉴 숨김 — 팀 요청("Book it 메뉴 숨김처리, 2차 노출 9/7 때 원복").
- * true 면 상단바·모바일·푸터에서 Book It 이 빠진다(「오픈 예정」 안내 코드는 그대로 두고 가린다).
- * 9/7 2차 노출 때 false 로 되돌리면 안내/링크가 다시 보인다. /apply 경로 자체는 그대로.
+ * Book It 을 상단바에서 **통째로 빼는** 스위치 (2026-09-03).
+ *
+ * 1차 오픈 때 한 번 켰다가 껐다 — "숨김처리 하지말고, 클릭 또는 마우스 오버하면
+ * 오픈 예정이라고 레이어로 보여주는게 좋음"(팀 요청, 나중 결정). 메뉴를 감추면 이
+ * 서비스가 무엇을 하는 곳인지 흐려지기 때문이다.
+ *
+ * 그래서 평소 쓰는 스위치는 이것이 아니라 **콘텐츠 관리 > 화면 문구 > BOOK IT
+ * 「오픈 예정」 안내**다(배포 없이 껐다 켠다). 이 상수는 자리까지 없애야 할 때만 켠다.
  */
-export const NAV_ACTION_HIDDEN = true;
+export const NAV_ACTION_HIDDEN = false;
 
 /**
  * 우측 — 대관 공지. 한 뎁스로 꺼내 「지원」 왼쪽에 둔다 (2026-09-03).
