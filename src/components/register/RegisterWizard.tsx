@@ -1529,7 +1529,7 @@ function StepDone({
       <h2 className="type-kr-heading break-keep text-h5-m sm:text-h5">가입 신청이 접수되었습니다</h2>
       <p className="mt-3 break-keep text-s leading-6 text-muted">승인 완료 후 이용 가능합니다.</p>
       {notice ? (
-        <p data-testid="join-notice" className="mx-auto mt-5 max-w-lg break-keep border border-border-soft px-5 py-4 text-s leading-6">
+        <p data-testid="join-notice" className="mx-auto mt-5 max-w-lg whitespace-pre-line break-keep border border-border-soft px-5 py-4 text-s leading-6">
           {notice}
         </p>
       ) : null}

@@ -576,7 +576,7 @@ export async function POST(request: Request) {
       : joinKind === "REAPPLY_REJECTED"
         ? "이전에 미승인 처리된 회사입니다. 운영자가 다시 심사합니다."
         : joinKind === "JOIN_APPROVED"
-          ? "등록된 회사에 합류 신청되었습니다. 회사 대표 담당자 또는 운영자가 승인합니다."
+          ? "등록된 회사에 합류 신청되었습니다. \n회사 대표 담당자 또는 운영자가 승인합니다."
           : null;
   return NextResponse.json({ user, joinKind, joinNotice });
 }
