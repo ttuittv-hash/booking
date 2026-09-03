@@ -221,6 +221,36 @@ export function NoticeEditor({
     content: value,
     onUpdate: ({ editor }) => onChange(splitTableHeadRows(editor.getHTML())),
     editorProps: {
+      /*
+        이미지를 붙여넣거나(스크린샷 Ctrl+V) 끌어다 놓으면(드래그) TipTap 기본 동작은
+        base64 data: URL 로 문서에 그대로 박아 넣는다 — 이미지 하나가 수백 KB~수 MB
+        가 되어 저장 요청이 갑자기 커진다("본문이 너무 큽니다" 안내가 나오던 그 문제,
+        2026-09-02). 파일이면 붙여넣기/드롭 시점에 가로채 업로드 라우트로 올리고
+        실제 URL 로만 삽입한다. 워드·페이지에서 복사한 서식에 이미지가 이미
+        data: URL 로 박혀 오는 경우(파일이 아니라 붙여넣은 HTML 자체에 포함)는
+        업로드로 가로챌 수 없어 통째로 지운다 — [이미지 삽입] 버튼으로 다시 넣게 한다.
+      */
+      handlePaste(_view, event) {
+        const files = Array.from(event.clipboardData?.files ?? []).filter((f) =>
+          f.type.startsWith("image/"),
+        );
+        if (files.length === 0) return false;
+        event.preventDefault();
+        files.forEach((file) => uploadAndInsertImage(file));
+        return true;
+      },
+      handleDrop(_view, event) {
+        const files = Array.from(event.dataTransfer?.files ?? []).filter((f) =>
+          f.type.startsWith("image/"),
+        );
+        if (files.length === 0) return false;
+        event.preventDefault();
+        files.forEach((file) => uploadAndInsertImage(file));
+        return true;
+      },
+      transformPastedHTML(html) {
+        return html.replace(/<img\b[^>]*\ssrc=["']data:[^"']*["'][^>]*>/gi, "");
+      },
       attributes: {
         // 문단 간격은 공개 화면과 똑같이 margin 없이 줄간격(leading)만 쓴다 — RICH_TEXT의
         // [&_p]:mt-4 를 그대로 쓰면 편집기에서만 문단 사이가 눈에 띄게 벌어져 보인다.
