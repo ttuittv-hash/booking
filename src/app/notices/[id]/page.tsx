@@ -99,6 +99,10 @@ const PROSE = [
       · 나머지 괘선: #DDD 한 겹. 표 바깥 테두리는 없다
   */
   "[&_table]:my-7 [&_table]:w-auto [&_table]:min-w-full [&_table]:border-collapse [&_table]:bg-panel [&_table]:text-s [&_table]:leading-6 [&_table]:tabular-nums",
+  /* [신규 2026-09-03] 편집기에서 열 폭을 끌어 맞춘 표는 그 폭대로 그린다.
+     폭이 지정된 칸이 하나라도 있을 때만 고정 레이아웃으로 바꾼다 — 폭을 안 건드린
+     기존 표까지 균등 분할로 만들면 지금 잘 나오는 표가 틀어진다. */
+  "[&_table:has(td[style*=width],th[style*=width])]:table-fixed",
   "[&_thead]:bg-foreground",
   "[&_thead_th]:bg-foreground [&_thead_th]:text-background",
   "[&_th]:px-3 [&_th]:py-2 [&_th]:text-left [&_th]:font-bold",
