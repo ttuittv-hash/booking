@@ -39,6 +39,11 @@ const PAGES: Record<string, Loader> = {
 };
 
 export async function GET(_request: Request, ctx: { params: Promise<{ page: string }> }) {
+  // [보안 2026-09-04] 콘텐츠 원본 GET 도 운영자 전용 — 승인 전용 페이지(규약·요금 등)가 여기로 새어 나갔다.
+  const user = await getCurrentUser();
+  if (!user || user.role !== "ADMIN") {
+    return NextResponse.json({ error: "운영자 로그인이 필요합니다." }, { status: 401 });
+  }
   const { page } = await ctx.params;
   const loader = PAGES[page];
   if (!loader) return NextResponse.json({ error: "알 수 없는 페이지입니다." }, { status: 404 });

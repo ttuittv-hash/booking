@@ -2,6 +2,8 @@ import { NextResponse } from "next/server";
 import fs from "node:fs/promises";
 import path from "node:path";
 import { DATA_DIR } from "@/lib/dataDir";
+import { getCurrentUser } from "@/lib/auth";
+import { accountStateOf, canAccess } from "@/lib/accessPolicy";
 
 const UPLOAD_ROOT = path.join(DATA_DIR, "uploads", "notice-attachments");
 
@@ -9,6 +11,10 @@ const UPLOAD_ROOT = path.join(DATA_DIR, "uploads", "notice-attachments");
 const SAFE_FILENAME_RE = /^[0-9a-f-]{36}\.[a-z0-9]{1,10}$/;
 
 export async function GET(request: Request, ctx: { params: Promise<{ filename: string }> }) {
+  // [보안 2026-09-04] 공지 본문과 같은 기준(승인 완료 전용)으로 첨부도 막는다 — UUID 파일명만으론 숨겨지지 않는다.
+  if (!canAccess("/notices", accountStateOf(await getCurrentUser()))) {
+    return NextResponse.json({ error: "승인 완료 후 이용할 수 있습니다." }, { status: 403 });
+  }
   const { filename } = await ctx.params;
   if (!SAFE_FILENAME_RE.test(filename)) {
     return NextResponse.json({ error: "잘못된 요청입니다." }, { status: 400 });

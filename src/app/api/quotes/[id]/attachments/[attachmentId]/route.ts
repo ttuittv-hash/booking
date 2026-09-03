@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import fs from "node:fs/promises";
 import path from "node:path";
-import { canAccessQuote, getCurrentUser } from "@/lib/auth";
+import { canAccessQuote, canActOnQuotes, getCurrentUser } from "@/lib/auth";
 import { deleteAttachment, getAttachmentById, getQuoteById } from "@/lib/db";
 import { DATA_DIR } from "@/lib/dataDir";
 
@@ -59,6 +59,11 @@ export async function DELETE(
   const { id, attachmentId } = await ctx.params;
   const result = await authorize(id, attachmentId);
   if ("error" in result) return result.error;
+  // [보안 2026-09-04] 열람 권한만으로 지울 수 있었다 — 삭제는 신청 권한(승인 완료 또는 운영자)이 있어야 한다.
+  const actor = await getCurrentUser();
+  if (!actor || !canActOnQuotes(actor)) {
+    return NextResponse.json({ error: "승인 완료 후 이용할 수 있습니다." }, { status: 403 });
+  }
 
   const filePath = path.join(UPLOAD_ROOT, id, result.attachment.storedName);
   await fs.unlink(filePath).catch(() => {});

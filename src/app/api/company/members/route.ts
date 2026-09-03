@@ -19,6 +19,10 @@ export async function GET() {
   if (!user?.companyId) {
     return NextResponse.json({ error: "소속 회사가 없습니다." }, { status: 403 });
   }
+  // [보안 2026-09-04] 승인 전(심사 중·반려) 계정은 동료 연락처를 볼 수 없다.
+  if (user.role !== "ADMIN" && user.approvalStatus !== "APPROVED") {
+    return NextResponse.json({ error: "승인 완료 후 이용할 수 있습니다." }, { status: 403 });
+  }
   const members = await listCompanyMembers(user.companyId);
   return NextResponse.json({
     members: members.map((m) => ({

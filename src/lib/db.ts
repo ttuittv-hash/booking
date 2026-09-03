@@ -698,6 +698,7 @@ async function initSchema(pool: Pool) {
     CREATE UNIQUE INDEX IF NOT EXISTS idx_users_company_master
       ON users(company_id) WHERE company_role = 'MASTER' AND company_id IS NOT NULL;
     CREATE INDEX IF NOT EXISTS idx_users_company ON users(company_id) WHERE company_id IS NOT NULL;
+    CREATE INDEX IF NOT EXISTS idx_users_email ON users(email) WHERE email IS NOT NULL;
     CREATE INDEX IF NOT EXISTS idx_terms_agreements_user ON terms_agreements(user_id);
     CREATE INDEX IF NOT EXISTS idx_identity_verifications_di ON identity_verifications(di_index);
     CREATE INDEX IF NOT EXISTS idx_company_invitations_company ON company_invitations(company_id);

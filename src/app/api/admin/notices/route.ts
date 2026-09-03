@@ -4,7 +4,12 @@ import { getCurrentUser } from "@/lib/auth";
 import { createNotice, listNotices } from "@/lib/db";
 import { sanitizeRichText } from "@/lib/sanitizeHtml";
 
+// [보안 2026-09-04] 목록 GET 도 운영자 전용 — 화면은 서버에서 읽고, 이 API 를 읽는 클라이언트는 없다.
 export async function GET() {
+  const user = await getCurrentUser();
+  if (!user || user.role !== "ADMIN") {
+    return NextResponse.json({ error: "운영자 로그인이 필요합니다." }, { status: 401 });
+  }
   return NextResponse.json({ notices: await listNotices() });
 }
 

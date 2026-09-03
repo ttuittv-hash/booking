@@ -105,7 +105,8 @@ export async function POST(request: Request) {
     return NextResponse.json({ authUrl: issued.authUrl, transactionId: issued.transactionId });
   } catch (error) {
     return NextResponse.json(
-      { error: error instanceof Error ? error.message : "본인인증을 시작하지 못했습니다." },
+      // 원문 오류는 서버 로그에만 — 외부 연동 오류 문구가 화면으로 새지 않게 (보안 점검 2026-09-04)
+      { error: "본인인증을 시작하지 못했습니다. 잠시 후 다시 시도해 주세요." },
       { status: 502 },
     );
   }

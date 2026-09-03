@@ -50,7 +50,16 @@ export default function LoginPage() {
       // [수정 2026-09-03] next 가 없으면 예전엔 /apply 로 보냈다 — 로그인만 했을 뿐인데
       // 무조건 대관 신청 위저드로 떨어지는 게 이상하다는 신고. 홈으로 보낸다.
       const next = new URLSearchParams(window.location.search).get("next");
-      const safeNext = next && next.startsWith("/") && !next.startsWith("//") ? next : null;
+      // 사이트 안 경로만 허용 — "/\\evil.com" 처럼 브라우저가 슬래시로 바꾸는 값도 origin 비교로 걸러낸다(보안 점검 2026-09-04).
+      const safeNext = (() => {
+        if (!next || !next.startsWith("/")) return null;
+        try {
+          const u = new URL(next, window.location.origin);
+          return u.origin === window.location.origin ? u.pathname + u.search + u.hash : null;
+        } catch {
+          return null;
+        }
+      })();
       router.push(data.user.role === "ADMIN" ? "/" : (safeNext ?? "/"));
       router.refresh();
     } finally {

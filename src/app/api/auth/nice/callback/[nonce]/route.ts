@@ -71,11 +71,11 @@ export async function GET(request: Request, context: { params: Promise<{ nonce: 
     await completeIdentityVerification(pending.id, {
       succeeded: false,
       resultCode: "ERROR",
-      resultMessage: error instanceof Error ? error.message : "알 수 없는 오류",
+      resultMessage: "본인인증 처리 중 오류",
     });
     return html({
       ok: false,
-      message: error instanceof Error ? error.message : "본인인증에 실패했습니다.",
+      message: "본인인증에 실패했습니다. 잠시 후 다시 시도해 주세요.",
     });
   }
 }
