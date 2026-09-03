@@ -11,7 +11,7 @@ const gp=await guest.newPage();
 for (const [path, expect, label] of [
   ["/api/terms", 200, "약관 본문(공개)"],
   ["/api/auth/nice/config", 200, "본인인증 설정(공개)"],
-  ["/api/rates", 200, "요금표 조회"],
+  ["/api/rates", [401, 403], "요금표 조회"],
   ["/api/notifications", 401, "알림(로그인 필요)"],
   ["/api/company/members", [401,403], "담당자 목록(로그인 필요)"],
   ["/api/admin/notification-rules", 401, "알림 규칙(운영자 전용)"],
