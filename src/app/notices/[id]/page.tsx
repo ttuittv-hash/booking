@@ -4,7 +4,8 @@ import path from "node:path";
 import { notFound } from "next/navigation";
 import { DATA_DIR } from "@/lib/dataDir";
 import { getCurrentUser, requireAccess } from "@/lib/auth";
-import { getNoticeById, getNoticeCalendarWindow } from "@/lib/db";
+import { getNoticeById, getNoticeCalendarWindow, getScreenTextContent } from "@/lib/db";
+import { scheduleLegend } from "@/lib/content/scheduleLegend";
 import { sanitizeRichText } from "@/lib/sanitizeHtml";
 import { splitNoticeBodyAtCalendarMarker } from "@/lib/content/noticeCalendarMarker";
 import {
@@ -140,7 +141,11 @@ export default async function NoticeDetailPage({
   const currentUser = await getCurrentUser();
 
   const { id } = await params;
-  const [notice, calendarWindow] = await Promise.all([getNoticeById(id), getNoticeCalendarWindow()]);
+  const [notice, calendarWindow, screenText] = await Promise.all([
+    getNoticeById(id),
+    getNoticeCalendarWindow(),
+    getScreenTextContent(),
+  ]);
   if (!notice) notFound();
 
   // 캘린더가 보여 줄 달의 범위(2026-09-02). 이번 회차에 신청받는 달만 넘겨 보게 한다 —
@@ -168,6 +173,7 @@ export default async function NoticeDetailPage({
       startMonth={calendarBounds.start}
       endMonth={calendarBounds.end}
       endDay={calendarBounds.endDay}
+      legend={scheduleLegend(screenText.wizardStrings)}
     />
   );
 

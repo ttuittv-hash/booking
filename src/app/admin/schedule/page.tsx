@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/lib/auth";
-import { getNoticeCalendarWindow } from "@/lib/db";
+import { getNoticeCalendarWindow, getScreenTextContent } from "@/lib/db";
+import { scheduleLegend } from "@/lib/content/scheduleLegend";
 import { kstNowMonth } from "@/lib/content/noticeCalendarWindow";
 import { AdminNav } from "@/components/admin/AdminNav";
 import { ScheduleManager } from "@/components/admin/ScheduleManager";
@@ -13,7 +14,7 @@ export default async function AdminSchedulePage() {
   if (user.role !== "ADMIN") redirect("/apply");
 
   const now = new Date();
-  const calendarWindow = await getNoticeCalendarWindow();
+  const [calendarWindow, screenText] = await Promise.all([getNoticeCalendarWindow(), getScreenTextContent()]);
 
   return (
     <div className="flex flex-1 flex-col">
@@ -32,7 +33,11 @@ export default async function AdminSchedulePage() {
             화면 밖이라, 기능이 없는 것으로 읽혔다. */}
         <NoticeCalendarWindowForm initial={calendarWindow} nowMonth={kstNowMonth(now)} />
 
-        <ScheduleManager initialYear={now.getFullYear()} initialMonth={now.getMonth() + 1} />
+        <ScheduleManager
+          initialYear={now.getFullYear()}
+          initialMonth={now.getMonth() + 1}
+          legend={scheduleLegend(screenText.wizardStrings)}
+        />
       </main>
     </div>
   );

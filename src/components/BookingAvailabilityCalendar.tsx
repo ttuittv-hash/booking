@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { isoDate } from "@/lib/pricing/dateRange";
+import { scheduleLegend, type ScheduleLegend } from "@/lib/content/scheduleLegend";
 import type { DateBlock } from "@/lib/pricing/types";
 import { btnClass } from "@/components/ui/kit";
 
@@ -66,9 +67,12 @@ export interface CalendarMonthRange {
   endMonth?: string | null;
   /** 마지막 달 격자 끝에 이어 붙일 다음 달 마지막 날(`YYYY-MM-DD`). endMonth 가 있을 때만 의미 있다 */
   endDay?: string | null;
+  /** 범주 문구·색(운영자 설정). 비우면 기본값 */
+  legend?: ScheduleLegend | null;
 }
 
-function CalendarBody({ initialMonth, startMonth, endMonth, endDay }: CalendarMonthRange) {
+function CalendarBody({ initialMonth, startMonth, endMonth, endDay, legend: legendProp }: CalendarMonthRange) {
+  const legend = legendProp ?? scheduleLegend(null);
   const now = new Date();
   const opening = parseMonthKey(initialMonth) ?? [now.getFullYear(), now.getMonth() + 1];
   const [year, setYear] = useState(opening[0]);
@@ -190,14 +194,14 @@ function CalendarBody({ initialMonth, startMonth, endMonth, endDay }: CalendarMo
           한쪽은 "대관사 확정", 한쪽은 "1건" 이라고 말하면 어느 쪽이 맞는지 알 수 없다. */}
       <div className="mt-3 flex flex-wrap items-center gap-4 text-xs text-muted">
         <span className="flex items-center gap-1.5">
-          <span className="h-2 w-2 rounded-full bg-foreground" /> 대관사 확정
+          <span className={["h-2 w-2 rounded-full", legend.confirmed.dot].join(" ")} /> {legend.confirmed.label}
         </span>
         <span className="flex items-center gap-1.5">
-          <span className={["h-2 w-2 rounded-full", venueTab === "arena" ? "bg-accent" : "bg-good"].join(" ")} />
-          심사 중
+          <span className={["h-2 w-2 rounded-full", legend.reviewing.dot ?? (venueTab === "arena" ? "bg-accent" : "bg-good")].join(" ")} />
+          {legend.reviewing.label}
         </span>
         <span className="flex items-center gap-1.5">
-          <span className="h-2 w-2 rounded-full bg-danger" /> 대관 불가 일정
+          <span className={["h-2 w-2 rounded-full", legend.blocked.dot].join(" ")} /> {legend.blocked.label}
         </span>
       </div>
 
@@ -257,7 +261,7 @@ function CalendarBody({ initialMonth, startMonth, endMonth, endDay }: CalendarMo
                     {inMonth && count > 0 && (
                       <span className="flex items-center gap-0.5">
                         {confirmedCount > 0 && (
-                          <span className="bg-foreground px-1 text-xs font-bold text-background">
+                          <span className={[legend.confirmed.badge, "px-1 text-xs font-bold"].join(" ")}>
                             확정 {confirmedCount}
                           </span>
                         )}

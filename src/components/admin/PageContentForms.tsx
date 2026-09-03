@@ -33,6 +33,7 @@ import {
   venueLabelKey,
   venueRateTabKey,
 } from "@/lib/content/venueLabels";
+import { LEGEND_COLORS, LEGEND_COLOR_LABELS, LEGEND_KEYS } from "@/lib/content/scheduleLegend";
 
 /* ============================================================================
    페이지별 콘텐츠 편집 폼.
@@ -792,12 +793,54 @@ export function ScreenTextForm({ content }: { content: ScreenTextContent }) {
             ))}
           </Section>
 
+          {/* [2026-09-03 팀 요청] 일정 달력 범주의 문구와 색 — 공고 달력과 어드민 일정 관리가 같이 쓴다.
+              색은 사이트 토큰 4개만 고른다. 비워 두면 지금까지의 기본 문구·색이다. */}
+          <Section
+            title="일정 달력 범주"
+            help="대관 확정 · 심사 중 · 대관 불가 일정의 문구와 색입니다. 공고 페이지 달력과 일정 관리 화면에 함께 반영됩니다. 비워 두면 기본값입니다."
+          >
+            {(
+              [
+                ["confirmed", "대관 확정", true],
+                ["reviewing", "심사 중", false],
+                ["blocked", "대관 불가 일정", true],
+              ] as const
+            ).map(([key, fallback, fixed]) => {
+              const labelKey = LEGEND_KEYS[`${key}Label`];
+              const colorKey = LEGEND_KEYS[`${key}Color`];
+              return (
+                <div key={key} className="grid gap-3 sm:grid-cols-[1fr_180px]">
+                  <Text
+                    label={`${fallback} — 문구`}
+                    value={v.wizardStrings[labelKey] ?? ""}
+                    onChange={(t) => patch({ wizardStrings: { ...v.wizardStrings, [labelKey]: t } })}
+                  />
+                  <label className="block">
+                    <span className="mb-2 block text-xs font-bold">{fallback} — 색</span>
+                    <select
+                      className="field-base"
+                      value={v.wizardStrings[colorKey] ?? ""}
+                      onChange={(e) => patch({ wizardStrings: { ...v.wizardStrings, [colorKey]: e.target.value } })}
+                    >
+                      <option value="">{fixed ? "기본" : "기본(공간별: 아레나 노랑 · 중형 초록)"}</option>
+                      {LEGEND_COLORS.map((c) => (
+                        <option key={c} value={c}>
+                          {LEGEND_COLOR_LABELS[c]}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                </div>
+              );
+            })}
+          </Section>
+
           {/* [신규 2026-09-02] 대관료 페이지의 투뎁스 탭만 영문 표기를 쓴다
-              (ARENA / Live Hall / All in One). 공간 이름과 같은 값을 쓰면 위저드까지
+              (2026-09-03 부터 한글: 아레나 대관료 / 중형공연장 대관료 / 올인원 대관료). 공간 이름과 같은 값을 쓰면 위저드까지
               영문이 되므로 key 를 따로 둔다. */}
           <Section
             title="대관료 페이지 탭 이름"
-            help="대관료 화면 위쪽 토글에만 쓰는 이름입니다. 비워 두면 ARENA · Live Hall · All in One 으로 나갑니다."
+            help="대관료 화면 위쪽 토글에만 쓰는 이름입니다. 비워 두면 아레나 대관료 · 중형공연장 대관료 · 올인원 대관료 로 나갑니다."
           >
             {VENUES.map((venue) => (
               <Text

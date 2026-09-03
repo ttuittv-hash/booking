@@ -1,5 +1,6 @@
 "use client";
 
+import { scheduleLegend, type ScheduleLegend } from "@/lib/content/scheduleLegend";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { isoDate } from "@/lib/pricing/dateRange";
@@ -86,7 +87,16 @@ function dayGroupOf(entry: ScheduleOccupancyEntry): DayGroupKey {
   return "REVIEWING";
 }
 
-export function ScheduleManager({ initialYear, initialMonth }: { initialYear: number; initialMonth: number }) {
+export function ScheduleManager({
+  initialYear,
+  initialMonth,
+  legend: legendProp,
+}: {
+  initialYear: number;
+  initialMonth: number;
+  legend?: ScheduleLegend | null;
+}) {
+  const legend = legendProp ?? scheduleLegend(null);
   const [year, setYear] = useState(initialYear);
   const [month, setMonth] = useState(initialMonth);
   const [blocks, setBlocks] = useState<DateBlock[]>([]);
@@ -213,14 +223,14 @@ export function ScheduleManager({ initialYear, initialMonth }: { initialYear: nu
 
       <div className="mt-3 flex flex-wrap items-center gap-4 text-xs text-muted">
         <span className="flex items-center gap-1.5">
-          <span className="h-2 w-2 rounded-full bg-foreground" /> 대관 확정(승인 · 계약 · 정산)
+          <span className={["h-2 w-2 rounded-full", legend.confirmed.dot].join(" ")} /> {legend.confirmed.label}(승인 · 계약 · 정산)
         </span>
         <span className="flex items-center gap-1.5">
-          <span className={["h-2 w-2 rounded-full", venueTab === "arena" ? "bg-accent" : "bg-good"].join(" ")} />
-          심사 중({venueLabel(venueTab)} 신청)
+          <span className={["h-2 w-2 rounded-full", legend.reviewing.dot ?? (venueTab === "arena" ? "bg-accent" : "bg-good")].join(" ")} />
+          {legend.reviewing.label}({venueLabel(venueTab)} 신청)
         </span>
         <span className="flex items-center gap-1.5">
-          <span className="h-2 w-2 rounded-full bg-danger" /> 대관 불가 일정(관리자 지정 · {venueLabel(venueTab)} 전용)
+          <span className={["h-2 w-2 rounded-full", legend.blocked.dot].join(" ")} /> {legend.blocked.label}(관리자 지정 · {venueLabel(venueTab)} 전용)
         </span>
       </div>
 
@@ -275,8 +285,8 @@ export function ScheduleManager({ initialYear, initialMonth }: { initialYear: nu
                           <span className="flex items-center gap-0.5">
                             {confirmedCount > 0 && (
                               <span
-                                className="bg-foreground px-1 text-xs font-bold text-background"
-                                title="대관 확정"
+                                className={[legend.confirmed.badge, "px-1 text-xs font-bold"].join(" ")}
+                                title={legend.confirmed.label}
                               >
                                 확정 {confirmedCount}
                               </span>
