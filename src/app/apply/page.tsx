@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { redirect } from "next/navigation";
 import { requireAccessedUser } from "@/lib/auth";
 import {
   findCompanyById,
@@ -12,6 +13,7 @@ import {
 import { PublicHeader } from "@/components/PublicHeader";
 import { SiteFooter } from "@/components/ui/SiteFooter";
 import { Band, PageHead, Prose } from "@/components/ui/kit";
+import { NAV_ACTION_HIDDEN } from "@/components/ui/nav-items";
 import { WizardShell } from "@/components/wizard/WizardShell";
 import { WizardTextProvider } from "@/lib/content/wizardText";
 
@@ -24,6 +26,11 @@ export const metadata: Metadata = {
  *
  * 접수 개시일(9/1) 전에는 안내 화면을 보여 줬지만, 정본(partner.dev.seoularena.net/apply)
  * 기준으로 위저드를 그대로 노출한다. 개시 게이트는 두지 않는다.
+ *
+ * [추가 2026-09-03] 다만 BOOK IT 이 「오픈 예정」 안내 모드일 때는 상단바 버튼이
+ * 레이어로 대체돼 실제 링크를 감추지만, 그 상태에서도 /apply 주소를 직접 치면
+ * 승인 완료 계정 누구나 위저드로 들어갈 수 있었다("주소 알면 뚫린다" 신고).
+ * 상단바와 같은 조건(운영자만 통과)으로 여기서도 막는다.
  */
 export default async function ApplyPage({
   searchParams,
@@ -32,6 +39,14 @@ export default async function ApplyPage({
 }) {
   // 기획서 A15 접근권한 매트릭스 — 규칙은 accessPolicy.ts 한 곳에만 둔다
   const currentUser = await requireAccessedUser("/apply");
+
+  // 상단바의 bookItComingSoon 과 같은 조건 — 메뉴 자체를 숨겼거나(NAV_ACTION_HIDDEN)
+  // 화면 문구 > BOOK IT 오픈 예정 안내가 켜져 있으면 운영자를 뺀 누구도 위저드에
+  // 들어가지 못한다.
+  if (currentUser.role !== "ADMIN") {
+    const gate = NAV_ACTION_HIDDEN ? null : await getScreenTextContent();
+    if (NAV_ACTION_HIDDEN || gate?.bookItNotice?.enabled) redirect("/");
+  }
 
   const [
     { new: startFreshParam },
