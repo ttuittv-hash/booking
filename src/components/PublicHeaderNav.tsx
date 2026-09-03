@@ -182,6 +182,13 @@ export function PublicHeaderNav({
   // 눌렀을 때 가는 곳(로그인)이 막다른 길이 아니라 다음 걸음이다.
   // 로그인한 사람에게만 감춘다. 그 사람에게 "지금은 못 여는 메뉴"는 안내가 아니라 벽이다.
   const allowed = (href: string) => accountState === "GUEST" || canAccess(href, accountState);
+  /*
+    [수정 2026-09-03] 운영자에게는 「오픈 예정」을 걸지 않는다.
+
+    이 안내는 아직 신청을 받지 않는다는 대외 안내지, 운영자를 막는 장치가 아니다.
+    운영자는 오픈 전에도 신청 화면을 열어 흐름을 확인해야 한다.
+  */
+  const bookItComingSoon = !!bookItNotice?.enabled && currentUser?.role !== "ADMIN";
   const visibleCategories = NAV_CATEGORIES.map((cat) => ({
     ...cat,
     pages: cat.pages.filter((p) => allowed(p.href)),
@@ -342,7 +349,7 @@ export function PublicHeaderNav({
             {/* [신규 2026-09-03] 신청을 아직 받지 않는 동안(1차 오픈)에는 자리를 비우지 않고
                 「오픈 예정」 안내를 띄운다. 메뉴를 감추면 이 서비스가 무엇을 하는 곳인지
                 흐려진다 — 자리는 두되 누르거나 올려 두면 언제 열리는지 알려 준다. */}
-            {bookItNotice?.enabled ? (
+            {bookItComingSoon && bookItNotice ? (
               <li
                 className="relative ml-2 flex items-center"
                 onMouseEnter={() => {
@@ -361,11 +368,13 @@ export function PublicHeaderNav({
                 {openKey === BOOK_IT_KEY && (
                   <div
                     role="status"
-                    className="absolute left-1/2 top-full z-50 w-64 -translate-x-1/2 animate-[dropdown-in_0.14s_ease-out] bg-background p-4 shadow-md"
+                    className="absolute left-1/2 top-full z-50 w-72 -translate-x-1/2 animate-[dropdown-in_0.14s_ease-out] bg-background p-4 shadow-md"
                     onMouseEnter={() => openWithCancel(BOOK_IT_KEY)}
                   >
                     <p className="text-xs font-bold">{bookItNotice.title}</p>
-                    <p className="mt-2 break-keep text-xs leading-5 text-muted">
+                    {/* 운영자가 나눈 줄을 그대로 낸다 — 문구를 여러 줄로 써도 한 줄로
+                        이어 붙던 자리다(2026-09-03). */}
+                    <p className="mt-2 whitespace-pre-line break-keep text-xs leading-5 text-muted">
                       {bookItNotice.body}
                     </p>
                   </div>
@@ -516,14 +525,16 @@ export function PublicHeaderNav({
                   </ul>
                 </li>
               ))}
-              {bookItNotice?.enabled ? (
+              {bookItComingSoon && bookItNotice ? (
                 /* 좁은 화면에는 호버가 없다 — 안내를 접었다 펴지 않고 그대로 붙여 둔다. */
                 <li className="text-center">
                   <p className="flex h-12 items-center justify-center type-display text-s text-muted">
                     {NAV_ACTION.label}
                   </p>
                   <p className="text-xs font-bold">{bookItNotice.title}</p>
-                  <p className="mt-1 break-keep text-xs leading-5 text-muted">{bookItNotice.body}</p>
+                  <p className="mt-1 whitespace-pre-line break-keep text-xs leading-5 text-muted">
+                    {bookItNotice.body}
+                  </p>
                 </li>
               ) : allowed(NAV_ACTION.href) ? (
                 <li>
