@@ -47,8 +47,9 @@ say(/제목|신청번호/.test(t), "다음으로 빠진 항목을 이어서 알�
 
 // 다 채우면 저장되는가
 const n=String(Date.now()).slice(-6);
-// 유형을 고르면 신청번호 칸이 앞에 생긴다 — 제목은 마지막 텍스트 칸이다.
-await p.locator('input[type="text"]').last().fill("UI 점검 "+n);
+// [수정 2026-09-03] 제목을 라벨로 특정한다. "답변받으실 곳"의 이름 칸(type=text)이
+// 제목 뒤에 생겨 .last() 가 이름을 집었고, 제목이 빈 채 제출돼 저장 실패로 오인했다.
+await p.locator('label:has-text("제목") input').fill("UI 점검 "+n);
 await p.locator("textarea").first().fill("버튼 검증용 본문입니다.");
 await toastGone(p);
 await inqBtn.click(); await p.waitForTimeout(3500);
