@@ -1268,8 +1268,13 @@ function StepInfo({
         <Field label="대표번호">
           <input data-testid="f-companyPhone" readOnly={locked} value={form.companyPhone} onChange={set("companyPhone")} placeholder="02-1234-5678" className={inputCls(locked)} />
         </Field>
-        <Field label="대표팩스">
-          <input data-testid="f-companyFax" readOnly={locked} value={form.companyFax} onChange={set("companyFax")} className={inputCls(locked)} />
+        <Field
+          label="대표팩스"
+          hint={locked && form.companyFax === "" ? "미등록 · 입력하면 회사 정보에 채워집니다" : undefined}
+        >
+          {/* 다른 기업 정보와 달리 팩스는 검증 대상이 아니고 비어 있는 채 방치되는 일이
+              잦았다 — 회사 정보가 잠긴 합류 상황에서도 이 칸만은 열어 둔다(2026-09-03). */}
+          <input data-testid="f-companyFax" value={form.companyFax} onChange={set("companyFax")} className={inputCls(false)} />
         </Field>
         <Field label="법인등록번호" hint="선택 · 법인만">
           <input data-testid="f-corporateNumber" readOnly={locked} value={form.corporateNumber} onChange={set("corporateNumber")} placeholder="110111-1234567" className={inputCls(locked)} />
@@ -1610,7 +1615,7 @@ function CompanySearchDialog({
             data-testid="search-field"
             value={field}
             onChange={(e) => setField(e.target.value as "name" | "brn")}
-            className="border border-border-soft px-3 py-2.5 text-s"
+            className="h-11 border border-border-soft px-3 text-s sm:h-8"
           >
             <option value="name">회사명</option>
             <option value="brn">사업자등록번호</option>
@@ -1624,7 +1629,7 @@ function CompanySearchDialog({
               if (e.key === "Enter") void run();
             }}
             placeholder="회사명 2자 이상 또는 사업자등록번호 10자리"
-            className="min-w-0 flex-1 border border-border-soft px-3 py-2.5 text-s"
+            className="h-11 min-w-0 flex-1 border border-border-soft px-3 text-s sm:h-8"
           />
           <button type="button" data-testid="search-run" onClick={() => void run()} className={`${btnClass("primary", "sm")} whitespace-nowrap`}>
             검색

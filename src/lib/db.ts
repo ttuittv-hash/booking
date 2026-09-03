@@ -1596,7 +1596,17 @@ export async function findOrCreateCompany(
       "SELECT * FROM companies WHERE business_registration_number = $1",
       [brn],
     );
-    if (byBrn) return toCompany(byBrn);
+    if (byBrn) {
+      // 회사명·대표자·주소 등은 이미 확인된 값이라 합류자가 못 건드리게 잠가 두지만,
+      // 대표팩스는 검증 대상이 아니고 비어 있는 채로 방치되는 일이 잦았다 — 아직
+      // 없을 때만 합류자가 적어 낸 값으로 채운다(기존 값은 덮어쓰지 않는다, 2026-09-03).
+      const newFax = extra?.companyFax?.trim();
+      if (newFax && !byBrn.company_fax) {
+        await q("UPDATE companies SET company_fax = $1 WHERE id = $2", [newFax, byBrn.id]);
+        byBrn.company_fax = newFax;
+      }
+      return toCompany(byBrn);
+    }
   } else {
     // 사업자번호 없이 등록된 예전 데이터와의 호환 경로.
     const existing = await one<CompanyRow>("SELECT * FROM companies WHERE lower(name) = lower($1)", [

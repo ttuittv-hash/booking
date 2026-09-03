@@ -46,7 +46,9 @@ export async function GET(request: Request) {
   if (total === 0) {
     return NextResponse.json({
       state: "EMPTY",
-      message: "찾으시는 회사가 없다면 회사 정보를 직접 입력해 신규 등록으로 진행해주세요.",
+      // 안내는 화면 하단의 고정 문구 하나로 충분하다 — 여기서 비슷한 말을 더 하면
+      // 같은 안내가 두 번 겹쳐 보인다("두 번 반복됨" 신고, 2026-09-03).
+      message: "검색 결과가 없습니다.",
       results: [],
     });
   }
