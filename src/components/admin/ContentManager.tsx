@@ -20,6 +20,7 @@ import { NoticeEditor } from "./NoticeEditor";
 import { HomeContentForm } from "./HomeContentForm";
 import { formatDateTime } from "@/lib/format";
 import { useQueryTab } from "@/components/admin/useQueryTab";
+import { confirmDiscardUnsaved } from "./unsavedChanges";
 import { LegalContentForm } from "./LegalContentForm";
 import {
   DocumentsForm,
@@ -139,7 +140,17 @@ export function ContentManager({
             ["legal", "약관 · 정책"],
           ] as const
         ).map(([key, label]) => (
-          <button key={key} type="button" onClick={() => setTab(key)} className={tabCls(tab === key)}>
+          <button
+            key={key}
+            type="button"
+            /* 탭을 바꾸면 그 탭의 폼이 통째로 사라진다 — 저장 안 한 편집이 있으면 먼저 묻는다.
+               올린 파일이 저장 없이 사라져 공개 화면이 옛 파일을 계속 내려준 적이 있다. */
+            onClick={() => {
+              if (key !== tab && !confirmDiscardUnsaved()) return;
+              setTab(key);
+            }}
+            className={tabCls(tab === key)}
+          >
             {label}
           </button>
         ))}
