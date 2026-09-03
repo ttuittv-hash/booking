@@ -32,16 +32,19 @@ export default async function NewInquiryPage() {
 
       <main className="flex flex-1 flex-col">
         <Band tone="light" size="sm">
-          <PageHead
-            as="h2"
-            en="NEW INQUIRY"
-            ko="문의 작성"
-            lead="문의 유형을 선택해 주시면 담당 부서가 확인 후 답변드립니다."
-          />
+          {/* [수정 2026-09-04] 폼과 같은 폭으로 페이지 가운데에 — 넓은 화면에서 왼쪽에 치우치지 않게 */}
+          <div className="mx-auto max-w-2xl">
+  <PageHead
+              as="h2"
+              en="NEW INQUIRY"
+              ko="문의 작성"
+              lead="문의 유형을 선택해 주시면 담당 부서가 확인 후 답변드립니다."
+            />
+          </div>
         </Band>
 
         <Band tone="white" size="sm">
-          <div className="max-w-2xl">
+          <div className="mx-auto max-w-2xl">
             <NewInquiryForm
               myQuoteIds={quotes.map((q) => q.id)}
               notifyEmail={user.email}
