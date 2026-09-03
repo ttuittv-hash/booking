@@ -108,7 +108,9 @@ export default async function NoticesPage({
               </Band>
             )}
 
-            <Band tone="light" size="md" divide={pinned.length === 0}>
+            {/* [삭제 2026-09-03] 「전체 공지」 위 가로줄은 두지 않는다 — 위 섹션과 지면색이
+                갈리는 것으로 이미 구분되고, 줄까지 그으면 경계가 두 겹으로 쌓인다. */}
+            <Band tone="light" size="md">
               {rest.length > 0 && (
                 <>
                   <h2 className="type-kr-heading text-h5-m sm:text-h5">전체 공지</h2>

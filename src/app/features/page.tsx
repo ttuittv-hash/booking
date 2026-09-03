@@ -105,6 +105,21 @@ function CapacityCard({ cap }: { cap: CapacityBlock }) {
 const WIDE_CARD_DESC_LENGTH = 22;
 
 /**
+ * 값(큰 글씨)이 이 글자 수 이상이어도 넓힌다.
+ *
+ * [수정 2026-09-03] 설명 길이만 보던 규칙은 **운영 콘텐츠에서 한 번도 걸리지 않았다** —
+ * 실제로 쓰이는 카드는 설명을 비우고 내용을 값에 넣는다(`SMART STAGE` 의
+ * "(2.73m x 4.55m)*2 EA", `RETRACTABLE SEATING` 의 "1F-1,848seats / 3F -156seats").
+ * 값은 32px 로 나가서 3칼럼(안쪽 약 240px)에 13~15자면 벌써 접힌다 — 설명보다 기준이 낮다.
+ */
+const WIDE_CARD_VALUE_LENGTH = 18;
+
+/** 카드가 2칼럼을 차지해야 하는가 — 값·설명 중 하나라도 기준을 넘으면 넓힌다 */
+function isWideCard(card: SpecCard): boolean {
+  return card.value.length >= WIDE_CARD_VALUE_LENGTH || card.desc.length >= WIDE_CARD_DESC_LENGTH;
+}
+
+/**
  * 스펙 카드 — 검정 지면 위 **흰 배경 · 검정 아웃라인** 박스.
  * 한 장은 [라벨 / 큰 수치 / 설명] 세 줄이고, 12칼럼에서 3칼럼(설명이 길면 6칼럼)이다.
  * 스냅은 4 → 2 → 1 로 그대로 두므로, 좁은 화면에서는 폭 차이가 사라진다.
@@ -115,9 +130,7 @@ function SpecCardGrid({ cards }: { cards: SpecCard[] }) {
       {cards.map((card, i) => (
         <li
           key={`${card.label}-${i}`}
-          className={
-            card.desc.length >= WIDE_CARD_DESC_LENGTH ? "lg:col-span-6" : "lg:col-span-3"
-          }
+          className={isWideCard(card) ? "lg:col-span-6" : "lg:col-span-3"}
         >
           {/* 검정 밴드 안이라 토큰을 밝은 면으로 되돌린다 — 안 그러면 흰 배경에 흰 글자다 */}
           <article
@@ -221,9 +234,9 @@ function VenuePanel({
   ko: string;
   c: VenueFacilityContent;
   /**
-   * 상위 4개 포인트의 크기. 아레나는 값이 `22,500` 같은 수치 한 덩어리라 H3(lg)로
-   * 두지만, 중형은 `좌석형 · 스탠딩형 가변 구성` 같은 서술문이라 같은 크기면 카드마다
-   * 세 줄까지 접힌다 — 한 단 낮춘 H4(md)로 둔다.
+   * 개요 카드 값의 크기. **지금은 두 탭 다 md(32px / 모바일 24px)** 다 —
+   * 운영 콘텐츠에서 개요가 `CONCERT · FESTIVAL · AWARDS …` 같은 긴 나열이 되면서
+   * H3 로는 카드마다 여러 줄로 접혔다. 탭마다 달리 잡을 여지는 남겨 둔다.
    */
   overviewSize: "md" | "lg";
 }) {
@@ -241,7 +254,9 @@ function VenuePanel({
         <PageHead en={en} ko={ko} />
         {c.overview.length > 0 && (
           <div className="mt-10">
-            <StatCards items={c.overview} size={overviewSize} />
+            {/* 개요 값만 Archivo Medium — 이 화면의 개요는 영문 나열이라 국문 헤딩보다
+                Archivo 가 맞고, 800 은 너무 무거워 500 으로 쓴다 (2026-09-03) */}
+            <StatCards items={c.overview} size={overviewSize} valueFont="archivo" />
           </div>
         )}
       </Band>
@@ -307,7 +322,7 @@ export default async function FeaturesPage() {
             label: t.label,
             panel:
               t.value === "arena" ? (
-                <VenuePanel en="ARENA" ko="아레나" c={content.arena} overviewSize="lg" />
+                <VenuePanel en="ARENA" ko="아레나" c={content.arena} overviewSize="md" />
               ) : (
                 <VenuePanel
                   en="LIVE HALL"
