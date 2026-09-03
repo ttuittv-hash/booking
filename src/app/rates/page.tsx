@@ -18,6 +18,7 @@ import {
   Band,
   PageHead,
   Prose,
+  RichText,
   SectionHead,
   StatCards,
   TitledCard,
@@ -108,14 +109,25 @@ function RateCards({ rowLabels, columns }: { rowLabels: string[]; columns: RateC
 function IncludeCard({ group }: { group: RateIncludeGroup }) {
   return (
     <TitledCard title={group.title}>
-      <dl className="border-t border-border">
+      {/*
+        [개정 2026-09-03]
+        · 표 맨 위 가로줄은 두지 않는다 — 바로 위가 카드의 검정 머리라, 줄을 하나 더 그으면
+          제목과 첫 항목 사이에 경계가 두 겹으로 쌓인다. 항목 사이 줄만 남긴다.
+        · 카드 안을 **3분할해 제목 1 : 설명 2** 로 잡는다. 반반이면 제목 칸이 필요 이상으로
+          넓어 설명이 계속 접혔다.
+      */}
+      <dl>
         {group.rows.map((r, i) => (
           <div
             key={`${r.label}-${i}`}
-            className="grid gap-1 border-b border-border py-4 last:border-b-0 sm:grid-cols-2 sm:gap-6"
+            className="grid gap-1 border-b border-border py-4 last:border-b-0 sm:grid-cols-3 sm:gap-6"
           >
-            <dt className="whitespace-pre-line break-keep text-s font-bold">{r.label}</dt>
-            <dd className="whitespace-pre-line break-keep text-s text-muted">{r.value}</dd>
+            <dt className="whitespace-pre-line break-keep text-s font-bold">
+              <RichText text={r.label} />
+            </dt>
+            <dd className="whitespace-pre-line break-keep text-s text-muted sm:col-span-2">
+              <RichText text={r.value} />
+            </dd>
           </div>
         ))}
       </dl>

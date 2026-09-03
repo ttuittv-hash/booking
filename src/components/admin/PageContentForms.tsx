@@ -43,6 +43,13 @@ import {
 
 const blankPair = (): Pair => ({ label: "", value: "" });
 
+/**
+ * 본문 성격의 입력칸에 붙는 안내 (2026-09-03).
+ * 제목·라벨을 뺀 모든 문구는 여러 줄 입력칸이고, 줄바꿈과 굵게를 운영자가 정한다.
+ * 굵게 표기는 홈 선언문이 쓰던 `**…**` 를 사이트 전체로 넓힌 것이다(`kit` 의 `RichText`).
+ */
+const COPY_FIELD_HELP = "줄바꿈은 그대로 나갑니다. **굵게** 로 감싸면 굵게 나옵니다.";
+
 function PairList({
   label,
   help,
@@ -222,8 +229,10 @@ function VenueFacilityFields({
                 onChange={(standing) => patch({ standing })}
               />
             </div>
-            <Text
-              label="카드 부제 (한 줄 설명)"
+            <Area
+              label="카드 부제"
+              rows={2}
+              help={COPY_FIELD_HELP}
               value={it.desc ?? ""}
               onChange={(desc) => patch({ desc })}
             />
@@ -280,7 +289,13 @@ function VenueFacilityFields({
                       onChange={(v) => cardPatch({ value: v })}
                     />
                   </div>
-                  <Text label="설명" value={card.desc} onChange={(desc) => cardPatch({ desc })} />
+                  <Area
+                    label="설명"
+                    rows={2}
+                    help={COPY_FIELD_HELP}
+                    value={card.desc}
+                    onChange={(desc) => cardPatch({ desc })}
+                  />
                 </div>
               )}
             />
@@ -589,7 +604,13 @@ function RateTableFields({
               value={it.unit ?? ""}
               onChange={(unit) => patch({ unit })}
             />
-            <Text label="비고" value={it.note} onChange={(note) => patch({ note })} />
+            <Area
+              label="비고"
+              rows={2}
+              help={COPY_FIELD_HELP}
+              value={it.note}
+              onChange={(note) => patch({ note })}
+            />
           </div>
         )}
       />
@@ -608,8 +629,10 @@ function RateTableFields({
               <Text label="라벨" value={it.label} onChange={(label) => patch({ label })} />
               <Text label="값 (큰 글씨)" value={it.value} onChange={(v) => patch({ value: v })} />
             </div>
-            <Text
-              label="부연 (한 줄)"
+            <Area
+              label="부연"
+              rows={2}
+              help={COPY_FIELD_HELP}
               value={it.note ?? ""}
               onChange={(note) => patch({ note })}
             />

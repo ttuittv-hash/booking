@@ -38,14 +38,15 @@ export function ReapplyButton() {
     }
   }
 
+  // 반려 안내 카드 안에서 다른 버튼들과 나란히 서므로 전폭으로 둔다 (2026-09-03)
   return (
-    <span className="flex flex-col items-start gap-2">
+    <span className="flex w-full flex-col gap-2">
       <button
         type="button"
         data-testid="reapply"
         disabled={busy}
         onClick={() => void reapply()}
-        className={btnClass("primary", "md")}
+        className={`${btnClass("primary", "md")} w-full`}
       >
         {busy ? "요청 중…" : "재심사 요청"}
       </button>

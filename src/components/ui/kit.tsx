@@ -39,6 +39,29 @@ export function InlineLinks({ text }: { text: string }) {
   );
 }
 
+/**
+ * `**강조**` 를 굵게 그린다 (2026-09-03).
+ *
+ * 홈 선언문(`components/home/Manifesto.tsx`)만 알던 표기를 본문 렌더 한 곳으로 올렸다 —
+ * 운영자가 콘텐츠 관리에서 문장 일부를 굵게 하고 싶은 자리가 홈에만 있는 게 아니다.
+ * 굵게 안쪽에도 링크 표기(`[말](/주소)`)가 들어갈 수 있다.
+ */
+export function RichText({ text }: { text: string }) {
+  return (
+    <>
+      {text.split(/(\*\*[^*]+\*\*)/g).map((part, i) =>
+        part.startsWith("**") && part.endsWith("**") ? (
+          <strong key={i} className="font-bold text-foreground">
+            <InlineLinks text={part.slice(2, -2)} />
+          </strong>
+        ) : (
+          <InlineLinks key={i} text={part} />
+        ),
+      )}
+    </>
+  );
+}
+
 export function Prose({
   text,
   className = "",
@@ -55,7 +78,7 @@ export function Prose({
     <div className={className}>
       {blocks.map((block, i) => (
         <p key={i} className={`whitespace-pre-line break-keep ${i > 0 ? gap : ""}`}>
-          <InlineLinks text={block} />
+          <RichText text={block} />
         </p>
       ))}
     </div>
@@ -781,10 +804,21 @@ export function StatCards({
   items: { label: string; value: string; note?: string }[];
   size?: keyof typeof STAT_VALUE_SIZE;
 }) {
+  /*
+    [개정 2026-09-03] 개수에 따라 폭이 정해진다 — 카드가 몇 장이든 **한 줄을 꽉 채운다.**
+      1장  12칼럼(지면 전체)   2장  6칼럼씩(1/2)   3장 이상  3칼럼씩(4-up)
+    예전에는 몇 장이든 3칼럼씩이라, 한두 장일 때 오른쪽이 통째로 비어 카드가 잘리다 만
+    것처럼 보였다. 3장이면 4-up 격자에서 한 자리가 남는데, 그건 4장으로 채울 자리라는
+    뜻이라 그대로 둔다.
+  */
+  const span =
+    items.length === 1 ? "lg:col-span-12" : items.length === 2 ? "lg:col-span-6" : "lg:col-span-3";
+  // 한 장뿐이면 좁은 화면에서도 반으로 자르지 않는다.
+  const smCols = items.length === 1 ? "" : "sm:grid-cols-2";
   return (
-    <ul className="grid gap-x-[var(--gutter)] gap-y-10 sm:grid-cols-2 lg:grid-cols-12">
+    <ul className={`grid gap-x-[var(--gutter)] gap-y-10 ${smCols} lg:grid-cols-12`}>
       {items.map((it, i) => (
-        <li key={`${it.label}-${i}`} className="border-t-2 border-border pt-5 lg:col-span-3">
+        <li key={`${it.label}-${i}`} className={`border-t-2 border-border pt-5 ${span}`}>
           <p className="text-xs font-bold text-muted">{it.label}</p>
           <p
             className={`mt-3 whitespace-pre-line break-keep ${
@@ -794,7 +828,9 @@ export function StatCards({
             {it.value}
           </p>
           {it.note && (
-            <p className="mt-3 whitespace-pre-line break-keep text-s text-muted">{it.note}</p>
+            <p className="mt-3 whitespace-pre-line break-keep text-s text-muted">
+              <RichText text={it.note} />
+            </p>
           )}
         </li>
       ))}
@@ -1152,16 +1188,20 @@ export function PhotoHero({
           />
         </>
       )}
+      {/*
+        [개정 2026-09-03] 텍스트 블록을 지면 그리드에 올리고 **9/12(3/4)** 로 넓혔다.
+        `max-w-[41.5rem]`(664px) 고정이라 1440 에서 대략 두 칼럼에서 끊겼고, 문장이
+        중간에 잘려 다음 줄로 넘어가 읽는 리듬이 끊겼다. 사진 위 텍스트라 지면 전체를
+        쓰지는 않는다 — 우측 1/4 는 사진이 숨 쉬는 자리로 남긴다.
+      */}
       <div className="container-site py-20">
-        <h2 className="type-kr-heading text-h3-m sm:text-h3">{title}</h2>
-        {eyebrow && <p className="mt-6 text-s font-bold">{eyebrow}</p>}
-        {desc && (
-          <Prose
-            text={desc}
-            className="mt-6 max-w-[41.5rem] text-m leading-8"
-            gap="mt-5"
-          />
-        )}
+        <div className="grid-site">
+          <div className="lg:col-span-9">
+            <h2 className="type-kr-heading text-h3-m sm:text-h3">{title}</h2>
+            {eyebrow && <p className="mt-6 text-s font-bold">{eyebrow}</p>}
+            {desc && <Prose text={desc} className="mt-6 text-m leading-8" gap="mt-5" />}
+          </div>
+        </div>
       </div>
     </section>
   );

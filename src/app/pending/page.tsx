@@ -4,7 +4,7 @@ import { getCurrentUser } from "@/lib/auth";
 import { PublicHeader } from "@/components/PublicHeader";
 import { Breadcrumb } from "@/components/ui/Breadcrumb";
 import { SiteFooter } from "@/components/ui/SiteFooter";
-import { Badge, Band, ButtonLink, PageHeading } from "@/components/ui/kit";
+import { Badge, ButtonLink } from "@/components/ui/kit";
 import { ReapplyButton } from "@/components/account/ReapplyButton";
 
 export const metadata: Metadata = {
@@ -45,76 +45,91 @@ export default async function PendingPage() {
       {/* 2뎁스 — items 가 1개라 렌더되지 않는다 */}
       <Breadcrumb items={[{ label: "가입 승인 대기" }]} />
 
-      <main className="grid flex-1 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.1fr)]">
-        {/* 브랜드 면 — Band 가 톤별로 토큰을 뒤집으므로 색을 직접 지정하지 않는다 */}
-        <Band tone="dark" size="lg" className="flex flex-col justify-end">
-          <span aria-hidden className="block h-1 w-16 bg-accent" />
-          <p className="type-display mt-6 text-h3-m sm:text-h3">
-            Review
-            <br />
-            in progress
-          </p>
-          <p className="mt-6 max-w-sm text-s text-muted">
-            승인이 완료되면 대관 패키지 안내와 예상 견적을 바로 확인할 수 있습니다.
-          </p>
-        </Band>
-
-        {/* 안내 면 */}
-        <div className="flex items-center px-6 py-16 lg:px-16 lg:py-20">
-          <div className="w-full max-w-md">
-            <Badge tone={isRejected ? "danger" : "warn"}>
-              {isRejected ? "승인 거절" : "승인 대기"}
-            </Badge>
-            <div className="mt-5">
-              <PageHeading size="md" title={notice.title} lead={notice.desc} />
+      {/*
+        [개정 2026-09-03] 좌 브랜드 면 + 우 안내 면으로 갈라 두었던 것을 **가운데 카드
+        하나**로 바꿨다. 이 화면에서 할 일은 사유를 읽고 다음 걸음을 고르는 것 하나뿐인데,
+        화면이 둘로 갈리면 시선이 어디서 시작하는지 애매했다. 로그인 화면(AuthShell
+        `variant="card"`)과 같은 규격 — 가운데 정렬 · 아웃라인 카드 · 전폭 버튼.
+      */}
+      <main className="container-site flex flex-1 items-center justify-center py-16 sm:py-20">
+        <div className="w-full max-w-md">
+          <div className="border border-border p-8 sm:p-10">
+            <div className="flex justify-center">
+              <Badge tone={isRejected ? "danger" : "warn"}>
+                {isRejected ? "승인 거절" : "승인 대기"}
+              </Badge>
             </div>
+            <h1 className="type-kr-heading mt-5 break-keep text-center text-h3-m sm:text-h3">
+              {notice.title}
+            </h1>
+            <p className="mt-4 break-keep text-center text-s leading-7 text-muted">{notice.desc}</p>
 
             {/* [신규 2026-09-02] 반려 사유를 화면에 남긴다.
                 예전에는 알림톡 본문으로만 나가고 어디에도 저장되지 않아, 알림톡을
-                지우면 왜 반려됐는지 다시 볼 방법이 없었다. */}
+                지우면 왜 반려됐는지 다시 볼 방법이 없었다.
+                [개정 2026-09-03] 빨강 면 + 좌측 굵은 선이던 것을 **흰 배경 · 검정 아웃라인**
+                카드로 바꾼다 — 읽어야 하는 글이지 경고가 아니고, 빨강 바탕 위 빨강 글씨는
+                긴 사유일수록 읽기 어려웠다. */}
             {isRejected && currentUser.approvalRejectReason ? (
-              <div
-                data-testid="reject-reason"
-                className="mt-8 border-l-2 border-danger bg-danger-soft px-4 py-3.5"
-              >
-                <p className="text-xs font-bold text-danger">반려 사유</p>
-                <p className="mt-2 whitespace-pre-wrap break-keep text-s leading-6 text-danger">
+              <div data-testid="reject-reason" className="mt-8 border border-border bg-panel p-5">
+                <p className="text-xs font-bold text-muted">반려 사유</p>
+                <p className="mt-2 whitespace-pre-wrap break-keep text-s leading-6">
                   {currentUser.approvalRejectReason}
                 </p>
               </div>
             ) : null}
 
+            {/* 버튼은 로그인 화면과 같은 md 높이 · 전폭으로 통일한다 — 크기가 제각각이면
+                무엇이 다음 걸음인지 읽히지 않는다. 위에서부터 할 일 순서다. */}
             {isRejected ? (
-              <div className="mt-10 border-t border-border/25 pt-8">
-                <p className="break-keep text-s leading-7 text-muted">
+              <>
+                <p className="mt-8 break-keep text-s leading-7 text-muted">
                   반려 사유에 해당하는 내용을 회원정보에서 고친 뒤 재심사를 요청하시면
                   다시 심사합니다. 더 이상 이용하지 않으시려면 회원 탈퇴를 진행해 주세요.
                 </p>
-                <div className="mt-6 flex flex-wrap items-start gap-3">
-                  <ButtonLink href="/mypage/profile" variant="secondary">
+                <div className="mt-8 flex flex-col gap-3">
+                  <ButtonLink
+                    href="/mypage/profile"
+                    variant="secondary"
+                    size="md"
+                    className="w-full"
+                  >
                     회원정보 수정
                   </ButtonLink>
                   <ReapplyButton />
-                </div>
-                <div className="mt-6 flex flex-wrap gap-3">
                   {/* [수정 2026-09-02] FAQ 가 승인 완료 전용이 되면서 여기서 누르면
                       이 화면으로 되돌아왔다. 승인 전에 실제로 열리는 1:1 문의로 보낸다. */}
-                  <ButtonLink href="/mypage/inquiries" variant="tertiary">
+                  <ButtonLink
+                    href="/mypage/inquiries"
+                    variant="tertiary"
+                    size="md"
+                    className="w-full"
+                  >
                     1:1 문의
                   </ButtonLink>
-                  <ButtonLink href="/mypage/withdraw" variant="tertiary">
+                  <ButtonLink
+                    href="/mypage/withdraw"
+                    variant="tertiary"
+                    size="md"
+                    className="w-full"
+                  >
                     회원 탈퇴
                   </ButtonLink>
                 </div>
-              </div>
+              </>
             ) : (
               /* [개정 2026-09-02] 대관 절차가 승인 완료 전용이 되면서 [대관 절차 보기]는
                  여기로 되돌아오는 링크가 됐다. 승인 전에 실제로 열리는 곳으로 보낸다. */
-              <div className="mt-10 flex flex-wrap gap-3 border-t border-border/25 pt-8">
-                <ButtonLink href="/seoularena" variant="secondary">
+              <div className="mt-8 flex flex-col gap-3">
+                <ButtonLink href="/seoularena" variant="secondary" size="md" className="w-full">
                   서울아레나 둘러보기
                 </ButtonLink>
-                <ButtonLink href="/mypage/inquiries" variant="tertiary">
+                <ButtonLink
+                  href="/mypage/inquiries"
+                  variant="tertiary"
+                  size="md"
+                  className="w-full"
+                >
                   1:1 문의
                 </ButtonLink>
               </div>

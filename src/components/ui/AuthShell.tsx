@@ -48,7 +48,8 @@ export function AuthShell({
 
         <main className="container-site flex flex-1 items-center justify-center py-12 sm:py-16">
           <div className={`w-full ${maxW}`}>
-            <div className="border border-border/25 p-8 sm:p-10">
+            {/* 카드 아웃라인은 검정 실선 — 사이트의 다른 카드와 같은 규칙이다 (2026-09-03) */}
+            <div className="border border-border p-8 sm:p-10">
               <h1 className="type-kr-heading text-center text-h3-m sm:text-h3">{title}</h1>
               {lead && <p className="mt-4 text-center text-s text-muted">{lead}</p>}
               <div className="mt-8">{children}</div>
