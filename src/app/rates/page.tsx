@@ -205,12 +205,13 @@ function ChargeTable({ rows }: { rows: ChargeBlock[] }) {
   );
 }
 
-function RatePanel({ en, ko, c }: { en: string; ko: string; c: VenueRateContent }) {
+function RatePanel({ en, c }: { en: string; c: VenueRateContent }) {
   return (
     <>
       {/* 섹션 1 — 기본 대관 패키지 */}
       <Band tone="light" size="lg">
-        <PageHead en={en} ko={ko} lead={<Prose text={c.intro} gap="mt-3" />} />
+        {/* [삭제 2026-09-03 팀 요청] 큰 제목 아래 "아레나 대관료" 류 한글 부제목(ko)은 넣지 않는다. */}
+        <PageHead en={en} lead={<Prose text={c.intro} gap="mt-3" />} />
         <div className="mt-14">
           <SectionHead
             title={rateSectionTitle(c, "packages")}
@@ -308,13 +309,11 @@ export default async function RatesPage() {
                 t.value === "arena" ? (
                   <RatePanel
                     en={rateTab("arena")}
-                    ko={`${venueLabel("arena", screenText.wizardStrings)} 대관료`}
                     c={content.arena}
                   />
                 ) : (
                   <RatePanel
                     en={rateTab(MID_HALL_VENUE_ID)}
-                    ko={`${venueLabel(MID_HALL_VENUE_ID, screenText.wizardStrings)} 대관료`}
                     c={content.liveHall}
                   />
                 ),
@@ -325,7 +324,6 @@ export default async function RatesPage() {
               panel: (
                 <RatePanel
                   en={rateTab(SPECIAL_VENUE_ID)}
-                  ko={`${specialLabel} 대관료`}
                   c={content.special ?? EMPTY_VENUE_RATE_CONTENT}
                 />
               ),
