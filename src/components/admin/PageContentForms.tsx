@@ -13,7 +13,11 @@ import type {
   VenueFacilityContent,
   VenueRateContent,
 } from "@/lib/content/pageContent";
-import { DEFAULT_RATE_SECTION_TITLES, EMPTY_VENUE_RATE_CONTENT } from "@/lib/content/pageContent";
+import {
+  DEFAULT_RATE_SECTION_TITLES,
+  DEFAULT_RULES_CONTENT,
+  EMPTY_VENUE_RATE_CONTENT,
+} from "@/lib/content/pageContent";
 import {
   Area,
   ContentFormShell,
@@ -945,11 +949,15 @@ export function RulesForm({ content }: { content: RulesContent }) {
               "규약은 조문을 한 칸씩 고치는 문서가 아니라 판본을 통째로 갈아 끼우는 문서입니다. " +
               "확정본 원문을 그대로 붙여 넣으세요. `제N장 …` 으로 시작하는 줄은 장 제목, " +
               "`제N조 (…)` 로 시작하는 줄은 조 제목이 되고, 나머지 줄은 그 조의 항이 됩니다. " +
-              "목차는 장 제목으로 자동 생성됩니다. 표가 필요하면 [+ 표 넣기] 로 조 안에 " +
-              "끼워 넣으세요 — 표는 조(제N조) 안에서만 화면에 나옵니다."
+              "목차는 장 제목으로 자동 생성됩니다. 표가 필요하면 [+ 표 넣기] 로 넣으세요 — " +
+              "별표·부칙처럼 조 번호가 없는 자리에 넣어도 그대로 나옵니다."
             }
           >
-            <RuleBodyEditor value={v.body} onChange={(body) => patch({ body })} />
+            <RuleBodyEditor
+              value={v.body}
+              onChange={(body) => patch({ body })}
+              defaultBody={DEFAULT_RULES_CONTENT.body}
+            />
           </Section>
         </>
       )}

@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   blankTable,
   joinRuleBody,
+  parsePastedBlocks,
   parsePastedTableHtml,
   parsePastedTsv,
   parseTableHtml,
@@ -182,5 +183,41 @@ describe("parsePastedTsv", () => {
   it("한 줄이거나 탭이 없으면 표로 보지 않는다", () => {
     expect(parsePastedTsv("구분\t금액")).toBeNull();
     expect(parsePastedTsv("제1조 (목적)\n① 이 규약은…")).toBeNull();
+  });
+});
+
+/*
+  [신규 2026-09-03] 붙여넣기가 본문을 삼키지 않는지.
+
+  표 하나만 건져 오던 시절, 표가 든 문서를 붙여넣으면 글이 전부 사라졌다. 본문을 다
+  선택한 채 붙여넣었다면 규약 전문이 표 한 장으로 바뀌어 화면이 통째로 비었다.
+*/
+describe("parsePastedBlocks", () => {
+  it("표 앞뒤의 글까지 순서대로 담는다", () => {
+    const blocks = parsePastedBlocks(
+      [
+        "<p>제12조 (위약금)</p>",
+        "<p>① 취소 시점에 따라 아래와 같다.</p>",
+        "<table><tr><th>시점</th><th>위약금</th></tr><tr><td>30일 전</td><td>30%</td></tr></table>",
+        "<p>② 천재지변은 예외로 한다.</p>",
+      ].join(""),
+    );
+    expect(blocks).toEqual([
+      { kind: "text", text: "제12조 (위약금)\n① 취소 시점에 따라 아래와 같다." },
+      { kind: "table", head: ["시점", "위약금"], rows: [["30일 전", "30%"]] },
+      { kind: "text", text: "② 천재지변은 예외로 한다." },
+    ]);
+  });
+
+  it("표가 여럿이면 사이의 글도 각각 남긴다", () => {
+    const blocks = parsePastedBlocks(
+      "<table><tr><td>가</td></tr></table><p>사이 글</p><table><tr><td>나</td></tr></table>",
+    );
+    expect(blocks?.map((b) => b.kind)).toEqual(["table", "text", "table"]);
+  });
+
+  it("표가 없으면 손대지 않는다(평범한 붙여넣기에 맡긴다)", () => {
+    expect(parsePastedBlocks("<p>그냥 글</p>")).toBeNull();
+    expect(parsePastedBlocks("")).toBeNull();
   });
 });

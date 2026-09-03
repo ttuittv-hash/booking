@@ -16,7 +16,7 @@ import { useMemo, useRef, useState } from "react";
 import {
   blankTable,
   joinRuleBody,
-  parsePastedTableHtml,
+  parsePastedBlocks,
   parsePastedTsv,
   splitRuleBody,
   type RuleBodyBlock,
@@ -35,9 +35,12 @@ const MINI_BTN =
 export function RuleBodyEditor({
   value,
   onChange,
+  defaultBody,
 }: {
   value: string;
   onChange: (value: string) => void;
+  /** 되돌리기용 기본 전문 — 편집 사고로 본문을 잃었을 때 한 번에 복구한다 */
+  defaultBody: string;
 }) {
   // 저장 문자열이 정본이다 — 블록은 그걸 편집하기 좋게 편 모양일 뿐이라 매번 다시 편다.
   // (블록을 상태로 들고 있으면 바깥에서 값이 바뀌었을 때 두 벌이 어긋난다.)
@@ -106,8 +109,17 @@ export function RuleBodyEditor({
   function pasteIntoText(i: number, e: React.ClipboardEvent<HTMLTextAreaElement>) {
     const html = e.clipboardData.getData("text/html");
     const plain = e.clipboardData.getData("text/plain");
-    const parsed = (html && parsePastedTableHtml(html)) || parsePastedTsv(plain);
-    if (!parsed) return;
+    /*
+      [수정 2026-09-03] 붙여넣은 문서의 **글까지 함께** 담는다.
+
+      예전에는 표 하나만 건져 오고 나머지는 버렸다. 표가 든 문서를 통째로 붙여넣으면
+      글이 전부 사라졌고, 본문을 다 선택한 채 붙여넣었다면 규약 전문이 표 한 장으로
+      바뀌었다 — 되돌릴 방법이 없다.
+    */
+    const pasted: RuleBodyBlock[] | null =
+      (html ? parsePastedBlocks(html) : null) ??
+      ((tsv) => (tsv ? [{ kind: "table" as const, ...tsv }] : null))(parsePastedTsv(plain));
+    if (!pasted || pasted.length === 0) return;
 
     e.preventDefault();
     const target = blocks[i];
@@ -120,7 +132,7 @@ export function RuleBodyEditor({
       i,
       1,
       { kind: "text", text: target.text.slice(0, start) },
-      { kind: "table", head: parsed.head, rows: parsed.rows },
+      ...pasted,
       { kind: "text", text: target.text.slice(end) },
     );
     commit(next);
@@ -203,12 +215,36 @@ export function RuleBodyEditor({
             }}
           />
         </label>
+        <span className="flex-1" />
+        {/* [신규 2026-09-03] 편집 중 본문을 통째로 잃는 사고가 있었다(붙여넣기가 본문을
+            표 한 장으로 갈아 끼웠다). 규약은 되돌릴 방법이 있어야 한다. */}
+        <button
+          type="button"
+          onClick={() => {
+            if (
+              window.confirm(
+                "지금 본문을 버리고 기본 규약 전문으로 되돌립니다.\n되돌린 뒤 [저장]을 눌러야 화면에 반영됩니다. 계속할까요?",
+              )
+            ) {
+              onChange(defaultBody);
+            }
+          }}
+          className={LINK_BTN}
+        >
+          기본 전문으로 되돌리기
+        </button>
         {error && <span className="text-xs text-danger">{error}</span>}
       </div>
       <p className={HELP}>
         커서를 둔 자리에 표가 들어갑니다. 페이지·워드·엑셀에서 복사한 표를 그대로
-        붙여넣어도 표로 들어옵니다. 표는 조(제N조) 안에 있어야 화면에 나옵니다.
+        붙여넣어도 표로 들어옵니다(글과 표가 섞여 있어도 순서 그대로 들어옵니다).
       </p>
+      {!value.trim() && (
+        <p className="text-xs font-bold text-danger">
+          본문이 비어 있습니다 — 이대로 저장하면 규약 화면에 아무것도 나오지 않습니다.
+          원문을 붙여넣거나 [기본 전문으로 되돌리기] 를 눌러 주세요.
+        </p>
+      )}
 
       {/* 글과 표를 한 상자 안에 이어 붙인다 — 문서 한 장처럼 보여야 표가 규약 "안에"
           들어간 것으로 읽힌다. 블록마다 테두리를 두르면 표가 본문에서 떨어져 나온
