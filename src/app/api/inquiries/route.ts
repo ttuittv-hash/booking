@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import crypto from "node:crypto";
 import { getCurrentUser } from "@/lib/auth";
-import { createInquiry, listInquiries, notifyAdmins } from "@/lib/db";
+import { createInquiry, listInquiries, listUsers, notifyAdmins } from "@/lib/db";
 import { findInquiryCategory } from "@/lib/inquiryCategories";
 import { dispatchMessageInBackground } from "@/lib/message/dispatch";
 import { clientIpFrom, rateLimit } from "@/lib/rateLimit";
@@ -106,6 +106,17 @@ export async function POST(request: Request) {
     message: `새 1:1 문의가 등록되었습니다${user ? "" : " (비회원)"} (${category.label}): ${title}`,
     createdAt,
   });
+  // 운영자 전원에게 문의 접수 알림톡·메일(ARENA-0014). 인앱은 위 notifyAdmins 가 이미 남겼다. (2026-09-03 팀 요청)
+  for (const admin of await listUsers({ role: "ADMIN" })) {
+    dispatchMessageInBackground({
+      templateCode: "ARENA-0014",
+      idempotencyKey: `ARENA-0014:${inquiry.id}:${admin.id}`,
+      recipient: { userId: admin.id, phone: admin.phone, email: admin.email, name: admin.name },
+      variables: { 운영자명: admin.name },
+      inApp: false,
+      request,
+    });
+  }
   // 등록자 본인에게 접수 알림톡·메일(ARENA-0010). (2026-09-01 팀 요청)
   // 받는 곳은 문의에 적은 연락처다 — 계정 명의가 아니라 물어본 사람에게 가야 한다.
   dispatchMessageInBackground({

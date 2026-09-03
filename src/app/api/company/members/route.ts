@@ -66,19 +66,19 @@ export async function POST(request: Request) {
       );
     }
     await transferCompanyMaster(user.companyId, user.id, targetId);
-    // MB-09 권한을 받은 사람 / MB-10 넘긴 사람 (카카오 정본 00006·00007)
+    // MB-09 권한을 받은 사람 / MB-10 넘긴 사람 (카카오 정본 ARENA_0007·0008)
     dispatchMessageInBackground({
       templateCode: "MB-09",
       idempotencyKey: `MB-09:${targetId}:${Date.now()}`,
       recipient: { userId: targetId, phone: target.phone, email: target.email, name: target.name },
-      variables: { 신청자명: target.name },
+      variables: { 수임자명: target.name },
       request,
     });
     dispatchMessageInBackground({
       templateCode: "MB-10",
       idempotencyKey: `MB-10:${user.id}:${Date.now()}`,
       recipient: { userId: user.id, phone: user.phone, email: user.email, name: user.name },
-      variables: { 마스터: user.name, 신청자명: target.name },
+      variables: { 이전대표담당자: user.name, 대표담당자명: target.name },
       request,
     });
     const now = new Date().toISOString();

@@ -49,12 +49,17 @@ export async function POST(request: Request, ctx: { params: Promise<{ id: string
         ? `${audienceOrigin(request, "APPLICANT")}/inquiry/${id}?t=${encodeURIComponent(inquiry.accessToken)}`
         : null;
 
+    // 비회원은 로그인 화면이 소용없다 — 버튼에 그 문의 하나를 여는 링크가 실리는 ARENA_0016 으로 보낸다
+    // (2026-09-03 팀 요청). 버튼 URL 변수 값은 등록 링크의 호스트 뒤 경로("inquiry/{id}?t=토큰").
+    const code = guestLink ? "ARENA-0016" : "ARENA-0009";
     dispatchMessageInBackground({
-      templateCode: "ARENA-0009",
-      idempotencyKey: `ARENA-0009:${id}:${now}`,
+      templateCode: code,
+      idempotencyKey: `${code}:${id}:${now}`,
       buttonUrl: guestLink,
       recipient: { userId: registrant?.id ?? null, phone, email, name },
-      variables: { 등록자명: name },
+      variables: guestLink
+        ? { 등록자명: name || "고객", "1:1문의링크": `inquiry/${id}?t=${encodeURIComponent(inquiry.accessToken ?? "")}` }
+        : { 등록자명: name || "고객" },
       request,
     });
   }

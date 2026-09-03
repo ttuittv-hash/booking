@@ -53,7 +53,13 @@ export async function POST(request: Request) {
       templateCode: "MB-06",
       idempotencyKey: `MB-06:${id}:${Date.now()}`,
       recipient: { userId: null, phone: invitation.phone, email: invitation.email, name: invitation.inviteeName },
-      variables: { 회사명: user.companyName ?? "", 초대링크: inviteUrl },
+      // ARENA_0006: 초대 링크는 버튼 URL 변수(호스트 뒤 경로) — 메일 본문 링크는 전체 주소(buttonUrl).
+      variables: {
+        담당자명: invitation.inviteeName || "담당자",
+        회사명: user.companyName ?? "",
+        초대링크: `register?invite=${token}`,
+      },
+      buttonUrl: inviteUrl,
       request,
     });
     return NextResponse.json({ ok: true, inviteUrl, expiresAt });
@@ -118,7 +124,9 @@ export async function POST(request: Request) {
     templateCode: "MB-06",
     idempotencyKey: `MB-06:${id}`,
     recipient: { userId: null, phone, email, name: inviteeName },
-    variables: { 회사명: user.companyName ?? "", 초대링크: inviteUrl },
+    // ARENA_0006: 초대 링크는 버튼 URL 변수(호스트 뒤 경로) — 메일 본문 링크는 전체 주소(buttonUrl).
+    variables: { 담당자명: inviteeName || "담당자", 회사명: user.companyName ?? "", 초대링크: `register?invite=${token}` },
+    buttonUrl: inviteUrl,
     request,
   });
 

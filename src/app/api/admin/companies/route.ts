@@ -26,7 +26,7 @@ export async function POST(request: Request) {
   const result = await setCompanyMasterByAdmin(companyId, targetId);
   if (!result.ok) return NextResponse.json({ error: result.error }, { status: 400 });
 
-  // MB-09 새 대표 / MB-10 이전 대표 — 알림톡(카카오 정본 00006·00007)
+  // MB-09 새 대표 / MB-10 이전 대표 — 알림톡(카카오 정본 ARENA_0007·0008)
   {
     const next = await findUserById(targetId);
     const prev = previousMasterId && previousMasterId !== targetId ? await findUserById(previousMasterId) : null;
@@ -35,7 +35,7 @@ export async function POST(request: Request) {
         templateCode: "MB-09",
         idempotencyKey: `MB-09:${targetId}:${Date.now()}`,
         recipient: { userId: next.id, phone: next.phone, email: next.email, name: next.name },
-        variables: { 신청자명: next.name },
+        variables: { 수임자명: next.name },
         request,
       });
     }
@@ -44,7 +44,7 @@ export async function POST(request: Request) {
         templateCode: "MB-10",
         idempotencyKey: `MB-10:${prev.id}:${Date.now()}`,
         recipient: { userId: prev.id, phone: prev.phone, email: prev.email, name: prev.name },
-        variables: { 마스터: prev.name, 신청자명: next?.name ?? "" },
+        variables: { 이전대표담당자: prev.name, 대표담당자명: next?.name ?? "" },
         request,
       });
     }

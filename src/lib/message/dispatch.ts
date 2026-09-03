@@ -19,7 +19,7 @@ import { resolveKakaoButtonUrl, resolveKakaoTemplateCode } from "./templateOverr
 import { emailAdapter } from "./email";
 import { inAppAdapter } from "./inapp";
 import { kakaoBizTalkAdapter, xmsAdapter } from "./kakaoBizTalk";
-import { renderTemplate, findTemplate, TemplateVariableError } from "./templates";
+import { renderTemplate, findTemplate, TemplateVariableError, fillUrlVariables } from "./templates";
 import type { ChannelAdapter, SendRequest, SendResult } from "./types";
 
 /**
@@ -105,10 +105,23 @@ export async function dispatchMessage(input: DispatchInput): Promise<DispatchOut
   const sendId = crypto.randomUUID();
   const variables = { ...(input.variables ?? {}), __sendId: sendId };
 
-  // ④ 변수 바인딩 — 누락이면 발송하지 않고 오류로 남긴다.
+  // ④ 변수 바인딩 — 누락이면 발송하지 않고 오류로 남긴다. 카카오 버튼 URL 의 변수(0006·0016)도 같이 채운다.
   let body: string;
+  // 환경별 신규 템플릿(예: MB-02-DEV)에 등록된 링크로 덮어쓸 수 있다(templateOverrides.ts).
+  let kakaoUrl = def.button ? resolveKakaoButtonUrl(def.button.kakaoUrl) : null;
+  let kakaoUrlPc: string | null = def.button?.kakaoUrlPc ?? null;
+  let extra: { name: string; kakaoUrl: string; kakaoUrlPc?: string | null }[] | null = null;
   try {
     body = renderTemplate(input.templateCode, variables);
+    if (kakaoUrl) kakaoUrl = fillUrlVariables(kakaoUrl, variables);
+    if (kakaoUrlPc) kakaoUrlPc = fillUrlVariables(kakaoUrlPc, variables);
+    if (def.kakaoExtraButtons?.length) {
+      extra = def.kakaoExtraButtons.map((b) => ({
+        name: b.name,
+        kakaoUrl: fillUrlVariables(b.kakaoUrl, variables),
+        kakaoUrlPc: b.kakaoUrlPc ? fillUrlVariables(b.kakaoUrlPc, variables) : null,
+      }));
+    }
   } catch (error) {
     await recordSendAttempt({
       id: sendId,
@@ -139,10 +152,10 @@ export async function dispatchMessage(input: DispatchInput): Promise<DispatchOut
             (input.request
               ? `${audienceOrigin(input.request, def.audience)}${def.button.path}`
               : def.button.path),
-          // 환경별 신규 템플릿(예: MB-02-DEV)에 등록된 링크로 덮어쓸 수 있다(templateOverrides.ts).
-          kakaoUrl: resolveKakaoButtonUrl(def.button.kakaoUrl),
+          kakaoUrl,
           // 템플릿에 PC 링크(linkPc)가 등록된 경우에만 채운다 — 있으면 url_pc 로 그대로 보낸다.
-          kakaoUrlPc: def.button.kakaoUrlPc ?? null,
+          kakaoUrlPc,
+          extra,
         }
       : null,
     kakaoTemplateCode: resolveKakaoTemplateCode(def.code, def.kakaoTemplateCode),

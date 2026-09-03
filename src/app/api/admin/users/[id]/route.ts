@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getCurrentUser, isProAdminOrAbove } from "@/lib/auth";
-import { deleteUserCascade, findUserById } from "@/lib/db";
+import { deleteUserCascade, findCompanyById, findUserById } from "@/lib/db";
+import { dispatchMessageInBackground } from "@/lib/message/dispatch";
 import { revalidateMemberViews } from "@/lib/revalidateAdmin";
 
 // 신청자 계정 삭제 — 운영자 전용.
@@ -25,8 +26,21 @@ export async function DELETE(_request: Request, context: { params: Promise<{ id:
     return NextResponse.json({ error: "신청자 계정만 삭제할 수 있습니다." }, { status: 400 });
   }
 
+  // 회사에 소속돼 있던(승인된) 담당자를 운영자가 지우는 것 = 담당자 권한 해제. 계정이 사라지기 전에
+  // 회사명을 확보해 두고, 성공하면 본인에게 해제 안내 알림톡·메일(ARENA-0015)을 보낸다. 반려·미승인
+  // 계정 삭제(재가입용)에는 보내지 않는다. (2026-09-03 팀 요청)
+  const company = target.companyId ? await findCompanyById(target.companyId) : null;
   try {
     const result = await deleteUserCascade(id);
+    if (company && target.approvalStatus === "APPROVED") {
+      dispatchMessageInBackground({
+        templateCode: "ARENA-0015",
+        idempotencyKey: `ARENA-0015:${id}`,
+        recipient: { userId: null, phone: target.phone, email: target.email, name: target.name },
+        variables: { 신청자명: target.name, 회사명: company.name },
+        inApp: false,
+      });
+    }
     // 남은 사람이 없으면 회사까지 지워진다 — 회사별 담당자 탭도 같이 무효화해야
     // 지운 회사가 계속 보이지 않는다.
     revalidateMemberViews();

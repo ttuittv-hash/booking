@@ -532,7 +532,7 @@ export async function POST(request: Request) {
           email: master.email,
           name: master.name,
         },
-        variables: { 신청자명: name, 마스터: master.name },
+        variables: { 신청자명: name, 대표담당자: master.name },
         inAppLink: `/mypage/members/${created.id}`,
         request,
       });

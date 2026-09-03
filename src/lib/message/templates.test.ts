@@ -1,12 +1,5 @@
 import { describe, it, expect } from "vitest";
-import {
-  QUOTE_TEMPLATES,
-  TEMPLATES,
-  findTemplate,
-  placeholdersIn,
-  renderTemplate,
-  TemplateVariableError,
-} from "./templates";
+import { QUOTE_TEMPLATES, TEMPLATES, findTemplate, placeholdersIn, renderTemplate, TemplateVariableError, templatePlaceholders, fillUrlVariables } from "./templates";
 import { classifyBizTalkCode, isBizTalkConfigured } from "./kakaoBizTalk";
 
 // 기획서 B2 — 1차 오픈(8/24) 회원가입 5종.
@@ -15,15 +8,44 @@ describe("1차 오픈 템플릿", () => {
     const first = TEMPLATES.filter((t) => t.release === "FIRST").map((t) => t.code);
     expect(first).toEqual([
       "MB-01", "MB-01J", "MB-02", "MB-03", "MB-04", "MB-05",
+      "MB-06", "MB-09", "MB-10",
       "ARENA-0003", "ARENA-0004", "ARENA-0012", "ARENA-0010", "ARENA-0009",
+      "ARENA-0014", "ARENA-0015", "ARENA-0016",
     ]);
   });
 
-  it("선언한 변수와 본문의 자리표시자가 일치한다", () => {
-    // 어긋나면 빈 값이 그대로 발송되거나, 채워야 할 값을 안 채운다.
+  it("선언한 변수와 본문·버튼 링크의 자리표시자가 일치한다", () => {
+    // 어긋나면 빈 값이 그대로 발송되거나, 채워야 할 값을 안 채운다. 버튼 URL 변수(0006·0016)도 포함.
     for (const t of TEMPLATES) {
-      expect(new Set(placeholdersIn(t.body))).toEqual(new Set(t.variables));
+      expect(new Set(templatePlaceholders(t))).toEqual(new Set(t.variables));
     }
+  });
+
+  it("2026-09-03 정본 전환: 회원가입 계열이 ARENA_ 코드로 나가고, 구 CTSELARNA0 코드는 MB-02·07·08 만 남는다", () => {
+    const kakao = Object.fromEntries(TEMPLATES.map((t) => [t.code, t.kakaoTemplateCode]));
+    expect(kakao["MB-01"]).toBe("ARENA_0001");
+    expect(kakao["MB-03"]).toBe("ARENA_0002");
+    expect(kakao["MB-04"]).toBe("ARENA_0005");
+    expect(kakao["MB-06"]).toBe("ARENA_0006");
+    expect(kakao["MB-09"]).toBe("ARENA_0007");
+    expect(kakao["MB-10"]).toBe("ARENA_0008");
+    const legacy = TEMPLATES.filter((t) => t.kakaoTemplateCode?.startsWith("CTSELARNA0_")).map((t) => t.code);
+    expect(legacy).toEqual(["MB-02", "MB-07", "MB-08"]);
+  });
+
+  it("버튼 링크의 #{변수} 를 채우고, 비면 발송 전에 막는다 (초대 링크·비회원 문의 링크)", () => {
+    expect(fillUrlVariables("https://partner.seoularena.net/#{초대링크}", { 초대링크: "register?invite=abc" })).toBe(
+      "https://partner.seoularena.net/register?invite=abc",
+    );
+    expect(() => fillUrlVariables("https://partner.seoularena.net/#{초대링크}", { 초대링크: " " })).toThrow(
+      TemplateVariableError,
+    );
+  });
+
+  it("ARENA_0002(반려)는 버튼 2개를 등록 순서대로 싣는다", () => {
+    const t = TEMPLATES.find((x) => x.code === "MB-03")!;
+    expect(t.button?.name).toBe("대관시스템 바로가기");
+    expect(t.kakaoExtraButtons?.map((b) => b.name)).toEqual(["1:1 문의 바로가기"]);
   });
 
   it("신청서 이벤트(RT-01~09)도 변수·자리표시자가 일치하고 카카오 코드가 있다", () => {

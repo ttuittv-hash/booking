@@ -257,6 +257,13 @@ export const kakaoBizTalkAdapter: ChannelAdapter = {
             url_mobile: request.button.kakaoUrl,
             ...(urlPc ? { url_pc: urlPc } : {}),
           },
+          // 등록된 두 번째 이후 버튼(ARENA_0002) — 순서·이름·링크 그대로.
+          ...(request.button.extra ?? []).map((b) => ({
+            name: b.name,
+            type: "WL",
+            url_mobile: b.kakaoUrl,
+            ...(b.kakaoUrlPc ? { url_pc: b.kakaoUrlPc } : {}),
+          })),
         ];
       }
 

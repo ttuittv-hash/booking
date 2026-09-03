@@ -29,6 +29,12 @@ export interface TemplateDef {
   kakaoTemplateCode?: string;
   /** 강조표기형(TEXT) 템플릿의 핵심 문구·보조 문구 — 등록값과 같아야 한다. */
   emphasis?: { title: string; subtitle: string };
+  /**
+   * 카카오 템플릿에 두 번째 이후 버튼이 등록된 경우(ARENA_0002 처럼 버튼 2개). 알림톡 요청은
+   * 등록된 버튼 전부를 순서대로 실어야 하므로 첫 버튼(button) 뒤에 이어 붙인다. 인앱·메일은
+   * 첫 버튼만 쓴다. kakaoUrl 에는 #{변수} 를 쓸 수 있다(발송 때 variables 로 채운다 — 0006·0016).
+   */
+  kakaoExtraButtons?: { name: string; kakaoUrl: string; kakaoUrlPc?: string }[];
 }
 
 /** 카카오 템플릿(CTSELARNA0_00002·3·5·6·8·9)에 등록된 웹링크 — 운영 신청자 화면 고정값. */
@@ -36,22 +42,23 @@ const KAKAO_PARTNER_URL = "https://partner.seoularena.net/";
 
 export const TEMPLATES: TemplateDef[] = [
   {
+    // 2026-09-03 팀 요청: 정본 ARENA_0001(회원가입 신청완료)로 전환 — 구 00001 은 "담당자 등록 완료" 문안으로 떴다.
     code: "MB-01",
-    kakaoTemplateCode: "CTSELARNA0_00001",
+    kakaoTemplateCode: "ARENA_0001",
     audience: "APPLICANT",
     title: "가입 신청 접수",
-    body: "#{신청자명}님, 안녕하세요. \n회원가입이 정상 접수되어 심사가 진행중입니다.",
+    body: "#{신청자명}님, 안녕하세요.\n회원가입이 정상 접수되어 심사가 진행 중입니다. \n\n심사가 완료되면 안내해드리겠습니다.",
     variables: ["신청자명"],
     release: "FIRST",
     emphasis: { title: "회원가입 신청 완료", subtitle: "서울아레나 대관시스템" },
   },
   {
-    // 이미 등록된 회사에 합류 신청한 경우 — 본문은 00001 과 같지만 카카오 쪽에 별도 코드로 있다.
+    // 이미 등록된 회사에 합류 신청한 경우 — 정본에 별도 코드가 없어 ARENA_0001 을 같이 쓴다(문안 동일).
     code: "MB-01J",
-    kakaoTemplateCode: "CTSELARNA0_00004",
+    kakaoTemplateCode: "ARENA_0001",
     audience: "APPLICANT",
     title: "기업 합류 신청 접수",
-    body: "#{신청자명}님, 안녕하세요. \n회원가입이 정상 접수되어 심사가 진행중입니다.",
+    body: "#{신청자명}님, 안녕하세요.\n회원가입이 정상 접수되어 심사가 진행 중입니다. \n\n심사가 완료되면 안내해드리겠습니다.",
     variables: ["신청자명"],
     release: "FIRST",
     emphasis: { title: "회원가입 신청 완료", subtitle: "서울아레나 대관시스템" },
@@ -68,26 +75,40 @@ export const TEMPLATES: TemplateDef[] = [
     button: { name: "서울아레나 대관시스템 가기", path: "/", kakaoUrl: KAKAO_PARTNER_URL },
   },
   {
+    // 2026-09-03: 정본 ARENA_0002 로 전환 — 버튼 2개(대관시스템 / 1:1 문의), 둘 다 PC 링크 등록.
     code: "MB-03",
-    kakaoTemplateCode: "CTSELARNA0_00003",
+    kakaoTemplateCode: "ARENA_0002",
     audience: "APPLICANT",
     title: "가입 반려",
     body: "#{신청자명}님, 안녕하세요.\n제출해 주신 가입 신청은 아래 사유로 승인이 반려되었습니다.\n\n▪︎사유\n#{거절사유}",
     variables: ["신청자명", "거절사유"],
     release: "FIRST",
     emphasis: { title: "회원가입 반려 안내", subtitle: "서울아레나 대관시스템" },
-    button: { name: "1:1 문의", path: "/", kakaoUrl: KAKAO_PARTNER_URL },
+    button: { name: "대관시스템 바로가기", path: "/", kakaoUrl: KAKAO_PARTNER_URL, kakaoUrlPc: KAKAO_PARTNER_URL },
+    kakaoExtraButtons: [
+      {
+        name: "1:1 문의 바로가기",
+        kakaoUrl: "https://partner.seoularena.net/mypage/inquiries/new",
+        kakaoUrlPc: "https://partner.seoularena.net/mypage/inquiries/new",
+      },
+    ],
   },
   {
+    // 2026-09-03: 정본 ARENA_0005 로 전환(변수 대표담당자·신청자명, 버튼 → 담당자 관리).
     code: "MB-04",
-    kakaoTemplateCode: "CTSELARNA0_00005",
+    kakaoTemplateCode: "ARENA_0005",
     audience: "APPLICANT",
     title: "합류 신청 발생 (대표 담당자에게)",
-    body: "#{마스터}님, 안녕하세요. \n귀사 소속된 #{신청자명}님이 가입을 신청하였습니다.\n\n신청 내용을 확인하고 승인해주세요.",
-    variables: ["마스터", "신청자명"],
+    body: "#{대표담당자}님, 안녕하세요.\n귀사에 소속된 #{신청자명}님이 가입을 신청했습니다.\n\n신청 내용을 확인하고 승인해주세요.",
+    variables: ["대표담당자", "신청자명"],
     release: "FIRST",
     emphasis: { title: "회원가입 승인 요청", subtitle: "서울아레나 대관시스템" },
-    button: { name: "신청 내용 확인", path: "/", kakaoUrl: KAKAO_PARTNER_URL },
+    button: {
+      name: "신청 내용 확인하기",
+      path: "/mypage/members",
+      kakaoUrl: "https://partner.seoularena.net/mypage/members",
+      kakaoUrlPc: "https://partner.seoularena.net/mypage/members",
+    },
   },
   {
     // 신규 회사 등록 신청 → 운영자 (2026-09-01 팀 요청, 카카오 ARENA_0013 승인분 연동).
@@ -108,15 +129,23 @@ export const TEMPLATES: TemplateDef[] = [
     },
   },
   {
-    // 대표 담당자가 링크로 담당자를 초대할 때 — 계정이 없는 수신자라 링크를 본문 변수로 담는다.
-    // 카카오 정본에는 없는 문안이라 별도 등록(MB-06, 검수 대기)해 두었다.
+    // 대표 담당자가 링크로 담당자를 초대할 때 — 계정이 없는 수신자.
+    // 2026-09-03: 정본 ARENA_0006 으로 전환 — 초대 링크는 본문이 아니라 버튼 URL 의 변수(#{초대링크},
+    // 등록값 "https://partner.seoularena.net/#{초대링크}")로 실린다. 값은 호스트 뒤 경로("register?invite=…").
     code: "MB-06",
-    kakaoTemplateCode: "MB-06",
+    kakaoTemplateCode: "ARENA_0006",
     audience: "APPLICANT",
     title: "담당자 초대",
-    body: "#{회사명}에서 서울아레나 대관시스템 담당자로 초대했습니다.\n아래 링크에서 7일 이내에 본인 인증 후 계정 정보를 등록해주세요.\n#{초대링크}",
-    variables: ["회사명", "초대링크"],
-    release: "SECOND",
+    body: "#{담당자명}님, 안녕하세요. \n#{회사명}에서 서울아레나 대관시스템 담당자로 초대했습니다. \n\n아래 링크에서 3일 이내에 본인 인증 후 계정 정보를 등록해주세요.",
+    variables: ["담당자명", "회사명", "초대링크"],
+    release: "FIRST",
+    emphasis: { title: "대관 담당자 초대", subtitle: "서울아레나 대관시스템" },
+    button: {
+      name: "초대 링크 바로가기",
+      path: "/register",
+      kakaoUrl: "https://partner.seoularena.net/#{초대링크}",
+      kakaoUrlPc: "https://partner.seoularena.net/#{초대링크}",
+    },
   },
   {
     // 운영자가 계정을 직접 만들어 준 경우 — 정본의 "담당자 등록 완료(초기)"를 쓴다.
@@ -144,26 +173,33 @@ export const TEMPLATES: TemplateDef[] = [
   },
   {
     // 대표 담당자 권한을 넘겨받은 사람에게
+    // 2026-09-03: 정본 ARENA_0007 로 전환(변수 수임자명, 버튼 → 로그인, PC 링크).
     code: "MB-09",
-    kakaoTemplateCode: "CTSELARNA0_00006",
+    kakaoTemplateCode: "ARENA_0007",
     audience: "APPLICANT",
     title: "대표 담당자 권한 위임 (받는 사람)",
-    body: "#{신청자명}님, 안녕하세요.\n서울아레나 대관 신청 시스템의 마스터 권한을 위임받으셨습니다. \n\n이제 회원·대관 관리 권한을 사용하실 수 있습니다.",
-    variables: ["신청자명"],
-    release: "SECOND",
-    emphasis: { title: "마스터 권한 위임 완료", subtitle: "서울아레나 대관시스템" },
-    button: { name: "링크 바로가기", path: "/", kakaoUrl: KAKAO_PARTNER_URL },
+    body: "#{수임자명}님, 안녕하세요.\n서울아레나 대관시스템의 대표담당자 권한을 위임받으셨습니다. \n\n이제 회원 승인 권한을 이용하실 수 있습니다.",
+    variables: ["수임자명"],
+    release: "FIRST",
+    emphasis: { title: "대표 담당자 권한 위임 완료", subtitle: "서울아레나 대관시스템" },
+    button: {
+      name: "대관시스템 로그인 하기",
+      path: "/login",
+      kakaoUrl: "https://partner.seoularena.net/login",
+      kakaoUrlPc: "https://partner.seoularena.net/login",
+    },
   },
   {
     // 권한을 넘긴 이전 대표 담당자에게
+    // 2026-09-03: 정본 ARENA_0008 로 전환(변수 이전대표담당자·대표담당자명, 버튼 없음).
     code: "MB-10",
-    kakaoTemplateCode: "CTSELARNA0_00007",
+    kakaoTemplateCode: "ARENA_0008",
     audience: "APPLICANT",
     title: "대표 담당자 권한 이관 (넘긴 사람)",
-    body: "#{마스터}님, 안녕하세요.\n마스터 권한이 #{신청자명}님에게 이관되었습니다. \n\n변경된 권한은 즉시 적용됩니다.",
-    variables: ["마스터", "신청자명"],
-    release: "SECOND",
-    emphasis: { title: "마스터 권한 이관 완료", subtitle: "서울아레나 대관시스템" },
+    body: "#{이전대표담당자}님, 안녕하세요. \n대표 담당자 권한이 #{대표담당자명}님에게 이관되었습니다. \n\n변경된 권한은 즉시 적용됩니다.",
+    variables: ["이전대표담당자", "대표담당자명"],
+    release: "FIRST",
+    emphasis: { title: "대표 담당자 권한 이관 완료", subtitle: "서울아레나 대관시스템" },
   },
   // ── 2026-09-01 팀 요청 신규 연동 (카카오 ARENA_ 세트, 본문은 등록값과 글자 단위 동일) ──
   {
@@ -235,6 +271,48 @@ export const TEMPLATES: TemplateDef[] = [
       kakaoUrlPc: "https://partner.seoularena.net/mypage/inquiries",
     },
   },
+  // ── 2026-09-03 팀 요청 신규 3종 (카카오 승인 O, 본문·버튼은 등록값과 글자 단위 동일) ──
+  {
+    // 1:1 문의 접수 → 운영자 전원. 인앱은 호출부의 notifyAdmins 가 이미 남긴다.
+    code: "ARENA-0014",
+    kakaoTemplateCode: "ARENA_0014",
+    audience: "ADMIN",
+    title: "1:1 문의 접수 (운영자)",
+    body: "#{운영자명}님, 안녕하세요. \n새로운 1:1문의가 접수되었습니다.\n\n문의 내용을 확인하신 후 답변을 등록해 주세요.",
+    variables: ["운영자명"],
+    release: "FIRST",
+    emphasis: { title: "1:1문의 접수", subtitle: "서울아레나 대관시스템" },
+    button: {
+      name: "1:1문의 바로가기",
+      path: "/admin/inquiries",
+      kakaoUrl: "https://bo.seoularena.net/admin/inquiries",
+      kakaoUrlPc: "https://bo.seoularena.net/admin/inquiries",
+    },
+  },
+  {
+    // 운영자가 소속 담당자를 지운(권한 해제) 경우 → 그 사람에게. 버튼 없음.
+    code: "ARENA-0015",
+    kakaoTemplateCode: "ARENA_0015",
+    audience: "APPLICANT",
+    title: "담당자 권한 해제 (운영자 처리)",
+    body: "#{신청자명}님, 안녕하세요. \n운영자에 의해 #{회사명}의 담당자 권한이 해제되었습니다. \n\n소속 해제 이후에는 해당 회사의 대관 업무를 이용하실 수 없습니다.",
+    variables: ["신청자명", "회사명"],
+    release: "FIRST",
+    emphasis: { title: "담당자 권한 해제 안내", subtitle: "서울아레나 대관시스템" },
+  },
+  {
+    // 비회원 1:1 문의 답변 완료 — 로그인이 없으므로 버튼이 그 문의 하나를 여는 링크(#{1:1문의링크},
+    // 등록값 "https://partner.seoularena.net/#{1:1문의링크}", 값은 "inquiry/{id}?t={토큰}"). 모바일 링크만 등록됨.
+    code: "ARENA-0016",
+    kakaoTemplateCode: "ARENA_0016",
+    audience: "APPLICANT",
+    title: "1:1 문의 답변 완료 (비회원)",
+    body: "#{등록자명}님, 안녕하세요. \n1:1문의에 답변이 등록되었습니다.",
+    variables: ["등록자명", "1:1문의링크"],
+    release: "FIRST",
+    emphasis: { title: "1:1문의 답변 완료", subtitle: "서울아레나 대관시스템" },
+    button: { name: "1:1 문의 바로가기", path: "/inquiry", kakaoUrl: "https://partner.seoularena.net/#{1:1문의링크}" },
+  },
 ];
 
 export function findTemplate(code: string): TemplateDef | undefined {
@@ -247,6 +325,23 @@ export function placeholdersIn(body: string): string[] {
 }
 
 export class TemplateVariableError extends Error {}
+
+/** 본문 + 카카오 버튼 URL 의 자리표시자 — 등록 링크에 변수가 있는 템플릿(0006·0016)까지 선언과 대조한다. */
+export function templatePlaceholders(def: TemplateDef): string[] {
+  const urls = [
+    def.button?.kakaoUrl,
+    def.button?.kakaoUrlPc,
+    ...(def.kakaoExtraButtons ?? []).flatMap((b) => [b.kakaoUrl, b.kakaoUrlPc]),
+  ];
+  return [...new Set([...placeholdersIn(def.body), ...urls.flatMap((u) => (u ? placeholdersIn(u) : []))])];
+}
+
+/** 카카오 버튼 URL 의 #{변수} 를 채운다 — 누락은 본문과 같이 발송 전에 막는다(빈 링크가 나가면 안 된다). */
+export function fillUrlVariables(url: string, variables: Record<string, string>): string {
+  const missing = placeholdersIn(url).filter((k) => String(variables[k] ?? "").trim() === "");
+  if (missing.length > 0) throw new TemplateVariableError(`버튼 링크 변수 누락: ${missing.join(", ")}`);
+  return url.replace(/#\{([^}]+)\}/g, (_, k) => String(variables[k]));
+}
 
 /**
  * 변수를 채워 본문을 만든다.
