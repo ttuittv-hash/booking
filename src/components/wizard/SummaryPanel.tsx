@@ -51,7 +51,7 @@ export function SummaryPanel({ quote }: { quote: EstimatedQuote }) {
       : [{ items: visibleItems }];
 
   return (
-    <aside className="w-full min-w-0 lg:col-span-2 lg:sticky lg:top-28 lg:self-start">
+    <aside className="w-full min-w-0 lg:col-span-3 lg:sticky lg:top-28 lg:self-start">
       <div className="border-t-2 border-foreground pt-5">
         <h3 className="type-kr-heading text-h6-m sm:text-h6">실시간 대관신청 내역</h3>
 

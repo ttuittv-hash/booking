@@ -44,7 +44,7 @@ export default async function RulesPage() {
             아래 두 페이지와 같은 그리드 위에 올린다.
           */}
           <div className="grid-site mt-10">
-            <div className="lg:col-span-3">
+            <div className="lg:col-span-6">
               <dl className="flex flex-wrap gap-x-10 gap-y-3">
                 {(
                   [

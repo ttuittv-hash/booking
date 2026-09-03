@@ -103,15 +103,15 @@ function CapacityCard({ cap }: { cap: CapacityBlock }) {
  */
 function SpecCardGrid({ cards }: { cards: SpecCard[] }) {
   return (
-    <ul className="mt-10 grid gap-[var(--gutter)] sm:grid-cols-2 lg:grid-cols-4">
+    <ul className="mt-10 grid gap-[var(--gutter)] sm:grid-cols-2 lg:grid-cols-12">
       {cards.map((card, i) => (
         <li
           key={`${card.label}-${i}`}
-          className="lg:col-span-1"
+          className="lg:col-span-3"
         >
           {/* 검정 밴드 안이라 토큰을 밝은 면으로 되돌린다 — 안 그러면 흰 배경에 흰 글자다 */}
           <article
-            className="flex h-full min-w-0 flex-col rounded-surface border border-border bg-background p-6 text-foreground"
+            className="flex h-full min-w-0 flex-col border border-border bg-background p-6 text-foreground"
             style={PLAIN_SURFACE_VARS}
           >
             {/* 라벨은 있을 때만 그린다 — 빈 문자열이면 줄과 여백까지 함께 빠진다
