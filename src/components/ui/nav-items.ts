@@ -38,6 +38,8 @@ export const NAV_CATEGORIES: NavCategory[] = [
       { href: "/rates", label: "대관료", loginRequired: true },
       { href: "/rules", label: "대관 규약", loginRequired: true },
       { href: "/documents", label: "대관 자료", loginRequired: true },
+      // 2026-09-03 팀 요청: 지원 > 공지사항 → Guide > 대관 공지 (접근정책은 그대로 승인 완료 전용)
+      { href: "/notices", label: "대관 공지", loginRequired: true },
     ],
   },
 ];
@@ -49,7 +51,6 @@ export const NAV_ACTION = { href: "/apply", label: "Book It" } as const;
 export const SUPPORT_MENU: NavCategory = {
   label: "지원",
   pages: [
-    { href: "/notices", label: "공지사항", loginRequired: true },
     { href: "/faq", label: "FAQ", loginRequired: true },
     { href: "/mypage/inquiries", label: "1:1 문의", loginRequired: true },
   ],

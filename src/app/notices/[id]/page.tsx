@@ -98,7 +98,7 @@ const PROSE = [
       · 왼쪽 항목열: 옅은 회색 면 + 오른쪽 세로 괘선 — 값 열과 눈으로 갈린다
       · 나머지 괘선: #DDD 한 겹. 표 바깥 테두리는 없다
   */
-  "[&_table]:my-7 [&_table]:w-auto [&_table]:min-w-full [&_table]:border-collapse [&_table]:bg-panel [&_table]:text-s [&_table]:leading-6 [&_table]:tabular-nums",
+  "[&_table]:my-7 [&_table]:w-auto [&_table]:border-collapse [&_table]:bg-panel [&_table]:text-s [&_table]:leading-6 [&_table]:tabular-nums",
   "[&_thead]:bg-foreground",
   "[&_thead_th]:bg-foreground [&_thead_th]:text-background",
   "[&_th]:px-3 [&_th]:py-2 [&_th]:text-left [&_th]:font-bold",

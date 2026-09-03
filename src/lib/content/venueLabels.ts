@@ -40,9 +40,10 @@ export function venueRateTabKey(venueId: string): string {
 }
 
 const DEFAULT_RATE_TAB: Record<string, string> = {
-  arena: "ARENA rate",
-  "medium-hall": "Live Hall rate",
-  "special-hall": "All in One rate",
+  // 2026-09-03 팀 요청: 영문 → 한글
+  arena: "아레나 대관료",
+  "medium-hall": "중형공연장 대관료",
+  "special-hall": "올인원 대관료",
 };
 
 export function defaultVenueRateTab(venueId: string): string {
