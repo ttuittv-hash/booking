@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { notFound, redirect } from "next/navigation";
+import { redirect } from "next/navigation";
 import { getCurrentUser, isProAdminOrAbove } from "@/lib/auth";
 import {
   findApprovedWeekConflict,
@@ -153,7 +153,10 @@ export default async function AdminQuoteDetailPage({
 
   const { id } = await params;
   const quote = await getQuoteById(id);
-  if (!quote) notFound();
+  // 신청서가 삭제된 뒤에도 예전 알림(신청 접수·심사 요청 등)은 그 quoteId 를 그대로
+  // 들고 있다 — 그 알림을 눌렀을 때 맨 App Router 404 페이지로 떨어뜨리는 대신
+  // 신청 현황 목록으로 보낸다("운영자에서 알림을 클릭하면 404" 신고, 2026-09-03).
+  if (!quote) redirect("/admin");
 
 
   // 서로 독립인 조회 17건을 직렬로 기다리면 페이지 지연이 왕복 시간의 합이 된다 — 한 번에 띄운다(2026-08-28 성능 점검).
