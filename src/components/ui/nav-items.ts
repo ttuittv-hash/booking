@@ -47,6 +47,12 @@ export const NAV_CATEGORIES: NavCategory[] = [
 /** 중앙 — 누르는 곳 하나. 카테고리가 아니라 목적지다. */
 export const NAV_ACTION = { href: "/apply", label: "Book It" } as const;
 
+/**
+ * 1차 오픈(2026-09-03) 기준 Book It 메뉴 숨김 — 팀 요청. 2차 노출(9/7) 때 false 로 되돌린다.
+ * 상단바·모바일 메뉴·푸터 사이트맵에서 함께 빠진다. /apply 경로 자체는 그대로 열려 있다.
+ */
+export const NAV_ACTION_HIDDEN = true;
+
 /** 우측 — 지원. 여정의 한 단계가 아니라 어느 단계에서든 쓰는 도구다. */
 export const SUPPORT_MENU: NavCategory = {
   label: "지원",
@@ -65,7 +71,9 @@ export const ACCOUNT_HREF = "/mypage";
 /** 푸터 사이트맵 — 중앙 2묶음 + 신청 + 지원 */
 export const FOOTER_CATEGORIES: NavCategory[] = [
   ...NAV_CATEGORIES,
-  { label: "Book It", pages: [{ href: NAV_ACTION.href, label: "대관 신청", loginRequired: true }] },
+  ...(NAV_ACTION_HIDDEN
+    ? []
+    : [{ label: "Book It", pages: [{ href: NAV_ACTION.href, label: "대관 신청", loginRequired: true }] }]),
   SUPPORT_MENU,
 ];
 

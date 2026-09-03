@@ -9,6 +9,7 @@ import { NotificationBell } from "@/components/NotificationBell";
 import {
   ACCOUNT_HREF,
   NAV_ACTION,
+  NAV_ACTION_HIDDEN,
   NAV_CATEGORIES,
   SUPPORT_MENU,
   type NavPage,
@@ -331,7 +332,7 @@ export function PublicHeader({
             */}
             {/* 승인 완료 전에는 신청 자체가 막혀 있다 — 누르면 안내 화면으로 되돌아오는
                 버튼을 상단바에 남겨 두지 않는다(2026-09-02). */}
-            {allowed(NAV_ACTION.href) ? (
+            {!NAV_ACTION_HIDDEN && allowed(NAV_ACTION.href) ? (
               <li className="ml-2 flex items-center" onMouseEnter={closeNow} onFocus={closeNow}>
                 <Link href={NAV_ACTION.href} className={ACTION_BTN}>
                   {NAV_ACTION.label}
@@ -463,7 +464,7 @@ export function PublicHeader({
                   </ul>
                 </li>
               ))}
-              {allowed(NAV_ACTION.href) ? (
+              {!NAV_ACTION_HIDDEN && allowed(NAV_ACTION.href) ? (
                 <li>
                   {/* [수정 2026-09-02] 상단바와 같은 결로 — 검정 채움을 빼고 텍스트로 둔다. */}
                   <Link
