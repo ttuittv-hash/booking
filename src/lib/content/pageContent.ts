@@ -42,7 +42,7 @@ import {
   FACILITY_DOCUMENTS,
   LIVE_HALL_DOCUMENTS,
 } from "./documentFacts";
-import { RULES_EFFECTIVE_DATE, RULES_TITLE, RULES_VERSION, RULE_CHAPTERS } from "./rulesFacts";
+import { RULES_BODY, RULES_EFFECTIVE_DATE, RULES_TITLE, RULES_VERSION } from "./rulesFacts";
 
 /* ============================================================================
    페이지 콘텐츠 — 운영자가 백오피스에서 편집하는 값.
@@ -651,12 +651,6 @@ export interface RulesContent {
   fileName: string;
 }
 
-function chaptersToText(): string {
-  return RULE_CHAPTERS.map((ch) =>
-    [ch.title, ...ch.articles.flatMap((a) => [a.title, ...a.paragraphs])].join("\n"),
-  ).join("\n");
-}
-
 export const DEFAULT_RULES_CONTENT: RulesContent = {
   title: RULES_TITLE,
   version: RULES_VERSION,
@@ -667,7 +661,7 @@ export const DEFAULT_RULES_CONTENT: RulesContent = {
   revisionNote:
     "개정된 내용은 홈페이지 공지 또는 별도 통지 중 빠른 시점 이후 신규 체결되는 " +
     "대관계약부터 적용합니다. 이미 체결된 대관계약에는 계약 체결 시점의 규약을 적용합니다.",
-  body: chaptersToText(),
+  body: RULES_BODY,
   fileUrl: "",
   fileName: "",
 };
