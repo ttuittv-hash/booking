@@ -19,6 +19,7 @@ import {
   CTABand,
   PLAIN_SURFACE_VARS,
   PageHead,
+  RichText,
   SectionHead,
   StatCards,
   TitledCard,
@@ -69,7 +70,11 @@ function CapacityCard({ cap }: { cap: CapacityBlock }) {
 
   return (
     <TitledCard title={cap.stage}>
-      {cap.desc && <p className="break-keep text-s text-muted">{cap.desc}</p>}
+      {cap.desc && (
+        <p className="whitespace-pre-line break-keep text-s text-muted">
+          <RichText text={cap.desc} />
+        </p>
+      )}
       {rows.length > 0 && (
         <dl className={`space-y-7 ${cap.desc ? "mt-7" : ""}`}>
           {rows.map((r, i) => (
@@ -88,15 +93,32 @@ function CapacityCard({ cap }: { cap: CapacityBlock }) {
 }
 
 /**
- * 스펙 카드 4-up — 검정 지면 위 **흰 배경 · 검정 아웃라인** 박스.
- * 한 장은 [라벨 / 큰 수치 / 설명] 세 줄이고, 12칼럼에서 3칼럼씩 떨어진다.
- * 스냅은 4 → 2 → 1 이다.
+ * 설명이 이 글자 수 이상이면 카드를 **2칼럼 폭**으로 넓힌다.
+ *
+ * 3칼럼 카드(1440 에서 안쪽 약 240px)에 본문 14px 이면 한 줄에 17자쯤 들어간다.
+ * 설명이 이 기준을 넘으면 세 줄 이상으로 접혀 카드 키가 옆 카드보다 훌쩍 커지는데,
+ * 격자가 그때부터 어긋나 보인다. 넓혀서 두 줄 안에 들어오게 한다.
+ *
+ * 값을 올리면 넓어지는 카드가 줄고, 내리면 늘어난다. 지금 값(22)에서는
+ * PRODUCTION & RIGGING 의 SMART STAGE(23자)만 넓어지고 MOTHER TRUSS(20자)는 그대로다.
+ */
+const WIDE_CARD_DESC_LENGTH = 22;
+
+/**
+ * 스펙 카드 — 검정 지면 위 **흰 배경 · 검정 아웃라인** 박스.
+ * 한 장은 [라벨 / 큰 수치 / 설명] 세 줄이고, 12칼럼에서 3칼럼(설명이 길면 6칼럼)이다.
+ * 스냅은 4 → 2 → 1 로 그대로 두므로, 좁은 화면에서는 폭 차이가 사라진다.
  */
 function SpecCardGrid({ cards }: { cards: SpecCard[] }) {
   return (
     <ul className="mt-10 grid gap-[var(--gutter)] sm:grid-cols-2 lg:grid-cols-12">
       {cards.map((card, i) => (
-        <li key={`${card.label}-${i}`} className="lg:col-span-3">
+        <li
+          key={`${card.label}-${i}`}
+          className={
+            card.desc.length >= WIDE_CARD_DESC_LENGTH ? "lg:col-span-6" : "lg:col-span-3"
+          }
+        >
           {/* 검정 밴드 안이라 토큰을 밝은 면으로 되돌린다 — 안 그러면 흰 배경에 흰 글자다 */}
           <article
             className="flex h-full min-w-0 flex-col border border-border bg-background p-6 text-foreground"
@@ -114,7 +136,11 @@ function SpecCardGrid({ cards }: { cards: SpecCard[] }) {
             >
               {card.value}
             </p>
-            {card.desc && <p className="mt-3 break-keep text-s text-muted">{card.desc}</p>}
+            {card.desc && (
+              <p className="mt-3 whitespace-pre-line break-keep text-s text-muted">
+                <RichText text={card.desc} />
+              </p>
+            )}
           </article>
         </li>
       ))}
@@ -159,7 +185,11 @@ function FloorList({ items }: { items: FeatureBlock[] }) {
                 ))}
               </div>
             )}
-            {note && <p className="mt-2 break-keep text-s text-muted">{note}</p>}
+            {note && (
+              <p className="mt-2 whitespace-pre-line break-keep text-s text-muted">
+                <RichText text={note} />
+              </p>
+            )}
           </li>
         );
       })}

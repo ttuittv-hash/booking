@@ -120,6 +120,16 @@ const PROSE = [
 
 const PROSE_BLOCK = "overflow-x-auto";
 
+/**
+ * 공지 본문 칼럼 — 지면 **가운데, 12칼럼 중 6칼럼(2/4)** (2026-09-03).
+ *
+ * `max-w-3xl`(768px) 로 왼쪽에 붙여 두었더니 넓은 화면에서 본문이 한쪽으로 쏠리고,
+ * 폭도 지면 그리드와 무관해 다른 화면과 세로선이 맞지 않았다. 공고처럼 길게 읽는 글은
+ * 지면 한가운데 놓고 읽기 좋은 폭으로 좁히는 편이 낫다.
+ * 제목·메타 블록에도 같은 칼럼을 써서 머리와 본문이 같은 축에 선다.
+ */
+const NOTICE_COLUMN = "mx-auto w-full lg:w-1/2";
+
 export default async function NoticeDetailPage({
   params,
 }: {
@@ -169,7 +179,7 @@ export default async function NoticeDetailPage({
       <main className="flex flex-1 flex-col">
         {/* 제목 · 메타 — 본문 폭 유지 */}
         <Band tone="light" size="md">
-          <div className="max-w-3xl">
+          <div className={NOTICE_COLUMN}>
             <PageHeading
               size="md"
               title={notice.title}
@@ -192,7 +202,7 @@ export default async function NoticeDetailPage({
 
         {/* 본문 · 첨부 */}
         <Band tone="white" size="md">
-          <div className="max-w-3xl">
+          <div className={NOTICE_COLUMN}>
             {notice.imageUrl && (
               <Media src={notice.imageUrl} alt={notice.title} ratio="auto" className="mb-10" />
             )}
