@@ -3,6 +3,7 @@ import { getCurrentUser } from "@/lib/auth";
 import { PublicHeader } from "@/components/PublicHeader";
 import { SiteFooter } from "@/components/ui/SiteFooter";
 import { ButtonLink } from "@/components/ui/kit";
+import { NOTICE_LINK } from "@/components/ui/nav-items";
 
 export const metadata: Metadata = { title: "페이지를 찾을 수 없습니다 | 서울아레나" };
 
@@ -34,7 +35,7 @@ export default async function NotFound() {
               <ButtonLink href="/" variant="primary">
                 홈으로
               </ButtonLink>
-              <ButtonLink href="/notices">대관 공지 보기</ButtonLink>
+              <ButtonLink href={NOTICE_LINK.href}>{NOTICE_LINK.label} 보기</ButtonLink>
             </div>
           </div>
         </div>
