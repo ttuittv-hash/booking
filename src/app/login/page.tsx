@@ -45,7 +45,11 @@ export default function LoginPage() {
       }
       // 운영자도 로그인 직후 바로 관리 페이지로 보내지 않고 홈으로 보낸다 — 관리
       // 페이지는 상단바의 "운영자 백오피스" 링크로 따로 들어간다(2026-08-21).
-      router.push(data.user.role === "ADMIN" ? "/" : "/apply");
+      // [수정 2026-09-04] 로그인 화면에 ?next=/mypage/members 처럼 돌아갈 곳이 실려 오면(알림톡 버튼·
+      // 보호 페이지 진입) 그곳으로 보낸다. 사이트 안 경로(/로 시작, //는 제외)만 믿어 외부 리다이렉트를 막는다.
+      const next = new URLSearchParams(window.location.search).get("next");
+      const safeNext = next && next.startsWith("/") && !next.startsWith("//") ? next : null;
+      router.push(data.user.role === "ADMIN" ? "/" : (safeNext ?? "/apply"));
       router.refresh();
     } finally {
       setLoading(false);
