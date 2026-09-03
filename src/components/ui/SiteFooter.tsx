@@ -23,8 +23,12 @@ const SOCIALS: { label: string; href: string }[] = [
   { label: "LinkedIn", href: "https://www.linkedin.com/company/seoularena/" },
 ];
 
-/** 사이트맵에 올리는 묶음 — `지원` 은 상단바 우측 유틸에 있으므로 뺀다 */
-const SITEMAP = FOOTER_CATEGORIES.filter((c) => c.label !== "지원");
+/**
+ * 사이트맵에 올리는 묶음 — 여러 장이 걸린 묶음만 싣는다.
+ * `지원` 은 상단바 우측 유틸에 있고, `Book It` 은 링크 한 장짜리라 열 하나를 차지할
+ * 만큼의 내용이 없다(상단바에 늘 떠 있기도 하다).
+ */
+const SITEMAP = FOOTER_CATEGORIES.filter((c) => c.label !== "지원" && c.label !== "Book It");
 
 /*
   푸터 타이포 (2026-09-03)

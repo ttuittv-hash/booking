@@ -1102,7 +1102,7 @@ export function PageHead({
 }: {
   /** H1 — 영문 슬로건 (ABOUT SEOUL ARENA · ARENA RATES …) */
   en: string;
-  /** H3 — 국문 제목 (시설 개요 · 아레나 대관료 …) */
+  /** H1 — 국문 제목 (시설 개요 · 아레나 대관료 …). 영문과 같은 크기다 */
   ko?: string;
   lead?: ReactNode;
   actions?: ReactNode;
@@ -1118,12 +1118,20 @@ export function PageHead({
     <div className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
       <div className="min-w-0">
         <As className="type-display text-h1-m sm:text-h1">{en}</As>
-        {ko && (
-          <h3 className="type-kr-heading mt-4 text-h3-m sm:text-h3">{ko}</h3>
-        )}
+        {/*
+          [개정 2026-09-04] 국문 제목도 영문과 **같은 H1** 이다. 한 단계 낮춰 두었더니
+          영문 슬로건만 제목이고 국문은 그 설명처럼 읽혔는데, 둘은 같은 제목의 두 표기다.
+          대신 사이를 8 로 좁혀 한 덩어리로 묶는다.
+        */}
+        {ko && <h3 className="type-kr-heading mt-2 text-h1-m sm:text-h1">{ko}</h3>}
+        {/*
+          [개정 2026-09-04] 제목과 리드 사이를 **56** 으로 벌리고, 리드를 본문 그대로
+          (18 · 행간 160% · 지면 글자색) 둔다. 16 으로 붙여 두고 흐린 회색으로 깔았더니
+          제목에 딸린 부제처럼 읽혔는데, 이 자리는 화면의 첫 문장이다.
+        */}
         {lead && (
           <div
-            className={`mt-4 break-keep text-m text-muted ${wideLead ? "" : "measure"}`}
+            className={`mt-14 break-keep text-[1.125rem] font-normal leading-[1.6] ${wideLead ? "" : "measure"}`}
           >
             {lead}
           </div>
@@ -1148,7 +1156,12 @@ export function SectionHead({
     <div className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
       <div className="min-w-0">
         <h3 className={`${headingFontClass(title)} text-h3-m sm:text-h3`}>{title}</h3>
-        {lead && <div className="measure mt-3 break-keep text-m text-muted">{lead}</div>}
+        {/* 제목 아래 간격과 글자는 페이지 머리와 같은 기준(56 · 18 · 160%). 색만 보조색으로 둔다 */}
+        {lead && (
+          <div className="measure mt-14 break-keep text-[1.125rem] font-normal leading-[1.6] text-muted">
+            {lead}
+          </div>
+        )}
       </div>
       {actions && <div className="flex shrink-0 flex-wrap gap-3">{actions}</div>}
     </div>
@@ -1191,10 +1204,14 @@ export function SplitSection({
 /* ------------------------------------------------------ 사진 전면 섹션 ---- */
 
 /**
- * Figma `01 공개 화면 › 02 공간 안내` 의 **Header / 5** — 공간 소개 섹션.
+ * 공간 소개 — 전면 사진 한 장 위에 그 공간의 이름과 설명이 앉는다.
  *
- *   전면 사진 위에 좌측 정렬 텍스트 블록이 수직 가운데에 놓인다.
- *   H2 공간명 → 24 → eyebrow(수용 규모, 14 Bold) → 24 → 설명(본문, 폭 3col)
+ *   공간명(H4) → 수용 규모 한 줄 → 설명. 세 덩어리가 **사진 좌하단**에 모인다.
+ *
+ * [개정 2026-09-04] 지면 끝까지 차던 사진을 **마진 안에 앉는 라운드 카드**로 바꾸고,
+ * 텍스트를 가운데에서 아래로 내렸다. 풀블리드로 두면 앞뒤 섹션과 경계가 붙어 사진이
+ * 배경처럼 읽혔는데, 이건 배경이 아니라 공간 한 곳을 소개하는 한 장이다.
+ * 텍스트가 바닥에 모이면 사진의 위쪽이 그대로 열려 공간의 크기가 먼저 보인다.
  *
  * 사진이 없으면 `placeholder` 면으로 떨어지며 텍스트는 검정으로 뒤집힌다.
  */
@@ -1203,7 +1220,8 @@ export function PhotoHero({
   eyebrow,
   desc,
   image,
-  minHeight = "900px",
+  // rem 이라 화면이 좁아지면 글자와 같은 비율로 낮아진다 — 900 / 16
+  minHeight = "56.25rem",
 }: {
   title: string;
   eyebrow?: string;
@@ -1212,37 +1230,48 @@ export function PhotoHero({
   minHeight?: string;
 }) {
   return (
-    <section
-      className={`relative isolate flex items-center ${image ? "text-n-white" : "bg-placeholder text-foreground"}`}
-      style={{ minHeight: `min(${minHeight}, 100svh)` }}
-    >
-      {image && (
-        <>
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={image} alt="" aria-hidden className="absolute inset-0 -z-10 h-full w-full object-cover" />
+    <section className="container-site py-4">
+      <div
+        className={`relative isolate flex items-center overflow-hidden rounded-surface ${image ? "text-n-white" : "bg-placeholder text-foreground"}`}
+        style={{ minHeight: `min(${minHeight}, 100svh)` }}
+      >
+        {image && (
+          <>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={image}
+              alt=""
+              aria-hidden
+              className="absolute inset-0 -z-10 h-full w-full object-cover"
+            />
+            {/*
+              텍스트 가독을 위한 그늘. 글자가 앉는 **왼쪽**을 짙게 깔고 오른쪽은 사진을 살린다.
+              아레나 사진처럼 바닥이 밝은 컷에서도 흰 본문이 읽혀야 하므로 왼쪽은 70%까지 준다.
+            */}
+            <div
+              aria-hidden
+              className="absolute inset-0 -z-10 bg-gradient-to-r from-black/70 via-black/35 to-black/10"
+            />
+          </>
+        )}
+        {/* 공간명 H1 · 수용 규모 14 · 설명 18 — 사진 위 세로 가운데에 선다 */}
+        <div className="w-full px-6 py-14 sm:px-10">
+          <h2 className="type-kr-heading text-h1-m sm:text-h1">{title}</h2>
+          {eyebrow && <p className="mt-4 text-[0.875rem] font-bold">{eyebrow}</p>}
           {/*
-            텍스트 가독을 위한 그늘. 좌측(텍스트가 앉는 쪽)만 짙게 깔고 우측은 사진을 살린다.
-            아레나 사진처럼 바닥이 밝은 컷에서도 흰 본문이 읽혀야 하므로 좌측은 65%까지 준다.
+            설명의 줄바꿈은 **넓은 화면에서만** 지킨다.
+            운영자가 넣은 줄바꿈은 한 줄에 35자쯤 들어가는 폭을 전제로 한 것이라,
+            좁은 화면에서는 그 줄이 다시 접히며 "설계," 같은 꼬리 한 마디만 남은 줄이
+            줄줄이 생겼다. 그 폭에서 줄바꿈을 지키려면 글자가 9px 남짓이 되어야 한다.
+            좁을 때는 줄바꿈을 풀어 문단이 고르게 흐르게 두는 편이 읽힌다.
           */}
-          <div
-            aria-hidden
-            className="absolute inset-0 -z-10 bg-gradient-to-r from-black/70 via-black/35 to-black/10"
-          />
-        </>
-      )}
-      {/*
-        [개정 2026-09-03] 텍스트 블록을 지면 그리드에 올리고 **9/12(3/4)** 로 넓혔다.
-        `max-w-[41.5rem]`(664px) 고정이라 1440 에서 대략 두 칼럼에서 끊겼고, 문장이
-        중간에 잘려 다음 줄로 넘어가 읽는 리듬이 끊겼다. 사진 위 텍스트라 지면 전체를
-        쓰지는 않는다 — 우측 1/4 는 사진이 숨 쉬는 자리로 남긴다.
-      */}
-      <div className="container-site py-20">
-        <div className="grid-site">
-          <div className="lg:col-span-4">
-            <h2 className="type-kr-heading text-h3-m sm:text-h3">{title}</h2>
-            {eyebrow && <p className="mt-6 text-s font-bold">{eyebrow}</p>}
-            {desc && <Prose text={desc} className="mt-6 text-m leading-8" gap="mt-5" />}
-          </div>
+          {desc && (
+            <Prose
+              text={desc}
+              className="mt-6 text-[1.125rem] leading-[1.6] [&>p]:whitespace-normal lg:[&>p]:whitespace-pre-line"
+              gap="mt-4"
+            />
+          )}
         </div>
       </div>
     </section>
@@ -1280,17 +1309,26 @@ export function FeatureList({
       {items.map((it, i) => (
         <li
           key={it.title}
-          className={`flex gap-6 border-b border-border py-7 sm:gap-8 ${
-            columns === 2 && i === 1 ? "lg:border-t-0" : ""
-          }`}
+          className={`border-b border-border py-7 ${
+            /*
+              번호가 붙는 목록은 지면 격자에 올린다 — 번호 1칼럼, 본문 2~5칼럼.
+              번호를 고정 폭으로 띄우면 줄마다 본문이 시작하는 자리가 격자와 어긋난다.
+              번호와 본문은 세로 가운데에서 만난다.
+            */
+            numbered ? "grid-site lg:items-center" : "flex gap-6 sm:gap-8"
+          } ${columns === 2 && i === 1 ? "lg:border-t-0" : ""}`}
         >
           {numbered && (
-            <span className="type-display w-10 shrink-0 text-h6-m tabular-nums text-muted sm:text-h6">
+            <span className="type-display text-[1.5rem] tabular-nums text-muted lg:col-span-1">
               {String(i + 1).padStart(2, "0")}
             </span>
           )}
-          <div className="min-w-0">
-            <h4 className="type-kr-heading break-keep text-h5-m sm:text-h5">{it.title}</h4>
+          <div className={`min-w-0 ${numbered ? "lg:col-span-4 lg:col-start-2" : ""}`}>
+            <h4
+              className={`type-kr-heading break-keep ${numbered ? "text-[1.5rem] leading-[1.4]" : "text-h5-m sm:text-h5"}`}
+            >
+              {it.title}
+            </h4>
             {it.lines.length > 0 && (
               <div className="measure mt-3 space-y-1">
                 {it.lines.map((line) => (

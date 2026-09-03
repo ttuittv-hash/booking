@@ -19,15 +19,16 @@ import { useStageProgress } from "@/components/home/PhotoStage";
  */
 
 /**
- * 쌓였을 때 앞 항목이 남기는 높이 = **카드 머리 한 통**.
- * 위 20 + 제목 한 줄(32px · 130%) + 아래 20 = 82. 이 값이 곧 다음 장이 서는 자리라서,
- * 앞 장에서 남는 것은 머리뿐이고 설명은 빠짐없이 가려진다.
+ * 쌓였을 때 앞 항목이 남기는 높이 = **카드 머리 한 통** = `--stack-head`.
+ * 위 20 + 제목 한 줄 + 아래 20 이고, 제목 크기가 폭에 따라 달라지므로 값은 CSS 가 정한다
+ * (`globals.css`). 이 값이 곧 다음 장이 서는 자리라서, 앞 장에서 남는 것은 머리뿐이고
+ * 설명은 빠짐없이 가려진다.
  *
  * 머리의 글자는 **세로 가운데**에 둔다. 위 여백만 주고 높이를 고정했더니 헤어라인 아래
  * 여백이 0 이 되어, 줄마다 글자가 위로 쏠린 채 위아래가 어긋나 보였다.
  */
-const HEAD_PAD = 20; // px — 머리 위아래 여백(같은 값)
-const HEAD = 82; // px
+const HEAD = "var(--stack-head)";
+const HEAD_PAD = "1.25rem"; // 머리 위아래 여백과 같은 값 — 설명 아래에 준다
 
 export interface Statement {
   title: string;
@@ -64,7 +65,7 @@ export function StackedStatements({ title, items }: { title: string; items: Stat
             <div
               className="relative mt-14"
               // 다 쌓였을 때의 높이 — 머리 (n−1)장 + 마지막 장 한 통
-              style={{ height: `${(items.length - 1) * HEAD + 180}px` }}
+              style={{ height: `calc(${items.length - 1} * ${HEAD} + 11.25rem)` }}
             >
               {items.map((s, i) => {
                 const enter = reduce || i === 0 ? 1 : clamp01((p - (i - 1) * seg) / seg);
@@ -74,27 +75,30 @@ export function StackedStatements({ title, items }: { title: string; items: Stat
                     className="absolute inset-x-0 top-0 bg-inverse-bg"
                     style={{
                       // 제자리는 머리 i 장만큼 아래. 오기 전에는 화면 아래쪽에서 기다린다.
-                      transform: `translateY(calc(${i * HEAD}px + ${(1 - enter) * 70}vh))`,
+                      transform: `translateY(calc(${i} * ${HEAD} + ${(1 - enter) * 70}vh))`,
                     }}
                   >
-                    {/* 머리는 [20 + 제목 한 줄 + 20] = HEAD. 설명 아래 여백도 같은 20 이다 */}
-                    <div className="grid-site border-t border-border">
-                      <p
+                    <div className="border-t border-border">
+                      {/*
+                        머리 — **번호와 제목이 한 줄**이다. 좁은 화면에서 둘을 위아래로 두었더니
+                        다음 장이 제목을 덮어, 남는 것이 번호뿐이라 무슨 항목인지 알 수 없었다.
+                        높이는 `--stack-head` 한 통이고 글자는 그 안에서 세로 가운데에 선다.
+                      */}
+                      <div
                         style={{ height: HEAD }}
-                        className="type-display flex items-center text-h5-m leading-none tabular-nums sm:text-h5 lg:col-span-2"
+                        className="flex items-center gap-4 lg:grid-site lg:items-center"
                       >
-                        {String(i + 1).padStart(2, "0")}
-                      </p>
-                      <div className="lg:col-span-4">
-                        <h3
-                          style={{ height: HEAD }}
-                          className="type-display flex items-center break-keep text-h4-m leading-[1.3] sm:text-h4"
-                        >
+                        <p className="type-display shrink-0 text-h5-m leading-none tabular-nums lg:col-span-2 lg:text-h5">
+                          {String(i + 1).padStart(2, "0")}
+                        </p>
+                        <h3 className="type-display min-w-0 break-keep text-h5-m leading-[1.3] lg:col-span-4 lg:text-h4">
                           {s.title}
                         </h3>
+                      </div>
+                      <div className="lg:grid-site">
                         <p
                           style={{ paddingBottom: HEAD_PAD }}
-                          className="max-w-2xl break-keep pt-1 text-[1.125rem] text-muted"
+                          className="max-w-2xl break-keep pt-1 text-[1.125rem] text-muted lg:col-span-4 lg:col-start-3"
                         >
                           <RichText text={s.desc} />
                         </p>

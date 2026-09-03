@@ -69,7 +69,11 @@ export default async function Home({
           className="container-site flex flex-col pb-20"
           style={{ minHeight: "100vh", paddingTop: "calc(var(--header-h) + 80px)" }}
         >
-          <h1 className="type-display text-h1-m lg:text-d2-m xl:text-d2">
+          {/*
+            히어로 한정 크기다. 좁은 화면에서 영문 제목과 국문 리드가 둘 다 40 이라
+            어느 쪽이 제목인지 알 수 없었다 — 영문은 키우고 국문은 낮춰 위계를 벌린다.
+          */}
+          <h1 className="type-display text-d2-m xl:text-d2">
             <Multiline text={content.heroTitle} />
           </h1>
 
@@ -79,7 +83,7 @@ export default async function Home({
             버튼 아래에 둔다.
           */}
           <div className="mt-20">
-            <p className="break-keep text-[2.5rem] font-extrabold leading-[1.3] [font-family:var(--font-sans)]">
+            <p className="break-keep text-[1.5rem] font-extrabold leading-[1.3] [font-family:var(--font-sans)] lg:text-[2.5rem]">
               <Multiline text={content.heroSubtitle} />
             </p>
 

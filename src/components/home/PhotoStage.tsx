@@ -102,23 +102,35 @@ export function PhotoStage({ image, alt }: { image?: string | null; alt: string 
         >
           <div
             className="mx-auto overflow-hidden rounded-surface"
-            // 폭만 바꾼다 — transform 으로 키우면 사진이 늘어나 보이고 코너도 함께 커진다
-            style={{ width: `calc(${START_WIDTH} + (100% - ${START_WIDTH}) * ${grow})` }}
+            /*
+              폭은 크기 값으로 바꾼다 — transform 으로 키우면 사진이 늘어나 보이고
+              코너도 함께 커진다. 높이는 좁은 화면에서만 쓰는 값이라 변수로만 넘기고,
+              실제로 쓸지는 아래 클래스가 정한다(넓은 화면은 21:9 로 돌아간다).
+            */
+            style={
+              {
+                width: `calc(${START_WIDTH} + (100% - ${START_WIDTH}) * ${grow})`,
+                "--stage-h": `calc(40svh + 60svh * ${grow})`,
+              } as React.CSSProperties
+            }
           >
+            {/*
+              좁은 화면에서는 40svh 로 시작해 **세로를 가득 채울 때까지** 자란다.
+              21:9 를 그대로 두면 폭이 좁을수록 사진이 납작한 띠가 되어, 무대가 열리는
+              장면이 아니라 배너처럼 보였다. 넓은 화면에서는 원래 비율로 돌아간다.
+            */}
             {image ? (
               // eslint-disable-next-line @next/next/no-img-element
               <img
                 src={image}
                 alt={alt}
-                style={{ aspectRatio: "21 / 9" }}
-                className="block max-h-[70vh] w-full object-cover"
+                className="block h-[var(--stage-h)] w-full object-cover lg:h-auto lg:max-h-[70vh] lg:aspect-[21/9]"
               />
             ) : (
               <div
-                style={{ aspectRatio: "21 / 9" }}
                 role="img"
                 aria-label={alt}
-                className="max-h-[70vh] w-full bg-placeholder"
+                className="h-[var(--stage-h)] w-full bg-placeholder lg:h-auto lg:max-h-[70vh] lg:aspect-[21/9]"
               />
             )}
           </div>

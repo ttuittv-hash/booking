@@ -1,5 +1,8 @@
 import {
+  ABOUT_CARDS,
   ABOUT_LEAD,
+  ABOUT_QUOTE,
+  ABOUT_STATEMENTS,
   ARENA_CAPACITY,
   ARENA_FACILITY_GROUPS,
   ARENA_FLOOR_SEATING,
@@ -77,9 +80,23 @@ export interface VenueHeroBlock {
   image: string | null;
 }
 
+export interface AboutCard {
+  title: string;
+  desc: string;
+}
+
 export interface SeoulArenaContent {
-  /** 시설개요 탭 리드 (리치텍스트) */
+  /**
+   * 시설개요 탭 리드 (리치텍스트).
+   * 화면은 아래 세 필드로 나눠 그린다 — 이 값은 예전 저장본과의 호환으로 남겨 둔다.
+   */
   aboutLead: string;
+  /** 머리 인용 — 제목 바로 아래 */
+  aboutQuote: string;
+  /** 카드 세 장 */
+  aboutCards: AboutCard[];
+  /** 가운데 선언 — 카드와 사진 사이 */
+  aboutStatements: string[];
   heroes: VenueHeroBlock[];
   complexFeaturesLead: string;
   complexFeatures: string[];
@@ -90,6 +107,9 @@ export interface SeoulArenaContent {
 
 export const DEFAULT_SEOULARENA_CONTENT: SeoulArenaContent = {
   aboutLead: ABOUT_LEAD,
+  aboutQuote: ABOUT_QUOTE,
+  aboutCards: ABOUT_CARDS.map((c) => ({ ...c })),
+  aboutStatements: [...ABOUT_STATEMENTS],
   heroes: VENUE_HEROES.map((h) => ({ ...h })),
   complexFeaturesLead: COMPLEX_FEATURES_LEAD,
   complexFeatures: COMPLEX_FEATURES.map((f) => f.title),
