@@ -492,7 +492,7 @@ export function MembersManager({ currentUserId }: { currentUserId: string }) {
       <section className="mt-12">
         <h2 className="text-s font-bold">담당자 초대</h2>
         <p className="mt-2 break-keep text-s leading-6 text-muted">
-          초대 링크를 받은 분이 직접 본인인증을 하고 비밀번호를 설정합니다. 유효기간은 7일입니다.
+          초대 링크를 받은 분이 직접 본인인증을 하고 비밀번호를 설정합니다. 유효기간은 3일입니다.
         </p>
         {/* [신규 2026-09-02] 링크는 전달된다 — 초대받은 사람이 다른 사람에게 넘기면
             그 사람이 가입해 버렸다. 이제 셋이 다 맞아야 가입이 되므로, 대표가 값을

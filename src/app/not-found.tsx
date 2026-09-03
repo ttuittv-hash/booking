@@ -8,7 +8,7 @@ export const metadata: Metadata = { title: "페이지를 찾을 수 없습니다
 
 /**
  * 404 — 우리 스타일의 안내 화면 (2026-09-04).
- * Next 기본 흰 화면 대신 상단바·푸터를 그대로 두고, 갈 곳(홈·대관 공지)을 바로 준다.
+ * Next 기본 흰 화면 대신 상단바·푸터를 그대로 두고, 갈 곳(홈·공지사항)을 바로 준다.
  * 로그인 상태면 상단바도 그 상태로 그려진다.
  */
 export default async function NotFound() {
@@ -27,7 +27,7 @@ export default async function NotFound() {
                 <ButtonLink href="/" variant="primary">
                   홈으로
                 </ButtonLink>
-                <ButtonLink href="/notices">대관 공지 보기</ButtonLink>
+                <ButtonLink href="/notices">공지사항 보기</ButtonLink>
               </div>
             }
           />
