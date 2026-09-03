@@ -1,3 +1,4 @@
+import { cache } from "react";
 import { Pool, type PoolClient } from "pg";
 import { AsyncLocalStorage } from "node:async_hooks";
 import { hash as bcryptHash } from "@node-rs/bcrypt";
@@ -5765,9 +5766,13 @@ export async function saveNoticeCalendarWindow(data: NoticeCalendarWindow) {
   return saveSiteContent("noticeCalendarWindow", data);
 }
 
-export async function getScreenTextContent(): Promise<ScreenTextContent> {
+/**
+ * 화면 문구는 상단바(모든 화면)가 읽는다 — 요청당 한 번만 조회한다.
+ * `getCurrentUser` 와 같은 관례다.
+ */
+export const getScreenTextContent = cache(async function getScreenTextContent(): Promise<ScreenTextContent> {
   return getPageContent("screenText", DEFAULT_SCREEN_TEXT_CONTENT);
-}
+});
 export async function saveScreenTextContent(data: ScreenTextContent) {
   return saveSiteContent("screenText", data);
 }

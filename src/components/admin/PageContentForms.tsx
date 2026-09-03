@@ -795,6 +795,35 @@ export function ScreenTextForm({ content }: { content: ScreenTextContent }) {
             ))}
           </Section>
 
+          {/* [신규 2026-09-03] 1차 오픈 동안 대관 신청을 받지 않을 때 쓰는 안내.
+              신청이 열리는 날 배포 없이 여기서 끈다. */}
+          <Section
+            title="BOOK IT 「오픈 예정」 안내"
+            help="켜면 상단바 BOOK IT 이 신청 화면으로 가지 않고, 올려 두거나 누를 때 아래 안내를 띄웁니다. 신청 접수를 시작하면 끄세요."
+          >
+            <label className="flex items-center gap-2 text-s">
+              <input
+                type="checkbox"
+                checked={v.bookItNotice.enabled}
+                onChange={(e) =>
+                  patch({ bookItNotice: { ...v.bookItNotice, enabled: e.target.checked } })
+                }
+              />
+              오픈 예정 안내를 띄운다 (BOOK IT 을 눌러도 신청 화면으로 가지 않음)
+            </label>
+            <Text
+              label="제목"
+              value={v.bookItNotice.title}
+              onChange={(title) => patch({ bookItNotice: { ...v.bookItNotice, title } })}
+            />
+            <Area
+              label="안내 문구"
+              rows={2}
+              value={v.bookItNotice.body}
+              onChange={(body) => patch({ bookItNotice: { ...v.bookItNotice, body } })}
+            />
+          </Section>
+
           <Section
             title="회원가입 안내 카드"
             help="회원가입 첫 화면(/register STEP1)의 안내 카드입니다. 가입 조건과 심사 흐름을 여기서 알립니다."

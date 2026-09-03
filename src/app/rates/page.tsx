@@ -9,7 +9,7 @@ import type {
   VenueRateContent,
 } from "@/lib/content/pageContent";
 import { MID_HALL_VENUE_ID, SPECIAL_VENUE_ID } from "@/lib/pricing/types";
-import { venueLabel, venueRateTab } from "@/lib/content/venueLabels";
+import { venueRateTab } from "@/lib/content/venueLabels";
 import { PublicHeader } from "@/components/PublicHeader";
 import { SiteFooter } from "@/components/ui/SiteFooter";
 import { QueryTabs } from "@/components/ui/QueryTabs";
@@ -175,12 +175,18 @@ function ChargeTable({ rows }: { rows: ChargeBlock[] }) {
   );
 }
 
-function RatePanel({ en, ko, c }: { en: string; ko: string; c: VenueRateContent }) {
+/*
+  [수정 2026-09-03] 「○○ 대관료」 국문 부제를 뺀다.
+
+  탭 이름(ARENA rate …)과 바로 아래 부제(아레나 대관료)가 같은 말을 두 번 했다.
+  탭으로 이미 어느 공간인지 고른 자리라, 부제는 알려 주는 것 없이 리드만 밀어냈다.
+*/
+function RatePanel({ en, c }: { en: string; c: VenueRateContent }) {
   return (
     <>
       {/* 섹션 1 — 기본 대관 패키지 */}
       <Band tone="light" size="lg">
-        <PageHead en={en} ko={ko} lead={<Prose text={c.intro} gap="mt-3" />} />
+        <PageHead en={en} lead={<Prose text={c.intro} gap="mt-3" />} />
         <div className="mt-14">
           <SectionHead
             title={rateSectionTitle(c, "packages")}
@@ -253,7 +259,6 @@ export default async function RatesPage() {
     getRatesContent(),
     getScreenTextContent(),
   ]);
-  const specialLabel = venueLabel(SPECIAL_VENUE_ID, screenText.wizardStrings);
   // 투뎁스(요금표) 탭은 영문 표기다 — ARENA / Live Hall / All in One.
   // 운영자가 문구 관리에서 탭마다 따로 바꾼다(공간 이름과 별개 key).
   const rateTab = (venueId: string) => venueRateTab(venueId, screenText.wizardStrings);
@@ -276,17 +281,9 @@ export default async function RatesPage() {
               label: t.value === "arena" ? rateTab("arena") : rateTab(MID_HALL_VENUE_ID),
               panel:
                 t.value === "arena" ? (
-                  <RatePanel
-                    en={rateTab("arena")}
-                    ko={`${venueLabel("arena", screenText.wizardStrings)} 대관료`}
-                    c={content.arena}
-                  />
+                  <RatePanel en={rateTab("arena")} c={content.arena} />
                 ) : (
-                  <RatePanel
-                    en={rateTab(MID_HALL_VENUE_ID)}
-                    ko={`${venueLabel(MID_HALL_VENUE_ID, screenText.wizardStrings)} 대관료`}
-                    c={content.liveHall}
-                  />
+                  <RatePanel en={rateTab(MID_HALL_VENUE_ID)} c={content.liveHall} />
                 ),
             })),
             {
@@ -295,7 +292,6 @@ export default async function RatesPage() {
               panel: (
                 <RatePanel
                   en={rateTab(SPECIAL_VENUE_ID)}
-                  ko={`${specialLabel} 대관료`}
                   c={content.special ?? EMPTY_VENUE_RATE_CONTENT}
                 />
               ),

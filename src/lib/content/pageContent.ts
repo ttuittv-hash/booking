@@ -517,6 +517,28 @@ export interface RegisterIntroTexts {
   cta: string;
 }
 
+/**
+ * 상단바 BOOK IT 의 「오픈 예정」 안내 (2026-09-03).
+ *
+ * 1차 오픈 시점에는 대관 신청을 아직 받지 않는다. 메뉴를 감추면 이 서비스가 무엇을
+ * 하는 곳인지 흐려지므로, **자리는 그대로 두고 누르거나 올려 두면 안내를 띄운다.**
+ * 신청이 열리는 날 운영자가 껐다 켜야 하므로 코드가 아니라 콘텐츠에 둔다.
+ *
+ * 주소(`/apply`)로 직접 들어가는 길은 막지 않는다 — 내부 점검용 통로다.
+ */
+export interface BookItNoticeTexts {
+  /** 켜면 BOOK IT 이 링크 대신 안내를 띄우는 버튼이 된다 */
+  enabled: boolean;
+  title: string;
+  body: string;
+}
+
+export const DEFAULT_BOOK_IT_NOTICE: BookItNoticeTexts = {
+  enabled: true,
+  title: "오픈 예정",
+  body: "대관 신청은 준비 중입니다. 접수 시작 일정은 공지사항으로 안내드립니다.",
+};
+
 export const DEFAULT_REGISTER_INTRO: RegisterIntroTexts = {
   heading: "기업회원으로 가입합니다.",
   title: "기업회원",
@@ -545,6 +567,8 @@ export interface ScreenTextContent {
   wizardSteps: WizardStepTexts;
   /** 회원가입 STEP1 안내 카드 */
   registerIntro: RegisterIntroTexts;
+  /** 상단바 BOOK IT 의 「오픈 예정」 안내 */
+  bookItNotice: BookItNoticeTexts;
   /**
    * [2026-08-25] "모든 텍스트 수정 가능" — 위저드 스텝 제목·리드(20개, wizardSteps) 밖의
    * 나머지 문구(체크박스 라벨, 안내 문단, 서약 조항 전문 등)는 필드를 하나하나 타입으로
@@ -572,6 +596,7 @@ export const DEFAULT_SCREEN_TEXT_CONTENT: ScreenTextContent = {
   wizardStrings: {},
   wizardSteps: DEFAULT_WIZARD_STEP_TEXTS,
   registerIntro: DEFAULT_REGISTER_INTRO,
+  bookItNotice: DEFAULT_BOOK_IT_NOTICE,
 };
 
 /* ---------------------------------------------- 대관 자료 (`/documents`) - */
