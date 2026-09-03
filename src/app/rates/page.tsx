@@ -51,10 +51,10 @@ function RateCards({ rowLabels, columns }: { rowLabels: string[]; columns: RateC
   // 중형공연장은 행이 「대관료」 하나뿐이라 수용 규모·구성 줄이 없다.
   const hasSpecRows = priceIndex > 0;
   return (
-    <ul className="mt-10 grid gap-[var(--gutter)] sm:grid-cols-2 lg:grid-cols-12">
+    <ul className="mt-10 grid gap-[var(--gutter)] sm:grid-cols-2 lg:grid-cols-4">
       {columns.map((col) => (
-        <li key={col.key} className="lg:col-span-3">
-          <article className="flex h-full min-w-0 flex-col border border-border bg-panel p-6">
+        <li key={col.key} className="lg:col-span-1">
+          <article className="flex h-full min-w-0 flex-col rounded-surface border border-border bg-panel p-6">
             <p className="text-xs font-extrabold uppercase tracking-normal text-muted [font-family:Archivo,sans-serif]">
               {col.name}
             </p>

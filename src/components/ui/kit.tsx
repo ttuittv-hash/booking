@@ -97,7 +97,8 @@ export function Prose({
      · Tagline(아이브로) 슬롯은 쓰지 않는다
      · 버튼·체크박스 등 UI 컨트롤은 모노크롬. 옐로 버튼은 시스템에 없다
      · 옐로는 면·강조·구분선에만. 밝은 배경 위 옐로 텍스트 금지
-     · 코너는 샤프. radius 를 새로 붙이지 않는다
+     · 코너는 두 단뿐이다 — 면은 `rounded-surface`(12), 버튼은 `rounded-btn`(4).
+       새 radius 값을 만들지 않는다
    ========================================================================= */
 
 /* -------------------------------------------------------------- Band ----- */
@@ -186,12 +187,12 @@ export function Band({
       md  일반 섹션 (기본)            40 / 48 / 64
       sm  밀도 높은 섹션 · 목록 상단   32 / 40
   */
-  const pad =
-    size === "lg"
-      ? "py-14 sm:py-16 lg:py-20"
-      : size === "sm"
-        ? "py-8 sm:py-10"
-        : "py-10 sm:py-12 lg:py-16";
+  /*
+    [개정 2026-09-03] **섹션 위 여백은 언제나 80** 이다. 아래 여백만 밀도에 따라 셋으로
+    나눈다. 위를 단으로 나눠 두었더니 화면마다 첫 줄이 앉는 높이가 달라, 페이지를 옮길 때
+    제목이 위아래로 튀어 보였다.
+  */
+  const pad = size === "lg" ? "pt-20 pb-20" : size === "sm" ? "pt-20 pb-10" : "pt-20 pb-16";
   return (
     <section
       id={id}
@@ -294,15 +295,20 @@ const BTN_VARIANT: Record<BtnVariant, string> = {
  */
 // 모바일에서는 어떤 크기든 44px 을 확보한다 — h-8(32px)·h-10(40px)은 손가락으로
 // 누르기에 작다. sm 브레이크포인트부터는 원래 높이로 돌아가 촘촘한 표가 유지된다.
+/*
+  [개정 2026-09-03] 버튼 규격 — **높이 48 · 좌우 패딩 16 · 본문 16 Bold · 코너 4.**
+  좌우 패딩은 세 단이 같다(16). 예전에는 크기마다 20·24 로 벌어져 같은 줄에 선 버튼끼리
+  글자 사이 간격이 달라 보였다. 높이만 자리에 따라 줄인다.
+*/
 const BTN_SIZE: Record<BtnSize, string> = {
-  sm: "h-11 px-4 text-xs sm:h-8",
-  md: "h-11 px-5 text-s sm:h-10",
-  lg: "h-12 px-6 text-s",
+  sm: "h-11 px-4 text-s sm:h-8",
+  md: "h-11 px-4 text-base sm:h-10",
+  lg: "h-12 px-4 text-base",
 };
 
 export function btnClass(variant: BtnVariant = "secondary", size: BtnSize = "md") {
   return [
-    "inline-flex items-center justify-center gap-2 whitespace-nowrap border font-bold",
+    "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-btn border font-bold",
     "transition-colors duration-150 focus-visible:outline-2 focus-visible:outline-offset-2",
     "focus-visible:outline-accent disabled:cursor-not-allowed disabled:opacity-40",
     BTN_VARIANT[variant],
@@ -393,9 +399,11 @@ export function Media({
     </div>
   );
 
-  if (!reveal) return inner;
+  // 사진도 지면 위에 얹히는 면이다 — 코너 12 (2026-09-03).
+  // 리빌 오버레이가 사진 위를 덮으므로 감싸는 쪽에서 잘라 준다.
+  if (!reveal) return <div className="overflow-hidden rounded-surface">{inner}</div>;
   return (
-    <Reveal delay={revealDelay} className={className}>
+    <Reveal delay={revealDelay} className={`overflow-hidden rounded-surface ${className}`}>
       {inner}
     </Reveal>
   );
@@ -750,7 +758,7 @@ export function TitledCard({
 }) {
   return (
     <article
-      className={`flex h-full min-w-0 flex-col border border-border bg-panel lg:col-span-6 ${className}`}
+      className={`flex h-full min-w-0 flex-col overflow-hidden rounded-surface border border-border bg-panel lg:col-span-3 ${className}`}
     >
       {title && (
         <header className="bg-inverse-bg px-6 py-5 text-inverse-fg" style={INVERSE_SURFACE_VARS}>
@@ -833,11 +841,11 @@ export function StatCards({
     뜻이라 그대로 둔다.
   */
   const span =
-    items.length === 1 ? "lg:col-span-12" : items.length === 2 ? "lg:col-span-6" : "lg:col-span-3";
+    items.length === 1 ? "lg:col-span-4" : items.length === 2 ? "lg:col-span-2" : "lg:col-span-1";
   // 한 장뿐이면 좁은 화면에서도 반으로 자르지 않는다.
   const smCols = items.length === 1 ? "" : "sm:grid-cols-2";
   return (
-    <ul className={`grid gap-x-[var(--gutter)] gap-y-10 ${smCols} lg:grid-cols-12`}>
+    <ul className={`grid gap-x-[var(--gutter)] gap-y-10 ${smCols} lg:grid-cols-4`}>
       {items.map((it, i) => (
         <li key={`${it.label}-${i}`} className={`border-t-2 border-border pt-5 ${span}`}>
           <p className="text-xs font-bold text-muted">{it.label}</p>
@@ -971,24 +979,33 @@ export function CTABand({
   actions: ReactNode;
   tone?: BandTone;
 }) {
+  /*
+    [개정 2026-09-03] 지면 끝까지 차던 색면을 **마진 안에 앉는 라운드 카드**로 바꿨다.
+    풀블리드면 위아래 섹션과 경계가 붙어 띠처럼 읽히는데, 이건 띠가 아니라 하나의 제안이다.
+    내용은 가운데 정렬 — 안내 한 줄 → 제목 → 버튼 순으로 시선이 한 축에서 내려간다.
+    높이는 `CTA_BAND_MIN` 으로 고정해 카피 길이가 달라도 카드 크기가 흔들리지 않는다.
+  */
   return (
-    <Band tone={tone} size="sm">
-      {/*
-        옐로 배너는 페이지마다 카피 길이가 달라도 높이가 같아야 한다.
-        min-height 를 고정하고 내용을 수직 중앙에 둔다 (CTA_BAND_MIN 은 이 한 곳에서만 정한다).
-      */}
+    // 바깥은 지면을 상속한다 — 검정 섹션 안에 들어가면 검정 위에, 밝은 지면에서는 그 위에 앉는다
+    <div className="py-8 sm:py-10">
+      <div className="container-site">
+      {/* 색면은 화면의 **70%** 를 차지한다 — 한 판을 다 채우면 앞뒤 섹션과의 사이가 끊긴다 */}
       <div
-        style={{ minHeight: CTA_BAND_MIN }}
-        className="flex flex-col justify-center gap-8 lg:flex-row lg:items-center lg:justify-between"
+        style={{ minHeight: "70vh", ...BAND_VARS[tone] }}
+        className={`flex flex-col items-center justify-center rounded-surface px-6 py-20 text-center ${BAND_TONE[tone]}`}
       >
-        <div className="max-w-2xl">
-          {/* 국문 제목은 어절 단위로 끊는다 — `break-keep` 없이는 "확인하 / 세요" 처럼 잘린다 */}
-          <h2 className="type-kr-heading break-keep text-h3-m sm:text-h3">{title}</h2>
-          {lead && <p className="mt-4 break-keep text-s">{lead}</p>}
-        </div>
-        <div className="flex shrink-0 flex-wrap gap-3 lg:justify-end">{actions}</div>
+        {lead && <p className="break-keep text-[1.125rem]">{lead}</p>}
+        {/* 국문 제목은 어절 단위로 끊는다 — `break-keep` 없이는 "확인하 / 세요" 처럼 잘린다 */}
+        <h2
+          className={`type-kr-heading break-keep text-h1-m leading-[1.2] sm:text-h1 ${lead ? "mt-6" : ""}`}
+        >
+          {title}
+        </h2>
+        {/* 워딩 아래 버튼까지는 40 — 사이트 전체에서 같은 값이다 */}
+        <div className="mt-10 flex flex-wrap justify-center gap-3">{actions}</div>
       </div>
-    </Band>
+      </div>
+    </div>
   );
 }
 
@@ -1145,7 +1162,7 @@ export function SectionHead({
  * 분할이다. 제목이 표 위에 가로로 눕는 대신 왼쪽에 서면, 표가 화면 폭을 다 쓰지 않고
  * 읽기 좋은 폭으로 좁아진다 — 값이 라벨에서 멀리 떨어지지 않는다.
  *
- * 제목은 `SectionHead` 와 같은 H3 다. 2col(1440 에서 410px) 안에서 두 줄로 접히는
+ * 제목은 `SectionHead` 와 같은 H3 다. 2col(1440 에서 445px) 안에서 두 줄로 접히는
  * 것은 정상이다(ADDITIONAL CHARGES).
  */
 export function SplitSection({
@@ -1162,11 +1179,11 @@ export function SplitSection({
 }) {
   return (
     <div className={`grid-site ${className}`}>
-      <div className="lg:col-span-3">
+      <div className="lg:col-span-2">
         <h3 className={`${headingFontClass(title)} break-keep text-h3-m sm:text-h3`}>{title}</h3>
         {aside && <div className="mt-6">{aside}</div>}
       </div>
-      <div className="min-w-0 lg:col-span-9">{children}</div>
+      <div className="min-w-0 lg:col-span-4">{children}</div>
     </div>
   );
 }
@@ -1221,7 +1238,7 @@ export function PhotoHero({
       */}
       <div className="container-site py-20">
         <div className="grid-site">
-          <div className="lg:col-span-9">
+          <div className="lg:col-span-4">
             <h2 className="type-kr-heading text-h3-m sm:text-h3">{title}</h2>
             {eyebrow && <p className="mt-6 text-s font-bold">{eyebrow}</p>}
             {desc && <Prose text={desc} className="mt-6 text-m leading-8" gap="mt-5" />}
@@ -1313,12 +1330,12 @@ function StepArrow({ className = "" }: { className?: string }) {
  */
 export function ProcessSteps({ steps }: { steps: ProcessStep[] }) {
   return (
-    <ol className="grid gap-[var(--gutter)] sm:grid-cols-2 lg:grid-cols-12">
+    <ol className="grid gap-[var(--gutter)] sm:grid-cols-2 lg:grid-cols-4">
       {steps.map((s, i) => {
         // 줄 끝(4·8번째)과 마지막 박스에는 화살표를 두지 않는다
         const hasArrow = i % 4 !== 3 && i !== steps.length - 1;
         return (
-          <li key={s.no} className="relative lg:col-span-3">
+          <li key={s.no} className="relative lg:col-span-1">
             <div className="h-full border border-border bg-panel p-6">
               <span className="type-display block text-h6-m tabular-nums sm:text-h6">{s.no}</span>
               <h4 className="type-kr-heading mt-3 break-keep text-h6-m sm:text-h6">{s.title}</h4>

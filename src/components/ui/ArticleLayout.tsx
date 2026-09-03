@@ -283,7 +283,7 @@ export function ArticleLayout({
   return (
     <div className="grid-site">
       {/* 검색 + 목차 */}
-      <nav aria-label="목차" className="lg:col-span-3">
+      <nav aria-label="목차" className="lg:col-span-2">
         {/* [수정 2026-09-02] 목차 자체에 max-h-[50vh] 를 걸어 두어, 장이 열댓 개인 규약에서
             화면이 남아도는데도 좁은 상자 안에서만 스크롤됐다. 스티키 기둥 전체를 화면
             높이에 맞추고(검색 + 목차가 한 덩어리로 스크롤) 목차의 자체 상한은 없앤다. */}
@@ -415,7 +415,7 @@ export function ArticleLayout({
       </nav>
 
       {/* 본문 — 검색 중에도 조를 걷어내지 않는다 */}
-      <div className="min-w-0 lg:col-span-9">
+      <div className="min-w-0 lg:col-span-4">
         {searching && total === 0 && (
           <p className="mb-8 text-s text-muted">「{query}」 이(가) 들어간 조문이 없습니다.</p>
         )}

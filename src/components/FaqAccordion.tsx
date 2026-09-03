@@ -98,14 +98,14 @@ export function FaqAccordion({ faqs }: { faqs: Faq[] }) {
     <div className="space-y-10">
       {groups.map((group) => (
         <section key={group.tag} className="grid-site">
-          <div className="lg:col-span-3">
+          <div className="lg:col-span-2">
             {/* 첫 질문의 글줄과 같은 높이에서 시작한다(행 패딩 20 만큼 내린다).
                 자기 질문들이 흐르는 동안 왼쪽에 붙어 따라온다 — 규약 목차와 같은 오프셋 */}
             <h3 className="type-kr-heading break-keep text-h5-m sm:text-h5 lg:sticky lg:top-[calc(var(--header-h)+2.5rem)] lg:pt-5">
               {group.tag}
             </h3>
           </div>
-          <ul className="min-w-0 border-t border-border/25 lg:col-span-9">
+          <ul className="min-w-0 border-t border-border/25 lg:col-span-4">
             {group.items.map(renderItem)}
           </ul>
         </section>
