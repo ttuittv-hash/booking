@@ -142,10 +142,11 @@ export default async function NoticeDetailPage({
   params: Promise<{ id: string }>;
 }) {
   // 기획서 A15 접근권한 매트릭스 — 규칙은 accessPolicy.ts 한 곳에만 둔다
-  await requireAccess("/notices/[id]");
-  const currentUser = await getCurrentUser();
-
+  // [수정 2026-09-04] 라우트 패턴("/notices/[id]")을 넘기면 로그인 복귀 주소(next)에 그 문자열이 박혀
+  // 로그인 뒤 "/notices/[id]" 로 갔다. 실제 주소를 넘긴다(접근 규칙은 /notices 접두어로 같이 매칭된다).
   const { id } = await params;
+  await requireAccess(`/notices/${encodeURIComponent(id)}`);
+  const currentUser = await getCurrentUser();
   const [notice, calendarWindow, screenText] = await Promise.all([
     getNoticeById(id),
     getNoticeCalendarWindow(),
