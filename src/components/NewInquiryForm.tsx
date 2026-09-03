@@ -122,9 +122,9 @@ export function NewInquiryForm({
     return (
       <div className="border-t border-border/25 pt-6">
         <h2 className="type-kr-heading text-h6-m">문의가 접수되었습니다</h2>
+        {/* 어떤 경로로 알려 드리는지는 적지 않는다 — 채널을 약속했다가 안 가면 문의가 두 배로 온다. */}
         <p className="mt-4 break-keep text-s leading-7 text-muted">
-          답변이 등록되면 <strong className="text-foreground">{contactEmail}</strong> 로 메일과
-          카카오 알림톡을 보내 드립니다. 접수 순서대로 확인하며, 영업일 기준으로 답변드립니다.
+          접수 순서대로 확인하며, 영업일 기준으로 답변드립니다.
         </p>
         {viewUrl && (
           <div className="mt-6 border-t border-border/25 pt-6">
@@ -234,8 +234,8 @@ export function NewInquiryForm({
           <span className="block text-xs font-bold">답변받으실 곳</span>
           <p className="mt-2 text-xs text-muted">
             {guest
-              ? "답변이 등록되면 아래 이메일과 카카오 알림톡으로 알려 드립니다. 연락 가능한 곳으로 적어 주세요."
-              : "답변이 등록되면 아래 이메일과 카카오 알림톡으로 알려 드립니다. 계정 정보로 채워 두었으니, 다른 분이 받으셔야 하면 고쳐 주세요."}
+              ? "답변이 등록되면 아래로 알려 드립니다. 연락 가능한 곳으로 적어 주세요."
+              : "답변이 등록되면 아래로 알려 드립니다. 계정 정보로 채워 두었으니, 다른 분이 받으셔야 하면 고쳐 주세요."}
           </p>
           <div className="mt-4 grid gap-4 sm:grid-cols-3">
             <label className="block">

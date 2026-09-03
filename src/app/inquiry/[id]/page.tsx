@@ -67,8 +67,8 @@ export default async function GuestInquiryDetailPage({
                 </p>
               ) : (
                 <p className="mt-3 break-keep text-s leading-7 text-muted">
-                  아직 답변이 등록되지 않았습니다. 답변이 등록되면 남겨 주신 이메일과 카카오
-                  알림톡으로 알려 드립니다.
+                  아직 답변이 등록되지 않았습니다. 답변이 등록되면 남겨 주신 연락처로 알려
+                  드립니다.
                 </p>
               )}
             </div>

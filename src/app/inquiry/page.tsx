@@ -33,7 +33,7 @@ export default async function GuestInquiryPage() {
           <PageHead
             en="INQUIRY"
             ko="1:1 문의"
-            lead="가입 전에도 문의하실 수 있습니다. 남겨 주신 이메일과 카카오 알림톡으로 답변드립니다."
+            lead="가입 전에도 문의하실 수 있습니다. 남겨 주신 연락처로 답변드립니다."
           />
         </Band>
 

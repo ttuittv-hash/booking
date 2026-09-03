@@ -78,7 +78,7 @@ export default async function MyInquiryDetailPage({
             {/* 이유 없이 비활성만 두면 같은 문의가 중복 등록된다 — 왜 수정할 수 없는지 함께 적는다 */}
             <EmptyState
               title="담당 부서가 확인하고 있습니다"
-              desc="답변이 등록되면 이메일로 알려 드립니다. 등록 후에는 문의 내용을 수정하실 수 없으므로, 덧붙일 내용이 있으시면 새 문의로 남겨 주세요."
+              desc="답변이 등록되면 알려 드립니다. 등록 후에는 문의 내용을 수정하실 수 없으므로, 덧붙일 내용이 있으시면 새 문의로 남겨 주세요."
               action={
                 <ButtonLink href="/mypage/inquiries/new" variant="secondary">
                   새 문의 작성
