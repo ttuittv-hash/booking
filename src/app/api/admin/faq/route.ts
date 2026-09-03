@@ -3,7 +3,12 @@ import crypto from "node:crypto";
 import { getCurrentUser } from "@/lib/auth";
 import { createFaq, listFaqs } from "@/lib/db";
 
+// [보안 2026-09-04] 목록 GET 도 운영자 전용.
 export async function GET() {
+  const user = await getCurrentUser();
+  if (!user || user.role !== "ADMIN") {
+    return NextResponse.json({ error: "운영자 로그인이 필요합니다." }, { status: 401 });
+  }
   return NextResponse.json({ faqs: await listFaqs() });
 }
 

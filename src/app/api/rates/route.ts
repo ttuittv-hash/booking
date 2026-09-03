@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
+import { accountStateOf, canAccess } from "@/lib/accessPolicy";
 import { getCurrentRateTable, getRatesContent, saveNewRateTableVersion, saveRatesContent } from "@/lib/db";
 import type { AddonCategory, AddonItem, MidHallFeeBreakdown, RateTable } from "@/lib/pricing/types";
 
@@ -36,6 +37,11 @@ function sanitizeNewAddon(input: Record<string, unknown>): AddonItem | null {
 }
 
 export async function GET() {
+  // [보안 2026-09-04] 요금표는 A15 매트릭스상 승인 완료 전용 — 화면(/rates)과 같은 기준으로 막는다.
+  const user = await getCurrentUser();
+  if (!canAccess("/rates", accountStateOf(user))) {
+    return NextResponse.json({ error: "승인 완료 후 이용할 수 있습니다." }, { status: 403 });
+  }
   return NextResponse.json({ rateTable: await getCurrentRateTable() });
 }
 

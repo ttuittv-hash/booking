@@ -13,7 +13,12 @@ export async function rateLimit(key: string, limit: number, windowMs: number): P
 // 주의: X-Forwarded-For 는 클라이언트가 위조할 수 있어 IP 기준 제한만으로는 우회가 가능하다.
 // 실질적인 방어는 아이디 단위 제한(login:id:*)에 있다.
 export function clientIpFrom(request: Request): string {
+  // [보안 2026-09-04] ALB 뒤에서는 맨 뒤 값이 실제 접속 IP 다. 앞쪽은 클라이언트가 임의로 붙일 수 있어
+  // 첫 값을 쓰면 헤더 하나로 제한을 우회한다.
   const fwd = request.headers.get("x-forwarded-for");
-  if (fwd) return fwd.split(",")[0].trim();
+  if (fwd) {
+    const parts = fwd.split(",").map((s) => s.trim()).filter(Boolean);
+    if (parts.length > 0) return parts[parts.length - 1];
+  }
   return "unknown";
 }

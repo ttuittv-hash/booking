@@ -29,6 +29,13 @@ export async function POST(request: Request) {
   if (user?.role === "ADMIN") {
     return NextResponse.json({ error: "운영자 계정으로는 문의를 등록할 수 없습니다." }, { status: 403 });
   }
+  // [보안 2026-09-04] 회원도 시간당 10건 — 문의 1건마다 운영자 전원에게 알림톡이 나간다.
+  if (user && !(await rateLimit(`inquiry:${user.id}`, 10, 60 * 60 * 1000))) {
+    return NextResponse.json(
+      { error: "문의가 너무 많이 접수되었습니다. 잠시 후 다시 시도해 주세요." },
+      { status: 429 },
+    );
+  }
   if (!user) {
     const ip = clientIpFrom(request);
     if (!(await rateLimit(`guest-inquiry:${ip}`, 5, 60 * 60 * 1000))) {
