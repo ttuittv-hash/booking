@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
-import { getCurrentUser, isProAdminOrAbove } from "@/lib/auth";
-import { deleteUserCascade, findCompanyById, findUserById } from "@/lib/db";
+import { getCurrentUser, isMasterAdmin, isProAdminOrAbove } from "@/lib/auth";
+import { countMasterAdmins, deleteUserCascade, findCompanyById, findUserById } from "@/lib/db";
 import { dispatchMessageInBackground } from "@/lib/message/dispatch";
 import { revalidateMemberViews } from "@/lib/revalidateAdmin";
 
@@ -22,8 +22,33 @@ export async function DELETE(_request: Request, context: { params: Promise<{ id:
   const { id } = await context.params;
   const target = await findUserById(id);
   if (!target) return NextResponse.json({ error: "대상 계정을 찾을 수 없습니다." }, { status: 404 });
-  if (target.role !== "APPLICANT") {
-    return NextResponse.json({ error: "신청자 계정만 삭제할 수 있습니다." }, { status: 400 });
+
+  /*
+    [신규 2026-09-03] 운영자 계정도 지운다.
+
+    권한 해제(신청자로 되돌리기)만으로는 퇴사자 계정이 계속 남는다 — 로그인은 되고
+    이름·이메일도 그대로다. 다만 삭제는 되돌릴 수 없고 그 사람에게 매인 기록까지
+    사라지므로, 신청자 삭제보다 한 단 위인 **마스터 관리자**만 할 수 있게 한다.
+  */
+  if (target.role === "ADMIN") {
+    if (!isMasterAdmin(actor)) {
+      return NextResponse.json(
+        { error: "마스터 관리자만 운영자 계정을 삭제할 수 있습니다." },
+        { status: 403 },
+      );
+    }
+    if (target.id === actor.id) {
+      return NextResponse.json({ error: "자기 계정은 삭제할 수 없습니다." }, { status: 400 });
+    }
+    // 마스터가 0명이 되면 등급·이관 화면을 아무도 못 열고, 화면에서 되돌릴 방법이 없다.
+    if (target.adminTier === "MASTER" && (await countMasterAdmins()) <= 1) {
+      return NextResponse.json(
+        { error: "마지막 남은 마스터 관리자는 삭제할 수 없습니다. 먼저 마스터를 이관하세요." },
+        { status: 400 },
+      );
+    }
+  } else if (target.role !== "APPLICANT") {
+    return NextResponse.json({ error: "삭제할 수 없는 계정입니다." }, { status: 400 });
   }
 
   // 회사에 소속돼 있던(승인된) 담당자를 운영자가 지우는 것 = 담당자 권한 해제. 계정이 사라지기 전에

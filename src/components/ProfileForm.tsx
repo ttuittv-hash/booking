@@ -33,6 +33,9 @@ export function ProfileForm({ user, company }: { user: AppUser; company: Company
   );
   const [postalCode, setPostalCode] = useState(company?.postalCode ?? "");
   const [address, setAddress] = useState(company?.address ?? "");
+  // 소속 회사가 없는 계정이 기업 정보를 처음 등록할 때만 쓰는 두 칸 (2026-09-03)
+  const [newCompanyName, setNewCompanyName] = useState("");
+  const [newBusinessNumber, setNewBusinessNumber] = useState("");
 
   /*
     제출 서류 다시 올리기 (2026-09-02).
@@ -102,6 +105,8 @@ export function ProfileForm({ user, company }: { user: AppUser; company: Company
           corporateRegistrationNumber,
           postalCode,
           address,
+          companyName: newCompanyName,
+          businessRegistrationNumber: newBusinessNumber,
           employmentCertUrl: employmentCert?.url ?? "",
           employmentCertName: employmentCert?.name ?? "",
           businessCertUrl: businessCert?.url ?? "",
@@ -126,6 +131,8 @@ export function ProfileForm({ user, company }: { user: AppUser; company: Company
             corporateRegistrationNumber,
             postalCode,
             address,
+            companyName: newCompanyName,
+            businessRegistrationNumber: newBusinessNumber,
             employmentCertUrl: employmentCert?.url ?? "",
             employmentCertName: employmentCert?.name ?? "",
             businessCertUrl: businessCert?.url ?? "",
@@ -346,7 +353,87 @@ export function ProfileForm({ user, company }: { user: AppUser; company: Company
             </label>
           </div>
         ) : (
-          <p className="mt-3 text-s text-muted">소속된 회사가 없습니다.</p>
+          /*
+            [신규 2026-09-03] 소속 회사가 없으면 여기서 처음 등록한다.
+
+            운영자 권한을 해제당한 계정은 신청자로 돌아오는데 회사가 없다. 그 상태로
+            재심사를 요청해도 심사할 기업 정보가 없고, 넣을 자리도 없어 막다른 길이었다.
+            회사명·사업자등록번호는 이때 한 번만 정할 수 있다 — 저장하면 잠긴다.
+          */
+          <div className="mt-4 space-y-3">
+            <p className="text-s text-muted">
+              소속된 회사가 없습니다. 아래에 기업 정보를 등록하면 운영자 심사를 거쳐
+              이용할 수 있습니다.
+            </p>
+            <label className="block">
+              <span className={labelCls}>회사명</span>
+              <input
+                type="text"
+                value={newCompanyName}
+                onChange={(e) => setNewCompanyName(e.target.value)}
+                className={inputCls}
+              />
+            </label>
+            <label className="block">
+              <span className={labelCls}>사업자등록번호</span>
+              <input
+                type="text"
+                placeholder="000-00-00000"
+                value={newBusinessNumber}
+                onChange={(e) => setNewBusinessNumber(e.target.value)}
+                className={inputCls}
+              />
+              <span className="mt-1 block text-xs text-muted">
+                이미 등록된 사업자등록번호면 그 회사의 담당자로 합류를 신청합니다.
+              </span>
+            </label>
+            <label className="block">
+              <span className={labelCls}>대표자성명</span>
+              <input
+                type="text"
+                value={representativeName}
+                onChange={(e) => setRepresentativeName(e.target.value)}
+                className={inputCls}
+              />
+            </label>
+            <label className="block">
+              <span className={labelCls}>대표번호</span>
+              <input
+                type="tel"
+                placeholder="02-0000-0000"
+                value={representativePhone}
+                onChange={(e) => setRepresentativePhone(e.target.value)}
+                className={inputCls}
+              />
+            </label>
+            <label className="block">
+              <span className={labelCls}>법인등록번호</span>
+              <input
+                type="text"
+                value={corporateRegistrationNumber}
+                onChange={(e) => setCorporateRegistrationNumber(e.target.value)}
+                className={inputCls}
+              />
+            </label>
+            <label className="block">
+              <span className={labelCls}>우편번호</span>
+              <input
+                type="text"
+                value={postalCode}
+                onChange={(e) => setPostalCode(e.target.value)}
+                className={inputCls}
+              />
+            </label>
+            <label className="block">
+              <span className={labelCls}>회사주소</span>
+              <input
+                type="text"
+                value={address}
+                onChange={(e) => setAddress(e.target.value)}
+                className={inputCls}
+              />
+            </label>
+          </div>
         )}
       </section>
 
