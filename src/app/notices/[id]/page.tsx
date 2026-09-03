@@ -1,8 +1,5 @@
 import type { Metadata } from "next";
-import fs from "node:fs/promises";
-import path from "node:path";
 import { notFound } from "next/navigation";
-import { DATA_DIR } from "@/lib/dataDir";
 import { getCurrentUser, requireAccess } from "@/lib/auth";
 import { getNoticeById, getNoticeCalendarWindow, getScreenTextContent } from "@/lib/db";
 import { scheduleLegend } from "@/lib/content/scheduleLegend";
@@ -65,6 +62,16 @@ const PROSE = [
   "[&_p:empty]:hidden",
 
   /*
+    [신규 2026-09-04] 공고문 인트로용 큰 영문 헤드라인 — 홈 히어로(page.tsx)와 같은
+    `type-display` + d-스케일 조합을 그대로 가져온다(별도 폰트·크기를 새로 만들지 않는다).
+    운영자가 HTML 소스 모드에서 <h1>영문 문구</h1> 로 쓰면 걸린다. 아래 노란 바는 실제
+    엘리먼트가 아니라 CSS ::after 로 그린다 — sanitizer 가 style 에서 background-color 는
+    허용해도 height 는 막아서, 얇은 바를 콘텐츠 쪽에서 만들 방법이 없기 때문이다.
+  */
+  "[&_h1]:type-display [&_h1]:mt-0 [&_h1]:mb-6 [&_h1]:text-h1-m [&_h1]:leading-[0.95] [&_h1]:text-foreground sm:[&_h1]:text-h1",
+  "[&_h1]:after:mt-6 [&_h1]:after:block [&_h1]:after:h-1 [&_h1]:after:w-16 [&_h1]:after:bg-accent [&_h1]:after:content-['']",
+
+  /*
     [개정 2026-09-02] 원본 문서(Pages)의 절 머리를 그대로 옮긴다 — 작은 영문 눈썹
     (01 OVERVIEW, 9pt 상당) 아래에 국문 제목(14pt 상당)이 오는 두 줄 구조다.
     `<h2><span>01 OVERVIEW</span>공고 개요</h2>` 처럼 쓰면 이 규칙이 걸린다.
@@ -99,8 +106,10 @@ const PROSE = [
       · 왼쪽 항목열: 옅은 회색 면 + 오른쪽 세로 괘선 — 값 열과 눈으로 갈린다
       · 나머지 괘선: #DDD 한 겹. 표 바깥 테두리는 없다
   */
-  // 표 폭은 내용에 맞춘다(min-w-full 없음) — 2026-09-03 디자인 보정
-  "[&_table]:my-7 [&_table]:w-auto [&_table]:border-collapse [&_table]:bg-panel [&_table]:text-s [&_table]:leading-6 [&_table]:tabular-nums",
+  /* [수정 2026-09-04] 원본 공고문(PDF)은 표마다 폭이 다르지 않다 — 칸 수와 무관하게
+     본문 칼럼 폭을 항상 꽉 채운다. `w-auto`(2026-09-03 보정)였을 때는 2단 표와 5단
+     표의 가로폭이 서로 달라 지면이 들쭉날쭉해 보였다 — 원본처럼 꽉 채우는 것으로 되돌린다. */
+  "[&_table]:my-7 [&_table]:w-full [&_table]:border-collapse [&_table]:bg-panel [&_table]:text-s [&_table]:leading-6 [&_table]:tabular-nums",
   /* [신규 2026-09-03] 편집기에서 열 폭을 끌어 맞춘 표는 그 폭대로 그린다.
      폭이 지정된 칸이 하나라도 있을 때만 고정 레이아웃으로 바꾼다 — 폭을 안 건드린
      기존 표까지 균등 분할로 만들면 지금 잘 나오는 표가 틀어진다. */
@@ -156,22 +165,6 @@ export default async function NoticeDetailPage({
 
   // 캘린더가 보여 줄 달의 범위(2026-09-02). 이번 회차에 신청받는 달만 넘겨 보게 한다 —
   // 접수와 무관한 달까지 넘겨 볼 수 있으면 그 달도 신청할 수 있다고 읽힌다.
-  /*
-    첨부가 실제로 있는지 본다 (2026-09-02).
-
-    주소만 있고 파일이 없으면 화면에는 깨진 상자(엑박)만 남는다 — 환경을 옮기거나
-    디스크가 비면 실제로 그렇게 됐다. 파일이 없으면 첨부 자리를 아예 내지 않는다.
-  */
-  const attachmentFile = /^\/api\/notices\/attachment\/([0-9a-f-]{36}\.[a-z0-9]{1,10})$/.exec(
-    notice.attachmentUrl ?? "",
-  )?.[1];
-  const attachmentExists = attachmentFile
-    ? await fs
-        .stat(path.join(DATA_DIR, "uploads", "notice-attachments", attachmentFile))
-        .then(() => true)
-        .catch(() => false)
-    : false;
-
   const calendarBounds = noticeCalendarMonthBounds(calendarWindow);
   const calendarSlot = (
     <BookingCalendarLauncher
@@ -238,39 +231,6 @@ export default async function NoticeDetailPage({
                 </Fragment>
               ));
             })()}
-
-            {notice.attachmentUrl && attachmentExists && (
-              <div className="mt-10 border-t border-border/25 pt-10">
-                <h2 className="type-kr-heading mb-4 text-h6-m sm:text-h6">첨부파일</h2>
-                {/* [신규 2026-09-02] PDF 는 화면에서 그대로 펼친다 — 공고문을 PDF 로
-                    올렸을 때 내려받아야만 볼 수 있으면 공지를 열어도 내용이 없다.
-                    브라우저 뷰어가 없으면(구형·일부 모바일) 아래 내려받기로 간다. */}
-                {(notice.attachmentName ?? notice.attachmentUrl).toLowerCase().endsWith(".pdf") && (
-                  <object
-                    data={`${notice.attachmentUrl}?inline=1&name=${encodeURIComponent(notice.attachmentName ?? "첨부파일.pdf")}`}
-                    type="application/pdf"
-                    className="mb-4 h-[80vh] w-full border border-border/25"
-                    aria-label={notice.attachmentName ?? "첨부 PDF"}
-                  >
-                    <p className="px-5 py-4 text-s text-muted">
-                      이 브라우저에서는 PDF 미리보기를 열 수 없습니다. 아래에서 내려받아
-                      확인해 주세요.
-                    </p>
-                  </object>
-                )}
-                <a
-                  href={`${notice.attachmentUrl}?name=${encodeURIComponent(notice.attachmentName ?? "첨부파일")}`}
-                  className="group flex items-center justify-between gap-6 border border-border/25 px-5 py-4 transition-colors hover:border-foreground"
-                >
-                  <span className="min-w-0 truncate text-s font-bold">
-                    {notice.attachmentName ?? "첨부파일"}
-                  </span>
-                  <span className="shrink-0 text-xs font-bold text-muted transition-colors group-hover:text-foreground">
-                    내려받기
-                  </span>
-                </a>
-              </div>
-            )}
 
             <div className="mt-10 border-t border-border/25 pt-10">
               <ButtonLink href="/notices" variant="secondary">
