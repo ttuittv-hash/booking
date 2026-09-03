@@ -43,6 +43,7 @@ yarn-error.log*
 
 # 업로드된 첨부서류 (로컬 개발용 — 커밋하지 않음)
 /data/uploads/
+/.localdata/
 
 # typescript
 *.tsbuildinfo
