@@ -231,6 +231,11 @@ export interface RateColumn {
    * 접혀 있던 [Details] 를 없애면서, 늘 봐야 하는 일 단위 추가 요금만 카드로 올렸다.
    */
   extras?: Pair[];
+  /**
+   * [2026-09-03 팀 요청] 할인율(%). 0 이거나 비우면 지금처럼 금액 한 줄.
+   * 있으면 카드에 ~~정상가~~ N% 와 할인가를 함께 보여 준다(할인가는 정상가 문자열의 숫자로 계산).
+   */
+  discountPercent?: number;
 }
 
 export interface ChargeBlock {

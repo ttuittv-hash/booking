@@ -1,3 +1,4 @@
+import { applyDiscount } from "@/lib/content/rateDiscount";
 import type { Metadata } from "next";
 import { getCurrentUser, requireAccess } from "@/lib/auth";
 import { getRatesContent, getScreenTextContent } from "@/lib/db";
@@ -45,6 +46,7 @@ export const metadata: Metadata = {
  * 시안의 "PACKAGE RATE" 머리말은 두지 않는다.
  */
 function RateCards({ rowLabels, columns }: { rowLabels: string[]; columns: RateColumn[] }) {
+  // [2026-09-03] 시안: 객석 규모 텍스트 tracking=0
   const priceIndex = rowLabels.length - 1;
   // 중형공연장은 행이 「대관료」 하나뿐이라 수용 규모·구성 줄이 없다.
   const hasSpecRows = priceIndex > 0;
@@ -53,7 +55,7 @@ function RateCards({ rowLabels, columns }: { rowLabels: string[]; columns: RateC
       {columns.map((col) => (
         <li key={col.key} className="lg:col-span-3">
           <article className="flex h-full min-w-0 flex-col border border-border bg-panel p-6">
-            <p className="text-xs font-extrabold uppercase tracking-[0.08em] text-muted [font-family:Archivo,sans-serif]">
+            <p className="text-xs font-extrabold uppercase tracking-normal text-muted [font-family:Archivo,sans-serif]">
               {col.name}
             </p>
             {hasSpecRows && (
@@ -74,9 +76,25 @@ function RateCards({ rowLabels, columns }: { rowLabels: string[]; columns: RateC
             )}
             <dl className={`border-t border-border pt-4 ${hasSpecRows ? "mt-6" : "mt-6 flex-1"}`}>
               <dt className="text-xs font-bold text-muted">{rowLabels[priceIndex]}</dt>
-              <dd className="type-display mt-1 whitespace-pre-line break-keep text-h5-m normal-case tabular-nums sm:text-h5">
-                {col.values[priceIndex] ?? ""}
-              </dd>
+              {/* [2026-09-03 팀 요청] 할인율이 있으면 시안대로 ~~정상가~~ N% 위에, 할인가를 크게. */}
+              {(() => {
+                const d = applyDiscount(col.values[priceIndex] ?? "", col.discountPercent);
+                return d ? (
+                  <>
+                    <dd className="mt-1 whitespace-pre-line break-keep text-s tabular-nums">
+                      <s className="text-muted">{d.original}</s>{" "}
+                      <span className="font-bold text-danger">{d.percent}%</span>
+                    </dd>
+                    <dd className="type-display mt-0.5 whitespace-pre-line break-keep text-h5-m normal-case tabular-nums sm:text-h5">
+                      {d.discounted}
+                    </dd>
+                  </>
+                ) : (
+                  <dd className="type-display mt-1 whitespace-pre-line break-keep text-h5-m normal-case tabular-nums sm:text-h5">
+                    {col.values[priceIndex] ?? ""}
+                  </dd>
+                );
+              })()}
             </dl>
             {col.extras && col.extras.length > 0 && (
               <dl className="mt-4 space-y-2 border-t border-border pt-4">

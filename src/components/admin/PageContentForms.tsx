@@ -34,6 +34,7 @@ import {
   venueRateTabKey,
 } from "@/lib/content/venueLabels";
 import { LEGEND_COLORS, LEGEND_COLOR_LABELS, LEGEND_KEYS } from "@/lib/content/scheduleLegend";
+import { normalizeDiscountPercent } from "@/lib/content/rateDiscount";
 
 /* ============================================================================
    페이지별 콘텐츠 편집 폼.
@@ -466,6 +467,13 @@ function RateTableFields({
         render={(it, patch) => (
           <div className="space-y-2">
             <Text label="열 이름" value={it.name} onChange={(name) => patch({ name })} />
+            {/* [2026-09-03 팀 요청] 할인율 — 있으면 대관료 카드에 ~~정상가~~ N% 와 할인가가 함께 나간다 */}
+            <Text
+              label="할인 % (선택 · 1~99, 비우면 할인 표시 없음)"
+              value={it.discountPercent ? String(it.discountPercent) : ""}
+              onChange={(v) => patch({ discountPercent: normalizeDiscountPercent(v) })}
+              help="대관료 값에 적힌 금액에서 계산합니다. 예) 518,300,000원 + 10 → ~~518,300,000원~~ 10% / 466,470,000원"
+            />
             {/* [신규 2026-09-02] 항목 이름을 값 바로 위에서 고친다. 예전에는 위쪽
                 「요금표 행 이름」 목록에서만 바꿀 수 있어, 값을 보면서 이름을 못 고쳤다.
                 이름은 모든 열이 함께 쓰는 값이라 한 곳만 고쳐도 전부 바뀐다. */}
