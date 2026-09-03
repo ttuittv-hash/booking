@@ -93,36 +93,13 @@ function CapacityCard({ cap }: { cap: CapacityBlock }) {
 }
 
 /**
- * 설명이 이 글자 수 이상이면 카드를 **2칼럼 폭**으로 넓힌다.
- *
- * 3칼럼 카드(1440 에서 안쪽 약 240px)에 본문 14px 이면 한 줄에 17자쯤 들어간다.
- * 설명이 이 기준을 넘으면 세 줄 이상으로 접혀 카드 키가 옆 카드보다 훌쩍 커지는데,
- * 격자가 그때부터 어긋나 보인다. 넓혀서 두 줄 안에 들어오게 한다.
- *
- * 값을 올리면 넓어지는 카드가 줄고, 내리면 늘어난다. 지금 값(22)에서는
- * PRODUCTION & RIGGING 의 SMART STAGE(23자)만 넓어지고 MOTHER TRUSS(20자)는 그대로다.
- */
-const WIDE_CARD_DESC_LENGTH = 22;
-
-/**
- * 값(큰 글씨)이 이 글자 수 이상이어도 넓힌다.
- *
- * [수정 2026-09-03] 설명 길이만 보던 규칙은 **운영 콘텐츠에서 한 번도 걸리지 않았다** —
- * 실제로 쓰이는 카드는 설명을 비우고 내용을 값에 넣는다(`SMART STAGE` 의
- * "(2.73m x 4.55m)*2 EA", `RETRACTABLE SEATING` 의 "1F-1,848seats / 3F -156seats").
- * 값은 32px 로 나가서 3칼럼(안쪽 약 240px)에 13~15자면 벌써 접힌다 — 설명보다 기준이 낮다.
- */
-const WIDE_CARD_VALUE_LENGTH = 18;
-
-/** 카드가 2칼럼을 차지해야 하는가 — 값·설명 중 하나라도 기준을 넘으면 넓힌다 */
-function isWideCard(card: SpecCard): boolean {
-  return card.value.length >= WIDE_CARD_VALUE_LENGTH || card.desc.length >= WIDE_CARD_DESC_LENGTH;
-}
-
-/**
  * 스펙 카드 — 검정 지면 위 **흰 배경 · 검정 아웃라인** 박스.
- * 한 장은 [라벨 / 큰 수치 / 설명] 세 줄이고, 12칼럼에서 3칼럼(설명이 길면 6칼럼)이다.
- * 스냅은 4 → 2 → 1 로 그대로 두므로, 좁은 화면에서는 폭 차이가 사라진다.
+ * 한 장은 [라벨 / 큰 수치 / 설명] 세 줄이고, 12칼럼에서 **언제나 3칼럼**이다.
+ * 스냅은 4 → 2 → 1.
+ *
+ * [개정 2026-09-03] 내용이 길면 2칼럼으로 넓히던 규칙을 없앴다. 카드마다 폭이 달라지니
+ * 격자가 모자이크처럼 흐트러져, 정작 비교해야 할 카드들이 같은 줄에 서지 못했다.
+ * 폭은 고정하고 **값의 글자 크기를 한 단 낮춰**(H4 → H5) 긴 값도 카드 안에 들어오게 한다.
  */
 function SpecCardGrid({ cards }: { cards: SpecCard[] }) {
   return (
@@ -130,7 +107,7 @@ function SpecCardGrid({ cards }: { cards: SpecCard[] }) {
       {cards.map((card, i) => (
         <li
           key={`${card.label}-${i}`}
-          className={isWideCard(card) ? "lg:col-span-6" : "lg:col-span-3"}
+          className="lg:col-span-3"
         >
           {/* 검정 밴드 안이라 토큰을 밝은 면으로 되돌린다 — 안 그러면 흰 배경에 흰 글자다 */}
           <article
@@ -143,7 +120,7 @@ function SpecCardGrid({ cards }: { cards: SpecCard[] }) {
             {/* 수치면 Archivo(대문자 변환은 끈다 — 180t 톤 ↔ 180T 테슬라), 시설명처럼
                 한글이 섞이면 국문 헤딩 서체. Archivo 에는 한글 글립이 없다. */}
             <p
-              className={`${valueHeadingClass(card.value)} break-keep text-h4-m tabular-nums sm:text-h4 ${
+              className={`${valueHeadingClass(card.value)} break-keep text-h5-m tabular-nums sm:text-h5 ${
                 card.label ? "mt-3" : ""
               }`}
             >
