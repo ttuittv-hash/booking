@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
 import { getNoticeCalendarWindow, saveNoticeCalendarWindow } from "@/lib/db";
-import { normalizeMonth, type NoticeCalendarWindow } from "@/lib/content/noticeCalendarWindow";
+import { normalizeDay, normalizeMonth, type NoticeCalendarWindow } from "@/lib/content/noticeCalendarWindow";
 
 // 공지 캘린더 노출 월 설정 — 운영자 전용(/api/admin/* 는 인증 없이 열어 두면
 // 외부에서 덮어쓸 수 있다, 2026-08-28 점검).
@@ -29,6 +29,7 @@ export async function PUT(request: Request) {
     enabled: body?.enabled === true,
     startMonth: normalizeMonth(body?.startMonth),
     endMonth: normalizeMonth(body?.endMonth),
+    endDay: normalizeDay(body?.endDay),
   };
 
   // 첫 달이 마지막 달보다 뒤면 볼 수 있는 달이 하나도 없다 — 저장은 되지만 캘린더가

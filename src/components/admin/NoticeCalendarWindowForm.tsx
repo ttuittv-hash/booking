@@ -144,6 +144,25 @@ export function NoticeCalendarWindowForm({
           </div>
         </div>
 
+        {/* [2026-09-03] 마지막 달 격자 끝에 다음 달 며칠만 이어 붙이기 — 예) 12월 뒤에 1/1~1/12.
+            1월 달력을 따로 띄우지 않으면서 초순 며칠만 보여 주고 싶을 때 쓴다. */}
+        <div className="mt-4">
+          <label className={FIELD_LABEL} htmlFor="calendar-window-end-day">
+            마지막 달 뒤에 이어서 보여줄 다음 달 마지막 날 (선택)
+          </label>
+          <input
+            id="calendar-window-end-day"
+            type="date"
+            value={value.endDay ?? ""}
+            disabled={!value.enabled || !value.endMonth}
+            onChange={(e) => patch({ endDay: e.target.value || null })}
+            className={FIELD}
+          />
+          <p className={`mt-1 ${HELP}`}>
+            마지막 달 바로 다음 달의 날짜만 인정합니다 · 예) 마지막 달 12월 + 1월 12일 → 12월 달력 끝에 1/1~1/12 만 이어서 표시
+          </p>
+        </div>
+
         {/* 지금 이 설정으로 이용자에게 무엇이 보이는지. 달을 넣어 두고 왜 그 달이
             안 보이는지 묻는 일이 없도록, 저장 전에 결과를 문장으로 알려 준다. */}
         {invalidRange ? (

@@ -21,12 +21,19 @@ export interface NoticeCalendarWindow {
   startMonth: string | null;
   /** 볼 수 있는 마지막 달 — KST `YYYY-MM`. 비우면 뒤쪽 제한 없음 */
   endMonth: string | null;
+  /**
+   * [2026-09-03 팀 요청] 마지막 달 격자 끝에 다음 달 며칠을 이어서 보여 줄 때의 마지막 날(`YYYY-MM-DD`).
+   * 예) endMonth 2026-12 + endDay 2027-01-12 → 1월 달력을 따로 띄우지 않고 12월 격자 뒤에 1/1~1/12 만 이어 붙인다.
+   * endMonth 바로 다음 달의 날짜만 인정한다. 비우면 이어 붙이지 않는다.
+   */
+  endDay?: string | null;
 }
 
 export const DEFAULT_NOTICE_CALENDAR_WINDOW: NoticeCalendarWindow = {
   enabled: false,
   startMonth: null,
   endMonth: null,
+  endDay: null,
 };
 
 const MONTH_RE = /^\d{4}-(0[1-9]|1[0-2])$/;
@@ -51,6 +58,21 @@ export function toMonthKey(year: number, month: number): string {
  * 저장 전 정규화. `month` 입력이 비어 있거나 형식이 어긋나면 "제한 없음"으로 본다 —
  * 잘못된 문자열이 들어오면 사전식 비교가 조용히 틀어진다.
  */
+const DAY_RE = /^\d{4}-(0[1-9]|1[0-2])-(0[1-9]|[12]\d|3[01])$/;
+
+/** `YYYY-MM-DD` 만 인정. 그 외는 null. */
+export function normalizeDay(value: unknown): string | null {
+  if (typeof value !== "string") return null;
+  const trimmed = value.trim().slice(0, 10);
+  return DAY_RE.test(trimmed) ? trimmed : null;
+}
+
+/** `YYYY-MM` 의 바로 다음 달 키. */
+export function nextMonthKey(monthKey: string): string {
+  const [y, m] = monthKey.split("-").map(Number);
+  return m === 12 ? toMonthKey(y + 1, 1) : toMonthKey(y, m + 1);
+}
+
 export function normalizeMonth(value: unknown): string | null {
   if (typeof value !== "string") return null;
   const trimmed = value.trim().slice(0, 7);
@@ -65,14 +87,18 @@ export function normalizeMonth(value: unknown): string | null {
 export function noticeCalendarMonthBounds(window: NoticeCalendarWindow): {
   start: string | null;
   end: string | null;
+  /** 마지막 달 뒤에 이어 붙일 다음 달 마지막 날. end 가 있고 그 바로 다음 달의 날짜일 때만. */
+  endDay: string | null;
 } {
-  if (!window.enabled) return { start: null, end: null };
+  if (!window.enabled) return { start: null, end: null, endDay: null };
   const start = normalizeMonth(window.startMonth);
   const end = normalizeMonth(window.endMonth);
   // 시작이 끝보다 뒤면 볼 수 있는 달이 하나도 없다 — 잘못 넣은 값으로 캘린더를
   // 비우는 대신 제한을 풀어 둔다(운영자 화면에서 경고로 알려 준다).
-  if (start && end && start > end) return { start: null, end: null };
-  return { start, end };
+  if (start && end && start > end) return { start: null, end: null, endDay: null };
+  const day = normalizeDay(window.endDay);
+  const endDay = end && day && day.slice(0, 7) === nextMonthKey(end) ? day : null;
+  return { start, end, endDay };
 }
 
 /** 이 달을 보여 줘도 되는가. */

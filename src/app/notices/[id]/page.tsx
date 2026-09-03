@@ -167,6 +167,7 @@ export default async function NoticeDetailPage({
       initialMonth={initialCalendarMonth(calendarWindow, kstNowMonth(new Date()))}
       startMonth={calendarBounds.start}
       endMonth={calendarBounds.end}
+      endDay={calendarBounds.endDay}
     />
   );
 

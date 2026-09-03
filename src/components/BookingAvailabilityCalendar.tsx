@@ -11,12 +11,22 @@ function toColumnIndex(jsDay: number): number {
   return (jsDay + 6) % 7;
 }
 
-function buildCalendarWeeks(year: number, month: number): Date[][] {
+function buildCalendarWeeks(year: number, month: number, spillUntil?: string | null): Date[][] {
   const firstOfMonth = new Date(year, month - 1, 1);
   const firstCol = toColumnIndex(firstOfMonth.getDay());
   const gridStart = new Date(year, month - 1, 1 - firstCol);
+  // 이어 붙일 날짜가 6주 격자 밖이면 주를 더 둔다(12월이 화요일 시작이면 6주엔 1/10 까지만 들어간다).
+  let weekCount = 6;
+  if (spillUntil) {
+    const last = new Date(gridStart);
+    last.setDate(gridStart.getDate() + 6 * 7 - 1);
+    while (isoDate(last) < spillUntil && weekCount < 8) {
+      weekCount++;
+      last.setDate(last.getDate() + 7);
+    }
+  }
   const weeks: Date[][] = [];
-  for (let w = 0; w < 6; w++) {
+  for (let w = 0; w < weekCount; w++) {
     const days: Date[] = [];
     for (let d = 0; d < 7; d++) {
       const date = new Date(gridStart);
@@ -54,9 +64,11 @@ export interface CalendarMonthRange {
   /** 넘겨 볼 수 있는 첫 달 · 마지막 달. 비우면 그쪽 제한 없음 */
   startMonth?: string | null;
   endMonth?: string | null;
+  /** 마지막 달 격자 끝에 이어 붙일 다음 달 마지막 날(`YYYY-MM-DD`). endMonth 가 있을 때만 의미 있다 */
+  endDay?: string | null;
 }
 
-function CalendarBody({ initialMonth, startMonth, endMonth }: CalendarMonthRange) {
+function CalendarBody({ initialMonth, startMonth, endMonth, endDay }: CalendarMonthRange) {
   const now = new Date();
   const opening = parseMonthKey(initialMonth) ?? [now.getFullYear(), now.getMonth() + 1];
   const [year, setYear] = useState(opening[0]);
@@ -125,7 +137,9 @@ function CalendarBody({ initialMonth, startMonth, endMonth }: CalendarMonthRange
   const blockedByDate = new Map(
     blocks.filter((b) => b.venueId === venueTab || b.venueId === "ALL").map((b) => [b.date, b]),
   );
-  const calendarWeeks = buildCalendarWeeks(year, month);
+  const spillUntil = endDay && endMonth && monthKey(year, month) === endMonth ? endDay : null;
+  const lastOfMonth = new Date(year, month, 0);
+  const calendarWeeks = buildCalendarWeeks(year, month, spillUntil);
 
   return (
     <div>
@@ -200,8 +214,10 @@ function CalendarBody({ initialMonth, startMonth, endMonth }: CalendarMonthRange
           {calendarWeeks.map((week, wi) => (
             <div key={wi} className="grid grid-cols-7 gap-1.5">
               {week.map((date) => {
-                const inMonth = date.getMonth() === month - 1;
                 const dateStr = isoDate(date);
+                // 마지막 달이면 endDay 까지의 다음 달 날짜도 "이달"처럼 다룬다(팀 요청: 1월 초순만 12월 뒤에).
+                const spill = !!spillUntil && date > lastOfMonth && dateStr <= spillUntil;
+                const inMonth = date.getMonth() === month - 1 || spill;
                 const isBlocked = inMonth && !!blockedByDate.get(dateStr);
                 const count = inMonth
                   ? venueTab === "arena"

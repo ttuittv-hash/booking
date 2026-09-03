@@ -6,6 +6,8 @@ import {
   isMonthInRange,
   kstNowMonth,
   noticeCalendarMonthBounds,
+  normalizeDay,
+  nextMonthKey,
   normalizeMonth,
   toMonthKey,
   type NoticeCalendarWindow,
@@ -47,7 +49,7 @@ describe("isMonthInRange", () => {
 
   it("시작이 끝보다 뒤면 잠그지 않고 제한을 푼다", () => {
     const wrong = { ...base, startMonth: "2027-12", endMonth: "2027-07" };
-    expect(noticeCalendarMonthBounds(wrong)).toEqual({ start: null, end: null });
+    expect(noticeCalendarMonthBounds(wrong)).toEqual({ start: null, end: null, endDay: null });
     expect(isMonthInRange("2027-01", wrong)).toBe(true);
   });
 });
@@ -106,5 +108,26 @@ describe("formatMonth", () => {
   it("값이 없거나 형식이 어긋나면 null", () => {
     expect(formatMonth(null)).toBeNull();
     expect(formatMonth("2027")).toBeNull();
+  });
+});
+
+// [2026-09-03 팀 요청] 마지막 달 뒤에 다음 달 며칠만 이어 붙이기(예: 12월 뒤 1/1~1/12).
+describe("endDay — 마지막 달 격자에 이어 붙일 다음 달 마지막 날", () => {
+  it("마지막 달 바로 다음 달의 날짜만 인정한다", () => {
+    const w = { enabled: true, startMonth: "2026-09", endMonth: "2026-12", endDay: "2027-01-12" };
+    expect(noticeCalendarMonthBounds(w).endDay).toBe("2027-01-12");
+  });
+  it("다음 달이 아니면(두 달 뒤·같은 달·형식 오류) 무시한다", () => {
+    const base = { enabled: true, startMonth: "2026-09", endMonth: "2026-12" };
+    expect(noticeCalendarMonthBounds({ ...base, endDay: "2027-02-01" }).endDay).toBeNull();
+    expect(noticeCalendarMonthBounds({ ...base, endDay: "2026-12-20" }).endDay).toBeNull();
+    expect(noticeCalendarMonthBounds({ ...base, endDay: "1월 12일" }).endDay).toBeNull();
+    expect(noticeCalendarMonthBounds({ ...base, endMonth: null, endDay: "2027-01-12" }).endDay).toBeNull();
+  });
+  it("normalizeDay·nextMonthKey", () => {
+    expect(normalizeDay(" 2027-01-12 ")).toBe("2027-01-12");
+    expect(normalizeDay("2027-1-12")).toBeNull();
+    expect(nextMonthKey("2026-12")).toBe("2027-01");
+    expect(nextMonthKey("2026-07")).toBe("2026-08");
   });
 });
