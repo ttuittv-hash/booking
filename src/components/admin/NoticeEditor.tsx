@@ -113,6 +113,38 @@ function withCellStyles<T extends { name: string }>(base: T) {
   });
 }
 
+/**
+ * TipTap 표는 항상 평평하게(<thead> 없이 행이 전부 <tbody> 하나) 직렬화된다 —
+ * prosemirror-tables 자체가 행 그룹(머리/본문) 개념을 모른다. "머리행" 버튼으로 첫 행을
+ * 전부 th 로 바꿔도 저장되는 HTML 에는 <thead> 가 없다 — 그런데 공개 화면이 렌더링 시
+ * 브라우저가 <thead> 없는 표를 파싱하면 모든 행(첫 행 포함)을 암묵적 <tbody> 하나로
+ * 묶어버린다. 그 결과 PROSE 의 `[&_thead_th]:bg-foreground`(검정 머리행) 규칙은 아예
+ * 걸리지 않고, 머리행도 항목열과 똑같이 `[&_tbody_th]:bg-panel-strong`(회색)로 나왔다
+ * (2026-09-04, "어드민에서는 검게 보이는데 공개 화면은 회색" 신고). 저장 직전에 표마다
+ * 첫 행이 전부 th 면 실제 <thead> 로, 나머지는 <tbody> 로 갈라 태그를 남긴다.
+ */
+function splitTableHeadRows(html: string): string {
+  if (!html.includes("<table")) return html;
+  const container = document.createElement("div");
+  container.innerHTML = html;
+  container.querySelectorAll("table").forEach((table) => {
+    if (table.querySelector(":scope > thead")) return;
+    const rows = Array.from(table.rows);
+    if (rows.length < 2) return;
+    const [headRow, ...bodyRows] = rows;
+    const isHeaderRow = Array.from(headRow.cells).every((cell) => cell.tagName === "TH");
+    if (!isHeaderRow) return;
+    const thead = document.createElement("thead");
+    thead.appendChild(headRow);
+    const tbody = document.createElement("tbody");
+    bodyRows.forEach((row) => tbody.appendChild(row));
+    table.querySelectorAll(":scope > tbody").forEach((tb) => tb.remove());
+    table.insertBefore(thead, table.firstChild);
+    table.appendChild(tbody);
+  });
+  return container.innerHTML;
+}
+
 const DEFAULT_FONT_SIZE = 14;
 
 /** 표 칸 배경 — 지면과 같은 계열의 옅은 면만 둔다(글자는 검정 그대로 읽혀야 한다) */
@@ -187,12 +219,12 @@ export function NoticeEditor({
       DetailsContent,
     ],
     content: value,
-    onUpdate: ({ editor }) => onChange(editor.getHTML()),
+    onUpdate: ({ editor }) => onChange(splitTableHeadRows(editor.getHTML())),
     editorProps: {
       attributes: {
         // 문단 간격은 공개 화면과 똑같이 margin 없이 줄간격(leading)만 쓴다 — RICH_TEXT의
         // [&_p]:mt-4 를 그대로 쓰면 편집기에서만 문단 사이가 눈에 띄게 벌어져 보인다.
-        class: `${NOTICE_RICH_TEXT} min-h-[180px] border border-t-0 border-border-soft bg-surface px-3 py-2.5 text-s leading-6 focus:border-foreground focus:outline-2 focus:outline-accent [&_img]:mt-2 [&_img]:max-w-full [&_table]:mt-3 [&_table]:w-full [&_table]:table-fixed [&_table]:border-collapse [&_td]:relative [&_th]:relative [&_.column-resize-handle]:absolute [&_.column-resize-handle]:-right-px [&_.column-resize-handle]:top-0 [&_.column-resize-handle]:h-full [&_.column-resize-handle]:w-1 [&_.column-resize-handle]:cursor-col-resize [&_.column-resize-handle]:bg-accent [&_td]:border [&_td]:border-border-soft [&_td]:px-2.5 [&_td]:py-1.5 [&_th]:border [&_th]:border-border-soft [&_th]:bg-foreground [&_th]:text-background [&_th]:px-2.5 [&_th]:py-1.5 [&_th]:text-left [&_[data-type=details]]:mt-3 [&_[data-type=details]]:border [&_[data-type=details]]:border-border-soft [&_[data-type=details]]:p-2.5 [&_[data-type=details]>button]:mr-2 [&_[data-type=details]>button]:inline-flex [&_[data-type=details]>button]:h-4 [&_[data-type=details]>button]:w-4 [&_[data-type=details]>button]:shrink-0 [&_[data-type=details]>button]:cursor-pointer [&_[data-type=details]>button]:border [&_[data-type=details]>button]:border-muted [&_[data-type=details]_summary]:inline [&_[data-type=details]_summary]:cursor-text [&_[data-type=details]_summary]:font-bold [&_[data-type=detailsContent]]:mt-2 [&_[data-type=detailsContent]]:min-h-[1.6em] [&_[data-type=detailsContent]]:border-t [&_[data-type=detailsContent]]:border-dashed [&_[data-type=detailsContent]]:border-border-soft [&_[data-type=detailsContent]]:pt-2`,
+        class: `${NOTICE_RICH_TEXT} min-h-[180px] border border-t-0 border-border-soft bg-surface px-3 py-2.5 text-s leading-6 focus:border-foreground focus:outline-2 focus:outline-accent [&_img]:mt-2 [&_img]:max-w-full [&_table]:mt-3 [&_table]:w-full [&_table]:table-fixed [&_table]:border-collapse [&_td]:relative [&_th]:relative [&_.column-resize-handle]:absolute [&_.column-resize-handle]:-right-px [&_.column-resize-handle]:top-0 [&_.column-resize-handle]:h-full [&_.column-resize-handle]:w-1 [&_.column-resize-handle]:cursor-col-resize [&_.column-resize-handle]:bg-accent [&_td]:border [&_td]:border-border-soft [&_td]:px-2.5 [&_td]:py-1.5 [&_th]:border [&_th]:border-border-soft [&_th]:px-2.5 [&_th]:py-1.5 [&_th]:text-left [&_tr:first-child_th]:bg-foreground [&_tr:first-child_th]:text-background [&_tr:not(:first-child)_th]:bg-panel-strong [&_tr:not(:first-child)_th]:text-foreground [&_[data-type=details]]:mt-3 [&_[data-type=details]]:border [&_[data-type=details]]:border-border-soft [&_[data-type=details]]:p-2.5 [&_[data-type=details]>button]:mr-2 [&_[data-type=details]>button]:inline-flex [&_[data-type=details]>button]:h-4 [&_[data-type=details]>button]:w-4 [&_[data-type=details]>button]:shrink-0 [&_[data-type=details]>button]:cursor-pointer [&_[data-type=details]>button]:border [&_[data-type=details]>button]:border-muted [&_[data-type=details]_summary]:inline [&_[data-type=details]_summary]:cursor-text [&_[data-type=details]_summary]:font-bold [&_[data-type=detailsContent]]:mt-2 [&_[data-type=detailsContent]]:min-h-[1.6em] [&_[data-type=detailsContent]]:border-t [&_[data-type=detailsContent]]:border-dashed [&_[data-type=detailsContent]]:border-border-soft [&_[data-type=detailsContent]]:pt-2`,
       },
     },
   });
