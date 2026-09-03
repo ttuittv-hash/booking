@@ -271,6 +271,49 @@ export const TEMPLATES: TemplateDef[] = [
       kakaoUrlPc: "https://partner.seoularena.net/mypage/inquiries",
     },
   },
+  // ── 2026-09-04 팀 재등록분(링크 오류로 0002·0003 대체, 카카오 검수 대기) ──
+  // 승인(kep O) 전에는 카카오가 거절하므로 코드는 그대로 두고, 승인되면 배포 없이
+  //   BIZTALK_TEMPLATE_OVERRIDES=ARENA-0003=ARENA_0017,MB-03=ARENA_0018
+  // 로 전환한다 — dispatch 가 덮어쓴 카카오 코드에 맞는 아래 정의(본문·강조·버튼)를 골라 쓴다.
+  {
+    code: "ARENA-0017",
+    kakaoTemplateCode: "ARENA_0017",
+    audience: "APPLICANT",
+    title: "가입 승인 (재등록분)",
+    body: "#{신청자명}님, 안녕하세요.\n서울아레나 대관시스템 회원가입이 승인되었습니다. \n\n이제 로그인하여 대관 신청·조회 서비스를 이용하실 수 있습니다.",
+    variables: ["신청자명"],
+    release: "TBD",
+    emphasis: { title: "회원가입 승인 완료", subtitle: "서울아레나 대관시스템" },
+    button: {
+      name: "대관시스템 바로가기",
+      path: "/login",
+      kakaoUrl: "https://partner.seoularena.net/login",
+      kakaoUrlPc: "https://partner.seoularena.net/login",
+    },
+  },
+  {
+    code: "ARENA-0018",
+    kakaoTemplateCode: "ARENA_0018",
+    audience: "APPLICANT",
+    title: "가입 반려 (재등록분)",
+    body: "#{신청자명}님, 안녕하세요. \n제출해 주신 가입 신청은 아래 사유로 승인이 반려되었습니다. \n\n▪︎사유\n#{거절사유}",
+    variables: ["신청자명", "거절사유"],
+    release: "TBD",
+    emphasis: { title: "회원가입 반려 안내", subtitle: "서울아레나 대관시스템" },
+    button: {
+      name: "대관시스템 바로가기",
+      path: "/login",
+      kakaoUrl: "https://partner.seoularena.net/login",
+      kakaoUrlPc: "https://partner.seoularena.net/login",
+    },
+    kakaoExtraButtons: [
+      {
+        name: "1:1 문의 바로가기",
+        kakaoUrl: "https://partner.seoularena.net/inquiry",
+        kakaoUrlPc: "https://partner.seoularena.net/inquiry",
+      },
+    ],
+  },
   // ── 2026-09-03 팀 요청 신규 3종 (카카오 승인 O, 본문·버튼은 등록값과 글자 단위 동일) ──
   {
     // 1:1 문의 접수 → 운영자 전원. 인앱은 호출부의 notifyAdmins 가 이미 남긴다.
@@ -317,6 +360,11 @@ export const TEMPLATES: TemplateDef[] = [
 
 export function findTemplate(code: string): TemplateDef | undefined {
   return TEMPLATES.find((t) => t.code === code) ?? QUOTE_TEMPLATES.find((t) => t.code === code);
+}
+
+/** 카카오 템플릿 코드로 정의 찾기 — 환경변수로 코드를 갈아탄 경우(0002→0018 등) 그 문안을 쓰기 위해. */
+export function findTemplateByKakaoCode(kakaoCode: string): TemplateDef | undefined {
+  return TEMPLATES.find((t) => t.kakaoTemplateCode === kakaoCode) ?? QUOTE_TEMPLATES.find((t) => t.kakaoTemplateCode === kakaoCode);
 }
 
 /** 자리표시자 추출 — 본문과 variables 선언이 어긋나는 것을 막는다. */

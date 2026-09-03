@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { QUOTE_TEMPLATES, TEMPLATES, findTemplate, placeholdersIn, renderTemplate, TemplateVariableError, templatePlaceholders, fillUrlVariables } from "./templates";
+import { QUOTE_TEMPLATES, TEMPLATES, findTemplate, placeholdersIn, renderTemplate, TemplateVariableError, templatePlaceholders, fillUrlVariables, findTemplateByKakaoCode } from "./templates";
 import { classifyBizTalkCode, isBizTalkConfigured } from "./kakaoBizTalk";
 
 // 기획서 B2 — 1차 오픈(8/24) 회원가입 5종.
@@ -40,6 +40,13 @@ describe("1차 오픈 템플릿", () => {
     expect(() => fillUrlVariables("https://partner.seoularena.net/#{초대링크}", { 초대링크: " " })).toThrow(
       TemplateVariableError,
     );
+  });
+
+  it("재등록 템플릿(0017·0018)은 카카오 코드로 찾을 수 있고 1차 목록에는 안 들어간다 — 승인 후 env 로 전환", () => {
+    expect(findTemplateByKakaoCode("ARENA_0017")?.code).toBe("ARENA-0017");
+    expect(findTemplateByKakaoCode("ARENA_0018")?.kakaoExtraButtons?.length).toBe(1);
+    expect(findTemplateByKakaoCode("ARENA_0018")?.variables).toEqual(["신청자명", "거절사유"]);
+    expect(findTemplateByKakaoCode("NOPE")).toBeUndefined();
   });
 
   it("ARENA_0002(반려)는 버튼 2개를 등록 순서대로 싣는다", () => {

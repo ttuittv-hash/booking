@@ -19,7 +19,7 @@ import { resolveKakaoButtonUrl, resolveKakaoTemplateCode } from "./templateOverr
 import { emailAdapter } from "./email";
 import { inAppAdapter } from "./inapp";
 import { kakaoBizTalkAdapter, xmsAdapter } from "./kakaoBizTalk";
-import { renderTemplate, findTemplate, TemplateVariableError, fillUrlVariables } from "./templates";
+import { renderTemplate, findTemplate, TemplateVariableError, fillUrlVariables, findTemplateByKakaoCode } from "./templates";
 import type { ChannelAdapter, SendRequest, SendResult } from "./types";
 
 /**
@@ -99,8 +99,13 @@ export async function dispatchMessage(input: DispatchInput): Promise<DispatchOut
     return { skipped: "DUPLICATE", results: [] };
   }
 
-  const def = findTemplate(input.templateCode);
-  if (!def) return { skipped: "TEMPLATE_DISABLED", results: [] };
+  const def0 = findTemplate(input.templateCode);
+  if (!def0) return { skipped: "TEMPLATE_DISABLED", results: [] };
+  // 환경변수(BIZTALK_TEMPLATE_OVERRIDES)로 카카오 코드를 갈아탄 경우(예: ARENA-0003=ARENA_0017), 등록값과
+  // 글자 단위로 맞아야 하는 본문·강조·버튼도 그 코드의 정의를 쓴다. 이력·멱등키는 호출부 코드 그대로.
+  const overriddenKakao = resolveKakaoTemplateCode(def0.code, def0.kakaoTemplateCode);
+  const def =
+    (overriddenKakao && overriddenKakao !== def0.kakaoTemplateCode && findTemplateByKakaoCode(overriddenKakao)) || def0;
 
   const sendId = crypto.randomUUID();
   const variables = { ...(input.variables ?? {}), __sendId: sendId };
@@ -112,7 +117,7 @@ export async function dispatchMessage(input: DispatchInput): Promise<DispatchOut
   let kakaoUrlPc: string | null = def.button?.kakaoUrlPc ?? null;
   let extra: { name: string; kakaoUrl: string; kakaoUrlPc?: string | null }[] | null = null;
   try {
-    body = renderTemplate(input.templateCode, variables);
+    body = renderTemplate(def.code, variables);
     if (kakaoUrl) kakaoUrl = fillUrlVariables(kakaoUrl, variables);
     if (kakaoUrlPc) kakaoUrlPc = fillUrlVariables(kakaoUrlPc, variables);
     if (def.kakaoExtraButtons?.length) {
