@@ -2995,9 +2995,14 @@ export async function findUserByPhone(phone: string): Promise<AppUser | undefine
   // 반려 이력과 살아 있는 계정이 함께 있으면 **살아 있는 쪽**을 돌려줘야 한다 —
   // 이 함수는 "이 번호로 또 가입해도 되는가"를 묻는 자리에서만 쓰이는데, 반려 행이
   // 먼저 잡히면 이미 가입한 사람이 한 번 더 가입할 수 있었다(ORDER BY 없는 LIMIT 1).
+  //
+  // 운영자(ADMIN) 계정은 공개 가입 화면을 거치지 않고 운영자가 직접 만든 백오피스
+  // 계정이다 — 서울아레나 임직원이 그 번호로 신청자 계정도 가입하려 할 때, 자신의
+  // 운영자 계정과 번호가 같다는 이유로 막혔다("직원은 사용자·운영자 둘 다 가입
+  // 가능해야 하는데 막힌다" 신고, 2026-09-03). ADMIN 행은 이 중복 판정에서 제외한다.
   const row = await one<UserRow>(
     `SELECT * FROM users
-      WHERE phone = $1 AND withdrawn_at IS NULL
+      WHERE phone = $1 AND withdrawn_at IS NULL AND role != 'ADMIN'
       ORDER BY (approval_status = 'REJECTED'), created_at DESC
       LIMIT 1`,
     [phone.trim()],
