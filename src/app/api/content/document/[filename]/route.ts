@@ -43,9 +43,11 @@ export async function GET(request: Request, ctx: { params: Promise<{ filename: s
   const ext = path.extname(filename).toLowerCase();
   return new NextResponse(buffer, {
     headers: {
-      // PDF·이미지는 브라우저에서 바로 열리게 두고, 나머지는 내려받게 한다.
       "Content-Type": CONTENT_TYPE[ext] ?? "application/octet-stream",
-      "Content-Disposition": `${CONTENT_TYPE[ext] ? "inline" : "attachment"}; filename*=UTF-8''${encodeURIComponent(downloadName)}`,
+      // [수정 2026-09-03] PDF·이미지를 새 탭에서 바로 열리게 뒀었는데, 화면의 버튼
+      // 이름이 "다운로드"라 클릭하면 파일이 받아져야 한다 — 브라우저가 열어버리는
+      // 게 오류로 신고됐다. 형식과 무관하게 항상 내려받게 한다.
+      "Content-Disposition": `attachment; filename*=UTF-8''${encodeURIComponent(downloadName)}`,
       "Cache-Control": "private, max-age=0, must-revalidate",
     },
   });
