@@ -10,6 +10,7 @@ import { NotificationBell } from "@/components/NotificationBell";
 import {
   ACCOUNT_HREF,
   NAV_ACTION,
+  NAV_ACTION_HIDDEN,
   NAV_CATEGORIES,
   NOTICE_LINK,
   SUPPORT_MENU,
@@ -342,7 +343,7 @@ export function PublicHeaderNav({
             {/* [신규 2026-09-03] 신청을 아직 받지 않는 동안(1차 오픈)에는 자리를 비우지 않고
                 「오픈 예정」 안내를 띄운다. 메뉴를 감추면 이 서비스가 무엇을 하는 곳인지
                 흐려진다 — 자리는 두되 누르거나 올려 두면 언제 열리는지 알려 준다. */}
-            {bookItNotice?.enabled ? (
+            {NAV_ACTION_HIDDEN ? null : bookItNotice?.enabled ? (
               <li
                 className="relative ml-2 flex items-center"
                 onMouseEnter={() => {
@@ -516,7 +517,7 @@ export function PublicHeaderNav({
                   </ul>
                 </li>
               ))}
-              {bookItNotice?.enabled ? (
+              {NAV_ACTION_HIDDEN ? null : bookItNotice?.enabled ? (
                 /* 좁은 화면에는 호버가 없다 — 안내를 접었다 펴지 않고 그대로 붙여 둔다. */
                 <li className="text-center">
                   <p className="flex h-12 items-center justify-center type-display text-s text-muted">

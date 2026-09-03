@@ -46,6 +46,13 @@ export const NAV_CATEGORIES: NavCategory[] = [
 export const NAV_ACTION = { href: "/apply", label: "Book It" } as const;
 
 /**
+ * 1차 오픈(2026-09-03) 기준 Book It 메뉴 숨김 — 팀 요청("Book it 메뉴 숨김처리, 2차 노출 9/7 때 원복").
+ * true 면 상단바·모바일·푸터에서 Book It 이 빠진다(「오픈 예정」 안내 코드는 그대로 두고 가린다).
+ * 9/7 2차 노출 때 false 로 되돌리면 안내/링크가 다시 보인다. /apply 경로 자체는 그대로.
+ */
+export const NAV_ACTION_HIDDEN = true;
+
+/**
  * 우측 — 대관 공지. 한 뎁스로 꺼내 「지원」 왼쪽에 둔다 (2026-09-03).
  *
  * 대관 공고·정기대관 일정이 여기로 올라오는데, 드롭다운 **안**에 있으면 한 번 더 눌러야
@@ -78,7 +85,9 @@ export const ACCOUNT_HREF = "/mypage";
  */
 export const FOOTER_CATEGORIES: NavCategory[] = [
   ...NAV_CATEGORIES,
-  { label: "Book It", pages: [{ href: NAV_ACTION.href, label: "대관 신청", loginRequired: true }] },
+  ...(NAV_ACTION_HIDDEN
+    ? []
+    : [{ label: "Book It", pages: [{ href: NAV_ACTION.href, label: "대관 신청", loginRequired: true }] }]),
   { ...SUPPORT_MENU, pages: [NOTICE_LINK, ...SUPPORT_MENU.pages] },
 ];
 
