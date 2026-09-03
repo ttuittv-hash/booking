@@ -292,6 +292,21 @@ function NoticesTab({
 
   async function save() {
     const isNew = editingId === "__new__";
+    /*
+      [수정 2026-09-04] 워드·페이지에서 그대로 붙여넣은 본문은 이미지가 base64 data:
+      URL 로 문서 안에 박혀 몇백 KB~몇 MB 가 된다 — 편집기가 붙여넣기/드롭 시점에
+      파일이면 가로채 업로드하지만(NoticeEditor), 붙여넣은 HTML 자체에 이미 data:
+      URL 로 박혀 있던 이전 저장분·예외 경로는 여전히 남아 있을 수 있다. 이 상태로
+      보내면 앞단(프록시/WAF)이 요청을 통째로 막아 413 뿐 아니라 403 으로도 돌아올
+      수 있다 — 네트워크를 타기 전에 걸러 바로 알려준다.
+    */
+    if (body.includes("data:image")) {
+      setError(
+        "본문에 붙여넣기로 들어간 이미지가 있습니다 (밑줄로 보이지 않아도 본문이 매우 커집니다). " +
+          "그 이미지를 지우고 [이미지 삽입] 버튼으로 다시 올려 주세요.",
+      );
+      return;
+    }
     setSaving(true);
     setError(null);
     try {
@@ -312,8 +327,9 @@ function NoticesTab({
       if (!res.ok) {
         setError(
           data?.error ??
-            (res.status === 413
-              ? "본문이 너무 큽니다. 붙여넣은 이미지는 [이미지 삽입] 버튼으로 올려 주세요."
+            (res.status === 413 || res.status === 403
+              ? "저장이 막혔습니다 (본문이 너무 크거나 앞단에서 차단됨). 붙여넣은 이미지는 " +
+                "[이미지 삽입] 버튼으로 올려 주세요. 계속되면 관리자에게 문의하세요."
               : `저장에 실패했습니다. (오류 ${res.status})`),
         );
         return;
