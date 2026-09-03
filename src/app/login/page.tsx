@@ -47,9 +47,11 @@ export default function LoginPage() {
       // 페이지는 상단바의 "운영자 백오피스" 링크로 따로 들어간다(2026-08-21).
       // [수정 2026-09-04] 로그인 화면에 ?next=/mypage/members 처럼 돌아갈 곳이 실려 오면(알림톡 버튼·
       // 보호 페이지 진입) 그곳으로 보낸다. 사이트 안 경로(/로 시작, //는 제외)만 믿어 외부 리다이렉트를 막는다.
+      // [수정 2026-09-03] next 가 없으면 예전엔 /apply 로 보냈다 — 로그인만 했을 뿐인데
+      // 무조건 대관 신청 위저드로 떨어지는 게 이상하다는 신고. 홈으로 보낸다.
       const next = new URLSearchParams(window.location.search).get("next");
       const safeNext = next && next.startsWith("/") && !next.startsWith("//") ? next : null;
-      router.push(data.user.role === "ADMIN" ? "/" : (safeNext ?? "/apply"));
+      router.push(data.user.role === "ADMIN" ? "/" : (safeNext ?? "/"));
       router.refresh();
     } finally {
       setLoading(false);
