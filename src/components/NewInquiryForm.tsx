@@ -45,9 +45,8 @@ export function NewInquiryForm({
   const [contactPhone, setContactPhone] = useState(defaultPhone);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  /** 비회원은 돌아갈 목록이 없다 — 접수됐다는 사실과 조회 링크를 이 화면에서 준다 */
+  /** 비회원은 돌아갈 목록이 없다 — 접수됐다는 사실을 이 화면에서 준다 */
   const [done, setDone] = useState(false);
-  const [viewUrl, setViewUrl] = useState<string | null>(null);
 
   const category: InquiryCategory | undefined = findInquiryCategory(categoryId);
   // 비회원은 신청 건이 있을 수 없다 — 칸을 두면 채우라는 뜻으로 읽힌다.
@@ -102,12 +101,6 @@ export function NewInquiryForm({
         return;
       }
       if (guest) {
-        // 메일이 스팸함으로 가거나 주소를 잘못 적었을 수 있다 — 조회 링크를 화면에도 준다.
-        setViewUrl(
-          data.inquiry?.accessToken
-            ? `${window.location.origin}/inquiry/${data.inquiry.id}?t=${encodeURIComponent(data.inquiry.accessToken)}`
-            : null,
-        );
         setDone(true);
         return;
       }
@@ -126,17 +119,6 @@ export function NewInquiryForm({
         <p className="mt-4 break-keep text-s leading-7 text-muted">
           접수 순서대로 확인하며, 영업일 기준으로 답변드립니다.
         </p>
-        {viewUrl && (
-          <div className="mt-6 border-t border-border/25 pt-6">
-            <p className="text-xs text-muted">
-              아래 주소로 문의와 답변을 다시 열어 보실 수 있습니다. 이 주소를 아는 사람만
-              볼 수 있으니 따로 보관해 주세요.
-            </p>
-            <a href={viewUrl} className="mt-2 block break-all text-s font-bold underline">
-              {viewUrl}
-            </a>
-          </div>
-        )}
       </div>
     );
   }
