@@ -553,8 +553,12 @@ export async function POST(request: Request) {
       request,
     });
   }
-  // MB-05 회사 신규 등록 → 운영자
-  if (company && user.companyRole === "MASTER") {
+  // MB-05(ARENA_0013) 회사 신규 등록 → 운영자.
+  // [수정 2026-09-04] 조건이 companyRole === "MASTER" 로 남아 있었는데, 2026-08-28 개정 뒤 가입 시점에는
+  // 아무도 MASTER 가 아니어서 한 번도 발송되지 않았다(팀 신고 "0013 연동 안 됨"). 위 인앱 알림과 같은
+  // 기준 — 그 회사에 대표가 아직 없으면 "회사 신규 등록" — 으로 판정한다. 초대 링크 즉시 승인은 제외.
+  const isNewCompany = !!company && !invitePhoneMatched && !(await findCompanyMaster(company.id));
+  if (company && isNewCompany) {
     for (const admin of await listUsers({ role: "ADMIN" })) {
       dispatchMessageInBackground({
         templateCode: "MB-05",
