@@ -5737,8 +5737,18 @@ export async function saveDocumentsContent(data: DocumentsContent) {
   return saveSiteContent("documents", data);
 }
 
+/**
+ * 규약 전문이 빈 채로 저장돼 있으면 기본 전문으로 되돌린다 (2026-09-03).
+ *
+ * 규약 화면은 본문이 비면 「0개 장 · 0개 조」에 목차도 본문도 없는 빈 종이가 된다.
+ * 실제로 편집 중 사고로 본문이 비어 화면이 통째로 사라졌다 — 규약은 대관 조건의
+ * 근거라 빈 화면으로 두는 쪽이 훨씬 위험하다. 비어 있을 때만 갈아 끼우므로,
+ * 운영자가 저장한 내용이 있으면 절대 건드리지 않는다.
+ * (되돌려 놓고 싶을 때는 콘텐츠 관리의 [기본 전문으로 되돌리기] 를 쓴다.)
+ */
 export async function getRulesContent(): Promise<RulesContent> {
-  return getPageContent("rules", DEFAULT_RULES_CONTENT);
+  const content = await getPageContent("rules", DEFAULT_RULES_CONTENT);
+  return content.body?.trim() ? content : { ...content, body: DEFAULT_RULES_CONTENT.body };
 }
 export async function saveRulesContent(data: RulesContent) {
   return saveSiteContent("rules", data);
