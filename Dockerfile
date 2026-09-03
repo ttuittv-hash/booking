@@ -13,6 +13,8 @@ RUN npm ci
 
 FROM node:24-alpine AS builder
 WORKDIR /app
+ARG GIT_SHA=local
+ENV DEPLOYMENT_ID=$GIT_SHA
 ENV NEXT_TELEMETRY_DISABLED=1
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
@@ -20,6 +22,8 @@ RUN npm run build
 
 FROM node:24-alpine AS runner
 WORKDIR /app
+ARG GIT_SHA=local
+ENV DEPLOYMENT_ID=$GIT_SHA
 ENV NODE_ENV=production \
     NEXT_TELEMETRY_DISABLED=1 \
     PORT=3000 \

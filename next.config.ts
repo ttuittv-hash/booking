@@ -2,6 +2,13 @@ import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
   /**
+   * 롤링 배포 중 버전 스큐 보호 (2026-09-04). 새 태스크의 HTML 이 옛 태스크에 청크를 요청하면
+   * 404(text/plain)가 나서 "Refused to execute script … MIME type" 오류가 났다. 빌드마다 git sha 를
+   * 심어 두면 정적 자산에 ?dpl= 이 붙고, 서버·클라이언트 ID 가 다르면 전체 새로고침으로 복구한다.
+   * 값은 Dockerfile ARG GIT_SHA → ENV DEPLOYMENT_ID (빌드·런타임 동일). 로컬 개발은 미설정.
+   */
+  deploymentId: process.env.DEPLOYMENT_ID || undefined,
+  /**
    * 2026-08 정보구조 재구성으로 없어지거나 옮겨진 경로.
    * 북마크·검색 유입·외부 공유 링크가 죽지 않도록 영구 리다이렉트한다.
    */
