@@ -781,6 +781,21 @@ export function valueHeadingClass(text: string): string {
 }
 
 /**
+ * **Archivo Medium(500)** — 시설 제원 개요 카드의 값 전용 (2026-09-03).
+ *
+ * `type-display` 는 Archivo **ExtraBold(800) + 대문자 변환**이라 개요 문구처럼 긴
+ * 영문 나열("CONCERT · FAN MEETING · SHOWCASE · PRIVATE EVENT")에 걸면 너무 무겁다.
+ * 한 단 가벼운 500 을 쓰고 대소문자는 원문 그대로 둔다.
+ *
+ * 한글이 섞이면 국문 헤딩으로 떨어뜨린다 — Archivo 에는 한글 글립이 없어 깨진다.
+ */
+function archivoMediumClass(text: string): string {
+  return /[가-힣]/.test(text)
+    ? "type-kr-heading"
+    : "font-medium normal-case [font-family:Archivo,sans-serif]";
+}
+
+/**
  * 4-up 스탯 카드 — 굵은 윗선 + 작은 라벨 + 큰 값(+ 부연 한 줄).
  * 시설 제원의 상위 4개 포인트와 대관료의 기본 이용 기준이 같은 레이아웃을 쓴다.
  * 12칼럼에서 3칼럼씩 떨어진다. 값에 줄바꿈을 넣으면 그대로 줄이 나뉜다.
@@ -800,9 +815,15 @@ const STAT_VALUE_SIZE = {
 export function StatCards({
   items,
   size = "sm",
+  valueFont = "auto",
 }: {
   items: { label: string; value: string; note?: string }[];
   size?: keyof typeof STAT_VALUE_SIZE;
+  /**
+   * 값의 서체. `auto` 는 수치면 Archivo ExtraBold, 아니면 국문 헤딩.
+   * `archivo` 는 **시설 제원 개요 카드 전용** — Archivo Medium 으로 한 단 가볍게 쓴다.
+   */
+  valueFont?: "auto" | "archivo";
 }) {
   /*
     [개정 2026-09-03] 개수에 따라 폭이 정해진다 — 카드가 몇 장이든 **한 줄을 꽉 채운다.**
@@ -822,7 +843,11 @@ export function StatCards({
           <p className="text-xs font-bold text-muted">{it.label}</p>
           <p
             className={`mt-3 whitespace-pre-line break-keep ${
-              size === "sm" ? "type-kr-heading" : valueHeadingClass(it.value)
+              size === "sm"
+                ? "type-kr-heading"
+                : valueFont === "archivo"
+                  ? archivoMediumClass(it.value)
+                  : valueHeadingClass(it.value)
             } ${STAT_VALUE_SIZE[size]}`}
           >
             {it.value}

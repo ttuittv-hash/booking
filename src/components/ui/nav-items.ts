@@ -38,8 +38,6 @@ export const NAV_CATEGORIES: NavCategory[] = [
       { href: "/rates", label: "대관료", loginRequired: true },
       { href: "/rules", label: "대관 규약", loginRequired: true },
       { href: "/documents", label: "대관 자료", loginRequired: true },
-      // 2026-09-03 팀 요청: 지원 > 공지사항 → Guide > 대관 공지 (접근정책은 그대로 승인 완료 전용)
-      { href: "/notices", label: "대관 공지", loginRequired: true },
     ],
   },
 ];
@@ -48,10 +46,16 @@ export const NAV_CATEGORIES: NavCategory[] = [
 export const NAV_ACTION = { href: "/apply", label: "Book It" } as const;
 
 /**
- * 1차 오픈(2026-09-03) 기준 Book It 메뉴 숨김 — 팀 요청. 2차 노출(9/7) 때 false 로 되돌린다.
- * 상단바·모바일 메뉴·푸터 사이트맵에서 함께 빠진다. /apply 경로 자체는 그대로 열려 있다.
+ * 우측 — 대관 공지. 한 뎁스로 꺼내 「지원」 왼쪽에 둔다 (2026-09-03).
+ *
+ * 대관 공고·정기대관 일정이 여기로 올라오는데, 드롭다운 **안**에 있으면 한 번 더 눌러야
+ * 보이고 새 공지가 떠도 눈에 걸리지 않는다. 읽을 사람이 가장 많은 화면이라 링크 하나로
+ * 꺼내 둔다. (이름은 같은 날 팀이 정한 「대관 공지」를 따른다.)
+ *
+ * 1차 오픈 동안 Book It 은 감추지 않고 「오픈 예정」 안내를 띄운다 — 그 판단은
+ * 콘텐츠(화면 문구 > BOOK IT 오픈 예정 안내)에 있다.
  */
-export const NAV_ACTION_HIDDEN = true;
+export const NOTICE_LINK: NavPage = { href: "/notices", label: "대관 공지", loginRequired: true };
 
 /** 우측 — 지원. 여정의 한 단계가 아니라 어느 단계에서든 쓰는 도구다. */
 export const SUPPORT_MENU: NavCategory = {
@@ -68,13 +72,14 @@ export const SUPPORT_MENU: NavCategory = {
  */
 export const ACCOUNT_HREF = "/mypage";
 
-/** 푸터 사이트맵 — 중앙 2묶음 + 신청 + 지원 */
+/**
+ * 푸터 사이트맵 — 중앙 2묶음 + 신청 + 지원.
+ * 푸터는 상단바와 달리 **전체 목록**이라, 상단에서 꺼낸 공지사항도 지원 묶음에 함께 싣는다.
+ */
 export const FOOTER_CATEGORIES: NavCategory[] = [
   ...NAV_CATEGORIES,
-  ...(NAV_ACTION_HIDDEN
-    ? []
-    : [{ label: "Book It", pages: [{ href: NAV_ACTION.href, label: "대관 신청", loginRequired: true }] }]),
-  SUPPORT_MENU,
+  { label: "Book It", pages: [{ href: NAV_ACTION.href, label: "대관 신청", loginRequired: true }] },
+  { ...SUPPORT_MENU, pages: [NOTICE_LINK, ...SUPPORT_MENU.pages] },
 ];
 
 /* --------------------------------------------------------------- 탭 축 --- */

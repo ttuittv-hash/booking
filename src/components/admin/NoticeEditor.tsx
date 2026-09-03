@@ -68,7 +68,61 @@ const ResizableImage = Image.extend({
   },
 });
 
+/**
+ * 표 칸 — 열 너비와 칸 배경색을 **HTML 에 남긴다** (2026-09-03).
+ *
+ * 열 경계를 끌어 폭을 바꿔도 공개 화면에서는 그대로였다("표 열간 간격 수정 반영 실패").
+ * TipTap 이 폭을 담는 `colwidth` 는 편집기(ProseMirror) 안에서만 뜻이 있는 속성이라,
+ * 저장된 HTML 에 남아도 브라우저는 모른다. 그래서 같은 값을 `style="width:…"` 로도
+ * 함께 내보낸다 — 공개 화면은 이 값을 보고 열 폭을 잡는다.
+ *
+ * 배경색은 새로 붙인 속성이다. 요금표처럼 한 행·한 칸을 눈에 띄게 두고 싶다는 요청.
+ */
+function withCellStyles<T extends { name: string }>(base: T) {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  return (base as any).extend({
+    addAttributes() {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const parent = (this as any).parent?.() ?? {};
+      return {
+        ...parent,
+        backgroundColor: {
+          default: null,
+          parseHTML: (el: HTMLElement) => el.style.backgroundColor || null,
+          renderHTML: (attrs: { backgroundColor?: string | null }) =>
+            attrs.backgroundColor ? { style: `background-color: ${attrs.backgroundColor}` } : {},
+        },
+      };
+    },
+    // colwidth 는 부모가 그대로 두고(편집기가 쓴다), 내보낼 때 width 스타일을 얹는다.
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    renderHTML({ HTMLAttributes, node }: any) {
+      const width = node.attrs.colwidth?.[0];
+      const style = [
+        width ? `width: ${width}px` : "",
+        HTMLAttributes.style ?? "",
+      ]
+        .filter(Boolean)
+        .join("; ");
+      return [
+        base.name === "tableHeader" ? "th" : "td",
+        { ...HTMLAttributes, ...(style ? { style } : {}) },
+        0,
+      ];
+    },
+  });
+}
+
 const DEFAULT_FONT_SIZE = 14;
+
+/** 표 칸 배경 — 지면과 같은 계열의 옅은 면만 둔다(글자는 검정 그대로 읽혀야 한다) */
+const CELL_FILLS: { value: string | null; label: string }[] = [
+  { value: null, label: "없음" },
+  { value: "#f2f0ef", label: "회백" },
+  { value: "#e6e3e1", label: "연회색" },
+  { value: "#e8f0ea", label: "연초록" },
+  { value: "#fdf3d3", label: "연노랑" },
+];
 
 const IMAGE_WIDTHS = [
   { label: "작게", value: "320px" },
@@ -123,8 +177,8 @@ export function NoticeEditor({
       // sanitizeRichText 가 th/td 의 colwidth 와 colgroup 을 허용한다).
       Table.configure({ resizable: true }),
       TableRow,
-      TableHeader,
-      TableCell,
+      withCellStyles(TableHeader),
+      withCellStyles(TableCell),
       // persist: true — 열림/닫힘 상태를 문서에 저장한다. 그래야 삽입 직후 강제로
       // 열어서(아래 setDetails 클릭 핸들러) 운영자가 바로 내용을 쓸 수 있다.
       // 기본값(false)이면 항상 접힌 채로 시작해 편집기 안에서도 안 보이고 못 썼다.
@@ -372,6 +426,28 @@ export function NoticeEditor({
           ).map(([label, run]) => (
             <button key={label} type="button" onClick={run} className={toolBtn(false)}>
               {label}
+            </button>
+          ))}
+          <span className="mx-1 h-4 w-px bg-border/30" />
+          {/* [신규 2026-09-03] 칸 배경색 — 커서가 있는 칸(또는 선택한 칸들)에 면을 깐다. */}
+          <span className="text-xs text-muted">칸 배경</span>
+          {CELL_FILLS.map((f) => (
+            <button
+              key={f.label}
+              type="button"
+              onClick={() =>
+                editor.chain().focus().setCellAttribute("backgroundColor", f.value).run()
+              }
+              className={
+                f.value
+                  ? "h-5 w-5 border border-border-soft transition-colors hover:border-foreground"
+                  : `${toolBtn(false)} h-5 px-1.5 py-0 leading-none`
+              }
+              style={f.value ? { backgroundColor: f.value } : undefined}
+              aria-label={`칸 배경 ${f.label}`}
+              title={f.label}
+            >
+              {f.value ? null : "없음"}
             </button>
           ))}
           <span className="ml-1 text-xs text-muted">열 폭은 경계선을 끌어 조절합니다</span>

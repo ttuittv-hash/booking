@@ -1,3 +1,4 @@
+import { cache } from "react";
 import { Pool, type PoolClient } from "pg";
 import { AsyncLocalStorage } from "node:async_hooks";
 import { hash as bcryptHash } from "@node-rs/bcrypt";
@@ -1812,7 +1813,14 @@ export async function deleteUserCascade(userId: string): Promise<DeleteUserResul
       [userId],
     );
     if (!user) return { deletedUser: false, deletedCompany: false, removed: {} };
-    if (user.role === "ADMIN") throw new Error("운영자 계정은 지울 수 없습니다.");
+    /*
+      [수정 2026-09-03] 운영자 계정도 지울 수 있다.
+
+      예전에는 여기서 막았다 — 실수로 운영자를 지우면 백오피스에 못 들어가기 때문이다.
+      그런데 퇴사자 계정을 없앨 방법이 아예 없어졌다("권한 해제 말고도 삭제가 필요").
+      막는 자리를 여기가 아니라 **호출부**로 옮긴다: 라우트가 마스터 관리자인지,
+      자기 자신이 아닌지, 마지막 마스터가 아닌지를 본다.
+    */
 
     const removed: Record<string, number> = {};
 
@@ -3107,6 +3115,58 @@ export async function setUserApprovalStatus(
       WHERE id = $2`,
     [approvalStatus, id, decidedBy ?? null, new Date().toISOString(), rejectReason ?? null],
   );
+  return (await findUserById(id))!;
+}
+
+/**
+ * 회사 없는 계정에 회사를 붙인다 (2026-09-03).
+ *
+ * 운영자 권한을 해제당한 계정은 신청자로 돌아오지만 소속 회사가 없다. 그 상태로는
+ * 심사할 기업 정보가 없어 재심사가 막다른 길이 된다 — 마이페이지에서 기업 정보를
+ * 등록하면 여기로 온다. 회사가 이미 있는 계정은 건드리지 않는다(회사 이동은 이 길이
+ * 아니라 탈퇴 후 재가입이다).
+ */
+export async function attachUserToCompany(userId: string, companyId: string): Promise<void> {
+  const company = await findCompanyById(companyId);
+  if (!company) throw new Error("회사를 찾을 수 없습니다.");
+  await q(
+    `UPDATE users SET company_id = $1, company_name = $2
+      WHERE id = $3 AND company_id IS NULL`,
+    [companyId, company.name, userId],
+  );
+}
+
+/** 마스터 관리자 수 — 마지막 한 명을 내리거나 지우지 못하게 막을 때 쓴다. */
+export async function countMasterAdmins(): Promise<number> {
+  const row = await one<{ n: number }>(
+    "SELECT COUNT(*)::int as n FROM users WHERE role = 'ADMIN' AND admin_tier = 'MASTER'",
+  );
+  return row?.n ?? 0;
+}
+
+/**
+ * 운영자 권한 해제 — 계정은 남기고 신청자로 되돌린다 (2026-09-03).
+ *
+ * 백오피스 접근만 거두는 동작이라 계정·이력은 그대로 둔다. 「삭제」와 다르다 —
+ * 삭제는 `deleteUserCascade` 로 기록째 지운다.
+ *
+ * 마지막 마스터는 막는다. 마스터가 0명이 되면 등급·이관 화면을 아무도 못 여는데,
+ * 그 상태를 화면에서 되돌릴 방법이 없다.
+ */
+export async function demoteAdminToApplicant(id: string): Promise<AppUser> {
+  const target = await findUserById(id);
+  if (!target || target.role !== "ADMIN") throw new Error("운영자 계정이 아닙니다.");
+  if (target.adminTier === "MASTER") {
+    const masters = await one<{ n: number }>(
+      "SELECT COUNT(*)::int as n FROM users WHERE role = 'ADMIN' AND admin_tier = 'MASTER'",
+    );
+    if ((masters?.n ?? 0) <= 1) {
+      throw new Error("마지막 남은 마스터 관리자는 권한을 해제할 수 없습니다.");
+    }
+  }
+  // 신청자로 돌아가면 운영자 등급은 의미가 없다 — 남겨 두면 다시 운영자로 올렸을 때
+  // 예전 등급이 조용히 따라 올라온다.
+  await q("UPDATE users SET role = 'APPLICANT', admin_tier = NULL WHERE id = $1", [id]);
   return (await findUserById(id))!;
 }
 
@@ -5765,9 +5825,13 @@ export async function saveNoticeCalendarWindow(data: NoticeCalendarWindow) {
   return saveSiteContent("noticeCalendarWindow", data);
 }
 
-export async function getScreenTextContent(): Promise<ScreenTextContent> {
+/**
+ * 화면 문구는 상단바(모든 화면)가 읽는다 — 요청당 한 번만 조회한다.
+ * `getCurrentUser` 와 같은 관례다.
+ */
+export const getScreenTextContent = cache(async function getScreenTextContent(): Promise<ScreenTextContent> {
   return getPageContent("screenText", DEFAULT_SCREEN_TEXT_CONTENT);
-}
+});
 export async function saveScreenTextContent(data: ScreenTextContent) {
   return saveSiteContent("screenText", data);
 }
