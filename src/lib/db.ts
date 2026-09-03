@@ -3118,6 +3118,24 @@ export async function setUserApprovalStatus(
   return (await findUserById(id))!;
 }
 
+/**
+ * 회사 없는 계정에 회사를 붙인다 (2026-09-03).
+ *
+ * 운영자 권한을 해제당한 계정은 신청자로 돌아오지만 소속 회사가 없다. 그 상태로는
+ * 심사할 기업 정보가 없어 재심사가 막다른 길이 된다 — 마이페이지에서 기업 정보를
+ * 등록하면 여기로 온다. 회사가 이미 있는 계정은 건드리지 않는다(회사 이동은 이 길이
+ * 아니라 탈퇴 후 재가입이다).
+ */
+export async function attachUserToCompany(userId: string, companyId: string): Promise<void> {
+  const company = await findCompanyById(companyId);
+  if (!company) throw new Error("회사를 찾을 수 없습니다.");
+  await q(
+    `UPDATE users SET company_id = $1, company_name = $2
+      WHERE id = $3 AND company_id IS NULL`,
+    [companyId, company.name, userId],
+  );
+}
+
 /** 마스터 관리자 수 — 마지막 한 명을 내리거나 지우지 못하게 막을 때 쓴다. */
 export async function countMasterAdmins(): Promise<number> {
   const row = await one<{ n: number }>(

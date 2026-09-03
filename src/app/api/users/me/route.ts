@@ -1,7 +1,12 @@
 import { NextResponse } from "next/server";
 import { getCurrentUser, verifyPassword } from "@/lib/auth";
 import {
+  attachUserToCompany,
   findCompanyById,
+  findOrCreateCompany,
+  notifyAdmins,
+  resolveCompanyJoin,
+  setUserApprovalStatus,
   findUserByEmail,
   findUserByUsername,
   findUserPasswordHash,
@@ -11,6 +16,7 @@ import {
   isCompanyMaster,
 } from "@/lib/db";
 import { SHA256_HEX_RE, sha256Hex } from "@/lib/passwordScheme";
+import { checkCompanyNumber, isBlockedCompanyStatus, isNiceConfigured } from "@/lib/nice";
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const USERNAME_RE = /^[a-z0-9][a-z0-9_]{3,19}$/;
@@ -35,6 +41,12 @@ export async function PUT(request: Request) {
     typeof body?.corporateRegistrationNumber === "string" ? body.corporateRegistrationNumber.trim() : "";
   const postalCode = typeof body?.postalCode === "string" ? body.postalCode.trim() : "";
   const address = typeof body?.address === "string" ? body.address.trim() : "";
+  // 회사 없는 계정이 기업 정보를 처음 등록할 때만 쓰는 값 (2026-09-03)
+  const companyName = typeof body?.companyName === "string" ? body.companyName.trim() : "";
+  const businessRegistrationNumber =
+    typeof body?.businessRegistrationNumber === "string"
+      ? body.businessRegistrationNumber.trim()
+      : "";
   /*
     제출 서류 다시 올리기 (2026-09-02).
 
@@ -131,6 +143,78 @@ export async function PUT(request: Request) {
     officePhone: officePhone || null,
     faxNumber: faxNumber || null,
   });
+
+  /*
+    [신규 2026-09-03] 소속 회사가 없으면 여기서 처음 등록한다.
+
+    운영자 권한을 해제당한 계정은 신청자로 돌아오는데 소속 회사가 없다. 그 상태로
+    재심사를 요청하면 심사할 기업 정보가 아예 없는데, 넣을 자리도 없었다 — 막다른
+    길이었다. 가입 화면과 **같은 판정**(resolveCompanyJoin)으로 회사를 붙인다:
+    처음 등록하는 사업자번호면 진위확인을 거치고, 이미 있는 회사면 그 회사에 합류한다.
+
+    회사가 붙은 계정은 다시 심사를 받아야 하므로 승인 상태를 「대기」로 돌리고
+    운영자에게 알린다 — 그러지 않으면 아무도 모르는 채로 남는다.
+  */
+  if (!user.companyId && companyName) {
+    if (!businessRegistrationNumber) {
+      return NextResponse.json({ error: "사업자등록번호를 입력해주세요." }, { status: 400 });
+    }
+    const join = await resolveCompanyJoin(businessRegistrationNumber);
+    if (join.kind === "BLOCKED_SUSPENDED") {
+      return NextResponse.json(
+        { error: "휴업·폐업으로 확인된 사업자등록번호입니다. 담당자에게 문의해주세요." },
+        { status: 400 },
+      );
+    }
+    if (join.company === null) {
+      // 새 회사일 때만 조회한다 — 가입 화면과 같은 규칙(미설정·조회 실패는 통과시키고 심사로 넘긴다).
+      const verification = await checkCompanyNumber(businessRegistrationNumber);
+      if (isBlockedCompanyStatus(verification)) {
+        return NextResponse.json(
+          {
+            error: `국세청 조회 결과 ${verification.compStatusLabel} 상태인 사업자등록번호입니다. 담당자에게 문의해주세요.`,
+          },
+          { status: 400 },
+        );
+      }
+      if (isNiceConfigured() && verification.status === "NOT_FOUND") {
+        return NextResponse.json(
+          { error: "조회되지 않는 사업자등록번호입니다. 번호를 다시 확인해주세요." },
+          { status: 400 },
+        );
+      }
+    }
+
+    const company = await findOrCreateCompany(companyName, {
+      businessRegistrationNumber,
+      representativeName,
+      postalCode,
+      address,
+      businessCertUrl,
+      businessCertName,
+      corporateNumber: corporateRegistrationNumber,
+    });
+    await attachUserToCompany(user.id, company.id);
+    // 대표자·주소 등은 회사를 새로 만들 때만 채워진다 — 이미 있는 회사에 합류하는
+    // 경우까지 덮어쓰면 남의 회사 정보를 바꾸게 된다(2026-08-28 보안 점검과 같은 이유).
+    if (join.company === null) {
+      await updateCompanyProfile(company.id, {
+        representativeName: representativeName || null,
+        representativePhone: representativePhone || null,
+        representativeFax: representativeFax || null,
+        corporateRegistrationNumber: corporateRegistrationNumber || null,
+        postalCode: postalCode || null,
+        address: address || null,
+      });
+    }
+    const pending = await setUserApprovalStatus(user.id, "PENDING", null, null);
+    await notifyAdmins({
+      quoteId: "applicants",
+      message: `가입 승인 요청: ${pending.name} (${company.name}, 기업 정보 등록)`,
+      createdAt: new Date().toISOString(),
+    });
+    return NextResponse.json({ user: pending });
+  }
 
   // 기업 정보(회사명·사업자등록번호 제외)는 소속 회사가 있을 때만, 그리고 대표 담당자만 갱신한다 —
   // 소속 담당자가 회사 전체 정보(대표자명·법인번호·주소)를 덮어쓸 수 있었다(2026-08-28 보안 점검).
