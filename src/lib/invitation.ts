@@ -5,8 +5,12 @@
 
 import crypto from "node:crypto";
 
-/** 초대 링크 유효기간 — 기획서 A11 기준 7일. */
-export const INVITE_TTL_DAYS = 7;
+/**
+ * 초대 링크 유효기간. 기획서 A11 은 7일 기준이었으나, 알림톡 문구(MB-06)가
+ * 먼저 "3일 이내에"로 나가고 있었다 — 실제 만료(7일)와 안내(3일)가 어긋나
+ * 있던 것을 안내에 맞춰 3일로 통일한다(2026-09-03).
+ */
+export const INVITE_TTL_DAYS = 3;
 
 export function issueInviteToken(): string {
   return crypto.randomBytes(32).toString("base64url");

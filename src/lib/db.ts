@@ -495,7 +495,7 @@ async function initSchema(pool: Pool) {
       email TEXT NOT NULL,
       token_hash TEXT NOT NULL,          -- 원문 토큰은 저장하지 않는다
       status TEXT NOT NULL DEFAULT 'PENDING',  -- PENDING / ACCEPTED / EXPIRED / CANCELLED
-      expires_at TEXT NOT NULL,          -- 발급 +7일
+      expires_at TEXT NOT NULL,          -- 발급 + INVITE_TTL_DAYS(현재 3일)
       accepted_at TEXT,
       accepted_user_id TEXT REFERENCES users(id),
       created_at TEXT NOT NULL
