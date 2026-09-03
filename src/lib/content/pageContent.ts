@@ -719,22 +719,44 @@ export function parseRules(body: string): ParsedRuleChapter[] {
   // 표는 여러 줄에 걸쳐 있다 — 닫는 태그를 만날 때까지 모아 한 항으로 넣는다.
   let tableLines: string[] | null = null;
 
+  /*
+    [수정 2026-09-03] 조(條) 밖의 내용도 담을 자리를 만든다.
+
+    예전에는 `제N조` 아래에서만 항을 받아, 조가 없는 자리의 글과 표를 **말없이 버렸다.**
+    표를 넣는 자리가 대개 별표·부칙이라(조 번호가 없다) 운영자가 규약에 표를 넣어도
+    프론트에 아무것도 나오지 않았다 — 저장은 됐는데 화면에서만 사라지니 고장으로 보인다.
+
+    조가 없으면 제목 없는 조를 하나 만들어 거기에 담는다(화면은 제목 없는 조의 머리글을
+    그리지 않는다). 장도 없으면 조 없는 조문과 같은 규칙으로 「총칙」을 세운다.
+  */
+  const openArticle = (): { title: string; paragraphs: string[] } => {
+    if (article) return article;
+    let host = chapter;
+    if (!host) {
+      host = { id: `chapter-${chapters.length + 1}`, title: "총칙", articles: [] };
+      chapters.push(host);
+      chapter = host;
+    }
+    const fresh = { title: "", paragraphs: [] };
+    host.articles.push(fresh);
+    article = fresh;
+    return fresh;
+  };
+
   for (const raw of body.split("\n")) {
     const line = raw.trim();
     if (tableLines) {
       tableLines.push(line);
       if (/<\/table>/i.test(line)) {
-        if (article) article.paragraphs.push(tableLines.join("\n"));
+        openArticle().paragraphs.push(tableLines.join("\n"));
         tableLines = null;
       }
       continue;
     }
     if (!line) continue;
     if (/^<table[\s>]/i.test(line)) {
-      // 조 안에서만 의미가 있다 — 조 밖의 표는 붙일 자리가 없어 버린다.
-      if (!article) continue;
       if (/<\/table>/i.test(line)) {
-        article.paragraphs.push(line);
+        openArticle().paragraphs.push(line);
       } else {
         tableLines = [line];
       }
@@ -755,7 +777,9 @@ export function parseRules(body: string): ParsedRuleChapter[] {
       chapter.articles.push(article);
       continue;
     }
-    if (article) article.paragraphs.push(line);
+    openArticle().paragraphs.push(line);
   }
+  // 닫는 태그를 못 만난 채 끝났다 — 열린 조각도 잃지 않는다.
+  if (tableLines) openArticle().paragraphs.push(tableLines.join("\n"));
   return chapters;
 }

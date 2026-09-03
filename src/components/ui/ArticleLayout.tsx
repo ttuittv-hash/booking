@@ -460,15 +460,19 @@ export function Article({
 }) {
   return (
     <article>
-      <h5 className="type-kr-heading break-keep text-h6-m sm:text-h6">
-        <Highlight
-          text={title}
-          query={query}
-          idPrefix={idPrefix ? `${idPrefix}-t` : undefined}
-          activeId={activeMatchId}
-        />
-      </h5>
-      <div className="mt-4 space-y-3">
+      {/* 조 번호가 없는 자리(별표·부칙 아래 등)에서 온 글·표는 제목이 없다 —
+          빈 머리글을 그리면 위아래 여백만 벌어진 채 아무 글자도 없는 줄이 생긴다. */}
+      {title && (
+        <h5 className="type-kr-heading break-keep text-h6-m sm:text-h6">
+          <Highlight
+            text={title}
+            query={query}
+            idPrefix={idPrefix ? `${idPrefix}-t` : undefined}
+            activeId={activeMatchId}
+          />
+        </h5>
+      )}
+      <div className={title ? "mt-4 space-y-3" : "space-y-3"}>
         {paragraphs.map((p, i) =>
           // 규약 본문에 넣은 표(2026-09-02). 좁은 화면에서 지면을 밀지 않도록 표만
           // 가로 스크롤되게 감싼다.

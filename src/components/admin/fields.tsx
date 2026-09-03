@@ -1,7 +1,9 @@
 "use client";
 
-import { useState, type ReactNode } from "react";
+import { useEffect, useId, useState, type ReactNode } from "react";
+import { useRouter } from "next/navigation";
 import { btnClass } from "@/components/ui/kit";
+import { setUnsaved } from "./unsavedChanges";
 import { ADD_BTN, CARD, ERROR_NOTE, FIELD, FIELD_LABEL, HELP, OK_NOTE, REMOVE_BTN, SUB_TITLE } from "./adminUi";
 
 /** 파일 선택 input — 샤프 코너 · border-soft */
@@ -300,10 +302,36 @@ export function ContentFormShell<T>({
   initial: T;
   children: (value: T, patch: (p: Partial<T>) => void) => ReactNode;
 }) {
+  const router = useRouter();
   const [value, setValue] = useState<T>(initial);
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  /*
+    [신규 2026-09-03] 저장하지 않은 편집을 지킨다.
+
+    탭을 바꾸면 이 폼은 통째로 사라지고 편집 내용도 함께 사라진다. 특히 파일 업로드는
+    고르는 즉시 서버로 올라가 화면에 새 파일 이름까지 뜨므로, 저장을 누르지 않고 탭을
+    옮겨도 다 된 줄로 보인다 — 실제로는 주소가 저장되지 않아 공개 화면이 계속 옛 파일을
+    내려줬다. 마지막으로 저장한 모습과 지금 모습을 견줘 «저장 안 됨»을 알린다.
+  */
+  const formId = useId();
+  // 마지막으로 저장한 모습. 렌더 중에도 견줘야 하므로 state 로 둔다(ref 는 렌더 중 읽을 수 없다).
+  const [savedSnapshot, setSavedSnapshot] = useState(() => JSON.stringify(initial));
+  const dirty = JSON.stringify(value) !== savedSnapshot;
+
+  useEffect(() => {
+    setUnsaved(formId, dirty);
+    return () => setUnsaved(formId, false);
+  }, [formId, dirty]);
+
+  // 새로고침·창 닫기도 같은 사고다 — 브라우저 기본 경고를 띄운다.
+  useEffect(() => {
+    if (!dirty) return;
+    const warn = (e: BeforeUnloadEvent) => e.preventDefault();
+    window.addEventListener("beforeunload", warn);
+    return () => window.removeEventListener("beforeunload", warn);
+  }, [dirty]);
 
   function patch(p: Partial<T>) {
     setValue((v) => ({ ...v, ...p }));
@@ -313,6 +341,9 @@ export function ContentFormShell<T>({
     setSaving(true);
     setMessage(null);
     setError(null);
+    // 저장 요청을 보낸 그 순간의 값을 기준으로 삼는다 — 응답을 기다리는 사이에
+    // 운영자가 더 고쳤다면 그건 아직 저장되지 않은 편집이 맞다.
+    const sending = JSON.stringify(value);
     try {
       const res = await fetch(`/api/admin/content/${page}`, {
         method: "PUT",
@@ -324,7 +355,11 @@ export function ContentFormShell<T>({
         setError(data.error || "저장하지 못했습니다. 잠시 후 다시 시도해 주세요.");
         return;
       }
+      setSavedSnapshot(sending);
       setMessage("저장했습니다. 해당 화면에 바로 반영됩니다.");
+      // 서버가 들고 있는 값(이 화면을 다시 그릴 때 쓰는 초기값)도 새로 읽어 온다.
+      // 이걸 빼먹으면 탭을 옮겼다 오는 순간 방금 저장한 내용이 옛 값으로 되돌아 보인다.
+      router.refresh();
     } finally {
       setSaving(false);
     }
@@ -337,7 +372,7 @@ export function ContentFormShell<T>({
       {message && <p className={OK_NOTE}>{message}</p>}
       {error && <p className={ERROR_NOTE}>{error}</p>}
 
-      <div className="sticky bottom-0 -mx-6 border-t border-border/20 bg-background px-6 py-3">
+      <div className="sticky bottom-0 -mx-6 flex flex-wrap items-center gap-3 border-t border-border/20 bg-background px-6 py-3">
         <button
           type="button"
           disabled={saving}
@@ -346,6 +381,11 @@ export function ContentFormShell<T>({
         >
           {saving ? "저장 중..." : "저장"}
         </button>
+        {dirty && (
+          <span className="text-xs font-bold text-danger">
+            저장하지 않은 변경이 있습니다 — 저장을 눌러야 공개 화면에 반영됩니다.
+          </span>
+        )}
       </div>
     </div>
   );
@@ -373,6 +413,14 @@ export function DocumentField({
 }) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  /*
+    [신규 2026-09-03] 방금 올린 파일은 «아직 저장 전»이라고 못박는다.
+
+    파일을 고르면 그 자리에서 서버로 올라가고 화면에도 새 이름이 뜬다 — 그래서 저장을
+    누르지 않고 넘어가도 다 된 것처럼 보였다. 실제로는 주소가 콘텐츠에 저장되지 않아
+    공개 화면은 계속 옛 파일을 내려줬다(실제 신고된 증상).
+  */
+  const [justUploaded, setJustUploaded] = useState(false);
 
   async function upload(file: File) {
     setError(null);
@@ -382,8 +430,18 @@ export function DocumentField({
       body.append("file", file);
       const res = await fetch("/api/admin/content/document-upload", { method: "POST", body });
       const data = await res.json().catch(() => null);
-      if (!res.ok) throw new Error(data?.error || "올리지 못했습니다.");
+      // 파일이 크면 앞단(프록시·인그레스)이 본문을 잘라 우리 라우트까지 오지도 않는다 —
+      // 그때는 JSON 이 아니라 413 이 온다. 상태 코드를 그대로 알려 줘야 원인을 찾는다.
+      if (!res.ok) {
+        throw new Error(
+          data?.error ||
+            (res.status === 413
+              ? "파일이 너무 커서 서버가 받지 못했습니다. 용량을 줄여 다시 올려 주세요."
+              : `올리지 못했습니다. (오류 ${res.status})`),
+        );
+      }
       onChange({ url: data.url, name: data.name });
+      setJustUploaded(true);
     } catch (e) {
       setError(e instanceof Error ? e.message : "올리지 못했습니다.");
     } finally {
@@ -402,7 +460,10 @@ export function DocumentField({
           </a>
           <button
             type="button"
-            onClick={() => onChange({ url: "", name: "" })}
+            onClick={() => {
+              setJustUploaded(false);
+              onChange({ url: "", name: "" });
+            }}
             className={REMOVE_BTN}
           >
             제거
@@ -410,6 +471,11 @@ export function DocumentField({
         </div>
       ) : (
         <p className={`mb-2 ${HELP}`}>올려 둔 파일이 없습니다. 화면에 내려받기 버튼이 나오지 않습니다.</p>
+      )}
+      {justUploaded && (
+        <p className="mb-2 text-xs font-bold text-danger">
+          올렸습니다. 아래 [저장]을 눌러야 공개 화면의 파일이 바뀝니다.
+        </p>
       )}
       <input
         type="file"

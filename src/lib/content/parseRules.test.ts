@@ -75,10 +75,38 @@ describe("parseRules", () => {
     expect(chapters[0].articles[0].paragraphs).toEqual(["<table><tr><td>가</td></tr></table>"]);
   });
 
-  // 조 밖의 표는 붙을 자리가 없다 — 조용히 버리는 편이, 엉뚱한 조에 붙는 것보다 낫다.
-  it("조 밖의 표는 버린다", () => {
+  /*
+    [수정 2026-09-03] 조 밖의 표도 버리지 않는다.
+
+    예전에는 조용히 버렸다. 그런데 표를 넣는 자리가 대개 별표·부칙이라(조 번호가 없다)
+    운영자가 규약에 표를 넣어도 화면에 아무것도 나오지 않았다 — 저장은 됐는데 화면에서만
+    사라지니 고장으로 보인다. 제목 없는 조를 만들어 담고, 화면은 그 머리글을 그리지 않는다.
+  */
+  it("조 밖의 표도 제목 없는 조에 담아 살린다", () => {
     const chapters = parseRules("제1장 총칙\n<table><tr><td>가</td></tr></table>\n제1조 (목적)\n① …");
-    expect(chapters[0].articles[0].paragraphs).toEqual(["① …"]);
+    expect(chapters[0].articles[0]).toEqual({
+      title: "",
+      paragraphs: ["<table><tr><td>가</td></tr></table>"],
+    });
+    expect(chapters[0].articles[1].title).toBe("제1조 (목적)");
+    expect(chapters[0].articles[1].paragraphs).toEqual(["① …"]);
+  });
+
+  it("별표 아래의 글과 표를 모두 싣는다", () => {
+    const chapters = parseRules(
+      [
+        "[별표 1] 위약금 산정표",
+        "취소 시점에 따라 아래와 같이 정한다.",
+        "<table>",
+        "<tr><th>시점</th><th>위약금</th></tr>",
+        "<tr><td>30일 전</td><td>30%</td></tr>",
+        "</table>",
+      ].join("\n"),
+    );
+    expect(chapters).toHaveLength(1);
+    expect(chapters[0].title).toBe("[별표 1] 위약금 산정표");
+    expect(chapters[0].articles[0].paragraphs).toHaveLength(2);
+    expect(chapters[0].articles[0].paragraphs[1]).toContain("<table>");
   });
 
   it("표 안의 '제1조' 같은 글자를 조 제목으로 잘못 잡지 않는다", () => {

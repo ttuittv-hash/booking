@@ -33,8 +33,11 @@ const nextConfig: NextConfig = {
         headers: [
           // 업로드 파일 등을 브라우저가 다른 MIME으로 추측 실행하지 못하게 한다
           { key: "X-Content-Type-Options", value: "nosniff" },
-          // 클릭재킹 방지 — 이 사이트는 iframe에 embed될 일이 없다
-          { key: "X-Frame-Options", value: "DENY" },
+          // 클릭재킹 방지 — 남의 사이트에 우리 화면을 끼워 넣지 못하게 한다.
+          // [수정 2026-09-03] DENY 는 **같은 출처의 iframe 도** 막는다. 운영자 화면의
+          // 「신청 내역 레이어로 보기」가 우리 화면을 그대로 띄우는데, 그것까지 빈 칸이
+          // 됐다. SAMEORIGIN 이면 외부 삽입은 그대로 막으면서 우리 화면끼리는 된다.
+          { key: "X-Frame-Options", value: "SAMEORIGIN" },
           { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
           { key: "Permissions-Policy", value: "camera=(), microphone=(), geolocation=()" },
           // HTTPS 강제 (Render는 TLS 종단을 제공한다)

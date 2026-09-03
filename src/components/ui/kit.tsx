@@ -1355,9 +1355,11 @@ export function DocumentList({
   }
   return (
     <ul className="border-t border-border">
-      {items.map((d) => (
+      {/* 자료명은 겹칠 수 있다(같은 문서의 판본을 나란히 두는 경우) — 이름을 열쇠로 쓰면
+          같은 이름끼리 한 줄로 뭉개진다. 목록 순서를 열쇠로 쓴다. */}
+      {items.map((d, i) => (
         <li
-          key={d.title}
+          key={i}
           className="flex flex-col gap-5 border-b border-border py-7 lg:flex-row lg:items-start lg:justify-between lg:gap-12"
         >
           <div className="min-w-0">
