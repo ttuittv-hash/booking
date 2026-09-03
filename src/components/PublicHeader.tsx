@@ -10,6 +10,7 @@ import {
   ACCOUNT_HREF,
   NAV_ACTION,
   NAV_CATEGORIES,
+  NOTICE_LINK,
   SUPPORT_MENU,
   type NavPage,
 } from "@/components/ui/nav-items";
@@ -341,8 +342,21 @@ export function PublicHeader({
           </ul>
         </nav>
 
-        {/* 우측 — 지원 · 알림 · 계정 */}
+        {/* 우측 — 공지사항 · 지원 · 알림 · 계정 */}
         <div className="hidden shrink-0 items-center gap-4 lg:flex">
+          {/* [신규 2026-09-03] 공지사항은 드롭다운 밖으로 꺼내 「지원」 왼쪽에 둔다 —
+              대관 공고가 올라오는 곳이라 한 번 더 누르게 하지 않는다. */}
+          {allowed(NOTICE_LINK.href) && (
+            <Link
+              href={NOTICE_LINK.href}
+              onMouseEnter={closeNow}
+              className={`${UTIL_LINK} ${
+                active === NOTICE_LINK.href ? "font-bold text-foreground" : ""
+              }`}
+            >
+              {NOTICE_LINK.label}
+            </Link>
+          )}
           <UtilMenu
             id="support"
             label={SUPPORT_MENU.label}
@@ -477,10 +491,15 @@ export function PublicHeader({
               ) : null}
             </ul>
 
+            {/* 좁은 화면에서는 드롭다운이 없어 뎁스 차이가 없다 — 공지사항을 지원 묶음
+                맨 위에 두어 상단바와 같은 순서(공지사항 → 지원)로 읽히게 한다. */}
             <div className="mt-10 border-t border-border pt-6">
               <h2 className="text-s font-bold">{SUPPORT_MENU.label}</h2>
               <ul className="mt-3 space-y-2">
-                {visibleSupportPages.map((p) => (
+                {(allowed(NOTICE_LINK.href)
+                  ? [NOTICE_LINK, ...visibleSupportPages]
+                  : visibleSupportPages
+                ).map((p) => (
                   <li key={p.href}>
                     <Link
                       href={p.href}

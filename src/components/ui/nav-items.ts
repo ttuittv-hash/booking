@@ -45,11 +45,19 @@ export const NAV_CATEGORIES: NavCategory[] = [
 /** 중앙 — 누르는 곳 하나. 카테고리가 아니라 목적지다. */
 export const NAV_ACTION = { href: "/apply", label: "Book It" } as const;
 
+/**
+ * 우측 — 공지사항. 한 뎁스로 꺼내 「지원」 왼쪽에 둔다 (2026-09-03).
+ *
+ * 대관 공고·정기대관 일정이 여기로 올라오는데, 드롭다운 **안**에 있으면 한 번 더 눌러야
+ * 보이고 새 공지가 떠도 눈에 걸리지 않는다. 읽을 사람이 가장 많은 화면이라 링크 하나로
+ * 꺼내 둔다.
+ */
+export const NOTICE_LINK: NavPage = { href: "/notices", label: "공지사항", loginRequired: true };
+
 /** 우측 — 지원. 여정의 한 단계가 아니라 어느 단계에서든 쓰는 도구다. */
 export const SUPPORT_MENU: NavCategory = {
   label: "지원",
   pages: [
-    { href: "/notices", label: "공지사항", loginRequired: true },
     { href: "/faq", label: "FAQ", loginRequired: true },
     { href: "/mypage/inquiries", label: "1:1 문의", loginRequired: true },
   ],
@@ -61,11 +69,14 @@ export const SUPPORT_MENU: NavCategory = {
  */
 export const ACCOUNT_HREF = "/mypage";
 
-/** 푸터 사이트맵 — 중앙 2묶음 + 신청 + 지원 */
+/**
+ * 푸터 사이트맵 — 중앙 2묶음 + 신청 + 지원.
+ * 푸터는 상단바와 달리 **전체 목록**이라, 상단에서 꺼낸 공지사항도 지원 묶음에 함께 싣는다.
+ */
 export const FOOTER_CATEGORIES: NavCategory[] = [
   ...NAV_CATEGORIES,
   { label: "Book It", pages: [{ href: NAV_ACTION.href, label: "대관 신청", loginRequired: true }] },
-  SUPPORT_MENU,
+  { ...SUPPORT_MENU, pages: [NOTICE_LINK, ...SUPPORT_MENU.pages] },
 ];
 
 /* --------------------------------------------------------------- 탭 축 --- */
