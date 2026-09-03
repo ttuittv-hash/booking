@@ -68,6 +68,7 @@ export async function GET(request: Request, context: { params: Promise<{ nonce: 
       mobileCo: result.identity.mobileCo,
     });
   } catch (error) {
+    console.error("[nice/callback]", error);
     await completeIdentityVerification(pending.id, {
       succeeded: false,
       resultCode: "ERROR",
