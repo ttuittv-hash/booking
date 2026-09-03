@@ -170,6 +170,59 @@ export function parsePastedTableHtml(html: string): { head: string[]; rows: stri
 }
 
 /**
+ * 붙여넣은 문서를 **글과 표가 섞인 순서 그대로** 읽는다 (2026-09-03).
+ *
+ * `parsePastedTableHtml` 은 문서에서 **표 하나만** 건져 왔다. 그래서 표가 들어 있는
+ * 문서를 통째로 붙여넣으면 표 말고는 전부 사라졌고, 본문을 다 선택한 채 붙여넣었다면
+ * 규약 전문이 표 한 장으로 바뀌었다 — 되돌릴 방법이 없다.
+ *
+ * 이제는 표를 기준으로 문서를 잘라 글·표·글… 순서대로 모두 담는다. 표가 하나도 없으면
+ * null 을 돌려 평범한 붙여넣기에 맡긴다(글만 있는 붙여넣기는 브라우저가 더 잘한다).
+ */
+export function parsePastedBlocks(html: string): RuleBodyBlock[] | null {
+  const source = html ?? "";
+  const re = /<table[\s\S]*?<\/table>/gi;
+  const blocks: RuleBodyBlock[] = [];
+  let cursor = 0;
+  let found = false;
+
+  for (const m of source.matchAll(re)) {
+    const table = parsePastedTableHtml(m[0]);
+    if (!table) continue;
+    found = true;
+    const before = htmlToLines(source.slice(cursor, m.index));
+    if (before) blocks.push({ kind: "text", text: before });
+    blocks.push({ kind: "table", ...table });
+    cursor = m.index + m[0].length;
+  }
+  if (!found) return null;
+
+  const tail = htmlToLines(source.slice(cursor));
+  if (tail) blocks.push({ kind: "text", text: tail });
+  return blocks;
+}
+
+/** 표 바깥 조각의 태그를 벗겨 줄글로 만든다 — 규약 본문은 줄 단위 평문이다. */
+function htmlToLines(fragment: string): string {
+  return fragment
+    .replace(/<(script|style)[\s\S]*?<\/\1>/gi, "")
+    .replace(/<br\s*\/?>/gi, "\n")
+    .replace(/<\/(p|div|h[1-6]|li|tr)>/gi, "\n")
+    .replace(/<[^>]*>/g, "")
+    .replace(/&nbsp;/gi, " ")
+    .replace(/&lt;/g, "<")
+    .replace(/&gt;/g, ">")
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;/g, "'")
+    .replace(/&amp;/g, "&")
+    .split("\n")
+    .map((line) => line.trim())
+    .filter((line, i, all) => line !== "" || (i > 0 && all[i - 1] !== ""))
+    .join("\n")
+    .trim();
+}
+
+/**
  * 탭으로 나뉜 글(스프레드시트·페이지에서 복사하면 HTML 없이 이것만 올 때가 있다).
  * 두 줄 이상이고 탭이 있어야 표로 본다 — 문장 하나에 탭이 끼었다고 표로 만들면
  * 글을 쓰다가 표가 튀어나온다.
