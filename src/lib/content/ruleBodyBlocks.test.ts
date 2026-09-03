@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   blankTable,
+  dewrapPastedText,
   joinRuleBody,
   parsePastedBlocks,
   parsePastedTableHtml,
@@ -219,5 +220,48 @@ describe("parsePastedBlocks", () => {
   it("표가 없으면 손대지 않는다(평범한 붙여넣기에 맡긴다)", () => {
     expect(parsePastedBlocks("<p>그냥 글</p>")).toBeNull();
     expect(parsePastedBlocks("")).toBeNull();
+  });
+});
+
+/*
+  PDF·워드 뷰어에서 조문을 복사하면 화면 너비에 맞춰 강제로 줄바꿈된 상태 그대로
+  온다 — 그 줄바꿈은 쉼표 뒤 같은 자연스러운 지점에서 특히 자주 일어난다("쉼표
+  있을 때 또는 간헐적으로 줄바꿈" 신고, 2026-09-03).
+*/
+describe("dewrapPastedText", () => {
+  it("쉼표 뒤에서 강제로 잘린 문장을 이어 붙인다", () => {
+    const pasted = [
+      "본 규약은 사업시행자와 대관사 간 체결되는 모든 대관계약에 적용되며,",
+      "대관계약서와 동일한 효력을 갖는다.",
+    ].join("\n");
+    expect(dewrapPastedText(pasted)).toBe(
+      "본 규약은 사업시행자와 대관사 간 체결되는 모든 대관계약에 적용되며, 대관계약서와 동일한 효력을 갖는다.",
+    );
+  });
+
+  it("세 줄 이상 이어 붙는 강제 줄바꿈도 한 문장으로 합친다", () => {
+    const pasted = ["대관료는 다음", "각 호의 기준에", "따라 산정한다."].join("\n");
+    expect(dewrapPastedText(pasted)).toBe("대관료는 다음 각 호의 기준에 따라 산정한다.");
+  });
+
+  it("이미 마침표로 끝난 문장은 다음 줄과 이어 붙이지 않는다 — 원본을 그대로 복사해도 바뀌지 않는다", () => {
+    const pasted = ["① 첫 번째 문장이다.", "② 두 번째 문장이다."].join("\n");
+    expect(dewrapPastedText(pasted)).toBe(pasted);
+  });
+
+  it("장·조·부칙·별표·가나다라 항목 표식은 새 줄로 남긴다", () => {
+    const pasted = [
+      "② 대관계약서, 부속합의서 및 본 규약의 내용이 서로 상충하는 경우",
+      "가. 부속합의서",
+      "나. 대관계약서",
+      "제2장 용어의 정의",
+    ].join("\n");
+    // 표식 줄은 앞줄이 미완결이어도 이어 붙지 않고 새 줄로 남는다.
+    expect(dewrapPastedText(pasted)).toBe(pasted);
+  });
+
+  it("빈 줄(문단 구분)은 이어 붙이지 않고 그대로 둔다", () => {
+    const pasted = ["첫 문단이다.", "", "둘째 문단은", "강제로 잘렸다."].join("\n");
+    expect(dewrapPastedText(pasted)).toBe(["첫 문단이다.", "", "둘째 문단은 강제로 잘렸다."].join("\n"));
   });
 });
