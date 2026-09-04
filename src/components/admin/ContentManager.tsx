@@ -15,7 +15,7 @@ import type {
   ScreenTextContent,
   SeoulArenaContent,
 } from "@/lib/content/pageContent";
-import { TagBadge } from "@/components/TagBadge";
+import { NOTICE_TAGS, TagBadge } from "@/components/TagBadge";
 import { FAQ_TAGS } from "@/lib/content/faqSeed";
 import { Badge, btnClass } from "@/components/ui/kit";
 import { NoticeEditor } from "./NoticeEditor";
@@ -450,13 +450,21 @@ function NoticesTab({
           <h3 className={SUB_TITLE}>{editingId === "__new__" ? "새 공지사항 등록" : "공지사항 수정"}</h3>
           <div className="mt-4 space-y-4">
             <div className="flex gap-2">
+              {/* 말머리는 닫힌 목록이다 — 자유 입력이면 같은 성격의 공지가 제각각 분류된다.
+                  '대관공지' 만 목록 상단으로 승격되고 노란 딱지로 보인다(2026-09-04). */}
               <input
                 type="text"
-                placeholder="말머리 (예: 공지, 점검)"
+                list="notice-tag-options"
+                placeholder="말머리 (예: 대관공지)"
                 value={tag}
                 onChange={(e) => setTag(e.target.value)}
                 className={`w-32 shrink-0 ${FIELD}`}
               />
+              <datalist id="notice-tag-options">
+                {NOTICE_TAGS.map((t) => (
+                  <option key={t} value={t} />
+                ))}
+              </datalist>
               <input
                 type="text"
                 placeholder="제목"
