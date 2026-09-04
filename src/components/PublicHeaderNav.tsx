@@ -7,6 +7,7 @@ import type { BookItNoticeTexts } from "@/lib/content/pageContent";
 import { accountStateOf, canAccess } from "@/lib/accessPolicy";
 import { LogoutButton } from "@/components/LogoutButton";
 import { NotificationBell } from "@/components/NotificationBell";
+import { btnClass } from "@/components/ui/kit";
 import {
   ACCOUNT_HREF,
   NAV_ACTION,
@@ -540,11 +541,15 @@ export function PublicHeaderNav({
                 </li>
               ) : !NAV_ACTION_HIDDEN && allowed(NAV_ACTION.href) ? (
                 <li>
-                  {/* [수정 2026-09-02] 상단바와 같은 결로 — 검정 채움을 빼고 텍스트로 둔다. */}
+                  {/*
+                    상단바에서는 옆 메뉴와 같은 텍스트지만, 펼친 메뉴 안에서는 **검정 버튼**이다.
+                    여기서는 카테고리 제목들이 줄줄이 서 있어 텍스트로 두면 그중 하나로 묻힌다.
+                    앞의 묶음들과 같은 왼쪽 선에 맞춘다 — 혼자 가운데면 목록에서 떨어져 보인다.
+                  */}
                   <Link
                     href={NAV_ACTION.href}
                     onClick={() => setMobileOpen(false)}
-                    className="flex h-12 items-center justify-center type-display text-s text-foreground"
+                    className={`${btnClass("primary", "lg")} type-display`}
                   >
                     {NAV_ACTION.label}
                   </Link>

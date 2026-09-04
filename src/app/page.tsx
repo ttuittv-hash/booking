@@ -61,23 +61,25 @@ export default async function Home({
       <main className="flex flex-1 flex-col">
         {/*
           ── 히어로 ───────────────────────────────────────────────────────
-          첫 화면은 문장만이다. 제목은 내비 아래 80 에서 시작하고, 리드와 버튼은 화면
-          아래쪽에 붙는다 — 사이에 빈 자리를 두어 제목이 홀로 서게 한다.
+          첫 화면은 문장만이다. 제목·리드·버튼 한 덩어리가 화면 **세로 가운데**에 선다 —
+          위에 붙여 두면 아래가 통째로 비어 화면을 반만 쓴 것처럼 보였다.
           사진은 이 아래에 있어, 스크롤을 내려야 보이기 시작한다.
         */}
         <section
-          className="container-site flex flex-col pb-section-lg"
+          className="container-site flex flex-col justify-center pb-section-lg"
           // 첫 섹션이라 위 여백은 상단바 높이 + 섹션 위 여백이다
           style={{
             minHeight: "100vh",
-            paddingTop: "calc(var(--header-h) + var(--spacing-section-top))",
+            // 상단바에 가리지만 않으면 된다 — 나머지 자리는 justify-center 가 위아래로
+            // 고르게 나눈다. 위에만 섹션 여백을 더 얹으면 덩어리가 아래로 밀린다.
+            paddingTop: "var(--header-h)",
           }}
         >
           {/*
             히어로 한정 크기다. 좁은 화면에서 영문 제목과 국문 리드가 둘 다 40 이라
             어느 쪽이 제목인지 알 수 없었다 — 영문은 키우고 국문은 낮춰 위계를 벌린다.
           */}
-          <h1 className="type-display text-d2-m xl:text-d2">
+          <h1 className="type-display text-d2-m lg:text-d2">
             <Multiline text={content.heroTitle} />
           </h1>
 

@@ -518,7 +518,13 @@ input[type="number"]::-webkit-inner-spin-button {
   컨테이너(`container-site`) 안에서만 뜻이 통한다 — 폭 계산의 100% 가 지면 폭이다.
 */
 @utility measure-4col {
-  max-width: calc((100% - 5 * var(--gutter)) / 6 * 4 + 3 * var(--gutter));
+  /*
+    6칼럼 격자가 서는 넓은 화면에서만 4칼럼으로 끊는다. 한 칼럼으로 쌓이는 화면에서는
+    지면을 꽉 채운다 — 격자가 없는데 4/6 폭을 그대로 쓰면 글이 엉뚱한 데서 접힌다.
+  */
+  @media (min-width: 1024px) {
+    max-width: calc((100% - 5 * var(--gutter)) / 6 * 4 + 3 * var(--gutter));
+  }
 }
 
 /*

@@ -73,7 +73,7 @@ export function SiteFooter({ tone = "light" }: { tone?: "light" | "dark" }) {
               <ColLabel>Contact</ColLabel>
               <a
                 href={`mailto:${CONTACT}`}
-                className={`mt-foot-label inline-block underline underline-offset-4 hover:text-accent lg:whitespace-nowrap ${FOOT_BODY}`}
+                className={`mt-foot-label inline-block whitespace-nowrap underline underline-offset-4 hover:text-accent ${FOOT_BODY}`}
               >
                 {CONTACT}
               </a>
