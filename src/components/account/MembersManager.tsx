@@ -43,11 +43,21 @@ const APPROVAL_LABEL: Record<string, string> = {
 //
 // [개정 2026-08-29] 브라우저 기본 title 툴팁을 안내 레이어로 바꿨다. title 은 나타나는 데
 // 1초쯤 걸리고, 꾸밀 수 없으며, 터치 기기에서는 아예 뜨지 않는다. 눌러서도 뜨게 한다.
-export const MASTER_ROLE_TOOLTIP = "당신은 마스터 계정으로 소속담당자 승인/관리가 가능합니다.";
+/*
+  [개정 2026-09-04 팀 결정] 가입 승인·반려는 서울아레나 운영진만 한다.
+
+  대표 담당자에게는 버튼을 두지 않는다 — 눌러도 API 가 막으므로 버튼만 남으면
+  "승인이 안 된다"로 읽힌다. 상태(승인 대기)는 그대로 보여 진행 상황은 알 수 있다.
+  대표에게 권한을 되돌릴 때는 이 값을 true 로 바꾸고 API 쪽(admin/applicants) 규칙도 함께 되살린다.
+*/
+const MASTER_CAN_APPROVE = false;
+
+export const MASTER_ROLE_TOOLTIP =
+  "당신은 마스터 계정으로 소속담당자 관리(대표 이관·소속 해제)와 초대가 가능합니다. 가입 승인은 서울아레나 운영진이 처리합니다.";
 
 const MASTER_ROLE_ABILITIES = [
   "소속 담당자 초대",
-  "합류 신청 승인 · 반려",
+  "합류 신청 확인(승인은 서울아레나 운영진)",
   "소속 해제",
   "대표 권한 이관",
 ];
@@ -230,7 +240,7 @@ export function MembersManager({ currentUserId }: { currentUserId: string }) {
     // 탈퇴자는 목록에 남기되 손댈 수 없다 — 이미 회사를 떠난 사람을 승인하거나
     // 대표로 세우거나 소속 해제하는 건 말이 되지 않는다.
     if (m.companyRole !== "MASTER" && !m.withdrawnAt) {
-      if (m.approvalStatus === "PENDING") {
+      if (MASTER_CAN_APPROVE && m.approvalStatus === "PENDING") {
         actions.push(
           {
             key: "approve",

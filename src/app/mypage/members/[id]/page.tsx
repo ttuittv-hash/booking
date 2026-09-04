@@ -33,7 +33,7 @@ export default async function MemberDetailPage({
       active="/mypage/members"
       en="MEMBER"
       ko="합류 신청 상세"
-      lead={`${target.name}님의 신청 내용입니다. 승인하면 바로 소속 담당자로 활동할 수 있습니다.`}
+      lead={`${target.name}님의 신청 내용입니다. 가입 승인은 서울아레나 운영진이 처리합니다.`}
     >
       <div className="mt-6">
         <Link

@@ -50,25 +50,21 @@ export async function POST(request: Request) {
     : false;
   const isAdmin = actor.role === "ADMIN";
 
+  /*
+    [개정 2026-09-04 팀 결정] 가입 승인·반려는 **서울아레나 운영진만** 한다.
+
+    예전에는 회사의 첫 건만 운영자 전담이고, 이후 합류 신청은 그 회사 대표 담당자도
+    처리할 수 있었다(기획서 1-42). 개관 전에는 어느 회사의 누가 들어오는지 서울아레나가
+    모두 확인하기로 해 대표의 승인 권한을 닫는다.
+
+    되돌릴 때는 아래 블록을 지우고 이전 규칙(대표는 자기 회사의 합류 신청만, 첫 건은 운영자)을
+    되살리면 된다 — 화면 쪽(MembersManager)의 버튼도 함께 되살려야 한다.
+  */
   if (!isAdmin) {
-    // 대표가 처리할 수 있는 건 자기 회사의 합류 신청뿐이다.
-    const actorIsMaster = actor.role === "APPLICANT" && actor.companyRole === "MASTER";
-    const sameCompany = !!actor.companyId && actor.companyId === target.companyId;
-    if (!actorIsMaster || !sameCompany) {
-      return NextResponse.json({ error: "승인 권한이 없습니다." }, { status: 403 });
-    }
-    if (isFirstDecision) {
-      return NextResponse.json(
-        { error: "회사의 첫 가입 승인은 운영자가 처리합니다." },
-        { status: 403 },
-      );
-    }
-    if (actor.approvalStatus !== "APPROVED") {
-      return NextResponse.json(
-        { error: "본인 계정이 승인된 뒤에 처리할 수 있습니다." },
-        { status: 403 },
-      );
-    }
+    return NextResponse.json(
+      { error: "가입 승인은 서울아레나 운영진이 처리합니다." },
+      { status: 403 },
+    );
   }
 
   // 이미 다른 쪽에서 처리한 건이면 되돌린다(운영자·마스터 동시 처리 방지).

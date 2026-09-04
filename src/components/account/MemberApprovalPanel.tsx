@@ -146,26 +146,15 @@ export function MemberApprovalPanel({
       {isSelf ? (
         <p className="mt-5 text-xs text-muted">본인 계정은 여기서 처리할 수 없습니다.</p>
       ) : pending ? (
-        <div className="mt-6 flex flex-wrap gap-2">
-          <button
-            type="button"
-            data-testid="member-approve"
-            disabled={busy}
-            onClick={() => void act("approve")}
-            className={btnClass("primary", "md")}
-          >
-            가입승인
-          </button>
-          <button
-            type="button"
-            data-testid="member-reject"
-            disabled={busy}
-            onClick={() => void act("reject")}
-            className={btnClass("secondary", "md")}
-          >
-            가입반려
-          </button>
-        </div>
+        /*
+          [개정 2026-09-04 팀 결정] 가입 승인·반려는 서울아레나 운영진만 한다.
+          대표 담당자는 신청 내용(재직증명서 등)을 확인만 하고, 처리는 운영진이 맡는다.
+          되돌릴 때는 MembersManager 의 MASTER_CAN_APPROVE 와 승인 API 규칙을 함께 되살린다.
+        */
+        <p className="mt-5 break-keep text-xs text-muted">
+          가입 승인은 서울아레나 운영진이 처리합니다. 신청 내용을 확인하신 뒤 문의가 있으시면
+          1:1 문의로 알려 주세요.
+        </p>
       ) : (
         <p className="mt-5 text-xs text-muted">
           이미 처리된 신청입니다. 승인 취소·소속 해제는 담당자 관리 목록에서 할 수 있습니다.

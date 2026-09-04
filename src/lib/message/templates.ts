@@ -98,6 +98,8 @@ export const TEMPLATES: TemplateDef[] = [
     code: "MB-04",
     kakaoTemplateCode: "ARENA_0005",
     audience: "APPLICANT",
+    // 본문은 카카오 등록값이라 고치지 않는다 — 승인 주체가 운영진으로 바뀐 것은
+    // 화면(담당자 관리)에서 안내한다 (2026-09-04).
     title: "합류 신청 발생 (대표 담당자에게)",
     body: "#{대표담당자}님, 안녕하세요.\n귀사에 소속된 #{신청자명}님이 가입을 신청했습니다.\n\n신청 내용을 확인하고 승인해주세요.",
     variables: ["대표담당자", "신청자명"],
