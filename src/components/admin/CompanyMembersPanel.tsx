@@ -134,7 +134,9 @@ export function CompanyMembersPanel({
                     <button
                       type="button"
                       disabled={busyId === m.id}
-                      onClick={() => decide(m.id, "approve")}
+                      onClick={() =>
+                        decide(m.id, "approve", { willBecomeMaster: false, name: m.name, companyName: null })
+                      }
                       className={btnClass("primary", "sm")}
                     >
                       승인
