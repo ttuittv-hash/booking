@@ -308,8 +308,15 @@ export function RegisterWizard({
   useEffect(() => {
     const token = new URLSearchParams(window.location.search).get("invite") ?? "";
     if (!token) return;
-    // 초대장이 회사를 정하므로 기업정보를 미리 채우고 잠근다 — 초대받은 사람이 회사의
-    // 사업자등록번호·주소를 알고 있으리라 기대할 수 없다.
+    /*
+      [수정 2026-09-04] 기업정보를 더 이상 미리 채우고 잠그지 않는다.
+      "마스터가 다른 회사 사람도 초대해서 추가할 수 있다"는 신고 — 초대장이 회사를
+      무조건 정하고 가입자는 확인 없이 그 회사가 됐다. 이제 휴대폰·이메일·이름처럼
+      회사도 가입자가 직접 검색·입력해야 한다(아래 STEP3 의 평범한 기업회원 흐름
+      그대로). 서버가 그 값을 초대장의 회사와 대조해서, 다르면 가입 자체를 막는다
+      (register/route.ts). 진짜 그 회사 소속이면 검색해서 찾아낼 수 있다 —
+      대표가 이미 그 회사로 가입해 등록돼 있으므로.
+    */
     void (async () => {
       try {
         const res = await fetch(`/api/company/invitations/preview?token=${encodeURIComponent(token)}`);
@@ -330,29 +337,12 @@ export function RegisterWizard({
         // 여기까지 왔으면 살아 있는 초대장이다 — 이제야 토큰을 들고 간다.
         setInviteToken(token);
         setInvitePhoneMasked(data.invitee?.phoneMasked ?? "");
-        setPickedCompany({ id: c.id, name: c.name, businessNumberMasked: null, region: null });
-        setBrnCheck({
-          state: "REGISTERED",
-          title: "초대받은 회사",
-          message: `${c.name} — 초대로 합류합니다.`,
-        });
-        setForm((f) => ({
-          ...f,
-          companyName: c.name ?? "",
-          companyType: (c.companyType ?? null) as ApplicantCompanyType | null,
-          businessRegistrationNumber: c.businessRegistrationNumber ?? "",
-          representativeName: c.representativeName ?? "",
-          companyPhone: c.companyPhone ?? "",
-          companyFax: c.companyFax ?? "",
-          corporateNumber: c.corporateNumber ?? "",
-          postalCode: c.postalCode ?? "",
-          address: c.address ?? "",
-          addressDetail: "",
-          email: data.invitee?.email ?? f.email,
-        }));
+        // 이메일만 미리 채운다 — 휴대폰·이름과 함께 초대장 대조 기준이라 가입자가
+        // 바꿀 이유가 없다(바꾸면 서버가 어차피 불일치로 막는다).
+        setForm((f) => ({ ...f, email: data.invitee?.email ?? f.email }));
         const masked = data.invitee?.phoneMasked ?? "";
         setInviteNotice(
-          `${c.name} 의 초대로 가입합니다. 초대장에 적힌 이름 · 이메일 · 휴대폰 번호${masked ? `(${masked})` : ""}가 본인인증·가입 정보와 모두 같아야 가입됩니다 — 맞으면 별도 승인 없이 바로 이용하실 수 있습니다. 초대받은 본인이 아니거나 정보가 다르면 이 링크로는 가입되지 않습니다.`,
+          `${c.name} 의 초대로 가입합니다. 초대장에 적힌 이름 · 이메일 · 휴대폰 번호${masked ? `(${masked})` : ""}가 본인인증·가입 정보와 모두 같아야 가입됩니다. 아래에서 소속 회사(${c.name})를 직접 검색해 불러와 주세요 — 다른 회사면 가입되지 않습니다. 정보가 모두 맞으면 별도 승인 없이 바로 이용하실 수 있습니다.`,
         );
       } catch {
         // 네트워크 오류로 확인하지 못한 것까지 막지는 않는다 — 다만 토큰을 들고 가지

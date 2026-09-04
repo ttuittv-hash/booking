@@ -296,15 +296,32 @@ export async function POST(request: Request) {
   // 기업회원 가입의 합류 판정 결과 — 가입 완료 응답에 안내 문구로 실린다.
   let joinKind: import("@/lib/db").CompanyJoinKind = "NEW";
   if (invitePhoneMatched && invitation) {
-    // 초대장이 회사를 정한다. 그 회사는 초대를 보낼 때 이미 등록·확인이 끝난 상태라
-    // 사업자번호 중복확인·진위확인을 다시 묻지 않는다(기획서 A5 와 같은 이유).
-    company = await findCompanyById(invitation.companyId);
-    if (!company) {
+    /*
+      [수정 2026-09-04] 초대장이 회사를 정하는 건 그대로지만, 지금까지는 그 배정을
+      무조건 믿었다 — 마스터가 실수로(또는 다른 회사 사람의) 번호를 넣어 초대해도,
+      그 번호로 본인인증만 통과하면 곧장 그 회사 소속이 됐다("마스터가 다른 회사
+      직원도 추가 가능하냐" 신고). 휴대폰·이메일·이름을 초대장과 대조하듯, 회사도
+      가입자가 직접 입력한 사업자등록번호로 대조한다 — 화면에서 더 이상 회사 정보를
+      미리 채워 넣지 않는다(RegisterWizard). 진짜 그 회사 소속이면 검색해서 찾아낼
+      것이고, 아니면 자기가 아는 다른 회사 번호를 적을 테니 여기서 어긋난다.
+    */
+    if (!businessRegistrationNumber) {
       return NextResponse.json(
-        { error: "초대한 회사를 찾을 수 없습니다. 대표 담당자에게 문의해주세요." },
+        { error: "사업자등록번호를 입력해 초대받은 회사가 맞는지 확인해주세요." },
         { status: 400 },
       );
     }
+    const invitedJoin = await resolveCompanyJoin(businessRegistrationNumber);
+    if (!invitedJoin.company || invitedJoin.company.id !== invitation.companyId) {
+      return NextResponse.json(
+        {
+          error:
+            "입력하신 사업자등록번호가 초대장의 회사와 다릅니다. 초대받은 회사가 맞는지 다시 확인해주세요. 다른 회사 소속이시라면 초대 링크가 아니라 회원가입 페이지에서 진행해주세요.",
+        },
+        { status: 400 },
+      );
+    }
+    company = invitedJoin.company;
     joinKind = "JOIN_APPROVED";
     // 사업자등록증은 묻지 않는다 — 회사는 초대장이 정했고 등록증은 이미 회사 행에 있다.
     // 재직증명서는 받는다: 심사를 건너뛰는 경로일수록 "이 사람이 그 회사 소속"이라는
