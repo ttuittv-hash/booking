@@ -26,6 +26,19 @@ export type MyPageSection =
   | "/mypage/profile"
   | "/mypage/withdraw";
 
+/*
+ * 2차 오픈에 열 화면 (2026-09-04 팀 결정).
+ *
+ * 티켓 오픈 정보·시설 회의·정산은 대관이 확정된 뒤에 쓰는 화면이라 1차 오픈 범위가 아니다.
+ * 메뉴에서만 감추고 화면과 코드는 그대로 둔다 — 2차 때 이 목록을 비우면 다시 나온다.
+ * 주소를 아는 사람은 그대로 들어갈 수 있다(내부 확인용). 접근까지 막아야 하면 그때 다시 의논한다.
+ */
+const SECOND_PHASE_SECTIONS: MyPageSection[] = [
+  "/mypage/ticket-open",
+  "/mypage/facility-meeting",
+  "/mypage/settlement",
+];
+
 const MENU: { label: string; items: { href: MyPageSection; label: string }[] }[] = [
   {
     label: "대관 현황",
@@ -57,7 +70,9 @@ export function MyPageMenu({
 }) {
   const menu = MENU.map((g) => ({
     ...g,
-    items: g.items.filter((i) => i.href !== "/mypage/members" || isMaster),
+    items: g.items
+      .filter((i) => !SECOND_PHASE_SECTIONS.includes(i.href))
+      .filter((i) => i.href !== "/mypage/members" || isMaster),
   }));
   return (
     <nav aria-label="마이페이지 메뉴" className="lg:col-span-3">
