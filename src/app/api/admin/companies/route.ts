@@ -57,7 +57,7 @@ export async function POST(request: Request) {
     recipientId: targetId,
     quoteId: null,
     link: "/mypage/members",
-    message: `${company.name}의 대표 담당자로 지정되었습니다.\n담당자 초대와 합류 승인을 하실 수 있습니다.`,
+    message: `${company.name}의 대표 담당자로 지정되었습니다.\n소속 담당자 관리(소속 해제·대표 이관)를 하실 수 있습니다.`,
     createdAt: now,
   });
   if (previousMasterId && previousMasterId !== targetId) {

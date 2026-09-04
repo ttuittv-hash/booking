@@ -18,7 +18,7 @@ export default async function MembersPage() {
       active="/mypage/members"
       en="MEMBERS"
       ko="담당자 관리"
-      lead={`${user.companyName} · 대표 담당자로서 소속 담당자를 초대하고 합류 신청을 승인합니다.`}
+      lead={`${user.companyName} · 대표 담당자로서 소속 담당자를 관리합니다. 가입 승인은 서울아레나 운영진이 처리합니다.`}
     >
       <MembersManager currentUserId={user.id} />
     </MyPageShell>

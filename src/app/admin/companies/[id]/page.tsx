@@ -88,7 +88,7 @@ export default async function AdminCompanyDetailPage({
 
         <h2 className="type-kr-heading mt-10 text-h6-m sm:text-h6">담당자</h2>
         <p className="mt-1 text-xs text-muted">
-          대표 담당자는 소속 담당자의 합류 신청을 승인하고 초대를 보낼 수 있습니다.
+          대표 담당자는 소속 담당자의 소속 해제와 대표 이관을 할 수 있습니다. 가입 승인은 운영자가 처리합니다.
         </p>
         <div className="mt-4">
           <CompanyMembersPanel

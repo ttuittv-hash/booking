@@ -38,7 +38,7 @@ export default async function GuestInquiryPage() {
         </Band>
 
         <Band tone="white" size="sm">
-          <div className="max-w-2xl">
+          <div className="mx-auto max-w-2xl">
             <NewInquiryForm
               guest
               myQuoteIds={[]}
