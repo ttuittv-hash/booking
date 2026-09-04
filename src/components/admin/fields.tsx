@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useId, useState, type ReactNode } from "react";
+import { useEffect, useId, useRef, useState, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
 import { btnClass } from "@/components/ui/kit";
 import { setUnsaved } from "./unsavedChanges";
@@ -74,17 +74,53 @@ export function Area({
   paragraph?: boolean;
 }) {
   const note = [help, paragraph ? PARAGRAPH_HINT : null].filter(Boolean).join(" ");
+  const areaRef = useRef<HTMLTextAreaElement>(null);
+
+  /*
+    [신규 2026-09-04] 굵게 버튼.
+
+    이 칸의 글은 화면에서 **굵게** 표기를 알아본다(kit 의 RichText). 그런데 그 규칙이
+    안내에 없어 운영자는 굵게 만들 방법이 없다고 여겼다. 고른 글자를 ** 로 감싸 주고,
+    이미 감싸져 있으면 벗긴다. 아무것도 고르지 않았으면 자리만 만들어 커서를 그 안에 둔다.
+  */
+  function toggleBold() {
+    const el = areaRef.current;
+    if (!el) return;
+    const start = el.selectionStart;
+    const end = el.selectionEnd;
+    const picked = value.slice(start, end);
+    const wrapped = picked.startsWith("**") && picked.endsWith("**") && picked.length > 4;
+    const next = wrapped ? picked.slice(2, -2) : `**${picked}**`;
+    onChange(value.slice(0, start) + next + value.slice(end));
+    // 값이 바뀐 뒤에 커서를 다시 잡아야 한다 — 감싼 글자를 그대로 고른 상태로 둔다.
+    requestAnimationFrame(() => {
+      el.focus();
+      el.setSelectionRange(start + (wrapped ? 0 : 2), start + next.length - (wrapped ? 0 : 2));
+    });
+  }
+
   return (
-    <label className="block">
-      <span className={FIELD_LABEL}>{label}</span>
+    <div className="block">
+      <div className="flex items-center justify-between gap-2">
+        <span className={FIELD_LABEL}>{label}</span>
+        <button
+          type="button"
+          onClick={toggleBold}
+          title="고른 글자를 굵게 만듭니다. 화면에는 굵은 글씨로 나갑니다."
+          className="shrink-0 border border-border-soft px-2 py-0.5 text-xs font-bold text-muted hover:text-foreground"
+        >
+          <b>B</b> 굵게
+        </button>
+      </div>
       <textarea
+        ref={areaRef}
         rows={rows}
         value={value}
         onChange={(e) => onChange(e.target.value)}
         className={FIELD}
       />
-      {note && <span className={`mt-1 block ${HELP}`}>{note}</span>}
-    </label>
+      {note && <span className={`mt-1 block ${HELP}`}>{note} 굵게 할 부분은 [B 굵게] 버튼을 쓰거나 **굵게** 처럼 감싸면 됩니다.</span>}
+    </div>
   );
 }
 
