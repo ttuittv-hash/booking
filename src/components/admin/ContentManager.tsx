@@ -1,6 +1,7 @@
 "use client";
 
 import { useRef, useState } from "react";
+import { uploadInlineImages } from "@/lib/content/inlineImages";
 import { useDialog } from "@/components/ui/Dialog";
 import { useRouter } from "next/navigation";
 import type { Faq, Notice } from "@/lib/pricing/types";
@@ -14,7 +15,7 @@ import type {
   ScreenTextContent,
   SeoulArenaContent,
 } from "@/lib/content/pageContent";
-import { TagBadge } from "@/components/TagBadge";
+import { NOTICE_TAGS, TagBadge } from "@/components/TagBadge";
 import { FAQ_TAGS } from "@/lib/content/faqSeed";
 import { Badge, btnClass } from "@/components/ui/kit";
 import { NoticeEditor } from "./NoticeEditor";
@@ -23,6 +24,8 @@ import { formatDateTime } from "@/lib/format";
 import { useQueryTab } from "@/components/admin/useQueryTab";
 import { confirmDiscardUnsaved } from "./unsavedChanges";
 import { LegalContentForm } from "./LegalContentForm";
+import { RegisterTermsForm } from "./RegisterTermsForm";
+import type { RegisterTermsContent } from "@/lib/terms";
 import {
   DocumentsForm,
   FeaturesForm,
@@ -87,6 +90,7 @@ export function ContentManager({
   screenTextContent,
   termsContent,
   privacyContent,
+  registerTermsContent,
 }: {
   notices: Notice[];
   faqs: Faq[];
@@ -100,6 +104,7 @@ export function ContentManager({
   screenTextContent: ScreenTextContent;
   termsContent: LegalContent;
   privacyContent: LegalContent;
+  registerTermsContent: RegisterTermsContent;
 }) {
   const router = useRouter();
   // 탭을 URL(?tab=)에 싣는다 — 새로고침해도 유지되고 특정 탭을 링크로 줄 수 있다.
@@ -182,6 +187,7 @@ export function ContentManager({
               content={privacyContent}
               publicHref="/privacy"
             />
+            <RegisterTermsForm content={registerTermsContent} />
           </div>
         )}
       </div>
@@ -302,20 +308,36 @@ function NoticesTab({
       보내면 앞단(프록시/WAF)이 요청을 통째로 막아 413 뿐 아니라 403 으로도 돌아올
       수 있다 — 네트워크를 타기 전에 걸러 바로 알려준다.
     */
-    if (body.includes("data:image")) {
-      setError(
-        "본문에 붙여넣기로 들어간 이미지가 있습니다 (밑줄로 보이지 않아도 본문이 매우 커집니다). " +
-          "그 이미지를 지우고 [이미지 삽입] 버튼으로 다시 올려 주세요.",
-      );
-      return;
-    }
+    // [수정 2026-09-04 후속] 거부하지 않고 저장 직전에 base64 이미지를 업로드 파일로 바꿔 넣는다 —
+    // 이미 저장돼 있던 옛 본문을 "수정 → 저장" 할 때 운영자가 이미지를 일일이 지우고 다시 올리지 않아도 된다.
+    // 업로드가 안 되는 형식(svg 등)만 남으면 예전 안내를 보여주고 멈춘다.
     setSaving(true);
     setError(null);
+    let bodyToSave = body;
+    if (body.includes("data:image")) {
+      const converted = await uploadInlineImages(body, async (blob, filename) => {
+        const fd = new FormData();
+        fd.append("file", blob, filename);
+        const r = await fetch("/api/admin/notices/upload", { method: "POST", body: fd });
+        const j = await r.json().catch(() => null);
+        return r.ok && j?.url ? (j.url as string) : null;
+      });
+      if (converted.remaining > 0) {
+        setSaving(false);
+        setError(
+          "본문에 붙여넣기로 들어간 이미지가 있습니다 (밑줄로 보이지 않아도 본문이 매우 커집니다). " +
+            "그 이미지를 지우고 [이미지 삽입] 버튼으로 다시 올려 주세요.",
+        );
+        return;
+      }
+      bodyToSave = converted.html;
+      setBody(bodyToSave);
+    }
     try {
       const res = await fetch(isNew ? "/api/admin/notices" : `/api/admin/notices/${editingId}`, {
         method: isNew ? "POST" : "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ tag, title, body, imageUrl, attachmentUrl, attachmentName, showBookingCalendar }),
+        body: JSON.stringify({ tag, title, body: bodyToSave, imageUrl, attachmentUrl, attachmentName, showBookingCalendar }),
       });
       /*
         [수정 2026-09-02] 응답이 JSON 이 아닐 수 있다.
@@ -428,13 +450,21 @@ function NoticesTab({
           <h3 className={SUB_TITLE}>{editingId === "__new__" ? "새 공지사항 등록" : "공지사항 수정"}</h3>
           <div className="mt-4 space-y-4">
             <div className="flex gap-2">
+              {/* 말머리는 닫힌 목록이다 — 자유 입력이면 같은 성격의 공지가 제각각 분류된다.
+                  '대관공지' 만 목록 상단으로 승격되고 노란 딱지로 보인다(2026-09-04). */}
               <input
                 type="text"
-                placeholder="말머리 (예: 공지, 점검)"
+                list="notice-tag-options"
+                placeholder="말머리 (예: 대관공지)"
                 value={tag}
                 onChange={(e) => setTag(e.target.value)}
                 className={`w-32 shrink-0 ${FIELD}`}
               />
+              <datalist id="notice-tag-options">
+                {NOTICE_TAGS.map((t) => (
+                  <option key={t} value={t} />
+                ))}
+              </datalist>
               <input
                 type="text"
                 placeholder="제목"

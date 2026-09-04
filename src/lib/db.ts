@@ -14,6 +14,11 @@ import {
 } from "./content/seed";
 import { SEED_FAQS } from "./content/faqSeed";
 import { SEED_NOTICE } from "./content/noticeSeed";
+import {
+  DEFAULT_REGISTER_TERMS,
+  normalizeRegisterTerms,
+  type RegisterTermsContent,
+} from "./terms";
 import { FEATURE_SPEC_SEED } from "./featureSpecSeed";
 import { FEATURE_SPEC_SHEET_KEYS } from "./pricing/types";
 import { DATA_DIR } from "./dataDir";
@@ -5112,13 +5117,19 @@ export async function createNotification(input: {
   );
 }
 
-export async function notifyAdmins(input: { quoteId: string; message: string; createdAt: string }) {
+export async function notifyAdmins(input: {
+  quoteId: string;
+  /** 눌렀을 때 갈 곳. 신청서가 아닌 알림(문의·가입 심사 등)은 반드시 넣는다 (2026-09-04). */
+  link?: string | null;
+  message: string;
+  createdAt: string;
+}) {
   // 운영자 수만큼 INSERT 를 따로 날리지 않고 한 문장으로 — 신청서 제출 트랜잭션 안에서 불린다.
   await q(
     `INSERT INTO notifications (id, recipient_id, quote_id, link, message, is_read, created_at)
-     SELECT gen_random_uuid()::text, u.id, $1, NULL, $2, 0, $3
+     SELECT gen_random_uuid()::text, u.id, $1, $4, $2, 0, $3
        FROM users u WHERE u.role = 'ADMIN' AND u.withdrawn_at IS NULL`,
-    [input.quoteId, input.message, input.createdAt],
+    [input.quoteId, input.message, input.createdAt, input.link ?? null],
   );
 }
 
@@ -5887,6 +5898,18 @@ export async function getPrivacyContent(): Promise<LegalContent> {
 
 export async function savePrivacyContent(data: LegalContent): Promise<LegalContent> {
   return saveSiteContent("privacy", data);
+}
+
+/* 가입 약관(동의 항목 3종) — 예전에는 코드 상수가 그대로 가입 화면으로 나갔다.
+   이제 DB 가 정본이고 코드의 TERMS 는 최초 기본값이다(2026-09-04). */
+export async function getRegisterTermsContent(): Promise<RegisterTermsContent> {
+  return getSiteContent<RegisterTermsContent>("registerTerms", DEFAULT_REGISTER_TERMS);
+}
+
+export async function saveRegisterTermsContent(data: unknown): Promise<RegisterTermsContent> {
+  // 본문이 바뀌었는데 버전이 그대로면 여기서 올린다 — 동의 이력이 어떤 문서였는지 남아야 한다.
+  const normalized = normalizeRegisterTerms(data, await getRegisterTermsContent());
+  return saveSiteContent("registerTerms", normalized);
 }
 
 // ---------------------------------------------------------------------------

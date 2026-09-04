@@ -27,6 +27,8 @@ export async function POST(request: Request, ctx: { params: Promise<{ id: string
       id: crypto.randomUUID(),
       recipientId: inquiry.userId,
       quoteId: "",
+      // 알림을 누르면 답변이 달린 그 문의로 간다(2026-09-04).
+      link: `/mypage/inquiries/${inquiry.id}`,
       message: `1:1 문의 "${inquiry.title}"에 답변이 등록되었습니다.`,
       createdAt: now,
     });

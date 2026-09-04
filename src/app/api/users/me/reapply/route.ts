@@ -56,6 +56,7 @@ export async function POST(request: Request) {
   // 알림도 같은 곳으로 보낸다. 대표가 부재·지연이어도 운영자가 안전망이다.
   await notifyAdmins({
     quoteId: "applicants",
+    link: "/admin/applicants",
     message: `재심사 요청: ${user.name} (${company?.name ?? "소속 없음"}${master ? `, ${company?.name ?? ""} 합류 신청` : ", 회사 신규 등록"})`,
     createdAt: new Date().toISOString(),
   });

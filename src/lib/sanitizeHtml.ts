@@ -33,6 +33,9 @@ const OPTIONS: sanitizeHtml.IOptions = {
       "background-color": [/^#[0-9a-fA-F]{3,8}$/, /^rgb\(\s*\d{1,3}\s*,\s*\d{1,3}\s*,\s*\d{1,3}\s*\)$/],
       "text-align": [/^(left|right|center|justify)$/],
       width: [/^\d+(px|%)$/],
+      // [수정 2026-09-04] 편집기의 글자 크기 조절이 저장할 때 통째로 지워지고 있었다 —
+      // 운영자가 크기를 맞춰도 화면은 그대로였다. 값 범위를 묶어 그대로 살린다.
+      "font-size": [/^\d{1,3}(\.\d+)?(px|pt|%)$/, /^\d(\.\d+)?(rem|em)$/],
     },
   },
   allowedSchemes: ["http", "https", "mailto", "tel"],

@@ -1,9 +1,11 @@
 "use client";
 
 import Link from "next/link";
+import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import type { AppNotification } from "@/lib/pricing/types";
 import { formatDateTime, formatMonthDay } from "@/lib/format";
+import { notificationHref, unreadBadgeLabel } from "@/lib/notificationLink";
 
 export function NotificationBell({ role }: { role: "ADMIN" | "APPLICANT" }) {
   const [open, setOpen] = useState(false);
@@ -13,6 +15,8 @@ export function NotificationBell({ role }: { role: "ADMIN" | "APPLICANT" }) {
   // 폴링할 때 함께 갱신해 30초 단위로만 움직이게 한다.
   const [now, setNow] = useState<number | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
+  const router = useRouter();
+  const pathname = usePathname();
 
   async function load() {
     const res = await fetch("/api/notifications");
@@ -54,28 +58,45 @@ export function NotificationBell({ role }: { role: "ADMIN" | "APPLICANT" }) {
     }
   }
 
+  /*
+    누른 알림을 읽음으로 바꾼다 (2026-09-04 수정).
+
+    예전에는 서버에만 알리고 화면 상태를 그대로 뒀다. 그래서 눌러도 '안 읽음' 숫자가
+    그대로였고, 다음 폴링(30초)이 와야 줄었다. 화면을 먼저 고치고 응답이 오면 맞춘다.
+    keepalive 를 켜는 이유는 누르는 즉시 다른 화면으로 넘어가기 때문이다 — 없으면
+    이동하면서 요청이 끊겨 읽음 처리가 사라진다.
+  */
   async function markRead(id: string) {
-    await fetch("/api/notifications", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ action: "markRead", id }),
-    });
+    setNotifications((prev) => prev.map((n) => (n.id === id ? { ...n, isRead: true } : n)));
+    setUnreadCount((prev) => (notifications.find((n) => n.id === id)?.isRead ? prev : Math.max(0, prev - 1)));
+    try {
+      const res = await fetch("/api/notifications", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "markRead", id }),
+        keepalive: true,
+      });
+      if (!res.ok) return;
+      const data = await res.json();
+      setNotifications(data.notifications);
+      setUnreadCount(data.unreadCount);
+    } catch {
+      // 실패해도 30초 폴링이 실제 상태로 되돌린다.
+    }
+  }
+
+  function openNotification(n: AppNotification) {
+    markRead(n.id);
+    setOpen(false);
+    // 이미 그 화면에 있으면 Link 는 아무 일도 하지 않는다 — 목록이 달라졌을 수 있으니 새로 읽는다.
+    if (hrefOf(n).split("?")[0] === pathname) router.refresh();
   }
 
   const detailPrefix = role === "ADMIN" ? "/admin" : "/mypage";
 
-  // 저장된 링크가 있으면 그리로, 없으면 신청서 상세, 그것도 없으면 역할별 기본 목록.
+  // 규칙은 lib/notificationLink 에 있다 — 화면 밖에서 시험할 수 있어야 한다.
   function hrefOf(n: AppNotification) {
-    if (n.link) {
-      // 절대 URL 로 저장돼 있어도 같은 사이트면 경로만 남겨 클라이언트 이동을 쓴다.
-      try {
-        const u = new URL(n.link, window.location.origin);
-        return u.origin === window.location.origin ? u.pathname + u.search : n.link;
-      } catch {
-        return n.link;
-      }
-    }
-    return n.quoteId ? `${detailPrefix}/${n.quoteId}` : detailPrefix;
+    return notificationHref(n, role, typeof window === "undefined" ? undefined : window.location.origin);
   }
 
   // 본문 첫 줄을 제목처럼 쓴다. 알림톡 문안이 "제목\n상세" 구조라 그대로 살린다.
@@ -113,7 +134,7 @@ export function NotificationBell({ role }: { role: "ADMIN" | "APPLICANT" }) {
         </svg>
         {unreadCount > 0 && (
           <span className="absolute -top-1 -right-1.5 grid h-3.5 min-w-3.5 place-items-center border border-foreground bg-accent px-1 text-xs leading-none font-bold text-on-accent tabular-nums">
-            {unreadCount > 9 ? "9+" : unreadCount}
+            {unreadBadgeLabel(unreadCount)}
           </span>
         )}
       </button>
@@ -150,10 +171,7 @@ export function NotificationBell({ role }: { role: "ADMIN" | "APPLICANT" }) {
                   <Link
                     key={n.id}
                     href={hrefOf(n)}
-                    onClick={() => {
-                      markRead(n.id);
-                      setOpen(false);
-                    }}
+                    onClick={() => openNotification(n)}
                     className={`flex gap-3 border-b border-border/15 px-5 py-4 transition-colors last:border-b-0 hover:bg-foreground/[0.04] ${
                       n.isRead ? "" : "bg-accent/[0.06]"
                     }`}
