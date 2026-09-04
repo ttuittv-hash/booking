@@ -5117,13 +5117,19 @@ export async function createNotification(input: {
   );
 }
 
-export async function notifyAdmins(input: { quoteId: string; message: string; createdAt: string }) {
+export async function notifyAdmins(input: {
+  quoteId: string;
+  /** 눌렀을 때 갈 곳. 신청서가 아닌 알림(문의·가입 심사 등)은 반드시 넣는다 (2026-09-04). */
+  link?: string | null;
+  message: string;
+  createdAt: string;
+}) {
   // 운영자 수만큼 INSERT 를 따로 날리지 않고 한 문장으로 — 신청서 제출 트랜잭션 안에서 불린다.
   await q(
     `INSERT INTO notifications (id, recipient_id, quote_id, link, message, is_read, created_at)
-     SELECT gen_random_uuid()::text, u.id, $1, NULL, $2, 0, $3
+     SELECT gen_random_uuid()::text, u.id, $1, $4, $2, 0, $3
        FROM users u WHERE u.role = 'ADMIN' AND u.withdrawn_at IS NULL`,
-    [input.quoteId, input.message, input.createdAt],
+    [input.quoteId, input.message, input.createdAt, input.link ?? null],
   );
 }
 

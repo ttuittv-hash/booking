@@ -537,6 +537,7 @@ export async function POST(request: Request) {
     if (!invitePhoneMatched) {
       await notifyAdmins({
         quoteId: "applicants",
+        link: "/admin/applicants",
         message: `신규 가입 승인 요청: ${name} (${company?.name ?? "소속 없음"}, ${accountType === "INDIVIDUAL" ? "개인회원" : "법인회원"}, ${joinLabel})`,
         createdAt,
       });

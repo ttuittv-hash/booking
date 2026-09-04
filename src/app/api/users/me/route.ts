@@ -210,6 +210,7 @@ export async function PUT(request: Request) {
     const pending = await setUserApprovalStatus(user.id, "PENDING", null, null);
     await notifyAdmins({
       quoteId: "applicants",
+      link: "/admin/applicants",
       message: `가입 승인 요청: ${pending.name} (${company.name}, 기업 정보 등록)`,
       createdAt: new Date().toISOString(),
     });

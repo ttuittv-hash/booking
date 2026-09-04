@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import type { AppNotification } from "@/lib/pricing/types";
 import { formatDateTime, formatMonthDay } from "@/lib/format";
+import { notificationHref } from "@/lib/notificationLink";
 
 export function NotificationBell({ role }: { role: "ADMIN" | "APPLICANT" }) {
   const [open, setOpen] = useState(false);
@@ -64,18 +65,9 @@ export function NotificationBell({ role }: { role: "ADMIN" | "APPLICANT" }) {
 
   const detailPrefix = role === "ADMIN" ? "/admin" : "/mypage";
 
-  // 저장된 링크가 있으면 그리로, 없으면 신청서 상세, 그것도 없으면 역할별 기본 목록.
+  // 규칙은 lib/notificationLink 에 있다 — 화면 밖에서 시험할 수 있어야 한다.
   function hrefOf(n: AppNotification) {
-    if (n.link) {
-      // 절대 URL 로 저장돼 있어도 같은 사이트면 경로만 남겨 클라이언트 이동을 쓴다.
-      try {
-        const u = new URL(n.link, window.location.origin);
-        return u.origin === window.location.origin ? u.pathname + u.search : n.link;
-      } catch {
-        return n.link;
-      }
-    }
-    return n.quoteId ? `${detailPrefix}/${n.quoteId}` : detailPrefix;
+    return notificationHref(n, role, typeof window === "undefined" ? undefined : window.location.origin);
   }
 
   // 본문 첫 줄을 제목처럼 쓴다. 알림톡 문안이 "제목\n상세" 구조라 그대로 살린다.

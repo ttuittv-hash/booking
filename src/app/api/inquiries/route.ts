@@ -110,6 +110,8 @@ export async function POST(request: Request) {
   });
   await notifyAdmins({
     quoteId: quoteId ?? "",
+    // 알림을 누르면 그 문의로 바로 간다 — 링크가 없으면 운영자 첫 화면으로 떨어진다(2026-09-04).
+    link: `/admin/inquiries/${inquiry.id}`,
     message: `새 1:1 문의가 등록되었습니다${user ? "" : " (비회원)"} (${category.label}): ${title}`,
     createdAt,
   });

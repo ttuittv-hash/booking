@@ -90,7 +90,14 @@ export async function POST(request: Request) {
       [targetId, "대표 담당자 권한이 이관되었습니다."],
       [user.id, `대표 담당자 권한을 ${target.name}님께 이관했습니다.`],
     ] as const) {
-      await createNotification({ id: crypto.randomUUID(), recipientId: rid, quoteId: null, message: msg, createdAt: now });
+      await createNotification({
+        id: crypto.randomUUID(),
+        recipientId: rid,
+        quoteId: null,
+        link: "/mypage/members",
+        message: msg,
+        createdAt: now,
+      });
     }
     return NextResponse.json({ ok: true });
   }
