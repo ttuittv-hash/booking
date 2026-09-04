@@ -28,3 +28,12 @@ export function notificationHref(
   // 'applicants' 처럼 신청서가 아닌 값이 quoteId 자리에 들어간 옛 알림도 그대로 살린다.
   return quoteId ? `${base}/${quoteId}` : base;
 }
+
+/**
+ * 종 아이콘 위 숫자. 9 를 넘으면 '9+' 로만 보여 눌러도 숫자가 그대로인 것처럼 보였다 —
+ * 두 자리까지 그대로 세어 하나 읽으면 하나 줄어드는 게 보이게 한다 (2026-09-04).
+ */
+export function unreadBadgeLabel(count: number): string {
+  if (count <= 0) return "";
+  return count > 99 ? "99+" : String(count);
+}

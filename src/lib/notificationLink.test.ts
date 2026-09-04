@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { notificationHref } from "./notificationLink";
+import { notificationHref, unreadBadgeLabel } from "./notificationLink";
 
 const ORIGIN = "https://bo.seoularena.net";
 
@@ -36,5 +36,23 @@ describe("notificationHref — 알림을 누르면 갈 곳", () => {
 
   it("서버에서 그릴 때(origin 없음)는 저장된 링크를 그대로 쓴다", () => {
     expect(notificationHref({ link: `${ORIGIN}/admin/x` }, "ADMIN")).toBe(`${ORIGIN}/admin/x`);
+  });
+});
+
+describe("unreadBadgeLabel — 종 위의 숫자", () => {
+  it("하나 읽으면 하나 줄어드는 게 보인다", () => {
+    expect(unreadBadgeLabel(31)).toBe("31");
+    expect(unreadBadgeLabel(30)).toBe("30");
+    expect(unreadBadgeLabel(9)).toBe("9");
+  });
+
+  it("세 자리부터는 99+ 로 줄인다", () => {
+    expect(unreadBadgeLabel(99)).toBe("99");
+    expect(unreadBadgeLabel(100)).toBe("99+");
+  });
+
+  it("없으면 아무것도 그리지 않는다", () => {
+    expect(unreadBadgeLabel(0)).toBe("");
+    expect(unreadBadgeLabel(-1)).toBe("");
   });
 });
