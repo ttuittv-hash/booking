@@ -38,7 +38,10 @@ export default async function GuestInquiryPage() {
         </Band>
 
         <Band tone="white" size="sm">
-          <div className="mx-auto max-w-2xl">
+          {/* [되돌림 2026-09-04 팀 요청] 왼쪽 정렬로 되돌린다 — 제목(INQUIRY · 1:1 문의)은
+              왼쪽에 있는데 폼만 가운데로 가면 제출 뒤 안내가 화면 한가운데에 홀로 떠 어긋나 보인다.
+              가운데로 모으려면 PageHead 까지 함께 옮겨야 한다(회원용 /mypage/inquiries/new 처럼). */}
+          <div className="max-w-2xl">
             <NewInquiryForm
               guest
               myQuoteIds={[]}
