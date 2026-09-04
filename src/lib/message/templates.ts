@@ -273,6 +273,30 @@ export const TEMPLATES: TemplateDef[] = [
       kakaoUrlPc: "https://partner.seoularena.net/mypage/inquiries",
     },
   },
+  {
+    /*
+      1:1 문의 답변 완료 (재등록분) — 2026-09-04 팀 요청.
+
+      ARENA_0009 는 버튼이 문의 '목록'으로 갔다. 0019 는 버튼 링크에 변수를 두어 답변이 달린
+      그 문의로 바로 열린다 — 등록값이 `https://partner.seoularena.net/#{1:1문의답변링크}` 이라
+      변수에 뒤 경로(mypage/inquiries/{id})를 넣어 보낸다.
+      전환은 BIZTALK_TEMPLATE_OVERRIDES=ARENA-0009=ARENA_0019 로 한다(코드 배포 불필요).
+    */
+    code: "ARENA-0019",
+    kakaoTemplateCode: "ARENA_0019",
+    audience: "APPLICANT",
+    title: "1:1 문의 답변 완료 (재등록분)",
+    body: "#{등록자명}님, 안녕하세요. \n1:1 문의에 답변이 등록되었습니다.",
+    variables: ["등록자명", "1:1문의답변링크"],
+    release: "FIRST",
+    emphasis: { title: "1:1문의 답변 완료", subtitle: "서울아레나 대관시스템" },
+    button: {
+      name: "1:1 문의 바로가기",
+      path: "/mypage/inquiries",
+      kakaoUrl: "https://partner.seoularena.net/#{1:1문의답변링크}",
+      kakaoUrlPc: "https://partner.seoularena.net/#{1:1문의답변링크}",
+    },
+  },
   // ── 2026-09-04 팀 재등록분(링크 오류로 0002·0003 대체, 카카오 검수 대기) ──
   // 승인(kep O) 전에는 카카오가 거절하므로 코드는 그대로 두고, 승인되면 배포 없이
   //   BIZTALK_TEMPLATE_OVERRIDES=ARENA-0003=ARENA_0017,MB-03=ARENA_0018

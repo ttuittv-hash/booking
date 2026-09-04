@@ -61,7 +61,9 @@ export async function POST(request: Request, ctx: { params: Promise<{ id: string
       recipient: { userId: registrant?.id ?? null, phone, email, name },
       variables: guestLink
         ? { 등록자명: name || "고객", "1:1문의링크": `inquiry/${id}?t=${encodeURIComponent(inquiry.accessToken ?? "")}` }
-        : { 등록자명: name || "고객" },
+        // ARENA_0019 로 갈아타면 버튼이 그 문의로 바로 열린다 — 등록값의 변수에 뒤 경로를 넣는다.
+        // 0009 를 그대로 쓰는 동안에는 이 값이 쓰이지 않고 버려진다(2026-09-04).
+        : { 등록자명: name || "고객", "1:1문의답변링크": `mypage/inquiries/${id}` },
       request,
     });
   }
