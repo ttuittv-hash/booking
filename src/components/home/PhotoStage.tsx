@@ -8,7 +8,7 @@ import { useEffect, useRef, useState, useSyncExternalStore } from "react";
  * 첫 화면에는 문장만 있고 사진은 아래에 있다. 스크롤을 내리면 사진이 올라와 화면에 붙고,
  * 그때부터 두 마디로 움직인다.
  *
- *   0 → 0.5   **가운데 3칼럼 폭에서 지면 전체 폭까지** 자란다.
+ *   0 → 0.5   **가운데 4칼럼 폭에서 지면 전체 폭까지** 자란다.
  *   0.5 → 1   옅어지며 살짝 작아진다. 그동안 아래 검정 지면이 위로 올라와 덮는다.
  *
  * 덮는 동작은 CSS 가 맡는다 — 사진은 `sticky` 로 붙어 있고, **같은 부모 안에서** 뒤에 오는
@@ -19,8 +19,8 @@ import { useEffect, useRef, useState, useSyncExternalStore } from "react";
  * 스크롤 이벤트는 프레임보다 자주 오고, 그때마다 레이아웃을 읽으면 버벅인다.
  */
 
-/** 사진이 처음 서는 폭 — 6칼럼 기준 가운데 3칼럼(3c + 2 gutter) = 지면의 절반 */
-const START_WIDTH = "calc((100% - 5 * var(--gutter)) / 6 * 3 + 2 * var(--gutter))";
+/** 사진이 처음 서는 폭 — 6칼럼 기준 가운데 4칼럼(4c + 3 gutter) */
+const START_WIDTH = "calc((100% - 5 * var(--gutter)) / 6 * 4 + 3 * var(--gutter))";
 
 function clamp01(n: number) {
   return n < 0 ? 0 : n > 1 ? 1 : n;
@@ -44,8 +44,11 @@ export function usePrefersReducedMotion() {
 /**
  * 무대 진행도 — 표식이 화면 위로 얼마나 지나갔는지를 0~1 로 돌려준다.
  * `run` 은 그 무대가 쓰는 스크롤 양(화면 판 수).
+ * `startAt` 은 **표식이 화면의 어디에 왔을 때 시작할지**를 화면 높이 비율로 준다.
+ * 0 이면 표식이 화면 맨 위에 닿아야 시작하고, 0.6 이면 아직 화면 아래쪽에 있을 때
+ * 이미 움직이기 시작한다 — 사진이 올라오는 장면을 더 일찍 보여 준다.
  */
-export function useStageProgress(run: number) {
+export function useStageProgress(run: number, startAt = 0) {
   const mark = useRef<HTMLDivElement>(null);
   const [p, setP] = useState(0);
   const reduce = usePrefersReducedMotion();
@@ -56,7 +59,8 @@ export function useStageProgress(run: number) {
     const read = () => {
       const el = mark.current;
       if (!el) return;
-      setP(clamp01(-el.getBoundingClientRect().top / (window.innerHeight * run)));
+      const vh = window.innerHeight;
+      setP(clamp01((vh * startAt - el.getBoundingClientRect().top) / (vh * run)));
     };
     const onScroll = () => {
       cancelAnimationFrame(raf);
@@ -71,13 +75,13 @@ export function useStageProgress(run: number) {
       window.removeEventListener("resize", onScroll);
       cancelAnimationFrame(raf);
     };
-  }, [reduce, run]);
+  }, [reduce, run, startAt]);
 
   return { mark, p, reduce };
 }
 
 export function PhotoStage({ image, alt }: { image?: string | null; alt: string }) {
-  const { mark, p, reduce } = useStageProgress(2);
+  const { mark, p, reduce } = useStageProgress(2, 0.7);
 
   /*
     0 → 0.4   자란다
