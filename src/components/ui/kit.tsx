@@ -76,8 +76,15 @@ export function Prose({
   if (blocks.length === 0) return null;
   return (
     <div className={className}>
+      {/*
+        [수정 2026-09-04] 문단 안의 줄바꿈(Enter 한 번)은 운영자가 넓은 화면의 줄
+        길이에 맞춰 끊은 것이다 — 모바일 좁은 폭 + 큰 글자에서는 그 줄이 다시
+        한 번 더 꺾여 "공간 설계," "기반으로" 처럼 짧은 단어만 남는 줄이 생기고
+        읽는 리듬이 깨졌다. `sm` 미만에서는 줄바꿈을 무시하고 폭에 맞춰
+        자연스럽게 흐르게 하고, 그 이상에서만 운영자가 끊은 자리를 살린다.
+      */}
       {blocks.map((block, i) => (
-        <p key={i} className={`whitespace-pre-line break-keep ${i > 0 ? gap : ""}`}>
+        <p key={i} className={`whitespace-normal sm:whitespace-pre-line break-keep ${i > 0 ? gap : ""}`}>
           <RichText text={block} />
         </p>
       ))}
