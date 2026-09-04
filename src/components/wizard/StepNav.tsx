@@ -104,7 +104,7 @@ export function StepNav({
         비쳐 올라왔다 — 글이 촘촘한 위저드에서는 체크박스 줄이 상단바를 뚫고 나온 것처럼
         보였다. 여기서는 페이드 대신 불투명한 면으로 덮는다.
       */
-      className="sticky top-[var(--header-h)] z-20 mb-10 w-full relative border-b border-border/25 bg-background before:absolute before:inset-x-0 before:bottom-full before:h-[var(--header-h)] before:bg-background before:content-['']"
+      className="sticky top-[var(--header-h)] z-20 w-full relative border-b border-border/25 bg-background before:absolute before:inset-x-0 before:bottom-full before:h-[var(--header-h)] before:bg-background before:content-['']"
     >
       <ol className="flex h-11 w-full min-w-0 items-center gap-1 overflow-x-auto">
         {groupsWithVisibleSteps.map((group) => {

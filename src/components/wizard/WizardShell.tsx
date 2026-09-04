@@ -621,10 +621,17 @@ export function WizardShell({
       6칼럼 그리드와 어긋나 같은 화면 안에 축이 두 개가 됐다(정본 §7.4 = 4col + 2col).
       콘텐츠 트랙은 min-w-0 로 묶어 스텝 전환 시 폭이 변하지 않게 한다.
     */
-    <div className="container-site grid-site w-full gap-y-10 py-10 sm:py-12">
+    <div className="container-site grid-site w-full gap-y-0 py-10 sm:py-12">
+      {/*
+        단계 바는 본문 칼럼 안이 아니라 **그리드의 한 줄**이다 — 그래야 다음 줄에서
+        본문과 요약 패널이 같은 높이에서 시작해, 요약의 윗변이 단계 바 아래 선과 맞는다.
+        선의 폭은 그대로 본문 칼럼(4)만 덮는다.
+      */}
       <div className="min-w-0 lg:col-span-4">
         <StepNav step={step} maxUnlockedStep={maxUnlockedStep} onJump={goTo} />
+      </div>
 
+      <div className="mt-10 min-w-0 lg:col-span-4">
         {step === 1 && (
           <section>
             <StepHeading title={wizardStepText.venuePickerTitle} lead={wizardStepText.venuePickerLead} />
