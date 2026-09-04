@@ -52,11 +52,19 @@ const APPROVAL_LABEL: Record<string, string> = {
 */
 const MASTER_CAN_APPROVE = false;
 
+/*
+  [개정 2026-09-04 팀 결정] 담당자 초대도 당분간 닫는다.
+
+  1차 오픈에는 서울아레나가 모든 가입을 직접 확인한다 — 대표가 링크로 사람을 불러오는
+  통로를 열어 두면 그 확인을 건너뛰게 된다. 화면에서 [담당자 초대] 영역을 감추고,
+  이미 발송된 초대 링크는 그대로 살아 있다. 다시 열 때는 이 값을 true 로 바꾼다.
+*/
+const MASTER_CAN_INVITE = false;
+
 export const MASTER_ROLE_TOOLTIP =
-  "당신은 마스터 계정으로 소속담당자 관리(대표 이관·소속 해제)와 초대가 가능합니다. 가입 승인은 서울아레나 운영진이 처리합니다.";
+  "당신은 마스터 계정으로 소속담당자 관리(대표 이관·소속 해제)가 가능합니다. 가입 승인은 서울아레나 운영진이 처리합니다.";
 
 const MASTER_ROLE_ABILITIES = [
-  "소속 담당자 초대",
   "합류 신청 확인(승인은 서울아레나 운영진)",
   "소속 해제",
   "대표 권한 이관",
@@ -374,8 +382,8 @@ export function MembersManager({ currentUserId }: { currentUserId: string }) {
         <p className="mt-1 break-keep text-xs leading-6 text-muted">
           이름을 누르면 그 담당자의 신청 상세(첨부 서류 포함)를 볼 수 있습니다. 회사에서{" "}
           <b>가장 먼저 승인된 분</b>이 <b>대표 담당자</b>가 되고, 이후 합류한 분은{" "}
-          <b>소속 담당자</b>가 됩니다. 대표 담당자만 초대 · 합류 승인 · 소속 해제 · 대표 이관을 할
-          수 있습니다. 아래 이메일로 초대는 보냈지만 아직 본인인증·비밀번호 설정을 마치지 않은
+          <b>소속 담당자</b>가 됩니다. 가입 승인은 서울아레나 운영진이 처리하며, 대표 담당자는
+          소속 해제 · 대표 이관을 할 수 있습니다. 아래 이메일로 초대는 보냈지만 아직 본인인증·비밀번호 설정을 마치지 않은
           분은 <b>미가입</b>으로 표시됩니다.
         </p>
         <div className="mt-3 overflow-x-auto">
@@ -499,6 +507,7 @@ export function MembersManager({ currentUserId }: { currentUserId: string }) {
         </div>
       </section>
 
+      {MASTER_CAN_INVITE && (
       <section className="mt-12">
         <h2 className="text-s font-bold">담당자 초대</h2>
         <p className="mt-2 break-keep text-s leading-6 text-muted">
@@ -598,6 +607,7 @@ export function MembersManager({ currentUserId }: { currentUserId: string }) {
           </div>
         ) : null}
       </section>
+      )}
     </div>
   );
 }
