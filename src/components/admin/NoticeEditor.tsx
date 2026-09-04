@@ -92,6 +92,17 @@ function withCellStyles<T extends { name: string }>(base: T) {
           renderHTML: (attrs: { backgroundColor?: string | null }) =>
             attrs.backgroundColor ? { style: `background-color: ${attrs.backgroundColor}` } : {},
         },
+        // [신규 2026-09-04] 칸 글자색도 붙여넣을 때 그대로 살린다 — 워드·페이지에서
+        // 검정 칸에 흰 글자로 만든 머리행을 복사해 붙이면, 배경색은 이미 옮겨 오는데
+        // 글자색은(칸 태그 자체에 style="color:..."로 붙은 경우) 스키마에 없어 버려지고
+        // 있었다. mergeAttributes 가 style 을 속성별로 합쳐 주므로 backgroundColor 와
+        // 똑같은 모양으로 하나 더 두면 된다.
+        textColor: {
+          default: null,
+          parseHTML: (el: HTMLElement) => el.style.color || null,
+          renderHTML: (attrs: { textColor?: string | null }) =>
+            attrs.textColor ? { style: `color: ${attrs.textColor}` } : {},
+        },
       };
     },
     // colwidth 는 부모가 그대로 두고(편집기가 쓴다), 내보낼 때 width 스타일을 얹는다.
