@@ -229,7 +229,7 @@ export default async function AdminQuoteDetailPage({
 
   return (
     <div className="flex flex-1 flex-col">
-      <header className="sticky top-0 z-20 h-14 border-b border-border/25 bg-background/95 backdrop-blur-md sm:h-16">
+      <header className="sticky top-0 z-20 h-14 border-b border-border/20 bg-background/95 backdrop-blur-md sm:h-16">
         <div className="mx-auto flex h-full max-w-4xl items-center gap-x-5 px-4 sm:px-6">
           <Link
             href="/admin"
@@ -248,7 +248,7 @@ export default async function AdminQuoteDetailPage({
       </header>
 
       <main className="mx-auto w-full max-w-4xl flex-1 px-6 py-8 sm:py-10">
-        <header className="border-b border-border/25 pb-6">
+        <header className="border-b border-border/20 pb-6">
           <div className="flex flex-wrap items-baseline justify-between gap-x-6 gap-y-3">
             <h1 className="type-display text-h4-m tabular-nums sm:text-h4">{quote.id}</h1>
             <div className="flex flex-wrap items-center gap-x-5 gap-y-2">
@@ -473,7 +473,7 @@ export default async function AdminQuoteDetailPage({
                   </li>
                 ))}
               </ul>
-              <div className="mt-4 flex flex-wrap items-baseline justify-between gap-3 border-t border-border/25 pt-4">
+              <div className="mt-4 flex flex-wrap items-baseline justify-between gap-3 border-t border-border/15 pt-4">
                 <span className="text-xs tabular-nums text-muted">
                   확정일시 {new Date(quote.contract.decidedAt).toLocaleString("ko-KR")}
                 </span>
@@ -590,7 +590,7 @@ export default async function AdminQuoteDetailPage({
         </div>
 
         {auditLog.length > 0 && (
-          <section className="mt-10 border-t border-border/25 pt-6">
+          <section className="mt-10 border-t border-border/20 pt-6">
             <h2 className={`${SUB_TITLE} text-muted`}>감사 로그</h2>
             <ul className="mt-3 border-t border-border-soft">
               {auditLog.map((entry) => (

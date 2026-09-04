@@ -88,7 +88,7 @@ export function LegalContentForm({
           value={content.effectiveDate}
           onChange={(e) => setContent((prev) => ({ ...prev, effectiveDate: e.target.value }))}
           placeholder="예: 2026년 8월 1일"
-          className="field-base mt-2 max-w-xs"
+          className="mt-2 w-full max-w-xs border border-border bg-background px-3 py-2 text-s outline-none focus:border-accent"
         />
       </section>
 

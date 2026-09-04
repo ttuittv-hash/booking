@@ -56,7 +56,7 @@ const PROSE = [
       · 표는 지면 위에 흰 면으로 얹고, 세로선을 긋지 않는다. 머리행만 굵은 선으로.
       · 표 바로 아래 한 줄은 각주다 — 한 단 더 작고 옅게.
   */
-  "whitespace-pre-line break-keep text-r leading-[1.8] tracking-[-0.005em] text-muted-strong",
+  "whitespace-pre-line break-keep text-[1rem] leading-[1.8] tracking-[-0.005em] text-muted-strong",
 
   "[&_p]:my-5 [&_p:first-child]:mt-0 [&_p:last-child]:mb-0",
   "[&_p:empty]:hidden",

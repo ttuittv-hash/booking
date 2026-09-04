@@ -207,7 +207,7 @@ export function ProfileForm({ user, company }: { user: AppUser; company: Company
 
   return (
     <div className="mt-8 space-y-8">
-      <section className="rounded-surface border border-border bg-background p-5">
+      <section className="border border-border bg-background p-5">
         <h2 className="type-kr-heading text-h6-m">개인 정보</h2>
         <div className="mt-4 space-y-3">
           <label className="block">
@@ -274,7 +274,7 @@ export function ProfileForm({ user, company }: { user: AppUser; company: Company
         </div>
       </section>
 
-      <section className="rounded-surface border border-border bg-background p-5">
+      <section className="border border-border bg-background p-5">
         <h2 className="type-kr-heading text-h6-m">기업 정보</h2>
         {company ? (
           <div className="mt-4 space-y-3">
@@ -437,7 +437,7 @@ export function ProfileForm({ user, company }: { user: AppUser; company: Company
         )}
       </section>
 
-      <section className="rounded-surface border border-border bg-background p-5">
+      <section className="border border-border bg-background p-5">
         <h2 className="type-kr-heading text-h6-m">제출 서류</h2>
         <p className="mt-2 text-s text-muted">
           심사에 쓰이는 서류입니다. 반려 사유가 서류 문제였다면 여기서 다시 올린 뒤
@@ -479,7 +479,7 @@ export function ProfileForm({ user, company }: { user: AppUser; company: Company
         </p>
       </section>
 
-      <section className="rounded-surface border border-border bg-background p-5">
+      <section className="border border-border bg-background p-5">
         <h2 className="type-kr-heading text-h6-m">저장하려면 현재 비밀번호를 입력하세요</h2>
         <div className="mt-4">
           <label className="block">
@@ -505,7 +505,7 @@ export function ProfileForm({ user, company }: { user: AppUser; company: Company
         </button>
       </section>
 
-      <section className="rounded-surface border border-border bg-background p-5">
+      <section className="border border-border bg-background p-5">
         <h2 className="type-kr-heading text-h6-m">비밀번호 변경</h2>
         <div className="mt-4 space-y-3">
           <label className="block">

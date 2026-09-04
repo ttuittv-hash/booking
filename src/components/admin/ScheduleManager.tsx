@@ -234,7 +234,7 @@ export function ScheduleManager({
         </span>
       </div>
 
-      <div className="mt-5 rounded-surface border border-border-soft bg-panel/60 p-4">
+      <div className="mt-5 border border-border-soft bg-panel/60 p-4">
         <div className="grid grid-cols-7 gap-1 text-center text-xs font-bold text-muted">
           {DOW_LABELS.map((label, i) => (
             <div key={label} className={i === 6 ? "opacity-50" : ""}>
@@ -312,7 +312,7 @@ export function ScheduleManager({
                 </div>
 
                 {openInThisRow && openDate && (
-                  <div className="mt-1.5 rounded-btn border border-accent bg-accent-soft/40 px-3.5 py-3">
+                  <div className="mt-1.5 border border-accent bg-accent-soft/40 px-3.5 py-3">
                     <div className="flex items-center justify-between">
                       <div className="text-s font-bold text-foreground">{formatDateLabel(openDate)}</div>
                       <button

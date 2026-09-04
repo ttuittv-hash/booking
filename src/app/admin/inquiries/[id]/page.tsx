@@ -32,7 +32,7 @@ export default async function AdminInquiryDetailPage({
           ← 1:1 문의
         </Link>
 
-        <header className="mt-5 border-b border-border/25 pb-6">
+        <header className="mt-5 border-b border-border/20 pb-6">
           <div className="flex flex-wrap items-start justify-between gap-4">
             <h1 className="type-kr-heading text-h5-m sm:text-h5">{inquiry.title}</h1>
             <Badge tone={answered ? "good" : "warn"}>

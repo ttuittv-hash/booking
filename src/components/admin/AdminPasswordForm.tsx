@@ -35,7 +35,7 @@ export function AdminPasswordForm() {
   }
 
   return (
-    <section className="rounded-surface border border-border bg-background p-5">
+    <section className="border border-border bg-background p-5">
       <h2 className="type-kr-heading text-h6-m">비밀번호 변경</h2>
       <div className="mt-4 max-w-sm space-y-3">
         <label className="block">

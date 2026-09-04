@@ -196,11 +196,11 @@ function RuleCard({
           <div className="flex items-center gap-2">
             <span className="text-s font-bold">{rule.label}</span>
             {rule.isSystem ? (
-              <span className="rounded-btn border border-border-soft px-1.5 py-0.5 text-xs text-muted">
+              <span className="border border-border-soft px-1.5 py-0.5 text-xs text-muted">
                 자동 발송 연동됨
               </span>
             ) : (
-              <span className="rounded-btn border border-border-soft px-1.5 py-0.5 text-xs text-muted">
+              <span className="border border-border-soft px-1.5 py-0.5 text-xs text-muted">
                 안내용(자동 발송 미연동)
               </span>
             )}

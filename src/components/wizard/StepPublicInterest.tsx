@@ -1,6 +1,6 @@
 "use client";
 
-import { FilePicker } from "@/components/ui/FilePicker";
+import { FILE_INPUT, toggleClass } from "@/components/ui/kit";
 
 import { useState, type ReactNode } from "react";
 import { useWizardText } from "@/lib/content/wizardText";
@@ -123,7 +123,7 @@ export function StepPublicInterest({
             type="checkbox"
             checked={checked}
             onChange={() => toggleItem(item)}
-            className="h-4 w-4 shrink-0"
+            className="h-4 w-4 shrink-0 accent-[var(--foreground)]"
           />
         </label>
 
@@ -140,15 +140,34 @@ export function StepPublicInterest({
               className="field-base whitespace-pre-wrap"
             />
 
-            <FilePicker
-              label={tStr("publicInterest.fileLabel", "관련 자료 첨부")}
+            {itemFiles.length > 0 && (
+              <ul className="space-y-2">
+                {itemFiles.map((f) => (
+                  <li
+                    key={`${f.file.name}-${f.index}`}
+                    className="flex items-center justify-between gap-3 border border-border/25 bg-background px-3.5 py-2.5"
+                  >
+                    <span className="truncate text-s font-bold">{f.file.name}</span>
+                    <button
+                      type="button"
+                      onClick={() => removeFile(f.index)}
+                      className={`${toggleClass(false)} shrink-0`}
+                    >
+                      {t("publicInterest.removeFileButton", "삭제")}
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            )}
+
+            <input
+              type="file"
               multiple
               onChange={(e) => {
                 addFiles(item, e.target.files);
                 e.target.value = "";
               }}
-              files={itemFiles.map((f) => f.file)}
-              onRemove={(i) => removeFile(itemFiles[i].index)}
+              className={FILE_INPUT}
             />
           </div>
         )}
@@ -179,7 +198,7 @@ export function StepPublicInterest({
       {/* 공공성 항목은 공간별로 달라지는 입력값이 없어 탭을 넘겨도 아래 목록은 동일하게
           유지된다 — 04 기본 정보 그룹의 다른 화면과 탭 구조만 맞춘다
           (2026-08-19, 형식상 탭 추가 요청). */}
-      <div className="mt-10 rounded-surface bg-panel p-5">
+      <div className="mt-10 border-t-2 border-foreground pt-5">
         <h3 className="type-kr-heading text-h6-m">
           {t("publicInterest.itemsSectionHeading", "공공/공익 참여 및 연계 프로그램 (선택)")}
         </h3>
@@ -193,20 +212,20 @@ export function StepPublicInterest({
         <div className="mt-6 space-y-8">
           {PUBLIC_INTEREST_GROUPS.map((group) => (
             <div key={group.key}>
-              <h4 className="border-b border-border/25 pb-2 text-xs font-bold tracking-wide text-foreground">
+              <h4 className="border-b border-foreground pb-2 text-xs font-bold tracking-wide text-foreground">
                 {t(`publicInterest.group.${group.key}`, group.label)}
               </h4>
-              <div>
+              <div className="border-t border-border/25">
                 {group.items.map((item) => itemRow(item))}
               </div>
             </div>
           ))}
 
           <div>
-            <h4 className="border-b border-border/25 pb-2 text-xs font-bold tracking-wide text-foreground">
+            <h4 className="border-b border-foreground pb-2 text-xs font-bold tracking-wide text-foreground">
               {t("publicInterest.group.STATUS", "해당 없음 · 미확정")}
             </h4>
-            <div>
+            <div className="border-t border-border/25">
               {PUBLIC_INTEREST_STATUS_ITEMS.map((item) => itemRow(item))}
             </div>
           </div>

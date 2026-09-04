@@ -3,8 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useRef, useState } from "react";
 import { PUBLIC_INTEREST_ITEM_LABEL, type Attachment } from "@/lib/pricing/types";
-import { btnClass } from "@/components/ui/kit";
-import { FilePicker } from "@/components/ui/FilePicker";
+import { btnClass, FILE_INPUT } from "@/components/ui/kit";
 import { formatDate } from "@/lib/format";
 
 function formatSize(bytes: number): string {
@@ -78,14 +77,14 @@ export function AttachmentsPanel({
                 href={`/api/quotes/${quoteId}/attachments/${file.id}`}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="min-w-0 truncate text-s font-bold text-foreground underline decoration-2 underline-offset-4"
+                className="min-w-0 truncate text-s font-bold text-foreground underline decoration-accent decoration-2 underline-offset-4"
               >
                 {file.originalName}
               </a>
               {/* 공공/공익 STEP 에서 항목에 붙여 올린 자료면 어느 항목인지 같이 보여준다
                   (2026-08-27) — 그전에는 파일명만 남아 심사에서 되물어야 했다. */}
               {file.publicInterestItem && (
-                <span className="shrink-0 rounded-btn border border-border/25 px-2 py-1 text-xs text-muted">
+                <span className="shrink-0 border border-border/25 px-2 py-1 text-xs text-muted">
                   공공/공익 · {PUBLIC_INTEREST_ITEM_LABEL[file.publicInterestItem]}
                 </span>
               )}
@@ -105,18 +104,20 @@ export function AttachmentsPanel({
         )}
       </ul>
 
-      <div className="mt-6">
-        <FilePicker label="첨부 자료" inputRef={fileInput} multiple />
-        <div className="mt-3 flex justify-end">
-          <button
-            type="button"
-            disabled={uploading}
-            onClick={upload}
-            className={btnClass("primary")}
-          >
-            {uploading ? "업로드 중..." : "업로드"}
-          </button>
-        </div>
+      <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:items-stretch">
+        <input
+          ref={fileInput}
+          type="file"
+          className={`${FILE_INPUT} min-w-0 flex-1`}
+        />
+        <button
+          type="button"
+          disabled={uploading}
+          onClick={upload}
+          className={`${btnClass("primary")} shrink-0`}
+        >
+          {uploading ? "업로드 중..." : "업로드"}
+        </button>
       </div>
       {error && (
         <p className="mt-3 border-l-2 border-danger bg-danger-soft px-3 py-2 text-s text-danger">

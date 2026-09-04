@@ -100,7 +100,7 @@ function MasterInfoIcon() {
         onKeyDown={(e) => {
           if (e.key === "Escape") setOpen(false);
         }}
-        className="inline-flex h-4 w-4 shrink-0 cursor-help items-center justify-center rounded-full border border-current text-xs leading-none"
+        className="inline-flex h-3.5 w-3.5 shrink-0 cursor-help items-center justify-center rounded-full border border-current text-[9px] leading-none"
       >
         ?
       </button>
@@ -109,7 +109,7 @@ function MasterInfoIcon() {
           role="tooltip"
           data-testid="master-role-layer"
           style={{ position: "fixed", top: pos.top, left: pos.left }}
-          className="z-50 w-64 -translate-x-1/2 cursor-default rounded-surface border border-border-soft bg-background px-4 py-3 text-left text-xs leading-6 font-normal text-foreground shadow-lg"
+          className="z-50 w-64 -translate-x-1/2 cursor-default border border-border-soft bg-background px-4 py-3 text-left text-xs leading-6 font-normal text-foreground shadow-lg"
         >
           <b className="block text-s">대표 담당자</b>
           <span className="mt-1 block break-keep text-muted">
@@ -349,12 +349,12 @@ export function MembersManager({ currentUserId }: { currentUserId: string }) {
   return (
     <div className="mt-8" data-testid="members-manager">
       {error ? (
-        <p data-testid="members-error" className="mb-4 rounded-surface bg-panel px-4 py-3 text-s text-danger">
+        <p data-testid="members-error" className="mb-4 border border-danger/40 px-4 py-3 text-s text-danger">
           {error}
         </p>
       ) : null}
       {notice ? (
-        <p data-testid="members-notice" className="mb-4 rounded-surface bg-panel px-4 py-3 text-s">
+        <p data-testid="members-notice" className="mb-4 border border-accent px-4 py-3 text-s">
           {notice}
         </p>
       ) : null}
@@ -391,7 +391,7 @@ export function MembersManager({ currentUserId }: { currentUserId: string }) {
                   // 강조를 왼쪽 세로선(border-l)으로 준 적이 있는데, 표는
                   // border-collapse: collapse(Tailwind preflight)라 tr 의 좌우 테두리가
                   // 같은 tr 의 border-b 와 겹쳐 행 높이가 들쭉날쭉해졌다. 바탕색만 쓴다.
-                  className={`border-b border-border/25 ${row.isMe ? "bg-accent-soft/40" : ""}`}
+                  className={`border-b border-border/40 ${row.isMe ? "bg-accent-soft/40" : ""}`}
                   data-testid={row.key}
                 >
                   {/* 이름 칸은 운영자 회사 목록(CompanyDirectory)과 같은 짜임으로 맞춘다 —
@@ -403,7 +403,7 @@ export function MembersManager({ currentUserId }: { currentUserId: string }) {
                       {row.href ? (
                         <Link
                           href={row.href}
-                          className="font-bold underline decoration-border-soft underline-offset-4 transition-colors hover:decoration-foreground"
+                          className="font-bold underline decoration-border-soft underline-offset-4 transition-colors hover:decoration-accent"
                         >
                           {row.name}
                         </Link>
@@ -413,7 +413,7 @@ export function MembersManager({ currentUserId }: { currentUserId: string }) {
                       {row.isMe ? (
                         <span
                           data-testid="me-marker"
-                          className="rounded-btn border border-accent bg-accent px-1.5 text-xs leading-4 text-on-accent"
+                          className="border border-accent bg-accent px-1.5 text-[10px] leading-4 text-on-accent"
                         >
                           나
                         </span>
@@ -574,7 +574,7 @@ export function MembersManager({ currentUserId }: { currentUserId: string }) {
         </p>
 
         {inviteUrl ? (
-          <div data-testid="invite-url" className="mt-4 rounded-surface bg-panel px-4 py-3 text-s">
+          <div data-testid="invite-url" className="mt-4 border border-accent px-4 py-3 text-s">
             <p className="font-bold">초대가 발송되었습니다</p>
             <p className="mt-2 break-all font-mono text-xs">{inviteUrl}</p>
             {/* [개정 2026-08-27] 링크는 회원가입 페이지다 — 초대받은 사람은 전용 화면이

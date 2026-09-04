@@ -22,7 +22,7 @@ export default async function AdminPackagesPage() {
       <AdminNav active="/admin/packages" user={user} />
 
       <main className="mx-auto w-full max-w-4xl flex-1 px-6 py-8 sm:py-10">
-        <header className="border-b border-border/25 pb-6">
+        <header className="border-b border-border/20 pb-6">
           <h1 className={PAGE_TITLE}>패키지 관리</h1>
           <p className={PAGE_LEAD}>
             패키지 이름·기본 대관료·객석 규모·매체 등급·기본 포함 항목을 한 화면에서 편집하고, 새

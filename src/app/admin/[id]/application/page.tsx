@@ -96,7 +96,7 @@ function text(value: string | number | null | undefined): string {
 
 function Row({ label, value }: { label: string; value: React.ReactNode }) {
   return (
-    <div className="flex gap-4 border-b border-border/25 py-2.5 last:border-b-0">
+    <div className="flex gap-4 border-b border-border/15 py-2.5 last:border-b-0">
       <dt className="w-44 shrink-0 text-xs text-muted">{label}</dt>
       <dd className="min-w-0 flex-1 whitespace-pre-wrap break-keep text-s">{value}</dd>
     </div>
@@ -129,7 +129,7 @@ function MiniTable({ head, rows }: { head: string[]; rows: (string | number)[][]
         </thead>
         <tbody>
           {rows.map((row, i) => (
-            <tr key={i} className="border-b border-border/25">
+            <tr key={i} className="border-b border-border/15">
               {row.map((cell, j) => (
                 <td key={j} className="px-2 py-1.5 align-top">
                   {text(cell)}
@@ -151,13 +151,13 @@ function AttachmentRow({ quoteId, file }: { quoteId: string; file: Attachment })
       ? (ATTACHMENT_CATEGORY_LABEL[file.category] ?? file.category)
       : "신청 서류";
   return (
-    <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1 border-b border-border/25 py-2.5 last:border-b-0">
+    <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1 border-b border-border/15 py-2.5 last:border-b-0">
       <span className="w-44 shrink-0 text-xs text-muted">{tag}</span>
       <a
         href={`/api/quotes/${quoteId}/attachments/${file.id}`}
         target="_blank"
         rel="noreferrer"
-        className="min-w-0 flex-1 break-all text-s font-bold underline decoration-border-soft underline-offset-4 hover:decoration-foreground"
+        className="min-w-0 flex-1 break-all text-s font-bold underline decoration-border-soft underline-offset-4 hover:decoration-accent"
       >
         {file.originalName}
       </a>
@@ -235,7 +235,7 @@ export default async function AdminQuoteApplicationPage({
         )}
 
         <header
-          className={`flex flex-wrap items-start justify-between gap-4 border-b border-border/25 pb-6 ${embed ? "" : "mt-5"}`}
+          className={`flex flex-wrap items-start justify-between gap-4 border-b border-border/20 pb-6 ${embed ? "" : "mt-5"}`}
         >
           <div className="min-w-0">
             <h1 className={PAGE_TITLE}>신청 내역</h1>
@@ -550,7 +550,7 @@ export default async function AdminQuoteApplicationPage({
           <Row label="합계" value={<b>{won(quote.total)}</b>} />
         </Section>
 
-        <div className="mt-10 border-t border-border/25 pt-6">
+        <div className="mt-10 border-t border-border/20 pt-6">
           <Link href={`/admin/${quote.id}`} className={btnClass("primary", "md")}>
             신청서 상세로 돌아가기
           </Link>

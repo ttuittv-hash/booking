@@ -265,7 +265,7 @@ export function NoticeEditor({
       attributes: {
         // 문단 간격은 공개 화면과 똑같이 margin 없이 줄간격(leading)만 쓴다 — RICH_TEXT의
         // [&_p]:mt-4 를 그대로 쓰면 편집기에서만 문단 사이가 눈에 띄게 벌어져 보인다.
-        class: `${NOTICE_RICH_TEXT} min-h-[180px] rounded-b-btn border border-t-0 border-border-soft bg-surface px-3 py-2.5 text-s leading-6 focus:border-foreground focus:outline-none [&_img]:mt-2 [&_img]:max-w-full [&_table]:mt-3 [&_table]:w-full [&_table]:table-fixed [&_table]:border-collapse [&_td]:relative [&_th]:relative [&_.column-resize-handle]:absolute [&_.column-resize-handle]:-right-px [&_.column-resize-handle]:top-0 [&_.column-resize-handle]:h-full [&_.column-resize-handle]:w-1 [&_.column-resize-handle]:cursor-col-resize [&_.column-resize-handle]:bg-accent [&_td]:border [&_td]:border-border-soft [&_td]:px-2.5 [&_td]:py-1.5 [&_th]:border [&_th]:border-border-soft [&_th]:px-2.5 [&_th]:py-1.5 [&_th]:text-left [&_tr:first-child_th]:bg-foreground [&_tr:first-child_th]:text-background [&_tr:not(:first-child)_th]:bg-panel-strong [&_tr:not(:first-child)_th]:text-foreground [&_[data-type=details]]:mt-3 [&_[data-type=details]]:border [&_[data-type=details]]:border-border-soft [&_[data-type=details]]:p-2.5 [&_[data-type=details]>button]:mr-2 [&_[data-type=details]>button]:inline-flex [&_[data-type=details]>button]:h-4 [&_[data-type=details]>button]:w-4 [&_[data-type=details]>button]:shrink-0 [&_[data-type=details]>button]:cursor-pointer [&_[data-type=details]>button]:border [&_[data-type=details]>button]:border-muted [&_[data-type=details]_summary]:inline [&_[data-type=details]_summary]:cursor-text [&_[data-type=details]_summary]:font-bold [&_[data-type=detailsContent]]:mt-2 [&_[data-type=detailsContent]]:min-h-[1.6em] [&_[data-type=detailsContent]]:border-t [&_[data-type=detailsContent]]:border-dashed [&_[data-type=detailsContent]]:border-border-soft [&_[data-type=detailsContent]]:pt-2`,
+        class: `${NOTICE_RICH_TEXT} min-h-[180px] border border-t-0 border-border-soft bg-surface px-3 py-2.5 text-s leading-6 focus:border-foreground focus:outline-2 focus:outline-accent [&_img]:mt-2 [&_img]:max-w-full [&_table]:mt-3 [&_table]:w-full [&_table]:table-fixed [&_table]:border-collapse [&_td]:relative [&_th]:relative [&_.column-resize-handle]:absolute [&_.column-resize-handle]:-right-px [&_.column-resize-handle]:top-0 [&_.column-resize-handle]:h-full [&_.column-resize-handle]:w-1 [&_.column-resize-handle]:cursor-col-resize [&_.column-resize-handle]:bg-accent [&_td]:border [&_td]:border-border-soft [&_td]:px-2.5 [&_td]:py-1.5 [&_th]:border [&_th]:border-border-soft [&_th]:px-2.5 [&_th]:py-1.5 [&_th]:text-left [&_tr:first-child_th]:bg-foreground [&_tr:first-child_th]:text-background [&_tr:not(:first-child)_th]:bg-panel-strong [&_tr:not(:first-child)_th]:text-foreground [&_[data-type=details]]:mt-3 [&_[data-type=details]]:border [&_[data-type=details]]:border-border-soft [&_[data-type=details]]:p-2.5 [&_[data-type=details]>button]:mr-2 [&_[data-type=details]>button]:inline-flex [&_[data-type=details]>button]:h-4 [&_[data-type=details]>button]:w-4 [&_[data-type=details]>button]:shrink-0 [&_[data-type=details]>button]:cursor-pointer [&_[data-type=details]>button]:border [&_[data-type=details]>button]:border-muted [&_[data-type=details]_summary]:inline [&_[data-type=details]_summary]:cursor-text [&_[data-type=details]_summary]:font-bold [&_[data-type=detailsContent]]:mt-2 [&_[data-type=detailsContent]]:min-h-[1.6em] [&_[data-type=detailsContent]]:border-t [&_[data-type=detailsContent]]:border-dashed [&_[data-type=detailsContent]]:border-border-soft [&_[data-type=detailsContent]]:pt-2`,
       },
     },
   });
@@ -302,7 +302,7 @@ export function NoticeEditor({
   /** 툴바 버튼 — 활성 상태는 옐로 면 + 검정 텍스트 (옐로 위 텍스트는 항상 검정) */
   function toolBtn(active: boolean) {
     return [
-      "rounded-btn border px-2 py-1 text-xs font-bold transition-colors",
+      "border px-2 py-1 text-xs font-bold transition-colors",
       active
         ? "border-foreground bg-accent text-on-accent"
         : "border-transparent text-muted hover:border-border-soft hover:text-foreground",
@@ -311,7 +311,7 @@ export function NoticeEditor({
 
   return (
     <div>
-      <div className="flex flex-wrap items-center gap-1 rounded-t-btn border border-border-soft bg-background px-2 py-1.5">
+      <div className="flex flex-wrap items-center gap-1 border border-border-soft bg-background px-2 py-1.5">
         <button
           type="button"
           onClick={() => editor.chain().focus().toggleBold().run()}
@@ -370,7 +370,7 @@ export function NoticeEditor({
             key={c.value}
             type="button"
             onClick={() => editor.chain().focus().setColor(c.value).run()}
-            className="h-5 w-5 rounded-btn border border-border-soft transition-colors hover:border-foreground"
+            className="h-5 w-5 border border-border-soft transition-colors hover:border-foreground"
             style={{ backgroundColor: c.value }}
             aria-label={`글자색 ${c.label}`}
             title={c.label}
@@ -513,7 +513,7 @@ export function NoticeEditor({
               }
               className={
                 f.value
-                  ? "h-5 w-5 rounded-btn border border-border-soft transition-colors hover:border-foreground"
+                  ? "h-5 w-5 border border-border-soft transition-colors hover:border-foreground"
                   : `${toolBtn(false)} h-5 px-1.5 py-0 leading-none`
               }
               style={f.value ? { backgroundColor: f.value } : undefined}
@@ -550,7 +550,7 @@ export function NoticeEditor({
             onChange={(e) => onChange(e.target.value)}
             rows={16}
             spellCheck={false}
-            className="min-h-[180px] w-full rounded-b-btn border border-t-0 border-border-soft bg-surface px-3 py-2.5 font-mono text-xs leading-6 focus:border-foreground focus:outline-none"
+            className="min-h-[180px] w-full border border-t-0 border-border-soft bg-surface px-3 py-2.5 font-mono text-xs leading-6 focus:border-foreground focus:outline-2 focus:outline-accent"
           />
           <p className="mt-1.5 text-xs text-muted">
             HTML을 직접 씁니다. 접고 펼치는 문단은 툴바의 &ldquo;+ 접기/펼치기&rdquo; 버튼으로

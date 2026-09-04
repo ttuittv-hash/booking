@@ -74,14 +74,14 @@ export function FaqAccordion({ faqs }: { faqs: Faq[] }) {
           onClick={() => setOpenId(isOpen ? null : faq.id)}
           className="group flex w-full items-start justify-between gap-6 px-4 py-5 text-left transition-colors hover:bg-foreground/[0.04] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-foreground"
         >
-          <span className="min-w-0 break-keep text-m font-bold">{faq.question}</span>
+          <span className="min-w-0 break-keep text-s font-bold">{faq.question}</span>
           <span className="mt-px text-muted transition-colors group-hover:text-foreground">
             <ChevronToggle open={isOpen} />
           </span>
         </button>
         {isOpen && (
           <div id={panelId} className="px-4 pb-6">
-            <p className="whitespace-pre-wrap break-keep text-m text-muted-strong">
+            <p className="whitespace-pre-wrap break-keep text-s leading-7 text-muted-strong">
               {faq.answer}
             </p>
           </div>
@@ -98,14 +98,14 @@ export function FaqAccordion({ faqs }: { faqs: Faq[] }) {
     <div className="space-y-10">
       {groups.map((group) => (
         <section key={group.tag} className="grid-site">
-          <div className="lg:col-span-2">
+          <div className="lg:col-span-3">
             {/* 첫 질문의 글줄과 같은 높이에서 시작한다(행 패딩 20 만큼 내린다).
                 자기 질문들이 흐르는 동안 왼쪽에 붙어 따라온다 — 규약 목차와 같은 오프셋 */}
             <h3 className="type-kr-heading break-keep text-h5-m sm:text-h5 lg:sticky lg:top-[calc(var(--header-h)+2.5rem)] lg:pt-5">
               {group.tag}
             </h3>
           </div>
-          <ul className="min-w-0 border-t border-border/25 lg:col-span-4">
+          <ul className="min-w-0 border-t border-border/25 lg:col-span-9">
             {group.items.map(renderItem)}
           </ul>
         </section>

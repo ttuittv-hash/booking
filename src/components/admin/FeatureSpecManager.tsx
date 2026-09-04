@@ -407,7 +407,7 @@ function MenuTreeDiagram({
     onChange(updateTreeLeaf(rows, levelKeys, path, field, value));
 
   return (
-    <div className="mt-2 overflow-x-auto rounded-surface border border-border-soft bg-panel p-4">
+    <div className="mt-2 overflow-x-auto border border-border-soft bg-panel p-4">
       {tree.length === 0 && <p className="px-1 py-2 text-xs text-muted">항목이 없습니다.</p>}
       <ul className="flex flex-col">
         {tree.map((node, i) => (
@@ -596,7 +596,7 @@ export function FeatureSpecManager({
               type="button"
               onClick={() => selectSheet(key)}
               className={[
-                "flex h-10 shrink-0 items-center justify-between gap-2 whitespace-nowrap rounded-btn border px-3 text-left text-s font-bold outline-none transition-colors",
+                "flex h-10 shrink-0 items-center justify-between gap-2 whitespace-nowrap border px-3 text-left text-s font-bold outline-none transition-colors",
                 activeSheet === key
                   ? "border-foreground bg-inverse-bg text-inverse-fg"
                   : "border-transparent text-muted hover:border-border-soft hover:text-foreground",
@@ -694,7 +694,7 @@ export function FeatureSpecManager({
                         title="이 행을 선택 — 다음 '행 추가'가 이 행 바로 뒤에 들어감"
                         onClick={() => setSelectedRowIdx((prev) => (prev === rowIdx ? null : rowIdx))}
                         className={[
-                          "h-3.5 w-3.5 rounded-btn border transition-colors",
+                          "h-3.5 w-3.5 border transition-colors",
                           selectedRowIdx === rowIdx
                             ? "border-foreground bg-inverse-bg"
                             : "border-border-soft hover:border-foreground",

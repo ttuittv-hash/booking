@@ -21,7 +21,7 @@ export function NotificationList({
         const body = rest.join("\n").trim();
         const href = n.link ?? (n.quoteId ? `${fallbackPrefix}/${n.quoteId}` : fallbackPrefix);
         return (
-          <li key={n.id} className="border-b border-border/25">
+          <li key={n.id} className="border-b border-border/20">
             <Link
               href={href}
               className={`flex gap-3 px-1 py-4 transition-colors hover:bg-foreground/[0.03] ${

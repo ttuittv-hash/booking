@@ -1,6 +1,6 @@
 "use client";
 
-import { ICON_BTN_SM, toggleClass } from "@/components/ui/kit";
+import { btnClass, ICON_BTN_SM, toggleClass } from "@/components/ui/kit";
 
 import { useState } from "react";
 import { isoDate, isWeekendDate } from "@/lib/pricing/dateRange";
@@ -181,7 +181,7 @@ export function MidHallCalendar({
                       disabled={!interactable}
                       onClick={() => setOpenDate(openDate === iso ? null : iso)}
                       className={[
-                        "flex h-14 flex-col items-center justify-center gap-0.5 rounded-btn text-xs transition-colors sm:h-16",
+                        "flex h-14 flex-col items-center justify-center gap-0.5 text-xs transition-colors sm:h-16",
                         !inMonth
                           ? "cursor-default text-transparent"
                           : blocked
@@ -203,7 +203,7 @@ export function MidHallCalendar({
               </div>
 
               {openInThisRow && openDate && (
-                <div className="mt-1.5 rounded-btn border border-border/25 px-3 py-2.5">
+                <div className="mt-1.5 border border-border/40 px-3 py-2.5">
                   <div className="flex items-center justify-between">
                     <div className="text-xs font-bold text-foreground">
                       {formatDateLabel(openDate)}
@@ -223,21 +223,36 @@ export function MidHallCalendar({
                     <button
                       type="button"
                       onClick={() => setRole(openDate, "SETUP")}
-                      className={toggleClass(days[openDate]?.role === "SETUP")}
+                      className={[
+                        "inline-flex h-8 items-center border px-3 text-xs font-bold transition-colors",
+                        days[openDate]?.role === "SETUP"
+                          ? "border-foreground bg-inverse-bg text-inverse-fg"
+                          : "border border-border/25 text-muted hover:border-foreground hover:text-foreground",
+                      ].join(" ")}
                     >
                       셋업
                     </button>
                     <button
                       type="button"
                       onClick={() => setRole(openDate, "PERFORMANCE")}
-                      className={toggleClass(days[openDate]?.role === "PERFORMANCE")}
+                      className={[
+                        "inline-flex h-8 items-center border px-3 text-xs font-bold transition-colors",
+                        days[openDate]?.role === "PERFORMANCE"
+                          ? "border-foreground bg-inverse-bg text-inverse-fg"
+                          : "border border-border/25 text-muted hover:border-foreground hover:text-foreground",
+                      ].join(" ")}
                     >
                       공연일
                     </button>
                     <button
                       type="button"
                       onClick={() => setRole(openDate, "LOAD_OUT")}
-                      className={toggleClass(days[openDate]?.role === "LOAD_OUT")}
+                      className={[
+                        "inline-flex h-8 items-center border px-3 text-xs font-bold transition-colors",
+                        days[openDate]?.role === "LOAD_OUT"
+                          ? "border-foreground bg-inverse-bg text-inverse-fg"
+                          : "border border-border/25 text-muted hover:border-foreground hover:text-foreground",
+                      ].join(" ")}
                     >
                       철수
                     </button>
@@ -245,13 +260,13 @@ export function MidHallCalendar({
                       type="button"
                       onClick={() => removeDate(openDate)}
                       disabled={!days[openDate]}
-                      className={toggleClass(false, false, "danger")}
+                      className={btnClass("danger", "sm")}
                     >
                       삭제
                     </button>
                   </div>
                   {days[openDate]?.role === "PERFORMANCE" && (
-                    <div className="mt-2.5 flex flex-wrap items-center gap-x-5 gap-y-2 border-t border-border/25 pt-2.5">
+                    <div className="mt-2.5 flex flex-wrap items-center gap-x-5 gap-y-2 border-t border-foreground/20 pt-2.5">
                       <div className="flex items-center gap-2">
                         <span className="text-xs text-muted">공연 회차</span>
                         <button
@@ -276,7 +291,7 @@ export function MidHallCalendar({
                     </div>
                   )}
                   {days[openDate]?.role === "LOAD_OUT" && (
-                    <div className="mt-2.5 flex items-center gap-2 border-t border-border/25 pt-2.5">
+                    <div className="mt-2.5 flex items-center gap-2 border-t border-foreground/20 pt-2.5">
                       <span className="text-xs text-muted">철수 Load-Out 연장(전체 일정 공통)</span>
                       <button
                         type="button"
@@ -297,7 +312,7 @@ export function MidHallCalendar({
                     </div>
                   )}
                   {days[openDate]?.role === "SETUP" && (
-                    <div className="mt-2.5 flex items-center gap-2 border-t border-border/25 pt-2.5">
+                    <div className="mt-2.5 flex items-center gap-2 border-t border-foreground/20 pt-2.5">
                       <span className="text-xs text-muted">셋업 연장(22:00~24:00, 전체 일정 공통)</span>
                       <button
                         type="button"

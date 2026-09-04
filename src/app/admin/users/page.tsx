@@ -45,7 +45,7 @@ export default async function AdminUsersPage() {
       <AdminNav active="/admin/users" user={user} />
 
       <main className="mx-auto w-full max-w-4xl flex-1 px-6 py-8 sm:py-10">
-        <header className="border-b border-border/25 pb-6">
+        <header className="border-b border-border/20 pb-6">
           <h1 className={PAGE_TITLE}>운영자 계정 관리</h1>
           <p className={PAGE_LEAD}>
             이 화면에서 생성한 계정은 일반관리자로 시작하며, 신청 심사·계약·정산·요금표 관리에

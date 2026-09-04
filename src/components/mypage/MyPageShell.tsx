@@ -75,14 +75,14 @@ export function MyPageMenu({
       .filter((i) => i.href !== "/mypage/members" || isMaster),
   }));
   return (
-    <nav aria-label="마이페이지 메뉴" className="lg:col-span-2">
+    <nav aria-label="마이페이지 메뉴" className="lg:col-span-3">
       <div className="space-y-8 lg:sticky lg:top-[calc(var(--header-h)+2.5rem)]">
         {menu.map((group) => (
           <div key={group.label}>
             <p className="text-xs font-bold text-muted">{group.label}</p>
             <ul className="mt-3 border-t border-border/25">
               {group.items.map((item) => (
-                <li key={item.href} className="border-b border-border/25">
+                <li key={item.href} className="border-b border-border/15">
                   <Link
                     href={item.href}
                     aria-current={active === item.href ? "page" : undefined}
@@ -133,7 +133,7 @@ export function MyPageShell({
         <Band tone="light">
           <div className="grid-site">
             <MyPageMenu active={active} isMaster={user.companyRole === "MASTER"} />
-            <div className="min-w-0 lg:col-span-4">{children}</div>
+            <div className="min-w-0 lg:col-span-9">{children}</div>
           </div>
         </Band>
       </main>

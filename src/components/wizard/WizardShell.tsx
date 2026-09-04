@@ -622,7 +622,7 @@ export function WizardShell({
       콘텐츠 트랙은 min-w-0 로 묶어 스텝 전환 시 폭이 변하지 않게 한다.
     */
     <div className="container-site grid-site w-full gap-y-10 py-10 sm:py-12">
-      <div className="min-w-0 lg:col-span-4">
+      <div className="min-w-0 lg:col-span-9">
         <StepNav step={step} maxUnlockedStep={maxUnlockedStep} onJump={goTo} />
 
         {step === 1 && (
@@ -633,9 +633,9 @@ export function WizardShell({
             </div>
 
             {selection.venueId && (
-              /* 한 단계 안의 두 번째 블록 — 가로선이 아니라 흰 면 카드로 나눈다
-                 (구성·옵션의 「선택 옵션」과 같은 규칙) */
-              <div className="mt-10 rounded-surface bg-panel p-5">
+              /* 한 단계 안의 두 번째 블록 — 박스로 싸지 않고 굵은 헤어라인으로만 나눈다
+                 (신청자 정보의 "자료 첨부"와 같은 규칙) */
+              <div className="mt-10 border-t-2 border-foreground pt-5">
                 <h3 className="type-kr-heading text-h6-m">{t("wizardShell.scheduleHeading", "일정 선택")}</h3>
                 {selection.bookingMode === "SIMULTANEOUS" && (
                   <p className="mt-1.5 text-s text-muted">
@@ -648,7 +648,7 @@ export function WizardShell({
                 {/* [개정 2026-08-21] 아레나만/중형만/동시 대관 세 경우 모두 같은 탭 구조를
                     쓴다 — 선택하지 않은 공간의 탭은 감춰지지 않고 비활성(disabled)으로만
                     남아, 캘린더 슬롯 디자인 자체가 공간 선택에 따라 달라 보이지 않게 한다. */}
-                <div className="mt-5 flex gap-1 border-b border-border/25">
+                <div className="mt-5 flex gap-1 border-b border-border">
                   {/* 「패키지」는 한 달력에서 아레나·중형을 함께 짠다(역할 선택이 두 줄) —
                       중형 탭을 따로 두면 같은 일정을 두 군데서 잡는 것처럼 읽힌다.
                       그래서 이때는 탭을 하나만 세운다(2026-09-02). */}

@@ -1,9 +1,8 @@
 "use client";
 
-import type { ReactNode } from "react";
+import { useRef, type ReactNode } from "react";
 import Link from "next/link";
-import { ArrowRight, btnClass } from "@/components/ui/kit";
-import { FilePicker } from "@/components/ui/FilePicker";
+import { btnClass } from "@/components/ui/kit";
 import type { SafetyPledge } from "@/lib/pricing/types";
 import { useWizardText } from "@/lib/content/wizardText";
 import { SignaturePad } from "./SignaturePad";
@@ -70,6 +69,41 @@ export function validateSafetyPledgeStep(
   return null;
 }
 
+function FileSlot({
+  label,
+  file,
+  onChange,
+}: {
+  label: ReactNode;
+  file: File | null;
+  onChange: (file: File | null) => void;
+}) {
+  const { t } = useWizardText();
+  const inputRef = useRef<HTMLInputElement>(null);
+  return (
+    <div className="flex items-center justify-between gap-3 px-5 py-4">
+      <div className="min-w-0">
+        <span className="text-s font-bold text-foreground">
+          {label} <span className="text-danger">*</span>
+        </span>
+        {file && <p className="mt-0.5 truncate text-xs text-muted">{file.name}</p>}
+      </div>
+      <input
+        ref={inputRef}
+        type="file"
+        className="hidden"
+        onChange={(e) => onChange(e.target.files?.[0] ?? null)}
+      />
+      <button
+        type="button"
+        onClick={() => inputRef.current?.click()}
+        className={`${btnClass("primary", "sm")} shrink-0`}
+      >
+        {t("safetyPledge.uploadButton", "업로드")}
+      </button>
+    </div>
+  );
+}
 
 export function StepSafetyPledge({
   pledge,
@@ -105,12 +139,12 @@ export function StepSafetyPledge({
     <section>
       <StepHeading title={title} lead={lead} />
 
-      <label className="mt-6 flex cursor-pointer items-center gap-2.5 rounded-btn border border-border bg-panel px-5 py-3.5">
+      <label className="mt-6 flex cursor-pointer items-center gap-2.5 border border-border bg-panel px-5 py-3.5">
         <input
           type="checkbox"
           checked={allChecked}
           onChange={(e) => toggleAll(e.target.checked)}
-          className="h-4 w-4"
+          className="h-4 w-4 accent-[var(--accent)]"
         />
         <span className="text-s font-bold text-foreground">{t("safetyPledge.allAgree", "전체 동의")}</span>
       </label>
@@ -121,14 +155,14 @@ export function StepSafetyPledge({
             key={item.key}
             className={[
               "flex cursor-pointer items-start gap-3 px-5 py-4",
-              i > 0 ? "border-t border-border/25" : "",
+              i > 0 ? "border-t border-border" : "",
             ].join(" ")}
           >
             <input
               type="checkbox"
               checked={pledge[item.key]}
               onChange={(e) => onChange({ ...pledge, [item.key]: e.target.checked })}
-              className="mt-0.5 h-4 w-4"
+              className="mt-0.5 h-4 w-4 accent-[var(--accent)]"
             />
             <span className={`text-s leading-6 ${item.emphasize ? "font-bold text-foreground" : "text-foreground"}`}>
               {t(`safetyPledge.items.${item.key}`, item.defaultLabel)}
@@ -144,12 +178,9 @@ export function StepSafetyPledge({
         href="/rules"
         target="_blank"
         rel="noopener noreferrer"
-        // 새 창으로 규약 원문을 여는 자리 — 홈 히어로의 주 버튼과 같은 규격이다
-        // (primary·lg, 화살표). 이 화면에서 밖으로 나가는 유일한 이동이라 주 버튼으로 둔다.
-        className={`${btnClass("primary", "lg")} mt-4`}
+        className="mt-4 inline-flex items-center gap-1 text-s font-bold text-foreground underline decoration-accent decoration-2 underline-offset-4"
       >
-        {t("safetyPledge.viewRulesLinkLabel", "대관 규약 보기")}
-        <ArrowRight />
+        {t("safetyPledge.viewRulesLinkLabel", "대관 규약 보기")} ↗
       </Link>
 
       <div className="mt-6">
@@ -164,17 +195,18 @@ export function StepSafetyPledge({
         />
       </div>
 
-      <div className="mt-8 rounded-surface bg-panel p-5">
+      <div className="mt-8 border-t border-border/25 pt-5">
         <h3 className="type-kr-heading text-h6-m">{t("safetyPledge.documentsHeading", "제출 서류")}</h3>
         <p className="mt-1 mb-4 break-keep text-xs leading-6 text-muted">
           {t("safetyPledge.documentsHint", "아래 서류를 준비해 각각 업로드해 주세요.")}
         </p>
-        <FilePicker
-          label={t("safetyPledge.safetyPlanLabel", "공연·행사 안전관리계획서")}
-          required
-          onChange={(e) => onSafetyPlanFileChange(e.target.files?.[0] ?? null)}
-          files={safetyPlanFile ? [{ name: safetyPlanFile.name, size: safetyPlanFile.size }] : []}
-        />
+        <div className="border border-border">
+          <FileSlot
+            label={t("safetyPledge.safetyPlanLabel", "공연·행사 안전관리계획서")}
+            file={safetyPlanFile}
+            onChange={onSafetyPlanFileChange}
+          />
+        </div>
       </div>
     </section>
   );

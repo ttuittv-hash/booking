@@ -26,7 +26,7 @@ export function VenueSplitTabBar({
     <div className="mt-5 flex flex-wrap items-center justify-between gap-2 border-b border-border/25">
       <div className="flex gap-1">
         {!midHallDifferent && (
-          <span className="flex h-10 items-center border-b border-border/25 px-4 text-s font-bold text-foreground">공통</span>
+          <span className="flex h-10 items-center border-b-2 border-foreground px-4 text-s font-bold text-foreground">공통</span>
         )}
         {midHallDifferent && (
           <>

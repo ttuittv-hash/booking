@@ -87,7 +87,7 @@ export function CompanyMembersPanel({
           return (
             <li
               key={m.id}
-              className="flex flex-wrap items-center justify-between gap-3 rounded-btn border border-border-soft px-4 py-3"
+              className="flex flex-wrap items-center justify-between gap-3 border border-border-soft px-4 py-3"
             >
               <span className="flex flex-wrap items-center gap-2 text-s">
                 <span
@@ -100,7 +100,7 @@ export function CompanyMembersPanel({
                 {/* 이름을 누르면 회원 상세로 간다 — 진위확인 배지와 신청 내역이 거기 있다. */}
                 <Link
                   href={`/admin/applicants/${m.id}`}
-                  className="font-bold underline decoration-border-soft underline-offset-4 transition-colors hover:decoration-foreground"
+                  className="font-bold underline decoration-border-soft underline-offset-4 transition-colors hover:decoration-accent"
                 >
                   {m.name}
                 </Link>

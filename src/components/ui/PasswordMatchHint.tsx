@@ -10,7 +10,7 @@ function IconCircle({ tone, children }: { tone: "ok" | "danger"; children: React
   return (
     <span
       aria-hidden
-      className={`flex h-4 w-4 shrink-0 items-center justify-center rounded-full text-xs font-bold leading-none text-background ${
+      className={`flex h-4 w-4 shrink-0 items-center justify-center rounded-full text-[10px] font-bold leading-none text-background ${
         tone === "ok" ? "bg-ok" : "bg-danger"
       }`}
     >

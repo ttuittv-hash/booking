@@ -1,6 +1,6 @@
 "use client";
 
-import { ICON_BTN_SM, toggleClass } from "@/components/ui/kit";
+import { btnClass, ICON_BTN_SM, toggleClass } from "@/components/ui/kit";
 
 import { useState } from "react";
 import { isoDate, resolveSelectedDates } from "@/lib/pricing/dateRange";
@@ -354,16 +354,13 @@ export function Step1Calendar({
                         if (calWeek.weekOfMonth !== null) selectWeek(calWeek.weekOfMonth);
                       }}
                       className={[
-                        // 높이를 못 박지 않는다 — 동시 대관이면 한 칸에 "아레나 세팅"·"중형 세팅"이
-                        // 두 줄로 들어가는데, 고정 높이면 글자가 칸 밖으로 삐져나온다.
-                        // 최소 높이만 두고 내용만큼 늘어나게 하면 그 줄 전체가 함께 커진다.
-                        "flex min-h-9 flex-col items-center justify-center gap-0.5 rounded-btn px-1 py-1.5 text-xs sm:min-h-11 sm:text-s",
+                        "flex h-9 flex-col items-center justify-center gap-0.5 text-xs sm:h-11 sm:text-s",
                         cellBlocked
                           ? "cursor-not-allowed text-muted line-through"
                           : isActive
                             ? "cursor-pointer bg-accent-soft font-bold text-foreground"
                             : isExtendable
-                              ? "cursor-pointer rounded-btn border border-dashed border-foreground/50 text-muted hover:border-foreground hover:text-foreground"
+                              ? "cursor-pointer border border-dashed border-foreground/50 text-muted hover:border-foreground hover:text-foreground"
                               : !inMonth
                                 ? "cursor-default text-muted/40"
                                 : isMonday
@@ -406,7 +403,7 @@ export function Step1Calendar({
               </div>
 
               {openInThisRow && openDate && (
-                <div className="mt-1.5 rounded-btn border border-border/25 px-3 py-2.5">
+                <div className="mt-1.5 border border-border/40 px-3 py-2.5">
                   <div className="flex items-center justify-between">
                     <div className="text-xs font-bold text-foreground">
                       {formatDateLabel(openDate)}
@@ -432,21 +429,39 @@ export function Step1Calendar({
                     <button
                       type="button"
                       onClick={() => setRole(openDate, "PREP")}
-                      className={toggleClass(activeDateKeys.has(dateKey(new Date(openDate))) && effectiveDayTag(openDate, dayTags, dayTagDefaults) === "PREP")}
+                      className={[
+                        "inline-flex h-8 items-center border px-3 text-xs font-bold transition-colors",
+                        activeDateKeys.has(dateKey(new Date(openDate))) &&
+                        effectiveDayTag(openDate, dayTags, dayTagDefaults) === "PREP"
+                          ? "border-foreground bg-inverse-bg text-inverse-fg"
+                          : "border border-border/25 text-muted hover:border-foreground hover:text-foreground",
+                      ].join(" ")}
                     >
                       셋업
                     </button>
                     <button
                       type="button"
                       onClick={() => setRole(openDate, "PERFORMANCE")}
-                      className={toggleClass(activeDateKeys.has(dateKey(new Date(openDate))) && effectiveDayTag(openDate, dayTags, dayTagDefaults) === "PERFORMANCE")}
+                      className={[
+                        "inline-flex h-8 items-center border px-3 text-xs font-bold transition-colors",
+                        activeDateKeys.has(dateKey(new Date(openDate))) &&
+                        effectiveDayTag(openDate, dayTags, dayTagDefaults) === "PERFORMANCE"
+                          ? "border-foreground bg-inverse-bg text-inverse-fg"
+                          : "border border-border/25 text-muted hover:border-foreground hover:text-foreground",
+                      ].join(" ")}
                     >
                       공연일
                     </button>
                     <button
                       type="button"
                       onClick={() => setRole(openDate, "LOAD_OUT")}
-                      className={toggleClass(activeDateKeys.has(dateKey(new Date(openDate))) && effectiveDayTag(openDate, dayTags, dayTagDefaults) === "LOAD_OUT")}
+                      className={[
+                        "inline-flex h-8 items-center border px-3 text-xs font-bold transition-colors",
+                        activeDateKeys.has(dateKey(new Date(openDate))) &&
+                        effectiveDayTag(openDate, dayTags, dayTagDefaults) === "LOAD_OUT"
+                          ? "border-foreground bg-inverse-bg text-inverse-fg"
+                          : "border border-border/25 text-muted hover:border-foreground hover:text-foreground",
+                      ].join(" ")}
                     >
                       철수
                     </button>
@@ -460,7 +475,7 @@ export function Step1Calendar({
                         if (kind.kind === "extra") return kind.index !== extraDays - 1; // 맨 마지막 추가일만 뗄 수 있음
                         return true; // extend — 아직 추가되지 않아 뗄 것이 없음
                       })()}
-                      className={toggleClass(false, false, "danger")}
+                      className={btnClass("danger", "sm")}
                     >
                       삭제
                     </button>
@@ -474,7 +489,7 @@ export function Step1Calendar({
                           // 공간이 하나뿐일 때는 버튼 줄과 회차를 헤어라인으로 나눈다.
                           // 두 줄일 때는 바로 아래 「중형 공연장」 구분선이 그 일을 하므로
                           // 선을 겹쳐 긋지 않는다.
-                          twoVenueRoles ? "" : "border-t border-border/25 pt-2.5",
+                          twoVenueRoles ? "" : "border-t border-foreground/20 pt-2.5",
                         ].join(" ")}
                       >
                         <span className="text-xs text-muted">
@@ -520,7 +535,12 @@ export function Step1Calendar({
                             key={role}
                             type="button"
                             onClick={() => setMidHallRole(openDate, role)}
-                            className={toggleClass(midHall[openDate]?.role === role)}
+                            className={[
+                              "inline-flex h-8 items-center border px-3 text-xs font-bold transition-colors",
+                              midHall[openDate]?.role === role
+                                ? "border-foreground bg-inverse-bg text-inverse-fg"
+                                : "border border-border/25 text-muted hover:border-foreground hover:text-foreground",
+                            ].join(" ")}
                           >
                             {label}
                           </button>

@@ -40,10 +40,10 @@ export const FIELD_LABEL = "mb-1.5 block text-xs text-muted";
 /* ------------------------------------------------------------- 지면 ------ */
 
 /** 흰 패널 (지면이 background 이므로 구획은 패널 면 + 헤어라인으로) */
-export const PANEL = "rounded-surface border border-border-soft bg-panel p-4 sm:p-5";
+export const PANEL = "border border-border-soft bg-panel p-4 sm:p-5";
 
 /** 반복 항목 카드 */
-export const CARD = "rounded-surface border border-border-soft bg-panel p-4";
+export const CARD = "border border-border-soft bg-panel p-4";
 
 /* ------------------------------------------------------------- 버튼 ------ */
 /* 버튼은 kit 의 btnClass(primary | secondary | tertiary | danger) 만 쓴다.
@@ -53,11 +53,11 @@ export const CARD = "rounded-surface border border-border-soft bg-panel p-4";
 
 /** 점선 추가 버튼 — 행 안(32) */
 export const ADD_BTN =
-  "inline-flex h-8 items-center rounded-btn border border-dashed border-border-soft px-4 text-xs font-bold text-muted transition-colors hover:border-foreground hover:text-foreground focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-foreground";
+  "inline-flex h-8 items-center border border-dashed border-border-soft px-4 text-xs font-bold text-muted transition-colors hover:border-foreground hover:text-foreground focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-foreground";
 
 /** 점선 추가 버튼 — 목록 하단(40) */
 export const ADD_BTN_LG =
-  "inline-flex h-10 items-center rounded-btn border border-dashed border-border-soft px-5 text-xs font-bold text-muted transition-colors hover:border-foreground hover:text-foreground focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-foreground";
+  "inline-flex h-10 items-center border border-dashed border-border-soft px-5 text-xs font-bold text-muted transition-colors hover:border-foreground hover:text-foreground focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-foreground";
 
 /** 삭제/제거 — 파괴적 동작은 색(text-danger)으로만 신호한다 */
 export const REMOVE_BTN =
@@ -85,7 +85,7 @@ export const QUIET_BTN = "text-xs text-muted transition-colors hover:text-foregr
  * 헤더 밑으로 파고들어 가려진다.
  */
 export const TAB_BAR =
-  "sticky top-[6.25rem] z-10 -mx-6 flex h-12 items-center gap-1 overflow-x-auto whitespace-nowrap border-b border-border/25 bg-background px-6 [contain:paint] sm:top-[6.75rem] lg:top-16";
+  "sticky top-[6.25rem] z-10 -mx-6 flex h-12 items-center gap-1 overflow-x-auto whitespace-nowrap border-b border-border/20 bg-background px-6 [contain:paint] sm:top-[6.75rem] lg:top-16";
 
 /** 활성 탭은 옐로 하단 바 + 검정 텍스트. 높이는 버튼과 같은 단(40)으로 고정한다 */
 export function tabCls(active: boolean) {
@@ -110,7 +110,7 @@ export function tabCls(active: boolean) {
    ========================================================================= */
 
 /** 바깥 컨테이너 — 1px 보더, 샤프 코너 */
-export const TABLE_CARD = "rounded-btn border border-border-soft bg-panel";
+export const TABLE_CARD = "border border-border-soft bg-panel";
 
 /** 상단 헤더 행 — 좌: 제목 + 한 줄 설명 / 우: 액션 버튼 */
 export const TABLE_HEAD =

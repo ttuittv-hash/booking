@@ -17,13 +17,12 @@ import { QueryTabs } from "@/components/ui/QueryTabs";
 import { VENUE_TABS, VENUE_TAB_PARAM } from "@/components/ui/nav-items";
 import {
   Band,
-  EYEBROW_CAPS,
   PageHead,
   Prose,
   RichText,
   SectionHead,
   StatCards,
-  headingFontClass,
+  TitledCard,
 } from "@/components/ui/kit";
 
 export const metadata: Metadata = {
@@ -51,23 +50,12 @@ function RateCards({ rowLabels, columns }: { rowLabels: string[]; columns: RateC
   const priceIndex = rowLabels.length - 1;
   // 중형공연장은 행이 「대관료」 하나뿐이라 수용 규모·구성 줄이 없다.
   const hasSpecRows = priceIndex > 0;
-  /*
-    한 줄에 서는 장수는 **카드 수가 정한다.**
-
-    세 장 이하면 3-up 격자에 놓는다 — 카드 하나가 지면 2칼럼이라 좌우 선이 격자에
-    그대로 떨어진다. 올인원처럼 한 장뿐이어도 같은 폭으로 서고 오른쪽이 빈다.
-    한 장이라고 지면을 다 채우면 그 카드만 다른 화면의 카드보다 세 배 넓어진다.
-
-    네 장이면 4-up 으로 한 줄에 다 선다 — 3-up 으로 두면 마지막 한 장만 다음 줄에
-    홀로 남는다.
-  */
-  const cols = columns.length <= 3 ? "lg:grid-cols-3" : "lg:grid-cols-4";
   return (
-    <ul className={`mt-head-block grid gap-gutter sm:grid-cols-2 ${cols}`}>
+    <ul className="mt-10 grid gap-[var(--gutter)] sm:grid-cols-2 lg:grid-cols-12">
       {columns.map((col) => (
-        <li key={col.key} className="lg:col-span-1">
-          <article className="flex h-full min-w-0 flex-col justify-between rounded-surface bg-panel p-card-pad">
-            <p className={EYEBROW_CAPS}>
+        <li key={col.key} className="lg:col-span-3">
+          <article className="flex h-full min-w-0 flex-col border border-border bg-panel p-6">
+            <p className="text-xs font-extrabold uppercase tracking-normal text-muted [font-family:Archivo,sans-serif]">
               {col.name}
             </p>
             {hasSpecRows && (
@@ -115,9 +103,7 @@ function RateCards({ rowLabels, columns }: { rowLabels: string[]; columns: RateC
                     key={`${e.label}-${i}`}
                     className="flex flex-wrap items-baseline justify-between gap-x-3"
                   >
-                    {/* 항목 이름과 값은 **크기·굵기·서체가 같고 색만 다르다** —
-                        한 줄에 나란히 놓이는 짝이라, 크기까지 다르면 두 줄로 읽힌다 */}
-                    <dt className="whitespace-pre-line text-s font-bold text-muted">{e.label}</dt>
+                    <dt className="whitespace-pre-line text-xs text-muted">{e.label}</dt>
                     <dd className="whitespace-pre-line break-keep text-s font-bold tabular-nums">
                       {e.value}
                     </dd>
@@ -140,17 +126,15 @@ function RateCards({ rowLabels, columns }: { rowLabels: string[]; columns: RateC
  */
 function IncludeCard({ group }: { group: RateIncludeGroup }) {
   return (
-    <article className="flex h-full min-w-0 flex-col rounded-surface bg-panel p-card-pad lg:col-span-3">
+    <TitledCard title={group.title}>
       {/*
-        [개정 2026-09-04] 카드 위의 검정 머리 띠를 걷어내고 제목을 그냥 헤딩으로 둔다 —
-        수용인원 카드와 같은 규격이다. 사이트에서 이 두 곳만 머리 띠를 쓰고 있었다.
-
-        · 표 맨 위 가로줄은 두지 않는다 — 제목과 첫 항목 사이에 경계가 두 겹으로 쌓인다.
+        [개정 2026-09-03]
+        · 표 맨 위 가로줄은 두지 않는다 — 바로 위가 카드의 검정 머리라, 줄을 하나 더 그으면
+          제목과 첫 항목 사이에 경계가 두 겹으로 쌓인다. 항목 사이 줄만 남긴다.
         · 카드 안을 **3분할해 제목 1 : 설명 2** 로 잡는다. 반반이면 제목 칸이 필요 이상으로
           넓어 설명이 계속 접혔다.
       */}
-      <h4 className={`${headingFontClass(group.title)} break-keep text-h4`}>{group.title}</h4>
-      <dl className="mt-card-body">
+      <dl>
         {group.rows.map((r, i) => (
           <div
             key={`${r.label}-${i}`}
@@ -165,7 +149,7 @@ function IncludeCard({ group }: { group: RateIncludeGroup }) {
           </div>
         ))}
       </dl>
-    </article>
+    </TitledCard>
   );
 }
 
@@ -268,10 +252,10 @@ function RatePanel({ en, c }: { en: string; c: VenueRateContent }) {
 
       {/* 섹션 3 — 기본 이용 기준 */}
       {c.limits.length > 0 && (
-        <Band tone="dark">
+        <Band tone="light">
           <SectionHead title={rateSectionTitle(c, "limits")} />
           <div className="mt-10">
-            <StatCards items={c.limits} variant="card" />
+            <StatCards items={c.limits} />
           </div>
         </Band>
       )}

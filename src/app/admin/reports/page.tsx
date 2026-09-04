@@ -331,7 +331,7 @@ export default async function AdminReportsPage({
           {/* 페이지 상단 탭(TAB_BAR)이 아니라 섹션 안의 하위 탭이다 — sticky·full-bleed
               없이 탭 모양(tabCls)만 같이 쓴다. */}
           <nav
-            className="mt-2 flex h-12 items-center gap-1 overflow-x-auto whitespace-nowrap border-b border-border/25 [contain:paint]"
+            className="mt-2 flex h-12 items-center gap-1 overflow-x-auto whitespace-nowrap border-b border-border/20 [contain:paint]"
             aria-label="공간 탭"
           >
             {VENUE_TABS.map((t) => (
@@ -380,7 +380,7 @@ export default async function AdminReportsPage({
         {/* ── 매출 ───────────────────────────────────────────────────────
             금액은 접수 → 계약 → 확정 세 단계를 지난다. 한 숫자로 뭉치면
             "얼마를 벌었나"에 답할 수 없다. 공간 탭이 그대로 적용된다. */}
-        <section className="mt-10 border-t border-border/25 pt-6">
+        <section className="mt-10 border-t border-border/20 pt-6">
           <h2 className={SECTION_TITLE}>매출 · {venueLabel}</h2>
           <p className="mt-2 text-xs leading-6 text-muted">
             <b>접수</b>는 신청 시점의 견적, <b>계약</b>은 계약금액(부속합의 반영),{" "}

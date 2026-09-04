@@ -2,25 +2,16 @@ import { getCurrentUser } from "@/lib/auth";
 import { accountStateOf, canAccess } from "@/lib/accessPolicy";
 import { getHomeContent } from "@/lib/db";
 import { PublicHeader } from "@/components/PublicHeader";
-import { PhotoStage } from "@/components/home/PhotoStage";
-import { StackedStatements } from "@/components/home/StackedStatements";
+import { Manifesto } from "@/components/home/Manifesto";
 import { SiteFooter } from "@/components/ui/SiteFooter";
-import {
-  ArrowRight,
-  ButtonLink,
-  CTABand,
-  INVERSE_SURFACE_VARS,
-  Multiline,
-} from "@/components/ui/kit";
+import { ArrowRight, Band, ButtonLink, CTABand, Media, Multiline } from "@/components/ui/kit";
 
 /* ============================================================================
-   홈
+   홈 — Notion 「콘텐츠 전문 · 홈」
 
-     히어로 — 문장만으로 화면 한 판. 제목은 위(내비 아래 +80), 리드와 버튼은 아래에 붙는다.
-     사진   — 스크롤을 내리면 올라와 붙고, 2칼럼에서 지면 전체로 자란 뒤 옅어진다.
-     선언   — 검정 지면. 섹션을 붙여 둔 채 항목이 한 장씩 쌓이고, 다 붙은 뒤 흘러 나간다.
-     CTA    — 화면 한 판을 채우는 라운드 색면.
-     푸터   — 검정. 아래 절반이 검정 지면이라 푸터도 같은 지면으로 이어 둔다.
+     히어로 (디스플레이 H1 + 국문 리드 + 대관 신청)
+     → 블랙 지면 선언문 (디스플레이 H1 + 리드 + 진술 4개)
+     → 옐로 CTA
    ========================================================================= */
 
 export default async function Home({
@@ -49,7 +40,7 @@ export default async function Home({
 
       {justApproved ? (
         <div className="border-b border-accent bg-accent-soft">
-          <p className="container-site flex flex-wrap items-center gap-x-3 gap-y-1 break-keep py-3 text-s leading-6">
+          <p className="container-site flex flex-wrap items-center gap-x-3 gap-y-1 py-3 text-s leading-6 break-keep">
             <b>가입이 승인되었습니다.</b>
             <span className="text-muted">
               이제 대관 패키지 안내와 예상 견적, 대관 신청을 이용하실 수 있습니다.
@@ -59,121 +50,81 @@ export default async function Home({
       ) : null}
 
       <main className="flex flex-1 flex-col">
-        {/*
-          ── 히어로 ───────────────────────────────────────────────────────
-          첫 화면은 문장만이다. 제목은 내비 아래 80 에서 시작하고, 리드와 버튼은 화면
-          아래쪽에 붙는다 — 사이에 빈 자리를 두어 제목이 홀로 서게 한다.
-          사진은 이 아래에 있어, 스크롤을 내려야 보이기 시작한다.
-        */}
-        <section
-          className="container-site flex flex-col pb-section-lg"
-          // 첫 섹션이라 위 여백은 상단바 높이 + 섹션 위 여백이다
-          style={{
-            minHeight: "100vh",
-            paddingTop: "calc(var(--header-h) + var(--spacing-section-top))",
-          }}
-        >
-          {/*
-            히어로 한정 크기다. 좁은 화면에서 영문 제목과 국문 리드가 둘 다 40 이라
-            어느 쪽이 제목인지 알 수 없었다 — 영문은 키우고 국문은 낮춰 위계를 벌린다.
-          */}
-          <h1 className="type-display text-d2-m xl:text-d2">
+        {/* ── 히어로 ─────────────────────────────────────────────────────── */}
+        <Band tone="light" size="lg">
+          <h1 className="type-display max-w-4xl animate-[fade-up_0.7s_ease_both] text-d2-m lg:text-d2">
             <Multiline text={content.heroTitle} />
           </h1>
 
-          {/*
-            [수정] 리드를 화면 맨 아래로 밀지 않는다 — `mt-auto` 로 붙여 두었더니 큰 화면일수록
-            제목과 멀어져 둘이 다른 섹션처럼 읽혔다. 제목 아래 80 에서 시작하고, 남는 자리는
-            버튼 아래에 둔다.
-          */}
-          <div className="mt-hero-lead">
-            <p className="text-lead-m break-keep font-extrabold lg:text-lead">
-              <Multiline text={content.heroSubtitle} />
-            </p>
+          <p className="type-kr-heading mt-6 max-w-2xl animate-[fade-up_0.7s_ease_both] break-keep text-h5-m [animation-delay:120ms] sm:text-h5">
+            <Multiline text={content.heroSubtitle} />
+          </p>
 
-            {/* 워딩 아래 버튼까지는 40 — 사이트 전체에서 같은 값이다 */}
-            <div className="mt-lead-action flex flex-wrap items-center gap-inline">
-              <ButtonLink href={content.heroPrimaryHref} variant="primary" size="lg">
-                {content.heroPrimaryLabel}
+          <div className="mt-8 flex animate-[fade-up_0.7s_ease_both] flex-col items-stretch gap-3 [animation-delay:200ms] sm:flex-row sm:items-center">
+            <ButtonLink href={content.heroPrimaryHref} variant="primary">
+              {content.heroPrimaryLabel}
+              <ArrowRight />
+            </ButtonLink>
+            <ButtonLink href={content.heroSecondaryHref} variant="secondary">
+              {content.heroSecondaryLabel}
+            </ButtonLink>
+          </div>
+
+          <div className="mt-10">
+            <Media src={content.heroImage} alt="서울아레나" ratio="21 / 9" />
+          </div>
+        </Band>
+
+        {/* ── 브랜드 선언문 — 옐로 강조를 쓰기 위해 블랙 지면 위에 둔다 ──── */}
+        <Band tone="dark" size="lg">
+          <Manifesto
+            title={content.narrativeTitle}
+            lead={content.narrativeLead}
+            statements={content.narrativeStatements}
+          />
+        </Band>
+
+        {/* ── 전환 CTA ─────────────────────────────────────────────────────
+            [개정 2026-09-02] 대관 절차가 승인 완료 전용이 되면서, 승인 전 계정에게는
+            누르면 대기 안내로 되돌아오는 버튼이 됐다. 상태별로 갈 수 있는 곳을 준다.
+            판정은 헤더 메뉴와 같은 accessPolicy 를 쓴다. */}
+        {canAccess("/guide", accountStateOf(user)) ? (
+          <CTABand
+            title="당신의 무대를 지금 설계하세요."
+            lead="대관 절차와 단계별 준비 사항을 먼저 확인해 보세요."
+            actions={
+              <ButtonLink href="/guide" variant="primary">
+                대관 절차
                 <ArrowRight />
               </ButtonLink>
-              <ButtonLink href={content.heroSecondaryHref} variant="secondary" size="lg">
-                {content.heroSecondaryLabel}
+            }
+          />
+        ) : user ? (
+          <CTABand
+            title="승인이 완료되면 바로 시작할 수 있습니다."
+            lead="심사 결과는 알림으로 안내해 드립니다. 그동안 서울아레나를 둘러보세요."
+            actions={
+              <ButtonLink href="/seoularena" variant="primary">
+                서울아레나 둘러보기
+                <ArrowRight />
               </ButtonLink>
-            </div>
-          </div>
-        </section>
-
-        {/*
-          사진 무대와 검정 지면은 **같은 부모** 안에 있어야 한다 — 사진이 `sticky` 로 붙어
-          있는 동안 검정 지면이 그 위를 지나가야 하기 때문이다. 부모가 갈리면 붙어 있지
-          못하고 그냥 밀려 올라간다.
-        */}
-        <div className="relative">
-          <PhotoStage image={content.heroImage} alt="서울아레나" />
-
-          {/* 검정 지면은 토큰을 통째로 뒤집는다 — 안 그러면 헤어라인이 검정 위 검정이 된다 */}
-          <section
-            style={INVERSE_SURFACE_VARS}
-            className="relative z-10 bg-inverse-bg text-inverse-fg"
-          >
-            <StackedStatements title={content.narrativeTitle} items={content.narrativeStatements} />
-
-            {/* ── 전환 CTA ─────────────────────────────────────────────────
-                [개정 2026-09-02] 대관 절차가 승인 완료 전용이 되면서, 승인 전 계정에게는
-                누르면 대기 안내로 되돌아오는 버튼이 됐다. 상태별로 갈 수 있는 곳을 준다.
-                판정은 헤더 메뉴와 같은 accessPolicy 를 쓴다. */}
-            {canAccess("/guide", accountStateOf(user)) ? (
-              <CTABand
-                title={
-                  <>
-                    당신의 무대를
-                    <br />
-                    지금 설계하세요.
-                  </>
-                }
-                lead="대관 절차와 단계별 준비 사항을 먼저 확인해 보세요."
-                actions={
-                  <ButtonLink href="/guide" variant="primary" size="lg">
-                    대관 절차
-                    <ArrowRight />
-                  </ButtonLink>
-                }
-              />
-            ) : user ? (
-              <CTABand
-                title="승인이 완료되면 바로 시작할 수 있습니다."
-                lead="심사 결과는 알림으로 안내해 드립니다. 그동안 서울아레나를 둘러보세요."
-                actions={
-                  <ButtonLink href="/seoularena" variant="primary" size="lg">
-                    서울아레나 둘러보기
-                    <ArrowRight />
-                  </ButtonLink>
-                }
-              />
-            ) : (
-              <CTABand
-                title={
-                  <>
-                    당신의 무대를
-                    <br />
-                    지금 설계하세요.
-                  </>
-                }
-                lead="회원가입 후 승인이 완료되면 대관 절차와 예상 견적을 확인할 수 있습니다."
-                actions={
-                  <ButtonLink href="/register" variant="primary" size="lg">
-                    회원가입
-                    <ArrowRight />
-                  </ButtonLink>
-                }
-              />
-            )}
-          </section>
-        </div>
+            }
+          />
+        ) : (
+          <CTABand
+            title="당신의 무대를 지금 설계하세요."
+            lead="회원가입 후 승인이 완료되면 대관 절차와 예상 견적을 확인할 수 있습니다."
+            actions={
+              <ButtonLink href="/register" variant="primary">
+                회원가입
+                <ArrowRight />
+              </ButtonLink>
+            }
+          />
+        )}
       </main>
 
-      <SiteFooter tone="dark" />
+      <SiteFooter />
     </div>
   );
 }
