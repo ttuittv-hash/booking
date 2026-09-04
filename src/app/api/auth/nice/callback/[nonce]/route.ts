@@ -42,8 +42,14 @@ export async function GET(request: Request, context: { params: Promise<{ nonce: 
     // 다만 **반려된 신청은 가입이 아니다** — 그 사람은 다시 신청할 수 있어야 한다(R5).
     // 예전에는 여기서 먼저 막혀, 반려 통보를 받은 사람이 재신청 자체를 못 했다
     // (가입 API 쪽에는 이미 반려 예외가 있었는데 본인인증 단계에서 걸렸다, 2026-09-02).
+    // role !== "ADMIN" — 가입 API 의 명의 중복확인과 같은 예외다(2026-09-04).
     const existing = await findUserByDi(result.identity.di);
-    if (existing && existing.approvalStatus !== "REJECTED" && pending.purpose === "REGISTER") {
+    if (
+      existing &&
+      existing.role !== "ADMIN" &&
+      existing.approvalStatus !== "REJECTED" &&
+      pending.purpose === "REGISTER"
+    ) {
       return html({
         ok: false,
         duplicated: true,

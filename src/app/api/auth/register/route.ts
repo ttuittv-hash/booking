@@ -206,8 +206,12 @@ export async function POST(request: Request) {
     // 인증 시점 이후에 같은 명의로 가입이 끼어들 수 있으므로 여기서 한 번 더 본다.
     // 반려된 계정이면 이메일·휴대폰과 같은 규칙으로 자리를 비워 주고 계속 진행한다 —
     // di_index 는 유니크라 비우지 않으면 INSERT 자체가 실패한다.
+    // role !== "ADMIN" — 운영자 계정은 공개 가입으로 만들어지는 게 아니라 이 대조에서
+    // 뺀다. 서울아레나 직원이 운영자 계정을 가진 채로 같은 명의로 일반 신청자 계정도
+    // 가입할 수 있어야 하는데, 원래 신청자였다가 운영자로 승격된 계정이면 di_index 가
+    // 남아 있어 여기 걸렸다(휴대폰 중복확인과 같은 이유, 2026-09-04).
     const existingByDi = await findUserByDi(identity.di);
-    if (existingByDi) {
+    if (existingByDi && existingByDi.role !== "ADMIN") {
       if (existingByDi.approvalStatus === "REJECTED") {
         await freeRejectedIdentity(existingByDi.id);
       } else {
