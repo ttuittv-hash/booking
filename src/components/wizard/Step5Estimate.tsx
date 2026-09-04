@@ -85,9 +85,9 @@ export function Step5Estimate({
         expectedRevenue={selection.expectedRevenue ?? 0}
       />
 
-      <div className="mt-6 border border-border bg-panel/40 p-5">
+      <div className="mt-6 rounded-surface bg-panel p-5">
         {isSimultaneous && (
-          <div className="mb-3 flex items-center justify-between border-b border-border pb-3 text-s">
+          <div className="mb-3 flex items-center justify-between border-b border-border/25 pb-3 text-s">
             <span className="text-muted">{t("estimate.arenaPlusMidHallSubtotalLabel", "아레나 소계 + 중형공연장 소계")}</span>
             <span className="tabular-nums text-foreground">
               {won(arenaVisibleSubtotal)} + {won(midHallVisibleSubtotal)}
@@ -102,7 +102,7 @@ export function Step5Estimate({
           <span>{t("estimate.additionalSectionLabel", "추가 예상 금액")}</span>
           <span className="tabular-nums">{won(additionalSubtotal)}</span>
         </div>
-        <div className="mt-2.5 flex justify-between border-t border-border/60 pt-2.5 text-s text-muted">
+        <div className="mt-2.5 flex justify-between border-t border-border/25 pt-2.5 text-s text-muted">
           <span>{t("estimate.subtotalLabel", "소계 (VAT 별도)")}</span>
           <span className="tabular-nums">{won(quote.subtotal)}</span>
         </div>
@@ -110,7 +110,7 @@ export function Step5Estimate({
           <span>{t("estimate.vatLabel", "부가세 10%")}</span>
           <span className="tabular-nums">{won(quote.vat)}</span>
         </div>
-        <div className="mt-2.5 flex items-baseline justify-between border-t border-border pt-2.5">
+        <div className="mt-2.5 flex items-baseline justify-between border-t border-border/25 pt-2.5">
           <span className="text-s font-bold">{t("estimate.totalLabel", "합계")}</span>
           <span className="text-h6-m sm:text-h6 font-bold tabular-nums">{won(quote.total)}</span>
         </div>

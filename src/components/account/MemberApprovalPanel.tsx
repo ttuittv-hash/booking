@@ -51,7 +51,7 @@ function CertRow({ label, url, name }: { label: string; url: string | null; name
           href={`${url}${name ? `?name=${encodeURIComponent(name)}` : ""}`}
           target="_blank"
           rel="noopener noreferrer"
-          className="font-bold text-foreground underline decoration-accent decoration-2 underline-offset-4"
+          className="font-bold text-foreground underline decoration-2 underline-offset-4"
         >
           {name || "첨부파일"} 열기
         </a>
@@ -115,10 +115,10 @@ export function MemberApprovalPanel({
   return (
     <div className="mt-4" data-testid="member-approval-panel">
       {error ? (
-        <p className="mb-4 border border-danger/40 px-4 py-3 text-s text-danger">{error}</p>
+        <p className="mb-4 rounded-surface bg-panel px-4 py-3 text-s text-danger">{error}</p>
       ) : null}
       {done ? (
-        <p data-testid="member-action-done" className="mb-4 border border-accent px-4 py-3 text-s">
+        <p data-testid="member-action-done" className="mb-4 rounded-surface bg-panel px-4 py-3 text-s">
           {done}
         </p>
       ) : null}

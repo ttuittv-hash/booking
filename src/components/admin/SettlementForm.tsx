@@ -56,7 +56,7 @@ function ItemPicker({ label, options, onPick }: { label: string; options: Picker
         {label}
       </button>
       {open && (
-        <div className="absolute left-0 z-10 mt-1 w-72 border border-border bg-panel shadow-lg">
+        <div className="absolute left-0 z-10 mt-1 w-72 rounded-surface border border-border bg-panel shadow-lg">
           <input
             autoFocus
             value={query}
@@ -243,7 +243,7 @@ export function SettlementForm({
         />
       </div>
 
-      <div className="mt-6 flex flex-col gap-4 border-t border-border/15 pt-5 sm:flex-row sm:items-end sm:justify-between">
+      <div className="mt-6 flex flex-col gap-4 border-t border-border/25 pt-5 sm:flex-row sm:items-end sm:justify-between">
         <div>
           <div className={HELP}>
             최종 정산금액 (계약 {won(contractTotal)} + 현장추가 − 미사용 + 유틸리티)

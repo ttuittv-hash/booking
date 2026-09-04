@@ -90,9 +90,15 @@ function SectionTable({
   const textSize = dense ? "text-xs" : "text-s";
   return (
     <div className="mt-5">
-      <h4 className="mb-2 text-xs font-bold text-muted">{SECTION_LABEL[section]}</h4>
+      <h4 className="mb-2 text-xs font-bold text-foreground">{SECTION_LABEL[section]}</h4>
       <div className="overflow-x-auto">
-        <table className={`w-full border-collapse ${textSize}`}>
+        <table className={`w-full table-fixed border-collapse ${textSize}`}>
+          <colgroup>
+            <col />
+            <col className="w-[14%]" />
+            <col className="w-[24%]" />
+            <col className="w-[24%]" />
+          </colgroup>
           <thead>
             <tr className="border-b border-border text-xs font-bold text-muted">
               <th className="py-2 text-left">항목</th>
@@ -118,8 +124,8 @@ function SectionTable({
                     // 그룹 라벨은 옅은 배경 대신 굵은 텍스트 + 위 여백만으로 구분한다 —
                     // 배경을 칠하면 표 안에서 붕 뜬 "회색 줄"처럼 보인다는 지적(2026-08-23,
                     // "하얗게 들어가게 너무 이상해")에 따른 수정.
-                    <tr key={`group-${group}`} className={gi > 0 ? "border-t border-border/60" : undefined}>
-                      <td colSpan={3} className="pt-5 pb-1.5 text-left text-xs font-bold text-foreground">
+                    <tr key={`group-${group}`} className={gi > 0 ? "border-t border-border/25" : undefined}>
+                      <td colSpan={3} className="pt-5 pb-1.5 text-left text-xs font-bold break-keep text-foreground">
                         {FEE_GROUP_LABEL[group]}
                       </td>
                       <td className="pt-5 pb-1.5 text-right text-xs font-bold text-muted tabular-nums">
@@ -129,9 +135,9 @@ function SectionTable({
                     ...groupItems.map((item) => {
                       const isIncluded = item.included > 0 && item.billable === 0 && item.amount === 0;
                       return (
-                        <tr key={item.addonId} className="border-b border-border/70 tabular-nums">
+                        <tr key={item.addonId} className="border-b border-border/25 tabular-nums">
                           <td className={`${cellPad} pl-4 text-left`}>
-                            <span className="font-bold">{item.label}</span>
+                            <span className="break-keep font-bold">{item.label}</span>
                           </td>
                           <td className={`${cellPad} text-right`}>
                             {item.pricingType === "REVENUE_PERCENT"

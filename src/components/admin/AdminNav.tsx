@@ -102,7 +102,7 @@ function AccountMenu({ active, master }: { active: string; master: boolean }) {
         </svg>
       </button>
       {open && (
-        <div className="absolute right-0 top-full z-30 mt-px min-w-44 border border-border-soft bg-panel py-1.5 shadow-md">
+        <div className="absolute right-0 top-full z-30 mt-px min-w-44 rounded-surface border border-border-soft bg-panel py-1.5 shadow-md">
           {links.map((link) => (
             <Link
               key={link.href}
@@ -141,7 +141,7 @@ export function AdminNav({ active, user }: { active: string; user?: AppUser | nu
     // 두면 overflow-y도 함께 auto로 계산돼(스펙), "설정" 드롭다운 패널(하단으로
     // 튀어나오는 절대배치 요소)이 통째로 잘려 안 보이게 된다("설정 하위 메뉴가
     // 없는데?", 2026-08-22) — 실제로 겪은 회귀라 다시 넣지 않는다.
-    <header className="sticky top-0 z-20 border-b border-border/20 bg-background/95 backdrop-blur-md">
+    <header className="sticky top-0 z-20 border-b border-border/25 bg-background/95 backdrop-blur-md">
       {/* 메뉴 9개는 좁은 화면 한 줄에 못 들어간다. overflow-x-auto 는 드롭다운을 잘라
           쓸 수 없으므로(위 주석), lg 미만에서는 메뉴를 두 번째 줄로 내려 줄바꿈한다. */}
       <div className="mx-auto flex max-w-6xl flex-wrap items-center gap-x-4 px-4 sm:px-6 lg:h-16 lg:flex-nowrap">
@@ -152,13 +152,13 @@ export function AdminNav({ active, user }: { active: string; user?: AppUser | nu
         >
           Seoul Arena
         </Link>
-        <span className="hidden shrink-0 whitespace-nowrap border border-border-soft px-2 py-1 text-xs leading-none text-muted sm:inline-block">
+        <span className="hidden shrink-0 whitespace-nowrap rounded-btn border border-border-soft px-2 py-1 text-xs leading-none text-muted sm:inline-block">
           운영자 백오피스
         </span>
 
         <nav
           aria-label="백오피스 메뉴"
-          className="order-last flex w-full flex-wrap items-center gap-x-4 border-t border-border/10 lg:order-none lg:ml-auto lg:h-full lg:w-auto lg:flex-nowrap lg:border-t-0"
+          className="order-last flex w-full flex-wrap items-center gap-x-4 border-t border-border/25 lg:order-none lg:ml-auto lg:h-full lg:w-auto lg:flex-nowrap lg:border-t-0"
         >
           {primaryLinks.map((link) => (
             <Link key={link.href} href={link.href} aria-current={link.href === active ? "page" : undefined} className={navLinkCls(link.href === active)}>

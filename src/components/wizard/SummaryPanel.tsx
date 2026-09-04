@@ -51,34 +51,43 @@ export function SummaryPanel({ quote }: { quote: EstimatedQuote }) {
       : [{ items: visibleItems }];
 
   return (
-    <aside className="w-full min-w-0 lg:col-span-3 lg:sticky lg:top-28 lg:self-start">
-      <div className="border-t-2 border-foreground pt-5">
+    <aside className="w-full min-w-0 lg:col-span-2 lg:sticky lg:top-28 lg:self-start">
+      <div className="rounded-surface bg-panel p-5">
         <h3 className="type-kr-heading text-h6-m sm:text-h6">실시간 대관신청 내역</h3>
 
         {visibleItems.length === 0 ? (
-          <div className="mt-5 border-t border-border/25 border-b border-border/15 py-4 text-s text-muted">
-            공간과 일정을 선택하면 예상 금액이 표시됩니다.
-          </div>
+          /* 아직 아무것도 고르지 않은 상태다 — 한 줄짜리 안내를 표의 한 행처럼 위아래
+             선으로 가두면, 바로 아래 소계 표의 선과 겹쳐 빈 칸만 여러 겹으로 보인다. */
+          <p className="mt-5 text-s text-muted">공간과 일정을 선택하면 예상 금액이 표시됩니다.</p>
         ) : (
           groups.map((group, groupIndex) => (
             <div key={group.venue ?? "single"} className={groupIndex === 0 ? "mt-5" : "mt-6"}>
               {group.venue && (
-                <div className="border-t-2 border-foreground pt-2.5 text-left text-s font-bold text-foreground">
+                <div className="border-t border-border/25 pt-2.5 text-left text-s font-bold text-foreground">
                   {VENUE_NAME[group.venue] ?? group.venue}
                 </div>
               )}
-              {SECTION_ORDER.map((section) => {
+              {SECTION_ORDER.map((section, sectionIndex) => {
                 const sectionItems = group.items.filter((item) => sectionOf(item) === section);
                 const subtotal = sectionItems.reduce((sum, item) => sum + item.amount, 0);
+                const isEmpty = sectionItems.length === 0 && subtotal === 0;
                 return (
-                  <div key={section} className="mt-4">
-                    <p className="text-xs font-bold text-muted">{SECTION_LABEL[section]}</p>
+                  /* 「계약 내역」과 「추가 예상 금액」은 성격이 다른 두 덩어리다 —
+                     덩어리 사이 간격(48)을 줘서 항목 줄 간격과 헷갈리지 않게 한다.
+                     첫 덩어리는 바로 위 제목에 붙어야 하므로 그대로 둔다. */
+                  <div key={section} className={sectionIndex === 0 ? "mt-4" : "mt-block"}>
+                    {/* 아무것도 고르지 않은 슬롯은 제목 한 줄로 끝낸다 — 빈 목록 아래에
+                        "…₩0" 을 또 적으면 없다는 말을 두 번 하게 되고, 값이 있는 슬롯과
+                        같은 무게로 자리를 차지한다. */}
+                    <p className="text-xs font-bold text-muted">
+                      {isEmpty ? `${SECTION_LABEL[section]} 없음` : SECTION_LABEL[section]}
+                    </p>
                     {sectionItems.length > 0 && (
-                      <dl className="mt-1.5 border-t border-border/25">
+                      <dl className="mt-1.5 border-t border-border">
                         {sectionItems.map((item) => (
                           <div
                             key={item.addonId}
-                            className="flex items-baseline justify-between gap-4 border-b border-border/15 py-2.5"
+                            className="flex items-baseline justify-between gap-4 border-b border-border/25 py-2.5"
                           >
                             <dt className="text-s text-muted">
                               {item.label}
@@ -95,10 +104,12 @@ export function SummaryPanel({ quote }: { quote: EstimatedQuote }) {
                         ))}
                       </dl>
                     )}
-                    <div className="mt-1.5 flex justify-between text-xs text-muted">
-                      <span>{SECTION_SUBTOTAL_LABEL[section]}</span>
-                      <span className="tabular-nums">{won(subtotal)}</span>
-                    </div>
+                    {!isEmpty && (
+                      <div className="mt-1.5 flex justify-between text-xs text-muted">
+                        <span>{SECTION_SUBTOTAL_LABEL[section]}</span>
+                        <span className="tabular-nums">{won(subtotal)}</span>
+                      </div>
+                    )}
                   </div>
                 );
               })}
@@ -106,18 +117,21 @@ export function SummaryPanel({ quote }: { quote: EstimatedQuote }) {
           ))
         )}
 
-        <div className="mt-5">
+        {/* 소계 · 부가세 · 합계는 한 덩어리다 — 셋이 이어지는 계산이라 사이를 띄우면
+            어디서 더한 값인지 끊겨 보인다. 앞의 두 묶음(계약 내역 · 추가 예상 금액)과는
+            같은 간격으로 떨어진다. */}
+        <div className="mt-block border-t border-border">
             <dl>
-              <div className="flex items-baseline justify-between gap-4 border-t border-border/25 border-b border-border/15 py-2.5">
+              <div className="flex items-baseline justify-between gap-4 border-b border-border/25 py-2.5">
                 <dt className="text-s font-bold text-foreground">소계 (VAT 별도)</dt>
                 <dd className="text-s font-bold tabular-nums text-foreground">{won(quote.subtotal)}</dd>
               </div>
-              <div className="flex items-baseline justify-between gap-4 border-b border-border/15 py-2.5">
+              <div className="flex items-baseline justify-between gap-4 border-b border-border/25 py-2.5">
                 <dt className="text-s text-muted">부가세 10%</dt>
                 <dd className="text-s tabular-nums text-muted">{won(quote.vat)}</dd>
               </div>
             </dl>
-            <div className="flex flex-wrap items-baseline justify-between gap-3 border-b-2 border-foreground py-3">
+            <div className="flex flex-wrap items-baseline justify-between gap-3 border-b border-border/25 py-3">
               <span className="text-s font-bold text-foreground">합계</span>
               <span className="type-display text-h5-m tabular-nums sm:text-h5">
                 {won(quote.total)}

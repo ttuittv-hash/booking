@@ -65,7 +65,7 @@ export function Pagination({
             <span
               key={target}
               aria-current="page"
-              className="inline-flex h-8 min-w-8 items-center justify-center border border-foreground bg-inverse-bg px-3 text-xs font-bold tabular-nums text-inverse-fg"
+              className="inline-flex h-8 min-w-8 items-center justify-center rounded-btn border border-foreground bg-inverse-bg px-3 text-xs font-bold tabular-nums text-inverse-fg"
             >
               {target}
             </span>

@@ -28,7 +28,7 @@ const TIER_BADGE: Record<AdminTier, string> = {
 export function TierBadge({ tier }: { tier: AdminTier }) {
   return (
     <span
-      className={`inline-flex items-center border px-2.5 py-1 text-xs font-bold ${TIER_BADGE[tier]}`}
+      className={`inline-flex items-center rounded-btn border px-2.5 py-1 text-xs font-bold ${TIER_BADGE[tier]}`}
     >
       {TIER_LABEL[tier]}
     </span>

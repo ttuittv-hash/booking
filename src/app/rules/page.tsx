@@ -38,13 +38,13 @@ export default async function RulesPage() {
             lead={<Prose text={content.intro} />}
           />
           {/*
-            버전·시행일·구성, 개정 안내, 내려받기 버튼은 **지면의 절반**(12칼럼 중 6)에서
-            끝난다. `measure`(768px 고정)로 잡아 두었더니 이 블록만 컬럼 경계에서 벗어나
-            끝나서, 아래 규약 본문(목차 3 : 본문 9)과 세로선이 맞지 않았다.
-            아래 두 페이지와 같은 그리드 위에 올린다.
+            버전·시행일·구성, 개정 안내, 내려받기 버튼은 **4칼럼**에서 끝난다 —
+            바로 위 설명글과 같은 폭이라 머리 전체가 한 덩어리로 읽힌다.
+            고정 폭(768)으로 잡아 두었더니 이 블록만 컬럼 경계에서 벗어나 끝나서,
+            아래 규약 본문과 세로선이 맞지 않았다.
           */}
-          <div className="grid-site mt-10">
-            <div className="lg:col-span-6">
+          <div className="grid-site mt-head-block">
+            <div className="lg:col-span-4">
               <dl className="flex flex-wrap gap-x-10 gap-y-3">
                 {(
                   [

@@ -166,7 +166,7 @@ export function Step6Submit({
         lead={headingOverride?.lead ?? (isEditing ? stepText.submitEditingLead : stepText.submitNewLead)}
       />
 
-      <div className="mt-10 flex flex-wrap items-center justify-between gap-4 border-t-2 border-foreground pt-6">
+      <div className="mt-10 flex flex-wrap items-center justify-between gap-4 rounded-surface bg-panel p-5">
         <div>
           <div className="type-kr-heading text-h6-m">
             {venueName} · {audienceTierLabel}
@@ -274,7 +274,7 @@ export function Step6Submit({
       </div>
 
       {showConfirmation ? (
-        <div className="mt-8 border-t-2 border-foreground pt-5 text-s text-foreground">
+        <div className="mt-8 border-t border-border/25 pt-5 text-s text-foreground">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <p className="font-bold">
               {justEdited
@@ -310,7 +310,7 @@ export function Step6Submit({
           )}
         </div>
       ) : !isLoggedIn ? (
-        <div className="mt-8 border-t-2 border-foreground pt-5 text-s text-foreground">
+        <div className="mt-8 border-t border-border/25 pt-5 text-s text-foreground">
           {t(
             "submit.loginRequiredNote",
             "신청서를 제출하려면 로그인이 필요합니다. 지금까지 입력한 내용은 그대로 유지되니, 로그인 후 이어서 제출할 수 있습니다.",
@@ -326,7 +326,7 @@ export function Step6Submit({
       ) : (
         <>
           {blockingIssues.length > 0 && (
-            <div className="mt-8 border-t-2 border-foreground pt-5 text-s text-foreground">
+            <div className="mt-8 border-t border-border/25 pt-5 text-s text-foreground">
               <p className="font-bold">
                 {t("submit.blockingIssuesHeading", "운영자 확인이 필요한 항목이 있어 아직 제출할 수 없습니다.")}
               </p>
@@ -349,7 +349,7 @@ export function Step6Submit({
                 type="checkbox"
                 checked={confirmed}
                 onChange={(e) => setConfirmed(e.target.checked)}
-                className="mt-0.5 accent-foreground"
+                className="mt-0.5"
               />
               {t(
                 "submit.confirmCheckboxLabel",
@@ -361,7 +361,7 @@ export function Step6Submit({
                 type="checkbox"
                 checked={pledged}
                 onChange={(e) => setPledged(e.target.checked)}
-                className="mt-0.5 accent-foreground"
+                className="mt-0.5"
               />
               {t("submit.pledgeCheckboxLabel", "입력한 내용이 사실과 틀림없으며, 이를 이행할 것을 서약합니다.")}
             </label>

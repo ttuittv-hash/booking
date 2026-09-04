@@ -59,7 +59,7 @@ export default async function AdminContentPage() {
       <AdminNav active="/admin/content" user={user} />
 
       <main className="mx-auto w-full max-w-4xl flex-1 px-6 py-8 sm:py-10">
-        <header className="border-b border-border/20 pb-6">
+        <header className="border-b border-border/25 pb-6">
           <h1 className={PAGE_TITLE}>콘텐츠 관리</h1>
           <p className={PAGE_LEAD}>
             공지사항·FAQ와 공개 화면(홈 · 서울아레나 · 시설 제원 · 대관 절차 · 대관료 · 대관 규약 ·

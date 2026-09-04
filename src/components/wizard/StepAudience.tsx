@@ -1,6 +1,6 @@
 "use client";
 
-import { CHOICE_SELECTED_VARS, toggleClass } from "@/components/ui/kit";
+import { CHOICE_SELECTED_VARS, REMOVE_ICON_BTN, RemoveIcon, toggleClass } from "@/components/ui/kit";
 
 import { useState, type ReactNode } from "react";
 import { defaultDayTags, effectiveDayTag } from "@/lib/pricing/rateTableUtils";
@@ -48,7 +48,7 @@ function CheckboxChip({
       style={checked ? CHOICE_SELECTED_VARS : undefined}
       className={[
         // 인라인 칩도 버튼과 같은 단(40) — px/py 조합으로 43px 을 만들지 않는다
-        "flex h-10 cursor-pointer items-center gap-2 border px-4 text-s transition-colors",
+        "flex h-10 cursor-pointer items-center gap-2 rounded-btn border px-4 text-s transition-colors",
         checked ? "border-foreground bg-inverse-bg text-inverse-fg" : "border-border-soft hover:border-foreground",
       ].join(" ")}
     >
@@ -56,8 +56,7 @@ function CheckboxChip({
         type="checkbox"
         checked={checked}
         onChange={onChange}
-        /* 검정 채움 위에서는 체크박스도 밝은 면으로 뒤집는다 — 안 그러면 검정 위 검정이다 */
-        className={`h-4 w-4 ${checked ? "accent-[var(--background)]" : "accent-[var(--foreground)]"}`}
+        className="h-4 w-4 shrink-0"
       />
       {label}
     </label>
@@ -128,7 +127,7 @@ function AudienceFields({
   return (
     /* 단계 안의 블록은 박스로 싸지 않는다 — 굵은 헤어라인 + H6 으로만 나눈다
        (신청자 정보·공공성과 같은 규칙) */
-    <div className="border-t-2 border-foreground pt-5">
+    <div className="rounded-surface bg-panel p-5">
       <h3 className="type-kr-heading text-h6-m">{t("audience.sectionHeading", "예상 관객 및 사업규모")}</h3>
 
       <div className="mt-4 space-y-4">
@@ -141,7 +140,7 @@ function AudienceFields({
                 <label className="mb-1.5 block text-xs font-bold text-muted">
                   {t("audience.expectedAudiencePerShowArenaLabel", "1회당 예상 관객 수 — 아레나")}
                 </label>
-                <div className="flex h-10 items-center border border-border-soft px-3.5 text-s text-foreground">
+                <div className="flex h-10 items-center rounded-btn border border-border-soft px-3.5 text-s text-foreground">
                   {audienceSummary.arenaLine}
                 </div>
               </div>
@@ -151,7 +150,7 @@ function AudienceFields({
                 <label className="mb-1.5 block text-xs font-bold text-muted">
                   {t("audience.expectedAudiencePerShowMidHallLabel", "1회당 예상 관객 수 — 중형")}
                 </label>
-                <div className="flex h-10 items-center border border-border-soft px-3.5 text-s text-foreground">
+                <div className="flex h-10 items-center rounded-btn border border-border-soft px-3.5 text-s text-foreground">
                   {audienceSummary.midHallLine}
                 </div>
               </div>
@@ -161,7 +160,7 @@ function AudienceFields({
                 <label className="mb-1.5 block text-xs font-bold text-muted">
                   {t("audience.totalExpectedAudienceLabel", "총 예상 관객 수")}
                 </label>
-                <div className="flex h-10 items-center border border-border-soft px-3.5 text-s text-foreground">
+                <div className="flex h-10 items-center rounded-btn border border-border-soft px-3.5 text-s text-foreground">
                   {audienceSummary.totalLine}
                 </div>
               </div>
@@ -184,7 +183,7 @@ function AudienceFields({
           </div>
           <div className="space-y-2">
             {ticketTypes.map((row, i) => (
-              <div key={i} className="grid grid-cols-4 gap-1.5 border-b border-border/15 py-2">
+              <div key={i} className="grid grid-cols-4 gap-1.5">
                 <input
                   value={row.label}
                   placeholder={tStr("audience.ticketTypeLabelPlaceholder", "예: R석, VIP석")}
@@ -219,9 +218,9 @@ function AudienceFields({
                     type="button"
                     onClick={() => removeTicketType(i)}
                     aria-label={tStr("audience.removeTicketTypeAriaLabel", "삭제")}
-                    className={toggleClass(false)}
+                    className={REMOVE_ICON_BTN}
                   >
-                    {t("audience.removeTicketTypeButton", "삭제")}
+                    <RemoveIcon />
                   </button>
                 </div>
               </div>

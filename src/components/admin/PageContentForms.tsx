@@ -987,7 +987,7 @@ export function ScreenTextForm({ content }: { content: ScreenTextContent }) {
                 가늠이 안 되던 문제를 컴포넌트 재사용으로 없앤다. */}
             <Link
               href="/admin/content/wizard-preview"
-              className="inline-flex items-center gap-1.5 border border-border bg-panel px-4 py-2.5 text-s font-bold text-foreground hover:border-foreground"
+              className="inline-flex items-center gap-1.5 rounded-btn border border-border bg-panel px-4 py-2.5 text-s font-bold text-foreground hover:border-foreground"
             >
               실제 위저드 화면처럼 보면서 수정하기 →
             </Link>

@@ -42,7 +42,7 @@ export function DataTable({
     <div className={`overflow-x-auto [contain:paint] ${className}`}>
       <table className="w-full border-collapse text-s" style={{ minWidth }}>
         <thead>
-          <tr className="border-b border-border/40">
+          <tr className="border-b border-border/25">
             {columns.map((c) => (
               <th
                 key={c.key}
@@ -66,7 +66,7 @@ export function DataTable({
             </tr>
           ) : (
             rows.map((r) => (
-              <tr key={r.id} className="border-b border-border/15">
+              <tr key={r.id} className="border-b border-border/25">
                 {columns.map((c) => (
                   <td
                     key={c.key}

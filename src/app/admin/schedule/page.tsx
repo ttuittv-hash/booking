@@ -21,7 +21,7 @@ export default async function AdminSchedulePage() {
       <AdminNav active="/admin/schedule" user={user} />
 
       <main className="mx-auto w-full max-w-6xl flex-1 px-6 py-8 sm:py-10">
-        <header className="border-b border-border/20 pb-6">
+        <header className="border-b border-border/25 pb-6">
           <h1 className={PAGE_TITLE}>일정 관리</h1>
           <p className={PAGE_LEAD}>
             한 달씩 달력을 보면서 아레나 · 중형공연장 예약 현황을 한 화면에서 확인하고, 날짜별로

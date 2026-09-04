@@ -91,7 +91,7 @@ export function IdentityGate({
 
   return (
     <div data-testid="identity-gate">
-      <div className="border border-border-soft bg-surface px-6 py-8 text-center">
+      <div className="rounded-surface border border-border-soft bg-surface px-6 py-8 text-center">
         <p className="text-h6-m font-bold">휴대폰</p>
         <p className="mt-2 text-s text-muted">본인 명의로 등록된 휴대폰 번호를 이용하여 본인확인</p>
         <button
@@ -110,7 +110,7 @@ export function IdentityGate({
         </p>
       ) : null}
       {devBypass ? (
-        <div className="mt-4 border border-warn/40 px-4 py-3">
+        <div className="mt-4 rounded-surface bg-panel px-4 py-3">
           <p className="break-keep text-xs leading-6 text-warn">
             개발 환경에서만 보이는 버튼입니다. 인증을 건너뛰고 다음 단계로 넘어갑니다.
           </p>

@@ -103,7 +103,7 @@ export function CompetingQuotesPanel({
                   {c.isCurrent ? (
                     <span>{c.companyName ?? NONE} (현재)</span>
                   ) : (
-                    <Link href={`/admin/${c.quoteId}`} className="underline decoration-accent decoration-2 underline-offset-4">
+                    <Link href={`/admin/${c.quoteId}`} className="underline decoration-2 underline-offset-4">
                       {c.companyName ?? NONE}
                     </Link>
                   )}

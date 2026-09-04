@@ -131,7 +131,7 @@ export function ContractSignaturePanel({
               type="checkbox"
               checked={agreed}
               onChange={(e) => setAgreed(e.target.checked)}
-              className="mt-0.5 accent-foreground"
+              className="mt-0.5"
             />
             위 계약 확인사항을 모두 확인하였으며 이에 동의합니다.
           </label>

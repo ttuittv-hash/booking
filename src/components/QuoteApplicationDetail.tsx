@@ -117,7 +117,7 @@ function performanceInfoFields(info: PerformanceInfo) {
               </thead>
               <tbody>
                 {info.pastPerformances.map((rec, i) => (
-                  <tr key={i} className="border-b border-border/60">
+                  <tr key={i} className="border-b border-border/25">
                     <td className="py-1.5 pr-2">{rec.eventName || "-"}</td>
                     <td className="py-1.5 pr-2">{rec.venue || "-"}</td>
                     <td className="py-1.5 pr-2">{rec.period || "-"}</td>
@@ -247,7 +247,7 @@ export function QuoteApplicationDetail({
                     </thead>
                     <tbody>
                       {arenaDates.map((date) => (
-                        <tr key={date} className="border-b border-border/60">
+                        <tr key={date} className="border-b border-border/25">
                           <td className="py-1.5 pr-3 tabular-nums">{date}</td>
                           <td className="py-1.5 pr-3">{DAY_TAG_LABEL[selection.dayTags[date]]}</td>
                           <td className="py-1.5 tabular-nums">
@@ -279,7 +279,7 @@ export function QuoteApplicationDetail({
                       {midHallDates.map((date) => {
                         const d = selection.midHallDays[date];
                         return (
-                          <tr key={date} className="border-b border-border/60">
+                          <tr key={date} className="border-b border-border/25">
                             <td className="py-1.5 pr-3 tabular-nums">{date}</td>
                             <td className="py-1.5 pr-3">{MID_HALL_ROLE_LABEL[d.role]}</td>
                             <td className="py-1.5 tabular-nums">{d.role === "PERFORMANCE" ? d.shows : "-"}</td>
@@ -386,7 +386,7 @@ function ticketTypeFields(info: PerformanceInfo, venueLabel?: string) {
             </thead>
             <tbody>
               {ticketTypes.map((row, i) => (
-                <tr key={i} className="border-b border-border/60">
+                <tr key={i} className="border-b border-border/25">
                   <td className="py-1.5 pr-2">{row.label || "-"}</td>
                   <td className="py-1.5 pr-2">{row.price.toLocaleString()}원</td>
                   <td className="py-1.5">{row.expectedSalesRate}%</td>

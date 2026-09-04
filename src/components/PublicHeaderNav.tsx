@@ -267,7 +267,7 @@ export function PublicHeaderNav({
   }
 
   return (
-    <header className="sticky top-0 z-40" onMouseLeave={closeSoon}>
+    <header className="header-scale-lock sticky top-0 z-40" onMouseLeave={closeSoon}>
       {/* 배경 — Figma `Header_rev` (지면색 80% → 아랫변 0, 블러 없음). `header-veil` 참조 */}
       <div aria-hidden className="header-veil" />
       {/*
@@ -527,9 +527,10 @@ export function PublicHeaderNav({
                 </li>
               ))}
               {bookItComingSoon && bookItNotice ? (
-                /* 좁은 화면에는 호버가 없다 — 안내를 접었다 펴지 않고 그대로 붙여 둔다. */
-                <li className="text-center">
-                  <p className="flex h-12 items-center justify-center type-display text-s text-muted">
+                /* 좁은 화면에는 호버가 없다 — 안내를 접었다 펴지 않고 그대로 붙여 둔다.
+                   앞의 묶음들과 같은 왼쪽 선에 맞춘다. 혼자 가운데에 있으면 목록에서 떨어져 보인다. */
+                <li>
+                  <p className="type-display flex h-12 items-center text-s text-muted">
                     {NAV_ACTION.label}
                   </p>
                   <p className="text-xs font-bold">{bookItNotice.title}</p>

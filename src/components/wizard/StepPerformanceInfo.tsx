@@ -1,6 +1,7 @@
 "use client";
 
-import { FILE_INPUT, toggleClass } from "@/components/ui/kit";
+import { REMOVE_ICON_BTN, RemoveIcon, toggleClass } from "@/components/ui/kit";
+import { FilePicker } from "@/components/ui/FilePicker";
 import { useDialog } from "@/components/ui/Dialog";
 
 import { useState, type ReactNode } from "react";
@@ -145,11 +146,6 @@ export function validatePerformanceInfoStep(info: PerformanceInfo, venueLabel?: 
   return null;
 }
 
-function formatSize(bytes: number): string {
-  if (bytes < 1024) return `${bytes}B`;
-  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)}KB`;
-  return `${(bytes / (1024 * 1024)).toFixed(1)}MB`;
-}
 
 function toggleInArray<T>(list: T[], value: T): T[] {
   return list.includes(value) ? list.filter((v) => v !== value) : [...list, value];
@@ -236,7 +232,7 @@ function ReadOnlyRow({ label, value, note }: { label: ReactNode; value: string; 
     <div>
       <label className="mb-1.5 block text-xs font-bold text-muted">{label}</label>
       {/* h-10 로 옆에 나란히 놓이는 입력 필드(field-base)와 높이를 맞춘다(2026-08-22) */}
-      <div className="flex h-10 items-center border border-border/25 bg-panel/60 px-4 text-s text-foreground">
+      <div className="flex h-10 items-center rounded-btn border border-border/25 bg-panel/60 px-4 text-s text-foreground">
         {value}
       </div>
       {note && <p className="mt-1 text-xs text-muted">{note}</p>}
@@ -258,13 +254,13 @@ function HelpTip({ text }: { text: string }) {
       <button
         type="button"
         aria-label={text}
-        className="flex h-4 w-4 cursor-help items-center justify-center rounded-full border border-border-soft text-[10px] font-bold text-muted transition-colors hover:border-foreground hover:text-foreground"
+        className="flex h-4 w-4 cursor-help items-center justify-center rounded-full border border-border-soft text-xs font-bold text-muted transition-colors hover:border-foreground hover:text-foreground"
       >
         ?
       </button>
       <span
         role="tooltip"
-        className="pointer-events-none absolute bottom-full left-1/2 z-20 mb-2 hidden w-64 -translate-x-1/2 break-keep border border-border-soft bg-panel px-3 py-2 text-xs leading-5 font-normal text-foreground shadow-md group-hover:block group-focus-within:block"
+        className="pointer-events-none absolute bottom-full left-1/2 z-20 mb-2 hidden w-64 -translate-x-1/2 break-keep rounded-btn border border-border-soft bg-panel px-3 py-2 text-xs leading-5 font-normal text-foreground shadow-md group-hover:block group-focus-within:block"
       >
         {text}
       </span>
@@ -284,7 +280,7 @@ function CheckboxChip({
   return (
     <label
       className={[
-        "flex cursor-pointer items-center gap-2 border px-3.5 py-2.5 text-s transition-colors",
+        "flex cursor-pointer items-center gap-2 rounded-btn border px-3.5 py-2.5 text-s transition-colors",
         checked
           ? "border-foreground bg-inverse-bg text-inverse-fg"
           : "border-border-soft bg-surface text-foreground hover:border-foreground",
@@ -294,7 +290,7 @@ function CheckboxChip({
         type="checkbox"
         checked={checked}
         onChange={onChange}
-        className="accent-foreground"
+        className="h-4 w-4 shrink-0"
       />
       {label}
     </label>
@@ -472,7 +468,7 @@ function PerformanceInfoFields({
     <>
       <div className="flex flex-col gap-6">
         {/* 신청자 정보 */}
-        <div className="border-t-2 border-foreground pt-5">
+        <div className="rounded-surface bg-panel p-5">
           <h3 className="type-kr-heading text-h6-m">{t("performanceInfo.applicantSectionHeading", "신청자 정보")}</h3>
           <p className="mt-1 text-xs text-muted">
             {t("performanceInfo.applicantSectionHint", "가입한 계정 정보에서 자동으로 불러옵니다")}
@@ -556,7 +552,7 @@ function PerformanceInfoFields({
             )}
             <div className="space-y-2">
               {info.pastPerformances.map((row, i) => (
-                <div key={i} className="grid grid-cols-5 gap-1.5 border-b border-border/15 py-2">
+                <div key={i} className="grid grid-cols-5 gap-1.5">
                   <input
                     value={row.eventName}
                     placeholder={tStr("performanceInfo.pastEventNamePlaceholder", "공연명")}
@@ -592,9 +588,9 @@ function PerformanceInfoFields({
                       type="button"
                       onClick={() => removePastPerformance(i)}
                       aria-label={tStr("performanceInfo.removeRowAriaLabel", "삭제")}
-                      className={`${toggleClass(false)} shrink-0`}
+                      className={REMOVE_ICON_BTN}
                     >
-                      {t("performanceInfo.removeRowButton", "삭제")}
+                      <RemoveIcon />
                     </button>
                   </div>
                 </div>
@@ -604,7 +600,7 @@ function PerformanceInfoFields({
         </div>
 
         {/* 공연 기본정보 */}
-        <div className="border-t-2 border-foreground pt-5">
+        <div className="rounded-surface bg-panel p-5">
           <h3 className="type-kr-heading text-h6-m">{t("performanceInfo.eventBasicsSectionHeading", "공연 기본정보")}</h3>
           <p className="mt-1 text-xs text-muted">
             {t("performanceInfo.eventBasicsSectionHint", "입력한 내용은 대관심의 및 계약서 작성에 활용됩니다")}
@@ -647,11 +643,11 @@ function PerformanceInfoFields({
                   </div>
                   <div className="space-y-2">
                     {organizers.map((row, i) => (
-                      <div key={i} className="flex items-center gap-1.5 border-b border-border/15 py-2">
+                      <div key={i} className="flex items-center gap-1.5">
                         <select
                           value={row.role}
                           onChange={(e) => updateOrganizer(i, { role: e.target.value as OrganizerRole })}
-                          className="field-base w-28 shrink-0"
+                          className="field-base w-32 shrink-0"
                         >
                           {ORGANIZER_ROLES.map((role) => (
                             <option key={role} value={role}>
@@ -669,9 +665,9 @@ function PerformanceInfoFields({
                           type="button"
                           onClick={() => removeOrganizer(i)}
                           aria-label={tStr("performanceInfo.removeRowAriaLabel", "삭제")}
-                          className={`${toggleClass(false)} shrink-0`}
+                          className={REMOVE_ICON_BTN}
                         >
-                          {t("performanceInfo.removeRowButton", "삭제")}
+                          <RemoveIcon />
                         </button>
                       </div>
                     ))}
@@ -684,7 +680,7 @@ function PerformanceInfoFields({
                 이력을 받는다. 기본으로 한 행씩 열려 있고(INITIAL_PERFORMANCE_INFO),
                 무엇을 적어야 하는지 예시 문구를 각 표 위에 안내한다(관리자가 문구
                 수정 가능 — t()). */}
-            <div className="border-t border-border/15 pt-6">
+            <div className="border-t border-border/25 pt-6">
               <div className="mb-3 text-xs font-bold tracking-wide text-muted uppercase">
                 {t("performanceInfo.artistHistoryGroupLabel", "아티스트 이력")}
               </div>
@@ -706,7 +702,7 @@ function PerformanceInfoFields({
                 </p>
                 <div className="space-y-2">
                   {artistMainHistory.map((row, i) => (
-                    <div key={i} className="grid grid-cols-5 gap-1.5 border-b border-border/15 py-2">
+                    <div key={i} className="grid grid-cols-5 gap-1.5">
                       <input
                         value={row.artistName}
                         placeholder={tStr("performanceInfo.artistNamePlaceholder", "아티스트명")}
@@ -736,9 +732,9 @@ function PerformanceInfoFields({
                           type="button"
                           onClick={() => removeArtistMainHistory(i)}
                           aria-label={tStr("performanceInfo.removeRowAriaLabel", "삭제")}
-                          className={`${toggleClass(false)} shrink-0`}
+                          className={REMOVE_ICON_BTN}
                         >
-                          {t("performanceInfo.removeRowButton", "삭제")}
+                          <RemoveIcon />
                         </button>
                       </div>
                     </div>
@@ -761,9 +757,11 @@ function PerformanceInfoFields({
                     "예시: 공연명 / 공연일 / 공연장 / 도시·국가 / 공연 횟수 / 회당 객석 규모 / 관객 수 / 티켓 판매율",
                   )}
                 </p>
-                <div className="space-y-2">
+                {/* 한 항목이 두 줄이라 줄 간격만으로는 어디까지가 한 항목인지 안 보인다.
+                    선을 긋는 대신 항목 사이를 항목 안쪽 간격(6)보다 넉넉히 벌린다. */}
+                <div className="space-y-5">
                   {artistRecentPerformances.map((row, i) => (
-                    <div key={i} className="space-y-1.5 border-b border-border/15 py-2">
+                    <div key={i} className="space-y-1.5">
                       <div className="grid grid-cols-4 gap-1.5">
                         <input
                           value={row.eventName}
@@ -820,9 +818,9 @@ function PerformanceInfoFields({
                             type="button"
                             onClick={() => removeArtistRecentPerformance(i)}
                             aria-label={tStr("performanceInfo.removeRowAriaLabel", "삭제")}
-                            className={`${toggleClass(false)} shrink-0`}
+                            className={REMOVE_ICON_BTN}
                           >
-                            {t("performanceInfo.removeRowButton", "삭제")}
+                            <RemoveIcon />
                           </button>
                         </div>
                       </div>
@@ -832,7 +830,7 @@ function PerformanceInfoFields({
               </div>
             </div>
 
-            <div className="border-t border-border/15 pt-6">
+            <div className="border-t border-border/25 pt-6">
               <div className="mb-3 text-xs font-bold tracking-wide text-muted uppercase">
                 {t("performanceInfo.classificationGroupLabel", "분류")}
               </div>
@@ -879,7 +877,7 @@ function PerformanceInfoFields({
               </div>
             </div>
 
-            <div className="border-t border-border/15 pt-6">
+            <div className="border-t border-border/25 pt-6">
               <div className="mb-3 text-xs font-bold tracking-wide text-muted uppercase">
                 {t("performanceInfo.scheduleGroupLabel", "일정")}
               </div>
@@ -958,7 +956,7 @@ function PerformanceInfoFields({
               </div>
             </div>
 
-            <div className="border-t border-border/15 pt-6">
+            <div className="border-t border-border/25 pt-6">
               <div className="mb-3 text-xs font-bold tracking-wide text-muted uppercase">
                 {t("performanceInfo.spaceConfigGroupLabel", "공간 구성")}
               </div>
@@ -1079,7 +1077,7 @@ function PerformanceInfoFields({
         </div>
       </div>
 
-      <div className="mt-10 border-t-2 border-foreground pt-5">
+      <div className="mt-10 rounded-surface bg-panel p-5">
         <h3 className="type-kr-heading text-h6-m">
           {t("performanceInfo.credibilitySectionHeading", "개최 신뢰도 및 이력 확인")}
         </h3>
@@ -1120,7 +1118,7 @@ function PerformanceInfoFields({
             type="checkbox"
             checked={info.sensitiveInfoMaskingAcknowledged}
             onChange={(e) => set("sensitiveInfoMaskingAcknowledged", e.target.checked)}
-            className="mt-0.5 accent-foreground"
+            className="mt-0.5"
           />
           {t(
             "performanceInfo.maskingAcknowledgedLabel",
@@ -1132,41 +1130,16 @@ function PerformanceInfoFields({
             바로 이 자리에서 첨부한다. 신청서 제출 시 다른 첨부와 함께 올라가 상세 화면의
             첨부서류 목록에 들어간다. */}
         <div className="mt-4">
-          <div className="mb-2 text-xs font-bold text-muted">
-            {t("performanceInfo.castContractFilesLabel", "출연 계약 증빙 첨부(선택)")}
-          </div>
           <p className="mb-2.5 text-xs leading-5 text-muted">
             {t(
               "performanceInfo.castContractFilesHint",
               "계약서 · 출연확약서 등. PDF/이미지/문서, 파일당 최대 500MB. 금액 · 개인정보는 가려서 올리셔도 됩니다.",
             )}
           </p>
-          {castContractFiles.length > 0 && (
-            <ul className="mb-3 border-t border-border/25">
-              {castContractFiles.map((file, i) => (
-                <li
-                  key={`${file.name}-${i}`}
-                  className="flex items-center justify-between gap-4 border-b border-border/25 py-3"
-                >
-                  <span className="min-w-0 truncate text-s font-bold">{file.name}</span>
-                  <div className="flex shrink-0 items-center gap-4 text-xs text-muted tabular-nums">
-                    <span>{formatSize(file.size)}</span>
-                    <button
-                      type="button"
-                      onClick={() => onCastContractFilesChange(castContractFiles.filter((_, j) => j !== i))}
-                      className="cursor-pointer transition-colors hover:text-danger"
-                    >
-                      {t("performanceInfo.castContractRemoveButton", "삭제")}
-                    </button>
-                  </div>
-                </li>
-              ))}
-            </ul>
-          )}
-          <input
-            type="file"
+          <FilePicker
+            label={t("performanceInfo.castContractFilesLabel", "출연 계약 증빙 첨부(선택)")}
             multiple
-            data-testid="cast-contract-files"
+            testId="cast-contract-files"
             onChange={(e) => {
               const picked = Array.from(e.target.files ?? []).filter((f) => f.size <= MAX_FILE_SIZE);
               if (picked.length > 0) onCastContractFilesChange([...castContractFiles, ...picked]);
@@ -1175,7 +1148,8 @@ function PerformanceInfoFields({
               }
               e.target.value = "";
             }}
-            className={`${FILE_INPUT} text-muted`}
+            files={castContractFiles}
+            onRemove={(i) => onCastContractFilesChange(castContractFiles.filter((_, j) => j !== i))}
           />
         </div>
 
@@ -1184,7 +1158,7 @@ function PerformanceInfoFields({
             type="checkbox"
             checked={info.safetyPledgeSigned}
             onChange={(e) => set("safetyPledgeSigned", e.target.checked)}
-            className="mt-0.5 accent-foreground"
+            className="mt-0.5"
           />
           {t("performanceInfo.safetyPledgeSignedLabel", "안전규정 준수 확약서 작성을 완료했습니다.")}
         </label>
@@ -1351,12 +1325,11 @@ export function StepAttachments({
   }
 
   return (
-    <section className="mt-10 border-t-2 border-foreground pt-5">
+    <section className="mt-10 rounded-surface bg-panel p-5">
       <h3 className="type-kr-heading text-h6-m">{t("attachments.sectionHeading", "자료 첨부(선택)")}</h3>
       {/* [개정 2026-08-26] "객석 배치도 첨부 영역은 삭제" 요청으로 두 항목 안내 중
           객석배치도 쪽을 뺐다 — 공연 관련 자료 안내만 남는다. */}
       <p className="mt-2 text-xs leading-5 text-muted">
-        <span className="font-bold text-foreground">{t("attachments.performanceMaterialsLabel", "공연 관련 자료")}</span> —{" "}
         {t(
           "attachments.performanceMaterialsHint",
           "공연기획서 · 무대 도면, 출연 계약 증빙, 행사 안전관리계획서 등",
@@ -1368,37 +1341,16 @@ export function StepAttachments({
           ` ${t("attachments.simultaneousHint", "동시 대관은 두 공간의 자료를 각각 첨부합니다.")}`}
       </p>
 
-      {files.length > 0 && (
-        <ul className="mt-5 border-t border-border/25">
-          {files.map((file, i) => (
-            <li
-              key={`${file.name}-${i}`}
-              className="flex items-center justify-between gap-4 border-b border-border/25 py-4"
-            >
-              <span className="min-w-0 truncate text-s font-bold">{file.name}</span>
-              <div className="flex shrink-0 items-center gap-4 text-xs text-muted tabular-nums">
-                <span>{formatSize(file.size)}</span>
-                <button
-                  type="button"
-                  onClick={() => removeFile(i)}
-                  className="cursor-pointer transition-colors hover:text-danger"
-                >
-                  {t("attachments.removeButton", "삭제")}
-                </button>
-              </div>
-            </li>
-          ))}
-        </ul>
-      )}
-
-      <input
-        type="file"
+      <FilePicker
+        label={t("attachments.performanceMaterialsLabel", "공연 관련 자료")}
         multiple
+        className="mt-5"
         onChange={(e) => {
           addFiles(e.target.files);
           e.target.value = "";
         }}
-        className={`${FILE_INPUT} mt-5 text-muted`}
+        files={files}
+        onRemove={removeFile}
       />
     </section>
   );

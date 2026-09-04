@@ -42,7 +42,7 @@ export default async function PrintQuotePage({
 
       <header className="flex items-center justify-between border-b-2 border-foreground pb-4">
         <div>
-          <div className="text-[20px] font-bold tracking-tight">
+          <div className="text-h6 font-bold tracking-tight">
             SEOUL ARENA
           </div>
           <div className="mt-0.5 text-xs text-muted">
