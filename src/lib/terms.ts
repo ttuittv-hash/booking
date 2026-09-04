@@ -18,6 +18,11 @@ export interface TermsDocument {
   title: string;
   required: boolean;
   body: string;
+  /**
+   * 가입 화면에서 감출지 (2026-09-04). 필수 동의는 감출 수 없다 — 동의 없이 가입시킬 수 없다.
+   * 선택 동의(마케팅 수신)는 아직 받지 않기로 해 당분간 감춰 둔다. 백오피스에서 다시 켠다.
+   */
+  hidden?: boolean;
 }
 
 export const TERMS: TermsDocument[] = [
@@ -272,7 +277,8 @@ export function termsBodyHash(body: string): string {
 
 /** 화면에 내려줄 목록 — 본문 해시를 함께 실어 클라이언트가 무엇에 동의했는지 되짚을 수 있게 한다. */
 export function termsForClient(documents: TermsDocument[] = TERMS) {
-  return documents.map((t) => ({
+  // 감춘 문서는 화면에 내리지 않는다 — 동의 이력에도 남지 않는다.
+  return documents.filter((t) => !t.hidden).map((t) => ({
     kind: t.kind,
     version: t.version,
     title: t.title,
@@ -334,12 +340,18 @@ export function normalizeRegisterTerms(
       if (!next) return prev;
       const body = textOf(next.body, prev.body);
       const version = textOf(next.version, prev.version);
+      // 필수 동의는 감출 수 없다 — 화면에서 빠지면 동의 없이 가입하게 된다.
+      // 요청이 이 값을 말하지 않으면 지금 상태를 지킨다(감춰 둔 것이 저장 한 번에 다시 뜨지 않게).
+      const hidden =
+        !prev.required && (typeof next.hidden === "boolean" ? next.hidden : prev.hidden === true);
       return {
         kind: prev.kind,
         required: prev.required,
         title: textOf(next.title, prev.title),
         body,
         version: body !== prev.body && version === prev.version ? today : version,
+        // 감춘 것만 표시를 남긴다 — 평소 문서에는 이 값이 없다.
+        ...(hidden ? { hidden: true } : {}),
       };
     }),
   };

@@ -21,7 +21,7 @@ export function RegisterTermsForm({ content: initial }: { content: RegisterTerms
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  function update(kind: string, patch: { title?: string; version?: string; body?: string }) {
+  function update(kind: string, patch: { title?: string; version?: string; body?: string; hidden?: boolean }) {
     setContent((prev) => ({
       documents: prev.documents.map((d) => (d.kind === kind ? { ...d, ...patch } : d)),
     }));
@@ -75,6 +75,18 @@ export function RegisterTermsForm({ content: initial }: { content: RegisterTerms
             <span className={`text-xs ${doc.required ? "text-accent" : "text-muted"}`}>
               {doc.required ? "필수 동의" : "선택 동의"}
             </span>
+            {/* 선택 동의만 감출 수 있다 — 필수 동의를 감추면 동의 없이 가입하게 된다(2026-09-04). */}
+            {!doc.required && (
+              <label className="ml-auto flex items-center gap-2 text-xs text-muted">
+                <input
+                  type="checkbox"
+                  checked={!doc.hidden}
+                  onChange={(e) => update(doc.kind, { hidden: !e.target.checked })}
+                  className="h-4 w-4"
+                />
+                가입 화면에 표시
+              </label>
+            )}
           </div>
 
           <div className="mt-4 grid gap-4 sm:grid-cols-[1fr_200px]">
