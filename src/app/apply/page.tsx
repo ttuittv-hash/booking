@@ -1,5 +1,4 @@
 import type { Metadata } from "next";
-import { redirect } from "next/navigation";
 import { requireAccessedUser } from "@/lib/auth";
 import {
   findCompanyById,
@@ -12,8 +11,8 @@ import {
 } from "@/lib/db";
 import { PublicHeader } from "@/components/PublicHeader";
 import { SiteFooter } from "@/components/ui/SiteFooter";
-import { Band, PageHead, Prose } from "@/components/ui/kit";
-import { NAV_ACTION_HIDDEN } from "@/components/ui/nav-items";
+import { Band, ButtonLink, PageHead, Prose } from "@/components/ui/kit";
+import { NAV_ACTION_HIDDEN, NOTICE_LINK } from "@/components/ui/nav-items";
 import { WizardShell } from "@/components/wizard/WizardShell";
 import { WizardTextProvider } from "@/lib/content/wizardText";
 
@@ -35,21 +34,66 @@ export const metadata: Metadata = {
 export default async function ApplyPage({
   searchParams,
 }: {
-  searchParams: Promise<{ new?: string }>;
+  searchParams: Promise<{ new?: string; operator?: string }>;
 }) {
   // 기획서 A15 접근권한 매트릭스 — 규칙은 accessPolicy.ts 한 곳에만 둔다
   const currentUser = await requireAccessedUser("/apply");
 
-  // 상단바의 bookItComingSoon 과 같은 조건 — 메뉴 자체를 숨겼거나(NAV_ACTION_HIDDEN)
-  // 화면 문구 > BOOK IT 오픈 예정 안내가 켜져 있으면 운영자를 뺀 누구도 위저드에
-  // 들어가지 못한다.
-  if (currentUser.role !== "ADMIN") {
-    const gate = NAV_ACTION_HIDDEN ? null : await getScreenTextContent();
-    if (NAV_ACTION_HIDDEN || gate?.bookItNotice?.enabled) redirect("/");
+  /*
+    1차 오픈 게이트 (2026-09-04 개정).
+
+    메뉴를 통째로 감췄거나(NAV_ACTION_HIDDEN) 화면 문구 > BOOK IT 「오픈 예정」 안내가
+    켜져 있으면 신청 화면을 열지 않는다.
+
+    [개정] 예전에는 운영자를 예외로 두고, 막힌 사람은 말없이 홈으로 되돌렸다. 그런데
+    운영자 계정으로는 그대로 들어가져 "1차 오픈인데 신청서가 열린다"는 지적이 나왔고,
+    일반 사용자도 왜 홈으로 튕겼는지 알 수 없었다. 이제 **모두에게** 오픈 예정 안내를
+    보여준다. 운영자는 그 화면의 '운영자 확인용' 링크로 흐름을 열어볼 수 있다.
+  */
+  const { new: startFreshParam, operator } = await searchParams;
+  const gateText = NAV_ACTION_HIDDEN ? null : (await getScreenTextContent()).bookItNotice;
+  const gated = NAV_ACTION_HIDDEN || !!gateText?.enabled;
+  const operatorPass = currentUser.role === "ADMIN" && operator === "1";
+  if (gated && !operatorPass) {
+    return (
+      <div className="flex flex-1 flex-col">
+        <PublicHeader active="/apply" currentUser={currentUser} />
+        <main className="flex flex-1 flex-col">
+          <Band tone="light" size="sm">
+            <PageHead
+              as="h2"
+              en="APPLY"
+              ko={gateText?.title || "오픈 예정"}
+              lead={
+                <Prose
+                  text={gateText?.body || "대관 신청은 준비 중입니다.\n접수 시작 일정은 공지사항으로 안내드립니다."}
+                />
+              }
+            />
+            <div className="mt-lead-action flex flex-wrap gap-inline">
+              <ButtonLink href={NOTICE_LINK.href} variant="primary">
+                {NOTICE_LINK.label} 보기
+              </ButtonLink>
+              <ButtonLink href="/" variant="secondary">
+                홈으로
+              </ButtonLink>
+            </div>
+            {currentUser.role === "ADMIN" && (
+              /* 운영자는 오픈 전에도 흐름을 확인해야 한다 — 다만 기본은 다른 사람과 같은 화면이다. */
+              <p className="mt-6 text-xs text-muted">
+                <a href="/apply?operator=1" className="underline underline-offset-4">
+                  운영자 확인용으로 신청서 열기 →
+                </a>
+              </p>
+            )}
+          </Band>
+        </main>
+        <SiteFooter />
+      </div>
+    );
   }
 
   const [
-    { new: startFreshParam },
     rateTable,
     weekDemand,
     adminBlocks,
@@ -59,7 +103,6 @@ export default async function ApplyPage({
     ratesContent,
   ] =
     await Promise.all([
-      searchParams,
       getCurrentRateTable(),
       listWeekDemand(),
       listDateBlocks(),
