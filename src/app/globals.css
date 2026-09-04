@@ -48,6 +48,12 @@
   --btn-primary-bg: var(--n-darkest);
   --btn-primary-fg: var(--n-white);
   --btn-primary-bg-hover: var(--n-darker);
+  /*
+    호버 면 — 버튼 종류와 무관하게 하나로 모은다. 지면이 이 색이면 버튼이 사라지므로
+    **옐로 지면(CTA 배너)에서는 밴드가 이 값을 흰색으로 뒤집는다**(`BAND_VARS.accent`).
+  */
+  --btn-hover-bg: var(--accent);
+  --btn-hover-fg: var(--on-accent);
 
   --inverse-bg: var(--n-darkest);
   --inverse-fg: var(--n-lightest);
@@ -66,10 +72,14 @@
   --accent-hover: #e6b900;
   --accent-soft: #fff2c2;
 
-  /* --- Radius (Figma: 샤프) ---------------------------------------------- */
-  --radius-sm: 0px;
-  --radius-md: 0px;
-  --radius-lg: 0px;
+  /* --- Radius ------------------------------------------------------------
+     쓰는 단은 **둘뿐**이다 — 면 12(`rounded-surface`) · 버튼 4(`rounded-btn`).
+     Tailwind 기본 단(sm·md·lg)은 팔레트로 되돌려 둔다. 예전에는 0 이라
+     `rounded-lg` 를 쓰면 조용히 각진 모서리가 나왔다.
+     ---------------------------------------------------------------------- */
+  --radius-sm: 4px;
+  --radius-md: 4px;
+  --radius-lg: 12px;
 
   /* --- Shadows (Figma Style Guide › Shadows, 7단) ----------------------- */
   --shadow-xxs: 0 1px 2px rgba(0, 0, 0, 0.06);
@@ -162,14 +172,18 @@
      **본문은 세 단만 쓴다.** 사이즈가 많아지면 같은 역할의 글이 화면마다 다른
      무게로 보인다.
 
-       text-m  (18)  큰 본문 — 페이지·섹션 맨 위 리드 문단, 장문 읽기 본문
+       text-m  (18)  큰 본문 — 페이지·섹션 맨 위 리드 문단, 카드 설명, 장문 읽기 본문
                      (공지 상세 · FAQ 답변 · 전면 사진 설명)
        text-s  (14)  본문 — 그 밖의 모든 글. 버튼·입력·표 값·내비게이션도 이 단
        text-xs (12)  작은 글 — 아이브로 · 표 헤더 · 캡션 · 보조 설명 · 배지
 
-     `text-r`(16) · `text-l`(20) 은 **팔레트에서 뺐다** — 16 이 리드와 본문 사이에
-     끼어 "리드인지 본문인지" 애매한 문단을 계속 만들었다. 제목이 필요하면 본문
-     크기를 굵게 하는 게 아니라 `h5`·`h6` 를 쓴다.
+     `text-r`(16) 은 **푸터에서만** 쓴다. 화면 본문에 두면 리드와 본문 사이에 끼어
+     "리드인지 본문인지" 애매한 문단이 생긴다. `text-l`(20) 은 팔레트에 없다.
+     제목이 필요하면 본문 크기를 굵게 하는 게 아니라 `h5`·`h6` 를 쓴다.
+
+     **크기는 언제나 이 토큰으로만 적는다.** `text-[1.125rem]` 처럼 값을 직접 박으면
+     같은 크기가 토큰과 임의값 두 갈래로 갈려, 다음에 조정할 때 한쪽만 바뀐다.
+     팔레트에 없는 크기가 필요하면 여기에 단을 하나 추가하고 이름을 붙인다.
      ---------------------------------------------------------------------- */
   --text-d1: 10rem;
   --text-d1--line-height: 0.9;
@@ -215,11 +229,26 @@
   --text-h6-m--line-height: 1.4;
 
   --text-m: 1.125rem;
-  --text-m--line-height: 1.5;
+  --text-m--line-height: 1.6;
+  /*
+    16 — **푸터 전용**. 리드(18)와 본문(14) 사이라 화면 본문에는 쓰지 않는다.
+    푸터는 주소·이메일·페이지 이름이 한 크기로 늘어서는 자리라 그 사이 값이 필요했다.
+  */
+  --text-r: 1rem;
+  --text-r--line-height: 1.5;
   --text-s: 0.875rem;
   --text-s--line-height: 1.5;
   --text-xs: 0.75rem;
   --text-xs--line-height: 1.5;
+
+  /*
+    히어로 리드 — 홈 첫 화면에서 영문 제목 아래 서는 국문 한 덩어리.
+    본문도 제목도 아니라 팔레트의 어느 단과도 역할이 겹치지 않는다(40 · 130%).
+  */
+  --text-lead: 2.5rem;
+  --text-lead--line-height: 1.3;
+  --text-lead-m: 1.5rem;
+  --text-lead-m--line-height: 1.3;
 
   --shadow-xxs: var(--shadow-xxs);
   --shadow-xs: var(--shadow-xs);
@@ -231,6 +260,64 @@
 
   --spacing-gutter: var(--gutter);
   --spacing-margin-x: var(--margin-x);
+
+  /* --- 간격 팔레트 --------------------------------------------------------
+     크기와 마찬가지로 **간격도 이 단으로만 적는다.** `mt-14` 처럼 숫자를 직접 박으면
+     같은 역할의 여백이 화면마다 다른 값으로 갈리고, 한 곳을 고쳐도 나머지는 그대로 남는다.
+     실제로 「제목 아래」가 24 · 40 · 56 세 갈래로 벌어져 있었다.
+
+     이름은 **역할**이지 크기가 아니다. "제목 아래를 더 띄워 달라" 는 요청이 오면
+     여기 한 줄만 고치면 그 역할을 쓰는 모든 화면이 함께 움직인다.
+
+       지면      margin-x 32(16) · gutter 12          ← 위에 있음
+       섹션      위 80 고정 / 아래 80·64·40
+       머리      제목→리드 64 · 머리→목록 40
+       행동      워딩→버튼 40 · 나란한 요소 12
+       카드      안쪽 32 · 제목→본문 40 · 카드끼리 12(=gutter)
+       덩어리    큰 블록 사이 48
+
+     CTA 배너와 푸터는 지면 섹션과 리듬이 달라 **자기 단**을 따로 갖는다.
+     ---------------------------------------------------------------------- */
+  --spacing-section-top: 5rem; /* 80 — 섹션 위. 밀도와 무관하게 고정 */
+  --spacing-section-lg: 5rem; /* 80 — 섹션 아래(페이지 머리·1급 섹션) */
+  --spacing-section-md: 4rem; /* 64 — 섹션 아래(기본) */
+  --spacing-section-sm: 2.5rem; /* 40 — 섹션 아래(밀도 높은 목록) */
+
+  --spacing-head-lead: 4rem; /* 64 — 제목 → 리드 문단 */
+  --spacing-head-block: 2.5rem; /* 40 — 머리 → 카드 목록·표 */
+  --spacing-hero-lead: 5rem; /* 80 — 히어로 제목 → 리드(첫 화면 전용) */
+
+  --spacing-lead-action: 2.5rem; /* 40 — 워딩 → 버튼 */
+  --spacing-inline: 0.75rem; /* 12 — 나란히 서는 요소 사이(버튼·알약) */
+  --spacing-block: 3rem; /* 48 — 큰 덩어리 사이 */
+
+  --spacing-card-pad: 2rem; /* 32 — 카드 안쪽 */
+  --spacing-card-body: 2.5rem; /* 40 — 카드 제목 → 본문 */
+
+  /* CTA 배너 — 지면 위에 얹히는 한 장이라 섹션 규칙을 따르지 않는다 */
+  --spacing-cta-gap: 2.5rem; /* 40 — 배너 위아래(지면과의 사이) */
+  --spacing-cta-pad: 5rem; /* 80 — 배너 안쪽 위아래 */
+  --spacing-cta-pad-x: 1.5rem; /* 24 — 배너 안쪽 좌우 */
+
+  /* 푸터 — 페이지 끝을 닫는 자리라 위가 넉넉하다 */
+  --spacing-foot-top: 6rem; /* 96 */
+  --spacing-foot-bottom: 2.5rem; /* 40 */
+  --spacing-foot-label: 1rem; /* 16 — 열 머리 → 본문 */
+  --spacing-foot-mark: 5rem; /* 80 — 워드마크 위 */
+
+  /*
+    탭 알약이 앉는 띠의 높이. **탭이 없는 화면은 이만큼을 빈 자리로 둔다** —
+    그래야 탭이 있든 없든 페이지 제목이 같은 높이에서 시작한다.
+    탭 유무로 제목이 72 씩 오르내리면 메뉴를 옮길 때마다 화면이 덜컥거린다.
+  */
+  --spacing-tabbar: 4.5rem; /* 72 */
+
+  /*
+    규약 화면의 검색 블록 한 통(라벨 18 + 8 + 입력칸 40 + 아래 여백 24).
+    **본문은 이만큼 내려가 목차 머리와 같은 줄에서 시작한다** — 검색창과 나란히 두면
+    본문 첫 줄이 목차보다 한 덩어리 위에서 시작해 두 단이 어긋나 보인다.
+  */
+  --spacing-article-search: 5.625rem; /* 90 */
 
   /* --- 코너 -------------------------------------------------------------
      [개정 2026-09-03] 샤프 코너를 버리고 두 단으로 정한다.
@@ -424,6 +511,46 @@ input[type="number"]::-webkit-inner-spin-button {
   max-width: var(--measure);
 }
 
+/*
+  지면 6칼럼 중 **4칼럼** 폭. 페이지 제목 아래 설명글의 기본 폭이다.
+  고정 폭(768)으로 잡아 두었더니 화면마다 글이 끝나는 자리가 컬럼 경계에서 벗어나,
+  같은 지면 위의 표·카드와 세로선이 맞지 않았다. 폭을 칼럼에 매어 두면 저절로 맞는다.
+  컨테이너(`container-site`) 안에서만 뜻이 통한다 — 폭 계산의 100% 가 지면 폭이다.
+*/
+@utility measure-4col {
+  max-width: calc((100% - 5 * var(--gutter)) / 6 * 4 + 3 * var(--gutter));
+}
+
+/*
+  버튼 호버 (2026-09-04) — **면 색만 바뀐다.**
+  글자가 굴러 바뀌고 화살표가 움직이는 연출을 넣어 봤지만, 버튼을 스칠 때마다 화면이
+  들썩여 과했다. 호버는 "여기를 누를 수 있다" 는 신호면 충분하다.
+  색은 버튼 종류와 무관하게 옐로 하나로 모인다(`BTN_HOVER`).
+*/
+
+/*
+  체크박스·라디오 (2026-09-04) — 규칙은 **지면과 반대색**이다.
+
+    지면 위에 혼자 있으면   검정 채움 + 흰 표시
+    선택된 버튼(칩) 안이면  흰 채움 + 검정 표시 — 버튼 자체가 검정 면이 되므로
+
+  자리마다 채움색이 세 갈래(검정 · 옐로 · 지면색)로 갈려 있었고, 특히 검정으로 뒤집히는
+  칩 안에서는 검정 채움이 배경에 묻혀 사라졌다. 지면색만 보고 정하면 어디서나 읽힌다.
+*/
+input[type="checkbox"],
+input[type="radio"] {
+  accent-color: var(--check-fill, var(--foreground));
+}
+/*
+  검정 면 위에서는 반대로 — 두 경로로 잡는다.
+  ① 선택된 칩이 `CHOICE_SELECTED_VARS` 로 넘기는 `--check-fill`
+  ② 토큰을 넘기지 않고 `bg-inverse-bg` 만 쓰는 자리
+*/
+.bg-inverse-bg input[type="checkbox"],
+.bg-inverse-bg input[type="radio"] {
+  accent-color: var(--n-white);
+}
+
 /* 영문 디스플레이 — Archivo Extrabold, 대문자 */
 @utility type-display {
   font-family: "Archivo", "Helvetica Neue", Arial, sans-serif;
@@ -464,6 +591,9 @@ input[type="number"]::-webkit-inner-spin-button {
   width: 100%;
   border-width: 1px;
   border-color: var(--border-soft);
+  /* 글 넣는 칸도 버튼과 같은 모서리(4)를 쓴다 — 같은 줄에 서는 일이 잦아
+     한쪽만 각지면 둘이 다른 종류의 물건처럼 보인다. */
+  border-radius: var(--radius-btn);
   background-color: transparent;
   padding-inline: 0.875rem;
   padding-block: 0.625rem;
@@ -478,6 +608,21 @@ input[type="number"]::-webkit-inner-spin-button {
     만들어야 하므로 제외한다. 밀도 높은 자리는 뒤에 `h-8` 을 붙여 덮어쓴다
     (커스텀 유틸리티가 Tailwind 유틸리티보다 먼저 방출된다).
   */
+  /*
+    고르는 칸의 화살표는 **직접 그린다.**
+    브라우저가 그리는 기본 화살표는 패딩 바깥, 테두리 안쪽 끝에 붙어서 오른쪽 여백을
+    아무리 키워도 벽에 닿은 채로 남는다. 화살표를 배경으로 깔면 위치를 우리가 정할 수
+    있어, **왼쪽 글자 여백과 같은 값(14)** 만큼 오른쪽에서 띄울 수 있다.
+  */
+  &:where(select) {
+    appearance: none;
+    padding-inline-end: 2.25rem;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 12' fill='none' stroke='%23000' stroke-width='1.4' stroke-linecap='square'%3E%3Cpath d='M2.5 4.5 6 8l3.5-3.5'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 0.875rem center;
+    background-size: 0.75rem 0.75rem;
+  }
+
   &:where(input, select) {
     height: 2.5rem;
     padding-block: 0;
@@ -487,10 +632,14 @@ input[type="number"]::-webkit-inner-spin-button {
   &::placeholder {
     color: var(--muted);
   }
+  /*
+    [개정 2026-09-04] 포커스 표시는 **테두리 색 하나**로만 한다 — 회색에서 검정으로.
+    옐로 아웃라인을 겹쳐 두었더니 입력칸 둘레에 선이 두 겹으로 생겨, 글을 넣는 자리가
+    아니라 경고 상자처럼 보였다. 테두리가 지면색과 확실히 대비되어 초점은 그대로 읽힌다.
+  */
   &:focus {
     border-color: var(--foreground);
-    outline: 2px solid var(--accent);
-    outline-offset: 1px;
+    outline: none;
   }
 }
 

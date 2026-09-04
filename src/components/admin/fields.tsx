@@ -3,12 +3,9 @@
 import { useEffect, useId, useState, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
 import { btnClass } from "@/components/ui/kit";
+import { FilePicker } from "@/components/ui/FilePicker";
 import { setUnsaved } from "./unsavedChanges";
 import { ADD_BTN, CARD, ERROR_NOTE, FIELD, FIELD_LABEL, HELP, OK_NOTE, REMOVE_BTN, SUB_TITLE } from "./adminUi";
-
-/** 파일 선택 input — 샤프 코너 · border-soft */
-const FILE_INPUT =
-  "text-xs text-muted file:mr-3 file:border file:border-border-soft file:bg-panel file:px-3 file:py-1.5 file:text-xs file:font-bold file:text-foreground";
 
 /* ============================================================================
    페이지 콘텐츠 편집기의 공용 조각.
@@ -135,11 +132,11 @@ export function ImageField({
         <img
           src={value}
           alt=""
-          className="mb-2 h-32 w-full border border-border-soft object-cover"
+          className="mb-2 h-32 w-full rounded-btn border border-border-soft object-cover"
         />
       )}
       <div className="flex flex-wrap items-center gap-2">
-        <input type="file" accept="image/*" onChange={upload} className={FILE_INPUT} />
+        <FilePicker accept="image/*" onChange={upload} files={[]} />
         {value && (
           <button type="button" onClick={() => onChange(null)} className={REMOVE_BTN}>
             사진 삭제
@@ -372,7 +369,7 @@ export function ContentFormShell<T>({
       {message && <p className={OK_NOTE}>{message}</p>}
       {error && <p className={ERROR_NOTE}>{error}</p>}
 
-      <div className="sticky bottom-0 -mx-6 flex flex-wrap items-center gap-3 border-t border-border/20 bg-background px-6 py-3">
+      <div className="sticky bottom-0 -mx-6 flex flex-wrap items-center gap-3 border-t border-border/25 bg-background px-6 py-3">
         <button
           type="button"
           disabled={saving}
@@ -454,7 +451,7 @@ export function DocumentField({
       <span className={FIELD_LABEL}>{label}</span>
       {help && <p className={`mb-2 ${HELP}`}>{help}</p>}
       {url ? (
-        <div className="mb-2 flex flex-wrap items-center gap-3 border border-border-soft bg-panel px-3 py-2">
+        <div className="mb-2 flex flex-wrap items-center gap-3 rounded-btn border border-border-soft bg-panel px-3 py-2">
           <a href={url} className="min-w-0 truncate text-s font-bold underline underline-offset-4">
             {name || "첨부파일"}
           </a>
@@ -477,15 +474,14 @@ export function DocumentField({
           올렸습니다. 아래 [저장]을 눌러야 공개 화면의 파일이 바뀝니다.
         </p>
       )}
-      <input
-        type="file"
+      <FilePicker
         disabled={busy}
         onChange={(e) => {
           const file = e.target.files?.[0];
           e.target.value = "";
           if (file) void upload(file);
         }}
-        className={FILE_INPUT}
+        files={[]}
       />
       {busy && <p className={`mt-2 ${HELP}`}>올리는 중…</p>}
       {error && <p className="mt-2 text-xs text-danger">{error}</p>}
@@ -495,7 +491,7 @@ export function DocumentField({
 
 export function Section({ title, help, children }: { title: string; help?: string; children: ReactNode }) {
   return (
-    <section className="border-t border-border/15 pt-7 first:border-t-0 first:pt-0">
+    <section className="border-t border-border/25 pt-7 first:border-t-0 first:pt-0">
       <h3 className={SUB_TITLE}>{title}</h3>
       {help && <p className={`mt-2 ${HELP}`}>{help}</p>}
       <div className="mt-3 space-y-4">{children}</div>

@@ -3,6 +3,7 @@
 import { useRef, useState } from "react";
 import { uploadInlineImages } from "@/lib/content/inlineImages";
 import { useDialog } from "@/components/ui/Dialog";
+import { FilePicker } from "@/components/ui/FilePicker";
 import { useRouter } from "next/navigation";
 import type { Faq, Notice } from "@/lib/pricing/types";
 import type { HomeContent, LegalContent } from "@/lib/content/types";
@@ -50,10 +51,6 @@ import {
   TAB_BAR,
   tabCls,
 } from "./adminUi";
-
-/** 파일 선택 input — 샤프 코너 · border-soft */
-const FILE_INPUT =
-  "w-full text-xs text-muted file:mr-3 file:border file:border-border-soft file:bg-panel file:px-3 file:py-1.5 file:text-xs file:font-bold file:text-foreground";
 
 type Tab =
   | "notices"
@@ -408,7 +405,7 @@ function NoticesTab({
                     <img
                       src={notice.imageUrl}
                       alt=""
-                      className="h-14 w-20 shrink-0 border border-border-soft object-cover"
+                      className="h-14 w-20 shrink-0 rounded-btn border border-border-soft object-cover"
                     />
                   )}
                   <div className="min-w-0">
@@ -483,21 +480,20 @@ function NoticesTab({
               {imageUrl ? (
                 <div className="flex items-center gap-3">
                   {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={imageUrl} alt="" className="h-20 w-32 border border-border-soft object-cover" />
+                  <img src={imageUrl} alt="" className="h-20 w-32 rounded-btn border border-border-soft object-cover" />
                   <button type="button" onClick={() => setImageUrl(null)} className={REMOVE_BTN}>
                     이미지 제거
                   </button>
                 </div>
               ) : (
-                <input
-                  type="file"
+                <FilePicker
                   accept="image/png,image/jpeg,image/webp,image/gif"
                   disabled={uploading}
                   onChange={(e) => {
                     const file = e.target.files?.[0];
                     if (file) uploadImage(file);
                   }}
-                  className={FILE_INPUT}
+                  files={[]}
                 />
               )}
               {uploading && <p className={`mt-1 ${HELP}`}>업로드 중...</p>}
@@ -509,7 +505,7 @@ function NoticesTab({
               </span>
               {attachmentUrl ? (
                 <div className="flex items-center gap-3">
-                  <span className="border border-border-soft bg-panel px-3 py-1.5 text-xs">
+                  <span className="rounded-btn border border-border-soft bg-panel px-3 py-1.5 text-xs">
                     {attachmentName}
                   </span>
                   <button
@@ -524,15 +520,14 @@ function NoticesTab({
                   </button>
                 </div>
               ) : (
-                <input
-                  type="file"
+                <FilePicker
                   accept=".pdf,.doc,.docx,.hwp,.hwpx,.xls,.xlsx,.ppt,.pptx,.zip"
                   disabled={uploadingAttachment}
                   onChange={(e) => {
                     const file = e.target.files?.[0];
                     if (file) uploadAttachment(file);
                   }}
-                  className={FILE_INPUT}
+                  files={[]}
                 />
               )}
               {uploadingAttachment && <p className={`mt-1 ${HELP}`}>업로드 중...</p>}
@@ -543,7 +538,7 @@ function NoticesTab({
                 type="checkbox"
                 checked={showBookingCalendar}
                 onChange={(e) => setShowBookingCalendar(e.target.checked)}
-                className="h-4 w-4 accent-[var(--accent)]"
+                className="h-4 w-4"
               />
               공지 상세에 &ldquo;대관 현황 캘린더&rdquo; 아이콘 표시(아레나·중형 예약 가능일 조회)
             </label>

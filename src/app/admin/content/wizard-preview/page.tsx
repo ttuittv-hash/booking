@@ -22,7 +22,7 @@ export default async function WizardTextPreviewPage() {
       <AdminNav active="/admin/content" user={user} />
 
       <main className="mx-auto w-full max-w-4xl flex-1 px-6 py-8 sm:py-10">
-        <header className="border-b border-border/20 pb-6">
+        <header className="border-b border-border/25 pb-6">
           <Link href="/admin/content?tab=screenText" className="text-xs font-bold text-muted hover:text-foreground">
             ← 화면 문구
           </Link>

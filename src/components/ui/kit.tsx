@@ -27,7 +27,7 @@ export function InlineLinks({ text }: { text: string }) {
           <Link
             key={i}
             href={part.href}
-            className="underline decoration-border-soft underline-offset-4 transition-colors hover:decoration-accent"
+            className="underline decoration-border-soft underline-offset-4 transition-colors hover:decoration-foreground"
           >
             {part.text}
           </Link>
@@ -132,6 +132,9 @@ const BAND_VARS: Record<BandTone, React.CSSProperties> = {
     ["--btn-primary-bg" as string]: "var(--n-darkest)",
     ["--btn-primary-fg" as string]: "var(--n-white)",
     ["--btn-primary-bg-hover" as string]: "var(--n-darker)",
+    // 지면이 옐로라 버튼 호버까지 옐로면 버튼이 사라진다 — 여기서만 흰 면으로
+    ["--btn-hover-bg" as string]: "var(--n-white)",
+    ["--btn-hover-fg" as string]: "var(--n-darkest)",
   },
   dark: {
     ["--background" as string]: "var(--inverse-bg)",
@@ -192,7 +195,12 @@ export function Band({
     나눈다. 위를 단으로 나눠 두었더니 화면마다 첫 줄이 앉는 높이가 달라, 페이지를 옮길 때
     제목이 위아래로 튀어 보였다.
   */
-  const pad = size === "lg" ? "pt-20 pb-20" : size === "sm" ? "pt-20 pb-10" : "pt-20 pb-16";
+  const pad =
+    size === "lg"
+      ? "pt-section-top pb-section-lg"
+      : size === "sm"
+        ? "pt-section-top pb-section-sm"
+        : "pt-section-top pb-section-md";
   return (
     <section
       id={id}
@@ -224,6 +232,17 @@ export function Band({
 /** 국문·공용 아이브로. 색은 자리에 맞게 `text-muted` / `text-foreground` 를 붙인다. */
 export const EYEBROW = "text-xs font-bold";
 
+/**
+ * 값 위에 얹는 **영문 캡스 아이브로** — 대관료 카드에서 시작해 시설 제원 카드가 함께 쓴다.
+ * 12 · ExtraBold · 대문자 · 자간 기본 · 보조색 · Archivo.
+ *
+ * 라벨은 값을 가리키는 이름표라 작고 조용해야 한다. 값과 같은 굵기로 두면 둘이 겹쳐
+ * 읽히고, 자간을 벌리면(예전 0.08em) 라벨이 값보다 넓은 자리를 차지한다.
+ * 한글 라벨에는 쓰지 않는다 — Archivo 에 한글 글립이 없어 시스템 서체로 떨어진다.
+ */
+export const EYEBROW_CAPS =
+  "text-xs font-extrabold uppercase tracking-normal text-muted [font-family:Archivo,sans-serif]";
+
 /** 푸터 컬럼 제목 등 영문 캡스 라벨. 헤딩 위 아이브로로는 쓰지 않는다. */
 export function Label({ children, className = "" }: { children: ReactNode; className?: string }) {
   return (
@@ -241,7 +260,7 @@ export function Label({ children, className = "" }: { children: ReactNode; class
    기준: Figma Style Guide › UI Elements › Buttons
 
    ┌ 모양 ────────────────────────────────────────────────────────────────┐
-   │ 코너 0 (샤프) · 테두리 1px · 폭은 글자 + 좌우 패딩 · 세로는 아래 3단만  │
+   │ 코너 4 · 테두리 1px · 폭은 글자 + 좌우 패딩 · 세로는 아래 3단만        │
    └──────────────────────────────────────────────────────────────────────┘
 
    **높이는 "누가 쓰나"가 아니라 "어디에 놓이나"로 정한다.** 같은 자리의 버튼이
@@ -272,11 +291,18 @@ export function Label({ children, className = "" }: { children: ReactNode; class
 type BtnVariant = "primary" | "secondary" | "tertiary" | "danger";
 type BtnSize = "sm" | "md" | "lg";
 
+/*
+  호버 색은 **버튼 종류와 무관하게 옐로 면 + 검정 글자**다 (2026-09-04).
+  검정 버튼은 더 짙은 검정으로, 테두리 버튼은 검정 면으로 뒤집히던 것을 하나로 모았다 —
+  호버 색이 버튼마다 다르면 무엇이 반응한 것인지 매번 다시 읽어야 한다.
+  `tertiary`(밑줄 텍스트)와 `danger`(파괴적 확정)는 면이 없거나 경고색이라 예외다.
+*/
+const BTN_HOVER =
+  "hover:border-[var(--btn-hover-bg)] hover:bg-[var(--btn-hover-bg)] hover:text-[var(--btn-hover-fg)]";
+
 const BTN_VARIANT: Record<BtnVariant, string> = {
-  primary:
-    "border-transparent bg-[var(--btn-primary-bg)] text-[var(--btn-primary-fg)] hover:bg-[var(--btn-primary-bg-hover)]",
-  secondary:
-    "border-foreground bg-transparent text-foreground hover:bg-foreground hover:text-background",
+  primary: `border-transparent bg-[var(--btn-primary-bg)] text-[var(--btn-primary-fg)] ${BTN_HOVER}`,
+  secondary: `border-foreground bg-transparent text-foreground ${BTN_HOVER}`,
   tertiary: "border-transparent bg-transparent text-foreground hover:underline underline-offset-4",
   /* 파괴적 동작의 확정 버튼. 평소엔 조용하고 호버에서만 빨강 면이 된다 —
      목록 안의 인라인 "삭제"는 버튼 네모가 아니라 텍스트(adminUi 의 REMOVE_BTN)를 쓴다 */
@@ -339,11 +365,11 @@ export function ButtonLink({
 
 export function ArrowRight({ className = "" }: { className?: string }) {
   return (
-    <svg aria-hidden viewBox="0 0 16 16" fill="none" className={`h-3 w-3 shrink-0 ${className}`}>
+    <svg aria-hidden viewBox="0 0 16 16" fill="none" className={`h-5 w-5 shrink-0 ${className}`}>
       <path
         d="M3 8h9M8.5 4l4 4-4 4"
         stroke="currentColor"
-        strokeWidth="1.6"
+        strokeWidth="1.3"
         strokeLinecap="round"
         strokeLinejoin="round"
       />
@@ -435,17 +461,7 @@ export function PageHeading({
         <As className={cls}>{title}</As>
         {lead && <div className="mt-6 text-m text-muted">{lead}</div>}
       </div>
-      {actions && <div className="flex shrink-0 flex-wrap gap-3">{actions}</div>}
-    </div>
-  );
-}
-
-/** Layout 1 / 3 / 6 의 센터 헤더 */
-export function CenterHeading({ title, lead }: { title: ReactNode; lead?: ReactNode }) {
-  return (
-    <div className="mx-auto max-w-3xl text-center">
-      <h2 className="type-kr-heading text-h3-m sm:text-h3">{title}</h2>
-      {lead && <p className="mt-5 text-m text-muted">{lead}</p>}
+      {actions && <div className="flex shrink-0 flex-wrap gap-inline">{actions}</div>}
     </div>
   );
 }
@@ -595,7 +611,7 @@ export function choiceClass(
   { disabled = false, dense = false }: { disabled?: boolean; dense?: boolean } = {},
 ) {
   return [
-    "block w-full border text-left outline-none transition-colors",
+    "block w-full rounded-surface border text-left outline-none transition-colors",
     dense ? "px-4 py-3" : "px-5 py-5",
     "focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-foreground",
     disabled
@@ -611,37 +627,64 @@ export function choiceClass(
  * 인라인 컨트롤. 버튼 크기는 시스템의 세 단만 쓴다(48 / 40 / **32**) — 이건 32 다.
  * 선택 = 검정 채움 한 가지 언어. 같은 줄에 놓이는 컨트롤은 전부 이 높이로 맞춘다.
  */
-export function toggleClass(selected: boolean, disabled = false) {
+export function toggleClass(
+  selected: boolean,
+  disabled = false,
+  /** `danger` — 지우는 칩. 평소엔 조용하고 호버에서만 빨강 면이 된다 */
+  tone: "default" | "danger" = "default",
+) {
   return [
-    "inline-flex h-11 items-center justify-center gap-1 whitespace-nowrap border px-3 text-xs font-bold sm:h-8",
+    // 칩의 몸집은 작은 버튼(sm)과 같은 단이다 — 높이 32, 좌우 패딩 16, 본문 14.
+    // 같은 줄에 버튼과 칩이 섞여 서는 자리가 많아 둘이 어긋나면 바로 눈에 띈다.
+    "inline-flex h-11 items-center justify-center gap-1 whitespace-nowrap rounded-btn border px-4 text-s font-bold sm:h-8",
     "transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2",
     "focus-visible:outline-foreground",
     disabled
       ? "cursor-not-allowed border-border-soft opacity-40"
-      : selected
-        ? "cursor-pointer border-foreground bg-inverse-bg text-inverse-fg"
-        : "cursor-pointer border-border-soft text-muted hover:border-foreground hover:text-foreground",
+      : tone === "danger"
+        ? "cursor-pointer border-danger text-danger hover:bg-danger hover:text-background"
+        : selected
+          ? "cursor-pointer border-foreground bg-inverse-bg text-inverse-fg"
+          : "cursor-pointer border-border-soft text-muted hover:border-foreground hover:text-foreground",
   ].join(" ");
 }
 
 /**
- * 파일 선택 입력 — 브라우저가 그리는 "파일 선택" 버튼도 시스템 버튼처럼 보이게 한다.
- * 네모 아웃라인 · 샤프 코너 · 32(버튼 sm 과 같은 단). 필드 자체는 한 줄 입력이라 40.
+ * 지우기 버튼 — 목록의 한 줄이나 첨부 한 개를 떼는 자리.
+ *
+ * "삭제" 라는 글자 대신 **×** 하나로 통일한다. 입력칸 옆에 글자 버튼이 서면 그 줄에서
+ * 가장 눈에 띄는 것이 지우기가 되는데, 그 줄의 주인공은 입력한 값이다.
+ * 무엇을 지우는지는 `aria-label` 로 읽어 준다.
  */
-export const FILE_INPUT =
-  // `my-[3px]` 는 광학 보정이다. 브라우저는 파일 버튼을 글자 **베이스라인**에 얹으므로
-  // 40 필드 안에서 위 1 / 아래 7 로 치우친다(실측). 3px 을 주면 4.0 / 4.2 로 가운데 온다.
-  // display:flex 나 align-items 는 파일 입력 내부에 먹지 않는다(크로미움).
-  "field-base file:mr-3 file:my-[3px] file:inline-flex file:h-8 file:items-center file:border file:border-foreground file:bg-transparent file:px-4 file:text-xs file:font-bold file:text-foreground";
+export function RemoveIcon() {
+  return (
+    <svg
+      aria-hidden
+      viewBox="0 0 16 16"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.4"
+      strokeLinecap="square"
+      className="h-3.5 w-3.5"
+    >
+      <path d="M4 4l8 8M12 4l-8 8" />
+    </svg>
+  );
+}
+
+export const REMOVE_ICON_BTN =
+  "inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-btn text-muted transition-colors hover:bg-danger-soft hover:text-danger";
 
 /** 아이콘 버튼(±, ‹ ›) — 토글과 같은 32 높이의 정사각형 */
 export const ICON_BTN_SM =
-  "inline-flex h-8 w-8 shrink-0 items-center justify-center border border-border-soft text-s text-muted transition-colors hover:border-foreground hover:text-foreground disabled:cursor-not-allowed disabled:opacity-40";
+  "inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-btn border border-border-soft text-s text-muted transition-colors hover:border-foreground hover:text-foreground disabled:cursor-not-allowed disabled:opacity-40";
 
-/** 선택된 칩 안에서 text-muted·border 가 지면에 맞게 뒤집히도록 */
+/** 선택된 칩 안에서 text-muted·border·체크박스가 지면에 맞게 뒤집히도록 */
 export const CHOICE_SELECTED_VARS: React.CSSProperties = {
   ["--muted" as string]: "var(--inverse-muted)",
   ["--border" as string]: "var(--inverse-fg)",
+  // 검정 면 위의 체크박스는 흰 채움 + 검정 표시다 — 기본(검정 채움)이면 면에 묻힌다
+  ["--check-fill" as string]: "var(--n-white)",
 };
 
 /** 보조 고지문 — 색면·좌측 바를 쓰지 않고 헤어라인 위 작은 글씨로만 */
@@ -652,7 +695,12 @@ export function Note({ children, className = "" }: { children: ReactNode; classN
     // p 가 아니라 div — 호출부가 Prose(div) 같은 블록을 자식으로 넘기는데,
     // p 안의 div 는 잘못된 중첩이라 브라우저가 파싱 중 재배치해 하이드레이션이
     // 통째로 깨진다(/rules 에서 React #418 로 실제 발생).
-    <div className={`border-t border-border pt-3 text-xs leading-5 text-muted ${className}`}>
+    /*
+      [개정 2026-09-04] 위 가로줄을 뺐다. 고지문은 바로 위 내용에 딸린 꼬리말인데,
+      줄을 그으면 별개의 구획으로 읽혀 앞 내용과 끊겼다. 작은 글씨와 보조색만으로
+      충분히 구분된다.
+    */
+    <div className={`text-xs leading-5 text-muted ${className}`}>
       {children}
     </div>
   );
@@ -743,34 +791,6 @@ export function GroupedSpecTable({
 /* ------------------------------------------------------- 카드 / 스탯 ----- */
 
 /**
- * 검정 머리(제목) + 흰 본문 카드. 아웃라인은 검정 실선이다.
- * 12칼럼에서 6칼럼씩(2-up) 놓이며, 시설 제원의 수용인원 카드와 대관료의
- * 포함 항목 카드가 같은 물건을 쓴다.
- */
-export function TitledCard({
-  title,
-  children,
-  className = "",
-}: {
-  title: string;
-  children: ReactNode;
-  className?: string;
-}) {
-  return (
-    <article
-      className={`flex h-full min-w-0 flex-col overflow-hidden rounded-surface border border-border bg-panel lg:col-span-3 ${className}`}
-    >
-      {title && (
-        <header className="bg-inverse-bg px-6 py-5 text-inverse-fg" style={INVERSE_SURFACE_VARS}>
-          <h4 className={`${headingFontClass(title)} break-keep text-h5-m sm:text-h5`}>{title}</h4>
-        </header>
-      )}
-      <div className="flex-1 p-6">{children}</div>
-    </article>
-  );
-}
-
-/**
  * 값이 **수치**인지 — 한글이 없고 숫자가 있으면 수치로 보고 Archivo 를 쓴다.
  * `isLatinHeading` 은 ASCII 만 통과시켜 `3,553㎡` 같은 기호 섞인 수치를 놓쳤다.
  * 한글이 섞인 값(`최대 3,060석`)에는 절대 Archivo 를 걸지 않는다 — 한글 글립이 없다.
@@ -806,7 +826,7 @@ function archivoMediumClass(text: string): string {
 /**
  * 4-up 스탯 카드 — 굵은 윗선 + 작은 라벨 + 큰 값(+ 부연 한 줄).
  * 시설 제원의 상위 4개 포인트와 대관료의 기본 이용 기준이 같은 레이아웃을 쓴다.
- * 12칼럼에서 3칼럼씩 떨어진다. 값에 줄바꿈을 넣으면 그대로 줄이 나뉜다.
+ * 자체 4열 격자에 놓인다(지면 6칼럼과 별개). 값에 줄바꿈을 넣으면 그대로 줄이 나뉜다.
  *
  * 크기는 **값이 얼마나 짧은가**로 고른다.
  *   lg (H3)  `22,500` 처럼 수치 한 덩어리 — 한 줄에 떨어진다
@@ -824,6 +844,7 @@ export function StatCards({
   items,
   size = "sm",
   valueFont = "auto",
+  variant = "rule",
 }: {
   items: { label: string; value: string; note?: string }[];
   size?: keyof typeof STAT_VALUE_SIZE;
@@ -832,10 +853,15 @@ export function StatCards({
    * `archivo` 는 **시설 제원 개요 카드 전용** — Archivo Medium 으로 한 단 가볍게 쓴다.
    */
   valueFont?: "auto" | "archivo";
+  /**
+   * `rule` — 위쪽 굵은 선 아래 값이 서는 기본 모양.
+   * `card` — 시설 제원의 카드와 같은 흰 면 카드. 검정 지면 위에 놓을 때 쓴다.
+   */
+  variant?: "rule" | "card";
 }) {
   /*
     [개정 2026-09-03] 개수에 따라 폭이 정해진다 — 카드가 몇 장이든 **한 줄을 꽉 채운다.**
-      1장  12칼럼(지면 전체)   2장  6칼럼씩(1/2)   3장 이상  3칼럼씩(4-up)
+      1장  4열 전체   2장  2열씩(1/2)   3장 이상  1열씩(4-up)
     예전에는 몇 장이든 3칼럼씩이라, 한두 장일 때 오른쪽이 통째로 비어 카드가 잘리다 만
     것처럼 보였다. 3장이면 4-up 격자에서 한 자리가 남는데, 그건 4장으로 채울 자리라는
     뜻이라 그대로 둔다.
@@ -847,7 +873,17 @@ export function StatCards({
   return (
     <ul className={`grid gap-x-[var(--gutter)] gap-y-10 ${smCols} lg:grid-cols-4`}>
       {items.map((it, i) => (
-        <li key={`${it.label}-${i}`} className={`border-t-2 border-border pt-5 ${span}`}>
+        <li
+          key={`${it.label}-${i}`}
+          /* 카드 모양일 때는 검정 지면 위에 흰 면이 놓이므로 색 토큰을 국소 반전한다 —
+             안의 글자·보조 설명이 지면색을 따라가면 흰 면 위에서 읽히지 않는다. */
+          style={variant === "card" ? PLAIN_SURFACE_VARS : undefined}
+          className={
+            variant === "card"
+              ? `flex h-full min-w-0 flex-col rounded-surface bg-background p-card-pad text-foreground ${span}`
+              : `border-t-2 border-border pt-5 ${span}`
+          }
+        >
           <p className="text-xs font-bold text-muted">{it.label}</p>
           <p
             className={`mt-3 whitespace-pre-line break-keep ${
@@ -903,7 +939,7 @@ export function RowList({
             {title && <h3 className="type-kr-heading text-h5-m sm:text-h5">{title}</h3>}
             {lead && <p className="mt-3 text-s text-muted">{lead}</p>}
           </div>
-          {controls && <div className="flex shrink-0 flex-wrap gap-3">{controls}</div>}
+          {controls && <div className="flex shrink-0 flex-wrap gap-inline">{controls}</div>}
         </div>
       )}
       <ul className="border-t border-border">{children}</ul>
@@ -961,12 +997,6 @@ export function Row({
 
 /* ------------------------------------------------------------- CTA ------- */
 
-/**
- * 페이지 하단 옐로 배너의 고정 높이(내부 콘텐츠 영역).
- * 페이지마다 카피 길이가 달라도 배너 높이는 같아야 한다 — 이 값은 여기서만 정한다.
- */
-export const CTA_BAND_MIN = "9rem";
-
 /** Figma CTA / 1 — 좌: 헤딩 + 본문 / 우: 버튼 2개 */
 export function CTABand({
   title,
@@ -983,18 +1013,18 @@ export function CTABand({
     [개정 2026-09-03] 지면 끝까지 차던 색면을 **마진 안에 앉는 라운드 카드**로 바꿨다.
     풀블리드면 위아래 섹션과 경계가 붙어 띠처럼 읽히는데, 이건 띠가 아니라 하나의 제안이다.
     내용은 가운데 정렬 — 안내 한 줄 → 제목 → 버튼 순으로 시선이 한 축에서 내려간다.
-    높이는 `CTA_BAND_MIN` 으로 고정해 카피 길이가 달라도 카드 크기가 흔들리지 않는다.
+    높이는 화면의 70% 로 고정해 카피 길이가 달라도 카드 크기가 흔들리지 않는다.
   */
   return (
     // 바깥은 지면을 상속한다 — 검정 섹션 안에 들어가면 검정 위에, 밝은 지면에서는 그 위에 앉는다
-    <div className="py-8 sm:py-10">
+    <div className="py-cta-gap">
       <div className="container-site">
       {/* 색면은 화면의 **70%** 를 차지한다 — 한 판을 다 채우면 앞뒤 섹션과의 사이가 끊긴다 */}
       <div
         style={{ minHeight: "70vh", ...BAND_VARS[tone] }}
-        className={`flex flex-col items-center justify-center rounded-surface px-6 py-20 text-center ${BAND_TONE[tone]}`}
+        className={`flex flex-col items-center justify-center rounded-surface px-cta-pad-x py-cta-pad text-center ${BAND_TONE[tone]}`}
       >
-        {lead && <p className="break-keep text-[1.125rem]">{lead}</p>}
+        {lead && <p className="break-keep text-m">{lead}</p>}
         {/* 국문 제목은 어절 단위로 끊는다 — `break-keep` 없이는 "확인하 / 세요" 처럼 잘린다 */}
         <h2
           className={`type-kr-heading break-keep text-h1-m leading-[1.2] sm:text-h1 ${lead ? "mt-6" : ""}`}
@@ -1002,7 +1032,7 @@ export function CTABand({
           {title}
         </h2>
         {/* 워딩 아래 버튼까지는 40 — 사이트 전체에서 같은 값이다 */}
-        <div className="mt-10 flex flex-wrap justify-center gap-3">{actions}</div>
+        <div className="mt-lead-action flex flex-wrap justify-center gap-inline">{actions}</div>
       </div>
       </div>
     </div>
@@ -1047,7 +1077,7 @@ export function Badge({
   } as const;
   return (
     <span
-      className={`inline-flex items-center border px-2 py-1 text-xs font-extrabold uppercase tracking-[0.08em] [font-family:Archivo,sans-serif] ${map[tone]}`}
+      className={`inline-flex items-center rounded-btn border px-2 py-1 text-xs font-extrabold uppercase tracking-[0.08em] [font-family:Archivo,sans-serif] ${map[tone]}`}
     >
       {children}
     </span>
@@ -1098,7 +1128,6 @@ export function PageHead({
   lead,
   actions,
   as: As = "h1",
-  wideLead = false,
 }: {
   /** H1 — 영문 슬로건 (ABOUT SEOUL ARENA · ARENA RATES …) */
   en: string;
@@ -1107,37 +1136,37 @@ export function PageHead({
   lead?: ReactNode;
   actions?: ReactNode;
   as?: "h1" | "h2";
-  /**
-   * 리드의 한 줄 길이 상한(`measure`)을 푼다 (2026-09-02).
-   * 읽기 편한 줄 길이는 산문의 기본이지만, 시설 개요처럼 운영자가 쓴 소개 문단은
-   * 상한 때문에 지면이 남는데도 줄이 일찍 꺾여 답답해 보인다는 요청이 있었다.
-   */
-  wideLead?: boolean;
 }) {
   return (
-    <div className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
-      <div className="min-w-0">
-        <As className="type-display text-h1-m sm:text-h1">{en}</As>
-        {/*
-          [개정 2026-09-04] 국문 제목도 영문과 **같은 H1** 이다. 한 단계 낮춰 두었더니
-          영문 슬로건만 제목이고 국문은 그 설명처럼 읽혔는데, 둘은 같은 제목의 두 표기다.
-          대신 사이를 8 로 좁혀 한 덩어리로 묶는다.
-        */}
-        {ko && <h3 className="type-kr-heading mt-2 text-h1-m sm:text-h1">{ko}</h3>}
-        {/*
-          [개정 2026-09-04] 제목과 리드 사이를 **56** 으로 벌리고, 리드를 본문 그대로
-          (18 · 행간 160% · 지면 글자색) 둔다. 16 으로 붙여 두고 흐린 회색으로 깔았더니
-          제목에 딸린 부제처럼 읽혔는데, 이 자리는 화면의 첫 문장이다.
-        */}
-        {lead && (
-          <div
-            className={`mt-14 break-keep text-[1.125rem] font-normal leading-[1.6] ${wideLead ? "" : "measure"}`}
-          >
-            {lead}
-          </div>
-        )}
+    // `pagehead-gap` — 탭 띠가 없는 화면에서만 그 높이를 채워 제목 높이를 맞춘다
+    <div className="pagehead-gap">
+      <div className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
+        <div className="min-w-0">
+          <As className="type-display text-h1-m sm:text-h1">{en}</As>
+          {/*
+            [개정 2026-09-04] 국문 제목도 영문과 **같은 H1** 이다. 한 단계 낮춰 두었더니
+            영문 슬로건만 제목이고 국문은 그 설명처럼 읽혔는데, 둘은 같은 제목의 두 표기다.
+            대신 사이를 8 로 좁혀 한 덩어리로 묶는다.
+          */}
+          {ko && <h3 className="type-kr-heading mt-2 text-h1-m sm:text-h1">{ko}</h3>}
+        </div>
+        {actions && <div className="flex shrink-0 flex-wrap gap-inline">{actions}</div>}
       </div>
-      {actions && <div className="flex shrink-0 flex-wrap gap-3">{actions}</div>}
+      {/*
+        [개정 2026-09-04] 설명글은 제목 줄 **바깥**에 둔다. 안에 두면 오른쪽 버튼이
+        있는 화면에서만 폭이 그만큼 줄어, 페이지마다 글이 끝나는 자리가 달라졌다.
+        폭은 언제나 지면 4칼럼이고, 제목과의 사이는 64 · 글자는 본문 그대로다.
+
+        운영자가 넣은 줄바꿈은 **풀어서** 흘린다(`whitespace-normal`). 원문의 줄바꿈
+        자리가 화면마다 달라 어떤 페이지는 4칼럼을 다 쓰고 어떤 페이지는 그 절반에서
+        접혔다 — 설명글이 끝나는 자리는 문장이 아니라 지면이 정한다.
+        문단 구분(빈 줄)은 그대로 남는다.
+      */}
+      {lead && (
+        <div className="measure-4col mt-head-lead break-keep text-m font-normal [&_p]:whitespace-normal">
+          {lead}
+        </div>
+      )}
     </div>
   );
 }
@@ -1153,17 +1182,20 @@ export function SectionHead({
   actions?: ReactNode;
 }) {
   return (
-    <div className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
-      <div className="min-w-0">
-        <h3 className={`${headingFontClass(title)} text-h3-m sm:text-h3`}>{title}</h3>
-        {/* 제목 아래 간격과 글자는 페이지 머리와 같은 기준(56 · 18 · 160%). 색만 보조색으로 둔다 */}
-        {lead && (
-          <div className="measure mt-14 break-keep text-[1.125rem] font-normal leading-[1.6] text-muted">
-            {lead}
-          </div>
-        )}
+    <div>
+      <div className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
+        <h3 className={`${headingFontClass(title)} min-w-0 text-h3-m sm:text-h3`}>{title}</h3>
+        {actions && <div className="flex shrink-0 flex-wrap gap-inline">{actions}</div>}
       </div>
-      {actions && <div className="flex shrink-0 flex-wrap gap-3">{actions}</div>}
+      {/*
+        페이지 머리와 같은 규칙 — 제목 줄 바깥에 두어 오른쪽 버튼의 영향을 받지 않는다.
+        간격 64 · 글자 18/160% · 폭 4칼럼, 원문 줄바꿈은 풀어서 흘린다. 색만 보조색이다.
+      */}
+      {lead && (
+        <div className="measure-4col mt-head-lead break-keep text-m font-normal text-muted [&_p]:whitespace-normal">
+          {lead}
+        </div>
+      )}
     </div>
   );
 }
@@ -1230,7 +1262,8 @@ export function PhotoHero({
   minHeight?: string;
 }) {
   return (
-    <section className="container-site py-4">
+    // 사진끼리의 간격과 아래 여백은 호출부가 정한다 — 여기서 주면 두 장 사이만 두 배가 된다
+    <section className="container-site">
       <div
         className={`relative isolate flex items-center overflow-hidden rounded-surface ${image ? "text-n-white" : "bg-placeholder text-foreground"}`}
         style={{ minHeight: `min(${minHeight}, 100svh)` }}
@@ -1257,7 +1290,7 @@ export function PhotoHero({
         {/* 공간명 H1 · 수용 규모 14 · 설명 18 — 사진 위 세로 가운데에 선다 */}
         <div className="w-full px-6 py-14 sm:px-10">
           <h2 className="type-kr-heading text-h1-m sm:text-h1">{title}</h2>
-          {eyebrow && <p className="mt-4 text-[0.875rem] font-bold">{eyebrow}</p>}
+          {eyebrow && <p className="mt-4 text-s font-bold">{eyebrow}</p>}
           {/*
             설명의 줄바꿈은 **넓은 화면에서만** 지킨다.
             운영자가 넣은 줄바꿈은 한 줄에 35자쯤 들어가는 폭을 전제로 한 것이라,
@@ -1268,7 +1301,7 @@ export function PhotoHero({
           {desc && (
             <Prose
               text={desc}
-              className="mt-6 text-[1.125rem] leading-[1.6] [&>p]:whitespace-normal lg:[&>p]:whitespace-pre-line"
+              className="mt-6 text-m [&>p]:whitespace-normal lg:[&>p]:whitespace-pre-line"
               gap="mt-4"
             />
           )}
@@ -1319,13 +1352,13 @@ export function FeatureList({
           } ${columns === 2 && i === 1 ? "lg:border-t-0" : ""}`}
         >
           {numbered && (
-            <span className="type-display text-[1.5rem] tabular-nums text-muted lg:col-span-1">
+            <span className="type-display text-h5 tabular-nums text-muted lg:col-span-1">
               {String(i + 1).padStart(2, "0")}
             </span>
           )}
           <div className={`min-w-0 ${numbered ? "lg:col-span-4 lg:col-start-2" : ""}`}>
             <h4
-              className={`type-kr-heading break-keep ${numbered ? "text-[1.5rem] leading-[1.4]" : "text-h5-m sm:text-h5"}`}
+              className={`type-kr-heading break-keep ${numbered ? "text-h5" : "text-h5-m sm:text-h5"}`}
             >
               {it.title}
             </h4>
@@ -1345,6 +1378,7 @@ export function FeatureList({
   );
 }
 
+
 /* -------------------------------------------------------- 대관 절차 ------ */
 
 export interface ProcessStep {
@@ -1353,42 +1387,27 @@ export interface ProcessStep {
   desc: string;
 }
 
-function StepArrow({ className = "" }: { className?: string }) {
-  return (
-    <svg aria-hidden viewBox="0 0 24 24" fill="none" className={`h-5 w-5 shrink-0 ${className}`}>
-      <path d="M9.5 5.5 16 12l-6.5 6.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="square" />
-    </svg>
-  );
-}
-
 /**
- * 대관 절차 — **12칼럼 그리드 위에 3칼럼씩(4-up), 두 줄.** 박스 사이 거터에 화살표가 놓인다.
- * 순서가 있는 내용이므로 카드 그리드가 아니라 화살표로 이어진 흐름으로 읽힌다.
- * 좁은 화면에서는 한 줄에 하나(640 미만) / 둘(640~1023)씩 쌓이고 화살표는 사라진다.
+ * 대관 절차 — 사이트의 다른 카드와 같은 규격이다. 한 줄에 넷, 좁아지면 둘·하나로 쌓인다.
+ *
+ * [개정 2026-09-04] 테두리와 박스 사이 화살표를 뺐다. 순서는 번호가 이미 말하고 있어서
+ * 화살표는 같은 말을 한 번 더 하는 장치였고, 이 화면에만 있는 형태라 다른 카드들과
+ * 결이 갈렸다. 번호 · 제목 · 설명의 위계는 그대로다.
  */
 export function ProcessSteps({ steps }: { steps: ProcessStep[] }) {
   return (
-    <ol className="grid gap-[var(--gutter)] sm:grid-cols-2 lg:grid-cols-4">
-      {steps.map((s, i) => {
-        // 줄 끝(4·8번째)과 마지막 박스에는 화살표를 두지 않는다
-        const hasArrow = i % 4 !== 3 && i !== steps.length - 1;
-        return (
-          <li key={s.no} className="relative lg:col-span-1">
-            <div className="h-full border border-border bg-panel p-6">
-              <span className="type-display block text-h6-m tabular-nums sm:text-h6">{s.no}</span>
-              <h4 className="type-kr-heading mt-3 break-keep text-h6-m sm:text-h6">{s.title}</h4>
-              <p className="mt-3 break-keep text-s text-muted">
+    <ol className="grid gap-gutter sm:grid-cols-2 lg:grid-cols-4">
+      {steps.map((s) => (
+        <li key={s.no} className="lg:col-span-1">
+          <div className="h-full rounded-surface bg-panel p-card-pad">
+            <span className="type-display block text-h6-m tabular-nums sm:text-h6">{s.no}</span>
+            <h4 className="type-kr-heading mt-3 break-keep text-h6-m sm:text-h6">{s.title}</h4>
+            <p className="mt-3 break-keep text-s text-muted">
               <InlineLinks text={s.desc} />
             </p>
-            </div>
-            {hasArrow && (
-              /* 화살표는 박스 사이 거터의 가운데에 뜬다 — 박스 폭을 줄여 자리를 만들지
-                 않는다(박스가 컬럼에서 벗어난다) */
-              <StepArrow className="absolute left-[calc(100%_+_var(--gutter)/2)] top-1/2 hidden -translate-x-1/2 -translate-y-1/2 text-muted lg:block" />
-            )}
-          </li>
-        );
-      })}
+          </div>
+        </li>
+      ))}
     </ol>
   );
 }
@@ -1442,7 +1461,7 @@ export function DocumentList({
           key={i}
           className="flex flex-col gap-5 border-b border-border py-7 lg:flex-row lg:items-start lg:justify-between lg:gap-12"
         >
-          <div className="min-w-0">
+          <div className="min-w-0 flex-1">
             <h4 className="type-kr-heading break-keep text-h5-m sm:text-h5">{d.title}</h4>
             {d.desc && <p className="measure mt-3 break-keep text-s text-muted">{d.desc}</p>}
             {d.meta && d.meta.length > 0 && (

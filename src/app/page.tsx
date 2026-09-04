@@ -66,8 +66,12 @@ export default async function Home({
           사진은 이 아래에 있어, 스크롤을 내려야 보이기 시작한다.
         */}
         <section
-          className="container-site flex flex-col pb-20"
-          style={{ minHeight: "100vh", paddingTop: "calc(var(--header-h) + 80px)" }}
+          className="container-site flex flex-col pb-section-lg"
+          // 첫 섹션이라 위 여백은 상단바 높이 + 섹션 위 여백이다
+          style={{
+            minHeight: "100vh",
+            paddingTop: "calc(var(--header-h) + var(--spacing-section-top))",
+          }}
         >
           {/*
             히어로 한정 크기다. 좁은 화면에서 영문 제목과 국문 리드가 둘 다 40 이라
@@ -82,13 +86,13 @@ export default async function Home({
             제목과 멀어져 둘이 다른 섹션처럼 읽혔다. 제목 아래 80 에서 시작하고, 남는 자리는
             버튼 아래에 둔다.
           */}
-          <div className="mt-20">
-            <p className="break-keep text-[1.5rem] font-extrabold leading-[1.3] [font-family:var(--font-sans)] lg:text-[2.5rem]">
+          <div className="mt-hero-lead">
+            <p className="text-lead-m break-keep font-extrabold lg:text-lead">
               <Multiline text={content.heroSubtitle} />
             </p>
 
             {/* 워딩 아래 버튼까지는 40 — 사이트 전체에서 같은 값이다 */}
-            <div className="mt-10 flex flex-wrap items-center gap-3">
+            <div className="mt-lead-action flex flex-wrap items-center gap-inline">
               <ButtonLink href={content.heroPrimaryHref} variant="primary" size="lg">
                 {content.heroPrimaryLabel}
                 <ArrowRight />

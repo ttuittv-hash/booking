@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { isRuleHtmlParagraph, isRuleTableParagraph } from "@/lib/content/pageContent";
 import { sanitizeRichText } from "@/lib/sanitizeHtml";
+import { EYEBROW_CAPS } from "@/components/ui/kit";
 
 /* 규약 본문 표 — 좁은 화면에서 지면을 밀지 않도록 표만 가로로 스크롤한다. */
 const RULE_TABLE = [
@@ -176,8 +177,9 @@ function ClearIcon() {
 }
 
 /** 검색 이동 버튼 — 샤프 코너 · 아웃라인, 최소 터치 40 */
+/* 검색 결과 이동 버튼. 호버하면 사이트의 다른 버튼과 같이 옐로 면이 된다 */
 const STEP_BTN =
-  "flex h-10 w-10 items-center justify-center border border-border text-foreground transition-colors hover:border-foreground disabled:cursor-not-allowed disabled:opacity-30";
+  "flex h-10 w-10 items-center justify-center rounded-btn border border-border text-foreground transition-colors hover:border-accent hover:bg-accent hover:text-on-accent disabled:cursor-not-allowed disabled:opacity-30";
 
 export function ArticleLayout({
   sections,
@@ -287,9 +289,15 @@ export function ArticleLayout({
         {/* [수정 2026-09-02] 목차 자체에 max-h-[50vh] 를 걸어 두어, 장이 열댓 개인 규약에서
             화면이 남아도는데도 좁은 상자 안에서만 스크롤됐다. 스티키 기둥 전체를 화면
             높이에 맞추고(검색 + 목차가 한 덩어리로 스크롤) 목차의 자체 상한은 없앤다. */}
-        <div className="lg:sticky lg:top-[calc(var(--header-h)+2.5rem)] lg:max-h-[calc(100vh-var(--header-h)-4rem)] lg:overflow-y-auto lg:pr-1">
+        <div className="lg:sticky lg:top-[calc(var(--header-h)+2.5rem)] lg:max-h-[calc(100vh-var(--header-h)-4rem)] lg:overflow-y-auto">
+          {/*
+            검색창은 **지면을 4등분한 한 칸** 폭이다.
+            식이 도는 이유 — 이 블록의 부모는 목차 단(지면 6칼럼 중 2칼럼)이라 `100%` 가
+            지면 폭이 아니다. 목차 폭 n 에서 지면 폭은 `3n + 2g` 이므로, 4등분 한 칸
+            `(W − 3g) / 4` 를 목차 폭으로 다시 쓰면 `(3n − g) / 4` 가 된다.
+          */}
           {searchLabel !== undefined && (
-            <div className="mb-6 print:hidden">
+            <div className="mb-6 lg:max-w-[calc((100%*3-var(--gutter))/4)] print:hidden">
               <label htmlFor="article-search" className="text-xs font-bold text-muted">
                 {searchLabel}
               </label>
@@ -342,6 +350,7 @@ export function ArticleLayout({
                   <p className="text-xs tabular-nums text-muted" aria-live="polite">
                     {total > 0 ? `${Math.min(cursor, total - 1) + 1} / ${total}` : "0 / 0"}
                   </p>
+                  {/* 버튼은 검색창(1칼럼)의 오른쪽 끝에 붙는다 */}
                   <div className="flex items-center gap-1">
                     <button
                       type="button"
@@ -385,22 +394,28 @@ export function ArticleLayout({
             </div>
           )}
 
-          <p className="type-display text-xs tracking-[0.08em] text-muted">TABLE OF CONTENTS</p>
-          <ul className="mt-4 border-t border-border">
+          <p className={EYEBROW_CAPS}>TABLE OF CONTENTS</p>
+          {/* 항목 사이 가로줄은 두지 않는다 — 목차는 표가 아니라 목록이고, 줄이 촘촘히 그이면 본문보다 눈에 먼저 들어온다 */}
+          {/* 스크롤바 여백은 목록에만 준다 — 스티키 기둥 전체에 주면 검색창 폭이 그만큼 어긋난다 */}
+          <ul className="mt-4 lg:pr-1">
             {sections.map((s) => {
               const hits = perSection[s.id] ?? 0;
               return (
-                <li key={s.id} className="border-b border-border">
+                <li key={s.id}>
                   <a
                     href={`#${s.id}`}
                     onClick={() => setActiveId(s.id)}
                     aria-current={activeId === s.id ? "true" : undefined}
-                    className={`flex items-center justify-between gap-2 break-keep py-3 text-s transition-colors hover:text-foreground ${
+                    className={`flex flex-wrap items-center gap-x-2 break-keep py-3 text-s transition-colors hover:text-foreground ${
                       activeId === s.id ? "font-bold text-foreground" : "text-muted"
                     }`}
                   >
                     <span className="min-w-0">{s.title}</span>
-                    {/* 검색 중에는 걸린 장에 개수만 붙인다 — 목차 자체는 바뀌지 않는다 */}
+                    {/*
+                      검색 중에는 걸린 장에 개수만 붙인다 — 목차 자체는 바뀌지 않는다.
+                      개수는 **제목 바로 옆**에 붙는다. 오른쪽 끝으로 밀어 두면 제목과
+                      멀어져, 어느 장의 개수인지 눈으로 다시 이어 붙여야 했다.
+                    */}
                     {searching && hits > 0 && (
                       <span className="shrink-0 bg-accent px-1.5 text-xs font-bold tabular-nums text-on-accent">
                         {hits}
@@ -414,8 +429,14 @@ export function ArticleLayout({
         </div>
       </nav>
 
-      {/* 본문 — 검색 중에도 조를 걷어내지 않는다 */}
-      <div className="min-w-0 lg:col-span-4">
+      {/*
+        본문 — 검색 중에도 조를 걷어내지 않는다.
+        검색창이 있는 문서에서는 그 한 통만큼 내려가, 목차 머리(TABLE OF CONTENTS)와
+        같은 줄에서 시작한다.
+      */}
+      <div
+        className={`min-w-0 lg:col-span-4 ${searchLabel !== undefined ? "lg:pt-article-search" : ""}`}
+      >
         {searching && total === 0 && (
           <p className="mb-8 text-s text-muted">「{query}」 이(가) 들어간 조문이 없습니다.</p>
         )}

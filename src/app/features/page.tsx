@@ -15,6 +15,7 @@ import { VENUE_TABS, VENUE_TAB_PARAM } from "@/components/ui/nav-items";
 import {
   ArrowRight,
   Band,
+  EYEBROW_CAPS,
   ButtonLink,
   CTABand,
   PLAIN_SURFACE_VARS,
@@ -22,7 +23,6 @@ import {
   RichText,
   SectionHead,
   StatCards,
-  TitledCard,
   valueHeadingClass,
 } from "@/components/ui/kit";
 
@@ -37,10 +37,18 @@ export const metadata: Metadata = {
 function DocumentsCta() {
   return (
     <CTABand
-      title="무대가 펼쳐질 공간의 가능성을 확인하세요."
+      // 줄바꿈 자리를 문장이 정한다 — 홈 배너와 같은 규격(H1 · 120%)이라 폭에 맡기면
+      // 화면마다 다른 자리에서 접힌다
+      title={
+        <>
+          무대가 펼쳐질 공간의
+          <br />
+          가능성을 확인하세요.
+        </>
+      }
       lead="자세한 시설 정보를 자료를 통해 확인하세요."
       actions={
-        <ButtonLink href="/documents?venue=facility" variant="primary">
+        <ButtonLink href="/documents?venue=facility" variant="primary" size="lg">
           대관 자료
           <ArrowRight />
         </ButtonLink>
@@ -69,18 +77,34 @@ function CapacityCard({ cap }: { cap: CapacityBlock }) {
       : cap.floors.map((f) => ({ label: f.label, value: f.value, note: f.note }));
 
   return (
-    <TitledCard title={cap.stage}>
-      {cap.desc && (
-        <p className="whitespace-pre-line break-keep text-s text-muted">
-          <RichText text={cap.desc} />
-        </p>
+    <article className="flex h-full min-w-0 flex-col justify-between rounded-surface bg-panel p-card-pad">
+      {/*
+        제목은 카드 위에, 수치는 카드 바닥에 붙는다 — 카드마다 내용 길이가 달라도
+        같은 줄에 선 카드들의 아래 선이 맞는다.
+
+        배치 이름은 카드의 **제목**이다. 중형공연장처럼 배치 구분이 없는 곳은 이름이 비어
+        오는데, 그때는 머리 덩어리 자체가 빠져 수치가 카드 맨 위에서 시작한다.
+      */}
+      {(cap.stage || cap.desc) && (
+        <div>
+          {cap.stage && <h4 className="type-display break-keep text-h4">{cap.stage}</h4>}
+          {cap.desc && (
+            <p
+              className={`whitespace-pre-line break-keep text-s text-muted ${cap.stage ? "mt-3" : ""}`}
+            >
+              <RichText text={cap.desc} />
+            </p>
+          )}
+        </div>
       )}
       {rows.length > 0 && (
-        <dl className={`space-y-7 ${cap.desc ? "mt-7" : ""}`}>
+        <dl className={`space-y-6 ${cap.stage || cap.desc ? "pt-card-body" : ""}`}>
           {rows.map((r, i) => (
             <div key={`${r.label}-${i}`}>
-              <dt className="text-xs font-bold text-muted">{r.label}</dt>
-              <dd className="type-display mt-2 break-keep text-h3-m normal-case tabular-nums sm:text-h3">
+              <dt className={EYEBROW_CAPS}>{r.label}</dt>
+              <dd
+                className={`${valueHeadingClass(r.value)} mt-2 break-keep text-h4 font-bold tabular-nums`}
+              >
                 {r.value}
               </dd>
               {r.note && <p className="mt-2 break-keep text-s text-muted">{r.note}</p>}
@@ -88,22 +112,26 @@ function CapacityCard({ cap }: { cap: CapacityBlock }) {
           ))}
         </dl>
       )}
-    </TitledCard>
+    </article>
   );
 }
 
 /**
  * 스펙 카드 — 검정 지면 위 **흰 배경 · 검정 아웃라인** 박스.
- * 한 장은 [라벨 / 큰 수치 / 설명] 세 줄이고, 12칼럼에서 **언제나 3칼럼**이다.
- * 스냅은 4 → 2 → 1.
+ * 한 장은 [라벨 / 큰 수치 / 설명] 세 줄이고, 지면 6칼럼에서 **언제나 2칼럼**이다.
+ * 그래서 한 줄에 세 장이 서고(2:2:2), 카드의 좌우 선이 지면 격자에 그대로 떨어진다.
+ * 스냅은 3 → 2 → 1.
  *
- * [개정 2026-09-03] 내용이 길면 2칼럼으로 넓히던 규칙을 없앴다. 카드마다 폭이 달라지니
+ * 장수가 모자란 줄은 **왼쪽부터 채우고 오른쪽을 비운다** — 두 장뿐이면 세 번째 자리가
+ * 빈 채로 남는다. 남는 폭을 나눠 가지면 그 줄만 카드가 넓어져 위아래 줄과 어긋난다.
+ *
+ * [개정 2026-09-03] 내용이 길면 넓히던 규칙을 없앴다. 카드마다 폭이 달라지니
  * 격자가 모자이크처럼 흐트러져, 정작 비교해야 할 카드들이 같은 줄에 서지 못했다.
  * 폭은 고정하고 **값의 글자 크기를 한 단 낮춰**(H4 → H5) 긴 값도 카드 안에 들어오게 한다.
  */
 function SpecCardGrid({ cards }: { cards: SpecCard[] }) {
   return (
-    <ul className="mt-10 grid gap-[var(--gutter)] sm:grid-cols-2 lg:grid-cols-4">
+    <ul className="mt-head-block grid gap-gutter sm:grid-cols-2 lg:grid-cols-3">
       {cards.map((card, i) => (
         <li
           key={`${card.label}-${i}`}
@@ -111,23 +139,25 @@ function SpecCardGrid({ cards }: { cards: SpecCard[] }) {
         >
           {/* 검정 밴드 안이라 토큰을 밝은 면으로 되돌린다 — 안 그러면 흰 배경에 흰 글자다 */}
           <article
-            className="flex h-full min-w-0 flex-col rounded-surface border border-border bg-background p-6 text-foreground"
+            className="flex h-full min-w-0 flex-col justify-between rounded-surface bg-background p-card-pad text-foreground"
             style={PLAIN_SURFACE_VARS}
           >
-            {/* 라벨은 있을 때만 그린다 — 빈 문자열이면 줄과 여백까지 함께 빠진다
-                (부대시설 카드는 라벨 없이 시설명부터 시작한다) */}
-            {card.label && <p className="text-xs font-bold text-muted">{card.label}</p>}
-            {/* 수치면 Archivo(대문자 변환은 끈다 — 180t 톤 ↔ 180T 테슬라), 시설명처럼
-                한글이 섞이면 국문 헤딩 서체. Archivo 에는 한글 글립이 없다. */}
-            <p
-              className={`${valueHeadingClass(card.value)} break-keep text-h5-m tabular-nums sm:text-h5 ${
-                card.label ? "mt-3" : ""
-              }`}
-            >
-              {card.value}
-            </p>
+            {/* 라벨과 값은 카드 위에 한 덩어리로, 설명은 카드 바닥에 붙는다 */}
+            <div>
+              {/* 라벨은 있을 때만 그린다 — 빈 문자열이면 줄과 여백까지 함께 빠진다
+                  (부대시설 카드는 라벨 없이 시설명부터 시작한다) */}
+              {card.label && <p className={EYEBROW_CAPS}>{card.label}</p>}
+              {/* 값의 크기·굵기는 서울아레나 카드 제목과 같은 규격(H4 Bold)이다 —
+                  사이트에서 「카드가 말하는 한 가지」는 어디서나 같은 무게로 선다. */}
+              <p
+                // 운영자가 넣은 줄바꿈을 지킨다 — 「1F: … / 3F: …」처럼 층마다 한 줄인 값이 있다
+                className={`${valueHeadingClass(card.value)} whitespace-pre-line break-keep text-h4 font-bold tabular-nums ${card.label ? "mt-3" : ""}`}
+              >
+                {card.value}
+              </p>
+            </div>
             {card.desc && (
-              <p className="mt-3 whitespace-pre-line break-keep text-s text-muted">
+              <p className="whitespace-pre-line break-keep pt-card-body text-s text-muted">
                 <RichText text={card.desc} />
               </p>
             )}
@@ -163,7 +193,7 @@ function FloorList({ items }: { items: FeatureBlock[] }) {
         const note = hasNote ? it.lines[it.lines.length - 1] : "";
         return (
           <li key={`${it.title}-${i}`} className="border-b border-border py-7">
-            <p className="text-xs font-extrabold uppercase tracking-[0.08em] text-muted [font-family:Archivo,sans-serif]">
+            <p className={EYEBROW_CAPS}>
               {it.title}
             </p>
             {figures.length > 0 && (
@@ -241,7 +271,12 @@ function VenuePanel({
       {c.capacity.length > 0 && (
         <Band tone="white">
           <SectionHead title="CAPACITY & CONFIGURATION" />
-          <div className="grid-site mt-10">
+          {/*
+            수용인원 카드는 **지면을 4등분한 두 칸**(= 절반) 씩이다. 카드 안에 배치 이름과
+            수치 두 줄이 들어가 스펙 카드보다 담는 것이 많고, 무대 배치 둘을 좌우로 나란히
+            견주는 자리라 한 줄에 둘이 맞다. 중형공연장처럼 한 장뿐이어도 폭은 같다.
+          */}
+          <div className="mt-head-block grid gap-gutter lg:grid-cols-2">
             {c.capacity.map((cap, i) => (
               <CapacityCard key={`${cap.stage}-${i}`} cap={cap} />
             ))}
@@ -313,7 +348,8 @@ export default async function FeaturesPage() {
 
       </main>
 
-      <SiteFooter />
+      {/* 푸터 지면은 **맨 마지막 섹션과 같은 색**이다 — 이 페이지는 검정으로 끝난다 */}
+      <SiteFooter tone="dark" />
     </div>
   );
 }

@@ -116,7 +116,7 @@ export function RulesBot() {
                   type="button"
                   disabled={busy}
                   onClick={() => void ask(sample)}
-                  className="border border-border-soft px-3 py-1.5 text-xs text-muted transition-colors hover:border-foreground hover:text-foreground disabled:opacity-40"
+                  className="rounded-btn border border-border-soft px-3 py-1.5 text-xs text-muted transition-colors hover:border-foreground hover:text-foreground disabled:opacity-40"
                 >
                   {sample}
                 </button>
@@ -141,7 +141,7 @@ export function RulesBot() {
             disabled={busy}
             maxLength={1000}
             placeholder="예: 준비 대관 기간에도 대관료가 붙나요?"
-            className="w-full border border-border-soft bg-background px-3 py-2 text-s"
+            className="field-base"
           />
         </label>
         <button type="submit" disabled={busy} className={btnClass("primary", "md")}>

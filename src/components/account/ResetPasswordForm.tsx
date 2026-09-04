@@ -63,7 +63,7 @@ export function ResetPasswordForm() {
       </ol>
 
       {error ? (
-        <p data-testid="reset-error" className="mt-4 border border-danger/40 px-4 py-3 text-s text-danger">
+        <p data-testid="reset-error" className="mt-4 rounded-surface bg-panel px-4 py-3 text-s text-danger">
           {error}
         </p>
       ) : null}
@@ -76,7 +76,7 @@ export function ResetPasswordForm() {
               data-testid="reset-username"
               value={username}
               onChange={(e) => setUsername(sanitizeUsernameInput(e.target.value))}
-              className="w-full border border-border-soft bg-background px-3 py-2 text-s"
+              className="field-base"
             />
           </label>
           <button
@@ -121,7 +121,7 @@ export function ResetPasswordForm() {
               type="password"
               value={password}
               onChange={(e) => setPassword(sanitizePasswordInput(e.target.value))}
-              className="w-full border border-border-soft bg-background px-3 py-2 text-s"
+              className="field-base"
             />
           </label>
           <label className="block">
@@ -133,7 +133,7 @@ export function ResetPasswordForm() {
               type="password"
               value={confirm}
               onChange={(e) => setConfirm(sanitizePasswordInput(e.target.value))}
-              className="w-full border border-border-soft bg-background px-3 py-2 text-s"
+              className="field-base"
             />
             <PasswordMatchHint password={password} confirm={confirm} />
           </label>

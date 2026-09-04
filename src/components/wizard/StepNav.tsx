@@ -98,7 +98,13 @@ export function StepNav({
       // sticky 오프셋은 상단바 높이 토큰(`--header-h`)을 그대로 따른다. 음수 마진(-mx-*)으로
       // 그리드 트랙 밖으로 빼지 않는다 — 스텝 전환 시 위저드 폭이 흔들리던 버그
       // (5cfc178 / 310e689) 가 그렇게 재발한다. w-full + overflow-x-auto 로만 처리한다.
-      className="sticky top-[var(--header-h)] z-20 mb-10 w-full border-b border-border/25 bg-background"
+      /*
+        단계 바 **위쪽(상단바 자리)까지 지면색으로 막는다**(`before`).
+        상단바 배경은 아랫변으로 갈수록 옅어지는 페이드라, 그 구간으로 아래 내용이
+        비쳐 올라왔다 — 글이 촘촘한 위저드에서는 체크박스 줄이 상단바를 뚫고 나온 것처럼
+        보였다. 여기서는 페이드 대신 불투명한 면으로 덮는다.
+      */
+      className="sticky top-[var(--header-h)] z-20 mb-10 w-full relative border-b border-border/25 bg-background before:absolute before:inset-x-0 before:bottom-full before:h-[var(--header-h)] before:bg-background before:content-['']"
     >
       <ol className="flex h-11 w-full min-w-0 items-center gap-1 overflow-x-auto">
         {groupsWithVisibleSteps.map((group) => {

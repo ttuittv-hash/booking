@@ -1,7 +1,8 @@
 "use client";
 
 import type { ReactNode } from "react";
-import { FILE_INPUT, toggleClass } from "@/components/ui/kit";
+import { REMOVE_ICON_BTN, RemoveIcon, toggleClass } from "@/components/ui/kit";
+import { FilePicker } from "@/components/ui/FilePicker";
 import type { MarketingCooperation } from "@/lib/pricing/types";
 import { useWizardText } from "@/lib/content/wizardText";
 import { StepHeading, StepForm } from "./StepHeading";
@@ -113,62 +114,48 @@ export function StepMarketingCooperation({
       <StepHeading title={title} lead={lead} />
 
       <StepForm>
-        <div className="border-t border-border/25 pt-5">
-          <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
-            <h3 className="type-kr-heading text-h6-m">
-              {t("marketing.executionPlanHeading", "마케팅 실행 계획(선택)")}
-            </h3>
-            <p className="text-xs text-muted">
-              {t("marketing.executionPlanRequirementHint", "온라인·오프라인 계획을 담은 계획서를 첨부해 주세요.")}
-            </p>
-          </div>
-          <p className="mt-1 mb-3 break-keep text-xs leading-6 text-muted">
-            {t("marketing.executionPlanLead", "공연 홍보를 어떻게 진행할 계획인지 담은 자료를 첨부해 주세요. 구체적 수치·금액·일자가 있으면 심사에 도움이 됩니다.")}
+        <div className="rounded-surface bg-panel p-5">
+          {/*
+            [개정 2026-09-04] 안내 한 줄을 제목 오른쪽 끝에 띄워 두었더니, 화면이 넓을수록
+            제목에서 멀어져 어느 항목의 안내인지 알 수 없었고 바로 아래 설명과 같은 말을
+            두 자리에서 하고 있었다. 제목 아래로 내려 한 덩어리로 읽히게 둔다.
+          */}
+          <h3 className="type-kr-heading text-h6-m">
+            {t("marketing.executionPlanHeading", "마케팅 실행 계획(선택)")}
+          </h3>
+          <p className="mt-2 mb-3 break-keep text-xs leading-6 text-muted">
+            {t("marketing.executionPlanLead", "공연 홍보를 어떻게 진행할 계획인지 담은 자료를 첨부해 주세요. 구체적 수치·금액·일자가 있으면 심사에 도움이 됩니다.")}{" "}
+            {t("marketing.executionPlanRequirementHint", "온라인·오프라인 계획을 담은 계획서를 첨부해 주세요.")}
           </p>
           {/* [개정 2026-09-02] 온라인·오프라인 계획을 직접 쓰던 칸을 첨부파일로 바꿨다.
               자유 서술로 받으면 "SNS 광고" 한 줄이 되기 일쑤였는데, 기획사는 이미
               계획서를 만들어 두고 신청한다 — 그 파일을 그대로 받는 편이 심사에 쓸모가 있다.
               업로드는 신청서 제출과 함께 일어난다(MARKETING_PLAN 분류). */}
           <div>
-            {planFiles.length > 0 && (
-              <ul className="mb-2.5 space-y-2">
-                {planFiles.map((file, i) => (
-                  <li
-                    key={`${file.name}-${i}`}
-                    className="flex items-center justify-between gap-3 border border-border/25 bg-background px-3.5 py-2.5"
-                  >
-                    <span className="min-w-0 truncate text-s font-bold">{file.name}</span>
-                    <button
-                      type="button"
-                      onClick={() => onPlanFilesChange(planFiles.filter((_, j) => j !== i))}
-                      className={`${toggleClass(false)} shrink-0`}
-                    >
-                      {t("marketing.planFileRemove", "삭제")}
-                    </button>
-                  </li>
-                ))}
-              </ul>
-            )}
-            <input
-              type="file"
+            {/* 무엇을 올릴 수 있는지는 **누르기 전에** 읽혀야 한다 — 버튼 아래에 두면
+                고른 파일 이름에 밀려 아래로 내려가고, 잘못 고른 뒤에야 눈에 들어온다.
+                다른 첨부 자리(자료 첨부·출연 계약 증빙)도 같은 순서다. */}
+            <p className="mb-2.5 break-keep text-xs leading-5 text-muted">
+              {t(
+                "marketing.planFileHint",
+                "PDF · 이미지 · 문서, 파일당 최대 500MB. 신청서 제출 시 함께 업로드됩니다.",
+              )}
+            </p>
+            <FilePicker
+              label={t("marketing.planFileLabel", "마케팅 실행 계획서")}
               multiple
               onChange={(e) => {
                 const picked = e.target.files ? Array.from(e.target.files) : [];
                 if (picked.length > 0) onPlanFilesChange([...planFiles, ...picked]);
                 e.target.value = "";
               }}
-              className={FILE_INPUT}
+              files={planFiles}
+              onRemove={(i) => onPlanFilesChange(planFiles.filter((_, j) => j !== i))}
             />
-            <p className="mt-2 break-keep text-xs leading-5 text-muted">
-              {t(
-                "marketing.planFileHint",
-                "PDF · 이미지 · 문서, 파일당 최대 500MB. 신청서 제출 시 함께 업로드됩니다.",
-              )}
-            </p>
           </div>
         </div>
 
-        <div className="mt-8 border-t border-border/25 pt-5">
+        <div className="mt-8 rounded-surface bg-panel p-5">
           <div className="mb-2.5 flex items-center justify-between">
             <h3 className="type-kr-heading text-h6-m">{t("marketing.channelsHeading", "프로모션 채널(선택)")}</h3>
             <button type="button" onClick={addChannel} className={toggleClass(false)}>
@@ -185,7 +172,7 @@ export function StepMarketingCooperation({
             {info.channels.map((row, i) => (
               <div
                 key={i}
-                className="grid grid-cols-1 gap-1.5 border-b border-border/15 py-2 sm:grid-cols-[1fr_2fr_1fr_auto]"
+                className="grid grid-cols-1 items-center gap-1.5 sm:grid-cols-[1fr_2fr_1fr_auto]"
               >
                 <input
                   value={row.platform}
@@ -210,18 +197,17 @@ export function StepMarketingCooperation({
                   onClick={() => removeChannel(i)}
                   aria-label={tStr("marketing.removeChannelAriaLabel", "채널 삭제")}
                   // 입력 필드와 같은 무게의 버튼(보더·박스)이 아니라 옆에 딸린 보조
-                  // 동작이라는 걸 보여주려고 아이콘만 둔다 — 삭제 버튼이 입력창과
-                  // 같은 위계로 보인다는 지적으로 바꿨다.
-                  className="flex h-10 w-10 shrink-0 items-center justify-center text-muted transition-colors hover:text-danger"
+                  // 동작이다 — 위저드의 다른 지우기 자리와 같은 아이콘·호버를 쓴다.
+                  className={REMOVE_ICON_BTN}
                 >
-                  ✕
+                  <RemoveIcon />
                 </button>
               </div>
             ))}
           </div>
         </div>
 
-        <div className="mt-8 border-t border-border/25 pt-5">
+        <div className="mt-8 rounded-surface bg-panel p-5">
           <h3 className="type-kr-heading text-h6-m">
             {t("marketing.serviceLinkHeading", "마케팅 및 서비스 연계 안내")}
           </h3>
@@ -243,7 +229,7 @@ export function StepMarketingCooperation({
               반으로 나눠서" 피드백 — 세로로 죽 나열하던 두 섹션을 예전 "제공 정보 및
               콘텐츠 / 활용 목적 및 범위" 두 박스 레이아웃과 같은 grid-cols-2 박스로 되돌림. */}
           <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2">
-            <div className="rounded-lg border border-border/25 bg-surface p-4">
+            <div className="rounded-surface border border-border/25 bg-surface p-4">
               <p className="text-xs font-bold text-foreground">
                 {t("marketing.serviceScopeHeading", "주요 활용 범위")}
               </p>
@@ -260,7 +246,7 @@ export function StepMarketingCooperation({
                 ))}
               </ul>
             </div>
-            <div className="rounded-lg border border-border/25 bg-surface p-4">
+            <div className="rounded-surface border border-border/25 bg-surface p-4">
               <p className="text-xs font-bold text-foreground">
                 {t("marketing.serviceNoticeHeading", "안내사항")}
               </p>
@@ -295,13 +281,13 @@ export function StepMarketingCooperation({
         {/* 2026-08-25, "공동스폰서십 슬롯은 삭제하고 이 내용을 넣어줘" — 자유 서술형
             스폰서십 목록 입력 슬롯과 아래 "공연 관련 데이터 제공 협조" 슬롯을 없애고,
             전달받은 디자인 시안 그대로 "협조 동의 항목" 한 슬롯으로 합쳤다. */}
-        <div className="mt-8 border-t border-border/25 pt-5">
+        <div className="mt-8 rounded-surface bg-panel p-5">
           <h3 className="type-kr-heading text-h6-m">
             {t("marketing.cooperationConsentHeading", "협조 동의 항목")}
           </h3>
 
           <div className="mt-3 space-y-2">
-            <div className="flex flex-col gap-2 border border-border/25 p-4 sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex flex-col gap-2 rounded-surface border border-border/25 p-4 sm:flex-row sm:items-center sm:justify-between">
               <p className="text-s font-bold text-foreground">
                 {t("marketing.coPromotionLabel", "공동 프로모션 협조")}
               </p>
@@ -328,7 +314,7 @@ export function StepMarketingCooperation({
               </div>
             </div>
 
-            <div className="flex flex-col gap-2 border border-border/25 p-4 sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex flex-col gap-2 rounded-surface border border-border/25 p-4 sm:flex-row sm:items-center sm:justify-between">
               <p className="text-s font-bold text-foreground">
                 {t("marketing.coSponsorshipLabel", "공동 스폰서십·브랜딩 협업")}
               </p>
@@ -360,7 +346,7 @@ export function StepMarketingCooperation({
         {/* 2026-08-25, "세일즈·실적 데이터 제공 협조 이거 박스형태로 있던거 그대로
             유지해야지.. 이 슬롯 기존대로 복구" — 위 "협조 동의 항목"에 합쳤던 걸
             되돌리고, 원래대로 독립 슬롯 + 2단 박스 레이아웃을 유지한다. */}
-        <div className="mt-8 border-t border-border/25 pt-5">
+        <div className="mt-8 rounded-surface bg-panel p-5">
           <h3 className="type-kr-heading text-h6-m">
             {t("marketing.dataConsentHeading", "공연 관련 데이터 제공 협조")}
           </h3>
@@ -385,7 +371,7 @@ export function StepMarketingCooperation({
                       pollstarConsent: checked ? info.pollstarConsent : false,
                     });
                   }}
-                  className="h-4 w-4 accent-[var(--accent)]"
+                  className="h-4 w-4"
                 />
                 {t("marketing.salesDataConsentLabel", "공연 실적 데이터 제공")}
               </label>
@@ -405,7 +391,7 @@ export function StepMarketingCooperation({
                   checked={info.pollstarConsent}
                   disabled={!info.ticketSalesDataConsent}
                   onChange={(e) => set("pollstarConsent", e.target.checked)}
-                  className="h-4 w-4 accent-[var(--accent)]"
+                  className="h-4 w-4"
                 />
                 {t("marketing.pollstarConsentLabel", "공연 데이터 외부 제공 동의 (Pollstar 등)")}
               </label>

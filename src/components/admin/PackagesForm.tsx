@@ -111,7 +111,7 @@ function ExistingItemPicker({
         + 기존 항목에서 선택
       </button>
       {open && (
-        <div className="absolute left-0 z-10 mt-1 w-80 border border-border bg-panel shadow-lg">
+        <div className="absolute left-0 z-10 mt-1 w-80 rounded-surface border border-border bg-panel shadow-lg">
           <input
             autoFocus
             value={query}
@@ -587,7 +587,7 @@ export function PackagesForm({
   return (
     <div className="mt-8">
       {/* 1뎁스: 공간 — 패키지가 늘어 한 줄에 다 못 들어간다(그쪽 개편). */}
-      <div className="flex gap-1 border-b border-border/20">
+      <div className="flex gap-1 border-b border-border/25">
         {VENUES.map((v) => (
           <button
             key={v.id}
@@ -967,7 +967,7 @@ export function PackagesForm({
 
               <div className="mt-4 grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3">
                 {midHallIncludes.map((item, i) => (
-                  <div key={i} className="flex flex-col gap-1.5 border border-border-soft bg-panel px-3 py-2">
+                  <div key={i} className="flex flex-col gap-1.5 rounded-btn border border-border-soft bg-panel px-3 py-2">
                     <input
                       type="text"
                       placeholder="구분 (예: 냉난방)"
@@ -1015,7 +1015,7 @@ export function PackagesForm({
 
               <div className="mt-4 grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3">
                 {midHallCharges.map((item, i) => (
-                  <div key={i} className="flex flex-col gap-1.5 border border-border-soft bg-panel px-3 py-2">
+                  <div key={i} className="flex flex-col gap-1.5 rounded-btn border border-border-soft bg-panel px-3 py-2">
                     <input
                       type="text"
                       placeholder="구분 (그룹)"
@@ -1147,7 +1147,7 @@ export function PackagesForm({
             </div>
 
             {newItemCategory && newItemVisibility === visibility && !groupedByVisibility.has(newItemCategory) && (
-              <div className="mt-3 flex flex-col gap-2 border border-dashed border-accent/40 bg-accent-soft/40 p-3 sm:flex-row sm:items-center">
+              <div className="mt-3 flex flex-col gap-2 rounded-btn border border-dashed border-accent/40 bg-accent-soft/40 p-3 sm:flex-row sm:items-center">
                 <span className="shrink-0 text-xs font-bold text-foreground">
                   {ADDON_CATEGORY_LABEL[newItemCategory]} (신규)
                 </span>
@@ -1216,7 +1216,7 @@ export function PackagesForm({
                     </div>
                   </div>
                   {/* 항목 행 — 카테고리보다 한 단계 더 들여써서 소속을 눈으로 바로 알 수 있게 한다. */}
-                  <div className="ml-2.5 space-y-1.5 border-l border-border/40 pl-3.5">
+                  <div className="ml-2.5 space-y-1.5 border-l border-border/25 pl-3.5">
                     {items.map((addon) => {
                       const qty = includedQty(addon.id);
                       const checked = qty > 0;
@@ -1225,7 +1225,7 @@ export function PackagesForm({
                       return (
                         <div
                           key={addon.id}
-                          className="flex flex-col gap-2 border-b border-border/50 pb-1.5 sm:flex-row sm:items-center sm:justify-between"
+                          className="flex flex-col gap-2 border-b border-border/25 pb-1.5 sm:flex-row sm:items-center sm:justify-between"
                         >
                           <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-s">
                             {isVisibleOption && (
@@ -1323,7 +1323,7 @@ export function PackagesForm({
                   </div>
 
                   {newItemCategory === category && newItemVisibility === visibility && (
-                    <div className="mt-3 flex flex-col gap-2 border border-dashed border-accent/40 bg-accent-soft/40 p-3 sm:flex-row sm:items-center">
+                    <div className="mt-3 flex flex-col gap-2 rounded-btn border border-dashed border-accent/40 bg-accent-soft/40 p-3 sm:flex-row sm:items-center">
                       <input
                         type="text"
                         autoFocus
@@ -1377,7 +1377,7 @@ export function PackagesForm({
         )}
       </div>
 
-      <div className="mt-8 flex flex-wrap items-center gap-4 border-t border-border/20 pt-6">
+      <div className="mt-8 flex flex-wrap items-center gap-4 border-t border-border/25 pt-6">
         <button
           type="button"
           disabled={saving}

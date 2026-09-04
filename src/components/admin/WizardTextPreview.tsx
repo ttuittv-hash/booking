@@ -193,7 +193,7 @@ function AttrFieldsPanel({
 }) {
   if (fields.size === 0) return null;
   return (
-    <div className="mt-6 border border-dashed border-border-soft bg-panel/60 p-3">
+    <div className="mt-6 rounded-btn border border-dashed border-border-soft bg-panel/60 p-3">
       <p className="mb-2 text-2xs font-bold uppercase tracking-wide text-muted">
         ✎ 속성 문구(placeholder 등) — 화면에 항상 보이는 자리가 없어 여기 따로 모았습니다
       </p>
@@ -415,7 +415,7 @@ const STAGE_GROUPS: StageGroup[] = [
           const lead = makeLeadEditor(ctx);
           return (
             <div className="space-y-4">
-              <div className="border border-border-soft bg-panel/60 p-3">
+              <div className="rounded-btn border border-border-soft bg-panel/60 p-3">
                 <p className="mb-2 text-2xs font-bold uppercase tracking-wide text-muted">
                   ✎ &ldquo;규모&rdquo; 블록 제목·리드 — 현재 실제 화면에서는 신청자 정보와 한 화면으로 합쳐져
                   이 제목이 표시되지 않습니다(계속 저장은 됩니다)
@@ -550,7 +550,7 @@ const STAGE_GROUPS: StageGroup[] = [
           return (
             <div className="space-y-8">
               <div>
-                <span className="mb-3 inline-flex items-center border border-border/40 bg-panel px-2 py-0.5 text-xs font-bold text-muted">
+                <span className="mb-3 inline-flex items-center rounded-btn border border-border/25 bg-panel px-2 py-0.5 text-xs font-bold text-muted">
                   새 신청 시
                 </span>
                 <LivePreview>
@@ -572,7 +572,7 @@ const STAGE_GROUPS: StageGroup[] = [
                 </LivePreview>
               </div>
               <div className="border-t border-dashed border-border-soft pt-8">
-                <span className="mb-3 inline-flex items-center border border-border/40 bg-panel px-2 py-0.5 text-xs font-bold text-muted">
+                <span className="mb-3 inline-flex items-center rounded-btn border border-border/25 bg-panel px-2 py-0.5 text-xs font-bold text-muted">
                   신청서 수정 중일 때
                 </span>
                 <LivePreview>
@@ -695,7 +695,7 @@ export function WizardTextPreview({
               </ol>
             )}
 
-            <div className="mt-8 border border-dashed border-border-soft bg-panel/40 p-5">
+            <div className="mt-8 rounded-surface border border-dashed border-border-soft bg-panel/40 p-5">
               <EditableSubtree overrides={ctx.wizardStrings} onChangeString={ctx.setString}>
                 {subTab.render(ctx)}
               </EditableSubtree>

@@ -43,18 +43,27 @@ export const metadata: Metadata = {
  */
 /** 카드 한 장의 규격 — 제목 32 Bold · 130%, 설명 18 Regular. 두 탭이 같은 것을 쓴다. */
 const CARD =
-  "flex flex-col justify-between rounded-surface bg-panel p-8";
-const CARD_TITLE =
-  "break-keep text-[2rem] font-bold leading-[1.3] [font-family:var(--font-sans)]";
-const CARD_BODY =
-  "break-keep text-[1.125rem] font-normal leading-[1.6] text-muted [font-family:var(--font-sans)]";
+  "flex flex-col justify-between rounded-surface bg-panel p-card-pad";
+const CARD_TITLE = "break-keep text-h4 font-bold";
+const CARD_BODY = "break-keep text-m font-normal text-muted";
 /**
- * 공간명 라벨(아레나 · 중형공연장).
- * 색을 고정값으로 박는다 — 이 라벨은 흰 카드 위에도, 검정 지면의 리드에도 올라간다.
- * 지면 색을 따라가게 두면 검정 지면에서는 옅은 면에 흰 글자가 되어 읽히지 않는다.
+ * 공간명 라벨(아레나 · 중형공연장) — **대관료의 아이브로와 같은 규격**이다.
+ *
+ * 알약(면 + 라운드)으로 두었더니 사이트에서 이 화면에만 있는 형태라, 값을 읽기 전에
+ * 라벨이 먼저 눈에 띄었다. 라벨은 값을 가리키는 이름표지 그 자체가 볼거리가 아니다.
+ * 면을 걷어내고 작은 글자로 얹는다.
+ *
+ * 대관료 쪽은 영문 캡스라 Archivo 를 지정하지만 여기는 한글이라 뺀다 —
+ * Archivo 에는 한글 글립이 없어 지정하면 시스템 서체로 떨어진다.
  */
-const PILL =
-  "inline-flex items-center rounded-full bg-panel-strong px-3 py-1 text-[0.875rem] font-bold text-n-darkest";
+/*
+  공간명(아레나 · 중형공연장)은 **알약 레이블**이다. 설명 글과 같은 흐름의 글자로 두면
+  어느 공간 이야기인지 훑어서 찾기 어렵다 — 테두리로 감싸 이름표라는 걸 드러낸다.
+  색은 토큰으로만 잡는다: 흰 카드 안에서는 검정 테두리, 검정 지면 위에서는 밝은 테두리로
+  각 자리의 지면색을 따라간다.
+*/
+const PILL_LABEL =
+  "inline-flex shrink-0 items-center whitespace-nowrap rounded-full border border-border px-3 py-0.5 text-xs font-bold text-foreground";
 
 /** 「공간명｜설명」 한 줄을 라벨과 본문으로 가른다. 구분자가 없으면 설명만 있는 것으로 본다 */
 function splitLabel(line: string): { label: string; body: string } {
@@ -66,7 +75,7 @@ function splitLabel(line: string): { label: string; body: string } {
 
 function AboutCards({ items }: { items: AboutCard[] }) {
   return (
-    <ul className="mt-14 grid gap-[var(--gutter)] lg:grid-cols-3">
+    <ul className="mt-head-block grid gap-gutter lg:grid-cols-3">
       {items.map((card, i) => (
         <li
           key={`${card.title}-${i}`}
@@ -79,7 +88,7 @@ function AboutCards({ items }: { items: AboutCard[] }) {
           <h3 className={CARD_TITLE}>
             <Multiline text={card.title} />
           </h3>
-          <p className={`${CARD_BODY} pt-10`}>
+          <p className={`${CARD_BODY} pt-card-body`}>
             <Multiline text={card.desc} />
           </p>
         </li>
@@ -95,7 +104,7 @@ function AboutPanel({ c }: { c: SeoulArenaContent }) {
         <PageHead en="ABOUT SEOUL ARENA" ko="시설 개요" />
         {/* 머리 인용 — 본문 크기 18 Regular */}
         {c.aboutQuote && (
-          <p className="mt-14 break-keep text-[1.125rem] font-normal leading-[1.6] [font-family:var(--font-sans)]">
+          <p className="mt-head-lead break-keep text-m font-normal">
             <Multiline text={c.aboutQuote} />
           </p>
         )}
@@ -109,7 +118,7 @@ function AboutPanel({ c }: { c: SeoulArenaContent }) {
       */}
       {c.aboutStatements.length > 0 && (
         <section
-          className="container-site flex flex-col items-center justify-center gap-12 text-center"
+          className="container-site flex flex-col items-center justify-center gap-block text-center"
           // 지면색에서 흰색으로 내려가며 옅어진다 — 다음에 오는 사진 지면(흰색)으로 이어 붙는다
           style={{
             minHeight: "100vh",
@@ -132,23 +141,29 @@ function AboutPanel({ c }: { c: SeoulArenaContent }) {
         </section>
       )}
 
-      {/* 사진 두 장은 흰 지면 위에 놓인다 — 회색 지면이면 사진 카드의 모서리가 묻힌다 */}
-      <div className="bg-n-white">
-        {c.heroes.map((v, i) => (
-          <PhotoHero
-            key={`${v.title}-${i}`}
-            title={v.title}
-            eyebrow={v.eyebrow}
-            desc={v.desc}
-            image={v.image}
-          />
-        ))}
+      {/*
+        사진 두 장은 흰 지면 위에 놓인다 — 회색 지면이면 사진 카드의 모서리가 묻힌다.
+        사이는 카드끼리의 간격(거터)과 같고, 아래 여백은 지면 좌우 여백과 같은 값이다.
+        사진도 마진 안에 앉는 한 장이라, 네 변의 여백이 같아야 지면 위에 놓인 것으로 보인다.
+      */}
+      <div className="bg-panel pb-margin-x">
+        <div className="space-y-gutter">
+          {c.heroes.map((v, i) => (
+            <PhotoHero
+              key={`${v.title}-${i}`}
+              title={v.title}
+              eyebrow={v.eyebrow}
+              desc={v.desc}
+              image={v.image}
+            />
+          ))}
+        </div>
       </div>
 
       {c.complexFeatures.length > 0 && (
         <Band tone="dark">
           <SectionHead title="FEATURES" lead={c.complexFeaturesLead} />
-          <div className="mt-10">
+          <div className="mt-head-block">
             <FeatureList items={c.complexFeatures.map((t) => ({ title: t, lines: [] }))} numbered />
           </div>
         </Band>
@@ -165,7 +180,7 @@ function AboutPanel({ c }: { c: SeoulArenaContent }) {
  */
 function StageFeatureCards({ items }: { items: FeatureItem[] }) {
   return (
-    <ul className="mt-10 grid gap-[var(--gutter)] lg:grid-cols-3">
+    <ul className="mt-head-block grid gap-gutter lg:grid-cols-3">
       {items.map((it, i) => (
         <li
           key={`${it.title}-${i}`}
@@ -177,16 +192,16 @@ function StageFeatureCards({ items }: { items: FeatureItem[] }) {
             <Multiline text={it.title} />
           </h3>
           {it.lines.length > 0 && (
-            <div className="space-y-5 pt-10">
+            <div className="space-y-5 pt-card-body">
               {it.lines.map((line) => {
                 /*
-                  공간명을 알약 라벨로 떼어 내면 두 공간의 설명이 같은 자리에서 시작해,
+                  공간명을 아이브로로 떼어 내면 두 공간의 설명이 같은 자리에서 시작해,
                   카드 안에서 아레나와 중형공연장을 나란히 견줄 수 있다.
                 */
                 const { label, body } = splitLabel(line);
                 return (
                   <div key={line}>
-                    {label && <span className={PILL}>{label}</span>}
+                    {label && <span className={PILL_LABEL}>{label}</span>}
                     <p className={`${CARD_BODY} ${label ? "mt-2" : ""}`}>{body}</p>
                   </div>
                 );
@@ -213,7 +228,6 @@ function WhyPanel({ c }: { c: SeoulArenaContent }) {
           en="WHY SEOUL ARENA"
           ko="시설 특징"
           lead={<Prose text={c.whyLead} />}
-          wideLead
         />
       </Band>
 
@@ -225,14 +239,14 @@ function WhyPanel({ c }: { c: SeoulArenaContent }) {
               lead && (
                 <>
                   <Multiline text={lead.title} />
-                  {/* 공간명은 카드와 같은 알약 라벨로 — 리드에서는 설명과 한 줄에 붙는다 */}
+                  {/* 공간명은 카드와 같은 아이브로로 — 리드에서는 설명과 한 줄에 붙는다 */}
                   {lead.lines.length > 0 && (
                     <div className="mt-4 space-y-2">
                       {lead.lines.map((line) => {
                         const { label, body } = splitLabel(line);
                         return (
                           <p key={line} className="flex flex-wrap items-center gap-x-3 gap-y-1">
-                            {label && <span className={PILL}>{label}</span>}
+                            {label && <span className={PILL_LABEL}>{label}</span>}
                             <span>{body}</span>
                           </p>
                         );

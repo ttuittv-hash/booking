@@ -37,8 +37,16 @@ const SITEMAP = FOOTER_CATEGORIES.filter((c) => c.label !== "지원" && c.label 
   머리와 본문을 굵기가 아니라 **크기와 색**으로만 가른다 — 굵기까지 섞으면 열이
   네 종류의 글자로 보인다.
 */
-const FOOT_LABEL = "text-[0.875rem] font-normal uppercase text-muted [font-family:var(--font-sans)]";
-const FOOT_BODY = "text-[1rem] font-normal [font-family:var(--font-sans)]";
+const FOOT_LABEL = "text-s font-normal uppercase text-muted";
+const FOOT_BODY = "text-r font-normal";
+
+/*
+  푸터의 링크는 **줄바꿈을 막는다**(`whitespace-nowrap`).
+  지면 전체에 `overflow-wrap: break-word` 가 걸려 있어(긴 주소·URL 이 칸을 뚫지 않게),
+  `inline-block` 요소의 폭이 글자 몇 개짜리 최소 폭까지 줄어든다 — 열 폭이 168 인데도
+  "Instagram" 이 "Instag / ram" 으로, "대관 절차" 가 "대관 / 절차" 로 접혔다.
+  여기 들어오는 것은 채널 이름과 페이지 이름뿐이라 한 줄로 두는 편이 맞다.
+*/
 
 /** 열 머리 — 대문자 작은 라벨 */
 function ColLabel({ children }: { children: string }) {
@@ -53,19 +61,19 @@ export function SiteFooter({ tone = "light" }: { tone?: "light" | "dark" }) {
       style={dark ? INVERSE_SURFACE_VARS : undefined}
       className={`mt-auto ${dark ? "bg-inverse-bg text-inverse-fg" : "bg-surface text-foreground"}`}
     >
-      <div className="container-site pb-10 pt-16 sm:pt-24">
-        <div className="grid-site gap-y-12">
+      <div className="container-site pb-foot-bottom pt-foot-top">
+        <div className="grid-site gap-y-block">
           {/* 주소·이메일은 두 칼럼을 쓴다 — 한 칼럼(213)에서는 둘 다 중간에 접혔다 */}
           <div className="space-y-8 lg:col-span-2">
             <div>
               <ColLabel>Address</ColLabel>
-              <p className={`mt-4 lg:whitespace-nowrap ${FOOT_BODY}`}>{ADDRESS}</p>
+              <p className={`mt-foot-label lg:whitespace-nowrap ${FOOT_BODY}`}>{ADDRESS}</p>
             </div>
             <div>
               <ColLabel>Contact</ColLabel>
               <a
                 href={`mailto:${CONTACT}`}
-                className={`mt-4 inline-block underline underline-offset-4 hover:text-accent lg:whitespace-nowrap ${FOOT_BODY}`}
+                className={`mt-foot-label inline-block underline underline-offset-4 hover:text-accent lg:whitespace-nowrap ${FOOT_BODY}`}
               >
                 {CONTACT}
               </a>
@@ -82,7 +90,7 @@ export function SiteFooter({ tone = "light" }: { tone?: "light" | "dark" }) {
                     href={s.href}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className={`inline-block py-1 transition-colors hover:text-accent ${FOOT_BODY}`}
+                    className={`inline-block whitespace-nowrap py-1 transition-colors hover:text-accent ${FOOT_BODY}`}
                   >
                     {s.label}
                   </a>
@@ -99,7 +107,7 @@ export function SiteFooter({ tone = "light" }: { tone?: "light" | "dark" }) {
                   <li key={l.href + l.label}>
                     <Link
                       href={l.href}
-                      className={`inline-block py-1 transition-colors hover:text-accent ${FOOT_BODY}`}
+                      className={`inline-block whitespace-nowrap py-1 transition-colors hover:text-accent ${FOOT_BODY}`}
                     >
                       {l.label}
                     </Link>
@@ -115,7 +123,7 @@ export function SiteFooter({ tone = "light" }: { tone?: "light" | "dark" }) {
           `type-wordmark` 가 컨테이너 폭(cqw)에 비례해 font-size 만 키우므로
           자폭 비율은 언제나 그대로다. textLength 로 억지로 늘리면 자형이 망가진다.
         */}
-        <div className="mt-20 sm:mt-28 [container-type:inline-size]">
+        <div className="mt-foot-mark [container-type:inline-size]">
           <Link
             href="/"
             aria-label="Seoul Arena 홈"

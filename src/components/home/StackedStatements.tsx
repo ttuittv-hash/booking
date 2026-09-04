@@ -98,7 +98,7 @@ export function StackedStatements({ title, items }: { title: string; items: Stat
                       <div className="lg:grid-site">
                         <p
                           style={{ paddingBottom: HEAD_PAD }}
-                          className="max-w-2xl break-keep pt-1 text-[1.125rem] text-muted lg:col-span-4 lg:col-start-3"
+                          className="max-w-2xl break-keep pt-1 text-m text-muted lg:col-span-4 lg:col-start-3"
                         >
                           <RichText text={s.desc} />
                         </p>

@@ -124,7 +124,7 @@ export function ApplicationViewToggle({ quoteId }: { quoteId: string }) {
           onClick={() => setOpen(false)}
         >
           <div
-            className="flex max-h-[92vh] w-full max-w-4xl flex-col border border-border bg-background"
+            className="flex max-h-[92vh] w-full max-w-4xl flex-col rounded-surface border border-border bg-background"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex items-center justify-between gap-3 border-b border-border-soft px-5 py-3">

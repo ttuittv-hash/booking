@@ -121,11 +121,15 @@ export function QueryTabs({
     );
   }
 
-  /* pill — 가운데 떠 있는 스티키 알약. 바 전체는 클릭을 막지 않고 알약만 받는다. */
+  /*
+    pill — 가운데 떠 있는 스티키 알약. 바 전체는 클릭을 막지 않고 알약만 받는다.
+    `has-tabbar` 는 이 아래 페이지 머리에게 "띠가 이미 자리를 잡았다" 고 알린다 —
+    탭이 없는 화면은 같은 높이를 빈 자리로 채워 제목 높이를 맞춘다(`pagehead-gap`).
+  */
   return (
-    <div className={className}>
+    <div className={`has-tabbar ${className}`}>
       <div
-        className={`sticky top-[var(--header-h)] z-30 flex justify-center px-[var(--margin-x)] py-4 print:hidden ${tablistClassName}`}
+        className={`sticky top-[var(--header-h)] z-30 flex h-tabbar items-center justify-center px-[var(--margin-x)] print:hidden ${tablistClassName}`}
         style={{ pointerEvents: "none" }}
       >
         <div
@@ -142,7 +146,7 @@ export function QueryTabs({
               // 모바일에서는 44px 을 확보한다 — 32px 알약은 손가락으로 누르기 작다. sm 부터 디자인 규격.
               className={`h-11 shrink-0 whitespace-nowrap rounded-full px-5 text-s font-bold transition-colors sm:h-8 ${
                 it.value === active
-                  ? "bg-n-white text-n-darkest"
+                  ? "bg-panel text-n-darkest"
                   : "text-n-white/70 hover:text-n-white"
               }`}
             >

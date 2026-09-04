@@ -64,7 +64,7 @@ export function TrafficControls({
     <div className="mt-3 flex flex-col gap-3">
       <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
         <nav
-          className="flex items-center gap-1 border-b border-border/20"
+          className="flex items-center gap-1 border-b border-border/25"
           aria-label="집계 단위"
         >
           {GRANULARITIES.map((g) => (

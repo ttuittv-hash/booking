@@ -61,8 +61,11 @@ function MidHallHourBox({
   unitFee: number;
 }) {
   const { t } = useWizardText();
+  // 값이 들어간 항목은 테두리가 검정 — 수량 항목과 같은 규칙이다
   return (
-    <div className="flex flex-col gap-1.5 border border-border-soft px-3 py-2">
+    <div
+      className={`flex flex-col gap-1.5 rounded-btn border bg-background px-3 py-2 ${hours > 0 ? "border-foreground" : "border-transparent"}`}
+    >
       <div>
         <span className="text-xs font-bold">{label}</span>
         <div className="mt-0.5 text-xs text-muted">{hint}</div>
@@ -85,7 +88,7 @@ function MidHallHourBox({
 function MidHallReferenceBox({ label, value, note }: { label: string; value: string; note?: string }) {
   const { t } = useWizardText();
   return (
-    <div className="flex flex-col gap-1.5 border border-border-soft px-3 py-2">
+    <div className="flex flex-col gap-1.5 rounded-btn bg-background px-3 py-2">
       <span className="text-xs font-bold">{label}</span>
       <span className="text-xs text-muted">
         {value}
@@ -135,7 +138,7 @@ function MidHallRateCard({
   const otherGroups = chargeGroups(content.charges).filter((g) => g.title !== "추가대관");
 
   return (
-    <div className="mt-10 border-t-2 border-foreground pt-5">
+    <div className="mt-10 rounded-surface bg-panel p-5">
       <h2 className="type-kr-heading text-h6-m sm:text-h6">{t("configOptions.dailyRateHeading", "일자별 대관료")}</h2>
       <div className="mt-4">
         <ComparisonTable
@@ -156,14 +159,14 @@ function MidHallRateCard({
       )}
 
       {content.includes.length > 0 && (
-        <div className="mt-10 border-t border-border/25 pt-5">
+        <div className="mt-10 rounded-surface bg-panel p-5">
           <h2 className="type-kr-heading text-h6-m sm:text-h6">{t("configOptions.basicItemsHeading", "기본 항목")}</h2>
           <p className="mt-1.5 text-xs leading-6 text-muted">
             {t("configOptions.basicItemsHint", "대관료에 이미 포함된 기본 제공 사항입니다.")}
           </p>
           <div className="mt-4 grid grid-cols-1 gap-1.5 sm:grid-cols-2 lg:grid-cols-3">
             {content.includes.map((p, i) => (
-              <div key={`${p.label}-${i}`} className="flex flex-col gap-1.5 border border-border-soft px-3 py-2">
+              <div key={`${p.label}-${i}`} className="flex flex-col gap-1.5 rounded-btn bg-background px-3 py-2">
                 <span className="text-xs font-bold">{p.label}</span>
                 <span className="text-xs text-muted">{p.value}</span>
                 <span className="text-xs font-bold text-good">{t("configOptions.basicIncludedBadge", "기본 포함")}</span>
@@ -184,7 +187,7 @@ function MidHallRateCard({
       )}
 
       {content.charges.length > 0 && (
-        <div className="mt-10 border-t border-border/25 pt-5">
+        <div className="mt-10 rounded-surface bg-panel p-5">
           <h2 className="type-kr-heading text-h6-m sm:text-h6">{t("configOptions.optionsHeading", "옵션")}</h2>
           <p className="mt-1.5 text-xs leading-6 text-muted">
             {t(
@@ -299,7 +302,9 @@ function PackagePicker({
     .filter((item): item is { key: string; name: string; quantity: number; unit: string } => item != null);
 
   return (
-    <div className="mb-6 border-b border-border pb-6">
+    /* 구성 고르기와 그 아래 선택 옵션을 가르는 선 — 위저드 맨 아래 버튼 줄의 선과
+       같은 값을 쓴다. 여기만 진한 검정이라 화면을 두 쪽으로 자르는 것처럼 보였다. */
+    <div className="mb-6 border-b border-border/25 pb-6">
       <label className="block text-s font-bold text-foreground">
         {t("configOptions.pickerFieldLabel", "구성 선택")} *
       </label>
@@ -370,7 +375,7 @@ function PackagePicker({
       </div>
 
       {showCustomNotice && (
-        <p className="mt-3 border border-border/30 bg-panel px-3 py-2.5 text-xs text-muted-strong">
+        <p className="mt-3 rounded-btn border border-border/25 bg-panel px-3 py-2.5 text-xs text-muted-strong">
           {t(
             "configOptions.customNotice",
             "운영자 문의가 필요한 맞춤 구성입니다. 1:1 문의 또는 담당자에게 연락해 주세요.",
@@ -379,27 +384,33 @@ function PackagePicker({
       )}
 
       {selectedId != null && (
-        <div className="mt-4 border border-border/30 bg-panel/40 px-4 py-3">
-          <span className="bg-foreground px-2 py-0.5 text-xs font-bold text-background">
+        <div className="mt-4 rounded-surface bg-panel px-4 py-3">
+          {/* 「선택 옵션」과 같은 규격의 제목 — 검정 배지로 두었더니 같은 층위인 두 블록이
+              하나는 제목, 하나는 꼬리표로 읽혔다 */}
+          <h2 className="type-kr-heading text-h6-m sm:text-h6">
             {t("configOptions.baseIncludedBadge", "기본 포함")}
-          </span>
-          <p className="mt-1.5 text-xs leading-5 text-foreground">
-            {t("configOptions.baseIncludedHint", "이 구성에는 아래 항목이 별도 비용 없이 기본 포함되어 있습니다.")}
-          </p>
+          </h2>
+          {/* 안내 문구는 보여 줄 항목이 있을 때만 — "아래 항목이 기본 포함되어 있습니다"
+              바로 밑에 "등록된 항목이 없습니다"가 오면 두 줄이 서로를 부정한다. */}
           {baseItems.length > 0 ? (
-            <div className="mt-3 grid grid-cols-1 gap-1.5 sm:grid-cols-2 lg:grid-cols-3">
-              {baseItems.map((item) => (
-                /* [개정 2026-09-02] 수량·단위("2공연일")를 뺐다. 여기는 이 구성에 무엇이
-                   들어 있는지 보는 곳이지 몇 개인지 세는 곳이 아니다 — 구성항목(스펙)
-                   이름만 남긴다. 수량은 요금표 관리에서 계속 관리하고 금액 계산에도
-                   그대로 쓰인다. */
-                <div key={item.key} className="border border-border-soft bg-panel px-3 py-2 text-xs">
-                  <span className="font-bold text-foreground">{item.name}</span>
-                </div>
-              ))}
-            </div>
+            <>
+              <p className="mt-2 text-xs text-muted">
+                {t("configOptions.baseIncludedHint", "이 구성에는 아래 항목이 별도 비용 없이 기본 포함되어 있습니다.")}
+              </p>
+              <div className="mt-3 grid grid-cols-1 gap-1.5 sm:grid-cols-2 lg:grid-cols-3">
+                {baseItems.map((item) => (
+                  /* [개정 2026-09-02] 수량·단위("2공연일")를 뺐다. 여기는 이 구성에 무엇이
+                     들어 있는지 보는 곳이지 몇 개인지 세는 곳이 아니다 — 구성항목(스펙)
+                     이름만 남긴다. 수량은 요금표 관리에서 계속 관리하고 금액 계산에도
+                     그대로 쓰인다. */
+                  <div key={item.key} className="rounded-btn bg-background px-3 py-2 text-xs">
+                    <span className="font-bold text-foreground">{item.name}</span>
+                  </div>
+                ))}
+              </div>
+            </>
           ) : (
-            <p className="mt-3 text-xs text-muted">
+            <p className="mt-2 text-xs text-muted">
               {t("configOptions.baseIncludedEmpty", "등록된 기본 포함 항목이 없습니다.")}
             </p>
           )}
@@ -525,8 +536,12 @@ export function StepConfigOptions({
           {t("configOptions.pickPackageFirst", "위에서 구성을 선택하면 선택 옵션을 확인할 수 있습니다.")}
         </p>
       ) : (
-        /* 선택 옵션 = 아웃라인 박스. 색면을 쓰지 않는다 — 안의 항목도 아웃라인만이다 */
-        <div className="mt-6 border border-border/25 p-5">
+        /*
+          선택 옵션 = **흰 면 한 판**. 테두리를 두르는 대신 면으로 묶는다 —
+          안의 항목이 열둘 넘게 늘어서는 자리라, 상자를 두르면 선이 두 겹으로 쌓였다.
+          항목은 테두리 없이 지면색으로 앉고, 수량이 들어간 것만 검정 테두리로 드러난다.
+        */
+        <div className="mt-6 rounded-surface bg-panel p-5">
           <h2 className="type-kr-heading text-h6-m sm:text-h6">{t("configOptions.selectedOptionsHeading", "선택 옵션")}</h2>
           <p className="mt-2 text-xs text-muted">
             {t(
@@ -547,7 +562,7 @@ export function StepConfigOptions({
               />
             ))}
           </div>
-          <div className="mt-4 flex items-center justify-between border-t border-border/40 pt-4 text-s font-bold">
+          <div className="mt-4 flex items-center justify-between border-t border-border/25 pt-4 text-s font-bold">
             <span>{t("configOptions.selectedOptionsHeading", "선택 옵션")}</span>
             <span className="tabular-nums">
               {selectedOptionCount}
@@ -630,7 +645,7 @@ export function StepConfigOptions({
       {/* [개정 2026-09-02] "패키지" 탭을 중형 옆에 세운다. 등록된 패키지가 있을 때만
           내보낸다 — 요금표에 아무것도 없는 공간의 탭은 눌러도 빈 화면이라, 있는 것처럼
           보이기만 하고 신청은 못 하는 상태가 된다. */}
-      <div className="mt-8 flex gap-1 border-b border-border">
+      <div className="mt-8 flex gap-1 border-b border-border/25">
         {venueTabs.map((tab) => (
           <button
             key={tab.id}
@@ -685,10 +700,17 @@ function AddonRow({
     ? `${tStr("configOptions.revenuePrefix", "매출")} ${addon.unitPrice}%`
     : `${won(addon.unitPrice)} / ${addon.unitLabel.replace("원/", "")}`;
 
-  // 항목은 아웃라인만이다. 선택 여부로 면 색을 바꾸지 않는다 —
-  // 수량을 적는 칸이 안에 있어서 면 색이 바뀌면 입력한 숫자가 묻힌다.
+  /*
+    항목은 아웃라인만이다. 선택 여부로 면 색을 바꾸지 않는다 —
+    수량을 적는 칸이 안에 있어서 면 색이 바뀌면 입력한 숫자가 묻힌다.
+    대신 **수량이 들어간 항목은 테두리가 검정**이 된다. 고른 것이 무엇인지 목록을
+    훑기만 해도 보인다.
+  */
+  const picked = (quantity ?? 0) > 0 || (expectedRevenue ?? 0) > 0;
   return (
-    <div className="flex flex-col gap-1.5 border border-border-soft px-3 py-2">
+    <div
+      className={`flex flex-col gap-1.5 rounded-btn border bg-background px-3 py-2 ${picked ? "border-foreground" : "border-transparent"}`}
+    >
       <div className="min-w-0">
         <div className="flex flex-wrap items-center gap-1.5">
           <span className="text-xs font-bold">{addon.name}</span>
@@ -710,7 +732,7 @@ function AddonRow({
                 type="checkbox"
                 checked={quantity > 0}
                 onChange={(e) => onChangeQuantity(addon.id, e.target.checked ? 1 : 0)}
-                className="h-3.5 w-3.5 accent-[var(--accent)]"
+                className="h-3.5 w-3.5"
               />
               {t("configOptions.applyCheckboxLabel", "적용")}
             </label>
@@ -722,7 +744,7 @@ function AddonRow({
               value={expectedRevenue || ""}
               disabled={quantity <= 0}
               onChange={(e) => onChangeRevenue(Math.max(0, Number(e.target.value) || 0))}
-              className="w-20 shrink-0 border border-border bg-background px-2 py-1 text-right text-xs outline-none focus:border-foreground disabled:opacity-40"
+              className="w-20 shrink-0 rounded-btn border border-border-soft bg-background px-2 py-1 text-right text-xs outline-none focus:border-foreground disabled:opacity-40"
             />
           </div>
         ) : (
@@ -744,7 +766,7 @@ function AddonRow({
               onChange={(e) =>
                 onChangeQuantity(addon.id, clampAddonQuantity(addon, pkg, Number(e.target.value)))
               }
-              className="w-14 shrink-0 border border-border bg-background px-2 py-1 text-right text-xs outline-none focus:border-foreground"
+              className="w-14 shrink-0 rounded-btn border border-border-soft bg-background px-2 py-1 text-right text-xs outline-none focus:border-foreground"
             />
           </span>
         )}

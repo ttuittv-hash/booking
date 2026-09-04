@@ -78,7 +78,8 @@ export default function LoginPage() {
           신청자 계정이 없으신가요?{" "}
           <Link
             href="/register"
-            className="inline-flex min-h-11 items-center px-1 font-bold text-foreground underline decoration-accent decoration-2 underline-offset-4"
+            // 밑줄은 글자색과 같은 검정 — 옐로 밑줄은 글자에서 떠 보여 밑줄이 아니라 형광펜처럼 읽혔다
+            className="inline-flex min-h-11 items-center px-1 font-bold text-foreground underline decoration-2 underline-offset-4"
           >
             회원가입
           </Link>

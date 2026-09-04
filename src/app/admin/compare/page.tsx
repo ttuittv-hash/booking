@@ -63,7 +63,7 @@ export default async function AdminComparePage({
           ← 신청 현황
         </Link>
 
-        <header className="mt-5 border-b border-border/20 pb-6">
+        <header className="mt-5 border-b border-border/25 pb-6">
           <h1 className={PAGE_TITLE}>신청서 비교</h1>
           <p className={PAGE_LEAD}>같은 주차를 두고 경합 중인 신청서를 나란히 비교할 때 사용하세요.</p>
         </header>

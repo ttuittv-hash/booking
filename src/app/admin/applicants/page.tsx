@@ -77,7 +77,7 @@ export default async function AdminApplicantsPage({
             <Link key={t.key} href={t.href} className={tabCls(t.key === tab)}>
               {t.label}
               {t.badge ? (
-                <span className="ml-1.5 inline-block border border-accent bg-accent px-1.5 text-xs leading-4 text-on-accent tabular-nums">
+                <span className="ml-1.5 inline-block rounded-btn border border-accent bg-accent px-1.5 text-xs leading-4 text-on-accent tabular-nums">
                   {t.badge}
                 </span>
               ) : null}

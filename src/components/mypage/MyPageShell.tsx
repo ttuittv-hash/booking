@@ -67,7 +67,7 @@ export function MyPageMenu({
             <p className="text-xs font-bold text-muted">{group.label}</p>
             <ul className="mt-3 border-t border-border/25">
               {group.items.map((item) => (
-                <li key={item.href} className="border-b border-border/15">
+                <li key={item.href} className="border-b border-border/25">
                   <Link
                     href={item.href}
                     aria-current={active === item.href ? "page" : undefined}

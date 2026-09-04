@@ -2,7 +2,8 @@
 
 import { useEffect, useState } from "react";
 import { formatDateTime } from "@/lib/format";
-import { btnClass, FILE_INPUT } from "@/components/ui/kit";
+import { btnClass } from "@/components/ui/kit";
+import { FilePicker } from "@/components/ui/FilePicker";
 import { ERROR_NOTE, HELP, INFO_NOTE, PANEL, SECTION_TITLE } from "./adminUi";
 
 type State =
@@ -135,8 +136,7 @@ export function AiReviewBox({ quoteId }: { quoteId: string }) {
           </div>
         ) : (
           <div className="mt-2">
-            <input
-              type="file"
+            <FilePicker
               accept=".pdf,.docx,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
               disabled={uploading}
               onChange={(e) => {
@@ -144,7 +144,9 @@ export function AiReviewBox({ quoteId }: { quoteId: string }) {
                 if (file) uploadCriteria(file);
                 e.target.value = "";
               }}
-              className={FILE_INPUT}
+              /* 올리자마자 이 자리가 첨부된 파일 표시로 바뀐다 — 잠깐 남는 이름이
+                 없도록 비운 상태로 둔다. */
+              files={[]}
             />
           </div>
         )}

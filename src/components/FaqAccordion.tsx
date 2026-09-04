@@ -74,14 +74,14 @@ export function FaqAccordion({ faqs }: { faqs: Faq[] }) {
           onClick={() => setOpenId(isOpen ? null : faq.id)}
           className="group flex w-full items-start justify-between gap-6 px-4 py-5 text-left transition-colors hover:bg-foreground/[0.04] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-foreground"
         >
-          <span className="min-w-0 break-keep text-s font-bold">{faq.question}</span>
+          <span className="min-w-0 break-keep text-m font-bold">{faq.question}</span>
           <span className="mt-px text-muted transition-colors group-hover:text-foreground">
             <ChevronToggle open={isOpen} />
           </span>
         </button>
         {isOpen && (
           <div id={panelId} className="px-4 pb-6">
-            <p className="whitespace-pre-wrap break-keep text-s leading-7 text-muted-strong">
+            <p className="whitespace-pre-wrap break-keep text-m text-muted-strong">
               {faq.answer}
             </p>
           </div>

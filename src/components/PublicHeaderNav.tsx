@@ -31,7 +31,7 @@ import {
    블러 + 반투명으로 글자 가독성만 지킨다.
    ========================================================================= */
 
-const CAT_BTN = "flex h-full items-center px-3 type-display text-[14px] text-foreground";
+const CAT_BTN = "flex h-full items-center px-3 type-display text-s text-foreground";
 /**
  * BOOK IT — 사이트의 유일한 액션.
  *
@@ -41,8 +41,8 @@ const CAT_BTN = "flex h-full items-center px-3 type-display text-[14px] text-for
  * 같은 텍스트로 두고, 누를 수 있다는 신호는 호버 색으로 준다.
  */
 const ACTION_BTN =
-  "flex h-8 items-center px-3 type-display text-[14px] text-foreground transition-colors hover:text-accent";
-const PANEL_LINK = "block whitespace-nowrap py-1.5 text-[12px] transition-colors hover:text-accent";
+  "flex h-8 items-center px-3 type-display text-s text-foreground transition-colors hover:text-accent";
+const PANEL_LINK = "block whitespace-nowrap py-1.5 text-xs transition-colors hover:text-accent";
 /**
  * 우측 유틸 — 채움·아웃라인 없는 텍스트 버튼.
  * 중앙 메뉴(Archivo 대문자 14)보다 커 보이지 않게 국문은 한 단 작게 둔다 —
@@ -75,7 +75,7 @@ function useBackofficeHref(): string {
 }
 
 const UTIL_BASE =
-  "flex items-center gap-1 whitespace-nowrap text-[12px] font-bold text-foreground transition-colors";
+  "flex items-center gap-1 whitespace-nowrap text-xs font-bold text-foreground transition-colors";
 /**
  * 드롭다운을 여는 트리거(지원 · 계정). 중앙 카테고리와 같은 이유로
  * **호버 색을 바꾸지 않는다** — 눌러서 갈 페이지가 없으므로 링크처럼 보이면 안 된다.
@@ -281,7 +281,7 @@ export function PublicHeaderNav({
         <Link
           href="/"
           onMouseEnter={closeNow}
-          className="type-display flex h-full shrink-0 items-center text-[18px] leading-none"
+          className="type-display flex h-full shrink-0 items-center text-h6-m leading-none"
           aria-label="Seoul Arena 홈"
         >
           Seoul Arena
@@ -372,10 +372,10 @@ export function PublicHeaderNav({
                     className="absolute left-1/2 top-full z-50 w-72 -translate-x-1/2 animate-[dropdown-in_0.14s_ease-out] bg-background p-4 shadow-md"
                     onMouseEnter={() => openWithCancel(BOOK_IT_KEY)}
                   >
-                    <p className="text-[12px] font-bold">{bookItNotice.title}</p>
+                    <p className="text-xs font-bold">{bookItNotice.title}</p>
                     {/* 운영자가 나눈 줄을 그대로 낸다 — 문구를 여러 줄로 써도 한 줄로
                         이어 붙던 자리다(2026-09-03). */}
-                    <p className="mt-2 whitespace-pre-line break-keep text-[12px] leading-5 text-muted">
+                    <p className="mt-2 whitespace-pre-line break-keep text-xs leading-5 text-muted">
                       {bookItNotice.body}
                     </p>
                   </div>
@@ -476,7 +476,7 @@ export function PublicHeaderNav({
             <Link
               href="/"
               onClick={() => setMobileOpen(false)}
-              className="type-display text-[18px] leading-none"
+              className="type-display text-h6-m leading-none"
             >
               Seoul Arena
             </Link>
@@ -508,14 +508,14 @@ export function PublicHeaderNav({
             <ul className="space-y-8">
               {visibleCategories.map((cat) => (
                 <li key={cat.label}>
-                  <h2 className="type-display text-[18px]">{cat.label}</h2>
+                  <h2 className="type-display text-h6-m">{cat.label}</h2>
                   <ul className="mt-3 space-y-2">
                     {cat.pages.map((p) => (
                       <li key={p.href}>
                         <Link
                           href={p.href}
                           onClick={() => setMobileOpen(false)}
-                          className={`text-[14px] transition-colors hover:text-accent ${
+                          className={`text-s transition-colors hover:text-accent ${
                             p.href === active ? "font-bold text-foreground" : "text-muted"
                           }`}
                         >
@@ -530,11 +530,11 @@ export function PublicHeaderNav({
                 /* 좁은 화면에는 호버가 없다 — 안내를 접었다 펴지 않고 그대로 붙여 둔다.
                    앞의 묶음들과 같은 왼쪽 선에 맞춘다. 혼자 가운데에 있으면 목록에서 떨어져 보인다. */
                 <li>
-                  <p className="type-display flex h-12 items-center text-[14px] text-muted">
+                  <p className="type-display flex h-12 items-center text-s text-muted">
                     {NAV_ACTION.label}
                   </p>
-                  <p className="text-[12px] font-bold">{bookItNotice.title}</p>
-                  <p className="mt-1 whitespace-pre-line break-keep text-[12px] leading-5 text-muted">
+                  <p className="text-xs font-bold">{bookItNotice.title}</p>
+                  <p className="mt-1 whitespace-pre-line break-keep text-xs leading-5 text-muted">
                     {bookItNotice.body}
                   </p>
                 </li>
@@ -544,7 +544,7 @@ export function PublicHeaderNav({
                   <Link
                     href={NAV_ACTION.href}
                     onClick={() => setMobileOpen(false)}
-                    className="flex h-12 items-center justify-center type-display text-[14px] text-foreground"
+                    className="flex h-12 items-center justify-center type-display text-s text-foreground"
                   >
                     {NAV_ACTION.label}
                   </Link>
@@ -555,7 +555,7 @@ export function PublicHeaderNav({
             {/* 좁은 화면에서는 드롭다운이 없어 뎁스 차이가 없다 — 공지사항을 지원 묶음
                 맨 위에 두어 상단바와 같은 순서(공지사항 → 지원)로 읽히게 한다. */}
             <div className="mt-10 border-t border-border pt-6">
-              <h2 className="text-[14px] font-bold">{SUPPORT_MENU.label}</h2>
+              <h2 className="text-s font-bold">{SUPPORT_MENU.label}</h2>
               <ul className="mt-3 space-y-2">
                 {(allowed(NOTICE_LINK.href)
                   ? [NOTICE_LINK, ...visibleSupportPages]
@@ -565,7 +565,7 @@ export function PublicHeaderNav({
                     <Link
                       href={p.href}
                       onClick={() => setMobileOpen(false)}
-                      className={`text-[14px] transition-colors hover:text-accent ${
+                      className={`text-s transition-colors hover:text-accent ${
                         p.href === active ? "font-bold text-foreground" : "text-muted"
                       }`}
                     >
@@ -579,14 +579,14 @@ export function PublicHeaderNav({
             <div className="mt-8 border-t border-border pt-6">
               {currentUser ? (
                 <>
-                  <h2 className="text-[14px] font-bold">{currentUser.name} 님</h2>
+                  <h2 className="text-s font-bold">{currentUser.name} 님</h2>
                   <ul className="mt-3 space-y-2">
                     {currentUser.role === "ADMIN" ? (
                       <li>
                         <a
                           href={backofficeHref}
                           onClick={() => setMobileOpen(false)}
-                          className="text-[14px] text-muted"
+                          className="text-s text-muted"
                         >
                           운영자 백오피스
                         </a>
@@ -596,7 +596,7 @@ export function PublicHeaderNav({
                         <Link
                           href={ACCOUNT_HREF}
                           onClick={() => setMobileOpen(false)}
-                          className={`text-[14px] underline decoration-1 underline-offset-4 transition-colors hover:text-accent ${
+                          className={`text-s underline decoration-1 underline-offset-4 transition-colors hover:text-accent ${
                             active.startsWith("/mypage") ? "font-bold text-foreground" : "text-muted"
                           }`}
                         >
@@ -607,7 +607,7 @@ export function PublicHeaderNav({
                   </ul>
                   <div className="mt-4 flex items-center gap-5">
                     <NotificationBell role={currentUser.role} />
-                    <LogoutButton className="text-[14px] font-bold" />
+                    <LogoutButton className="text-s font-bold" />
                   </div>
                 </>
               ) : (
@@ -615,14 +615,14 @@ export function PublicHeaderNav({
                   <Link
                     href="/login"
                     onClick={() => setMobileOpen(false)}
-                    className="text-[14px] font-bold"
+                    className="text-s font-bold"
                   >
                     로그인
                   </Link>
                   <Link
                     href="/register"
                     onClick={() => setMobileOpen(false)}
-                    className="text-[14px] font-bold"
+                    className="text-s font-bold"
                   >
                     회원가입
                   </Link>

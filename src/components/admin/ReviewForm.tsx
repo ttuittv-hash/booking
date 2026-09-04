@@ -26,7 +26,7 @@ const DECISION_LABEL: Record<ReviewDecision, string> = {
  * 어느 쪽이 이길지 CSS 순서에 좌우되므로 클래스를 직접 조립한다.
  */
 const DANGER_BTN = [
-  "inline-flex h-10 items-center justify-center gap-2 whitespace-nowrap border px-6 text-s font-bold",
+  "inline-flex h-10 items-center justify-center gap-2 whitespace-nowrap rounded-btn border px-6 text-s font-bold",
   "border-danger text-danger transition-colors duration-150 hover:bg-danger hover:text-inverse-fg",
   "focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-danger",
   "disabled:cursor-not-allowed disabled:opacity-40",
@@ -124,7 +124,7 @@ export function ReviewForm({
               <span
                 key={auto.venueLabel}
                 data-testid="auto-score"
-                className="inline-flex flex-wrap items-center gap-2 border border-border-soft px-3 py-1.5 text-xs"
+                className="inline-flex flex-wrap items-center gap-2 rounded-btn border border-border-soft px-3 py-1.5 text-xs"
               >
                 <span className="text-muted">
                   자동 채점{autoScores.length > 1 ? ` · ${auto.venueLabel}` : ""}
@@ -139,7 +139,7 @@ export function ReviewForm({
                   <button
                     type="button"
                     onClick={() => setScore(String(auto.provisionalFinal))}
-                    className="font-bold underline decoration-border-soft underline-offset-4 hover:decoration-accent"
+                    className="font-bold underline decoration-border-soft underline-offset-4 hover:decoration-foreground"
                   >
                     불러오기
                   </button>

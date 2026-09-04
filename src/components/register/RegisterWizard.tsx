@@ -16,6 +16,7 @@ import Link from "next/link";
 import { useDialog } from "@/components/ui/Dialog";
 import { useEffect, useRef, useState } from "react";
 import { btnClass, toggleClass } from "@/components/ui/kit";
+import { FilePicker } from "@/components/ui/FilePicker";
 import { APPLICANT_COMPANY_TYPE_LABEL, type ApplicantCompanyType } from "@/lib/pricing/types";
 
 const APPLICANT_COMPANY_TYPES = Object.keys(APPLICANT_COMPANY_TYPE_LABEL) as ApplicantCompanyType[];
@@ -122,7 +123,7 @@ function PlaceSearch({
 
   return (
     <div className="mt-3" data-testid="place-search">
-      <span className="flex flex-wrap gap-2">
+      <span className="flex flex-wrap items-center gap-2">
         <input
           value={q}
           onChange={(e) => setQ(e.target.value)}
@@ -135,14 +136,14 @@ function PlaceSearch({
           }}
           maxLength={60}
           placeholder="법인명으로 찾기 (예: 와이지엔터테인먼트)"
-          className="min-w-0 flex-1 border border-border-soft bg-background px-3 py-2 text-s"
+          className="min-w-0 flex-1 rounded-btn border border-border-soft bg-background px-3 py-2 text-s"
           data-testid="place-query"
         />
         <button
           type="button"
           onClick={() => void run()}
           disabled={busy}
-          className={`${btnClass("secondary", "md")} whitespace-nowrap`}
+          className={`${btnClass("secondary", "sm")} whitespace-nowrap`}
           data-testid="place-search-go"
         >
           {busy ? "찾는 중…" : "법인명으로 찾기"}
@@ -150,7 +151,7 @@ function PlaceSearch({
       </span>
 
       {places && places.length > 0 ? (
-        <ul className="mt-2 max-h-56 divide-y divide-border/40 overflow-y-auto border border-border-soft">
+        <ul className="mt-2 max-h-56 divide-y divide-border/40 overflow-y-auto rounded-surface border border-border-soft">
           {places.map((p, i) => (
             <li key={`${p.name}-${i}`}>
               <button
@@ -242,9 +243,15 @@ export function RegisterWizard({
   // 법인명 검색은 외부 장소 검색(KAKAO_REST_API_KEY)에 기대므로 환경에 따라 없다.
   // 켜졌는지를 서버에서 판정해 내려받는다 — 눌러 봐야 아는 버튼을 두지 않기 위해서다.
   placeSearchEnabled = false,
+  // 화면만 확인하려고 들어온 자리(개발 전용, /register/preview). 본인인증은 외부
+  // 서비스가 있어야 통과하므로 그 뒤의 두 화면(사업자 인증·정보 입력 / 가입완료)은
+  // 로컬에서 볼 방법이 없었다. 값이 있으면 인증을 마친 것처럼 그 단계에서 시작한다 —
+  // 제출은 평소와 같이 진짜 API 를 부르므로, 보기만 하고 나가면 된다.
+  previewStep,
 }: {
   intro?: RegisterIntroTexts;
   placeSearchEnabled?: boolean;
+  previewStep?: 3 | 4;
 } = {}) {
   const toast = useToast();
   const dialog = useDialog();
@@ -255,7 +262,7 @@ export function RegisterWizard({
   const [inviteBlocked, setInviteBlocked] = useState<string | null>(null);
   /** 초대장에 적힌 번호(가운데 가림). 본인인증 결과와 어긋나면 미리 알려 준다. */
   const [invitePhoneMasked, setInvitePhoneMasked] = useState("");
-  const [step, setStep] = useState(1);
+  const [step, setStep] = useState(previewStep ?? 1);
   const [loading, setLoading] = useState(false);
   // 오류는 토스트로 띄운다. 위저드 상단에 붙이면 스크롤을 내려 입력하다 [다음]을 눌렀을 때
   // 메시지가 화면 밖에 떠서 왜 안 넘어가는지 알 수 없다.
@@ -268,14 +275,20 @@ export function RegisterWizard({
     name: string;
     mobileNo: string;
     mobileCo: string | null;
-  } | null>(null);
+  } | null>(
+    // 미리보기에서는 인증 결과 자리에 보기용 값을 채운다 — 비어 있으면 그 칸이
+    // 통째로 사라져 실제 화면과 다르게 보인다.
+    previewStep ? { ticket: "PREVIEW", name: "홍길동", mobileNo: "01012345678", mobileCo: "SKT" } : null,
+  );
 
   const [form, setForm] = useState<FormState>({
+    // 가입완료 화면은 회사명을 받아 쓴다 — 미리보기에서만 보기용 이름을 넣는다.
+    // 정보 입력 화면(3)은 빈 종이로 두어야 실제 첫 화면과 같다.
+    companyName: previewStep === 4 ? "(주)서울아레나" : "",
     username: "",
     password: "",
     passwordConfirm: "",
     email: "",
-    companyName: "",
     companyType: null,
     businessRegistrationNumber: "",
     representativeName: "",
@@ -353,7 +366,8 @@ export function RegisterWizard({
   }, []);
 
   const [joinNotice, setJoinNotice] = useState<string | null>(null);
-  const [isNewMaster, setIsNewMaster] = useState(false);
+  // 미리보기의 가입완료 화면에서는 마스터 계정 안내까지 보이게 켜 둔다.
+  const [isNewMaster, setIsNewMaster] = useState(previewStep === 4);
 
   useEffect(() => {
     fetch("/api/terms")
@@ -768,14 +782,20 @@ export function RegisterWizard({
 
 function StepBar({ step }: { step: number }) {
   return (
-    <ol className="flex flex-wrap items-center gap-x-4 gap-y-2.5 text-xs" data-testid="step-bar">
+    // 좁은 화면에서는 한 줄에 하나씩 쌓는다 — 네 항목을 흘려 담으면 "사업자 인증 ·
+    // 정보 입력"만 줄을 넘어가 2·2 가 아니라 3·1 로 갈라졌고, 어디까지가 한 단계인지
+    // 읽히지 않았다. 넓은 화면은 그대로 한 줄이다.
+    <ol
+      className="flex flex-col gap-2.5 text-xs sm:flex-row sm:flex-wrap sm:items-center sm:gap-x-4 sm:gap-y-2.5"
+      data-testid="step-bar"
+    >
       {STEP_LABELS.map((label, i) => {
         const n = i + 1;
         const state = n === step ? "current" : n < step ? "done" : "todo";
         return (
           <li key={label} className="flex items-center gap-2" data-state={state}>
             <span
-              className={`flex h-6 w-6 shrink-0 items-center justify-center border text-xs tabular-nums ${
+              className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-btn border text-xs tabular-nums ${
                 state === "todo"
                   ? "border-border-soft text-muted"
                   : "border-foreground bg-foreground text-background"
@@ -815,7 +835,7 @@ function StepTerms({
           여기로 옮겼다. 고를 것이 없는 선택 화면은 뺐지만 "누가 가입할 수 있고 무엇이
           필요한지" 는 첫 화면에서 여전히 읽혀야 한다. 카드가 아니라 안내 블록이라
           button 이 아니므로 이제 ul/li 를 그대로 쓸 수 있다. */}
-      <div data-testid="register-intro" className="border border-border-soft p-5">
+      <div data-testid="register-intro" className="rounded-surface border border-border-soft p-5">
         <p className="text-h6-m font-bold">{intro.title}</p>
         <p className="mt-1.5 break-keep text-s leading-6 text-muted">{intro.subtitle}</p>
         <ul className="mt-4 flex max-w-2xl flex-col gap-2 break-keep text-s leading-6 text-muted">
@@ -834,13 +854,15 @@ function StepTerms({
       </h2>
       <div className="mt-6 space-y-5">
         {terms.map((t) => (
-          <div key={t.kind} className="border border-border-soft">
-            <label className="flex cursor-pointer items-center justify-between gap-4 border-b border-border-soft px-5 py-4">
+          <div key={t.kind} className="overflow-hidden rounded-surface border border-border-soft">
+            <label className="flex cursor-pointer items-center justify-between gap-4 px-5 py-4">
               <span className="break-keep text-s font-bold">
-                {t.title}{" "}
-                <span className={t.required ? "text-accent" : "text-muted"}>
-                  ({t.required ? "필수" : "선택"})
-                </span>
+                {t.title}
+                {t.required ? (
+                  <span className="text-danger"> *</span>
+                ) : (
+                  <span className="ml-1 font-normal text-muted">(선택)</span>
+                )}
               </span>
               {/* 약관 버전(t.version)은 화면에 내보이지 않는다 — 동의 이력을 특정하려고
                   들고 있는 내부 값이라, 사용자에게는 읽을 이유가 없는 기호다.
@@ -855,6 +877,9 @@ function StepTerms({
                 className="h-4 w-4"
               />
             </label>
+            {/* 제목과 본문을 가르는 선 — 카드 끝까지 긋지 않고 좌우 여백을 남겨
+                본문이 서는 폭에 맞춘다. 끝까지 그으면 카드가 두 칸으로 잘려 보인다. */}
+            <div aria-hidden className="mx-5 border-t border-border-soft" />
             <pre
               data-testid={`terms-body-${t.kind}`}
               className="max-h-44 overflow-y-auto whitespace-pre-wrap break-keep px-5 py-4 font-sans text-xs leading-7 text-muted"
@@ -906,7 +931,7 @@ function StepIdentity({
         본인 명의 휴대폰으로 본인인증을 진행합니다. 인증 결과의 이름·휴대폰번호는 계약 당사자
         정보로 쓰이므로 이후 단계에서 수정할 수 없습니다.
       </p>
-      <div className="mt-7 border border-border-soft bg-surface px-6 py-12 text-center">
+      <div className="mt-7 rounded-surface border border-border-soft bg-surface px-6 py-12 text-center">
         <p className="text-h6-m font-bold">휴대폰</p>
         <p className="mx-auto mt-2.5 max-w-sm break-keep text-s leading-6 text-muted">
           본인 명의로 등록된 휴대폰 번호를 이용하여 본인확인
@@ -927,7 +952,7 @@ function StepIdentity({
       {/* 개발 환경 전용 — 표준창 인증은 실제 사람이 휴대폰으로 해야 해서
           화면 흐름을 훑어볼 때 막힌다. 운영에는 이 변수가 없어 버튼이 뜨지 않는다. */}
       {devBypass ? (
-        <div className="mt-6 border border-warn/40 px-4 py-3">
+        <div className="mt-6 rounded-surface bg-panel px-4 py-3">
           <p className="break-keep text-xs leading-6 text-warn">
             개발 환경에서만 보이는 버튼입니다. 인증을 건너뛰고 다음 단계로 넘어갑니다.
           </p>
@@ -1151,14 +1176,14 @@ function StepInfo({
       {inviteNotice ? (
         <p
           data-testid="invite-notice"
-          className="mt-3 border border-accent px-4 py-3 text-s leading-6 break-keep"
+          className="mt-3 rounded-surface bg-panel px-4 py-3 text-s leading-6 break-keep"
         >
           {inviteNotice}
         </p>
       ) : null}
       <p className="mt-2 break-keep text-xs text-muted">* 표시는 필수 입력 항목입니다.</p>
 
-      <h3 className="mt-8 text-s font-bold">① 기업 정보</h3>
+      <h3 className="type-kr-heading mt-8 text-h6-m sm:text-h6">기업 정보</h3>
       {locked ? null : (
         <p className="mt-1 break-keep text-xs leading-6 text-muted">
           이미 등록된 회사라면 [등록된 회사정보 불러오기]로 채우세요.
@@ -1168,7 +1193,7 @@ function StepInfo({
         {/* 사업자등록번호가 먼저다 — 진위확인을 거치면 아래 회사명·대표자가 채워진다. */}
         <div className="sm:col-span-2">
           <Field label="사업자등록번호" required hint="숫자 10자리">
-            <span className="flex gap-2">
+            <span className="flex items-center gap-2">
               <input
                 data-testid="f-brn"
                 value={form.businessRegistrationNumber}
@@ -1188,7 +1213,7 @@ function StepInfo({
                   type="button"
                   data-testid="brn-cancel"
                   onClick={onUnlock}
-                  className={btnClass("secondary", "md")}
+                  className={btnClass("secondary", "sm")}
                 >
                   취소
                 </button>
@@ -1198,7 +1223,7 @@ function StepInfo({
                   data-testid="verify-brn"
                   disabled={checking === "brn"}
                   onClick={verifyBrn}
-                  className={`${btnClass("secondary", "md")} whitespace-nowrap`}
+                  className={`${btnClass("secondary", "sm")} whitespace-nowrap`}
                 >
                   {checking === "brn" ? "확인 중…" : "중복·진위확인"}
                 </button>
@@ -1276,41 +1301,31 @@ function StepInfo({
             회사를 처음 등록한 사람의 것 하나뿐이라, 합류자가 올린 파일은 그 사람 계정에
             따로 남아 운영자 심사 화면에 보인다. */}
         <div className="sm:col-span-2">
-            <Field
+            <FilePicker
               label="사업자등록증"
-              required
-              hint={
-                locked
-                  ? "필수 · PDF/JPG/PNG · 10MB 이하 · 불러온 회사에 등록된 서류가 있어도 본인 확인용으로 첨부해 주세요"
-                  : "필수 · PDF/JPG/PNG · 10MB 이하"
-              }
-            >
-              <span className="flex flex-wrap items-center gap-3">
-                <label className={`${btnClass("secondary", "md")} cursor-pointer whitespace-nowrap`}>
-                  {uploading === "biz" ? "업로드 중…" : "파일 선택"}
-                  <input
-                    type="file"
-                    data-testid="f-businessCert"
-                    accept=".pdf,.jpg,.jpeg,.png"
-                    disabled={uploading === "biz"}
-                    onChange={(e) => handleCertUpload("biz", "businessCertUrl", "businessCertName", e)}
-                    className="hidden"
-                  />
-                </label>
-                {form.businessCertName ? (
-                  <span data-testid="business-cert-name" className="break-all text-s text-muted">
-                    {form.businessCertName}
-                  </span>
-                ) : null}
-              </span>
-            </Field>
+              /* 초대로 합류할 때는 회사가 초대장으로 정해지고 등록증은 이미 회사에 있다 —
+                 그때는 필수가 아니다(제출 검증도 같은 조건). */
+              required={!inviteMode}
+              testId="f-businessCert"
+              accept=".pdf,.jpg,.jpeg,.png"
+              disabled={uploading === "biz"}
+              buttonLabel={uploading === "biz" ? "업로드 중…" : "파일 선택"}
+              onChange={(e) => handleCertUpload("biz", "businessCertUrl", "businessCertName", e)}
+              /* 한 장만 받는 자리다 — 다시 고르면 앞의 파일을 갈아끼운다. */
+              files={form.businessCertName ? [{ name: form.businessCertName }] : []}
+            />
+            <p className="mt-1.5 text-xs leading-5 text-muted">
+              {locked
+                ? "필수 · PDF/JPG/PNG · 10MB 이하 · 불러온 회사에 등록된 서류가 있어도 본인 확인용으로 첨부해 주세요"
+                : "필수 · PDF/JPG/PNG · 10MB 이하"}
+            </p>
         </div>
 
         <div className="sm:col-span-2">
           <Field label="회사주소" required>
-            <span className="flex flex-wrap gap-2">
+            <span className="flex flex-wrap items-center gap-2">
               <input data-testid="f-postalCode" readOnly={locked} value={form.postalCode} onChange={set("postalCode")} placeholder="우편번호" className={inputCls(locked, "w-36")} />
-              <button type="button" data-testid="open-postcode" disabled={locked} onClick={() => onPostcode()} className={`${btnClass("secondary", "md")} whitespace-nowrap`}>
+              <button type="button" data-testid="open-postcode" disabled={locked} onClick={() => onPostcode()} className={`${btnClass("secondary", "sm")} whitespace-nowrap`}>
                 우편번호 찾기
               </button>
             </span>
@@ -1360,14 +1375,14 @@ function StepInfo({
 
       {/* 기업 정보와 개인 정보 사이를 선으로 끊는다 — 칸이 계속 이어져 어디까지가 회사
           이야기인지 한눈에 안 잡혔다. 구분선은 관리자 폼과 같은 border/15 를 쓴다. */}
-      <h3 className="mt-10 border-t border-border/15 pt-8 text-s font-bold">② 개인 정보</h3>
+      <h3 className="type-kr-heading mt-10 border-t border-border/25 pt-8 text-h6-m sm:text-h6">개인 정보</h3>
       <p className="mt-1 break-keep text-xs text-muted">
         이름 · 휴대폰번호는 본인인증 결과가 그대로 들어가며 수정할 수 없습니다.
       </p>
       {stubMode ? (
         <p
           data-testid="stub-notice"
-          className="mt-3 break-keep border border-warn/40 px-4 py-2.5 text-xs leading-6 text-warn"
+          className="mt-3 break-keep rounded-surface bg-panel px-4 py-2.5 text-xs leading-6 text-warn"
         >
           개발 환경: 본인인증을 건너뛴 상태입니다. 아래 이름 · 휴대폰번호는 실제 인증 결과가 아닙니다.
         </p>
@@ -1391,7 +1406,7 @@ function StepInfo({
 
         <div>
           <Field label="로그인 ID" required hint={USERNAME_HINT}>
-            <span className="flex gap-2">
+            <span className="flex items-center gap-2">
               <input
                 data-testid="f-username"
                 value={form.username}
@@ -1407,7 +1422,7 @@ function StepInfo({
                 data-testid="check-username"
                 disabled={checking === "id" || !form.username}
                 onClick={checkUsername}
-                className={`${btnClass("secondary", "md")} whitespace-nowrap`}
+                className={`${btnClass("secondary", "sm")} whitespace-nowrap`}
               >
                 {checking === "id" ? "확인 중…" : "중복확인"}
               </button>
@@ -1469,26 +1484,18 @@ function StepInfo({
           <input data-testid="f-personalPhone" value={form.personalPhone} onChange={set("personalPhone")} placeholder="02-544-1651" className={inputCls(false)} />
         </Field>
         <div className="sm:col-span-2">
-          <Field label="재직증명서" required hint="필수 · PDF/JPG/PNG · 10MB 이하">
-            <span className="flex flex-wrap items-center gap-3">
-              <label className={`${btnClass("secondary", "md")} cursor-pointer whitespace-nowrap`}>
-                {uploading === "employment" ? "업로드 중…" : "파일 선택"}
-                <input
-                  type="file"
-                  data-testid="f-employmentCert"
-                  accept=".pdf,.jpg,.jpeg,.png"
-                  disabled={uploading === "employment"}
-                  onChange={(e) => handleCertUpload("employment", "employmentCertUrl", "employmentCertName", e)}
-                  className="hidden"
-                />
-              </label>
-              {form.employmentCertName ? (
-                <span data-testid="employment-cert-name" className="break-all text-s text-muted">
-                  {form.employmentCertName}
-                </span>
-              ) : null}
-            </span>
-          </Field>
+          <FilePicker
+            label="재직증명서"
+            required
+            testId="f-employmentCert"
+            accept=".pdf,.jpg,.jpeg,.png"
+            disabled={uploading === "employment"}
+            buttonLabel={uploading === "employment" ? "업로드 중…" : "파일 선택"}
+            onChange={(e) => handleCertUpload("employment", "employmentCertUrl", "employmentCertName", e)}
+            /* 한 장만 받는 자리다 — 다시 고르면 앞의 파일을 갈아끼운다. */
+            files={form.employmentCertName ? [{ name: form.employmentCertName }] : []}
+          />
+          <p className="mt-1.5 text-xs leading-5 text-muted">필수 · PDF/JPG/PNG · 10MB 이하</p>
         </div>
       </div>
 
@@ -1524,14 +1531,14 @@ function StepDone({
       <h2 className="type-kr-heading break-keep text-h5-m sm:text-h5">가입 신청이 접수되었습니다</h2>
       <p className="mt-3 break-keep text-s leading-6 text-muted">승인 완료 후 이용 가능합니다.</p>
       {notice ? (
-        <p data-testid="join-notice" className="mx-auto mt-5 max-w-lg whitespace-pre-line break-keep border border-border-soft px-5 py-4 text-s leading-6">
+        <p data-testid="join-notice" className="mx-auto mt-5 max-w-lg whitespace-pre-line break-keep rounded-surface bg-panel px-5 py-4 text-s leading-6">
           {notice}
         </p>
       ) : null}
       {isNewMaster ? (
         <p
           data-testid="master-account-notice"
-          className="mx-auto mt-5 max-w-lg break-keep border border-accent px-5 py-4 text-s leading-6"
+          className="mx-auto mt-5 max-w-lg break-keep rounded-surface bg-panel px-5 py-4 text-s leading-6"
         >
           {companyName || "회사"}의 <b>마스터 계정</b>으로 가입되었습니다. 승인 후 마이메뉴 &gt; 담당자
           관리에서 소속 담당자를 초대하고, 합류 신청을 승인·반려하거나 대표 권한을 이관할 수 있습니다.
@@ -1600,12 +1607,12 @@ function CompanySearchDialog({
           사업자등록번호 또는 회사명으로 검색해 주세요.
         </p>
 
-        <div className="mt-4 flex gap-2">
+        <div className="mt-4 flex items-center gap-2">
           <select
             data-testid="search-field"
             value={field}
             onChange={(e) => setField(e.target.value as "name" | "brn")}
-            className="h-11 border border-border-soft px-3 text-s sm:h-8"
+            className={inputCls(false, "w-auto")}
           >
             <option value="name">회사명</option>
             <option value="brn">사업자등록번호</option>
@@ -1619,7 +1626,7 @@ function CompanySearchDialog({
               if (e.key === "Enter") void run();
             }}
             placeholder="회사명 2자 이상 또는 사업자등록번호 10자리"
-            className="h-11 min-w-0 flex-1 border border-border-soft px-3 text-s sm:h-8"
+            className={inputCls(false, "min-w-0 flex-1")}
           />
           <button type="button" data-testid="search-run" onClick={() => void run()} className={`${btnClass("primary", "sm")} whitespace-nowrap`}>
             검색
@@ -1636,7 +1643,7 @@ function CompanySearchDialog({
           {results.map((hit) => (
             <li
               key={hit.id}
-              className="flex flex-wrap items-center justify-between gap-3 border border-border-soft px-5 py-4"
+              className="flex flex-wrap items-center justify-between gap-3 rounded-surface border border-border-soft px-5 py-4"
             >
               <span className="break-keep text-s leading-6">
                 <b>{hit.name}</b>
@@ -1678,8 +1685,8 @@ function Field({
   return (
     <label className="block">
       <span className="mb-2 block break-keep text-xs leading-5 font-bold">
-        {required ? <span className="text-accent">* </span> : null}
         {label}
+        {required ? <span className="text-danger"> *</span> : null}
         {hint ? <span className="ml-1 font-normal text-muted">({hint})</span> : null}
       </span>
       {children}
@@ -1689,7 +1696,9 @@ function Field({
 
 function inputCls(readOnly: boolean, width = "w-full") {
   // 폭을 인자로 받는다 — 문자열에 w-full 을 박아두면 w-32 같은 지정이 충돌해 먹지 않는다.
-  return `${width} border px-3 py-2 text-s ${
-    readOnly ? "border-border-soft bg-surface text-muted" : "border-border-soft bg-background"
-  }`;
+  //
+  // [개정 2026-09-04] 자체 규격을 버리고 사이트 공용 입력칸(field-base)을 쓴다.
+  // 여기만 따로 두었더니 높이·여백이 다른 화면과 어긋났고, 무엇보다 고르는 칸의
+  // 화살표가 브라우저 기본값이라 오른쪽 벽에 붙어 왼쪽 글자 여백과 맞지 않았다.
+  return `${width} field-base ${readOnly ? "bg-surface text-muted" : ""}`;
 }
