@@ -24,6 +24,8 @@ import { formatDateTime } from "@/lib/format";
 import { useQueryTab } from "@/components/admin/useQueryTab";
 import { confirmDiscardUnsaved } from "./unsavedChanges";
 import { LegalContentForm } from "./LegalContentForm";
+import { RegisterTermsForm } from "./RegisterTermsForm";
+import type { RegisterTermsContent } from "@/lib/terms";
 import {
   DocumentsForm,
   FeaturesForm,
@@ -88,6 +90,7 @@ export function ContentManager({
   screenTextContent,
   termsContent,
   privacyContent,
+  registerTermsContent,
 }: {
   notices: Notice[];
   faqs: Faq[];
@@ -101,6 +104,7 @@ export function ContentManager({
   screenTextContent: ScreenTextContent;
   termsContent: LegalContent;
   privacyContent: LegalContent;
+  registerTermsContent: RegisterTermsContent;
 }) {
   const router = useRouter();
   // 탭을 URL(?tab=)에 싣는다 — 새로고침해도 유지되고 특정 탭을 링크로 줄 수 있다.
@@ -183,6 +187,7 @@ export function ContentManager({
               content={privacyContent}
               publicHref="/privacy"
             />
+            <RegisterTermsForm content={registerTermsContent} />
           </div>
         )}
       </div>

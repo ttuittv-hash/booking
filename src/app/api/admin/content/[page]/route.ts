@@ -5,6 +5,7 @@ import {
   getFeaturesContent,
   getGuidePageContent,
   getRatesContent,
+  getRegisterTermsContent,
   getRulesContent,
   getScreenTextContent,
   getSeoulArenaContent,
@@ -12,6 +13,7 @@ import {
   saveFeaturesContent,
   saveGuidePageContent,
   saveRatesContent,
+  saveRegisterTermsContent,
   saveRulesContent,
   saveScreenTextContent,
   saveSeoulArenaContent,
@@ -36,6 +38,8 @@ const PAGES: Record<string, Loader> = {
   documents: { get: getDocumentsContent, save: saveDocumentsContent },
   rules: { get: getRulesContent, save: saveRulesContent },
   screenText: { get: getScreenTextContent, save: saveScreenTextContent },
+  // 가입 화면의 동의 항목 3종. 저장할 때 본문이 바뀌면 버전이 자동으로 올라간다.
+  registerTerms: { get: getRegisterTermsContent, save: saveRegisterTermsContent },
 };
 
 export async function GET(_request: Request, ctx: { params: Promise<{ page: string }> }) {

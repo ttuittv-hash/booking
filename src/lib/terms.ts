@@ -271,8 +271,8 @@ export function termsBodyHash(body: string): string {
 }
 
 /** 화면에 내려줄 목록 — 본문 해시를 함께 실어 클라이언트가 무엇에 동의했는지 되짚을 수 있게 한다. */
-export function termsForClient() {
-  return TERMS.map((t) => ({
+export function termsForClient(documents: TermsDocument[] = TERMS) {
+  return documents.map((t) => ({
     kind: t.kind,
     version: t.version,
     title: t.title,
@@ -280,4 +280,67 @@ export function termsForClient() {
     body: t.body,
     bodyHash: termsBodyHash(t.body),
   }));
+}
+
+/* ---------------------------------------------------------------------------
+   가입 약관을 DB(site_content.registerTerms)에 두고 백오피스에서 고친다 (2026-09-04).
+
+   그전에는 이 파일의 TERMS 상수가 그대로 가입 화면으로 나갔다. 백오피스 [약관 · 정책]
+   에서 고칠 수 있는 것은 공개 페이지(/terms · /privacy)뿐이라, 운영자가 가입 약관을
+   고쳤다고 생각해도 가입 화면은 그대로였다(미완성 자리표시자가 실제 가입자에게 노출).
+   이제 위 TERMS 는 DB 에 값이 없을 때의 기본값이자 최초 저장값으로만 쓴다.
+
+   버전은 동의 이력을 특정하는 값이라 본문이 바뀌면 반드시 함께 올라가야 한다.
+   운영자가 버전 칸을 건드리지 않은 채 본문만 고치면 저장 시 오늘 날짜로 자동으로 올린다.
+   --------------------------------------------------------------------------- */
+
+export interface RegisterTermsContent {
+  documents: TermsDocument[];
+}
+
+export const DEFAULT_REGISTER_TERMS: RegisterTermsContent = { documents: TERMS };
+
+/** 서울 기준 오늘(YYYY-MM-DD) — 버전 자동 올림에 쓴다. */
+export function seoulToday(now: Date = new Date()): string {
+  return new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Seoul" }).format(now);
+}
+
+function textOf(v: unknown, fallback: string): string {
+  return typeof v === "string" && v.trim() ? v.trim() : fallback;
+}
+
+/**
+ * 저장 요청을 검증하고 버전을 정리한다.
+ *
+ * - 문서 종류(kind)와 개수는 기존 것을 따른다 — 화면·동의 이력이 세 종류를 전제로 한다.
+ * - 본문이 비면 기존 본문을 지킨다(실수로 통째로 지우는 것 방지).
+ * - 본문이 바뀌었는데 버전이 그대로면 오늘 날짜로 올린다.
+ */
+export function normalizeRegisterTerms(
+  input: unknown,
+  stored: RegisterTermsContent,
+  today: string = seoulToday(),
+): RegisterTermsContent {
+  const incoming = (input as RegisterTermsContent | null)?.documents;
+  const byKind = new Map<string, Partial<TermsDocument>>();
+  if (Array.isArray(incoming)) {
+    for (const doc of incoming) {
+      if (doc && typeof doc === "object" && typeof doc.kind === "string") byKind.set(doc.kind, doc);
+    }
+  }
+  return {
+    documents: stored.documents.map((prev) => {
+      const next = byKind.get(prev.kind);
+      if (!next) return prev;
+      const body = textOf(next.body, prev.body);
+      const version = textOf(next.version, prev.version);
+      return {
+        kind: prev.kind,
+        required: prev.required,
+        title: textOf(next.title, prev.title),
+        body,
+        version: body !== prev.body && version === prev.version ? today : version,
+      };
+    }),
+  };
 }

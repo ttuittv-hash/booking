@@ -7,6 +7,7 @@ import {
   getHomeContent,
   getPrivacyContent,
   getRatesContent,
+  getRegisterTermsContent,
   getRulesContent,
   getScreenTextContent,
   getSeoulArenaContent,
@@ -36,6 +37,7 @@ export default async function AdminContentPage() {
     screenTextContent,
     termsContent,
     privacyContent,
+    registerTermsContent,
   ] = await Promise.all([
     listNotices(),
     listFaqs(),
@@ -49,6 +51,7 @@ export default async function AdminContentPage() {
     getScreenTextContent(),
     getTermsContent(),
     getPrivacyContent(),
+    getRegisterTermsContent(),
   ]);
 
   return (
@@ -80,6 +83,7 @@ export default async function AdminContentPage() {
           screenTextContent={screenTextContent}
           termsContent={termsContent}
           privacyContent={privacyContent}
+          registerTermsContent={registerTermsContent}
         />
       </main>
     </div>

@@ -14,6 +14,11 @@ import {
 } from "./content/seed";
 import { SEED_FAQS } from "./content/faqSeed";
 import { SEED_NOTICE } from "./content/noticeSeed";
+import {
+  DEFAULT_REGISTER_TERMS,
+  normalizeRegisterTerms,
+  type RegisterTermsContent,
+} from "./terms";
 import { FEATURE_SPEC_SEED } from "./featureSpecSeed";
 import { FEATURE_SPEC_SHEET_KEYS } from "./pricing/types";
 import { DATA_DIR } from "./dataDir";
@@ -5887,6 +5892,18 @@ export async function getPrivacyContent(): Promise<LegalContent> {
 
 export async function savePrivacyContent(data: LegalContent): Promise<LegalContent> {
   return saveSiteContent("privacy", data);
+}
+
+/* 가입 약관(동의 항목 3종) — 예전에는 코드 상수가 그대로 가입 화면으로 나갔다.
+   이제 DB 가 정본이고 코드의 TERMS 는 최초 기본값이다(2026-09-04). */
+export async function getRegisterTermsContent(): Promise<RegisterTermsContent> {
+  return getSiteContent<RegisterTermsContent>("registerTerms", DEFAULT_REGISTER_TERMS);
+}
+
+export async function saveRegisterTermsContent(data: unknown): Promise<RegisterTermsContent> {
+  // 본문이 바뀌었는데 버전이 그대로면 여기서 올린다 — 동의 이력이 어떤 문서였는지 남아야 한다.
+  const normalized = normalizeRegisterTerms(data, await getRegisterTermsContent());
+  return saveSiteContent("registerTerms", normalized);
 }
 
 // ---------------------------------------------------------------------------
