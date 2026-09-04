@@ -19,6 +19,11 @@ import {
   normalizeRegisterTerms,
   type RegisterTermsContent,
 } from "./terms";
+import {
+  DEFAULT_MEMBER_POLICY,
+  normalizeMemberPolicy,
+  type MemberPolicy,
+} from "./content/memberPolicy";
 import { FEATURE_SPEC_SEED } from "./featureSpecSeed";
 import { FEATURE_SPEC_SHEET_KEYS } from "./pricing/types";
 import { DATA_DIR } from "./dataDir";
@@ -5904,6 +5909,15 @@ export async function savePrivacyContent(data: LegalContent): Promise<LegalConte
    이제 DB 가 정본이고 코드의 TERMS 는 최초 기본값이다(2026-09-04). */
 export async function getRegisterTermsContent(): Promise<RegisterTermsContent> {
   return getSiteContent<RegisterTermsContent>("registerTerms", DEFAULT_REGISTER_TERMS);
+}
+
+/* 회원 승인 정책 — 초대 가입도 운영자 승인을 받게 할지 (2026-09-04). */
+export async function getMemberPolicy(): Promise<MemberPolicy> {
+  return getSiteContent<MemberPolicy>("memberPolicy", DEFAULT_MEMBER_POLICY);
+}
+
+export async function saveMemberPolicy(data: unknown): Promise<MemberPolicy> {
+  return saveSiteContent("memberPolicy", normalizeMemberPolicy(data));
 }
 
 export async function saveRegisterTermsContent(data: unknown): Promise<RegisterTermsContent> {

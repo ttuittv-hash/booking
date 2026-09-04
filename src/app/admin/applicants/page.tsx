@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/lib/auth";
 import {
   getCompanyJoinContexts,
+  getMemberPolicy,
   listCompanies,
   listUsersByIds,
   listCompaniesPaged,
@@ -14,6 +15,7 @@ import { AddApplicantForm } from "@/components/admin/AddApplicantForm";
 import { AdminNav } from "@/components/admin/AdminNav";
 import { ApplicantApprovalTable } from "@/components/admin/ApplicantApprovalTable";
 import { CompanyDirectory } from "@/components/admin/CompanyDirectory";
+import { MemberPolicySwitch } from "@/components/admin/MemberPolicySwitch";
 import { PAGE_LEAD, PAGE_TITLE, TAB_BAR, tabCls } from "@/components/admin/adminUi";
 
 // 회원 관리 (기획서 A9·A10 운영자 시야).
@@ -46,6 +48,7 @@ export default async function AdminApplicantsPage({
   const businessRegistrationNumbers = Object.fromEntries(
     (await listCompanies()).map((c) => [c.id, c.businessRegistrationNumber]),
   );
+  const memberPolicy = await getMemberPolicy();
 
   // 탭 라벨에 건수를 달아준다 — 열어보지 않아도 밀린 일이 있는지 보인다.
   const pendingCount = (await listUsersPaged({ role: "APPLICANT", approvalStatus: "PENDING" }, 1, 1))
@@ -70,6 +73,8 @@ export default async function AdminApplicantsPage({
             소속 담당자가 됩니다. 아직 아무도 승인되지 않은 회사는 대표 담당자가 &ldquo;미지정&rdquo;
             으로 표시되며, 그 회사의 첫 승인은 운영자가 처리합니다.
           </p>
+          {/* 초대 가입도 운영자 승인을 받게 할지 — 승인 흐름을 정하는 스위치라 목록 위에 둔다. */}
+          <MemberPolicySwitch policy={memberPolicy} />
         </header>
 
         <nav className={TAB_BAR} aria-label="회원 관리 탭">

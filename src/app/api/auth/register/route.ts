@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { canAutoApproveInvite } from "@/lib/content/memberPolicy";
 import { isNiceAuthConfigured } from "@/lib/niceAuth";
 import { dispatchMessageInBackground } from "@/lib/message/dispatch";
 import { verifyIdentityTicket } from "@/lib/identityTicket";
@@ -38,6 +39,7 @@ import {
   withTransaction,
   findUserById,
   findCompanyMaster,
+  getMemberPolicy,
   findValidInvitation,
   findPendingInvitationByEmail,
   consumeInvitation,
@@ -288,6 +290,12 @@ export async function POST(request: Request) {
 
   // 여기까지 왔으면 초대장이 있는 경우 번호·이메일이 모두 맞은 것이다.
   const invitePhoneMatched = !!invitation;
+  /*
+    [신규 2026-09-04 팀 요청] 초대 가입도 서울아레나 승인을 받게 하는 스위치.
+    회원 관리 화면에서 켜면 초대로 들어온 사람도 '승인 대기'로 남는다(기본은 꺼짐 = 즉시 승인).
+    아래에서 승인 상태·운영자 알림·본인 안내 문구가 모두 이 값을 따른다.
+  */
+  const inviteAutoApproved = canAutoApproveInvite(invitePhoneMatched, await getMemberPolicy());
 
   // 법인회원 = 회사를 새로 등록(또는 동일명 회사에 합류).
   // 개인회원 = 목록에서 기존 회사를 선택하거나, 목록에 없으면 이름을 직접 입력(신규 등록)하거나, 소속 회사 없이 가입 가능.
@@ -453,7 +461,7 @@ export async function POST(request: Request) {
       companyId: company?.id ?? null,
       role: "APPLICANT",
       // 초대장의 번호로 본인인증까지 마친 사람은 대표가 이미 지목한 사람이라 심사를 건너뛴다.
-      approvalStatus: invitePhoneMatched ? "APPROVED" : "PENDING",
+      approvalStatus: inviteAutoApproved ? "APPROVED" : "PENDING",
       termsAgreedAt: createdAt,
       privacyAgreedAt: createdAt,
       employmentCertUrl: employmentCertUrl || null,
@@ -534,7 +542,8 @@ export async function POST(request: Request) {
     const master = company ? await findCompanyMaster(company.id) : undefined;
     const joinLabel = master ? `${company?.name ?? ""} 합류 신청` : "회사 신규 등록";
     // 초대 링크로 들어와 이미 승인된 계정은 승인할 것이 없다 — 요청 알림을 만들지 않는다.
-    if (!invitePhoneMatched) {
+    // 승인 스위치가 켜져 있으면 초대 가입도 승인 대기라 알림을 보낸다.
+    if (!inviteAutoApproved) {
       await notifyAdmins({
         quoteId: "applicants",
         link: "/admin/applicants",
@@ -566,7 +575,7 @@ export async function POST(request: Request) {
   // MB-01 가입 신청 접수 → 신청자 본인 (기존 회사 합류면 카카오 정본이 따로 있어 MB-01J).
   // 초대로 곧장 승인된 계정은 "접수됐으니 기다리라"는 안내가 맞지 않아 대신 승인 완료(MB-02)를 보낸다.
   {
-    const code = invitePhoneMatched ? "MB-02" : user.companyRole === "STAFF" ? "MB-01J" : "MB-01";
+    const code = inviteAutoApproved ? "MB-02" : user.companyRole === "STAFF" ? "MB-01J" : "MB-01";
     dispatchMessageInBackground({
       templateCode: code,
       idempotencyKey: `${code}:${user.id}`,
@@ -595,8 +604,10 @@ export async function POST(request: Request) {
   await createSession(user.id, user.role);
   // 합류 상황에 따라 안내 문구가 달라진다 — "심사 중인 회사"인지 "미승인 이력이 있는 회사"인지
   // 알려주지 않으면 사용자는 왜 대기가 길어지는지 알 수 없다.
-  const joinNotice = invitePhoneMatched
+  const joinNotice = inviteAutoApproved
     ? `${company?.name ?? ""} 담당자로 합류했습니다. 바로 이용하실 수 있습니다.`
+    : invitePhoneMatched
+      ? `${company?.name ?? ""} 담당자로 합류 신청되었습니다. \n서울아레나 승인 후 이용하실 수 있습니다.`
     : joinKind === "JOIN_PENDING"
       ? "이미 심사가 진행 중인 회사입니다. 앞선 심사가 끝난 뒤 함께 처리됩니다."
       : joinKind === "REAPPLY_REJECTED"
