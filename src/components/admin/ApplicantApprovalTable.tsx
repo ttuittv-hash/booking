@@ -207,7 +207,7 @@ export function ApplicantApprovalTable({
                         disabled={busyId === a.id}
                         onClick={() => remove(a)}
                         data-testid={`delete-user-${a.id}`}
-                        className={btnClass("secondary", "sm")}
+                        className={btnClass("danger", "sm")}
                         title="계정을 기록째 삭제 — 같은 명의로 다시 가입할 수 있게 됩니다"
                       >
                         삭제

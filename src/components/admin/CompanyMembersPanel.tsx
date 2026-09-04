@@ -134,7 +134,9 @@ export function CompanyMembersPanel({
                     <button
                       type="button"
                       disabled={busyId === m.id}
-                      onClick={() => decide(m.id, "approve")}
+                      onClick={() =>
+                        decide(m.id, "approve", { willBecomeMaster: false, name: m.name, companyName: null })
+                      }
                       className={btnClass("primary", "sm")}
                     >
                       승인
@@ -147,7 +149,7 @@ export function CompanyMembersPanel({
                   disabled={busyId === m.id}
                   onClick={() => remove(m)}
                   data-testid={`delete-user-${m.id}`}
-                  className={btnClass("secondary", "sm")}
+                  className={btnClass("danger", "sm")}
                   title="계정을 기록째 삭제 — 같은 명의로 다시 가입할 수 있게 됩니다"
                 >
                   삭제
