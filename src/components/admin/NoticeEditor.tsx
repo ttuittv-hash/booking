@@ -160,6 +160,14 @@ function splitTableHeadRows(html: string): string {
 
 const DEFAULT_FONT_SIZE = 14;
 
+// HTML 소스 모드에서 문자열을 직접 이어붙일 때(링크 삽입) 쓰는 최소 이스케이프.
+function escapeHtmlText(s: string): string {
+  return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+}
+function escapeHtmlAttr(s: string): string {
+  return escapeHtmlText(s).replace(/"/g, "&quot;");
+}
+
 /**
  * 표 칸 배경.
  * [개정 2026-09-05] 원래는 지면과 같은 계열의 옅은 면만 두고 글자는 항상 검정으로
@@ -352,13 +360,45 @@ export function NoticeEditor({
   }
 
   /*
-    [신규 2026-09-05] "Book It · 대관료 · 대관 규약 하이퍼링크를 넣고 싶다" 요청 —
-    선택한 글자를 눌러서 갈 주소로 링크를 건다(이미 링크면 링크를 푼다). 상대경로
-    (/apply, /rates, /rules 등)와 절대경로(https://...) 둘 다 된다.
-    HTML 소스 모드에서는 다른 서식 버튼과 같은 이유(비활성화)로 이 버튼도 안 보인다 —
-    소스 모드에서 직접 <a href="...">글자</a> 로 쓰면 된다.
+    [수정 2026-09-05] "저 텍스트명으로 링크 걸리는거야. 캘린더 보기처럼. 그리고
+    html모드에서도 들어가야 하고" — 처음엔 일반 편집 모드에서 선택한 글자만 링크로
+    바꿔주고 HTML 소스 모드에서는 (다른 서식 버튼처럼) 비활성화해 뒀는데, 대관 캘린더
+    버튼과 똑같이 소스 모드에서도 눌러서 바로 넣을 수 있어야 한다는 요청 — 캘린더
+    버튼(insertCalendarMarker)과 같은 방식으로 모드별로 분기한다.
+    소스 모드: textarea 에서 커서로 선택한 글자를 링크 글자로 쓴다(선택 안 했으면
+    따로 물어본다) — 캘린더 마커처럼 "그 자리에 완결된 조각을 끼워 넣는" 동작.
   */
   async function toggleLink() {
+    if (mode === "html") {
+      const el = htmlTextareaRef.current;
+      const start = el?.selectionStart ?? value.length;
+      const end = el?.selectionEnd ?? value.length;
+      const selected = value.slice(start, end);
+      const url = await dialog.prompt("연결할 주소를 입력하세요.", {
+        title: "링크 추가",
+        okLabel: "다음",
+        placeholder: "/apply, /rates, /rules 또는 https://...",
+      });
+      if (!url) return;
+      let label = selected;
+      if (!label) {
+        label =
+          (await dialog.prompt("링크에 표시할 글자를 입력하세요.", {
+            title: "링크 글자",
+            okLabel: "추가",
+            placeholder: "예: 대관료 보기",
+          })) ?? "";
+        if (!label) return;
+      }
+      const linkHtml = `<a href="${escapeHtmlAttr(url)}">${escapeHtmlText(label)}</a>`;
+      onChange(value.slice(0, start) + linkHtml + value.slice(end));
+      const caret = start + linkHtml.length;
+      requestAnimationFrame(() => {
+        el?.focus();
+        el?.setSelectionRange(caret, caret);
+      });
+      return;
+    }
     if (editor?.isActive("link")) {
       editor.chain().focus().unsetLink().run();
       return;
@@ -429,6 +469,16 @@ export function NoticeEditor({
 
   return (
     <div>
+      {/*
+        [수정 2026-09-05] "수정 툴을 고정해놓고 내용 창만 스크롤" 요청 — 편집 영역
+        자체에 max-h+overflow-y-auto 를 줘서 내용이 그 안에서만 스크롤되게 했지만
+        (아래 EditorContent/textarea), 그건 그 상자 **안**에서의 이야기였다. 폼이 길어
+        상자 자체가 뷰포트 밖으로 밀려나면(페이지 스크롤) 툴바도 같이 밀려 올라가
+        안 보였다 — "고정"이 안 된 것. 툴바(+표/이미지 보조줄)를 하나의 sticky 뭉치로
+        묶어 화면(뷰포트) 기준으로 붙박는다. top-14/sm:top-16 은 AdminNav 헤더 높이와
+        같다(LegalContentForm.tsx 의 기존 패턴과 동일 값) — 그 아래 바로 붙게.
+      */}
+      <div className="sticky top-14 z-10 bg-background sm:top-16">
       <div className="flex flex-wrap items-center gap-1 border border-border-soft bg-background px-2 py-1.5">
         <button
           type="button"
@@ -530,15 +580,18 @@ export function NoticeEditor({
         <span className="mx-1 h-4 w-px bg-border/30" />
 
         {/* [신규 2026-09-05] 선택한 글자를 다른 페이지(대관 신청·요금표·규약 등)로
-            연결한다. 이미 링크가 걸린 자리에서 누르면 해제한다. */}
+            연결한다. 이미 링크가 걸린 자리에서 누르면 해제한다.
+            [수정 2026-09-05] 소스 모드에서도 동작한다(toggleLink 가 모드별로 분기,
+            대관 캘린더 버튼과 같은 이유로 비활성화하지 않는다) — 다만 소스 모드에는
+            "이미 링크 활성" 개념이 없으므로(에디터가 아니라 원시 텍스트다) 그때는
+            항상 "+ 링크"로만 보인다. */}
         <button
           type="button"
-          disabled={disabledInHtmlMode}
           onClick={toggleLink}
-          className={toolBtn(editor.isActive("link"))}
+          className={toolBtn(mode === "visual" && editor.isActive("link"))}
           title="선택한 글자를 다른 주소로 연결합니다. 이미 링크라면 눌러서 풉니다."
         >
-          {editor.isActive("link") ? "링크 해제" : "+ 링크"}
+          {mode === "visual" && editor.isActive("link") ? "링크 해제" : "+ 링크"}
         </button>
 
         <span className="mx-1 h-4 w-px bg-border/30" />
@@ -697,6 +750,7 @@ export function NoticeEditor({
           ))}
         </div>
       )}
+      </div>
 
       {mode === "html" ? (
         <div>
