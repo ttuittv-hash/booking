@@ -169,6 +169,20 @@ export function AdminNav({ active, user }: { active: string; user?: AppUser | nu
         </nav>
 
         <div className="ml-auto flex h-14 shrink-0 items-center gap-x-4 text-xs text-muted sm:h-16 lg:ml-0 lg:h-full">
+          {/* [신규 2026-09-05] 백오피스에서 실제 방문자가 보는 화면(프론트)으로 바로
+              가는 길이 로고 클릭(작고 눈에 안 띔) 뿐이었다 — "프론트 메뉴 넣어줘".
+              새 탭으로 열어 백오피스 작업 화면은 그대로 둔다. */}
+          <Link
+            href="/"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex shrink-0 items-center gap-1 whitespace-nowrap border border-border-soft px-2.5 py-1.5 text-xs font-bold text-muted transition-colors hover:border-foreground hover:text-foreground"
+          >
+            프론트 보기
+            <svg aria-hidden viewBox="0 0 12 12" className="h-3 w-3" fill="none" stroke="currentColor">
+              <path d="M4 2.5h5.5V8M9.5 2.5L2.5 9.5" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+          </Link>
           <NotificationBell role="ADMIN" />
           <LogoutButton className="whitespace-nowrap font-bold hover:text-foreground" />
         </div>
