@@ -14,6 +14,7 @@ import { TableCell } from "@tiptap/extension-table-cell";
 import { Details, DetailsContent, DetailsSummary } from "@tiptap/extension-details";
 import { useRef, useState } from "react";
 import { NOTICE_CALENDAR_MARKER_HTML } from "@/lib/content/noticeCalendarMarker";
+import { uploadInlineImages } from "@/lib/content/inlineImages";
 import { FIELD_SM } from "./adminUi";
 
 /**
@@ -221,6 +222,8 @@ export function NoticeEditor({
    * 일반 모드로 되돌아가지 않는 편이 안전하다.
    */
   const [mode, setMode] = useState<"visual" | "html">("visual");
+  // [신규 2026-09-05] HTML 소스 → 일반 편집 전환 중 본문의 base64 이미지를 업로드로 바꾸는 동안.
+  const [convertingImages, setConvertingImages] = useState(false);
 
   const editor = useEditor({
     immediatelyRender: false,
@@ -333,6 +336,43 @@ export function NoticeEditor({
       return;
     }
     editor?.chain().focus().insertContent(NOTICE_CALENDAR_MARKER_HTML).run();
+  }
+
+  /*
+    [수정 2026-09-05] HTML 소스 모드에 워드·페이지·디자인 툴에서 내보낸 HTML을 그대로
+    붙여넣고 "일반 편집"으로 돌아가면 이미지가 통째로 사라졌다 — TipTap 의 Image 확장은
+    `allowBase64` 를 켜지 않는 한 `<img src="data:...">` 를 스키마에서 아예 인식하지 않는다
+    (기본값, 문서에 몇 MB 짜리 base64 가 박히는 걸 막기 위한 안전장치). 방문자 화면에
+    큰 base64 를 그대로 남기지 않으면서도 이미지를 잃지 않으려면, 에디터가 읽어들이기
+    전에 먼저 업로드 파일로 바꿔 실제 URL 로 남겨야 한다 — 저장 직전에 하던 것과 같은
+    변환(uploadInlineImages, ContentManager.save())을 여기서도 한 번 더 한다.
+  */
+  async function switchToVisualMode() {
+    let html = value;
+    if (html.includes("data:image")) {
+      setConvertingImages(true);
+      try {
+        const converted = await uploadInlineImages(html, async (blob, filename) => {
+          const formData = new FormData();
+          formData.append("file", blob, filename);
+          const res = await fetch(uploadUrl, { method: "POST", body: formData });
+          const data = await res.json().catch(() => null);
+          return res.ok && data?.url ? (data.url as string) : null;
+        });
+        html = converted.html;
+        onChange(html);
+        if (converted.remaining > 0) {
+          window.alert(
+            `이미지 ${converted.remaining}개는 업로드하지 못해 반영되지 않았습니다(지원하지 않는 형식일 수 있습니다). ` +
+              "[+ 이미지 삽입] 버튼으로 다시 올려 주세요.",
+          );
+        }
+      } finally {
+        setConvertingImages(false);
+      }
+    }
+    // 소스 모드에서 편집한 HTML을 에디터에 반영한다 — 스키마 밖 태그(예: <details>)는 여기서 풀린다.
+    editor?.commands.setContent(html);
   }
 
   if (!editor) return null;
@@ -534,16 +574,16 @@ export function NoticeEditor({
 
         <button
           type="button"
-          onClick={() => {
+          disabled={convertingImages}
+          onClick={async () => {
             if (mode === "html") {
-              // 소스 모드에서 편집한 HTML을 에디터에 반영한다 — 스키마 밖 태그(예: <details>)는 여기서 풀린다.
-              editor.commands.setContent(value);
+              await switchToVisualMode();
             }
             setMode(mode === "visual" ? "html" : "visual");
           }}
           className={toolBtn(mode === "html")}
         >
-          {mode === "html" ? "일반 편집" : "HTML 소스"}
+          {convertingImages ? "이미지 변환 중..." : mode === "html" ? "일반 편집" : "HTML 소스"}
         </button>
       </div>
 
