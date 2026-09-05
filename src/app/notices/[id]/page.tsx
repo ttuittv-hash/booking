@@ -123,6 +123,11 @@ const PROSE = [
   "[&_thead]:bg-foreground",
   "[&_thead_th]:bg-foreground [&_thead_th]:text-background",
   "[&_th]:px-3 [&_th]:py-2 [&_th]:text-left [&_th]:font-bold",
+  /* [수정 2026-09-05] 머리행(검정 칸)이 열이 여럿이어도 칸 사이 구분선이 하나도 없어서
+     세 칸이 한 덩어리 검정 띠처럼 보였다("표에 선이 안 보이고 까맣기만 하다") —
+     [&_td+td] 규칙은 값 칸(td)에만 걸리고 머리행은 전부 th 라 적용되지 않았다.
+     검정 바탕 위에서 보이도록 옅은 회색 대신 배경색(밝은 지면색)을 낮은 불투명도로 쓴다. */
+  "[&_th+th]:border-l [&_th+th]:border-background/25",
   // 행 이름으로 쓴 th(왼쪽 첫 칸) — 원본의 회색 항목열
   "[&_tbody_th]:w-44 [&_tbody_th]:border-r [&_tbody_th]:border-border-soft [&_tbody_th]:bg-panel-strong [&_tbody_th]:align-top [&_tbody_th]:text-foreground",
   "[&_tbody_tr]:border-b [&_tbody_tr]:border-border-soft",
