@@ -158,13 +158,20 @@ function splitTableHeadRows(html: string): string {
 
 const DEFAULT_FONT_SIZE = 14;
 
-/** 표 칸 배경 — 지면과 같은 계열의 옅은 면만 둔다(글자는 검정 그대로 읽혀야 한다) */
+/**
+ * 표 칸 배경.
+ * [개정 2026-09-05] 원래는 지면과 같은 계열의 옅은 면만 두고 글자는 항상 검정으로
+ * 읽히게 했는데, 운영자가 요금표 머리행처럼 진한 면(검정 등)을 직접 칸에 깔고 싶다는
+ * 요청이 있었다 — 아래 COLORS 팔레트에 흰색을 추가한 것과 짝이다(진한 칸 + 흰 글자).
+ */
 const CELL_FILLS: { value: string | null; label: string }[] = [
   { value: null, label: "없음" },
   { value: "#f2f0ef", label: "회백" },
   { value: "#e6e3e1", label: "연회색" },
   { value: "#e8f0ea", label: "연초록" },
   { value: "#fdf3d3", label: "연노랑" },
+  { value: "#000000", label: "검정" },
+  { value: "#333333", label: "진회색" },
 ];
 
 const IMAGE_WIDTHS = [
@@ -179,6 +186,10 @@ const IMAGE_WIDTHS = [
  * 이 값들은 UI 색이 아니라 **본문 HTML 에 저장되는 콘텐츠 값**이라 시맨틱 토큰(var)을
  * 쓸 수 없다. 그래서 Figma Style Guide › Variables 의 프리미티브 값만 그대로 쓴다.
  * (옐로는 밝은 지면 위 텍스트로 쓸 수 없으므로 팔레트에 넣지 않는다)
+ *
+ * [개정 2026-09-05] 흰색 추가 — 표 칸을 검정 등 진한 색으로 채웠을 때 글자가 묻히던
+ * 문제. 밝은 지면 위 일반 문단에 흰 글자를 쓰면 반대로 안 보이니, 진한 배경 위에서만
+ * 쓰라고 스와치에 안내 문구(title)를 둔다.
  */
 const COLORS: { value: string; label: string }[] = [
   { value: "#000000", label: "검정" },
@@ -186,6 +197,7 @@ const COLORS: { value: string; label: string }[] = [
   { value: "#666666", label: "회색" },
   { value: "#a8200d", label: "강조 빨강" },
   { value: "#0f5c33", label: "강조 초록" },
+  { value: "#ffffff", label: "흰색 (진한 배경 칸 전용)" },
 ];
 
 export function NoticeEditor({
@@ -198,6 +210,8 @@ export function NoticeEditor({
   uploadUrl?: string;
 }) {
   const fileInput = useRef<HTMLInputElement>(null);
+  // [신규 2026-09-05] HTML 소스 모드의 textarea — 커서 위치에 마커를 끼워 넣으려면 필요하다.
+  const htmlTextareaRef = useRef<HTMLTextAreaElement>(null);
   const [uploading, setUploading] = useState(false);
   const [fontSizeInput, setFontSizeInput] = useState(String(DEFAULT_FONT_SIZE));
   /**
@@ -265,7 +279,7 @@ export function NoticeEditor({
       attributes: {
         // 문단 간격은 공개 화면과 똑같이 margin 없이 줄간격(leading)만 쓴다 — RICH_TEXT의
         // [&_p]:mt-4 를 그대로 쓰면 편집기에서만 문단 사이가 눈에 띄게 벌어져 보인다.
-        class: `${NOTICE_RICH_TEXT} min-h-[180px] border border-t-0 border-border-soft bg-surface px-3 py-2.5 text-s leading-6 focus:border-foreground focus:outline-2 focus:outline-accent [&_img]:mt-2 [&_img]:max-w-full [&_table]:mt-3 [&_table]:w-full [&_table]:table-fixed [&_table]:border-collapse [&_td]:relative [&_th]:relative [&_.column-resize-handle]:absolute [&_.column-resize-handle]:-right-px [&_.column-resize-handle]:top-0 [&_.column-resize-handle]:h-full [&_.column-resize-handle]:w-1 [&_.column-resize-handle]:cursor-col-resize [&_.column-resize-handle]:bg-accent [&_td]:border [&_td]:border-border-soft [&_td]:px-2.5 [&_td]:py-1.5 [&_th]:border [&_th]:border-border-soft [&_th]:px-2.5 [&_th]:py-1.5 [&_th]:text-left [&_tr:first-child_th]:bg-foreground [&_tr:first-child_th]:text-background [&_tr:not(:first-child)_th]:bg-panel-strong [&_tr:not(:first-child)_th]:text-foreground [&_[data-type=details]]:mt-3 [&_[data-type=details]]:border [&_[data-type=details]]:border-border-soft [&_[data-type=details]]:p-2.5 [&_[data-type=details]>button]:mr-2 [&_[data-type=details]>button]:inline-flex [&_[data-type=details]>button]:h-4 [&_[data-type=details]>button]:w-4 [&_[data-type=details]>button]:shrink-0 [&_[data-type=details]>button]:cursor-pointer [&_[data-type=details]>button]:border [&_[data-type=details]>button]:border-muted [&_[data-type=details]_summary]:inline [&_[data-type=details]_summary]:cursor-text [&_[data-type=details]_summary]:font-bold [&_[data-type=detailsContent]]:mt-2 [&_[data-type=detailsContent]]:min-h-[1.6em] [&_[data-type=detailsContent]]:border-t [&_[data-type=detailsContent]]:border-dashed [&_[data-type=detailsContent]]:border-border-soft [&_[data-type=detailsContent]]:pt-2`,
+        class: `${NOTICE_RICH_TEXT} min-h-[180px] max-h-[480px] overflow-y-auto resize-y border border-t-0 border-border-soft bg-surface px-3 py-2.5 text-s leading-6 focus:border-foreground focus:outline-2 focus:outline-accent [&_hr]:my-4 [&_hr]:border-0 [&_hr]:border-t [&_hr]:border-border-soft [&_img]:mt-2 [&_img]:max-w-full [&_table]:mt-3 [&_table]:w-full [&_table]:table-fixed [&_table]:border-collapse [&_td]:relative [&_th]:relative [&_.column-resize-handle]:absolute [&_.column-resize-handle]:-right-px [&_.column-resize-handle]:top-0 [&_.column-resize-handle]:h-full [&_.column-resize-handle]:w-1 [&_.column-resize-handle]:cursor-col-resize [&_.column-resize-handle]:bg-accent [&_td]:border [&_td]:border-border-soft [&_td]:px-2.5 [&_td]:py-1.5 [&_th]:border [&_th]:border-border-soft [&_th]:px-2.5 [&_th]:py-1.5 [&_th]:text-left [&_tr:first-child_th]:bg-foreground [&_tr:first-child_th]:text-background [&_tr:not(:first-child)_th]:bg-panel-strong [&_tr:not(:first-child)_th]:text-foreground [&_[data-type=details]]:mt-3 [&_[data-type=details]]:border [&_[data-type=details]]:border-border-soft [&_[data-type=details]]:p-2.5 [&_[data-type=details]>button]:mr-2 [&_[data-type=details]>button]:inline-flex [&_[data-type=details]>button]:h-4 [&_[data-type=details]>button]:w-4 [&_[data-type=details]>button]:shrink-0 [&_[data-type=details]>button]:cursor-pointer [&_[data-type=details]>button]:border [&_[data-type=details]>button]:border-muted [&_[data-type=details]_summary]:inline [&_[data-type=details]_summary]:cursor-text [&_[data-type=details]_summary]:font-bold [&_[data-type=detailsContent]]:mt-2 [&_[data-type=detailsContent]]:min-h-[1.6em] [&_[data-type=detailsContent]]:border-t [&_[data-type=detailsContent]]:border-dashed [&_[data-type=detailsContent]]:border-border-soft [&_[data-type=detailsContent]]:pt-2`,
       },
     },
   });
@@ -297,23 +311,54 @@ export function NoticeEditor({
     }
   }
 
+  /*
+    [수정 2026-09-05] "대관 캘린더" 버튼이 HTML 소스 모드에서는 안 먹혔다 — 이 버튼은
+    항상 TipTap 에디터(editor.chain()...insertContent)에 넣었는데, 소스 모드의 화면은
+    그 에디터가 아니라 별도의 <textarea>(value/onChange 로 직접 제어)라 서로 다른 상태다.
+    소스 모드에서 누르면 화면엔 반영되지 않고, 넣은 자리도 (보이지 않는) 에디터 쪽 커서
+    기준이라 운영자가 원한 "본문 중간"이 아니었다. 소스 모드일 때는 textarea 의 실제
+    커서 위치에 문자열로 직접 끼워 넣는다.
+  */
+  function insertCalendarMarker() {
+    if (mode === "html") {
+      const el = htmlTextareaRef.current;
+      const start = el?.selectionStart ?? value.length;
+      const end = el?.selectionEnd ?? value.length;
+      onChange(value.slice(0, start) + NOTICE_CALENDAR_MARKER_HTML + value.slice(end));
+      const caret = start + NOTICE_CALENDAR_MARKER_HTML.length;
+      requestAnimationFrame(() => {
+        el?.focus();
+        el?.setSelectionRange(caret, caret);
+      });
+      return;
+    }
+    editor?.chain().focus().insertContent(NOTICE_CALENDAR_MARKER_HTML).run();
+  }
+
   if (!editor) return null;
 
   /** 툴바 버튼 — 활성 상태는 옐로 면 + 검정 텍스트 (옐로 위 텍스트는 항상 검정) */
   function toolBtn(active: boolean) {
     return [
-      "border px-2 py-1 text-xs font-bold transition-colors",
+      "border px-2 py-1 text-xs font-bold transition-colors disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:border-transparent disabled:hover:text-muted",
       active
         ? "border-foreground bg-accent text-on-accent"
         : "border-transparent text-muted hover:border-border-soft hover:text-foreground",
     ].join(" ");
   }
 
+  // [신규 2026-09-05] HTML 소스 모드에서는 아래 버튼들이 (대관 캘린더 제외) 화면에 보이는
+  // textarea 가 아니라 안 보이는 TipTap 에디터 쪽에 적용돼 눌러도 반영되지 않았다 —
+  // 굵게·색·정렬처럼 "선택한 텍스트에 서식을 입히는" 개념 자체가 원시 HTML 모드에서는
+  // 맞지 않기도 하다. 눌러도 안 먹는 채로 두는 대신 소스 모드에서는 비활성화한다.
+  const disabledInHtmlMode = mode === "html";
+
   return (
     <div>
       <div className="flex flex-wrap items-center gap-1 border border-border-soft bg-background px-2 py-1.5">
         <button
           type="button"
+          disabled={disabledInHtmlMode}
           onClick={() => editor.chain().focus().toggleBold().run()}
           className={toolBtn(editor.isActive("bold"))}
         >
@@ -321,6 +366,7 @@ export function NoticeEditor({
         </button>
         <button
           type="button"
+          disabled={disabledInHtmlMode}
           onClick={() => editor.chain().focus().toggleItalic().run()}
           className={toolBtn(editor.isActive("italic"))}
         >
@@ -333,6 +379,7 @@ export function NoticeEditor({
           type="number"
           min={8}
           max={72}
+          disabled={disabledInHtmlMode}
           value={fontSizeInput}
           onChange={(e) => setFontSizeInput(e.target.value)}
           onBlur={() => {
@@ -349,11 +396,12 @@ export function NoticeEditor({
               editor.chain().focus().setMark("textStyle", { fontSize: `${size}px` }).run();
             }
           }}
-          className={`w-14 ${FIELD_SM} text-right tabular-nums`}
+          className={`w-14 ${FIELD_SM} text-right tabular-nums disabled:cursor-not-allowed disabled:opacity-40`}
         />
         <span className="text-xs text-muted">px</span>
         <button
           type="button"
+          disabled={disabledInHtmlMode}
           onClick={() => {
             editor.chain().focus().unsetMark("textStyle").run();
             setFontSizeInput(String(DEFAULT_FONT_SIZE));
@@ -369,8 +417,9 @@ export function NoticeEditor({
           <button
             key={c.value}
             type="button"
+            disabled={disabledInHtmlMode}
             onClick={() => editor.chain().focus().setColor(c.value).run()}
-            className="h-5 w-5 border border-border-soft transition-colors hover:border-foreground"
+            className="h-5 w-5 border border-border-soft transition-colors hover:border-foreground disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:border-border-soft"
             style={{ backgroundColor: c.value }}
             aria-label={`글자색 ${c.label}`}
             title={c.label}
@@ -381,6 +430,7 @@ export function NoticeEditor({
 
         <button
           type="button"
+          disabled={disabledInHtmlMode}
           onClick={() => editor.chain().focus().setTextAlign("left").run()}
           className={toolBtn(editor.isActive({ textAlign: "left" }))}
         >
@@ -388,6 +438,7 @@ export function NoticeEditor({
         </button>
         <button
           type="button"
+          disabled={disabledInHtmlMode}
           onClick={() => editor.chain().focus().setTextAlign("center").run()}
           className={toolBtn(editor.isActive({ textAlign: "center" }))}
         >
@@ -395,6 +446,7 @@ export function NoticeEditor({
         </button>
         <button
           type="button"
+          disabled={disabledInHtmlMode}
           onClick={() => editor.chain().focus().setTextAlign("right").run()}
           className={toolBtn(editor.isActive({ textAlign: "right" }))}
         >
@@ -405,16 +457,29 @@ export function NoticeEditor({
 
         <button
           type="button"
+          disabled={disabledInHtmlMode}
           onClick={() => editor.chain().focus().insertTable({ rows: 3, cols: 3, withHeaderRow: true }).run()}
           className={toolBtn(false)}
         >
           + 표 삽입
         </button>
 
+        {/* [신규 2026-09-05] 구분선 — 문단 사이에 가로줄을 그어 절을 나눈다. */}
+        <button
+          type="button"
+          disabled={disabledInHtmlMode}
+          onClick={() => editor.chain().focus().setHorizontalRule().run()}
+          className={toolBtn(false)}
+          title="현재 위치에 구분선을 넣습니다."
+        >
+          + 구분선
+        </button>
+
         <span className="mx-1 h-4 w-px bg-border/30" />
 
         <button
           type="button"
+          disabled={disabledInHtmlMode}
           onClick={() => {
             if (editor.isActive("details")) {
               editor.chain().focus().unsetDetails().run();
@@ -432,9 +497,11 @@ export function NoticeEditor({
 
         <span className="mx-1 h-4 w-px bg-border/30" />
 
+        {/* 소스 모드에서도 동작한다(insertCalendarMarker 가 모드별로 분기) — 다른 서식
+            버튼과 달리 이 버튼만 비활성화하지 않는다. */}
         <button
           type="button"
-          onClick={() => editor.chain().focus().insertContent(NOTICE_CALENDAR_MARKER_HTML).run()}
+          onClick={insertCalendarMarker}
           className={toolBtn(false)}
           title="본문의 이 위치에 '대관 현황 캘린더' 보기 버튼을 넣습니다."
         >
@@ -445,7 +512,7 @@ export function NoticeEditor({
 
         <button
           type="button"
-          disabled={uploading}
+          disabled={uploading || disabledInHtmlMode}
           onClick={() => fileInput.current?.click()}
           className={`${toolBtn(false)} disabled:opacity-50`}
         >
@@ -546,11 +613,12 @@ export function NoticeEditor({
       {mode === "html" ? (
         <div>
           <textarea
+            ref={htmlTextareaRef}
             value={value}
             onChange={(e) => onChange(e.target.value)}
             rows={16}
             spellCheck={false}
-            className="min-h-[180px] w-full border border-t-0 border-border-soft bg-surface px-3 py-2.5 font-mono text-xs leading-6 focus:border-foreground focus:outline-2 focus:outline-accent"
+            className="max-h-[480px] min-h-[180px] w-full resize-y border border-t-0 border-border-soft bg-surface px-3 py-2.5 font-mono text-xs leading-6 focus:border-foreground focus:outline-2 focus:outline-accent"
           />
           <p className="mt-1.5 text-xs text-muted">
             HTML을 직접 씁니다. 접고 펼치는 문단은 툴바의 &ldquo;+ 접기/펼치기&rdquo; 버튼으로
