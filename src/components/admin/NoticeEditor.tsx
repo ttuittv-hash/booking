@@ -15,6 +15,7 @@ import { Details, DetailsContent, DetailsSummary } from "@tiptap/extension-detai
 import { useRef, useState } from "react";
 import { NOTICE_CALENDAR_MARKER_HTML } from "@/lib/content/noticeCalendarMarker";
 import { uploadInlineImages } from "@/lib/content/inlineImages";
+import { useDialog } from "@/components/ui/Dialog";
 import { FIELD_SM } from "./adminUi";
 
 /**
@@ -224,11 +225,18 @@ export function NoticeEditor({
   const [mode, setMode] = useState<"visual" | "html">("visual");
   // [신규 2026-09-05] HTML 소스 → 일반 편집 전환 중 본문의 base64 이미지를 업로드로 바꾸는 동안.
   const [convertingImages, setConvertingImages] = useState(false);
+  const dialog = useDialog();
 
   const editor = useEditor({
     immediatelyRender: false,
     extensions: [
-      StarterKit,
+      // [신규 2026-09-05] "Book It · 대관료 · 대관 규약 하이퍼링크" 요청 — StarterKit 에
+      // Link 확장이 기본 포함돼 있지만(공개 화면 sanitizeHtml 도 a[href] 는 이미 허용),
+      // 툴바에 넣는 버튼이 없어서 HTML 소스 모드로만 링크를 걸 수 있었다. 기본값
+      // openOnClick:true 를 그대로 두면 편집 중 링크를 누르는 순간 그 주소로 이동해
+      // 버려서(방금 쓰던 본문을 잃는다) 편집기 안에서는 꺼 둔다 — 공개 화면은 정적
+      // HTML(dangerouslySetInnerHTML)이라 이 옵션과 무관하게 정상적으로 클릭된다.
+      StarterKit.configure({ link: { openOnClick: false } }),
       FontSize,
       Color,
       ResizableImage.configure({ inline: false }),
@@ -344,6 +352,27 @@ export function NoticeEditor({
   }
 
   /*
+    [신규 2026-09-05] "Book It · 대관료 · 대관 규약 하이퍼링크를 넣고 싶다" 요청 —
+    선택한 글자를 눌러서 갈 주소로 링크를 건다(이미 링크면 링크를 푼다). 상대경로
+    (/apply, /rates, /rules 등)와 절대경로(https://...) 둘 다 된다.
+    HTML 소스 모드에서는 다른 서식 버튼과 같은 이유(비활성화)로 이 버튼도 안 보인다 —
+    소스 모드에서 직접 <a href="...">글자</a> 로 쓰면 된다.
+  */
+  async function toggleLink() {
+    if (editor?.isActive("link")) {
+      editor.chain().focus().unsetLink().run();
+      return;
+    }
+    const url = await dialog.prompt("연결할 주소를 입력하세요.", {
+      title: "링크 추가",
+      okLabel: "추가",
+      placeholder: "/apply, /rates, /rules 또는 https://...",
+    });
+    if (!url) return;
+    editor?.chain().focus().extendMarkRange("link").setLink({ href: url }).run();
+  }
+
+  /*
     [수정 2026-09-05] HTML 소스 모드에 워드·페이지·디자인 툴에서 내보낸 HTML을 그대로
     붙여넣고 "일반 편집"으로 돌아가면 이미지가 통째로 사라졌다 — TipTap 의 Image 확장은
     `allowBase64` 를 켜지 않는 한 `<img src="data:...">` 를 스키마에서 아예 인식하지 않는다
@@ -367,7 +396,7 @@ export function NoticeEditor({
         html = converted.html;
         onChange(html);
         if (converted.remaining > 0) {
-          window.alert(
+          await dialog.alert(
             `이미지 ${converted.remaining}개는 업로드하지 못해 반영되지 않았습니다(지원하지 않는 형식일 수 있습니다). ` +
               "[+ 이미지 삽입] 버튼으로 다시 올려 주세요.",
           );
@@ -496,6 +525,20 @@ export function NoticeEditor({
           className={toolBtn(editor.isActive({ textAlign: "right" }))}
         >
           오른쪽
+        </button>
+
+        <span className="mx-1 h-4 w-px bg-border/30" />
+
+        {/* [신규 2026-09-05] 선택한 글자를 다른 페이지(대관 신청·요금표·규약 등)로
+            연결한다. 이미 링크가 걸린 자리에서 누르면 해제한다. */}
+        <button
+          type="button"
+          disabled={disabledInHtmlMode}
+          onClick={toggleLink}
+          className={toolBtn(editor.isActive("link"))}
+          title="선택한 글자를 다른 주소로 연결합니다. 이미 링크라면 눌러서 풉니다."
+        >
+          {editor.isActive("link") ? "링크 해제" : "+ 링크"}
         </button>
 
         <span className="mx-1 h-4 w-px bg-border/30" />

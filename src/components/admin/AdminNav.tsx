@@ -136,6 +136,25 @@ export function AdminNav({ active, user }: { active: string; user?: AppUser | nu
   const master = !!user && user.role === "ADMIN" && user.adminTier === "MASTER";
   const primaryLinks = PRIMARY_LINKS.filter((link) => !link.masterOnly || master);
 
+  /*
+    [수정 2026-09-05] "프론트 보기"는 백오피스(bo.*)가 아니라 실제 방문자가 쓰는
+    partner.* 로 가야 한다("bo 말고 밑에 partner"). 서버 쪽엔 이 정확한 bo→partner
+    치환 로직이 이미 있지만(`audienceOrigin`, src/lib/publicUrl.ts) Request 객체가
+    있어야 해서 이 클라이언트 컴포넌트에서 그대로 못 쓴다. 여기서는 지금 브라우저가
+    실제로 보고 있는 호스트(dev면 bo.dev.seoularena.net, 운영이면 bo.seoularena.net)
+    를 기준으로 같은 치환을 한다 — 그래서 dev/운영 어디서 열어도 같은 환경의 partner
+    로 간다. SSR 시점엔 location이 없어 "/"로 두고, 마운트 후에만 실제 주소로 바꾼다
+    (서버·클라이언트 렌더 결과가 달라지는 hydration 경고를 피하려고 state로 늦춘다).
+  */
+  const [frontHref, setFrontHref] = useState("/");
+  useEffect(() => {
+    // window.location 은 서버에 없다 — 마운트 후에만 실제 주소로 바꿔 hydration 불일치를 피한다.
+    const { hostname, protocol, port } = window.location;
+    const partnerHost = hostname.startsWith("bo.") ? "partner." + hostname.slice(3) : hostname;
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setFrontHref(`${protocol}//${partnerHost}${port ? `:${port}` : ""}/`);
+  }, []);
+
   return (
     // 이 줄에 overflow-x-auto 를 넣지 않는다 — overflow-x 를 visible이 아닌 값으로
     // 두면 overflow-y도 함께 auto로 계산돼(스펙), "설정" 드롭다운 패널(하단으로
@@ -171,9 +190,12 @@ export function AdminNav({ active, user }: { active: string; user?: AppUser | nu
         <div className="ml-auto flex h-14 shrink-0 items-center gap-x-4 text-xs text-muted sm:h-16 lg:ml-0 lg:h-full">
           {/* [신규 2026-09-05] 백오피스에서 실제 방문자가 보는 화면(프론트)으로 바로
               가는 길이 로고 클릭(작고 눈에 안 띔) 뿐이었다 — "프론트 메뉴 넣어줘".
-              새 탭으로 열어 백오피스 작업 화면은 그대로 둔다. */}
-          <Link
-            href="/"
+              새 탭으로 열어 백오피스 작업 화면은 그대로 둔다. bo.*가 아니라 partner.*로
+              가야 해서(위 frontHref 계산 참고) next/link가 아니라 일반 <a>를 쓴다 —
+              다른 서브도메인으로 가는 절대경로 이동은 Link의 클라이언트 라우팅
+              대상이 아니다. */}
+          <a
+            href={frontHref}
             target="_blank"
             rel="noopener noreferrer"
             className="flex shrink-0 items-center gap-1 whitespace-nowrap border border-border-soft px-2.5 py-1.5 text-xs font-bold text-muted transition-colors hover:border-foreground hover:text-foreground"
@@ -182,7 +204,7 @@ export function AdminNav({ active, user }: { active: string; user?: AppUser | nu
             <svg aria-hidden viewBox="0 0 12 12" className="h-3 w-3" fill="none" stroke="currentColor">
               <path d="M4 2.5h5.5V8M9.5 2.5L2.5 9.5" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" />
             </svg>
-          </Link>
+          </a>
           <NotificationBell role="ADMIN" />
           <LogoutButton className="whitespace-nowrap font-bold hover:text-foreground" />
         </div>
