@@ -61,12 +61,16 @@ export function calculateMidHallLineItems(selection: QuoteSelection, rateTable: 
   }
 
   // 공연 Show — 평일/주말 × 1회/2회 조합별로 묶어서 과금한다.
+  // [버그 수정 2026-09-06] "중형공연장 할증률을 25%로 바꿔도 화면엔 50% 할증이라고
+  // 나옴" — 단가(unitPrice) 계산은 cfg.secondShowSurchargeRatio를 그대로 쓰고 있었지만
+  // 이 라벨 문구는 "50%"로 고정 텍스트였다. 실제 설정값으로 바꿔 넣는다.
+  const secondShowSurchargePercent = Math.round(cfg.secondShowSurchargeRatio * 100);
   const bucketCounts = new Map<string, number>(); // "weekday-1" | "weekday-2" | "weekend-1" | "weekend-2"
   const bucketLabel: Record<string, string> = {
     "weekday-1": "공연 Show — 평일",
-    "weekday-2": "공연 Show — 평일 (1일 2회, 50% 할증 포함)",
+    "weekday-2": `공연 Show — 평일 (1일 2회, ${secondShowSurchargePercent}% 할증 포함)`,
     "weekend-1": "공연 Show — 주말",
-    "weekend-2": "공연 Show — 주말 (1일 2회, 50% 할증 포함)",
+    "weekend-2": `공연 Show — 주말 (1일 2회, ${secondShowSurchargePercent}% 할증 포함)`,
   };
   let totalShows = 0;
   for (const [iso, d] of entries) {

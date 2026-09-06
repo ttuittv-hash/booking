@@ -508,7 +508,6 @@ const STAGE_GROUPS: StageGroup[] = [
                   onChangeQuantity={noop}
                   onChangeRevenue={noop}
                   onSelectPackage={noop}
-                  onClearPackage={noop}
                   headingOverride={{ title: field("configArenaTitle") }}
                 />
               </div>
@@ -535,7 +534,6 @@ const STAGE_GROUPS: StageGroup[] = [
                   onChangeQuantity={noop}
                   onChangeRevenue={noop}
                   onSelectPackage={noop}
-                  onClearPackage={noop}
                   headingOverride={{ title: field("configMidHallOnlyTitle"), lead: lead("configMidHallOnlyLead") }}
                 />
               </div>
@@ -562,7 +560,6 @@ const STAGE_GROUPS: StageGroup[] = [
                   onChangeQuantity={noop}
                   onChangeRevenue={noop}
                   onSelectPackage={noop}
-                  onClearPackage={noop}
                   headingOverride={{ title: field("configSimultaneousTitle"), lead: lead("configSimultaneousLead") }}
                 />
               </div>

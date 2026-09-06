@@ -292,24 +292,20 @@ function arenaSummaryLine(
 // [개정 2026-08-20] 아레나 패키지 4개는 기본 구성이 전부 동일하고 관객 규모 등급(Bowl
 // 사용료)만 다르다 — 카드로 나열해 신청자가 직접 하나를 고르게 한다. 고른 패키지에 따라
 // 바로 아래 "선택 옵션" 슬롯의 항목이 달라진다(isAddonAvailable).
-// [개정 2026-08-21] "Custom" 카드는 실제 패키지가 아니다 — 클릭해도 견적 계산에 참여하지
-// 않고 운영자 문의 안내만 보여주는 자리표시자다. rateTable.packages에 없는 항목이라
-// packages 배열과 별개로 하드코딩한다.
+// [삭제 2026-09-06] "커스텀 박스는 삭제" — 실제 패키지가 아니라 운영자 문의 안내만
+// 보여주는 자리표시자 카드("Custom"/"직접구성")를 지웠다. 요청 시 1:1 문의로 안내한다.
 function PackagePicker({
   packages,
   addons,
   selectedId,
   onSelect,
-  onClear,
 }: {
   packages: RentalPackage[];
   addons: AddonItem[];
   selectedId: number | null;
   onSelect: (id: number) => void;
-  onClear: () => void;
 }) {
   const { t } = useWizardText();
-  const [showCustomNotice, setShowCustomNotice] = useState(false);
 
   // [2026-08-24, "아레나 패키지의 기본 내역이 뭔지 박스로 보여지게 해줘. 수정은
   // 불가능하겠지만"] 이전에는 "기본 시설과 장비가 모두 포함되어 있습니다"라는
@@ -337,10 +333,7 @@ function PackagePicker({
             <button
               key={p.id}
               type="button"
-              onClick={() => {
-                setShowCustomNotice(false);
-                onSelect(p.id);
-              }}
+              onClick={() => onSelect(p.id)}
               /* 고른 카드는 검정 채움 — 안쪽 제목·설명이 따라오도록 토큰을 국소 반전한다 */
               style={active ? CHOICE_SELECTED_VARS : undefined}
               className={choiceClass(active, { dense: true })}
@@ -400,32 +393,7 @@ function PackagePicker({
             </button>
           );
         })}
-        <button
-          type="button"
-          onClick={() => {
-            // Custom은 실제 패키지가 아니라 packageId로 표현할 수 없다 — 이전에 고른
-            // 패키지가 남아 있으면 카드 두 개가 동시에 선택된 것처럼 보이므로 여기서
-            // 함께 지운다(2026-08-22, "커스텀 선택 시 다른 패키지가 선택 해제되지
-            // 않는다" 리포트).
-            onClear();
-            setShowCustomNotice(true);
-          }}
-          style={showCustomNotice ? CHOICE_SELECTED_VARS : undefined}
-          className={`${choiceClass(showCustomNotice, { dense: true })} border-dashed`}
-        >
-          <div className="text-s font-bold">{t("configOptions.customCardTitle", "Custom")}</div>
-          <div className="mt-0.5 text-xs text-muted">{t("configOptions.customCardSubtitle", "직접구성")}</div>
-        </button>
       </div>
-
-      {showCustomNotice && (
-        <p className="mt-3 border border-border/30 bg-panel px-3 py-2.5 text-xs text-muted-strong">
-          {t(
-            "configOptions.customNotice",
-            "운영자 문의가 필요한 맞춤 구성입니다. 1:1 문의 또는 담당자에게 연락해 주세요.",
-          )}
-        </p>
-      )}
 
       {selectedId != null && (
         <div className="mt-4 border border-border/30 bg-panel/40 px-4 py-3">
@@ -469,7 +437,6 @@ export function StepConfigOptions({
   onChangeQuantity,
   onChangeRevenue,
   onSelectPackage,
-  onClearPackage,
   headingOverride,
 }: {
   rateTable: RateTable;
@@ -482,7 +449,6 @@ export function StepConfigOptions({
   onChangeQuantity: (addonId: string, quantity: number) => void;
   onChangeRevenue: (value: number) => void;
   onSelectPackage: (packageId: number) => void;
-  onClearPackage: () => void;
   /** 관리자 문구 미리보기 전용 — 제목·리드를 편집 가능한 입력으로 바꿔치기한다. */
   headingOverride?: { title: ReactNode; lead?: ReactNode };
 }) {
@@ -565,7 +531,6 @@ export function StepConfigOptions({
           addons={rateTable.addons}
           selectedId={selection.packageId}
           onSelect={onSelectPackage}
-          onClear={onClearPackage}
         />
       </div>
 
@@ -641,7 +606,6 @@ export function StepConfigOptions({
         addons={rateTable.addons}
         selectedId={null}
         onSelect={() => {}}
-        onClear={() => {}}
       />
     ) : null;
 
