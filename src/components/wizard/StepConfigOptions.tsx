@@ -244,7 +244,16 @@ function MidHallRateCard({
 // [개정 2026-08-20] 패키지는 더 이상 관객 규모로 자동 결정하지 않는다 — 아레나 탭 안에
 // "패키지 선택" 슬롯에서 4개 패키지 카드 중 하나를 직접 고르면, 그 아래 "선택 옵션" 슬롯이
 // 그 패키지에서 고를 수 있는 옵션으로 바뀐다(isAddonAvailable 필터링은 기존과 동일).
-function arenaSummaryLine(selection: QuoteSelection, defaultPerformanceDays: number): string {
+/*
+  [수정 2026-09-06] "구성/옵션 아레나 하단 워딩 수정할 수 있도록" 요청 — "셋업"/"공연"/
+  "철수" 라벨이 문자열 리터럴로 박혀 있어 편집 대상이 아니었다. 이 함수는 컴포넌트가
+  아니라 훅(useWizardText)을 쓸 수 없으므로, 호출부에서 만든 tStr을 인자로 받는다.
+*/
+function arenaSummaryLine(
+  selection: QuoteSelection,
+  defaultPerformanceDays: number,
+  tStr: (key: string, fallback: string) => string,
+): string {
   const dates = resolveSelectedDates(selection);
   if (dates.length === 0) return "";
   const defaults = defaultDayTags(dates, defaultPerformanceDays);
@@ -257,8 +266,11 @@ function arenaSummaryLine(selection: QuoteSelection, defaultPerformanceDays: num
     else if (tag === "LOAD_OUT") loadOut++;
     else performance++;
   }
-  const parts = [`셋업${setup}`, `공연${performance}`];
-  if (loadOut > 0) parts.push(`철수${loadOut}`);
+  const parts = [
+    `${tStr("configOptions.arenaSummary.setupLabel", "셋업")}${setup}`,
+    `${tStr("configOptions.arenaSummary.performanceLabel", "공연")}${performance}`,
+  ];
+  if (loadOut > 0) parts.push(`${tStr("configOptions.arenaSummary.loadOutLabel", "철수")}${loadOut}`);
   return parts.join(" · ");
 }
 
@@ -347,6 +359,17 @@ function PackagePicker({
                   <dt className="text-muted">{t("configOptions.baseFeeLabel", "대관료")}</dt>
                   <dd className="font-bold tabular-nums">{won(p.baseFeePerWeek)}</dd>
                 </div>
+                {/* [신규 2026-09-06] 패키지 관리(어드민)에서 설정한 할인율 — 계산 로직
+                    (calculateQuote.ts)에는 이미 반영되고 있었지만 카드에는 안 보여
+                    신청자가 할인 여부를 몰랐다. 문구는 PackagesForm.tsx의 관리자 미리보기와 같다. */}
+                {p.discountRatio > 0 && (
+                  <div className="flex items-baseline justify-between gap-2">
+                    <dt className="text-muted">{t("configOptions.discountLabel", "할인")}</dt>
+                    <dd className="font-bold tabular-nums text-accent">
+                      {Math.round(p.discountRatio * 100)}% (−{won(Math.round(p.baseFeePerWeek * p.discountRatio))})
+                    </dd>
+                  </div>
+                )}
               </dl>
             </button>
           );
@@ -504,7 +527,7 @@ export function StepConfigOptions({
           title={headingOverride?.title ?? stepText.configArenaTitle}
           lead={
             pkg
-              ? `${pkg.name} · ${pkg.audienceTier.label} · 예상 관객 ${selection.expectedAudience.toLocaleString()}명 · ${arenaSummaryLine(selection, defaultPerformanceDays)}`
+              ? `${pkg.name} · ${pkg.audienceTier.label} · ${tStr("configOptions.arenaSummary.expectedAudienceLabel", "예상 관객")} ${selection.expectedAudience.toLocaleString()}${tStr("configOptions.arenaSummary.peopleUnit", "명")} · ${arenaSummaryLine(selection, defaultPerformanceDays, tStr)}`
               : undefined
           }
         />

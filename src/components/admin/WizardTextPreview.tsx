@@ -202,7 +202,7 @@ function AttrFieldsPanel({
           <label key={key} className="block">
             <input
               type="text"
-              value={overrides[key] ?? fallback}
+              value={overrides[key] || fallback}
               onChange={(e) => onChangeString(key, e.target.value)}
               className={`${EDITABLE_INPUT} border-border-soft px-2 py-1`}
             />
@@ -234,13 +234,13 @@ function EditableSubtree({
     t: (key, fallback) => (
       <InlineEditText
         key={key}
-        value={overrides[key] ?? fallback}
+        value={overrides[key] || fallback}
         onChange={(v) => onChangeString(key, v)}
       />
     ),
     tStr: (key, fallback) => {
       fields.set(key, fallback);
-      return overrides[key] ?? fallback;
+      return overrides[key] || fallback;
     },
   };
   return (

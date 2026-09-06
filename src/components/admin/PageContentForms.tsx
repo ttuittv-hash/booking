@@ -803,6 +803,53 @@ export function ScreenTextForm({ content }: { content: ScreenTextContent }) {
                 }
               />
             ))}
+            {/* [신규 2026-09-06] "동시 대관"은 VENUES 배열의 실제 공간이 아니라 이용 시설
+                버튼의 네 번째 선택지(문구 키 venuePicker.simultaneousOption)라 위 목록에
+                끼지 못했다 — 여기서도 안 보여서 "공연장 선택 박스 워딩 수정 불가"로
+                이어졌다. 같은 자리에 나란히 둔다. */}
+            <Text
+              label="동시 대관 (venuePicker.simultaneousOption)"
+              value={v.wizardStrings["venuePicker.simultaneousOption"] ?? ""}
+              onChange={(name) =>
+                patch({
+                  wizardStrings: { ...v.wizardStrings, "venuePicker.simultaneousOption": name },
+                })
+              }
+            />
+          </Section>
+
+          {/* [신규 2026-09-06] "일정선택 워딩 수정 불가" — 이용 시설 버튼 아래 붙는 "일정
+              선택" 소제목과 "아레나 일정"/"중형 일정" 탭 라벨은 t() 로 이미 wizardStrings
+              를 읽고 있었지만, 실제 캘린더가 들어가는 위저드 미리보기(/admin/content/
+              wizard-preview)가 조회 전용이라 이 캘린더 구획 자체를 생략해서(주석 "일정
+              선택 달력은 문구 편집과 무관한 조회 전용 UI라 생략") 편집할 화면이 없었다.
+              캘린더를 미리보기에 새로 넣는 대신, 위 「공간 이름」과 같은 자리에 문구
+              필드만 따로 둔다. */}
+          <Section
+            title="일정 선택 화면 문구"
+            help="이용 시설 버튼 아래 붙는 일정 선택 구획의 제목과 탭 이름입니다. 비워 두면 기본 문구입니다."
+          >
+            <Text
+              label="구획 제목 (wizardShell.scheduleHeading)"
+              value={v.wizardStrings["wizardShell.scheduleHeading"] ?? ""}
+              onChange={(text) =>
+                patch({ wizardStrings: { ...v.wizardStrings, "wizardShell.scheduleHeading": text } })
+              }
+            />
+            <Text
+              label="아레나 탭 (wizardShell.arenaTabLabel)"
+              value={v.wizardStrings["wizardShell.arenaTabLabel"] ?? ""}
+              onChange={(text) =>
+                patch({ wizardStrings: { ...v.wizardStrings, "wizardShell.arenaTabLabel": text } })
+              }
+            />
+            <Text
+              label="중형공연장 탭 (wizardShell.mediumHallTabLabel)"
+              value={v.wizardStrings["wizardShell.mediumHallTabLabel"] ?? ""}
+              onChange={(text) =>
+                patch({ wizardStrings: { ...v.wizardStrings, "wizardShell.mediumHallTabLabel": text } })
+              }
+            />
           </Section>
 
           {/* [2026-09-03 팀 요청] 일정 달력 범주의 문구와 색 — 공고 달력과 어드민 일정 관리가 같이 쓴다.
