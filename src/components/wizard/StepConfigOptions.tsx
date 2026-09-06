@@ -376,24 +376,14 @@ function PackagePicker({
                     (calculateQuote.ts)에는 이미 반영되고 있었지만 카드에는 안 보여
                     신청자가 할인 여부를 몰랐다. "할인율·총금액만 노출, 할인금액은 빼"
                     — 할인 절대금액 행은 없앤다. */}
-                {p.discountRatio > 0 &&
-                  (() => {
-                    const discountAmount = Math.round(p.baseFeePerWeek * p.discountRatio);
-                    return (
-                      <>
-                        <div className="flex items-baseline justify-between gap-2">
-                          <dt className="text-muted">{t("configOptions.discountRatioLabel", "할인율")}</dt>
-                          <dd className="font-bold tabular-nums text-accent">
-                            {Math.round(p.discountRatio * 100)}%
-                          </dd>
-                        </div>
-                        <div className="flex items-baseline justify-between gap-2">
-                          <dt className="text-muted">{t("configOptions.totalAfterDiscountLabel", "총금액")}</dt>
-                          <dd className="font-bold tabular-nums">{won(p.baseFeePerWeek - discountAmount)}</dd>
-                        </div>
-                      </>
-                    );
-                  })()}
+                {p.discountRatio > 0 && (
+                  <div className="flex items-baseline justify-between gap-2">
+                    <dt className="text-muted">{t("configOptions.discountRatioLabel", "할인율")}</dt>
+                    <dd className="font-bold tabular-nums text-accent">
+                      {Math.round(p.discountRatio * 100)}%
+                    </dd>
+                  </div>
+                )}
                 {/* [신규 2026-09-06] "할인율·할증률 컬럼이 둘 다 모든 패키지에 일괄 적용돼야"
                     — 패키지 관리(어드민)에서 설정한 1일 2회 공연 할증률은 이미 모든 패키지에
                     50%로 설정돼 있었지만(계산 로직에도 반영됨, calculateQuote.ts) 카드에는
@@ -406,6 +396,18 @@ function PackagePicker({
                     </dd>
                   </div>
                 )}
+                {/* [버그 수정 2026-09-06] "총 금액이 가장 밑에 들어가야해" — 할인율·할증률처럼
+                    카드에 새로 추가한 행들 아래로, 실제 지불액인 총금액을 맨 마지막 행으로 둔다. */}
+                {p.discountRatio > 0 &&
+                  (() => {
+                    const discountAmount = Math.round(p.baseFeePerWeek * p.discountRatio);
+                    return (
+                      <div className="flex items-baseline justify-between gap-2">
+                        <dt className="text-muted">{t("configOptions.totalAfterDiscountLabel", "총금액")}</dt>
+                        <dd className="font-bold tabular-nums">{won(p.baseFeePerWeek - discountAmount)}</dd>
+                      </div>
+                    );
+                  })()}
               </dl>
             </button>
           );
