@@ -183,7 +183,13 @@ function resolveGroupOrder<T extends string>(configured: string[] | undefined, d
       ]
     : [...defaultOrder];
 }
+// [신규 2026-09-06] "체크박스 위에 항목 레이블 자체도 노출/미노출 설정 가능해야" —
+// 항목을 하나하나 끄지 않고 그룹(제목 포함) 전체를 한 번에 끌 수 있다. 어드민
+// FieldOrderPanel의 "그룹 전체 노출" 토글이 groupId 자체(접미사 없이)를
+// disabledFields에 넣는다 — 여기서 그걸 먼저 확인해 그룹째 비운다(항목 하나하나
+// 확인할 필요가 없다).
 function visibleInGroup<T extends string>(order: T[], groupId: string, disabledFields?: string[]): T[] {
+  if (disabledFields?.includes(groupId)) return [];
   return order.filter((key) => !disabledFields?.includes(`${groupId}.${key}`));
 }
 

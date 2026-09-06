@@ -342,9 +342,25 @@ function FieldOrderPanel({
     [next[index], next[target]] = [next[target], next[index]];
     ctx.setFieldOrder(groupId, next);
   };
+  // [신규 2026-09-06] "체크박스 위에 항목 레이블 자체도 노출/미노출 설정 가능해야"
+  // — 항목을 하나하나 끄지 않고, 이 그룹 전체(제목 포함)를 한 번에 끌 수 있게 한다.
+  // 공공/공익 참여 그룹의 "그룹 노출" 토글과 같은 자리(groupId 자체를 disabledFields에
+  // 넣는다)에, 각 화면 컴포넌트(StepPerformanceInfo.tsx의 visibleInGroup 등)가
+  // `disabledFields?.includes(groupId)`를 먼저 확인해 그룹째 숨긴다.
+  const groupDisabled = ctx.disabledFields.includes(groupId);
   return (
     <div className="border border-border-soft bg-panel/60 p-3">
-      <p className="mb-2 text-2xs font-bold uppercase tracking-wide text-muted">✎ {title} — 순서 · 노출</p>
+      <div className="mb-2 flex items-center justify-between gap-3">
+        <p className="text-2xs font-bold uppercase tracking-wide text-muted">✎ {title} — 순서 · 노출</p>
+        <label className="flex shrink-0 items-center gap-1.5 text-2xs font-bold whitespace-nowrap text-muted">
+          <input
+            type="checkbox"
+            checked={!groupDisabled}
+            onChange={(e) => ctx.setFieldDisabled(groupId, !e.target.checked)}
+          />
+          그룹 전체 노출
+        </label>
+      </div>
       <ul className="flex flex-col gap-1.5">
         {order.map((key, index) => {
           const fieldId = `${groupId}.${key}`;

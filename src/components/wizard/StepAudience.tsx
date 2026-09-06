@@ -145,9 +145,12 @@ function AudienceFields({
 
   const hasSummaryRow = audienceSummary.arenaLine || audienceSummary.midHallLine || audienceSummary.totalLine;
   const ancillaryPlansOrder = resolveAncillaryPlansOrder(fieldOrders?.[ANCILLARY_PLANS_GROUP_ID]);
-  const visibleAncillaryPlans = ancillaryPlansOrder.filter(
-    (plan) => !disabledFields?.includes(`${ANCILLARY_PLANS_GROUP_ID}.${plan}`),
-  );
+  // [신규 2026-09-06] "체크박스 위에 항목 레이블 자체도 노출/미노출 설정 가능해야" —
+  // 그룹 전체(제목 포함)를 한 번에 끄는 토글(StepPerformanceInfo.tsx의 visibleInGroup과
+  // 같은 규칙 — groupId 자체가 disabledFields에 있으면 통째로 비운다).
+  const visibleAncillaryPlans = disabledFields?.includes(ANCILLARY_PLANS_GROUP_ID)
+    ? []
+    : ancillaryPlansOrder.filter((plan) => !disabledFields?.includes(`${ANCILLARY_PLANS_GROUP_ID}.${plan}`));
 
   return (
     /* 단계 안의 블록은 박스로 싸지 않는다 — 굵은 헤어라인 + H6 으로만 나눈다
