@@ -108,18 +108,21 @@ export function VenuePicker({
           ))}
         </div>
 
+        {/* [수정 2026-09-06] "원뎁스 투뎁스 간격이 너무 좁아.. 투뎁스는 텍스트 밑줄
+            느낌으로" — StepNav.tsx 하위 단계와 같은 규칙: 위와의 간격을 넉넉히(mt-2→
+            mt-5) 띄우고, 알약(rounded-full·테두리)이 아니라 밑줄 텍스트로 바꾼다. */}
         {isSimultaneousGroupActive && (
-          <div className="mt-2 flex flex-wrap gap-1.5 border-l-2 border-border-soft pl-3">
+          <div className="mt-5 flex flex-wrap items-center gap-4 border-l-2 border-border-soft pl-3">
             {subOptions.map((opt) => (
               <button
                 key={opt.key}
                 type="button"
                 onClick={opt.onClick}
                 className={[
-                  "flex h-8 items-center rounded-full border px-3 text-xs font-bold transition-colors",
+                  "flex h-8 items-center whitespace-nowrap text-xs font-bold outline-none underline-offset-4 transition-colors",
                   opt.active
-                    ? "border-foreground bg-inverse-bg text-inverse-fg text-foreground"
-                    : "border-border-soft bg-panel text-muted hover:border-foreground/50",
+                    ? "text-foreground underline decoration-2"
+                    : "text-muted no-underline hover:text-foreground",
                 ].join(" ")}
               >
                 {opt.label}
