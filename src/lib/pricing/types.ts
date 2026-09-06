@@ -108,6 +108,12 @@ export interface RentalPackage {
   setupExtraDayFee: number; // 셋업(준비일) 추가/차감 단가·1일 — 전 패키지 동일 46,790,000원
   performanceExtraDayFee: number; // 공연일 추가/차감 단가·1일 — 패키지별 상이
 
+  // [신규 2026-09-06] "1일 2회 공연 시 아레나는 50% 할증" 요청 — dayShowCounts(화면 입력만
+  // 우선 반영돼 있던 필드, 아래 QuoteSelection 참고)로 지정한 공연 회차가 2회 이상인
+  // 날짜에 한해 performanceExtraDayFee 에 이 비율만큼 할증한다. 0=할증 없음.
+  // 중형공연장의 같은 개념은 MidHallRateConfig.secondShowSurchargeRatio(RatesForm.tsx).
+  secondShowSurchargeRatio: number;
+
   // 아래 항목은 "패키지 구성" 명세(대관시스템 노출)를 반영한 설명 정보입니다.
   // 과금 대상이 아니며(정찰제 대관료에 포함), 패키지 비교/안내용으로만 표시됩니다.
   dayBreakdown: string; // 세부 구성 — "준비 4일 + 공연 2일" (전 패키지 공통)

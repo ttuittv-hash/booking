@@ -101,6 +101,7 @@ function blankPackage(id: number): RentalPackage {
     discountRatio: 0,
     setupExtraDayFee: 0,
     performanceExtraDayFee: 0,
+    secondShowSurchargeRatio: 0,
     dayBreakdown: "준비 4일 + 공연 2일",
     defaultPerformanceDays: 2,
     rentalHours: "09:00 ~ 22:00",

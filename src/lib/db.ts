@@ -1408,6 +1408,7 @@ function toRateTable(row: RateTableRow): RateTable {
       setupExtraDayFee?: number;
       performanceExtraDayFee?: number;
       defaultPerformanceDays?: number;
+      secondShowSurchargeRatio?: number;
     }
   >;
   const packages = rawPackages.map((pkg) => {
@@ -1418,6 +1419,8 @@ function toRateTable(row: RateTableRow): RateTable {
       setupExtraDayFee: pkg.setupExtraDayFee ?? seedMatch?.setupExtraDayFee ?? 0,
       performanceExtraDayFee: pkg.performanceExtraDayFee ?? seedMatch?.performanceExtraDayFee ?? 0,
       defaultPerformanceDays: pkg.defaultPerformanceDays ?? seedMatch?.defaultPerformanceDays ?? 0,
+      // [신규 2026-09-06] 이 필드 추가 이전에 저장된 패키지도 같은 이유로 보정한다.
+      secondShowSurchargeRatio: pkg.secondShowSurchargeRatio ?? seedMatch?.secondShowSurchargeRatio ?? 0,
       // audienceTier/seatingType/stageType 도 같은 이유로 보정한다 — 이 필드들이 추가되기
       // 전에 저장된 패키지는 값이 아예 없어(undefined), 카드·어드민 패키지 관리 화면에서
       // `.audienceTier.label`처럼 바로 접근하는 곳이 전부 그대로 죽는다("패키지 관리 화면이

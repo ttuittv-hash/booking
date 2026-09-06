@@ -4,6 +4,8 @@ import { makeLine } from "./lineItem";
 import {
   clampAddonQuantity,
   countPerformanceDays,
+  defaultDayTags,
+  effectiveDayTag,
   findAddon,
   findPackage,
   includedQuantity,
@@ -140,6 +142,37 @@ export function calculateQuote(selection: QuoteSelection, rateTable: RateTable):
           "VISIBLE",
         ),
       );
+    }
+
+    // (2-3) 공연 2회 할증 — "1일 2회 공연 시 아레나는 50% 할증"(2026-09-06).
+    // dayShowCounts는 화면 입력만 받고 있던 값(2-20 당시 할증 로직 미정)이었는데,
+    // 이제 공연일로 지정된 날짜 중 1일 회차가 2회 이상인 날짜에 한해 공연일 단가
+    // (performanceExtraDayFee)에 패키지별 할증률을 곱해 별도 줄로 얹는다. 기존 (2-2)
+    // 공연 일수 조정(기본 대비 delta)은 그대로 두고 그 위에 얹는 가산 항목이다 —
+    // 기본 포함 공연일이든 추가 공연일이든, 그날 실제로 2회 이상 공연하면 할증한다.
+    if (pkg.secondShowSurchargeRatio > 0) {
+      const defaults = defaultDayTags(selectedDates, pkg.defaultPerformanceDays);
+      const doubleShowDays = selectedDates.filter(
+        (date) =>
+          effectiveDayTag(date, selection.dayTags, defaults) === "PERFORMANCE" &&
+          (selection.dayShowCounts[date] ?? 1) >= 2,
+      ).length;
+      if (doubleShowDays > 0) {
+        const unitPrice = Math.round(pkg.performanceExtraDayFee * pkg.secondShowSurchargeRatio);
+        items.push(
+          makeLine(
+            "second_show_surcharge",
+            `공연 2회 할증 (${doubleShowDays}일 × ${Math.round(pkg.secondShowSurchargeRatio * 100)}%)`,
+            "PER_DAY",
+            doubleShowDays,
+            0,
+            doubleShowDays,
+            unitPrice,
+            doubleShowDays * unitPrice,
+            "VISIBLE",
+          ),
+        );
+      }
     }
 
     // (3) 청소비 — 관객수 자동 산출 (기본 포함 없음, 전량 과금)

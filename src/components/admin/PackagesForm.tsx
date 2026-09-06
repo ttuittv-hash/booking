@@ -168,6 +168,7 @@ function blankPackage(id: number, venueId: string): EditablePackage {
     discountRatio: 0,
     setupExtraDayFee: 0,
     performanceExtraDayFee: 0,
+    secondShowSurchargeRatio: 0,
     dayBreakdown: "준비 4일 + 공연 2일",
     defaultPerformanceDays: 2,
     rentalHours: "09:00 ~ 22:00",
@@ -793,6 +794,33 @@ export function PackagesForm({
                 onChange={(value) => update({ performanceExtraDayFee: value })}
                 className={`w-full ${FIELD}`}
               />
+            </label>
+            <label className="block">
+              {/* [신규 2026-09-06] "1일 2회 공연 시 아레나는 50% 할증" — 공연일로 지정한
+                  날짜 중 그날 공연 회차를 2회 이상으로 잡은 날에 한해 공연일 단가에
+                  이 비율만큼 할증한다(위저드 STEP 1 캘린더에서 회차를 지정). */}
+              <span className="mb-1 block text-xs text-muted">1일 2회 공연 할증 (%, 공연일 단가 기준)</span>
+              <div className="flex items-center gap-2">
+                <input
+                  type="checkbox"
+                  className="accent-accent"
+                  checked={active.secondShowSurchargeRatio > 0}
+                  onChange={(e) => update({ secondShowSurchargeRatio: e.target.checked ? 0.5 : 0 })}
+                />
+                <input
+                  type="number"
+                  min={0}
+                  max={200}
+                  disabled={active.secondShowSurchargeRatio === 0}
+                  value={Math.round(active.secondShowSurchargeRatio * 100)}
+                  onChange={(e) =>
+                    update({
+                      secondShowSurchargeRatio: Math.min(200, Math.max(0, Number(e.target.value) || 0)) / 100,
+                    })
+                  }
+                  className={FIELD}
+                />
+              </div>
             </label>
             <label className="block">
               <span className="mb-1 block text-xs text-muted">할인율 적용 (%, 기본 대관료 기준)</span>

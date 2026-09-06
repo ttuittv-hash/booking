@@ -267,6 +267,35 @@ describe("calculateQuote — 명세서 7장 검증 케이스", () => {
     expect(line.amount).toBe(-unitPrice);
   });
 
+  it("공연일에 1일 2회 공연을 지정하면 할증 라인이 추가된다", () => {
+    const dates = resolveSelectedDates(baseSelection());
+    const performanceDate = dates[dates.length - 1]; // 기본값상 공연일(맨 뒤 날짜)
+    const quote = calculateQuote(
+      baseSelection({ dayShowCounts: { [performanceDate]: 2 } }),
+      RATE_TABLE,
+    );
+    const line = quote.lineItems.find((i) => i.addonId === "second_show_surcharge")!;
+    expect(line).toBeDefined();
+    const unitPrice = Math.round(pkg2.performanceExtraDayFee * pkg2.secondShowSurchargeRatio);
+    expect(line.requested).toBe(1);
+    expect(line.amount).toBe(unitPrice);
+  });
+
+  it("준비일(공연일 아님)에 2회를 지정해도 할증되지 않는다", () => {
+    const dates = resolveSelectedDates(baseSelection());
+    const prepDate = dates[0]; // 기본값상 준비일(맨 앞 날짜)
+    const quote = calculateQuote(
+      baseSelection({ dayShowCounts: { [prepDate]: 2 } }),
+      RATE_TABLE,
+    );
+    expect(quote.lineItems.find((i) => i.addonId === "second_show_surcharge")).toBeUndefined();
+  });
+
+  it("1회 공연(기본값)이면 할증 라인이 생기지 않는다", () => {
+    const quote = calculateQuote(baseSelection(), RATE_TABLE);
+    expect(quote.lineItems.find((i) => i.addonId === "second_show_surcharge")).toBeUndefined();
+  });
+
   it("패키지 미선택 시 라인아이템 없이 0원", () => {
     const quote = calculateQuote(baseSelection({ packageId: null }), RATE_TABLE);
     expect(quote.lineItems).toHaveLength(0);
