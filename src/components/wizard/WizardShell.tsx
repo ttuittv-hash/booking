@@ -5,7 +5,7 @@ import { calculateQuote } from "@/lib/pricing/calculateQuote";
 import { ARENA_MAX_AUDIENCE } from "@/lib/content/rateFacts";
 import type { VenueRateContent, WizardStepTexts } from "@/lib/content/pageContent";
 import { useWizardText } from "@/lib/content/wizardText";
-import { STEP3_DEFAULT_SLOT_ORDER } from "@/lib/content/wizardSlots";
+import { STEP3_DEFAULT_SLOT_ORDER, STEP6_DEFAULT_SLOT_ORDER } from "@/lib/content/wizardSlots";
 import {
   findAddon,
   findPackage,
@@ -753,6 +753,38 @@ export function WizardShell({
         ]
       : [...STEP3_DEFAULT_SLOT_ORDER];
 
+  // [신규 2026-09-06] "슬롯 순서 변경은 모든 메뉴에 적용되어야 함" — "안전관리 서약서"
+  // 탭도 서약서 본문·자료 첨부 두 슬롯이 고정 순서로 붙어 있던 걸 STEP3와 같은 패턴으로
+  // 조정 가능하게 한다(wizardSlots.ts STEP6_DEFAULT_SLOT_ORDER 참고).
+  const step6SlotRenderers: Record<string, () => ReactNode> = {
+    safetyPledge: () => (
+      <StepSafetyPledge
+        pledge={selection.safetyPledge ?? DEFAULT_SAFETY_PLEDGE}
+        onChange={(safetyPledge) => setSelection((prev) => ({ ...prev, safetyPledge }))}
+        safetyPlanFile={safetyPlanFile}
+        onSafetyPlanFileChange={setSafetyPlanFile}
+        companyName={selection.performanceInfo.applicantCompanyName || undefined}
+        title={wizardStepText.safetyPledgeTitle}
+        lead={wizardStepText.safetyPledgeLead}
+      />
+    ),
+    attachments: () => (
+      <StepAttachments
+        files={pendingFiles}
+        onFilesChange={setPendingFiles}
+        isSimultaneous={resolvedSelection.bookingMode === "SIMULTANEOUS"}
+      />
+    ),
+  };
+  const configuredStep6Order = wizardSlotOrders?.["6"];
+  const step6SlotOrder: string[] =
+    configuredStep6Order && configuredStep6Order.length > 0
+      ? [
+          ...configuredStep6Order.filter((key: string) => key in step6SlotRenderers),
+          ...STEP6_DEFAULT_SLOT_ORDER.filter((key) => !configuredStep6Order.includes(key)),
+        ]
+      : [...STEP6_DEFAULT_SLOT_ORDER];
+
   return (
     /*
       좌: 스텝 콘텐츠(4col) / 우: sticky 요약 패널(2col) — 페이지 그리드 위에 올린다.
@@ -940,28 +972,12 @@ export function WizardShell({
             disabledGroups={publicInterestDisabledGroups}
           />
         )}
-        {step === 6 && (
-          <>
-            <StepSafetyPledge
-              pledge={selection.safetyPledge ?? DEFAULT_SAFETY_PLEDGE}
-              onChange={(safetyPledge) => setSelection((prev) => ({ ...prev, safetyPledge }))}
-              safetyPlanFile={safetyPlanFile}
-              onSafetyPlanFileChange={setSafetyPlanFile}
-              companyName={selection.performanceInfo.applicantCompanyName || undefined}
-              title={wizardStepText.safetyPledgeTitle}
-              lead={wizardStepText.safetyPledgeLead}
-            />
-            {/* [신규 2026-09-06] "자료 첨부는 신청자 정보/규모탭에서는 삭제하고, 맨
-                마지막 안전관리 서약서 탭에 넣어줘" — STEP3에서 빠져 여기로 옮겼다. */}
-            <div className="mt-10">
-              <StepAttachments
-                files={pendingFiles}
-                onFilesChange={setPendingFiles}
-                isSimultaneous={resolvedSelection.bookingMode === "SIMULTANEOUS"}
-              />
-            </div>
-          </>
-        )}
+        {step === 6 &&
+          step6SlotOrder.map((key, i) => (
+            <Fragment key={key}>
+              <div className={i === 0 ? undefined : "mt-10"}>{step6SlotRenderers[key]?.()}</div>
+            </Fragment>
+          ))}
         {step === 7 && (
           <Step5Estimate
             rateTable={rateTable}
