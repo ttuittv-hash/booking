@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState, type ReactNode } from "react";
+import { useRouter } from "next/navigation";
 import { useQueryTab } from "./useQueryTab";
 import type { ScreenTextContent, VenueRateContent, WizardStepTexts } from "@/lib/content/pageContent";
 import { WizardTextContext, type WizardTextApi } from "@/lib/content/wizardText";
@@ -15,6 +16,7 @@ import {
   EVENT_TYPE_LABEL,
   SEATING_TYPE_LABEL,
   STAGE_TYPE_LABEL,
+  SPECIAL_VENUE_ID,
   type MarketingCooperation,
   type QuoteSelection,
   type RateTable,
@@ -416,6 +418,140 @@ function FieldOrderPanel({
   );
 }
 
+/**
+ * [신규 2026-09-06] "패키지 박스 항목 추가·수정" — 위저드 미리보기(콘텐츠 관리 > 위저드
+ * 미리보기)에서 바로 Rate 카드의 자유 항목(라벨·값)을 추가/편집한다. 예전엔 이 값이
+ * `/admin/packages`(패키지 관리)에서만 편집됐는데, "위저드 미리보기 화면에서 바로
+ * 추가/편집" 요청으로 여기에도 같은 기능을 둔다 — 두 화면 모두 같은 rate_tables
+ * customCardRows를 편집하므로 어느 쪽에서 고쳐도 결과는 같다.
+ *
+ * customCardRows는 ScreenTextContent(wizardStrings 등)가 아니라 별도 저장소(rate_tables)에
+ * 있어 ContentFormShell의 patch/저장으로 묶이지 않는다 — PackagesForm.tsx와 같은 방식으로
+ * `/api/admin/packages`에 PUT하고 router.refresh()로 rateTable prop을 새로 받는다.
+ * 이 API는 패키지 전체 배열을 받아 그대로 대체하므로(부분 패치 아님), 지금 편집하는
+ * 패키지 하나만 바꾸고 나머지는 rateTable.packages를 그대로 다시 보낸다.
+ */
+function PackageCardRowsEditor({ rateTable }: { rateTable: RateTable }) {
+  const router = useRouter();
+  // Rate 카드(패키지 박스)로 렌더되는 패키지만 대상으로 한다 — 아레나 A~D + 패키지(동시
+  // 대관 전용, SPECIAL_VENUE_ID). 중형공연장은 다른 카드 디자인(MidHallRateCard)이라
+  // customCardRows를 읽지 않는다.
+  const editablePackages = [
+    ...packagesForVenue(rateTable, "arena"),
+    ...packagesForVenue(rateTable, SPECIAL_VENUE_ID),
+  ];
+  const [activeId, setActiveId] = useState<number | null>(editablePackages[0]?.id ?? null);
+  const [rowsByPackage, setRowsByPackage] = useState<Record<number, { label: string; value: string }[]>>(() =>
+    Object.fromEntries(editablePackages.map((p) => [p.id, p.customCardRows.map((row) => ({ ...row }))])),
+  );
+  const [saving, setSaving] = useState(false);
+  const [message, setMessage] = useState<string | null>(null);
+
+  const activePkg = editablePackages.find((p) => p.id === activeId) ?? editablePackages[0];
+  if (!activePkg) return null;
+  const rows = rowsByPackage[activePkg.id] ?? [];
+
+  function setRows(next: { label: string; value: string }[]) {
+    setRowsByPackage((prev) => ({ ...prev, [activePkg.id]: next }));
+  }
+
+  async function save() {
+    setSaving(true);
+    setMessage(null);
+    try {
+      const nextPackages = rateTable.packages.map((p) =>
+        p.id === activePkg.id
+          ? { ...p, customCardRows: rows.filter((row) => row.label.trim().length > 0) }
+          : p,
+      );
+      const res = await fetch("/api/admin/packages", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ packages: nextPackages }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setMessage(data.error || "저장에 실패했습니다.");
+        return;
+      }
+      setMessage("저장되었습니다.");
+      router.refresh();
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return (
+    <div className="border border-border-soft bg-panel/60 p-3">
+      <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
+        <p className="text-2xs font-bold uppercase tracking-wide text-muted">
+          ✎ Rate 카드 추가 항목 (라벨 · 값)
+        </p>
+        <div className="flex flex-wrap gap-1">
+          {editablePackages.map((p) => (
+            <button
+              key={p.id}
+              type="button"
+              onClick={() => setActiveId(p.id)}
+              className={`rounded border px-2 py-1 text-2xs font-bold ${
+                p.id === activePkg.id
+                  ? "border-foreground bg-foreground text-background"
+                  : "border-border-soft text-muted"
+              }`}
+            >
+              {p.name}
+            </button>
+          ))}
+        </div>
+      </div>
+      <div className="space-y-1.5">
+        {rows.length === 0 && <p className="text-xs text-muted">등록된 추가 항목이 없습니다.</p>}
+        {rows.map((row, i) => (
+          <div key={i} className="flex items-center gap-1.5 bg-background px-2.5 py-1.5">
+            <input
+              value={row.label}
+              placeholder="라벨 (예: 무대 폭)"
+              onChange={(e) => setRows(rows.map((r, j) => (j === i ? { ...r, label: e.target.value } : r)))}
+              className="field-base w-1/2"
+            />
+            <input
+              value={row.value}
+              placeholder="값 (예: 40m)"
+              onChange={(e) => setRows(rows.map((r, j) => (j === i ? { ...r, value: e.target.value } : r)))}
+              className="field-base w-1/2"
+            />
+            <button
+              type="button"
+              onClick={() => setRows(rows.filter((_, j) => j !== i))}
+              className="shrink-0 text-2xs font-bold text-muted hover:text-danger"
+            >
+              삭제
+            </button>
+          </div>
+        ))}
+        <button
+          type="button"
+          onClick={() => setRows([...rows, { label: "", value: "" }])}
+          className="text-2xs font-bold text-muted underline"
+        >
+          ＋ 항목 추가
+        </button>
+      </div>
+      <div className="mt-2.5 flex items-center gap-3">
+        <button
+          type="button"
+          disabled={saving}
+          onClick={save}
+          className="rounded border border-foreground bg-foreground px-3 py-1.5 text-2xs font-bold text-background disabled:opacity-50"
+        >
+          {saving ? "저장 중..." : "저장"}
+        </button>
+        {message && <span className="text-2xs text-muted">{message}</span>}
+      </div>
+    </div>
+  );
+}
+
 /** 슬롯(신청자 정보/공연 정보/기타 같은 큰 그룹) 자체의 순서를 편집하는 패널 — 슬롯은
  *  온오프가 없고 순서만 조정한다(항목 단위 온오프는 FieldOrderPanel이 각 슬롯 안에서 맡는다). */
 function SlotOrderPanel({
@@ -577,6 +713,7 @@ const STAGE_GROUPS: StageGroup[] = [
                 }}
                 title="Rate 카드(패키지 박스) 항목"
               />
+              <PackageCardRowsEditor rateTable={ctx.rateTable} />
               <LivePreview>
                 <div className="[&_input]:pointer-events-auto">
                   <StepConfigOptions
