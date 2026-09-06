@@ -21,7 +21,12 @@ import {
 } from "@/lib/pricing/types";
 import { VenuePicker } from "@/components/wizard/VenuePicker";
 import { StepConfigOptions } from "@/components/wizard/StepConfigOptions";
-import { StepPerformanceInfo, StepAttachments } from "@/components/wizard/StepPerformanceInfo";
+import {
+  StepApplicantDetails,
+  StepAttachments,
+  StepCredibility,
+  StepEventBasics,
+} from "@/components/wizard/StepPerformanceInfo";
 import { StepAudience } from "@/components/wizard/StepAudience";
 import { StepPublicInterest } from "@/components/wizard/StepPublicInterest";
 import { StepMarketingCooperation } from "@/components/wizard/StepMarketingCooperation";
@@ -579,19 +584,41 @@ const STAGE_GROUPS: StageGroup[] = [
           // 큰 슬롯 자체의 순서. WizardShell.tsx의 step3SlotRenderers와 같은 이름·같은 규칙
           // (wizardSlots.ts)을 쓰므로, 여기서 순서를 바꾸면 실제 위저드와 항상 같은 순서로 보인다.
           const step3SlotRenderers: Record<string, ReactNode> = {
-            applicantInfo: (
-              <StepPerformanceInfo
-                key="applicantInfo"
+            applicantDetails: (
+              <StepApplicantDetails
+                key="applicantDetails"
                 info={ctx.mocks.arena.performanceInfo}
                 onChange={noop}
                 midHallInfo={null}
                 onChangeMidHallInfo={noop}
                 selection={ctx.mocks.arena}
                 title={field("performanceInfoTitle")}
-                castContractFiles={[]}
-                onCastContractFilesChange={noop}
                 fieldOrders={ctx.fieldOrders}
                 disabledFields={ctx.disabledFields}
+              />
+            ),
+            eventBasics: (
+              <StepEventBasics
+                key="eventBasics"
+                info={ctx.mocks.arena.performanceInfo}
+                onChange={noop}
+                midHallInfo={null}
+                onChangeMidHallInfo={noop}
+                selection={ctx.mocks.arena}
+                fieldOrders={ctx.fieldOrders}
+                disabledFields={ctx.disabledFields}
+              />
+            ),
+            credibility: (
+              <StepCredibility
+                key="credibility"
+                info={ctx.mocks.arena.performanceInfo}
+                onChange={noop}
+                midHallInfo={null}
+                onChangeMidHallInfo={noop}
+                selection={ctx.mocks.arena}
+                castContractFiles={[]}
+                onCastContractFilesChange={noop}
               />
             ),
             audience: (
@@ -607,7 +634,6 @@ const STAGE_GROUPS: StageGroup[] = [
                 lead={ctx.wizardSteps.audienceLead}
               />
             ),
-            attachments: <StepAttachments key="attachments" files={[]} onFilesChange={noop} isSimultaneous={false} />,
           };
           const configuredStep3Order = ctx.slotOrders["3"];
           const step3Order =
@@ -765,6 +791,12 @@ const STAGE_GROUPS: StageGroup[] = [
                   title={field("safetyPledgeTitle")}
                   lead={lead("safetyPledgeLead")}
                 />
+                {/* [신규 2026-09-06] "자료 첨부는 신청자 정보/규모탭에서는 삭제하고, 맨
+                    마지막 안전관리 서약서 탭에 넣어줘" — 실제 위저드(WizardShell.tsx)와
+                    같은 위치에 미리보기도 맞춘다. */}
+                <div className="mt-10">
+                  <StepAttachments files={[]} onFilesChange={noop} isSimultaneous={false} />
+                </div>
               </div>
             </LivePreview>
           );

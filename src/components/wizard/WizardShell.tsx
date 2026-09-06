@@ -35,7 +35,13 @@ import { Step1Calendar } from "./Step1Calendar";
 import { MidHallCalendar } from "./MidHallCalendar";
 import { StepConfigOptions } from "./StepConfigOptions";
 import { Step5Estimate } from "./Step5Estimate";
-import { StepAttachments, StepPerformanceInfo, validatePerformanceInfoStep } from "./StepPerformanceInfo";
+import {
+  StepApplicantDetails,
+  StepAttachments,
+  StepCredibility,
+  StepEventBasics,
+  validatePerformanceInfoStep,
+} from "./StepPerformanceInfo";
 import { StepAudience, validateAudienceStep } from "./StepAudience";
 import { StepPublicInterest, type PublicInterestFile } from "./StepPublicInterest";
 import { StepMarketingCooperation } from "./StepMarketingCooperation";
@@ -683,8 +689,12 @@ export function WizardShell({
   // 이 맵에서 찾아 렌더한다. 여기 없는 key는 조용히 무시한다(옛 설정에 남은 폐기
   // key 등).
   const step3SlotRenderers: Record<string, () => ReactNode> = {
-    applicantInfo: () => (
-      <StepPerformanceInfo
+    // [개정 2026-09-06] "슬롯은 굵은 줄 기준" — 예전엔 신청자 정보·공연 기본정보·개최
+    // 신뢰도 3개 굵은 줄 구획이 하나의 StepPerformanceInfo 카드로 묶여 있어 슬롯
+    // 하나로만 움직였다. 이제 굵은 줄 구획 자체를 독립 슬롯으로 뜯어 "예상 관객 및
+    // 사업규모"와 나란히 순서를 조정한다(wizardSlots.ts STEP3_DEFAULT_SLOT_ORDER 참고).
+    applicantDetails: () => (
+      <StepApplicantDetails
         info={selection.performanceInfo}
         onChange={(performanceInfo) => setSelection((prev) => ({ ...prev, performanceInfo }))}
         midHallInfo={selection.midHallPerformanceInfo}
@@ -693,10 +703,34 @@ export function WizardShell({
         }
         selection={resolvedSelection}
         title={wizardStepText.performanceInfoTitle}
-        castContractFiles={castContractFiles}
-        onCastContractFilesChange={setCastContractFiles}
         fieldOrders={wizardFieldOrders}
         disabledFields={wizardDisabledFields}
+      />
+    ),
+    eventBasics: () => (
+      <StepEventBasics
+        info={selection.performanceInfo}
+        onChange={(performanceInfo) => setSelection((prev) => ({ ...prev, performanceInfo }))}
+        midHallInfo={selection.midHallPerformanceInfo}
+        onChangeMidHallInfo={(midHallPerformanceInfo) =>
+          setSelection((prev) => ({ ...prev, midHallPerformanceInfo }))
+        }
+        selection={resolvedSelection}
+        fieldOrders={wizardFieldOrders}
+        disabledFields={wizardDisabledFields}
+      />
+    ),
+    credibility: () => (
+      <StepCredibility
+        info={selection.performanceInfo}
+        onChange={(performanceInfo) => setSelection((prev) => ({ ...prev, performanceInfo }))}
+        midHallInfo={selection.midHallPerformanceInfo}
+        onChangeMidHallInfo={(midHallPerformanceInfo) =>
+          setSelection((prev) => ({ ...prev, midHallPerformanceInfo }))
+        }
+        selection={resolvedSelection}
+        castContractFiles={castContractFiles}
+        onCastContractFilesChange={setCastContractFiles}
       />
     ),
     // [2026-08-23] "신청자 정보 및 규모" — 두 탭을 하나로 합쳤다("신청자 정보 탭을
@@ -714,13 +748,6 @@ export function WizardShell({
         showHeading={false}
         title={wizardStepText.audienceTitle}
         lead={wizardStepText.audienceLead}
-      />
-    ),
-    attachments: () => (
-      <StepAttachments
-        files={pendingFiles}
-        onFilesChange={setPendingFiles}
-        isSimultaneous={resolvedSelection.bookingMode === "SIMULTANEOUS"}
       />
     ),
   };
@@ -914,15 +941,26 @@ export function WizardShell({
           />
         )}
         {step === 6 && (
-          <StepSafetyPledge
-            pledge={selection.safetyPledge ?? DEFAULT_SAFETY_PLEDGE}
-            onChange={(safetyPledge) => setSelection((prev) => ({ ...prev, safetyPledge }))}
-            safetyPlanFile={safetyPlanFile}
-            onSafetyPlanFileChange={setSafetyPlanFile}
-            companyName={selection.performanceInfo.applicantCompanyName || undefined}
-            title={wizardStepText.safetyPledgeTitle}
-            lead={wizardStepText.safetyPledgeLead}
-          />
+          <>
+            <StepSafetyPledge
+              pledge={selection.safetyPledge ?? DEFAULT_SAFETY_PLEDGE}
+              onChange={(safetyPledge) => setSelection((prev) => ({ ...prev, safetyPledge }))}
+              safetyPlanFile={safetyPlanFile}
+              onSafetyPlanFileChange={setSafetyPlanFile}
+              companyName={selection.performanceInfo.applicantCompanyName || undefined}
+              title={wizardStepText.safetyPledgeTitle}
+              lead={wizardStepText.safetyPledgeLead}
+            />
+            {/* [신규 2026-09-06] "자료 첨부는 신청자 정보/규모탭에서는 삭제하고, 맨
+                마지막 안전관리 서약서 탭에 넣어줘" — STEP3에서 빠져 여기로 옮겼다. */}
+            <div className="mt-10">
+              <StepAttachments
+                files={pendingFiles}
+                onFilesChange={setPendingFiles}
+                isSimultaneous={resolvedSelection.bookingMode === "SIMULTANEOUS"}
+              />
+            </div>
+          </>
         )}
         {step === 7 && (
           <Step5Estimate

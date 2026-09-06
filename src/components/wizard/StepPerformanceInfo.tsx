@@ -398,22 +398,14 @@ const EMPTY_ARTIST_RECENT_PERFORMANCE: ArtistRecentPerformanceRecord = {
 // 신청자 정보 · 공연 기본정보 · 개최 신뢰도 카드 자체를 분리했다.
 // scheduleSummary가 null이면(중형 전용 사본) 대관기간/총 공연 횟수 행은 표시하지 않는다 —
 // 그 값들은 아레나 쪽(원본) 카드에 이미 한 번만 나온다.
-function PerformanceInfoFields({
+function ApplicantDetailsFields({
   info,
   onChange,
-  scheduleSummary,
-  castContractFiles,
-  onCastContractFilesChange,
   fieldOrders,
   disabledFields,
 }: {
   info: PerformanceInfo;
   onChange: (info: PerformanceInfo) => void;
-  scheduleSummary: { arenaLine: string | null; midHallLine: string | null; showsTotal: number | null } | null;
-  // 출연 계약 증빙은 공간(아레나/중형)별로 갈리는 자료가 아니라 탭과 무관하게 같은 목록을
-  // 공유한다 — 그래서 info 가 아니라 위저드 상태에서 그대로 내려온다.
-  castContractFiles: File[];
-  onCastContractFilesChange: (files: File[]) => void;
   /**
    * [신규 2026-09-06] "각 슬롯 내에 있는 각 항목들 순서 조정·노출 On/off" — 그룹id →
    * 필드 key 순서. /admin/content 화면 문구에서 편집(ScreenTextContent.wizardFieldOrders).
@@ -422,7 +414,6 @@ function PerformanceInfoFields({
   /** 위와 짝 — "그룹id.필드key" 형식의 끈 필드 id 목록(ScreenTextContent.wizardDisabledFields). */
   disabledFields?: string[];
 }) {
-  const dialog = useDialog();
   const { t, tStr } = useWizardText();
 
   // [신규 2026-09-06] 담당자 정보 — 순서 조정·온오프 가능한 첫 그룹. 담당역할·소속
@@ -481,6 +472,170 @@ function PerformanceInfoFields({
   const companyTypeOrder = resolveGroupOrder(fieldOrders?.[COMPANY_TYPE_GROUP_ID], APPLICANT_COMPANY_TYPES);
   const visibleCompanyTypes = visibleInGroup(companyTypeOrder, COMPANY_TYPE_GROUP_ID, disabledFields);
 
+  function set<K extends keyof PerformanceInfo>(key: K, value: PerformanceInfo[K]) {
+    onChange({ ...info, [key]: value });
+  }
+
+  function addPastPerformance() {
+    set("pastPerformances", [...info.pastPerformances, { ...EMPTY_PAST_PERFORMANCE }]);
+  }
+
+  function updatePastPerformance(index: number, patch: Partial<PastPerformanceRecord>) {
+    set(
+      "pastPerformances",
+      info.pastPerformances.map((row, i) => (i === index ? { ...row, ...patch } : row)),
+    );
+  }
+
+  function removePastPerformance(index: number) {
+    set(
+      "pastPerformances",
+      info.pastPerformances.filter((_, i) => i !== index),
+    );
+  }
+
+  return (
+    <div className="border-t-2 border-foreground pt-5">
+      <h3 className="type-kr-heading text-h6-m">{t("performanceInfo.applicantSectionHeading", "신청자 정보")}</h3>
+      <p className="mt-1 text-xs text-muted">
+        {t("performanceInfo.applicantSectionHint", "가입한 계정 정보에서 자동으로 불러옵니다")}
+      </p>
+
+      <div className="mt-4 space-y-4">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+          <ReadOnlyRow
+            label={t("performanceInfo.applicantCompanyNameLabel", "대관신청사명")}
+            value={info.applicantCompanyName || "—"}
+          />
+          <ReadOnlyRow
+            label={t("performanceInfo.applicantBrnLabel", "사업자등록번호")}
+            value={info.applicantBusinessRegistrationNumber || "—"}
+          />
+          {/* [신규 2026-08-26] 대표자명 — 대관신청사명·사업자등록번호와 같은 이유로
+              가입 계정(회사 정보)에서 그대로 가져와 읽기 전용으로 보여준다. */}
+          <ReadOnlyRow
+            label={t("performanceInfo.applicantRepresentativeNameLabel", "대표자명")}
+            value={info.applicantRepresentativeName || "—"}
+          />
+        </div>
+
+        <div>
+          <div className="mb-2.5 text-xs font-bold text-muted">
+            {t("performanceInfo.applicantCompanyTypeLabel", "신청 기업 유형")}
+          </div>
+          <div className="flex flex-wrap gap-2">
+            {visibleCompanyTypes.map((type) => (
+              <CheckboxChip
+                key={type}
+                label={APPLICANT_COMPANY_TYPE_LABEL[type]}
+                checked={info.applicantCompanyType === type}
+                onChange={() => set("applicantCompanyType", info.applicantCompanyType === type ? null : type)}
+              />
+            ))}
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+          {visibleContactFields.map((key) => (
+            <Fragment key={key}>{contactFieldRenderers[key]?.()}</Fragment>
+          ))}
+        </div>
+        <ResponsiblePersonFields
+          label={t("performanceInfo.operationsResponsibleLabel", "공연 운영 총괄 책임자")}
+          value={info.operationsResponsible}
+          onChange={(v) => set("operationsResponsible", v)}
+        />
+        <ResponsiblePersonFields
+          label={t("performanceInfo.safetyResponsibleLabel", "안전관리 총괄 책임자")}
+          value={info.safetyResponsible}
+          onChange={(v) => set("safetyResponsible", v)}
+        />
+      </div>
+
+      <div className="mt-6">
+        <div className="mb-2.5 flex items-center justify-between">
+          <label className="text-xs font-bold text-muted">
+            {t("performanceInfo.pastPerformancesLabel", "대관사 최근 3년간 공연 실적")}
+          </label>
+          <button
+            type="button"
+            onClick={addPastPerformance}
+            className={toggleClass(false)}
+          >
+            {t("performanceInfo.addRowButton", "＋ 행 추가")}
+          </button>
+        </div>
+        {info.pastPerformances.length === 0 && (
+          <p className="text-xs text-muted">
+            {t("performanceInfo.pastPerformancesEmpty", "아직 등록된 실적이 없습니다.")}
+          </p>
+        )}
+        <div className="space-y-2">
+          {info.pastPerformances.map((row, i) => (
+            <div key={i} className="grid grid-cols-5 gap-1.5 border-b border-border/15 py-2">
+              <input
+                value={row.eventName}
+                placeholder={tStr("performanceInfo.pastEventNamePlaceholder", "공연명")}
+                onChange={(e) => updatePastPerformance(i, { eventName: e.target.value })}
+                className="field-base"
+              />
+              <input
+                value={row.venue}
+                placeholder={tStr("performanceInfo.pastVenuePlaceholder", "장소")}
+                onChange={(e) => updatePastPerformance(i, { venue: e.target.value })}
+                className="field-base"
+              />
+              <input
+                value={row.period}
+                placeholder={tStr("performanceInfo.pastPeriodPlaceholder", "기간")}
+                onChange={(e) => updatePastPerformance(i, { period: e.target.value })}
+                className="field-base"
+              />
+              <input
+                value={row.audience}
+                placeholder={tStr("performanceInfo.pastAudiencePlaceholder", "관객 수")}
+                onChange={(e) => updatePastPerformance(i, { audience: e.target.value })}
+                className="field-base"
+              />
+              <div className="flex items-center gap-1">
+                <input
+                  value={row.role}
+                  placeholder={tStr("performanceInfo.pastRolePlaceholder", "주최·주관 역할")}
+                  onChange={(e) => updatePastPerformance(i, { role: e.target.value })}
+                  className="field-base w-full"
+                />
+                <button
+                  type="button"
+                  onClick={() => removePastPerformance(i)}
+                  aria-label={tStr("performanceInfo.removeRowAriaLabel", "삭제")}
+                  className={`${toggleClass(false)} shrink-0`}
+                >
+                  {t("performanceInfo.removeRowButton", "삭제")}
+                </button>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function EventBasicsFields({
+  info,
+  onChange,
+  scheduleSummary,
+  fieldOrders,
+  disabledFields,
+}: {
+  info: PerformanceInfo;
+  onChange: (info: PerformanceInfo) => void;
+  scheduleSummary: { arenaLine: string | null; midHallLine: string | null; showsTotal: number | null } | null;
+  fieldOrders?: Record<string, string[]>;
+  disabledFields?: string[];
+}) {
+  const { t, tStr } = useWizardText();
+
   // [신규 2026-09-06] "공연 기본정보"로 이어감 — 공연명/아티스트 쌍, 행사유형, 공연등급,
   // 객석형태, 무대형태도 같은 패턴(순서 조정 + 노출 On/off). 반복 입력 행(주최·주관·기획,
   // 아티스트 이력 등)은 이미 추가/삭제가 있어 이 패턴 대상에서 뺀다.
@@ -525,24 +680,6 @@ function PerformanceInfoFields({
 
   function set<K extends keyof PerformanceInfo>(key: K, value: PerformanceInfo[K]) {
     onChange({ ...info, [key]: value });
-  }
-
-  function addPastPerformance() {
-    set("pastPerformances", [...info.pastPerformances, { ...EMPTY_PAST_PERFORMANCE }]);
-  }
-
-  function updatePastPerformance(index: number, patch: Partial<PastPerformanceRecord>) {
-    set(
-      "pastPerformances",
-      info.pastPerformances.map((row, i) => (i === index ? { ...row, ...patch } : row)),
-    );
-  }
-
-  function removePastPerformance(index: number) {
-    set(
-      "pastPerformances",
-      info.pastPerformances.filter((_, i) => i !== index),
-    );
   }
 
   // organizers(주최·주관·기획 반복 행) — 행이 바뀔 때마다 organizer(단일 텍스트)를
@@ -606,121 +743,130 @@ function PerformanceInfoFields({
   }
 
   return (
-    <>
-      <div className="flex flex-col gap-6">
-        {/* 신청자 정보 */}
-        <div className="border-t-2 border-foreground pt-5">
-          <h3 className="type-kr-heading text-h6-m">{t("performanceInfo.applicantSectionHeading", "신청자 정보")}</h3>
-          <p className="mt-1 text-xs text-muted">
-            {t("performanceInfo.applicantSectionHint", "가입한 계정 정보에서 자동으로 불러옵니다")}
-          </p>
+    <div className="border-t-2 border-foreground pt-5">
+      <h3 className="type-kr-heading text-h6-m">{t("performanceInfo.eventBasicsSectionHeading", "공연 기본정보")}</h3>
+      <p className="mt-1 text-xs text-muted">
+        {t("performanceInfo.eventBasicsSectionHint", "입력한 내용은 대관심의 및 계약서 작성에 활용됩니다")}
+      </p>
 
-          <div className="mt-4 space-y-4">
+      {/* 그냥 항목을 순서대로 나열하면 왜 이 둘이 한 줄인지 알 수 없어서
+          (2026-08-22, "비슷한 유형끼리는 그룹핑을 해서" 피드백), 성격이 같은
+          항목끼리 소제목으로 묶은 뒤 그 안에서 짝을 짓는다. 소제목 굵기만으로는
+          구분이 약해서("각 구분마다 옅은 선을 추가") 그룹 사이에 옅은 구분선도 넣는다. */}
+      <div className="mt-4 space-y-6">
+        {/* [개정 2026-08-26] "공연개요 워딩은 삭제" 요청으로 소제목 라벨을 뺐다 —
+            필드 자체는 그대로 남는다. */}
+        <div>
+          <div className="space-y-4">
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-              <ReadOnlyRow
-                label={t("performanceInfo.applicantCompanyNameLabel", "대관신청사명")}
-                value={info.applicantCompanyName || "—"}
-              />
-              <ReadOnlyRow
-                label={t("performanceInfo.applicantBrnLabel", "사업자등록번호")}
-                value={info.applicantBusinessRegistrationNumber || "—"}
-              />
-              {/* [신규 2026-08-26] 대표자명 — 대관신청사명·사업자등록번호와 같은 이유로
-                  가입 계정(회사 정보)에서 그대로 가져와 읽기 전용으로 보여준다. */}
-              <ReadOnlyRow
-                label={t("performanceInfo.applicantRepresentativeNameLabel", "대표자명")}
-                value={info.applicantRepresentativeName || "—"}
-              />
-            </div>
-
-            <div>
-              <div className="mb-2.5 text-xs font-bold text-muted">
-                {t("performanceInfo.applicantCompanyTypeLabel", "신청 기업 유형")}
-              </div>
-              <div className="flex flex-wrap gap-2">
-                {visibleCompanyTypes.map((type) => (
-                  <CheckboxChip
-                    key={type}
-                    label={APPLICANT_COMPANY_TYPE_LABEL[type]}
-                    checked={info.applicantCompanyType === type}
-                    onChange={() => set("applicantCompanyType", info.applicantCompanyType === type ? null : type)}
-                  />
-                ))}
-              </div>
-            </div>
-
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-              {visibleContactFields.map((key) => (
-                <Fragment key={key}>{contactFieldRenderers[key]?.()}</Fragment>
+              {visibleEventBasicsFields.map((key) => (
+                <Fragment key={key}>{eventBasicsFieldRenderers[key]?.()}</Fragment>
               ))}
             </div>
-            <ResponsiblePersonFields
-              label={t("performanceInfo.operationsResponsibleLabel", "공연 운영 총괄 책임자")}
-              value={info.operationsResponsible}
-              onChange={(v) => set("operationsResponsible", v)}
-            />
-            <ResponsiblePersonFields
-              label={t("performanceInfo.safetyResponsibleLabel", "안전관리 총괄 책임자")}
-              value={info.safetyResponsible}
-              onChange={(v) => set("safetyResponsible", v)}
-            />
-          </div>
 
-          <div className="mt-6">
-            <div className="mb-2.5 flex items-center justify-between">
-              <label className="text-xs font-bold text-muted">
-                {t("performanceInfo.pastPerformancesLabel", "대관사 최근 3년간 공연 실적")}
-              </label>
-              <button
-                type="button"
-                onClick={addPastPerformance}
-                className={toggleClass(false)}
-              >
-                {t("performanceInfo.addRowButton", "＋ 행 추가")}
-              </button>
-            </div>
-            {info.pastPerformances.length === 0 && (
-              <p className="text-xs text-muted">
-                {t("performanceInfo.pastPerformancesEmpty", "아직 등록된 실적이 없습니다.")}
-              </p>
-            )}
-            <div className="space-y-2">
-              {info.pastPerformances.map((row, i) => (
-                <div key={i} className="grid grid-cols-5 gap-1.5 border-b border-border/15 py-2">
-                  <input
-                    value={row.eventName}
-                    placeholder={tStr("performanceInfo.pastEventNamePlaceholder", "공연명")}
-                    onChange={(e) => updatePastPerformance(i, { eventName: e.target.value })}
-                    className="field-base"
-                  />
-                  <input
-                    value={row.venue}
-                    placeholder={tStr("performanceInfo.pastVenuePlaceholder", "장소")}
-                    onChange={(e) => updatePastPerformance(i, { venue: e.target.value })}
-                    className="field-base"
-                  />
-                  <input
-                    value={row.period}
-                    placeholder={tStr("performanceInfo.pastPeriodPlaceholder", "기간")}
-                    onChange={(e) => updatePastPerformance(i, { period: e.target.value })}
-                    className="field-base"
-                  />
-                  <input
-                    value={row.audience}
-                    placeholder={tStr("performanceInfo.pastAudiencePlaceholder", "관객 수")}
-                    onChange={(e) => updatePastPerformance(i, { audience: e.target.value })}
-                    className="field-base"
-                  />
-                  <div className="flex items-center gap-1">
-                    <input
+            {/* [개정 2026-08-26] "공연 주최, 공연 주관, 공연 기획 따로따로 별도의
+                행으로 추가할수 있게" — 단일 텍스트 입력을 역할별 반복 행으로
+                바꾼다. organizer(단일 텍스트)는 이 배열에서 자동 합성돼 인쇄본·
+                관리자 화면과의 하위호환을 유지한다(deriveOrganizerSummary). */}
+            <div>
+              <div className="mb-2.5 flex items-center justify-between">
+                <label className="text-xs font-bold text-muted">
+                  {t("performanceInfo.organizerLabel", "주최 · 주관 · 기획")}
+                </label>
+                <button type="button" onClick={addOrganizer} className={toggleClass(false)}>
+                  {t("performanceInfo.addRowButton", "＋ 행 추가")}
+                </button>
+              </div>
+              <div className="space-y-2">
+                {organizers.map((row, i) => (
+                  <div key={i} className="flex items-center gap-1.5 border-b border-border/15 py-2">
+                    <select
                       value={row.role}
-                      placeholder={tStr("performanceInfo.pastRolePlaceholder", "주최·주관 역할")}
-                      onChange={(e) => updatePastPerformance(i, { role: e.target.value })}
+                      onChange={(e) => updateOrganizer(i, { role: e.target.value as OrganizerRole })}
+                      className="field-base w-28 shrink-0"
+                    >
+                      {ORGANIZER_ROLES.map((role) => (
+                        <option key={role} value={role}>
+                          {ORGANIZER_ROLE_LABEL[role]}
+                        </option>
+                      ))}
+                    </select>
+                    <input
+                      value={row.name}
+                      placeholder={tStr("performanceInfo.organizerNamePlaceholder", "업체명 · 단체명")}
+                      onChange={(e) => updateOrganizer(i, { name: e.target.value })}
                       className="field-base w-full"
                     />
                     <button
                       type="button"
-                      onClick={() => removePastPerformance(i)}
+                      onClick={() => removeOrganizer(i)}
+                      aria-label={tStr("performanceInfo.removeRowAriaLabel", "삭제")}
+                      className={`${toggleClass(false)} shrink-0`}
+                    >
+                      {t("performanceInfo.removeRowButton", "삭제")}
+                    </button>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* [신규 2026-08-26] 아티스트 이력 — artist(요약 텍스트)와는 별개로 상세
+            이력을 받는다. 기본으로 한 행씩 열려 있고(INITIAL_PERFORMANCE_INFO),
+            무엇을 적어야 하는지 예시 문구를 각 표 위에 안내한다(관리자가 문구
+            수정 가능 — t()). */}
+        <div className="border-t border-border/15 pt-6">
+          <div className="mb-3 text-xs font-bold tracking-wide text-muted uppercase">
+            {t("performanceInfo.artistHistoryGroupLabel", "아티스트 이력")}
+          </div>
+
+          <div>
+            <div className="mb-2.5 flex items-center justify-between">
+              <label className="text-xs font-bold text-muted">
+                {t("performanceInfo.artistMainHistoryLabel", "① 아티스트 주요 이력")}
+              </label>
+              <button type="button" onClick={addArtistMainHistory} className={toggleClass(false)}>
+                {t("performanceInfo.addRowButton", "＋ 행 추가")}
+              </button>
+            </div>
+            <p className="mb-2 text-xs text-muted">
+              {t(
+                "performanceInfo.artistMainHistoryExample",
+                "예시: 아티스트명 / 소속사 / 데뷔연도 / 주요 활동 및 수상·성과",
+              )}
+            </p>
+            <div className="space-y-2">
+              {artistMainHistory.map((row, i) => (
+                <div key={i} className="grid grid-cols-5 gap-1.5 border-b border-border/15 py-2">
+                  <input
+                    value={row.artistName}
+                    placeholder={tStr("performanceInfo.artistNamePlaceholder", "아티스트명")}
+                    onChange={(e) => updateArtistMainHistory(i, { artistName: e.target.value })}
+                    className="field-base"
+                  />
+                  <input
+                    value={row.agency}
+                    placeholder={tStr("performanceInfo.agencyPlaceholder", "소속사")}
+                    onChange={(e) => updateArtistMainHistory(i, { agency: e.target.value })}
+                    className="field-base"
+                  />
+                  <input
+                    value={row.debutYear}
+                    placeholder={tStr("performanceInfo.debutYearPlaceholder", "데뷔연도")}
+                    onChange={(e) => updateArtistMainHistory(i, { debutYear: e.target.value })}
+                    className="field-base"
+                  />
+                  <div className="col-span-2 flex items-center gap-1">
+                    <input
+                      value={row.achievements}
+                      placeholder={tStr("performanceInfo.achievementsPlaceholder", "주요 활동 및 수상·성과")}
+                      onChange={(e) => updateArtistMainHistory(i, { achievements: e.target.value })}
+                      className="field-base w-full"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => removeArtistMainHistory(i)}
                       aria-label={tStr("performanceInfo.removeRowAriaLabel", "삭제")}
                       className={`${toggleClass(false)} shrink-0`}
                     >
@@ -731,601 +877,488 @@ function PerformanceInfoFields({
               ))}
             </div>
           </div>
+
+          <div className="mt-5">
+            <div className="mb-2.5 flex items-center justify-between">
+              <label className="text-xs font-bold text-muted">
+                {t("performanceInfo.artistRecentPerformancesLabel", "② 최근 공연 이력 — 최대 3~5건")}
+              </label>
+              <button type="button" onClick={addArtistRecentPerformance} className={toggleClass(false)}>
+                {t("performanceInfo.addRowButton", "＋ 행 추가")}
+              </button>
+            </div>
+            <p className="mb-2 text-xs text-muted">
+              {t(
+                "performanceInfo.artistRecentPerformancesExample",
+                "예시: 공연명 / 공연일 / 공연장 / 도시·국가 / 공연 횟수 / 회당 객석 규모 / 관객 수 / 티켓 판매율",
+              )}
+            </p>
+            <div className="space-y-2">
+              {artistRecentPerformances.map((row, i) => (
+                <div key={i} className="space-y-1.5 border-b border-border/15 py-2">
+                  <div className="grid grid-cols-4 gap-1.5">
+                    <input
+                      value={row.eventName}
+                      placeholder={tStr("performanceInfo.artistPastEventNamePlaceholder", "공연명")}
+                      onChange={(e) => updateArtistRecentPerformance(i, { eventName: e.target.value })}
+                      className="field-base"
+                    />
+                    <input
+                      value={row.eventDate}
+                      placeholder={tStr("performanceInfo.artistPastEventDatePlaceholder", "공연일")}
+                      onChange={(e) => updateArtistRecentPerformance(i, { eventDate: e.target.value })}
+                      className="field-base"
+                    />
+                    <input
+                      value={row.venue}
+                      placeholder={tStr("performanceInfo.artistPastVenuePlaceholder", "공연장")}
+                      onChange={(e) => updateArtistRecentPerformance(i, { venue: e.target.value })}
+                      className="field-base"
+                    />
+                    <input
+                      value={row.cityCountry}
+                      placeholder={tStr("performanceInfo.artistPastCityCountryPlaceholder", "도시 · 국가")}
+                      onChange={(e) => updateArtistRecentPerformance(i, { cityCountry: e.target.value })}
+                      className="field-base"
+                    />
+                  </div>
+                  <div className="grid grid-cols-4 gap-1.5">
+                    <input
+                      value={row.showCount}
+                      placeholder={tStr("performanceInfo.artistPastShowCountPlaceholder", "공연 횟수")}
+                      onChange={(e) => updateArtistRecentPerformance(i, { showCount: e.target.value })}
+                      className="field-base"
+                    />
+                    <input
+                      value={row.seatsPerShow}
+                      placeholder={tStr("performanceInfo.artistPastSeatsPerShowPlaceholder", "회당 객석 규모")}
+                      onChange={(e) => updateArtistRecentPerformance(i, { seatsPerShow: e.target.value })}
+                      className="field-base"
+                    />
+                    <input
+                      value={row.audience}
+                      placeholder={tStr("performanceInfo.artistPastAudiencePlaceholder", "관객 수")}
+                      onChange={(e) => updateArtistRecentPerformance(i, { audience: e.target.value })}
+                      className="field-base"
+                    />
+                    <div className="flex items-center gap-1">
+                      <input
+                        value={row.sellRate}
+                        placeholder={tStr("performanceInfo.artistPastSellRatePlaceholder", "티켓 판매율")}
+                        onChange={(e) => updateArtistRecentPerformance(i, { sellRate: e.target.value })}
+                        className="field-base w-full"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => removeArtistRecentPerformance(i)}
+                        aria-label={tStr("performanceInfo.removeRowAriaLabel", "삭제")}
+                        className={`${toggleClass(false)} shrink-0`}
+                      >
+                        {t("performanceInfo.removeRowButton", "삭제")}
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
         </div>
 
-        {/* 공연 기본정보 */}
-        <div className="border-t-2 border-foreground pt-5">
-          <h3 className="type-kr-heading text-h6-m">{t("performanceInfo.eventBasicsSectionHeading", "공연 기본정보")}</h3>
-          <p className="mt-1 text-xs text-muted">
-            {t("performanceInfo.eventBasicsSectionHint", "입력한 내용은 대관심의 및 계약서 작성에 활용됩니다")}
-          </p>
-
-          {/* 그냥 항목을 순서대로 나열하면 왜 이 둘이 한 줄인지 알 수 없어서
-              (2026-08-22, "비슷한 유형끼리는 그룹핑을 해서" 피드백), 성격이 같은
-              항목끼리 소제목으로 묶은 뒤 그 안에서 짝을 짓는다. 소제목 굵기만으로는
-              구분이 약해서("각 구분마다 옅은 선을 추가") 그룹 사이에 옅은 구분선도 넣는다. */}
-          <div className="mt-4 space-y-6">
-            {/* [개정 2026-08-26] "공연개요 워딩은 삭제" 요청으로 소제목 라벨을 뺐다 —
-                필드 자체는 그대로 남는다. */}
+        <div className="border-t border-border/15 pt-6">
+          <div className="mb-3 text-xs font-bold tracking-wide text-muted uppercase">
+            {t("performanceInfo.classificationGroupLabel", "분류")}
+          </div>
+          <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
             <div>
-              <div className="space-y-4">
-                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                  {visibleEventBasicsFields.map((key) => (
-                    <Fragment key={key}>{eventBasicsFieldRenderers[key]?.()}</Fragment>
-                  ))}
-                </div>
-
-                {/* [개정 2026-08-26] "공연 주최, 공연 주관, 공연 기획 따로따로 별도의
-                    행으로 추가할수 있게" — 단일 텍스트 입력을 역할별 반복 행으로
-                    바꾼다. organizer(단일 텍스트)는 이 배열에서 자동 합성돼 인쇄본·
-                    관리자 화면과의 하위호환을 유지한다(deriveOrganizerSummary). */}
-                <div>
-                  <div className="mb-2.5 flex items-center justify-between">
-                    <label className="text-xs font-bold text-muted">
-                      {t("performanceInfo.organizerLabel", "주최 · 주관 · 기획")}
-                    </label>
-                    <button type="button" onClick={addOrganizer} className={toggleClass(false)}>
-                      {t("performanceInfo.addRowButton", "＋ 행 추가")}
-                    </button>
-                  </div>
-                  <div className="space-y-2">
-                    {organizers.map((row, i) => (
-                      <div key={i} className="flex items-center gap-1.5 border-b border-border/15 py-2">
-                        <select
-                          value={row.role}
-                          onChange={(e) => updateOrganizer(i, { role: e.target.value as OrganizerRole })}
-                          className="field-base w-28 shrink-0"
-                        >
-                          {ORGANIZER_ROLES.map((role) => (
-                            <option key={role} value={role}>
-                              {ORGANIZER_ROLE_LABEL[role]}
-                            </option>
-                          ))}
-                        </select>
-                        <input
-                          value={row.name}
-                          placeholder={tStr("performanceInfo.organizerNamePlaceholder", "업체명 · 단체명")}
-                          onChange={(e) => updateOrganizer(i, { name: e.target.value })}
-                          className="field-base w-full"
-                        />
-                        <button
-                          type="button"
-                          onClick={() => removeOrganizer(i)}
-                          aria-label={tStr("performanceInfo.removeRowAriaLabel", "삭제")}
-                          className={`${toggleClass(false)} shrink-0`}
-                        >
-                          {t("performanceInfo.removeRowButton", "삭제")}
-                        </button>
-                      </div>
-                    ))}
-                  </div>
-                </div>
+              <div className="mb-2.5 text-xs font-bold text-muted">
+                {t("performanceInfo.eventTypesLabel", "행사유형")}
+              </div>
+              <div className="flex flex-wrap gap-2">
+                {visibleEventTypes.map((type) => (
+                  <CheckboxChip
+                    key={type}
+                    label={EVENT_TYPE_LABEL[type]}
+                    checked={info.eventTypes.includes(type)}
+                    onChange={() => set("eventTypes", toggleInArray(info.eventTypes, type))}
+                  />
+                ))}
               </div>
             </div>
 
-            {/* [신규 2026-08-26] 아티스트 이력 — artist(요약 텍스트)와는 별개로 상세
-                이력을 받는다. 기본으로 한 행씩 열려 있고(INITIAL_PERFORMANCE_INFO),
-                무엇을 적어야 하는지 예시 문구를 각 표 위에 안내한다(관리자가 문구
-                수정 가능 — t()). */}
-            <div className="border-t border-border/15 pt-6">
-              <div className="mb-3 text-xs font-bold tracking-wide text-muted uppercase">
-                {t("performanceInfo.artistHistoryGroupLabel", "아티스트 이력")}
+            <div>
+              <div className="mb-2.5 text-xs font-bold text-muted">
+                {t("performanceInfo.ageRatingLabel", "공연등급")}
+              </div>
+              <div className="flex flex-wrap gap-2">
+                {visibleAgeRatings.map((rating) => (
+                  <CheckboxChip
+                    key={rating}
+                    label={AGE_RATING_LABEL[rating]}
+                    checked={info.ageRating === rating}
+                    onChange={() => set("ageRating", info.ageRating === rating ? null : rating)}
+                  />
+                ))}
+              </div>
+              {info.ageRating === "AGE_LIMIT" && (
+                <input
+                  value={info.ageLimitDetail}
+                  placeholder={tStr("performanceInfo.ageLimitDetailPlaceholder", "예: 15세 이상 관람가")}
+                  onChange={(e) => set("ageLimitDetail", e.target.value)}
+                  className="field-base mt-2 w-full max-w-xs"
+                />
+              )}
+            </div>
+          </div>
+        </div>
+
+        <div className="border-t border-border/15 pt-6">
+          <div className="mb-3 text-xs font-bold tracking-wide text-muted uppercase">
+            {t("performanceInfo.scheduleGroupLabel", "일정")}
+          </div>
+          <div className="space-y-4">
+            {(scheduleSummary?.arenaLine || scheduleSummary?.midHallLine) && (
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                {scheduleSummary?.arenaLine && (
+                  <ReadOnlyRow
+                    label={t("performanceInfo.arenaPeriodLabel", "대관기간 — 아레나")}
+                    value={scheduleSummary.arenaLine}
+                    note={t("performanceInfo.editAtScheduleNote", "수정은 일정 선택에서")}
+                  />
+                )}
+                {scheduleSummary?.midHallLine && (
+                  <ReadOnlyRow
+                    label={t("performanceInfo.midHallPeriodLabel", "대관기간 — 중형")}
+                    value={scheduleSummary.midHallLine}
+                    note={t("performanceInfo.editAtScheduleNote", "수정은 일정 선택에서")}
+                  />
+                )}
+              </div>
+            )}
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+              {scheduleSummary?.showsTotal != null && (
+                <ReadOnlyRow
+                  label={t("performanceInfo.totalShowsLabel", "총 공연 횟수")}
+                  value={`${scheduleSummary.showsTotal}${tStr("performanceInfo.showsUnitAutoCalc", "회 (자동 계산)")}`}
+                />
+              )}
+              <TextField
+                label={t("performanceInfo.teardownCompletionTimeLabel", "철수 완료 예정시간(선택)")}
+                value={info.teardownCompletionTime}
+                placeholder={tStr("performanceInfo.teardownCompletionTimePlaceholder", "예: 당일 24:00")}
+                onChange={(v) => set("teardownCompletionTime", v)}
+              />
+            </div>
+            {/* 네이티브 date input을 다른 필드처럼 w-full로 늘리면 브라우저마다
+                내부 세그먼트 사이가 벌어져 이상하게 보인다 — 앱 전역의 날짜 입력
+                관례(TicketOpenPanel 등)와 같이 폭을 좁게 고정한다. */}
+            <div>
+              <label className="mb-1.5 block text-xs font-bold text-muted">
+                {t("performanceInfo.ticketOpenExpectedDateLabel", "티켓 오픈 예정일")}
+              </label>
+              <div className="flex items-center gap-2">
+                <input
+                  type="date"
+                  value={
+                    info.ticketOpenExpectedDate === "미정" || info.ticketOpenExpectedDate === "협의중"
+                      ? ""
+                      : info.ticketOpenExpectedDate
+                  }
+                  disabled={info.ticketOpenExpectedDate === "미정" || info.ticketOpenExpectedDate === "협의중"}
+                  onChange={(e) => set("ticketOpenExpectedDate", e.target.value)}
+                  className="field-base tabular-nums sm:w-52"
+                />
+                <button
+                  type="button"
+                  onClick={() =>
+                    set("ticketOpenExpectedDate", info.ticketOpenExpectedDate === "미정" ? "" : "미정")
+                  }
+                  className={toggleClass(info.ticketOpenExpectedDate === "미정")}
+                >
+                  {t("performanceInfo.ticketOpenUndecided", "미정")}
+                </button>
+                <button
+                  type="button"
+                  onClick={() =>
+                    set("ticketOpenExpectedDate", info.ticketOpenExpectedDate === "협의중" ? "" : "협의중")
+                  }
+                  className={toggleClass(info.ticketOpenExpectedDate === "협의중")}
+                >
+                  {t("performanceInfo.ticketOpenInDiscussion", "협의 중")}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div className="border-t border-border/15 pt-6">
+          <div className="mb-3 text-xs font-bold tracking-wide text-muted uppercase">
+            {t("performanceInfo.spaceConfigGroupLabel", "공간 구성")}
+          </div>
+          <div className="space-y-4">
+            <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
+              <div>
+                <div className="mb-2.5 text-xs font-bold text-muted">
+                  {t("performanceInfo.seatingTypesLabel", "객석형태")}
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  {visibleSeatingTypes.map((type) => (
+                    <CheckboxChip
+                      key={type}
+                      label={SEATING_TYPE_LABEL[type]}
+                      checked={info.seatingTypes.includes(type)}
+                      onChange={() => set("seatingTypes", toggleInArray(info.seatingTypes, type))}
+                    />
+                  ))}
+                </div>
+                {info.seatingTypes.includes("OTHER") && (
+                  <input
+                    value={info.seatingTypeOtherDetail ?? ""}
+                    placeholder={tStr("performanceInfo.seatingTypeOtherDetailPlaceholder", "기타 객석형태 설명")}
+                    onChange={(e) => set("seatingTypeOtherDetail", e.target.value)}
+                    className="field-base mt-2 w-full max-w-xs"
+                  />
+                )}
               </div>
 
               <div>
-                <div className="mb-2.5 flex items-center justify-between">
-                  <label className="text-xs font-bold text-muted">
-                    {t("performanceInfo.artistMainHistoryLabel", "① 아티스트 주요 이력")}
-                  </label>
-                  <button type="button" onClick={addArtistMainHistory} className={toggleClass(false)}>
-                    {t("performanceInfo.addRowButton", "＋ 행 추가")}
-                  </button>
-                </div>
-                <p className="mb-2 text-xs text-muted">
-                  {t(
-                    "performanceInfo.artistMainHistoryExample",
-                    "예시: 아티스트명 / 소속사 / 데뷔연도 / 주요 활동 및 수상·성과",
-                  )}
-                </p>
-                <div className="space-y-2">
-                  {artistMainHistory.map((row, i) => (
-                    <div key={i} className="grid grid-cols-5 gap-1.5 border-b border-border/15 py-2">
-                      <input
-                        value={row.artistName}
-                        placeholder={tStr("performanceInfo.artistNamePlaceholder", "아티스트명")}
-                        onChange={(e) => updateArtistMainHistory(i, { artistName: e.target.value })}
-                        className="field-base"
-                      />
-                      <input
-                        value={row.agency}
-                        placeholder={tStr("performanceInfo.agencyPlaceholder", "소속사")}
-                        onChange={(e) => updateArtistMainHistory(i, { agency: e.target.value })}
-                        className="field-base"
-                      />
-                      <input
-                        value={row.debutYear}
-                        placeholder={tStr("performanceInfo.debutYearPlaceholder", "데뷔연도")}
-                        onChange={(e) => updateArtistMainHistory(i, { debutYear: e.target.value })}
-                        className="field-base"
-                      />
-                      <div className="col-span-2 flex items-center gap-1">
-                        <input
-                          value={row.achievements}
-                          placeholder={tStr("performanceInfo.achievementsPlaceholder", "주요 활동 및 수상·성과")}
-                          onChange={(e) => updateArtistMainHistory(i, { achievements: e.target.value })}
-                          className="field-base w-full"
-                        />
-                        <button
-                          type="button"
-                          onClick={() => removeArtistMainHistory(i)}
-                          aria-label={tStr("performanceInfo.removeRowAriaLabel", "삭제")}
-                          className={`${toggleClass(false)} shrink-0`}
-                        >
-                          {t("performanceInfo.removeRowButton", "삭제")}
-                        </button>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              <div className="mt-5">
-                <div className="mb-2.5 flex items-center justify-between">
-                  <label className="text-xs font-bold text-muted">
-                    {t("performanceInfo.artistRecentPerformancesLabel", "② 최근 공연 이력 — 최대 3~5건")}
-                  </label>
-                  <button type="button" onClick={addArtistRecentPerformance} className={toggleClass(false)}>
-                    {t("performanceInfo.addRowButton", "＋ 행 추가")}
-                  </button>
-                </div>
-                <p className="mb-2 text-xs text-muted">
-                  {t(
-                    "performanceInfo.artistRecentPerformancesExample",
-                    "예시: 공연명 / 공연일 / 공연장 / 도시·국가 / 공연 횟수 / 회당 객석 규모 / 관객 수 / 티켓 판매율",
-                  )}
-                </p>
-                <div className="space-y-2">
-                  {artistRecentPerformances.map((row, i) => (
-                    <div key={i} className="space-y-1.5 border-b border-border/15 py-2">
-                      <div className="grid grid-cols-4 gap-1.5">
-                        <input
-                          value={row.eventName}
-                          placeholder={tStr("performanceInfo.artistPastEventNamePlaceholder", "공연명")}
-                          onChange={(e) => updateArtistRecentPerformance(i, { eventName: e.target.value })}
-                          className="field-base"
-                        />
-                        <input
-                          value={row.eventDate}
-                          placeholder={tStr("performanceInfo.artistPastEventDatePlaceholder", "공연일")}
-                          onChange={(e) => updateArtistRecentPerformance(i, { eventDate: e.target.value })}
-                          className="field-base"
-                        />
-                        <input
-                          value={row.venue}
-                          placeholder={tStr("performanceInfo.artistPastVenuePlaceholder", "공연장")}
-                          onChange={(e) => updateArtistRecentPerformance(i, { venue: e.target.value })}
-                          className="field-base"
-                        />
-                        <input
-                          value={row.cityCountry}
-                          placeholder={tStr("performanceInfo.artistPastCityCountryPlaceholder", "도시 · 국가")}
-                          onChange={(e) => updateArtistRecentPerformance(i, { cityCountry: e.target.value })}
-                          className="field-base"
-                        />
-                      </div>
-                      <div className="grid grid-cols-4 gap-1.5">
-                        <input
-                          value={row.showCount}
-                          placeholder={tStr("performanceInfo.artistPastShowCountPlaceholder", "공연 횟수")}
-                          onChange={(e) => updateArtistRecentPerformance(i, { showCount: e.target.value })}
-                          className="field-base"
-                        />
-                        <input
-                          value={row.seatsPerShow}
-                          placeholder={tStr("performanceInfo.artistPastSeatsPerShowPlaceholder", "회당 객석 규모")}
-                          onChange={(e) => updateArtistRecentPerformance(i, { seatsPerShow: e.target.value })}
-                          className="field-base"
-                        />
-                        <input
-                          value={row.audience}
-                          placeholder={tStr("performanceInfo.artistPastAudiencePlaceholder", "관객 수")}
-                          onChange={(e) => updateArtistRecentPerformance(i, { audience: e.target.value })}
-                          className="field-base"
-                        />
-                        <div className="flex items-center gap-1">
-                          <input
-                            value={row.sellRate}
-                            placeholder={tStr("performanceInfo.artistPastSellRatePlaceholder", "티켓 판매율")}
-                            onChange={(e) => updateArtistRecentPerformance(i, { sellRate: e.target.value })}
-                            className="field-base w-full"
-                          />
-                          <button
-                            type="button"
-                            onClick={() => removeArtistRecentPerformance(i)}
-                            aria-label={tStr("performanceInfo.removeRowAriaLabel", "삭제")}
-                            className={`${toggleClass(false)} shrink-0`}
-                          >
-                            {t("performanceInfo.removeRowButton", "삭제")}
-                          </button>
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </div>
-
-            <div className="border-t border-border/15 pt-6">
-              <div className="mb-3 text-xs font-bold tracking-wide text-muted uppercase">
-                {t("performanceInfo.classificationGroupLabel", "분류")}
-              </div>
-              <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
-                <div>
-                  <div className="mb-2.5 text-xs font-bold text-muted">
-                    {t("performanceInfo.eventTypesLabel", "행사유형")}
-                  </div>
-                  <div className="flex flex-wrap gap-2">
-                    {visibleEventTypes.map((type) => (
-                      <CheckboxChip
-                        key={type}
-                        label={EVENT_TYPE_LABEL[type]}
-                        checked={info.eventTypes.includes(type)}
-                        onChange={() => set("eventTypes", toggleInArray(info.eventTypes, type))}
-                      />
-                    ))}
-                  </div>
-                </div>
-
-                <div>
-                  <div className="mb-2.5 text-xs font-bold text-muted">
-                    {t("performanceInfo.ageRatingLabel", "공연등급")}
-                  </div>
-                  <div className="flex flex-wrap gap-2">
-                    {visibleAgeRatings.map((rating) => (
-                      <CheckboxChip
-                        key={rating}
-                        label={AGE_RATING_LABEL[rating]}
-                        checked={info.ageRating === rating}
-                        onChange={() => set("ageRating", info.ageRating === rating ? null : rating)}
-                      />
-                    ))}
-                  </div>
-                  {info.ageRating === "AGE_LIMIT" && (
-                    <input
-                      value={info.ageLimitDetail}
-                      placeholder={tStr("performanceInfo.ageLimitDetailPlaceholder", "예: 15세 이상 관람가")}
-                      onChange={(e) => set("ageLimitDetail", e.target.value)}
-                      className="field-base mt-2 w-full max-w-xs"
-                    />
-                  )}
-                </div>
-              </div>
-            </div>
-
-            <div className="border-t border-border/15 pt-6">
-              <div className="mb-3 text-xs font-bold tracking-wide text-muted uppercase">
-                {t("performanceInfo.scheduleGroupLabel", "일정")}
-              </div>
-              <div className="space-y-4">
-                {(scheduleSummary?.arenaLine || scheduleSummary?.midHallLine) && (
-                  <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                    {scheduleSummary?.arenaLine && (
-                      <ReadOnlyRow
-                        label={t("performanceInfo.arenaPeriodLabel", "대관기간 — 아레나")}
-                        value={scheduleSummary.arenaLine}
-                        note={t("performanceInfo.editAtScheduleNote", "수정은 일정 선택에서")}
-                      />
+                <div className="mb-2.5 flex items-center gap-1.5 text-xs font-bold text-muted">
+                  {t("performanceInfo.retractableSeatUseLabel", "수납식 객석 사용여부")}
+                  {/* 물음표에 커서를 올리면 설명이 뜬다(2026-09-02) — 라벨 옆에 다 적으면
+                      줄이 길어지고, 안 적으면 무엇을 묻는지 모른 채 고르게 된다. */}
+                  <HelpTip
+                    text={tStr(
+                      "performanceInfo.retractableSeatUseHelp",
+                      "1층·3층에 각각 수납식 객석이 있습니다. 접어 두면 플로어 스탠딩 면적이 늘고, 펴면 지정석이 늘어납니다. 사용을 고르시면 층별로 다시 여쭙니다.",
                     )}
-                    {scheduleSummary?.midHallLine && (
-                      <ReadOnlyRow
-                        label={t("performanceInfo.midHallPeriodLabel", "대관기간 — 중형")}
-                        value={scheduleSummary.midHallLine}
-                        note={t("performanceInfo.editAtScheduleNote", "수정은 일정 선택에서")}
-                      />
-                    )}
-                  </div>
-                )}
-                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                  {scheduleSummary?.showsTotal != null && (
-                    <ReadOnlyRow
-                      label={t("performanceInfo.totalShowsLabel", "총 공연 횟수")}
-                      value={`${scheduleSummary.showsTotal}${tStr("performanceInfo.showsUnitAutoCalc", "회 (자동 계산)")}`}
-                    />
-                  )}
-                  <TextField
-                    label={t("performanceInfo.teardownCompletionTimeLabel", "철수 완료 예정시간(선택)")}
-                    value={info.teardownCompletionTime}
-                    placeholder={tStr("performanceInfo.teardownCompletionTimePlaceholder", "예: 당일 24:00")}
-                    onChange={(v) => set("teardownCompletionTime", v)}
                   />
                 </div>
-                {/* 네이티브 date input을 다른 필드처럼 w-full로 늘리면 브라우저마다
-                    내부 세그먼트 사이가 벌어져 이상하게 보인다 — 앱 전역의 날짜 입력
-                    관례(TicketOpenPanel 등)와 같이 폭을 좁게 고정한다. */}
-                <div>
-                  <label className="mb-1.5 block text-xs font-bold text-muted">
-                    {t("performanceInfo.ticketOpenExpectedDateLabel", "티켓 오픈 예정일")}
-                  </label>
-                  <div className="flex items-center gap-2">
-                    <input
-                      type="date"
-                      value={
-                        info.ticketOpenExpectedDate === "미정" || info.ticketOpenExpectedDate === "협의중"
-                          ? ""
-                          : info.ticketOpenExpectedDate
-                      }
-                      disabled={info.ticketOpenExpectedDate === "미정" || info.ticketOpenExpectedDate === "협의중"}
-                      onChange={(e) => set("ticketOpenExpectedDate", e.target.value)}
-                      className="field-base tabular-nums sm:w-52"
+                <div className="flex flex-wrap gap-2">
+                  {RETRACTABLE_USES.map((use) => (
+                    <CheckboxChip
+                      key={use}
+                      label={RETRACTABLE_SEAT_USE_LABEL[use]}
+                      checked={info.retractableSeatUse === use}
+                      onChange={() => {
+                        const next = info.retractableSeatUse === use ? null : use;
+                        // [미사용]·해제로 돌아가면 층별 답을 지운다 — 안 그러면 화면에서
+                        // 사라진 값이 제출까지 따라간다.
+                        onChange({
+                          ...info,
+                          retractableSeatUse: next,
+                          retractableSeatFloorUse: next === "USE" ? info.retractableSeatFloorUse : undefined,
+                        });
+                      }}
                     />
-                    <button
-                      type="button"
-                      onClick={() =>
-                        set("ticketOpenExpectedDate", info.ticketOpenExpectedDate === "미정" ? "" : "미정")
-                      }
-                      className={toggleClass(info.ticketOpenExpectedDate === "미정")}
-                    >
-                      {t("performanceInfo.ticketOpenUndecided", "미정")}
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() =>
-                        set("ticketOpenExpectedDate", info.ticketOpenExpectedDate === "협의중" ? "" : "협의중")
-                      }
-                      className={toggleClass(info.ticketOpenExpectedDate === "협의중")}
-                    >
-                      {t("performanceInfo.ticketOpenInDiscussion", "협의 중")}
-                    </button>
-                  </div>
+                  ))}
                 </div>
-              </div>
-            </div>
 
-            <div className="border-t border-border/15 pt-6">
-              <div className="mb-3 text-xs font-bold tracking-wide text-muted uppercase">
-                {t("performanceInfo.spaceConfigGroupLabel", "공간 구성")}
-              </div>
-              <div className="space-y-4">
-                <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
-                  <div>
-                    <div className="mb-2.5 text-xs font-bold text-muted">
-                      {t("performanceInfo.seatingTypesLabel", "객석형태")}
-                    </div>
-                    <div className="flex flex-wrap gap-2">
-                      {visibleSeatingTypes.map((type) => (
-                        <CheckboxChip
-                          key={type}
-                          label={SEATING_TYPE_LABEL[type]}
-                          checked={info.seatingTypes.includes(type)}
-                          onChange={() => set("seatingTypes", toggleInArray(info.seatingTypes, type))}
-                        />
-                      ))}
-                    </div>
-                    {info.seatingTypes.includes("OTHER") && (
-                      <input
-                        value={info.seatingTypeOtherDetail ?? ""}
-                        placeholder={tStr("performanceInfo.seatingTypeOtherDetailPlaceholder", "기타 객석형태 설명")}
-                        onChange={(e) => set("seatingTypeOtherDetail", e.target.value)}
-                        className="field-base mt-2 w-full max-w-xs"
-                      />
-                    )}
-                  </div>
-
-                  <div>
-                    <div className="mb-2.5 flex items-center gap-1.5 text-xs font-bold text-muted">
-                      {t("performanceInfo.retractableSeatUseLabel", "수납식 객석 사용여부")}
-                      {/* 물음표에 커서를 올리면 설명이 뜬다(2026-09-02) — 라벨 옆에 다 적으면
-                          줄이 길어지고, 안 적으면 무엇을 묻는지 모른 채 고르게 된다. */}
-                      <HelpTip
-                        text={tStr(
-                          "performanceInfo.retractableSeatUseHelp",
-                          "1층·3층에 각각 수납식 객석이 있습니다. 접어 두면 플로어 스탠딩 면적이 늘고, 펴면 지정석이 늘어납니다. 사용을 고르시면 층별로 다시 여쭙니다.",
-                        )}
-                      />
-                    </div>
-                    <div className="flex flex-wrap gap-2">
-                      {RETRACTABLE_USES.map((use) => (
-                        <CheckboxChip
-                          key={use}
-                          label={RETRACTABLE_SEAT_USE_LABEL[use]}
-                          checked={info.retractableSeatUse === use}
-                          onChange={() => {
-                            const next = info.retractableSeatUse === use ? null : use;
-                            // [미사용]·해제로 돌아가면 층별 답을 지운다 — 안 그러면 화면에서
-                            // 사라진 값이 제출까지 따라간다.
-                            onChange({
-                              ...info,
-                              retractableSeatUse: next,
-                              retractableSeatFloorUse: next === "USE" ? info.retractableSeatFloorUse : undefined,
-                            });
-                          }}
-                        />
-                      ))}
-                    </div>
-
-                    {info.retractableSeatUse === "USE" && (
-                      <div className="mt-3 space-y-2.5 border-l-2 border-border-soft pl-3">
-                        {RETRACTABLE_FLOORS.map((floor) => (
-                          <div key={floor}>
-                            <div className="mb-1.5 text-xs text-muted">
-                              {RETRACTABLE_SEAT_FLOOR_LABEL[floor]}
-                            </div>
-                            <div className="flex flex-wrap gap-2">
-                              {RETRACTABLE_USES.map((use) => (
-                                <CheckboxChip
-                                  key={use}
-                                  label={RETRACTABLE_SEAT_USE_LABEL[use]}
-                                  checked={info.retractableSeatFloorUse?.[floor] === use}
-                                  onChange={() => {
-                                    const current = info.retractableSeatFloorUse ?? {};
-                                    const next = { ...current };
-                                    if (next[floor] === use) delete next[floor];
-                                    else next[floor] = use;
-                                    set("retractableSeatFloorUse", next);
-                                  }}
-                                />
-                              ))}
-                            </div>
-                          </div>
-                        ))}
+                {info.retractableSeatUse === "USE" && (
+                  <div className="mt-3 space-y-2.5 border-l-2 border-border-soft pl-3">
+                    {RETRACTABLE_FLOORS.map((floor) => (
+                      <div key={floor}>
+                        <div className="mb-1.5 text-xs text-muted">
+                          {RETRACTABLE_SEAT_FLOOR_LABEL[floor]}
+                        </div>
+                        <div className="flex flex-wrap gap-2">
+                          {RETRACTABLE_USES.map((use) => (
+                            <CheckboxChip
+                              key={use}
+                              label={RETRACTABLE_SEAT_USE_LABEL[use]}
+                              checked={info.retractableSeatFloorUse?.[floor] === use}
+                              onChange={() => {
+                                const current = info.retractableSeatFloorUse ?? {};
+                                const next = { ...current };
+                                if (next[floor] === use) delete next[floor];
+                                else next[floor] = use;
+                                set("retractableSeatFloorUse", next);
+                              }}
+                            />
+                          ))}
+                        </div>
                       </div>
-                    )}
-                  </div>
-                </div>
-
-                <div>
-                  <div className="mb-2.5 text-xs font-bold text-muted">
-                    {t("performanceInfo.stageTypesLabel", "무대형태")}
-                  </div>
-                  <div className="flex flex-wrap gap-2">
-                    {visibleStageTypes.map((type) => (
-                      <CheckboxChip
-                        key={type}
-                        label={STAGE_TYPE_LABEL[type]}
-                        checked={info.stageTypes.includes(type)}
-                        onChange={() => set("stageTypes", toggleInArray(info.stageTypes, type))}
-                      />
                     ))}
                   </div>
-                  {info.stageTypes.includes("OTHER") && (
-                    <input
-                      value={info.stageTypeOtherDetail ?? ""}
-                      placeholder={tStr("performanceInfo.stageTypeOtherDetailPlaceholder", "기타 무대형태 설명")}
-                      onChange={(e) => set("stageTypeOtherDetail", e.target.value)}
-                      className="field-base mt-2 w-full max-w-xs"
-                    />
-                  )}
-                </div>
+                )}
               </div>
+            </div>
+
+            <div>
+              <div className="mb-2.5 text-xs font-bold text-muted">
+                {t("performanceInfo.stageTypesLabel", "무대형태")}
+              </div>
+              <div className="flex flex-wrap gap-2">
+                {visibleStageTypes.map((type) => (
+                  <CheckboxChip
+                    key={type}
+                    label={STAGE_TYPE_LABEL[type]}
+                    checked={info.stageTypes.includes(type)}
+                    onChange={() => set("stageTypes", toggleInArray(info.stageTypes, type))}
+                  />
+                ))}
+              </div>
+              {info.stageTypes.includes("OTHER") && (
+                <input
+                  value={info.stageTypeOtherDetail ?? ""}
+                  placeholder={tStr("performanceInfo.stageTypeOtherDetailPlaceholder", "기타 무대형태 설명")}
+                  onChange={(e) => set("stageTypeOtherDetail", e.target.value)}
+                  className="field-base mt-2 w-full max-w-xs"
+                />
+              )}
             </div>
           </div>
         </div>
       </div>
-
-      <div className="mt-10 border-t-2 border-foreground pt-5">
-        <h3 className="type-kr-heading text-h6-m">
-          {t("performanceInfo.credibilitySectionHeading", "개최 신뢰도 및 이력 확인")}
-        </h3>
-        <p className="mt-1 text-xs text-muted">
-          {t(
-            "performanceInfo.credibilitySectionHint",
-            "회원 유형이 '기획사 직접 신청'이면 이후 정책에 따라 이 섹션이 생략될 수 있습니다",
-          )}
-        </p>
-
-        <div className="mt-4">
-          <div className="mb-2.5 text-xs font-bold text-muted">
-            {t("performanceInfo.castContractStatusLabel", "주요 출연진 계약 상태")}
-          </div>
-          <div className="flex flex-wrap gap-2">
-            {CAST_CONTRACT_STATUSES.map((status) => (
-              <CheckboxChip
-                key={status}
-                label={CAST_CONTRACT_STATUS_LABEL[status]}
-                checked={info.castContractStatus === status}
-                onChange={() => set("castContractStatus", info.castContractStatus === status ? null : status)}
-              />
-            ))}
-          </div>
-        </div>
-
-        <div className="mt-5">
-          <TextField
-            label={t("performanceInfo.foreignArtistNotesLabel", "해외 아티스트 추가사항(선택)")}
-            value={info.foreignArtistNotes}
-            placeholder={tStr("performanceInfo.foreignArtistNotesPlaceholder", "비자 · 입국 일정 및 국내 에이전시")}
-            onChange={(v) => set("foreignArtistNotes", v)}
-          />
-        </div>
-
-        <label className="mt-5 flex cursor-pointer items-start gap-2.5 text-xs text-muted">
-          <input
-            type="checkbox"
-            checked={info.sensitiveInfoMaskingAcknowledged}
-            onChange={(e) => set("sensitiveInfoMaskingAcknowledged", e.target.checked)}
-            className="mt-0.5 accent-foreground"
-          />
-          {t(
-            "performanceInfo.maskingAcknowledgedLabel",
-            "출연 계약 증빙(계약서 · 출연확약서)의 금액 · 개인정보는 마스킹 제출을 허용합니다.",
-          )}
-        </label>
-
-        {/* [신규 2026-08-27] 증빙을 "허용합니다"라고 동의만 받고 낼 자리가 없었다 —
-            바로 이 자리에서 첨부한다. 신청서 제출 시 다른 첨부와 함께 올라가 상세 화면의
-            첨부서류 목록에 들어간다. */}
-        <div className="mt-4">
-          <div className="mb-2 text-xs font-bold text-muted">
-            {t("performanceInfo.castContractFilesLabel", "출연 계약 증빙 첨부(선택)")}
-          </div>
-          <p className="mb-2.5 text-xs leading-5 text-muted">
-            {t(
-              "performanceInfo.castContractFilesHint",
-              "계약서 · 출연확약서 등. PDF/이미지/문서, 파일당 최대 500MB. 금액 · 개인정보는 가려서 올리셔도 됩니다.",
-            )}
-          </p>
-          {castContractFiles.length > 0 && (
-            <ul className="mb-3 border-t border-border/25">
-              {castContractFiles.map((file, i) => (
-                <li
-                  key={`${file.name}-${i}`}
-                  className="flex items-center justify-between gap-4 border-b border-border/25 py-3"
-                >
-                  <span className="min-w-0 truncate text-s font-bold">{file.name}</span>
-                  <div className="flex shrink-0 items-center gap-4 text-xs text-muted tabular-nums">
-                    <span>{formatSize(file.size)}</span>
-                    <button
-                      type="button"
-                      onClick={() => onCastContractFilesChange(castContractFiles.filter((_, j) => j !== i))}
-                      className="cursor-pointer transition-colors hover:text-danger"
-                    >
-                      {t("performanceInfo.castContractRemoveButton", "삭제")}
-                    </button>
-                  </div>
-                </li>
-              ))}
-            </ul>
-          )}
-          <input
-            type="file"
-            multiple
-            data-testid="cast-contract-files"
-            onChange={(e) => {
-              const picked = Array.from(e.target.files ?? []).filter((f) => f.size <= MAX_FILE_SIZE);
-              if (picked.length > 0) onCastContractFilesChange([...castContractFiles, ...picked]);
-              if (picked.length < (e.target.files?.length ?? 0)) {
-                void dialog.alert(tStr("performanceInfo.castContractTooLarge", "500MB를 넘는 파일은 첨부할 수 없습니다."));
-              }
-              e.target.value = "";
-            }}
-            className={`${FILE_INPUT} text-muted`}
-          />
-        </div>
-
-        <label className="mt-3 flex cursor-pointer items-start gap-2.5 text-xs text-muted">
-          <input
-            type="checkbox"
-            checked={info.safetyPledgeSigned}
-            onChange={(e) => set("safetyPledgeSigned", e.target.checked)}
-            className="mt-0.5 accent-foreground"
-          />
-          {t("performanceInfo.safetyPledgeSignedLabel", "안전규정 준수 확약서 작성을 완료했습니다.")}
-        </label>
-      </div>
-    </>
+    </div>
   );
 }
 
+function CredibilityFields({
+  info,
+  onChange,
+  castContractFiles,
+  onCastContractFilesChange,
+}: {
+  info: PerformanceInfo;
+  onChange: (info: PerformanceInfo) => void;
+  // 출연 계약 증빙은 공간(아레나/중형)별로 갈리는 자료가 아니라 탭과 무관하게 같은 목록을
+  // 공유한다 — 그래서 info 가 아니라 위저드 상태에서 그대로 내려온다.
+  castContractFiles: File[];
+  onCastContractFilesChange: (files: File[]) => void;
+}) {
+  const dialog = useDialog();
+  const { t, tStr } = useWizardText();
 
-export function StepPerformanceInfo({
+  function set<K extends keyof PerformanceInfo>(key: K, value: PerformanceInfo[K]) {
+    onChange({ ...info, [key]: value });
+  }
+
+  return (
+    <div className="border-t-2 border-foreground pt-5">
+      <h3 className="type-kr-heading text-h6-m">
+        {t("performanceInfo.credibilitySectionHeading", "개최 신뢰도 및 이력 확인")}
+      </h3>
+      <p className="mt-1 text-xs text-muted">
+        {t(
+          "performanceInfo.credibilitySectionHint",
+          "회원 유형이 '기획사 직접 신청'이면 이후 정책에 따라 이 섹션이 생략될 수 있습니다",
+        )}
+      </p>
+
+      <div className="mt-4">
+        <div className="mb-2.5 text-xs font-bold text-muted">
+          {t("performanceInfo.castContractStatusLabel", "주요 출연진 계약 상태")}
+        </div>
+        <div className="flex flex-wrap gap-2">
+          {CAST_CONTRACT_STATUSES.map((status) => (
+            <CheckboxChip
+              key={status}
+              label={CAST_CONTRACT_STATUS_LABEL[status]}
+              checked={info.castContractStatus === status}
+              onChange={() => set("castContractStatus", info.castContractStatus === status ? null : status)}
+            />
+          ))}
+        </div>
+      </div>
+
+      <div className="mt-5">
+        <TextField
+          label={t("performanceInfo.foreignArtistNotesLabel", "해외 아티스트 추가사항(선택)")}
+          value={info.foreignArtistNotes}
+          placeholder={tStr("performanceInfo.foreignArtistNotesPlaceholder", "비자 · 입국 일정 및 국내 에이전시")}
+          onChange={(v) => set("foreignArtistNotes", v)}
+        />
+      </div>
+
+      <label className="mt-5 flex cursor-pointer items-start gap-2.5 text-xs text-muted">
+        <input
+          type="checkbox"
+          checked={info.sensitiveInfoMaskingAcknowledged}
+          onChange={(e) => set("sensitiveInfoMaskingAcknowledged", e.target.checked)}
+          className="mt-0.5 accent-foreground"
+        />
+        {t(
+          "performanceInfo.maskingAcknowledgedLabel",
+          "출연 계약 증빙(계약서 · 출연확약서)의 금액 · 개인정보는 마스킹 제출을 허용합니다.",
+        )}
+      </label>
+
+      {/* [신규 2026-08-27] 증빙을 "허용합니다"라고 동의만 받고 낼 자리가 없었다 —
+          바로 이 자리에서 첨부한다. 신청서 제출 시 다른 첨부와 함께 올라가 상세 화면의
+          첨부서류 목록에 들어간다. */}
+      <div className="mt-4">
+        <div className="mb-2 text-xs font-bold text-muted">
+          {t("performanceInfo.castContractFilesLabel", "출연 계약 증빙 첨부(선택)")}
+        </div>
+        <p className="mb-2.5 text-xs leading-5 text-muted">
+          {t(
+            "performanceInfo.castContractFilesHint",
+            "계약서 · 출연확약서 등. PDF/이미지/문서, 파일당 최대 500MB. 금액 · 개인정보는 가려서 올리셔도 됩니다.",
+          )}
+        </p>
+        {castContractFiles.length > 0 && (
+          <ul className="mb-3 border-t border-border/25">
+            {castContractFiles.map((file, i) => (
+              <li
+                key={`${file.name}-${i}`}
+                className="flex items-center justify-between gap-4 border-b border-border/25 py-3"
+              >
+                <span className="min-w-0 truncate text-s font-bold">{file.name}</span>
+                <div className="flex shrink-0 items-center gap-4 text-xs text-muted tabular-nums">
+                  <span>{formatSize(file.size)}</span>
+                  <button
+                    type="button"
+                    onClick={() => onCastContractFilesChange(castContractFiles.filter((_, j) => j !== i))}
+                    className="cursor-pointer transition-colors hover:text-danger"
+                  >
+                    {t("performanceInfo.castContractRemoveButton", "삭제")}
+                  </button>
+                </div>
+              </li>
+            ))}
+          </ul>
+        )}
+        <input
+          type="file"
+          multiple
+          data-testid="cast-contract-files"
+          onChange={(e) => {
+            const picked = Array.from(e.target.files ?? []).filter((f) => f.size <= MAX_FILE_SIZE);
+            if (picked.length > 0) onCastContractFilesChange([...castContractFiles, ...picked]);
+            if (picked.length < (e.target.files?.length ?? 0)) {
+              void dialog.alert(tStr("performanceInfo.castContractTooLarge", "500MB를 넘는 파일은 첨부할 수 없습니다."));
+            }
+            e.target.value = "";
+          }}
+          className={`${FILE_INPUT} text-muted`}
+        />
+      </div>
+
+      <label className="mt-3 flex cursor-pointer items-start gap-2.5 text-xs text-muted">
+        <input
+          type="checkbox"
+          checked={info.safetyPledgeSigned}
+          onChange={(e) => set("safetyPledgeSigned", e.target.checked)}
+          className="mt-0.5 accent-foreground"
+        />
+        {t("performanceInfo.safetyPledgeSignedLabel", "안전규정 준수 확약서 작성을 완료했습니다.")}
+      </label>
+    </div>
+  );
+}
+
+// [신규 2026-09-06] "슬롯은 굵은 줄 기준" — 예전에는 신청자 정보·공연 기본정보·개최
+// 신뢰도 3개 굵은 줄 구획이 StepPerformanceInfo 카드 하나 안에 고정 순서로 묶여 있었다.
+// 이제 대관자 정보(ApplicantDetails)·공연 정보(EventBasics)·기타(Credibility)를 각각
+// 독립된 STEP3 슬롯으로 뜯어내 "예상 관객 및 사업규모"(StepAudience)와 나란히 순서를
+// 조정할 수 있게 한다(wizardSlots.ts STEP3_DEFAULT_SLOT_ORDER 참고). 자료 첨부는 이
+// 화면에서 빠지고 "안전관리 서약서" 탭 맨 마지막으로 옮겨졌다(WizardShell.tsx 참고).
+export function StepApplicantDetails({
   info,
   onChange,
   midHallInfo,
   onChangeMidHallInfo,
   selection,
   title,
-  castContractFiles,
-  onCastContractFilesChange,
   fieldOrders,
   disabledFields,
 }: {
@@ -1335,19 +1368,13 @@ export function StepPerformanceInfo({
   onChangeMidHallInfo: (info: PerformanceInfo | null) => void;
   selection: QuoteSelection;
   title: ReactNode;
-  castContractFiles: File[];
-  onCastContractFilesChange: (files: File[]) => void;
   fieldOrders?: Record<string, string[]>;
   disabledFields?: string[];
 }) {
   const { t } = useWizardText();
   const [activeTab, setActiveTab] = useState<VenueSplitTab>(midHallInfo ? "ARENA" : "COMMON");
 
-  const arenaLine = arenaSummary(selection);
-  const midHallLine = midHallSummary(selection);
-  const showsTotal = totalShowCount(selection);
   const isSimultaneous = selection.bookingMode === "SIMULTANEOUS";
-  const isMidHallInvolved = isSimultaneous || selection.venueId === "medium-hall";
   const midHallDifferent = isSimultaneous && midHallInfo !== null;
   // 병합 직후(공통으로 합치기)나 초기 마운트 시 activeTab이 낡은 값을 들고 있을 수 있으므로,
   // 실제로 보여줄 탭은 상태값을 그대로 믿지 않고 매 렌더 파생값으로 다시 정한다.
@@ -1396,37 +1423,182 @@ export function StepPerformanceInfo({
       )}
 
       <div className="mt-6">
+        {(effectiveTab === "COMMON" || effectiveTab === "ARENA") && (
+          <ApplicantDetailsFields info={info} onChange={onChange} fieldOrders={fieldOrders} disabledFields={disabledFields} />
+        )}
+        {effectiveTab === "MIDHALL" && midHallInfo && (
+          <ApplicantDetailsFields
+            info={midHallInfo}
+            onChange={onChangeMidHallInfo}
+            fieldOrders={fieldOrders}
+            disabledFields={disabledFields}
+          />
+        )}
+      </div>
+    </section>
+  );
+}
+
+export function StepEventBasics({
+  info,
+  onChange,
+  midHallInfo,
+  onChangeMidHallInfo,
+  selection,
+  fieldOrders,
+  disabledFields,
+}: {
+  info: PerformanceInfo;
+  onChange: (info: PerformanceInfo) => void;
+  midHallInfo: PerformanceInfo | null;
+  onChangeMidHallInfo: (info: PerformanceInfo | null) => void;
+  selection: QuoteSelection;
+  fieldOrders?: Record<string, string[]>;
+  disabledFields?: string[];
+}) {
+  const [activeTab, setActiveTab] = useState<VenueSplitTab>(midHallInfo ? "ARENA" : "COMMON");
+
+  const arenaLine = arenaSummary(selection);
+  const midHallLine = midHallSummary(selection);
+  const showsTotal = totalShowCount(selection);
+  const isSimultaneous = selection.bookingMode === "SIMULTANEOUS";
+  const isMidHallInvolved = isSimultaneous || selection.venueId === "medium-hall";
+  const midHallDifferent = isSimultaneous && midHallInfo !== null;
+  const effectiveTab: VenueSplitTab = midHallDifferent ? (activeTab === "MIDHALL" ? "MIDHALL" : "ARENA") : "COMMON";
+
+  function splitAndSelect(tab: "ARENA" | "MIDHALL") {
+    if (!midHallDifferent) {
+      onChangeMidHallInfo(
+        midHallInfo ?? {
+          ...INITIAL_PERFORMANCE_INFO,
+          applicantCompanyName: info.applicantCompanyName,
+          applicantBusinessRegistrationNumber: info.applicantBusinessRegistrationNumber,
+          applicantRepresentativeName: info.applicantRepresentativeName,
+        },
+      );
+    }
+    setActiveTab(tab);
+  }
+
+  function mergeToCommon() {
+    onChangeMidHallInfo(null);
+    setActiveTab("COMMON");
+  }
+
+  return (
+    <section>
+      {isSimultaneous && (
+        <VenueSplitTabBar
+          midHallDifferent={midHallDifferent}
+          activeTab={effectiveTab}
+          onSelectTab={setActiveTab}
+          onSplit={() => splitAndSelect("ARENA")}
+          onMerge={mergeToCommon}
+        />
+      )}
+
+      <div className={isSimultaneous ? "mt-6" : undefined}>
         {effectiveTab === "COMMON" && (
-          <PerformanceInfoFields
+          <EventBasicsFields
             info={info}
             onChange={onChange}
             scheduleSummary={{ arenaLine, midHallLine: isMidHallInvolved ? midHallLine : null, showsTotal }}
-            castContractFiles={castContractFiles}
-            onCastContractFilesChange={onCastContractFilesChange}
             fieldOrders={fieldOrders}
             disabledFields={disabledFields}
           />
         )}
         {effectiveTab === "ARENA" && (
-          <PerformanceInfoFields
+          <EventBasicsFields
             info={info}
             onChange={onChange}
             scheduleSummary={{ arenaLine, midHallLine: null, showsTotal }}
-            castContractFiles={castContractFiles}
-            onCastContractFilesChange={onCastContractFilesChange}
             fieldOrders={fieldOrders}
             disabledFields={disabledFields}
           />
         )}
         {effectiveTab === "MIDHALL" && midHallInfo && (
-          <PerformanceInfoFields
+          <EventBasicsFields
             info={midHallInfo}
             onChange={onChangeMidHallInfo}
             scheduleSummary={{ arenaLine: null, midHallLine, showsTotal: null }}
-            castContractFiles={castContractFiles}
-            onCastContractFilesChange={onCastContractFilesChange}
             fieldOrders={fieldOrders}
             disabledFields={disabledFields}
+          />
+        )}
+      </div>
+    </section>
+  );
+}
+
+export function StepCredibility({
+  info,
+  onChange,
+  midHallInfo,
+  onChangeMidHallInfo,
+  selection,
+  castContractFiles,
+  onCastContractFilesChange,
+}: {
+  info: PerformanceInfo;
+  onChange: (info: PerformanceInfo) => void;
+  midHallInfo: PerformanceInfo | null;
+  onChangeMidHallInfo: (info: PerformanceInfo | null) => void;
+  selection: QuoteSelection;
+  castContractFiles: File[];
+  onCastContractFilesChange: (files: File[]) => void;
+}) {
+  const [activeTab, setActiveTab] = useState<VenueSplitTab>(midHallInfo ? "ARENA" : "COMMON");
+
+  const isSimultaneous = selection.bookingMode === "SIMULTANEOUS";
+  const midHallDifferent = isSimultaneous && midHallInfo !== null;
+  const effectiveTab: VenueSplitTab = midHallDifferent ? (activeTab === "MIDHALL" ? "MIDHALL" : "ARENA") : "COMMON";
+
+  function splitAndSelect(tab: "ARENA" | "MIDHALL") {
+    if (!midHallDifferent) {
+      onChangeMidHallInfo(
+        midHallInfo ?? {
+          ...INITIAL_PERFORMANCE_INFO,
+          applicantCompanyName: info.applicantCompanyName,
+          applicantBusinessRegistrationNumber: info.applicantBusinessRegistrationNumber,
+          applicantRepresentativeName: info.applicantRepresentativeName,
+        },
+      );
+    }
+    setActiveTab(tab);
+  }
+
+  function mergeToCommon() {
+    onChangeMidHallInfo(null);
+    setActiveTab("COMMON");
+  }
+
+  return (
+    <section>
+      {isSimultaneous && (
+        <VenueSplitTabBar
+          midHallDifferent={midHallDifferent}
+          activeTab={effectiveTab}
+          onSelectTab={setActiveTab}
+          onSplit={() => splitAndSelect("ARENA")}
+          onMerge={mergeToCommon}
+        />
+      )}
+
+      <div className={isSimultaneous ? "mt-6" : undefined}>
+        {(effectiveTab === "COMMON" || effectiveTab === "ARENA") && (
+          <CredibilityFields
+            info={info}
+            onChange={onChange}
+            castContractFiles={castContractFiles}
+            onCastContractFilesChange={onCastContractFilesChange}
+          />
+        )}
+        {effectiveTab === "MIDHALL" && midHallInfo && (
+          <CredibilityFields
+            info={midHallInfo}
+            onChange={onChangeMidHallInfo}
+            castContractFiles={castContractFiles}
+            onCastContractFilesChange={onCastContractFilesChange}
           />
         )}
       </div>
