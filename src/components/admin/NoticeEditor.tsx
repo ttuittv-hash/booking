@@ -189,6 +189,10 @@ function escapeHtmlAttr(s: string): string {
  */
 const CELL_FILLS: { value: string | null; label: string }[] = [
   { value: null, label: "없음" },
+  // [신규 2026-09-06] "표 컬러 흰색 설정도 넣어줘" — "없음"은 지면(옅은 크림색) 배경을
+  // 그대로 비치게 두지만, 진한 색 칸들 사이에서 확실히 흰 바탕이 필요할 때는 이 값을
+  // 따로 쓴다(글자색 COLORS의 흰색과 짝 — 진한 칸 위 흰 글자, 흰 칸 위 검정 글자).
+  { value: "#ffffff", label: "흰색" },
   { value: "#f2f0ef", label: "회백" },
   { value: "#e6e3e1", label: "연회색" },
   { value: "#e8f0ea", label: "연초록" },
