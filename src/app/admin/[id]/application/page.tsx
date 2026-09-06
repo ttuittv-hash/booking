@@ -67,6 +67,7 @@ const DAY_TAG_LABEL: Record<DayTag, string> = {
   PREP: "셋업",
   PERFORMANCE: "공연",
   LOAD_OUT: "철수",
+  REST: "휴무일",
 };
 
 /** 첨부 분류 라벨 — 어느 단계에서 올라온 서류인지 한눈에 갈라 보이게 한다. */

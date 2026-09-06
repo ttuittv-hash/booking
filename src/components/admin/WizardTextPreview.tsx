@@ -83,6 +83,15 @@ function defaultWeek(): QuoteSelection["week"] {
   return { year: next.getFullYear(), month: next.getMonth() + 1, weekOfMonth: 1 };
 }
 
+// [버그 수정 2026-09-06] "대관자 정보 등록 계정값에서 정보 매핑해서 노출해야지" —
+// 「신청자 정보」 미리보기가 대관신청사명·사업자등록번호·대표자명을 전부 빈칸("—")으로
+// 보여줘서, 실제 화면에서도 계정 정보가 안 불러와지는 것처럼 보였다. 실제 화면
+// (WizardShell.tsx)은 로그인 계정의 회사 정보를 그대로 채워 넣는데(applicantPrefill),
+// 이 미리보기는 로그인 계정이 없어 항상 빈 INITIAL_PERFORMANCE_INFO만 썼다. 안전관리
+// 서약서 미리보기가 이미 쓰던 예시 회사명("(주)와이지엔터테인먼트")과 짝을 맞춘
+// 예시 값으로 채워 실제 화면과 같은 모습을 보여준다 — 저장되는 문구와는 무관하다.
+const SAMPLE_APPLICANT_COMPANY_NAME = "(주)와이지엔터테인먼트";
+
 function buildBaseSelection(rateTable: RateTable): QuoteSelection {
   const arenaPkg = packagesForVenue(rateTable, "arena")[0] ?? null;
   return {
@@ -101,7 +110,12 @@ function buildBaseSelection(rateTable: RateTable): QuoteSelection {
     midHallExtraLoadOutHours: 0,
     expectedRevenue: 0,
     addons: [],
-    performanceInfo: INITIAL_PERFORMANCE_INFO,
+    performanceInfo: {
+      ...INITIAL_PERFORMANCE_INFO,
+      applicantCompanyName: SAMPLE_APPLICANT_COMPANY_NAME,
+      applicantBusinessRegistrationNumber: "214-87-00000",
+      applicantRepresentativeName: "홍길동",
+    },
     midHallPerformanceInfo: null,
     safetyPledge: DEFAULT_SAFETY_PLEDGE,
     marketingCooperation: DEFAULT_MARKETING_COOPERATION,

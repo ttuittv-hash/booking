@@ -312,19 +312,23 @@ function AudienceFields({
           </div>
         </div>
 
-        <div>
-          <div className="mb-2 text-xs font-bold text-muted">{t("audience.ancillaryPlansLabel", "부대사업 계획")}</div>
-          <div className="flex flex-wrap gap-2">
-            {visibleAncillaryPlans.map((plan) => (
-              <CheckboxChip
-                key={plan}
-                label={ANCILLARY_BUSINESS_PLAN_LABEL[plan]}
-                checked={info.ancillaryBusinessPlans.includes(plan)}
-                onChange={() => set("ancillaryBusinessPlans", toggleInArray(info.ancillaryBusinessPlans, plan))}
-              />
-            ))}
+        {/* [버그 수정 2026-09-06] "언체크해도 라벨명은 노출되잖아 — 항목 전체에 대한
+            온오프가 필요" — 항목을 전부 꺼도 제목만 남지 않도록 함께 숨긴다. */}
+        {visibleAncillaryPlans.length > 0 && (
+          <div>
+            <div className="mb-2 text-xs font-bold text-muted">{t("audience.ancillaryPlansLabel", "부대사업 계획")}</div>
+            <div className="flex flex-wrap gap-2">
+              {visibleAncillaryPlans.map((plan) => (
+                <CheckboxChip
+                  key={plan}
+                  label={ANCILLARY_BUSINESS_PLAN_LABEL[plan]}
+                  checked={info.ancillaryBusinessPlans.includes(plan)}
+                  onChange={() => set("ancillaryBusinessPlans", toggleInArray(info.ancillaryBusinessPlans, plan))}
+                />
+              ))}
+            </div>
           </div>
-        </div>
+        )}
       </div>
     </div>
   );

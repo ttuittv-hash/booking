@@ -88,7 +88,7 @@ function formatDateShort(iso: string): string {
   return `${m}/${d}(${WEEKDAY_SHORT_KO[new Date(iso).getDay()]})`;
 }
 
-const DAY_TAG_LABEL: Record<DayTag, string> = { PREP: "셋업", PERFORMANCE: "공연", LOAD_OUT: "철수" };
+const DAY_TAG_LABEL: Record<DayTag, string> = { PREP: "셋업", PERFORMANCE: "공연", LOAD_OUT: "철수", REST: "휴무일" };
 const MID_HALL_ROLE_LABEL: Record<MidHallDayRole, string> = { SETUP: "셋업", PERFORMANCE: "공연", LOAD_OUT: "철수" };
 
 // 신청 상세에서 "언제 어떤 용도로 예약했는지" 날짜별로 풀어서 보여준다("공연정보 슬롯에서
@@ -105,7 +105,7 @@ function groupArenaDatesByTag(
     const tag = effectiveDayTag(date, selection.dayTags, defaults);
     (buckets.get(tag) ?? buckets.set(tag, []).get(tag)!).push(date);
   }
-  return (["PREP", "PERFORMANCE", "LOAD_OUT"] as DayTag[])
+  return (["PREP", "PERFORMANCE", "LOAD_OUT", "REST"] as DayTag[])
     .filter((tag) => buckets.has(tag))
     .map((tag) => ({ tag, dates: buckets.get(tag)! }));
 }

@@ -468,21 +468,27 @@ function ApplicantDetailsFields({
           />
         </div>
 
-        <div>
-          <div className="mb-2.5 text-xs font-bold text-muted">
-            {t("performanceInfo.applicantCompanyTypeLabel", "신청 기업 유형")}
+        {/* [버그 수정 2026-09-06] "언체크해도 라벨명은 노출되잖아 — 항목 전체에 대한
+            온오프가 필요" — 항목을 전부 꺼도 위 제목(라벨)만 남아 빈 줄로 보였다.
+            보여줄 항목이 하나도 없으면 제목까지 통째로 숨긴다(공공/공익 참여의
+            그룹 렌더링과 같은 규칙, PUBLIC_INTEREST_GROUPS 참고). */}
+        {visibleCompanyTypes.length > 0 && (
+          <div>
+            <div className="mb-2.5 text-xs font-bold text-muted">
+              {t("performanceInfo.applicantCompanyTypeLabel", "신청 기업 유형")}
+            </div>
+            <div className="flex flex-wrap gap-2">
+              {visibleCompanyTypes.map((type) => (
+                <CheckboxChip
+                  key={type}
+                  label={APPLICANT_COMPANY_TYPE_LABEL[type]}
+                  checked={info.applicantCompanyType === type}
+                  onChange={() => set("applicantCompanyType", info.applicantCompanyType === type ? null : type)}
+                />
+              ))}
+            </div>
           </div>
-          <div className="flex flex-wrap gap-2">
-            {visibleCompanyTypes.map((type) => (
-              <CheckboxChip
-                key={type}
-                label={APPLICANT_COMPANY_TYPE_LABEL[type]}
-                checked={info.applicantCompanyType === type}
-                onChange={() => set("applicantCompanyType", info.applicantCompanyType === type ? null : type)}
-              />
-            ))}
-          </div>
-        </div>
+        )}
 
         <div>
           <div className="mb-2.5 flex items-center justify-between">
@@ -953,45 +959,52 @@ function EventBasicsFields({
             {t("performanceInfo.classificationGroupLabel", "분류")}
           </div>
           <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
-            <div>
-              <div className="mb-2.5 text-xs font-bold text-muted">
-                {t("performanceInfo.eventTypesLabel", "행사유형")}
+            {/* [버그 수정 2026-09-06] "언체크해도 라벨명은 노출되잖아 — 항목 전체에 대한
+                온오프가 필요" — 항목을 전부 꺼도 제목만 남지 않도록, 보여줄 항목이 하나도
+                없으면 제목까지 통째로 숨긴다. */}
+            {visibleEventTypes.length > 0 && (
+              <div>
+                <div className="mb-2.5 text-xs font-bold text-muted">
+                  {t("performanceInfo.eventTypesLabel", "행사유형")}
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  {visibleEventTypes.map((type) => (
+                    <CheckboxChip
+                      key={type}
+                      label={EVENT_TYPE_LABEL[type]}
+                      checked={info.eventTypes.includes(type)}
+                      onChange={() => set("eventTypes", toggleInArray(info.eventTypes, type))}
+                    />
+                  ))}
+                </div>
               </div>
-              <div className="flex flex-wrap gap-2">
-                {visibleEventTypes.map((type) => (
-                  <CheckboxChip
-                    key={type}
-                    label={EVENT_TYPE_LABEL[type]}
-                    checked={info.eventTypes.includes(type)}
-                    onChange={() => set("eventTypes", toggleInArray(info.eventTypes, type))}
-                  />
-                ))}
-              </div>
-            </div>
+            )}
 
-            <div>
-              <div className="mb-2.5 text-xs font-bold text-muted">
-                {t("performanceInfo.ageRatingLabel", "공연등급")}
-              </div>
-              <div className="flex flex-wrap gap-2">
-                {visibleAgeRatings.map((rating) => (
-                  <CheckboxChip
-                    key={rating}
-                    label={AGE_RATING_LABEL[rating]}
-                    checked={info.ageRating === rating}
-                    onChange={() => set("ageRating", info.ageRating === rating ? null : rating)}
+            {visibleAgeRatings.length > 0 && (
+              <div>
+                <div className="mb-2.5 text-xs font-bold text-muted">
+                  {t("performanceInfo.ageRatingLabel", "공연등급")}
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  {visibleAgeRatings.map((rating) => (
+                    <CheckboxChip
+                      key={rating}
+                      label={AGE_RATING_LABEL[rating]}
+                      checked={info.ageRating === rating}
+                      onChange={() => set("ageRating", info.ageRating === rating ? null : rating)}
+                    />
+                  ))}
+                </div>
+                {info.ageRating === "AGE_LIMIT" && (
+                  <input
+                    value={info.ageLimitDetail}
+                    placeholder={tStr("performanceInfo.ageLimitDetailPlaceholder", "예: 15세 이상 관람가")}
+                    onChange={(e) => set("ageLimitDetail", e.target.value)}
+                    className="field-base mt-2 w-full max-w-xs"
                   />
-                ))}
+                )}
               </div>
-              {info.ageRating === "AGE_LIMIT" && (
-                <input
-                  value={info.ageLimitDetail}
-                  placeholder={tStr("performanceInfo.ageLimitDetailPlaceholder", "예: 15세 이상 관람가")}
-                  onChange={(e) => set("ageLimitDetail", e.target.value)}
-                  className="field-base mt-2 w-full max-w-xs"
-                />
-              )}
-            </div>
+            )}
           </div>
         </div>
 
@@ -1080,29 +1093,31 @@ function EventBasicsFields({
           </div>
           <div className="space-y-4">
             <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
-              <div>
-                <div className="mb-2.5 text-xs font-bold text-muted">
-                  {t("performanceInfo.seatingTypesLabel", "객석형태")}
-                </div>
-                <div className="flex flex-wrap gap-2">
-                  {visibleSeatingTypes.map((type) => (
-                    <CheckboxChip
-                      key={type}
-                      label={SEATING_TYPE_LABEL[type]}
-                      checked={info.seatingTypes.includes(type)}
-                      onChange={() => set("seatingTypes", toggleInArray(info.seatingTypes, type))}
+              {visibleSeatingTypes.length > 0 && (
+                <div>
+                  <div className="mb-2.5 text-xs font-bold text-muted">
+                    {t("performanceInfo.seatingTypesLabel", "객석형태")}
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    {visibleSeatingTypes.map((type) => (
+                      <CheckboxChip
+                        key={type}
+                        label={SEATING_TYPE_LABEL[type]}
+                        checked={info.seatingTypes.includes(type)}
+                        onChange={() => set("seatingTypes", toggleInArray(info.seatingTypes, type))}
+                      />
+                    ))}
+                  </div>
+                  {info.seatingTypes.includes("OTHER") && (
+                    <input
+                      value={info.seatingTypeOtherDetail ?? ""}
+                      placeholder={tStr("performanceInfo.seatingTypeOtherDetailPlaceholder", "기타 객석형태 설명")}
+                      onChange={(e) => set("seatingTypeOtherDetail", e.target.value)}
+                      className="field-base mt-2 w-full max-w-xs"
                     />
-                  ))}
+                  )}
                 </div>
-                {info.seatingTypes.includes("OTHER") && (
-                  <input
-                    value={info.seatingTypeOtherDetail ?? ""}
-                    placeholder={tStr("performanceInfo.seatingTypeOtherDetailPlaceholder", "기타 객석형태 설명")}
-                    onChange={(e) => set("seatingTypeOtherDetail", e.target.value)}
-                    className="field-base mt-2 w-full max-w-xs"
-                  />
-                )}
-              </div>
+              )}
 
               <div>
                 <div className="mb-2.5 flex items-center gap-1.5 text-xs font-bold text-muted">
@@ -1166,29 +1181,31 @@ function EventBasicsFields({
               </div>
             </div>
 
-            <div>
-              <div className="mb-2.5 text-xs font-bold text-muted">
-                {t("performanceInfo.stageTypesLabel", "무대형태")}
-              </div>
-              <div className="flex flex-wrap gap-2">
-                {visibleStageTypes.map((type) => (
-                  <CheckboxChip
-                    key={type}
-                    label={STAGE_TYPE_LABEL[type]}
-                    checked={info.stageTypes.includes(type)}
-                    onChange={() => set("stageTypes", toggleInArray(info.stageTypes, type))}
+            {visibleStageTypes.length > 0 && (
+              <div>
+                <div className="mb-2.5 text-xs font-bold text-muted">
+                  {t("performanceInfo.stageTypesLabel", "무대형태")}
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  {visibleStageTypes.map((type) => (
+                    <CheckboxChip
+                      key={type}
+                      label={STAGE_TYPE_LABEL[type]}
+                      checked={info.stageTypes.includes(type)}
+                      onChange={() => set("stageTypes", toggleInArray(info.stageTypes, type))}
+                    />
+                  ))}
+                </div>
+                {info.stageTypes.includes("OTHER") && (
+                  <input
+                    value={info.stageTypeOtherDetail ?? ""}
+                    placeholder={tStr("performanceInfo.stageTypeOtherDetailPlaceholder", "기타 무대형태 설명")}
+                    onChange={(e) => set("stageTypeOtherDetail", e.target.value)}
+                    className="field-base mt-2 w-full max-w-xs"
                   />
-                ))}
+                )}
               </div>
-              {info.stageTypes.includes("OTHER") && (
-                <input
-                  value={info.stageTypeOtherDetail ?? ""}
-                  placeholder={tStr("performanceInfo.stageTypeOtherDetailPlaceholder", "기타 무대형태 설명")}
-                  onChange={(e) => set("stageTypeOtherDetail", e.target.value)}
-                  className="field-base mt-2 w-full max-w-xs"
-                />
-              )}
-            </div>
+            )}
           </div>
         </div>
       </div>

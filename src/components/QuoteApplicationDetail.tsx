@@ -23,6 +23,7 @@ const DAY_TAG_LABEL: Record<DayTag, string> = {
   PREP: "준비일",
   PERFORMANCE: "공연일",
   LOAD_OUT: "철수",
+  REST: "휴무일",
 };
 
 const MID_HALL_ROLE_LABEL: Record<MidHallDayRole, string> = {
