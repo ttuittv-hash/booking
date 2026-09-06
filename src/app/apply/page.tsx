@@ -3,12 +3,14 @@ import { requireAccessedUser } from "@/lib/auth";
 import {
   findCompanyById,
   getCurrentRateTable,
+  getNoticeCalendarWindow,
   getRatesContent,
   getScreenTextContent,
   listApprovedQuoteBlocks,
   listDateBlocks,
   listWeekDemand,
 } from "@/lib/db";
+import { noticeCalendarMonthBounds } from "@/lib/content/noticeCalendarWindow";
 import { PublicHeader } from "@/components/PublicHeader";
 import { SiteFooter } from "@/components/ui/SiteFooter";
 import { Band, ButtonLink, PageHead, Prose } from "@/components/ui/kit";
@@ -101,6 +103,7 @@ export default async function ApplyPage({
     company,
     screenText,
     ratesContent,
+    calendarWindow,
   ] =
     await Promise.all([
       getCurrentRateTable(),
@@ -112,9 +115,13 @@ export default async function ApplyPage({
       currentUser.companyId ? findCompanyById(currentUser.companyId) : Promise.resolve(undefined),
       getScreenTextContent(),
       getRatesContent(),
+      // [신규 2026-09-06] "일정 관리 > 캘린더 노출... 대관 위저드 달력 노출 기간에도
+      // 반영되어야해" — 공지 캘린더와 같은 범위를 위저드 달력에도 적용한다.
+      getNoticeCalendarWindow(),
     ]);
 
   const dateBlocks = [...adminBlocks, ...approvedBlocks];
+  const calendarMonthBounds = noticeCalendarMonthBounds(calendarWindow);
 
   // [화면 뼈대 2026-08-19, STEP 3-1 "신청자 정보"] 대관신청사명·사업자등록번호는
   // 회원정보에서 자동 입력하고(2026-08-22부터 읽기 전용), 담당자·담당자연락처는
@@ -162,6 +169,7 @@ export default async function ApplyPage({
             publicInterestDisabledGroups={screenText.publicInterestDisabledGroups}
             wizardFieldOrders={screenText.wizardFieldOrders}
             wizardDisabledFields={screenText.wizardDisabledFields}
+            calendarMonthBounds={calendarMonthBounds}
           />
         </WizardTextProvider>
       </main>

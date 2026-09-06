@@ -4,6 +4,7 @@ import { btnClass, ICON_BTN_SM, toggleClass } from "@/components/ui/kit";
 
 import { useState } from "react";
 import { isoDate, isWeekendDate } from "@/lib/pricing/dateRange";
+import { canStepMonth, toMonthKey } from "@/lib/content/noticeCalendarWindow";
 import type { DateBlock, MidHallDayRole, MidHallDaySelection, MidHallRateConfig } from "@/lib/pricing/types";
 
 function won(n: number): string {
@@ -63,6 +64,7 @@ export function MidHallCalendar({
   onChangeDays,
   onChangeExtraSetupHours,
   onChangeExtraLoadOutHours,
+  monthBounds,
 }: {
   title?: string;
   year: number;
@@ -76,6 +78,8 @@ export function MidHallCalendar({
   onChangeDays: (days: Record<string, MidHallDaySelection>) => void;
   onChangeExtraSetupHours: (value: number) => void;
   onChangeExtraLoadOutHours: (value: number) => void;
+  /** [신규 2026-09-06] Step1Calendar.tsx와 같은 어드민 「공지 캘린더 노출 월」 범위. */
+  monthBounds?: { start: string | null; end: string | null };
 }) {
   // [화면 뼈대 2026-08-19, 아레나 STEP 2(Step1Calendar)와 동일 구조] 역할 지정은 날짜 아래에
   // 바로 펼쳐지는 인라인 드롭다운으로 처리한다 — 클릭 즉시 기본값(공연일)으로 토글하고 별도
@@ -96,7 +100,13 @@ export function MidHallCalendar({
   const performanceDates = selectedDates.filter((d) => days[d].role === "PERFORMANCE");
   const showCount = performanceDates.reduce((sum, d) => sum + days[d].shows, 0);
 
-  function goToMonth(delta: number) {
+  function canGoToMonth(delta: -1 | 1): boolean {
+    if (!monthBounds) return true;
+    return canStepMonth(toMonthKey(year, month), delta, monthBounds);
+  }
+
+  function goToMonth(delta: -1 | 1) {
+    if (!canGoToMonth(delta)) return;
     let nextMonth = month + delta;
     let nextYear = year;
     if (nextMonth > 12) {
@@ -135,8 +145,9 @@ export function MidHallCalendar({
         <button
           type="button"
           onClick={() => goToMonth(-1)}
+          disabled={!canGoToMonth(-1)}
           aria-label="이전 달"
-          className={toggleClass(false)}
+          className={`${toggleClass(false)} disabled:cursor-not-allowed disabled:opacity-40`}
         >
           ‹
         </button>
@@ -146,8 +157,9 @@ export function MidHallCalendar({
         <button
           type="button"
           onClick={() => goToMonth(1)}
+          disabled={!canGoToMonth(1)}
           aria-label="다음 달"
-          className={toggleClass(false)}
+          className={`${toggleClass(false)} disabled:cursor-not-allowed disabled:opacity-40`}
         >
           ›
         </button>

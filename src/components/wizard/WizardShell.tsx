@@ -6,6 +6,7 @@ import { ARENA_MAX_AUDIENCE } from "@/lib/content/rateFacts";
 import type { VenueRateContent, WizardStepTexts } from "@/lib/content/pageContent";
 import { useWizardText } from "@/lib/content/wizardText";
 import { STEP3_DEFAULT_SLOT_ORDER, STEP6_DEFAULT_SLOT_ORDER } from "@/lib/content/wizardSlots";
+import { clampMonthKey, toMonthKey } from "@/lib/content/noticeCalendarWindow";
 import {
   findAddon,
   findPackage,
@@ -155,6 +156,7 @@ export function WizardShell({
   publicInterestDisabledGroups,
   wizardFieldOrders,
   wizardDisabledFields,
+  calendarMonthBounds,
 }: {
   rateTable: RateTable;
   currentUser: AppUser | null;
@@ -193,6 +195,12 @@ export function WizardShell({
   // 정보(STEP3 대관정보 슬롯)부터 시작해 위저드 전체 필드로 넓혀가는 일반 메커니즘.
   wizardFieldOrders?: Record<string, string[]>;
   wizardDisabledFields?: string[];
+  /**
+   * [신규 2026-09-06] "일정 관리 > 캘린더 노출... 대관 위저드 달력 노출 기간에도
+   * 반영되어야해" — 어드민 「공지 캘린더 노출 월」(noticeCalendarMonthBounds)과 같은
+   * 범위. /apply, /apply/edit/[id] 페이지가 getNoticeCalendarWindow()로 조회해 넘긴다.
+   */
+  calendarMonthBounds?: { start: string | null; end: string | null };
 }) {
   const isEditing = !!editingQuoteId;
   const { t, tStr } = useWizardText();
@@ -241,13 +249,29 @@ export function WizardShell({
           midHallDays: initialSelection.midHallDays ?? {},
           performanceInfo: initialSelection.performanceInfo ?? initialPerformanceInfo,
         }
-      : { ...INITIAL_SELECTION, performanceInfo: initialPerformanceInfo },
+      : // [신규 2026-09-06] "캘린더 노출 기간에도 반영되어야해" — 새 신청서를 시작할 때
+        // 기본값("다음 달")이 노출 범위 밖이면 범위 안의 가장 가까운 달로 당긴다.
+        // 이미 값이 있는 기존 신청서(수정 화면)는 건드리지 않는다.
+        {
+          ...INITIAL_SELECTION,
+          week: calendarMonthBounds
+            ? (() => {
+                const clamped = clampMonthKey(toMonthKey(INITIAL_SELECTION.week.year, INITIAL_SELECTION.week.month), calendarMonthBounds);
+                const [y, m] = clamped.split("-").map(Number);
+                return { ...INITIAL_SELECTION.week, year: y, month: m };
+              })()
+            : INITIAL_SELECTION.week,
+          performanceInfo: initialPerformanceInfo,
+        },
   );
   // 동시 대관 캘린더 탭 + 중형 캘린더 월 이동은 신청서 selection과 별개의 화면 상태다.
   const [venueTab, setVenueTab] = useState<"arena" | "medium-hall">("arena");
   const [midHallMonth, setMidHallMonth] = useState(() => {
     const w = defaultWeek();
-    return { year: w.year, month: w.month };
+    if (!calendarMonthBounds) return { year: w.year, month: w.month };
+    const clamped = clampMonthKey(toMonthKey(w.year, w.month), calendarMonthBounds);
+    const [y, m] = clamped.split("-").map(Number);
+    return { year: y, month: m };
   });
   const [submittedId, setSubmittedId] = useState<string | null>(null);
   // 최종 제출(서명까지 완료)한 뒤에는 "수정하기"를 눌러야만 이전 단계로 돌아갈 수 있다
@@ -890,6 +914,7 @@ export function WizardShell({
                           ? (midHallDays) => setSelection((prev) => ({ ...prev, midHallDays }))
                           : undefined
                       }
+                      monthBounds={calendarMonthBounds}
                     />
                   ) : (
                     <MidHallCalendar
@@ -900,6 +925,7 @@ export function WizardShell({
                       extraLoadOutHours={selection.midHallExtraLoadOutHours}
                       dateBlocks={dateBlocks}
                       rateConfig={rateTable.midHall}
+                      monthBounds={calendarMonthBounds}
                       onChangeMonth={(year, month) => setMidHallMonth({ year, month })}
                       onChangeDays={(midHallDays) => {
                         setSelection((prev) => ({ ...prev, midHallDays }));

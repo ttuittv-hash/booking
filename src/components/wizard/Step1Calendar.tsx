@@ -5,6 +5,7 @@ import { ICON_BTN_SM, toggleClass } from "@/components/ui/kit";
 import { useState } from "react";
 import { isoDate, resolveSelectedDates } from "@/lib/pricing/dateRange";
 import { defaultDayTags, effectiveDayTag } from "@/lib/pricing/rateTableUtils";
+import { canStepMonth, toMonthKey } from "@/lib/content/noticeCalendarWindow";
 import {
   WEEKDAYS,
   type DateBlock,
@@ -100,6 +101,7 @@ export function Step1Calendar({
   heading,
   midHallDays,
   onChangeMidHallDays,
+  monthBounds,
 }: {
   week: QuoteSelection["week"];
   excludedDays: WeekDay[];
@@ -125,6 +127,12 @@ export function Step1Calendar({
    */
   midHallDays?: Record<string, MidHallDaySelection>;
   onChangeMidHallDays?: (days: Record<string, MidHallDaySelection>) => void;
+  /**
+   * [신규 2026-09-06] "일정 관리 > 캘린더 노출... 대관 위저드 달력 노출 기간에도
+   * 반영되어야해" — 어드민 「공지 캘린더 노출 월」(noticeCalendarMonthBounds) 설정을
+   * 위저드 달력에도 그대로 적용한다. 없으면(과거 호출부·미리보기 등) 제한 없음.
+   */
+  monthBounds?: { start: string | null; end: string | null };
 }) {
   // [화면 뼈대 2026-08-18, 화면시나리오 SCREEN 02/12 · INTERACTION] 역할 지정은 팝업이 아니라
   // 클릭한 날짜 아래에 바로 펼쳐지는 드롭다운으로 처리한다 — 이전의 "사용 요일 토글 행" +
@@ -172,7 +180,13 @@ export function Step1Calendar({
     }
   }
 
-  function goToMonth(delta: number) {
+  function canGoToMonth(delta: -1 | 1): boolean {
+    if (!monthBounds) return true;
+    return canStepMonth(toMonthKey(week.year, week.month), delta, monthBounds);
+  }
+
+  function goToMonth(delta: -1 | 1) {
+    if (!canGoToMonth(delta)) return;
     let nextMonth = week.month + delta;
     let nextYear = week.year;
     if (nextMonth > 12) {
@@ -278,8 +292,9 @@ export function Step1Calendar({
         <button
           type="button"
           onClick={() => goToMonth(-1)}
+          disabled={!canGoToMonth(-1)}
           aria-label="이전 달"
-          className={toggleClass(false)}
+          className={`${toggleClass(false)} disabled:cursor-not-allowed disabled:opacity-40`}
         >
           ‹
         </button>
@@ -289,8 +304,9 @@ export function Step1Calendar({
         <button
           type="button"
           onClick={() => goToMonth(1)}
+          disabled={!canGoToMonth(1)}
           aria-label="다음 달"
-          className={toggleClass(false)}
+          className={`${toggleClass(false)} disabled:cursor-not-allowed disabled:opacity-40`}
         >
           ›
         </button>

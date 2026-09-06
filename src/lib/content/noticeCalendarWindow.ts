@@ -73,6 +73,33 @@ export function nextMonthKey(monthKey: string): string {
   return m === 12 ? toMonthKey(y + 1, 1) : toMonthKey(y, m + 1);
 }
 
+/** `YYYY-MM` 의 바로 이전 달 키. */
+export function prevMonthKey(monthKey: string): string {
+  const [y, m] = monthKey.split("-").map(Number);
+  return m === 1 ? toMonthKey(y - 1, 12) : toMonthKey(y, m - 1);
+}
+
+/**
+ * [신규 2026-09-06] "일정 관리 > 캘린더 노출 이 부분은... 대관 위저드 달력 노출
+ * 기간에도 반영되어야해" — 공지 캘린더에서만 쓰던 월 범위를 대관 위저드의 날짜
+ * 선택 달력(Step1Calendar·MidHallCalendar)에도 그대로 적용한다. 이 두 함수는
+ * `noticeCalendarMonthBounds()`가 돌려주는 `{ start, end }`(이미 enabled 여부까지
+ * 반영된 최종 범위)만 받아 판정한다 — 켜져 있는지 자체는 호출부가 신경 쓸 필요 없다.
+ */
+export function canStepMonth(monthKey: string, delta: -1 | 1, bounds: { start: string | null; end: string | null }): boolean {
+  const target = delta === 1 ? nextMonthKey(monthKey) : prevMonthKey(monthKey);
+  if (bounds.start && target < bounds.start) return false;
+  if (bounds.end && target > bounds.end) return false;
+  return true;
+}
+
+/** 범위 밖이면 범위 안에서 가장 가까운 달로 당긴다(범위 안이면 그대로). */
+export function clampMonthKey(monthKey: string, bounds: { start: string | null; end: string | null }): string {
+  if (bounds.start && monthKey < bounds.start) return bounds.start;
+  if (bounds.end && monthKey > bounds.end) return bounds.end;
+  return monthKey;
+}
+
 export function normalizeMonth(value: unknown): string | null {
   if (typeof value !== "string") return null;
   const trimmed = value.trim().slice(0, 7);

@@ -3,6 +3,7 @@ import { notFound, redirect } from "next/navigation";
 import { canAccessQuote, requireAccessedUser } from "@/lib/auth";
 import {
   getCurrentRateTable,
+  getNoticeCalendarWindow,
   getQuoteById,
   getRatesContent,
   getScreenTextContent,
@@ -10,6 +11,7 @@ import {
   listDateBlocks,
   listWeekDemand,
 } from "@/lib/db";
+import { noticeCalendarMonthBounds } from "@/lib/content/noticeCalendarWindow";
 import { PublicHeader } from "@/components/PublicHeader";
 import { Breadcrumb } from "@/components/ui/Breadcrumb";
 import { SiteFooter } from "@/components/ui/SiteFooter";
@@ -38,7 +40,7 @@ export default async function EditQuotePage({
   // PUT /api/quotes/[id]와 같은 기준(2026-08-22).
   if (quote.review) redirect(`/mypage/${id}`);
 
-  const [rateTable, weekDemand, adminBlocks, approvedBlocks, ratesContent, screenText] =
+  const [rateTable, weekDemand, adminBlocks, approvedBlocks, ratesContent, screenText, calendarWindow] =
     await Promise.all([
       getCurrentRateTable(),
       listWeekDemand(),
@@ -48,8 +50,10 @@ export default async function EditQuotePage({
       listApprovedQuoteBlocks(id),
       getRatesContent(),
       getScreenTextContent(),
+      getNoticeCalendarWindow(),
     ]);
   const dateBlocks = [...adminBlocks, ...approvedBlocks];
+  const calendarMonthBounds = noticeCalendarMonthBounds(calendarWindow);
 
   return (
     <div className="flex flex-1 flex-col">
@@ -85,6 +89,7 @@ export default async function EditQuotePage({
             publicInterestDisabledGroups={screenText.publicInterestDisabledGroups}
             wizardFieldOrders={screenText.wizardFieldOrders}
             wizardDisabledFields={screenText.wizardDisabledFields}
+            calendarMonthBounds={calendarMonthBounds}
           />
         </WizardTextProvider>
       </main>
