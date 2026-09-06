@@ -271,10 +271,25 @@ export default async function AdminQuoteApplicationPage({
               />
               <Row label="사업자등록번호" value={text(info.applicantBusinessRegistrationNumber)} />
               <Row label="대표자" value={text(info.applicantRepresentativeName)} />
-              <Row
-                label="담당자"
-                value={`${text(info.applicantContactName)} · ${text(info.applicantContactPhone)} · ${text(info.applicantContactEmail)}`}
-              />
+              {/* [개정 2026-09-06] "담당자 정보를 한 줄짜리 반복 행으로" — 담당자·공연
+                  운영/안전관리 총괄 책임자를 합친 contactPersons 반복 목록. 그 필드가
+                  추가되기 전(2026-09-06 이전) 신청서는 옛 개별 필드로 되돌아간다. */}
+              {info.contactPersons && info.contactPersons.length > 0 ? (
+                info.contactPersons.map((person, i) => (
+                  <Row
+                    key={i}
+                    label={person.role || `담당자 ${i + 1}`}
+                    value={[text(person.name), text(person.phone), person.email, person.department]
+                      .filter(Boolean)
+                      .join(" · ")}
+                  />
+                ))
+              ) : (
+                <Row
+                  label="담당자"
+                  value={`${text(info.applicantContactName)} · ${text(info.applicantContactPhone)} · ${text(info.applicantContactEmail)}`}
+                />
+              )}
             </>
           ) : null}
         </Section>
@@ -373,16 +388,20 @@ export default async function AdminQuoteApplicationPage({
               <Row label="티켓 오픈 예정일" value={text(info.ticketOpenExpectedDate)} />
             </Section>
 
-            <Section title="책임자">
-              <Row
-                label="공연 운영 총괄"
-                value={`${text(info.operationsResponsible?.name)} · ${text(info.operationsResponsible?.title)} · ${text(info.operationsResponsible?.phone)}`}
-              />
-              <Row
-                label="안전관리 총괄"
-                value={`${text(info.safetyResponsible?.name)} · ${text(info.safetyResponsible?.title)} · ${text(info.safetyResponsible?.phone)}`}
-              />
-            </Section>
+            {/* contactPersons가 있으면 공연 운영/안전관리 총괄이 이미 위 "담당자 정보"
+                반복 목록에 포함돼 있어 이 Section은 생략한다 — 옛 신청서만 남긴다. */}
+            {(!info.contactPersons || info.contactPersons.length === 0) && (
+              <Section title="책임자">
+                <Row
+                  label="공연 운영 총괄"
+                  value={`${text(info.operationsResponsible?.name)} · ${text(info.operationsResponsible?.title)} · ${text(info.operationsResponsible?.phone)}`}
+                />
+                <Row
+                  label="안전관리 총괄"
+                  value={`${text(info.safetyResponsible?.name)} · ${text(info.safetyResponsible?.title)} · ${text(info.safetyResponsible?.phone)}`}
+                />
+              </Section>
+            )}
 
             <Section title="아티스트 · 개최 이력">
               <div className="py-2">

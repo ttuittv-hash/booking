@@ -24,13 +24,13 @@ import {
   type ArtistMainHistoryRecord,
   type ArtistRecentPerformanceRecord,
   type CastContractStatus,
+  type ContactPersonRecord,
   type EventType,
   type OrganizerEntry,
   type OrganizerRole,
   type PastPerformanceRecord,
   type PerformanceInfo,
   type QuoteSelection,
-  type ResponsiblePerson,
   type RetractableSeatFloor,
   type RetractableSeatUse,
   type SeatingType,
@@ -91,28 +91,30 @@ export function validatePerformanceInfoStep(
 ): string | null {
   const prefix = venueLabel ? `${venueLabel} ` : "";
   const isDisabled = (id: string) => disabledFields.includes(id);
-  // 소속은 선택으로 바뀌어(2026-08-22, "책임자들 넣는거 소속(선택)으로해") 성명·연락처만 본다.
-  const person = (value: ResponsiblePerson, label: string) => {
-    if (!value.name.trim() || !value.phone.trim()) {
-      return `${prefix}${label}(성명·연락처)을 모두 입력해 주세요.`;
-    }
-    return null;
-  };
 
   // 대관신청사명·사업자등록번호는 더 이상 이 화면에서 입력하지 않고 가입 계정에서
   // 그대로 가져와 읽기 전용으로 보여준다(2026-08-22) — 계정 데이터라 여기서 필수값
   // 검사를 하지 않는다(비어 있다면 계정 쪽 문제다).
   if (!info.applicantCompanyType) return `${prefix}신청 기업 유형을 선택해 주세요.`;
-  if (!isDisabled("performanceInfo.applicantContact.name") && !info.applicantContactName.trim())
-    return `${prefix}담당자를 입력해 주세요.`;
-  if (!isDisabled("performanceInfo.applicantContact.phone") && !info.applicantContactPhone.trim())
-    return `${prefix}담당자 연락처를 입력해 주세요.`;
-  if (!isDisabled("performanceInfo.applicantContact.email") && !info.applicantContactEmail?.trim())
-    return `${prefix}담당자 이메일을 입력해 주세요.`;
-  const operationsError = person(info.operationsResponsible, "공연 운영 총괄 책임자");
-  if (operationsError) return operationsError;
-  const safetyError = person(info.safetyResponsible, "안전관리 총괄 책임자");
-  if (safetyError) return safetyError;
+
+  // [개정 2026-09-06] "담당자 정보를 한 줄짜리 반복 행으로" — 담당자·공연 운영/안전관리
+  // 총괄 책임자를 합친 반복 테이블. 행마다 담당역할·성명·연락처는 필수, 소속·이메일은
+  // 선택이다(ResponsiblePerson의 "소속(선택)"과 같은 이유).
+  const contactPersons = info.contactPersons ?? [];
+  if (!isDisabled("performanceInfo.applicantContact.role") && contactPersons.length === 0) {
+    return `${prefix}담당자 정보를 1건 이상 입력해 주세요.`;
+  }
+  for (const person of contactPersons) {
+    if (!isDisabled("performanceInfo.applicantContact.role") && !person.role.trim()) {
+      return `${prefix}담당역할을 입력해 주세요.`;
+    }
+    if (!isDisabled("performanceInfo.applicantContact.name") && !person.name.trim()) {
+      return `${prefix}담당자 성명을 입력해 주세요.`;
+    }
+    if (!isDisabled("performanceInfo.applicantContact.phone") && !person.phone.trim()) {
+      return `${prefix}담당자 연락처를 입력해 주세요.`;
+    }
+  }
 
   if (!isDisabled("performanceInfo.eventBasics.eventName") && !info.eventName.trim())
     return `${prefix}공연(행사)명을 입력해 주세요.`;
@@ -331,43 +333,6 @@ function CheckboxChip({
   );
 }
 
-function ResponsiblePersonFields({
-  label,
-  value,
-  onChange,
-}: {
-  label: ReactNode;
-  value: ResponsiblePerson;
-  onChange: (value: ResponsiblePerson) => void;
-}) {
-  const { tStr } = useWizardText();
-  return (
-    <div>
-      <label className="mb-1.5 block text-xs font-bold text-muted">{label}</label>
-      <div className="grid grid-cols-3 gap-2">
-        <input
-          value={value.name}
-          placeholder={tStr("performanceInfo.responsiblePersonNamePlaceholder", "성명")}
-          onChange={(e) => onChange({ ...value, name: e.target.value })}
-          className="field-base w-full"
-        />
-        <input
-          value={value.title}
-          placeholder={tStr("performanceInfo.responsiblePersonTitlePlaceholder", "소속 (선택)")}
-          onChange={(e) => onChange({ ...value, title: e.target.value })}
-          className="field-base w-full"
-        />
-        <input
-          value={value.phone}
-          placeholder={tStr("performanceInfo.responsiblePersonPhonePlaceholder", "연락처")}
-          onChange={(e) => onChange({ ...value, phone: e.target.value })}
-          className="field-base w-full"
-        />
-      </div>
-    </div>
-  );
-}
-
 const EMPTY_PAST_PERFORMANCE: PastPerformanceRecord = {
   eventName: "",
   venue: "",
@@ -416,56 +381,22 @@ function ApplicantDetailsFields({
 }) {
   const { t, tStr } = useWizardText();
 
-  // [신규 2026-09-06] 담당자 정보 — 순서 조정·온오프 가능한 첫 그룹. 담당역할·소속
-  // 2개는 2026-09-06 추가(선택 입력, ResponsiblePersonFields의 "소속(선택)"과 같은 이유로
-  // 필수 검증은 하지 않는다) — 담당역할 / 소속 / 담당자명 / 연락처 / 이메일주소 순.
-  // 다른 그룹(공연 기본정보 등)도 같은 패턴으로 이어간다.
+  // [개정 2026-09-06] "담당자 정보를 한 줄짜리 반복 행으로, 행을 추가·삭제할 수 있게" —
+  // 담당자(신청 담당자)·공연 운영 총괄 책임자·안전관리 총괄 책임자로 나뉘어 있던 것을
+  // 담당역할/소속/담당자 성명/연락처/이메일 5개 컬럼을 가진 반복 테이블 하나로 합쳤다.
+  // 기본 2행("공연 운영 총괄"·"안전 관리 총괄")은 performanceInfoDefaults.ts에서 채운다.
+  // 컬럼 순서·노출 온오프는 이전과 같은 패턴(resolveGroupOrder/visibleInGroup)을 그대로 쓴다.
   const CONTACT_GROUP_ID = "performanceInfo.applicantContact";
   const CONTACT_DEFAULT_ORDER = ["role", "department", "name", "phone", "email"] as const;
-  const contactFieldRenderers: Record<string, () => ReactNode> = {
-    role: () => (
-      <TextField
-        key="role"
-        label={t("performanceInfo.applicantContactRoleLabel", "담당역할")}
-        value={info.applicantContactRole ?? ""}
-        onChange={(v) => set("applicantContactRole", v)}
-      />
-    ),
-    department: () => (
-      <TextField
-        key="department"
-        label={t("performanceInfo.applicantContactDepartmentLabel", "소속")}
-        value={info.applicantContactDepartment ?? ""}
-        onChange={(v) => set("applicantContactDepartment", v)}
-      />
-    ),
-    name: () => (
-      <TextField
-        key="name"
-        label={t("performanceInfo.applicantContactNameLabel", "담당자")}
-        value={info.applicantContactName}
-        onChange={(v) => set("applicantContactName", v)}
-      />
-    ),
-    phone: () => (
-      <TextField
-        key="phone"
-        label={t("performanceInfo.applicantContactPhoneLabel", "담당자 연락처")}
-        value={info.applicantContactPhone}
-        onChange={(v) => set("applicantContactPhone", v)}
-      />
-    ),
-    email: () => (
-      <TextField
-        key="email"
-        label={t("performanceInfo.applicantContactEmailLabel", "담당자 이메일")}
-        value={info.applicantContactEmail ?? ""}
-        onChange={(v) => set("applicantContactEmail", v)}
-      />
-    ),
+  const CONTACT_COLUMN_LABELS: Record<string, string> = {
+    role: tStr("performanceInfo.applicantContactRoleLabel", "담당역할"),
+    department: tStr("performanceInfo.applicantContactDepartmentLabel", "소속"),
+    name: tStr("performanceInfo.applicantContactNameLabel", "담당자 성명"),
+    phone: tStr("performanceInfo.applicantContactPhoneLabel", "연락처"),
+    email: tStr("performanceInfo.applicantContactEmailLabel", "이메일 주소"),
   };
-  const contactFieldOrder = resolveGroupOrder(fieldOrders?.[CONTACT_GROUP_ID], CONTACT_DEFAULT_ORDER);
-  const visibleContactFields = visibleInGroup(contactFieldOrder, CONTACT_GROUP_ID, disabledFields);
+  const contactColumnOrder = resolveGroupOrder(fieldOrders?.[CONTACT_GROUP_ID], CONTACT_DEFAULT_ORDER);
+  const visibleContactColumns = visibleInGroup(contactColumnOrder, CONTACT_GROUP_ID, disabledFields);
 
   // [신규 2026-09-06] 신청 기업 유형 체크박스도 같은 패턴으로 순서 조정·온오프 가능하게.
   const COMPANY_TYPE_GROUP_ID = "performanceInfo.applicantCompanyType";
@@ -474,6 +405,24 @@ function ApplicantDetailsFields({
 
   function set<K extends keyof PerformanceInfo>(key: K, value: PerformanceInfo[K]) {
     onChange({ ...info, [key]: value });
+  }
+
+  const contactPersons = info.contactPersons ?? [];
+
+  function setContactPersons(next: ContactPersonRecord[]) {
+    set("contactPersons", next);
+  }
+
+  function addContactPerson() {
+    setContactPersons([...contactPersons, { role: "", department: "", name: "", phone: "", email: "" }]);
+  }
+
+  function updateContactPerson(index: number, patch: Partial<ContactPersonRecord>) {
+    setContactPersons(contactPersons.map((row, i) => (i === index ? { ...row, ...patch } : row)));
+  }
+
+  function removeContactPerson(index: number) {
+    setContactPersons(contactPersons.filter((_, i) => i !== index));
   }
 
   function addPastPerformance() {
@@ -535,21 +484,56 @@ function ApplicantDetailsFields({
           </div>
         </div>
 
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-          {visibleContactFields.map((key) => (
-            <Fragment key={key}>{contactFieldRenderers[key]?.()}</Fragment>
-          ))}
+        <div>
+          <div className="mb-2.5 flex items-center justify-between">
+            <label className="text-xs font-bold text-muted">
+              {t("performanceInfo.contactPersonsLabel", "담당자 정보")}
+            </label>
+            <button type="button" onClick={addContactPerson} className={toggleClass(false)}>
+              {t("performanceInfo.addRowButton", "＋ 행 추가")}
+            </button>
+          </div>
+          {visibleContactColumns.length > 0 && (
+            <div
+              className="mb-1.5 grid gap-1.5 text-xs font-bold text-muted"
+              style={{ gridTemplateColumns: `repeat(${visibleContactColumns.length}, 1fr)` }}
+            >
+              {visibleContactColumns.map((key) => (
+                <div key={key}>{CONTACT_COLUMN_LABELS[key]}</div>
+              ))}
+            </div>
+          )}
+          <div className="space-y-2">
+            {contactPersons.map((row, i) => (
+              <div key={i} className="flex items-center gap-1.5 border-b border-border/15 py-2">
+                <div
+                  className="grid flex-1 gap-1.5"
+                  style={{ gridTemplateColumns: `repeat(${visibleContactColumns.length}, 1fr)` }}
+                >
+                  {visibleContactColumns.map((key) => (
+                    <input
+                      key={key}
+                      value={row[key as keyof ContactPersonRecord]}
+                      placeholder={CONTACT_COLUMN_LABELS[key]}
+                      onChange={(e) =>
+                        updateContactPerson(i, { [key]: e.target.value } as Partial<ContactPersonRecord>)
+                      }
+                      className="field-base w-full"
+                    />
+                  ))}
+                </div>
+                <button
+                  type="button"
+                  onClick={() => removeContactPerson(i)}
+                  aria-label={tStr("performanceInfo.removeRowAriaLabel", "삭제")}
+                  className={`${toggleClass(false)} shrink-0`}
+                >
+                  {t("performanceInfo.removeRowButton", "삭제")}
+                </button>
+              </div>
+            ))}
+          </div>
         </div>
-        <ResponsiblePersonFields
-          label={t("performanceInfo.operationsResponsibleLabel", "공연 운영 총괄 책임자")}
-          value={info.operationsResponsible}
-          onChange={(v) => set("operationsResponsible", v)}
-        />
-        <ResponsiblePersonFields
-          label={t("performanceInfo.safetyResponsibleLabel", "안전관리 총괄 책임자")}
-          value={info.safetyResponsible}
-          onChange={(v) => set("safetyResponsible", v)}
-        />
       </div>
 
       <div className="mt-6">

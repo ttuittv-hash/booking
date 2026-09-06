@@ -1,4 +1,4 @@
-import type { PerformanceInfo } from "./types";
+import type { ContactPersonRecord, PerformanceInfo } from "./types";
 
 // 신규 신청서는 이 한 줄이 기본으로 열려 있어야 한다(2026-08-26, "디폴트로 한줄은
 // 열려있어야 하고") — 완전히 빈 채로 시작하면 "여기에 뭘 적어야 하는지" 힌트가 없다.
@@ -26,11 +26,19 @@ const EMPTY_ARTIST_RECENT_PERFORMANCE_ROW = {
 
 const EMPTY_TICKET_TYPE_ROW = { label: "", price: 0, expectedSalesRate: 0 };
 
+// [신규 2026-09-06] "담당역할은 하나는 공연 운영 총괄, 하나는 안전 관리 총괄로 넣어줘" —
+// 담당자 정보 반복 테이블의 기본 2행. 나머지 값(소속·성명·연락처·이메일)은 빈 채로 시작한다.
+const DEFAULT_CONTACT_PERSON_ROWS: ContactPersonRecord[] = [
+  { role: "공연 운영 총괄", department: "", name: "", phone: "", email: "" },
+  { role: "안전 관리 총괄", department: "", name: "", phone: "", email: "" },
+];
+
 export const INITIAL_PERFORMANCE_INFO: PerformanceInfo = {
   applicantCompanyName: "",
   applicantCompanyType: null,
   applicantBusinessRegistrationNumber: "",
   applicantRepresentativeName: "",
+  contactPersons: DEFAULT_CONTACT_PERSON_ROWS.map((row) => ({ ...row })),
   applicantContactRole: "",
   applicantContactDepartment: "",
   applicantContactName: "",

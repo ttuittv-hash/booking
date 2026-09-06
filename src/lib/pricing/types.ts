@@ -412,6 +412,21 @@ export interface ResponsiblePerson {
   phone: string;
 }
 
+// [신규 2026-09-06] "담당자 정보를 한 줄짜리 반복 행으로, 행을 추가·삭제할 수 있게" —
+// 담당자(신청 담당자)와 공연 운영/안전관리 총괄 책임자가 각자 다른 UI(단일 5필드 +
+// ResponsiblePerson ×2)로 나뉘어 있던 것을 담당역할/소속/담당자 성명/연락처/이메일
+// 5개 값을 가진 하나의 반복 테이블로 합쳤다. 기본으로 "공연 운영 총괄"·"안전 관리
+// 총괄" 2행이 미리 채워진다(performanceInfoDefaults.ts). 옛 개별 필드(applicantContact*·
+// operationsResponsible·safetyResponsible)는 이 필드가 추가되기 전 신청서를 위해
+// 타입에 남겨둔다 — 새 신청서는 채우지 않는다.
+export interface ContactPersonRecord {
+  role: string; // 담당역할 (예: 공연 운영 총괄, 안전 관리 총괄)
+  department: string; // 소속(선택)
+  name: string; // 담당자 성명
+  phone: string; // 연락처
+  email: string; // 이메일 주소(선택)
+}
+
 export interface PastPerformanceRecord {
   eventName: string;
   venue: string;
@@ -599,18 +614,21 @@ export interface PerformanceInfo {
   applicantBusinessRegistrationNumber: string; // 사업자등록번호
   // optional — 대표자명(2026-08-26 추가, 계정/회사 정보에서 자동 입력·읽기 전용)
   applicantRepresentativeName?: string;
-  // optional — 담당역할·소속(2026-09-06 추가, "담당자 정보" 그룹에 담당역할/소속/담당자명/
-  // 연락처/이메일주소 5개 입력값으로 확장). 이 필드가 추가되기 전에 제출된 기존 신청서에는
-  // 없다 — 책임자 필드의 "소속(선택)"과 같은 이유로 선택 입력이라 필수 검증은 하지 않는다.
-  applicantContactRole?: string; // 담당역할
-  applicantContactDepartment?: string; // 소속
-  applicantContactName: string; // 담당자명
-  applicantContactPhone: string; // 담당자 연락처
-  // optional — 담당자 이메일(2026-09-06 추가, 계정 이메일에서 자동 입력). 이 필드가
-  // 추가되기 전에 제출된 기존 신청서에는 없다(applicantRepresentativeName과 같은 이유).
+  // [개정 2026-09-06] "한 줄짜리 반복 행으로, 행을 추가·삭제할 수 있게" — 아래 담당자
+  // 개별 필드(applicantContact*)와 책임자 2명(operationsResponsible·safetyResponsible)을
+  // 담당역할/소속/담당자 성명/연락처/이메일 반복 테이블 하나로 합쳤다. optional — 이
+  // 필드가 추가되기 전에 제출된 기존 신청서에는 없다(그때는 아래 개별 필드에 값이 있다).
+  contactPersons?: ContactPersonRecord[]; // 담당자 정보 (반복 입력, 기본 "공연 운영 총괄"·"안전 관리 총괄" 2행)
+  // 아래 5개(담당역할·소속·담당자명·연락처·이메일)와 operationsResponsible·safetyResponsible은
+  // contactPersons 도입(2026-09-06) 이전 신청서를 위해 타입에만 남긴다 — 새 위저드 화면은
+  // 더 이상 이 필드들을 채우지 않는다.
+  applicantContactRole?: string;
+  applicantContactDepartment?: string;
+  applicantContactName: string;
+  applicantContactPhone: string;
   applicantContactEmail?: string;
-  operationsResponsible: ResponsiblePerson; // 공연 운영 총괄 책임자
-  safetyResponsible: ResponsiblePerson; // 안전관리 총괄 책임자
+  operationsResponsible: ResponsiblePerson;
+  safetyResponsible: ResponsiblePerson;
   pastPerformances: PastPerformanceRecord[]; // 대관사 최근 3년간 공연 실적 (반복 입력)
 
   // 공연 기본정보 (STEP 3-1 우측)

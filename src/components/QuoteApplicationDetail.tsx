@@ -76,28 +76,46 @@ function performanceInfoFields(info: PerformanceInfo) {
             value={info.applicantCompanyType ? APPLICANT_COMPANY_TYPE_LABEL[info.applicantCompanyType] : "-"}
           />
           <Row label="사업자등록번호" value={info.applicantBusinessRegistrationNumber || "-"} />
-          <Row label="담당자" value={info.applicantContactName || "-"} />
-          <Row label="담당자 연락처" value={info.applicantContactPhone || "-"} />
-          <Row label="담당자 이메일" value={info.applicantContactEmail || "-"} />
         </dl>
       </div>
 
+      {/* [개정 2026-09-06] "담당자 정보를 한 줄짜리 반복 행으로" — 담당자·공연 운영/
+          안전관리 총괄 책임자를 합친 contactPersons 반복 목록으로 교체했다. 그 필드가
+          추가되기 전(2026-09-06 이전) 제출된 신청서는 contactPersons가 없으므로 옛
+          개별 필드(applicantContact*·operationsResponsible·safetyResponsible)로 되돌아간다. */}
       <div>
-        <p className={`${EYEBROW} text-muted`}>공연 운영 총괄 책임자</p>
-        <dl className="mt-1.5 divide-y divide-border/60 text-s">
-          <Row label="이름" value={info.operationsResponsible.name || "-"} />
-          <Row label="직책" value={info.operationsResponsible.title || "-"} />
-          <Row label="연락처" value={info.operationsResponsible.phone || "-"} />
-        </dl>
-      </div>
-
-      <div>
-        <p className={`${EYEBROW} text-muted`}>안전관리 총괄 책임자</p>
-        <dl className="mt-1.5 divide-y divide-border/60 text-s">
-          <Row label="이름" value={info.safetyResponsible.name || "-"} />
-          <Row label="소속" value={info.safetyResponsible.title || "-"} />
-          <Row label="연락처" value={info.safetyResponsible.phone || "-"} />
-        </dl>
+        <p className={`${EYEBROW} text-muted`}>담당자 정보</p>
+        {info.contactPersons && info.contactPersons.length > 0 ? (
+          <div className="mt-1.5 space-y-3">
+            {info.contactPersons.map((person, i) => (
+              <dl key={i} className="divide-y divide-border/60 text-s">
+                <Row label="담당역할" value={person.role || "-"} />
+                <Row label="소속" value={person.department || "-"} />
+                <Row label="담당자 성명" value={person.name || "-"} />
+                <Row label="연락처" value={person.phone || "-"} />
+                <Row label="이메일" value={person.email || "-"} />
+              </dl>
+            ))}
+          </div>
+        ) : (
+          <div className="mt-1.5 space-y-3">
+            <dl className="divide-y divide-border/60 text-s">
+              <Row label="담당자" value={info.applicantContactName || "-"} />
+              <Row label="담당자 연락처" value={info.applicantContactPhone || "-"} />
+              <Row label="담당자 이메일" value={info.applicantContactEmail || "-"} />
+            </dl>
+            <dl className="divide-y divide-border/60 text-s">
+              <Row label="공연 운영 총괄 · 이름" value={info.operationsResponsible.name || "-"} />
+              <Row label="공연 운영 총괄 · 직책" value={info.operationsResponsible.title || "-"} />
+              <Row label="공연 운영 총괄 · 연락처" value={info.operationsResponsible.phone || "-"} />
+            </dl>
+            <dl className="divide-y divide-border/60 text-s">
+              <Row label="안전관리 총괄 · 이름" value={info.safetyResponsible.name || "-"} />
+              <Row label="안전관리 총괄 · 소속" value={info.safetyResponsible.title || "-"} />
+              <Row label="안전관리 총괄 · 연락처" value={info.safetyResponsible.phone || "-"} />
+            </dl>
+          </div>
+        )}
       </div>
 
       {info.pastPerformances.length > 0 && (
