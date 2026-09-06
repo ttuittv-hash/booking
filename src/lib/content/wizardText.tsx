@@ -48,14 +48,16 @@ export function WizardTextProvider({
   overrides: WizardTextOverrides;
   children: ReactNode;
 }) {
-  // [수정 2026-09-06] "비워 두면 기본 문구로 돌아갑니다" 안내와 달리, 관리자가 입력칸을
-  // 지우고 저장하면 overrides[key]가 undefined가 아니라 빈 문자열 ""로 남아 `?? fallback`
-  // 을 안 타고 화면에 빈 라벨로 나갔다(공연장 선택 박스 하나가 통째로 안 보이는 형태로
-  // 발견됨). `??`는 null/undefined만 걸러내고 빈 문자열은 그대로 통과시키는 연산자라
-  // 생긴 문제 — 빈 문자열도 "값 없음"으로 본다.
+  // [재개정 2026-09-06] "관리자가 다 지우면 비어져야지... 기본 문구는 없어" — 위
+  // 2026-09-06 개정(빈 문자열도 기본 문구로 되돌리던 동작)을 다시 뒤집는다. 관리자가
+  // 입력칸을 지우고 저장하면 그 문구는 화면에서 완전히 사라진다(라벨이든 설명문이든
+  // 예외 없음) — `??`는 overrides[key]가 undefined(한 번도 손대지 않음)일 때만
+  // fallback을 쓰고, 빈 문자열("")은 "의도적으로 비움"으로 보아 그대로 통과시킨다.
+  // 화면이 깨지는 형태(라벨이 없어져 보이는 등)로 나타날 수 있다는 걸 알고 내린
+  // 결정이다 — 되돌리기 전에 다시 확인할 것.
   const api: WizardTextApi = {
-    t: (key, fallback) => overrides[key] || fallback,
-    tStr: (key, fallback) => overrides[key] || fallback,
+    t: (key, fallback) => overrides[key] ?? fallback,
+    tStr: (key, fallback) => overrides[key] ?? fallback,
   };
   return <WizardTextContext.Provider value={api}>{children}</WizardTextContext.Provider>;
 }
