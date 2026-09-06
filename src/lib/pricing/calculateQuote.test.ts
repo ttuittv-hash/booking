@@ -131,6 +131,41 @@ describe("calculateQuote — 명세서 7장 검증 케이스", () => {
     expect(quote.subtotal).toBe(expectedSubtotal);
   });
 
+  it("휴무일(REST) — 추가일 중 하루만 휴무일로 지정하면 그 날만 준비일 단가의 50% (2026-09-06 신규)", () => {
+    const dates = resolveSelectedDates(baseSelection({ extraDays: 2 }));
+    const [restDate, normalDate] = dates.slice(-2);
+    const quote = calculateQuote(
+      baseSelection({ extraDays: 2, dayTags: { [restDate]: "REST" } }),
+      RATE_TABLE,
+    );
+    const dayPrice = pkg2.setupExtraDayFee;
+    const restPrice = Math.round(dayPrice * 0.5);
+
+    const extraDaysLine = quote.lineItems.find((i) => i.addonId === "extra_days")!;
+    const restLine = quote.lineItems.find((i) => i.addonId === "extra_days_rest")!;
+
+    expect(extraDaysLine.billable).toBe(1);
+    expect(extraDaysLine.amount).toBe(1 * dayPrice);
+    expect(restLine.billable).toBe(1);
+    expect(restLine.amount).toBe(1 * restPrice);
+    expect(normalDate).toBeTruthy(); // 나머지 한 날은 REST가 아니라 전액 단가로 남는다
+  });
+
+  it("휴무일(REST) — 추가일 전부를 휴무일로 지정하면 전액 단가 줄은 아예 생기지 않는다", () => {
+    const dates = resolveSelectedDates(baseSelection({ extraDays: 2 }));
+    const [d1, d2] = dates.slice(-2);
+    const quote = calculateQuote(
+      baseSelection({ extraDays: 2, dayTags: { [d1]: "REST", [d2]: "REST" } }),
+      RATE_TABLE,
+    );
+    const restPrice = Math.round(pkg2.setupExtraDayFee * 0.5);
+
+    expect(quote.lineItems.find((i) => i.addonId === "extra_days")).toBeUndefined();
+    const restLine = quote.lineItems.find((i) => i.addonId === "extra_days_rest")!;
+    expect(restLine.billable).toBe(2);
+    expect(restLine.amount).toBe(2 * restPrice);
+  });
+
   it("제외 요일 할인: 준비일 요일을 제외하면 셋업 추가 단가로 정액 차감된다 (2-37/2-38 확정 대칭 적용)", () => {
     // FRI는 패키지 기본값상 준비일(defaultPerformanceDays=2 → SAT·SUN만 공연일)
     const quote = calculateQuote(baseSelection({ excludedDays: ["FRI"] }), RATE_TABLE);

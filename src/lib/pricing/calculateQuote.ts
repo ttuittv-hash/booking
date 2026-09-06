@@ -102,29 +102,61 @@ export function calculateQuote(selection: QuoteSelection, rateTable: RateTable):
       }
     }
 
+    const selectedDates = resolveSelectedDates(selection);
+
     // (2-1) 추가 일수 — 일요일 이후로 연장하는 일수를 일 단위로 과금.
     // [확정 2026-08-14, 기능정의서 2-38] 연장일은 준비일 성격의 추가 접근일로 보고
     // 셋업(준비일) 추가 단가를 적용한다(전 패키지 동일 46,790,000원/일).
+    // [신규 2026-09-06] "휴무일을 지정할수 있고 휴무일로 지정하면 공연 준비일에 50%
+    // 할인이 붙는 개념" — 화~일 기본 6일 다음으로 개별 추가하는 날에만 고를 수 있는
+    // REST 태그(Step1Calendar.tsx가 dayKind.kind !== "base"일 때만 버튼을 보여준다).
+    // defaultDayTags는 REST를 절대 자동으로 매기지 않으므로(항상 명시적 지정), 여기서는
+    // dayTags에 직접 REST로 찍힌 날짜만 골라 준비일 추가 단가의 50%로 매긴다 — 나머지
+    // 추가일(REST가 아닌 날)은 그대로 전액 단가를 적용한다.
     if (selection.extraDays > 0) {
       const price = pkg.setupExtraDayFee;
-      items.push(
-        makeLine(
-          "extra_days",
-          "추가 일수",
-          "PER_DAY",
-          selection.extraDays,
-          0,
-          selection.extraDays,
-          price,
-          selection.extraDays * price,
-          "VISIBLE",
-        ),
+      const restPrice = Math.round(price * 0.5);
+      // 방어적으로 extraDays를 넘지 않게 자른다 — REST는 추가일에만 쓰는 태그라
+      // 기본 6일 쪽에 잘못 남은 값이 있어도 추가 일수 계산에 영향을 주지 않는다.
+      const restCount = Math.min(
+        selectedDates.filter((d) => selection.dayTags[d] === "REST").length,
+        selection.extraDays,
       );
+      const fullPriceCount = selection.extraDays - restCount;
+      if (fullPriceCount > 0) {
+        items.push(
+          makeLine(
+            "extra_days",
+            "추가 일수",
+            "PER_DAY",
+            fullPriceCount,
+            0,
+            fullPriceCount,
+            price,
+            fullPriceCount * price,
+            "VISIBLE",
+          ),
+        );
+      }
+      if (restCount > 0) {
+        items.push(
+          makeLine(
+            "extra_days_rest",
+            `추가 일수 — 휴무일 (준비일 단가 50% 할인, ${restCount}일)`,
+            "PER_DAY",
+            restCount,
+            0,
+            restCount,
+            restPrice,
+            restCount * restPrice,
+            "VISIBLE",
+          ),
+        );
+      }
     }
 
     // (2-2) 준비일/공연일 조정 — 패키지 기본 공연일수 대비 실제 지정한 공연일수 차이만큼 가감.
     // [확정 2026-08-14, 기능정의서 2-38] 공연일 추가 단가(패키지별 상이)를 적용한다.
-    const selectedDates = resolveSelectedDates(selection);
     const performanceDayCount = countPerformanceDays(selectedDates, selection.dayTags, pkg.defaultPerformanceDays);
     const performanceDelta = performanceDayCount - pkg.defaultPerformanceDays;
     if (performanceDelta !== 0) {

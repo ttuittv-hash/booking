@@ -180,6 +180,11 @@ export function Step1Calendar({
     }
   }
 
+  // [신규 2026-09-06] "1주는 패키지 단위, 그 다음주는 개별로 추가... 휴무일을
+  // 지정할수 있고" — 지금 열린 드롭다운의 날짜가 기본 6일(base)인지 개별 추가일
+  // (extra·extend)인지에 따라 아래 "휴무일" 버튼을 보여줄지 정한다.
+  const openDayKind = openDate ? dayKindForDate(openDate) : null;
+
   function canGoToMonth(delta: -1 | 1): boolean {
     if (!monthBounds) return true;
     return canStepMonth(toMonthKey(week.year, week.month), delta, monthBounds);
@@ -282,7 +287,8 @@ export function Step1Calendar({
 
   const setupCount = selectedDates.filter((d) => effectiveDayTag(d, dayTags, dayTagDefaults) === "PREP").length;
   const loadOutCount = selectedDates.filter((d) => effectiveDayTag(d, dayTags, dayTagDefaults) === "LOAD_OUT").length;
-  const performanceCount = selectedDates.length - setupCount - loadOutCount;
+  const restCount = selectedDates.filter((d) => effectiveDayTag(d, dayTags, dayTagDefaults) === "REST").length;
+  const performanceCount = selectedDates.length - setupCount - loadOutCount - restCount;
 
   return (
     <div>
@@ -384,7 +390,9 @@ export function Step1Calendar({
                             ? `공연×${dayShowCounts[iso] ?? 1}`
                             : tag === "LOAD_OUT"
                               ? "철수"
-                              : "세팅"}
+                              : tag === "REST"
+                                ? "휴무"
+                                : "세팅"}
                         </span>
                       )}
                       {/* 두 공간을 함께 짤 때만 중형 역할을 한 줄 더 찍는다 — 어느 날에
@@ -410,7 +418,7 @@ export function Step1Calendar({
                   <div className="flex items-center justify-between">
                     <div className="text-xs font-bold text-foreground">
                       {formatDateLabel(openDate)}
-                      {dayKindForDate(openDate)?.kind === "extend" ? " — 추가 후 역할 선택" : " — 역할 선택"}
+                      {openDayKind?.kind === "extend" ? " — 추가 후 역할 선택" : " — 역할 선택"}
                     </div>
                     <button
                       type="button"
@@ -468,6 +476,27 @@ export function Step1Calendar({
                     >
                       철수
                     </button>
+                    {/* [신규 2026-09-06] "1주는 패키지 단위로 추가하고, 그 다음주는 개별로
+                        추가... 휴무일을 지정할수 있고 휴무일로 지정하면 공연 준비일에
+                        50% 할인이 붙는 개념" — 화~일 기본 6일(base)에는 두지 않고, 그
+                        이후로 개별 추가하는 날(extra·extend)에만 고를 수 있다. 가격은
+                        calculateQuote.ts가 REST로 지정된 추가일에 준비일 추가 단가의
+                        50%를 매긴다. */}
+                    {openDayKind?.kind !== "base" && (
+                      <button
+                        type="button"
+                        onClick={() => setRole(openDate, "REST")}
+                        className={[
+                          "inline-flex h-8 items-center border px-3 text-xs font-bold transition-colors",
+                          activeDateKeys.has(dateKey(new Date(openDate))) &&
+                          effectiveDayTag(openDate, dayTags, dayTagDefaults) === "REST"
+                            ? "border-foreground bg-inverse-bg text-inverse-fg"
+                            : "border border-border/25 text-muted hover:border-foreground hover:text-foreground",
+                        ].join(" ")}
+                      >
+                        휴무일
+                      </button>
+                    )}
                   </div>
 
                   {activeDateKeys.has(dateKey(new Date(openDate))) &&
@@ -596,7 +625,8 @@ export function Step1Calendar({
 
       <div className="mt-4 text-s font-bold text-foreground">
         {week.year}년 {week.month}월 {week.weekOfMonth}주차 · 셋업 {setupCount}일 · 공연{" "}
-        {performanceCount}일{loadOutCount > 0 ? ` · 철수 ${loadOutCount}일` : ""} · 총 {totalDays}
+        {performanceCount}일{loadOutCount > 0 ? ` · 철수 ${loadOutCount}일` : ""}
+        {restCount > 0 ? ` · 휴무 ${restCount}일` : ""} · 총 {totalDays}
         일 적용
         {excludedDays.length > 0 && ` (기본 6일 − 제외 ${excludedDays.length}일${extraDays > 0 ? ` + 추가 ${extraDays}일` : ""})`}
         {excludedDays.length === 0 && extraDays > 0 && ` (기본 6일 + 추가 ${extraDays}일)`}
