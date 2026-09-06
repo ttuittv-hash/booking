@@ -114,8 +114,10 @@ export function validatePerformanceInfoStep(
   const safetyError = person(info.safetyResponsible, "안전관리 총괄 책임자");
   if (safetyError) return safetyError;
 
-  if (!info.eventName.trim()) return `${prefix}공연(행사)명을 입력해 주세요.`;
-  if (!info.artist.trim()) return `${prefix}아티스트 / 출연진을 입력해 주세요.`;
+  if (!isDisabled("performanceInfo.eventBasics.eventName") && !info.eventName.trim())
+    return `${prefix}공연(행사)명을 입력해 주세요.`;
+  if (!isDisabled("performanceInfo.eventBasics.artist") && !info.artist.trim())
+    return `${prefix}아티스트 / 출연진을 입력해 주세요.`;
   // organizer(단일 텍스트)는 organizers(역할별 반복 행)에서 자동 합성되므로, 배열에 이름이
   // 하나라도 있으면 통과시킨다 — 합성 전 옛 신청서는 organizer 문자열만으로 판단한다.
   const hasOrganizerEntry = (info.organizers ?? []).some((o) => o.name.trim());
@@ -165,6 +167,22 @@ function formatSize(bytes: number): string {
 
 function toggleInArray<T>(list: T[], value: T): T[] {
   return list.includes(value) ? list.filter((v) => v !== value) : [...list, value];
+}
+
+// [신규 2026-09-06] "각 슬롯 내 항목들 순서 조정 + 노출 On/off" 그룹마다 반복되던 순서
+// 계산 로직을 한 곳에 모은다 — 저장된 순서(fieldOrders[groupId])가 있으면 유효한 키만
+// 앞세우고 거기 없는 신규 키는 기본 순서 뒤에 그대로 붙인다(WizardShell.tsx의
+// step3SlotOrder 계산과 같은 규칙). disabledFields는 "그룹id.키" 형식 문자열 목록이다.
+function resolveGroupOrder<T extends string>(configured: string[] | undefined, defaultOrder: readonly T[]): T[] {
+  return configured && configured.length > 0
+    ? [
+        ...(configured.filter((key) => (defaultOrder as readonly string[]).includes(key)) as T[]),
+        ...defaultOrder.filter((key) => !configured.includes(key)),
+      ]
+    : [...defaultOrder];
+}
+function visibleInGroup<T extends string>(order: T[], groupId: string, disabledFields?: string[]): T[] {
+  return order.filter((key) => !disabledFields?.includes(`${groupId}.${key}`));
 }
 
 function formatDateLabel(iso: string): string {
@@ -455,33 +473,55 @@ function PerformanceInfoFields({
       />
     ),
   };
-  const configuredContactOrder = fieldOrders?.[CONTACT_GROUP_ID];
-  const contactFieldOrder: string[] =
-    configuredContactOrder && configuredContactOrder.length > 0
-      ? [
-          ...configuredContactOrder.filter((key) => key in contactFieldRenderers),
-          ...CONTACT_DEFAULT_ORDER.filter((key) => !configuredContactOrder.includes(key)),
-        ]
-      : [...CONTACT_DEFAULT_ORDER];
-  const visibleContactFields = contactFieldOrder.filter(
-    (key) => !disabledFields?.includes(`${CONTACT_GROUP_ID}.${key}`),
-  );
+  const contactFieldOrder = resolveGroupOrder(fieldOrders?.[CONTACT_GROUP_ID], CONTACT_DEFAULT_ORDER);
+  const visibleContactFields = visibleInGroup(contactFieldOrder, CONTACT_GROUP_ID, disabledFields);
 
   // [신규 2026-09-06] 신청 기업 유형 체크박스도 같은 패턴으로 순서 조정·온오프 가능하게.
   const COMPANY_TYPE_GROUP_ID = "performanceInfo.applicantCompanyType";
-  const configuredCompanyTypeOrder = fieldOrders?.[COMPANY_TYPE_GROUP_ID];
-  const companyTypeOrder: ApplicantCompanyType[] =
-    configuredCompanyTypeOrder && configuredCompanyTypeOrder.length > 0
-      ? [
-          ...(configuredCompanyTypeOrder.filter((key) =>
-            APPLICANT_COMPANY_TYPES.includes(key as ApplicantCompanyType),
-          ) as ApplicantCompanyType[]),
-          ...APPLICANT_COMPANY_TYPES.filter((key) => !configuredCompanyTypeOrder.includes(key)),
-        ]
-      : [...APPLICANT_COMPANY_TYPES];
-  const visibleCompanyTypes = companyTypeOrder.filter(
-    (type) => !disabledFields?.includes(`${COMPANY_TYPE_GROUP_ID}.${type}`),
-  );
+  const companyTypeOrder = resolveGroupOrder(fieldOrders?.[COMPANY_TYPE_GROUP_ID], APPLICANT_COMPANY_TYPES);
+  const visibleCompanyTypes = visibleInGroup(companyTypeOrder, COMPANY_TYPE_GROUP_ID, disabledFields);
+
+  // [신규 2026-09-06] "공연 기본정보"로 이어감 — 공연명/아티스트 쌍, 행사유형, 공연등급,
+  // 객석형태, 무대형태도 같은 패턴(순서 조정 + 노출 On/off). 반복 입력 행(주최·주관·기획,
+  // 아티스트 이력 등)은 이미 추가/삭제가 있어 이 패턴 대상에서 뺀다.
+  const EVENT_BASICS_GROUP_ID = "performanceInfo.eventBasics";
+  const EVENT_BASICS_DEFAULT_ORDER = ["eventName", "artist"] as const;
+  const eventBasicsFieldRenderers: Record<string, () => ReactNode> = {
+    eventName: () => (
+      <TextField
+        key="eventName"
+        label={t("performanceInfo.eventNameLabel", "공연(행사)명")}
+        value={info.eventName}
+        onChange={(v) => set("eventName", v)}
+      />
+    ),
+    artist: () => (
+      <TextField
+        key="artist"
+        label={t("performanceInfo.artistLabel", "아티스트 / 출연진")}
+        value={info.artist}
+        onChange={(v) => set("artist", v)}
+      />
+    ),
+  };
+  const eventBasicsOrder = resolveGroupOrder(fieldOrders?.[EVENT_BASICS_GROUP_ID], EVENT_BASICS_DEFAULT_ORDER);
+  const visibleEventBasicsFields = visibleInGroup(eventBasicsOrder, EVENT_BASICS_GROUP_ID, disabledFields);
+
+  const EVENT_TYPES_GROUP_ID = "performanceInfo.eventTypes";
+  const eventTypesOrder = resolveGroupOrder(fieldOrders?.[EVENT_TYPES_GROUP_ID], EVENT_TYPES);
+  const visibleEventTypes = visibleInGroup(eventTypesOrder, EVENT_TYPES_GROUP_ID, disabledFields);
+
+  const AGE_RATING_GROUP_ID = "performanceInfo.ageRating";
+  const ageRatingOrder = resolveGroupOrder(fieldOrders?.[AGE_RATING_GROUP_ID], AGE_RATINGS);
+  const visibleAgeRatings = visibleInGroup(ageRatingOrder, AGE_RATING_GROUP_ID, disabledFields);
+
+  const SEATING_TYPES_GROUP_ID = "performanceInfo.seatingTypes";
+  const seatingTypesOrder = resolveGroupOrder(fieldOrders?.[SEATING_TYPES_GROUP_ID], SEATING_TYPES);
+  const visibleSeatingTypes = visibleInGroup(seatingTypesOrder, SEATING_TYPES_GROUP_ID, disabledFields);
+
+  const STAGE_TYPES_GROUP_ID = "performanceInfo.stageTypes";
+  const stageTypesOrder = resolveGroupOrder(fieldOrders?.[STAGE_TYPES_GROUP_ID], STAGE_TYPES);
+  const visibleStageTypes = visibleInGroup(stageTypesOrder, STAGE_TYPES_GROUP_ID, disabledFields);
 
   function set<K extends keyof PerformanceInfo>(key: K, value: PerformanceInfo[K]) {
     onChange({ ...info, [key]: value });
@@ -710,16 +750,9 @@ function PerformanceInfoFields({
             <div>
               <div className="space-y-4">
                 <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                  <TextField
-                    label={t("performanceInfo.eventNameLabel", "공연(행사)명")}
-                    value={info.eventName}
-                    onChange={(v) => set("eventName", v)}
-                  />
-                  <TextField
-                    label={t("performanceInfo.artistLabel", "아티스트 / 출연진")}
-                    value={info.artist}
-                    onChange={(v) => set("artist", v)}
-                  />
+                  {visibleEventBasicsFields.map((key) => (
+                    <Fragment key={key}>{eventBasicsFieldRenderers[key]?.()}</Fragment>
+                  ))}
                 </div>
 
                 {/* [개정 2026-08-26] "공연 주최, 공연 주관, 공연 기획 따로따로 별도의
@@ -932,7 +965,7 @@ function PerformanceInfoFields({
                     {t("performanceInfo.eventTypesLabel", "행사유형")}
                   </div>
                   <div className="flex flex-wrap gap-2">
-                    {EVENT_TYPES.map((type) => (
+                    {visibleEventTypes.map((type) => (
                       <CheckboxChip
                         key={type}
                         label={EVENT_TYPE_LABEL[type]}
@@ -948,7 +981,7 @@ function PerformanceInfoFields({
                     {t("performanceInfo.ageRatingLabel", "공연등급")}
                   </div>
                   <div className="flex flex-wrap gap-2">
-                    {AGE_RATINGS.map((rating) => (
+                    {visibleAgeRatings.map((rating) => (
                       <CheckboxChip
                         key={rating}
                         label={AGE_RATING_LABEL[rating]}
@@ -1059,7 +1092,7 @@ function PerformanceInfoFields({
                       {t("performanceInfo.seatingTypesLabel", "객석형태")}
                     </div>
                     <div className="flex flex-wrap gap-2">
-                      {SEATING_TYPES.map((type) => (
+                      {visibleSeatingTypes.map((type) => (
                         <CheckboxChip
                           key={type}
                           label={SEATING_TYPE_LABEL[type]}
@@ -1145,7 +1178,7 @@ function PerformanceInfoFields({
                     {t("performanceInfo.stageTypesLabel", "무대형태")}
                   </div>
                   <div className="flex flex-wrap gap-2">
-                    {STAGE_TYPES.map((type) => (
+                    {visibleStageTypes.map((type) => (
                       <CheckboxChip
                         key={type}
                         label={STAGE_TYPE_LABEL[type]}

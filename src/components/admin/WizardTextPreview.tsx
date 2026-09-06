@@ -9,7 +9,11 @@ import { packagesForVenue } from "@/lib/pricing/rateTableUtils";
 import { resolveSelectedDates } from "@/lib/pricing/dateRange";
 import { INITIAL_PERFORMANCE_INFO } from "@/lib/pricing/performanceInfoDefaults";
 import {
+  AGE_RATING_LABEL,
   APPLICANT_COMPANY_TYPE_LABEL,
+  EVENT_TYPE_LABEL,
+  SEATING_TYPE_LABEL,
+  STAGE_TYPE_LABEL,
   type MarketingCooperation,
   type QuoteSelection,
   type RateTable,
@@ -645,6 +649,44 @@ const STAGE_GROUPS: StageGroup[] = [
                   email: "이메일 주소",
                 }}
                 title="담당자 정보"
+              />
+              {/* [신규 2026-09-06] "공연 기본정보"로 이어감 — 공연명/아티스트, 행사유형,
+                  공연등급, 객석형태, 무대형태. 반복 입력 행(주최·주관·기획, 아티스트 이력 등)은
+                  이미 추가·삭제가 있어 이 패턴 대상에서 뺀다. */}
+              <FieldOrderPanel
+                ctx={ctx}
+                groupId="performanceInfo.eventBasics"
+                defaultOrder={["eventName", "artist"]}
+                fieldLabels={{ eventName: "공연(행사)명", artist: "아티스트 / 출연진" }}
+                title="공연 기본정보 — 공연명·아티스트"
+              />
+              <FieldOrderPanel
+                ctx={ctx}
+                groupId="performanceInfo.eventTypes"
+                defaultOrder={Object.keys(EVENT_TYPE_LABEL)}
+                fieldLabels={EVENT_TYPE_LABEL}
+                title="행사유형"
+              />
+              <FieldOrderPanel
+                ctx={ctx}
+                groupId="performanceInfo.ageRating"
+                defaultOrder={Object.keys(AGE_RATING_LABEL)}
+                fieldLabels={AGE_RATING_LABEL}
+                title="공연등급"
+              />
+              <FieldOrderPanel
+                ctx={ctx}
+                groupId="performanceInfo.seatingTypes"
+                defaultOrder={Object.keys(SEATING_TYPE_LABEL)}
+                fieldLabels={SEATING_TYPE_LABEL}
+                title="객석형태"
+              />
+              <FieldOrderPanel
+                ctx={ctx}
+                groupId="performanceInfo.stageTypes"
+                defaultOrder={Object.keys(STAGE_TYPE_LABEL)}
+                fieldLabels={STAGE_TYPE_LABEL}
+                title="무대형태"
               />
               <div className="border border-border-soft bg-panel/60 p-3">
                 <p className="mb-2 text-2xs font-bold uppercase tracking-wide text-muted">
