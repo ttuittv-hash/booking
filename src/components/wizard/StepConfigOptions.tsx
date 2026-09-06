@@ -146,7 +146,7 @@ function MidHallRateCard({
       <h2 className="type-kr-heading text-h6-m sm:text-h6">{t("configOptions.dailyRateHeading", "일자별 대관료")}</h2>
       <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
         {cols.map((col, ci) => (
-          <div key={col.key} className="border border-border px-4 py-3">
+          <div key={col.key} className="border border-border-soft px-4 py-3">
             <div className="text-s font-bold">{col.title}</div>
             <dl className="mt-2.5 space-y-1 border-t border-border/25 pt-2.5 text-xs">
               {visibleRows.map((row) => (
@@ -294,18 +294,43 @@ function arenaSummaryLine(
 // 바로 아래 "선택 옵션" 슬롯의 항목이 달라진다(isAddonAvailable).
 // [삭제 2026-09-06] "커스텀 박스는 삭제" — 실제 패키지가 아니라 운영자 문의 안내만
 // 보여주는 자리표시자 카드("Custom"/"직접구성")를 지웠다. 요청 시 1:1 문의로 안내한다.
+// [신규 2026-09-06] "rate 카드 항목 셋팅 설정하는 슬롯을 추가해줘" — 패키지 카드
+// (Rate A/B/C/D 박스) 안의 수용인원·권장 무대·권장 객석·대관료 4행을, 다른 슬롯
+// (신청 기업 유형·담당자 정보 등)과 같은 순서·노출 패턴으로 어드민에서 조정할 수
+// 있게 한다. 할인율·총금액 행은 discountRatio에 따라 값 자체가 조건부로 붙는
+// 파생 행이라 이 순서 조정 대상에서 뺀다("총금액이 가장 밑에 들어가야해" 요구를
+// 그대로 지키기 위해 항상 맨 뒤 고정).
+const PACKAGE_CARD_GROUP_ID = "configOptions.packageCard";
+const PACKAGE_CARD_DEFAULT_ORDER = ["audienceCapacity", "recommendedStage", "recommendedSeating", "baseFee"] as const;
+
 function PackagePicker({
   packages,
   addons,
   selectedId,
   onSelect,
+  fieldOrders,
+  disabledFields,
 }: {
   packages: RentalPackage[];
   addons: AddonItem[];
   selectedId: number | null;
   onSelect: (id: number) => void;
+  fieldOrders?: Record<string, string[]>;
+  disabledFields?: string[];
 }) {
   const { t } = useWizardText();
+
+  const configuredCardOrder = fieldOrders?.[PACKAGE_CARD_GROUP_ID];
+  const cardOrder =
+    configuredCardOrder && configuredCardOrder.length > 0
+      ? [
+          ...configuredCardOrder.filter((k) => (PACKAGE_CARD_DEFAULT_ORDER as readonly string[]).includes(k)),
+          ...PACKAGE_CARD_DEFAULT_ORDER.filter((k) => !configuredCardOrder.includes(k)),
+        ]
+      : [...PACKAGE_CARD_DEFAULT_ORDER];
+  const visibleCardRows = disabledFields?.includes(PACKAGE_CARD_GROUP_ID)
+    ? []
+    : cardOrder.filter((key) => !disabledFields?.includes(`${PACKAGE_CARD_GROUP_ID}.${key}`));
 
   // [2026-08-24, "아레나 패키지의 기본 내역이 뭔지 박스로 보여지게 해줘. 수정은
   // 불가능하겠지만"] 이전에는 "기본 시설과 장비가 모두 포함되어 있습니다"라는
@@ -347,31 +372,46 @@ function PackagePicker({
                   다시 요청받아(2026-08-23, "대관료 행 추가해.. 어제 삭제했지만 다시 넣어")
                   맨 아래 행으로 되돌렸다. */}
               <dl className="mt-2.5 space-y-1 border-t border-border/25 pt-2.5 text-xs">
-                <div className="flex items-baseline justify-between gap-2">
-                  <dt className="text-muted">{t("configOptions.audienceCapacityLabel", "수용인원")}</dt>
-                  {/* audienceTier.label 은 "~12,000석 규모"처럼 다른 화면(예상 대관료
-                      요약 등)에서 문장 속에 자연스럽게 들어가도록 "규모"가 붙어 있다 —
-                      여기서는 라벨과 겹쳐 중복이라 이 카드에서만 뗀다(2026-08-22,
-                      "규모 글자 빼"). */}
-                  <dd className="font-bold tabular-nums">{p.audienceTier.label.replace(/\s*규모$/, "")}</dd>
-                </div>
-                <div className="flex items-baseline justify-between gap-2">
-                  <dt className="text-muted">{t("configOptions.recommendedStageLabel", "권장 무대")}</dt>
-                  <dd className="font-bold">{p.stageType}</dd>
-                </div>
-                <div className="flex items-baseline justify-between gap-2">
-                  <dt className="text-muted">{t("configOptions.recommendedSeatingLabel", "권장 객석")}</dt>
-                  <dd className="font-bold">{p.seatingType}</dd>
-                </div>
-                <div className="flex items-baseline justify-between gap-2">
-                  <dt className="text-muted">{t("configOptions.baseFeeLabel", "대관료")}</dt>
-                  {/* [버그 수정 2026-09-06] "할인율 적용되었으니 대관료에는 가로줄 넣어줘" —
-                      할인율이 있는 패키지는 대관료가 정가가 아니라는 걸 보여주려고
-                      취소선을 긋는다. 실제 지불액은 바로 아래 총금액 행에 그대로 보인다. */}
-                  <dd className={`font-bold tabular-nums ${p.discountRatio > 0 ? "text-muted line-through" : ""}`}>
-                    {won(p.baseFeePerWeek)}
-                  </dd>
-                </div>
+                {(() => {
+                  const rows: Record<string, ReactNode> = {
+                    audienceCapacity: (
+                      <div key="audienceCapacity" className="flex items-baseline justify-between gap-2">
+                        <dt className="text-muted">{t("configOptions.audienceCapacityLabel", "수용인원")}</dt>
+                        {/* audienceTier.label 은 "~12,000석 규모"처럼 다른 화면(예상 대관료
+                            요약 등)에서 문장 속에 자연스럽게 들어가도록 "규모"가 붙어 있다 —
+                            여기서는 라벨과 겹쳐 중복이라 이 카드에서만 뗀다(2026-08-22,
+                            "규모 글자 빼"). */}
+                        <dd className="font-bold tabular-nums">{p.audienceTier.label.replace(/\s*규모$/, "")}</dd>
+                      </div>
+                    ),
+                    recommendedStage: (
+                      <div key="recommendedStage" className="flex items-baseline justify-between gap-2">
+                        <dt className="text-muted">{t("configOptions.recommendedStageLabel", "권장 무대")}</dt>
+                        <dd className="font-bold">{p.stageType}</dd>
+                      </div>
+                    ),
+                    recommendedSeating: (
+                      <div key="recommendedSeating" className="flex items-baseline justify-between gap-2">
+                        <dt className="text-muted">{t("configOptions.recommendedSeatingLabel", "권장 객석")}</dt>
+                        <dd className="font-bold">{p.seatingType}</dd>
+                      </div>
+                    ),
+                    baseFee: (
+                      <div key="baseFee" className="flex items-baseline justify-between gap-2">
+                        <dt className="text-muted">{t("configOptions.baseFeeLabel", "대관료")}</dt>
+                        {/* [버그 수정 2026-09-06] "할인율 적용되었으니 대관료에는 가로줄 넣어줘" —
+                            할인율이 있는 패키지는 대관료가 정가가 아니라는 걸 보여주려고
+                            취소선을 긋는다. 실제 지불액은 바로 아래 총금액 행에 그대로 보인다. */}
+                        <dd
+                          className={`font-bold tabular-nums ${p.discountRatio > 0 ? "text-muted line-through" : ""}`}
+                        >
+                          {won(p.baseFeePerWeek)}
+                        </dd>
+                      </div>
+                    ),
+                  };
+                  return visibleCardRows.map((key) => rows[key]);
+                })()}
                 {/* [신규 2026-09-06] 패키지 관리(어드민)에서 설정한 할인율 — 계산 로직
                     (calculateQuote.ts)에는 이미 반영되고 있었지만 카드에는 안 보여
                     신청자가 할인 여부를 몰랐다. "할인율·총금액만 노출, 할인금액은 빼"
@@ -449,6 +489,8 @@ export function StepConfigOptions({
   onChangeRevenue,
   onSelectPackage,
   headingOverride,
+  fieldOrders,
+  disabledFields,
 }: {
   rateTable: RateTable;
   liveHallRateContent: VenueRateContent;
@@ -462,6 +504,10 @@ export function StepConfigOptions({
   onSelectPackage: (packageId: number) => void;
   /** 관리자 문구 미리보기 전용 — 제목·리드를 편집 가능한 입력으로 바꿔치기한다. */
   headingOverride?: { title: ReactNode; lead?: ReactNode };
+  /** [신규 2026-09-06] "각 슬롯 내에 있는 각 항목들 순서 조정·노출 On/off" — 패키지
+   *  카드(Rate A/B/C/D 박스) 행에도 같은 패턴을 적용한다. */
+  fieldOrders?: Record<string, string[]>;
+  disabledFields?: string[];
 }) {
   const { t, tStr } = useWizardText();
   const midHallOnly = selection.venueId === MID_HALL_VENUE_ID && selection.bookingMode === "SINGLE";
@@ -542,6 +588,8 @@ export function StepConfigOptions({
           addons={rateTable.addons}
           selectedId={selection.packageId}
           onSelect={onSelectPackage}
+          fieldOrders={fieldOrders}
+          disabledFields={disabledFields}
         />
       </div>
 
@@ -617,6 +665,8 @@ export function StepConfigOptions({
         addons={rateTable.addons}
         selectedId={null}
         onSelect={() => {}}
+        fieldOrders={fieldOrders}
+        disabledFields={disabledFields}
       />
     ) : null;
 

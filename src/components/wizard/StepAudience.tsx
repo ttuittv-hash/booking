@@ -26,9 +26,19 @@ function toggleInArray<T>(list: T[], value: T): T[] {
 // 규모 단계(STEP 4)의 필수값 검증 — 예상 유료 판매율만 선택이고 부대사업 계획은 필수다
 // (2026-08-22, "예상 유료판매율만 (선택)... 나머지는 필수사항"). 자료 첨부(객석배치도)는
 // 다른 슬롯과 같은 이유로 여기서는 검증하지 않는다.
-export function validateAudienceStep(info: PerformanceInfo, venueLabel?: string): string | null {
+export function validateAudienceStep(
+  info: PerformanceInfo,
+  venueLabel?: string,
+  disabledFields: string[] = [],
+): string | null {
   const prefix = venueLabel ? `${venueLabel} ` : "";
-  if (info.ancillaryBusinessPlans.length === 0) {
+  // [버그 수정 2026-09-06] "체크박스 노출/숨김이 필수 항목으로 처리되어 있음" —
+  // StepPerformanceInfo.tsx의 같은 수정과 짝 — 어드민이 이 그룹(또는 그 안 개별
+  // 항목 전부)을 꺼서 화면에 고를 선택지가 없으면 필수 검사를 건너뛴다.
+  const visiblePlansForValidation = disabledFields.includes(ANCILLARY_PLANS_GROUP_ID)
+    ? []
+    : ANCILLARY_PLANS.filter((plan) => !disabledFields.includes(`${ANCILLARY_PLANS_GROUP_ID}.${plan}`));
+  if (visiblePlansForValidation.length > 0 && info.ancillaryBusinessPlans.length === 0) {
     return `${prefix}부대사업 계획을 하나 이상 선택해 주세요.`;
   }
   // [신규 2026-09-06] "모든 항목에 기타 버튼 눌렀을때" 상세 입력칸이 뜨도록 일반화 —

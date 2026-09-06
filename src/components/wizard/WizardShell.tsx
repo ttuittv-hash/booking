@@ -443,8 +443,13 @@ export function WizardShell({
     ) ??
     (selection.midHallPerformanceInfo &&
       validatePerformanceInfoStep(selection.midHallPerformanceInfo, "중형공연장", wizardDisabledFields)) ??
-    validateAudienceStep(selection.performanceInfo, selection.midHallPerformanceInfo ? "아레나" : undefined) ??
-    (selection.midHallPerformanceInfo && validateAudienceStep(selection.midHallPerformanceInfo, "중형공연장"));
+    validateAudienceStep(
+      selection.performanceInfo,
+      selection.midHallPerformanceInfo ? "아레나" : undefined,
+      wizardDisabledFields,
+    ) ??
+    (selection.midHallPerformanceInfo &&
+      validateAudienceStep(selection.midHallPerformanceInfo, "중형공연장", wizardDisabledFields));
   // 안전관리 서약(STEP 6)은 필수라 그 다음 단계로 못 넘어가게 막는다(2026-08-22,
   // "무조건 필수"). STEP 4(홍보 및 서비스 계획)·STEP 5(공공/공익 참여 여부)는 게이트가
   // 없다 — 공공/공익은 원래 선택이고, 홍보는 유일한 필수값이던 "서비스 연계 동의"를
@@ -958,6 +963,8 @@ export function WizardShell({
               setSelection((prev) => ({ ...prev, expectedRevenue: value }))
             }
             onSelectPackage={selectPackage}
+            fieldOrders={wizardFieldOrders}
+            disabledFields={wizardDisabledFields}
           />
         )}
         {step === 3 &&

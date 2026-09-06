@@ -544,23 +544,43 @@ const STAGE_GROUPS: StageGroup[] = [
         render: (ctx) => {
           const field = makeFieldEditor(ctx);
           return (
-            <LivePreview>
-              <div className="[&_input]:pointer-events-auto">
-                <StepConfigOptions
-                  rateTable={ctx.rateTable}
-                  liveHallRateContent={ctx.liveHallRateContent}
-                  stepText={ctx.wizardSteps}
-                  selection={ctx.mocks.arena}
-                  defaultPerformanceDays={4}
-                  addonQuantities={ctx.previewAddonQuantities.arena}
-                  expectedRevenue={ctx.previewExpectedRevenue.arena}
-                  onChangeQuantity={(addonId, quantity) => ctx.setPreviewAddonQuantity("arena", addonId, quantity)}
-                  onChangeRevenue={(value) => ctx.setPreviewExpectedRevenue("arena", value)}
-                  onSelectPackage={noop}
-                  headingOverride={{ title: field("configArenaTitle") }}
-                />
-              </div>
-            </LivePreview>
+            <div className="space-y-4">
+              {/* [신규 2026-09-06] "rate 카드 항목 셋팅 설정하는 슬롯을 추가해줘" — 패키지
+                  카드(Rate A/B/C/D 박스) 안 수용인원·권장 무대·권장 객석·대관료 4행의
+                  순서·노출을 다른 슬롯과 같은 패턴으로 편집한다. 할인율·총금액 행은
+                  패키지의 discountRatio에 따라 조건부로 붙는 파생 행이라 대상에서 뺀다. */}
+              <FieldOrderPanel
+                ctx={ctx}
+                groupId="configOptions.packageCard"
+                defaultOrder={["audienceCapacity", "recommendedStage", "recommendedSeating", "baseFee"]}
+                fieldLabels={{
+                  audienceCapacity: "수용인원",
+                  recommendedStage: "권장 무대",
+                  recommendedSeating: "권장 객석",
+                  baseFee: "대관료",
+                }}
+                title="Rate 카드(패키지 박스) 항목"
+              />
+              <LivePreview>
+                <div className="[&_input]:pointer-events-auto">
+                  <StepConfigOptions
+                    rateTable={ctx.rateTable}
+                    liveHallRateContent={ctx.liveHallRateContent}
+                    stepText={ctx.wizardSteps}
+                    selection={ctx.mocks.arena}
+                    defaultPerformanceDays={4}
+                    addonQuantities={ctx.previewAddonQuantities.arena}
+                    expectedRevenue={ctx.previewExpectedRevenue.arena}
+                    onChangeQuantity={(addonId, quantity) => ctx.setPreviewAddonQuantity("arena", addonId, quantity)}
+                    onChangeRevenue={(value) => ctx.setPreviewExpectedRevenue("arena", value)}
+                    onSelectPackage={noop}
+                    headingOverride={{ title: field("configArenaTitle") }}
+                    fieldOrders={ctx.fieldOrders}
+                    disabledFields={ctx.disabledFields}
+                  />
+                </div>
+              </LivePreview>
+            </div>
           );
         },
       },
@@ -584,6 +604,8 @@ const STAGE_GROUPS: StageGroup[] = [
                   onChangeRevenue={(value) => ctx.setPreviewExpectedRevenue("midHall", value)}
                   onSelectPackage={noop}
                   headingOverride={{ title: field("configMidHallOnlyTitle"), lead: lead("configMidHallOnlyLead") }}
+                  fieldOrders={ctx.fieldOrders}
+                  disabledFields={ctx.disabledFields}
                 />
               </div>
             </LivePreview>
@@ -612,6 +634,8 @@ const STAGE_GROUPS: StageGroup[] = [
                   onChangeRevenue={(value) => ctx.setPreviewExpectedRevenue("simultaneous", value)}
                   onSelectPackage={noop}
                   headingOverride={{ title: field("configSimultaneousTitle"), lead: lead("configSimultaneousLead") }}
+                  fieldOrders={ctx.fieldOrders}
+                  disabledFields={ctx.disabledFields}
                 />
               </div>
             </LivePreview>

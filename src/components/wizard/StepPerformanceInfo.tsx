@@ -95,7 +95,18 @@ export function validatePerformanceInfoStep(
   // 대관신청사명·사업자등록번호는 더 이상 이 화면에서 입력하지 않고 가입 계정에서
   // 그대로 가져와 읽기 전용으로 보여준다(2026-08-22) — 계정 데이터라 여기서 필수값
   // 검사를 하지 않는다(비어 있다면 계정 쪽 문제다).
-  if (!info.applicantCompanyType) return `${prefix}신청 기업 유형을 선택해 주세요.`;
+  // [버그 수정 2026-09-06] "체크박스 노출/숨김이 필수 항목으로 처리되어 있음" —
+  // 어드민이 항목(또는 그룹 전체)을 숨겨도 이 검사는 disabledFields를 몰라 계속
+  // 필수로 요구했다. 화면에 실제로 고를 수 있는 선택지가 하나도 안 남았을 때만
+  // (visibleInGroup이 화면 렌더링과 똑같이 계산) 필수 검사를 건너뛴다 — 그룹
+  // 전체를 껐을 때는 물론, 개별 항목을 모두 꺼서 결과적으로 빈 목록이 됐을 때도
+  // 같은 규칙으로 걸러진다.
+  if (
+    visibleInGroup(APPLICANT_COMPANY_TYPES, "performanceInfo.applicantCompanyType", disabledFields).length > 0 &&
+    !info.applicantCompanyType
+  ) {
+    return `${prefix}신청 기업 유형을 선택해 주세요.`;
+  }
   if (info.applicantCompanyType === "OTHER" && !info.applicantCompanyTypeOtherDetail?.trim()) {
     return `${prefix}신청 기업 유형 "기타" 상세를 입력해 주세요.`;
   }
@@ -129,15 +140,32 @@ export function validatePerformanceInfoStep(
   if (!hasOrganizerEntry && !info.organizer.trim()) {
     return `${prefix}주최 · 주관 · 기획을 하나 이상 입력해 주세요.`;
   }
-  if (info.eventTypes.length === 0) return `${prefix}행사유형을 하나 이상 선택해 주세요.`;
-  if (!info.ageRating) return `${prefix}공연등급을 선택해 주세요.`;
+  if (
+    visibleInGroup(EVENT_TYPES, "performanceInfo.eventTypes", disabledFields).length > 0 &&
+    info.eventTypes.length === 0
+  ) {
+    return `${prefix}행사유형을 하나 이상 선택해 주세요.`;
+  }
+  const visibleAgeRatingsForValidation = visibleInGroup(
+    Object.keys(AGE_RATING_LABEL) as AgeRating[],
+    "performanceInfo.ageRating",
+    disabledFields,
+  );
+  if (visibleAgeRatingsForValidation.length > 0 && !info.ageRating) {
+    return `${prefix}공연등급을 선택해 주세요.`;
+  }
   if (info.ageRating === "AGE_LIMIT" && !info.ageLimitDetail.trim()) {
     return `${prefix}연령제한 상세를 입력해 주세요.`;
   }
 
   if (!info.ticketOpenExpectedDate.trim()) return `${prefix}티켓 오픈 예정일을 입력해 주세요.`;
 
-  if (info.seatingTypes.length === 0) return `${prefix}객석형태를 하나 이상 선택해 주세요.`;
+  if (
+    visibleInGroup(SEATING_TYPES, "performanceInfo.seatingTypes", disabledFields).length > 0 &&
+    info.seatingTypes.length === 0
+  ) {
+    return `${prefix}객석형태를 하나 이상 선택해 주세요.`;
+  }
   if (info.seatingTypes.includes("OTHER") && !info.seatingTypeOtherDetail?.trim()) {
     return `${prefix}객석형태 "기타" 상세를 입력해 주세요.`;
   }
@@ -150,7 +178,12 @@ export function validatePerformanceInfoStep(
       return `${prefix}수납식 객석을 사용하시면 1층·3층 각각 사용여부를 선택해 주세요.`;
     }
   }
-  if (info.stageTypes.length === 0) return `${prefix}무대형태를 하나 이상 선택해 주세요.`;
+  if (
+    visibleInGroup(STAGE_TYPES, "performanceInfo.stageTypes", disabledFields).length > 0 &&
+    info.stageTypes.length === 0
+  ) {
+    return `${prefix}무대형태를 하나 이상 선택해 주세요.`;
+  }
   if (info.stageTypes.includes("OTHER") && !info.stageTypeOtherDetail?.trim()) {
     return `${prefix}무대형태 "기타" 상세를 입력해 주세요.`;
   }
