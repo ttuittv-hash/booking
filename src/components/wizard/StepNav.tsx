@@ -1,6 +1,5 @@
 "use client";
 
-import { CHOICE_SELECTED_VARS } from "@/components/ui/kit";
 import { useWizardText } from "@/lib/content/wizardText";
 
 // [화면 뼈대 2026-08-20, 세 번째 개정] "공간 선택"과 "일정 선택"을 다시 하나의 탭으로
@@ -145,34 +144,30 @@ export function StepNav({
       </ol>
 
       {activeGroup && activeGroup.visibleSteps.length > 1 && (
-        <ol className="flex w-full min-w-0 items-center gap-1.5 overflow-x-auto pb-3 pt-3">
+        // [수정 2026-09-06] "원뎁스 투뎁스 간격이 너무 좁아서 붙으려고 하고" — 위 그룹
+        // 줄과 바로 붙어 있던 pt-3를 pt-5로 넉넉히 띄운다. "투뎁스는 동그라미 말고
+        // 텍스트 밑줄로" — 알약(rounded-full·테두리) 버튼을 밑줄 텍스트로 바꾼다.
+        <ol className="flex w-full min-w-0 items-center gap-3 overflow-x-auto pb-3 pt-5">
           {activeGroup.visibleSteps.map((s, i) => {
             const isCurrent = s.step === step;
             const isDone = s.step < step;
             const disabled = s.step > maxUnlockedStep || (locked && s.step !== step);
             return (
-              <li key={s.step} className="flex shrink-0 items-center gap-1.5">
+              <li key={s.step} className="flex shrink-0 items-center gap-3">
                 {i > 0 && <Chevron />}
                 <button
                   type="button"
                   disabled={disabled}
                   onClick={() => onJump(s.step)}
                   aria-current={isCurrent ? "step" : undefined}
-                  /* 현재 단계 = 검정 채움. 텍스트 색이 따라오도록 토큰을 국소 반전한다 */
-                  style={isCurrent ? CHOICE_SELECTED_VARS : undefined}
                   className={[
-                    // 하위 단계는 **알약**이다 — 네모는 실행(버튼), 알약은 이동(탭)이라는
-                    // 구분을 지킨다. 샤프 코너로 두면 바로 아래 이전/다음 버튼과 같은
-                    // 모양이 되어 "누르면 뭔가 실행되는 것"으로 읽힌다.
-                    // 높이는 버튼과 같은 단(40)을 쓴다. 번호 매김은 제거했다(2026-08-22,
-                    // "서브위저드 번호는 제거해") — 순서는 셰브런과 완료/진행 색으로만 표시한다.
-                    "flex h-10 items-center gap-2 rounded-full border px-4 text-xs font-bold outline-none transition-colors",
+                    "flex h-8 items-center whitespace-nowrap text-xs font-bold outline-none underline-offset-4 transition-colors",
                     "focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-foreground",
                     isCurrent
-                      ? "border-foreground bg-inverse-bg text-inverse-fg"
+                      ? "text-foreground underline decoration-2"
                       : isDone
-                        ? "border-foreground text-foreground"
-                        : "border-border-soft text-muted",
+                        ? "text-foreground underline decoration-1"
+                        : "text-muted no-underline hover:text-foreground",
                     disabled ? "cursor-not-allowed opacity-40" : "cursor-pointer",
                   ].join(" ")}
                 >
