@@ -112,10 +112,18 @@ export function calculateQuote(selection: QuoteSelection, rateTable: RateTable):
     // REST 태그(Step1Calendar.tsx가 dayKind.kind !== "base"일 때만 버튼을 보여준다).
     // defaultDayTags는 REST를 절대 자동으로 매기지 않으므로(항상 명시적 지정), 여기서는
     // dayTags에 직접 REST로 찍힌 날짜만 골라 준비일 추가 단가의 50%로 매긴다 — 나머지
-    // 추가일(REST가 아닌 날)은 그대로 전액 단가를 적용한다.
+    // 추가일(REST가 아닌 날)은 준비일 추가 단가의 10% 할인가로 적용한다.
+    // [신규 2026-09-06 ②] "추가 준비일도 기존 준비일 대비 10% 할인" — 기본 6일을 넘겨
+    // 추가하는 준비일(REST 제외)에 pkg.extraDayDiscountRatio만큼 할인을 적용한다.
+    // [개정 2026-09-06 ③] "운영툴 > 패키지 관리 > 기본 정보에 추가분 할인율 항목을
+    // 추가" — 10%/50% 고정값이던 두 비율을 패키지별 어드민 입력값(extraDayDiscountRatio·
+    // restDayDiscountRatio)으로 뺐다. REST의 할인은 이 10%와 별개로 원래 단가
+    // (setupExtraDayFee) 기준에 restDayDiscountRatio를 그대로 적용한다(REST가 더 큰
+    // 폭의 전용 할인이므로 extraDayDiscountRatio와 중복 적용하지 않는다).
     if (selection.extraDays > 0) {
       const price = pkg.setupExtraDayFee;
-      const restPrice = Math.round(price * 0.5);
+      const discountedPrice = Math.round(price * (1 - pkg.extraDayDiscountRatio));
+      const restPrice = Math.round(price * (1 - pkg.restDayDiscountRatio));
       // 방어적으로 extraDays를 넘지 않게 자른다 — REST는 추가일에만 쓰는 태그라
       // 기본 6일 쪽에 잘못 남은 값이 있어도 추가 일수 계산에 영향을 주지 않는다.
       const restCount = Math.min(
@@ -127,13 +135,13 @@ export function calculateQuote(selection: QuoteSelection, rateTable: RateTable):
         items.push(
           makeLine(
             "extra_days",
-            "추가 일수",
+            `추가 일수 (준비일 단가 ${Math.round(pkg.extraDayDiscountRatio * 100)}% 할인)`,
             "PER_DAY",
             fullPriceCount,
             0,
             fullPriceCount,
-            price,
-            fullPriceCount * price,
+            discountedPrice,
+            fullPriceCount * discountedPrice,
             "VISIBLE",
           ),
         );
@@ -142,7 +150,7 @@ export function calculateQuote(selection: QuoteSelection, rateTable: RateTable):
         items.push(
           makeLine(
             "extra_days_rest",
-            `추가 일수 — 휴무일 (준비일 단가 50% 할인, ${restCount}일)`,
+            `추가 일수 — 휴무일 (준비일 단가 ${Math.round(pkg.restDayDiscountRatio * 100)}% 할인, ${restCount}일)`,
             "PER_DAY",
             restCount,
             0,
@@ -157,14 +165,34 @@ export function calculateQuote(selection: QuoteSelection, rateTable: RateTable):
 
     // (2-2) 준비일/공연일 조정 — 패키지 기본 공연일수 대비 실제 지정한 공연일수 차이만큼 가감.
     // [확정 2026-08-14, 기능정의서 2-38] 공연일 추가 단가(패키지별 상이)를 적용한다.
+    // [신규 2026-09-06] "추가공연일도 기존 공연일의 10%할인" — 기본 공연일수보다 늘어난
+    // 만큼(delta>0, 순수 추가분)만 공연일 추가 단가에서 pkg.extraDayDiscountRatio만큼
+    // 할인한다(위 (2-1) 추가 준비일과 같은 비율 — 패키지 관리에서 "같은 값 공유"로 확정,
+    // 2026-09-06). 기본보다 줄어든 경우(delta<0)는 "추가"가 아니라 미사용 공연일에
+    // 대한 차감이므로 할인 없이 원래 단가 그대로 차감한다.
     const performanceDayCount = countPerformanceDays(selectedDates, selection.dayTags, pkg.defaultPerformanceDays);
     const performanceDelta = performanceDayCount - pkg.defaultPerformanceDays;
-    if (performanceDelta !== 0) {
+    if (performanceDelta > 0) {
+      const unitPrice = Math.round(pkg.performanceExtraDayFee * (1 - pkg.extraDayDiscountRatio));
+      items.push(
+        makeLine(
+          "performance_day_adjustment",
+          `공연 일수 조정 (기본 ${pkg.defaultPerformanceDays}일 대비 +${performanceDelta}일, 공연일 단가 ${Math.round(pkg.extraDayDiscountRatio * 100)}% 할인)`,
+          "PER_DAY",
+          performanceDayCount,
+          pkg.defaultPerformanceDays,
+          performanceDelta,
+          unitPrice,
+          performanceDelta * unitPrice,
+          "VISIBLE",
+        ),
+      );
+    } else if (performanceDelta < 0) {
       const unitPrice = pkg.performanceExtraDayFee;
       items.push(
         makeLine(
           "performance_day_adjustment",
-          `공연 일수 조정 (기본 ${pkg.defaultPerformanceDays}일 대비 ${performanceDelta > 0 ? "+" : ""}${performanceDelta}일)`,
+          `공연 일수 조정 (기본 ${pkg.defaultPerformanceDays}일 대비 ${performanceDelta}일)`,
           "PER_DAY",
           performanceDayCount,
           pkg.defaultPerformanceDays,

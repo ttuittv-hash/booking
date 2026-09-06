@@ -169,6 +169,8 @@ function blankPackage(id: number, venueId: string): EditablePackage {
     setupExtraDayFee: 0,
     performanceExtraDayFee: 0,
     secondShowSurchargeRatio: 0,
+    extraDayDiscountRatio: 0.1,
+    restDayDiscountRatio: 0.5,
     dayBreakdown: "준비 4일 + 공연 2일",
     defaultPerformanceDays: 2,
     rentalHours: "09:00 ~ 22:00",
@@ -839,6 +841,54 @@ export function PackagesForm({
                   value={Math.round(active.discountRatio * 100)}
                   onChange={(e) =>
                     update({ discountRatio: Math.min(90, Math.max(0, Number(e.target.value) || 0)) / 100 })
+                  }
+                  className={FIELD}
+                />
+              </div>
+            </label>
+            {/* [신규 2026-09-06] "추가분 할인율" — 화~일 기본 6일을 넘겨 추가하는 날짜의
+                할인율. 기존엔 calculateQuote.ts에 10%/50%로 고정돼 있었는데 패키지별로
+                조정할 수 있게 뗀다. 추가 공연일과 추가 준비일(휴무일 제외)은 같은 값을
+                공유한다(2026-09-06 세션에서 확정) — 입력칸은 "추가 공연일" 하나만 둔다. */}
+            <label className="block">
+              <span className="mb-1 block text-xs text-muted">추가 공연일 할인 (%, 기본 6일을 넘겨 추가한 공연일·준비일 단가 기준)</span>
+              <div className="flex items-center gap-2">
+                <input
+                  type="checkbox"
+                  className="accent-accent"
+                  checked={active.extraDayDiscountRatio > 0}
+                  onChange={(e) => update({ extraDayDiscountRatio: e.target.checked ? 0.1 : 0 })}
+                />
+                <input
+                  type="number"
+                  min={0}
+                  max={90}
+                  disabled={active.extraDayDiscountRatio === 0}
+                  value={Math.round(active.extraDayDiscountRatio * 100)}
+                  onChange={(e) =>
+                    update({ extraDayDiscountRatio: Math.min(90, Math.max(0, Number(e.target.value) || 0)) / 100 })
+                  }
+                  className={FIELD}
+                />
+              </div>
+            </label>
+            <label className="block">
+              <span className="mb-1 block text-xs text-muted">휴무일 할인 (%, 준비일 단가 기준 — 기본 6일을 넘겨 개별 추가한 날에만 지정 가능)</span>
+              <div className="flex items-center gap-2">
+                <input
+                  type="checkbox"
+                  className="accent-accent"
+                  checked={active.restDayDiscountRatio > 0}
+                  onChange={(e) => update({ restDayDiscountRatio: e.target.checked ? 0.5 : 0 })}
+                />
+                <input
+                  type="number"
+                  min={0}
+                  max={100}
+                  disabled={active.restDayDiscountRatio === 0}
+                  value={Math.round(active.restDayDiscountRatio * 100)}
+                  onChange={(e) =>
+                    update({ restDayDiscountRatio: Math.min(100, Math.max(0, Number(e.target.value) || 0)) / 100 })
                   }
                   className={FIELD}
                 />

@@ -58,6 +58,8 @@ export const SEED_PACKAGES: RentalPackage[] = [
     setupExtraDayFee: 46_790_000, // [확정 2026-08-14]
     performanceExtraDayFee: 154_800_000, // [확정 2026-08-14]
     secondShowSurchargeRatio: 0.5, // [신규 2026-09-06] "1일 2회 공연 시 아레나는 50% 할증"
+    extraDayDiscountRatio: 0.1, // [신규 2026-09-06] "추가 준비일·추가 공연일 10% 할인"
+    restDayDiscountRatio: 0.5, // [신규 2026-09-06] "휴무일은 준비일 단가의 50% 할인"
     dayBreakdown: "준비 4일 + 공연 2일",
     defaultPerformanceDays: 2,
     rentalHours: "09:00 ~ 22:00",
@@ -83,6 +85,8 @@ export const SEED_PACKAGES: RentalPackage[] = [
     setupExtraDayFee: 46_790_000, // [확정 2026-08-14]
     performanceExtraDayFee: 166_800_000, // [확정 2026-08-14]
     secondShowSurchargeRatio: 0.5,
+    extraDayDiscountRatio: 0.1,
+    restDayDiscountRatio: 0.5,
     dayBreakdown: "준비 4일 + 공연 2일",
     defaultPerformanceDays: 2,
     rentalHours: "09:00 ~ 22:00",
@@ -108,6 +112,8 @@ export const SEED_PACKAGES: RentalPackage[] = [
     setupExtraDayFee: 46_790_000, // [확정 2026-08-14]
     performanceExtraDayFee: 196_800_000, // [확정 2026-08-14]
     secondShowSurchargeRatio: 0.5,
+    extraDayDiscountRatio: 0.1,
+    restDayDiscountRatio: 0.5,
     dayBreakdown: "준비 4일 + 공연 2일",
     defaultPerformanceDays: 2,
     rentalHours: "09:00 ~ 22:00",
@@ -133,6 +139,8 @@ export const SEED_PACKAGES: RentalPackage[] = [
     setupExtraDayFee: 46_790_000, // [확정 2026-08-14]
     performanceExtraDayFee: 216_800_000, // [확정 2026-08-14]
     secondShowSurchargeRatio: 0.5,
+    extraDayDiscountRatio: 0.1,
+    restDayDiscountRatio: 0.5,
     dayBreakdown: "준비 4일 + 공연 2일",
     defaultPerformanceDays: 2,
     rentalHours: "09:00 ~ 22:00",
@@ -160,6 +168,8 @@ export const SEED_PACKAGES: RentalPackage[] = [
     setupExtraDayFee: 1_500_000,
     performanceExtraDayFee: 1_500_000,
     secondShowSurchargeRatio: 0, // 미확정 플레이스홀더 — 실제 중형공연장 가격은 calculateMidHallLineItems 가 별도 계산
+    extraDayDiscountRatio: 0, // 중형공연장은 이 개념(아레나 전용 추가일 할인) 미적용
+    restDayDiscountRatio: 0,
     dayBreakdown: "준비 2일 + 공연 1일",
     defaultPerformanceDays: 1,
     rentalHours: "09:00 ~ 22:00",
@@ -191,6 +201,8 @@ export const SEED_PACKAGES: RentalPackage[] = [
     setupExtraDayFee: 0,
     performanceExtraDayFee: 0,
     secondShowSurchargeRatio: 0,
+    extraDayDiscountRatio: 0,
+    restDayDiscountRatio: 0,
     dayBreakdown: "준비 1일 + 공연 1일",
     defaultPerformanceDays: 1,
     rentalHours: "09:00 ~ 22:00",

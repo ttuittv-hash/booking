@@ -631,6 +631,17 @@ export function Step1Calendar({
         {excludedDays.length > 0 && ` (기본 6일 − 제외 ${excludedDays.length}일${extraDays > 0 ? ` + 추가 ${extraDays}일` : ""})`}
         {excludedDays.length === 0 && extraDays > 0 && ` (기본 6일 + 추가 ${extraDays}일)`}
       </div>
+
+      {/* [신규 2026-09-06] "추가 준비일도 기존 준비일 대비 10% 할인, 추가공연일도 기존
+          공연일의 10%할인 > 이게 프론트에서도 이렇게 할인된다는 안내를 노출해줘야할듯" —
+          기본 6일을 넘겨 추가하는 준비일·공연일에는 자동으로 10% 할인이 붙는다는 것을
+          견적서(계산서)를 열어보기 전에 이 화면에서 미리 안내한다(휴무일은 별도로 50%
+          할인이 이미 위 버튼 안내에 있어 여기서는 준비일·공연일만 언급). */}
+      {(extraDays > 0 || performanceCount > defaultPerformanceDays) && (
+        <p className="mt-1.5 text-xs text-muted">
+          기본 6일을 넘겨 추가하는 준비일·공연일은 각각 기존 단가에서 10% 자동 할인됩니다.
+        </p>
+      )}
     </div>
   );
 }

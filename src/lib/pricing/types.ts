@@ -116,6 +116,16 @@ export interface RentalPackage {
   // 중형공연장의 같은 개념은 MidHallRateConfig.secondShowSurchargeRatio(RatesForm.tsx).
   secondShowSurchargeRatio: number;
 
+  // [신규 2026-09-06] "추가분 할인율" — 화~일 기본 6일을 넘겨 추가하는 날짜에 붙는 할인.
+  // 패키지 관리(어드민) > 기본 정보에서 패키지별로 조정한다(과거엔 calculateQuote.ts에
+  // 0.1/0.5로 고정돼 있었다). extraDayDiscountRatio는 추가 준비일(휴무일 제외)과 추가
+  // 공연일 양쪽에 같은 값을 쓴다(2026-09-06 세션에서 "같은 값 공유"로 확정) — 각각
+  // setupExtraDayFee·performanceExtraDayFee에 곱해 할인분을 뺀다. restDayDiscountRatio는
+  // 휴무일(REST)로 지정한 추가일에만 적용하고 기준은 항상 setupExtraDayFee(준비일 단가)다.
+  // 0=할인 없음.
+  extraDayDiscountRatio: number; // 기본값 0.1 = 추가 준비일·추가 공연일 10% 할인
+  restDayDiscountRatio: number; // 기본값 0.5 = 휴무일(준비일 단가 기준) 50% 할인
+
   // 아래 항목은 "패키지 구성" 명세(대관시스템 노출)를 반영한 설명 정보입니다.
   // 과금 대상이 아니며(정찰제 대관료에 포함), 패키지 비교/안내용으로만 표시됩니다.
   dayBreakdown: string; // 세부 구성 — "준비 4일 + 공연 2일" (전 패키지 공통)

@@ -10,7 +10,7 @@ import {
   packagePrice,
 } from "./rateTableUtils";
 import { buildSeedRateTable } from "./seed";
-import type { AddonItem, QuoteSelection } from "./types";
+import type { AddonItem, QuoteSelection, RateTable } from "./types";
 
 const RATE_TABLE = buildSeedRateTable();
 
@@ -116,22 +116,48 @@ describe("calculateQuote — 명세서 7장 검증 케이스", () => {
     expect(quote.subtotal).toBe(expectedSubtotal);
   });
 
-  it("케이스 C: 추가 일수 — 일요일 이후 2일 연장 시 셋업 추가 단가 × 2일 과금 (2-38 확정)", () => {
+  it("케이스 C: 추가 일수 — 일요일 이후 2일 연장 시 셋업 추가 단가 10% 할인 × 2일 과금 (2026-09-06 개정)", () => {
     const quote = calculateQuote(baseSelection({ extraDays: 2 }), RATE_TABLE);
     const extraDaysLine = quote.lineItems.find((i) => i.addonId === "extra_days")!;
-    const dayPrice = pkg2.setupExtraDayFee;
+    const dayPrice = Math.round(pkg2.setupExtraDayFee * 0.9);
 
     expect(extraDaysLine.requested).toBe(2);
     expect(extraDaysLine.billable).toBe(2);
     expect(extraDaysLine.amount).toBe(2 * dayPrice);
-    expect(dayPrice).toBe(46_790_000);
 
     const expectedSubtotal =
       packagePrice(RATE_TABLE, pkg2) + 8000 * cleaning.unitPrice + 2 * dayPrice + utilityTotal;
     expect(quote.subtotal).toBe(expectedSubtotal);
   });
 
-  it("휴무일(REST) — 추가일 중 하루만 휴무일로 지정하면 그 날만 준비일 단가의 50% (2026-09-06 신규)", () => {
+  it("추가분 할인율은 패키지별 어드민 입력값을 따른다 — 고정 10%/50%가 아니다 (2026-09-06 신규)", () => {
+    // "운영툴 > 패키지 관리 > 기본 정보에 추가분 할인율 항목을 추가" — extraDayDiscountRatio·
+    // restDayDiscountRatio를 패키지별로 20%/30%로 바꿔도 계산에 그대로 반영돼야 한다.
+    const customTable: RateTable = {
+      ...RATE_TABLE,
+      packages: RATE_TABLE.packages.map((p) =>
+        p.id === 2 ? { ...p, extraDayDiscountRatio: 0.2, restDayDiscountRatio: 0.3 } : p,
+      ),
+    };
+    const dates = resolveSelectedDates(baseSelection({ extraDays: 2 }));
+    const [restDate] = dates.slice(-2);
+    const quote = calculateQuote(
+      baseSelection({ extraDays: 2, dayTags: { [restDate]: "REST" } }),
+      customTable,
+    );
+    const extraDaysLine = quote.lineItems.find((i) => i.addonId === "extra_days")!;
+    const restLine = quote.lineItems.find((i) => i.addonId === "extra_days_rest")!;
+    expect(extraDaysLine.amount).toBe(Math.round(pkg2.setupExtraDayFee * 0.8));
+    expect(restLine.amount).toBe(Math.round(pkg2.setupExtraDayFee * 0.7));
+
+    const perfDates = resolveSelectedDates(baseSelection());
+    const prepDate = perfDates[0];
+    const perfQuote = calculateQuote(baseSelection({ dayTags: { [prepDate]: "PERFORMANCE" } }), customTable);
+    const perfLine = perfQuote.lineItems.find((i) => i.addonId === "performance_day_adjustment")!;
+    expect(perfLine.amount).toBe(Math.round(pkg2.performanceExtraDayFee * 0.8));
+  });
+
+  it("휴무일(REST) — 추가일 중 하루만 휴무일로 지정하면 그 날만 준비일 단가의 50%, 나머지는 10% 할인 (2026-09-06 신규)", () => {
     const dates = resolveSelectedDates(baseSelection({ extraDays: 2 }));
     const [restDate, normalDate] = dates.slice(-2);
     const quote = calculateQuote(
@@ -139,16 +165,17 @@ describe("calculateQuote — 명세서 7장 검증 케이스", () => {
       RATE_TABLE,
     );
     const dayPrice = pkg2.setupExtraDayFee;
+    const discountedPrice = Math.round(dayPrice * 0.9);
     const restPrice = Math.round(dayPrice * 0.5);
 
     const extraDaysLine = quote.lineItems.find((i) => i.addonId === "extra_days")!;
     const restLine = quote.lineItems.find((i) => i.addonId === "extra_days_rest")!;
 
     expect(extraDaysLine.billable).toBe(1);
-    expect(extraDaysLine.amount).toBe(1 * dayPrice);
+    expect(extraDaysLine.amount).toBe(1 * discountedPrice);
     expect(restLine.billable).toBe(1);
     expect(restLine.amount).toBe(1 * restPrice);
-    expect(normalDate).toBeTruthy(); // 나머지 한 날은 REST가 아니라 전액 단가로 남는다
+    expect(normalDate).toBeTruthy(); // 나머지 한 날은 REST가 아니라 10% 할인 단가로 남는다
   });
 
   it("휴무일(REST) — 추가일 전부를 휴무일로 지정하면 전액 단가 줄은 아예 생기지 않는다", () => {
@@ -276,7 +303,7 @@ describe("calculateQuote — 명세서 7장 검증 케이스", () => {
     expect(quote.lineItems.find((i) => i.addonId === "performance_day_adjustment")).toBeUndefined();
   });
 
-  it("공연일을 기본값보다 늘리면 초과분만큼 할증된다", () => {
+  it("공연일을 기본값보다 늘리면 초과분만큼 공연일 단가 10% 할인가로 할증된다 (2026-09-06 개정)", () => {
     const dates = resolveSelectedDates(baseSelection());
     const prepDate = dates[0]; // 기본값상 준비일(맨 앞 날짜)을 공연일로 재지정
     const quote = calculateQuote(
@@ -284,7 +311,7 @@ describe("calculateQuote — 명세서 7장 검증 케이스", () => {
       RATE_TABLE,
     );
     const line = quote.lineItems.find((i) => i.addonId === "performance_day_adjustment")!;
-    const unitPrice = pkg2.performanceExtraDayFee;
+    const unitPrice = Math.round(pkg2.performanceExtraDayFee * 0.9);
     expect(line.requested).toBe(pkg2.defaultPerformanceDays + 1);
     expect(line.amount).toBe(unitPrice);
   });

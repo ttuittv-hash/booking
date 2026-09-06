@@ -313,7 +313,20 @@ interface RenderCtx {
    */
   slotOrders: Record<string, string[]>;
   setSlotOrder: (slotsKey: string, order: string[]) => void;
+  /**
+   * [신규 2026-09-06] "운영툴에서 수량제한 숫자까지는 입력 가능해야함" — 02 구성·옵션
+   * 탭(아레나 단독/중형공연장 단독/동시 대관)의 부대시설 수량·예상매출 입력은 다른
+   * 필드(문구 편집)와 달리 DB에 저장하지 않는 순수 미리보기용 로컬 상태다. 세 섹션이
+   * 같은 addonId를 쓸 수 있어 섹션별로 따로 둔다. 상한(clampAddonQuantity)은
+   * StepConfigOptions의 AddonRow가 onChange 시점에 이미 적용해 넘겨준다.
+   */
+  previewAddonQuantities: Record<PreviewAddonSection, Record<string, number>>;
+  setPreviewAddonQuantity: (section: PreviewAddonSection, addonId: string, quantity: number) => void;
+  previewExpectedRevenue: Record<PreviewAddonSection, number>;
+  setPreviewExpectedRevenue: (section: PreviewAddonSection, value: number) => void;
 }
+
+type PreviewAddonSection = "arena" | "midHall" | "simultaneous";
 
 /** 그룹 하나의 필드 순서·노출을 편집하는 작은 인라인 패널 — LivePreview 바로 옆에 둬서
  *  "보면서 수정"이 되게 한다(LivePreview 밖이라 pointer-events는 정상 동작한다). */
@@ -539,10 +552,10 @@ const STAGE_GROUPS: StageGroup[] = [
                   stepText={ctx.wizardSteps}
                   selection={ctx.mocks.arena}
                   defaultPerformanceDays={4}
-                  addonQuantities={{}}
-                  expectedRevenue={0}
-                  onChangeQuantity={noop}
-                  onChangeRevenue={noop}
+                  addonQuantities={ctx.previewAddonQuantities.arena}
+                  expectedRevenue={ctx.previewExpectedRevenue.arena}
+                  onChangeQuantity={(addonId, quantity) => ctx.setPreviewAddonQuantity("arena", addonId, quantity)}
+                  onChangeRevenue={(value) => ctx.setPreviewExpectedRevenue("arena", value)}
                   onSelectPackage={noop}
                   headingOverride={{ title: field("configArenaTitle") }}
                 />
@@ -565,10 +578,10 @@ const STAGE_GROUPS: StageGroup[] = [
                   stepText={ctx.wizardSteps}
                   selection={ctx.mocks.midHall}
                   defaultPerformanceDays={4}
-                  addonQuantities={{}}
-                  expectedRevenue={0}
-                  onChangeQuantity={noop}
-                  onChangeRevenue={noop}
+                  addonQuantities={ctx.previewAddonQuantities.midHall}
+                  expectedRevenue={ctx.previewExpectedRevenue.midHall}
+                  onChangeQuantity={(addonId, quantity) => ctx.setPreviewAddonQuantity("midHall", addonId, quantity)}
+                  onChangeRevenue={(value) => ctx.setPreviewExpectedRevenue("midHall", value)}
                   onSelectPackage={noop}
                   headingOverride={{ title: field("configMidHallOnlyTitle"), lead: lead("configMidHallOnlyLead") }}
                 />
@@ -591,10 +604,12 @@ const STAGE_GROUPS: StageGroup[] = [
                   stepText={ctx.wizardSteps}
                   selection={ctx.mocks.simultaneous}
                   defaultPerformanceDays={4}
-                  addonQuantities={{}}
-                  expectedRevenue={0}
-                  onChangeQuantity={noop}
-                  onChangeRevenue={noop}
+                  addonQuantities={ctx.previewAddonQuantities.simultaneous}
+                  expectedRevenue={ctx.previewExpectedRevenue.simultaneous}
+                  onChangeQuantity={(addonId, quantity) =>
+                    ctx.setPreviewAddonQuantity("simultaneous", addonId, quantity)
+                  }
+                  onChangeRevenue={(value) => ctx.setPreviewExpectedRevenue("simultaneous", value)}
                   onSelectPackage={noop}
                   headingOverride={{ title: field("configSimultaneousTitle"), lead: lead("configSimultaneousLead") }}
                 />
@@ -970,6 +985,15 @@ export function WizardTextPreview({
   const setGroupIdx = (i: number) => setStepParam(STEP_VALUES[i] ?? "1");
   const [subIdx, setSubIdx] = useState(0);
   const mocks = useMockSelections(rateTable);
+  // [신규 2026-09-06] 02 구성·옵션 미리보기 전용 로컬 상태 — DB에 저장하지 않는다.
+  const [previewAddonQuantities, setPreviewAddonQuantities] = useState<
+    Record<PreviewAddonSection, Record<string, number>>
+  >({ arena: {}, midHall: {}, simultaneous: {} });
+  const [previewExpectedRevenue, setPreviewExpectedRevenueState] = useState<Record<PreviewAddonSection, number>>({
+    arena: 0,
+    midHall: 0,
+    simultaneous: 0,
+  });
   const group = STAGE_GROUPS[groupIdx];
   const subTab = group.subTabs[Math.min(subIdx, group.subTabs.length - 1)];
 
@@ -995,6 +1019,15 @@ export function WizardTextPreview({
         function setSlotOrder(slotsKey: string, order: string[]) {
           patch({ wizardSlotOrders: { ...v.wizardSlotOrders, [slotsKey]: order } });
         }
+        function setPreviewAddonQuantity(section: PreviewAddonSection, addonId: string, quantity: number) {
+          setPreviewAddonQuantities((prev) => ({
+            ...prev,
+            [section]: { ...prev[section], [addonId]: quantity },
+          }));
+        }
+        function setPreviewExpectedRevenue(section: PreviewAddonSection, value: number) {
+          setPreviewExpectedRevenueState((prev) => ({ ...prev, [section]: value }));
+        }
         const ctx: RenderCtx = {
           wizardSteps: v.wizardSteps,
           setStep,
@@ -1009,6 +1042,10 @@ export function WizardTextPreview({
           setFieldDisabled,
           slotOrders: v.wizardSlotOrders,
           setSlotOrder,
+          previewAddonQuantities,
+          setPreviewAddonQuantity,
+          previewExpectedRevenue,
+          setPreviewExpectedRevenue,
         };
         return (
           <div>

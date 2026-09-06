@@ -1409,6 +1409,8 @@ function toRateTable(row: RateTableRow): RateTable {
       performanceExtraDayFee?: number;
       defaultPerformanceDays?: number;
       secondShowSurchargeRatio?: number;
+      extraDayDiscountRatio?: number;
+      restDayDiscountRatio?: number;
     }
   >;
   const packages = rawPackages.map((pkg) => {
@@ -1421,6 +1423,10 @@ function toRateTable(row: RateTableRow): RateTable {
       defaultPerformanceDays: pkg.defaultPerformanceDays ?? seedMatch?.defaultPerformanceDays ?? 0,
       // [신규 2026-09-06] 이 필드 추가 이전에 저장된 패키지도 같은 이유로 보정한다.
       secondShowSurchargeRatio: pkg.secondShowSurchargeRatio ?? seedMatch?.secondShowSurchargeRatio ?? 0,
+      // [신규 2026-09-06] "추가분 할인율" 어드민 입력 추가 이전에 저장된 패키지 보정 — 같은
+      // 이유로 시드 기본값(0.1/0.5)을 대신 채운다.
+      extraDayDiscountRatio: pkg.extraDayDiscountRatio ?? seedMatch?.extraDayDiscountRatio ?? 0,
+      restDayDiscountRatio: pkg.restDayDiscountRatio ?? seedMatch?.restDayDiscountRatio ?? 0,
       // audienceTier/seatingType/stageType 도 같은 이유로 보정한다 — 이 필드들이 추가되기
       // 전에 저장된 패키지는 값이 아예 없어(undefined), 카드·어드민 패키지 관리 화면에서
       // `.audienceTier.label`처럼 바로 접근하는 곳이 전부 그대로 죽는다("패키지 관리 화면이

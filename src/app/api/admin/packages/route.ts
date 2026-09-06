@@ -118,6 +118,8 @@ function blankPackage(id: number): RentalPackage {
     setupExtraDayFee: 0,
     performanceExtraDayFee: 0,
     secondShowSurchargeRatio: 0,
+    extraDayDiscountRatio: 0.1,
+    restDayDiscountRatio: 0.5,
     dayBreakdown: "준비 4일 + 공연 2일",
     defaultPerformanceDays: 2,
     rentalHours: "09:00 ~ 22:00",
@@ -183,6 +185,19 @@ function sanitizePackage(current: RentalPackage, input: unknown): RentalPackage 
   const discountRatio = Number.isFinite(Number(p.discountRatio))
     ? Math.min(0.9, Math.max(0, Number(p.discountRatio)))
     : current.discountRatio;
+  // [버그 수정 2026-09-06] "추가분 할인율" 입력을 새로 붙이며 발견 — secondShowSurchargeRatio는
+  // PackagesForm.tsx에는 편집 칸이 있었는데 이 sanitizePackage가 걸러 담지 않아 폼에서
+  // 고쳐도 저장되지 않고 있었다(spread한 current 값이 그대로 남음). 같은 패턴으로 새로
+  // 추가하는 extraDayDiscountRatio·restDayDiscountRatio와 함께 여기서 담는다.
+  const secondShowSurchargeRatio = Number.isFinite(Number(p.secondShowSurchargeRatio))
+    ? Math.min(2, Math.max(0, Number(p.secondShowSurchargeRatio)))
+    : current.secondShowSurchargeRatio;
+  const extraDayDiscountRatio = Number.isFinite(Number(p.extraDayDiscountRatio))
+    ? Math.min(0.9, Math.max(0, Number(p.extraDayDiscountRatio)))
+    : current.extraDayDiscountRatio;
+  const restDayDiscountRatio = Number.isFinite(Number(p.restDayDiscountRatio))
+    ? Math.min(1, Math.max(0, Number(p.restDayDiscountRatio)))
+    : current.restDayDiscountRatio;
 
   return {
     ...current,
@@ -194,6 +209,9 @@ function sanitizePackage(current: RentalPackage, input: unknown): RentalPackage 
     performanceExtraDayFee,
     defaultPerformanceDays,
     discountRatio,
+    secondShowSurchargeRatio,
+    extraDayDiscountRatio,
+    restDayDiscountRatio,
     audienceTier,
     includedItems,
     mediaTier,

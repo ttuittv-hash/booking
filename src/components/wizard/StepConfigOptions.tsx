@@ -384,18 +384,10 @@ function PackagePicker({
                     </dd>
                   </div>
                 )}
-                {/* [신규 2026-09-06] "할인율·할증률 컬럼이 둘 다 모든 패키지에 일괄 적용돼야"
-                    — 패키지 관리(어드민)에서 설정한 1일 2회 공연 할증률은 이미 모든 패키지에
-                    50%로 설정돼 있었지만(계산 로직에도 반영됨, calculateQuote.ts) 카드에는
-                    할인율만 있고 할증률 행이 아예 없었다. 할인율과 같은 패턴으로 추가한다. */}
-                {p.secondShowSurchargeRatio > 0 && (
-                  <div className="flex items-baseline justify-between gap-2">
-                    <dt className="text-muted">{t("configOptions.secondShowSurchargeRatioLabel", "1일 2회 공연 할증률")}</dt>
-                    <dd className="font-bold tabular-nums text-accent">
-                      {Math.round(p.secondShowSurchargeRatio * 100)}%
-                    </dd>
-                  </div>
-                )}
+                {/* [철회 2026-09-06] "패키지 박스 안에서 1일 2회 공연 할증률 항목은 제거..
+                    패키지 박스 디자인에서만 빼는거고 로직은 그대로 반영" — 계산 로직
+                    (calculateQuote.ts의 secondShowSurchargeRatio 할증)은 그대로 두고
+                    카드 표시 행만 없앤다. */}
                 {/* [버그 수정 2026-09-06] "총 금액이 가장 밑에 들어가야해" — 할인율·할증률처럼
                     카드에 새로 추가한 행들 아래로, 실제 지불액인 총금액을 맨 마지막 행으로 둔다. */}
                 {p.discountRatio > 0 &&
