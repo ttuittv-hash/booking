@@ -620,6 +620,22 @@ export interface ScreenTextContent {
    * (개별 항목이 켜져 있어도).
    */
   publicInterestDisabledGroups: string[];
+  /**
+   * [신규 2026-09-06] "대관 위저드에서 각 슬롯별 순서 조정 가능, 각 슬롯 내에 있는
+   * 각 항목들 노출 On/off, 각 항목들 레이블명 수정 가능해야" — wizardSlotOrders/
+   * publicInterestDisabled*가 STEP3 슬롯·공공익 항목에 쓴 것과 같은 패턴을 위저드
+   * 전체 필드 단위로 일반화한 것. 그룹 id(예: "performanceInfo.applicantContact")
+   * → 그 그룹에 속한 필드 key 배열(원하는 순서). 그룹·필드 key는 각 스텝 컴포넌트가
+   * 정의한다(StepPerformanceInfo.tsx 참고). 레이블 자체는 기존 wizardStrings로 이미
+   * 편집 가능하다(각 필드가 t()/tStr()로 읽음) — 이 필드는 순서만 담당한다.
+   */
+  wizardFieldOrders: Record<string, string[]>;
+  /**
+   * [신규 2026-09-06] 위와 짝 — 끌 필드의 id 목록. id는 "그룹id.필드key" 형식
+   * (예: "performanceInfo.applicantContact.email"). 여기 있으면 그 필드가 화면에서
+   * 사라지고, 필수값 검사(validatePerformanceInfoStep 등)도 그 필드를 건너뛴다.
+   */
+  wizardDisabledFields: string[];
 }
 
 export const DEFAULT_SCREEN_TEXT_CONTENT: ScreenTextContent = {
@@ -639,6 +655,8 @@ export const DEFAULT_SCREEN_TEXT_CONTENT: ScreenTextContent = {
   wizardSlotOrders: {},
   publicInterestDisabledItems: [],
   publicInterestDisabledGroups: [],
+  wizardFieldOrders: {},
+  wizardDisabledFields: [],
   wizardSteps: DEFAULT_WIZARD_STEP_TEXTS,
   registerIntro: DEFAULT_REGISTER_INTRO,
   bookItNotice: DEFAULT_BOOK_IT_NOTICE,

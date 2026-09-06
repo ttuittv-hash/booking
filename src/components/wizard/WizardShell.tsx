@@ -147,6 +147,8 @@ export function WizardShell({
   wizardSlotOrders,
   publicInterestDisabledItems,
   publicInterestDisabledGroups,
+  wizardFieldOrders,
+  wizardDisabledFields,
 }: {
   rateTable: RateTable;
   currentUser: AppUser | null;
@@ -181,6 +183,10 @@ export function WizardShell({
   // [신규 2026-09-06] "대분류 슬롯 온오프도" — PUBLIC_INTEREST_GROUPS 그룹 key를 담으면
   // 그 그룹 전체(속한 항목 전부)를 공공/공익 참여 화면에서 숨긴다.
   publicInterestDisabledGroups?: string[];
+  // [신규 2026-09-06] "각 슬롯 내 항목들 순서 조정 + 노출 On/off" — 신청자 정보/공연
+  // 정보(STEP3 대관정보 슬롯)부터 시작해 위저드 전체 필드로 넓혀가는 일반 메커니즘.
+  wizardFieldOrders?: Record<string, string[]>;
+  wizardDisabledFields?: string[];
 }) {
   const isEditing = !!editingQuoteId;
   const { t, tStr } = useWizardText();
@@ -400,8 +406,13 @@ export function WizardShell({
   // [개정 2026-08-23] "신청자 정보"·"규모" 탭을 STEP 3 하나로 합쳤다 — 두 화면의
   // 필수값을 한 게이트에서 같이 검사한다.
   const step3Blocked =
-    validatePerformanceInfoStep(selection.performanceInfo, selection.midHallPerformanceInfo ? "아레나" : undefined) ??
-    (selection.midHallPerformanceInfo && validatePerformanceInfoStep(selection.midHallPerformanceInfo, "중형공연장")) ??
+    validatePerformanceInfoStep(
+      selection.performanceInfo,
+      selection.midHallPerformanceInfo ? "아레나" : undefined,
+      wizardDisabledFields,
+    ) ??
+    (selection.midHallPerformanceInfo &&
+      validatePerformanceInfoStep(selection.midHallPerformanceInfo, "중형공연장", wizardDisabledFields)) ??
     validateAudienceStep(selection.performanceInfo, selection.midHallPerformanceInfo ? "아레나" : undefined) ??
     (selection.midHallPerformanceInfo && validateAudienceStep(selection.midHallPerformanceInfo, "중형공연장"));
   // 안전관리 서약(STEP 6)은 필수라 그 다음 단계로 못 넘어가게 막는다(2026-08-22,
@@ -684,6 +695,8 @@ export function WizardShell({
         title={wizardStepText.performanceInfoTitle}
         castContractFiles={castContractFiles}
         onCastContractFilesChange={setCastContractFiles}
+        fieldOrders={wizardFieldOrders}
+        disabledFields={wizardDisabledFields}
       />
     ),
     // [2026-08-23] "신청자 정보 및 규모" — 두 탭을 하나로 합쳤다("신청자 정보 탭을

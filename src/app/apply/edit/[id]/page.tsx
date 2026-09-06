@@ -83,6 +83,8 @@ export default async function EditQuotePage({
             wizardSlotOrders={screenText.wizardSlotOrders}
             publicInterestDisabledItems={screenText.publicInterestDisabledItems}
             publicInterestDisabledGroups={screenText.publicInterestDisabledGroups}
+            wizardFieldOrders={screenText.wizardFieldOrders}
+            wizardDisabledFields={screenText.wizardDisabledFields}
           />
         </WizardTextProvider>
       </main>

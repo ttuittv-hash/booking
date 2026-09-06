@@ -3,7 +3,7 @@
 import { FILE_INPUT, toggleClass } from "@/components/ui/kit";
 import { useDialog } from "@/components/ui/Dialog";
 
-import { useState, type ReactNode } from "react";
+import { Fragment, useState, type ReactNode } from "react";
 import { useWizardText } from "@/lib/content/wizardText";
 import { INITIAL_PERFORMANCE_INFO } from "@/lib/pricing/performanceInfoDefaults";
 import { VenueSplitTabBar, type VenueSplitTab } from "./VenueSplitTabBar";
@@ -81,8 +81,16 @@ const ALLOWED_MIME = new Set([
 // 최근 3년간 공연 실적(반복 입력)과 해외 아티스트 추가사항은 신규 업체·국내 공연에는
 // 해당 사항이 없을 수 있어 필수에서 뺀다. venueLabel을 주면 동시 대관에서 아레나/중형
 // 중 어느 쪽이 비었는지 메시지에 알려준다.
-export function validatePerformanceInfoStep(info: PerformanceInfo, venueLabel?: string): string | null {
+// [신규 2026-09-06] "각 항목들 노출 On/off 가능해야" — 필드를 꺼도 필수값 검사에서
+// 막히면 안 되므로, 꺼진 필드는 여기서도 건너뛴다. id는 "그룹id.필드key" 형식
+// (ScreenTextContent.wizardDisabledFields와 같은 값을 그대로 넘긴다).
+export function validatePerformanceInfoStep(
+  info: PerformanceInfo,
+  venueLabel?: string,
+  disabledFields: string[] = [],
+): string | null {
   const prefix = venueLabel ? `${venueLabel} ` : "";
+  const isDisabled = (id: string) => disabledFields.includes(id);
   // 소속은 선택으로 바뀌어(2026-08-22, "책임자들 넣는거 소속(선택)으로해") 성명·연락처만 본다.
   const person = (value: ResponsiblePerson, label: string) => {
     if (!value.name.trim() || !value.phone.trim()) {
@@ -95,9 +103,12 @@ export function validatePerformanceInfoStep(info: PerformanceInfo, venueLabel?: 
   // 그대로 가져와 읽기 전용으로 보여준다(2026-08-22) — 계정 데이터라 여기서 필수값
   // 검사를 하지 않는다(비어 있다면 계정 쪽 문제다).
   if (!info.applicantCompanyType) return `${prefix}신청 기업 유형을 선택해 주세요.`;
-  if (!info.applicantContactName.trim()) return `${prefix}담당자를 입력해 주세요.`;
-  if (!info.applicantContactPhone.trim()) return `${prefix}담당자 연락처를 입력해 주세요.`;
-  if (!info.applicantContactEmail?.trim()) return `${prefix}담당자 이메일을 입력해 주세요.`;
+  if (!isDisabled("performanceInfo.applicantContact.name") && !info.applicantContactName.trim())
+    return `${prefix}담당자를 입력해 주세요.`;
+  if (!isDisabled("performanceInfo.applicantContact.phone") && !info.applicantContactPhone.trim())
+    return `${prefix}담당자 연락처를 입력해 주세요.`;
+  if (!isDisabled("performanceInfo.applicantContact.email") && !info.applicantContactEmail?.trim())
+    return `${prefix}담당자 이메일을 입력해 주세요.`;
   const operationsError = person(info.operationsResponsible, "공연 운영 총괄 책임자");
   if (operationsError) return operationsError;
   const safetyError = person(info.safetyResponsible, "안전관리 총괄 책임자");
@@ -375,6 +386,8 @@ function PerformanceInfoFields({
   scheduleSummary,
   castContractFiles,
   onCastContractFilesChange,
+  fieldOrders,
+  disabledFields,
 }: {
   info: PerformanceInfo;
   onChange: (info: PerformanceInfo) => void;
@@ -383,9 +396,58 @@ function PerformanceInfoFields({
   // 공유한다 — 그래서 info 가 아니라 위저드 상태에서 그대로 내려온다.
   castContractFiles: File[];
   onCastContractFilesChange: (files: File[]) => void;
+  /**
+   * [신규 2026-09-06] "각 슬롯 내에 있는 각 항목들 순서 조정·노출 On/off" — 그룹id →
+   * 필드 key 순서. /admin/content 화면 문구에서 편집(ScreenTextContent.wizardFieldOrders).
+   */
+  fieldOrders?: Record<string, string[]>;
+  /** 위와 짝 — "그룹id.필드key" 형식의 끈 필드 id 목록(ScreenTextContent.wizardDisabledFields). */
+  disabledFields?: string[];
 }) {
   const dialog = useDialog();
   const { t, tStr } = useWizardText();
+
+  // [신규 2026-09-06] 담당자 정보(성명/연락처/이메일) — 순서 조정·온오프 가능한 첫 그룹.
+  // 다른 그룹(공연 기본정보 등)도 같은 패턴으로 이어간다.
+  const CONTACT_GROUP_ID = "performanceInfo.applicantContact";
+  const CONTACT_DEFAULT_ORDER = ["name", "phone", "email"] as const;
+  const contactFieldRenderers: Record<string, () => ReactNode> = {
+    name: () => (
+      <TextField
+        key="name"
+        label={t("performanceInfo.applicantContactNameLabel", "담당자")}
+        value={info.applicantContactName}
+        onChange={(v) => set("applicantContactName", v)}
+      />
+    ),
+    phone: () => (
+      <TextField
+        key="phone"
+        label={t("performanceInfo.applicantContactPhoneLabel", "담당자 연락처")}
+        value={info.applicantContactPhone}
+        onChange={(v) => set("applicantContactPhone", v)}
+      />
+    ),
+    email: () => (
+      <TextField
+        key="email"
+        label={t("performanceInfo.applicantContactEmailLabel", "담당자 이메일")}
+        value={info.applicantContactEmail ?? ""}
+        onChange={(v) => set("applicantContactEmail", v)}
+      />
+    ),
+  };
+  const configuredContactOrder = fieldOrders?.[CONTACT_GROUP_ID];
+  const contactFieldOrder: string[] =
+    configuredContactOrder && configuredContactOrder.length > 0
+      ? [
+          ...configuredContactOrder.filter((key) => key in contactFieldRenderers),
+          ...CONTACT_DEFAULT_ORDER.filter((key) => !configuredContactOrder.includes(key)),
+        ]
+      : [...CONTACT_DEFAULT_ORDER];
+  const visibleContactFields = contactFieldOrder.filter(
+    (key) => !disabledFields?.includes(`${CONTACT_GROUP_ID}.${key}`),
+  );
 
   function set<K extends keyof PerformanceInfo>(key: K, value: PerformanceInfo[K]) {
     onChange({ ...info, [key]: value });
@@ -514,23 +576,9 @@ function PerformanceInfoFields({
             </div>
 
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-              <TextField
-                label={t("performanceInfo.applicantContactNameLabel", "담당자")}
-                value={info.applicantContactName}
-                onChange={(v) => set("applicantContactName", v)}
-              />
-              <TextField
-                label={t("performanceInfo.applicantContactPhoneLabel", "담당자 연락처")}
-                value={info.applicantContactPhone}
-                onChange={(v) => set("applicantContactPhone", v)}
-              />
-              {/* [신규 2026-09-06] "담당자 이메일 주소 칸 추가(자동연동)" — 계정 이메일에서
-                  자동으로 채워서 시작하되(담당자/연락처와 같은 방식), 계속 수정은 허용한다. */}
-              <TextField
-                label={t("performanceInfo.applicantContactEmailLabel", "담당자 이메일")}
-                value={info.applicantContactEmail ?? ""}
-                onChange={(v) => set("applicantContactEmail", v)}
-              />
+              {visibleContactFields.map((key) => (
+                <Fragment key={key}>{contactFieldRenderers[key]?.()}</Fragment>
+              ))}
             </div>
             <ResponsiblePersonFields
               label={t("performanceInfo.operationsResponsibleLabel", "공연 운영 총괄 책임자")}
@@ -1211,6 +1259,8 @@ export function StepPerformanceInfo({
   title,
   castContractFiles,
   onCastContractFilesChange,
+  fieldOrders,
+  disabledFields,
 }: {
   info: PerformanceInfo;
   onChange: (info: PerformanceInfo) => void;
@@ -1220,6 +1270,8 @@ export function StepPerformanceInfo({
   title: ReactNode;
   castContractFiles: File[];
   onCastContractFilesChange: (files: File[]) => void;
+  fieldOrders?: Record<string, string[]>;
+  disabledFields?: string[];
 }) {
   const { t } = useWizardText();
   const [activeTab, setActiveTab] = useState<VenueSplitTab>(midHallInfo ? "ARENA" : "COMMON");
@@ -1284,6 +1336,8 @@ export function StepPerformanceInfo({
             scheduleSummary={{ arenaLine, midHallLine: isMidHallInvolved ? midHallLine : null, showsTotal }}
             castContractFiles={castContractFiles}
             onCastContractFilesChange={onCastContractFilesChange}
+            fieldOrders={fieldOrders}
+            disabledFields={disabledFields}
           />
         )}
         {effectiveTab === "ARENA" && (
@@ -1293,6 +1347,8 @@ export function StepPerformanceInfo({
             scheduleSummary={{ arenaLine, midHallLine: null, showsTotal }}
             castContractFiles={castContractFiles}
             onCastContractFilesChange={onCastContractFilesChange}
+            fieldOrders={fieldOrders}
+            disabledFields={disabledFields}
           />
         )}
         {effectiveTab === "MIDHALL" && midHallInfo && (
@@ -1302,6 +1358,8 @@ export function StepPerformanceInfo({
             scheduleSummary={{ arenaLine: null, midHallLine, showsTotal: null }}
             castContractFiles={castContractFiles}
             onCastContractFilesChange={onCastContractFilesChange}
+            fieldOrders={fieldOrders}
+            disabledFields={disabledFields}
           />
         )}
       </div>
