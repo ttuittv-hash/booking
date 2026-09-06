@@ -78,6 +78,7 @@ function performanceInfoFields(info: PerformanceInfo) {
           <Row label="사업자등록번호" value={info.applicantBusinessRegistrationNumber || "-"} />
           <Row label="담당자" value={info.applicantContactName || "-"} />
           <Row label="담당자 연락처" value={info.applicantContactPhone || "-"} />
+          <Row label="담당자 이메일" value={info.applicantContactEmail || "-"} />
         </dl>
       </div>
 

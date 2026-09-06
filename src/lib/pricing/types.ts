@@ -599,6 +599,9 @@ export interface PerformanceInfo {
   applicantRepresentativeName?: string;
   applicantContactName: string; // 담당자
   applicantContactPhone: string; // 담당자 연락처
+  // optional — 담당자 이메일(2026-09-06 추가, 계정 이메일에서 자동 입력). 이 필드가
+  // 추가되기 전에 제출된 기존 신청서에는 없다(applicantRepresentativeName과 같은 이유).
+  applicantContactEmail?: string;
   operationsResponsible: ResponsiblePerson; // 공연 운영 총괄 책임자
   safetyResponsible: ResponsiblePerson; // 안전관리 총괄 책임자
   pastPerformances: PastPerformanceRecord[]; // 대관사 최근 3년간 공연 실적 (반복 입력)

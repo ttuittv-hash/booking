@@ -156,6 +156,7 @@ export function WizardShell({
     representativeName: string;
     contactName: string;
     contactPhone: string;
+    contactEmail: string;
   };
   // 중형공연장 구성·옵션 탭의 Live Hall RATE 카드 — /admin/rates에서 관리자가
   // 편집하는 것과 같은 콘텐츠(RatesContent.liveHall)를 그대로 재사용한다
@@ -181,6 +182,7 @@ export function WizardShell({
         applicantRepresentativeName: applicantPrefill.representativeName,
         applicantContactName: applicantPrefill.contactName,
         applicantContactPhone: applicantPrefill.contactPhone,
+        applicantContactEmail: applicantPrefill.contactEmail,
       }
     : INITIAL_PERFORMANCE_INFO;
   // File은 JSON 직렬화가 안 되므로 selection과 분리해 별도 상태로 두고
@@ -477,22 +479,21 @@ export function WizardShell({
   }
 
   async function uploadPendingFiles(quoteId: string) {
-    // 공공/공익 자료는 어느 항목에 붙은 것인지 함께 올린다(2026-08-27) — 첨부 목록에서
-    // 그 항목 이름이 같이 보여야 심사에서 되묻지 않는다.
-    const allFiles: { file: File; publicInterestItem?: string; category?: string }[] = [
+    // [수정 2026-09-06] 공공/공익 자료는 더 이상 항목별로 구분하지 않는다 — 섹션
+    // 전체에서 한 번에 받는 일반 첨부와 같은 취급(category 없음).
+    const allFiles: { file: File; category?: string }[] = [
       ...pendingFiles.map((file) => ({ file })),
       ...castContractFiles.map((file) => ({ file })),
-      ...publicInterestFiles.map(({ file, item }) => ({ file, publicInterestItem: item })),
+      ...publicInterestFiles.map(({ file }) => ({ file })),
       ...marketingPlanFiles.map((file) => ({ file, category: "MARKETING_PLAN" })),
       ...(safetyPlanFile ? [{ file: safetyPlanFile }] : []),
     ];
     if (allFiles.length === 0) return;
     const failed: string[] = [];
-    for (const { file, publicInterestItem, category } of allFiles) {
+    for (const { file, category } of allFiles) {
       try {
         const formData = new FormData();
         formData.append("file", file);
-        if (publicInterestItem) formData.append("publicInterestItem", publicInterestItem);
         if (category) formData.append("category", category);
         const res = await fetch(`/api/quotes/${quoteId}/attachments`, {
           method: "POST",

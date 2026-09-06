@@ -8,7 +8,7 @@ import type { PerformanceInfo, QuoteSelection } from "@/lib/pricing/types";
 
 const selection = { bookingMode: "SINGLE" } as unknown as QuoteSelection;
 
-function render(info: PerformanceInfo, files: { item: never; file: File }[] = []) {
+function render(info: PerformanceInfo, files: { file: File }[] = []) {
   return renderToStaticMarkup(
     React.createElement(StepPublicInterest, {
       info,
@@ -47,6 +47,17 @@ describe("StepPublicInterest 렌더", () => {
   it('"검토 중"·"없음"은 상세를 받지 않는다', () => {
     const html = render({ ...INITIAL_PERFORMANCE_INFO, publicInterestItems: ["NONE"] });
     expect(html).not.toContain("<textarea");
-    expect(html).not.toContain('type="file"');
+    // [수정 2026-09-06] 파일 첨부는 더 이상 항목별이 아니라 섹션 전체에서 한 번만
+    // 받는다 — 어느 항목을 골랐는지와 무관하게 맨 아래 첨부칸은 항상 있다.
+    expect(html).toContain('type="file"');
+    expect(html.match(/type="file"/g)?.length).toBe(1);
+  });
+
+  it("파일 첨부는 항목별이 아니라 섹션 전체에서 한 번만 받는다", () => {
+    const html = render({
+      ...INITIAL_PERFORMANCE_INFO,
+      publicInterestItems: ["DISCOUNT_ACCESS", "ACCESSIBILITY_SUPPORT"],
+    });
+    expect(html.match(/type="file"/g)?.length).toBe(1);
   });
 });

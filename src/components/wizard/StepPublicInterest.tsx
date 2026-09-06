@@ -20,13 +20,15 @@ import { VenueSplitTabBar, type VenueSplitTab } from "./VenueSplitTabBar";
 // [화면 뼈대 2026-08-18, 화면시나리오 SCREEN 07/12 #4 → 2026-08-22 선택형으로 전환]
 // [개정 2026-08-27] 3열 카드 격자를 **가로형 체크박스 한 줄**로 바꾸고, 항목을 성격별로
 // 묶었다(시안 지시: "전체적인 심사 및 가점 항목에 대해 가로형 체크박스로 변경 / 각 항목들은
-// 성격에 맞게 그룹핑 / 항목 체크시 텍스트박스 기입하거나 자료 첨부기능 추가"). 계획 상세를
-// 파일 1건으로만 받던 하단 첨부 슬롯은 없앴다 — 어느 항목의 계획인지 알 수 없어 심사에서
-// 되묻는 일이 반복됐다. 이제 상세 텍스트도 파일도 항목에 붙는다.
+// 성격에 맞게 그룹핑 / 항목 체크시 텍스트박스 기입하거나 자료 첨부기능 추가"). 당시엔 항목별
+// 첨부(어느 항목의 자료인지 함께 들고 다님)로 바꿨었다.
+// [재개정 2026-09-06] "항목별로 체크만 가능하게 하고, 맨 밑에 파일 하나 첨부하기로만"
+// — 항목마다 파일칸을 따로 두던 걸 없애고 첨부는 섹션 전체에서 한 번만 받는다. 상세
+// 텍스트(계획 설명)는 항목별로 그대로 유지한다 — 어떤 계획인지는 텍스트로 알 수 있고,
+// 증빙 자료 자체는 한 번에 모아 받아도 된다는 판단.
 
-/** 항목에 붙여서 올리는 파일 — 어느 항목의 자료인지 함께 들고 다닌다. */
+/** 첨부 파일 — 이제 어느 항목 것인지 구분하지 않고 섹션 전체 자료로 한 번에 받는다. */
 export interface PublicInterestFile {
-  item: PublicInterestItem;
   file: File;
 }
 
@@ -74,9 +76,9 @@ export function StepPublicInterest({
     onChange({ ...info, publicInterestDetails: { ...details, [item]: value } });
   }
 
-  function addFiles(item: PublicInterestItem, selected: FileList | null) {
+  function addFiles(selected: FileList | null) {
     if (!selected || selected.length === 0) return;
-    onFilesChange([...files, ...Array.from(selected).map((file) => ({ item, file }))]);
+    onFilesChange([...files, ...Array.from(selected).map((file) => ({ file }))]);
   }
 
   function removeFile(index: number) {
@@ -104,9 +106,8 @@ export function StepPublicInterest({
   */
   function itemRow(item: PublicInterestItem) {
     const checked = selectedItems.includes(item);
-    // "검토 중"·"없음"은 참여 계획이 아니라 상태 응답이라 상세·첨부를 받지 않는다.
+    // "검토 중"·"없음"은 참여 계획이 아니라 상태 응답이라 상세를 받지 않는다.
     const expandable = !PUBLIC_INTEREST_STATUS_ITEMS.includes(item);
-    const itemFiles = files.map((f, i) => ({ ...f, index: i })).filter((f) => f.item === item);
 
     return (
       <div key={item} className={`border-b border-border/25 ${checked ? "bg-panel" : ""}`}>
@@ -134,40 +135,10 @@ export function StepPublicInterest({
               onChange={(e) => setDetail(item, e.target.value)}
               placeholder={tStr(
                 "publicInterest.detailPlaceholder",
-                "계획을 간단히 적어주세요. 자료가 있으면 아래에 첨부하셔도 됩니다.",
+                "계획을 간단히 적어주세요. 자료가 있으면 맨 아래에서 한 번에 첨부하셔도 됩니다.",
               )}
               rows={3}
               className="field-base whitespace-pre-wrap"
-            />
-
-            {itemFiles.length > 0 && (
-              <ul className="space-y-2">
-                {itemFiles.map((f) => (
-                  <li
-                    key={`${f.file.name}-${f.index}`}
-                    className="flex items-center justify-between gap-3 border border-border/25 bg-background px-3.5 py-2.5"
-                  >
-                    <span className="truncate text-s font-bold">{f.file.name}</span>
-                    <button
-                      type="button"
-                      onClick={() => removeFile(f.index)}
-                      className={`${toggleClass(false)} shrink-0`}
-                    >
-                      {t("publicInterest.removeFileButton", "삭제")}
-                    </button>
-                  </li>
-                ))}
-              </ul>
-            )}
-
-            <input
-              type="file"
-              multiple
-              onChange={(e) => {
-                addFiles(item, e.target.files);
-                e.target.value = "";
-              }}
-              className={FILE_INPUT}
             />
           </div>
         )}
@@ -227,6 +198,45 @@ export function StepPublicInterest({
             </h4>
             <div className="border-t border-border/25">
               {PUBLIC_INTEREST_STATUS_ITEMS.map((item) => itemRow(item))}
+            </div>
+          </div>
+
+          {/* [재개정 2026-09-06] "항목마다 파일칸을 두지 말고 맨 밑에 파일 하나 첨부하기로만" —
+              어느 항목의 자료인지는 위 상세 텍스트로 적고, 증빙 파일 자체는 섹션 전체에서
+              한 번만 받는다. */}
+          <div>
+            <h4 className="border-b border-foreground pb-2 text-xs font-bold tracking-wide text-foreground">
+              {t("publicInterest.attachmentsHeading", "자료 첨부 (선택)")}
+            </h4>
+            <div className="mt-3 space-y-2.5">
+              {files.length > 0 && (
+                <ul className="space-y-2">
+                  {files.map((f, i) => (
+                    <li
+                      key={`${f.file.name}-${i}`}
+                      className="flex items-center justify-between gap-3 border border-border/25 bg-background px-3.5 py-2.5"
+                    >
+                      <span className="truncate text-s font-bold">{f.file.name}</span>
+                      <button
+                        type="button"
+                        onClick={() => removeFile(i)}
+                        className={`${toggleClass(false)} shrink-0`}
+                      >
+                        {t("publicInterest.removeFileButton", "삭제")}
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              )}
+              <input
+                type="file"
+                multiple
+                onChange={(e) => {
+                  addFiles(e.target.files);
+                  e.target.value = "";
+                }}
+                className={FILE_INPUT}
+              />
             </div>
           </div>
         </div>

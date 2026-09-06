@@ -130,6 +130,7 @@ export default async function ApplyPage({
     representativeName: company?.representativeName ?? "",
     contactName: currentUser.name,
     contactPhone: currentUser.phone ?? "",
+    contactEmail: currentUser.email,
   };
 
   return (

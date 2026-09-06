@@ -273,7 +273,7 @@ export default async function AdminQuoteApplicationPage({
               <Row label="대표자" value={text(info.applicantRepresentativeName)} />
               <Row
                 label="담당자"
-                value={`${text(info.applicantContactName)} · ${text(info.applicantContactPhone)}`}
+                value={`${text(info.applicantContactName)} · ${text(info.applicantContactPhone)} · ${text(info.applicantContactEmail)}`}
               />
             </>
           ) : null}

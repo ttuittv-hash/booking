@@ -33,6 +33,7 @@ export const INITIAL_PERFORMANCE_INFO: PerformanceInfo = {
   applicantRepresentativeName: "",
   applicantContactName: "",
   applicantContactPhone: "",
+  applicantContactEmail: "",
   operationsResponsible: { name: "", title: "", phone: "" },
   safetyResponsible: { name: "", title: "", phone: "" },
   pastPerformances: [{ ...EMPTY_PAST_PERFORMANCE_ROW }],

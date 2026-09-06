@@ -97,6 +97,7 @@ export function validatePerformanceInfoStep(info: PerformanceInfo, venueLabel?: 
   if (!info.applicantCompanyType) return `${prefix}신청 기업 유형을 선택해 주세요.`;
   if (!info.applicantContactName.trim()) return `${prefix}담당자를 입력해 주세요.`;
   if (!info.applicantContactPhone.trim()) return `${prefix}담당자 연락처를 입력해 주세요.`;
+  if (!info.applicantContactEmail?.trim()) return `${prefix}담당자 이메일을 입력해 주세요.`;
   const operationsError = person(info.operationsResponsible, "공연 운영 총괄 책임자");
   if (operationsError) return operationsError;
   const safetyError = person(info.safetyResponsible, "안전관리 총괄 책임자");
@@ -512,7 +513,7 @@ function PerformanceInfoFields({
               </div>
             </div>
 
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
               <TextField
                 label={t("performanceInfo.applicantContactNameLabel", "담당자")}
                 value={info.applicantContactName}
@@ -522,6 +523,13 @@ function PerformanceInfoFields({
                 label={t("performanceInfo.applicantContactPhoneLabel", "담당자 연락처")}
                 value={info.applicantContactPhone}
                 onChange={(v) => set("applicantContactPhone", v)}
+              />
+              {/* [신규 2026-09-06] "담당자 이메일 주소 칸 추가(자동연동)" — 계정 이메일에서
+                  자동으로 채워서 시작하되(담당자/연락처와 같은 방식), 계속 수정은 허용한다. */}
+              <TextField
+                label={t("performanceInfo.applicantContactEmailLabel", "담당자 이메일")}
+                value={info.applicantContactEmail ?? ""}
+                onChange={(v) => set("applicantContactEmail", v)}
               />
             </div>
             <ResponsiblePersonFields
