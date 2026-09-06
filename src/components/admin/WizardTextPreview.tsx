@@ -10,6 +10,7 @@ import { resolveSelectedDates } from "@/lib/pricing/dateRange";
 import { INITIAL_PERFORMANCE_INFO } from "@/lib/pricing/performanceInfoDefaults";
 import {
   AGE_RATING_LABEL,
+  ANCILLARY_BUSINESS_PLAN_LABEL,
   APPLICANT_COMPANY_TYPE_LABEL,
   EVENT_TYPE_LABEL,
   SEATING_TYPE_LABEL,
@@ -629,6 +630,8 @@ const STAGE_GROUPS: StageGroup[] = [
                 showHeading={false}
                 title={ctx.wizardSteps.audienceTitle}
                 lead={ctx.wizardSteps.audienceLead}
+                fieldOrders={ctx.fieldOrders}
+                disabledFields={ctx.disabledFields}
               />
             ),
           };
@@ -710,6 +713,16 @@ const STAGE_GROUPS: StageGroup[] = [
                 defaultOrder={Object.keys(STAGE_TYPE_LABEL)}
                 fieldLabels={STAGE_TYPE_LABEL}
                 title="무대형태"
+              />
+              {/* [신규 2026-09-06] "예상 부대행사 옆에도 노출 미노출 여부 체크할수 있게" —
+                  신청 기업 유형·행사 유형 등과 같은 순서·노출 패턴(StepAudience.tsx의
+                  ANCILLARY_PLANS_GROUP_ID가 그대로 읽는다). */}
+              <FieldOrderPanel
+                ctx={ctx}
+                groupId="audience.ancillaryBusinessPlans"
+                defaultOrder={Object.keys(ANCILLARY_BUSINESS_PLAN_LABEL)}
+                fieldLabels={ANCILLARY_BUSINESS_PLAN_LABEL}
+                title="예상 부대행사(부대사업 계획)"
               />
               <div className="border border-border-soft bg-panel/60 p-3">
                 <p className="mb-2 text-2xs font-bold uppercase tracking-wide text-muted">

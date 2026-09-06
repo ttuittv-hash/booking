@@ -739,6 +739,7 @@ export function WizardShell({
         showHeading={false}
         title={wizardStepText.audienceTitle}
         lead={wizardStepText.audienceLead}
+        fieldOrders={wizardFieldOrders}
         disabledFields={wizardDisabledFields}
       />
     ),

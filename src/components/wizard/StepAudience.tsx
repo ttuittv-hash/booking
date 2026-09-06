@@ -84,19 +84,32 @@ function venueShowCounts(selection: QuoteSelection): { arenaShows: number; midHa
 // 총 공연 횟수 배치와 동일한 이유), 예상 유료 판매율 · 부대사업 계획은 각 공간에서
 // 독립적으로 입력한다(2026-08-19, 04 기본 정보 그룹 전체로 분리 확대 요청).
 // [신규 2026-09-06] "예상 부대행사 옆에도 노출 미노출 여부 체크할수 있게" — 신청 기업
-// 유형·행사 유형 등 03 기본정보 체크박스 그룹에 쓰던 것과 같은 "그룹id.키" 방식.
-// 순서 조정은 요청되지 않아 resolveGroupOrder는 쓰지 않고 노출 여부만 거른다.
+// 유형·행사 유형 등 03 기본정보 체크박스 그룹에 쓰던 것과 같은 "그룹id.키" 방식 순서·
+// 노출 처리(StepPerformanceInfo.tsx의 resolveGroupOrder/visibleInGroup과 동일 로직).
+// 어드민 화면(WizardTextPreview.tsx)의 FieldOrderPanel이 순서 조정도 함께 주므로 여기도
+// 노출 여부만이 아니라 순서까지 반영한다.
 const ANCILLARY_PLANS_GROUP_ID = "audience.ancillaryBusinessPlans";
+
+function resolveAncillaryPlansOrder(configured: string[] | undefined): AncillaryBusinessPlan[] {
+  return configured && configured.length > 0
+    ? [
+        ...(configured.filter((key) => (ANCILLARY_PLANS as readonly string[]).includes(key)) as AncillaryBusinessPlan[]),
+        ...ANCILLARY_PLANS.filter((key) => !configured.includes(key)),
+      ]
+    : [...ANCILLARY_PLANS];
+}
 
 function AudienceFields({
   info,
   onChange,
   audienceSummary,
+  fieldOrders,
   disabledFields,
 }: {
   info: PerformanceInfo;
   onChange: (info: PerformanceInfo) => void;
   audienceSummary: { arenaLine: string | null; midHallLine: string | null; totalLine: string | null };
+  fieldOrders?: Record<string, string[]>;
   disabledFields?: string[];
 }) {
   const { t, tStr } = useWizardText();
@@ -131,7 +144,8 @@ function AudienceFields({
   }
 
   const hasSummaryRow = audienceSummary.arenaLine || audienceSummary.midHallLine || audienceSummary.totalLine;
-  const visibleAncillaryPlans = ANCILLARY_PLANS.filter(
+  const ancillaryPlansOrder = resolveAncillaryPlansOrder(fieldOrders?.[ANCILLARY_PLANS_GROUP_ID]);
+  const visibleAncillaryPlans = ancillaryPlansOrder.filter(
     (plan) => !disabledFields?.includes(`${ANCILLARY_PLANS_GROUP_ID}.${plan}`),
   );
 
@@ -325,6 +339,7 @@ export function StepAudience({
   showHeading = true,
   title,
   lead,
+  fieldOrders,
   disabledFields,
 }: {
   info: PerformanceInfo;
@@ -337,6 +352,7 @@ export function StepAudience({
   showHeading?: boolean;
   title: ReactNode;
   lead: ReactNode;
+  fieldOrders?: Record<string, string[]>;
   disabledFields?: string[];
 }) {
   const { tStr } = useWizardText();
@@ -392,6 +408,7 @@ export function StepAudience({
               midHallLine: isMidHallInvolved ? `${selection.secondaryAudience.toLocaleString()}${peopleUnit}` : null,
               totalLine,
             }}
+            fieldOrders={fieldOrders}
             disabledFields={disabledFields}
           />
         )}
@@ -404,6 +421,7 @@ export function StepAudience({
               midHallLine: null,
               totalLine,
             }}
+            fieldOrders={fieldOrders}
             disabledFields={disabledFields}
           />
         )}
