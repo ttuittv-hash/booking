@@ -259,6 +259,88 @@ interface RenderCtx {
   rateTable: RateTable;
   liveHallRateContent: VenueRateContent;
   mocks: ReturnType<typeof useMockSelections>;
+  /**
+   * [신규 2026-09-06] "실제 위저드 화면처럼 보면서 수정하기에 반영해" — 필드 순서·
+   * 노출 온오프도 이 화면(위저드 미리보기)에서 바로 옆에 두고 편집한다. 값 자체는
+   * PageContentForms.tsx의 "위저드 항목 순서 · 노출" 섹션과 같은
+   * ScreenTextContent.wizardFieldOrders/wizardDisabledFields를 공유한다.
+   */
+  fieldOrders: Record<string, string[]>;
+  disabledFields: string[];
+  setFieldOrder: (groupId: string, order: string[]) => void;
+  setFieldDisabled: (fieldId: string, disabled: boolean) => void;
+}
+
+/** 그룹 하나의 필드 순서·노출을 편집하는 작은 인라인 패널 — LivePreview 바로 옆에 둬서
+ *  "보면서 수정"이 되게 한다(LivePreview 밖이라 pointer-events는 정상 동작한다). */
+function FieldOrderPanel({
+  ctx,
+  groupId,
+  defaultOrder,
+  fieldLabels,
+  title,
+}: {
+  ctx: RenderCtx;
+  groupId: string;
+  defaultOrder: string[];
+  fieldLabels: Record<string, string>;
+  title: string;
+}) {
+  const configured = ctx.fieldOrders[groupId];
+  const order =
+    configured && configured.length > 0
+      ? [...configured.filter((k) => k in fieldLabels), ...defaultOrder.filter((k) => !configured.includes(k))]
+      : [...defaultOrder];
+  const move = (index: number, direction: -1 | 1) => {
+    const target = index + direction;
+    if (target < 0 || target >= order.length) return;
+    const next = [...order];
+    [next[index], next[target]] = [next[target], next[index]];
+    ctx.setFieldOrder(groupId, next);
+  };
+  return (
+    <div className="border border-border-soft bg-panel/60 p-3">
+      <p className="mb-2 text-2xs font-bold uppercase tracking-wide text-muted">✎ {title} — 순서 · 노출</p>
+      <ul className="flex flex-col gap-1.5">
+        {order.map((key, index) => {
+          const fieldId = `${groupId}.${key}`;
+          const disabled = ctx.disabledFields.includes(fieldId);
+          return (
+            <li key={key} className="flex items-center justify-between gap-3 bg-background px-2.5 py-1.5 text-s">
+              <label className="flex items-center gap-2">
+                <input
+                  type="checkbox"
+                  checked={!disabled}
+                  onChange={(e) => ctx.setFieldDisabled(fieldId, !e.target.checked)}
+                />
+                {fieldLabels[key] ?? key}
+              </label>
+              <div className="flex shrink-0 gap-1">
+                <button
+                  type="button"
+                  disabled={index === 0}
+                  onClick={() => move(index, -1)}
+                  aria-label="위로"
+                  className="flex h-7 w-7 items-center justify-center rounded border border-border-soft text-xs disabled:cursor-not-allowed disabled:opacity-40"
+                >
+                  ▲
+                </button>
+                <button
+                  type="button"
+                  disabled={index === order.length - 1}
+                  onClick={() => move(index, 1)}
+                  aria-label="아래로"
+                  className="flex h-7 w-7 items-center justify-center rounded border border-border-soft text-xs disabled:cursor-not-allowed disabled:opacity-40"
+                >
+                  ▼
+                </button>
+              </div>
+            </li>
+          );
+        })}
+      </ul>
+    </div>
+  );
 }
 
 function makeFieldEditor(ctx: RenderCtx) {
@@ -415,6 +497,16 @@ const STAGE_GROUPS: StageGroup[] = [
           const lead = makeLeadEditor(ctx);
           return (
             <div className="space-y-4">
+              {/* [신규 2026-09-06] "실제 위저드 화면처럼 보면서 수정하기에 반영해 ..
+                  바로 아래에 노출" — 이 서브탭에 들어오면 맨 먼저 보이는 자리에 둔다,
+                  아래 실제 화면(LivePreview)이 바로 이어져 바꾸는 즉시 눈으로 확인된다. */}
+              <FieldOrderPanel
+                ctx={ctx}
+                groupId="performanceInfo.applicantContact"
+                defaultOrder={["name", "phone", "email"]}
+                fieldLabels={{ name: "담당자 (성명)", phone: "담당자 연락처", email: "담당자 이메일" }}
+                title="담당자 정보"
+              />
               <div className="border border-border-soft bg-panel/60 p-3">
                 <p className="mb-2 text-2xs font-bold uppercase tracking-wide text-muted">
                   ✎ &ldquo;규모&rdquo; 블록 제목·리드 — 현재 실제 화면에서는 신청자 정보와 한 화면으로 합쳐져
@@ -434,6 +526,8 @@ const STAGE_GROUPS: StageGroup[] = [
                     title={field("performanceInfoTitle")}
                     castContractFiles={[]}
                     onCastContractFilesChange={noop}
+                    fieldOrders={ctx.fieldOrders}
+                    disabledFields={ctx.disabledFields}
                   />
                   <StepAudience
                     info={ctx.mocks.arena.performanceInfo}
@@ -630,6 +724,16 @@ export function WizardTextPreview({
         function setString(key: string, value: string) {
           patch({ wizardStrings: { ...v.wizardStrings, [key]: value } });
         }
+        function setFieldOrder(groupId: string, order: string[]) {
+          patch({ wizardFieldOrders: { ...v.wizardFieldOrders, [groupId]: order } });
+        }
+        function setFieldDisabled(fieldId: string, disabled: boolean) {
+          patch({
+            wizardDisabledFields: disabled
+              ? [...v.wizardDisabledFields, fieldId]
+              : v.wizardDisabledFields.filter((id) => id !== fieldId),
+          });
+        }
         const ctx: RenderCtx = {
           wizardSteps: v.wizardSteps,
           setStep,
@@ -638,6 +742,10 @@ export function WizardTextPreview({
           rateTable,
           liveHallRateContent,
           mocks,
+          fieldOrders: v.wizardFieldOrders,
+          disabledFields: v.wizardDisabledFields,
+          setFieldOrder,
+          setFieldDisabled,
         };
         return (
           <div>
