@@ -376,8 +376,8 @@ function PackagePicker({
                 </div>
                 {/* [신규 2026-09-06] 패키지 관리(어드민)에서 설정한 할인율 — 계산 로직
                     (calculateQuote.ts)에는 이미 반영되고 있었지만 카드에는 안 보여
-                    신청자가 할인 여부를 몰랐다. 처음엔 "할인 N% (−금액)" 한 줄이었는데,
-                    "할인율·할인금액·총금액 컬럼을 따로" 요청으로 3줄로 나눈다. */}
+                    신청자가 할인 여부를 몰랐다. "할인율·총금액만 노출, 할인금액은 빼"
+                    — 할인 절대금액 행은 없앤다. */}
                 {p.discountRatio > 0 &&
                   (() => {
                     const discountAmount = Math.round(p.baseFeePerWeek * p.discountRatio);
@@ -388,10 +388,6 @@ function PackagePicker({
                           <dd className="font-bold tabular-nums text-accent">
                             {Math.round(p.discountRatio * 100)}%
                           </dd>
-                        </div>
-                        <div className="flex items-baseline justify-between gap-2">
-                          <dt className="text-muted">{t("configOptions.discountAmountLabel", "할인금액")}</dt>
-                          <dd className="font-bold tabular-nums text-accent">−{won(discountAmount)}</dd>
                         </div>
                         <div className="flex items-baseline justify-between gap-2">
                           <dt className="text-muted">{t("configOptions.totalAfterDiscountLabel", "총금액")}</dt>
