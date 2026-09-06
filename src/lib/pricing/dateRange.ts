@@ -41,6 +41,25 @@ export function findWeekTuesday(week: QuoteSelection["week"]): Date | null {
   return null;
 }
 
+// [신규 2026-09-06] 동시 대관(아레나+중형) 2주 윈도우 검증 — "아레나/중형 중 둘중
+// 최초 시작 일정 기준 2주 안에서 신청 가능해야해". 두 시작일(아레나 화요일 / 중형
+// 최초 확정 날짜) 사이 간격이 14일을 넘으면 위반이다. 한쪽이 아직 비어 있으면(중형
+// 미선택) 검증할 대상이 없으므로 위반이 아니다 — "둘 다 선택했는지"는 별도 게이트가 막는다.
+export function simultaneousWindowGapDays(
+  week: QuoteSelection["week"],
+  midHallDays: Record<string, unknown>,
+): number | null {
+  const midHallDates = Object.keys(midHallDays).sort();
+  if (midHallDates.length === 0) return null;
+  const arenaStart = findWeekTuesday(week);
+  if (!arenaStart) return null;
+  const midHallStart = new Date(midHallDates[0]);
+  const gapMs = Math.abs(midHallStart.getTime() - arenaStart.getTime());
+  return Math.round(gapMs / (1000 * 60 * 60 * 24));
+}
+
+export const SIMULTANEOUS_WINDOW_MAX_DAYS = 14;
+
 // 실제 대관 예정 날짜 목록 (제외 요일 제거 + 추가 일수 포함), 화요일부터 순서대로 ISO 날짜 문자열로 반환한다.
 export function resolveSelectedDates(
   selection: Pick<QuoteSelection, "week" | "excludedDays" | "extraDays">,

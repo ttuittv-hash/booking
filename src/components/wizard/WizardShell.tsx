@@ -22,6 +22,7 @@ import type {
 } from "@/lib/pricing/types";
 import { DEFAULT_VENUE_ID, SPECIAL_VENUE_ID } from "@/lib/pricing/types";
 import { defaultVenueName, venueLabelKey } from "@/lib/content/venueLabels";
+import { SIMULTANEOUS_WINDOW_MAX_DAYS, simultaneousWindowGapDays } from "@/lib/pricing/dateRange";
 import { INITIAL_PERFORMANCE_INFO } from "@/lib/pricing/performanceInfoDefaults";
 import { clearWizardDraft, loadWizardDraft, saveWizardDraft } from "@/lib/quotesStore";
 import { useToast } from "@/components/ui/Toast";
@@ -356,6 +357,21 @@ export function WizardShell({
 
   const quote = useMemo(() => calculateQuote(resolvedSelection, rateTable), [resolvedSelection, rateTable]);
   const hasMidHallSelection = Object.keys(selection.midHallDays).length > 0;
+  // [신규 2026-09-06] "동시 대관은... 아레나/중형 중 둘중 최초 시작 일정 기준 2주 안에서
+  // 신청 가능해야해" — 두 시작일 간격이 14일을 넘으면 얼랏. 아레나 캘린더(week 변경)와
+  // 중형 캘린더(날짜 확정) 양쪽에서, 상대편 일정이 이미 있으면 그 즉시 검사한다.
+  function checkSimultaneousWindow(week: QuoteSelection["week"], midHallDays: Record<string, unknown>) {
+    if (selection.bookingMode !== "SIMULTANEOUS") return;
+    const gap = simultaneousWindowGapDays(week, midHallDays);
+    if (gap !== null && gap > SIMULTANEOUS_WINDOW_MAX_DAYS) {
+      toast.error(
+        tStr(
+          "wizardShell.toastSimultaneousWindowExceeded",
+          `동시 대관은 아레나·중형 중 먼저 시작하는 일정 기준 ${SIMULTANEOUS_WINDOW_MAX_DAYS}일 안에서만 신청할 수 있습니다.`,
+        ),
+      );
+    }
+  }
   // [개정 2026-08-22] STEP 1(공간/일정) 요약 패널에는 항목을 보여주지 않는다. 아레나는
   // 패키지가 없으면 calculateQuote가 애초에 라인아이템을 만들지 않아 자연히 비어 있는데,
   // 중형(DAILY)은 패키지 없이 캘린더 선택(selection.midHallDays)만으로 바로 금액이 잡혀서
@@ -609,6 +625,18 @@ export function WizardShell({
               );
               return;
             }
+            if (step === 1 && selection.bookingMode === "SIMULTANEOUS") {
+              const gap = simultaneousWindowGapDays(selection.week, selection.midHallDays);
+              if (gap !== null && gap > SIMULTANEOUS_WINDOW_MAX_DAYS) {
+                toast.error(
+                  tStr(
+                    "wizardShell.toastSimultaneousWindowExceeded",
+                    `동시 대관은 아레나·중형 중 먼저 시작하는 일정 기준 ${SIMULTANEOUS_WINDOW_MAX_DAYS}일 안에서만 신청할 수 있습니다.`,
+                  ),
+                );
+                return;
+              }
+            }
             if (step === 2 && needsPackage && !selection.packageId) {
               toast.error(tStr("wizardShell.toastNeedPackage", "패키지를 선택해 주세요."));
               return;
@@ -767,7 +795,10 @@ export function WizardShell({
                       defaultPerformanceDays={defaultPerformanceDays}
                       weekDemand={weekDemand}
                       dateBlocks={dateBlocks}
-                      onChangeWeek={(week) => setSelection((prev) => ({ ...prev, week }))}
+                      onChangeWeek={(week) => {
+                        setSelection((prev) => ({ ...prev, week }));
+                        checkSimultaneousWindow(week, selection.midHallDays);
+                      }}
                       onChangeExcludedDays={(excludedDays) =>
                         setSelection((prev) => ({ ...prev, excludedDays }))
                       }
@@ -797,7 +828,10 @@ export function WizardShell({
                       dateBlocks={dateBlocks}
                       rateConfig={rateTable.midHall}
                       onChangeMonth={(year, month) => setMidHallMonth({ year, month })}
-                      onChangeDays={(midHallDays) => setSelection((prev) => ({ ...prev, midHallDays }))}
+                      onChangeDays={(midHallDays) => {
+                        setSelection((prev) => ({ ...prev, midHallDays }));
+                        checkSimultaneousWindow(selection.week, midHallDays);
+                      }}
                       onChangeExtraSetupHours={(value) =>
                         setSelection((prev) => ({ ...prev, midHallExtraSetupHours: value }))
                       }
