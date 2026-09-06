@@ -403,12 +403,33 @@ export function NoticeEditor({
       editor.chain().focus().unsetLink().run();
       return;
     }
+    // 다이얼로그가 뜨는 동안 포커스가 에디터 밖으로 나가면서 선택 영역이
+    // 풀리는 브라우저가 있다 — dialog.prompt 를 기다리기 전에 먼저 확인해 둔다.
+    const hadSelection = !!editor && !editor.state.selection.empty;
     const url = await dialog.prompt("연결할 주소를 입력하세요.", {
       title: "링크 추가",
       okLabel: "추가",
       placeholder: "/apply, /rates, /rules 또는 https://...",
     });
     if (!url) return;
+    // 글자를 선택하지 않고 눌렀을 때 — setLink 는 커서 위치에 "다음에 입력할
+    // 서식"만 걸어 둘 뿐 화면엔 아무 변화가 없어("눌러도 안 걸린다"는 신고로
+    // 이어졌다), HTML 소스 모드와 똑같이 표시할 글자를 물어보고 그 글자를
+    // 링크 마크를 붙인 채로 그 자리에 새로 끼워 넣는다.
+    if (!hadSelection) {
+      const label = await dialog.prompt("링크에 표시할 글자를 입력하세요.", {
+        title: "링크 글자",
+        okLabel: "추가",
+        placeholder: "예: 대관료 보기",
+      });
+      if (!label) return;
+      editor
+        ?.chain()
+        .focus()
+        .insertContent({ type: "text", text: label, marks: [{ type: "link", attrs: { href: url } }] })
+        .run();
+      return;
+    }
     editor?.chain().focus().extendMarkRange("link").setLink({ href: url }).run();
   }
 
