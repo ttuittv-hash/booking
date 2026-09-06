@@ -146,6 +146,7 @@ export function WizardShell({
   wizardStepText,
   wizardSlotOrders,
   publicInterestDisabledItems,
+  publicInterestDisabledGroups,
 }: {
   rateTable: RateTable;
   currentUser: AppUser | null;
@@ -177,6 +178,9 @@ export function WizardShell({
   // [신규 2026-09-06] "체크박스 항목들은 항목 자체를 On/off 할 수 있게" — 여기 담긴
   // PublicInterestItem id는 공공/공익 참여 화면에서 숨긴다. /admin/content "화면 문구"에서 편집.
   publicInterestDisabledItems?: string[];
+  // [신규 2026-09-06] "대분류 슬롯 온오프도" — PUBLIC_INTEREST_GROUPS 그룹 key를 담으면
+  // 그 그룹 전체(속한 항목 전부)를 공공/공익 참여 화면에서 숨긴다.
+  publicInterestDisabledGroups?: string[];
 }) {
   const isEditing = !!editingQuoteId;
   const { t, tStr } = useWizardText();
@@ -893,6 +897,7 @@ export function WizardShell({
             onFilesChange={setPublicInterestFiles}
             title={wizardStepText.publicInterestTitle}
             disabledItems={publicInterestDisabledItems}
+            disabledGroups={publicInterestDisabledGroups}
           />
         )}
         {step === 6 && (

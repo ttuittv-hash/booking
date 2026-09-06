@@ -612,6 +612,14 @@ export interface ScreenTextContent {
    * 상태 응답 두 개는 목록에서 빼는 대상이 아니다, PageContentForms.tsx 참고).
    */
   publicInterestDisabledItems: string[];
+  /**
+   * [신규 2026-09-06] "대분류 슬롯(그룹), 중분류 슬롯(항목) 온오프도 가능하게" —
+   * publicInterestDisabledItems가 개별 항목(중분류)을 껐다면, 이 필드는 그 상위
+   * PUBLIC_INTEREST_GROUPS 그룹(대분류, 예: "접근성 · 사회공헌") 자체를 통째로 끈다
+   * — 그룹 키("ACCESS" 등) 목록. 그룹이 꺼지면 그 그룹의 모든 항목이 함께 숨는다
+   * (개별 항목이 켜져 있어도).
+   */
+  publicInterestDisabledGroups: string[];
 }
 
 export const DEFAULT_SCREEN_TEXT_CONTENT: ScreenTextContent = {
@@ -630,6 +638,7 @@ export const DEFAULT_SCREEN_TEXT_CONTENT: ScreenTextContent = {
   wizardStrings: {},
   wizardSlotOrders: {},
   publicInterestDisabledItems: [],
+  publicInterestDisabledGroups: [],
   wizardSteps: DEFAULT_WIZARD_STEP_TEXTS,
   registerIntro: DEFAULT_REGISTER_INTRO,
   bookItNotice: DEFAULT_BOOK_IT_NOTICE,

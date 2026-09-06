@@ -159,6 +159,7 @@ export default async function ApplyPage({
             wizardStepText={screenText.wizardSteps}
             wizardSlotOrders={screenText.wizardSlotOrders}
             publicInterestDisabledItems={screenText.publicInterestDisabledItems}
+            publicInterestDisabledGroups={screenText.publicInterestDisabledGroups}
           />
         </WizardTextProvider>
       </main>

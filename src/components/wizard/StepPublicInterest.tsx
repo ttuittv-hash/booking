@@ -46,6 +46,7 @@ export function StepPublicInterest({
   onFilesChange,
   title,
   disabledItems,
+  disabledGroups,
 }: {
   info: PerformanceInfo;
   onChange: (info: PerformanceInfo) => void;
@@ -56,10 +57,15 @@ export function StepPublicInterest({
   onFilesChange: (files: PublicInterestFile[]) => void;
   title: ReactNode;
   /**
-   * [신규 2026-09-06] "체크박스 항목들은 항목 자체를 On/off 할 수 있게" — 여기 담긴
-   * PublicInterestItem id는 화면에서 아예 숨긴다("해당 없음"/"검토 중"은 대상이 아니다).
+   * [신규 2026-09-06] "체크박스 항목들은 항목 자체를 On/off 할 수 있게"(중분류) — 여기
+   * 담긴 PublicInterestItem id는 화면에서 아예 숨긴다("해당 없음"/"검토 중"은 대상 밖).
    */
   disabledItems?: string[];
+  /**
+   * [신규 2026-09-06] "대분류 슬롯 온오프도" — PUBLIC_INTEREST_GROUPS 그룹 key
+   * ("ACCESS" 등)를 담으면 그 그룹 전체(속한 항목 전부)를 숨긴다.
+   */
+  disabledGroups?: string[];
 }) {
   const { t, tStr } = useWizardText();
   const selectedItems = info.publicInterestItems ?? [];
@@ -190,7 +196,7 @@ export function StepPublicInterest({
         </p>
 
         <div className="mt-6 space-y-8">
-          {PUBLIC_INTEREST_GROUPS.map((group) => {
+          {PUBLIC_INTEREST_GROUPS.filter((group) => !disabledGroups?.includes(group.key)).map((group) => {
             const visibleItems = group.items.filter(isItemEnabled);
             if (visibleItems.length === 0) return null;
             return (

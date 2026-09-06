@@ -12,7 +12,7 @@ const selection = { bookingMode: "SINGLE" } as unknown as QuoteSelection;
 function render(
   info: PerformanceInfo,
   files: { file: File }[] = [],
-  extra: { disabledItems?: string[]; overrides?: Record<string, string> } = {},
+  extra: { disabledItems?: string[]; disabledGroups?: string[]; overrides?: Record<string, string> } = {},
 ) {
   const element = React.createElement(StepPublicInterest, {
     info,
@@ -24,6 +24,7 @@ function render(
     onFilesChange: () => {},
     title: "공공/공익 참여 여부",
     disabledItems: extra.disabledItems,
+    disabledGroups: extra.disabledGroups,
   });
   if (!extra.overrides) return renderToStaticMarkup(element);
   // .ts(비-JSX) 테스트라 createElement의 3-인자 children 형태를 못 쓴다(WizardTextProvider
@@ -87,6 +88,17 @@ describe("StepPublicInterest 렌더", () => {
     const accessGroup = PUBLIC_INTEREST_GROUPS.find((g) => g.key === "ACCESS")!;
     const html = render({ ...INITIAL_PERFORMANCE_INFO }, [], { disabledItems: [...accessGroup.items] });
     expect(html).not.toContain(accessGroup.label);
+  });
+
+  // [신규 2026-09-06] "대분류 슬롯 온오프도" — 그룹 자체를 꺼서 소속 항목 전부 숨기기.
+  it("disabledGroups에 있는 그룹은 개별 항목이 켜져 있어도 통째로 사라진다", () => {
+    const accessGroup = PUBLIC_INTEREST_GROUPS.find((g) => g.key === "ACCESS")!;
+    const html = render({ ...INITIAL_PERFORMANCE_INFO }, [], { disabledGroups: ["ACCESS"] });
+    expect(html).not.toContain(accessGroup.label);
+    expect(html).not.toContain("문화소외계층 할인");
+    // 다른 그룹은 그대로 남는다
+    const consumerGroup = PUBLIC_INTEREST_GROUPS.find((g) => g.key === "CONSUMER")!;
+    expect(html).toContain(consumerGroup.label);
   });
 
   it("wizardStrings 오버라이드로 항목 라벨·힌트를 바꿀 수 있다", () => {

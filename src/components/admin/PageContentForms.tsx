@@ -977,9 +977,26 @@ export function ScreenTextForm({ content }: { content: ScreenTextContent }) {
             title="공공/공익 참여 항목"
             help="「공공/공익 참여 여부」 화면의 체크 항목입니다. 노출을 끄면 그 항목이 화면에서 사라집니다(선택 여부는 유지되지 않고 사라짐). 라벨·힌트는 비워 두면 기본 문구입니다."
           >
-            {PUBLIC_INTEREST_GROUPS.map((group) => (
+            {PUBLIC_INTEREST_GROUPS.map((group) => {
+              const groupDisabled = v.publicInterestDisabledGroups.includes(group.key);
+              return (
               <div key={group.key} className="space-y-3">
-                <p className="text-2xs font-bold uppercase tracking-wide text-muted">{group.label}</p>
+                {/* [신규 2026-09-06] "대분류 슬롯 온오프도" — 그룹째 끄면 소속 항목이 개별
+                    노출 설정과 무관하게 전부 숨는다. */}
+                <label className="flex items-center gap-1.5 text-2xs font-bold uppercase tracking-wide text-muted">
+                  <input
+                    type="checkbox"
+                    checked={!groupDisabled}
+                    onChange={(e) =>
+                      patch({
+                        publicInterestDisabledGroups: e.target.checked
+                          ? v.publicInterestDisabledGroups.filter((key) => key !== group.key)
+                          : [...v.publicInterestDisabledGroups, group.key],
+                      })
+                    }
+                  />
+                  {group.label} (그룹 노출)
+                </label>
                 {group.items.map((item: PublicInterestItem) => {
                   const disabled = v.publicInterestDisabledItems.includes(item);
                   const labelKey = `publicInterest.item.${item}.label`;
@@ -1023,7 +1040,8 @@ export function ScreenTextForm({ content }: { content: ScreenTextContent }) {
                   );
                 })}
               </div>
-            ))}
+              );
+            })}
           </Section>
 
           {/* [2026-09-03 팀 요청] 일정 달력 범주의 문구와 색 — 공고 달력과 어드민 일정 관리가 같이 쓴다.
