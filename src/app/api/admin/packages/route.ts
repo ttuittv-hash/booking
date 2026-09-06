@@ -19,16 +19,32 @@ const AVAILABILITY_MODES: AvailabilityMode[] = ["ALWAYS", "IF_PACKAGE_IN", "IF_N
 // availability.packages(항목을 어떤 패키지에서 제공할지)가 이걸 안 읽으면 어드민에서
 // "제공" 체크를 바꿔도 저장이 안 된다(2026-08-23, "체크한것만 노출되는걸로 바꿔라" 구현
 // 중 발견 — visibility 드롭다운도 같은 이유로 이미 저장이 안 되고 있었다).
+//
+// [버그 수정 2026-09-06] "운영툴에서 리미트(수량 제한) 기능을 넣었는데 프론트에는
+// 반영이 안 됨" — 원인은 이 함수였다. mode가 IF_PACKAGE_IN이 아닌 모든 항목(대부분인
+// ALWAYS 포함)에서 `{ mode }`만 반환해 어드민이 입력한 maxAddQuantity를 저장 때마다
+// 지워버렸다(DB에는 항상 { mode: "ALWAYS" }만 남음). mode와 무관하게 값을 보존한다.
+function sanitizeMaxAddQuantity(
+  input: unknown,
+  current: AddonItem["availability"]["maxAddQuantity"],
+): AddonItem["availability"]["maxAddQuantity"] {
+  if (input === undefined) return undefined;
+  if (input === "UNLIMITED") return "UNLIMITED";
+  if (Number.isFinite(Number(input)) && Number(input) >= 0) return Math.round(Number(input));
+  return current;
+}
+
 function sanitizeAvailability(input: unknown, current: AddonItem["availability"]): AddonItem["availability"] {
   if (!input || typeof input !== "object") return current;
   const a = input as Record<string, unknown>;
   if (!AVAILABILITY_MODES.includes(a.mode as AvailabilityMode)) return current;
   const mode = a.mode as AvailabilityMode;
-  if (mode !== "IF_PACKAGE_IN") return { mode };
+  const maxAddQuantity = sanitizeMaxAddQuantity(a.maxAddQuantity, current.maxAddQuantity);
+  if (mode !== "IF_PACKAGE_IN") return { mode, maxAddQuantity };
   const packages = Array.isArray(a.packages)
     ? (a.packages as unknown[]).filter((v): v is number => Number.isFinite(Number(v))).map(Number)
     : [];
-  return { mode, packages };
+  return { mode, packages, maxAddQuantity };
 }
 
 const ADDON_CATEGORIES: AddonCategory[] = [
