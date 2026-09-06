@@ -8,7 +8,13 @@ import { calculateQuote } from "@/lib/pricing/calculateQuote";
 import { packagesForVenue } from "@/lib/pricing/rateTableUtils";
 import { resolveSelectedDates } from "@/lib/pricing/dateRange";
 import { INITIAL_PERFORMANCE_INFO } from "@/lib/pricing/performanceInfoDefaults";
-import type { MarketingCooperation, QuoteSelection, RateTable, SafetyPledge } from "@/lib/pricing/types";
+import {
+  APPLICANT_COMPANY_TYPE_LABEL,
+  type MarketingCooperation,
+  type QuoteSelection,
+  type RateTable,
+  type SafetyPledge,
+} from "@/lib/pricing/types";
 import { VenuePicker } from "@/components/wizard/VenuePicker";
 import { StepConfigOptions } from "@/components/wizard/StepConfigOptions";
 import { StepPerformanceInfo, StepAttachments } from "@/components/wizard/StepPerformanceInfo";
@@ -20,6 +26,7 @@ import { Step5Estimate } from "@/components/wizard/Step5Estimate";
 import { Step6Submit } from "@/components/wizard/Step6Submit";
 import { ContentFormShell } from "./fields";
 import { HELP } from "./adminUi";
+import { STEP3_DEFAULT_SLOT_ORDER, STEP3_SLOT_LABELS } from "@/lib/content/wizardSlots";
 
 // [2026-08-25] "읽기전용 모드로 실제 스텝 전체 화면을 보여주되, 리드 문구만 수정 가능"
 // (2단계 제안) — 각 STEP의 실제 컴포넌트를 그대로(mock 데이터 + no-op 핸들러로) 렌더링해
@@ -269,6 +276,14 @@ interface RenderCtx {
   disabledFields: string[];
   setFieldOrder: (groupId: string, order: string[]) => void;
   setFieldDisabled: (fieldId: string, disabled: boolean) => void;
+  /**
+   * [신규 2026-09-06] "슬롯별 순서 조정" — 신청자 정보/공연 정보/기타 같은 큰 슬롯
+   * 자체의 순서(예: STEP3의 "대관 정보"/"예상 관객 및 사업규모"/"자료 첨부"). 위
+   * fieldOrders(슬롯 "안" 항목들의 순서·노출)와는 다른 층위다 — 슬롯 자체는 순서만
+   * 조정하고(온오프는 두지 않는다), key는 wizardSlots.ts가 정의한 slotKey("3" 등).
+   */
+  slotOrders: Record<string, string[]>;
+  setSlotOrder: (slotsKey: string, order: string[]) => void;
 }
 
 /** 그룹 하나의 필드 순서·노출을 편집하는 작은 인라인 패널 — LivePreview 바로 옆에 둬서
@@ -338,6 +353,67 @@ function FieldOrderPanel({
             </li>
           );
         })}
+      </ul>
+    </div>
+  );
+}
+
+/** 슬롯(신청자 정보/공연 정보/기타 같은 큰 그룹) 자체의 순서를 편집하는 패널 — 슬롯은
+ *  온오프가 없고 순서만 조정한다(항목 단위 온오프는 FieldOrderPanel이 각 슬롯 안에서 맡는다). */
+function SlotOrderPanel({
+  ctx,
+  slotsKey,
+  defaultOrder,
+  slotLabels,
+  title,
+}: {
+  ctx: RenderCtx;
+  slotsKey: string;
+  defaultOrder: readonly string[];
+  slotLabels: Record<string, string>;
+  title: string;
+}) {
+  const configured = ctx.slotOrders[slotsKey];
+  const order =
+    configured && configured.length > 0
+      ? [...configured.filter((k) => k in slotLabels), ...defaultOrder.filter((k) => !configured.includes(k))]
+      : [...defaultOrder];
+  const move = (index: number, direction: -1 | 1) => {
+    const target = index + direction;
+    if (target < 0 || target >= order.length) return;
+    const next = [...order];
+    [next[index], next[target]] = [next[target], next[index]];
+    ctx.setSlotOrder(slotsKey, next);
+  };
+  return (
+    <div className="border border-border-soft bg-panel/60 p-3">
+      <p className="mb-2 text-2xs font-bold uppercase tracking-wide text-muted">✎ {title} — 슬롯 순서</p>
+      <ul className="flex flex-col gap-1.5">
+        {order.map((key, index) => (
+          <li key={key} className="flex items-center justify-between gap-3 bg-background px-2.5 py-1.5 text-s">
+            <span>{slotLabels[key] ?? key}</span>
+            <div className="flex shrink-0 gap-1">
+              <button
+                type="button"
+                disabled={index === 0}
+                onClick={() => move(index, -1)}
+                aria-label="위로"
+                className="flex h-7 w-7 items-center justify-center rounded border border-border-soft text-xs disabled:cursor-not-allowed disabled:opacity-40"
+              >
+                ▲
+              </button>
+              <button
+                type="button"
+                disabled={index === order.length - 1}
+                onClick={() => move(index, 1)}
+                aria-label="아래로"
+                className="flex h-7 w-7 items-center justify-center rounded border border-border-soft text-xs disabled:cursor-not-allowed disabled:opacity-40"
+              >
+                ▼
+              </button>
+            </div>
+          </li>
+        ))}
       </ul>
     </div>
   );
@@ -495,16 +571,79 @@ const STAGE_GROUPS: StageGroup[] = [
         render: (ctx) => {
           const field = makeFieldEditor(ctx);
           const lead = makeLeadEditor(ctx);
+          // [신규 2026-09-06] "슬롯별 순서" — 대관 정보/예상 관객 및 사업규모/자료 첨부 3개
+          // 큰 슬롯 자체의 순서. WizardShell.tsx의 step3SlotRenderers와 같은 이름·같은 규칙
+          // (wizardSlots.ts)을 쓰므로, 여기서 순서를 바꾸면 실제 위저드와 항상 같은 순서로 보인다.
+          const step3SlotRenderers: Record<string, ReactNode> = {
+            applicantInfo: (
+              <StepPerformanceInfo
+                key="applicantInfo"
+                info={ctx.mocks.arena.performanceInfo}
+                onChange={noop}
+                midHallInfo={null}
+                onChangeMidHallInfo={noop}
+                selection={ctx.mocks.arena}
+                title={field("performanceInfoTitle")}
+                castContractFiles={[]}
+                onCastContractFilesChange={noop}
+                fieldOrders={ctx.fieldOrders}
+                disabledFields={ctx.disabledFields}
+              />
+            ),
+            audience: (
+              <StepAudience
+                key="audience"
+                info={ctx.mocks.arena.performanceInfo}
+                onChange={noop}
+                midHallInfo={null}
+                onChangeMidHallInfo={noop}
+                selection={ctx.mocks.arena}
+                showHeading={false}
+                title={ctx.wizardSteps.audienceTitle}
+                lead={ctx.wizardSteps.audienceLead}
+              />
+            ),
+            attachments: <StepAttachments key="attachments" files={[]} onFilesChange={noop} isSimultaneous={false} />,
+          };
+          const configuredStep3Order = ctx.slotOrders["3"];
+          const step3Order =
+            configuredStep3Order && configuredStep3Order.length > 0
+              ? [
+                  ...configuredStep3Order.filter((key) => key in step3SlotRenderers),
+                  ...STEP3_DEFAULT_SLOT_ORDER.filter((key) => !configuredStep3Order.includes(key)),
+                ]
+              : [...STEP3_DEFAULT_SLOT_ORDER];
           return (
             <div className="space-y-4">
               {/* [신규 2026-09-06] "실제 위저드 화면처럼 보면서 수정하기에 반영해 ..
                   바로 아래에 노출" — 이 서브탭에 들어오면 맨 먼저 보이는 자리에 둔다,
-                  아래 실제 화면(LivePreview)이 바로 이어져 바꾸는 즉시 눈으로 확인된다. */}
+                  아래 실제 화면(LivePreview)이 바로 이어져 바꾸는 즉시 눈으로 확인된다.
+                  슬롯(큰 그룹) 순서 → 그 안 항목들의 순서·노출 순으로 바깥에서 안쪽으로 둔다. */}
+              <SlotOrderPanel
+                ctx={ctx}
+                slotsKey="3"
+                defaultOrder={STEP3_DEFAULT_SLOT_ORDER}
+                slotLabels={STEP3_SLOT_LABELS}
+                title="03 기본 정보 · 신청자 정보 및 규모"
+              />
+              <FieldOrderPanel
+                ctx={ctx}
+                groupId="performanceInfo.applicantCompanyType"
+                defaultOrder={Object.keys(APPLICANT_COMPANY_TYPE_LABEL)}
+                fieldLabels={APPLICANT_COMPANY_TYPE_LABEL}
+                title="신청 기업 유형"
+              />
               <FieldOrderPanel
                 ctx={ctx}
                 groupId="performanceInfo.applicantContact"
-                defaultOrder={["name", "phone", "email"]}
-                fieldLabels={{ name: "담당자 (성명)", phone: "담당자 연락처", email: "담당자 이메일" }}
+                defaultOrder={["role", "department", "name", "phone", "email"]}
+                fieldLabels={{
+                  role: "담당역할",
+                  department: "소속",
+                  name: "담당자명",
+                  phone: "연락처",
+                  email: "이메일 주소",
+                }}
                 title="담당자 정보"
               />
               <div className="border border-border-soft bg-panel/60 p-3">
@@ -517,29 +656,7 @@ const STAGE_GROUPS: StageGroup[] = [
               </div>
               <LivePreview>
                 <div className="space-y-10 [&_input]:pointer-events-auto">
-                  <StepPerformanceInfo
-                    info={ctx.mocks.arena.performanceInfo}
-                    onChange={noop}
-                    midHallInfo={null}
-                    onChangeMidHallInfo={noop}
-                    selection={ctx.mocks.arena}
-                    title={field("performanceInfoTitle")}
-                    castContractFiles={[]}
-                    onCastContractFilesChange={noop}
-                    fieldOrders={ctx.fieldOrders}
-                    disabledFields={ctx.disabledFields}
-                  />
-                  <StepAudience
-                    info={ctx.mocks.arena.performanceInfo}
-                    onChange={noop}
-                    midHallInfo={null}
-                    onChangeMidHallInfo={noop}
-                    selection={ctx.mocks.arena}
-                    showHeading={false}
-                    title={ctx.wizardSteps.audienceTitle}
-                    lead={ctx.wizardSteps.audienceLead}
-                  />
-                  <StepAttachments files={[]} onFilesChange={noop} isSimultaneous={false} />
+                  {step3Order.map((key) => step3SlotRenderers[key])}
                 </div>
               </LivePreview>
             </div>
@@ -734,6 +851,9 @@ export function WizardTextPreview({
               : v.wizardDisabledFields.filter((id) => id !== fieldId),
           });
         }
+        function setSlotOrder(slotsKey: string, order: string[]) {
+          patch({ wizardSlotOrders: { ...v.wizardSlotOrders, [slotsKey]: order } });
+        }
         const ctx: RenderCtx = {
           wizardSteps: v.wizardSteps,
           setStep,
@@ -746,6 +866,8 @@ export function WizardTextPreview({
           disabledFields: v.wizardDisabledFields,
           setFieldOrder,
           setFieldDisabled,
+          slotOrders: v.wizardSlotOrders,
+          setSlotOrder,
         };
         return (
           <div>

@@ -31,6 +31,8 @@ export const INITIAL_PERFORMANCE_INFO: PerformanceInfo = {
   applicantCompanyType: null,
   applicantBusinessRegistrationNumber: "",
   applicantRepresentativeName: "",
+  applicantContactRole: "",
+  applicantContactDepartment: "",
   applicantContactName: "",
   applicantContactPhone: "",
   applicantContactEmail: "",

@@ -599,7 +599,12 @@ export interface PerformanceInfo {
   applicantBusinessRegistrationNumber: string; // 사업자등록번호
   // optional — 대표자명(2026-08-26 추가, 계정/회사 정보에서 자동 입력·읽기 전용)
   applicantRepresentativeName?: string;
-  applicantContactName: string; // 담당자
+  // optional — 담당역할·소속(2026-09-06 추가, "담당자 정보" 그룹에 담당역할/소속/담당자명/
+  // 연락처/이메일주소 5개 입력값으로 확장). 이 필드가 추가되기 전에 제출된 기존 신청서에는
+  // 없다 — 책임자 필드의 "소속(선택)"과 같은 이유로 선택 입력이라 필수 검증은 하지 않는다.
+  applicantContactRole?: string; // 담당역할
+  applicantContactDepartment?: string; // 소속
+  applicantContactName: string; // 담당자명
   applicantContactPhone: string; // 담당자 연락처
   // optional — 담당자 이메일(2026-09-06 추가, 계정 이메일에서 자동 입력). 이 필드가
   // 추가되기 전에 제출된 기존 신청서에는 없다(applicantRepresentativeName과 같은 이유).

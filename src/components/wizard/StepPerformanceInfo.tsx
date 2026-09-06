@@ -407,11 +407,29 @@ function PerformanceInfoFields({
   const dialog = useDialog();
   const { t, tStr } = useWizardText();
 
-  // [신규 2026-09-06] 담당자 정보(성명/연락처/이메일) — 순서 조정·온오프 가능한 첫 그룹.
+  // [신규 2026-09-06] 담당자 정보 — 순서 조정·온오프 가능한 첫 그룹. 담당역할·소속
+  // 2개는 2026-09-06 추가(선택 입력, ResponsiblePersonFields의 "소속(선택)"과 같은 이유로
+  // 필수 검증은 하지 않는다) — 담당역할 / 소속 / 담당자명 / 연락처 / 이메일주소 순.
   // 다른 그룹(공연 기본정보 등)도 같은 패턴으로 이어간다.
   const CONTACT_GROUP_ID = "performanceInfo.applicantContact";
-  const CONTACT_DEFAULT_ORDER = ["name", "phone", "email"] as const;
+  const CONTACT_DEFAULT_ORDER = ["role", "department", "name", "phone", "email"] as const;
   const contactFieldRenderers: Record<string, () => ReactNode> = {
+    role: () => (
+      <TextField
+        key="role"
+        label={t("performanceInfo.applicantContactRoleLabel", "담당역할")}
+        value={info.applicantContactRole ?? ""}
+        onChange={(v) => set("applicantContactRole", v)}
+      />
+    ),
+    department: () => (
+      <TextField
+        key="department"
+        label={t("performanceInfo.applicantContactDepartmentLabel", "소속")}
+        value={info.applicantContactDepartment ?? ""}
+        onChange={(v) => set("applicantContactDepartment", v)}
+      />
+    ),
     name: () => (
       <TextField
         key="name"
@@ -447,6 +465,22 @@ function PerformanceInfoFields({
       : [...CONTACT_DEFAULT_ORDER];
   const visibleContactFields = contactFieldOrder.filter(
     (key) => !disabledFields?.includes(`${CONTACT_GROUP_ID}.${key}`),
+  );
+
+  // [신규 2026-09-06] 신청 기업 유형 체크박스도 같은 패턴으로 순서 조정·온오프 가능하게.
+  const COMPANY_TYPE_GROUP_ID = "performanceInfo.applicantCompanyType";
+  const configuredCompanyTypeOrder = fieldOrders?.[COMPANY_TYPE_GROUP_ID];
+  const companyTypeOrder: ApplicantCompanyType[] =
+    configuredCompanyTypeOrder && configuredCompanyTypeOrder.length > 0
+      ? [
+          ...(configuredCompanyTypeOrder.filter((key) =>
+            APPLICANT_COMPANY_TYPES.includes(key as ApplicantCompanyType),
+          ) as ApplicantCompanyType[]),
+          ...APPLICANT_COMPANY_TYPES.filter((key) => !configuredCompanyTypeOrder.includes(key)),
+        ]
+      : [...APPLICANT_COMPANY_TYPES];
+  const visibleCompanyTypes = companyTypeOrder.filter(
+    (type) => !disabledFields?.includes(`${COMPANY_TYPE_GROUP_ID}.${type}`),
   );
 
   function set<K extends keyof PerformanceInfo>(key: K, value: PerformanceInfo[K]) {
@@ -564,7 +598,7 @@ function PerformanceInfoFields({
                 {t("performanceInfo.applicantCompanyTypeLabel", "신청 기업 유형")}
               </div>
               <div className="flex flex-wrap gap-2">
-                {APPLICANT_COMPANY_TYPES.map((type) => (
+                {visibleCompanyTypes.map((type) => (
                   <CheckboxChip
                     key={type}
                     label={APPLICANT_COMPANY_TYPE_LABEL[type]}

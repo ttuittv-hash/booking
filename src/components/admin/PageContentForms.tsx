@@ -45,7 +45,6 @@ import {
   venueRateTabKey,
 } from "@/lib/content/venueLabels";
 import { LEGEND_COLORS, LEGEND_COLOR_LABELS, LEGEND_KEYS } from "@/lib/content/scheduleLegend";
-import { STEP3_DEFAULT_SLOT_ORDER, STEP3_SLOT_LABELS } from "@/lib/content/wizardSlots";
 import { normalizeDiscountPercent } from "@/lib/content/rateDiscount";
 
 /* ============================================================================
@@ -787,18 +786,6 @@ export function DocumentsForm({ content }: { content: DocumentsContent }) {
 
 /* ------------------------------------------------------- 화면 문구 ------- */
 
-// [신규 2026-09-06] "모든 슬롯들을 관리자가 위아래 위치 조정가능하게" — WizardShell.tsx의
-// step3SlotOrder 계산과 같은 규칙(저장된 순서 + 거기 없는 신규 슬롯은 기본 순서 뒤에 그대로)을
-// 여기서도 써서, 편집 화면에 보이는 순서가 실제 위저드에 반영될 순서와 항상 같게 한다.
-function resolveStep3SlotOrder(configured: string[] | undefined): string[] {
-  return configured && configured.length > 0
-    ? [
-        ...configured.filter((key) => key in STEP3_SLOT_LABELS),
-        ...STEP3_DEFAULT_SLOT_ORDER.filter((key) => !configured.includes(key)),
-      ]
-    : [...STEP3_DEFAULT_SLOT_ORDER];
-}
-
 export function ScreenTextForm({ content }: { content: ScreenTextContent }) {
   return (
     <ContentFormShell page="screenText" initial={content}>
@@ -918,57 +905,6 @@ export function ScreenTextForm({ content }: { content: ScreenTextContent }) {
             ))}
           </Section>
 
-          {/* [신규 2026-09-06] "슬롯별로 위/아래 버튼" + "모든 슬롯들을 관리자가 위아래 위치
-              조정가능하게" — 03 기본 정보의 첫 스텝(신청자 정보 및 규모)을 이루는 슬롯 순서.
-              배열 순서 자체가 곧 저장값이다(PackagesForm.tsx의 movePackage와 같은 패턴) —
-              별도 sortOrder 필드 없이 위/아래 버튼이 인접한 두 항목을 바로 맞바꾼다. */}
-          <Section
-            title="위저드 슬롯 순서 (03 기본 정보 · 신청자 정보 및 규모)"
-            help="「신청자 정보 및 규모」 스텝을 이루는 슬롯들의 표시 순서입니다. 위/아래 버튼으로 순서를 바꾸면 실제 위저드에도 그대로 반영됩니다."
-          >
-            {(() => {
-              const order = resolveStep3SlotOrder(v.wizardSlotOrders["3"]);
-              const move = (index: number, direction: -1 | 1) => {
-                const target = index + direction;
-                if (target < 0 || target >= order.length) return;
-                const next = [...order];
-                [next[index], next[target]] = [next[target], next[index]];
-                patch({ wizardSlotOrders: { ...v.wizardSlotOrders, "3": next } });
-              };
-              return (
-                <ul className="flex flex-col gap-2">
-                  {order.map((key, index) => (
-                    <li
-                      key={key}
-                      className="flex items-center justify-between gap-3 rounded border border-border-soft px-3 py-2"
-                    >
-                      <span className="text-s">{STEP3_SLOT_LABELS[key] ?? key}</span>
-                      <div className="flex shrink-0 gap-1">
-                        <button
-                          type="button"
-                          disabled={index === 0}
-                          onClick={() => move(index, -1)}
-                          aria-label="위로"
-                          className="flex h-8 w-8 items-center justify-center rounded border border-border-soft text-s disabled:cursor-not-allowed disabled:opacity-40"
-                        >
-                          ▲
-                        </button>
-                        <button
-                          type="button"
-                          disabled={index === order.length - 1}
-                          onClick={() => move(index, 1)}
-                          aria-label="아래로"
-                          className="flex h-8 w-8 items-center justify-center rounded border border-border-soft text-s disabled:cursor-not-allowed disabled:opacity-40"
-                        >
-                          ▼
-                        </button>
-                      </div>
-                    </li>
-                  ))}
-                </ul>
-              );
-            })()}
-          </Section>
 
           {/* [신규 2026-09-06] "체크박스 항목들은 항목 자체를 On/off 할 수 있고, 체크박스
               항목자체도 수정/편집 가능하게" — 03 기본정보 공공/공익 참여 화면의 12개 항목.
