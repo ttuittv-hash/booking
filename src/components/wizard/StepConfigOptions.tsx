@@ -389,6 +389,18 @@ function PackagePicker({
                       </>
                     );
                   })()}
+                {/* [신규 2026-09-06] "할인율·할증률 컬럼이 둘 다 모든 패키지에 일괄 적용돼야"
+                    — 패키지 관리(어드민)에서 설정한 1일 2회 공연 할증률은 이미 모든 패키지에
+                    50%로 설정돼 있었지만(계산 로직에도 반영됨, calculateQuote.ts) 카드에는
+                    할인율만 있고 할증률 행이 아예 없었다. 할인율과 같은 패턴으로 추가한다. */}
+                {p.secondShowSurchargeRatio > 0 && (
+                  <div className="flex items-baseline justify-between gap-2">
+                    <dt className="text-muted">{t("configOptions.secondShowSurchargeRatioLabel", "1일 2회 공연 할증률")}</dt>
+                    <dd className="font-bold tabular-nums text-accent">
+                      {Math.round(p.secondShowSurchargeRatio * 100)}%
+                    </dd>
+                  </div>
+                )}
               </dl>
             </button>
           );
