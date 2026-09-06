@@ -45,6 +45,7 @@ export function StepPublicInterest({
   files,
   onFilesChange,
   title,
+  disabledItems,
 }: {
   info: PerformanceInfo;
   onChange: (info: PerformanceInfo) => void;
@@ -54,10 +55,16 @@ export function StepPublicInterest({
   files: PublicInterestFile[];
   onFilesChange: (files: PublicInterestFile[]) => void;
   title: ReactNode;
+  /**
+   * [신규 2026-09-06] "체크박스 항목들은 항목 자체를 On/off 할 수 있게" — 여기 담긴
+   * PublicInterestItem id는 화면에서 아예 숨긴다("해당 없음"/"검토 중"은 대상이 아니다).
+   */
+  disabledItems?: string[];
 }) {
   const { t, tStr } = useWizardText();
   const selectedItems = info.publicInterestItems ?? [];
   const details = info.publicInterestDetails ?? {};
+  const isItemEnabled = (item: PublicInterestItem) => !disabledItems?.includes(item);
   const [activeTab, setActiveTab] = useState<VenueSplitTab>(midHallInfo ? "ARENA" : "COMMON");
 
   // "없음"은 다른 항목과 같이 설 수 없다 — 예전 격자에서는 "없음"과 참여 항목이 동시에
@@ -108,17 +115,19 @@ export function StepPublicInterest({
     const checked = selectedItems.includes(item);
     // "검토 중"·"없음"은 참여 계획이 아니라 상태 응답이라 상세를 받지 않는다.
     const expandable = !PUBLIC_INTEREST_STATUS_ITEMS.includes(item);
+    // [신규 2026-09-06] "체크박스 항목자체도 수정/편집 가능하게" — 라벨·힌트는
+    // wizardStrings의 publicInterest.item.<id>.label/.hint 로 관리자가 고칠 수 있다.
+    const label = tStr(`publicInterest.item.${item}.label`, PUBLIC_INTEREST_ITEM_LABEL[item]);
+    const hint = tStr(`publicInterest.item.${item}.hint`, PUBLIC_INTEREST_ITEM_HINT[item]);
 
     return (
       <div key={item} className={`border-b border-border/25 ${checked ? "bg-panel" : ""}`}>
         <label className="flex cursor-pointer items-center justify-between gap-4 px-3 py-3.5">
           <span className="min-w-0">
             <span className="block text-s font-bold">
-              {PUBLIC_INTEREST_ITEM_NUMBER[item]}. {PUBLIC_INTEREST_ITEM_LABEL[item]}
+              {PUBLIC_INTEREST_ITEM_NUMBER[item]}. {label}
             </span>
-            <span className="mt-0.5 block text-xs leading-5 text-muted">
-              {PUBLIC_INTEREST_ITEM_HINT[item]}
-            </span>
+            <span className="mt-0.5 block text-xs leading-5 text-muted">{hint}</span>
           </span>
           <input
             type="checkbox"
@@ -181,16 +190,18 @@ export function StepPublicInterest({
         </p>
 
         <div className="mt-6 space-y-8">
-          {PUBLIC_INTEREST_GROUPS.map((group) => (
-            <div key={group.key}>
-              <h4 className="border-b border-foreground pb-2 text-xs font-bold tracking-wide text-foreground">
-                {t(`publicInterest.group.${group.key}`, group.label)}
-              </h4>
-              <div className="border-t border-border/25">
-                {group.items.map((item) => itemRow(item))}
+          {PUBLIC_INTEREST_GROUPS.map((group) => {
+            const visibleItems = group.items.filter(isItemEnabled);
+            if (visibleItems.length === 0) return null;
+            return (
+              <div key={group.key}>
+                <h4 className="border-b border-foreground pb-2 text-xs font-bold tracking-wide text-foreground">
+                  {t(`publicInterest.group.${group.key}`, group.label)}
+                </h4>
+                <div className="border-t border-border/25">{visibleItems.map((item) => itemRow(item))}</div>
               </div>
-            </div>
-          ))}
+            );
+          })}
 
           <div>
             <h4 className="border-b border-foreground pb-2 text-xs font-bold tracking-wide text-foreground">

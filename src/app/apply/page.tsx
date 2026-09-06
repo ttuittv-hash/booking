@@ -158,6 +158,7 @@ export default async function ApplyPage({
             liveHallRateContent={ratesContent.liveHall}
             wizardStepText={screenText.wizardSteps}
             wizardSlotOrders={screenText.wizardSlotOrders}
+            publicInterestDisabledItems={screenText.publicInterestDisabledItems}
           />
         </WizardTextProvider>
       </main>

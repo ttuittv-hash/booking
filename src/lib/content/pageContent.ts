@@ -603,6 +603,15 @@ export interface ScreenTextContent {
    * 뒤쪽에 그대로 나온다(빠지지 않는다, WizardShell.tsx 참고).
    */
   wizardSlotOrders: Record<string, string[]>;
+  /**
+   * [신규 2026-09-06] "공공/공익 참여 항목들은 항목 자체를 On/off 할 수 있고, 항목
+   * 자체도 수정/편집 가능하게" — 항목 라벨·힌트 문구는 wizardStrings 의
+   * `publicInterest.item.<PublicInterestItem>.label`/`.hint` 키로 이미 편집 가능하다
+   * (StepPublicInterest.tsx 가 tStr()로 읽음). 이 필드는 그중 끌 항목의 id 목록이다 —
+   * 여기 있으면 위저드 화면에서 그 항목 자체가 보이지 않는다("해당 없음"/"검토 중"
+   * 상태 응답 두 개는 목록에서 빼는 대상이 아니다, PageContentForms.tsx 참고).
+   */
+  publicInterestDisabledItems: string[];
 }
 
 export const DEFAULT_SCREEN_TEXT_CONTENT: ScreenTextContent = {
@@ -620,6 +629,7 @@ export const DEFAULT_SCREEN_TEXT_CONTENT: ScreenTextContent = {
   ],
   wizardStrings: {},
   wizardSlotOrders: {},
+  publicInterestDisabledItems: [],
   wizardSteps: DEFAULT_WIZARD_STEP_TEXTS,
   registerIntro: DEFAULT_REGISTER_INTRO,
   bookItNotice: DEFAULT_BOOK_IT_NOTICE,

@@ -145,6 +145,7 @@ export function WizardShell({
   liveHallRateContent,
   wizardStepText,
   wizardSlotOrders,
+  publicInterestDisabledItems,
 }: {
   rateTable: RateTable;
   currentUser: AppUser | null;
@@ -173,6 +174,9 @@ export function WizardShell({
   // 정보)를 이루는 3개 슬롯(대관 정보·예상 관객 및 사업규모·자료 첨부)의 순서.
   // /admin/content "화면 문구"에서 편집한다. 비어 있으면 STEP3_DEFAULT_SLOT_ORDER.
   wizardSlotOrders?: Record<string, string[]>;
+  // [신규 2026-09-06] "체크박스 항목들은 항목 자체를 On/off 할 수 있게" — 여기 담긴
+  // PublicInterestItem id는 공공/공익 참여 화면에서 숨긴다. /admin/content "화면 문구"에서 편집.
+  publicInterestDisabledItems?: string[];
 }) {
   const isEditing = !!editingQuoteId;
   const { t, tStr } = useWizardText();
@@ -888,6 +892,7 @@ export function WizardShell({
             files={publicInterestFiles}
             onFilesChange={setPublicInterestFiles}
             title={wizardStepText.publicInterestTitle}
+            disabledItems={publicInterestDisabledItems}
           />
         )}
         {step === 6 && (

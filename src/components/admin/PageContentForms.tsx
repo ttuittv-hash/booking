@@ -32,6 +32,13 @@ import { HELP } from "./adminUi";
 import { RuleBodyEditor } from "./RuleBodyEditor";
 import { SPECIAL_VENUE_ID, VENUES } from "@/lib/pricing/types";
 import {
+  PUBLIC_INTEREST_GROUPS,
+  PUBLIC_INTEREST_ITEM_HINT,
+  PUBLIC_INTEREST_ITEM_LABEL,
+  PUBLIC_INTEREST_ITEM_NUMBER,
+  type PublicInterestItem,
+} from "@/lib/pricing/types";
+import {
   defaultVenueName,
   defaultVenueRateTab,
   venueLabelKey,
@@ -961,6 +968,62 @@ export function ScreenTextForm({ content }: { content: ScreenTextContent }) {
                 </ul>
               );
             })()}
+          </Section>
+
+          {/* [신규 2026-09-06] "체크박스 항목들은 항목 자체를 On/off 할 수 있고, 체크박스
+              항목자체도 수정/편집 가능하게" — 03 기본정보 공공/공익 참여 화면의 12개 항목.
+              "해당 없음"·"검토 중" 두 상태 응답은 끄는 대상이 아니라 여기 없다. */}
+          <Section
+            title="공공/공익 참여 항목"
+            help="「공공/공익 참여 여부」 화면의 체크 항목입니다. 노출을 끄면 그 항목이 화면에서 사라집니다(선택 여부는 유지되지 않고 사라짐). 라벨·힌트는 비워 두면 기본 문구입니다."
+          >
+            {PUBLIC_INTEREST_GROUPS.map((group) => (
+              <div key={group.key} className="space-y-3">
+                <p className="text-2xs font-bold uppercase tracking-wide text-muted">{group.label}</p>
+                {group.items.map((item: PublicInterestItem) => {
+                  const disabled = v.publicInterestDisabledItems.includes(item);
+                  const labelKey = `publicInterest.item.${item}.label`;
+                  const hintKey = `publicInterest.item.${item}.hint`;
+                  return (
+                    <div
+                      key={item}
+                      className="grid gap-2 border border-border-soft p-3 sm:grid-cols-[auto_1fr_1fr]"
+                    >
+                      <label className="flex items-center gap-1.5 whitespace-nowrap text-s">
+                        <input
+                          type="checkbox"
+                          checked={!disabled}
+                          onChange={(e) =>
+                            patch({
+                              publicInterestDisabledItems: e.target.checked
+                                ? v.publicInterestDisabledItems.filter((id) => id !== item)
+                                : [...v.publicInterestDisabledItems, item],
+                            })
+                          }
+                        />
+                        {PUBLIC_INTEREST_ITEM_NUMBER[item]}. 노출
+                      </label>
+                      <Text
+                        label="라벨"
+                        value={v.wizardStrings[labelKey] ?? ""}
+                        onChange={(text) =>
+                          patch({ wizardStrings: { ...v.wizardStrings, [labelKey]: text } })
+                        }
+                        placeholder={PUBLIC_INTEREST_ITEM_LABEL[item]}
+                      />
+                      <Text
+                        label="힌트"
+                        value={v.wizardStrings[hintKey] ?? ""}
+                        onChange={(text) =>
+                          patch({ wizardStrings: { ...v.wizardStrings, [hintKey]: text } })
+                        }
+                        placeholder={PUBLIC_INTEREST_ITEM_HINT[item]}
+                      />
+                    </div>
+                  );
+                })}
+              </div>
+            ))}
           </Section>
 
           {/* [2026-09-03 팀 요청] 일정 달력 범주의 문구와 색 — 공고 달력과 어드민 일정 관리가 같이 쓴다.
