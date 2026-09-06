@@ -498,14 +498,13 @@ export interface ArtistRecentPerformanceRecord {
   sellRate: string; // 티켓 판매율
 }
 
-// [신규 2026-08-26] "티켓 유형별로 행 추가(R석, VIP석 등), 티켓가·예상 판매율을 각각"
-// 요청 — 기존 단일 expectedPaidSalesRate(%)를 유형별 반복 행으로 대체한다.
-// expectedPaidSalesRate/expectedPaidSalesRateMidHall 필드는 과거 신청서 하위호환을
-// 위해 타입에는 남기되(이미 제출된 신청서 표시용), 새 화면에서는 이 배열만 입력받는다.
+// [신규 2026-08-26, 개정 2026-09-06] "티켓 유형별로 행 추가(R석, VIP석 등), 티켓가를
+// 입력" — 유형·가격만 반복 행으로 받는다. 예상 판매율은 유형별이 아니라 전체 티켓
+// 기준 단일값으로 되돌렸다(expectedPaidSalesRate, 아래) — "예상 판매율은 티켓등급별이
+// 아니라 전체 티켓 예상 판매율 기입란으로" 요청.
 export interface TicketTypeRecord {
   label: string; // "R석", "VIP석" 등 티켓 유형명
   price: number; // 티켓가(원)
-  expectedSalesRate: number; // 예상 판매율(%)
 }
 
 export type CastContractStatus = "COMPLETED" | "IN_PROGRESS" | "PLANNED";
@@ -685,13 +684,15 @@ export interface PerformanceInfo {
   artistRecentPerformances?: ArtistRecentPerformanceRecord[]; // ② 최근 공연 이력(최대 3~5건 권장)
 
   // 예상 관객 및 사업규모 · 공공성 (STEP 3-2)
-  // [2026-08-26] 화면은 이제 ticketTypes(티켓 유형별 가격·판매율)만 입력받는다 — 아래 두
-  // 필드는 그 이전에 제출된 신청서를 그대로 보여주기 위한 하위호환용으로만 남긴다.
-  expectedPaidSalesRate: number; // 예상 유료 판매율(%) — 아레나 (레거시)
-  // optional — 아레나/중형을 한 화면에서 나눠 입력하게 된(2026-08-22) 이후 추가된 필드라
-  // 그 전에 저장된 신청서에는 없다.
+  // [개정 2026-09-06] 티켓 유형별 반복 행(ticketTypes)에서 예상 판매율 컬럼을 빼고,
+  // 다시 이 단일 필드로 받는다(공간 탭마다 자기 PerformanceInfo를 쓰므로 아레나·중형
+  // 구분 없이 이 하나면 된다).
+  expectedPaidSalesRate: number; // 예상 유료 판매율(%)
+  // optional — 2026-08-22~2026-09-06 사이 화면이 아레나/중형을 한 필드에 합쳐 받던
+  // 시기에만 쓰였다. 지금은 공간별로 별도 PerformanceInfo(expectedPaidSalesRate)를
+  // 쓰므로 새 신청서에는 채워지지 않는다 — 그 사이 제출된 신청서 표시용으로만 남긴다.
   expectedPaidSalesRateMidHall?: number; // 예상 유료 판매율(%) — 중형 (레거시)
-  // optional — 2026-08-26 추가. 티켓 유형(R석·VIP석 등)별 가격·예상 판매율 반복 입력.
+  // optional — 2026-08-26 추가. 티켓 유형(R석·VIP석 등)별 가격 반복 입력.
   ticketTypes?: TicketTypeRecord[];
   // optional — 2026-08-26 추가. 같은 주차에 여러 신청이 몰려 경합이 붙었을 때, 신청자가
   // 추가로 제시할 수 있는 대관료 옵션의 범위(최소~최대, 원)와 티켓 매출 중 서울아레나에

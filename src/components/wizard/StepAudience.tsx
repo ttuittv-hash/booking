@@ -143,11 +143,13 @@ function AudienceFields({
     return Math.max(0, Math.min(100, Number(raw) || 0));
   }
 
-  // [신규 2026-08-26] 티켓 유형별 가격 · 예상 판매율 반복 행.
+  // [신규 2026-08-26, 개정 2026-09-06] 티켓 유형별 가격 반복 행 — 예상 판매율은
+  // 유형별 컬럼에서 빠지고 아래 전체 티켓 기준 단일 입력(expectedPaidSalesRate)으로
+  // 되돌아갔다.
   const ticketTypes = info.ticketTypes ?? [];
 
   function addTicketType() {
-    set("ticketTypes", [...ticketTypes, { label: "", price: 0, expectedSalesRate: 0 }]);
+    set("ticketTypes", [...ticketTypes, { label: "", price: 0 }]);
   }
 
   function updateTicketType(index: number, patch: Partial<TicketTypeRecord>) {
@@ -217,22 +219,20 @@ function AudienceFields({
           </div>
         )}
 
-        {/* [개정 2026-08-26] "티켓 유형별로 행 추가(R석, VIP석 등), 티켓가·예상
-            판매율을 각각" 요청 — 단일 "예상 유료 판매율(%)" 입력을 유형별 반복
-            행으로 대체한다. expectedPaidSalesRate(레거시)는 과거 신청서 표시용으로만
-            타입에 남아 있고, 이 화면은 더 이상 그 필드를 읽거나 쓰지 않는다. */}
+        {/* [개정 2026-08-26, 2026-09-06] "티켓 유형별로 행 추가(R석, VIP석 등),
+            티켓가는 입력할 수 있게" — 유형·가격 반복 행은 유지하고, 예상 판매율은
+            유형별 컬럼에서 빼서 바로 아래 전체 티켓 기준 단일 입력으로 보여준다
+            ("예상 판매율은 티켓등급별이 아니라 전체 티켓 예상 판매율 기입란으로"). */}
         <div>
           <div className="mb-2.5 flex items-center justify-between">
-            <label className="text-xs font-bold text-muted">
-              {t("audience.ticketTypesLabel", "티켓 유형별 가격 · 예상 판매율")}
-            </label>
+            <label className="text-xs font-bold text-muted">{t("audience.ticketTypesLabel", "티켓 유형별 가격")}</label>
             <button type="button" onClick={addTicketType} className={toggleClass(false)}>
               {t("audience.addTicketTypeButton", "＋ 행 추가")}
             </button>
           </div>
           <div className="space-y-2">
             {ticketTypes.map((row, i) => (
-              <div key={i} className="grid grid-cols-4 gap-1.5 border-b border-border/15 py-2">
+              <div key={i} className="grid grid-cols-3 gap-1.5 border-b border-border/15 py-2">
                 <input
                   value={row.label}
                   placeholder={tStr("audience.ticketTypeLabelPlaceholder", "예: R석, VIP석")}
@@ -250,18 +250,6 @@ function AudienceFields({
                   />
                   <span className="text-xs text-muted">{t("audience.wonUnit", "원")}</span>
                 </div>
-                <div className="flex items-center gap-1.5">
-                  <input
-                    type="number"
-                    min={0}
-                    max={100}
-                    value={row.expectedSalesRate || ""}
-                    placeholder={tStr("audience.expectedSalesRatePlaceholder", "예상 판매율")}
-                    onChange={(e) => updateTicketType(i, { expectedSalesRate: clampRate(e.target.value) })}
-                    className="field-base w-full"
-                  />
-                  <span className="text-xs text-muted">%</span>
-                </div>
                 <div className="flex items-center justify-end">
                   <button
                     type="button"
@@ -274,6 +262,26 @@ function AudienceFields({
                 </div>
               </div>
             ))}
+          </div>
+        </div>
+
+        {/* [신규 2026-09-06] 유형별 컬럼에서 뺀 예상 판매율 — 티켓 유형 전체를 합친
+            기준 하나로 받는다(expectedPaidSalesRate). */}
+        <div>
+          <label className="mb-1.5 block text-xs font-bold text-muted">
+            {t("audience.expectedPaidSalesRateLabel", "예상 판매율(%)")}
+          </label>
+          <div className="flex w-40 items-center gap-1.5">
+            <input
+              type="number"
+              min={0}
+              max={100}
+              value={info.expectedPaidSalesRate || ""}
+              placeholder={tStr("audience.expectedPaidSalesRatePlaceholder", "예상 판매율")}
+              onChange={(e) => set("expectedPaidSalesRate", clampRate(e.target.value))}
+              className="field-base w-full"
+            />
+            <span className="text-xs text-muted">%</span>
           </div>
         </div>
 

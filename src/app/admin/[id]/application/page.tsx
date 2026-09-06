@@ -448,16 +448,13 @@ export default async function AdminQuoteApplicationPage({
 
             <Section title="티켓 · 사업규모">
               <div className="py-2">
-                <p className="mb-1.5 text-xs text-muted">티켓 유형별 가격 · 예상 판매율</p>
+                <p className="mb-1.5 text-xs text-muted">티켓 유형별 가격</p>
                 <MiniTable
-                  head={["유형", "가격", "예상 판매율(%)"]}
-                  rows={(info.ticketTypes ?? []).map((r) => [
-                    r.label,
-                    won(r.price),
-                    r.expectedSalesRate,
-                  ])}
+                  head={["유형", "가격"]}
+                  rows={(info.ticketTypes ?? []).map((r) => [r.label, won(r.price)])}
                 />
               </div>
+              <Row label="예상 유료 판매율" value={`${info.expectedPaidSalesRate}%`} />
               <Row
                 label="경합 시 추가 대관료"
                 value={

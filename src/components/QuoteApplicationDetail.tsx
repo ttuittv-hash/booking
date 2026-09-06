@@ -380,10 +380,10 @@ export function QuoteApplicationDetail({
   );
 }
 
-// [신규 2026-08-26] 티켓 유형별 가격·예상 판매율(2026-08-26 도입)과, 대관 경합 시
-// 제시한 추가 대관료 옵션·티켓 매출 RS 요율을 보여준다 — 신청서 제출/심사 화면에서
-// "추가 가능한 대관료"로 확인할 수 있어야 한다는 요청 반영. ticketTypes 가 없는
-// 옛 신청서는 레거시 단일 판매율 필드로 대체 표시한다(하위호환).
+// [신규 2026-08-26, 개정 2026-09-06] 티켓 유형별 가격과, 대관 경합 시 제시한 추가
+// 대관료 옵션·티켓 매출 RS 요율을 보여준다 — 신청서 제출/심사 화면에서 "추가 가능한
+// 대관료"로 확인할 수 있어야 한다는 요청 반영. 예상 판매율은 유형별 컬럼이 아니라
+// 전체 티켓 기준 단일 값(expectedPaidSalesRate)으로 항상 함께 보여준다.
 function ticketTypeFields(info: PerformanceInfo, venueLabel?: string) {
   const suffix = venueLabel ? ` (${venueLabel})` : "";
   const ticketTypes = info.ticketTypes ?? [];
@@ -394,32 +394,29 @@ function ticketTypeFields(info: PerformanceInfo, venueLabel?: string) {
 
   return (
     <div className="mt-1.5">
-      {ticketTypes.length > 0 ? (
+      {ticketTypes.length > 0 && (
         <div className="overflow-x-auto">
-          <table className="w-full min-w-[360px] border-collapse text-xs">
+          <table className="w-full min-w-[280px] border-collapse text-xs">
             <thead>
               <tr className="border-b border-border text-left text-muted">
                 <th className="py-1.5 pr-2">티켓 유형{suffix}</th>
-                <th className="py-1.5 pr-2">티켓가</th>
-                <th className="py-1.5">예상 판매율</th>
+                <th className="py-1.5">티켓가</th>
               </tr>
             </thead>
             <tbody>
               {ticketTypes.map((row, i) => (
                 <tr key={i} className="border-b border-border/60">
                   <td className="py-1.5 pr-2">{row.label || "-"}</td>
-                  <td className="py-1.5 pr-2">{row.price.toLocaleString()}원</td>
-                  <td className="py-1.5">{row.expectedSalesRate}%</td>
+                  <td className="py-1.5">{row.price.toLocaleString()}원</td>
                 </tr>
               ))}
             </tbody>
           </table>
         </div>
-      ) : (
-        <dl className="divide-y divide-border/60 text-s">
-          <Row label={`예상 유료 판매율${suffix}`} value={`${info.expectedPaidSalesRate}%`} />
-        </dl>
       )}
+      <dl className="mt-1.5 divide-y divide-border/60 text-s">
+        <Row label={`예상 유료 판매율${suffix}`} value={`${info.expectedPaidSalesRate}%`} />
+      </dl>
       {(hasCompetitionFee || hasRsRate) && (
         <dl className="mt-1.5 divide-y divide-border/60 text-s">
           {hasCompetitionFee && (

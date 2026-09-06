@@ -24,7 +24,7 @@ const EMPTY_ARTIST_RECENT_PERFORMANCE_ROW = {
   sellRate: "",
 };
 
-const EMPTY_TICKET_TYPE_ROW = { label: "", price: 0, expectedSalesRate: 0 };
+const EMPTY_TICKET_TYPE_ROW = { label: "", price: 0 };
 
 // [신규 2026-09-06] "담당역할은 하나는 공연 운영 총괄, 하나는 안전 관리 총괄로 넣어줘" —
 // 담당자 정보 반복 테이블의 기본 2행. 나머지 값(소속·성명·연락처·이메일)은 빈 채로 시작한다.
