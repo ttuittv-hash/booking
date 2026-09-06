@@ -35,6 +35,9 @@ import {
   ScreenTextForm,
   SeoulArenaForm,
 } from "./PageContentForms";
+import { WizardTextPreview } from "./WizardTextPreview";
+import type { RateTable } from "@/lib/pricing/types";
+import type { VenueRateContent } from "@/lib/content/pageContent";
 import {
   ADD_BTN_LG,
   CARD,
@@ -66,6 +69,7 @@ type Tab =
   | "rules"
   | "documents"
   | "screenText"
+  | "wizardPreview"
   | "legal";
 
 function isHtmlBodyEmpty(html: string): boolean {
@@ -91,6 +95,8 @@ export function ContentManager({
   termsContent,
   privacyContent,
   registerTermsContent,
+  rateTable,
+  liveHallRateContent,
 }: {
   notices: Notice[];
   faqs: Faq[];
@@ -105,6 +111,8 @@ export function ContentManager({
   termsContent: LegalContent;
   privacyContent: LegalContent;
   registerTermsContent: RegisterTermsContent;
+  rateTable: RateTable;
+  liveHallRateContent: VenueRateContent;
 }) {
   const router = useRouter();
   // 탭을 URL(?tab=)에 싣는다 — 새로고침해도 유지되고 특정 탭을 링크로 줄 수 있다.
@@ -121,6 +129,7 @@ export function ContentManager({
       "rules",
       "documents",
       "screenText",
+      "wizardPreview",
       "legal",
     ],
     "notices",
@@ -143,6 +152,7 @@ export function ContentManager({
             ["rules", "대관 규약"],
             ["documents", "대관 자료"],
             ["screenText", "화면 문구"],
+            ["wizardPreview", "위저드 미리보기 · 수정"],
             ["legal", "약관 · 정책"],
           ] as const
         ).map(([key, label]) => (
@@ -173,6 +183,13 @@ export function ContentManager({
         {tab === "rules" && <RulesForm content={rulesContent} />}
         {tab === "documents" && <DocumentsForm content={documentsContent} />}
         {tab === "screenText" && <ScreenTextForm content={screenTextContent} />}
+        {tab === "wizardPreview" && (
+          <WizardTextPreview
+            content={screenTextContent}
+            rateTable={rateTable}
+            liveHallRateContent={liveHallRateContent}
+          />
+        )}
         {tab === "legal" && (
           <div className="space-y-10">
             <LegalContentForm

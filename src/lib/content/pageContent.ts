@@ -464,8 +464,8 @@ export interface WizardStepTexts {
   venuePickerLead: string;
   // 리드 문장 자체(패키지명·예상 관객수 등)는 선택 상태로 동적 조립되어 이 폼의 편집
   // 대상이 아니지만, 그 안의 "예상 관객"·"셋업"·"공연"·"철수" 같은 연결어는
-  // configOptions.arenaSummary.* 키로 wizardStrings 에 저장돼 /admin/content/wizard-preview
-  // 에서 편집할 수 있다(2026-09-06, "아레나 하단 워딩 수정할 수 있도록").
+  // configOptions.arenaSummary.* 키로 wizardStrings 에 저장돼 /admin/content(화면 문구 탭 →
+  // 위저드 미리보기 · 수정)에서 편집할 수 있다(2026-09-06, "아레나 하단 워딩 수정할 수 있도록").
   configArenaTitle: string;
   configMidHallOnlyTitle: string;
   configMidHallOnlyLead: string;

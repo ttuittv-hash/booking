@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/lib/auth";
 import {
+  getCurrentRateTable,
   getDocumentsContent,
   getFeaturesContent,
   getGuidePageContent,
@@ -38,6 +39,7 @@ export default async function AdminContentPage() {
     termsContent,
     privacyContent,
     registerTermsContent,
+    rateTable,
   ] = await Promise.all([
     listNotices(),
     listFaqs(),
@@ -52,6 +54,7 @@ export default async function AdminContentPage() {
     getTermsContent(),
     getPrivacyContent(),
     getRegisterTermsContent(),
+    getCurrentRateTable(),
   ]);
 
   return (
@@ -84,6 +87,8 @@ export default async function AdminContentPage() {
           termsContent={termsContent}
           privacyContent={privacyContent}
           registerTermsContent={registerTermsContent}
+          rateTable={rateTable}
+          liveHallRateContent={ratesContent.liveHall}
         />
       </main>
     </div>
