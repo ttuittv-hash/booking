@@ -595,6 +595,14 @@ export interface ScreenTextContent {
    * 빈 값({})에서 시작해도 되고, 관리자가 고친 문구만 여기 쌓인다.
    */
   wizardStrings: Record<string, string>;
+  /**
+   * [신규 2026-09-06] "위저드 슬롯 순서를 관리자가 조정 가능하게" — STEP 번호(문자열
+   * "3" 등) → 그 스텝의 슬롯 key 배열(원하는 순서 그대로). 슬롯 key는 WizardShell.tsx
+   * 의 STEP3_SLOT_RENDERERS 에 등록된 것만 유효하다. 비어 있으면(또는 스텝 항목이
+   * 없으면) 기본 순서를 쓴다 — 신규 슬롯이 추가돼도 이 배열에 없으면 기본 순서
+   * 뒤쪽에 그대로 나온다(빠지지 않는다, WizardShell.tsx 참고).
+   */
+  wizardSlotOrders: Record<string, string[]>;
 }
 
 export const DEFAULT_SCREEN_TEXT_CONTENT: ScreenTextContent = {
@@ -611,6 +619,7 @@ export const DEFAULT_SCREEN_TEXT_CONTENT: ScreenTextContent = {
     { label: "주차", value: "확정 후 안내" },
   ],
   wizardStrings: {},
+  wizardSlotOrders: {},
   wizardSteps: DEFAULT_WIZARD_STEP_TEXTS,
   registerIntro: DEFAULT_REGISTER_INTRO,
   bookItNotice: DEFAULT_BOOK_IT_NOTICE,

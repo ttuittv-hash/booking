@@ -1,6 +1,7 @@
 "use client";
 
 import { CHOICE_SELECTED_VARS } from "@/components/ui/kit";
+import { useWizardText } from "@/lib/content/wizardText";
 
 // [화면 뼈대 2026-08-20, 세 번째 개정] "공간 선택"과 "일정 선택"을 다시 하나의 탭으로
 // 합쳤다 — 화면 안에서는 두 슬롯(섹션)으로 나뉘어 보이지만 진행 표시상으로는 한 그룹
@@ -30,26 +31,38 @@ interface StageGroup {
   steps: SubStep[];
 }
 
-const STAGE_GROUPS: StageGroup[] = [
-  { label: "01 공간/일정", steps: [{ step: 1, label: "공간/일정" }] },
-  { label: "02 구성 · 옵션", steps: [{ step: 2, label: "구성 · 옵션" }] },
-  {
-    label: "03 기본 정보",
-    steps: [
-      { step: 3, label: "신청자 정보 및 규모" },
-      { step: 4, label: "홍보 및 서비스 계획" },
-      { step: 5, label: "공공/공익 참여 여부" },
-      { step: 6, label: "안전관리 서약서" },
-    ],
-  },
-  {
-    label: "04 신청서 제출",
-    steps: [
-      { step: 7, label: "예상 대관료" },
-      { step: 8, label: "최종 제출" },
-    ],
-  },
-];
+// [수정 2026-09-06] "원뎁스 메뉴와 투뎁스 메뉴명 모두를 수정할 수 있게" — 예전엔
+// 이 배열이 모듈 최상위 상수라 useWizardText() 를 쓸 수 없었다. 컴포넌트 안에서
+// tStr(key, fallback)을 받아 조립하는 함수로 바꾼다 — key 는 /admin/content
+// "위저드 문구 미리보기·수정" 화면에서 이 화면을 그대로 보며 고칠 수 있다.
+function buildStageGroups(tStr: (key: string, fallback: string) => string): StageGroup[] {
+  return [
+    {
+      label: tStr("stepNav.group.spaceSchedule", "01 공간/일정"),
+      steps: [{ step: 1, label: tStr("stepNav.step.spaceSchedule", "공간/일정") }],
+    },
+    {
+      label: tStr("stepNav.group.configOptions", "02 구성 · 옵션"),
+      steps: [{ step: 2, label: tStr("stepNav.step.configOptions", "구성 · 옵션") }],
+    },
+    {
+      label: tStr("stepNav.group.basicInfo", "03 기본 정보"),
+      steps: [
+        { step: 3, label: tStr("stepNav.step.applicantInfo", "신청자 정보 및 규모") },
+        { step: 4, label: tStr("stepNav.step.marketing", "홍보 및 서비스 계획") },
+        { step: 5, label: tStr("stepNav.step.publicInterest", "공공/공익 참여 여부") },
+        { step: 6, label: tStr("stepNav.step.safetyPledge", "안전관리 서약서") },
+      ],
+    },
+    {
+      label: tStr("stepNav.group.submit", "04 신청서 제출"),
+      steps: [
+        { step: 7, label: tStr("stepNav.step.estimate", "예상 대관료") },
+        { step: 8, label: tStr("stepNav.step.finalSubmit", "최종 제출") },
+      ],
+    },
+  ];
+}
 
 /**
  * 스텝 인디케이터 — Figma MARKETING COMPONENTS › **Multi-step Forms › Multi Form / 5**.
@@ -86,6 +99,8 @@ export function StepNav({
   locked?: boolean;
   onJump: (step: number) => void;
 }) {
+  const { tStr } = useWizardText();
+  const STAGE_GROUPS = buildStageGroups(tStr);
   const groupsWithVisibleSteps = STAGE_GROUPS.map((group) => ({
     ...group,
     visibleSteps: group.steps.filter((s) => !hiddenSteps?.includes(s.step)),

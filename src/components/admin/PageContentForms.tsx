@@ -38,6 +38,7 @@ import {
   venueRateTabKey,
 } from "@/lib/content/venueLabels";
 import { LEGEND_COLORS, LEGEND_COLOR_LABELS, LEGEND_KEYS } from "@/lib/content/scheduleLegend";
+import { STEP3_DEFAULT_SLOT_ORDER, STEP3_SLOT_LABELS } from "@/lib/content/wizardSlots";
 import { normalizeDiscountPercent } from "@/lib/content/rateDiscount";
 
 /* ============================================================================
@@ -779,6 +780,18 @@ export function DocumentsForm({ content }: { content: DocumentsContent }) {
 
 /* ------------------------------------------------------- 화면 문구 ------- */
 
+// [신규 2026-09-06] "모든 슬롯들을 관리자가 위아래 위치 조정가능하게" — WizardShell.tsx의
+// step3SlotOrder 계산과 같은 규칙(저장된 순서 + 거기 없는 신규 슬롯은 기본 순서 뒤에 그대로)을
+// 여기서도 써서, 편집 화면에 보이는 순서가 실제 위저드에 반영될 순서와 항상 같게 한다.
+function resolveStep3SlotOrder(configured: string[] | undefined): string[] {
+  return configured && configured.length > 0
+    ? [
+        ...configured.filter((key) => key in STEP3_SLOT_LABELS),
+        ...STEP3_DEFAULT_SLOT_ORDER.filter((key) => !configured.includes(key)),
+      ]
+    : [...STEP3_DEFAULT_SLOT_ORDER];
+}
+
 export function ScreenTextForm({ content }: { content: ScreenTextContent }) {
   return (
     <ContentFormShell page="screenText" initial={content}>
@@ -850,6 +863,104 @@ export function ScreenTextForm({ content }: { content: ScreenTextContent }) {
                 patch({ wizardStrings: { ...v.wizardStrings, "wizardShell.mediumHallTabLabel": text } })
               }
             />
+          </Section>
+
+          {/* [신규 2026-09-06] "원뎁스 메뉴와 투뎁스 메뉴명 모두를 수정할 수 있게" — 위저드
+              상단의 진행 단계 표시(StepNav.tsx)가 지금까지 고정 문구였다. 1뎁스(01 공간/일정
+              등 4개 그룹 제목)와 2뎁스(그 아래 하위 단계 알약, "03 기본 정보" 그룹에만 4개)
+              전부 여기서 편집한다. */}
+          <Section
+            title="위저드 단계 메뉴 이름"
+            help="위저드(/apply) 맨 위 진행 단계 표시입니다. 1뎁스는 4개 큰 그룹 제목, 2뎁스는 그 아래 하위 단계(현재 「03 기본 정보」에만 4개) 이름입니다. 비워 두면 기본 문구입니다."
+          >
+            <p className="text-2xs font-bold uppercase tracking-wide text-muted">1뎁스 (그룹)</p>
+            {(
+              [
+                ["stepNav.group.spaceSchedule", "01 공간/일정"],
+                ["stepNav.group.configOptions", "02 구성 · 옵션"],
+                ["stepNav.group.basicInfo", "03 기본 정보"],
+                ["stepNav.group.submit", "04 신청서 제출"],
+              ] as const
+            ).map(([key, fallback]) => (
+              <Text
+                key={key}
+                label={`${fallback} (${key})`}
+                value={v.wizardStrings[key] ?? ""}
+                onChange={(text) => patch({ wizardStrings: { ...v.wizardStrings, [key]: text } })}
+              />
+            ))}
+            <p className="mt-4 text-2xs font-bold uppercase tracking-wide text-muted">2뎁스 (하위 단계)</p>
+            {(
+              [
+                ["stepNav.step.spaceSchedule", "공간/일정"],
+                ["stepNav.step.configOptions", "구성 · 옵션"],
+                ["stepNav.step.applicantInfo", "신청자 정보 및 규모"],
+                ["stepNav.step.marketing", "홍보 및 서비스 계획"],
+                ["stepNav.step.publicInterest", "공공/공익 참여 여부"],
+                ["stepNav.step.safetyPledge", "안전관리 서약서"],
+                ["stepNav.step.estimate", "예상 대관료"],
+                ["stepNav.step.finalSubmit", "최종 제출"],
+              ] as const
+            ).map(([key, fallback]) => (
+              <Text
+                key={key}
+                label={`${fallback} (${key})`}
+                value={v.wizardStrings[key] ?? ""}
+                onChange={(text) => patch({ wizardStrings: { ...v.wizardStrings, [key]: text } })}
+              />
+            ))}
+          </Section>
+
+          {/* [신규 2026-09-06] "슬롯별로 위/아래 버튼" + "모든 슬롯들을 관리자가 위아래 위치
+              조정가능하게" — 03 기본 정보의 첫 스텝(신청자 정보 및 규모)을 이루는 슬롯 순서.
+              배열 순서 자체가 곧 저장값이다(PackagesForm.tsx의 movePackage와 같은 패턴) —
+              별도 sortOrder 필드 없이 위/아래 버튼이 인접한 두 항목을 바로 맞바꾼다. */}
+          <Section
+            title="위저드 슬롯 순서 (03 기본 정보 · 신청자 정보 및 규모)"
+            help="「신청자 정보 및 규모」 스텝을 이루는 슬롯들의 표시 순서입니다. 위/아래 버튼으로 순서를 바꾸면 실제 위저드에도 그대로 반영됩니다."
+          >
+            {(() => {
+              const order = resolveStep3SlotOrder(v.wizardSlotOrders["3"]);
+              const move = (index: number, direction: -1 | 1) => {
+                const target = index + direction;
+                if (target < 0 || target >= order.length) return;
+                const next = [...order];
+                [next[index], next[target]] = [next[target], next[index]];
+                patch({ wizardSlotOrders: { ...v.wizardSlotOrders, "3": next } });
+              };
+              return (
+                <ul className="flex flex-col gap-2">
+                  {order.map((key, index) => (
+                    <li
+                      key={key}
+                      className="flex items-center justify-between gap-3 rounded border border-border-soft px-3 py-2"
+                    >
+                      <span className="text-s">{STEP3_SLOT_LABELS[key] ?? key}</span>
+                      <div className="flex shrink-0 gap-1">
+                        <button
+                          type="button"
+                          disabled={index === 0}
+                          onClick={() => move(index, -1)}
+                          aria-label="위로"
+                          className="flex h-8 w-8 items-center justify-center rounded border border-border-soft text-s disabled:cursor-not-allowed disabled:opacity-40"
+                        >
+                          ▲
+                        </button>
+                        <button
+                          type="button"
+                          disabled={index === order.length - 1}
+                          onClick={() => move(index, 1)}
+                          aria-label="아래로"
+                          className="flex h-8 w-8 items-center justify-center rounded border border-border-soft text-s disabled:cursor-not-allowed disabled:opacity-40"
+                        >
+                          ▼
+                        </button>
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+              );
+            })()}
           </Section>
 
           {/* [2026-09-03 팀 요청] 일정 달력 범주의 문구와 색 — 공고 달력과 어드민 일정 관리가 같이 쓴다.

@@ -1,10 +1,11 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { Fragment, useEffect, useMemo, useState, type ReactNode } from "react";
 import { calculateQuote } from "@/lib/pricing/calculateQuote";
 import { ARENA_MAX_AUDIENCE } from "@/lib/content/rateFacts";
 import type { VenueRateContent, WizardStepTexts } from "@/lib/content/pageContent";
 import { useWizardText } from "@/lib/content/wizardText";
+import { STEP3_DEFAULT_SLOT_ORDER } from "@/lib/content/wizardSlots";
 import {
   findAddon,
   findPackage,
@@ -142,6 +143,7 @@ export function WizardShell({
   applicantPrefill,
   liveHallRateContent,
   wizardStepText,
+  wizardSlotOrders,
 }: {
   rateTable: RateTable;
   currentUser: AppUser | null;
@@ -166,6 +168,10 @@ export function WizardShell({
   // (2026-08-24, "대관 위저드 프로세스에서 시스템 메시지들이 많은데 이런 부분도
   // 운영툴에서 수정할수 있도록").
   wizardStepText: WizardStepTexts;
+  // [신규 2026-09-06] "모든 슬롯을 관리자가 위/아래로 조정 가능하게" — STEP 3(기본
+  // 정보)를 이루는 3개 슬롯(대관 정보·예상 관객 및 사업규모·자료 첨부)의 순서.
+  // /admin/content "화면 문구"에서 편집한다. 비어 있으면 STEP3_DEFAULT_SLOT_ORDER.
+  wizardSlotOrders?: Record<string, string[]>;
 }) {
   const isEditing = !!editingQuoteId;
   const { t, tStr } = useWizardText();
@@ -615,6 +621,58 @@ export function WizardShell({
     </div>
   );
 
+  // [신규 2026-09-06] STEP 3 슬롯 렌더러 — 관리자가 고른 순서(step3SlotOrder)대로
+  // 이 맵에서 찾아 렌더한다. 여기 없는 key는 조용히 무시한다(옛 설정에 남은 폐기
+  // key 등).
+  const step3SlotRenderers: Record<string, () => ReactNode> = {
+    applicantInfo: () => (
+      <StepPerformanceInfo
+        info={selection.performanceInfo}
+        onChange={(performanceInfo) => setSelection((prev) => ({ ...prev, performanceInfo }))}
+        midHallInfo={selection.midHallPerformanceInfo}
+        onChangeMidHallInfo={(midHallPerformanceInfo) =>
+          setSelection((prev) => ({ ...prev, midHallPerformanceInfo }))
+        }
+        selection={resolvedSelection}
+        title={wizardStepText.performanceInfoTitle}
+        castContractFiles={castContractFiles}
+        onCastContractFilesChange={setCastContractFiles}
+      />
+    ),
+    // [2026-08-23] "신청자 정보 및 규모" — 두 탭을 하나로 합쳤다("신청자 정보 탭을
+    // 신청자 정보 및 규모로 변경하고, 규모 탭 내역을 합쳐"). 규모(StepAudience)는
+    // 자기 제목을 생략하고 이어 붙는 모양을 유지한다.
+    audience: () => (
+      <StepAudience
+        info={selection.performanceInfo}
+        onChange={(performanceInfo) => setSelection((prev) => ({ ...prev, performanceInfo }))}
+        midHallInfo={selection.midHallPerformanceInfo}
+        onChangeMidHallInfo={(midHallPerformanceInfo) =>
+          setSelection((prev) => ({ ...prev, midHallPerformanceInfo }))
+        }
+        selection={resolvedSelection}
+        showHeading={false}
+        title={wizardStepText.audienceTitle}
+        lead={wizardStepText.audienceLead}
+      />
+    ),
+    attachments: () => (
+      <StepAttachments
+        files={pendingFiles}
+        onFilesChange={setPendingFiles}
+        isSimultaneous={resolvedSelection.bookingMode === "SIMULTANEOUS"}
+      />
+    ),
+  };
+  const configuredStep3Order = wizardSlotOrders?.["3"];
+  const step3SlotOrder: string[] =
+    configuredStep3Order && configuredStep3Order.length > 0
+      ? [
+          ...configuredStep3Order.filter((key: string) => key in step3SlotRenderers),
+          ...STEP3_DEFAULT_SLOT_ORDER.filter((key) => !configuredStep3Order.includes(key)),
+        ]
+      : [...STEP3_DEFAULT_SLOT_ORDER];
+
   return (
     /*
       좌: 스텝 콘텐츠(4col) / 우: sticky 요약 패널(2col) — 페이지 그리드 위에 올린다.
@@ -759,44 +817,10 @@ export function WizardShell({
             onClearPackage={clearPackage}
           />
         )}
-        {step === 3 && (
-          <>
-            <StepPerformanceInfo
-              info={selection.performanceInfo}
-              onChange={(performanceInfo) => setSelection((prev) => ({ ...prev, performanceInfo }))}
-              midHallInfo={selection.midHallPerformanceInfo}
-              onChangeMidHallInfo={(midHallPerformanceInfo) =>
-                setSelection((prev) => ({ ...prev, midHallPerformanceInfo }))
-              }
-              selection={resolvedSelection}
-              title={wizardStepText.performanceInfoTitle}
-              castContractFiles={castContractFiles}
-              onCastContractFilesChange={setCastContractFiles}
-            />
-            {/* [2026-08-23] "신청자 정보 및 규모" — 두 탭을 하나로 합쳤다("신청자 정보
-                탭을 신청자 정보 및 규모로 변경하고, 규모 탭 내역을 합쳐"). 규모(StepAudience)
-                는 자기 제목을 생략하고 신청자 정보 아래로 이어 붙는다. */}
-            <StepAudience
-              info={selection.performanceInfo}
-              onChange={(performanceInfo) => setSelection((prev) => ({ ...prev, performanceInfo }))}
-              midHallInfo={selection.midHallPerformanceInfo}
-              onChangeMidHallInfo={(midHallPerformanceInfo) =>
-                setSelection((prev) => ({ ...prev, midHallPerformanceInfo }))
-              }
-              selection={resolvedSelection}
-              showHeading={false}
-              title={wizardStepText.audienceTitle}
-              lead={wizardStepText.audienceLead}
-            />
-            {/* [2026-08-24] 자료 첨부는 합친 탭의 가장 아래로 — "신청자 정보 및 규모 탭에서
-                자료 첨부(선택)를 가장 하위에 노출". */}
-            <StepAttachments
-              files={pendingFiles}
-              onFilesChange={setPendingFiles}
-              isSimultaneous={resolvedSelection.bookingMode === "SIMULTANEOUS"}
-            />
-          </>
-        )}
+        {step === 3 &&
+          step3SlotOrder.map((key) => (
+            <Fragment key={key}>{step3SlotRenderers[key]?.()}</Fragment>
+          ))}
         {step === 4 && (
           <StepMarketingCooperation
             info={selection.marketingCooperation ?? DEFAULT_MARKETING_COOPERATION}
