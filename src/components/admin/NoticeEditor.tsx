@@ -2,6 +2,7 @@
 
 import { useEditor, EditorContent } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
+import Link from "@tiptap/extension-link";
 import Image from "@tiptap/extension-image";
 import { useEditorState } from "@tiptap/react";
 import { TextStyle } from "@tiptap/extension-text-style";
@@ -158,6 +159,18 @@ function splitTableHeadRows(html: string): string {
   return container.innerHTML;
 }
 
+/*
+  [수정 2026-09-06] 링크 건 단어 바로 뒤에 이어서 타이핑하면 그 글자까지 계속
+  링크로 물려 나갔다("옆 글씨까지 계속 하이퍼링크 걸린다"). tiptap 의 Link 마크는
+  `inclusive`(마크 끝 경계에서 새로 입력한 글자가 마크를 이어받을지)를 기본값
+  `autolink` 옵션값(기본 true)에 묶어 반환한다 — 그래서 자동링크를 안 꺼도 이
+  부작용이 함께 딸려 온다. autolink(붙여넣은 URL 자동 링크화)는 그대로 살리고,
+  경계 이어받기만 항상 꺼지도록 여기서 따로 확장한다.
+*/
+const NoticeLink = Link.extend({
+  inclusive: () => false,
+});
+
 const DEFAULT_FONT_SIZE = 14;
 
 // HTML 소스 모드에서 문자열을 직접 이어붙일 때(링크 삽입) 쓰는 최소 이스케이프.
@@ -244,7 +257,11 @@ export function NoticeEditor({
       // openOnClick:true 를 그대로 두면 편집 중 링크를 누르는 순간 그 주소로 이동해
       // 버려서(방금 쓰던 본문을 잃는다) 편집기 안에서는 꺼 둔다 — 공개 화면은 정적
       // HTML(dangerouslySetInnerHTML)이라 이 옵션과 무관하게 정상적으로 클릭된다.
-      StarterKit.configure({ link: { openOnClick: false } }),
+      // [수정 2026-09-06] StarterKit 내장 Link 대신 위에서 inclusive:false 로
+      // 확장한 NoticeLink 를 쓴다(링크 바로 뒤에 이어 쓴 글자까지 링크가 번지던
+      // 문제 수정) — StarterKit 쪽 Link 는 꺼 둔다(link:false).
+      StarterKit.configure({ link: false }),
+      NoticeLink.configure({ openOnClick: false }),
       FontSize,
       Color,
       ResizableImage.configure({ inline: false }),
