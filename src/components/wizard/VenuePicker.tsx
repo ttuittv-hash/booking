@@ -17,6 +17,11 @@ import { useWizardText } from "@/lib/content/wizardText";
 // 제거했고, 여기는 "일정 선택" 화면 맨 위에 붙는 이용 시설 선택만 남았다.
 // [개정 2026-09-02] 공간이 셋으로 늘었다. 예전에는 "중형이면 중형, 아니면 아레나"였는데,
 // 그대로 두면 새로 추가한 공간이 아레나로 접혀 버려 자기 선택이 눌린 것으로 안 보인다.
+// [개정 2026-09-06] "3번째 메뉴 동시대관 탭 하위에 아레나&중형, 올인원이 들어가야"
+// — 예전엔 "동시 대관"·"패키지(→올인원 개명)"가 나란한 4번째 최상위 버튼이었는데,
+// 이제 "동시 대관"을 고르면 그 아래 두 하위 선택지(아레나&중형 = 기존 SIMULTANEOUS,
+// 올인원 = 기존 SPECIAL_VENUE_ID 단일 캘린더)가 펼쳐진다. 최상위는 아레나·중형공연장·
+// 동시 대관 3개로 줄었다.
 function primaryVenueOf(venueId: string | null, bookingMode: BookingMode): string | null {
   if (bookingMode === "SIMULTANEOUS") return "arena";
   return venueId;
@@ -33,61 +38,95 @@ export function VenuePicker({
 }) {
   const { t, tStr } = useWizardText();
   const isSimultaneous = bookingMode === "SIMULTANEOUS";
+  const isAllInOne = venueId === SPECIAL_VENUE_ID && bookingMode === "SINGLE";
+  const isSimultaneousGroupActive = isSimultaneous || isAllInOne;
   const primaryVenue = primaryVenueOf(venueId, bookingMode);
+
+  const topOptions = [
+    {
+      key: "arena",
+      // 이름의 정본은 venue.<id>.name 이다(문구 관리 「공간 이름」). 예전 key 로
+      // 이미 고쳐 둔 문구가 있으면 그걸 잃지 않도록 뒤로 물린다.
+      label: tStr("venue.arena.name", tStr("venuePicker.arenaOption", "메인 아레나")),
+      active: primaryVenue === "arena" && !isSimultaneousGroupActive,
+      onClick: () => onSelectVenue("arena", "SINGLE"),
+    },
+    {
+      key: MID_HALL_VENUE_ID,
+      label: tStr(
+        venueLabelKey(MID_HALL_VENUE_ID),
+        tStr("venuePicker.mediumHallOption", defaultVenueName(MID_HALL_VENUE_ID)),
+      ),
+      active: primaryVenue === MID_HALL_VENUE_ID && !isSimultaneousGroupActive,
+      onClick: () => onSelectVenue(MID_HALL_VENUE_ID, "SINGLE"),
+    },
+    {
+      key: "simultaneous",
+      label: tStr("venuePicker.simultaneousOption", "동시 대관"),
+      active: isSimultaneousGroupActive,
+      // 처음 누르면 하위 선택지 중 "아레나&중형"(기존 동시 대관 기본 동작)으로 들어간다.
+      onClick: () => onSelectVenue("arena", "SIMULTANEOUS"),
+    },
+  ] as const;
+
+  const subOptions = [
+    {
+      key: "arena-midhall",
+      label: tStr("venuePicker.simultaneousSubArenaMidHall", "아레나&중형"),
+      active: isSimultaneous,
+      onClick: () => onSelectVenue("arena", "SIMULTANEOUS"),
+    },
+    {
+      // [신규 2026-09-02, 2026-09-06 개명] "올인원" — 이름은 운영자가 문구 관리
+      // 「공간 이름」에서 바꾼다(venue.special-hall.name, 예전 기본값 "패키지").
+      key: "all-in-one",
+      label: tStr(venueLabelKey(SPECIAL_VENUE_ID), defaultVenueName(SPECIAL_VENUE_ID)),
+      active: isAllInOne,
+      onClick: () => onSelectVenue(SPECIAL_VENUE_ID, "SINGLE"),
+    },
+  ] as const;
 
   return (
     <div className="grid grid-cols-1 gap-x-8 gap-y-3 sm:grid-cols-[7rem_1fr] sm:items-center">
       <label className="text-s font-bold text-foreground">{t("venuePicker.fieldLabel", "이용 시설")} *</label>
-      <div className="flex flex-wrap gap-2">
-        {(
-          [
-            {
-              key: "arena",
-              // 이름의 정본은 venue.<id>.name 이다(문구 관리 「공간 이름」). 예전 key 로
-              // 이미 고쳐 둔 문구가 있으면 그걸 잃지 않도록 뒤로 물린다.
-              label: tStr("venue.arena.name", tStr("venuePicker.arenaOption", "메인 아레나")),
-              active: primaryVenue === "arena" && !isSimultaneous,
-              onClick: () => onSelectVenue("arena", "SINGLE"),
-            },
-            {
-              key: MID_HALL_VENUE_ID,
-              label: tStr(
-                venueLabelKey(MID_HALL_VENUE_ID),
-                tStr("venuePicker.mediumHallOption", defaultVenueName(MID_HALL_VENUE_ID)),
-              ),
-              active: primaryVenue === MID_HALL_VENUE_ID && !isSimultaneous,
-              onClick: () => onSelectVenue(MID_HALL_VENUE_ID, "SINGLE"),
-            },
-            {
-              key: "simultaneous",
-              label: tStr("venuePicker.simultaneousOption", "동시 대관"),
-              active: isSimultaneous,
-              onClick: () => onSelectVenue("arena", "SIMULTANEOUS"),
-            },
-            {
-              // [신규 2026-09-02] 세 번째 공간("패키지") — 맨 오른쪽.
-              // 이름은 운영자가 문구 관리 「공간 이름」에서 바꾼다.
-              key: SPECIAL_VENUE_ID,
-              label: tStr(venueLabelKey(SPECIAL_VENUE_ID), defaultVenueName(SPECIAL_VENUE_ID)),
-              active: primaryVenue === SPECIAL_VENUE_ID && !isSimultaneous,
-              onClick: () => onSelectVenue(SPECIAL_VENUE_ID, "SINGLE"),
-            },
-          ] as const
-        ).map((opt) => (
-          <button
-            key={opt.key}
-            type="button"
-            onClick={opt.onClick}
-            className={[
-              "flex h-10 items-center border px-4 text-s font-bold transition-colors",
-              opt.active
-                ? "border-foreground bg-inverse-bg text-inverse-fg text-foreground"
-                : "border-border bg-panel text-muted hover:border-foreground/50",
-            ].join(" ")}
-          >
-            {opt.label}
-          </button>
-        ))}
+      <div>
+        <div className="flex flex-wrap gap-2">
+          {topOptions.map((opt) => (
+            <button
+              key={opt.key}
+              type="button"
+              onClick={opt.onClick}
+              className={[
+                "flex h-10 items-center border px-4 text-s font-bold transition-colors",
+                opt.active
+                  ? "border-foreground bg-inverse-bg text-inverse-fg text-foreground"
+                  : "border-border bg-panel text-muted hover:border-foreground/50",
+              ].join(" ")}
+            >
+              {opt.label}
+            </button>
+          ))}
+        </div>
+
+        {isSimultaneousGroupActive && (
+          <div className="mt-2 flex flex-wrap gap-1.5 border-l-2 border-border-soft pl-3">
+            {subOptions.map((opt) => (
+              <button
+                key={opt.key}
+                type="button"
+                onClick={opt.onClick}
+                className={[
+                  "flex h-8 items-center rounded-full border px-3 text-xs font-bold transition-colors",
+                  opt.active
+                    ? "border-foreground bg-inverse-bg text-inverse-fg text-foreground"
+                    : "border-border-soft bg-panel text-muted hover:border-foreground/50",
+                ].join(" ")}
+              >
+                {opt.label}
+              </button>
+            ))}
+          </div>
+        )}
       </div>
     </div>
   );

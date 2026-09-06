@@ -61,7 +61,9 @@ export interface Venue {
 
 /** 중형공연장 — 유일하게 시간 단가 모델을 쓰는 공간이라 여러 곳에서 따로 분기한다. */
 export const MID_HALL_VENUE_ID = "medium-hall";
-/** 세 번째 공간 — 아레나와 같은 패키지 모델(2026-09-02). 화면 이름은 "패키지" */
+/** 세 번째 공간 — 아레나와 같은 패키지 모델(2026-09-02). 화면 이름은 "올인원"
+ *  (2026-09-06 개정: "패키지"에서 개명, 위저드에서는 "동시 대관" 탭 하위의
+ *  두 번째 선택지로 노출된다 — VenuePicker.tsx 참고). */
 export const SPECIAL_VENUE_ID = "special-hall";
 
 export const VENUES: Venue[] = [
@@ -70,7 +72,7 @@ export const VENUES: Venue[] = [
   // [신규 2026-09-02] 세 번째 공간. 아레나와 같은 패키지 모델을 쓴다(공간별 패키지를
   // 운영자가 요금표에서 만든다) — 중형공연장만 시간 단가 모델이라 별도 취급이다.
   // 화면에 나가는 이름은 운영자가 문구 관리에서 바꾼다(`venueLabel`).
-  { id: SPECIAL_VENUE_ID, name: "패키지" },
+  { id: SPECIAL_VENUE_ID, name: "올인원" },
 ];
 
 export const DEFAULT_VENUE_ID = "arena"; // venueId 미지정(기존) 데이터의 하위호환 기본값
