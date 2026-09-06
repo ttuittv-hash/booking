@@ -445,33 +445,49 @@ function SlotOrderPanel({
   };
   return (
     <div className="border border-border-soft bg-panel/60 p-3">
-      <p className="mb-2 text-2xs font-bold uppercase tracking-wide text-muted">✎ {title} — 슬롯 순서</p>
+      <p className="mb-2 text-2xs font-bold uppercase tracking-wide text-muted">✎ {title} — 슬롯 순서 · 노출</p>
       <ul className="flex flex-col gap-1.5">
-        {order.map((key, index) => (
-          <li key={key} className="flex items-center justify-between gap-3 bg-background px-2.5 py-1.5 text-s">
-            <span>{slotLabels[key] ?? key}</span>
-            <div className="flex shrink-0 gap-1">
-              <button
-                type="button"
-                disabled={index === 0}
-                onClick={() => move(index, -1)}
-                aria-label="위로"
-                className="flex h-7 w-7 items-center justify-center rounded border border-border-soft text-xs disabled:cursor-not-allowed disabled:opacity-40"
-              >
-                ▲
-              </button>
-              <button
-                type="button"
-                disabled={index === order.length - 1}
-                onClick={() => move(index, 1)}
-                aria-label="아래로"
-                className="flex h-7 w-7 items-center justify-center rounded border border-border-soft text-xs disabled:cursor-not-allowed disabled:opacity-40"
-              >
-                ▼
-              </button>
-            </div>
-          </li>
-        ))}
+        {order.map((key, index) => {
+          // [신규 2026-09-06] "슬롯별 노출 결정도.. 슬롯명 옆에 노출 여부 체크박스" —
+          // 지금까지 슬롯(큰 그룹)은 순서만 조정할 수 있었다(FieldOrderPanel의 그룹
+          // 노출과 달리 슬롯 자체를 끄는 방법이 없었다). "slot.{slotsKey}.{key}" id로
+          // wizardDisabledFields에 넣어 STEP 3/6 렌더링에서 슬롯째 건너뛴다
+          // (WizardShell.tsx의 step3SlotOrder/step6SlotOrder 필터 참고).
+          const slotFieldId = `slot.${slotsKey}.${key}`;
+          const slotDisabled = ctx.disabledFields.includes(slotFieldId);
+          return (
+            <li key={key} className="flex items-center justify-between gap-3 bg-background px-2.5 py-1.5 text-s">
+              <label className="flex items-center gap-2">
+                <input
+                  type="checkbox"
+                  checked={!slotDisabled}
+                  onChange={(e) => ctx.setFieldDisabled(slotFieldId, !e.target.checked)}
+                />
+                {slotLabels[key] ?? key}
+              </label>
+              <div className="flex shrink-0 gap-1">
+                <button
+                  type="button"
+                  disabled={index === 0}
+                  onClick={() => move(index, -1)}
+                  aria-label="위로"
+                  className="flex h-7 w-7 items-center justify-center rounded border border-border-soft text-xs disabled:cursor-not-allowed disabled:opacity-40"
+                >
+                  ▲
+                </button>
+                <button
+                  type="button"
+                  disabled={index === order.length - 1}
+                  onClick={() => move(index, 1)}
+                  aria-label="아래로"
+                  className="flex h-7 w-7 items-center justify-center rounded border border-border-soft text-xs disabled:cursor-not-allowed disabled:opacity-40"
+                >
+                  ▼
+                </button>
+              </div>
+            </li>
+          );
+        })}
       </ul>
     </div>
   );

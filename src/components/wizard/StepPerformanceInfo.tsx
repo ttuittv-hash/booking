@@ -91,6 +91,13 @@ export function validatePerformanceInfoStep(
 ): string | null {
   const prefix = venueLabel ? `${venueLabel} ` : "";
   const isDisabled = (id: string) => disabledFields.includes(id);
+  // [버그 수정 2026-09-06] "슬롯 전체를 숨겨도 필수 검사에서 막힘" — 위 필드 단위
+  // isDisabled/visibleInGroup 검사와 별개로, WizardShell의 STEP3 슬롯 자체를 통째로
+  // 껐을 때(slot.3.<key>, SlotOrderPanel의 새 체크박스) 그 슬롯 컴포넌트
+  // (StepApplicantDetails/StepEventBasics/StepCredibility)가 아예 렌더되지 않으므로,
+  // 그 슬롯이 담당하는 필드들의 필수 검사도 함께 건너뛴다 — 안 그러면 화면에 없는
+  // 항목을 입력하라고 막다른 길로 몬다.
+  const isSlotDisabled = (key: string) => disabledFields.includes(`slot.3.${key}`);
 
   // 대관신청사명·사업자등록번호는 더 이상 이 화면에서 입력하지 않고 가입 계정에서
   // 그대로 가져와 읽기 전용으로 보여준다(2026-08-22) — 계정 데이터라 여기서 필수값
@@ -101,98 +108,104 @@ export function validatePerformanceInfoStep(
   // (visibleInGroup이 화면 렌더링과 똑같이 계산) 필수 검사를 건너뛴다 — 그룹
   // 전체를 껐을 때는 물론, 개별 항목을 모두 꺼서 결과적으로 빈 목록이 됐을 때도
   // 같은 규칙으로 걸러진다.
-  if (
-    visibleInGroup(APPLICANT_COMPANY_TYPES, "performanceInfo.applicantCompanyType", disabledFields).length > 0 &&
-    !info.applicantCompanyType
-  ) {
-    return `${prefix}신청 기업 유형을 선택해 주세요.`;
-  }
-  if (info.applicantCompanyType === "OTHER" && !info.applicantCompanyTypeOtherDetail?.trim()) {
-    return `${prefix}신청 기업 유형 "기타" 상세를 입력해 주세요.`;
-  }
-
-  // [개정 2026-09-06] "담당자 정보를 한 줄짜리 반복 행으로" — 담당자·공연 운영/안전관리
-  // 총괄 책임자를 합친 반복 테이블. 행마다 담당역할·성명·연락처는 필수, 소속·이메일은
-  // 선택이다(ResponsiblePerson의 "소속(선택)"과 같은 이유).
-  const contactPersons = info.contactPersons ?? [];
-  if (!isDisabled("performanceInfo.applicantContact.role") && contactPersons.length === 0) {
-    return `${prefix}담당자 정보를 1건 이상 입력해 주세요.`;
-  }
-  for (const person of contactPersons) {
-    if (!isDisabled("performanceInfo.applicantContact.role") && !person.role.trim()) {
-      return `${prefix}담당역할을 입력해 주세요.`;
+  if (!isSlotDisabled("applicantDetails")) {
+    if (
+      visibleInGroup(APPLICANT_COMPANY_TYPES, "performanceInfo.applicantCompanyType", disabledFields).length > 0 &&
+      !info.applicantCompanyType
+    ) {
+      return `${prefix}신청 기업 유형을 선택해 주세요.`;
     }
-    if (!isDisabled("performanceInfo.applicantContact.name") && !person.name.trim()) {
-      return `${prefix}담당자 성명을 입력해 주세요.`;
+    if (info.applicantCompanyType === "OTHER" && !info.applicantCompanyTypeOtherDetail?.trim()) {
+      return `${prefix}신청 기업 유형 "기타" 상세를 입력해 주세요.`;
     }
-    if (!isDisabled("performanceInfo.applicantContact.phone") && !person.phone.trim()) {
-      return `${prefix}담당자 연락처를 입력해 주세요.`;
+
+    // [개정 2026-09-06] "담당자 정보를 한 줄짜리 반복 행으로" — 담당자·공연 운영/안전관리
+    // 총괄 책임자를 합친 반복 테이블. 행마다 담당역할·성명·연락처는 필수, 소속·이메일은
+    // 선택이다(ResponsiblePerson의 "소속(선택)"과 같은 이유).
+    const contactPersons = info.contactPersons ?? [];
+    if (!isDisabled("performanceInfo.applicantContact.role") && contactPersons.length === 0) {
+      return `${prefix}담당자 정보를 1건 이상 입력해 주세요.`;
     }
-  }
-
-  if (!isDisabled("performanceInfo.eventBasics.eventName") && !info.eventName.trim())
-    return `${prefix}공연(행사)명을 입력해 주세요.`;
-  if (!isDisabled("performanceInfo.eventBasics.artist") && !info.artist.trim())
-    return `${prefix}아티스트 / 출연진을 입력해 주세요.`;
-  // organizer(단일 텍스트)는 organizers(역할별 반복 행)에서 자동 합성되므로, 배열에 이름이
-  // 하나라도 있으면 통과시킨다 — 합성 전 옛 신청서는 organizer 문자열만으로 판단한다.
-  const hasOrganizerEntry = (info.organizers ?? []).some((o) => o.name.trim());
-  if (!hasOrganizerEntry && !info.organizer.trim()) {
-    return `${prefix}주최 · 주관 · 기획을 하나 이상 입력해 주세요.`;
-  }
-  if (
-    visibleInGroup(EVENT_TYPES, "performanceInfo.eventTypes", disabledFields).length > 0 &&
-    info.eventTypes.length === 0
-  ) {
-    return `${prefix}행사유형을 하나 이상 선택해 주세요.`;
-  }
-  const visibleAgeRatingsForValidation = visibleInGroup(
-    Object.keys(AGE_RATING_LABEL) as AgeRating[],
-    "performanceInfo.ageRating",
-    disabledFields,
-  );
-  if (visibleAgeRatingsForValidation.length > 0 && !info.ageRating) {
-    return `${prefix}공연등급을 선택해 주세요.`;
-  }
-  if (info.ageRating === "AGE_LIMIT" && !info.ageLimitDetail.trim()) {
-    return `${prefix}연령제한 상세를 입력해 주세요.`;
-  }
-
-  if (!info.ticketOpenExpectedDate.trim()) return `${prefix}티켓 오픈 예정일을 입력해 주세요.`;
-
-  if (
-    visibleInGroup(SEATING_TYPES, "performanceInfo.seatingTypes", disabledFields).length > 0 &&
-    info.seatingTypes.length === 0
-  ) {
-    return `${prefix}객석형태를 하나 이상 선택해 주세요.`;
-  }
-  if (info.seatingTypes.includes("OTHER") && !info.seatingTypeOtherDetail?.trim()) {
-    return `${prefix}객석형태 "기타" 상세를 입력해 주세요.`;
-  }
-  if (!info.retractableSeatUse) return `${prefix}수납식 객석 사용여부를 선택해 주세요.`;
-  // [사용]을 골랐으면 층별로도 답해야 한다 — 어느 층을 펴는지에 따라 객석 구성이 달라져서
-  // "사용" 한 마디만으로는 심사도 시공도 진행되지 않는다(2026-09-02).
-  if (info.retractableSeatUse === "USE") {
-    const floors = info.retractableSeatFloorUse ?? {};
-    if (!floors.FLOOR_1 || !floors.FLOOR_3) {
-      return `${prefix}수납식 객석을 사용하시면 1층·3층 각각 사용여부를 선택해 주세요.`;
+    for (const person of contactPersons) {
+      if (!isDisabled("performanceInfo.applicantContact.role") && !person.role.trim()) {
+        return `${prefix}담당역할을 입력해 주세요.`;
+      }
+      if (!isDisabled("performanceInfo.applicantContact.name") && !person.name.trim()) {
+        return `${prefix}담당자 성명을 입력해 주세요.`;
+      }
+      if (!isDisabled("performanceInfo.applicantContact.phone") && !person.phone.trim()) {
+        return `${prefix}담당자 연락처를 입력해 주세요.`;
+      }
     }
   }
-  if (
-    visibleInGroup(STAGE_TYPES, "performanceInfo.stageTypes", disabledFields).length > 0 &&
-    info.stageTypes.length === 0
-  ) {
-    return `${prefix}무대형태를 하나 이상 선택해 주세요.`;
-  }
-  if (info.stageTypes.includes("OTHER") && !info.stageTypeOtherDetail?.trim()) {
-    return `${prefix}무대형태 "기타" 상세를 입력해 주세요.`;
+
+  if (!isSlotDisabled("eventBasics")) {
+    if (!isDisabled("performanceInfo.eventBasics.eventName") && !info.eventName.trim())
+      return `${prefix}공연(행사)명을 입력해 주세요.`;
+    if (!isDisabled("performanceInfo.eventBasics.artist") && !info.artist.trim())
+      return `${prefix}아티스트 / 출연진을 입력해 주세요.`;
+    // organizer(단일 텍스트)는 organizers(역할별 반복 행)에서 자동 합성되므로, 배열에 이름이
+    // 하나라도 있으면 통과시킨다 — 합성 전 옛 신청서는 organizer 문자열만으로 판단한다.
+    const hasOrganizerEntry = (info.organizers ?? []).some((o) => o.name.trim());
+    if (!hasOrganizerEntry && !info.organizer.trim()) {
+      return `${prefix}주최 · 주관 · 기획을 하나 이상 입력해 주세요.`;
+    }
+    if (
+      visibleInGroup(EVENT_TYPES, "performanceInfo.eventTypes", disabledFields).length > 0 &&
+      info.eventTypes.length === 0
+    ) {
+      return `${prefix}행사유형을 하나 이상 선택해 주세요.`;
+    }
+    const visibleAgeRatingsForValidation = visibleInGroup(
+      Object.keys(AGE_RATING_LABEL) as AgeRating[],
+      "performanceInfo.ageRating",
+      disabledFields,
+    );
+    if (visibleAgeRatingsForValidation.length > 0 && !info.ageRating) {
+      return `${prefix}공연등급을 선택해 주세요.`;
+    }
+    if (info.ageRating === "AGE_LIMIT" && !info.ageLimitDetail.trim()) {
+      return `${prefix}연령제한 상세를 입력해 주세요.`;
+    }
+
+    if (!info.ticketOpenExpectedDate.trim()) return `${prefix}티켓 오픈 예정일을 입력해 주세요.`;
+
+    if (
+      visibleInGroup(SEATING_TYPES, "performanceInfo.seatingTypes", disabledFields).length > 0 &&
+      info.seatingTypes.length === 0
+    ) {
+      return `${prefix}객석형태를 하나 이상 선택해 주세요.`;
+    }
+    if (info.seatingTypes.includes("OTHER") && !info.seatingTypeOtherDetail?.trim()) {
+      return `${prefix}객석형태 "기타" 상세를 입력해 주세요.`;
+    }
+    if (!info.retractableSeatUse) return `${prefix}수납식 객석 사용여부를 선택해 주세요.`;
+    // [사용]을 골랐으면 층별로도 답해야 한다 — 어느 층을 펴는지에 따라 객석 구성이 달라져서
+    // "사용" 한 마디만으로는 심사도 시공도 진행되지 않는다(2026-09-02).
+    if (info.retractableSeatUse === "USE") {
+      const floors = info.retractableSeatFloorUse ?? {};
+      if (!floors.FLOOR_1 || !floors.FLOOR_3) {
+        return `${prefix}수납식 객석을 사용하시면 1층·3층 각각 사용여부를 선택해 주세요.`;
+      }
+    }
+    if (
+      visibleInGroup(STAGE_TYPES, "performanceInfo.stageTypes", disabledFields).length > 0 &&
+      info.stageTypes.length === 0
+    ) {
+      return `${prefix}무대형태를 하나 이상 선택해 주세요.`;
+    }
+    if (info.stageTypes.includes("OTHER") && !info.stageTypeOtherDetail?.trim()) {
+      return `${prefix}무대형태 "기타" 상세를 입력해 주세요.`;
+    }
   }
 
-  if (!info.castContractStatus) return `${prefix}주요 출연진 계약 상태를 선택해 주세요.`;
-  if (!info.sensitiveInfoMaskingAcknowledged) {
-    return `${prefix}출연 계약 증빙 마스킹 제출 허용에 동의해 주세요.`;
+  if (!isSlotDisabled("credibility")) {
+    if (!info.castContractStatus) return `${prefix}주요 출연진 계약 상태를 선택해 주세요.`;
+    if (!info.sensitiveInfoMaskingAcknowledged) {
+      return `${prefix}출연 계약 증빙 마스킹 제출 허용에 동의해 주세요.`;
+    }
+    if (!info.safetyPledgeSigned) return `${prefix}안전규정 준수 확약서 작성 완료에 동의해 주세요.`;
   }
-  if (!info.safetyPledgeSigned) return `${prefix}안전규정 준수 확약서 작성 완료에 동의해 주세요.`;
 
   return null;
 }
@@ -523,7 +536,7 @@ function ApplicantDetailsFields({
               {visibleCompanyTypes.map((type) => (
                 <CheckboxChip
                   key={type}
-                  label={APPLICANT_COMPANY_TYPE_LABEL[type]}
+                  label={t(`fieldLabel.applicantCompanyType.${type}`, APPLICANT_COMPANY_TYPE_LABEL[type])}
                   checked={info.applicantCompanyType === type}
                   onChange={() => set("applicantCompanyType", info.applicantCompanyType === type ? null : type)}
                 />
@@ -1023,7 +1036,7 @@ function EventBasicsFields({
                   {visibleEventTypes.map((type) => (
                     <CheckboxChip
                       key={type}
-                      label={EVENT_TYPE_LABEL[type]}
+                      label={t(`fieldLabel.eventTypes.${type}`, EVENT_TYPE_LABEL[type])}
                       checked={info.eventTypes.includes(type)}
                       onChange={() => set("eventTypes", toggleInArray(info.eventTypes, type))}
                     />
@@ -1041,7 +1054,7 @@ function EventBasicsFields({
                   {visibleAgeRatings.map((rating) => (
                     <CheckboxChip
                       key={rating}
-                      label={AGE_RATING_LABEL[rating]}
+                      label={t(`fieldLabel.ageRating.${rating}`, AGE_RATING_LABEL[rating])}
                       checked={info.ageRating === rating}
                       onChange={() => set("ageRating", info.ageRating === rating ? null : rating)}
                     />
@@ -1154,7 +1167,7 @@ function EventBasicsFields({
                     {visibleSeatingTypes.map((type) => (
                       <CheckboxChip
                         key={type}
-                        label={SEATING_TYPE_LABEL[type]}
+                        label={t(`fieldLabel.seatingTypes.${type}`, SEATING_TYPE_LABEL[type])}
                         checked={info.seatingTypes.includes(type)}
                         onChange={() => set("seatingTypes", toggleInArray(info.seatingTypes, type))}
                       />
@@ -1242,7 +1255,7 @@ function EventBasicsFields({
                   {visibleStageTypes.map((type) => (
                     <CheckboxChip
                       key={type}
-                      label={STAGE_TYPE_LABEL[type]}
+                      label={t(`fieldLabel.stageTypes.${type}`, STAGE_TYPE_LABEL[type])}
                       checked={info.stageTypes.includes(type)}
                       onChange={() => set("stageTypes", toggleInArray(info.stageTypes, type))}
                     />

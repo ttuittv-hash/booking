@@ -35,6 +35,11 @@ export function validateAudienceStep(
   // [버그 수정 2026-09-06] "체크박스 노출/숨김이 필수 항목으로 처리되어 있음" —
   // StepPerformanceInfo.tsx의 같은 수정과 짝 — 어드민이 이 그룹(또는 그 안 개별
   // 항목 전부)을 꺼서 화면에 고를 선택지가 없으면 필수 검사를 건너뛴다.
+  // [버그 수정 2026-09-06] STEP3 "예상 관객 및 사업규모" 슬롯 자체를 통째로 껐을 때
+  // (slot.3.audience, SlotOrderPanel의 새 체크박스)는 이 컴포넌트가 아예 렌더되지
+  // 않으므로 위 그룹 검사와 별개로 슬롯 검사도 함께 건너뛴다 — StepPerformanceInfo.tsx의
+  // isSlotDisabled와 같은 규칙.
+  if (disabledFields.includes("slot.3.audience")) return null;
   const visiblePlansForValidation = disabledFields.includes(ANCILLARY_PLANS_GROUP_ID)
     ? []
     : ANCILLARY_PLANS.filter((plan) => !disabledFields.includes(`${ANCILLARY_PLANS_GROUP_ID}.${plan}`));
@@ -55,7 +60,7 @@ function CheckboxChip({
   onChange,
 }: {
   checked: boolean;
-  label: string;
+  label: ReactNode;
   onChange: () => void;
 }) {
   return (
@@ -340,7 +345,7 @@ function AudienceFields({
               {visibleAncillaryPlans.map((plan) => (
                 <CheckboxChip
                   key={plan}
-                  label={ANCILLARY_BUSINESS_PLAN_LABEL[plan]}
+                  label={t(`fieldLabel.ancillaryBusinessPlans.${plan}`, ANCILLARY_BUSINESS_PLAN_LABEL[plan])}
                   checked={info.ancillaryBusinessPlans.includes(plan)}
                   onChange={() => set("ancillaryBusinessPlans", toggleInArray(info.ancillaryBusinessPlans, plan))}
                 />

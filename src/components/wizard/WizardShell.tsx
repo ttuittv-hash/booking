@@ -454,9 +454,11 @@ export function WizardShell({
   // "무조건 필수"). STEP 4(홍보 및 서비스 계획)·STEP 5(공공/공익 참여 여부)는 게이트가
   // 없다 — 공공/공익은 원래 선택이고, 홍보는 유일한 필수값이던 "서비스 연계 동의"를
   // 화면에서 뺐다(2026-08-27).
-  const step6Blocked = validateSafetyPledgeStep(selection.safetyPledge ?? DEFAULT_SAFETY_PLEDGE, {
-    safetyPlanFile,
-  });
+  const step6Blocked = validateSafetyPledgeStep(
+    selection.safetyPledge ?? DEFAULT_SAFETY_PLEDGE,
+    { safetyPlanFile },
+    wizardDisabledFields,
+  );
   const maxUnlockedStep = !selection.venueId
     ? 1
     : midHallOnly && !hasMidHallSelection
@@ -774,13 +776,14 @@ export function WizardShell({
     ),
   };
   const configuredStep3Order = wizardSlotOrders?.["3"];
-  const step3SlotOrder: string[] =
+  const step3SlotOrder: string[] = (
     configuredStep3Order && configuredStep3Order.length > 0
       ? [
           ...configuredStep3Order.filter((key: string) => key in step3SlotRenderers),
           ...STEP3_DEFAULT_SLOT_ORDER.filter((key) => !configuredStep3Order.includes(key)),
         ]
-      : [...STEP3_DEFAULT_SLOT_ORDER];
+      : [...STEP3_DEFAULT_SLOT_ORDER]
+  ).filter((key) => !wizardDisabledFields?.includes(`slot.3.${key}`));
 
   // [신규 2026-09-06] "슬롯 순서 변경은 모든 메뉴에 적용되어야 함" — "안전관리 서약서"
   // 탭도 서약서 본문·자료 첨부 두 슬롯이 고정 순서로 붙어 있던 걸 STEP3와 같은 패턴으로
@@ -806,13 +809,14 @@ export function WizardShell({
     ),
   };
   const configuredStep6Order = wizardSlotOrders?.["6"];
-  const step6SlotOrder: string[] =
+  const step6SlotOrder: string[] = (
     configuredStep6Order && configuredStep6Order.length > 0
       ? [
           ...configuredStep6Order.filter((key: string) => key in step6SlotRenderers),
           ...STEP6_DEFAULT_SLOT_ORDER.filter((key) => !configuredStep6Order.includes(key)),
         ]
-      : [...STEP6_DEFAULT_SLOT_ORDER];
+      : [...STEP6_DEFAULT_SLOT_ORDER]
+  ).filter((key) => !wizardDisabledFields?.includes(`slot.6.${key}`));
 
   return (
     /*

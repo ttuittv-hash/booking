@@ -61,7 +61,13 @@ const PLEDGE_ITEMS: { key: PledgeCheckKey; defaultLabel: string; emphasize?: boo
 export function validateSafetyPledgeStep(
   pledge: SafetyPledge,
   files?: { safetyPlanFile: File | null },
+  disabledFields: string[] = [],
 ): string | null {
+  // [버그 수정 2026-09-06] STEP6 "안전관리 서약서" 슬롯 자체를 통째로 껐을 때
+  // (slot.6.safetyPledge, SlotOrderPanel의 새 체크박스)는 이 화면이 아예 렌더되지
+  // 않으므로 필수 검사도 함께 건너뛴다 — StepPerformanceInfo.tsx의 isSlotDisabled와
+  // 같은 규칙.
+  if (disabledFields.includes("slot.6.safetyPledge")) return null;
   const unchecked = PLEDGE_ITEMS.some((item) => !pledge[item.key]);
   if (unchecked) return "안전관리 서약 항목을 모두 체크해 주세요.";
   if (!pledge.signature.trim()) return "서명란에 서명해 주세요.";
