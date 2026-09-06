@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import crypto from "node:crypto";
-import { getCurrentUser } from "@/lib/auth";
+import { getCurrentUser, isProAdminOrAbove } from "@/lib/auth";
 import { createNotification, findCompanyById, findUserById, setCompanyMasterByAdmin } from "@/lib/db";
 import { dispatchMessageInBackground } from "@/lib/message/dispatch";
 import { revalidateMemberViews } from "@/lib/revalidateAdmin";
@@ -8,7 +8,7 @@ import { revalidateMemberViews } from "@/lib/revalidateAdmin";
 // 운영자의 대표 담당자 변경 (기획서 A10 — 마스터 부재·퇴사 시 운영자가 안전망).
 export async function POST(request: Request) {
   const user = await getCurrentUser();
-  if (!user || user.role !== "ADMIN") {
+  if (!user || !isProAdminOrAbove(user)) {
     return NextResponse.json({ error: "운영자 로그인이 필요합니다." }, { status: 401 });
   }
 

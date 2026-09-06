@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { notFound, redirect } from "next/navigation";
-import { getCurrentUser } from "@/lib/auth";
+import {notFound} from "next/navigation";
+import { requireProAdminPage } from "@/lib/auth";
 import { findUserById, getQuoteById, getRateTableByVersion, listAttachments } from "@/lib/db";
 import { won } from "@/lib/format";
 import { resolveSelectedDates } from "@/lib/pricing/dateRange";
@@ -181,9 +181,7 @@ export default async function AdminQuoteApplicationPage({
    */
   searchParams?: Promise<{ embed?: string }>;
 }) {
-  const admin = await getCurrentUser();
-  if (!admin) redirect("/admin/login");
-  if (admin.role !== "ADMIN") redirect("/apply");
+  const admin = await requireProAdminPage();
 
   const embed = ((await searchParams) ?? {}).embed === "1";
   const { id } = await params;

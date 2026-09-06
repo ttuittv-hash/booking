@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import crypto from "node:crypto";
-import { getCurrentUser, hashPassword } from "@/lib/auth";
+import { getCurrentUser, hashPassword, isMasterAdmin } from "@/lib/auth";
 import { createUser, findUserByEmailWithPasswordHash, findUserByUsername, listUsers } from "@/lib/db";
 import { sha256Hex } from "@/lib/passwordScheme";
 
@@ -11,16 +11,20 @@ const USERNAME_RE = /^[a-z0-9][a-z0-9_]{3,19}$/;
 
 export async function GET() {
   const user = await getCurrentUser();
-  if (!user || user.role !== "ADMIN") {
-    return NextResponse.json({ error: "운영자 로그인이 필요합니다." }, { status: 401 });
+  // [신규 2026-09-06] "마스터 관리자: 다 가능하고 계정 권한 변경" — 운영자 계정
+  // 목록 조회·생성은 계정 권한과 직결되므로 마스터 전용으로 좁힌다.
+  if (!user || !isMasterAdmin(user)) {
+    return NextResponse.json({ error: "마스터 관리자 로그인이 필요합니다." }, { status: 403 });
   }
   return NextResponse.json({ users: await listUsers({ role: "ADMIN" }) });
 }
 
 export async function POST(request: Request) {
   const user = await getCurrentUser();
-  if (!user || user.role !== "ADMIN") {
-    return NextResponse.json({ error: "운영자 로그인이 필요합니다." }, { status: 401 });
+  // [신규 2026-09-06] "마스터 관리자: 다 가능하고 계정 권한 변경" — 운영자 계정
+  // 목록 조회·생성은 계정 권한과 직결되므로 마스터 전용으로 좁힌다.
+  if (!user || !isMasterAdmin(user)) {
+    return NextResponse.json({ error: "마스터 관리자 로그인이 필요합니다." }, { status: 403 });
   }
 
   const body = await request.json().catch(() => null);

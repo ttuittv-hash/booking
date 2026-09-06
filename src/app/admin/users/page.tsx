@@ -1,5 +1,4 @@
-import { redirect } from "next/navigation";
-import { getCurrentUser, isMasterAdmin } from "@/lib/auth";
+import { isMasterAdmin, requireMasterAdminPage } from "@/lib/auth";
 import { listUsers } from "@/lib/db";
 import { AdminNav } from "@/components/admin/AdminNav";
 import { AddAdminForm } from "@/components/admin/AddAdminForm";
@@ -30,9 +29,10 @@ import {
 } from "@/components/admin/adminUi";
 
 export default async function AdminUsersPage() {
-  const user = await getCurrentUser();
-  if (!user) redirect("/admin/login");
-  if (user.role !== "ADMIN") redirect("/apply");
+  // [신규 2026-09-06] "마스터 관리자: 다 가능하고 계정 권한 변경" — 운영자 계정
+  // 관리 자체를 마스터 전용 화면으로 뗀다. 이전엔 아무 운영자나 이 화면을 볼 수
+  // 있었고(등급 변경 UI만 마스터로 가려져 있었다), 이제 화면 자체를 막는다.
+  const user = await requireMasterAdminPage();
 
   const admins = await listUsers({ role: "ADMIN" });
   const master = isMasterAdmin(user);
@@ -48,8 +48,9 @@ export default async function AdminUsersPage() {
         <header className="border-b border-border/20 pb-6">
           <h1 className={PAGE_TITLE}>운영자 계정 관리</h1>
           <p className={PAGE_LEAD}>
-            이 화면에서 생성한 계정은 일반관리자로 시작하며, 신청 심사·계약·정산·요금표 관리에
-            접근할 수 있습니다. 프로 관리자·마스터 관리자 승급은 마스터 관리자만 할 수 있습니다.
+            이 화면에서 생성한 계정은 일반관리자로 시작하며, 콘텐츠 관리·알림 관리·1:1 문의만
+            접근할 수 있습니다. 가입 승인·신청서 심사·대관 자료 접근은 프로 관리자부터,
+            운영자 계정 관리(이 화면)와 등급 변경은 마스터 관리자만 할 수 있습니다.
           </p>
         </header>
 

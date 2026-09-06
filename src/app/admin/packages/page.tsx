@@ -1,14 +1,11 @@
-import { redirect } from "next/navigation";
-import { getCurrentUser } from "@/lib/auth";
+import { requireProAdminPage } from "@/lib/auth";
 import { getCurrentRateTable, getRatesContent, getScreenTextContent } from "@/lib/db";
 import { AdminNav } from "@/components/admin/AdminNav";
 import { PackagesForm } from "@/components/admin/PackagesForm";
 import { PAGE_LEAD, PAGE_TITLE } from "@/components/admin/adminUi";
 
 export default async function AdminPackagesPage() {
-  const user = await getCurrentUser();
-  if (!user) redirect("/admin/login");
-  if (user.role !== "ADMIN") redirect("/apply");
+  const user = await requireProAdminPage();
 
   const [rateTable, ratesContent, screenText] = await Promise.all([
     getCurrentRateTable(),

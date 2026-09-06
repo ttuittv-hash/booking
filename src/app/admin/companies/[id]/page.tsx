@@ -1,7 +1,7 @@
 import type { ReactNode } from "react";
 import Link from "next/link";
-import { notFound, redirect } from "next/navigation";
-import { getCurrentUser } from "@/lib/auth";
+import {notFound} from "next/navigation";
+import { requireProAdminPage } from "@/lib/auth";
 import { findCompanyById, listCompanyMembers } from "@/lib/db";
 import { AdminNav } from "@/components/admin/AdminNav";
 import { CompanyMembersPanel } from "@/components/admin/CompanyMembersPanel";
@@ -31,9 +31,7 @@ export default async function AdminCompanyDetailPage({
 }: {
   params: Promise<{ id: string }>;
 }) {
-  const admin = await getCurrentUser();
-  if (!admin) redirect("/admin/login");
-  if (admin.role !== "ADMIN") redirect("/apply");
+  const admin = await requireProAdminPage();
 
   const { id } = await params;
   const company = await findCompanyById(id);

@@ -1,6 +1,5 @@
 import Link from "next/link";
-import { redirect } from "next/navigation";
-import { getCurrentUser } from "@/lib/auth";
+import { requireProAdminPage } from "@/lib/auth";
 import { getQuoteById, listUsersByIds } from "@/lib/db";
 import { won } from "@/lib/format";
 import { totalRentalDays } from "@/lib/pricing/rateTableUtils";
@@ -33,9 +32,7 @@ export default async function AdminComparePage({
 }: {
   searchParams: Promise<{ ids?: string }>;
 }) {
-  const user = await getCurrentUser();
-  if (!user) redirect("/admin/login");
-  if (user.role !== "ADMIN") redirect("/apply");
+  const user = await requireProAdminPage();
 
   const { ids } = await searchParams;
   const quoteIds = (ids ?? "").split(",").map((s) => s.trim()).filter(Boolean);

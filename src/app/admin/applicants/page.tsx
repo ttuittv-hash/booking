@@ -1,6 +1,5 @@
 import Link from "next/link";
-import { redirect } from "next/navigation";
-import { getCurrentUser } from "@/lib/auth";
+import { requireProAdminPage } from "@/lib/auth";
 import {
   getCompanyJoinContexts,
   getMemberPolicy,
@@ -34,9 +33,7 @@ export default async function AdminApplicantsPage({
 }: {
   searchParams: Promise<{ tab?: string; page?: string; q?: string; status?: string; company?: string }>;
 }) {
-  const user = await getCurrentUser();
-  if (!user) redirect("/admin/login");
-  if (user.role !== "ADMIN") redirect("/apply");
+  const user = await requireProAdminPage();
 
   const params = await searchParams;
   const tab: Tab =

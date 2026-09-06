@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { getCurrentUser } from "@/lib/auth";
+import { getCurrentUser, isProAdminOrAbove } from "@/lib/auth";
 import { getCurrentRateTable, saveNewRateTableVersion } from "@/lib/db";
 import {
   VENUES,
@@ -211,7 +211,7 @@ function sanitizePackage(current: RentalPackage, input: unknown): RentalPackage 
 
 export async function PUT(request: Request) {
   const user = await getCurrentUser();
-  if (!user || user.role !== "ADMIN") {
+  if (!user || !isProAdminOrAbove(user)) {
     return NextResponse.json({ error: "운영자 로그인이 필요합니다." }, { status: 401 });
   }
 

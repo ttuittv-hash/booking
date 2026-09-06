@@ -1,14 +1,11 @@
-import { redirect } from "next/navigation";
-import { getCurrentUser } from "@/lib/auth";
+import { requireProAdminPage } from "@/lib/auth";
 import { getCurrentRateTable, getRatesContent } from "@/lib/db";
 import { RatesForm } from "@/components/admin/RatesForm";
 import { AdminNav } from "@/components/admin/AdminNav";
 import { PAGE_LEAD, PAGE_TITLE } from "@/components/admin/adminUi";
 
 export default async function AdminRatesPage() {
-  const user = await getCurrentUser();
-  if (!user) redirect("/admin/login");
-  if (user.role !== "ADMIN") redirect("/apply");
+  const user = await requireProAdminPage();
 
   const rateTable = await getCurrentRateTable();
 

@@ -1,6 +1,5 @@
 import Link from "next/link";
-import { redirect } from "next/navigation";
-import { getCurrentUser } from "@/lib/auth";
+import { requireProAdminPage } from "@/lib/auth";
 import {
   getSignupStats,
   getTrafficStats,
@@ -169,9 +168,7 @@ export default async function AdminReportsPage({
     to?: string;
   }>;
 }) {
-  const user = await getCurrentUser();
-  if (!user) redirect("/admin/login");
-  if (user.role !== "ADMIN") redirect("/apply");
+  const user = await requireProAdminPage();
 
   const sp = await searchParams;
   const reportTab = resolveReportTab(sp.tab);

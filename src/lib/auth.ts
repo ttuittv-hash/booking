@@ -194,6 +194,41 @@ export async function requireMasterAdmin(): Promise<AppUser | null> {
 }
 
 /**
+ * [신규 2026-09-06] 계정 권한 재정의 — "일반 관리자: 가입승인 및 자료접근 불가,
+ * 대관 자료 접근 불가, 백오피스 콘텐츠 수정 가능, 심사 승인 불가, 즉 콘텐츠 관리·
+ * 알림 관리·1:1 문의만 접근 가능". 일반관리자(BASIC)가 갈 수 있는 화면이 없으면
+ * 로그인 직후·권한 밖 화면에서 돌아갈 곳이 필요하다 — 콘텐츠 관리를 홈으로 삼는다.
+ * 프로 관리자 이상은 그대로 신청 현황(/admin)이 홈이다.
+ */
+export function defaultAdminHome(user: AppUser): string {
+  return isProAdminOrAbove(user) ? "/admin" : "/admin/content";
+}
+
+/**
+ * 프로 관리자 이상만 보는 백오피스 화면 전용 가드 — 가입 승인, 신청서 열람·심사,
+ * 대관 자료(계약·정산·세금계산서 등), 회사 관리, 패키지·요금표·일정 관리, 리포트가
+ * 여기 해당한다. 일반관리자(BASIC)는 콘텐츠 관리 홈으로 돌려보낸다(권한 밖 화면임을
+ * 알리는 안내는 두지 않는다 — 애초에 메뉴에도 없는 화면이라 "왜 막혔지"를 물을 일이
+ * 드물고, 물으면 운영팀 안에서 답할 문제다).
+ */
+export async function requireProAdminPage(): Promise<AppUser> {
+  const user = await getCurrentUser();
+  if (!user) redirect("/admin/login");
+  if (user.role !== "ADMIN") redirect("/apply");
+  if (!isProAdminOrAbove(user)) redirect("/admin/content");
+  return user;
+}
+
+/** 마스터 관리자만 보는 백오피스 화면 전용 가드(계정 권한 변경 등). */
+export async function requireMasterAdminPage(): Promise<AppUser> {
+  const user = await getCurrentUser();
+  if (!user) redirect("/admin/login");
+  if (user.role !== "ADMIN") redirect("/apply");
+  if (!isMasterAdmin(user)) redirect(defaultAdminHome(user));
+  return user;
+}
+
+/**
  * 접근권한 매트릭스(기획서 A15)를 한 곳에서 적용한다.
  * 페이지마다 조건을 따로 쓰면 표와 어긋나기 시작한다 — 규칙은 accessPolicy.ts 한 곳에만 둔다.
  *

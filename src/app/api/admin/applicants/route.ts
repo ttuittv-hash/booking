@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { getCurrentUser } from "@/lib/auth";
+import { getCurrentUser, isProAdminOrAbove } from "@/lib/auth";
 import { dispatchMessageInBackground } from "@/lib/message/dispatch";
 import {
   companyHasApprovedMember,
@@ -59,10 +59,15 @@ export async function POST(request: Request) {
 
     되돌릴 때는 아래 블록을 지우고 이전 규칙(대표는 자기 회사의 합류 신청만, 첫 건은 운영자)을
     되살리면 된다 — 화면 쪽(MembersManager)의 버튼도 함께 되살려야 한다.
+
+    [개정 2026-09-06] "일반 관리자: 가입승인... 불가" — 운영진 중에서도 프로 관리자
+    이상만 승인·반려한다. 일반관리자(BASIC)는 화면 자체에 접근하지 못하지만(admin/
+    applicants/page.tsx가 requireProAdminPage로 막는다), API도 독립적으로 같은 기준을
+    지킨다(다른 라우트도 화면·API를 항상 같이 막는 관례, AGENTS.md 2026-08-28 점검 참고).
   */
-  if (!isAdmin) {
+  if (!isAdmin || !isProAdminOrAbove(actor)) {
     return NextResponse.json(
-      { error: "가입 승인은 서울아레나 운영진이 처리합니다." },
+      { error: "가입 승인은 서울아레나 운영진(프로 관리자 이상)이 처리합니다." },
       { status: 403 },
     );
   }

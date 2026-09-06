@@ -1,6 +1,5 @@
 import Link from "next/link";
-import { redirect } from "next/navigation";
-import { getCurrentUser, isProAdminOrAbove } from "@/lib/auth";
+import { requireProAdminPage, isProAdminOrAbove } from "@/lib/auth";
 import { listCompanies, listQuotesPaged, listUsersByIds, normalizePage } from "@/lib/db";
 import { num } from "@/lib/format";
 import { Pagination } from "@/components/Pagination";
@@ -14,9 +13,7 @@ export default async function AdminPage({
 }: {
   searchParams: Promise<{ companyId?: string; page?: string }>;
 }) {
-  const user = await getCurrentUser();
-  if (!user) redirect("/admin/login");
-  if (user.role !== "ADMIN") redirect("/apply");
+  const user = await requireProAdminPage();
 
   const { companyId, page: pageParam } = await searchParams;
   const page = normalizePage(pageParam);

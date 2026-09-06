@@ -1,7 +1,7 @@
 import type { ReactNode } from "react";
 import Link from "next/link";
-import { notFound, redirect } from "next/navigation";
-import { getCurrentUser } from "@/lib/auth";
+import {notFound} from "next/navigation";
+import { requireProAdminPage } from "@/lib/auth";
 import {
   findCompanyById,
   findUserById,
@@ -73,9 +73,7 @@ export default async function AdminApplicantDetailPage({
 }: {
   params: Promise<{ id: string }>;
 }) {
-  const admin = await getCurrentUser();
-  if (!admin) redirect("/admin/login");
-  if (admin.role !== "ADMIN") redirect("/apply");
+  const admin = await requireProAdminPage();
 
   const { id } = await params;
   const target = await findUserById(id);

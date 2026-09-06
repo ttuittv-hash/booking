@@ -1,5 +1,4 @@
-import { redirect } from "next/navigation";
-import { getCurrentUser } from "@/lib/auth";
+import { requireProAdminPage } from "@/lib/auth";
 import { getNoticeCalendarWindow, getScreenTextContent } from "@/lib/db";
 import { scheduleLegend } from "@/lib/content/scheduleLegend";
 import { kstNowMonth } from "@/lib/content/noticeCalendarWindow";
@@ -9,9 +8,7 @@ import { NoticeCalendarWindowForm } from "@/components/admin/NoticeCalendarWindo
 import { PAGE_LEAD, PAGE_TITLE } from "@/components/admin/adminUi";
 
 export default async function AdminSchedulePage() {
-  const user = await getCurrentUser();
-  if (!user) redirect("/admin/login");
-  if (user.role !== "ADMIN") redirect("/apply");
+  const user = await requireProAdminPage();
 
   const now = new Date();
   const [calendarWindow, screenText] = await Promise.all([getNoticeCalendarWindow(), getScreenTextContent()]);

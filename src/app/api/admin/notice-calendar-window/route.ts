@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { getCurrentUser } from "@/lib/auth";
+import { getCurrentUser, isProAdminOrAbove } from "@/lib/auth";
 import { getNoticeCalendarWindow, saveNoticeCalendarWindow } from "@/lib/db";
 import { normalizeDay, normalizeMonth, type NoticeCalendarWindow } from "@/lib/content/noticeCalendarWindow";
 
@@ -7,7 +7,7 @@ import { normalizeDay, normalizeMonth, type NoticeCalendarWindow } from "@/lib/c
 // 외부에서 덮어쓸 수 있다, 2026-08-28 점검).
 async function requireAdmin() {
   const user = await getCurrentUser();
-  if (!user || user.role !== "ADMIN") {
+  if (!user || !isProAdminOrAbove(user)) {
     return NextResponse.json({ error: "운영자 로그인이 필요합니다." }, { status: 401 });
   }
   return null;

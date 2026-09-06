@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { getCurrentUser, isProAdminOrAbove } from "@/lib/auth";
+import { requireProAdminPage, isProAdminOrAbove } from "@/lib/auth";
 import {
   findApprovedWeekConflict,
   findUserById,
@@ -147,9 +147,7 @@ export default async function AdminQuoteDetailPage({
 }: {
   params: Promise<{ id: string }>;
 }) {
-  const user = await getCurrentUser();
-  if (!user) redirect("/admin/login");
-  if (user.role !== "ADMIN") redirect("/apply");
+  const user = await requireProAdminPage();
 
   const { id } = await params;
   const quote = await getQuoteById(id);
