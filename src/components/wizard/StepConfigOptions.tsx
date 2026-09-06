@@ -23,7 +23,7 @@ import {
 } from "@/lib/pricing/types";
 import type { ChargeBlock, VenueRateContent, WizardStepTexts } from "@/lib/content/pageContent";
 import { useWizardText } from "@/lib/content/wizardText";
-import { CHOICE_SELECTED_VARS, ComparisonTable, choiceClass, type SpecGroup } from "@/components/ui/kit";
+import { CHOICE_SELECTED_VARS, choiceClass, type SpecGroup } from "@/components/ui/kit";
 import { defaultVenueName, venueLabelKey } from "@/lib/content/venueLabels";
 import { StepHeading } from "./StepHeading";
 
@@ -130,19 +130,34 @@ function MidHallRateCard({
     label,
     cells: cols.map((col) => content.detailColumns.find((dc) => dc.key === col.key)?.values[i] ?? ""),
   }));
-  const { t, tStr } = useWizardText();
+  const { t } = useWizardText();
   const [detailsOpen, setDetailsOpen] = useState(false);
   const otherGroups = chargeGroups(content.charges).filter((g) => g.title !== "추가대관");
+
+  // [수정 2026-09-06] "중형공연장 패키지도 아레나 패키지와 동일한 UI로" — 요금 정책
+  // (일 단위 자유 조합)은 그대로 두고, 표시만 아레나 PackagePicker의 카드 프레임(제목 +
+  // 구분선 + dl 속성 행)에 맞춘다. 컬럼(셋업/철수·평일 공연·주말 공연) 하나당 카드 하나,
+  // 그 안에 행 라벨(rowLabels/detailLabels)을 속성으로 나열한다 — 표(ComparisonTable)
+  // 대신 카드 그리드로 그린다.
+  const visibleRows = detailsOpen ? [...baseRows, ...detailRows] : baseRows;
 
   return (
     <div className="mt-10 border-t-2 border-foreground pt-5">
       <h2 className="type-kr-heading text-h6-m sm:text-h6">{t("configOptions.dailyRateHeading", "일자별 대관료")}</h2>
-      <div className="mt-4">
-        <ComparisonTable
-          rowLabel={tStr("configOptions.rowLabelHeader", "구분")}
-          columns={cols}
-          rows={detailsOpen ? [...baseRows, ...detailRows] : baseRows}
-        />
+      <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+        {cols.map((col, ci) => (
+          <div key={col.key} className="border border-border px-4 py-3">
+            <div className="text-s font-bold">{col.title}</div>
+            <dl className="mt-2.5 space-y-1 border-t border-border/25 pt-2.5 text-xs">
+              {visibleRows.map((row) => (
+                <div key={row.label} className="flex items-baseline justify-between gap-2">
+                  <dt className="text-muted">{row.label}</dt>
+                  <dd className="font-bold tabular-nums">{row.cells[ci]}</dd>
+                </div>
+              ))}
+            </dl>
+          </div>
+        ))}
       </div>
 
       {detailRows.length > 0 && (
