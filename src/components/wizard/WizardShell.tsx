@@ -598,6 +598,17 @@ export function WizardShell({
               toast.error(tStr("wizardShell.toastNeedSchedule", "대관 일정을 선택해 주세요."));
               return;
             }
+            // [버그 수정 2026-09-06] "동시 대관 선택 후, 아레나만 넣어도 다음단계로
+            // 넘어가는데 그러면 안 됨" — 아레나 week는 항상 기본값이 있어 "선택 안 함"
+            // 상태가 따로 없지만, 중형(midHallDays)은 사용자가 캘린더에서 날짜를 찍기
+            // 전까지 빈 값이다. 동시 대관에서는 중형 일정도 반드시 골라야 다음으로
+            // 넘어간다.
+            if (step === 1 && selection.bookingMode === "SIMULTANEOUS" && !hasMidHallSelection) {
+              toast.error(
+                tStr("wizardShell.toastNeedBothSchedules", "아레나·중형공연장 일정을 모두 선택해 주세요."),
+              );
+              return;
+            }
             if (step === 2 && needsPackage && !selection.packageId) {
               toast.error(tStr("wizardShell.toastNeedPackage", "패키지를 선택해 주세요."));
               return;
