@@ -1,6 +1,6 @@
 "use client";
 
-import { btnClass, ICON_BTN_SM, toggleClass } from "@/components/ui/kit";
+import { ICON_BTN_SM, toggleClass } from "@/components/ui/kit";
 
 import { useState } from "react";
 import { isoDate, resolveSelectedDates } from "@/lib/pricing/dateRange";
@@ -230,47 +230,34 @@ export function Step1Calendar({
     return null;
   }
 
-  function setRole(iso: string, role: DayTag | "REMOVE") {
+  // [개정 2026-09-06] "아레나는 주단위로 예약되는거니까 삭제는 일별로는 안되게" — 화~일
+  // 기본 6일 중 특정 요일만 빼거나(excludedDays, 요일당 정액 할인) 추가일을 낱개로
+  // 떼어내는 UI를 없앴다. 중형공연장(MidHallCalendar.tsx)은 원래 일 단위 과금이라
+  // 그대로 둔다. excludedDays 필드·요일당 할인 계산(calculateQuote.ts)은 이 필드가
+  // 추가되기 전 신청서를 위해 그대로 남겨두되, 새 신청서는 이 화면에서 채우지 않는다.
+  function setRole(iso: string, role: DayTag) {
     const dayKind = dayKindForDate(iso);
     if (!dayKind) return;
-    // 막힌 날짜로의 확장은 막는다 — 화~일 6일 중 막힌 날은 selectWeek() 단계에서 이미
-    // 걸러지지만, 월요일부터 시작하는 연장일(추가일)은 blockedFor() 의 화~일(1~6) 검사
-    // 범위 밖이라 여기서 다시 한번 직접 확인해야 한다(대관 불가 날짜가 연장으로 뚫리던
-    // 버그, 2026-08-22). 이미 추가된 날을 빼는 것(REMOVE)은 막지 않는다.
-    if (role !== "REMOVE" && blockedByDate.has(iso)) return;
+    if (blockedByDate.has(iso)) return;
 
     if (dayKind.kind === "base") {
-      const isExcluded = excludedDays.includes(dayKind.weekday);
-      if (role === "REMOVE") {
-        if (!isExcluded && usedDayCount <= 1) return; // 최소 1일은 남겨야 함
-        if (!isExcluded) onChangeExcludedDays([...excludedDays, dayKind.weekday]);
-        setOpenDate(null);
-        return;
+      // 셋업/공연일/철수 선택 — 제외돼 있었다면(옛 신청서) 다시 사용일로 복귀시킨 뒤
+      // 역할을 지정한다. 드롭다운은 여기서 닫지 않는다 — 공연일을 고른 직후 바로
+      // 아래에서 회차를 조정해야 하므로, 상태값과 회차 스테퍼를 같은 화면에서 함께
+      // 보여준다.
+      if (excludedDays.includes(dayKind.weekday)) {
+        onChangeExcludedDays(excludedDays.filter((d) => d !== dayKind.weekday));
       }
-      // 셋업/공연일/철수 선택 — 제외돼 있었다면 다시 사용일로 복귀시킨 뒤 역할을 지정한다.
-      // 드롭다운은 여기서 닫지 않는다 — 공연일을 고른 직후 바로 아래에서 회차를 조정해야
-      // 하므로, 상태값과 회차 스테퍼를 같은 화면에서 함께 보여준다.
-      if (isExcluded) onChangeExcludedDays(excludedDays.filter((d) => d !== dayKind.weekday));
       onChangeDayTags({ ...dayTags, [iso]: role });
       return;
     }
 
     if (dayKind.kind === "extra") {
-      if (role === "REMOVE") {
-        // 추가일은 화~일 뒤로 이어붙인 연속 카운트라 맨 마지막 날만 뗄 수 있다.
-        if (dayKind.index !== extraDays - 1) return;
-        onChangeExtraDays(extraDays - 1);
-        onChangeDayTags(omit(dayTags, iso));
-        onChangeDayShowCounts(omit(dayShowCounts, iso));
-        setOpenDate(null);
-        return;
-      }
       onChangeDayTags({ ...dayTags, [iso]: role });
       return;
     }
 
     // dayKind.kind === "extend" — 아직 추가되지 않은, 화~일 다음으로 이어 붙일 수 있는 바로 다음 날
-    if (role === "REMOVE") return; // 아직 추가되지 않았으니 뗄 것이 없다
     onChangeExtraDays(extraDays + 1);
     onChangeDayTags({ ...dayTags, [iso]: role });
   }
@@ -465,20 +452,6 @@ export function Step1Calendar({
                     >
                       철수
                     </button>
-                    <button
-                      type="button"
-                      onClick={() => setRole(openDate, "REMOVE")}
-                      disabled={(() => {
-                        const kind = dayKindForDate(openDate);
-                        if (!kind) return true;
-                        if (kind.kind === "base") return activeDateKeys.has(dateKey(new Date(openDate))) && usedDayCount <= 1;
-                        if (kind.kind === "extra") return kind.index !== extraDays - 1; // 맨 마지막 추가일만 뗄 수 있음
-                        return true; // extend — 아직 추가되지 않아 뗄 것이 없음
-                      })()}
-                      className={btnClass("danger", "sm")}
-                    >
-                      삭제
-                    </button>
                   </div>
 
                   {activeDateKeys.has(dateKey(new Date(openDate))) &&
@@ -516,8 +489,7 @@ export function Step1Calendar({
                     )}
 
                   {/* 중형 줄 — 아레나와 같은 6일 안에서 따로 짠다. 고른 역할을 다시
-                      누르면 그 날짜의 중형 사용이 빠진다(아레나처럼 [삭제] 를 따로 두면
-                      "이 날짜를 통째로 뺀다"는 위 버튼과 뜻이 겹친다). */}
+                      누르면 그 날짜의 중형 사용이 빠진다. */}
                   {twoVenueRoles && (
                     <>
                       <p className="mt-3 border-t border-border/25 pt-2.5 text-xs font-bold text-muted">
