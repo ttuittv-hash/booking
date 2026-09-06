@@ -1042,6 +1042,7 @@ export function WizardShell({
 
       <SummaryPanel
         quote={summaryQuote}
+        secondShowSurchargeRatio={effectivePkg?.secondShowSurchargeRatio ?? 0}
         /*
           요약 패널은 **실시간 대관신청 내역**이다(2026-08-26 개칭) — 대관료·항목·합계를 함께 보여준다.
           한동안 STEP 1·2 에서 금액을 감췄는데, 신청자가 구성을 고르는 동안 값이 얼마나
