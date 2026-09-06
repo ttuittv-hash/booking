@@ -171,6 +171,7 @@ function blankPackage(id: number, venueId: string): EditablePackage {
     secondShowSurchargeRatio: 0,
     extraDayDiscountRatio: 0.1,
     restDayDiscountRatio: 0.5,
+    customCardRows: [],
     dayBreakdown: "준비 4일 + 공연 2일",
     defaultPerformanceDays: 2,
     rentalHours: "09:00 ~ 22:00",
@@ -942,6 +943,69 @@ export function PackagesForm({
               />
               <span className="text-s">야외광장 · 티켓박스 포함</span>
             </label>
+          </div>
+
+          {/* [신규 2026-09-06] "rate 카드 항목도 추가 가능해야지.. 컬럼 추가 버튼도 넣어" —
+              패키지 카드(Rate A/B/C/D 박스)에 패키지별로 값이 다른 자유 라벨·값 행을
+              추가한다. 고정 4행(수용인원·권장 무대·권장 객석·대관료)과 달리 순서·노출
+              토글은 없다 — 패키지마다 있고 없고가 다를 수 있는 항목이라 그냥 등록된
+              순서 그대로 카드에 보여준다. */}
+          <div className="mt-5">
+            <div className="mb-2 flex items-center justify-between">
+              <span className={FIELD_LABEL}>카드 추가 항목 (Rate 카드에 표시되는 자유 라벨·값 행)</span>
+              <button
+                type="button"
+                onClick={() => update({ customCardRows: [...active.customCardRows, { label: "", value: "" }] })}
+                className={btnClass("secondary", "sm")}
+              >
+                ＋ 항목 추가
+              </button>
+            </div>
+            {active.customCardRows.length === 0 ? (
+              <p className={HELP}>등록된 추가 항목이 없습니다.</p>
+            ) : (
+              <div className="space-y-2">
+                {active.customCardRows.map((row, i) => (
+                  <div key={i} className="flex items-center gap-2">
+                    <input
+                      type="text"
+                      value={row.label}
+                      placeholder="라벨 (예: 무대 폭)"
+                      onChange={(e) =>
+                        update({
+                          customCardRows: active.customCardRows.map((r, j) =>
+                            j === i ? { ...r, label: e.target.value } : r,
+                          ),
+                        })
+                      }
+                      className={`w-40 shrink-0 ${FIELD}`}
+                    />
+                    <input
+                      type="text"
+                      value={row.value}
+                      placeholder="값 (예: 40m)"
+                      onChange={(e) =>
+                        update({
+                          customCardRows: active.customCardRows.map((r, j) =>
+                            j === i ? { ...r, value: e.target.value } : r,
+                          ),
+                        })
+                      }
+                      className={`w-full ${FIELD}`}
+                    />
+                    <button
+                      type="button"
+                      onClick={() =>
+                        update({ customCardRows: active.customCardRows.filter((_, j) => j !== i) })
+                      }
+                      className={`${btnClass("secondary", "sm")} shrink-0`}
+                    >
+                      삭제
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
 
           <div className="mt-5 flex flex-wrap items-center justify-between gap-3 border-l-2 border-accent bg-panel px-4 py-3">

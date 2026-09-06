@@ -126,6 +126,13 @@ export interface RentalPackage {
   extraDayDiscountRatio: number; // 기본값 0.1 = 추가 준비일·추가 공연일 10% 할인
   restDayDiscountRatio: number; // 기본값 0.5 = 휴무일(준비일 단가 기준) 50% 할인
 
+  // [신규 2026-09-06] "rate 카드 항목도 추가 가능해야지.. 컬럼 추가 버튼도 넣어" —
+  // 패키지 카드(Rate A/B/C/D 박스)의 수용인원·권장 무대·권장 객석·대관료 4개 고정
+  // 행(순서·노출은 wizardFieldOrders로 관리) 외에, 패키지별로 값이 다른 자유
+  // 라벨·값 행을 추가할 수 있게 한다. 패키지 관리(어드민) 기본 정보에서 편집하고,
+  // 위저드 패키지 카드에는 고정 4행 다음·할인율/총금액 앞에 순서대로 표시한다.
+  customCardRows: { label: string; value: string }[];
+
   // 아래 항목은 "패키지 구성" 명세(대관시스템 노출)를 반영한 설명 정보입니다.
   // 과금 대상이 아니며(정찰제 대관료에 포함), 패키지 비교/안내용으로만 표시됩니다.
   dayBreakdown: string; // 세부 구성 — "준비 4일 + 공연 2일" (전 패키지 공통)

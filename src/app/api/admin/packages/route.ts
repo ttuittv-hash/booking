@@ -120,6 +120,7 @@ function blankPackage(id: number): RentalPackage {
     secondShowSurchargeRatio: 0,
     extraDayDiscountRatio: 0.1,
     restDayDiscountRatio: 0.5,
+    customCardRows: [],
     dayBreakdown: "준비 4일 + 공연 2일",
     defaultPerformanceDays: 2,
     rentalHours: "09:00 ~ 22:00",
@@ -198,6 +199,18 @@ function sanitizePackage(current: RentalPackage, input: unknown): RentalPackage 
   const restDayDiscountRatio = Number.isFinite(Number(p.restDayDiscountRatio))
     ? Math.min(1, Math.max(0, Number(p.restDayDiscountRatio)))
     : current.restDayDiscountRatio;
+  // [신규 2026-09-06] "rate 카드 항목도 추가 가능해야지" — 패키지 카드에 패키지별
+  // 자유 라벨·값 행을 추가하는 기능. label이 없는 행은 버린다(빈 행 저장 방지).
+  const customCardRows: { label: string; value: string }[] = Array.isArray(p.customCardRows)
+    ? (p.customCardRows as unknown[])
+        .map((row) => {
+          const r = row as Record<string, unknown>;
+          const label = typeof r?.label === "string" ? r.label.trim() : "";
+          const value = typeof r?.value === "string" ? r.value : "";
+          return { label, value };
+        })
+        .filter((row) => row.label.length > 0)
+    : current.customCardRows;
 
   return {
     ...current,
@@ -212,6 +225,7 @@ function sanitizePackage(current: RentalPackage, input: unknown): RentalPackage 
     secondShowSurchargeRatio,
     extraDayDiscountRatio,
     restDayDiscountRatio,
+    customCardRows,
     audienceTier,
     includedItems,
     mediaTier,

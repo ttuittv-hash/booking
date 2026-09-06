@@ -412,6 +412,14 @@ function PackagePicker({
                   };
                   return visibleCardRows.map((key) => rows[key]);
                 })()}
+                {/* [신규 2026-09-06] "rate 카드 항목도 추가 가능해야지" — 패키지 관리에서
+                    등록한 패키지별 자유 라벨·값 행. 고정 4행 다음, 할인율/총금액 앞에 둔다. */}
+                {p.customCardRows.map((row, i) => (
+                  <div key={`custom-${i}`} className="flex items-baseline justify-between gap-2">
+                    <dt className="text-muted">{row.label}</dt>
+                    <dd className="font-bold">{row.value}</dd>
+                  </div>
+                ))}
                 {/* [신규 2026-09-06] 패키지 관리(어드민)에서 설정한 할인율 — 계산 로직
                     (calculateQuote.ts)에는 이미 반영되고 있었지만 카드에는 안 보여
                     신청자가 할인 여부를 몰랐다. "할인율·총금액만 노출, 할인금액은 빼"
