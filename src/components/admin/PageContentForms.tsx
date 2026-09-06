@@ -37,6 +37,11 @@ import {
   PUBLIC_INTEREST_ITEM_LABEL,
   PUBLIC_INTEREST_ITEM_NUMBER,
   type PublicInterestItem,
+  APPLICANT_COMPANY_TYPE_LABEL,
+  ANCILLARY_BUSINESS_PLAN_LABEL,
+  EVENT_TYPE_LABEL,
+  SEATING_TYPE_LABEL,
+  STAGE_TYPE_LABEL,
 } from "@/lib/pricing/types";
 import {
   defaultVenueName,
@@ -55,6 +60,42 @@ import { normalizeDiscountPercent } from "@/lib/content/rateDiscount";
    ========================================================================= */
 
 const blankPair = (): Pair => ({ label: "", value: "" });
+
+/**
+ * [신규 2026-09-06] "대부분 체크박스로 선택하는 항목 옆에는 노출/미노출 조절 가능하게" —
+ * 공공/공익 참여 항목(위 Section, PUBLIC_INTEREST_GROUPS)은 이미 전용 UI가 있어 여기
+ * 넣지 않는다. 그 외 03 기본정보 · 02 구성/옵션의 체크박스형 선택지들을 모은다. groupId는
+ * 각 위저드 스텝 컴포넌트가 정의한 것과 정확히 같아야 한다(StepPerformanceInfo.tsx의
+ * EVENT_TYPES_GROUP_ID 등, StepAudience.tsx의 ANCILLARY_PLANS_GROUP_ID) —
+ * wizardDisabledFields에는 `${groupId}.${key}` 형식으로 쌓인다.
+ */
+const CHECKBOX_VISIBILITY_GROUPS: { groupId: string; groupLabel: string; items: { key: string; label: string }[] }[] = [
+  {
+    groupId: "performanceInfo.applicantCompanyType",
+    groupLabel: "신청 기업 유형",
+    items: Object.entries(APPLICANT_COMPANY_TYPE_LABEL).map(([key, label]) => ({ key, label })),
+  },
+  {
+    groupId: "performanceInfo.eventTypes",
+    groupLabel: "행사 유형",
+    items: Object.entries(EVENT_TYPE_LABEL).map(([key, label]) => ({ key, label })),
+  },
+  {
+    groupId: "performanceInfo.seatingTypes",
+    groupLabel: "객석 형태",
+    items: Object.entries(SEATING_TYPE_LABEL).map(([key, label]) => ({ key, label })),
+  },
+  {
+    groupId: "performanceInfo.stageTypes",
+    groupLabel: "무대 형태",
+    items: Object.entries(STAGE_TYPE_LABEL).map(([key, label]) => ({ key, label })),
+  },
+  {
+    groupId: "audience.ancillaryBusinessPlans",
+    groupLabel: "예상 부대행사(부대사업 계획)",
+    items: Object.entries(ANCILLARY_BUSINESS_PLAN_LABEL).map(([key, label]) => ({ key, label })),
+  },
+];
 
 /**
  * 본문 성격의 입력칸에 붙는 안내 (2026-09-03).
@@ -978,6 +1019,45 @@ export function ScreenTextForm({ content }: { content: ScreenTextContent }) {
               </div>
               );
             })}
+          </Section>
+
+          {/* [신규 2026-09-06] "대부분 체크박스로 선택하는 항목 옆에는 노출/미노출 조절
+              가능하게" — 03 기본정보의 신청 기업 유형·행사 유형·객석 형태·무대 형태와
+              02 구성/옵션의 예상 부대행사(부대사업 계획). 라벨 문구 자체는 각 화면이
+              이미 wizardStrings로 읽으므로(예: performanceInfo.eventTypes.CONCERT 형태
+              키가 없다 — 이 항목들은 아직 라벨 편집 지원 전이라 노출 여부만 다룬다),
+              여기서는 노출/미노출만 켜고 끈다. */}
+          <Section
+            title="체크박스 항목 노출 설정"
+            help="아래 각 그룹의 항목별로 위저드 화면 노출 여부를 켜고 끕니다. 전부 꺼서 그룹이 통째로 비면 그 슬롯의 필수값 검사가 막힐 수 있으니 최소 1개는 남겨 두세요."
+          >
+            {CHECKBOX_VISIBILITY_GROUPS.map((group) => (
+              <div key={group.groupId} className="space-y-2">
+                <p className="text-2xs font-bold uppercase tracking-wide text-muted">{group.groupLabel}</p>
+                <div className="flex flex-wrap gap-3">
+                  {group.items.map((item) => {
+                    const id = `${group.groupId}.${item.key}`;
+                    const disabled = v.wizardDisabledFields.includes(id);
+                    return (
+                      <label key={id} className="flex items-center gap-1.5 whitespace-nowrap text-s">
+                        <input
+                          type="checkbox"
+                          checked={!disabled}
+                          onChange={(e) =>
+                            patch({
+                              wizardDisabledFields: e.target.checked
+                                ? v.wizardDisabledFields.filter((x) => x !== id)
+                                : [...v.wizardDisabledFields, id],
+                            })
+                          }
+                        />
+                        {item.label}
+                      </label>
+                    );
+                  })}
+                </div>
+              </div>
+            ))}
           </Section>
 
           {/* [2026-09-03 팀 요청] 일정 달력 범주의 문구와 색 — 공고 달력과 어드민 일정 관리가 같이 쓴다.

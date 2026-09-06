@@ -365,7 +365,12 @@ function PackagePicker({
                 </div>
                 <div className="flex items-baseline justify-between gap-2">
                   <dt className="text-muted">{t("configOptions.baseFeeLabel", "대관료")}</dt>
-                  <dd className="font-bold tabular-nums">{won(p.baseFeePerWeek)}</dd>
+                  {/* [버그 수정 2026-09-06] "할인율 적용되었으니 대관료에는 가로줄 넣어줘" —
+                      할인율이 있는 패키지는 대관료가 정가가 아니라는 걸 보여주려고
+                      취소선을 긋는다. 실제 지불액은 바로 아래 총금액 행에 그대로 보인다. */}
+                  <dd className={`font-bold tabular-nums ${p.discountRatio > 0 ? "text-muted line-through" : ""}`}>
+                    {won(p.baseFeePerWeek)}
+                  </dd>
                 </div>
                 {/* [신규 2026-09-06] 패키지 관리(어드민)에서 설정한 할인율 — 계산 로직
                     (calculateQuote.ts)에는 이미 반영되고 있었지만 카드에는 안 보여

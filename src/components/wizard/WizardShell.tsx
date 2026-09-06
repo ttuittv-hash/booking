@@ -739,6 +739,7 @@ export function WizardShell({
         showHeading={false}
         title={wizardStepText.audienceTitle}
         lead={wizardStepText.audienceLead}
+        disabledFields={wizardDisabledFields}
       />
     ),
   };
@@ -901,8 +902,16 @@ export function WizardShell({
           />
         )}
         {step === 3 &&
-          step3SlotOrder.map((key) => (
-            <Fragment key={key}>{step3SlotRenderers[key]?.()}</Fragment>
+          // [버그 수정 2026-09-06] "슬롯 순서 변경 기능이 들어가면서, 슬롯 순서를 바꾸면
+          // 굵은선이 슬롯이랑 맞닿아버리는 오류" — 각 STEP3 슬롯 컴포넌트는 자기 맨
+          // 위에 border-t-2 pt-5 만 두고 있어서(그 슬롯 앞에 항상 특정 슬롯이 온다고
+          // 가정), 관리자가 순서를 바꿔 어떤 슬롯이든 다른 슬롯 뒤에 올 수 있게 되자
+          // 이전 슬롯 내용 바로 아래 굵은 선이 붙어버렸다. 슬롯 자체의 여백은 그대로
+          // 두고, 슬롯과 슬롯 사이(첫 슬롯 제외)에 여기서 균일한 위 여백을 더한다.
+          step3SlotOrder.map((key, i) => (
+            <Fragment key={key}>
+              <div className={i === 0 ? undefined : "mt-10"}>{step3SlotRenderers[key]?.()}</div>
+            </Fragment>
           ))}
         {step === 4 && (
           <StepMarketingCooperation

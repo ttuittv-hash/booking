@@ -83,14 +83,21 @@ function venueShowCounts(selection: QuoteSelection): { arenaShows: number; midHa
 // 아레나/중형 탭에서 자신의 공간 값만 보여주고(총액은 아레나 탭에만, STEP 3-1의
 // 총 공연 횟수 배치와 동일한 이유), 예상 유료 판매율 · 부대사업 계획은 각 공간에서
 // 독립적으로 입력한다(2026-08-19, 04 기본 정보 그룹 전체로 분리 확대 요청).
+// [신규 2026-09-06] "예상 부대행사 옆에도 노출 미노출 여부 체크할수 있게" — 신청 기업
+// 유형·행사 유형 등 03 기본정보 체크박스 그룹에 쓰던 것과 같은 "그룹id.키" 방식.
+// 순서 조정은 요청되지 않아 resolveGroupOrder는 쓰지 않고 노출 여부만 거른다.
+const ANCILLARY_PLANS_GROUP_ID = "audience.ancillaryBusinessPlans";
+
 function AudienceFields({
   info,
   onChange,
   audienceSummary,
+  disabledFields,
 }: {
   info: PerformanceInfo;
   onChange: (info: PerformanceInfo) => void;
   audienceSummary: { arenaLine: string | null; midHallLine: string | null; totalLine: string | null };
+  disabledFields?: string[];
 }) {
   const { t, tStr } = useWizardText();
 
@@ -124,6 +131,9 @@ function AudienceFields({
   }
 
   const hasSummaryRow = audienceSummary.arenaLine || audienceSummary.midHallLine || audienceSummary.totalLine;
+  const visibleAncillaryPlans = ANCILLARY_PLANS.filter(
+    (plan) => !disabledFields?.includes(`${ANCILLARY_PLANS_GROUP_ID}.${plan}`),
+  );
 
   return (
     /* 단계 안의 블록은 박스로 싸지 않는다 — 굵은 헤어라인 + H6 으로만 나눈다
@@ -291,7 +301,7 @@ function AudienceFields({
         <div>
           <div className="mb-2 text-xs font-bold text-muted">{t("audience.ancillaryPlansLabel", "부대사업 계획")}</div>
           <div className="flex flex-wrap gap-2">
-            {ANCILLARY_PLANS.map((plan) => (
+            {visibleAncillaryPlans.map((plan) => (
               <CheckboxChip
                 key={plan}
                 label={ANCILLARY_BUSINESS_PLAN_LABEL[plan]}
@@ -315,6 +325,7 @@ export function StepAudience({
   showHeading = true,
   title,
   lead,
+  disabledFields,
 }: {
   info: PerformanceInfo;
   onChange: (info: PerformanceInfo) => void;
@@ -326,6 +337,7 @@ export function StepAudience({
   showHeading?: boolean;
   title: ReactNode;
   lead: ReactNode;
+  disabledFields?: string[];
 }) {
   const { tStr } = useWizardText();
   const [activeTab, setActiveTab] = useState<VenueSplitTab>(midHallInfo ? "ARENA" : "COMMON");
@@ -380,6 +392,7 @@ export function StepAudience({
               midHallLine: isMidHallInvolved ? `${selection.secondaryAudience.toLocaleString()}${peopleUnit}` : null,
               totalLine,
             }}
+            disabledFields={disabledFields}
           />
         )}
         {effectiveTab === "ARENA" && (
@@ -391,6 +404,7 @@ export function StepAudience({
               midHallLine: null,
               totalLine,
             }}
+            disabledFields={disabledFields}
           />
         )}
         {effectiveTab === "MIDHALL" && midHallInfo && (
