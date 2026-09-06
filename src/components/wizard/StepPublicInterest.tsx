@@ -9,7 +9,6 @@ import {
   PUBLIC_INTEREST_GROUPS,
   PUBLIC_INTEREST_ITEM_HINT,
   PUBLIC_INTEREST_ITEM_LABEL,
-  PUBLIC_INTEREST_ITEM_NUMBER,
   PUBLIC_INTEREST_STATUS_ITEMS,
   type PerformanceInfo,
   type PublicInterestItem,
@@ -130,9 +129,7 @@ export function StepPublicInterest({
       <div key={item} className={`border-b border-border/25 ${checked ? "bg-panel" : ""}`}>
         <label className="flex cursor-pointer items-center justify-between gap-4 px-3 py-3.5">
           <span className="min-w-0">
-            <span className="block text-s font-bold">
-              {PUBLIC_INTEREST_ITEM_NUMBER[item]}. {label}
-            </span>
+            <span className="block text-s font-bold">{label}</span>
             <span className="mt-0.5 block text-xs leading-5 text-muted">{hint}</span>
           </span>
           <input

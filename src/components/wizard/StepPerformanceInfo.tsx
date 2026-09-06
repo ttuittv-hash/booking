@@ -96,6 +96,9 @@ export function validatePerformanceInfoStep(
   // 그대로 가져와 읽기 전용으로 보여준다(2026-08-22) — 계정 데이터라 여기서 필수값
   // 검사를 하지 않는다(비어 있다면 계정 쪽 문제다).
   if (!info.applicantCompanyType) return `${prefix}신청 기업 유형을 선택해 주세요.`;
+  if (info.applicantCompanyType === "OTHER" && !info.applicantCompanyTypeOtherDetail?.trim()) {
+    return `${prefix}신청 기업 유형 "기타" 상세를 입력해 주세요.`;
+  }
 
   // [개정 2026-09-06] "담당자 정보를 한 줄짜리 반복 행으로" — 담당자·공연 운영/안전관리
   // 총괄 책임자를 합친 반복 테이블. 행마다 담당역할·성명·연락처는 필수, 소속·이메일은
@@ -493,6 +496,16 @@ function ApplicantDetailsFields({
                 />
               ))}
             </div>
+            {/* [신규 2026-09-06] "기타 체크박스 선택 시 텍스트 기입할수 있도록" —
+                무대형태·객석형태와 같은 패턴을 "모든 항목의 기타"로 일반화한다. */}
+            {info.applicantCompanyType === "OTHER" && (
+              <input
+                value={info.applicantCompanyTypeOtherDetail ?? ""}
+                placeholder={tStr("performanceInfo.applicantCompanyTypeOtherDetailPlaceholder", "기타 신청 기업 유형 설명")}
+                onChange={(e) => set("applicantCompanyTypeOtherDetail", e.target.value)}
+                className="field-base mt-2 w-full max-w-xs"
+              />
+            )}
           </div>
         )}
 

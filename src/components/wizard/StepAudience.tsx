@@ -27,8 +27,14 @@ function toggleInArray<T>(list: T[], value: T): T[] {
 // (2026-08-22, "예상 유료판매율만 (선택)... 나머지는 필수사항"). 자료 첨부(객석배치도)는
 // 다른 슬롯과 같은 이유로 여기서는 검증하지 않는다.
 export function validateAudienceStep(info: PerformanceInfo, venueLabel?: string): string | null {
+  const prefix = venueLabel ? `${venueLabel} ` : "";
   if (info.ancillaryBusinessPlans.length === 0) {
-    return `${venueLabel ? `${venueLabel} ` : ""}부대사업 계획을 하나 이상 선택해 주세요.`;
+    return `${prefix}부대사업 계획을 하나 이상 선택해 주세요.`;
+  }
+  // [신규 2026-09-06] "모든 항목에 기타 버튼 눌렀을때" 상세 입력칸이 뜨도록 일반화 —
+  // 무대형태·객석형태(StepPerformanceInfo.tsx)와 같은 패턴.
+  if (info.ancillaryBusinessPlans.includes("OTHER") && !info.ancillaryBusinessPlanOtherDetail?.trim()) {
+    return `${prefix}부대사업 계획 "기타" 상세를 입력해 주세요.`;
   }
   return null;
 }
@@ -330,6 +336,16 @@ function AudienceFields({
                 />
               ))}
             </div>
+            {/* [신규 2026-09-06] "기타 체크박스 선택 시 텍스트 기입할수 있도록" —
+                무대형태·객석형태(StepPerformanceInfo.tsx)와 같은 패턴. */}
+            {info.ancillaryBusinessPlans.includes("OTHER") && (
+              <input
+                value={info.ancillaryBusinessPlanOtherDetail ?? ""}
+                placeholder={tStr("audience.ancillaryPlanOtherDetailPlaceholder", "기타 부대사업 계획 설명")}
+                onChange={(e) => set("ancillaryBusinessPlanOtherDetail", e.target.value)}
+                className="field-base mt-2 w-full max-w-xs"
+              />
+            )}
           </div>
         )}
       </div>

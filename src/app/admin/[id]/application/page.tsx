@@ -264,7 +264,7 @@ export default async function AdminQuoteApplicationPage({
                 label="기업 유형"
                 value={
                   info.applicantCompanyType
-                    ? APPLICANT_COMPANY_TYPE_LABEL[info.applicantCompanyType]
+                    ? `${APPLICANT_COMPANY_TYPE_LABEL[info.applicantCompanyType]}${info.applicantCompanyTypeOtherDetail ? ` — ${info.applicantCompanyTypeOtherDetail}` : ""}`
                     : NONE
                 }
               />
@@ -474,9 +474,7 @@ export default async function AdminQuoteApplicationPage({
                 label="부대사업 계획"
                 value={
                   info.ancillaryBusinessPlans?.length
-                    ? info.ancillaryBusinessPlans
-                        .map((p) => ANCILLARY_BUSINESS_PLAN_LABEL[p])
-                        .join(", ")
+                    ? `${info.ancillaryBusinessPlans.map((p) => ANCILLARY_BUSINESS_PLAN_LABEL[p]).join(", ")}${info.ancillaryBusinessPlanOtherDetail ? ` — ${info.ancillaryBusinessPlanOtherDetail}` : ""}`
                     : NONE
                 }
               />

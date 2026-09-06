@@ -628,6 +628,9 @@ export interface PerformanceInfo {
   applicantCompanyName: string; // 대관신청사명
   // optional — 이 필드가 추가되기 전에 제출된 기존 신청서에는 없다.
   applicantCompanyType?: ApplicantCompanyType | null; // 신청 기업 유형
+  // optional — 신청 기업 유형 "기타" 선택 시 상세 설명(2026-09-06 추가, 무대형태·객석형태와
+  // 같은 패턴 — "모든 항목에 기타 버튼 눌렀을때" 상세 입력칸이 뜨도록 일반화).
+  applicantCompanyTypeOtherDetail?: string;
   applicantBusinessRegistrationNumber: string; // 사업자등록번호
   // optional — 대표자명(2026-08-26 추가, 계정/회사 정보에서 자동 입력·읽기 전용)
   applicantRepresentativeName?: string;
@@ -690,6 +693,8 @@ export interface PerformanceInfo {
   competitionFeeOptionMax?: number;
   ticketRevenueShareRate?: number; // 티켓 매출 RS 요율(%)
   ancillaryBusinessPlans: AncillaryBusinessPlan[]; // 부대사업 계획
+  // optional — 부대사업 계획 "기타" 선택 시 상세 설명(2026-09-06 추가, 위와 같은 이유).
+  ancillaryBusinessPlanOtherDetail?: string;
 
   // 공공/공익 참여 여부 (STEP 3-2.5) — 선택사항. optional: 선택형으로 바뀌기 전(2026-08-22)
   // 저장된 신청서에는 없을 수 있다.
