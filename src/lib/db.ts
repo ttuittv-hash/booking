@@ -3,8 +3,6 @@ import { Pool, type PoolClient } from "pg";
 import { AsyncLocalStorage } from "node:async_hooks";
 import { hash as bcryptHash } from "@node-rs/bcrypt";
 import crypto from "node:crypto";
-import fs from "node:fs/promises";
-import path from "node:path";
 import { buildSeedRateTable, SEED_MID_HALL_RATE_CONFIG, SEED_PACKAGES } from "./pricing/seed";
 import { SEED_PAGES } from "./pricing/pageSeed";
 import {
@@ -13,7 +11,6 @@ import {
   DEFAULT_TERMS_CONTENT,
 } from "./content/seed";
 import { SEED_FAQS } from "./content/faqSeed";
-import { SEED_NOTICE } from "./content/noticeSeed";
 import {
   DEFAULT_REGISTER_TERMS,
   normalizeRegisterTerms,
@@ -26,7 +23,6 @@ import {
 } from "./content/memberPolicy";
 import { FEATURE_SPEC_SEED } from "./featureSpecSeed";
 import { FEATURE_SPEC_SHEET_KEYS } from "./pricing/types";
-import { DATA_DIR } from "./dataDir";
 import { sha256Hex } from "./passwordScheme";
 import { approvedQuoteBlocks } from "./schedule/approvedBlocks";
 import { INITIAL_PERFORMANCE_INFO } from "./pricing/performanceInfoDefaults";
@@ -1126,87 +1122,15 @@ async function seedData(pool: Pool) {
   }
 
   /*
-    첫 공지 — 2027년 하반기 정기대관 공고 (2026-09-02).
+    [삭제 2026-09-07] 첫 공지 시드(2027년 하반기 정기대관 공고)를 걷어냈다.
 
-    공고문은 화면을 여는 순간 있어야 하는 내용이라 코드에 싣는다.
+    initSchema 는 앱이 뜰 때마다 도는데, 여기서 "없으면 넣는다" 를 하고 있었다.
+    운영진이 백오피스에서 지워도 **다음 배포 때 되살아났다** — 실제로 9/7 배포
+    12:11·12:26 직후 같은 공지가 두 번 다시 나타났다.
 
-    갱신 규칙은 FAQ 시드와 같다:
-      없으면                  → 넣는다
-      있는데 손대지 않았으면    → 시드 내용으로 갈아 끼운다(공고문이 바뀌면 따라간다)
-      운영자가 한 번이라도 고쳤으면 → 건드리지 않는다 (운영자 편집이 항상 이긴다)
-
-    손댔는지는 `updated_at <> created_at` 으로 본다. 갈아 끼울 때도 두 값을 같게 두어
-    다음 배포에서 또 따라올 수 있게 한다.
+    공지는 운영진이 백오피스에서 만들고 지우는 콘텐츠다. 코드가 다시 넣지 않는다.
+    (공고문 첨부 PDF 복사도 이 시드 전용이라 함께 뺐다.)
   */
-  /*
-    시드는 실패해도 앱을 세우지 않는다 (2026-09-02).
-
-    initSchema 는 첫 쿼리 앞에서 한 번 도는 공통 경로라, 여기서 던지면 **모든 화면이**
-    500 이 된다. 공고 하나 못 넣은 것과 서비스가 안 뜨는 것은 다른 문제다 —
-    실패는 로그로 남기고 넘어간다.
-  */
-  try {
-    // 공고문 원본(PDF)을 업로드 폴더로 복사한다 — 첨부 라우트가 그 폴더만 읽는다.
-    // 복사에 실패해도 공지는 넣는다(본문 안내는 남고, 첨부만 비어 보인다).
-    let noticeAttachmentUrl: string | null = null;
-    try {
-      const dir = path.join(DATA_DIR, "uploads", "notice-attachments");
-      await fs.mkdir(dir, { recursive: true });
-      const target = path.join(dir, SEED_NOTICE.attachmentStoredName);
-      const exists = await fs.stat(target).then(() => true).catch(() => false);
-      if (!exists) {
-        await fs.copyFile(
-          path.join(process.cwd(), "assets", "seed", SEED_NOTICE.attachmentFile),
-          target,
-        );
-      }
-      noticeAttachmentUrl = SEED_NOTICE.attachmentUrl;
-    } catch (error) {
-      console.error("[seed] 공고문 첨부 복사 실패", error);
-    }
-
-    const seededNotice = (
-      await pool.query("SELECT created_at, updated_at FROM notices WHERE id = $1", [SEED_NOTICE.id])
-    ).rows[0] as { created_at: string; updated_at: string } | undefined;
-    const noticeUntouched = !!seededNotice && seededNotice.created_at === seededNotice.updated_at;
-
-    if (!seededNotice) {
-      const at = new Date().toISOString();
-      await pool.query(
-        `INSERT INTO notices (id, tag, title, body, image_url, attachment_url, attachment_name,
-                              show_booking_calendar, created_at, updated_at)
-         VALUES ($1, $2, $3, $4, NULL, $5, $6, $7, $8, $8)`,
-        [
-          SEED_NOTICE.id,
-          SEED_NOTICE.tag,
-          SEED_NOTICE.title,
-          SEED_NOTICE.body,
-          noticeAttachmentUrl,
-          noticeAttachmentUrl ? SEED_NOTICE.attachmentName : null,
-          SEED_NOTICE.showBookingCalendar ? 1 : 0,
-          at,
-        ],
-      );
-    } else if (noticeUntouched) {
-      await pool.query(
-        `UPDATE notices
-            SET tag = $2, title = $3, body = $4, attachment_url = $5, attachment_name = $6,
-                show_booking_calendar = $7, updated_at = created_at
-          WHERE id = $1`,
-        [
-          SEED_NOTICE.id,
-          SEED_NOTICE.tag,
-          SEED_NOTICE.title,
-          SEED_NOTICE.body,
-          noticeAttachmentUrl,
-          noticeAttachmentUrl ? SEED_NOTICE.attachmentName : null,
-          SEED_NOTICE.showBookingCalendar ? 1 : 0,
-        ],
-      );
-    }
-  } catch (error) {
-    console.error("[seed] 첫 공지 등록/갱신 실패", error);
-  }
 
   // 기능정의서(내부 기획 문서) — 시트별로 없는 것만 채운다. 이미 운영 중인 DB에 나중에
   // 새 시트가 추가돼도, 기존에 수동 편집된 다른 시트들을 건드리지 않는다.
