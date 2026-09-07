@@ -354,9 +354,23 @@ function PackagePicker({
     .map((inc) => {
       const addon = addons.find((a) => a.id === inc.addonId);
       if (!addon) return null;
-      return { key: inc.addonId, name: addon.name, quantity: inc.quantity, unit: addon.unitLabel.replace("원/", "") };
+      return {
+        key: inc.addonId,
+        name: addon.name,
+        quantity: inc.quantity,
+        unit: addon.unitLabel.replace("원/", ""),
+        // [신규 2026-09-07] "패키지 관리 > 기본내역 스펙 필드값이 위저드에 노출되도록" —
+        // 패키지 관리(어드민)의 스펙(규격·사양) 입력은 이미 addon.spec 에 저장되고
+        // 있었지만 이 카드에서는 항목 이름만 보여줬다.
+        spec: addon.spec,
+      };
     })
-    .filter((item): item is { key: string; name: string; quantity: number; unit: string } => item != null);
+    .filter(
+      (
+        item,
+      ): item is { key: string; name: string; quantity: number; unit: string; spec: string | undefined } =>
+        item != null,
+    );
 
   return (
     <div className="mb-6 border-b border-border pb-6">
@@ -478,11 +492,15 @@ function PackagePicker({
             <div className="mt-3 grid grid-cols-1 gap-1.5 sm:grid-cols-2 lg:grid-cols-3">
               {baseItems.map((item) => (
                 /* [개정 2026-09-02] 수량·단위("2공연일")를 뺐다. 여기는 이 구성에 무엇이
-                   들어 있는지 보는 곳이지 몇 개인지 세는 곳이 아니다 — 구성항목(스펙)
-                   이름만 남긴다. 수량은 요금표 관리에서 계속 관리하고 금액 계산에도
-                   그대로 쓰인다. */
+                   들어 있는지 보는 곳이지 몇 개인지 세는 곳이 아니다 — 이름만 남긴다.
+                   수량은 요금표 관리에서 계속 관리하고 금액 계산에도 그대로 쓰인다.
+                   [신규 2026-09-07] 패키지 관리 "① 기본 내역"의 스펙(규격·사양) 입력은
+                   과금과 무관한 참고용 텍스트라 계산에는 안 쓰이지만, 신청자가 뭐가
+                   포함됐는지 가늠하려면 여기 노출돼야 한다("스펙 필드값이 대관 위저드
+                   프론트에 노출되도록 해줘"). */
                 <div key={item.key} className="border border-border-soft bg-panel px-3 py-2 text-xs">
                   <span className="font-bold text-foreground">{item.name}</span>
+                  {item.spec && <span className="mt-0.5 block text-muted">{item.spec}</span>}
                 </div>
               ))}
             </div>
