@@ -7,6 +7,7 @@ import { Fragment, useState, type ReactNode } from "react";
 import { useWizardText } from "@/lib/content/wizardText";
 import { INITIAL_PERFORMANCE_INFO } from "@/lib/pricing/performanceInfoDefaults";
 import { VenueSplitTabBar, type VenueSplitTab } from "./VenueSplitTabBar";
+import { FileSlot } from "./StepSafetyPledge";
 import { resolveSelectedDates } from "@/lib/pricing/dateRange";
 import { defaultDayTags, effectiveDayTag } from "@/lib/pricing/rateTableUtils";
 import {
@@ -236,14 +237,12 @@ export function validatePerformanceInfoStep(
     }
   }
 
+  // [수정 2026-09-07] "기타에서 체크한 체크박스 삭제" — 마스킹 동의·안전규정 준수
+  // 확약서 작성 완료 체크박스를 뺐다(안전관리 서약은 STEP6에서 별도로 받는다).
+  // 화면에서 없앤 필드를 검사에 남겨 두면 아무도 체크할 수 없어 영원히 막힌다.
   if (!isSlotDisabled("credibility")) {
     if (!info.castContractStatus)
       return issue("performanceInfo.credibility.castContractStatus", "주요 출연진 계약 상태를 선택해 주세요.");
-    if (!info.sensitiveInfoMaskingAcknowledged) {
-      return issue("performanceInfo.credibility.masking", "출연 계약 증빙 마스킹 제출 허용에 동의해 주세요.");
-    }
-    if (!info.safetyPledgeSigned)
-      return issue("performanceInfo.credibility.safetyPledgeSigned", "안전규정 준수 확약서 작성 완료에 동의해 주세요.");
   }
 
   return null;
@@ -1353,17 +1352,10 @@ function EventBasicsFields({
 function CredibilityFields({
   info,
   onChange,
-  castContractFiles,
-  onCastContractFilesChange,
 }: {
   info: PerformanceInfo;
   onChange: (info: PerformanceInfo) => void;
-  // 출연 계약 증빙은 공간(아레나/중형)별로 갈리는 자료가 아니라 탭과 무관하게 같은 목록을
-  // 공유한다 — 그래서 info 가 아니라 위저드 상태에서 그대로 내려온다.
-  castContractFiles: File[];
-  onCastContractFilesChange: (files: File[]) => void;
 }) {
-  const dialog = useDialog();
   const { t, tStr } = useWizardText();
 
   function set<K extends keyof PerformanceInfo>(key: K, value: PerformanceInfo[K]) {
@@ -1407,85 +1399,9 @@ function CredibilityFields({
         />
       </div>
 
-      <label
-        className="mt-5 flex cursor-pointer items-start gap-2.5 text-xs text-muted"
-        data-field-key="performanceInfo.credibility.masking"
-      >
-        <input
-          type="checkbox"
-          checked={info.sensitiveInfoMaskingAcknowledged}
-          onChange={(e) => set("sensitiveInfoMaskingAcknowledged", e.target.checked)}
-          className="mt-0.5 accent-foreground"
-        />
-        {t(
-          "performanceInfo.maskingAcknowledgedLabel",
-          "출연 계약 증빙(계약서 · 출연확약서)의 금액 · 개인정보는 마스킹 제출을 허용합니다.",
-        )}
-      </label>
-
-      {/* [신규 2026-08-27] 증빙을 "허용합니다"라고 동의만 받고 낼 자리가 없었다 —
-          바로 이 자리에서 첨부한다. 신청서 제출 시 다른 첨부와 함께 올라가 상세 화면의
-          첨부서류 목록에 들어간다. */}
-      <div className="mt-4">
-        <div className="mb-2 text-xs font-bold text-muted">
-          {t("performanceInfo.castContractFilesLabel", "출연 계약 증빙 첨부(선택)")}
-        </div>
-        <p className="mb-2.5 text-xs leading-5 text-muted">
-          {t(
-            "performanceInfo.castContractFilesHint",
-            "계약서 · 출연확약서 등. PDF/이미지/문서, 파일당 최대 500MB. 금액 · 개인정보는 가려서 올리셔도 됩니다.",
-          )}
-        </p>
-        {castContractFiles.length > 0 && (
-          <ul className="mb-3 border-t border-border/25">
-            {castContractFiles.map((file, i) => (
-              <li
-                key={`${file.name}-${i}`}
-                className="flex items-center justify-between gap-4 border-b border-border/25 py-3"
-              >
-                <span className="min-w-0 truncate text-s font-bold">{file.name}</span>
-                <div className="flex shrink-0 items-center gap-4 text-xs text-muted tabular-nums">
-                  <span>{formatSize(file.size)}</span>
-                  <button
-                    type="button"
-                    onClick={() => onCastContractFilesChange(castContractFiles.filter((_, j) => j !== i))}
-                    className="cursor-pointer transition-colors hover:text-danger"
-                  >
-                    {t("performanceInfo.castContractRemoveButton", "삭제")}
-                  </button>
-                </div>
-              </li>
-            ))}
-          </ul>
-        )}
-        <input
-          type="file"
-          multiple
-          data-testid="cast-contract-files"
-          onChange={(e) => {
-            const picked = Array.from(e.target.files ?? []).filter((f) => f.size <= MAX_FILE_SIZE);
-            if (picked.length > 0) onCastContractFilesChange([...castContractFiles, ...picked]);
-            if (picked.length < (e.target.files?.length ?? 0)) {
-              void dialog.alert(tStr("performanceInfo.castContractTooLarge", "500MB를 넘는 파일은 첨부할 수 없습니다."));
-            }
-            e.target.value = "";
-          }}
-          className={`${FILE_INPUT} text-muted`}
-        />
-      </div>
-
-      <label
-        className="mt-3 flex cursor-pointer items-start gap-2.5 text-xs text-muted"
-        data-field-key="performanceInfo.credibility.safetyPledgeSigned"
-      >
-        <input
-          type="checkbox"
-          checked={info.safetyPledgeSigned}
-          onChange={(e) => set("safetyPledgeSigned", e.target.checked)}
-          className="mt-0.5 accent-foreground"
-        />
-        {t("performanceInfo.safetyPledgeSignedLabel", "안전규정 준수 확약서 작성을 완료했습니다.")}
-      </label>
+      {/* [수정 2026-09-07] "기타에서 체크한(마스킹 동의·안전규정 준수 확약서 작성 완료)
+          체크박스 삭제" — 둘 다 뺐다. 증빙 자료는 STEP7 "자료 첨부" 탭에서 한 번에
+          받고, 안전관리 서약은 STEP6에서 별도로 받으므로 여기서 중복 확인하지 않는다. */}
     </div>
   );
 }
@@ -1694,16 +1610,12 @@ export function StepCredibility({
   midHallInfo,
   onChangeMidHallInfo,
   selection,
-  castContractFiles,
-  onCastContractFilesChange,
 }: {
   info: PerformanceInfo;
   onChange: (info: PerformanceInfo) => void;
   midHallInfo: PerformanceInfo | null;
   onChangeMidHallInfo: (info: PerformanceInfo | null) => void;
   selection: QuoteSelection;
-  castContractFiles: File[];
-  onCastContractFilesChange: (files: File[]) => void;
 }) {
   const [activeTab, setActiveTab] = useState<VenueSplitTab>(midHallInfo ? "ARENA" : "COMMON");
 
@@ -1744,20 +1656,10 @@ export function StepCredibility({
 
       <div className={isSimultaneous ? "mt-6" : undefined}>
         {(effectiveTab === "COMMON" || effectiveTab === "ARENA") && (
-          <CredibilityFields
-            info={info}
-            onChange={onChange}
-            castContractFiles={castContractFiles}
-            onCastContractFilesChange={onCastContractFilesChange}
-          />
+          <CredibilityFields info={info} onChange={onChange} />
         )}
         {effectiveTab === "MIDHALL" && midHallInfo && (
-          <CredibilityFields
-            info={midHallInfo}
-            onChange={onChangeMidHallInfo}
-            castContractFiles={castContractFiles}
-            onCastContractFilesChange={onCastContractFilesChange}
-          />
+          <CredibilityFields info={midHallInfo} onChange={onChangeMidHallInfo} />
         )}
       </div>
     </section>
@@ -1778,10 +1680,17 @@ export function StepAttachments({
   files,
   onFilesChange,
   isSimultaneous,
+  safetyPlanFile,
+  onSafetyPlanFileChange,
 }: {
   files: File[];
   onFilesChange: (files: File[]) => void;
   isSimultaneous: boolean;
+  /** [신규 2026-09-07] "안전관리 서약서 탭에서 자료 첨부하기 모두 제거하고, 자료첨부
+   * 탭에서 자료 첨부·안전관리 서약서 첨부 두 슬롯만 노출" — 공연·행사 안전관리계획서
+   * 업로드를 STEP6(안전관리 서약서)에서 이 화면으로 옮겨왔다. */
+  safetyPlanFile: File | null;
+  onSafetyPlanFileChange: (file: File | null) => void;
 }) {
   const dialog = useDialog();
   const { t, tStr } = useWizardText();
@@ -1820,10 +1729,7 @@ export function StepAttachments({
           객석배치도 쪽을 뺐다 — 공연 관련 자료 안내만 남는다. */}
       <p className="mt-2 text-xs leading-5 text-muted">
         <span className="font-bold text-foreground">{t("attachments.performanceMaterialsLabel", "공연 관련 자료")}</span> —{" "}
-        {t(
-          "attachments.performanceMaterialsHint",
-          "공연기획서 · 무대 도면, 출연 계약 증빙, 행사 안전관리계획서 등",
-        )}
+        {t("attachments.performanceMaterialsHint", "공연기획서 · 무대 도면, 출연 계약 증빙 등")}
       </p>
       <p className="mt-2 mb-2.5 text-xs text-muted">
         {t("attachments.fileRulesHint", "PDF/이미지/문서, 파일당 최대 500MB. 신청서 제출 시 함께 업로드됩니다.")}
@@ -1863,6 +1769,23 @@ export function StepAttachments({
         }}
         className={`${FILE_INPUT} mt-5 text-muted`}
       />
+
+      {/* [신규 2026-09-07] 공연·행사 안전관리계획서 — 안전관리 서약서 탭(STEP6)에서
+          이 탭으로 옮겨온 필수 첨부. 위 자료 첨부와 성격이 달라(필수 · 파일 1건) 따로
+          구획을 나눈다. */}
+      <div className="mt-8 border-t border-border/25 pt-5">
+        <h3 className="type-kr-heading text-h6-m">{t("attachments.safetyPlanHeading", "안전관리 서약서 첨부")}</h3>
+        <p className="mt-1 mb-4 break-keep text-xs leading-6 text-muted">
+          {t("attachments.safetyPlanHint", "공연·행사 안전관리계획서를 업로드해 주세요.")}
+        </p>
+        <div className="border border-border" data-field-key="attachments.safetyPlanFile">
+          <FileSlot
+            label={t("safetyPledge.safetyPlanLabel", "공연·행사 안전관리계획서")}
+            file={safetyPlanFile}
+            onChange={onSafetyPlanFileChange}
+          />
+        </div>
+      </div>
     </section>
   );
 }

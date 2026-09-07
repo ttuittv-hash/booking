@@ -60,7 +60,6 @@ const PLEDGE_ITEMS: { key: PledgeCheckKey; defaultLabel: string; emphasize?: boo
 // 출연진 계약 상태 슬롯에서 이미 받으므로 여기서는 중복 요구하지 않는다(2026-08-26).
 export function validateSafetyPledgeStep(
   pledge: SafetyPledge,
-  files?: { safetyPlanFile: File | null },
   disabledFields: string[] = [],
   // [신규 2026-09-07] "미입력 필수항목 빨간색 표시 + 자동 스크롤" — StepPerformanceInfo.tsx의
   // validatePerformanceInfoStep과 같은 이유로 안내 문구를 tStr(key, fallback)로 조회한다.
@@ -84,16 +83,28 @@ export function validateSafetyPledgeStep(
       message: tStr("validationMessage.safetyPledge.signature", "서명란에 서명해 주세요."),
     };
   }
-  if (files && !files.safetyPlanFile) {
+  return null;
+}
+
+// [신규 2026-09-07] "안전관리 서약서 탭에서 자료 첨부하기 모두 제거하고, 자료첨부 탭에서
+// 자료 첨부·안전관리 서약서 첨부 두 슬롯만 노출" — 공연·행사 안전관리계획서 업로드가
+// STEP6에서 STEP7(자료 첨부)로 옮겨감에 따라, 필수 검사도 함께 옮긴다.
+export function validateAttachmentsStep(
+  safetyPlanFile: File | null,
+  tStr: (key: string, fallback: string) => string = (_key, fallback) => fallback,
+): StepValidationResult | null {
+  if (!safetyPlanFile) {
     return {
-      fieldKey: "safetyPledge.planFile",
-      message: tStr("validationMessage.safetyPledge.planFile", "공연·행사 안전관리계획서를 업로드해 주세요."),
+      fieldKey: "attachments.safetyPlanFile",
+      message: tStr("validationMessage.attachments.safetyPlanFile", "공연·행사 안전관리계획서를 업로드해 주세요."),
     };
   }
   return null;
 }
 
-function FileSlot({
+/** [2026-09-07] StepAttachments(자료 첨부 탭)에서도 같은 "라벨 + 업로드 버튼" 모양의
+ * 필수 파일 슬롯(안전관리 서약서 첨부)을 쓴다 — export해서 재사용한다. */
+export function FileSlot({
   label,
   file,
   onChange,
@@ -132,16 +143,12 @@ function FileSlot({
 export function StepSafetyPledge({
   pledge,
   onChange,
-  safetyPlanFile,
-  onSafetyPlanFileChange,
   companyName,
   title,
   lead,
 }: {
   pledge: SafetyPledge;
   onChange: (pledge: SafetyPledge) => void;
-  safetyPlanFile: File | null;
-  onSafetyPlanFileChange: (file: File | null) => void;
   /** 대관신청사명 — 있으면 서명란에 옅게 깔아 따라 쓸 수 있게 한다. */
   companyName?: string;
   title: ReactNode;
@@ -218,20 +225,9 @@ export function StepSafetyPledge({
           watermarkText={companyName}
         />
       </div>
-
-      <div className="mt-8 border-t border-border/25 pt-5">
-        <h3 className="type-kr-heading text-h6-m">{t("safetyPledge.documentsHeading", "제출 서류")}</h3>
-        <p className="mt-1 mb-4 break-keep text-xs leading-6 text-muted">
-          {t("safetyPledge.documentsHint", "아래 서류를 준비해 각각 업로드해 주세요.")}
-        </p>
-        <div className="border border-border" data-field-key="safetyPledge.planFile">
-          <FileSlot
-            label={t("safetyPledge.safetyPlanLabel", "공연·행사 안전관리계획서")}
-            file={safetyPlanFile}
-            onChange={onSafetyPlanFileChange}
-          />
-        </div>
-      </div>
+      {/* [수정 2026-09-07] "제출 서류(안전관리계획서) 업로드는 안전관리 서약서 탭에서
+          빼고, 자료 첨부 탭으로 옮긴다" — 필수 검사도 validateAttachmentsStep으로
+          함께 옮겼다. */}
     </section>
   );
 }

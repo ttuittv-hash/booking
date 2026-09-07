@@ -150,7 +150,7 @@ export function calculateQuote(selection: QuoteSelection, rateTable: RateTable):
         items.push(
           makeLine(
             "extra_days_rest",
-            `추가 일수 — 휴무일 (준비일 단가 ${Math.round(pkg.restDayDiscountRatio * 100)}% 할인, ${restCount}일)`,
+            `추가일수 휴무일 ${restCount}일`,
             "PER_DAY",
             restCount,
             0,

@@ -1,7 +1,5 @@
 "use client";
 
-import { FILE_INPUT, toggleClass } from "@/components/ui/kit";
-
 import { useState, type ReactNode } from "react";
 import { useWizardText } from "@/lib/content/wizardText";
 import { INITIAL_PERFORMANCE_INFO } from "@/lib/pricing/performanceInfoDefaults";
@@ -26,11 +24,6 @@ import { VenueSplitTabBar, type VenueSplitTab } from "./VenueSplitTabBar";
 // 텍스트(계획 설명)는 항목별로 그대로 유지한다 — 어떤 계획인지는 텍스트로 알 수 있고,
 // 증빙 자료 자체는 한 번에 모아 받아도 된다는 판단.
 
-/** 첨부 파일 — 이제 어느 항목 것인지 구분하지 않고 섹션 전체 자료로 한 번에 받는다. */
-export interface PublicInterestFile {
-  file: File;
-}
-
 function toggleInArray<T>(list: T[], value: T): T[] {
   return list.includes(value) ? list.filter((v) => v !== value) : [...list, value];
 }
@@ -41,8 +34,6 @@ export function StepPublicInterest({
   selection,
   midHallInfo,
   onChangeMidHallInfo,
-  files,
-  onFilesChange,
   title,
   disabledItems,
   disabledGroups,
@@ -52,8 +43,6 @@ export function StepPublicInterest({
   selection: QuoteSelection;
   midHallInfo: PerformanceInfo | null;
   onChangeMidHallInfo: (info: PerformanceInfo | null) => void;
-  files: PublicInterestFile[];
-  onFilesChange: (files: PublicInterestFile[]) => void;
   title: ReactNode;
   /**
    * [신규 2026-09-06] "체크박스 항목들은 항목 자체를 On/off 할 수 있게"(중분류) — 여기
@@ -86,15 +75,6 @@ export function StepPublicInterest({
 
   function setDetail(item: PublicInterestItem, value: string) {
     onChange({ ...info, publicInterestDetails: { ...details, [item]: value } });
-  }
-
-  function addFiles(selected: FileList | null) {
-    if (!selected || selected.length === 0) return;
-    onFilesChange([...files, ...Array.from(selected).map((file) => ({ file }))]);
-  }
-
-  function removeFile(index: number) {
-    onFilesChange(files.filter((_, i) => i !== index));
   }
 
   const isSimultaneous = selection.bookingMode === "SIMULTANEOUS";
@@ -145,10 +125,7 @@ export function StepPublicInterest({
             <textarea
               value={details[item] ?? ""}
               onChange={(e) => setDetail(item, e.target.value)}
-              placeholder={tStr(
-                "publicInterest.detailPlaceholder",
-                "계획을 간단히 적어주세요. 자료가 있으면 맨 아래에서 한 번에 첨부하셔도 됩니다.",
-              )}
+              placeholder={tStr("publicInterest.detailPlaceholder", "계획을 간단히 적어주세요.")}
               rows={3}
               className="field-base whitespace-pre-wrap"
             />
@@ -162,10 +139,7 @@ export function StepPublicInterest({
     <section>
       <h2 className="type-kr-heading text-h5-m sm:text-h5">{title}</h2>
       <p className="mt-1.5 text-s text-muted">
-        {t(
-          "publicInterest.lead",
-          "해당하는 항목을 선택하고, 항목마다 계획을 적거나 자료를 첨부합니다. 선택사항입니다.",
-        )}
+        {t("publicInterest.lead", "해당하는 항목을 선택하고, 항목마다 계획을 적습니다. 선택사항입니다.")}
       </p>
 
       {isSimultaneous && (
@@ -215,44 +189,9 @@ export function StepPublicInterest({
             </div>
           </div>
 
-          {/* [재개정 2026-09-06] "항목마다 파일칸을 두지 말고 맨 밑에 파일 하나 첨부하기로만" —
-              어느 항목의 자료인지는 위 상세 텍스트로 적고, 증빙 파일 자체는 섹션 전체에서
-              한 번만 받는다. */}
-          <div>
-            <h4 className="border-b border-foreground pb-2 text-xs font-bold tracking-wide text-foreground">
-              {t("publicInterest.attachmentsHeading", "자료 첨부 (선택)")}
-            </h4>
-            <div className="mt-3 space-y-2.5">
-              {files.length > 0 && (
-                <ul className="space-y-2">
-                  {files.map((f, i) => (
-                    <li
-                      key={`${f.file.name}-${i}`}
-                      className="flex items-center justify-between gap-3 border border-border/25 bg-background px-3.5 py-2.5"
-                    >
-                      <span className="truncate text-s font-bold">{f.file.name}</span>
-                      <button
-                        type="button"
-                        onClick={() => removeFile(i)}
-                        className={`${toggleClass(false)} shrink-0`}
-                      >
-                        {t("publicInterest.removeFileButton", "삭제")}
-                      </button>
-                    </li>
-                  ))}
-                </ul>
-              )}
-              <input
-                type="file"
-                multiple
-                onChange={(e) => {
-                  addFiles(e.target.files);
-                  e.target.value = "";
-                }}
-                className={FILE_INPUT}
-              />
-            </div>
-          </div>
+          {/* [수정 2026-09-07] "자료첨부 탭 외의 탭에서는 첨부파일 넣기 슬롯 제거" —
+              섹션 전체용 파일 첨부 칸을 뺐다. 증빙 자료는 STEP7 "자료 첨부" 탭에서
+              한 번에 받는다. */}
         </div>
       </div>
     </section>

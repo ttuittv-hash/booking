@@ -800,7 +800,12 @@ const STEP3_VALIDATION_MESSAGES: { key: string; fallback: string }[] = [
 const STEP6_VALIDATION_MESSAGES: { key: string; fallback: string }[] = [
   { key: "validationMessage.safetyPledge.items", fallback: "안전관리 서약 항목을 모두 체크해 주세요." },
   { key: "validationMessage.safetyPledge.signature", fallback: "서명란에 서명해 주세요." },
-  { key: "validationMessage.safetyPledge.planFile", fallback: "공연·행사 안전관리계획서를 업로드해 주세요." },
+];
+
+// [신규 2026-09-07] 안전관리계획서 업로드가 STEP6에서 STEP7(자료 첨부)로 옮겨가며
+// validateAttachmentsStep과 짝을 이루는 안내 문구도 함께 옮겼다.
+const STEP7_VALIDATION_MESSAGES: { key: string; fallback: string }[] = [
+  { key: "validationMessage.attachments.safetyPlanFile", fallback: "공연·행사 안전관리계획서를 업로드해 주세요." },
 ];
 
 const STAGE_GROUPS: StageGroup[] = [
@@ -1010,8 +1015,6 @@ const STAGE_GROUPS: StageGroup[] = [
                 midHallInfo={null}
                 onChangeMidHallInfo={noop}
                 selection={ctx.mocks.arena}
-                castContractFiles={[]}
-                onCastContractFilesChange={noop}
               />
             ),
             audience: (
@@ -1179,8 +1182,6 @@ const STAGE_GROUPS: StageGroup[] = [
                   selection={ctx.mocks.arena}
                   midHallInfo={null}
                   onChangeMidHallInfo={noop}
-                  files={[]}
-                  onFilesChange={noop}
                   title={field("publicInterestTitle")}
                 />
               </div>
@@ -1201,8 +1202,6 @@ const STAGE_GROUPS: StageGroup[] = [
                   <StepSafetyPledge
                     pledge={DEFAULT_SAFETY_PLEDGE}
                     onChange={noop}
-                    safetyPlanFile={null}
-                    onSafetyPlanFileChange={noop}
                     companyName="(주)와이지엔터테인먼트"
                     title={field("safetyPledgeTitle")}
                     lead={lead("safetyPledgeLead")}
@@ -1215,14 +1214,24 @@ const STAGE_GROUPS: StageGroup[] = [
       },
       {
         // [신규 2026-09-07] "안전관리 서약서 뒤에 자료 첨부 탭 신규 생성" — 서약서 탭의
-        // 두 번째 슬롯이던 자료 첨부를 독립 탭으로 뗐다.
+        // 두 번째 슬롯이던 자료 첨부를 독립 탭으로 뗐다. [수정 2026-09-07] 안전관리계획서
+        // 업로드도 이 탭으로 옮겨왔다.
         label: "자료 첨부",
-        render: () => (
-          <LivePreview>
-            <div className="[&_input]:pointer-events-auto">
-              <StepAttachments files={[]} onFilesChange={noop} isSimultaneous={false} />
-            </div>
-          </LivePreview>
+        render: (ctx) => (
+          <div className="space-y-4">
+            <ValidationMessagesPanel ctx={ctx} title="자료 첨부" entries={STEP7_VALIDATION_MESSAGES} />
+            <LivePreview>
+              <div className="[&_input]:pointer-events-auto">
+                <StepAttachments
+                  files={[]}
+                  onFilesChange={noop}
+                  isSimultaneous={false}
+                  safetyPlanFile={null}
+                  onSafetyPlanFileChange={noop}
+                />
+              </div>
+            </LivePreview>
+          </div>
         ),
       },
     ],

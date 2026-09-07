@@ -44,9 +44,9 @@ import {
   validatePerformanceInfoStep,
 } from "./StepPerformanceInfo";
 import { StepAudience, StepCompetitionOption, validateAudienceStep } from "./StepAudience";
-import { StepPublicInterest, type PublicInterestFile } from "./StepPublicInterest";
+import { StepPublicInterest } from "./StepPublicInterest";
 import { StepMarketingCooperation } from "./StepMarketingCooperation";
-import { StepSafetyPledge, validateSafetyPledgeStep } from "./StepSafetyPledge";
+import { StepSafetyPledge, validateAttachmentsStep, validateSafetyPledgeStep } from "./StepSafetyPledge";
 import { Step6Submit } from "./Step6Submit";
 
 // [개정 2026-09-07] "안전관리 서약서 뒤에 자료 첨부 탭 신규 생성" — 자료 첨부가
@@ -229,17 +229,13 @@ export function WizardShell({
     : INITIAL_PERFORMANCE_INFO;
   // File은 JSON 직렬화가 안 되므로 selection과 분리해 별도 상태로 두고
   // localStorage 임시저장 대상에서도 제외한다 (새로고침 시 다시 선택 필요).
-  // 신청자 정보(공연기획서 등) · 관객(객석배치도) · 공공성(연계 프로그램 계획서) · 안전관리
-  // (안전관리계획서)는 각자 다른 서류라 슬롯을 분리한다 — 제출 시점에 하나로 합쳐
-  // 업로드한다. 출연자 계약서는 "신청자 정보 및 규모" 탭에서 이미 받으므로 여기 없다
-  // (2026-08-26, 중복 제거).
+  // [수정 2026-09-07] "자료첨부 탭 외의 탭에서는 첨부파일 넣기 슬롯 제거" — 신청자
+  // 정보(출연 계약 증빙)·공공성(연계 프로그램 계획서) 슬롯은 없앴다. 이제 일반 첨부는
+  // STEP7 "자료 첨부"(pendingFiles) 한 곳으로만 받는다.
   const [pendingFiles, setPendingFiles] = useState<File[]>([]);
-  const [publicInterestFiles, setPublicInterestFiles] = useState<PublicInterestFile[]>([]);
-  // 출연 계약 증빙(계약서·출연확약서) — STEP 3 "개최 신뢰도 및 이력 확인" 슬롯에서 받는다.
-  // 일반 첨부와 같은 취급(category 없음)이라 상세 화면의 첨부서류 목록에 그대로 들어간다.
-  const [castContractFiles, setCastContractFiles] = useState<File[]>([]);
   // 안전관리계획서는 목업상 필수 단일 슬롯이다 — 다른 단계처럼 자유 목록이 아니라
-  // 슬롯당 파일 1개(재선택 시 교체)로 둔다.
+  // 슬롯당 파일 1개(재선택 시 교체)로 둔다. STEP6(안전관리 서약서)에서 STEP7(자료
+  // 첨부)로 업로드 자리를 옮겼다(2026-09-07).
   const [safetyPlanFile, setSafetyPlanFile] = useState<File | null>(null);
   const [selection, setSelection] = useState<QuoteSelection>(
     initialSelection
@@ -476,10 +472,12 @@ export function WizardShell({
   // 화면에서 뺐다(2026-08-27).
   const step6Blocked = validateSafetyPledgeStep(
     selection.safetyPledge ?? DEFAULT_SAFETY_PLEDGE,
-    { safetyPlanFile },
     wizardDisabledFields,
     tStr,
   );
+  // [신규 2026-09-07] 안전관리계획서 업로드가 STEP6에서 STEP7(자료 첨부)로 옮겨가면서,
+  // 그 필수 검사도 함께 옮겨 STEP7→8 진행을 막는다.
+  const step7Blocked = validateAttachmentsStep(safetyPlanFile, tStr);
   const maxUnlockedStep = !selection.venueId
     ? 1
     : midHallOnly && !hasMidHallSelection
@@ -490,7 +488,9 @@ export function WizardShell({
           ? 3
           : step6Blocked
             ? 6
-            : TOTAL_STEPS;
+            : step7Blocked
+              ? 7
+              : TOTAL_STEPS;
   // 패키지 선택 전에도 기본 공연일수를 보여줘야 하므로, 모든 패키지가 공유하는 기본값(2일)을 임시로 사용한다.
   const effectivePkg = findPackage(rateTable, effectivePackageId);
   const defaultPerformanceDays = effectivePkg?.defaultPerformanceDays ?? 2;
@@ -588,12 +588,10 @@ export function WizardShell({
   }
 
   async function uploadPendingFiles(quoteId: string) {
-    // [수정 2026-09-06] 공공/공익 자료는 더 이상 항목별로 구분하지 않는다 — 섹션
-    // 전체에서 한 번에 받는 일반 첨부와 같은 취급(category 없음).
+    // [수정 2026-09-07] "자료첨부 탭 외의 탭에서는 첨부파일 넣기 슬롯 제거" — 이제
+    // STEP7(자료 첨부)의 일반 첨부·안전관리계획서 두 슬롯만 있다(category 없음).
     const allFiles: { file: File; category?: string }[] = [
       ...pendingFiles.map((file) => ({ file })),
-      ...castContractFiles.map((file) => ({ file })),
-      ...publicInterestFiles.map(({ file }) => ({ file })),
       ...(safetyPlanFile ? [{ file: safetyPlanFile }] : []),
     ];
     if (allFiles.length === 0) return;
@@ -618,8 +616,7 @@ export function WizardShell({
       );
     } else {
       setPendingFiles([]);
-      setPublicInterestFiles([]);
-      setCastContractFiles([]);
+      setSafetyPlanFile(null);
     }
   }
 
@@ -736,6 +733,11 @@ export function WizardShell({
               flashFieldError(step6Blocked.fieldKey);
               return;
             }
+            if (step === 7 && step7Blocked) {
+              toast.error(step7Blocked.message);
+              flashFieldError(step7Blocked.fieldKey);
+              return;
+            }
             goTo(step + 1);
           }}
           className={btnClass("primary", "lg")}
@@ -793,8 +795,6 @@ export function WizardShell({
           setSelection((prev) => ({ ...prev, midHallPerformanceInfo }))
         }
         selection={resolvedSelection}
-        castContractFiles={castContractFiles}
-        onCastContractFilesChange={setCastContractFiles}
       />
     ),
     // [2026-08-23] "신청자 정보 및 규모" — 두 탭을 하나로 합쳤다("신청자 정보 탭을
@@ -1016,8 +1016,6 @@ export function WizardShell({
             onChangeMidHallInfo={(midHallPerformanceInfo) =>
               setSelection((prev) => ({ ...prev, midHallPerformanceInfo }))
             }
-            files={publicInterestFiles}
-            onFilesChange={setPublicInterestFiles}
             title={wizardStepText.publicInterestTitle}
             disabledItems={publicInterestDisabledItems}
             disabledGroups={publicInterestDisabledGroups}
@@ -1027,20 +1025,22 @@ export function WizardShell({
           <StepSafetyPledge
             pledge={selection.safetyPledge ?? DEFAULT_SAFETY_PLEDGE}
             onChange={(safetyPledge) => setSelection((prev) => ({ ...prev, safetyPledge }))}
-            safetyPlanFile={safetyPlanFile}
-            onSafetyPlanFileChange={setSafetyPlanFile}
             companyName={selection.performanceInfo.applicantCompanyName || undefined}
             title={wizardStepText.safetyPledgeTitle}
             lead={wizardStepText.safetyPledgeLead}
           />
         )}
         {/* [신규 2026-09-07] "안전관리 서약서 뒤에 자료 첨부 탭 신규 생성" — 안전관리
-            서약서 탭의 두 번째 슬롯이던 자료 첨부를 독립 STEP 7로 승격했다. */}
+            서약서 탭의 두 번째 슬롯이던 자료 첨부를 독립 STEP 7로 승격했다.
+            [수정 2026-09-07] 안전관리계획서 업로드도 STEP6에서 이 탭으로 옮겨왔다
+            ("자료첨부 탭 외의 탭에서는 첨부파일 넣기 슬롯 제거"). */}
         {step === 7 && (
           <StepAttachments
             files={pendingFiles}
             onFilesChange={setPendingFiles}
             isSimultaneous={resolvedSelection.bookingMode === "SIMULTANEOUS"}
+            safetyPlanFile={safetyPlanFile}
+            onSafetyPlanFileChange={setSafetyPlanFile}
           />
         )}
         {step === 8 && (
@@ -1065,12 +1065,7 @@ export function WizardShell({
             submittedId={submittedId}
             error={submitError}
             attachmentError={attachmentError}
-            fileCount={
-              pendingFiles.length +
-              publicInterestFiles.length +
-              castContractFiles.length +
-              (safetyPlanFile ? 1 : 0)
-            }
+            fileCount={pendingFiles.length + (safetyPlanFile ? 1 : 0)}
             onSubmit={submit}
             onRequestEdit={requestEdit}
           />

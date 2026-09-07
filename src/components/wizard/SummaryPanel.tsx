@@ -101,11 +101,18 @@ export function SummaryPanel({
                           >
                             <dt className="text-s text-muted">
                               {item.label}
-                              {item.billable > 0 && item.included > 0 && (
-                                <span className="ml-1 text-xs text-muted">
-                                  (초과 {item.billable.toLocaleString()})
-                                </span>
-                              )}
+                              {/* [수정 2026-09-07] "공연 일수 조정 (...)(초과 4) -> 초과 부분 제거" —
+                                  이 줄은 billable이 옵션 초과분이 아니라 라벨에 이미 적힌 "+N일"
+                                  자체라서 "(초과 N)"을 덧붙이면 같은 값이 중복 표시된다. 실제
+                                  포함 수량 대비 초과분을 보여주는 다른 항목(선택 옵션 등)에서만
+                                  이 표기를 쓴다. */}
+                              {item.addonId !== "performance_day_adjustment" &&
+                                item.billable > 0 &&
+                                item.included > 0 && (
+                                  <span className="ml-1 text-xs text-muted">
+                                    (초과 {item.billable.toLocaleString()})
+                                  </span>
+                                )}
                             </dt>
                             <dd className="shrink-0 text-s tabular-nums text-muted">{won(item.amount)}</dd>
                           </div>
