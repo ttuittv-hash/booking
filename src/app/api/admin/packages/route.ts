@@ -74,6 +74,10 @@ function sanitizeAddonUpdate(current: AddonItem, input: unknown): AddonItem {
       ? (a.visibility as LineItemVisibility)
       : current.visibility,
     availability: sanitizeAvailability(a.availability, current.availability),
+    // [버그 수정 2026-09-07] "스펙 등록하고 저장하면 다 사라져" — 이 함수가 spec을
+    // 아예 안 읽어서 PackagesForm에서 입력한 스펙(규격·사양)이 저장 때마다 예전 값
+    // (대개 빈 값)으로 되돌아갔다. 빈 문자열로 지우면 undefined로 비운다.
+    spec: typeof a.spec === "string" ? (a.spec.trim() ? a.spec.trim() : undefined) : current.spec,
   };
 }
 
@@ -99,6 +103,7 @@ function sanitizeNewAddon(input: Record<string, unknown>): AddonItem | null {
     visibility: ADDON_VISIBILITIES.includes(input.visibility as LineItemVisibility)
       ? (input.visibility as LineItemVisibility)
       : "VISIBLE",
+    spec: typeof input.spec === "string" && input.spec.trim() ? input.spec.trim() : undefined,
   };
 }
 
