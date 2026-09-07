@@ -858,7 +858,11 @@ export function WizardShell({
       콘텐츠 트랙은 min-w-0 로 묶어 스텝 전환 시 폭이 변하지 않게 한다.
     */
     <div className="container-site grid-site w-full gap-y-10 py-10 sm:py-12">
-      <div className="min-w-0 lg:col-span-9">
+      {/* [수정 2026-09-08] "예상 대관료 나올 때는 이미 내용이 다 반영된거니까 오른쪽
+          플로팅 박스는 안보이는게 낫지 않나" — STEP5(예상 대관료)는 이제 대관료·
+          추가옵션·소계·총금액을 오른쪽 패널과 같은 박스로 이미 전부 보여주므로, 이
+          단계에서만 오른쪽 실시간 요약 패널을 접고 본문을 12칼럼 전체로 넓힌다. */}
+      <div className={`min-w-0 ${step === 8 ? "lg:col-span-12" : "lg:col-span-9"}`}>
         <StepNav step={step} maxUnlockedStep={maxUnlockedStep} onJump={goTo} />
 
         {step === 1 && (
@@ -1094,16 +1098,20 @@ export function WizardShell({
         <div className="mt-6">{navButtons}</div>
       </div>
 
-      <SummaryPanel
-        quote={summaryQuote}
-        /*
-          요약 패널은 **실시간 대관신청 내역**이다(2026-08-26 개칭) — 대관료·항목·합계를 함께 보여준다.
-          한동안 STEP 1·2 에서 금액을 감췄는데, 신청자가 구성을 고르는 동안 값이 얼마나
-          움직이는지 볼 수 없어 되돌렸다. (2026-09-02: 패널 안의 "예상 금액 · 확정 아님"
-          한 줄은 뺐다 — 같은 뜻이 제출 단계 안내에 이미 있다.)
-          단, STEP 1(공간/일정 선택)만은 계속 비워 둔다 — summaryQuote 참고.
-        */
-      />
+      {step !== 8 && (
+        <SummaryPanel
+          quote={summaryQuote}
+          /*
+            요약 패널은 **실시간 대관신청 내역**이다(2026-08-26 개칭) — 대관료·항목·합계를 함께 보여준다.
+            한동안 STEP 1·2 에서 금액을 감췄는데, 신청자가 구성을 고르는 동안 값이 얼마나
+            움직이는지 볼 수 없어 되돌렸다. (2026-09-02: 패널 안의 "예상 금액 · 확정 아님"
+            한 줄은 뺐다 — 같은 뜻이 제출 단계 안내에 이미 있다.)
+            단, STEP 1(공간/일정 선택)만은 계속 비워 둔다 — summaryQuote 참고.
+            [수정 2026-09-08] STEP5(예상 대관료, step===8)는 본문에서 이미 같은 내용을
+            박스로 전부 보여주므로 패널을 접는다.
+          */
+        />
+      )}
     </div>
   );
 }
