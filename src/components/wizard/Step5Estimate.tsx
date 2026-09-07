@@ -98,11 +98,14 @@ export function Step5Estimate({
             </span>
           </div>
         )}
-        <div className="flex justify-between text-s text-muted">
+        {/* [수정 2026-09-07] "볼드값 줘야 하는 건 실제 계약금액·추가 예상금액·합계인데
+            지금 엉뚱한 게 볼드값" — 소계 두 줄이 얇고 아래 부가세와 구분이 안 됐다.
+            굵게 바꿔 중요도를 맞춘다. */}
+        <div className="flex justify-between text-s font-bold text-foreground">
           <span>{t("estimate.contractSectionLabel", "실제 계약금액")}</span>
           <span className="tabular-nums">{won(contractSubtotal)}</span>
         </div>
-        <div className="mt-1.5 flex justify-between text-s text-muted">
+        <div className="mt-1.5 flex justify-between text-s font-bold text-foreground">
           <span>{t("estimate.additionalSectionLabel", "추가 예상 금액")}</span>
           <span className="tabular-nums">{won(additionalSubtotal)}</span>
         </div>

@@ -863,6 +863,23 @@ const STAGE_GROUPS: StageGroup[] = [
                 title="Rate 카드(패키지 박스) 항목"
               />
               <PackageCardRowsEditor rateTable={ctx.rateTable} />
+              {/* [신규 2026-09-07] "저 부분(예상 관객·셋업·공연 요약 줄) 삭제하고 싶은데
+                  안 됨" — 아래 「✎ 속성 문구」 칸은 줄 안의 단어만 바꿀 수 있고 줄 자체를
+                  끌 수는 없었다. 다른 슬롯과 같은 노출 On/off 패턴을 그대로 써서 줄 전체를
+                  껐다 켰다 할 수 있게 한다(위저드 미리보기·실제 신청 화면 모두 반영). */}
+              <div className="flex items-center justify-between gap-3 border border-border-soft bg-panel/60 p-3">
+                <p className="text-2xs font-bold uppercase tracking-wide text-muted">
+                  ✎ &ldquo;아레나&rdquo; 제목 아래 요약 줄(패키지·예상 관객·셋업·공연)
+                </p>
+                <label className="flex shrink-0 items-center gap-1.5 text-2xs font-bold whitespace-nowrap text-muted">
+                  <input
+                    type="checkbox"
+                    checked={!ctx.disabledFields.includes("configOptions.arenaSummaryLead")}
+                    onChange={(e) => ctx.setFieldDisabled("configOptions.arenaSummaryLead", !e.target.checked)}
+                  />
+                  노출
+                </label>
+              </div>
               <LivePreview>
                 <div className="[&_input]:pointer-events-auto">
                   <StepConfigOptions

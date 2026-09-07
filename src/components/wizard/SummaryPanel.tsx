@@ -107,14 +107,16 @@ export function SummaryPanel({
                                 </span>
                               )}
                             </dt>
-                            <dd className="shrink-0 text-s font-bold tabular-nums text-foreground">
-                              {won(item.amount)}
-                            </dd>
+                            <dd className="shrink-0 text-s tabular-nums text-muted">{won(item.amount)}</dd>
                           </div>
                         ))}
                       </dl>
                     )}
-                    <div className="mt-1.5 flex justify-between text-xs text-muted">
+                    {/* [수정 2026-09-07] "볼드값 줘야 하는 건 실제 계약금액·추가 예상금액·
+                        합계인데 지금 엉뚱한 게 볼드값" — 항목별 금액이 굵고 정작 소계
+                        (실제 계약금액/추가 예상 금액)가 얇았다. 소계가 더 중요한 값이니
+                        여기를 굵게, 항목별 금액은 얇게 뒤집는다. */}
+                    <div className="mt-1.5 flex justify-between text-s font-bold text-foreground">
                       <span>{SECTION_SUBTOTAL_LABEL[section]}</span>
                       <span className="tabular-nums">{won(subtotal)}</span>
                     </div>

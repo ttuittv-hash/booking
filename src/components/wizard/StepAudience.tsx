@@ -492,58 +492,33 @@ export function StepCompetitionOption({
       <h3 className="type-kr-heading text-h6-m">
         {t("competitionOption.sectionHeading", "대관 경합 옵션")}
       </h3>
+      {/* [수정 2026-09-07] "대관 경합 옵션에서 대관료 레인지는 삭제" — 경합 시 제시할
+          대관료 최소~최대 범위 입력을 뺐다. 그 값을 쓰던 견적 라인(경합 시 추가
+          대관료 옵션)은 값이 안 들어오면 그냥 안 잡히므로 계산 쪽은 손대지 않는다 —
+          티켓 매출 RS 요율만 남긴다. */}
       <div className="mt-4">
         <div className="mb-2.5">
           <label className="text-xs font-bold text-muted">
-            {t("audience.competitionFeeOptionLabel", "대관 경합 시 대관료 옵션 추가 가능 범위")}
+            {t("audience.ticketRevenueShareRateLabel", "티켓 매출 RS 요율")}
           </label>
           <p className="mt-1 text-xs text-muted">
             {t(
-              "audience.competitionFeeOptionHint",
-              "같은 주차에 다른 신청과 경합이 붙을 경우, 추가로 제시할 수 있는 대관료 옵션의 범위입니다.",
+              "audience.ticketRevenueShareRateHint",
+              "경합 시 제시할 티켓 매출 RS(Revenue Share) 요율입니다.",
             )}
           </p>
         </div>
-        <div className="flex flex-wrap items-center gap-2">
-          <div className="flex flex-1 items-center gap-1.5">
-            <input
-              type="number"
-              min={0}
-              value={info.competitionFeeOptionMin ?? ""}
-              placeholder={tStr("audience.competitionFeeOptionMinPlaceholder", "최소")}
-              onChange={(e) => set("competitionFeeOptionMin", Math.max(0, Number(e.target.value) || 0))}
-              className="field-base w-full"
-            />
-            <span className="text-xs text-muted">{t("audience.wonUnit", "원")}</span>
-          </div>
-          <span className="text-xs text-muted">~</span>
-          <div className="flex flex-1 items-center gap-1.5">
-            <input
-              type="number"
-              min={0}
-              value={info.competitionFeeOptionMax ?? ""}
-              placeholder={tStr("audience.competitionFeeOptionMaxPlaceholder", "최대")}
-              onChange={(e) => set("competitionFeeOptionMax", Math.max(0, Number(e.target.value) || 0))}
-              className="field-base w-full"
-            />
-            <span className="text-xs text-muted">{t("audience.wonUnit", "원")}</span>
-          </div>
-          <span className="mx-1 h-6 w-px bg-border/40" aria-hidden="true" />
-          <label className="text-xs font-bold whitespace-nowrap text-muted">
-            {t("audience.ticketRevenueShareRateLabel", "티켓 매출 RS 요율")}
-          </label>
-          <div className="flex w-28 items-center gap-1.5">
-            <input
-              type="number"
-              min={0}
-              max={100}
-              value={info.ticketRevenueShareRate ?? ""}
-              placeholder={tStr("audience.ticketRevenueShareRatePlaceholder", "요율")}
-              onChange={(e) => set("ticketRevenueShareRate", clampRate(e.target.value))}
-              className="field-base w-full"
-            />
-            <span className="text-xs text-muted">%</span>
-          </div>
+        <div className="flex w-28 items-center gap-1.5">
+          <input
+            type="number"
+            min={0}
+            max={100}
+            value={info.ticketRevenueShareRate ?? ""}
+            placeholder={tStr("audience.ticketRevenueShareRatePlaceholder", "요율")}
+            onChange={(e) => set("ticketRevenueShareRate", clampRate(e.target.value))}
+            className="field-base w-full"
+          />
+          <span className="text-xs text-muted">%</span>
         </div>
       </div>
     </div>
