@@ -1,16 +1,14 @@
 import { won } from "@/lib/format";
 import type { LineItem, QuoteSelection } from "@/lib/pricing/types";
 import {
-  applicantLineLabel,
-  FEE_GROUP_LABEL,
+  estimateLineLabel,
   isHiddenFromApplicant,
+  isMidHallLineItem,
   SECTION_GROUPS,
   SECTION_LABEL,
   SECTION_SUBTOTAL_LABEL,
   feeGroupOf,
-  isMidHallLineItem,
   type ContractSection,
-  type FeeGroup,
 } from "@/lib/pricing/lineItemGroups";
 
 // [공유 2026-08-20] 위저드(Step5Estimate) · 마이페이지 신청 상세 · 인쇄용 신청서, 세 화면
@@ -19,6 +17,14 @@ import {
 // 소계를 각각 보여주고(요청: "아레나·중형 비용이 나눠져서 보여지고"), 최종 합계는 이
 // 컴포넌트를 호출하는 화면(Step5Estimate 등)에서 두 소계를 합산해 별도로 보여준다
 // (요청: "합산 통합으로도 보여지고").
+//
+// [개정 2026-09-08] "이건 눈에 너무 안 들어와.. 오른쪽 플로팅 박스 구조 기준으로
+// 맞춘거야" — 얇은 선으로만 구분되던 표를 오른쪽 실시간 요약 패널(SummaryPanel)과
+// 같은 박스 언어(border-border/25 bg-surface + 강조된 소계 줄)로 다시 그렸다. 항목
+// 라벨은 SummaryPanel과 다른 규칙(estimateLineLabel)을 쓴다 — "할증은 말고, 추가일에
+// 대한 할인율도 넣어줘" 요청으로 할증(2회 공연·중형 주말/평일 2회) %는 감추고 추가일
+// (준비일·공연일 추가) 할인율은 그대로 보여준다. 이 규칙은 이 표(왼쪽 예상 금액
+// 영역)에만 적용하고, SummaryPanel(오른쪽 플로팅 박스)은 손대지 않는다.
 export function QuoteLineItemsReport({
   selection,
   lineItems,
@@ -34,20 +40,12 @@ export function QuoteLineItemsReport({
 }) {
   const isSimultaneous = selection.bookingMode === "SIMULTANEOUS";
 
-  // [버그 수정 2026-09-08] "예상 대관료도 실시간 대관신청내역과 같아야지" — 이 표를
-  // 확인하던 중 청소비(cleaning)가 여기(위저드 STEP5·마이페이지·인쇄용 신청서)에는
-  // 그대로 보이는데 SummaryPanel(실시간 대관신청 내역)에는 안 보이는 것을 발견했다.
-  // item.visibility === "HIDDEN" 만 걸러냈을 뿐 청소비·유틸리티처럼 addonId로 감추는
-  // 항목(APPLICANT_HIDDEN_LINE_IDS)은 안 걸러지고 있었다 — SummaryPanel과 같은 기준
-  // isHiddenFromApplicant()로 통일한다. showHidden=true(운영자 보기, mypage/print)는
-  // 예전처럼 전부 보여준다.
+  // 청소비·유틸리티처럼 감춘 항목도 실제로는 과금돼 소계에 포함돼 있다(SummaryPanel과
+  // 같은 규칙) — 행은 visibleItems 만으로 그리되, 소계 금액은 감추지 않은 전체
+  // lineItems(allItems) 기준으로 낸다.
   const visibleItems = lineItems.filter((item) => showHidden || !isHiddenFromApplicant(item));
   const arenaItems = visibleItems.filter((item) => !isMidHallLineItem(item));
   const midHallItems = visibleItems.filter(isMidHallLineItem);
-  // [버그 수정 2026-09-08] 청소비·유틸리티처럼 감춘 항목도 실제로는 과금돼 quote.subtotal
-  // 에 포함돼 있다(SummaryPanel과 같은 규칙) — 행은 visibleItems 만으로 그리되, 소계
-  // 금액은 감추지 않은 전체 lineItems 기준으로 내야 두 화면의 "총 대관료"/"총 옵션비용"
-  // 이 어긋나지 않는다.
   const arenaAllItems = lineItems.filter((item) => !isMidHallLineItem(item));
   const midHallAllItems = lineItems.filter(isMidHallLineItem);
 
@@ -92,20 +90,39 @@ function VenueLineItemGroup({
 }) {
   return (
     <div className="mt-6">
-      {title && <h3 className="mb-2 text-s font-bold text-foreground">{title}</h3>}
-      <SectionTable section="CONTRACT" items={items} allItems={allItems} expectedRevenue={expectedRevenue} dense={dense} />
-      <SectionTable section="ADDITIONAL" items={items} allItems={allItems} expectedRevenue={expectedRevenue} dense={dense} />
+      {title && <h3 className="border-b-2 border-foreground pb-2 text-s font-bold text-foreground">{title}</h3>}
+      <SectionBox
+        section="CONTRACT"
+        items={items}
+        allItems={allItems}
+        expectedRevenue={expectedRevenue}
+        dense={dense}
+      />
+      <SectionBox
+        section="ADDITIONAL"
+        items={items}
+        allItems={allItems}
+        expectedRevenue={expectedRevenue}
+        dense={dense}
+      />
     </div>
   );
 }
 
-// [개정 2026-08-26] "아레나 패키지의 실제 계약금액은 패키지에 대한 내역이고, 옵션
-// 선택한 것들은 추가 예상 예산" 요청에 따라 표를 "대관료"(기본 대관료·전용
-// 사용료)과 "추가 옵션"(옵션 사용료) 두 슬롯으로 나눈다. 슬롯 안에서는 기존
-// 그룹(기본 대관료/전용 사용료, 또는 옵션) 구분을 그대로 유지한다.
-// [개정 2026-09-08] 라벨을 실시간 요약 패널(SummaryPanel)과 같은 말로 맞췄다
-// (lineItemGroups.SECTION_LABEL/SECTION_SUBTOTAL_LABEL 참고).
-function SectionTable({
+// 항목 아래 보조 줄 — "수량 등의 정보가 추가로 보여지는 정도"(2026-09-08, 예상 대관료는
+// 실시간 패널보다 조금 더 자세해도 된다는 허용 범위) 로 수량 × 단가를 덧붙인다.
+// "포함"으로 상계된 항목(패키지에 이미 포함된 수량 안에서 쓴 경우)은 금액 칸에서
+// 이미 "포함"이라고 말하므로 여기서는 생략한다.
+function itemDetail(item: LineItem, expectedRevenue: number): string | null {
+  const isIncluded = item.included > 0 && item.billable === 0 && item.amount === 0;
+  if (isIncluded) return null;
+  if (item.pricingType === "REVENUE_PERCENT") {
+    return `${won(expectedRevenue)} × ${item.unitPrice}%`;
+  }
+  return `수량 ${item.requested.toLocaleString()} · 단가 ${won(item.unitPrice)}`;
+}
+
+function SectionBox({
   section,
   items,
   allItems,
@@ -124,85 +141,42 @@ function SectionTable({
   const subtotal = allItems
     .filter((item) => groupKeys.includes(feeGroupOf(item)))
     .reduce((sum, item) => sum + item.amount, 0);
-  const cellPad = dense ? "py-1.5" : "py-2.5";
-  const textSize = dense ? "text-xs" : "text-s";
+  const rowPad = dense ? "py-2" : "py-2.5";
+
   return (
-    <div className="mt-5">
-      <h4 className="mb-2 text-xs font-bold text-muted">{SECTION_LABEL[section]}</h4>
-      <div className="overflow-x-auto">
-        <table className={`w-full border-collapse ${textSize}`}>
-          <thead>
-            <tr className="border-b border-border text-xs font-bold text-muted">
-              <th className="py-2 text-left">항목</th>
-              <th className="py-2 text-right">수량</th>
-              <th className="py-2 text-right">단가</th>
-              <th className="py-2 text-right">금액</th>
-            </tr>
-          </thead>
-          <tbody>
-            {sectionItems.length === 0 ? (
-              <tr>
-                <td colSpan={4} className="py-3 text-center text-xs text-muted">
-                  선택된 항목이 없습니다.
-                </td>
-              </tr>
-            ) : (
-              (() => {
-                const activeGroups = groupKeys.filter((g: FeeGroup) => sectionItems.some((item) => feeGroupOf(item) === g));
-                return activeGroups.flatMap((group, gi) => {
-                  const groupItems = sectionItems.filter((item) => feeGroupOf(item) === group);
-                  const groupSubtotal = groupItems.reduce((sum, item) => sum + item.amount, 0);
-                  return [
-                    // 그룹 라벨은 옅은 배경 대신 굵은 텍스트 + 위 여백만으로 구분한다 —
-                    // 배경을 칠하면 표 안에서 붕 뜬 "회색 줄"처럼 보인다는 지적(2026-08-23,
-                    // "하얗게 들어가게 너무 이상해")에 따른 수정.
-                    <tr key={`group-${group}`} className={gi > 0 ? "border-t border-border/60" : undefined}>
-                      <td colSpan={3} className="pt-5 pb-1.5 text-left text-xs font-bold text-foreground">
-                        {FEE_GROUP_LABEL[group]}
-                      </td>
-                      <td className="pt-5 pb-1.5 text-right text-xs font-bold text-muted tabular-nums">
-                        {won(groupSubtotal)}
-                      </td>
-                    </tr>,
-                    ...groupItems.map((item) => {
-                      const isIncluded = item.included > 0 && item.billable === 0 && item.amount === 0;
-                      return (
-                        <tr key={item.addonId} className="border-b border-border/70 tabular-nums">
-                          <td className={`${cellPad} pl-4 text-left`}>
-                            <span className="font-bold">{applicantLineLabel(item)}</span>
-                          </td>
-                          <td className={`${cellPad} text-right`}>
-                            {item.pricingType === "REVENUE_PERCENT"
-                              ? `${won(expectedRevenue)} × ${item.unitPrice}%`
-                              : item.requested.toLocaleString()}
-                          </td>
-                          <td className={`${cellPad} text-right ${isIncluded ? "text-good" : ""}`}>
-                            {isIncluded
-                              ? "포함"
-                              : item.pricingType === "REVENUE_PERCENT"
-                                ? "-"
-                                : won(item.unitPrice)}
-                          </td>
-                          <td className={`${cellPad} text-right font-bold ${isIncluded ? "text-good" : ""}`}>
-                            {isIncluded ? "포함" : won(item.amount)}
-                          </td>
-                        </tr>
-                      );
-                    }),
-                  ];
-                });
-              })()
-            )}
-          </tbody>
-          <tfoot>
-            <tr>
-              <td colSpan={3} className="pt-2.5 text-right text-s font-bold">
-                {SECTION_SUBTOTAL_LABEL[section]}
-              </td>
-              <td className="pt-2.5 text-right text-s font-bold tabular-nums">{won(subtotal)}</td>
-            </tr>
-          </tfoot>
-        </table>
+    <div className={`${dense ? "mt-3 p-3" : "mt-4 p-4"} border border-border/25 bg-surface`}>
+      <p className="text-xs font-bold text-foreground">{SECTION_LABEL[section]}</p>
+      {sectionItems.length === 0 ? (
+        <p className="mt-2 border-t border-border/25 pt-3 text-xs text-muted">선택된 항목이 없습니다.</p>
+      ) : (
+        <dl className="mt-2 border-t border-border/25">
+          {sectionItems.map((item) => {
+            const isIncluded = item.included > 0 && item.billable === 0 && item.amount === 0;
+            const detail = itemDetail(item, expectedRevenue);
+            return (
+              <div
+                key={item.addonId}
+                className={`flex items-baseline justify-between gap-4 border-b border-border/15 ${rowPad}`}
+              >
+                <dt className="text-s text-foreground">
+                  <span className="font-bold">{estimateLineLabel(item)}</span>
+                  {detail && <span className="mt-0.5 block text-xs font-normal text-muted">{detail}</span>}
+                </dt>
+                <dd
+                  className={`shrink-0 text-s font-bold tabular-nums ${isIncluded ? "text-good" : "text-foreground"}`}
+                >
+                  {isIncluded ? "포함" : won(item.amount)}
+                </dd>
+              </div>
+            );
+          })}
+        </dl>
+      )}
+      {/* [개정 2026-09-08] "대관료/추가 옵션 박스마다 총액을 강조 표시" — SummaryPanel과
+          같은 언어(테두리 + 옅은 배경)로 소계를 감싼다. */}
+      <div className="mt-3 flex justify-between border border-accent bg-accent-soft/40 px-3 py-2.5 text-s font-bold text-foreground">
+        <span>{SECTION_SUBTOTAL_LABEL[section]}</span>
+        <span className="tabular-nums">{won(subtotal)}</span>
       </div>
     </div>
   );

@@ -135,3 +135,23 @@ export function applicantLineLabel(item: LineItem): string {
       return item.label;
   }
 }
+
+/**
+ * [신규 2026-09-07] "예상 대관료"(QuoteLineItemsReport, 왼쪽 표 전용 — 오른쪽 실시간
+ * 플로팅 박스는 그대로 applicantLineLabel을 쓴다) 라벨. "할증은 말고, 추가일에 대한
+ * 할인율도 넣어줘" — applicantLineLabel과 반대로 추가일 계열(준비일·공연일 추가)의
+ * 할인율(%)은 그대로 보여주고, 할증(2회 공연·중형 주말/평일 2회) %만 감춘다.
+ */
+export function estimateLineLabel(item: LineItem): string {
+  switch (item.addonId) {
+    case "package_discount":
+      return "대관료 할인";
+    case "second_show_surcharge":
+      return item.label.replace(/\s*×\s*\d+%/, "");
+    case "midhall_show_weekday-2":
+    case "midhall_show_weekend-2":
+      return item.label.replace(/,\s*\d+%\s*할증\s*포함/, "");
+    default:
+      return item.label;
+  }
+}
