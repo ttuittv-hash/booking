@@ -23,6 +23,9 @@ function toColumnIndex(jsDay: number): number {
 const DOW_LABELS = ["월", "화", "수", "목", "금", "토", "일"];
 const WEEKDAY_SHORT = ["일", "월", "화", "수", "목", "금", "토"];
 
+// 역할 선택 팝오버의 고정 폭(7칸 중 몇 칸) — Step1Calendar.tsx의 POPOVER_SPAN과 같은 이유.
+const POPOVER_SPAN = 4;
+
 function formatDateLabel(iso: string): string {
   const [, m, d] = iso.split("-").map(Number);
   return `${m}/${d}(${WEEKDAY_SHORT[new Date(iso).getDay()]})`;
@@ -250,12 +253,20 @@ export function MidHallCalendar({
               {openInThisRow && openDate && (
                 // [수정 2026-09-07] "날짜 선택하면 나오는 레이어가 너무 가로로 길어...
                 // 선택날짜 부터 레이어가 커져야해" — 위 날짜 그리드와 같은 grid-cols-7
-                // 트랙에 맞춰, 고른 날짜의 칸부터 그 주의 마지막 칸까지만 펼친다.
+                // 트랙에 맞춰, 고른 날짜의 칸부터 펼친다.
+                // [수정 2026-09-07] "고정축을 오른쪽으로 두면... 가로 길이 값을 고정으로
+                // 둬야지" — 마지막 칸 근처를 클릭하면 폭이 1칸으로 쪼그라들어 버튼
+                // 라벨이 줄바꿈되는 문제가 있었다. 폭은 항상 POPOVER_SPAN 칸으로 고정하고
+                // 시작 칸만 오른쪽 끝을 넘지 않게 당긴다(Step1Calendar.tsx와 동일 로직).
                 <div className="mt-1.5 grid grid-cols-7 gap-1 sm:gap-1.5">
                   <div
                     className="border border-border/40 px-3 py-2.5"
                     style={{
-                      gridColumn: `${weekDays.findIndex((d) => isoDate(d) === openDate) + 1} / 8`,
+                      gridColumn: (() => {
+                        const dayCol = weekDays.findIndex((d) => isoDate(d) === openDate) + 1;
+                        const start = Math.max(1, Math.min(dayCol, 8 - POPOVER_SPAN));
+                        return `${start} / ${start + POPOVER_SPAN}`;
+                      })(),
                     }}
                   >
                     <div className="flex items-center justify-between">

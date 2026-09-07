@@ -77,6 +77,10 @@ function addDays(date: Date, n: number): Date {
 
 const MAX_EXTRA_DAYS = 30;
 
+// 역할 선택 팝오버의 고정 폭(7칸 중 몇 칸) — 아레나·중형을 함께 짜는 「패키지」 화면은
+// 두 공간 버튼 그룹이 겹쳐 있어 최소 이 정도는 있어야 줄바꿈 없이 들어간다.
+const POPOVER_SPAN = 5;
+
 type DayKind =
   | { kind: "base"; weekday: WeekDay }
   | { kind: "extra"; index: number } // 화~일(offset 0~5) 다음으로 이미 추가된 날 — index는 추가일 중 순번(0부터)
@@ -523,12 +527,21 @@ export function Step1Calendar({
                 // [수정 2026-09-07] "날짜 선택하면 나오는 레이어가 너무 가로로 길어...
                 // 선택날짜 부터 레이어가 커져야해" — 예전엔 행 전체 너비로 펼쳐져 클릭한
                 // 날짜와 무관하게 항상 같은 폭이었다. 위 날짜 그리드와 같은 grid-cols-7
-                // 트랙에 맞춰, 고른 날짜의 칸부터 그 주의 마지막 칸까지만 펼친다.
+                // 트랙에 맞춰, 고른 날짜의 칸부터 펼친다.
+                // [수정 2026-09-07] "고정축을 오른쪽으로 두면... 가로 길이 값을 고정으로
+                // 둬야지" — 마지막 칸(일요일) 근처를 클릭하면 폭이 1칸으로 쪼그라들어
+                // 버튼 라벨이 글자 단위로 줄바꿈되는 문제가 있었다. 폭은 항상 POPOVER_SPAN
+                // 칸으로 고정하고, 시작 칸만 "클릭한 날짜부터, 단 오른쪽 끝을 넘지 않게"
+                // 뒤로 당긴다 — 주 후반 날짜는 오른쪽 끝에 붙어 폭을 유지한다.
                 <div className="mt-1.5 grid grid-cols-7 gap-1 sm:gap-1.5">
                   <div
                     className="border border-border/40 px-3 py-2.5"
                     style={{
-                      gridColumn: `${calWeek.days.findIndex((d) => isoDate(d) === openDate) + 1} / 8`,
+                      gridColumn: (() => {
+                        const dayCol = calWeek.days.findIndex((d) => isoDate(d) === openDate) + 1;
+                        const start = Math.max(1, Math.min(dayCol, 8 - POPOVER_SPAN));
+                        return `${start} / ${start + POPOVER_SPAN}`;
+                      })(),
                     }}
                   >
                     <div className="flex items-center justify-between">
