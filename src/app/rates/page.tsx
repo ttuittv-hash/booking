@@ -98,17 +98,29 @@ function RateCards({ rowLabels, columns }: { rowLabels: string[]; columns: RateC
             </dl>
             {col.extras && col.extras.length > 0 && (
               <dl className="mt-4 space-y-2 border-t border-border pt-4">
-                {col.extras.map((e, i) => (
-                  <div
-                    key={`${e.label}-${i}`}
-                    className="flex flex-wrap items-baseline justify-between gap-x-3"
-                  >
-                    <dt className="whitespace-pre-line text-xs text-muted">{e.label}</dt>
-                    <dd className="whitespace-pre-line break-keep text-s font-bold tabular-nums">
-                      {e.value}
-                    </dd>
-                  </div>
-                ))}
+                {/* [2026-09-07 팀 요청] 준비일·공연일 추가 요금도 위 대관료와 똑같이 할인 표시.
+                    같은 카드의 할인율(discountPercent)을 그대로 쓴다 — 운영자가 넣는 금액은
+                    두 자리 모두 정상가이고, 할인가는 화면에서 계산한다. */}
+                {col.extras.map((e, i) => {
+                  const d = applyDiscount(e.value, col.discountPercent);
+                  return (
+                    <div
+                      key={`${e.label}-${i}`}
+                      className="flex flex-wrap items-baseline justify-between gap-x-3"
+                    >
+                      <dt className="whitespace-pre-line text-xs text-muted">{e.label}</dt>
+                      <dd className="whitespace-pre-line break-keep text-right text-s font-bold tabular-nums">
+                        {d && (
+                          <span className="block text-xs font-normal">
+                            <s className="text-muted">{d.original}</s>{" "}
+                            <span className="font-bold text-danger">{d.percent}%</span>
+                          </span>
+                        )}
+                        {d ? d.discounted : e.value}
+                      </dd>
+                    </div>
+                  );
+                })}
               </dl>
             )}
           </article>
