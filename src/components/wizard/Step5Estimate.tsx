@@ -4,7 +4,6 @@ import type { ReactNode } from "react";
 import { won } from "@/lib/format";
 import { findPackage, totalRentalDays } from "@/lib/pricing/rateTableUtils";
 import type { EstimatedQuote, QuoteSelection, RateTable } from "@/lib/pricing/types";
-import { isMidHallLineItem, sectionSubtotal } from "@/lib/pricing/lineItemGroups";
 import { useWizardText } from "@/lib/content/wizardText";
 import { QuoteLineItemsReport } from "@/components/QuoteLineItemsReport";
 
@@ -48,21 +47,6 @@ export function Step5Estimate({
     : null;
   const midHallLine = midHallSummaryLine(selection);
 
-  // [수정 2026-09-07] "계산이 안맞는데? 소계 = 실제 계약금액 + 추가 예상 금액" — 아래 소계들은
-  // 신청자에게 항목을 숨기더라도(청소비 등) 실제로 과금되는 금액이라 quote.subtotal(전체
-  // lineItems 기준)에는 포함돼 있다. 소계를 visibleItems 로만 더하면 숨긴 항목의 금액이
-  // 어느 소계에도 안 잡혀 위 두 값의 합이 아래 최종 소계보다 작아진다 — 항목 행은
-  // QuoteLineItemsReport 에서 그대로 숨기되, 여기 소계 금액은 전체 lineItems 기준으로 낸다.
-  const arenaItems = quote.lineItems.filter((item) => !isMidHallLineItem(item));
-  const midHallItems = quote.lineItems.filter(isMidHallLineItem);
-  const arenaVisibleSubtotal = arenaItems.reduce((sum, item) => sum + item.amount, 0);
-  const midHallVisibleSubtotal = midHallItems.reduce((sum, item) => sum + item.amount, 0);
-  // 패키지에 묶인 항목(계약 내역)과 신청자가 고른 옵션(추가 예상 금액)은 성격이 달라
-  // 슬롯을 나눈다(2026-08-26) — "실제 계약금액은 패키지에 대한 내역이고, 옵션 선택한
-  // 것들은 추가 예상 예산".
-  const contractSubtotal = sectionSubtotal(quote.lineItems, "CONTRACT");
-  const additionalSubtotal = sectionSubtotal(quote.lineItems, "ADDITIONAL");
-
   return (
     <section>
       <h2 className="type-kr-heading text-h5-m sm:text-h5">{title}</h2>
@@ -78,11 +62,13 @@ export function Step5Estimate({
         )}
       </p>
 
-      {/* Bowl 사용료·유틸리티(HIDDEN)·청소비는 아래 항목 목록에는 노출하지 않지만
-          합계에는 포함된다 — 그래서 아래 소계들(아레나/중형·계약/추가·최종 소계)은
-          모두 quote.lineItems 전체 기준으로 계산해 서로 더했을 때 값이 맞도록 한다
-          (2026-09-07, "계산이 안맞는데?"). 마이페이지 신청 상세·인쇄용 신청서와 동일한
-          QuoteLineItemsReport를 재사용해 세 화면의 산출내역이 서로 다르지 않게 한다. */}
+      {/* [개정 2026-09-08] "예상 대관료도 실시간 대관신청내역 구성과 같아야지 —
+          아레나/중형 크게 구분하고 그 안에 대관료 박스·추가옵션. 소계. 총금액" —
+          여기서부터 아래 총금액까지는 SummaryPanel(실시간 대관신청내역)과 구조를
+          맞춘다: 공간별 대관료/추가 옵션 박스(QuoteLineItemsReport가 공간별로 이미
+          나눠 보여준다) → 전체 소계(VAT 별도) → 부가세 → 총금액, 이 순서 하나뿐이다.
+          예전엔 이 아래에 "총 대관료"/"총 옵션비용"(공간을 합친 값)을 한 번 더
+          보여줬는데, SummaryPanel에는 없는 줄이라 두 화면 구성이 어긋났다 — 뺐다. */}
       <QuoteLineItemsReport
         selection={selection}
         lineItems={quote.lineItems}
@@ -90,26 +76,7 @@ export function Step5Estimate({
       />
 
       <div className="mt-6 border border-border bg-panel/40 p-5">
-        {isSimultaneous && (
-          <div className="mb-3 flex items-center justify-between border-b border-border pb-3 text-s">
-            <span className="text-muted">{t("estimate.arenaPlusMidHallSubtotalLabel", "아레나 소계 + 중형공연장 소계")}</span>
-            <span className="tabular-nums text-foreground">
-              {won(arenaVisibleSubtotal)} + {won(midHallVisibleSubtotal)}
-            </span>
-          </div>
-        )}
-        {/* [수정 2026-09-07] "볼드값 줘야 하는 건 실제 계약금액·추가 예상금액·합계인데
-            지금 엉뚱한 게 볼드값" — 소계 두 줄이 얇고 아래 부가세와 구분이 안 됐다.
-            굵게 바꿔 중요도를 맞춘다. */}
-        <div className="flex justify-between text-s font-bold text-foreground">
-          <span>{t("estimate.contractSectionLabel", "총 대관료")}</span>
-          <span className="tabular-nums">{won(contractSubtotal)}</span>
-        </div>
-        <div className="mt-1.5 flex justify-between text-s font-bold text-foreground">
-          <span>{t("estimate.additionalSectionLabel", "총 옵션비용")}</span>
-          <span className="tabular-nums">{won(additionalSubtotal)}</span>
-        </div>
-        <div className="mt-2.5 flex justify-between border-t border-border/60 pt-2.5 text-s text-muted">
+        <div className="flex justify-between text-s text-muted">
           <span>{t("estimate.subtotalLabel", "소계 (VAT 별도)")}</span>
           <span className="tabular-nums">{won(quote.subtotal)}</span>
         </div>

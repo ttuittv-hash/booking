@@ -3,6 +3,7 @@ import type { LineItem, QuoteSelection } from "@/lib/pricing/types";
 import {
   applicantLineLabel,
   FEE_GROUP_LABEL,
+  isHiddenFromApplicant,
   SECTION_GROUPS,
   SECTION_LABEL,
   SECTION_SUBTOTAL_LABEL,
@@ -33,38 +34,67 @@ export function QuoteLineItemsReport({
 }) {
   const isSimultaneous = selection.bookingMode === "SIMULTANEOUS";
 
-  const visibleItems = lineItems.filter((item) => item.visibility !== "HIDDEN" || showHidden);
+  // [버그 수정 2026-09-08] "예상 대관료도 실시간 대관신청내역과 같아야지" — 이 표를
+  // 확인하던 중 청소비(cleaning)가 여기(위저드 STEP5·마이페이지·인쇄용 신청서)에는
+  // 그대로 보이는데 SummaryPanel(실시간 대관신청 내역)에는 안 보이는 것을 발견했다.
+  // item.visibility === "HIDDEN" 만 걸러냈을 뿐 청소비·유틸리티처럼 addonId로 감추는
+  // 항목(APPLICANT_HIDDEN_LINE_IDS)은 안 걸러지고 있었다 — SummaryPanel과 같은 기준
+  // isHiddenFromApplicant()로 통일한다. showHidden=true(운영자 보기, mypage/print)는
+  // 예전처럼 전부 보여준다.
+  const visibleItems = lineItems.filter((item) => showHidden || !isHiddenFromApplicant(item));
   const arenaItems = visibleItems.filter((item) => !isMidHallLineItem(item));
   const midHallItems = visibleItems.filter(isMidHallLineItem);
+  // [버그 수정 2026-09-08] 청소비·유틸리티처럼 감춘 항목도 실제로는 과금돼 quote.subtotal
+  // 에 포함돼 있다(SummaryPanel과 같은 규칙) — 행은 visibleItems 만으로 그리되, 소계
+  // 금액은 감추지 않은 전체 lineItems 기준으로 내야 두 화면의 "총 대관료"/"총 옵션비용"
+  // 이 어긋나지 않는다.
+  const arenaAllItems = lineItems.filter((item) => !isMidHallLineItem(item));
+  const midHallAllItems = lineItems.filter(isMidHallLineItem);
 
   if (isSimultaneous) {
     return (
       <>
-        <VenueLineItemGroup title="아레나" items={arenaItems} expectedRevenue={expectedRevenue} dense={dense} />
-        <VenueLineItemGroup title="중형공연장" items={midHallItems} expectedRevenue={expectedRevenue} dense={dense} />
+        <VenueLineItemGroup
+          title="아레나"
+          items={arenaItems}
+          allItems={arenaAllItems}
+          expectedRevenue={expectedRevenue}
+          dense={dense}
+        />
+        <VenueLineItemGroup
+          title="중형공연장"
+          items={midHallItems}
+          allItems={midHallAllItems}
+          expectedRevenue={expectedRevenue}
+          dense={dense}
+        />
       </>
     );
   }
 
-  return <VenueLineItemGroup items={visibleItems} expectedRevenue={expectedRevenue} dense={dense} />;
+  return (
+    <VenueLineItemGroup items={visibleItems} allItems={lineItems} expectedRevenue={expectedRevenue} dense={dense} />
+  );
 }
 
 function VenueLineItemGroup({
   title,
   items,
+  allItems,
   expectedRevenue,
   dense,
 }: {
   title?: string;
   items: LineItem[];
+  allItems: LineItem[];
   expectedRevenue: number;
   dense: boolean;
 }) {
   return (
     <div className="mt-6">
       {title && <h3 className="mb-2 text-s font-bold text-foreground">{title}</h3>}
-      <SectionTable section="CONTRACT" items={items} expectedRevenue={expectedRevenue} dense={dense} />
-      <SectionTable section="ADDITIONAL" items={items} expectedRevenue={expectedRevenue} dense={dense} />
+      <SectionTable section="CONTRACT" items={items} allItems={allItems} expectedRevenue={expectedRevenue} dense={dense} />
+      <SectionTable section="ADDITIONAL" items={items} allItems={allItems} expectedRevenue={expectedRevenue} dense={dense} />
     </div>
   );
 }
@@ -78,17 +108,22 @@ function VenueLineItemGroup({
 function SectionTable({
   section,
   items,
+  allItems,
   expectedRevenue,
   dense,
 }: {
   section: ContractSection;
   items: LineItem[];
+  allItems: LineItem[];
   expectedRevenue: number;
   dense: boolean;
 }) {
   const groupKeys = SECTION_GROUPS[section];
   const sectionItems = items.filter((item) => groupKeys.includes(feeGroupOf(item)));
-  const subtotal = sectionItems.reduce((sum, item) => sum + item.amount, 0);
+  // 소계는 감춘 항목(청소비 등)까지 포함한 allItems 기준 — 행은 sectionItems(보이는 것)만 그린다.
+  const subtotal = allItems
+    .filter((item) => groupKeys.includes(feeGroupOf(item)))
+    .reduce((sum, item) => sum + item.amount, 0);
   const cellPad = dense ? "py-1.5" : "py-2.5";
   const textSize = dense ? "text-xs" : "text-s";
   return (
