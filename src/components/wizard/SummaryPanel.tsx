@@ -24,6 +24,31 @@ const BOX_TOTAL_LABEL: Record<ContractSection, string> = {
 };
 
 /**
+ * [신규 2026-09-07] "준비일의 10% 막 이런식으로 로직을 노출하지 말라고" — calculateQuote·
+ * calculateMidHallQuote가 만드는 라벨에는 할인율·할증률(%) 계산 근거가 그대로 박혀
+ * 있다(어드민 견적서·Step5Estimate는 검증용으로 그 상세가 필요해 원문 그대로 둔다).
+ * 이 패널은 신청자에게 "얼마인지"만 보여주면 되므로, 여기서만 %가 들어간 계산 근거
+ * 문구를 지우고 사실(일수 등)만 남긴다.
+ */
+function applicantLabel(item: LineItem): string {
+  switch (item.addonId) {
+    case "package_discount":
+      return "대관료 할인";
+    case "extra_days":
+      return `추가 일수 (준비일 ${item.billable}일)`;
+    case "performance_day_adjustment":
+      return item.label.replace(/,\s*공연일 단가 \d+%\s*할인/, "");
+    case "second_show_surcharge":
+      return item.label.replace(/\s*×\s*\d+%/, "");
+    case "midhall_show_weekday-2":
+    case "midhall_show_weekend-2":
+      return item.label.replace(/,\s*\d+%\s*할증\s*포함/, "");
+    default:
+      return item.label;
+  }
+}
+
+/**
  * 우측 sticky 요약 — **실시간 대관신청 내역**. 카드 박스 없이 헤어라인 표(SpecTable 리듬)로만.
  *
  *   (공간 소제목) → 계약 내역(패키지 항목) → 추가 예상 금액(옵션) → 소계 → 부가세 → 합계
@@ -96,7 +121,7 @@ export function SummaryPanel({ quote }: { quote: EstimatedQuote }) {
                             className="flex items-baseline justify-between gap-4 border-b border-border/15 py-2.5"
                           >
                             <dt className="text-s text-muted">
-                              {item.label}
+                              {applicantLabel(item)}
                               {/* [수정 2026-09-07] "공연 일수 조정 (...)(초과 4) -> 초과 부분 제거" —
                                   이 줄은 billable이 옵션 초과분이 아니라 라벨에 이미 적힌 "+N일"
                                   자체라서 "(초과 N)"을 덧붙이면 같은 값이 중복 표시된다. 실제
