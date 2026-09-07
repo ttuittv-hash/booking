@@ -1,7 +1,6 @@
 "use client";
 
 import { won } from "@/lib/format";
-import { Note } from "@/components/ui/kit";
 import { VENUES } from "@/lib/pricing/types";
 import type { EstimatedQuote, LineItem } from "@/lib/pricing/types";
 import { isHiddenFromApplicant, sectionOf, type ContractSection } from "@/lib/pricing/lineItemGroups";
@@ -39,22 +38,12 @@ const BOX_TOTAL_LABEL: Record<ContractSection, string> = {
  * [개정 2026-09-02] 제목 아래의 "※ 예상 금액 — 확정 아님" 한 줄을 뺐다. 같은 뜻이
  * 화면 곳곳(제출 단계 안내·신청 완료 문구)에 이미 있고, 값이 움직일 때마다 보이는
  * 자리에 경고를 붙여 두면 읽히지 않는 문구가 된다.
+ *
+ * [개정 2026-09-07] "저 박스에 로직은 노출하지 말라고" — 1일 2회 공연 할증률 안내,
+ * 유틸리티 정산 안내 문구를 뺐다. 이 패널은 금액만 보여준다 — 계산 방식·정책
+ * 설명은 STEP 안내문(Step5Estimate 등)에서 한다.
  */
-export function SummaryPanel({
-  quote,
-  secondShowSurchargeRatio = 0,
-}: {
-  quote: EstimatedQuote;
-  /**
-   * [신규 2026-09-06] "패키지 박스에서 할증률 항목은 빼래.. 대신 실시간 대관 신청
-   * 내역에서 할증률 표기해주면 되지" — 카드(패키지 박스)에 있던 "1일 2회 공연
-   * 할증률" 표시를 없애는 대신, 신청자가 실제로 회차를 2회로 늘리기 전에도
-   * 정책을 미리 알 수 있게 이 패널에 안내 문구로 옮긴다. 계산된 할증 라인
-   * (second_show_surcharge)은 실제로 2회 이상 지정했을 때만 lineItems에 잡히므로,
-   * 그와 별개로 정책 자체는 패키지 선택 시 항상 알려준다.
-   */
-  secondShowSurchargeRatio?: number;
-}) {
+export function SummaryPanel({ quote }: { quote: EstimatedQuote }) {
   // Bowl 사용료·유틸리티(HIDDEN)와 청소비는 합계에는 포함하되 신청자 화면에는 항목·금액을
   // 노출하지 않는다 — quote.subtotal/total 은 전체 lineItems 기준으로 이미 계산돼 있어
   // 여기서 걸러내도 총액에는 영향이 없다. 무엇을 감출지는 lineItemGroups 한 곳에서 정한다.
@@ -158,14 +147,6 @@ export function SummaryPanel({
               </span>
             </div>
         </div>
-
-        {secondShowSurchargeRatio > 0 && (
-          <Note className="mt-6">
-            공연일에 하루 2회 이상 공연을 지정하면 그 날은 공연일 단가에{" "}
-            {Math.round(secondShowSurchargeRatio * 100)}%가 할증됩니다.
-          </Note>
-        )}
-        <Note className="mt-6">{quote.meteredNotice}</Note>
       </div>
     </aside>
   );
