@@ -3,55 +3,24 @@
 import { won } from "@/lib/format";
 import { VENUES } from "@/lib/pricing/types";
 import type { EstimatedQuote, LineItem } from "@/lib/pricing/types";
-import { isHiddenFromApplicant, sectionOf, type ContractSection } from "@/lib/pricing/lineItemGroups";
+import {
+  applicantLineLabel,
+  isHiddenFromApplicant,
+  SECTION_LABEL,
+  SECTION_SUBTOTAL_LABEL,
+  sectionOf,
+  type ContractSection,
+} from "@/lib/pricing/lineItemGroups";
 
 const VENUE_NAME: Record<string, string> = Object.fromEntries(VENUES.map((v) => [v.id, v.name]));
-// "계약 내역"(패키지에 묶인 금액)을 먼저, "추가 예상 금액"(옵션)을 그 아래에 둔다 —
-// 계약 확정 대상이 아닌 쪽을 뒤로 밀어야 어느 쪽이 실제 계약금액인지 헷갈리지 않는다.
+// "대관료"(패키지에 묶인 금액)를 먼저, "추가 옵션"을 그 아래에 둔다 — 계약 확정
+// 대상이 아닌 쪽을 뒤로 밀어야 어느 쪽이 대관료인지 헷갈리지 않는다.
 const SECTION_ORDER: ContractSection[] = ["CONTRACT", "ADDITIONAL"];
 
-// [신규 2026-09-07] "대관료 / 추가 옵션 두 박스로, 박스마다 총액을 강조 표시" 시안
-// 요청 — 어드민 견적서(QuoteLineItemsReport)·운영자 화면이 함께 쓰는
-// lineItemGroups.SECTION_LABEL/SECTION_SUBTOTAL_LABEL("계약 내역"/"실제 계약금액" 등,
-// 공식 문서 용어)은 그대로 두고, 이 패널 전용 라벨을 따로 둔다.
-const BOX_LABEL: Record<ContractSection, string> = {
-  CONTRACT: "대관료",
-  ADDITIONAL: "추가 옵션",
-};
-const BOX_TOTAL_LABEL: Record<ContractSection, string> = {
-  CONTRACT: "총 대관료",
-  ADDITIONAL: "총 옵션비용",
-};
-
 /**
- * [신규 2026-09-07] "준비일의 10% 막 이런식으로 로직을 노출하지 말라고" — calculateQuote·
- * calculateMidHallQuote가 만드는 라벨에는 할인율·할증률(%) 계산 근거가 그대로 박혀
- * 있다(어드민 견적서·Step5Estimate는 검증용으로 그 상세가 필요해 원문 그대로 둔다).
- * 이 패널은 신청자에게 "얼마인지"만 보여주면 되므로, 여기서만 %가 들어간 계산 근거
- * 문구를 지우고 사실(일수 등)만 남긴다.
- */
-function applicantLabel(item: LineItem): string {
-  switch (item.addonId) {
-    case "package_discount":
-      return "대관료 할인";
-    case "extra_days":
-      return `추가 일수 (준비일 ${item.billable}일)`;
-    case "performance_day_adjustment":
-      return item.label.replace(/,\s*공연일 단가 \d+%\s*할인/, "");
-    case "second_show_surcharge":
-      return item.label.replace(/\s*×\s*\d+%/, "");
-    case "midhall_show_weekday-2":
-    case "midhall_show_weekend-2":
-      return item.label.replace(/,\s*\d+%\s*할증\s*포함/, "");
-    default:
-      return item.label;
-  }
-}
-
-/**
- * 우측 sticky 요약 — **실시간 대관신청 내역**. 카드 박스 없이 헤어라인 표(SpecTable 리듬)로만.
+ * 우측 sticky 요약 — **실시간 대관신청 내역**.
  *
- *   (공간 소제목) → 계약 내역(패키지 항목) → 추가 예상 금액(옵션) → 소계 → 부가세 → 합계
+ *   (공간 소제목) → 대관료 박스(패키지 항목) → 추가 옵션 박스 → 소계 → 부가세 → 총금액
  *
  * [개정 2026-08-26] "아레나 패키지의 실제 계약금액은 패키지에 대한 내역이고, 옵션
  * 선택한 것들은 추가 예상 예산" — 계약 확정 대상(패키지)과 신청자가 고른 옵션을
@@ -67,6 +36,10 @@ function applicantLabel(item: LineItem): string {
  * [개정 2026-09-07] "저 박스에 로직은 노출하지 말라고" — 1일 2회 공연 할증률 안내,
  * 유틸리티 정산 안내 문구를 뺐다. 이 패널은 금액만 보여준다 — 계산 방식·정책
  * 설명은 STEP 안내문(Step5Estimate 등)에서 한다.
+ *
+ * [개정 2026-09-08] "예상 대관료 내역은 오른쪽 실시간 대관 신청내역과 필드값이
+ * 동일해야지" — 박스 제목·소계 라벨·항목 라벨(applicantLineLabel)을 lineItemGroups로
+ * 옮겨 Step5Estimate(QuoteLineItemsReport)·마이페이지·인쇄용 신청서와 공유한다.
  */
 export function SummaryPanel({ quote }: { quote: EstimatedQuote }) {
   // Bowl 사용료·유틸리티(HIDDEN)와 청소비는 합계에는 포함하되 신청자 화면에는 항목·금액을
@@ -112,7 +85,7 @@ export function SummaryPanel({ quote }: { quote: EstimatedQuote }) {
                   .reduce((sum, item) => sum + item.amount, 0);
                 return (
                   <div key={section} className="mt-4 border border-border/25 bg-surface p-4">
-                    <p className="text-xs font-bold text-foreground">{BOX_LABEL[section]}</p>
+                    <p className="text-xs font-bold text-foreground">{SECTION_LABEL[section]}</p>
                     {sectionItems.length > 0 && (
                       <dl className="mt-2 border-t border-border/25">
                         {sectionItems.map((item) => (
@@ -121,7 +94,7 @@ export function SummaryPanel({ quote }: { quote: EstimatedQuote }) {
                             className="flex items-baseline justify-between gap-4 border-b border-border/15 py-2.5"
                           >
                             <dt className="text-s text-muted">
-                              {applicantLabel(item)}
+                              {applicantLineLabel(item)}
                               {/* [수정 2026-09-07] "공연 일수 조정 (...)(초과 4) -> 초과 부분 제거" —
                                   이 줄은 billable이 옵션 초과분이 아니라 라벨에 이미 적힌 "+N일"
                                   자체라서 "(초과 N)"을 덧붙이면 같은 값이 중복 표시된다. 실제
@@ -143,7 +116,7 @@ export function SummaryPanel({ quote }: { quote: EstimatedQuote }) {
                     {/* [개정 2026-09-07] "대관료/추가 옵션 박스마다 총액을 강조 표시" 시안
                         요청 — 소계 줄을 박스 안에서 테두리로 감싸 눈에 띄게 한다. */}
                     <div className="mt-3 flex justify-between border border-accent bg-accent-soft/40 px-3 py-2.5 text-s font-bold text-foreground">
-                      <span>{BOX_TOTAL_LABEL[section]}</span>
+                      <span>{SECTION_SUBTOTAL_LABEL[section]}</span>
                       <span className="tabular-nums">{won(subtotal)}</span>
                     </div>
                   </div>

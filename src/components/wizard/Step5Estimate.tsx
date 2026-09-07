@@ -102,11 +102,11 @@ export function Step5Estimate({
             지금 엉뚱한 게 볼드값" — 소계 두 줄이 얇고 아래 부가세와 구분이 안 됐다.
             굵게 바꿔 중요도를 맞춘다. */}
         <div className="flex justify-between text-s font-bold text-foreground">
-          <span>{t("estimate.contractSectionLabel", "실제 계약금액")}</span>
+          <span>{t("estimate.contractSectionLabel", "총 대관료")}</span>
           <span className="tabular-nums">{won(contractSubtotal)}</span>
         </div>
         <div className="mt-1.5 flex justify-between text-s font-bold text-foreground">
-          <span>{t("estimate.additionalSectionLabel", "추가 예상 금액")}</span>
+          <span>{t("estimate.additionalSectionLabel", "총 옵션비용")}</span>
           <span className="tabular-nums">{won(additionalSubtotal)}</span>
         </div>
         <div className="mt-2.5 flex justify-between border-t border-border/60 pt-2.5 text-s text-muted">
@@ -118,7 +118,7 @@ export function Step5Estimate({
           <span className="tabular-nums">{won(quote.vat)}</span>
         </div>
         <div className="mt-2.5 flex items-baseline justify-between border-t border-border pt-2.5">
-          <span className="text-s font-bold">{t("estimate.totalLabel", "합계")}</span>
+          <span className="text-s font-bold">{t("estimate.totalLabel", "총금액")}</span>
           <span className="text-h6-m sm:text-h6 font-bold tabular-nums">{won(quote.total)}</span>
         </div>
       </div>

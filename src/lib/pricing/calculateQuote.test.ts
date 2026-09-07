@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { calculateQuote } from "./calculateQuote";
 import { resolveSelectedDates } from "./dateRange";
+import { sectionOf } from "./lineItemGroups";
 import {
   clampAddonQuantity,
   findAddon,
@@ -176,6 +177,9 @@ describe("calculateQuote — 명세서 7장 검증 케이스", () => {
     expect(restLine.billable).toBe(1);
     expect(restLine.amount).toBe(1 * restPrice);
     expect(normalDate).toBeTruthy(); // 나머지 한 날은 REST가 아니라 10% 할인 단가로 남는다
+    // [버그 수정 2026-09-08] "휴무일은 대관료에 포함되어야해" — extra_days_rest가
+    // "추가 옵션"(ADDITIONAL)이 아니라 "대관료"(CONTRACT)로 잡혀야 한다.
+    expect(sectionOf(restLine)).toBe("CONTRACT");
   });
 
   it("휴무일(REST) — 추가일 전부를 휴무일로 지정하면 전액 단가 줄은 아예 생기지 않는다", () => {

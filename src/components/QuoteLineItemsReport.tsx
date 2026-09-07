@@ -1,6 +1,7 @@
 import { won } from "@/lib/format";
 import type { LineItem, QuoteSelection } from "@/lib/pricing/types";
 import {
+  applicantLineLabel,
   FEE_GROUP_LABEL,
   SECTION_GROUPS,
   SECTION_LABEL,
@@ -69,9 +70,11 @@ function VenueLineItemGroup({
 }
 
 // [개정 2026-08-26] "아레나 패키지의 실제 계약금액은 패키지에 대한 내역이고, 옵션
-// 선택한 것들은 추가 예상 예산" 요청에 따라 표를 "계약 내역"(기본 대관료·전용
-// 사용료)과 "추가 예상 금액"(옵션 사용료) 두 슬롯으로 나눈다. 슬롯 안에서는 기존
+// 선택한 것들은 추가 예상 예산" 요청에 따라 표를 "대관료"(기본 대관료·전용
+// 사용료)과 "추가 옵션"(옵션 사용료) 두 슬롯으로 나눈다. 슬롯 안에서는 기존
 // 그룹(기본 대관료/전용 사용료, 또는 옵션) 구분을 그대로 유지한다.
+// [개정 2026-09-08] 라벨을 실시간 요약 패널(SummaryPanel)과 같은 말로 맞췄다
+// (lineItemGroups.SECTION_LABEL/SECTION_SUBTOTAL_LABEL 참고).
 function SectionTable({
   section,
   items,
@@ -131,7 +134,7 @@ function SectionTable({
                       return (
                         <tr key={item.addonId} className="border-b border-border/70 tabular-nums">
                           <td className={`${cellPad} pl-4 text-left`}>
-                            <span className="font-bold">{item.label}</span>
+                            <span className="font-bold">{applicantLineLabel(item)}</span>
                           </td>
                           <td className={`${cellPad} text-right`}>
                             {item.pricingType === "REVENUE_PERCENT"
