@@ -58,7 +58,11 @@ function buildCalendarWeeks(year: number, month: number): CalendarWeek[] {
 }
 
 function isSameDate(a: Date, b: Date): boolean {
-  return a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate();
+  return (
+    a.getFullYear() === b.getFullYear() &&
+    a.getMonth() === b.getMonth() &&
+    a.getDate() === b.getDate()
+  );
 }
 
 function dateKey(d: Date): string {
@@ -153,7 +157,10 @@ export function Step1Calendar({
     // 회차는 공연일에만 의미가 있다. 셋업·철수로 바꾸면 1로 되돌려 흔적을 남기지 않는다.
     onChangeMidHallDays({
       ...midHall,
-      [date]: { role, shows: role === "PERFORMANCE" ? (current?.shows ?? 1) : 1 },
+      [date]: {
+        role,
+        shows: role === "PERFORMANCE" ? (current?.shows ?? 1) : 1,
+      },
     });
   }
 
@@ -161,7 +168,9 @@ export function Step1Calendar({
   // 아레나 전용 설정 또는 공간공통(ALL, 과거 이관 데이터)만 이 화면에 적용한다 —
   // 중형공연장 전용으로 막힌 날짜는 아레나에서는 그대로 선택 가능해야 한다.
   const blockedByDate = new Map(
-    dateBlocks.filter((b) => b.venueId === "arena" || b.venueId === "ALL").map((b) => [b.date, b]),
+    dateBlocks
+      .filter((b) => b.venueId === "arena" || b.venueId === "ALL")
+      .map((b) => [b.date, b]),
   );
   const today = new Date();
   const usedDayCount = 6 - excludedDays.length;
@@ -169,11 +178,14 @@ export function Step1Calendar({
   const selectedDates = resolveSelectedDates({ week, excludedDays, extraDays });
   const dayTagDefaults = defaultDayTags(selectedDates, defaultPerformanceDays);
 
-  const selectedTuesday = calendarWeeks.find((w) => w.weekOfMonth === week.weekOfMonth)?.days[1] ?? null;
+  const selectedTuesday =
+    calendarWeeks.find((w) => w.weekOfMonth === week.weekOfMonth)?.days[1] ??
+    null;
   const activeDateKeys = new Set<string>();
   if (selectedTuesday) {
     for (let i = 0; i < 6; i++) {
-      if (!excludedDays.includes(WEEKDAYS[i])) activeDateKeys.add(dateKey(addDays(selectedTuesday, i)));
+      if (!excludedDays.includes(WEEKDAYS[i]))
+        activeDateKeys.add(dateKey(addDays(selectedTuesday, i)));
     }
     for (let i = 0; i < extraDays; i++) {
       activeDateKeys.add(dateKey(addDays(selectedTuesday, 6 + i))); // 일요일(offset 5) 다음날부터 연장
@@ -223,7 +235,10 @@ export function Step1Calendar({
 
   function demandFor(weekOfMonth: number): number {
     const match = weekDemand.find(
-      (d) => d.year === week.year && d.month === week.month && d.weekOfMonth === weekOfMonth,
+      (d) =>
+        d.year === week.year &&
+        d.month === week.month &&
+        d.weekOfMonth === weekOfMonth,
     );
     return match?.companyCount ?? 0;
   }
@@ -243,9 +258,12 @@ export function Step1Calendar({
   function dayKindForDate(iso: string): DayKind | null {
     const offset = offsetForDate(iso);
     if (offset === null) return null;
-    if (offset >= 0 && offset <= 5) return { kind: "base", weekday: WEEKDAYS[offset] };
-    if (offset >= 6 && offset <= 6 + extraDays - 1) return { kind: "extra", index: offset - 6 };
-    if (offset === 6 + extraDays && extraDays < MAX_EXTRA_DAYS) return { kind: "extend" };
+    if (offset >= 0 && offset <= 5)
+      return { kind: "base", weekday: WEEKDAYS[offset] };
+    if (offset >= 6 && offset <= 6 + extraDays - 1)
+      return { kind: "extra", index: offset - 6 };
+    if (offset === 6 + extraDays && extraDays < MAX_EXTRA_DAYS)
+      return { kind: "extend" };
     return null;
   }
 
@@ -304,7 +322,10 @@ export function Step1Calendar({
   }
 
   function setShowCount(iso: string, count: number) {
-    onChangeDayShowCounts({ ...dayShowCounts, [iso]: Math.max(1, Math.min(4, count)) });
+    onChangeDayShowCounts({
+      ...dayShowCounts,
+      [iso]: Math.max(1, Math.min(4, count)),
+    });
   }
 
   /** 추가일(extra) 하나를 통째로 뗀다 — 그 뒤로 이어 붙은 추가일들은 하루씩 앞으로
@@ -339,16 +360,31 @@ export function Step1Calendar({
     setOpenDate(null);
   }
 
-  const setupCount = selectedDates.filter((d) => effectiveDayTag(d, dayTags, dayTagDefaults) === "PREP").length;
-  const loadOutCount = selectedDates.filter((d) => effectiveDayTag(d, dayTags, dayTagDefaults) === "LOAD_OUT").length;
-  const restCount = selectedDates.filter((d) => effectiveDayTag(d, dayTags, dayTagDefaults) === "REST").length;
-  const performanceCount = selectedDates.length - setupCount - loadOutCount - restCount;
+  const setupCount = selectedDates.filter(
+    (d) => effectiveDayTag(d, dayTags, dayTagDefaults) === "PREP",
+  ).length;
+  const loadOutCount = selectedDates.filter(
+    (d) => effectiveDayTag(d, dayTags, dayTagDefaults) === "LOAD_OUT",
+  ).length;
+  const restCount = selectedDates.filter(
+    (d) => effectiveDayTag(d, dayTags, dayTagDefaults) === "REST",
+  ).length;
+  const performanceCount =
+    selectedDates.length - setupCount - loadOutCount - restCount;
 
   return (
     <div>
-      {heading && <h2 className="type-kr-heading text-h5-m sm:text-h5">{heading}</h2>}
+      {heading && (
+        <h2 className="type-kr-heading text-h5-m sm:text-h5">{heading}</h2>
+      )}
 
-      <div className={heading ? "mt-6 flex items-center justify-between" : "flex items-center justify-between"}>
+      <div
+        className={
+          heading
+            ? "mt-6 flex items-center justify-between"
+            : "flex items-center justify-between"
+        }
+      >
         <button
           type="button"
           onClick={() => goToMonth(-1)}
@@ -383,9 +419,14 @@ export function Step1Calendar({
       <div className="mt-1.5 space-y-1 sm:space-y-1.5">
         {calendarWeeks.map((calWeek, wi) => {
           const isSelectable = calWeek.weekOfMonth !== null;
-          const demand = calWeek.weekOfMonth !== null ? demandFor(calWeek.weekOfMonth) : 0;
-          const blocked = calWeek.weekOfMonth !== null ? blockedFor(calWeek.weekOfMonth) : undefined;
-          const openInThisRow = openDate && calWeek.days.some((d) => isoDate(d) === openDate);
+          const demand =
+            calWeek.weekOfMonth !== null ? demandFor(calWeek.weekOfMonth) : 0;
+          const blocked =
+            calWeek.weekOfMonth !== null
+              ? blockedFor(calWeek.weekOfMonth)
+              : undefined;
+          const openInThisRow =
+            openDate && calWeek.days.some((d) => isoDate(d) === openDate);
           return (
             <div key={wi}>
               <div className="grid w-full grid-cols-7 gap-1 p-0.5 sm:gap-1.5">
@@ -395,7 +436,9 @@ export function Step1Calendar({
                   const isToday = isSameDate(date, today);
                   const iso = isoDate(date);
                   const isActive = activeDateKeys.has(dateKey(date));
-                  const tag = isActive ? effectiveDayTag(iso, dayTags, dayTagDefaults) : null;
+                  const tag = isActive
+                    ? effectiveDayTag(iso, dayTags, dayTagDefaults)
+                    : null;
                   const dayKind = dayKindForDate(iso);
                   const isExtendable = dayKind?.kind === "extend";
                   const interactable = dayKind !== null;
@@ -403,7 +446,9 @@ export function Step1Calendar({
                   // 이 날짜 자신의 차단 여부를 따로 확인해야 놓치지 않는다.
                   const cellBlocked = blocked ?? blockedByDate.get(iso);
                   const cellDisabled =
-                    !!cellBlocked || (isMonday && !interactable) || (!isSelectable && !interactable);
+                    !!cellBlocked ||
+                    (isMonday && !interactable) ||
+                    (!isSelectable && !interactable);
                   return (
                     <button
                       key={di}
@@ -414,7 +459,8 @@ export function Step1Calendar({
                           setOpenDate(openDate === iso ? null : iso);
                           return;
                         }
-                        if (calWeek.weekOfMonth !== null) selectWeek(calWeek.weekOfMonth);
+                        if (calWeek.weekOfMonth !== null)
+                          selectWeek(calWeek.weekOfMonth);
                       }}
                       className={[
                         "flex h-9 flex-col items-center justify-center gap-0.5 text-xs sm:h-11 sm:text-s",
@@ -429,7 +475,9 @@ export function Step1Calendar({
                                 : isMonday
                                   ? "cursor-default text-muted/70"
                                   : "cursor-pointer text-foreground hover:bg-panel",
-                        isToday ? "underline decoration-2 underline-offset-4" : "",
+                        isToday
+                          ? "underline decoration-2 underline-offset-4"
+                          : "",
                         openDate === iso ? "ring-2 ring-accent" : "",
                       ].join(" ")}
                     >
@@ -461,209 +509,170 @@ export function Step1Calendar({
                               : "세팅"}
                         </span>
                       )}
-                      {!tag && isExtendable && <span className="text-xs font-bold leading-none">추가+</span>}
+                      {!tag && isExtendable && (
+                        <span className="text-xs font-bold leading-none">
+                          추가+
+                        </span>
+                      )}
                     </button>
                   );
                 })}
               </div>
 
               {openInThisRow && openDate && (
-                <div className="mt-1.5 border border-border/40 px-3 py-2.5">
-                  <div className="flex items-center justify-between">
-                    <div className="text-xs font-bold text-foreground">
-                      {formatDateLabel(openDate)}
-                      {openDayKind?.kind === "extend" ? " — 추가 후 역할 선택" : " — 역할 선택"}
+                // [수정 2026-09-07] "날짜 선택하면 나오는 레이어가 너무 가로로 길어...
+                // 선택날짜 부터 레이어가 커져야해" — 예전엔 행 전체 너비로 펼쳐져 클릭한
+                // 날짜와 무관하게 항상 같은 폭이었다. 위 날짜 그리드와 같은 grid-cols-7
+                // 트랙에 맞춰, 고른 날짜의 칸부터 그 주의 마지막 칸까지만 펼친다.
+                <div className="mt-1.5 grid grid-cols-7 gap-1 sm:gap-1.5">
+                  <div
+                    className="border border-border/40 px-3 py-2.5"
+                    style={{
+                      gridColumn: `${calWeek.days.findIndex((d) => isoDate(d) === openDate) + 1} / 8`,
+                    }}
+                  >
+                    <div className="flex items-center justify-between">
+                      <div className="text-xs font-bold text-foreground">
+                        {formatDateLabel(openDate)}
+                        {openDayKind?.kind === "extend"
+                          ? " — 추가 후 역할 선택"
+                          : " — 역할 선택"}
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => setOpenDate(null)}
+                        aria-label="닫기"
+                        className="text-xs text-muted hover:text-foreground"
+                      >
+                        닫기 ✕
+                      </button>
                     </div>
-                    <button
-                      type="button"
-                      onClick={() => setOpenDate(null)}
-                      aria-label="닫기"
-                      className="text-xs text-muted hover:text-foreground"
-                    >
-                      닫기 ✕
-                    </button>
-                  </div>
-                  {/* [신규 2026-09-02] 「패키지」는 기본 6일 안에서 아레나와 중형을 함께
+                    {/* [신규 2026-09-02] 「패키지」는 기본 6일 안에서 아레나와 중형을 함께
                       짠다 — 한 날짜가 두 공간에서 서로 다른 역할을 가질 수 있으므로
                       역할 줄을 공간별로 나눈다. 공간이 하나뿐인 예약에서는 라벨 없이
                       예전 그대로 한 줄만 나온다. */}
-                  {twoVenueRoles && (
-                    <p className="mt-2 text-xs font-bold text-muted">아레나 공연장</p>
-                  )}
-                  <div className="mt-2 flex flex-wrap gap-1.5">
-                    {/* [수정 2026-09-07] "버튼 하나를 해제하면 다른 버튼이 자동으로 눌려요" —
+                    {twoVenueRoles && (
+                      <p className="mt-2 text-xs font-bold text-muted">
+                        아레나 공연장
+                      </p>
+                    )}
+                    <div className="mt-2 flex flex-wrap gap-1.5">
+                      {/* [수정 2026-09-07] "버튼 하나를 해제하면 다른 버튼이 자동으로 눌려요" —
                         예전에는 눌림 표시를 effectiveDayTag(내가 안 골랐어도 자동 계산되는
                         기본값 포함)로 판정해서, 지정을 해제(dayTags에서 제거)하면 그 날짜의
                         기본값과 같은 다른 버튼이 갑자기 눌린 것처럼 보였다. 눌림 표시는
                         내가 실제로 고른 값(dayTags[openDate])에만 반응하게 해서, 해제하면
                         어느 버튼도 눌리지 않은 상태로 보이게 한다. */}
-                    <button
-                      type="button"
-                      onClick={() => setRole(openDate, "PREP")}
-                      className={[
-                        "inline-flex h-8 items-center border px-3 text-xs font-bold transition-colors",
-                        dayTags[openDate] === "PREP"
-                          ? "border-foreground bg-inverse-bg text-inverse-fg"
-                          : "border border-border/25 text-muted hover:border-foreground hover:text-foreground",
-                      ].join(" ")}
-                    >
-                      셋업
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setRole(openDate, "PERFORMANCE")}
-                      className={[
-                        "inline-flex h-8 items-center border px-3 text-xs font-bold transition-colors",
-                        dayTags[openDate] === "PERFORMANCE"
-                          ? "border-foreground bg-inverse-bg text-inverse-fg"
-                          : "border border-border/25 text-muted hover:border-foreground hover:text-foreground",
-                      ].join(" ")}
-                    >
-                      공연일
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setRole(openDate, "LOAD_OUT")}
-                      className={[
-                        "inline-flex h-8 items-center border px-3 text-xs font-bold transition-colors",
-                        dayTags[openDate] === "LOAD_OUT"
-                          ? "border-foreground bg-inverse-bg text-inverse-fg"
-                          : "border border-border/25 text-muted hover:border-foreground hover:text-foreground",
-                      ].join(" ")}
-                    >
-                      철수
-                    </button>
-                    {/* [신규 2026-09-06] "1주는 패키지 단위로 추가하고, 그 다음주는 개별로
+                      <button
+                        type="button"
+                        onClick={() => setRole(openDate, "PREP")}
+                        className={[
+                          "inline-flex h-8 items-center border px-3 text-xs font-bold transition-colors",
+                          dayTags[openDate] === "PREP"
+                            ? "border-foreground bg-inverse-bg text-inverse-fg"
+                            : "border border-border/25 text-muted hover:border-foreground hover:text-foreground",
+                        ].join(" ")}
+                      >
+                        셋업
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setRole(openDate, "PERFORMANCE")}
+                        className={[
+                          "inline-flex h-8 items-center border px-3 text-xs font-bold transition-colors",
+                          dayTags[openDate] === "PERFORMANCE"
+                            ? "border-foreground bg-inverse-bg text-inverse-fg"
+                            : "border border-border/25 text-muted hover:border-foreground hover:text-foreground",
+                        ].join(" ")}
+                      >
+                        공연일
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setRole(openDate, "LOAD_OUT")}
+                        className={[
+                          "inline-flex h-8 items-center border px-3 text-xs font-bold transition-colors",
+                          dayTags[openDate] === "LOAD_OUT"
+                            ? "border-foreground bg-inverse-bg text-inverse-fg"
+                            : "border border-border/25 text-muted hover:border-foreground hover:text-foreground",
+                        ].join(" ")}
+                      >
+                        철수
+                      </button>
+                      {/* [신규 2026-09-06] "1주는 패키지 단위로 추가하고, 그 다음주는 개별로
                         추가... 휴무일을 지정할수 있고 휴무일로 지정하면 공연 준비일에
                         50% 할인이 붙는 개념" — 화~일 기본 6일(base)에는 두지 않고, 그
                         이후로 개별 추가하는 날(extra·extend)에만 고를 수 있다. 가격은
                         calculateQuote.ts가 REST로 지정된 추가일에 준비일 추가 단가의
                         50%를 매긴다. */}
-                    {openDayKind?.kind !== "base" && (
-                      <button
-                        type="button"
-                        onClick={() => setRole(openDate, "REST")}
-                        className={[
-                          "inline-flex h-8 items-center border px-3 text-xs font-bold transition-colors",
-                          dayTags[openDate] === "REST"
-                            ? "border-foreground bg-inverse-bg text-inverse-fg"
-                            : "border border-border/25 text-muted hover:border-foreground hover:text-foreground",
-                        ].join(" ")}
-                      >
-                        휴무일
-                      </button>
-                    )}
-                    {/* [신규 2026-09-07] "주단위 세팅 후 추가 세팅할 때는 삭제 버튼 노출,
+                      {openDayKind?.kind !== "base" && (
+                        <button
+                          type="button"
+                          onClick={() => setRole(openDate, "REST")}
+                          className={[
+                            "inline-flex h-8 items-center border px-3 text-xs font-bold transition-colors",
+                            dayTags[openDate] === "REST"
+                              ? "border-foreground bg-inverse-bg text-inverse-fg"
+                              : "border border-border/25 text-muted hover:border-foreground hover:text-foreground",
+                          ].join(" ")}
+                        >
+                          휴무일
+                        </button>
+                      )}
+                      {/* [신규 2026-09-07] "주단위 세팅 후 추가 세팅할 때는 삭제 버튼 노출,
                         삭제 버튼은 아예 해당 날짜 선택이 삭제되는 것" — 기본 6일(base)은
                         패키지 단위라 뗄 수 없고, 그 뒤로 낱개 추가한 날(extra)만 통째로
                         뗄 수 있다. */}
-                    {openDayKind?.kind === "extra" && (
-                      <button
-                        type="button"
-                        onClick={() => removeExtraDay(openDate)}
-                        className={btnClass("danger", "sm")}
-                      >
-                        삭제
-                      </button>
-                    )}
-                  </div>
-
-                  {activeDateKeys.has(dateKey(new Date(openDate))) &&
-                    effectiveDayTag(openDate, dayTags, dayTagDefaults) === "PERFORMANCE" && (
-                      <div
-                        className={[
-                          "mt-2.5 flex items-center gap-2",
-                          // 공간이 하나뿐일 때는 버튼 줄과 회차를 헤어라인으로 나눈다.
-                          // 두 줄일 때는 바로 아래 「중형 공연장」 구분선이 그 일을 하므로
-                          // 선을 겹쳐 긋지 않는다.
-                          twoVenueRoles ? "" : "border-t border-foreground/20 pt-2.5",
-                        ].join(" ")}
-                      >
-                        <span className="text-xs text-muted">
-                          {twoVenueRoles ? "아레나 공연 회차" : "공연 회차"}
-                        </span>
+                      {openDayKind?.kind === "extra" && (
                         <button
                           type="button"
-                          onClick={() => setShowCount(openDate, (dayShowCounts[openDate] ?? 1) - 1)}
-                          className={ICON_BTN_SM}
+                          onClick={() => removeExtraDay(openDate)}
+                          className={btnClass("danger", "sm")}
                         >
-                          −
+                          삭제
                         </button>
-                        <span className="w-4 text-center text-xs font-bold tabular-nums">
-                          {dayShowCounts[openDate] ?? 1}
-                        </span>
-                        <button
-                          type="button"
-                          onClick={() => setShowCount(openDate, (dayShowCounts[openDate] ?? 1) + 1)}
-                          className={ICON_BTN_SM}
+                      )}
+                    </div>
+
+                    {activeDateKeys.has(dateKey(new Date(openDate))) &&
+                      effectiveDayTag(openDate, dayTags, dayTagDefaults) ===
+                        "PERFORMANCE" && (
+                        <div
+                          className={[
+                            "mt-2.5 flex items-center gap-2",
+                            // 공간이 하나뿐일 때는 버튼 줄과 회차를 헤어라인으로 나눈다.
+                            // 두 줄일 때는 바로 아래 「중형 공연장」 구분선이 그 일을 하므로
+                            // 선을 겹쳐 긋지 않는다.
+                            twoVenueRoles
+                              ? ""
+                              : "border-t border-foreground/20 pt-2.5",
+                          ].join(" ")}
                         >
-                          +
-                        </button>
-                      </div>
-                    )}
-
-                  {/* 중형 줄 — 아레나와 같은 6일 안에서 따로 짠다. 고른 역할을 다시
-                      누르면 그 날짜의 중형 사용이 빠진다. */}
-                  {twoVenueRoles && (
-                    <>
-                      <p className="mt-3 border-t border-border/25 pt-2.5 text-xs font-bold text-muted">
-                        중형 공연장
-                      </p>
-                      <div className="mt-2 flex flex-wrap gap-1.5">
-                        {(
-                          [
-                            ["SETUP", "셋업"],
-                            ["PERFORMANCE", "공연일"],
-                            ["LOAD_OUT", "철수"],
-                          ] as const
-                        ).map(([role, label]) => (
-                          <button
-                            key={role}
-                            type="button"
-                            onClick={() => setMidHallRole(openDate, role)}
-                            className={[
-                              "inline-flex h-8 items-center border px-3 text-xs font-bold transition-colors",
-                              midHall[openDate]?.role === role
-                                ? "border-foreground bg-inverse-bg text-inverse-fg"
-                                : "border border-border/25 text-muted hover:border-foreground hover:text-foreground",
-                            ].join(" ")}
-                          >
-                            {label}
-                          </button>
-                        ))}
-                      </div>
-
-                      {midHall[openDate]?.role === "PERFORMANCE" && (
-                        <div className="mt-2.5 flex items-center gap-2">
-                          <span className="text-xs text-muted">중형 공연 회차</span>
+                          <span className="text-xs text-muted">
+                            {twoVenueRoles ? "아레나 공연 회차" : "공연 회차"}
+                          </span>
                           <button
                             type="button"
                             onClick={() =>
-                              onChangeMidHallDays?.({
-                                ...midHall,
-                                [openDate]: {
-                                  role: "PERFORMANCE",
-                                  shows: Math.max(1, (midHall[openDate]?.shows ?? 1) - 1),
-                                },
-                              })
+                              setShowCount(
+                                openDate,
+                                (dayShowCounts[openDate] ?? 1) - 1,
+                              )
                             }
                             className={ICON_BTN_SM}
                           >
                             −
                           </button>
-                          <span className="w-6 text-center text-xs font-bold tabular-nums">
-                            {midHall[openDate]?.shows ?? 1}
+                          <span className="w-4 text-center text-xs font-bold tabular-nums">
+                            {dayShowCounts[openDate] ?? 1}
                           </span>
                           <button
                             type="button"
                             onClick={() =>
-                              onChangeMidHallDays?.({
-                                ...midHall,
-                                [openDate]: {
-                                  role: "PERFORMANCE",
-                                  shows: Math.min(4, (midHall[openDate]?.shows ?? 1) + 1),
-                                },
-                              })
+                              setShowCount(
+                                openDate,
+                                (dayShowCounts[openDate] ?? 1) + 1,
+                              )
                             }
                             className={ICON_BTN_SM}
                           >
@@ -671,17 +680,100 @@ export function Step1Calendar({
                           </button>
                         </div>
                       )}
-                    </>
-                  )}
+
+                    {/* 중형 줄 — 아레나와 같은 6일 안에서 따로 짠다. 고른 역할을 다시
+                      누르면 그 날짜의 중형 사용이 빠진다. */}
+                    {twoVenueRoles && (
+                      <>
+                        <p className="mt-3 border-t border-border/25 pt-2.5 text-xs font-bold text-muted">
+                          중형 공연장
+                        </p>
+                        <div className="mt-2 flex flex-wrap gap-1.5">
+                          {(
+                            [
+                              ["SETUP", "셋업"],
+                              ["PERFORMANCE", "공연일"],
+                              ["LOAD_OUT", "철수"],
+                            ] as const
+                          ).map(([role, label]) => (
+                            <button
+                              key={role}
+                              type="button"
+                              onClick={() => setMidHallRole(openDate, role)}
+                              className={[
+                                "inline-flex h-8 items-center border px-3 text-xs font-bold transition-colors",
+                                midHall[openDate]?.role === role
+                                  ? "border-foreground bg-inverse-bg text-inverse-fg"
+                                  : "border border-border/25 text-muted hover:border-foreground hover:text-foreground",
+                              ].join(" ")}
+                            >
+                              {label}
+                            </button>
+                          ))}
+                        </div>
+
+                        {midHall[openDate]?.role === "PERFORMANCE" && (
+                          <div className="mt-2.5 flex items-center gap-2">
+                            <span className="text-xs text-muted">
+                              중형 공연 회차
+                            </span>
+                            <button
+                              type="button"
+                              onClick={() =>
+                                onChangeMidHallDays?.({
+                                  ...midHall,
+                                  [openDate]: {
+                                    role: "PERFORMANCE",
+                                    shows: Math.max(
+                                      1,
+                                      (midHall[openDate]?.shows ?? 1) - 1,
+                                    ),
+                                  },
+                                })
+                              }
+                              className={ICON_BTN_SM}
+                            >
+                              −
+                            </button>
+                            <span className="w-6 text-center text-xs font-bold tabular-nums">
+                              {midHall[openDate]?.shows ?? 1}
+                            </span>
+                            <button
+                              type="button"
+                              onClick={() =>
+                                onChangeMidHallDays?.({
+                                  ...midHall,
+                                  [openDate]: {
+                                    role: "PERFORMANCE",
+                                    shows: Math.min(
+                                      4,
+                                      (midHall[openDate]?.shows ?? 1) + 1,
+                                    ),
+                                  },
+                                })
+                              }
+                              className={ICON_BTN_SM}
+                            >
+                              +
+                            </button>
+                          </div>
+                        )}
+                      </>
+                    )}
+                  </div>
                 </div>
               )}
 
               {blocked ? (
-                <div className="px-0.5 pt-0.5 text-right text-xs font-bold text-danger">대관 불가</div>
+                <div className="px-0.5 pt-0.5 text-right text-xs font-bold text-danger">
+                  대관 불가
+                </div>
               ) : (
                 demand > 0 && (
                   <div className="px-0.5 pt-0.5 text-right text-xs text-muted">
-                    {demand > 1 && <span className="font-bold text-warn">검토 중 · </span>}
+                    {demand > 1 && (
+                      <span className="font-bold text-warn">검토 중 · </span>
+                    )}
                     <span className="font-bold text-foreground">{demand}</span>
                     <span>개사 신청</span>
                   </div>
@@ -693,12 +785,15 @@ export function Step1Calendar({
       </div>
 
       <div className="mt-4 text-s font-bold text-foreground">
-        {week.year}년 {week.month}월 {week.weekOfMonth}주차 · 셋업 {setupCount}일 · 공연{" "}
-        {performanceCount}일{loadOutCount > 0 ? ` · 철수 ${loadOutCount}일` : ""}
-        {restCount > 0 ? ` · 휴무 ${restCount}일` : ""} · 총 {totalDays}
-        일 적용
-        {excludedDays.length > 0 && ` (기본 6일 − 제외 ${excludedDays.length}일${extraDays > 0 ? ` + 추가 ${extraDays}일` : ""})`}
-        {excludedDays.length === 0 && extraDays > 0 && ` (기본 6일 + 추가 ${extraDays}일)`}
+        {week.year}년 {week.month}월 {week.weekOfMonth}주차 · 셋업 {setupCount}
+        일 · 공연 {performanceCount}일
+        {loadOutCount > 0 ? ` · 철수 ${loadOutCount}일` : ""}
+        {restCount > 0 ? ` · 휴무 ${restCount}일` : ""} · 총 {totalDays}일 적용
+        {excludedDays.length > 0 &&
+          ` (기본 6일 − 제외 ${excludedDays.length}일${extraDays > 0 ? ` + 추가 ${extraDays}일` : ""})`}
+        {excludedDays.length === 0 &&
+          extraDays > 0 &&
+          ` (기본 6일 + 추가 ${extraDays}일)`}
       </div>
 
       {/* [신규 2026-09-06] "추가 준비일도 기존 준비일 대비 10% 할인, 추가공연일도 기존
@@ -708,7 +803,8 @@ export function Step1Calendar({
           할인이 이미 위 버튼 안내에 있어 여기서는 준비일·공연일만 언급). */}
       {(extraDays > 0 || performanceCount > defaultPerformanceDays) && (
         <p className="mt-1.5 text-xs text-muted">
-          기본 6일을 넘겨 추가하는 준비일·공연일은 각각 기존 단가에서 10% 자동 할인됩니다.
+          기본 6일을 넘겨 추가하는 준비일·공연일은 각각 기존 단가에서 10% 자동
+          할인됩니다.
         </p>
       )}
     </div>
