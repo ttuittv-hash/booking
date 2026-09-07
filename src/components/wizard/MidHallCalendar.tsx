@@ -24,7 +24,10 @@ const DOW_LABELS = ["월", "화", "수", "목", "금", "토", "일"];
 const WEEKDAY_SHORT = ["일", "월", "화", "수", "목", "금", "토"];
 
 // 역할 선택 팝오버의 고정 폭(7칸 중 몇 칸) — Step1Calendar.tsx의 POPOVER_SPAN과 같은 이유.
-const POPOVER_SPAN = 4;
+// [수정 2026-09-08] "레이어 길이를 적당히 고정하고 날짜 선택 시점 기준으로 노출해야지"
+// — 4칸도 너무 넓어서 화~토(8-4=4번째 칸부터) 대부분 오른쪽 끝에 붙어 보였다. 셋업·
+// 공연일·철수 버튼 3개가 필요한 만큼만 차지하도록 좁혔다.
+const POPOVER_SPAN = 3;
 
 function formatDateLabel(iso: string): string {
   const [, m, d] = iso.split("-").map(Number);
