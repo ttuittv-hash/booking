@@ -509,9 +509,18 @@ export function WizardShell({
   // 최종 제출까지 마치면 "수정하기"를 누르기 전까지 다른 단계로 이동할 수 없다.
   const submissionLocked = !!submittedId && !editUnlocked;
 
+  // [버그 수정 2026-09-08] "예상 대관료에서 다음 버튼이 안 눌려" — maxUnlockedStep은
+  // safetyPlanFile(File 객체, localStorage에 못 남는다) 같은 컴포넌트 로컬 상태로 매
+  // 렌더마다 다시 계산된다. 페이지를 새로고침하면 draft의 step 값은 8로 복원되는데
+  // safetyPlanFile은 null로 되돌아가 step7Blocked가 다시 true가 되고, maxUnlockedStep이
+  // 7로 깎여 goTo(9)가 조용히 막혔다 — 버튼은 멀쩡해 보이는데 눌러도 반응이 없는
+  // 증상이 이래서 생긴다. "다음" 버튼이 호출하는 goTo(step+1)은 그 버튼 자신의 onClick
+  // 이 이미 단계별 검사(step 1·2·3·6·7)를 마친 뒤에만 실행되므로, 한 단계 앞으로
+  // 가는 것만은 maxUnlockedStep과 무관하게 항상 허용한다 — StepNav 탭을 눌러 임의
+  // 단계로 건너뛰는 것은 여전히 maxUnlockedStep으로 막는다.
   function goTo(target: number) {
     if (target < 1 || target > TOTAL_STEPS) return;
-    if (target > maxUnlockedStep) return;
+    if (target > maxUnlockedStep && target !== step + 1) return;
     if (submissionLocked && target !== step) return;
     setStep(target);
     if (typeof window !== "undefined") window.scrollTo({ top: 0, behavior: "smooth" });

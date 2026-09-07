@@ -21,7 +21,6 @@ export function Step5Estimate({
   const { t } = useWizardText();
   const pkg = findPackage(rateTable, selection.packageId);
   const hasMidHall = Object.keys(selection.midHallDays).length > 0;
-  const isSimultaneous = selection.bookingMode === "SIMULTANEOUS";
 
   if (!pkg && !hasMidHall) {
     return (
@@ -68,20 +67,8 @@ export function Step5Estimate({
         </div>
       </div>
 
-      {/* 고지문은 색면 박스가 아니라 작은 글씨다 — 박스를 두르면 금액표와 무게가 비슷해져
-          어느 쪽이 결과인지 흐려진다. 2026-09-02 부터 "예상 금액" 고지는 여기 한 곳이다
-          (사이드바 요약에 있던 같은 문구는 뺐다 — 값이 움직일 때마다 보이는 자리에 경고를
-          붙여 두면 읽히지 않는 문구가 된다) */}
-      <p className="mt-6 text-xs leading-5 text-muted">
-        {quote.meteredNotice} {t("estimate.estimateNoticePrefix", "본 금액은")}{" "}
-        <b className="font-bold text-foreground">{t("estimate.estimateNoticeEmphasis", "예상")}</b>
-        {t("estimate.estimateNoticeSuffix", "이며 확정 금액이 아닙니다.")}
-        {isSimultaneous &&
-          ` ${t(
-            "estimate.simultaneousSumNote",
-            "위 금액은 아레나 + 중형공연장 합산입니다(할인 없이 두 소계를 단순 합산).",
-          )}`}
-      </p>
+      {/* [삭제 2026-09-08] "이 메시지 삭제해줘" — 유틸리티 정산 안내·예상 금액 고지·
+          동시 대관 합산 안내 문구를 뺐다. */}
 
       {quote.blockingIssues.length > 0 && (
         <div className="mt-4 text-xs leading-5 text-muted">
