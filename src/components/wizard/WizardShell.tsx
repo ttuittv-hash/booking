@@ -403,8 +403,14 @@ export function WizardShell({
   const quote = useMemo(() => calculateQuote(resolvedSelection, rateTable), [resolvedSelection, rateTable]);
   const hasMidHallSelection = Object.keys(selection.midHallDays).length > 0;
   // [신규 2026-09-06] "동시 대관은... 아레나/중형 중 둘중 최초 시작 일정 기준 2주 안에서
-  // 신청 가능해야해" — 두 시작일 간격이 14일을 넘으면 얼랏. 아레나 캘린더(week 변경)와
-  // 중형 캘린더(날짜 확정) 양쪽에서, 상대편 일정이 이미 있으면 그 즉시 검사한다.
+  // 신청 가능해야해" — 두 시작일 간격이 14일을 넘으면 얼랏.
+  // [버그 수정 2026-09-08] "같은 주간 내 등록해도 불가 얼랏이 왜 뜨는거야" — 중형
+  // 캘린더에서 날짜를 고를 때도 이 즉시 검사를 걸었었는데, 아레나 week는 "선택 안
+  // 함" 상태가 없이 항상 기본값(마운트 시점 다음 달 1주차)을 갖고 있어서, 아레나
+  // 탭을 아직 만지지도 않은 채 중형만 먼저 골라도 그 기본값 기준으로 걸려 오탐이
+  // 났다. 아레나 쪽(week 변경)은 중형이 이미 골라져 있을 때만 검사하므로(=상대편이
+  // 실제로 확정한 값) 그대로 두고, 중형 쪽 즉시 검사는 없앤다 — 최종 판정은 어차피
+  // "다음" 버튼 클릭 시 selection 확정값으로 한 번 더 한다(아래 참고).
   function checkSimultaneousWindow(week: QuoteSelection["week"], midHallDays: Record<string, unknown>) {
     if (selection.bookingMode !== "SIMULTANEOUS") return;
     const gap = simultaneousWindowGapDays(week, midHallDays);
@@ -953,10 +959,9 @@ export function WizardShell({
                       rateConfig={rateTable.midHall}
                       monthBounds={calendarMonthBounds}
                       onChangeMonth={(year, month) => setMidHallMonth({ year, month })}
-                      onChangeDays={(midHallDays) => {
-                        setSelection((prev) => ({ ...prev, midHallDays }));
-                        checkSimultaneousWindow(selection.week, midHallDays);
-                      }}
+                      onChangeDays={(midHallDays) =>
+                        setSelection((prev) => ({ ...prev, midHallDays }))
+                      }
                       onChangeExtraSetupHours={(value) =>
                         setSelection((prev) => ({ ...prev, midHallExtraSetupHours: value }))
                       }
