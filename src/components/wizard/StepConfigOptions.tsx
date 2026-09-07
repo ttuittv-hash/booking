@@ -705,21 +705,13 @@ export function StepConfigOptions({
     />
   );
 
-  // 세 번째 공간("패키지")은 아레나와 같은 패키지 모델이라 구성 목록을 그대로 보여준다.
-  // 동시 대관 요금 계산에는 아직 들어가지 않으므로 여기서는 "무엇이 있는지"를 읽는
-  // 자리다 — 금액이 합산되는 것처럼 보이지 않게 선택은 받지 않는다.
-  const specialPackages = packagesForVenue(rateTable, SPECIAL_VENUE_ID);
-  const specialSection =
-    specialPackages.length > 0 ? (
-      <PackagePicker
-        packages={specialPackages}
-        addons={rateTable.addons}
-        selectedId={null}
-        onSelect={() => {}}
-        fieldOrders={fieldOrders}
-        disabledFields={disabledFields}
-      />
-    ) : null;
+  // [버그 수정 2026-09-08] "동시대관(아레나+중형)을 선택하고 올인원은 선택 안 했는데
+  // 구성/옵션에 올인원 탭까지 노출되는 오류" — 세 번째 공간("올인원")은 동시 대관과는
+  // 완전히 다른 별도 venueId 선택지라(WizardShell.isSpecialSchedule 참고, 동시 대관과
+  // 상호 배타적), 이 지점(isSimultaneous===true)에서는 올인원 패키지가 있든 없든
+  // 절대 보여줄 대상이 아니다. 이전에는 "무엇이 있는지 미리 보여주는 자리"로 올인원
+  // 패키지가 있으면 탭을 하나 더 얹었었는데, 올인원 요금이 실제로 채워지자 동시
+  // 대관과 무관한 공간의 요금표가 그대로 노출됐다 — 탭 자체를 없앤다.
 
   // 탭 이름의 정본은 venue.<id>.name(문구 관리 「공간 이름」) — 위저드·패키지 관리가
   // 같은 말을 쓰도록 한 곳에서 읽는다. 예전 key 로 고쳐 둔 문구는 잃지 않게 뒤로 물린다.
@@ -735,14 +727,6 @@ export function StepConfigOptions({
         tStr("configOptions.mediumHallTabLabel", defaultVenueName(MID_HALL_VENUE_ID)),
       ),
     },
-    ...(specialSection
-      ? [
-          {
-            id: SPECIAL_VENUE_ID,
-            label: tStr(venueLabelKey(SPECIAL_VENUE_ID), defaultVenueName(SPECIAL_VENUE_ID)),
-          },
-        ]
-      : []),
   ];
 
   return (
@@ -752,9 +736,6 @@ export function StepConfigOptions({
         lead={headingOverride?.lead ?? stepText.configSimultaneousLead}
       />
 
-      {/* [개정 2026-09-02] "패키지" 탭을 중형 옆에 세운다. 등록된 패키지가 있을 때만
-          내보낸다 — 요금표에 아무것도 없는 공간의 탭은 눌러도 빈 화면이라, 있는 것처럼
-          보이기만 하고 신청은 못 하는 상태가 된다. */}
       <div className="mt-8 flex gap-1 border-b border-border">
         {venueTabs.map((tab) => (
           <button
@@ -773,13 +754,7 @@ export function StepConfigOptions({
         ))}
       </div>
 
-      <div className="mt-6">
-        {venueTab === MID_HALL_VENUE_ID
-          ? midHallSection
-          : venueTab === SPECIAL_VENUE_ID
-            ? specialSection
-            : arenaSection}
-      </div>
+      <div className="mt-6">{venueTab === MID_HALL_VENUE_ID ? midHallSection : arenaSection}</div>
     </section>
   );
 }
