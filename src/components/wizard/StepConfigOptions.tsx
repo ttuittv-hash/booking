@@ -316,6 +316,9 @@ function arenaSummaryLine(
 // 파생 행이라 이 순서 조정 대상에서 뺀다("총금액이 가장 밑에 들어가야해" 요구를
 // 그대로 지키기 위해 항상 맨 뒤 고정).
 const PACKAGE_CARD_GROUP_ID = "configOptions.packageCard";
+// "아레나" 제목 아래 예상 관객·셋업·공연 요약 줄(동적으로 조립되는 lead 문장) 전체를
+// 어드민에서 켜고 끄는 스위치 — disabledFields 관례를 그대로 따른다.
+const ARENA_SUMMARY_LEAD_FIELD_ID = "configOptions.arenaSummaryLead";
 const PACKAGE_CARD_DEFAULT_ORDER = ["audienceCapacity", "recommendedStage", "recommendedSeating", "baseFee"] as const;
 
 function PackagePicker({
@@ -619,7 +622,11 @@ export function StepConfigOptions({
         <StepHeading
           title={headingOverride?.title ?? stepText.configArenaTitle}
           lead={
-            pkg
+            // [수정 2026-09-07] "저 부분(예상 관객·셋업·공연 요약 줄) 삭제하고 싶은데
+            // 삭제가 안 됨" — 예전에는 단어 하나하나(예상 관객/셋업/공연 등)만 바꿔 쓸 수
+            // 있고, 줄 자체를 끌 방법이 없었다. 다른 슬롯과 같은 노출 On/off 패턴
+            // (disabledFields)을 그대로 써서 이 줄 전체를 켜고 끌 수 있게 한다.
+            pkg && !disabledFields?.includes(ARENA_SUMMARY_LEAD_FIELD_ID)
               ? `${pkg.name} · ${pkg.audienceTier.label} · ${tStr("configOptions.arenaSummary.expectedAudienceLabel", "예상 관객")} ${selection.expectedAudience.toLocaleString()}${tStr("configOptions.arenaSummary.peopleUnit", "명")} · ${arenaSummaryLine(selection, defaultPerformanceDays, tStr)}`
               : undefined
           }
