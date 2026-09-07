@@ -116,13 +116,22 @@ function VenueLineItemGroup({
 function itemDetail(item: LineItem, expectedRevenue: number): string | null {
   const isIncluded = item.included > 0 && item.billable === 0 && item.amount === 0;
   if (isIncluded) return null;
-  // [수정 2026-09-08] "대관료 할인 항목에도 수량 1 이런식으로 넣어놨던데 대관료에
-  // 수량이라는 단위가 아예 안 맞지" — 할인은 개수로 세는 게 아니라 뺄 수 없다.
-  if (item.addonId === "package_discount") return null;
   if (item.pricingType === "REVENUE_PERCENT") {
     return `${won(expectedRevenue)} × ${item.unitPrice}%`;
   }
   return `수량 ${item.requested.toLocaleString()} · 단가 ${won(item.unitPrice)}`;
+}
+
+// [수정 2026-09-08] "대관료에 수량이 어딨어? 괄호에 넣은 내역을 상세에 노출해" —
+// 대관료(CONTRACT) 항목은 수량·단가 개념이 안 맞는다는 지적으로, "수량 N · 단가 Y"
+// 대신 라벨 끝에 괄호로 붙어 있던 설명("기본 대관료(Rate A)"의 "Rate A", "추가일
+// (준비일 3일, 할인 10%)"의 "준비일 3일, 할인 10%")을 그대로 세부내역 칸으로 옮긴다.
+// 괄호가 없는 라벨(예: "대관료 할인")은 세부내역을 비운다. 추가 옵션(ADDITIONAL)은
+// 실제로 수량을 고르는 항목이라 기존 수량·단가 표기를 그대로 쓴다.
+function splitParenDetail(label: string): { main: string; detail: string | null } {
+  const match = label.match(/^(.*?)\s*\(([^()]*)\)\s*$/);
+  if (!match) return { main: label, detail: null };
+  return { main: match[1], detail: match[2] };
 }
 
 function SectionBox({
@@ -165,13 +174,17 @@ function SectionBox({
           </div>
           {sectionItems.map((item) => {
             const isIncluded = item.included > 0 && item.billable === 0 && item.amount === 0;
-            const detail = itemDetail(item, expectedRevenue);
+            const isContract = section === "CONTRACT";
+            const { main, detail: parenDetail } = isContract
+              ? splitParenDetail(estimateLineLabel(item))
+              : { main: estimateLineLabel(item), detail: null };
+            const detail = isContract ? parenDetail : itemDetail(item, expectedRevenue);
             return (
               <div
                 key={item.addonId}
                 className={`grid ${COLS} items-baseline gap-4 border-b border-border/15 ${rowPad}`}
               >
-                <dt className="text-s font-bold text-foreground">{estimateLineLabel(item)}</dt>
+                <dt className="text-s font-bold text-foreground">{main}</dt>
                 <dd className="text-xs text-muted">{detail}</dd>
                 <dd
                   className={`text-right text-s font-bold tabular-nums ${isIncluded ? "text-good" : "text-foreground"}`}
