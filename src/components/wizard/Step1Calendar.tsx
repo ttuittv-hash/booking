@@ -1,6 +1,6 @@
 "use client";
 
-import { ICON_BTN_SM, toggleClass } from "@/components/ui/kit";
+import { btnClass, ICON_BTN_SM, toggleClass } from "@/components/ui/kit";
 
 import { useState } from "react";
 import { isoDate, resolveSelectedDates } from "@/lib/pricing/dateRange";
@@ -250,10 +250,15 @@ export function Step1Calendar({
   }
 
   // [개정 2026-09-06] "아레나는 주단위로 예약되는거니까 삭제는 일별로는 안되게" — 화~일
-  // 기본 6일 중 특정 요일만 빼거나(excludedDays, 요일당 정액 할인) 추가일을 낱개로
-  // 떼어내는 UI를 없앴다. 중형공연장(MidHallCalendar.tsx)은 원래 일 단위 과금이라
-  // 그대로 둔다. excludedDays 필드·요일당 할인 계산(calculateQuote.ts)은 이 필드가
-  // 추가되기 전 신청서를 위해 그대로 남겨두되, 새 신청서는 이 화면에서 채우지 않는다.
+  // 기본 6일 중 특정 요일만 빼는(excludedDays, 요일당 정액 할인) UI는 없앴다. 기본
+  // 6일은 패키지 단위라 요일 하나만 뗄 수 없다. excludedDays 필드·요일당 할인 계산
+  // (calculateQuote.ts)은 이 필드가 추가되기 전 신청서를 위해 그대로 남겨두되, 새
+  // 신청서는 이 화면에서 채우지 않는다.
+  // [재개정 2026-09-07] "주단위 세팅 후 추가 세팅할 때는 삭제 버튼 노출, 삭제 버튼은
+  // 아예 해당 날짜 선택이 삭제되는 것" — 기본 6일과 달리 그 이후 낱개로 붙이는
+  // 추가일(extra)은 하나만 따로 뗄 수 있어야 한다는 요청으로 되돌린다. 날짜는 화~일
+  // 다음으로 빈틈없이 이어 붙는 구조라, 중간 날짜를 지우면 그 뒤 추가일들을 하루씩
+  // 앞으로 당기고 extraDays를 1 줄인다(MAX_EXTRA_DAYS는 그대로).
   function setRole(iso: string, role: DayTag) {
     const dayKind = dayKindForDate(iso);
     if (!dayKind) return;
@@ -300,6 +305,38 @@ export function Step1Calendar({
 
   function setShowCount(iso: string, count: number) {
     onChangeDayShowCounts({ ...dayShowCounts, [iso]: Math.max(1, Math.min(4, count)) });
+  }
+
+  /** 추가일(extra) 하나를 통째로 뗀다 — 그 뒤로 이어 붙은 추가일들은 하루씩 앞으로
+   * 당겨 빈틈이 남지 않게 하고, extraDays를 1 줄인다. 기본 6일(base)에는 쓰지
+   * 않는다(주단위 예약이라 요일 하나만 뗄 수 없다). */
+  function removeExtraDay(iso: string) {
+    const dayKind = dayKindForDate(iso);
+    if (!dayKind || dayKind.kind !== "extra" || !selectedTuesday) return;
+
+    const nextDayTags = omit(dayTags, iso);
+    const nextDayShowCounts = omit(dayShowCounts, iso);
+    for (let i = dayKind.index + 1; i < extraDays; i++) {
+      const fromIso = isoDate(addDays(selectedTuesday, 6 + i));
+      const toIso = isoDate(addDays(selectedTuesday, 6 + i - 1));
+      if (fromIso in nextDayTags) {
+        nextDayTags[toIso] = nextDayTags[fromIso];
+        delete nextDayTags[fromIso];
+      } else {
+        delete nextDayTags[toIso];
+      }
+      if (fromIso in nextDayShowCounts) {
+        nextDayShowCounts[toIso] = nextDayShowCounts[fromIso];
+        delete nextDayShowCounts[fromIso];
+      } else {
+        delete nextDayShowCounts[toIso];
+      }
+    }
+
+    onChangeDayTags(nextDayTags);
+    onChangeDayShowCounts(nextDayShowCounts);
+    onChangeExtraDays(extraDays - 1);
+    setOpenDate(null);
   }
 
   const setupCount = selectedDates.filter((d) => effectiveDayTag(d, dayTags, dayTagDefaults) === "PREP").length;
@@ -514,6 +551,19 @@ export function Step1Calendar({
                         ].join(" ")}
                       >
                         휴무일
+                      </button>
+                    )}
+                    {/* [신규 2026-09-07] "주단위 세팅 후 추가 세팅할 때는 삭제 버튼 노출,
+                        삭제 버튼은 아예 해당 날짜 선택이 삭제되는 것" — 기본 6일(base)은
+                        패키지 단위라 뗄 수 없고, 그 뒤로 낱개 추가한 날(extra)만 통째로
+                        뗄 수 있다. */}
+                    {openDayKind?.kind === "extra" && (
+                      <button
+                        type="button"
+                        onClick={() => removeExtraDay(openDate)}
+                        className={btnClass("danger", "sm")}
+                      >
+                        삭제
                       </button>
                     )}
                   </div>
