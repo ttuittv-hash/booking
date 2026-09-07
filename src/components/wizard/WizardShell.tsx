@@ -43,7 +43,7 @@ import {
   StepEventBasics,
   validatePerformanceInfoStep,
 } from "./StepPerformanceInfo";
-import { StepAudience, validateAudienceStep } from "./StepAudience";
+import { StepAudience, StepCompetitionOption, validateAudienceStep } from "./StepAudience";
 import { StepPublicInterest, type PublicInterestFile } from "./StepPublicInterest";
 import { StepMarketingCooperation } from "./StepMarketingCooperation";
 import { StepSafetyPledge, validateSafetyPledgeStep } from "./StepSafetyPledge";
@@ -815,6 +815,12 @@ export function WizardShell({
         fieldOrders={wizardFieldOrders}
         disabledFields={wizardDisabledFields}
         customOptions={wizardCustomOptions}
+      />
+    ),
+    competitionOption: () => (
+      <StepCompetitionOption
+        info={selection.performanceInfo}
+        onChange={(performanceInfo) => setSelection((prev) => ({ ...prev, performanceInfo }))}
       />
     ),
   };

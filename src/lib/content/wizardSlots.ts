@@ -12,17 +12,28 @@
   맨 마지막으로 옮겼다(WizardShell.tsx의 safetyPledge 슬롯 참고) — 더 이상 STEP3
   슬롯 목록에 없다.
 
-  기본 순서는 "대관자 정보 → 공연 정보 → 기타 → 예상 관객 및 사업규모"다. 관리자가
-  아직 순서를 안 바꿨으면(ScreenTextContent.wizardSlotOrders["3"]가 비어 있으면) 이
-  순서를 쓴다.
+  기본 순서는 "대관자 정보 → 공연 정보 → 기타 → 예상 관객 및 사업규모 → 대관 경합
+  옵션"이다. 관리자가 아직 순서를 안 바꿨으면(ScreenTextContent.wizardSlotOrders["3"]가
+  비어 있으면) 이 순서를 쓴다.
+
+  [개정 2026-09-07] "대관 경합 시 대관료 옵션 추가 가능 범위를 별도 슬롯으로 분류하고
+  탭 가장 밑으로 배치" — 예상 관객 및 사업규모(audience) 슬롯 안에서 티켓 매출 RS
+  요율과 한 줄로 묶여 있던 걸 다섯 번째 슬롯(competitionOption)으로 떼어 맨 끝에 둔다.
 */
-export const STEP3_DEFAULT_SLOT_ORDER = ["applicantDetails", "eventBasics", "credibility", "audience"] as const;
+export const STEP3_DEFAULT_SLOT_ORDER = [
+  "applicantDetails",
+  "eventBasics",
+  "credibility",
+  "audience",
+  "competitionOption",
+] as const;
 
 export const STEP3_SLOT_LABELS: Record<string, string> = {
   applicantDetails: "대관자 정보",
   eventBasics: "공연 정보",
   credibility: "기타 (개최 신뢰도 및 이력 확인)",
   audience: "예상 관객 및 사업규모",
+  competitionOption: "대관 경합 옵션",
 };
 
 /*

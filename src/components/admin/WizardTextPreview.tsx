@@ -30,7 +30,7 @@ import {
   StepCredibility,
   StepEventBasics,
 } from "@/components/wizard/StepPerformanceInfo";
-import { StepAudience } from "@/components/wizard/StepAudience";
+import { StepAudience, StepCompetitionOption } from "@/components/wizard/StepAudience";
 import { StepPublicInterest } from "@/components/wizard/StepPublicInterest";
 import { StepMarketingCooperation } from "@/components/wizard/StepMarketingCooperation";
 import { StepSafetyPledge } from "@/components/wizard/StepSafetyPledge";
@@ -1012,6 +1012,9 @@ const STAGE_GROUPS: StageGroup[] = [
                 disabledFields={ctx.disabledFields}
                 customOptions={ctx.customOptions}
               />
+            ),
+            competitionOption: (
+              <StepCompetitionOption key="competitionOption" info={ctx.mocks.arena.performanceInfo} onChange={noop} />
             ),
           };
           const configuredStep3Order = ctx.slotOrders["3"];

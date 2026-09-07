@@ -305,62 +305,24 @@ function AudienceFields({
           </div>
         </div>
 
-        {/* [신규 2026-08-26, 2026-08-26 레이아웃 정리] 같은 주차에 여러 신청이 몰려
-            경합이 붙었을 때 심사에서 참고하는 경쟁력 지표 2종 — 대관료 옵션 추가
-            범위(최소~최대)와 티켓 매출 RS 요율. "한 행에 다 넣어달라"는 요청으로
-            한 줄에 같이 배치한다. */}
+        {/* [개정 2026-09-07] "대관 경합 시 대관료 옵션 추가 가능 범위"는 별도 슬롯으로
+            분리해 탭 맨 아래(StepCompetitionOption, STEP3 슬롯 순서 마지막)로 옮겼다.
+            티켓 매출 RS 요율만 여기 남는다. */}
         <div>
-          <div className="mb-2.5">
-            <label className="text-xs font-bold text-muted">
-              {t("audience.competitionFeeOptionLabel", "대관 경합 시 대관료 옵션 추가 가능 범위")}
-            </label>
-            <p className="mt-1 text-xs text-muted">
-              {t(
-                "audience.competitionFeeOptionHint",
-                "같은 주차에 다른 신청과 경합이 붙을 경우, 추가로 제시할 수 있는 대관료 옵션의 범위입니다.",
-              )}
-            </p>
-          </div>
-          <div className="flex flex-wrap items-center gap-2">
-            <div className="flex flex-1 items-center gap-1.5">
-              <input
-                type="number"
-                min={0}
-                value={info.competitionFeeOptionMin ?? ""}
-                placeholder={tStr("audience.competitionFeeOptionMinPlaceholder", "최소")}
-                onChange={(e) => set("competitionFeeOptionMin", Math.max(0, Number(e.target.value) || 0))}
-                className="field-base w-full"
-              />
-              <span className="text-xs text-muted">{t("audience.wonUnit", "원")}</span>
-            </div>
-            <span className="text-xs text-muted">~</span>
-            <div className="flex flex-1 items-center gap-1.5">
-              <input
-                type="number"
-                min={0}
-                value={info.competitionFeeOptionMax ?? ""}
-                placeholder={tStr("audience.competitionFeeOptionMaxPlaceholder", "최대")}
-                onChange={(e) => set("competitionFeeOptionMax", Math.max(0, Number(e.target.value) || 0))}
-                className="field-base w-full"
-              />
-              <span className="text-xs text-muted">{t("audience.wonUnit", "원")}</span>
-            </div>
-            <span className="mx-1 h-6 w-px bg-border/40" aria-hidden="true" />
-            <label className="text-xs font-bold whitespace-nowrap text-muted">
-              {t("audience.ticketRevenueShareRateLabel", "티켓 매출 RS 요율")}
-            </label>
-            <div className="flex w-28 items-center gap-1.5">
-              <input
-                type="number"
-                min={0}
-                max={100}
-                value={info.ticketRevenueShareRate ?? ""}
-                placeholder={tStr("audience.ticketRevenueShareRatePlaceholder", "요율")}
-                onChange={(e) => set("ticketRevenueShareRate", clampRate(e.target.value))}
-                className="field-base w-full"
-              />
-              <span className="text-xs text-muted">%</span>
-            </div>
+          <label className="mb-1.5 block text-xs font-bold text-muted">
+            {t("audience.ticketRevenueShareRateLabel", "티켓 매출 RS 요율")}
+          </label>
+          <div className="flex w-28 items-center gap-1.5">
+            <input
+              type="number"
+              min={0}
+              max={100}
+              value={info.ticketRevenueShareRate ?? ""}
+              placeholder={tStr("audience.ticketRevenueShareRatePlaceholder", "요율")}
+              onChange={(e) => set("ticketRevenueShareRate", clampRate(e.target.value))}
+              className="field-base w-full"
+            />
+            <span className="text-xs text-muted">%</span>
           </div>
         </div>
 
@@ -511,5 +473,73 @@ export function StepAudience({
         )}
       </div>
     </section>
+  );
+}
+
+/**
+ * [신규 2026-09-07] "대관 경합 시 대관료 옵션 추가 가능 범위를 별도 슬롯으로 분류하고
+ * 탭 가장 밑으로 배치" — 예전엔 "예상 관객 및 사업규모" 슬롯 안에 티켓 매출 RS 요율과
+ * 한 줄로 묶여 있었다. STEP3(신청자 정보 및 규모) 슬롯 순서 시스템(wizardSlots.ts
+ * STEP3_DEFAULT_SLOT_ORDER)에 다섯 번째 슬롯으로 등록해 독립적으로 순서를 옮길 수
+ * 있게 하고, 기본 위치를 맨 끝에 둔다. 경합 여지는 신청서 전체 기준 값이라 아레나·
+ * 중형으로 나눠 받지 않는다(다른 STEP3 슬롯과 달리 midHallInfo 를 받지 않는 이유).
+ */
+export function StepCompetitionOption({
+  info,
+  onChange,
+}: {
+  info: PerformanceInfo;
+  onChange: (info: PerformanceInfo) => void;
+}) {
+  const { t, tStr } = useWizardText();
+
+  function set<K extends keyof PerformanceInfo>(key: K, value: PerformanceInfo[K]) {
+    onChange({ ...info, [key]: value });
+  }
+
+  return (
+    <div className="border-t-2 border-foreground pt-5">
+      <h3 className="type-kr-heading text-h6-m">
+        {t("competitionOption.sectionHeading", "대관 경합 옵션")}
+      </h3>
+      <div className="mt-4">
+        <div className="mb-2.5">
+          <label className="text-xs font-bold text-muted">
+            {t("audience.competitionFeeOptionLabel", "대관 경합 시 대관료 옵션 추가 가능 범위")}
+          </label>
+          <p className="mt-1 text-xs text-muted">
+            {t(
+              "audience.competitionFeeOptionHint",
+              "같은 주차에 다른 신청과 경합이 붙을 경우, 추가로 제시할 수 있는 대관료 옵션의 범위입니다.",
+            )}
+          </p>
+        </div>
+        <div className="flex flex-wrap items-center gap-2">
+          <div className="flex flex-1 items-center gap-1.5">
+            <input
+              type="number"
+              min={0}
+              value={info.competitionFeeOptionMin ?? ""}
+              placeholder={tStr("audience.competitionFeeOptionMinPlaceholder", "최소")}
+              onChange={(e) => set("competitionFeeOptionMin", Math.max(0, Number(e.target.value) || 0))}
+              className="field-base w-full"
+            />
+            <span className="text-xs text-muted">{t("audience.wonUnit", "원")}</span>
+          </div>
+          <span className="text-xs text-muted">~</span>
+          <div className="flex flex-1 items-center gap-1.5">
+            <input
+              type="number"
+              min={0}
+              value={info.competitionFeeOptionMax ?? ""}
+              placeholder={tStr("audience.competitionFeeOptionMaxPlaceholder", "최대")}
+              onChange={(e) => set("competitionFeeOptionMax", Math.max(0, Number(e.target.value) || 0))}
+              className="field-base w-full"
+            />
+            <span className="text-xs text-muted">{t("audience.wonUnit", "원")}</span>
+          </div>
+        </div>
+      </div>
+    </div>
   );
 }
