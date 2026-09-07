@@ -437,7 +437,11 @@ export function Step1Calendar({
           const openInThisRow =
             openDate && calWeek.days.some((d) => isoDate(d) === openDate);
           return (
-            <div key={wi}>
+            // [수정 2026-09-08] "레이어가 달력을 덮으면 되는데.. 지금은 날짜를 레이어가
+            // 밀어내는 구조야" — 팝오버가 그 주 아래 다음 주 행들을 문서 흐름으로 밀어
+            //내리고 있었다. 이 주 행을 위치 기준(relative)으로 두고, 팝오버는 그 안에서
+            // absolute 로 띄워 달력 위에 겹쳐 보이게 한다(다음 주 행을 밀지 않는다).
+            <div key={wi} className="relative">
               <div className="grid w-full grid-cols-7 gap-1 p-0.5 sm:gap-1.5">
                 {calWeek.days.map((date, di) => {
                   const inMonth = date.getMonth() === week.month - 1;
@@ -538,9 +542,13 @@ export function Step1Calendar({
                 // 버튼 라벨이 글자 단위로 줄바꿈되는 문제가 있었다. 폭은 항상 POPOVER_SPAN
                 // 칸으로 고정하고, 시작 칸만 "클릭한 날짜부터, 단 오른쪽 끝을 넘지 않게"
                 // 뒤로 당긴다 — 주 후반 날짜는 오른쪽 끝에 붙어 폭을 유지한다.
-                <div className="mt-1.5 grid grid-cols-7 gap-1 sm:gap-1.5">
+                // [수정 2026-09-08] "레이어가 달력을 덮으면 되는데.. 지금은 날짜를
+                // 레이어가 밀어내는 구조야" — absolute + top-full 로 이 주 행 바로
+                // 아래에 띄운다. 문서 흐름에서 빠지므로 다음 주 행을 밀어내지 않고
+                // 그 위에 겹쳐 보인다(불투명 배경 + 그림자로 덮여 있다는 걸 보여준다).
+                <div className="absolute inset-x-0 top-full z-20 mt-1.5 grid grid-cols-7 gap-1 sm:gap-1.5">
                   <div
-                    className="border border-border/40 px-3 py-2.5"
+                    className="border border-border/40 bg-surface px-3 py-2.5 shadow-lg"
                     style={{
                       gridColumn: (() => {
                         const dayCol = calWeek.days.findIndex((d) => isoDate(d) === openDate) + 1;

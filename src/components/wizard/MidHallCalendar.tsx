@@ -212,7 +212,10 @@ export function MidHallCalendar({
           const openInThisRow =
             openDate && weekDays.some((d) => isoDate(d) === openDate);
           return (
-            <div key={wi}>
+            // [수정 2026-09-08] "레이어가 달력을 덮으면 되는데.. 지금은 날짜를 레이어가
+            // 밀어내는 구조야" — Step1Calendar.tsx와 동일 이유로 relative 위치 기준을
+            // 둔다(팝오버를 absolute 로 띄워 다음 주 행을 밀지 않게 한다).
+            <div key={wi} className="relative">
               <div className="grid grid-cols-7 gap-1 sm:gap-1.5">
                 {weekDays.map((date) => {
                   const inMonth = date.getMonth() === month - 1;
@@ -261,9 +264,12 @@ export function MidHallCalendar({
                 // 둬야지" — 마지막 칸 근처를 클릭하면 폭이 1칸으로 쪼그라들어 버튼
                 // 라벨이 줄바꿈되는 문제가 있었다. 폭은 항상 POPOVER_SPAN 칸으로 고정하고
                 // 시작 칸만 오른쪽 끝을 넘지 않게 당긴다(Step1Calendar.tsx와 동일 로직).
-                <div className="mt-1.5 grid grid-cols-7 gap-1 sm:gap-1.5">
+                // [수정 2026-09-08] "레이어가 달력을 덮으면 되는데.. 지금은 날짜를
+                // 레이어가 밀어내는 구조야" — absolute + top-full 로 이 주 행 바로
+                // 아래에 띄워 다음 주 행을 밀지 않고 그 위에 겹쳐 보이게 한다.
+                <div className="absolute inset-x-0 top-full z-20 mt-1.5 grid grid-cols-7 gap-1 sm:gap-1.5">
                   <div
-                    className="border border-border/40 px-3 py-2.5"
+                    className="border border-border/40 bg-surface px-3 py-2.5 shadow-lg"
                     style={{
                       gridColumn: (() => {
                         const dayCol = weekDays.findIndex((d) => isoDate(d) === openDate) + 1;
