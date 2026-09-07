@@ -316,6 +316,14 @@ interface RenderCtx {
   slotOrders: Record<string, string[]>;
   setSlotOrder: (slotsKey: string, order: string[]) => void;
   /**
+   * [신규 2026-09-07] "체크박스 항목도 + 버튼 눌러서 바로 추가/입력 가능하고.. 체크박스
+   * 항목도 수정 가능해야" — fieldOrders/disabledFields가 다루는 고정 항목 목록에
+   * 완전히 새로운 항목을 추가한다. 그룹id → 커스텀 항목 key 배열(라벨은 다른 고정
+   * 항목처럼 wizardStrings의 `fieldLabel.<그룹key>.<항목key>`로 별도 편집).
+   */
+  customOptions: Record<string, string[]>;
+  setCustomOption: (groupId: string, options: string[]) => void;
+  /**
    * [신규 2026-09-06] "운영툴에서 수량제한 숫자까지는 입력 가능해야함" — 02 구성·옵션
    * 탭(아레나 단독/중형공연장 단독/동시 대관)의 부대시설 수량·예상매출 입력은 다른
    * 필드(문구 편집)와 달리 DB에 저장하지 않는 순수 미리보기용 로컬 상태다. 세 섹션이
@@ -338,18 +346,28 @@ function FieldOrderPanel({
   defaultOrder,
   fieldLabels,
   title,
+  allowCustomOptions = false,
 }: {
   ctx: RenderCtx;
   groupId: string;
   defaultOrder: string[];
   fieldLabels: Record<string, string>;
   title: string;
+  /**
+   * [신규 2026-09-07] "체크박스 항목도 + 버튼 눌러서 바로 추가/입력 가능하고" — 체크박스
+   * 그룹(신청 기업 유형·행사유형·공연등급·객석형태·무대형태·부대사업 계획)에서만 켠다.
+   * "담당자 정보"·"공연 기본정보 — 공연명·아티스트"처럼 구조가 고정된 필드 그룹은
+   * 새 항목을 끼워 넣을 자리가 없어(코드가 필드마다 다른 입력을 그린다) 대상에서 뺀다.
+   */
+  allowCustomOptions?: boolean;
 }) {
+  const customKeys = allowCustomOptions ? (ctx.customOptions[groupId] ?? []) : [];
+  const fullDefaultOrder = [...defaultOrder, ...customKeys];
   const configured = ctx.fieldOrders[groupId];
   const order =
     configured && configured.length > 0
-      ? [...configured.filter((k) => k in fieldLabels), ...defaultOrder.filter((k) => !configured.includes(k))]
-      : [...defaultOrder];
+      ? [...configured.filter((k) => fullDefaultOrder.includes(k)), ...fullDefaultOrder.filter((k) => !configured.includes(k))]
+      : [...fullDefaultOrder];
   const move = (index: number, direction: -1 | 1) => {
     const target = index + direction;
     if (target < 0 || target >= order.length) return;
@@ -357,6 +375,15 @@ function FieldOrderPanel({
     [next[index], next[target]] = [next[target], next[index]];
     ctx.setFieldOrder(groupId, next);
   };
+  function addOption() {
+    ctx.setCustomOption(groupId, [...customKeys, `custom-${Date.now()}`]);
+  }
+  function removeOption(key: string) {
+    ctx.setCustomOption(
+      groupId,
+      customKeys.filter((k) => k !== key),
+    );
+  }
   // [신규 2026-09-06] "체크박스 위에 항목 레이블 자체도 노출/미노출 설정 가능해야"
   // — 항목을 하나하나 끄지 않고, 이 그룹 전체(제목 포함)를 한 번에 끌 수 있게 한다.
   // 공공/공익 참여 그룹의 "그룹 노출" 토글과 같은 자리(groupId 자체를 disabledFields에
@@ -380,6 +407,7 @@ function FieldOrderPanel({
         {order.map((key, index) => {
           const fieldId = `${groupId}.${key}`;
           const disabled = ctx.disabledFields.includes(fieldId);
+          const isCustom = customKeys.includes(key);
           return (
             <li key={key} className="flex items-center justify-between gap-3 bg-background px-2.5 py-1.5 text-s">
               <label className="flex items-center gap-2">
@@ -389,6 +417,9 @@ function FieldOrderPanel({
                   onChange={(e) => ctx.setFieldDisabled(fieldId, !e.target.checked)}
                 />
                 {fieldLabels[key] ?? key}
+                {/* 라벨은 아래 실제 화면(LivePreview)에서 클릭해 바로 고친다 — 여기선
+                    새로 추가된 항목임을 표시만 한다. */}
+                {isCustom && <span className="text-2xs font-normal text-muted">(커스텀)</span>}
               </label>
               <div className="flex shrink-0 gap-1">
                 <button
@@ -409,11 +440,30 @@ function FieldOrderPanel({
                 >
                   ▼
                 </button>
+                {isCustom && (
+                  <button
+                    type="button"
+                    onClick={() => removeOption(key)}
+                    aria-label="삭제"
+                    className="flex h-7 items-center justify-center rounded border border-border-soft px-2 text-xs text-muted hover:text-danger"
+                  >
+                    삭제
+                  </button>
+                )}
               </div>
             </li>
           );
         })}
       </ul>
+      {allowCustomOptions && (
+        <button
+          type="button"
+          onClick={addOption}
+          className="mt-2 text-2xs font-bold text-muted underline"
+        >
+          ＋ 항목 추가
+        </button>
+      )}
     </div>
   );
 }
@@ -820,6 +870,7 @@ const STAGE_GROUPS: StageGroup[] = [
                 title={field("performanceInfoTitle")}
                 fieldOrders={ctx.fieldOrders}
                 disabledFields={ctx.disabledFields}
+                customOptions={ctx.customOptions}
               />
             ),
             eventBasics: (
@@ -832,6 +883,7 @@ const STAGE_GROUPS: StageGroup[] = [
                 selection={ctx.mocks.arena}
                 fieldOrders={ctx.fieldOrders}
                 disabledFields={ctx.disabledFields}
+                customOptions={ctx.customOptions}
               />
             ),
             credibility: (
@@ -859,6 +911,7 @@ const STAGE_GROUPS: StageGroup[] = [
                 lead={ctx.wizardSteps.audienceLead}
                 fieldOrders={ctx.fieldOrders}
                 disabledFields={ctx.disabledFields}
+                customOptions={ctx.customOptions}
               />
             ),
           };
@@ -889,6 +942,7 @@ const STAGE_GROUPS: StageGroup[] = [
                 defaultOrder={Object.keys(APPLICANT_COMPANY_TYPE_LABEL)}
                 fieldLabels={APPLICANT_COMPANY_TYPE_LABEL}
                 title="신청 기업 유형"
+                allowCustomOptions
               />
               <FieldOrderPanel
                 ctx={ctx}
@@ -919,6 +973,7 @@ const STAGE_GROUPS: StageGroup[] = [
                 defaultOrder={Object.keys(EVENT_TYPE_LABEL)}
                 fieldLabels={EVENT_TYPE_LABEL}
                 title="행사유형"
+                allowCustomOptions
               />
               <FieldOrderPanel
                 ctx={ctx}
@@ -926,6 +981,7 @@ const STAGE_GROUPS: StageGroup[] = [
                 defaultOrder={Object.keys(AGE_RATING_LABEL)}
                 fieldLabels={AGE_RATING_LABEL}
                 title="공연등급"
+                allowCustomOptions
               />
               <FieldOrderPanel
                 ctx={ctx}
@@ -933,6 +989,7 @@ const STAGE_GROUPS: StageGroup[] = [
                 defaultOrder={Object.keys(SEATING_TYPE_LABEL)}
                 fieldLabels={SEATING_TYPE_LABEL}
                 title="객석형태"
+                allowCustomOptions
               />
               <FieldOrderPanel
                 ctx={ctx}
@@ -940,6 +997,7 @@ const STAGE_GROUPS: StageGroup[] = [
                 defaultOrder={Object.keys(STAGE_TYPE_LABEL)}
                 fieldLabels={STAGE_TYPE_LABEL}
                 title="무대형태"
+                allowCustomOptions
               />
               {/* [신규 2026-09-06] "예상 부대행사 옆에도 노출 미노출 여부 체크할수 있게" —
                   신청 기업 유형·행사 유형 등과 같은 순서·노출 패턴(StepAudience.tsx의
@@ -950,6 +1008,7 @@ const STAGE_GROUPS: StageGroup[] = [
                 defaultOrder={Object.keys(ANCILLARY_BUSINESS_PLAN_LABEL)}
                 fieldLabels={ANCILLARY_BUSINESS_PLAN_LABEL}
                 title="예상 부대행사(부대사업 계획)"
+                allowCustomOptions
               />
               <div className="border border-border-soft bg-panel/60 p-3">
                 <p className="mb-2 text-2xs font-bold uppercase tracking-wide text-muted">
@@ -1196,6 +1255,11 @@ export function WizardTextPreview({
         function setSlotOrder(slotsKey: string, order: string[]) {
           patch({ wizardSlotOrders: { ...v.wizardSlotOrders, [slotsKey]: order } });
         }
+        // [신규 2026-09-07] "체크박스 항목도 + 버튼 눌러서 바로 추가/입력" — 그룹id →
+        // 커스텀 항목 key 배열을 통째로 교체한다(항목 추가/삭제 둘 다 이 함수 하나로 처리).
+        function setCustomOption(groupId: string, options: string[]) {
+          patch({ wizardCustomOptions: { ...v.wizardCustomOptions, [groupId]: options } });
+        }
         function setPreviewAddonQuantity(section: PreviewAddonSection, addonId: string, quantity: number) {
           setPreviewAddonQuantities((prev) => ({
             ...prev,
@@ -1219,6 +1283,8 @@ export function WizardTextPreview({
           setFieldDisabled,
           slotOrders: v.wizardSlotOrders,
           setSlotOrder,
+          customOptions: v.wizardCustomOptions,
+          setCustomOption,
           previewAddonQuantities,
           setPreviewAddonQuantity,
           previewExpectedRevenue,

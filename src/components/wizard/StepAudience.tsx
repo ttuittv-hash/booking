@@ -30,6 +30,10 @@ export function validateAudienceStep(
   info: PerformanceInfo,
   venueLabel?: string,
   disabledFields: string[] = [],
+  // [신규 2026-09-07] "체크박스 항목도 + 버튼으로 추가" — StepPerformanceInfo.tsx의
+  // validatePerformanceInfoStep과 같은 이유로, 관리자가 추가한 커스텀 항목까지
+  // 포함해야 "고를 항목이 하나도 없을 때만 건너뛴다"는 계산이 맞는다.
+  customOptions: Record<string, string[]> = {},
 ): string | null {
   const prefix = venueLabel ? `${venueLabel} ` : "";
   // [버그 수정 2026-09-06] "체크박스 노출/숨김이 필수 항목으로 처리되어 있음" —
@@ -40,9 +44,10 @@ export function validateAudienceStep(
   // 않으므로 위 그룹 검사와 별개로 슬롯 검사도 함께 건너뛴다 — StepPerformanceInfo.tsx의
   // isSlotDisabled와 같은 규칙.
   if (disabledFields.includes("slot.3.audience")) return null;
+  const allAncillaryPlans = [...ANCILLARY_PLANS, ...(customOptions[ANCILLARY_PLANS_GROUP_ID] ?? [])];
   const visiblePlansForValidation = disabledFields.includes(ANCILLARY_PLANS_GROUP_ID)
     ? []
-    : ANCILLARY_PLANS.filter((plan) => !disabledFields.includes(`${ANCILLARY_PLANS_GROUP_ID}.${plan}`));
+    : allAncillaryPlans.filter((plan) => !disabledFields.includes(`${ANCILLARY_PLANS_GROUP_ID}.${plan}`));
   if (visiblePlansForValidation.length > 0 && info.ancillaryBusinessPlans.length === 0) {
     return `${prefix}부대사업 계획을 하나 이상 선택해 주세요.`;
   }
@@ -111,13 +116,15 @@ function venueShowCounts(selection: QuoteSelection): { arenaShows: number; midHa
 // 노출 여부만이 아니라 순서까지 반영한다.
 const ANCILLARY_PLANS_GROUP_ID = "audience.ancillaryBusinessPlans";
 
-function resolveAncillaryPlansOrder(configured: string[] | undefined): AncillaryBusinessPlan[] {
+// [개정 2026-09-07] "+ 버튼으로 항목 자체를 추가" — base(고정 목록 + 관리자가 만든
+// 커스텀 항목)를 호출부에서 넘겨받아, 그 기준으로 순서를 계산한다.
+function resolveAncillaryPlansOrder(configured: string[] | undefined, base: AncillaryBusinessPlan[]): AncillaryBusinessPlan[] {
   return configured && configured.length > 0
     ? [
-        ...(configured.filter((key) => (ANCILLARY_PLANS as readonly string[]).includes(key)) as AncillaryBusinessPlan[]),
-        ...ANCILLARY_PLANS.filter((key) => !configured.includes(key)),
+        ...(configured.filter((key) => (base as readonly string[]).includes(key)) as AncillaryBusinessPlan[]),
+        ...base.filter((key) => !configured.includes(key)),
       ]
-    : [...ANCILLARY_PLANS];
+    : [...base];
 }
 
 function AudienceFields({
@@ -126,12 +133,14 @@ function AudienceFields({
   audienceSummary,
   fieldOrders,
   disabledFields,
+  customOptions,
 }: {
   info: PerformanceInfo;
   onChange: (info: PerformanceInfo) => void;
   audienceSummary: { arenaLine: string | null; midHallLine: string | null; totalLine: string | null };
   fieldOrders?: Record<string, string[]>;
   disabledFields?: string[];
+  customOptions?: Record<string, string[]>;
 }) {
   const { t, tStr } = useWizardText();
 
@@ -167,7 +176,8 @@ function AudienceFields({
   }
 
   const hasSummaryRow = audienceSummary.arenaLine || audienceSummary.midHallLine || audienceSummary.totalLine;
-  const ancillaryPlansOrder = resolveAncillaryPlansOrder(fieldOrders?.[ANCILLARY_PLANS_GROUP_ID]);
+  const ancillaryPlansBase = [...ANCILLARY_PLANS, ...(customOptions?.[ANCILLARY_PLANS_GROUP_ID] ?? [])];
+  const ancillaryPlansOrder = resolveAncillaryPlansOrder(fieldOrders?.[ANCILLARY_PLANS_GROUP_ID], ancillaryPlansBase);
   // [신규 2026-09-06] "체크박스 위에 항목 레이블 자체도 노출/미노출 설정 가능해야" —
   // 그룹 전체(제목 포함)를 한 번에 끄는 토글(StepPerformanceInfo.tsx의 visibleInGroup과
   // 같은 규칙 — groupId 자체가 disabledFields에 있으면 통째로 비운다).
@@ -353,7 +363,7 @@ function AudienceFields({
               {visibleAncillaryPlans.map((plan) => (
                 <CheckboxChip
                   key={plan}
-                  label={t(`fieldLabel.ancillaryBusinessPlans.${plan}`, ANCILLARY_BUSINESS_PLAN_LABEL[plan])}
+                  label={t(`fieldLabel.ancillaryBusinessPlans.${plan}`, ANCILLARY_BUSINESS_PLAN_LABEL[plan] ?? plan)}
                   checked={info.ancillaryBusinessPlans.includes(plan)}
                   onChange={() => set("ancillaryBusinessPlans", toggleInArray(info.ancillaryBusinessPlans, plan))}
                 />
@@ -387,6 +397,7 @@ export function StepAudience({
   lead,
   fieldOrders,
   disabledFields,
+  customOptions,
 }: {
   info: PerformanceInfo;
   onChange: (info: PerformanceInfo) => void;
@@ -400,6 +411,7 @@ export function StepAudience({
   lead: ReactNode;
   fieldOrders?: Record<string, string[]>;
   disabledFields?: string[];
+  customOptions?: Record<string, string[]>;
 }) {
   const { tStr } = useWizardText();
   const [activeTab, setActiveTab] = useState<VenueSplitTab>(midHallInfo ? "ARENA" : "COMMON");
@@ -456,6 +468,7 @@ export function StepAudience({
             }}
             fieldOrders={fieldOrders}
             disabledFields={disabledFields}
+            customOptions={customOptions}
           />
         )}
         {effectiveTab === "ARENA" && (
@@ -469,6 +482,7 @@ export function StepAudience({
             }}
             fieldOrders={fieldOrders}
             disabledFields={disabledFields}
+            customOptions={customOptions}
           />
         )}
         {effectiveTab === "MIDHALL" && midHallInfo && (
@@ -480,6 +494,9 @@ export function StepAudience({
               midHallLine: `${selection.secondaryAudience.toLocaleString()}${peopleUnit}`,
               totalLine: null,
             }}
+            fieldOrders={fieldOrders}
+            disabledFields={disabledFields}
+            customOptions={customOptions}
           />
         )}
       </div>

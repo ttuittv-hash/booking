@@ -88,6 +88,10 @@ export function validatePerformanceInfoStep(
   info: PerformanceInfo,
   venueLabel?: string,
   disabledFields: string[] = [],
+  // [신규 2026-09-07] "체크박스 항목도 + 버튼으로 추가" — 관리자가 새로 추가한 커스텀
+  // 항목(ScreenTextContent.wizardCustomOptions)까지 포함해야 "고를 항목이 하나도 없을
+  // 때만 필수 검사를 건너뛴다"는 계산이 맞는다. 그룹id → 커스텀 항목 key 배열.
+  customOptions: Record<string, string[]> = {},
 ): string | null {
   const prefix = venueLabel ? `${venueLabel} ` : "";
   const isDisabled = (id: string) => disabledFields.includes(id);
@@ -110,7 +114,11 @@ export function validatePerformanceInfoStep(
   // 같은 규칙으로 걸러진다.
   if (!isSlotDisabled("applicantDetails")) {
     if (
-      visibleInGroup(APPLICANT_COMPANY_TYPES, "performanceInfo.applicantCompanyType", disabledFields).length > 0 &&
+      visibleInGroup(
+        [...APPLICANT_COMPANY_TYPES, ...(customOptions["performanceInfo.applicantCompanyType"] ?? [])],
+        "performanceInfo.applicantCompanyType",
+        disabledFields,
+      ).length > 0 &&
       !info.applicantCompanyType
     ) {
       return `${prefix}신청 기업 유형을 선택해 주세요.`;
@@ -151,13 +159,17 @@ export function validatePerformanceInfoStep(
       return `${prefix}주최 · 주관 · 기획을 하나 이상 입력해 주세요.`;
     }
     if (
-      visibleInGroup(EVENT_TYPES, "performanceInfo.eventTypes", disabledFields).length > 0 &&
+      visibleInGroup(
+        [...EVENT_TYPES, ...(customOptions["performanceInfo.eventTypes"] ?? [])],
+        "performanceInfo.eventTypes",
+        disabledFields,
+      ).length > 0 &&
       info.eventTypes.length === 0
     ) {
       return `${prefix}행사유형을 하나 이상 선택해 주세요.`;
     }
     const visibleAgeRatingsForValidation = visibleInGroup(
-      Object.keys(AGE_RATING_LABEL) as AgeRating[],
+      [...(Object.keys(AGE_RATING_LABEL) as AgeRating[]), ...(customOptions["performanceInfo.ageRating"] ?? [])],
       "performanceInfo.ageRating",
       disabledFields,
     );
@@ -171,7 +183,11 @@ export function validatePerformanceInfoStep(
     if (!info.ticketOpenExpectedDate.trim()) return `${prefix}티켓 오픈 예정일을 입력해 주세요.`;
 
     if (
-      visibleInGroup(SEATING_TYPES, "performanceInfo.seatingTypes", disabledFields).length > 0 &&
+      visibleInGroup(
+        [...SEATING_TYPES, ...(customOptions["performanceInfo.seatingTypes"] ?? [])],
+        "performanceInfo.seatingTypes",
+        disabledFields,
+      ).length > 0 &&
       info.seatingTypes.length === 0
     ) {
       return `${prefix}객석형태를 하나 이상 선택해 주세요.`;
@@ -189,7 +205,11 @@ export function validatePerformanceInfoStep(
       }
     }
     if (
-      visibleInGroup(STAGE_TYPES, "performanceInfo.stageTypes", disabledFields).length > 0 &&
+      visibleInGroup(
+        [...STAGE_TYPES, ...(customOptions["performanceInfo.stageTypes"] ?? [])],
+        "performanceInfo.stageTypes",
+        disabledFields,
+      ).length > 0 &&
       info.stageTypes.length === 0
     ) {
       return `${prefix}무대형태를 하나 이상 선택해 주세요.`;
@@ -423,6 +443,7 @@ function ApplicantDetailsFields({
   onChange,
   fieldOrders,
   disabledFields,
+  customOptions,
 }: {
   info: PerformanceInfo;
   onChange: (info: PerformanceInfo) => void;
@@ -433,6 +454,12 @@ function ApplicantDetailsFields({
   fieldOrders?: Record<string, string[]>;
   /** 위와 짝 — "그룹id.필드key" 형식의 끈 필드 id 목록(ScreenTextContent.wizardDisabledFields). */
   disabledFields?: string[];
+  /**
+   * [신규 2026-09-07] "체크박스 항목도 + 버튼 눌러서 추가" — 그룹id → 관리자가 추가한
+   * 커스텀 항목 key 배열(ScreenTextContent.wizardCustomOptions). 코드에 고정된 값
+   * 목록 뒤에 이어 붙는다.
+   */
+  customOptions?: Record<string, string[]>;
 }) {
   const { t, tStr } = useWizardText();
 
@@ -454,8 +481,11 @@ function ApplicantDetailsFields({
   const visibleContactColumns = visibleInGroup(contactColumnOrder, CONTACT_GROUP_ID, disabledFields);
 
   // [신규 2026-09-06] 신청 기업 유형 체크박스도 같은 패턴으로 순서 조정·온오프 가능하게.
+  // [개정 2026-09-07] "+ 버튼으로 항목 자체를 추가" — 고정 목록 뒤에 관리자가 만든
+  // 커스텀 항목을 이어 붙인다.
   const COMPANY_TYPE_GROUP_ID = "performanceInfo.applicantCompanyType";
-  const companyTypeOrder = resolveGroupOrder(fieldOrders?.[COMPANY_TYPE_GROUP_ID], APPLICANT_COMPANY_TYPES);
+  const companyTypeBaseOrder = [...APPLICANT_COMPANY_TYPES, ...(customOptions?.[COMPANY_TYPE_GROUP_ID] ?? [])];
+  const companyTypeOrder = resolveGroupOrder(fieldOrders?.[COMPANY_TYPE_GROUP_ID], companyTypeBaseOrder);
   const visibleCompanyTypes = visibleInGroup(companyTypeOrder, COMPANY_TYPE_GROUP_ID, disabledFields);
 
   function set<K extends keyof PerformanceInfo>(key: K, value: PerformanceInfo[K]) {
@@ -536,7 +566,7 @@ function ApplicantDetailsFields({
               {visibleCompanyTypes.map((type) => (
                 <CheckboxChip
                   key={type}
-                  label={t(`fieldLabel.applicantCompanyType.${type}`, APPLICANT_COMPANY_TYPE_LABEL[type])}
+                  label={t(`fieldLabel.applicantCompanyType.${type}`, APPLICANT_COMPANY_TYPE_LABEL[type] ?? type)}
                   checked={info.applicantCompanyType === type}
                   onChange={() => set("applicantCompanyType", info.applicantCompanyType === type ? null : type)}
                 />
@@ -682,12 +712,14 @@ function EventBasicsFields({
   scheduleSummary,
   fieldOrders,
   disabledFields,
+  customOptions,
 }: {
   info: PerformanceInfo;
   onChange: (info: PerformanceInfo) => void;
   scheduleSummary: { arenaLine: string | null; midHallLine: string | null; showsTotal: number | null } | null;
   fieldOrders?: Record<string, string[]>;
   disabledFields?: string[];
+  customOptions?: Record<string, string[]>;
 }) {
   const { t, tStr } = useWizardText();
 
@@ -717,20 +749,34 @@ function EventBasicsFields({
   const eventBasicsOrder = resolveGroupOrder(fieldOrders?.[EVENT_BASICS_GROUP_ID], EVENT_BASICS_DEFAULT_ORDER);
   const visibleEventBasicsFields = visibleInGroup(eventBasicsOrder, EVENT_BASICS_GROUP_ID, disabledFields);
 
+  // [개정 2026-09-07] "+ 버튼으로 항목 자체를 추가" — 아래 4개 그룹 모두 고정 목록
+  // 뒤에 관리자가 만든 커스텀 항목(customOptions)을 이어 붙인다.
   const EVENT_TYPES_GROUP_ID = "performanceInfo.eventTypes";
-  const eventTypesOrder = resolveGroupOrder(fieldOrders?.[EVENT_TYPES_GROUP_ID], EVENT_TYPES);
+  const eventTypesOrder = resolveGroupOrder(fieldOrders?.[EVENT_TYPES_GROUP_ID], [
+    ...EVENT_TYPES,
+    ...(customOptions?.[EVENT_TYPES_GROUP_ID] ?? []),
+  ]);
   const visibleEventTypes = visibleInGroup(eventTypesOrder, EVENT_TYPES_GROUP_ID, disabledFields);
 
   const AGE_RATING_GROUP_ID = "performanceInfo.ageRating";
-  const ageRatingOrder = resolveGroupOrder(fieldOrders?.[AGE_RATING_GROUP_ID], AGE_RATINGS);
+  const ageRatingOrder = resolveGroupOrder(fieldOrders?.[AGE_RATING_GROUP_ID], [
+    ...AGE_RATINGS,
+    ...(customOptions?.[AGE_RATING_GROUP_ID] ?? []),
+  ]);
   const visibleAgeRatings = visibleInGroup(ageRatingOrder, AGE_RATING_GROUP_ID, disabledFields);
 
   const SEATING_TYPES_GROUP_ID = "performanceInfo.seatingTypes";
-  const seatingTypesOrder = resolveGroupOrder(fieldOrders?.[SEATING_TYPES_GROUP_ID], SEATING_TYPES);
+  const seatingTypesOrder = resolveGroupOrder(fieldOrders?.[SEATING_TYPES_GROUP_ID], [
+    ...SEATING_TYPES,
+    ...(customOptions?.[SEATING_TYPES_GROUP_ID] ?? []),
+  ]);
   const visibleSeatingTypes = visibleInGroup(seatingTypesOrder, SEATING_TYPES_GROUP_ID, disabledFields);
 
   const STAGE_TYPES_GROUP_ID = "performanceInfo.stageTypes";
-  const stageTypesOrder = resolveGroupOrder(fieldOrders?.[STAGE_TYPES_GROUP_ID], STAGE_TYPES);
+  const stageTypesOrder = resolveGroupOrder(fieldOrders?.[STAGE_TYPES_GROUP_ID], [
+    ...STAGE_TYPES,
+    ...(customOptions?.[STAGE_TYPES_GROUP_ID] ?? []),
+  ]);
   const visibleStageTypes = visibleInGroup(stageTypesOrder, STAGE_TYPES_GROUP_ID, disabledFields);
 
   function set<K extends keyof PerformanceInfo>(key: K, value: PerformanceInfo[K]) {
@@ -1036,7 +1082,7 @@ function EventBasicsFields({
                   {visibleEventTypes.map((type) => (
                     <CheckboxChip
                       key={type}
-                      label={t(`fieldLabel.eventTypes.${type}`, EVENT_TYPE_LABEL[type])}
+                      label={t(`fieldLabel.eventTypes.${type}`, EVENT_TYPE_LABEL[type] ?? type)}
                       checked={info.eventTypes.includes(type)}
                       onChange={() => set("eventTypes", toggleInArray(info.eventTypes, type))}
                     />
@@ -1054,7 +1100,7 @@ function EventBasicsFields({
                   {visibleAgeRatings.map((rating) => (
                     <CheckboxChip
                       key={rating}
-                      label={t(`fieldLabel.ageRating.${rating}`, AGE_RATING_LABEL[rating])}
+                      label={t(`fieldLabel.ageRating.${rating}`, AGE_RATING_LABEL[rating] ?? rating)}
                       checked={info.ageRating === rating}
                       onChange={() => set("ageRating", info.ageRating === rating ? null : rating)}
                     />
@@ -1167,7 +1213,7 @@ function EventBasicsFields({
                     {visibleSeatingTypes.map((type) => (
                       <CheckboxChip
                         key={type}
-                        label={t(`fieldLabel.seatingTypes.${type}`, SEATING_TYPE_LABEL[type])}
+                        label={t(`fieldLabel.seatingTypes.${type}`, SEATING_TYPE_LABEL[type] ?? type)}
                         checked={info.seatingTypes.includes(type)}
                         onChange={() => set("seatingTypes", toggleInArray(info.seatingTypes, type))}
                       />
@@ -1255,7 +1301,7 @@ function EventBasicsFields({
                   {visibleStageTypes.map((type) => (
                     <CheckboxChip
                       key={type}
-                      label={t(`fieldLabel.stageTypes.${type}`, STAGE_TYPE_LABEL[type])}
+                      label={t(`fieldLabel.stageTypes.${type}`, STAGE_TYPE_LABEL[type] ?? type)}
                       checked={info.stageTypes.includes(type)}
                       onChange={() => set("stageTypes", toggleInArray(info.stageTypes, type))}
                     />
@@ -1427,6 +1473,7 @@ export function StepApplicantDetails({
   title,
   fieldOrders,
   disabledFields,
+  customOptions,
 }: {
   info: PerformanceInfo;
   onChange: (info: PerformanceInfo) => void;
@@ -1436,6 +1483,7 @@ export function StepApplicantDetails({
   title: ReactNode;
   fieldOrders?: Record<string, string[]>;
   disabledFields?: string[];
+  customOptions?: Record<string, string[]>;
 }) {
   const { t } = useWizardText();
   const [activeTab, setActiveTab] = useState<VenueSplitTab>(midHallInfo ? "ARENA" : "COMMON");
@@ -1490,7 +1538,13 @@ export function StepApplicantDetails({
 
       <div className="mt-6">
         {(effectiveTab === "COMMON" || effectiveTab === "ARENA") && (
-          <ApplicantDetailsFields info={info} onChange={onChange} fieldOrders={fieldOrders} disabledFields={disabledFields} />
+          <ApplicantDetailsFields
+            info={info}
+            onChange={onChange}
+            fieldOrders={fieldOrders}
+            disabledFields={disabledFields}
+            customOptions={customOptions}
+          />
         )}
         {effectiveTab === "MIDHALL" && midHallInfo && (
           <ApplicantDetailsFields
@@ -1498,6 +1552,7 @@ export function StepApplicantDetails({
             onChange={onChangeMidHallInfo}
             fieldOrders={fieldOrders}
             disabledFields={disabledFields}
+            customOptions={customOptions}
           />
         )}
       </div>
@@ -1513,6 +1568,7 @@ export function StepEventBasics({
   selection,
   fieldOrders,
   disabledFields,
+  customOptions,
 }: {
   info: PerformanceInfo;
   onChange: (info: PerformanceInfo) => void;
@@ -1521,6 +1577,7 @@ export function StepEventBasics({
   selection: QuoteSelection;
   fieldOrders?: Record<string, string[]>;
   disabledFields?: string[];
+  customOptions?: Record<string, string[]>;
 }) {
   const [activeTab, setActiveTab] = useState<VenueSplitTab>(midHallInfo ? "ARENA" : "COMMON");
 
@@ -1571,6 +1628,7 @@ export function StepEventBasics({
             scheduleSummary={{ arenaLine, midHallLine: isMidHallInvolved ? midHallLine : null, showsTotal }}
             fieldOrders={fieldOrders}
             disabledFields={disabledFields}
+            customOptions={customOptions}
           />
         )}
         {effectiveTab === "ARENA" && (
@@ -1580,6 +1638,7 @@ export function StepEventBasics({
             scheduleSummary={{ arenaLine, midHallLine: null, showsTotal }}
             fieldOrders={fieldOrders}
             disabledFields={disabledFields}
+            customOptions={customOptions}
           />
         )}
         {effectiveTab === "MIDHALL" && midHallInfo && (
@@ -1589,6 +1648,7 @@ export function StepEventBasics({
             scheduleSummary={{ arenaLine: null, midHallLine, showsTotal: null }}
             fieldOrders={fieldOrders}
             disabledFields={disabledFields}
+            customOptions={customOptions}
           />
         )}
       </div>

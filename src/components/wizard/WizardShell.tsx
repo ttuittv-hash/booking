@@ -156,6 +156,7 @@ export function WizardShell({
   publicInterestDisabledGroups,
   wizardFieldOrders,
   wizardDisabledFields,
+  wizardCustomOptions,
   calendarMonthBounds,
 }: {
   rateTable: RateTable;
@@ -195,6 +196,10 @@ export function WizardShell({
   // 정보(STEP3 대관정보 슬롯)부터 시작해 위저드 전체 필드로 넓혀가는 일반 메커니즘.
   wizardFieldOrders?: Record<string, string[]>;
   wizardDisabledFields?: string[];
+  // [신규 2026-09-07] "체크박스 항목도 + 버튼 눌러서 바로 추가/입력 가능" — 그룹id →
+  // 관리자가 새로 추가한 커스텀 체크박스 항목 key 배열. wizardFieldOrders/
+  // wizardDisabledFields와 같은 그룹id를 쓴다.
+  wizardCustomOptions?: Record<string, string[]>;
   /**
    * [신규 2026-09-06] "일정 관리 > 캘린더 노출... 대관 위저드 달력 노출 기간에도
    * 반영되어야해" — 어드민 「공지 캘린더 노출 월」(noticeCalendarMonthBounds)과 같은
@@ -440,16 +445,28 @@ export function WizardShell({
       selection.performanceInfo,
       selection.midHallPerformanceInfo ? "아레나" : undefined,
       wizardDisabledFields,
+      wizardCustomOptions,
     ) ??
     (selection.midHallPerformanceInfo &&
-      validatePerformanceInfoStep(selection.midHallPerformanceInfo, "중형공연장", wizardDisabledFields)) ??
+      validatePerformanceInfoStep(
+        selection.midHallPerformanceInfo,
+        "중형공연장",
+        wizardDisabledFields,
+        wizardCustomOptions,
+      )) ??
     validateAudienceStep(
       selection.performanceInfo,
       selection.midHallPerformanceInfo ? "아레나" : undefined,
       wizardDisabledFields,
+      wizardCustomOptions,
     ) ??
     (selection.midHallPerformanceInfo &&
-      validateAudienceStep(selection.midHallPerformanceInfo, "중형공연장", wizardDisabledFields));
+      validateAudienceStep(
+        selection.midHallPerformanceInfo,
+        "중형공연장",
+        wizardDisabledFields,
+        wizardCustomOptions,
+      ));
   // 안전관리 서약(STEP 6)은 필수라 그 다음 단계로 못 넘어가게 막는다(2026-08-22,
   // "무조건 필수"). STEP 4(홍보 및 서비스 계획)·STEP 5(공공/공익 참여 여부)는 게이트가
   // 없다 — 공공/공익은 원래 선택이고, 홍보는 유일한 필수값이던 "서비스 연계 동의"를
@@ -727,6 +744,7 @@ export function WizardShell({
         title={wizardStepText.performanceInfoTitle}
         fieldOrders={wizardFieldOrders}
         disabledFields={wizardDisabledFields}
+        customOptions={wizardCustomOptions}
       />
     ),
     eventBasics: () => (
@@ -740,6 +758,7 @@ export function WizardShell({
         selection={resolvedSelection}
         fieldOrders={wizardFieldOrders}
         disabledFields={wizardDisabledFields}
+        customOptions={wizardCustomOptions}
       />
     ),
     credibility: () => (
@@ -772,6 +791,7 @@ export function WizardShell({
         lead={wizardStepText.audienceLead}
         fieldOrders={wizardFieldOrders}
         disabledFields={wizardDisabledFields}
+        customOptions={wizardCustomOptions}
       />
     ),
   };

@@ -636,6 +636,19 @@ export interface ScreenTextContent {
    * 사라지고, 필수값 검사(validatePerformanceInfoStep 등)도 그 필드를 건너뛴다.
    */
   wizardDisabledFields: string[];
+  /**
+   * [신규 2026-09-07] "각 항목별 체크박스도 + 버튼 누르면 바로 추가/입력 가능" —
+   * wizardFieldOrders/wizardDisabledFields는 이미 정해진 체크박스 항목(신청 기업
+   * 유형·행사유형·공연등급·객석형태·무대형태·부대사업 계획 — 코드에 고정된 값)의
+   * 순서·노출만 다뤘다. 이 필드는 그 목록에 아예 없던 새 항목 자체를 관리자가 추가할
+   * 수 있게 한다. 그룹id(위 두 필드와 같은 값, 예: "performanceInfo.eventTypes") →
+   * 그 그룹에 추가된 커스텀 항목 key 배열. key는 생성 시 무작위로 발급되고
+   * (custom-<timestamp>), 라벨은 다른 고정 항목과 똑같이 wizardStrings의
+   * `fieldLabel.<그룹key>.<항목key>`로 편집한다(위저드 미리보기에서 새 항목이 뜨면
+   * 바로 클릭해 이름을 바꾼다) — 처음엔 빈 라벨이라 항목key 그대로 보인다.
+   * 고정 항목과 달리 이 목록의 항목은 삭제도 가능하다(위저드 미리보기의 "삭제" 버튼).
+   */
+  wizardCustomOptions: Record<string, string[]>;
 }
 
 export const DEFAULT_SCREEN_TEXT_CONTENT: ScreenTextContent = {
@@ -657,6 +670,7 @@ export const DEFAULT_SCREEN_TEXT_CONTENT: ScreenTextContent = {
   publicInterestDisabledGroups: [],
   wizardFieldOrders: {},
   wizardDisabledFields: [],
+  wizardCustomOptions: {},
   wizardSteps: DEFAULT_WIZARD_STEP_TEXTS,
   registerIntro: DEFAULT_REGISTER_INTRO,
   bookItNotice: DEFAULT_BOOK_IT_NOTICE,

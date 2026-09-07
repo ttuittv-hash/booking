@@ -369,9 +369,14 @@ export interface QuoteSelection {
 
 // 신청하는 기업의 유형 — 회원가입 화면의 "공연 기획사 · 제작사 · 대행사 등" 문구와
 // 같은 분류를 쓴다. optional — 이 필드가 추가되기 전에 제출된 기존 신청서에는 없다.
-export type ApplicantCompanyType = "PROMOTER" | "PRODUCER" | "AGENCY" | "ARTIST_MANAGEMENT" | "OTHER";
+// [개정 2026-09-07] "체크박스 항목도 + 버튼 눌러서 바로 추가 가능해야" — 코드에 고정된
+// 값 외에 관리자가 만든 커스텀 항목(key 형식 "custom-<timestamp>", ScreenTextContent.
+// wizardCustomOptions에 등록)도 이 필드에 들어올 수 있어 닫힌 union을 열었다.
+// `(string & {})`는 기존 리터럴의 자동완성은 유지하면서 임의 문자열도 허용하는 TS
+// 관용구다("LiteralUnion" 패턴) — 이 값과의 비교(`=== "OTHER"` 등)는 그대로 동작한다.
+export type ApplicantCompanyType = "PROMOTER" | "PRODUCER" | "AGENCY" | "ARTIST_MANAGEMENT" | "OTHER" | (string & {});
 
-export const APPLICANT_COMPANY_TYPE_LABEL: Record<ApplicantCompanyType, string> = {
+export const APPLICANT_COMPANY_TYPE_LABEL: Record<string, string> = {
   PROMOTER: "기획사",
   PRODUCER: "제작사",
   AGENCY: "대행사",
@@ -379,18 +384,18 @@ export const APPLICANT_COMPANY_TYPE_LABEL: Record<ApplicantCompanyType, string> 
   OTHER: "기타",
 };
 
-export type EventType = "CONCERT" | "FANMEETING_CONCERT" | "CORPORATE" | "PUBLIC";
+export type EventType = "CONCERT" | "FANMEETING_CONCERT" | "CORPORATE" | "PUBLIC" | (string & {});
 
-export const EVENT_TYPE_LABEL: Record<EventType, string> = {
+export const EVENT_TYPE_LABEL: Record<string, string> = {
   CONCERT: "콘서트",
   FANMEETING_CONCERT: "팬미팅·콘서트",
   CORPORATE: "기업행사",
   PUBLIC: "공공행사",
 };
 
-export type StageType = "END_STAGE" | "CENTER_STAGE" | "UNDECIDED" | "OTHER";
+export type StageType = "END_STAGE" | "CENTER_STAGE" | "UNDECIDED" | "OTHER" | (string & {});
 
-export const STAGE_TYPE_LABEL: Record<StageType, string> = {
+export const STAGE_TYPE_LABEL: Record<string, string> = {
   END_STAGE: "엔드 스테이지",
   CENTER_STAGE: "센터 스테이지",
   UNDECIDED: "미정",
@@ -399,9 +404,9 @@ export const STAGE_TYPE_LABEL: Record<StageType, string> = {
 
 // [개정 2026-09-02] "객석"을 "지정석"으로 고치고 "혼합"을 더했다 — 아레나는 한 공연
 // 안에서 플로어는 스탠딩, 2·3층은 지정석으로 파는 경우가 흔한데 고를 값이 없었다.
-export type SeatingType = "SEATED" | "STANDING" | "MIXED" | "OTHER";
+export type SeatingType = "SEATED" | "STANDING" | "MIXED" | "OTHER" | (string & {});
 
-export const SEATING_TYPE_LABEL: Record<SeatingType, string> = {
+export const SEATING_TYPE_LABEL: Record<string, string> = {
   SEATED: "지정석",
   STANDING: "스탠딩",
   MIXED: "혼합",
@@ -515,18 +520,18 @@ export const CAST_CONTRACT_STATUS_LABEL: Record<CastContractStatus, string> = {
   PLANNED: "섭외 예정",
 };
 
-export type AgeRating = "ALL" | "AGE_LIMIT" | "UNDECIDED";
+export type AgeRating = "ALL" | "AGE_LIMIT" | "UNDECIDED" | (string & {});
 
-export const AGE_RATING_LABEL: Record<AgeRating, string> = {
+export const AGE_RATING_LABEL: Record<string, string> = {
   ALL: "전체관람가",
   AGE_LIMIT: "연령제한",
   UNDECIDED: "미정",
 };
 
 // [화면 뼈대 2026-08-18, 화면시나리오 SCREEN 07/12 · STEP 3-2] 부대사업 계획 — 복수 선택.
-export type AncillaryBusinessPlan = "MD_SALES" | "POPUP_STORE" | "SPONSOR_BOOTH" | "OTHER" | "NONE";
+export type AncillaryBusinessPlan = "MD_SALES" | "POPUP_STORE" | "SPONSOR_BOOTH" | "OTHER" | "NONE" | (string & {});
 
-export const ANCILLARY_BUSINESS_PLAN_LABEL: Record<AncillaryBusinessPlan, string> = {
+export const ANCILLARY_BUSINESS_PLAN_LABEL: Record<string, string> = {
   MD_SALES: "MD 판매",
   POPUP_STORE: "팝업스토어",
   SPONSOR_BOOTH: "협찬부스",

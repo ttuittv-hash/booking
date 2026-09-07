@@ -169,6 +169,7 @@ export default async function ApplyPage({
             publicInterestDisabledGroups={screenText.publicInterestDisabledGroups}
             wizardFieldOrders={screenText.wizardFieldOrders}
             wizardDisabledFields={screenText.wizardDisabledFields}
+            wizardCustomOptions={screenText.wizardCustomOptions}
             calendarMonthBounds={calendarMonthBounds}
           />
         </WizardTextProvider>
