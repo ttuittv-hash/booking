@@ -929,11 +929,33 @@ async function seedData(pool: Pool) {
     );
   }
 
+  /*
+    초기 시드는 운영에서 넣지 않는다 (2026-09-07 결정).
+
+    요금표·안내 페이지·FAQ 는 운영진이 백오피스에서 관리하는 실데이터다. "테이블이 비면
+    코드 값을 넣는다" 는 편의 장치는 첫 설치에는 좋지만, 운영 중에 테이블이 비는 것은
+    사고이고 — 그때 **옛 금액이 조용히 되살아나는 것이 사고 자체보다 위험하다.**
+    실제로 공지 시드가 그렇게 동작해 지운 공지가 배포마다 부활했다(9/7 제거).
+
+    운영에서 요금표가 비면 getCurrentRateTable() 이 예외를 던진다 — 조용히 틀린 금액으로
+    견적을 내는 것보다 눈에 띄게 실패하는 편이 낫다.
+
+    새 환경(스테이징·재구축)에서 초기 데이터가 필요하면 SEED_INITIAL_CONTENT=true 로 켠다.
+  */
+  const allowInitialSeed =
+    process.env.NODE_ENV !== "production" || process.env.SEED_INITIAL_CONTENT === "true";
+
   const rateTableCount = (await pool.query("SELECT COUNT(*)::int as n FROM rate_tables")).rows[0] as {
     n: number;
   };
   if (rateTableCount.n === 0) {
-    await insertRateTable(pool, buildSeedRateTable());
+    if (allowInitialSeed) {
+      await insertRateTable(pool, buildSeedRateTable());
+    } else {
+      console.error(
+        "[seed] 요금표가 비어 있는데 운영이라 시드를 넣지 않았다 — 백업에서 복구하거나 SEED_INITIAL_CONTENT=true 로 다시 기동할 것",
+      );
+    }
   }
 
   // 패키지 이름을 Rate A/B/C/D로 바꿨다(2026-08-22). 이미 시딩된 DB는 packages_json에
@@ -1068,9 +1090,9 @@ async function seedData(pool: Pool) {
   }
   }
 
-  // 서울아레나 소개 / 대관 절차 하위 페이지 — 최초 1회만 기본 콘텐츠로 시드한다.
+  // 서울아레나 소개 / 대관 절차 하위 페이지 — 최초 1회만 기본 콘텐츠로 시드한다(운영 제외).
   const pageCount = (await pool.query("SELECT COUNT(*)::int as n FROM pages")).rows[0] as { n: number };
-  if (pageCount.n === 0) {
+  if (pageCount.n === 0 && allowInitialSeed) {
     const now = new Date().toISOString();
     for (let i = 0; i < SEED_PAGES.length; i++) {
       const p = SEED_PAGES[i];
@@ -1082,26 +1104,26 @@ async function seedData(pool: Pool) {
     }
   }
 
-  // FAQ — 원본 시트(`26년_대관사_FAQ…xlsx`)가 정본이고, 여기서 DB 로 옮긴다.
-  //
-  //   비어 있으면            → 넣는다
-  //   시드가 바뀌었는데       → 운영자가 **한 건도 손대지 않았을 때만** 통째로 갈아 끼운다
-  //   한 건이라도 편집됐으면   → 건드리지 않는다 (운영자 편집이 항상 이긴다)
-  //
-  // 시드가 바뀌었는지는 해시로 판단하고, 적용한 해시는 `site_content` 에 남긴다.
+  /*
+    FAQ — 원본 시트(`26년_대관사_FAQ…xlsx`)가 정본이고, 여기서 DB 로 옮긴다.
+    **비어 있을 때만** 넣는다. 운영에서는 그마저 넣지 않는다(allowInitialSeed).
+
+    [수정 2026-09-07] 예전에는 "시드가 바뀌었는데 아무도 편집하지 않았으면 DELETE 후 통째 교체"
+    도 했다. 두 가지가 위험했다 —
+      ① 운영자가 FAQ 를 **추가만** 하면 updated_at == created_at 이라 "편집 안 함" 으로 판정돼,
+         코드 시드가 바뀌는 순간 추가한 FAQ 가 소리 없이 사라졌다.
+      ② 운영 데이터를 지우는 코드가 기동 경로에 있는 것 자체가 위험하다.
+    통째 교체 경로를 걷어냈다. 시드 문구를 고쳐야 하면 백오피스에서 고친다.
+  */
   const faqSeedHash = crypto.createHash("sha256").update(JSON.stringify(SEED_FAQS)).digest("hex");
   const storedFaqHash = (
     await pool.query("SELECT data FROM site_content WHERE page = 'faq_seed_hash'")
   ).rows[0] as { data: string } | undefined;
   const faqCount = (await pool.query("SELECT COUNT(*)::int as n FROM faqs")).rows[0] as { n: number };
-  const faqEdited = (
-    await pool.query("SELECT COUNT(*)::int as n FROM faqs WHERE updated_at <> created_at")
-  ).rows[0] as { n: number };
 
   // `site_content.data` 는 JSON 문자열을 담는 칸이라 해시도 JSON 으로 감싼다.
   const seedChanged = storedFaqHash?.data !== JSON.stringify(faqSeedHash);
-  if (faqCount.n === 0 || (seedChanged && faqEdited.n === 0)) {
-    await pool.query("DELETE FROM faqs");
+  if (faqCount.n === 0 && allowInitialSeed) {
     const base = Date.now();
     for (let i = 0; i < SEED_FAQS.length; i++) {
       const f = SEED_FAQS[i];
