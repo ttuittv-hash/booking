@@ -96,6 +96,14 @@ function ExistingItemPicker({
     ? options.filter((a) => a.name.toLowerCase().includes(query.trim().toLowerCase()))
     : options;
 
+  // [개정 2026-09-07] "기존에 무슨 항목이 있는지 잘 보이게 정리해서, 레이어도 넓게" —
+  // 카테고리 구분 없이 이름만 한 줄에 욱여넣던 목록을 카테고리별로 묶어 소제목을
+  // 붙인다. 순서는 카테고리 정의 순서(ADDON_CATEGORIES)를 따른다.
+  const groups = ADDON_CATEGORIES.map((category) => ({
+    category,
+    items: filtered.filter((a) => a.category === category),
+  })).filter((g) => g.items.length > 0);
+
   return (
     <div
       className="relative inline-block"
@@ -111,7 +119,7 @@ function ExistingItemPicker({
         + 기존 항목에서 선택
       </button>
       {open && (
-        <div className="absolute left-0 z-10 mt-1 w-80 border border-border bg-panel shadow-lg">
+        <div className="absolute left-0 z-10 mt-1 w-[min(34rem,90vw)] border border-border bg-panel shadow-lg">
           <input
             autoFocus
             value={query}
@@ -119,27 +127,36 @@ function ExistingItemPicker({
             placeholder="항목 검색"
             className={`${FIELD_SM} w-full border-x-0 border-t-0`}
           />
-          <ul className="max-h-56 overflow-y-auto">
-            {filtered.length === 0 && <li className="px-3 py-2 text-xs text-muted">검색 결과가 없습니다.</li>}
-            {filtered.map((a) => (
-              <li key={a.id}>
-                <button
-                  type="button"
-                  onClick={() => {
-                    onPick(a);
-                    setOpen(false);
-                    setQuery("");
-                  }}
-                  className="flex w-full items-center justify-between gap-2 px-3 py-2 text-left text-xs hover:bg-background"
-                >
-                  <span className="truncate">{a.name}</span>
-                  <span className="shrink-0 text-muted">
-                    {ADDON_CATEGORY_LABEL[a.category]} · 현재 {VISIBILITY_LABEL[a.visibility]}
-                  </span>
-                </button>
-              </li>
+          <div className="max-h-96 overflow-y-auto">
+            {groups.length === 0 && <p className="px-3 py-2 text-xs text-muted">검색 결과가 없습니다.</p>}
+            {groups.map((g) => (
+              <div key={g.category}>
+                <p className="sticky top-0 border-b border-t border-border/25 bg-background px-3 py-1.5 text-2xs font-bold tracking-wide text-muted uppercase">
+                  {ADDON_CATEGORY_LABEL[g.category]}
+                </p>
+                <ul>
+                  {g.items.map((a) => (
+                    <li key={a.id} className="border-b border-border-soft last:border-b-0">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          onPick(a);
+                          setOpen(false);
+                          setQuery("");
+                        }}
+                        className="flex w-full items-center justify-between gap-3 px-3 py-2.5 text-left hover:bg-background"
+                      >
+                        <span className="min-w-0 truncate text-s">{a.name}</span>
+                        <span className="shrink-0 whitespace-nowrap text-xs text-muted">
+                          현재 {VISIBILITY_LABEL[a.visibility]}
+                        </span>
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              </div>
             ))}
-          </ul>
+          </div>
         </div>
       )}
     </div>
