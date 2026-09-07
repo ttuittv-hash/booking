@@ -162,7 +162,12 @@ function SectionBox({
 
   return (
     <div className={`${dense ? "mt-3 p-3" : "mt-4 p-4"} border border-border/25 bg-surface`}>
-      <p className="text-xs font-bold text-foreground">{SECTION_LABEL[section]}</p>
+      {/* [수정 2026-09-08] "대관료/추가옵션 이 레이블이 제일 크고 나머지는 그것보단
+          작고 — 표 하이라키가 있어야" — 박스 제목(대관료/추가 옵션)이 text-xs(12)라
+          안의 항목 행(text-s, 14)보다 오히려 작게 보였다. 이 박스 안에서 가장 큰
+          글자가 되도록 h6 단으로 올린다 — 항목(14) > 세부내역·열 제목(12) 순서는
+          그대로 두고 섹션 제목만 그 위에 둔다. */}
+      <p className="type-kr-heading text-h6-m sm:text-h6">{SECTION_LABEL[section]}</p>
       {sectionItems.length === 0 ? (
         <p className="mt-2 border-t border-border/25 pt-3 text-xs text-muted">선택된 항목이 없습니다.</p>
       ) : (
