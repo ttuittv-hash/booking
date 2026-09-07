@@ -143,6 +143,11 @@ function SectionBox({
     .reduce((sum, item) => sum + item.amount, 0);
   const rowPad = dense ? "py-2" : "py-2.5";
 
+  // [개정 2026-09-08] "세부 내역.. 옅은 그레이로 표기한 부분을 별도 열로 분리해..
+  // 앞엔 항목이라면 두번째는 세부내역으로" — 항목 라벨 아래 옅은 회색 보조줄이던
+  // 수량·단가 정보를 라벨과 같은 줄의 독립된 열로 뺐다(항목 / 세부내역 / 금액).
+  const COLS = "grid-cols-[minmax(0,1.1fr)_minmax(0,1fr)_auto]";
+
   return (
     <div className={`${dense ? "mt-3 p-3" : "mt-4 p-4"} border border-border/25 bg-surface`}>
       <p className="text-xs font-bold text-foreground">{SECTION_LABEL[section]}</p>
@@ -150,20 +155,23 @@ function SectionBox({
         <p className="mt-2 border-t border-border/25 pt-3 text-xs text-muted">선택된 항목이 없습니다.</p>
       ) : (
         <dl className="mt-2 border-t border-border/25">
+          <div className={`grid ${COLS} gap-4 pt-2 text-xs font-bold text-muted`}>
+            <span>항목</span>
+            <span>세부내역</span>
+            <span className="text-right">금액</span>
+          </div>
           {sectionItems.map((item) => {
             const isIncluded = item.included > 0 && item.billable === 0 && item.amount === 0;
             const detail = itemDetail(item, expectedRevenue);
             return (
               <div
                 key={item.addonId}
-                className={`flex items-baseline justify-between gap-4 border-b border-border/15 ${rowPad}`}
+                className={`grid ${COLS} items-baseline gap-4 border-b border-border/15 ${rowPad}`}
               >
-                <dt className="text-s text-foreground">
-                  <span className="font-bold">{estimateLineLabel(item)}</span>
-                  {detail && <span className="mt-0.5 block text-xs font-normal text-muted">{detail}</span>}
-                </dt>
+                <dt className="text-s font-bold text-foreground">{estimateLineLabel(item)}</dt>
+                <dd className="text-xs text-muted">{detail}</dd>
                 <dd
-                  className={`shrink-0 text-s font-bold tabular-nums ${isIncluded ? "text-good" : "text-foreground"}`}
+                  className={`text-right text-s font-bold tabular-nums ${isIncluded ? "text-good" : "text-foreground"}`}
                 >
                   {isIncluded ? "포함" : won(item.amount)}
                 </dd>
