@@ -15,7 +15,7 @@ const base: MarketingCooperation = {
   executionPlan: {
     targetDefinition: "", mediaMix: "", mediaMixOnline: "", mediaMixOffline: "", budget: "", timeline: "",
   },
-  contentCooperationWillingness: null,
+  contentCooperationConsent: null,
 };
 
 function render(info: MarketingCooperation) {
@@ -46,9 +46,8 @@ describe("StepMarketingCooperation", () => {
     expect(html).toContain("공연 연계 관람객 서비스");
     expect(html).toContain("서울아레나 공간·미디어 연계");
     expect(html).toContain("공동 프로모션 및 마케팅");
-    expect(html).toContain("적극 협의 가능");
-    expect(html).toContain("제안 내용에 따라 협의 가능");
-    expect(html).toContain("협업 미희망");
+    expect(html).toContain("협업 동의");
+    expect(html).toContain("협업 미동의");
     expect(html).toContain("콘텐츠 또는 아티스트 IP의 사용 권한을 부여");
     // 예전 2단 박스("주요 활용 범위"/"안내사항")는 완전히 없어졌다
     expect(html).not.toContain("주요 활용 범위");

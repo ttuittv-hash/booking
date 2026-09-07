@@ -2,7 +2,7 @@
 
 import type { ReactNode } from "react";
 import { toggleClass } from "@/components/ui/kit";
-import type { ContentCooperationWillingness, MarketingCooperation } from "@/lib/pricing/types";
+import type { MarketingCooperation } from "@/lib/pricing/types";
 import { useWizardText } from "@/lib/content/wizardText";
 import { StepHeading, StepForm } from "./StepHeading";
 
@@ -54,12 +54,6 @@ const SERVICE_SCOPE_ITEMS = [
     defaultDesc: "공연 홍보와 관람객 경험 확대를 위한 온·오프라인 공동 프로모션 및 마케팅 협업",
   },
 ] as const;
-
-const COOPERATION_WILLINGNESS_OPTIONS: { value: ContentCooperationWillingness; defaultLabel: string }[] = [
-  { value: "ACTIVE", defaultLabel: "적극 협의 가능" },
-  { value: "CASE_BY_CASE", defaultLabel: "제안 내용에 따라 협의 가능" },
-  { value: "NOT_WILLING", defaultLabel: "협업 미희망" },
-];
 
 const EMPTY_CHANNEL = { platform: "", handle: "", followers: "" };
 
@@ -187,49 +181,69 @@ export function StepMarketingCooperation({
             )}
           </p>
 
-          <ul className="mt-4 space-y-4">
-            {SERVICE_SCOPE_ITEMS.map((item) => (
-              <li key={item.key} className="border-l-2 border-border/40 pl-3.5">
-                <p className="text-xs font-bold text-foreground">
-                  {t(`marketing.serviceScope.${item.key}.title`, item.defaultTitle)}
-                </p>
-                <p className="mt-1 break-keep text-xs leading-6 text-muted">
-                  {t(`marketing.serviceScope.${item.key}.desc`, item.defaultDesc)}
-                </p>
-              </li>
-            ))}
-          </ul>
+          {/* [개정 2026-09-07] "선택 박스는 협업 동의·협업 미동의 두 개로만 노출하고
+              레이아웃을 예쁘게 — 협업 내용 박스 하나, 동의 박스 하나로" 피드백으로
+              단일 목록 + 버튼 나열이던 걸 예전부터 쓰던 2단 박스 레이아웃으로 되돌렸다. */}
+          <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2">
+            <div className="rounded-lg border border-border/25 bg-surface p-4">
+              <p className="text-xs font-bold text-foreground">
+                {t("marketing.cooperationContentHeading", "협업 내용")}
+              </p>
+              <ul className="mt-3 space-y-4">
+                {SERVICE_SCOPE_ITEMS.map((item) => (
+                  <li key={item.key}>
+                    <p className="text-xs font-bold text-foreground">
+                      {t(`marketing.serviceScope.${item.key}.title`, item.defaultTitle)}
+                    </p>
+                    <p className="mt-1 break-keep text-xs leading-6 text-muted">
+                      {t(`marketing.serviceScope.${item.key}.desc`, item.defaultDesc)}
+                    </p>
+                  </li>
+                ))}
+              </ul>
+            </div>
 
-          <div className="mt-6" data-field-key="marketing.contentCooperationWillingness">
-            <p className="text-s font-bold text-foreground">
-              {t(
-                "marketing.cooperationWillingnessLabel",
-                "서울아레나의 공연 연계 콘텐츠·서비스 및 프로모션 제안에 대한 협의 가능 여부를 선택해 주세요.",
-              )}
-            </p>
-            <div className="mt-2.5 flex flex-wrap gap-2">
-              {COOPERATION_WILLINGNESS_OPTIONS.map((option) => (
+            <div
+              className="rounded-lg border border-border/25 bg-surface p-4"
+              data-field-key="marketing.contentCooperationConsent"
+            >
+              <p className="text-xs font-bold text-foreground">
+                {t("marketing.cooperationConsentBoxHeading", "협업 동의 여부")}
+              </p>
+              <p className="mt-2 break-keep text-xs leading-6 text-muted">
+                {t(
+                  "marketing.cooperationWillingnessLabel",
+                  "서울아레나의 공연 연계 콘텐츠·서비스 및 프로모션 제안에 대해 협의를 진행할 " +
+                    "의향이 있는지 선택해 주세요.",
+                )}
+              </p>
+              <div className="mt-3 flex gap-2">
                 <button
-                  key={option.value}
                   type="button"
-                  onClick={() => set("contentCooperationWillingness", option.value)}
-                  className={toggleClass(info.contentCooperationWillingness === option.value)}
+                  onClick={() => set("contentCooperationConsent", true)}
+                  className={toggleClass(info.contentCooperationConsent === true)}
                 >
-                  {t(`marketing.cooperationWillingness.${option.value}`, option.defaultLabel)}
+                  {t("marketing.cooperationConsentYes", "협업 동의")}
                 </button>
-              ))}
+                <button
+                  type="button"
+                  onClick={() => set("contentCooperationConsent", false)}
+                  className={toggleClass(info.contentCooperationConsent === false)}
+                >
+                  {t("marketing.cooperationConsentNo", "협업 미동의")}
+                </button>
+              </div>
+              <p className="mt-4 break-keep text-xs leading-6 text-muted">
+                {t(
+                  "marketing.cooperationWillingnessFootnote",
+                  "※ 본 항목은 향후 협업 제안에 대한 협의 가능 여부를 확인하기 위한 것으로, 콘텐츠 " +
+                    "또는 아티스트 IP의 사용 권한을 부여하거나 특정 콘텐츠·서비스·프로모션의 진행에 " +
+                    "동의하는 것을 의미하지 않습니다. 실제 진행 여부와 활용 범위, 제공 정보, 권리 및 " +
+                    "조건은 대관사 및 관련 권리자와 건별로 별도 협의하여 확정합니다.",
+                )}
+              </p>
             </div>
           </div>
-
-          <p className="mt-4 break-keep text-xs leading-6 text-muted">
-            {t(
-              "marketing.cooperationWillingnessFootnote",
-              "※ 본 항목은 향후 협업 제안에 대한 협의 가능 여부를 확인하기 위한 것으로, 콘텐츠 또는 " +
-                "아티스트 IP의 사용 권한을 부여하거나 특정 콘텐츠·서비스·프로모션의 진행에 동의하는 " +
-                "것을 의미하지 않습니다. 실제 진행 여부와 활용 범위, 제공 정보, 권리 및 조건은 대관사 " +
-                "및 관련 권리자와 건별로 별도 협의하여 확정합니다.",
-            )}
-          </p>
         </div>
 
         {/* 2026-08-25, "공동스폰서십 슬롯은 삭제하고 이 내용을 넣어줘" — 자유 서술형

@@ -133,7 +133,7 @@ describe("scoreQuote — 협조 동의 항목(A-MKT-02/04)은 정책상 제외",
       ticketSalesDataConsent: true,
       pollstarConsent: true,
       executionPlan: { targetDefinition: "", mediaMix: "", budget: "", timeline: "" },
-      contentCooperationWillingness: null,
+      contentCooperationConsent: null,
     };
     const r = scoreQuote(baseSelection({ marketingCooperation })).results[0];
     const mkt02 = r.categories[2].items.find((i) => i.code === "A-MKT-02")!;

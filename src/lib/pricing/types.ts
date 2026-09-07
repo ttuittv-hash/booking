@@ -322,10 +322,6 @@ export interface MarketingExecutionPlan {
   mediaMixOfflineItems?: string[];
 }
 
-// [신규 2026-09-07] "공연 연계 콘텐츠·서비스 및 프로모션 협업" 제안에 대해 대관사가
-// 밝히는 협의 가능 여부. 3택 1이며, 미선택은 null.
-export type ContentCooperationWillingness = "ACTIVE" | "CASE_BY_CASE" | "NOT_WILLING";
-
 export interface MarketingCooperation {
   channels: MarketingChannel[];
   // 미선택은 null — 동의/비동의 둘 다 아직 고르지 않은 상태와 "비동의를 골랐다"를
@@ -339,10 +335,12 @@ export interface MarketingCooperation {
   ticketSalesDataConsent: boolean;
   pollstarConsent: boolean;
   executionPlan: MarketingExecutionPlan;
-  // [신규 2026-09-07] "공연 연계 콘텐츠·서비스 및 프로모션 협업" 제안에 대한 협의
-  // 가능 여부(3택 1) — 콘텐츠·IP 사용권을 부여하거나 특정 진행에 동의하는 것은
-  // 아니라는 점을 아래 화면 문구·각주로 명시한다.
-  contentCooperationWillingness: ContentCooperationWillingness | null;
+  // [신규 2026-09-07, 개정 2026-09-07] "공연 연계 콘텐츠·서비스 및 프로모션 협업"
+  // 제안에 대한 동의 여부 — 처음엔 3택 1(적극/케이스별/미희망)이었으나 "협업 동의 ·
+  // 협업 미동의 두 개로만 노출" 피드백으로 다른 동의 항목들과 같은 tri-state
+  // boolean으로 단순화했다. 콘텐츠·IP 사용권을 부여하거나 특정 진행에 동의하는
+  // 것은 아니라는 점을 아래 화면 문구·각주로 명시한다.
+  contentCooperationConsent: boolean | null;
 }
 
 // [신규 2026-09-07] "미입력 필수항목 빨간색 표시 + 자동 스크롤" — 각 STEP 검증 함수
