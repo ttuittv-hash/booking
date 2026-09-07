@@ -171,8 +171,37 @@ export async function checkCompanyNumber(businessNumber: string): Promise<Compan
       return unchecked(`사업자 진위확인 실패 (${body?.res_msg ?? body?.rsp_cd ?? "알 수 없는 오류"})`);
     }
 
-    // result_cd — 01: 성공, 03: 미보유
+    /*
+      result_cd — 01: 성공, 03: 미보유
+
+      [수정 2026-09-07] 03(미보유)을 무조건 "없는 번호"로 보고 가입을 막던 자리다.
+      접수 첫날 실존 법인(주식회사 위켄드라이브, 554-81-03463)이 막혔다. NICE 원문은
+      이랬다 — result_cd "03", comp_name "", 그런데 **comp_status "1"(정상)**.
+      즉 "이 사업자는 정상인데 상호·대표자 데이터는 우리가 안 갖고 있다" 는 답이다.
+      NICE 실명확인 DB 는 국세청 공개데이터와 수록 범위가 달라 신설·소규모 법인이 자주 빠진다.
+
+      그래서 두 경우를 가른다:
+        comp_status 가 실제 상태값이면  → 진위확인만 못 한 것 → UNCHECKED(가입 진행, 운영자 심사)
+        상태값도 없으면(0·빈값)         → 정말 알 수 없는 번호 → NOT_FOUND(기존대로 차단)
+
+      "외부 조회로 가입을 끊지 않는다" 는 기존 방침(verify-brn/route.ts)과도 이제 맞는다.
+    */
     if (body.result_cd !== "01") {
+      const status = body.comp_status?.trim();
+      const known = !!status && status !== "0";
+      console.warn("[nice] 사업자 진위확인 미보유", {
+        compNum,
+        result_cd: body.result_cd,
+        comp_status: status ?? null,
+        judged: known ? "UNCHECKED" : "NOT_FOUND",
+      });
+      if (known) {
+        return {
+          ...unchecked("국세청 상태는 확인되었으나 상호·대표자 정보를 조회하지 못했습니다. 운영자 심사에서 확인합니다."),
+          compStatus: status,
+          compStatusLabel: COMP_STATUS_LABEL[status] ?? null,
+        };
+      }
       return {
         ...unchecked("국세청에 등록되지 않았거나 조회되지 않는 사업자등록번호입니다."),
         status: "NOT_FOUND",
@@ -199,7 +228,10 @@ export async function checkCompanyNumber(businessNumber: string): Promise<Compan
 
 /** 휴업(7)·폐업(8)·부도(6)는 대관 계약 상대로 부적격이므로 가입을 막는다. */
 export function isBlockedCompanyStatus(result: CompanyCheckResult): boolean {
-  return result.status === "VERIFIED" && ["6", "7", "8"].includes(result.compStatus ?? "");
+  // [수정 2026-09-07] 예전엔 VERIFIED 일 때만 봤다. 미보유(result_cd 03)로 UNCHECKED 가 되어도
+  // comp_status 는 함께 오므로, 부도·휴업·폐업이면 상호 조회 성공 여부와 무관하게 막아야 한다.
+  // 조회 자체가 실패한 경우는 compStatus 가 null 이라 여기 걸리지 않는다.
+  return ["6", "7", "8"].includes(result.compStatus ?? "");
 }
 
 /** 이름 비교용 정규화 — 공백·괄호·주식회사 표기 차이를 흡수한다. */
