@@ -35,6 +35,7 @@ import {
 import { hashPasswordForTransport } from "@/lib/clientPassword";
 import { invitePhoneLooksMatched } from "@/lib/inviteMatch";
 import { DEFAULT_REGISTER_INTRO, type RegisterIntroTexts } from "@/lib/content/pageContent";
+import { PasswordInput } from "@/components/ui/PasswordInput";
 
 declare global {
   interface Window {
@@ -1438,28 +1439,31 @@ function StepInfo({
         </Field>
         <Field label="비밀번호" required hint={PASSWORD_HINT}>
           <div className="relative">
-            <input
+            <PasswordInput
               data-testid="f-password"
-              type="password"
               name="new-password"
               autoComplete="new-password"
               value={form.password}
               onChange={(e) => setForm((f) => ({ ...f, password: sanitizePasswordInput(e.target.value) }))}
-              className={`${inputCls(false)} pr-9`}
+              className={inputCls(false)}
+              // 오른쪽 끝은 체크표시(✓) 자리라 눈 버튼은 그 왼쪽에 둔다.
+              buttonClassName="right-7"
+              padClassName="pr-16"
             />
             <InputCheckMark show={checkPassword(form.password).ok} />
           </div>
         </Field>
         <Field label="비밀번호 확인" required>
           <div className="relative">
-            <input
+            <PasswordInput
               data-testid="f-passwordConfirm"
-              type="password"
               name="confirm-password"
               autoComplete="new-password"
               value={form.passwordConfirm}
               onChange={(e) => setForm((f) => ({ ...f, passwordConfirm: sanitizePasswordInput(e.target.value) }))}
-              className={`${inputCls(false)} pr-9`}
+              className={inputCls(false)}
+              buttonClassName="right-7"
+              padClassName="pr-16"
             />
             <InputCheckMark show={form.passwordConfirm.length > 0 && form.password === form.passwordConfirm} />
           </div>

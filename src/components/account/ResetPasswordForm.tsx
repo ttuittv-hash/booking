@@ -8,6 +8,7 @@ import { useToast } from "@/components/ui/Toast";
 import { checkPassword, checkUsername, firstFailure, PASSWORD_HINT, sanitizePasswordInput, sanitizeUsernameInput } from "@/lib/validation";
 import { hashPasswordForTransport } from "@/lib/clientPassword";
 import { PasswordMatchHint } from "@/components/ui/PasswordMatchHint";
+import { PasswordInput } from "@/components/ui/PasswordInput";
 
 // 3단계: 아이디 입력 → 본인인증 → 새 비밀번호 입력
 export function ResetPasswordForm() {
@@ -114,11 +115,10 @@ export function ResetPasswordForm() {
         <div className="mt-6 space-y-4">
           <label className="block">
             <span className="mb-1.5 block text-xs font-bold">새 비밀번호</span>
-            <input
+            <PasswordInput
               data-testid="reset-password-new"
               name="new-password"
               autoComplete="new-password"
-              type="password"
               value={password}
               onChange={(e) => setPassword(sanitizePasswordInput(e.target.value))}
               className="w-full border border-border-soft bg-background px-3 py-2 text-s"
@@ -126,11 +126,10 @@ export function ResetPasswordForm() {
           </label>
           <label className="block">
             <span className="mb-1.5 block text-xs font-bold">새 비밀번호 확인</span>
-            <input
+            <PasswordInput
               data-testid="reset-password-confirm"
               name="confirm-password"
               autoComplete="new-password"
-              type="password"
               value={confirm}
               onChange={(e) => setConfirm(sanitizePasswordInput(e.target.value))}
               className="w-full border border-border-soft bg-background px-3 py-2 text-s"

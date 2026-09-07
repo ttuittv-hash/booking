@@ -8,6 +8,7 @@ import { FIELD, FIELD_LABEL } from "@/components/admin/adminUi";
 import { hashPasswordForTransport } from "@/lib/clientPassword";
 import type { AppUser, Company } from "@/lib/pricing/types";
 import { useToast } from "@/components/ui/Toast";
+import { PasswordInput } from "@/components/ui/PasswordInput";
 
 /* 입력·라벨은 시스템 토큰만 쓴다 — 한 줄 입력의 높이는 field-base 가 40 으로 못 박아
    같은 줄 버튼(40)과 아래위가 맞는다 */
@@ -484,8 +485,7 @@ export function ProfileForm({ user, company }: { user: AppUser; company: Company
         <div className="mt-4">
           <label className="block">
             <span className={labelCls}>현재 비밀번호</span>
-            <input
-              type="password"
+            <PasswordInput
               autoComplete="current-password"
               value={confirmPassword}
               onChange={(e) => setConfirmPassword(e.target.value)}
@@ -510,8 +510,7 @@ export function ProfileForm({ user, company }: { user: AppUser; company: Company
         <div className="mt-4 space-y-3">
           <label className="block">
             <span className={labelCls}>현재 비밀번호</span>
-            <input
-              type="password"
+            <PasswordInput
               autoComplete="current-password"
               value={currentPassword}
               onChange={(e) => setCurrentPassword(e.target.value)}
@@ -520,8 +519,7 @@ export function ProfileForm({ user, company }: { user: AppUser; company: Company
           </label>
           <label className="block">
             <span className={labelCls}>새 비밀번호 (8자 이상)</span>
-            <input
-              type="password"
+            <PasswordInput
               autoComplete="new-password"
               minLength={8}
               value={newPassword}

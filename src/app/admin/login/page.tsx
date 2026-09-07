@@ -7,6 +7,7 @@ import { useState } from "react";
 import { hashPasswordForTransport } from "@/lib/clientPassword";
 import { ArrowRight, btnClass } from "@/components/ui/kit";
 import { ERROR_NOTE, FIELD, FIELD_LABEL } from "@/components/admin/adminUi";
+import { PasswordInput } from "@/components/ui/PasswordInput";
 
 export default function AdminLoginPage() {
   const router = useRouter();
@@ -76,9 +77,9 @@ export default function AdminLoginPage() {
           </label>
           <label className="block">
             <span className={FIELD_LABEL}>비밀번호</span>
-            <input
-              type="password"
+            <PasswordInput
               required
+              autoComplete="current-password"
               value={form.password}
               onChange={(e) => setForm({ ...form, password: e.target.value })}
               className={FIELD}

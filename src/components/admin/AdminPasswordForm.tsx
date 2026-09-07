@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { btnClass } from "@/components/ui/kit";
 import { FIELD } from "./adminUi";
+import { PasswordInput } from "@/components/ui/PasswordInput";
 
 export function AdminPasswordForm() {
   const [currentPassword, setCurrentPassword] = useState("");
@@ -40,8 +41,7 @@ export function AdminPasswordForm() {
       <div className="mt-4 max-w-sm space-y-3">
         <label className="block">
           <span className="mb-1.5 block text-xs font-bold text-muted">현재 비밀번호</span>
-          <input
-            type="password"
+          <PasswordInput
             autoComplete="current-password"
             value={currentPassword}
             onChange={(e) => setCurrentPassword(e.target.value)}
@@ -50,8 +50,7 @@ export function AdminPasswordForm() {
         </label>
         <label className="block">
           <span className="mb-1.5 block text-xs font-bold text-muted">새 비밀번호 (8자 이상)</span>
-          <input
-            type="password"
+          <PasswordInput
             autoComplete="new-password"
             minLength={8}
             value={newPassword}
