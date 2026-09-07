@@ -641,7 +641,7 @@ function ApplicantDetailsFields({
                       onChange={(e) =>
                         updateContactPerson(i, { [key]: e.target.value } as Partial<ContactPersonRecord>)
                       }
-                      className="field-base w-full"
+                      className="field-base h-8 w-full"
                     />
                   ))}
                 </div>
@@ -684,32 +684,32 @@ function ApplicantDetailsFields({
                 value={row.eventName}
                 placeholder={tStr("performanceInfo.pastEventNamePlaceholder", "공연명")}
                 onChange={(e) => updatePastPerformance(i, { eventName: e.target.value })}
-                className="field-base"
+                className="field-base h-8"
               />
               <input
                 value={row.venue}
                 placeholder={tStr("performanceInfo.pastVenuePlaceholder", "장소")}
                 onChange={(e) => updatePastPerformance(i, { venue: e.target.value })}
-                className="field-base"
+                className="field-base h-8"
               />
               <input
                 value={row.period}
                 placeholder={tStr("performanceInfo.pastPeriodPlaceholder", "기간")}
                 onChange={(e) => updatePastPerformance(i, { period: e.target.value })}
-                className="field-base"
+                className="field-base h-8"
               />
               <input
                 value={row.audience}
                 placeholder={tStr("performanceInfo.pastAudiencePlaceholder", "관객 수")}
                 onChange={(e) => updatePastPerformance(i, { audience: e.target.value })}
-                className="field-base"
+                className="field-base h-8"
               />
               <div className="flex items-center gap-1">
                 <input
                   value={row.role}
                   placeholder={tStr("performanceInfo.pastRolePlaceholder", "주최·주관 역할")}
                   onChange={(e) => updatePastPerformance(i, { role: e.target.value })}
-                  className="field-base w-full"
+                  className="field-base h-8 w-full"
                 />
                 <button
                   type="button"
@@ -908,7 +908,7 @@ function EventBasicsFields({
                     <select
                       value={row.role}
                       onChange={(e) => updateOrganizer(i, { role: e.target.value as OrganizerRole })}
-                      className="field-base w-28 shrink-0"
+                      className="field-base h-8 w-28 shrink-0"
                     >
                       {ORGANIZER_ROLES.map((role) => (
                         <option key={role} value={role}>
@@ -926,7 +926,7 @@ function EventBasicsFields({
                       placeholder={tStr("performanceInfo.organizerNamePlaceholder", "업체명 · 단체명")}
                       onChange={(e) => updateOrganizer(i, { name: e.target.value })}
                       data-field-key={row.name.trim() ? undefined : "performanceInfo.eventBasics.organizer"}
-                      className="field-base w-full"
+                      className="field-base h-8 w-full"
                     />
                     <button
                       type="button"
@@ -974,26 +974,26 @@ function EventBasicsFields({
                     value={row.artistName}
                     placeholder={tStr("performanceInfo.artistNamePlaceholder", "아티스트명")}
                     onChange={(e) => updateArtistMainHistory(i, { artistName: e.target.value })}
-                    className="field-base"
+                    className="field-base h-8"
                   />
                   <input
                     value={row.agency}
                     placeholder={tStr("performanceInfo.agencyPlaceholder", "소속사")}
                     onChange={(e) => updateArtistMainHistory(i, { agency: e.target.value })}
-                    className="field-base"
+                    className="field-base h-8"
                   />
                   <input
                     value={row.debutYear}
                     placeholder={tStr("performanceInfo.debutYearPlaceholder", "데뷔연도")}
                     onChange={(e) => updateArtistMainHistory(i, { debutYear: e.target.value })}
-                    className="field-base"
+                    className="field-base h-8"
                   />
                   <div className="col-span-2 flex items-center gap-1">
                     <input
                       value={row.achievements}
                       placeholder={tStr("performanceInfo.achievementsPlaceholder", "주요 활동 및 수상·성과")}
                       onChange={(e) => updateArtistMainHistory(i, { achievements: e.target.value })}
-                      className="field-base w-full"
+                      className="field-base h-8 w-full"
                     />
                     <button
                       type="button"
@@ -1032,25 +1032,25 @@ function EventBasicsFields({
                       value={row.eventName}
                       placeholder={tStr("performanceInfo.artistPastEventNamePlaceholder", "공연명")}
                       onChange={(e) => updateArtistRecentPerformance(i, { eventName: e.target.value })}
-                      className="field-base"
+                      className="field-base h-8"
                     />
                     <input
                       value={row.eventDate}
                       placeholder={tStr("performanceInfo.artistPastEventDatePlaceholder", "공연일")}
                       onChange={(e) => updateArtistRecentPerformance(i, { eventDate: e.target.value })}
-                      className="field-base"
+                      className="field-base h-8"
                     />
                     <input
                       value={row.venue}
                       placeholder={tStr("performanceInfo.artistPastVenuePlaceholder", "공연장")}
                       onChange={(e) => updateArtistRecentPerformance(i, { venue: e.target.value })}
-                      className="field-base"
+                      className="field-base h-8"
                     />
                     <input
                       value={row.cityCountry}
                       placeholder={tStr("performanceInfo.artistPastCityCountryPlaceholder", "도시 · 국가")}
                       onChange={(e) => updateArtistRecentPerformance(i, { cityCountry: e.target.value })}
-                      className="field-base"
+                      className="field-base h-8"
                     />
                   </div>
                   <div className="grid grid-cols-4 gap-1.5">
@@ -1058,26 +1058,26 @@ function EventBasicsFields({
                       value={row.showCount}
                       placeholder={tStr("performanceInfo.artistPastShowCountPlaceholder", "공연 횟수")}
                       onChange={(e) => updateArtistRecentPerformance(i, { showCount: e.target.value })}
-                      className="field-base"
+                      className="field-base h-8"
                     />
                     <input
                       value={row.seatsPerShow}
                       placeholder={tStr("performanceInfo.artistPastSeatsPerShowPlaceholder", "회당 객석 규모")}
                       onChange={(e) => updateArtistRecentPerformance(i, { seatsPerShow: e.target.value })}
-                      className="field-base"
+                      className="field-base h-8"
                     />
                     <input
                       value={row.audience}
                       placeholder={tStr("performanceInfo.artistPastAudiencePlaceholder", "관객 수")}
                       onChange={(e) => updateArtistRecentPerformance(i, { audience: e.target.value })}
-                      className="field-base"
+                      className="field-base h-8"
                     />
                     <div className="flex items-center gap-1">
                       <input
                         value={row.sellRate}
                         placeholder={tStr("performanceInfo.artistPastSellRatePlaceholder", "티켓 판매율")}
                         onChange={(e) => updateArtistRecentPerformance(i, { sellRate: e.target.value })}
-                        className="field-base w-full"
+                        className="field-base h-8 w-full"
                       />
                       <button
                         type="button"

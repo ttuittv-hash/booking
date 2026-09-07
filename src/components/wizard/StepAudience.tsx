@@ -257,7 +257,7 @@ function AudienceFields({
                   value={row.label}
                   placeholder={tStr("audience.ticketTypeLabelPlaceholder", "예: R석, VIP석")}
                   onChange={(e) => updateTicketType(i, { label: e.target.value })}
-                  className="field-base"
+                  className="field-base h-8"
                 />
                 <div className="flex items-center gap-1.5">
                   <input
@@ -266,7 +266,7 @@ function AudienceFields({
                     value={row.price || ""}
                     placeholder={tStr("audience.ticketPricePlaceholder", "티켓가")}
                     onChange={(e) => updateTicketType(i, { price: Math.max(0, Number(e.target.value) || 0) })}
-                    className="field-base w-full"
+                    className="field-base h-8 w-full"
                   />
                   <span className="text-xs text-muted">{t("audience.wonUnit", "원")}</span>
                 </div>
