@@ -124,6 +124,10 @@ export function applicantLineLabel(item: LineItem): string {
       return "대관료 할인";
     case "extra_days":
       return `추가 일수 (준비일 ${item.billable}일)`;
+    // [수정 2026-09-08] extra_days_rest 라벨에 할인율(%)이 추가되면서(estimateLineLabel
+    // 참고) 이 함수(SummaryPanel 전용)에서도 지워야 예전과 같이 %가 안 보인다.
+    case "extra_days_rest":
+      return item.label.replace(/\s*\(휴무일 단가 \d+%\s*할인\)/, "");
     case "performance_day_adjustment":
       return item.label.replace(/,\s*공연일 단가 \d+%\s*할인/, "");
     case "second_show_surcharge":
@@ -136,16 +140,38 @@ export function applicantLineLabel(item: LineItem): string {
   }
 }
 
+const DISCOUNT_PCT_PATTERN = /(\d+)%\s*할인/;
+
+// "추가일(공연일/준비일/휴무일 N일, 할인 M%)" 통일 포맷 — 할인율이 없으면(원문에 %가
+// 없으면) 뒷부분을 생략한다.
+function unifiedExtraDayLabel(kind: string, item: LineItem): string {
+  const match = item.label.match(DISCOUNT_PCT_PATTERN);
+  return match ? `추가일(${kind} ${item.billable}일, 할인 ${match[1]}%)` : `추가일(${kind} ${item.billable}일)`;
+}
+
 /**
  * [신규 2026-09-07] "예상 대관료"(QuoteLineItemsReport, 왼쪽 표 전용 — 오른쪽 실시간
  * 플로팅 박스는 그대로 applicantLineLabel을 쓴다) 라벨. "할증은 말고, 추가일에 대한
  * 할인율도 넣어줘" — applicantLineLabel과 반대로 추가일 계열(준비일·공연일 추가)의
  * 할인율(%)은 그대로 보여주고, 할증(2회 공연·중형 주말/평일 2회) %만 감춘다.
+ *
+ * [수정 2026-09-08] "추가일수는 두가지로 나눠져.. 추가일(공연일 N일), 추가일(준비일
+ * N일), 추가일(휴무일 N일)" — 서로 다른 문구("추가 일수 (준비일...)", "추가일수
+ * 휴무일...", "공연 일수 조정 (...)")로 흩어져 있던 세 항목을 같은 틀로 통일한다.
+ * 공연 일수 조정은 기본보다 "늘어난"(할인이 붙는) 경우만 이 틀을 쓴다 — "줄어든" 경우는
+ * 할인 없는 차감이라 추가일 개념이 아니므로 원문("공연 일수 조정 (기본 N일 대비
+ * -N일)")을 그대로 둔다.
  */
 export function estimateLineLabel(item: LineItem): string {
   switch (item.addonId) {
     case "package_discount":
       return "대관료 할인";
+    case "extra_days":
+      return unifiedExtraDayLabel("준비일", item);
+    case "extra_days_rest":
+      return unifiedExtraDayLabel("휴무일", item);
+    case "performance_day_adjustment":
+      return DISCOUNT_PCT_PATTERN.test(item.label) ? unifiedExtraDayLabel("공연일", item) : item.label;
     case "second_show_surcharge":
       return item.label.replace(/\s*×\s*\d+%/, "");
     case "midhall_show_weekday-2":

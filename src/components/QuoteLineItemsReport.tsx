@@ -116,6 +116,9 @@ function VenueLineItemGroup({
 function itemDetail(item: LineItem, expectedRevenue: number): string | null {
   const isIncluded = item.included > 0 && item.billable === 0 && item.amount === 0;
   if (isIncluded) return null;
+  // [수정 2026-09-08] "대관료 할인 항목에도 수량 1 이런식으로 넣어놨던데 대관료에
+  // 수량이라는 단위가 아예 안 맞지" — 할인은 개수로 세는 게 아니라 뺄 수 없다.
+  if (item.addonId === "package_discount") return null;
   if (item.pricingType === "REVENUE_PERCENT") {
     return `${won(expectedRevenue)} × ${item.unitPrice}%`;
   }
