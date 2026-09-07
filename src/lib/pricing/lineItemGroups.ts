@@ -164,8 +164,10 @@ function unifiedExtraDayLabel(kind: string, item: LineItem): string {
  */
 export function estimateLineLabel(item: LineItem): string {
   switch (item.addonId) {
-    case "package_discount":
-      return "대관료 할인";
+    // [수정 2026-09-08] "대관료 할인 항목의 경우 세부 내역에 퍼센테이지를 넣어야지" —
+    // applicantLineLabel과 달리 여기서는 % 를 지우지 않는다. item.label 원문
+    // "대관료 할인 (N%)" 그대로 두면 QuoteLineItemsReport의 splitParenDetail이
+    // 괄호 안 "N%"를 세부내역 칸으로 옮긴다.
     case "extra_days":
       return unifiedExtraDayLabel("준비일", item);
     case "extra_days_rest":
