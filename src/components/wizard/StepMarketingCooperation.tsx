@@ -20,38 +20,15 @@ import { StepHeading, StepForm } from "./StepHeading";
   운영자 상세 화면이 계속 읽는다. 새로 채우지 않을 뿐이다.
 */
 
-// [개정 2026-09-07] "마케팅 및 서비스 연계 안내" 전체 내용을 법무 검토용으로 새로
-// 전달받은 문구("공연 연계 콘텐츠·서비스 및 프로모션 협업")로 교체 — 기존 5항목
-// "주요 활용 범위"/3항목 "안내사항" 2단 박스를 없애고, 이 5항목 단일 목록 + 협의
-// 가능 여부 선택 + 각주 구조로 바뀐다.
+// [개정 2026-09-08] "협업 내용에 반영해줘" — 제목을 "공동 콘텐츠·프로모션 및 서비스
+// 협업"으로, 5항목(제목+설명 쌍)이던 목록을 4항목 단일 문장 목록으로 교체.
 const SERVICE_SCOPE_ITEMS = [
-  {
-    key: "info",
-    defaultTitle: "공연 정보 연계 및 안내",
-    defaultDesc: "공연명, 일정, 출연 아티스트, 공연 이미지 등 공연 관련 정보를 서울아레나 Web/App 및 공식 채널을 통해 안내",
-  },
-  {
-    key: "content",
-    defaultTitle: "공연·아티스트 연계 콘텐츠",
-    defaultDesc:
-      "공연·아티스트 공식 채널과의 공동 게시물, SNS 협업 및 아티스트 인터뷰, 현장 스케치, 공연 전·후 콘텐츠 등 제작",
-  },
+  { key: "content", defaultText: "공연·아티스트 공식 채널과의 공동 게시물 및 SNS 협업" },
+  { key: "media", defaultText: "아티스트 인터뷰, 현장 스케치 등 공연 연계 콘텐츠 제작" },
+  { key: "promotion", defaultText: "서울아레나 공식 채널 및 시설 미디어와 연계한 공연 홍보" },
   {
     key: "service",
-    defaultTitle: "공연 연계 관람객 서비스",
-    defaultDesc:
-      "공연 일정·관람 안내, 팬 참여 프로그램, 이벤트, 디지털 콘텐츠 등 공연 전·중·후 관람 경험을 확장하는 온·오프라인 서비스 및 프로그램",
-  },
-  {
-    key: "space",
-    defaultTitle: "서울아레나 공간·미디어 연계",
-    defaultDesc:
-      "서울아레나 공식 채널 및 시설 내 공간·미디어를 활용한 공연 홍보, 현장 콘텐츠 및 공연 연계 프로그램 운영",
-  },
-  {
-    key: "promotion",
-    defaultTitle: "공동 프로모션 및 마케팅",
-    defaultDesc: "공연 홍보와 관람객 경험 확대를 위한 온·오프라인 공동 프로모션 및 마케팅 협업",
+    defaultText: "공연 정보·콘텐츠·프로그램·이벤트 등의 서울아레나 온·오프라인 서비스 연계",
   },
 ] as const;
 
@@ -167,7 +144,7 @@ export function StepMarketingCooperation({
 
         <div className="mt-8 border-t border-border/25 pt-5">
           <h3 className="type-kr-heading text-h6-m">
-            {t("marketing.serviceLinkHeading", "공연 연계 콘텐츠·서비스 및 프로모션 협업")}
+            {t("marketing.serviceLinkHeading", "공동 콘텐츠·프로모션 및 서비스 협업")}
           </h3>
 
           {/* [개정 2026-09-07] 법무 검토용으로 새로 전달받은 문구로 전면 교체 — 임의로
@@ -189,16 +166,9 @@ export function StepMarketingCooperation({
               <p className="text-xs font-bold text-foreground">
                 {t("marketing.cooperationContentHeading", "협업 내용")}
               </p>
-              <ul className="mt-3 space-y-4">
+              <ul className="mt-3 list-disc space-y-2 break-keep pl-4 text-xs leading-6 text-foreground">
                 {SERVICE_SCOPE_ITEMS.map((item) => (
-                  <li key={item.key}>
-                    <p className="text-xs font-bold text-foreground">
-                      {t(`marketing.serviceScope.${item.key}.title`, item.defaultTitle)}
-                    </p>
-                    <p className="mt-1 break-keep text-xs leading-6 text-muted">
-                      {t(`marketing.serviceScope.${item.key}.desc`, item.defaultDesc)}
-                    </p>
-                  </li>
+                  <li key={item.key}>{t(`marketing.serviceScope.${item.key}`, item.defaultText)}</li>
                 ))}
               </ul>
             </div>

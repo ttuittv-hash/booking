@@ -32,20 +32,18 @@ function render(info: MarketingCooperation) {
 describe("StepMarketingCooperation", () => {
   it("연계 안내 슬롯에 동의 체크박스가 없다", () => {
     const html = render(base);
-    expect(html).toContain("공연 연계 콘텐츠·서비스 및 프로모션 협업");
+    expect(html).toContain("공동 콘텐츠·프로모션 및 서비스 협업");
     expect(html).not.toContain("마케팅/서비스 연계 동의");
   });
 
-  // [신규 2026-09-07] "마케팅 및 서비스 연계 안내 내역을 상기 내역으로 변경" —
-  // 법무 검토용 새 문구로 전면 교체. 기존 "주요 활용 범위"/"안내사항" 2단 박스는
-  // 사라지고 5항목 단일 목록 + 협의 가능 여부 3택 1 + 각주로 바뀐다.
-  it("새 5항목 목록과 협의 가능 여부 선택지, 각주가 모두 나온다", () => {
+  // [개정 2026-09-08] "협업 내용에 반영해줘" — 제목을 "공동 콘텐츠·프로모션 및
+  // 서비스 협업"으로, 5항목(제목+설명 쌍)이던 목록을 4항목 단일 문장 목록으로 교체.
+  it("새 4항목 목록과 협의 가능 여부 선택지, 각주가 모두 나온다", () => {
     const html = render(base);
-    expect(html).toContain("공연 정보 연계 및 안내");
-    expect(html).toContain("공연·아티스트 연계 콘텐츠");
-    expect(html).toContain("공연 연계 관람객 서비스");
-    expect(html).toContain("서울아레나 공간·미디어 연계");
-    expect(html).toContain("공동 프로모션 및 마케팅");
+    expect(html).toContain("공연·아티스트 공식 채널과의 공동 게시물 및 SNS 협업");
+    expect(html).toContain("아티스트 인터뷰, 현장 스케치 등 공연 연계 콘텐츠 제작");
+    expect(html).toContain("서울아레나 공식 채널 및 시설 미디어와 연계한 공연 홍보");
+    expect(html).toContain("공연 정보·콘텐츠·프로그램·이벤트 등의 서울아레나 온·오프라인 서비스 연계");
     expect(html).toContain("협업 동의");
     expect(html).toContain("협업 미동의");
     expect(html).toContain("콘텐츠 또는 아티스트 IP의 사용 권한을 부여");

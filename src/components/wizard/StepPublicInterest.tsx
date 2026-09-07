@@ -161,11 +161,11 @@ export function StepPublicInterest({
       {/* 공공성 항목은 공간별로 달라지는 입력값이 없어 탭을 넘겨도 아래 목록은 동일하게
           유지된다 — 04 기본 정보 그룹의 다른 화면과 탭 구조만 맞춘다
           (2026-08-19, 형식상 탭 추가 요청). */}
+      {/* [수정 2026-09-08] "공익참여 프로그램이 두번 반복되잖아? 공통바 밑에 공익
+          참여 프로그램 글자는 제거해" — 위 STEP 제목(title prop)과 문구가 거의
+          같아 아래 소제목을 없앴다. 위 제목은 그대로 둔다. */}
       <div className="mt-10 border-t-2 border-foreground pt-5">
-        <h3 className="type-kr-heading text-h6-m">
-          {t("publicInterest.itemsSectionHeading", "공공/공익 참여 및 연계 프로그램 (선택)")}
-        </h3>
-        <p className="mt-1 text-xs leading-5 text-muted">
+        <p className="text-xs leading-5 text-muted">
           {t(
             "publicInterest.itemsSectionHint",
             "해당하는 항목을 모두 선택하세요(복수 선택 가능). 미확정 사항은 '검토 중'을 선택할 수 있습니다.",
