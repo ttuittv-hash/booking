@@ -4,18 +4,25 @@ import { won } from "@/lib/format";
 import { Note } from "@/components/ui/kit";
 import { VENUES } from "@/lib/pricing/types";
 import type { EstimatedQuote, LineItem } from "@/lib/pricing/types";
-import {
-  isHiddenFromApplicant,
-  SECTION_LABEL,
-  SECTION_SUBTOTAL_LABEL,
-  sectionOf,
-  type ContractSection,
-} from "@/lib/pricing/lineItemGroups";
+import { isHiddenFromApplicant, sectionOf, type ContractSection } from "@/lib/pricing/lineItemGroups";
 
 const VENUE_NAME: Record<string, string> = Object.fromEntries(VENUES.map((v) => [v.id, v.name]));
 // "계약 내역"(패키지에 묶인 금액)을 먼저, "추가 예상 금액"(옵션)을 그 아래에 둔다 —
 // 계약 확정 대상이 아닌 쪽을 뒤로 밀어야 어느 쪽이 실제 계약금액인지 헷갈리지 않는다.
 const SECTION_ORDER: ContractSection[] = ["CONTRACT", "ADDITIONAL"];
+
+// [신규 2026-09-07] "대관료 / 추가 옵션 두 박스로, 박스마다 총액을 강조 표시" 시안
+// 요청 — 어드민 견적서(QuoteLineItemsReport)·운영자 화면이 함께 쓰는
+// lineItemGroups.SECTION_LABEL/SECTION_SUBTOTAL_LABEL("계약 내역"/"실제 계약금액" 등,
+// 공식 문서 용어)은 그대로 두고, 이 패널 전용 라벨을 따로 둔다.
+const BOX_LABEL: Record<ContractSection, string> = {
+  CONTRACT: "대관료",
+  ADDITIONAL: "추가 옵션",
+};
+const BOX_TOTAL_LABEL: Record<ContractSection, string> = {
+  CONTRACT: "총 대관료",
+  ADDITIONAL: "총 옵션비용",
+};
 
 /**
  * 우측 sticky 요약 — **실시간 대관신청 내역**. 카드 박스 없이 헤어라인 표(SpecTable 리듬)로만.
@@ -90,10 +97,10 @@ export function SummaryPanel({
                   .filter((item) => sectionOf(item) === section)
                   .reduce((sum, item) => sum + item.amount, 0);
                 return (
-                  <div key={section} className="mt-4">
-                    <p className="text-xs font-bold text-muted">{SECTION_LABEL[section]}</p>
+                  <div key={section} className="mt-4 border border-border/25 bg-surface p-4">
+                    <p className="text-xs font-bold text-foreground">{BOX_LABEL[section]}</p>
                     {sectionItems.length > 0 && (
-                      <dl className="mt-1.5 border-t border-border/25">
+                      <dl className="mt-2 border-t border-border/25">
                         {sectionItems.map((item) => (
                           <div
                             key={item.addonId}
@@ -119,12 +126,10 @@ export function SummaryPanel({
                         ))}
                       </dl>
                     )}
-                    {/* [수정 2026-09-07] "볼드값 줘야 하는 건 실제 계약금액·추가 예상금액·
-                        합계인데 지금 엉뚱한 게 볼드값" — 항목별 금액이 굵고 정작 소계
-                        (실제 계약금액/추가 예상 금액)가 얇았다. 소계가 더 중요한 값이니
-                        여기를 굵게, 항목별 금액은 얇게 뒤집는다. */}
-                    <div className="mt-1.5 flex justify-between text-s font-bold text-foreground">
-                      <span>{SECTION_SUBTOTAL_LABEL[section]}</span>
+                    {/* [개정 2026-09-07] "대관료/추가 옵션 박스마다 총액을 강조 표시" 시안
+                        요청 — 소계 줄을 박스 안에서 테두리로 감싸 눈에 띄게 한다. */}
+                    <div className="mt-3 flex justify-between border border-accent bg-accent-soft/40 px-3 py-2.5 text-s font-bold text-foreground">
+                      <span>{BOX_TOTAL_LABEL[section]}</span>
                       <span className="tabular-nums">{won(subtotal)}</span>
                     </div>
                   </div>
@@ -146,7 +151,8 @@ export function SummaryPanel({
               </div>
             </dl>
             <div className="flex flex-wrap items-baseline justify-between gap-3 border-b-2 border-foreground py-3">
-              <span className="text-s font-bold text-foreground">합계</span>
+              {/* [개정 2026-09-07] 시안 라벨 "총금액"으로 통일(예전 "합계"). */}
+              <span className="text-s font-bold text-foreground">총금액</span>
               <span className="type-display text-h5-m tabular-nums sm:text-h5">
                 {won(quote.total)}
               </span>
