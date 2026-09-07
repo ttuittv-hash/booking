@@ -2,19 +2,10 @@
 
 import type { ReactNode } from "react";
 import { won } from "@/lib/format";
-import { findPackage, totalRentalDays } from "@/lib/pricing/rateTableUtils";
+import { findPackage } from "@/lib/pricing/rateTableUtils";
 import type { EstimatedQuote, QuoteSelection, RateTable } from "@/lib/pricing/types";
 import { useWizardText } from "@/lib/content/wizardText";
 import { QuoteLineItemsReport } from "@/components/QuoteLineItemsReport";
-
-function midHallSummaryLine(selection: QuoteSelection): string | null {
-  const dates = Object.keys(selection.midHallDays).sort();
-  if (dates.length === 0) return null;
-  const setup = dates.filter((d) => selection.midHallDays[d].role === "SETUP").length;
-  const performanceDates = dates.filter((d) => selection.midHallDays[d].role === "PERFORMANCE");
-  const shows = performanceDates.reduce((sum, d) => sum + selection.midHallDays[d].shows, 0);
-  return `${dates.length}일 (셋업 ${setup} · 공연 ${performanceDates.length} · 회차 ${shows}) · 관객 ${selection.secondaryAudience.toLocaleString()}명`;
-}
 
 export function Step5Estimate({
   rateTable,
@@ -42,26 +33,13 @@ export function Step5Estimate({
     );
   }
 
-  const arenaLine = pkg
-    ? `${pkg.audienceTier.label} · ${selection.week.year}.${selection.week.month} ${selection.week.weekOfMonth}주차 · 총 ${totalRentalDays(selection)}일 · 관객 ${selection.expectedAudience.toLocaleString()}명`
-    : null;
-  const midHallLine = midHallSummaryLine(selection);
-
   return (
     <section>
       <h2 className="type-kr-heading text-h5-m sm:text-h5">{title}</h2>
-      <p className="measure mt-3 break-keep text-s text-muted">
-        {isSimultaneous ? (
-          <>
-            {t("estimate.arenaLinePrefix", "아레나")} — {arenaLine}
-            <br />
-            {t("estimate.midHallLinePrefix", "중형공연장")} — {midHallLine}
-          </>
-        ) : (
-          arenaLine ?? midHallLine
-        )}
-      </p>
 
+      {/* [삭제 2026-09-08] "~12,000석 규모 · 2027.7 2주차 · 총 6일 · 관객 5,000명"
+          요약 줄을 뺐다 — 아래 QuoteLineItemsReport가 공간·항목별로 이미 다 보여줘서
+          중복이었다. */}
       {/* [개정 2026-09-08] "예상 대관료도 실시간 대관신청내역 구성과 같아야지 —
           아레나/중형 크게 구분하고 그 안에 대관료 박스·추가옵션. 소계. 총금액" —
           여기서부터 아래 총금액까지는 SummaryPanel(실시간 대관신청내역)과 구조를
