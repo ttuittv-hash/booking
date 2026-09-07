@@ -2,7 +2,7 @@
 
 import type { ReactNode } from "react";
 import { toggleClass } from "@/components/ui/kit";
-import type { MarketingCooperation } from "@/lib/pricing/types";
+import type { ContentCooperationWillingness, MarketingCooperation } from "@/lib/pricing/types";
 import { useWizardText } from "@/lib/content/wizardText";
 import { StepHeading, StepForm } from "./StepHeading";
 
@@ -20,36 +20,46 @@ import { StepHeading, StepForm } from "./StepHeading";
   운영자 상세 화면이 계속 읽는다. 새로 채우지 않을 뿐이다.
 */
 
+// [개정 2026-09-07] "마케팅 및 서비스 연계 안내" 전체 내용을 법무 검토용으로 새로
+// 전달받은 문구("공연 연계 콘텐츠·서비스 및 프로모션 협업")로 교체 — 기존 5항목
+// "주요 활용 범위"/3항목 "안내사항" 2단 박스를 없애고, 이 5항목 단일 목록 + 협의
+// 가능 여부 선택 + 각주 구조로 바뀐다.
 const SERVICE_SCOPE_ITEMS = [
   {
     key: "info",
-    defaultTitle: "공연·아티스트 정보 제공 및 홍보",
-    defaultDesc: "공연 일정, 공연 소개, 아티스트 정보 등을 활용하여 공연 정보를 제공하고 공연 및 아티스트의 홍보를 지원합니다.",
+    defaultTitle: "공연 정보 연계 및 안내",
+    defaultDesc: "공연명, 일정, 출연 아티스트, 공연 이미지 등 공연 관련 정보를 서울아레나 Web/App 및 공식 채널을 통해 안내",
   },
   {
     key: "content",
-    defaultTitle: "공연 콘텐츠 제공",
+    defaultTitle: "공연·아티스트 연계 콘텐츠",
     defaultDesc:
-      "공연 포스터, 아티스트 이미지, 공식 사진·영상, 공연 프로그램, 세트리스트 등 공연과 관련된 콘텐츠를 관람객에게 제공할 수 있습니다.",
+      "공연·아티스트 공식 채널과의 공동 게시물, SNS 협업 및 아티스트 인터뷰, 현장 스케치, 공연 전·후 콘텐츠 등 제작",
   },
   {
-    key: "md",
-    defaultTitle: "MD·팝업·이벤트 정보 제공",
-    defaultDesc: "공식 MD, 팝업스토어, 팬 이벤트, 프로모션 등 공연과 연계된 현장 프로그램 및 부대 콘텐츠를 안내할 수 있습니다.",
+    key: "service",
+    defaultTitle: "공연 연계 관람객 서비스",
+    defaultDesc:
+      "공연 일정·관람 안내, 팬 참여 프로그램, 이벤트, 디지털 콘텐츠 등 공연 전·중·후 관람 경험을 확장하는 온·오프라인 서비스 및 프로그램",
   },
   {
-    key: "guide",
-    defaultTitle: "관람객 안내 및 편의 서비스",
+    key: "space",
+    defaultTitle: "서울아레나 공간·미디어 연계",
     defaultDesc:
-      "공연 일정 및 운영 정보, 입장·퇴장, 교통, 시설 이용, 현장 프로그램 등 관람에 필요한 정보를 서울아레나 웹·앱 서비스와 연계하여 제공할 수 있습니다.",
+      "서울아레나 공식 채널 및 시설 내 공간·미디어를 활용한 공연 홍보, 현장 콘텐츠 및 공연 연계 프로그램 운영",
   },
   {
-    key: "safety",
-    defaultTitle: "현장 운영 및 안전·질서 안내",
-    defaultDesc:
-      "공연별 운영 정보와 현장 상황을 기반으로 관람객 동선, 혼잡 관리, 안전 및 질서 유지 등을 위한 안내 서비스에 활용할 수 있습니다.",
+    key: "promotion",
+    defaultTitle: "공동 프로모션 및 마케팅",
+    defaultDesc: "공연 홍보와 관람객 경험 확대를 위한 온·오프라인 공동 프로모션 및 마케팅 협업",
   },
 ] as const;
+
+const COOPERATION_WILLINGNESS_OPTIONS: { value: ContentCooperationWillingness; defaultLabel: string }[] = [
+  { value: "ACTIVE", defaultLabel: "적극 협의 가능" },
+  { value: "CASE_BY_CASE", defaultLabel: "제안 내용에 따라 협의 가능" },
+  { value: "NOT_WILLING", defaultLabel: "협업 미희망" },
+];
 
 const EMPTY_CHANNEL = { platform: "", handle: "", followers: "" };
 
@@ -163,73 +173,63 @@ export function StepMarketingCooperation({
 
         <div className="mt-8 border-t border-border/25 pt-5">
           <h3 className="type-kr-heading text-h6-m">
-            {t("marketing.serviceLinkHeading", "마케팅 및 서비스 연계 안내")}
+            {t("marketing.serviceLinkHeading", "공연 연계 콘텐츠·서비스 및 프로모션 협업")}
           </h3>
 
-          {/* 2026-08-25, "서비스 에 대한 꼭지를 슬롯으로 하나 분리해서... 앱.웹서비스에 노출
-              범위를 조정" 요청으로 기존 "홍보 및 서비스 노출"(제공 정보/활용 목적 두 박스 +
-              동의/비동의 버튼)을 대체. 법무 검토용으로 전달받은 문구를 그대로 옮긴다 —
-              임의로 다듬지 않는다. */}
+          {/* [개정 2026-09-07] 법무 검토용으로 새로 전달받은 문구로 전면 교체 — 임의로
+              다듬지 않고 그대로 옮긴다. */}
           <p className="mt-3 break-keep text-xs leading-6 text-muted">
             {t(
               "marketing.serviceLinkLead",
-              "서울아레나는 관람객에게 보다 편리하고 풍부한 공연 경험을 제공하기 위해, 대관사가 " +
-                "제공하는 공연·아티스트 관련 정보 및 콘텐츠를 서울아레나 공식 웹사이트 및 모바일 " +
-                "서비스에 연계하여 제공할 수 있습니다.",
+              "서울아레나는 공연 홍보와 관람객 경험 확대를 위해 서울아레나 공식 Web/App, SNS 등 " +
+                "디지털 채널과 시설 내 공간·미디어를 기반으로 공연 연계 콘텐츠·서비스 및 프로모션을 " +
+                "제안할 수 있습니다.",
             )}
           </p>
 
-          {/* 2026-08-25, "너무 나열이야.. 박스 형태로.. 주요활용 범위, 안내 사항을 가로 축을
-              반으로 나눠서" 피드백 — 세로로 죽 나열하던 두 섹션을 예전 "제공 정보 및
-              콘텐츠 / 활용 목적 및 범위" 두 박스 레이아웃과 같은 grid-cols-2 박스로 되돌림. */}
-          <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2">
-            <div className="rounded-lg border border-border/25 bg-surface p-4">
-              <p className="text-xs font-bold text-foreground">
-                {t("marketing.serviceScopeHeading", "주요 활용 범위")}
-              </p>
-              <ul className="mt-2 space-y-3">
-                {SERVICE_SCOPE_ITEMS.map((item) => (
-                  <li key={item.key}>
-                    <p className="text-xs font-bold text-foreground">
-                      {t(`marketing.serviceScope.${item.key}.title`, item.defaultTitle)}
-                    </p>
-                    <p className="mt-1 break-keep text-xs leading-6 text-muted">
-                      {t(`marketing.serviceScope.${item.key}.desc`, item.defaultDesc)}
-                    </p>
-                  </li>
-                ))}
-              </ul>
-            </div>
-            <div className="rounded-lg border border-border/25 bg-surface p-4">
-              <p className="text-xs font-bold text-foreground">
-                {t("marketing.serviceNoticeHeading", "안내사항")}
-              </p>
-              <ul className="mt-2 list-disc space-y-1.5 break-keep pl-4 text-xs leading-6 text-muted">
-                <li>
-                  {t(
-                    "marketing.serviceNoticeItem1",
-                    "실제 활용되는 정보 및 콘텐츠의 제공 범위, 공개 여부, 노출 시점 등은 공연 준비 " +
-                      "과정에서 대관사와 협의하여 확정합니다.",
-                  )}
-                </li>
-                <li>
-                  {t(
-                    "marketing.serviceNoticeItem2",
-                    "대관 신청 단계에서는 별도의 콘텐츠 파일을 제출하지 않으며, 필요한 자료는 공연 " +
-                      "준비 과정에서 별도로 요청할 수 있습니다.",
-                  )}
-                </li>
-                <li>
-                  {t(
-                    "marketing.serviceNoticeItem3",
-                    "대관사가 제공하는 이미지·영상 등 콘텐츠는 서울아레나 웹·앱 서비스에서 활용 " +
-                      "가능한 권리를 확보한 자료를 기준으로 합니다.",
-                  )}
-                </li>
-              </ul>
+          <ul className="mt-4 space-y-4">
+            {SERVICE_SCOPE_ITEMS.map((item) => (
+              <li key={item.key} className="border-l-2 border-border/40 pl-3.5">
+                <p className="text-xs font-bold text-foreground">
+                  {t(`marketing.serviceScope.${item.key}.title`, item.defaultTitle)}
+                </p>
+                <p className="mt-1 break-keep text-xs leading-6 text-muted">
+                  {t(`marketing.serviceScope.${item.key}.desc`, item.defaultDesc)}
+                </p>
+              </li>
+            ))}
+          </ul>
+
+          <div className="mt-6" data-field-key="marketing.contentCooperationWillingness">
+            <p className="text-s font-bold text-foreground">
+              {t(
+                "marketing.cooperationWillingnessLabel",
+                "서울아레나의 공연 연계 콘텐츠·서비스 및 프로모션 제안에 대한 협의 가능 여부를 선택해 주세요.",
+              )}
+            </p>
+            <div className="mt-2.5 flex flex-wrap gap-2">
+              {COOPERATION_WILLINGNESS_OPTIONS.map((option) => (
+                <button
+                  key={option.value}
+                  type="button"
+                  onClick={() => set("contentCooperationWillingness", option.value)}
+                  className={toggleClass(info.contentCooperationWillingness === option.value)}
+                >
+                  {t(`marketing.cooperationWillingness.${option.value}`, option.defaultLabel)}
+                </button>
+              ))}
             </div>
           </div>
 
+          <p className="mt-4 break-keep text-xs leading-6 text-muted">
+            {t(
+              "marketing.cooperationWillingnessFootnote",
+              "※ 본 항목은 향후 협업 제안에 대한 협의 가능 여부를 확인하기 위한 것으로, 콘텐츠 또는 " +
+                "아티스트 IP의 사용 권한을 부여하거나 특정 콘텐츠·서비스·프로모션의 진행에 동의하는 " +
+                "것을 의미하지 않습니다. 실제 진행 여부와 활용 범위, 제공 정보, 권리 및 조건은 대관사 " +
+                "및 관련 권리자와 건별로 별도 협의하여 확정합니다.",
+            )}
+          </p>
         </div>
 
         {/* 2026-08-25, "공동스폰서십 슬롯은 삭제하고 이 내용을 넣어줘" — 자유 서술형

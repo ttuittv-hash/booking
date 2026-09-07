@@ -90,6 +90,7 @@ const DEFAULT_MARKETING_COOPERATION: MarketingCooperation = {
     budget: "",
     timeline: "",
   },
+  contentCooperationWillingness: null,
 };
 
 // 중형공연장 단독(패키지 없음)일 때는 STEP 2(구성·옵션)의 내용이 달라질 뿐, 별도

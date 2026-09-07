@@ -72,6 +72,7 @@ const DEFAULT_MARKETING_COOPERATION: MarketingCooperation = {
   ticketSalesDataConsent: false,
   pollstarConsent: false,
   executionPlan: { targetDefinition: "", mediaMix: "", budget: "", timeline: "" },
+  contentCooperationWillingness: null,
 };
 
 function defaultWeek(): QuoteSelection["week"] {

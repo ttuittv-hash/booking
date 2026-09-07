@@ -15,6 +15,7 @@ const base: MarketingCooperation = {
   executionPlan: {
     targetDefinition: "", mediaMix: "", mediaMixOnline: "", mediaMixOffline: "", budget: "", timeline: "",
   },
+  contentCooperationWillingness: null,
 };
 
 function render(info: MarketingCooperation) {
@@ -31,8 +32,27 @@ function render(info: MarketingCooperation) {
 describe("StepMarketingCooperation", () => {
   it("연계 안내 슬롯에 동의 체크박스가 없다", () => {
     const html = render(base);
-    expect(html).toContain("마케팅 및 서비스 연계 안내");
+    expect(html).toContain("공연 연계 콘텐츠·서비스 및 프로모션 협업");
     expect(html).not.toContain("마케팅/서비스 연계 동의");
+  });
+
+  // [신규 2026-09-07] "마케팅 및 서비스 연계 안내 내역을 상기 내역으로 변경" —
+  // 법무 검토용 새 문구로 전면 교체. 기존 "주요 활용 범위"/"안내사항" 2단 박스는
+  // 사라지고 5항목 단일 목록 + 협의 가능 여부 3택 1 + 각주로 바뀐다.
+  it("새 5항목 목록과 협의 가능 여부 선택지, 각주가 모두 나온다", () => {
+    const html = render(base);
+    expect(html).toContain("공연 정보 연계 및 안내");
+    expect(html).toContain("공연·아티스트 연계 콘텐츠");
+    expect(html).toContain("공연 연계 관람객 서비스");
+    expect(html).toContain("서울아레나 공간·미디어 연계");
+    expect(html).toContain("공동 프로모션 및 마케팅");
+    expect(html).toContain("적극 협의 가능");
+    expect(html).toContain("제안 내용에 따라 협의 가능");
+    expect(html).toContain("협업 미희망");
+    expect(html).toContain("콘텐츠 또는 아티스트 IP의 사용 권한을 부여");
+    // 예전 2단 박스("주요 활용 범위"/"안내사항")는 완전히 없어졌다
+    expect(html).not.toContain("주요 활용 범위");
+    expect(html).not.toContain("안내사항");
   });
 
   // [개정 2026-09-07] "홍보 및 서비스 계획 메뉴에서 마케팅 계획서 첨부 슬롯 삭제" —
