@@ -11,9 +11,13 @@ function addDays(date: Date, n: number): Date {
   return d;
 }
 
+// [개정 2026-09-07] 중형공연장 요금표 안내("평일: 월요일~목요일 / 주말: 금요일~일요일")에
+// 맞춰 금요일도 주말 단가로 과금한다 — 토·일만 주말로 보던 일반적 정의와 다르다.
+// 이 함수는 중형공연장 전용(dateRange.ts 다른 곳/아레나 요일 태깅은 별도 로직)이라
+// 다른 화면에 영향 없다.
 export function isWeekendDate(iso: string): boolean {
   const day = new Date(iso).getDay();
-  return day === 0 || day === 6;
+  return day === 0 || day === 5 || day === 6;
 }
 
 export function isoDate(d: Date): string {

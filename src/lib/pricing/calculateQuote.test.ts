@@ -417,6 +417,19 @@ describe("calculateQuote — 중형공연장(DAILY) 요금 엔진", () => {
     expect(line.amount).toBe(cfg.performanceWeekendFee);
   });
 
+  // [신규 2026-09-07] 요금표 안내("평일: 월요일~목요일 / 주말: 금요일~일요일")에 맞춰
+  // 금요일도 주말 단가로 과금한다 — 토·일만 주말로 보던 예전 기준과 다르다.
+  it("금요일 공연도 주말 단가로 과금된다", () => {
+    const quote = calculateQuote(
+      midHallOnlySelection({
+        midHallDays: { "2027-08-06": { role: "PERFORMANCE", shows: 1 } }, // 금요일
+      }),
+      RATE_TABLE,
+    );
+    const line = quote.lineItems.find((i) => i.addonId === "midhall_show_weekend-1")!;
+    expect(line.amount).toBe(cfg.performanceWeekendFee);
+  });
+
   it("1일 3회 이상은 자동 계산하지 않고 blockingIssues로 제출을 막는다", () => {
     const quote = calculateQuote(
       midHallOnlySelection({

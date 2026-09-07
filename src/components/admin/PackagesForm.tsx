@@ -1247,7 +1247,11 @@ export function PackagesForm({
           </section>
         )}
 
-        {venueTab === "arena" && (
+        {/* [버그 수정 2026-09-07] "올인원 패키지에 기본내역·옵션내역 슬롯이 없다" — 이
+            블록이 venueTab === "arena" 로만 열려 있어서, "아레나와 같은 패키지 모델을
+            쓴다"(types.ts VENUES 주석)는 올인원(special-hall)에서는 기본 정보 아래로
+            아무 것도 안 나왔다. 시간 단가 모델인 중형공연장만 빼고 둘 다 연다. */}
+        {venueTab !== MID_HALL_VENUE_ID && (
         <>
         {(
           [
