@@ -216,70 +216,10 @@ export function StepMarketingCooperation({
           </div>
         </div>
 
-        {/* 2026-08-25, "공동스폰서십 슬롯은 삭제하고 이 내용을 넣어줘" — 자유 서술형
-            스폰서십 목록 입력 슬롯과 아래 "공연 관련 데이터 제공 협조" 슬롯을 없애고,
-            전달받은 디자인 시안 그대로 "협조 동의 항목" 한 슬롯으로 합쳤다. */}
-        <div className="mt-8 border-t border-border/25 pt-5">
-          <h3 className="type-kr-heading text-h6-m">
-            {t("marketing.cooperationConsentHeading", "협조 동의 항목")}
-          </h3>
-
-          <div className="mt-3 space-y-2">
-            <div className="flex flex-col gap-2 border border-border/25 p-4 sm:flex-row sm:items-center sm:justify-between">
-              <p className="text-s font-bold text-foreground">
-                {t("marketing.coPromotionLabel", "공동 프로모션 협조")}
-              </p>
-              <div className="flex flex-wrap items-center gap-3">
-                <p className="text-xs text-muted">
-                  {t("marketing.coPromotionHint", "2차 제작물 채널 활용 동의(좀 더 구체설명 예정)")}
-                </p>
-                <div className="flex gap-2">
-                  <button
-                    type="button"
-                    onClick={() => set("coPromotionConsent", true)}
-                    className={toggleClass(info.coPromotionConsent === true)}
-                  >
-                    {t("marketing.consentYes", "동의")}
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => set("coPromotionConsent", false)}
-                    className={toggleClass(info.coPromotionConsent === false)}
-                  >
-                    {t("marketing.consentNo", "비동의")}
-                  </button>
-                </div>
-              </div>
-            </div>
-
-            <div className="flex flex-col gap-2 border border-border/25 p-4 sm:flex-row sm:items-center sm:justify-between">
-              <p className="text-s font-bold text-foreground">
-                {t("marketing.coSponsorshipLabel", "공동 스폰서십·브랜딩 협업")}
-              </p>
-              <div className="flex flex-wrap items-center gap-3">
-                <p className="text-xs text-muted">
-                  {t("marketing.coSponsorshipHint", "확보 시 즉시 통보·협업 의무(좀 더 구체 설명 예정)")}
-                </p>
-                <div className="flex gap-2">
-                  <button
-                    type="button"
-                    onClick={() => set("coSponsorshipConsent", true)}
-                    className={toggleClass(info.coSponsorshipConsent === true)}
-                  >
-                    {t("marketing.consentYes", "동의")}
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => set("coSponsorshipConsent", false)}
-                    className={toggleClass(info.coSponsorshipConsent === false)}
-                  >
-                    {t("marketing.consentNo", "비동의")}
-                  </button>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
+        {/* [삭제 2026-09-07] "동의 구하는거 그 두줄 자체가 없어야해" — 위 "공동
+            프로모션 협조"/"공동 스폰서십·브랜딩 협업" 동의 여부를 묻던 두 줄을
+            신청 단계에서 뺐다. coPromotionConsent/coSponsorshipConsent 필드 자체는
+            남겨둔다(scoreQuote 는 애초에 정책상 채점 제외, 옛 제출본 데이터 보존). */}
 
         {/* 2026-08-25, "세일즈·실적 데이터 제공 협조 이거 박스형태로 있던거 그대로
             유지해야지.. 이 슬롯 기존대로 복구" — 위 "협조 동의 항목"에 합쳤던 걸
