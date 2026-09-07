@@ -174,7 +174,10 @@ export function StepPublicInterest({
 
         {/* [수정 2026-09-08] "4분할로 해줘. 지금은 너무 길어" — 그룹 4개를 세로로
             죽 나열하던 걸 2×2 박스 그리드로 바꿨다. */}
-        <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2">
+        {/* [수정 2026-09-09] 체크한 항목마다 계획 입력창이 펼쳐져 같은 행의 두 박스
+            높이가 크게 벌어질 수 있다 — 그리드 기본 stretch를 items-start로 풀어
+            짧은 쪽 박스 아래에 큰 빈 공간이 남지 않게 한다. */}
+        <div className="mt-6 grid grid-cols-1 items-start gap-4 sm:grid-cols-2">
           {PUBLIC_INTEREST_GROUPS.filter((group) => !disabledGroups?.includes(group.key)).map((group) => {
             const visibleItems = group.items.filter(isItemEnabled);
             if (visibleItems.length === 0) return null;

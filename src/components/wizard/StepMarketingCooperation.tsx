@@ -161,7 +161,10 @@ export function StepMarketingCooperation({
           {/* [개정 2026-09-07] "선택 박스는 협업 동의·협업 미동의 두 개로만 노출하고
               레이아웃을 예쁘게 — 협업 내용 박스 하나, 동의 박스 하나로" 피드백으로
               단일 목록 + 버튼 나열이던 걸 예전부터 쓰던 2단 박스 레이아웃으로 되돌렸다. */}
-          <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2">
+          {/* [수정 2026-09-09] "여백이 너무 많은.. 이상한" 것 점검 — 그리드 기본값
+              (align-items: stretch)이 두 박스 높이를 서로 맞춰, 내용이 짧은 쪽(협업
+              내용)에 큰 빈 공간이 생겼다. items-start로 각자 내용만큼만 높이를 갖게 한다. */}
+          <div className="mt-4 grid grid-cols-1 items-start gap-3 sm:grid-cols-2">
             <div className="rounded-lg border border-border/25 bg-surface p-4">
               <p className="text-xs font-bold text-foreground">
                 {t("marketing.cooperationContentHeading", "협업 내용")}

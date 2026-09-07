@@ -1730,7 +1730,11 @@ export function StepAttachments({
 
   return (
     <section className="mt-10 border-t-2 border-foreground pt-5">
-      <h3 className="type-kr-heading text-h6-m">{t("attachments.sectionHeading", "자료 첨부(선택)")}</h3>
+      {/* [수정 2026-09-09] "이상한" 표기 점검 — 이 제목 밑에 STEP7 두 번째 슬롯인
+          "안전관리 서약서 첨부"(필수, 빨간 별표)가 함께 있어 "(선택)"이 그 필수
+          항목까지 선택인 것처럼 읽혔다. 위 공연 관련 자료 자체는 여전히 선택이지만,
+          그 표시는 섹션 제목이 아니라 필요하면 필드 단위로 한다. */}
+      <h3 className="type-kr-heading text-h6-m">{t("attachments.sectionHeading", "자료 첨부")}</h3>
       {/* [개정 2026-08-26] "객석 배치도 첨부 영역은 삭제" 요청으로 두 항목 안내 중
           객석배치도 쪽을 뺐다 — 공연 관련 자료 안내만 남는다. */}
       <p className="mt-2 text-xs leading-5 text-muted">
