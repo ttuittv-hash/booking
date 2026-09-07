@@ -305,26 +305,9 @@ function AudienceFields({
           </div>
         </div>
 
-        {/* [개정 2026-09-07] "대관 경합 시 대관료 옵션 추가 가능 범위"는 별도 슬롯으로
-            분리해 탭 맨 아래(StepCompetitionOption, STEP3 슬롯 순서 마지막)로 옮겼다.
-            티켓 매출 RS 요율만 여기 남는다. */}
-        <div>
-          <label className="mb-1.5 block text-xs font-bold text-muted">
-            {t("audience.ticketRevenueShareRateLabel", "티켓 매출 RS 요율")}
-          </label>
-          <div className="flex w-28 items-center gap-1.5">
-            <input
-              type="number"
-              min={0}
-              max={100}
-              value={info.ticketRevenueShareRate ?? ""}
-              placeholder={tStr("audience.ticketRevenueShareRatePlaceholder", "요율")}
-              onChange={(e) => set("ticketRevenueShareRate", clampRate(e.target.value))}
-              className="field-base w-full"
-            />
-            <span className="text-xs text-muted">%</span>
-          </div>
-        </div>
+        {/* [개정 2026-09-07] "대관 경합 시 대관료 옵션 추가 가능 범위"·"티켓 매출 RS
+            요율" 둘 다 별도 슬롯으로 분리해 탭 맨 아래(StepCompetitionOption, STEP3
+            슬롯 순서 마지막)로 옮겼다 — 여기(예상 관객 및 사업규모)에는 남지 않는다. */}
 
         {/* [버그 수정 2026-09-06] "언체크해도 라벨명은 노출되잖아 — 항목 전체에 대한
             온오프가 필요" — 항목을 전부 꺼도 제목만 남지 않도록 함께 숨긴다. */}
@@ -483,6 +466,9 @@ export function StepAudience({
  * STEP3_DEFAULT_SLOT_ORDER)에 다섯 번째 슬롯으로 등록해 독립적으로 순서를 옮길 수
  * 있게 하고, 기본 위치를 맨 끝에 둔다. 경합 여지는 신청서 전체 기준 값이라 아레나·
  * 중형으로 나눠 받지 않는다(다른 STEP3 슬롯과 달리 midHallInfo 를 받지 않는 이유).
+ * [개정 2026-09-07] "티켓 매출 RS 요율도 경합 슬롯에 있어야지, 예상 관객 및 사업규모
+ * 에서는 빼고" — 원래 이 범위와 한 줄에 같이 있던 RS 요율을 다시 여기로 옮긴다(예상
+ * 관객 및 사업규모 슬롯에는 남기지 않는다).
  */
 export function StepCompetitionOption({
   info,
@@ -495,6 +481,10 @@ export function StepCompetitionOption({
 
   function set<K extends keyof PerformanceInfo>(key: K, value: PerformanceInfo[K]) {
     onChange({ ...info, [key]: value });
+  }
+
+  function clampRate(raw: string): number {
+    return Math.max(0, Math.min(100, Number(raw) || 0));
   }
 
   return (
@@ -537,6 +527,22 @@ export function StepCompetitionOption({
               className="field-base w-full"
             />
             <span className="text-xs text-muted">{t("audience.wonUnit", "원")}</span>
+          </div>
+          <span className="mx-1 h-6 w-px bg-border/40" aria-hidden="true" />
+          <label className="text-xs font-bold whitespace-nowrap text-muted">
+            {t("audience.ticketRevenueShareRateLabel", "티켓 매출 RS 요율")}
+          </label>
+          <div className="flex w-28 items-center gap-1.5">
+            <input
+              type="number"
+              min={0}
+              max={100}
+              value={info.ticketRevenueShareRate ?? ""}
+              placeholder={tStr("audience.ticketRevenueShareRatePlaceholder", "요율")}
+              onChange={(e) => set("ticketRevenueShareRate", clampRate(e.target.value))}
+              className="field-base w-full"
+            />
+            <span className="text-xs text-muted">%</span>
           </div>
         </div>
       </div>
