@@ -172,12 +172,14 @@ export function StepPublicInterest({
           )}
         </p>
 
-        <div className="mt-6 space-y-8">
+        {/* [수정 2026-09-08] "4분할로 해줘. 지금은 너무 길어" — 그룹 4개를 세로로
+            죽 나열하던 걸 2×2 박스 그리드로 바꿨다. */}
+        <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2">
           {PUBLIC_INTEREST_GROUPS.filter((group) => !disabledGroups?.includes(group.key)).map((group) => {
             const visibleItems = group.items.filter(isItemEnabled);
             if (visibleItems.length === 0) return null;
             return (
-              <div key={group.key}>
+              <div key={group.key} className="border border-border/25 bg-surface p-4">
                 <h4 className="border-b border-foreground pb-2 text-xs font-bold tracking-wide text-foreground">
                   {t(`publicInterest.group.${group.key}`, group.label)}
                 </h4>
