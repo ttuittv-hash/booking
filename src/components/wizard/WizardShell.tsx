@@ -1004,7 +1004,7 @@ export function WizardShell({
             info={selection.marketingCooperation ?? DEFAULT_MARKETING_COOPERATION}
             onChange={(marketingCooperation) => setSelection((prev) => ({ ...prev, marketingCooperation }))}
             title={wizardStepText.marketingTitle}
-            lead={wizardStepText.marketingLead}
+            lead={wizardDisabledFields?.includes("wizardShell.marketingLead") ? undefined : wizardStepText.marketingLead}
           />
         )}
         {step === 5 && (
@@ -1019,6 +1019,7 @@ export function WizardShell({
             title={wizardStepText.publicInterestTitle}
             disabledItems={publicInterestDisabledItems}
             disabledGroups={publicInterestDisabledGroups}
+            disabledFields={wizardDisabledFields}
           />
         )}
         {step === 6 && (
@@ -1027,7 +1028,10 @@ export function WizardShell({
             onChange={(safetyPledge) => setSelection((prev) => ({ ...prev, safetyPledge }))}
             companyName={selection.performanceInfo.applicantCompanyName || undefined}
             title={wizardStepText.safetyPledgeTitle}
-            lead={wizardStepText.safetyPledgeLead}
+            // [신규 2026-09-07] "그 영역을 잡고 없애줘" — 이 리드 한 줄도 다른 슬롯과
+            // 같은 노출 On/off 패턴을 따른다. 어드민에서 끄면 위저드 미리보기·실제
+            // 신청 화면 모두에서 사라진다.
+            lead={wizardDisabledFields?.includes("wizardShell.safetyPledgeLead") ? undefined : wizardStepText.safetyPledgeLead}
           />
         )}
         {/* [신규 2026-09-07] "안전관리 서약서 뒤에 자료 첨부 탭 신규 생성" — 안전관리
@@ -1068,6 +1072,7 @@ export function WizardShell({
             fileCount={pendingFiles.length + (safetyPlanFile ? 1 : 0)}
             onSubmit={submit}
             onRequestEdit={requestEdit}
+            disabledFields={wizardDisabledFields}
           />
         )}
 

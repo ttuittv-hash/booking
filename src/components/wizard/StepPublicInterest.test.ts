@@ -35,13 +35,19 @@ function render(
 }
 
 describe("StepPublicInterest 렌더", () => {
-  it("항목 14개가 그룹 머리글과 함께 한 줄씩 나온다", () => {
+  it("항목 12개가 그룹 머리글과 함께 한 줄씩 나온다", () => {
     const html = render({ ...INITIAL_PERFORMANCE_INFO });
     for (const g of PUBLIC_INTEREST_GROUPS) expect(html).toContain(g.label);
-    expect(html).toContain("해당 없음 · 미확정");
-    expect(html.match(/type="checkbox"/g)?.length).toBe(14);
+    expect(html.match(/type="checkbox"/g)?.length).toBe(12);
     // 체크 전에는 상세 입력이 열리지 않는다
     expect(html).not.toContain("<textarea");
+  });
+
+  // [삭제 2026-09-07] "해당없음·미확정 부분 삭제" — "검토 중"/"없음" 상태 응답 그룹을
+  // 화면에서 뺐다.
+  it('"해당 없음 · 미확정" 그룹이 더 이상 없다', () => {
+    const html = render({ ...INITIAL_PERFORMANCE_INFO });
+    expect(html).not.toContain("해당 없음 · 미확정");
   });
 
   it("체크한 항목만 텍스트박스가 펼쳐진다", () => {
@@ -52,11 +58,6 @@ describe("StepPublicInterest 렌더", () => {
     });
     expect(html.match(/<textarea/g)?.length).toBe(1);
     expect(html).toContain("휠체어석 20석");
-  });
-
-  it('"검토 중"·"없음"은 상세를 받지 않는다', () => {
-    const html = render({ ...INITIAL_PERFORMANCE_INFO, publicInterestItems: ["NONE"] });
-    expect(html).not.toContain("<textarea");
   });
 
   // [수정 2026-09-07] "자료첨부 탭 외의 탭에서는 첨부파일 넣기 슬롯 제거" — 섹션 전체용
@@ -74,8 +75,8 @@ describe("StepPublicInterest 렌더", () => {
   it("disabledItems에 있는 항목은 체크박스 자체가 사라진다", () => {
     const html = render({ ...INITIAL_PERFORMANCE_INFO }, { disabledItems: ["DISCOUNT_ACCESS"] });
     expect(html).not.toContain("문화소외계층 할인");
-    // 나머지 13개는 그대로 남는다
-    expect(html.match(/type="checkbox"/g)?.length).toBe(13);
+    // 나머지 11개는 그대로 남는다
+    expect(html.match(/type="checkbox"/g)?.length).toBe(11);
   });
 
   it("그룹의 모든 항목이 꺼지면 그 그룹 머리글도 사라진다", () => {

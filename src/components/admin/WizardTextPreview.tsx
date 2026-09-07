@@ -246,6 +246,23 @@ function AttrFieldsPanel({
   );
 }
 
+/** [신규 2026-09-07] "그 영역을 잡고 없애줘" — 각 STEP 제목 아래 리드 한 줄을
+ * 통째로 켜고 끄는 작은 체크박스. disabledFields 관례를 그대로 따른다(단일 필드
+ * 키 하나만 다루므로 FieldOrderPanel처럼 순서까지 다루는 큰 패널은 필요 없다). */
+function LeadToggle({ ctx, fieldId, label }: { ctx: RenderCtx; fieldId: string; label: string }) {
+  const disabled = ctx.disabledFields.includes(fieldId);
+  return (
+    <label className="flex w-fit items-center gap-1.5 text-2xs font-bold whitespace-nowrap text-muted">
+      <input
+        type="checkbox"
+        checked={!disabled}
+        onChange={(e) => ctx.setFieldDisabled(fieldId, !e.target.checked)}
+      />
+      {label} 노출
+    </label>
+  );
+}
+
 /**
  * [신규 2026-09-07] "미입력 필수항목... 기능 적용이 어려운 경우, 미입력 항목을
  * 안내하는 문구를 운영자 백오피스에서 수정할 수 있도록" — 빨간 테두리·자동 스크롤은
@@ -1156,16 +1173,19 @@ const STAGE_GROUPS: StageGroup[] = [
           const field = makeFieldEditor(ctx);
           const lead = makeLeadEditor(ctx);
           return (
-            <LivePreview>
-              <div className="[&_input]:pointer-events-auto [&_textarea]:pointer-events-auto">
-                <StepMarketingCooperation
-                  info={DEFAULT_MARKETING_COOPERATION}
-                  onChange={noop}
-                  title={field("marketingTitle")}
-                  lead={lead("marketingLead")}
-                />
-              </div>
-            </LivePreview>
+            <div className="space-y-4">
+              <LeadToggle ctx={ctx} fieldId="wizardShell.marketingLead" label="리드 문구" />
+              <LivePreview>
+                <div className="[&_input]:pointer-events-auto [&_textarea]:pointer-events-auto">
+                  <StepMarketingCooperation
+                    info={DEFAULT_MARKETING_COOPERATION}
+                    onChange={noop}
+                    title={field("marketingTitle")}
+                    lead={ctx.disabledFields.includes("wizardShell.marketingLead") ? undefined : lead("marketingLead")}
+                  />
+                </div>
+              </LivePreview>
+            </div>
           );
         },
       },
@@ -1174,18 +1194,22 @@ const STAGE_GROUPS: StageGroup[] = [
         render: (ctx) => {
           const field = makeFieldEditor(ctx);
           return (
-            <LivePreview>
-              <div className="[&_input]:pointer-events-auto">
-                <StepPublicInterest
-                  info={ctx.mocks.arena.performanceInfo}
-                  onChange={noop}
-                  selection={ctx.mocks.arena}
-                  midHallInfo={null}
-                  onChangeMidHallInfo={noop}
-                  title={field("publicInterestTitle")}
-                />
-              </div>
-            </LivePreview>
+            <div className="space-y-4">
+              <LeadToggle ctx={ctx} fieldId="wizardShell.publicInterestLead" label="리드 문구" />
+              <LivePreview>
+                <div className="[&_input]:pointer-events-auto">
+                  <StepPublicInterest
+                    info={ctx.mocks.arena.performanceInfo}
+                    onChange={noop}
+                    selection={ctx.mocks.arena}
+                    midHallInfo={null}
+                    onChangeMidHallInfo={noop}
+                    title={field("publicInterestTitle")}
+                    disabledFields={ctx.disabledFields}
+                  />
+                </div>
+              </LivePreview>
+            </div>
           );
         },
       },
@@ -1197,6 +1221,7 @@ const STAGE_GROUPS: StageGroup[] = [
           return (
             <div className="space-y-4">
               <ValidationMessagesPanel ctx={ctx} title="안전관리 서약서" entries={STEP6_VALIDATION_MESSAGES} />
+              <LeadToggle ctx={ctx} fieldId="wizardShell.safetyPledgeLead" label="리드 문구" />
               <LivePreview>
                 <div className="[&_input]:pointer-events-auto [&_textarea]:pointer-events-auto">
                   <StepSafetyPledge
@@ -1204,7 +1229,9 @@ const STAGE_GROUPS: StageGroup[] = [
                     onChange={noop}
                     companyName="(주)와이지엔터테인먼트"
                     title={field("safetyPledgeTitle")}
-                    lead={lead("safetyPledgeLead")}
+                    lead={
+                      ctx.disabledFields.includes("wizardShell.safetyPledgeLead") ? undefined : lead("safetyPledgeLead")
+                    }
                   />
                 </div>
               </LivePreview>
@@ -1266,6 +1293,7 @@ const STAGE_GROUPS: StageGroup[] = [
           const leadEdit = makeLeadEditor(ctx);
           return (
             <div className="space-y-8">
+              <LeadToggle ctx={ctx} fieldId="wizardShell.submitLead" label="리드 문구" />
               <div>
                 <span className="mb-3 inline-flex items-center border border-border/40 bg-panel px-2 py-0.5 text-xs font-bold text-muted">
                   새 신청 시
@@ -1284,6 +1312,7 @@ const STAGE_GROUPS: StageGroup[] = [
                       error={null}
                       onSubmit={noop}
                       headingOverride={{ title: fieldNew("submitNewTitle"), lead: leadNew("submitNewLead") }}
+                      disabledFields={ctx.disabledFields}
                     />
                   </div>
                 </LivePreview>
@@ -1305,6 +1334,7 @@ const STAGE_GROUPS: StageGroup[] = [
                       submittedId={null}
                       error={null}
                       onSubmit={noop}
+                      disabledFields={ctx.disabledFields}
                       headingOverride={{ title: fieldEdit("submitEditingTitle"), lead: leadEdit("submitEditingLead") }}
                     />
                   </div>

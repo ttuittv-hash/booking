@@ -37,6 +37,7 @@ export function StepPublicInterest({
   title,
   disabledItems,
   disabledGroups,
+  disabledFields,
 }: {
   info: PerformanceInfo;
   onChange: (info: PerformanceInfo) => void;
@@ -54,6 +55,9 @@ export function StepPublicInterest({
    * ("ACCESS" 등)를 담으면 그 그룹 전체(속한 항목 전부)를 숨긴다.
    */
   disabledGroups?: string[];
+  /** [신규 2026-09-07] "그 영역을 잡고 없애줘" — 화면 상단 리드 한 줄도 다른 슬롯과
+   * 같은 노출 On/off 패턴("wizardShell.publicInterestLead")을 쓴다. */
+  disabledFields?: string[];
 }) {
   const { t, tStr } = useWizardText();
   const selectedItems = info.publicInterestItems ?? [];
@@ -138,9 +142,11 @@ export function StepPublicInterest({
   return (
     <section>
       <h2 className="type-kr-heading text-h5-m sm:text-h5">{title}</h2>
-      <p className="mt-1.5 text-s text-muted">
-        {t("publicInterest.lead", "해당하는 항목을 선택하고, 항목마다 계획을 적습니다. 선택사항입니다.")}
-      </p>
+      {!disabledFields?.includes("wizardShell.publicInterestLead") && (
+        <p className="mt-1.5 text-s text-muted">
+          {t("publicInterest.lead", "해당하는 항목을 선택하고, 항목마다 계획을 적습니다. 선택사항입니다.")}
+        </p>
+      )}
 
       {isSimultaneous && (
         <VenueSplitTabBar
@@ -180,14 +186,8 @@ export function StepPublicInterest({
             );
           })}
 
-          <div>
-            <h4 className="border-b border-foreground pb-2 text-xs font-bold tracking-wide text-foreground">
-              {t("publicInterest.group.STATUS", "해당 없음 · 미확정")}
-            </h4>
-            <div className="border-t border-border/25">
-              {PUBLIC_INTEREST_STATUS_ITEMS.map((item) => itemRow(item))}
-            </div>
-          </div>
+          {/* [삭제 2026-09-07] "해당없음·미확정 부분 삭제" — "검토 중"/"없음" 상태 응답
+              그룹을 뺐다. */}
 
           {/* [수정 2026-09-07] "자료첨부 탭 외의 탭에서는 첨부파일 넣기 슬롯 제거" —
               섹션 전체용 파일 첨부 칸을 뺐다. 증빙 자료는 STEP7 "자료 첨부" 탭에서

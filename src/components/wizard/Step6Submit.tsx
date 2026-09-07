@@ -85,6 +85,7 @@ export function Step6Submit({
   onRequestEdit,
   stepText,
   headingOverride,
+  disabledFields,
 }: {
   rateTable: RateTable;
   quote: EstimatedQuote;
@@ -107,6 +108,9 @@ export function Step6Submit({
   stepText: WizardStepTexts;
   /** 관리자 문구 미리보기 전용 — 제목·리드를 편집 가능한 입력으로 바꿔치기한다. */
   headingOverride?: { title: ReactNode; lead?: ReactNode };
+  /** [신규 2026-09-07] "그 영역을 잡고 없애줘" — 리드 한 줄을 다른 슬롯과 같은 노출
+   * On/off 패턴("wizardShell.submitLead")으로 끌 수 있다. */
+  disabledFields?: string[];
 }) {
   const { t, tStr } = useWizardText();
   const toast = useToast();
@@ -163,7 +167,11 @@ export function Step6Submit({
     <section>
       <StepHeading
         title={headingOverride?.title ?? (isEditing ? stepText.submitEditingTitle : stepText.submitNewTitle)}
-        lead={headingOverride?.lead ?? (isEditing ? stepText.submitEditingLead : stepText.submitNewLead)}
+        lead={
+          disabledFields?.includes("wizardShell.submitLead")
+            ? undefined
+            : (headingOverride?.lead ?? (isEditing ? stepText.submitEditingLead : stepText.submitNewLead))
+        }
       />
 
       <div className="mt-10 flex flex-wrap items-center justify-between gap-4 border-t-2 border-foreground pt-6">
