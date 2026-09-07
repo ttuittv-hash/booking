@@ -522,17 +522,26 @@ export function WizardShell({
   // 보여준다. React state로 하이라이트를 관리하면 각 step 컴포넌트마다 새 prop을
   // 넘겨야 해서(이미 fieldOrders/disabledFields/customOptions로 3겹 넘기는 중), 여기서는
   // DOM을 직접 찾아 순간적으로 스타일만 건드리는 가벼운 방식을 쓴다.
+  // [수정 2026-09-07] "레드 선 굵기 더 얇게 하고, 개별 칸들이 하이라이팅이 되어야지
+  // 그 영역 전체를 하나의 박스로만 하지마" — data-field-key를 가진 DOM이 그룹 전체를
+  // 감싼 하나가 아니라 실제로 비어 있는 칸마다 따로 붙는 경우(예: 주최·주관·기획 반복
+  // 행)가 있어, 첫 번째 하나만이 아니라 같은 fieldKey를 가진 요소 전부를 찾아 각각
+  // 얇은 테두리를 준다. 화면 스크롤은 그중 첫 요소 기준으로 한 번만 한다.
   function flashFieldError(fieldKey: string) {
     if (typeof window === "undefined") return;
-    const el = document.querySelector<HTMLElement>(`[data-field-key="${fieldKey}"]`);
-    if (!el) return;
-    el.scrollIntoView({ behavior: "smooth", block: "center" });
-    el.style.transition = "outline-color 0.2s ease";
-    el.style.outline = "3px solid var(--danger)";
-    el.style.outlineOffset = "3px";
+    const els = document.querySelectorAll<HTMLElement>(`[data-field-key="${fieldKey}"]`);
+    if (els.length === 0) return;
+    els[0].scrollIntoView({ behavior: "smooth", block: "center" });
+    els.forEach((el) => {
+      el.style.transition = "outline-color 0.2s ease";
+      el.style.outline = "1.5px solid var(--danger)";
+      el.style.outlineOffset = "2px";
+    });
     window.setTimeout(() => {
-      el.style.outline = "";
-      el.style.outlineOffset = "";
+      els.forEach((el) => {
+        el.style.outline = "";
+        el.style.outlineOffset = "";
+      });
     }, 2500);
   }
 

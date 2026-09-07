@@ -893,7 +893,7 @@ function EventBasicsFields({
                 행으로 추가할수 있게" — 단일 텍스트 입력을 역할별 반복 행으로
                 바꾼다. organizer(단일 텍스트)는 이 배열에서 자동 합성돼 인쇄본·
                 관리자 화면과의 하위호환을 유지한다(deriveOrganizerSummary). */}
-            <div data-field-key="performanceInfo.eventBasics.organizer">
+            <div>
               <div className="mb-2.5 flex items-center justify-between">
                 <label className="text-xs font-bold text-muted">
                   {t("performanceInfo.organizerLabel", "주최 · 주관 · 기획")}
@@ -916,10 +916,16 @@ function EventBasicsFields({
                         </option>
                       ))}
                     </select>
+                    {/* [수정 2026-09-07] "레드 선... 개별 칸들이 하이라이팅이 되어야지
+                        그 영역 전체를 하나의 박스로만 하지마" — 그룹 전체를 감싸던
+                        data-field-key를 빼고, 실제로 비어 있는 이름 입력칸에만 붙인다
+                        (검증 조건 "하나라도 입력" 그대로, row.name 이 채워지면 이
+                        속성이 사라지므로 채워진 칸은 하이라이트되지 않는다). */}
                     <input
                       value={row.name}
                       placeholder={tStr("performanceInfo.organizerNamePlaceholder", "업체명 · 단체명")}
                       onChange={(e) => updateOrganizer(i, { name: e.target.value })}
+                      data-field-key={row.name.trim() ? undefined : "performanceInfo.eventBasics.organizer"}
                       className="field-base w-full"
                     />
                     <button
