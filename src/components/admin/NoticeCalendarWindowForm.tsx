@@ -89,7 +89,7 @@ export function NoticeCalendarWindowForm({
     <section className={`mt-10 ${TABLE_CARD}`}>
       <div className={TABLE_HEAD}>
         <div>
-          <p className={TABLE_HEAD_TITLE}>공지 캘린더 노출 월</p>
+          <p className={TABLE_HEAD_TITLE}>캘린더 노출월</p>
           <p className={TABLE_HEAD_DESC}>
             공지사항에 넣은 「대관 현황 캘린더」가 보여 줄 달의 범위입니다. 이번 회차에
             신청받는 달만 넘겨 볼 수 있게 하고, 범위 밖의 달로는 넘어가지 않습니다.
