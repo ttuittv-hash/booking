@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { notifyQuoteApplicant } from "@/lib/message/quoteEvents";
+import { dispatchMessageInBackground } from "@/lib/message/dispatch";
 import crypto from "node:crypto";
 import { canActOnQuotes, getCurrentUser } from "@/lib/auth";
 import {
@@ -12,6 +13,7 @@ import {
   getCurrentRateTable,
   listQuotes,
   listQuotesPaged,
+  listUsers,
   nextQuoteNumber,
   notifyAdmins,
 } from "@/lib/db";
@@ -134,6 +136,17 @@ export async function POST(request: Request) {
 
   // RT-01 대관 신청 접수 — 트랜잭션 밖에서 보낸다(백그라운드 발송이 커밋된 커넥션을 물지 않게).
   notifyQuoteApplicant({ templateCode: "RT-01", quoteId: quote.id, applicantId: user.id, variables: {}, request });
+  // BK-03 대관 신청 접수 안내 → 운영자 전원 (2026-09-07 [알림톡-2차]). 인앱은 위 notifyAdmins 가 남겼다.
+  for (const admin of await listUsers({ role: "ADMIN" })) {
+    dispatchMessageInBackground({
+      templateCode: "BK-03",
+      idempotencyKey: `BK-03:${quote.id}:${admin.id}`,
+      recipient: { userId: admin.id, phone: admin.phone, email: admin.email, name: admin.name },
+      variables: { 운영자명: admin.name, 회사명: user.companyName || user.name, 대관신청내역링크: `admin/${quote.id}` },
+      inApp: false,
+      request,
+    });
+  }
 
   return NextResponse.json({ quote });
 }

@@ -113,27 +113,25 @@ export const TEMPLATES: TemplateDef[] = [
     },
   },
   {
-    // 신규 회사 등록 신청 → 운영자 (2026-09-01 팀 요청, 카카오 ARENA_0013 승인분 연동).
-    // 버튼·본문은 bo 백오피스 심사 화면 기준.
+    // 회원가입 승인 요청 접수 → 운영자 (2026-09-01 ARENA_0013 으로 연동, 2026-09-07 팀 요청으로 ARENA_0021 로 교체).
     //
-    // [교체 2026-09-07 팀 요청] ARENA_0013 → ARENA_0021.
-    // 본문·강조문구·버튼은 그대로 두고 코드만 바꾼다 — 팀이 같은 문안으로 재등록한 건이라는
-    // 전제다. 만약 0021 의 등록 문안이 아래와 한 글자라도 다르면 카카오가 거절하고
-    // (ERR41001/세칙검사) 발송이 안 된다. 그때는 message_sends.status=FAILED 와
-    // "[biztalk] 발송 실패" 로그로 드러나므로, 실제 가입 한 건으로 확인할 것.
+    // 0021 은 0013 과 문안·강조·버튼이 전부 다르다 — 코드만 바꿔 배포했다가 운영에서 3016(템플릿 불일치)로
+    // 실패했다(2026-09-07 23:13). 아래는 MNG `template/select/ARENA_0021` 등록값과 글자 단위로 같다.
+    // 버튼 링크는 등록값이 partner 호스트 + 변수(#{신청내용링크})라 값에 "admin/applicants/{userId}" 를 넣고,
+    // partner 호스트의 /admin/* 은 proxy.ts 가 bo 호스트로 넘긴다.
     code: "MB-05",
     kakaoTemplateCode: "ARENA_0021",
     audience: "ADMIN",
-    title: "회사 신규 등록 (운영자)",
-    body: "#{운영자명}님, 안녕하세요. \n신규 회사등록 신청이 접수되었습니다. \n\n아래 링크에서 신청 내용을 확인해주세요.",
-    variables: ["운영자명"],
+    title: "회원가입 승인 요청 (운영자)",
+    body: "#{운영자명}님, 안녕하세요. \n새로운 회원가입 승인 요청이 접수되었습니다. \n\n아래 신청 내용을 확인한 후 승인 여부를 처리해주세요.",
+    variables: ["운영자명", "신청내용링크"],
     release: "FIRST",
-    emphasis: { title: "신규 회사 등록 신청 접수", subtitle: "서울아레나 대관시스템" },
+    emphasis: { title: "회원가입 승인 요청", subtitle: "서울아레나 대관시스템" },
     button: {
       name: "신청 내용 확인하기",
       path: "/admin/applicants",
-      kakaoUrl: "https://bo.seoularena.net/admin/applicants",
-      kakaoUrlPc: "https://bo.seoularena.net/admin/applicants",
+      kakaoUrl: "https://partner.seoularena.net/#{신청내용링크}",
+      kakaoUrlPc: "https://partner.seoularena.net/#{신청내용링크}",
     },
   },
   {
@@ -387,6 +385,26 @@ export const TEMPLATES: TemplateDef[] = [
     release: "FIRST",
     emphasis: { title: "1:1문의 답변 완료", subtitle: "서울아레나 대관시스템" },
     button: { name: "1:1 문의 바로가기", path: "/inquiry", kakaoUrl: "https://partner.seoularena.net/#{1:1문의링크}" },
+  },
+  // ── 2026-09-07 [알림톡-2차] 팀 등록분(BK-xx, 카카오 승인 O) ──
+  {
+    // 대관 신청 접수 → 운영자 전원. 인앱은 호출부(quotes POST)의 notifyAdmins 가 이미 남긴다.
+    // 버튼 링크는 등록값이 partner 호스트 + 변수(#{대관신청내역링크}) — 값은 "admin/{quoteId}",
+    // partner 호스트의 /admin/* 은 proxy.ts 가 bo 호스트로 넘긴다.
+    code: "BK-03",
+    kakaoTemplateCode: "BK-03",
+    audience: "ADMIN",
+    title: "대관 신청 접수 안내 (운영자)",
+    body: "#{운영자명}님, 안녕하세요.\n#{회사명}에서 새로운 대관 신청이 접수되었습니다. \n\n대관 신청 내용을 확인해주세요.",
+    variables: ["운영자명", "회사명", "대관신청내역링크"],
+    release: "FIRST",
+    emphasis: { title: "대관 신청 접수 안내", subtitle: "서울아레나 대관시스템" },
+    button: {
+      name: "신청 내용 확인하기",
+      path: "/admin",
+      kakaoUrl: "https://partner.seoularena.net/#{대관신청내역링크}",
+      kakaoUrlPc: "https://partner.seoularena.net/#{대관신청내역링크}",
+    },
   },
 ];
 
