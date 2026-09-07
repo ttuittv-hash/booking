@@ -454,13 +454,18 @@ export function Step1Calendar({
                     <p className="mt-2 text-xs font-bold text-muted">아레나 공연장</p>
                   )}
                   <div className="mt-2 flex flex-wrap gap-1.5">
+                    {/* [수정 2026-09-07] "버튼 하나를 해제하면 다른 버튼이 자동으로 눌려요" —
+                        예전에는 눌림 표시를 effectiveDayTag(내가 안 골랐어도 자동 계산되는
+                        기본값 포함)로 판정해서, 지정을 해제(dayTags에서 제거)하면 그 날짜의
+                        기본값과 같은 다른 버튼이 갑자기 눌린 것처럼 보였다. 눌림 표시는
+                        내가 실제로 고른 값(dayTags[openDate])에만 반응하게 해서, 해제하면
+                        어느 버튼도 눌리지 않은 상태로 보이게 한다. */}
                     <button
                       type="button"
                       onClick={() => setRole(openDate, "PREP")}
                       className={[
                         "inline-flex h-8 items-center border px-3 text-xs font-bold transition-colors",
-                        activeDateKeys.has(dateKey(new Date(openDate))) &&
-                        effectiveDayTag(openDate, dayTags, dayTagDefaults) === "PREP"
+                        dayTags[openDate] === "PREP"
                           ? "border-foreground bg-inverse-bg text-inverse-fg"
                           : "border border-border/25 text-muted hover:border-foreground hover:text-foreground",
                       ].join(" ")}
@@ -472,8 +477,7 @@ export function Step1Calendar({
                       onClick={() => setRole(openDate, "PERFORMANCE")}
                       className={[
                         "inline-flex h-8 items-center border px-3 text-xs font-bold transition-colors",
-                        activeDateKeys.has(dateKey(new Date(openDate))) &&
-                        effectiveDayTag(openDate, dayTags, dayTagDefaults) === "PERFORMANCE"
+                        dayTags[openDate] === "PERFORMANCE"
                           ? "border-foreground bg-inverse-bg text-inverse-fg"
                           : "border border-border/25 text-muted hover:border-foreground hover:text-foreground",
                       ].join(" ")}
@@ -485,8 +489,7 @@ export function Step1Calendar({
                       onClick={() => setRole(openDate, "LOAD_OUT")}
                       className={[
                         "inline-flex h-8 items-center border px-3 text-xs font-bold transition-colors",
-                        activeDateKeys.has(dateKey(new Date(openDate))) &&
-                        effectiveDayTag(openDate, dayTags, dayTagDefaults) === "LOAD_OUT"
+                        dayTags[openDate] === "LOAD_OUT"
                           ? "border-foreground bg-inverse-bg text-inverse-fg"
                           : "border border-border/25 text-muted hover:border-foreground hover:text-foreground",
                       ].join(" ")}
@@ -505,8 +508,7 @@ export function Step1Calendar({
                         onClick={() => setRole(openDate, "REST")}
                         className={[
                           "inline-flex h-8 items-center border px-3 text-xs font-bold transition-colors",
-                          activeDateKeys.has(dateKey(new Date(openDate))) &&
-                          effectiveDayTag(openDate, dayTags, dayTagDefaults) === "REST"
+                          dayTags[openDate] === "REST"
                             ? "border-foreground bg-inverse-bg text-inverse-fg"
                             : "border border-border/25 text-muted hover:border-foreground hover:text-foreground",
                         ].join(" ")}
