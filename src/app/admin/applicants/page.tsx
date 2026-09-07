@@ -61,7 +61,7 @@ export default async function AdminApplicantsPage({
     <div className="flex flex-1 flex-col">
       <AdminNav active="/admin/applicants" user={user} />
 
-      <main className="mx-auto w-full max-w-5xl flex-1 px-6 py-8 sm:py-10">
+      <main className="mx-auto w-full max-w-6xl flex-1 px-6 py-8 sm:py-10">
         <header className="pb-5">
           <h1 className={PAGE_TITLE}>회원 관리</h1>
           <p className={PAGE_LEAD}>
