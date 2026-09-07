@@ -145,7 +145,7 @@ export function RatesForm({
         body: JSON.stringify({
           extraWeekRatio,
           dayExclusionDiscountRatio,
-          addons: addons.map((a) => ({ id: a.id, unitPrice: a.unitPrice })),
+          addons: addons.map((a) => ({ id: a.id, name: a.name, unitPrice: a.unitPrice })),
           newAddons,
           removedAddonIds,
           midHall: { ...midHall, breakdown },
@@ -345,8 +345,18 @@ export function RatesForm({
                       key={addon.id}
                       className="grid grid-cols-1 items-center gap-2 py-2 sm:grid-cols-[1fr_160px_auto] sm:gap-3"
                     >
-                      <span className="text-s">
-                        {addon.name} <span className="text-xs text-muted">({addon.unitLabel})</span>
+                      <span className="flex items-center gap-1.5">
+                        <input
+                          type="text"
+                          value={addon.name}
+                          onChange={(e) =>
+                            setAddons((prev) =>
+                              prev.map((a, idx) => (idx === globalIndex ? { ...a, name: e.target.value } : a)),
+                            )
+                          }
+                          className={`${FIELD} flex-1`}
+                        />
+                        <span className="shrink-0 text-xs text-muted">({addon.unitLabel})</span>
                       </span>
                       {addon.editable ? (
                         <MoneyInput
