@@ -89,7 +89,13 @@ function ExistingItemPicker({
 }) {
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
-  const options = addons.filter((a) => a.visibility !== targetVisibility && a.pricingType !== "METERED");
+  // [개정 2026-09-07] "전체 항목을 나열해주고, 이미 기본내역에 반영된 것은 체크해주고,
+  // 미반영된 건 추가 가능하게" — 예전에는 이 슬롯에 이미 있는 항목(visibility가 이미
+  // targetVisibility와 같은 항목)을 목록에서 아예 뺐다. 그러면 전체 요금표에 어떤
+  // 항목이 있는지 한눈에 안 보이고, "이미 반영됐다"는 사실도 목록에서 사라진 것으로만
+  // 알 수 있어 헷갈렸다. 이제 전체 항목을 보여주고, 이미 이 슬롯 소속인 항목은
+  // 체크 표시로 구분한다(클릭해도 그대로라 눌러도 무해하다).
+  const options = addons.filter((a) => a.pricingType !== "METERED");
   if (options.length === 0) return null;
 
   const filtered = query.trim()
@@ -119,7 +125,7 @@ function ExistingItemPicker({
         + 기존 항목에서 선택
       </button>
       {open && (
-        <div className="absolute left-0 z-10 mt-1 w-[min(34rem,90vw)] border border-border bg-panel shadow-lg">
+        <div className="absolute left-0 z-10 mt-1 w-[min(42rem,94vw)] border border-border bg-panel shadow-lg">
           <input
             autoFocus
             value={query}
@@ -127,7 +133,7 @@ function ExistingItemPicker({
             placeholder="항목 검색"
             className={`${FIELD_SM} w-full border-x-0 border-t-0`}
           />
-          <div className="max-h-96 overflow-y-auto">
+          <div className="max-h-[32rem] overflow-y-auto">
             {groups.length === 0 && <p className="px-3 py-2 text-xs text-muted">검색 결과가 없습니다.</p>}
             {groups.map((g) => (
               <div key={g.category}>
@@ -135,24 +141,29 @@ function ExistingItemPicker({
                   {ADDON_CATEGORY_LABEL[g.category]}
                 </p>
                 <ul>
-                  {g.items.map((a) => (
-                    <li key={a.id} className="border-b border-border-soft last:border-b-0">
-                      <button
-                        type="button"
-                        onClick={() => {
-                          onPick(a);
-                          setOpen(false);
-                          setQuery("");
-                        }}
-                        className="flex w-full items-center justify-between gap-3 px-3 py-2.5 text-left hover:bg-background"
-                      >
-                        <span className="min-w-0 truncate text-s">{a.name}</span>
-                        <span className="shrink-0 whitespace-nowrap text-xs text-muted">
-                          현재 {VISIBILITY_LABEL[a.visibility]}
-                        </span>
-                      </button>
-                    </li>
-                  ))}
+                  {g.items.map((a) => {
+                    const alreadyHere = a.visibility === targetVisibility;
+                    return (
+                      <li key={a.id} className="border-b border-border-soft last:border-b-0">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            onPick(a);
+                            setOpen(false);
+                            setQuery("");
+                          }}
+                          className="flex w-full items-center justify-between gap-3 px-3 py-2.5 text-left hover:bg-background"
+                        >
+                          <span className="min-w-0 truncate text-s">{a.name}</span>
+                          <span
+                            className={`shrink-0 whitespace-nowrap text-xs font-bold ${alreadyHere ? "text-good" : "text-muted font-normal"}`}
+                          >
+                            {alreadyHere ? "✓ 이미 반영됨" : `현재 ${VISIBILITY_LABEL[a.visibility]}`}
+                          </span>
+                        </button>
+                      </li>
+                    );
+                  })}
                 </ul>
               </div>
             ))}

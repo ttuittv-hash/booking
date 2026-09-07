@@ -48,16 +48,20 @@ export function Step5Estimate({
     : null;
   const midHallLine = midHallSummaryLine(selection);
 
-  const visibleItems = quote.lineItems.filter((item) => item.visibility !== "HIDDEN");
-  const arenaItems = visibleItems.filter((item) => !isMidHallLineItem(item));
-  const midHallItems = visibleItems.filter(isMidHallLineItem);
+  // [수정 2026-09-07] "계산이 안맞는데? 소계 = 실제 계약금액 + 추가 예상 금액" — 아래 소계들은
+  // 신청자에게 항목을 숨기더라도(청소비 등) 실제로 과금되는 금액이라 quote.subtotal(전체
+  // lineItems 기준)에는 포함돼 있다. 소계를 visibleItems 로만 더하면 숨긴 항목의 금액이
+  // 어느 소계에도 안 잡혀 위 두 값의 합이 아래 최종 소계보다 작아진다 — 항목 행은
+  // QuoteLineItemsReport 에서 그대로 숨기되, 여기 소계 금액은 전체 lineItems 기준으로 낸다.
+  const arenaItems = quote.lineItems.filter((item) => !isMidHallLineItem(item));
+  const midHallItems = quote.lineItems.filter(isMidHallLineItem);
   const arenaVisibleSubtotal = arenaItems.reduce((sum, item) => sum + item.amount, 0);
   const midHallVisibleSubtotal = midHallItems.reduce((sum, item) => sum + item.amount, 0);
   // 패키지에 묶인 항목(계약 내역)과 신청자가 고른 옵션(추가 예상 금액)은 성격이 달라
   // 슬롯을 나눈다(2026-08-26) — "실제 계약금액은 패키지에 대한 내역이고, 옵션 선택한
   // 것들은 추가 예상 예산".
-  const contractSubtotal = sectionSubtotal(visibleItems, "CONTRACT");
-  const additionalSubtotal = sectionSubtotal(visibleItems, "ADDITIONAL");
+  const contractSubtotal = sectionSubtotal(quote.lineItems, "CONTRACT");
+  const additionalSubtotal = sectionSubtotal(quote.lineItems, "ADDITIONAL");
 
   return (
     <section>
@@ -74,11 +78,11 @@ export function Step5Estimate({
         )}
       </p>
 
-      {/* Bowl 사용료·유틸리티(HIDDEN)는 아래 합계 계산에는 포함되지만 신청자 화면에는
-          항목·금액을 노출하지 않는다 — 그래서 아레나/중형 소계를 각각 더해도 맨 아래
-          최종 소계(quote.subtotal, 전체 lineItems 기준)와는 차이가 날 수 있다.
-          마이페이지 신청 상세·인쇄용 신청서와 동일한 QuoteLineItemsReport를 재사용해 세
-          화면의 산출내역이 서로 다르지 않게 한다. */}
+      {/* Bowl 사용료·유틸리티(HIDDEN)·청소비는 아래 항목 목록에는 노출하지 않지만
+          합계에는 포함된다 — 그래서 아래 소계들(아레나/중형·계약/추가·최종 소계)은
+          모두 quote.lineItems 전체 기준으로 계산해 서로 더했을 때 값이 맞도록 한다
+          (2026-09-07, "계산이 안맞는데?"). 마이페이지 신청 상세·인쇄용 신청서와 동일한
+          QuoteLineItemsReport를 재사용해 세 화면의 산출내역이 서로 다르지 않게 한다. */}
       <QuoteLineItemsReport
         selection={selection}
         lineItems={quote.lineItems}

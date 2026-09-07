@@ -259,7 +259,20 @@ export function Step1Calendar({
     if (!dayKind) return;
     if (blockedByDate.has(iso)) return;
 
+    // 이미 이 역할로 지정돼 있는 버튼을 한 번 더 누르면 지정을 해제한다(원래
+    // 자동 계산되는 기본값으로 되돌아간다) — "한번더 클릭하면 세팅한 내역
+    // 사라지게" (2026-09-07).
+    const alreadySet =
+      dayKind.kind !== "extend" &&
+      activeDateKeys.has(dateKey(new Date(iso))) &&
+      effectiveDayTag(iso, dayTags, dayTagDefaults) === role &&
+      iso in dayTags;
+
     if (dayKind.kind === "base") {
+      if (alreadySet) {
+        onChangeDayTags(omit(dayTags, iso));
+        return;
+      }
       // 셋업/공연일/철수 선택 — 제외돼 있었다면(옛 신청서) 다시 사용일로 복귀시킨 뒤
       // 역할을 지정한다. 드롭다운은 여기서 닫지 않는다 — 공연일을 고른 직후 바로
       // 아래에서 회차를 조정해야 하므로, 상태값과 회차 스테퍼를 같은 화면에서 함께
@@ -272,6 +285,10 @@ export function Step1Calendar({
     }
 
     if (dayKind.kind === "extra") {
+      if (alreadySet) {
+        onChangeDayTags(omit(dayTags, iso));
+        return;
+      }
       onChangeDayTags({ ...dayTags, [iso]: role });
       return;
     }

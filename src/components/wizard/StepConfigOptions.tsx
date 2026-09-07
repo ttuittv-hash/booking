@@ -186,9 +186,12 @@ function MidHallRateCard({
             </span>
             <div className="mt-3 grid grid-cols-1 gap-1.5 sm:grid-cols-2 lg:grid-cols-3">
               {content.includes.map((p, i) => (
-                <div key={`${p.label}-${i}`} className="border border-border-soft bg-panel px-3 py-2 text-xs">
+                <div
+                  key={`${p.label}-${i}`}
+                  className="flex items-baseline justify-between gap-2 border border-border-soft bg-panel px-3 py-2 text-xs"
+                >
                   <span className="font-bold text-foreground">{p.label}</span>
-                  <span className="mt-0.5 block text-muted">{p.value}</span>
+                  <span className="shrink-0 text-muted">{p.value}</span>
                 </div>
               ))}
             </div>
@@ -498,9 +501,12 @@ function PackagePicker({
                    과금과 무관한 참고용 텍스트라 계산에는 안 쓰이지만, 신청자가 뭐가
                    포함됐는지 가늠하려면 여기 노출돼야 한다("스펙 필드값이 대관 위저드
                    프론트에 노출되도록 해줘"). */
-                <div key={item.key} className="border border-border-soft bg-panel px-3 py-2 text-xs">
+                <div
+                  key={item.key}
+                  className="flex items-baseline justify-between gap-2 border border-border-soft bg-panel px-3 py-2 text-xs"
+                >
                   <span className="font-bold text-foreground">{item.name}</span>
-                  {item.spec && <span className="mt-0.5 block text-muted">{item.spec}</span>}
+                  {item.spec && <span className="shrink-0 text-muted">{item.spec}</span>}
                 </div>
               ))}
             </div>

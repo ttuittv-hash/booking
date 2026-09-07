@@ -52,17 +52,20 @@ export function SummaryPanel({
   // 노출하지 않는다 — quote.subtotal/total 은 전체 lineItems 기준으로 이미 계산돼 있어
   // 여기서 걸러내도 총액에는 영향이 없다. 무엇을 감출지는 lineItemGroups 한 곳에서 정한다.
   const visibleItems = quote.lineItems.filter((item) => !isHiddenFromApplicant(item));
-  // 동시 대관에서는 아레나·중형 항목이 한 목록에 섞여 어느 공간 몫인지 구분이 안 된다는
-  // 지적으로 공간별 소제목을 넣었다(2026-08-22) — 항목에 실제로 두 공간이 섞여 있을 때만
-  // 나눈다. 한 공간만 선택했을 때는 예전처럼 소제목 없이 밋밋한 목록 그대로 보여준다.
+  // [수정 2026-09-07] "계산이 안맞는데? 소계 = 실제 계약금액 + 추가 예상 금액" — 섹션
+  // 소계(실제 계약금액/추가 예상 금액)를 visibleItems 로만 더하면 숨긴 항목(청소비 등)의
+  // 금액이 어느 소계에도 안 잡혀서 두 소계의 합이 소계(VAT 별도, quote.subtotal 그대로)
+  // 보다 작아진다. 항목 행은 그대로 숨기되, 소계 금액에는 실제로 과금되는 숨긴 항목
+  // 금액도 포함해야 두 값이 맞는다 — 소계 계산은 전체 lineItems 기준으로 한다.
   const venuesPresent = new Set(visibleItems.map((item) => item.venue).filter(Boolean));
-  const groups: { venue?: string; items: LineItem[] }[] =
+  const groups: { venue?: string; items: LineItem[]; allItems: LineItem[] }[] =
     venuesPresent.size > 1
       ? VENUES.filter((v) => venuesPresent.has(v.id as LineItem["venue"])).map((v) => ({
           venue: v.id,
           items: visibleItems.filter((item) => item.venue === v.id),
+          allItems: quote.lineItems.filter((item) => item.venue === v.id),
         }))
-      : [{ items: visibleItems }];
+      : [{ items: visibleItems, allItems: quote.lineItems }];
 
   return (
     <aside className="w-full min-w-0 lg:col-span-3 lg:sticky lg:top-28 lg:self-start">
@@ -83,7 +86,9 @@ export function SummaryPanel({
               )}
               {SECTION_ORDER.map((section) => {
                 const sectionItems = group.items.filter((item) => sectionOf(item) === section);
-                const subtotal = sectionItems.reduce((sum, item) => sum + item.amount, 0);
+                const subtotal = group.allItems
+                  .filter((item) => sectionOf(item) === section)
+                  .reduce((sum, item) => sum + item.amount, 0);
                 return (
                   <div key={section} className="mt-4">
                     <p className="text-xs font-bold text-muted">{SECTION_LABEL[section]}</p>
