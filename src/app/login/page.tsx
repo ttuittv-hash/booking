@@ -6,6 +6,7 @@ import { useState } from "react";
 import { AuthField, AuthShell } from "@/components/ui/AuthShell";
 import { btnClass } from "@/components/ui/kit";
 import { hashPasswordForTransport } from "@/lib/clientPassword";
+import { PasswordInput } from "@/components/ui/PasswordInput";
 
 /**
  * Figma Application Components › Sign Up and Log In Pages › Login / 3
@@ -98,13 +99,11 @@ export default function LoginPage() {
         </AuthField>
 
         <AuthField label="비밀번호" required>
-          <input
-            type="password"
+          <PasswordInput
             required
             autoComplete="current-password"
             value={form.password}
             onChange={(e) => setForm({ ...form, password: e.target.value })}
-            className="field-base"
           />
         </AuthField>
 
