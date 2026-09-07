@@ -51,13 +51,16 @@ function buildStageGroups(tStr: (key: string, fallback: string) => string): Stag
         { step: 4, label: tStr("stepNav.step.marketing", "홍보 및 서비스 계획") },
         { step: 5, label: tStr("stepNav.step.publicInterest", "공공/공익 참여 여부") },
         { step: 6, label: tStr("stepNav.step.safetyPledge", "안전관리 서약서") },
+        // [신규 2026-09-07] "안전관리 서약서 뒤에 자료 첨부 탭 신규 생성" — 안전관리
+        // 서약서 탭의 두 번째 슬롯이던 자료 첨부를 독립 탭으로 뗐다.
+        { step: 7, label: tStr("stepNav.step.attachments", "자료 첨부") },
       ],
     },
     {
       label: tStr("stepNav.group.submit", "04 신청서 제출"),
       steps: [
-        { step: 7, label: tStr("stepNav.step.estimate", "예상 대관료") },
-        { step: 8, label: tStr("stepNav.step.finalSubmit", "최종 제출") },
+        { step: 8, label: tStr("stepNav.step.estimate", "예상 대관료") },
+        { step: 9, label: tStr("stepNav.step.finalSubmit", "최종 제출") },
       ],
     },
   ];

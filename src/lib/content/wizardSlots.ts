@@ -26,17 +26,8 @@ export const STEP3_SLOT_LABELS: Record<string, string> = {
 };
 
 /*
-  [신규 2026-09-06] "슬롯 순서 변경은 모든 메뉴에 적용되어야 함 — 지금은 신청자 정보
-  및 규모 탭에만 적용되어 있음" — STEP3 외에 이미 슬롯(독립 컴포넌트) 여러 개가 고정
-  순서로 이어 붙는 곳부터 넓힌다. "안전관리 서약서" 탭은 서약서 본문과 자료 첨부, 두
-  개의 독립 컴포넌트가 순서대로 붙어 있어 STEP3와 같은 패턴을 그대로 적용할 수 있다.
-  구성/옵션·홍보 및 서비스 계획·공공/공익 참여 여부는 아직 슬롯 여러 개로 쪼개지 않은
-  단일 컴포넌트라 이 패턴 대상이 아니다(쪼개려면 각 컴포넌트 자체를 나누는 별도 작업이
-  필요하다).
+  [개정 2026-09-07] "안전관리 서약서 뒤에 자료 첨부 탭 신규 생성" 요청으로 자료 첨부
+  (attachments)를 안전관리 서약서 탭의 두 번째 슬롯에서 떼어 독립된 STEP 7로 승격했다
+  (WizardShell.tsx step === 7 참고). 안전관리 서약서 탭에는 서약서 본문 하나만 남아
+  더 이상 슬롯 순서를 조정할 대상이 없다 — STEP6 슬롯 순서 패턴 자체를 없앤다.
 */
-export const STEP6_DEFAULT_SLOT_ORDER = ["safetyPledge", "attachments"] as const;
-
-export const STEP6_SLOT_LABELS: Record<string, string> = {
-  safetyPledge: "안전관리 서약서",
-  attachments: "자료 첨부",
-};

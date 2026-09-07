@@ -5,7 +5,7 @@ import { calculateQuote } from "@/lib/pricing/calculateQuote";
 import { ARENA_MAX_AUDIENCE } from "@/lib/content/rateFacts";
 import type { VenueRateContent, WizardStepTexts } from "@/lib/content/pageContent";
 import { useWizardText } from "@/lib/content/wizardText";
-import { STEP3_DEFAULT_SLOT_ORDER, STEP6_DEFAULT_SLOT_ORDER } from "@/lib/content/wizardSlots";
+import { STEP3_DEFAULT_SLOT_ORDER } from "@/lib/content/wizardSlots";
 import { clampMonthKey, toMonthKey } from "@/lib/content/noticeCalendarWindow";
 import {
   findAddon,
@@ -49,7 +49,9 @@ import { StepMarketingCooperation } from "./StepMarketingCooperation";
 import { StepSafetyPledge, validateSafetyPledgeStep } from "./StepSafetyPledge";
 import { Step6Submit } from "./Step6Submit";
 
-const TOTAL_STEPS = 8;
+// [개정 2026-09-07] "안전관리 서약서 뒤에 자료 첨부 탭 신규 생성" — 자료 첨부가
+// 안전관리 서약서 탭의 두 번째 슬롯에서 독립 STEP 7로 승격되며 8→9로 늘었다.
+const TOTAL_STEPS = 9;
 
 const DEFAULT_SAFETY_PLEDGE: SafetyPledge = {
   safetyStructure: false,
@@ -236,9 +238,6 @@ export function WizardShell({
   // 출연 계약 증빙(계약서·출연확약서) — STEP 3 "개최 신뢰도 및 이력 확인" 슬롯에서 받는다.
   // 일반 첨부와 같은 취급(category 없음)이라 상세 화면의 첨부서류 목록에 그대로 들어간다.
   const [castContractFiles, setCastContractFiles] = useState<File[]>([]);
-  // 마케팅 실행 계획서(2026-09-02) — 온라인·오프라인 계획을 글로 받던 자리를 파일로
-  // 바꿨다. 분류를 붙여 올려야 심사 화면에서 다른 첨부와 섞이지 않는다.
-  const [marketingPlanFiles, setMarketingPlanFiles] = useState<File[]>([]);
   // 안전관리계획서는 목업상 필수 단일 슬롯이다 — 다른 단계처럼 자유 목록이 아니라
   // 슬롯당 파일 1개(재선택 시 교체)로 둔다.
   const [safetyPlanFile, setSafetyPlanFile] = useState<File | null>(null);
@@ -595,7 +594,6 @@ export function WizardShell({
       ...pendingFiles.map((file) => ({ file })),
       ...castContractFiles.map((file) => ({ file })),
       ...publicInterestFiles.map(({ file }) => ({ file })),
-      ...marketingPlanFiles.map((file) => ({ file, category: "MARKETING_PLAN" })),
       ...(safetyPlanFile ? [{ file: safetyPlanFile }] : []),
     ];
     if (allFiles.length === 0) return;
@@ -622,7 +620,6 @@ export function WizardShell({
       setPendingFiles([]);
       setPublicInterestFiles([]);
       setCastContractFiles([]);
-      setMarketingPlanFiles([]);
     }
   }
 
@@ -831,39 +828,6 @@ export function WizardShell({
       : [...STEP3_DEFAULT_SLOT_ORDER]
   ).filter((key) => !wizardDisabledFields?.includes(`slot.3.${key}`));
 
-  // [신규 2026-09-06] "슬롯 순서 변경은 모든 메뉴에 적용되어야 함" — "안전관리 서약서"
-  // 탭도 서약서 본문·자료 첨부 두 슬롯이 고정 순서로 붙어 있던 걸 STEP3와 같은 패턴으로
-  // 조정 가능하게 한다(wizardSlots.ts STEP6_DEFAULT_SLOT_ORDER 참고).
-  const step6SlotRenderers: Record<string, () => ReactNode> = {
-    safetyPledge: () => (
-      <StepSafetyPledge
-        pledge={selection.safetyPledge ?? DEFAULT_SAFETY_PLEDGE}
-        onChange={(safetyPledge) => setSelection((prev) => ({ ...prev, safetyPledge }))}
-        safetyPlanFile={safetyPlanFile}
-        onSafetyPlanFileChange={setSafetyPlanFile}
-        companyName={selection.performanceInfo.applicantCompanyName || undefined}
-        title={wizardStepText.safetyPledgeTitle}
-        lead={wizardStepText.safetyPledgeLead}
-      />
-    ),
-    attachments: () => (
-      <StepAttachments
-        files={pendingFiles}
-        onFilesChange={setPendingFiles}
-        isSimultaneous={resolvedSelection.bookingMode === "SIMULTANEOUS"}
-      />
-    ),
-  };
-  const configuredStep6Order = wizardSlotOrders?.["6"];
-  const step6SlotOrder: string[] = (
-    configuredStep6Order && configuredStep6Order.length > 0
-      ? [
-          ...configuredStep6Order.filter((key: string) => key in step6SlotRenderers),
-          ...STEP6_DEFAULT_SLOT_ORDER.filter((key) => !configuredStep6Order.includes(key)),
-        ]
-      : [...STEP6_DEFAULT_SLOT_ORDER]
-  ).filter((key) => !wizardDisabledFields?.includes(`slot.6.${key}`));
-
   return (
     /*
       좌: 스텝 콘텐츠(4col) / 우: sticky 요약 패널(2col) — 페이지 그리드 위에 올린다.
@@ -1033,8 +997,6 @@ export function WizardShell({
           <StepMarketingCooperation
             info={selection.marketingCooperation ?? DEFAULT_MARKETING_COOPERATION}
             onChange={(marketingCooperation) => setSelection((prev) => ({ ...prev, marketingCooperation }))}
-            planFiles={marketingPlanFiles}
-            onPlanFilesChange={setMarketingPlanFiles}
             title={wizardStepText.marketingTitle}
             lead={wizardStepText.marketingLead}
           />
@@ -1055,13 +1017,27 @@ export function WizardShell({
             disabledGroups={publicInterestDisabledGroups}
           />
         )}
-        {step === 6 &&
-          step6SlotOrder.map((key, i) => (
-            <Fragment key={key}>
-              <div className={i === 0 ? undefined : "mt-10"}>{step6SlotRenderers[key]?.()}</div>
-            </Fragment>
-          ))}
+        {step === 6 && (
+          <StepSafetyPledge
+            pledge={selection.safetyPledge ?? DEFAULT_SAFETY_PLEDGE}
+            onChange={(safetyPledge) => setSelection((prev) => ({ ...prev, safetyPledge }))}
+            safetyPlanFile={safetyPlanFile}
+            onSafetyPlanFileChange={setSafetyPlanFile}
+            companyName={selection.performanceInfo.applicantCompanyName || undefined}
+            title={wizardStepText.safetyPledgeTitle}
+            lead={wizardStepText.safetyPledgeLead}
+          />
+        )}
+        {/* [신규 2026-09-07] "안전관리 서약서 뒤에 자료 첨부 탭 신규 생성" — 안전관리
+            서약서 탭의 두 번째 슬롯이던 자료 첨부를 독립 STEP 7로 승격했다. */}
         {step === 7 && (
+          <StepAttachments
+            files={pendingFiles}
+            onFilesChange={setPendingFiles}
+            isSimultaneous={resolvedSelection.bookingMode === "SIMULTANEOUS"}
+          />
+        )}
+        {step === 8 && (
           <Step5Estimate
             rateTable={rateTable}
             quote={quote}
@@ -1069,7 +1045,7 @@ export function WizardShell({
             title={wizardStepText.estimateTitle}
           />
         )}
-        {step === 8 && (
+        {step === 9 && (
           <Step6Submit
             rateTable={rateTable}
             quote={quote}

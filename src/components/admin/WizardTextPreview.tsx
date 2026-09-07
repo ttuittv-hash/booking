@@ -38,12 +38,7 @@ import { Step5Estimate } from "@/components/wizard/Step5Estimate";
 import { Step6Submit } from "@/components/wizard/Step6Submit";
 import { ContentFormShell } from "./fields";
 import { HELP } from "./adminUi";
-import {
-  STEP3_DEFAULT_SLOT_ORDER,
-  STEP3_SLOT_LABELS,
-  STEP6_DEFAULT_SLOT_ORDER,
-  STEP6_SLOT_LABELS,
-} from "@/lib/content/wizardSlots";
+import { STEP3_DEFAULT_SLOT_ORDER, STEP3_SLOT_LABELS } from "@/lib/content/wizardSlots";
 
 // [2026-08-25] "읽기전용 모드로 실제 스텝 전체 화면을 보여주되, 리드 문구만 수정 가능"
 // (2단계 제안) — 각 STEP의 실제 컴포넌트를 그대로(mock 데이터 + no-op 핸들러로) 렌더링해
@@ -1143,8 +1138,6 @@ const STAGE_GROUPS: StageGroup[] = [
                 <StepMarketingCooperation
                   info={DEFAULT_MARKETING_COOPERATION}
                   onChange={noop}
-                  planFiles={[]}
-                  onPlanFilesChange={noop}
                   title={field("marketingTitle")}
                   lead={lead("marketingLead")}
                 />
@@ -1180,51 +1173,37 @@ const STAGE_GROUPS: StageGroup[] = [
         render: (ctx) => {
           const field = makeFieldEditor(ctx);
           const lead = makeLeadEditor(ctx);
-          const step6SlotRenderers: Record<string, ReactNode> = {
-            safetyPledge: (
-              <StepSafetyPledge
-                key="safetyPledge"
-                pledge={DEFAULT_SAFETY_PLEDGE}
-                onChange={noop}
-                safetyPlanFile={null}
-                onSafetyPlanFileChange={noop}
-                companyName="(주)와이지엔터테인먼트"
-                title={field("safetyPledgeTitle")}
-                lead={lead("safetyPledgeLead")}
-              />
-            ),
-            attachments: (
-              <StepAttachments key="attachments" files={[]} onFilesChange={noop} isSimultaneous={false} />
-            ),
-          };
-          const configuredStep6Order = ctx.slotOrders["6"];
-          const step6Order =
-            configuredStep6Order && configuredStep6Order.length > 0
-              ? [
-                  ...configuredStep6Order.filter((key) => key in step6SlotRenderers),
-                  ...STEP6_DEFAULT_SLOT_ORDER.filter((key) => !configuredStep6Order.includes(key)),
-                ]
-              : [...STEP6_DEFAULT_SLOT_ORDER];
           return (
             <div className="space-y-4">
-              {/* [신규 2026-09-06] "슬롯 순서 변경은 모든 메뉴에 적용되어야 함" — 서약서
-                  본문·자료 첨부 두 슬롯도 STEP3와 같은 패턴으로 순서 조정 가능하게 한다. */}
-              <SlotOrderPanel
-                ctx={ctx}
-                slotsKey="6"
-                defaultOrder={STEP6_DEFAULT_SLOT_ORDER}
-                slotLabels={STEP6_SLOT_LABELS}
-                title="안전관리 서약서"
-              />
               <ValidationMessagesPanel ctx={ctx} title="안전관리 서약서" entries={STEP6_VALIDATION_MESSAGES} />
               <LivePreview>
-                <div className="space-y-10 [&_input]:pointer-events-auto [&_textarea]:pointer-events-auto">
-                  {step6Order.map((key) => step6SlotRenderers[key])}
+                <div className="[&_input]:pointer-events-auto [&_textarea]:pointer-events-auto">
+                  <StepSafetyPledge
+                    pledge={DEFAULT_SAFETY_PLEDGE}
+                    onChange={noop}
+                    safetyPlanFile={null}
+                    onSafetyPlanFileChange={noop}
+                    companyName="(주)와이지엔터테인먼트"
+                    title={field("safetyPledgeTitle")}
+                    lead={lead("safetyPledgeLead")}
+                  />
                 </div>
               </LivePreview>
             </div>
           );
         },
+      },
+      {
+        // [신규 2026-09-07] "안전관리 서약서 뒤에 자료 첨부 탭 신규 생성" — 서약서 탭의
+        // 두 번째 슬롯이던 자료 첨부를 독립 탭으로 뗐다.
+        label: "자료 첨부",
+        render: () => (
+          <LivePreview>
+            <div className="[&_input]:pointer-events-auto">
+              <StepAttachments files={[]} onFilesChange={noop} isSimultaneous={false} />
+            </div>
+          </LivePreview>
+        ),
       },
     ],
   },

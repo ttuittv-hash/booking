@@ -1,7 +1,7 @@
 "use client";
 
 import type { ReactNode } from "react";
-import { FILE_INPUT, toggleClass } from "@/components/ui/kit";
+import { toggleClass } from "@/components/ui/kit";
 import type { MarketingCooperation } from "@/lib/pricing/types";
 import { useWizardText } from "@/lib/content/wizardText";
 import { StepHeading, StepForm } from "./StepHeading";
@@ -71,16 +71,11 @@ const SALES_DATA_ITEMS = [
 export function StepMarketingCooperation({
   info,
   onChange,
-  planFiles,
-  onPlanFilesChange,
   title,
   lead,
 }: {
   info: MarketingCooperation;
   onChange: (info: MarketingCooperation) => void;
-  /** 마케팅 실행 계획서 — 제출 시 MARKETING_PLAN 분류로 함께 올라간다 */
-  planFiles: File[];
-  onPlanFilesChange: (files: File[]) => void;
   title: ReactNode;
   lead: ReactNode;
 }) {
@@ -114,61 +109,6 @@ export function StepMarketingCooperation({
 
       <StepForm>
         <div className="border-t border-border/25 pt-5">
-          <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
-            <h3 className="type-kr-heading text-h6-m">
-              {t("marketing.executionPlanHeading", "마케팅 실행 계획(선택)")}
-            </h3>
-            <p className="text-xs text-muted">
-              {t("marketing.executionPlanRequirementHint", "온라인·오프라인 계획을 담은 계획서를 첨부해 주세요.")}
-            </p>
-          </div>
-          <p className="mt-1 mb-3 break-keep text-xs leading-6 text-muted">
-            {t("marketing.executionPlanLead", "공연 홍보를 어떻게 진행할 계획인지 담은 자료를 첨부해 주세요. 구체적 수치·금액·일자가 있으면 심사에 도움이 됩니다.")}
-          </p>
-          {/* [개정 2026-09-02] 온라인·오프라인 계획을 직접 쓰던 칸을 첨부파일로 바꿨다.
-              자유 서술로 받으면 "SNS 광고" 한 줄이 되기 일쑤였는데, 기획사는 이미
-              계획서를 만들어 두고 신청한다 — 그 파일을 그대로 받는 편이 심사에 쓸모가 있다.
-              업로드는 신청서 제출과 함께 일어난다(MARKETING_PLAN 분류). */}
-          <div>
-            {planFiles.length > 0 && (
-              <ul className="mb-2.5 space-y-2">
-                {planFiles.map((file, i) => (
-                  <li
-                    key={`${file.name}-${i}`}
-                    className="flex items-center justify-between gap-3 border border-border/25 bg-background px-3.5 py-2.5"
-                  >
-                    <span className="min-w-0 truncate text-s font-bold">{file.name}</span>
-                    <button
-                      type="button"
-                      onClick={() => onPlanFilesChange(planFiles.filter((_, j) => j !== i))}
-                      className={`${toggleClass(false)} shrink-0`}
-                    >
-                      {t("marketing.planFileRemove", "삭제")}
-                    </button>
-                  </li>
-                ))}
-              </ul>
-            )}
-            <input
-              type="file"
-              multiple
-              onChange={(e) => {
-                const picked = e.target.files ? Array.from(e.target.files) : [];
-                if (picked.length > 0) onPlanFilesChange([...planFiles, ...picked]);
-                e.target.value = "";
-              }}
-              className={FILE_INPUT}
-            />
-            <p className="mt-2 break-keep text-xs leading-5 text-muted">
-              {t(
-                "marketing.planFileHint",
-                "PDF · 이미지 · 문서, 파일당 최대 500MB. 신청서 제출 시 함께 업로드됩니다.",
-              )}
-            </p>
-          </div>
-        </div>
-
-        <div className="mt-8 border-t border-border/25 pt-5">
           <div className="mb-2.5 flex items-center justify-between">
             <h3 className="type-kr-heading text-h6-m">{t("marketing.channelsHeading", "프로모션 채널(선택)")}</h3>
             <button type="button" onClick={addChannel} className={toggleClass(false)}>

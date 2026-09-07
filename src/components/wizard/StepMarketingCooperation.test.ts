@@ -22,8 +22,6 @@ function render(info: MarketingCooperation) {
     React.createElement(StepMarketingCooperation, {
       info,
       onChange: () => {},
-      planFiles: [],
-      onPlanFilesChange: () => {},
       title: "홍보",
       lead: "",
     }),
@@ -37,13 +35,13 @@ describe("StepMarketingCooperation", () => {
     expect(html).not.toContain("마케팅/서비스 연계 동의");
   });
 
-  // [개정 2026-09-02] 온라인·오프라인 계획을 직접 쓰던 칸은 첨부파일로 바뀌었다.
-  // 자유 서술로 받으면 "SNS 광고" 한 줄이 되기 일쑤였는데, 기획사는 이미 계획서를
-  // 만들어 두고 신청한다 — 그 파일을 그대로 받는 편이 심사에 쓸모가 있다.
-  it("마케팅 실행 계획은 첨부파일로 받는다", () => {
+  // [개정 2026-09-07] "홍보 및 서비스 계획 메뉴에서 마케팅 계획서 첨부 슬롯 삭제" —
+  // 온라인·오프라인 계획을 첨부파일로 받던 슬롯 자체를 없앴다(2026-09-02 개정의
+  // 반대 방향). executionPlan.mediaMix* 값은 옛 임시저장본 방어선으로만 남는다.
+  it("마케팅 실행 계획 첨부 슬롯이 더 이상 없다", () => {
     const html = render(base);
-    expect(html).toContain("마케팅 실행 계획(선택)");
-    expect(html).toContain('type="file"');
+    expect(html).not.toContain("마케팅 실행 계획(선택)");
+    expect(html).not.toContain('type="file"');
   });
 
   it("직접 입력하던 온·오프라인 칸은 더 이상 없다", () => {
