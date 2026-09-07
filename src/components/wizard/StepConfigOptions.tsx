@@ -170,20 +170,28 @@ function MidHallRateCard({
         </button>
       )}
 
+      {/* [개정 2026-09-07] "아레나, 중형 레이아웃 통일" — 기본 항목·옵션 모두 아레나
+          PackagePicker(구성 선택 카드 아래 "기본 포함" 패널·"선택 옵션" 아웃라인 박스)와
+          같은 틀(공유 배지 패널 + 하나로 감싼 아웃라인 박스)로 맞춘다. 항목 내용(자유
+          라벨·값, 시간 스테퍼, 참고용 별도문의)은 중형 고유 데이터라 그대로 둔다. */}
       {content.includes.length > 0 && (
         <div className="mt-10 border-t border-border/25 pt-5">
           <h2 className="type-kr-heading text-h6-m sm:text-h6">{t("configOptions.basicItemsHeading", "기본 항목")}</h2>
           <p className="mt-1.5 text-xs leading-6 text-muted">
             {t("configOptions.basicItemsHint", "대관료에 이미 포함된 기본 제공 사항입니다.")}
           </p>
-          <div className="mt-4 grid grid-cols-1 gap-1.5 sm:grid-cols-2 lg:grid-cols-3">
-            {content.includes.map((p, i) => (
-              <div key={`${p.label}-${i}`} className="flex flex-col gap-1.5 border border-border-soft px-3 py-2">
-                <span className="text-xs font-bold">{p.label}</span>
-                <span className="text-xs text-muted">{p.value}</span>
-                <span className="text-xs font-bold text-good">{t("configOptions.basicIncludedBadge", "기본 포함")}</span>
-              </div>
-            ))}
+          <div className="mt-4 border border-border/30 bg-panel/40 px-4 py-3">
+            <span className="bg-foreground px-2 py-0.5 text-xs font-bold text-background">
+              {t("configOptions.basicIncludedBadge", "기본 포함")}
+            </span>
+            <div className="mt-3 grid grid-cols-1 gap-1.5 sm:grid-cols-2 lg:grid-cols-3">
+              {content.includes.map((p, i) => (
+                <div key={`${p.label}-${i}`} className="border border-border-soft bg-panel px-3 py-2 text-xs">
+                  <span className="font-bold text-foreground">{p.label}</span>
+                  <span className="mt-0.5 block text-muted">{p.value}</span>
+                </div>
+              ))}
+            </div>
           </div>
           {content.limits.length > 0 && (
             <div className="mt-4 space-y-2 border-t border-border/25 pt-4">
@@ -210,34 +218,38 @@ function MidHallRateCard({
             )}
           </p>
 
-          <div className="mt-4">
-            <div className="mb-2 text-xs font-bold text-muted">{t("configOptions.extraDaysLabel", "추가대관")}</div>
-            <div className="grid grid-cols-1 gap-1.5 sm:grid-cols-2 lg:grid-cols-3">
-              <MidHallHourBox
-                label={t("configOptions.setupExtensionLabel", "셋업 연장 (22:00~24:00)")}
-                hint={t("configOptions.appliesWholePeriodHint", "전체 일정 공통 적용")}
-                hours={extraSetupHours}
-                unitFee={extraHourFee}
-              />
-              <MidHallHourBox
-                label={t("configOptions.loadOutExtensionLabel", "철수 Load-Out 연장")}
-                hint={t("configOptions.appliesWholePeriodHint", "전체 일정 공통 적용")}
-                hours={extraLoadOutHours}
-                unitFee={extraHourFee}
-              />
-            </div>
-          </div>
-
-          {otherGroups.map((g) => (
-            <div key={g.title} className="mt-6">
-              <div className="mb-2 text-xs font-bold text-muted">{g.title}</div>
+          {/* 아레나 "선택 옵션"과 같은 아웃라인 박스 하나로 전체를 감싼다(예전에는
+              박스 없이 소제목만 이어 붙어 있었다). */}
+          <div className="mt-4 border border-border/25 p-5">
+            <div>
+              <div className="mb-2 text-xs font-bold text-muted">{t("configOptions.extraDaysLabel", "추가대관")}</div>
               <div className="grid grid-cols-1 gap-1.5 sm:grid-cols-2 lg:grid-cols-3">
-                {g.rows.map((r, i) => (
-                  <MidHallReferenceBox key={`${r.label}-${i}`} label={r.label} value={r.value} note={r.note} />
-                ))}
+                <MidHallHourBox
+                  label={t("configOptions.setupExtensionLabel", "셋업 연장 (22:00~24:00)")}
+                  hint={t("configOptions.appliesWholePeriodHint", "전체 일정 공통 적용")}
+                  hours={extraSetupHours}
+                  unitFee={extraHourFee}
+                />
+                <MidHallHourBox
+                  label={t("configOptions.loadOutExtensionLabel", "철수 Load-Out 연장")}
+                  hint={t("configOptions.appliesWholePeriodHint", "전체 일정 공통 적용")}
+                  hours={extraLoadOutHours}
+                  unitFee={extraHourFee}
+                />
               </div>
             </div>
-          ))}
+
+            {otherGroups.map((g) => (
+              <div key={g.title} className="mt-6">
+                <div className="mb-2 text-xs font-bold text-muted">{g.title}</div>
+                <div className="grid grid-cols-1 gap-1.5 sm:grid-cols-2 lg:grid-cols-3">
+                  {g.rows.map((r, i) => (
+                    <MidHallReferenceBox key={`${r.label}-${i}`} label={r.label} value={r.value} note={r.note} />
+                  ))}
+                </div>
+              </div>
+            ))}
+          </div>
         </div>
       )}
 
