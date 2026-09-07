@@ -251,6 +251,43 @@ function AttrFieldsPanel({
   );
 }
 
+/**
+ * [신규 2026-09-07] "미입력 필수항목... 기능 적용이 어려운 경우, 미입력 항목을
+ * 안내하는 문구를 운영자 백오피스에서 수정할 수 있도록" — 빨간 테두리·자동 스크롤은
+ * 구현했지만(WizardShell.tsx flashFieldError), 안내 문구 자체도 여기서 고칠 수 있게
+ * 같이 둔다. validatePerformanceInfoStep 등은 컴포넌트가 아니라 렌더 중에 호출되지
+ * 않으므로(버튼 클릭 시점에만 평가) AttrFieldsPanel처럼 자동 수집이 안 된다 —
+ * 검증 함수의 return문과 하나씩 맞춘 고정 목록을 수동으로 들고 있는다. */
+function ValidationMessagesPanel({
+  ctx,
+  title,
+  entries,
+}: {
+  ctx: RenderCtx;
+  title: string;
+  entries: { key: string; fallback: string }[];
+}) {
+  return (
+    <div className="border border-border-soft bg-panel/60 p-3">
+      <p className="mb-2 text-2xs font-bold uppercase tracking-wide text-muted">
+        ✎ {title} — 미입력 안내 문구
+      </p>
+      <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+        {entries.map(({ key, fallback }) => (
+          <label key={key} className="block">
+            <input
+              type="text"
+              value={ctx.wizardStrings[key] || fallback}
+              onChange={(e) => ctx.setString(key, e.target.value)}
+              className={`${EDITABLE_INPUT} border-border-soft px-2 py-1`}
+            />
+          </label>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 /** t()/tStr() 호출을 자동으로 편집 가능하게 만드는 경계. 이 안에서 렌더되는 실제
  * 컴포넌트 트리(StepConfigOptions 등)가 부르는 t()/tStr()은 개별 필드를 일일이
  * 나열하지 않아도 전부 자동으로 여기 연결된다 — 나중에 컴포넌트에 새 t() 호출이
@@ -704,6 +741,73 @@ interface StageGroup {
   subTabs: SubTab[];
 }
 
+// [신규 2026-09-07] ValidationMessagesPanel용 고정 목록 — StepPerformanceInfo.tsx의
+// validatePerformanceInfoStep·StepAudience.tsx의 validateAudienceStep이 돌려주는
+// fieldKey·fallback 문구와 하나씩 맞춘다(그 두 함수를 고칠 때 여기도 같이 고칠 것).
+const STEP3_VALIDATION_MESSAGES: { key: string; fallback: string }[] = [
+  { key: "validationMessage.performanceInfo.applicantCompanyType", fallback: "신청 기업 유형을 선택해 주세요." },
+  {
+    key: "validationMessage.performanceInfo.applicantCompanyType.other",
+    fallback: '신청 기업 유형 "기타" 상세를 입력해 주세요.',
+  },
+  { key: "validationMessage.performanceInfo.applicantContact", fallback: "담당자 정보를 1건 이상 입력해 주세요." },
+  { key: "validationMessage.performanceInfo.applicantContact.role", fallback: "담당역할을 입력해 주세요." },
+  { key: "validationMessage.performanceInfo.applicantContact.name", fallback: "담당자 성명을 입력해 주세요." },
+  { key: "validationMessage.performanceInfo.applicantContact.phone", fallback: "담당자 연락처를 입력해 주세요." },
+  { key: "validationMessage.performanceInfo.eventBasics.eventName", fallback: "공연(행사)명을 입력해 주세요." },
+  { key: "validationMessage.performanceInfo.eventBasics.artist", fallback: "아티스트 / 출연진을 입력해 주세요." },
+  {
+    key: "validationMessage.performanceInfo.eventBasics.organizer",
+    fallback: "주최 · 주관 · 기획을 하나 이상 입력해 주세요.",
+  },
+  { key: "validationMessage.performanceInfo.eventTypes", fallback: "행사유형을 하나 이상 선택해 주세요." },
+  { key: "validationMessage.performanceInfo.ageRating", fallback: "공연등급을 선택해 주세요." },
+  { key: "validationMessage.performanceInfo.ageRating.limitDetail", fallback: "연령제한 상세를 입력해 주세요." },
+  {
+    key: "validationMessage.performanceInfo.eventBasics.ticketOpenExpectedDate",
+    fallback: "티켓 오픈 예정일을 입력해 주세요.",
+  },
+  { key: "validationMessage.performanceInfo.seatingTypes", fallback: "객석형태를 하나 이상 선택해 주세요." },
+  {
+    key: "validationMessage.performanceInfo.seatingTypes.other",
+    fallback: '객석형태 "기타" 상세를 입력해 주세요.',
+  },
+  { key: "validationMessage.performanceInfo.retractableSeatUse", fallback: "수납식 객석 사용여부를 선택해 주세요." },
+  {
+    key: "validationMessage.performanceInfo.retractableSeatUse.floors",
+    fallback: "수납식 객석을 사용하시면 1층·3층 각각 사용여부를 선택해 주세요.",
+  },
+  { key: "validationMessage.performanceInfo.stageTypes", fallback: "무대형태를 하나 이상 선택해 주세요." },
+  {
+    key: "validationMessage.performanceInfo.stageTypes.other",
+    fallback: '무대형태 "기타" 상세를 입력해 주세요.',
+  },
+  {
+    key: "validationMessage.performanceInfo.credibility.castContractStatus",
+    fallback: "주요 출연진 계약 상태를 선택해 주세요.",
+  },
+  {
+    key: "validationMessage.performanceInfo.credibility.masking",
+    fallback: "출연 계약 증빙 마스킹 제출 허용에 동의해 주세요.",
+  },
+  {
+    key: "validationMessage.performanceInfo.credibility.safetyPledgeSigned",
+    fallback: "안전규정 준수 확약서 작성 완료에 동의해 주세요.",
+  },
+  { key: "validationMessage.audience.ancillaryBusinessPlans", fallback: "부대사업 계획을 하나 이상 선택해 주세요." },
+  {
+    key: "validationMessage.audience.ancillaryBusinessPlans.other",
+    fallback: '부대사업 계획 "기타" 상세를 입력해 주세요.',
+  },
+];
+
+// [신규 2026-09-07] StepSafetyPledge.tsx의 validateSafetyPledgeStep과 짝.
+const STEP6_VALIDATION_MESSAGES: { key: string; fallback: string }[] = [
+  { key: "validationMessage.safetyPledge.items", fallback: "안전관리 서약 항목을 모두 체크해 주세요." },
+  { key: "validationMessage.safetyPledge.signature", fallback: "서명란에 서명해 주세요." },
+  { key: "validationMessage.safetyPledge.planFile", fallback: "공연·행사 안전관리계획서를 업로드해 주세요." },
+];
+
 const STAGE_GROUPS: StageGroup[] = [
   {
     label: "01 공간/일정",
@@ -1018,6 +1122,7 @@ const STAGE_GROUPS: StageGroup[] = [
                 {field("audienceTitle")}
                 <div className="mt-2">{lead("audienceLead")}</div>
               </div>
+              <ValidationMessagesPanel ctx={ctx} title="03 기본 정보 · 신청자 정보 및 규모" entries={STEP3_VALIDATION_MESSAGES} />
               <LivePreview>
                 <div className="space-y-10 [&_input]:pointer-events-auto">
                   {step3Order.map((key) => step3SlotRenderers[key])}
@@ -1111,6 +1216,7 @@ const STAGE_GROUPS: StageGroup[] = [
                 slotLabels={STEP6_SLOT_LABELS}
                 title="안전관리 서약서"
               />
+              <ValidationMessagesPanel ctx={ctx} title="안전관리 서약서" entries={STEP6_VALIDATION_MESSAGES} />
               <LivePreview>
                 <div className="space-y-10 [&_input]:pointer-events-auto [&_textarea]:pointer-events-auto">
                   {step6Order.map((key) => step6SlotRenderers[key])}

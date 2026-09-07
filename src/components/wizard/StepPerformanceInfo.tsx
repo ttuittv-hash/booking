@@ -35,6 +35,7 @@ import {
   type RetractableSeatUse,
   type SeatingType,
   type StageType,
+  type StepValidationResult,
 } from "@/lib/pricing/types";
 
 const EVENT_TYPES = Object.keys(EVENT_TYPE_LABEL) as EventType[];
@@ -92,9 +93,20 @@ export function validatePerformanceInfoStep(
   // 항목(ScreenTextContent.wizardCustomOptions)까지 포함해야 "고를 항목이 하나도 없을
   // 때만 필수 검사를 건너뛴다"는 계산이 맞는다. 그룹id → 커스텀 항목 key 배열.
   customOptions: Record<string, string[]> = {},
-): string | null {
+  // [신규 2026-09-07] "미입력 필수항목 빨간색 표시 + 자동 스크롤" — 안내 문구를
+  // 운영자 백오피스에서 고칠 수 있어야 해서, 문구 하나하나를 하드코딩 대신
+  // tStr(key, fallback)로 조회한다. 검증 함수는 컴포넌트가 아니라 훅을 직접 못 쓰므로,
+  // WizardShell.tsx가 useWizardText()로 얻은 tStr을 그대로 넘겨준다.
+  tStr: (key: string, fallback: string) => string = (_key, fallback) => fallback,
+): StepValidationResult | null {
   const prefix = venueLabel ? `${venueLabel} ` : "";
   const isDisabled = (id: string) => disabledFields.includes(id);
+  // [신규 2026-09-07] fieldKey는 그 필드를 감싼 DOM의 data-field-key와 매칭되고,
+  // 안내 문구는 그 값을 그대로 `validationMessage.<fieldKey>` 키로 써서 조회한다 —
+  // 하나의 id가 "어디로 스크롤할지"와 "무슨 문구를 보여줄지"를 함께 결정한다.
+  function issue(fieldKey: string, fallback: string): StepValidationResult {
+    return { fieldKey, message: `${prefix}${tStr(`validationMessage.${fieldKey}`, fallback)}` };
+  }
   // [버그 수정 2026-09-06] "슬롯 전체를 숨겨도 필수 검사에서 막힘" — 위 필드 단위
   // isDisabled/visibleInGroup 검사와 별개로, WizardShell의 STEP3 슬롯 자체를 통째로
   // 껐을 때(slot.3.<key>, SlotOrderPanel의 새 체크박스) 그 슬롯 컴포넌트
@@ -121,10 +133,10 @@ export function validatePerformanceInfoStep(
       ).length > 0 &&
       !info.applicantCompanyType
     ) {
-      return `${prefix}신청 기업 유형을 선택해 주세요.`;
+      return issue("performanceInfo.applicantCompanyType", "신청 기업 유형을 선택해 주세요.");
     }
     if (info.applicantCompanyType === "OTHER" && !info.applicantCompanyTypeOtherDetail?.trim()) {
-      return `${prefix}신청 기업 유형 "기타" 상세를 입력해 주세요.`;
+      return issue("performanceInfo.applicantCompanyType.other", '신청 기업 유형 "기타" 상세를 입력해 주세요.');
     }
 
     // [개정 2026-09-06] "담당자 정보를 한 줄짜리 반복 행으로" — 담당자·공연 운영/안전관리
@@ -132,31 +144,31 @@ export function validatePerformanceInfoStep(
     // 선택이다(ResponsiblePerson의 "소속(선택)"과 같은 이유).
     const contactPersons = info.contactPersons ?? [];
     if (!isDisabled("performanceInfo.applicantContact.role") && contactPersons.length === 0) {
-      return `${prefix}담당자 정보를 1건 이상 입력해 주세요.`;
+      return issue("performanceInfo.applicantContact", "담당자 정보를 1건 이상 입력해 주세요.");
     }
     for (const person of contactPersons) {
       if (!isDisabled("performanceInfo.applicantContact.role") && !person.role.trim()) {
-        return `${prefix}담당역할을 입력해 주세요.`;
+        return issue("performanceInfo.applicantContact.role", "담당역할을 입력해 주세요.");
       }
       if (!isDisabled("performanceInfo.applicantContact.name") && !person.name.trim()) {
-        return `${prefix}담당자 성명을 입력해 주세요.`;
+        return issue("performanceInfo.applicantContact.name", "담당자 성명을 입력해 주세요.");
       }
       if (!isDisabled("performanceInfo.applicantContact.phone") && !person.phone.trim()) {
-        return `${prefix}담당자 연락처를 입력해 주세요.`;
+        return issue("performanceInfo.applicantContact.phone", "담당자 연락처를 입력해 주세요.");
       }
     }
   }
 
   if (!isSlotDisabled("eventBasics")) {
     if (!isDisabled("performanceInfo.eventBasics.eventName") && !info.eventName.trim())
-      return `${prefix}공연(행사)명을 입력해 주세요.`;
+      return issue("performanceInfo.eventBasics.eventName", "공연(행사)명을 입력해 주세요.");
     if (!isDisabled("performanceInfo.eventBasics.artist") && !info.artist.trim())
-      return `${prefix}아티스트 / 출연진을 입력해 주세요.`;
+      return issue("performanceInfo.eventBasics.artist", "아티스트 / 출연진을 입력해 주세요.");
     // organizer(단일 텍스트)는 organizers(역할별 반복 행)에서 자동 합성되므로, 배열에 이름이
     // 하나라도 있으면 통과시킨다 — 합성 전 옛 신청서는 organizer 문자열만으로 판단한다.
     const hasOrganizerEntry = (info.organizers ?? []).some((o) => o.name.trim());
     if (!hasOrganizerEntry && !info.organizer.trim()) {
-      return `${prefix}주최 · 주관 · 기획을 하나 이상 입력해 주세요.`;
+      return issue("performanceInfo.eventBasics.organizer", "주최 · 주관 · 기획을 하나 이상 입력해 주세요.");
     }
     if (
       visibleInGroup(
@@ -166,7 +178,7 @@ export function validatePerformanceInfoStep(
       ).length > 0 &&
       info.eventTypes.length === 0
     ) {
-      return `${prefix}행사유형을 하나 이상 선택해 주세요.`;
+      return issue("performanceInfo.eventTypes", "행사유형을 하나 이상 선택해 주세요.");
     }
     const visibleAgeRatingsForValidation = visibleInGroup(
       [...(Object.keys(AGE_RATING_LABEL) as AgeRating[]), ...(customOptions["performanceInfo.ageRating"] ?? [])],
@@ -174,13 +186,14 @@ export function validatePerformanceInfoStep(
       disabledFields,
     );
     if (visibleAgeRatingsForValidation.length > 0 && !info.ageRating) {
-      return `${prefix}공연등급을 선택해 주세요.`;
+      return issue("performanceInfo.ageRating", "공연등급을 선택해 주세요.");
     }
     if (info.ageRating === "AGE_LIMIT" && !info.ageLimitDetail.trim()) {
-      return `${prefix}연령제한 상세를 입력해 주세요.`;
+      return issue("performanceInfo.ageRating.limitDetail", "연령제한 상세를 입력해 주세요.");
     }
 
-    if (!info.ticketOpenExpectedDate.trim()) return `${prefix}티켓 오픈 예정일을 입력해 주세요.`;
+    if (!info.ticketOpenExpectedDate.trim())
+      return issue("performanceInfo.eventBasics.ticketOpenExpectedDate", "티켓 오픈 예정일을 입력해 주세요.");
 
     if (
       visibleInGroup(
@@ -190,18 +203,22 @@ export function validatePerformanceInfoStep(
       ).length > 0 &&
       info.seatingTypes.length === 0
     ) {
-      return `${prefix}객석형태를 하나 이상 선택해 주세요.`;
+      return issue("performanceInfo.seatingTypes", "객석형태를 하나 이상 선택해 주세요.");
     }
     if (info.seatingTypes.includes("OTHER") && !info.seatingTypeOtherDetail?.trim()) {
-      return `${prefix}객석형태 "기타" 상세를 입력해 주세요.`;
+      return issue("performanceInfo.seatingTypes.other", '객석형태 "기타" 상세를 입력해 주세요.');
     }
-    if (!info.retractableSeatUse) return `${prefix}수납식 객석 사용여부를 선택해 주세요.`;
+    if (!info.retractableSeatUse)
+      return issue("performanceInfo.retractableSeatUse", "수납식 객석 사용여부를 선택해 주세요.");
     // [사용]을 골랐으면 층별로도 답해야 한다 — 어느 층을 펴는지에 따라 객석 구성이 달라져서
     // "사용" 한 마디만으로는 심사도 시공도 진행되지 않는다(2026-09-02).
     if (info.retractableSeatUse === "USE") {
       const floors = info.retractableSeatFloorUse ?? {};
       if (!floors.FLOOR_1 || !floors.FLOOR_3) {
-        return `${prefix}수납식 객석을 사용하시면 1층·3층 각각 사용여부를 선택해 주세요.`;
+        return issue(
+          "performanceInfo.retractableSeatUse.floors",
+          "수납식 객석을 사용하시면 1층·3층 각각 사용여부를 선택해 주세요.",
+        );
       }
     }
     if (
@@ -212,19 +229,21 @@ export function validatePerformanceInfoStep(
       ).length > 0 &&
       info.stageTypes.length === 0
     ) {
-      return `${prefix}무대형태를 하나 이상 선택해 주세요.`;
+      return issue("performanceInfo.stageTypes", "무대형태를 하나 이상 선택해 주세요.");
     }
     if (info.stageTypes.includes("OTHER") && !info.stageTypeOtherDetail?.trim()) {
-      return `${prefix}무대형태 "기타" 상세를 입력해 주세요.`;
+      return issue("performanceInfo.stageTypes.other", '무대형태 "기타" 상세를 입력해 주세요.');
     }
   }
 
   if (!isSlotDisabled("credibility")) {
-    if (!info.castContractStatus) return `${prefix}주요 출연진 계약 상태를 선택해 주세요.`;
+    if (!info.castContractStatus)
+      return issue("performanceInfo.credibility.castContractStatus", "주요 출연진 계약 상태를 선택해 주세요.");
     if (!info.sensitiveInfoMaskingAcknowledged) {
-      return `${prefix}출연 계약 증빙 마스킹 제출 허용에 동의해 주세요.`;
+      return issue("performanceInfo.credibility.masking", "출연 계약 증빙 마스킹 제출 허용에 동의해 주세요.");
     }
-    if (!info.safetyPledgeSigned) return `${prefix}안전규정 준수 확약서 작성 완료에 동의해 주세요.`;
+    if (!info.safetyPledgeSigned)
+      return issue("performanceInfo.credibility.safetyPledgeSigned", "안전규정 준수 확약서 작성 완료에 동의해 주세요.");
   }
 
   return null;
@@ -317,15 +336,19 @@ function TextField({
   placeholder,
   onChange,
   type = "text",
+  fieldKey,
 }: {
   label: ReactNode;
   value: string;
   placeholder?: string;
   onChange: (value: string) => void;
   type?: string;
+  /** [신규 2026-09-07] "미입력 필수항목 빨간색 표시 + 자동 스크롤"용 DOM 표식 —
+   *  validatePerformanceInfoStep이 돌려주는 fieldKey와 매칭된다. */
+  fieldKey?: string;
 }) {
   return (
-    <div>
+    <div data-field-key={fieldKey}>
       <label className="mb-1.5 block text-xs font-bold text-muted">{label}</label>
       <input
         type={type}
@@ -558,7 +581,7 @@ function ApplicantDetailsFields({
             보여줄 항목이 하나도 없으면 제목까지 통째로 숨긴다(공공/공익 참여의
             그룹 렌더링과 같은 규칙, PUBLIC_INTEREST_GROUPS 참고). */}
         {visibleCompanyTypes.length > 0 && (
-          <div>
+          <div data-field-key="performanceInfo.applicantCompanyType">
             <div className="mb-2.5 text-xs font-bold text-muted">
               {t("performanceInfo.applicantCompanyTypeLabel", "신청 기업 유형")}
             </div>
@@ -585,7 +608,7 @@ function ApplicantDetailsFields({
           </div>
         )}
 
-        <div>
+        <div data-field-key="performanceInfo.applicantContact">
           <div className="mb-2.5 flex items-center justify-between">
             <label className="text-xs font-bold text-muted">
               {t("performanceInfo.contactPersonsLabel", "담당자 정보")}
@@ -735,6 +758,7 @@ function EventBasicsFields({
         label={t("performanceInfo.eventNameLabel", "공연(행사)명")}
         value={info.eventName}
         onChange={(v) => set("eventName", v)}
+        fieldKey="performanceInfo.eventBasics.eventName"
       />
     ),
     artist: () => (
@@ -743,6 +767,7 @@ function EventBasicsFields({
         label={t("performanceInfo.artistLabel", "아티스트 / 출연진")}
         value={info.artist}
         onChange={(v) => set("artist", v)}
+        fieldKey="performanceInfo.eventBasics.artist"
       />
     ),
   };
@@ -869,7 +894,7 @@ function EventBasicsFields({
                 행으로 추가할수 있게" — 단일 텍스트 입력을 역할별 반복 행으로
                 바꾼다. organizer(단일 텍스트)는 이 배열에서 자동 합성돼 인쇄본·
                 관리자 화면과의 하위호환을 유지한다(deriveOrganizerSummary). */}
-            <div>
+            <div data-field-key="performanceInfo.eventBasics.organizer">
               <div className="mb-2.5 flex items-center justify-between">
                 <label className="text-xs font-bold text-muted">
                   {t("performanceInfo.organizerLabel", "주최 · 주관 · 기획")}
@@ -1074,7 +1099,7 @@ function EventBasicsFields({
                 온오프가 필요" — 항목을 전부 꺼도 제목만 남지 않도록, 보여줄 항목이 하나도
                 없으면 제목까지 통째로 숨긴다. */}
             {visibleEventTypes.length > 0 && (
-              <div>
+              <div data-field-key="performanceInfo.eventTypes">
                 <div className="mb-2.5 text-xs font-bold text-muted">
                   {t("performanceInfo.eventTypesLabel", "행사유형")}
                 </div>
@@ -1092,7 +1117,7 @@ function EventBasicsFields({
             )}
 
             {visibleAgeRatings.length > 0 && (
-              <div>
+              <div data-field-key="performanceInfo.ageRating">
                 <div className="mb-2.5 text-xs font-bold text-muted">
                   {t("performanceInfo.ageRatingLabel", "공연등급")}
                 </div>
@@ -1108,6 +1133,7 @@ function EventBasicsFields({
                 </div>
                 {info.ageRating === "AGE_LIMIT" && (
                   <input
+                    data-field-key="performanceInfo.ageRating.limitDetail"
                     value={info.ageLimitDetail}
                     placeholder={tStr("performanceInfo.ageLimitDetailPlaceholder", "예: 15세 이상 관람가")}
                     onChange={(e) => set("ageLimitDetail", e.target.value)}
@@ -1159,7 +1185,7 @@ function EventBasicsFields({
             {/* 네이티브 date input을 다른 필드처럼 w-full로 늘리면 브라우저마다
                 내부 세그먼트 사이가 벌어져 이상하게 보인다 — 앱 전역의 날짜 입력
                 관례(TicketOpenPanel 등)와 같이 폭을 좁게 고정한다. */}
-            <div>
+            <div data-field-key="performanceInfo.eventBasics.ticketOpenExpectedDate">
               <label className="mb-1.5 block text-xs font-bold text-muted">
                 {t("performanceInfo.ticketOpenExpectedDateLabel", "티켓 오픈 예정일")}
               </label>
@@ -1205,7 +1231,7 @@ function EventBasicsFields({
           <div className="space-y-4">
             <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
               {visibleSeatingTypes.length > 0 && (
-                <div>
+                <div data-field-key="performanceInfo.seatingTypes">
                   <div className="mb-2.5 text-xs font-bold text-muted">
                     {t("performanceInfo.seatingTypesLabel", "객석형태")}
                   </div>
@@ -1230,7 +1256,7 @@ function EventBasicsFields({
                 </div>
               )}
 
-              <div>
+              <div data-field-key="performanceInfo.retractableSeatUse">
                 <div className="mb-2.5 flex items-center gap-1.5 text-xs font-bold text-muted">
                   {t("performanceInfo.retractableSeatUseLabel", "수납식 객석 사용여부")}
                   {/* 물음표에 커서를 올리면 설명이 뜬다(2026-09-02) — 라벨 옆에 다 적으면
@@ -1293,7 +1319,7 @@ function EventBasicsFields({
             </div>
 
             {visibleStageTypes.length > 0 && (
-              <div>
+              <div data-field-key="performanceInfo.stageTypes">
                 <div className="mb-2.5 text-xs font-bold text-muted">
                   {t("performanceInfo.stageTypesLabel", "무대형태")}
                 </div>
@@ -1356,7 +1382,7 @@ function CredibilityFields({
         )}
       </p>
 
-      <div className="mt-4">
+      <div className="mt-4" data-field-key="performanceInfo.credibility.castContractStatus">
         <div className="mb-2.5 text-xs font-bold text-muted">
           {t("performanceInfo.castContractStatusLabel", "주요 출연진 계약 상태")}
         </div>
@@ -1381,7 +1407,10 @@ function CredibilityFields({
         />
       </div>
 
-      <label className="mt-5 flex cursor-pointer items-start gap-2.5 text-xs text-muted">
+      <label
+        className="mt-5 flex cursor-pointer items-start gap-2.5 text-xs text-muted"
+        data-field-key="performanceInfo.credibility.masking"
+      >
         <input
           type="checkbox"
           checked={info.sensitiveInfoMaskingAcknowledged}
@@ -1445,7 +1474,10 @@ function CredibilityFields({
         />
       </div>
 
-      <label className="mt-3 flex cursor-pointer items-start gap-2.5 text-xs text-muted">
+      <label
+        className="mt-3 flex cursor-pointer items-start gap-2.5 text-xs text-muted"
+        data-field-key="performanceInfo.credibility.safetyPledgeSigned"
+      >
         <input
           type="checkbox"
           checked={info.safetyPledgeSigned}

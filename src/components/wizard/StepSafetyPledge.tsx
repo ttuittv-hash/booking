@@ -3,7 +3,7 @@
 import { useRef, type ReactNode } from "react";
 import Link from "next/link";
 import { btnClass } from "@/components/ui/kit";
-import type { SafetyPledge } from "@/lib/pricing/types";
+import type { SafetyPledge, StepValidationResult } from "@/lib/pricing/types";
 import { useWizardText } from "@/lib/content/wizardText";
 import { SignaturePad } from "./SignaturePad";
 import { StepHeading } from "./StepHeading";
@@ -62,16 +62,34 @@ export function validateSafetyPledgeStep(
   pledge: SafetyPledge,
   files?: { safetyPlanFile: File | null },
   disabledFields: string[] = [],
-): string | null {
+  // [신규 2026-09-07] "미입력 필수항목 빨간색 표시 + 자동 스크롤" — StepPerformanceInfo.tsx의
+  // validatePerformanceInfoStep과 같은 이유로 안내 문구를 tStr(key, fallback)로 조회한다.
+  tStr: (key: string, fallback: string) => string = (_key, fallback) => fallback,
+): StepValidationResult | null {
   // [버그 수정 2026-09-06] STEP6 "안전관리 서약서" 슬롯 자체를 통째로 껐을 때
   // (slot.6.safetyPledge, SlotOrderPanel의 새 체크박스)는 이 화면이 아예 렌더되지
   // 않으므로 필수 검사도 함께 건너뛴다 — StepPerformanceInfo.tsx의 isSlotDisabled와
   // 같은 규칙.
   if (disabledFields.includes("slot.6.safetyPledge")) return null;
   const unchecked = PLEDGE_ITEMS.some((item) => !pledge[item.key]);
-  if (unchecked) return "안전관리 서약 항목을 모두 체크해 주세요.";
-  if (!pledge.signature.trim()) return "서명란에 서명해 주세요.";
-  if (files && !files.safetyPlanFile) return "공연·행사 안전관리계획서를 업로드해 주세요.";
+  if (unchecked) {
+    return {
+      fieldKey: "safetyPledge.items",
+      message: tStr("validationMessage.safetyPledge.items", "안전관리 서약 항목을 모두 체크해 주세요."),
+    };
+  }
+  if (!pledge.signature.trim()) {
+    return {
+      fieldKey: "safetyPledge.signature",
+      message: tStr("validationMessage.safetyPledge.signature", "서명란에 서명해 주세요."),
+    };
+  }
+  if (files && !files.safetyPlanFile) {
+    return {
+      fieldKey: "safetyPledge.planFile",
+      message: tStr("validationMessage.safetyPledge.planFile", "공연·행사 안전관리계획서를 업로드해 주세요."),
+    };
+  }
   return null;
 }
 
@@ -155,7 +173,7 @@ export function StepSafetyPledge({
         <span className="text-s font-bold text-foreground">{t("safetyPledge.allAgree", "전체 동의")}</span>
       </label>
 
-      <div className="border border-t-0 border-border">
+      <div className="border border-t-0 border-border" data-field-key="safetyPledge.items">
         {PLEDGE_ITEMS.map((item, i) => (
           <label
             key={item.key}
@@ -189,7 +207,7 @@ export function StepSafetyPledge({
         {t("safetyPledge.viewRulesLinkLabel", "대관 규약 보기")} ↗
       </Link>
 
-      <div className="mt-6">
+      <div className="mt-6" data-field-key="safetyPledge.signature">
         <label className="block text-s font-bold text-foreground">{t("safetyPledge.signatureLabel", "서명")}</label>
         <p className="mt-1 mb-2 text-xs text-muted">
           {t("safetyPledge.signatureHint", "담당자 본인이 아래 캔버스에 직접 서명해 주세요.")}
@@ -206,7 +224,7 @@ export function StepSafetyPledge({
         <p className="mt-1 mb-4 break-keep text-xs leading-6 text-muted">
           {t("safetyPledge.documentsHint", "아래 서류를 준비해 각각 업로드해 주세요.")}
         </p>
-        <div className="border border-border">
+        <div className="border border-border" data-field-key="safetyPledge.planFile">
           <FileSlot
             label={t("safetyPledge.safetyPlanLabel", "공연·행사 안전관리계획서")}
             file={safetyPlanFile}

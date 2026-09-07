@@ -446,6 +446,7 @@ export function WizardShell({
       selection.midHallPerformanceInfo ? "아레나" : undefined,
       wizardDisabledFields,
       wizardCustomOptions,
+      tStr,
     ) ??
     (selection.midHallPerformanceInfo &&
       validatePerformanceInfoStep(
@@ -453,12 +454,14 @@ export function WizardShell({
         "중형공연장",
         wizardDisabledFields,
         wizardCustomOptions,
+        tStr,
       )) ??
     validateAudienceStep(
       selection.performanceInfo,
       selection.midHallPerformanceInfo ? "아레나" : undefined,
       wizardDisabledFields,
       wizardCustomOptions,
+      tStr,
     ) ??
     (selection.midHallPerformanceInfo &&
       validateAudienceStep(
@@ -466,6 +469,7 @@ export function WizardShell({
         "중형공연장",
         wizardDisabledFields,
         wizardCustomOptions,
+        tStr,
       ));
   // 안전관리 서약(STEP 6)은 필수라 그 다음 단계로 못 넘어가게 막는다(2026-08-22,
   // "무조건 필수"). STEP 4(홍보 및 서비스 계획)·STEP 5(공공/공익 참여 여부)는 게이트가
@@ -475,6 +479,7 @@ export function WizardShell({
     selection.safetyPledge ?? DEFAULT_SAFETY_PLEDGE,
     { safetyPlanFile },
     wizardDisabledFields,
+    tStr,
   );
   const maxUnlockedStep = !selection.venueId
     ? 1
@@ -504,6 +509,25 @@ export function WizardShell({
     if (submissionLocked && target !== step) return;
     setStep(target);
     if (typeof window !== "undefined") window.scrollTo({ top: 0, behavior: "smooth" });
+  }
+
+  // [신규 2026-09-07] "미입력 필수항목 빨간색 표시 + 자동 스크롤" — 검증 함수가 돌려준
+  // fieldKey로 그 필드를 감싼 DOM(data-field-key)을 찾아 스크롤하고 잠깐 빨간 테두리를
+  // 보여준다. React state로 하이라이트를 관리하면 각 step 컴포넌트마다 새 prop을
+  // 넘겨야 해서(이미 fieldOrders/disabledFields/customOptions로 3겹 넘기는 중), 여기서는
+  // DOM을 직접 찾아 순간적으로 스타일만 건드리는 가벼운 방식을 쓴다.
+  function flashFieldError(fieldKey: string) {
+    if (typeof window === "undefined") return;
+    const el = document.querySelector<HTMLElement>(`[data-field-key="${fieldKey}"]`);
+    if (!el) return;
+    el.scrollIntoView({ behavior: "smooth", block: "center" });
+    el.style.transition = "outline-color 0.2s ease";
+    el.style.outline = "3px solid var(--danger)";
+    el.style.outlineOffset = "3px";
+    window.setTimeout(() => {
+      el.style.outline = "";
+      el.style.outlineOffset = "";
+    }, 2500);
   }
 
   function requestEdit() {
@@ -706,11 +730,13 @@ export function WizardShell({
               return;
             }
             if (step === 3 && step3Blocked) {
-              toast.error(step3Blocked);
+              toast.error(step3Blocked.message);
+              flashFieldError(step3Blocked.fieldKey);
               return;
             }
             if (step === 6 && step6Blocked) {
-              toast.error(step6Blocked);
+              toast.error(step6Blocked.message);
+              flashFieldError(step6Blocked.fieldKey);
               return;
             }
             goTo(step + 1);

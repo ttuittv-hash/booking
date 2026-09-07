@@ -11,6 +11,7 @@ import {
   type AncillaryBusinessPlan,
   type PerformanceInfo,
   type QuoteSelection,
+  type StepValidationResult,
   type TicketTypeRecord,
 } from "@/lib/pricing/types";
 import { useWizardText } from "@/lib/content/wizardText";
@@ -34,7 +35,10 @@ export function validateAudienceStep(
   // validatePerformanceInfoStep과 같은 이유로, 관리자가 추가한 커스텀 항목까지
   // 포함해야 "고를 항목이 하나도 없을 때만 건너뛴다"는 계산이 맞는다.
   customOptions: Record<string, string[]> = {},
-): string | null {
+  // [신규 2026-09-07] "미입력 필수항목 빨간색 표시 + 자동 스크롤" — StepPerformanceInfo.tsx의
+  // validatePerformanceInfoStep과 같은 이유로 안내 문구를 tStr(key, fallback)로 조회한다.
+  tStr: (key: string, fallback: string) => string = (_key, fallback) => fallback,
+): StepValidationResult | null {
   const prefix = venueLabel ? `${venueLabel} ` : "";
   // [버그 수정 2026-09-06] "체크박스 노출/숨김이 필수 항목으로 처리되어 있음" —
   // StepPerformanceInfo.tsx의 같은 수정과 짝 — 어드민이 이 그룹(또는 그 안 개별
@@ -49,12 +53,18 @@ export function validateAudienceStep(
     ? []
     : allAncillaryPlans.filter((plan) => !disabledFields.includes(`${ANCILLARY_PLANS_GROUP_ID}.${plan}`));
   if (visiblePlansForValidation.length > 0 && info.ancillaryBusinessPlans.length === 0) {
-    return `${prefix}부대사업 계획을 하나 이상 선택해 주세요.`;
+    return {
+      fieldKey: ANCILLARY_PLANS_GROUP_ID,
+      message: `${prefix}${tStr(`validationMessage.${ANCILLARY_PLANS_GROUP_ID}`, "부대사업 계획을 하나 이상 선택해 주세요.")}`,
+    };
   }
   // [신규 2026-09-06] "모든 항목에 기타 버튼 눌렀을때" 상세 입력칸이 뜨도록 일반화 —
   // 무대형태·객석형태(StepPerformanceInfo.tsx)와 같은 패턴.
   if (info.ancillaryBusinessPlans.includes("OTHER") && !info.ancillaryBusinessPlanOtherDetail?.trim()) {
-    return `${prefix}부대사업 계획 "기타" 상세를 입력해 주세요.`;
+    return {
+      fieldKey: `${ANCILLARY_PLANS_GROUP_ID}.other`,
+      message: `${prefix}${tStr(`validationMessage.${ANCILLARY_PLANS_GROUP_ID}.other`, '부대사업 계획 "기타" 상세를 입력해 주세요.')}`,
+    };
   }
   return null;
 }
@@ -357,7 +367,7 @@ function AudienceFields({
         {/* [버그 수정 2026-09-06] "언체크해도 라벨명은 노출되잖아 — 항목 전체에 대한
             온오프가 필요" — 항목을 전부 꺼도 제목만 남지 않도록 함께 숨긴다. */}
         {visibleAncillaryPlans.length > 0 && (
-          <div>
+          <div data-field-key={ANCILLARY_PLANS_GROUP_ID}>
             <div className="mb-2 text-xs font-bold text-muted">{t("audience.ancillaryPlansLabel", "부대사업 계획")}</div>
             <div className="flex flex-wrap gap-2">
               {visibleAncillaryPlans.map((plan) => (

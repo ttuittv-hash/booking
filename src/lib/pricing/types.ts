@@ -337,6 +337,16 @@ export interface MarketingCooperation {
   executionPlan: MarketingExecutionPlan;
 }
 
+// [신규 2026-09-07] "미입력 필수항목 빨간색 표시 + 자동 스크롤" — 각 STEP 검증 함수
+// (validatePerformanceInfoStep 등)가 막힌 이유를 문자열 하나로만 돌려주던 것을,
+// 어느 필드가 문제인지(fieldKey — 그 필드를 감싼 DOM에 data-field-key로 심어둔 값과
+// 매칭)까지 함께 돌려주도록 넓힌 반환 타입. WizardShell.tsx가 이 fieldKey로 실제
+// DOM을 찾아 스크롤 + 빨간 테두리 표시를 한다.
+export interface StepValidationResult {
+  message: string;
+  fieldKey: string;
+}
+
 export interface QuoteSelection {
   venueId: string | null; // 0단계: 공간 선택
   bookingMode: BookingMode; // SIMULTANEOUS = 아레나 + 중형을 신청서 1건으로 묶는 동시 대관(2-13, 할인 없음)
