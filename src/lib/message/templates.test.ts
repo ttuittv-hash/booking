@@ -13,7 +13,34 @@ describe("1차 오픈 템플릿", () => {
       // 0009 를 대체할 재등록분 — 버튼이 답변이 달린 그 문의로 바로 열린다 (2026-09-04)
       "ARENA-0019",
       "ARENA-0014", "ARENA-0015", "ARENA-0016",
+      // [알림톡-2차] 운영자 대관 신청 접수 안내 (2026-09-07)
+      "BK-03",
     ]);
+  });
+
+  it("ARENA_0021(회원가입 승인 요청)·BK-03(대관 신청 접수)은 등록값과 같다 — 운영자 버튼은 partner 호스트 + 경로 변수", () => {
+    // 2026-09-07 코드만 0013→0021 로 바꿨다가 운영에서 3016(템플릿 불일치)이 났다. 등록값(MNG select) 기준으로 고정한다.
+    const mb05 = findTemplate("MB-05")!;
+    expect(mb05.kakaoTemplateCode).toBe("ARENA_0021");
+    expect(mb05.body).toBe(
+      "#{운영자명}님, 안녕하세요. \n새로운 회원가입 승인 요청이 접수되었습니다. \n\n아래 신청 내용을 확인한 후 승인 여부를 처리해주세요.",
+    );
+    expect(mb05.emphasis?.title).toBe("회원가입 승인 요청");
+    expect(mb05.button?.kakaoUrl).toBe("https://partner.seoularena.net/#{신청내용링크}");
+    expect(mb05.button?.kakaoUrlPc).toBe(mb05.button?.kakaoUrl);
+    expect(fillUrlVariables(mb05.button!.kakaoUrl!, { 신청내용링크: "admin/applicants/u1" })).toBe(
+      "https://partner.seoularena.net/admin/applicants/u1",
+    );
+
+    const bk03 = findTemplate("BK-03")!;
+    expect(bk03.audience).toBe("ADMIN");
+    expect(bk03.emphasis?.title).toBe("대관 신청 접수 안내");
+    expect(renderTemplate("BK-03", { 운영자명: "관리자", 회사명: "카카오", 대관신청내역링크: "admin/Q1" })).toContain(
+      "카카오에서 새로운 대관 신청이 접수되었습니다.",
+    );
+    expect(fillUrlVariables(bk03.button!.kakaoUrlPc!, { 대관신청내역링크: "admin/Q1" })).toBe(
+      "https://partner.seoularena.net/admin/Q1",
+    );
   });
 
   it("선언한 변수와 본문·버튼 링크의 자리표시자가 일치한다", () => {

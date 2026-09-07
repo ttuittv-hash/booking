@@ -584,7 +584,8 @@ export async function POST(request: Request) {
       request,
     });
   }
-  // MB-05(ARENA_0021, 2026-09-07 이전에는 ARENA_0013) 회사 신규 등록 → 운영자.
+  // MB-05(ARENA_0021 회원가입 승인 요청, 2026-09-07 이전에는 ARENA_0013) 회사 신규 등록 → 운영자.
+  // 버튼은 그 가입자의 심사 화면(/admin/applicants/{userId})으로 간다.
   // [수정 2026-09-04] 조건이 companyRole === "MASTER" 로 남아 있었는데, 2026-08-28 개정 뒤 가입 시점에는
   // 아무도 MASTER 가 아니어서 한 번도 발송되지 않았다(팀 신고 "0013 연동 안 됨"). 위 인앱 알림과 같은
   // 기준 — 그 회사에 대표가 아직 없으면 "회사 신규 등록" — 으로 판정한다. 초대 링크 즉시 승인은 제외.
@@ -595,7 +596,8 @@ export async function POST(request: Request) {
         templateCode: "MB-05",
         idempotencyKey: `MB-05:${company.id}:${admin.id}`,
         recipient: { userId: admin.id, phone: admin.phone, email: admin.email, name: admin.name },
-        variables: { 운영자명: admin.name },
+        variables: { 운영자명: admin.name, 신청내용링크: `admin/applicants/${user.id}` },
+        inAppLink: `/admin/applicants/${user.id}`,
         request,
       });
     }

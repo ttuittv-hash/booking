@@ -29,9 +29,11 @@ export function proxy(request: NextRequest) {
 
   if (host.startsWith(APPLICANT_HOST_PREFIX)) {
     if (pathname.startsWith("/admin")) {
-      const url = request.nextUrl.clone();
-      url.pathname = "/";
-      return NextResponse.redirect(url);
+      // 운영자용 알림톡 버튼(ARENA_0021·BK-03)은 카카오 등록값이 partner 호스트 + 경로 변수라
+      // partner.../admin/... 으로 들어온다. 홈으로 돌려보내면 운영자가 심사 화면에 못 가므로
+      // 경로·쿼리를 그대로 두고 호스트만 bo 로 바꿔 넘긴다(2026-09-07).
+      const boHost = host.replace(APPLICANT_HOST_PREFIX, ADMIN_HOST_PREFIX);
+      return NextResponse.redirect(`https://${boHost}${pathname}${request.nextUrl.search}`);
     }
     return NextResponse.next();
   }
