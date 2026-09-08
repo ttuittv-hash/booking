@@ -70,12 +70,15 @@ export function calculateQuote(
     );
 
     // (1-1) 패키지 할인 — 관리자가 설정한 경우에만 기본 대관료에 적용
+    // [수정 2026-09-08 밤] "대관료 할인(10%) → 2027년 대관료 할인(10%)"(nora) — 고른 주차의
+    // 연도를 앞에 붙인다(개관 연도 프로모션이라는 뜻). 2027 을 박아 두지 않고 선택한 해를
+    // 쓰므로 노출월이 다음 해로 넘어가도 라벨이 저절로 따라간다.
     if (pkg.discountRatio > 0) {
       const discountAmount = Math.round(pkg.baseFeePerWeek * pkg.discountRatio);
       items.push(
         makeLine(
           "package_discount",
-          `대관료 할인 (${Math.round(pkg.discountRatio * 100)}%)`,
+          `${selection.week.year}년 대관료 할인 (${Math.round(pkg.discountRatio * 100)}%)`,
           "FIXED_PER_WEEK",
           1,
           0,
