@@ -110,35 +110,10 @@ export function sectionSubtotal(items: LineItem[], section: ContractSection): nu
   return items.filter((item) => sectionOf(item) === section).reduce((sum, item) => sum + item.amount, 0);
 }
 
-/**
- * [신규 2026-09-07, 이동 2026-09-08] "준비일의 10% 막 이런식으로 로직을 노출하지
- * 말라고" — calculateQuote·calculateMidHallQuote가 만드는 라벨에는 할인율·할증률(%)
- * 계산 근거가 그대로 박혀 있다. 신청자가 보는 화면(실시간 요약 패널·예상 대관료
- * STEP·마이페이지·인쇄용 신청서 — 전부 신청자 본인이 보는 화면이다)에서는 "얼마인지"만
- * 보여주면 되므로, %가 들어간 계산 근거 문구를 지우고 사실(일수 등)만 남긴다.
- * 운영자 화면(신청서 상세 등)은 이 함수를 쓰지 않고 item.label 원문을 그대로 쓴다.
- */
-export function applicantLineLabel(item: LineItem): string {
-  switch (item.addonId) {
-    case "package_discount":
-      return "대관료 할인";
-    case "extra_days":
-      return `추가 일수 (준비일 ${item.billable}일)`;
-    // [수정 2026-09-08] extra_days_rest 라벨에 할인율(%)이 추가되면서(estimateLineLabel
-    // 참고) 이 함수(SummaryPanel 전용)에서도 지워야 예전과 같이 %가 안 보인다.
-    case "extra_days_rest":
-      return item.label.replace(/\s*\(휴무일 단가 \d+%\s*할인\)/, "");
-    case "performance_day_adjustment":
-      return item.label.replace(/,\s*공연일 단가 \d+%\s*할인/, "");
-    case "second_show_surcharge":
-      return item.label.replace(/\s*×\s*\d+%/, "");
-    case "midhall_show_weekday-2":
-    case "midhall_show_weekend-2":
-      return item.label.replace(/,\s*\d+%\s*할증\s*포함/, "");
-    default:
-      return item.label;
-  }
-}
+// [삭제 2026-09-08] "너무 다 감추니까 뭐가뭔지 안보이고.. 할인율 보여줘" — SummaryPanel
+// (오른쪽 실시간 패널) 전용으로 할인율(%)까지 지우던 applicantLineLabel을 없앴다.
+// 이제 SummaryPanel도 estimateLineLabel(할증 %만 감추고 할인 %는 보여준다)을 그대로
+// 쓴다 — 왼쪽 예상 대관료·오른쪽 실시간 패널의 라벨 규칙이 갈릴 이유가 없어졌다.
 
 const DISCOUNT_PCT_PATTERN = /(\d+)%\s*할인/;
 
@@ -158,9 +133,10 @@ function unifiedExtraDayLabel(kind: string, item: LineItem): string {
  * [수정 2026-09-08] "추가일수는 두가지로 나눠져.. 추가일(공연일 N일), 추가일(준비일
  * N일), 추가일(휴무일 N일)" — 서로 다른 문구("추가 일수 (준비일...)", "추가일수
  * 휴무일...", "공연 일수 조정 (...)")로 흩어져 있던 세 항목을 같은 틀로 통일한다.
- * 공연 일수 조정은 기본보다 "늘어난"(할인이 붙는) 경우만 이 틀을 쓴다 — "줄어든" 경우는
- * 할인 없는 차감이라 추가일 개념이 아니므로 원문("공연 일수 조정 (기본 N일 대비
- * -N일)")을 그대로 둔다.
+ * 공연 일수 조정은 기본보다 "늘어난" 경우만 이 틀("추가일...")을 쓴다 — "줄어든" 경우는
+ * "추가"가 아니라 차감이므로(2026-09-08부터 할인율은 양쪽 다 붙지만 문구는 다르다)
+ * 원문("공연 일수 조정 (기본 N일 대비 -N일, 공연일 단가 M% 할인)")을 그대로 둔다 —
+ * splitParenDetail이 그 괄호 안(할인율 포함)을 세부내역 칸으로 그대로 옮긴다.
  */
 export function estimateLineLabel(item: LineItem): string {
   switch (item.addonId) {
@@ -173,7 +149,7 @@ export function estimateLineLabel(item: LineItem): string {
     case "extra_days_rest":
       return unifiedExtraDayLabel("휴무일", item);
     case "performance_day_adjustment":
-      return DISCOUNT_PCT_PATTERN.test(item.label) ? unifiedExtraDayLabel("공연일", item) : item.label;
+      return /대비 \+/.test(item.label) ? unifiedExtraDayLabel("공연일", item) : item.label;
     case "second_show_surcharge":
       return item.label.replace(/\s*×\s*\d+%/, "");
     case "midhall_show_weekday-2":

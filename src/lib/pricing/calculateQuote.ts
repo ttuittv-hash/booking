@@ -61,26 +61,34 @@ export function calculateQuote(selection: QuoteSelection, rateTable: RateTable):
 
     // (2) 제외 요일 할인 — 화~일 6일 중 실제 사용하지 않는 요일만큼 정액 할인.
     // [확정 2026-08-14, 기능정의서 2-37/2-38] 기존 "기본 대관료 × 1/6 균등" 임시 규칙 폐기.
-    // 확정 추가일 단가(셋업/공연)를 대칭 적용한다 — 제외하는 요일이 패키지 기본값상 준비일인지
+    // 확정 추가일 단가(준비일/공연일)를 대칭 적용한다 — 제외하는 요일이 패키지 기본값상 준비일인지
     // 공연일인지에 따라 다른 단가로 차감한다(요일 자체가 선택안에서 사라지므로 날짜별 dayTags가
     // 아니라 WEEKDAYS 상의 패키지 기본 배치로 판정, isDefaultPerformanceWeekday).
+    // [수정 2026-09-08] "준비일/공연일 추가·삭제 시에도 할인율 적용" — /rates 페이지의
+    // Rate 카드가 "준비일 추가·삭제"·"공연일 추가·삭제"를 같은 할인가 하나로 보여주는데
+    // (정가에 취소선 + extraDayDiscountRatio 배지), 여기(요일 제외 = 삭제 쪽)는 정가
+    // 그대로 차감하고 있었다 — 추가 쪽(아래 (2-1))과 같은 할인율을 곱해 대칭을 맞춘다.
     if (selection.excludedDays.length > 0) {
       const excludedPrepCount = selection.excludedDays.filter(
         (day) => !isDefaultPerformanceWeekday(day, pkg.defaultPerformanceDays),
       ).length;
       const excludedPerformanceCount = selection.excludedDays.length - excludedPrepCount;
+      const excludedPrepUnitPrice = Math.round(pkg.setupExtraDayFee * (1 - pkg.extraDayDiscountRatio));
+      const excludedPerformanceUnitPrice = Math.round(
+        pkg.performanceExtraDayFee * (1 - pkg.extraDayDiscountRatio),
+      );
 
       if (excludedPrepCount > 0) {
         items.push(
           makeLine(
             "day_exclusion_discount_prep",
-            `제외 요일 할인 — 준비일 (${excludedPrepCount}일)`,
+            `제외 요일 할인 — 준비일 (${excludedPrepCount}일, 단가 ${Math.round(pkg.extraDayDiscountRatio * 100)}% 할인)`,
             "PER_DAY",
             excludedPrepCount,
             0,
             excludedPrepCount,
-            pkg.setupExtraDayFee,
-            -(excludedPrepCount * pkg.setupExtraDayFee),
+            excludedPrepUnitPrice,
+            -(excludedPrepCount * excludedPrepUnitPrice),
             "VISIBLE",
           ),
         );
@@ -89,13 +97,13 @@ export function calculateQuote(selection: QuoteSelection, rateTable: RateTable):
         items.push(
           makeLine(
             "day_exclusion_discount_performance",
-            `제외 요일 할인 — 공연일 (${excludedPerformanceCount}일)`,
+            `제외 요일 할인 — 공연일 (${excludedPerformanceCount}일, 단가 ${Math.round(pkg.extraDayDiscountRatio * 100)}% 할인)`,
             "PER_DAY",
             excludedPerformanceCount,
             0,
             excludedPerformanceCount,
-            pkg.performanceExtraDayFee,
-            -(excludedPerformanceCount * pkg.performanceExtraDayFee),
+            excludedPerformanceUnitPrice,
+            -(excludedPerformanceCount * excludedPerformanceUnitPrice),
             "VISIBLE",
           ),
         );
@@ -168,31 +176,20 @@ export function calculateQuote(selection: QuoteSelection, rateTable: RateTable):
     // [신규 2026-09-06] "추가공연일도 기존 공연일의 10%할인" — 기본 공연일수보다 늘어난
     // 만큼(delta>0, 순수 추가분)만 공연일 추가 단가에서 pkg.extraDayDiscountRatio만큼
     // 할인한다(위 (2-1) 추가 준비일과 같은 비율 — 패키지 관리에서 "같은 값 공유"로 확정,
-    // 2026-09-06). 기본보다 줄어든 경우(delta<0)는 "추가"가 아니라 미사용 공연일에
-    // 대한 차감이므로 할인 없이 원래 단가 그대로 차감한다.
+    // 2026-09-06).
+    // [재개정 2026-09-08] "공연일 추가/차감시에도 할인율 적용" — 기본보다 줄어든 경우
+    // (delta<0)는 할인 없이 원래 단가로 차감하던 걸(2026-09-06 결정) 뒤집는다. /rates
+    // 페이지의 Rate 카드가 "공연일 추가·삭제"를 방향 구분 없이 같은 할인가 하나로
+    // 보여주므로, 계산도 늘어나든 줄어든든 같은 할인 단가를 쓴다.
     const performanceDayCount = countPerformanceDays(selectedDates, selection.dayTags, pkg.defaultPerformanceDays);
     const performanceDelta = performanceDayCount - pkg.defaultPerformanceDays;
-    if (performanceDelta > 0) {
+    if (performanceDelta !== 0) {
       const unitPrice = Math.round(pkg.performanceExtraDayFee * (1 - pkg.extraDayDiscountRatio));
+      const sign = performanceDelta > 0 ? "+" : "";
       items.push(
         makeLine(
           "performance_day_adjustment",
-          `공연 일수 조정 (기본 ${pkg.defaultPerformanceDays}일 대비 +${performanceDelta}일, 공연일 단가 ${Math.round(pkg.extraDayDiscountRatio * 100)}% 할인)`,
-          "PER_DAY",
-          performanceDayCount,
-          pkg.defaultPerformanceDays,
-          performanceDelta,
-          unitPrice,
-          performanceDelta * unitPrice,
-          "VISIBLE",
-        ),
-      );
-    } else if (performanceDelta < 0) {
-      const unitPrice = pkg.performanceExtraDayFee;
-      items.push(
-        makeLine(
-          "performance_day_adjustment",
-          `공연 일수 조정 (기본 ${pkg.defaultPerformanceDays}일 대비 ${performanceDelta}일)`,
+          `공연 일수 조정 (기본 ${pkg.defaultPerformanceDays}일 대비 ${sign}${performanceDelta}일, 공연일 단가 ${Math.round(pkg.extraDayDiscountRatio * 100)}% 할인)`,
           "PER_DAY",
           performanceDayCount,
           pkg.defaultPerformanceDays,
@@ -210,6 +207,9 @@ export function calculateQuote(selection: QuoteSelection, rateTable: RateTable):
     // (performanceExtraDayFee)에 패키지별 할증률을 곱해 별도 줄로 얹는다. 기존 (2-2)
     // 공연 일수 조정(기본 대비 delta)은 그대로 두고 그 위에 얹는 가산 항목이다 —
     // 기본 포함 공연일이든 추가 공연일이든, 그날 실제로 2회 이상 공연하면 할증한다.
+    // [수정 2026-09-08] "할인된 금액에 추가로 할증율 적용" — 할증 기준을 정가
+    // (performanceExtraDayFee)가 아니라 (2-2)와 같은 할인 단가로 바꾼다 — 이미 10%
+    // 할인된 공연일 단가에 50%를 얹는다.
     if (pkg.secondShowSurchargeRatio > 0) {
       const defaults = defaultDayTags(selectedDates, pkg.defaultPerformanceDays);
       const doubleShowDays = selectedDates.filter(
@@ -218,7 +218,10 @@ export function calculateQuote(selection: QuoteSelection, rateTable: RateTable):
           (selection.dayShowCounts[date] ?? 1) >= 2,
       ).length;
       if (doubleShowDays > 0) {
-        const unitPrice = Math.round(pkg.performanceExtraDayFee * pkg.secondShowSurchargeRatio);
+        const discountedPerformanceUnitPrice = Math.round(
+          pkg.performanceExtraDayFee * (1 - pkg.extraDayDiscountRatio),
+        );
+        const unitPrice = Math.round(discountedPerformanceUnitPrice * pkg.secondShowSurchargeRatio);
         items.push(
           makeLine(
             "second_show_surcharge",

@@ -4,7 +4,7 @@ import { won } from "@/lib/format";
 import { VENUES } from "@/lib/pricing/types";
 import type { EstimatedQuote, LineItem } from "@/lib/pricing/types";
 import {
-  applicantLineLabel,
+  estimateLineLabel,
   isHiddenFromApplicant,
   SECTION_LABEL,
   SECTION_SUBTOTAL_LABEL,
@@ -38,8 +38,11 @@ const SECTION_ORDER: ContractSection[] = ["CONTRACT", "ADDITIONAL"];
  * 설명은 STEP 안내문(Step5Estimate 등)에서 한다.
  *
  * [개정 2026-09-08] "예상 대관료 내역은 오른쪽 실시간 대관 신청내역과 필드값이
- * 동일해야지" — 박스 제목·소계 라벨·항목 라벨(applicantLineLabel)을 lineItemGroups로
- * 옮겨 Step5Estimate(QuoteLineItemsReport)·마이페이지·인쇄용 신청서와 공유한다.
+ * 동일해야지" — 박스 제목·소계 라벨·항목 라벨을 lineItemGroups로 옮겨
+ * Step5Estimate(QuoteLineItemsReport)·마이페이지·인쇄용 신청서와 공유한다.
+ * [수정 2026-09-08] "할인율 보여줘.. 너무 다 감추니까 뭐가뭔지 안보이고" — 항목
+ * 라벨에서 할인율(%)까지 지우던 전용 함수(applicantLineLabel)를 없애고, 왼쪽
+ * 예상 대관료와 같은 estimateLineLabel(할증 %만 감추고 할인 %는 보여준다)을 쓴다.
  */
 export function SummaryPanel({ quote }: { quote: EstimatedQuote }) {
   // Bowl 사용료·유틸리티(HIDDEN)와 청소비는 합계에는 포함하되 신청자 화면에는 항목·금액을
@@ -94,7 +97,7 @@ export function SummaryPanel({ quote }: { quote: EstimatedQuote }) {
                             className="flex items-baseline justify-between gap-4 border-b border-border/15 py-2.5"
                           >
                             <dt className="text-s text-muted">
-                              {applicantLineLabel(item)}
+                              {estimateLineLabel(item)}
                               {/* [수정 2026-09-07] "공연 일수 조정 (...)(초과 4) -> 초과 부분 제거" —
                                   이 줄은 billable이 옵션 초과분이 아니라 라벨에 이미 적힌 "+N일"
                                   자체라서 "(초과 N)"을 덧붙이면 같은 값이 중복 표시된다. 실제
