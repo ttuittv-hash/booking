@@ -143,14 +143,11 @@ export function SummaryPanel({ quote }: { quote: EstimatedQuote }) {
           </div>
         ) : (
           <>
-            {/* [신규 2026-09-08] 공간 탭 — 동시 대관일 때만 보인다. 탭 아래 작은
-                숫자는 그 공간의 소계(탭을 안 눌러도 대략 얼마인지 감이 오게). */}
+            {/* [신규 2026-09-08] 공간 탭 — 동시 대관일 때만 보인다.
+                [수정 2026-09-08] "메뉴명 밑에 숫자 빼" — 탭 아래 소계 미리보기 줄을 뺐다. */}
             {groups.length > 1 && (
               <div className="mt-5 flex border-b border-border-soft">
                 {groups.map((group) => {
-                  const venueTotal = sectionBoxes
-                    .filter((box) => box.venue === group.venue)
-                    .reduce((sum, box) => sum + box.total, 0);
                   const isActive = group.venue === activeVenue;
                   return (
                     <button
@@ -165,9 +162,6 @@ export function SummaryPanel({ quote }: { quote: EstimatedQuote }) {
                       ].join(" ")}
                     >
                       {VENUE_NAME[group.venue!] ?? group.venue}
-                      <span className="mt-0.5 block text-[10px] font-normal tabular-nums text-muted">
-                        {won(venueTotal)}
-                      </span>
                     </button>
                   );
                 })}
