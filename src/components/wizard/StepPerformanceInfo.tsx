@@ -335,7 +335,7 @@ function TextField({
   fieldKey?: string;
 }) {
   return (
-    <div data-field-key={fieldKey}>
+    <div>
       <label className="mb-1.5 block text-xs font-bold text-muted">{label}</label>
       <input
         type={type}
@@ -343,6 +343,7 @@ function TextField({
         placeholder={placeholder}
         onChange={(e) => onChange(e.target.value)}
         className="field-base w-full"
+        data-field-key={fieldKey}
       />
     </div>
   );
