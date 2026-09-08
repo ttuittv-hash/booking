@@ -283,7 +283,10 @@ function MidHallRateCard({
         </div>
       )}
 
-      {content.charges.length > 0 && (
+      {/* [수정 2026-09-08] 수량 선택형 옵션(hideChargeGroups)이 있으면 참고용 「옵션」 섹션은
+          제목·설명·빈 박스까지 통째로 감춘다 — 그룹만 빼니 빈 테두리 박스가 남았다(로컬 스크린샷
+          확인). 옛 임시저장본의 준비/철수 연장 값이 있을 때만 그 부분을 계속 보여준다. */}
+      {content.charges.length > 0 && (!hideChargeGroups || extraSetupHours > 0 || extraLoadOutHours > 0) && (
         <div className="mt-10 border-t border-border/25 pt-5">
           <h2 className="type-kr-heading text-h6-m sm:text-h6">{t("configOptions.optionsHeading", "옵션")}</h2>
           <p className="mt-1.5 text-xs leading-6 text-muted">

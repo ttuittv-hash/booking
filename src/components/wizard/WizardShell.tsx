@@ -158,10 +158,15 @@ function pruneUnavailableAddons(
   packageId: number | null,
 ): QuoteSelection["addons"] {
   const pkg = findPackage(rateTable, packageId);
-  if (!pkg) return [];
+  // [수정 2026-09-08] 중형공연장 선택 옵션(venueId "medium-hall")은 아레나 패키지와 무관하다 —
+  // 패키지 기준으로만 거르니 중형 단독(패키지 없음)·동시 대관에서 화면엔 "N건 선택됨"인데
+  // 견적·제출값은 ₩0 이 됐다(로컬 화면 확인). 중형이 끼는 신청이면 그 옵션은 그대로 둔다.
+  const keepsMidHall = selection.venueId === "medium-hall" || selection.bookingMode === "SIMULTANEOUS";
   return selection.addons.filter((selected) => {
     const addon = findAddon(rateTable, selected.addonId);
-    return addon ? isAddonAvailable(addon, pkg) : false;
+    if (!addon) return false;
+    if (addon.venueId === "medium-hall") return keepsMidHall;
+    return pkg ? isAddonAvailable(addon, pkg) : false;
   });
 }
 
