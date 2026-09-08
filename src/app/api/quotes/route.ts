@@ -134,8 +134,8 @@ export async function POST(request: Request) {
     return quote;
   });
 
-  // RT-01 대관 신청 접수 — 트랜잭션 밖에서 보낸다(백그라운드 발송이 커밋된 커넥션을 물지 않게).
-  notifyQuoteApplicant({ templateCode: "RT-01", quoteId: quote.id, applicantId: user.id, variables: {}, request });
+  // BK-01 대관 신청 접수(2026-09-08, RT-01 대체) — 트랜잭션 밖에서 보낸다(백그라운드 발송이 커밋된 커넥션을 물지 않게).
+  notifyQuoteApplicant({ templateCode: "BK-01", quoteId: quote.id, applicantId: user.id, variables: {}, request });
   // BK-03 대관 신청 접수 안내 → 운영자 전원 (2026-09-07 [알림톡-2차]). 인앱은 위 notifyAdmins 가 남겼다.
   for (const admin of await listUsers({ role: "ADMIN" })) {
     dispatchMessageInBackground({

@@ -406,6 +406,51 @@ export const TEMPLATES: TemplateDef[] = [
       kakaoUrlPc: "https://partner.seoularena.net/#{대관신청내역링크}",
     },
   },
+  // ── 2026-09-08 밤 [알림톡-2차] 신청자 BK-01/02/04 — 운영 MNG 조회값 그대로(kep O). 본문의
+  //    "안녕하세요. \n"(마침표 뒤 공백)까지 글자 단위로 같아야 발송이 거절되지 않는다.
+  //    RT-01(접수)·RT-02(심사 결과)를 대체한다 — 팀 요청 "승인·거절은 BK-02, 보류(보완요청)는 BK-04".
+  {
+    code: "BK-01",
+    kakaoTemplateCode: "BK-01",
+    audience: "APPLICANT",
+    title: "대관 신청 접수 완료",
+    body: "#{신청자명}님, 안녕하세요. \n대관 신청서 #{신청번호}가 정상 접수되었습니다. \n\n심사 후 결과를 다시 안내드리겠습니다.",
+    variables: ["신청자명", "신청번호"],
+    release: "FIRST",
+    emphasis: { title: "대관 신청 접수 완료", subtitle: "서울아레나 대관시스템" },
+  },
+  {
+    code: "BK-02",
+    kakaoTemplateCode: "BK-02",
+    audience: "APPLICANT",
+    title: "대관 심사 결과 안내",
+    body: "#{신청자명}님, 안녕하세요. \n대관신청서 #{신청번호}의 심사 결과를 안내드립니다. \n\n자세한 내용은 대관시스템에서 확인해 주세요.",
+    variables: ["신청자명", "신청번호", "심사결과링크"],
+    release: "FIRST",
+    emphasis: { title: "대관 심사 결과 안내", subtitle: "서울아레나 대관시스템" },
+    button: {
+      name: "심사결과 확인하기",
+      path: "/mypage",
+      kakaoUrl: "https://partner.seoularena.net/#{심사결과링크}",
+      kakaoUrlPc: "https://partner.seoularena.net/#{심사결과링크}",
+    },
+  },
+  {
+    code: "BK-04",
+    kakaoTemplateCode: "BK-04",
+    audience: "APPLICANT",
+    title: "신청 서류 보완 요청",
+    body: "#{신청자명}님, 안녕하세요. \n제출해 주신 신청 서류 중 보완이 필요한 사항이 있어 안내드립니다. \n\n▪︎보완 필요 사항\n#{보완필요사항}",
+    variables: ["신청자명", "보완필요사항", "신청서바로가기링크"],
+    release: "FIRST",
+    emphasis: { title: "신청 서류 보완 요청", subtitle: "서울아레나 대관시스템" },
+    button: {
+      name: "신청서 보완 바로가기",
+      path: "/mypage",
+      kakaoUrl: "https://partner.seoularena.net/#{신청서바로가기링크}",
+      kakaoUrlPc: "https://partner.seoularena.net/#{신청서바로가기링크}",
+    },
+  },
 ];
 
 export function findTemplate(code: string): TemplateDef | undefined {
