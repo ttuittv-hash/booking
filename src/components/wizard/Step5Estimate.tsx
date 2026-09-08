@@ -106,17 +106,32 @@ export function Step5Estimate({
     );
   }
 
+  // [수정 2026-09-08 밤] "계약/옵션 표 위에 레이블이 중복됨" 뒤이어 확인된 문제 — 공간이
+  // 하나면 renderTotal("CONTRACT")·renderTotal("ADDITIONAL")이 바로 위 박스(계약금액·
+  // 추후 정산(예정))와 완전히 같은 숫자를 또 보여준다(소계/부가세/최종금액이 그 공간
+  // 하나의 값 그대로라 합산의 의미가 없다). 공간이 둘(동시 대관)일 때만 이 합계가 실제
+  // 새 값(두 공간 합)이라 의미가 있다 — multi일 때만 그리고, 공간 하나면 그 자리를
+  // 오른쪽 실시간 패널과 같은 "총금액(예상)" 한 줄로 대신한다.
+  const grandTotal = boxes.reduce((sum, box) => sum + box.total, 0);
+
   return (
     <section>
       <h2 className="type-kr-heading text-h5-m sm:text-h5">{title}</h2>
 
-      {/* 1. 대관료 → 총계약 금액 */}
+      {/* 1. 대관료 → 총계약 금액(공간 둘 이상일 때만) */}
       <div className="mt-6">{renderSection("CONTRACT", true)}</div>
-      {renderTotal("CONTRACT", t("estimate.contractTotalLabel", "총계약 금액"))}
+      {multi && renderTotal("CONTRACT", t("estimate.contractTotalLabel", "총계약 금액"))}
 
-      {/* 2. 추후 정산 예정 금액 → 합계 */}
+      {/* 2. 추후 정산 예정 금액 → 합계(공간 둘 이상일 때만) */}
       <div className="mt-8">{renderSection("ADDITIONAL", false)}</div>
-      {renderTotal("ADDITIONAL", t("estimate.settlementTotalLabel", "추후 정산 예정 금액 합계"))}
+      {multi && renderTotal("ADDITIONAL", t("estimate.settlementTotalLabel", "추후 정산 예정 금액 합계"))}
+
+      {!multi && (
+        <div className="mt-6 flex flex-wrap items-baseline justify-between gap-3 bg-foreground px-4 py-3.5 text-background">
+          <span className="text-s font-bold">{t("estimate.grandTotalLabel", "총금액(예상)")}</span>
+          <span className="type-display text-h5-m tabular-nums sm:text-h5">{won(grandTotal)}</span>
+        </div>
+      )}
 
       {/* 3. 티켓 매출 RS */}
       {beforeTotals && <div className="mt-8">{beforeTotals}</div>}
