@@ -1,37 +1,70 @@
 import { describe, expect, it } from "vitest";
-import { SIMULTANEOUS_WINDOW_MAX_DAYS, simultaneousWindowGapDays } from "./dateRange";
+import { midHallDatesOutsideArenaRange } from "./dateRange";
 import type { QuoteSelection } from "./types";
 
-// 2026-09-01(화)가 속한 주(9월 1주차)를 아레나 기준으로 쓴다.
-const arenaWeek: QuoteSelection["week"] = { year: 2026, month: 9, weekOfMonth: 1 };
+// 2026-09-01(화)가 속한 주(9월 1주차)를 아레나 기준으로 쓴다 — 기본 6일이면
+// 2026-09-01(화) ~ 2026-09-06(일).
+const arenaSelection: Pick<
+  QuoteSelection,
+  "week" | "excludedDays" | "extraDays"
+> = {
+  week: { year: 2026, month: 9, weekOfMonth: 1 },
+  excludedDays: [],
+  extraDays: 0,
+};
 
-describe("simultaneousWindowGapDays", () => {
-  it("중형 일정이 없으면 검증 대상이 없다(null)", () => {
-    expect(simultaneousWindowGapDays(arenaWeek, {})).toBeNull();
+describe("midHallDatesOutsideArenaRange", () => {
+  it("중형 일정이 없으면 검증 대상이 없다(빈 배열)", () => {
+    expect(midHallDatesOutsideArenaRange(arenaSelection, {})).toEqual([]);
   });
 
-  it("두 시작일 간격이 14일 이내면 그 일수를 반환한다", () => {
-    // 아레나 화요일: 2026-09-01. 중형 시작을 9/10(9일 뒤)로 잡는다.
-    const gap = simultaneousWindowGapDays(arenaWeek, { "2026-09-10": { role: "PERFORMANCE", shows: 1 } });
-    expect(gap).toBe(9);
-    expect(gap).toBeLessThanOrEqual(SIMULTANEOUS_WINDOW_MAX_DAYS);
-  });
-
-  it("14일을 넘으면 그 초과 일수를 그대로 반환한다(호출부가 상한과 비교)", () => {
-    const gap = simultaneousWindowGapDays(arenaWeek, { "2026-09-20": { role: "PERFORMANCE", shows: 1 } });
-    expect(gap).toBeGreaterThan(SIMULTANEOUS_WINDOW_MAX_DAYS);
-  });
-
-  it("중형이 아레나보다 먼저여도(음수 방향) 절대값으로 계산한다", () => {
-    const gap = simultaneousWindowGapDays(arenaWeek, { "2026-08-20": { role: "PERFORMANCE", shows: 1 } });
-    expect(gap).toBe(12);
-  });
-
-  it("여러 중형 날짜 중 가장 이른 날짜를 시작일로 쓴다", () => {
-    const gap = simultaneousWindowGapDays(arenaWeek, {
-      "2026-09-25": { role: "PERFORMANCE", shows: 1 },
-      "2026-09-05": { role: "SETUP", shows: 1 },
+  it("아레나 기간(9/1~9/6) 안의 중형 날짜는 문제 없다", () => {
+    const result = midHallDatesOutsideArenaRange(arenaSelection, {
+      "2026-09-02": { role: "SETUP", shows: 1 },
+      "2026-09-05": { role: "PERFORMANCE", shows: 1 },
     });
-    expect(gap).toBe(4);
+    expect(result).toEqual([]);
+  });
+
+  it("아레나 기간보다 늦은 중형 날짜는 범위 밖으로 걸린다", () => {
+    const result = midHallDatesOutsideArenaRange(arenaSelection, {
+      "2026-09-10": { role: "PERFORMANCE", shows: 1 },
+    });
+    expect(result).toEqual(["2026-09-10"]);
+  });
+
+  it("아레나 기간보다 이른 중형 날짜도 범위 밖으로 걸린다", () => {
+    const result = midHallDatesOutsideArenaRange(arenaSelection, {
+      "2026-08-20": { role: "PERFORMANCE", shows: 1 },
+    });
+    expect(result).toEqual(["2026-08-20"]);
+  });
+
+  it("범위 안팎이 섞이면 범위 밖 날짜만 반환한다(정렬됨)", () => {
+    const result = midHallDatesOutsideArenaRange(arenaSelection, {
+      "2026-09-25": { role: "PERFORMANCE", shows: 1 },
+      "2026-09-03": { role: "SETUP", shows: 1 },
+      "2026-08-30": { role: "PERFORMANCE", shows: 1 },
+    });
+    expect(result).toEqual(["2026-08-30", "2026-09-25"]);
+  });
+
+  it("아레나가 요일을 제외해 기간이 좁아지면 그만큼 범위도 좁아진다", () => {
+    const narrowed = { ...arenaSelection, excludedDays: ["SUN" as const] };
+    // 기본 화~일(9/1~9/6)에서 일(9/6)을 뺐으니 범위는 9/1~9/5.
+    const result = midHallDatesOutsideArenaRange(narrowed, {
+      "2026-09-06": { role: "PERFORMANCE", shows: 1 },
+    });
+    expect(result).toEqual(["2026-09-06"]);
+  });
+
+  it("연장일(extraDays)만큼 범위가 넓어진다", () => {
+    const extended = { ...arenaSelection, extraDays: 2 };
+    // 화~일(9/1~9/6) + 2일 연장 = 9/8까지.
+    const result = midHallDatesOutsideArenaRange(extended, {
+      "2026-09-08": { role: "PERFORMANCE", shows: 1 },
+      "2026-09-09": { role: "PERFORMANCE", shows: 1 },
+    });
+    expect(result).toEqual(["2026-09-09"]);
   });
 });

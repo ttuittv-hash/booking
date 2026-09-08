@@ -28,8 +28,7 @@ import { DEFAULT_VENUE_ID, SPECIAL_VENUE_ID } from "@/lib/pricing/types";
 import { defaultVenueName, venueLabelKey } from "@/lib/content/venueLabels";
 import {
   arenaMiddleBaseDaysIncomplete,
-  SIMULTANEOUS_WINDOW_MAX_DAYS,
-  simultaneousWindowGapDays,
+  midHallDatesOutsideArenaRange,
 } from "@/lib/pricing/dateRange";
 import { INITIAL_PERFORMANCE_INFO } from "@/lib/pricing/performanceInfoDefaults";
 import {
@@ -494,8 +493,9 @@ export function WizardShell({
     [resolvedSelection, rateTable],
   );
   const hasMidHallSelection = Object.keys(selection.midHallDays).length > 0;
-  // [신규 2026-09-06] "동시 대관은... 아레나/중형 중 둘중 최초 시작 일정 기준 2주 안에서
-  // 신청 가능해야해" — 두 시작일 간격이 14일을 넘으면 얼랏.
+  // [재개정 2026-09-08] "동시대관은 동일 기간에만 세팅 가능하다는 안내가 들어가야함
+  // 14일 기준이 아니라" — 예전 "2주 윈도우"(두 시작일 간격 14일 이내) 규칙을 버리고,
+  // 중형 일정이 아레나가 실제로 잡은 날짜 범위 밖으로 나가면 얼랏한다.
   // [버그 수정 2026-09-08] "같은 주간 내 등록해도 불가 얼랏이 왜 뜨는거야" — 중형
   // 캘린더에서 날짜를 고를 때도 이 즉시 검사를 걸었었는데, 아레나 week는 "선택 안
   // 함" 상태가 없이 항상 기본값(마운트 시점 다음 달 1주차)을 갖고 있어서, 아레나
@@ -508,12 +508,19 @@ export function WizardShell({
     midHallDays: Record<string, unknown>,
   ) {
     if (selection.bookingMode !== "SIMULTANEOUS") return;
-    const gap = simultaneousWindowGapDays(week, midHallDays);
-    if (gap !== null && gap > SIMULTANEOUS_WINDOW_MAX_DAYS) {
+    const outOfRange = midHallDatesOutsideArenaRange(
+      {
+        week,
+        excludedDays: selection.excludedDays,
+        extraDays: selection.extraDays,
+      },
+      midHallDays,
+    );
+    if (outOfRange.length > 0) {
       toast.error(
         tStr(
           "wizardShell.toastSimultaneousWindowExceeded",
-          `동시 대관은 아레나·중형 중 먼저 시작하는 일정 기준 ${SIMULTANEOUS_WINDOW_MAX_DAYS}일 안에서만 신청할 수 있습니다.`,
+          "동시 대관의 경우, 아레나 공연 일정 내에서 중형공연장 일정 세팅이 가능합니다.",
         ),
       );
     }
@@ -908,15 +915,15 @@ export function WizardShell({
                 return;
               }
               if (step === 1 && selection.bookingMode === "SIMULTANEOUS") {
-                const gap = simultaneousWindowGapDays(
-                  selection.week,
+                const outOfRange = midHallDatesOutsideArenaRange(
+                  selection,
                   selection.midHallDays,
                 );
-                if (gap !== null && gap > SIMULTANEOUS_WINDOW_MAX_DAYS) {
+                if (outOfRange.length > 0) {
                   toast.error(
                     tStr(
                       "wizardShell.toastSimultaneousWindowExceeded",
-                      `동시 대관은 아레나·중형 중 먼저 시작하는 일정 기준 ${SIMULTANEOUS_WINDOW_MAX_DAYS}일 안에서만 신청할 수 있습니다.`,
+                      "동시 대관의 경우, 아레나 공연 일정 내에서 중형공연장 일정 세팅이 가능합니다.",
                     ),
                   );
                   return;
@@ -1249,6 +1256,14 @@ export function WizardShell({
                       }
                       onChangeDays={(midHallDays) =>
                         setSelection((prev) => ({ ...prev, midHallDays }))
+                      }
+                      outOfRangeDates={
+                        selection.bookingMode === "SIMULTANEOUS"
+                          ? midHallDatesOutsideArenaRange(
+                              selection,
+                              selection.midHallDays,
+                            )
+                          : []
                       }
                     />
                   )}
