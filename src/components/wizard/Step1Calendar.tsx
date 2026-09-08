@@ -54,9 +54,13 @@ function buildCalendarWeeks(year: number, month: number): CalendarWeek[] {
     // [신규 2026-09-08] "캘린더에 첫주 선택이 지금은 안되서요 — 첫주 선택도 가능하게"(nora)
     // — 화요일이 전달에 걸린 첫 행도 이 달 날짜를 하나라도 담고 있으면 0주차("첫 주")로
     // 고를 수 있게 한다. dateRange.findWeekTuesday 가 0을 같은 규칙으로 푼다.
-    const firstRowOverlaps = w === 0 && !startsInMonth && days.some((d) => d.getMonth() === month - 1);
+    const firstRowOverlaps =
+      w === 0 && !startsInMonth && days.some((d) => d.getMonth() === month - 1);
     if (startsInMonth) counter++;
-    weeks.push({ days, weekOfMonth: startsInMonth ? counter : firstRowOverlaps ? 0 : null });
+    weeks.push({
+      days,
+      weekOfMonth: startsInMonth ? counter : firstRowOverlaps ? 0 : null,
+    });
   }
   return weeks;
 }
@@ -231,12 +235,17 @@ export function Step1Calendar({
       if (hasExplicitTag && nextExcluded.has(weekday)) {
         nextExcluded.delete(weekday);
         changed = true;
-      } else if (!hasExplicitTag && hadExplicitTag && !nextExcluded.has(weekday)) {
+      } else if (
+        !hasExplicitTag &&
+        hadExplicitTag &&
+        !nextExcluded.has(weekday)
+      ) {
         nextExcluded.add(weekday);
         changed = true;
       }
     });
-    if (changed) onChangeExcludedDays(WEEKDAYS.filter((w) => nextExcluded.has(w)));
+    if (changed)
+      onChangeExcludedDays(WEEKDAYS.filter((w) => nextExcluded.has(w)));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedTuesdayKey, dayTags, excludedDays]);
 
@@ -543,10 +552,11 @@ export function Step1Calendar({
                       <span>{date.getDate()}</span>
                       {tag && (
                         <span className="text-xs font-bold leading-none">
-                          {/* [개정 2026-09-08] "날짜 밑에는 다 '공연'·'준비'·'철수' 두 글자씩"(nora)
-                              — 동시 대관에서 붙이던 "아레나 " 접두와 회차 1의 "×1"을 뺐다.
-                              두 공간을 함께 짤 때는 아레나 줄(검정)·중형 줄(회색)로만 구분한다.
-                              회차가 2 이상일 때만 ×N 을 붙인다(MidHallCalendar 와 같은 규칙). */}
+                          {/* [재개정 2026-09-08] "아레나 준비, 중형 공연장 준비 로 노출되어야함..
+                              지금은 공간 명시 없이 준비, 준비만 노출 중" — 2026-09-08 초반에
+                              뺐던 공간 접두를 동시 대관(twoVenueRoles)에서는 다시 붙인다. 단일
+                              공간일 때는 접두 없이 그대로("준비"만). */}
+                          {twoVenueRoles ? "아레나 " : ""}
                           {tag === "PERFORMANCE"
                             ? `공연${(dayShowCounts[iso] ?? 1) > 1 ? `×${dayShowCounts[iso]}` : ""}`
                             : tag === "LOAD_OUT"
@@ -560,6 +570,7 @@ export function Step1Calendar({
                           무엇이 잡혔는지 달력만 보고 알 수 있어야 한다. */}
                       {twoVenueRoles && midHall[iso] && (
                         <span className="text-xs font-bold leading-none text-muted">
+                          중형{" "}
                           {midHall[iso].role === "PERFORMANCE"
                             ? `공연${(midHall[iso].shows ?? 1) > 1 ? `×${midHall[iso].shows}` : ""}`
                             : midHall[iso].role === "LOAD_OUT"
@@ -596,8 +607,14 @@ export function Step1Calendar({
                     className="border border-border/40 bg-surface px-3 py-2.5 shadow-lg"
                     style={{
                       gridColumn: (() => {
-                        const dayCol = calWeek.days.findIndex((d) => isoDate(d) === openDate) + 1;
-                        const start = Math.max(1, Math.min(dayCol, 8 - POPOVER_SPAN));
+                        const dayCol =
+                          calWeek.days.findIndex(
+                            (d) => isoDate(d) === openDate,
+                          ) + 1;
+                        const start = Math.max(
+                          1,
+                          Math.min(dayCol, 8 - POPOVER_SPAN),
+                        );
                         return `${start} / ${start + POPOVER_SPAN}`;
                       })(),
                     }}
@@ -737,7 +754,8 @@ export function Step1Calendar({
                     {/* [수정 2026-09-08] 화·일(양 끝)은 위 「삭제」로 제외할 수 있고, 제외되면
                         준비일 10% 할인가만큼 차감된다는 걸 안내한다. */}
                     {openDayKind?.kind === "base" &&
-                      (openDayKind.weekday === "TUE" || openDayKind.weekday === "SUN") && (
+                      (openDayKind.weekday === "TUE" ||
+                        openDayKind.weekday === "SUN") && (
                         <p className="mt-2 text-xs text-muted">
                           {excludedDays.includes(openDayKind.weekday)
                             ? "이 날짜는 제외되어 준비일 단가에서 10% 할인된 금액이 차감됩니다. 「다시 포함」을 누르면 되돌립니다."
@@ -896,8 +914,9 @@ export function Step1Calendar({
       </div>
 
       <div className="mt-4 text-s font-bold text-foreground">
-        {week.year}년 {week.month}월 {week.weekOfMonth === 0 ? "첫 주" : `${week.weekOfMonth}주차`} · 준비 {setupCount}
-        일 · 공연 {performanceCount}일
+        {week.year}년 {week.month}월{" "}
+        {week.weekOfMonth === 0 ? "첫 주" : `${week.weekOfMonth}주차`} · 준비{" "}
+        {setupCount}일 · 공연 {performanceCount}일
         {loadOutCount > 0 ? ` · 철수 ${loadOutCount}일` : ""}
         {restCount > 0 ? ` · 휴무 ${restCount}일` : ""} · 총 {totalDays}일 적용
         {excludedDays.length > 0 &&
