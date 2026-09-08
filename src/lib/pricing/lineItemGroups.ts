@@ -115,6 +115,13 @@ export const SECTION_SUBTOTAL_LABEL: Record<ContractSection, string> = {
 // VAT 포함 최종금액(검정 강조 줄)에 붙이는 라벨. 공유 라벨(SECTION_SUBTOTAL_LABEL 등)과
 // 달리 이건 실시간 플로팅 박스에서만 쓴다 — QuoteLineItemsReport(예상 대관료 표)는
 // 전체 합산 소계/부가세를 표 아래에서 한 번만 보여주는 다른 구조라 손대지 않는다.
+// [부활 2026-09-08] "기존에 계약시 결제 노랑색... 변동가능 회색 글씨 좋았어 — 그것도
+// 반영해" — VAT 박스 구조로 바꾸며 뺐던 제목 옆 태그(노란/회색)를 다시 붙인다.
+export const SECTION_TAG: Record<ContractSection, string> = {
+  CONTRACT: "계약 시 결제",
+  ADDITIONAL: "변동 가능",
+};
+
 export const SECTION_SUBTOTAL_CAPTION: Record<ContractSection, string> = {
   CONTRACT: "계약금액",
   ADDITIONAL: "추후 정산(예정)",

@@ -7,6 +7,7 @@ import {
   isHiddenFromApplicant,
   SECTION_LABEL,
   SECTION_SUBTOTAL_CAPTION,
+  SECTION_TAG,
   sectionOf,
   summaryPanelLineLabel,
   type ContractSection,
@@ -113,9 +114,33 @@ export function SummaryPanel({ quote }: { quote: EstimatedQuote }) {
                 const vat = Math.round(subtotal * effectiveVatRate);
                 const sectionTotal = subtotal + vat;
                 const vatPct = Math.round(effectiveVatRate * 100);
+                const isContract = section === "CONTRACT";
+                // [수정 2026-09-08] "박싱 해서 구분을 해주고.. 지금은 구분 너무 약한거
+                // 같아" — 옅은(border/25) 테두리로는 두 박스가 잘 갈라져 보이지
+                // 않는다. 굵은 실선 테두리(border-2)로 각 박스 자체를 뚜렷하게
+                // 감싸고, 색도 위 태그와 맞춘다(대관료=노랑, 추후정산=회색).
                 return (
-                  <div key={section} className="mt-4 border border-border/25 bg-surface p-4">
-                    <p className="text-xs font-bold text-foreground">{SECTION_LABEL[section]}</p>
+                  <div
+                    key={section}
+                    className={[
+                      "mt-4 border-2 bg-surface p-4",
+                      isContract ? "border-accent" : "border-muted-strong/40",
+                    ].join(" ")}
+                  >
+                    <div className="flex items-center justify-between gap-2">
+                      <p className="text-xs font-bold text-foreground">{SECTION_LABEL[section]}</p>
+                      {/* [부활 2026-09-08] "계약시 결제 노랑색... 변동가능 회색 글씨 좋았어" */}
+                      <span
+                        className={[
+                          "shrink-0 border px-2 py-0.5 text-[10px] font-bold whitespace-nowrap",
+                          isContract
+                            ? "border-accent bg-accent-soft text-foreground"
+                            : "border-border-soft bg-panel-strong text-muted",
+                        ].join(" ")}
+                      >
+                        {SECTION_TAG[section]}
+                      </span>
+                    </div>
                     {sectionItems.length > 0 && (
                       <dl className="mt-2 border-t border-border/25">
                         {sectionItems.map((item) => (
