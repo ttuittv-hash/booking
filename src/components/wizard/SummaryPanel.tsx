@@ -257,8 +257,12 @@ export function SummaryPanel({ quote }: { quote: EstimatedQuote }) {
                         노출되어야지.. 시안대로 해야지" — 박스마다 소계(VAT 별도)·부가세·
                         최종금액(검정 강조 바)을 갖는다. 사용자가 준 와이어프레임 그대로:
                         박스 색은 CONTRACT/ADDITIONAL 구분 없이 같고, 최종 줄만 검정으로
-                        강조한다. */}
-                      <dl className="mt-3 border-t border-border/25">
+                        강조한다.
+                        [수정 2026-09-08] "소계 행 위에 줄은 굵게 하던지 경계를 줘야지..
+                        하이라키가 있어야함" — 항목 행 사이의 옅은 구분선(border/25)과
+                        같은 굵기로는 "항목 나열"과 "합계 요약"이 한 덩어리로 보인다.
+                        여기부터는 굵은 실선(border-foreground)으로 갈라 위계를 준다. */}
+                      <dl className="mt-3 border-t-2 border-foreground pt-0.5">
                         <div className="flex items-baseline justify-between gap-4 border-b border-border/15 py-2">
                           <dt className="text-xs text-muted">
                             소계 (VAT 별도)
