@@ -1,6 +1,7 @@
 "use client";
 
 import { scheduleLegend, type ScheduleLegend } from "@/lib/content/scheduleLegend";
+import { canStepMonth, formatMonth, toMonthKey } from "@/lib/content/noticeCalendarWindow";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { isoDate } from "@/lib/pricing/dateRange";
@@ -90,10 +91,16 @@ function dayGroupOf(entry: ScheduleOccupancyEntry): DayGroupKey {
 export function ScheduleManager({
   initialYear,
   initialMonth,
+  monthBounds,
   legend: legendProp,
 }: {
   initialYear: number;
   initialMonth: number;
+  /**
+   * [2026-09-08] 「캘린더 노출월」 범위. 신청자 달력(위저드·공지)과 같이 이 밖으로는
+   * 넘어가지 못한다 — 오픈 시점에는 운영자도 같은 범위만 본다. 비어 있으면 제한 없음.
+   */
+  monthBounds?: { start: string | null; end: string | null };
   legend?: ScheduleLegend | null;
 }) {
   const legend = legendProp ?? scheduleLegend(null);
@@ -122,7 +129,13 @@ export function ScheduleManager({
       .finally(() => setLoading(false));
   }, [year, month]);
 
-  function goToMonth(delta: number) {
+  function canGoToMonth(delta: -1 | 1): boolean {
+    if (!monthBounds) return true;
+    return canStepMonth(toMonthKey(year, month), delta, monthBounds);
+  }
+
+  function goToMonth(delta: -1 | 1) {
+    if (!canGoToMonth(delta)) return;
     let nextMonth = month + delta;
     let nextYear = year;
     if (nextMonth > 12) {
@@ -143,6 +156,16 @@ export function ScheduleManager({
   );
   const calendarWeeks = buildCalendarWeeks(year, month);
   const today = new Date();
+
+  const hasBounds = !!(monthBounds?.start || monthBounds?.end);
+  const currentMonthKey = toMonthKey(year, month);
+  const outsideBounds =
+    hasBounds &&
+    ((!!monthBounds?.start && currentMonthKey < monthBounds.start) ||
+      (!!monthBounds?.end && currentMonthKey > monthBounds.end));
+  const boundsLabel = hasBounds
+    ? `${formatMonth(monthBounds?.start ?? null) ?? "제한 없음"} ~ ${formatMonth(monthBounds?.end ?? null) ?? "제한 없음"}`
+    : null;
 
   function isSameDate(a: Date, b: Date) {
     return a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate();
@@ -177,18 +200,33 @@ export function ScheduleManager({
   return (
     <div className="mt-8">
       <div className="flex items-center justify-between gap-3">
-        <button type="button" onClick={() => goToMonth(-1)} className={btnClass("secondary", "sm")}>
+        <button
+          type="button"
+          onClick={() => goToMonth(-1)}
+          disabled={!canGoToMonth(-1)}
+          className={btnClass("secondary", "sm")}
+        >
           ‹ 이전 달
         </button>
-        <div className="flex items-center gap-2">
-          <span className="type-kr-heading text-h6-m">
-            {year}년 {month}월
-          </span>
-          <span className="text-xs text-muted">{loading && "불러오는 중..."}</span>
+        <div className="flex flex-col items-center gap-0.5">
+          <div className="flex items-center gap-2">
+            <span className="type-kr-heading text-h6-m">
+              {year}년 {month}월
+            </span>
+            <span className="text-xs text-muted">{loading && "불러오는 중..."}</span>
+          </div>
+          {boundsLabel && (
+            <span className={["text-xs", outsideBounds ? "font-bold text-danger" : "text-muted"].join(" ")}>
+              {outsideBounds
+                ? `노출 범위 밖 — 신청자에게 보이지 않는 달 (노출 범위 ${boundsLabel})`
+                : `${boundsLabel} 로 잠김 · 위 「캘린더 노출월」에서 바꿉니다`}
+            </span>
+          )}
         </div>
         <button
           type="button"
           onClick={() => goToMonth(1)}
+          disabled={!canGoToMonth(1)}
           className={btnClass("secondary", "sm")}
         >
           다음 달 ›
