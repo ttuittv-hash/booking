@@ -1,7 +1,7 @@
 "use client";
 
 import { scheduleLegend, type ScheduleLegend } from "@/lib/content/scheduleLegend";
-import { formatMonth, toMonthKey } from "@/lib/content/noticeCalendarWindow";
+import { canStepMonth, formatMonth, toMonthKey } from "@/lib/content/noticeCalendarWindow";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { isoDate } from "@/lib/pricing/dateRange";
@@ -97,9 +97,8 @@ export function ScheduleManager({
   initialYear: number;
   initialMonth: number;
   /**
-   * [2026-09-08] 「캘린더 노출월」 범위. 신청자 달력(위저드·공지)은 이 밖으로 못 넘어가지만
-   * 여기는 잠그지 않는다 — 범위 밖에도 대관 불가를 넣어야 한다. 대신 지금 보는 달이
-   * 범위 밖이면 그렇다고 알려 준다.
+   * [2026-09-08] 「캘린더 노출월」 범위. 신청자 달력(위저드·공지)과 같이 이 밖으로는
+   * 넘어가지 못한다 — 오픈 시점에는 운영자도 같은 범위만 본다. 비어 있으면 제한 없음.
    */
   monthBounds?: { start: string | null; end: string | null };
   legend?: ScheduleLegend | null;
@@ -130,7 +129,13 @@ export function ScheduleManager({
       .finally(() => setLoading(false));
   }, [year, month]);
 
-  function goToMonth(delta: number) {
+  function canGoToMonth(delta: -1 | 1): boolean {
+    if (!monthBounds) return true;
+    return canStepMonth(toMonthKey(year, month), delta, monthBounds);
+  }
+
+  function goToMonth(delta: -1 | 1) {
+    if (!canGoToMonth(delta)) return;
     let nextMonth = month + delta;
     let nextYear = year;
     if (nextMonth > 12) {
@@ -195,7 +200,12 @@ export function ScheduleManager({
   return (
     <div className="mt-8">
       <div className="flex items-center justify-between gap-3">
-        <button type="button" onClick={() => goToMonth(-1)} className={btnClass("secondary", "sm")}>
+        <button
+          type="button"
+          onClick={() => goToMonth(-1)}
+          disabled={!canGoToMonth(-1)}
+          className={btnClass("secondary", "sm")}
+        >
           ‹ 이전 달
         </button>
         <div className="flex flex-col items-center gap-0.5">
@@ -209,13 +219,14 @@ export function ScheduleManager({
             <span className={["text-xs", outsideBounds ? "font-bold text-danger" : "text-muted"].join(" ")}>
               {outsideBounds
                 ? `노출 범위 밖 — 신청자에게 보이지 않는 달 (노출 범위 ${boundsLabel})`
-                : `노출 범위 ${boundsLabel}`}
+                : `${boundsLabel} 로 잠김 · 위 「캘린더 노출월」에서 바꿉니다`}
             </span>
           )}
         </div>
         <button
           type="button"
           onClick={() => goToMonth(1)}
+          disabled={!canGoToMonth(1)}
           className={btnClass("secondary", "sm")}
         >
           다음 달 ›
