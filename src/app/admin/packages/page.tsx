@@ -18,7 +18,7 @@ export default async function AdminPackagesPage() {
     <div className="flex flex-1 flex-col">
       <AdminNav active="/admin/packages" user={user} />
 
-      <main className="mx-auto w-full max-w-4xl flex-1 px-6 py-8 sm:py-10">
+      <main className="mx-auto w-full max-w-6xl flex-1 px-6 py-8 sm:py-10">
         <header className="border-b border-border/20 pb-6">
           <h1 className={PAGE_TITLE}>패키지 관리</h1>
           <p className={PAGE_LEAD}>
