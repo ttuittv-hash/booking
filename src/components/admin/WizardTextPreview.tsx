@@ -1258,8 +1258,6 @@ const STAGE_GROUPS: StageGroup[] = [
                   files={[]}
                   onFilesChange={noop}
                   isSimultaneous={false}
-                  safetyPlanFile={null}
-                  onSafetyPlanFileChange={noop}
                 />
               </div>
             </LivePreview>

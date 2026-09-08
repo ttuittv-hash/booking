@@ -50,7 +50,7 @@ import {
 import { StepAudience, StepCompetitionOption, validateAudienceStep } from "./StepAudience";
 import { StepPublicInterest } from "./StepPublicInterest";
 import { StepMarketingCooperation } from "./StepMarketingCooperation";
-import { StepSafetyPledge, validateAttachmentsStep, validateSafetyPledgeStep } from "./StepSafetyPledge";
+import { StepSafetyPledge, validateSafetyPledgeStep } from "./StepSafetyPledge";
 import { Step6Submit } from "./Step6Submit";
 
 // [개정 2026-09-07] "안전관리 서약서 뒤에 자료 첨부 탭 신규 생성" — 자료 첨부가
@@ -238,10 +238,8 @@ export function WizardShell({
   // 정보(출연 계약 증빙)·공공성(연계 프로그램 계획서) 슬롯은 없앴다. 이제 일반 첨부는
   // STEP7 "자료 첨부"(pendingFiles) 한 곳으로만 받는다.
   const [pendingFiles, setPendingFiles] = useState<File[]>([]);
-  // 안전관리계획서는 목업상 필수 단일 슬롯이다 — 다른 단계처럼 자유 목록이 아니라
-  // 슬롯당 파일 1개(재선택 시 교체)로 둔다. STEP6(안전관리 서약서)에서 STEP7(자료
-  // 첨부)로 업로드 자리를 옮겼다(2026-09-07).
-  const [safetyPlanFile, setSafetyPlanFile] = useState<File | null>(null);
+  // [삭제 2026-09-08] 안전관리계획서 단일 필수 슬롯(safetyPlanFile)은 운영진 요청(nora)으로
+  // 자료 첨부 탭에서 뺐다 — 필요한 계획서는 자유 첨부(pendingFiles)로 받는다.
   // [신규 2026-09-06] "캘린더 노출 기간에도 반영되어야해" — 새 신청서를 시작할 때
   // 기본값("다음 달")이 노출 범위 밖이면 범위 안의 가장 가까운 달로 당긴다.
   // 새 시작(아래 useState)과 임시저장본 복원(아래 effect) 두 곳이 같은 달을 써야 한다.
@@ -525,9 +523,6 @@ export function WizardShell({
     wizardDisabledFields,
     tStr,
   );
-  // [신규 2026-09-07] 안전관리계획서 업로드가 STEP6에서 STEP7(자료 첨부)로 옮겨가면서,
-  // 그 필수 검사도 함께 옮겨 STEP7→8 진행을 막는다.
-  const step7Blocked = validateAttachmentsStep(safetyPlanFile, tStr);
   const maxUnlockedStep = !selection.venueId
     ? 1
     : midHallOnly && !hasMidHallSelection
@@ -538,9 +533,7 @@ export function WizardShell({
           ? 3
           : step6Blocked
             ? 6
-            : step7Blocked
-              ? 7
-              : TOTAL_STEPS;
+            : TOTAL_STEPS;
   // 패키지 선택 전에도 기본 공연일수를 보여줘야 하므로, 모든 패키지가 공유하는 기본값(2일)을 임시로 사용한다.
   const effectivePkg = findPackage(rateTable, effectivePackageId);
   const defaultPerformanceDays = effectivePkg?.defaultPerformanceDays ?? 2;
@@ -665,7 +658,6 @@ export function WizardShell({
     // STEP7(자료 첨부)의 일반 첨부·안전관리계획서 두 슬롯만 있다(category 없음).
     const allFiles: { file: File; category?: string }[] = [
       ...pendingFiles.map((file) => ({ file })),
-      ...(safetyPlanFile ? [{ file: safetyPlanFile }] : []),
     ];
     if (allFiles.length === 0) return;
     const failed: string[] = [];
@@ -689,7 +681,6 @@ export function WizardShell({
       );
     } else {
       setPendingFiles([]);
-      setSafetyPlanFile(null);
     }
   }
 
@@ -838,11 +829,6 @@ export function WizardShell({
             if (step === 6 && step6Blocked) {
               toast.error(step6Blocked.message);
               flashFieldError(step6Blocked.fieldKey);
-              return;
-            }
-            if (step === 7 && step7Blocked) {
-              toast.error(step7Blocked.message);
-              flashFieldError(step7Blocked.fieldKey);
               return;
             }
             goTo(step + 1);
@@ -1167,8 +1153,6 @@ export function WizardShell({
             files={pendingFiles}
             onFilesChange={setPendingFiles}
             isSimultaneous={resolvedSelection.bookingMode === "SIMULTANEOUS"}
-            safetyPlanFile={safetyPlanFile}
-            onSafetyPlanFileChange={setSafetyPlanFile}
           />
         )}
         {step === 8 && (
@@ -1199,7 +1183,7 @@ export function WizardShell({
             submittedId={submittedId}
             error={submitError}
             attachmentError={attachmentError}
-            fileCount={pendingFiles.length + (safetyPlanFile ? 1 : 0)}
+            fileCount={pendingFiles.length}
             onSubmit={submit}
             onRequestEdit={requestEdit}
             disabledFields={wizardDisabledFields}

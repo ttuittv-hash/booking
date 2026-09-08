@@ -2,7 +2,7 @@
 
 import { btnClass, ICON_BTN_SM, toggleClass } from "@/components/ui/kit";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { isoDate, resolveSelectedDates } from "@/lib/pricing/dateRange";
 import { defaultDayTags, effectiveDayTag } from "@/lib/pricing/rateTableUtils";
 import { canStepMonth, toMonthKey } from "@/lib/content/noticeCalendarWindow";
@@ -209,6 +209,11 @@ export function Step1Calendar({
   // 패키지 단위라 제외 대상이 아니다 — 대신 WizardShell의 "다음" 검증이 명시
   // 지정을 요구한다.
   const selectedTuesdayKey = selectedTuesday ? dateKey(selectedTuesday) : null;
+  // [수정 2026-09-08] "노란 딱지가 4일이 아니라 화~일 6일이 기본으로 잡히게"(nora) — 위
+  // 자동 제외가 처음 열 때(아무 태그도 없을 때)까지 화·일을 제외해 기본 선택이 4일로
+  // 보였다. 이제는 화·일에 역할을 골랐다가 다시 눌러 지운 순간(있다→없다)에만 제외하고,
+  // 처음부터 비어 있던 날은 그대로 포함(6일)한다. 역할을 다시 고르면 포함으로 돌아온다.
+  const prevTagRef = useRef<Record<string, boolean>>({});
   useEffect(() => {
     if (!selectedTuesday) return;
     const nextExcluded = new Set(excludedDays);
@@ -217,10 +222,12 @@ export function Step1Calendar({
       const offset = WEEKDAYS.indexOf(weekday);
       const iso = isoDate(addDays(selectedTuesday, offset));
       const hasExplicitTag = Boolean(dayTags[iso]);
+      const hadExplicitTag = prevTagRef.current[iso] ?? false;
+      prevTagRef.current[iso] = hasExplicitTag;
       if (hasExplicitTag && nextExcluded.has(weekday)) {
         nextExcluded.delete(weekday);
         changed = true;
-      } else if (!hasExplicitTag && !nextExcluded.has(weekday)) {
+      } else if (!hasExplicitTag && hadExplicitTag && !nextExcluded.has(weekday)) {
         nextExcluded.add(weekday);
         changed = true;
       }

@@ -7,7 +7,6 @@ import { Fragment, useState, type ReactNode } from "react";
 import { useWizardText } from "@/lib/content/wizardText";
 import { INITIAL_PERFORMANCE_INFO } from "@/lib/pricing/performanceInfoDefaults";
 import { VenueSplitTabBar, type VenueSplitTab } from "./VenueSplitTabBar";
-import { FileSlot } from "./StepSafetyPledge";
 import { resolveSelectedDates } from "@/lib/pricing/dateRange";
 import { defaultDayTags, effectiveDayTag } from "@/lib/pricing/rateTableUtils";
 import {
@@ -1596,17 +1595,10 @@ export function StepAttachments({
   files,
   onFilesChange,
   isSimultaneous,
-  safetyPlanFile,
-  onSafetyPlanFileChange,
 }: {
   files: File[];
   onFilesChange: (files: File[]) => void;
   isSimultaneous: boolean;
-  /** [신규 2026-09-07] "안전관리 서약서 탭에서 자료 첨부하기 모두 제거하고, 자료첨부
-   * 탭에서 자료 첨부·안전관리 서약서 첨부 두 슬롯만 노출" — 공연·행사 안전관리계획서
-   * 업로드를 STEP6(안전관리 서약서)에서 이 화면으로 옮겨왔다. */
-  safetyPlanFile: File | null;
-  onSafetyPlanFileChange: (file: File | null) => void;
 }) {
   const dialog = useDialog();
   const { t, tStr } = useWizardText();
@@ -1690,22 +1682,8 @@ export function StepAttachments({
         className={`${FILE_INPUT} mt-5 text-muted`}
       />
 
-      {/* [신규 2026-09-07] 공연·행사 안전관리계획서 — 안전관리 서약서 탭(STEP6)에서
-          이 탭으로 옮겨온 필수 첨부. 위 자료 첨부와 성격이 달라(필수 · 파일 1건) 따로
-          구획을 나눈다. */}
-      <div className="mt-8 border-t border-border/25 pt-5">
-        <h3 className="type-kr-heading text-h6-m">{t("attachments.safetyPlanHeading", "안전관리 서약서 첨부")}</h3>
-        <p className="mt-1 mb-4 break-keep text-xs leading-6 text-muted">
-          {t("attachments.safetyPlanHint", "공연·행사 안전관리계획서를 업로드해 주세요.")}
-        </p>
-        <div className="border border-border" data-field-key="attachments.safetyPlanFile">
-          <FileSlot
-            label={t("safetyPledge.safetyPlanLabel", "공연·행사 안전관리계획서")}
-            file={safetyPlanFile}
-            onChange={onSafetyPlanFileChange}
-          />
-        </div>
-      </div>
+      {/* [삭제 2026-09-08] 안전관리계획서 단일 필수 슬롯(9/7 신규) — 운영진 요청(nora,
+          "자료 첨부 탭 아래 [삭제]란 삭제")으로 뺐다. 필요한 계획서는 위 자유 첨부로 받는다. */}
     </section>
   );
 }
