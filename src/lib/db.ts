@@ -1400,7 +1400,16 @@ function toRateTable(row: RateTableRow): RateTable {
 }
 
 export async function getCurrentRateTable(): Promise<RateTable> {
-  const row = await one<RateTableRow>("SELECT * FROM rate_tables ORDER BY updated_at DESC LIMIT 1");
+  // [버그 수정 2026-09-08] "중형공연장 단가가 제대로 적용 안되고 있음" — updated_at은
+  // TEXT 컬럼인데 쓰는 경로마다 형식이 다르다(saveNewRateTableVersion은
+  // toISOString(), 일부 옛 행은 Postgres 기본 타임스탬프 문자열 "... +00"). 두
+  // 형식을 문자열로 비교하면 실제 시간 순서와 다르게 정렬될 수 있어(예: "T"가
+  // 공백보다 코드값이 커서 같은 날짜라도 형식만으로 우열이 갈린다), 이 함수가 최신이
+  // 아닌 버전을 "현재 요금표"로 돌려줄 수 있었다. version은 saveNewRateTableVersion이
+  // 항상 `v-${Date.now()}`로만 만들어 형식이 하나뿐이라 문자열 정렬 = 시간 정렬이
+  // 보장된다(시드 버전 "2026-08-homepage-v2"는 "2"로 시작해 항상 가장 낮게 정렬되므로
+  // v-* 행이 하나라도 있으면 절대 선택되지 않는다).
+  const row = await one<RateTableRow>("SELECT * FROM rate_tables ORDER BY version DESC LIMIT 1");
   if (!row) throw new Error("요금표가 초기화되지 않았습니다.");
   return toRateTable(row);
 }
