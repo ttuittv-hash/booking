@@ -1181,6 +1181,8 @@ export function WizardShell({
                 framed
                 info={selection.performanceInfo}
                 onChange={(performanceInfo) => setSelection((prev) => ({ ...prev, performanceInfo }))}
+                expectedRevenue={selection.expectedRevenue ?? 0}
+                onChangeRevenue={(value) => setSelection((prev) => ({ ...prev, expectedRevenue: value }))}
               />
             }
             rateTable={rateTable}

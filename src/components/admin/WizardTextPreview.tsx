@@ -1050,7 +1050,13 @@ const STAGE_GROUPS: StageGroup[] = [
               />
             ),
             competitionOption: (
-              <StepCompetitionOption key="competitionOption" info={ctx.mocks.arena.performanceInfo} onChange={noop} />
+              <StepCompetitionOption
+                key="competitionOption"
+                info={ctx.mocks.arena.performanceInfo}
+                onChange={noop}
+                expectedRevenue={0}
+                onChangeRevenue={noop}
+              />
             ),
           };
           const configuredStep3Order = ctx.slotOrders["3"];

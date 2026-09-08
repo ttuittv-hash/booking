@@ -31,12 +31,16 @@ export function QuoteLineItemsReport({
   expectedRevenue,
   showHidden = false,
   dense = false,
+  sections = ["CONTRACT", "ADDITIONAL"],
 }: {
   selection: QuoteSelection;
   lineItems: LineItem[];
   expectedRevenue: number;
   showHidden?: boolean;
   dense?: boolean;
+  /** [신규 2026-09-08] 어느 박스를 그릴지 — 예상 대관료(Step5Estimate)는 대관료 박스 →
+   *  티켓매출/RS 박스 → 소계 → 추후 정산 박스 순서라(nora), 두 번 나눠 부른다. */
+  sections?: Array<"CONTRACT" | "ADDITIONAL">;
 }) {
   const isSimultaneous = selection.bookingMode === "SIMULTANEOUS";
 
@@ -58,6 +62,7 @@ export function QuoteLineItemsReport({
           allItems={arenaAllItems}
           expectedRevenue={expectedRevenue}
           dense={dense}
+          sections={sections}
         />
         <VenueLineItemGroup
           title="중형공연장"
@@ -65,13 +70,20 @@ export function QuoteLineItemsReport({
           allItems={midHallAllItems}
           expectedRevenue={expectedRevenue}
           dense={dense}
+          sections={sections}
         />
       </>
     );
   }
 
   return (
-    <VenueLineItemGroup items={visibleItems} allItems={lineItems} expectedRevenue={expectedRevenue} dense={dense} />
+    <VenueLineItemGroup
+      items={visibleItems}
+      allItems={lineItems}
+      expectedRevenue={expectedRevenue}
+      dense={dense}
+      sections={sections}
+    />
   );
 }
 
@@ -81,30 +93,36 @@ function VenueLineItemGroup({
   allItems,
   expectedRevenue,
   dense,
+  sections,
 }: {
   title?: string;
   items: LineItem[];
   allItems: LineItem[];
   expectedRevenue: number;
   dense: boolean;
+  sections: Array<"CONTRACT" | "ADDITIONAL">;
 }) {
   return (
     <div className="mt-6">
       {title && <h3 className="border-b-2 border-foreground pb-2 text-s font-bold text-foreground">{title}</h3>}
-      <SectionBox
-        section="CONTRACT"
-        items={items}
-        allItems={allItems}
-        expectedRevenue={expectedRevenue}
-        dense={dense}
-      />
-      <SectionBox
-        section="ADDITIONAL"
-        items={items}
-        allItems={allItems}
-        expectedRevenue={expectedRevenue}
-        dense={dense}
-      />
+      {sections.includes("CONTRACT") && (
+        <SectionBox
+          section="CONTRACT"
+          items={items}
+          allItems={allItems}
+          expectedRevenue={expectedRevenue}
+          dense={dense}
+        />
+      )}
+      {sections.includes("ADDITIONAL") && (
+        <SectionBox
+          section="ADDITIONAL"
+          items={items}
+          allItems={allItems}
+          expectedRevenue={expectedRevenue}
+          dense={dense}
+        />
+      )}
     </div>
   );
 }
