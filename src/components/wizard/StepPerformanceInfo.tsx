@@ -509,24 +509,27 @@ function ApplicantDetailsFields({
     <div className="border-t-2 border-foreground pt-5">
       <h3 className="type-kr-heading text-h6-m">{t("performanceInfo.applicantSectionHeading", "신청자 정보")}</h3>
       <p className="mt-1 text-xs text-muted">
-        {t("performanceInfo.applicantSectionHint", "가입한 계정 정보에서 자동으로 불러옵니다")}
+        {t("performanceInfo.applicantSectionHint", "가입한 계정 정보에서 자동으로 불러옵니다 — 다르면 직접 수정할 수 있습니다")}
       </p>
 
       <div className="mt-4 space-y-4">
+        {/* [수정 2026-09-08] "대관사 정보 수동 기입 가능하도록" — 가입 계정에서 자동으로
+            불러오되(읽기전용이 아니라) 신청 건마다 다르면 직접 고칠 수 있게 한다. */}
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-          <ReadOnlyRow
+          <TextField
             label={t("performanceInfo.applicantCompanyNameLabel", "대관신청사명")}
-            value={info.applicantCompanyName || "—"}
+            value={info.applicantCompanyName}
+            onChange={(v) => set("applicantCompanyName", v)}
           />
-          <ReadOnlyRow
+          <TextField
             label={t("performanceInfo.applicantBrnLabel", "사업자등록번호")}
-            value={info.applicantBusinessRegistrationNumber || "—"}
+            value={info.applicantBusinessRegistrationNumber}
+            onChange={(v) => set("applicantBusinessRegistrationNumber", v)}
           />
-          {/* [신규 2026-08-26] 대표자명 — 대관신청사명·사업자등록번호와 같은 이유로
-              가입 계정(회사 정보)에서 그대로 가져와 읽기 전용으로 보여준다. */}
-          <ReadOnlyRow
+          <TextField
             label={t("performanceInfo.applicantRepresentativeNameLabel", "대표자명")}
-            value={info.applicantRepresentativeName || "—"}
+            value={info.applicantRepresentativeName ?? ""}
+            onChange={(v) => set("applicantRepresentativeName", v)}
           />
         </div>
 

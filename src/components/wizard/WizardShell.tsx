@@ -897,6 +897,12 @@ export function WizardShell({
           setSelection((prev) => ({ ...prev, midHallPerformanceInfo }))
         }
         selection={resolvedSelection}
+        onChangeExpectedAudience={(expectedAudience) => setSelection((prev) => ({ ...prev, expectedAudience }))}
+        onChangeSecondaryAudience={(secondaryAudience) => setSelection((prev) => ({ ...prev, secondaryAudience }))}
+        marketingCooperation={selection.marketingCooperation ?? DEFAULT_MARKETING_COOPERATION}
+        onChangeMarketingCooperation={(marketingCooperation) =>
+          setSelection((prev) => ({ ...prev, marketingCooperation }))
+        }
         showHeading={false}
         title={wizardStepText.audienceTitle}
         lead={wizardStepText.audienceLead}

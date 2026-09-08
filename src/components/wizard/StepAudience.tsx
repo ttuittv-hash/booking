@@ -9,6 +9,7 @@ import { INITIAL_PERFORMANCE_INFO } from "@/lib/pricing/performanceInfoDefaults"
 import {
   ANCILLARY_BUSINESS_PLAN_LABEL,
   type AncillaryBusinessPlan,
+  type MarketingCooperation,
   type PerformanceInfo,
   type QuoteSelection,
   type StepValidationResult,
@@ -17,6 +18,7 @@ import {
 import { useWizardText } from "@/lib/content/wizardText";
 import { VenueSplitTabBar, type VenueSplitTab } from "./VenueSplitTabBar";
 import { StepHeading } from "./StepHeading";
+import { PromotionChannelsFields } from "./StepMarketingCooperation";
 
 const ANCILLARY_PLANS = Object.keys(ANCILLARY_BUSINESS_PLAN_LABEL) as AncillaryBusinessPlan[];
 
@@ -147,7 +149,11 @@ function AudienceFields({
 }: {
   info: PerformanceInfo;
   onChange: (info: PerformanceInfo) => void;
-  audienceSummary: { arenaLine: string | null; midHallLine: string | null; totalLine: string | null };
+  audienceSummary: {
+    arena: { value: number; onChange: (n: number) => void } | null;
+    midHall: { value: number; onChange: (n: number) => void } | null;
+    totalLine: string | null;
+  };
   fieldOrders?: Record<string, string[]>;
   disabledFields?: string[];
   customOptions?: Record<string, string[]>;
@@ -185,7 +191,7 @@ function AudienceFields({
     );
   }
 
-  const hasSummaryRow = audienceSummary.arenaLine || audienceSummary.midHallLine || audienceSummary.totalLine;
+  const hasSummaryRow = audienceSummary.arena || audienceSummary.midHall || audienceSummary.totalLine;
   const ancillaryPlansBase = [...ANCILLARY_PLANS, ...(customOptions?.[ANCILLARY_PLANS_GROUP_ID] ?? [])];
   const ancillaryPlansOrder = resolveAncillaryPlansOrder(fieldOrders?.[ANCILLARY_PLANS_GROUP_ID], ancillaryPlansBase);
   // [신규 2026-09-06] "체크박스 위에 항목 레이블 자체도 노출/미노출 설정 가능해야" —
@@ -206,24 +212,35 @@ function AudienceFields({
             않게 한다(2026-08-22, 한 줄 배치 요청). 셋 중 화면에 없는 값은 그 칸만 빠진다. */}
         {hasSummaryRow && (
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-            {audienceSummary.arenaLine && (
+            {/* [수정 2026-09-08] "1회당 예상 관객 수 - 수정기능 필요(현재 수정 불가)" —
+                패키지 관객 등급에서 자동으로 채우던 읽기전용 표시를 직접 고칠 수 있는
+                입력으로 되돌린다. 값은 청소비 등 계산에 그대로 쓰인다. */}
+            {audienceSummary.arena && (
               <div>
                 <label className="mb-1.5 block text-xs font-bold text-muted">
                   {t("audience.expectedAudiencePerShowArenaLabel", "1회당 예상 관객 수 — 아레나")}
                 </label>
-                <div className="flex h-10 items-center border border-border-soft px-3.5 text-s text-foreground">
-                  {audienceSummary.arenaLine}
-                </div>
+                <input
+                  type="number"
+                  min={0}
+                  value={audienceSummary.arena.value || ""}
+                  onChange={(e) => audienceSummary.arena!.onChange(Math.max(0, Number(e.target.value) || 0))}
+                  className="field-base h-10 w-full"
+                />
               </div>
             )}
-            {audienceSummary.midHallLine && (
+            {audienceSummary.midHall && (
               <div>
                 <label className="mb-1.5 block text-xs font-bold text-muted">
                   {t("audience.expectedAudiencePerShowMidHallLabel", "1회당 예상 관객 수 — 중형")}
                 </label>
-                <div className="flex h-10 items-center border border-border-soft px-3.5 text-s text-foreground">
-                  {audienceSummary.midHallLine}
-                </div>
+                <input
+                  type="number"
+                  min={0}
+                  value={audienceSummary.midHall.value || ""}
+                  onChange={(e) => audienceSummary.midHall!.onChange(Math.max(0, Number(e.target.value) || 0))}
+                  className="field-base h-10 w-full"
+                />
               </div>
             )}
             {audienceSummary.totalLine && (
@@ -347,6 +364,10 @@ export function StepAudience({
   midHallInfo,
   onChangeMidHallInfo,
   selection,
+  onChangeExpectedAudience,
+  onChangeSecondaryAudience,
+  marketingCooperation,
+  onChangeMarketingCooperation,
   showHeading = true,
   title,
   lead,
@@ -359,6 +380,15 @@ export function StepAudience({
   midHallInfo: PerformanceInfo | null;
   onChangeMidHallInfo: (info: PerformanceInfo | null) => void;
   selection: QuoteSelection;
+  // [신규 2026-09-08] "1회당 예상 관객 수 - 수정기능 필요(현재 수정 불가)" — 패키지
+  // 관객 등급에서 자동 채운 값을 직접 고칠 수 있게 상위(WizardShell)의 setSelection에
+  // 연결하는 통로.
+  onChangeExpectedAudience: (n: number) => void;
+  onChangeSecondaryAudience: (n: number) => void;
+  // [신규 2026-09-08] "프로모션 채널 슬롯을 신청자 정보 및 규모 탭 하위로 이동" —
+  // 마케팅 협업 STEP의 데이터(selection.marketingCooperation)를 여기서도 쓴다.
+  marketingCooperation: MarketingCooperation;
+  onChangeMarketingCooperation: (info: MarketingCooperation) => void;
   // [2026-08-23] "신청자 정보"·"규모" 탭을 하나로 합치면서, 합친 화면에서는 큰 제목이
   // 두 번 나오지 않게 이 컴포넌트만 자기 제목(StepHeading)을 생략할 수 있게 했다.
   showHeading?: boolean;
@@ -417,8 +447,10 @@ export function StepAudience({
             info={info}
             onChange={onChange}
             audienceSummary={{
-              arenaLine: `${selection.expectedAudience.toLocaleString()}${peopleUnit}`,
-              midHallLine: isMidHallInvolved ? `${selection.secondaryAudience.toLocaleString()}${peopleUnit}` : null,
+              arena: { value: selection.expectedAudience, onChange: onChangeExpectedAudience },
+              midHall: isMidHallInvolved
+                ? { value: selection.secondaryAudience, onChange: onChangeSecondaryAudience }
+                : null,
               totalLine,
             }}
             fieldOrders={fieldOrders}
@@ -431,8 +463,8 @@ export function StepAudience({
             info={info}
             onChange={onChange}
             audienceSummary={{
-              arenaLine: `${selection.expectedAudience.toLocaleString()}${peopleUnit}`,
-              midHallLine: null,
+              arena: { value: selection.expectedAudience, onChange: onChangeExpectedAudience },
+              midHall: null,
               totalLine,
             }}
             fieldOrders={fieldOrders}
@@ -445,8 +477,8 @@ export function StepAudience({
             info={midHallInfo}
             onChange={onChangeMidHallInfo}
             audienceSummary={{
-              arenaLine: null,
-              midHallLine: `${selection.secondaryAudience.toLocaleString()}${peopleUnit}`,
+              arena: null,
+              midHall: { value: selection.secondaryAudience, onChange: onChangeSecondaryAudience },
               totalLine: null,
             }}
             fieldOrders={fieldOrders}
@@ -454,6 +486,14 @@ export function StepAudience({
             customOptions={customOptions}
           />
         )}
+      </div>
+
+      {/* [이동 2026-09-08] "해당 슬롯은 신청자 정보 및 규모 탭 하위 슬롯으로 이동" —
+          마케팅 협업 STEP에 있던 "프로모션 채널(선택)" 입력을 여기로 옮겼다. 공간별
+          탭(아레나/중형)과 무관한 신청서 전체 기준 값이라 탭 전환과 별개로 한 번만
+          보여준다(marketingCooperation, StepMarketingCooperation.tsx). */}
+      <div className="mt-8">
+        <PromotionChannelsFields info={marketingCooperation} onChange={onChangeMarketingCooperation} />
       </div>
     </section>
   );
