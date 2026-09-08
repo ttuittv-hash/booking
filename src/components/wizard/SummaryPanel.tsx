@@ -7,7 +7,6 @@ import {
   isHiddenFromApplicant,
   SECTION_LABEL,
   SECTION_SUBTOTAL_CAPTION,
-  SECTION_SUBTOTAL_LABEL,
   SECTION_TAG,
   sectionOf,
   summaryPanelLineLabel,
@@ -69,6 +68,27 @@ export function SummaryPanel({ quote }: { quote: EstimatedQuote }) {
         }))
       : [{ items: visibleItems, allItems: quote.lineItems }];
 
+  // [재개정 2026-09-08] "대관료에도 vat 별도 수수료가 붙고 총 계약금액으로 노출되어야지..
+  // 시안대로 해야지" — 박스마다 자기 소계·부가세·최종금액을 갖는다(사용자 와이어프레임
+  // 그대로). rateTable.vatRate를 이 컴포넌트가 직접 받지 않으므로, 이미 계산된
+  // quote.subtotal/quote.vat의 비율로 유효 세율을 역산한다 — 관리자가 세율을 바꿔도
+  // 항상 서버 계산과 같은 비율을 쓴다.
+  const effectiveVatRate = quote.subtotal > 0 ? quote.vat / quote.subtotal : 0.1;
+  // 각 박스(공간 × 섹션)의 소계/부가세/최종금액을 렌더 전에 미리 계산한다 — 렌더 중
+  // 부수효과로 합계를 누적하지 않고, 맨 아래 "총금액(예상)"은 이 배열의 최종금액을
+  // 그대로 더해 화면에 보이는 숫자끼리 항상 맞게 한다.
+  const sectionBoxes = groups.flatMap((group) =>
+    SECTION_ORDER.map((section) => {
+      const sectionItems = group.items.filter((item) => sectionOf(item) === section);
+      const subtotal = group.allItems
+        .filter((item) => sectionOf(item) === section)
+        .reduce((sum, item) => sum + item.amount, 0);
+      const vat = Math.round(subtotal * effectiveVatRate);
+      return { venue: group.venue, section, sectionItems, subtotal, vat, total: subtotal + vat };
+    }),
+  );
+  const grandTotal = sectionBoxes.reduce((sum, box) => sum + box.total, 0);
+
   return (
     <aside className="w-full min-w-0 lg:col-span-3 lg:sticky lg:top-28 lg:self-start">
       <div className="border-t-2 border-foreground pt-5">
@@ -91,21 +111,31 @@ export function SummaryPanel({ quote }: { quote: EstimatedQuote }) {
                 const subtotal = group.allItems
                   .filter((item) => sectionOf(item) === section)
                   .reduce((sum, item) => sum + item.amount, 0);
-                // [신규 2026-09-08] "대관료는 계약시 하는 금액이고, 옵션은 추후 변동
-                // 가능성있는 추후 정산 금액이거든 — 구분이 되게" 시안 반영. CONTRACT는
-                // 확정(노란 강조), ADDITIONAL은 아직 확정 전(점선 테두리 + 무채색)이라는
-                // 걸 제목 옆 태그와 총계 줄 스타일 둘 다로 알려준다.
+                const vat = Math.round(subtotal * effectiveVatRate);
+                const sectionTotal = subtotal + vat;
+                const vatPct = Math.round(effectiveVatRate * 100);
                 const isContract = section === "CONTRACT";
+                // [수정 2026-09-08] "박싱 해서 구분을 해주고.. 지금은 구분 너무 약한거
+                // 같아" — 옅은(border/25) 테두리로는 두 박스가 잘 갈라져 보이지
+                // 않는다. 굵은 실선 테두리(border-2)로 각 박스 자체를 뚜렷하게
+                // 감싸고, 색도 위 태그와 맞춘다(대관료=노랑, 추후정산=회색).
                 return (
-                  <div key={section} className="mt-4 border border-border/25 bg-surface p-4">
+                  <div
+                    key={section}
+                    className={[
+                      "mt-4 border-2 bg-surface p-4",
+                      isContract ? "border-accent" : "border-muted-strong/40",
+                    ].join(" ")}
+                  >
                     <div className="flex items-center justify-between gap-2">
                       <p className="text-xs font-bold text-foreground">{SECTION_LABEL[section]}</p>
+                      {/* [부활 2026-09-08] "계약시 결제 노랑색... 변동가능 회색 글씨 좋았어" */}
                       <span
                         className={[
                           "shrink-0 border px-2 py-0.5 text-[10px] font-bold whitespace-nowrap",
                           isContract
                             ? "border-accent bg-accent-soft text-foreground"
-                            : "border-dashed border-border-soft bg-panel-strong text-muted",
+                            : "border-border-soft bg-panel-strong text-muted",
                         ].join(" ")}
                       >
                         {SECTION_TAG[section]}
@@ -138,26 +168,24 @@ export function SummaryPanel({ quote }: { quote: EstimatedQuote }) {
                         ))}
                       </dl>
                     )}
-                    {/* [개정 2026-09-07] "대관료/추가 옵션 박스마다 총액을 강조 표시" 시안
-                        요청 — 소계 줄을 박스 안에서 테두리로 감싸 눈에 띄게 한다.
-                        [개정 2026-09-08] CONTRACT(대관료)는 지금 확정되는 금액이라 노란
-                        강조를 유지하고, ADDITIONAL(추후 정산 예정)은 점선 테두리 +
-                        무채색으로 눌러 "아직 확정 아님"을 전달한다. */}
-                    <div
-                      className={[
-                        "mt-3 flex justify-between px-3 py-2.5 text-s font-bold text-foreground",
-                        isContract
-                          ? "border border-accent bg-accent-soft/40"
-                          : "border border-dashed border-border-soft bg-panel-strong/50",
-                      ].join(" ")}
-                    >
-                      <span>
-                        {SECTION_SUBTOTAL_LABEL[section]}
-                        <span className="ml-1.5 text-[10px] font-medium text-muted">
-                          {SECTION_SUBTOTAL_CAPTION[section]}
-                        </span>
-                      </span>
-                      <span className="tabular-nums">{won(subtotal)}</span>
+                    {/* [재개정 2026-09-08] "대관료에도 vat 별도 수수료가 붙고 총 계약금액으로
+                        노출되어야지.. 시안대로 해야지" — 박스마다 소계(VAT 별도)·부가세·
+                        최종금액(검정 강조 바)을 갖는다. 사용자가 준 와이어프레임 그대로:
+                        박스 색은 CONTRACT/ADDITIONAL 구분 없이 같고, 최종 줄만 검정으로
+                        강조한다. */}
+                    <dl className="mt-3 border-t border-border/25">
+                      <div className="flex items-baseline justify-between gap-4 border-b border-border/15 py-2">
+                        <dt className="text-xs text-muted">소계 (VAT 별도)</dt>
+                        <dd className="text-xs tabular-nums text-muted">{won(subtotal)}</dd>
+                      </div>
+                      <div className="flex items-baseline justify-between gap-4 border-b border-border/15 py-2">
+                        <dt className="text-xs text-muted">부가세 {vatPct}%</dt>
+                        <dd className="text-xs tabular-nums text-muted">{won(vat)}</dd>
+                      </div>
+                    </dl>
+                    <div className="mt-2 flex justify-between bg-foreground px-3 py-2.5 text-s font-bold text-background">
+                      <span>{SECTION_SUBTOTAL_CAPTION[section]}</span>
+                      <span className="tabular-nums">{won(sectionTotal)}</span>
                     </div>
                   </div>
                 );
@@ -166,25 +194,12 @@ export function SummaryPanel({ quote }: { quote: EstimatedQuote }) {
           ))
         )}
 
-        <div className="mt-5">
-            <dl>
-              <div className="flex items-baseline justify-between gap-4 border-t border-border/25 border-b border-border/15 py-2.5">
-                <dt className="text-s font-bold text-foreground">소계 (VAT 별도)</dt>
-                <dd className="text-s font-bold tabular-nums text-foreground">{won(quote.subtotal)}</dd>
-              </div>
-              <div className="flex items-baseline justify-between gap-4 border-b border-border/15 py-2.5">
-                <dt className="text-s text-muted">부가세 10%</dt>
-                <dd className="text-s tabular-nums text-muted">{won(quote.vat)}</dd>
-              </div>
-            </dl>
-            <div className="flex flex-wrap items-baseline justify-between gap-3 border-b-2 border-foreground py-3">
-              {/* [개정 2026-09-07] 시안 라벨 "총금액"으로 통일(예전 "합계"). */}
-              <span className="text-s font-bold text-foreground">총금액</span>
-              <span className="type-display text-h5-m tabular-nums sm:text-h5">
-                {won(quote.total)}
-              </span>
-            </div>
-        </div>
+        {visibleItems.length > 0 && (
+          <div className="mt-6 flex flex-wrap items-baseline justify-between gap-3 bg-foreground px-4 py-3.5 text-background">
+            <span className="text-s font-bold">총금액(예상)</span>
+            <span className="type-display text-h5-m tabular-nums sm:text-h5">{won(grandTotal)}</span>
+          </div>
+        )}
       </div>
     </aside>
   );

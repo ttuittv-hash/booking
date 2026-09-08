@@ -820,12 +820,6 @@ const STEP6_VALIDATION_MESSAGES: { key: string; fallback: string }[] = [
   { key: "validationMessage.safetyPledge.signature", fallback: "서명란에 서명해 주세요." },
 ];
 
-// [신규 2026-09-07] 안전관리계획서 업로드가 STEP6에서 STEP7(자료 첨부)로 옮겨가며
-// validateAttachmentsStep과 짝을 이루는 안내 문구도 함께 옮겼다.
-const STEP7_VALIDATION_MESSAGES: { key: string; fallback: string }[] = [
-  { key: "validationMessage.attachments.safetyPlanFile", fallback: "공연·행사 안전관리계획서를 업로드해 주세요." },
-];
-
 const STAGE_GROUPS: StageGroup[] = [
   {
     label: "01 공간/일정",
@@ -1246,12 +1240,12 @@ const STAGE_GROUPS: StageGroup[] = [
       },
       {
         // [신규 2026-09-07] "안전관리 서약서 뒤에 자료 첨부 탭 신규 생성" — 서약서 탭의
-        // 두 번째 슬롯이던 자료 첨부를 독립 탭으로 뗐다. [수정 2026-09-07] 안전관리계획서
-        // 업로드도 이 탭으로 옮겨왔다.
+        // 두 번째 슬롯이던 자료 첨부를 독립 탭으로 뗐다.
+        // [삭제 2026-09-08] "안전관리 서약서 첨부 슬롯 삭제" — 안전관리계획서 필수
+        // 업로드(및 그 안내 문구 편집 패널)를 없앴다. STEP7은 이제 일반 첨부만 받는다.
         label: "자료 첨부",
-        render: (ctx) => (
+        render: () => (
           <div className="space-y-4">
-            <ValidationMessagesPanel ctx={ctx} title="자료 첨부" entries={STEP7_VALIDATION_MESSAGES} />
             <LivePreview>
               <div className="[&_input]:pointer-events-auto">
                 <StepAttachments

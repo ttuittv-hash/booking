@@ -111,10 +111,12 @@ export const SECTION_SUBTOTAL_LABEL: Record<ContractSection, string> = {
   ADDITIONAL: "총 옵션비용",
 };
 
-// [신규 2026-09-08] SummaryPanel 전용 — 각 박스가 "언제 확정되는 돈인지"를 짧게
-// 알려주는 태그(제목 옆)와 총계 줄 보조문구. 공유 라벨(SECTION_LABEL 등)과 달리
-// 이 둘은 실시간 플로팅 박스에서만 쓴다 — QuoteLineItemsReport(예상 대관료 표)는
-// 이미 세부내역 칸으로 성격을 구분해 보여주고 있어 손대지 않는다.
+// [신규 2026-09-08, 재개정] SummaryPanel 전용 — 박스마다 소계·부가세를 따로 매긴 뒤
+// VAT 포함 최종금액(검정 강조 줄)에 붙이는 라벨. 공유 라벨(SECTION_SUBTOTAL_LABEL 등)과
+// 달리 이건 실시간 플로팅 박스에서만 쓴다 — QuoteLineItemsReport(예상 대관료 표)는
+// 전체 합산 소계/부가세를 표 아래에서 한 번만 보여주는 다른 구조라 손대지 않는다.
+// [부활 2026-09-08] "기존에 계약시 결제 노랑색... 변동가능 회색 글씨 좋았어 — 그것도
+// 반영해" — VAT 박스 구조로 바꾸며 뺐던 제목 옆 태그(노란/회색)를 다시 붙인다.
 export const SECTION_TAG: Record<ContractSection, string> = {
   CONTRACT: "계약 시 결제",
   ADDITIONAL: "변동 가능",
