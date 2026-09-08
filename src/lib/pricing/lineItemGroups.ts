@@ -163,14 +163,13 @@ export function estimateLineLabel(item: LineItem): string {
     // 괄호 안 "N%"를 세부내역 칸으로 옮긴다.
     case "extra_days":
       return unifiedExtraDayLabel("준비일", item);
-    // [수정 2026-09-08] "휴무일도 준비일 10% 할인금액에서 또 50% 할인값이 들어가야함" —
-    // 할인율이 두 개(준비일 10% → 휴무일 50%)로 겹치면서 unifiedExtraDayLabel의
-    // "할인 N%" 한 자리로는 둘 다 못 담는다. 원문("...준비일 단가 10% 할인 후
-    // 휴무일 50% 추가 할인)")을 그대로 둔다 — splitParenDetail이 그 괄호 전체를
-    // 세부내역 칸으로 옮긴다. SummaryPanel(우측 플로팅 박스)은 이 원문 대신 더 짧은
-    // "추가일(휴무일 N일)" 표기를 쓴다(summaryPanelLineLabel, 2026-09-08).
+    // [재수정 2026-09-08 밤] "휴무일 1일 → 세부 내역으로 들어가야함" — calculateQuote.ts가
+    // 실제로 내려주는 라벨은 괄호 없는 "추가일수 휴무일 N일"이라(위 주석이 가정한
+    // "...할인 후 휴무일 50% 추가 할인)" 형태의 원문은 더 이상 없다) splitParenDetail이
+    // 못 걸러내고 라벨 전체가 항목 칸에 그대로 나왔다. 형제 항목(추가일(준비일 N일))과
+    // 같은 틀로 맞춘다 — SummaryPanel의 summaryPanelLineLabel과도 표기가 같아진다.
     case "extra_days_rest":
-      return item.label;
+      return unifiedExtraDayLabel("휴무일", item);
     case "performance_day_adjustment":
       return /대비 \+/.test(item.label) ? unifiedExtraDayLabel("공연일", item) : item.label;
     // [삭제 2026-09-08] "할증 앞에 퍼센테이지 노출 필요, 아레나는 50%, 중형은 25%" —
@@ -184,13 +183,10 @@ export function estimateLineLabel(item: LineItem): string {
 
 /**
  * [신규 2026-09-08] "추가일수 휴무일 1일 -> 우측 실시간 대관신청 플로팅 박스에서...
- * 추가일(휴무일) 이렇게 표기해" — SummaryPanel 전용 표시. estimateLineLabel은
- * QuoteLineItemsReport(왼쪽 예상 대관료 표)와 공유하는데, extra_days_rest는 할인율이
- * 두 개 겹쳐 있어 그 표의 세부내역 칸에는 원문 그대로("...할인 후 휴무일 50% 추가
- * 할인)")가 필요하다. SummaryPanel은 그 세부내역 칸이 없으므로 형제 항목(추가일(준비일
- * N일)·추가일(공연일 N일))과 같은 "추가일(구분 N일)" 틀로 더 짧게 보여준다.
+ * 추가일(휴무일) 이렇게 표기해" — SummaryPanel 전용 표시.
+ * [재개정 2026-09-08 밤] extra_days_rest 특례를 없앴다 — estimateLineLabel이 이제
+ * 같은 "추가일(휴무일 N일)" 형태를 직접 돌려준다(위 case 참고).
  */
 export function summaryPanelLineLabel(item: LineItem): string {
-  if (item.addonId === "extra_days_rest") return `추가일(휴무일 ${item.billable}일)`;
   return estimateLineLabel(item);
 }

@@ -47,9 +47,9 @@ const SECTION_ORDER: ContractSection[] = ["CONTRACT", "ADDITIONAL"];
  * [수정 2026-09-08] "할인율 보여줘.. 너무 다 감추니까 뭐가뭔지 안보이고" — 항목
  * 라벨에서 할인율(%)까지 지우던 전용 함수(applicantLineLabel)를 없애고, 왼쪽
  * 예상 대관료와 같은 estimateLineLabel(할증 %만 감추고 할인 %는 보여준다)을 쓴다.
- * extra_days_rest만 summaryPanelLineLabel이 더 짧은 "추가일(휴무일 N일)"로 대신한다
- * (할인율 두 개가 겹쳐 한 줄로 못 담는 예외 — QuoteLineItemsReport 세부내역 칸에는
- * 원문이 그대로 남는다).
+ * summaryPanelLineLabel은 이제 estimateLineLabel의 얇은 별칭이다 — extra_days_rest도
+ * 같은 "추가일(휴무일 N일)" 표기를 함께 쓴다(2026-09-08 밤, "휴무일 1일 → 세부내역으로
+ * 들어가야함" 수정으로 예외가 사라졌다).
  *
  * [개정 2026-09-08] "아레나/중형 동시 선택 시 너무 복잡해.. 플로팅 박스 맨 위에
  * 아레나 탭, 중형탭 위에 넣어줘" — 공간이 둘 이상이면(동시 대관) 박스를 전부
