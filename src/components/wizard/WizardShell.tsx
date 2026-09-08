@@ -681,7 +681,11 @@ export function WizardShell({
     // 있으면 4로 보낸다.
     const target = rawTarget === 5 ? (rawTarget > step ? 6 : 4) : rawTarget;
     if (target < 1 || target > TOTAL_STEPS) return;
-    if (target > maxUnlockedStep && target !== step + 1) return;
+    // [버그 수정 2026-09-08 밤] "이전 버튼 동작 안 해" — 최종 제출(9)에서 새로고침하면 첨부
+    // 파일(File 객체, 임시저장에 안 남음)이 비어 maxUnlockedStep이 7로 내려가고, 「이전」(→8)
+    // 이 "잠긴 단계로 점프"로 오인돼 막혔다. 뒤로 가는 이동(target < step)은 항상 허용한다 —
+    // 잠금은 앞으로 건너뛰는 것만 막으면 된다.
+    if (target > step && target > maxUnlockedStep && target !== step + 1) return;
     if (submissionLocked && target !== step) return;
     setStep(target);
     if (typeof window !== "undefined")
