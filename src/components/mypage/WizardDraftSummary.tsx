@@ -3,28 +3,51 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useDialog } from "@/components/ui/Dialog";
-import { ButtonLink, btnClass } from "@/components/ui/kit";
-import { defaultVenueName } from "@/lib/content/venueLabels";
+import { ButtonLink } from "@/components/ui/kit";
+import { DataTable, type Column } from "@/components/mypage/DataTable";
+import { won } from "@/lib/format";
+import { calculateQuote } from "@/lib/pricing/calculateQuote";
 import { clearWizardDraft, loadWizardDraft } from "@/lib/quotesStore";
-import type { QuoteSelection } from "@/lib/pricing/types";
+import type { QuoteSelection, RateTable } from "@/lib/pricing/types";
 
 /*
  * [신규 2026-09-08] 마이페이지 "임시 저장 내역" — 대관 위저드의 "임시 저장"
  * (WizardShell.saveDraftNow)은 지금 브라우저 localStorage 한 칸에만 남는다
  * (quotesStore.ts DRAFT_KEY) — 여러 건을 동시에 두지 않고, 새로 임시 저장하면
- * 이전 것을 덮어쓴다. 그래서 이 화면은 "목록"이 아니라 그 하나뿐인 임시저장본의
- * 요약이다. 서버 컴포넌트는 브라우저 저장소를 못 읽으므로 마운트 시 클라이언트에서
- * 읽는다 — 서버(page.tsx)는 로그인·권한만 확인하고 이 컴포넌트에 맡긴다.
+ * 이전 것을 덮어쓴다. 그래서 이 화면은 "목록"이 아니라 그 하나뿐인 임시저장본을
+ * /mypage 「대관 진행 내역」 표와 같은 형식(신청번호 칸만 제외)으로 보여준다.
+ * 서버 컴포넌트는 브라우저 저장소를 못 읽으므로 마운트 시 클라이언트에서 읽는다 —
+ * 서버(page.tsx)는 로그인·권한 확인과 예상금액 계산에 필요한 rateTable만 내려준다.
  */
-function summarizeDraft(selection: QuoteSelection) {
-  const eventName = selection.performanceInfo?.eventName?.trim() || "제목 없는 공연";
-  const venueName = selection.venueId ? defaultVenueName(selection.venueId) : "공간 미선택";
-  const week = selection.week;
-  const weekLabel = week?.year ? `${week.year}.${week.month} ${week.weekOfMonth}주차` : null;
-  return { eventName, venueName, weekLabel };
+
+const COLUMNS: Column[] = [
+  { key: "event", label: "공연명" },
+  { key: "week", label: "주차" },
+  { key: "estimate", label: "예상금액", align: "right" },
+  { key: "contract", label: "계약금액", align: "right" },
+  { key: "settlement", label: "정산금액", align: "right" },
+  { key: "status", label: "상태", align: "right" },
+];
+
+/** /mypage 「대관 진행 내역」의 weekLabel과 같은 표기 — 임시저장본은 Quote가 아니라
+ * QuoteSelection 뿐이라 그 필드를 직접 받는다. */
+function weekLabel(selection: QuoteSelection) {
+  const arena = `${selection.week.year}.${selection.week.month} ${selection.week.weekOfMonth}주차`;
+  const midDays = Object.keys(selection.midHallDays).length;
+  if (selection.bookingMode === "SIMULTANEOUS") {
+    return (
+      <>
+        아레나 {arena}
+        <br />
+        <span className="text-muted">중형 {midDays}일</span>
+      </>
+    );
+  }
+  if (selection.venueId === "medium-hall") return `중형 ${midDays}일`;
+  return arena;
 }
 
-export function WizardDraftSummary() {
+export function WizardDraftSummary({ rateTable }: { rateTable: RateTable }) {
   const dialog = useDialog();
   const [ready, setReady] = useState(false);
   const [selection, setSelection] = useState<QuoteSelection | null>(null);
@@ -43,42 +66,61 @@ export function WizardDraftSummary() {
     setSelection(null);
   }
 
-  // 서버 렌더와 클라이언트 첫 렌더를 맞추기 위해, localStorage를 읽기 전까지는 아무것도
-  // 그리지 않는다(hydration mismatch 방지) — 화면이 짧아 로딩 표시 없이도 깜빡임이 적다.
-  if (!ready) return null;
-
-  if (!selection) {
-    return (
-      <div className="border-t border-border/25 border-b border-border/15 py-14 text-center text-s text-muted">
-        임시 저장된 신청서가 없습니다.{" "}
-        <Link
-          href="/apply?new=1"
-          className="inline-flex min-h-11 items-center font-bold text-foreground underline underline-offset-4 sm:min-h-0"
-        >
-          대관 신청하기
-        </Link>
-      </div>
-    );
+  // 서버 렌더와 클라이언트 첫 렌더를 맞추기 위해, localStorage를 읽기 전까지는 빈 표를
+  // 그린다(hydration mismatch 방지).
+  if (!ready) {
+    return <DataTable columns={COLUMNS} rows={[]} empty={null} minWidth="44rem" />;
   }
 
-  const { eventName, venueName, weekLabel } = summarizeDraft(selection);
+  const eventName = selection?.performanceInfo?.eventName?.trim() || "제목 없는 공연";
+  // 제출 전이라 계약금액·정산금액은 항상 없음 — /mypage 목록의 ESTIMATE 상태 행과 같은 표기.
+  const estimate = selection ? calculateQuote(selection, rateTable).total : 0;
 
   return (
-    <div className="border border-border-soft bg-panel p-6">
-      <p className="text-xs font-bold text-muted">이 브라우저에 저장된 임시 저장본</p>
-      <h3 className="type-kr-heading mt-2 text-h6-m sm:text-h6">{eventName}</h3>
-      <p className="mt-1 text-s text-muted">
-        {venueName}
-        {weekLabel ? ` · ${weekLabel}` : ""}
-      </p>
-      <div className="mt-5 flex flex-wrap gap-3">
-        <ButtonLink href="/apply" variant="primary" size="md">
-          이어서 작성
-        </ButtonLink>
-        <button type="button" onClick={() => void handleDelete()} className={btnClass("danger", "md")}>
-          삭제
-        </button>
-      </div>
-    </div>
+    <DataTable
+      columns={COLUMNS}
+      minWidth="44rem"
+      empty={
+        <>
+          임시 저장된 신청서가 없습니다.{" "}
+          <Link
+            href="/apply?new=1"
+            className="inline-flex min-h-11 items-center font-bold text-foreground underline underline-offset-4 sm:min-h-0"
+          >
+            대관 신청하기
+          </Link>
+        </>
+      }
+      rows={
+        selection
+          ? [
+              {
+                id: "draft",
+                cells: {
+                  event: <span className="font-bold">{eventName}</span>,
+                  week: weekLabel(selection),
+                  estimate: won(estimate),
+                  contract: "—",
+                  settlement: "—",
+                  status: (
+                    <span className="whitespace-nowrap">
+                      <ButtonLink href="/apply" variant="secondary" size="sm">
+                        수정하기
+                      </ButtonLink>
+                      <button
+                        type="button"
+                        onClick={() => void handleDelete()}
+                        className="ml-3 text-xs font-bold text-muted underline underline-offset-4 hover:text-danger"
+                      >
+                        삭제
+                      </button>
+                    </span>
+                  ),
+                },
+              },
+            ]
+          : []
+      }
+    />
   );
 }

@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { getCurrentUser, isPendingApplicant } from "@/lib/auth";
+import { getCurrentRateTable } from "@/lib/db";
 import { MyPageIdentity, MyPageShell } from "@/components/mypage/MyPageShell";
 import { WizardDraftSummary } from "@/components/mypage/WizardDraftSummary";
 
@@ -14,6 +15,8 @@ export default async function MyPageDraftsPage() {
   if (user.role !== "APPLICANT") redirect("/admin");
   if (isPendingApplicant(user)) redirect("/pending");
 
+  const rateTable = await getCurrentRateTable();
+
   return (
     <MyPageShell
       user={user}
@@ -22,7 +25,7 @@ export default async function MyPageDraftsPage() {
       ko="임시 저장 내역"
       lead={<MyPageIdentity user={user} />}
     >
-      <WizardDraftSummary />
+      <WizardDraftSummary rateTable={rateTable} />
     </MyPageShell>
   );
 }
