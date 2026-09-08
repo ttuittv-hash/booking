@@ -697,6 +697,17 @@ export function WizardShell({
     같은 동작이 두 모양으로 보여 어느 쪽이 진짜 진행인지 헷갈렸다.
     다음 버튼이 없는 마지막 단계에서도 이전 버튼이 왼쪽에 그대로 남는다.
   */
+  // [신규 2026-09-08] "대관 위저드에서 임시 저장 버튼 노출" — 입력값은 이미 매 변경마다
+  // localStorage에 조용히 자동 저장되고 있었지만(위 restored effect), 신청자에게는 그
+  // 사실이 전혀 보이지 않았다. "다음"과 별개로 지금 저장됐다는 걸 직접 확인할 수 있는
+  // 버튼을 추가한다 — 동작은 자동 저장과 같고(saveWizardDraft), 눌렀을 때 확인 토스트만
+  // 더한다. 이미 제출된 신청서(수정 화면·이번 세션 제출 완료)는 애초에 이 draft
+  // 저장소를 쓰지 않으므로(위 restored effect의 같은 조건) 버튼도 그때는 보이지 않는다.
+  function saveDraftNow() {
+    saveWizardDraft({ step, selection });
+    toast.success(tStr("wizardShell.draftSavedToast", "임시 저장되었습니다."));
+  }
+  const showSaveDraftButton = !isEditing && !submittedId;
   const navButtons = (
     <div className="mt-10 flex items-center justify-between gap-3 border-t border-border/25 pt-6">
       <button
@@ -708,7 +719,18 @@ export function WizardShell({
         <ArrowRight className="rotate-180" />
         {t("wizardShell.prevButton", "이전")}
       </button>
-      {step < TOTAL_STEPS && (
+      <div className="flex items-center gap-3">
+        {showSaveDraftButton && (
+          <button
+            type="button"
+            disabled={submissionLocked}
+            onClick={saveDraftNow}
+            className={btnClass("tertiary", "lg")}
+          >
+            {t("wizardShell.saveDraftButton", "임시 저장")}
+          </button>
+        )}
+        {step < TOTAL_STEPS && (
         <button
           type="button"
           onClick={() => {
@@ -770,7 +792,8 @@ export function WizardShell({
           {t("wizardShell.nextButton", "다음")}
           <ArrowRight />
         </button>
-      )}
+        )}
+      </div>
     </div>
   );
 
