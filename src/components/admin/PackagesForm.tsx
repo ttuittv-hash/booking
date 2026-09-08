@@ -258,6 +258,9 @@ export function PackagesForm({
   const [addons, setAddons] = useState<AddonItem[]>(rateTable.addons);
   const [newItemCategory, setNewItemCategory] = useState<AddonCategory | null>(null);
   const [newItemVisibility, setNewItemVisibility] = useState<LineItemVisibility>("VISIBLE");
+  // [신규 2026-09-08] 중형공연장 "③ 선택 옵션"도 아레나와 같은 카테고리 신규 항목 폼을
+  // 쓰게 하면서 추가됨 — 어느 공간 소속으로 만들지(생략하면 아레나) 구분해야 한다.
+  const [newItemVenueId, setNewItemVenueId] = useState<"arena" | "medium-hall" | undefined>(undefined);
   const [newItemName, setNewItemName] = useState("");
   const [newItemUnitLabel, setNewItemUnitLabel] = useState("");
   const [newItemPrice, setNewItemPrice] = useState(0);
@@ -273,37 +276,11 @@ export function PackagesForm({
   const [midHallCharges, setMidHallCharges] = useState<ChargeBlock[]>(ratesContent.liveHall.charges);
   const [midHallSaving, setMidHallSaving] = useState(false);
   const [midHallMessage, setMidHallMessage] = useState<string | null>(null);
-  // [신규 2026-09-08] 중형공연장 "선택 옵션"(수량형·견적 반영) 새 항목 입력칸 — nora
-  // "중형 추가 옵션도 아레나와 동일한 방식으로". 항목은 addons 에 venueId "medium-hall" 로
-  // 들어가고, 저장은 아레나 옵션과 같은 패키지 PUT(save)을 탄다.
-  const [midHallNewName, setMidHallNewName] = useState("");
-  const [midHallNewUnit, setMidHallNewUnit] = useState("원/일");
-  const [midHallNewPrice, setMidHallNewPrice] = useState(0);
+  // [2026-09-08] 중형공연장 "선택 옵션"(수량형·견적 반영) — 항목은 addons 에 venueId
+  // "medium-hall" 로 들어가고, 저장은 아레나 옵션과 같은 패키지 PUT(save)을 탄다. 신규
+  // 항목 추가는 아래 ③ 섹션에서 아레나와 동일한 카테고리 폼(openNewItemForm/confirmNewItem)을
+  // 재사용한다("선택 가능 옵션 운영툴을 해당 컬럼대로 넣어" — 전용 빠른추가 폼은 제거).
   const midHallOptionAddons = addons.filter((a) => a.venueId === "medium-hall");
-
-  function addMidHallOption() {
-    const name = midHallNewName.trim();
-    if (!name) return;
-    const base = slugify(name) || `mh-${Date.now()}`;
-    let id = base;
-    let n = 2;
-    while (addons.some((a) => a.id === id)) id = `${base}-${n++}`;
-    const item: AddonItem = {
-      id,
-      category: ADDON_CATEGORIES[0],
-      name,
-      pricingType: "PER_DAY",
-      unitPrice: Math.max(0, midHallNewPrice || 0),
-      unitLabel: midHallNewUnit.trim() || "원",
-      availability: { mode: "ALWAYS", maxAddQuantity: "UNLIMITED" },
-      billingPhase: "ESTIMATE",
-      visibility: "VISIBLE",
-      venueId: "medium-hall",
-    };
-    setAddons((prev) => [...prev, item]);
-    setMidHallNewName("");
-    setMidHallNewPrice(0);
-  }
 
   const active = packages.find((p) => p.id === activeId)!;
   const venuePackages = packages.filter((p) => (p.venueId ?? DEFAULT_VENUE_ID) === venueTab);
@@ -341,6 +318,10 @@ export function PackagesForm({
   const baseDetailAddons = groupByCategory(billableAddons.filter((a) => a.visibility === "ITEM_ONLY"));
   const hiddenAddons = groupByCategory(billableAddons.filter((a) => a.visibility === "HIDDEN"));
   const optionAddons = groupByCategory(billableAddons.filter((a) => a.visibility === "VISIBLE"));
+  // [신규 2026-09-08] 중형 "③ 선택 옵션" 전용 — 아레나 ③과 같은 카테고리 그룹핑 UI로
+  // 보여주되, venueId가 "medium-hall"인 항목만 대상으로 한다("선택 가능 옵션 운영툴을
+  // 해당 컬럼대로 넣어" — 아레나 옵션 컬럼 구성 그대로).
+  const midHallGroupedOptions = groupByCategory(midHallOptionAddons);
 
   function update(patch: Partial<EditablePackage>) {
     setPackages((prev) => prev.map((p) => (p.id === activeId ? { ...p, ...patch } : p)));
@@ -504,11 +485,16 @@ export function PackagesForm({
    * 패키지의 화면에도 영향을 준다 — 그 항목이 속한 슬롯 자체가 바뀌는 것이므로 의도된
    * 동작이다.
    */
-  function pickExistingItem(addon: AddonItem, targetVisibility: LineItemVisibility) {
+  function pickExistingItem(
+    addon: AddonItem,
+    targetVisibility: LineItemVisibility,
+    venueId?: "arena" | "medium-hall",
+  ) {
     setAddons((prev) =>
       prev.map((a) => {
         if (a.id !== addon.id) return a;
-        if (targetVisibility !== "VISIBLE") return { ...a, visibility: targetVisibility };
+        const withVenue = venueId !== undefined ? { venueId } : {};
+        if (targetVisibility !== "VISIBLE") return { ...a, visibility: targetVisibility, ...withVenue };
         // 선택 옵션으로 옮기면 지금 편집 중인 이 패키지에서는 바로 노출되게 한다 —
         // setExposedForActive와 같은 규칙으로 packages 목록을 채운다.
         const base =
@@ -518,7 +504,12 @@ export function PackagesForm({
               ? packages.filter((p) => !packageIncludesAddon(p, a.id)).map((p) => p.id)
               : packages.map((p) => p.id);
         const next = Array.from(new Set([...base, active.id]));
-        return { ...a, visibility: targetVisibility, availability: { mode: "IF_PACKAGE_IN", packages: next } };
+        return {
+          ...a,
+          visibility: targetVisibility,
+          ...withVenue,
+          availability: { mode: "IF_PACKAGE_IN", packages: next },
+        };
       }),
     );
     if (targetVisibility !== "VISIBLE" && includedQty(addon.id) === 0) {
@@ -543,9 +534,14 @@ export function PackagesForm({
     setRemovedAddonIds((prev) => [...prev, addonId]);
   }
 
-  function openNewItemForm(category: AddonCategory, visibility: LineItemVisibility) {
+  function openNewItemForm(
+    category: AddonCategory,
+    visibility: LineItemVisibility,
+    venueId?: "arena" | "medium-hall",
+  ) {
     setNewItemCategory(category);
     setNewItemVisibility(visibility);
+    setNewItemVenueId(venueId);
     setNewItemName("");
     setNewItemUnitLabel("원/일");
     setNewItemPrice(0);
@@ -580,10 +576,12 @@ export function PackagesForm({
         newItemVisibility === "VISIBLE" ? { mode: "IF_PACKAGE_IN", packages: [activeId] } : { mode: "ALWAYS" },
       billingPhase: "ESTIMATE",
       visibility: newItemVisibility,
+      venueId: newItemVenueId,
     };
     setAddons((prev) => [...prev, item]);
     setIncludedQty(id, 1);
     setNewItemCategory(null);
+    setNewItemVenueId(undefined);
   }
 
   async function save() {
@@ -1283,137 +1281,235 @@ export function PackagesForm({
               {midHallMessage && <p className="text-xs text-muted">{midHallMessage}</p>}
             </div>
 
-            {/* [신규 2026-09-08] ③ 선택 옵션(수량형) — nora "중형 추가 옵션도 아레나 추가 옵션과
-                동일한 방식·UI로". 위 ② 옵션(참고용 문구, 별도 문의)과 달리 단가·수량 상한을
-                갖는 진짜 항목이라 신청자가 수량을 고르면 중형 견적에 단가 × 수량으로 합산된다.
+            {/* [2026-09-08] ③ 선택 옵션(수량형) — "선택 가능 옵션 운영툴을 해당 컬럼대로 넣어
+                (아레나 옵션 컬럼 구성)". 아레나 ③ 선택 가능 옵션과 완전히 같은 카테고리 그룹핑·
+                컬럼(노출 체크·항목명·단위·스펙·수량제한·기본수량·단가·노출등급·삭제) UI를
+                venueId === "medium-hall" 항목에만 적용해 재사용한다. 단가·수량 상한을 갖는
+                진짜 항목이라 신청자가 수량을 고르면 중형 견적에 단가 × 수량으로 합산된다.
                 이 항목이 하나라도 있으면 위저드는 ② 참고 카드를 감추고 이 목록을 보여준다. */}
-            <section className="mt-6 border-l-4 border-foreground/60 bg-panel/40 p-4">
+            <section className="border-l-4 border-accent/60 bg-accent-soft/15 p-4">
               <div className="flex flex-wrap items-center gap-2">
                 <h2 className="type-kr-heading text-h6-m">③ 선택 옵션</h2>
-                <span className="bg-foreground px-2 py-0.5 text-xs font-bold text-background">수량 선택 · 견적 반영</span>
+                <span className="bg-accent px-2 py-0.5 text-xs font-bold text-on-accent">항목 · 금액 노출</span>
               </div>
               <p className="mt-1 text-xs text-muted">
-                아레나 선택 옵션과 같은 방식 — 신청자가 수량을 정하면 단가 × 수량이 중형공연장 예상 대관료에
-                바로 합산됩니다. 이 목록이 하나라도 있으면 위 ② 옵션의 「별도 문의」 카드는 신청 화면에서
-                감춰집니다. 저장은 아래 「선택 옵션 저장」(패키지 저장과 같은 경로).
+                신청자가 STEP 2(구성·옵션)에서 직접 수량을 정해 선택하는 항목 — 항목명·단가·금액이
+                모두 노출된다. 항목마다 있는 &quot;노출&quot; 체크를 켠 항목만 신청 화면에 노출된다.
+                이 목록이 하나라도 있으면 위 ② 옵션의 「별도 문의」 카드는 신청 화면에서 감춰진다.
+                저장은 아래 「선택 옵션 저장」(패키지 저장과 같은 경로).
               </p>
 
-              <div className="mt-4 space-y-1.5">
-                {midHallOptionAddons.length === 0 && (
-                  <p className="text-xs text-muted">아직 없습니다 — 아래에서 추가하세요.</p>
-                )}
-                {midHallOptionAddons.map((addon) => (
-                  <div
-                    key={addon.id}
-                    className="flex flex-col gap-2 border-b border-border/50 pb-1.5 sm:flex-row sm:items-center sm:justify-between"
-                  >
-                    <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-s">
-                      <input
-                        type="text"
-                        value={addon.name}
-                        placeholder="항목명"
-                        onChange={(e) =>
-                          setAddons((prev) => prev.map((a) => (a.id === addon.id ? { ...a, name: e.target.value } : a)))
-                        }
-                        className={`w-40 ${FIELD}`}
-                      />
-                      <label className="flex items-center gap-1">
-                        <span className="text-xs text-muted">(</span>
-                        <input
-                          type="text"
-                          value={addon.unitLabel}
-                          placeholder="원/일"
-                          onChange={(e) => updateAddonUnitLabel(addon.id, e.target.value)}
-                          className={`w-16 ${FIELD}`}
-                          title="단위 표시 (예: 원/일, 원/회, 원)"
-                        />
-                        <span className="text-xs text-muted">)</span>
-                      </label>
-                      <input
-                        type="text"
-                        value={addon.spec ?? ""}
-                        placeholder="스펙 (선택)"
-                        onChange={(e) => updateAddonSpec(addon.id, e.target.value)}
-                        className={`w-32 ${FIELD}`}
-                      />
-                    </div>
-                    <div className="flex items-center gap-3">
-                      <label className="flex items-center gap-1.5">
-                        <span className="text-xs text-muted">수량 제한</span>
-                        <input
-                          type="number"
-                          min={0}
-                          value={
-                            addon.availability.maxAddQuantity !== undefined &&
-                            addon.availability.maxAddQuantity !== "UNLIMITED"
-                              ? addon.availability.maxAddQuantity
-                              : ""
-                          }
-                          placeholder="무제한"
-                          onChange={(e) => updateAddonMaxAddQuantity(addon.id, e.target.value)}
-                          className={`w-16 ${FIELD_NUM}`}
-                        />
-                      </label>
-                      <label className="flex items-center gap-1.5">
-                        <span className="text-xs text-muted">단가</span>
-                        <input
-                          type="number"
-                          min={0}
-                          value={addon.unitPrice}
-                          onChange={(e) => updateAddonPrice(addon.id, Math.max(0, Number(e.target.value) || 0))}
-                          className={`w-28 ${FIELD_NUM}`}
-                        />
-                      </label>
+              <div className="mt-3 flex flex-wrap items-center gap-2 border-b border-dashed border-border-soft pb-3">
+                <select
+                  value={pickerCategory}
+                  onChange={(e) => setPickerCategory(e.target.value as AddonCategory)}
+                  className={FIELD_SM}
+                >
+                  {ADDON_CATEGORIES.map((cat) => (
+                    <option key={cat} value={cat}>
+                      {ADDON_CATEGORY_LABEL[cat]}
+                    </option>
+                  ))}
+                </select>
+                <button
+                  type="button"
+                  onClick={() => openNewItemForm(pickerCategory, "VISIBLE", "medium-hall")}
+                  className="inline-flex min-h-11 items-center px-2 py-1 text-xs font-bold text-foreground hover:underline sm:min-h-0"
+                >
+                  + 새 카테고리로 항목 추가
+                </button>
+                <ExistingItemPicker
+                  targetVisibility="VISIBLE"
+                  addons={addons}
+                  onPick={(addon) => pickExistingItem(addon, "VISIBLE", "medium-hall")}
+                />
+              </div>
+
+              {newItemCategory &&
+                newItemVisibility === "VISIBLE" &&
+                newItemVenueId === "medium-hall" &&
+                !midHallGroupedOptions.has(newItemCategory) && (
+                  <div className="mt-3 flex flex-col gap-2 border border-dashed border-accent/40 bg-accent-soft/40 p-3 sm:flex-row sm:items-center">
+                    <span className="shrink-0 text-xs font-bold text-foreground">
+                      {ADDON_CATEGORY_LABEL[newItemCategory]} (신규)
+                    </span>
+                    <input
+                      type="text"
+                      autoFocus
+                      placeholder="항목 이름"
+                      value={newItemName}
+                      onChange={(e) => setNewItemName(e.target.value)}
+                      className={`flex-1 ${FIELD}`}
+                    />
+                    <input
+                      type="text"
+                      placeholder="단위 (예: 원/일)"
+                      value={newItemUnitLabel}
+                      onChange={(e) => setNewItemUnitLabel(e.target.value)}
+                      className={`w-32 ${FIELD}`}
+                    />
+                    <MoneyInput
+                      value={newItemPrice}
+                      onChange={(value) => setNewItemPrice(Math.max(0, value))}
+                      className={`w-28 ${FIELD_NUM}`}
+                    />
+                    <div className="flex gap-2">
                       <button
                         type="button"
-                        onClick={() => void removeAddon(addon.id)}
-                        className="text-xs font-bold text-danger hover:underline"
+                        onClick={confirmNewItem}
+                        disabled={!newItemName.trim()}
+                        className={btnClass("primary", "sm")}
                       >
-                        삭제
+                        추가
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setNewItemCategory(null)}
+                        className={btnClass("secondary", "sm")}
+                      >
+                        취소
                       </button>
                     </div>
                   </div>
-                ))}
-              </div>
+                )}
 
-              <div className="mt-4 flex flex-wrap items-end gap-2">
-                <label className="flex flex-col gap-1">
-                  <span className="text-xs text-muted">항목명</span>
-                  <input
-                    type="text"
-                    value={midHallNewName}
-                    placeholder="예: 부스"
-                    onChange={(e) => setMidHallNewName(e.target.value)}
-                    className={`w-44 ${FIELD}`}
-                  />
-                </label>
-                <label className="flex flex-col gap-1">
-                  <span className="text-xs text-muted">단위</span>
-                  <input
-                    type="text"
-                    value={midHallNewUnit}
-                    placeholder="원/일"
-                    onChange={(e) => setMidHallNewUnit(e.target.value)}
-                    className={`w-20 ${FIELD}`}
-                  />
-                </label>
-                <label className="flex flex-col gap-1">
-                  <span className="text-xs text-muted">단가</span>
-                  <input
-                    type="number"
-                    min={0}
-                    value={midHallNewPrice}
-                    onChange={(e) => setMidHallNewPrice(Math.max(0, Number(e.target.value) || 0))}
-                    className={`w-28 ${FIELD_NUM}`}
-                  />
-                </label>
-                <button
-                  type="button"
-                  onClick={addMidHallOption}
-                  className="inline-flex h-9 items-center border border-foreground px-3 text-xs font-bold text-foreground hover:bg-foreground hover:text-background"
-                >
-                  + 옵션 추가
-                </button>
+              <div className="mt-4 space-y-5">
+                {midHallGroupedOptions.size === 0 && (
+                  <p className="text-xs text-muted">아직 없습니다 — 위에서 추가하세요.</p>
+                )}
+                {[...midHallGroupedOptions.entries()].map(([category, items]) => (
+                  <div key={category} className="pl-1">
+                    <div className="mb-2 flex items-center justify-between border-l-2 border-border pl-2.5">
+                      <span className="text-s font-bold text-foreground">
+                        {ADDON_CATEGORY_LABEL[category as keyof typeof ADDON_CATEGORY_LABEL] ?? category}
+                      </span>
+                      <div className="flex items-center gap-1">
+                        <button
+                          type="button"
+                          onClick={() => openNewItemForm(category as AddonCategory, "VISIBLE", "medium-hall")}
+                          className="inline-flex min-h-11 items-center px-2 py-1 text-xs font-bold text-foreground hover:underline sm:min-h-0"
+                        >
+                          + 항목 추가
+                        </button>
+                        <ExistingItemPicker
+                          targetVisibility="VISIBLE"
+                          addons={addons}
+                          onPick={(addon) => pickExistingItem(addon, "VISIBLE", "medium-hall")}
+                        />
+                      </div>
+                    </div>
+                    <div className="ml-2.5 space-y-1.5 border-l border-border/40 pl-3.5">
+                      {items.map((addon) => {
+                        const qty = includedQty(addon.id);
+                        const checked = qty > 0;
+                        const exposed = isExposedForActive(addon);
+                        return (
+                          <div
+                            key={addon.id}
+                            className="flex flex-col gap-2 border-b border-border/50 pb-1.5 sm:flex-row sm:items-center sm:justify-between"
+                          >
+                            <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-s">
+                              <label className="flex shrink-0 items-center gap-1.5">
+                                <input
+                                  type="checkbox"
+                                  checked={exposed}
+                                  onChange={(e) => setExposedForActive(addon, e.target.checked)}
+                                />
+                                <span className="text-xs font-bold text-foreground">노출</span>
+                              </label>
+                              <label className="flex items-center gap-2">
+                                <input
+                                  type="checkbox"
+                                  checked={checked}
+                                  onChange={(e) => setIncludedQty(addon.id, e.target.checked ? 1 : 0)}
+                                />
+                                {addon.name}
+                              </label>
+                              <label className="flex items-center gap-1">
+                                <span className="text-xs text-muted">(</span>
+                                <input
+                                  type="text"
+                                  value={addon.unitLabel}
+                                  placeholder="원/일"
+                                  onChange={(e) => updateAddonUnitLabel(addon.id, e.target.value)}
+                                  className={`w-16 ${FIELD}`}
+                                  title="단위 표시 (예: 원/일, 원/회, 원)"
+                                />
+                                <span className="text-xs text-muted">)</span>
+                              </label>
+                              <input
+                                type="text"
+                                value={addon.spec ?? ""}
+                                placeholder="스펙 (선택)"
+                                onChange={(e) => updateAddonSpec(addon.id, e.target.value)}
+                                className={`w-32 ${FIELD}`}
+                              />
+                            </div>
+                            <div className="flex items-center gap-3">
+                              <label className="flex items-center gap-1.5">
+                                <span className="text-xs text-muted">수량 제한</span>
+                                <input
+                                  type="number"
+                                  min={0}
+                                  value={
+                                    addon.availability.maxAddQuantity !== undefined &&
+                                    addon.availability.maxAddQuantity !== "UNLIMITED"
+                                      ? addon.availability.maxAddQuantity
+                                      : ""
+                                  }
+                                  placeholder="무제한"
+                                  onChange={(e) => updateAddonMaxAddQuantity(addon.id, e.target.value)}
+                                  className={`w-16 ${FIELD_NUM}`}
+                                />
+                              </label>
+                              <label className="flex items-center gap-1.5">
+                                <span className="text-xs text-muted">기본 수량</span>
+                                <input
+                                  type="number"
+                                  min={0}
+                                  disabled={!checked}
+                                  value={checked ? qty : ""}
+                                  placeholder="-"
+                                  onChange={(e) =>
+                                    setIncludedQty(
+                                      addon.id,
+                                      e.target.value === "" ? 0 : Math.max(0, Number(e.target.value) || 0),
+                                    )
+                                  }
+                                  className={`w-16 disabled:opacity-40 ${FIELD_NUM}`}
+                                />
+                              </label>
+                              <label className="flex items-center gap-1.5">
+                                <span className="text-xs text-muted">단가</span>
+                                <MoneyInput
+                                  value={addon.unitPrice}
+                                  onChange={(value) => updateAddonPrice(addon.id, Math.max(0, value))}
+                                  className={`w-32 ${FIELD_NUM}`}
+                                />
+                              </label>
+                              <select
+                                value={addon.visibility}
+                                onChange={(e) => updateAddonVisibility(addon.id, e.target.value as LineItemVisibility)}
+                                className={FIELD}
+                              >
+                                <option value="ITEM_ONLY">기본 내역</option>
+                                <option value="HIDDEN">비노출</option>
+                                <option value="VISIBLE">선택 옵션</option>
+                              </select>
+                              <button
+                                type="button"
+                                onClick={() => void removeAddon(addon.id)}
+                                className={REMOVE_BTN}
+                              >
+                                삭제
+                              </button>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                ))}
               </div>
 
               <div className="mt-4">
