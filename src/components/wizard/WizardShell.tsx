@@ -238,6 +238,15 @@ export function WizardShell({
   // 슬롯당 파일 1개(재선택 시 교체)로 둔다. STEP6(안전관리 서약서)에서 STEP7(자료
   // 첨부)로 업로드 자리를 옮겼다(2026-09-07).
   const [safetyPlanFile, setSafetyPlanFile] = useState<File | null>(null);
+  // [신규 2026-09-06] "캘린더 노출 기간에도 반영되어야해" — 새 신청서를 시작할 때
+  // 기본값("다음 달")이 노출 범위 밖이면 범위 안의 가장 가까운 달로 당긴다.
+  // 새 시작(아래 useState)과 임시저장본 복원(아래 effect) 두 곳이 같은 달을 써야 한다.
+  const openingWeek: QuoteSelection["week"] = (() => {
+    if (!calendarMonthBounds) return INITIAL_SELECTION.week;
+    const clamped = clampMonthKey(toMonthKey(INITIAL_SELECTION.week.year, INITIAL_SELECTION.week.month), calendarMonthBounds);
+    const [y, m] = clamped.split("-").map(Number);
+    return { ...INITIAL_SELECTION.week, year: y, month: m };
+  })();
   const [selection, setSelection] = useState<QuoteSelection>(
     initialSelection
       ? {
@@ -250,18 +259,10 @@ export function WizardShell({
           midHallDays: initialSelection.midHallDays ?? {},
           performanceInfo: initialSelection.performanceInfo ?? initialPerformanceInfo,
         }
-      : // [신규 2026-09-06] "캘린더 노출 기간에도 반영되어야해" — 새 신청서를 시작할 때
-        // 기본값("다음 달")이 노출 범위 밖이면 범위 안의 가장 가까운 달로 당긴다.
-        // 이미 값이 있는 기존 신청서(수정 화면)는 건드리지 않는다.
+      : // 이미 값이 있는 기존 신청서(수정 화면)는 건드리지 않는다.
         {
           ...INITIAL_SELECTION,
-          week: calendarMonthBounds
-            ? (() => {
-                const clamped = clampMonthKey(toMonthKey(INITIAL_SELECTION.week.year, INITIAL_SELECTION.week.month), calendarMonthBounds);
-                const [y, m] = clamped.split("-").map(Number);
-                return { ...INITIAL_SELECTION.week, year: y, month: m };
-              })()
-            : INITIAL_SELECTION.week,
+          week: openingWeek,
           performanceInfo: initialPerformanceInfo,
         },
   );
@@ -316,6 +317,27 @@ export function WizardShell({
     // localStorage는 리액트 외부 저장소이므로 마운트 시 1회만 복원한다.
     const draft = loadWizardDraft();
     if (draft) {
+      // [버그 수정 2026-09-08] "대관 신청은 그냥 26년 9월부터 보여버림" — 노출월(일정 관리 >
+      // 캘린더 노출월)을 잡기 전에 저장된 임시저장본은 옛 달을 들고 있다. 새 시작은 범위
+      // 안으로 당기지만(openingWeek) 이 복원 경로는 저장된 달을 그대로 덮어써서, 위저드를
+      // 한 번이라도 열어본 브라우저에서는 노출월이 아무 효과가 없었다. 저장된 달이 범위
+      // 밖이면 **일정 부분만**(주·요일 제외·추가일·날짜 태그·회차·중형 일정) 새 시작과
+      // 같은 상태로 되돌리고 1단계부터 다시 고르게 한다 — 그 달의 날짜에 매인 값들이라
+      // 달만 옮기면 남은 태그가 엉뚱한 날짜에 붙는다. 신청자 정보 등 나머지 입력은 살린다.
+      const draftWeek = draft.selection.week ?? INITIAL_SELECTION.week;
+      const draftMonthKey = toMonthKey(draftWeek.year, draftWeek.month);
+      const scheduleStale =
+        !!calendarMonthBounds && clampMonthKey(draftMonthKey, calendarMonthBounds) !== draftMonthKey;
+      const scheduleReset: Partial<QuoteSelection> = scheduleStale
+        ? {
+            week: openingWeek,
+            excludedDays: INITIAL_SELECTION.excludedDays,
+            extraDays: INITIAL_SELECTION.extraDays,
+            dayTags: {},
+            dayShowCounts: {},
+            midHallDays: {},
+          }
+        : {};
       setSelection({
         ...INITIAL_SELECTION,
         ...draft.selection,
@@ -370,8 +392,10 @@ export function WizardShell({
         },
         addons: Array.isArray(draft.selection.addons) ? draft.selection.addons : [],
         excludedDays: Array.isArray(draft.selection.excludedDays) ? draft.selection.excludedDays : [],
+        // 맨 마지막에 얹어야 위의 개별 복원값을 이긴다.
+        ...scheduleReset,
       });
-      setStep(draft.step);
+      setStep(scheduleStale ? 1 : draft.step);
     }
     setRestored(true);
     // eslint-disable-next-line react-hooks/exhaustive-deps
