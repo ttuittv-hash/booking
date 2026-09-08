@@ -33,6 +33,14 @@ export function findWeekTuesday(week: QuoteSelection["week"]): Date | null {
   const firstCol = toColumnIndex(firstOfMonth.getDay());
   const gridStart = new Date(week.year, week.month - 1, 1 - firstCol);
 
+  // [신규 2026-09-08] 0주차 = 화요일이 전달에 걸린 첫 행(Step1Calendar.buildCalendarWeeks 와 짝).
+  // 그 행의 화요일이 이미 이 달 안이면 0주차는 존재하지 않는다.
+  if (week.weekOfMonth === 0) {
+    const tuesday = new Date(gridStart);
+    tuesday.setDate(gridStart.getDate() + 1);
+    return tuesday.getMonth() === week.month - 1 ? null : tuesday;
+  }
+
   let counter = 0;
   for (let w = 0; w < 6; w++) {
     const tuesday = new Date(gridStart);
