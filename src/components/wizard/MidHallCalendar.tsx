@@ -5,16 +5,7 @@ import { btnClass, ICON_BTN_SM, toggleClass } from "@/components/ui/kit";
 import { useState } from "react";
 import { isoDate, isWeekendDate } from "@/lib/pricing/dateRange";
 import { canStepMonth, toMonthKey } from "@/lib/content/noticeCalendarWindow";
-import type {
-  DateBlock,
-  MidHallDayRole,
-  MidHallDaySelection,
-  MidHallRateConfig,
-} from "@/lib/pricing/types";
-
-function won(n: number): string {
-  return `${n.toLocaleString("ko-KR")}원`;
-}
+import type { DateBlock, MidHallDayRole, MidHallDaySelection } from "@/lib/pricing/types";
 
 function toColumnIndex(jsDay: number): number {
   return (jsDay + 6) % 7;
@@ -65,25 +56,21 @@ export function MidHallCalendar({
   extraSetupHours,
   extraLoadOutHours,
   dateBlocks,
-  rateConfig,
   onChangeMonth,
   onChangeDays,
-  onChangeExtraSetupHours,
-  onChangeExtraLoadOutHours,
   monthBounds,
 }: {
   title?: string;
   year: number;
   month: number;
   days: Record<string, MidHallDaySelection>;
+  // [수정 2026-09-08] "철수/준비 때 시간별로 수정하는 기능 자체를 삭제해" — 이 값을
+  // 바꾸는 UI는 없앴고, 요약 줄(아래 "· 준비연장 N시간" 등)에 읽기 전용으로만 쓴다.
   extraSetupHours: number;
   extraLoadOutHours: number;
   dateBlocks: DateBlock[];
-  rateConfig: MidHallRateConfig;
   onChangeMonth: (year: number, month: number) => void;
   onChangeDays: (days: Record<string, MidHallDaySelection>) => void;
-  onChangeExtraSetupHours: (value: number) => void;
-  onChangeExtraLoadOutHours: (value: number) => void;
   /** [신규 2026-09-06] Step1Calendar.tsx와 같은 어드민 「공지 캘린더 노출 월」 범위. */
   monthBounds?: { start: string | null; end: string | null };
 }) {
@@ -367,76 +354,11 @@ export function MidHallCalendar({
                         </div>
                       </div>
                     )}
-                    {days[openDate]?.role === "LOAD_OUT" && (
-                      <div className="mt-2.5 flex items-center gap-2 border-t border-foreground/20 pt-2.5">
-                        <span className="text-xs text-muted">
-                          철수 Load-Out 연장(전체 일정 공통)
-                        </span>
-                        <button
-                          type="button"
-                          onClick={() =>
-                            onChangeExtraLoadOutHours(
-                              Math.max(0, extraLoadOutHours - 1),
-                            )
-                          }
-                          className={ICON_BTN_SM}
-                        >
-                          −
-                        </button>
-                        <span className="w-4 text-center text-xs font-bold tabular-nums">
-                          {extraLoadOutHours}
-                        </span>
-                        <button
-                          type="button"
-                          onClick={() =>
-                            onChangeExtraLoadOutHours(
-                              Math.min(6, extraLoadOutHours + 1),
-                            )
-                          }
-                          className={ICON_BTN_SM}
-                        >
-                          +
-                        </button>
-                        <span className="text-xs text-muted">
-                          시간 · {won(rateConfig.extraHourFee)}/시간
-                        </span>
-                      </div>
-                    )}
-                    {days[openDate]?.role === "SETUP" && (
-                      <div className="mt-2.5 flex items-center gap-2 border-t border-foreground/20 pt-2.5">
-                        <span className="text-xs text-muted">
-                          준비 연장(22:00~24:00, 전체 일정 공통)
-                        </span>
-                        <button
-                          type="button"
-                          onClick={() =>
-                            onChangeExtraSetupHours(
-                              Math.max(0, extraSetupHours - 1),
-                            )
-                          }
-                          className={ICON_BTN_SM}
-                        >
-                          −
-                        </button>
-                        <span className="w-4 text-center text-xs font-bold tabular-nums">
-                          {extraSetupHours}
-                        </span>
-                        <button
-                          type="button"
-                          onClick={() =>
-                            onChangeExtraSetupHours(
-                              Math.min(2, extraSetupHours + 1),
-                            )
-                          }
-                          className={ICON_BTN_SM}
-                        >
-                          +
-                        </button>
-                        <span className="text-xs text-muted">
-                          시간 · {won(rateConfig.extraHourFee)}/시간
-                        </span>
-                      </div>
-                    )}
+                    {/* [삭제 2026-09-08] "철수/준비 때 시간별로 수정하는 기능 자체를
+                        삭제해" — 준비 연장(22:00~24:00)·철수 Load-Out 연장을 +/-로
+                        조정하던 스테퍼를 없앤다. 이미 저장된 값(옛 신청서)은 그대로
+                        읽어 견적·요약 줄에 계속 반영되지만, 새로 이 값을 만드는 UI는
+                        더 이상 없다. */}
                     {/* [삭제 2026-09-08] "중형 공연장 단가가 잘못 들어가있어. 단가 부분
                         삭제해" — 이 칸에 참고용으로 보여주던 "단가 N원[× 할증]" 줄을
                         없앴다. 실제 금액은 예상 대관료/실시간 패널에서 확인한다. */}

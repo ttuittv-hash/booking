@@ -48,6 +48,10 @@ function chargeGroups(rows: ChargeBlock[]): SpecGroup[] {
  * 있게 했지만(2026-08-23), 값을 두 군데서 고칠 수 있어 헷갈린다는 요청으로 수정은
  * STEP 1 캘린더에서만 하도록 되돌렸다(2026-08-23, "준비 연장,철수연장은 앞에
  * 달력에서 체크한대로만 노출하고 수정 못하게해.. 수정하려면 캘린더가서 가능하도록").
+ * [수정 2026-09-08] "중형공연장 옵션 노출 시안도 아레나 옵션 시안과 동일한 디자인으로" —
+ * 값 영역을 아레나 AddonRow의 수량 입력칸과 같은 규격(w-14, border, px-2 py-1,
+ * text-right)의 칩으로 맞춘다. 실제로는 못 고치는 값이라 잠금 톤(bg-panel-strong,
+ * cursor-not-allowed)으로 "칸처럼 보이지만 여기서는 못 바꾼다"는 것도 함께 전달한다.
  */
 function MidHallHourBox({
   label,
@@ -60,7 +64,7 @@ function MidHallHourBox({
   hours: number;
   unitFee: number;
 }) {
-  const { t } = useWizardText();
+  const { t, tStr } = useWizardText();
   return (
     <div className="flex flex-col gap-1.5 border border-border-soft px-3 py-2">
       <div>
@@ -71,7 +75,10 @@ function MidHallHourBox({
         <span className="whitespace-nowrap text-xs text-muted">
           {won(unitFee)} / {t("configOptions.perHourUnit", "시간")}
         </span>
-        <span className="text-xs font-bold tabular-nums">
+        <span
+          className="w-14 shrink-0 cursor-not-allowed border border-border-soft bg-panel-strong px-2 py-1 text-right text-xs font-bold tabular-nums text-muted-strong"
+          title={tStr("configOptions.hourBoxLockedHint", "더 이상 위저드에서 수정할 수 없는 값입니다")}
+        >
           {hours}
           {t("configOptions.hoursUnit", "시간")}
         </span>
@@ -81,17 +88,24 @@ function MidHallHourBox({
 }
 
 /** 참고용 박스 — 가격이 "별도 협의"·"실비"라 수량을 받아도 견적에 반영할 수 없는
- * 항목(팝업 공간·옥외 광고·수도광열비 등)은 안내만 하는 카드로 보여준다. */
+ * 항목(팝업 공간·옥외 광고·수도광열비 등)은 안내만 하는 카드로 보여준다.
+ * [수정 2026-09-08] "아레나 옵션 시안과 동일한 디자인으로" — "별도 문의"를 줄
+ * 하나짜리 텍스트가 아니라, 아레나 옵션 박스의 오른쪽 값 자리와 같은 위치(가격
+ * 정보 옆, 오른쪽 정렬)에 놓인 태그 칩으로 바꾼다. */
 function MidHallReferenceBox({ label, value, note }: { label: string; value: string; note?: string }) {
   const { t } = useWizardText();
   return (
     <div className="flex flex-col gap-1.5 border border-border-soft px-3 py-2">
       <span className="text-xs font-bold">{label}</span>
-      <span className="text-xs text-muted">
-        {value}
-        {note ? ` · ${note}` : ""}
-      </span>
-      <span className="text-xs font-bold text-muted">{t("configOptions.contactSeparately", "별도 문의")}</span>
+      <div className="flex items-center justify-between gap-2">
+        <span className="text-xs text-muted">
+          {value}
+          {note ? ` · ${note}` : ""}
+        </span>
+        <span className="shrink-0 whitespace-nowrap border border-border-soft bg-panel-strong px-2 py-0.5 text-[10px] font-bold text-muted">
+          {t("configOptions.contactSeparately", "별도 문의")}
+        </span>
+      </div>
     </div>
   );
 }
@@ -104,9 +118,12 @@ function MidHallReferenceBox({ label, value, note }: { label: string; value: str
 // 화면과 /rates 양쪽에 동시에 반영된다.
 // [개정 2026-08-23] "기본 항목"·"옵션"을 아레나처럼 박스형태로 구분해 보여 달라는
 // 요청에 따라 표(SpecTable/GroupedSpecTable) 대신 AddonRow와 같은 박스 그리드로
-// 바꿨다. "추가대관"(준비 연장·철수 Load-Out)은 이미 있는 필드라 수량 스테퍼로
-// 즉시 조정 가능하게 했고, 나머지(공간·프로모션·기타·온라인 콘서트 진행)는 "별도
-// 협의"·"실비" 금액이 섞여 있어 참고용 박스로만 보여준다(견적에 자동 반영 안 함).
+// 바꿨다. 나머지(공간·프로모션·기타·온라인 콘서트 진행)는 "별도 협의"·"실비" 금액이
+// 섞여 있어 참고용 박스로만 보여준다(견적에 자동 반영 안 함).
+// [삭제 2026-09-08] "철수/준비 때 시간별로 수정하는 기능 자체를 삭제해" — "추가대관"
+// (준비 연장·철수 Load-Out)을 여기서 +/- 스테퍼로 즉시 조정하던 것을 없앴다(STEP 1
+// MidHallCalendar의 스테퍼도 함께 삭제). 이미 값이 있는 옛 임시저장본만 읽기 전용
+// 박스로 계속 보여준다(hours > 0 조건, 아래 렌더 참고).
 function MidHallRateCard({
   content,
   extraHourFee,
@@ -215,32 +232,40 @@ function MidHallRateCard({
           <p className="mt-1.5 text-xs leading-6 text-muted">
             {t(
               "configOptions.optionsHint",
-              "추가대관 시간은 STEP 1 캘린더에서 설정한 값이 그대로 표시됩니다 — 여기서는 수정할 수 " +
-                "없고, 바꾸려면 STEP 1로 돌아가 캘린더에서 조정하세요. 나머지 항목은 참고용 안내이며 " +
-                "예상 대관료에는 자동 반영되지 않습니다 — 필요 시 별도로 협의합니다.",
+              "아래 항목은 참고용 안내이며 예상 대관료에는 자동 반영되지 않습니다 — 필요 시 별도로 협의합니다.",
             )}
           </p>
 
           {/* 아레나 "선택 옵션"과 같은 아웃라인 박스 하나로 전체를 감싼다(예전에는
               박스 없이 소제목만 이어 붙어 있었다). */}
           <div className="mt-4 border border-border/25 p-5">
-            <div>
-              <div className="mb-2 text-xs font-bold text-muted">{t("configOptions.extraDaysLabel", "추가대관")}</div>
-              <div className="grid grid-cols-1 gap-1.5 sm:grid-cols-2 lg:grid-cols-3">
-                <MidHallHourBox
-                  label={t("configOptions.setupExtensionLabel", "준비 연장 (22:00~24:00)")}
-                  hint={t("configOptions.appliesWholePeriodHint", "전체 일정 공통 적용")}
-                  hours={extraSetupHours}
-                  unitFee={extraHourFee}
-                />
-                <MidHallHourBox
-                  label={t("configOptions.loadOutExtensionLabel", "철수 Load-Out 연장")}
-                  hint={t("configOptions.appliesWholePeriodHint", "전체 일정 공통 적용")}
-                  hours={extraLoadOutHours}
-                  unitFee={extraHourFee}
-                />
+            {/* [수정 2026-09-08] "철수/준비 때 시간별로 수정하는 기능 자체를 삭제해" —
+                준비 연장·철수 Load-Out 연장을 STEP 1에서 설정하던 스테퍼를 없앴다.
+                새 신청서는 이 값이 항상 0이라 그룹 자체를 숨기고, 이미 값이 있는
+                옛 임시저장본만 읽기 전용으로 계속 보여준다. */}
+            {(extraSetupHours > 0 || extraLoadOutHours > 0) && (
+              <div>
+                <div className="mb-2 text-xs font-bold text-muted">{t("configOptions.extraDaysLabel", "추가대관")}</div>
+                <div className="grid grid-cols-1 gap-1.5 sm:grid-cols-2 lg:grid-cols-3">
+                  {extraSetupHours > 0 && (
+                    <MidHallHourBox
+                      label={t("configOptions.setupExtensionLabel", "준비 연장 (22:00~24:00)")}
+                      hint={t("configOptions.appliesWholePeriodHint", "전체 일정 공통 적용")}
+                      hours={extraSetupHours}
+                      unitFee={extraHourFee}
+                    />
+                  )}
+                  {extraLoadOutHours > 0 && (
+                    <MidHallHourBox
+                      label={t("configOptions.loadOutExtensionLabel", "철수 Load-Out 연장")}
+                      hint={t("configOptions.appliesWholePeriodHint", "전체 일정 공통 적용")}
+                      hours={extraLoadOutHours}
+                      unitFee={extraHourFee}
+                    />
+                  )}
+                </div>
               </div>
-            </div>
+            )}
 
             {otherGroups.map((g) => (
               <div key={g.title} className="mt-6">

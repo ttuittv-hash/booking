@@ -97,14 +97,32 @@ export function sectionOf(item: LineItem): ContractSection {
 // 동일해야지" — 위저드(Step5Estimate) · 마이페이지 · 인쇄용 신청서가 함께 쓰는 이
 // 라벨을, 실시간 요약 패널(SummaryPanel)의 박스 제목·소계 라벨과 같은 말로
 // 맞췄다(예전 "계약 내역"/"실제 계약금액", "추가 예상 금액"/"추가 예상 금액").
+// [재개정 2026-09-08] "대관료는 계약시 하는 금액이고, 옵션은 추후 변동 가능성있는
+// 추후 정산 금액이거든 — 구분이 되게" 시안(SummaryPanel 재설계)에 맞춰 ADDITIONAL
+// 쪽 표현을 "추가 옵션" → "추후 정산 예정 금액"으로 바꾼다. 데이터 분류(sectionOf)는
+// 그대로다 — 문구만 "언제 확정되는 돈인지"를 더 분명히 말한다.
 export const SECTION_LABEL: Record<ContractSection, string> = {
   CONTRACT: "대관료",
-  ADDITIONAL: "추가 옵션",
+  ADDITIONAL: "추후 정산 예정 금액",
 };
 
 export const SECTION_SUBTOTAL_LABEL: Record<ContractSection, string> = {
   CONTRACT: "총 대관료",
   ADDITIONAL: "총 옵션비용",
+};
+
+// [신규 2026-09-08] SummaryPanel 전용 — 각 박스가 "언제 확정되는 돈인지"를 짧게
+// 알려주는 태그(제목 옆)와 총계 줄 보조문구. 공유 라벨(SECTION_LABEL 등)과 달리
+// 이 둘은 실시간 플로팅 박스에서만 쓴다 — QuoteLineItemsReport(예상 대관료 표)는
+// 이미 세부내역 칸으로 성격을 구분해 보여주고 있어 손대지 않는다.
+export const SECTION_TAG: Record<ContractSection, string> = {
+  CONTRACT: "계약 시 결제",
+  ADDITIONAL: "변동 가능",
+};
+
+export const SECTION_SUBTOTAL_CAPTION: Record<ContractSection, string> = {
+  CONTRACT: "계약금액",
+  ADDITIONAL: "추후 정산(예정)",
 };
 
 export const SECTION_GROUPS: Record<ContractSection, FeeGroup[]> = {
