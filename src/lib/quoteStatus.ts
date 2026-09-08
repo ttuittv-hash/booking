@@ -24,3 +24,14 @@ export const QUOTE_STATUS_TONE: Record<Quote["status"], "warn" | "accent" | "goo
   CONTRACTED: "accent",
   SETTLED: "good",
 };
+
+// [신규 2026-09-08] "대관 접수 후 24시간 동안은 수정 버튼 노출, 그 이후로는 삭제" —
+// 접수 직후 짧은 오탈자 정정 창구는 열어 두되, 시간이 지나면 심사 시작 여부와 무관하게
+// 신청자가 직접 못 고치게 한다(운영자를 통해서만). 기존 "심사 시작 전(ESTIMATE)·review
+// 기록 없음" 조건에 시간 조건을 더한다 — 셋 다 만족해야 한다.
+export const APPLICANT_EDIT_WINDOW_MS = 24 * 60 * 60 * 1000;
+
+export function canApplicantEditQuote(quote: Pick<Quote, "status" | "review" | "createdAt">): boolean {
+  if (quote.status !== "ESTIMATE" || quote.review) return false;
+  return Date.now() - new Date(quote.createdAt).getTime() < APPLICANT_EDIT_WINDOW_MS;
+}

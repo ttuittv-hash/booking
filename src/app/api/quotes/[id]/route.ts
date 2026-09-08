@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import crypto from "node:crypto";
 import { canAccessQuote, canActOnQuotes, getCurrentUser } from "@/lib/auth";
+import { canApplicantEditQuote } from "@/lib/quoteStatus";
 import {
   addAuditLog,
   findBlockedDatesAmong,
@@ -56,6 +57,16 @@ export async function PUT(request: Request, ctx: { params: Promise<{ id: string 
   if (quote.review) {
     return NextResponse.json(
       { error: "이미 심사가 진행된 신청서는 직접 수정할 수 없습니다. 변경이 필요하면 운영자에게 문의해 주세요." },
+      { status: 409 },
+    );
+  }
+  // [신규 2026-09-08] "접수 후 24시간까지만 수정 버튼 노출" — 위 두 조건을 통과해도
+  // 접수(createdAt) 후 24시간이 지났으면 막는다. 화면(마이페이지 목록·상세, 이 수정
+  // 페이지 자체)의 버튼 노출 조건과 같은 기준(canApplicantEditQuote)을 여기서도 써서
+  // 버튼을 감춰도 API를 직접 호출하는 우회를 막는다.
+  if (!canApplicantEditQuote(quote)) {
+    return NextResponse.json(
+      { error: "접수 후 24시간이 지난 신청서는 직접 수정할 수 없습니다. 변경이 필요하면 운영자에게 문의해 주세요." },
       { status: 409 },
     );
   }

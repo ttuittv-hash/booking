@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { notFound, redirect } from "next/navigation";
 import { canAccessQuote, requireAccessedUser } from "@/lib/auth";
+import { canApplicantEditQuote } from "@/lib/quoteStatus";
 import {
   getCurrentRateTable,
   getNoticeCalendarWindow,
@@ -36,10 +37,9 @@ export default async function EditQuotePage({
   const quote = await getQuoteById(id);
   if (!quote) notFound();
   if (!(await canAccessQuote(currentUser, quote))) notFound();
-  if (quote.status !== "ESTIMATE") redirect(`/mypage/${id}`);
-  // 심사가 시작된(review 기록이 있는) 신청서는 신청자가 직접 수정할 수 없다 —
-  // PUT /api/quotes/[id]와 같은 기준(2026-08-22).
-  if (quote.review) redirect(`/mypage/${id}`);
+  // 심사가 시작됐거나(review 기록) 접수 후 24시간이 지난 신청서는 신청자가 직접
+  // 수정할 수 없다 — PUT /api/quotes/[id]와 같은 기준(2026-08-22, 2026-09-08 24시간 추가).
+  if (!canApplicantEditQuote(quote)) redirect(`/mypage/${id}`);
 
   const [rateTable, weekDemand, adminBlocks, approvedBlocks, ratesContent, screenText, calendarWindow, existingAttachments] =
     await Promise.all([

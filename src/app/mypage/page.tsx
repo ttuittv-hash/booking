@@ -6,7 +6,7 @@ import { listQuotesPaged, normalizePage } from "@/lib/db";
 import { Pagination } from "@/components/Pagination";
 import { won } from "@/lib/format";
 import type { Quote } from "@/lib/pricing/types";
-import { QUOTE_STATUS_LABEL, QUOTE_STATUS_TONE } from "@/lib/quoteStatus";
+import { canApplicantEditQuote, QUOTE_STATUS_LABEL, QUOTE_STATUS_TONE } from "@/lib/quoteStatus";
 import { MyPageIdentity, MyPageShell } from "@/components/mypage/MyPageShell";
 import { DataTable, type Column } from "@/components/mypage/DataTable";
 import { ArrowRight, Badge, ButtonLink } from "@/components/ui/kit";
@@ -112,10 +112,10 @@ export default async function MyPage({
                 <Link href={`/mypage/${q.id}`} className="underline underline-offset-4 hover:text-accent">
                   상세
                 </Link>
-                {/* 심사가 시작되면(review 기록 생김) 신청자가 직접 수정할 수 없다 — 상세
-                    화면과 같은 조건("신청 내용 수정" 링크, 2026-08-22)을 목록에서도 바로
-                    눌러 들어갈 수 있게 한다. */}
-                {q.status === "ESTIMATE" && !q.review && (
+                {/* 심사가 시작되면(review 기록 생김) 또는 접수 후 24시간이 지나면 신청자가
+                    직접 수정할 수 없다 — 상세 화면과 같은 조건("신청 내용 수정" 링크,
+                    canApplicantEditQuote)을 목록에서도 바로 눌러 들어갈 수 있게 한다. */}
+                {canApplicantEditQuote(q) && (
                   <>
                     {" · "}
                     <Link href={`/apply/edit/${q.id}`} className="underline underline-offset-4 hover:text-accent">

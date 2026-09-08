@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { canAccessQuote, getCurrentUser } from "@/lib/auth";
+import { canApplicantEditQuote } from "@/lib/quoteStatus";
 import {
   getContractSignatureByQuoteId,
   getDepositByQuoteId,
@@ -143,7 +144,7 @@ export default async function MyQuoteDetailPage({
       lead={summaryLine}
       actions={
         <div className="flex flex-wrap items-center gap-x-5 gap-y-2">
-          {quote.status === "ESTIMATE" && !quote.review && user.role !== "ADMIN" && (
+          {canApplicantEditQuote(quote) && user.role !== "ADMIN" && (
             <Link
               href={`/apply/edit/${quote.id}`}
               className="text-s font-bold underline underline-offset-4 hover:text-foreground"

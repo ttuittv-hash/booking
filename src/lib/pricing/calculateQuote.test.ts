@@ -290,17 +290,57 @@ describe("calculateQuote — 명세서 7장 검증 케이스", () => {
     expect(discountLine.amount).toBe(-discountedUnitPrice);
   });
 
-  it("공연일 요일을 제외하면 '제외 — 공연일'로만 한 번 차감되고 '공연 일수 조정'은 붙지 않는다 (2026-09-08 밤 버그)", () => {
-    // 화(준비)·일(공연)을 삭제 → 남은 수목금(준비) + 토(공연) = 기본 배치 그대로. 공연일은
-    // 제외 줄로 이미 한 번 빠졌으므로 "기본 2일 대비 -1일" 조정이 또 붙으면 이중 차감이다.
-    const sel = baseSelection({ excludedDays: ["TUE", "SUN"] });
-    const dates = resolveSelectedDates(sel);
-    const dayTags: QuoteSelection["dayTags"] = {};
-    dates.forEach((d, i) => (dayTags[d] = i === dates.length - 1 ? "PERFORMANCE" : "PREP"));
-    const quote = calculateQuote({ ...sel, dayTags }, RATE_TABLE);
-    expect(quote.lineItems.find((i) => i.addonId === "day_exclusion_discount_performance")?.billable).toBe(1);
-    expect(quote.lineItems.find((i) => i.addonId === "day_exclusion_discount_prep")?.billable).toBe(1);
-    expect(quote.lineItems.find((i) => i.addonId === "performance_day_adjustment")).toBeUndefined();
+  it("버그 수정: 기본 공연일 요일을 제외해도 공연 일수 조정으로 또 차감되지 않는다 — 이중 차감 방지 (2026-09-08 밤)", () => {
+    // "공연일 1회 제거했는데 두번 제거되는 중" — SUN은 패키지 기본값상 공연일(SAT·SUN
+    // 2일 중 하나). 제외하면 "제외 — 공연일"로 한 번만 할인되고, "공연 일수 조정" 줄은
+    // (남은 기본 공연일 SAT 1일 = 실제 공연일 1일, delta 0이라) 아예 생기지 않아야 한다.
+    const quote = calculateQuote(
+      baseSelection({ excludedDays: ["SUN"] }),
+      RATE_TABLE,
+    );
+    const exclusionLine = quote.lineItems.find(
+      (i) => i.addonId === "day_exclusion_discount_performance",
+    )!;
+    const discountedUnitPrice = Math.round(
+      pkg2.performanceExtraDayFee * (1 - pkg2.extraDayDiscountRatio),
+    );
+    expect(exclusionLine.amount).toBe(-discountedUnitPrice);
+    expect(
+      quote.lineItems.find((i) => i.addonId === "performance_day_adjustment"),
+    ).toBeUndefined();
+
+    const expectedSubtotal =
+      packagePrice(RATE_TABLE, pkg2) +
+      8000 * cleaning.unitPrice -
+      discountedUnitPrice +
+      utilityTotal;
+    expect(quote.subtotal).toBe(expectedSubtotal);
+  });
+
+  it("버그 수정: 기본 공연일 요일 제외 + 남은 날 중 하나를 추가로 공연일로 재지정하면, 제외분을 뺀 만큼만 조정된다", () => {
+    // SUN(기본 공연일) 제외 + 남은 날 중 준비일 하나(FRI)를 명시적으로 공연일로 바꾼 경우 —
+    // 실질 기본(2-1=1) 대비 실제 공연일(SAT+FRI=2)이라 delta는 +1이어야 한다(제외로 이미
+    // 뺀 SUN 몫과는 별개로, FRI를 공연일로 "추가"한 부분만 조정 대상).
+    const dates = resolveSelectedDates(baseSelection({ excludedDays: ["SUN"] }));
+    // 제외 후 남은 5일 중, 실질 기본 공연일(1일)이 아닌 준비일 하나를 골라 공연일로 바꾼다.
+    const defaults = defaultDayTags(dates, 1);
+    const prepDate = dates.find((d) => defaults[d] !== "PERFORMANCE")!;
+    const quote = calculateQuote(
+      baseSelection({
+        excludedDays: ["SUN"],
+        dayTags: { [prepDate]: "PERFORMANCE" },
+      }),
+      RATE_TABLE,
+    );
+    const adjustmentLine = quote.lineItems.find(
+      (i) => i.addonId === "performance_day_adjustment",
+    )!;
+    expect(adjustmentLine).toBeDefined();
+    expect(adjustmentLine.label).toBe("공연 일수 조정 (기본 1일 대비 +1일)");
+    const unitPrice = Math.round(
+      pkg2.performanceExtraDayFee * (1 - pkg2.extraDayDiscountRatio),
+    );
+    expect(adjustmentLine.amount).toBe(unitPrice);
   });
 
   it("패키지 가격은 요금표 고정값 그대로다 — 포함 항목 단가를 더해 역산하지 않는다 (2-20/2-42)", () => {
