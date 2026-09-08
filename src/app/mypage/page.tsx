@@ -73,7 +73,14 @@ export default async function MyPage({
       ko="대관 진행 내역"
       lead={<MyPageIdentity user={user} />}
       actions={
-        <ButtonLink href="/apply" variant="primary">
+        // [버그 수정 2026-09-08] "일정 세팅 시, 처음엔 일정 세팅 내역 초기화" — "새 대관
+        // 신청"이 그냥 /apply로 갔다. /apply는 로그인 리다이렉트 등으로 페이지를 이탈했다
+        // 돌아와도 작성 중이던 입력값을 잃지 않으려고 localStorage 임시저장본을
+        // 복원하는데(WizardShell), 그러다 보니 이전에 시작만 하고 제출하지 않은 신청서의
+        // 일정(셋업/공연일 태그·회차·추가일수 등)이 "새로" 시작한 화면에 그대로 남아
+        // 있었다 — 새로 만들겠다는 버튼이 예전 값을 이어받는 것처럼 보인 원인. ?new=1로
+        // startFresh를 켜서 임시저장본을 지우고 진짜 빈 화면에서 시작하게 한다.
+        <ButtonLink href="/apply?new=1" variant="primary">
           새 대관 신청
           <ArrowRight />
         </ButtonLink>
@@ -85,7 +92,7 @@ export default async function MyPage({
         empty={
           <>
             아직 신청 내역이 없습니다.{" "}
-            <Link href="/apply" className="inline-flex min-h-11 items-center font-bold text-foreground underline underline-offset-4 sm:min-h-0">
+            <Link href="/apply?new=1" className="inline-flex min-h-11 items-center font-bold text-foreground underline underline-offset-4 sm:min-h-0">
               대관 신청하기
             </Link>
           </>
