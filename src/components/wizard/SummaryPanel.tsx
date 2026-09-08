@@ -183,7 +183,15 @@ export function SummaryPanel({ quote }: { quote: EstimatedQuote }) {
                         <dd className="text-xs tabular-nums text-muted">{won(vat)}</dd>
                       </div>
                     </dl>
-                    <div className="mt-2 flex justify-between bg-foreground px-3 py-2.5 text-s font-bold text-background">
+                    {/* [수정 2026-09-08] "계약금액은 노란색으로 컬러 넣어줘" — 대관료
+                        박스의 최종금액 줄만 노란 강조로 바꾼다(확정·결제 금액이라는
+                        신호). 추후 정산 예정 금액 줄은 검정 그대로 둔다. */}
+                    <div
+                      className={[
+                        "mt-2 flex justify-between px-3 py-2.5 text-s font-bold",
+                        isContract ? "bg-accent text-foreground" : "bg-foreground text-background",
+                      ].join(" ")}
+                    >
                       <span>{SECTION_SUBTOTAL_CAPTION[section]}</span>
                       <span className="tabular-nums">{won(sectionTotal)}</span>
                     </div>
