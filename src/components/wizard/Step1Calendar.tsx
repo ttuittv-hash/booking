@@ -149,7 +149,7 @@ export function Step1Calendar({
 }) {
   // [화면 뼈대 2026-08-18, 화면시나리오 SCREEN 02/12 · INTERACTION] 역할 지정은 팝업이 아니라
   // 클릭한 날짜 아래에 바로 펼쳐지는 드롭다운으로 처리한다 — 이전의 "사용 요일 토글 행" +
-  // "공연/세팅 설정 목록" 2개 섹션을 이 하나의 인터랙션으로 통합한다.
+  // "공연/준비 설정 목록" 2개 섹션을 이 하나의 인터랙션으로 통합한다.
   const [openDate, setOpenDate] = useState<string | null>(null);
   // 두 공간을 함께 짜는 예약(「패키지」)인지 — 상위가 중형 일정 콜백을 넘겼는지로 판단한다.
   const twoVenueRoles = !!onChangeMidHallDays;
@@ -163,7 +163,7 @@ export function Step1Calendar({
       onChangeMidHallDays(omit(midHall, date));
       return;
     }
-    // 회차는 공연일에만 의미가 있다. 셋업·철수로 바꾸면 1로 되돌려 흔적을 남기지 않는다.
+    // 회차는 공연일에만 의미가 있다. 준비·철수로 바꾸면 1로 되돌려 흔적을 남기지 않는다.
     onChangeMidHallDays({
       ...midHall,
       [date]: {
@@ -281,7 +281,7 @@ export function Step1Calendar({
   // 6일은 패키지 단위라 요일 하나만 뗄 수 없다. excludedDays 필드·요일당 할인 계산
   // (calculateQuote.ts)은 이 필드가 추가되기 전 신청서를 위해 그대로 남겨두되, 새
   // 신청서는 이 화면에서 채우지 않는다.
-  // [재개정 2026-09-07] "주단위 세팅 후 추가 세팅할 때는 삭제 버튼 노출, 삭제 버튼은
+  // [재개정 2026-09-07] "주단위 준비 후 추가 준비할 때는 삭제 버튼 노출, 삭제 버튼은
   // 아예 해당 날짜 선택이 삭제되는 것" — 기본 6일과 달리 그 이후 낱개로 붙이는
   // 추가일(extra)은 하나만 따로 뗄 수 있어야 한다는 요청으로 되돌린다. 날짜는 화~일
   // 다음으로 빈틈없이 이어 붙는 구조라, 중간 날짜를 지우면 그 뒤 추가일들을 하루씩
@@ -292,7 +292,7 @@ export function Step1Calendar({
     if (blockedByDate.has(iso)) return;
 
     // 이미 이 역할로 지정돼 있는 버튼을 한 번 더 누르면 지정을 해제한다(원래
-    // 자동 계산되는 기본값으로 되돌아간다) — "한번더 클릭하면 세팅한 내역
+    // 자동 계산되는 기본값으로 되돌아간다) — "한번더 클릭하면 준비한 내역
     // 사라지게" (2026-09-07).
     const alreadySet =
       dayKind.kind !== "extend" &&
@@ -305,7 +305,7 @@ export function Step1Calendar({
         onChangeDayTags(omit(dayTags, iso));
         return;
       }
-      // 셋업/공연일/철수 선택 — 제외돼 있었다면(옛 신청서) 다시 사용일로 복귀시킨 뒤
+      // 준비/공연일/철수 선택 — 제외돼 있었다면(옛 신청서) 다시 사용일로 복귀시킨 뒤
       // 역할을 지정한다. 드롭다운은 여기서 닫지 않는다 — 공연일을 고른 직후 바로
       // 아래에서 회차를 조정해야 하므로, 상태값과 회차 스테퍼를 같은 화면에서 함께
       // 보여준다.
@@ -497,8 +497,8 @@ export function Step1Calendar({
                       <span>{date.getDate()}</span>
                       {tag && (
                         <span className="text-xs font-bold leading-none">
-                          {/* 두 공간을 함께 짤 때는 공간을 앞에 붙인다 — "세팅"만 찍으면
-                              아래 "중형 세팅" 과 나란히 놓였을 때 어느 공간 것인지
+                          {/* 두 공간을 함께 짤 때는 공간을 앞에 붙인다 — "준비"만 찍으면
+                              아래 "중형 준비" 과 나란히 놓였을 때 어느 공간 것인지
                               알 수 없다. 공간이 하나뿐이면 붙이지 않는다. */}
                           {twoVenueRoles ? "아레나 " : ""}
                           {tag === "PERFORMANCE"
@@ -507,7 +507,7 @@ export function Step1Calendar({
                               ? "철수"
                               : tag === "REST"
                                 ? "휴무"
-                                : "세팅"}
+                                : "준비"}
                         </span>
                       )}
                       {/* 두 공간을 함께 짤 때만 중형 역할을 한 줄 더 찍는다 — 어느 날에
@@ -519,7 +519,7 @@ export function Step1Calendar({
                             ? `공연×${midHall[iso].shows ?? 1}`
                             : midHall[iso].role === "LOAD_OUT"
                               ? "철수"
-                              : "세팅"}
+                              : "준비"}
                         </span>
                       )}
                       {!tag && isExtendable && (
@@ -599,7 +599,7 @@ export function Step1Calendar({
                             : "border border-border/25 text-muted hover:border-foreground hover:text-foreground",
                         ].join(" ")}
                       >
-                        셋업
+                        준비
                       </button>
                       <button
                         type="button"
@@ -645,7 +645,7 @@ export function Step1Calendar({
                           휴무일
                         </button>
                       )}
-                      {/* [신규 2026-09-07] "주단위 세팅 후 추가 세팅할 때는 삭제 버튼 노출,
+                      {/* [신규 2026-09-07] "주단위 준비 후 추가 준비할 때는 삭제 버튼 노출,
                         삭제 버튼은 아예 해당 날짜 선택이 삭제되는 것" — 기본 6일(base)은
                         패키지 단위라 뗄 수 없고, 그 뒤로 낱개 추가한 날(extra)만 통째로
                         뗄 수 있다. */}
@@ -717,7 +717,7 @@ export function Step1Calendar({
                         <div className="mt-2 flex flex-wrap gap-1.5">
                           {(
                             [
-                              ["SETUP", "셋업"],
+                              ["SETUP", "준비"],
                               ["PERFORMANCE", "공연일"],
                               ["LOAD_OUT", "철수"],
                             ] as const
@@ -811,7 +811,7 @@ export function Step1Calendar({
       </div>
 
       <div className="mt-4 text-s font-bold text-foreground">
-        {week.year}년 {week.month}월 {week.weekOfMonth}주차 · 셋업 {setupCount}
+        {week.year}년 {week.month}월 {week.weekOfMonth}주차 · 준비 {setupCount}
         일 · 공연 {performanceCount}일
         {loadOutCount > 0 ? ` · 철수 ${loadOutCount}일` : ""}
         {restCount > 0 ? ` · 휴무 ${restCount}일` : ""} · 총 {totalDays}일 적용

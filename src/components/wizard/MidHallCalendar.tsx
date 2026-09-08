@@ -25,7 +25,7 @@ const WEEKDAY_SHORT = ["일", "월", "화", "수", "목", "금", "토"];
 
 // 역할 선택 팝오버의 고정 폭(7칸 중 몇 칸) — Step1Calendar.tsx의 POPOVER_SPAN과 같은 이유.
 // [수정 2026-09-08] "레이어 길이를 적당히 고정하고 날짜 선택 시점 기준으로 노출해야지"
-// — 4칸도 너무 넓어서 화~토(8-4=4번째 칸부터) 대부분 오른쪽 끝에 붙어 보였다. 셋업·
+// — 4칸도 너무 넓어서 화~토(8-4=4번째 칸부터) 대부분 오른쪽 끝에 붙어 보였다. 준비·
 // 공연일·철수 버튼 3개가 필요한 만큼만 차지하도록 좁혔다.
 const POPOVER_SPAN = 3;
 
@@ -63,7 +63,7 @@ export function midHallReferencePrice(
 }
 
 function roleTag(role: MidHallDayRole, shows: number): string {
-  if (role === "SETUP") return "셋업";
+  if (role === "SETUP") return "준비";
   if (role === "LOAD_OUT") return "철수";
   return `공연${shows > 1 ? `×${shows}` : ""}`;
 }
@@ -100,7 +100,7 @@ export function MidHallCalendar({
 }) {
   // [화면 뼈대 2026-08-19, 아레나 STEP 2(Step1Calendar)와 동일 구조] 역할 지정은 날짜 아래에
   // 바로 펼쳐지는 인라인 드롭다운으로 처리한다 — 클릭 즉시 기본값(공연일)으로 토글하고 별도
-  // 목록에서 편집하던 이전 방식은 "날짜 자체에서 세팅"하는 아레나 캘린더 구조와 어긋나서
+  // 목록에서 편집하던 이전 방식은 "날짜 자체에서 준비"하는 아레나 캘린더 구조와 어긋나서
   // 통일한다.
   const [openDate, setOpenDate] = useState<string | null>(null);
 
@@ -308,7 +308,7 @@ export function MidHallCalendar({
                             : "border border-border/25 text-muted hover:border-foreground hover:text-foreground",
                         ].join(" ")}
                       >
-                        셋업
+                        준비
                       </button>
                       <button
                         type="button"
@@ -416,7 +416,7 @@ export function MidHallCalendar({
                     {days[openDate]?.role === "SETUP" && (
                       <div className="mt-2.5 flex items-center gap-2 border-t border-foreground/20 pt-2.5">
                         <span className="text-xs text-muted">
-                          셋업 연장(22:00~24:00, 전체 일정 공통)
+                          준비 연장(22:00~24:00, 전체 일정 공통)
                         </span>
                         <button
                           type="button"
@@ -473,7 +473,7 @@ export function MidHallCalendar({
                           </>
                         )
                       ) : (
-                        "셋업 또는 공연일을 선택하면 날짜가 추가됩니다."
+                        "준비 또는 공연일을 선택하면 날짜가 추가됩니다."
                       )}
                     </p>
                   </div>
@@ -486,10 +486,10 @@ export function MidHallCalendar({
 
       {selectedDates.length > 0 && (
         <div className="mt-5 text-s font-bold text-foreground">
-          선택 일자 {selectedDates.length}일(비연속 가능) · 셋업 {setupCount}일
+          선택 일자 {selectedDates.length}일(비연속 가능) · 준비 {setupCount}일
           · 공연 {performanceDates.length}일 · 회차 합계 {showCount}
           {loadOutDayCount > 0 && ` · 철수 ${loadOutDayCount}일`}
-          {extraSetupHours > 0 && ` · 셋업연장 ${extraSetupHours}시간`}
+          {extraSetupHours > 0 && ` · 준비연장 ${extraSetupHours}시간`}
           {extraLoadOutHours > 0 && ` · 철수연장 ${extraLoadOutHours}시간`}
         </div>
       )}

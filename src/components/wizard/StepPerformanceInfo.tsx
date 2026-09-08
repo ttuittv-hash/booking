@@ -301,7 +301,7 @@ function arenaSummary(selection: QuoteSelection): string | null {
     else if (tag === "LOAD_OUT") loadOut++;
     else performance++;
   }
-  const parts = [`셋업${setup}`, `공연${performance}`];
+  const parts = [`준비${setup}`, `공연${performance}`];
   if (loadOut > 0) parts.push(`철수${loadOut}`);
   return `${formatDateLabel(dates[0])} ~ ${formatDateLabel(dates[dates.length - 1])} · ${parts.join(" · ")}`;
 }
@@ -312,7 +312,7 @@ function midHallSummary(selection: QuoteSelection): string | null {
   const setup = dates.filter((d) => selection.midHallDays[d].role === "SETUP").length;
   const performance = dates.filter((d) => selection.midHallDays[d].role === "PERFORMANCE").length;
   const loadOut = dates.filter((d) => selection.midHallDays[d].role === "LOAD_OUT").length;
-  return `${formatDateLabel(dates[0])} ~ ${formatDateLabel(dates[dates.length - 1])} · 셋업${setup} · 공연${performance}${loadOut > 0 ? ` · 철수${loadOut}` : ""}`;
+  return `${formatDateLabel(dates[0])} ~ ${formatDateLabel(dates[dates.length - 1])} · 준비${setup} · 공연${performance}${loadOut > 0 ? ` · 철수${loadOut}` : ""}`;
 }
 
 function totalShowCount(selection: QuoteSelection): number {

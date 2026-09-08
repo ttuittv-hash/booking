@@ -43,10 +43,10 @@ function chargeGroups(rows: ChargeBlock[]): SpecGroup[] {
   }));
 }
 
-/** 시간 단위 옵션(셋업 연장·철수 Load-Out) — MidHallCalendar(STEP 1)에서 정한 값을
+/** 시간 단위 옵션(준비 연장·철수 Load-Out) — MidHallCalendar(STEP 1)에서 정한 값을
  * 그대로 보여주기만 하는 읽기 전용 박스다. 처음에는 여기서도 +/− 로 바로 조정할 수
  * 있게 했지만(2026-08-23), 값을 두 군데서 고칠 수 있어 헷갈린다는 요청으로 수정은
- * STEP 1 캘린더에서만 하도록 되돌렸다(2026-08-23, "셋업 연장,철수연장은 앞에
+ * STEP 1 캘린더에서만 하도록 되돌렸다(2026-08-23, "준비 연장,철수연장은 앞에
  * 달력에서 체크한대로만 노출하고 수정 못하게해.. 수정하려면 캘린더가서 가능하도록").
  */
 function MidHallHourBox({
@@ -104,7 +104,7 @@ function MidHallReferenceBox({ label, value, note }: { label: string; value: str
 // 화면과 /rates 양쪽에 동시에 반영된다.
 // [개정 2026-08-23] "기본 항목"·"옵션"을 아레나처럼 박스형태로 구분해 보여 달라는
 // 요청에 따라 표(SpecTable/GroupedSpecTable) 대신 AddonRow와 같은 박스 그리드로
-// 바꿨다. "추가대관"(셋업 연장·철수 Load-Out)은 이미 있는 필드라 수량 스테퍼로
+// 바꿨다. "추가대관"(준비 연장·철수 Load-Out)은 이미 있는 필드라 수량 스테퍼로
 // 즉시 조정 가능하게 했고, 나머지(공간·프로모션·기타·온라인 콘서트 진행)는 "별도
 // 협의"·"실비" 금액이 섞여 있어 참고용 박스로만 보여준다(견적에 자동 반영 안 함).
 function MidHallRateCard({
@@ -119,7 +119,7 @@ function MidHallRateCard({
   extraLoadOutHours: number;
 }) {
   // [2026-08-23] "컬럼값이 두번 반복되는게 이상해" — Details를 별도 표로 그리면
-  // 같은 열 제목(평일/주말 셋업 등)이 헤더 행으로 두 번 찍혀 보였다. 표 하나에
+  // 같은 열 제목(평일/주말 준비 등)이 헤더 행으로 두 번 찍혀 보였다. 표 하나에
   // 행만 더 붙이는 방식으로 바꿔 헤더는 한 번만 나오게 한다.
   const cols = content.columns.map((r) => ({ key: r.key, title: r.name, align: "left" as const }));
   const baseRows = content.rowLabels.map((label, i) => ({
@@ -136,7 +136,7 @@ function MidHallRateCard({
 
   // [수정 2026-09-06] "중형공연장 패키지도 아레나 패키지와 동일한 UI로" — 요금 정책
   // (일 단위 자유 조합)은 그대로 두고, 표시만 아레나 PackagePicker의 카드 프레임(제목 +
-  // 구분선 + dl 속성 행)에 맞춘다. 컬럼(셋업/철수·평일 공연·주말 공연) 하나당 카드 하나,
+  // 구분선 + dl 속성 행)에 맞춘다. 컬럼(준비/철수·평일 공연·주말 공연) 하나당 카드 하나,
   // 그 안에 행 라벨(rowLabels/detailLabels)을 속성으로 나열한다 — 표(ComparisonTable)
   // 대신 카드 그리드로 그린다.
   const visibleRows = detailsOpen ? [...baseRows, ...detailRows] : baseRows;
@@ -228,7 +228,7 @@ function MidHallRateCard({
               <div className="mb-2 text-xs font-bold text-muted">{t("configOptions.extraDaysLabel", "추가대관")}</div>
               <div className="grid grid-cols-1 gap-1.5 sm:grid-cols-2 lg:grid-cols-3">
                 <MidHallHourBox
-                  label={t("configOptions.setupExtensionLabel", "셋업 연장 (22:00~24:00)")}
+                  label={t("configOptions.setupExtensionLabel", "준비 연장 (22:00~24:00)")}
                   hint={t("configOptions.appliesWholePeriodHint", "전체 일정 공통 적용")}
                   hours={extraSetupHours}
                   unitFee={extraHourFee}
@@ -275,7 +275,7 @@ function MidHallRateCard({
 // "패키지 선택" 슬롯에서 4개 패키지 카드 중 하나를 직접 고르면, 그 아래 "선택 옵션" 슬롯이
 // 그 패키지에서 고를 수 있는 옵션으로 바뀐다(isAddonAvailable 필터링은 기존과 동일).
 /*
-  [수정 2026-09-06] "구성/옵션 아레나 하단 워딩 수정할 수 있도록" 요청 — "셋업"/"공연"/
+  [수정 2026-09-06] "구성/옵션 아레나 하단 워딩 수정할 수 있도록" 요청 — "준비"/"공연"/
   "철수" 라벨이 문자열 리터럴로 박혀 있어 편집 대상이 아니었다. 이 함수는 컴포넌트가
   아니라 훅(useWizardText)을 쓸 수 없으므로, 호출부에서 만든 tStr을 인자로 받는다.
 */
@@ -297,7 +297,7 @@ function arenaSummaryLine(
     else performance++;
   }
   const parts = [
-    `${tStr("configOptions.arenaSummary.setupLabel", "셋업")}${setup}`,
+    `${tStr("configOptions.arenaSummary.setupLabel", "준비")}${setup}`,
     `${tStr("configOptions.arenaSummary.performanceLabel", "공연")}${performance}`,
   ];
   if (loadOut > 0) parts.push(`${tStr("configOptions.arenaSummary.loadOutLabel", "철수")}${loadOut}`);
@@ -316,7 +316,7 @@ function arenaSummaryLine(
 // 파생 행이라 이 순서 조정 대상에서 뺀다("총금액이 가장 밑에 들어가야해" 요구를
 // 그대로 지키기 위해 항상 맨 뒤 고정).
 const PACKAGE_CARD_GROUP_ID = "configOptions.packageCard";
-// "아레나" 제목 아래 예상 관객·셋업·공연 요약 줄(동적으로 조립되는 lead 문장) 전체를
+// "아레나" 제목 아래 예상 관객·준비·공연 요약 줄(동적으로 조립되는 lead 문장) 전체를
 // 어드민에서 켜고 끄는 스위치 — disabledFields 관례를 그대로 따른다.
 const ARENA_SUMMARY_LEAD_FIELD_ID = "configOptions.arenaSummaryLead";
 const PACKAGE_CARD_DEFAULT_ORDER = ["audienceCapacity", "recommendedStage", "recommendedSeating", "baseFee"] as const;
@@ -622,8 +622,8 @@ export function StepConfigOptions({
         <StepHeading
           title={headingOverride?.title ?? stepText.configArenaTitle}
           lead={
-            // [수정 2026-09-07] "저 부분(예상 관객·셋업·공연 요약 줄) 삭제하고 싶은데
-            // 삭제가 안 됨" — 예전에는 단어 하나하나(예상 관객/셋업/공연 등)만 바꿔 쓸 수
+            // [수정 2026-09-07] "저 부분(예상 관객·준비·공연 요약 줄) 삭제하고 싶은데
+            // 삭제가 안 됨" — 예전에는 단어 하나하나(예상 관객/준비/공연 등)만 바꿔 쓸 수
             // 있고, 줄 자체를 끌 방법이 없었다. 다른 슬롯과 같은 노출 On/off 패턴
             // (disabledFields)을 그대로 써서 이 줄 전체를 켜고 끌 수 있게 한다.
             pkg && !disabledFields?.includes(ARENA_SUMMARY_LEAD_FIELD_ID)

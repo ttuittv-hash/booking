@@ -29,7 +29,7 @@ function midHallSummaryLine(selection: QuoteSelection): string | null {
   const setup = dates.filter((d) => selection.midHallDays[d].role === "SETUP").length;
   const performanceDates = dates.filter((d) => selection.midHallDays[d].role === "PERFORMANCE");
   const shows = performanceDates.reduce((sum, d) => sum + selection.midHallDays[d].shows, 0);
-  return `총 ${dates.length}일 (셋업 ${setup} · 공연 ${performanceDates.length} · 회차 ${shows}) · 관객 ${selection.secondaryAudience.toLocaleString()}명`;
+  return `총 ${dates.length}일 (준비 ${setup} · 공연 ${performanceDates.length} · 회차 ${shows}) · 관객 ${selection.secondaryAudience.toLocaleString()}명`;
 }
 
 // defaultTitle/defaultDesc는 관리자가 아직 문구를 고치지 않았을 때 쓰는 기본값이다 —
