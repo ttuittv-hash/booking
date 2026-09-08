@@ -1390,9 +1390,6 @@ export function WizardShell({
                   setSelection((prev) => ({ ...prev, performanceInfo }))
                 }
                 expectedRevenue={selection.expectedRevenue ?? 0}
-                onChangeRevenue={(value) =>
-                  setSelection((prev) => ({ ...prev, expectedRevenue: value }))
-                }
               />
             }
             rateTable={rateTable}
