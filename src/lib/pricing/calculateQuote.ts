@@ -82,7 +82,7 @@ export function calculateQuote(selection: QuoteSelection, rateTable: RateTable):
         items.push(
           makeLine(
             "day_exclusion_discount_prep",
-            `제외 요일 할인 — 준비일 (${excludedPrepCount}일, 단가 ${Math.round(pkg.extraDayDiscountRatio * 100)}% 할인)`,
+            `제외 — 준비일 (${excludedPrepCount}일)`,
             "PER_DAY",
             excludedPrepCount,
             0,
@@ -97,7 +97,7 @@ export function calculateQuote(selection: QuoteSelection, rateTable: RateTable):
         items.push(
           makeLine(
             "day_exclusion_discount_performance",
-            `제외 요일 할인 — 공연일 (${excludedPerformanceCount}일, 단가 ${Math.round(pkg.extraDayDiscountRatio * 100)}% 할인)`,
+            `제외 — 공연일 (${excludedPerformanceCount}일)`,
             "PER_DAY",
             excludedPerformanceCount,
             0,
@@ -142,7 +142,7 @@ export function calculateQuote(selection: QuoteSelection, rateTable: RateTable):
         items.push(
           makeLine(
             "extra_days",
-            `추가 일수 (준비일 단가 ${Math.round(pkg.extraDayDiscountRatio * 100)}% 할인)`,
+            `추가 일수`,
             "PER_DAY",
             fullPriceCount,
             0,
@@ -157,7 +157,7 @@ export function calculateQuote(selection: QuoteSelection, rateTable: RateTable):
         items.push(
           makeLine(
             "extra_days_rest",
-            `추가일수 휴무일 ${restCount}일 (준비일 단가 ${Math.round(pkg.extraDayDiscountRatio * 100)}% 할인 후 휴무일 ${Math.round(pkg.restDayDiscountRatio * 100)}% 추가 할인)`,
+            `추가일수 휴무일 ${restCount}일`,
             "PER_DAY",
             restCount,
             0,
@@ -188,7 +188,7 @@ export function calculateQuote(selection: QuoteSelection, rateTable: RateTable):
       items.push(
         makeLine(
           "performance_day_adjustment",
-          `공연 일수 조정 (기본 ${pkg.defaultPerformanceDays}일 대비 ${sign}${performanceDelta}일, 공연일 단가 ${Math.round(pkg.extraDayDiscountRatio * 100)}% 할인)`,
+          `공연 일수 조정 (기본 ${pkg.defaultPerformanceDays}일 대비 ${sign}${performanceDelta}일)`,
           "PER_DAY",
           performanceDayCount,
           pkg.defaultPerformanceDays,
@@ -285,6 +285,7 @@ export function calculateQuote(selection: QuoteSelection, rateTable: RateTable):
       if (selected.addonId === "cleaning") continue; // 위에서 이미 처리
       const addonItem = findAddon(rateTable, selected.addonId);
       if (!addonItem) continue;
+      if (addonItem.venueId === "medium-hall") continue; // 중형 옵션은 calculateMidHallLineItems 가 합산(2026-09-08)
       if (addonItem.billingPhase === "SETTLEMENT") continue; // 유틸리티는 예상견적 제외
       if (addonItem.visibility === "HIDDEN") continue; // 자동 산입 항목은 위에서 별도 처리
 

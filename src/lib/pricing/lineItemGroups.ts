@@ -118,7 +118,7 @@ export const SECTION_SUBTOTAL_LABEL: Record<ContractSection, string> = {
 // [부활 2026-09-08] "기존에 계약시 결제 노랑색... 변동가능 회색 글씨 좋았어 — 그것도
 // 반영해" — VAT 박스 구조로 바꾸며 뺐던 제목 옆 태그(노란/회색)를 다시 붙인다.
 export const SECTION_TAG: Record<ContractSection, string> = {
-  CONTRACT: "계약 시 결제",
+  CONTRACT: "계약 기준 금액",
   ADDITIONAL: "변동 가능",
 };
 

@@ -273,6 +273,37 @@ export function PackagesForm({
   const [midHallCharges, setMidHallCharges] = useState<ChargeBlock[]>(ratesContent.liveHall.charges);
   const [midHallSaving, setMidHallSaving] = useState(false);
   const [midHallMessage, setMidHallMessage] = useState<string | null>(null);
+  // [신규 2026-09-08] 중형공연장 "선택 옵션"(수량형·견적 반영) 새 항목 입력칸 — nora
+  // "중형 추가 옵션도 아레나와 동일한 방식으로". 항목은 addons 에 venueId "medium-hall" 로
+  // 들어가고, 저장은 아레나 옵션과 같은 패키지 PUT(save)을 탄다.
+  const [midHallNewName, setMidHallNewName] = useState("");
+  const [midHallNewUnit, setMidHallNewUnit] = useState("원/일");
+  const [midHallNewPrice, setMidHallNewPrice] = useState(0);
+  const midHallOptionAddons = addons.filter((a) => a.venueId === "medium-hall");
+
+  function addMidHallOption() {
+    const name = midHallNewName.trim();
+    if (!name) return;
+    const base = slugify(name) || `mh-${Date.now()}`;
+    let id = base;
+    let n = 2;
+    while (addons.some((a) => a.id === id)) id = `${base}-${n++}`;
+    const item: AddonItem = {
+      id,
+      category: ADDON_CATEGORIES[0],
+      name,
+      pricingType: "PER_DAY",
+      unitPrice: Math.max(0, midHallNewPrice || 0),
+      unitLabel: midHallNewUnit.trim() || "원",
+      availability: { mode: "ALWAYS", maxAddQuantity: "UNLIMITED" },
+      billingPhase: "ESTIMATE",
+      visibility: "VISIBLE",
+      venueId: "medium-hall",
+    };
+    setAddons((prev) => [...prev, item]);
+    setMidHallNewName("");
+    setMidHallNewPrice(0);
+  }
 
   const active = packages.find((p) => p.id === activeId)!;
   const venuePackages = packages.filter((p) => (p.venueId ?? DEFAULT_VENUE_ID) === venueTab);
@@ -1251,6 +1282,150 @@ export function PackagesForm({
               </button>
               {midHallMessage && <p className="text-xs text-muted">{midHallMessage}</p>}
             </div>
+
+            {/* [신규 2026-09-08] ③ 선택 옵션(수량형) — nora "중형 추가 옵션도 아레나 추가 옵션과
+                동일한 방식·UI로". 위 ② 옵션(참고용 문구, 별도 문의)과 달리 단가·수량 상한을
+                갖는 진짜 항목이라 신청자가 수량을 고르면 중형 견적에 단가 × 수량으로 합산된다.
+                이 항목이 하나라도 있으면 위저드는 ② 참고 카드를 감추고 이 목록을 보여준다. */}
+            <section className="mt-6 border-l-4 border-foreground/60 bg-panel/40 p-4">
+              <div className="flex flex-wrap items-center gap-2">
+                <h2 className="type-kr-heading text-h6-m">③ 선택 옵션</h2>
+                <span className="bg-foreground px-2 py-0.5 text-xs font-bold text-background">수량 선택 · 견적 반영</span>
+              </div>
+              <p className="mt-1 text-xs text-muted">
+                아레나 선택 옵션과 같은 방식 — 신청자가 수량을 정하면 단가 × 수량이 중형공연장 예상 대관료에
+                바로 합산됩니다. 이 목록이 하나라도 있으면 위 ② 옵션의 「별도 문의」 카드는 신청 화면에서
+                감춰집니다. 저장은 아래 「선택 옵션 저장」(패키지 저장과 같은 경로).
+              </p>
+
+              <div className="mt-4 space-y-1.5">
+                {midHallOptionAddons.length === 0 && (
+                  <p className="text-xs text-muted">아직 없습니다 — 아래에서 추가하세요.</p>
+                )}
+                {midHallOptionAddons.map((addon) => (
+                  <div
+                    key={addon.id}
+                    className="flex flex-col gap-2 border-b border-border/50 pb-1.5 sm:flex-row sm:items-center sm:justify-between"
+                  >
+                    <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-s">
+                      <input
+                        type="text"
+                        value={addon.name}
+                        placeholder="항목명"
+                        onChange={(e) =>
+                          setAddons((prev) => prev.map((a) => (a.id === addon.id ? { ...a, name: e.target.value } : a)))
+                        }
+                        className={`w-40 ${FIELD}`}
+                      />
+                      <label className="flex items-center gap-1">
+                        <span className="text-xs text-muted">(</span>
+                        <input
+                          type="text"
+                          value={addon.unitLabel}
+                          placeholder="원/일"
+                          onChange={(e) => updateAddonUnitLabel(addon.id, e.target.value)}
+                          className={`w-16 ${FIELD}`}
+                          title="단위 표시 (예: 원/일, 원/회, 원)"
+                        />
+                        <span className="text-xs text-muted">)</span>
+                      </label>
+                      <input
+                        type="text"
+                        value={addon.spec ?? ""}
+                        placeholder="스펙 (선택)"
+                        onChange={(e) => updateAddonSpec(addon.id, e.target.value)}
+                        className={`w-32 ${FIELD}`}
+                      />
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <label className="flex items-center gap-1.5">
+                        <span className="text-xs text-muted">수량 제한</span>
+                        <input
+                          type="number"
+                          min={0}
+                          value={
+                            addon.availability.maxAddQuantity !== undefined &&
+                            addon.availability.maxAddQuantity !== "UNLIMITED"
+                              ? addon.availability.maxAddQuantity
+                              : ""
+                          }
+                          placeholder="무제한"
+                          onChange={(e) => updateAddonMaxAddQuantity(addon.id, e.target.value)}
+                          className={`w-16 ${FIELD_NUM}`}
+                        />
+                      </label>
+                      <label className="flex items-center gap-1.5">
+                        <span className="text-xs text-muted">단가</span>
+                        <input
+                          type="number"
+                          min={0}
+                          value={addon.unitPrice}
+                          onChange={(e) => updateAddonPrice(addon.id, Math.max(0, Number(e.target.value) || 0))}
+                          className={`w-28 ${FIELD_NUM}`}
+                        />
+                      </label>
+                      <button
+                        type="button"
+                        onClick={() => void removeAddon(addon.id)}
+                        className="text-xs font-bold text-danger hover:underline"
+                      >
+                        삭제
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              <div className="mt-4 flex flex-wrap items-end gap-2">
+                <label className="flex flex-col gap-1">
+                  <span className="text-xs text-muted">항목명</span>
+                  <input
+                    type="text"
+                    value={midHallNewName}
+                    placeholder="예: 부스"
+                    onChange={(e) => setMidHallNewName(e.target.value)}
+                    className={`w-44 ${FIELD}`}
+                  />
+                </label>
+                <label className="flex flex-col gap-1">
+                  <span className="text-xs text-muted">단위</span>
+                  <input
+                    type="text"
+                    value={midHallNewUnit}
+                    placeholder="원/일"
+                    onChange={(e) => setMidHallNewUnit(e.target.value)}
+                    className={`w-20 ${FIELD}`}
+                  />
+                </label>
+                <label className="flex flex-col gap-1">
+                  <span className="text-xs text-muted">단가</span>
+                  <input
+                    type="number"
+                    min={0}
+                    value={midHallNewPrice}
+                    onChange={(e) => setMidHallNewPrice(Math.max(0, Number(e.target.value) || 0))}
+                    className={`w-28 ${FIELD_NUM}`}
+                  />
+                </label>
+                <button
+                  type="button"
+                  onClick={addMidHallOption}
+                  className="inline-flex h-9 items-center border border-foreground px-3 text-xs font-bold text-foreground hover:bg-foreground hover:text-background"
+                >
+                  + 옵션 추가
+                </button>
+              </div>
+
+              <div className="mt-4">
+                <button
+                  type="button"
+                  onClick={() => void save()}
+                  className="inline-flex h-9 items-center bg-foreground px-4 text-xs font-bold text-background"
+                >
+                  선택 옵션 저장
+                </button>
+              </div>
+            </section>
           </section>
         )}
 

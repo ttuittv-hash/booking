@@ -387,6 +387,36 @@ describe("calculateQuote — 중형공연장(DAILY) 요금 엔진", () => {
     });
   }
 
+  // [신규 2026-09-08] 중형공연장 선택 옵션(venueId "medium-hall") — nora "아레나 추가 옵션과
+  // 동일한 방식". 단가 × 수량으로 중형 몫에 합산되고, 상한(maxAddQuantity)으로 잘리며,
+  // 아레나 계산에는 끼지 않는다(같은 항목이 두 번 잡히지 않는다).
+  it("중형 선택 옵션 — 단가 × 수량(상한 적용)으로 중형 몫에 한 번만 합산된다", () => {
+    const booth: AddonItem = {
+      id: "mh_booth",
+      category: RATE_TABLE.addons[0].category,
+      name: "중형 부스",
+      pricingType: "PER_DAY",
+      unitPrice: 50_000,
+      unitLabel: "원/일",
+      availability: { mode: "ALWAYS", maxAddQuantity: 3 },
+      billingPhase: "ESTIMATE",
+      visibility: "VISIBLE",
+      venueId: "medium-hall",
+    };
+    const table: RateTable = { ...RATE_TABLE, addons: [...RATE_TABLE.addons, booth] };
+    const quote = calculateQuote(
+      midHallOnlySelection({
+        midHallDays: { "2027-08-04": { role: "PERFORMANCE", shows: 1 } },
+        addons: [{ addonId: "mh_booth", requestedQuantity: 5 }],
+      }),
+      table,
+    );
+    const lines = quote.lineItems.filter((i) => i.addonId === "mh_booth");
+    expect(lines).toHaveLength(1);
+    expect(lines[0].venue).toBe("medium-hall");
+    expect(lines[0].amount).toBe(150_000); // 5 → 상한 3 × 50,000
+  });
+
   it("셋업 + 평일 공연 1회 — 기본 단가 그대로 과금된다", () => {
     // 2027-08-03(화)=셋업, 2027-08-04(수)=공연 1회 — 둘 다 평일
     const quote = calculateQuote(
