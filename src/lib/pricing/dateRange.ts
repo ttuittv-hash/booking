@@ -5,7 +5,7 @@ function toColumnIndex(jsDay: number): number {
   return (jsDay + 6) % 7;
 }
 
-function addDays(date: Date, n: number): Date {
+export function addDays(date: Date, n: number): Date {
   const d = new Date(date);
   d.setDate(d.getDate() + n);
   return d;
@@ -63,6 +63,23 @@ export function simultaneousWindowGapDays(
 }
 
 export const SIMULTANEOUS_WINDOW_MAX_DAYS = 14;
+
+// [신규 2026-09-08] "화/일만 아무것도 없이 해제 가능하고 중간은 무조건 뭐라도
+// 세팅이 되어야함 — 패키지 중간을 비울 수는 없음" — 기본 6일 중 가운데 4일
+// (수목금토)은 제외할 수 없는 패키지 고정 구간이라, 명시 지정(dayTags) 없이
+// 묵시적 기본값에만 의존한 채로 두면 신청 진행을 막는다. 양 끝(화·일)은 명시
+// 지정이 없어도(=제외) 유효한 상태라 검사하지 않는다.
+export function arenaMiddleBaseDaysIncomplete(
+  selection: Pick<QuoteSelection, "week" | "excludedDays" | "dayTags">,
+): boolean {
+  const tuesday = findWeekTuesday(selection.week);
+  if (!tuesday) return false;
+  return WEEKDAYS.slice(1, 5).some((weekday, idx) => {
+    if (selection.excludedDays.includes(weekday)) return false;
+    const iso = isoDate(addDays(tuesday, idx + 1));
+    return !selection.dayTags[iso];
+  });
+}
 
 // 실제 대관 예정 날짜 목록 (제외 요일 제거 + 추가 일수 포함), 화요일부터 순서대로 ISO 날짜 문자열로 반환한다.
 export function resolveSelectedDates(

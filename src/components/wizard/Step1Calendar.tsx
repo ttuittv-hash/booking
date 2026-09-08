@@ -2,7 +2,7 @@
 
 import { btnClass, ICON_BTN_SM, toggleClass } from "@/components/ui/kit";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { isoDate, resolveSelectedDates } from "@/lib/pricing/dateRange";
 import { defaultDayTags, effectiveDayTag } from "@/lib/pricing/rateTableUtils";
 import { canStepMonth, toMonthKey } from "@/lib/content/noticeCalendarWindow";
@@ -201,6 +201,34 @@ export function Step1Calendar({
     }
   }
 
+  // [신규 2026-09-08] "화/일만 아무것도 없이 해제 가능하고 중간은 무조건 뭐라도
+  // 세팅이 되어야함" — 화·일(기본 6일의 양 끝)은 명시 지정(dayTags)이 없으면 별도
+  // "제외" 버튼 없이 자동으로 제외 처리해 준비일 10% 할인 차감이 실시간 내역에
+  // 반영되어야 한다(day_exclusion_discount_prep/performance, calculateQuote.ts).
+  // 명시 지정이 다시 생기면 자동으로 포함 상태로 되돌린다. 가운데 4일(수목금토)은
+  // 패키지 단위라 제외 대상이 아니다 — 대신 WizardShell의 "다음" 검증이 명시
+  // 지정을 요구한다.
+  const selectedTuesdayKey = selectedTuesday ? dateKey(selectedTuesday) : null;
+  useEffect(() => {
+    if (!selectedTuesday) return;
+    const nextExcluded = new Set(excludedDays);
+    let changed = false;
+    (["TUE", "SUN"] as WeekDay[]).forEach((weekday) => {
+      const offset = WEEKDAYS.indexOf(weekday);
+      const iso = isoDate(addDays(selectedTuesday, offset));
+      const hasExplicitTag = Boolean(dayTags[iso]);
+      if (hasExplicitTag && nextExcluded.has(weekday)) {
+        nextExcluded.delete(weekday);
+        changed = true;
+      } else if (!hasExplicitTag && !nextExcluded.has(weekday)) {
+        nextExcluded.add(weekday);
+        changed = true;
+      }
+    });
+    if (changed) onChangeExcludedDays(WEEKDAYS.filter((w) => nextExcluded.has(w)));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedTuesdayKey, dayTags, excludedDays]);
+
   // [신규 2026-09-06] "1주는 패키지 단위, 그 다음주는 개별로 추가... 휴무일을
   // 지정할수 있고" — 지금 열린 드롭다운의 날짜가 기본 6일(base)인지 개별 추가일
   // (extra·extend)인지에 따라 아래 "휴무일" 버튼을 보여줄지 정한다.
@@ -305,10 +333,10 @@ export function Step1Calendar({
         onChangeDayTags(omit(dayTags, iso));
         return;
       }
-      // 준비/공연일/철수 선택 — 제외돼 있었다면(옛 신청서) 다시 사용일로 복귀시킨 뒤
-      // 역할을 지정한다. 드롭다운은 여기서 닫지 않는다 — 공연일을 고른 직후 바로
-      // 아래에서 회차를 조정해야 하므로, 상태값과 회차 스테퍼를 같은 화면에서 함께
-      // 보여준다.
+      // 준비/공연일/철수 선택 — 제외돼 있었다면 다시 사용일로 복귀시킨 뒤 역할을
+      // 지정한다. 드롭다운은 여기서 닫지 않는다 — 공연일을 고른 직후 바로 아래에서
+      // 회차를 조정해야 하므로, 상태값과 회차 스테퍼를 같은 화면에서 함께 보여준다.
+      // (화·일 제외 동기화는 아래 useEffect가 dayTags 변화를 보고 자동으로 한다.)
       if (excludedDays.includes(dayKind.weekday)) {
         onChangeExcludedDays(excludedDays.filter((d) => d !== dayKind.weekday));
       }
@@ -666,6 +694,18 @@ export function Step1Calendar({
                         </button>
                       )}
                     </div>
+                    {/* [수정 2026-09-08] "화/일만 아무것도 없이 해제 가능"— 화·일(양 끝)은
+                        위 역할 버튼을 골랐다가 같은 버튼을 한 번 더 눌러 해제하면(선택
+                        없음) 자동으로 제외 처리되어 준비일 10% 할인가만큼 차감된다는
+                        걸 안내한다(제외를 위한 별도 버튼은 없다). */}
+                    {openDayKind?.kind === "base" &&
+                      (openDayKind.weekday === "TUE" || openDayKind.weekday === "SUN") && (
+                        <p className="mt-2 text-xs text-muted">
+                          {excludedDays.includes(openDayKind.weekday)
+                            ? "이 날짜는 제외되어 준비일 단가에서 10% 할인된 금액이 차감됩니다. 다시 포함하려면 위 역할을 선택하세요."
+                            : "선택한 역할을 한 번 더 누르면 이 날짜를 제외할 수 있습니다(준비일 단가 10% 할인 차감)."}
+                        </p>
+                      )}
 
                     {activeDateKeys.has(dateKey(new Date(openDate))) &&
                       effectiveDayTag(openDate, dayTags, dayTagDefaults) ===
