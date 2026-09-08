@@ -15,6 +15,7 @@ import {
   type StepValidationResult,
   type TicketTypeRecord,
 } from "@/lib/pricing/types";
+import { won } from "@/lib/format";
 import { useWizardText } from "@/lib/content/wizardText";
 import { VenueSplitTabBar, type VenueSplitTab } from "./VenueSplitTabBar";
 import { StepHeading } from "./StepHeading";
@@ -493,10 +494,16 @@ export function StepAudience({
 export function StepCompetitionOption({
   info,
   onChange,
+  expectedRevenue,
+  onChangeRevenue,
   framed = false,
 }: {
   info: PerformanceInfo;
   onChange: (info: PerformanceInfo) => void;
+  /** [신규 2026-09-08 저녁] 총 예상 티켓매출(원) — selection.expectedRevenue. 오른쪽 「소계」는
+   *  이 값 × RS 요율이다(nora 통화 18:47). */
+  expectedRevenue: number;
+  onChangeRevenue: (value: number) => void;
   /** [신규 2026-09-08] 예상 대관료 화면의 박스 사이에 끼울 때 — 굵은 헤어라인 대신 다른
    *  박스(대관료·추후 정산)와 같은 테두리 박스로 그린다. */
   framed?: boolean;
@@ -513,40 +520,70 @@ export function StepCompetitionOption({
   function clampRate(raw: string): number {
     return Math.max(0, Math.min(RS_MAX_PERCENT, Number(raw) || 0));
   }
+  const rate = info.ticketRevenueShareRate ?? 0;
+  const rsAmount = Math.round((expectedRevenue * rate) / 100);
 
+  // [개정 2026-09-08 저녁] nora 통화 — 한 박스를 세 칸으로: 왼쪽 「총 예상 티켓매출」(원 입력),
+  // 가운데 「대관료 추가 제안 · RS 요율」(기존), 오른쪽 「소계」= 매출 × 요율(원, 자동).
+  // 제목·설명 문구는 전부 t() 키라 백오피스 화면 문구에서 고칠 수 있다. 소계는 표시용이며
+  // 총금액에는 더하지 않는다(계약 협의용 제안값).
   return (
     <div className={framed ? "border border-border bg-panel/40 p-5" : "border-t-2 border-foreground pt-5"}>
-      <h3 className="type-kr-heading text-h6-m">
-        {t("competitionOption.sectionHeading", "대관 경합 옵션")}
-      </h3>
-      {/* [수정 2026-09-07] "대관 경합 옵션에서 대관료 레인지는 삭제" — 경합 시 제시할
-          대관료 최소~최대 범위 입력을 뺐다. 그 값을 쓰던 견적 라인(경합 시 추가
-          대관료 옵션)은 값이 안 들어오면 그냥 안 잡히므로 계산 쪽은 손대지 않는다 —
-          티켓 매출 RS 요율만 남긴다. */}
-      <div className="mt-4">
-        <div className="mb-2.5">
-          <label className="text-xs font-bold text-muted">
-            {t("audience.ticketRevenueShareRateLabel", "티켓 매출 RS 요율")}
-          </label>
+      <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
+        <div>
+          <h3 className="type-kr-heading text-h6-m">{t("competitionOption.revenueHeading", "총 예상 티켓매출")}</h3>
           <p className="mt-1 text-xs text-muted">
-            {t(
-              "audience.ticketRevenueShareRateHint",
-              "RS(Revenue Share)는 2%까지 제안 가능합니다.",
-            )}
+            {t("competitionOption.revenueHint", "티켓 판매로 예상되는 총 매출액(원)을 적어 주세요.")}
           </p>
+          <div className="mt-3 flex items-center gap-1.5">
+            <input
+              type="number"
+              min={0}
+              step={1000000}
+              value={expectedRevenue || ""}
+              placeholder={tStr("competitionOption.revenuePlaceholder", "예: 500000000")}
+              onChange={(e) => onChangeRevenue(Math.max(0, Math.floor(Number(e.target.value) || 0)))}
+              className="field-base w-full"
+            />
+            <span className="text-xs text-muted">{t("competitionOption.wonUnit", "원")}</span>
+          </div>
         </div>
-        <div className="flex w-28 items-center gap-1.5">
-          <input
-            type="number"
-            min={0}
-            max={RS_MAX_PERCENT}
-            step={0.1}
-            value={info.ticketRevenueShareRate ?? ""}
-            placeholder={tStr("audience.ticketRevenueShareRatePlaceholder", "요율")}
-            onChange={(e) => set("ticketRevenueShareRate", clampRate(e.target.value))}
-            className="field-base w-full"
-          />
-          <span className="text-xs text-muted">%</span>
+
+        <div>
+          <h3 className="type-kr-heading text-h6-m">
+            {t("competitionOption.sectionHeading", "대관료 추가 제안")}
+          </h3>
+          {/* [수정 2026-09-07] "대관 경합 옵션에서 대관료 레인지는 삭제" — 경합 시 제시할
+              대관료 최소~최대 범위 입력을 뺐다. 티켓 매출 RS 요율만 남긴다. */}
+          <div className="mt-1">
+            <label className="text-xs font-bold text-muted">
+              {t("audience.ticketRevenueShareRateLabel", "티켓 매출 RS")}
+            </label>
+            <p className="mt-1 text-xs text-muted">
+              {t("audience.ticketRevenueShareRateHint", "RS(Revenue Share)는 2%까지 제안 가능합니다.")}
+            </p>
+          </div>
+          <div className="mt-3 flex w-28 items-center gap-1.5">
+            <input
+              type="number"
+              min={0}
+              max={RS_MAX_PERCENT}
+              step={0.1}
+              value={info.ticketRevenueShareRate ?? ""}
+              placeholder={tStr("audience.ticketRevenueShareRatePlaceholder", "요율")}
+              onChange={(e) => set("ticketRevenueShareRate", clampRate(e.target.value))}
+              className="field-base w-full"
+            />
+            <span className="text-xs text-muted">%</span>
+          </div>
+        </div>
+
+        <div className="md:text-right">
+          <h3 className="type-kr-heading text-h6-m">{t("competitionOption.subtotalHeading", "소계")}</h3>
+          <p className="mt-1 text-xs text-muted">
+            {t("competitionOption.subtotalHint", "총 예상 티켓매출 × RS 요율")}
+          </p>
+          <div className="mt-3 text-h6-m font-bold tabular-nums">{won(rsAmount)}</div>
         </div>
       </div>
     </div>

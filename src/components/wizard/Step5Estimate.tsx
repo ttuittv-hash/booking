@@ -50,10 +50,14 @@ export function Step5Estimate({
           나눠 보여준다) → 전체 소계(VAT 별도) → 부가세 → 총금액, 이 순서 하나뿐이다.
           예전엔 이 아래에 "총 대관료"/"총 옵션비용"(공간을 합친 값)을 한 번 더
           보여줬는데, SummaryPanel에는 없는 줄이라 두 화면 구성이 어긋났다 — 뺐다. */}
+      {/* [개정 2026-09-08 저녁] nora 통화 — 순서를 대관료 박스 → 티켓매출/RS 박스(beforeTotals)
+          → 소계·부가세·총금액 → 추후 정산 예정 금액 으로. 추후 정산 박스는 아래(총금액 뒤)에서
+          sections={["ADDITIONAL"]} 로 따로 그린다. */}
       <QuoteLineItemsReport
         selection={selection}
         lineItems={quote.lineItems}
         expectedRevenue={selection.expectedRevenue ?? 0}
+        sections={["CONTRACT"]}
       />
 
       {beforeTotals && <div className="mt-6">{beforeTotals}</div>}
@@ -88,6 +92,14 @@ export function Step5Estimate({
           </ul>
         </div>
       )}
+
+      {/* 추후 정산 예정 금액 — 총금액 아래로(2026-09-08 저녁, nora). */}
+      <QuoteLineItemsReport
+        selection={selection}
+        lineItems={quote.lineItems}
+        expectedRevenue={selection.expectedRevenue ?? 0}
+        sections={["ADDITIONAL"]}
+      />
     </section>
   );
 }
