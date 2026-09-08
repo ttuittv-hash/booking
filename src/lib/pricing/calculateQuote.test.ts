@@ -290,6 +290,19 @@ describe("calculateQuote — 명세서 7장 검증 케이스", () => {
     expect(discountLine.amount).toBe(-discountedUnitPrice);
   });
 
+  it("공연일 요일을 제외하면 '제외 — 공연일'로만 한 번 차감되고 '공연 일수 조정'은 붙지 않는다 (2026-09-08 밤 버그)", () => {
+    // 화(준비)·일(공연)을 삭제 → 남은 수목금(준비) + 토(공연) = 기본 배치 그대로. 공연일은
+    // 제외 줄로 이미 한 번 빠졌으므로 "기본 2일 대비 -1일" 조정이 또 붙으면 이중 차감이다.
+    const sel = baseSelection({ excludedDays: ["TUE", "SUN"] });
+    const dates = resolveSelectedDates(sel);
+    const dayTags: QuoteSelection["dayTags"] = {};
+    dates.forEach((d, i) => (dayTags[d] = i === dates.length - 1 ? "PERFORMANCE" : "PREP"));
+    const quote = calculateQuote({ ...sel, dayTags }, RATE_TABLE);
+    expect(quote.lineItems.find((i) => i.addonId === "day_exclusion_discount_performance")?.billable).toBe(1);
+    expect(quote.lineItems.find((i) => i.addonId === "day_exclusion_discount_prep")?.billable).toBe(1);
+    expect(quote.lineItems.find((i) => i.addonId === "performance_day_adjustment")).toBeUndefined();
+  });
+
   it("패키지 가격은 요금표 고정값 그대로다 — 포함 항목 단가를 더해 역산하지 않는다 (2-20/2-42)", () => {
     const quote = calculateQuote(baseSelection(), RATE_TABLE);
     const baseFeeLine = quote.lineItems.find((i) => i.addonId === "BASE_FEE")!;

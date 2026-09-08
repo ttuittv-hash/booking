@@ -55,14 +55,17 @@ export function Step5Estimate({
     ? tStr(venueLabelKey(selection.venueId), defaultVenueName(selection.venueId))
     : null;
 
-  function renderSection(section: ContractSection) {
+  // [수정 2026-09-08 밤] "아레나 머리글이 중복으로 들어갔어 — 위에만 있고 왼쪽 정렬" — 공간명은
+  // 대관료 열 위에 한 번만, 왼쪽 정렬. 추후 정산 열에는 안 붙인다. 박스 색은 "이전처럼 노란색"
+  // — 오른쪽 실시간 패널과 같은 tone(panel)으로 되돌렸다.
+  function renderSection(section: ContractSection, withHeader: boolean) {
     const sectionBoxes = boxes.filter((b) => b.section === section);
     return (
       <div className={multi ? "grid grid-cols-1 gap-6 md:grid-cols-2" : ""}>
         {sectionBoxes.map((box) => (
           <div key={`${box.venue ?? "single"}-${section}`}>
-            {(multi || singleVenueName) && (
-              <div className="border-b-2 border-foreground pb-2 text-center text-s font-bold">
+            {withHeader && (multi || singleVenueName) && (
+              <div className="border-b-2 border-foreground pb-2 text-s font-bold">
                 {multi ? box.venueName : singleVenueName}
               </div>
             )}
@@ -72,7 +75,6 @@ export function Step5Estimate({
               subtotal={box.subtotal}
               vat={box.vat}
               vatPct={vatPct}
-              tone="report"
             />
           </div>
         ))}
@@ -109,11 +111,11 @@ export function Step5Estimate({
       <h2 className="type-kr-heading text-h5-m sm:text-h5">{title}</h2>
 
       {/* 1. 대관료 → 총계약 금액 */}
-      <div className="mt-6">{renderSection("CONTRACT")}</div>
+      <div className="mt-6">{renderSection("CONTRACT", true)}</div>
       {renderTotal("CONTRACT", t("estimate.contractTotalLabel", "총계약 금액"))}
 
       {/* 2. 추후 정산 예정 금액 → 합계 */}
-      <div className="mt-8">{renderSection("ADDITIONAL")}</div>
+      <div className="mt-8">{renderSection("ADDITIONAL", false)}</div>
       {renderTotal("ADDITIONAL", t("estimate.settlementTotalLabel", "추후 정산 예정 금액 합계"))}
 
       {/* 3. 티켓 매출 RS */}

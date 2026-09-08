@@ -223,7 +223,20 @@ export function calculateQuote(
       selection.dayTags,
       pkg.defaultPerformanceDays,
     );
-    const performanceDelta = performanceDayCount - pkg.defaultPerformanceDays;
+    // [버그 수정 2026-09-08 밤] "공연일수 1번 제외했는데 두 번 제외되는 오류"(nora) — 일요일
+    // (기본 공연일)을 「삭제」하면 위 (1-2) "제외 — 공연일"로 이미 차감됐는데, 여기서 또
+    // "기본 2일 대비 -1일"로 한 번 더 뺐다. 비교 기준은 패키지 기본 공연일수에서 **제외로
+    // 이미 빠진 기본 공연일**을 뺀 값이어야 한다 — 남은 날짜 안에서만 늘고 준 만큼 가감한다.
+    const excludedDefaultPerformanceDays = isSpecialVenuePackage
+      ? 0
+      : selection.excludedDays.filter((day) =>
+          isDefaultPerformanceWeekday(day, pkg.defaultPerformanceDays),
+        ).length;
+    const performanceBaseline = Math.max(
+      0,
+      pkg.defaultPerformanceDays - excludedDefaultPerformanceDays,
+    );
+    const performanceDelta = performanceDayCount - performanceBaseline;
     if (!isSpecialVenuePackage && performanceDelta !== 0) {
       const unitPrice = Math.round(
         pkg.performanceExtraDayFee * (1 - pkg.extraDayDiscountRatio),
@@ -232,10 +245,10 @@ export function calculateQuote(
       items.push(
         makeLine(
           "performance_day_adjustment",
-          `공연 일수 조정 (기본 ${pkg.defaultPerformanceDays}일 대비 ${sign}${performanceDelta}일)`,
+          `공연 일수 조정 (기본 ${performanceBaseline}일 대비 ${sign}${performanceDelta}일)`,
           "PER_DAY",
           performanceDayCount,
-          pkg.defaultPerformanceDays,
+          performanceBaseline,
           Math.abs(performanceDelta),
           unitPrice,
           performanceDelta * unitPrice,
