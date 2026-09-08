@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { midHallDatesOutsideArenaRange } from "./dateRange";
+import { midHallDatesOutsideArenaRange, prefilledBaseDayTags } from "./dateRange";
 import type { QuoteSelection } from "./types";
 
 // 2026-09-01(화)가 속한 주(9월 1주차)를 아레나 기준으로 쓴다 — 기본 6일이면
@@ -66,5 +66,28 @@ describe("midHallDatesOutsideArenaRange", () => {
       "2026-09-09": { role: "PERFORMANCE", shows: 1 },
     });
     expect(result).toEqual(["2026-09-09"]);
+  });
+});
+
+describe("prefilledBaseDayTags — 달력 진입 시 기본 일정(준비 4일 + 공연 2일)", () => {
+  it("기본 6일(화~일)에 준비 4일 + 공연 2일을 실제 태그로 채운다", () => {
+    const tags = prefilledBaseDayTags({ week: { year: 2026, month: 9, weekOfMonth: 1 }, excludedDays: [] }, 2);
+    expect(tags).toEqual({
+      "2026-09-01": "PREP",
+      "2026-09-02": "PREP",
+      "2026-09-03": "PREP",
+      "2026-09-04": "PREP",
+      "2026-09-05": "PERFORMANCE",
+      "2026-09-06": "PERFORMANCE",
+    });
+  });
+
+  it("제외 요일은 빼고, 공연일은 항상 뒤에서부터 센다", () => {
+    const tags = prefilledBaseDayTags({ week: { year: 2026, month: 9, weekOfMonth: 1 }, excludedDays: ["TUE"] }, 2);
+    expect(Object.keys(tags)).toHaveLength(5);
+    expect(tags["2026-09-01"]).toBeUndefined();
+    expect(tags["2026-09-04"]).toBe("PREP");
+    expect(tags["2026-09-05"]).toBe("PERFORMANCE");
+    expect(tags["2026-09-06"]).toBe("PERFORMANCE");
   });
 });

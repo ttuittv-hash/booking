@@ -1280,7 +1280,6 @@ const STAGE_GROUPS: StageGroup[] = [
                 key="competitionOption"
                 info={ctx.mocks.arena.performanceInfo}
                 onChange={noop}
-                expectedRevenue={ctx.mocks.arena.expectedRevenue ?? 0}
               />
             ),
           };
@@ -1547,7 +1546,6 @@ const STAGE_GROUPS: StageGroup[] = [
                       framed
                       info={ctx.mocks.arena.performanceInfo}
                       onChange={noop}
-                      expectedRevenue={ctx.mocks.arena.expectedRevenue ?? 0}
                     />
                   }
                 />

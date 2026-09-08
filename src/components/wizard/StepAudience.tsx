@@ -15,7 +15,6 @@ import {
   type StepValidationResult,
   type TicketTypeRecord,
 } from "@/lib/pricing/types";
-import { won } from "@/lib/format";
 import { useWizardText } from "@/lib/content/wizardText";
 import { VenueSplitTabBar, type VenueSplitTab } from "./VenueSplitTabBar";
 import { StepHeading } from "./StepHeading";
@@ -494,15 +493,10 @@ export function StepAudience({
 export function StepCompetitionOption({
   info,
   onChange,
-  expectedRevenue,
   framed = false,
 }: {
   info: PerformanceInfo;
   onChange: (info: PerformanceInfo) => void;
-  /** 총 예상 티켓매출(원) — selection.expectedRevenue(2단계 매출 연동 옵션에서 입력). 오른쪽
-   *  「소계」는 이 값 × RS 요율이다. [개정 2026-09-08 19:34] 여기 있던 매출(원) 입력 칸은
-   *  nora "내부 결정이 바뀌어서… 동그라미 친 부분만 냅두고 삭제" 로 뺐다 — 읽기만 한다. */
-  expectedRevenue: number;
   /** [신규 2026-09-08] 예상 대관료 화면의 박스 사이에 끼울 때 — 굵은 헤어라인 대신 다른
    *  박스(대관료·추후 정산)와 같은 테두리 박스로 그린다. */
   framed?: boolean;
@@ -519,17 +513,13 @@ export function StepCompetitionOption({
   function clampRate(raw: string): number {
     return Math.max(0, Math.min(RS_MAX_PERCENT, Number(raw) || 0));
   }
-  const rate = info.ticketRevenueShareRate ?? 0;
-  const rsAmount = Math.round((expectedRevenue * rate) / 100);
-
   // [개정 2026-09-08 19:34] nora "동그라미 친 부분만 냅두고 다시 삭제 — 기입 부분은 요율이
-  // 들어가야 하고 2%까지 리미트" — 왼쪽은 「티켓 매출 RS」 제목·설명·요율(%) 입력 하나뿐이고,
-  // 오른쪽 「소계」에 총 예상 티켓매출 × 요율(원)을 보여준다. 매출(원) 입력 칸과 두 번째
-  // RS 블록은 뺐다. 제목·설명·자리표시는 t() 키라 백오피스 화면 문구에서 고칠 수 있다.
-  // 소계는 표시용이며 총금액에는 더하지 않는다(계약 협의용 제안값).
+  // 들어가야 하고 2%까지 리미트" — 「티켓 매출 RS」 제목·설명·요율(%) 입력 하나뿐이다.
+  // [재개정 20:20] "티켓매출 RS 옆에 소계 삭제" — 오른쪽 소계(매출 × 요율) 칸도 뺐다.
+  // 제목·설명·자리표시는 t() 키라 백오피스 화면 문구에서 고칠 수 있다.
   return (
     <div className={framed ? "border border-border bg-panel/40 p-5" : "border-t-2 border-foreground pt-5"}>
-      <div className="grid grid-cols-1 gap-6 md:grid-cols-[1fr_auto] md:items-start">
+      <div>
         <div>
           <h3 className="type-kr-heading text-h6-m">
             {t("audience.ticketRevenueShareRateLabel", "티켓 매출 RS")}
@@ -552,13 +542,6 @@ export function StepCompetitionOption({
           </div>
         </div>
 
-        <div className="md:min-w-56 md:text-right">
-          <h3 className="type-kr-heading text-h6-m">{t("competitionOption.subtotalHeading", "소계")}</h3>
-          <p className="mt-1 text-xs text-muted">
-            {t("competitionOption.subtotalHint", "총 예상 티켓매출 × RS 요율")}
-          </p>
-          <div className="mt-3 text-h5-m font-bold tabular-nums">{won(rsAmount)}</div>
-        </div>
       </div>
     </div>
   );

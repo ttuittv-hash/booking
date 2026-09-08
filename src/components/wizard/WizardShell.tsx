@@ -29,6 +29,7 @@ import { defaultVenueName, venueLabelKey } from "@/lib/content/venueLabels";
 import {
   arenaMiddleBaseDaysIncomplete,
   midHallDatesOutsideArenaRange,
+  prefilledBaseDayTags,
 } from "@/lib/pricing/dateRange";
 import { INITIAL_PERFORMANCE_INFO } from "@/lib/pricing/performanceInfoDefaults";
 import {
@@ -150,6 +151,24 @@ const INITIAL_SELECTION: QuoteSelection = {
   safetyPledge: DEFAULT_SAFETY_PLEDGE,
   marketingCooperation: DEFAULT_MARKETING_COOPERATION,
 };
+
+// 패키지 선택 전 기본 공연일수 — 모든 패키지가 공유하는 기본값(2일).
+const BASE_PERFORMANCE_DAYS = 2;
+
+// [신규 2026-09-08] 달력에 처음 들어올 때·공간을 바꿀 때·주차를 바꿀 때의 날짜 태그 초기값.
+// 올인원(SPECIAL_VENUE_ID 단독)은 "노란색 박스만"(빈 태그), 중형 단독은 주 단위 달력을 안 쓰니
+// 빈 값, 그 외(아레나 단독·동시 대관)는 기본 일정(준비 4일 + 공연 2일)을 채워 넣는다(nora).
+function initialDayTagsFor(
+  venueId: string | null,
+  bookingMode: QuoteSelection["bookingMode"],
+  schedule: Pick<QuoteSelection, "week" | "excludedDays">,
+  defaultPerformanceDays: number = BASE_PERFORMANCE_DAYS,
+): QuoteSelection["dayTags"] {
+  const isSpecial = venueId === SPECIAL_VENUE_ID && bookingMode !== "SIMULTANEOUS";
+  const isMidHallOnlyVenue = venueId === "medium-hall" && bookingMode === "SINGLE";
+  if (isSpecial || isMidHallOnlyVenue) return {};
+  return prefilledBaseDayTags(schedule, defaultPerformanceDays);
+}
 
 function pruneUnavailableAddons(
   rateTable: RateTable,
@@ -295,6 +314,11 @@ export function WizardShell({
         {
           ...INITIAL_SELECTION,
           week: openingWeek,
+          // 아레나 단독으로 시작하므로 기본 일정(준비 4 + 공연 2)이 채워진 채 달력이 열린다.
+          dayTags: initialDayTagsFor(INITIAL_SELECTION.venueId, INITIAL_SELECTION.bookingMode, {
+            week: openingWeek,
+            excludedDays: INITIAL_SELECTION.excludedDays,
+          }),
           performanceInfo: initialPerformanceInfo,
         },
   );
@@ -364,12 +388,17 @@ export function WizardShell({
       const scheduleStale =
         !!calendarMonthBounds &&
         clampMonthKey(draftMonthKey, calendarMonthBounds) !== draftMonthKey;
+      const draftVenueId = draft.selection.venueId ?? DEFAULT_VENUE_ID;
+      const draftBookingMode = draft.selection.bookingMode ?? "SINGLE";
       const scheduleReset: Partial<QuoteSelection> = scheduleStale
         ? {
             week: openingWeek,
             excludedDays: INITIAL_SELECTION.excludedDays,
             extraDays: INITIAL_SELECTION.extraDays,
-            dayTags: {},
+            dayTags: initialDayTagsFor(draftVenueId, draftBookingMode, {
+              week: openingWeek,
+              excludedDays: INITIAL_SELECTION.excludedDays,
+            }),
             dayShowCounts: {},
             midHallDays: {},
           }
@@ -377,7 +406,14 @@ export function WizardShell({
       setSelection({
         ...INITIAL_SELECTION,
         ...draft.selection,
-        dayTags: draft.selection.dayTags ?? {},
+        // 이 기능 전에 저장된 임시저장본(태그 없음)도 기본 일정이 채워진 채 열리게 한다.
+        dayTags:
+          draft.selection.dayTags && Object.keys(draft.selection.dayTags).length > 0
+            ? draft.selection.dayTags
+            : initialDayTagsFor(draftVenueId, draftBookingMode, {
+                week: draftWeek,
+                excludedDays: draft.selection.excludedDays ?? INITIAL_SELECTION.excludedDays,
+              }),
         dayShowCounts: draft.selection.dayShowCounts ?? {},
         venueId: draft.selection.venueId ?? null,
         bookingMode: draft.selection.bookingMode ?? "SINGLE",
@@ -605,7 +641,7 @@ export function WizardShell({
             : TOTAL_STEPS;
   // 패키지 선택 전에도 기본 공연일수를 보여줘야 하므로, 모든 패키지가 공유하는 기본값(2일)을 임시로 사용한다.
   const effectivePkg = findPackage(rateTable, effectivePackageId);
-  const defaultPerformanceDays = effectivePkg?.defaultPerformanceDays ?? 2;
+  const defaultPerformanceDays = effectivePkg?.defaultPerformanceDays ?? BASE_PERFORMANCE_DAYS;
   // 「패키지」 공간은 아레나와 같은 주 단위 일정을 쓴다 — 일정 탭·달력은 아레나 것을
   // 그대로 쓰되 이름만 고른 공간으로 바꾼다(2026-09-02).
   const isSpecialSchedule =
@@ -702,6 +738,16 @@ export function WizardShell({
               id === SPECIAL_VENUE_ID && bookingMode !== "SIMULTANEOUS"
                 ? []
                 : prev.excludedDays,
+            // [신규 2026-09-08] 공간을 바꾸면 날짜 태그도 그 유형의 초기 상태로 — 올인원은
+            // 빈 태그(노란색만), 그 외는 기본 일정이 채워진다(nora). 회차도 함께 비운다.
+            dayTags: initialDayTagsFor(id, bookingMode, {
+              week: prev.week,
+              excludedDays:
+                id === SPECIAL_VENUE_ID && bookingMode !== "SIMULTANEOUS"
+                  ? []
+                  : prev.excludedDays,
+            }),
+            dayShowCounts: {},
           },
     );
     setVenueTab(
@@ -1212,7 +1258,11 @@ export function WizardShell({
                             ? {
                                 ...prev,
                                 week,
-                                dayTags: {},
+                                // 새 주차에도 유형별 초기 태그(올인원=빈 값, 그 외=기본 일정)를 채운다.
+                                dayTags: initialDayTagsFor(prev.venueId, prev.bookingMode, {
+                                  week,
+                                  excludedDays: INITIAL_SELECTION.excludedDays,
+                                }, defaultPerformanceDays),
                                 dayShowCounts: {},
                                 extraDays: INITIAL_SELECTION.extraDays,
                                 excludedDays: INITIAL_SELECTION.excludedDays,
@@ -1394,7 +1444,6 @@ export function WizardShell({
                 onChange={(performanceInfo) =>
                   setSelection((prev) => ({ ...prev, performanceInfo }))
                 }
-                expectedRevenue={selection.expectedRevenue ?? 0}
               />
             }
             rateTable={rateTable}

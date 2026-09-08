@@ -1,4 +1,5 @@
-import { WEEKDAYS, type QuoteSelection, type WeekDay } from "./types";
+import { WEEKDAYS, type DayTag, type QuoteSelection, type WeekDay } from "./types";
+import { defaultDayTags } from "./rateTableUtils";
 
 // JS Date.getDay(): 0=일 1=월 ... 6=토 → 월(1)을 0번 컬럼으로 매핑 (Step1Calendar와 동일 규칙)
 function toColumnIndex(jsDay: number): number {
@@ -105,4 +106,16 @@ export function resolveSelectedDates(
     dates.push(isoDate(addDays(tuesday, 6 + i)));
   }
   return dates;
+}
+
+// [신규 2026-09-08] "동시대관 > All in One 만 캘린더 진입 시 노란색 박스만, 그 외 대관 유형은
+// 각 날짜별 기본 일정(준비 4일 + 공연 2일)이 반영된 상태로 노출"(nora) — 화~일 기본 6일
+// (제외 요일 제외)에 패키지 기본 태그를 **실제 값**으로 채운다. 배지 노출·「다음」 검증
+// (arenaMiddleBaseDaysIncomplete)·화/일 「삭제」 동작이 전부 명시 태그(dayTags) 기준이라
+// 화면만 흉내 내면 "보이는데 다음으로 못 간다"가 된다. 연장일(extraDays)은 넣지 않는다.
+export function prefilledBaseDayTags(
+  selection: Pick<QuoteSelection, "week" | "excludedDays">,
+  defaultPerformanceDays: number,
+): Record<string, DayTag> {
+  return defaultDayTags(resolveSelectedDates({ ...selection, extraDays: 0 }), defaultPerformanceDays);
 }
