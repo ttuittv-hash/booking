@@ -899,11 +899,13 @@ function AddonRow({
         <div className="flex flex-wrap items-center gap-1.5">
           <span className="text-xs font-bold">{addon.name}</span>
         </div>
-        <div className="mt-0.5 text-xs text-muted">
-          {addon.unitLabel}
-          {addon.spec ? ` · ${addon.spec}` : ""}
-          {addon.note ? ` · ${addon.note}` : ""}
-        </div>
+        {/* [수정 2026-09-08] "㎡당 · 아레나 야외 광장" 처럼 두 번째 줄에 단위가 보이는 게 문제(nora) —
+            단위는 아래 단가 줄("₩50,000 / ㎡당")에만 두고, 여기는 스펙·비고만 남긴다. 둘 다 없으면 줄 자체를 뺀다. */}
+        {(addon.spec || addon.note) && (
+          <div className="mt-0.5 text-xs text-muted">
+            {[addon.spec, addon.note].filter(Boolean).join(" · ")}
+          </div>
+        )}
       </div>
 
       <div className="flex shrink-0 items-center justify-between gap-2">
