@@ -209,9 +209,8 @@ export function validatePerformanceInfoStep(
     if (info.seatingTypes.includes("OTHER") && !info.seatingTypeOtherDetail?.trim()) {
       return issue("performanceInfo.seatingTypes.other", '객석형태 "기타" 상세를 입력해 주세요.');
     }
-    // [삭제 2026-09-08] 수납식 객석 사용여부 — "객석수 내부에서 산정해서 수치의 정확성
-    // 가늠해보려고" 넣었던 항목을 운영진 요청으로 위저드에서 뺐다(카카오아레나 nora,
-    // 9/8 16:20). 필드는 남겨 예전 신청서의 값은 심사·출력 화면에 그대로 보인다.
+    // [삭제 2026-09-08] "[applicant info] 수납식 객석 > 미노출" — 화면에서 뺀 필드라
+    // 필수 검증도 함께 뗐다.
     if (
       visibleInGroup(
         [...STAGE_TYPES, ...(customOptions["performanceInfo.stageTypes"] ?? [])],
@@ -1192,9 +1191,9 @@ function EventBasicsFields({
                 >
                   {t("performanceInfo.ticketOpenUndecided", "미정")}
                 </button>
-                {/* [삭제 2026-09-08] 「협의 중」 버튼 — 운영진 요청(nora, 9/8 16:20)으로 뺐다.
-                    「미정」만 남긴다. 이미 "협의중"으로 저장된 신청서는 위 입력칸이 비활성으로
-                    보이도록 그대로 두어 값이 깨지지 않게 한다. */}
+                {/* [삭제 2026-09-08] "티켓오픈예정일 옆 [협의중] 삭제" — "협의 중" 토글
+                    버튼을 없앴다. "협의중" 값 자체를 날짜 없음으로 다루는 위 표시 로직은
+                    남겨둔다(이 값으로 이미 저장된 옛 신청서가 깨지지 않게). */}
               </div>
             </div>
           </div>
@@ -1232,8 +1231,6 @@ function EventBasicsFields({
                 </div>
               )}
 
-              {/* [삭제 2026-09-08] 수납식 객석 사용여부(층별 포함) — 운영진 요청으로 위저드에서
-                  뺐다(nora, 9/8 16:20). 예전 신청서 값은 심사·출력 화면에 그대로 남는다. */}
             </div>
 
             {visibleStageTypes.length > 0 && (

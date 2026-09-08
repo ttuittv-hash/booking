@@ -51,17 +51,6 @@ function buildMonthGrid(year: number, month: number): Date[][] {
   return weeks;
 }
 
-export function midHallReferencePrice(
-  iso: string,
-  role: MidHallDayRole,
-  config: MidHallRateConfig,
-): number {
-  if (role === "SETUP" || role === "LOAD_OUT") return config.setupDayFee;
-  return isWeekendDate(iso)
-    ? config.performanceWeekendFee
-    : config.performanceWeekdayFee;
-}
-
 function roleTag(role: MidHallDayRole, shows: number): string {
   if (role === "SETUP") return "준비";
   if (role === "LOAD_OUT") return "철수";
@@ -448,34 +437,21 @@ export function MidHallCalendar({
                         </span>
                       </div>
                     )}
-                    <p className="mt-2 text-xs text-muted">
-                      {days[openDate] ? (
-                        days[openDate].role === "PERFORMANCE" &&
-                        days[openDate].shows >= 3 ? (
+                    {/* [삭제 2026-09-08] "중형 공연장 단가가 잘못 들어가있어. 단가 부분
+                        삭제해" — 이 칸에 참고용으로 보여주던 "단가 N원[× 할증]" 줄을
+                        없앴다. 실제 금액은 예상 대관료/실시간 패널에서 확인한다. */}
+                    {(!days[openDate] || (days[openDate].role === "PERFORMANCE" && days[openDate].shows >= 3)) && (
+                      <p className="mt-2 text-xs text-muted">
+                        {!days[openDate] ? (
+                          "준비 또는 공연일을 선택하면 날짜가 추가됩니다."
+                        ) : (
                           <span className="text-muted-strong">
                             1일 {days[openDate].shows}회 — 운영자 확인 필요(자동
                             계산 제외)
                           </span>
-                        ) : (
-                          <>
-                            단가{" "}
-                            {won(
-                              midHallReferencePrice(
-                                openDate,
-                                days[openDate].role,
-                                rateConfig,
-                              ),
-                            )}
-                            {days[openDate].role === "PERFORMANCE" &&
-                            days[openDate].shows === 2
-                              ? ` × ${Math.round(rateConfig.secondShowSurchargeRatio * 100)}% 할증(2회차)`
-                              : ""}
-                          </>
-                        )
-                      ) : (
-                        "준비 또는 공연일을 선택하면 날짜가 추가됩니다."
-                      )}
-                    </p>
+                        )}
+                      </p>
+                    )}
                   </div>
                 </div>
               )}

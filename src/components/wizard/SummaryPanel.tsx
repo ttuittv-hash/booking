@@ -4,11 +4,11 @@ import { won } from "@/lib/format";
 import { VENUES } from "@/lib/pricing/types";
 import type { EstimatedQuote, LineItem } from "@/lib/pricing/types";
 import {
-  estimateLineLabel,
   isHiddenFromApplicant,
   SECTION_LABEL,
   SECTION_SUBTOTAL_LABEL,
   sectionOf,
+  summaryPanelLineLabel,
   type ContractSection,
 } from "@/lib/pricing/lineItemGroups";
 
@@ -43,6 +43,9 @@ const SECTION_ORDER: ContractSection[] = ["CONTRACT", "ADDITIONAL"];
  * [수정 2026-09-08] "할인율 보여줘.. 너무 다 감추니까 뭐가뭔지 안보이고" — 항목
  * 라벨에서 할인율(%)까지 지우던 전용 함수(applicantLineLabel)를 없애고, 왼쪽
  * 예상 대관료와 같은 estimateLineLabel(할증 %만 감추고 할인 %는 보여준다)을 쓴다.
+ * extra_days_rest만 summaryPanelLineLabel이 더 짧은 "추가일(휴무일 N일)"로 대신한다
+ * (할인율 두 개가 겹쳐 한 줄로 못 담는 예외 — QuoteLineItemsReport 세부내역 칸에는
+ * 원문이 그대로 남는다).
  */
 export function SummaryPanel({ quote }: { quote: EstimatedQuote }) {
   // Bowl 사용료·유틸리티(HIDDEN)와 청소비는 합계에는 포함하되 신청자 화면에는 항목·금액을
@@ -97,7 +100,7 @@ export function SummaryPanel({ quote }: { quote: EstimatedQuote }) {
                             className="flex items-baseline justify-between gap-4 border-b border-border/15 py-2.5"
                           >
                             <dt className="text-s text-muted">
-                              {estimateLineLabel(item)}
+                              {summaryPanelLineLabel(item)}
                               {/* [수정 2026-09-07] "공연 일수 조정 (...)(초과 4) -> 초과 부분 제거" —
                                   이 줄은 billable이 옵션 초과분이 아니라 라벨에 이미 적힌 "+N일"
                                   자체라서 "(초과 N)"을 덧붙이면 같은 값이 중복 표시된다. 실제

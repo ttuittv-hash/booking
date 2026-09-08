@@ -23,13 +23,13 @@ export function calculateMidHallLineItems(selection: QuoteSelection, rateTable: 
   const entries = Object.entries(selection.midHallDays);
   if (entries.length === 0) return { items, blockingIssues };
 
-  // 셋업 Load-In
+  // 준비(셋업 Load-In)
   const setupCount = entries.filter(([, d]) => d.role === "SETUP").length;
   if (setupCount > 0) {
     items.push(
       makeLine(
         "midhall_setup",
-        "셋업 Load-In",
+        `준비 ${setupCount}일`,
         "PER_DAY",
         setupCount,
         0,
@@ -48,7 +48,7 @@ export function calculateMidHallLineItems(selection: QuoteSelection, rateTable: 
     items.push(
       makeLine(
         "midhall_loadout_day",
-        "철수",
+        `철수 ${loadOutDayCount}일`,
         "PER_DAY",
         loadOutDayCount,
         0,
@@ -60,18 +60,13 @@ export function calculateMidHallLineItems(selection: QuoteSelection, rateTable: 
     );
   }
 
-  // 공연 Show — 평일/주말 × 1회/2회 조합별로 묶어서 과금한다.
-  // [버그 수정 2026-09-06] "중형공연장 할증률을 25%로 바꿔도 화면엔 50% 할증이라고
-  // 나옴" — 단가(unitPrice) 계산은 cfg.secondShowSurchargeRatio를 그대로 쓰고 있었지만
-  // 이 라벨 문구는 "50%"로 고정 텍스트였다. 실제 설정값으로 바꿔 넣는다.
+  // 공연일 — 평일/주말 × 1회/2회 조합별로 묶어서 과금한다.
+  // [수정 2026-09-08] "셋업 Load-In -> 준비 N일 / 철수 -> 철수 N일 / 공연 Show — 평일
+  // -> 공연일 N일, 1일 2회 공연 할증 표기가 눈에 안 띈다" — 라벨을 우측 실시간 패널의
+  // 다른 항목들(준비 N일, 철수 N일)과 같은 "이름 N일" 틀로 맞추고, 1일 2회 할증은
+  // 괄호로 뚜렷하게 붙인다. 단가(unitPrice) 계산은 그대로 cfg.secondShowSurchargeRatio.
   const secondShowSurchargePercent = Math.round(cfg.secondShowSurchargeRatio * 100);
   const bucketCounts = new Map<string, number>(); // "weekday-1" | "weekday-2" | "weekend-1" | "weekend-2"
-  const bucketLabel: Record<string, string> = {
-    "weekday-1": "공연 Show — 평일",
-    "weekday-2": `공연 Show — 평일 (1일 2회, ${secondShowSurchargePercent}% 할증 포함)`,
-    "weekend-1": "공연 Show — 주말",
-    "weekend-2": `공연 Show — 주말 (1일 2회, ${secondShowSurchargePercent}% 할증 포함)`,
-  };
   let totalShows = 0;
   for (const [iso, d] of entries) {
     if (d.role !== "PERFORMANCE") continue;
@@ -83,7 +78,7 @@ export function calculateMidHallLineItems(selection: QuoteSelection, rateTable: 
       items.push(
         makeLine(
           `midhall_show_review_${iso}`,
-          `공연 Show — ${formatDateLabel(iso)} (1일 ${d.shows}회, 운영자 확인 필요)`,
+          `공연일 ${formatDateLabel(iso)} (1일 ${d.shows}회, 운영자 확인 필요)`,
           "PER_DAY",
           1,
           0,
@@ -102,10 +97,16 @@ export function calculateMidHallLineItems(selection: QuoteSelection, rateTable: 
   }
   for (const [key, count] of bucketCounts) {
     const [period, showsStr] = key.split("-");
-    const baseFee = period === "weekend" ? cfg.performanceWeekendFee : cfg.performanceWeekdayFee;
-    const unitPrice = showsStr === "2" ? Math.round(baseFee * (1 + cfg.secondShowSurchargeRatio)) : baseFee;
+    const isWeekend = period === "weekend";
+    const isDouble = showsStr === "2";
+    const baseFee = isWeekend ? cfg.performanceWeekendFee : cfg.performanceWeekdayFee;
+    const unitPrice = isDouble ? Math.round(baseFee * (1 + cfg.secondShowSurchargeRatio)) : baseFee;
+    const noteParts: string[] = [];
+    if (isWeekend) noteParts.push("주말");
+    if (isDouble) noteParts.push(`1일 2회 공연 할증 ${secondShowSurchargePercent}%`);
+    const label = `공연일 ${count}일${noteParts.length > 0 ? ` (${noteParts.join(", ")})` : ""}`;
     items.push(
-      makeLine(`midhall_show_${key}`, bucketLabel[key], "PER_DAY", count, 0, count, unitPrice, count * unitPrice, "VISIBLE"),
+      makeLine(`midhall_show_${key}`, label, "PER_DAY", count, 0, count, unitPrice, count * unitPrice, "VISIBLE"),
     );
   }
 

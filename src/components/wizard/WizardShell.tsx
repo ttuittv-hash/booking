@@ -23,7 +23,11 @@ import type {
 } from "@/lib/pricing/types";
 import { DEFAULT_VENUE_ID, SPECIAL_VENUE_ID } from "@/lib/pricing/types";
 import { defaultVenueName, venueLabelKey } from "@/lib/content/venueLabels";
-import { SIMULTANEOUS_WINDOW_MAX_DAYS, simultaneousWindowGapDays } from "@/lib/pricing/dateRange";
+import {
+  arenaMiddleBaseDaysIncomplete,
+  SIMULTANEOUS_WINDOW_MAX_DAYS,
+  simultaneousWindowGapDays,
+} from "@/lib/pricing/dateRange";
 import { INITIAL_PERFORMANCE_INFO } from "@/lib/pricing/performanceInfoDefaults";
 import { clearWizardDraft, loadWizardDraft, saveWizardDraft } from "@/lib/quotesStore";
 import { useToast } from "@/components/ui/Toast";
@@ -810,6 +814,18 @@ export function WizardShell({
                 return;
               }
             }
+            // [신규 2026-09-08] "패키지 디폴트 기간 중간 일정이 아무것도 등록이 안됬을
+            // 경우, 대관 일정 등록을 완료해주세요 안내 필요" — 가운데 4일(수목금토)은
+            // 제외할 수 없는 패키지 고정 구간이라 명시 지정 없이는 다음으로 못 간다.
+            if (step === 1 && !midHallOnly && arenaMiddleBaseDaysIncomplete(selection)) {
+              toast.error(
+                tStr(
+                  "wizardShell.toastNeedMiddleDays",
+                  "패키지 기본 기간 중 일정이 등록되지 않은 날짜가 있습니다. 대관 일정 등록을 완료해 주세요.",
+                ),
+              );
+              return;
+            }
             if (step === 2 && needsPackage && !selection.packageId) {
               toast.error(tStr("wizardShell.toastNeedPackage", "패키지를 선택해 주세요."));
               return;
@@ -901,14 +917,11 @@ export function WizardShell({
           setSelection((prev) => ({ ...prev, midHallPerformanceInfo }))
         }
         selection={resolvedSelection}
-        // [신규 2026-09-08] "1회당 예상 관객 수 수정 가능하게"(nora) — 구성·옵션에서 패키지
-        // 기본값으로 채워진 값을 여기서 직접 고친다. 총 예상 관객 수는 자동 계산 유지.
-        onChangeAudience={(patch) =>
-          setSelection((prev) => ({
-            ...prev,
-            ...(patch.arena !== undefined ? { expectedAudience: patch.arena } : {}),
-            ...(patch.midHall !== undefined ? { secondaryAudience: patch.midHall } : {}),
-          }))
+        onChangeExpectedAudience={(expectedAudience) => setSelection((prev) => ({ ...prev, expectedAudience }))}
+        onChangeSecondaryAudience={(secondaryAudience) => setSelection((prev) => ({ ...prev, secondaryAudience }))}
+        marketingCooperation={selection.marketingCooperation ?? DEFAULT_MARKETING_COOPERATION}
+        onChangeMarketingCooperation={(marketingCooperation) =>
+          setSelection((prev) => ({ ...prev, marketingCooperation }))
         }
         showHeading={false}
         title={wizardStepText.audienceTitle}

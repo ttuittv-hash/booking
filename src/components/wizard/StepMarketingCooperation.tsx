@@ -34,6 +34,89 @@ const SERVICE_SCOPE_ITEMS = [
 
 const EMPTY_CHANNEL = { platform: "", handle: "", followers: "" };
 
+/**
+ * [이동 2026-09-08] "해당 슬롯은 신청자 정보 및 규모 탭 하위 슬롯으로 이동" — 프로모션
+ * 채널 입력을 이 스텝(마케팅 협업 안내)에서 빼서 StepAudience(신청자 정보 및 규모)
+ * 안에서 보여준다. 데이터(selection.marketingCooperation.channels)는 그대로 두고
+ * 렌더 위치만 옮긴다 — 다른 화면(제출 요약·운영자 상세)이 읽는 필드 경로가 안 바뀐다.
+ */
+export function PromotionChannelsFields({
+  info,
+  onChange,
+}: {
+  info: MarketingCooperation;
+  onChange: (info: MarketingCooperation) => void;
+}) {
+  const { t, tStr } = useWizardText();
+
+  function addChannel() {
+    onChange({ ...info, channels: [...info.channels, { ...EMPTY_CHANNEL }] });
+  }
+
+  function updateChannel(index: number, patch: Partial<MarketingCooperation["channels"][number]>) {
+    onChange({
+      ...info,
+      channels: info.channels.map((row, i) => (i === index ? { ...row, ...patch } : row)),
+    });
+  }
+
+  function removeChannel(index: number) {
+    onChange({ ...info, channels: info.channels.filter((_, i) => i !== index) });
+  }
+
+  return (
+    <div className="border-t border-border/25 pt-5">
+      <div className="mb-2.5 flex items-center justify-between">
+        <h3 className="type-kr-heading text-h6-m">{t("marketing.channelsHeading", "프로모션 채널(선택)")}</h3>
+        <button type="button" onClick={addChannel} className={toggleClass(false)}>
+          {t("marketing.addChannelButton", "＋ 채널 추가")}
+        </button>
+      </div>
+      <p className="mt-1 mb-3 break-keep text-xs leading-6 text-muted">
+        {t("marketing.channelsHint", "공연 운영 채널이 있다면 입력해주세요. 서울아레나와 연계하여 홍보 가능합니다.")}
+      </p>
+      {info.channels.length === 0 && (
+        <p className="text-xs text-muted">{t("marketing.channelsEmpty", "등록된 채널이 없습니다.")}</p>
+      )}
+      <div className="space-y-2">
+        {info.channels.map((row, i) => (
+          <div
+            key={i}
+            className="grid grid-cols-1 gap-1.5 border-b border-border/15 py-2 sm:grid-cols-[1fr_2fr_1fr_auto]"
+          >
+            <input
+              value={row.platform}
+              placeholder={tStr("marketing.channelPlatformPlaceholder", "채널 (예: 인스타그램)")}
+              onChange={(e) => updateChannel(i, { platform: e.target.value })}
+              className="field-base"
+            />
+            <input
+              value={row.handle}
+              placeholder={tStr("marketing.channelHandlePlaceholder", "계정 / URL")}
+              onChange={(e) => updateChannel(i, { handle: e.target.value })}
+              className="field-base"
+            />
+            <input
+              value={row.followers}
+              placeholder={tStr("marketing.channelFollowersPlaceholder", "구독자·팔로워 수")}
+              onChange={(e) => updateChannel(i, { followers: e.target.value })}
+              className="field-base"
+            />
+            <button
+              type="button"
+              onClick={() => removeChannel(i)}
+              aria-label={tStr("marketing.removeChannelAriaLabel", "채널 삭제")}
+              className="flex h-10 w-10 shrink-0 items-center justify-center text-muted transition-colors hover:text-danger"
+            >
+              ✕
+            </button>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 // 티켓 판매량·판매율 데이터 제공 체크박스가 정확히 무엇을 포함하는지 보여주는
 // 항목 — 표나 박스가 아니라 체크박스 라벨 밑에 텍스트로만 나열한다(2026-08-22,
 // "취득 어쩌구는 우리 서울아레나 입장" · "표로 넣지 말고 텍스트로 나열" 피드백).
@@ -60,28 +143,10 @@ export function StepMarketingCooperation({
   title: ReactNode;
   lead: ReactNode;
 }) {
-  const { t, tStr } = useWizardText();
+  const { t } = useWizardText();
 
   function set<K extends keyof MarketingCooperation>(key: K, value: MarketingCooperation[K]) {
     onChange({ ...info, [key]: value });
-  }
-
-  function addChannel() {
-    set("channels", [...info.channels, { ...EMPTY_CHANNEL }]);
-  }
-
-  function updateChannel(index: number, patch: Partial<MarketingCooperation["channels"][number]>) {
-    set(
-      "channels",
-      info.channels.map((row, i) => (i === index ? { ...row, ...patch } : row)),
-    );
-  }
-
-  function removeChannel(index: number) {
-    set(
-      "channels",
-      info.channels.filter((_, i) => i !== index),
-    );
   }
 
   return (
@@ -89,60 +154,9 @@ export function StepMarketingCooperation({
       <StepHeading title={title} lead={lead} />
 
       <StepForm>
+        {/* [이동 2026-09-08] "프로모션 채널(선택)" 슬롯은 StepAudience(신청자 정보 및
+            규모)로 옮겼다 — PromotionChannelsFields, 이 파일 위쪽에서 export. */}
         <div className="border-t border-border/25 pt-5">
-          <div className="mb-2.5 flex items-center justify-between">
-            <h3 className="type-kr-heading text-h6-m">{t("marketing.channelsHeading", "프로모션 채널(선택)")}</h3>
-            <button type="button" onClick={addChannel} className={toggleClass(false)}>
-              {t("marketing.addChannelButton", "＋ 채널 추가")}
-            </button>
-          </div>
-          <p className="mt-1 mb-3 break-keep text-xs leading-6 text-muted">
-            {t("marketing.channelsHint", "공연 운영 채널이 있다면 입력해주세요. 서울아레나와 연계하여 홍보 가능합니다.")}
-          </p>
-          {info.channels.length === 0 && (
-            <p className="text-xs text-muted">{t("marketing.channelsEmpty", "등록된 채널이 없습니다.")}</p>
-          )}
-          <div className="space-y-2">
-            {info.channels.map((row, i) => (
-              <div
-                key={i}
-                className="grid grid-cols-1 gap-1.5 border-b border-border/15 py-2 sm:grid-cols-[1fr_2fr_1fr_auto]"
-              >
-                <input
-                  value={row.platform}
-                  placeholder={tStr("marketing.channelPlatformPlaceholder", "채널 (예: 인스타그램)")}
-                  onChange={(e) => updateChannel(i, { platform: e.target.value })}
-                  className="field-base"
-                />
-                <input
-                  value={row.handle}
-                  placeholder={tStr("marketing.channelHandlePlaceholder", "계정 / URL")}
-                  onChange={(e) => updateChannel(i, { handle: e.target.value })}
-                  className="field-base"
-                />
-                <input
-                  value={row.followers}
-                  placeholder={tStr("marketing.channelFollowersPlaceholder", "구독자·팔로워 수")}
-                  onChange={(e) => updateChannel(i, { followers: e.target.value })}
-                  className="field-base"
-                />
-                <button
-                  type="button"
-                  onClick={() => removeChannel(i)}
-                  aria-label={tStr("marketing.removeChannelAriaLabel", "채널 삭제")}
-                  // 입력 필드와 같은 무게의 버튼(보더·박스)이 아니라 옆에 딸린 보조
-                  // 동작이라는 걸 보여주려고 아이콘만 둔다 — 삭제 버튼이 입력창과
-                  // 같은 위계로 보인다는 지적으로 바꿨다.
-                  className="flex h-10 w-10 shrink-0 items-center justify-center text-muted transition-colors hover:text-danger"
-                >
-                  ✕
-                </button>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        <div className="mt-8 border-t border-border/25 pt-5">
           <h3 className="type-kr-heading text-h6-m">
             {t("marketing.serviceLinkHeading", "공동 콘텐츠·프로모션 및 서비스 협업")}
           </h3>
