@@ -11,16 +11,10 @@ import { useWizardText } from "@/lib/content/wizardText";
 import type { WizardStepTexts } from "@/lib/content/pageContent";
 import {
   DEFAULT_VENUE_ID,
-  EVENT_TYPE_LABEL,
-  RETRACTABLE_SEAT_FLOOR_LABEL,
-  RETRACTABLE_SEAT_USE_LABEL,
-  SEATING_TYPE_LABEL,
-  STAGE_TYPE_LABEL,
   VENUES,
   type EstimatedQuote,
   type QuoteSelection,
   type RateTable,
-  type RetractableSeatFloor,
 } from "@/lib/pricing/types";
 
 function midHallSummaryLine(selection: QuoteSelection): string | null {
@@ -117,7 +111,6 @@ export function Step6Submit({
   const pkg = findPackage(rateTable, selection.packageId);
   const [confirmed, setConfirmed] = useState(false);
   const [pledged, setPledged] = useState(false);
-  const info = selection.performanceInfo;
   const isSimultaneous = selection.bookingMode === "SIMULTANEOUS";
   const hasMidHall = Object.keys(selection.midHallDays).length > 0;
   const needsPackage = !isSimultaneous ? selection.venueId !== "medium-hall" : true;
@@ -217,69 +210,14 @@ export function Step6Submit({
         </div>
       </div>
 
-      <div className="mt-6 border-t border-border/25 pt-5">
-        <div className="flex items-center justify-between">
-          <div className="text-s font-bold">{t("submit.eventInfoHeading", "공연 정보")}</div>
-          {fileCount > 0 && (
-            <div className="text-xs text-muted">
-              {t("submit.attachedFilesPrefix", "첨부파일")} {fileCount}
-              {t("submit.attachedFilesSuffix", "개가 함께 제출됩니다")}
-            </div>
-          )}
+      {/* [삭제 2026-09-08 밤] "공연정보란 삭제" (nora) — 최종 제출·접수 완료 화면의 공연 정보 요약(공연명·
+          아티스트·주최·행사규모·행사유형·무대형태·객석형태·수납식 객석)을 뺐다. 첨부파일 개수 안내만 남긴다. */}
+      {fileCount > 0 && (
+        <div className="mt-6 border-t border-border/25 pt-5 text-right text-xs text-muted">
+          {t("submit.attachedFilesPrefix", "첨부파일")} {fileCount}
+          {t("submit.attachedFilesSuffix", "개가 함께 제출됩니다")}
         </div>
-        <dl className="mt-3 grid grid-cols-1 gap-x-6 gap-y-2 text-xs sm:grid-cols-2">
-          <div className="flex justify-between gap-3 sm:justify-start">
-            <dt className="text-muted">{t("submit.eventNameLabel", "공연(행사)명")}</dt>
-            <dd className="font-bold">{info.eventName || "-"}</dd>
-          </div>
-          <div className="flex justify-between gap-3 sm:justify-start">
-            <dt className="text-muted">{t("submit.artistLabel", "아티스트")}</dt>
-            <dd className="font-bold">{info.artist || "-"}</dd>
-          </div>
-          <div className="flex justify-between gap-3 sm:justify-start">
-            <dt className="text-muted">{t("submit.organizerLabel", "주최·주관·기획")}</dt>
-            <dd className="font-bold">{info.organizer || "-"}</dd>
-          </div>
-          <div className="flex justify-between gap-3 sm:justify-start">
-            <dt className="text-muted">{t("submit.eventScaleLabel", "행사규모")}</dt>
-            <dd className="font-bold">{info.eventScale || "-"}</dd>
-          </div>
-          <div className="flex justify-between gap-3 sm:justify-start">
-            <dt className="text-muted">{t("submit.eventTypesLabel", "행사유형")}</dt>
-            <dd className="font-bold">
-              {info.eventTypes.length ? info.eventTypes.map((type) => EVENT_TYPE_LABEL[type]).join(", ") : "-"}
-            </dd>
-          </div>
-          <div className="flex justify-between gap-3 sm:justify-start">
-            <dt className="text-muted">{t("submit.stageTypesLabel", "무대형태")}</dt>
-            <dd className="font-bold">
-              {info.stageTypes.length ? info.stageTypes.map((type) => STAGE_TYPE_LABEL[type]).join(", ") : "-"}
-            </dd>
-          </div>
-          <div className="flex justify-between gap-3 sm:justify-start">
-            <dt className="text-muted">{t("submit.seatingTypesLabel", "객석형태")}</dt>
-            <dd className="font-bold">
-              {info.seatingTypes.length ? info.seatingTypes.map((type) => SEATING_TYPE_LABEL[type]).join(", ") : "-"}
-            </dd>
-          </div>
-          <div className="flex justify-between gap-3 sm:justify-start">
-            <dt className="text-muted">{t("submit.retractableSeatUseLabel", "수납식 객석 사용여부")}</dt>
-            <dd className="font-bold">
-              {info.retractableSeatUse ? RETRACTABLE_SEAT_USE_LABEL[info.retractableSeatUse] : "-"}
-              {/* [사용]이면 층별 답까지 보여 준다 — 어느 층을 펴는지가 객석 구성을 가른다(2026-09-02) */}
-              {info.retractableSeatUse === "USE" && info.retractableSeatFloorUse
-                ? ` (${(Object.keys(RETRACTABLE_SEAT_FLOOR_LABEL) as RetractableSeatFloor[])
-                    .filter((floor) => info.retractableSeatFloorUse?.[floor])
-                    .map(
-                      (floor) =>
-                        `${RETRACTABLE_SEAT_FLOOR_LABEL[floor]} ${RETRACTABLE_SEAT_USE_LABEL[info.retractableSeatFloorUse![floor]!]}`,
-                    )
-                    .join(" · ")})`
-                : ""}
-            </dd>
-          </div>
-        </dl>
-      </div>
+      )}
 
       {showConfirmation ? (
         <div className="mt-8 border-t-2 border-foreground pt-5 text-s text-foreground">
