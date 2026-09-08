@@ -6,6 +6,7 @@ import { findPackage } from "@/lib/pricing/rateTableUtils";
 import type { EstimatedQuote, QuoteSelection, RateTable } from "@/lib/pricing/types";
 import type { ContractSection } from "@/lib/pricing/lineItemGroups";
 import { useWizardText } from "@/lib/content/wizardText";
+import { defaultVenueName, venueLabelKey } from "@/lib/content/venueLabels";
 import { QuoteSectionBox, quoteSectionBoxes } from "./SummaryPanel";
 
 /**
@@ -32,7 +33,7 @@ export function Step5Estimate({
   /** 티켓 매출 RS 박스 — 맨 아래에 놓는다(이름은 처음 자리 때 것). */
   beforeTotals?: ReactNode;
 }) {
-  const { t } = useWizardText();
+  const { t, tStr } = useWizardText();
   const pkg = findPackage(rateTable, selection.packageId);
   const hasMidHall = Object.keys(selection.midHallDays).length > 0;
 
@@ -48,6 +49,11 @@ export function Step5Estimate({
 
   const { groups, boxes, vatPct } = quoteSectionBoxes(quote);
   const multi = groups.length > 1;
+  // [수정 2026-09-08 밤] "하나여도 아레나인지 표시되면 좋겠다" — 공간이 하나일 때도 머리글을
+  // 그린다. 이름은 고른 공간(아레나·중형공연장·올인원) 기준, 백오피스 공간명 문구를 따른다.
+  const singleVenueName = selection.venueId
+    ? tStr(venueLabelKey(selection.venueId), defaultVenueName(selection.venueId))
+    : null;
 
   function renderSection(section: ContractSection) {
     const sectionBoxes = boxes.filter((b) => b.section === section);
@@ -55,8 +61,10 @@ export function Step5Estimate({
       <div className={multi ? "grid grid-cols-1 gap-6 md:grid-cols-2" : ""}>
         {sectionBoxes.map((box) => (
           <div key={`${box.venue ?? "single"}-${section}`}>
-            {multi && (
-              <div className="border-b-2 border-foreground pb-2 text-center text-s font-bold">{box.venueName}</div>
+            {(multi || singleVenueName) && (
+              <div className="border-b-2 border-foreground pb-2 text-center text-s font-bold">
+                {multi ? box.venueName : singleVenueName}
+              </div>
             )}
             <QuoteSectionBox
               section={section}
@@ -64,6 +72,7 @@ export function Step5Estimate({
               subtotal={box.subtotal}
               vat={box.vat}
               vatPct={vatPct}
+              tone="report"
             />
           </div>
         ))}
@@ -76,7 +85,7 @@ export function Step5Estimate({
     const subtotal = sectionBoxes.reduce((s, b) => s + b.subtotal, 0);
     const vat = sectionBoxes.reduce((s, b) => s + b.vat, 0);
     return (
-      <div className="mt-4 border-2 border-foreground/70 bg-surface p-5">
+      <div className="mt-4 border border-border bg-panel/40 p-5">
         <div className="flex justify-between text-s text-muted">
           <span>{t("estimate.subtotalLabel", "소계 (VAT 별도)")}</span>
           <span className="tabular-nums">{won(subtotal)}</span>

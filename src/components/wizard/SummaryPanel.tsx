@@ -232,20 +232,26 @@ export function QuoteSectionBox({
   subtotal,
   vat,
   vatPct,
+  tone = "panel",
 }: {
   section: ContractSection;
   sectionItems: LineItem[];
   subtotal: number;
   vat: number;
   vatPct: number;
+  /** "panel" = 오른쪽 실시간 패널(노란 테두리·노란/검정 강조줄). "report" = 예상 대관료 화면 —
+   *  "노란색 박스 이런거 이전처럼 컬러 통일해줘"(2026-09-08 밤): 옅은 테두리 + 연노랑 합계줄로
+   *  대관료/추후 정산 박스를 같은 색으로 맞춘다. */
+  tone?: "panel" | "report";
 }) {
   const sectionTotal = subtotal + vat;
   const isContract = section === "CONTRACT";
+  const report = tone === "report";
   return (
     <div
       className={[
-        "mt-4 border-2 bg-surface p-4",
-        isContract ? "border-accent" : "border-muted-strong/40",
+        report ? "mt-4 border border-border/25 bg-surface p-4" : "mt-4 border-2 bg-surface p-4",
+        report ? "" : isContract ? "border-accent" : "border-muted-strong/40",
       ].join(" ")}
     >
       <div className="flex items-center justify-between gap-2">
@@ -256,9 +262,11 @@ export function QuoteSectionBox({
         <span
           className={[
             "shrink-0 border px-2 py-0.5 text-[10px] font-bold whitespace-nowrap",
-            isContract
-              ? "border-accent bg-accent-soft text-foreground"
-              : "border-border-soft bg-panel-strong text-muted",
+            report
+              ? "border-border-soft bg-panel-strong text-muted"
+              : isContract
+                ? "border-accent bg-accent-soft text-foreground"
+                : "border-border-soft bg-panel-strong text-muted",
           ].join(" ")}
         >
           {SECTION_TAG[section]}
@@ -327,9 +335,11 @@ export function QuoteSectionBox({
       <div
         className={[
           "mt-2 flex justify-between px-3 py-2.5 text-s font-bold",
-          isContract
-            ? "bg-accent text-foreground"
-            : "bg-foreground text-background",
+          report
+            ? "border border-accent bg-accent-soft/40 text-foreground"
+            : isContract
+              ? "bg-accent text-foreground"
+              : "bg-foreground text-background",
         ].join(" ")}
       >
         <span>{SECTION_SUBTOTAL_CAPTION[section]}</span>
