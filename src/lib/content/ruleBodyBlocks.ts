@@ -36,7 +36,7 @@ function decodeCell(raw: string): string {
     .trim();
 }
 
-export function escapeCell(value: string): string {
+function escapeCell(value: string): string {
   return value
     .replace(/&/g, "&amp;")
     .replace(/</g, "&lt;")

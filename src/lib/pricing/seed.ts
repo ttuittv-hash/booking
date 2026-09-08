@@ -11,7 +11,7 @@ import type { AddonItem, MidHallRateConfig, PackageInclusion, RateTable, RentalP
 //   2027 경상가 전환 예정) 기준 공연 1건 약 2.2억(셋업 4일 + 공연 2일)에 시설·장비·매체를 더한 값.
 //   내부 검토안이므로 공개 전 정본 재확인 필요.
 
-export const SEED_RATE_TABLE_VERSION = "2026-08-homepage-v2";
+const SEED_RATE_TABLE_VERSION = "2026-08-homepage-v2";
 
 // 아래 4개 패키지의 기본정보/기본 포함사항은 "패키지 구성" 명세(엑셀) 기준입니다.
 // 대관 구성(화~일)·세부 구성(준비 4일+공연 2일)·대관시간(09:00~22:00)·야외광장 포함 여부는
@@ -222,7 +222,7 @@ export const SEED_PACKAGES: RentalPackage[] = [
   },
 ];
 
-export const SEED_ADDONS: AddonItem[] = [
+const SEED_ADDONS: AddonItem[] = [
   { id: "late_night_slot", category: "SCHEDULE", name: "심야 추가대관", pricingType: "PER_HOUR", unitPrice: 2_000_000, unitLabel: "원/시간", availability: { mode: "ALWAYS" }, billingPhase: "ESTIMATE", visibility: "VISIBLE", note: "특정 월요일·시간 선택 필요" },
   { id: "extra_slot", category: "SCHEDULE", name: "일반 추가대관", pricingType: "PER_HOUR", unitPrice: 1_000_000, unitLabel: "원/시간", availability: { mode: "ALWAYS" }, billingPhase: "ESTIMATE", visibility: "VISIBLE" },
   { id: "cleaning", category: "SERVICE", name: "청소비", pricingType: "PER_PERSON", unitPrice: 1_000, unitLabel: "원/인", availability: { mode: "ALWAYS" }, autoQuantity: "AUDIENCE", billingPhase: "ESTIMATE", visibility: "VISIBLE", note: "예상 관객수 자동 산출" },
@@ -285,10 +285,10 @@ export const SEED_ADDONS: AddonItem[] = [
 ];
 
 // 초과 주차 단가는 아직 미확정 항목(명세서 4.3)이라, 패키지 기본 대관료의 60%를 임시 비율로 둔다.
-export const SEED_EXTRA_WEEK_RATIO = 0.6;
+const SEED_EXTRA_WEEK_RATIO = 0.6;
 
 // 화~일 6일 중 미사용 요일 1일당 할인 비율. 6일 중 1일 = 약 16.7%를 임시 비율로 둔다.
-export const SEED_DAY_EXCLUSION_DISCOUNT_RATIO = 1 / 6;
+const SEED_DAY_EXCLUSION_DISCOUNT_RATIO = 1 / 6;
 
 // [신규 2026-08-19] 중형공연장 일 단위 요금표(DAILY) — 사용자 제공 요금표 확정값.
 // [2026-08-21] 공개 대관료 페이지(rateFacts — 홈페이지 정본)에 맞춰 갱신.

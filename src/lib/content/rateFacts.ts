@@ -202,13 +202,6 @@ export const ARENA_ADDITIONAL_CHARGES: ChargeRow[] = [
   },
 ];
 
-export const ARENA_LIMITS: [string, string][] = [
-  ["기준 공연시간", "공연 1회당 최대 240분"],
-  ["1일 2회 공연", "추가 회차 대관료 50% 할증"],
-  ["기준 이용시간", "09:00–22:00"],
-  ["이용 제한시간", "12:00–13:00 및 18:00–19:00"],
-];
-
 export const ARENA_RATE_NOTES: string[] = [
   "상기 금액은 부가세 별도입니다.",
   "실제 대관료는 공연 규모, 객석 구성, 추가 사용 시설 및 운영 조건에 따라 달라질 수 있습니다.",
@@ -269,13 +262,6 @@ export const LIVE_HALL_ADDITIONAL_CHARGES: ChargeRow[] = [
   { group: "공간·프로모션", item: "송출 수수료", cost: "별도 협의", note: "매출의 3% or 정액" },
   { group: "기타", item: "수도광열비", cost: "실비", note: "실사용량 기준" },
   { group: "기타", item: "추가 주차권", cost: "15,000원", note: "1일권⋅대당" },
-];
-
-export const LIVE_HALL_LIMITS: [string, string][] = [
-  ["기준 이용시간", "09:00–22:00"],
-  ["이용 제한시간", "12:00–13:00 및 18:00–19:00"],
-  ["기준 공연시간", "공연 1회당 최대 180분"],
-  ["1일 2회 공연", "추가 회차 대관료 30% 할증"],
 ];
 
 export const LIVE_HALL_RATE_NOTES: string[] = [

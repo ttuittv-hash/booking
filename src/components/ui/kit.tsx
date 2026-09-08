@@ -19,7 +19,7 @@ import { parseInlineLinks } from "@/lib/content/inlineLinks";
  * 무엇을 링크로 볼지(우리 사이트 안만)는 content/inlineLinks.ts 가 정한다 — 그쪽에
  * 테스트가 붙어 있다.
  */
-export function InlineLinks({ text }: { text: string }) {
+function InlineLinks({ text }: { text: string }) {
   return (
     <>
       {parseInlineLinks(text).map((part, i) =>
@@ -156,7 +156,7 @@ const BAND_VARS: Record<BandTone, React.CSSProperties> = {
  * `Band tone="dark"` 와 같은 값이라 그 안의 입력 필드·보조 텍스트·보더가
  * 자동으로 지면에 맞는다 — 검정 배경에 검정 글자가 나오는 사고를 막는다.
  */
-export const INVERSE_SURFACE_VARS: React.CSSProperties = BAND_VARS.dark;
+const INVERSE_SURFACE_VARS: React.CSSProperties = BAND_VARS.dark;
 
 /**
  * `INVERSE_SURFACE_VARS` 의 반대 — **검정 밴드 안의 카드 한 장만** 다시 밝은 면으로
@@ -229,17 +229,6 @@ export function Band({
 
 /** 국문·공용 아이브로. 색은 자리에 맞게 `text-muted` / `text-foreground` 를 붙인다. */
 export const EYEBROW = "text-xs font-bold";
-
-/** 푸터 컬럼 제목 등 영문 캡스 라벨. 헤딩 위 아이브로로는 쓰지 않는다. */
-export function Label({ children, className = "" }: { children: ReactNode; className?: string }) {
-  return (
-    <p
-      className={`text-xs font-extrabold uppercase tracking-[0.08em] [font-family:Archivo,sans-serif] ${className}`}
-    >
-      {children}
-    </p>
-  );
-}
 
 /* ------------------------------------------------------------ Button ----- */
 /* ============================================================================
@@ -439,155 +428,13 @@ export function PageHeading({
   );
 }
 
-/** Layout 1 / 3 / 6 의 센터 헤더 */
-export function CenterHeading({ title, lead }: { title: ReactNode; lead?: ReactNode }) {
-  return (
-    <div className="mx-auto max-w-3xl text-center">
-      <h2 className="type-kr-heading text-h3-m sm:text-h3">{title}</h2>
-      {lead && <p className="mt-5 text-m text-muted">{lead}</p>}
-    </div>
-  );
-}
-
 /* --------------------------------------------------- Comparison / 1 ------ */
 
-export type CompareColumn = {
-  key: string;
-  title: ReactNode;
-  /** 값 정렬. 기본은 우측(숫자 기준). 문장이 들어가는 열만 "left" 로 바꾼다. */
-  align?: "left" | "right";
-};
-export type CompareRow = { label: ReactNode; note?: string; cells: ReactNode[] };
-export type CompareGroup = { title: string; rows: CompareRow[] };
-
-/** 라벨 열 폭(%) — 값 열이 많을수록 좁힌다. 이 표의 유일한 폭 규칙. */
-const LABEL_PCT: Record<number, number> = { 1: 54, 2: 46, 3: 40, 4: 36, 5: 30 };
 
 /**
- * Figma Comparison / 1 — 수치·데이터 표의 표준.
- *
- * 레이아웃 규칙 (표가 화면마다 달라 보이지 않게 하는 핵심)
- *   · `table-fixed` — 열 폭이 내용이 아니라 이 컴포넌트의 규칙으로만 정해진다.
- *     같은 열 수의 표는 어디에 놓여도 같은 폭이 된다.
- *   · 값 열은 기본 우측 정렬. 숫자 기둥이 맞아야 비교가 된다.
- *   · 카테고리로 묶을 때는 표를 여러 개 만들지 말고 `groups` 를 쓴다.
- *     표를 쪼개면 묶음마다 열 폭이 달라진다.
- *   · **단위 행을 두지 않는다.** 헤더에 단위 보조행이 있는 열과 없는 열이 섞이면
- *     헤더 높이가 어긋난다. 수량은 단위 없이 숫자만, 금액은 셀마다 `₩` 를 붙인다.
- */
-export function ComparisonTable({
-  rowLabel,
-  columns,
-  rows,
-  groups,
-  footer,
-  dense = false,
-  labelWidth,
-}: {
-  /** 좌측 상단 라벨 열 제목 */
-  rowLabel?: string;
-  columns: CompareColumn[];
-  rows?: CompareRow[];
-  /** 카테고리별 소제목 행이 들어간 단일 표 */
-  groups?: CompareGroup[];
-  footer?: ReactNode;
-  dense?: boolean;
-  /**
-   * 라벨 열 폭을 고정한다(예: `"12rem"`). `SpecTable`·`GroupedSpecTable` 과 같은
-   * 화면에 놓여 값 열이 같은 세로선에서 시작해야 할 때만 쓴다. 비우면 열 수에
-   * 따른 기본 비율(`LABEL_PCT`)을 쓴다.
-   */
-  labelWidth?: string;
-}) {
-  const body: CompareGroup[] = groups ?? (rows ? [{ title: "", rows }] : []);
-  const n = Math.max(columns.length, 1);
-  const labelPct = LABEL_PCT[n] ?? 30;
-  const colPct = (100 - labelPct) / n;
-  const cellPad = dense ? "py-2.5" : "py-4";
-  // 열이 늘어도 셀이 뭉개지지 않게 최소 폭을 준다. 넘치면 가로 스크롤.
-  const minWidth = `${11 + n * 7}rem`;
-
-  const align = (c: CompareColumn) => (c.align === "left" ? "text-left" : "text-right");
-
-  return (
-    <div className="overflow-x-auto">
-      <table className="w-full table-fixed border-collapse text-left" style={{ minWidth }}>
-        <colgroup>
-          <col style={{ width: labelWidth ?? `${labelPct}%` }} />
-          {columns.map((c) => (
-            <col
-              key={c.key}
-              style={{ width: labelWidth ? `calc((100% - ${labelWidth}) / ${n})` : `${colPct}%` }}
-            />
-          ))}
-        </colgroup>
-        <thead>
-          <tr className="border-b border-border">
-            <th scope="col" className={`${cellPad} pr-4 align-bottom text-xs font-bold text-muted`}>
-              {rowLabel}
-            </th>
-            {columns.map((c) => (
-              <th key={c.key} scope="col" className={`${cellPad} pl-4 align-bottom ${align(c)}`}>
-                <span className="block break-keep text-s font-bold">{c.title}</span>
-              </th>
-            ))}
-          </tr>
-        </thead>
-        {body.map((group, gi) => (
-          <tbody key={group.title || gi}>
-            {group.title && (
-              <tr>
-                <th
-                  scope="colgroup"
-                  colSpan={n + 1}
-                  className={`border-b border-border pb-2 text-left text-xs font-bold text-muted ${
-                    gi === 0 ? "pt-5" : "pt-9"
-                  }`}
-                >
-                  {group.title}
-                </th>
-              </tr>
-            )}
-            {group.rows.map((r, ri) => (
-              <tr key={ri} className="border-b border-border">
-                <th
-                  scope="row"
-                  className={`${cellPad} pr-4 align-top text-s font-normal text-muted`}
-                >
-                  <span className="block break-keep">{r.label}</span>
-                  {r.note && <span className="mt-0.5 block text-xs text-muted">{r.note}</span>}
-                </th>
-                {r.cells.map((cell, i) => (
-                  <td
-                    key={columns[i]?.key ?? i}
-                    className={`${cellPad} whitespace-pre-wrap pl-4 align-top text-s font-bold tabular-nums ${
-                      columns[i]?.align === "left" ? "break-keep text-left" : "text-right"
-                    }`}
-                  >
-                    {cell}
-                  </td>
-                ))}
-              </tr>
-            ))}
-          </tbody>
-        ))}
-      </table>
-      {footer && <div className="mt-6">{footer}</div>}
-    </div>
-  );
-}
-
-/**
- * 선택 카드 — 제목 + 설명이 들어가는 클릭 가능한 네모.
- *
- * **버튼의 3단 높이(48/40/32) 규칙 밖이다.** 높이가 내용에서 나오기 때문이다. 대신
- * 패딩을 두 가지로만 고정해 화면마다 다른 카드가 되지 않게 한다.
- *   기본(20)  — 한 화면에 2~3장 놓이는 큰 선택(회원 유형 등)
- *   dense(16/12) — 격자로 여러 장 놓이는 선택(패키지 등)
- *
- * **선택 = 검정 채움.** 옐로 하이라이트도, 좌측 컬러 바도, "선택됨" 배지도 쓰지 않는다.
- * 검정 면 위에서 안쪽 글자가 사라지지 않도록 호출부에서 `CHOICE_SELECTED_VARS` 를
- * 함께 style 로 넘긴다.
+ * 작은 토글 칩 — 날짜 역할(셋업·공연일·철수), 필터, 값 스테퍼처럼 표·카드 안에 놓이는
+ * 인라인 컨트롤. 버튼 크기는 시스템의 세 단만 쓴다(48 / 40 / **32**) — 이건 32 다.
+ * 선택 = 검정 채움 한 가지 언어. 같은 줄에 놓이는 컨트롤은 전부 이 높이로 맞춘다.
  */
 export function choiceClass(
   selected: boolean,
@@ -604,12 +451,6 @@ export function choiceClass(
         : "cursor-pointer border-border-soft hover:border-foreground",
   ].join(" ");
 }
-
-/**
- * 작은 토글 칩 — 날짜 역할(셋업·공연일·철수), 필터, 값 스테퍼처럼 표·카드 안에 놓이는
- * 인라인 컨트롤. 버튼 크기는 시스템의 세 단만 쓴다(48 / 40 / **32**) — 이건 32 다.
- * 선택 = 검정 채움 한 가지 언어. 같은 줄에 놓이는 컨트롤은 전부 이 높이로 맞춘다.
- */
 export function toggleClass(selected: boolean, disabled = false) {
   return [
     "inline-flex h-11 items-center justify-center gap-1 whitespace-nowrap border px-3 text-xs font-bold sm:h-8",
@@ -692,51 +533,6 @@ export function SpecTable({
 export interface SpecGroup {
   title: string;
   rows: { label: string; value: string; note?: string }[];
-}
-
-export function GroupedSpecTable({
-  groups,
-  className = "",
-  dense = false,
-}: {
-  groups: SpecGroup[];
-  className?: string;
-  dense?: boolean;
-}) {
-  const pad = dense ? "py-2.5" : "py-4";
-  // 첫 묶음 제목에 이미 아래 테두리가 있다. 감싸는 요소에 위 테두리를 또 두면
-  // 섹션 제목과 첫 묶음 사이에 줄이 두 개 겹쳐 보인다 — 위 테두리는 두지 않는다.
-  return (
-    <div className={className}>
-      {groups.map((g, gi) => (
-        <section key={`${g.title}-${gi}`}>
-          <h4
-            className={`border-b border-border pb-2 text-xs font-bold text-muted ${
-              gi === 0 ? "pt-4" : "pt-8"
-            }`}
-          >
-            {g.title}
-          </h4>
-          <dl>
-            {g.rows.map((r, i) => (
-              <div
-                key={`${r.label}-${i}`}
-                className={`grid gap-1 border-b border-border ${pad} sm:grid-cols-[minmax(0,12rem)_minmax(0,1fr)] sm:gap-6`}
-              >
-                <dt className="text-s text-muted">{r.label}</dt>
-                {/* 보조 문구(단위·조건)는 값 **옆에** 붙인다 — 아래 줄로 내리면 한 항목이
-                    두 줄이 되어 목록의 행 리듬이 깨진다 */}
-                <dd className="text-s font-bold">
-                  {r.value}
-                  {r.note && <span className="ml-2 text-xs font-normal text-muted">{r.note}</span>}
-                </dd>
-              </div>
-            ))}
-          </dl>
-        </section>
-      ))}
-    </div>
-  );
 }
 
 /* ------------------------------------------------------- 카드 / 스탯 ----- */
@@ -964,7 +760,7 @@ export function Row({
  * 페이지 하단 옐로 배너의 고정 높이(내부 콘텐츠 영역).
  * 페이지마다 카피 길이가 달라도 배너 높이는 같아야 한다 — 이 값은 여기서만 정한다.
  */
-export const CTA_BAND_MIN = "9rem";
+const CTA_BAND_MIN = "9rem";
 
 /** Figma CTA / 1 — 좌: 헤딩 + 본문 / 우: 버튼 2개 */
 export function CTABand({
@@ -1074,7 +870,7 @@ function isLatinHeading(text: ReactNode): boolean {
 }
 
 /** 영문 캡스면 Archivo, 국문이면 국문 헤딩 서체 — 카드 제목처럼 kit 밖에서도 쓴다 */
-export function headingFontClass(text: ReactNode): string {
+function headingFontClass(text: ReactNode): string {
   return isLatinHeading(text) ? "type-display" : "type-kr-heading";
 }
 
@@ -1141,39 +937,6 @@ export function SectionHead({
         {lead && <div className="measure mt-3 break-keep text-m text-muted">{lead}</div>}
       </div>
       {actions && <div className="flex shrink-0 flex-wrap gap-3">{actions}</div>}
-    </div>
-  );
-}
-
-/**
- * 섹션을 두 칼럼으로 — **좌 2col 제목(+보조 문장) / 우 4col 표·목록.**
- *
- * 규약 목차 + 본문, 마이페이지 메뉴 + 본문, FAQ 묶음 + 질문과 같은 `grid-site` 2/4
- * 분할이다. 제목이 표 위에 가로로 눕는 대신 왼쪽에 서면, 표가 화면 폭을 다 쓰지 않고
- * 읽기 좋은 폭으로 좁아진다 — 값이 라벨에서 멀리 떨어지지 않는다.
- *
- * 제목은 `SectionHead` 와 같은 H3 다. 2col(1440 에서 410px) 안에서 두 줄로 접히는
- * 것은 정상이다(ADDITIONAL CHARGES).
- */
-export function SplitSection({
-  title,
-  aside,
-  children,
-  className = "",
-}: {
-  title: string;
-  /** 제목 아래 보조 문장 — 표에 넣으면 신청 항목처럼 읽히는 기본 조건 등 */
-  aside?: ReactNode;
-  children: ReactNode;
-  className?: string;
-}) {
-  return (
-    <div className={`grid-site ${className}`}>
-      <div className="lg:col-span-3">
-        <h3 className={`${headingFontClass(title)} break-keep text-h3-m sm:text-h3`}>{title}</h3>
-        {aside && <div className="mt-6">{aside}</div>}
-      </div>
-      <div className="min-w-0 lg:col-span-9">{children}</div>
     </div>
   );
 }

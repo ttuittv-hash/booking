@@ -240,7 +240,7 @@ export const LIVE_HALL_CAPACITY: StageCapacity[] = [
  * PRODUCTION & RIGGING · LOAD-IN & SUPPORT 처럼 "수치가 주인공인" 섹션에 쓴다.
  * 카드 안이 목록인 ADDITIONAL FACILITIES 카드와는 다른 물건이다.
  */
-export interface SpecCardFact {
+interface SpecCardFact {
   label: string;
   value: string;
   desc: string;

@@ -6,7 +6,7 @@
 
 const TRUSTED_HOST = /^(?:(?:bo|partner)\.(?:dev\.)?seoularena\.net|localhost|127\.0\.0\.1)(?::\d+)?$/i;
 
-export function isTrustedPublicHost(host: string): boolean {
+function isTrustedPublicHost(host: string): boolean {
   const extra = (process.env.PUBLIC_TRUSTED_HOSTS ?? "").split(",").map((s) => s.trim().toLowerCase()).filter(Boolean);
   const bare = host.toLowerCase();
   return TRUSTED_HOST.test(bare) || extra.includes(bare.replace(/:\d+$/, ""));

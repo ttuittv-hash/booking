@@ -3366,7 +3366,7 @@ export interface Paged<T> {
   totalPages: number;
 }
 
-export const DEFAULT_PAGE_SIZE = 20;
+const DEFAULT_PAGE_SIZE = 20;
 
 // 1보다 작거나 숫자가 아닌 입력은 1페이지로 보정한다(쿼리스트링을 그대로 받기 때문).
 // ── 운영자 회사 관리 (기획서 A9·A10 운영자 시야) ───────────────────────────
@@ -4786,7 +4786,7 @@ const TRAFFIC_TRUNC: Record<TrafficGranularity, string> = {
   month: "month",
 };
 
-export interface TrafficBucket {
+interface TrafficBucket {
   /** 구간 시작일(KST) — 일간이면 그 날, 주간이면 그 주 월요일, 월간이면 1일 */
   bucket: string;
   pageViews: number;
@@ -5411,7 +5411,7 @@ export async function listFaqs(): Promise<Faq[]> {
   return rows.map(toFaq);
 }
 
-export async function getFaqById(id: string): Promise<Faq | undefined> {
+async function getFaqById(id: string): Promise<Faq | undefined> {
   const row = await one<FaqRow>("SELECT * FROM faqs WHERE id = $1", [id]);
   return row ? toFaq(row) : undefined;
 }
@@ -5612,7 +5612,7 @@ export async function listPages(group?: PageGroup): Promise<StaticPage[]> {
   return rows.map(toStaticPage);
 }
 
-export async function getPageById(id: string): Promise<StaticPage | undefined> {
+async function getPageById(id: string): Promise<StaticPage | undefined> {
   const row = await one<PageRow>("SELECT * FROM pages WHERE id = $1", [id]);
   return row ? toStaticPage(row) : undefined;
 }

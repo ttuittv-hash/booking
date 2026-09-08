@@ -6,7 +6,7 @@
 import type { AppUser, Company } from "./pricing/types";
 
 /** ✓ 통과 · ! 확인 필요 · — 해당 없음 */
-export type BadgeState = "PASS" | "WARN" | "NONE";
+type BadgeState = "PASS" | "WARN" | "NONE";
 
 export interface VerificationBadge {
   key: string;

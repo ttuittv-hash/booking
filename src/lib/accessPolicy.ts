@@ -24,7 +24,7 @@
 export type AccountState = "GUEST" | "PENDING" | "REJECTED" | "APPROVED";
 
 /** 열람 가능 여부. 기획서 표의 "열람 / 차단 / 가능" 을 그대로 옮긴다. */
-export type AccessLevel = "OPEN" | "BLOCKED";
+type AccessLevel = "OPEN" | "BLOCKED";
 
 interface MenuRule {
   /** 경로 접두사 */

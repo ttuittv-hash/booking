@@ -200,7 +200,7 @@ export async function requireMasterAdmin(): Promise<AppUser | null> {
  * 로그인 직후·권한 밖 화면에서 돌아갈 곳이 필요하다 — 콘텐츠 관리를 홈으로 삼는다.
  * 프로 관리자 이상은 그대로 신청 현황(/admin)이 홈이다.
  */
-export function defaultAdminHome(user: AppUser): string {
+function defaultAdminHome(user: AppUser): string {
   return isProAdminOrAbove(user) ? "/admin" : "/admin/content";
 }
 

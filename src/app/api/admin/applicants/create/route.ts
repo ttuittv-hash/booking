@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { EMAIL_RE } from "@/lib/validation";
 import crypto from "node:crypto";
 import { getCurrentUser, isProAdminOrAbove, hashPassword } from "@/lib/auth";
 import {
@@ -15,7 +16,6 @@ import { dispatchMessage } from "@/lib/message/dispatch";
 import { sha256Hex } from "@/lib/passwordScheme";
 import { revalidateMemberViews } from "@/lib/revalidateAdmin";
 
-const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const USERNAME_RE = /^[a-z0-9][a-z0-9_]{3,19}$/;
 
 export async function POST(request: Request) {

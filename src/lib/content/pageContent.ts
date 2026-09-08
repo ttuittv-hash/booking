@@ -69,7 +69,7 @@ export interface FeatureBlock {
 
 /* ------------------------------------------ 서울아레나 (`/seoularena`) --- */
 
-export interface VenueHeroBlock {
+interface VenueHeroBlock {
   title: string;
   eyebrow: string;
   desc: string;
@@ -100,7 +100,7 @@ export const DEFAULT_SEOULARENA_CONTENT: SeoulArenaContent = {
 /* ---------------------------------------------- 시설 소개 (`/features`) --- */
 
 /** 라벨/값에 부연 한 줄이 더 붙는 행. `Pair` 의 상위 호환이라 예전 저장본도 그대로 읽힌다 */
-export interface SpecRow extends Pair {
+interface SpecRow extends Pair {
   note?: string;
 }
 
@@ -129,7 +129,7 @@ export interface SpecCard {
 }
 
 /** 스펙 카드 섹션 하나 (PRODUCTION & RIGGING · LOAD-IN & SUPPORT …) */
-export interface SpecCardGroup {
+interface SpecCardGroup {
   title: string;
   cards: SpecCard[];
 }
@@ -203,7 +203,7 @@ export const DEFAULT_FEATURES_CONTENT: FeaturesContent = {
 
 /* ------------------------------------------------- 대관 절차 (`/guide`) --- */
 
-export interface ProcessBlock {
+interface ProcessBlock {
   no: string;
   title: string;
   desc: string;
@@ -486,7 +486,7 @@ export interface WizardStepTexts {
   submitEditingLead: string;
 }
 
-export const DEFAULT_WIZARD_STEP_TEXTS: WizardStepTexts = {
+const DEFAULT_WIZARD_STEP_TEXTS: WizardStepTexts = {
   venuePickerTitle: "공간 선택",
   venuePickerLead: "아레나, 중형공연장, 동시 대관 중 이용할 공간을 선택하세요.",
   configArenaTitle: "아레나",
@@ -542,7 +542,7 @@ export interface BookItNoticeTexts {
   body: string;
 }
 
-export const DEFAULT_BOOK_IT_NOTICE: BookItNoticeTexts = {
+const DEFAULT_BOOK_IT_NOTICE: BookItNoticeTexts = {
   enabled: true,
   title: "오픈 예정",
   // 줄바꿈은 화면에 그대로 나간다 — 운영자가 나눈 대로 읽힌다.

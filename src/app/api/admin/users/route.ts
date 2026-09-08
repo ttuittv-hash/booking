@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { EMAIL_RE } from "@/lib/validation";
 import crypto from "node:crypto";
 import { getCurrentUser, hashPassword, isMasterAdmin } from "@/lib/auth";
 import { createUser, findUserByEmailWithPasswordHash, findUserByUsername, listUsers } from "@/lib/db";
@@ -6,7 +7,6 @@ import { sha256Hex } from "@/lib/passwordScheme";
 
 /** 하이픈 있는 형태만 받는다 — 저장 형식을 하나로 두어야 발송 쪽에서 갈리지 않는다 */
 const PHONE_RE = /^01[016789]-\d{3,4}-\d{4}$/;
-const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const USERNAME_RE = /^[a-z0-9][a-z0-9_]{3,19}$/;
 
 export async function GET() {

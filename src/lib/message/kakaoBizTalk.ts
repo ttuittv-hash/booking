@@ -109,7 +109,7 @@ export function isXmsConfigured(): boolean {
  * (scripts/biztalk-check.mjs 가 두 형태를 모두 찔러 본다.)
  */
 /** 발송 요청이 접수된 코드 — 100(처리중) / 200(성공). */
-export function isAcceptedCode(code: string | number | null | undefined): boolean {
+function isAcceptedCode(code: string | number | null | undefined): boolean {
   const c = String(code ?? "");
   return c === "100" || c === "200";
 }

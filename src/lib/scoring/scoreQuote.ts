@@ -24,7 +24,7 @@ import type {
   VenueScoreResult,
 } from "./types";
 
-export const SCORING_RUBRIC_VERSION = "26-08-22";
+const SCORING_RUBRIC_VERSION = "26-08-22";
 
 const VENUE_LABEL: Record<"arena" | "medium-hall", string> = {
   arena: "아레나",

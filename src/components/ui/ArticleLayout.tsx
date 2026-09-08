@@ -27,7 +27,7 @@ const RULE_TABLE = [
    `n/N` + 이전·다음으로 옮겨 다닌다. 목차도 바뀌지 않고 걸린 장에 개수만 붙는다.
    ========================================================================= */
 
-export interface ArticleItem {
+interface ArticleItem {
   title: string;
   paragraphs: string[];
 }
@@ -444,7 +444,7 @@ export function ArticleLayout({
 }
 
 /** 조 — H6 제목 + 항 목록 */
-export function Article({
+function Article({
   title,
   paragraphs,
   query = "",

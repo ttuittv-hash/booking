@@ -23,7 +23,7 @@ export function isPlaceSearchConfigured(): boolean {
   return !!process.env.KAKAO_REST_API_KEY;
 }
 
-export interface PlaceHit {
+interface PlaceHit {
   /** 법인명 — 사용자가 검색한 말과 맞는지 눈으로 확인하는 값 */
   name: string;
   /** 도로명주소. 이 값을 우편번호 위젯에 넣어 우편번호를 확정한다. */

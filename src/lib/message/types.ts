@@ -5,9 +5,7 @@
 // 어댑터만 갈아끼운다. 발송 규칙(수신자 결정·변수 바인딩·멱등·재시도)은
 // 채널과 무관하게 한 곳에 둔다.
 
-export type MessageChannel = "INAPP" | "EMAIL" | "ALIMTALK" | "LMS";
-
-export type SendStatus = "QUEUED" | "SENT" | "FAILED" | "FALLBACK";
+type MessageChannel = "INAPP" | "EMAIL" | "ALIMTALK" | "LMS";
 
 /** 발송 실패 분류 (기획서 B5). 이 분류가 대체발송 여부를 가른다. */
 export type FailureKind =

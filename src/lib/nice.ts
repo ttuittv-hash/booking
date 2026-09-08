@@ -43,7 +43,7 @@ const COMP_TYPE_LABEL: Record<string, string> = {
   "5": "신설법인(2년 이내)",
 };
 
-export type CompanyCheckStatus =
+type CompanyCheckStatus =
   /** 조회 성공 — 실존하는 사업자 */
   | "VERIFIED"
   /** 조회는 됐으나 해당 사업자번호 정보를 보유하고 있지 않음 */

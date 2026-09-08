@@ -60,7 +60,7 @@ const MENU: { label: string; items: { href: MyPageSection; label: string }[] }[]
   },
 ];
 
-export function MyPageMenu({
+function MyPageMenu({
   active,
   isMaster = false,
 }: {

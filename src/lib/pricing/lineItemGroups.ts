@@ -42,7 +42,7 @@ const CORE_LINE_IDS = new Set([
  * **합계에서 빼는 게 아니다.** quote.subtotal/total 은 전체 lineItems 로 이미 계산돼
  * 있고, 운영자 화면은 언제나 전체 내역을 그대로 본다(기능정의서 2-71).
  */
-export const APPLICANT_HIDDEN_LINE_IDS = new Set(["cleaning", "midhall_cleaning"]);
+const APPLICANT_HIDDEN_LINE_IDS = new Set(["cleaning", "midhall_cleaning"]);
 
 export function isHiddenFromApplicant(item: LineItem): boolean {
   return item.visibility === "HIDDEN" || APPLICANT_HIDDEN_LINE_IDS.has(item.addonId);
@@ -79,11 +79,6 @@ export function feeGroupOf(item: LineItem): FeeGroup {
   return "BASE";
 }
 
-export const FEE_GROUP_LABEL: Record<FeeGroup, string> = {
-  BASE: "기본 대관료",
-  EXCLUSIVE: "전용 사용료",
-  OPTION: "옵션",
-};
 // [신규 2026-08-26] "패키지에 대한 실제 계약금액과 옵션 선택분(추가 예상 예산)은
 // 성격이 다르니 슬롯을 나눠 보여달라"는 요청 — 기본 대관료·전용 사용료(패키지에
 // 묶인 항목)는 "대관료"로, 옵션 사용료는 "추가 옵션"으로 묶는다.
@@ -131,10 +126,6 @@ export const SECTION_GROUPS: Record<ContractSection, FeeGroup[]> = {
   CONTRACT: ["BASE", "EXCLUSIVE"],
   ADDITIONAL: ["OPTION"],
 };
-
-export function sectionSubtotal(items: LineItem[], section: ContractSection): number {
-  return items.filter((item) => sectionOf(item) === section).reduce((sum, item) => sum + item.amount, 0);
-}
 
 // [삭제 2026-09-08] "너무 다 감추니까 뭐가뭔지 안보이고.. 할인율 보여줘" — SummaryPanel
 // (오른쪽 실시간 패널) 전용으로 할인율(%)까지 지우던 applicantLineLabel을 없앴다.

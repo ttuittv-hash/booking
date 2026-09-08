@@ -10,7 +10,7 @@
 
 import crypto from "node:crypto";
 
-export type TermsKind = "SERVICE" | "PRIVACY_REQUIRED" | "PRIVACY_OPTIONAL";
+type TermsKind = "SERVICE" | "PRIVACY_REQUIRED" | "PRIVACY_OPTIONAL";
 
 export interface TermsDocument {
   kind: TermsKind;
@@ -25,7 +25,7 @@ export interface TermsDocument {
   hidden?: boolean;
 }
 
-export const TERMS: TermsDocument[] = [
+const TERMS: TermsDocument[] = [
   {
     kind: "SERVICE",
     version: "2026-08-01",
@@ -307,7 +307,7 @@ export interface RegisterTermsContent {
 export const DEFAULT_REGISTER_TERMS: RegisterTermsContent = { documents: TERMS };
 
 /** 서울 기준 오늘(YYYY-MM-DD) — 버전 자동 올림에 쓴다. */
-export function seoulToday(now: Date = new Date()): string {
+function seoulToday(now: Date = new Date()): string {
   return new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Seoul" }).format(now);
 }
 

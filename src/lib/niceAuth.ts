@@ -26,7 +26,7 @@ export function isNiceAuthConfigured(): boolean {
 }
 
 /** 요청고유번호 — 문서 규격상 20~50byte. */
-export function buildRequestNo(prefix: string): string {
+function buildRequestNo(prefix: string): string {
   const rand = crypto.randomBytes(8).toString("hex");
   return `ARENA-${prefix}-${Date.now()}-${rand}`.slice(0, 50);
 }
@@ -145,7 +145,7 @@ export function decryptResult(encData: string, key: string): string {
   return Buffer.concat([decipher.update(cipherText), decipher.final()]).toString("utf8");
 }
 
-export interface NiceIdentity {
+interface NiceIdentity {
   name: string;
   birthdate: string;
   /** '0' 여자 / '1' 남자 */

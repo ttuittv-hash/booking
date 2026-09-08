@@ -152,13 +152,13 @@ export interface RentalPackage {
 
 export type AvailabilityMode = "ALWAYS" | "IF_PACKAGE_IN" | "IF_NOT_INCLUDED";
 
-export interface AvailabilityRule {
+interface AvailabilityRule {
   mode: AvailabilityMode;
   packages?: number[]; // mode=IF_PACKAGE_IN 일 때 대상 패키지 id
   maxAddQuantity?: number | "UNLIMITED"; // 추가 가능 상한 (기본 포함 수량 위에 더 얹을 수 있는 양)
 }
 
-export type BillingPhase = "ESTIMATE" | "SETTLEMENT";
+type BillingPhase = "ESTIMATE" | "SETTLEMENT";
 
 // 산출내역표 노출 등급 (기능정의서 2-71). 신청자 화면 기준이며 운영자 화면(어드민)에는
 // 적용하지 않는다 — 운영자는 항상 전체 내역을 본다.
@@ -292,13 +292,13 @@ export interface SafetyPledge {
   signature: string;
 }
 
-export interface MarketingChannel {
+interface MarketingChannel {
   platform: string; // 채널명 (인스타그램, 유튜브, X 등)
   handle: string; // 계정 · URL
   followers: string; // 구독자·팔로워 수 — 참고용 문자열, 형식 강제 안 함
 }
 
-export interface MarketingSponsorship {
+interface MarketingSponsorship {
   brandName: string; // 스폰서 · 브랜드사명
   campaignSummary: string; // 연계 캠페인 개요
 }
@@ -308,7 +308,7 @@ export interface MarketingSponsorship {
 // 동일한 패턴). 4개 중 몇 개를 채워야 하는지는 검사하지 않는다 — 안내 문구
 // ("4요소 중 2개 이상을 구체적 수치·금액·일자로 작성해 주세요")로만 유도하고 이 단계
 // 전체가 선택 항목이라 필수 검증 대상이 아니다.
-export interface MarketingExecutionPlan {
+interface MarketingExecutionPlan {
   targetDefinition: string; // 타겟 정의
   // 매체 믹스 — mediaMixOnline/mediaMixOffline에서 자동 합성(하위호환).
   // scoreQuote.ts의 A-MKT 채점이 이 필드를 그대로 읽는다.
@@ -456,7 +456,7 @@ export const RETRACTABLE_SEAT_FLOOR_LABEL: Record<RetractableSeatFloor, string> 
 // [화면 뼈대 2026-08-18, 화면시나리오 SCREEN 06/12 · 08/12] STEP 3-1(신청자 정보 · 공연
 // 기본정보) · STEP 3-3(개최 신뢰도 · 안전관리) 반영. 대관기간 · 공연일시 · 총 공연 횟수는
 // selection(캘린더 결과)에서 읽기 전용으로 자동 계산하므로 이 타입에는 넣지 않는다.
-export interface ResponsiblePerson {
+interface ResponsiblePerson {
   name: string;
   title: string; // 공연 운영 총괄: 직책 / 안전관리 총괄: 소속
   phone: string;
@@ -647,9 +647,6 @@ export const PUBLIC_INTEREST_GROUPS: PublicInterestGroup[] = [
   },
 ];
 
-// 참여 항목이 아니라 "아직 못 정했다 / 해당 없다"는 응답이라, 그룹 밖 맨 아래에 따로 둔다.
-export const PUBLIC_INTEREST_STATUS_ITEMS: PublicInterestItem[] = ["UNDER_REVIEW", "NONE"];
-
 // 화면에 붙는 번호(1~14) — PUBLIC_INTEREST_ITEM_LABEL 선언 순서가 정본이다.
 export const PUBLIC_INTEREST_ITEM_NUMBER: Record<PublicInterestItem, number> = Object.fromEntries(
   (Object.keys(PUBLIC_INTEREST_ITEM_LABEL) as PublicInterestItem[]).map((item, i) => [item, i + 1]),
@@ -760,7 +757,7 @@ export interface DateBlock {
   reason: string | null; // 예: "정기 대관", "내부 행사"
 }
 
-export interface SelectedAddon {
+interface SelectedAddon {
   addonId: string;
   requestedQuantity: number; // 신청 수량 (초과분 계산 전 총량)
 }

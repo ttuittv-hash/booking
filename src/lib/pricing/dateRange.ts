@@ -6,7 +6,7 @@ function toColumnIndex(jsDay: number): number {
   return (jsDay + 6) % 7;
 }
 
-export function addDays(date: Date, n: number): Date {
+function addDays(date: Date, n: number): Date {
   const d = new Date(date);
   d.setDate(d.getDate() + n);
   return d;
@@ -29,7 +29,7 @@ export function isoDate(d: Date): string {
 }
 
 // 선택된 주(화~일 시작)의 화요일 실제 날짜 — Step1Calendar의 buildCalendarWeeks와 동일한 규칙으로 계산한다.
-export function findWeekTuesday(week: QuoteSelection["week"]): Date | null {
+function findWeekTuesday(week: QuoteSelection["week"]): Date | null {
   const firstOfMonth = new Date(week.year, week.month - 1, 1);
   const firstCol = toColumnIndex(firstOfMonth.getDay());
   const gridStart = new Date(week.year, week.month - 1, 1 - firstCol);
