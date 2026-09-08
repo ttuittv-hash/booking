@@ -681,6 +681,15 @@ export function WizardShell({
             midHallDays: {},
             midHallExtraSetupHours: 0,
             midHallExtraLoadOutHours: 0,
+            // [신규 2026-09-08] "올인원 패키지는 화~일 디폴트 선택되고 삭제 안되게 해야하는데
+            // 지금은 삭제되는 상태" — 다른 공간(아레나 단독·동시 대관)에서 화·일을 뺀 채로
+            // 있다가 올인원으로 바꾸면 그 excludedDays가 그대로 남아, 올인원에서는 「다시
+            // 포함」 버튼도 안 보이니(allowDayExclusion=false) 되돌릴 방법이 없었다 —
+            // 올인원으로 들어올 때 항상 화~일 6일을 전부 포함 상태로 되돌린다.
+            excludedDays:
+              id === SPECIAL_VENUE_ID && bookingMode !== "SIMULTANEOUS"
+                ? []
+                : prev.excludedDays,
           },
     );
     setVenueTab(
@@ -1162,7 +1171,14 @@ export function WizardShell({
                   {venueTab === "arena" ? (
                     <Step1Calendar
                       week={selection.week}
-                      excludedDays={selection.excludedDays}
+                      // [신규 2026-09-08] "올인원 패키지는 화~일 디폴트 선택되고 삭제
+                      // 안되게 해야하는데 지금은 삭제되는 상태" — selectVenue에서 이미
+                      // 올인원 진입 시 excludedDays를 비우지만, 그 전에 저장된 임시본
+                      // (draft)처럼 UI를 거치지 않고 들어온 값까지 방어하려면 화면
+                      // 표시 자체도 항상 빈 배열로 강제해야 한다.
+                      excludedDays={
+                        isSpecialSchedule ? [] : selection.excludedDays
+                      }
                       extraDays={selection.extraDays}
                       dayTags={selection.dayTags}
                       dayShowCounts={selection.dayShowCounts}
