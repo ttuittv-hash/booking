@@ -12,11 +12,15 @@ export function Step5Estimate({
   quote,
   selection,
   title,
+  beforeTotals,
 }: {
   rateTable: RateTable;
   quote: EstimatedQuote;
   selection: QuoteSelection;
   title: ReactNode;
+  /** [신규 2026-09-08] 「추후 정산 예정 금액」 박스와 「소계」 박스 사이에 끼우는 블록 —
+   *  대관 경합 옵션(티켓 매출 RS)이 최종 제출 화면에서 이리로 옮겨왔다(nora, 9/8 저녁). */
+  beforeTotals?: ReactNode;
 }) {
   const { t } = useWizardText();
   const pkg = findPackage(rateTable, selection.packageId);
@@ -51,6 +55,8 @@ export function Step5Estimate({
         lineItems={quote.lineItems}
         expectedRevenue={selection.expectedRevenue ?? 0}
       />
+
+      {beforeTotals && <div className="mt-6">{beforeTotals}</div>}
 
       <div className="mt-6 border border-border bg-panel/40 p-5">
         <div className="flex justify-between text-s text-muted">

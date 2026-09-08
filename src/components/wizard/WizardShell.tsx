@@ -1023,7 +1023,27 @@ export function WizardShell({
                       weekDemand={weekDemand}
                       dateBlocks={dateBlocks}
                       onChangeWeek={(week) => {
-                        setSelection((prev) => ({ ...prev, week }));
+                        // [수정 2026-09-08] "캘린더 주차 변경 시 선택값 초기화 필요"(nora) — 날짜
+                        // 태그·회차·추가일·제외 요일은 ISO 날짜에 매여 있어 다른 주차로 갔다
+                        // 돌아오면 이전 주의 철수 등이 그대로 남아 있었다. 주차(연·월·주)가 실제로
+                        // 바뀔 때만 일정 세부값을 새 시작 상태로 되돌린다. 같은 주를 다시 누르면
+                        // 그대로 둔다.
+                        setSelection((prev) => {
+                          const changed =
+                            prev.week.year !== week.year ||
+                            prev.week.month !== week.month ||
+                            prev.week.weekOfMonth !== week.weekOfMonth;
+                          return changed
+                            ? {
+                                ...prev,
+                                week,
+                                dayTags: {},
+                                dayShowCounts: {},
+                                extraDays: INITIAL_SELECTION.extraDays,
+                                excludedDays: INITIAL_SELECTION.excludedDays,
+                              }
+                            : { ...prev, week };
+                        });
                         checkSimultaneousWindow(week, selection.midHallDays);
                       }}
                       onChangeExcludedDays={(excludedDays) =>
@@ -1154,6 +1174,15 @@ export function WizardShell({
         )}
         {step === 8 && (
           <Step5Estimate
+            // [이동 2026-09-08] 대관 경합 옵션(티켓 매출 RS) — STEP3 → 최종 제출 → 여기.
+            // nora: "예상대관료의 추후정산 예정금액과 소계 사이 박스로".
+            beforeTotals={
+              <StepCompetitionOption
+                framed
+                info={selection.performanceInfo}
+                onChange={(performanceInfo) => setSelection((prev) => ({ ...prev, performanceInfo }))}
+              />
+            }
             rateTable={rateTable}
             quote={quote}
             selection={resolvedSelection}
@@ -1162,12 +1191,6 @@ export function WizardShell({
         )}
         {step === 9 && (
           <Step6Submit
-            beforeSubmit={
-              <StepCompetitionOption
-                info={selection.performanceInfo}
-                onChange={(performanceInfo) => setSelection((prev) => ({ ...prev, performanceInfo }))}
-              />
-            }
             rateTable={rateTable}
             quote={quote}
             selection={resolvedSelection}
