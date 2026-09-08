@@ -1,7 +1,7 @@
 import { requireProAdminPage } from "@/lib/auth";
 import { getNoticeCalendarWindow, getScreenTextContent } from "@/lib/db";
 import { scheduleLegend } from "@/lib/content/scheduleLegend";
-import { kstNowMonth } from "@/lib/content/noticeCalendarWindow";
+import { clampMonthKey, kstNowMonth, noticeCalendarMonthBounds } from "@/lib/content/noticeCalendarWindow";
 import { AdminNav } from "@/components/admin/AdminNav";
 import { ScheduleManager } from "@/components/admin/ScheduleManager";
 import { NoticeCalendarWindowForm } from "@/components/admin/NoticeCalendarWindowForm";
@@ -12,6 +12,15 @@ export default async function AdminSchedulePage() {
 
   const now = new Date();
   const [calendarWindow, screenText] = await Promise.all([getNoticeCalendarWindow(), getScreenTextContent()]);
+
+  // [수정 2026-09-08] 위 「캘린더 노출월」에서 정한 범위를 아래 달력에도 비춘다 — 위에서
+  // 2027년 7월로 잡아 놓고 아래는 오늘 달(2026년 9월)로 열리니 "설정이 반영 안 됐다"로
+  // 읽혔다. 첫 화면만 노출 시작 달로 당기고 이동은 잠그지 않는다: 운영진은 범위 밖
+  // (6월·다음 해 1월)에도 대관 불가를 넣어야 한다. key 로 묶어 저장 뒤 refresh 때
+  // 새 시작 달로 다시 연다.
+  const monthBounds = noticeCalendarMonthBounds(calendarWindow);
+  const openingMonth = clampMonthKey(kstNowMonth(now), monthBounds);
+  const [openingYear, openingMonthNo] = openingMonth.split("-").map(Number);
 
   return (
     <div className="flex flex-1 flex-col">
@@ -31,8 +40,10 @@ export default async function AdminSchedulePage() {
         <NoticeCalendarWindowForm initial={calendarWindow} nowMonth={kstNowMonth(now)} />
 
         <ScheduleManager
-          initialYear={now.getFullYear()}
-          initialMonth={now.getMonth() + 1}
+          key={`${monthBounds.start ?? ""}~${monthBounds.end ?? ""}`}
+          initialYear={openingYear}
+          initialMonth={openingMonthNo}
+          monthBounds={monthBounds}
           legend={scheduleLegend(screenText.wizardStrings)}
         />
       </main>
