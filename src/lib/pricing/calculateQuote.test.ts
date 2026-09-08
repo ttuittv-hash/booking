@@ -446,6 +446,27 @@ describe("calculateQuote — 명세서 7장 검증 케이스", () => {
     expect(line.amount).toBe(unitPrice);
   });
 
+  it("공연일에 1일 3회를 지정하면 추가 2회분(3회-1)만큼 할증된다 (2026-09-08 밤 버그 수정)", () => {
+    const dates = resolveSelectedDates(baseSelection());
+    const performanceDate = dates[dates.length - 1];
+    const quote = calculateQuote(
+      baseSelection({ dayShowCounts: { [performanceDate]: 3 } }),
+      RATE_TABLE,
+    );
+    const line = quote.lineItems.find(
+      (i) => i.addonId === "second_show_surcharge",
+    )!;
+    expect(line).toBeDefined();
+    const discountedUnitPrice = Math.round(
+      pkg2.performanceExtraDayFee * (1 - pkg2.extraDayDiscountRatio),
+    );
+    const unitPrice = Math.round(
+      discountedUnitPrice * pkg2.secondShowSurchargeRatio,
+    );
+    expect(line.requested).toBe(2);
+    expect(line.amount).toBe(2 * unitPrice);
+  });
+
   it("준비일(공연일 아님)에 2회를 지정해도 할증되지 않는다", () => {
     const dates = resolveSelectedDates(baseSelection());
     const prepDate = dates[0]; // 기본값상 준비일(맨 앞 날짜)
