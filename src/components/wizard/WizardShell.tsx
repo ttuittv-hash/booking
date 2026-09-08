@@ -1068,17 +1068,10 @@ export function WizardShell({
                       extraSetupHours={selection.midHallExtraSetupHours}
                       extraLoadOutHours={selection.midHallExtraLoadOutHours}
                       dateBlocks={dateBlocks}
-                      rateConfig={rateTable.midHall}
                       monthBounds={calendarMonthBounds}
                       onChangeMonth={(year, month) => setMidHallMonth({ year, month })}
                       onChangeDays={(midHallDays) =>
                         setSelection((prev) => ({ ...prev, midHallDays }))
-                      }
-                      onChangeExtraSetupHours={(value) =>
-                        setSelection((prev) => ({ ...prev, midHallExtraSetupHours: value }))
-                      }
-                      onChangeExtraLoadOutHours={(value) =>
-                        setSelection((prev) => ({ ...prev, midHallExtraLoadOutHours: value }))
                       }
                     />
                   )}

@@ -6,15 +6,17 @@ import type { EstimatedQuote, LineItem } from "@/lib/pricing/types";
 import {
   isHiddenFromApplicant,
   SECTION_LABEL,
+  SECTION_SUBTOTAL_CAPTION,
   SECTION_SUBTOTAL_LABEL,
+  SECTION_TAG,
   sectionOf,
   summaryPanelLineLabel,
   type ContractSection,
 } from "@/lib/pricing/lineItemGroups";
 
 const VENUE_NAME: Record<string, string> = Object.fromEntries(VENUES.map((v) => [v.id, v.name]));
-// "대관료"(패키지에 묶인 금액)를 먼저, "추가 옵션"을 그 아래에 둔다 — 계약 확정
-// 대상이 아닌 쪽을 뒤로 밀어야 어느 쪽이 대관료인지 헷갈리지 않는다.
+// "대관료"(패키지에 묶인 금액)를 먼저, "추후 정산 예정 금액"을 그 아래에 둔다 — 계약
+// 확정 대상이 아닌 쪽을 뒤로 밀어야 어느 쪽이 대관료인지 헷갈리지 않는다.
 const SECTION_ORDER: ContractSection[] = ["CONTRACT", "ADDITIONAL"];
 
 /**
@@ -89,9 +91,26 @@ export function SummaryPanel({ quote }: { quote: EstimatedQuote }) {
                 const subtotal = group.allItems
                   .filter((item) => sectionOf(item) === section)
                   .reduce((sum, item) => sum + item.amount, 0);
+                // [신규 2026-09-08] "대관료는 계약시 하는 금액이고, 옵션은 추후 변동
+                // 가능성있는 추후 정산 금액이거든 — 구분이 되게" 시안 반영. CONTRACT는
+                // 확정(노란 강조), ADDITIONAL은 아직 확정 전(점선 테두리 + 무채색)이라는
+                // 걸 제목 옆 태그와 총계 줄 스타일 둘 다로 알려준다.
+                const isContract = section === "CONTRACT";
                 return (
                   <div key={section} className="mt-4 border border-border/25 bg-surface p-4">
-                    <p className="text-xs font-bold text-foreground">{SECTION_LABEL[section]}</p>
+                    <div className="flex items-center justify-between gap-2">
+                      <p className="text-xs font-bold text-foreground">{SECTION_LABEL[section]}</p>
+                      <span
+                        className={[
+                          "shrink-0 border px-2 py-0.5 text-[10px] font-bold whitespace-nowrap",
+                          isContract
+                            ? "border-accent bg-accent-soft text-foreground"
+                            : "border-dashed border-border-soft bg-panel-strong text-muted",
+                        ].join(" ")}
+                      >
+                        {SECTION_TAG[section]}
+                      </span>
+                    </div>
                     {sectionItems.length > 0 && (
                       <dl className="mt-2 border-t border-border/25">
                         {sectionItems.map((item) => (
@@ -120,9 +139,24 @@ export function SummaryPanel({ quote }: { quote: EstimatedQuote }) {
                       </dl>
                     )}
                     {/* [개정 2026-09-07] "대관료/추가 옵션 박스마다 총액을 강조 표시" 시안
-                        요청 — 소계 줄을 박스 안에서 테두리로 감싸 눈에 띄게 한다. */}
-                    <div className="mt-3 flex justify-between border border-accent bg-accent-soft/40 px-3 py-2.5 text-s font-bold text-foreground">
-                      <span>{SECTION_SUBTOTAL_LABEL[section]}</span>
+                        요청 — 소계 줄을 박스 안에서 테두리로 감싸 눈에 띄게 한다.
+                        [개정 2026-09-08] CONTRACT(대관료)는 지금 확정되는 금액이라 노란
+                        강조를 유지하고, ADDITIONAL(추후 정산 예정)은 점선 테두리 +
+                        무채색으로 눌러 "아직 확정 아님"을 전달한다. */}
+                    <div
+                      className={[
+                        "mt-3 flex justify-between px-3 py-2.5 text-s font-bold text-foreground",
+                        isContract
+                          ? "border border-accent bg-accent-soft/40"
+                          : "border border-dashed border-border-soft bg-panel-strong/50",
+                      ].join(" ")}
+                    >
+                      <span>
+                        {SECTION_SUBTOTAL_LABEL[section]}
+                        <span className="ml-1.5 text-[10px] font-medium text-muted">
+                          {SECTION_SUBTOTAL_CAPTION[section]}
+                        </span>
+                      </span>
                       <span className="tabular-nums">{won(subtotal)}</span>
                     </div>
                   </div>
