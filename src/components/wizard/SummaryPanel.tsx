@@ -186,111 +186,20 @@ export function SummaryPanel({ quote }: { quote: EstimatedQuote }) {
                     .filter((item) => sectionOf(item) === section)
                     .reduce((sum, item) => sum + item.amount, 0);
                   const vat = Math.round(subtotal * effectiveVatRate);
-                  const sectionTotal = subtotal + vat;
                   const vatPct = Math.round(effectiveVatRate * 100);
-                  const isContract = section === "CONTRACT";
                   // [수정 2026-09-08] "박싱 해서 구분을 해주고.. 지금은 구분 너무 약한거
                   // 같아" — 옅은(border/25) 테두리로는 두 박스가 잘 갈라져 보이지
                   // 않는다. 굵은 실선 테두리(border-2)로 각 박스 자체를 뚜렷하게
                   // 감싸고, 색도 위 태그와 맞춘다(대관료=노랑, 추후정산=회색).
                   return (
-                    <div
+                    <QuoteSectionBox
                       key={section}
-                      className={[
-                        "mt-4 border-2 bg-surface p-4",
-                        isContract ? "border-accent" : "border-muted-strong/40",
-                      ].join(" ")}
-                    >
-                      <div className="flex items-center justify-between gap-2">
-                        <p className="text-xs font-bold text-foreground">
-                          {SECTION_LABEL[section]}
-                        </p>
-                        {/* [부활 2026-09-08] "계약시 결제 노랑색... 변동가능 회색 글씨 좋았어" */}
-                        <span
-                          className={[
-                            "shrink-0 border px-2 py-0.5 text-[10px] font-bold whitespace-nowrap",
-                            isContract
-                              ? "border-accent bg-accent-soft text-foreground"
-                              : "border-border-soft bg-panel-strong text-muted",
-                          ].join(" ")}
-                        >
-                          {SECTION_TAG[section]}
-                        </span>
-                      </div>
-                      {sectionItems.length > 0 && (
-                        <dl className="mt-2 border-t border-border/25">
-                          {sectionItems.map((item) => (
-                            <div
-                              key={item.addonId}
-                              className="flex items-baseline justify-between gap-4 border-b border-border/15 py-2.5"
-                            >
-                              <dt className="text-s text-muted">
-                                {summaryPanelLineLabel(item)}
-                                {/* [수정 2026-09-07] "공연 일수 조정 (...)(초과 4) -> 초과 부분 제거" —
-                                  이 줄은 billable이 옵션 초과분이 아니라 라벨에 이미 적힌 "+N일"
-                                  자체라서 "(초과 N)"을 덧붙이면 같은 값이 중복 표시된다. 실제
-                                  포함 수량 대비 초과분을 보여주는 다른 항목(선택 옵션 등)에서만
-                                  이 표기를 쓴다. */}
-                                {item.addonId !==
-                                  "performance_day_adjustment" &&
-                                  item.billable > 0 &&
-                                  item.included > 0 && (
-                                    <span className="ml-1 text-xs text-muted">
-                                      (초과 {item.billable.toLocaleString()})
-                                    </span>
-                                  )}
-                              </dt>
-                              <dd className="shrink-0 text-s tabular-nums text-muted">
-                                {won(item.amount)}
-                              </dd>
-                            </div>
-                          ))}
-                        </dl>
-                      )}
-                      {/* [재개정 2026-09-08] "대관료에도 vat 별도 수수료가 붙고 총 계약금액으로
-                        노출되어야지.. 시안대로 해야지" — 박스마다 소계(VAT 별도)·부가세·
-                        최종금액(검정 강조 바)을 갖는다. 사용자가 준 와이어프레임 그대로:
-                        박스 색은 CONTRACT/ADDITIONAL 구분 없이 같고, 최종 줄만 검정으로
-                        강조한다.
-                        [수정 2026-09-08] "소계 행 위에 줄은 굵게 하던지 경계를 줘야지..
-                        하이라키가 있어야함" — 항목 행 사이의 옅은 구분선(border/25)과
-                        같은 굵기로는 "항목 나열"과 "합계 요약"이 한 덩어리로 보인다.
-                        여기부터는 굵은 실선(border-foreground)으로 갈라 위계를 준다. */}
-                      <dl className="mt-3 border-t-2 border-foreground pt-0.5">
-                        <div className="flex items-baseline justify-between gap-4 border-b border-border/15 py-2">
-                          <dt className="text-xs text-muted">
-                            소계 (VAT 별도)
-                          </dt>
-                          <dd className="text-xs tabular-nums text-muted">
-                            {won(subtotal)}
-                          </dd>
-                        </div>
-                        <div className="flex items-baseline justify-between gap-4 border-b border-border/15 py-2">
-                          <dt className="text-xs text-muted">
-                            부가세 {vatPct}%
-                          </dt>
-                          <dd className="text-xs tabular-nums text-muted">
-                            {won(vat)}
-                          </dd>
-                        </div>
-                      </dl>
-                      {/* [수정 2026-09-08] "계약금액은 노란색으로 컬러 넣어줘" — 대관료
-                        박스의 최종금액 줄만 노란 강조로 바꾼다(확정·결제 금액이라는
-                        신호). 추후 정산 예정 금액 줄은 검정 그대로 둔다. */}
-                      <div
-                        className={[
-                          "mt-2 flex justify-between px-3 py-2.5 text-s font-bold",
-                          isContract
-                            ? "bg-accent text-foreground"
-                            : "bg-foreground text-background",
-                        ].join(" ")}
-                      >
-                        <span>{SECTION_SUBTOTAL_CAPTION[section]}</span>
-                        <span className="tabular-nums">
-                          {won(sectionTotal)}
-                        </span>
-                      </div>
-                    </div>
+                      section={section}
+                      sectionItems={sectionItems}
+                      subtotal={subtotal}
+                      vat={vat}
+                      vatPct={vatPct}
+                    />
                   );
                 })}
               </div>
@@ -309,4 +218,155 @@ export function SummaryPanel({ quote }: { quote: EstimatedQuote }) {
       </div>
     </aside>
   );
+}
+
+/**
+ * [공유 2026-09-08 밤] 대관료 / 추후 정산 예정 금액 박스 한 장 — 오른쪽 실시간 패널과
+ * 예상 대관료(Step5Estimate)가 같은 박스를 그린다("2번째 시안처럼": 아레나·중형 나란히,
+ * 그 아래 총계약 금액 → 추후 정산 → 합계 → 티켓 매출 RS). 항목 행·소계·부가세·최종
+ * 강조줄(대관료=노랑, 추후 정산=검정)까지 이 한 곳에서만 정한다.
+ */
+export function QuoteSectionBox({
+  section,
+  sectionItems,
+  subtotal,
+  vat,
+  vatPct,
+}: {
+  section: ContractSection;
+  sectionItems: LineItem[];
+  subtotal: number;
+  vat: number;
+  vatPct: number;
+}) {
+  const sectionTotal = subtotal + vat;
+  const isContract = section === "CONTRACT";
+  return (
+    <div
+      className={[
+        "mt-4 border-2 bg-surface p-4",
+        isContract ? "border-accent" : "border-muted-strong/40",
+      ].join(" ")}
+    >
+      <div className="flex items-center justify-between gap-2">
+        <p className="text-xs font-bold text-foreground">
+          {SECTION_LABEL[section]}
+        </p>
+        {/* [부활 2026-09-08] "계약시 결제 노랑색... 변동가능 회색 글씨 좋았어" */}
+        <span
+          className={[
+            "shrink-0 border px-2 py-0.5 text-[10px] font-bold whitespace-nowrap",
+            isContract
+              ? "border-accent bg-accent-soft text-foreground"
+              : "border-border-soft bg-panel-strong text-muted",
+          ].join(" ")}
+        >
+          {SECTION_TAG[section]}
+        </span>
+      </div>
+      {sectionItems.length > 0 && (
+        <dl className="mt-2 border-t border-border/25">
+          {sectionItems.map((item) => (
+            <div
+              key={item.addonId}
+              className="flex items-baseline justify-between gap-4 border-b border-border/15 py-2.5"
+            >
+              <dt className="text-s text-muted">
+                {summaryPanelLineLabel(item)}
+                {/* [수정 2026-09-07] "공연 일수 조정 (...)(초과 4) -> 초과 부분 제거" —
+                  이 줄은 billable이 옵션 초과분이 아니라 라벨에 이미 적힌 "+N일"
+                  자체라서 "(초과 N)"을 덧붙이면 같은 값이 중복 표시된다. 실제
+                  포함 수량 대비 초과분을 보여주는 다른 항목(선택 옵션 등)에서만
+                  이 표기를 쓴다. */}
+                {item.addonId !==
+                  "performance_day_adjustment" &&
+                  item.billable > 0 &&
+                  item.included > 0 && (
+                    <span className="ml-1 text-xs text-muted">
+                      (초과 {item.billable.toLocaleString()})
+                    </span>
+                  )}
+              </dt>
+              <dd className="shrink-0 text-s tabular-nums text-muted">
+                {won(item.amount)}
+              </dd>
+            </div>
+          ))}
+        </dl>
+      )}
+      {/* [재개정 2026-09-08] "대관료에도 vat 별도 수수료가 붙고 총 계약금액으로
+        노출되어야지.. 시안대로 해야지" — 박스마다 소계(VAT 별도)·부가세·
+        최종금액(검정 강조 바)을 갖는다. 사용자가 준 와이어프레임 그대로:
+        박스 색은 CONTRACT/ADDITIONAL 구분 없이 같고, 최종 줄만 검정으로
+        강조한다.
+        [수정 2026-09-08] "소계 행 위에 줄은 굵게 하던지 경계를 줘야지..
+        하이라키가 있어야함" — 항목 행 사이의 옅은 구분선(border/25)과
+        같은 굵기로는 "항목 나열"과 "합계 요약"이 한 덩어리로 보인다.
+        여기부터는 굵은 실선(border-foreground)으로 갈라 위계를 준다. */}
+      <dl className="mt-3 border-t-2 border-foreground pt-0.5">
+        <div className="flex items-baseline justify-between gap-4 border-b border-border/15 py-2">
+          <dt className="text-xs text-muted">
+            소계 (VAT 별도)
+          </dt>
+          <dd className="text-xs tabular-nums text-muted">
+            {won(subtotal)}
+          </dd>
+        </div>
+        <div className="flex items-baseline justify-between gap-4 border-b border-border/15 py-2">
+          <dt className="text-xs text-muted">
+            부가세 {vatPct}%
+          </dt>
+          <dd className="text-xs tabular-nums text-muted">
+            {won(vat)}
+          </dd>
+        </div>
+      </dl>
+      {/* [수정 2026-09-08] "계약금액은 노란색으로 컬러 넣어줘" — 대관료
+        박스의 최종금액 줄만 노란 강조로 바꾼다(확정·결제 금액이라는
+        신호). 추후 정산 예정 금액 줄은 검정 그대로 둔다. */}
+      <div
+        className={[
+          "mt-2 flex justify-between px-3 py-2.5 text-s font-bold",
+          isContract
+            ? "bg-accent text-foreground"
+            : "bg-foreground text-background",
+        ].join(" ")}
+      >
+        <span>{SECTION_SUBTOTAL_CAPTION[section]}</span>
+        <span className="tabular-nums">
+          {won(sectionTotal)}
+        </span>
+      </div>
+    </div>
+  );
+}
+
+/**
+ * 견적을 공간별 박스 값으로 나눈다 — SummaryPanel과 Step5Estimate가 같은 숫자를 쓰도록
+ * 한 곳에서 계산한다. 숨긴 항목(청소비 등)은 행에서 빼되 소계에는 넣는다.
+ */
+export function quoteSectionBoxes(quote: EstimatedQuote) {
+  const visibleItems = quote.lineItems.filter((item) => !isHiddenFromApplicant(item));
+  const venuesPresent = new Set(visibleItems.map((item) => item.venue).filter(Boolean));
+  const groups: { venue?: string; items: LineItem[]; allItems: LineItem[] }[] =
+    venuesPresent.size > 1
+      ? VENUES.filter((v) => venuesPresent.has(v.id as LineItem["venue"])).map((v) => ({
+          venue: v.id,
+          items: visibleItems.filter((item) => item.venue === v.id),
+          allItems: quote.lineItems.filter((item) => item.venue === v.id),
+        }))
+      : [{ items: visibleItems, allItems: quote.lineItems }];
+  const effectiveVatRate = quote.subtotal > 0 ? quote.vat / quote.subtotal : 0.1;
+  const vatPct = Math.round(effectiveVatRate * 100);
+  const boxes = groups.flatMap((group) =>
+    SECTION_ORDER.map((section) => {
+      const sectionItems = group.items.filter((item) => sectionOf(item) === section);
+      const subtotal = group.allItems
+        .filter((item) => sectionOf(item) === section)
+        .reduce((sum, item) => sum + item.amount, 0);
+      const vat = Math.round(subtotal * effectiveVatRate);
+      return { venue: group.venue, venueName: group.venue ? (VENUE_NAME[group.venue] ?? group.venue) : undefined, section, sectionItems, subtotal, vat, total: subtotal + vat };
+    }),
+  );
+  return { groups, boxes, vatPct, hasItems: visibleItems.length > 0 };
 }
