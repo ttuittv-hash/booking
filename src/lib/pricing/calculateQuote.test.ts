@@ -149,7 +149,10 @@ describe("calculateQuote — 명세서 7장 검증 케이스", () => {
     const extraDaysLine = quote.lineItems.find((i) => i.addonId === "extra_days")!;
     const restLine = quote.lineItems.find((i) => i.addonId === "extra_days_rest")!;
     expect(extraDaysLine.amount).toBe(Math.round(pkg2.setupExtraDayFee * 0.8));
-    expect(restLine.amount).toBe(Math.round(pkg2.setupExtraDayFee * 0.7));
+    // [수정 2026-09-08] "휴무일도 준비일 10%(여기선 20%) 할인금액에서 또 할인값이
+    // 들어가야함" — REST 할인은 이제 정가가 아니라 이미 20% 할인된 준비일 단가 위에
+    // 30%를 더 적용한다.
+    expect(restLine.amount).toBe(Math.round(Math.round(pkg2.setupExtraDayFee * 0.8) * 0.7));
 
     const perfDates = resolveSelectedDates(baseSelection());
     const prepDate = perfDates[0];
@@ -158,7 +161,7 @@ describe("calculateQuote — 명세서 7장 검증 케이스", () => {
     expect(perfLine.amount).toBe(Math.round(pkg2.performanceExtraDayFee * 0.8));
   });
 
-  it("휴무일(REST) — 추가일 중 하루만 휴무일로 지정하면 그 날만 준비일 단가의 50%, 나머지는 10% 할인 (2026-09-06 신규)", () => {
+  it("휴무일(REST) — 추가일 중 하루만 휴무일로 지정하면 그 날만 준비일 10% 할인가에서 추가 50% 할인, 나머지는 10% 할인만 (2026-09-08 개정)", () => {
     const dates = resolveSelectedDates(baseSelection({ extraDays: 2 }));
     const [restDate, normalDate] = dates.slice(-2);
     const quote = calculateQuote(
@@ -167,7 +170,7 @@ describe("calculateQuote — 명세서 7장 검증 케이스", () => {
     );
     const dayPrice = pkg2.setupExtraDayFee;
     const discountedPrice = Math.round(dayPrice * 0.9);
-    const restPrice = Math.round(dayPrice * 0.5);
+    const restPrice = Math.round(discountedPrice * 0.5);
 
     const extraDaysLine = quote.lineItems.find((i) => i.addonId === "extra_days")!;
     const restLine = quote.lineItems.find((i) => i.addonId === "extra_days_rest")!;
@@ -189,7 +192,7 @@ describe("calculateQuote — 명세서 7장 검증 케이스", () => {
       baseSelection({ extraDays: 2, dayTags: { [d1]: "REST", [d2]: "REST" } }),
       RATE_TABLE,
     );
-    const restPrice = Math.round(pkg2.setupExtraDayFee * 0.5);
+    const restPrice = Math.round(Math.round(pkg2.setupExtraDayFee * 0.9) * 0.5);
 
     expect(quote.lineItems.find((i) => i.addonId === "extra_days")).toBeUndefined();
     const restLine = quote.lineItems.find((i) => i.addonId === "extra_days_rest")!;

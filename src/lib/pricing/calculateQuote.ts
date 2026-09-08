@@ -119,19 +119,18 @@ export function calculateQuote(selection: QuoteSelection, rateTable: RateTable):
     // 할인이 붙는 개념" — 화~일 기본 6일 다음으로 개별 추가하는 날에만 고를 수 있는
     // REST 태그(Step1Calendar.tsx가 dayKind.kind !== "base"일 때만 버튼을 보여준다).
     // defaultDayTags는 REST를 절대 자동으로 매기지 않으므로(항상 명시적 지정), 여기서는
-    // dayTags에 직접 REST로 찍힌 날짜만 골라 준비일 추가 단가의 50%로 매긴다 — 나머지
-    // 추가일(REST가 아닌 날)은 준비일 추가 단가의 10% 할인가로 적용한다.
+    // dayTags에 직접 REST로 찍힌 날짜만 골라 매긴다 — 나머지 추가일(REST가 아닌 날)은
+    // 준비일 추가 단가의 10% 할인가로 적용한다.
     // [신규 2026-09-06 ②] "추가 준비일도 기존 준비일 대비 10% 할인" — 기본 6일을 넘겨
     // 추가하는 준비일(REST 제외)에 pkg.extraDayDiscountRatio만큼 할인을 적용한다.
-    // [개정 2026-09-06 ③] "운영툴 > 패키지 관리 > 기본 정보에 추가분 할인율 항목을
-    // 추가" — 10%/50% 고정값이던 두 비율을 패키지별 어드민 입력값(extraDayDiscountRatio·
-    // restDayDiscountRatio)으로 뺐다. REST의 할인은 이 10%와 별개로 원래 단가
-    // (setupExtraDayFee) 기준에 restDayDiscountRatio를 그대로 적용한다(REST가 더 큰
-    // 폭의 전용 할인이므로 extraDayDiscountRatio와 중복 적용하지 않는다).
+    // [재개정 2026-09-08] "휴무일도 준비일 10% 할인금액에서 또 50% 할인값이 들어가야함" —
+    // REST 할인을 정가(setupExtraDayFee)가 아니라 이미 10% 할인된 준비일 단가 위에
+    // 50%를 추가로 적용하도록 뒤집는다(2026-09-06 ③ 결정 — "10%와 중복 적용하지
+    // 않는다" — 은 폐기). 두 할인이 곱으로 누적된다: 정가 × (1-10%) × (1-50%).
     if (selection.extraDays > 0) {
       const price = pkg.setupExtraDayFee;
       const discountedPrice = Math.round(price * (1 - pkg.extraDayDiscountRatio));
-      const restPrice = Math.round(price * (1 - pkg.restDayDiscountRatio));
+      const restPrice = Math.round(discountedPrice * (1 - pkg.restDayDiscountRatio));
       // 방어적으로 extraDays를 넘지 않게 자른다 — REST는 추가일에만 쓰는 태그라
       // 기본 6일 쪽에 잘못 남은 값이 있어도 추가 일수 계산에 영향을 주지 않는다.
       const restCount = Math.min(
@@ -158,7 +157,7 @@ export function calculateQuote(selection: QuoteSelection, rateTable: RateTable):
         items.push(
           makeLine(
             "extra_days_rest",
-            `추가일수 휴무일 ${restCount}일 (휴무일 단가 ${Math.round(pkg.restDayDiscountRatio * 100)}% 할인)`,
+            `추가일수 휴무일 ${restCount}일 (준비일 단가 ${Math.round(pkg.extraDayDiscountRatio * 100)}% 할인 후 휴무일 ${Math.round(pkg.restDayDiscountRatio * 100)}% 추가 할인)`,
             "PER_DAY",
             restCount,
             0,

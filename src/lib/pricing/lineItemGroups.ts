@@ -152,8 +152,13 @@ export function estimateLineLabel(item: LineItem): string {
     // 괄호 안 "N%"를 세부내역 칸으로 옮긴다.
     case "extra_days":
       return unifiedExtraDayLabel("준비일", item);
+    // [수정 2026-09-08] "휴무일도 준비일 10% 할인금액에서 또 50% 할인값이 들어가야함" —
+    // 할인율이 두 개(준비일 10% → 휴무일 50%)로 겹치면서 unifiedExtraDayLabel의
+    // "할인 N%" 한 자리로는 둘 다 못 담는다. 원문("...준비일 단가 10% 할인 후
+    // 휴무일 50% 추가 할인)")을 그대로 둔다 — splitParenDetail이 그 괄호 전체를
+    // 세부내역 칸으로 옮긴다.
     case "extra_days_rest":
-      return unifiedExtraDayLabel("휴무일", item);
+      return item.label;
     case "performance_day_adjustment":
       return /대비 \+/.test(item.label) ? unifiedExtraDayLabel("공연일", item) : item.label;
     // [삭제 2026-09-08] "할증 앞에 퍼센테이지 노출 필요, 아레나는 50%, 중형은 25%" —
