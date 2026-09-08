@@ -517,9 +517,11 @@ export function StepCompetitionOption({
   // 들어가야 하고 2%까지 리미트" — 「티켓 매출 RS」 제목·설명·요율(%) 입력 하나뿐이다.
   // [재개정 20:20] "티켓매출 RS 옆에 소계 삭제" — 오른쪽 소계(매출 × 요율) 칸도 뺐다.
   // 제목·설명·자리표시는 t() 키라 백오피스 화면 문구에서 고칠 수 있다.
+  // [개정 2026-09-08 밤] "티켓 매출 RS는 레이블이랑 입력칸이랑 하나의 행으로" — 제목·설명
+  // 아래로 새 줄 떨어지던 입력칸을 한 행(label 왼쪽, 입력 오른쪽)으로 붙인다.
   return (
     <div className={framed ? "border border-border bg-panel/40 p-5" : "border-t-2 border-foreground pt-5"}>
-      <div>
+      <div className="flex flex-wrap items-center justify-between gap-4">
         <div>
           <h3 className="type-kr-heading text-h6-m">
             {t("audience.ticketRevenueShareRateLabel", "티켓 매출 RS")}
@@ -527,21 +529,20 @@ export function StepCompetitionOption({
           <p className="mt-1 text-xs text-muted">
             {t("audience.ticketRevenueShareRateHint", "RS(Revenue Share)는 2%까지 제안 가능합니다.")}
           </p>
-          <div className="mt-3 flex max-w-sm items-center gap-1.5">
-            <input
-              type="number"
-              min={0}
-              max={RS_MAX_PERCENT}
-              step={0.1}
-              value={info.ticketRevenueShareRate ?? ""}
-              placeholder={tStr("audience.ticketRevenueShareRatePlaceholder", "요율")}
-              onChange={(e) => set("ticketRevenueShareRate", clampRate(e.target.value))}
-              className="field-base w-full"
-            />
-            <span className="text-xs text-muted">%</span>
-          </div>
         </div>
-
+        <div className="flex shrink-0 items-center gap-1.5">
+          <input
+            type="number"
+            min={0}
+            max={RS_MAX_PERCENT}
+            step={0.1}
+            value={info.ticketRevenueShareRate ?? ""}
+            placeholder={tStr("audience.ticketRevenueShareRatePlaceholder", "요율")}
+            onChange={(e) => set("ticketRevenueShareRate", clampRate(e.target.value))}
+            className="field-base w-24"
+          />
+          <span className="text-xs text-muted">%</span>
+        </div>
       </div>
     </div>
   );

@@ -80,7 +80,7 @@ export function Step5Estimate({
           동시 대관 합산 안내 문구를 뺐다. */}
 
       {quote.blockingIssues.length > 0 && (
-        <div className="mt-4 text-xs leading-5 text-muted">
+        <div className="mt-6 text-xs leading-5 text-muted">
           <p className="font-bold text-foreground">
             {t("estimate.blockingIssuesHeading", "운영자 확인이 필요해 아직 신청서를 제출할 수 없습니다.")}
           </p>
