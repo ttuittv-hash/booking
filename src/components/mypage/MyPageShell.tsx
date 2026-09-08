@@ -18,6 +18,7 @@ import { Band, PageHead } from "@/components/ui/kit";
 
 export type MyPageSection =
   | "/mypage"
+  | "/mypage/drafts"
   | "/mypage/ticket-open"
   | "/mypage/facility-meeting"
   | "/mypage/settlement"
@@ -44,6 +45,11 @@ const MENU: { label: string; items: { href: MyPageSection; label: string }[] }[]
     label: "대관 현황",
     items: [
       { href: "/mypage", label: "대관 진행 내역" },
+      // [신규 2026-09-08] "임시 저장 내역 메뉴 추가" — 대관 위저드의 "임시 저장"
+      // 버튼(WizardShell.saveDraftNow)은 지금 브라우저(localStorage)에만 남는다.
+      // 이 화면은 그 하나뿐인 임시저장본을 읽어 요약과 "이어서 작성"/"삭제"를 보여준다
+      // (src/app/mypage/drafts).
+      { href: "/mypage/drafts", label: "임시 저장 내역" },
       { href: "/mypage/ticket-open", label: "티켓 오픈 정보" },
       { href: "/mypage/facility-meeting", label: "시설 회의" },
       { href: "/mypage/settlement", label: "정산" },
@@ -74,19 +80,29 @@ function MyPageMenu({
       .filter((i) => !SECOND_PHASE_SECTIONS.includes(i.href))
       .filter((i) => i.href !== "/mypage/members" || isMaster),
   }));
+  // [개정 2026-09-08] "하이라키가 명확히 보여야" — 그룹 라벨(대관 현황/나의 정보)이
+  // text-xs로 항목(text-s)보다 오히려 작고 옅어 부모·자식 관계가 안 읽혔다. 그룹 라벨을
+  // 굵은 밑줄 소제목으로 키우고, 항목 목록에 왼쪽 세로선(트리 가이드)을 둬 "이 그룹
+  // 소속"임을 시각적으로 붙인다. 현재 위치는 굵은 글씨만으로는 옅은 회색 목록 속에서
+  // 잘 안 보이던 걸 가는 검정 세로 바로 보강한다(시안 반영).
   return (
     <nav aria-label="마이페이지 메뉴" className="lg:col-span-3">
-      <div className="space-y-8 lg:sticky lg:top-[calc(var(--header-h)+2.5rem)]">
+      <div className="space-y-9 lg:sticky lg:top-[calc(var(--header-h)+2.5rem)]">
         {menu.map((group) => (
           <div key={group.label}>
-            <p className="text-xs font-bold text-muted">{group.label}</p>
-            <ul className="mt-3 border-t border-border/25">
+            <p className="border-b-2 border-foreground pb-2.5 text-s font-bold text-foreground">
+              {group.label}
+            </p>
+            <ul className="mt-3 space-y-px border-l border-border-soft pl-3">
               {group.items.map((item) => (
-                <li key={item.href} className="border-b border-border/15">
+                <li key={item.href} className="relative">
+                  {active === item.href && (
+                    <span aria-hidden className="absolute top-0 -left-3.5 h-full w-0.5 bg-foreground" />
+                  )}
                   <Link
                     href={item.href}
                     aria-current={active === item.href ? "page" : undefined}
-                    className={`block break-keep py-3 text-s transition-colors hover:text-foreground ${
+                    className={`block break-keep border-b border-border/15 py-2.5 pl-1 text-s transition-colors hover:text-foreground ${
                       active === item.href ? "font-bold text-foreground" : "text-muted"
                     }`}
                   >
