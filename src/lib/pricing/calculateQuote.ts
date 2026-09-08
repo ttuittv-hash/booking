@@ -250,17 +250,20 @@ export function calculateQuote(
     // [수정 2026-09-08] "할인된 금액에 추가로 할증율 적용" — 할증 기준을 정가
     // (performanceExtraDayFee)가 아니라 (2-2)와 같은 할인 단가로 바꾼다 — 이미 10%
     // 할인된 공연일 단가에 50%를 얹는다.
+    // [재수정 2026-09-08 밤] "1일 3회면 2회 추가분인데 1회분만 계산됨" — 날짜(일) 수만
+    // 세던 것을 날짜별 "추가 회차" 합으로 바꾼다. 1일 2회는 추가 1회, 1일 3회는 추가
+    // 2회 — 할증은 첫 회를 제외한 나머지 회차마다 붙는다.
     if (!isSpecialVenuePackage && pkg.secondShowSurchargeRatio > 0) {
       const defaults = defaultDayTags(
         selectedDates,
         pkg.defaultPerformanceDays,
       );
-      const doubleShowDays = selectedDates.filter(
-        (date) =>
-          effectiveDayTag(date, selection.dayTags, defaults) ===
-            "PERFORMANCE" && (selection.dayShowCounts[date] ?? 1) >= 2,
-      ).length;
-      if (doubleShowDays > 0) {
+      const extraShowCount = selectedDates.reduce((sum, date) => {
+        if (effectiveDayTag(date, selection.dayTags, defaults) !== "PERFORMANCE") return sum;
+        const shows = selection.dayShowCounts[date] ?? 1;
+        return shows >= 2 ? sum + (shows - 1) : sum;
+      }, 0);
+      if (extraShowCount > 0) {
         const discountedPerformanceUnitPrice = Math.round(
           pkg.performanceExtraDayFee * (1 - pkg.extraDayDiscountRatio),
         );
@@ -270,13 +273,13 @@ export function calculateQuote(
         items.push(
           makeLine(
             "second_show_surcharge",
-            `공연 2회 할증 (${doubleShowDays}일 × ${Math.round(pkg.secondShowSurchargeRatio * 100)}%)`,
+            `공연 2회 이상 할증 (추가 ${extraShowCount}회 × ${Math.round(pkg.secondShowSurchargeRatio * 100)}%)`,
             "PER_DAY",
-            doubleShowDays,
+            extraShowCount,
             0,
-            doubleShowDays,
+            extraShowCount,
             unitPrice,
-            doubleShowDays * unitPrice,
+            extraShowCount * unitPrice,
             "VISIBLE",
           ),
         );
