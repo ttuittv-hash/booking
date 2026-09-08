@@ -10,6 +10,7 @@ import {
   findPackage,
   isAddonAvailable,
   maxRequestableQuantity,
+  midHallSelectableAddons,
   packagesForVenue,
 } from "@/lib/pricing/rateTableUtils";
 import {
@@ -124,16 +125,72 @@ function MidHallReferenceBox({ label, value, note }: { label: string; value: str
 // (준비 연장·철수 Load-Out)을 여기서 +/- 스테퍼로 즉시 조정하던 것을 없앴다(STEP 1
 // MidHallCalendar의 스테퍼도 함께 삭제). 이미 값이 있는 옛 임시저장본만 읽기 전용
 // 박스로 계속 보여준다(hours > 0 조건, 아래 렌더 참고).
+// [신규 2026-09-08] 중형공연장 선택 옵션 — "중형 추가 옵션도 아레나 추가 옵션과 동일한
+// 방식·UI로 선택할 수 있게"(nora). rateTable.addons 중 venueId "medium-hall" 항목을
+// 아레나의 "선택 옵션" 아웃라인 박스와 같은 틀(AddonRow 수량 입력 · N건 선택됨)로 보여준다.
+// 금액은 calculateMidHallLineItems 가 같은 항목을 읽어 중형 견적에 합산한다.
+function MidHallOptionsBox({
+  addons,
+  addonQuantities,
+  expectedRevenue,
+  onChangeQuantity,
+  onChangeRevenue,
+}: {
+  addons: AddonItem[];
+  addonQuantities: Record<string, number>;
+  expectedRevenue: number;
+  onChangeQuantity: (addonId: string, quantity: number) => void;
+  onChangeRevenue: (value: number) => void;
+}) {
+  const { t } = useWizardText();
+  if (addons.length === 0) return null;
+  const selectedCount = addons.filter((a) => (addonQuantities[a.id] ?? 0) > 0).length;
+  return (
+    <div className="mt-6 border border-border/25 p-5">
+      <h2 className="type-kr-heading text-h6-m sm:text-h6">{t("configOptions.selectedOptionsHeading", "선택 옵션")}</h2>
+      <p className="mt-2 text-xs text-muted">
+        {t(
+          "configOptions.selectedOptionsHint",
+          "필요한 만큼 수량을 정해 추가하는 항목 — 단가 × 수량으로 금액이 즉시 계산됩니다",
+        )}
+      </p>
+      <div className="mt-4 grid grid-cols-1 gap-1.5 sm:grid-cols-2 lg:grid-cols-3">
+        {addons.map((addon) => (
+          <AddonRow
+            key={addon.id}
+            addon={addon}
+            pkg={undefined}
+            quantity={addonQuantities[addon.id] ?? 0}
+            expectedRevenue={expectedRevenue}
+            onChangeQuantity={onChangeQuantity}
+            onChangeRevenue={onChangeRevenue}
+          />
+        ))}
+      </div>
+      <div className="mt-4 flex items-center justify-between border-t border-border/40 pt-4 text-s font-bold">
+        <span>{t("configOptions.selectedOptionsHeading", "선택 옵션")}</span>
+        <span className="tabular-nums">
+          {selectedCount}
+          {t("configOptions.selectedCountSuffix", "건 선택됨")}
+        </span>
+      </div>
+    </div>
+  );
+}
+
 function MidHallRateCard({
   content,
   extraHourFee,
   extraSetupHours,
   extraLoadOutHours,
+  hideChargeGroups = false,
 }: {
   content: VenueRateContent;
   extraHourFee: number;
   extraSetupHours: number;
   extraLoadOutHours: number;
+  /** [2026-09-08] 수량 선택형 옵션(MidHallOptionsBox)이 있으면 예전 "별도 문의" 참고 카드는 감춘다. */
+  hideChargeGroups?: boolean;
 }) {
   // [2026-08-23] "컬럼값이 두번 반복되는게 이상해" — Details를 별도 표로 그리면
   // 같은 열 제목(평일/주말 준비 등)이 헤더 행으로 두 번 찍혀 보였다. 표 하나에
@@ -267,7 +324,7 @@ function MidHallRateCard({
               </div>
             )}
 
-            {otherGroups.map((g) => (
+            {!hideChargeGroups && otherGroups.map((g) => (
               <div key={g.title} className="mt-6">
                 <div className="mb-2 text-xs font-bold text-muted">{g.title}</div>
                 <div className="grid grid-cols-1 gap-1.5 sm:grid-cols-2 lg:grid-cols-3">
@@ -585,6 +642,8 @@ export function StepConfigOptions({
   const midHallOnly = selection.venueId === MID_HALL_VENUE_ID && selection.bookingMode === "SINGLE";
   const isSimultaneous = selection.bookingMode === "SIMULTANEOUS";
   const pkg = findPackage(rateTable, selection.packageId);
+  // [신규 2026-09-08] 중형공연장 선택 옵션(수량형) — 어드민 패키지 관리 중형 탭에서 만든 항목.
+  const midHallAddons = midHallSelectableAddons(rateTable);
   // 패키지 공간을 단독으로 고르면 그 공간의 패키지를 보여 준다 — 아레나와 같은
   // 패키지 모델이라 공간 id 만 갈아 끼우면 같은 화면이 선다.
   const venuePackages = packagesForVenue(
@@ -606,6 +665,14 @@ export function StepConfigOptions({
           extraHourFee={rateTable.midHall.extraHourFee}
           extraSetupHours={selection.midHallExtraSetupHours}
           extraLoadOutHours={selection.midHallExtraLoadOutHours}
+          hideChargeGroups={midHallAddons.length > 0}
+        />
+        <MidHallOptionsBox
+          addons={midHallAddons}
+          addonQuantities={addonQuantities}
+          expectedRevenue={expectedRevenue}
+          onChangeQuantity={onChangeQuantity}
+          onChangeRevenue={onChangeRevenue}
         />
       </section>
     );
@@ -722,12 +789,23 @@ export function StepConfigOptions({
   }
 
   const midHallSection = (
-    <MidHallRateCard
-      content={liveHallRateContent}
-      extraHourFee={rateTable.midHall.extraHourFee}
-      extraSetupHours={selection.midHallExtraSetupHours}
-      extraLoadOutHours={selection.midHallExtraLoadOutHours}
-    />
+    <>
+      <MidHallRateCard
+        content={liveHallRateContent}
+        extraHourFee={rateTable.midHall.extraHourFee}
+        extraSetupHours={selection.midHallExtraSetupHours}
+        extraLoadOutHours={selection.midHallExtraLoadOutHours}
+        hideChargeGroups={midHallAddons.length > 0}
+      />
+      {/* [신규 2026-09-08] 동시 대관의 중형 탭에도 같은 수량형 선택 옵션(nora). */}
+      <MidHallOptionsBox
+        addons={midHallAddons}
+        addonQuantities={addonQuantities}
+        expectedRevenue={expectedRevenue}
+        onChangeQuantity={onChangeQuantity}
+        onChangeRevenue={onChangeRevenue}
+      />
+    </>
   );
 
   // [버그 수정 2026-09-08] "동시대관(아레나+중형)을 선택하고 올인원은 선택 안 했는데

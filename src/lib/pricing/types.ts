@@ -182,6 +182,11 @@ export interface AddonItem {
   // optional — 항목 스펙(규격·사양) 참고용 텍스트(2026-08-26 추가). 과금·계산에는
   // 관여하지 않는다. 신청자 화면(StepConfigOptions AddonRow)에도 note 옆에 노출한다.
   spec?: string;
+  // [신규 2026-09-08] 어느 공간의 선택 옵션인가. 없으면 아레나(패키지 공간). "medium-hall"
+  // 이면 중형공연장 전용 — 아레나 패키지 가용성 판정(isAddonAvailable)에서 빠지고,
+  // calculateMidHallLineItems 가 중형 견적에 합산한다(nora 9/8 "아레나 추가 옵션과 동일한
+  // 방식으로 중형도"). 어드민 패키지 관리의 중형공연장 탭에서 만든다.
+  venueId?: "arena" | "medium-hall";
 }
 
 export interface RateTable {

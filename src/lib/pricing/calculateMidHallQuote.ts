@@ -1,5 +1,6 @@
 import { isWeekendDate } from "./dateRange";
 import { makeLine } from "./lineItem";
+import { clampAddonQuantity, findAddon } from "./rateTableUtils";
 import type { LineItem, QuoteSelection, RateTable } from "./types";
 
 export interface MidHallCalcResult {
@@ -148,6 +149,25 @@ export function calculateMidHallLineItems(selection: QuoteSelection, rateTable: 
     const qty = selection.secondaryAudience * totalShows;
     items.push(
       makeLine("midhall_cleaning", "청소비", "PER_PERSON", qty, 0, qty, cfg.cleaningUnitPrice, qty * cfg.cleaningUnitPrice, "VISIBLE"),
+    );
+  }
+
+  // [신규 2026-09-08] 중형공연장 선택 옵션 — "아레나 추가 옵션과 동일한 방식으로"(nora).
+  // 어드민 패키지 관리 중형 탭에서 만든 venueId "medium-hall" 항목을 신청자가 수량으로
+  // 고르면 단가 × 수량으로 여기에 합산한다(아레나 calculateQuote 의 (4) 블록과 같은 규칙,
+  // 패키지 기본 포함 수량은 없다). 상한(maxAddQuantity)은 계산 쪽에서 최종으로 자른다.
+  for (const selected of selection.addons) {
+    const addon = findAddon(rateTable, selected.addonId);
+    if (!addon || addon.venueId !== "medium-hall") continue;
+    if (addon.billingPhase === "SETTLEMENT" || addon.visibility === "HIDDEN") continue;
+    const requested = clampAddonQuantity(addon, undefined, selected.requestedQuantity);
+    if (requested <= 0) continue;
+    const amount =
+      addon.pricingType === "REVENUE_PERCENT"
+        ? Math.round(((selection.expectedRevenue ?? 0) * addon.unitPrice) / 100)
+        : requested * addon.unitPrice;
+    items.push(
+      makeLine(addon.id, addon.name, addon.pricingType, requested, 0, requested, addon.unitPrice, amount, addon.visibility),
     );
   }
 

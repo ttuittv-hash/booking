@@ -74,6 +74,8 @@ function sanitizeAddonUpdate(current: AddonItem, input: unknown): AddonItem {
       ? (a.visibility as LineItemVisibility)
       : current.visibility,
     availability: sanitizeAvailability(a.availability, current.availability),
+    // [신규 2026-09-08] 중형공연장 선택 옵션 표시. "arena" 를 보내면 되돌린다(undefined).
+    venueId: a.venueId === "medium-hall" ? "medium-hall" : a.venueId === "arena" ? undefined : current.venueId,
     // [버그 수정 2026-09-07] "스펙 등록하고 저장하면 다 사라져" — 이 함수가 spec을
     // 아예 안 읽어서 PackagesForm에서 입력한 스펙(규격·사양)이 저장 때마다 예전 값
     // (대개 빈 값)으로 되돌아갔다. 빈 문자열로 지우면 undefined로 비운다.
@@ -99,6 +101,8 @@ function sanitizeNewAddon(input: Record<string, unknown>): AddonItem | null {
     // "선택 옵션"으로 만든 새 항목은 지금 편집 중인 패키지에만 우선 노출되도록
     // { mode: "IF_PACKAGE_IN", packages: [그 패키지 id] }를 보낸다.
     availability: sanitizeAvailability(input.availability, { mode: "ALWAYS" }),
+    // [신규 2026-09-08] 중형공연장 탭에서 만든 선택 옵션은 venueId "medium-hall" 로 온다.
+    venueId: input.venueId === "medium-hall" ? "medium-hall" : undefined,
     billingPhase: "ESTIMATE",
     visibility: ADDON_VISIBILITIES.includes(input.visibility as LineItemVisibility)
       ? (input.visibility as LineItemVisibility)
