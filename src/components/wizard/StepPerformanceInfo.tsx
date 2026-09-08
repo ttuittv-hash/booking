@@ -1636,7 +1636,10 @@ export function StepAttachments({
           "안전관리 서약서 첨부"(필수, 빨간 별표)가 함께 있어 "(선택)"이 그 필수
           항목까지 선택인 것처럼 읽혔다. 위 공연 관련 자료 자체는 여전히 선택이지만,
           그 표시는 섹션 제목이 아니라 필요하면 필드 단위로 한다. */}
-      <h3 className="type-kr-heading text-h6-m">{t("attachments.sectionHeading", "자료 첨부")}</h3>
+      <h3 className="type-kr-heading text-h6-m">
+        {t("attachments.sectionHeading", "자료 첨부")}
+        <span className="ml-1 text-danger">*</span>
+      </h3>
       {/* [개정 2026-08-26] "객석 배치도 첨부 영역은 삭제" 요청으로 두 항목 안내 중
           객석배치도 쪽을 뺐다 — 공연 관련 자료 안내만 남는다. */}
       <p className="mt-2 text-xs leading-5 text-muted">
@@ -1672,15 +1675,20 @@ export function StepAttachments({
         </ul>
       )}
 
-      <input
-        type="file"
-        multiple
-        onChange={(e) => {
-          addFiles(e.target.files);
-          e.target.value = "";
-        }}
-        className={`${FILE_INPUT} mt-5 text-muted`}
-      />
+      {/* [신규 2026-09-08] "자료 첨부 탭에 파일을 꼭 등록해야 넘어가게"(nora) — 필수. 비어 있으면
+          WizardShell 이 「다음」을 막고 이 칸을 빨갛게 표시한다(data-field-key). */}
+      <div data-field-key="attachments.files" className="mt-5 inline-block">
+        <input
+          type="file"
+          multiple
+          required
+          onChange={(e) => {
+            addFiles(e.target.files);
+            e.target.value = "";
+          }}
+          className={`${FILE_INPUT} text-muted`}
+        />
+      </div>
 
       {/* [삭제 2026-09-08] 안전관리계획서 단일 필수 슬롯(9/7 신규) — 운영진 요청(nora,
           "자료 첨부 탭 아래 [삭제]란 삭제")으로 뺐다. 필요한 계획서는 위 자유 첨부로 받는다. */}

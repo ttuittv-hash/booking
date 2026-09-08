@@ -8,6 +8,7 @@ import {
   getRatesContent,
   getScreenTextContent,
   listApprovedQuoteBlocks,
+  listAttachments,
   listDateBlocks,
   listWeekDemand,
 } from "@/lib/db";
@@ -40,7 +41,7 @@ export default async function EditQuotePage({
   // PUT /api/quotes/[id]와 같은 기준(2026-08-22).
   if (quote.review) redirect(`/mypage/${id}`);
 
-  const [rateTable, weekDemand, adminBlocks, approvedBlocks, ratesContent, screenText, calendarWindow] =
+  const [rateTable, weekDemand, adminBlocks, approvedBlocks, ratesContent, screenText, calendarWindow, existingAttachments] =
     await Promise.all([
       getCurrentRateTable(),
       listWeekDemand(),
@@ -51,6 +52,8 @@ export default async function EditQuotePage({
       getRatesContent(),
       getScreenTextContent(),
       getNoticeCalendarWindow(),
+      // STEP7 필수 첨부 검사 — 이미 올라간 첨부가 있으면 다시 올리라고 막지 않는다(2026-09-08).
+      listAttachments(id),
     ]);
   const dateBlocks = [...adminBlocks, ...approvedBlocks];
   const calendarMonthBounds = noticeCalendarMonthBounds(calendarWindow);
@@ -90,6 +93,7 @@ export default async function EditQuotePage({
             wizardFieldOrders={screenText.wizardFieldOrders}
             wizardDisabledFields={screenText.wizardDisabledFields}
             calendarMonthBounds={calendarMonthBounds}
+            existingAttachmentCount={existingAttachments.length}
           />
         </WizardTextProvider>
       </main>

@@ -206,6 +206,7 @@ export function WizardShell({
   wizardDisabledFields,
   wizardCustomOptions,
   calendarMonthBounds,
+  existingAttachmentCount = 0,
 }: {
   rateTable: RateTable;
   currentUser: AppUser | null;
@@ -254,6 +255,9 @@ export function WizardShell({
    * 범위. /apply, /apply/edit/[id] 페이지가 getNoticeCalendarWindow()로 조회해 넘긴다.
    */
   calendarMonthBounds?: { start: string | null; end: string | null };
+  /** [신규 2026-09-08] 수정 화면 — 이미 서버에 올라간 첨부 수. 0보다 크면 STEP7 필수 첨부
+   *  검사를 통과한 것으로 본다(다시 올리라고 막지 않는다). 새 신청은 0. */
+  existingAttachmentCount?: number;
 }) {
   const isEditing = !!editingQuoteId;
   const { t, tStr } = useWizardText();
@@ -628,6 +632,11 @@ export function WizardShell({
     wizardDisabledFields,
     tStr,
   );
+  // [신규 2026-09-08] "자료 첨부 탭에 파일을 꼭 등록해야 넘어가게"(nora) — STEP7 필수 첨부.
+  // File 객체는 임시저장(localStorage)에 남지 않으므로 새로고침하면 다시 비는데, 그때도
+  // 제출 전에 다시 올리게 한다(submit()에서 한 번 더 검사). 수정 화면은 서버에 이미 있는
+  // 첨부(existingAttachmentCount)로 통과한다.
+  const step7Blocked = pendingFiles.length === 0 && existingAttachmentCount === 0;
   const maxUnlockedStep = !selection.venueId
     ? 1
     : midHallOnly && !hasMidHallSelection
@@ -638,7 +647,9 @@ export function WizardShell({
           ? 3
           : step6Blocked
             ? 6
-            : TOTAL_STEPS;
+            : step7Blocked
+              ? 7
+              : TOTAL_STEPS;
   // 패키지 선택 전에도 기본 공연일수를 보여줘야 하므로, 모든 패키지가 공유하는 기본값(2일)을 임시로 사용한다.
   const effectivePkg = findPackage(rateTable, effectivePackageId);
   const defaultPerformanceDays = effectivePkg?.defaultPerformanceDays ?? BASE_PERFORMANCE_DAYS;
@@ -827,6 +838,17 @@ export function WizardShell({
 
   async function submit() {
     if (!currentUser) return;
+    // 새로고침으로 첨부가 비었을 수 있다 — 제출 직전에도 필수 첨부를 확인하고 STEP7로 돌려보낸다.
+    if (step7Blocked) {
+      toast.error(
+        tStr(
+          "wizardShell.toastNeedAttachment",
+          "자료 첨부 탭에서 파일을 1개 이상 등록해 주세요.",
+        ),
+      );
+      setStep(7);
+      return;
+    }
     // 이번 세션에서 이미 한 번 제출해 신청서가 생성돼 있으면("수정하기"로 되돌아와
     // 다시 제출하는 경우 포함), 새로 만들지 않고 같은 신청서를 갱신한다(PUT) — 그래야
     // 접수번호가 그대로 유지된다.
@@ -1013,6 +1035,16 @@ export function WizardShell({
               if (step === 6 && step6Blocked) {
                 toast.error(step6Blocked.message);
                 flashFieldError(step6Blocked.fieldKey);
+                return;
+              }
+              if (step === 7 && step7Blocked) {
+                toast.error(
+                  tStr(
+                    "wizardShell.toastNeedAttachment",
+                    "자료 첨부 탭에서 파일을 1개 이상 등록해 주세요.",
+                  ),
+                );
+                flashFieldError("attachments.files");
                 return;
               }
               goTo(step + 1);
