@@ -4,9 +4,20 @@ import type { ReactNode } from "react";
 import { won } from "@/lib/format";
 import { findPackage } from "@/lib/pricing/rateTableUtils";
 import type { EstimatedQuote, QuoteSelection, RateTable } from "@/lib/pricing/types";
+import type { ContractSection } from "@/lib/pricing/lineItemGroups";
 import { useWizardText } from "@/lib/content/wizardText";
-import { QuoteLineItemsReport } from "@/components/QuoteLineItemsReport";
+import { QuoteSectionBox, quoteSectionBoxes } from "./SummaryPanel";
 
+/**
+ * 예상 대관료(STEP 8).
+ *
+ * [전면 개정 2026-09-08 밤] "2번째처럼 변경되었으면 좋겠어" — 오른쪽 실시간 대관신청
+ * 내역과 **같은 박스**(QuoteSectionBox)를 쓰되, 동시 대관이면 아레나·중형공연장을
+ * 나란히(두 열) 놓고 공간이 하나면 한 열만 그린다. 순서는
+ *   대관료(공간별) → 총계약 금액 → 추후 정산 예정 금액(공간별) → 추후 정산 예정 금액 합계
+ *   → 티켓 매출 RS(beforeTotals)
+ * 이다. 예전의 항목/세부내역/금액 3열 표(QuoteLineItemsReport)는 마이페이지·인쇄용에만 남는다.
+ */
 export function Step5Estimate({
   rateTable,
   quote,
@@ -18,9 +29,7 @@ export function Step5Estimate({
   quote: EstimatedQuote;
   selection: QuoteSelection;
   title: ReactNode;
-  /** [신규 2026-09-08] 총금액 박스와 「추후 정산 예정 금액」 사이에 끼우는 블록 —
-   *  대관 경합 옵션(티켓 매출 RS)이 최종 제출 화면에서 이리로 옮겨왔다(nora, 9/8 저녁).
-   *  이름은 처음 자리(소계 위) 때 것 그대로다. */
+  /** 티켓 매출 RS 박스 — 맨 아래에 놓는다(이름은 처음 자리 때 것). */
   beforeTotals?: ReactNode;
 }) {
   const { t } = useWizardText();
@@ -37,50 +46,72 @@ export function Step5Estimate({
     );
   }
 
+  const { groups, boxes, vatPct } = quoteSectionBoxes(quote);
+  const multi = groups.length > 1;
+
+  function renderSection(section: ContractSection) {
+    const sectionBoxes = boxes.filter((b) => b.section === section);
+    return (
+      <div className={multi ? "grid grid-cols-1 gap-6 md:grid-cols-2" : ""}>
+        {sectionBoxes.map((box) => (
+          <div key={`${box.venue ?? "single"}-${section}`}>
+            {multi && (
+              <div className="border-b-2 border-foreground pb-2 text-center text-s font-bold">{box.venueName}</div>
+            )}
+            <QuoteSectionBox
+              section={section}
+              sectionItems={box.sectionItems}
+              subtotal={box.subtotal}
+              vat={box.vat}
+              vatPct={vatPct}
+            />
+          </div>
+        ))}
+      </div>
+    );
+  }
+
+  function renderTotal(section: ContractSection, label: ReactNode) {
+    const sectionBoxes = boxes.filter((b) => b.section === section);
+    const subtotal = sectionBoxes.reduce((s, b) => s + b.subtotal, 0);
+    const vat = sectionBoxes.reduce((s, b) => s + b.vat, 0);
+    return (
+      <div className="mt-4 border-2 border-foreground/70 bg-surface p-5">
+        <div className="flex justify-between text-s text-muted">
+          <span>{t("estimate.subtotalLabel", "소계 (VAT 별도)")}</span>
+          <span className="tabular-nums">{won(subtotal)}</span>
+        </div>
+        <div className="mt-1.5 flex justify-between text-s text-muted">
+          <span>
+            {t("estimate.vatLabel", "부가세")} {vatPct}%
+          </span>
+          <span className="tabular-nums">{won(vat)}</span>
+        </div>
+        <div className="mt-2.5 flex items-baseline justify-between border-t border-border pt-2.5">
+          <span className="text-s font-bold">{label}</span>
+          <span className="text-h6-m sm:text-h6 font-bold tabular-nums">{won(subtotal + vat)}</span>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <section>
       <h2 className="type-kr-heading text-h5-m sm:text-h5">{title}</h2>
 
-      {/* [삭제 2026-09-08] "~12,000석 규모 · 2027.7 2주차 · 총 6일 · 관객 5,000명"
-          요약 줄을 뺐다 — 아래 QuoteLineItemsReport가 공간·항목별로 이미 다 보여줘서
-          중복이었다. */}
-      {/* [개정 2026-09-08] "예상 대관료도 실시간 대관신청내역 구성과 같아야지 —
-          아레나/중형 크게 구분하고 그 안에 대관료 박스·추가옵션. 소계. 총금액" —
-          여기서부터 아래 총금액까지는 SummaryPanel(실시간 대관신청내역)과 구조를
-          맞춘다: 공간별 대관료/추가 옵션 박스(QuoteLineItemsReport가 공간별로 이미
-          나눠 보여준다) → 전체 소계(VAT 별도) → 부가세 → 총금액, 이 순서 하나뿐이다.
-          예전엔 이 아래에 "총 대관료"/"총 옵션비용"(공간을 합친 값)을 한 번 더
-          보여줬는데, SummaryPanel에는 없는 줄이라 두 화면 구성이 어긋났다 — 뺐다. */}
-      {/* [개정 2026-09-08 저녁] nora 통화 — 순서를 대관료 박스 → 티켓매출/RS 박스(beforeTotals)
-          → 소계·부가세·총금액 → 추후 정산 예정 금액 으로. 추후 정산 박스는 아래(총금액 뒤)에서
-          sections={["ADDITIONAL"]} 로 따로 그린다. */}
-      <QuoteLineItemsReport
-        selection={selection}
-        lineItems={quote.lineItems}
-        expectedRevenue={selection.expectedRevenue ?? 0}
-        sections={["CONTRACT"]}
-      />
+      {/* 1. 대관료 → 총계약 금액 */}
+      <div className="mt-6">{renderSection("CONTRACT")}</div>
+      {renderTotal("CONTRACT", t("estimate.contractTotalLabel", "총계약 금액"))}
 
-      <div className="mt-6 border border-border bg-panel/40 p-5">
-        <div className="flex justify-between text-s text-muted">
-          <span>{t("estimate.subtotalLabel", "소계 (VAT 별도)")}</span>
-          <span className="tabular-nums">{won(quote.subtotal)}</span>
-        </div>
-        <div className="mt-1.5 flex justify-between text-s text-muted">
-          <span>{t("estimate.vatLabel", "부가세 10%")}</span>
-          <span className="tabular-nums">{won(quote.vat)}</span>
-        </div>
-        <div className="mt-2.5 flex items-baseline justify-between border-t border-border pt-2.5">
-          <span className="text-s font-bold">{t("estimate.totalLabel", "총금액")}</span>
-          <span className="text-h6-m sm:text-h6 font-bold tabular-nums">{won(quote.total)}</span>
-        </div>
-      </div>
+      {/* 2. 추후 정산 예정 금액 → 합계 */}
+      <div className="mt-8">{renderSection("ADDITIONAL")}</div>
+      {renderTotal("ADDITIONAL", t("estimate.settlementTotalLabel", "추후 정산 예정 금액 합계"))}
 
-      {/* [삭제 2026-09-08] "이 메시지 삭제해줘" — 유틸리티 정산 안내·예상 금액 고지·
-          동시 대관 합산 안내 문구를 뺐다. */}
+      {/* 3. 티켓 매출 RS */}
+      {beforeTotals && <div className="mt-8">{beforeTotals}</div>}
 
       {quote.blockingIssues.length > 0 && (
-        <div className="mt-6 text-xs leading-5 text-muted">
+        <div className="mt-4 text-xs leading-5 text-muted">
           <p className="font-bold text-foreground">
             {t("estimate.blockingIssuesHeading", "운영자 확인이 필요해 아직 신청서를 제출할 수 없습니다.")}
           </p>
@@ -91,18 +122,6 @@ export function Step5Estimate({
           </ul>
         </div>
       )}
-
-      {/* [재개정 2026-09-08 20:20] nora "총금액과 티켓매출 RS 박스 위치를 바꿔달라 —
-          대관료 / 총금액 / 티켓매출 RS / 추후 정산 예정 금액" — RS 박스를 총금액 아래로. */}
-      {beforeTotals && <div className="mt-6">{beforeTotals}</div>}
-
-      {/* 추후 정산 예정 금액 — 맨 아래(2026-09-08 저녁, nora). */}
-      <QuoteLineItemsReport
-        selection={selection}
-        lineItems={quote.lineItems}
-        expectedRevenue={selection.expectedRevenue ?? 0}
-        sections={["ADDITIONAL"]}
-      />
     </section>
   );
 }
