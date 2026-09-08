@@ -53,24 +53,24 @@ export function findWeekTuesday(week: QuoteSelection["week"]): Date | null {
   return null;
 }
 
-// [신규 2026-09-06] 동시 대관(아레나+중형) 2주 윈도우 검증 — "아레나/중형 중 둘중
-// 최초 시작 일정 기준 2주 안에서 신청 가능해야해". 두 시작일(아레나 화요일 / 중형
-// 최초 확정 날짜) 사이 간격이 14일을 넘으면 위반이다. 한쪽이 아직 비어 있으면(중형
-// 미선택) 검증할 대상이 없으므로 위반이 아니다 — "둘 다 선택했는지"는 별도 게이트가 막는다.
-export function simultaneousWindowGapDays(
-  week: QuoteSelection["week"],
+// [재개정 2026-09-08] "동시대관은 동일 기간에만 세팅 가능하다는 안내가 들어가야함
+// 14일 기준이 아니라" — 예전엔 두 시작일 간격이 14일 이내면 통과였는데(2주 윈도우),
+// 그 규칙을 버리고 "중형 일정은 아레나가 실제로 잡은 날짜 범위(최소~최대) 안에서만
+// 세팅 가능"으로 바꾼다. 범위를 벗어난 중형 날짜만 골라 반환한다(빈 배열 = 문제 없음).
+// 아레나 쪽이 아직 아무 날짜도 없으면(이론상 발생하지 않지만 방어적으로) 중형 날짜를
+// 전부 범위 밖으로 본다.
+export function midHallDatesOutsideArenaRange(
+  arenaSelection: Pick<QuoteSelection, "week" | "excludedDays" | "extraDays">,
   midHallDays: Record<string, unknown>,
-): number | null {
-  const midHallDates = Object.keys(midHallDays).sort();
-  if (midHallDates.length === 0) return null;
-  const arenaStart = findWeekTuesday(week);
-  if (!arenaStart) return null;
-  const midHallStart = new Date(midHallDates[0]);
-  const gapMs = Math.abs(midHallStart.getTime() - arenaStart.getTime());
-  return Math.round(gapMs / (1000 * 60 * 60 * 24));
+): string[] {
+  const midHallDates = Object.keys(midHallDays);
+  if (midHallDates.length === 0) return [];
+  const arenaDates = resolveSelectedDates(arenaSelection);
+  if (arenaDates.length === 0) return midHallDates.sort();
+  const start = arenaDates[0];
+  const end = arenaDates[arenaDates.length - 1];
+  return midHallDates.filter((d) => d < start || d > end).sort();
 }
-
-export const SIMULTANEOUS_WINDOW_MAX_DAYS = 14;
 
 // [신규 2026-09-08] "화/일만 아무것도 없이 해제 가능하고 중간은 무조건 뭐라도
 // 세팅이 되어야함 — 패키지 중간을 비울 수는 없음" — 기본 6일 중 가운데 4일
@@ -98,7 +98,8 @@ export function resolveSelectedDates(
   const dates: string[] = [];
   for (let i = 0; i < 6; i++) {
     const day = WEEKDAYS[i] as WeekDay;
-    if (!selection.excludedDays.includes(day)) dates.push(isoDate(addDays(tuesday, i)));
+    if (!selection.excludedDays.includes(day))
+      dates.push(isoDate(addDays(tuesday, i)));
   }
   for (let i = 0; i < selection.extraDays; i++) {
     dates.push(isoDate(addDays(tuesday, 6 + i)));

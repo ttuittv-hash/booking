@@ -5,7 +5,11 @@ import { btnClass, ICON_BTN_SM, toggleClass } from "@/components/ui/kit";
 import { useState } from "react";
 import { isoDate, isWeekendDate } from "@/lib/pricing/dateRange";
 import { canStepMonth, toMonthKey } from "@/lib/content/noticeCalendarWindow";
-import type { DateBlock, MidHallDayRole, MidHallDaySelection } from "@/lib/pricing/types";
+import type {
+  DateBlock,
+  MidHallDayRole,
+  MidHallDaySelection,
+} from "@/lib/pricing/types";
 
 function toColumnIndex(jsDay: number): number {
   return (jsDay + 6) % 7;
@@ -59,6 +63,7 @@ export function MidHallCalendar({
   onChangeMonth,
   onChangeDays,
   monthBounds,
+  outOfRangeDates = [],
 }: {
   title?: string;
   year: number;
@@ -73,12 +78,21 @@ export function MidHallCalendar({
   onChangeDays: (days: Record<string, MidHallDaySelection>) => void;
   /** [신규 2026-09-06] Step1Calendar.tsx와 같은 어드민 「공지 캘린더 노출 월」 범위. */
   monthBounds?: { start: string | null; end: string | null };
+  /**
+   * [신규 2026-09-08] "동시대관은 동일 기간에만 세팅 가능하다는 안내가 들어가야함" —
+   * 아레나 공연 일정 범위를 벗어난 중형 선택 날짜(ISO). WizardShell이
+   * midHallDatesOutsideArenaRange로 미리 계산해 넘긴다 — 이 컴포넌트는 아레나 쪽
+   * 선택 상태를 몰라도 되게 결과만 받는다. 중형 단독 예약(동시 대관 아님)이면 항상
+   * 빈 배열이 넘어온다.
+   */
+  outOfRangeDates?: string[];
 }) {
   // [화면 뼈대 2026-08-19, 아레나 STEP 2(Step1Calendar)와 동일 구조] 역할 지정은 날짜 아래에
   // 바로 펼쳐지는 인라인 드롭다운으로 처리한다 — 클릭 즉시 기본값(공연일)으로 토글하고 별도
   // 목록에서 편집하던 이전 방식은 "날짜 자체에서 준비"하는 아레나 캘린더 구조와 어긋나서
   // 통일한다.
   const [openDate, setOpenDate] = useState<string | null>(null);
+  const outOfRangeSet = new Set(outOfRangeDates);
 
   const weeks = buildMonthGrid(year, month);
   // 중형공연장 전용 설정 또는 공간공통(ALL, 과거 이관 데이터)만 이 화면에 적용한다 —
@@ -200,6 +214,9 @@ export function MidHallCalendar({
                   const selection = days[iso];
                   const blocked = blockedByDate.get(iso);
                   const interactable = inMonth && !blocked;
+                  // [신규 2026-09-08] "동시대관은 동일 기간에만 세팅 가능" — 아레나 공연
+                  // 일정 범위를 벗어난 날짜에 역할을 잡으면 빨간 테두리로 바로 보이게 한다.
+                  const outOfRange = inMonth && outOfRangeSet.has(iso);
                   return (
                     <button
                       key={iso}
@@ -219,6 +236,9 @@ export function MidHallCalendar({
                           ? "underline decoration-2 underline-offset-4"
                           : "",
                         openDate === iso ? "ring-2 ring-accent" : "",
+                        outOfRange
+                          ? "outline outline-2 -outline-offset-2 outline-danger"
+                          : "",
                       ].join(" ")}
                     >
                       <span>{date.getDate()}</span>
@@ -248,8 +268,13 @@ export function MidHallCalendar({
                     className="border border-border/40 bg-surface px-3 py-2.5 shadow-lg"
                     style={{
                       gridColumn: (() => {
-                        const dayCol = weekDays.findIndex((d) => isoDate(d) === openDate) + 1;
-                        const start = Math.max(1, Math.min(dayCol, 8 - POPOVER_SPAN));
+                        const dayCol =
+                          weekDays.findIndex((d) => isoDate(d) === openDate) +
+                          1;
+                        const start = Math.max(
+                          1,
+                          Math.min(dayCol, 8 - POPOVER_SPAN),
+                        );
                         return `${start} / ${start + POPOVER_SPAN}`;
                       })(),
                     }}
@@ -362,7 +387,9 @@ export function MidHallCalendar({
                     {/* [삭제 2026-09-08] "중형 공연장 단가가 잘못 들어가있어. 단가 부분
                         삭제해" — 이 칸에 참고용으로 보여주던 "단가 N원[× 할증]" 줄을
                         없앴다. 실제 금액은 예상 대관료/실시간 패널에서 확인한다. */}
-                    {(!days[openDate] || (days[openDate].role === "PERFORMANCE" && days[openDate].shows >= 3)) && (
+                    {(!days[openDate] ||
+                      (days[openDate].role === "PERFORMANCE" &&
+                        days[openDate].shows >= 3)) && (
                       <p className="mt-2 text-xs text-muted">
                         {!days[openDate] ? (
                           "준비 또는 공연일을 선택하면 날짜가 추가됩니다."
@@ -389,6 +416,24 @@ export function MidHallCalendar({
           {loadOutDayCount > 0 && ` · 철수 ${loadOutDayCount}일`}
           {extraSetupHours > 0 && ` · 준비연장 ${extraSetupHours}시간`}
           {extraLoadOutHours > 0 && ` · 철수연장 ${extraLoadOutHours}시간`}
+        </div>
+      )}
+
+      {/* [신규 2026-09-08] "동시대관은 동일 기간에만 세팅 가능하다는 안내가 들어가야함" —
+          범위를 벗어난 날짜를 구체적으로 짚어준다(토스트만으로는 어느 날짜가 문제인지
+          화면에서 바로 안 보였다). */}
+      {outOfRangeDates.length > 0 && (
+        <div className="mt-3 flex gap-2 border border-danger bg-danger-soft px-3 py-2.5 text-xs leading-6 text-muted-strong">
+          <span className="mt-0.5 shrink-0 font-bold text-danger">!</span>
+          <span>
+            <b className="text-danger">
+              동시 대관의 경우, 아레나 공연 일정 내에서 중형공연장 일정 세팅이
+              가능합니다.
+            </b>
+            <br />
+            범위를 벗어난 날짜:{" "}
+            {outOfRangeDates.map((d) => formatDateLabel(d)).join(", ")}
+          </span>
         </div>
       )}
 
