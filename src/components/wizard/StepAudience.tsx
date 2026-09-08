@@ -493,9 +493,13 @@ export function StepAudience({
 export function StepCompetitionOption({
   info,
   onChange,
+  framed = false,
 }: {
   info: PerformanceInfo;
   onChange: (info: PerformanceInfo) => void;
+  /** [신규 2026-09-08] 예상 대관료 화면의 박스 사이에 끼울 때 — 굵은 헤어라인 대신 다른
+   *  박스(대관료·추후 정산)와 같은 테두리 박스로 그린다. */
+  framed?: boolean;
 }) {
   const { t, tStr } = useWizardText();
 
@@ -511,7 +515,7 @@ export function StepCompetitionOption({
   }
 
   return (
-    <div className="border-t-2 border-foreground pt-5">
+    <div className={framed ? "border border-border bg-panel/40 p-5" : "border-t-2 border-foreground pt-5"}>
       <h3 className="type-kr-heading text-h6-m">
         {t("competitionOption.sectionHeading", "대관 경합 옵션")}
       </h3>

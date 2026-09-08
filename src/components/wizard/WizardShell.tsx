@@ -1174,6 +1174,15 @@ export function WizardShell({
         )}
         {step === 8 && (
           <Step5Estimate
+            // [이동 2026-09-08] 대관 경합 옵션(티켓 매출 RS) — STEP3 → 최종 제출 → 여기.
+            // nora: "예상대관료의 추후정산 예정금액과 소계 사이 박스로".
+            beforeTotals={
+              <StepCompetitionOption
+                framed
+                info={selection.performanceInfo}
+                onChange={(performanceInfo) => setSelection((prev) => ({ ...prev, performanceInfo }))}
+              />
+            }
             rateTable={rateTable}
             quote={quote}
             selection={resolvedSelection}
@@ -1182,12 +1191,6 @@ export function WizardShell({
         )}
         {step === 9 && (
           <Step6Submit
-            beforeSubmit={
-              <StepCompetitionOption
-                info={selection.performanceInfo}
-                onChange={(performanceInfo) => setSelection((prev) => ({ ...prev, performanceInfo }))}
-              />
-            }
             rateTable={rateTable}
             quote={quote}
             selection={resolvedSelection}
