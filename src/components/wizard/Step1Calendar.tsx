@@ -703,17 +703,45 @@ export function Step1Calendar({
                           삭제
                         </button>
                       )}
+                      {/* [신규 2026-09-08] "화요일이랑 일요일은 일정 삭제가 가능하게 — 삭제 딱지
+                          넣어주시면"(nora) — 기본 6일의 양 끝(화·일)에도 중형 달력과 같은
+                          「삭제」 버튼을 둔다. 누르면 그날 역할 태그를 지우고 제외 요일에 넣어
+                          준비일 단가 10% 할인만큼 차감된다. 제외된 상태에서는 「다시 포함」으로
+                          되돌린다. 가운데 4일(수~토)은 패키지 단위라 여전히 뗄 수 없다. */}
+                      {openDayKind?.kind === "base" &&
+                        (openDayKind.weekday === "TUE" || openDayKind.weekday === "SUN") &&
+                        (excludedDays.includes(openDayKind.weekday) ? (
+                          <button
+                            type="button"
+                            onClick={() =>
+                              onChangeExcludedDays(excludedDays.filter((w) => w !== openDayKind.weekday))
+                            }
+                            className={btnClass("secondary", "sm")}
+                          >
+                            다시 포함
+                          </button>
+                        ) : (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const weekday = openDayKind.weekday;
+                              if (dayTags[openDate]) onChangeDayTags(omit(dayTags, openDate));
+                              onChangeExcludedDays(WEEKDAYS.filter((w) => w === weekday || excludedDays.includes(w)));
+                            }}
+                            className={btnClass("danger", "sm")}
+                          >
+                            삭제
+                          </button>
+                        ))}
                     </div>
-                    {/* [수정 2026-09-08] "화/일만 아무것도 없이 해제 가능"— 화·일(양 끝)은
-                        위 역할 버튼을 골랐다가 같은 버튼을 한 번 더 눌러 해제하면(선택
-                        없음) 자동으로 제외 처리되어 준비일 10% 할인가만큼 차감된다는
-                        걸 안내한다(제외를 위한 별도 버튼은 없다). */}
+                    {/* [수정 2026-09-08] 화·일(양 끝)은 위 「삭제」로 제외할 수 있고, 제외되면
+                        준비일 10% 할인가만큼 차감된다는 걸 안내한다. */}
                     {openDayKind?.kind === "base" &&
                       (openDayKind.weekday === "TUE" || openDayKind.weekday === "SUN") && (
                         <p className="mt-2 text-xs text-muted">
                           {excludedDays.includes(openDayKind.weekday)
-                            ? "이 날짜는 제외되어 준비일 단가에서 10% 할인된 금액이 차감됩니다. 다시 포함하려면 위 역할을 선택하세요."
-                            : "선택한 역할을 한 번 더 누르면 이 날짜를 제외할 수 있습니다(준비일 단가 10% 할인 차감)."}
+                            ? "이 날짜는 제외되어 준비일 단가에서 10% 할인된 금액이 차감됩니다. 「다시 포함」을 누르면 되돌립니다."
+                            : "「삭제」를 누르면 이 날짜를 제외할 수 있습니다(준비일 단가 10% 할인 차감)."}
                         </p>
                       )}
 
