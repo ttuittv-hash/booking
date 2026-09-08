@@ -400,6 +400,13 @@ export function PackagesForm({
   }
 
   // [신규 2026-08-26] 항목 스펙(규격·사양) 참고용 텍스트 — 과금에는 관여하지 않는다.
+  // [신규 2026-09-08] "단위가 고정값인데 수정 가능하게"(nora) — 항목 옆 (원/일) 표시용
+  // 단위를 행에서 바로 고친다. 저장 API(sanitizeAddonUpdate)는 이미 unitLabel 을 받는다.
+  // 표시 문자열일 뿐 과금 방식(pricingType)은 바꾸지 않는다.
+  function updateAddonUnitLabel(addonId: string, unitLabel: string) {
+    setAddons((prev) => prev.map((a) => (a.id === addonId ? { ...a, unitLabel } : a)));
+  }
+
   function updateAddonSpec(addonId: string, spec: string) {
     setAddons((prev) => prev.map((a) => (a.id === addonId ? { ...a, spec } : a)));
   }
@@ -1419,7 +1426,20 @@ export function PackagesForm({
                                 onChange={(e) => setIncludedQty(addon.id, e.target.checked ? 1 : 0)}
                               />
                               {addon.name}
-                              <span className="text-xs text-muted">({addon.unitLabel})</span>
+                            </label>
+                            {/* [개정 2026-09-08] 단위(원/일 등)를 읽기 전용 표시에서 입력칸으로 —
+                                label 밖에 둬야 입력칸 클릭이 체크박스를 건드리지 않는다. */}
+                            <label className="flex items-center gap-1">
+                              <span className="text-xs text-muted">(</span>
+                              <input
+                                type="text"
+                                value={addon.unitLabel}
+                                placeholder="원/일"
+                                onChange={(e) => updateAddonUnitLabel(addon.id, e.target.value)}
+                                className={`w-16 ${FIELD}`}
+                                title="단위 표시 (예: 원/일, 원/회, 원)"
+                              />
+                              <span className="text-xs text-muted">)</span>
                             </label>
                             {/* [신규 2026-08-26] 항목 스펙(규격·사양) — 과금과 무관한 참고용 텍스트. */}
                             <input
