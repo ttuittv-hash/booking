@@ -51,8 +51,12 @@ function buildCalendarWeeks(year: number, month: number): CalendarWeek[] {
     }
     // 주(화~일)의 기준일은 화요일(days[1]). 화요일이 해당 월에 속할 때만 그 달의 "N주차"로 센다.
     const startsInMonth = days[1].getMonth() === month - 1;
+    // [신규 2026-09-08] "캘린더에 첫주 선택이 지금은 안되서요 — 첫주 선택도 가능하게"(nora)
+    // — 화요일이 전달에 걸린 첫 행도 이 달 날짜를 하나라도 담고 있으면 0주차("첫 주")로
+    // 고를 수 있게 한다. dateRange.findWeekTuesday 가 0을 같은 규칙으로 푼다.
+    const firstRowOverlaps = w === 0 && !startsInMonth && days.some((d) => d.getMonth() === month - 1);
     if (startsInMonth) counter++;
-    weeks.push({ days, weekOfMonth: startsInMonth ? counter : null });
+    weeks.push({ days, weekOfMonth: startsInMonth ? counter : firstRowOverlaps ? 0 : null });
   }
   return weeks;
 }
@@ -539,12 +543,12 @@ export function Step1Calendar({
                       <span>{date.getDate()}</span>
                       {tag && (
                         <span className="text-xs font-bold leading-none">
-                          {/* 두 공간을 함께 짤 때는 공간을 앞에 붙인다 — "준비"만 찍으면
-                              아래 "중형 준비" 과 나란히 놓였을 때 어느 공간 것인지
-                              알 수 없다. 공간이 하나뿐이면 붙이지 않는다. */}
-                          {twoVenueRoles ? "아레나 " : ""}
+                          {/* [개정 2026-09-08] "날짜 밑에는 다 '공연'·'준비'·'철수' 두 글자씩"(nora)
+                              — 동시 대관에서 붙이던 "아레나 " 접두와 회차 1의 "×1"을 뺐다.
+                              두 공간을 함께 짤 때는 아레나 줄(검정)·중형 줄(회색)로만 구분한다.
+                              회차가 2 이상일 때만 ×N 을 붙인다(MidHallCalendar 와 같은 규칙). */}
                           {tag === "PERFORMANCE"
-                            ? `공연×${dayShowCounts[iso] ?? 1}`
+                            ? `공연${(dayShowCounts[iso] ?? 1) > 1 ? `×${dayShowCounts[iso]}` : ""}`
                             : tag === "LOAD_OUT"
                               ? "철수"
                               : tag === "REST"
@@ -556,9 +560,8 @@ export function Step1Calendar({
                           무엇이 잡혔는지 달력만 보고 알 수 있어야 한다. */}
                       {twoVenueRoles && midHall[iso] && (
                         <span className="text-xs font-bold leading-none text-muted">
-                          중형{" "}
                           {midHall[iso].role === "PERFORMANCE"
-                            ? `공연×${midHall[iso].shows ?? 1}`
+                            ? `공연${(midHall[iso].shows ?? 1) > 1 ? `×${midHall[iso].shows}` : ""}`
                             : midHall[iso].role === "LOAD_OUT"
                               ? "철수"
                               : "준비"}
@@ -865,7 +868,7 @@ export function Step1Calendar({
       </div>
 
       <div className="mt-4 text-s font-bold text-foreground">
-        {week.year}년 {week.month}월 {week.weekOfMonth}주차 · 준비 {setupCount}
+        {week.year}년 {week.month}월 {week.weekOfMonth === 0 ? "첫 주" : `${week.weekOfMonth}주차`} · 준비 {setupCount}
         일 · 공연 {performanceCount}일
         {loadOutCount > 0 ? ` · 철수 ${loadOutCount}일` : ""}
         {restCount > 0 ? ` · 휴무 ${restCount}일` : ""} · 총 {totalDays}일 적용

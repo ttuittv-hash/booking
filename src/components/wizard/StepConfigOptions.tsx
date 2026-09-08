@@ -652,7 +652,7 @@ export function StepConfigOptions({
             // 있고, 줄 자체를 끌 방법이 없었다. 다른 슬롯과 같은 노출 On/off 패턴
             // (disabledFields)을 그대로 써서 이 줄 전체를 켜고 끌 수 있게 한다.
             pkg && !disabledFields?.includes(ARENA_SUMMARY_LEAD_FIELD_ID)
-              ? `${pkg.name} · ${pkg.audienceTier.label} · ${tStr("configOptions.arenaSummary.expectedAudienceLabel", "예상 관객")} ${selection.expectedAudience.toLocaleString()}${tStr("configOptions.arenaSummary.peopleUnit", "명")} · ${arenaSummaryLine(selection, defaultPerformanceDays, tStr)}`
+              ? `${pkg.name} · ${pkg.audienceTier.label} · ${arenaSummaryLine(selection, defaultPerformanceDays, tStr)}`
               : undefined
           }
         />
