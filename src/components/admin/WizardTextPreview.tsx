@@ -3,8 +3,15 @@
 import { useMemo, useState, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
 import { useQueryTab } from "./useQueryTab";
-import type { ScreenTextContent, VenueRateContent, WizardStepTexts } from "@/lib/content/pageContent";
-import { WizardTextContext, type WizardTextApi } from "@/lib/content/wizardText";
+import type {
+  ScreenTextContent,
+  VenueRateContent,
+  WizardStepTexts,
+} from "@/lib/content/pageContent";
+import {
+  WizardTextContext,
+  type WizardTextApi,
+} from "@/lib/content/wizardText";
 import { calculateQuote } from "@/lib/pricing/calculateQuote";
 import { packagesForVenue } from "@/lib/pricing/rateTableUtils";
 import { resolveSelectedDates } from "@/lib/pricing/dateRange";
@@ -30,7 +37,10 @@ import {
   StepCredibility,
   StepEventBasics,
 } from "@/components/wizard/StepPerformanceInfo";
-import { StepAudience, StepCompetitionOption } from "@/components/wizard/StepAudience";
+import {
+  StepAudience,
+  StepCompetitionOption,
+} from "@/components/wizard/StepAudience";
 import { StepPublicInterest } from "@/components/wizard/StepPublicInterest";
 import { StepMarketingCooperation } from "@/components/wizard/StepMarketingCooperation";
 import { StepSafetyPledge } from "@/components/wizard/StepSafetyPledge";
@@ -38,7 +48,10 @@ import { Step5Estimate } from "@/components/wizard/Step5Estimate";
 import { Step6Submit } from "@/components/wizard/Step6Submit";
 import { ContentFormShell } from "./fields";
 import { HELP } from "./adminUi";
-import { STEP3_DEFAULT_SLOT_ORDER, STEP3_SLOT_LABELS } from "@/lib/content/wizardSlots";
+import {
+  STEP3_DEFAULT_SLOT_ORDER,
+  STEP3_SLOT_LABELS,
+} from "@/lib/content/wizardSlots";
 
 // [2026-08-25] "읽기전용 모드로 실제 스텝 전체 화면을 보여주되, 리드 문구만 수정 가능"
 // (2단계 제안) — 각 STEP의 실제 컴포넌트를 그대로(mock 데이터 + no-op 핸들러로) 렌더링해
@@ -71,14 +84,23 @@ const DEFAULT_MARKETING_COOPERATION: MarketingCooperation = {
   coSponsorshipConsent: null,
   ticketSalesDataConsent: false,
   pollstarConsent: false,
-  executionPlan: { targetDefinition: "", mediaMix: "", budget: "", timeline: "" },
+  executionPlan: {
+    targetDefinition: "",
+    mediaMix: "",
+    budget: "",
+    timeline: "",
+  },
   contentCooperationConsent: null,
 };
 
 function defaultWeek(): QuoteSelection["week"] {
   const now = new Date();
   const next = new Date(now.getFullYear(), now.getMonth() + 1, 1);
-  return { year: next.getFullYear(), month: next.getMonth() + 1, weekOfMonth: 1 };
+  return {
+    year: next.getFullYear(),
+    month: next.getMonth() + 1,
+    weekOfMonth: 1,
+  };
 }
 
 // [버그 수정 2026-09-06] "대관자 정보 등록 계정값에서 정보 매핑해서 노출해야지" —
@@ -101,7 +123,9 @@ function buildBaseSelection(rateTable: RateTable): QuoteSelection {
     extraDays: 0,
     dayTags: {},
     dayShowCounts: {},
-    expectedAudience: arenaPkg ? Math.round((arenaPkg.audienceTier.min + arenaPkg.audienceTier.max) / 2) : 8000,
+    expectedAudience: arenaPkg
+      ? Math.round((arenaPkg.audienceTier.min + arenaPkg.audienceTier.max) / 2)
+      : 8000,
     secondaryAudience: 1500,
     midHallDays: {},
     midHallExtraSetupHours: 0,
@@ -124,10 +148,21 @@ function useMockSelections(rateTable: RateTable) {
   return useMemo(() => {
     const arena = buildBaseSelection(rateTable);
     const firstDate = resolveSelectedDates(arena)[0] ?? null;
-    const midHallDays = firstDate ? { [firstDate]: { role: "PERFORMANCE" as const, shows: 1 } } : {};
+    const midHallDays = firstDate
+      ? { [firstDate]: { role: "PERFORMANCE" as const, shows: 1 } }
+      : {};
 
-    const midHall: QuoteSelection = { ...arena, venueId: "medium-hall", packageId: null, midHallDays };
-    const simultaneous: QuoteSelection = { ...arena, bookingMode: "SIMULTANEOUS", midHallDays };
+    const midHall: QuoteSelection = {
+      ...arena,
+      venueId: "medium-hall",
+      packageId: null,
+      midHallDays,
+    };
+    const simultaneous: QuoteSelection = {
+      ...arena,
+      bookingMode: "SIMULTANEOUS",
+      midHallDays,
+    };
 
     return {
       arena,
@@ -145,7 +180,13 @@ const EDITABLE_INPUT =
   "block w-full min-w-0 border-0 border-b border-dashed border-transparent bg-transparent p-0 outline-none focus:border-accent";
 
 /** 실제 헤딩 자리에 그대로 끼워 넣는 편집 입력 — 값이 곧 실제로 보이는 텍스트다. */
-function EditableTitle({ value, onChange }: { value: string; onChange: (v: string) => void }) {
+function EditableTitle({
+  value,
+  onChange,
+}: {
+  value: string;
+  onChange: (v: string) => void;
+}) {
   return (
     <input
       type="text"
@@ -157,7 +198,13 @@ function EditableTitle({ value, onChange }: { value: string; onChange: (v: strin
   );
 }
 
-function EditableLead({ value, onChange }: { value: string; onChange: (v: string) => void }) {
+function EditableLead({
+  value,
+  onChange,
+}: {
+  value: string;
+  onChange: (v: string) => void;
+}) {
   return (
     <textarea
       value={value}
@@ -194,7 +241,13 @@ function LivePreview({ children }: { children: ReactNode }) {
  * 그 이벤트가 나중에 label에 도달했을 때의 기본 동작이 취소된다.
  * contentEditable의 포커스·캐럿 배치는 mousedown 시점에 이미 끝나 있어(클릭은
  * mousedown 다음에 온다) 이 preventDefault와 무관하게 정상 동작한다. */
-function InlineEditText({ value, onChange }: { value: string; onChange: (v: string) => void }) {
+function InlineEditText({
+  value,
+  onChange,
+}: {
+  value: string;
+  onChange: (v: string) => void;
+}) {
   return (
     <span
       contentEditable
@@ -229,7 +282,8 @@ function AttrFieldsPanel({
   return (
     <div className="mt-6 border border-dashed border-border-soft bg-panel/60 p-3">
       <p className="mb-2 text-2xs font-bold uppercase tracking-wide text-muted">
-        ✎ 속성 문구(placeholder 등) — 화면에 항상 보이는 자리가 없어 여기 따로 모았습니다
+        ✎ 속성 문구(placeholder 등) — 화면에 항상 보이는 자리가 없어 여기 따로
+        모았습니다
       </p>
       <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
         {[...fields.entries()].map(([key, fallback]) => (
@@ -250,7 +304,15 @@ function AttrFieldsPanel({
 /** [신규 2026-09-07] "그 영역을 잡고 없애줘" — 각 STEP 제목 아래 리드 한 줄을
  * 통째로 켜고 끄는 작은 체크박스. disabledFields 관례를 그대로 따른다(단일 필드
  * 키 하나만 다루므로 FieldOrderPanel처럼 순서까지 다루는 큰 패널은 필요 없다). */
-function LeadToggle({ ctx, fieldId, label }: { ctx: RenderCtx; fieldId: string; label: string }) {
+function LeadToggle({
+  ctx,
+  fieldId,
+  label,
+}: {
+  ctx: RenderCtx;
+  fieldId: string;
+  label: string;
+}) {
   const disabled = ctx.disabledFields.includes(fieldId);
   return (
     <label className="flex w-fit items-center gap-1.5 text-2xs font-bold whitespace-nowrap text-muted">
@@ -334,7 +396,11 @@ function EditableSubtree({
   return (
     <WizardTextContext.Provider value={api}>
       {children}
-      <AttrFieldsPanel fields={fields} overrides={overrides} onChangeString={onChangeString} />
+      <AttrFieldsPanel
+        fields={fields}
+        overrides={overrides}
+        onChangeString={onChangeString}
+      />
     </WizardTextContext.Provider>
   );
 }
@@ -381,9 +447,16 @@ interface RenderCtx {
    * StepConfigOptions의 AddonRow가 onChange 시점에 이미 적용해 넘겨준다.
    */
   previewAddonQuantities: Record<PreviewAddonSection, Record<string, number>>;
-  setPreviewAddonQuantity: (section: PreviewAddonSection, addonId: string, quantity: number) => void;
+  setPreviewAddonQuantity: (
+    section: PreviewAddonSection,
+    addonId: string,
+    quantity: number,
+  ) => void;
   previewExpectedRevenue: Record<PreviewAddonSection, number>;
-  setPreviewExpectedRevenue: (section: PreviewAddonSection, value: number) => void;
+  setPreviewExpectedRevenue: (
+    section: PreviewAddonSection,
+    value: number,
+  ) => void;
 }
 
 type PreviewAddonSection = "arena" | "midHall" | "simultaneous";
@@ -411,12 +484,17 @@ function FieldOrderPanel({
    */
   allowCustomOptions?: boolean;
 }) {
-  const customKeys = allowCustomOptions ? (ctx.customOptions[groupId] ?? []) : [];
+  const customKeys = allowCustomOptions
+    ? (ctx.customOptions[groupId] ?? [])
+    : [];
   const fullDefaultOrder = [...defaultOrder, ...customKeys];
   const configured = ctx.fieldOrders[groupId];
   const order =
     configured && configured.length > 0
-      ? [...configured.filter((k) => fullDefaultOrder.includes(k)), ...fullDefaultOrder.filter((k) => !configured.includes(k))]
+      ? [
+          ...configured.filter((k) => fullDefaultOrder.includes(k)),
+          ...fullDefaultOrder.filter((k) => !configured.includes(k)),
+        ]
       : [...fullDefaultOrder];
   const move = (index: number, direction: -1 | 1) => {
     const target = index + direction;
@@ -443,7 +521,9 @@ function FieldOrderPanel({
   return (
     <div className="border border-border-soft bg-panel/60 p-3">
       <div className="mb-2 flex items-center justify-between gap-3">
-        <p className="text-2xs font-bold uppercase tracking-wide text-muted">✎ {title} — 순서 · 노출</p>
+        <p className="text-2xs font-bold uppercase tracking-wide text-muted">
+          ✎ {title} — 순서 · 노출
+        </p>
         <label className="flex shrink-0 items-center gap-1.5 text-2xs font-bold whitespace-nowrap text-muted">
           <input
             type="checkbox"
@@ -459,17 +539,26 @@ function FieldOrderPanel({
           const disabled = ctx.disabledFields.includes(fieldId);
           const isCustom = customKeys.includes(key);
           return (
-            <li key={key} className="flex items-center justify-between gap-3 bg-background px-2.5 py-1.5 text-s">
+            <li
+              key={key}
+              className="flex items-center justify-between gap-3 bg-background px-2.5 py-1.5 text-s"
+            >
               <label className="flex items-center gap-2">
                 <input
                   type="checkbox"
                   checked={!disabled}
-                  onChange={(e) => ctx.setFieldDisabled(fieldId, !e.target.checked)}
+                  onChange={(e) =>
+                    ctx.setFieldDisabled(fieldId, !e.target.checked)
+                  }
                 />
                 {fieldLabels[key] ?? key}
                 {/* 라벨은 아래 실제 화면(LivePreview)에서 클릭해 바로 고친다 — 여기선
                     새로 추가된 항목임을 표시만 한다. */}
-                {isCustom && <span className="text-2xs font-normal text-muted">(커스텀)</span>}
+                {isCustom && (
+                  <span className="text-2xs font-normal text-muted">
+                    (커스텀)
+                  </span>
+                )}
               </label>
               <div className="flex shrink-0 gap-1">
                 <button
@@ -540,14 +629,24 @@ function PackageCardRowsEditor({ rateTable }: { rateTable: RateTable }) {
     ...packagesForVenue(rateTable, "arena"),
     ...packagesForVenue(rateTable, SPECIAL_VENUE_ID),
   ];
-  const [activeId, setActiveId] = useState<number | null>(editablePackages[0]?.id ?? null);
-  const [rowsByPackage, setRowsByPackage] = useState<Record<number, { label: string; value: string }[]>>(() =>
-    Object.fromEntries(editablePackages.map((p) => [p.id, p.customCardRows.map((row) => ({ ...row }))])),
+  const [activeId, setActiveId] = useState<number | null>(
+    editablePackages[0]?.id ?? null,
+  );
+  const [rowsByPackage, setRowsByPackage] = useState<
+    Record<number, { label: string; value: string }[]>
+  >(() =>
+    Object.fromEntries(
+      editablePackages.map((p) => [
+        p.id,
+        p.customCardRows.map((row) => ({ ...row })),
+      ]),
+    ),
   );
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
 
-  const activePkg = editablePackages.find((p) => p.id === activeId) ?? editablePackages[0];
+  const activePkg =
+    editablePackages.find((p) => p.id === activeId) ?? editablePackages[0];
   if (!activePkg) return null;
   const rows = rowsByPackage[activePkg.id] ?? [];
 
@@ -561,7 +660,10 @@ function PackageCardRowsEditor({ rateTable }: { rateTable: RateTable }) {
     try {
       const nextPackages = rateTable.packages.map((p) =>
         p.id === activePkg.id
-          ? { ...p, customCardRows: rows.filter((row) => row.label.trim().length > 0) }
+          ? {
+              ...p,
+              customCardRows: rows.filter((row) => row.label.trim().length > 0),
+            }
           : p,
       );
       const res = await fetch("/api/admin/packages", {
@@ -605,19 +707,36 @@ function PackageCardRowsEditor({ rateTable }: { rateTable: RateTable }) {
         </div>
       </div>
       <div className="space-y-1.5">
-        {rows.length === 0 && <p className="text-xs text-muted">등록된 추가 항목이 없습니다.</p>}
+        {rows.length === 0 && (
+          <p className="text-xs text-muted">등록된 추가 항목이 없습니다.</p>
+        )}
         {rows.map((row, i) => (
-          <div key={i} className="flex items-center gap-1.5 bg-background px-2.5 py-1.5">
+          <div
+            key={i}
+            className="flex items-center gap-1.5 bg-background px-2.5 py-1.5"
+          >
             <input
               value={row.label}
               placeholder="라벨 (예: 무대 폭)"
-              onChange={(e) => setRows(rows.map((r, j) => (j === i ? { ...r, label: e.target.value } : r)))}
+              onChange={(e) =>
+                setRows(
+                  rows.map((r, j) =>
+                    j === i ? { ...r, label: e.target.value } : r,
+                  ),
+                )
+              }
               className="field-base w-1/2"
             />
             <input
               value={row.value}
               placeholder="값 (예: 40m)"
-              onChange={(e) => setRows(rows.map((r, j) => (j === i ? { ...r, value: e.target.value } : r)))}
+              onChange={(e) =>
+                setRows(
+                  rows.map((r, j) =>
+                    j === i ? { ...r, value: e.target.value } : r,
+                  ),
+                )
+              }
               className="field-base w-1/2"
             />
             <button
@@ -670,7 +789,10 @@ function SlotOrderPanel({
   const configured = ctx.slotOrders[slotsKey];
   const order =
     configured && configured.length > 0
-      ? [...configured.filter((k) => k in slotLabels), ...defaultOrder.filter((k) => !configured.includes(k))]
+      ? [
+          ...configured.filter((k) => k in slotLabels),
+          ...defaultOrder.filter((k) => !configured.includes(k)),
+        ]
       : [...defaultOrder];
   const move = (index: number, direction: -1 | 1) => {
     const target = index + direction;
@@ -681,7 +803,9 @@ function SlotOrderPanel({
   };
   return (
     <div className="border border-border-soft bg-panel/60 p-3">
-      <p className="mb-2 text-2xs font-bold uppercase tracking-wide text-muted">✎ {title} — 슬롯 순서 · 노출</p>
+      <p className="mb-2 text-2xs font-bold uppercase tracking-wide text-muted">
+        ✎ {title} — 슬롯 순서 · 노출
+      </p>
       <ul className="flex flex-col gap-1.5">
         {order.map((key, index) => {
           // [신규 2026-09-06] "슬롯별 노출 결정도.. 슬롯명 옆에 노출 여부 체크박스" —
@@ -692,12 +816,17 @@ function SlotOrderPanel({
           const slotFieldId = `slot.${slotsKey}.${key}`;
           const slotDisabled = ctx.disabledFields.includes(slotFieldId);
           return (
-            <li key={key} className="flex items-center justify-between gap-3 bg-background px-2.5 py-1.5 text-s">
+            <li
+              key={key}
+              className="flex items-center justify-between gap-3 bg-background px-2.5 py-1.5 text-s"
+            >
               <label className="flex items-center gap-2">
                 <input
                   type="checkbox"
                   checked={!slotDisabled}
-                  onChange={(e) => ctx.setFieldDisabled(slotFieldId, !e.target.checked)}
+                  onChange={(e) =>
+                    ctx.setFieldDisabled(slotFieldId, !e.target.checked)
+                  }
                 />
                 {slotLabels[key] ?? key}
               </label>
@@ -732,14 +861,24 @@ function SlotOrderPanel({
 function makeFieldEditor(ctx: RenderCtx) {
   return function field(key: keyof WizardStepTexts) {
     return (
-      <EditableTitle value={ctx.wizardSteps[key]} onChange={(val) => ctx.setStep({ [key]: val } as Partial<WizardStepTexts>)} />
+      <EditableTitle
+        value={ctx.wizardSteps[key]}
+        onChange={(val) =>
+          ctx.setStep({ [key]: val } as Partial<WizardStepTexts>)
+        }
+      />
     );
   };
 }
 function makeLeadEditor(ctx: RenderCtx) {
   return function lead(key: keyof WizardStepTexts) {
     return (
-      <EditableLead value={ctx.wizardSteps[key]} onChange={(val) => ctx.setStep({ [key]: val } as Partial<WizardStepTexts>)} />
+      <EditableLead
+        value={ctx.wizardSteps[key]}
+        onChange={(val) =>
+          ctx.setStep({ [key]: val } as Partial<WizardStepTexts>)
+        }
+      />
     );
   };
 }
@@ -758,39 +897,78 @@ interface StageGroup {
 // validatePerformanceInfoStep·StepAudience.tsx의 validateAudienceStep이 돌려주는
 // fieldKey·fallback 문구와 하나씩 맞춘다(그 두 함수를 고칠 때 여기도 같이 고칠 것).
 const STEP3_VALIDATION_MESSAGES: { key: string; fallback: string }[] = [
-  { key: "validationMessage.performanceInfo.applicantCompanyType", fallback: "신청 기업 유형을 선택해 주세요." },
+  {
+    key: "validationMessage.performanceInfo.applicantCompanyType",
+    fallback: "신청 기업 유형을 선택해 주세요.",
+  },
   {
     key: "validationMessage.performanceInfo.applicantCompanyType.other",
     fallback: '신청 기업 유형 "기타" 상세를 입력해 주세요.',
   },
-  { key: "validationMessage.performanceInfo.applicantContact", fallback: "담당자 정보를 1건 이상 입력해 주세요." },
-  { key: "validationMessage.performanceInfo.applicantContact.role", fallback: "담당역할을 입력해 주세요." },
-  { key: "validationMessage.performanceInfo.applicantContact.name", fallback: "담당자 성명을 입력해 주세요." },
-  { key: "validationMessage.performanceInfo.applicantContact.phone", fallback: "담당자 연락처를 입력해 주세요." },
-  { key: "validationMessage.performanceInfo.eventBasics.eventName", fallback: "공연(행사)명을 입력해 주세요." },
-  { key: "validationMessage.performanceInfo.eventBasics.artist", fallback: "아티스트 / 출연진을 입력해 주세요." },
+  {
+    key: "validationMessage.performanceInfo.applicantContact",
+    fallback: "담당자 정보를 1건 이상 입력해 주세요.",
+  },
+  {
+    key: "validationMessage.performanceInfo.applicantContact.role",
+    fallback: "담당역할을 입력해 주세요.",
+  },
+  {
+    key: "validationMessage.performanceInfo.applicantContact.name",
+    fallback: "담당자 성명을 입력해 주세요.",
+  },
+  {
+    key: "validationMessage.performanceInfo.applicantContact.phone",
+    fallback: "담당자 연락처를 입력해 주세요.",
+  },
+  {
+    key: "validationMessage.performanceInfo.eventBasics.eventName",
+    fallback: "공연(행사)명을 입력해 주세요.",
+  },
+  {
+    key: "validationMessage.performanceInfo.eventBasics.artist",
+    fallback: "아티스트 / 출연진을 입력해 주세요.",
+  },
   {
     key: "validationMessage.performanceInfo.eventBasics.organizer",
     fallback: "주최 · 주관 · 기획을 하나 이상 입력해 주세요.",
   },
-  { key: "validationMessage.performanceInfo.eventTypes", fallback: "행사유형을 하나 이상 선택해 주세요." },
-  { key: "validationMessage.performanceInfo.ageRating", fallback: "공연등급을 선택해 주세요." },
-  { key: "validationMessage.performanceInfo.ageRating.limitDetail", fallback: "연령제한 상세를 입력해 주세요." },
+  {
+    key: "validationMessage.performanceInfo.eventTypes",
+    fallback: "행사유형을 하나 이상 선택해 주세요.",
+  },
+  {
+    key: "validationMessage.performanceInfo.ageRating",
+    fallback: "공연등급을 선택해 주세요.",
+  },
+  {
+    key: "validationMessage.performanceInfo.ageRating.limitDetail",
+    fallback: "연령제한 상세를 입력해 주세요.",
+  },
   {
     key: "validationMessage.performanceInfo.eventBasics.ticketOpenExpectedDate",
     fallback: "티켓 오픈 예정일을 입력해 주세요.",
   },
-  { key: "validationMessage.performanceInfo.seatingTypes", fallback: "객석형태를 하나 이상 선택해 주세요." },
+  {
+    key: "validationMessage.performanceInfo.seatingTypes",
+    fallback: "객석형태를 하나 이상 선택해 주세요.",
+  },
   {
     key: "validationMessage.performanceInfo.seatingTypes.other",
     fallback: '객석형태 "기타" 상세를 입력해 주세요.',
   },
-  { key: "validationMessage.performanceInfo.retractableSeatUse", fallback: "수납식 객석 사용여부를 선택해 주세요." },
+  {
+    key: "validationMessage.performanceInfo.retractableSeatUse",
+    fallback: "수납식 객석 사용여부를 선택해 주세요.",
+  },
   {
     key: "validationMessage.performanceInfo.retractableSeatUse.floors",
     fallback: "수납식 객석을 사용하시면 1층·3층 각각 사용여부를 선택해 주세요.",
   },
-  { key: "validationMessage.performanceInfo.stageTypes", fallback: "무대형태를 하나 이상 선택해 주세요." },
+  {
+    key: "validationMessage.performanceInfo.stageTypes",
+    fallback: "무대형태를 하나 이상 선택해 주세요.",
+  },
   {
     key: "validationMessage.performanceInfo.stageTypes.other",
     fallback: '무대형태 "기타" 상세를 입력해 주세요.',
@@ -807,7 +985,10 @@ const STEP3_VALIDATION_MESSAGES: { key: string; fallback: string }[] = [
     key: "validationMessage.performanceInfo.credibility.safetyPledgeSigned",
     fallback: "안전규정 준수 확약서 작성 완료에 동의해 주세요.",
   },
-  { key: "validationMessage.audience.ancillaryBusinessPlans", fallback: "부대사업 계획을 하나 이상 선택해 주세요." },
+  {
+    key: "validationMessage.audience.ancillaryBusinessPlans",
+    fallback: "부대사업 계획을 하나 이상 선택해 주세요.",
+  },
   {
     key: "validationMessage.audience.ancillaryBusinessPlans.other",
     fallback: '부대사업 계획 "기타" 상세를 입력해 주세요.',
@@ -816,8 +997,14 @@ const STEP3_VALIDATION_MESSAGES: { key: string; fallback: string }[] = [
 
 // [신규 2026-09-07] StepSafetyPledge.tsx의 validateSafetyPledgeStep과 짝.
 const STEP6_VALIDATION_MESSAGES: { key: string; fallback: string }[] = [
-  { key: "validationMessage.safetyPledge.items", fallback: "안전관리 서약 항목을 모두 체크해 주세요." },
-  { key: "validationMessage.safetyPledge.signature", fallback: "서명란에 서명해 주세요." },
+  {
+    key: "validationMessage.safetyPledge.items",
+    fallback: "안전관리 서약 항목을 모두 체크해 주세요.",
+  },
+  {
+    key: "validationMessage.safetyPledge.signature",
+    fallback: "서명란에 서명해 주세요.",
+  },
 ];
 
 const STAGE_GROUPS: StageGroup[] = [
@@ -840,13 +1027,17 @@ const STAGE_GROUPS: StageGroup[] = [
                     {lead("venuePickerLead")}
                   </p>
                   <div className="mt-8">
-                    <VenuePicker venueId="arena" bookingMode="SINGLE" onSelectVenue={noop} />
+                    <VenuePicker
+                      venueId="arena"
+                      bookingMode="SINGLE"
+                      onSelectVenue={noop}
+                    />
                   </div>
                 </section>
               </LivePreview>
               <p className="mt-4 text-2xs text-muted">
-                ※ 이 아래 실제 화면에는 일정 선택 달력(캘린더)이 더 있지만, 문구 편집과 무관한 조회 전용
-                UI라 이 미리보기에서는 생략했습니다.
+                ※ 이 아래 실제 화면에는 일정 선택 달력(캘린더)이 더 있지만, 문구
+                편집과 무관한 조회 전용 UI라 이 미리보기에서는 생략했습니다.
               </p>
             </div>
           );
@@ -870,7 +1061,12 @@ const STAGE_GROUPS: StageGroup[] = [
               <FieldOrderPanel
                 ctx={ctx}
                 groupId="configOptions.packageCard"
-                defaultOrder={["audienceCapacity", "recommendedStage", "recommendedSeating", "baseFee"]}
+                defaultOrder={[
+                  "audienceCapacity",
+                  "recommendedStage",
+                  "recommendedSeating",
+                  "baseFee",
+                ]}
                 fieldLabels={{
                   audienceCapacity: "수용인원",
                   recommendedStage: "권장 무대",
@@ -886,13 +1082,23 @@ const STAGE_GROUPS: StageGroup[] = [
                   껐다 켰다 할 수 있게 한다(위저드 미리보기·실제 신청 화면 모두 반영). */}
               <div className="flex items-center justify-between gap-3 border border-border-soft bg-panel/60 p-3">
                 <p className="text-2xs font-bold uppercase tracking-wide text-muted">
-                  ✎ &ldquo;아레나&rdquo; 제목 아래 요약 줄(패키지·예상 관객·셋업·공연)
+                  ✎ &ldquo;아레나&rdquo; 제목 아래 요약 줄(패키지·예상
+                  관객·셋업·공연)
                 </p>
                 <label className="flex shrink-0 items-center gap-1.5 text-2xs font-bold whitespace-nowrap text-muted">
                   <input
                     type="checkbox"
-                    checked={!ctx.disabledFields.includes("configOptions.arenaSummaryLead")}
-                    onChange={(e) => ctx.setFieldDisabled("configOptions.arenaSummaryLead", !e.target.checked)}
+                    checked={
+                      !ctx.disabledFields.includes(
+                        "configOptions.arenaSummaryLead",
+                      )
+                    }
+                    onChange={(e) =>
+                      ctx.setFieldDisabled(
+                        "configOptions.arenaSummaryLead",
+                        !e.target.checked,
+                      )
+                    }
                   />
                   노출
                 </label>
@@ -907,8 +1113,12 @@ const STAGE_GROUPS: StageGroup[] = [
                     defaultPerformanceDays={4}
                     addonQuantities={ctx.previewAddonQuantities.arena}
                     expectedRevenue={ctx.previewExpectedRevenue.arena}
-                    onChangeQuantity={(addonId, quantity) => ctx.setPreviewAddonQuantity("arena", addonId, quantity)}
-                    onChangeRevenue={(value) => ctx.setPreviewExpectedRevenue("arena", value)}
+                    onChangeQuantity={(addonId, quantity) =>
+                      ctx.setPreviewAddonQuantity("arena", addonId, quantity)
+                    }
+                    onChangeRevenue={(value) =>
+                      ctx.setPreviewExpectedRevenue("arena", value)
+                    }
                     onSelectPackage={noop}
                     headingOverride={{ title: field("configArenaTitle") }}
                     fieldOrders={ctx.fieldOrders}
@@ -936,10 +1146,17 @@ const STAGE_GROUPS: StageGroup[] = [
                   defaultPerformanceDays={4}
                   addonQuantities={ctx.previewAddonQuantities.midHall}
                   expectedRevenue={ctx.previewExpectedRevenue.midHall}
-                  onChangeQuantity={(addonId, quantity) => ctx.setPreviewAddonQuantity("midHall", addonId, quantity)}
-                  onChangeRevenue={(value) => ctx.setPreviewExpectedRevenue("midHall", value)}
+                  onChangeQuantity={(addonId, quantity) =>
+                    ctx.setPreviewAddonQuantity("midHall", addonId, quantity)
+                  }
+                  onChangeRevenue={(value) =>
+                    ctx.setPreviewExpectedRevenue("midHall", value)
+                  }
                   onSelectPackage={noop}
-                  headingOverride={{ title: field("configMidHallOnlyTitle"), lead: lead("configMidHallOnlyLead") }}
+                  headingOverride={{
+                    title: field("configMidHallOnlyTitle"),
+                    lead: lead("configMidHallOnlyLead"),
+                  }}
                   fieldOrders={ctx.fieldOrders}
                   disabledFields={ctx.disabledFields}
                 />
@@ -965,11 +1182,20 @@ const STAGE_GROUPS: StageGroup[] = [
                   addonQuantities={ctx.previewAddonQuantities.simultaneous}
                   expectedRevenue={ctx.previewExpectedRevenue.simultaneous}
                   onChangeQuantity={(addonId, quantity) =>
-                    ctx.setPreviewAddonQuantity("simultaneous", addonId, quantity)
+                    ctx.setPreviewAddonQuantity(
+                      "simultaneous",
+                      addonId,
+                      quantity,
+                    )
                   }
-                  onChangeRevenue={(value) => ctx.setPreviewExpectedRevenue("simultaneous", value)}
+                  onChangeRevenue={(value) =>
+                    ctx.setPreviewExpectedRevenue("simultaneous", value)
+                  }
                   onSelectPackage={noop}
-                  headingOverride={{ title: field("configSimultaneousTitle"), lead: lead("configSimultaneousLead") }}
+                  headingOverride={{
+                    title: field("configSimultaneousTitle"),
+                    lead: lead("configSimultaneousLead"),
+                  }}
                   fieldOrders={ctx.fieldOrders}
                   disabledFields={ctx.disabledFields}
                 />
@@ -1050,15 +1276,25 @@ const STAGE_GROUPS: StageGroup[] = [
               />
             ),
             competitionOption: (
-              <StepCompetitionOption key="competitionOption" info={ctx.mocks.arena.performanceInfo} onChange={noop} />
+              <StepCompetitionOption
+                key="competitionOption"
+                info={ctx.mocks.arena.performanceInfo}
+                onChange={noop}
+                expectedRevenue={ctx.mocks.arena.expectedRevenue ?? 0}
+                onChangeRevenue={noop}
+              />
             ),
           };
           const configuredStep3Order = ctx.slotOrders["3"];
           const step3Order =
             configuredStep3Order && configuredStep3Order.length > 0
               ? [
-                  ...configuredStep3Order.filter((key) => key in step3SlotRenderers),
-                  ...STEP3_DEFAULT_SLOT_ORDER.filter((key) => !configuredStep3Order.includes(key)),
+                  ...configuredStep3Order.filter(
+                    (key) => key in step3SlotRenderers,
+                  ),
+                  ...STEP3_DEFAULT_SLOT_ORDER.filter(
+                    (key) => !configuredStep3Order.includes(key),
+                  ),
                 ]
               : [...STEP3_DEFAULT_SLOT_ORDER];
           return (
@@ -1102,7 +1338,10 @@ const STAGE_GROUPS: StageGroup[] = [
                 ctx={ctx}
                 groupId="performanceInfo.eventBasics"
                 defaultOrder={["eventName", "artist"]}
-                fieldLabels={{ eventName: "공연(행사)명", artist: "아티스트 / 출연진" }}
+                fieldLabels={{
+                  eventName: "공연(행사)명",
+                  artist: "아티스트 / 출연진",
+                }}
                 title="공연 기본정보 — 공연명·아티스트"
               />
               <FieldOrderPanel
@@ -1150,13 +1389,18 @@ const STAGE_GROUPS: StageGroup[] = [
               />
               <div className="border border-border-soft bg-panel/60 p-3">
                 <p className="mb-2 text-2xs font-bold uppercase tracking-wide text-muted">
-                  ✎ &ldquo;규모&rdquo; 블록 제목·리드 — 현재 실제 화면에서는 신청자 정보와 한 화면으로 합쳐져
-                  이 제목이 표시되지 않습니다(계속 저장은 됩니다)
+                  ✎ &ldquo;규모&rdquo; 블록 제목·리드 — 현재 실제 화면에서는
+                  신청자 정보와 한 화면으로 합쳐져 이 제목이 표시되지
+                  않습니다(계속 저장은 됩니다)
                 </p>
                 {field("audienceTitle")}
                 <div className="mt-2">{lead("audienceLead")}</div>
               </div>
-              <ValidationMessagesPanel ctx={ctx} title="03 기본 정보 · 신청자 정보 및 규모" entries={STEP3_VALIDATION_MESSAGES} />
+              <ValidationMessagesPanel
+                ctx={ctx}
+                title="03 기본 정보 · 신청자 정보 및 규모"
+                entries={STEP3_VALIDATION_MESSAGES}
+              />
               <LivePreview>
                 <div className="space-y-10 [&_input]:pointer-events-auto">
                   {step3Order.map((key) => step3SlotRenderers[key])}
@@ -1173,14 +1417,22 @@ const STAGE_GROUPS: StageGroup[] = [
           const lead = makeLeadEditor(ctx);
           return (
             <div className="space-y-4">
-              <LeadToggle ctx={ctx} fieldId="wizardShell.marketingLead" label="리드 문구" />
+              <LeadToggle
+                ctx={ctx}
+                fieldId="wizardShell.marketingLead"
+                label="리드 문구"
+              />
               <LivePreview>
                 <div className="[&_input]:pointer-events-auto [&_textarea]:pointer-events-auto">
                   <StepMarketingCooperation
                     info={DEFAULT_MARKETING_COOPERATION}
                     onChange={noop}
                     title={field("marketingTitle")}
-                    lead={ctx.disabledFields.includes("wizardShell.marketingLead") ? undefined : lead("marketingLead")}
+                    lead={
+                      ctx.disabledFields.includes("wizardShell.marketingLead")
+                        ? undefined
+                        : lead("marketingLead")
+                    }
                   />
                 </div>
               </LivePreview>
@@ -1194,7 +1446,11 @@ const STAGE_GROUPS: StageGroup[] = [
           const field = makeFieldEditor(ctx);
           return (
             <div className="space-y-4">
-              <LeadToggle ctx={ctx} fieldId="wizardShell.publicInterestLead" label="리드 문구" />
+              <LeadToggle
+                ctx={ctx}
+                fieldId="wizardShell.publicInterestLead"
+                label="리드 문구"
+              />
               <LivePreview>
                 <div className="[&_input]:pointer-events-auto">
                   <StepPublicInterest
@@ -1219,8 +1475,16 @@ const STAGE_GROUPS: StageGroup[] = [
           const lead = makeLeadEditor(ctx);
           return (
             <div className="space-y-4">
-              <ValidationMessagesPanel ctx={ctx} title="안전관리 서약서" entries={STEP6_VALIDATION_MESSAGES} />
-              <LeadToggle ctx={ctx} fieldId="wizardShell.safetyPledgeLead" label="리드 문구" />
+              <ValidationMessagesPanel
+                ctx={ctx}
+                title="안전관리 서약서"
+                entries={STEP6_VALIDATION_MESSAGES}
+              />
+              <LeadToggle
+                ctx={ctx}
+                fieldId="wizardShell.safetyPledgeLead"
+                label="리드 문구"
+              />
               <LivePreview>
                 <div className="[&_input]:pointer-events-auto [&_textarea]:pointer-events-auto">
                   <StepSafetyPledge
@@ -1229,7 +1493,11 @@ const STAGE_GROUPS: StageGroup[] = [
                     companyName="(주)와이지엔터테인먼트"
                     title={field("safetyPledgeTitle")}
                     lead={
-                      ctx.disabledFields.includes("wizardShell.safetyPledgeLead") ? undefined : lead("safetyPledgeLead")
+                      ctx.disabledFields.includes(
+                        "wizardShell.safetyPledgeLead",
+                      )
+                        ? undefined
+                        : lead("safetyPledgeLead")
                     }
                   />
                 </div>
@@ -1275,6 +1543,15 @@ const STAGE_GROUPS: StageGroup[] = [
                   quote={ctx.mocks.arenaQuote}
                   selection={ctx.mocks.arena}
                   title={field("estimateTitle")}
+                  beforeTotals={
+                    <StepCompetitionOption
+                      framed
+                      info={ctx.mocks.arena.performanceInfo}
+                      onChange={noop}
+                      expectedRevenue={ctx.mocks.arena.expectedRevenue ?? 0}
+                      onChangeRevenue={noop}
+                    />
+                  }
                 />
               </div>
             </LivePreview>
@@ -1290,7 +1567,11 @@ const STAGE_GROUPS: StageGroup[] = [
           const leadEdit = makeLeadEditor(ctx);
           return (
             <div className="space-y-8">
-              <LeadToggle ctx={ctx} fieldId="wizardShell.submitLead" label="리드 문구" />
+              <LeadToggle
+                ctx={ctx}
+                fieldId="wizardShell.submitLead"
+                label="리드 문구"
+              />
               <div>
                 <span className="mb-3 inline-flex items-center border border-border/40 bg-panel px-2 py-0.5 text-xs font-bold text-muted">
                   새 신청 시
@@ -1308,7 +1589,10 @@ const STAGE_GROUPS: StageGroup[] = [
                       submittedId={null}
                       error={null}
                       onSubmit={noop}
-                      headingOverride={{ title: fieldNew("submitNewTitle"), lead: leadNew("submitNewLead") }}
+                      headingOverride={{
+                        title: fieldNew("submitNewTitle"),
+                        lead: leadNew("submitNewLead"),
+                      }}
                       disabledFields={ctx.disabledFields}
                     />
                   </div>
@@ -1332,7 +1616,10 @@ const STAGE_GROUPS: StageGroup[] = [
                       error={null}
                       onSubmit={noop}
                       disabledFields={ctx.disabledFields}
-                      headingOverride={{ title: fieldEdit("submitEditingTitle"), lead: leadEdit("submitEditingLead") }}
+                      headingOverride={{
+                        title: fieldEdit("submitEditingTitle"),
+                        lead: leadEdit("submitEditingLead"),
+                      }}
                     />
                   </div>
                 </LivePreview>
@@ -1366,7 +1653,9 @@ export function WizardTextPreview({
   const [previewAddonQuantities, setPreviewAddonQuantities] = useState<
     Record<PreviewAddonSection, Record<string, number>>
   >({ arena: {}, midHall: {}, simultaneous: {} });
-  const [previewExpectedRevenue, setPreviewExpectedRevenueState] = useState<Record<PreviewAddonSection, number>>({
+  const [previewExpectedRevenue, setPreviewExpectedRevenueState] = useState<
+    Record<PreviewAddonSection, number>
+  >({
     arena: 0,
     midHall: 0,
     simultaneous: 0,
@@ -1384,7 +1673,9 @@ export function WizardTextPreview({
           patch({ wizardStrings: { ...v.wizardStrings, [key]: value } });
         }
         function setFieldOrder(groupId: string, order: string[]) {
-          patch({ wizardFieldOrders: { ...v.wizardFieldOrders, [groupId]: order } });
+          patch({
+            wizardFieldOrders: { ...v.wizardFieldOrders, [groupId]: order },
+          });
         }
         function setFieldDisabled(fieldId: string, disabled: boolean) {
           patch({
@@ -1394,21 +1685,38 @@ export function WizardTextPreview({
           });
         }
         function setSlotOrder(slotsKey: string, order: string[]) {
-          patch({ wizardSlotOrders: { ...v.wizardSlotOrders, [slotsKey]: order } });
+          patch({
+            wizardSlotOrders: { ...v.wizardSlotOrders, [slotsKey]: order },
+          });
         }
         // [신규 2026-09-07] "체크박스 항목도 + 버튼 눌러서 바로 추가/입력" — 그룹id →
         // 커스텀 항목 key 배열을 통째로 교체한다(항목 추가/삭제 둘 다 이 함수 하나로 처리).
         function setCustomOption(groupId: string, options: string[]) {
-          patch({ wizardCustomOptions: { ...v.wizardCustomOptions, [groupId]: options } });
+          patch({
+            wizardCustomOptions: {
+              ...v.wizardCustomOptions,
+              [groupId]: options,
+            },
+          });
         }
-        function setPreviewAddonQuantity(section: PreviewAddonSection, addonId: string, quantity: number) {
+        function setPreviewAddonQuantity(
+          section: PreviewAddonSection,
+          addonId: string,
+          quantity: number,
+        ) {
           setPreviewAddonQuantities((prev) => ({
             ...prev,
             [section]: { ...prev[section], [addonId]: quantity },
           }));
         }
-        function setPreviewExpectedRevenue(section: PreviewAddonSection, value: number) {
-          setPreviewExpectedRevenueState((prev) => ({ ...prev, [section]: value }));
+        function setPreviewExpectedRevenue(
+          section: PreviewAddonSection,
+          value: number,
+        ) {
+          setPreviewExpectedRevenueState((prev) => ({
+            ...prev,
+            [section]: value,
+          }));
         }
         const ctx: RenderCtx = {
           wizardSteps: v.wizardSteps,
@@ -1434,9 +1742,10 @@ export function WizardTextPreview({
         return (
           <div>
             <p className={HELP}>
-              대관 위저드(/apply)와 같은 탭 구조입니다. 탭을 누르면 그 STEP의 실제 화면이 그대로
-              나오고(화면은 클릭·입력이 안 됩니다), 점선 밑줄이 있는 문구는 그 자리에서 바로 고칠 수
-              있습니다 — 고치는 즉시 같은 자리에 반영됩니다. placeholder처럼 화면에 상시 보이지 않는
+              대관 위저드(/apply)와 같은 탭 구조입니다. 탭을 누르면 그 STEP의
+              실제 화면이 그대로 나오고(화면은 클릭·입력이 안 됩니다), 점선
+              밑줄이 있는 문구는 그 자리에서 바로 고칠 수 있습니다 — 고치는 즉시
+              같은 자리에 반영됩니다. placeholder처럼 화면에 상시 보이지 않는
               문구는 화면 아래 별도 칸에 모아 둡니다.
             </p>
 
@@ -1488,7 +1797,10 @@ export function WizardTextPreview({
             )}
 
             <div className="mt-8 border border-dashed border-border-soft bg-panel/40 p-5">
-              <EditableSubtree overrides={ctx.wizardStrings} onChangeString={ctx.setString}>
+              <EditableSubtree
+                overrides={ctx.wizardStrings}
+                onChangeString={ctx.setString}
+              >
                 {subTab.render(ctx)}
               </EditableSubtree>
             </div>

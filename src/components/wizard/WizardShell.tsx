@@ -3,7 +3,10 @@
 import { Fragment, useEffect, useMemo, useState, type ReactNode } from "react";
 import { calculateQuote } from "@/lib/pricing/calculateQuote";
 import { ARENA_MAX_AUDIENCE } from "@/lib/content/rateFacts";
-import type { VenueRateContent, WizardStepTexts } from "@/lib/content/pageContent";
+import type {
+  VenueRateContent,
+  WizardStepTexts,
+} from "@/lib/content/pageContent";
 import { useWizardText } from "@/lib/content/wizardText";
 import { STEP3_DEFAULT_SLOT_ORDER } from "@/lib/content/wizardSlots";
 import { clampMonthKey, toMonthKey } from "@/lib/content/noticeCalendarWindow";
@@ -29,7 +32,11 @@ import {
   simultaneousWindowGapDays,
 } from "@/lib/pricing/dateRange";
 import { INITIAL_PERFORMANCE_INFO } from "@/lib/pricing/performanceInfoDefaults";
-import { clearWizardDraft, loadWizardDraft, saveWizardDraft } from "@/lib/quotesStore";
+import {
+  clearWizardDraft,
+  loadWizardDraft,
+  saveWizardDraft,
+} from "@/lib/quotesStore";
 import { useToast } from "@/components/ui/Toast";
 import { ArrowRight, btnClass } from "@/components/ui/kit";
 import { StepNav } from "./StepNav";
@@ -47,7 +54,11 @@ import {
   StepEventBasics,
   validatePerformanceInfoStep,
 } from "./StepPerformanceInfo";
-import { StepAudience, StepCompetitionOption, validateAudienceStep } from "./StepAudience";
+import {
+  StepAudience,
+  StepCompetitionOption,
+  validateAudienceStep,
+} from "./StepAudience";
 import { StepPublicInterest } from "./StepPublicInterest";
 import { StepMarketingCooperation } from "./StepMarketingCooperation";
 import { StepSafetyPledge, validateSafetyPledgeStep } from "./StepSafetyPledge";
@@ -99,8 +110,12 @@ const DEFAULT_MARKETING_COOPERATION: MarketingCooperation = {
 
 // 중형공연장 단독(패키지 없음)일 때는 STEP 2(구성·옵션)의 내용이 달라질 뿐, 별도
 // 단계로 나누지 않는다(2-25, 확정).
-function isMidHallOnly(selection: Pick<QuoteSelection, "venueId" | "bookingMode">): boolean {
-  return selection.venueId === "medium-hall" && selection.bookingMode === "SINGLE";
+function isMidHallOnly(
+  selection: Pick<QuoteSelection, "venueId" | "bookingMode">,
+): boolean {
+  return (
+    selection.venueId === "medium-hall" && selection.bookingMode === "SINGLE"
+  );
 }
 
 // 오늘 기준 다음 달을 기본값으로 — 과거 임의의 연도로 고정돼 있으면 신청자가 매번
@@ -108,9 +123,12 @@ function isMidHallOnly(selection: Pick<QuoteSelection, "venueId" | "bookingMode"
 function defaultWeek(): QuoteSelection["week"] {
   const now = new Date();
   const next = new Date(now.getFullYear(), now.getMonth() + 1, 1);
-  return { year: next.getFullYear(), month: next.getMonth() + 1, weekOfMonth: 1 };
+  return {
+    year: next.getFullYear(),
+    month: next.getMonth() + 1,
+    weekOfMonth: 1,
+  };
 }
-
 
 const INITIAL_SELECTION: QuoteSelection = {
   venueId: "arena",
@@ -221,17 +239,19 @@ export function WizardShell({
   // [화면 뼈대 2026-08-19, STEP 3-1 "신청자 정보"] 신규 신청서에 한해 회원정보로 미리
   // 채운다 — 기존 신청서 수정(initialSelection.performanceInfo 존재)이나 임시저장
   // 복원 시에는 이미 저장된 값을 그대로 쓰고 덮어쓰지 않는다.
-  const initialPerformanceInfo: QuoteSelection["performanceInfo"] = applicantPrefill
-    ? {
-        ...INITIAL_PERFORMANCE_INFO,
-        applicantCompanyName: applicantPrefill.companyName,
-        applicantBusinessRegistrationNumber: applicantPrefill.businessRegistrationNumber,
-        applicantRepresentativeName: applicantPrefill.representativeName,
-        applicantContactName: applicantPrefill.contactName,
-        applicantContactPhone: applicantPrefill.contactPhone,
-        applicantContactEmail: applicantPrefill.contactEmail,
-      }
-    : INITIAL_PERFORMANCE_INFO;
+  const initialPerformanceInfo: QuoteSelection["performanceInfo"] =
+    applicantPrefill
+      ? {
+          ...INITIAL_PERFORMANCE_INFO,
+          applicantCompanyName: applicantPrefill.companyName,
+          applicantBusinessRegistrationNumber:
+            applicantPrefill.businessRegistrationNumber,
+          applicantRepresentativeName: applicantPrefill.representativeName,
+          applicantContactName: applicantPrefill.contactName,
+          applicantContactPhone: applicantPrefill.contactPhone,
+          applicantContactEmail: applicantPrefill.contactEmail,
+        }
+      : INITIAL_PERFORMANCE_INFO;
   // File은 JSON 직렬화가 안 되므로 selection과 분리해 별도 상태로 두고
   // localStorage 임시저장 대상에서도 제외한다 (새로고침 시 다시 선택 필요).
   // [수정 2026-09-07] "자료첨부 탭 외의 탭에서는 첨부파일 넣기 슬롯 제거" — 신청자
@@ -245,7 +265,10 @@ export function WizardShell({
   // 새 시작(아래 useState)과 임시저장본 복원(아래 effect) 두 곳이 같은 달을 써야 한다.
   const openingWeek: QuoteSelection["week"] = (() => {
     if (!calendarMonthBounds) return INITIAL_SELECTION.week;
-    const clamped = clampMonthKey(toMonthKey(INITIAL_SELECTION.week.year, INITIAL_SELECTION.week.month), calendarMonthBounds);
+    const clamped = clampMonthKey(
+      toMonthKey(INITIAL_SELECTION.week.year, INITIAL_SELECTION.week.month),
+      calendarMonthBounds,
+    );
     const [y, m] = clamped.split("-").map(Number);
     return { ...INITIAL_SELECTION.week, year: y, month: m };
   })();
@@ -256,10 +279,13 @@ export function WizardShell({
           ...initialSelection,
           venueId: initialSelection.venueId ?? DEFAULT_VENUE_ID,
           bookingMode: initialSelection.bookingMode ?? "SINGLE",
-          secondaryAudience: initialSelection.secondaryAudience ?? INITIAL_SELECTION.secondaryAudience,
+          secondaryAudience:
+            initialSelection.secondaryAudience ??
+            INITIAL_SELECTION.secondaryAudience,
           dayShowCounts: initialSelection.dayShowCounts ?? {},
           midHallDays: initialSelection.midHallDays ?? {},
-          performanceInfo: initialSelection.performanceInfo ?? initialPerformanceInfo,
+          performanceInfo:
+            initialSelection.performanceInfo ?? initialPerformanceInfo,
         }
       : // 이미 값이 있는 기존 신청서(수정 화면)는 건드리지 않는다.
         {
@@ -273,7 +299,10 @@ export function WizardShell({
   const [midHallMonth, setMidHallMonth] = useState(() => {
     const w = defaultWeek();
     if (!calendarMonthBounds) return { year: w.year, month: w.month };
-    const clamped = clampMonthKey(toMonthKey(w.year, w.month), calendarMonthBounds);
+    const clamped = clampMonthKey(
+      toMonthKey(w.year, w.month),
+      calendarMonthBounds,
+    );
     const [y, m] = clamped.split("-").map(Number);
     return { year: y, month: m };
   });
@@ -329,7 +358,8 @@ export function WizardShell({
       const draftWeek = draft.selection.week ?? INITIAL_SELECTION.week;
       const draftMonthKey = toMonthKey(draftWeek.year, draftWeek.month);
       const scheduleStale =
-        !!calendarMonthBounds && clampMonthKey(draftMonthKey, calendarMonthBounds) !== draftMonthKey;
+        !!calendarMonthBounds &&
+        clampMonthKey(draftMonthKey, calendarMonthBounds) !== draftMonthKey;
       const scheduleReset: Partial<QuoteSelection> = scheduleStale
         ? {
             week: openingWeek,
@@ -347,7 +377,9 @@ export function WizardShell({
         dayShowCounts: draft.selection.dayShowCounts ?? {},
         venueId: draft.selection.venueId ?? null,
         bookingMode: draft.selection.bookingMode ?? "SINGLE",
-        secondaryAudience: draft.selection.secondaryAudience ?? INITIAL_SELECTION.secondaryAudience,
+        secondaryAudience:
+          draft.selection.secondaryAudience ??
+          INITIAL_SELECTION.secondaryAudience,
         midHallDays: draft.selection.midHallDays ?? {},
         // 중첩 객체는 **초기값 위에 얹는다** — 스키마가 늘어난 뒤 복원된 초안에
         // 새 필드가 없으면 배열·객체 접근에서 렌더가 터진다.
@@ -364,7 +396,8 @@ export function WizardShell({
           ...initialPerformanceInfo,
           ...(draft.selection.performanceInfo ?? {}),
           applicantCompanyName:
-            draft.selection.performanceInfo?.applicantCompanyName?.trim() || initialPerformanceInfo.applicantCompanyName,
+            draft.selection.performanceInfo?.applicantCompanyName?.trim() ||
+            initialPerformanceInfo.applicantCompanyName,
           applicantBusinessRegistrationNumber:
             draft.selection.performanceInfo?.applicantBusinessRegistrationNumber?.trim() ||
             initialPerformanceInfo.applicantBusinessRegistrationNumber,
@@ -387,17 +420,24 @@ export function WizardShell({
                 initialPerformanceInfo.applicantRepresentativeName,
             }
           : (draft.selection.midHallPerformanceInfo ?? null),
-        safetyPledge: { ...DEFAULT_SAFETY_PLEDGE, ...(draft.selection.safetyPledge ?? {}) },
+        safetyPledge: {
+          ...DEFAULT_SAFETY_PLEDGE,
+          ...(draft.selection.safetyPledge ?? {}),
+        },
         marketingCooperation: {
           ...DEFAULT_MARKETING_COOPERATION,
           ...(draft.selection.marketingCooperation ?? {}),
           // 필수 동의라 항상 true — 예전(체크 해제 가능하던 시절) 임시저장본에 false/null
           // 이 남아 있어도 지금은 잠긴 체크박스로만 보여주므로 값도 같이 강제한다.
           seoulArenaPromotionConsent: true,
-          channels: Array.isArray(draft.selection.marketingCooperation?.channels)
+          channels: Array.isArray(
+            draft.selection.marketingCooperation?.channels,
+          )
             ? draft.selection.marketingCooperation.channels
             : DEFAULT_MARKETING_COOPERATION.channels,
-          sponsorships: Array.isArray(draft.selection.marketingCooperation?.sponsorships)
+          sponsorships: Array.isArray(
+            draft.selection.marketingCooperation?.sponsorships,
+          )
             ? draft.selection.marketingCooperation.sponsorships
             : DEFAULT_MARKETING_COOPERATION.sponsorships,
           // 이 필드가 없던 시점(2026-08-23 이전)에 저장된 임시저장본을 열어도
@@ -407,8 +447,12 @@ export function WizardShell({
             ...(draft.selection.marketingCooperation?.executionPlan ?? {}),
           },
         },
-        addons: Array.isArray(draft.selection.addons) ? draft.selection.addons : [],
-        excludedDays: Array.isArray(draft.selection.excludedDays) ? draft.selection.excludedDays : [],
+        addons: Array.isArray(draft.selection.addons)
+          ? draft.selection.addons
+          : [],
+        excludedDays: Array.isArray(draft.selection.excludedDays)
+          ? draft.selection.excludedDays
+          : [],
         // 맨 마지막에 얹어야 위의 개별 복원값을 이긴다.
         ...scheduleReset,
       });
@@ -437,11 +481,18 @@ export function WizardShell({
     [rateTable, selection, effectivePackageId],
   );
   const resolvedSelection: QuoteSelection = useMemo(
-    () => ({ ...selection, packageId: effectivePackageId, addons: effectiveAddons }),
+    () => ({
+      ...selection,
+      packageId: effectivePackageId,
+      addons: effectiveAddons,
+    }),
     [selection, effectivePackageId, effectiveAddons],
   );
 
-  const quote = useMemo(() => calculateQuote(resolvedSelection, rateTable), [resolvedSelection, rateTable]);
+  const quote = useMemo(
+    () => calculateQuote(resolvedSelection, rateTable),
+    [resolvedSelection, rateTable],
+  );
   const hasMidHallSelection = Object.keys(selection.midHallDays).length > 0;
   // [신규 2026-09-06] "동시 대관은... 아레나/중형 중 둘중 최초 시작 일정 기준 2주 안에서
   // 신청 가능해야해" — 두 시작일 간격이 14일을 넘으면 얼랏.
@@ -452,7 +503,10 @@ export function WizardShell({
   // 났다. 아레나 쪽(week 변경)은 중형이 이미 골라져 있을 때만 검사하므로(=상대편이
   // 실제로 확정한 값) 그대로 두고, 중형 쪽 즉시 검사는 없앤다 — 최종 판정은 어차피
   // "다음" 버튼 클릭 시 selection 확정값으로 한 번 더 한다(아래 참고).
-  function checkSimultaneousWindow(week: QuoteSelection["week"], midHallDays: Record<string, unknown>) {
+  function checkSimultaneousWindow(
+    week: QuoteSelection["week"],
+    midHallDays: Record<string, unknown>,
+  ) {
     if (selection.bookingMode !== "SIMULTANEOUS") return;
     const gap = simultaneousWindowGapDays(week, midHallDays);
     if (gap !== null && gap > SIMULTANEOUS_WINDOW_MAX_DAYS) {
@@ -470,7 +524,10 @@ export function WizardShell({
   // 같은 화면에서 공간에 따라 있다/없다가 갈렸다. STEP 2(구성·옵션)에 들어가기 전까지는
   // 두 공간 모두 동일하게 "공간과 일정을 선택하면 예상 금액이 표시됩니다" 자리표시자만
   // 보이게 맞춘다 — 실제 계산(quote)은 그대로 두고 요약 패널에 넘기는 표시용 값만 비운다.
-  const summaryQuote = step === 1 ? { ...quote, lineItems: [], subtotal: 0, vat: 0, total: 0 } : quote;
+  const summaryQuote =
+    step === 1
+      ? { ...quote, lineItems: [], subtotal: 0, vat: 0, total: 0 }
+      : quote;
 
   // [개정 2026-08-20, 재재개정] "공간 선택"과 "일정 선택"은 다시 하나의 스텝(탭)으로
   // 합치되, 화면 안에서는 "공간 선택" 슬롯과 "일정 선택" 슬롯 두 섹션으로 나눠 보여준다 —
@@ -540,8 +597,12 @@ export function WizardShell({
   // 「패키지」 공간은 아레나와 같은 주 단위 일정을 쓴다 — 일정 탭·달력은 아레나 것을
   // 그대로 쓰되 이름만 고른 공간으로 바꾼다(2026-09-02).
   const isSpecialSchedule =
-    selection.venueId === SPECIAL_VENUE_ID && selection.bookingMode !== "SIMULTANEOUS";
-  const specialVenueName = tStr(venueLabelKey(SPECIAL_VENUE_ID), defaultVenueName(SPECIAL_VENUE_ID));
+    selection.venueId === SPECIAL_VENUE_ID &&
+    selection.bookingMode !== "SIMULTANEOUS";
+  const specialVenueName = tStr(
+    venueLabelKey(SPECIAL_VENUE_ID),
+    defaultVenueName(SPECIAL_VENUE_ID),
+  );
   // 최종 제출까지 마치면 "수정하기"를 누르기 전까지 다른 단계로 이동할 수 없다.
   const submissionLocked = !!submittedId && !editUnlocked;
 
@@ -564,7 +625,8 @@ export function WizardShell({
     if (target > maxUnlockedStep && target !== step + 1) return;
     if (submissionLocked && target !== step) return;
     setStep(target);
-    if (typeof window !== "undefined") window.scrollTo({ top: 0, behavior: "smooth" });
+    if (typeof window !== "undefined")
+      window.scrollTo({ top: 0, behavior: "smooth" });
   }
 
   // [신규 2026-09-07] "미입력 필수항목 빨간색 표시 + 자동 스크롤" — 검증 함수가 돌려준
@@ -579,7 +641,9 @@ export function WizardShell({
   // 얇은 테두리를 준다. 화면 스크롤은 그중 첫 요소 기준으로 한 번만 한다.
   function flashFieldError(fieldKey: string) {
     if (typeof window === "undefined") return;
-    const els = document.querySelectorAll<HTMLElement>(`[data-field-key="${fieldKey}"]`);
+    const els = document.querySelectorAll<HTMLElement>(
+      `[data-field-key="${fieldKey}"]`,
+    );
     if (els.length === 0) return;
     els[0].scrollIntoView({ behavior: "smooth", block: "center" });
     els.forEach((el) => {
@@ -598,7 +662,8 @@ export function WizardShell({
   function requestEdit() {
     setEditUnlocked(true);
     setStep(1);
-    if (typeof window !== "undefined") window.scrollTo({ top: 0, behavior: "smooth" });
+    if (typeof window !== "undefined")
+      window.scrollTo({ top: 0, behavior: "smooth" });
   }
 
   // [화면 뼈대 2026-08-18, 기능정의 2-5/2-13] 이용 시설을 바꾸면 요금 체계가 달라 이월할
@@ -618,7 +683,13 @@ export function WizardShell({
             midHallExtraLoadOutHours: 0,
           },
     );
-    setVenueTab(bookingMode === "SIMULTANEOUS" ? "arena" : id === "medium-hall" ? "medium-hall" : "arena");
+    setVenueTab(
+      bookingMode === "SIMULTANEOUS"
+        ? "arena"
+        : id === "medium-hall"
+          ? "medium-hall"
+          : "arena",
+    );
     setSubmittedId(null);
   }
 
@@ -647,7 +718,10 @@ export function WizardShell({
       const rest = prev.addons.filter((a) => a.addonId !== addonId);
       return {
         ...prev,
-        addons: quantity > 0 ? [...rest, { addonId, requestedQuantity: quantity }] : rest,
+        addons:
+          quantity > 0
+            ? [...rest, { addonId, requestedQuantity: quantity }]
+            : rest,
       };
     });
     setSubmittedId(null);
@@ -695,11 +769,14 @@ export function WizardShell({
     setSubmitError(null);
     setAttachmentError(null);
     try {
-      const res = await fetch(isUpdate ? `/api/quotes/${targetId}` : "/api/quotes", {
-        method: isUpdate ? "PUT" : "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ selection: resolvedSelection }),
-      });
+      const res = await fetch(
+        isUpdate ? `/api/quotes/${targetId}` : "/api/quotes",
+        {
+          method: isUpdate ? "PUT" : "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ selection: resolvedSelection }),
+        },
+      );
       const data = await res.json();
       if (!res.ok) {
         if (res.status === 401) {
@@ -709,8 +786,14 @@ export function WizardShell({
         setSubmitError(
           data.error ||
             (isUpdate
-              ? tStr("wizardShell.submitFailedEdit", "신청서 수정에 실패했습니다.")
-              : tStr("wizardShell.submitFailedNew", "신청서 제출에 실패했습니다.")),
+              ? tStr(
+                  "wizardShell.submitFailedEdit",
+                  "신청서 수정에 실패했습니다.",
+                )
+              : tStr(
+                  "wizardShell.submitFailedNew",
+                  "신청서 제출에 실패했습니다.",
+                )),
         );
         return;
       }
@@ -720,7 +803,12 @@ export function WizardShell({
       await uploadPendingFiles(data.quote.id);
       if (!isEditing) clearWizardDraft();
     } catch {
-      setSubmitError(tStr("wizardShell.submitFailedNetwork", "네트워크 오류로 처리에 실패했습니다. 다시 시도해주세요."));
+      setSubmitError(
+        tStr(
+          "wizardShell.submitFailedNetwork",
+          "네트워크 오류로 처리에 실패했습니다. 다시 시도해주세요.",
+        ),
+      );
     } finally {
       setSubmitting(false);
     }
@@ -770,74 +858,103 @@ export function WizardShell({
           </button>
         )}
         {step < TOTAL_STEPS && (
-        <button
-          type="button"
-          onClick={() => {
-            // 버튼을 잠그지 않는다 — 눌러도 반응이 없으면 고장으로 보인다(고객 신고 패턴).
-            if (step === 1 && !selection.venueId) {
-              toast.error(tStr("wizardShell.toastNeedVenue", "먼저 대관하실 시설을 선택해 주세요."));
-              return;
-            }
-            if (step === 1 && midHallOnly && !hasMidHallSelection) {
-              toast.error(tStr("wizardShell.toastNeedSchedule", "대관 일정을 선택해 주세요."));
-              return;
-            }
-            // [버그 수정 2026-09-06] "동시 대관 선택 후, 아레나만 넣어도 다음단계로
-            // 넘어가는데 그러면 안 됨" — 아레나 week는 항상 기본값이 있어 "선택 안 함"
-            // 상태가 따로 없지만, 중형(midHallDays)은 사용자가 캘린더에서 날짜를 찍기
-            // 전까지 빈 값이다. 동시 대관에서는 중형 일정도 반드시 골라야 다음으로
-            // 넘어간다.
-            if (step === 1 && selection.bookingMode === "SIMULTANEOUS" && !hasMidHallSelection) {
-              toast.error(
-                tStr("wizardShell.toastNeedBothSchedules", "아레나·중형공연장 일정을 모두 선택해 주세요."),
-              );
-              return;
-            }
-            if (step === 1 && selection.bookingMode === "SIMULTANEOUS") {
-              const gap = simultaneousWindowGapDays(selection.week, selection.midHallDays);
-              if (gap !== null && gap > SIMULTANEOUS_WINDOW_MAX_DAYS) {
+          <button
+            type="button"
+            onClick={() => {
+              // 버튼을 잠그지 않는다 — 눌러도 반응이 없으면 고장으로 보인다(고객 신고 패턴).
+              if (step === 1 && !selection.venueId) {
                 toast.error(
                   tStr(
-                    "wizardShell.toastSimultaneousWindowExceeded",
-                    `동시 대관은 아레나·중형 중 먼저 시작하는 일정 기준 ${SIMULTANEOUS_WINDOW_MAX_DAYS}일 안에서만 신청할 수 있습니다.`,
+                    "wizardShell.toastNeedVenue",
+                    "먼저 대관하실 시설을 선택해 주세요.",
                   ),
                 );
                 return;
               }
-            }
-            // [신규 2026-09-08] "패키지 디폴트 기간 중간 일정이 아무것도 등록이 안됬을
-            // 경우, 대관 일정 등록을 완료해주세요 안내 필요" — 가운데 4일(수목금토)은
-            // 제외할 수 없는 패키지 고정 구간이라 명시 지정 없이는 다음으로 못 간다.
-            if (step === 1 && !midHallOnly && arenaMiddleBaseDaysIncomplete(selection)) {
-              toast.error(
-                tStr(
-                  "wizardShell.toastNeedMiddleDays",
-                  "패키지 기본 기간 중 일정이 등록되지 않은 날짜가 있습니다. 대관 일정 등록을 완료해 주세요.",
-                ),
-              );
-              return;
-            }
-            if (step === 2 && needsPackage && !selection.packageId) {
-              toast.error(tStr("wizardShell.toastNeedPackage", "패키지를 선택해 주세요."));
-              return;
-            }
-            if (step === 3 && step3Blocked) {
-              toast.error(step3Blocked.message);
-              flashFieldError(step3Blocked.fieldKey);
-              return;
-            }
-            if (step === 6 && step6Blocked) {
-              toast.error(step6Blocked.message);
-              flashFieldError(step6Blocked.fieldKey);
-              return;
-            }
-            goTo(step + 1);
-          }}
-          className={btnClass("primary", "lg")}
-        >
-          {t("wizardShell.nextButton", "다음")}
-          <ArrowRight />
-        </button>
+              if (step === 1 && midHallOnly && !hasMidHallSelection) {
+                toast.error(
+                  tStr(
+                    "wizardShell.toastNeedSchedule",
+                    "대관 일정을 선택해 주세요.",
+                  ),
+                );
+                return;
+              }
+              // [버그 수정 2026-09-06] "동시 대관 선택 후, 아레나만 넣어도 다음단계로
+              // 넘어가는데 그러면 안 됨" — 아레나 week는 항상 기본값이 있어 "선택 안 함"
+              // 상태가 따로 없지만, 중형(midHallDays)은 사용자가 캘린더에서 날짜를 찍기
+              // 전까지 빈 값이다. 동시 대관에서는 중형 일정도 반드시 골라야 다음으로
+              // 넘어간다.
+              if (
+                step === 1 &&
+                selection.bookingMode === "SIMULTANEOUS" &&
+                !hasMidHallSelection
+              ) {
+                toast.error(
+                  tStr(
+                    "wizardShell.toastNeedBothSchedules",
+                    "아레나·중형공연장 일정을 모두 선택해 주세요.",
+                  ),
+                );
+                return;
+              }
+              if (step === 1 && selection.bookingMode === "SIMULTANEOUS") {
+                const gap = simultaneousWindowGapDays(
+                  selection.week,
+                  selection.midHallDays,
+                );
+                if (gap !== null && gap > SIMULTANEOUS_WINDOW_MAX_DAYS) {
+                  toast.error(
+                    tStr(
+                      "wizardShell.toastSimultaneousWindowExceeded",
+                      `동시 대관은 아레나·중형 중 먼저 시작하는 일정 기준 ${SIMULTANEOUS_WINDOW_MAX_DAYS}일 안에서만 신청할 수 있습니다.`,
+                    ),
+                  );
+                  return;
+                }
+              }
+              // [신규 2026-09-08] "패키지 디폴트 기간 중간 일정이 아무것도 등록이 안됬을
+              // 경우, 대관 일정 등록을 완료해주세요 안내 필요" — 가운데 4일(수목금토)은
+              // 제외할 수 없는 패키지 고정 구간이라 명시 지정 없이는 다음으로 못 간다.
+              if (
+                step === 1 &&
+                !midHallOnly &&
+                arenaMiddleBaseDaysIncomplete(selection)
+              ) {
+                toast.error(
+                  tStr(
+                    "wizardShell.toastNeedMiddleDays",
+                    "패키지 기본 기간 중 일정이 등록되지 않은 날짜가 있습니다. 대관 일정 등록을 완료해 주세요.",
+                  ),
+                );
+                return;
+              }
+              if (step === 2 && needsPackage && !selection.packageId) {
+                toast.error(
+                  tStr(
+                    "wizardShell.toastNeedPackage",
+                    "패키지를 선택해 주세요.",
+                  ),
+                );
+                return;
+              }
+              if (step === 3 && step3Blocked) {
+                toast.error(step3Blocked.message);
+                flashFieldError(step3Blocked.fieldKey);
+                return;
+              }
+              if (step === 6 && step6Blocked) {
+                toast.error(step6Blocked.message);
+                flashFieldError(step6Blocked.fieldKey);
+                return;
+              }
+              goTo(step + 1);
+            }}
+            className={btnClass("primary", "lg")}
+          >
+            {t("wizardShell.nextButton", "다음")}
+            <ArrowRight />
+          </button>
         )}
       </div>
     </div>
@@ -854,7 +971,9 @@ export function WizardShell({
     applicantDetails: () => (
       <StepApplicantDetails
         info={selection.performanceInfo}
-        onChange={(performanceInfo) => setSelection((prev) => ({ ...prev, performanceInfo }))}
+        onChange={(performanceInfo) =>
+          setSelection((prev) => ({ ...prev, performanceInfo }))
+        }
         midHallInfo={selection.midHallPerformanceInfo}
         onChangeMidHallInfo={(midHallPerformanceInfo) =>
           setSelection((prev) => ({ ...prev, midHallPerformanceInfo }))
@@ -869,7 +988,9 @@ export function WizardShell({
     eventBasics: () => (
       <StepEventBasics
         info={selection.performanceInfo}
-        onChange={(performanceInfo) => setSelection((prev) => ({ ...prev, performanceInfo }))}
+        onChange={(performanceInfo) =>
+          setSelection((prev) => ({ ...prev, performanceInfo }))
+        }
         midHallInfo={selection.midHallPerformanceInfo}
         onChangeMidHallInfo={(midHallPerformanceInfo) =>
           setSelection((prev) => ({ ...prev, midHallPerformanceInfo }))
@@ -883,7 +1004,9 @@ export function WizardShell({
     credibility: () => (
       <StepCredibility
         info={selection.performanceInfo}
-        onChange={(performanceInfo) => setSelection((prev) => ({ ...prev, performanceInfo }))}
+        onChange={(performanceInfo) =>
+          setSelection((prev) => ({ ...prev, performanceInfo }))
+        }
         midHallInfo={selection.midHallPerformanceInfo}
         onChangeMidHallInfo={(midHallPerformanceInfo) =>
           setSelection((prev) => ({ ...prev, midHallPerformanceInfo }))
@@ -897,15 +1020,23 @@ export function WizardShell({
     audience: () => (
       <StepAudience
         info={selection.performanceInfo}
-        onChange={(performanceInfo) => setSelection((prev) => ({ ...prev, performanceInfo }))}
+        onChange={(performanceInfo) =>
+          setSelection((prev) => ({ ...prev, performanceInfo }))
+        }
         midHallInfo={selection.midHallPerformanceInfo}
         onChangeMidHallInfo={(midHallPerformanceInfo) =>
           setSelection((prev) => ({ ...prev, midHallPerformanceInfo }))
         }
         selection={resolvedSelection}
-        onChangeExpectedAudience={(expectedAudience) => setSelection((prev) => ({ ...prev, expectedAudience }))}
-        onChangeSecondaryAudience={(secondaryAudience) => setSelection((prev) => ({ ...prev, secondaryAudience }))}
-        marketingCooperation={selection.marketingCooperation ?? DEFAULT_MARKETING_COOPERATION}
+        onChangeExpectedAudience={(expectedAudience) =>
+          setSelection((prev) => ({ ...prev, expectedAudience }))
+        }
+        onChangeSecondaryAudience={(secondaryAudience) =>
+          setSelection((prev) => ({ ...prev, secondaryAudience }))
+        }
+        marketingCooperation={
+          selection.marketingCooperation ?? DEFAULT_MARKETING_COOPERATION
+        }
         onChangeMarketingCooperation={(marketingCooperation) =>
           setSelection((prev) => ({ ...prev, marketingCooperation }))
         }
@@ -925,8 +1056,12 @@ export function WizardShell({
   const step3SlotOrder: string[] = (
     configuredStep3Order && configuredStep3Order.length > 0
       ? [
-          ...configuredStep3Order.filter((key: string) => key in step3SlotRenderers),
-          ...STEP3_DEFAULT_SLOT_ORDER.filter((key) => !configuredStep3Order.includes(key)),
+          ...configuredStep3Order.filter(
+            (key: string) => key in step3SlotRenderers,
+          ),
+          ...STEP3_DEFAULT_SLOT_ORDER.filter(
+            (key) => !configuredStep3Order.includes(key),
+          ),
         ]
       : [...STEP3_DEFAULT_SLOT_ORDER]
   ).filter((key) => !wizardDisabledFields?.includes(`slot.3.${key}`));
@@ -952,16 +1087,25 @@ export function WizardShell({
 
         {step === 1 && (
           <section>
-            <StepHeading title={wizardStepText.venuePickerTitle} lead={wizardStepText.venuePickerLead} />
+            <StepHeading
+              title={wizardStepText.venuePickerTitle}
+              lead={wizardStepText.venuePickerLead}
+            />
             <div className="mt-8">
-              <VenuePicker venueId={selection.venueId} bookingMode={selection.bookingMode} onSelectVenue={selectVenue} />
+              <VenuePicker
+                venueId={selection.venueId}
+                bookingMode={selection.bookingMode}
+                onSelectVenue={selectVenue}
+              />
             </div>
 
             {selection.venueId && (
               /* 한 단계 안의 두 번째 블록 — 박스로 싸지 않고 굵은 헤어라인으로만 나눈다
                  (신청자 정보의 "자료 첨부"와 같은 규칙) */
               <div className="mt-10 border-t-2 border-foreground pt-5">
-                <h3 className="type-kr-heading text-h6-m">{t("wizardShell.scheduleHeading", "일정 선택")}</h3>
+                <h3 className="type-kr-heading text-h6-m">
+                  {t("wizardShell.scheduleHeading", "일정 선택")}
+                </h3>
                 {selection.bookingMode === "SIMULTANEOUS" && (
                   <p className="mt-1.5 text-s text-muted">
                     {t(
@@ -977,7 +1121,10 @@ export function WizardShell({
                   {/* 「패키지」는 한 달력에서 아레나·중형을 함께 짠다(역할 선택이 두 줄) —
                       중형 탭을 따로 두면 같은 일정을 두 군데서 잡는 것처럼 읽힌다.
                       그래서 이때는 탭을 하나만 세운다(2026-09-02). */}
-                  {(isSpecialSchedule ? (["arena"] as const) : (["arena", "medium-hall"] as const)).map((tab) => {
+                  {(isSpecialSchedule
+                    ? (["arena"] as const)
+                    : (["arena", "medium-hall"] as const)
+                  ).map((tab) => {
                     // [수정 2026-09-02] 「패키지」 공간은 아레나와 같은 주 단위 일정을 쓴다.
                     // 예전 조건(venueId === tab)은 공간 id 가 정확히 arena·medium-hall 일
                     // 때만 열려서, 패키지를 고르면 두 탭이 모두 잠긴 채 달력만 떠 있었다.
@@ -1052,19 +1199,25 @@ export function WizardShell({
                       onChangeExtraDays={(extraDays) =>
                         setSelection((prev) => ({ ...prev, extraDays }))
                       }
-                      onChangeDayTags={(dayTags) => setSelection((prev) => ({ ...prev, dayTags }))}
+                      onChangeDayTags={(dayTags) =>
+                        setSelection((prev) => ({ ...prev, dayTags }))
+                      }
                       onChangeDayShowCounts={(dayShowCounts) =>
                         setSelection((prev) => ({ ...prev, dayShowCounts }))
                       }
                       // 「패키지」는 기본 6일 안에서 아레나와 중형을 함께 짠다 — 이 두
                       // props 가 있을 때만 역할 선택이 두 줄(아레나/중형)로 열린다.
-                      midHallDays={isSpecialSchedule ? selection.midHallDays : undefined}
+                      midHallDays={
+                        isSpecialSchedule ? selection.midHallDays : undefined
+                      }
                       onChangeMidHallDays={
                         isSpecialSchedule
-                          ? (midHallDays) => setSelection((prev) => ({ ...prev, midHallDays }))
+                          ? (midHallDays) =>
+                              setSelection((prev) => ({ ...prev, midHallDays }))
                           : undefined
                       }
                       monthBounds={calendarMonthBounds}
+                      allowDayExclusion={!isSpecialSchedule}
                     />
                   ) : (
                     <MidHallCalendar
@@ -1075,7 +1228,9 @@ export function WizardShell({
                       extraLoadOutHours={selection.midHallExtraLoadOutHours}
                       dateBlocks={dateBlocks}
                       monthBounds={calendarMonthBounds}
-                      onChangeMonth={(year, month) => setMidHallMonth({ year, month })}
+                      onChangeMonth={(year, month) =>
+                        setMidHallMonth({ year, month })
+                      }
                       onChangeDays={(midHallDays) =>
                         setSelection((prev) => ({ ...prev, midHallDays }))
                       }
@@ -1113,7 +1268,9 @@ export function WizardShell({
           // 두고, 슬롯과 슬롯 사이(첫 슬롯 제외)에 여기서 균일한 위 여백을 더한다.
           step3SlotOrder.map((key, i) => (
             <Fragment key={key}>
-              <div className={i === 0 ? undefined : "mt-10"}>{step3SlotRenderers[key]?.()}</div>
+              <div className={i === 0 ? undefined : "mt-10"}>
+                {step3SlotRenderers[key]?.()}
+              </div>
             </Fragment>
           ))}
         {/* [이동 2026-09-08] 공공/공익 참여(STEP 5)를 홍보 및 서비스 계획(STEP 4) 아래에
@@ -1123,10 +1280,18 @@ export function WizardShell({
         {(step === 4 || step === 5) && (
           <>
             <StepMarketingCooperation
-              info={selection.marketingCooperation ?? DEFAULT_MARKETING_COOPERATION}
-              onChange={(marketingCooperation) => setSelection((prev) => ({ ...prev, marketingCooperation }))}
+              info={
+                selection.marketingCooperation ?? DEFAULT_MARKETING_COOPERATION
+              }
+              onChange={(marketingCooperation) =>
+                setSelection((prev) => ({ ...prev, marketingCooperation }))
+              }
               title={wizardStepText.marketingTitle}
-              lead={wizardDisabledFields?.includes("wizardShell.marketingLead") ? undefined : wizardStepText.marketingLead}
+              lead={
+                wizardDisabledFields?.includes("wizardShell.marketingLead")
+                  ? undefined
+                  : wizardStepText.marketingLead
+              }
             />
             {/* [수정 2026-09-08] "공공/공익 참여 여부 위에 굵은 줄로" — 마케팅 협업
                 (StepMarketingCooperation) 내용과 이어 그려지면서 얇은 여백만 있어
@@ -1135,7 +1300,9 @@ export function WizardShell({
             <div className="mt-10 border-t-2 border-foreground pt-5">
               <StepPublicInterest
                 info={selection.performanceInfo}
-                onChange={(performanceInfo) => setSelection((prev) => ({ ...prev, performanceInfo }))}
+                onChange={(performanceInfo) =>
+                  setSelection((prev) => ({ ...prev, performanceInfo }))
+                }
                 selection={resolvedSelection}
                 midHallInfo={selection.midHallPerformanceInfo}
                 onChangeMidHallInfo={(midHallPerformanceInfo) =>
@@ -1152,13 +1319,21 @@ export function WizardShell({
         {step === 6 && (
           <StepSafetyPledge
             pledge={selection.safetyPledge ?? DEFAULT_SAFETY_PLEDGE}
-            onChange={(safetyPledge) => setSelection((prev) => ({ ...prev, safetyPledge }))}
-            companyName={selection.performanceInfo.applicantCompanyName || undefined}
+            onChange={(safetyPledge) =>
+              setSelection((prev) => ({ ...prev, safetyPledge }))
+            }
+            companyName={
+              selection.performanceInfo.applicantCompanyName || undefined
+            }
             title={wizardStepText.safetyPledgeTitle}
             // [신규 2026-09-07] "그 영역을 잡고 없애줘" — 이 리드 한 줄도 다른 슬롯과
             // 같은 노출 On/off 패턴을 따른다. 어드민에서 끄면 위저드 미리보기·실제
             // 신청 화면 모두에서 사라진다.
-            lead={wizardDisabledFields?.includes("wizardShell.safetyPledgeLead") ? undefined : wizardStepText.safetyPledgeLead}
+            lead={
+              wizardDisabledFields?.includes("wizardShell.safetyPledgeLead")
+                ? undefined
+                : wizardStepText.safetyPledgeLead
+            }
           />
         )}
         {/* [신규 2026-09-07] "안전관리 서약서 뒤에 자료 첨부 탭 신규 생성" — 안전관리
@@ -1180,7 +1355,13 @@ export function WizardShell({
               <StepCompetitionOption
                 framed
                 info={selection.performanceInfo}
-                onChange={(performanceInfo) => setSelection((prev) => ({ ...prev, performanceInfo }))}
+                onChange={(performanceInfo) =>
+                  setSelection((prev) => ({ ...prev, performanceInfo }))
+                }
+                expectedRevenue={selection.expectedRevenue ?? 0}
+                onChangeRevenue={(value) =>
+                  setSelection((prev) => ({ ...prev, expectedRevenue: value }))
+                }
               />
             }
             rateTable={rateTable}

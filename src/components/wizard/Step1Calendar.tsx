@@ -123,6 +123,7 @@ export function Step1Calendar({
   midHallDays,
   onChangeMidHallDays,
   monthBounds,
+  allowDayExclusion = true,
 }: {
   week: QuoteSelection["week"];
   excludedDays: WeekDay[];
@@ -154,6 +155,13 @@ export function Step1Calendar({
    * 위저드 달력에도 그대로 적용한다. 없으면(과거 호출부·미리보기 등) 제한 없음.
    */
   monthBounds?: { start: string | null; end: string | null };
+  /**
+   * [신규 2026-09-08] "올인원 선택 시, 화~일 기간 해제 불가함. 화~일 기간 픽스되어있어야함" —
+   * 올인원(SPECIAL_VENUE_ID)은 기본 6일을 고정가로 파는 패키지라 화·일 양 끝을 빼는
+   * 「삭제」 버튼 자체를 숨긴다(false로 넘김). 기본값 true — 아레나·중형(동시 대관)은
+   * 그대로 뗄 수 있다.
+   */
+  allowDayExclusion?: boolean;
 }) {
   // [화면 뼈대 2026-08-18, 화면시나리오 SCREEN 02/12 · INTERACTION] 역할 지정은 팝업이 아니라
   // 클릭한 날짜 아래에 바로 펼쳐지는 드롭다운으로 처리한다 — 이전의 "사용 요일 토글 행" +
@@ -223,6 +231,10 @@ export function Step1Calendar({
   // 처음부터 비어 있던 날은 그대로 포함(6일)한다. 역할을 다시 고르면 포함으로 돌아온다.
   const prevTagRef = useRef<Record<string, boolean>>({});
   useEffect(() => {
+    // [신규 2026-09-08] "올인원 선택 시, 화~일 기간 해제 불가함" — 화·일 자동 제외도
+    // 화·일 삭제 버튼(allowDayExclusion)과 같은 조건으로 막는다. 올인원은 기본 6일이
+    // 항상 포함이다.
+    if (!allowDayExclusion) return;
     if (!selectedTuesday) return;
     const nextExcluded = new Set(excludedDays);
     let changed = false;
@@ -725,7 +737,8 @@ export function Step1Calendar({
                           「삭제」 버튼을 둔다. 누르면 그날 역할 태그를 지우고 제외 요일에 넣어
                           준비일 단가 10% 할인만큼 차감된다. 제외된 상태에서는 「다시 포함」으로
                           되돌린다. 가운데 4일(수~토)은 패키지 단위라 여전히 뗄 수 없다. */}
-                      {openDayKind?.kind === "base" &&
+                      {allowDayExclusion &&
+                        openDayKind?.kind === "base" &&
                         (openDayKind.weekday === "TUE" ||
                           openDayKind.weekday === "SUN") &&
                         (excludedDays.includes(openDayKind.weekday) ? (
@@ -764,7 +777,8 @@ export function Step1Calendar({
                     </div>
                     {/* [수정 2026-09-08] 화·일(양 끝)은 위 「삭제」로 제외할 수 있고, 제외되면
                         준비일 10% 할인가만큼 차감된다는 걸 안내한다. */}
-                    {openDayKind?.kind === "base" &&
+                    {allowDayExclusion &&
+                      openDayKind?.kind === "base" &&
                       (openDayKind.weekday === "TUE" ||
                         openDayKind.weekday === "SUN") && (
                         <p className="mt-2 text-xs text-muted">
@@ -773,6 +787,16 @@ export function Step1Calendar({
                             : "「삭제」를 누르면 이 날짜를 제외할 수 있습니다(준비일 단가 10% 할인 차감)."}
                         </p>
                       )}
+                    {/* [신규 2026-09-08] "총 6일 내에서 준비·공연 일정을 원하는 방식으로
+                        구성할 수 있으므로, 여기서 공연일 추가/삭제/휴무일 이런것들이 추가
+                        과금되거나 차감되지 않음" — 올인원은 화·일 삭제가 안 된다는 것과
+                        함께, 요금이 고정이라는 것도 알려준다. */}
+                    {!allowDayExclusion && openDayKind?.kind === "base" && (
+                      <p className="mt-2 text-xs text-muted">
+                        기본 6일이 고정 포함되며, 그 안에서 준비·공연 배치를
+                        바꿔도 요금은 변하지 않습니다.
+                      </p>
+                    )}
 
                     {activeDateKeys.has(dateKey(new Date(openDate))) &&
                       effectiveDayTag(openDate, dayTags, dayTagDefaults) ===

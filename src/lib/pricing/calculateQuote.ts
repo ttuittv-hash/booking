@@ -12,8 +12,13 @@ import {
   isDefaultPerformanceWeekday,
   packagePrice,
 } from "./rateTableUtils";
-import { DEFAULT_VENUE_ID } from "./types";
-import type { EstimatedQuote, LineItem, QuoteSelection, RateTable } from "./types";
+import { DEFAULT_VENUE_ID, SPECIAL_VENUE_ID } from "./types";
+import type {
+  EstimatedQuote,
+  LineItem,
+  QuoteSelection,
+  RateTable,
+} from "./types";
 
 const METERED_NOTICE =
   "전기·상하수도·냉난방 등 유틸리티는 실사용량 기준으로 정산 단계에서 부과됩니다.";
@@ -30,15 +35,38 @@ const ARENA_HIDDEN_UTILITY_LABEL = "유틸리티(필수)";
  * 순수 함수: 선택 상태 + 요금표 → 견적(예상 대관료).
  * 명세서 4.1의 계산 규칙을 그대로 구현한다. UI/스토리지에 의존하지 않는다.
  */
-export function calculateQuote(selection: QuoteSelection, rateTable: RateTable): EstimatedQuote {
+export function calculateQuote(
+  selection: QuoteSelection,
+  rateTable: RateTable,
+): EstimatedQuote {
   const pkg = findPackage(rateTable, selection.packageId);
   const items: LineItem[] = [];
 
   if (pkg) {
+    // [신규 2026-09-08] "올인원 선택 시 화~일 기간 해제 불가... 총 6일 내에서 준비·공연
+    // 일정을 원하는 방식으로 구성할 수 있으므로, 여기서 공연일 추가/삭제/휴무일 이런
+    // 것들이 추가 과금되거나 차감되지 않음" — 올인원(SPECIAL_VENUE_ID)은 기본 6일을
+    // 고정가로 파는 패키지라, 그 안에서 준비/공연/휴무 역할을 어떻게 배치하든(요일 제외
+    // 포함) 가격이 움직이면 안 된다. UI(Step1Calendar allowDayExclusion)에서도 화~일
+    // 제외를 막지만, 과거 데이터·API 직접 호출 등 UI를 거치지 않는 경로까지 방어하려면
+    // 계산 쪽에서도 막아야 한다 — (2) 요일 제외 할인, (2-2) 공연 일수 조정, (2-3) 공연
+    // 2회 할증 세 줄을 스킵한다. (2-1) 6일을 넘는 추가 일수 과금은 그대로 유지한다.
+    const isSpecialVenuePackage = pkg.venueId === SPECIAL_VENUE_ID;
+
     // (1) 패키지 가격 — 요금표 고정값 그 자체 (Ⓐ 구성항목·Ⓑ Bowl 사용료가 내재된 표시 대관료)
     const price = packagePrice(rateTable, pkg);
     items.push(
-      makeLine("BASE_FEE", `기본 대관료(${pkg.name})`, "FIXED_PER_WEEK", 1, 0, 1, price, price, "VISIBLE"),
+      makeLine(
+        "BASE_FEE",
+        `기본 대관료(${pkg.name})`,
+        "FIXED_PER_WEEK",
+        1,
+        0,
+        1,
+        price,
+        price,
+        "VISIBLE",
+      ),
     );
 
     // (1-1) 패키지 할인 — 관리자가 설정한 경우에만 기본 대관료에 적용
@@ -68,12 +96,15 @@ export function calculateQuote(selection: QuoteSelection, rateTable: RateTable):
     // Rate 카드가 "준비일 추가·삭제"·"공연일 추가·삭제"를 같은 할인가 하나로 보여주는데
     // (정가에 취소선 + extraDayDiscountRatio 배지), 여기(요일 제외 = 삭제 쪽)는 정가
     // 그대로 차감하고 있었다 — 추가 쪽(아래 (2-1))과 같은 할인율을 곱해 대칭을 맞춘다.
-    if (selection.excludedDays.length > 0) {
+    if (!isSpecialVenuePackage && selection.excludedDays.length > 0) {
       const excludedPrepCount = selection.excludedDays.filter(
         (day) => !isDefaultPerformanceWeekday(day, pkg.defaultPerformanceDays),
       ).length;
-      const excludedPerformanceCount = selection.excludedDays.length - excludedPrepCount;
-      const excludedPrepUnitPrice = Math.round(pkg.setupExtraDayFee * (1 - pkg.extraDayDiscountRatio));
+      const excludedPerformanceCount =
+        selection.excludedDays.length - excludedPrepCount;
+      const excludedPrepUnitPrice = Math.round(
+        pkg.setupExtraDayFee * (1 - pkg.extraDayDiscountRatio),
+      );
       const excludedPerformanceUnitPrice = Math.round(
         pkg.performanceExtraDayFee * (1 - pkg.extraDayDiscountRatio),
       );
@@ -129,8 +160,12 @@ export function calculateQuote(selection: QuoteSelection, rateTable: RateTable):
     // 않는다" — 은 폐기). 두 할인이 곱으로 누적된다: 정가 × (1-10%) × (1-50%).
     if (selection.extraDays > 0) {
       const price = pkg.setupExtraDayFee;
-      const discountedPrice = Math.round(price * (1 - pkg.extraDayDiscountRatio));
-      const restPrice = Math.round(discountedPrice * (1 - pkg.restDayDiscountRatio));
+      const discountedPrice = Math.round(
+        price * (1 - pkg.extraDayDiscountRatio),
+      );
+      const restPrice = Math.round(
+        discountedPrice * (1 - pkg.restDayDiscountRatio),
+      );
       // 방어적으로 extraDays를 넘지 않게 자른다 — REST는 추가일에만 쓰는 태그라
       // 기본 6일 쪽에 잘못 남은 값이 있어도 추가 일수 계산에 영향을 주지 않는다.
       const restCount = Math.min(
@@ -180,10 +215,16 @@ export function calculateQuote(selection: QuoteSelection, rateTable: RateTable):
     // (delta<0)는 할인 없이 원래 단가로 차감하던 걸(2026-09-06 결정) 뒤집는다. /rates
     // 페이지의 Rate 카드가 "공연일 추가·삭제"를 방향 구분 없이 같은 할인가 하나로
     // 보여주므로, 계산도 늘어나든 줄어든든 같은 할인 단가를 쓴다.
-    const performanceDayCount = countPerformanceDays(selectedDates, selection.dayTags, pkg.defaultPerformanceDays);
+    const performanceDayCount = countPerformanceDays(
+      selectedDates,
+      selection.dayTags,
+      pkg.defaultPerformanceDays,
+    );
     const performanceDelta = performanceDayCount - pkg.defaultPerformanceDays;
-    if (performanceDelta !== 0) {
-      const unitPrice = Math.round(pkg.performanceExtraDayFee * (1 - pkg.extraDayDiscountRatio));
+    if (!isSpecialVenuePackage && performanceDelta !== 0) {
+      const unitPrice = Math.round(
+        pkg.performanceExtraDayFee * (1 - pkg.extraDayDiscountRatio),
+      );
       const sign = performanceDelta > 0 ? "+" : "";
       items.push(
         makeLine(
@@ -209,18 +250,23 @@ export function calculateQuote(selection: QuoteSelection, rateTable: RateTable):
     // [수정 2026-09-08] "할인된 금액에 추가로 할증율 적용" — 할증 기준을 정가
     // (performanceExtraDayFee)가 아니라 (2-2)와 같은 할인 단가로 바꾼다 — 이미 10%
     // 할인된 공연일 단가에 50%를 얹는다.
-    if (pkg.secondShowSurchargeRatio > 0) {
-      const defaults = defaultDayTags(selectedDates, pkg.defaultPerformanceDays);
+    if (!isSpecialVenuePackage && pkg.secondShowSurchargeRatio > 0) {
+      const defaults = defaultDayTags(
+        selectedDates,
+        pkg.defaultPerformanceDays,
+      );
       const doubleShowDays = selectedDates.filter(
         (date) =>
-          effectiveDayTag(date, selection.dayTags, defaults) === "PERFORMANCE" &&
-          (selection.dayShowCounts[date] ?? 1) >= 2,
+          effectiveDayTag(date, selection.dayTags, defaults) ===
+            "PERFORMANCE" && (selection.dayShowCounts[date] ?? 1) >= 2,
       ).length;
       if (doubleShowDays > 0) {
         const discountedPerformanceUnitPrice = Math.round(
           pkg.performanceExtraDayFee * (1 - pkg.extraDayDiscountRatio),
         );
-        const unitPrice = Math.round(discountedPerformanceUnitPrice * pkg.secondShowSurchargeRatio);
+        const unitPrice = Math.round(
+          discountedPerformanceUnitPrice * pkg.secondShowSurchargeRatio,
+        );
         items.push(
           makeLine(
             "second_show_surcharge",
@@ -260,10 +306,16 @@ export function calculateQuote(selection: QuoteSelection, rateTable: RateTable):
     // 금액 모두 완전히 숨긴다(소비 측에서 visibility==="HIDDEN" 라인을 걸러낸다).
     if ((pkg.venueId ?? DEFAULT_VENUE_ID) === "arena") {
       const hiddenUtilityAddons = rateTable.addons.filter(
-        (a) => a.category === "UTILITY" && a.visibility === "HIDDEN" && a.billingPhase === "ESTIMATE",
+        (a) =>
+          a.category === "UTILITY" &&
+          a.visibility === "HIDDEN" &&
+          a.billingPhase === "ESTIMATE",
       );
       if (hiddenUtilityAddons.length > 0) {
-        const utilityTotal = hiddenUtilityAddons.reduce((sum, a) => sum + a.unitPrice, 0);
+        const utilityTotal = hiddenUtilityAddons.reduce(
+          (sum, a) => sum + a.unitPrice,
+          0,
+        );
         items.push(
           makeLine(
             "utility_bundle",
@@ -292,12 +344,18 @@ export function calculateQuote(selection: QuoteSelection, rateTable: RateTable):
       const included = includedQuantity(pkg, addonItem.id);
       // 상한을 넘겨 들어온 수량은 여기서 자른다(2026-09-02). 화면의 number 입력 max 는
       // 타이핑을 막지 못하고, 폼을 우회한 요청도 있을 수 있어 계산 쪽이 최종 방어선이다.
-      const requested = clampAddonQuantity(addonItem, pkg, selected.requestedQuantity);
+      const requested = clampAddonQuantity(
+        addonItem,
+        pkg,
+        selected.requestedQuantity,
+      );
       const billable = Math.max(requested - included, 0);
 
       let amount: number;
       if (addonItem.pricingType === "REVENUE_PERCENT") {
-        amount = Math.round(((selection.expectedRevenue ?? 0) * addonItem.unitPrice) / 100);
+        amount = Math.round(
+          ((selection.expectedRevenue ?? 0) * addonItem.unitPrice) / 100,
+        );
       } else {
         amount = billable * addonItem.unitPrice;
       }
@@ -327,9 +385,17 @@ export function calculateQuote(selection: QuoteSelection, rateTable: RateTable):
   // (5) 중형공연장(DAILY) — 중형 단독 또는 동시 대관일 때 아레나 계산과 별개로 합산한다
   // (동시 대관은 할인 없이 단순 합산, 기능정의 2-13 확정).
   let blockingIssues: string[] = [];
-  if (selection.venueId === "medium-hall" || selection.bookingMode === "SIMULTANEOUS") {
+  if (
+    selection.venueId === "medium-hall" ||
+    selection.bookingMode === "SIMULTANEOUS"
+  ) {
     const midHall = calculateMidHallLineItems(selection, rateTable);
-    items.push(...midHall.items.map((item) => ({ ...item, venue: "medium-hall" as const })));
+    items.push(
+      ...midHall.items.map((item) => ({
+        ...item,
+        venue: "medium-hall" as const,
+      })),
+    );
     blockingIssues = midHall.blockingIssues;
   }
 
@@ -338,22 +404,50 @@ export function calculateQuote(selection: QuoteSelection, rateTable: RateTable):
   // 반영되어야지.. 우측 플로팅 박스에도 추가 예상 금액에 포함시켜야 하고"). 공간을
   // 분리하지 않은 경우(공통 탭)는 아레나·중형 어느 한쪽에만 반영해 이중 계상을 막는다 —
   // 아레나가 있으면 아레나 몫으로, 아레나 없이 중형만 있으면 중형 몫으로 본다.
-  function pushCompetitionFeeLine(amount: number | undefined, venue: "arena" | "medium-hall") {
+  function pushCompetitionFeeLine(
+    amount: number | undefined,
+    venue: "arena" | "medium-hall",
+  ) {
     if (typeof amount !== "number" || amount <= 0) return;
-    const addonId = venue === "medium-hall" ? "midhall_competition_fee_option" : "competition_fee_option";
+    const addonId =
+      venue === "medium-hall"
+        ? "midhall_competition_fee_option"
+        : "competition_fee_option";
     items.push({
-      ...makeLine(addonId, "경합 시 추가 대관료 옵션(최대)", "FIXED_PER_WEEK", 1, 0, 1, amount, amount, "VISIBLE"),
+      ...makeLine(
+        addonId,
+        "경합 시 추가 대관료 옵션(최대)",
+        "FIXED_PER_WEEK",
+        1,
+        0,
+        1,
+        amount,
+        amount,
+        "VISIBLE",
+      ),
       venue,
     });
   }
   if (pkg) {
-    pushCompetitionFeeLine(selection.performanceInfo.competitionFeeOptionMax, "arena");
+    pushCompetitionFeeLine(
+      selection.performanceInfo.competitionFeeOptionMax,
+      "arena",
+    );
   }
-  if (selection.venueId === "medium-hall" || selection.bookingMode === "SIMULTANEOUS") {
+  if (
+    selection.venueId === "medium-hall" ||
+    selection.bookingMode === "SIMULTANEOUS"
+  ) {
     if (selection.midHallPerformanceInfo) {
-      pushCompetitionFeeLine(selection.midHallPerformanceInfo.competitionFeeOptionMax, "medium-hall");
+      pushCompetitionFeeLine(
+        selection.midHallPerformanceInfo.competitionFeeOptionMax,
+        "medium-hall",
+      );
     } else if (!pkg) {
-      pushCompetitionFeeLine(selection.performanceInfo.competitionFeeOptionMax, "medium-hall");
+      pushCompetitionFeeLine(
+        selection.performanceInfo.competitionFeeOptionMax,
+        "medium-hall",
+      );
     }
   }
 
