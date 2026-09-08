@@ -25,6 +25,11 @@ const CORE_LINE_IDS = new Set([
   "midhall_extra_setup_hours",
   "midhall_extra_loadout_hours",
   "midhall_cleaning",
+  // [수정 2026-09-08] "공연 2회 할증은 대관료에 포함되어야함" — second_show_surcharge
+  // (아레나 1일 2회 공연 할증)가 이 목록에 없어 "옵션"으로 잘못 분류되고 있었다.
+  // 중형의 같은 개념(midhall_show_*-2)은 addonId 접두사로 이미 core 취급되고 있어
+  // 여기 맞춘다.
+  "second_show_surcharge",
 ]);
 
 /**
@@ -65,6 +70,7 @@ const EXCLUSIVE_USAGE_LINE_IDS = new Set([
   "midhall_loadout_day",
   "midhall_extra_setup_hours",
   "midhall_extra_loadout_hours",
+  "second_show_surcharge",
 ]);
 
 export function feeGroupOf(item: LineItem): FeeGroup {
@@ -150,11 +156,10 @@ export function estimateLineLabel(item: LineItem): string {
       return unifiedExtraDayLabel("휴무일", item);
     case "performance_day_adjustment":
       return /대비 \+/.test(item.label) ? unifiedExtraDayLabel("공연일", item) : item.label;
-    case "second_show_surcharge":
-      return item.label.replace(/\s*×\s*\d+%/, "");
-    case "midhall_show_weekday-2":
-    case "midhall_show_weekend-2":
-      return item.label.replace(/,\s*\d+%\s*할증\s*포함/, "");
+    // [삭제 2026-09-08] "할증 앞에 퍼센테이지 노출 필요, 아레나는 50%, 중형은 25%" —
+    // second_show_surcharge·midhall_show_*-2 라벨에서 할증률(%)을 지우던 case를
+    // 없앤다. item.label 원문에 이미 "(N일 × 50%)"/"(1일 2회, 25% 할증 포함)"이
+    // 들어 있으니 default로 그대로 보여준다.
     default:
       return item.label;
   }
