@@ -25,7 +25,6 @@ export const STEP3_DEFAULT_SLOT_ORDER = [
   "eventBasics",
   "credibility",
   "audience",
-  "competitionOption",
 ] as const;
 
 export const STEP3_SLOT_LABELS: Record<string, string> = {
@@ -33,7 +32,9 @@ export const STEP3_SLOT_LABELS: Record<string, string> = {
   eventBasics: "공연 정보",
   credibility: "기타 (개최 신뢰도 및 이력 확인)",
   audience: "예상 관객 및 사업규모",
-  competitionOption: "대관 경합 옵션",
+  // [이동 2026-09-08] competitionOption(대관 경합 옵션 · 티켓 매출 RS)은 STEP3 슬롯에서
+  // 빠져 최종 제출 화면 맨 아래로 옮겼다(nora, 9/8 16:20). 예전에 저장된 슬롯 순서에
+  // 남아 있어도 WizardShell 이 렌더러가 없는 키를 걸러내므로 그대로 둔다.
 };
 
 /*

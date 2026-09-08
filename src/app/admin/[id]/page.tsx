@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { requireProAdminPage, isProAdminOrAbove } from "@/lib/auth";
 import {
   findApprovedWeekConflict,
+  findCompanyById,
   findUserById,
   getContractSignatureByQuoteId,
   getDepositByQuoteId,
@@ -202,6 +203,18 @@ export default async function AdminQuoteDetailPage({
   // 마케팅 실행 계획서는 분류가 붙어 별도 조회로 읽어 왔다. 화면에서는 한 목록으로 본다 —
   // 신청서에 딸린 서류라는 점이 같고, 분류별로 상자를 나누면 찾기만 번거로워진다.
   const attachments = [...generalAttachments, ...marketingPlanAttachments];
+  // [신규 2026-09-08] 위저드에서 대관사명·사업자등록번호를 고칠 수 있게 되면서(신청서에만
+  // 저장, 회원정보는 그대로) 가입 때 진위확인한 계정 회사와 다르면 심사자가 바로 알아야 한다.
+  const applicantCompany = applicant?.companyId ? await findCompanyById(applicant.companyId) : undefined;
+  const accountCompanyName = applicantCompany?.name ?? applicant?.companyName ?? null;
+  const accountBrn = applicantCompany?.businessRegistrationNumber ?? null;
+  const quoteCompanyName = quote.selection.performanceInfo.applicantCompanyName?.trim() || null;
+  const quoteBrn = quote.selection.performanceInfo.applicantBusinessRegistrationNumber?.trim() || null;
+  const digits = (v: string) => v.replace(/\D/g, "");
+  const companyMismatch =
+    (!!quoteCompanyName && !!accountCompanyName && quoteCompanyName !== accountCompanyName) ||
+    (!!quoteBrn && !!accountBrn && digits(quoteBrn) !== digits(accountBrn));
+
   // 경합 신청자는 행마다 findUserById 하지 않고 한 번에 읽는다(N+1).
   const competingApplicants = competingQuotes.length
     ? await listUsersByIds(competingQuotes.map(({ quote: q }) => q.applicantId))
@@ -284,6 +297,14 @@ export default async function AdminQuoteDetailPage({
             {" "}({applicant?.email ?? NONE}) · 회사{" "}
             <span className="font-bold text-foreground">{applicant?.companyName ?? NONE}</span>
           </p>
+          {companyMismatch && (
+            <p className="mt-2 inline-flex flex-wrap items-center gap-x-2 gap-y-1 border border-danger bg-danger-soft px-3 py-1.5 text-xs text-danger">
+              <span className="font-bold">신청서의 대관사 정보가 계정 회사와 다릅니다</span>
+              <span>
+                신청서 {quoteCompanyName ?? NONE} · {quoteBrn ?? NONE} / 계정 {accountCompanyName ?? NONE} · {accountBrn ?? NONE}
+              </span>
+            </p>
+          )}
 
           {/* [신규 2026-09-02] 심사하려면 신청서 전체를 한눈에 봐야 한다. 이 화면은
               심사·계약·정산 패널이 함께 있어 신청 내용이 그 사이에 흩어져 있고, 책임자·

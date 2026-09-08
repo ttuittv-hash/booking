@@ -141,6 +141,9 @@ function AudienceFields({
   info,
   onChange,
   audienceSummary,
+  arenaAudience,
+  midHallAudience,
+  onChangeAudience,
   fieldOrders,
   disabledFields,
   customOptions,
@@ -148,6 +151,12 @@ function AudienceFields({
   info: PerformanceInfo;
   onChange: (info: PerformanceInfo) => void;
   audienceSummary: { arenaLine: string | null; midHallLine: string | null; totalLine: string | null };
+  /** [신규 2026-09-08] "1회당 예상 관객 수 수정 가능하게"(nora) — 값은 selection.expectedAudience
+   *  (아레나)·secondaryAudience(중형)이고, 이 콜백이 오면 읽기 전용 칸 대신 입력칸을 그린다.
+   *  총 예상 관객 수는 그대로 자동 계산(1회당 × 총 공연 횟수). */
+  arenaAudience?: number | null;
+  midHallAudience?: number | null;
+  onChangeAudience?: (patch: { arena?: number; midHall?: number }) => void;
   fieldOrders?: Record<string, string[]>;
   disabledFields?: string[];
   customOptions?: Record<string, string[]>;
@@ -156,10 +165,6 @@ function AudienceFields({
 
   function set<K extends keyof PerformanceInfo>(key: K, value: PerformanceInfo[K]) {
     onChange({ ...info, [key]: value });
-  }
-
-  function clampRate(raw: string): number {
-    return Math.max(0, Math.min(100, Number(raw) || 0));
   }
 
   // [신규 2026-08-26, 개정 2026-09-06] 티켓 유형별 가격 반복 행 — 예상 판매율은
@@ -207,23 +212,51 @@ function AudienceFields({
         {hasSummaryRow && (
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
             {audienceSummary.arenaLine && (
-              <div>
+              <div data-field-key="audience.expectedAudiencePerShowArena">
                 <label className="mb-1.5 block text-xs font-bold text-muted">
                   {t("audience.expectedAudiencePerShowArenaLabel", "1회당 예상 관객 수 — 아레나")}
                 </label>
-                <div className="flex h-10 items-center border border-border-soft px-3.5 text-s text-foreground">
-                  {audienceSummary.arenaLine}
-                </div>
+                {onChangeAudience ? (
+                  <div className="flex items-center gap-1.5">
+                    <input
+                      type="number"
+                      min={0}
+                      step={100}
+                      value={arenaAudience ?? ""}
+                      onChange={(e) => onChangeAudience({ arena: Math.max(0, Math.floor(Number(e.target.value) || 0)) })}
+                      className="field-base w-full"
+                    />
+                    <span className="text-xs text-muted">{tStr("audience.peopleUnit", "명")}</span>
+                  </div>
+                ) : (
+                  <div className="flex h-10 items-center border border-border-soft px-3.5 text-s text-foreground">
+                    {audienceSummary.arenaLine}
+                  </div>
+                )}
               </div>
             )}
             {audienceSummary.midHallLine && (
-              <div>
+              <div data-field-key="audience.expectedAudiencePerShowMidHall">
                 <label className="mb-1.5 block text-xs font-bold text-muted">
                   {t("audience.expectedAudiencePerShowMidHallLabel", "1회당 예상 관객 수 — 중형")}
                 </label>
-                <div className="flex h-10 items-center border border-border-soft px-3.5 text-s text-foreground">
-                  {audienceSummary.midHallLine}
-                </div>
+                {onChangeAudience ? (
+                  <div className="flex items-center gap-1.5">
+                    <input
+                      type="number"
+                      min={0}
+                      step={100}
+                      value={midHallAudience ?? ""}
+                      onChange={(e) => onChangeAudience({ midHall: Math.max(0, Math.floor(Number(e.target.value) || 0)) })}
+                      className="field-base w-full"
+                    />
+                    <span className="text-xs text-muted">{tStr("audience.peopleUnit", "명")}</span>
+                  </div>
+                ) : (
+                  <div className="flex h-10 items-center border border-border-soft px-3.5 text-s text-foreground">
+                    {audienceSummary.midHallLine}
+                  </div>
+                )}
               </div>
             )}
             {audienceSummary.totalLine && (
@@ -285,25 +318,9 @@ function AudienceFields({
           </div>
         </div>
 
-        {/* [신규 2026-09-06] 유형별 컬럼에서 뺀 예상 판매율 — 티켓 유형 전체를 합친
-            기준 하나로 받는다(expectedPaidSalesRate). */}
-        <div>
-          <label className="mb-1.5 block text-xs font-bold text-muted">
-            {t("audience.expectedPaidSalesRateLabel", "예상 판매율(%)")}
-          </label>
-          <div className="flex w-40 items-center gap-1.5">
-            <input
-              type="number"
-              min={0}
-              max={100}
-              value={info.expectedPaidSalesRate || ""}
-              placeholder={tStr("audience.expectedPaidSalesRatePlaceholder", "예상 판매율")}
-              onChange={(e) => set("expectedPaidSalesRate", clampRate(e.target.value))}
-              className="field-base w-full"
-            />
-            <span className="text-xs text-muted">%</span>
-          </div>
-        </div>
+        {/* [삭제 2026-09-08] 예상 판매율(예상 BEP) 입력 — 운영진 요청으로 위저드에서 뺐다
+            (nora, 9/8 16:20 "수납식 객석, 예상 BEP 미노출"). 필드(expectedPaidSalesRate)는
+            남겨 예전 신청서 값은 심사 화면에 그대로 보인다. */}
 
         {/* [개정 2026-09-07] "대관 경합 시 대관료 옵션 추가 가능 범위"·"티켓 매출 RS
             요율" 둘 다 별도 슬롯으로 분리해 탭 맨 아래(StepCompetitionOption, STEP3
@@ -347,6 +364,7 @@ export function StepAudience({
   midHallInfo,
   onChangeMidHallInfo,
   selection,
+  onChangeAudience,
   showHeading = true,
   title,
   lead,
@@ -359,6 +377,8 @@ export function StepAudience({
   midHallInfo: PerformanceInfo | null;
   onChangeMidHallInfo: (info: PerformanceInfo | null) => void;
   selection: QuoteSelection;
+  /** [신규 2026-09-08] 1회당 예상 관객 수(아레나·중형)를 여기서 고칠 수 있게 — 없으면 읽기 전용. */
+  onChangeAudience?: (patch: { arena?: number; midHall?: number }) => void;
   // [2026-08-23] "신청자 정보"·"규모" 탭을 하나로 합치면서, 합친 화면에서는 큰 제목이
   // 두 번 나오지 않게 이 컴포넌트만 자기 제목(StepHeading)을 생략할 수 있게 했다.
   showHeading?: boolean;
@@ -421,6 +441,9 @@ export function StepAudience({
               midHallLine: isMidHallInvolved ? `${selection.secondaryAudience.toLocaleString()}${peopleUnit}` : null,
               totalLine,
             }}
+            arenaAudience={selection.expectedAudience}
+            midHallAudience={isMidHallInvolved ? selection.secondaryAudience : null}
+            onChangeAudience={onChangeAudience}
             fieldOrders={fieldOrders}
             disabledFields={disabledFields}
             customOptions={customOptions}
@@ -435,6 +458,8 @@ export function StepAudience({
               midHallLine: null,
               totalLine,
             }}
+            arenaAudience={selection.expectedAudience}
+            onChangeAudience={onChangeAudience}
             fieldOrders={fieldOrders}
             disabledFields={disabledFields}
             customOptions={customOptions}
@@ -449,6 +474,8 @@ export function StepAudience({
               midHallLine: `${selection.secondaryAudience.toLocaleString()}${peopleUnit}`,
               totalLine: null,
             }}
+            midHallAudience={selection.secondaryAudience}
+            onChangeAudience={onChangeAudience}
             fieldOrders={fieldOrders}
             disabledFields={disabledFields}
             customOptions={customOptions}
@@ -483,8 +510,11 @@ export function StepCompetitionOption({
     onChange({ ...info, [key]: value });
   }
 
+  // [개정 2026-09-08] "RS 2% 리미트" — 운영 방침상 RS 는 2%까지만 제안받는다(nora, 9/8 16:20).
+  // 입력 단계에서 잘라 제출값이 2를 넘지 못하게 한다.
+  const RS_MAX_PERCENT = 2;
   function clampRate(raw: string): number {
-    return Math.max(0, Math.min(100, Number(raw) || 0));
+    return Math.max(0, Math.min(RS_MAX_PERCENT, Number(raw) || 0));
   }
 
   return (
@@ -504,7 +534,7 @@ export function StepCompetitionOption({
           <p className="mt-1 text-xs text-muted">
             {t(
               "audience.ticketRevenueShareRateHint",
-              "경합 시 제시할 티켓 매출 RS(Revenue Share) 요율입니다.",
+              "RS(Revenue Share)는 2%까지 제안 가능합니다.",
             )}
           </p>
         </div>
@@ -512,7 +542,8 @@ export function StepCompetitionOption({
           <input
             type="number"
             min={0}
-            max={100}
+            max={RS_MAX_PERCENT}
+            step={0.1}
             value={info.ticketRevenueShareRate ?? ""}
             placeholder={tStr("audience.ticketRevenueShareRatePlaceholder", "요율")}
             onChange={(e) => set("ticketRevenueShareRate", clampRate(e.target.value))}

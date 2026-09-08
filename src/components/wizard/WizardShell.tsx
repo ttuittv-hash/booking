@@ -354,20 +354,35 @@ export function WizardShell({
         // 남아있으면 그 빈 값이 계정 값을 덮어써 화면에 "—"만 보이고 고칠 방법이
         // 없었다("기업정보가 있는데도 대관신청 위저드에서는 그냥 - 이렇게 나옴",
         // 2026-08-22) — 이 두 값만은 임시저장본을 무시하고 항상 계정 값을 쓴다.
+        // [개정 2026-09-08] 대관사명·사업자등록번호·대표자명을 위저드에서 고칠 수 있게 되면서
+        // (계약 주체가 계정 회사와 다른 경우 — 신청서에만 저장, 회원정보는 안 건드림)
+        // 임시저장본에 적은 값을 살린다. 비어 있을 때만 계정 값으로 채운다 — 예전 저장본의
+        // 빈 문자열이 계정 값을 덮어 "—"만 보이던 문제는 그대로 막는다.
         performanceInfo: {
           ...initialPerformanceInfo,
           ...(draft.selection.performanceInfo ?? {}),
-          applicantCompanyName: initialPerformanceInfo.applicantCompanyName,
-          applicantBusinessRegistrationNumber: initialPerformanceInfo.applicantBusinessRegistrationNumber,
-          applicantRepresentativeName: initialPerformanceInfo.applicantRepresentativeName,
+          applicantCompanyName:
+            draft.selection.performanceInfo?.applicantCompanyName?.trim() || initialPerformanceInfo.applicantCompanyName,
+          applicantBusinessRegistrationNumber:
+            draft.selection.performanceInfo?.applicantBusinessRegistrationNumber?.trim() ||
+            initialPerformanceInfo.applicantBusinessRegistrationNumber,
+          applicantRepresentativeName:
+            draft.selection.performanceInfo?.applicantRepresentativeName?.trim() ||
+            initialPerformanceInfo.applicantRepresentativeName,
         },
         // 동시 대관에서 "공간별로 다르게 입력"한 사본에도 같은 문제가 있어 똑같이 덮어쓴다.
         midHallPerformanceInfo: draft.selection.midHallPerformanceInfo
           ? {
               ...draft.selection.midHallPerformanceInfo,
-              applicantCompanyName: initialPerformanceInfo.applicantCompanyName,
-              applicantBusinessRegistrationNumber: initialPerformanceInfo.applicantBusinessRegistrationNumber,
-              applicantRepresentativeName: initialPerformanceInfo.applicantRepresentativeName,
+              applicantCompanyName:
+                draft.selection.midHallPerformanceInfo.applicantCompanyName?.trim() ||
+                initialPerformanceInfo.applicantCompanyName,
+              applicantBusinessRegistrationNumber:
+                draft.selection.midHallPerformanceInfo.applicantBusinessRegistrationNumber?.trim() ||
+                initialPerformanceInfo.applicantBusinessRegistrationNumber,
+              applicantRepresentativeName:
+                draft.selection.midHallPerformanceInfo.applicantRepresentativeName?.trim() ||
+                initialPerformanceInfo.applicantRepresentativeName,
             }
           : (draft.selection.midHallPerformanceInfo ?? null),
         safetyPledge: { ...DEFAULT_SAFETY_PLEDGE, ...(draft.selection.safetyPledge ?? {}) },
@@ -542,7 +557,12 @@ export function WizardShell({
   // 이 이미 단계별 검사(step 1·2·3·6·7)를 마친 뒤에만 실행되므로, 한 단계 앞으로
   // 가는 것만은 maxUnlockedStep과 무관하게 항상 허용한다 — StepNav 탭을 눌러 임의
   // 단계로 건너뛰는 것은 여전히 maxUnlockedStep으로 막는다.
-  function goTo(target: number) {
+  function goTo(rawTarget: number) {
+    // [이동 2026-09-08] STEP 5(공공/공익 참여)는 STEP 4 안으로 합쳐져 화면이 없다(nora,
+    // "공익프로그램 참여를 마케팅 및 프로모션 계획으로 이동"). 단계 번호는 그대로 두고
+    // (임시저장 step·검증 키 유지) 지나갈 때 건너뛴다: 4→6, 6→4. 저장본이 5를 들고
+    // 있으면 4로 보낸다.
+    const target = rawTarget === 5 ? (rawTarget > step ? 6 : 4) : rawTarget;
     if (target < 1 || target > TOTAL_STEPS) return;
     if (target > maxUnlockedStep && target !== step + 1) return;
     if (submissionLocked && target !== step) return;
@@ -881,6 +901,15 @@ export function WizardShell({
           setSelection((prev) => ({ ...prev, midHallPerformanceInfo }))
         }
         selection={resolvedSelection}
+        // [신규 2026-09-08] "1회당 예상 관객 수 수정 가능하게"(nora) — 구성·옵션에서 패키지
+        // 기본값으로 채워진 값을 여기서 직접 고친다. 총 예상 관객 수는 자동 계산 유지.
+        onChangeAudience={(patch) =>
+          setSelection((prev) => ({
+            ...prev,
+            ...(patch.arena !== undefined ? { expectedAudience: patch.arena } : {}),
+            ...(patch.midHall !== undefined ? { secondaryAudience: patch.midHall } : {}),
+          }))
+        }
         showHeading={false}
         title={wizardStepText.audienceTitle}
         lead={wizardStepText.audienceLead}
@@ -889,12 +918,9 @@ export function WizardShell({
         customOptions={wizardCustomOptions}
       />
     ),
-    competitionOption: () => (
-      <StepCompetitionOption
-        info={selection.performanceInfo}
-        onChange={(performanceInfo) => setSelection((prev) => ({ ...prev, performanceInfo }))}
-      />
-    ),
+    // [이동 2026-09-08] competitionOption(대관 경합 옵션 · 티켓 매출 RS)은 STEP3 에서 빠져
+    // 최종 제출(STEP 9) 맨 아래로 옮겼다 — nora 9/8 16:20 "대관료 추가 제안 부분은 상위 탭
+    // SUBMIT 하단 페이지로 이동". Step6Submit 의 beforeSubmit 슬롯으로 넣는다.
   };
   const configuredStep3Order = wizardSlotOrders?.["3"];
   const step3SlotOrder: string[] = (
@@ -1078,28 +1104,34 @@ export function WizardShell({
               <div className={i === 0 ? undefined : "mt-10"}>{step3SlotRenderers[key]?.()}</div>
             </Fragment>
           ))}
-        {step === 4 && (
-          <StepMarketingCooperation
-            info={selection.marketingCooperation ?? DEFAULT_MARKETING_COOPERATION}
-            onChange={(marketingCooperation) => setSelection((prev) => ({ ...prev, marketingCooperation }))}
-            title={wizardStepText.marketingTitle}
-            lead={wizardDisabledFields?.includes("wizardShell.marketingLead") ? undefined : wizardStepText.marketingLead}
-          />
-        )}
-        {step === 5 && (
-          <StepPublicInterest
-            info={selection.performanceInfo}
-            onChange={(performanceInfo) => setSelection((prev) => ({ ...prev, performanceInfo }))}
-            selection={resolvedSelection}
-            midHallInfo={selection.midHallPerformanceInfo}
-            onChangeMidHallInfo={(midHallPerformanceInfo) =>
-              setSelection((prev) => ({ ...prev, midHallPerformanceInfo }))
-            }
-            title={wizardStepText.publicInterestTitle}
-            disabledItems={publicInterestDisabledItems}
-            disabledGroups={publicInterestDisabledGroups}
-            disabledFields={wizardDisabledFields}
-          />
+        {/* [이동 2026-09-08] 공공/공익 참여(STEP 5)를 홍보 및 서비스 계획(STEP 4) 아래에
+            이어 그린다(nora, "공익프로그램 참여를 마케팅 및 프로모션 계획으로 이동").
+            STEP 5 자체는 goTo 가 건너뛰고 StepNav 탭에서도 뺐다. 저장본 step 이 5 인
+            신청서는 아래 5 분기가 같은 화면을 그려 깨지지 않는다. */}
+        {(step === 4 || step === 5) && (
+          <>
+            <StepMarketingCooperation
+              info={selection.marketingCooperation ?? DEFAULT_MARKETING_COOPERATION}
+              onChange={(marketingCooperation) => setSelection((prev) => ({ ...prev, marketingCooperation }))}
+              title={wizardStepText.marketingTitle}
+              lead={wizardDisabledFields?.includes("wizardShell.marketingLead") ? undefined : wizardStepText.marketingLead}
+            />
+            <div className="mt-10">
+              <StepPublicInterest
+                info={selection.performanceInfo}
+                onChange={(performanceInfo) => setSelection((prev) => ({ ...prev, performanceInfo }))}
+                selection={resolvedSelection}
+                midHallInfo={selection.midHallPerformanceInfo}
+                onChangeMidHallInfo={(midHallPerformanceInfo) =>
+                  setSelection((prev) => ({ ...prev, midHallPerformanceInfo }))
+                }
+                title={wizardStepText.publicInterestTitle}
+                disabledItems={publicInterestDisabledItems}
+                disabledGroups={publicInterestDisabledGroups}
+                disabledFields={wizardDisabledFields}
+              />
+            </div>
+          </>
         )}
         {step === 6 && (
           <StepSafetyPledge
@@ -1136,6 +1168,12 @@ export function WizardShell({
         )}
         {step === 9 && (
           <Step6Submit
+            beforeSubmit={
+              <StepCompetitionOption
+                info={selection.performanceInfo}
+                onChange={(performanceInfo) => setSelection((prev) => ({ ...prev, performanceInfo }))}
+              />
+            }
             rateTable={rateTable}
             quote={quote}
             selection={resolvedSelection}

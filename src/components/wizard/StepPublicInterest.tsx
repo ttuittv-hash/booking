@@ -7,7 +7,6 @@ import {
   PUBLIC_INTEREST_GROUPS,
   PUBLIC_INTEREST_ITEM_HINT,
   PUBLIC_INTEREST_ITEM_LABEL,
-  PUBLIC_INTEREST_STATUS_ITEMS,
   type PerformanceInfo,
   type PublicInterestItem,
   type QuoteSelection,
@@ -61,7 +60,6 @@ export function StepPublicInterest({
 }) {
   const { t, tStr } = useWizardText();
   const selectedItems = info.publicInterestItems ?? [];
-  const details = info.publicInterestDetails ?? {};
   const isItemEnabled = (item: PublicInterestItem) => !disabledItems?.includes(item);
   const [activeTab, setActiveTab] = useState<VenueSplitTab>(midHallInfo ? "ARENA" : "COMMON");
 
@@ -77,9 +75,6 @@ export function StepPublicInterest({
     onChange({ ...info, publicInterestItems: next });
   }
 
-  function setDetail(item: PublicInterestItem, value: string) {
-    onChange({ ...info, publicInterestDetails: { ...details, [item]: value } });
-  }
 
   const isSimultaneous = selection.bookingMode === "SIMULTANEOUS";
   const midHallDifferent = isSimultaneous && midHallInfo !== null;
@@ -102,8 +97,6 @@ export function StepPublicInterest({
   */
   function itemRow(item: PublicInterestItem) {
     const checked = selectedItems.includes(item);
-    // "검토 중"·"없음"은 참여 계획이 아니라 상태 응답이라 상세를 받지 않는다.
-    const expandable = !PUBLIC_INTEREST_STATUS_ITEMS.includes(item);
     // [신규 2026-09-06] "체크박스 항목자체도 수정/편집 가능하게" — 라벨·힌트는
     // wizardStrings의 publicInterest.item.<id>.label/.hint 로 관리자가 고칠 수 있다.
     const label = tStr(`publicInterest.item.${item}.label`, PUBLIC_INTEREST_ITEM_LABEL[item]);
@@ -124,17 +117,9 @@ export function StepPublicInterest({
           />
         </label>
 
-        {checked && expandable && (
-          <div className="space-y-2.5 px-3 pb-4">
-            <textarea
-              value={details[item] ?? ""}
-              onChange={(e) => setDetail(item, e.target.value)}
-              placeholder={tStr("publicInterest.detailPlaceholder", "계획을 간단히 적어주세요.")}
-              rows={3}
-              className="field-base whitespace-pre-wrap"
-            />
-          </div>
-        )}
+        {/* [삭제 2026-09-08] 항목을 켰을 때 아래 펼쳐지던 "계획을 간단히 적어주세요." 텍스트
+            박스 — 운영진 요청(nora, 9/8 16:2x)으로 뺐다. publicInterestDetails 필드와
+            setDetail 은 예전 신청서 값 보존을 위해 남겨 둔다. */}
       </div>
     );
   }

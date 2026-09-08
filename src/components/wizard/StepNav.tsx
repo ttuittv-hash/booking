@@ -49,7 +49,9 @@ function buildStageGroups(tStr: (key: string, fallback: string) => string): Stag
       steps: [
         { step: 3, label: tStr("stepNav.step.applicantInfo", "신청자 정보 및 규모") },
         { step: 4, label: tStr("stepNav.step.marketing", "홍보 및 서비스 계획") },
-        { step: 5, label: tStr("stepNav.step.publicInterest", "공공/공익 참여 여부") },
+        // [이동 2026-09-08] STEP 5(공공/공익 참여)는 STEP 4(홍보 및 서비스 계획) 안으로
+        // 합쳤다(nora, 9/8 16:20). 단계 번호는 그대로 두고(임시저장·검증 키 유지) 탭에서만
+        // 빼며, WizardShell.goTo 가 5를 건너뛴다.
         { step: 6, label: tStr("stepNav.step.safetyPledge", "안전관리 서약서") },
         // [신규 2026-09-07] "안전관리 서약서 뒤에 자료 첨부 탭 신규 생성" — 안전관리
         // 서약서 탭의 두 번째 슬롯이던 자료 첨부를 독립 탭으로 뗐다.

@@ -50,14 +50,19 @@ describe("StepPublicInterest 렌더", () => {
     expect(html).not.toContain("해당 없음 · 미확정");
   });
 
-  it("체크한 항목만 텍스트박스가 펼쳐진다", () => {
+  // [삭제 2026-09-08] 항목을 켜면 아래 펼쳐지던 "계획을 간단히 적어주세요." 텍스트박스를
+  // 운영진 요청(nora)으로 뺐다 — 체크해도 더 이상 열리지 않는다. 예전 신청서에 남은
+  // publicInterestDetails 값은 이 화면에서 그리지 않는다(심사 화면은 그대로).
+  it("체크해도 텍스트박스가 더 이상 펼쳐지지 않는다", () => {
     const html = render({
       ...INITIAL_PERFORMANCE_INFO,
       publicInterestItems: ["DISCOUNT_ACCESS"],
       publicInterestDetails: { DISCOUNT_ACCESS: "휠체어석 20석" },
     });
-    expect(html.match(/<textarea/g)?.length).toBe(1);
-    expect(html).toContain("휠체어석 20석");
+    expect(html).not.toContain("<textarea");
+    expect(html).not.toContain("계획을 간단히 적어주세요.");
+    // 체크 상태 자체는 유지된다 — 정적 마크업은 class 뒤에 checked="" 가 온다
+    expect(html.match(/checked=""/g)?.length).toBe(1);
   });
 
   // [수정 2026-09-07] "자료첨부 탭 외의 탭에서는 첨부파일 넣기 슬롯 제거" — 섹션 전체용

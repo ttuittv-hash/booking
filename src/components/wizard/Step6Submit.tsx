@@ -82,6 +82,7 @@ export function Step6Submit({
   attachmentError,
   fileCount = 0,
   onSubmit,
+  beforeSubmit,
   onRequestEdit,
   stepText,
   headingOverride,
@@ -103,6 +104,9 @@ export function Step6Submit({
   attachmentError?: string | null;
   fileCount?: number;
   onSubmit: () => void;
+  /** [신규 2026-09-08] 확인 체크박스·제출 버튼 바로 위에 끼우는 블록 — 대관 경합 옵션
+   *  (티켓 매출 RS)이 STEP3 에서 이리로 옮겨왔다(nora, "SUBMIT 하단 페이지로 이동"). */
+  beforeSubmit?: ReactNode;
   /** 제출 완료 배너 옆의 "수정하기" 버튼 — 누르면 1단계로 돌아가 다시 수정할 수 있다. */
   onRequestEdit?: () => void;
   stepText: WizardStepTexts;
@@ -351,6 +355,7 @@ export function Step6Submit({
               </p>
             </div>
           )}
+          {beforeSubmit && <div className="mt-10">{beforeSubmit}</div>}
           <div className="mt-5 space-y-2.5">
             <label className="flex cursor-pointer items-start gap-2.5 text-s">
               <input

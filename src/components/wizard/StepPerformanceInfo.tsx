@@ -16,8 +16,6 @@ import {
   CAST_CONTRACT_STATUS_LABEL,
   EVENT_TYPE_LABEL,
   ORGANIZER_ROLE_LABEL,
-  RETRACTABLE_SEAT_FLOOR_LABEL,
-  RETRACTABLE_SEAT_USE_LABEL,
   SEATING_TYPE_LABEL,
   STAGE_TYPE_LABEL,
   type AgeRating,
@@ -32,8 +30,6 @@ import {
   type PastPerformanceRecord,
   type PerformanceInfo,
   type QuoteSelection,
-  type RetractableSeatFloor,
-  type RetractableSeatUse,
   type SeatingType,
   type StageType,
   type StepValidationResult,
@@ -43,8 +39,6 @@ const EVENT_TYPES = Object.keys(EVENT_TYPE_LABEL) as EventType[];
 const APPLICANT_COMPANY_TYPES = Object.keys(APPLICANT_COMPANY_TYPE_LABEL) as ApplicantCompanyType[];
 const STAGE_TYPES = Object.keys(STAGE_TYPE_LABEL) as StageType[];
 const SEATING_TYPES = Object.keys(SEATING_TYPE_LABEL) as SeatingType[];
-const RETRACTABLE_USES = Object.keys(RETRACTABLE_SEAT_USE_LABEL) as RetractableSeatUse[];
-const RETRACTABLE_FLOORS = Object.keys(RETRACTABLE_SEAT_FLOOR_LABEL) as RetractableSeatFloor[];
 const AGE_RATINGS = Object.keys(AGE_RATING_LABEL) as AgeRating[];
 const CAST_CONTRACT_STATUSES = Object.keys(CAST_CONTRACT_STATUS_LABEL) as CastContractStatus[];
 const ORGANIZER_ROLES = Object.keys(ORGANIZER_ROLE_LABEL) as OrganizerRole[];
@@ -126,6 +120,12 @@ export function validatePerformanceInfoStep(
   // 전체를 껐을 때는 물론, 개별 항목을 모두 꺼서 결과적으로 빈 목록이 됐을 때도
   // 같은 규칙으로 걸러진다.
   if (!isSlotDisabled("applicantDetails")) {
+    // [신규 2026-09-08] 대관사명·사업자등록번호가 입력칸이 되면서 비울 수 있게 됐다 —
+    // 계약 주체 식별값이라 비워서는 제출할 수 없다. 대표자명은 선택.
+    if (!info.applicantCompanyName.trim())
+      return issue("performanceInfo.applicantCompanyName", "대관신청사명을 입력해 주세요.");
+    if (!info.applicantBusinessRegistrationNumber.trim())
+      return issue("performanceInfo.applicantBusinessRegistrationNumber", "사업자등록번호를 입력해 주세요.");
     if (
       visibleInGroup(
         [...APPLICANT_COMPANY_TYPES, ...(customOptions["performanceInfo.applicantCompanyType"] ?? [])],
@@ -209,19 +209,9 @@ export function validatePerformanceInfoStep(
     if (info.seatingTypes.includes("OTHER") && !info.seatingTypeOtherDetail?.trim()) {
       return issue("performanceInfo.seatingTypes.other", '객석형태 "기타" 상세를 입력해 주세요.');
     }
-    if (!info.retractableSeatUse)
-      return issue("performanceInfo.retractableSeatUse", "수납식 객석 사용여부를 선택해 주세요.");
-    // [사용]을 골랐으면 층별로도 답해야 한다 — 어느 층을 펴는지에 따라 객석 구성이 달라져서
-    // "사용" 한 마디만으로는 심사도 시공도 진행되지 않는다(2026-09-02).
-    if (info.retractableSeatUse === "USE") {
-      const floors = info.retractableSeatFloorUse ?? {};
-      if (!floors.FLOOR_1 || !floors.FLOOR_3) {
-        return issue(
-          "performanceInfo.retractableSeatUse.floors",
-          "수납식 객석을 사용하시면 1층·3층 각각 사용여부를 선택해 주세요.",
-        );
-      }
-    }
+    // [삭제 2026-09-08] 수납식 객석 사용여부 — "객석수 내부에서 산정해서 수치의 정확성
+    // 가늠해보려고" 넣었던 항목을 운영진 요청으로 위저드에서 뺐다(카카오아레나 nora,
+    // 9/8 16:20). 필드는 남겨 예전 신청서의 값은 심사·출력 화면에 그대로 보인다.
     if (
       visibleInGroup(
         [...STAGE_TYPES, ...(customOptions["performanceInfo.stageTypes"] ?? [])],
@@ -370,34 +360,6 @@ function ReadOnlyRow({ label, value, note }: { label: ReactNode; value: string; 
       </div>
       {note && <p className="mt-1 text-xs text-muted">{note}</p>}
     </div>
-  );
-}
-
-/**
- * 라벨 옆의 물음표 — 커서를 올리면 설명이 뜬다 (2026-09-02).
- *
- * CSS 만으로 그린다(group-hover + focus-within). 상태를 들고 있으면 칸마다 리렌더가
- * 생기고, 이 화면은 입력 칸이 많아 한 글자마다 전체가 다시 그려진다.
- * 키보드로도 닿게 button 으로 두고 tabIndex 를 살린다 — 마우스 없이는 못 보는 안내가
- * 되면 안 된다.
- */
-function HelpTip({ text }: { text: string }) {
-  return (
-    <span className="group relative inline-flex">
-      <button
-        type="button"
-        aria-label={text}
-        className="flex h-4 w-4 cursor-help items-center justify-center rounded-full border border-border-soft text-[10px] font-bold text-muted transition-colors hover:border-foreground hover:text-foreground"
-      >
-        ?
-      </button>
-      <span
-        role="tooltip"
-        className="pointer-events-none absolute bottom-full left-1/2 z-20 mb-2 hidden w-64 -translate-x-1/2 break-keep border border-border-soft bg-panel px-3 py-2 text-xs leading-5 font-normal text-foreground shadow-md group-hover:block group-focus-within:block"
-      >
-        {text}
-      </span>
-    </span>
   );
 }
 
@@ -554,24 +516,39 @@ function ApplicantDetailsFields({
     <div className="border-t-2 border-foreground pt-5">
       <h3 className="type-kr-heading text-h6-m">{t("performanceInfo.applicantSectionHeading", "신청자 정보")}</h3>
       <p className="mt-1 text-xs text-muted">
-        {t("performanceInfo.applicantSectionHint", "가입한 계정 정보에서 자동으로 불러옵니다")}
+        {t(
+          "performanceInfo.applicantSectionHint",
+          "가입한 계정 정보를 기본으로 채웠습니다. 실제 계약 주체가 다르면 고쳐 주세요 — 이 신청서에만 반영되고 회원정보는 바뀌지 않습니다.",
+        )}
       </p>
 
       <div className="mt-4 space-y-4">
+        {/* [개정 2026-09-08] "대관사명·대표자명·사업자등록번호 수정이 가능하게" — 8/22 부터
+            가입 계정(회사 정보)에서 가져와 읽기 전용으로만 보여줬는데, 대행사 신청처럼
+            계약 주체가 계정 회사와 다른 경우가 있다. 입력칸으로 열되 값은 이 신청서
+            (quotes.selection.performanceInfo)에만 저장한다 — 가입 때 진위확인한 회사
+            기록은 그대로 두고, 운영자 심사 화면에서 계정 회사와 다르면 뱃지로 알린다. */}
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-          <ReadOnlyRow
+          <TextField
             label={t("performanceInfo.applicantCompanyNameLabel", "대관신청사명")}
-            value={info.applicantCompanyName || "—"}
+            value={info.applicantCompanyName}
+            placeholder={tStr("performanceInfo.applicantCompanyNamePlaceholder", "계약 주체 상호")}
+            onChange={(v) => set("applicantCompanyName", v)}
+            fieldKey="performanceInfo.applicantCompanyName"
           />
-          <ReadOnlyRow
+          <TextField
             label={t("performanceInfo.applicantBrnLabel", "사업자등록번호")}
-            value={info.applicantBusinessRegistrationNumber || "—"}
+            value={info.applicantBusinessRegistrationNumber}
+            placeholder={tStr("performanceInfo.applicantBrnPlaceholder", "000-00-00000")}
+            onChange={(v) => set("applicantBusinessRegistrationNumber", v)}
+            fieldKey="performanceInfo.applicantBusinessRegistrationNumber"
           />
-          {/* [신규 2026-08-26] 대표자명 — 대관신청사명·사업자등록번호와 같은 이유로
-              가입 계정(회사 정보)에서 그대로 가져와 읽기 전용으로 보여준다. */}
-          <ReadOnlyRow
+          <TextField
             label={t("performanceInfo.applicantRepresentativeNameLabel", "대표자명")}
-            value={info.applicantRepresentativeName || "—"}
+            value={info.applicantRepresentativeName ?? ""}
+            placeholder={tStr("performanceInfo.applicantRepresentativeNamePlaceholder", "대표자 성명")}
+            onChange={(v) => set("applicantRepresentativeName", v)}
+            fieldKey="performanceInfo.applicantRepresentativeName"
           />
         </div>
 
@@ -1215,15 +1192,9 @@ function EventBasicsFields({
                 >
                   {t("performanceInfo.ticketOpenUndecided", "미정")}
                 </button>
-                <button
-                  type="button"
-                  onClick={() =>
-                    set("ticketOpenExpectedDate", info.ticketOpenExpectedDate === "협의중" ? "" : "협의중")
-                  }
-                  className={toggleClass(info.ticketOpenExpectedDate === "협의중")}
-                >
-                  {t("performanceInfo.ticketOpenInDiscussion", "협의 중")}
-                </button>
+                {/* [삭제 2026-09-08] 「협의 중」 버튼 — 운영진 요청(nora, 9/8 16:20)으로 뺐다.
+                    「미정」만 남긴다. 이미 "협의중"으로 저장된 신청서는 위 입력칸이 비활성으로
+                    보이도록 그대로 두어 값이 깨지지 않게 한다. */}
               </div>
             </div>
           </div>
@@ -1261,66 +1232,8 @@ function EventBasicsFields({
                 </div>
               )}
 
-              <div data-field-key="performanceInfo.retractableSeatUse">
-                <div className="mb-2.5 flex items-center gap-1.5 text-xs font-bold text-muted">
-                  {t("performanceInfo.retractableSeatUseLabel", "수납식 객석 사용여부")}
-                  {/* 물음표에 커서를 올리면 설명이 뜬다(2026-09-02) — 라벨 옆에 다 적으면
-                      줄이 길어지고, 안 적으면 무엇을 묻는지 모른 채 고르게 된다. */}
-                  <HelpTip
-                    text={tStr(
-                      "performanceInfo.retractableSeatUseHelp",
-                      "1층·3층에 각각 수납식 객석이 있습니다. 접어 두면 플로어 스탠딩 면적이 늘고, 펴면 지정석이 늘어납니다. 사용을 고르시면 층별로 다시 여쭙니다.",
-                    )}
-                  />
-                </div>
-                <div className="flex flex-wrap gap-2">
-                  {RETRACTABLE_USES.map((use) => (
-                    <CheckboxChip
-                      key={use}
-                      label={RETRACTABLE_SEAT_USE_LABEL[use]}
-                      checked={info.retractableSeatUse === use}
-                      onChange={() => {
-                        const next = info.retractableSeatUse === use ? null : use;
-                        // [미사용]·해제로 돌아가면 층별 답을 지운다 — 안 그러면 화면에서
-                        // 사라진 값이 제출까지 따라간다.
-                        onChange({
-                          ...info,
-                          retractableSeatUse: next,
-                          retractableSeatFloorUse: next === "USE" ? info.retractableSeatFloorUse : undefined,
-                        });
-                      }}
-                    />
-                  ))}
-                </div>
-
-                {info.retractableSeatUse === "USE" && (
-                  <div className="mt-3 space-y-2.5 border-l-2 border-border-soft pl-3">
-                    {RETRACTABLE_FLOORS.map((floor) => (
-                      <div key={floor}>
-                        <div className="mb-1.5 text-xs text-muted">
-                          {RETRACTABLE_SEAT_FLOOR_LABEL[floor]}
-                        </div>
-                        <div className="flex flex-wrap gap-2">
-                          {RETRACTABLE_USES.map((use) => (
-                            <CheckboxChip
-                              key={use}
-                              label={RETRACTABLE_SEAT_USE_LABEL[use]}
-                              checked={info.retractableSeatFloorUse?.[floor] === use}
-                              onChange={() => {
-                                const current = info.retractableSeatFloorUse ?? {};
-                                const next = { ...current };
-                                if (next[floor] === use) delete next[floor];
-                                else next[floor] = use;
-                                set("retractableSeatFloorUse", next);
-                              }}
-                            />
-                          ))}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
+              {/* [삭제 2026-09-08] 수납식 객석 사용여부(층별 포함) — 운영진 요청으로 위저드에서
+                  뺐다(nora, 9/8 16:20). 예전 신청서 값은 심사·출력 화면에 그대로 남는다. */}
             </div>
 
             {visibleStageTypes.length > 0 && (
