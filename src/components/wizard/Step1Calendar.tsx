@@ -84,6 +84,8 @@ function addDays(date: Date, n: number): Date {
 }
 
 const MAX_EXTRA_DAYS = 30;
+// 하루 최대 공연 회차 — [수정 2026-09-08] 4 → 3 (nora "공연회차 추가 4일 리미트를 3일로").
+export const MAX_SHOWS_PER_DAY = 3;
 
 // 역할 선택 팝오버의 고정 폭(7칸 중 몇 칸).
 // [수정 2026-09-08] "레이어가 너무 길어.. 레이어 길이를 적당히 고정하고 날짜 선택
@@ -393,7 +395,8 @@ export function Step1Calendar({
   function setShowCount(iso: string, count: number) {
     onChangeDayShowCounts({
       ...dayShowCounts,
-      [iso]: Math.max(1, Math.min(4, count)),
+      // [수정 2026-09-08] "공연회차 추가 4일 리미트를 3일로"(nora) — 하루 최대 회차 4 → 3.
+      [iso]: Math.max(1, Math.min(MAX_SHOWS_PER_DAY, count)),
     });
   }
 
@@ -926,7 +929,7 @@ export function Step1Calendar({
                                   [openDate]: {
                                     role: "PERFORMANCE",
                                     shows: Math.min(
-                                      4,
+                                      MAX_SHOWS_PER_DAY,
                                       (midHall[openDate]?.shows ?? 1) + 1,
                                     ),
                                   },

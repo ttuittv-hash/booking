@@ -1,6 +1,7 @@
 "use client";
 
 import { btnClass, ICON_BTN_SM, toggleClass } from "@/components/ui/kit";
+import { MAX_SHOWS_PER_DAY } from "./Step1Calendar";
 
 import { useState } from "react";
 import { isoDate, isWeekendDate } from "@/lib/pricing/dateRange";
@@ -150,7 +151,8 @@ export function MidHallCalendar({
     if (!current) return;
     onChangeDays({
       ...days,
-      [iso]: { ...current, shows: Math.max(1, Math.min(4, shows)) },
+      // 하루 최대 회차 4 → 3 (nora, 2026-09-08) — 아레나 달력(MAX_SHOWS_PER_DAY)과 같은 값.
+      [iso]: { ...current, shows: Math.max(1, Math.min(MAX_SHOWS_PER_DAY, shows)) },
     });
   }
 
