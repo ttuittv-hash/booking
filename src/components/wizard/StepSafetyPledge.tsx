@@ -1,8 +1,7 @@
 "use client";
 
-import { useRef, type ReactNode } from "react";
+import type { ReactNode } from "react";
 import Link from "next/link";
-import { btnClass } from "@/components/ui/kit";
 import type { SafetyPledge, StepValidationResult } from "@/lib/pricing/types";
 import { useWizardText } from "@/lib/content/wizardText";
 import { SignaturePad } from "./SignaturePad";
@@ -86,59 +85,10 @@ export function validateSafetyPledgeStep(
   return null;
 }
 
-// [신규 2026-09-07] "안전관리 서약서 탭에서 자료 첨부하기 모두 제거하고, 자료첨부 탭에서
-// 자료 첨부·안전관리 서약서 첨부 두 슬롯만 노출" — 공연·행사 안전관리계획서 업로드가
-// STEP6에서 STEP7(자료 첨부)로 옮겨감에 따라, 필수 검사도 함께 옮긴다.
-export function validateAttachmentsStep(
-  safetyPlanFile: File | null,
-  tStr: (key: string, fallback: string) => string = (_key, fallback) => fallback,
-): StepValidationResult | null {
-  if (!safetyPlanFile) {
-    return {
-      fieldKey: "attachments.safetyPlanFile",
-      message: tStr("validationMessage.attachments.safetyPlanFile", "공연·행사 안전관리계획서를 업로드해 주세요."),
-    };
-  }
-  return null;
-}
-
-/** [2026-09-07] StepAttachments(자료 첨부 탭)에서도 같은 "라벨 + 업로드 버튼" 모양의
- * 필수 파일 슬롯(안전관리 서약서 첨부)을 쓴다 — export해서 재사용한다. */
-export function FileSlot({
-  label,
-  file,
-  onChange,
-}: {
-  label: ReactNode;
-  file: File | null;
-  onChange: (file: File | null) => void;
-}) {
-  const { t } = useWizardText();
-  const inputRef = useRef<HTMLInputElement>(null);
-  return (
-    <div className="flex items-center justify-between gap-3 px-5 py-4">
-      <div className="min-w-0">
-        <span className="text-s font-bold text-foreground">
-          {label} <span className="text-danger">*</span>
-        </span>
-        {file && <p className="mt-0.5 truncate text-xs text-muted">{file.name}</p>}
-      </div>
-      <input
-        ref={inputRef}
-        type="file"
-        className="hidden"
-        onChange={(e) => onChange(e.target.files?.[0] ?? null)}
-      />
-      <button
-        type="button"
-        onClick={() => inputRef.current?.click()}
-        className={`${btnClass("primary", "sm")} shrink-0`}
-      >
-        {t("safetyPledge.uploadButton", "업로드")}
-      </button>
-    </div>
-  );
-}
+// [삭제 2026-09-08] "안전관리 서약서 첨부 슬롯 삭제 필요" — 공연·행사 안전관리계획서
+// 필수 업로드(validateAttachmentsStep)와 그 업로드 칸(FileSlot)을 없앴다. STEP7
+// "자료 첨부"는 이제 일반 첨부(pendingFiles, StepAttachments)만 받는다 — 필요한
+// 안전관리계획서는 그 자유 첨부로 받는다.
 
 export function StepSafetyPledge({
   pledge,

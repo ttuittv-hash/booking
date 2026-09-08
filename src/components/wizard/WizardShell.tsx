@@ -1108,7 +1108,11 @@ export function WizardShell({
               title={wizardStepText.marketingTitle}
               lead={wizardDisabledFields?.includes("wizardShell.marketingLead") ? undefined : wizardStepText.marketingLead}
             />
-            <div className="mt-10">
+            {/* [수정 2026-09-08] "공공/공익 참여 여부 위에 굵은 줄로" — 마케팅 협업
+                (StepMarketingCooperation) 내용과 이어 그려지면서 얇은 여백만 있어
+                슬롯 경계가 잘 안 보였다. 다른 슬롯 경계와 같은 굵은 줄(border-t-2)로
+                맞춘다. */}
+            <div className="mt-10 border-t-2 border-foreground pt-5">
               <StepPublicInterest
                 info={selection.performanceInfo}
                 onChange={(performanceInfo) => setSelection((prev) => ({ ...prev, performanceInfo }))}
