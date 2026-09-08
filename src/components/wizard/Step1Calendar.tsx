@@ -449,9 +449,16 @@ export function Step1Calendar({
                   const isToday = isSameDate(date, today);
                   const iso = isoDate(date);
                   const isActive = activeDateKeys.has(dateKey(date));
-                  const tag = isActive
-                    ? effectiveDayTag(iso, dayTags, dayTagDefaults)
-                    : null;
+                  // [수정 2026-09-08] "역할 선택 버튼 해제 시 아무것도 선택되지 않은
+                  // 상태로 일정만 잡혀있어야 함(일정만 노란색으로)" — 예전엔 명시
+                  // 지정을 안 한 날짜도 패키지 기본값(effectiveDayTag)으로 배지가 항상
+                  // 보였다. 그래서 "해제"를 눌러도 그 날짜의 기본값이 마침 같은 태그면
+                  // 배지가 그대로 남아 "해제가 안 된다"로 보였다. 이제 배지는 사용자가
+                  // 실제로 고른 날짜(dayTags에 명시된 값)에만 붙이고, 나머지는 노란
+                  // 배경만 남긴다 — 요금 계산(effectiveDayTag 기반)은 그대로 기본값을
+                  // 쓴다, 화면 배지 노출 조건만 바뀐 것이다.
+                  const explicitTag = isActive ? dayTags[iso] : undefined;
+                  const tag = explicitTag ?? null;
                   const dayKind = dayKindForDate(iso);
                   const isExtendable = dayKind?.kind === "extend";
                   const interactable = dayKind !== null;
