@@ -726,12 +726,17 @@ export function Step1Calendar({
                           준비일 단가 10% 할인만큼 차감된다. 제외된 상태에서는 「다시 포함」으로
                           되돌린다. 가운데 4일(수~토)은 패키지 단위라 여전히 뗄 수 없다. */}
                       {openDayKind?.kind === "base" &&
-                        (openDayKind.weekday === "TUE" || openDayKind.weekday === "SUN") &&
+                        (openDayKind.weekday === "TUE" ||
+                          openDayKind.weekday === "SUN") &&
                         (excludedDays.includes(openDayKind.weekday) ? (
                           <button
                             type="button"
                             onClick={() =>
-                              onChangeExcludedDays(excludedDays.filter((w) => w !== openDayKind.weekday))
+                              onChangeExcludedDays(
+                                excludedDays.filter(
+                                  (w) => w !== openDayKind.weekday,
+                                ),
+                              )
                             }
                             className={btnClass("secondary", "sm")}
                           >
@@ -742,8 +747,14 @@ export function Step1Calendar({
                             type="button"
                             onClick={() => {
                               const weekday = openDayKind.weekday;
-                              if (dayTags[openDate]) onChangeDayTags(omit(dayTags, openDate));
-                              onChangeExcludedDays(WEEKDAYS.filter((w) => w === weekday || excludedDays.includes(w)));
+                              if (dayTags[openDate])
+                                onChangeDayTags(omit(dayTags, openDate));
+                              onChangeExcludedDays(
+                                WEEKDAYS.filter(
+                                  (w) =>
+                                    w === weekday || excludedDays.includes(w),
+                                ),
+                              );
                             }}
                             className={btnClass("danger", "sm")}
                           >
@@ -839,6 +850,22 @@ export function Step1Calendar({
                               {label}
                             </button>
                           ))}
+                          {/* [신규 2026-09-08] "올인원 탭 선택 > 날짜 세팅 시 중형공연장의
+                              경우 삭제 버튼 추가" — 아레나 줄에 이미 있는 「삭제」와 같은
+                              자리·같은 스타일로, 그날 중형 역할 지정을 통째로 지운다(눌린
+                              역할 버튼을 다시 눌러도 같은 결과지만, 명시적인 삭제 동작을
+                              기대하는 사용자를 위해 버튼을 따로 둔다). */}
+                          {midHall[openDate] && (
+                            <button
+                              type="button"
+                              onClick={() =>
+                                onChangeMidHallDays?.(omit(midHall, openDate))
+                              }
+                              className={btnClass("danger", "sm")}
+                            >
+                              삭제
+                            </button>
+                          )}
                         </div>
 
                         {midHall[openDate]?.role === "PERFORMANCE" && (
