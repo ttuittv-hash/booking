@@ -99,18 +99,12 @@ export function FilePicker({
     </button>
   );
 
-  const status =
-    rows.length === 0 ? (
-      // 빈 문자열을 넘기면 상태 줄을 아예 그리지 않는다 — 위에 이미 파일 목록이
-      // 따로 서 있는 자리(자료 첨부)에서 「선택한 파일이 없습니다」가 중복된다
-      emptyLabel ? (
-        <p className="mt-0.5 break-all text-s text-muted">{emptyLabel}</p>
-      ) : null
-    ) : (
-      <ul className="mt-0.5 space-y-1">
+  const fileList =
+    rows.length > 0 ? (
+      <ul className="space-y-1">
         {rows.map((f, i) => (
           <li key={`${f.name}-${i}`} className="flex items-center gap-2 text-s">
-            <span className="min-w-0 break-all text-muted">{f.name}</span>
+            <span className="min-w-0 break-all text-foreground">{f.name}</span>
             {f.size != null && (
               <span className="shrink-0 text-xs text-muted tabular-nums">{formatSize(f.size)}</span>
             )}
@@ -122,18 +116,35 @@ export function FilePicker({
           </li>
         ))}
       </ul>
-    );
+    ) : null;
 
-  // 이름표가 없는 자리(바로 위에 제목이 이미 서 있는 경우)는 카드 없이 버튼과 목록만.
+  const emptyText =
+    rows.length === 0 && emptyLabel ? (
+      <span className="break-all text-s text-muted">{emptyLabel}</span>
+    ) : null;
+
+  /*
+    이름표가 없는 자리(바로 위에 제목이 이미 서 있는 경우) — **지면 폭을 다 쓰는 흰
+    컨테이너** 하나다. 테두리는 두지 않는다(면 색이 경계를 만든다).
+
+    고른 파일은 **컨테이너 안 위쪽에 쌓이고**, 버튼과 상태 문구가 그 아래에 남는다.
+    파일을 헤어라인으로 갈라 아래로 늘어놓던 동안 목록이 표처럼 읽혔고, 새로 고른
+    파일이 버튼에서 멀어져 방금 무엇이 추가됐는지 눈으로 잇기 어려웠다.
+  */
   if (label === undefined) {
     return (
-      <div className={`min-w-0 ${className}`}>
+      <div className={`w-full bg-panel p-4 ${className}`}>
         {input}
-        {button}
-        {status}
+        {fileList && <div className="mb-3">{fileList}</div>}
+        <div className="flex flex-wrap items-center gap-3">
+          {button}
+          {emptyText}
+        </div>
       </div>
     );
   }
+
+  const status = fileList ?? (emptyText && <p className="mt-0.5">{emptyText}</p>);
 
   return (
     <div className={`flex items-start justify-between gap-4 border border-border-soft px-5 py-4 ${className}`}>

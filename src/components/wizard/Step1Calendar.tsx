@@ -548,7 +548,7 @@ export function Step1Calendar({
                       className={[
                         "flex h-9 flex-col items-center justify-center gap-0.5 text-xs sm:h-11 sm:text-s",
                         cellBlocked
-                          ? "cursor-not-allowed bg-muted/8 text-muted line-through decoration-muted/22"
+                          ? "cursor-not-allowed bg-muted/8 text-n-light line-through decoration-n-light/60"
                           : isActive
                             ? "cursor-pointer bg-accent-soft font-bold text-foreground"
                             : isExtendable

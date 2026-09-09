@@ -230,7 +230,7 @@ export function MidHallCalendar({
                         !inMonth
                           ? "cursor-default text-transparent"
                           : blocked
-                            ? "cursor-not-allowed bg-muted/8 text-muted line-through decoration-muted/22"
+                            ? "cursor-not-allowed bg-muted/8 text-n-light line-through decoration-n-light/60"
                             : selection
                               ? "cursor-pointer bg-accent-soft font-bold text-foreground"
                               : "cursor-pointer text-foreground hover:bg-panel",

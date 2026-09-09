@@ -94,18 +94,19 @@ export function QueryTabs({
     return (
       <div className={className}>
         <div className={`scroll-mt-[calc(var(--header-h)+1rem)] ${tablistClassName}`}>
-          <div
-            role="tablist"
-            aria-label={ariaLabel}
-            className="flex gap-8 border-b border-border/25 print:hidden"
-          >
+          {/*
+            [개정 2026-09-10] 선은 지면 전체 폭에 그리고, 탭 줄만 내용 폭(`w-max`)으로
+            둔다 — 탭이 화면을 넘으면 이 영역이 가로 스크롤을 맡는다. 스크롤바는 숨긴다.
+          */}
+          <div className="overflow-x-auto border-b border-border/25 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+          <div role="tablist" aria-label={ariaLabel} className="flex w-max gap-8 print:hidden">
             {items.map((it) => (
               <button
                 key={it.value}
                 {...tabProps(it.value)}
                 /* 라인 탭도 버튼과 같은 단으로 높이를 고정한다 — pb/pt 로 만들면
                    글꼴 줄높이에 따라 화면마다 달라진다 */
-                className={`-mb-px flex h-12 items-center border-b-2 px-1 text-s font-bold transition-colors ${
+                className={`-mb-px flex h-12 shrink-0 items-center whitespace-nowrap border-b-2 px-1 text-s font-bold transition-colors ${
                   it.value === active
                     ? "border-foreground text-foreground"
                     : "border-transparent text-muted hover:text-foreground"
@@ -114,6 +115,7 @@ export function QueryTabs({
                 {it.label}
               </button>
             ))}
+          </div>
           </div>
         </div>
         {panels}
@@ -125,14 +127,24 @@ export function QueryTabs({
   return (
     <div className={className}>
       <div
-        className={`sticky top-[var(--header-h)] z-30 flex justify-center px-[var(--margin-x)] py-4 print:hidden ${tablistClassName}`}
+        className={`sticky top-[var(--header-h)] z-30 py-4 print:hidden ${tablistClassName}`}
         style={{ pointerEvents: "none" }}
       >
+        {/*
+          [개정 2026-09-10] **알약에는 잘림도 스크롤도 두지 않는다.** `max-w-full` +
+          `overflow-x-auto` 를 알약에 걸던 동안 마지막 탭 글자가 둥근 끝에서 잘렸다
+          ("올인원 대관료"). 스크롤은 **바깥 영역**이 맡는다 — 지면 폭을 다 쓰고
+          시작·끝에 공통 여백(`--margin-x`)을 둔다. 알약은 모든 문구를 담는 고유
+          너비(`w-max`)를 유지하고, 자리가 남으면 `mx-auto` 로 가운데 선다.
+        */}
+        <div
+          className="overflow-x-auto px-[var(--margin-x)] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+          style={{ pointerEvents: "auto" }}
+        >
         <div
           role="tablist"
           aria-label={ariaLabel}
-          style={{ pointerEvents: "auto" }}
-          className="flex max-w-full items-center gap-0 overflow-x-auto rounded-full bg-n-darkest p-1 shadow-md"
+          className="mx-auto flex w-max items-center gap-0 rounded-full bg-n-darkest p-1 shadow-md"
         >
           {items.map((it) => (
             <button
@@ -140,7 +152,8 @@ export function QueryTabs({
               {...tabProps(it.value)}
               // 라벨 크기는 상단바 메뉴(14)와 같게 둔다 — 탭이 페이지 제목보다 커 보이면 안 된다
               // 모바일에서는 44px 을 확보한다 — 32px 알약은 손가락으로 누르기 작다. sm 부터 디자인 규격.
-              className={`h-11 shrink-0 whitespace-nowrap rounded-full px-5 text-s font-bold transition-colors sm:h-8 ${
+              // 높이는 모바일 40 · sm 이상 32. 좌우 패딩은 16 이다.
+              className={`h-10 shrink-0 whitespace-nowrap rounded-full px-4 text-s font-bold transition-colors sm:h-8 ${
                 it.value === active
                   ? "bg-n-white text-n-darkest"
                   : "text-n-white/70 hover:text-n-white"
@@ -149,6 +162,7 @@ export function QueryTabs({
               {it.label}
             </button>
           ))}
+        </div>
         </div>
       </div>
       {panels}

@@ -237,11 +237,6 @@ export function validatePerformanceInfoStep(
   return null;
 }
 
-function formatSize(bytes: number): string {
-  if (bytes < 1024) return `${bytes}B`;
-  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)}KB`;
-  return `${(bytes / (1024 * 1024)).toFixed(1)}MB`;
-}
 
 function toggleInArray<T>(list: T[], value: T): T[] {
   return list.includes(value) ? list.filter((v) => v !== value) : [...list, value];
@@ -1661,36 +1656,15 @@ export function StepAttachments({
           ` ${t("attachments.simultaneousHint", "동시 대관은 두 공간의 자료를 각각 첨부합니다.")}`}
       </p>
 
-      {files.length > 0 && (
-        <ul className="mt-5 border-t border-border/25">
-          {files.map((file, i) => (
-            <li
-              key={`${file.name}-${i}`}
-              className="flex items-center justify-between gap-4 border-b border-border/25 py-4"
-            >
-              <span className="min-w-0 truncate text-s font-bold">{file.name}</span>
-              <div className="flex shrink-0 items-center gap-4 text-xs text-muted tabular-nums">
-                <span>{formatSize(file.size)}</span>
-                <button
-                  type="button"
-                  onClick={() => removeFile(i)}
-                  className={ROW_REMOVE_BTN}
-                >
-                  ✕
-                </button>
-              </div>
-            </li>
-          ))}
-        </ul>
-      )}
-
       {/* [신규 2026-09-08] "자료 첨부 탭에 파일을 꼭 등록해야 넘어가게"(nora) — 필수. 비어 있으면
-          WizardShell 이 「다음」을 막고 이 칸을 빨갛게 표시한다(data-field-key). */}
-      <div data-field-key="attachments.files" className="mt-5 inline-block">
-        {/* 파일 목록은 위 <ul> 이 이미 그리므로 상태 줄은 끈다(emptyLabel="") */}
+          WizardShell 이 「다음」을 막고 이 칸을 빨갛게 표시한다(data-field-key).
+          [개정 2026-09-10] 고른 파일을 헤어라인으로 갈라 위에 늘어놓던 것을 FilePicker 안으로
+          넣었다 — 흰 컨테이너 하나 안에서 파일이 위쪽에 쌓이고 버튼이 그 아래에 남는다. */}
+      <div data-field-key="attachments.files" className="mt-5">
         <FilePicker
           multiple
-          emptyLabel=""
+          files={files.map((f) => ({ name: f.name, size: f.size }))}
+          onRemove={removeFile}
           onChange={(e) => {
             addFiles(e.target.files);
             e.target.value = "";

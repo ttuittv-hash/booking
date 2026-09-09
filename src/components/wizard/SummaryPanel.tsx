@@ -256,9 +256,7 @@ export function QuoteSectionBox({
         면은 지면과 같은 오프화이트로 두어 사이드바가 지면에서 떠 보이지 않게 한다.
         보고서 모드(예상 대관료 화면)는 여러 박스가 한 지면에 나열되므로 옅은 선을 쓴다.
       */
-      className={
-        report ? "mt-4 border border-border/25 bg-surface p-4" : "mt-4 border border-border bg-surface p-4"
-      }
+      className={report ? "mt-4 border border-border/25 bg-surface p-4" : "mt-4 bg-panel p-4"}
     >
       <div className="flex items-center justify-between gap-2">
         <p className="text-xs font-bold text-foreground">

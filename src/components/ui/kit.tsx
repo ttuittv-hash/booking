@@ -291,9 +291,11 @@ const BTN_VARIANT: Record<BtnVariant, string> = {
 // 모바일에서는 어떤 크기든 44px 을 확보한다 — h-8(32px)·h-10(40px)은 손가락으로
 // 누르기에 작다. sm 브레이크포인트부터는 원래 높이로 돌아가 촘촘한 표가 유지된다.
 const BTN_SIZE: Record<BtnSize, string> = {
-  sm: "h-11 px-4 text-xs sm:h-8",
-  md: "h-11 px-5 text-s sm:h-10",
-  lg: "h-12 px-6 text-s",
+  // 좌우 패딩은 12 / 16 / 20 이다(2026-09-10). 16·20·24 로 두던 동안 글자보다 여백이
+  // 넓어 버튼이 실제 크기보다 커 보였고, 같은 줄에 버튼이 둘 이상 서면 줄이 넘쳤다.
+  sm: "h-11 px-3 text-xs sm:h-8",
+  md: "h-11 px-4 text-s sm:h-10",
+  lg: "h-12 px-5 text-s",
 };
 
 export function btnClass(variant: BtnVariant = "secondary", size: BtnSize = "md") {
