@@ -489,7 +489,9 @@ export const FILE_INPUT =
  * 아이콘이 맞다. 스크린리더용 이름은 `aria-label` 로 남긴다.
  */
 export const ROW_REMOVE_BTN =
-  "flex h-10 w-10 shrink-0 cursor-pointer items-center justify-center text-muted transition-colors hover:text-danger";
+  // 32×32 — 입력칸의 밀도 높은 단(`h-8`)과 같은 높이다. 40 으로 두던 동안 같은 칸에 든
+  // 입력칸을 그만큼 밀어내, 마지막 칸(주최·주관 역할 등)이 눌려 줄이 깨져 보였다.
+  "flex h-8 w-8 shrink-0 cursor-pointer items-center justify-center text-muted transition-colors hover:text-danger";
 
 export const ICON_BTN_SM =
   "inline-flex h-8 w-8 shrink-0 items-center justify-center border border-border-soft text-s text-muted transition-colors hover:border-foreground hover:text-foreground disabled:cursor-not-allowed disabled:opacity-40";

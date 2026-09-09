@@ -117,7 +117,14 @@ export function StepNav({
       // sticky 오프셋은 상단바 높이 토큰(`--header-h`)을 그대로 따른다. 음수 마진(-mx-*)으로
       // 그리드 트랙 밖으로 빼지 않는다 — 스텝 전환 시 위저드 폭이 흔들리던 버그
       // (5cfc178 / 310e689) 가 그렇게 재발한다. w-full + overflow-x-auto 로만 처리한다.
-      className="sticky top-[var(--header-h)] z-20 mb-10 w-full border-b border-border/25 bg-background"
+      /*
+        [복원 2026-09-10] 위쪽을 **불투명한 지면으로 덮는다**(`before:`). 상단바는
+        아랫변이 투명으로 빠지는 페이드라, 이 줄이 상단바 바로 아래에 붙어 있으면
+        그 페이드 구간(= `--header-h` 높이)으로 **본문이 비쳐 올라온다** — 글이 촘촘한
+        위저드에서는 앞 단계 제목이 상단바를 뚫고 나온 것처럼 보였다.
+        여기서는 페이드 대신 불투명한 면으로 덮는다.
+      */
+      className="sticky top-[var(--header-h)] relative z-20 mb-10 w-full border-b border-border/25 bg-background before:absolute before:inset-x-0 before:bottom-full before:h-[var(--header-h)] before:bg-background before:content-['']"
     >
       {/*
         높이를 자식 버튼(h-12)과 **같게** 맞춘다. h-11 이던 동안 4px 이 넘쳐,

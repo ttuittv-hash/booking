@@ -3,10 +3,10 @@
 import { useRouter } from "next/navigation";
 import { useRef, useState } from "react";
 import type { Attachment, FacilityMeeting, UserRole } from "@/lib/pricing/types";
-import { Badge, btnClass, FILE_INPUT } from "@/components/ui/kit";
+import { FilePicker } from "@/components/ui/FilePicker";
+import { Badge, btnClass } from "@/components/ui/kit";
 import { useToast } from "@/components/ui/Toast";
 
-const FILE_FIELD = `${FILE_INPUT} min-w-0 flex-1`;
 
 function formatSize(bytes: number): string {
   if (bytes < 1024) return `${bytes}B`;
@@ -147,7 +147,7 @@ export function FacilityMeetingPanel({
                     href={`/api/quotes/${quoteId}/attachments/${file.id}`}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="min-w-0 truncate text-s font-bold text-foreground underline decoration-accent decoration-2 underline-offset-4"
+                    className="min-w-0 truncate text-s font-bold text-foreground"
                   >
                     {file.originalName}
                   </a>
@@ -159,7 +159,7 @@ export function FacilityMeetingPanel({
             )}
           </ul>
           <div className="mt-5 flex flex-col gap-3 sm:flex-row sm:items-stretch">
-            <input ref={fileInput} type="file" className={FILE_FIELD} />
+            <FilePicker inputRef={fileInput} emptyLabel="" className="min-w-0 flex-1" />
             <button
               type="button"
               disabled={busy}

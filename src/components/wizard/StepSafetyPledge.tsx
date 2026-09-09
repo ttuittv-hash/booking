@@ -3,6 +3,7 @@
 import type { ReactNode } from "react";
 import Link from "next/link";
 import type { SafetyPledge, StepValidationResult } from "@/lib/pricing/types";
+import { btnClass } from "@/components/ui/kit";
 import { useWizardText } from "@/lib/content/wizardText";
 import { SignaturePad } from "./SignaturePad";
 import { StepHeading } from "./StepHeading";
@@ -159,7 +160,9 @@ export function StepSafetyPledge({
         href="/rules"
         target="_blank"
         rel="noopener noreferrer"
-        className="mt-4 inline-flex items-center gap-1 text-s font-bold text-foreground underline decoration-accent decoration-2 underline-offset-4"
+        /* 규약 원문은 서약의 근거라 「읽고 왔는지」가 중요하다 — 밑줄 링크로 두면
+           본문 글자 사이에 묻혀 지나친다. 다음 단계 버튼과 같은 검정 채움으로 세운다. */
+        className={`${btnClass("primary", "md")} mt-4`}
       >
         {t("safetyPledge.viewRulesLinkLabel", "대관 규약 보기")} ↗
       </Link>

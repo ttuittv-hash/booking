@@ -250,12 +250,15 @@ export function QuoteSectionBox({
   return (
     <div
       /*
-        [개정 2026-09-09] 사이드바에서는 **테두리 없이 흰 면**이다 — 지면(오프화이트)
-        위에 떠 있는 카드다. 대관료는 옐로 2px, 추후 정산은 회색 2px 테두리로 갈랐지만
-        안쪽 합계 줄이 이미 옐로·검정으로 구분을 맡고 있어 테두리는 겹치는 신호였다.
-        보고서 모드(예상 대관료 화면)는 여러 박스가 한 지면에 나열되므로 그대로 둔다.
+        [개정 2026-09-10] 두 박스 모두 **검정 1px 테두리**다. 대관료는 옐로 2px, 추후
+        정산은 회색 2px 로 굵기·색이 갈려 있어 한쪽이 더 중요한 것처럼 보였는데, 안쪽
+        합계 줄이 이미 옐로(계약금액)·검정(추후 정산)으로 그 구분을 맡고 있다.
+        면은 지면과 같은 오프화이트로 두어 사이드바가 지면에서 떠 보이지 않게 한다.
+        보고서 모드(예상 대관료 화면)는 여러 박스가 한 지면에 나열되므로 옅은 선을 쓴다.
       */
-      className={report ? "mt-4 border border-border/25 bg-surface p-4" : "mt-4 bg-panel p-4"}
+      className={
+        report ? "mt-4 border border-border/25 bg-surface p-4" : "mt-4 border border-border bg-surface p-4"
+      }
     >
       <div className="flex items-center justify-between gap-2">
         <p className="text-xs font-bold text-foreground">

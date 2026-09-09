@@ -3,7 +3,8 @@
 import { useRouter } from "next/navigation";
 import { useRef, useState } from "react";
 import { PUBLIC_INTEREST_ITEM_LABEL, type Attachment } from "@/lib/pricing/types";
-import { btnClass, FILE_INPUT } from "@/components/ui/kit";
+import { FilePicker } from "@/components/ui/FilePicker";
+import { btnClass } from "@/components/ui/kit";
 import { formatDate } from "@/lib/format";
 
 function formatSize(bytes: number): string {
@@ -77,7 +78,7 @@ export function AttachmentsPanel({
                 href={`/api/quotes/${quoteId}/attachments/${file.id}`}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="min-w-0 truncate text-s font-bold text-foreground underline decoration-accent decoration-2 underline-offset-4"
+                className="min-w-0 truncate text-s font-bold text-foreground"
               >
                 {file.originalName}
               </a>
@@ -105,11 +106,8 @@ export function AttachmentsPanel({
       </ul>
 
       <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:items-stretch">
-        <input
-          ref={fileInput}
-          type="file"
-          className={`${FILE_INPUT} min-w-0 flex-1`}
-        />
+        {/* 파일 목록은 위 <ul> 이 그리므로 상태 줄은 끈다 */}
+        <FilePicker inputRef={fileInput} emptyLabel="" className="min-w-0 flex-1" />
         <button
           type="button"
           disabled={uploading}

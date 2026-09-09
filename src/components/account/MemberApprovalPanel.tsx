@@ -51,7 +51,7 @@ function CertRow({ label, url, name }: { label: string; url: string | null; name
           href={`${url}${name ? `?name=${encodeURIComponent(name)}` : ""}`}
           target="_blank"
           rel="noopener noreferrer"
-          className="font-bold text-foreground underline decoration-accent decoration-2 underline-offset-4"
+          className="font-bold text-foreground"
         >
           {name || "첨부파일"} 열기
         </a>
