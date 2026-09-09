@@ -383,6 +383,7 @@ export default async function AdminQuoteApplicationPage({
                     : NONE
                 }
               />
+              <Row label="셋업 추가 요청시간" value={text(info.setupRequestTime)} />
               <Row label="철수 완료 예정시간" value={text(info.teardownCompletionTime)} />
               <Row label="티켓 오픈 예정일" value={text(info.ticketOpenExpectedDate)} />
             </Section>

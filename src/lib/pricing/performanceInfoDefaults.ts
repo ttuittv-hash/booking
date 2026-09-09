@@ -61,6 +61,7 @@ export const INITIAL_PERFORMANCE_INFO: PerformanceInfo = {
   seatingTypeOtherDetail: "",
   retractableSeatUse: null,
   teardownCompletionTime: "",
+  setupRequestTime: "",
   ticketOpenExpectedDate: "",
   artistMainHistory: [{ ...EMPTY_ARTIST_MAIN_HISTORY_ROW }],
   artistRecentPerformances: [{ ...EMPTY_ARTIST_RECENT_PERFORMANCE_ROW }],

@@ -1131,24 +1131,31 @@ function EventBasicsFields({
             {t("performanceInfo.scheduleGroupLabel", "일정")}
           </div>
           <div className="space-y-4">
-            {(scheduleSummary?.arenaLine || scheduleSummary?.midHallLine) && (
-              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                {scheduleSummary?.arenaLine && (
-                  <ReadOnlyRow
-                    label={t("performanceInfo.arenaPeriodLabel", "대관기간 — 아레나")}
-                    value={scheduleSummary.arenaLine}
-                    note={t("performanceInfo.editAtScheduleNote", "수정은 일정 선택에서")}
-                  />
-                )}
-                {scheduleSummary?.midHallLine && (
-                  <ReadOnlyRow
-                    label={t("performanceInfo.midHallPeriodLabel", "대관기간 — 중형")}
-                    value={scheduleSummary.midHallLine}
-                    note={t("performanceInfo.editAtScheduleNote", "수정은 일정 선택에서")}
-                  />
-                )}
-              </div>
-            )}
+            {/* [신규 2026-09-09] 「셋업 추가 요청시간(선택)」 — 대관기간 줄 오른쪽 빈 칸에 넣어
+                달라는 요청(팀). 아레나 단독이면 그 자리에, 동시 대관이면 중형 기간이 그 칸을
+                쓰므로 다음 줄로 흐른다. 철수 완료 예정시간과 같은 자유 입력이다. */}
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+              {scheduleSummary?.arenaLine && (
+                <ReadOnlyRow
+                  label={t("performanceInfo.arenaPeriodLabel", "대관기간 — 아레나")}
+                  value={scheduleSummary.arenaLine}
+                  note={t("performanceInfo.editAtScheduleNote", "수정은 일정 선택에서")}
+                />
+              )}
+              {scheduleSummary?.midHallLine && (
+                <ReadOnlyRow
+                  label={t("performanceInfo.midHallPeriodLabel", "대관기간 — 중형")}
+                  value={scheduleSummary.midHallLine}
+                  note={t("performanceInfo.editAtScheduleNote", "수정은 일정 선택에서")}
+                />
+              )}
+              <TextField
+                label={t("performanceInfo.setupRequestTimeLabel", "셋업 추가 요청시간(선택)")}
+                value={info.setupRequestTime ?? ""}
+                placeholder={tStr("performanceInfo.setupRequestTimePlaceholder", "예: 전일 09:00부터")}
+                onChange={(v) => set("setupRequestTime", v)}
+              />
+            </div>
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               {scheduleSummary?.showsTotal != null && (
                 <ReadOnlyRow

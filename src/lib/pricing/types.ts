@@ -700,6 +700,9 @@ export interface PerformanceInfo {
   // optional — 위에서 [사용]을 고른 경우 층별 사용여부(2026-09-02). 예전 신청서에는 없다.
   retractableSeatFloorUse?: Partial<Record<RetractableSeatFloor, RetractableSeatUse>>;
   teardownCompletionTime: string; // 철수 완료 예정시간
+  // [신규 2026-09-09] 셋업 추가 요청시간 — 철수 완료 예정시간과 같은 자유 입력(팀 요청).
+  // optional: 이 필드가 생기기 전 저장된 신청서에는 값이 없다.
+  setupRequestTime?: string;
   ticketOpenExpectedDate: string; // 티켓 오픈 예정일
 
   // 아티스트 이력(2026-08-26 추가) — artist(요약 텍스트)와는 별개로 상세 이력을 받는다.

@@ -182,6 +182,7 @@ function performanceInfoFields(info: PerformanceInfo) {
             label="수납식 객석 사용여부"
             value={info.retractableSeatUse ? RETRACTABLE_SEAT_USE_LABEL[info.retractableSeatUse] : "-"}
           />
+          <Row label="셋업 추가 요청시간" value={info.setupRequestTime || "-"} />
           <Row label="철수 완료 예정시간" value={info.teardownCompletionTime || "-"} />
           <Row label="티켓 오픈 예정일" value={info.ticketOpenExpectedDate || "-"} />
         </dl>
