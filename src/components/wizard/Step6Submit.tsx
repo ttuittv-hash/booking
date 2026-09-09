@@ -220,7 +220,7 @@ export function Step6Submit({
       )}
 
       {showConfirmation ? (
-        <div className="mt-8 border-t-2 border-foreground pt-5 text-s text-foreground">
+        <div className="mt-8 bg-panel p-5 text-s text-foreground">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <p className="font-bold">
               {justEdited
@@ -256,7 +256,7 @@ export function Step6Submit({
           )}
         </div>
       ) : !isLoggedIn ? (
-        <div className="mt-8 border-t-2 border-foreground pt-5 text-s text-foreground">
+        <div className="mt-8 bg-panel p-5 text-s text-foreground">
           {t(
             "submit.loginRequiredNote",
             "신청서를 제출하려면 로그인이 필요합니다. 지금까지 입력한 내용은 그대로 유지되니, 로그인 후 이어서 제출할 수 있습니다.",
@@ -272,7 +272,7 @@ export function Step6Submit({
       ) : (
         <>
           {blockingIssues.length > 0 && (
-            <div className="mt-8 border-t-2 border-foreground pt-5 text-s text-foreground">
+            <div className="mt-8 bg-panel p-5 text-s text-foreground">
               <p className="font-bold">
                 {t("submit.blockingIssuesHeading", "운영자 확인이 필요한 항목이 있어 아직 제출할 수 없습니다.")}
               </p>

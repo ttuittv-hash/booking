@@ -251,24 +251,19 @@ function MidHallRateCard({
       {content.includes.length > 0 && (
         <div className="mt-10 bg-panel p-5">
           <h2 className="type-kr-heading text-h6-m sm:text-h6">{t("configOptions.basicItemsHeading", "기본 항목")}</h2>
-          <p className="mt-1.5 text-xs leading-6 text-muted">
+          <p className="mt-2 text-xs text-muted">
             {t("configOptions.basicItemsHint", "대관료에 이미 포함된 기본 제공 사항입니다.")}
           </p>
-          <div className="mt-4">
-            <span className="bg-foreground px-2 py-0.5 text-xs font-bold text-background">
-              {t("configOptions.basicIncludedBadge", "기본 포함")}
-            </span>
-            <div className="mt-3 grid grid-cols-1 gap-1.5 sm:grid-cols-2 lg:grid-cols-3">
-              {content.includes.map((p, i) => (
-                <div
-                  key={`${p.label}-${i}`}
-                  className="flex items-baseline justify-between gap-2 bg-background px-3 py-2 text-xs"
-                >
-                  <span className="font-bold text-foreground">{p.label}</span>
-                  <span className="shrink-0 text-muted">{p.value}</span>
-                </div>
-              ))}
-            </div>
+          <div className="mt-4 grid grid-cols-1 gap-1.5 sm:grid-cols-2 lg:grid-cols-3">
+            {content.includes.map((p, i) => (
+              <div
+                key={`${p.label}-${i}`}
+                className="flex items-baseline justify-between gap-2 bg-background px-3 py-2 text-xs"
+              >
+                <span className="font-bold text-foreground">{p.label}</span>
+                <span className="shrink-0 text-muted">{p.value}</span>
+              </div>
+            ))}
           </div>
           {content.limits.length > 0 && (
             <div className="mt-4 space-y-2 border-t border-border/25 pt-4">
@@ -590,15 +585,17 @@ function PackagePicker({
       </div>
 
       {selectedId != null && (
-        <div className="mt-4">
-          <span className="bg-foreground px-2 py-0.5 text-xs font-bold text-background">
+        /* 「선택 옵션」과 같은 틀이다 — 흰 컨테이너 + H6 헤딩 + 12 muted 설명.
+           배지로 두던 동안 옆 블록과 위계가 달라 같은 층의 섹션으로 읽히지 않았다. */
+        <div className="mt-4 bg-panel p-5">
+          <h2 className="type-kr-heading text-h6-m sm:text-h6">
             {t("configOptions.baseIncludedBadge", "기본 포함")}
-          </span>
-          <p className="mt-1.5 text-xs leading-5 text-foreground">
+          </h2>
+          <p className="mt-2 text-xs text-muted">
             {t("configOptions.baseIncludedHint", "이 구성에는 아래 항목이 별도 비용 없이 기본 포함되어 있습니다.")}
           </p>
           {baseItems.length > 0 ? (
-            <div className="mt-3 grid grid-cols-1 gap-1.5 sm:grid-cols-2 lg:grid-cols-3">
+            <div className="mt-4 grid grid-cols-1 gap-1.5 sm:grid-cols-2 lg:grid-cols-3">
               {baseItems.map((item) => (
                 /* [개정 2026-09-02] 수량·단위("2공연일")를 뺐다. 여기는 이 구성에 무엇이
                    들어 있는지 보는 곳이지 몇 개인지 세는 곳이 아니다 — 이름만 남긴다.
@@ -919,8 +916,8 @@ function AddonRow({
   const picked = quantity > 0;
   return (
     <div
-      className={`flex flex-col gap-1.5 border bg-background px-3 py-2 ${
-        picked ? "border-foreground" : "border-transparent"
+      className={`flex flex-col gap-1.5 border px-3 py-2 ${
+        picked ? "border-foreground bg-panel" : "border-transparent bg-background"
       }`}
     >
       <div className="min-w-0">

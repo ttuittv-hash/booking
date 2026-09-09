@@ -444,11 +444,17 @@ export function choiceClass(
     "block w-full border text-left outline-none transition-colors",
     dense ? "px-4 py-3" : "px-5 py-5",
     "focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-foreground",
+    /*
+      [개정 2026-09-09] **고르지 않은 카드는 흰 면 + 검정 테두리**다(전에는 옅은 테두리에
+      배경이 없어 지면과 붙어 보였다). 고른 카드는 검정 면 — 「선택 = 검정 채움」 그대로다.
+      흰 면과 검정 면이 마주 서므로 무엇을 골랐는지가 카드 줄에서 바로 짚힌다.
+      호버는 면을 한 단 눌러 준다(테두리가 이미 검정이라 테두리로는 신호를 줄 수 없다).
+    */
     disabled
       ? "cursor-not-allowed border-border-soft opacity-45"
       : selected
         ? "cursor-pointer border-foreground bg-inverse-bg text-inverse-fg"
-        : "cursor-pointer border-border-soft hover:border-foreground",
+        : "cursor-pointer border-foreground bg-panel hover:bg-panel-strong",
   ].join(" ");
 }
 export function toggleClass(selected: boolean, disabled = false) {

@@ -1203,9 +1203,10 @@ export function WizardShell({
             </div>
 
             {selection.venueId && (
-              /* 한 단계 안의 두 번째 블록 — 박스로 싸지 않고 굵은 헤어라인으로만 나눈다
-                 (신청자 정보의 "자료 첨부"와 같은 규칙) */
-              <div className="mt-10 border-t-2 border-foreground pt-5">
+              /* 한 단계 안의 두 번째 블록 — 흰 면으로 나눈다(§신청 위저드).
+                 위의 「공간 선택」은 고르는 카드 자체가 흰 면이라 지면 위에 두어야 하고,
+                 여기는 안쪽이 달력(오프화이트 칸)이라 흰 컨테이너가 맞다. */
+              <div className="mt-10 bg-panel p-5">
                 <h3 className="type-kr-heading text-h6-m">
                   {t("wizardShell.scheduleHeading", "일정 선택")}
                 </h3>
@@ -1419,7 +1420,7 @@ export function WizardShell({
                 (StepMarketingCooperation) 내용과 이어 그려지면서 얇은 여백만 있어
                 슬롯 경계가 잘 안 보였다. 다른 슬롯 경계와 같은 굵은 줄(border-t-2)로
                 맞춘다. */}
-            <div className="mt-10 border-t-2 border-foreground pt-5">
+            <div className="mt-10 bg-panel p-5">
               <StepPublicInterest
                 info={selection.performanceInfo}
                 onChange={(performanceInfo) =>

@@ -68,7 +68,7 @@ export function PromotionChannelsFields({
     // [수정 2026-09-08] "프로모션 채널 위에 줄 굵은줄로" — StepAudience(신청자 정보 및
     // 규모) 하위로 옮긴 뒤 얇은 선(border/25)만 남아 위 슬롯과 경계가 약했다. 다른
     // 슬롯 경계와 같은 굵은 줄(border-t-2 border-foreground)로 맞춘다.
-    <div className="border-t-2 border-foreground pt-5">
+    <div className="mt-6 bg-panel p-5">
       <div className="mb-2.5 flex items-center justify-between">
         <h3 className="type-kr-heading text-h6-m">{t("marketing.channelsHeading", "프로모션 채널(선택)")}</h3>
         <button type="button" onClick={addChannel} className={toggleClass(false)}>

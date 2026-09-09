@@ -200,7 +200,7 @@ function AudienceFields({
   return (
     /* 단계 안의 블록은 박스로 싸지 않는다 — 굵은 헤어라인 + H6 으로만 나눈다
        (신청자 정보·공공성과 같은 규칙) */
-    <div className="border-t-2 border-foreground pt-5">
+    <div className="mt-6 bg-panel p-5">
       <h3 className="type-kr-heading text-h6-m">{t("audience.sectionHeading", "예상 관객 및 사업규모")}</h3>
 
       <div className="mt-4 space-y-4">
@@ -520,7 +520,8 @@ export function StepCompetitionOption({
   // [개정 2026-09-08 밤] "티켓 매출 RS는 레이블이랑 입력칸이랑 하나의 행으로" — 제목·설명
   // 아래로 새 줄 떨어지던 입력칸을 한 행(label 왼쪽, 입력 오른쪽)으로 붙인다.
   return (
-    <div className={framed ? "border border-border bg-panel/40 p-5" : "border-t-2 border-foreground pt-5"}>
+    // 두 경우 모두 흰 컨테이너다 — `framed` 는 위 여백만 다르다(다른 블록 안에 끼일 때)
+    <div className={framed ? "bg-panel p-5" : "mt-6 bg-panel p-5"}>
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div>
           <h3 className="type-kr-heading text-h6-m">

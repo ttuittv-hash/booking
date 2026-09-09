@@ -511,7 +511,7 @@ function ApplicantDetailsFields({
   }
 
   return (
-    <div className="border-t-2 border-foreground pt-5">
+    <div className="mt-6 bg-panel p-5">
       <h3 className="type-kr-heading text-h6-m">{t("performanceInfo.applicantSectionHeading", "신청자 정보")}</h3>
       <p className="mt-1 text-xs text-muted">
         {t(
@@ -843,7 +843,7 @@ function EventBasicsFields({
   }
 
   return (
-    <div className="border-t-2 border-foreground pt-5">
+    <div className="mt-6 bg-panel p-5">
       <h3 className="type-kr-heading text-h6-m">{t("performanceInfo.eventBasicsSectionHeading", "공연 기본정보")}</h3>
       <p className="mt-1 text-xs text-muted">
         {t("performanceInfo.eventBasicsSectionHint", "입력한 내용은 대관심의 및 계약서 작성에 활용됩니다")}
@@ -1285,7 +1285,7 @@ function CredibilityFields({
   }
 
   return (
-    <div className="border-t-2 border-foreground pt-5">
+    <div className="mt-6 bg-panel p-5">
       <h3 className="type-kr-heading text-h6-m">
         {t("performanceInfo.credibilitySectionHeading", "개최 신뢰도 및 이력 확인")}
       </h3>
@@ -1638,7 +1638,7 @@ export function StepAttachments({
   }
 
   return (
-    <section className="mt-10 border-t-2 border-foreground pt-5">
+    <section className="mt-10 bg-panel p-5">
       {/* [수정 2026-09-09] "이상한" 표기 점검 — 이 제목 밑에 STEP7 두 번째 슬롯인
           "안전관리 서약서 첨부"(필수, 빨간 별표)가 함께 있어 "(선택)"이 그 필수
           항목까지 선택인 것처럼 읽혔다. 위 공연 관련 자료 자체는 여전히 선택이지만,
