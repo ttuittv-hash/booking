@@ -109,7 +109,6 @@ export const VENUE_TABS = [
   { value: "arena", label: "아레나" },
   { value: "live-hall", label: "중형공연장" },
 ] as const;
-export type VenueTabValue = (typeof VENUE_TABS)[number]["value"];
 
 /** 내용 축 — 서울아레나(시설개요 / 시설 특징), 대관료·대관 자료(아레나 / 중형공연장) */
 export const CONTENT_TAB_PARAM = "tab";

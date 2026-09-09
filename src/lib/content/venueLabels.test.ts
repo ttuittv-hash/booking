@@ -32,12 +32,12 @@ describe("venueLabel", () => {
 });
 
 describe("VENUES", () => {
-  it("세 번째 공간이 있고 기본 이름은 \"패키지\" 다", () => {
+  it("세 번째 공간이 있고 기본 이름은 \"올인원\" 다(2026-09-06, 구 \"패키지\"에서 개명)", () => {
     expect(VENUES.map((v) => v.id)).toEqual(["arena", "medium-hall", SPECIAL_VENUE_ID]);
-    expect(defaultVenueName(SPECIAL_VENUE_ID)).toBe("패키지");
+    expect(defaultVenueName(SPECIAL_VENUE_ID)).toBe("올인원");
   });
 
-  it("공간 id 는 중복되지 않는다 — 패키지가 id 로 공간에 붙는다", () => {
+  it("공간 id 는 중복되지 않는다 — 올인원이 id 로 공간에 붙는다", () => {
     expect(new Set(VENUES.map((v) => v.id)).size).toBe(VENUES.length);
   });
 });

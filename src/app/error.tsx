@@ -2,7 +2,6 @@
 
 import { useEffect } from "react";
 import Link from "next/link";
-import { btnClass, EYEBROW_CAPS } from "@/components/ui/kit";
 
 /**
  * 예기치 않은 오류 화면 (2026-09-04) — 404 와 같은 결.
@@ -14,6 +13,8 @@ export default function ErrorPage({ error, reset }: { error: Error & { digest?: 
     console.error("[page error]", error.digest ?? "", error);
   }, [error]);
 
+  const BTN =
+    "inline-flex h-11 items-center justify-center gap-2 whitespace-nowrap border px-5 text-s font-bold transition-colors duration-150 sm:h-10";
   return (
     <div className="flex min-h-screen flex-1 flex-col bg-background text-foreground">
       <header className="flex h-16 items-center px-6 sm:px-10">
@@ -24,21 +25,24 @@ export default function ErrorPage({ error, reset }: { error: Error & { digest?: 
       <main className="flex flex-1 items-center py-20 sm:py-28">
         <div className="container-site">
           <div className="mx-auto max-w-2xl text-center">
-            {/* 머리말은 사이트 공용 아이브로 — 이 화면만 다른 서체(monospace)를 쓸 이유가 없다 */}
-            <p className={EYEBROW_CAPS}>ERROR · SOMETHING WENT WRONG</p>
-            <p className="type-display mt-4 text-d2-m leading-none sm:text-d2">OOPS</p>
+            <p className="font-mono text-xs tracking-[0.12em] text-muted">ERROR · SOMETHING WENT WRONG</p>
+            <p className="type-display mt-4 text-[4.5rem] leading-none tracking-[-0.05em] sm:text-[7rem]">OOPS</p>
+            <div className="mx-auto mt-6 h-1 w-16 bg-accent" aria-hidden="true" />
             <h1 className="type-kr-heading mt-6 text-h3-m sm:text-h3">일시적인 오류가 발생했습니다</h1>
             <p className="mx-auto mt-4 max-w-md break-keep text-m leading-7 text-muted">
               잠시 후 다시 시도해 주세요.
               <br />
               계속 반복되면 1:1 문의로 알려 주시면 확인하겠습니다.
             </p>
-            {/* 버튼은 사이트 공용 규격 — 호버하면 옐로 면이 된다 */}
-            <div className="mt-lead-action flex flex-wrap justify-center gap-inline">
-              <button type="button" onClick={() => reset()} className={btnClass("primary", "lg")}>
+            <div className="mt-10 flex flex-wrap justify-center gap-3">
+              <button
+                type="button"
+                onClick={() => reset()}
+                className={`${BTN} border-transparent bg-[var(--btn-primary-bg)] text-[var(--btn-primary-fg)] hover:bg-[var(--btn-primary-bg-hover)]`}
+              >
                 다시 시도
               </button>
-              <Link href="/" className={btnClass("secondary", "lg")}>
+              <Link href="/" className={`${BTN} border-foreground bg-transparent hover:bg-foreground hover:text-background`}>
                 홈으로
               </Link>
             </div>

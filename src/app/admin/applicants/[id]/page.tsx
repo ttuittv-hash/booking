@@ -1,7 +1,7 @@
 import type { ReactNode } from "react";
 import Link from "next/link";
-import { notFound, redirect } from "next/navigation";
-import { getCurrentUser } from "@/lib/auth";
+import {notFound} from "next/navigation";
+import { requireProAdminPage } from "@/lib/auth";
 import {
   findCompanyById,
   findUserById,
@@ -73,9 +73,7 @@ export default async function AdminApplicantDetailPage({
 }: {
   params: Promise<{ id: string }>;
 }) {
-  const admin = await getCurrentUser();
-  if (!admin) redirect("/admin/login");
-  if (admin.role !== "ADMIN") redirect("/apply");
+  const admin = await requireProAdminPage();
 
   const { id } = await params;
   const target = await findUserById(id);
@@ -118,9 +116,9 @@ export default async function AdminApplicantDetailPage({
       "회사 내 권한",
       <span key="role" className="flex flex-col items-start gap-2">
         {target.companyRole === "MASTER" ? (
-          <span className="rounded-btn border border-accent px-2 py-0.5 text-xs text-accent">대표 담당자</span>
+          <span className="border border-accent px-2 py-0.5 text-xs text-accent">대표 담당자</span>
         ) : target.companyRole === "STAFF" ? (
-          <span className="rounded-btn border border-border-soft px-2 py-0.5 text-xs text-muted">소속 담당자</span>
+          <span className="border border-border-soft px-2 py-0.5 text-xs text-muted">소속 담당자</span>
         ) : (
           NONE
         )}
@@ -172,7 +170,7 @@ export default async function AdminApplicantDetailPage({
           ← 회원 관리
         </Link>
 
-        <header className="mt-5 border-b border-border/25 pb-6">
+        <header className="mt-5 border-b border-border/20 pb-6">
           <div className="flex flex-wrap items-start justify-between gap-4">
             <div>
               <h1 className="type-kr-heading text-h5-m sm:text-h5">{target.name}</h1>

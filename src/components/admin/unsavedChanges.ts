@@ -31,13 +31,8 @@ export function setUnsaved(id: string, value: boolean) {
   emit();
 }
 
-export function hasUnsaved(): boolean {
+function hasUnsaved(): boolean {
   return dirty.size > 0;
-}
-
-export function subscribeUnsaved(onChange: () => void): () => void {
-  listeners.add(onChange);
-  return () => listeners.delete(onChange);
 }
 
 /**

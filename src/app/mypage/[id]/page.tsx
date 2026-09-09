@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { canAccessQuote, getCurrentUser } from "@/lib/auth";
+import { canApplicantEditQuote } from "@/lib/quoteStatus";
 import {
   getContractSignatureByQuoteId,
   getDepositByQuoteId,
@@ -143,7 +144,7 @@ export default async function MyQuoteDetailPage({
       lead={summaryLine}
       actions={
         <div className="flex flex-wrap items-center gap-x-5 gap-y-2">
-          {quote.status === "ESTIMATE" && !quote.review && user.role !== "ADMIN" && (
+          {canApplicantEditQuote(quote) && user.role !== "ADMIN" && (
             <Link
               href={`/apply/edit/${quote.id}`}
               className="text-s font-bold underline underline-offset-4 hover:text-foreground"
@@ -177,7 +178,7 @@ export default async function MyQuoteDetailPage({
         </div>
       </div>
 
-      <section className="mt-6 rounded-surface border border-border/25 p-6">
+      <section className="mt-6 border border-border/25 p-6">
         <h2 className="type-kr-heading text-h5-m sm:text-h5">
           ① 신청 예상금액 · 산출내역
         </h2>
@@ -199,7 +200,7 @@ export default async function MyQuoteDetailPage({
       </section>
 
       {quote.contract && (
-        <section className="mt-6 rounded-surface border border-border/25 p-6">
+        <section className="mt-6 border border-border/25 p-6">
           <h2 className="type-kr-heading text-h5-m sm:text-h5">
             ② 계약금액 확정됨
           </h2>
@@ -294,7 +295,7 @@ export default async function MyQuoteDetailPage({
               확정일시{" "}
               {new Date(quote.settlement.decidedAt).toLocaleString("ko-KR")}
             </span>
-            <span className="text-h6 font-bold tabular-nums text-foreground">
+            <span className="text-[20px] font-bold tabular-nums text-foreground">
               {won(quote.settlement.finalTotal)}
             </span>
           </div>

@@ -23,6 +23,7 @@ const DAY_TAG_LABEL: Record<DayTag, string> = {
   PREP: "준비일",
   PERFORMANCE: "공연일",
   LOAD_OUT: "철수",
+  REST: "휴무일",
 };
 
 const MID_HALL_ROLE_LABEL: Record<MidHallDayRole, string> = {
@@ -76,27 +77,46 @@ function performanceInfoFields(info: PerformanceInfo) {
             value={info.applicantCompanyType ? APPLICANT_COMPANY_TYPE_LABEL[info.applicantCompanyType] : "-"}
           />
           <Row label="사업자등록번호" value={info.applicantBusinessRegistrationNumber || "-"} />
-          <Row label="담당자" value={info.applicantContactName || "-"} />
-          <Row label="담당자 연락처" value={info.applicantContactPhone || "-"} />
         </dl>
       </div>
 
+      {/* [개정 2026-09-06] "담당자 정보를 한 줄짜리 반복 행으로" — 담당자·공연 운영/
+          안전관리 총괄 책임자를 합친 contactPersons 반복 목록으로 교체했다. 그 필드가
+          추가되기 전(2026-09-06 이전) 제출된 신청서는 contactPersons가 없으므로 옛
+          개별 필드(applicantContact*·operationsResponsible·safetyResponsible)로 되돌아간다. */}
       <div>
-        <p className={`${EYEBROW} text-muted`}>공연 운영 총괄 책임자</p>
-        <dl className="mt-1.5 divide-y divide-border/60 text-s">
-          <Row label="이름" value={info.operationsResponsible.name || "-"} />
-          <Row label="직책" value={info.operationsResponsible.title || "-"} />
-          <Row label="연락처" value={info.operationsResponsible.phone || "-"} />
-        </dl>
-      </div>
-
-      <div>
-        <p className={`${EYEBROW} text-muted`}>안전관리 총괄 책임자</p>
-        <dl className="mt-1.5 divide-y divide-border/60 text-s">
-          <Row label="이름" value={info.safetyResponsible.name || "-"} />
-          <Row label="소속" value={info.safetyResponsible.title || "-"} />
-          <Row label="연락처" value={info.safetyResponsible.phone || "-"} />
-        </dl>
+        <p className={`${EYEBROW} text-muted`}>담당자 정보</p>
+        {info.contactPersons && info.contactPersons.length > 0 ? (
+          <div className="mt-1.5 space-y-3">
+            {info.contactPersons.map((person, i) => (
+              <dl key={i} className="divide-y divide-border/60 text-s">
+                <Row label="담당역할" value={person.role || "-"} />
+                <Row label="소속" value={person.department || "-"} />
+                <Row label="담당자 성명" value={person.name || "-"} />
+                <Row label="연락처" value={person.phone || "-"} />
+                <Row label="이메일" value={person.email || "-"} />
+              </dl>
+            ))}
+          </div>
+        ) : (
+          <div className="mt-1.5 space-y-3">
+            <dl className="divide-y divide-border/60 text-s">
+              <Row label="담당자" value={info.applicantContactName || "-"} />
+              <Row label="담당자 연락처" value={info.applicantContactPhone || "-"} />
+              <Row label="담당자 이메일" value={info.applicantContactEmail || "-"} />
+            </dl>
+            <dl className="divide-y divide-border/60 text-s">
+              <Row label="공연 운영 총괄 · 이름" value={info.operationsResponsible.name || "-"} />
+              <Row label="공연 운영 총괄 · 직책" value={info.operationsResponsible.title || "-"} />
+              <Row label="공연 운영 총괄 · 연락처" value={info.operationsResponsible.phone || "-"} />
+            </dl>
+            <dl className="divide-y divide-border/60 text-s">
+              <Row label="안전관리 총괄 · 이름" value={info.safetyResponsible.name || "-"} />
+              <Row label="안전관리 총괄 · 소속" value={info.safetyResponsible.title || "-"} />
+              <Row label="안전관리 총괄 · 연락처" value={info.safetyResponsible.phone || "-"} />
+            </dl>
+          </div>
+        )}
       </div>
 
       {info.pastPerformances.length > 0 && (
@@ -117,7 +137,7 @@ function performanceInfoFields(info: PerformanceInfo) {
               </thead>
               <tbody>
                 {info.pastPerformances.map((rec, i) => (
-                  <tr key={i} className="border-b border-border/25">
+                  <tr key={i} className="border-b border-border/60">
                     <td className="py-1.5 pr-2">{rec.eventName || "-"}</td>
                     <td className="py-1.5 pr-2">{rec.venue || "-"}</td>
                     <td className="py-1.5 pr-2">{rec.period || "-"}</td>
@@ -162,6 +182,7 @@ function performanceInfoFields(info: PerformanceInfo) {
             label="수납식 객석 사용여부"
             value={info.retractableSeatUse ? RETRACTABLE_SEAT_USE_LABEL[info.retractableSeatUse] : "-"}
           />
+          <Row label="셋업 추가 요청시간" value={info.setupRequestTime || "-"} />
           <Row label="철수 완료 예정시간" value={info.teardownCompletionTime || "-"} />
           <Row label="티켓 오픈 예정일" value={info.ticketOpenExpectedDate || "-"} />
         </dl>
@@ -247,7 +268,7 @@ export function QuoteApplicationDetail({
                     </thead>
                     <tbody>
                       {arenaDates.map((date) => (
-                        <tr key={date} className="border-b border-border/25">
+                        <tr key={date} className="border-b border-border/60">
                           <td className="py-1.5 pr-3 tabular-nums">{date}</td>
                           <td className="py-1.5 pr-3">{DAY_TAG_LABEL[selection.dayTags[date]]}</td>
                           <td className="py-1.5 tabular-nums">
@@ -279,7 +300,7 @@ export function QuoteApplicationDetail({
                       {midHallDates.map((date) => {
                         const d = selection.midHallDays[date];
                         return (
-                          <tr key={date} className="border-b border-border/25">
+                          <tr key={date} className="border-b border-border/60">
                             <td className="py-1.5 pr-3 tabular-nums">{date}</td>
                             <td className="py-1.5 pr-3">{MID_HALL_ROLE_LABEL[d.role]}</td>
                             <td className="py-1.5 tabular-nums">{d.role === "PERFORMANCE" ? d.shows : "-"}</td>
@@ -360,10 +381,10 @@ export function QuoteApplicationDetail({
   );
 }
 
-// [신규 2026-08-26] 티켓 유형별 가격·예상 판매율(2026-08-26 도입)과, 대관 경합 시
-// 제시한 추가 대관료 옵션·티켓 매출 RS 요율을 보여준다 — 신청서 제출/심사 화면에서
-// "추가 가능한 대관료"로 확인할 수 있어야 한다는 요청 반영. ticketTypes 가 없는
-// 옛 신청서는 레거시 단일 판매율 필드로 대체 표시한다(하위호환).
+// [신규 2026-08-26, 개정 2026-09-06] 티켓 유형별 가격과, 대관 경합 시 제시한 추가
+// 대관료 옵션·티켓 매출 RS 요율을 보여준다 — 신청서 제출/심사 화면에서 "추가 가능한
+// 대관료"로 확인할 수 있어야 한다는 요청 반영. 예상 판매율은 유형별 컬럼이 아니라
+// 전체 티켓 기준 단일 값(expectedPaidSalesRate)으로 항상 함께 보여준다.
 function ticketTypeFields(info: PerformanceInfo, venueLabel?: string) {
   const suffix = venueLabel ? ` (${venueLabel})` : "";
   const ticketTypes = info.ticketTypes ?? [];
@@ -374,32 +395,29 @@ function ticketTypeFields(info: PerformanceInfo, venueLabel?: string) {
 
   return (
     <div className="mt-1.5">
-      {ticketTypes.length > 0 ? (
+      {ticketTypes.length > 0 && (
         <div className="overflow-x-auto">
-          <table className="w-full min-w-[360px] border-collapse text-xs">
+          <table className="w-full min-w-[280px] border-collapse text-xs">
             <thead>
               <tr className="border-b border-border text-left text-muted">
                 <th className="py-1.5 pr-2">티켓 유형{suffix}</th>
-                <th className="py-1.5 pr-2">티켓가</th>
-                <th className="py-1.5">예상 판매율</th>
+                <th className="py-1.5">티켓가</th>
               </tr>
             </thead>
             <tbody>
               {ticketTypes.map((row, i) => (
-                <tr key={i} className="border-b border-border/25">
+                <tr key={i} className="border-b border-border/60">
                   <td className="py-1.5 pr-2">{row.label || "-"}</td>
-                  <td className="py-1.5 pr-2">{row.price.toLocaleString()}원</td>
-                  <td className="py-1.5">{row.expectedSalesRate}%</td>
+                  <td className="py-1.5">{row.price.toLocaleString()}원</td>
                 </tr>
               ))}
             </tbody>
           </table>
         </div>
-      ) : (
-        <dl className="divide-y divide-border/60 text-s">
-          <Row label={`예상 유료 판매율${suffix}`} value={`${info.expectedPaidSalesRate}%`} />
-        </dl>
       )}
+      <dl className="mt-1.5 divide-y divide-border/60 text-s">
+        <Row label={`예상 유료 판매율${suffix}`} value={`${info.expectedPaidSalesRate}%`} />
+      </dl>
       {(hasCompetitionFee || hasRsRate) && (
         <dl className="mt-1.5 divide-y divide-border/60 text-s">
           {hasCompetitionFee && (

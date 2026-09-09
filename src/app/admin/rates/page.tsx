@@ -1,14 +1,11 @@
-import { redirect } from "next/navigation";
-import { getCurrentUser } from "@/lib/auth";
+import { requireProAdminPage } from "@/lib/auth";
 import { getCurrentRateTable, getRatesContent } from "@/lib/db";
 import { RatesForm } from "@/components/admin/RatesForm";
 import { AdminNav } from "@/components/admin/AdminNav";
 import { PAGE_LEAD, PAGE_TITLE } from "@/components/admin/adminUi";
 
 export default async function AdminRatesPage() {
-  const user = await getCurrentUser();
-  if (!user) redirect("/admin/login");
-  if (user.role !== "ADMIN") redirect("/apply");
+  const user = await requireProAdminPage();
 
   const rateTable = await getCurrentRateTable();
 
@@ -45,7 +42,7 @@ export default async function AdminRatesPage() {
       <AdminNav active="/admin/rates" user={user} />
 
       <main className="mx-auto w-full max-w-4xl flex-1 px-6 py-8 sm:py-10">
-        <header className="border-b border-border/25 pb-6">
+        <header className="border-b border-border/20 pb-6">
           <h1 className={PAGE_TITLE}>요금표 관리</h1>
           <p className={PAGE_LEAD}>
             현재 버전: <span className="font-bold tabular-nums text-foreground">{rateTable.version}</span> · 저장하면

@@ -1,8 +1,8 @@
 import Link from "next/link";
-import { redirect } from "next/navigation";
-import { getCurrentUser } from "@/lib/auth";
+import { requireProAdminPage } from "@/lib/auth";
 import {
   getCompanyJoinContexts,
+  getMemberPolicy,
   listCompanies,
   listUsersByIds,
   listCompaniesPaged,
@@ -14,6 +14,7 @@ import { AddApplicantForm } from "@/components/admin/AddApplicantForm";
 import { AdminNav } from "@/components/admin/AdminNav";
 import { ApplicantApprovalTable } from "@/components/admin/ApplicantApprovalTable";
 import { CompanyDirectory } from "@/components/admin/CompanyDirectory";
+import { MemberPolicySwitch } from "@/components/admin/MemberPolicySwitch";
 import { PAGE_LEAD, PAGE_TITLE, TAB_BAR, tabCls } from "@/components/admin/adminUi";
 
 // 회원 관리 (기획서 A9·A10 운영자 시야).
@@ -32,9 +33,7 @@ export default async function AdminApplicantsPage({
 }: {
   searchParams: Promise<{ tab?: string; page?: string; q?: string; status?: string; company?: string }>;
 }) {
-  const user = await getCurrentUser();
-  if (!user) redirect("/admin/login");
-  if (user.role !== "ADMIN") redirect("/apply");
+  const user = await requireProAdminPage();
 
   const params = await searchParams;
   const tab: Tab =
@@ -46,6 +45,7 @@ export default async function AdminApplicantsPage({
   const businessRegistrationNumbers = Object.fromEntries(
     (await listCompanies()).map((c) => [c.id, c.businessRegistrationNumber]),
   );
+  const memberPolicy = await getMemberPolicy();
 
   // 탭 라벨에 건수를 달아준다 — 열어보지 않아도 밀린 일이 있는지 보인다.
   const pendingCount = (await listUsersPaged({ role: "APPLICANT", approvalStatus: "PENDING" }, 1, 1))
@@ -61,7 +61,7 @@ export default async function AdminApplicantsPage({
     <div className="flex flex-1 flex-col">
       <AdminNav active="/admin/applicants" user={user} />
 
-      <main className="mx-auto w-full max-w-5xl flex-1 px-6 py-8 sm:py-10">
+      <main className="mx-auto w-full max-w-6xl flex-1 px-6 py-8 sm:py-10">
         <header className="pb-5">
           <h1 className={PAGE_TITLE}>회원 관리</h1>
           <p className={PAGE_LEAD}>
@@ -70,6 +70,8 @@ export default async function AdminApplicantsPage({
             소속 담당자가 됩니다. 아직 아무도 승인되지 않은 회사는 대표 담당자가 &ldquo;미지정&rdquo;
             으로 표시되며, 그 회사의 첫 승인은 운영자가 처리합니다.
           </p>
+          {/* 초대 가입도 운영자 승인을 받게 할지 — 승인 흐름을 정하는 스위치라 목록 위에 둔다. */}
+          <MemberPolicySwitch policy={memberPolicy} />
         </header>
 
         <nav className={TAB_BAR} aria-label="회원 관리 탭">
@@ -77,7 +79,7 @@ export default async function AdminApplicantsPage({
             <Link key={t.key} href={t.href} className={tabCls(t.key === tab)}>
               {t.label}
               {t.badge ? (
-                <span className="ml-1.5 inline-block rounded-btn border border-accent bg-accent px-1.5 text-xs leading-4 text-on-accent tabular-nums">
+                <span className="ml-1.5 inline-block border border-accent bg-accent px-1.5 text-xs leading-4 text-on-accent tabular-nums">
                   {t.badge}
                 </span>
               ) : null}

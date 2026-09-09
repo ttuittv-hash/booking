@@ -8,6 +8,7 @@ import { FIELD, FIELD_LABEL } from "@/components/admin/adminUi";
 import { hashPasswordForTransport } from "@/lib/clientPassword";
 import type { AppUser, Company } from "@/lib/pricing/types";
 import { useToast } from "@/components/ui/Toast";
+import { PasswordInput } from "@/components/ui/PasswordInput";
 
 /* 입력·라벨은 시스템 토큰만 쓴다 — 한 줄 입력의 높이는 field-base 가 40 으로 못 박아
    같은 줄 버튼(40)과 아래위가 맞는다 */
@@ -207,7 +208,7 @@ export function ProfileForm({ user, company }: { user: AppUser; company: Company
 
   return (
     <div className="mt-8 space-y-8">
-      <section className="rounded-surface border border-border bg-background p-5">
+      <section className="border border-border bg-background p-5">
         <h2 className="type-kr-heading text-h6-m">개인 정보</h2>
         <div className="mt-4 space-y-3">
           <label className="block">
@@ -274,7 +275,7 @@ export function ProfileForm({ user, company }: { user: AppUser; company: Company
         </div>
       </section>
 
-      <section className="rounded-surface border border-border bg-background p-5">
+      <section className="border border-border bg-background p-5">
         <h2 className="type-kr-heading text-h6-m">기업 정보</h2>
         {company ? (
           <div className="mt-4 space-y-3">
@@ -437,7 +438,7 @@ export function ProfileForm({ user, company }: { user: AppUser; company: Company
         )}
       </section>
 
-      <section className="rounded-surface border border-border bg-background p-5">
+      <section className="border border-border bg-background p-5">
         <h2 className="type-kr-heading text-h6-m">제출 서류</h2>
         <p className="mt-2 text-s text-muted">
           심사에 쓰이는 서류입니다. 반려 사유가 서류 문제였다면 여기서 다시 올린 뒤
@@ -479,13 +480,12 @@ export function ProfileForm({ user, company }: { user: AppUser; company: Company
         </p>
       </section>
 
-      <section className="rounded-surface border border-border bg-background p-5">
+      <section className="border border-border bg-background p-5">
         <h2 className="type-kr-heading text-h6-m">저장하려면 현재 비밀번호를 입력하세요</h2>
         <div className="mt-4">
           <label className="block">
             <span className={labelCls}>현재 비밀번호</span>
-            <input
-              type="password"
+            <PasswordInput
               autoComplete="current-password"
               value={confirmPassword}
               onChange={(e) => setConfirmPassword(e.target.value)}
@@ -505,13 +505,12 @@ export function ProfileForm({ user, company }: { user: AppUser; company: Company
         </button>
       </section>
 
-      <section className="rounded-surface border border-border bg-background p-5">
+      <section className="border border-border bg-background p-5">
         <h2 className="type-kr-heading text-h6-m">비밀번호 변경</h2>
         <div className="mt-4 space-y-3">
           <label className="block">
             <span className={labelCls}>현재 비밀번호</span>
-            <input
-              type="password"
+            <PasswordInput
               autoComplete="current-password"
               value={currentPassword}
               onChange={(e) => setCurrentPassword(e.target.value)}
@@ -520,8 +519,7 @@ export function ProfileForm({ user, company }: { user: AppUser; company: Company
           </label>
           <label className="block">
             <span className={labelCls}>새 비밀번호 (8자 이상)</span>
-            <input
-              type="password"
+            <PasswordInput
               autoComplete="new-password"
               minLength={8}
               value={newPassword}

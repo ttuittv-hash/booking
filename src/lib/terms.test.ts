@@ -79,3 +79,28 @@ describe("termsForClient — 화면에 내려줄 목록", () => {
     ]);
   });
 });
+
+describe("가입 화면에서 감추기", () => {
+  it("선택 동의는 감출 수 있고, 감추면 화면 목록에서 빠진다", () => {
+    const next = normalizeRegisterTerms(
+      { documents: [{ kind: "PRIVACY_OPTIONAL", hidden: true }] },
+      stored,
+      "2026-09-04",
+    );
+    expect(next.documents[2].hidden).toBe(true);
+    expect(termsForClient(next.documents).map((d) => d.kind)).toEqual([
+      "SERVICE",
+      "PRIVACY_REQUIRED",
+    ]);
+  });
+
+  it("필수 동의는 감출 수 없다 — 동의 없이 가입시킬 수 없다", () => {
+    const next = normalizeRegisterTerms(
+      { documents: [{ kind: "SERVICE", hidden: true }] },
+      stored,
+      "2026-09-04",
+    );
+    expect(next.documents[0].hidden).toBeUndefined();
+    expect(termsForClient(next.documents)).toHaveLength(3);
+  });
+});

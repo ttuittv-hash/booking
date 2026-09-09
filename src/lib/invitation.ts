@@ -10,7 +10,7 @@ import crypto from "node:crypto";
  * 먼저 "3일 이내에"로 나가고 있었다 — 실제 만료(7일)와 안내(3일)가 어긋나
  * 있던 것을 안내에 맞춰 3일로 통일한다(2026-09-03).
  */
-export const INVITE_TTL_DAYS = 3;
+const INVITE_TTL_DAYS = 3;
 
 export function issueInviteToken(): string {
   return crypto.randomBytes(32).toString("base64url");

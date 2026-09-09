@@ -6,6 +6,7 @@ import { useState } from "react";
 import { AuthField, AuthShell } from "@/components/ui/AuthShell";
 import { btnClass } from "@/components/ui/kit";
 import { hashPasswordForTransport } from "@/lib/clientPassword";
+import { PasswordInput } from "@/components/ui/PasswordInput";
 
 /**
  * Figma Application Components › Sign Up and Log In Pages › Login / 3
@@ -78,8 +79,7 @@ export default function LoginPage() {
           신청자 계정이 없으신가요?{" "}
           <Link
             href="/register"
-            // 밑줄은 글자색과 같은 검정 — 옐로 밑줄은 글자에서 떠 보여 밑줄이 아니라 형광펜처럼 읽혔다
-            className="inline-flex min-h-11 items-center px-1 font-bold text-foreground underline decoration-2 underline-offset-4"
+            className="inline-flex min-h-11 items-center px-1 font-bold text-foreground underline decoration-accent decoration-2 underline-offset-4"
           >
             회원가입
           </Link>
@@ -99,13 +99,11 @@ export default function LoginPage() {
         </AuthField>
 
         <AuthField label="비밀번호" required>
-          <input
-            type="password"
+          <PasswordInput
             required
             autoComplete="current-password"
             value={form.password}
             onChange={(e) => setForm({ ...form, password: e.target.value })}
-            className="field-base"
           />
         </AuthField>
 

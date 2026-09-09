@@ -10,6 +10,7 @@ import {
   findPackage,
   isAddonAvailable,
   maxRequestableQuantity,
+  midHallSelectableAddons,
   packagesForVenue,
 } from "@/lib/pricing/rateTableUtils";
 import {
@@ -23,7 +24,7 @@ import {
 } from "@/lib/pricing/types";
 import type { ChargeBlock, VenueRateContent, WizardStepTexts } from "@/lib/content/pageContent";
 import { useWizardText } from "@/lib/content/wizardText";
-import { CHOICE_SELECTED_VARS, ComparisonTable, choiceClass, type SpecGroup } from "@/components/ui/kit";
+import { CHOICE_SELECTED_VARS, choiceClass, type SpecGroup } from "@/components/ui/kit";
 import { defaultVenueName, venueLabelKey } from "@/lib/content/venueLabels";
 import { StepHeading } from "./StepHeading";
 
@@ -43,11 +44,15 @@ function chargeGroups(rows: ChargeBlock[]): SpecGroup[] {
   }));
 }
 
-/** 시간 단위 옵션(셋업 연장·철수 Load-Out) — MidHallCalendar(STEP 1)에서 정한 값을
+/** 시간 단위 옵션(준비 연장·철수 Load-Out) — MidHallCalendar(STEP 1)에서 정한 값을
  * 그대로 보여주기만 하는 읽기 전용 박스다. 처음에는 여기서도 +/− 로 바로 조정할 수
  * 있게 했지만(2026-08-23), 값을 두 군데서 고칠 수 있어 헷갈린다는 요청으로 수정은
- * STEP 1 캘린더에서만 하도록 되돌렸다(2026-08-23, "셋업 연장,철수연장은 앞에
+ * STEP 1 캘린더에서만 하도록 되돌렸다(2026-08-23, "준비 연장,철수연장은 앞에
  * 달력에서 체크한대로만 노출하고 수정 못하게해.. 수정하려면 캘린더가서 가능하도록").
+ * [수정 2026-09-08] "중형공연장 옵션 노출 시안도 아레나 옵션 시안과 동일한 디자인으로" —
+ * 값 영역을 아레나 AddonRow의 수량 입력칸과 같은 규격(w-14, border, px-2 py-1,
+ * text-right)의 칩으로 맞춘다. 실제로는 못 고치는 값이라 잠금 톤(bg-panel-strong,
+ * cursor-not-allowed)으로 "칸처럼 보이지만 여기서는 못 바꾼다"는 것도 함께 전달한다.
  */
 function MidHallHourBox({
   label,
@@ -60,12 +65,9 @@ function MidHallHourBox({
   hours: number;
   unitFee: number;
 }) {
-  const { t } = useWizardText();
-  // 값이 들어간 항목은 테두리가 검정 — 수량 항목과 같은 규칙이다
+  const { t, tStr } = useWizardText();
   return (
-    <div
-      className={`flex flex-col gap-1.5 rounded-btn border bg-background px-3 py-2 ${hours > 0 ? "border-foreground" : "border-transparent"}`}
-    >
+    <div className="flex flex-col gap-1.5 border border-border-soft px-3 py-2">
       <div>
         <span className="text-xs font-bold">{label}</span>
         <div className="mt-0.5 text-xs text-muted">{hint}</div>
@@ -74,7 +76,10 @@ function MidHallHourBox({
         <span className="whitespace-nowrap text-xs text-muted">
           {won(unitFee)} / {t("configOptions.perHourUnit", "시간")}
         </span>
-        <span className="text-xs font-bold tabular-nums">
+        <span
+          className="w-14 shrink-0 cursor-not-allowed border border-border-soft bg-panel-strong px-2 py-1 text-right text-xs font-bold tabular-nums text-muted-strong"
+          title={tStr("configOptions.hourBoxLockedHint", "더 이상 위저드에서 수정할 수 없는 값입니다")}
+        >
           {hours}
           {t("configOptions.hoursUnit", "시간")}
         </span>
@@ -84,17 +89,24 @@ function MidHallHourBox({
 }
 
 /** 참고용 박스 — 가격이 "별도 협의"·"실비"라 수량을 받아도 견적에 반영할 수 없는
- * 항목(팝업 공간·옥외 광고·수도광열비 등)은 안내만 하는 카드로 보여준다. */
+ * 항목(팝업 공간·옥외 광고·수도광열비 등)은 안내만 하는 카드로 보여준다.
+ * [수정 2026-09-08] "아레나 옵션 시안과 동일한 디자인으로" — "별도 문의"를 줄
+ * 하나짜리 텍스트가 아니라, 아레나 옵션 박스의 오른쪽 값 자리와 같은 위치(가격
+ * 정보 옆, 오른쪽 정렬)에 놓인 태그 칩으로 바꾼다. */
 function MidHallReferenceBox({ label, value, note }: { label: string; value: string; note?: string }) {
   const { t } = useWizardText();
   return (
-    <div className="flex flex-col gap-1.5 rounded-btn bg-background px-3 py-2">
+    <div className="flex flex-col gap-1.5 border border-border-soft px-3 py-2">
       <span className="text-xs font-bold">{label}</span>
-      <span className="text-xs text-muted">
-        {value}
-        {note ? ` · ${note}` : ""}
-      </span>
-      <span className="text-xs font-bold text-muted">{t("configOptions.contactSeparately", "별도 문의")}</span>
+      <div className="flex items-center justify-between gap-2">
+        <span className="text-xs text-muted">
+          {value}
+          {note ? ` · ${note}` : ""}
+        </span>
+        <span className="shrink-0 whitespace-nowrap border border-border-soft bg-panel-strong px-2 py-0.5 text-[10px] font-bold text-muted">
+          {t("configOptions.contactSeparately", "별도 문의")}
+        </span>
+      </div>
     </div>
   );
 }
@@ -107,22 +119,81 @@ function MidHallReferenceBox({ label, value, note }: { label: string; value: str
 // 화면과 /rates 양쪽에 동시에 반영된다.
 // [개정 2026-08-23] "기본 항목"·"옵션"을 아레나처럼 박스형태로 구분해 보여 달라는
 // 요청에 따라 표(SpecTable/GroupedSpecTable) 대신 AddonRow와 같은 박스 그리드로
-// 바꿨다. "추가대관"(셋업 연장·철수 Load-Out)은 이미 있는 필드라 수량 스테퍼로
-// 즉시 조정 가능하게 했고, 나머지(공간·프로모션·기타·온라인 콘서트 진행)는 "별도
-// 협의"·"실비" 금액이 섞여 있어 참고용 박스로만 보여준다(견적에 자동 반영 안 함).
+// 바꿨다. 나머지(공간·프로모션·기타·온라인 콘서트 진행)는 "별도 협의"·"실비" 금액이
+// 섞여 있어 참고용 박스로만 보여준다(견적에 자동 반영 안 함).
+// [삭제 2026-09-08] "철수/준비 때 시간별로 수정하는 기능 자체를 삭제해" — "추가대관"
+// (준비 연장·철수 Load-Out)을 여기서 +/- 스테퍼로 즉시 조정하던 것을 없앴다(STEP 1
+// MidHallCalendar의 스테퍼도 함께 삭제). 이미 값이 있는 옛 임시저장본만 읽기 전용
+// 박스로 계속 보여준다(hours > 0 조건, 아래 렌더 참고).
+// [신규 2026-09-08] 중형공연장 선택 옵션 — "중형 추가 옵션도 아레나 추가 옵션과 동일한
+// 방식·UI로 선택할 수 있게"(nora). rateTable.addons 중 venueId "medium-hall" 항목을
+// 아레나의 "선택 옵션" 아웃라인 박스와 같은 틀(AddonRow 수량 입력 · N건 선택됨)로 보여준다.
+// 금액은 calculateMidHallLineItems 가 같은 항목을 읽어 중형 견적에 합산한다.
+function MidHallOptionsBox({
+  addons,
+  addonQuantities,
+  expectedRevenue,
+  onChangeQuantity,
+  onChangeRevenue,
+}: {
+  addons: AddonItem[];
+  addonQuantities: Record<string, number>;
+  expectedRevenue: number;
+  onChangeQuantity: (addonId: string, quantity: number) => void;
+  onChangeRevenue: (value: number) => void;
+}) {
+  const { t } = useWizardText();
+  if (addons.length === 0) return null;
+  const selectedCount = addons.filter((a) => (addonQuantities[a.id] ?? 0) > 0).length;
+  return (
+    <div className="mt-6 border border-border/25 p-5">
+      <h2 className="type-kr-heading text-h6-m sm:text-h6">{t("configOptions.selectedOptionsHeading", "선택 옵션")}</h2>
+      <p className="mt-2 text-xs text-muted">
+        {t(
+          "configOptions.selectedOptionsHint",
+          "필요한 만큼 수량을 정해 추가하는 항목 — 단가 × 수량으로 금액이 즉시 계산됩니다",
+        )}
+      </p>
+      <div className="mt-4 grid grid-cols-1 gap-1.5 sm:grid-cols-2 lg:grid-cols-3">
+        {addons.map((addon) => (
+          <AddonRow
+            key={addon.id}
+            addon={addon}
+            pkg={undefined}
+            quantity={addonQuantities[addon.id] ?? 0}
+            expectedRevenue={expectedRevenue}
+            onChangeQuantity={onChangeQuantity}
+            onChangeRevenue={onChangeRevenue}
+          />
+        ))}
+      </div>
+      <div className="mt-4 flex items-center justify-between border-t border-border/40 pt-4 text-s font-bold">
+        <span>{t("configOptions.selectedOptionsHeading", "선택 옵션")}</span>
+        <span className="tabular-nums">
+          {selectedCount}
+          {t("configOptions.selectedCountSuffix", "건 선택됨")}
+        </span>
+      </div>
+    </div>
+  );
+}
+
 function MidHallRateCard({
   content,
   extraHourFee,
   extraSetupHours,
   extraLoadOutHours,
+  hideChargeGroups = false,
 }: {
   content: VenueRateContent;
   extraHourFee: number;
   extraSetupHours: number;
   extraLoadOutHours: number;
+  /** [2026-09-08] 수량 선택형 옵션(MidHallOptionsBox)이 있으면 예전 "별도 문의" 참고 카드는 감춘다. */
+  hideChargeGroups?: boolean;
 }) {
   // [2026-08-23] "컬럼값이 두번 반복되는게 이상해" — Details를 별도 표로 그리면
-  // 같은 열 제목(평일/주말 셋업 등)이 헤더 행으로 두 번 찍혀 보였다. 표 하나에
+  // 같은 열 제목(평일/주말 준비 등)이 헤더 행으로 두 번 찍혀 보였다. 표 하나에
   // 행만 더 붙이는 방식으로 바꿔 헤더는 한 번만 나오게 한다.
   const cols = content.columns.map((r) => ({ key: r.key, title: r.name, align: "left" as const }));
   const baseRows = content.rowLabels.map((label, i) => ({
@@ -133,19 +204,34 @@ function MidHallRateCard({
     label,
     cells: cols.map((col) => content.detailColumns.find((dc) => dc.key === col.key)?.values[i] ?? ""),
   }));
-  const { t, tStr } = useWizardText();
+  const { t } = useWizardText();
   const [detailsOpen, setDetailsOpen] = useState(false);
   const otherGroups = chargeGroups(content.charges).filter((g) => g.title !== "추가대관");
 
+  // [수정 2026-09-06] "중형공연장 패키지도 아레나 패키지와 동일한 UI로" — 요금 정책
+  // (일 단위 자유 조합)은 그대로 두고, 표시만 아레나 PackagePicker의 카드 프레임(제목 +
+  // 구분선 + dl 속성 행)에 맞춘다. 컬럼(준비/철수·평일 공연·주말 공연) 하나당 카드 하나,
+  // 그 안에 행 라벨(rowLabels/detailLabels)을 속성으로 나열한다 — 표(ComparisonTable)
+  // 대신 카드 그리드로 그린다.
+  const visibleRows = detailsOpen ? [...baseRows, ...detailRows] : baseRows;
+
   return (
-    <div className="mt-10 rounded-surface bg-panel p-5">
+    <div className="mt-10 border-t-2 border-foreground pt-5">
       <h2 className="type-kr-heading text-h6-m sm:text-h6">{t("configOptions.dailyRateHeading", "일자별 대관료")}</h2>
-      <div className="mt-4">
-        <ComparisonTable
-          rowLabel={tStr("configOptions.rowLabelHeader", "구분")}
-          columns={cols}
-          rows={detailsOpen ? [...baseRows, ...detailRows] : baseRows}
-        />
+      <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+        {cols.map((col, ci) => (
+          <div key={col.key} className="border border-border-soft px-4 py-3">
+            <div className="text-s font-bold">{col.title}</div>
+            <dl className="mt-2.5 space-y-1 border-t border-border/25 pt-2.5 text-xs">
+              {visibleRows.map((row) => (
+                <div key={row.label} className="flex items-baseline justify-between gap-2">
+                  <dt className="text-muted">{row.label}</dt>
+                  <dd className="font-bold tabular-nums">{row.cells[ci]}</dd>
+                </div>
+              ))}
+            </dl>
+          </div>
+        ))}
       </div>
 
       {detailRows.length > 0 && (
@@ -158,20 +244,31 @@ function MidHallRateCard({
         </button>
       )}
 
+      {/* [개정 2026-09-07] "아레나, 중형 레이아웃 통일" — 기본 항목·옵션 모두 아레나
+          PackagePicker(구성 선택 카드 아래 "기본 포함" 패널·"선택 옵션" 아웃라인 박스)와
+          같은 틀(공유 배지 패널 + 하나로 감싼 아웃라인 박스)로 맞춘다. 항목 내용(자유
+          라벨·값, 시간 스테퍼, 참고용 별도문의)은 중형 고유 데이터라 그대로 둔다. */}
       {content.includes.length > 0 && (
-        <div className="mt-10 rounded-surface bg-panel p-5">
+        <div className="mt-10 border-t border-border/25 pt-5">
           <h2 className="type-kr-heading text-h6-m sm:text-h6">{t("configOptions.basicItemsHeading", "기본 항목")}</h2>
           <p className="mt-1.5 text-xs leading-6 text-muted">
             {t("configOptions.basicItemsHint", "대관료에 이미 포함된 기본 제공 사항입니다.")}
           </p>
-          <div className="mt-4 grid grid-cols-1 gap-1.5 sm:grid-cols-2 lg:grid-cols-3">
-            {content.includes.map((p, i) => (
-              <div key={`${p.label}-${i}`} className="flex flex-col gap-1.5 rounded-btn bg-background px-3 py-2">
-                <span className="text-xs font-bold">{p.label}</span>
-                <span className="text-xs text-muted">{p.value}</span>
-                <span className="text-xs font-bold text-good">{t("configOptions.basicIncludedBadge", "기본 포함")}</span>
-              </div>
-            ))}
+          <div className="mt-4 border border-border/30 bg-panel/40 px-4 py-3">
+            <span className="bg-foreground px-2 py-0.5 text-xs font-bold text-background">
+              {t("configOptions.basicIncludedBadge", "기본 포함")}
+            </span>
+            <div className="mt-3 grid grid-cols-1 gap-1.5 sm:grid-cols-2 lg:grid-cols-3">
+              {content.includes.map((p, i) => (
+                <div
+                  key={`${p.label}-${i}`}
+                  className="flex items-baseline justify-between gap-2 border border-border-soft bg-panel px-3 py-2 text-xs"
+                >
+                  <span className="font-bold text-foreground">{p.label}</span>
+                  <span className="shrink-0 text-muted">{p.value}</span>
+                </div>
+              ))}
+            </div>
           </div>
           {content.limits.length > 0 && (
             <div className="mt-4 space-y-2 border-t border-border/25 pt-4">
@@ -186,46 +283,61 @@ function MidHallRateCard({
         </div>
       )}
 
-      {content.charges.length > 0 && (
-        <div className="mt-10 rounded-surface bg-panel p-5">
+      {/* [수정 2026-09-08] 수량 선택형 옵션(hideChargeGroups)이 있으면 참고용 「옵션」 섹션은
+          제목·설명·빈 박스까지 통째로 감춘다 — 그룹만 빼니 빈 테두리 박스가 남았다(로컬 스크린샷
+          확인). 옛 임시저장본의 준비/철수 연장 값이 있을 때만 그 부분을 계속 보여준다. */}
+      {content.charges.length > 0 && (!hideChargeGroups || extraSetupHours > 0 || extraLoadOutHours > 0) && (
+        <div className="mt-10 border-t border-border/25 pt-5">
           <h2 className="type-kr-heading text-h6-m sm:text-h6">{t("configOptions.optionsHeading", "옵션")}</h2>
           <p className="mt-1.5 text-xs leading-6 text-muted">
             {t(
               "configOptions.optionsHint",
-              "추가대관 시간은 STEP 1 캘린더에서 설정한 값이 그대로 표시됩니다 — 여기서는 수정할 수 " +
-                "없고, 바꾸려면 STEP 1로 돌아가 캘린더에서 조정하세요. 나머지 항목은 참고용 안내이며 " +
-                "예상 대관료에는 자동 반영되지 않습니다 — 필요 시 별도로 협의합니다.",
+              "아래 항목은 참고용 안내이며 예상 대관료에는 자동 반영되지 않습니다 — 필요 시 별도로 협의합니다.",
             )}
           </p>
 
-          <div className="mt-4">
-            <div className="mb-2 text-xs font-bold text-muted">{t("configOptions.extraDaysLabel", "추가대관")}</div>
-            <div className="grid grid-cols-1 gap-1.5 sm:grid-cols-2 lg:grid-cols-3">
-              <MidHallHourBox
-                label={t("configOptions.setupExtensionLabel", "셋업 연장 (22:00~24:00)")}
-                hint={t("configOptions.appliesWholePeriodHint", "전체 일정 공통 적용")}
-                hours={extraSetupHours}
-                unitFee={extraHourFee}
-              />
-              <MidHallHourBox
-                label={t("configOptions.loadOutExtensionLabel", "철수 Load-Out 연장")}
-                hint={t("configOptions.appliesWholePeriodHint", "전체 일정 공통 적용")}
-                hours={extraLoadOutHours}
-                unitFee={extraHourFee}
-              />
-            </div>
-          </div>
-
-          {otherGroups.map((g) => (
-            <div key={g.title} className="mt-6">
-              <div className="mb-2 text-xs font-bold text-muted">{g.title}</div>
-              <div className="grid grid-cols-1 gap-1.5 sm:grid-cols-2 lg:grid-cols-3">
-                {g.rows.map((r, i) => (
-                  <MidHallReferenceBox key={`${r.label}-${i}`} label={r.label} value={r.value} note={r.note} />
-                ))}
+          {/* 아레나 "선택 옵션"과 같은 아웃라인 박스 하나로 전체를 감싼다(예전에는
+              박스 없이 소제목만 이어 붙어 있었다). */}
+          <div className="mt-4 border border-border/25 p-5">
+            {/* [수정 2026-09-08] "철수/준비 때 시간별로 수정하는 기능 자체를 삭제해" —
+                준비 연장·철수 Load-Out 연장을 STEP 1에서 설정하던 스테퍼를 없앴다.
+                새 신청서는 이 값이 항상 0이라 그룹 자체를 숨기고, 이미 값이 있는
+                옛 임시저장본만 읽기 전용으로 계속 보여준다. */}
+            {(extraSetupHours > 0 || extraLoadOutHours > 0) && (
+              <div>
+                <div className="mb-2 text-xs font-bold text-muted">{t("configOptions.extraDaysLabel", "추가대관")}</div>
+                <div className="grid grid-cols-1 gap-1.5 sm:grid-cols-2 lg:grid-cols-3">
+                  {extraSetupHours > 0 && (
+                    <MidHallHourBox
+                      label={t("configOptions.setupExtensionLabel", "준비 연장 (22:00~24:00)")}
+                      hint={t("configOptions.appliesWholePeriodHint", "전체 일정 공통 적용")}
+                      hours={extraSetupHours}
+                      unitFee={extraHourFee}
+                    />
+                  )}
+                  {extraLoadOutHours > 0 && (
+                    <MidHallHourBox
+                      label={t("configOptions.loadOutExtensionLabel", "철수 Load-Out 연장")}
+                      hint={t("configOptions.appliesWholePeriodHint", "전체 일정 공통 적용")}
+                      hours={extraLoadOutHours}
+                      unitFee={extraHourFee}
+                    />
+                  )}
+                </div>
               </div>
-            </div>
-          ))}
+            )}
+
+            {!hideChargeGroups && otherGroups.map((g) => (
+              <div key={g.title} className="mt-6">
+                <div className="mb-2 text-xs font-bold text-muted">{g.title}</div>
+                <div className="grid grid-cols-1 gap-1.5 sm:grid-cols-2 lg:grid-cols-3">
+                  {g.rows.map((r, i) => (
+                    <MidHallReferenceBox key={`${r.label}-${i}`} label={r.label} value={r.value} note={r.note} />
+                  ))}
+                </div>
+              </div>
+            ))}
+          </div>
         </div>
       )}
 
@@ -247,7 +359,16 @@ function MidHallRateCard({
 // [개정 2026-08-20] 패키지는 더 이상 관객 규모로 자동 결정하지 않는다 — 아레나 탭 안에
 // "패키지 선택" 슬롯에서 4개 패키지 카드 중 하나를 직접 고르면, 그 아래 "선택 옵션" 슬롯이
 // 그 패키지에서 고를 수 있는 옵션으로 바뀐다(isAddonAvailable 필터링은 기존과 동일).
-function arenaSummaryLine(selection: QuoteSelection, defaultPerformanceDays: number): string {
+/*
+  [수정 2026-09-06] "구성/옵션 아레나 하단 워딩 수정할 수 있도록" 요청 — "준비"/"공연"/
+  "철수" 라벨이 문자열 리터럴로 박혀 있어 편집 대상이 아니었다. 이 함수는 컴포넌트가
+  아니라 훅(useWizardText)을 쓸 수 없으므로, 호출부에서 만든 tStr을 인자로 받는다.
+*/
+function arenaSummaryLine(
+  selection: QuoteSelection,
+  defaultPerformanceDays: number,
+  tStr: (key: string, fallback: string) => string,
+): string {
   const dates = resolveSelectedDates(selection);
   if (dates.length === 0) return "";
   const defaults = defaultDayTags(dates, defaultPerformanceDays);
@@ -260,32 +381,59 @@ function arenaSummaryLine(selection: QuoteSelection, defaultPerformanceDays: num
     else if (tag === "LOAD_OUT") loadOut++;
     else performance++;
   }
-  const parts = [`셋업${setup}`, `공연${performance}`];
-  if (loadOut > 0) parts.push(`철수${loadOut}`);
+  const parts = [
+    `${tStr("configOptions.arenaSummary.setupLabel", "준비")}${setup}`,
+    `${tStr("configOptions.arenaSummary.performanceLabel", "공연")}${performance}`,
+  ];
+  if (loadOut > 0) parts.push(`${tStr("configOptions.arenaSummary.loadOutLabel", "철수")}${loadOut}`);
   return parts.join(" · ");
 }
 
 // [개정 2026-08-20] 아레나 패키지 4개는 기본 구성이 전부 동일하고 관객 규모 등급(Bowl
 // 사용료)만 다르다 — 카드로 나열해 신청자가 직접 하나를 고르게 한다. 고른 패키지에 따라
 // 바로 아래 "선택 옵션" 슬롯의 항목이 달라진다(isAddonAvailable).
-// [개정 2026-08-21] "Custom" 카드는 실제 패키지가 아니다 — 클릭해도 견적 계산에 참여하지
-// 않고 운영자 문의 안내만 보여주는 자리표시자다. rateTable.packages에 없는 항목이라
-// packages 배열과 별개로 하드코딩한다.
+// [삭제 2026-09-06] "커스텀 박스는 삭제" — 실제 패키지가 아니라 운영자 문의 안내만
+// 보여주는 자리표시자 카드("Custom"/"직접구성")를 지웠다. 요청 시 1:1 문의로 안내한다.
+// [신규 2026-09-06] "rate 카드 항목 셋팅 설정하는 슬롯을 추가해줘" — 패키지 카드
+// (Rate A/B/C/D 박스) 안의 수용인원·권장 무대·권장 객석·대관료 4행을, 다른 슬롯
+// (신청 기업 유형·담당자 정보 등)과 같은 순서·노출 패턴으로 어드민에서 조정할 수
+// 있게 한다. 할인율·총금액 행은 discountRatio에 따라 값 자체가 조건부로 붙는
+// 파생 행이라 이 순서 조정 대상에서 뺀다("총금액이 가장 밑에 들어가야해" 요구를
+// 그대로 지키기 위해 항상 맨 뒤 고정).
+const PACKAGE_CARD_GROUP_ID = "configOptions.packageCard";
+// "아레나" 제목 아래 예상 관객·준비·공연 요약 줄(동적으로 조립되는 lead 문장) 전체를
+// 어드민에서 켜고 끄는 스위치 — disabledFields 관례를 그대로 따른다.
+const ARENA_SUMMARY_LEAD_FIELD_ID = "configOptions.arenaSummaryLead";
+const PACKAGE_CARD_DEFAULT_ORDER = ["audienceCapacity", "recommendedStage", "recommendedSeating", "baseFee"] as const;
+
 function PackagePicker({
   packages,
   addons,
   selectedId,
   onSelect,
-  onClear,
+  fieldOrders,
+  disabledFields,
 }: {
   packages: RentalPackage[];
   addons: AddonItem[];
   selectedId: number | null;
   onSelect: (id: number) => void;
-  onClear: () => void;
+  fieldOrders?: Record<string, string[]>;
+  disabledFields?: string[];
 }) {
   const { t } = useWizardText();
-  const [showCustomNotice, setShowCustomNotice] = useState(false);
+
+  const configuredCardOrder = fieldOrders?.[PACKAGE_CARD_GROUP_ID];
+  const cardOrder =
+    configuredCardOrder && configuredCardOrder.length > 0
+      ? [
+          ...configuredCardOrder.filter((k) => (PACKAGE_CARD_DEFAULT_ORDER as readonly string[]).includes(k)),
+          ...PACKAGE_CARD_DEFAULT_ORDER.filter((k) => !configuredCardOrder.includes(k)),
+        ]
+      : [...PACKAGE_CARD_DEFAULT_ORDER];
+  const visibleCardRows = disabledFields?.includes(PACKAGE_CARD_GROUP_ID)
+    ? []
+    : cardOrder.filter((key) => !disabledFields?.includes(`${PACKAGE_CARD_GROUP_ID}.${key}`));
 
   // [2026-08-24, "아레나 패키지의 기본 내역이 뭔지 박스로 보여지게 해줘. 수정은
   // 불가능하겠지만"] 이전에는 "기본 시설과 장비가 모두 포함되어 있습니다"라는
@@ -297,14 +445,26 @@ function PackagePicker({
     .map((inc) => {
       const addon = addons.find((a) => a.id === inc.addonId);
       if (!addon) return null;
-      return { key: inc.addonId, name: addon.name, quantity: inc.quantity, unit: addon.unitLabel.replace("원/", "") };
+      return {
+        key: inc.addonId,
+        name: addon.name,
+        quantity: inc.quantity,
+        unit: addon.unitLabel.replace("원/", ""),
+        // [신규 2026-09-07] "패키지 관리 > 기본내역 스펙 필드값이 위저드에 노출되도록" —
+        // 패키지 관리(어드민)의 스펙(규격·사양) 입력은 이미 addon.spec 에 저장되고
+        // 있었지만 이 카드에서는 항목 이름만 보여줬다.
+        spec: addon.spec,
+      };
     })
-    .filter((item): item is { key: string; name: string; quantity: number; unit: string } => item != null);
+    .filter(
+      (
+        item,
+      ): item is { key: string; name: string; quantity: number; unit: string; spec: string | undefined } =>
+        item != null,
+    );
 
   return (
-    /* 구성 고르기와 그 아래 선택 옵션을 가르는 선 — 위저드 맨 아래 버튼 줄의 선과
-       같은 값을 쓴다. 여기만 진한 검정이라 화면을 두 쪽으로 자르는 것처럼 보였다. */
-    <div className="mb-6 border-b border-border/25 pb-6">
+    <div className="mb-6 border-b border-border pb-6">
       <label className="block text-s font-bold text-foreground">
         {t("configOptions.pickerFieldLabel", "구성 선택")} *
       </label>
@@ -315,10 +475,7 @@ function PackagePicker({
             <button
               key={p.id}
               type="button"
-              onClick={() => {
-                setShowCustomNotice(false);
-                onSelect(p.id);
-              }}
+              onClick={() => onSelect(p.id)}
               /* 고른 카드는 검정 채움 — 안쪽 제목·설명이 따라오도록 토큰을 국소 반전한다 */
               style={active ? CHOICE_SELECTED_VARS : undefined}
               className={choiceClass(active, { dense: true })}
@@ -332,85 +489,117 @@ function PackagePicker({
                   다시 요청받아(2026-08-23, "대관료 행 추가해.. 어제 삭제했지만 다시 넣어")
                   맨 아래 행으로 되돌렸다. */}
               <dl className="mt-2.5 space-y-1 border-t border-border/25 pt-2.5 text-xs">
-                <div className="flex items-baseline justify-between gap-2">
-                  <dt className="text-muted">{t("configOptions.audienceCapacityLabel", "수용인원")}</dt>
-                  {/* audienceTier.label 은 "~12,000석 규모"처럼 다른 화면(예상 대관료
-                      요약 등)에서 문장 속에 자연스럽게 들어가도록 "규모"가 붙어 있다 —
-                      여기서는 라벨과 겹쳐 중복이라 이 카드에서만 뗀다(2026-08-22,
-                      "규모 글자 빼"). */}
-                  <dd className="font-bold tabular-nums">{p.audienceTier.label.replace(/\s*규모$/, "")}</dd>
-                </div>
-                <div className="flex items-baseline justify-between gap-2">
-                  <dt className="text-muted">{t("configOptions.recommendedStageLabel", "권장 무대")}</dt>
-                  <dd className="font-bold">{p.stageType}</dd>
-                </div>
-                <div className="flex items-baseline justify-between gap-2">
-                  <dt className="text-muted">{t("configOptions.recommendedSeatingLabel", "권장 객석")}</dt>
-                  <dd className="font-bold">{p.seatingType}</dd>
-                </div>
-                <div className="flex items-baseline justify-between gap-2">
-                  <dt className="text-muted">{t("configOptions.baseFeeLabel", "대관료")}</dt>
-                  <dd className="font-bold tabular-nums">{won(p.baseFeePerWeek)}</dd>
-                </div>
+                {(() => {
+                  const rows: Record<string, ReactNode> = {
+                    audienceCapacity: (
+                      <div key="audienceCapacity" className="flex items-baseline justify-between gap-2">
+                        <dt className="text-muted">{t("configOptions.audienceCapacityLabel", "수용인원")}</dt>
+                        {/* audienceTier.label 은 "~12,000석 규모"처럼 다른 화면(예상 대관료
+                            요약 등)에서 문장 속에 자연스럽게 들어가도록 "규모"가 붙어 있다 —
+                            여기서는 라벨과 겹쳐 중복이라 이 카드에서만 뗀다(2026-08-22,
+                            "규모 글자 빼"). */}
+                        <dd className="font-bold tabular-nums">{p.audienceTier.label.replace(/\s*규모$/, "")}</dd>
+                      </div>
+                    ),
+                    recommendedStage: (
+                      <div key="recommendedStage" className="flex items-baseline justify-between gap-2">
+                        <dt className="text-muted">{t("configOptions.recommendedStageLabel", "권장 무대")}</dt>
+                        <dd className="font-bold">{p.stageType}</dd>
+                      </div>
+                    ),
+                    recommendedSeating: (
+                      <div key="recommendedSeating" className="flex items-baseline justify-between gap-2">
+                        <dt className="text-muted">{t("configOptions.recommendedSeatingLabel", "권장 객석")}</dt>
+                        <dd className="font-bold">{p.seatingType}</dd>
+                      </div>
+                    ),
+                    baseFee: (
+                      <div key="baseFee" className="flex items-baseline justify-between gap-2">
+                        <dt className="text-muted">{t("configOptions.baseFeeLabel", "대관료")}</dt>
+                        {/* [버그 수정 2026-09-06] "할인율 적용되었으니 대관료에는 가로줄 넣어줘" —
+                            할인율이 있는 패키지는 대관료가 정가가 아니라는 걸 보여주려고
+                            취소선을 긋는다. 실제 지불액은 바로 아래 총금액 행에 그대로 보인다. */}
+                        <dd
+                          className={`font-bold tabular-nums ${p.discountRatio > 0 ? "text-muted line-through" : ""}`}
+                        >
+                          {won(p.baseFeePerWeek)}
+                        </dd>
+                      </div>
+                    ),
+                  };
+                  return visibleCardRows.map((key) => rows[key]);
+                })()}
+                {/* [신규 2026-09-06] "rate 카드 항목도 추가 가능해야지" — 패키지 관리에서
+                    등록한 패키지별 자유 라벨·값 행. 고정 4행 다음, 할인율/총금액 앞에 둔다. */}
+                {p.customCardRows.map((row, i) => (
+                  <div key={`custom-${i}`} className="flex items-baseline justify-between gap-2">
+                    <dt className="text-muted">{row.label}</dt>
+                    <dd className="font-bold">{row.value}</dd>
+                  </div>
+                ))}
+                {/* [신규 2026-09-06] 패키지 관리(어드민)에서 설정한 할인율 — 계산 로직
+                    (calculateQuote.ts)에는 이미 반영되고 있었지만 카드에는 안 보여
+                    신청자가 할인 여부를 몰랐다. "할인율·총금액만 노출, 할인금액은 빼"
+                    — 할인 절대금액 행은 없앤다. */}
+                {p.discountRatio > 0 && (
+                  <div className="flex items-baseline justify-between gap-2">
+                    <dt className="text-muted">{t("configOptions.discountRatioLabel", "할인율")}</dt>
+                    <dd className="font-bold tabular-nums text-accent">
+                      {Math.round(p.discountRatio * 100)}%
+                    </dd>
+                  </div>
+                )}
+                {/* [철회 2026-09-06] "패키지 박스 안에서 1일 2회 공연 할증률 항목은 제거..
+                    패키지 박스 디자인에서만 빼는거고 로직은 그대로 반영" — 계산 로직
+                    (calculateQuote.ts의 secondShowSurchargeRatio 할증)은 그대로 두고
+                    카드 표시 행만 없앤다. */}
+                {/* [버그 수정 2026-09-06] "총 금액이 가장 밑에 들어가야해" — 할인율·할증률처럼
+                    카드에 새로 추가한 행들 아래로, 실제 지불액인 총금액을 맨 마지막 행으로 둔다. */}
+                {p.discountRatio > 0 &&
+                  (() => {
+                    const discountAmount = Math.round(p.baseFeePerWeek * p.discountRatio);
+                    return (
+                      <div className="flex items-baseline justify-between gap-2">
+                        <dt className="text-muted">{t("configOptions.totalAfterDiscountLabel", "총금액")}</dt>
+                        <dd className="font-bold tabular-nums">{won(p.baseFeePerWeek - discountAmount)}</dd>
+                      </div>
+                    );
+                  })()}
               </dl>
             </button>
           );
         })}
-        <button
-          type="button"
-          onClick={() => {
-            // Custom은 실제 패키지가 아니라 packageId로 표현할 수 없다 — 이전에 고른
-            // 패키지가 남아 있으면 카드 두 개가 동시에 선택된 것처럼 보이므로 여기서
-            // 함께 지운다(2026-08-22, "커스텀 선택 시 다른 패키지가 선택 해제되지
-            // 않는다" 리포트).
-            onClear();
-            setShowCustomNotice(true);
-          }}
-          style={showCustomNotice ? CHOICE_SELECTED_VARS : undefined}
-          className={`${choiceClass(showCustomNotice, { dense: true })} border-dashed`}
-        >
-          <div className="text-s font-bold">{t("configOptions.customCardTitle", "Custom")}</div>
-          <div className="mt-0.5 text-xs text-muted">{t("configOptions.customCardSubtitle", "직접구성")}</div>
-        </button>
       </div>
 
-      {showCustomNotice && (
-        <p className="mt-3 rounded-btn border border-border/25 bg-panel px-3 py-2.5 text-xs text-muted-strong">
-          {t(
-            "configOptions.customNotice",
-            "운영자 문의가 필요한 맞춤 구성입니다. 1:1 문의 또는 담당자에게 연락해 주세요.",
-          )}
-        </p>
-      )}
-
       {selectedId != null && (
-        <div className="mt-4 rounded-surface bg-panel px-4 py-3">
-          {/* 「선택 옵션」과 같은 규격의 제목 — 검정 배지로 두었더니 같은 층위인 두 블록이
-              하나는 제목, 하나는 꼬리표로 읽혔다 */}
-          <h2 className="type-kr-heading text-h6-m sm:text-h6">
+        <div className="mt-4 border border-border/30 bg-panel/40 px-4 py-3">
+          <span className="bg-foreground px-2 py-0.5 text-xs font-bold text-background">
             {t("configOptions.baseIncludedBadge", "기본 포함")}
-          </h2>
-          {/* 안내 문구는 보여 줄 항목이 있을 때만 — "아래 항목이 기본 포함되어 있습니다"
-              바로 밑에 "등록된 항목이 없습니다"가 오면 두 줄이 서로를 부정한다. */}
+          </span>
+          <p className="mt-1.5 text-xs leading-5 text-foreground">
+            {t("configOptions.baseIncludedHint", "이 구성에는 아래 항목이 별도 비용 없이 기본 포함되어 있습니다.")}
+          </p>
           {baseItems.length > 0 ? (
-            <>
-              <p className="mt-2 text-xs text-muted">
-                {t("configOptions.baseIncludedHint", "이 구성에는 아래 항목이 별도 비용 없이 기본 포함되어 있습니다.")}
-              </p>
-              <div className="mt-3 grid grid-cols-1 gap-1.5 sm:grid-cols-2 lg:grid-cols-3">
-                {baseItems.map((item) => (
-                  /* [개정 2026-09-02] 수량·단위("2공연일")를 뺐다. 여기는 이 구성에 무엇이
-                     들어 있는지 보는 곳이지 몇 개인지 세는 곳이 아니다 — 구성항목(스펙)
-                     이름만 남긴다. 수량은 요금표 관리에서 계속 관리하고 금액 계산에도
-                     그대로 쓰인다. */
-                  <div key={item.key} className="rounded-btn bg-background px-3 py-2 text-xs">
-                    <span className="font-bold text-foreground">{item.name}</span>
-                  </div>
-                ))}
-              </div>
-            </>
+            <div className="mt-3 grid grid-cols-1 gap-1.5 sm:grid-cols-2 lg:grid-cols-3">
+              {baseItems.map((item) => (
+                /* [개정 2026-09-02] 수량·단위("2공연일")를 뺐다. 여기는 이 구성에 무엇이
+                   들어 있는지 보는 곳이지 몇 개인지 세는 곳이 아니다 — 이름만 남긴다.
+                   수량은 요금표 관리에서 계속 관리하고 금액 계산에도 그대로 쓰인다.
+                   [신규 2026-09-07] 패키지 관리 "① 기본 내역"의 스펙(규격·사양) 입력은
+                   과금과 무관한 참고용 텍스트라 계산에는 안 쓰이지만, 신청자가 뭐가
+                   포함됐는지 가늠하려면 여기 노출돼야 한다("스펙 필드값이 대관 위저드
+                   프론트에 노출되도록 해줘"). */
+                <div
+                  key={item.key}
+                  className="flex items-baseline justify-between gap-2 border border-border-soft bg-panel px-3 py-2 text-xs"
+                >
+                  <span className="font-bold text-foreground">{item.name}</span>
+                  {item.spec && <span className="shrink-0 text-muted">{item.spec}</span>}
+                </div>
+              ))}
+            </div>
           ) : (
-            <p className="mt-2 text-xs text-muted">
+            <p className="mt-3 text-xs text-muted">
               {t("configOptions.baseIncludedEmpty", "등록된 기본 포함 항목이 없습니다.")}
             </p>
           )}
@@ -431,8 +620,9 @@ export function StepConfigOptions({
   onChangeQuantity,
   onChangeRevenue,
   onSelectPackage,
-  onClearPackage,
   headingOverride,
+  fieldOrders,
+  disabledFields,
 }: {
   rateTable: RateTable;
   liveHallRateContent: VenueRateContent;
@@ -444,14 +634,19 @@ export function StepConfigOptions({
   onChangeQuantity: (addonId: string, quantity: number) => void;
   onChangeRevenue: (value: number) => void;
   onSelectPackage: (packageId: number) => void;
-  onClearPackage: () => void;
   /** 관리자 문구 미리보기 전용 — 제목·리드를 편집 가능한 입력으로 바꿔치기한다. */
   headingOverride?: { title: ReactNode; lead?: ReactNode };
+  /** [신규 2026-09-06] "각 슬롯 내에 있는 각 항목들 순서 조정·노출 On/off" — 패키지
+   *  카드(Rate A/B/C/D 박스) 행에도 같은 패턴을 적용한다. */
+  fieldOrders?: Record<string, string[]>;
+  disabledFields?: string[];
 }) {
   const { t, tStr } = useWizardText();
   const midHallOnly = selection.venueId === MID_HALL_VENUE_ID && selection.bookingMode === "SINGLE";
   const isSimultaneous = selection.bookingMode === "SIMULTANEOUS";
   const pkg = findPackage(rateTable, selection.packageId);
+  // [신규 2026-09-08] 중형공연장 선택 옵션(수량형) — 어드민 패키지 관리 중형 탭에서 만든 항목.
+  const midHallAddons = midHallSelectableAddons(rateTable);
   // 패키지 공간을 단독으로 고르면 그 공간의 패키지를 보여 준다 — 아레나와 같은
   // 패키지 모델이라 공간 id 만 갈아 끼우면 같은 화면이 선다.
   const venuePackages = packagesForVenue(
@@ -473,6 +668,14 @@ export function StepConfigOptions({
           extraHourFee={rateTable.midHall.extraHourFee}
           extraSetupHours={selection.midHallExtraSetupHours}
           extraLoadOutHours={selection.midHallExtraLoadOutHours}
+          hideChargeGroups={midHallAddons.length > 0}
+        />
+        <MidHallOptionsBox
+          addons={midHallAddons}
+          addonQuantities={addonQuantities}
+          expectedRevenue={expectedRevenue}
+          onChangeQuantity={onChangeQuantity}
+          onChangeRevenue={onChangeRevenue}
         />
       </section>
     );
@@ -514,8 +717,12 @@ export function StepConfigOptions({
         <StepHeading
           title={headingOverride?.title ?? stepText.configArenaTitle}
           lead={
-            pkg
-              ? `${pkg.name} · ${pkg.audienceTier.label} · 예상 관객 ${selection.expectedAudience.toLocaleString()}명 · ${arenaSummaryLine(selection, defaultPerformanceDays)}`
+            // [수정 2026-09-07] "저 부분(예상 관객·준비·공연 요약 줄) 삭제하고 싶은데
+            // 삭제가 안 됨" — 예전에는 단어 하나하나(예상 관객/준비/공연 등)만 바꿔 쓸 수
+            // 있고, 줄 자체를 끌 방법이 없었다. 다른 슬롯과 같은 노출 On/off 패턴
+            // (disabledFields)을 그대로 써서 이 줄 전체를 켜고 끌 수 있게 한다.
+            pkg && !disabledFields?.includes(ARENA_SUMMARY_LEAD_FIELD_ID)
+              ? `${pkg.name} · ${pkg.audienceTier.label} · ${arenaSummaryLine(selection, defaultPerformanceDays, tStr)}`
               : undefined
           }
         />
@@ -527,7 +734,8 @@ export function StepConfigOptions({
           addons={rateTable.addons}
           selectedId={selection.packageId}
           onSelect={onSelectPackage}
-          onClear={onClearPackage}
+          fieldOrders={fieldOrders}
+          disabledFields={disabledFields}
         />
       </div>
 
@@ -536,12 +744,8 @@ export function StepConfigOptions({
           {t("configOptions.pickPackageFirst", "위에서 구성을 선택하면 선택 옵션을 확인할 수 있습니다.")}
         </p>
       ) : (
-        /*
-          선택 옵션 = **흰 면 한 판**. 테두리를 두르는 대신 면으로 묶는다 —
-          안의 항목이 열둘 넘게 늘어서는 자리라, 상자를 두르면 선이 두 겹으로 쌓였다.
-          항목은 테두리 없이 지면색으로 앉고, 수량이 들어간 것만 검정 테두리로 드러난다.
-        */
-        <div className="mt-6 rounded-surface bg-panel p-5">
+        /* 선택 옵션 = 아웃라인 박스. 색면을 쓰지 않는다 — 안의 항목도 아웃라인만이다 */
+        <div className="mt-6 border border-border/25 p-5">
           <h2 className="type-kr-heading text-h6-m sm:text-h6">{t("configOptions.selectedOptionsHeading", "선택 옵션")}</h2>
           <p className="mt-2 text-xs text-muted">
             {t(
@@ -562,7 +766,7 @@ export function StepConfigOptions({
               />
             ))}
           </div>
-          <div className="mt-4 flex items-center justify-between border-t border-border/25 pt-4 text-s font-bold">
+          <div className="mt-4 flex items-center justify-between border-t border-border/40 pt-4 text-s font-bold">
             <span>{t("configOptions.selectedOptionsHeading", "선택 옵션")}</span>
             <span className="tabular-nums">
               {selectedOptionCount}
@@ -588,28 +792,32 @@ export function StepConfigOptions({
   }
 
   const midHallSection = (
-    <MidHallRateCard
-      content={liveHallRateContent}
-      extraHourFee={rateTable.midHall.extraHourFee}
-      extraSetupHours={selection.midHallExtraSetupHours}
-      extraLoadOutHours={selection.midHallExtraLoadOutHours}
-    />
+    <>
+      <MidHallRateCard
+        content={liveHallRateContent}
+        extraHourFee={rateTable.midHall.extraHourFee}
+        extraSetupHours={selection.midHallExtraSetupHours}
+        extraLoadOutHours={selection.midHallExtraLoadOutHours}
+        hideChargeGroups={midHallAddons.length > 0}
+      />
+      {/* [신규 2026-09-08] 동시 대관의 중형 탭에도 같은 수량형 선택 옵션(nora). */}
+      <MidHallOptionsBox
+        addons={midHallAddons}
+        addonQuantities={addonQuantities}
+        expectedRevenue={expectedRevenue}
+        onChangeQuantity={onChangeQuantity}
+        onChangeRevenue={onChangeRevenue}
+      />
+    </>
   );
 
-  // 세 번째 공간("패키지")은 아레나와 같은 패키지 모델이라 구성 목록을 그대로 보여준다.
-  // 동시 대관 요금 계산에는 아직 들어가지 않으므로 여기서는 "무엇이 있는지"를 읽는
-  // 자리다 — 금액이 합산되는 것처럼 보이지 않게 선택은 받지 않는다.
-  const specialPackages = packagesForVenue(rateTable, SPECIAL_VENUE_ID);
-  const specialSection =
-    specialPackages.length > 0 ? (
-      <PackagePicker
-        packages={specialPackages}
-        addons={rateTable.addons}
-        selectedId={null}
-        onSelect={() => {}}
-        onClear={() => {}}
-      />
-    ) : null;
+  // [버그 수정 2026-09-08] "동시대관(아레나+중형)을 선택하고 올인원은 선택 안 했는데
+  // 구성/옵션에 올인원 탭까지 노출되는 오류" — 세 번째 공간("올인원")은 동시 대관과는
+  // 완전히 다른 별도 venueId 선택지라(WizardShell.isSpecialSchedule 참고, 동시 대관과
+  // 상호 배타적), 이 지점(isSimultaneous===true)에서는 올인원 패키지가 있든 없든
+  // 절대 보여줄 대상이 아니다. 이전에는 "무엇이 있는지 미리 보여주는 자리"로 올인원
+  // 패키지가 있으면 탭을 하나 더 얹었었는데, 올인원 요금이 실제로 채워지자 동시
+  // 대관과 무관한 공간의 요금표가 그대로 노출됐다 — 탭 자체를 없앤다.
 
   // 탭 이름의 정본은 venue.<id>.name(문구 관리 「공간 이름」) — 위저드·패키지 관리가
   // 같은 말을 쓰도록 한 곳에서 읽는다. 예전 key 로 고쳐 둔 문구는 잃지 않게 뒤로 물린다.
@@ -625,14 +833,6 @@ export function StepConfigOptions({
         tStr("configOptions.mediumHallTabLabel", defaultVenueName(MID_HALL_VENUE_ID)),
       ),
     },
-    ...(specialSection
-      ? [
-          {
-            id: SPECIAL_VENUE_ID,
-            label: tStr(venueLabelKey(SPECIAL_VENUE_ID), defaultVenueName(SPECIAL_VENUE_ID)),
-          },
-        ]
-      : []),
   ];
 
   return (
@@ -642,10 +842,7 @@ export function StepConfigOptions({
         lead={headingOverride?.lead ?? stepText.configSimultaneousLead}
       />
 
-      {/* [개정 2026-09-02] "패키지" 탭을 중형 옆에 세운다. 등록된 패키지가 있을 때만
-          내보낸다 — 요금표에 아무것도 없는 공간의 탭은 눌러도 빈 화면이라, 있는 것처럼
-          보이기만 하고 신청은 못 하는 상태가 된다. */}
-      <div className="mt-8 flex gap-1 border-b border-border/25">
+      <div className="mt-8 flex gap-1 border-b border-border">
         {venueTabs.map((tab) => (
           <button
             key={tab.id}
@@ -663,13 +860,7 @@ export function StepConfigOptions({
         ))}
       </div>
 
-      <div className="mt-6">
-        {venueTab === MID_HALL_VENUE_ID
-          ? midHallSection
-          : venueTab === SPECIAL_VENUE_ID
-            ? specialSection
-            : arenaSection}
-      </div>
+      <div className="mt-6">{venueTab === MID_HALL_VENUE_ID ? midHallSection : arenaSection}</div>
     </section>
   );
 }
@@ -700,26 +891,21 @@ function AddonRow({
     ? `${tStr("configOptions.revenuePrefix", "매출")} ${addon.unitPrice}%`
     : `${won(addon.unitPrice)} / ${addon.unitLabel.replace("원/", "")}`;
 
-  /*
-    항목은 아웃라인만이다. 선택 여부로 면 색을 바꾸지 않는다 —
-    수량을 적는 칸이 안에 있어서 면 색이 바뀌면 입력한 숫자가 묻힌다.
-    대신 **수량이 들어간 항목은 테두리가 검정**이 된다. 고른 것이 무엇인지 목록을
-    훑기만 해도 보인다.
-  */
-  const picked = (quantity ?? 0) > 0 || (expectedRevenue ?? 0) > 0;
+  // 항목은 아웃라인만이다. 선택 여부로 면 색을 바꾸지 않는다 —
+  // 수량을 적는 칸이 안에 있어서 면 색이 바뀌면 입력한 숫자가 묻힌다.
   return (
-    <div
-      className={`flex flex-col gap-1.5 rounded-btn border bg-background px-3 py-2 ${picked ? "border-foreground" : "border-transparent"}`}
-    >
+    <div className="flex flex-col gap-1.5 border border-border-soft px-3 py-2">
       <div className="min-w-0">
         <div className="flex flex-wrap items-center gap-1.5">
           <span className="text-xs font-bold">{addon.name}</span>
         </div>
-        <div className="mt-0.5 text-xs text-muted">
-          {addon.unitLabel}
-          {addon.spec ? ` · ${addon.spec}` : ""}
-          {addon.note ? ` · ${addon.note}` : ""}
-        </div>
+        {/* [수정 2026-09-08] "㎡당 · 아레나 야외 광장" 처럼 두 번째 줄에 단위가 보이는 게 문제(nora) —
+            단위는 아래 단가 줄("₩50,000 / ㎡당")에만 두고, 여기는 스펙·비고만 남긴다. 둘 다 없으면 줄 자체를 뺀다. */}
+        {(addon.spec || addon.note) && (
+          <div className="mt-0.5 text-xs text-muted">
+            {[addon.spec, addon.note].filter(Boolean).join(" · ")}
+          </div>
+        )}
       </div>
 
       <div className="flex shrink-0 items-center justify-between gap-2">
@@ -732,7 +918,7 @@ function AddonRow({
                 type="checkbox"
                 checked={quantity > 0}
                 onChange={(e) => onChangeQuantity(addon.id, e.target.checked ? 1 : 0)}
-                className="h-3.5 w-3.5"
+                className="h-3.5 w-3.5 accent-[var(--accent)]"
               />
               {t("configOptions.applyCheckboxLabel", "적용")}
             </label>
@@ -744,7 +930,7 @@ function AddonRow({
               value={expectedRevenue || ""}
               disabled={quantity <= 0}
               onChange={(e) => onChangeRevenue(Math.max(0, Number(e.target.value) || 0))}
-              className="w-20 shrink-0 rounded-btn border border-border-soft bg-background px-2 py-1 text-right text-xs outline-none focus:border-foreground disabled:opacity-40"
+              className="w-20 shrink-0 border border-border bg-background px-2 py-1 text-right text-xs outline-none focus:border-foreground disabled:opacity-40"
             />
           </div>
         ) : (
@@ -766,7 +952,7 @@ function AddonRow({
               onChange={(e) =>
                 onChangeQuantity(addon.id, clampAddonQuantity(addon, pkg, Number(e.target.value)))
               }
-              className="w-14 shrink-0 rounded-btn border border-border-soft bg-background px-2 py-1 text-right text-xs outline-none focus:border-foreground"
+              className="w-14 shrink-0 border border-border bg-background px-2 py-1 text-right text-xs outline-none focus:border-foreground"
             />
           </span>
         )}

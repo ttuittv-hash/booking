@@ -1,6 +1,5 @@
 import Link from "next/link";
-import { redirect } from "next/navigation";
-import { getCurrentUser, isProAdminOrAbove } from "@/lib/auth";
+import { requireProAdminPage, isProAdminOrAbove } from "@/lib/auth";
 import { listCompanies, listQuotesPaged, listUsersByIds, normalizePage } from "@/lib/db";
 import { num } from "@/lib/format";
 import { Pagination } from "@/components/Pagination";
@@ -14,9 +13,7 @@ export default async function AdminPage({
 }: {
   searchParams: Promise<{ companyId?: string; page?: string }>;
 }) {
-  const user = await getCurrentUser();
-  if (!user) redirect("/admin/login");
-  if (user.role !== "ADMIN") redirect("/apply");
+  const user = await requireProAdminPage();
 
   const { companyId, page: pageParam } = await searchParams;
   const page = normalizePage(pageParam);
@@ -51,7 +48,7 @@ export default async function AdminPage({
       <AdminNav active="/admin" user={user} />
 
       <main className="mx-auto w-full max-w-6xl flex-1 px-6 py-8 sm:py-10">
-        <header className="border-b border-border/25 pb-6">
+        <header className="border-b border-border/20 pb-6">
           <h1 className={PAGE_TITLE}>신청 현황</h1>
           <p className={PAGE_LEAD}>
             신청서를 열어 심사 후 계약금액을 확정하고, 계약 확정 건에 대해서는

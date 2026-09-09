@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { getCurrentUser } from "@/lib/auth";
+import { getCurrentUser, isProAdminOrAbove } from "@/lib/auth";
 import { getCurrentRateTable, saveNewRateTableVersion } from "@/lib/db";
 import {
   VENUES,
@@ -19,16 +19,32 @@ const AVAILABILITY_MODES: AvailabilityMode[] = ["ALWAYS", "IF_PACKAGE_IN", "IF_N
 // availability.packages(항목을 어떤 패키지에서 제공할지)가 이걸 안 읽으면 어드민에서
 // "제공" 체크를 바꿔도 저장이 안 된다(2026-08-23, "체크한것만 노출되는걸로 바꿔라" 구현
 // 중 발견 — visibility 드롭다운도 같은 이유로 이미 저장이 안 되고 있었다).
+//
+// [버그 수정 2026-09-06] "운영툴에서 리미트(수량 제한) 기능을 넣었는데 프론트에는
+// 반영이 안 됨" — 원인은 이 함수였다. mode가 IF_PACKAGE_IN이 아닌 모든 항목(대부분인
+// ALWAYS 포함)에서 `{ mode }`만 반환해 어드민이 입력한 maxAddQuantity를 저장 때마다
+// 지워버렸다(DB에는 항상 { mode: "ALWAYS" }만 남음). mode와 무관하게 값을 보존한다.
+function sanitizeMaxAddQuantity(
+  input: unknown,
+  current: AddonItem["availability"]["maxAddQuantity"],
+): AddonItem["availability"]["maxAddQuantity"] {
+  if (input === undefined) return undefined;
+  if (input === "UNLIMITED") return "UNLIMITED";
+  if (Number.isFinite(Number(input)) && Number(input) >= 0) return Math.round(Number(input));
+  return current;
+}
+
 function sanitizeAvailability(input: unknown, current: AddonItem["availability"]): AddonItem["availability"] {
   if (!input || typeof input !== "object") return current;
   const a = input as Record<string, unknown>;
   if (!AVAILABILITY_MODES.includes(a.mode as AvailabilityMode)) return current;
   const mode = a.mode as AvailabilityMode;
-  if (mode !== "IF_PACKAGE_IN") return { mode };
+  const maxAddQuantity = sanitizeMaxAddQuantity(a.maxAddQuantity, current.maxAddQuantity);
+  if (mode !== "IF_PACKAGE_IN") return { mode, maxAddQuantity };
   const packages = Array.isArray(a.packages)
     ? (a.packages as unknown[]).filter((v): v is number => Number.isFinite(Number(v))).map(Number)
     : [];
-  return { mode, packages };
+  return { mode, packages, maxAddQuantity };
 }
 
 const ADDON_CATEGORIES: AddonCategory[] = [
@@ -58,6 +74,12 @@ function sanitizeAddonUpdate(current: AddonItem, input: unknown): AddonItem {
       ? (a.visibility as LineItemVisibility)
       : current.visibility,
     availability: sanitizeAvailability(a.availability, current.availability),
+    // [신규 2026-09-08] 중형공연장 선택 옵션 표시. "arena" 를 보내면 되돌린다(undefined).
+    venueId: a.venueId === "medium-hall" ? "medium-hall" : a.venueId === "arena" ? undefined : current.venueId,
+    // [버그 수정 2026-09-07] "스펙 등록하고 저장하면 다 사라져" — 이 함수가 spec을
+    // 아예 안 읽어서 PackagesForm에서 입력한 스펙(규격·사양)이 저장 때마다 예전 값
+    // (대개 빈 값)으로 되돌아갔다. 빈 문자열로 지우면 undefined로 비운다.
+    spec: typeof a.spec === "string" ? (a.spec.trim() ? a.spec.trim() : undefined) : current.spec,
   };
 }
 
@@ -79,10 +101,13 @@ function sanitizeNewAddon(input: Record<string, unknown>): AddonItem | null {
     // "선택 옵션"으로 만든 새 항목은 지금 편집 중인 패키지에만 우선 노출되도록
     // { mode: "IF_PACKAGE_IN", packages: [그 패키지 id] }를 보낸다.
     availability: sanitizeAvailability(input.availability, { mode: "ALWAYS" }),
+    // [신규 2026-09-08] 중형공연장 탭에서 만든 선택 옵션은 venueId "medium-hall" 로 온다.
+    venueId: input.venueId === "medium-hall" ? "medium-hall" : undefined,
     billingPhase: "ESTIMATE",
     visibility: ADDON_VISIBILITIES.includes(input.visibility as LineItemVisibility)
       ? (input.visibility as LineItemVisibility)
       : "VISIBLE",
+    spec: typeof input.spec === "string" && input.spec.trim() ? input.spec.trim() : undefined,
   };
 }
 
@@ -101,6 +126,10 @@ function blankPackage(id: number): RentalPackage {
     discountRatio: 0,
     setupExtraDayFee: 0,
     performanceExtraDayFee: 0,
+    secondShowSurchargeRatio: 0,
+    extraDayDiscountRatio: 0.1,
+    restDayDiscountRatio: 0.5,
+    customCardRows: [],
     dayBreakdown: "준비 4일 + 공연 2일",
     defaultPerformanceDays: 2,
     rentalHours: "09:00 ~ 22:00",
@@ -166,6 +195,31 @@ function sanitizePackage(current: RentalPackage, input: unknown): RentalPackage 
   const discountRatio = Number.isFinite(Number(p.discountRatio))
     ? Math.min(0.9, Math.max(0, Number(p.discountRatio)))
     : current.discountRatio;
+  // [버그 수정 2026-09-06] "추가분 할인율" 입력을 새로 붙이며 발견 — secondShowSurchargeRatio는
+  // PackagesForm.tsx에는 편집 칸이 있었는데 이 sanitizePackage가 걸러 담지 않아 폼에서
+  // 고쳐도 저장되지 않고 있었다(spread한 current 값이 그대로 남음). 같은 패턴으로 새로
+  // 추가하는 extraDayDiscountRatio·restDayDiscountRatio와 함께 여기서 담는다.
+  const secondShowSurchargeRatio = Number.isFinite(Number(p.secondShowSurchargeRatio))
+    ? Math.min(2, Math.max(0, Number(p.secondShowSurchargeRatio)))
+    : current.secondShowSurchargeRatio;
+  const extraDayDiscountRatio = Number.isFinite(Number(p.extraDayDiscountRatio))
+    ? Math.min(0.9, Math.max(0, Number(p.extraDayDiscountRatio)))
+    : current.extraDayDiscountRatio;
+  const restDayDiscountRatio = Number.isFinite(Number(p.restDayDiscountRatio))
+    ? Math.min(1, Math.max(0, Number(p.restDayDiscountRatio)))
+    : current.restDayDiscountRatio;
+  // [신규 2026-09-06] "rate 카드 항목도 추가 가능해야지" — 패키지 카드에 패키지별
+  // 자유 라벨·값 행을 추가하는 기능. label이 없는 행은 버린다(빈 행 저장 방지).
+  const customCardRows: { label: string; value: string }[] = Array.isArray(p.customCardRows)
+    ? (p.customCardRows as unknown[])
+        .map((row) => {
+          const r = row as Record<string, unknown>;
+          const label = typeof r?.label === "string" ? r.label.trim() : "";
+          const value = typeof r?.value === "string" ? r.value : "";
+          return { label, value };
+        })
+        .filter((row) => row.label.length > 0)
+    : current.customCardRows;
 
   return {
     ...current,
@@ -177,6 +231,10 @@ function sanitizePackage(current: RentalPackage, input: unknown): RentalPackage 
     performanceExtraDayFee,
     defaultPerformanceDays,
     discountRatio,
+    secondShowSurchargeRatio,
+    extraDayDiscountRatio,
+    restDayDiscountRatio,
+    customCardRows,
     audienceTier,
     includedItems,
     mediaTier,
@@ -194,7 +252,7 @@ function sanitizePackage(current: RentalPackage, input: unknown): RentalPackage 
 
 export async function PUT(request: Request) {
   const user = await getCurrentUser();
-  if (!user || user.role !== "ADMIN") {
+  if (!user || !isProAdminOrAbove(user)) {
     return NextResponse.json({ error: "운영자 로그인이 필요합니다." }, { status: 401 });
   }
 

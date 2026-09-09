@@ -65,9 +65,9 @@ export interface CertExtraction {
   note: string;
 }
 
-export type CertFieldState = "MATCH" | "MISMATCH" | "UNREADABLE" | "NONE";
+type CertFieldState = "MATCH" | "MISMATCH" | "UNREADABLE" | "NONE";
 
-export interface CertFieldCompare {
+interface CertFieldCompare {
   key: "businessNumber" | "companyName" | "representativeName";
   label: string;
   /** 가입 때 입력한 값 */
@@ -77,7 +77,7 @@ export interface CertFieldCompare {
   state: CertFieldState;
 }
 
-export type CertCheckStatus =
+type CertCheckStatus =
   /** 세 항목 모두 입력값과 같다 */
   | "MATCH"
   /** 등록번호는 같은데 상호·대표자에 차이가 있다 */
@@ -117,7 +117,7 @@ export interface CertExpectedValues {
 const CORPORATE_FORMS =
   /주식회사|유한책임회사|유한회사|합자회사|합명회사|사회복지법인|재단법인|사단법인|의료법인|학교법인|영농조합법인/g;
 
-export function normalizeBrn(value: string): string {
+function normalizeBrn(value: string): string {
   return value.replace(/\D/g, "");
 }
 
@@ -130,7 +130,7 @@ export function normalizeCompanyName(value: string): string {
     .toLowerCase();
 }
 
-export function normalizePersonName(value: string): string {
+function normalizePersonName(value: string): string {
   return value.replace(/\s/g, "");
 }
 

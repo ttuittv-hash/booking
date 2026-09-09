@@ -1,8 +1,5 @@
 import {
-  ABOUT_CARDS,
   ABOUT_LEAD,
-  ABOUT_QUOTE,
-  ABOUT_STATEMENTS,
   ARENA_CAPACITY,
   ARENA_FACILITY_GROUPS,
   ARENA_FLOOR_SEATING,
@@ -72,7 +69,7 @@ export interface FeatureBlock {
 
 /* ------------------------------------------ 서울아레나 (`/seoularena`) --- */
 
-export interface VenueHeroBlock {
+interface VenueHeroBlock {
   title: string;
   eyebrow: string;
   desc: string;
@@ -80,23 +77,9 @@ export interface VenueHeroBlock {
   image: string | null;
 }
 
-export interface AboutCard {
-  title: string;
-  desc: string;
-}
-
 export interface SeoulArenaContent {
-  /**
-   * 시설개요 탭 리드 (리치텍스트).
-   * 화면은 아래 세 필드로 나눠 그린다 — 이 값은 예전 저장본과의 호환으로 남겨 둔다.
-   */
+  /** 시설개요 탭 리드 (리치텍스트) */
   aboutLead: string;
-  /** 머리 인용 — 제목 바로 아래 */
-  aboutQuote: string;
-  /** 카드 세 장 */
-  aboutCards: AboutCard[];
-  /** 가운데 선언 — 카드와 사진 사이 */
-  aboutStatements: string[];
   heroes: VenueHeroBlock[];
   complexFeaturesLead: string;
   complexFeatures: string[];
@@ -107,9 +90,6 @@ export interface SeoulArenaContent {
 
 export const DEFAULT_SEOULARENA_CONTENT: SeoulArenaContent = {
   aboutLead: ABOUT_LEAD,
-  aboutQuote: ABOUT_QUOTE,
-  aboutCards: ABOUT_CARDS.map((c) => ({ ...c })),
-  aboutStatements: [...ABOUT_STATEMENTS],
   heroes: VENUE_HEROES.map((h) => ({ ...h })),
   complexFeaturesLead: COMPLEX_FEATURES_LEAD,
   complexFeatures: COMPLEX_FEATURES.map((f) => f.title),
@@ -120,7 +100,7 @@ export const DEFAULT_SEOULARENA_CONTENT: SeoulArenaContent = {
 /* ---------------------------------------------- 시설 소개 (`/features`) --- */
 
 /** 라벨/값에 부연 한 줄이 더 붙는 행. `Pair` 의 상위 호환이라 예전 저장본도 그대로 읽힌다 */
-export interface SpecRow extends Pair {
+interface SpecRow extends Pair {
   note?: string;
 }
 
@@ -149,7 +129,7 @@ export interface SpecCard {
 }
 
 /** 스펙 카드 섹션 하나 (PRODUCTION & RIGGING · LOAD-IN & SUPPORT …) */
-export interface SpecCardGroup {
+interface SpecCardGroup {
   title: string;
   cards: SpecCard[];
 }
@@ -223,7 +203,7 @@ export const DEFAULT_FEATURES_CONTENT: FeaturesContent = {
 
 /* ------------------------------------------------- 대관 절차 (`/guide`) --- */
 
-export interface ProcessBlock {
+interface ProcessBlock {
   no: string;
   title: string;
   desc: string;
@@ -482,7 +462,11 @@ export const DEFAULT_RATES_CONTENT: RatesContent = {
 export interface WizardStepTexts {
   venuePickerTitle: string;
   venuePickerLead: string;
-  configArenaTitle: string; // 리드는 선택한 패키지 정보로 동적 생성돼 편집 대상이 아니다
+  // 리드 문장 자체(패키지명·예상 관객수 등)는 선택 상태로 동적 조립되어 이 폼의 편집
+  // 대상이 아니지만, 그 안의 "예상 관객"·"셋업"·"공연"·"철수" 같은 연결어는
+  // configOptions.arenaSummary.* 키로 wizardStrings 에 저장돼 /admin/content(화면 문구 탭 →
+  // 위저드 미리보기 · 수정)에서 편집할 수 있다(2026-09-06, "아레나 하단 워딩 수정할 수 있도록").
+  configArenaTitle: string;
   configMidHallOnlyTitle: string;
   configMidHallOnlyLead: string;
   configSimultaneousTitle: string;
@@ -502,7 +486,7 @@ export interface WizardStepTexts {
   submitEditingLead: string;
 }
 
-export const DEFAULT_WIZARD_STEP_TEXTS: WizardStepTexts = {
+const DEFAULT_WIZARD_STEP_TEXTS: WizardStepTexts = {
   venuePickerTitle: "공간 선택",
   venuePickerLead: "아레나, 중형공연장, 동시 대관 중 이용할 공간을 선택하세요.",
   configArenaTitle: "아레나",
@@ -558,7 +542,7 @@ export interface BookItNoticeTexts {
   body: string;
 }
 
-export const DEFAULT_BOOK_IT_NOTICE: BookItNoticeTexts = {
+const DEFAULT_BOOK_IT_NOTICE: BookItNoticeTexts = {
   enabled: true,
   title: "오픈 예정",
   // 줄바꿈은 화면에 그대로 나간다 — 운영자가 나눈 대로 읽힌다.
@@ -583,8 +567,6 @@ export const DEFAULT_REGISTER_INTRO: RegisterIntroTexts = {
   subtitle: "사업자등록증이 있는 법인 · 개인사업자 및 소속 임직원",
   bullets: [
     "공연 기획사 · 제작사 · 대행사 등 대관 업무 관련 기업의 담당자",
-    "기업에서 최초로 승인된 가입자가 대표 담당자로 지정됩니다.",
-    "대표 담당자는 소속 임직원을 구성원으로 추가할 수 있습니다.",
     "이미 등록된 기업의 담당자는 개인 정보만 추가 입력하여 가입할 수 있습니다.",
     "가입 신청 후 심사를 거쳐 승인 시 이용 가능",
     "대관 신청 · 계약 · 정산 전 과정 이용",
@@ -613,6 +595,60 @@ export interface ScreenTextContent {
    * 빈 값({})에서 시작해도 되고, 관리자가 고친 문구만 여기 쌓인다.
    */
   wizardStrings: Record<string, string>;
+  /**
+   * [신규 2026-09-06] "위저드 슬롯 순서를 관리자가 조정 가능하게" — STEP 번호(문자열
+   * "3" 등) → 그 스텝의 슬롯 key 배열(원하는 순서 그대로). 슬롯 key는 WizardShell.tsx
+   * 의 STEP3_SLOT_RENDERERS 에 등록된 것만 유효하다. 비어 있으면(또는 스텝 항목이
+   * 없으면) 기본 순서를 쓴다 — 신규 슬롯이 추가돼도 이 배열에 없으면 기본 순서
+   * 뒤쪽에 그대로 나온다(빠지지 않는다, WizardShell.tsx 참고).
+   */
+  wizardSlotOrders: Record<string, string[]>;
+  /**
+   * [신규 2026-09-06] "공공/공익 참여 항목들은 항목 자체를 On/off 할 수 있고, 항목
+   * 자체도 수정/편집 가능하게" — 항목 라벨·힌트 문구는 wizardStrings 의
+   * `publicInterest.item.<PublicInterestItem>.label`/`.hint` 키로 이미 편집 가능하다
+   * (StepPublicInterest.tsx 가 tStr()로 읽음). 이 필드는 그중 끌 항목의 id 목록이다 —
+   * 여기 있으면 위저드 화면에서 그 항목 자체가 보이지 않는다("해당 없음"/"검토 중"
+   * 상태 응답 두 개는 목록에서 빼는 대상이 아니다, PageContentForms.tsx 참고).
+   */
+  publicInterestDisabledItems: string[];
+  /**
+   * [신규 2026-09-06] "대분류 슬롯(그룹), 중분류 슬롯(항목) 온오프도 가능하게" —
+   * publicInterestDisabledItems가 개별 항목(중분류)을 껐다면, 이 필드는 그 상위
+   * PUBLIC_INTEREST_GROUPS 그룹(대분류, 예: "접근성 · 사회공헌") 자체를 통째로 끈다
+   * — 그룹 키("ACCESS" 등) 목록. 그룹이 꺼지면 그 그룹의 모든 항목이 함께 숨는다
+   * (개별 항목이 켜져 있어도).
+   */
+  publicInterestDisabledGroups: string[];
+  /**
+   * [신규 2026-09-06] "대관 위저드에서 각 슬롯별 순서 조정 가능, 각 슬롯 내에 있는
+   * 각 항목들 노출 On/off, 각 항목들 레이블명 수정 가능해야" — wizardSlotOrders/
+   * publicInterestDisabled*가 STEP3 슬롯·공공익 항목에 쓴 것과 같은 패턴을 위저드
+   * 전체 필드 단위로 일반화한 것. 그룹 id(예: "performanceInfo.applicantContact")
+   * → 그 그룹에 속한 필드 key 배열(원하는 순서). 그룹·필드 key는 각 스텝 컴포넌트가
+   * 정의한다(StepPerformanceInfo.tsx 참고). 레이블 자체는 기존 wizardStrings로 이미
+   * 편집 가능하다(각 필드가 t()/tStr()로 읽음) — 이 필드는 순서만 담당한다.
+   */
+  wizardFieldOrders: Record<string, string[]>;
+  /**
+   * [신규 2026-09-06] 위와 짝 — 끌 필드의 id 목록. id는 "그룹id.필드key" 형식
+   * (예: "performanceInfo.applicantContact.email"). 여기 있으면 그 필드가 화면에서
+   * 사라지고, 필수값 검사(validatePerformanceInfoStep 등)도 그 필드를 건너뛴다.
+   */
+  wizardDisabledFields: string[];
+  /**
+   * [신규 2026-09-07] "각 항목별 체크박스도 + 버튼 누르면 바로 추가/입력 가능" —
+   * wizardFieldOrders/wizardDisabledFields는 이미 정해진 체크박스 항목(신청 기업
+   * 유형·행사유형·공연등급·객석형태·무대형태·부대사업 계획 — 코드에 고정된 값)의
+   * 순서·노출만 다뤘다. 이 필드는 그 목록에 아예 없던 새 항목 자체를 관리자가 추가할
+   * 수 있게 한다. 그룹id(위 두 필드와 같은 값, 예: "performanceInfo.eventTypes") →
+   * 그 그룹에 추가된 커스텀 항목 key 배열. key는 생성 시 무작위로 발급되고
+   * (custom-<timestamp>), 라벨은 다른 고정 항목과 똑같이 wizardStrings의
+   * `fieldLabel.<그룹key>.<항목key>`로 편집한다(위저드 미리보기에서 새 항목이 뜨면
+   * 바로 클릭해 이름을 바꾼다) — 처음엔 빈 라벨이라 항목key 그대로 보인다.
+   * 고정 항목과 달리 이 목록의 항목은 삭제도 가능하다(위저드 미리보기의 "삭제" 버튼).
+   */
+  wizardCustomOptions: Record<string, string[]>;
 }
 
 export const DEFAULT_SCREEN_TEXT_CONTENT: ScreenTextContent = {
@@ -629,6 +665,12 @@ export const DEFAULT_SCREEN_TEXT_CONTENT: ScreenTextContent = {
     { label: "주차", value: "확정 후 안내" },
   ],
   wizardStrings: {},
+  wizardSlotOrders: {},
+  publicInterestDisabledItems: [],
+  publicInterestDisabledGroups: [],
+  wizardFieldOrders: {},
+  wizardDisabledFields: [],
+  wizardCustomOptions: {},
   wizardSteps: DEFAULT_WIZARD_STEP_TEXTS,
   registerIntro: DEFAULT_REGISTER_INTRO,
   bookItNotice: DEFAULT_BOOK_IT_NOTICE,

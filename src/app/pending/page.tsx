@@ -53,7 +53,7 @@ export default async function PendingPage() {
       */}
       <main className="container-site flex flex-1 items-center justify-center py-16 sm:py-20">
         <div className="w-full max-w-md">
-          <div className="rounded-surface border border-border p-8 sm:p-10">
+          <div className="border border-border p-8 sm:p-10">
             <div className="flex justify-center">
               <Badge tone={isRejected ? "danger" : "warn"}>
                 {isRejected ? "승인 거절" : "승인 대기"}
@@ -71,7 +71,7 @@ export default async function PendingPage() {
                 카드로 바꾼다 — 읽어야 하는 글이지 경고가 아니고, 빨강 바탕 위 빨강 글씨는
                 긴 사유일수록 읽기 어려웠다. */}
             {isRejected && currentUser.approvalRejectReason ? (
-              <div data-testid="reject-reason" className="mt-8 rounded-surface border border-border bg-panel p-5">
+              <div data-testid="reject-reason" className="mt-8 border border-border bg-panel p-5">
                 <p className="text-xs font-bold text-muted">반려 사유</p>
                 <p className="mt-2 whitespace-pre-wrap break-keep text-s leading-6">
                   {currentUser.approvalRejectReason}

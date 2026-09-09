@@ -5,6 +5,7 @@ import { useState } from "react";
 import { btnClass } from "@/components/ui/kit";
 import { hashPasswordForTransport } from "@/lib/clientPassword";
 import { useToast } from "@/components/ui/Toast";
+import { PasswordInput } from "@/components/ui/PasswordInput";
 
 export function WithdrawForm() {
   const router = useRouter();
@@ -64,12 +65,12 @@ export function WithdrawForm() {
 
       <label className="mt-6 block">
         <span className="mb-2 block text-xs text-muted-strong">비밀번호 확인</span>
-        <input
-          type="password"
-              autoComplete="current-password"
+        <PasswordInput
+          autoComplete="current-password"
           value={password}
           onChange={(e) => setPassword(e.target.value)}
-          className="field-base max-w-xs"
+          className="field-base"
+          wrapperClassName="max-w-xs"
         />
       </label>
 

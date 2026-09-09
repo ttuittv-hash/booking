@@ -1,12 +1,12 @@
 import { NextResponse } from "next/server";
-import { getCurrentUser } from "@/lib/auth";
+import { getCurrentUser, isProAdminOrAbove } from "@/lib/auth";
 import { getQuoteById, listCompetingQuotesForWeek, listUsersByIds } from "@/lib/db";
 import { generateCompetingRecommendation, isAiReviewConfigured } from "@/lib/aiReview";
 import { buildCandidateFacts } from "@/lib/scoring/competingCandidate";
 
 export async function POST(_request: Request, ctx: { params: Promise<{ id: string }> }) {
   const user = await getCurrentUser();
-  if (!user || user.role !== "ADMIN") {
+  if (!user || !isProAdminOrAbove(user)) {
     return NextResponse.json({ error: "운영자 로그인이 필요합니다." }, { status: 401 });
   }
 

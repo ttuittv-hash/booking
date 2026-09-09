@@ -153,7 +153,7 @@ export function HomeContentForm({ content: initial }: { content: HomeContent }) 
               <img
                 src={content.heroImage}
                 alt="히어로 배경"
-                className="h-24 w-40 rounded-btn border border-border-soft object-cover"
+                className="h-24 w-40 border border-border-soft object-cover"
               />
               <button type="button" onClick={() => patch({ heroImage: null })} className={removeBtnCls}>
                 이미지 삭제
@@ -174,7 +174,7 @@ export function HomeContentForm({ content: initial }: { content: HomeContent }) 
         </div>
       </section>
 
-      <section className="border-t border-border/25 pt-7">
+      <section className="border-t border-border/15 pt-7">
         <div className="flex flex-wrap items-center justify-between gap-2">
           <h3 className={SUB_TITLE}>브랜드 내러티브 (HOST IT. 선언문)</h3>
           <button type="button" onClick={loadDefaults} className={addBtnCls}>
@@ -238,7 +238,7 @@ export function HomeContentForm({ content: initial }: { content: HomeContent }) 
         </div>
       </section>
 
-      <section className="border-t border-border/25 pt-7">
+      <section className="border-t border-border/15 pt-7">
         <h3 className={SUB_TITLE}>신청 절차</h3>
         <p className={`mt-3 ${HELP}`}>
           2026-08 정보구조 재구성으로 홈에서 신청 절차 섹션이 빠졌습니다. 절차의 정본은 대관

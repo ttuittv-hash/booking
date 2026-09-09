@@ -61,7 +61,9 @@ export interface Venue {
 
 /** 중형공연장 — 유일하게 시간 단가 모델을 쓰는 공간이라 여러 곳에서 따로 분기한다. */
 export const MID_HALL_VENUE_ID = "medium-hall";
-/** 세 번째 공간 — 아레나와 같은 패키지 모델(2026-09-02). 화면 이름은 "패키지" */
+/** 세 번째 공간 — 아레나와 같은 패키지 모델(2026-09-02). 화면 이름은 "올인원"
+ *  (2026-09-06 개정: "패키지"에서 개명, 위저드에서는 "동시 대관" 탭 하위의
+ *  두 번째 선택지로 노출된다 — VenuePicker.tsx 참고). */
 export const SPECIAL_VENUE_ID = "special-hall";
 
 export const VENUES: Venue[] = [
@@ -70,7 +72,7 @@ export const VENUES: Venue[] = [
   // [신규 2026-09-02] 세 번째 공간. 아레나와 같은 패키지 모델을 쓴다(공간별 패키지를
   // 운영자가 요금표에서 만든다) — 중형공연장만 시간 단가 모델이라 별도 취급이다.
   // 화면에 나가는 이름은 운영자가 문구 관리에서 바꾼다(`venueLabel`).
-  { id: SPECIAL_VENUE_ID, name: "패키지" },
+  { id: SPECIAL_VENUE_ID, name: "올인원" },
 ];
 
 export const DEFAULT_VENUE_ID = "arena"; // venueId 미지정(기존) 데이터의 하위호환 기본값
@@ -108,6 +110,29 @@ export interface RentalPackage {
   setupExtraDayFee: number; // 셋업(준비일) 추가/차감 단가·1일 — 전 패키지 동일 46,790,000원
   performanceExtraDayFee: number; // 공연일 추가/차감 단가·1일 — 패키지별 상이
 
+  // [신규 2026-09-06] "1일 2회 공연 시 아레나는 50% 할증" 요청 — dayShowCounts(화면 입력만
+  // 우선 반영돼 있던 필드, 아래 QuoteSelection 참고)로 지정한 공연 회차가 2회 이상인
+  // 날짜에 한해 performanceExtraDayFee 에 이 비율만큼 할증한다. 0=할증 없음.
+  // 중형공연장의 같은 개념은 MidHallRateConfig.secondShowSurchargeRatio(RatesForm.tsx).
+  secondShowSurchargeRatio: number;
+
+  // [신규 2026-09-06] "추가분 할인율" — 화~일 기본 6일을 넘겨 추가하는 날짜에 붙는 할인.
+  // 패키지 관리(어드민) > 기본 정보에서 패키지별로 조정한다(과거엔 calculateQuote.ts에
+  // 0.1/0.5로 고정돼 있었다). extraDayDiscountRatio는 추가 준비일(휴무일 제외)과 추가
+  // 공연일 양쪽에 같은 값을 쓴다(2026-09-06 세션에서 "같은 값 공유"로 확정) — 각각
+  // setupExtraDayFee·performanceExtraDayFee에 곱해 할인분을 뺀다. restDayDiscountRatio는
+  // 휴무일(REST)로 지정한 추가일에만 적용하고 기준은 항상 setupExtraDayFee(준비일 단가)다.
+  // 0=할인 없음.
+  extraDayDiscountRatio: number; // 기본값 0.1 = 추가 준비일·추가 공연일 10% 할인
+  restDayDiscountRatio: number; // 기본값 0.5 = 휴무일(준비일 단가 기준) 50% 할인
+
+  // [신규 2026-09-06] "rate 카드 항목도 추가 가능해야지.. 컬럼 추가 버튼도 넣어" —
+  // 패키지 카드(Rate A/B/C/D 박스)의 수용인원·권장 무대·권장 객석·대관료 4개 고정
+  // 행(순서·노출은 wizardFieldOrders로 관리) 외에, 패키지별로 값이 다른 자유
+  // 라벨·값 행을 추가할 수 있게 한다. 패키지 관리(어드민) 기본 정보에서 편집하고,
+  // 위저드 패키지 카드에는 고정 4행 다음·할인율/총금액 앞에 순서대로 표시한다.
+  customCardRows: { label: string; value: string }[];
+
   // 아래 항목은 "패키지 구성" 명세(대관시스템 노출)를 반영한 설명 정보입니다.
   // 과금 대상이 아니며(정찰제 대관료에 포함), 패키지 비교/안내용으로만 표시됩니다.
   dayBreakdown: string; // 세부 구성 — "준비 4일 + 공연 2일" (전 패키지 공통)
@@ -127,13 +152,13 @@ export interface RentalPackage {
 
 export type AvailabilityMode = "ALWAYS" | "IF_PACKAGE_IN" | "IF_NOT_INCLUDED";
 
-export interface AvailabilityRule {
+interface AvailabilityRule {
   mode: AvailabilityMode;
   packages?: number[]; // mode=IF_PACKAGE_IN 일 때 대상 패키지 id
   maxAddQuantity?: number | "UNLIMITED"; // 추가 가능 상한 (기본 포함 수량 위에 더 얹을 수 있는 양)
 }
 
-export type BillingPhase = "ESTIMATE" | "SETTLEMENT";
+type BillingPhase = "ESTIMATE" | "SETTLEMENT";
 
 // 산출내역표 노출 등급 (기능정의서 2-71). 신청자 화면 기준이며 운영자 화면(어드민)에는
 // 적용하지 않는다 — 운영자는 항상 전체 내역을 본다.
@@ -157,6 +182,11 @@ export interface AddonItem {
   // optional — 항목 스펙(규격·사양) 참고용 텍스트(2026-08-26 추가). 과금·계산에는
   // 관여하지 않는다. 신청자 화면(StepConfigOptions AddonRow)에도 note 옆에 노출한다.
   spec?: string;
+  // [신규 2026-09-08] 어느 공간의 선택 옵션인가. 없으면 아레나(패키지 공간). "medium-hall"
+  // 이면 중형공연장 전용 — 아레나 패키지 가용성 판정(isAddonAvailable)에서 빠지고,
+  // calculateMidHallLineItems 가 중형 견적에 합산한다(nora 9/8 "아레나 추가 옵션과 동일한
+  // 방식으로 중형도"). 어드민 패키지 관리의 중형공연장 탭에서 만든다.
+  venueId?: "arena" | "medium-hall";
 }
 
 export interface RateTable {
@@ -190,7 +220,14 @@ export const WEEKDAY_LABEL: Record<WeekDay, string> = {
 // [화면 뼈대 2026-08-18, 화면시나리오 INTERACTION "아레나 — 일자 역할 드롭다운"] 셋업/공연일/
 // 철수/삭제(미사용) 4가지 상태. 철수(LOAD_OUT)는 가격 반영 방식이 아직 미정이라(BLOCKERS
 // P1) 당분간 PREP과 동일하게 비공연일로 취급한다 — 상태 구분 자체는 화면에 노출한다.
-export type DayTag = "PREP" | "PERFORMANCE" | "LOAD_OUT";
+// [신규 2026-09-06] "1주는 패키지 단위로 추가하고, 그 다음주는 개별로 추가... 휴무일을
+// 지정할수 있고 휴무일로 지정하면 공연 준비일에 50% 할인이 붙는 개념" — 화~일 기본
+// 6일(패키지) 이후로 개별 추가하는 날에만 고를 수 있는 5번째 상태. 기본 6일에는 쓰지
+// 않는다(Step1Calendar.tsx가 dayKind.kind === "base"일 때는 이 버튼을 보여주지 않는다).
+// 계산 로직(calculateQuote.ts)은 REST로 지정된 추가일을 준비일(셋업) 추가 단가의 50%로
+// 매긴다 — 준비/공연/철수와 달리 기본값(defaultDayTags)이 자동으로 매기는 일이 없고
+// 항상 명시적으로 지정해야만 붙는다.
+export type DayTag = "PREP" | "PERFORMANCE" | "LOAD_OUT" | "REST";
 
 // ---------------------------------------------------------------------------
 // 동시 대관 / 중형 일 단위 캘린더 — [화면 뼈대 2026-08-18, 화면시나리오·기능정의 v6.3]
@@ -255,13 +292,13 @@ export interface SafetyPledge {
   signature: string;
 }
 
-export interface MarketingChannel {
+interface MarketingChannel {
   platform: string; // 채널명 (인스타그램, 유튜브, X 등)
   handle: string; // 계정 · URL
   followers: string; // 구독자·팔로워 수 — 참고용 문자열, 형식 강제 안 함
 }
 
-export interface MarketingSponsorship {
+interface MarketingSponsorship {
   brandName: string; // 스폰서 · 브랜드사명
   campaignSummary: string; // 연계 캠페인 개요
 }
@@ -271,7 +308,7 @@ export interface MarketingSponsorship {
 // 동일한 패턴). 4개 중 몇 개를 채워야 하는지는 검사하지 않는다 — 안내 문구
 // ("4요소 중 2개 이상을 구체적 수치·금액·일자로 작성해 주세요")로만 유도하고 이 단계
 // 전체가 선택 항목이라 필수 검증 대상이 아니다.
-export interface MarketingExecutionPlan {
+interface MarketingExecutionPlan {
   targetDefinition: string; // 타겟 정의
   // 매체 믹스 — mediaMixOnline/mediaMixOffline에서 자동 합성(하위호환).
   // scoreQuote.ts의 A-MKT 채점이 이 필드를 그대로 읽는다.
@@ -303,6 +340,22 @@ export interface MarketingCooperation {
   ticketSalesDataConsent: boolean;
   pollstarConsent: boolean;
   executionPlan: MarketingExecutionPlan;
+  // [신규 2026-09-07, 개정 2026-09-07] "공연 연계 콘텐츠·서비스 및 프로모션 협업"
+  // 제안에 대한 동의 여부 — 처음엔 3택 1(적극/케이스별/미희망)이었으나 "협업 동의 ·
+  // 협업 미동의 두 개로만 노출" 피드백으로 다른 동의 항목들과 같은 tri-state
+  // boolean으로 단순화했다. 콘텐츠·IP 사용권을 부여하거나 특정 진행에 동의하는
+  // 것은 아니라는 점을 아래 화면 문구·각주로 명시한다.
+  contentCooperationConsent: boolean | null;
+}
+
+// [신규 2026-09-07] "미입력 필수항목 빨간색 표시 + 자동 스크롤" — 각 STEP 검증 함수
+// (validatePerformanceInfoStep 등)가 막힌 이유를 문자열 하나로만 돌려주던 것을,
+// 어느 필드가 문제인지(fieldKey — 그 필드를 감싼 DOM에 data-field-key로 심어둔 값과
+// 매칭)까지 함께 돌려주도록 넓힌 반환 타입. WizardShell.tsx가 이 fieldKey로 실제
+// DOM을 찾아 스크롤 + 빨간 테두리 표시를 한다.
+export interface StepValidationResult {
+  message: string;
+  fieldKey: string;
 }
 
 export interface QuoteSelection {
@@ -337,9 +390,14 @@ export interface QuoteSelection {
 
 // 신청하는 기업의 유형 — 회원가입 화면의 "공연 기획사 · 제작사 · 대행사 등" 문구와
 // 같은 분류를 쓴다. optional — 이 필드가 추가되기 전에 제출된 기존 신청서에는 없다.
-export type ApplicantCompanyType = "PROMOTER" | "PRODUCER" | "AGENCY" | "ARTIST_MANAGEMENT" | "OTHER";
+// [개정 2026-09-07] "체크박스 항목도 + 버튼 눌러서 바로 추가 가능해야" — 코드에 고정된
+// 값 외에 관리자가 만든 커스텀 항목(key 형식 "custom-<timestamp>", ScreenTextContent.
+// wizardCustomOptions에 등록)도 이 필드에 들어올 수 있어 닫힌 union을 열었다.
+// `(string & {})`는 기존 리터럴의 자동완성은 유지하면서 임의 문자열도 허용하는 TS
+// 관용구다("LiteralUnion" 패턴) — 이 값과의 비교(`=== "OTHER"` 등)는 그대로 동작한다.
+export type ApplicantCompanyType = "PROMOTER" | "PRODUCER" | "AGENCY" | "ARTIST_MANAGEMENT" | "OTHER" | (string & {});
 
-export const APPLICANT_COMPANY_TYPE_LABEL: Record<ApplicantCompanyType, string> = {
+export const APPLICANT_COMPANY_TYPE_LABEL: Record<string, string> = {
   PROMOTER: "기획사",
   PRODUCER: "제작사",
   AGENCY: "대행사",
@@ -347,18 +405,18 @@ export const APPLICANT_COMPANY_TYPE_LABEL: Record<ApplicantCompanyType, string> 
   OTHER: "기타",
 };
 
-export type EventType = "CONCERT" | "FANMEETING_CONCERT" | "CORPORATE" | "PUBLIC";
+export type EventType = "CONCERT" | "FANMEETING_CONCERT" | "CORPORATE" | "PUBLIC" | (string & {});
 
-export const EVENT_TYPE_LABEL: Record<EventType, string> = {
+export const EVENT_TYPE_LABEL: Record<string, string> = {
   CONCERT: "콘서트",
   FANMEETING_CONCERT: "팬미팅·콘서트",
   CORPORATE: "기업행사",
   PUBLIC: "공공행사",
 };
 
-export type StageType = "END_STAGE" | "CENTER_STAGE" | "UNDECIDED" | "OTHER";
+export type StageType = "END_STAGE" | "CENTER_STAGE" | "UNDECIDED" | "OTHER" | (string & {});
 
-export const STAGE_TYPE_LABEL: Record<StageType, string> = {
+export const STAGE_TYPE_LABEL: Record<string, string> = {
   END_STAGE: "엔드 스테이지",
   CENTER_STAGE: "센터 스테이지",
   UNDECIDED: "미정",
@@ -367,9 +425,9 @@ export const STAGE_TYPE_LABEL: Record<StageType, string> = {
 
 // [개정 2026-09-02] "객석"을 "지정석"으로 고치고 "혼합"을 더했다 — 아레나는 한 공연
 // 안에서 플로어는 스탠딩, 2·3층은 지정석으로 파는 경우가 흔한데 고를 값이 없었다.
-export type SeatingType = "SEATED" | "STANDING" | "MIXED" | "OTHER";
+export type SeatingType = "SEATED" | "STANDING" | "MIXED" | "OTHER" | (string & {});
 
-export const SEATING_TYPE_LABEL: Record<SeatingType, string> = {
+export const SEATING_TYPE_LABEL: Record<string, string> = {
   SEATED: "지정석",
   STANDING: "스탠딩",
   MIXED: "혼합",
@@ -398,10 +456,25 @@ export const RETRACTABLE_SEAT_FLOOR_LABEL: Record<RetractableSeatFloor, string> 
 // [화면 뼈대 2026-08-18, 화면시나리오 SCREEN 06/12 · 08/12] STEP 3-1(신청자 정보 · 공연
 // 기본정보) · STEP 3-3(개최 신뢰도 · 안전관리) 반영. 대관기간 · 공연일시 · 총 공연 횟수는
 // selection(캘린더 결과)에서 읽기 전용으로 자동 계산하므로 이 타입에는 넣지 않는다.
-export interface ResponsiblePerson {
+interface ResponsiblePerson {
   name: string;
   title: string; // 공연 운영 총괄: 직책 / 안전관리 총괄: 소속
   phone: string;
+}
+
+// [신규 2026-09-06] "담당자 정보를 한 줄짜리 반복 행으로, 행을 추가·삭제할 수 있게" —
+// 담당자(신청 담당자)와 공연 운영/안전관리 총괄 책임자가 각자 다른 UI(단일 5필드 +
+// ResponsiblePerson ×2)로 나뉘어 있던 것을 담당역할/소속/담당자 성명/연락처/이메일
+// 5개 값을 가진 하나의 반복 테이블로 합쳤다. 기본으로 "공연 운영 총괄"·"안전 관리
+// 총괄" 2행이 미리 채워진다(performanceInfoDefaults.ts). 옛 개별 필드(applicantContact*·
+// operationsResponsible·safetyResponsible)는 이 필드가 추가되기 전 신청서를 위해
+// 타입에 남겨둔다 — 새 신청서는 채우지 않는다.
+export interface ContactPersonRecord {
+  role: string; // 담당역할 (예: 공연 운영 총괄, 안전 관리 총괄)
+  department: string; // 소속(선택)
+  name: string; // 담당자 성명
+  phone: string; // 연락처
+  email: string; // 이메일 주소(선택)
 }
 
 export interface PastPerformanceRecord {
@@ -451,14 +524,13 @@ export interface ArtistRecentPerformanceRecord {
   sellRate: string; // 티켓 판매율
 }
 
-// [신규 2026-08-26] "티켓 유형별로 행 추가(R석, VIP석 등), 티켓가·예상 판매율을 각각"
-// 요청 — 기존 단일 expectedPaidSalesRate(%)를 유형별 반복 행으로 대체한다.
-// expectedPaidSalesRate/expectedPaidSalesRateMidHall 필드는 과거 신청서 하위호환을
-// 위해 타입에는 남기되(이미 제출된 신청서 표시용), 새 화면에서는 이 배열만 입력받는다.
+// [신규 2026-08-26, 개정 2026-09-06] "티켓 유형별로 행 추가(R석, VIP석 등), 티켓가를
+// 입력" — 유형·가격만 반복 행으로 받는다. 예상 판매율은 유형별이 아니라 전체 티켓
+// 기준 단일값으로 되돌렸다(expectedPaidSalesRate, 아래) — "예상 판매율은 티켓등급별이
+// 아니라 전체 티켓 예상 판매율 기입란으로" 요청.
 export interface TicketTypeRecord {
   label: string; // "R석", "VIP석" 등 티켓 유형명
   price: number; // 티켓가(원)
-  expectedSalesRate: number; // 예상 판매율(%)
 }
 
 export type CastContractStatus = "COMPLETED" | "IN_PROGRESS" | "PLANNED";
@@ -469,18 +541,18 @@ export const CAST_CONTRACT_STATUS_LABEL: Record<CastContractStatus, string> = {
   PLANNED: "섭외 예정",
 };
 
-export type AgeRating = "ALL" | "AGE_LIMIT" | "UNDECIDED";
+export type AgeRating = "ALL" | "AGE_LIMIT" | "UNDECIDED" | (string & {});
 
-export const AGE_RATING_LABEL: Record<AgeRating, string> = {
+export const AGE_RATING_LABEL: Record<string, string> = {
   ALL: "전체관람가",
   AGE_LIMIT: "연령제한",
   UNDECIDED: "미정",
 };
 
 // [화면 뼈대 2026-08-18, 화면시나리오 SCREEN 07/12 · STEP 3-2] 부대사업 계획 — 복수 선택.
-export type AncillaryBusinessPlan = "MD_SALES" | "POPUP_STORE" | "SPONSOR_BOOTH" | "OTHER" | "NONE";
+export type AncillaryBusinessPlan = "MD_SALES" | "POPUP_STORE" | "SPONSOR_BOOTH" | "OTHER" | "NONE" | (string & {});
 
-export const ANCILLARY_BUSINESS_PLAN_LABEL: Record<AncillaryBusinessPlan, string> = {
+export const ANCILLARY_BUSINESS_PLAN_LABEL: Record<string, string> = {
   MD_SALES: "MD 판매",
   POPUP_STORE: "팝업스토어",
   SPONSOR_BOOTH: "협찬부스",
@@ -575,9 +647,6 @@ export const PUBLIC_INTEREST_GROUPS: PublicInterestGroup[] = [
   },
 ];
 
-// 참여 항목이 아니라 "아직 못 정했다 / 해당 없다"는 응답이라, 그룹 밖 맨 아래에 따로 둔다.
-export const PUBLIC_INTEREST_STATUS_ITEMS: PublicInterestItem[] = ["UNDER_REVIEW", "NONE"];
-
 // 화면에 붙는 번호(1~14) — PUBLIC_INTEREST_ITEM_LABEL 선언 순서가 정본이다.
 export const PUBLIC_INTEREST_ITEM_NUMBER: Record<PublicInterestItem, number> = Object.fromEntries(
   (Object.keys(PUBLIC_INTEREST_ITEM_LABEL) as PublicInterestItem[]).map((item, i) => [item, i + 1]),
@@ -588,13 +657,27 @@ export interface PerformanceInfo {
   applicantCompanyName: string; // 대관신청사명
   // optional — 이 필드가 추가되기 전에 제출된 기존 신청서에는 없다.
   applicantCompanyType?: ApplicantCompanyType | null; // 신청 기업 유형
+  // optional — 신청 기업 유형 "기타" 선택 시 상세 설명(2026-09-06 추가, 무대형태·객석형태와
+  // 같은 패턴 — "모든 항목에 기타 버튼 눌렀을때" 상세 입력칸이 뜨도록 일반화).
+  applicantCompanyTypeOtherDetail?: string;
   applicantBusinessRegistrationNumber: string; // 사업자등록번호
   // optional — 대표자명(2026-08-26 추가, 계정/회사 정보에서 자동 입력·읽기 전용)
   applicantRepresentativeName?: string;
-  applicantContactName: string; // 담당자
-  applicantContactPhone: string; // 담당자 연락처
-  operationsResponsible: ResponsiblePerson; // 공연 운영 총괄 책임자
-  safetyResponsible: ResponsiblePerson; // 안전관리 총괄 책임자
+  // [개정 2026-09-06] "한 줄짜리 반복 행으로, 행을 추가·삭제할 수 있게" — 아래 담당자
+  // 개별 필드(applicantContact*)와 책임자 2명(operationsResponsible·safetyResponsible)을
+  // 담당역할/소속/담당자 성명/연락처/이메일 반복 테이블 하나로 합쳤다. optional — 이
+  // 필드가 추가되기 전에 제출된 기존 신청서에는 없다(그때는 아래 개별 필드에 값이 있다).
+  contactPersons?: ContactPersonRecord[]; // 담당자 정보 (반복 입력, 기본 "공연 운영 총괄"·"안전 관리 총괄" 2행)
+  // 아래 5개(담당역할·소속·담당자명·연락처·이메일)와 operationsResponsible·safetyResponsible은
+  // contactPersons 도입(2026-09-06) 이전 신청서를 위해 타입에만 남긴다 — 새 위저드 화면은
+  // 더 이상 이 필드들을 채우지 않는다.
+  applicantContactRole?: string;
+  applicantContactDepartment?: string;
+  applicantContactName: string;
+  applicantContactPhone: string;
+  applicantContactEmail?: string;
+  operationsResponsible: ResponsiblePerson;
+  safetyResponsible: ResponsiblePerson;
   pastPerformances: PastPerformanceRecord[]; // 대관사 최근 3년간 공연 실적 (반복 입력)
 
   // 공연 기본정보 (STEP 3-1 우측)
@@ -617,6 +700,9 @@ export interface PerformanceInfo {
   // optional — 위에서 [사용]을 고른 경우 층별 사용여부(2026-09-02). 예전 신청서에는 없다.
   retractableSeatFloorUse?: Partial<Record<RetractableSeatFloor, RetractableSeatUse>>;
   teardownCompletionTime: string; // 철수 완료 예정시간
+  // [신규 2026-09-09] 셋업 추가 요청시간 — 철수 완료 예정시간과 같은 자유 입력(팀 요청).
+  // optional: 이 필드가 생기기 전 저장된 신청서에는 값이 없다.
+  setupRequestTime?: string;
   ticketOpenExpectedDate: string; // 티켓 오픈 예정일
 
   // 아티스트 이력(2026-08-26 추가) — artist(요약 텍스트)와는 별개로 상세 이력을 받는다.
@@ -624,13 +710,15 @@ export interface PerformanceInfo {
   artistRecentPerformances?: ArtistRecentPerformanceRecord[]; // ② 최근 공연 이력(최대 3~5건 권장)
 
   // 예상 관객 및 사업규모 · 공공성 (STEP 3-2)
-  // [2026-08-26] 화면은 이제 ticketTypes(티켓 유형별 가격·판매율)만 입력받는다 — 아래 두
-  // 필드는 그 이전에 제출된 신청서를 그대로 보여주기 위한 하위호환용으로만 남긴다.
-  expectedPaidSalesRate: number; // 예상 유료 판매율(%) — 아레나 (레거시)
-  // optional — 아레나/중형을 한 화면에서 나눠 입력하게 된(2026-08-22) 이후 추가된 필드라
-  // 그 전에 저장된 신청서에는 없다.
+  // [개정 2026-09-06] 티켓 유형별 반복 행(ticketTypes)에서 예상 판매율 컬럼을 빼고,
+  // 다시 이 단일 필드로 받는다(공간 탭마다 자기 PerformanceInfo를 쓰므로 아레나·중형
+  // 구분 없이 이 하나면 된다).
+  expectedPaidSalesRate: number; // 예상 유료 판매율(%)
+  // optional — 2026-08-22~2026-09-06 사이 화면이 아레나/중형을 한 필드에 합쳐 받던
+  // 시기에만 쓰였다. 지금은 공간별로 별도 PerformanceInfo(expectedPaidSalesRate)를
+  // 쓰므로 새 신청서에는 채워지지 않는다 — 그 사이 제출된 신청서 표시용으로만 남긴다.
   expectedPaidSalesRateMidHall?: number; // 예상 유료 판매율(%) — 중형 (레거시)
-  // optional — 2026-08-26 추가. 티켓 유형(R석·VIP석 등)별 가격·예상 판매율 반복 입력.
+  // optional — 2026-08-26 추가. 티켓 유형(R석·VIP석 등)별 가격 반복 입력.
   ticketTypes?: TicketTypeRecord[];
   // optional — 2026-08-26 추가. 같은 주차에 여러 신청이 몰려 경합이 붙었을 때, 신청자가
   // 추가로 제시할 수 있는 대관료 옵션의 범위(최소~최대, 원)와 티켓 매출 중 서울아레나에
@@ -639,6 +727,8 @@ export interface PerformanceInfo {
   competitionFeeOptionMax?: number;
   ticketRevenueShareRate?: number; // 티켓 매출 RS 요율(%)
   ancillaryBusinessPlans: AncillaryBusinessPlan[]; // 부대사업 계획
+  // optional — 부대사업 계획 "기타" 선택 시 상세 설명(2026-09-06 추가, 위와 같은 이유).
+  ancillaryBusinessPlanOtherDetail?: string;
 
   // 공공/공익 참여 여부 (STEP 3-2.5) — 선택사항. optional: 선택형으로 바뀌기 전(2026-08-22)
   // 저장된 신청서에는 없을 수 있다.
@@ -670,7 +760,7 @@ export interface DateBlock {
   reason: string | null; // 예: "정기 대관", "내부 행사"
 }
 
-export interface SelectedAddon {
+interface SelectedAddon {
   addonId: string;
   requestedQuantity: number; // 신청 수량 (초과분 계산 전 총량)
 }

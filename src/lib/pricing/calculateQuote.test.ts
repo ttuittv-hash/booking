@@ -1,8 +1,11 @@
 import { describe, expect, it } from "vitest";
 import { calculateQuote } from "./calculateQuote";
 import { resolveSelectedDates } from "./dateRange";
+import { sectionOf } from "./lineItemGroups";
 import {
   clampAddonQuantity,
+  defaultDayTags,
+  effectiveDayTag,
   findAddon,
   findPackage,
   includedQuantity,
@@ -10,11 +13,14 @@ import {
   packagePrice,
 } from "./rateTableUtils";
 import { buildSeedRateTable } from "./seed";
-import type { AddonItem, QuoteSelection } from "./types";
+import { SPECIAL_VENUE_ID } from "./types";
+import type { AddonItem, QuoteSelection, RateTable } from "./types";
 
 const RATE_TABLE = buildSeedRateTable();
 
-function baseSelection(overrides: Partial<QuoteSelection> = {}): QuoteSelection {
+function baseSelection(
+  overrides: Partial<QuoteSelection> = {},
+): QuoteSelection {
   return {
     venueId: "arena",
     bookingMode: "SINGLE",
@@ -66,7 +72,12 @@ function baseSelection(overrides: Partial<QuoteSelection> = {}): QuoteSelection 
 // [기능정의서 2-48] 아레나 유틸리티(필수) 자동 산입 합계 — HIDDEN, ESTIMATE, UTILITY 카테고리 항목의 합.
 function arenaHiddenUtilityTotal(): number {
   return RATE_TABLE.addons
-    .filter((a) => a.category === "UTILITY" && a.visibility === "HIDDEN" && a.billingPhase === "ESTIMATE")
+    .filter(
+      (a) =>
+        a.category === "UTILITY" &&
+        a.visibility === "HIDDEN" &&
+        a.billingPhase === "ESTIMATE",
+    )
     .reduce((sum, a) => sum + a.unitPrice, 0);
 }
 
@@ -77,7 +88,8 @@ describe("calculateQuote — 명세서 7장 검증 케이스", () => {
 
   it("케이스 A: 기본만 — 기본료 + 청소비 + 유틸리티(자동산입)", () => {
     const quote = calculateQuote(baseSelection(), RATE_TABLE);
-    const expectedSubtotal = packagePrice(RATE_TABLE, pkg2) + 8000 * cleaning.unitPrice + utilityTotal;
+    const expectedSubtotal =
+      packagePrice(RATE_TABLE, pkg2) + 8000 * cleaning.unitPrice + utilityTotal;
     expect(quote.subtotal).toBe(expectedSubtotal);
     expect(quote.vat).toBe(Math.round(expectedSubtotal * 0.1));
     expect(quote.total).toBe(expectedSubtotal + quote.vat);
@@ -92,15 +104,22 @@ describe("calculateQuote — 명세서 7장 검증 케이스", () => {
     const quote = calculateQuote(
       baseSelection({
         addons: [
-          { addonId: "waiting_room", requestedQuantity: waitingRoomIncluded + 1 }, // 포함분+1개 신청 → 1개만 과금
+          {
+            addonId: "waiting_room",
+            requestedQuantity: waitingRoomIncluded + 1,
+          }, // 포함분+1개 신청 → 1개만 과금
           { addonId: "smart_stage", requestedQuantity: smartStageIncluded + 1 }, // 포함분+1개 신청 → 1개만 과금
         ],
       }),
       RATE_TABLE,
     );
 
-    const waitingRoomLine = quote.lineItems.find((i) => i.addonId === "waiting_room")!;
-    const smartStageLine = quote.lineItems.find((i) => i.addonId === "smart_stage")!;
+    const waitingRoomLine = quote.lineItems.find(
+      (i) => i.addonId === "waiting_room",
+    )!;
+    const smartStageLine = quote.lineItems.find(
+      (i) => i.addonId === "smart_stage",
+    )!;
 
     expect(waitingRoomLine.billable).toBe(1);
     expect(waitingRoomLine.amount).toBe(1 * waitingRoom.unitPrice);
@@ -116,42 +135,212 @@ describe("calculateQuote — 명세서 7장 검증 케이스", () => {
     expect(quote.subtotal).toBe(expectedSubtotal);
   });
 
-  it("케이스 C: 추가 일수 — 일요일 이후 2일 연장 시 셋업 추가 단가 × 2일 과금 (2-38 확정)", () => {
+  it("케이스 C: 추가 일수 — 일요일 이후 2일 연장 시 셋업 추가 단가 10% 할인 × 2일 과금 (2026-09-06 개정)", () => {
     const quote = calculateQuote(baseSelection({ extraDays: 2 }), RATE_TABLE);
-    const extraDaysLine = quote.lineItems.find((i) => i.addonId === "extra_days")!;
-    const dayPrice = pkg2.setupExtraDayFee;
+    const extraDaysLine = quote.lineItems.find(
+      (i) => i.addonId === "extra_days",
+    )!;
+    const dayPrice = Math.round(pkg2.setupExtraDayFee * 0.9);
 
     expect(extraDaysLine.requested).toBe(2);
     expect(extraDaysLine.billable).toBe(2);
     expect(extraDaysLine.amount).toBe(2 * dayPrice);
-    expect(dayPrice).toBe(46_790_000);
 
     const expectedSubtotal =
-      packagePrice(RATE_TABLE, pkg2) + 8000 * cleaning.unitPrice + 2 * dayPrice + utilityTotal;
+      packagePrice(RATE_TABLE, pkg2) +
+      8000 * cleaning.unitPrice +
+      2 * dayPrice +
+      utilityTotal;
     expect(quote.subtotal).toBe(expectedSubtotal);
   });
 
-  it("제외 요일 할인: 준비일 요일을 제외하면 셋업 추가 단가로 정액 차감된다 (2-37/2-38 확정 대칭 적용)", () => {
+  it("추가분 할인율은 패키지별 어드민 입력값을 따른다 — 고정 10%/50%가 아니다 (2026-09-06 신규)", () => {
+    // "운영툴 > 패키지 관리 > 기본 정보에 추가분 할인율 항목을 추가" — extraDayDiscountRatio·
+    // restDayDiscountRatio를 패키지별로 20%/30%로 바꿔도 계산에 그대로 반영돼야 한다.
+    const customTable: RateTable = {
+      ...RATE_TABLE,
+      packages: RATE_TABLE.packages.map((p) =>
+        p.id === 2
+          ? { ...p, extraDayDiscountRatio: 0.2, restDayDiscountRatio: 0.3 }
+          : p,
+      ),
+    };
+    const dates = resolveSelectedDates(baseSelection({ extraDays: 2 }));
+    const [restDate] = dates.slice(-2);
+    const quote = calculateQuote(
+      baseSelection({ extraDays: 2, dayTags: { [restDate]: "REST" } }),
+      customTable,
+    );
+    const extraDaysLine = quote.lineItems.find(
+      (i) => i.addonId === "extra_days",
+    )!;
+    const restLine = quote.lineItems.find(
+      (i) => i.addonId === "extra_days_rest",
+    )!;
+    expect(extraDaysLine.amount).toBe(Math.round(pkg2.setupExtraDayFee * 0.8));
+    // [수정 2026-09-08] "휴무일도 준비일 10%(여기선 20%) 할인금액에서 또 할인값이
+    // 들어가야함" — REST 할인은 이제 정가가 아니라 이미 20% 할인된 준비일 단가 위에
+    // 30%를 더 적용한다.
+    expect(restLine.amount).toBe(
+      Math.round(Math.round(pkg2.setupExtraDayFee * 0.8) * 0.7),
+    );
+
+    const perfDates = resolveSelectedDates(baseSelection());
+    const prepDate = perfDates[0];
+    const perfQuote = calculateQuote(
+      baseSelection({ dayTags: { [prepDate]: "PERFORMANCE" } }),
+      customTable,
+    );
+    const perfLine = perfQuote.lineItems.find(
+      (i) => i.addonId === "performance_day_adjustment",
+    )!;
+    expect(perfLine.amount).toBe(Math.round(pkg2.performanceExtraDayFee * 0.8));
+  });
+
+  it("휴무일(REST) — 추가일 중 하루만 휴무일로 지정하면 그 날만 준비일 10% 할인가에서 추가 50% 할인, 나머지는 10% 할인만 (2026-09-08 개정)", () => {
+    const dates = resolveSelectedDates(baseSelection({ extraDays: 2 }));
+    const [restDate, normalDate] = dates.slice(-2);
+    const quote = calculateQuote(
+      baseSelection({ extraDays: 2, dayTags: { [restDate]: "REST" } }),
+      RATE_TABLE,
+    );
+    const dayPrice = pkg2.setupExtraDayFee;
+    const discountedPrice = Math.round(dayPrice * 0.9);
+    const restPrice = Math.round(discountedPrice * 0.5);
+
+    const extraDaysLine = quote.lineItems.find(
+      (i) => i.addonId === "extra_days",
+    )!;
+    const restLine = quote.lineItems.find(
+      (i) => i.addonId === "extra_days_rest",
+    )!;
+
+    expect(extraDaysLine.billable).toBe(1);
+    expect(extraDaysLine.amount).toBe(1 * discountedPrice);
+    expect(restLine.billable).toBe(1);
+    expect(restLine.amount).toBe(1 * restPrice);
+    expect(normalDate).toBeTruthy(); // 나머지 한 날은 REST가 아니라 10% 할인 단가로 남는다
+    // [버그 수정 2026-09-08] "휴무일은 대관료에 포함되어야해" — extra_days_rest가
+    // "추가 옵션"(ADDITIONAL)이 아니라 "대관료"(CONTRACT)로 잡혀야 한다.
+    expect(sectionOf(restLine)).toBe("CONTRACT");
+  });
+
+  it("휴무일(REST) — 추가일 전부를 휴무일로 지정하면 전액 단가 줄은 아예 생기지 않는다", () => {
+    const dates = resolveSelectedDates(baseSelection({ extraDays: 2 }));
+    const [d1, d2] = dates.slice(-2);
+    const quote = calculateQuote(
+      baseSelection({ extraDays: 2, dayTags: { [d1]: "REST", [d2]: "REST" } }),
+      RATE_TABLE,
+    );
+    const restPrice = Math.round(Math.round(pkg2.setupExtraDayFee * 0.9) * 0.5);
+
+    expect(
+      quote.lineItems.find((i) => i.addonId === "extra_days"),
+    ).toBeUndefined();
+    const restLine = quote.lineItems.find(
+      (i) => i.addonId === "extra_days_rest",
+    )!;
+    expect(restLine.billable).toBe(2);
+    expect(restLine.amount).toBe(2 * restPrice);
+  });
+
+  it("제외 요일 할인: 준비일 요일을 제외하면 준비일 추가 단가의 할인가로 정액 차감된다 (2026-09-08 개정 — 추가와 대칭)", () => {
     // FRI는 패키지 기본값상 준비일(defaultPerformanceDays=2 → SAT·SUN만 공연일)
-    const quote = calculateQuote(baseSelection({ excludedDays: ["FRI"] }), RATE_TABLE);
-    const discountLine = quote.lineItems.find((i) => i.addonId === "day_exclusion_discount_prep")!;
+    const quote = calculateQuote(
+      baseSelection({ excludedDays: ["FRI"] }),
+      RATE_TABLE,
+    );
+    const discountLine = quote.lineItems.find(
+      (i) => i.addonId === "day_exclusion_discount_prep",
+    )!;
+    const discountedUnitPrice = Math.round(
+      pkg2.setupExtraDayFee * (1 - pkg2.extraDayDiscountRatio),
+    );
 
     expect(discountLine.billable).toBe(1);
-    expect(discountLine.amount).toBe(-pkg2.setupExtraDayFee);
-    expect(quote.lineItems.find((i) => i.addonId === "day_exclusion_discount_performance")).toBeUndefined();
+    expect(discountLine.amount).toBe(-discountedUnitPrice);
+    expect(
+      quote.lineItems.find(
+        (i) => i.addonId === "day_exclusion_discount_performance",
+      ),
+    ).toBeUndefined();
 
     const expectedSubtotal =
-      packagePrice(RATE_TABLE, pkg2) + 8000 * cleaning.unitPrice - pkg2.setupExtraDayFee + utilityTotal;
+      packagePrice(RATE_TABLE, pkg2) +
+      8000 * cleaning.unitPrice -
+      discountedUnitPrice +
+      utilityTotal;
     expect(quote.subtotal).toBe(expectedSubtotal);
   });
 
-  it("제외 요일 할인: 공연일 요일을 제외하면 공연 추가 단가로 정액 차감된다", () => {
+  it("제외 요일 할인: 공연일 요일을 제외하면 공연일 추가 단가의 할인가로 정액 차감된다 (2026-09-08 개정)", () => {
     // SAT는 패키지 기본값상 공연일
-    const quote = calculateQuote(baseSelection({ excludedDays: ["SAT"] }), RATE_TABLE);
-    const discountLine = quote.lineItems.find((i) => i.addonId === "day_exclusion_discount_performance")!;
+    const quote = calculateQuote(
+      baseSelection({ excludedDays: ["SAT"] }),
+      RATE_TABLE,
+    );
+    const discountLine = quote.lineItems.find(
+      (i) => i.addonId === "day_exclusion_discount_performance",
+    )!;
+    const discountedUnitPrice = Math.round(
+      pkg2.performanceExtraDayFee * (1 - pkg2.extraDayDiscountRatio),
+    );
 
     expect(discountLine.billable).toBe(1);
-    expect(discountLine.amount).toBe(-pkg2.performanceExtraDayFee);
+    expect(discountLine.amount).toBe(-discountedUnitPrice);
+  });
+
+  it("버그 수정: 기본 공연일 요일을 제외해도 공연 일수 조정으로 또 차감되지 않는다 — 이중 차감 방지 (2026-09-08 밤)", () => {
+    // "공연일 1회 제거했는데 두번 제거되는 중" — SUN은 패키지 기본값상 공연일(SAT·SUN
+    // 2일 중 하나). 제외하면 "제외 — 공연일"로 한 번만 할인되고, "공연 일수 조정" 줄은
+    // (남은 기본 공연일 SAT 1일 = 실제 공연일 1일, delta 0이라) 아예 생기지 않아야 한다.
+    const quote = calculateQuote(
+      baseSelection({ excludedDays: ["SUN"] }),
+      RATE_TABLE,
+    );
+    const exclusionLine = quote.lineItems.find(
+      (i) => i.addonId === "day_exclusion_discount_performance",
+    )!;
+    const discountedUnitPrice = Math.round(
+      pkg2.performanceExtraDayFee * (1 - pkg2.extraDayDiscountRatio),
+    );
+    expect(exclusionLine.amount).toBe(-discountedUnitPrice);
+    expect(
+      quote.lineItems.find((i) => i.addonId === "performance_day_adjustment"),
+    ).toBeUndefined();
+
+    const expectedSubtotal =
+      packagePrice(RATE_TABLE, pkg2) +
+      8000 * cleaning.unitPrice -
+      discountedUnitPrice +
+      utilityTotal;
+    expect(quote.subtotal).toBe(expectedSubtotal);
+  });
+
+  it("버그 수정: 기본 공연일 요일 제외 + 남은 날 중 하나를 추가로 공연일로 재지정하면, 제외분을 뺀 만큼만 조정된다", () => {
+    // SUN(기본 공연일) 제외 + 남은 날 중 준비일 하나(FRI)를 명시적으로 공연일로 바꾼 경우 —
+    // 실질 기본(2-1=1) 대비 실제 공연일(SAT+FRI=2)이라 delta는 +1이어야 한다(제외로 이미
+    // 뺀 SUN 몫과는 별개로, FRI를 공연일로 "추가"한 부분만 조정 대상).
+    const dates = resolveSelectedDates(baseSelection({ excludedDays: ["SUN"] }));
+    // 제외 후 남은 5일 중, 실질 기본 공연일(1일)이 아닌 준비일 하나를 골라 공연일로 바꾼다.
+    const defaults = defaultDayTags(dates, 1);
+    const prepDate = dates.find((d) => defaults[d] !== "PERFORMANCE")!;
+    const quote = calculateQuote(
+      baseSelection({
+        excludedDays: ["SUN"],
+        dayTags: { [prepDate]: "PERFORMANCE" },
+      }),
+      RATE_TABLE,
+    );
+    const adjustmentLine = quote.lineItems.find(
+      (i) => i.addonId === "performance_day_adjustment",
+    )!;
+    expect(adjustmentLine).toBeDefined();
+    expect(adjustmentLine.label).toBe("공연 일수 조정 (기본 1일 대비 +1일)");
+    const unitPrice = Math.round(
+      pkg2.performanceExtraDayFee * (1 - pkg2.extraDayDiscountRatio),
+    );
+    expect(adjustmentLine.amount).toBe(unitPrice);
   });
 
   it("패키지 가격은 요금표 고정값 그대로다 — 포함 항목 단가를 더해 역산하지 않는다 (2-20/2-42)", () => {
@@ -163,7 +352,9 @@ describe("calculateQuote — 명세서 7장 검증 케이스", () => {
 
   it("유틸리티(필수)는 신청자 화면에서 HIDDEN 등급으로, 견적에는 자동 산입된다 (2-48)", () => {
     const quote = calculateQuote(baseSelection(), RATE_TABLE);
-    const utilityLine = quote.lineItems.find((i) => i.addonId === "utility_bundle")!;
+    const utilityLine = quote.lineItems.find(
+      (i) => i.addonId === "utility_bundle",
+    )!;
     expect(utilityLine).toBeDefined();
     expect(utilityLine.visibility).toBe("HIDDEN");
     expect(utilityLine.amount).toBe(utilityTotal);
@@ -173,7 +364,9 @@ describe("calculateQuote — 명세서 7장 검증 케이스", () => {
   it("선택 부대시설(옥외광고 등)은 VISIBLE 등급으로 항목·단가·금액이 그대로 노출된다 (2-71)", () => {
     const outdoor = findAddon(RATE_TABLE, "outdoor_xbanner")!;
     const quote = calculateQuote(
-      baseSelection({ addons: [{ addonId: "outdoor_xbanner", requestedQuantity: 2 }] }),
+      baseSelection({
+        addons: [{ addonId: "outdoor_xbanner", requestedQuantity: 2 }],
+      }),
       RATE_TABLE,
     );
     const line = quote.lineItems.find((i) => i.addonId === "outdoor_xbanner")!;
@@ -186,11 +379,15 @@ describe("calculateQuote — 명세서 7장 검증 케이스", () => {
       baseSelection({ extraDays: 1, excludedDays: ["FRI", "SAT"] }),
       RATE_TABLE,
     );
-    const prepDiscountLine = quote.lineItems.find((i) => i.addonId === "day_exclusion_discount_prep")!;
+    const prepDiscountLine = quote.lineItems.find(
+      (i) => i.addonId === "day_exclusion_discount_prep",
+    )!;
     const performanceDiscountLine = quote.lineItems.find(
       (i) => i.addonId === "day_exclusion_discount_performance",
     )!;
-    const extraDaysLine = quote.lineItems.find((i) => i.addonId === "extra_days")!;
+    const extraDaysLine = quote.lineItems.find(
+      (i) => i.addonId === "extra_days",
+    )!;
     expect(prepDiscountLine.billable).toBe(1);
     expect(performanceDiscountLine.billable).toBe(1);
     expect(extraDaysLine.billable).toBe(1);
@@ -217,10 +414,14 @@ describe("calculateQuote — 명세서 7장 검증 케이스", () => {
 
   it("유틸리티(METERED, SETTLEMENT) 항목은 예상견적에서 제외된다", () => {
     const quote = calculateQuote(
-      baseSelection({ addons: [{ addonId: "util_electricity", requestedQuantity: 1 }] }),
+      baseSelection({
+        addons: [{ addonId: "util_electricity", requestedQuantity: 1 }],
+      }),
       RATE_TABLE,
     );
-    expect(quote.lineItems.find((i) => i.addonId === "util_electricity")).toBeUndefined();
+    expect(
+      quote.lineItems.find((i) => i.addonId === "util_electricity"),
+    ).toBeUndefined();
   });
 
   it("REVENUE_PERCENT(온라인 송출 수수료)는 예상매출 × 요율로 계산된다", () => {
@@ -232,52 +433,208 @@ describe("calculateQuote — 명세서 7장 검증 케이스", () => {
       }),
       RATE_TABLE,
     );
-    const line = quote.lineItems.find((i) => i.addonId === "online_streaming_fee")!;
+    const line = quote.lineItems.find(
+      (i) => i.addonId === "online_streaming_fee",
+    )!;
     expect(line.amount).toBe(Math.round((100_000_000 * fee.unitPrice) / 100));
   });
 
   it("준비일/공연일 기본값(패키지 dayBreakdown) 그대로면 조정 항목이 생기지 않는다", () => {
     const quote = calculateQuote(baseSelection(), RATE_TABLE);
-    expect(quote.lineItems.find((i) => i.addonId === "performance_day_adjustment")).toBeUndefined();
+    expect(
+      quote.lineItems.find((i) => i.addonId === "performance_day_adjustment"),
+    ).toBeUndefined();
   });
 
-  it("공연일을 기본값보다 늘리면 초과분만큼 할증된다", () => {
+  it("공연일을 기본값보다 늘리면 초과분만큼 공연일 단가 10% 할인가로 할증된다 (2026-09-06 개정)", () => {
     const dates = resolveSelectedDates(baseSelection());
     const prepDate = dates[0]; // 기본값상 준비일(맨 앞 날짜)을 공연일로 재지정
     const quote = calculateQuote(
       baseSelection({ dayTags: { [prepDate]: "PERFORMANCE" } }),
       RATE_TABLE,
     );
-    const line = quote.lineItems.find((i) => i.addonId === "performance_day_adjustment")!;
-    const unitPrice = pkg2.performanceExtraDayFee;
+    const line = quote.lineItems.find(
+      (i) => i.addonId === "performance_day_adjustment",
+    )!;
+    const unitPrice = Math.round(pkg2.performanceExtraDayFee * 0.9);
     expect(line.requested).toBe(pkg2.defaultPerformanceDays + 1);
     expect(line.amount).toBe(unitPrice);
   });
 
-  it("공연일을 기본값보다 줄이면 그만큼 차감된다", () => {
+  it("공연일을 기본값보다 줄이면 할인 단가로 차감된다 (2026-09-08 개정 — 늘릴 때와 같은 할인율)", () => {
     const dates = resolveSelectedDates(baseSelection());
     const performanceDate = dates[dates.length - 1]; // 기본값상 공연일(맨 뒤 날짜)을 준비일로 재지정
     const quote = calculateQuote(
       baseSelection({ dayTags: { [performanceDate]: "PREP" } }),
       RATE_TABLE,
     );
-    const line = quote.lineItems.find((i) => i.addonId === "performance_day_adjustment")!;
-    const unitPrice = pkg2.performanceExtraDayFee;
+    const line = quote.lineItems.find(
+      (i) => i.addonId === "performance_day_adjustment",
+    )!;
+    const unitPrice = Math.round(
+      pkg2.performanceExtraDayFee * (1 - pkg2.extraDayDiscountRatio),
+    );
     expect(line.requested).toBe(pkg2.defaultPerformanceDays - 1);
     expect(line.amount).toBe(-unitPrice);
   });
 
+  it("공연일에 1일 2회 공연을 지정하면 할인된 공연일 단가에 할증이 얹힌 라인이 추가된다 (2026-09-08 개정)", () => {
+    const dates = resolveSelectedDates(baseSelection());
+    const performanceDate = dates[dates.length - 1]; // 기본값상 공연일(맨 뒤 날짜)
+    const quote = calculateQuote(
+      baseSelection({ dayShowCounts: { [performanceDate]: 2 } }),
+      RATE_TABLE,
+    );
+    const line = quote.lineItems.find(
+      (i) => i.addonId === "second_show_surcharge",
+    )!;
+    expect(line).toBeDefined();
+    const discountedUnitPrice = Math.round(
+      pkg2.performanceExtraDayFee * (1 - pkg2.extraDayDiscountRatio),
+    );
+    const unitPrice = Math.round(
+      discountedUnitPrice * pkg2.secondShowSurchargeRatio,
+    );
+    expect(line.requested).toBe(1);
+    expect(line.amount).toBe(unitPrice);
+  });
+
+  it("공연일에 1일 3회를 지정하면 추가 2회분(3회-1)만큼 할증된다 (2026-09-08 밤 버그 수정)", () => {
+    const dates = resolveSelectedDates(baseSelection());
+    const performanceDate = dates[dates.length - 1];
+    const quote = calculateQuote(
+      baseSelection({ dayShowCounts: { [performanceDate]: 3 } }),
+      RATE_TABLE,
+    );
+    const line = quote.lineItems.find(
+      (i) => i.addonId === "second_show_surcharge",
+    )!;
+    expect(line).toBeDefined();
+    const discountedUnitPrice = Math.round(
+      pkg2.performanceExtraDayFee * (1 - pkg2.extraDayDiscountRatio),
+    );
+    const unitPrice = Math.round(
+      discountedUnitPrice * pkg2.secondShowSurchargeRatio,
+    );
+    expect(line.requested).toBe(2);
+    expect(line.amount).toBe(2 * unitPrice);
+  });
+
+  it("준비일(공연일 아님)에 2회를 지정해도 할증되지 않는다", () => {
+    const dates = resolveSelectedDates(baseSelection());
+    const prepDate = dates[0]; // 기본값상 준비일(맨 앞 날짜)
+    const quote = calculateQuote(
+      baseSelection({ dayShowCounts: { [prepDate]: 2 } }),
+      RATE_TABLE,
+    );
+    expect(
+      quote.lineItems.find((i) => i.addonId === "second_show_surcharge"),
+    ).toBeUndefined();
+  });
+
+  it("1회 공연(기본값)이면 할증 라인이 생기지 않는다", () => {
+    const quote = calculateQuote(baseSelection(), RATE_TABLE);
+    expect(
+      quote.lineItems.find((i) => i.addonId === "second_show_surcharge"),
+    ).toBeUndefined();
+  });
+
   it("패키지 미선택 시 라인아이템 없이 0원", () => {
-    const quote = calculateQuote(baseSelection({ packageId: null }), RATE_TABLE);
+    const quote = calculateQuote(
+      baseSelection({ packageId: null }),
+      RATE_TABLE,
+    );
     expect(quote.lineItems).toHaveLength(0);
     expect(quote.total).toBe(0);
+  });
+});
+
+describe("calculateQuote — 올인원(SPECIAL_VENUE_ID) 기본 6일 고정가 (2026-09-08)", () => {
+  // "올인원 선택 시, 화~일 기간 해제 불가함... 총 6일 내에서 준비·공연 일정을 원하는
+  // 방식으로 구성할 수 있으므로, 여기서 공연일 추가/삭제/휴무일 이런것들이 추가
+  // 과금되거나 차감되지 않음" — 아레나 패키지(pkg2)와 같은 단가 구조를 갖되
+  // venueId만 올인원으로 바꾼 패키지로, 요일 제외·공연일 조정·2회 할증 세 줄이
+  // 전부 생기지 않는지 검증한다. (2-1) 6일을 넘는 추가 일수는 그대로 과금된다.
+  const specialTable: RateTable = {
+    ...RATE_TABLE,
+    packages: RATE_TABLE.packages.map((p) =>
+      p.id === 2 ? { ...p, venueId: SPECIAL_VENUE_ID } : p,
+    ),
+  };
+  const specialPkg = findPackage(specialTable, 2)!;
+
+  function specialSelection(
+    overrides: Partial<QuoteSelection> = {},
+  ): QuoteSelection {
+    return baseSelection({
+      venueId: SPECIAL_VENUE_ID,
+      bookingMode: "SINGLE",
+      ...overrides,
+    });
+  }
+
+  it("화·일을 제외해도 요일 제외 할인 줄이 생기지 않는다", () => {
+    const quote = calculateQuote(
+      specialSelection({ excludedDays: ["TUE"] }),
+      specialTable,
+    );
+    expect(
+      quote.lineItems.find((i) => i.addonId === "day_exclusion_discount_prep"),
+    ).toBeUndefined();
+    expect(
+      quote.lineItems.find(
+        (i) => i.addonId === "day_exclusion_discount_performance",
+      ),
+    ).toBeUndefined();
+  });
+
+  it("기본 6일 안에서 공연일을 늘려도 공연 일수 조정 줄이 생기지 않는다", () => {
+    const dates = resolveSelectedDates(specialSelection());
+    const prepDate = dates[0];
+    const quote = calculateQuote(
+      specialSelection({ dayTags: { [prepDate]: "PERFORMANCE" } }),
+      specialTable,
+    );
+    expect(
+      quote.lineItems.find((i) => i.addonId === "performance_day_adjustment"),
+    ).toBeUndefined();
+  });
+
+  it("공연일에 2회를 지정해도 2회 할증 줄이 생기지 않는다", () => {
+    const dates = resolveSelectedDates(specialSelection());
+    const defaults = defaultDayTags(dates, specialPkg.defaultPerformanceDays);
+    const performanceDate = dates.find(
+      (d) => effectiveDayTag(d, {}, defaults) === "PERFORMANCE",
+    )!;
+    const quote = calculateQuote(
+      specialSelection({ dayShowCounts: { [performanceDate]: 2 } }),
+      specialTable,
+    );
+    expect(
+      quote.lineItems.find((i) => i.addonId === "second_show_surcharge"),
+    ).toBeUndefined();
+  });
+
+  it("6일을 넘는 추가 일수는 그대로 과금된다", () => {
+    const quote = calculateQuote(
+      specialSelection({ extraDays: 1 }),
+      specialTable,
+    );
+    const extraLine = quote.lineItems.find((i) => i.addonId === "extra_days")!;
+    expect(extraLine.amount).toBe(
+      Math.round(
+        specialPkg.setupExtraDayFee * (1 - specialPkg.extraDayDiscountRatio),
+      ),
+    );
   });
 });
 
 describe("calculateQuote — 중형공연장(DAILY) 요금 엔진", () => {
   const cfg = RATE_TABLE.midHall;
 
-  function midHallOnlySelection(overrides: Partial<QuoteSelection> = {}): QuoteSelection {
+  function midHallOnlySelection(
+    overrides: Partial<QuoteSelection> = {},
+  ): QuoteSelection {
     return baseSelection({
       venueId: "medium-hall",
       packageId: null,
@@ -285,6 +642,39 @@ describe("calculateQuote — 중형공연장(DAILY) 요금 엔진", () => {
       ...overrides,
     });
   }
+
+  // [신규 2026-09-08] 중형공연장 선택 옵션(venueId "medium-hall") — nora "아레나 추가 옵션과
+  // 동일한 방식". 단가 × 수량으로 중형 몫에 합산되고, 상한(maxAddQuantity)으로 잘리며,
+  // 아레나 계산에는 끼지 않는다(같은 항목이 두 번 잡히지 않는다).
+  it("중형 선택 옵션 — 단가 × 수량(상한 적용)으로 중형 몫에 한 번만 합산된다", () => {
+    const booth: AddonItem = {
+      id: "mh_booth",
+      category: RATE_TABLE.addons[0].category,
+      name: "중형 부스",
+      pricingType: "PER_DAY",
+      unitPrice: 50_000,
+      unitLabel: "원/일",
+      availability: { mode: "ALWAYS", maxAddQuantity: 3 },
+      billingPhase: "ESTIMATE",
+      visibility: "VISIBLE",
+      venueId: "medium-hall",
+    };
+    const table: RateTable = {
+      ...RATE_TABLE,
+      addons: [...RATE_TABLE.addons, booth],
+    };
+    const quote = calculateQuote(
+      midHallOnlySelection({
+        midHallDays: { "2027-08-04": { role: "PERFORMANCE", shows: 1 } },
+        addons: [{ addonId: "mh_booth", requestedQuantity: 5 }],
+      }),
+      table,
+    );
+    const lines = quote.lineItems.filter((i) => i.addonId === "mh_booth");
+    expect(lines).toHaveLength(1);
+    expect(lines[0].venue).toBe("medium-hall");
+    expect(lines[0].amount).toBe(150_000); // 5 → 상한 3 × 50,000
+  });
 
   it("셋업 + 평일 공연 1회 — 기본 단가 그대로 과금된다", () => {
     // 2027-08-03(화)=셋업, 2027-08-04(수)=공연 1회 — 둘 다 평일
@@ -297,8 +687,12 @@ describe("calculateQuote — 중형공연장(DAILY) 요금 엔진", () => {
       }),
       RATE_TABLE,
     );
-    const setupLine = quote.lineItems.find((i) => i.addonId === "midhall_setup")!;
-    const showLine = quote.lineItems.find((i) => i.addonId === "midhall_show_weekday-1")!;
+    const setupLine = quote.lineItems.find(
+      (i) => i.addonId === "midhall_setup",
+    )!;
+    const showLine = quote.lineItems.find(
+      (i) => i.addonId === "midhall_show_weekday-1",
+    )!;
     expect(setupLine.amount).toBe(cfg.setupDayFee);
     expect(showLine.amount).toBe(cfg.performanceWeekdayFee);
     expect(quote.blockingIssues).toHaveLength(0);
@@ -311,8 +705,14 @@ describe("calculateQuote — 중형공연장(DAILY) 요금 엔진", () => {
       }),
       RATE_TABLE,
     );
-    const line = quote.lineItems.find((i) => i.addonId === "midhall_show_weekday-2")!;
-    expect(line.amount).toBe(Math.round(cfg.performanceWeekdayFee * (1 + cfg.secondShowSurchargeRatio)));
+    const line = quote.lineItems.find(
+      (i) => i.addonId === "midhall_show_weekday-2",
+    )!;
+    expect(line.amount).toBe(
+      Math.round(
+        cfg.performanceWeekdayFee * (1 + cfg.secondShowSurchargeRatio),
+      ),
+    );
   });
 
   it("주말 공연은 주말 단가로 과금된다", () => {
@@ -322,7 +722,24 @@ describe("calculateQuote — 중형공연장(DAILY) 요금 엔진", () => {
       }),
       RATE_TABLE,
     );
-    const line = quote.lineItems.find((i) => i.addonId === "midhall_show_weekend-1")!;
+    const line = quote.lineItems.find(
+      (i) => i.addonId === "midhall_show_weekend-1",
+    )!;
+    expect(line.amount).toBe(cfg.performanceWeekendFee);
+  });
+
+  // [신규 2026-09-07] 요금표 안내("평일: 월요일~목요일 / 주말: 금요일~일요일")에 맞춰
+  // 금요일도 주말 단가로 과금한다 — 토·일만 주말로 보던 예전 기준과 다르다.
+  it("금요일 공연도 주말 단가로 과금된다", () => {
+    const quote = calculateQuote(
+      midHallOnlySelection({
+        midHallDays: { "2027-08-06": { role: "PERFORMANCE", shows: 1 } }, // 금요일
+      }),
+      RATE_TABLE,
+    );
+    const line = quote.lineItems.find(
+      (i) => i.addonId === "midhall_show_weekend-1",
+    )!;
     expect(line.amount).toBe(cfg.performanceWeekendFee);
   });
 
@@ -333,7 +750,9 @@ describe("calculateQuote — 중형공연장(DAILY) 요금 엔진", () => {
       }),
       RATE_TABLE,
     );
-    const reviewLine = quote.lineItems.find((i) => i.addonId === "midhall_show_review_2027-08-04")!;
+    const reviewLine = quote.lineItems.find(
+      (i) => i.addonId === "midhall_show_review_2027-08-04",
+    )!;
     expect(reviewLine.amount).toBe(0);
     expect(quote.blockingIssues.length).toBe(1);
     expect(quote.blockingIssues[0]).toContain("3회");
@@ -348,8 +767,12 @@ describe("calculateQuote — 중형공연장(DAILY) 요금 엔진", () => {
       }),
       RATE_TABLE,
     );
-    const setupExtra = quote.lineItems.find((i) => i.addonId === "midhall_extra_setup_hours")!;
-    const loadOutExtra = quote.lineItems.find((i) => i.addonId === "midhall_extra_loadout_hours")!;
+    const setupExtra = quote.lineItems.find(
+      (i) => i.addonId === "midhall_extra_setup_hours",
+    )!;
+    const loadOutExtra = quote.lineItems.find(
+      (i) => i.addonId === "midhall_extra_loadout_hours",
+    )!;
     expect(setupExtra.amount).toBe(2 * cfg.extraHourFee);
     expect(loadOutExtra.amount).toBe(3 * cfg.extraHourFee);
   });
@@ -366,32 +789,53 @@ describe("calculateQuote — 중형공연장(DAILY) 요금 엔진", () => {
       RATE_TABLE,
     );
     if (cfg.cleaningUnitPrice > 0) {
-      const cleaningLine = quote.lineItems.find((i) => i.addonId === "midhall_cleaning")!;
+      const cleaningLine = quote.lineItems.find(
+        (i) => i.addonId === "midhall_cleaning",
+      )!;
       expect(cleaningLine.requested).toBe(2000 * 3); // 회차 합계 3
       expect(cleaningLine.amount).toBe(2000 * 3 * cfg.cleaningUnitPrice);
     } else {
       // 기본 클리닝이 대관료에 포함된 요금표(현 시드) — 0원 줄을 만들지 않는다.
-      expect(quote.lineItems.find((i) => i.addonId === "midhall_cleaning")).toBeUndefined();
+      expect(
+        quote.lineItems.find((i) => i.addonId === "midhall_cleaning"),
+      ).toBeUndefined();
     }
   });
 
   it("중형 일정이 없으면 중형 라인아이템이 생기지 않는다", () => {
-    const quote = calculateQuote(midHallOnlySelection({ midHallDays: {} }), RATE_TABLE);
+    const quote = calculateQuote(
+      midHallOnlySelection({ midHallDays: {} }),
+      RATE_TABLE,
+    );
     expect(quote.lineItems).toHaveLength(0);
     expect(quote.total).toBe(0);
   });
 
   it("동시 대관(SIMULTANEOUS) — 아레나 소계 + 중형 소계가 할인 없이 단순 합산된다", () => {
-    const midHallDays = { "2027-08-04": { role: "PERFORMANCE" as const, shows: 1 } };
-    const arenaOnly = calculateQuote(baseSelection({ secondaryAudience: 3000 }), RATE_TABLE);
-    const midHallOnly = calculateQuote(midHallOnlySelection({ midHallDays }), RATE_TABLE);
+    const midHallDays = {
+      "2027-08-04": { role: "PERFORMANCE" as const, shows: 1 },
+    };
+    const arenaOnly = calculateQuote(
+      baseSelection({ secondaryAudience: 3000 }),
+      RATE_TABLE,
+    );
+    const midHallOnly = calculateQuote(
+      midHallOnlySelection({ midHallDays }),
+      RATE_TABLE,
+    );
     const combined = calculateQuote(
-      baseSelection({ bookingMode: "SIMULTANEOUS", secondaryAudience: 3000, midHallDays }),
+      baseSelection({
+        bookingMode: "SIMULTANEOUS",
+        secondaryAudience: 3000,
+        midHallDays,
+      }),
       RATE_TABLE,
     );
     expect(combined.subtotal).toBe(arenaOnly.subtotal + midHallOnly.subtotal);
     expect(combined.lineItems.some((i) => i.addonId === "BASE_FEE")).toBe(true);
-    expect(combined.lineItems.some((i) => i.addonId === "midhall_show_weekday-1")).toBe(true);
+    expect(
+      combined.lineItems.some((i) => i.addonId === "midhall_show_weekday-1"),
+    ).toBe(true);
   });
 });
 
@@ -420,15 +864,21 @@ describe("선택 옵션 수량 상한", () => {
 
   it("기본 포함 수량은 상한 위에 더해진다 — 상한은 '더 얹을 수 있는 양'이다", () => {
     const addon = addonWithMax(3);
-    const pkg = { includedItems: [{ addonId: "smart_stage", quantity: 2 }] } as never;
+    const pkg = {
+      includedItems: [{ addonId: "smart_stage", quantity: 2 }],
+    } as never;
     expect(maxRequestableQuantity(addon, pkg)).toBe(5);
     expect(clampAddonQuantity(addon, pkg, 9)).toBe(5);
   });
 
   it("상한을 두지 않았으면 자르지 않는다", () => {
-    expect(maxRequestableQuantity(addonWithMax(undefined), undefined)).toBeUndefined();
+    expect(
+      maxRequestableQuantity(addonWithMax(undefined), undefined),
+    ).toBeUndefined();
     expect(clampAddonQuantity(addonWithMax(undefined), undefined, 99)).toBe(99);
-    expect(clampAddonQuantity(addonWithMax("UNLIMITED"), undefined, 99)).toBe(99);
+    expect(clampAddonQuantity(addonWithMax("UNLIMITED"), undefined, 99)).toBe(
+      99,
+    );
   });
 
   it("음수·소수는 정수 0 이상으로 정리한다", () => {

@@ -1,10 +1,11 @@
 "use client";
 
-import { ICON_BTN_SM, toggleClass } from "@/components/ui/kit";
+import { btnClass, ICON_BTN_SM, toggleClass } from "@/components/ui/kit";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { isoDate, resolveSelectedDates } from "@/lib/pricing/dateRange";
 import { defaultDayTags, effectiveDayTag } from "@/lib/pricing/rateTableUtils";
+import { canStepMonth, toMonthKey } from "@/lib/content/noticeCalendarWindow";
 import {
   WEEKDAYS,
   type DateBlock,
@@ -50,14 +51,26 @@ function buildCalendarWeeks(year: number, month: number): CalendarWeek[] {
     }
     // 주(화~일)의 기준일은 화요일(days[1]). 화요일이 해당 월에 속할 때만 그 달의 "N주차"로 센다.
     const startsInMonth = days[1].getMonth() === month - 1;
+    // [신규 2026-09-08] "캘린더에 첫주 선택이 지금은 안되서요 — 첫주 선택도 가능하게"(nora)
+    // — 화요일이 전달에 걸린 첫 행도 이 달 날짜를 하나라도 담고 있으면 0주차("첫 주")로
+    // 고를 수 있게 한다. dateRange.findWeekTuesday 가 0을 같은 규칙으로 푼다.
+    const firstRowOverlaps =
+      w === 0 && !startsInMonth && days.some((d) => d.getMonth() === month - 1);
     if (startsInMonth) counter++;
-    weeks.push({ days, weekOfMonth: startsInMonth ? counter : null });
+    weeks.push({
+      days,
+      weekOfMonth: startsInMonth ? counter : firstRowOverlaps ? 0 : null,
+    });
   }
   return weeks;
 }
 
 function isSameDate(a: Date, b: Date): boolean {
-  return a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate();
+  return (
+    a.getFullYear() === b.getFullYear() &&
+    a.getMonth() === b.getMonth() &&
+    a.getDate() === b.getDate()
+  );
 }
 
 function dateKey(d: Date): string {
@@ -71,6 +84,17 @@ function addDays(date: Date, n: number): Date {
 }
 
 const MAX_EXTRA_DAYS = 30;
+// 하루 최대 공연 회차 — [수정 2026-09-08] 4 → 3 (nora "공연회차 추가 4일 리미트를 3일로").
+export const MAX_SHOWS_PER_DAY = 3;
+
+// 역할 선택 팝오버의 고정 폭(7칸 중 몇 칸).
+// [수정 2026-09-08] "레이어가 너무 길어.. 레이어 길이를 적당히 고정하고 날짜 선택
+// 시점 기준으로 노출해야지 — 왜 오른쪽 끝까지 늘어뜨리는거야" — 5칸(7칸 중)은 너무
+// 넓어서, 화~일 대부분의 날짜를 클릭해도 "오른쪽 끝에 맞춰 당겨진" 상태(8-5=3번째
+// 칸부터는 전부 이 상태)로 보였다. 실제 내용(버튼 3~4개, 1~2단)이 필요한 만큼만
+// 차지하도록 좁혔다 — 이제 처음 4칸(화~금)을 클릭할 때는 그 날짜 칸부터 자연스럽게
+// 자라고, 마지막 며칠(토~일)만 오른쪽 끝에 붙는다.
+const POPOVER_SPAN = 3;
 
 type DayKind =
   | { kind: "base"; weekday: WeekDay }
@@ -100,6 +124,8 @@ export function Step1Calendar({
   heading,
   midHallDays,
   onChangeMidHallDays,
+  monthBounds,
+  allowDayExclusion = true,
 }: {
   week: QuoteSelection["week"];
   excludedDays: WeekDay[];
@@ -125,10 +151,23 @@ export function Step1Calendar({
    */
   midHallDays?: Record<string, MidHallDaySelection>;
   onChangeMidHallDays?: (days: Record<string, MidHallDaySelection>) => void;
+  /**
+   * [신규 2026-09-06] "일정 관리 > 캘린더 노출... 대관 위저드 달력 노출 기간에도
+   * 반영되어야해" — 어드민 「공지 캘린더 노출 월」(noticeCalendarMonthBounds) 설정을
+   * 위저드 달력에도 그대로 적용한다. 없으면(과거 호출부·미리보기 등) 제한 없음.
+   */
+  monthBounds?: { start: string | null; end: string | null };
+  /**
+   * [신규 2026-09-08] "올인원 선택 시, 화~일 기간 해제 불가함. 화~일 기간 픽스되어있어야함" —
+   * 올인원(SPECIAL_VENUE_ID)은 기본 6일을 고정가로 파는 패키지라 화·일 양 끝을 빼는
+   * 「삭제」 버튼 자체를 숨긴다(false로 넘김). 기본값 true — 아레나·중형(동시 대관)은
+   * 그대로 뗄 수 있다.
+   */
+  allowDayExclusion?: boolean;
 }) {
   // [화면 뼈대 2026-08-18, 화면시나리오 SCREEN 02/12 · INTERACTION] 역할 지정은 팝업이 아니라
   // 클릭한 날짜 아래에 바로 펼쳐지는 드롭다운으로 처리한다 — 이전의 "사용 요일 토글 행" +
-  // "공연/세팅 설정 목록" 2개 섹션을 이 하나의 인터랙션으로 통합한다.
+  // "공연/준비 설정 목록" 2개 섹션을 이 하나의 인터랙션으로 통합한다.
   const [openDate, setOpenDate] = useState<string | null>(null);
   // 두 공간을 함께 짜는 예약(「패키지」)인지 — 상위가 중형 일정 콜백을 넘겼는지로 판단한다.
   const twoVenueRoles = !!onChangeMidHallDays;
@@ -142,10 +181,13 @@ export function Step1Calendar({
       onChangeMidHallDays(omit(midHall, date));
       return;
     }
-    // 회차는 공연일에만 의미가 있다. 셋업·철수로 바꾸면 1로 되돌려 흔적을 남기지 않는다.
+    // 회차는 공연일에만 의미가 있다. 준비·철수로 바꾸면 1로 되돌려 흔적을 남기지 않는다.
     onChangeMidHallDays({
       ...midHall,
-      [date]: { role, shows: role === "PERFORMANCE" ? (current?.shows ?? 1) : 1 },
+      [date]: {
+        role,
+        shows: role === "PERFORMANCE" ? (current?.shows ?? 1) : 1,
+      },
     });
   }
 
@@ -153,7 +195,9 @@ export function Step1Calendar({
   // 아레나 전용 설정 또는 공간공통(ALL, 과거 이관 데이터)만 이 화면에 적용한다 —
   // 중형공연장 전용으로 막힌 날짜는 아레나에서는 그대로 선택 가능해야 한다.
   const blockedByDate = new Map(
-    dateBlocks.filter((b) => b.venueId === "arena" || b.venueId === "ALL").map((b) => [b.date, b]),
+    dateBlocks
+      .filter((b) => b.venueId === "arena" || b.venueId === "ALL")
+      .map((b) => [b.date, b]),
   );
   const today = new Date();
   const usedDayCount = 6 - excludedDays.length;
@@ -161,18 +205,76 @@ export function Step1Calendar({
   const selectedDates = resolveSelectedDates({ week, excludedDays, extraDays });
   const dayTagDefaults = defaultDayTags(selectedDates, defaultPerformanceDays);
 
-  const selectedTuesday = calendarWeeks.find((w) => w.weekOfMonth === week.weekOfMonth)?.days[1] ?? null;
+  const selectedTuesday =
+    calendarWeeks.find((w) => w.weekOfMonth === week.weekOfMonth)?.days[1] ??
+    null;
   const activeDateKeys = new Set<string>();
   if (selectedTuesday) {
     for (let i = 0; i < 6; i++) {
-      if (!excludedDays.includes(WEEKDAYS[i])) activeDateKeys.add(dateKey(addDays(selectedTuesday, i)));
+      if (!excludedDays.includes(WEEKDAYS[i]))
+        activeDateKeys.add(dateKey(addDays(selectedTuesday, i)));
     }
     for (let i = 0; i < extraDays; i++) {
       activeDateKeys.add(dateKey(addDays(selectedTuesday, 6 + i))); // 일요일(offset 5) 다음날부터 연장
     }
   }
 
-  function goToMonth(delta: number) {
+  // [신규 2026-09-08] "화/일만 아무것도 없이 해제 가능하고 중간은 무조건 뭐라도
+  // 세팅이 되어야함" — 화·일(기본 6일의 양 끝)은 명시 지정(dayTags)이 없으면 별도
+  // "제외" 버튼 없이 자동으로 제외 처리해 준비일 10% 할인 차감이 실시간 내역에
+  // 반영되어야 한다(day_exclusion_discount_prep/performance, calculateQuote.ts).
+  // 명시 지정이 다시 생기면 자동으로 포함 상태로 되돌린다. 가운데 4일(수목금토)은
+  // 패키지 단위라 제외 대상이 아니다 — 대신 WizardShell의 "다음" 검증이 명시
+  // 지정을 요구한다.
+  const selectedTuesdayKey = selectedTuesday ? dateKey(selectedTuesday) : null;
+  // [수정 2026-09-08] "노란 딱지가 4일이 아니라 화~일 6일이 기본으로 잡히게"(nora) — 위
+  // 자동 제외가 처음 열 때(아무 태그도 없을 때)까지 화·일을 제외해 기본 선택이 4일로
+  // 보였다. 이제는 화·일에 역할을 골랐다가 다시 눌러 지운 순간(있다→없다)에만 제외하고,
+  // 처음부터 비어 있던 날은 그대로 포함(6일)한다. 역할을 다시 고르면 포함으로 돌아온다.
+  const prevTagRef = useRef<Record<string, boolean>>({});
+  useEffect(() => {
+    // [신규 2026-09-08] "올인원 선택 시, 화~일 기간 해제 불가함" — 화·일 자동 제외도
+    // 화·일 삭제 버튼(allowDayExclusion)과 같은 조건으로 막는다. 올인원은 기본 6일이
+    // 항상 포함이다.
+    if (!allowDayExclusion) return;
+    if (!selectedTuesday) return;
+    const nextExcluded = new Set(excludedDays);
+    let changed = false;
+    (["TUE", "SUN"] as WeekDay[]).forEach((weekday) => {
+      const offset = WEEKDAYS.indexOf(weekday);
+      const iso = isoDate(addDays(selectedTuesday, offset));
+      const hasExplicitTag = Boolean(dayTags[iso]);
+      const hadExplicitTag = prevTagRef.current[iso] ?? false;
+      prevTagRef.current[iso] = hasExplicitTag;
+      if (hasExplicitTag && nextExcluded.has(weekday)) {
+        nextExcluded.delete(weekday);
+        changed = true;
+      } else if (
+        !hasExplicitTag &&
+        hadExplicitTag &&
+        !nextExcluded.has(weekday)
+      ) {
+        nextExcluded.add(weekday);
+        changed = true;
+      }
+    });
+    if (changed)
+      onChangeExcludedDays(WEEKDAYS.filter((w) => nextExcluded.has(w)));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedTuesdayKey, dayTags, excludedDays]);
+
+  // [신규 2026-09-06] "1주는 패키지 단위, 그 다음주는 개별로 추가... 휴무일을
+  // 지정할수 있고" — 지금 열린 드롭다운의 날짜가 기본 6일(base)인지 개별 추가일
+  // (extra·extend)인지에 따라 아래 "휴무일" 버튼을 보여줄지 정한다.
+  const openDayKind = openDate ? dayKindForDate(openDate) : null;
+
+  function canGoToMonth(delta: -1 | 1): boolean {
+    if (!monthBounds) return true;
+    return canStepMonth(toMonthKey(week.year, week.month), delta, monthBounds);
+  }
+
+  function goToMonth(delta: -1 | 1) {
+    if (!canGoToMonth(delta)) return;
     let nextMonth = week.month + delta;
     let nextYear = week.year;
     if (nextMonth > 12) {
@@ -204,7 +306,10 @@ export function Step1Calendar({
 
   function demandFor(weekOfMonth: number): number {
     const match = weekDemand.find(
-      (d) => d.year === week.year && d.month === week.month && d.weekOfMonth === weekOfMonth,
+      (d) =>
+        d.year === week.year &&
+        d.month === week.month &&
+        d.weekOfMonth === weekOfMonth,
     );
     return match?.companyCount ?? 0;
   }
@@ -224,45 +329,58 @@ export function Step1Calendar({
   function dayKindForDate(iso: string): DayKind | null {
     const offset = offsetForDate(iso);
     if (offset === null) return null;
-    if (offset >= 0 && offset <= 5) return { kind: "base", weekday: WEEKDAYS[offset] };
-    if (offset >= 6 && offset <= 6 + extraDays - 1) return { kind: "extra", index: offset - 6 };
-    if (offset === 6 + extraDays && extraDays < MAX_EXTRA_DAYS) return { kind: "extend" };
+    if (offset >= 0 && offset <= 5)
+      return { kind: "base", weekday: WEEKDAYS[offset] };
+    if (offset >= 6 && offset <= 6 + extraDays - 1)
+      return { kind: "extra", index: offset - 6 };
+    if (offset === 6 + extraDays && extraDays < MAX_EXTRA_DAYS)
+      return { kind: "extend" };
     return null;
   }
 
-  function setRole(iso: string, role: DayTag | "REMOVE") {
+  // [개정 2026-09-06] "아레나는 주단위로 예약되는거니까 삭제는 일별로는 안되게" — 화~일
+  // 기본 6일 중 특정 요일만 빼는(excludedDays, 요일당 정액 할인) UI는 없앴다. 기본
+  // 6일은 패키지 단위라 요일 하나만 뗄 수 없다. excludedDays 필드·요일당 할인 계산
+  // (calculateQuote.ts)은 이 필드가 추가되기 전 신청서를 위해 그대로 남겨두되, 새
+  // 신청서는 이 화면에서 채우지 않는다.
+  // [재개정 2026-09-07] "주단위 준비 후 추가 준비할 때는 삭제 버튼 노출, 삭제 버튼은
+  // 아예 해당 날짜 선택이 삭제되는 것" — 기본 6일과 달리 그 이후 낱개로 붙이는
+  // 추가일(extra)은 하나만 따로 뗄 수 있어야 한다는 요청으로 되돌린다. 날짜는 화~일
+  // 다음으로 빈틈없이 이어 붙는 구조라, 중간 날짜를 지우면 그 뒤 추가일들을 하루씩
+  // 앞으로 당기고 extraDays를 1 줄인다(MAX_EXTRA_DAYS는 그대로).
+  function setRole(iso: string, role: DayTag) {
     const dayKind = dayKindForDate(iso);
     if (!dayKind) return;
-    // 막힌 날짜로의 확장은 막는다 — 화~일 6일 중 막힌 날은 selectWeek() 단계에서 이미
-    // 걸러지지만, 월요일부터 시작하는 연장일(추가일)은 blockedFor() 의 화~일(1~6) 검사
-    // 범위 밖이라 여기서 다시 한번 직접 확인해야 한다(대관 불가 날짜가 연장으로 뚫리던
-    // 버그, 2026-08-22). 이미 추가된 날을 빼는 것(REMOVE)은 막지 않는다.
-    if (role !== "REMOVE" && blockedByDate.has(iso)) return;
+    if (blockedByDate.has(iso)) return;
+
+    // 이미 이 역할로 지정돼 있는 버튼을 한 번 더 누르면 지정을 해제한다(원래
+    // 자동 계산되는 기본값으로 되돌아간다) — "한번더 클릭하면 준비한 내역
+    // 사라지게" (2026-09-07).
+    const alreadySet =
+      dayKind.kind !== "extend" &&
+      activeDateKeys.has(dateKey(new Date(iso))) &&
+      effectiveDayTag(iso, dayTags, dayTagDefaults) === role &&
+      iso in dayTags;
 
     if (dayKind.kind === "base") {
-      const isExcluded = excludedDays.includes(dayKind.weekday);
-      if (role === "REMOVE") {
-        if (!isExcluded && usedDayCount <= 1) return; // 최소 1일은 남겨야 함
-        if (!isExcluded) onChangeExcludedDays([...excludedDays, dayKind.weekday]);
-        setOpenDate(null);
+      if (alreadySet) {
+        onChangeDayTags(omit(dayTags, iso));
         return;
       }
-      // 셋업/공연일/철수 선택 — 제외돼 있었다면 다시 사용일로 복귀시킨 뒤 역할을 지정한다.
-      // 드롭다운은 여기서 닫지 않는다 — 공연일을 고른 직후 바로 아래에서 회차를 조정해야
-      // 하므로, 상태값과 회차 스테퍼를 같은 화면에서 함께 보여준다.
-      if (isExcluded) onChangeExcludedDays(excludedDays.filter((d) => d !== dayKind.weekday));
+      // 준비/공연일/철수 선택 — 제외돼 있었다면 다시 사용일로 복귀시킨 뒤 역할을
+      // 지정한다. 드롭다운은 여기서 닫지 않는다 — 공연일을 고른 직후 바로 아래에서
+      // 회차를 조정해야 하므로, 상태값과 회차 스테퍼를 같은 화면에서 함께 보여준다.
+      // (화·일 제외 동기화는 아래 useEffect가 dayTags 변화를 보고 자동으로 한다.)
+      if (excludedDays.includes(dayKind.weekday)) {
+        onChangeExcludedDays(excludedDays.filter((d) => d !== dayKind.weekday));
+      }
       onChangeDayTags({ ...dayTags, [iso]: role });
       return;
     }
 
     if (dayKind.kind === "extra") {
-      if (role === "REMOVE") {
-        // 추가일은 화~일 뒤로 이어붙인 연속 카운트라 맨 마지막 날만 뗄 수 있다.
-        if (dayKind.index !== extraDays - 1) return;
-        onChangeExtraDays(extraDays - 1);
+      if (alreadySet) {
         onChangeDayTags(omit(dayTags, iso));
-        onChangeDayShowCounts(omit(dayShowCounts, iso));
-        setOpenDate(null);
         return;
       }
       onChangeDayTags({ ...dayTags, [iso]: role });
@@ -270,29 +388,81 @@ export function Step1Calendar({
     }
 
     // dayKind.kind === "extend" — 아직 추가되지 않은, 화~일 다음으로 이어 붙일 수 있는 바로 다음 날
-    if (role === "REMOVE") return; // 아직 추가되지 않았으니 뗄 것이 없다
     onChangeExtraDays(extraDays + 1);
     onChangeDayTags({ ...dayTags, [iso]: role });
   }
 
   function setShowCount(iso: string, count: number) {
-    onChangeDayShowCounts({ ...dayShowCounts, [iso]: Math.max(1, Math.min(4, count)) });
+    onChangeDayShowCounts({
+      ...dayShowCounts,
+      // [수정 2026-09-08] "공연회차 추가 4일 리미트를 3일로"(nora) — 하루 최대 회차 4 → 3.
+      [iso]: Math.max(1, Math.min(MAX_SHOWS_PER_DAY, count)),
+    });
   }
 
-  const setupCount = selectedDates.filter((d) => effectiveDayTag(d, dayTags, dayTagDefaults) === "PREP").length;
-  const loadOutCount = selectedDates.filter((d) => effectiveDayTag(d, dayTags, dayTagDefaults) === "LOAD_OUT").length;
-  const performanceCount = selectedDates.length - setupCount - loadOutCount;
+  /** 추가일(extra) 하나를 통째로 뗀다 — 그 뒤로 이어 붙은 추가일들은 하루씩 앞으로
+   * 당겨 빈틈이 남지 않게 하고, extraDays를 1 줄인다. 기본 6일(base)에는 쓰지
+   * 않는다(주단위 예약이라 요일 하나만 뗄 수 없다). */
+  function removeExtraDay(iso: string) {
+    const dayKind = dayKindForDate(iso);
+    if (!dayKind || dayKind.kind !== "extra" || !selectedTuesday) return;
+
+    const nextDayTags = omit(dayTags, iso);
+    const nextDayShowCounts = omit(dayShowCounts, iso);
+    for (let i = dayKind.index + 1; i < extraDays; i++) {
+      const fromIso = isoDate(addDays(selectedTuesday, 6 + i));
+      const toIso = isoDate(addDays(selectedTuesday, 6 + i - 1));
+      if (fromIso in nextDayTags) {
+        nextDayTags[toIso] = nextDayTags[fromIso];
+        delete nextDayTags[fromIso];
+      } else {
+        delete nextDayTags[toIso];
+      }
+      if (fromIso in nextDayShowCounts) {
+        nextDayShowCounts[toIso] = nextDayShowCounts[fromIso];
+        delete nextDayShowCounts[fromIso];
+      } else {
+        delete nextDayShowCounts[toIso];
+      }
+    }
+
+    onChangeDayTags(nextDayTags);
+    onChangeDayShowCounts(nextDayShowCounts);
+    onChangeExtraDays(extraDays - 1);
+    setOpenDate(null);
+  }
+
+  const setupCount = selectedDates.filter(
+    (d) => effectiveDayTag(d, dayTags, dayTagDefaults) === "PREP",
+  ).length;
+  const loadOutCount = selectedDates.filter(
+    (d) => effectiveDayTag(d, dayTags, dayTagDefaults) === "LOAD_OUT",
+  ).length;
+  const restCount = selectedDates.filter(
+    (d) => effectiveDayTag(d, dayTags, dayTagDefaults) === "REST",
+  ).length;
+  const performanceCount =
+    selectedDates.length - setupCount - loadOutCount - restCount;
 
   return (
     <div>
-      {heading && <h2 className="type-kr-heading text-h5-m sm:text-h5">{heading}</h2>}
+      {heading && (
+        <h2 className="type-kr-heading text-h5-m sm:text-h5">{heading}</h2>
+      )}
 
-      <div className={heading ? "mt-6 flex items-center justify-between" : "flex items-center justify-between"}>
+      <div
+        className={
+          heading
+            ? "mt-6 flex items-center justify-between"
+            : "flex items-center justify-between"
+        }
+      >
         <button
           type="button"
           onClick={() => goToMonth(-1)}
+          disabled={!canGoToMonth(-1)}
           aria-label="이전 달"
-          className={toggleClass(false)}
+          className={`${toggleClass(false)} disabled:cursor-not-allowed disabled:opacity-40`}
         >
           ‹
         </button>
@@ -302,8 +472,9 @@ export function Step1Calendar({
         <button
           type="button"
           onClick={() => goToMonth(1)}
+          disabled={!canGoToMonth(1)}
           aria-label="다음 달"
-          className={toggleClass(false)}
+          className={`${toggleClass(false)} disabled:cursor-not-allowed disabled:opacity-40`}
         >
           ›
         </button>
@@ -320,11 +491,20 @@ export function Step1Calendar({
       <div className="mt-1.5 space-y-1 sm:space-y-1.5">
         {calendarWeeks.map((calWeek, wi) => {
           const isSelectable = calWeek.weekOfMonth !== null;
-          const demand = calWeek.weekOfMonth !== null ? demandFor(calWeek.weekOfMonth) : 0;
-          const blocked = calWeek.weekOfMonth !== null ? blockedFor(calWeek.weekOfMonth) : undefined;
-          const openInThisRow = openDate && calWeek.days.some((d) => isoDate(d) === openDate);
+          const demand =
+            calWeek.weekOfMonth !== null ? demandFor(calWeek.weekOfMonth) : 0;
+          const blocked =
+            calWeek.weekOfMonth !== null
+              ? blockedFor(calWeek.weekOfMonth)
+              : undefined;
+          const openInThisRow =
+            openDate && calWeek.days.some((d) => isoDate(d) === openDate);
           return (
-            <div key={wi}>
+            // [수정 2026-09-08] "레이어가 달력을 덮으면 되는데.. 지금은 날짜를 레이어가
+            // 밀어내는 구조야" — 팝오버가 그 주 아래 다음 주 행들을 문서 흐름으로 밀어
+            //내리고 있었다. 이 주 행을 위치 기준(relative)으로 두고, 팝오버는 그 안에서
+            // absolute 로 띄워 달력 위에 겹쳐 보이게 한다(다음 주 행을 밀지 않는다).
+            <div key={wi} className="relative">
               <div className="grid w-full grid-cols-7 gap-1 p-0.5 sm:gap-1.5">
                 {calWeek.days.map((date, di) => {
                   const inMonth = date.getMonth() === week.month - 1;
@@ -332,7 +512,16 @@ export function Step1Calendar({
                   const isToday = isSameDate(date, today);
                   const iso = isoDate(date);
                   const isActive = activeDateKeys.has(dateKey(date));
-                  const tag = isActive ? effectiveDayTag(iso, dayTags, dayTagDefaults) : null;
+                  // [수정 2026-09-08] "역할 선택 버튼 해제 시 아무것도 선택되지 않은
+                  // 상태로 일정만 잡혀있어야 함(일정만 노란색으로)" — 예전엔 명시
+                  // 지정을 안 한 날짜도 패키지 기본값(effectiveDayTag)으로 배지가 항상
+                  // 보였다. 그래서 "해제"를 눌러도 그 날짜의 기본값이 마침 같은 태그면
+                  // 배지가 그대로 남아 "해제가 안 된다"로 보였다. 이제 배지는 사용자가
+                  // 실제로 고른 날짜(dayTags에 명시된 값)에만 붙이고, 나머지는 노란
+                  // 배경만 남긴다 — 요금 계산(effectiveDayTag 기반)은 그대로 기본값을
+                  // 쓴다, 화면 배지 노출 조건만 바뀐 것이다.
+                  const explicitTag = isActive ? dayTags[iso] : undefined;
+                  const tag = explicitTag ?? null;
                   const dayKind = dayKindForDate(iso);
                   const isExtendable = dayKind?.kind === "extend";
                   const interactable = dayKind !== null;
@@ -340,7 +529,9 @@ export function Step1Calendar({
                   // 이 날짜 자신의 차단 여부를 따로 확인해야 놓치지 않는다.
                   const cellBlocked = blocked ?? blockedByDate.get(iso);
                   const cellDisabled =
-                    !!cellBlocked || (isMonday && !interactable) || (!isSelectable && !interactable);
+                    !!cellBlocked ||
+                    (isMonday && !interactable) ||
+                    (!isSelectable && !interactable);
                   return (
                     <button
                       key={di}
@@ -351,40 +542,43 @@ export function Step1Calendar({
                           setOpenDate(openDate === iso ? null : iso);
                           return;
                         }
-                        if (calWeek.weekOfMonth !== null) selectWeek(calWeek.weekOfMonth);
+                        if (calWeek.weekOfMonth !== null)
+                          selectWeek(calWeek.weekOfMonth);
                       }}
                       className={[
-                        // 높이를 못 박지 않는다 — 동시 대관이면 한 칸에 "아레나 세팅"·"중형 세팅"이
-                        // 두 줄로 들어가는데, 고정 높이면 글자가 칸 밖으로 삐져나온다.
-                        // 최소 높이만 두고 내용만큼 늘어나게 하면 그 줄 전체가 함께 커진다.
-                        "flex min-h-9 flex-col items-center justify-center gap-0.5 rounded-btn px-1 py-1.5 text-xs sm:min-h-11 sm:text-s",
+                        "flex h-9 flex-col items-center justify-center gap-0.5 text-xs sm:h-11 sm:text-s",
                         cellBlocked
-                          ? "cursor-not-allowed text-muted line-through"
+                          ? "cursor-not-allowed bg-muted/8 text-muted line-through decoration-muted/22"
                           : isActive
                             ? "cursor-pointer bg-accent-soft font-bold text-foreground"
                             : isExtendable
-                              ? "cursor-pointer rounded-btn border border-dashed border-foreground/50 text-muted hover:border-foreground hover:text-foreground"
+                              ? "cursor-pointer border border-dashed border-foreground/50 text-muted hover:border-foreground hover:text-foreground"
                               : !inMonth
                                 ? "cursor-default text-muted/40"
                                 : isMonday
                                   ? "cursor-default text-muted/70"
                                   : "cursor-pointer text-foreground hover:bg-panel",
-                        isToday ? "underline decoration-2 underline-offset-4" : "",
+                        isToday
+                          ? "underline decoration-2 underline-offset-4"
+                          : "",
                         openDate === iso ? "ring-2 ring-accent" : "",
                       ].join(" ")}
                     >
                       <span>{date.getDate()}</span>
                       {tag && (
                         <span className="text-xs font-bold leading-none">
-                          {/* 두 공간을 함께 짤 때는 공간을 앞에 붙인다 — "세팅"만 찍으면
-                              아래 "중형 세팅" 과 나란히 놓였을 때 어느 공간 것인지
-                              알 수 없다. 공간이 하나뿐이면 붙이지 않는다. */}
+                          {/* [재개정 2026-09-08] "아레나 준비, 중형 공연장 준비 로 노출되어야함..
+                              지금은 공간 명시 없이 준비, 준비만 노출 중" — 2026-09-08 초반에
+                              뺐던 공간 접두를 동시 대관(twoVenueRoles)에서는 다시 붙인다. 단일
+                              공간일 때는 접두 없이 그대로("준비"만). */}
                           {twoVenueRoles ? "아레나 " : ""}
                           {tag === "PERFORMANCE"
-                            ? `공연×${dayShowCounts[iso] ?? 1}`
+                            ? `공연${(dayShowCounts[iso] ?? 1) > 1 ? `×${dayShowCounts[iso]}` : ""}`
                             : tag === "LOAD_OUT"
                               ? "철수"
-                              : "세팅"}
+                              : tag === "REST"
+                                ? "휴무"
+                                : "준비"}
                         </span>
                       )}
                       {/* 두 공간을 함께 짤 때만 중형 역할을 한 줄 더 찍는다 — 어느 날에
@@ -393,171 +587,259 @@ export function Step1Calendar({
                         <span className="text-xs font-bold leading-none text-muted">
                           중형{" "}
                           {midHall[iso].role === "PERFORMANCE"
-                            ? `공연×${midHall[iso].shows ?? 1}`
+                            ? `공연${(midHall[iso].shows ?? 1) > 1 ? `×${midHall[iso].shows}` : ""}`
                             : midHall[iso].role === "LOAD_OUT"
                               ? "철수"
-                              : "세팅"}
+                              : "준비"}
                         </span>
                       )}
-                      {!tag && isExtendable && <span className="text-xs font-bold leading-none">추가+</span>}
+                      {!tag && isExtendable && (
+                        <span className="text-xs font-bold leading-none">
+                          추가+
+                        </span>
+                      )}
                     </button>
                   );
                 })}
               </div>
 
               {openInThisRow && openDate && (
-                <div className="mt-1.5 rounded-btn border border-border/25 px-3 py-2.5">
-                  <div className="flex items-center justify-between">
-                    <div className="text-xs font-bold text-foreground">
-                      {formatDateLabel(openDate)}
-                      {dayKindForDate(openDate)?.kind === "extend" ? " — 추가 후 역할 선택" : " — 역할 선택"}
+                // [수정 2026-09-07] "날짜 선택하면 나오는 레이어가 너무 가로로 길어...
+                // 선택날짜 부터 레이어가 커져야해" — 예전엔 행 전체 너비로 펼쳐져 클릭한
+                // 날짜와 무관하게 항상 같은 폭이었다. 위 날짜 그리드와 같은 grid-cols-7
+                // 트랙에 맞춰, 고른 날짜의 칸부터 펼친다.
+                // [수정 2026-09-07] "고정축을 오른쪽으로 두면... 가로 길이 값을 고정으로
+                // 둬야지" — 마지막 칸(일요일) 근처를 클릭하면 폭이 1칸으로 쪼그라들어
+                // 버튼 라벨이 글자 단위로 줄바꿈되는 문제가 있었다. 폭은 항상 POPOVER_SPAN
+                // 칸으로 고정하고, 시작 칸만 "클릭한 날짜부터, 단 오른쪽 끝을 넘지 않게"
+                // 뒤로 당긴다 — 주 후반 날짜는 오른쪽 끝에 붙어 폭을 유지한다.
+                // [수정 2026-09-08] "레이어가 달력을 덮으면 되는데.. 지금은 날짜를
+                // 레이어가 밀어내는 구조야" — absolute + top-full 로 이 주 행 바로
+                // 아래에 띄운다. 문서 흐름에서 빠지므로 다음 주 행을 밀어내지 않고
+                // 그 위에 겹쳐 보인다(불투명 배경 + 그림자로 덮여 있다는 걸 보여준다).
+                <div className="absolute inset-x-0 top-full z-20 mt-1.5 grid grid-cols-7 gap-1 sm:gap-1.5">
+                  <div
+                    className="border border-border/40 bg-surface px-3 py-2.5 shadow-lg"
+                    style={{
+                      gridColumn: (() => {
+                        const dayCol =
+                          calWeek.days.findIndex(
+                            (d) => isoDate(d) === openDate,
+                          ) + 1;
+                        const start = Math.max(
+                          1,
+                          Math.min(dayCol, 8 - POPOVER_SPAN),
+                        );
+                        return `${start} / ${start + POPOVER_SPAN}`;
+                      })(),
+                    }}
+                  >
+                    <div className="flex items-center justify-between">
+                      <div className="text-xs font-bold text-foreground">
+                        {formatDateLabel(openDate)}
+                        {openDayKind?.kind === "extend"
+                          ? " — 추가 후 역할 선택"
+                          : " — 역할 선택"}
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => setOpenDate(null)}
+                        aria-label="닫기"
+                        className="text-xs text-muted hover:text-foreground"
+                      >
+                        닫기 ✕
+                      </button>
                     </div>
-                    <button
-                      type="button"
-                      onClick={() => setOpenDate(null)}
-                      aria-label="닫기"
-                      className="text-xs text-muted hover:text-foreground"
-                    >
-                      닫기 ✕
-                    </button>
-                  </div>
-                  {/* [신규 2026-09-02] 「패키지」는 기본 6일 안에서 아레나와 중형을 함께
+                    {/* [신규 2026-09-02] 「패키지」는 기본 6일 안에서 아레나와 중형을 함께
                       짠다 — 한 날짜가 두 공간에서 서로 다른 역할을 가질 수 있으므로
                       역할 줄을 공간별로 나눈다. 공간이 하나뿐인 예약에서는 라벨 없이
                       예전 그대로 한 줄만 나온다. */}
-                  {twoVenueRoles && (
-                    <p className="mt-2 text-xs font-bold text-muted">아레나 공연장</p>
-                  )}
-                  <div className="mt-2 flex flex-wrap gap-1.5">
-                    <button
-                      type="button"
-                      onClick={() => setRole(openDate, "PREP")}
-                      className={toggleClass(activeDateKeys.has(dateKey(new Date(openDate))) && effectiveDayTag(openDate, dayTags, dayTagDefaults) === "PREP")}
-                    >
-                      셋업
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setRole(openDate, "PERFORMANCE")}
-                      className={toggleClass(activeDateKeys.has(dateKey(new Date(openDate))) && effectiveDayTag(openDate, dayTags, dayTagDefaults) === "PERFORMANCE")}
-                    >
-                      공연일
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setRole(openDate, "LOAD_OUT")}
-                      className={toggleClass(activeDateKeys.has(dateKey(new Date(openDate))) && effectiveDayTag(openDate, dayTags, dayTagDefaults) === "LOAD_OUT")}
-                    >
-                      철수
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setRole(openDate, "REMOVE")}
-                      disabled={(() => {
-                        const kind = dayKindForDate(openDate);
-                        if (!kind) return true;
-                        if (kind.kind === "base") return activeDateKeys.has(dateKey(new Date(openDate))) && usedDayCount <= 1;
-                        if (kind.kind === "extra") return kind.index !== extraDays - 1; // 맨 마지막 추가일만 뗄 수 있음
-                        return true; // extend — 아직 추가되지 않아 뗄 것이 없음
-                      })()}
-                      className={toggleClass(false, false, "danger")}
-                    >
-                      삭제
-                    </button>
-                  </div>
-
-                  {activeDateKeys.has(dateKey(new Date(openDate))) &&
-                    effectiveDayTag(openDate, dayTags, dayTagDefaults) === "PERFORMANCE" && (
-                      <div
+                    {twoVenueRoles && (
+                      <p className="mt-2 text-xs font-bold text-muted">
+                        아레나 공연장
+                      </p>
+                    )}
+                    <div className="mt-2 flex flex-wrap gap-1.5">
+                      {/* [수정 2026-09-07] "버튼 하나를 해제하면 다른 버튼이 자동으로 눌려요" —
+                        예전에는 눌림 표시를 effectiveDayTag(내가 안 골랐어도 자동 계산되는
+                        기본값 포함)로 판정해서, 지정을 해제(dayTags에서 제거)하면 그 날짜의
+                        기본값과 같은 다른 버튼이 갑자기 눌린 것처럼 보였다. 눌림 표시는
+                        내가 실제로 고른 값(dayTags[openDate])에만 반응하게 해서, 해제하면
+                        어느 버튼도 눌리지 않은 상태로 보이게 한다. */}
+                      <button
+                        type="button"
+                        onClick={() => setRole(openDate, "PREP")}
                         className={[
-                          "mt-2.5 flex items-center gap-2",
-                          // 공간이 하나뿐일 때는 버튼 줄과 회차를 헤어라인으로 나눈다.
-                          // 두 줄일 때는 바로 아래 「중형 공연장」 구분선이 그 일을 하므로
-                          // 선을 겹쳐 긋지 않는다.
-                          twoVenueRoles ? "" : "border-t border-border/25 pt-2.5",
+                          "inline-flex h-8 items-center border px-3 text-xs font-bold transition-colors",
+                          dayTags[openDate] === "PREP"
+                            ? "border-foreground bg-inverse-bg text-inverse-fg"
+                            : "border border-border/25 text-muted hover:border-foreground hover:text-foreground",
                         ].join(" ")}
                       >
-                        <span className="text-xs text-muted">
-                          {twoVenueRoles ? "아레나 공연 회차" : "공연 회차"}
-                        </span>
+                        준비
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setRole(openDate, "PERFORMANCE")}
+                        className={[
+                          "inline-flex h-8 items-center border px-3 text-xs font-bold transition-colors",
+                          dayTags[openDate] === "PERFORMANCE"
+                            ? "border-foreground bg-inverse-bg text-inverse-fg"
+                            : "border border-border/25 text-muted hover:border-foreground hover:text-foreground",
+                        ].join(" ")}
+                      >
+                        공연일
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setRole(openDate, "LOAD_OUT")}
+                        className={[
+                          "inline-flex h-8 items-center border px-3 text-xs font-bold transition-colors",
+                          dayTags[openDate] === "LOAD_OUT"
+                            ? "border-foreground bg-inverse-bg text-inverse-fg"
+                            : "border border-border/25 text-muted hover:border-foreground hover:text-foreground",
+                        ].join(" ")}
+                      >
+                        철수
+                      </button>
+                      {/* [신규 2026-09-06] "1주는 패키지 단위로 추가하고, 그 다음주는 개별로
+                        추가... 휴무일을 지정할수 있고 휴무일로 지정하면 공연 준비일에
+                        50% 할인이 붙는 개념" — 화~일 기본 6일(base)에는 두지 않고, 그
+                        이후로 개별 추가하는 날(extra·extend)에만 고를 수 있다. 가격은
+                        calculateQuote.ts가 REST로 지정된 추가일에 준비일 추가 단가의
+                        50%를 매긴다. */}
+                      {openDayKind?.kind !== "base" && (
                         <button
                           type="button"
-                          onClick={() => setShowCount(openDate, (dayShowCounts[openDate] ?? 1) - 1)}
-                          className={ICON_BTN_SM}
+                          onClick={() => setRole(openDate, "REST")}
+                          className={[
+                            "inline-flex h-8 items-center border px-3 text-xs font-bold transition-colors",
+                            dayTags[openDate] === "REST"
+                              ? "border-foreground bg-inverse-bg text-inverse-fg"
+                              : "border border-border/25 text-muted hover:border-foreground hover:text-foreground",
+                          ].join(" ")}
                         >
-                          −
+                          휴무일
                         </button>
-                        <span className="w-4 text-center text-xs font-bold tabular-nums">
-                          {dayShowCounts[openDate] ?? 1}
-                        </span>
+                      )}
+                      {/* [신규 2026-09-07] "주단위 준비 후 추가 준비할 때는 삭제 버튼 노출,
+                        삭제 버튼은 아예 해당 날짜 선택이 삭제되는 것" — 기본 6일(base)은
+                        패키지 단위라 뗄 수 없고, 그 뒤로 낱개 추가한 날(extra)만 통째로
+                        뗄 수 있다. */}
+                      {openDayKind?.kind === "extra" && (
                         <button
                           type="button"
-                          onClick={() => setShowCount(openDate, (dayShowCounts[openDate] ?? 1) + 1)}
-                          className={ICON_BTN_SM}
+                          onClick={() => removeExtraDay(openDate)}
+                          className={btnClass("danger", "sm")}
                         >
-                          +
+                          삭제
                         </button>
-                      </div>
-                    )}
-
-                  {/* 중형 줄 — 아레나와 같은 6일 안에서 따로 짠다. 고른 역할을 다시
-                      누르면 그 날짜의 중형 사용이 빠진다(아레나처럼 [삭제] 를 따로 두면
-                      "이 날짜를 통째로 뺀다"는 위 버튼과 뜻이 겹친다). */}
-                  {twoVenueRoles && (
-                    <>
-                      <p className="mt-3 border-t border-border/25 pt-2.5 text-xs font-bold text-muted">
-                        중형 공연장
-                      </p>
-                      <div className="mt-2 flex flex-wrap gap-1.5">
-                        {(
-                          [
-                            ["SETUP", "셋업"],
-                            ["PERFORMANCE", "공연일"],
-                            ["LOAD_OUT", "철수"],
-                          ] as const
-                        ).map(([role, label]) => (
-                          <button
-                            key={role}
-                            type="button"
-                            onClick={() => setMidHallRole(openDate, role)}
-                            className={toggleClass(midHall[openDate]?.role === role)}
-                          >
-                            {label}
-                          </button>
-                        ))}
-                      </div>
-
-                      {midHall[openDate]?.role === "PERFORMANCE" && (
-                        <div className="mt-2.5 flex items-center gap-2">
-                          <span className="text-xs text-muted">중형 공연 회차</span>
+                      )}
+                      {/* [신규 2026-09-08] "화요일이랑 일요일은 일정 삭제가 가능하게 — 삭제 딱지
+                          넣어주시면"(nora) — 기본 6일의 양 끝(화·일)에도 중형 달력과 같은
+                          「삭제」 버튼을 둔다. 누르면 그날 역할 태그를 지우고 제외 요일에 넣어
+                          준비일 단가 10% 할인만큼 차감된다. 제외된 상태에서는 「다시 포함」으로
+                          되돌린다. 가운데 4일(수~토)은 패키지 단위라 여전히 뗄 수 없다. */}
+                      {allowDayExclusion &&
+                        openDayKind?.kind === "base" &&
+                        (openDayKind.weekday === "TUE" ||
+                          openDayKind.weekday === "SUN") &&
+                        (excludedDays.includes(openDayKind.weekday) ? (
                           <button
                             type="button"
                             onClick={() =>
-                              onChangeMidHallDays?.({
-                                ...midHall,
-                                [openDate]: {
-                                  role: "PERFORMANCE",
-                                  shows: Math.max(1, (midHall[openDate]?.shows ?? 1) - 1),
-                                },
-                              })
+                              onChangeExcludedDays(
+                                excludedDays.filter(
+                                  (w) => w !== openDayKind.weekday,
+                                ),
+                              )
+                            }
+                            className={btnClass("secondary", "sm")}
+                          >
+                            다시 포함
+                          </button>
+                        ) : (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const weekday = openDayKind.weekday;
+                              if (dayTags[openDate])
+                                onChangeDayTags(omit(dayTags, openDate));
+                              onChangeExcludedDays(
+                                WEEKDAYS.filter(
+                                  (w) =>
+                                    w === weekday || excludedDays.includes(w),
+                                ),
+                              );
+                            }}
+                            className={btnClass("danger", "sm")}
+                          >
+                            삭제
+                          </button>
+                        ))}
+                    </div>
+                    {/* [수정 2026-09-08] 화·일(양 끝)은 위 「삭제」로 제외할 수 있고, 제외되면
+                        준비일 10% 할인가만큼 차감된다는 걸 안내한다. */}
+                    {allowDayExclusion &&
+                      openDayKind?.kind === "base" &&
+                      (openDayKind.weekday === "TUE" ||
+                        openDayKind.weekday === "SUN") && (
+                        <p className="mt-2 text-xs text-muted">
+                          {excludedDays.includes(openDayKind.weekday)
+                            ? "이 날짜는 제외되어 준비일 단가에서 10% 할인된 금액이 차감됩니다. 「다시 포함」을 누르면 되돌립니다."
+                            : "「삭제」를 누르면 이 날짜를 제외할 수 있습니다(준비일 단가 10% 할인 차감)."}
+                        </p>
+                      )}
+                    {/* [신규 2026-09-08] "총 6일 내에서 준비·공연 일정을 원하는 방식으로
+                        구성할 수 있으므로, 여기서 공연일 추가/삭제/휴무일 이런것들이 추가
+                        과금되거나 차감되지 않음" — 올인원은 화·일 삭제가 안 된다는 것과
+                        함께, 요금이 고정이라는 것도 알려준다. */}
+                    {!allowDayExclusion && openDayKind?.kind === "base" && (
+                      <p className="mt-2 text-xs text-muted">
+                        기본 6일이 고정 포함되며, 그 안에서 준비·공연 배치를
+                        바꿔도 요금은 변하지 않습니다.
+                      </p>
+                    )}
+
+                    {activeDateKeys.has(dateKey(new Date(openDate))) &&
+                      effectiveDayTag(openDate, dayTags, dayTagDefaults) ===
+                        "PERFORMANCE" && (
+                        <div
+                          className={[
+                            "mt-2.5 flex items-center gap-2",
+                            // 공간이 하나뿐일 때는 버튼 줄과 회차를 헤어라인으로 나눈다.
+                            // 두 줄일 때는 바로 아래 「중형 공연장」 구분선이 그 일을 하므로
+                            // 선을 겹쳐 긋지 않는다.
+                            twoVenueRoles
+                              ? ""
+                              : "border-t border-foreground/20 pt-2.5",
+                          ].join(" ")}
+                        >
+                          <span className="text-xs text-muted">
+                            {twoVenueRoles ? "아레나 공연 회차" : "공연 회차"}
+                          </span>
+                          <button
+                            type="button"
+                            onClick={() =>
+                              setShowCount(
+                                openDate,
+                                (dayShowCounts[openDate] ?? 1) - 1,
+                              )
                             }
                             className={ICON_BTN_SM}
                           >
                             −
                           </button>
-                          <span className="w-6 text-center text-xs font-bold tabular-nums">
-                            {midHall[openDate]?.shows ?? 1}
+                          <span className="w-4 text-center text-xs font-bold tabular-nums">
+                            {dayShowCounts[openDate] ?? 1}
                           </span>
                           <button
                             type="button"
                             onClick={() =>
-                              onChangeMidHallDays?.({
-                                ...midHall,
-                                [openDate]: {
-                                  role: "PERFORMANCE",
-                                  shows: Math.min(4, (midHall[openDate]?.shows ?? 1) + 1),
-                                },
-                              })
+                              setShowCount(
+                                openDate,
+                                (dayShowCounts[openDate] ?? 1) + 1,
+                              )
                             }
                             className={ICON_BTN_SM}
                           >
@@ -565,17 +847,116 @@ export function Step1Calendar({
                           </button>
                         </div>
                       )}
-                    </>
-                  )}
+
+                    {/* 중형 줄 — 아레나와 같은 6일 안에서 따로 짠다. 고른 역할을 다시
+                      누르면 그 날짜의 중형 사용이 빠진다. */}
+                    {twoVenueRoles && (
+                      <>
+                        <p className="mt-3 border-t border-border/25 pt-2.5 text-xs font-bold text-muted">
+                          중형 공연장
+                        </p>
+                        <div className="mt-2 flex flex-wrap gap-1.5">
+                          {(
+                            [
+                              ["SETUP", "준비"],
+                              ["PERFORMANCE", "공연일"],
+                              ["LOAD_OUT", "철수"],
+                            ] as const
+                          ).map(([role, label]) => (
+                            <button
+                              key={role}
+                              type="button"
+                              onClick={() => setMidHallRole(openDate, role)}
+                              className={[
+                                "inline-flex h-8 items-center border px-3 text-xs font-bold transition-colors",
+                                midHall[openDate]?.role === role
+                                  ? "border-foreground bg-inverse-bg text-inverse-fg"
+                                  : "border border-border/25 text-muted hover:border-foreground hover:text-foreground",
+                              ].join(" ")}
+                            >
+                              {label}
+                            </button>
+                          ))}
+                          {/* [신규 2026-09-08] "올인원 탭 선택 > 날짜 세팅 시 중형공연장의
+                              경우 삭제 버튼 추가" — 아레나 줄에 이미 있는 「삭제」와 같은
+                              자리·같은 스타일로, 그날 중형 역할 지정을 통째로 지운다(눌린
+                              역할 버튼을 다시 눌러도 같은 결과지만, 명시적인 삭제 동작을
+                              기대하는 사용자를 위해 버튼을 따로 둔다). */}
+                          {midHall[openDate] && (
+                            <button
+                              type="button"
+                              onClick={() =>
+                                onChangeMidHallDays?.(omit(midHall, openDate))
+                              }
+                              className={btnClass("danger", "sm")}
+                            >
+                              삭제
+                            </button>
+                          )}
+                        </div>
+
+                        {midHall[openDate]?.role === "PERFORMANCE" && (
+                          <div className="mt-2.5 flex items-center gap-2">
+                            <span className="text-xs text-muted">
+                              중형 공연 회차
+                            </span>
+                            <button
+                              type="button"
+                              onClick={() =>
+                                onChangeMidHallDays?.({
+                                  ...midHall,
+                                  [openDate]: {
+                                    role: "PERFORMANCE",
+                                    shows: Math.max(
+                                      1,
+                                      (midHall[openDate]?.shows ?? 1) - 1,
+                                    ),
+                                  },
+                                })
+                              }
+                              className={ICON_BTN_SM}
+                            >
+                              −
+                            </button>
+                            <span className="w-6 text-center text-xs font-bold tabular-nums">
+                              {midHall[openDate]?.shows ?? 1}
+                            </span>
+                            <button
+                              type="button"
+                              onClick={() =>
+                                onChangeMidHallDays?.({
+                                  ...midHall,
+                                  [openDate]: {
+                                    role: "PERFORMANCE",
+                                    shows: Math.min(
+                                      MAX_SHOWS_PER_DAY,
+                                      (midHall[openDate]?.shows ?? 1) + 1,
+                                    ),
+                                  },
+                                })
+                              }
+                              className={ICON_BTN_SM}
+                            >
+                              +
+                            </button>
+                          </div>
+                        )}
+                      </>
+                    )}
+                  </div>
                 </div>
               )}
 
               {blocked ? (
-                <div className="px-0.5 pt-0.5 text-right text-xs font-bold text-danger">대관 불가</div>
+                <div className="px-0.5 pt-0.5 text-right text-xs font-bold text-muted-strong">
+                  대관 불가
+                </div>
               ) : (
                 demand > 0 && (
                   <div className="px-0.5 pt-0.5 text-right text-xs text-muted">
-                    {demand > 1 && <span className="font-bold text-warn">검토 중 · </span>}
+                    {demand > 1 && (
+                      <span className="font-bold text-warn">검토 중 · </span>
+                    )}
                     <span className="font-bold text-foreground">{demand}</span>
                     <span>개사 신청</span>
                   </div>
@@ -587,12 +968,29 @@ export function Step1Calendar({
       </div>
 
       <div className="mt-4 text-s font-bold text-foreground">
-        {week.year}년 {week.month}월 {week.weekOfMonth}주차 · 셋업 {setupCount}일 · 공연{" "}
-        {performanceCount}일{loadOutCount > 0 ? ` · 철수 ${loadOutCount}일` : ""} · 총 {totalDays}
-        일 적용
-        {excludedDays.length > 0 && ` (기본 6일 − 제외 ${excludedDays.length}일${extraDays > 0 ? ` + 추가 ${extraDays}일` : ""})`}
-        {excludedDays.length === 0 && extraDays > 0 && ` (기본 6일 + 추가 ${extraDays}일)`}
+        {week.year}년 {week.month}월{" "}
+        {week.weekOfMonth === 0 ? "첫 주" : `${week.weekOfMonth}주차`} · 준비{" "}
+        {setupCount}일 · 공연 {performanceCount}일
+        {loadOutCount > 0 ? ` · 철수 ${loadOutCount}일` : ""}
+        {restCount > 0 ? ` · 휴무 ${restCount}일` : ""} · 총 {totalDays}일 적용
+        {excludedDays.length > 0 &&
+          ` (기본 6일 − 제외 ${excludedDays.length}일${extraDays > 0 ? ` + 추가 ${extraDays}일` : ""})`}
+        {excludedDays.length === 0 &&
+          extraDays > 0 &&
+          ` (기본 6일 + 추가 ${extraDays}일)`}
       </div>
+
+      {/* [신규 2026-09-06] "추가 준비일도 기존 준비일 대비 10% 할인, 추가공연일도 기존
+          공연일의 10%할인 > 이게 프론트에서도 이렇게 할인된다는 안내를 노출해줘야할듯" —
+          기본 6일을 넘겨 추가하는 준비일·공연일에는 자동으로 10% 할인이 붙는다는 것을
+          견적서(계산서)를 열어보기 전에 이 화면에서 미리 안내한다(휴무일은 별도로 50%
+          할인이 이미 위 버튼 안내에 있어 여기서는 준비일·공연일만 언급). */}
+      {(extraDays > 0 || performanceCount > defaultPerformanceDays) && (
+        <p className="mt-1.5 text-xs text-muted">
+          기본 6일을 넘겨 추가하는 준비일·공연일은 각각 기존 단가에서 10% 자동
+          할인됩니다.
+        </p>
+      )}
     </div>
   );
 }

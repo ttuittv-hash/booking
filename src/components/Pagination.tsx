@@ -31,14 +31,19 @@ export function Pagination({
     return <p className={`mt-8 text-xs text-muted ${className}`}>전체 {count}건</p>;
   }
 
+  // basePath 에 이미 쿼리스트링이 들어있는 호출부가 있다(예: "?tab=decided").
+  // 그 뒤에 그냥 "?page=2" 를 또 붙이면 물음표가 두 번 생겨(`?tab=decided?page=2`)
+  // tab 값 자체가 깨진다 — 항상 basePath 의 기존 쿼리까지 한 번에 파싱해 합친다.
+  const [path, existingQuery] = basePath.split("?");
   const href = (target: number) => {
-    const search = new URLSearchParams();
+    const search = new URLSearchParams(existingQuery ?? "");
     for (const [key, value] of Object.entries(params)) {
       if (value) search.set(key, value);
     }
     if (target > 1) search.set("page", String(target));
+    else search.delete("page");
     const query = search.toString();
-    return query ? `${basePath}?${query}` : basePath;
+    return query ? `${path}?${query}` : path;
   };
 
   // 현재 페이지 주변 5개만 노출한다(페이지 수가 많아져도 줄바꿈이 나지 않도록).
@@ -65,7 +70,7 @@ export function Pagination({
             <span
               key={target}
               aria-current="page"
-              className="inline-flex h-8 min-w-8 items-center justify-center rounded-btn border border-foreground bg-inverse-bg px-3 text-xs font-bold tabular-nums text-inverse-fg"
+              className="inline-flex h-8 min-w-8 items-center justify-center border border-foreground bg-inverse-bg px-3 text-xs font-bold tabular-nums text-inverse-fg"
             >
               {target}
             </span>

@@ -3,7 +3,6 @@
 import { useRef, useState } from "react";
 import { uploadInlineImages } from "@/lib/content/inlineImages";
 import { useDialog } from "@/components/ui/Dialog";
-import { FilePicker } from "@/components/ui/FilePicker";
 import { useRouter } from "next/navigation";
 import type { Faq, Notice } from "@/lib/pricing/types";
 import type { HomeContent, LegalContent } from "@/lib/content/types";
@@ -36,6 +35,9 @@ import {
   ScreenTextForm,
   SeoulArenaForm,
 } from "./PageContentForms";
+import { WizardTextPreview } from "./WizardTextPreview";
+import type { RateTable } from "@/lib/pricing/types";
+import type { VenueRateContent } from "@/lib/content/pageContent";
 import {
   ADD_BTN_LG,
   CARD,
@@ -52,6 +54,10 @@ import {
   tabCls,
 } from "./adminUi";
 
+/** 파일 선택 input — 샤프 코너 · border-soft */
+const FILE_INPUT =
+  "w-full text-xs text-muted file:mr-3 file:border file:border-border-soft file:bg-panel file:px-3 file:py-1.5 file:text-xs file:font-bold file:text-foreground";
+
 type Tab =
   | "notices"
   | "faq"
@@ -63,6 +69,7 @@ type Tab =
   | "rules"
   | "documents"
   | "screenText"
+  | "wizardPreview"
   | "legal";
 
 function isHtmlBodyEmpty(html: string): boolean {
@@ -88,6 +95,8 @@ export function ContentManager({
   termsContent,
   privacyContent,
   registerTermsContent,
+  rateTable,
+  liveHallRateContent,
 }: {
   notices: Notice[];
   faqs: Faq[];
@@ -102,6 +111,8 @@ export function ContentManager({
   termsContent: LegalContent;
   privacyContent: LegalContent;
   registerTermsContent: RegisterTermsContent;
+  rateTable: RateTable;
+  liveHallRateContent: VenueRateContent;
 }) {
   const router = useRouter();
   // 탭을 URL(?tab=)에 싣는다 — 새로고침해도 유지되고 특정 탭을 링크로 줄 수 있다.
@@ -118,6 +129,7 @@ export function ContentManager({
       "rules",
       "documents",
       "screenText",
+      "wizardPreview",
       "legal",
     ],
     "notices",
@@ -140,6 +152,7 @@ export function ContentManager({
             ["rules", "대관 규약"],
             ["documents", "대관 자료"],
             ["screenText", "화면 문구"],
+            ["wizardPreview", "위저드 미리보기 · 수정"],
             ["legal", "약관 · 정책"],
           ] as const
         ).map(([key, label]) => (
@@ -170,6 +183,13 @@ export function ContentManager({
         {tab === "rules" && <RulesForm content={rulesContent} />}
         {tab === "documents" && <DocumentsForm content={documentsContent} />}
         {tab === "screenText" && <ScreenTextForm content={screenTextContent} />}
+        {tab === "wizardPreview" && (
+          <WizardTextPreview
+            content={screenTextContent}
+            rateTable={rateTable}
+            liveHallRateContent={liveHallRateContent}
+          />
+        )}
         {tab === "legal" && (
           <div className="space-y-10">
             <LegalContentForm
@@ -405,7 +425,7 @@ function NoticesTab({
                     <img
                       src={notice.imageUrl}
                       alt=""
-                      className="h-14 w-20 shrink-0 rounded-btn border border-border-soft object-cover"
+                      className="h-14 w-20 shrink-0 border border-border-soft object-cover"
                     />
                   )}
                   <div className="min-w-0">
@@ -480,20 +500,21 @@ function NoticesTab({
               {imageUrl ? (
                 <div className="flex items-center gap-3">
                   {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={imageUrl} alt="" className="h-20 w-32 rounded-btn border border-border-soft object-cover" />
+                  <img src={imageUrl} alt="" className="h-20 w-32 border border-border-soft object-cover" />
                   <button type="button" onClick={() => setImageUrl(null)} className={REMOVE_BTN}>
                     이미지 제거
                   </button>
                 </div>
               ) : (
-                <FilePicker
+                <input
+                  type="file"
                   accept="image/png,image/jpeg,image/webp,image/gif"
                   disabled={uploading}
                   onChange={(e) => {
                     const file = e.target.files?.[0];
                     if (file) uploadImage(file);
                   }}
-                  files={[]}
+                  className={FILE_INPUT}
                 />
               )}
               {uploading && <p className={`mt-1 ${HELP}`}>업로드 중...</p>}
@@ -505,7 +526,7 @@ function NoticesTab({
               </span>
               {attachmentUrl ? (
                 <div className="flex items-center gap-3">
-                  <span className="rounded-btn border border-border-soft bg-panel px-3 py-1.5 text-xs">
+                  <span className="border border-border-soft bg-panel px-3 py-1.5 text-xs">
                     {attachmentName}
                   </span>
                   <button
@@ -520,14 +541,15 @@ function NoticesTab({
                   </button>
                 </div>
               ) : (
-                <FilePicker
+                <input
+                  type="file"
                   accept=".pdf,.doc,.docx,.hwp,.hwpx,.xls,.xlsx,.ppt,.pptx,.zip"
                   disabled={uploadingAttachment}
                   onChange={(e) => {
                     const file = e.target.files?.[0];
                     if (file) uploadAttachment(file);
                   }}
-                  files={[]}
+                  className={FILE_INPUT}
                 />
               )}
               {uploadingAttachment && <p className={`mt-1 ${HELP}`}>업로드 중...</p>}
@@ -538,7 +560,7 @@ function NoticesTab({
                 type="checkbox"
                 checked={showBookingCalendar}
                 onChange={(e) => setShowBookingCalendar(e.target.checked)}
-                className="h-4 w-4"
+                className="h-4 w-4 accent-[var(--accent)]"
               />
               공지 상세에 &ldquo;대관 현황 캘린더&rdquo; 아이콘 표시(아레나·중형 예약 가능일 조회)
             </label>

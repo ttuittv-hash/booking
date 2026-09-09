@@ -7,6 +7,28 @@
  */
 export type NotificationTarget = { link?: string | null; quoteId?: string | null };
 
+/**
+ * 운영자 화면(/admin)과 신청자 화면은 호스트가 다르다 — bo.* 와 partner.* .
+ * partner 에서 /admin 으로 가면 앞단이 홈으로 되돌려 보내 "눌러도 아무 일이 없다" 가 된다
+ * (운영자가 partner 에 로그인한 채 알림을 누르는 상황, 2026-09-04 제보). 그래서 갈 곳이
+ * 다른 호스트면 주소를 그 호스트로 바꿔 준다. 로컬·미지의 호스트는 건드리지 않는다.
+ */
+export function crossHostHref(path: string, origin?: string): string {
+  if (!origin || !path.startsWith("/")) return path;
+  let host: string;
+  try {
+    host = new URL(origin).host;
+  } catch {
+    return path;
+  }
+  const wantAdmin = path === "/admin" || path.startsWith("/admin/");
+  const onAdminHost = host.startsWith("bo.");
+  const onPartnerHost = host.startsWith("partner.");
+  if (wantAdmin && onPartnerHost) return `https://${host.replace(/^partner\./, "bo.")}${path}`;
+  if (!wantAdmin && onAdminHost) return `https://${host.replace(/^bo\./, "partner.")}${path}`;
+  return path;
+}
+
 export function notificationHref(
   n: NotificationTarget,
   role: "ADMIN" | "APPLICANT",
@@ -19,14 +41,14 @@ export function notificationHref(
     if (!origin) return link;
     try {
       const u = new URL(link, origin);
-      return u.origin === origin ? u.pathname + u.search : link;
+      return u.origin === origin ? crossHostHref(u.pathname + u.search, origin) : link;
     } catch {
       return link;
     }
   }
   const quoteId = n.quoteId?.trim();
   // 'applicants' 처럼 신청서가 아닌 값이 quoteId 자리에 들어간 옛 알림도 그대로 살린다.
-  return quoteId ? `${base}/${quoteId}` : base;
+  return crossHostHref(quoteId ? `${base}/${quoteId}` : base, origin);
 }
 
 /**

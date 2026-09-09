@@ -7,6 +7,7 @@ import { useState } from "react";
 import { hashPasswordForTransport } from "@/lib/clientPassword";
 import { ArrowRight, btnClass } from "@/components/ui/kit";
 import { ERROR_NOTE, FIELD, FIELD_LABEL } from "@/components/admin/adminUi";
+import { PasswordInput } from "@/components/ui/PasswordInput";
 
 export default function AdminLoginPage() {
   const router = useRouter();
@@ -54,7 +55,7 @@ export default function AdminLoginPage() {
 
   return (
     <div className="flex flex-1 items-center justify-center px-6 py-16">
-      <div className="w-full max-w-sm rounded-surface border border-border-soft bg-panel p-6 sm:p-8">
+      <div className="w-full max-w-sm border border-border-soft bg-panel p-6 sm:p-8">
         <span aria-hidden className="mb-6 block h-1 w-12 bg-accent" />
         <Link href="/" className="type-display text-h6-m leading-none">
           Seoul Arena
@@ -76,9 +77,9 @@ export default function AdminLoginPage() {
           </label>
           <label className="block">
             <span className={FIELD_LABEL}>비밀번호</span>
-            <input
-              type="password"
+            <PasswordInput
               required
+              autoComplete="current-password"
               value={form.password}
               onChange={(e) => setForm({ ...form, password: e.target.value })}
               className={FIELD}
@@ -97,7 +98,7 @@ export default function AdminLoginPage() {
           </button>
         </form>
 
-        <p className="mt-8 border-t border-border/25 pt-5 text-center text-s text-muted">
+        <p className="mt-8 border-t border-border/15 pt-5 text-center text-s text-muted">
           {/* bo. 호스트의 "/" 는 백오피스 자신이다 — 메인은 신청자 사이트(partner.) 로 보낸다. */}
           <a href={mainHref} className="transition-colors hover:text-foreground">
             ← 메인으로

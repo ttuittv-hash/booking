@@ -3,9 +3,10 @@
 import { useRouter } from "next/navigation";
 import { useRef, useState } from "react";
 import type { Attachment, TicketOpen, UserRole } from "@/lib/pricing/types";
-import { Badge, btnClass } from "@/components/ui/kit";
-import { FilePicker } from "@/components/ui/FilePicker";
+import { Badge, btnClass, FILE_INPUT } from "@/components/ui/kit";
 import { useToast } from "@/components/ui/Toast";
+
+const FILE_FIELD = `${FILE_INPUT} min-w-0 flex-1`;
 
 function formatSize(bytes: number): string {
   if (bytes < 1024) return `${bytes}B`;
@@ -161,7 +162,7 @@ export function TicketOpenPanel({
                     href={`/api/quotes/${quoteId}/attachments/${file.id}`}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="min-w-0 truncate text-s font-bold text-foreground underline decoration-2 underline-offset-4"
+                    className="min-w-0 truncate text-s font-bold text-foreground underline decoration-accent decoration-2 underline-offset-4"
                   >
                     {file.originalName}
                   </a>
@@ -172,18 +173,16 @@ export function TicketOpenPanel({
               ))
             )}
           </ul>
-          <div className="mt-5">
-            <FilePicker label="티켓오픈 자료" inputRef={fileInput} multiple />
-            <div className="mt-3 flex justify-end">
-              <button
-                type="button"
-                disabled={busy}
-                onClick={upload}
-                className={btnClass("primary", "md")}
-              >
-                업로드
-              </button>
-            </div>
+          <div className="mt-5 flex flex-col gap-3 sm:flex-row sm:items-stretch">
+            <input ref={fileInput} type="file" className={FILE_FIELD} />
+            <button
+              type="button"
+              disabled={busy}
+              onClick={upload}
+              className={`${btnClass("primary", "md")} shrink-0`}
+            >
+              업로드
+            </button>
           </div>
         </>
       )}

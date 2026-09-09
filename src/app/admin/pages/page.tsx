@@ -17,7 +17,7 @@ export default async function AdminPagesPage() {
       <AdminNav active="/admin/pages" user={user} />
 
       <main className="mx-auto w-full max-w-4xl flex-1 px-6 py-8 sm:py-10">
-        <header className="border-b border-border/25 pb-6">
+        <header className="border-b border-border/20 pb-6">
           <h1 className={PAGE_TITLE}>페이지 관리</h1>
           <p className={PAGE_LEAD}>
             &ldquo;서울아레나 소개&rdquo;, &ldquo;대관 절차&rdquo;의 하위 페이지를 추가·수정·삭제하고

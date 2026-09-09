@@ -15,7 +15,7 @@ export function countInlineImages(html: string): number {
   return (html.match(DATA_IMG_RE) ?? []).length;
 }
 
-export function dataUrlToBlob(subtype: string, base64: string): Blob {
+function dataUrlToBlob(subtype: string, base64: string): Blob {
   const bin = atob(base64.replace(/\s+/g, ""));
   const bytes = new Uint8Array(bin.length);
   for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);

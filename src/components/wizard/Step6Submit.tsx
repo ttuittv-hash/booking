@@ -11,16 +11,10 @@ import { useWizardText } from "@/lib/content/wizardText";
 import type { WizardStepTexts } from "@/lib/content/pageContent";
 import {
   DEFAULT_VENUE_ID,
-  EVENT_TYPE_LABEL,
-  RETRACTABLE_SEAT_FLOOR_LABEL,
-  RETRACTABLE_SEAT_USE_LABEL,
-  SEATING_TYPE_LABEL,
-  STAGE_TYPE_LABEL,
   VENUES,
   type EstimatedQuote,
   type QuoteSelection,
   type RateTable,
-  type RetractableSeatFloor,
 } from "@/lib/pricing/types";
 
 function midHallSummaryLine(selection: QuoteSelection): string | null {
@@ -29,7 +23,7 @@ function midHallSummaryLine(selection: QuoteSelection): string | null {
   const setup = dates.filter((d) => selection.midHallDays[d].role === "SETUP").length;
   const performanceDates = dates.filter((d) => selection.midHallDays[d].role === "PERFORMANCE");
   const shows = performanceDates.reduce((sum, d) => sum + selection.midHallDays[d].shows, 0);
-  return `총 ${dates.length}일 (셋업 ${setup} · 공연 ${performanceDates.length} · 회차 ${shows}) · 관객 ${selection.secondaryAudience.toLocaleString()}명`;
+  return `총 ${dates.length}일 (준비 ${setup} · 공연 ${performanceDates.length} · 회차 ${shows}) · 관객 ${selection.secondaryAudience.toLocaleString()}명`;
 }
 
 // defaultTitle/defaultDesc는 관리자가 아직 문구를 고치지 않았을 때 쓰는 기본값이다 —
@@ -85,6 +79,7 @@ export function Step6Submit({
   onRequestEdit,
   stepText,
   headingOverride,
+  disabledFields,
 }: {
   rateTable: RateTable;
   quote: EstimatedQuote;
@@ -107,13 +102,15 @@ export function Step6Submit({
   stepText: WizardStepTexts;
   /** 관리자 문구 미리보기 전용 — 제목·리드를 편집 가능한 입력으로 바꿔치기한다. */
   headingOverride?: { title: ReactNode; lead?: ReactNode };
+  /** [신규 2026-09-07] "그 영역을 잡고 없애줘" — 리드 한 줄을 다른 슬롯과 같은 노출
+   * On/off 패턴("wizardShell.submitLead")으로 끌 수 있다. */
+  disabledFields?: string[];
 }) {
   const { t, tStr } = useWizardText();
   const toast = useToast();
   const pkg = findPackage(rateTable, selection.packageId);
   const [confirmed, setConfirmed] = useState(false);
   const [pledged, setPledged] = useState(false);
-  const info = selection.performanceInfo;
   const isSimultaneous = selection.bookingMode === "SIMULTANEOUS";
   const hasMidHall = Object.keys(selection.midHallDays).length > 0;
   const needsPackage = !isSimultaneous ? selection.venueId !== "medium-hall" : true;
@@ -163,10 +160,14 @@ export function Step6Submit({
     <section>
       <StepHeading
         title={headingOverride?.title ?? (isEditing ? stepText.submitEditingTitle : stepText.submitNewTitle)}
-        lead={headingOverride?.lead ?? (isEditing ? stepText.submitEditingLead : stepText.submitNewLead)}
+        lead={
+          disabledFields?.includes("wizardShell.submitLead")
+            ? undefined
+            : (headingOverride?.lead ?? (isEditing ? stepText.submitEditingLead : stepText.submitNewLead))
+        }
       />
 
-      <div className="mt-10 flex flex-wrap items-center justify-between gap-4 rounded-surface bg-panel p-5">
+      <div className="mt-10 flex flex-wrap items-center justify-between gap-4 border-t-2 border-foreground pt-6">
         <div>
           <div className="type-kr-heading text-h6-m">
             {venueName} · {audienceTierLabel}
@@ -209,72 +210,17 @@ export function Step6Submit({
         </div>
       </div>
 
-      <div className="mt-6 border-t border-border/25 pt-5">
-        <div className="flex items-center justify-between">
-          <div className="text-s font-bold">{t("submit.eventInfoHeading", "공연 정보")}</div>
-          {fileCount > 0 && (
-            <div className="text-xs text-muted">
-              {t("submit.attachedFilesPrefix", "첨부파일")} {fileCount}
-              {t("submit.attachedFilesSuffix", "개가 함께 제출됩니다")}
-            </div>
-          )}
+      {/* [삭제 2026-09-08 밤] "공연정보란 삭제" (nora) — 최종 제출·접수 완료 화면의 공연 정보 요약(공연명·
+          아티스트·주최·행사규모·행사유형·무대형태·객석형태·수납식 객석)을 뺐다. 첨부파일 개수 안내만 남긴다. */}
+      {fileCount > 0 && (
+        <div className="mt-6 border-t border-border/25 pt-5 text-right text-xs text-muted">
+          {t("submit.attachedFilesPrefix", "첨부파일")} {fileCount}
+          {t("submit.attachedFilesSuffix", "개가 함께 제출됩니다")}
         </div>
-        <dl className="mt-3 grid grid-cols-1 gap-x-6 gap-y-2 text-xs sm:grid-cols-2">
-          <div className="flex justify-between gap-3 sm:justify-start">
-            <dt className="text-muted">{t("submit.eventNameLabel", "공연(행사)명")}</dt>
-            <dd className="font-bold">{info.eventName || "-"}</dd>
-          </div>
-          <div className="flex justify-between gap-3 sm:justify-start">
-            <dt className="text-muted">{t("submit.artistLabel", "아티스트")}</dt>
-            <dd className="font-bold">{info.artist || "-"}</dd>
-          </div>
-          <div className="flex justify-between gap-3 sm:justify-start">
-            <dt className="text-muted">{t("submit.organizerLabel", "주최·주관·기획")}</dt>
-            <dd className="font-bold">{info.organizer || "-"}</dd>
-          </div>
-          <div className="flex justify-between gap-3 sm:justify-start">
-            <dt className="text-muted">{t("submit.eventScaleLabel", "행사규모")}</dt>
-            <dd className="font-bold">{info.eventScale || "-"}</dd>
-          </div>
-          <div className="flex justify-between gap-3 sm:justify-start">
-            <dt className="text-muted">{t("submit.eventTypesLabel", "행사유형")}</dt>
-            <dd className="font-bold">
-              {info.eventTypes.length ? info.eventTypes.map((type) => EVENT_TYPE_LABEL[type]).join(", ") : "-"}
-            </dd>
-          </div>
-          <div className="flex justify-between gap-3 sm:justify-start">
-            <dt className="text-muted">{t("submit.stageTypesLabel", "무대형태")}</dt>
-            <dd className="font-bold">
-              {info.stageTypes.length ? info.stageTypes.map((type) => STAGE_TYPE_LABEL[type]).join(", ") : "-"}
-            </dd>
-          </div>
-          <div className="flex justify-between gap-3 sm:justify-start">
-            <dt className="text-muted">{t("submit.seatingTypesLabel", "객석형태")}</dt>
-            <dd className="font-bold">
-              {info.seatingTypes.length ? info.seatingTypes.map((type) => SEATING_TYPE_LABEL[type]).join(", ") : "-"}
-            </dd>
-          </div>
-          <div className="flex justify-between gap-3 sm:justify-start">
-            <dt className="text-muted">{t("submit.retractableSeatUseLabel", "수납식 객석 사용여부")}</dt>
-            <dd className="font-bold">
-              {info.retractableSeatUse ? RETRACTABLE_SEAT_USE_LABEL[info.retractableSeatUse] : "-"}
-              {/* [사용]이면 층별 답까지 보여 준다 — 어느 층을 펴는지가 객석 구성을 가른다(2026-09-02) */}
-              {info.retractableSeatUse === "USE" && info.retractableSeatFloorUse
-                ? ` (${(Object.keys(RETRACTABLE_SEAT_FLOOR_LABEL) as RetractableSeatFloor[])
-                    .filter((floor) => info.retractableSeatFloorUse?.[floor])
-                    .map(
-                      (floor) =>
-                        `${RETRACTABLE_SEAT_FLOOR_LABEL[floor]} ${RETRACTABLE_SEAT_USE_LABEL[info.retractableSeatFloorUse![floor]!]}`,
-                    )
-                    .join(" · ")})`
-                : ""}
-            </dd>
-          </div>
-        </dl>
-      </div>
+      )}
 
       {showConfirmation ? (
-        <div className="mt-8 border-t border-border/25 pt-5 text-s text-foreground">
+        <div className="mt-8 border-t-2 border-foreground pt-5 text-s text-foreground">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <p className="font-bold">
               {justEdited
@@ -310,7 +256,7 @@ export function Step6Submit({
           )}
         </div>
       ) : !isLoggedIn ? (
-        <div className="mt-8 border-t border-border/25 pt-5 text-s text-foreground">
+        <div className="mt-8 border-t-2 border-foreground pt-5 text-s text-foreground">
           {t(
             "submit.loginRequiredNote",
             "신청서를 제출하려면 로그인이 필요합니다. 지금까지 입력한 내용은 그대로 유지되니, 로그인 후 이어서 제출할 수 있습니다.",
@@ -326,7 +272,7 @@ export function Step6Submit({
       ) : (
         <>
           {blockingIssues.length > 0 && (
-            <div className="mt-8 border-t border-border/25 pt-5 text-s text-foreground">
+            <div className="mt-8 border-t-2 border-foreground pt-5 text-s text-foreground">
               <p className="font-bold">
                 {t("submit.blockingIssuesHeading", "운영자 확인이 필요한 항목이 있어 아직 제출할 수 없습니다.")}
               </p>
@@ -349,7 +295,7 @@ export function Step6Submit({
                 type="checkbox"
                 checked={confirmed}
                 onChange={(e) => setConfirmed(e.target.checked)}
-                className="mt-0.5"
+                className="mt-0.5 accent-foreground"
               />
               {t(
                 "submit.confirmCheckboxLabel",
@@ -361,7 +307,7 @@ export function Step6Submit({
                 type="checkbox"
                 checked={pledged}
                 onChange={(e) => setPledged(e.target.checked)}
-                className="mt-0.5"
+                className="mt-0.5 accent-foreground"
               />
               {t("submit.pledgeCheckboxLabel", "입력한 내용이 사실과 틀림없으며, 이를 이행할 것을 서약합니다.")}
             </label>

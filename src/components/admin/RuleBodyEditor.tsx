@@ -25,13 +25,13 @@ import {
 import { HELP, LINK_BTN, REMOVE_BTN } from "@/components/admin/adminUi";
 
 const CELL =
-  "w-full min-w-28 rounded-btn border border-border-soft bg-background px-2 py-1.5 text-xs outline-none focus:border-foreground";
+  "w-full min-w-28 border border-border-soft bg-background px-2 py-1.5 text-xs outline-none focus:border-foreground";
 /* 글 상자 — 문서 한 장처럼 보이도록 테두리를 지운다. 블록마다 상자를 두르면 표가
    본문에서 떨어져 나온 것처럼 읽힌다. */
 const DOC_TEXT =
   "w-full resize-none border-0 bg-transparent px-4 py-2 text-s leading-6 outline-none focus:ring-0";
 const MINI_BTN =
-  "inline-flex h-7 items-center rounded-btn border border-border-soft px-2 text-xs text-muted transition-colors hover:border-foreground hover:text-foreground";
+  "inline-flex h-7 items-center border border-border-soft px-2 text-xs text-muted transition-colors hover:border-foreground hover:text-foreground";
 
 export function RuleBodyEditor({
   value,
@@ -205,7 +205,7 @@ export function RuleBodyEditor({
             max={30}
             value={rows}
             onChange={(e) => setRows(Math.min(30, Math.max(1, Number(e.target.value) || 1)))}
-            className="h-7 w-14 rounded-btn border border-border-soft bg-background px-2 text-right text-xs tabular-nums"
+            className="h-7 w-14 border border-border-soft bg-background px-2 text-right text-xs tabular-nums"
           />
         </label>
         <label className="flex items-center gap-1 text-xs text-muted">
@@ -216,7 +216,7 @@ export function RuleBodyEditor({
             max={10}
             value={cols}
             onChange={(e) => setCols(Math.min(10, Math.max(1, Number(e.target.value) || 1)))}
-            className="h-7 w-14 rounded-btn border border-border-soft bg-background px-2 text-right text-xs tabular-nums"
+            className="h-7 w-14 border border-border-soft bg-background px-2 text-right text-xs tabular-nums"
           />
         </label>
 
@@ -267,7 +267,7 @@ export function RuleBodyEditor({
       {/* 글과 표를 한 상자 안에 이어 붙인다 — 문서 한 장처럼 보여야 표가 규약 "안에"
           들어간 것으로 읽힌다. 블록마다 테두리를 두르면 표가 본문에서 떨어져 나온
           조각처럼 보인다(2026-09-02). */}
-      <div className="rounded-btn border border-border-soft bg-background py-2">
+      <div className="border border-border-soft bg-background py-2">
         {blocks.map((block, i) =>
           block.kind === "text" ? (
             <textarea

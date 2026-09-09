@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
+import { EMAIL_RE } from "@/lib/validation";
 import crypto from "node:crypto";
-import { getCurrentUser, hashPassword } from "@/lib/auth";
+import { getCurrentUser, isProAdminOrAbove, hashPassword } from "@/lib/auth";
 import {
   approveCompanyIfMemberApproved,
   ensureCompanyMaster,
@@ -15,12 +16,11 @@ import { dispatchMessage } from "@/lib/message/dispatch";
 import { sha256Hex } from "@/lib/passwordScheme";
 import { revalidateMemberViews } from "@/lib/revalidateAdmin";
 
-const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const USERNAME_RE = /^[a-z0-9][a-z0-9_]{3,19}$/;
 
 export async function POST(request: Request) {
   const admin = await getCurrentUser();
-  if (!admin || admin.role !== "ADMIN") {
+  if (!admin || !isProAdminOrAbove(admin)) {
     return NextResponse.json({ error: "운영자 로그인이 필요합니다." }, { status: 401 });
   }
 

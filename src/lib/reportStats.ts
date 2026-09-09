@@ -4,14 +4,14 @@ import type { Company, Quote, ReviewDecision } from "./pricing/types";
 // 목록을 순수 함수로 집계만 한다. 신청 건수 규모가 대관 시스템 특성상 크지 않아
 // SQL 집계 대신 애플리케이션 레벨에서 계산한다.
 
-export interface MonthlyBucket {
+interface MonthlyBucket {
   key: string; // "2026-08"
   label: string; // "2026.08"
   count: number;
   total: number;
 }
 
-export interface BreakdownRow {
+interface BreakdownRow {
   key: string;
   label: string;
   count: number;

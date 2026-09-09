@@ -90,14 +90,27 @@ export async function POST(request: Request, ctx: { params: Promise<{ id: string
     return updated;
   });
 
-  // RT-02 — 트랜잭션 밖에서 보낸다. 사유가 없으면 변수를 비우지 않고 "-" 로 채운다(빈 변수는 발송 거절).
-  notifyQuoteApplicant({
-    templateCode: "RT-02",
-    quoteId: id,
-    applicantId: quote.applicantId,
-    eventKey: review.decidedAt,
-    variables: { 심사결과: DECISION_LABEL[decision], 안내: rationale || "-" },
-    request,
-  });
+  // [2026-09-08 밤] 팀 요청 "승인·거절은 BK-02, 보류(보완요청)는 BK-04" — RT-02 대체. 트랜잭션 밖에서
+  // 보낸다. 보완 필요 사항이 비면 변수를 비우지 않고 "-" 로 채운다(빈 변수는 발송 거절). 버튼 링크는
+  // 신청자 마이페이지 상세(mypage/{id}) — 심사 결과·보완 안내가 거기에 있다.
+  if (decision === "HOLD") {
+    notifyQuoteApplicant({
+      templateCode: "BK-04",
+      quoteId: id,
+      applicantId: quote.applicantId,
+      eventKey: review.decidedAt,
+      variables: { 보완필요사항: rationale || "-", 신청서바로가기링크: `mypage/${id}` },
+      request,
+    });
+  } else {
+    notifyQuoteApplicant({
+      templateCode: "BK-02",
+      quoteId: id,
+      applicantId: quote.applicantId,
+      eventKey: review.decidedAt,
+      variables: { 심사결과링크: `mypage/${id}` },
+      request,
+    });
+  }
   return NextResponse.json({ quote: updated });
 }

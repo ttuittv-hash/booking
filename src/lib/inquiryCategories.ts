@@ -5,7 +5,7 @@
    문의인지 본문을 읽어야만 알 수 있었다.
    ========================================================================= */
 
-export type QuoteRequirement = "REQUIRED" | "OPTIONAL" | "NONE";
+type QuoteRequirement = "REQUIRED" | "OPTIONAL" | "NONE";
 
 export interface InquiryCategory {
   id: string;

@@ -162,7 +162,7 @@ function DialogBox({ pending, onFinish }: { pending: Pending; onFinish: (r: bool
               placeholder={pending.options.placeholder}
               rows={3}
               data-testid="dialog-input"
-              className="field-base mt-4"
+              className="mt-4 w-full border border-border bg-background px-3 py-2 text-s outline-none focus:border-foreground"
             />
           ) : (
             <input
@@ -177,7 +177,7 @@ function DialogBox({ pending, onFinish }: { pending: Pending; onFinish: (r: bool
               }}
               placeholder={pending.options.placeholder}
               data-testid="dialog-input"
-              className="mt-4 h-11 w-full rounded-btn border border-border bg-background px-3 text-s outline-none focus:border-foreground"
+              className="mt-4 h-11 w-full border border-border bg-background px-3 text-s outline-none focus:border-foreground"
             />
           ))}
 

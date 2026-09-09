@@ -4,7 +4,9 @@ import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { LogoutButton } from "@/components/LogoutButton";
 import { NotificationBell } from "@/components/NotificationBell";
-import type { AppUser } from "@/lib/pricing/types";
+import type { AdminTier, AppUser } from "@/lib/pricing/types";
+
+const ADMIN_TIER_RANK: Record<AdminTier, number> = { BASIC: 0, PRO: 1, MASTER: 2 };
 
 // 계정 관련 화면(운영자 계정 · 계정 설정) 둘만 마우스오버 드롭다운으로 묶고, 나머지는
 // 전부 원뎁스로 GNB에 직접 둔다(2026-08-22, "콘텐츠 관리, 알림 관리도 gnb 메뉴로
@@ -13,23 +15,29 @@ import type { AppUser } from "@/lib/pricing/types";
 // 리포트를 맨 앞에 둔다(2026-08-30, "어드민 맨 앞 탭을 리포트로 해줘") — 운영자가
 // 백오피스를 열었을 때 먼저 보는 건 개별 신청 건이 아니라 유입·매출 지표다.
 // /admin(신청 현황)은 여전히 백오피스의 기본 주소이므로 링크는 남겨 두고 순서만 바꾼다.
-const PRIMARY_LINKS = [
-  { href: "/admin/reports", label: "리포트", masterOnly: false },
-  { href: "/admin", label: "신청 현황", masterOnly: false },
-  { href: "/admin/applicants", label: "회원 관리", masterOnly: false },
-  { href: "/admin/packages", label: "패키지 관리", masterOnly: false },
-  { href: "/admin/rates", label: "요금표 관리", masterOnly: false },
-  { href: "/admin/schedule", label: "일정 관리", masterOnly: false },
-  { href: "/admin/content", label: "콘텐츠 관리", masterOnly: false },
-  { href: "/admin/notification-rules", label: "알림 관리", masterOnly: false },
-  { href: "/admin/inquiries", label: "1:1 문의", masterOnly: false },
+//
+// [신규 2026-09-06] "계정 권한 설정... 일반 관리자는 콘텐츠 관리, 알림 관리, 1:1
+// 문의만 접근 가능" — masterOnly(불리언) 였던 걸 minTier(3단계)로 넓힌다. 화면
+// 자체의 접근 제한은 각 page.tsx의 requireProAdminPage/requireMasterAdminPage가
+// 이미 걸고 있고, 여기서는 그 등급에 못 미치는 메뉴를 애초에 안 보여준다(눌러서
+// 막히는 것보다 안 보이는 게 낫다).
+const PRIMARY_LINKS: { href: string; label: string; minTier: AdminTier }[] = [
+  { href: "/admin/reports", label: "리포트", minTier: "PRO" },
+  { href: "/admin", label: "신청 현황", minTier: "PRO" },
+  { href: "/admin/applicants", label: "회원 관리", minTier: "PRO" },
+  { href: "/admin/packages", label: "패키지 관리", minTier: "PRO" },
+  { href: "/admin/rates", label: "요금표 관리", minTier: "PRO" },
+  { href: "/admin/schedule", label: "일정 관리", minTier: "PRO" },
+  { href: "/admin/content", label: "콘텐츠 관리", minTier: "BASIC" },
+  { href: "/admin/notification-rules", label: "알림 관리", minTier: "BASIC" },
+  { href: "/admin/inquiries", label: "1:1 문의", minTier: "BASIC" },
 ];
 
 const ACCOUNT_GROUP = {
   label: "계정 관리",
   links: [
-    { href: "/admin/users", label: "운영자 계정", masterOnly: false },
-    { href: "/admin/account", label: "계정 설정", masterOnly: false },
+    { href: "/admin/users", label: "운영자 계정", minTier: "MASTER" as AdminTier },
+    { href: "/admin/account", label: "계정 설정", minTier: "BASIC" as AdminTier },
   ],
   // 기능정의서(내부 기획 문서)는 일반 백오피스 메뉴에 넣지 않는다 — 개발자·마스터
   // 관리자만 /admin/feature-spec 주소로 직접 들어간다 (src/app/admin/feature-spec/page.tsx).
@@ -50,11 +58,11 @@ function navLinkCls(isActive: boolean) {
 // 닫힌다 — 터치 기기나 키보드 접근에는 호버가 없기 때문이다.
 const HOVER_CLOSE_DELAY_MS = 150;
 
-function AccountMenu({ active, master }: { active: string; master: boolean }) {
+function AccountMenu({ active, tier }: { active: string; tier: AdminTier }) {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
   const closeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const links = ACCOUNT_GROUP.links.filter((link) => !link.masterOnly || master);
+  const links = ACCOUNT_GROUP.links.filter((link) => ADMIN_TIER_RANK[tier] >= ADMIN_TIER_RANK[link.minTier]);
   const isActiveGroup = links.some((l) => l.href === active);
 
   useEffect(() => {
@@ -102,7 +110,7 @@ function AccountMenu({ active, master }: { active: string; master: boolean }) {
         </svg>
       </button>
       {open && (
-        <div className="absolute right-0 top-full z-30 mt-px min-w-44 rounded-surface border border-border-soft bg-panel py-1.5 shadow-md">
+        <div className="absolute right-0 top-full z-30 mt-px min-w-44 border border-border-soft bg-panel py-1.5 shadow-md">
           {links.map((link) => (
             <Link
               key={link.href}
@@ -127,21 +135,41 @@ function AccountMenu({ active, master }: { active: string; master: boolean }) {
  * 활성 항목은 옐로 하단 바 + 검정 텍스트 (옐로는 면·강조에만, 텍스트 색으로 쓰지 않는다).
  * 높이 14/16 은 각 화면의 스티키 탭 바(top-14 sm:top-16)와 맞물려 있으므로 유지한다.
  *
- * user 를 넘기지 않는 호출부는 하위호환을 위해 마스터 전용 메뉴를 숨긴 상태로 렌더링한다.
+ * user 를 넘기지 않는 호출부는 하위호환을 위해 등급 제한 메뉴를 전부 숨긴 상태(BASIC)로
+ * 렌더링한다.
  */
 export function AdminNav({ active, user }: { active: string; user?: AppUser | null }) {
-  // src/lib/auth.ts의 isMasterAdmin()은 next/headers 등 서버 전용 모듈을 물고 있어
-  // "use client" 컴포넌트에서 import하면 빌드가 깨진다 — 판정 자체는 필드 두 개만
-  // 보면 되는 순수 로직이라 여기서 직접 계산한다.
-  const master = !!user && user.role === "ADMIN" && user.adminTier === "MASTER";
-  const primaryLinks = PRIMARY_LINKS.filter((link) => !link.masterOnly || master);
+  // src/lib/auth.ts의 isMasterAdmin()/isProAdminOrAbove()는 next/headers 등 서버 전용
+  // 모듈을 물고 있어 "use client" 컴포넌트에서 import하면 빌드가 깨진다 — 판정 자체는
+  // 필드 두 개만 보면 되는 순수 로직이라 여기서 직접 계산한다.
+  const tier: AdminTier = user?.role === "ADMIN" ? (user.adminTier ?? "BASIC") : "BASIC";
+  const primaryLinks = PRIMARY_LINKS.filter((link) => ADMIN_TIER_RANK[tier] >= ADMIN_TIER_RANK[link.minTier]);
+
+  /*
+    [수정 2026-09-05] "프론트 보기"는 백오피스(bo.*)가 아니라 실제 방문자가 쓰는
+    partner.* 로 가야 한다("bo 말고 밑에 partner"). 서버 쪽엔 이 정확한 bo→partner
+    치환 로직이 이미 있지만(`audienceOrigin`, src/lib/publicUrl.ts) Request 객체가
+    있어야 해서 이 클라이언트 컴포넌트에서 그대로 못 쓴다. 여기서는 지금 브라우저가
+    실제로 보고 있는 호스트(dev면 bo.dev.seoularena.net, 운영이면 bo.seoularena.net)
+    를 기준으로 같은 치환을 한다 — 그래서 dev/운영 어디서 열어도 같은 환경의 partner
+    로 간다. SSR 시점엔 location이 없어 "/"로 두고, 마운트 후에만 실제 주소로 바꾼다
+    (서버·클라이언트 렌더 결과가 달라지는 hydration 경고를 피하려고 state로 늦춘다).
+  */
+  const [frontHref, setFrontHref] = useState("/");
+  useEffect(() => {
+    // window.location 은 서버에 없다 — 마운트 후에만 실제 주소로 바꿔 hydration 불일치를 피한다.
+    const { hostname, protocol, port } = window.location;
+    const partnerHost = hostname.startsWith("bo.") ? "partner." + hostname.slice(3) : hostname;
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setFrontHref(`${protocol}//${partnerHost}${port ? `:${port}` : ""}/`);
+  }, []);
 
   return (
     // 이 줄에 overflow-x-auto 를 넣지 않는다 — overflow-x 를 visible이 아닌 값으로
     // 두면 overflow-y도 함께 auto로 계산돼(스펙), "설정" 드롭다운 패널(하단으로
     // 튀어나오는 절대배치 요소)이 통째로 잘려 안 보이게 된다("설정 하위 메뉴가
     // 없는데?", 2026-08-22) — 실제로 겪은 회귀라 다시 넣지 않는다.
-    <header className="sticky top-0 z-20 border-b border-border/25 bg-background/95 backdrop-blur-md">
+    <header className="sticky top-0 z-20 border-b border-border/20 bg-background/95 backdrop-blur-md">
       {/* 메뉴 9개는 좁은 화면 한 줄에 못 들어간다. overflow-x-auto 는 드롭다운을 잘라
           쓸 수 없으므로(위 주석), lg 미만에서는 메뉴를 두 번째 줄로 내려 줄바꿈한다. */}
       <div className="mx-auto flex max-w-6xl flex-wrap items-center gap-x-4 px-4 sm:px-6 lg:h-16 lg:flex-nowrap">
@@ -152,23 +180,40 @@ export function AdminNav({ active, user }: { active: string; user?: AppUser | nu
         >
           Seoul Arena
         </Link>
-        <span className="hidden shrink-0 whitespace-nowrap rounded-btn border border-border-soft px-2 py-1 text-xs leading-none text-muted sm:inline-block">
+        <span className="hidden shrink-0 whitespace-nowrap border border-border-soft px-2 py-1 text-xs leading-none text-muted sm:inline-block">
           운영자 백오피스
         </span>
 
         <nav
           aria-label="백오피스 메뉴"
-          className="order-last flex w-full flex-wrap items-center gap-x-4 border-t border-border/25 lg:order-none lg:ml-auto lg:h-full lg:w-auto lg:flex-nowrap lg:border-t-0"
+          className="order-last flex w-full flex-wrap items-center gap-x-4 border-t border-border/10 lg:order-none lg:ml-auto lg:h-full lg:w-auto lg:flex-nowrap lg:border-t-0"
         >
           {primaryLinks.map((link) => (
             <Link key={link.href} href={link.href} aria-current={link.href === active ? "page" : undefined} className={navLinkCls(link.href === active)}>
               {link.label}
             </Link>
           ))}
-          <AccountMenu active={active} master={master} />
+          <AccountMenu active={active} tier={tier} />
         </nav>
 
         <div className="ml-auto flex h-14 shrink-0 items-center gap-x-4 text-xs text-muted sm:h-16 lg:ml-0 lg:h-full">
+          {/* [신규 2026-09-05] 백오피스에서 실제 방문자가 보는 화면(프론트)으로 바로
+              가는 길이 로고 클릭(작고 눈에 안 띔) 뿐이었다 — "프론트 메뉴 넣어줘".
+              새 탭으로 열어 백오피스 작업 화면은 그대로 둔다. bo.*가 아니라 partner.*로
+              가야 해서(위 frontHref 계산 참고) next/link가 아니라 일반 <a>를 쓴다 —
+              다른 서브도메인으로 가는 절대경로 이동은 Link의 클라이언트 라우팅
+              대상이 아니다. */}
+          <a
+            href={frontHref}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex shrink-0 items-center gap-1 whitespace-nowrap border border-border-soft px-2.5 py-1.5 text-xs font-bold text-muted transition-colors hover:border-foreground hover:text-foreground"
+          >
+            프론트 보기
+            <svg aria-hidden viewBox="0 0 12 12" className="h-3 w-3" fill="none" stroke="currentColor">
+              <path d="M4 2.5h5.5V8M9.5 2.5L2.5 9.5" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+          </a>
           <NotificationBell role="ADMIN" />
           <LogoutButton className="whitespace-nowrap font-bold hover:text-foreground" />
         </div>

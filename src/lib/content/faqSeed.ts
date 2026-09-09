@@ -22,7 +22,7 @@ export const FAQ_TAGS = [
   "현장 운영",
 ] as const;
 
-export type FaqTag = (typeof FAQ_TAGS)[number];
+type FaqTag = (typeof FAQ_TAGS)[number];
 
 export interface SeedFaq {
   tag: FaqTag;

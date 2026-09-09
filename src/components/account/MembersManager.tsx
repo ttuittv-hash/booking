@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useDialog } from "@/components/ui/Dialog";
 import { btnClass } from "@/components/ui/kit";
 import { useToast } from "@/components/ui/Toast";
@@ -38,97 +38,26 @@ const APPROVAL_LABEL: Record<string, string> = {
   REJECTED: "비활성",
 };
 
-// [신규 2026-08-26] "마스터 계정표기 텍스트 옆에 ? 아이콘, 마우스오버하면 안내" 요청.
-// 이 화면(/mypage/members)은 대표 담당자만 열 수 있으므로 MASTER 배지는 늘 보는 사람 본인이다.
-//
-// [개정 2026-08-29] 브라우저 기본 title 툴팁을 안내 레이어로 바꿨다. title 은 나타나는 데
-// 1초쯤 걸리고, 꾸밀 수 없으며, 터치 기기에서는 아예 뜨지 않는다. 눌러서도 뜨게 한다.
-export const MASTER_ROLE_TOOLTIP = "당신은 마스터 계정으로 소속담당자 승인/관리가 가능합니다.";
+// [삭제 2026-09-04 팀 요청] 대표 담당자 배지 옆 ? 아이콘과 설명 레이어를 뺐다 —
+// 가입 승인이 운영진 전담으로 바뀌어 "할 수 있는 일" 안내가 실제 권한과 어긋났다.
+/*
+  [개정 2026-09-04 팀 결정] 가입 승인·반려는 서울아레나 운영진만 한다.
 
-const MASTER_ROLE_ABILITIES = [
-  "소속 담당자 초대",
-  "합류 신청 승인 · 반려",
-  "소속 해제",
-  "대표 권한 이관",
-];
+  대표 담당자에게는 버튼을 두지 않는다 — 눌러도 API 가 막으므로 버튼만 남으면
+  "승인이 안 된다"로 읽힌다. 상태(승인 대기)는 그대로 보여 진행 상황은 알 수 있다.
+  대표에게 권한을 되돌릴 때는 이 값을 true 로 바꾸고 API 쪽(admin/applicants) 규칙도 함께 되살린다.
+*/
+const MASTER_CAN_APPROVE = false;
 
-function MasterInfoIcon() {
-  const [open, setOpen] = useState(false);
-  // 표가 overflow-x-auto 로 감싸여 있어 안쪽에 절대배치하면 레이어가 잘린다(z-index 로는
-  // overflow 를 못 벗어난다). 그래서 버튼 위치를 재서 뷰포트 기준(fixed)으로 띄운다.
-  const [pos, setPos] = useState<{ top: number; left: number } | null>(null);
-  const btnRef = useRef<HTMLButtonElement>(null);
+/*
+  [개정 2026-09-04 팀 결정] 담당자 초대도 당분간 닫는다.
 
-  const place = useCallback(() => {
-    const rect = btnRef.current?.getBoundingClientRect();
-    if (!rect) return;
-    // 화면 오른쪽 끝에서 열려도 잘리지 않게 좌우로 가둔다(레이어 폭 256px 의 절반 + 여백).
-    const half = 136;
-    const left = Math.min(Math.max(rect.left + rect.width / 2, half), window.innerWidth - half);
-    setPos({ top: rect.bottom + 8, left });
-  }, []);
+  1차 오픈에는 서울아레나가 모든 가입을 직접 확인한다 — 대표가 링크로 사람을 불러오는
+  통로를 열어 두면 그 확인을 건너뛰게 된다. 화면에서 [담당자 초대] 영역을 감추고,
+  이미 발송된 초대 링크는 그대로 살아 있다. 다시 열 때는 이 값을 true 로 바꾼다.
+*/
+const MASTER_CAN_INVITE = false;
 
-  const show = useCallback(() => {
-    place();
-    setOpen(true);
-  }, [place]);
-
-  // 열어 둔 채 스크롤하면 레이어만 제자리에 남는다 — 그때는 닫는다.
-  useEffect(() => {
-    if (!open) return;
-    const close = () => setOpen(false);
-    window.addEventListener("scroll", close, true);
-    window.addEventListener("resize", close);
-    return () => {
-      window.removeEventListener("scroll", close, true);
-      window.removeEventListener("resize", close);
-    };
-  }, [open]);
-
-  return (
-    <span className="ml-1 inline-flex" onMouseEnter={show} onMouseLeave={() => setOpen(false)}>
-      <button
-        ref={btnRef}
-        type="button"
-        data-testid="master-role-info"
-        aria-label="대표 담당자 역할 안내"
-        aria-expanded={open}
-        onClick={() => (open ? setOpen(false) : show())}
-        // 키보드로도 열린다 — 마우스가 없으면 아무 설명도 못 보는 안내는 안내가 아니다.
-        onFocus={show}
-        onBlur={() => setOpen(false)}
-        onKeyDown={(e) => {
-          if (e.key === "Escape") setOpen(false);
-        }}
-        className="inline-flex h-4 w-4 shrink-0 cursor-help items-center justify-center rounded-full border border-current text-xs leading-none"
-      >
-        ?
-      </button>
-      {open && pos ? (
-        <span
-          role="tooltip"
-          data-testid="master-role-layer"
-          style={{ position: "fixed", top: pos.top, left: pos.left }}
-          className="z-50 w-64 -translate-x-1/2 cursor-default rounded-surface border border-border-soft bg-background px-4 py-3 text-left text-xs leading-6 font-normal text-foreground shadow-lg"
-        >
-          <b className="block text-s">대표 담당자</b>
-          <span className="mt-1 block break-keep text-muted">
-            회사에서 가장 먼저 승인된 분이 자동으로 지정되며, 회사당 한 명입니다.
-          </span>
-          <span className="mt-2 block break-keep">할 수 있는 일</span>
-          <ul className="mt-1 list-disc space-y-0.5 pl-4 text-muted">
-            {MASTER_ROLE_ABILITIES.map((ability) => (
-              <li key={ability}>{ability}</li>
-            ))}
-          </ul>
-          <span className="mt-2 block break-keep text-muted">
-            소속 담당자의 가입 신청 알림도 대표 담당자에게 갑니다.
-          </span>
-        </span>
-      ) : null}
-    </span>
-  );
-}
 
 // [개정 2026-08-26] "같은 회사 소속 계정들이 한 리스트에, 상태값(가입/미가입)과
 // 상태별 실행 버튼(가입승인/가입반려 등)이 보여야 한다" 요청으로 "담당자 목록"(이미
@@ -230,7 +159,7 @@ export function MembersManager({ currentUserId }: { currentUserId: string }) {
     // 탈퇴자는 목록에 남기되 손댈 수 없다 — 이미 회사를 떠난 사람을 승인하거나
     // 대표로 세우거나 소속 해제하는 건 말이 되지 않는다.
     if (m.companyRole !== "MASTER" && !m.withdrawnAt) {
-      if (m.approvalStatus === "PENDING") {
+      if (MASTER_CAN_APPROVE && m.approvalStatus === "PENDING") {
         actions.push(
           {
             key: "approve",
@@ -349,12 +278,12 @@ export function MembersManager({ currentUserId }: { currentUserId: string }) {
   return (
     <div className="mt-8" data-testid="members-manager">
       {error ? (
-        <p data-testid="members-error" className="mb-4 rounded-surface bg-panel px-4 py-3 text-s text-danger">
+        <p data-testid="members-error" className="mb-4 border border-danger/40 px-4 py-3 text-s text-danger">
           {error}
         </p>
       ) : null}
       {notice ? (
-        <p data-testid="members-notice" className="mb-4 rounded-surface bg-panel px-4 py-3 text-s">
+        <p data-testid="members-notice" className="mb-4 border border-accent px-4 py-3 text-s">
           {notice}
         </p>
       ) : null}
@@ -364,8 +293,8 @@ export function MembersManager({ currentUserId }: { currentUserId: string }) {
         <p className="mt-1 break-keep text-xs leading-6 text-muted">
           이름을 누르면 그 담당자의 신청 상세(첨부 서류 포함)를 볼 수 있습니다. 회사에서{" "}
           <b>가장 먼저 승인된 분</b>이 <b>대표 담당자</b>가 되고, 이후 합류한 분은{" "}
-          <b>소속 담당자</b>가 됩니다. 대표 담당자만 초대 · 합류 승인 · 소속 해제 · 대표 이관을 할
-          수 있습니다. 아래 이메일로 초대는 보냈지만 아직 본인인증·비밀번호 설정을 마치지 않은
+          <b>소속 담당자</b>가 됩니다. 가입 승인은 서울아레나 운영진이 처리하며, 대표 담당자는
+          소속 해제 · 대표 이관을 할 수 있습니다. 아래 이메일로 초대는 보냈지만 아직 본인인증·비밀번호 설정을 마치지 않은
           분은 <b>미가입</b>으로 표시됩니다.
         </p>
         <div className="mt-3 overflow-x-auto">
@@ -391,7 +320,7 @@ export function MembersManager({ currentUserId }: { currentUserId: string }) {
                   // 강조를 왼쪽 세로선(border-l)으로 준 적이 있는데, 표는
                   // border-collapse: collapse(Tailwind preflight)라 tr 의 좌우 테두리가
                   // 같은 tr 의 border-b 와 겹쳐 행 높이가 들쭉날쭉해졌다. 바탕색만 쓴다.
-                  className={`border-b border-border/25 ${row.isMe ? "bg-accent-soft/40" : ""}`}
+                  className={`border-b border-border/40 ${row.isMe ? "bg-accent-soft/40" : ""}`}
                   data-testid={row.key}
                 >
                   {/* 이름 칸은 운영자 회사 목록(CompanyDirectory)과 같은 짜임으로 맞춘다 —
@@ -403,7 +332,7 @@ export function MembersManager({ currentUserId }: { currentUserId: string }) {
                       {row.href ? (
                         <Link
                           href={row.href}
-                          className="font-bold underline decoration-border-soft underline-offset-4 transition-colors hover:decoration-foreground"
+                          className="font-bold underline decoration-border-soft underline-offset-4 transition-colors hover:decoration-accent"
                         >
                           {row.name}
                         </Link>
@@ -413,7 +342,7 @@ export function MembersManager({ currentUserId }: { currentUserId: string }) {
                       {row.isMe ? (
                         <span
                           data-testid="me-marker"
-                          className="rounded-btn border border-accent bg-accent px-1.5 text-xs leading-4 text-on-accent"
+                          className="border border-accent bg-accent px-1.5 text-[10px] leading-4 text-on-accent"
                         >
                           나
                         </span>
@@ -435,7 +364,8 @@ export function MembersManager({ currentUserId }: { currentUserId: string }) {
                         >
                           {row.companyRole === "MASTER" ? "대표 담당자" : "소속 담당자"}
                         </span>
-                        {row.companyRole === "MASTER" ? <MasterInfoIcon /> : null}
+                        {/* [삭제 2026-09-04 팀 요청] 대표 담당자 옆 물음표·설명 레이어를 뺀다 —
+                            승인 주체가 운영진으로 바뀌어 설명이 실제 권한과 어긋났다. */}
                       </span>
                     ) : (
                       <span className="text-muted">—</span>
@@ -489,6 +419,7 @@ export function MembersManager({ currentUserId }: { currentUserId: string }) {
         </div>
       </section>
 
+      {MASTER_CAN_INVITE && (
       <section className="mt-12">
         <h2 className="text-s font-bold">담당자 초대</h2>
         <p className="mt-2 break-keep text-s leading-6 text-muted">
@@ -574,7 +505,7 @@ export function MembersManager({ currentUserId }: { currentUserId: string }) {
         </p>
 
         {inviteUrl ? (
-          <div data-testid="invite-url" className="mt-4 rounded-surface bg-panel px-4 py-3 text-s">
+          <div data-testid="invite-url" className="mt-4 border border-accent px-4 py-3 text-s">
             <p className="font-bold">초대가 발송되었습니다</p>
             <p className="mt-2 break-all font-mono text-xs">{inviteUrl}</p>
             {/* [개정 2026-08-27] 링크는 회원가입 페이지다 — 초대받은 사람은 전용 화면이
@@ -583,11 +514,12 @@ export function MembersManager({ currentUserId }: { currentUserId: string }) {
             <p className="mt-2 text-xs text-muted">
               휴대폰 번호를 입력했다면 알림톡으로도 이미 발송됐습니다. 도착하지 않으면 이 회원가입
               링크를 직접 전달해 주세요. 초대한 분이 <b>같은 이메일</b>로 가입하면 아래 목록의
-              <b> 미가입</b> 행이 자동으로 정리되고, 가입 승인은 대표 담당자가 처리합니다.
+              <b> 미가입</b> 행이 자동으로 정리되고, 가입 승인은 서울아레나 운영진이 처리합니다.
             </p>
           </div>
         ) : null}
       </section>
+      )}
     </div>
   );
 }

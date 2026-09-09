@@ -18,8 +18,8 @@ export const USERNAME_HINT = "5~20자의 영문·숫자 조합";
  * 기획서 안에서 가입 8~20자 / 변경 8~15자로 어긋나 있어 넓은 쪽(8~20)으로 통일한다.
  * 확정되면 이 상수만 고치면 화면·API 전부 따라온다.
  */
-export const PASSWORD_MIN = 8;
-export const PASSWORD_MAX = 20;
+const PASSWORD_MIN = 8;
+const PASSWORD_MAX = 20;
 export const PASSWORD_HINT = "8~20자 · 영문 대문자·소문자·숫자·특수문자를 모두 포함";
 
 export const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;

@@ -1,6 +1,5 @@
 import Link from "next/link";
-import { redirect } from "next/navigation";
-import { getCurrentUser } from "@/lib/auth";
+import { requireProAdminPage } from "@/lib/auth";
 import { getTrafficByPath, getTrafficStats, todayInSeoul } from "@/lib/db";
 import { bucketLabel, parseGranularity, resolveRange } from "@/lib/trafficRange";
 import { AdminNav } from "@/components/admin/AdminNav";
@@ -33,9 +32,7 @@ export default async function TrafficDetailPage({
 }: {
   searchParams: Promise<{ g?: string; days?: string; from?: string; to?: string }>;
 }) {
-  const user = await getCurrentUser();
-  if (!user) redirect("/admin/login");
-  if (user.role !== "ADMIN") redirect("/apply");
+  const user = await requireProAdminPage();
 
   const sp = await searchParams;
   const granularity = parseGranularity(sp.g);

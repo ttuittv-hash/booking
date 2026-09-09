@@ -73,7 +73,7 @@ export function SignaturePad({
 
   return (
     <div>
-      <div className="relative overflow-hidden rounded-surface border border-border bg-white">
+      <div className="relative border border-border bg-white">
         {watermarkText && (
           <span
             aria-hidden="true"

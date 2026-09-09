@@ -8,8 +8,11 @@ import { findUserById } from "@/lib/db";
 import { dispatchMessageInBackground } from "./dispatch";
 
 export type QuoteEventTemplate =
-  | "RT-01" // 신청 접수
-  | "RT-02" // 심사 결과
+  | "BK-01" // 신청 접수 (2026-09-08 RT-01 대체)
+  | "BK-02" // 심사 결과 승인·거절 (RT-02 대체)
+  | "BK-04" // 보류 = 신청 서류 보완 요청
+  | "RT-01" // (구) 신청 접수
+  | "RT-02" // (구) 심사 결과
   | "RT-03" // 계약금액 확정
   | "RT-04" // 계약서 날인 요청
   | "RT-05" // 세금계산서 발행

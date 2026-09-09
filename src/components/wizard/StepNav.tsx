@@ -1,6 +1,6 @@
 "use client";
 
-import { CHOICE_SELECTED_VARS } from "@/components/ui/kit";
+import { useWizardText } from "@/lib/content/wizardText";
 
 // [화면 뼈대 2026-08-20, 세 번째 개정] "공간 선택"과 "일정 선택"을 다시 하나의 탭으로
 // 합쳤다 — 화면 안에서는 두 슬롯(섹션)으로 나뉘어 보이지만 진행 표시상으로는 한 그룹
@@ -30,26 +30,43 @@ interface StageGroup {
   steps: SubStep[];
 }
 
-const STAGE_GROUPS: StageGroup[] = [
-  { label: "01 공간/일정", steps: [{ step: 1, label: "공간/일정" }] },
-  { label: "02 구성 · 옵션", steps: [{ step: 2, label: "구성 · 옵션" }] },
-  {
-    label: "03 기본 정보",
-    steps: [
-      { step: 3, label: "신청자 정보 및 규모" },
-      { step: 4, label: "홍보 및 서비스 계획" },
-      { step: 5, label: "공공/공익 참여 여부" },
-      { step: 6, label: "안전관리 서약서" },
-    ],
-  },
-  {
-    label: "04 신청서 제출",
-    steps: [
-      { step: 7, label: "예상 대관료" },
-      { step: 8, label: "최종 제출" },
-    ],
-  },
-];
+// [수정 2026-09-06] "원뎁스 메뉴와 투뎁스 메뉴명 모두를 수정할 수 있게" — 예전엔
+// 이 배열이 모듈 최상위 상수라 useWizardText() 를 쓸 수 없었다. 컴포넌트 안에서
+// tStr(key, fallback)을 받아 조립하는 함수로 바꾼다 — key 는 /admin/content
+// "위저드 문구 미리보기·수정" 화면에서 이 화면을 그대로 보며 고칠 수 있다.
+function buildStageGroups(tStr: (key: string, fallback: string) => string): StageGroup[] {
+  return [
+    {
+      label: tStr("stepNav.group.spaceSchedule", "01 공간/일정"),
+      steps: [{ step: 1, label: tStr("stepNav.step.spaceSchedule", "공간/일정") }],
+    },
+    {
+      label: tStr("stepNav.group.configOptions", "02 구성 · 옵션"),
+      steps: [{ step: 2, label: tStr("stepNav.step.configOptions", "구성 · 옵션") }],
+    },
+    {
+      label: tStr("stepNav.group.basicInfo", "03 기본 정보"),
+      steps: [
+        { step: 3, label: tStr("stepNav.step.applicantInfo", "신청자 정보 및 규모") },
+        { step: 4, label: tStr("stepNav.step.marketing", "홍보 및 서비스 계획") },
+        // [이동 2026-09-08] STEP 5(공공/공익 참여)는 STEP 4(홍보 및 서비스 계획) 안으로
+        // 합쳤다(nora, 9/8 16:20). 단계 번호는 그대로 두고(임시저장·검증 키 유지) 탭에서만
+        // 빼며, WizardShell.goTo 가 5를 건너뛴다.
+        { step: 6, label: tStr("stepNav.step.safetyPledge", "안전관리 서약서") },
+        // [신규 2026-09-07] "안전관리 서약서 뒤에 자료 첨부 탭 신규 생성" — 안전관리
+        // 서약서 탭의 두 번째 슬롯이던 자료 첨부를 독립 탭으로 뗐다.
+        { step: 7, label: tStr("stepNav.step.attachments", "자료 첨부") },
+      ],
+    },
+    {
+      label: tStr("stepNav.group.submit", "04 신청서 제출"),
+      steps: [
+        { step: 8, label: tStr("stepNav.step.estimate", "예상 대관료") },
+        { step: 9, label: tStr("stepNav.step.finalSubmit", "최종 제출") },
+      ],
+    },
+  ];
+}
 
 /**
  * 스텝 인디케이터 — Figma MARKETING COMPONENTS › **Multi-step Forms › Multi Form / 5**.
@@ -86,6 +103,8 @@ export function StepNav({
   locked?: boolean;
   onJump: (step: number) => void;
 }) {
+  const { tStr } = useWizardText();
+  const STAGE_GROUPS = buildStageGroups(tStr);
   const groupsWithVisibleSteps = STAGE_GROUPS.map((group) => ({
     ...group,
     visibleSteps: group.steps.filter((s) => !hiddenSteps?.includes(s.step)),
@@ -98,13 +117,7 @@ export function StepNav({
       // sticky 오프셋은 상단바 높이 토큰(`--header-h`)을 그대로 따른다. 음수 마진(-mx-*)으로
       // 그리드 트랙 밖으로 빼지 않는다 — 스텝 전환 시 위저드 폭이 흔들리던 버그
       // (5cfc178 / 310e689) 가 그렇게 재발한다. w-full + overflow-x-auto 로만 처리한다.
-      /*
-        단계 바 **위쪽(상단바 자리)까지 지면색으로 막는다**(`before`).
-        상단바 배경은 아랫변으로 갈수록 옅어지는 페이드라, 그 구간으로 아래 내용이
-        비쳐 올라왔다 — 글이 촘촘한 위저드에서는 체크박스 줄이 상단바를 뚫고 나온 것처럼
-        보였다. 여기서는 페이드 대신 불투명한 면으로 덮는다.
-      */
-      className="sticky top-[var(--header-h)] z-20 w-full relative border-b border-border/25 bg-background before:absolute before:inset-x-0 before:bottom-full before:h-[var(--header-h)] before:bg-background before:content-['']"
+      className="sticky top-[var(--header-h)] z-20 mb-10 w-full border-b border-border/25 bg-background"
     >
       <ol className="flex h-11 w-full min-w-0 items-center gap-1 overflow-x-auto">
         {groupsWithVisibleSteps.map((group) => {
@@ -136,34 +149,30 @@ export function StepNav({
       </ol>
 
       {activeGroup && activeGroup.visibleSteps.length > 1 && (
-        <ol className="flex w-full min-w-0 items-center gap-1.5 overflow-x-auto pb-3 pt-3">
+        // [수정 2026-09-06] "원뎁스 투뎁스 간격이 너무 좁아서 붙으려고 하고" — 위 그룹
+        // 줄과 바로 붙어 있던 pt-3를 pt-5로 넉넉히 띄운다. "투뎁스는 동그라미 말고
+        // 텍스트 밑줄로" — 알약(rounded-full·테두리) 버튼을 밑줄 텍스트로 바꾼다.
+        <ol className="flex w-full min-w-0 items-center gap-3 overflow-x-auto pb-3 pt-5">
           {activeGroup.visibleSteps.map((s, i) => {
             const isCurrent = s.step === step;
             const isDone = s.step < step;
             const disabled = s.step > maxUnlockedStep || (locked && s.step !== step);
             return (
-              <li key={s.step} className="flex shrink-0 items-center gap-1.5">
+              <li key={s.step} className="flex shrink-0 items-center gap-3">
                 {i > 0 && <Chevron />}
                 <button
                   type="button"
                   disabled={disabled}
                   onClick={() => onJump(s.step)}
                   aria-current={isCurrent ? "step" : undefined}
-                  /* 현재 단계 = 검정 채움. 텍스트 색이 따라오도록 토큰을 국소 반전한다 */
-                  style={isCurrent ? CHOICE_SELECTED_VARS : undefined}
                   className={[
-                    // 하위 단계는 **알약**이다 — 네모는 실행(버튼), 알약은 이동(탭)이라는
-                    // 구분을 지킨다. 샤프 코너로 두면 바로 아래 이전/다음 버튼과 같은
-                    // 모양이 되어 "누르면 뭔가 실행되는 것"으로 읽힌다.
-                    // 높이는 버튼과 같은 단(40)을 쓴다. 번호 매김은 제거했다(2026-08-22,
-                    // "서브위저드 번호는 제거해") — 순서는 셰브런과 완료/진행 색으로만 표시한다.
-                    "flex h-10 items-center gap-2 rounded-full border px-4 text-xs font-bold outline-none transition-colors",
+                    "flex h-8 items-center whitespace-nowrap text-xs font-bold outline-none underline-offset-4 transition-colors",
                     "focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-foreground",
                     isCurrent
-                      ? "border-foreground bg-inverse-bg text-inverse-fg"
+                      ? "text-foreground underline decoration-2"
                       : isDone
-                        ? "border-foreground text-foreground"
-                        : "border-border-soft text-muted",
+                        ? "text-foreground underline decoration-1"
+                        : "text-muted no-underline hover:text-foreground",
                     disabled ? "cursor-not-allowed opacity-40" : "cursor-pointer",
                   ].join(" ")}
                 >

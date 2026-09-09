@@ -2,9 +2,7 @@
 
 import type { ReactNode } from "react";
 import Link from "next/link";
-import { ArrowRight, btnClass } from "@/components/ui/kit";
-import { FilePicker } from "@/components/ui/FilePicker";
-import type { SafetyPledge } from "@/lib/pricing/types";
+import type { SafetyPledge, StepValidationResult } from "@/lib/pricing/types";
 import { useWizardText } from "@/lib/content/wizardText";
 import { SignaturePad } from "./SignaturePad";
 import { StepHeading } from "./StepHeading";
@@ -61,29 +59,46 @@ const PLEDGE_ITEMS: { key: PledgeCheckKey; defaultLabel: string; emphasize?: boo
 // 출연진 계약 상태 슬롯에서 이미 받으므로 여기서는 중복 요구하지 않는다(2026-08-26).
 export function validateSafetyPledgeStep(
   pledge: SafetyPledge,
-  files?: { safetyPlanFile: File | null },
-): string | null {
+  disabledFields: string[] = [],
+  // [신규 2026-09-07] "미입력 필수항목 빨간색 표시 + 자동 스크롤" — StepPerformanceInfo.tsx의
+  // validatePerformanceInfoStep과 같은 이유로 안내 문구를 tStr(key, fallback)로 조회한다.
+  tStr: (key: string, fallback: string) => string = (_key, fallback) => fallback,
+): StepValidationResult | null {
+  // [버그 수정 2026-09-06] STEP6 "안전관리 서약서" 슬롯 자체를 통째로 껐을 때
+  // (slot.6.safetyPledge, SlotOrderPanel의 새 체크박스)는 이 화면이 아예 렌더되지
+  // 않으므로 필수 검사도 함께 건너뛴다 — StepPerformanceInfo.tsx의 isSlotDisabled와
+  // 같은 규칙.
+  if (disabledFields.includes("slot.6.safetyPledge")) return null;
   const unchecked = PLEDGE_ITEMS.some((item) => !pledge[item.key]);
-  if (unchecked) return "안전관리 서약 항목을 모두 체크해 주세요.";
-  if (!pledge.signature.trim()) return "서명란에 서명해 주세요.";
-  if (files && !files.safetyPlanFile) return "공연·행사 안전관리계획서를 업로드해 주세요.";
+  if (unchecked) {
+    return {
+      fieldKey: "safetyPledge.items",
+      message: tStr("validationMessage.safetyPledge.items", "안전관리 서약 항목을 모두 체크해 주세요."),
+    };
+  }
+  if (!pledge.signature.trim()) {
+    return {
+      fieldKey: "safetyPledge.signature",
+      message: tStr("validationMessage.safetyPledge.signature", "서명란에 서명해 주세요."),
+    };
+  }
   return null;
 }
 
+// [삭제 2026-09-08] "안전관리 서약서 첨부 슬롯 삭제 필요" — 공연·행사 안전관리계획서
+// 필수 업로드(validateAttachmentsStep)와 그 업로드 칸(FileSlot)을 없앴다. STEP7
+// "자료 첨부"는 이제 일반 첨부(pendingFiles, StepAttachments)만 받는다 — 필요한
+// 안전관리계획서는 그 자유 첨부로 받는다.
 
 export function StepSafetyPledge({
   pledge,
   onChange,
-  safetyPlanFile,
-  onSafetyPlanFileChange,
   companyName,
   title,
   lead,
 }: {
   pledge: SafetyPledge;
   onChange: (pledge: SafetyPledge) => void;
-  safetyPlanFile: File | null;
-  onSafetyPlanFileChange: (file: File | null) => void;
   /** 대관신청사명 — 있으면 서명란에 옅게 깔아 따라 쓸 수 있게 한다. */
   companyName?: string;
   title: ReactNode;
@@ -105,30 +120,30 @@ export function StepSafetyPledge({
     <section>
       <StepHeading title={title} lead={lead} />
 
-      <label className="mt-6 flex cursor-pointer items-center gap-2.5 rounded-btn border border-border bg-panel px-5 py-3.5">
+      <label className="mt-6 flex cursor-pointer items-center gap-2.5 border border-border bg-panel px-5 py-3.5">
         <input
           type="checkbox"
           checked={allChecked}
           onChange={(e) => toggleAll(e.target.checked)}
-          className="h-4 w-4"
+          className="h-4 w-4 accent-[var(--accent)]"
         />
         <span className="text-s font-bold text-foreground">{t("safetyPledge.allAgree", "전체 동의")}</span>
       </label>
 
-      <div className="border border-t-0 border-border">
+      <div className="border border-t-0 border-border" data-field-key="safetyPledge.items">
         {PLEDGE_ITEMS.map((item, i) => (
           <label
             key={item.key}
             className={[
               "flex cursor-pointer items-start gap-3 px-5 py-4",
-              i > 0 ? "border-t border-border/25" : "",
+              i > 0 ? "border-t border-border" : "",
             ].join(" ")}
           >
             <input
               type="checkbox"
               checked={pledge[item.key]}
               onChange={(e) => onChange({ ...pledge, [item.key]: e.target.checked })}
-              className="mt-0.5 h-4 w-4"
+              className="mt-0.5 h-4 w-4 accent-[var(--accent)]"
             />
             <span className={`text-s leading-6 ${item.emphasize ? "font-bold text-foreground" : "text-foreground"}`}>
               {t(`safetyPledge.items.${item.key}`, item.defaultLabel)}
@@ -144,15 +159,12 @@ export function StepSafetyPledge({
         href="/rules"
         target="_blank"
         rel="noopener noreferrer"
-        // 새 창으로 규약 원문을 여는 자리 — 홈 히어로의 주 버튼과 같은 규격이다
-        // (primary·lg, 화살표). 이 화면에서 밖으로 나가는 유일한 이동이라 주 버튼으로 둔다.
-        className={`${btnClass("primary", "lg")} mt-4`}
+        className="mt-4 inline-flex items-center gap-1 text-s font-bold text-foreground underline decoration-accent decoration-2 underline-offset-4"
       >
-        {t("safetyPledge.viewRulesLinkLabel", "대관 규약 보기")}
-        <ArrowRight />
+        {t("safetyPledge.viewRulesLinkLabel", "대관 규약 보기")} ↗
       </Link>
 
-      <div className="mt-6">
+      <div className="mt-6" data-field-key="safetyPledge.signature">
         <label className="block text-s font-bold text-foreground">{t("safetyPledge.signatureLabel", "서명")}</label>
         <p className="mt-1 mb-2 text-xs text-muted">
           {t("safetyPledge.signatureHint", "담당자 본인이 아래 캔버스에 직접 서명해 주세요.")}
@@ -163,19 +175,9 @@ export function StepSafetyPledge({
           watermarkText={companyName}
         />
       </div>
-
-      <div className="mt-8 rounded-surface bg-panel p-5">
-        <h3 className="type-kr-heading text-h6-m">{t("safetyPledge.documentsHeading", "제출 서류")}</h3>
-        <p className="mt-1 mb-4 break-keep text-xs leading-6 text-muted">
-          {t("safetyPledge.documentsHint", "아래 서류를 준비해 각각 업로드해 주세요.")}
-        </p>
-        <FilePicker
-          label={t("safetyPledge.safetyPlanLabel", "공연·행사 안전관리계획서")}
-          required
-          onChange={(e) => onSafetyPlanFileChange(e.target.files?.[0] ?? null)}
-          files={safetyPlanFile ? [{ name: safetyPlanFile.name, size: safetyPlanFile.size }] : []}
-        />
-      </div>
+      {/* [수정 2026-09-07] "제출 서류(안전관리계획서) 업로드는 안전관리 서약서 탭에서
+          빼고, 자료 첨부 탭으로 옮긴다" — 필수 검사도 validateAttachmentsStep으로
+          함께 옮겼다. */}
     </section>
   );
 }

@@ -18,8 +18,13 @@ export function proxy(request: NextRequest) {
   const host = request.headers.get("host") || "";
   const { pathname } = request.nextUrl;
 
+  // [신규 2026-09-09] robots.txt·sitemap.xml 은 두 호스트 모두 루트에서 그대로 응답한다 —
+  // bo 호스트에서 /admin 을 앞에 붙이면 /admin/robots.txt 가 되어 404 가 난다. 검색엔진은
+  // 루트에서만 이 두 파일을 읽으므로, bo 를 차단하려면 bo 루트에서 robots.txt 가 나와야 한다.
+  const isSeoFile = pathname === "/robots.txt" || pathname === "/sitemap.xml";
+
   if (host.startsWith(ADMIN_HOST_PREFIX)) {
-    if (!pathname.startsWith("/admin")) {
+    if (!isSeoFile && !pathname.startsWith("/admin")) {
       const url = request.nextUrl.clone();
       url.pathname = pathname === "/" ? "/admin" : `/admin${pathname}`;
       return NextResponse.rewrite(url);
@@ -29,9 +34,11 @@ export function proxy(request: NextRequest) {
 
   if (host.startsWith(APPLICANT_HOST_PREFIX)) {
     if (pathname.startsWith("/admin")) {
-      const url = request.nextUrl.clone();
-      url.pathname = "/";
-      return NextResponse.redirect(url);
+      // 운영자용 알림톡 버튼(ARENA_0021·BK-03)은 카카오 등록값이 partner 호스트 + 경로 변수라
+      // partner.../admin/... 으로 들어온다. 홈으로 돌려보내면 운영자가 심사 화면에 못 가므로
+      // 경로·쿼리를 그대로 두고 호스트만 bo 로 바꿔 넘긴다(2026-09-07).
+      const boHost = host.replace(APPLICANT_HOST_PREFIX, ADMIN_HOST_PREFIX);
+      return NextResponse.redirect(`https://${boHost}${pathname}${request.nextUrl.search}`);
     }
     return NextResponse.next();
   }

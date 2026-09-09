@@ -10,8 +10,39 @@ describe("1차 오픈 템플릿", () => {
       "MB-01", "MB-01J", "MB-02", "MB-03", "MB-04", "MB-05",
       "MB-06", "MB-09", "MB-10",
       "ARENA-0003", "ARENA-0004", "ARENA-0012", "ARENA-0010", "ARENA-0009",
+      // 0009 를 대체할 재등록분 — 버튼이 답변이 달린 그 문의로 바로 열린다 (2026-09-04)
+      "ARENA-0019",
       "ARENA-0014", "ARENA-0015", "ARENA-0016",
+      // [알림톡-2차] 운영자 대관 신청 접수 안내 (2026-09-07)
+      "BK-03",
+      // [알림톡-2차] 신청자 접수(BK-01)·심사 결과(BK-02)·보완 요청(BK-04) — RT-01/02 대체 (2026-09-08)
+      "BK-01", "BK-02", "BK-04",
     ]);
+  });
+
+  it("ARENA_0021(회원가입 승인 요청)·BK-03(대관 신청 접수)은 등록값과 같다 — 운영자 버튼은 partner 호스트 + 경로 변수", () => {
+    // 2026-09-07 코드만 0013→0021 로 바꿨다가 운영에서 3016(템플릿 불일치)이 났다. 등록값(MNG select) 기준으로 고정한다.
+    const mb05 = findTemplate("MB-05")!;
+    expect(mb05.kakaoTemplateCode).toBe("ARENA_0021");
+    expect(mb05.body).toBe(
+      "#{운영자명}님, 안녕하세요. \n새로운 회원가입 승인 요청이 접수되었습니다. \n\n아래 신청 내용을 확인한 후 승인 여부를 처리해주세요.",
+    );
+    expect(mb05.emphasis?.title).toBe("회원가입 승인 요청");
+    expect(mb05.button?.kakaoUrl).toBe("https://partner.seoularena.net/#{신청내용링크}");
+    expect(mb05.button?.kakaoUrlPc).toBe(mb05.button?.kakaoUrl);
+    expect(fillUrlVariables(mb05.button!.kakaoUrl!, { 신청내용링크: "admin/applicants/u1" })).toBe(
+      "https://partner.seoularena.net/admin/applicants/u1",
+    );
+
+    const bk03 = findTemplate("BK-03")!;
+    expect(bk03.audience).toBe("ADMIN");
+    expect(bk03.emphasis?.title).toBe("대관 신청 접수 안내");
+    expect(renderTemplate("BK-03", { 운영자명: "관리자", 회사명: "카카오", 대관신청내역링크: "admin/Q1" })).toContain(
+      "카카오에서 새로운 대관 신청이 접수되었습니다.",
+    );
+    expect(fillUrlVariables(bk03.button!.kakaoUrlPc!, { 대관신청내역링크: "admin/Q1" })).toBe(
+      "https://partner.seoularena.net/admin/Q1",
+    );
   });
 
   it("선언한 변수와 본문·버튼 링크의 자리표시자가 일치한다", () => {
@@ -117,5 +148,21 @@ describe("알림톡 어댑터", () => {
   it("템플릿 오류는 재시도 대상이 아니다", () => {
     // 같은 요청을 다시 보내도 결과가 같다. 재시도하면 실패만 쌓인다.
     expect(classifyBizTalkCode("410")).not.toBe("TRANSIENT");
+  });
+});
+
+describe("BK-01/02/04 — 운영 MNG 등록값과 글자 단위로 같다 (2026-09-08)", () => {
+  it("BK-02 본문·강조·버튼(심사결과링크 변수)", () => {
+    const t = findTemplate("BK-02")!;
+    expect(t.body).toBe("#{신청자명}님, 안녕하세요. \n대관신청서 #{신청번호}의 심사 결과를 안내드립니다. \n\n자세한 내용은 대관시스템에서 확인해 주세요.");
+    expect(t.emphasis).toEqual({ title: "대관 심사 결과 안내", subtitle: "서울아레나 대관시스템" });
+    expect(t.button?.name).toBe("심사결과 확인하기");
+    expect(t.button?.kakaoUrl).toBe("https://partner.seoularena.net/#{심사결과링크}");
+  });
+  it("BK-04 본문에 보완 필요 사항 변수, 버튼(신청서바로가기링크)", () => {
+    const t = findTemplate("BK-04")!;
+    expect(t.body).toBe("#{신청자명}님, 안녕하세요. \n제출해 주신 신청 서류 중 보완이 필요한 사항이 있어 안내드립니다. \n\n▪︎보완 필요 사항\n#{보완필요사항}");
+    expect(t.variables).toEqual(["신청자명", "보완필요사항", "신청서바로가기링크"]);
+    expect(t.button?.name).toBe("신청서 보완 바로가기");
   });
 });

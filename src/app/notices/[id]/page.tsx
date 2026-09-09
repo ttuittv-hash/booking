@@ -56,7 +56,7 @@ const PROSE = [
       · 표는 지면 위에 흰 면으로 얹고, 세로선을 긋지 않는다. 머리행만 굵은 선으로.
       · 표 바로 아래 한 줄은 각주다 — 한 단 더 작고 옅게.
   */
-  "whitespace-pre-line break-keep text-r leading-[1.8] tracking-[-0.005em] text-muted-strong",
+  "whitespace-pre-line break-keep text-[1rem] leading-[1.8] tracking-[-0.005em] text-muted-strong",
 
   "[&_p]:my-5 [&_p:first-child]:mt-0 [&_p:last-child]:mb-0",
   "[&_p:empty]:hidden",
@@ -108,8 +108,14 @@ const PROSE = [
   */
   /* [수정 2026-09-04] 원본 공고문(PDF)은 표마다 폭이 다르지 않다 — 칸 수와 무관하게
      본문 칼럼 폭을 항상 꽉 채운다. `w-auto`(2026-09-03 보정)였을 때는 2단 표와 5단
-     표의 가로폭이 서로 달라 지면이 들쭉날쭉해 보였다 — 원본처럼 꽉 채우는 것으로 되돌린다. */
-  "[&_table]:my-7 [&_table]:w-full [&_table]:border-collapse [&_table]:bg-panel [&_table]:text-s [&_table]:leading-6 [&_table]:tabular-nums",
+     표의 가로폭이 서로 달라 지면이 들쭉날쭉해 보였다 — 원본처럼 꽉 채우는 것으로 되돌린다.
+     [재수정 2026-09-04] 모바일에서 `w-full` 은 표를 좁은 화면 폭에 **강제로 맞춰 넣어서**
+     칸마다 값이 한 글자씩 줄바꿈되는 사고가 났다(가로 스크롤 컨테이너가 있어도, 표가
+     컨테이너 폭을 절대 넘지 않으니 스크롤이 걸릴 일이 없었다). `min-w-full` 로 바꾸면
+     "폭을 다 채운다"는 하한은 그대로 지키면서, 칸 내용이 그보다 넓은 폭을 요구할 때는
+     표가 자기 폭대로 커지게 둔다 — 그 초과분을 `overflow-x-auto` 컨테이너가 가로 스크롤로
+     받는다. */
+  "[&_table]:my-7 [&_table]:min-w-full [&_table]:border-collapse [&_table]:bg-panel [&_table]:text-s [&_table]:leading-6 [&_table]:tabular-nums",
   /* [신규 2026-09-03] 편집기에서 열 폭을 끌어 맞춘 표는 그 폭대로 그린다.
      폭이 지정된 칸이 하나라도 있을 때만 고정 레이아웃으로 바꾼다 — 폭을 안 건드린
      기존 표까지 균등 분할로 만들면 지금 잘 나오는 표가 틀어진다. */
@@ -117,6 +123,11 @@ const PROSE = [
   "[&_thead]:bg-foreground",
   "[&_thead_th]:bg-foreground [&_thead_th]:text-background",
   "[&_th]:px-3 [&_th]:py-2 [&_th]:text-left [&_th]:font-bold",
+  /* [수정 2026-09-05] 머리행(검정 칸)이 열이 여럿이어도 칸 사이 구분선이 하나도 없어서
+     세 칸이 한 덩어리 검정 띠처럼 보였다("표에 선이 안 보이고 까맣기만 하다") —
+     [&_td+td] 규칙은 값 칸(td)에만 걸리고 머리행은 전부 th 라 적용되지 않았다.
+     검정 바탕 위에서 보이도록 옅은 회색 대신 배경색(밝은 지면색)을 낮은 불투명도로 쓴다. */
+  "[&_th+th]:border-l [&_th+th]:border-background/25",
   // 행 이름으로 쓴 th(왼쪽 첫 칸) — 원본의 회색 항목열
   "[&_tbody_th]:w-44 [&_tbody_th]:border-r [&_tbody_th]:border-border-soft [&_tbody_th]:bg-panel-strong [&_tbody_th]:align-top [&_tbody_th]:text-foreground",
   "[&_tbody_tr]:border-b [&_tbody_tr]:border-border-soft",
@@ -136,14 +147,19 @@ const PROSE = [
 const PROSE_BLOCK = "overflow-x-auto";
 
 /**
- * 공지 본문 칼럼 — 지면 **가운데, 12칼럼 중 6칼럼(2/4)** (2026-09-03).
+ * 공지 본문 칼럼 — 지면 가운데, 넓은 화면에서 12칼럼 중 9칼럼(3/4) (2026-09-05).
  *
  * `max-w-3xl`(768px) 로 왼쪽에 붙여 두었더니 넓은 화면에서 본문이 한쪽으로 쏠리고,
  * 폭도 지면 그리드와 무관해 다른 화면과 세로선이 맞지 않았다. 공고처럼 길게 읽는 글은
  * 지면 한가운데 놓고 읽기 좋은 폭으로 좁히는 편이 낫다.
  * 제목·메타 블록에도 같은 칼럼을 써서 머리와 본문이 같은 축에 선다.
+ *
+ * [개정 2026-09-05] 6칼럼(1/2)이었을 때 본문에 넣은 큰 이미지(디자인 문서를 통째로
+ * 캡처한 히어로 이미지 등)가 너무 좁게 눌려 보였다 — 표는 넘치면 가로 스크롤로라도
+ * 볼 수 있지만 이미지는 그 안에서 줄어들 뿐이었다. 읽기 좋은 폭과 이미지가 답답하지
+ * 않은 폭 사이에서 9칼럼(3/4)으로 넓힌다.
  */
-const NOTICE_COLUMN = "mx-auto w-full lg:w-1/2";
+const NOTICE_COLUMN = "mx-auto w-full lg:w-3/4";
 
 export default async function NoticeDetailPage({
   params,

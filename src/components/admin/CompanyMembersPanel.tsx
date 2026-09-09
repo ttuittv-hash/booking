@@ -87,7 +87,7 @@ export function CompanyMembersPanel({
           return (
             <li
               key={m.id}
-              className="flex flex-wrap items-center justify-between gap-3 rounded-btn border border-border-soft px-4 py-3"
+              className="flex flex-wrap items-center justify-between gap-3 border border-border-soft px-4 py-3"
             >
               <span className="flex flex-wrap items-center gap-2 text-s">
                 <span
@@ -100,7 +100,7 @@ export function CompanyMembersPanel({
                 {/* 이름을 누르면 회원 상세로 간다 — 진위확인 배지와 신청 내역이 거기 있다. */}
                 <Link
                   href={`/admin/applicants/${m.id}`}
-                  className="font-bold underline decoration-border-soft underline-offset-4 transition-colors hover:decoration-foreground"
+                  className="font-bold underline decoration-border-soft underline-offset-4 transition-colors hover:decoration-accent"
                 >
                   {m.name}
                 </Link>
@@ -134,7 +134,9 @@ export function CompanyMembersPanel({
                     <button
                       type="button"
                       disabled={busyId === m.id}
-                      onClick={() => decide(m.id, "approve")}
+                      onClick={() =>
+                        decide(m.id, "approve", { willBecomeMaster: false, name: m.name, companyName: null })
+                      }
                       className={btnClass("primary", "sm")}
                     >
                       승인
@@ -147,7 +149,7 @@ export function CompanyMembersPanel({
                   disabled={busyId === m.id}
                   onClick={() => remove(m)}
                   data-testid={`delete-user-${m.id}`}
-                  className={btnClass("secondary", "sm")}
+                  className={btnClass("danger", "sm")}
                   title="계정을 기록째 삭제 — 같은 명의로 다시 가입할 수 있게 됩니다"
                 >
                   삭제

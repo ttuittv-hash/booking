@@ -1,7 +1,7 @@
 import type { ReactNode } from "react";
 import Link from "next/link";
-import { notFound, redirect } from "next/navigation";
-import { getCurrentUser } from "@/lib/auth";
+import {notFound} from "next/navigation";
+import { requireProAdminPage } from "@/lib/auth";
 import { findCompanyById, listCompanyMembers } from "@/lib/db";
 import { AdminNav } from "@/components/admin/AdminNav";
 import { CompanyMembersPanel } from "@/components/admin/CompanyMembersPanel";
@@ -31,9 +31,7 @@ export default async function AdminCompanyDetailPage({
 }: {
   params: Promise<{ id: string }>;
 }) {
-  const admin = await getCurrentUser();
-  if (!admin) redirect("/admin/login");
-  if (admin.role !== "ADMIN") redirect("/apply");
+  const admin = await requireProAdminPage();
 
   const { id } = await params;
   const company = await findCompanyById(id);
@@ -62,7 +60,7 @@ export default async function AdminCompanyDetailPage({
           ← 회사별 담당자
         </Link>
 
-        <header className="mt-5 border-b border-border/25 pb-6">
+        <header className="mt-5 border-b border-border/20 pb-6">
           <div className="flex flex-wrap items-start justify-between gap-4">
             <div>
               <h1 className="type-kr-heading text-h5-m sm:text-h5">{company.name}</h1>
@@ -88,7 +86,7 @@ export default async function AdminCompanyDetailPage({
 
         <h2 className="type-kr-heading mt-10 text-h6-m sm:text-h6">담당자</h2>
         <p className="mt-1 text-xs text-muted">
-          대표 담당자는 소속 담당자의 합류 신청을 승인하고 초대를 보낼 수 있습니다.
+          대표 담당자는 소속 담당자의 소속 해제와 대표 이관을 할 수 있습니다. 가입 승인은 운영자가 처리합니다.
         </p>
         <div className="mt-4">
           <CompanyMembersPanel

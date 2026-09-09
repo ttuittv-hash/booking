@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { EMAIL_RE } from "@/lib/validation";
 import { getCurrentUser, verifyPassword } from "@/lib/auth";
 import {
   attachUserToCompany,
@@ -18,7 +19,6 @@ import {
 import { SHA256_HEX_RE, sha256Hex } from "@/lib/passwordScheme";
 import { checkCompanyNumber, isBlockedCompanyStatus, isNiceConfigured } from "@/lib/nice";
 
-const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const USERNAME_RE = /^[a-z0-9][a-z0-9_]{3,19}$/;
 
 export async function PUT(request: Request) {

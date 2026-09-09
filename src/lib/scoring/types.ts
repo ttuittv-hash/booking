@@ -24,7 +24,7 @@ export interface ScoreItem {
   note?: string; // 캐비어트 · 확정 필요 사항
 }
 
-export type ScoreCategoryKey = "REVENUE" | "PUBLIC" | "MARKETING" | "SAFETY";
+type ScoreCategoryKey = "REVENUE" | "PUBLIC" | "MARKETING" | "SAFETY";
 
 export interface ScoreCategory {
   key: ScoreCategoryKey;

@@ -32,6 +32,13 @@ import { HELP } from "./adminUi";
 import { RuleBodyEditor } from "./RuleBodyEditor";
 import { SPECIAL_VENUE_ID, VENUES } from "@/lib/pricing/types";
 import {
+  PUBLIC_INTEREST_GROUPS,
+  PUBLIC_INTEREST_ITEM_HINT,
+  PUBLIC_INTEREST_ITEM_LABEL,
+  PUBLIC_INTEREST_ITEM_NUMBER,
+  type PublicInterestItem,
+} from "@/lib/pricing/types";
+import {
   defaultVenueName,
   defaultVenueRateTab,
   venueLabelKey,
@@ -803,6 +810,174 @@ export function ScreenTextForm({ content }: { content: ScreenTextContent }) {
                 }
               />
             ))}
+            {/* [신규 2026-09-06] "동시 대관"은 VENUES 배열의 실제 공간이 아니라 이용 시설
+                버튼의 네 번째 선택지(문구 키 venuePicker.simultaneousOption)라 위 목록에
+                끼지 못했다 — 여기서도 안 보여서 "공연장 선택 박스 워딩 수정 불가"로
+                이어졌다. 같은 자리에 나란히 둔다. */}
+            <Text
+              label="동시 대관 (venuePicker.simultaneousOption)"
+              value={v.wizardStrings["venuePicker.simultaneousOption"] ?? ""}
+              onChange={(name) =>
+                patch({
+                  wizardStrings: { ...v.wizardStrings, "venuePicker.simultaneousOption": name },
+                })
+              }
+            />
+          </Section>
+
+          {/* [신규 2026-09-06] "일정선택 워딩 수정 불가" — 이용 시설 버튼 아래 붙는 "일정
+              선택" 소제목과 "아레나 일정"/"중형 일정" 탭 라벨은 t() 로 이미 wizardStrings
+              를 읽고 있었지만, 실제 캘린더가 들어가는 위저드 미리보기(/admin/content/
+              wizard-preview)가 조회 전용이라 이 캘린더 구획 자체를 생략해서(주석 "일정
+              선택 달력은 문구 편집과 무관한 조회 전용 UI라 생략") 편집할 화면이 없었다.
+              캘린더를 미리보기에 새로 넣는 대신, 위 「공간 이름」과 같은 자리에 문구
+              필드만 따로 둔다. */}
+          <Section
+            title="일정 선택 화면 문구"
+            help="이용 시설 버튼 아래 붙는 일정 선택 구획의 제목과 탭 이름입니다. 비워 두면 기본 문구입니다."
+          >
+            <Text
+              label="구획 제목 (wizardShell.scheduleHeading)"
+              value={v.wizardStrings["wizardShell.scheduleHeading"] ?? ""}
+              onChange={(text) =>
+                patch({ wizardStrings: { ...v.wizardStrings, "wizardShell.scheduleHeading": text } })
+              }
+            />
+            <Text
+              label="아레나 탭 (wizardShell.arenaTabLabel)"
+              value={v.wizardStrings["wizardShell.arenaTabLabel"] ?? ""}
+              onChange={(text) =>
+                patch({ wizardStrings: { ...v.wizardStrings, "wizardShell.arenaTabLabel": text } })
+              }
+            />
+            <Text
+              label="중형공연장 탭 (wizardShell.mediumHallTabLabel)"
+              value={v.wizardStrings["wizardShell.mediumHallTabLabel"] ?? ""}
+              onChange={(text) =>
+                patch({ wizardStrings: { ...v.wizardStrings, "wizardShell.mediumHallTabLabel": text } })
+              }
+            />
+          </Section>
+
+          {/* [신규 2026-09-06] "원뎁스 메뉴와 투뎁스 메뉴명 모두를 수정할 수 있게" — 위저드
+              상단의 진행 단계 표시(StepNav.tsx)가 지금까지 고정 문구였다. 1뎁스(01 공간/일정
+              등 4개 그룹 제목)와 2뎁스(그 아래 하위 단계 알약, "03 기본 정보" 그룹에만 4개)
+              전부 여기서 편집한다. */}
+          <Section
+            title="위저드 단계 메뉴 이름"
+            help="위저드(/apply) 맨 위 진행 단계 표시입니다. 1뎁스는 4개 큰 그룹 제목, 2뎁스는 그 아래 하위 단계(현재 「03 기본 정보」에만 4개) 이름입니다. 비워 두면 기본 문구입니다."
+          >
+            <p className="text-2xs font-bold uppercase tracking-wide text-muted">1뎁스 (그룹)</p>
+            {(
+              [
+                ["stepNav.group.spaceSchedule", "01 공간/일정"],
+                ["stepNav.group.configOptions", "02 구성 · 옵션"],
+                ["stepNav.group.basicInfo", "03 기본 정보"],
+                ["stepNav.group.submit", "04 신청서 제출"],
+              ] as const
+            ).map(([key, fallback]) => (
+              <Text
+                key={key}
+                label={`${fallback} (${key})`}
+                value={v.wizardStrings[key] ?? ""}
+                onChange={(text) => patch({ wizardStrings: { ...v.wizardStrings, [key]: text } })}
+              />
+            ))}
+            <p className="mt-4 text-2xs font-bold uppercase tracking-wide text-muted">2뎁스 (하위 단계)</p>
+            {(
+              [
+                ["stepNav.step.spaceSchedule", "공간/일정"],
+                ["stepNav.step.configOptions", "구성 · 옵션"],
+                ["stepNav.step.applicantInfo", "신청자 정보 및 규모"],
+                ["stepNav.step.marketing", "홍보 및 서비스 계획"],
+                ["stepNav.step.publicInterest", "공공/공익 참여 여부"],
+                ["stepNav.step.safetyPledge", "안전관리 서약서"],
+                ["stepNav.step.estimate", "예상 대관료"],
+                ["stepNav.step.finalSubmit", "최종 제출"],
+              ] as const
+            ).map(([key, fallback]) => (
+              <Text
+                key={key}
+                label={`${fallback} (${key})`}
+                value={v.wizardStrings[key] ?? ""}
+                onChange={(text) => patch({ wizardStrings: { ...v.wizardStrings, [key]: text } })}
+              />
+            ))}
+          </Section>
+
+
+          {/* [신규 2026-09-06] "체크박스 항목들은 항목 자체를 On/off 할 수 있고, 체크박스
+              항목자체도 수정/편집 가능하게" — 03 기본정보 공공/공익 참여 화면의 12개 항목.
+              "해당 없음"·"검토 중" 두 상태 응답은 끄는 대상이 아니라 여기 없다. */}
+          <Section
+            title="공공/공익 참여 항목"
+            help="「공공/공익 참여 여부」 화면의 체크 항목입니다. 노출을 끄면 그 항목이 화면에서 사라집니다(선택 여부는 유지되지 않고 사라짐). 라벨·힌트는 비워 두면 기본 문구입니다."
+          >
+            {PUBLIC_INTEREST_GROUPS.map((group) => {
+              const groupDisabled = v.publicInterestDisabledGroups.includes(group.key);
+              return (
+              <div key={group.key} className="space-y-3">
+                {/* [신규 2026-09-06] "대분류 슬롯 온오프도" — 그룹째 끄면 소속 항목이 개별
+                    노출 설정과 무관하게 전부 숨는다. */}
+                <label className="flex items-center gap-1.5 text-2xs font-bold uppercase tracking-wide text-muted">
+                  <input
+                    type="checkbox"
+                    checked={!groupDisabled}
+                    onChange={(e) =>
+                      patch({
+                        publicInterestDisabledGroups: e.target.checked
+                          ? v.publicInterestDisabledGroups.filter((key) => key !== group.key)
+                          : [...v.publicInterestDisabledGroups, group.key],
+                      })
+                    }
+                  />
+                  {group.label} (그룹 노출)
+                </label>
+                {group.items.map((item: PublicInterestItem) => {
+                  const disabled = v.publicInterestDisabledItems.includes(item);
+                  const labelKey = `publicInterest.item.${item}.label`;
+                  const hintKey = `publicInterest.item.${item}.hint`;
+                  return (
+                    <div
+                      key={item}
+                      className="grid gap-2 border border-border-soft p-3 sm:grid-cols-[auto_1fr_1fr]"
+                    >
+                      <label className="flex items-center gap-1.5 whitespace-nowrap text-s">
+                        <input
+                          type="checkbox"
+                          checked={!disabled}
+                          onChange={(e) =>
+                            patch({
+                              publicInterestDisabledItems: e.target.checked
+                                ? v.publicInterestDisabledItems.filter((id) => id !== item)
+                                : [...v.publicInterestDisabledItems, item],
+                            })
+                          }
+                        />
+                        {PUBLIC_INTEREST_ITEM_NUMBER[item]}. 노출
+                      </label>
+                      <Text
+                        label="라벨"
+                        value={v.wizardStrings[labelKey] ?? ""}
+                        onChange={(text) =>
+                          patch({ wizardStrings: { ...v.wizardStrings, [labelKey]: text } })
+                        }
+                        placeholder={PUBLIC_INTEREST_ITEM_LABEL[item]}
+                      />
+                      <Text
+                        label="힌트"
+                        value={v.wizardStrings[hintKey] ?? ""}
+                        onChange={(text) =>
+                          patch({ wizardStrings: { ...v.wizardStrings, [hintKey]: text } })
+                        }
+                        placeholder={PUBLIC_INTEREST_ITEM_HINT[item]}
+                      />
+                    </div>
+                  );
+                })}
+              </div>
+              );
+            })}
           </Section>
 
           {/* [2026-09-03 팀 요청] 일정 달력 범주의 문구와 색 — 공고 달력과 어드민 일정 관리가 같이 쓴다.
@@ -986,8 +1161,8 @@ export function ScreenTextForm({ content }: { content: ScreenTextContent }) {
                 화면(WizardTextPreview)으로 옮겼다. 입력칸만 있으면 어느 화면인지
                 가늠이 안 되던 문제를 컴포넌트 재사용으로 없앤다. */}
             <Link
-              href="/admin/content/wizard-preview"
-              className="inline-flex items-center gap-1.5 rounded-btn border border-border bg-panel px-4 py-2.5 text-s font-bold text-foreground hover:border-foreground"
+              href="/admin/content?tab=wizardPreview"
+              className="inline-flex items-center gap-1.5 border border-border bg-panel px-4 py-2.5 text-s font-bold text-foreground hover:border-foreground"
             >
               실제 위저드 화면처럼 보면서 수정하기 →
             </Link>

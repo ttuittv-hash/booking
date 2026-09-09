@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { getCurrentUser } from "@/lib/auth";
 import { PublicHeader } from "@/components/PublicHeader";
 import { SiteFooter } from "@/components/ui/SiteFooter";
-import { ButtonLink, EYEBROW_CAPS } from "@/components/ui/kit";
+import { ButtonLink } from "@/components/ui/kit";
 import { NOTICE_LINK } from "@/components/ui/nav-items";
 
 export const metadata: Metadata = { title: "페이지를 찾을 수 없습니다 | 서울아레나" };
@@ -20,16 +20,18 @@ export default async function NotFound() {
       <main className="flex flex-1 items-center bg-background py-20 sm:py-28">
         <div className="container-site">
           <div className="mx-auto max-w-2xl text-center">
-            {/* 머리말은 사이트 공용 아이브로 — 이 화면만 다른 서체(monospace)를 쓸 이유가 없다 */}
-            <p className={EYEBROW_CAPS}>ERROR 404 · PAGE NOT FOUND</p>
-            <p className="type-display mt-4 text-d2-m leading-none text-foreground sm:text-d2">404</p>
+            <p className="font-mono text-xs tracking-[0.12em] text-muted">ERROR 404 · PAGE NOT FOUND</p>
+            <p className="type-display mt-4 text-[6rem] leading-none tracking-[-0.05em] text-foreground sm:text-[9rem]">
+              404
+            </p>
+            <div className="mx-auto mt-6 h-1 w-16 bg-accent" aria-hidden="true" />
             <h1 className="type-kr-heading mt-6 text-h3-m sm:text-h3">페이지를 찾을 수 없습니다</h1>
             <p className="mx-auto mt-4 max-w-md break-keep text-m leading-7 text-muted">
               주소가 바뀌었거나 삭제된 페이지입니다.
               <br />
               입력한 주소를 다시 확인해 주세요.
             </p>
-            <div className="mt-lead-action flex flex-wrap justify-center gap-inline">
+            <div className="mt-10 flex flex-wrap justify-center gap-3">
               <ButtonLink href="/" variant="primary">
                 홈으로
               </ButtonLink>

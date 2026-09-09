@@ -10,32 +10,44 @@ export const dynamic = "force-dynamic";
 
 // 브라우저 탭 제목이자 링크를 공유했을 때 미리보기에 뜨는 이름이다.
 // [개정 2026-09-02] "대관 견적·신청" 은 기능 설명이라 공유 링크에서 무슨 서비스인지
-// 읽히지 않았다 → "서울아레나 대관 플랫폼". 다시 **「서울아레나 파트너스」** 로 바꾼다 —
-// 대관사(파트너)에게 보내는 링크라 서비스 이름이 곧 상대를 부르는 말이 된다.
+// 읽히지 않았다 → "서울아레나 대관 플랫폼" → 「서울아레나 파트너스」.
+// [개정 2026-09-04 팀 요청] **「서울아레나 대관 시스템」** — 안내 문구·알림톡·백오피스가
+// 모두 "대관 시스템" 으로 부르고 있어 탭 제목만 다른 이름이면 같은 서비스로 읽히지 않는다.
 // 이름은 여기 다섯 자리(탭 제목 · 하위 페이지 접미사 · OG · siteName · 트위터)에만 있다.
 export const metadata: Metadata = {
   // template 은 **자식 라우트**의 title 에만 붙는다. 각 페이지는 "대관료" 처럼
   // 제 이름만 적고, 뒤에 붙는 서비스명은 여기서 한 번에 관리한다 — 페이지마다
   // 접미사를 손으로 달던 때는 이름을 바꿔도 한두 곳이 옛 이름으로 남았다.
   title: {
-    default: "서울아레나 파트너스",
-    template: "%s | 서울아레나 파트너스",
+    default: "서울아레나 대관 시스템",
+    template: "%s | 서울아레나 대관 시스템",
   },
   description:
     "한계 없는 인프라 위에서 당신만의 무대를 지휘하세요. 서울아레나 대관 절차·견적 산출·신청 플랫폼.",
   openGraph: {
-    title: "서울아레나 파트너스",
+    title: "서울아레나 대관 시스템",
     description:
       "한계 없는 인프라 위에서 당신만의 무대를 지휘하세요. 서울아레나 대관 절차·견적 산출·신청 플랫폼.",
-    siteName: "서울아레나 파트너스",
+    siteName: "서울아레나 대관 시스템",
     locale: "ko_KR",
     type: "website",
   },
   twitter: {
     card: "summary",
-    title: "서울아레나 파트너스",
+    title: "서울아레나 대관 시스템",
     description:
       "한계 없는 인프라 위에서 당신만의 무대를 지휘하세요. 서울아레나 대관 절차·견적 산출·신청 플랫폼.",
+  },
+  // [신규 2026-09-09] 구글 서치 콘솔 소유 확인 — DNS TXT 인증이 계속 실패해 HTML 메타 태그
+  // 방식으로 바꿔 달라는 요청(팀). Next 가 <meta name="google-site-verification"> 로 그린다.
+  // 인증이 끝나도 태그는 그대로 둔다 — 지우면 소유 확인이 풀린다.
+  verification: {
+    google: "ttu09R0BbgByMfIz2qufrwHrzukLLytmmixYbgquqO8",
+    // 네이버 서치어드바이저 — DNS 인증 방식이 없어 HTML 메타 태그로만 소유 확인이 된다(팀, 2026-09-09).
+    // Metadata 타입에 naver 전용 칸이 없어 other 로 그린다(<meta name="naver-site-verification">).
+    other: {
+      "naver-site-verification": "6f03d06e1512cf6bfeb3090ae3f2166a2260c08b",
+    },
   },
 };
 

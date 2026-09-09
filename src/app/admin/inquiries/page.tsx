@@ -61,7 +61,7 @@ export default async function AdminInquiriesPage({
       <AdminNav active="/admin/inquiries" user={user} />
 
       <main className="mx-auto w-full max-w-4xl flex-1 px-6 py-8 sm:py-10">
-        <header className="border-b border-border/25 pb-6">
+        <header className="border-b border-border/20 pb-6">
           <h1 className={PAGE_TITLE}>1:1 문의</h1>
           <p className={PAGE_LEAD}>
             대관사가 남긴 문의를 확인하고 답변합니다. 답변을 등록하면 신청자 화면에 바로 반영됩니다.

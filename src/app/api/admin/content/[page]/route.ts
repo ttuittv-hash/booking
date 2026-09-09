@@ -5,6 +5,7 @@ import {
   getFeaturesContent,
   getGuidePageContent,
   getRatesContent,
+  getMemberPolicy,
   getRegisterTermsContent,
   getRulesContent,
   getScreenTextContent,
@@ -13,6 +14,7 @@ import {
   saveFeaturesContent,
   saveGuidePageContent,
   saveRatesContent,
+  saveMemberPolicy,
   saveRegisterTermsContent,
   saveRulesContent,
   saveScreenTextContent,
@@ -40,6 +42,8 @@ const PAGES: Record<string, Loader> = {
   screenText: { get: getScreenTextContent, save: saveScreenTextContent },
   // 가입 화면의 동의 항목 3종. 저장할 때 본문이 바뀌면 버전이 자동으로 올라간다.
   registerTerms: { get: getRegisterTermsContent, save: saveRegisterTermsContent },
+  // 초대 가입도 운영자 승인을 받게 할지 — 회원 관리 화면의 스위치가 쓴다.
+  memberPolicy: { get: getMemberPolicy, save: saveMemberPolicy },
 };
 
 export async function GET(_request: Request, ctx: { params: Promise<{ page: string }> }) {

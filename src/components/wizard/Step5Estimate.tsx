@@ -2,36 +2,40 @@
 
 import type { ReactNode } from "react";
 import { won } from "@/lib/format";
-import { findPackage, totalRentalDays } from "@/lib/pricing/rateTableUtils";
+import { findPackage } from "@/lib/pricing/rateTableUtils";
 import type { EstimatedQuote, QuoteSelection, RateTable } from "@/lib/pricing/types";
-import { isMidHallLineItem, sectionSubtotal } from "@/lib/pricing/lineItemGroups";
+import type { ContractSection } from "@/lib/pricing/lineItemGroups";
 import { useWizardText } from "@/lib/content/wizardText";
-import { QuoteLineItemsReport } from "@/components/QuoteLineItemsReport";
+import { defaultVenueName, venueLabelKey } from "@/lib/content/venueLabels";
+import { QuoteSectionBox, quoteSectionBoxes } from "./SummaryPanel";
 
-function midHallSummaryLine(selection: QuoteSelection): string | null {
-  const dates = Object.keys(selection.midHallDays).sort();
-  if (dates.length === 0) return null;
-  const setup = dates.filter((d) => selection.midHallDays[d].role === "SETUP").length;
-  const performanceDates = dates.filter((d) => selection.midHallDays[d].role === "PERFORMANCE");
-  const shows = performanceDates.reduce((sum, d) => sum + selection.midHallDays[d].shows, 0);
-  return `${dates.length}일 (셋업 ${setup} · 공연 ${performanceDates.length} · 회차 ${shows}) · 관객 ${selection.secondaryAudience.toLocaleString()}명`;
-}
-
+/**
+ * 예상 대관료(STEP 8).
+ *
+ * [전면 개정 2026-09-08 밤] "2번째처럼 변경되었으면 좋겠어" — 오른쪽 실시간 대관신청
+ * 내역과 **같은 박스**(QuoteSectionBox)를 쓰되, 동시 대관이면 아레나·중형공연장을
+ * 나란히(두 열) 놓고 공간이 하나면 한 열만 그린다. 순서는
+ *   대관료(공간별) → 총계약 금액 → 추후 정산 예정 금액(공간별) → 추후 정산 예정 금액 합계
+ *   → 티켓 매출 RS(beforeTotals)
+ * 이다. 예전의 항목/세부내역/금액 3열 표(QuoteLineItemsReport)는 마이페이지·인쇄용에만 남는다.
+ */
 export function Step5Estimate({
   rateTable,
   quote,
   selection,
   title,
+  beforeTotals,
 }: {
   rateTable: RateTable;
   quote: EstimatedQuote;
   selection: QuoteSelection;
   title: ReactNode;
+  /** 티켓 매출 RS 박스 — 맨 아래에 놓는다(이름은 처음 자리 때 것). */
+  beforeTotals?: ReactNode;
 }) {
-  const { t } = useWizardText();
+  const { t, tStr } = useWizardText();
   const pkg = findPackage(rateTable, selection.packageId);
   const hasMidHall = Object.keys(selection.midHallDays).length > 0;
-  const isSimultaneous = selection.bookingMode === "SIMULTANEOUS";
 
   if (!pkg && !hasMidHall) {
     return (
@@ -43,93 +47,94 @@ export function Step5Estimate({
     );
   }
 
-  const arenaLine = pkg
-    ? `${pkg.audienceTier.label} · ${selection.week.year}.${selection.week.month} ${selection.week.weekOfMonth}주차 · 총 ${totalRentalDays(selection)}일 · 관객 ${selection.expectedAudience.toLocaleString()}명`
+  const { groups, boxes, vatPct } = quoteSectionBoxes(quote);
+  const multi = groups.length > 1;
+  // [수정 2026-09-08 밤] "하나여도 아레나인지 표시되면 좋겠다" — 공간이 하나일 때도 머리글을
+  // 그린다. 이름은 고른 공간(아레나·중형공연장·올인원) 기준, 백오피스 공간명 문구를 따른다.
+  const singleVenueName = selection.venueId
+    ? tStr(venueLabelKey(selection.venueId), defaultVenueName(selection.venueId))
     : null;
-  const midHallLine = midHallSummaryLine(selection);
 
-  const visibleItems = quote.lineItems.filter((item) => item.visibility !== "HIDDEN");
-  const arenaItems = visibleItems.filter((item) => !isMidHallLineItem(item));
-  const midHallItems = visibleItems.filter(isMidHallLineItem);
-  const arenaVisibleSubtotal = arenaItems.reduce((sum, item) => sum + item.amount, 0);
-  const midHallVisibleSubtotal = midHallItems.reduce((sum, item) => sum + item.amount, 0);
-  // 패키지에 묶인 항목(계약 내역)과 신청자가 고른 옵션(추가 예상 금액)은 성격이 달라
-  // 슬롯을 나눈다(2026-08-26) — "실제 계약금액은 패키지에 대한 내역이고, 옵션 선택한
-  // 것들은 추가 예상 예산".
-  const contractSubtotal = sectionSubtotal(visibleItems, "CONTRACT");
-  const additionalSubtotal = sectionSubtotal(visibleItems, "ADDITIONAL");
+  // [수정 2026-09-08 밤] "아레나 머리글이 중복으로 들어갔어 — 위에만 있고 왼쪽 정렬" — 공간명은
+  // 대관료 열 위에 한 번만, 왼쪽 정렬. 추후 정산 열에는 안 붙인다. 박스 색은 "이전처럼 노란색"
+  // — 오른쪽 실시간 패널과 같은 tone(panel)으로 되돌렸다.
+  function renderSection(section: ContractSection, withHeader: boolean) {
+    const sectionBoxes = boxes.filter((b) => b.section === section);
+    return (
+      <div className={multi ? "grid grid-cols-1 gap-6 md:grid-cols-2" : ""}>
+        {sectionBoxes.map((box) => (
+          <div key={`${box.venue ?? "single"}-${section}`}>
+            {withHeader && (multi || singleVenueName) && (
+              <div className="border-b-2 border-foreground pb-2 text-s font-bold">
+                {multi ? box.venueName : singleVenueName}
+              </div>
+            )}
+            <QuoteSectionBox
+              section={section}
+              sectionItems={box.sectionItems}
+              subtotal={box.subtotal}
+              vat={box.vat}
+              vatPct={vatPct}
+            />
+          </div>
+        ))}
+      </div>
+    );
+  }
+
+  function renderTotal(section: ContractSection, label: ReactNode) {
+    const sectionBoxes = boxes.filter((b) => b.section === section);
+    const subtotal = sectionBoxes.reduce((s, b) => s + b.subtotal, 0);
+    const vat = sectionBoxes.reduce((s, b) => s + b.vat, 0);
+    return (
+      <div className="mt-4 border border-border bg-panel/40 p-5">
+        <div className="flex justify-between text-s text-muted">
+          <span>{t("estimate.subtotalLabel", "소계 (VAT 별도)")}</span>
+          <span className="tabular-nums">{won(subtotal)}</span>
+        </div>
+        <div className="mt-1.5 flex justify-between text-s text-muted">
+          <span>
+            {t("estimate.vatLabel", "부가세")} {vatPct}%
+          </span>
+          <span className="tabular-nums">{won(vat)}</span>
+        </div>
+        <div className="mt-2.5 flex items-baseline justify-between border-t border-border pt-2.5">
+          <span className="text-s font-bold">{label}</span>
+          <span className="text-h6-m sm:text-h6 font-bold tabular-nums">{won(subtotal + vat)}</span>
+        </div>
+      </div>
+    );
+  }
+
+  // [수정 2026-09-08 밤] "계약/옵션 표 위에 레이블이 중복됨" 뒤이어 확인된 문제 — 공간이
+  // 하나면 renderTotal("CONTRACT")·renderTotal("ADDITIONAL")이 바로 위 박스(계약금액·
+  // 추후 정산(예정))와 완전히 같은 숫자를 또 보여준다(소계/부가세/최종금액이 그 공간
+  // 하나의 값 그대로라 합산의 의미가 없다). 공간이 둘(동시 대관)일 때만 이 합계가 실제
+  // 새 값(두 공간 합)이라 의미가 있다 — multi일 때만 그리고, 공간 하나면 그 자리를
+  // 오른쪽 실시간 패널과 같은 "총금액(예상)" 한 줄로 대신한다.
+  const grandTotal = boxes.reduce((sum, box) => sum + box.total, 0);
 
   return (
     <section>
       <h2 className="type-kr-heading text-h5-m sm:text-h5">{title}</h2>
-      <p className="measure mt-3 break-keep text-s text-muted">
-        {isSimultaneous ? (
-          <>
-            {t("estimate.arenaLinePrefix", "아레나")} — {arenaLine}
-            <br />
-            {t("estimate.midHallLinePrefix", "중형공연장")} — {midHallLine}
-          </>
-        ) : (
-          arenaLine ?? midHallLine
-        )}
-      </p>
 
-      {/* Bowl 사용료·유틸리티(HIDDEN)는 아래 합계 계산에는 포함되지만 신청자 화면에는
-          항목·금액을 노출하지 않는다 — 그래서 아레나/중형 소계를 각각 더해도 맨 아래
-          최종 소계(quote.subtotal, 전체 lineItems 기준)와는 차이가 날 수 있다.
-          마이페이지 신청 상세·인쇄용 신청서와 동일한 QuoteLineItemsReport를 재사용해 세
-          화면의 산출내역이 서로 다르지 않게 한다. */}
-      <QuoteLineItemsReport
-        selection={selection}
-        lineItems={quote.lineItems}
-        expectedRevenue={selection.expectedRevenue ?? 0}
-      />
+      {/* 1. 대관료 → 총계약 금액(공간 둘 이상일 때만) */}
+      <div className="mt-6">{renderSection("CONTRACT", true)}</div>
+      {multi && renderTotal("CONTRACT", t("estimate.contractTotalLabel", "총계약 금액"))}
 
-      <div className="mt-6 rounded-surface bg-panel p-5">
-        {isSimultaneous && (
-          <div className="mb-3 flex items-center justify-between border-b border-border/25 pb-3 text-s">
-            <span className="text-muted">{t("estimate.arenaPlusMidHallSubtotalLabel", "아레나 소계 + 중형공연장 소계")}</span>
-            <span className="tabular-nums text-foreground">
-              {won(arenaVisibleSubtotal)} + {won(midHallVisibleSubtotal)}
-            </span>
-          </div>
-        )}
-        <div className="flex justify-between text-s text-muted">
-          <span>{t("estimate.contractSectionLabel", "실제 계약금액")}</span>
-          <span className="tabular-nums">{won(contractSubtotal)}</span>
-        </div>
-        <div className="mt-1.5 flex justify-between text-s text-muted">
-          <span>{t("estimate.additionalSectionLabel", "추가 예상 금액")}</span>
-          <span className="tabular-nums">{won(additionalSubtotal)}</span>
-        </div>
-        <div className="mt-2.5 flex justify-between border-t border-border/25 pt-2.5 text-s text-muted">
-          <span>{t("estimate.subtotalLabel", "소계 (VAT 별도)")}</span>
-          <span className="tabular-nums">{won(quote.subtotal)}</span>
-        </div>
-        <div className="mt-1.5 flex justify-between text-s text-muted">
-          <span>{t("estimate.vatLabel", "부가세 10%")}</span>
-          <span className="tabular-nums">{won(quote.vat)}</span>
-        </div>
-        <div className="mt-2.5 flex items-baseline justify-between border-t border-border/25 pt-2.5">
-          <span className="text-s font-bold">{t("estimate.totalLabel", "합계")}</span>
-          <span className="text-h6-m sm:text-h6 font-bold tabular-nums">{won(quote.total)}</span>
-        </div>
-      </div>
+      {/* 2. 추후 정산 예정 금액 → 합계(공간 둘 이상일 때만) */}
+      <div className="mt-8">{renderSection("ADDITIONAL", false)}</div>
+      {multi && renderTotal("ADDITIONAL", t("estimate.settlementTotalLabel", "추후 정산 예정 금액 합계"))}
 
-      {/* 고지문은 색면 박스가 아니라 작은 글씨다 — 박스를 두르면 금액표와 무게가 비슷해져
-          어느 쪽이 결과인지 흐려진다. 2026-09-02 부터 "예상 금액" 고지는 여기 한 곳이다
-          (사이드바 요약에 있던 같은 문구는 뺐다 — 값이 움직일 때마다 보이는 자리에 경고를
-          붙여 두면 읽히지 않는 문구가 된다) */}
-      <p className="mt-6 text-xs leading-5 text-muted">
-        {quote.meteredNotice} {t("estimate.estimateNoticePrefix", "본 금액은")}{" "}
-        <b className="font-bold text-foreground">{t("estimate.estimateNoticeEmphasis", "예상")}</b>
-        {t("estimate.estimateNoticeSuffix", "이며 확정 금액이 아닙니다.")}
-        {isSimultaneous &&
-          ` ${t(
-            "estimate.simultaneousSumNote",
-            "위 금액은 아레나 + 중형공연장 합산입니다(할인 없이 두 소계를 단순 합산).",
-          )}`}
-      </p>
+      {!multi && (
+        <div className="mt-6 flex flex-wrap items-baseline justify-between gap-3 bg-foreground px-4 py-3.5 text-background">
+          <span className="text-s font-bold">{t("estimate.grandTotalLabel", "총금액(예상)")}</span>
+          <span className="type-display text-h5-m tabular-nums sm:text-h5">{won(grandTotal)}</span>
+        </div>
+      )}
+
+      {/* 3. 티켓 매출 RS */}
+      {beforeTotals && <div className="mt-8">{beforeTotals}</div>}
 
       {quote.blockingIssues.length > 0 && (
         <div className="mt-4 text-xs leading-5 text-muted">

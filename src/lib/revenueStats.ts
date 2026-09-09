@@ -17,7 +17,7 @@ import { quoteMatchesVenue, type ReportVenueTab } from "./reportStats";
   있으므로 확정 매출에 넣지 않고 '정산 예정'으로 따로 보여 준다.
 */
 
-export interface RevenueMonthlyBucket {
+interface RevenueMonthlyBucket {
   key: string; // "2026-08"
   label: string; // "2026.08"
   /** 그 달에 접수된 신청서 건수·견적 금액 */

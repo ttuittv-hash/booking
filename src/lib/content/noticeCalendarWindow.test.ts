@@ -1,6 +1,8 @@
 import { describe, expect, it } from "vitest";
 import {
   DEFAULT_NOTICE_CALENDAR_WINDOW,
+  canStepMonth,
+  clampMonthKey,
   formatMonth,
   initialCalendarMonth,
   isMonthInRange,
@@ -9,6 +11,7 @@ import {
   normalizeDay,
   nextMonthKey,
   normalizeMonth,
+  prevMonthKey,
   toMonthKey,
   type NoticeCalendarWindow,
 } from "./noticeCalendarWindow";
@@ -129,5 +132,51 @@ describe("endDay — 마지막 달 격자에 이어 붙일 다음 달 마지막 
     expect(normalizeDay("2027-1-12")).toBeNull();
     expect(nextMonthKey("2026-12")).toBe("2027-01");
     expect(nextMonthKey("2026-07")).toBe("2026-08");
+  });
+});
+
+// [신규 2026-09-06] 대관 위저드 달력(Step1Calendar·MidHallCalendar)도 이 범위를 쓴다.
+describe("prevMonthKey", () => {
+  it("바로 이전 달 — 연도 경계도 넘긴다", () => {
+    expect(prevMonthKey("2027-02")).toBe("2027-01");
+    expect(prevMonthKey("2027-01")).toBe("2026-12");
+  });
+});
+
+describe("canStepMonth", () => {
+  const bounds = { start: "2027-07", end: "2027-12" };
+
+  it("범위 안에서는 양쪽으로 넘어갈 수 있다", () => {
+    expect(canStepMonth("2027-09", 1, bounds)).toBe(true);
+    expect(canStepMonth("2027-09", -1, bounds)).toBe(true);
+  });
+
+  it("범위 경계에서는 그 바깥쪽으로만 막는다", () => {
+    expect(canStepMonth("2027-12", 1, bounds)).toBe(false);
+    expect(canStepMonth("2027-12", -1, bounds)).toBe(true);
+    expect(canStepMonth("2027-07", -1, bounds)).toBe(false);
+    expect(canStepMonth("2027-07", 1, bounds)).toBe(true);
+  });
+
+  it("제한이 없으면(start/end 둘 다 null) 항상 넘어갈 수 있다", () => {
+    expect(canStepMonth("2020-01", 1, { start: null, end: null })).toBe(true);
+    expect(canStepMonth("2020-01", -1, { start: null, end: null })).toBe(true);
+  });
+});
+
+describe("clampMonthKey", () => {
+  const bounds = { start: "2027-07", end: "2027-12" };
+
+  it("범위 안이면 그대로 둔다", () => {
+    expect(clampMonthKey("2027-09", bounds)).toBe("2027-09");
+  });
+
+  it("범위 밖이면 가장 가까운 경계로 당긴다", () => {
+    expect(clampMonthKey("2026-01", bounds)).toBe("2027-07");
+    expect(clampMonthKey("2028-01", bounds)).toBe("2027-12");
+  });
+
+  it("제한이 없으면 그대로 둔다", () => {
+    expect(clampMonthKey("2020-01", { start: null, end: null })).toBe("2020-01");
   });
 });

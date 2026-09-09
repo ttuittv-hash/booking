@@ -64,7 +64,21 @@ export function clampAddonQuantity(
 }
 
 // 패키지 선택에 따라 부대시설이 선택 가능한지 판단 (명세서 3.4)
+// [신규 2026-09-08] 중형공연장 선택 옵션 — venueId "medium-hall" 로 표시된 항목만. 신청자
+// 화면(StepConfigOptions)과 중형 견적(calculateMidHallLineItems)이 같은 목록을 쓴다.
+export function midHallSelectableAddons(rateTable: RateTable): AddonItem[] {
+  return rateTable.addons.filter(
+    (a) =>
+      a.venueId === "medium-hall" &&
+      a.visibility !== "HIDDEN" &&
+      a.visibility !== "ITEM_ONLY" &&
+      a.billingPhase !== "SETTLEMENT",
+  );
+}
+
 export function isAddonAvailable(addonItem: AddonItem, pkg: RentalPackage | undefined): boolean {
+  // 중형공연장 전용 옵션은 아레나 패키지 화면·계산에 끼지 않는다(2026-09-08).
+  if (addonItem.venueId === "medium-hall") return false;
   if (!pkg) return false;
   const { mode, packages } = addonItem.availability;
   if (mode === "ALWAYS") return true;

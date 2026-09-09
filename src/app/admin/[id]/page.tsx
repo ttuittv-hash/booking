@@ -1,8 +1,9 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { getCurrentUser, isProAdminOrAbove } from "@/lib/auth";
+import { requireProAdminPage, isProAdminOrAbove } from "@/lib/auth";
 import {
   findApprovedWeekConflict,
+  findCompanyById,
   findUserById,
   getContractSignatureByQuoteId,
   getDepositByQuoteId,
@@ -88,7 +89,7 @@ function formatDateShort(iso: string): string {
   return `${m}/${d}(${WEEKDAY_SHORT_KO[new Date(iso).getDay()]})`;
 }
 
-const DAY_TAG_LABEL: Record<DayTag, string> = { PREP: "셋업", PERFORMANCE: "공연", LOAD_OUT: "철수" };
+const DAY_TAG_LABEL: Record<DayTag, string> = { PREP: "셋업", PERFORMANCE: "공연", LOAD_OUT: "철수", REST: "휴무일" };
 const MID_HALL_ROLE_LABEL: Record<MidHallDayRole, string> = { SETUP: "셋업", PERFORMANCE: "공연", LOAD_OUT: "철수" };
 
 // 신청 상세에서 "언제 어떤 용도로 예약했는지" 날짜별로 풀어서 보여준다("공연정보 슬롯에서
@@ -105,7 +106,7 @@ function groupArenaDatesByTag(
     const tag = effectiveDayTag(date, selection.dayTags, defaults);
     (buckets.get(tag) ?? buckets.set(tag, []).get(tag)!).push(date);
   }
-  return (["PREP", "PERFORMANCE", "LOAD_OUT"] as DayTag[])
+  return (["PREP", "PERFORMANCE", "LOAD_OUT", "REST"] as DayTag[])
     .filter((tag) => buckets.has(tag))
     .map((tag) => ({ tag, dates: buckets.get(tag)! }));
 }
@@ -147,9 +148,7 @@ export default async function AdminQuoteDetailPage({
 }: {
   params: Promise<{ id: string }>;
 }) {
-  const user = await getCurrentUser();
-  if (!user) redirect("/admin/login");
-  if (user.role !== "ADMIN") redirect("/apply");
+  const user = await requireProAdminPage();
 
   const { id } = await params;
   const quote = await getQuoteById(id);
@@ -204,6 +203,18 @@ export default async function AdminQuoteDetailPage({
   // 마케팅 실행 계획서는 분류가 붙어 별도 조회로 읽어 왔다. 화면에서는 한 목록으로 본다 —
   // 신청서에 딸린 서류라는 점이 같고, 분류별로 상자를 나누면 찾기만 번거로워진다.
   const attachments = [...generalAttachments, ...marketingPlanAttachments];
+  // [신규 2026-09-08] 위저드에서 대관사명·사업자등록번호를 고칠 수 있게 되면서(신청서에만
+  // 저장, 회원정보는 그대로) 가입 때 진위확인한 계정 회사와 다르면 심사자가 바로 알아야 한다.
+  const applicantCompany = applicant?.companyId ? await findCompanyById(applicant.companyId) : undefined;
+  const accountCompanyName = applicantCompany?.name ?? applicant?.companyName ?? null;
+  const accountBrn = applicantCompany?.businessRegistrationNumber ?? null;
+  const quoteCompanyName = quote.selection.performanceInfo.applicantCompanyName?.trim() || null;
+  const quoteBrn = quote.selection.performanceInfo.applicantBusinessRegistrationNumber?.trim() || null;
+  const digits = (v: string) => v.replace(/\D/g, "");
+  const companyMismatch =
+    (!!quoteCompanyName && !!accountCompanyName && quoteCompanyName !== accountCompanyName) ||
+    (!!quoteBrn && !!accountBrn && digits(quoteBrn) !== digits(accountBrn));
+
   // 경합 신청자는 행마다 findUserById 하지 않고 한 번에 읽는다(N+1).
   const competingApplicants = competingQuotes.length
     ? await listUsersByIds(competingQuotes.map(({ quote: q }) => q.applicantId))
@@ -229,7 +240,7 @@ export default async function AdminQuoteDetailPage({
 
   return (
     <div className="flex flex-1 flex-col">
-      <header className="sticky top-0 z-20 h-14 border-b border-border/25 bg-background/95 backdrop-blur-md sm:h-16">
+      <header className="sticky top-0 z-20 h-14 border-b border-border/20 bg-background/95 backdrop-blur-md sm:h-16">
         <div className="mx-auto flex h-full max-w-4xl items-center gap-x-5 px-4 sm:px-6">
           <Link
             href="/admin"
@@ -248,7 +259,7 @@ export default async function AdminQuoteDetailPage({
       </header>
 
       <main className="mx-auto w-full max-w-4xl flex-1 px-6 py-8 sm:py-10">
-        <header className="border-b border-border/25 pb-6">
+        <header className="border-b border-border/20 pb-6">
           <div className="flex flex-wrap items-baseline justify-between gap-x-6 gap-y-3">
             <h1 className="type-display text-h4-m tabular-nums sm:text-h4">{quote.id}</h1>
             <div className="flex flex-wrap items-center gap-x-5 gap-y-2">
@@ -286,6 +297,14 @@ export default async function AdminQuoteDetailPage({
             {" "}({applicant?.email ?? NONE}) · 회사{" "}
             <span className="font-bold text-foreground">{applicant?.companyName ?? NONE}</span>
           </p>
+          {companyMismatch && (
+            <p className="mt-2 inline-flex flex-wrap items-center gap-x-2 gap-y-1 border border-danger bg-danger-soft px-3 py-1.5 text-xs text-danger">
+              <span className="font-bold">신청서의 대관사 정보가 계정 회사와 다릅니다</span>
+              <span>
+                신청서 {quoteCompanyName ?? NONE} · {quoteBrn ?? NONE} / 계정 {accountCompanyName ?? NONE} · {accountBrn ?? NONE}
+              </span>
+            </p>
+          )}
 
           {/* [신규 2026-09-02] 심사하려면 신청서 전체를 한눈에 봐야 한다. 이 화면은
               심사·계약·정산 패널이 함께 있어 신청 내용이 그 사이에 흩어져 있고, 책임자·
@@ -473,7 +492,7 @@ export default async function AdminQuoteDetailPage({
                   </li>
                 ))}
               </ul>
-              <div className="mt-4 flex flex-wrap items-baseline justify-between gap-3 border-t border-border/25 pt-4">
+              <div className="mt-4 flex flex-wrap items-baseline justify-between gap-3 border-t border-border/15 pt-4">
                 <span className="text-xs tabular-nums text-muted">
                   확정일시 {new Date(quote.contract.decidedAt).toLocaleString("ko-KR")}
                 </span>
@@ -590,7 +609,7 @@ export default async function AdminQuoteDetailPage({
         </div>
 
         {auditLog.length > 0 && (
-          <section className="mt-10 border-t border-border/25 pt-6">
+          <section className="mt-10 border-t border-border/20 pt-6">
             <h2 className={`${SUB_TITLE} text-muted`}>감사 로그</h2>
             <ul className="mt-3 border-t border-border-soft">
               {auditLog.map((entry) => (

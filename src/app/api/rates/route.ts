@@ -56,7 +56,7 @@ export async function PUT(request: Request) {
     ? (body.packages as { id: number; baseFeePerWeek: number }[])
     : [];
   const addonOverrides = Array.isArray(body?.addons)
-    ? (body.addons as { id: string; unitPrice: number }[])
+    ? (body.addons as { id: string; name?: string; unitPrice: number }[])
     : [];
   // 화면에서 지운 항목은 여기(removedAddonIds)로만 실제 삭제된다 — 그 전에는
   // 요청에 없는 id를 current에서 그대로 되살려서 삭제가 저장되지 않았다
@@ -126,9 +126,11 @@ export async function PUT(request: Request) {
     .filter((addon) => !removedAddonIds.has(addon.id))
     .map((addon) => {
       const override = addonOverrides.find((a) => a.id === addon.id);
-      return override && Number.isFinite(override.unitPrice) && override.unitPrice >= 0
-        ? { ...addon, unitPrice: override.unitPrice }
-        : addon;
+      if (!override) return addon;
+      const name = typeof override.name === "string" && override.name.trim() ? override.name.trim() : addon.name;
+      const unitPrice =
+        Number.isFinite(override.unitPrice) && override.unitPrice >= 0 ? override.unitPrice : addon.unitPrice;
+      return { ...addon, name, unitPrice };
     });
   const newAddonsRaw = Array.isArray(body?.newAddons) ? (body.newAddons as unknown[]) : [];
   const newAddons = newAddonsRaw

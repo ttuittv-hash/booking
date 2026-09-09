@@ -145,7 +145,7 @@ export function RatesForm({
         body: JSON.stringify({
           extraWeekRatio,
           dayExclusionDiscountRatio,
-          addons: addons.map((a) => ({ id: a.id, unitPrice: a.unitPrice })),
+          addons: addons.map((a) => ({ id: a.id, name: a.name, unitPrice: a.unitPrice })),
           newAddons,
           removedAddonIds,
           midHall: { ...midHall, breakdown },
@@ -167,7 +167,7 @@ export function RatesForm({
   return (
     <div className="mt-8 space-y-8">
       {/* 1뎁스: 공간 — 아레나와 중형공연장은 요율 체계가 달라 화면을 나눈다(그쪽 개편). */}
-      <div className="flex gap-1 border-b border-border/25">
+      <div className="flex gap-1 border-b border-border/20">
         {(["arena", "medium-hall"] as const).map((v) => (
           <button key={v} type="button" onClick={() => setVenueUrl(VENUE_TO_URL[v])} className={tabCls(venueTab === v)}>
             {VENUES.find((venue) => venue.id === v)?.name ?? v}
@@ -184,7 +184,7 @@ export function RatesForm({
           패키지에 공통 적용되는 비율과 부대시설 단가만 관리합니다.
         </p>
 
-        <div className="mt-5 grid grid-cols-1 items-center gap-2 border-t border-border/25 pt-5 sm:grid-cols-[1fr_200px] sm:gap-3">
+        <div className="mt-5 grid grid-cols-1 items-center gap-2 border-t border-border/15 pt-5 sm:grid-cols-[1fr_200px] sm:gap-3">
           <div>
             <div className="text-s font-bold">추가 일수 단가 비율</div>
             <div className={HELP}>
@@ -201,7 +201,7 @@ export function RatesForm({
           />
         </div>
 
-        <div className="mt-5 grid grid-cols-1 items-center gap-2 border-t border-border/25 pt-5 sm:grid-cols-[1fr_200px] sm:gap-3">
+        <div className="mt-5 grid grid-cols-1 items-center gap-2 border-t border-border/15 pt-5 sm:grid-cols-[1fr_200px] sm:gap-3">
           <div>
             <div className="text-s font-bold">제외 요일 할인 비율</div>
             <div className={HELP}>
@@ -345,8 +345,18 @@ export function RatesForm({
                       key={addon.id}
                       className="grid grid-cols-1 items-center gap-2 py-2 sm:grid-cols-[1fr_160px_auto] sm:gap-3"
                     >
-                      <span className="text-s">
-                        {addon.name} <span className="text-xs text-muted">({addon.unitLabel})</span>
+                      <span className="flex items-center gap-1.5">
+                        <input
+                          type="text"
+                          value={addon.name}
+                          onChange={(e) =>
+                            setAddons((prev) =>
+                              prev.map((a, idx) => (idx === globalIndex ? { ...a, name: e.target.value } : a)),
+                            )
+                          }
+                          className={`${FIELD} flex-1`}
+                        />
+                        <span className="shrink-0 text-xs text-muted">({addon.unitLabel})</span>
                       </span>
                       {addon.editable ? (
                         <MoneyInput
@@ -421,7 +431,7 @@ export function RatesForm({
       </>
       )}
 
-      <div className="flex flex-wrap items-center gap-4 border-t border-border/25 pt-6">
+      <div className="flex flex-wrap items-center gap-4 border-t border-border/20 pt-6">
         <button
           type="button"
           disabled={saving}

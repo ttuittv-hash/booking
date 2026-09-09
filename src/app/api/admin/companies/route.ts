@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import crypto from "node:crypto";
-import { getCurrentUser } from "@/lib/auth";
+import { getCurrentUser, isProAdminOrAbove } from "@/lib/auth";
 import { createNotification, findCompanyById, findUserById, setCompanyMasterByAdmin } from "@/lib/db";
 import { dispatchMessageInBackground } from "@/lib/message/dispatch";
 import { revalidateMemberViews } from "@/lib/revalidateAdmin";
@@ -8,7 +8,7 @@ import { revalidateMemberViews } from "@/lib/revalidateAdmin";
 // 운영자의 대표 담당자 변경 (기획서 A10 — 마스터 부재·퇴사 시 운영자가 안전망).
 export async function POST(request: Request) {
   const user = await getCurrentUser();
-  if (!user || user.role !== "ADMIN") {
+  if (!user || !isProAdminOrAbove(user)) {
     return NextResponse.json({ error: "운영자 로그인이 필요합니다." }, { status: 401 });
   }
 
@@ -57,7 +57,7 @@ export async function POST(request: Request) {
     recipientId: targetId,
     quoteId: null,
     link: "/mypage/members",
-    message: `${company.name}의 대표 담당자로 지정되었습니다.\n담당자 초대와 합류 승인을 하실 수 있습니다.`,
+    message: `${company.name}의 대표 담당자로 지정되었습니다.\n소속 담당자 관리(소속 해제·대표 이관)를 하실 수 있습니다.`,
     createdAt: now,
   });
   if (previousMasterId && previousMasterId !== targetId) {

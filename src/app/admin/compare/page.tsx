@@ -1,6 +1,5 @@
 import Link from "next/link";
-import { redirect } from "next/navigation";
-import { getCurrentUser } from "@/lib/auth";
+import { requireProAdminPage } from "@/lib/auth";
 import { getQuoteById, listUsersByIds } from "@/lib/db";
 import { won } from "@/lib/format";
 import { totalRentalDays } from "@/lib/pricing/rateTableUtils";
@@ -33,9 +32,7 @@ export default async function AdminComparePage({
 }: {
   searchParams: Promise<{ ids?: string }>;
 }) {
-  const user = await getCurrentUser();
-  if (!user) redirect("/admin/login");
-  if (user.role !== "ADMIN") redirect("/apply");
+  const user = await requireProAdminPage();
 
   const { ids } = await searchParams;
   const quoteIds = (ids ?? "").split(",").map((s) => s.trim()).filter(Boolean);
@@ -63,7 +60,7 @@ export default async function AdminComparePage({
           ← 신청 현황
         </Link>
 
-        <header className="mt-5 border-b border-border/25 pb-6">
+        <header className="mt-5 border-b border-border/20 pb-6">
           <h1 className={PAGE_TITLE}>신청서 비교</h1>
           <p className={PAGE_LEAD}>같은 주차를 두고 경합 중인 신청서를 나란히 비교할 때 사용하세요.</p>
         </header>

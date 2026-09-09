@@ -7,7 +7,6 @@ import type { BookItNoticeTexts } from "@/lib/content/pageContent";
 import { accountStateOf, canAccess } from "@/lib/accessPolicy";
 import { LogoutButton } from "@/components/LogoutButton";
 import { NotificationBell } from "@/components/NotificationBell";
-import { btnClass } from "@/components/ui/kit";
 import {
   ACCOUNT_HREF,
   NAV_ACTION,
@@ -185,12 +184,13 @@ export function PublicHeaderNav({
   // 로그인한 사람에게만 감춘다. 그 사람에게 "지금은 못 여는 메뉴"는 안내가 아니라 벽이다.
   const allowed = (href: string) => accountState === "GUEST" || canAccess(href, accountState);
   /*
-    [수정 2026-09-03] 운영자에게는 「오픈 예정」을 걸지 않는다.
+    [수정 2026-09-04] 운영자도 같은 「오픈 예정」 안내를 본다.
 
-    이 안내는 아직 신청을 받지 않는다는 대외 안내지, 운영자를 막는 장치가 아니다.
-    운영자는 오픈 전에도 신청 화면을 열어 흐름을 확인해야 한다.
+    9/3 에는 운영자를 예외로 뒀는데, 그러면 운영자 화면에서만 BOOK IT 이 살아 있는 링크로
+    보여 "1차 오픈인데 신청서가 열린다"로 읽혔다. 상단바는 모두에게 같은 상태를 보여주고,
+    흐름 점검이 필요한 운영자는 이 안내 안의 '운영자 확인용' 링크로 들어간다.
   */
-  const bookItComingSoon = !NAV_ACTION_HIDDEN && !!bookItNotice?.enabled && currentUser?.role !== "ADMIN";
+  const bookItComingSoon = !NAV_ACTION_HIDDEN && !!bookItNotice?.enabled;
   const visibleCategories = NAV_CATEGORIES.map((cat) => ({
     ...cat,
     pages: cat.pages.filter((p) => allowed(p.href)),
@@ -268,7 +268,7 @@ export function PublicHeaderNav({
   }
 
   return (
-    <header className="header-scale-lock sticky top-0 z-40" onMouseLeave={closeSoon}>
+    <header className="sticky top-0 z-40" onMouseLeave={closeSoon}>
       {/* 배경 — Figma `Header_rev` (지면색 80% → 아랫변 0, 블러 없음). `header-veil` 참조 */}
       <div aria-hidden className="header-veil" />
       {/*
@@ -379,6 +379,15 @@ export function PublicHeaderNav({
                     <p className="mt-2 whitespace-pre-line break-keep text-xs leading-5 text-muted">
                       {bookItNotice.body}
                     </p>
+                    {currentUser?.role === "ADMIN" && (
+                      /* 운영자는 오픈 전에도 흐름을 확인해야 한다 — 안내는 같게 두고 통로만 남긴다. */
+                      <Link
+                        href={`${NAV_ACTION.href}?operator=1`}
+                        className="mt-3 block text-xs underline underline-offset-4"
+                      >
+                        운영자 확인용으로 열기 →
+                      </Link>
+                    )}
                   </div>
                 )}
               </li>
@@ -528,10 +537,9 @@ export function PublicHeaderNav({
                 </li>
               ))}
               {bookItComingSoon && bookItNotice ? (
-                /* 좁은 화면에는 호버가 없다 — 안내를 접었다 펴지 않고 그대로 붙여 둔다.
-                   앞의 묶음들과 같은 왼쪽 선에 맞춘다. 혼자 가운데에 있으면 목록에서 떨어져 보인다. */
-                <li>
-                  <p className="type-display flex h-12 items-center text-s text-muted">
+                /* 좁은 화면에는 호버가 없다 — 안내를 접었다 펴지 않고 그대로 붙여 둔다. */
+                <li className="text-center">
+                  <p className="flex h-12 items-center justify-center type-display text-s text-muted">
                     {NAV_ACTION.label}
                   </p>
                   <p className="text-xs font-bold">{bookItNotice.title}</p>
@@ -541,15 +549,11 @@ export function PublicHeaderNav({
                 </li>
               ) : !NAV_ACTION_HIDDEN && allowed(NAV_ACTION.href) ? (
                 <li>
-                  {/*
-                    상단바에서는 옆 메뉴와 같은 텍스트지만, 펼친 메뉴 안에서는 **검정 버튼**이다.
-                    여기서는 카테고리 제목들이 줄줄이 서 있어 텍스트로 두면 그중 하나로 묻힌다.
-                    앞의 묶음들과 같은 왼쪽 선에 맞춘다 — 혼자 가운데면 목록에서 떨어져 보인다.
-                  */}
+                  {/* [수정 2026-09-02] 상단바와 같은 결로 — 검정 채움을 빼고 텍스트로 둔다. */}
                   <Link
                     href={NAV_ACTION.href}
                     onClick={() => setMobileOpen(false)}
-                    className={`${btnClass("primary", "lg")} type-display`}
+                    className="flex h-12 items-center justify-center type-display text-s text-foreground"
                   >
                     {NAV_ACTION.label}
                   </Link>

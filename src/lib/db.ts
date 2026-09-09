@@ -3,8 +3,6 @@ import { Pool, type PoolClient } from "pg";
 import { AsyncLocalStorage } from "node:async_hooks";
 import { hash as bcryptHash } from "@node-rs/bcrypt";
 import crypto from "node:crypto";
-import fs from "node:fs/promises";
-import path from "node:path";
 import { buildSeedRateTable, SEED_MID_HALL_RATE_CONFIG, SEED_PACKAGES } from "./pricing/seed";
 import { SEED_PAGES } from "./pricing/pageSeed";
 import {
@@ -13,15 +11,18 @@ import {
   DEFAULT_TERMS_CONTENT,
 } from "./content/seed";
 import { SEED_FAQS } from "./content/faqSeed";
-import { SEED_NOTICE } from "./content/noticeSeed";
 import {
   DEFAULT_REGISTER_TERMS,
   normalizeRegisterTerms,
   type RegisterTermsContent,
 } from "./terms";
+import {
+  DEFAULT_MEMBER_POLICY,
+  normalizeMemberPolicy,
+  type MemberPolicy,
+} from "./content/memberPolicy";
 import { FEATURE_SPEC_SEED } from "./featureSpecSeed";
 import { FEATURE_SPEC_SHEET_KEYS } from "./pricing/types";
-import { DATA_DIR } from "./dataDir";
 import { sha256Hex } from "./passwordScheme";
 import { approvedQuoteBlocks } from "./schedule/approvedBlocks";
 import { INITIAL_PERFORMANCE_INFO } from "./pricing/performanceInfoDefaults";
@@ -928,11 +929,33 @@ async function seedData(pool: Pool) {
     );
   }
 
+  /*
+    초기 시드는 운영에서 넣지 않는다 (2026-09-07 결정).
+
+    요금표·안내 페이지·FAQ 는 운영진이 백오피스에서 관리하는 실데이터다. "테이블이 비면
+    코드 값을 넣는다" 는 편의 장치는 첫 설치에는 좋지만, 운영 중에 테이블이 비는 것은
+    사고이고 — 그때 **옛 금액이 조용히 되살아나는 것이 사고 자체보다 위험하다.**
+    실제로 공지 시드가 그렇게 동작해 지운 공지가 배포마다 부활했다(9/7 제거).
+
+    운영에서 요금표가 비면 getCurrentRateTable() 이 예외를 던진다 — 조용히 틀린 금액으로
+    견적을 내는 것보다 눈에 띄게 실패하는 편이 낫다.
+
+    새 환경(스테이징·재구축)에서 초기 데이터가 필요하면 SEED_INITIAL_CONTENT=true 로 켠다.
+  */
+  const allowInitialSeed =
+    process.env.NODE_ENV !== "production" || process.env.SEED_INITIAL_CONTENT === "true";
+
   const rateTableCount = (await pool.query("SELECT COUNT(*)::int as n FROM rate_tables")).rows[0] as {
     n: number;
   };
   if (rateTableCount.n === 0) {
-    await insertRateTable(pool, buildSeedRateTable());
+    if (allowInitialSeed) {
+      await insertRateTable(pool, buildSeedRateTable());
+    } else {
+      console.error(
+        "[seed] 요금표가 비어 있는데 운영이라 시드를 넣지 않았다 — 백업에서 복구하거나 SEED_INITIAL_CONTENT=true 로 다시 기동할 것",
+      );
+    }
   }
 
   // 패키지 이름을 Rate A/B/C/D로 바꿨다(2026-08-22). 이미 시딩된 DB는 packages_json에
@@ -1067,9 +1090,9 @@ async function seedData(pool: Pool) {
   }
   }
 
-  // 서울아레나 소개 / 대관 절차 하위 페이지 — 최초 1회만 기본 콘텐츠로 시드한다.
+  // 서울아레나 소개 / 대관 절차 하위 페이지 — 최초 1회만 기본 콘텐츠로 시드한다(운영 제외).
   const pageCount = (await pool.query("SELECT COUNT(*)::int as n FROM pages")).rows[0] as { n: number };
-  if (pageCount.n === 0) {
+  if (pageCount.n === 0 && allowInitialSeed) {
     const now = new Date().toISOString();
     for (let i = 0; i < SEED_PAGES.length; i++) {
       const p = SEED_PAGES[i];
@@ -1081,26 +1104,26 @@ async function seedData(pool: Pool) {
     }
   }
 
-  // FAQ — 원본 시트(`26년_대관사_FAQ…xlsx`)가 정본이고, 여기서 DB 로 옮긴다.
-  //
-  //   비어 있으면            → 넣는다
-  //   시드가 바뀌었는데       → 운영자가 **한 건도 손대지 않았을 때만** 통째로 갈아 끼운다
-  //   한 건이라도 편집됐으면   → 건드리지 않는다 (운영자 편집이 항상 이긴다)
-  //
-  // 시드가 바뀌었는지는 해시로 판단하고, 적용한 해시는 `site_content` 에 남긴다.
+  /*
+    FAQ — 원본 시트(`26년_대관사_FAQ…xlsx`)가 정본이고, 여기서 DB 로 옮긴다.
+    **비어 있을 때만** 넣는다. 운영에서는 그마저 넣지 않는다(allowInitialSeed).
+
+    [수정 2026-09-07] 예전에는 "시드가 바뀌었는데 아무도 편집하지 않았으면 DELETE 후 통째 교체"
+    도 했다. 두 가지가 위험했다 —
+      ① 운영자가 FAQ 를 **추가만** 하면 updated_at == created_at 이라 "편집 안 함" 으로 판정돼,
+         코드 시드가 바뀌는 순간 추가한 FAQ 가 소리 없이 사라졌다.
+      ② 운영 데이터를 지우는 코드가 기동 경로에 있는 것 자체가 위험하다.
+    통째 교체 경로를 걷어냈다. 시드 문구를 고쳐야 하면 백오피스에서 고친다.
+  */
   const faqSeedHash = crypto.createHash("sha256").update(JSON.stringify(SEED_FAQS)).digest("hex");
   const storedFaqHash = (
     await pool.query("SELECT data FROM site_content WHERE page = 'faq_seed_hash'")
   ).rows[0] as { data: string } | undefined;
   const faqCount = (await pool.query("SELECT COUNT(*)::int as n FROM faqs")).rows[0] as { n: number };
-  const faqEdited = (
-    await pool.query("SELECT COUNT(*)::int as n FROM faqs WHERE updated_at <> created_at")
-  ).rows[0] as { n: number };
 
   // `site_content.data` 는 JSON 문자열을 담는 칸이라 해시도 JSON 으로 감싼다.
   const seedChanged = storedFaqHash?.data !== JSON.stringify(faqSeedHash);
-  if (faqCount.n === 0 || (seedChanged && faqEdited.n === 0)) {
-    await pool.query("DELETE FROM faqs");
+  if (faqCount.n === 0 && allowInitialSeed) {
     const base = Date.now();
     for (let i = 0; i < SEED_FAQS.length; i++) {
       const f = SEED_FAQS[i];
@@ -1121,87 +1144,15 @@ async function seedData(pool: Pool) {
   }
 
   /*
-    첫 공지 — 2027년 하반기 정기대관 공고 (2026-09-02).
+    [삭제 2026-09-07] 첫 공지 시드(2027년 하반기 정기대관 공고)를 걷어냈다.
 
-    공고문은 화면을 여는 순간 있어야 하는 내용이라 코드에 싣는다.
+    initSchema 는 앱이 뜰 때마다 도는데, 여기서 "없으면 넣는다" 를 하고 있었다.
+    운영진이 백오피스에서 지워도 **다음 배포 때 되살아났다** — 실제로 9/7 배포
+    12:11·12:26 직후 같은 공지가 두 번 다시 나타났다.
 
-    갱신 규칙은 FAQ 시드와 같다:
-      없으면                  → 넣는다
-      있는데 손대지 않았으면    → 시드 내용으로 갈아 끼운다(공고문이 바뀌면 따라간다)
-      운영자가 한 번이라도 고쳤으면 → 건드리지 않는다 (운영자 편집이 항상 이긴다)
-
-    손댔는지는 `updated_at <> created_at` 으로 본다. 갈아 끼울 때도 두 값을 같게 두어
-    다음 배포에서 또 따라올 수 있게 한다.
+    공지는 운영진이 백오피스에서 만들고 지우는 콘텐츠다. 코드가 다시 넣지 않는다.
+    (공고문 첨부 PDF 복사도 이 시드 전용이라 함께 뺐다.)
   */
-  /*
-    시드는 실패해도 앱을 세우지 않는다 (2026-09-02).
-
-    initSchema 는 첫 쿼리 앞에서 한 번 도는 공통 경로라, 여기서 던지면 **모든 화면이**
-    500 이 된다. 공고 하나 못 넣은 것과 서비스가 안 뜨는 것은 다른 문제다 —
-    실패는 로그로 남기고 넘어간다.
-  */
-  try {
-    // 공고문 원본(PDF)을 업로드 폴더로 복사한다 — 첨부 라우트가 그 폴더만 읽는다.
-    // 복사에 실패해도 공지는 넣는다(본문 안내는 남고, 첨부만 비어 보인다).
-    let noticeAttachmentUrl: string | null = null;
-    try {
-      const dir = path.join(DATA_DIR, "uploads", "notice-attachments");
-      await fs.mkdir(dir, { recursive: true });
-      const target = path.join(dir, SEED_NOTICE.attachmentStoredName);
-      const exists = await fs.stat(target).then(() => true).catch(() => false);
-      if (!exists) {
-        await fs.copyFile(
-          path.join(process.cwd(), "assets", "seed", SEED_NOTICE.attachmentFile),
-          target,
-        );
-      }
-      noticeAttachmentUrl = SEED_NOTICE.attachmentUrl;
-    } catch (error) {
-      console.error("[seed] 공고문 첨부 복사 실패", error);
-    }
-
-    const seededNotice = (
-      await pool.query("SELECT created_at, updated_at FROM notices WHERE id = $1", [SEED_NOTICE.id])
-    ).rows[0] as { created_at: string; updated_at: string } | undefined;
-    const noticeUntouched = !!seededNotice && seededNotice.created_at === seededNotice.updated_at;
-
-    if (!seededNotice) {
-      const at = new Date().toISOString();
-      await pool.query(
-        `INSERT INTO notices (id, tag, title, body, image_url, attachment_url, attachment_name,
-                              show_booking_calendar, created_at, updated_at)
-         VALUES ($1, $2, $3, $4, NULL, $5, $6, $7, $8, $8)`,
-        [
-          SEED_NOTICE.id,
-          SEED_NOTICE.tag,
-          SEED_NOTICE.title,
-          SEED_NOTICE.body,
-          noticeAttachmentUrl,
-          noticeAttachmentUrl ? SEED_NOTICE.attachmentName : null,
-          SEED_NOTICE.showBookingCalendar ? 1 : 0,
-          at,
-        ],
-      );
-    } else if (noticeUntouched) {
-      await pool.query(
-        `UPDATE notices
-            SET tag = $2, title = $3, body = $4, attachment_url = $5, attachment_name = $6,
-                show_booking_calendar = $7, updated_at = created_at
-          WHERE id = $1`,
-        [
-          SEED_NOTICE.id,
-          SEED_NOTICE.tag,
-          SEED_NOTICE.title,
-          SEED_NOTICE.body,
-          noticeAttachmentUrl,
-          noticeAttachmentUrl ? SEED_NOTICE.attachmentName : null,
-          SEED_NOTICE.showBookingCalendar ? 1 : 0,
-        ],
-      );
-    }
-  } catch (error) {
-    console.error("[seed] 첫 공지 등록/갱신 실패", error);
-  }
 
   // 기능정의서(내부 기획 문서) — 시트별로 없는 것만 채운다. 이미 운영 중인 DB에 나중에
   // 새 시트가 추가돼도, 기존에 수동 편집된 다른 시트들을 건드리지 않는다.
@@ -1403,6 +1354,10 @@ function toRateTable(row: RateTableRow): RateTable {
       setupExtraDayFee?: number;
       performanceExtraDayFee?: number;
       defaultPerformanceDays?: number;
+      secondShowSurchargeRatio?: number;
+      extraDayDiscountRatio?: number;
+      restDayDiscountRatio?: number;
+      customCardRows?: { label: string; value: string }[];
     }
   >;
   const packages = rawPackages.map((pkg) => {
@@ -1413,6 +1368,14 @@ function toRateTable(row: RateTableRow): RateTable {
       setupExtraDayFee: pkg.setupExtraDayFee ?? seedMatch?.setupExtraDayFee ?? 0,
       performanceExtraDayFee: pkg.performanceExtraDayFee ?? seedMatch?.performanceExtraDayFee ?? 0,
       defaultPerformanceDays: pkg.defaultPerformanceDays ?? seedMatch?.defaultPerformanceDays ?? 0,
+      // [신규 2026-09-06] 이 필드 추가 이전에 저장된 패키지도 같은 이유로 보정한다.
+      secondShowSurchargeRatio: pkg.secondShowSurchargeRatio ?? seedMatch?.secondShowSurchargeRatio ?? 0,
+      // [신규 2026-09-06] "추가분 할인율" 어드민 입력 추가 이전에 저장된 패키지 보정 — 같은
+      // 이유로 시드 기본값(0.1/0.5)을 대신 채운다.
+      extraDayDiscountRatio: pkg.extraDayDiscountRatio ?? seedMatch?.extraDayDiscountRatio ?? 0,
+      restDayDiscountRatio: pkg.restDayDiscountRatio ?? seedMatch?.restDayDiscountRatio ?? 0,
+      // [신규 2026-09-06] "rate 카드 항목도 추가 가능해야지" 이전에 저장된 패키지 보정.
+      customCardRows: pkg.customCardRows ?? seedMatch?.customCardRows ?? [],
       // audienceTier/seatingType/stageType 도 같은 이유로 보정한다 — 이 필드들이 추가되기
       // 전에 저장된 패키지는 값이 아예 없어(undefined), 카드·어드민 패키지 관리 화면에서
       // `.audienceTier.label`처럼 바로 접근하는 곳이 전부 그대로 죽는다("패키지 관리 화면이
@@ -1437,7 +1400,16 @@ function toRateTable(row: RateTableRow): RateTable {
 }
 
 export async function getCurrentRateTable(): Promise<RateTable> {
-  const row = await one<RateTableRow>("SELECT * FROM rate_tables ORDER BY updated_at DESC LIMIT 1");
+  // [버그 수정 2026-09-08] "중형공연장 단가가 제대로 적용 안되고 있음" — updated_at은
+  // TEXT 컬럼인데 쓰는 경로마다 형식이 다르다(saveNewRateTableVersion은
+  // toISOString(), 일부 옛 행은 Postgres 기본 타임스탬프 문자열 "... +00"). 두
+  // 형식을 문자열로 비교하면 실제 시간 순서와 다르게 정렬될 수 있어(예: "T"가
+  // 공백보다 코드값이 커서 같은 날짜라도 형식만으로 우열이 갈린다), 이 함수가 최신이
+  // 아닌 버전을 "현재 요금표"로 돌려줄 수 있었다. version은 saveNewRateTableVersion이
+  // 항상 `v-${Date.now()}`로만 만들어 형식이 하나뿐이라 문자열 정렬 = 시간 정렬이
+  // 보장된다(시드 버전 "2026-08-homepage-v2"는 "2"로 시작해 항상 가장 낮게 정렬되므로
+  // v-* 행이 하나라도 있으면 절대 선택되지 않는다).
+  const row = await one<RateTableRow>("SELECT * FROM rate_tables ORDER BY version DESC LIMIT 1");
   if (!row) throw new Error("요금표가 초기화되지 않았습니다.");
   return toRateTable(row);
 }
@@ -3394,7 +3366,7 @@ export interface Paged<T> {
   totalPages: number;
 }
 
-export const DEFAULT_PAGE_SIZE = 20;
+const DEFAULT_PAGE_SIZE = 20;
 
 // 1보다 작거나 숫자가 아닌 입력은 1페이지로 보정한다(쿼리스트링을 그대로 받기 때문).
 // ── 운영자 회사 관리 (기획서 A9·A10 운영자 시야) ───────────────────────────
@@ -4814,7 +4786,7 @@ const TRAFFIC_TRUNC: Record<TrafficGranularity, string> = {
   month: "month",
 };
 
-export interface TrafficBucket {
+interface TrafficBucket {
   /** 구간 시작일(KST) — 일간이면 그 날, 주간이면 그 주 월요일, 월간이면 1일 */
   bucket: string;
   pageViews: number;
@@ -5439,7 +5411,7 @@ export async function listFaqs(): Promise<Faq[]> {
   return rows.map(toFaq);
 }
 
-export async function getFaqById(id: string): Promise<Faq | undefined> {
+async function getFaqById(id: string): Promise<Faq | undefined> {
   const row = await one<FaqRow>("SELECT * FROM faqs WHERE id = $1", [id]);
   return row ? toFaq(row) : undefined;
 }
@@ -5640,7 +5612,7 @@ export async function listPages(group?: PageGroup): Promise<StaticPage[]> {
   return rows.map(toStaticPage);
 }
 
-export async function getPageById(id: string): Promise<StaticPage | undefined> {
+async function getPageById(id: string): Promise<StaticPage | undefined> {
   const row = await one<PageRow>("SELECT * FROM pages WHERE id = $1", [id]);
   return row ? toStaticPage(row) : undefined;
 }
@@ -5904,6 +5876,15 @@ export async function savePrivacyContent(data: LegalContent): Promise<LegalConte
    이제 DB 가 정본이고 코드의 TERMS 는 최초 기본값이다(2026-09-04). */
 export async function getRegisterTermsContent(): Promise<RegisterTermsContent> {
   return getSiteContent<RegisterTermsContent>("registerTerms", DEFAULT_REGISTER_TERMS);
+}
+
+/* 회원 승인 정책 — 초대 가입도 운영자 승인을 받게 할지 (2026-09-04). */
+export async function getMemberPolicy(): Promise<MemberPolicy> {
+  return getSiteContent<MemberPolicy>("memberPolicy", DEFAULT_MEMBER_POLICY);
+}
+
+export async function saveMemberPolicy(data: unknown): Promise<MemberPolicy> {
+  return saveSiteContent("memberPolicy", normalizeMemberPolicy(data));
 }
 
 export async function saveRegisterTermsContent(data: unknown): Promise<RegisterTermsContent> {

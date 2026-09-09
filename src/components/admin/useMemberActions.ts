@@ -43,6 +43,13 @@ export function useMemberActions(options?: {
         { title: "대표 담당자 지정", okLabel: "승인" },
       );
       if (!ok) return;
+    } else if (action === "approve") {
+      // 대표 지정이 아닌 일반 승인도 클릭 한 번으로 바로 처리됐다 — 오클릭 방지를 위해 확인을 넣는다.
+      const ok = await dialog.confirm(`${master?.name ?? "이 신청자"}님을 승인할까요?`, {
+        title: "가입 승인",
+        okLabel: "승인",
+      });
+      if (!ok) return;
     }
 
     // 반려 사유는 MB-03 알림톡의 필수 변수다. 비워두면 신청자에게 빈 사유가 나간다.

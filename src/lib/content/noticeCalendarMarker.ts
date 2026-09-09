@@ -9,7 +9,7 @@
  * 표·이미지처럼 항상 자기 줄(문단)을 하나 차지하는 블록 삽입으로 취급한다 —
  * 인라인으로 섞이면 앞뒤 HTML을 안전하게 자를 수 없다.
  */
-export const NOTICE_CALENDAR_MARKER_TEXT = "[[대관현황캘린더]]";
+const NOTICE_CALENDAR_MARKER_TEXT = "[[대관현황캘린더]]";
 
 /** 삽입 버튼이 TipTap에 넣는 HTML — 새 문단으로 삽입된다. */
 export const NOTICE_CALENDAR_MARKER_HTML = `<p>${NOTICE_CALENDAR_MARKER_TEXT}</p>`;

@@ -1,15 +1,19 @@
 import type { Metadata } from "next";
 import { notFound, redirect } from "next/navigation";
 import { canAccessQuote, requireAccessedUser } from "@/lib/auth";
+import { canApplicantEditQuote } from "@/lib/quoteStatus";
 import {
   getCurrentRateTable,
+  getNoticeCalendarWindow,
   getQuoteById,
   getRatesContent,
   getScreenTextContent,
   listApprovedQuoteBlocks,
+  listAttachments,
   listDateBlocks,
   listWeekDemand,
 } from "@/lib/db";
+import { noticeCalendarMonthBounds } from "@/lib/content/noticeCalendarWindow";
 import { PublicHeader } from "@/components/PublicHeader";
 import { Breadcrumb } from "@/components/ui/Breadcrumb";
 import { SiteFooter } from "@/components/ui/SiteFooter";
@@ -33,12 +37,11 @@ export default async function EditQuotePage({
   const quote = await getQuoteById(id);
   if (!quote) notFound();
   if (!(await canAccessQuote(currentUser, quote))) notFound();
-  if (quote.status !== "ESTIMATE") redirect(`/mypage/${id}`);
-  // 심사가 시작된(review 기록이 있는) 신청서는 신청자가 직접 수정할 수 없다 —
-  // PUT /api/quotes/[id]와 같은 기준(2026-08-22).
-  if (quote.review) redirect(`/mypage/${id}`);
+  // 심사가 시작됐거나(review 기록) 접수 후 24시간이 지난 신청서는 신청자가 직접
+  // 수정할 수 없다 — PUT /api/quotes/[id]와 같은 기준(2026-08-22, 2026-09-08 24시간 추가).
+  if (!canApplicantEditQuote(quote)) redirect(`/mypage/${id}`);
 
-  const [rateTable, weekDemand, adminBlocks, approvedBlocks, ratesContent, screenText] =
+  const [rateTable, weekDemand, adminBlocks, approvedBlocks, ratesContent, screenText, calendarWindow, existingAttachments] =
     await Promise.all([
       getCurrentRateTable(),
       listWeekDemand(),
@@ -48,8 +51,12 @@ export default async function EditQuotePage({
       listApprovedQuoteBlocks(id),
       getRatesContent(),
       getScreenTextContent(),
+      getNoticeCalendarWindow(),
+      // STEP7 필수 첨부 검사 — 이미 올라간 첨부가 있으면 다시 올리라고 막지 않는다(2026-09-08).
+      listAttachments(id),
     ]);
   const dateBlocks = [...adminBlocks, ...approvedBlocks];
+  const calendarMonthBounds = noticeCalendarMonthBounds(calendarWindow);
 
   return (
     <div className="flex flex-1 flex-col">
@@ -80,6 +87,13 @@ export default async function EditQuotePage({
             initialSelection={quote.selection}
             liveHallRateContent={ratesContent.liveHall}
             wizardStepText={screenText.wizardSteps}
+            wizardSlotOrders={screenText.wizardSlotOrders}
+            publicInterestDisabledItems={screenText.publicInterestDisabledItems}
+            publicInterestDisabledGroups={screenText.publicInterestDisabledGroups}
+            wizardFieldOrders={screenText.wizardFieldOrders}
+            wizardDisabledFields={screenText.wizardDisabledFields}
+            calendarMonthBounds={calendarMonthBounds}
+            existingAttachmentCount={existingAttachments.length}
           />
         </WizardTextProvider>
       </main>

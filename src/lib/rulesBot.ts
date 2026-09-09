@@ -42,7 +42,7 @@ export type RulesBotResult =
   | { status: "ERROR"; message: string };
 
 /** 규약 본문을 조문 단위로 평문화한다. 장·조 제목을 남겨야 모델이 근거를 인용할 수 있다. */
-export async function buildRulesText(): Promise<{ text: string; version: string; effectiveDate: string }> {
+async function buildRulesText(): Promise<{ text: string; version: string; effectiveDate: string }> {
   const content = await getRulesContent();
   const chapters = parseRules(content.body);
   const text = chapters

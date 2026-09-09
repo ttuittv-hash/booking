@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { notFound, redirect } from "next/navigation";
-import { getCurrentUser } from "@/lib/auth";
+import {notFound} from "next/navigation";
+import { requireProAdminPage } from "@/lib/auth";
 import { findUserById, getQuoteById, getRateTableByVersion, listAttachments } from "@/lib/db";
 import { won } from "@/lib/format";
 import { resolveSelectedDates } from "@/lib/pricing/dateRange";
@@ -67,6 +67,7 @@ const DAY_TAG_LABEL: Record<DayTag, string> = {
   PREP: "셋업",
   PERFORMANCE: "공연",
   LOAD_OUT: "철수",
+  REST: "휴무일",
 };
 
 /** 첨부 분류 라벨 — 어느 단계에서 올라온 서류인지 한눈에 갈라 보이게 한다. */
@@ -96,7 +97,7 @@ function text(value: string | number | null | undefined): string {
 
 function Row({ label, value }: { label: string; value: React.ReactNode }) {
   return (
-    <div className="flex gap-4 border-b border-border/25 py-2.5 last:border-b-0">
+    <div className="flex gap-4 border-b border-border/15 py-2.5 last:border-b-0">
       <dt className="w-44 shrink-0 text-xs text-muted">{label}</dt>
       <dd className="min-w-0 flex-1 whitespace-pre-wrap break-keep text-s">{value}</dd>
     </div>
@@ -129,7 +130,7 @@ function MiniTable({ head, rows }: { head: string[]; rows: (string | number)[][]
         </thead>
         <tbody>
           {rows.map((row, i) => (
-            <tr key={i} className="border-b border-border/25">
+            <tr key={i} className="border-b border-border/15">
               {row.map((cell, j) => (
                 <td key={j} className="px-2 py-1.5 align-top">
                   {text(cell)}
@@ -151,13 +152,13 @@ function AttachmentRow({ quoteId, file }: { quoteId: string; file: Attachment })
       ? (ATTACHMENT_CATEGORY_LABEL[file.category] ?? file.category)
       : "신청 서류";
   return (
-    <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1 border-b border-border/25 py-2.5 last:border-b-0">
+    <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1 border-b border-border/15 py-2.5 last:border-b-0">
       <span className="w-44 shrink-0 text-xs text-muted">{tag}</span>
       <a
         href={`/api/quotes/${quoteId}/attachments/${file.id}`}
         target="_blank"
         rel="noreferrer"
-        className="min-w-0 flex-1 break-all text-s font-bold underline decoration-border-soft underline-offset-4 hover:decoration-foreground"
+        className="min-w-0 flex-1 break-all text-s font-bold underline decoration-border-soft underline-offset-4 hover:decoration-accent"
       >
         {file.originalName}
       </a>
@@ -180,9 +181,7 @@ export default async function AdminQuoteApplicationPage({
    */
   searchParams?: Promise<{ embed?: string }>;
 }) {
-  const admin = await getCurrentUser();
-  if (!admin) redirect("/admin/login");
-  if (admin.role !== "ADMIN") redirect("/apply");
+  const admin = await requireProAdminPage();
 
   const embed = ((await searchParams) ?? {}).embed === "1";
   const { id } = await params;
@@ -235,7 +234,7 @@ export default async function AdminQuoteApplicationPage({
         )}
 
         <header
-          className={`flex flex-wrap items-start justify-between gap-4 border-b border-border/25 pb-6 ${embed ? "" : "mt-5"}`}
+          className={`flex flex-wrap items-start justify-between gap-4 border-b border-border/20 pb-6 ${embed ? "" : "mt-5"}`}
         >
           <div className="min-w-0">
             <h1 className={PAGE_TITLE}>신청 내역</h1>
@@ -265,16 +264,31 @@ export default async function AdminQuoteApplicationPage({
                 label="기업 유형"
                 value={
                   info.applicantCompanyType
-                    ? APPLICANT_COMPANY_TYPE_LABEL[info.applicantCompanyType]
+                    ? `${APPLICANT_COMPANY_TYPE_LABEL[info.applicantCompanyType]}${info.applicantCompanyTypeOtherDetail ? ` — ${info.applicantCompanyTypeOtherDetail}` : ""}`
                     : NONE
                 }
               />
               <Row label="사업자등록번호" value={text(info.applicantBusinessRegistrationNumber)} />
               <Row label="대표자" value={text(info.applicantRepresentativeName)} />
-              <Row
-                label="담당자"
-                value={`${text(info.applicantContactName)} · ${text(info.applicantContactPhone)}`}
-              />
+              {/* [개정 2026-09-06] "담당자 정보를 한 줄짜리 반복 행으로" — 담당자·공연
+                  운영/안전관리 총괄 책임자를 합친 contactPersons 반복 목록. 그 필드가
+                  추가되기 전(2026-09-06 이전) 신청서는 옛 개별 필드로 되돌아간다. */}
+              {info.contactPersons && info.contactPersons.length > 0 ? (
+                info.contactPersons.map((person, i) => (
+                  <Row
+                    key={i}
+                    label={person.role || `담당자 ${i + 1}`}
+                    value={[text(person.name), text(person.phone), person.email, person.department]
+                      .filter(Boolean)
+                      .join(" · ")}
+                  />
+                ))
+              ) : (
+                <Row
+                  label="담당자"
+                  value={`${text(info.applicantContactName)} · ${text(info.applicantContactPhone)} · ${text(info.applicantContactEmail)}`}
+                />
+              )}
             </>
           ) : null}
         </Section>
@@ -369,20 +383,25 @@ export default async function AdminQuoteApplicationPage({
                     : NONE
                 }
               />
+              <Row label="셋업 추가 요청시간" value={text(info.setupRequestTime)} />
               <Row label="철수 완료 예정시간" value={text(info.teardownCompletionTime)} />
               <Row label="티켓 오픈 예정일" value={text(info.ticketOpenExpectedDate)} />
             </Section>
 
-            <Section title="책임자">
-              <Row
-                label="공연 운영 총괄"
-                value={`${text(info.operationsResponsible?.name)} · ${text(info.operationsResponsible?.title)} · ${text(info.operationsResponsible?.phone)}`}
-              />
-              <Row
-                label="안전관리 총괄"
-                value={`${text(info.safetyResponsible?.name)} · ${text(info.safetyResponsible?.title)} · ${text(info.safetyResponsible?.phone)}`}
-              />
-            </Section>
+            {/* contactPersons가 있으면 공연 운영/안전관리 총괄이 이미 위 "담당자 정보"
+                반복 목록에 포함돼 있어 이 Section은 생략한다 — 옛 신청서만 남긴다. */}
+            {(!info.contactPersons || info.contactPersons.length === 0) && (
+              <Section title="책임자">
+                <Row
+                  label="공연 운영 총괄"
+                  value={`${text(info.operationsResponsible?.name)} · ${text(info.operationsResponsible?.title)} · ${text(info.operationsResponsible?.phone)}`}
+                />
+                <Row
+                  label="안전관리 총괄"
+                  value={`${text(info.safetyResponsible?.name)} · ${text(info.safetyResponsible?.title)} · ${text(info.safetyResponsible?.phone)}`}
+                />
+              </Section>
+            )}
 
             <Section title="아티스트 · 개최 이력">
               <div className="py-2">
@@ -430,16 +449,13 @@ export default async function AdminQuoteApplicationPage({
 
             <Section title="티켓 · 사업규모">
               <div className="py-2">
-                <p className="mb-1.5 text-xs text-muted">티켓 유형별 가격 · 예상 판매율</p>
+                <p className="mb-1.5 text-xs text-muted">티켓 유형별 가격</p>
                 <MiniTable
-                  head={["유형", "가격", "예상 판매율(%)"]}
-                  rows={(info.ticketTypes ?? []).map((r) => [
-                    r.label,
-                    won(r.price),
-                    r.expectedSalesRate,
-                  ])}
+                  head={["유형", "가격"]}
+                  rows={(info.ticketTypes ?? []).map((r) => [r.label, won(r.price)])}
                 />
               </div>
+              <Row label="예상 유료 판매율" value={`${info.expectedPaidSalesRate}%`} />
               <Row
                 label="경합 시 추가 대관료"
                 value={
@@ -456,9 +472,7 @@ export default async function AdminQuoteApplicationPage({
                 label="부대사업 계획"
                 value={
                   info.ancillaryBusinessPlans?.length
-                    ? info.ancillaryBusinessPlans
-                        .map((p) => ANCILLARY_BUSINESS_PLAN_LABEL[p])
-                        .join(", ")
+                    ? `${info.ancillaryBusinessPlans.map((p) => ANCILLARY_BUSINESS_PLAN_LABEL[p]).join(", ")}${info.ancillaryBusinessPlanOtherDetail ? ` — ${info.ancillaryBusinessPlanOtherDetail}` : ""}`
                     : NONE
                 }
               />
@@ -550,7 +564,7 @@ export default async function AdminQuoteApplicationPage({
           <Row label="합계" value={<b>{won(quote.total)}</b>} />
         </Section>
 
-        <div className="mt-10 border-t border-border/25 pt-6">
+        <div className="mt-10 border-t border-border/20 pt-6">
           <Link href={`/admin/${quote.id}`} className={btnClass("primary", "md")}>
             신청서 상세로 돌아가기
           </Link>

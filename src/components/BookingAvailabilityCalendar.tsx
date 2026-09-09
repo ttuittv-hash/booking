@@ -205,7 +205,7 @@ function CalendarBody({ initialMonth, startMonth, endMonth, endDay, legend: lege
         </span>
       </div>
 
-      <div className="mt-4 rounded-surface border border-border-soft bg-panel/60 p-5">
+      <div className="mt-4 border border-border-soft bg-panel/60 p-5">
         <div className="grid grid-cols-7 gap-1.5 text-center text-xs font-bold text-muted">
           {DOW_LABELS.map((label, i) => (
             <div key={label} className={i === 6 ? "opacity-50" : ""}>
@@ -307,7 +307,7 @@ export function BookingCalendarLauncher(range: CalendarMonthRange) {
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className="inline-flex items-center gap-1.5 rounded-btn border border-border-soft px-3 py-1.5 text-xs font-bold text-foreground transition-colors hover:border-foreground"
+        className="inline-flex items-center gap-1.5 border border-border-soft px-3 py-1.5 text-xs font-bold text-foreground transition-colors hover:border-foreground"
       >
         <svg aria-hidden viewBox="0 0 16 16" className="h-3.5 w-3.5" fill="none" stroke="currentColor">
           <rect x="2" y="3" width="12" height="11" strokeWidth="1.3" />
@@ -325,7 +325,7 @@ export function BookingCalendarLauncher(range: CalendarMonthRange) {
           onClick={() => setOpen(false)}
         >
           <div
-            className="max-h-[92vh] w-full max-w-4xl overflow-y-auto rounded-surface border border-border bg-background p-6"
+            className="max-h-[92vh] w-full max-w-4xl overflow-y-auto border border-border bg-background p-6"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex items-center justify-between gap-3">
