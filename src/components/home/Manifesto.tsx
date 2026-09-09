@@ -47,7 +47,8 @@ export function Manifesto({
   return (
     <div>
       {/* Section Title */}
-      <h2 className="type-display text-h1-m leading-[0.9] sm:text-d2">
+      {/* 제목은 지면 폭에 유동한다(`text-d2-fluid`) — 640 에서 40 → 96 으로 점프하던 것을 잇는다 */}
+      <h2 className="type-display text-d2-fluid">
         {title.split("\n").map((line, i) => (
           <span key={i} className="block">
             {line}
