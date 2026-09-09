@@ -115,12 +115,15 @@ Figma 가 stretch 로 잡혀 있어서 넓은 화면에서는 컬럼이 같이 �
 
 | 콘텐츠 | 배치 | 시작점 | 코드 |
 |---|---|---|---|
-| 히어로 · 전면 사진 · 푸터 워드마크 · 풀폭 비교표 | 12col | 1 | `container-site` · `ComparisonTable` |
-| 카드 — 제목 + 한 줄 값 (4개) | **3col × 4** | 1·4·7·10 | `OverviewCards` |
-| 카드 — 제목 + 목록 (부대시설·수용인원) | **6col × 2** | 1·7 | `FacilityCard` · `CapacityCard` · `FeatureList columns={2}` |
+| 히어로 · 전면 사진 · 푸터 워드마크 · 풀폭 표 | 12col | 1 | `container-site` |
+| 카드 — 제목 + 한 줄 값 | **개수가 정한다** — 1장 12col · 2장 6col × 2 · 3장 이상 3col × 4 | 1 · 1·7 · 1·4·7·10 | `StatCards` |
+| 카드 — 제목 + 목록 (부대시설·수용인원) | **3col × 4** / **6col × 2** | 1·4·7·10 / 1·7 | ⚠ 공유 프리미티브가 없다 — `SpecCardGrid`·`CapacityCard` 가 `app/features/page.tsx` 안에 **페이지 로컬**로 있다 |
 | 절차 다이어그램의 박스 | **3col × 4**, 두 줄 | 1·4·7·10 | `ProcessSteps` |
-| 목차/제목/메뉴 + 본문·표·폼 | **3col + 9col** | 1·4 | `ArticleLayout` · `MyPageShell` · `FaqAccordion` · `SplitSection` |
+| 목차/제목/메뉴 + 본문·표·폼 | **3col + 9col** | 1·4 | ⚠ `ArticleLayout` · `MyPageShell` · `FaqAccordion` 이 같은 분할을 **각자** 구현한다 (공유 split 프리미티브 없음) |
 | 폼 + 요약 사이드바 | **9col + 3col** | 1·10 | `WizardShell` |
+
+⚠ 표시는 **규격은 있으나 그것을 담은 공유 컴포넌트가 없는 자리**다. 재조정 항목 G17 에서
+프리미티브로 올린다 — `docs/design-reconciliation.md` 참고.
 
 **두 칼럼의 좁은 쪽은 카드 한 장(3col)과 같은 폭**이라, 4-up 카드 아래에 두 칼럼 섹션이
 와도 오른쪽 칼럼이 두 번째 카드와 같은 선에서 시작한다 — 화면의 세로 기준선이 하나다.
@@ -129,8 +132,8 @@ Figma 가 stretch 로 잡혀 있어서 넓은 화면에서는 컬럼이 같이 �
 
 | 섹션 콘텐츠 | 머리글 | 콘텐츠 | 코드 |
 |---|---|---|---|
-| 라벨–값 표 · 비교표 · 조문 본문 · 폼 | **옆** 3col | 9col | `SplitSection` · `ArticleLayout` · `WizardShell` |
-| 카드 · 다이어그램 · 항목이 제 제목을 가진 목록 | **위** 12col | 12col | `SectionHead` + `OverviewCards` / `CapacityCard` / `FacilityCard` / `ProcessSteps` / `FeatureList` |
+| 라벨–값 표 · 비교표 · 조문 본문 · 폼 | **옆** 3col | 9col | `ArticleLayout` · `WizardShell` (섹션 단위로 쓸 split 프리미티브는 없다 — G17) |
+| 카드 · 다이어그램 · 항목이 제 제목을 가진 목록 | **위** 12col | 12col | `SectionHead` + `StatCards` / `ProcessSteps` / `FeatureList` |
 
 가르는 기준은 **항목이 제 제목을 갖는가**다. **한 페이지의 표는 모두 같은 x 에서 시작한다** —
 표 섹션 하나만 머리글을 위에 두면 그 표만 왼쪽으로 튀어나온다(대관료 RATE 가 그랬다).
@@ -154,34 +157,41 @@ Figma 가 stretch 로 잡혀 있어서 넓은 화면에서는 컬럼이 같이 �
 
 ## 4. 레이아웃 모듈 (Figma Wireframe › 컨텐츠 종류별 레이아웃)
 
-`@/components/ui/kit` 에서 가져다 쓴다. **모듈을 변형하지 말고 그대로 쓴다.**
+기본은 `@/components/ui/kit` 이고, 파일이 다른 것은 표에 적었다. **모듈을 변형하지 말고
+그대로 쓴다.**
+
+> **이 표는 2026-09-09 에 실물 기준으로 정리했다.** 그 전에는 코드에 없는 컴포넌트가
+> 표준으로 적혀 있었다 — `Layout 1`~`Layout 7`(`LayoutCards`·`LayoutFeatures`·
+> `LayoutHorizCards`·`LayoutColumns`·`LayoutTextColumns`·`LayoutAlternating`·
+> `LayoutSticky`) · `CenterHeading` · `ComparisonTable` · `GroupedSpecTable` ·
+> `SplitSection` · `OverviewCards` · `FacilityCard` · `LabeledList`.
+> 앞의 아홉은 **되살리지 않는다**(모듈이 겹쳐 같은 화면을 두 갈래로 만들었다).
+> 표·split 세 개(`ComparisonTable`·`GroupedSpecTable`·`SplitSection`)는 수요가 실재하므로
+> G17 에서 현재 표 사용 패턴을 조사해 다시 세운다 — 그 의도는 「표가 화면 폭을 다 쓰지
+> 않아 값이 라벨에서 멀어지지 않게」다. `docs/design-reconciliation.md` 참고.
 
 | 컴포넌트 | Figma | 언제 쓰나 |
 |---|---|---|
-| `LayoutCards` | Layout / 1 | 센터 헤딩 + 카드 그리드(이미지 위 / 텍스트 아래, 보더). 시설 3종처럼 나란한 대등 항목 |
-| `LayoutFeatures` | Layout / 2 | 보더 없는 특징 그리드. 가벼운 소개 묶음 |
-| `LayoutHorizCards` | Layout / 3 | 가로형 카드(좌 이미지 / 우 텍스트). 항목당 설명이 짧을 때 |
-| `LayoutColumns` | Layout / 4 | 좌측 헤딩 블록 + 하단 텍스트 컬럼. 섹션 도입 + 항목 나열 |
-| `LayoutTextColumns` | Layout / 5 | 텍스트 컬럼만. 절차·원칙처럼 이미지 없는 나열 |
-| `LayoutAlternating` | Layout / 6 | 좌우 교차(텍스트 ↔ 이미지) 블록. 무대 특장처럼 항목마다 설명이 길 때 |
-| `LayoutSticky` | Layout / 7 | 좌측 스티키 이미지 + 우측 번호 텍스트. 순차 서사 |
-| `ComparisonTable` | Comparison / 1 | **모든 수치·데이터 표의 표준** |
+| `Band` | — | 지면 밴드. `tone` 은 `light`(기본 지면) · `white` · `accent`(옐로) · `dark`(검정). 모든 섹션의 겉껍데기다 |
 | `SpecTable` | Comparison 행 리듬 | 값이 하나뿐인 라벨/값 나열 |
-| `GroupedSpecTable` | Comparison 행 리듬 | 묶음이 있는 라벨/값 나열. 열 배치가 `SpecTable` 과 같아 두 표를 위아래로 놓아도 값 열이 같은 세로선에서 시작한다 (RATE INCLUDES ↔ ADDITIONAL CHARGES) |
+| `StatCards` | — | 제목 + 한 줄 값 카드. **개수가 스팬을 정한다**(1장 12col · 2장 6col · 3장 이상 3col) |
+| `TitledCard` | — | 제목이 붙은 흰 면 카드 |
+| `Media` | — | 이미지 슬롯. `src` 가 없으면 회색 플레이스홀더가 나온다 |
 | `CTABand` | CTA / 1 | 섹션 말미 전환 |
-| `PageHeading` | Header / 1-1 | 페이지 상단 헤딩 + 보조 문구 |
-| `CenterHeading` | Layout 1/3/6 헤더 | 센터 정렬 섹션 헤딩 |
+| `PageHeading` | Header / 1-1 | **구형.** `PageHead` 로 대체하는 중이므로 새 화면에 쓰지 않는다 |
 | `RowList` / `Row` | **Stacked List / 1** (Application Components) | 목록(공지·FAQ·신청 내역). 헤더(제목·리드·우측 컨트롤) + 헤어라인 행 |
 | `PageHead` | Notion 위계 | **페이지 머리글의 표준.** H1 영문 슬로건(`type-display`) + H3 국문 제목. `PageHeading` 은 구형이다 |
 | `SectionHead` | Notion 위계 | 섹션 머리글(H3). 영문이면 Archivo, 국문이면 KakaoBig 로 자동 전환 |
 | `PhotoHero` | Header / 5 | 전면 사진 섹션(아레나·중형공연장). 높이 `min(900px, 100svh)`, 좌측 정렬 · 세로 중앙 |
 | `ProcessSteps` | Notion 대관 절차 | 한 줄 4박스 × 2줄 + 사이 화살표. 절차 요약은 이 모듈만 쓴다 |
-| `FeatureList` / `LabeledList` | Layout / 2 · Comparison 행 리듬 | 제목+설명 나열 / 라벨-값 나열 |
+| `FeatureList` | Layout / 2 | 제목 + 설명 나열 |
+| `Badge` · `EmptyState` · `Note` | — | 이름표 / 빈 목록 안내 / 각주(`border-t` + 12, muted). **결과 안내 상자는 아직 규격이 없다** — G14 |
+| `Breadcrumb` · `AuthShell`/`AuthField` | — | `ui/Breadcrumb` · `ui/AuthShell`. `kit` 이 아니다 |
+| 확인창 · 알림 토스트 | — | **컴포넌트가 아니라 훅이다.** `useDialog()`(+ `DialogProvider`) · `useToast()`(+ `ToastProvider`). `<Dialog>` 를 찾지 말 것 |
 | `DocumentList` | Figma 서식 자료실 | 자료 목록. 파일이 없으면 다운로드 아이콘 대신 안내 문구 |
 | `QueryTabs` | **page tabs** (2608) | URL 쿼리(`?tab=` · `?venue=`)로 도는 탭. 전환하면 **페이지 맨 위로** 스크롤을 되돌린다 — 탭 헤더 위치로만 올리면 머리글(제목·리드)이 화면 위로 잘린 채 새 탭이 시작된다. 기본 `variant="pill"` — 검정 알약 안 흰 알약(항목 h32 · 라벨 Bold 14 = 상단바와 같은 크기), 화면 가운데에 떠서 상단바 바로 아래 스티키. 중앙 메뉴와 같은 축에 놓인다. `variant="line"` 은 한 페이지 안 하위 축 전용(대관 진행 내역) |
-| `FaqAccordion` | Content / 1 의 2/4 분할 | FAQ 목록. **좌 2컬럼 묶음 이름(스티키) + 우 4컬럼 질문 목록** — 규약 목차·마이페이지 메뉴와 같은 `grid-site` 분할이다. 글자는 본문 단 하나 — **질문 14 Bold / 답변 14 Regular**. 묶음 번호(01~)·`Q`·`A` 말머리를 두지 않는다(구조가 이미 같은 말을 한다). 우측은 **셰브런**(Material Symbols `keyboard_arrow_down`, 펼치면 180° 회전). 행에 좌우 패딩 16 — 없으면 호버 색면이 글자·셰브런에 닿는다 |
-| `SplitSection` | Content / 1 의 2/4 분할 | 섹션을 두 칼럼으로 — **좌 2컬럼 제목(+보조 문장) / 우 4컬럼 표·목록.** 표가 화면 폭을 다 쓰지 않아 값이 라벨에서 멀어지지 않는다. 제목은 `SectionHead` 와 같은 H3 이고 2col 안에서 두 줄로 접히는 것은 정상이다(ADDITIONAL CHARGES) |
-| `ArticleLayout` / `Article` | **Content / 1** | 좌 2컬럼 스티키 **검색창 + 목차** + 우 4컬럼 본문. 규약처럼 긴 조문 문서. `searchLabel` 을 주면 검색이 붙고, 걸린 조만 남기며 본문에 옐로로 표시한다. 현재 위치는 **스크롤 좌표로 직접 계산**한다 — IntersectionObserver 는 바뀐 항목만 넘겨주고 rootMargin 이 앵커의 `scroll-margin` 과 어긋나서 목차를 눌러도 이전 항목이 켜져 있었다 |
+| `FaqAccordion` | Content / 1 의 3/9 분할 | FAQ 목록. **좌 3컬럼 묶음 이름(스티키) + 우 9컬럼 질문 목록** — 규약 목차·마이페이지 메뉴와 같은 `grid-site` 분할이다. 글자는 본문 단 하나 — **질문 14 Bold / 답변 14 Regular**. 묶음 번호(01~)·`Q`·`A` 말머리를 두지 않는다(구조가 이미 같은 말을 한다). 우측은 **셰브런**(Material Symbols `keyboard_arrow_down`, 펼치면 180° 회전). 행에 좌우 패딩 16 — 없으면 호버 색면이 글자·셰브런에 닿는다 |
+| `ArticleLayout` / `Article` | **Content / 1** | 좌 3컬럼 스티키 **검색창 + 목차** + 우 9컬럼 본문. 규약처럼 긴 조문 문서. `searchLabel` 을 주면 검색이 붙고, 걸린 조만 남기며 본문에 옐로로 표시한다. 현재 위치는 **스크롤 좌표로 직접 계산**한다 — IntersectionObserver 는 바뀐 항목만 넘겨주고 rootMargin 이 앵커의 `scroll-margin` 과 어긋나서 목차를 눌러도 이전 항목이 켜져 있었다 |
 
 ### 헤딩 위계 (Notion 정본) — 쓰는 단은 다섯 개
 
@@ -201,8 +211,8 @@ Figma 가 stretch 로 잡혀 있어서 넓은 화면에서는 컬럼이 같이 �
 | 단 | 값 | 어디에 |
 |---|---|---|
 | `text-m` | 18 | **큰 본문** — 페이지·섹션 맨 위 리드 문단, 장문 읽기 본문(공지 상세 · 전면 사진 설명) |
-| `text-s` | 14 | **본문** — 그 밖의 모든 글. 버튼·입력·표 값·내비게이션도 이 단 |
-| `text-xs` | 12 | **작은 글** — 아이브로 · 표 헤더 · 캡션 · 보조 설명 · 배지 |
+| `text-s` | 14 | **본문** — 그 밖의 모든 글. 입력칸·표 값·내비게이션·`md`/`lg` 버튼도 이 단 |
+| `text-xs` | 12 | **작은 글** — 아이브로 · 표 헤더 · 캡션 · 보조 설명 · 배지, 그리고 **밀도 높은 컨트롤**(`sm` 버튼 · 토글 · 칩) |
 
 `text-r`(16) · `text-l`(20) 은 **팔레트에서 뺐다** — 16 이 리드와 본문 사이에 끼어
 "리드인지 본문인지" 애매한 문단을 계속 만들었다. 굵은 본문으로 제목을 만들지 말고
