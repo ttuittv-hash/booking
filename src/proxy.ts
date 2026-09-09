@@ -18,8 +18,13 @@ export function proxy(request: NextRequest) {
   const host = request.headers.get("host") || "";
   const { pathname } = request.nextUrl;
 
+  // [신규 2026-09-09] robots.txt·sitemap.xml 은 두 호스트 모두 루트에서 그대로 응답한다 —
+  // bo 호스트에서 /admin 을 앞에 붙이면 /admin/robots.txt 가 되어 404 가 난다. 검색엔진은
+  // 루트에서만 이 두 파일을 읽으므로, bo 를 차단하려면 bo 루트에서 robots.txt 가 나와야 한다.
+  const isSeoFile = pathname === "/robots.txt" || pathname === "/sitemap.xml";
+
   if (host.startsWith(ADMIN_HOST_PREFIX)) {
-    if (!pathname.startsWith("/admin")) {
+    if (!isSeoFile && !pathname.startsWith("/admin")) {
       const url = request.nextUrl.clone();
       url.pathname = pathname === "/" ? "/admin" : `/admin${pathname}`;
       return NextResponse.rewrite(url);
