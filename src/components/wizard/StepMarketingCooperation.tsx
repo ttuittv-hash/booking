@@ -85,7 +85,7 @@ export function PromotionChannelsFields({
         {info.channels.map((row, i) => (
           <div
             key={i}
-            className="grid grid-cols-1 gap-1.5 border-b border-border/15 py-2 sm:grid-cols-[1fr_2fr_1fr_auto]"
+            className="grid grid-cols-1 gap-1.5 border-b border-border/25 py-2 sm:grid-cols-[1fr_2fr_1fr_auto]"
           >
             <input
               value={row.platform}

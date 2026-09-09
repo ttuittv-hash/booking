@@ -604,7 +604,7 @@ function ApplicantDetailsFields({
           )}
           <div className="space-y-2">
             {contactPersons.map((row, i) => (
-              <div key={i} className="flex items-center gap-1.5 border-b border-border/15 py-2">
+              <div key={i} className="flex items-center gap-1.5 border-b border-border/25 py-2">
                 <div
                   className="grid flex-1 gap-1.5"
                   style={{ gridTemplateColumns: `repeat(${visibleContactColumns.length}, 1fr)` }}
@@ -655,7 +655,7 @@ function ApplicantDetailsFields({
         )}
         <div className="space-y-2">
           {info.pastPerformances.map((row, i) => (
-            <div key={i} className="grid grid-cols-5 gap-1.5 border-b border-border/15 py-2">
+            <div key={i} className="grid grid-cols-5 gap-1.5 border-b border-border/25 py-2">
               <input
                 value={row.eventName}
                 placeholder={tStr("performanceInfo.pastEventNamePlaceholder", "공연명")}
@@ -880,7 +880,7 @@ function EventBasicsFields({
               </div>
               <div className="space-y-2">
                 {organizers.map((row, i) => (
-                  <div key={i} className="flex items-center gap-1.5 border-b border-border/15 py-2">
+                  <div key={i} className="flex items-center gap-1.5 border-b border-border/25 py-2">
                     <select
                       value={row.role}
                       onChange={(e) => updateOrganizer(i, { role: e.target.value as OrganizerRole })}
@@ -923,7 +923,7 @@ function EventBasicsFields({
             이력을 받는다. 기본으로 한 행씩 열려 있고(INITIAL_PERFORMANCE_INFO),
             무엇을 적어야 하는지 예시 문구를 각 표 위에 안내한다(관리자가 문구
             수정 가능 — t()). */}
-        <div className="border-t border-border/15 pt-6">
+        <div className="border-t border-border/25 pt-6">
           <div className="mb-3 text-xs font-bold tracking-wide text-muted uppercase">
             {t("performanceInfo.artistHistoryGroupLabel", "아티스트 이력")}
           </div>
@@ -945,7 +945,7 @@ function EventBasicsFields({
             </p>
             <div className="space-y-2">
               {artistMainHistory.map((row, i) => (
-                <div key={i} className="grid grid-cols-5 gap-1.5 border-b border-border/15 py-2">
+                <div key={i} className="grid grid-cols-5 gap-1.5 border-b border-border/25 py-2">
                   <input
                     value={row.artistName}
                     placeholder={tStr("performanceInfo.artistNamePlaceholder", "아티스트명")}
@@ -1002,7 +1002,7 @@ function EventBasicsFields({
             </p>
             <div className="space-y-2">
               {artistRecentPerformances.map((row, i) => (
-                <div key={i} className="space-y-1.5 border-b border-border/15 py-2">
+                <div key={i} className="space-y-1.5 border-b border-border/25 py-2">
                   <div className="grid grid-cols-4 gap-1.5">
                     <input
                       value={row.eventName}
@@ -1071,7 +1071,7 @@ function EventBasicsFields({
           </div>
         </div>
 
-        <div className="border-t border-border/15 pt-6">
+        <div className="border-t border-border/25 pt-6">
           <div className="mb-3 text-xs font-bold tracking-wide text-muted uppercase">
             {t("performanceInfo.classificationGroupLabel", "분류")}
           </div>
@@ -1126,7 +1126,7 @@ function EventBasicsFields({
           </div>
         </div>
 
-        <div className="border-t border-border/15 pt-6">
+        <div className="border-t border-border/25 pt-6">
           <div className="mb-3 text-xs font-bold tracking-wide text-muted uppercase">
             {t("performanceInfo.scheduleGroupLabel", "일정")}
           </div>
@@ -1206,7 +1206,7 @@ function EventBasicsFields({
           </div>
         </div>
 
-        <div className="border-t border-border/15 pt-6">
+        <div className="border-t border-border/25 pt-6">
           <div className="mb-3 text-xs font-bold tracking-wide text-muted uppercase">
             {t("performanceInfo.spaceConfigGroupLabel", "공간 구성")}
           </div>

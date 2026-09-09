@@ -265,7 +265,7 @@ function AudienceFields({
           </div>
           <div className="space-y-2">
             {ticketTypes.map((row, i) => (
-              <div key={i} className="grid grid-cols-3 gap-1.5 border-b border-border/15 py-2">
+              <div key={i} className="grid grid-cols-3 gap-1.5 border-b border-border/25 py-2">
                 <input
                   value={row.label}
                   placeholder={tStr("audience.ticketTypeLabelPlaceholder", "예: R석, VIP석")}

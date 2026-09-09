@@ -205,7 +205,7 @@ function SectionBox({
             return (
               <div
                 key={item.addonId}
-                className={`grid ${COLS} items-baseline gap-4 border-b border-border/15 ${rowPad}`}
+                className={`grid ${COLS} items-baseline gap-4 border-b border-border/25 ${rowPad}`}
               >
                 <dt className="text-s font-bold text-foreground">{main}</dt>
                 <dd className="text-xs text-muted">{detail}</dd>

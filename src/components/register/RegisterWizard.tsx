@@ -151,7 +151,7 @@ function PlaceSearch({
       </span>
 
       {places && places.length > 0 ? (
-        <ul className="mt-2 max-h-56 divide-y divide-border/40 overflow-y-auto border border-border-soft">
+        <ul className="mt-2 max-h-56 divide-y divide-border/25 overflow-y-auto border border-border-soft">
           {places.map((p, i) => (
             <li key={`${p.name}-${i}`}>
               <button
@@ -1361,7 +1361,7 @@ function StepInfo({
 
       {/* 기업 정보와 개인 정보 사이를 선으로 끊는다 — 칸이 계속 이어져 어디까지가 회사
           이야기인지 한눈에 안 잡혔다. 구분선은 관리자 폼과 같은 border/15 를 쓴다. */}
-      <h3 className="mt-10 border-t border-border/15 pt-8 text-s font-bold">② 개인 정보</h3>
+      <h3 className="mt-10 border-t border-border/25 pt-8 text-s font-bold">② 개인 정보</h3>
       <p className="mt-1 break-keep text-xs text-muted">
         이름 · 휴대폰번호는 본인인증 결과가 그대로 들어가며 수정할 수 없습니다.
       </p>

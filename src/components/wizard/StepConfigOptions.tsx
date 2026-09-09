@@ -167,7 +167,7 @@ function MidHallOptionsBox({
           />
         ))}
       </div>
-      <div className="mt-4 flex items-center justify-between border-t border-border/40 pt-4 text-s font-bold">
+      <div className="mt-4 flex items-center justify-between border-t border-border pt-4 text-s font-bold">
         <span>{t("configOptions.selectedOptionsHeading", "선택 옵션")}</span>
         <span className="tabular-nums">
           {selectedCount}
@@ -254,7 +254,7 @@ function MidHallRateCard({
           <p className="mt-1.5 text-xs leading-6 text-muted">
             {t("configOptions.basicItemsHint", "대관료에 이미 포함된 기본 제공 사항입니다.")}
           </p>
-          <div className="mt-4 border border-border/30 bg-panel/40 px-4 py-3">
+          <div className="mt-4 border border-border-soft bg-panel/40 px-4 py-3">
             <span className="bg-foreground px-2 py-0.5 text-xs font-bold text-background">
               {t("configOptions.basicIncludedBadge", "기본 포함")}
             </span>
@@ -572,7 +572,7 @@ function PackagePicker({
       </div>
 
       {selectedId != null && (
-        <div className="mt-4 border border-border/30 bg-panel/40 px-4 py-3">
+        <div className="mt-4 border border-border-soft bg-panel/40 px-4 py-3">
           <span className="bg-foreground px-2 py-0.5 text-xs font-bold text-background">
             {t("configOptions.baseIncludedBadge", "기본 포함")}
           </span>
@@ -766,7 +766,7 @@ export function StepConfigOptions({
               />
             ))}
           </div>
-          <div className="mt-4 flex items-center justify-between border-t border-border/40 pt-4 text-s font-bold">
+          <div className="mt-4 flex items-center justify-between border-t border-border pt-4 text-s font-bold">
             <span>{t("configOptions.selectedOptionsHeading", "선택 옵션")}</span>
             <span className="tabular-nums">
               {selectedOptionCount}

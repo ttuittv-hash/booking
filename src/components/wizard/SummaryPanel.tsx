@@ -138,7 +138,7 @@ export function SummaryPanel({ quote }: { quote: EstimatedQuote }) {
         </h3>
 
         {visibleItems.length === 0 ? (
-          <div className="mt-5 border-t border-border/25 border-b border-border/15 py-4 text-s text-muted">
+          <div className="mt-5 border-y border-border/25 py-4 text-s text-muted">
             공간과 일정을 선택하면 예상 금액이 표시됩니다.
           </div>
         ) : (
@@ -277,7 +277,7 @@ export function QuoteSectionBox({
           {sectionItems.map((item) => (
             <div
               key={item.addonId}
-              className="flex items-baseline justify-between gap-4 border-b border-border/15 py-2.5"
+              className="flex items-baseline justify-between gap-4 border-b border-border/25 py-2.5"
             >
               <dt className="text-s text-muted">
                 {summaryPanelLineLabel(item)}
@@ -312,7 +312,7 @@ export function QuoteSectionBox({
         같은 굵기로는 "항목 나열"과 "합계 요약"이 한 덩어리로 보인다.
         여기부터는 굵은 실선(border-foreground)으로 갈라 위계를 준다. */}
       <dl className="mt-3 border-t-2 border-foreground pt-0.5">
-        <div className="flex items-baseline justify-between gap-4 border-b border-border/15 py-2">
+        <div className="flex items-baseline justify-between gap-4 border-b border-border/25 py-2">
           <dt className="text-xs text-muted">
             소계 (VAT 별도)
           </dt>
@@ -320,7 +320,7 @@ export function QuoteSectionBox({
             {won(subtotal)}
           </dd>
         </div>
-        <div className="flex items-baseline justify-between gap-4 border-b border-border/15 py-2">
+        <div className="flex items-baseline justify-between gap-4 border-b border-border/25 py-2">
           <dt className="text-xs text-muted">
             부가세 {vatPct}%
           </dt>

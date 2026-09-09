@@ -1569,7 +1569,7 @@ const STAGE_GROUPS: StageGroup[] = [
                 label="리드 문구"
               />
               <div>
-                <span className="mb-3 inline-flex items-center border border-border/40 bg-panel px-2 py-0.5 text-xs font-bold text-muted">
+                <span className="mb-3 inline-flex items-center border border-border-soft bg-panel px-2 py-0.5 text-xs font-bold text-muted">
                   새 신청 시
                 </span>
                 <LivePreview>
@@ -1595,7 +1595,7 @@ const STAGE_GROUPS: StageGroup[] = [
                 </LivePreview>
               </div>
               <div className="border-t border-dashed border-border-soft pt-8">
-                <span className="mb-3 inline-flex items-center border border-border/40 bg-panel px-2 py-0.5 text-xs font-bold text-muted">
+                <span className="mb-3 inline-flex items-center border border-border-soft bg-panel px-2 py-0.5 text-xs font-bold text-muted">
                   신청서 수정 중일 때
                 </span>
                 <LivePreview>

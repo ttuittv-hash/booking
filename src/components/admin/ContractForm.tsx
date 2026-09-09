@@ -100,7 +100,7 @@ export function ContractForm({ quoteId, baseTotal }: { quoteId: string; baseTota
         </button>
       </div>
 
-      <div className="mt-6 grid grid-cols-1 items-center gap-3 border-t border-border/15 pt-5 sm:grid-cols-[1fr_140px]">
+      <div className="mt-6 grid grid-cols-1 items-center gap-3 border-t border-border/25 pt-5 sm:grid-cols-[1fr_140px]">
         <div>
           <div className="text-s font-bold">계약금 비율</div>
           <div className={HELP}>계약금액 대비 계약금 비율 (계좌이체 확인 방식)</div>
@@ -118,7 +118,7 @@ export function ContractForm({ quoteId, baseTotal }: { quoteId: string; baseTota
         </div>
       </div>
 
-      <div className="mt-5 flex flex-col gap-4 border-t border-border/15 pt-5 sm:flex-row sm:items-end sm:justify-between">
+      <div className="mt-5 flex flex-col gap-4 border-t border-border/25 pt-5 sm:flex-row sm:items-end sm:justify-between">
         <div>
           <div className={HELP}>계약금액 (신청 예상금액 {won(baseTotal)} ± 조정)</div>
           <div className="type-display mt-1 text-h5-m tabular-nums sm:text-h5">{won(contractTotal)}</div>

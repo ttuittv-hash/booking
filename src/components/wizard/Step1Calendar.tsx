@@ -619,7 +619,7 @@ export function Step1Calendar({
                 // 그 위에 겹쳐 보인다(불투명 배경 + 그림자로 덮여 있다는 걸 보여준다).
                 <div className="absolute inset-x-0 top-full z-20 mt-1.5 grid grid-cols-7 gap-1 sm:gap-1.5">
                   <div
-                    className="border border-border/40 bg-surface px-3 py-2.5 shadow-lg"
+                    className="border border-border-soft bg-surface px-3 py-2.5 shadow-lg"
                     style={{
                       gridColumn: (() => {
                         const dayCol =

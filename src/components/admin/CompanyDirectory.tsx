@@ -117,7 +117,7 @@ export function CompanyDirectory({
         <div className={TABLE_SCROLL}>
           <table className={TABLE}>
             <thead>
-              <tr className="border-b border-border/20 text-xs text-muted">
+              <tr className="border-b border-border/25 text-xs text-muted">
                 <th className="px-4 py-2.5 text-left">회사명</th>
                 <th className="px-4 py-2.5 text-left">사업자등록번호</th>
                 <th className="px-4 py-2.5 text-left">대표 담당자</th>
@@ -162,7 +162,7 @@ function CompanyRow({ company }: { company: Company }) {
   return (
     <tr
       onClick={() => router.push(`/admin/companies/${company.id}`)}
-      className="cursor-pointer border-b border-border/15 transition-colors hover:bg-foreground/[0.03]"
+      className="cursor-pointer border-b border-border/25 transition-colors hover:bg-foreground/[0.03]"
     >
       <td className="px-4 py-3">
         <span className="flex items-center gap-2">
