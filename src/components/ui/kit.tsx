@@ -759,15 +759,13 @@ export function Row({
 }) {
   const inner = (
     // 좁은 화면에서는 좌측 블록 아래로 메타·액션이 내려간다 (Stacked List 모바일)
-    <div className="flex flex-col gap-3 py-5 sm:flex-row sm:items-center sm:gap-8 sm:py-6">
+    <div className="flex flex-col gap-3 px-4 py-5 sm:flex-row sm:items-center sm:gap-8 sm:py-6">
       <div className="flex min-w-0 flex-1 flex-col gap-1 sm:flex-row sm:items-center sm:gap-8">
         {lead && (
           <span className="shrink-0 text-xs tabular-nums text-muted sm:w-24">{lead}</span>
         )}
         <span className="min-w-0">
-          <span className="type-kr-heading block break-keep text-h6-m transition-colors group-hover:text-muted sm:text-h6">
-            {title}
-          </span>
+          <span className="type-kr-heading block break-keep text-h6-m sm:text-h6">{title}</span>
           {sub && <span className="mt-1 block break-keep text-s text-muted">{sub}</span>}
         </span>
       </div>
@@ -780,16 +778,15 @@ export function Row({
     </div>
   );
   /*
-    [개정 2026-09-10] 행 호버는 **면을 깔지 않고 제목 글자색으로** 말한다.
-    옅은 면(`hover:bg-foreground/[0.04]`)을 쓰던 동안, 행에 좌우 패딩이 없어 하이라이트
-    경계가 날짜·태그 글자 끝과 맞닿아 겹쳐 보였다. 패딩을 넣어 피하면 행 내용의 좌우 축이
-    지면 그리드에서 밀려나고(제목이 위 섹션 제목과 안 맞는다), 면을 지면 폭까지 넓히면
-    Band 밖으로 나가야 한다. 글자색은 축을 건드리지 않으면서 어느 행인지 짚어 준다.
+    [개정 2026-09-10] 행 호버는 **옅은 색면**이고, 행 내용에 **좌우 패딩 16** 을 둔다.
+    패딩 없이 색면만 깔던 동안 하이라이트 경계가 날짜·태그 글자 끝과 맞닿아 겹쳐 보였다.
+    FAQ 아코디언과 같은 처리다 — 색면을 쓰는 목록은 내용을 그만큼 안으로 들인다.
+    (헤어라인은 li 에 있어 패딩과 무관하게 목록 전체 폭을 지킨다.)
   */
   return (
     <li className="border-b border-border">
       {href ? (
-        <Link href={href} className="group block">
+        <Link href={href} className="group block transition-colors hover:bg-foreground/[0.04]">
           {inner}
         </Link>
       ) : (
