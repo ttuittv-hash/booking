@@ -7,6 +7,7 @@ import type { BookItNoticeTexts } from "@/lib/content/pageContent";
 import { accountStateOf, canAccess } from "@/lib/accessPolicy";
 import { LogoutButton } from "@/components/LogoutButton";
 import { NotificationBell } from "@/components/NotificationBell";
+import { ArrowRight } from "@/components/ui/kit";
 import {
   ACCOUNT_HREF,
   NAV_ACTION,
@@ -552,13 +553,17 @@ export function PublicHeaderNav({
                   {/* [수정 2026-09-02] 상단바와 같은 결로 — 검정 채움을 빼고 텍스트로 둔다.
                       [수정 2026-09-10] 가운데 정렬을 뺀다 — 좁은 화면 메뉴는 워드마크·묶음
                       제목·페이지 링크가 모두 지면 왼쪽 축에 서 있는데 이것만 가운데에 떠
-                      메뉴에 속하지 않은 것처럼 보였다. 「오픈 예정」 안내도 같이 맞춘다. */}
+                      메뉴에 속하지 않은 것처럼 보였다. 「오픈 예정」 안내도 같이 맞춘다.
+                      화살표는 이 줄이 **다른 곳으로 보내는 액션**임을 말한다 — 위 묶음
+                      제목과 글자 결이 같아(둘 다 Archivo 올캡스) 표시가 없으면 제목처럼
+                      읽힌다. 「오픈 예정」 갈래에는 붙이지 않는다(갈 곳이 없다). */}
                   <Link
                     href={NAV_ACTION.href}
                     onClick={() => setMobileOpen(false)}
-                    className="flex h-12 items-center type-display text-nav text-foreground"
+                    className="flex h-12 items-center gap-2 type-display text-nav text-foreground"
                   >
                     {NAV_ACTION.label}
+                    <ArrowRight />
                   </Link>
                 </li>
               ) : null}
