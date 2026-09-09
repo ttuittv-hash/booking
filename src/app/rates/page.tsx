@@ -229,7 +229,8 @@ function RatePanel({ en, c }: { en: string; c: VenueRateContent }) {
       {/* 섹션 1 — 기본 대관 패키지 */}
       <Band tone="light" size="lg">
         <PageHead en={en} lead={<Prose text={c.intro} gap="mt-3" />} />
-        <div className="mt-14">
+        {/* 머리글 → 본문은 40 이다 (§밴드 리듬) — 56 을 쓰던 자리 */}
+        <div className="mt-10">
           <SectionHead
             title={rateSectionTitle(c, "packages")}
             // [삭제 2026-09-02] "금액은 부가세 별도" 는 뺐다 — 같은 화면 아래 유의사항에

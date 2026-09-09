@@ -268,8 +268,9 @@ function VenuePanel({
       */}
       {darkSections.length > 0 && (
         <Band tone="dark">
+          {/* 여백만으로 가르는 섹션 사이는 48 이다 (§밴드 리듬) — 64/80 을 쓰던 자리 */}
           {darkSections.map((g, i) => (
-            <section key={`${g.title}-${i}`} className={i > 0 ? "mt-16 sm:mt-20" : ""}>
+            <section key={`${g.title}-${i}`} className={i > 0 ? "mt-12" : ""}>
               <SectionHead title={g.title} />
               <SpecCardGrid cards={g.cards} />
             </section>
