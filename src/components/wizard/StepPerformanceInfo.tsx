@@ -584,7 +584,7 @@ function ApplicantDetailsFields({
 
         <div data-field-key="performanceInfo.applicantContact">
           <div className="mb-2.5 flex items-center justify-between">
-            <label className="text-xs font-bold text-muted">
+            <label className="type-kr-heading text-s text-foreground">
               {t("performanceInfo.contactPersonsLabel", "담당자 정보")}
             </label>
             <button type="button" onClick={addContactPerson} className={toggleClass(false)}>
@@ -603,7 +603,7 @@ function ApplicantDetailsFields({
           )}
           <div className="space-y-2">
             {contactPersons.map((row, i) => (
-              <div key={i} className="flex items-center gap-1.5 border-b border-border/25 py-2">
+              <div key={i} className="flex items-center gap-1.5 py-2">
                 <div
                   className="grid flex-1 gap-1.5"
                   style={{ gridTemplateColumns: `repeat(${visibleContactColumns.length}, 1fr)` }}
@@ -636,7 +636,7 @@ function ApplicantDetailsFields({
 
       <div className="mt-6">
         <div className="mb-2.5 flex items-center justify-between">
-          <label className="text-xs font-bold text-muted">
+          <label className="type-kr-heading text-s text-foreground">
             {t("performanceInfo.pastPerformancesLabel", "대관사 최근 3년간 공연 실적")}
           </label>
           <button
@@ -654,7 +654,7 @@ function ApplicantDetailsFields({
         )}
         <div className="space-y-2">
           {info.pastPerformances.map((row, i) => (
-            <div key={i} className="grid grid-cols-5 gap-1.5 border-b border-border/25 py-2">
+            <div key={i} className="grid grid-cols-5 gap-1.5 py-2">
               <input
                 value={row.eventName}
                 placeholder={tStr("performanceInfo.pastEventNamePlaceholder", "공연명")}
@@ -870,7 +870,7 @@ function EventBasicsFields({
                 관리자 화면과의 하위호환을 유지한다(deriveOrganizerSummary). */}
             <div>
               <div className="mb-2.5 flex items-center justify-between">
-                <label className="text-xs font-bold text-muted">
+                <label className="type-kr-heading text-s text-foreground">
                   {t("performanceInfo.organizerLabel", "주최 · 주관 · 기획")}
                 </label>
                 <button type="button" onClick={addOrganizer} className={toggleClass(false)}>
@@ -879,7 +879,7 @@ function EventBasicsFields({
               </div>
               <div className="space-y-2">
                 {organizers.map((row, i) => (
-                  <div key={i} className="flex items-center gap-1.5 border-b border-border/25 py-2">
+                  <div key={i} className="flex items-center gap-1.5 py-2">
                     <select
                       value={row.role}
                       onChange={(e) => updateOrganizer(i, { role: e.target.value as OrganizerRole })}
@@ -929,7 +929,7 @@ function EventBasicsFields({
 
           <div>
             <div className="mb-2.5 flex items-center justify-between">
-              <label className="text-xs font-bold text-muted">
+              <label className="type-kr-heading text-s text-foreground">
                 {t("performanceInfo.artistMainHistoryLabel", "① 아티스트 주요 이력")}
               </label>
               <button type="button" onClick={addArtistMainHistory} className={toggleClass(false)}>
@@ -944,7 +944,7 @@ function EventBasicsFields({
             </p>
             <div className="space-y-2">
               {artistMainHistory.map((row, i) => (
-                <div key={i} className="grid grid-cols-5 gap-1.5 border-b border-border/25 py-2">
+                <div key={i} className="grid grid-cols-5 gap-1.5 py-2">
                   <input
                     value={row.artistName}
                     placeholder={tStr("performanceInfo.artistNamePlaceholder", "아티스트명")}
@@ -986,7 +986,7 @@ function EventBasicsFields({
 
           <div className="mt-5">
             <div className="mb-2.5 flex items-center justify-between">
-              <label className="text-xs font-bold text-muted">
+              <label className="type-kr-heading text-s text-foreground">
                 {t("performanceInfo.artistRecentPerformancesLabel", "② 최근 공연 이력 — 최대 3~5건")}
               </label>
               <button type="button" onClick={addArtistRecentPerformance} className={toggleClass(false)}>
@@ -1001,7 +1001,7 @@ function EventBasicsFields({
             </p>
             <div className="space-y-2">
               {artistRecentPerformances.map((row, i) => (
-                <div key={i} className="space-y-1.5 border-b border-border/25 py-2">
+                <div key={i} className="space-y-1.5 py-2">
                   <div className="grid grid-cols-4 gap-1.5">
                     <input
                       value={row.eventName}

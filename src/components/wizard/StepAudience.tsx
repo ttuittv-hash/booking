@@ -258,14 +258,14 @@ function AudienceFields({
             ("예상 판매율은 티켓등급별이 아니라 전체 티켓 예상 판매율 기입란으로"). */}
         <div>
           <div className="mb-2.5 flex items-center justify-between">
-            <label className="text-xs font-bold text-muted">{t("audience.ticketTypesLabel", "티켓 유형별 가격")}</label>
+            <label className="type-kr-heading text-s text-foreground">{t("audience.ticketTypesLabel", "티켓 유형별 가격")}</label>
             <button type="button" onClick={addTicketType} className={toggleClass(false)}>
               {t("audience.addTicketTypeButton", "＋ 행 추가")}
             </button>
           </div>
           <div className="space-y-2">
             {ticketTypes.map((row, i) => (
-              <div key={i} className="grid grid-cols-3 gap-1.5 border-b border-border/25 py-2">
+              <div key={i} className="grid grid-cols-3 gap-1.5 py-2">
                 <input
                   value={row.label}
                   placeholder={tStr("audience.ticketTypeLabelPlaceholder", "예: R석, VIP석")}

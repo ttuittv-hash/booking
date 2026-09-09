@@ -67,7 +67,7 @@ export function PromotionChannelsFields({
   return (
     // [수정 2026-09-08] "프로모션 채널 위에 줄 굵은줄로" — StepAudience(신청자 정보 및
     // 규모) 하위로 옮긴 뒤 얇은 선(border/25)만 남아 위 슬롯과 경계가 약했다. 다른
-    // 슬롯 경계와 같은 굵은 줄(border-t-2 border-foreground)로 맞춘다.
+    // 다른 슬롯과 같은 흰 컨테이너로 맞춘다(§신청 위저드).
     <div className="mt-6 bg-panel p-5">
       <div className="mb-2.5 flex items-center justify-between">
         <h3 className="type-kr-heading text-h6-m">{t("marketing.channelsHeading", "프로모션 채널(선택)")}</h3>
@@ -85,7 +85,8 @@ export function PromotionChannelsFields({
         {info.channels.map((row, i) => (
           <div
             key={i}
-            className="grid grid-cols-1 gap-1.5 border-b border-border/25 py-2 sm:grid-cols-[1fr_2fr_1fr_auto]"
+            /* 항목 사이에 선을 긋지 않는다(§1) — 한 줄이 곧 한 항목이고 입력칸이 이미 경계다 */
+            className="grid grid-cols-1 gap-1.5 py-2 sm:grid-cols-[1fr_2fr_1fr_auto]"
           >
             <input
               value={row.platform}
