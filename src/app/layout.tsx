@@ -43,6 +43,11 @@ export const metadata: Metadata = {
   // 인증이 끝나도 태그는 그대로 둔다 — 지우면 소유 확인이 풀린다.
   verification: {
     google: "ttu09R0BbgByMfIz2qufrwHrzukLLytmmixYbgquqO8",
+    // 네이버 서치어드바이저 — DNS 인증 방식이 없어 HTML 메타 태그로만 소유 확인이 된다(팀, 2026-09-09).
+    // Metadata 타입에 naver 전용 칸이 없어 other 로 그린다(<meta name="naver-site-verification">).
+    other: {
+      "naver-site-verification": "6f03d06e1512cf6bfeb3090ae3f2166a2260c08b",
+    },
   },
 };
 
