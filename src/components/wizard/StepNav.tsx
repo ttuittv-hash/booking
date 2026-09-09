@@ -69,6 +69,33 @@ function buildStageGroups(tStr: (key: string, fallback: string) => string): Stag
 }
 
 /**
+ * 요약 패널(사이드바)을 **단계 바 아래 선에 맞추는** 오프셋.
+ *
+ * 단계 바는 본문 칼럼 **안**에 있어야 sticky 가 작동한다 — 그리드의 한 줄로 올리면
+ * 그 행 높이가 곧 자기 높이라 이동 범위가 0 이 되어 스크롤해도 붙지 않는다. 그래서
+ * 사이드바를 이만큼 내려 윗변을 맞춘다(스크롤 전에도 두 축이 한 줄에서 시작한다).
+ *
+ * 값은 **단계 바 자체의 높이**다 — 아래 여백(`mb-10`)은 본문이 내려가는 몫이므로
+ * 여기 더하지 않는다(더했다가 사이드바가 40 더 내려가 어긋났다).
+ *
+ *   상위 줄만    ol h-12(48) + border-b(1)                        = 49
+ *   하위 줄까지  48 + pt-5(20) + h-8(32) + pb-3(12) + border-b(1) = 113
+ */
+export const STEP_NAV_OFFSET = { single: "lg:mt-[49px]", grouped: "lg:mt-[113px]" } as const;
+
+/** 하위 단계가 둘 이상인 그룹의 첫 step — 03 기본 정보(3~7) · 04 신청서 제출(8~9) */
+export const SUB_ROW_FROM_STEP = 3;
+
+/** 하위 단계 사이의 셰브런 — 이것들이 나란한 버튼이 아니라 순서라는 표시 */
+function Chevron() {
+  return (
+    <svg aria-hidden viewBox="0 0 16 16" fill="none" className="h-3 w-3 shrink-0 text-muted">
+      <path d="M6 3l5 5-5 5" stroke="currentColor" strokeWidth="1.6" strokeLinecap="square" />
+    </svg>
+  );
+}
+
+/**
  * 스텝 인디케이터 — Figma MARKETING COMPONENTS › **Multi-step Forms › Multi Form / 5**.
  *
  *   원형 번호 칩(24px) + 스텝 제목(14px)이 한 줄로, 가운데 정렬.
@@ -80,15 +107,6 @@ function buildStageGroups(tStr: (key: string, fallback: string) => string): Stag
  * 다시 만들지 않기 위해, 음수 마진으로 그리드 트랙 밖으로 빼지 않고 컬럼 안에서
  * w-full + overflow-x-auto 로만 처리한다. (콘텐츠가 트랙 폭을 늘리면 안 된다)
  */
-/** 하위 단계 사이의 셰브런 — 이것들이 나란한 버튼이 아니라 순서라는 표시 */
-function Chevron() {
-  return (
-    <svg aria-hidden viewBox="0 0 16 16" fill="none" className="h-3 w-3 shrink-0 text-muted">
-      <path d="M6 3l5 5-5 5" stroke="currentColor" strokeWidth="1.6" strokeLinecap="square" />
-    </svg>
-  );
-}
-
 export function StepNav({
   step,
   maxUnlockedStep,

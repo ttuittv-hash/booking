@@ -57,7 +57,14 @@ const SECTION_ORDER: ContractSection[] = ["CONTRACT", "ADDITIONAL"];
  * 박스만 보여준다(구성·옵션 STEP의 아레나/중형 탭과 같은 문법). 맨 아래
  * "총금액(예상)"은 탭과 무관하게 항상 전체 공간 합계로 고정한다.
  */
-export function SummaryPanel({ quote }: { quote: EstimatedQuote }) {
+export function SummaryPanel({
+  quote,
+  /** 단계 바 아래 선에 윗변을 맞추는 오프셋 — `STEP_NAV_OFFSET` 참고 */
+  offsetClass = "",
+}: {
+  quote: EstimatedQuote;
+  offsetClass?: string;
+}) {
   // Bowl 사용료·유틸리티(HIDDEN)와 청소비는 합계에는 포함하되 신청자 화면에는 항목·금액을
   // 노출하지 않는다 — quote.subtotal/total 은 전체 lineItems 기준으로 이미 계산돼 있어
   // 여기서 걸러내도 총액에는 영향이 없다. 무엇을 감출지는 lineItemGroups 한 곳에서 정한다.
@@ -131,7 +138,7 @@ export function SummaryPanel({ quote }: { quote: EstimatedQuote }) {
       : "총금액(예상)";
 
   return (
-    <aside className="w-full min-w-0 lg:col-span-3 lg:sticky lg:top-28 lg:self-start">
+    <aside className={`w-full min-w-0 lg:col-span-3 lg:sticky lg:top-28 lg:self-start ${offsetClass}`}>
       <div className="border-t-2 border-foreground pt-5">
         <h3 className="type-kr-heading text-h6-m sm:text-h6">
           실시간 대관신청 내역
@@ -256,7 +263,9 @@ export function QuoteSectionBox({
         면은 지면과 같은 오프화이트로 두어 사이드바가 지면에서 떠 보이지 않게 한다.
         보고서 모드(예상 대관료 화면)는 여러 박스가 한 지면에 나열되므로 옅은 선을 쓴다.
       */
-      className={report ? "mt-4 border border-border/25 bg-surface p-4" : "mt-4 bg-panel p-4"}
+      className={
+        report ? "mt-4 border border-border/25 bg-surface p-4" : "mt-4 border border-border-soft p-4"
+      }
     >
       <div className="flex items-center justify-between gap-2">
         <p className="text-xs font-bold text-foreground">

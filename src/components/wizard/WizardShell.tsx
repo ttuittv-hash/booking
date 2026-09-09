@@ -42,6 +42,7 @@ import { ArrowRight, btnClass } from "@/components/ui/kit";
 import { StepNav } from "./StepNav";
 import { StepHeading } from "./StepHeading";
 import { SummaryPanel } from "./SummaryPanel";
+import { STEP_NAV_OFFSET, SUB_ROW_FROM_STEP } from "./StepNav";
 import { VenuePicker } from "./VenuePicker";
 import { Step1Calendar } from "./Step1Calendar";
 import { MidHallCalendar } from "./MidHallCalendar";
@@ -1515,6 +1516,7 @@ export function WizardShell({
 
       {step !== 8 && (
         <SummaryPanel
+          offsetClass={step >= SUB_ROW_FROM_STEP ? STEP_NAV_OFFSET.grouped : STEP_NAV_OFFSET.single}
           quote={summaryQuote}
           /*
             요약 패널은 **실시간 대관신청 내역**이다(2026-08-26 개칭) — 대관료·항목·합계를 함께 보여준다.
