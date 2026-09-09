@@ -481,6 +481,16 @@ export const FILE_INPUT =
   "field-base file:mr-3 file:my-[3px] file:inline-flex file:h-8 file:items-center file:border file:border-foreground file:bg-transparent file:px-4 file:text-xs file:font-bold file:text-foreground";
 
 /** 아이콘 버튼(±, ‹ ›) — 토글과 같은 32 높이의 정사각형 */
+/**
+ * 반복 행의 삭제 — 오른쪽 끝의 **✕** 하나다.
+ *
+ * 「삭제」 텍스트 버튼으로 두던 동안 행마다 네모 버튼이 하나씩 서서, 목록이 입력 줄이
+ * 아니라 **버튼 줄**처럼 읽혔다. 네모는 실행이고 이 자리는 한 줄을 걷어내는 보조 동작이라
+ * 아이콘이 맞다. 스크린리더용 이름은 `aria-label` 로 남긴다.
+ */
+export const ROW_REMOVE_BTN =
+  "flex h-10 w-10 shrink-0 cursor-pointer items-center justify-center text-muted transition-colors hover:text-danger";
+
 export const ICON_BTN_SM =
   "inline-flex h-8 w-8 shrink-0 items-center justify-center border border-border-soft text-s text-muted transition-colors hover:border-foreground hover:text-foreground disabled:cursor-not-allowed disabled:opacity-40";
 

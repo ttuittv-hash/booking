@@ -249,10 +249,13 @@ export function QuoteSectionBox({
   const report = tone === "report";
   return (
     <div
-      className={[
-        report ? "mt-4 border border-border/25 bg-surface p-4" : "mt-4 border-2 bg-surface p-4",
-        report ? "" : isContract ? "border-accent" : "border-muted-strong/40",
-      ].join(" ")}
+      /*
+        [개정 2026-09-09] 사이드바에서는 **테두리 없이 흰 면**이다 — 지면(오프화이트)
+        위에 떠 있는 카드다. 대관료는 옐로 2px, 추후 정산은 회색 2px 테두리로 갈랐지만
+        안쪽 합계 줄이 이미 옐로·검정으로 구분을 맡고 있어 테두리는 겹치는 신호였다.
+        보고서 모드(예상 대관료 화면)는 여러 박스가 한 지면에 나열되므로 그대로 둔다.
+      */
+      className={report ? "mt-4 border border-border/25 bg-surface p-4" : "mt-4 bg-panel p-4"}
     >
       <div className="flex items-center justify-between gap-2">
         <p className="text-xs font-bold text-foreground">
@@ -260,13 +263,11 @@ export function QuoteSectionBox({
         </p>
         {/* [부활 2026-09-08] "계약시 결제 노랑색... 변동가능 회색 글씨 좋았어" */}
         <span
+          /* 테두리를 두지 않는다 — 면 색만으로 충분하고, 10px 글자에 테두리까지 두르면
+             배지가 두 겹으로 보인다 */
           className={[
-            "shrink-0 border px-2 py-0.5 text-[10px] font-bold whitespace-nowrap",
-            report
-              ? "border-border-soft bg-panel-strong text-muted"
-              : isContract
-                ? "border-accent bg-accent-soft text-foreground"
-                : "border-border-soft bg-panel-strong text-muted",
+            "shrink-0 px-2 py-0.5 text-[10px] font-bold whitespace-nowrap",
+            isContract && !report ? "bg-accent-soft text-foreground" : "bg-panel-strong text-muted",
           ].join(" ")}
         >
           {SECTION_TAG[section]}

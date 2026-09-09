@@ -1,6 +1,6 @@
 "use client";
 
-import { CHOICE_SELECTED_VARS, toggleClass } from "@/components/ui/kit";
+import { CHOICE_SELECTED_VARS, toggleClass, ROW_REMOVE_BTN } from "@/components/ui/kit";
 
 import { useState, type ReactNode } from "react";
 import { defaultDayTags, effectiveDayTag } from "@/lib/pricing/rateTableUtils";
@@ -288,9 +288,9 @@ function AudienceFields({
                     type="button"
                     onClick={() => removeTicketType(i)}
                     aria-label={tStr("audience.removeTicketTypeAriaLabel", "삭제")}
-                    className={toggleClass(false)}
+                    className={ROW_REMOVE_BTN}
                   >
-                    {t("audience.removeTicketTypeButton", "삭제")}
+                    ✕
                   </button>
                 </div>
               </div>
