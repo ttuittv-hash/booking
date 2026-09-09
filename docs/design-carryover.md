@@ -120,9 +120,9 @@
 | G14 | 안내 상자 | 접수 안내·반려 사유·초대 링크·오류를 **한 종류**로 — 흰 면·테두리 없음, 종류는 **글자 색으로만**(오류 `text-danger`). 테두리 색으로 종류를 나누지 않는다 | `design-system.md` §4 |
 | G15 | 선택 표현 | **선택 = 검정 채움.** 옐로 하이라이트·컬러 바·배지 같은 다른 언어를 만들지 않는다 | `design-system.md` §0 |
 | G16 | 컨트롤 단일 출처 | 버튼·컨트롤은 `btnClass`/`toggleClass`/`choiceClass` **로만** 만든다 | `design-system.md` §0 |
-| G17 | 표 컴포넌트 | `ComparisonTable`(모든 수치·데이터 표의 표준) · `SpecTable` · `GroupedSpecTable`(묶음 있는 라벨/값, `SpecTable` 과 값 열이 같은 세로선에 떨어져 위아래로 놓을 수 있다) · `SplitSection`. **현재 코드에 이 넷이 전부 없다** — `design-system.md` 표에는 남아 있어 문서와 코드가 어긋난 상태다 | `kit.tsx` |
+| G17 | 표 컴포넌트 | `ComparisonTable`(모든 수치·데이터 표의 표준) · `GroupedSpecTable`(묶음 있는 라벨/값, `SpecTable` 과 값 열이 같은 세로선에 떨어져 위아래로 놓을 수 있다) · `SplitSection`. **이 셋이 현재 코드에 없다** — `design-system.md` 표에는 남아 있어 문서와 코드가 어긋난 상태다. `SpecTable` 은 있다(`kit.tsx` 502행) | `kit.tsx` |
 | G18 | kit 보조 | `EYEBROW_CAPS` · `INVERSE_SURFACE_VARS` · `headingFontClass`(영문 Archivo / 국문 KakaoBig 자동 전환) · `InlineLinks` · `Label` · `RemoveIcon` | `kit.tsx` |
-| G19 | 레이아웃 모듈 정리 | 디자인 브랜치는 `LayoutCards`~`LayoutSticky`(Layout 1~7) · `PageHeading` · `CenterHeading` 을 **정리해 없앴다**(모듈이 겹쳐 같은 화면을 두 갈래로 만들었다). 현재는 `PageHeading` 이 남아 있다 | `kit.tsx` |
+| G19 | 레이아웃 모듈 정리 | 디자인 브랜치는 `LayoutCards`~`LayoutSticky`(Layout 1~7) · `PageHeading` · `CenterHeading` 을 **정리해 없앴다**(모듈이 겹쳐 같은 화면을 두 갈래로 만들었다). 현재 코드에도 `Layout*` 과 `CenterHeading` 은 **없다** — 남은 것은 `PageHeading` 뿐이다. 다만 `design-system.md` §4 표는 아직 일곱 모듈을 표준으로 적고 있다(문서만 앞서 있음) | `kit.tsx` |
 | G20 | 파일 선택 | `FilePicker` 컴포넌트(152줄). 현재 없다 | `src/components/ui/FilePicker.tsx` |
 | G21 | 스크롤 텍스트 | `ScrollFillText` — 스크롤에 따라 글자가 채워지는 효과. 현재 없다 | `src/components/ScrollFillText.tsx` |
 | G22 | 푸터 소셜 | 소셜을 **아이콘 대신 이름 텍스트**로. 아이콘 세 개가 나란히 서면 주소·연락처와 다른 종류의 덩어리로 보여 왼쪽 열이 두 겹으로 읽혔다. **링크가 없는 채널(YouTube)은 싣지 않는다** — 눌러야 없다는 걸 아는 링크는 고장으로 보인다. 현재는 브랜드 아이콘 SVG 3종 | `SiteFooter.tsx` |
