@@ -204,6 +204,8 @@ export default async function NoticeDetailPage({
           <div className={NOTICE_COLUMN}>
             <PageHeading
               size="md"
+              /* 폭 상한을 풀어 제목·가로선이 아래 본문 칼럼과 같은 폭에서 끝나게 한다 */
+              width="full"
               title={notice.title}
               lead={
                 /* 보고서 표지처럼 — 제목 아래 굵은 선 하나로 머리와 본문을 가른다.

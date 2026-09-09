@@ -408,12 +408,23 @@ export function PageHeading({
   actions,
   as: As = "h1",
   size = "lg",
+  width = "measure",
 }: {
   title: ReactNode;
   lead?: ReactNode;
   actions?: ReactNode;
   as?: "h1" | "h2";
   size?: "lg" | "md";
+  /**
+   * 머리 블록의 폭. 기본값 `measure` 는 읽기 좋은 폭(48rem)으로 묶는다 — 리드가
+   * 여러 줄 문장일 때 줄이 너무 길어지지 않게 하는 상한이다.
+   *
+   * [신규 2026-09-10] `full` 은 그 상한을 풀어 **바깥 칼럼 폭을 그대로** 쓴다.
+   * 공지 상세처럼 이미 칼럼(본문 3/4)으로 폭이 정해진 자리에서는 상한이 한 겹 더
+   * 걸려 제목과 그 아래 가로선이 본문보다 짧게 끝났다 — 머리와 본문이 같은 축에
+   * 서지 않으면 지면이 두 폭으로 갈려 보인다.
+   */
+  width?: "measure" | "full";
 }) {
   const cls =
     size === "lg"
@@ -421,7 +432,7 @@ export function PageHeading({
       : "type-kr-heading text-h3-m sm:text-h3";
   return (
     <div className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
-      <div className="max-w-3xl">
+      <div className={width === "full" ? "min-w-0 flex-1" : "max-w-3xl"}>
         <As className={cls}>{title}</As>
         {lead && <div className="mt-6 text-m text-muted">{lead}</div>}
       </div>
@@ -754,7 +765,9 @@ export function Row({
           <span className="shrink-0 text-xs tabular-nums text-muted sm:w-24">{lead}</span>
         )}
         <span className="min-w-0">
-          <span className="type-kr-heading block break-keep text-h6-m sm:text-h6">{title}</span>
+          <span className="type-kr-heading block break-keep text-h6-m transition-colors group-hover:text-muted sm:text-h6">
+            {title}
+          </span>
           {sub && <span className="mt-1 block break-keep text-s text-muted">{sub}</span>}
         </span>
       </div>
@@ -766,10 +779,17 @@ export function Row({
       )}
     </div>
   );
+  /*
+    [개정 2026-09-10] 행 호버는 **면을 깔지 않고 제목 글자색으로** 말한다.
+    옅은 면(`hover:bg-foreground/[0.04]`)을 쓰던 동안, 행에 좌우 패딩이 없어 하이라이트
+    경계가 날짜·태그 글자 끝과 맞닿아 겹쳐 보였다. 패딩을 넣어 피하면 행 내용의 좌우 축이
+    지면 그리드에서 밀려나고(제목이 위 섹션 제목과 안 맞는다), 면을 지면 폭까지 넓히면
+    Band 밖으로 나가야 한다. 글자색은 축을 건드리지 않으면서 어느 행인지 짚어 준다.
+  */
   return (
     <li className="border-b border-border">
       {href ? (
-        <Link href={href} className="group block transition-colors hover:bg-foreground/[0.04]">
+        <Link href={href} className="group block">
           {inner}
         </Link>
       ) : (
