@@ -520,6 +520,41 @@ export const CHOICE_SELECTED_VARS: React.CSSProperties = {
   ["--check-fill" as string]: "var(--n-white)",
 };
 
+/**
+ * 인라인 체크 칩 — 무대형태·객석형태·부대사업 계획처럼 짧은 항목을 여러 개 고르는 자리.
+ *
+ * [통합 2026-09-10] 규모 단계와 공연 정보 단계가 **각자 만들어 쓰던** 칩을 하나로 합쳤다.
+ * 두 벌이 서로 달라 같은 위저드 안에서 고르지 않은 칩의 면(흰 / 오프화이트)과 높이
+ * (40 / 43)가 갈렸다. 남긴 값은 각각 시스템 규칙에 맞는 쪽이다.
+ *   · 높이 40 — 컨트롤은 세 단(48 / 40 / 32)만 쓴다. px/py 조합으로 43 을 만들지 않는다
+ *   · 고르지 않은 칩은 **오프화이트 면** — 흰 컨테이너 안에서 면이 없으면 칩이 사라진다
+ *   · 고른 칩은 검정 면. 체크 표시는 전역 규칙(`--check-fill`)이 흰색으로 뒤집는다
+ */
+export function CheckboxChip({
+  checked,
+  label,
+  onChange,
+}: {
+  checked: boolean;
+  label: ReactNode;
+  onChange: () => void;
+}) {
+  return (
+    <label
+      style={checked ? CHOICE_SELECTED_VARS : undefined}
+      className={[
+        "flex h-10 cursor-pointer items-center gap-2 border px-4 text-s transition-colors",
+        checked
+          ? "border-foreground bg-inverse-bg text-inverse-fg"
+          : "border-border-soft bg-surface text-foreground hover:border-foreground",
+      ].join(" ")}
+    >
+      <input type="checkbox" checked={checked} onChange={onChange} className="h-4 w-4" />
+      {label}
+    </label>
+  );
+}
+
 /** 보조 고지문 — 색면·좌측 바를 쓰지 않고 헤어라인 위 작은 글씨로만 */
 export function Note({ children, className = "" }: { children: ReactNode; className?: string }) {
   // 문단이 여러 개인 고지문(`Prose`)도 들어오므로 `<p>` 가 아니라 `<div>` 다 —

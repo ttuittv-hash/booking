@@ -527,6 +527,7 @@ const SPLIT = "grid gap-8 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.6fr)] lg:items-
 | `NotificationBell` | 아이콘은 Figma 2608 › `notifications` 벡터(24, 면채움). 안 읽은 건수는 옐로 면 배지 |
 | `SiteFooter` | Figma Design › Footer / 1. 상단 좌 Address·Contact·**SNS 아이콘 3종**(Figma 2607 › Style Guide › Icons 브랜드 로고) + 우 **사이트맵 3열**(`지원` 은 상단바 우측에 있으므로 중복시키지 않는다) → **컨테이너 전폭 워드마크** → 헤어라인 → 카피라이트 · 이용약관 · 개인정보처리방침. **하단 고지 문구를 두지 않는다** — 금액 관련 고지는 금액이 나오는 화면에 둔다. 링크가 없는 SNS 채널은 누를 수 없게 두고 흐리게 표시 |
 | `choiceClass` | 선택 칩 (Figma Multi-step Forms). 선택 = 검정 채움 |
+| `CheckboxChip` | 짧은 항목을 여러 개 고르는 인라인 체크 칩(무대형태·객석형태·부대사업 계획·출연진 계약 상태). **높이 40** · 고르지 않은 칩은 **오프화이트 면 + `border-soft`** · 고른 칩은 검정 면(체크는 전역 규칙이 흰색으로 뒤집는다). 단계마다 따로 만들지 않는다 — 규모 단계와 공연 정보 단계가 각자 만들어 쓰던 두 벌이 면(흰/오프화이트)과 높이(40/43)로 갈렸다(2026-09-10 통합) |
 | `Note` | 보조 고지문. 색면 박스를 쓰지 않는다 |
 | `Band` | 풀블리드 섹션. `tone` = light·white·accent·dark, `size` = sm·md·lg. 섹션은 여백이 아니라 **색면 전환**으로 나눈다 |
 | `ButtonLink` / `btnClass` | `variant` = **primary**(검정 채움) · **secondary**(아웃라인) · **tertiary**(텍스트), `size` = sm·md·lg |

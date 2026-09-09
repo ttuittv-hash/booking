@@ -1,6 +1,6 @@
 "use client";
 
-import { CHOICE_SELECTED_VARS, toggleClass, ROW_REMOVE_BTN } from "@/components/ui/kit";
+import { CheckboxChip, toggleClass, ROW_REMOVE_BTN } from "@/components/ui/kit";
 
 import { useState, type ReactNode } from "react";
 import { defaultDayTags, effectiveDayTag } from "@/lib/pricing/rateTableUtils";
@@ -69,37 +69,6 @@ export function validateAudienceStep(
     };
   }
   return null;
-}
-
-function CheckboxChip({
-  checked,
-  label,
-  onChange,
-}: {
-  checked: boolean;
-  label: ReactNode;
-  onChange: () => void;
-}) {
-  return (
-    <label
-      /* 선택 = 검정 채움. 안쪽 글자가 따라오도록 토큰을 국소 반전한다 */
-      style={checked ? CHOICE_SELECTED_VARS : undefined}
-      className={[
-        // 인라인 칩도 버튼과 같은 단(40) — px/py 조합으로 43px 을 만들지 않는다
-        "flex h-10 cursor-pointer items-center gap-2 border px-4 text-s transition-colors",
-        checked ? "border-foreground bg-inverse-bg text-inverse-fg" : "border-border-soft hover:border-foreground",
-      ].join(" ")}
-    >
-      <input
-        type="checkbox"
-        checked={checked}
-        onChange={onChange}
-        /* 검정 채움 위에서는 체크박스도 밝은 면으로 뒤집는다 — 안 그러면 검정 위 검정이다 */
-        className={`h-4 w-4 ${checked ? "accent-[var(--background)]" : "accent-[var(--foreground)]"}`}
-      />
-      {label}
-    </label>
-  );
 }
 
 // 공간별 총 공연 횟수 — 1회당 예상 관객수 × 총 공연 횟수 합산에 쓰인다.

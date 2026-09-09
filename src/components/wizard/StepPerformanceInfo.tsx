@@ -1,6 +1,6 @@
 "use client";
 
-import { toggleClass, ROW_REMOVE_BTN } from "@/components/ui/kit";
+import { CheckboxChip, toggleClass, ROW_REMOVE_BTN } from "@/components/ui/kit";
 import { useDialog } from "@/components/ui/Dialog";
 
 import { Fragment, useState, type ReactNode } from "react";
@@ -355,34 +355,6 @@ function ReadOnlyRow({ label, value, note }: { label: ReactNode; value: string; 
       </div>
       {note && <p className="mt-1 text-xs text-muted">{note}</p>}
     </div>
-  );
-}
-
-function CheckboxChip({
-  checked,
-  label,
-  onChange,
-}: {
-  checked: boolean;
-  label: ReactNode;
-  onChange: () => void;
-}) {
-  return (
-    <label
-      className={[
-        "flex cursor-pointer items-center gap-2 border px-3.5 py-2.5 text-s transition-colors",
-        checked
-          ? "border-foreground bg-inverse-bg text-inverse-fg"
-          : "border-border-soft bg-surface text-foreground hover:border-foreground",
-      ].join(" ")}
-    >
-      <input
-        type="checkbox"
-        checked={checked}
-        onChange={onChange}
-      />
-      {label}
-    </label>
   );
 }
 
