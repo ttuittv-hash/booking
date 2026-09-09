@@ -538,8 +538,8 @@ export function PublicHeaderNav({
               ))}
               {bookItComingSoon && bookItNotice ? (
                 /* 좁은 화면에는 호버가 없다 — 안내를 접었다 펴지 않고 그대로 붙여 둔다. */
-                <li className="text-center">
-                  <p className="flex h-12 items-center justify-center type-display text-nav text-muted">
+                <li>
+                  <p className="flex h-12 items-center type-display text-nav text-muted">
                     {NAV_ACTION.label}
                   </p>
                   <p className="text-nav-xs font-bold">{bookItNotice.title}</p>
@@ -549,11 +549,14 @@ export function PublicHeaderNav({
                 </li>
               ) : !NAV_ACTION_HIDDEN && allowed(NAV_ACTION.href) ? (
                 <li>
-                  {/* [수정 2026-09-02] 상단바와 같은 결로 — 검정 채움을 빼고 텍스트로 둔다. */}
+                  {/* [수정 2026-09-02] 상단바와 같은 결로 — 검정 채움을 빼고 텍스트로 둔다.
+                      [수정 2026-09-10] 가운데 정렬을 뺀다 — 좁은 화면 메뉴는 워드마크·묶음
+                      제목·페이지 링크가 모두 지면 왼쪽 축에 서 있는데 이것만 가운데에 떠
+                      메뉴에 속하지 않은 것처럼 보였다. 「오픈 예정」 안내도 같이 맞춘다. */}
                   <Link
                     href={NAV_ACTION.href}
                     onClick={() => setMobileOpen(false)}
-                    className="flex h-12 items-center justify-center type-display text-nav text-foreground"
+                    className="flex h-12 items-center type-display text-nav text-foreground"
                   >
                     {NAV_ACTION.label}
                   </Link>
