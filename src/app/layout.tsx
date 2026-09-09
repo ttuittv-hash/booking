@@ -38,6 +38,12 @@ export const metadata: Metadata = {
     description:
       "한계 없는 인프라 위에서 당신만의 무대를 지휘하세요. 서울아레나 대관 절차·견적 산출·신청 플랫폼.",
   },
+  // [신규 2026-09-09] 구글 서치 콘솔 소유 확인 — DNS TXT 인증이 계속 실패해 HTML 메타 태그
+  // 방식으로 바꿔 달라는 요청(팀). Next 가 <meta name="google-site-verification"> 로 그린다.
+  // 인증이 끝나도 태그는 그대로 둔다 — 지우면 소유 확인이 풀린다.
+  verification: {
+    google: "ttu09R0BbgByMfIz2qufrwHrzukLLytmmixYbgquqO8",
+  },
 };
 
 export default function RootLayout({
