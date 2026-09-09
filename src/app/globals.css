@@ -497,16 +497,60 @@ input[type="number"]::-webkit-inner-spin-button {
     height: 2.5rem;
     padding-block: 0;
   }
-}
-@utility field-base {
+
+  /*
+    고르는 칸의 화살표는 **직접 그린다.** 브라우저 기본 화살표는 패딩 바깥, 테두리 안쪽
+    끝에 붙어서 오른쪽 여백을 아무리 키워도 벽에 닿은 채로 남는다. 배경으로 깔면 위치를
+    우리가 정할 수 있어 **왼쪽 글자 여백과 같은 14** 만큼 오른쪽에서 띄울 수 있다.
+
+    색은 검정 고정이다 — `data:` URI 안에서는 토큰도 `currentColor` 도 쓸 수 없고,
+    지금 이 지면에는 **검정 면 위 select 가 없다**(2026-09-09 확인). 검정 면에 select 를
+    두게 되면 화살표가 사라지므로 그때 변형을 따로 만든다.
+  */
+  &:where(select) {
+    appearance: none;
+    padding-inline-end: 2.25rem;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 12' fill='none' stroke='%23000' stroke-width='1.4' stroke-linecap='square'%3E%3Cpath d='M2.5 4.5 6 8l3.5-3.5'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 0.875rem center;
+    background-size: 0.75rem 0.75rem;
+  }
+
   &::placeholder {
     color: var(--muted);
   }
+
+  /*
+    포커스는 **고대비 한 겹**이다 — 테두리를 검정으로 바꾸고 같은 색 아웃라인을 얹는다.
+    옐로 아웃라인을 쓰던 자리인데, `#FFCD00` 은 오프화이트 지면에서 대비가 **1.5:1** 이라
+    초점 표시가 사실상 보이지 않았다. 키보드로 도는 사람은 지금 어디에 있는지를 잃는다.
+    검정은 21:1 이다. 옐로는 면·강조에만 쓰고 **초점 표시에는 쓰지 않는다.**
+  */
   &:focus {
     border-color: var(--foreground);
-    outline: 2px solid var(--accent);
+    outline: 2px solid var(--foreground);
     outline-offset: 1px;
   }
+}
+
+/*
+  체크박스·라디오 — 규칙은 **지면과 반대색**이다.
+
+    지면 위에 혼자 있으면      검정 채움
+    선택된 칩(검정 면) 안이면   흰 채움 — 버튼 자체가 검정 면이 되므로
+
+  설정이 아예 없어서 브라우저 기본색(사파리 파랑)이 그대로 나오고 있었다.
+  검정으로 뒤집히는 칩 안에서는 검정 채움이 배경에 묻혀 사라지므로 두 경로로 잡는다 —
+  ① 선택된 칩이 `CHOICE_SELECTED_VARS` 로 넘기는 `--check-fill`
+  ② 토큰을 넘기지 않고 `bg-inverse-bg` 만 쓰는 자리
+*/
+input[type="checkbox"],
+input[type="radio"] {
+  accent-color: var(--check-fill, var(--foreground));
+}
+.bg-inverse-bg input[type="checkbox"],
+.bg-inverse-bg input[type="radio"] {
+  accent-color: var(--n-white);
 }
 
 @media print {

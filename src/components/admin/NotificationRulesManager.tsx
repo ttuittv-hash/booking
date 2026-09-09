@@ -78,7 +78,7 @@ function RuleFields({
       <label className="flex items-end gap-2 pb-2">
         <input
           type="checkbox"
-          className="accent-accent"
+
           checked={draft.enabled}
           onChange={(e) => onChange({ ...draft, enabled: e.target.checked })}
         />

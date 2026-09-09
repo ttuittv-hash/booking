@@ -332,7 +332,7 @@ export function MembersManager({ currentUserId }: { currentUserId: string }) {
                       {row.href ? (
                         <Link
                           href={row.href}
-                          className="font-bold underline decoration-border-soft underline-offset-4 transition-colors hover:decoration-accent"
+                          className="font-bold underline decoration-border-soft underline-offset-4 transition-colors hover:decoration-foreground"
                         >
                           {row.name}
                         </Link>

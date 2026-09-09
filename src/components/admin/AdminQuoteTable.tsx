@@ -199,7 +199,6 @@ export function AdminQuoteTable({
                         checked={isSelected}
                         onChange={() => toggle(row.id)}
                         aria-label={`${row.id} 비교 선택`}
-                        className="accent-accent"
                       />
                     </td>
                     <td className={`${TD_ID} tabular-nums`}>{row.id}</td>

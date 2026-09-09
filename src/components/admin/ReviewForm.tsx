@@ -139,7 +139,7 @@ export function ReviewForm({
                   <button
                     type="button"
                     onClick={() => setScore(String(auto.provisionalFinal))}
-                    className="font-bold underline decoration-border-soft underline-offset-4 hover:decoration-accent"
+                    className="font-bold underline decoration-border-soft underline-offset-4 hover:decoration-foreground"
                   >
                     불러오기
                   </button>

@@ -295,7 +295,7 @@ export function Step6Submit({
                 type="checkbox"
                 checked={confirmed}
                 onChange={(e) => setConfirmed(e.target.checked)}
-                className="mt-0.5 accent-foreground"
+                className="mt-0.5"
               />
               {t(
                 "submit.confirmCheckboxLabel",
@@ -307,7 +307,7 @@ export function Step6Submit({
                 type="checkbox"
                 checked={pledged}
                 onChange={(e) => setPledged(e.target.checked)}
-                className="mt-0.5 accent-foreground"
+                className="mt-0.5"
               />
               {t("submit.pledgeCheckboxLabel", "입력한 내용이 사실과 틀림없으며, 이를 이행할 것을 서약합니다.")}
             </label>

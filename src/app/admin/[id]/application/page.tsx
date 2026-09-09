@@ -158,7 +158,7 @@ function AttachmentRow({ quoteId, file }: { quoteId: string; file: Attachment })
         href={`/api/quotes/${quoteId}/attachments/${file.id}`}
         target="_blank"
         rel="noreferrer"
-        className="min-w-0 flex-1 break-all text-s font-bold underline decoration-border-soft underline-offset-4 hover:decoration-accent"
+        className="min-w-0 flex-1 break-all text-s font-bold underline decoration-border-soft underline-offset-4 hover:decoration-foreground"
       >
         {file.originalName}
       </a>

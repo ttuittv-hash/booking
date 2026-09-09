@@ -870,7 +870,7 @@ export function PackagesForm({
               <div className="flex items-center gap-2">
                 <input
                   type="checkbox"
-                  className="accent-accent"
+
                   checked={active.secondShowSurchargeRatio > 0}
                   onChange={(e) => update({ secondShowSurchargeRatio: e.target.checked ? 0.5 : 0 })}
                 />
@@ -894,7 +894,7 @@ export function PackagesForm({
               <div className="flex items-center gap-2">
                 <input
                   type="checkbox"
-                  className="accent-accent"
+
                   checked={active.discountRatio > 0}
                   onChange={(e) => update({ discountRatio: e.target.checked ? 0.1 : 0 })}
                 />
@@ -920,7 +920,7 @@ export function PackagesForm({
               <div className="flex items-center gap-2">
                 <input
                   type="checkbox"
-                  className="accent-accent"
+
                   checked={active.extraDayDiscountRatio > 0}
                   onChange={(e) => update({ extraDayDiscountRatio: e.target.checked ? 0.1 : 0 })}
                 />
@@ -942,7 +942,7 @@ export function PackagesForm({
               <div className="flex items-center gap-2">
                 <input
                   type="checkbox"
-                  className="accent-accent"
+
                   checked={active.restDayDiscountRatio > 0}
                   onChange={(e) => update({ restDayDiscountRatio: e.target.checked ? 0.5 : 0 })}
                 />
@@ -1001,7 +1001,7 @@ export function PackagesForm({
             <label className="flex items-center gap-2 pt-6">
               <input
                 type="checkbox"
-                className="accent-accent"
+
                 checked={active.outdoorPlazaIncluded}
                 onChange={(e) => update({ outdoorPlazaIncluded: e.target.checked })}
               />

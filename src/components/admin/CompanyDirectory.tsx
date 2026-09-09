@@ -169,7 +169,7 @@ function CompanyRow({ company }: { company: Company }) {
           <Link
             href={`/admin/companies/${company.id}`}
             onClick={(e) => e.stopPropagation()}
-            className="font-bold underline decoration-border-soft underline-offset-4 transition-colors hover:decoration-accent"
+            className="font-bold underline decoration-border-soft underline-offset-4 transition-colors hover:decoration-foreground"
           >
             {company.name}
           </Link>

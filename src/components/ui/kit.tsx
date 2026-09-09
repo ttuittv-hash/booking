@@ -27,7 +27,7 @@ function InlineLinks({ text }: { text: string }) {
           <Link
             key={i}
             href={part.href}
-            className="underline decoration-border-soft underline-offset-4 transition-colors hover:decoration-accent"
+            className="underline decoration-border-soft underline-offset-4 transition-colors hover:decoration-foreground"
           >
             {part.text}
           </Link>
@@ -482,6 +482,11 @@ export const ICON_BTN_SM =
 export const CHOICE_SELECTED_VARS: React.CSSProperties = {
   ["--muted" as string]: "var(--inverse-muted)",
   ["--border" as string]: "var(--inverse-fg)",
+  /*
+    선택된 칩은 검정 면이 된다 — 그 안의 체크박스·라디오는 흰 채움이어야 보인다.
+    기본값(검정 채움)을 그대로 두면 면에 묻혀 사라진다. 규칙은 「지면과 반대색」이다.
+  */
+  ["--check-fill" as string]: "var(--n-white)",
 };
 
 /** 보조 고지문 — 색면·좌측 바를 쓰지 않고 헤어라인 위 작은 글씨로만 */

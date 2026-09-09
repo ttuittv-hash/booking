@@ -384,7 +384,6 @@ function CheckboxChip({
         type="checkbox"
         checked={checked}
         onChange={onChange}
-        className="accent-foreground"
       />
       {label}
     </label>
