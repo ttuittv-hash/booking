@@ -119,7 +119,15 @@ export function StepNav({
       // (5cfc178 / 310e689) 가 그렇게 재발한다. w-full + overflow-x-auto 로만 처리한다.
       className="sticky top-[var(--header-h)] z-20 mb-10 w-full border-b border-border/25 bg-background"
     >
-      <ol className="flex h-11 w-full min-w-0 items-center gap-1 overflow-x-auto">
+      {/*
+        높이를 자식 버튼(h-12)과 **같게** 맞춘다. h-11 이던 동안 4px 이 넘쳐,
+        `overflow-x: auto` 가 세로쪽도 auto 로 계산되면서 **상하 스크롤바가 떴다**.
+        가로 스크롤은 좁은 화면에서 필요하므로 남기고 스크롤바만 숨긴다.
+
+        항목 사이 간격은 버튼에서 좌우 패딩을 뺀 만큼 `gap` 으로 옮겼다(4+12+12 = 28)
+        — 그래야 **첫 글자가 지면 왼쪽 끝**에서 시작해 아래 하위 단계와 축이 맞는다.
+      */}
+      <ol className="flex h-12 w-full min-w-0 items-center gap-7 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
         {groupsWithVisibleSteps.map((group) => {
           const entryStep = group.visibleSteps[0]?.step;
           const isActive = group.visibleSteps.some((s) => s.step === step);
@@ -133,7 +141,8 @@ export function StepNav({
                 onClick={() => entryStep !== undefined && onJump(entryStep)}
                 aria-current={isActive ? "step" : undefined}
                 className={[
-                  "flex h-12 items-center whitespace-nowrap border-b-2 px-3 text-s font-bold outline-none transition-colors",
+                  // 좌우 패딩을 두지 않는다 — 글자가 왼쪽 끝에서 시작하고, 밑줄도 글자 폭에 딱 맞는다
+                  "flex h-12 items-center whitespace-nowrap border-b-2 text-s font-bold outline-none transition-colors",
                   "focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-foreground",
                   isActive
                     ? "border-foreground font-bold text-foreground"
@@ -152,7 +161,7 @@ export function StepNav({
         // [수정 2026-09-06] "원뎁스 투뎁스 간격이 너무 좁아서 붙으려고 하고" — 위 그룹
         // 줄과 바로 붙어 있던 pt-3를 pt-5로 넉넉히 띄운다. "투뎁스는 동그라미 말고
         // 텍스트 밑줄로" — 알약(rounded-full·테두리) 버튼을 밑줄 텍스트로 바꾼다.
-        <ol className="flex w-full min-w-0 items-center gap-3 overflow-x-auto pb-3 pt-5">
+        <ol className="flex w-full min-w-0 items-center gap-3 overflow-x-auto pb-3 pt-5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
           {activeGroup.visibleSteps.map((s, i) => {
             const isCurrent = s.step === step;
             const isDone = s.step < step;
@@ -166,14 +175,22 @@ export function StepNav({
                   onClick={() => onJump(s.step)}
                   aria-current={isCurrent ? "step" : undefined}
                   className={[
-                    "flex h-8 items-center whitespace-nowrap text-xs font-bold outline-none underline-offset-4 transition-colors",
+                    /*
+                      [개정 2026-09-09] 하위 단계는 **밑줄을 두지 않고 색으로만** 구분한다 —
+                      현재 검정 / 지나온 단계 진한 회색(#666) / 남은 단계 옅은 회색(#AAA).
+                      밑줄 두 가지(현재 2px · 완료 1px)로 가르던 동안, 굵기 차이가 미세해
+                      어디까지 왔는지 한눈에 읽히지 않았다. 색은 세 단이 확실히 갈린다.
+                      `opacity-40` 도 뺐다 — 색이 이미 상태를 말하므로 겹치면 남은 단계가
+                      읽히지 않을 만큼 옅어진다.
+                    */
+                    "flex h-8 items-center whitespace-nowrap text-xs font-bold outline-none transition-colors",
                     "focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-foreground",
                     isCurrent
-                      ? "text-foreground underline decoration-2"
+                      ? "text-foreground"
                       : isDone
-                        ? "text-foreground underline decoration-1"
-                        : "text-muted no-underline hover:text-foreground",
-                    disabled ? "cursor-not-allowed opacity-40" : "cursor-pointer",
+                        ? "text-muted hover:text-foreground"
+                        : "text-n-light hover:text-foreground",
+                    disabled ? "cursor-not-allowed" : "cursor-pointer",
                   ].join(" ")}
                 >
                   {s.label}
