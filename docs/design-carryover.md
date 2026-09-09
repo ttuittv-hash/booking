@@ -35,8 +35,8 @@
 
 | # | 내용 | 원본 | 판정 |
 |---|---|---|---|
-| D1 | 홈 히어로를 화면 세로 가운데로 (`justify-center`, `paddingTop` 을 `--header-h` 만으로), 제목 `text-d2` 를 `xl:` → `lg:` 에서 | `8c589da` `src/app/page.tsx` | 보류 — 홈 방침 확정 후 |
-| D2 | 홈 사진 무대: 시작 폭 3칼럼 → **4칼럼**, `useStageProgress(run, startAt)` 인자 추가해 `startAt=0.7` 로 더 일찍 올라오게 | `b4fbdca` `src/components/home/PhotoStage.tsx` | 보류 — 홈 애니메이션 방침 확정 후 |
+| D1 | 홈 히어로를 화면 세로 가운데로 (`justify-center`, `paddingTop` 을 `--header-h` 만으로), 제목 `text-d2` 를 `xl:` → `lg:` 에서 | `8c589da` `src/app/page.tsx` | **무효** |
+| D2 | 홈 사진 무대: 시작 폭 3칼럼 → **4칼럼**, `useStageProgress(run, startAt)` 인자 추가해 `startAt=0.7` 로 더 일찍 올라오게 | `b4fbdca` `src/components/home/PhotoStage.tsx` | **무효** |
 | D3 | `measure-4col` 을 `min-width:1024px` 에서만 적용(한 칼럼으로 쌓이는 화면에서는 지면을 꽉 채우게) | `8c589da` `src/app/globals.css` | **무효** |
 | D4 | 펼친(모바일) 메뉴의 「대관신청」을 텍스트 대신 **검정 버튼**(`btnClass("primary","lg")`)으로, 왼쪽 선 정렬 | `8c589da` `src/components/PublicHeaderNav.tsx` | **재반영** |
 | D5 | 푸터 Contact 이메일 주소를 항상 `whitespace-nowrap`(기존엔 `lg:` 이상에서만) | `8c589da` `src/components/ui/SiteFooter.tsx` | **재반영** |
@@ -44,9 +44,17 @@
 
 ### 판정 근거와 재반영 메모
 
-- **D1 · D2 (홈)** — 요청자 방침이 "홈은 메인 기준, 애니메이션도 기존 기준" 이므로 흡수한
-  쪽을 그대로 둔다. 다만 *어느 쪽이 「기준」인지* 확정된 뒤에 닫는다. 되살릴 경우 위 두
-  커밋을 그대로 적용할 수 있다(해당 파일은 흡수 쪽에서 바뀌지 않았다).
+- **D1 · D2 무효 (홈)** — 흡수한 쪽에서 **홈이 통째로 다시 짜였다.** 스크롤 사진 무대가
+  사라졌다: `src/components/home/PhotoStage.tsx` 와 `StackedStatements.tsx` 가 삭제되고
+  `Manifesto.tsx` 로 대체됐으며(Figma Wireframe › Layout / 608 규격), `useStageProgress`
+  참조도 코드에 하나도 없다. `src/app/page.tsx` 는 185줄 바뀌어
+  **히어로 → 브랜드 선언문(블랙 밴드) → 전환 CTA** 3단이 됐고, 히어로는 `Band tone="light"`
+  안의 제목·리드·버튼 두 개·`Media ratio="21/9"` 다. 세로 가운데 정렬도, 사진 무대도
+  되살릴 자리가 없다.
+  요청자 방침("홈은 메인 기준, 애니메이션도 기존 기준")과 결과가 같으므로 그대로 닫는다.
+  **흡수 후 홈 애니메이션의 기준은 스크롤 진행도가 아니라 진입 페이드업이다** —
+  `animate-[fade-up_0.7s_ease_both]` 에 `[animation-delay:120ms]`·`200ms` 로 제목→리드→버튼
+  계단을 준다(`page.tsx` 54~72행). 다른 페이지에 애니메이션을 얹을 때 이 결을 따른다.
 - **D3 무효** — 흡수한 코드에 `measure-4col` 유틸리티가 없다. 산문 폭이 컬럼 스팬과 무관한
   절대값 `--measure: 48rem` 로 옮겨갔고(`globals.css` 94·358행), 그래서 좁은 화면에서 4/6
   폭으로 접히는 문제 자체가 없다. **되살리면 폭 규칙이 두 갈래로 갈린다.**
