@@ -125,7 +125,7 @@ export function StepSafetyPledge({
           type="checkbox"
           checked={allChecked}
           onChange={(e) => toggleAll(e.target.checked)}
-          className="h-4 w-4 accent-[var(--accent)]"
+          className="h-4 w-4"
         />
         <span className="text-s font-bold text-foreground">{t("safetyPledge.allAgree", "전체 동의")}</span>
       </label>
@@ -143,7 +143,7 @@ export function StepSafetyPledge({
               type="checkbox"
               checked={pledge[item.key]}
               onChange={(e) => onChange({ ...pledge, [item.key]: e.target.checked })}
-              className="mt-0.5 h-4 w-4 accent-[var(--accent)]"
+              className="mt-0.5 h-4 w-4"
             />
             <span className={`text-s leading-6 ${item.emphasize ? "font-bold text-foreground" : "text-foreground"}`}>
               {t(`safetyPledge.items.${item.key}`, item.defaultLabel)}

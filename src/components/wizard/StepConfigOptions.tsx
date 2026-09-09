@@ -67,7 +67,7 @@ function MidHallHourBox({
 }) {
   const { t, tStr } = useWizardText();
   return (
-    <div className="flex flex-col gap-1.5 border border-border-soft px-3 py-2">
+    <div className="flex flex-col gap-1.5 bg-background px-3 py-2">
       <div>
         <span className="text-xs font-bold">{label}</span>
         <div className="mt-0.5 text-xs text-muted">{hint}</div>
@@ -96,7 +96,7 @@ function MidHallHourBox({
 function MidHallReferenceBox({ label, value, note }: { label: string; value: string; note?: string }) {
   const { t } = useWizardText();
   return (
-    <div className="flex flex-col gap-1.5 border border-border-soft px-3 py-2">
+    <div className="flex flex-col gap-1.5 bg-background px-3 py-2">
       <span className="text-xs font-bold">{label}</span>
       <div className="flex items-center justify-between gap-2">
         <span className="text-xs text-muted">
@@ -146,7 +146,7 @@ function MidHallOptionsBox({
   if (addons.length === 0) return null;
   const selectedCount = addons.filter((a) => (addonQuantities[a.id] ?? 0) > 0).length;
   return (
-    <div className="mt-6 border border-border/25 p-5">
+    <div className="mt-6 bg-panel p-5">
       <h2 className="type-kr-heading text-h6-m sm:text-h6">{t("configOptions.selectedOptionsHeading", "선택 옵션")}</h2>
       <p className="mt-2 text-xs text-muted">
         {t(
@@ -216,11 +216,11 @@ function MidHallRateCard({
   const visibleRows = detailsOpen ? [...baseRows, ...detailRows] : baseRows;
 
   return (
-    <div className="mt-10 border-t-2 border-foreground pt-5">
+    <div className="mt-10 bg-panel p-5">
       <h2 className="type-kr-heading text-h6-m sm:text-h6">{t("configOptions.dailyRateHeading", "일자별 대관료")}</h2>
       <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
         {cols.map((col, ci) => (
-          <div key={col.key} className="border border-border-soft px-4 py-3">
+          <div key={col.key} className="bg-background px-4 py-3">
             <div className="text-s font-bold">{col.title}</div>
             <dl className="mt-2.5 space-y-1 border-t border-border/25 pt-2.5 text-xs">
               {visibleRows.map((row) => (
@@ -249,12 +249,12 @@ function MidHallRateCard({
           같은 틀(공유 배지 패널 + 하나로 감싼 아웃라인 박스)로 맞춘다. 항목 내용(자유
           라벨·값, 시간 스테퍼, 참고용 별도문의)은 중형 고유 데이터라 그대로 둔다. */}
       {content.includes.length > 0 && (
-        <div className="mt-10 border-t border-border/25 pt-5">
+        <div className="mt-10 bg-panel p-5">
           <h2 className="type-kr-heading text-h6-m sm:text-h6">{t("configOptions.basicItemsHeading", "기본 항목")}</h2>
           <p className="mt-1.5 text-xs leading-6 text-muted">
             {t("configOptions.basicItemsHint", "대관료에 이미 포함된 기본 제공 사항입니다.")}
           </p>
-          <div className="mt-4 border border-border-soft bg-panel/40 px-4 py-3">
+          <div className="mt-4">
             <span className="bg-foreground px-2 py-0.5 text-xs font-bold text-background">
               {t("configOptions.basicIncludedBadge", "기본 포함")}
             </span>
@@ -262,7 +262,7 @@ function MidHallRateCard({
               {content.includes.map((p, i) => (
                 <div
                   key={`${p.label}-${i}`}
-                  className="flex items-baseline justify-between gap-2 border border-border-soft bg-panel px-3 py-2 text-xs"
+                  className="flex items-baseline justify-between gap-2 bg-background px-3 py-2 text-xs"
                 >
                   <span className="font-bold text-foreground">{p.label}</span>
                   <span className="shrink-0 text-muted">{p.value}</span>
@@ -287,7 +287,7 @@ function MidHallRateCard({
           제목·설명·빈 박스까지 통째로 감춘다 — 그룹만 빼니 빈 테두리 박스가 남았다(로컬 스크린샷
           확인). 옛 임시저장본의 준비/철수 연장 값이 있을 때만 그 부분을 계속 보여준다. */}
       {content.charges.length > 0 && (!hideChargeGroups || extraSetupHours > 0 || extraLoadOutHours > 0) && (
-        <div className="mt-10 border-t border-border/25 pt-5">
+        <div className="mt-10 bg-panel p-5">
           <h2 className="type-kr-heading text-h6-m sm:text-h6">{t("configOptions.optionsHeading", "옵션")}</h2>
           <p className="mt-1.5 text-xs leading-6 text-muted">
             {t(
@@ -298,7 +298,7 @@ function MidHallRateCard({
 
           {/* 아레나 "선택 옵션"과 같은 아웃라인 박스 하나로 전체를 감싼다(예전에는
               박스 없이 소제목만 이어 붙어 있었다). */}
-          <div className="mt-4 border border-border/25 p-5">
+          <div className="mt-4">
             {/* [수정 2026-09-08] "철수/준비 때 시간별로 수정하는 기능 자체를 삭제해" —
                 준비 연장·철수 Load-Out 연장을 STEP 1에서 설정하던 스테퍼를 없앴다.
                 새 신청서는 이 값이 항상 0이라 그룹 자체를 숨기고, 이미 값이 있는
@@ -590,7 +590,7 @@ function PackagePicker({
       </div>
 
       {selectedId != null && (
-        <div className="mt-4 border border-border-soft bg-panel/40 px-4 py-3">
+        <div className="mt-4">
           <span className="bg-foreground px-2 py-0.5 text-xs font-bold text-background">
             {t("configOptions.baseIncludedBadge", "기본 포함")}
           </span>
@@ -609,7 +609,7 @@ function PackagePicker({
                    프론트에 노출되도록 해줘"). */
                 <div
                   key={item.key}
-                  className="flex items-baseline justify-between gap-2 border border-border-soft bg-panel px-3 py-2 text-xs"
+                  className="flex items-baseline justify-between gap-2 bg-background px-3 py-2 text-xs"
                 >
                   <span className="font-bold text-foreground">{item.name}</span>
                   {item.spec && <span className="shrink-0 text-muted">{item.spec}</span>}
@@ -763,7 +763,7 @@ export function StepConfigOptions({
         </p>
       ) : (
         /* 선택 옵션 = 아웃라인 박스. 색면을 쓰지 않는다 — 안의 항목도 아웃라인만이다 */
-        <div className="mt-6 border border-border/25 p-5">
+        <div className="mt-6 bg-panel p-5">
           <h2 className="type-kr-heading text-h6-m sm:text-h6">{t("configOptions.selectedOptionsHeading", "선택 옵션")}</h2>
           <p className="mt-2 text-xs text-muted">
             {t(
@@ -909,10 +909,20 @@ function AddonRow({
     ? `${tStr("configOptions.revenuePrefix", "매출")} ${addon.unitPrice}%`
     : `${won(addon.unitPrice)} / ${addon.unitLabel.replace("원/", "")}`;
 
-  // 항목은 아웃라인만이다. 선택 여부로 면 색을 바꾸지 않는다 —
-  // 수량을 적는 칸이 안에 있어서 면 색이 바뀌면 입력한 숫자가 묻힌다.
+  /*
+    [개정 2026-09-09] 흰 컨테이너 안의 행은 **오프화이트 면**이다(지면 → 컨테이너 → 행
+    3단 교대). 테두리로 나누지 않는다 — 항목마다 상자를 두르면 목록이 격자처럼 읽힌다.
+
+    대신 **수량이 들어간 항목만 검정 테두리**로 표시한다. 면 색은 그대로 두므로 안에
+    적은 숫자가 묻히지 않고, 무엇을 골랐는지는 목록에서 바로 짚힌다.
+  */
+  const picked = quantity > 0;
   return (
-    <div className="flex flex-col gap-1.5 border border-border-soft px-3 py-2">
+    <div
+      className={`flex flex-col gap-1.5 border bg-background px-3 py-2 ${
+        picked ? "border-foreground" : "border-transparent"
+      }`}
+    >
       <div className="min-w-0">
         <div className="flex flex-wrap items-center gap-1.5">
           <span className="text-xs font-bold">{addon.name}</span>
@@ -936,7 +946,7 @@ function AddonRow({
                 type="checkbox"
                 checked={quantity > 0}
                 onChange={(e) => onChangeQuantity(addon.id, e.target.checked ? 1 : 0)}
-                className="h-3.5 w-3.5 accent-[var(--accent)]"
+                className="h-3.5 w-3.5"
               />
               {t("configOptions.applyCheckboxLabel", "적용")}
             </label>
@@ -948,7 +958,7 @@ function AddonRow({
               value={expectedRevenue || ""}
               disabled={quantity <= 0}
               onChange={(e) => onChangeRevenue(Math.max(0, Number(e.target.value) || 0))}
-              className="w-20 shrink-0 border border-border bg-background px-2 py-1 text-right text-xs outline-none focus:border-foreground disabled:opacity-40"
+              className="w-20 shrink-0 border border-border bg-background px-2 py-1 text-right text-xs outline-none focus:border-foreground focus:bg-panel disabled:opacity-40"
             />
           </div>
         ) : (
@@ -970,7 +980,7 @@ function AddonRow({
               onChange={(e) =>
                 onChangeQuantity(addon.id, clampAddonQuantity(addon, pkg, Number(e.target.value)))
               }
-              className="w-14 shrink-0 border border-border bg-background px-2 py-1 text-right text-xs outline-none focus:border-foreground"
+              className="w-14 shrink-0 border border-border bg-background px-2 py-1 text-right text-xs outline-none focus:border-foreground focus:bg-panel"
             />
           </span>
         )}

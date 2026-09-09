@@ -269,7 +269,7 @@ export function StepMarketingCooperation({
                       pollstarConsent: checked ? info.pollstarConsent : false,
                     });
                   }}
-                  className="h-4 w-4 accent-[var(--accent)]"
+                  className="h-4 w-4"
                 />
                 {t("marketing.salesDataConsentLabel", "공연 실적 데이터 제공")}
               </label>
@@ -289,7 +289,7 @@ export function StepMarketingCooperation({
                   checked={info.pollstarConsent}
                   disabled={!info.ticketSalesDataConsent}
                   onChange={(e) => set("pollstarConsent", e.target.checked)}
-                  className="h-4 w-4 accent-[var(--accent)]"
+                  className="h-4 w-4"
                 />
                 {t("marketing.pollstarConsentLabel", "공연 데이터 외부 제공 동의 (Pollstar 등)")}
               </label>
