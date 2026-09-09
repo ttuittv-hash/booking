@@ -463,12 +463,30 @@ function PackagePicker({
         item != null,
     );
 
+  /*
+    [수정 2026-09-09] **카드 개수가 칼럼 수를 정한다.** `lg:grid-cols-5` 로 못 박혀 있던
+    동안, 아레나의 Rate A~D 넉 장이면 다섯째 칸이 비어 카드 줄이 오른쪽에서 잘린 것처럼
+    보였다. 개수만큼 나눠 **한 줄을 꽉 채운다**(`StatCards` 와 같은 방식).
+    다섯 장을 넘으면 5칼럼으로 두고 다음 줄로 넘긴다.
+    한 장뿐이면 좁은 화면에서도 반으로 자르지 않는다.
+  */
+  const cardCols =
+    packages.length === 1
+      ? "grid-cols-1"
+      : packages.length === 2
+        ? "grid-cols-1 sm:grid-cols-2"
+        : packages.length === 3
+          ? "grid-cols-1 sm:grid-cols-2 lg:grid-cols-3"
+          : packages.length === 4
+            ? "grid-cols-1 sm:grid-cols-2 lg:grid-cols-4"
+            : "grid-cols-1 sm:grid-cols-2 lg:grid-cols-5";
+
   return (
     <div className="mb-6 border-b border-border pb-6">
       <label className="block text-s font-bold text-foreground">
         {t("configOptions.pickerFieldLabel", "구성 선택")} *
       </label>
-      <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-5">
+      <div className={`mt-3 grid gap-3 ${cardCols}`}>
         {packages.map((p) => {
           const active = selectedId === p.id;
           return (
