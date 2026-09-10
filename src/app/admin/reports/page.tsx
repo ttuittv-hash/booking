@@ -203,10 +203,15 @@ export default async function AdminReportsPage({
   const venueLabel = VENUE_TABS.find((t) => t.key === venueTab)?.label ?? "전체";
 
   // 공간 탭은 유입 조작부의 링크·폼에도 그대로 실려야 탭이 풀리지 않는다.
+  // [버그 수정 2026-09-11] 리포트 탭(tab)도 같이 실어야 한다 — 퍼널·모니터링 탭에서
+  // 「최근 30일/90일」이나 기간 적용을 누르면 tab 이 빠져 유입 탭으로 되돌아갔다.
   const query: TrafficQuery = {
     granularity,
     range,
-    extra: { venue: venueTab === "all" ? undefined : venueTab },
+    extra: {
+      venue: venueTab === "all" ? undefined : venueTab,
+      tab: reportTab === "traffic" ? undefined : reportTab,
+    },
   };
   const trafficDetailHref = trafficHref("/admin/reports/traffic", { granularity, range }, {});
   const signupDetailHref = trafficHref("/admin/reports/signups", { granularity, range }, {});
