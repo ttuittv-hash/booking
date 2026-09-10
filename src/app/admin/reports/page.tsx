@@ -5,6 +5,8 @@ import {
   getTrafficStats,
   listCompanies,
   listQuotes,
+  getFunnelStats,
+  listStalledCompanies,
   sumContractAddendumsByQuote,
   todayInSeoul,
 } from "@/lib/db";
@@ -58,15 +60,19 @@ function resolveVenueTab(raw: string | undefined): ReportVenueTab {
 
   한 화면에 다 쌓으니 스크롤이 길어져 "지금 무엇을 보는 중인지" 가 흐려졌다.
 */
-type ReportTab = "traffic" | "revenue";
+type ReportTab = "traffic" | "funnel" | "revenue";
 
 const REPORT_TABS: { key: ReportTab; label: string }[] = [
   { key: "traffic", label: "유입" },
+  // [신규 2026-09-10] 퍼널 — "어느 단계에서 멈췄나". B2B라 익명 집계보다 이게 중요하다.
+  { key: "funnel", label: "퍼널" },
   { key: "revenue", label: "매출" },
 ];
 
 function resolveReportTab(raw: string | undefined): ReportTab {
-  return raw === "revenue" ? "revenue" : "traffic";
+  if (raw === "revenue") return "revenue";
+  if (raw === "funnel") return "funnel";
+  return "traffic";
 }
 
 /** 탭을 옮겨도 기간·공간 같은 조건은 유지한다 — 탭이 바뀔 때마다 다시 고르게 하면 안 된다. */
@@ -176,12 +182,14 @@ export default async function AdminReportsPage({
   const granularity = parseGranularity(sp.g);
   const range = resolveRange({ from: sp.from, to: sp.to, days: sp.days, today: await todayInSeoul() });
 
-  const [quotes, companies, traffic, signups, addendumByQuote] = await Promise.all([
+  const [quotes, companies, traffic, signups, addendumByQuote, funnel, stalled] = await Promise.all([
     listQuotes(),
     listCompanies(),
     getTrafficStats({ from: range.from, to: range.to, granularity }),
     getSignupStats(),
     sumContractAddendumsByQuote(),
+    getFunnelStats({ from: range.from, to: range.to }),
+    listStalledCompanies(50),
   ]);
   const stats = buildReportStats(quotes, companies, new Date(), 6, venueTab);
   const revenue = buildRevenueStats(quotes, addendumByQuote, new Date(), 6, venueTab);
@@ -317,6 +325,98 @@ export default async function AdminReportsPage({
           </p>
         </section>
 
+        </>
+        ) : reportTab === "funnel" ? (
+        <>
+        {/* ── 퍼널 탭 ─────────────────────────────────────────────────────
+            [신규 2026-09-10] "어느 단계에서 몇이 멈췄나". 이 시스템은 B2B(대관사)라
+            익명 방문 집계보다 단계별 이탈과 **멈춘 회사 목록**이 실제 운영에 쓰인다.
+            숫자는 별도 추적 코드 없이 지금 있는 데이터(analytics_events · users ·
+            companies · quotes)만으로 낸다. */}
+        <section className="mt-2">
+          <h2 className={SECTION_TITLE}>신청 퍼널</h2>
+          <TrafficControls basePath="/admin/reports" query={query} />
+          <div className={`mt-4 ${TABLE_CARD}`}>
+            <div className={TABLE_SCROLL}>
+              <table className={TABLE}>
+                <thead>
+                  <tr className={THEAD_ROW}>
+                    <th className={TH}>단계</th>
+                    <th className={TH_NUM}>도달</th>
+                    <th className={TH_NUM}>직전 대비</th>
+                    <th className={TH}>세는 기준</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {funnel.map((step) => (
+                    <tr key={step.key} className={TR}>
+                      <td className={TD_ID}>{step.label}</td>
+                      <td className={TD_NUM}>
+                        {step.count.toLocaleString("ko-KR")}
+                        {step.unit}
+                      </td>
+                      <td className={TD_NUM}>
+                        {step.rate === null ? "—" : `${step.rate}%`}
+                      </td>
+                      <td className={TD}>{step.hint}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+          <p className="mt-2.5 text-xs leading-5 text-muted">
+            방문·가입 화면·대관신청 클릭·위저드 진입은 위 기간 안의 접속 기록 기준이고,
+            가입 완료·회사 승인·신청서 제출은 그 기간에 실제로 만들어진 건수입니다.
+            단계마다 세는 단위(명·곳·건)가 달라 통과율은 흐름을 보는 용도로만 읽어 주세요.
+          </p>
+        </section>
+
+        <section className="mt-8">
+          <h2 className={SECTION_TITLE}>승인 후 아직 신청서를 내지 않은 회사</h2>
+          <p className="mt-1.5 text-xs leading-5 text-muted">
+            운영자 승인을 받았지만 신청서가 없는 회사입니다. 오래 멈춘 순으로 정렬했습니다 —
+            연락이 필요한 곳을 여기서 고르시면 됩니다.
+          </p>
+          <div className={`mt-3 ${TABLE_CARD}`}>
+            <div className={TABLE_SCROLL}>
+              <table className={TABLE}>
+                <thead>
+                  <tr className={THEAD_ROW}>
+                    <th className={TH}>회사</th>
+                    <th className={TH_NUM}>담당자</th>
+                    <th className={TH}>도달 단계</th>
+                    <th className={TH}>마지막 접속</th>
+                    <th className={TH_NUM}>정체</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {stalled.length === 0 ? (
+                    <tr className={TR}>
+                      <td className={TD} colSpan={5}>
+                        멈춘 회사가 없습니다.
+                      </td>
+                    </tr>
+                  ) : (
+                    stalled.map((c) => (
+                      <tr key={c.companyId} className={TR}>
+                        <td className={TD_ID}>{c.companyName}</td>
+                        <td className={TD_NUM}>{c.memberCount}명</td>
+                        <td className={TD}>{c.reached}</td>
+                        <td className={TD}>
+                          {c.lastSeenAt
+                            ? new Date(c.lastSeenAt).toLocaleDateString("ko-KR", { timeZone: "Asia/Seoul" })
+                            : "—"}
+                        </td>
+                        <td className={TD_NUM}>{c.idleDays}일</td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </section>
         </>
         ) : (
         <>

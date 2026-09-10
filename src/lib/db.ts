@@ -4940,6 +4940,143 @@ export async function todayInSeoul(): Promise<string> {
   return row?.d ?? new Date().toISOString().slice(0, 10);
 }
 
+/**
+ * [신규 2026-09-10] 대관 신청 퍼널 — "어느 단계에서 몇이 멈췄나".
+ *
+ * 이 시스템은 B2B(대관사 51곳·회원 70명)라 익명 집계보다 **어느 회사가 어디서 멈췄는지**가
+ * 훨씬 중요하다. analytics_events 에 user_id 가 함께 남아 users·companies·quotes 와 조인되므로
+ * 외부 도구(GA 등)로는 낼 수 없는 지표를 여기서 직접 만든다.
+ *
+ * 단계는 실제 데이터가 증명하는 것만 쓴다 — 별도 추적 코드를 새로 심지 않는다:
+ *   방문(순방문자) → 가입 화면 도달 → 가입 완료 → 회사 승인 → 대관신청 클릭 → 위저드 진입 → 신청서 제출
+ * 방문·가입화면·클릭·위저드는 기간(from~to) 안의 analytics_events 기준이고,
+ * 가입 완료·회사 승인·신청서 제출은 그 기간에 **실제로 생성된 레코드** 기준이다.
+ */
+export interface FunnelStep {
+  key: string;
+  label: string;
+  /** 그 단계에 도달한 수 */
+  count: number;
+  /** 무엇을 세는 단위인지 — "명" · "곳" · "건" */
+  unit: string;
+  /** 바로 앞 단계 대비 통과율(%). 첫 단계는 null */
+  rate: number | null;
+  hint: string;
+}
+
+export async function getFunnelStats(opts: { from: string; to: string }): Promise<FunnelStep[]> {
+  const row = await one<{
+    visitors: string;
+    register_visitors: string;
+    signups: string;
+    approved_companies: string;
+    apply_clicks: string;
+    wizard_users: string;
+    quotes: string;
+  }>(
+    `SELECT
+       (SELECT COUNT(DISTINCT visitor_id) FROM analytics_events
+         WHERE day >= $1::date AND day <= $2::date)                            AS visitors,
+       (SELECT COUNT(DISTINCT visitor_id) FROM analytics_events
+         WHERE day >= $1::date AND day <= $2::date
+           AND path LIKE '/register%')                                         AS register_visitors,
+       (SELECT COUNT(*) FROM users
+         WHERE role = 'APPLICANT' AND withdrawn_at IS NULL
+           AND (created_at::timestamptz AT TIME ZONE 'Asia/Seoul')::date
+               BETWEEN $1::date AND $2::date)                                  AS signups,
+       (SELECT COUNT(*) FROM companies
+         WHERE status = 'APPROVED'
+           AND (created_at::timestamptz AT TIME ZONE 'Asia/Seoul')::date
+               BETWEEN $1::date AND $2::date)                                  AS approved_companies,
+       (SELECT COUNT(DISTINCT visitor_id) FROM analytics_events
+         WHERE day >= $1::date AND day <= $2::date
+           AND event_type = 'APPLY_CLICK')                                     AS apply_clicks,
+       (SELECT COUNT(DISTINCT user_id) FROM analytics_events
+         WHERE day >= $1::date AND day <= $2::date
+           AND user_id IS NOT NULL AND path LIKE '/apply%')                    AS wizard_users,
+       (SELECT COUNT(*) FROM quotes
+         WHERE (created_at::timestamptz AT TIME ZONE 'Asia/Seoul')::date
+               BETWEEN $1::date AND $2::date)                                  AS quotes`,
+    [opts.from, opts.to],
+  );
+  const n = (v: string | undefined) => Number(v ?? 0);
+  const raw: Omit<FunnelStep, "rate">[] = [
+    { key: "visitors", label: "방문", count: n(row?.visitors), unit: "명", hint: "브라우저 기준 순방문자" },
+    { key: "register", label: "가입 화면", count: n(row?.register_visitors), unit: "명", hint: "/register 를 연 방문자" },
+    { key: "signup", label: "가입 완료", count: n(row?.signups), unit: "명", hint: "기간 내 생성된 신청자 계정" },
+    { key: "company", label: "회사 승인", count: n(row?.approved_companies), unit: "곳", hint: "운영자 승인을 받은 회사" },
+    { key: "applyClick", label: "대관신청 클릭", count: n(row?.apply_clicks), unit: "명", hint: "/apply 로 가는 버튼을 누른 방문자" },
+    { key: "wizard", label: "위저드 진입", count: n(row?.wizard_users), unit: "명", hint: "로그인 상태로 신청 화면에 들어온 회원" },
+    { key: "quote", label: "신청서 제출", count: n(row?.quotes), unit: "건", hint: "실제로 접수된 대관 신청서" },
+  ];
+  return raw.map((step, i) => {
+    const prev = i === 0 ? null : raw[i - 1].count;
+    return {
+      ...step,
+      // 앞 단계가 0인데 이번 단계에 사람이 있으면(예: 버튼을 안 거치고 주소로 바로 들어온 경우)
+      // 0% 로 적으면 "아무도 안 넘어왔다"로 잘못 읽힌다 — 비율을 내지 않고 "—" 로 둔다.
+      rate: prev === null || prev === 0 ? null : Math.round((step.count / prev) * 1000) / 10,
+    };
+  });
+}
+
+/**
+ * [신규 2026-09-10] 승인은 났는데 아직 신청서를 내지 않은 회사 — 운영진이 바로 연락할 수 있게
+ * "어디까지 왔고 며칠째 멈춰 있는지"를 함께 준다. 퍼널 숫자만으로는 누구에게 연락할지 알 수 없다.
+ */
+export interface StalledCompany {
+  companyId: string;
+  companyName: string;
+  memberCount: number;
+  approvedAt: string | null;
+  lastSeenAt: string | null;
+  /** 도달한 가장 먼 단계 — "위저드" · "로그인" · "미접속" */
+  reached: "위저드" | "로그인" | "미접속";
+  /** 마지막 활동 이후 지난 일수(활동이 없으면 승인 이후) */
+  idleDays: number;
+}
+
+export async function listStalledCompanies(limit = 50): Promise<StalledCompany[]> {
+  const rows = await q<{
+    company_id: string;
+    company_name: string;
+    member_count: string;
+    approved_at: string | null;
+    last_seen: string | null;
+    wizard_hits: string;
+  }>(
+    `SELECT c.id                                       AS company_id,
+            c.name                                     AS company_name,
+            COUNT(DISTINCT u.id)                       AS member_count,
+            MIN(c.created_at)                          AS approved_at,
+            MAX(a.created_at)                          AS last_seen,
+            COUNT(a.id) FILTER (WHERE a.path LIKE '/apply%') AS wizard_hits
+       FROM companies c
+       JOIN users u ON u.company_id = c.id AND u.withdrawn_at IS NULL
+       LEFT JOIN analytics_events a ON a.user_id = u.id
+      WHERE c.status = 'APPROVED'
+        AND NOT EXISTS (SELECT 1 FROM quotes qq
+                         JOIN users qu ON qu.id = qq.applicant_id
+                        WHERE qu.company_id = c.id)
+      GROUP BY c.id, c.name
+      ORDER BY MAX(a.created_at) NULLS FIRST, c.name
+      LIMIT $1`,
+    [limit],
+  );
+  const now = Date.now();
+  const days = (iso: string | null) =>
+    iso ? Math.max(0, Math.floor((now - new Date(iso).getTime()) / 86_400_000)) : 0;
+  return rows.map((r) => ({
+    companyId: r.company_id,
+    companyName: r.company_name,
+    memberCount: Number(r.member_count ?? 0),
+    approvedAt: r.approved_at,
+    lastSeenAt: r.last_seen,
+    reached: Number(r.wizard_hits ?? 0) > 0 ? "위저드" : r.last_seen ? "로그인" : "미접속",
+    idleDays: days(r.last_seen ?? r.approved_at),
+  }));
+}
+
 export interface SignupStats {
   /** 가입자 수 — 신청자 계정만 센다(운영자 계정 제외). 탈퇴한 계정은 빼고 센다. */
   totalUsers: number;
