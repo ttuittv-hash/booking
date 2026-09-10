@@ -59,11 +59,8 @@ const SECTION_ORDER: ContractSection[] = ["CONTRACT", "ADDITIONAL"];
  */
 export function SummaryPanel({
   quote,
-  /** 단계 바 아래 선에 윗변을 맞추는 오프셋 — `STEP_NAV_OFFSET` 참고 */
-  offsetClass = "",
 }: {
   quote: EstimatedQuote;
-  offsetClass?: string;
 }) {
   // Bowl 사용료·유틸리티(HIDDEN)와 청소비는 합계에는 포함하되 신청자 화면에는 항목·금액을
   // 노출하지 않는다 — quote.subtotal/total 은 전체 lineItems 기준으로 이미 계산돼 있어
@@ -137,8 +134,14 @@ export function SummaryPanel({
       ? `총금액(예상) · ${groups.map((g) => VENUE_NAME[g.venue!] ?? g.venue).join("+")}`
       : "총금액(예상)";
 
+  /*
+    윗변을 단계 바 아래 선에 맞춘다 — 흐름 위치(mt)와 붙박이 위치(top)가 **같은 값**
+    (`--step-nav-h`, WizardShell 이 단계 바의 실제 높이를 재서 걸어 둔다)을 써야
+    스크롤 전후가 같은 줄에 선다. 값이 아직 없을 때의 대비값은 상위 줄만 있는 단계의
+    높이(48 + 선 1)다.
+  */
   return (
-    <aside className={`w-full min-w-0 lg:col-span-3 lg:sticky lg:top-28 lg:self-start ${offsetClass}`}>
+    <aside className="w-full min-w-0 lg:col-span-3 lg:sticky lg:top-[calc(var(--header-h)+var(--step-nav-h,3.0625rem))] lg:mt-[var(--step-nav-h,3.0625rem)] lg:self-start">
       <div className="border-t-2 border-foreground pt-5">
         <h3 className="type-kr-heading text-h6-m sm:text-h6">
           실시간 대관신청 내역

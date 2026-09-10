@@ -1,6 +1,6 @@
 "use client";
 
-import { Fragment, useEffect, useMemo, useState, type ReactNode } from "react";
+import { Fragment, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { calculateQuote } from "@/lib/pricing/calculateQuote";
 import { ARENA_MAX_AUDIENCE } from "@/lib/content/rateFacts";
 import type {
@@ -42,7 +42,7 @@ import { ArrowRight, btnClass } from "@/components/ui/kit";
 import { StepNav } from "./StepNav";
 import { StepHeading } from "./StepHeading";
 import { SummaryPanel } from "./SummaryPanel";
-import { STEP_NAV_OFFSET, SUB_ROW_FROM_STEP } from "./StepNav";
+import { STEP_NAV_HEIGHT_VAR } from "./StepNav";
 import { VenuePicker } from "./VenuePicker";
 import { Step1Calendar } from "./Step1Calendar";
 import { MidHallCalendar } from "./MidHallCalendar";
@@ -1170,6 +1170,28 @@ export function WizardShell({
       : [...STEP3_DEFAULT_SLOT_ORDER]
   ).filter((key) => !wizardDisabledFields?.includes(`slot.3.${key}`));
 
+  const gridRef = useRef<HTMLDivElement>(null);
+  const stepNavRef = useRef<HTMLElement>(null);
+
+  /*
+    사이드바를 단계 바 아래 선에 맞추는 값 — 단계 바의 **실제 높이**를 재서 그리드에
+    변수로 걸어 둔다. 흐름 오프셋(mt)과 붙박이 위치(top)가 같은 값을 쓰므로 스크롤
+    전후가 같은 줄에 선다. 상수로 적어 두던 것을 재는 것으로 바꾼 이유는 StepNav 의
+    STEP_NAV_HEIGHT_VAR 주석에 있다(지면 비례 축소 · 붙박이 위치 불일치).
+    하위 줄이 생기고 사라지는 것도 ResizeObserver 가 그대로 따라온다.
+  */
+  useEffect(() => {
+    const grid = gridRef.current;
+    const nav = stepNavRef.current;
+    if (!grid || !nav) return;
+    const apply = () =>
+      grid.style.setProperty(STEP_NAV_HEIGHT_VAR, `${nav.getBoundingClientRect().height}px`);
+    apply();
+    const ro = new ResizeObserver(apply);
+    ro.observe(nav);
+    return () => ro.disconnect();
+  }, [step]);
+
   return (
     /*
       좌: 스텝 콘텐츠(4col) / 우: sticky 요약 패널(2col) — 페이지 그리드 위에 올린다.
@@ -1177,7 +1199,7 @@ export function WizardShell({
       6칼럼 그리드와 어긋나 같은 화면 안에 축이 두 개가 됐다(정본 §7.4 = 4col + 2col).
       콘텐츠 트랙은 min-w-0 로 묶어 스텝 전환 시 폭이 변하지 않게 한다.
     */
-    <div className="container-site grid-site w-full gap-y-10 py-10 sm:py-12">
+    <div ref={gridRef} className="container-site grid-site w-full gap-y-10 py-10 sm:py-12">
       {/* [수정 2026-09-08] "예상 대관료 나올 때는 이미 내용이 다 반영된거니까 오른쪽
           플로팅 박스는 안보이는게 낫지 않나" — STEP5(예상 대관료)는 이제 대관료·
           추가옵션·소계·총금액을 오른쪽 패널과 같은 박스로 이미 전부 보여주므로, 이
@@ -1187,7 +1209,7 @@ export function WizardShell({
           9칼럼으로 두고, 패널이 있던 3칼럼 자리는 그냥 비워 둔다(12칼럼으로 늘리지
           않는다). */}
       <div className="min-w-0 lg:col-span-9">
-        <StepNav step={step} maxUnlockedStep={maxUnlockedStep} onJump={goTo} />
+        <StepNav navRef={stepNavRef} step={step} maxUnlockedStep={maxUnlockedStep} onJump={goTo} />
 
         {step === 1 && (
           <section>
@@ -1516,7 +1538,6 @@ export function WizardShell({
 
       {step !== 8 && (
         <SummaryPanel
-          offsetClass={step >= SUB_ROW_FROM_STEP ? STEP_NAV_OFFSET.grouped : STEP_NAV_OFFSET.single}
           quote={summaryQuote}
           /*
             요약 패널은 **실시간 대관신청 내역**이다(2026-08-26 개칭) — 대관료·항목·합계를 함께 보여준다.

@@ -69,22 +69,23 @@ function buildStageGroups(tStr: (key: string, fallback: string) => string): Stag
 }
 
 /**
- * 요약 패널(사이드바)을 **단계 바 아래 선에 맞추는** 오프셋.
+ * 요약 패널(사이드바)을 **단계 바 아래 선에 맞추는** 값 — 단계 바의 실제 높이.
  *
  * 단계 바는 본문 칼럼 **안**에 있어야 sticky 가 작동한다 — 그리드의 한 줄로 올리면
  * 그 행 높이가 곧 자기 높이라 이동 범위가 0 이 되어 스크롤해도 붙지 않는다. 그래서
  * 사이드바를 이만큼 내려 윗변을 맞춘다(스크롤 전에도 두 축이 한 줄에서 시작한다).
+ * 붙박이 위치도 같은 값을 쓴다 — `top = --header-h + 이 값`.
  *
  * 값은 **단계 바 자체의 높이**다 — 아래 여백(`mb-10`)은 본문이 내려가는 몫이므로
  * 여기 더하지 않는다(더했다가 사이드바가 40 더 내려가 어긋났다).
  *
- *   상위 줄만    ol h-12(48) + border-b(1)                        = 49
- *   하위 줄까지  48 + pt-5(20) + h-8(32) + pb-3(12) + border-b(1) = 113
+ * [개정 2026-09-10] 상수(49 / 113)를 버리고 **잰다.** 두 가지가 어긋나 있었다.
+ *   · 지면 비례 축소 — 루트가 14 인 폭(1024~1260)에서 단계 바는 43 인데 상수는 49 라
+ *     사이드바가 6 내려앉았다. 높이가 rem 기반이라 폭마다 값이 다르다.
+ *   · 붙박이 위치 — 사이드바만 `top-28`(7rem) 이라 스크롤하면 −1 ~ −9 로 갈렸다.
+ * 하위 줄 유무(step ≥ 3)도 잰 값에 이미 들어 있으므로 갈래를 나눌 필요가 없다.
  */
-export const STEP_NAV_OFFSET = { single: "lg:mt-[49px]", grouped: "lg:mt-[113px]" } as const;
-
-/** 하위 단계가 둘 이상인 그룹의 첫 step — 03 기본 정보(3~7) · 04 신청서 제출(8~9) */
-export const SUB_ROW_FROM_STEP = 3;
+export const STEP_NAV_HEIGHT_VAR = "--step-nav-h";
 
 /** 하위 단계 사이의 셰브런 — 이것들이 나란한 버튼이 아니라 순서라는 표시 */
 function Chevron() {
@@ -113,10 +114,13 @@ export function StepNav({
   hiddenSteps,
   locked,
   onJump,
+  navRef,
 }: {
   step: number;
   maxUnlockedStep: number;
   hiddenSteps?: number[];
+  /** 사이드바를 이 줄에 맞추기 위해 높이를 재는 쪽에서 넘긴다 (STEP_NAV_HEIGHT_VAR 참고) */
+  navRef?: React.Ref<HTMLElement>;
   /** 최종 제출까지 마친 뒤에는 "수정하기"를 누르기 전까지 다른 단계로 못 옮긴다(2026-08-22). */
   locked?: boolean;
   onJump: (step: number) => void;
@@ -131,6 +135,7 @@ export function StepNav({
 
   return (
     <nav
+      ref={navRef}
       aria-label="신청 단계"
       // sticky 오프셋은 상단바 높이 토큰(`--header-h`)을 그대로 따른다. 음수 마진(-mx-*)으로
       // 그리드 트랙 밖으로 빼지 않는다 — 스텝 전환 시 위저드 폭이 흔들리던 버그
