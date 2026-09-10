@@ -903,9 +903,12 @@ function StepIdentity({
   return (
     <section className="mt-8" data-testid="step-identity">
       <h2 className="type-kr-heading text-h6-m sm:text-h6">본인인증을 진행해 주세요.</h2>
+      {/* [수정 2026-09-10] "인증 결과의 이름·휴대폰번호는 계약 당사자 정보로 쓰이므로 이후
+          단계에서 수정할 수 없습니다" 문장 삭제(팀 요청). 같은 안내가 3단계 입력 화면
+          (1366행 "이름 · 휴대폰번호는 본인인증 결과가 그대로 들어가며 수정할 수 없습니다")에
+          이미 있어, 실제로 못 고치는 그 자리에서만 알려 준다. */}
       <p className="mt-2 max-w-2xl break-keep text-s text-muted">
-        본인 명의 휴대폰으로 본인인증을 진행합니다. 인증 결과의 이름·휴대폰번호는 계약 당사자
-        정보로 쓰이므로 이후 단계에서 수정할 수 없습니다.
+        본인 명의 휴대폰으로 본인인증을 진행합니다.
       </p>
       <div className="mt-7 border border-border-soft bg-surface px-6 py-12 text-center">
         <p className="text-h6-m font-bold">휴대폰</p>
@@ -922,9 +925,6 @@ function StepIdentity({
           {loading ? "인증창을 여는 중…" : "인증하기"}
         </button>
       </div>
-      <p className="mt-4 break-keep text-xs text-muted">
-        외국인·법인 명의 휴대폰·미성년 등으로 인증이 어려운 경우, 문의사항은 1:1 문의를 이용해 주세요.
-      </p>
       {/* 개발 환경 전용 — 표준창 인증은 실제 사람이 휴대폰으로 해야 해서
           화면 흐름을 훑어볼 때 막힌다. 운영에는 이 변수가 없어 버튼이 뜨지 않는다. */}
       {devBypass ? (
