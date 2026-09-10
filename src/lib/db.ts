@@ -5077,6 +5077,83 @@ export async function listStalledCompanies(limit = 50): Promise<StalledCompany[]
   }));
 }
 
+/**
+ * [신규 2026-09-10] 운영 모니터링 — "시스템이 잘 돌고 있나". 유입·퍼널·매출이 사업 지표라면
+ * 이쪽은 운영진이 매일 훑어야 할 처리 대기·실패 현황이다. 전부 지금 DB에 있는 값만 쓴다
+ * (AWS 지표는 monitoringAws.ts 에서 따로 읽는다).
+ */
+export interface OpsStats {
+  /** 알림톡·문자 발송 — 최근 기간 */
+  messagesSent: number;
+  messagesFailed: number;
+  messageFailureTop: { templateCode: string; reason: string; count: number }[];
+  /** 답변하지 않은 1:1 문의 */
+  openInquiries: number;
+  oldestInquiryDays: number | null;
+  /** 심사 대기 — 접수됐는데 아직 결정하지 않은 신청서 */
+  pendingReviews: number;
+  /** 가입 승인 대기 회사 */
+  pendingCompanies: number;
+  /** 휴대폰 번호가 없어 알림톡이 나가지 않는 운영자 계정 */
+  adminsWithoutPhone: number;
+  /** 앱 자체 레이트리밋에 걸린 키 수(현재 창) */
+  rateLimitedKeys: number;
+}
+
+export async function getOpsStats(opts: { from: string; to: string }): Promise<OpsStats> {
+  const [row, topRows] = await Promise.all([
+    one<{
+      sent: string; failed: string; open_inq: string; oldest_days: string | null;
+      pending_reviews: string; pending_companies: string; admins_no_phone: string; rl: string;
+    }>(
+      `SELECT
+         (SELECT COUNT(*) FROM message_sends
+           WHERE status IN ('SENT','FALLBACK')
+             AND (created_at::timestamptz AT TIME ZONE 'Asia/Seoul')::date BETWEEN $1::date AND $2::date) AS sent,
+         (SELECT COUNT(*) FROM message_sends
+           WHERE status = 'FAILED'
+             AND (created_at::timestamptz AT TIME ZONE 'Asia/Seoul')::date BETWEEN $1::date AND $2::date) AS failed,
+         (SELECT COUNT(*) FROM inquiries WHERE status = 'OPEN')                                          AS open_inq,
+         (SELECT MAX(EXTRACT(DAY FROM (now() - created_at::timestamptz)))::int FROM inquiries
+           WHERE status = 'OPEN')                                                                        AS oldest_days,
+         (SELECT COUNT(*) FROM quotes WHERE review_json IS NULL)                                         AS pending_reviews,
+         (SELECT COUNT(*) FROM companies WHERE status = 'PENDING')                                       AS pending_companies,
+         (SELECT COUNT(*) FROM users
+           WHERE role = 'ADMIN' AND withdrawn_at IS NULL
+             AND (phone IS NULL OR phone = ''))                                                          AS admins_no_phone,
+         (SELECT COUNT(*) FROM rate_limits)                                                              AS rl`,
+      [opts.from, opts.to],
+    ),
+    q<{ template_code: string; reason: string; n: string }>(
+      `SELECT template_code,
+              COALESCE(NULLIF(result_message, ''), COALESCE(result_code, '사유 없음')) AS reason,
+              COUNT(*) AS n
+         FROM message_sends
+        WHERE status = 'FAILED'
+          AND (created_at::timestamptz AT TIME ZONE 'Asia/Seoul')::date BETWEEN $1::date AND $2::date
+        GROUP BY 1, 2
+        ORDER BY COUNT(*) DESC
+        LIMIT 8`,
+      [opts.from, opts.to],
+    ),
+  ]);
+  return {
+    messagesSent: Number(row?.sent ?? 0),
+    messagesFailed: Number(row?.failed ?? 0),
+    messageFailureTop: topRows.map((r) => ({
+      templateCode: r.template_code,
+      reason: r.reason,
+      count: Number(r.n ?? 0),
+    })),
+    openInquiries: Number(row?.open_inq ?? 0),
+    oldestInquiryDays: row?.oldest_days == null ? null : Number(row.oldest_days),
+    pendingReviews: Number(row?.pending_reviews ?? 0),
+    pendingCompanies: Number(row?.pending_companies ?? 0),
+    adminsWithoutPhone: Number(row?.admins_no_phone ?? 0),
+    rateLimitedKeys: Number(row?.rl ?? 0),
+  };
+}
+
 export interface SignupStats {
   /** 가입자 수 — 신청자 계정만 센다(운영자 계정 제외). 탈퇴한 계정은 빼고 센다. */
   totalUsers: number;

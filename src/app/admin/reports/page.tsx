@@ -6,6 +6,7 @@ import {
   listCompanies,
   listQuotes,
   getFunnelStats,
+  getOpsStats,
   listStalledCompanies,
   sumContractAddendumsByQuote,
   todayInSeoul,
@@ -16,6 +17,7 @@ import { bucketLabel, parseGranularity, resolveRange } from "@/lib/trafficRange"
 import { num } from "@/lib/format";
 import { VENUES } from "@/lib/pricing/types";
 import { AdminNav } from "@/components/admin/AdminNav";
+import { getAwsMonitoring } from "@/lib/monitoringAws";
 import { TrafficControls, trafficHref, type TrafficQuery } from "@/components/admin/TrafficControls";
 import {
   CARD,
@@ -60,18 +62,21 @@ function resolveVenueTab(raw: string | undefined): ReportVenueTab {
 
   한 화면에 다 쌓으니 스크롤이 길어져 "지금 무엇을 보는 중인지" 가 흐려졌다.
 */
-type ReportTab = "traffic" | "funnel" | "revenue";
+type ReportTab = "traffic" | "funnel" | "revenue" | "ops";
 
 const REPORT_TABS: { key: ReportTab; label: string }[] = [
   { key: "traffic", label: "유입" },
   // [신규 2026-09-10] 퍼널 — "어느 단계에서 멈췄나". B2B라 익명 집계보다 이게 중요하다.
   { key: "funnel", label: "퍼널" },
   { key: "revenue", label: "매출" },
+  // [신규 2026-09-10] 모니터링 — 앞 셋이 사업 지표라면 이쪽은 시스템 지표(처리 대기·발송 실패·차단·서버).
+  { key: "ops", label: "모니터링" },
 ];
 
 function resolveReportTab(raw: string | undefined): ReportTab {
   if (raw === "revenue") return "revenue";
   if (raw === "funnel") return "funnel";
+  if (raw === "ops") return "ops";
   return "traffic";
 }
 
@@ -182,7 +187,7 @@ export default async function AdminReportsPage({
   const granularity = parseGranularity(sp.g);
   const range = resolveRange({ from: sp.from, to: sp.to, days: sp.days, today: await todayInSeoul() });
 
-  const [quotes, companies, traffic, signups, addendumByQuote, funnel, stalled] = await Promise.all([
+  const [quotes, companies, traffic, signups, addendumByQuote, funnel, stalled, ops, aws] = await Promise.all([
     listQuotes(),
     listCompanies(),
     getTrafficStats({ from: range.from, to: range.to, granularity }),
@@ -190,6 +195,8 @@ export default async function AdminReportsPage({
     sumContractAddendumsByQuote(),
     getFunnelStats({ from: range.from, to: range.to }),
     listStalledCompanies(50),
+    getOpsStats({ from: range.from, to: range.to }),
+    getAwsMonitoring({ from: range.from, to: range.to }),
   ]);
   const stats = buildReportStats(quotes, companies, new Date(), 6, venueTab);
   const revenue = buildRevenueStats(quotes, addendumByQuote, new Date(), 6, venueTab);
@@ -416,6 +423,137 @@ export default async function AdminReportsPage({
               </table>
             </div>
           </div>
+        </section>
+        </>
+        ) : reportTab === "ops" ? (
+        <>
+        {/* ── 모니터링 탭 ───────────────────────────────────────────────────
+            [신규 2026-09-10] 시스템이 잘 돌고 있나. 위쪽(처리 대기·발송)은 DB 에서,
+            아래쪽(서버·차단)은 CloudWatch 에서 읽는다. AWS 조회가 실패해도 위쪽은 그대로
+            나오도록 분리해 두었다 — 지표 하나 때문에 화면 전체가 막히면 안 된다. */}
+        <section className="mt-2">
+          <h2 className={SECTION_TITLE}>지금 처리해야 할 것</h2>
+          <p className="mt-1.5 text-xs leading-5 text-muted">
+            운영진 손이 필요한 대기 항목입니다. 기간과 무관하게 현재 상태를 보여줍니다.
+          </p>
+          <div className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-4">
+            <StatCard
+              label="심사 대기 신청서"
+              value={`${ops.pendingReviews.toLocaleString("ko-KR")}건`}
+              sub="접수됐지만 승인·보류·거절 미결정"
+            />
+            <StatCard
+              label="가입 승인 대기"
+              value={`${ops.pendingCompanies.toLocaleString("ko-KR")}곳`}
+              sub="회사 심사 대기"
+            />
+            <StatCard
+              label="미답변 문의"
+              value={`${ops.openInquiries.toLocaleString("ko-KR")}건`}
+              sub={ops.oldestInquiryDays === null ? "없음" : `가장 오래된 건 ${ops.oldestInquiryDays}일 경과`}
+            />
+            <StatCard
+              label="휴대폰 없는 운영자"
+              value={`${ops.adminsWithoutPhone.toLocaleString("ko-KR")}명`}
+              sub="알림톡이 발송되지 않는 계정"
+            />
+          </div>
+        </section>
+
+        <section className="mt-8">
+          <h2 className={SECTION_TITLE}>알림톡·문자 발송</h2>
+          <TrafficControls basePath="/admin/reports" query={query} />
+          <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3">
+            <StatCard label="성공" value={`${ops.messagesSent.toLocaleString("ko-KR")}건`} sub="기간 내 발송 성공" />
+            <StatCard label="실패" value={`${ops.messagesFailed.toLocaleString("ko-KR")}건`} sub="카카오·통신사가 거절" />
+            <StatCard
+              label="성공률"
+              value={
+                ops.messagesSent + ops.messagesFailed === 0
+                  ? "—"
+                  : `${Math.round((ops.messagesSent / (ops.messagesSent + ops.messagesFailed)) * 1000) / 10}%`
+              }
+            />
+          </div>
+          {ops.messageFailureTop.length > 0 && (
+            <div className={`mt-4 ${TABLE_CARD}`}>
+              <div className={TABLE_SCROLL}>
+                <table className={TABLE}>
+                  <thead>
+                    <tr className={THEAD_ROW}>
+                      <th className={TH}>템플릿</th>
+                      <th className={TH}>실패 사유</th>
+                      <th className={TH_NUM}>건수</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {ops.messageFailureTop.map((r) => (
+                      <tr key={`${r.templateCode}-${r.reason}`} className={TR}>
+                        <td className={TD_ID}>{r.templateCode}</td>
+                        <td className={TD}>{r.reason}</td>
+                        <td className={TD_NUM}>{r.count.toLocaleString("ko-KR")}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
+        </section>
+
+        <section className="mt-8">
+          <h2 className={SECTION_TITLE}>서버 · 차단</h2>
+          {aws.available ? (
+            <>
+              <div className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-4">
+                <StatCard
+                  label="가동 중인 서버"
+                  value={aws.runningTasks === null ? "—" : `${aws.runningTasks}대`}
+                  sub="자동 확장 3~12대"
+                />
+                <StatCard
+                  label="CPU"
+                  value={aws.cpuAvg === null ? "—" : `${aws.cpuAvg}%`}
+                  sub={aws.cpuMax === null ? undefined : `최고 ${aws.cpuMax}%`}
+                />
+                <StatCard
+                  label="평균 응답시간"
+                  value={aws.responseTime === null ? "—" : `${Math.round(aws.responseTime * 1000)}ms`}
+                />
+                <StatCard
+                  label="서버 오류(5xx)"
+                  value={aws.serverErrors === null ? "—" : `${aws.serverErrors.toLocaleString("ko-KR")}건`}
+                  sub={aws.clientErrors === null ? undefined : `요청 오류(4xx) ${aws.clientErrors.toLocaleString("ko-KR")}건`}
+                />
+              </div>
+              <div className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-4">
+                <StatCard
+                  label="방화벽 차단"
+                  value={aws.blockedRequests === null ? "—" : `${aws.blockedRequests.toLocaleString("ko-KR")}건`}
+                  sub="공격·과다 요청을 막은 횟수"
+                />
+                <StatCard
+                  label="정상 통과"
+                  value={aws.allowedRequests === null ? "—" : `${aws.allowedRequests.toLocaleString("ko-KR")}건`}
+                />
+                <StatCard
+                  label="DB CPU"
+                  value={aws.dbCpu === null ? "—" : `${aws.dbCpu}%`}
+                />
+                <StatCard
+                  label="DB 접속"
+                  value={aws.dbConnections === null ? "—" : `${aws.dbConnections}개`}
+                  sub="최대 420개"
+                />
+              </div>
+              <p className="mt-2.5 text-xs leading-5 text-muted">
+                위 기간의 AWS 지표입니다. 차단 건수가 갑자기 늘면 공격일 수 있고, 서버 오류(5xx)가
+                0이 아니면 확인이 필요합니다. 경보는 슬랙으로도 갑니다.
+              </p>
+            </>
+          ) : (
+            <div className={`mt-3 ${TABLE_CARD} p-5 text-s text-muted`}>{aws.reason}</div>
+          )}
         </section>
         </>
         ) : (
