@@ -103,7 +103,8 @@ function CheckboxChip({
 }
 
 // 공간별 총 공연 횟수 — 1회당 예상 관객수 × 총 공연 횟수 합산에 쓰인다.
-function venueShowCounts(selection: QuoteSelection): { arenaShows: number; midHallShows: number } {
+// Step6Submit(최종 제출 요약)도 "공연 횟수" 표시에 같은 계산을 쓴다.
+export function venueShowCounts(selection: QuoteSelection): { arenaShows: number; midHallShows: number } {
   const arenaDates = resolveSelectedDates(selection);
   const defaults = defaultDayTags(arenaDates, 2);
   const arenaShows = arenaDates.reduce((sum, d) => {

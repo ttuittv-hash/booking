@@ -17,6 +17,7 @@ import {
 } from "@/lib/pricing/rateTableUtils";
 import type {
   AppUser,
+  Attachment,
   DateBlock,
   MarketingCooperation,
   QuoteSelection,
@@ -206,7 +207,7 @@ export function WizardShell({
   wizardDisabledFields,
   wizardCustomOptions,
   calendarMonthBounds,
-  existingAttachmentCount = 0,
+  existingAttachments = [],
 }: {
   rateTable: RateTable;
   currentUser: AppUser | null;
@@ -255,9 +256,11 @@ export function WizardShell({
    * 범위. /apply, /apply/edit/[id] 페이지가 getNoticeCalendarWindow()로 조회해 넘긴다.
    */
   calendarMonthBounds?: { start: string | null; end: string | null };
-  /** [신규 2026-09-08] 수정 화면 — 이미 서버에 올라간 첨부 수. 0보다 크면 STEP7 필수 첨부
-   *  검사를 통과한 것으로 본다(다시 올리라고 막지 않는다). 새 신청은 0. */
-  existingAttachmentCount?: number;
+  /** [신규 2026-09-08] 수정 화면 — 이미 서버에 올라간 첨부. 있으면 STEP7 필수 첨부
+   *  검사를 통과한 것으로 본다(다시 올리라고 막지 않는다). 새 신청은 빈 배열.
+   *  [개정 2026-09-11] 최종 제출(STEP9) 화면에서 파일명·다운로드 링크를 보여주려면
+   *  건수(count)만으로는 부족해 전체 목록을 받는다. */
+  existingAttachments?: Attachment[];
 }) {
   const isEditing = !!editingQuoteId;
   const { t, tStr } = useWizardText();
@@ -636,7 +639,7 @@ export function WizardShell({
   // File 객체는 임시저장(localStorage)에 남지 않으므로 새로고침하면 다시 비는데, 그때도
   // 제출 전에 다시 올리게 한다(submit()에서 한 번 더 검사). 수정 화면은 서버에 이미 있는
   // 첨부(existingAttachmentCount)로 통과한다.
-  const step7Blocked = pendingFiles.length === 0 && existingAttachmentCount === 0;
+  const step7Blocked = pendingFiles.length === 0 && existingAttachments.length === 0;
   const maxUnlockedStep = !selection.venueId
     ? 1
     : midHallOnly && !hasMidHallSelection
@@ -1502,9 +1505,16 @@ export function WizardShell({
             submittedId={submittedId}
             error={submitError}
             attachmentError={attachmentError}
-            fileCount={pendingFiles.length}
+            files={pendingFiles}
+            existingAttachments={existingAttachments}
+            quoteId={editingQuoteId ?? submittedId ?? null}
+            altScheduleConsent={resolvedSelection.altScheduleConsent ?? null}
+            onChangeAltScheduleConsent={(altScheduleConsent) =>
+              setSelection((prev) => ({ ...prev, altScheduleConsent }))
+            }
             onSubmit={submit}
             onRequestEdit={requestEdit}
+            onJumpToStep={goTo}
             disabledFields={wizardDisabledFields}
           />
         )}

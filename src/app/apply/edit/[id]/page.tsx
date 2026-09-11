@@ -93,7 +93,7 @@ export default async function EditQuotePage({
             wizardFieldOrders={screenText.wizardFieldOrders}
             wizardDisabledFields={screenText.wizardDisabledFields}
             calendarMonthBounds={calendarMonthBounds}
-            existingAttachmentCount={existingAttachments.length}
+            existingAttachments={existingAttachments}
           />
         </WizardTextProvider>
       </main>

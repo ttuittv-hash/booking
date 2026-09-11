@@ -382,6 +382,10 @@ export interface QuoteSelection {
   safetyPledge?: SafetyPledge;
   // optional — 마케팅 협조 및 계획 탭(2026-08-22 추가) 도입 이전 신청서에는 없다.
   marketingCooperation?: MarketingCooperation;
+  // [신규 2026-09-11] 최종 제출 화면 "대체 일정 제안 수신 여부" — 신청 일정으로 대관이
+  // 어려울 때 심의 결과에 따라 다른 일정을 제안받을지 묻는다(필수). optional — 이 필드가
+  // 추가되기 전에 제출된 기존 신청서에는 없다.
+  altScheduleConsent?: "AGREE" | "DISAGREE" | null;
 }
 
 // ---------------------------------------------------------------------------
