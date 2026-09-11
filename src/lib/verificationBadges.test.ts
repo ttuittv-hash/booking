@@ -21,6 +21,7 @@ const baseCompany = {
   representativeFax: null,
   corporateRegistrationNumber: null,
   companyType: null,
+  masterBadgeHidden: false,
   verification: {
     status: "VERIFIED" as const,
     companyName: "테스트",

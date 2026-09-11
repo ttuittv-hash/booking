@@ -1054,6 +1054,9 @@ export interface Company {
   verification: CompanyVerification | null;
   /** 신청 기업 유형(기획사/제작사/대행사/아티스트 소속사/기타) — 가입 시 설정, 미설정이면 null */
   companyType: ApplicantCompanyType | null;
+  /** 운영자가 이 회사의 "대표 담당자" 뱃지 노출을 껐는지(2026-09-11) — 회사·구성원
+   *  데이터는 그대로 두고 뱃지(라벨) 렌더링만 막는다. */
+  masterBadgeHidden: boolean;
 }
 
 export interface AppUser {

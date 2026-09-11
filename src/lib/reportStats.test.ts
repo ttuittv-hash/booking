@@ -45,6 +45,7 @@ function makeCompany(status: Company["status"]): Company {
     corporateNumber: null,
     verification: null,
     companyType: null,
+    masterBadgeHidden: false,
   };
 }
 

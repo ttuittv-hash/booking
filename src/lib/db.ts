@@ -644,6 +644,10 @@ async function initSchema(pool: Pool) {
     -- 신청 기업 유형(기획사/제작사/대행사/아티스트 소속사/기타) — 신청서의
     -- applicantCompanyType 과 같은 분류를 회사 단위로도 저장한다(가입 시 설정).
     ALTER TABLE companies ADD COLUMN IF NOT EXISTS company_type TEXT;
+    -- 특정 회사의 "대표 담당자" 뱃지 노출을 운영자가 끌 수 있다(2026-09-11, "대표자 뱃지
+    -- 미공개하는 설정 기능을 회원관리에 추가해줘"). 회사·구성원 데이터 자체는 그대로 두고
+    -- ApplicantApprovalTable·CompanyMembersPanel의 뱃지(라벨) 렌더링만 막는다.
+    ALTER TABLE companies ADD COLUMN IF NOT EXISTS master_badge_hidden INTEGER NOT NULL DEFAULT 0;
 
     -- 진행 중인 본인인증 건을 콜백에서 다시 집어들기 위한 값들.
     -- pod 가 여러 개라 프로세스 메모리에 두면 콜백이 다른 pod 로 가서 깨진다.
@@ -1464,6 +1468,7 @@ interface CompanyRow {
   company_fax: string | null;
   corporate_number: string | null;
   company_type: string | null;
+  master_badge_hidden: number;
 }
 
 function toCompany(row: CompanyRow): Company {
@@ -1486,6 +1491,7 @@ function toCompany(row: CompanyRow): Company {
     corporateNumber: row.corporate_number ?? null,
     companyType: (row.company_type as ApplicantCompanyType | null) ?? null,
     masterUserId: row.master_user_id ?? null,
+    masterBadgeHidden: row.master_badge_hidden === 1,
     verification: row.verification_status
       ? {
           status: row.verification_status as CompanyVerification["status"],
@@ -1620,6 +1626,7 @@ export async function findOrCreateCompany(
     company_fax: extra?.companyFax?.trim() || null,
     corporate_number: extra?.corporateNumber?.replace(/\D/g, "") || null,
     company_type: extra?.companyType ?? null,
+    master_badge_hidden: 0,
   };
   // 같은 사업자번호로 동시에 가입하면 조회-후-삽입 사이에 경합이 나서 한쪽이 UNIQUE 위반으로 실패한다.
   // 충돌 시 무시하고 아래에서 기존 행을 다시 읽는다.
@@ -3382,6 +3389,7 @@ export interface CompanyRow2 {
   memberCount: number;
   pendingCount: number;
   createdAt: string;
+  masterBadgeHidden: boolean;
 }
 
 /**
@@ -3425,9 +3433,10 @@ export async function listCompaniesPaged(
     member_count: number;
     pending_count: number;
     created_at: string;
+    master_badge_hidden: number;
   }>(
     `SELECT c.id, c.name, c.business_registration_number, c.representative_name,
-            c.status, c.master_user_id, c.created_at,
+            c.status, c.master_user_id, c.created_at, c.master_badge_hidden,
             m.name AS master_name,
             COALESCE(u.member_count, 0)::int  AS member_count,
             COALESCE(u.pending_count, 0)::int AS pending_count
@@ -3457,11 +3466,21 @@ export async function listCompaniesPaged(
       memberCount: r.member_count,
       pendingCount: r.pending_count,
       createdAt: r.created_at,
+      masterBadgeHidden: r.master_badge_hidden === 1,
     })),
     countRow?.n ?? 0,
     page,
     pageSize,
   );
+}
+
+/**
+ * 운영자가 특정 회사의 "대표 담당자" 뱃지 노출을 켜고 끈다(2026-09-11).
+ * 회사·구성원 데이터는 그대로 두고 뱃지(라벨) 렌더링만 막는 표시용 플래그라
+ * 대표 지정(setCompanyMasterByAdmin)과 달리 검증할 선행 조건이 없다.
+ */
+export async function setCompanyMasterBadgeHidden(companyId: string, hidden: boolean): Promise<void> {
+  await q("UPDATE companies SET master_badge_hidden = $2 WHERE id = $1", [companyId, hidden ? 1 : 0]);
 }
 
 /**

@@ -44,6 +44,7 @@ export function ApplicantApprovalTable({
   businessRegistrationNumbers = {},
   joinContexts = {},
   deciders = {},
+  masterBadgeHidden = {},
 }: {
   applicants: AppUser[];
   pending: boolean;
@@ -52,6 +53,8 @@ export function ApplicantApprovalTable({
   joinContexts?: Record<string, { joinOrder: number; companyHasApproved: boolean }>;
   /** 처리 완료 표에서만 쓴다 — 승인·반려를 처리한 사람(운영자 또는 회사 대표 담당자). */
   deciders?: Record<string, { name: string; isAdmin: boolean }>;
+  /** 처리 완료 표의 "대표 담당자" 뱃지를 회사 단위로 끈다(2026-09-11, 대표자 뱃지 미공개). */
+  masterBadgeHidden?: Record<string, boolean>;
 }) {
   // 승인·반려·삭제는 회사 상세의 담당자 목록과 같은 동작이다 — useMemberActions 하나를 쓴다.
   const { busyId, decide, remove } = useMemberActions();
@@ -141,7 +144,13 @@ export function ApplicantApprovalTable({
                       {a.withdrawnAt || a.approvalStatus !== "APPROVED" ? (
                         <span className="text-muted">{NONE}</span>
                       ) : a.companyRole === "MASTER" ? (
-                        <Badge tone="good">대표 담당자</Badge>
+                        a.companyId && masterBadgeHidden[a.companyId] ? (
+                          <span className="border border-dashed border-border-soft px-2 py-0.5 text-xs text-muted">
+                            뱃지 비공개
+                          </span>
+                        ) : (
+                          <Badge tone="good">대표 담당자</Badge>
+                        )
                       ) : (
                         <span className="text-s text-muted">소속 담당자</span>
                       )}

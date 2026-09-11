@@ -1,11 +1,18 @@
 import { NextResponse } from "next/server";
 import crypto from "node:crypto";
 import { getCurrentUser, isProAdminOrAbove } from "@/lib/auth";
-import { createNotification, findCompanyById, findUserById, setCompanyMasterByAdmin } from "@/lib/db";
+import {
+  createNotification,
+  findCompanyById,
+  findUserById,
+  setCompanyMasterByAdmin,
+  setCompanyMasterBadgeHidden,
+} from "@/lib/db";
 import { dispatchMessageInBackground } from "@/lib/message/dispatch";
 import { revalidateMemberViews } from "@/lib/revalidateAdmin";
 
-// 운영자의 대표 담당자 변경 (기획서 A10 — 마스터 부재·퇴사 시 운영자가 안전망).
+// 운영자의 대표 담당자 변경 (기획서 A10 — 마스터 부재·퇴사 시 운영자가 안전망) +
+// 대표자 뱃지 미공개 설정(2026-09-11, "대표자 뱃지를 미공개하는 설정 기능").
 export async function POST(request: Request) {
   const user = await getCurrentUser();
   if (!user || !isProAdminOrAbove(user)) {
@@ -14,6 +21,17 @@ export async function POST(request: Request) {
 
   const body = await request.json().catch(() => null);
   const companyId = typeof body?.companyId === "string" ? body.companyId : "";
+
+  if (body?.action === "setMasterBadgeHidden") {
+    const hidden = body?.hidden === true;
+    if (!companyId) return NextResponse.json({ error: "잘못된 요청입니다." }, { status: 400 });
+    const company = await findCompanyById(companyId);
+    if (!company) return NextResponse.json({ error: "회사를 찾을 수 없습니다." }, { status: 404 });
+    await setCompanyMasterBadgeHidden(companyId, hidden);
+    revalidateMemberViews();
+    return NextResponse.json({ ok: true, masterBadgeHidden: hidden });
+  }
+
   const targetId = typeof body?.targetId === "string" ? body.targetId : "";
   if (body?.action !== "setMaster" || !companyId || !targetId) {
     return NextResponse.json({ error: "잘못된 요청입니다." }, { status: 400 });

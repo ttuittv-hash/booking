@@ -42,9 +42,13 @@ export default async function AdminApplicantsPage({
   const keyword = (params.q ?? "").trim();
   const status = params.status ?? "";
 
+  // businessRegistrationNumbers·masterBadgeHiddenMap 둘 다 회사당 한 줄이라 같은
+  // listCompanies() 호출 하나에서 만든다 — 따로 부르면 같은 표를 두 번 읽는다.
+  const companiesAll = await listCompanies();
   const businessRegistrationNumbers = Object.fromEntries(
-    (await listCompanies()).map((c) => [c.id, c.businessRegistrationNumber]),
+    companiesAll.map((c) => [c.id, c.businessRegistrationNumber]),
   );
+  const masterBadgeHiddenMap = Object.fromEntries(companiesAll.map((c) => [c.id, c.masterBadgeHidden]));
   const memberPolicy = await getMemberPolicy();
 
   // 탭 라벨에 건수를 달아준다 — 열어보지 않아도 밀린 일이 있는지 보인다.
@@ -90,7 +94,7 @@ export default async function AdminApplicantsPage({
         {tab === "pending" ? (
           <PendingTab page={page} brns={businessRegistrationNumbers} />
         ) : tab === "decided" ? (
-          <DecidedTab page={page} brns={businessRegistrationNumbers} />
+          <DecidedTab page={page} brns={businessRegistrationNumbers} badgeHidden={masterBadgeHiddenMap} />
         ) : (
           <CompaniesTab page={page} keyword={keyword} status={status} />
         )}
@@ -128,7 +132,15 @@ async function PendingTab({ page, brns }: { page: number; brns: Record<string, s
   );
 }
 
-async function DecidedTab({ page, brns }: { page: number; brns: Record<string, string | null> }) {
+async function DecidedTab({
+  page,
+  brns,
+  badgeHidden,
+}: {
+  page: number;
+  brns: Record<string, string | null>;
+  badgeHidden: Record<string, boolean>;
+}) {
   const { items, total, totalPages } = await listUsersPaged(
     { role: "APPLICANT", excludeApprovalStatus: "PENDING" },
     page,
@@ -149,6 +161,7 @@ async function DecidedTab({ page, brns }: { page: number; brns: Record<string, s
           pending={false}
           businessRegistrationNumbers={brns}
           deciders={deciders}
+          masterBadgeHidden={badgeHidden}
         />
       </div>
       <Pagination

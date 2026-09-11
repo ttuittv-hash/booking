@@ -12,7 +12,7 @@ import Link from "next/link";
 import { useDialog } from "@/components/ui/Dialog";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { LINK_BTN } from "@/components/admin/adminUi";
+import { INFO_NOTE, LINK_BTN } from "@/components/admin/adminUi";
 import { btnClass } from "@/components/ui/kit";
 import { displayEmail } from "@/lib/format";
 import { useMemberActions } from "./useMemberActions";
@@ -37,14 +37,37 @@ const APPROVAL_LABEL: Record<string, string> = {
 export function CompanyMembersPanel({
   companyId,
   members,
+  masterBadgeHidden = false,
 }: {
   companyId: string;
   members: CompanyMember[];
+  /** 운영자가 이 회사의 "대표 담당자" 뱃지 노출을 껐는지(2026-09-11, 대표자 뱃지 미공개
+   *  — 회원 관리 › 회사별 담당자 › [대표자 뱃지 미공개 설정]). */
+  masterBadgeHidden?: boolean;
 }) {
   const router = useRouter();
   const dialog = useDialog();
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  async function unhideBadge() {
+    setError(null);
+    setBusy(true);
+    try {
+      const res = await fetch("/api/admin/companies", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "setMasterBadgeHidden", companyId, hidden: false }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "해제하지 못했습니다.");
+      router.refresh();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "해제하지 못했습니다.");
+    } finally {
+      setBusy(false);
+    }
+  }
   // 마지막 담당자를 지우면 회사도 함께 사라진다 — 이 페이지에 머물면 404 라 목록으로 보낸다.
   const { busyId, decide, remove } = useMemberActions({
     onCompanyDeleted: () => router.push("/admin/applicants?tab=companies"),
@@ -78,6 +101,17 @@ export function CompanyMembersPanel({
 
   return (
     <div>
+      {masterBadgeHidden ? (
+        <div className={`mb-3 flex flex-wrap items-center justify-between gap-3 ${INFO_NOTE}`}>
+          <span>
+            이 회사는 <b className="text-foreground">대표자 뱃지가 비공개</b>로 설정되어 있습니다. 아래
+            구성원 목록에 대표 담당자 표시가 나타나지 않습니다.
+          </span>
+          <button type="button" disabled={busy} onClick={unhideBadge} className={LINK_BTN}>
+            설정 해제
+          </button>
+        </div>
+      ) : null}
       {error ? (
         <p className="mb-3 border-l-2 border-danger bg-danger-soft px-3 py-2 text-s text-danger">{error}</p>
       ) : null}
@@ -90,13 +124,19 @@ export function CompanyMembersPanel({
               className="flex flex-wrap items-center justify-between gap-3 border border-border-soft px-4 py-3"
             >
               <span className="flex flex-wrap items-center gap-2 text-s">
-                <span
-                  className={`border px-2 py-0.5 text-xs ${
-                    isMaster ? "border-accent text-accent" : "border-border-soft text-muted"
-                  }`}
-                >
-                  {isMaster ? "대표 담당자" : "소속 담당자"}
-                </span>
+                {isMaster && masterBadgeHidden ? (
+                  <span className="border border-dashed border-border-soft px-2 py-0.5 text-xs text-muted">
+                    뱃지 비공개
+                  </span>
+                ) : (
+                  <span
+                    className={`border px-2 py-0.5 text-xs ${
+                      isMaster ? "border-accent text-accent" : "border-border-soft text-muted"
+                    }`}
+                  >
+                    {isMaster ? "대표 담당자" : "소속 담당자"}
+                  </span>
+                )}
                 {/* 이름을 누르면 회원 상세로 간다 — 진위확인 배지와 신청 내역이 거기 있다. */}
                 <Link
                   href={`/admin/applicants/${m.id}`}

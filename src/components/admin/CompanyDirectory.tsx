@@ -11,11 +11,14 @@ import {
   TABLE,
   TABLE_CARD,
   TABLE_HEAD,
+  TABLE_HEAD_ACTIONS,
   TABLE_HEAD_DESC,
   TABLE_HEAD_TITLE,
   TABLE_SCROLL,
 } from "@/components/admin/adminUi";
+import { btnClass } from "@/components/ui/kit";
 import { Pagination } from "@/components/Pagination";
+import { MasterBadgeVisibilityDialog } from "./MasterBadgeVisibilityDialog";
 
 type Company = {
   id: string;
@@ -28,6 +31,7 @@ type Company = {
   memberCount: number;
   pendingCount: number;
   createdAt: string;
+  masterBadgeHidden: boolean;
 };
 
 const STATUS_LABEL: Record<string, string> = {
@@ -53,6 +57,7 @@ export function CompanyDirectory({
 }) {
   const router = useRouter();
   const [q, setQ] = useState(keyword);
+  const [badgeDialogOpen, setBadgeDialogOpen] = useState(false);
 
   const search = useCallback(
     (nextQ: string, nextStatus: string) => {
@@ -112,6 +117,15 @@ export function CompanyDirectory({
               회사를 누르면 상세 페이지로 이동합니다 — 담당자 목록과 대표 지정이 거기 있습니다.
             </p>
           </div>
+          <div className={TABLE_HEAD_ACTIONS}>
+            <button
+              type="button"
+              onClick={() => setBadgeDialogOpen(true)}
+              className={btnClass("secondary", "sm")}
+            >
+              대표자 뱃지 미공개 설정
+            </button>
+          </div>
         </div>
 
         <div className={TABLE_SCROLL}>
@@ -148,6 +162,13 @@ export function CompanyDirectory({
         total={total}
         basePath={`/admin/applicants?tab=companies${keyword ? `&q=${encodeURIComponent(keyword)}` : ""}${status ? `&status=${status}` : ""}`}
       />
+
+      {badgeDialogOpen && (
+        <MasterBadgeVisibilityDialog
+          onClose={() => setBadgeDialogOpen(false)}
+          onChanged={() => router.refresh()}
+        />
+      )}
     </div>
   );
 }
@@ -176,6 +197,11 @@ function CompanyRow({ company }: { company: Company }) {
           {company.pendingCount > 0 ? (
             <span className="border border-accent bg-accent px-1.5 text-[10px] leading-4 text-on-accent tabular-nums">
               대기 {num(company.pendingCount)}
+            </span>
+          ) : null}
+          {company.masterBadgeHidden ? (
+            <span className="border border-border px-1.5 text-[10px] leading-4 text-muted">
+              뱃지 비공개
             </span>
           ) : null}
         </span>

@@ -91,6 +91,7 @@ export default async function AdminCompanyDetailPage({
         <div className="mt-4">
           <CompanyMembersPanel
             companyId={company.id}
+            masterBadgeHidden={company.masterBadgeHidden}
             members={members.map((m) => ({
               id: m.id,
               name: m.name,
