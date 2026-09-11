@@ -281,21 +281,25 @@ export function Step6Submit({
       ? selection.performanceInfo.eventTypes.map((v) => EVENT_TYPE_LABEL[v] ?? v).join(" · ")
       : "—";
 
+  // 아래 두 라벨은 t() 호출 여러 개를 템플릿 리터럴로 이어붙여 문자열 하나를 만든다 —
+  // 관리자 미리보기(EditableSubtree)에서 t()는 ReactNode(편집용 span)를 반환하므로,
+  // 그걸 템플릿 리터럴에 넣으면 "[object Object]"로 찍힌다. 여기서는 반드시 tStr()을
+  // 써야 한다(항상 plain string을 반환 — wizardText.tsx의 t/tStr 구분 규칙 그대로).
   const showCountLabel = isSimultaneous
-    ? `${t("submit.arenaSchedulePrefix", "아레나")} ${arenaShows}${t("submit.showsUnit", "회")} · ${t(
+    ? `${tStr("submit.arenaSchedulePrefix", "아레나")} ${arenaShows}${tStr("submit.showsUnit", "회")} · ${tStr(
         "submit.midHallSchedulePrefix",
         "중형공연장",
-      )} ${midHallShows}${t("submit.showsUnit", "회")}`
+      )} ${midHallShows}${tStr("submit.showsUnit", "회")}`
     : showsArena
-      ? `${t("submit.totalPrefix", "총")} ${arenaShows}${t("submit.showsUnit", "회")}`
-      : `${t("submit.totalPrefix", "총")} ${midHallShows}${t("submit.showsUnit", "회")}`;
+      ? `${tStr("submit.totalPrefix", "총")} ${arenaShows}${tStr("submit.showsUnit", "회")}`
+      : `${tStr("submit.totalPrefix", "총")} ${midHallShows}${tStr("submit.showsUnit", "회")}`;
 
   const audienceLabel = isSimultaneous
-    ? `${t("submit.arenaSchedulePrefix", "아레나")} ${t("submit.perShowPrefix", "회당")} ${selection.expectedAudience.toLocaleString()}${t("submit.peopleUnit", "명")} · ${t(
+    ? `${tStr("submit.arenaSchedulePrefix", "아레나")} ${tStr("submit.perShowPrefix", "회당")} ${selection.expectedAudience.toLocaleString()}${tStr("submit.peopleUnit", "명")} · ${tStr(
         "submit.midHallSchedulePrefix",
         "중형공연장",
-      )} ${t("submit.perShowPrefix", "회당")} ${selection.secondaryAudience.toLocaleString()}${t("submit.peopleUnit", "명")}`
-    : `${t("submit.perShowPrefix", "회당")} ${(showsArena ? selection.expectedAudience : selection.secondaryAudience).toLocaleString()}${t("submit.peopleUnit", "명")}`;
+      )} ${tStr("submit.perShowPrefix", "회당")} ${selection.secondaryAudience.toLocaleString()}${tStr("submit.peopleUnit", "명")}`
+    : `${tStr("submit.perShowPrefix", "회당")} ${(showsArena ? selection.expectedAudience : selection.secondaryAudience).toLocaleString()}${tStr("submit.peopleUnit", "명")}`;
 
   const selectedAddonNames = selection.addons
     .filter((a) => a.requestedQuantity > 0)
