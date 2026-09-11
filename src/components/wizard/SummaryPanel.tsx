@@ -57,7 +57,11 @@ const SECTION_ORDER: ContractSection[] = ["CONTRACT", "ADDITIONAL"];
  * 박스만 보여준다(구성·옵션 STEP의 아레나/중형 탭과 같은 문법). 맨 아래
  * "총금액(예상)"은 탭과 무관하게 항상 전체 공간 합계로 고정한다.
  */
-export function SummaryPanel({ quote }: { quote: EstimatedQuote }) {
+export function SummaryPanel({
+  quote,
+}: {
+  quote: EstimatedQuote;
+}) {
   // Bowl 사용료·유틸리티(HIDDEN)와 청소비는 합계에는 포함하되 신청자 화면에는 항목·금액을
   // 노출하지 않는다 — quote.subtotal/total 은 전체 lineItems 기준으로 이미 계산돼 있어
   // 여기서 걸러내도 총액에는 영향이 없다. 무엇을 감출지는 lineItemGroups 한 곳에서 정한다.
@@ -130,15 +134,21 @@ export function SummaryPanel({ quote }: { quote: EstimatedQuote }) {
       ? `총금액(예상) · ${groups.map((g) => VENUE_NAME[g.venue!] ?? g.venue).join("+")}`
       : "총금액(예상)";
 
+  /*
+    윗변을 단계 바 아래 선에 맞춘다 — 흐름 위치(mt)와 붙박이 위치(top)가 **같은 값**
+    (`--step-nav-h`, WizardShell 이 단계 바의 실제 높이를 재서 걸어 둔다)을 써야
+    스크롤 전후가 같은 줄에 선다. 값이 아직 없을 때의 대비값은 상위 줄만 있는 단계의
+    높이(48 + 선 1)다.
+  */
   return (
-    <aside className="w-full min-w-0 lg:col-span-3 lg:sticky lg:top-28 lg:self-start">
+    <aside className="w-full min-w-0 lg:col-span-3 lg:sticky lg:top-[calc(var(--header-h)+var(--step-nav-h,3.0625rem))] lg:mt-[var(--step-nav-h,3.0625rem)] lg:self-start">
       <div className="border-t-2 border-foreground pt-5">
         <h3 className="type-kr-heading text-h6-m sm:text-h6">
           실시간 대관신청 내역
         </h3>
 
         {visibleItems.length === 0 ? (
-          <div className="mt-5 border-t border-border/25 border-b border-border/15 py-4 text-s text-muted">
+          <div className="mt-5 border-y border-border/25 py-4 text-s text-muted">
             공간과 일정을 선택하면 예상 금액이 표시됩니다.
           </div>
         ) : (
@@ -249,10 +259,16 @@ export function QuoteSectionBox({
   const report = tone === "report";
   return (
     <div
-      className={[
-        report ? "mt-4 border border-border/25 bg-surface p-4" : "mt-4 border-2 bg-surface p-4",
-        report ? "" : isContract ? "border-accent" : "border-muted-strong/40",
-      ].join(" ")}
+      /*
+        [개정 2026-09-10] 두 박스 모두 **검정 1px 테두리**다. 대관료는 옐로 2px, 추후
+        정산은 회색 2px 로 굵기·색이 갈려 있어 한쪽이 더 중요한 것처럼 보였는데, 안쪽
+        합계 줄이 이미 옐로(계약금액)·검정(추후 정산)으로 그 구분을 맡고 있다.
+        면은 지면과 같은 오프화이트로 두어 사이드바가 지면에서 떠 보이지 않게 한다.
+        보고서 모드(예상 대관료 화면)는 여러 박스가 한 지면에 나열되므로 옅은 선을 쓴다.
+      */
+      className={
+        report ? "mt-4 border border-border/25 bg-surface p-4" : "mt-4 border border-border-soft p-4"
+      }
     >
       <div className="flex items-center justify-between gap-2">
         <p className="text-xs font-bold text-foreground">
@@ -260,13 +276,11 @@ export function QuoteSectionBox({
         </p>
         {/* [부활 2026-09-08] "계약시 결제 노랑색... 변동가능 회색 글씨 좋았어" */}
         <span
+          /* 테두리를 두지 않는다 — 면 색만으로 충분하고, 10px 글자에 테두리까지 두르면
+             배지가 두 겹으로 보인다 */
           className={[
-            "shrink-0 border px-2 py-0.5 text-[10px] font-bold whitespace-nowrap",
-            report
-              ? "border-border-soft bg-panel-strong text-muted"
-              : isContract
-                ? "border-accent bg-accent-soft text-foreground"
-                : "border-border-soft bg-panel-strong text-muted",
+            "shrink-0 px-2 py-0.5 text-[10px] font-bold whitespace-nowrap",
+            isContract && !report ? "bg-accent-soft text-foreground" : "bg-panel-strong text-muted",
           ].join(" ")}
         >
           {SECTION_TAG[section]}
@@ -277,7 +291,7 @@ export function QuoteSectionBox({
           {sectionItems.map((item) => (
             <div
               key={item.addonId}
-              className="flex items-baseline justify-between gap-4 border-b border-border/15 py-2.5"
+              className="flex items-baseline justify-between gap-4 border-b border-border/25 py-2.5"
             >
               <dt className="text-s text-muted">
                 {summaryPanelLineLabel(item)}
@@ -312,7 +326,7 @@ export function QuoteSectionBox({
         같은 굵기로는 "항목 나열"과 "합계 요약"이 한 덩어리로 보인다.
         여기부터는 굵은 실선(border-foreground)으로 갈라 위계를 준다. */}
       <dl className="mt-3 border-t-2 border-foreground pt-0.5">
-        <div className="flex items-baseline justify-between gap-4 border-b border-border/15 py-2">
+        <div className="flex items-baseline justify-between gap-4 border-b border-border/25 py-2">
           <dt className="text-xs text-muted">
             소계 (VAT 별도)
           </dt>
@@ -320,7 +334,7 @@ export function QuoteSectionBox({
             {won(subtotal)}
           </dd>
         </div>
-        <div className="flex items-baseline justify-between gap-4 border-b border-border/15 py-2">
+        <div className="flex items-baseline justify-between gap-4 border-b border-border/25 py-2">
           <dt className="text-xs text-muted">
             부가세 {vatPct}%
           </dt>

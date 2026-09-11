@@ -1,6 +1,6 @@
 "use client";
 
-import { CHOICE_SELECTED_VARS, toggleClass } from "@/components/ui/kit";
+import { CheckboxChip, toggleClass, ROW_REMOVE_BTN } from "@/components/ui/kit";
 
 import { useState, type ReactNode } from "react";
 import { defaultDayTags, effectiveDayTag } from "@/lib/pricing/rateTableUtils";
@@ -69,37 +69,6 @@ export function validateAudienceStep(
     };
   }
   return null;
-}
-
-function CheckboxChip({
-  checked,
-  label,
-  onChange,
-}: {
-  checked: boolean;
-  label: ReactNode;
-  onChange: () => void;
-}) {
-  return (
-    <label
-      /* 선택 = 검정 채움. 안쪽 글자가 따라오도록 토큰을 국소 반전한다 */
-      style={checked ? CHOICE_SELECTED_VARS : undefined}
-      className={[
-        // 인라인 칩도 버튼과 같은 단(40) — px/py 조합으로 43px 을 만들지 않는다
-        "flex h-10 cursor-pointer items-center gap-2 border px-4 text-s transition-colors",
-        checked ? "border-foreground bg-inverse-bg text-inverse-fg" : "border-border-soft hover:border-foreground",
-      ].join(" ")}
-    >
-      <input
-        type="checkbox"
-        checked={checked}
-        onChange={onChange}
-        /* 검정 채움 위에서는 체크박스도 밝은 면으로 뒤집는다 — 안 그러면 검정 위 검정이다 */
-        className={`h-4 w-4 ${checked ? "accent-[var(--background)]" : "accent-[var(--foreground)]"}`}
-      />
-      {label}
-    </label>
-  );
 }
 
 // 공간별 총 공연 횟수 — 1회당 예상 관객수 × 총 공연 횟수 합산에 쓰인다.
@@ -201,7 +170,7 @@ function AudienceFields({
   return (
     /* 단계 안의 블록은 박스로 싸지 않는다 — 굵은 헤어라인 + H6 으로만 나눈다
        (신청자 정보·공공성과 같은 규칙) */
-    <div className="border-t-2 border-foreground pt-5">
+    <div className="mt-6 bg-panel p-5">
       <h3 className="type-kr-heading text-h6-m">{t("audience.sectionHeading", "예상 관객 및 사업규모")}</h3>
 
       <div className="mt-4 space-y-4">
@@ -259,14 +228,14 @@ function AudienceFields({
             ("예상 판매율은 티켓등급별이 아니라 전체 티켓 예상 판매율 기입란으로"). */}
         <div>
           <div className="mb-2.5 flex items-center justify-between">
-            <label className="text-xs font-bold text-muted">{t("audience.ticketTypesLabel", "티켓 유형별 가격")}</label>
+            <label className="type-kr-heading text-s text-foreground">{t("audience.ticketTypesLabel", "티켓 유형별 가격")}</label>
             <button type="button" onClick={addTicketType} className={toggleClass(false)}>
               {t("audience.addTicketTypeButton", "＋ 행 추가")}
             </button>
           </div>
           <div className="space-y-2">
             {ticketTypes.map((row, i) => (
-              <div key={i} className="grid grid-cols-3 gap-1.5 border-b border-border/15 py-2">
+              <div key={i} className="grid grid-cols-3 gap-1.5 py-2">
                 <input
                   value={row.label}
                   placeholder={tStr("audience.ticketTypeLabelPlaceholder", "예: R석, VIP석")}
@@ -289,9 +258,9 @@ function AudienceFields({
                     type="button"
                     onClick={() => removeTicketType(i)}
                     aria-label={tStr("audience.removeTicketTypeAriaLabel", "삭제")}
-                    className={toggleClass(false)}
+                    className={ROW_REMOVE_BTN}
                   >
-                    {t("audience.removeTicketTypeButton", "삭제")}
+                    ✕
                   </button>
                 </div>
               </div>
@@ -521,7 +490,8 @@ export function StepCompetitionOption({
   // [개정 2026-09-08 밤] "티켓 매출 RS는 레이블이랑 입력칸이랑 하나의 행으로" — 제목·설명
   // 아래로 새 줄 떨어지던 입력칸을 한 행(label 왼쪽, 입력 오른쪽)으로 붙인다.
   return (
-    <div className={framed ? "border border-border bg-panel/40 p-5" : "border-t-2 border-foreground pt-5"}>
+    // 두 경우 모두 흰 컨테이너다 — `framed` 는 위 여백만 다르다(다른 블록 안에 끼일 때)
+    <div className={framed ? "bg-panel p-5" : "mt-6 bg-panel p-5"}>
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div>
           <h3 className="type-kr-heading text-h6-m">

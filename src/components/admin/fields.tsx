@@ -408,7 +408,7 @@ export function ContentFormShell<T>({
       {message && <p className={OK_NOTE}>{message}</p>}
       {error && <p className={ERROR_NOTE}>{error}</p>}
 
-      <div className="sticky bottom-0 -mx-6 flex flex-wrap items-center gap-3 border-t border-border/20 bg-background px-6 py-3">
+      <div className="sticky bottom-0 -mx-6 flex flex-wrap items-center gap-3 border-t border-border/25 bg-background px-6 py-3">
         <button
           type="button"
           disabled={saving}
@@ -531,7 +531,7 @@ export function DocumentField({
 
 export function Section({ title, help, children }: { title: string; help?: string; children: ReactNode }) {
   return (
-    <section className="border-t border-border/15 pt-7 first:border-t-0 first:pt-0">
+    <section className="border-t border-border/25 pt-7 first:border-t-0 first:pt-0">
       <h3 className={SUB_TITLE}>{title}</h3>
       {help && <p className={`mt-2 ${HELP}`}>{help}</p>}
       <div className="mt-3 space-y-4">{children}</div>

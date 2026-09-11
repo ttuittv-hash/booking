@@ -434,7 +434,6 @@ export function Step6Submit({
                   name="altScheduleConsent"
                   checked={altScheduleConsent === "AGREE"}
                   onChange={() => onChangeAltScheduleConsent?.("AGREE")}
-                  className="accent-foreground"
                 />
                 <span className="font-bold">{t("submit.altScheduleAgree", "동의")}</span>
                 <span className="text-muted">{t("submit.altScheduleAgreeDesc", "— 다른 일정에 대한 조건부 승인 제안을 받겠습니다.")}</span>
@@ -445,7 +444,6 @@ export function Step6Submit({
                   name="altScheduleConsent"
                   checked={altScheduleConsent === "DISAGREE"}
                   onChange={() => onChangeAltScheduleConsent?.("DISAGREE")}
-                  className="accent-foreground"
                 />
                 <span className="font-bold">{t("submit.altScheduleDisagree", "미동의")}</span>
                 <span className="text-muted">{t("submit.altScheduleDisagreeDesc", "— 최초 신청 일정에 대해서만 심의를 진행해 주세요.")}</span>
@@ -626,7 +624,7 @@ export function Step6Submit({
                     type="checkbox"
                     checked={confirmed}
                     onChange={(e) => setConfirmed(e.target.checked)}
-                    className="mt-0.5 accent-foreground"
+                    className="mt-0.5"
                   />
                   {t(
                     "submit.confirmCheckboxLabel",
@@ -638,7 +636,7 @@ export function Step6Submit({
                     type="checkbox"
                     checked={pledged}
                     onChange={(e) => setPledged(e.target.checked)}
-                    className="mt-0.5 accent-foreground"
+                    className="mt-0.5"
                   />
                   {t("submit.pledgeCheckboxLabel", "입력한 내용이 사실과 틀림없으며, 이를 이행할 것을 서약합니다.")}
                 </label>

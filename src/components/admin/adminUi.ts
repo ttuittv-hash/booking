@@ -85,7 +85,7 @@ export const QUIET_BTN = "text-xs text-muted transition-colors hover:text-foregr
  * 헤더 밑으로 파고들어 가려진다.
  */
 export const TAB_BAR =
-  "sticky top-[6.25rem] z-10 -mx-6 flex h-12 items-center gap-1 overflow-x-auto whitespace-nowrap border-b border-border/20 bg-background px-6 [contain:paint] sm:top-[6.75rem] lg:top-16";
+  "sticky top-[6.25rem] z-10 -mx-6 flex h-12 items-center gap-1 overflow-x-auto whitespace-nowrap border-b border-border/25 bg-background px-6 [contain:paint] sm:top-[6.75rem] lg:top-16";
 
 /** 활성 탭은 옐로 하단 바 + 검정 텍스트. 높이는 버튼과 같은 단(40)으로 고정한다 */
 export function tabCls(active: boolean) {

@@ -10,7 +10,7 @@ export function Breadcrumb({ items }: { items: { label: string; href?: string }[
   if (items.length < 2) return null;
 
   return (
-    <nav aria-label="현재 위치" className="border-b border-border/15">
+    <nav aria-label="현재 위치" className="border-b border-border/25">
       <div className="container-site flex h-12 items-center gap-2 overflow-x-auto whitespace-nowrap text-xs text-muted">
         <Link
           href="/"

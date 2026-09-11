@@ -23,6 +23,16 @@ export function SignaturePad({
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const padRef = useRef<SignaturePadLib | null>(null);
   const [isEmpty, setIsEmpty] = useState(!value);
+  // [버그 수정 2026-09-11] "체크박스를 먼저 체크하고 서명하면 체크가 풀린다" —
+  // 아래 effect는 마운트 시 1회만 돈다(스트로크 중 리스너 재설치를 피하려고), 그래서
+  // handleEnd가 캡처한 onChange가 마운트 시점의 낡은 클로저로 고정됐다. 부모가 매
+  // 렌더마다 새 onChange({ ...pledge, signature })를 넘기므로, 그 낡은 클로저를
+  // 호출하면 그사이 바뀐 체크박스 상태가 통째로 되돌아갔다. ref에 최신 onChange를
+  // 담아 항상 그걸 호출한다 — effect 재구독(의존성 배열)은 그대로 건드리지 않는다.
+  const onChangeRef = useRef(onChange);
+  useEffect(() => {
+    onChangeRef.current = onChange;
+  }, [onChange]);
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -51,7 +61,7 @@ export function SignaturePad({
     function handleEnd() {
       const empty = pad.isEmpty();
       setIsEmpty(empty);
-      onChange(empty ? "" : pad.toDataURL("image/png"));
+      onChangeRef.current(empty ? "" : pad.toDataURL("image/png"));
     }
     pad.addEventListener("endStroke", handleEnd);
 

@@ -320,7 +320,7 @@ export function MembersManager({ currentUserId }: { currentUserId: string }) {
                   // 강조를 왼쪽 세로선(border-l)으로 준 적이 있는데, 표는
                   // border-collapse: collapse(Tailwind preflight)라 tr 의 좌우 테두리가
                   // 같은 tr 의 border-b 와 겹쳐 행 높이가 들쭉날쭉해졌다. 바탕색만 쓴다.
-                  className={`border-b border-border/40 ${row.isMe ? "bg-accent-soft/40" : ""}`}
+                  className={`border-b border-border/25 ${row.isMe ? "bg-accent-soft/40" : ""}`}
                   data-testid={row.key}
                 >
                   {/* 이름 칸은 운영자 회사 목록(CompanyDirectory)과 같은 짜임으로 맞춘다 —
@@ -332,7 +332,7 @@ export function MembersManager({ currentUserId }: { currentUserId: string }) {
                       {row.href ? (
                         <Link
                           href={row.href}
-                          className="font-bold underline decoration-border-soft underline-offset-4 transition-colors hover:decoration-accent"
+                          className="font-bold underline decoration-border-soft underline-offset-4 transition-colors hover:decoration-foreground"
                         >
                           {row.name}
                         </Link>

@@ -102,7 +102,7 @@ function MyPageMenu({
                   <Link
                     href={item.href}
                     aria-current={active === item.href ? "page" : undefined}
-                    className={`block break-keep border-b border-border/15 py-2.5 pl-1 text-s transition-colors hover:text-foreground ${
+                    className={`block break-keep border-b border-border/25 py-2.5 pl-1 text-s transition-colors hover:text-foreground ${
                       active === item.href ? "font-bold text-foreground" : "text-muted"
                     }`}
                   >

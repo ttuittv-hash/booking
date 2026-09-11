@@ -149,7 +149,7 @@ export function StepPublicInterest({
       {/* [수정 2026-09-08] "공익참여 프로그램이 두번 반복되잖아? 공통바 밑에 공익
           참여 프로그램 글자는 제거해" — 위 STEP 제목(title prop)과 문구가 거의
           같아 아래 소제목을 없앴다. 위 제목은 그대로 둔다. */}
-      <div className="mt-10 border-t-2 border-foreground pt-5">
+      <div className="mt-10 bg-panel p-5">
         <p className="text-xs leading-5 text-muted">
           {t(
             "publicInterest.itemsSectionHint",

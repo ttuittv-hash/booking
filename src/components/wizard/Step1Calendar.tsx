@@ -548,7 +548,7 @@ export function Step1Calendar({
                       className={[
                         "flex h-9 flex-col items-center justify-center gap-0.5 text-xs sm:h-11 sm:text-s",
                         cellBlocked
-                          ? "cursor-not-allowed bg-muted/8 text-muted line-through decoration-muted/22"
+                          ? "cursor-not-allowed bg-muted/8 text-n-light line-through decoration-n-light/60"
                           : isActive
                             ? "cursor-pointer bg-accent-soft font-bold text-foreground"
                             : isExtendable
@@ -619,7 +619,7 @@ export function Step1Calendar({
                 // 그 위에 겹쳐 보인다(불투명 배경 + 그림자로 덮여 있다는 걸 보여준다).
                 <div className="absolute inset-x-0 top-full z-20 mt-1.5 grid grid-cols-7 gap-1 sm:gap-1.5">
                   <div
-                    className="border border-border/40 bg-surface px-3 py-2.5 shadow-lg"
+                    className="border border-border-soft bg-surface px-3 py-2.5 shadow-lg"
                     style={{
                       gridColumn: (() => {
                         const dayCol =

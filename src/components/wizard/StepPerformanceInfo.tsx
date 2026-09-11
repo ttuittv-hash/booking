@@ -1,11 +1,12 @@
 "use client";
 
-import { FILE_INPUT, toggleClass } from "@/components/ui/kit";
+import { CheckboxChip, toggleClass, ROW_REMOVE_BTN } from "@/components/ui/kit";
 import { useDialog } from "@/components/ui/Dialog";
 
 import { Fragment, useState, type ReactNode } from "react";
 import { useWizardText } from "@/lib/content/wizardText";
 import { INITIAL_PERFORMANCE_INFO } from "@/lib/pricing/performanceInfoDefaults";
+import { FilePicker } from "@/components/ui/FilePicker";
 import { VenueSplitTabBar, type VenueSplitTab } from "./VenueSplitTabBar";
 import { resolveSelectedDates } from "@/lib/pricing/dateRange";
 import { defaultDayTags, effectiveDayTag } from "@/lib/pricing/rateTableUtils";
@@ -236,11 +237,6 @@ export function validatePerformanceInfoStep(
   return null;
 }
 
-function formatSize(bytes: number): string {
-  if (bytes < 1024) return `${bytes}B`;
-  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)}KB`;
-  return `${(bytes / (1024 * 1024)).toFixed(1)}MB`;
-}
 
 function toggleInArray<T>(list: T[], value: T): T[] {
   return list.includes(value) ? list.filter((v) => v !== value) : [...list, value];
@@ -359,35 +355,6 @@ function ReadOnlyRow({ label, value, note }: { label: ReactNode; value: string; 
       </div>
       {note && <p className="mt-1 text-xs text-muted">{note}</p>}
     </div>
-  );
-}
-
-function CheckboxChip({
-  checked,
-  label,
-  onChange,
-}: {
-  checked: boolean;
-  label: ReactNode;
-  onChange: () => void;
-}) {
-  return (
-    <label
-      className={[
-        "flex cursor-pointer items-center gap-2 border px-3.5 py-2.5 text-s transition-colors",
-        checked
-          ? "border-foreground bg-inverse-bg text-inverse-fg"
-          : "border-border-soft bg-surface text-foreground hover:border-foreground",
-      ].join(" ")}
-    >
-      <input
-        type="checkbox"
-        checked={checked}
-        onChange={onChange}
-        className="accent-foreground"
-      />
-      {label}
-    </label>
   );
 }
 
@@ -512,7 +479,7 @@ function ApplicantDetailsFields({
   }
 
   return (
-    <div className="border-t-2 border-foreground pt-5">
+    <div className="mt-6 bg-panel p-5">
       <h3 className="type-kr-heading text-h6-m">{t("performanceInfo.applicantSectionHeading", "신청자 정보")}</h3>
       <p className="mt-1 text-xs text-muted">
         {t(
@@ -585,7 +552,7 @@ function ApplicantDetailsFields({
 
         <div data-field-key="performanceInfo.applicantContact">
           <div className="mb-2.5 flex items-center justify-between">
-            <label className="text-xs font-bold text-muted">
+            <label className="type-kr-heading text-s text-foreground">
               {t("performanceInfo.contactPersonsLabel", "담당자 정보")}
             </label>
             <button type="button" onClick={addContactPerson} className={toggleClass(false)}>
@@ -604,7 +571,7 @@ function ApplicantDetailsFields({
           )}
           <div className="space-y-2">
             {contactPersons.map((row, i) => (
-              <div key={i} className="flex items-center gap-1.5 border-b border-border/15 py-2">
+              <div key={i} className="flex items-center gap-1.5 py-2">
                 <div
                   className="grid flex-1 gap-1.5"
                   style={{ gridTemplateColumns: `repeat(${visibleContactColumns.length}, 1fr)` }}
@@ -625,9 +592,9 @@ function ApplicantDetailsFields({
                   type="button"
                   onClick={() => removeContactPerson(i)}
                   aria-label={tStr("performanceInfo.removeRowAriaLabel", "삭제")}
-                  className={`${toggleClass(false)} shrink-0`}
+                  className={ROW_REMOVE_BTN}
                 >
-                  {t("performanceInfo.removeRowButton", "삭제")}
+                  ✕
                 </button>
               </div>
             ))}
@@ -637,7 +604,7 @@ function ApplicantDetailsFields({
 
       <div className="mt-6">
         <div className="mb-2.5 flex items-center justify-between">
-          <label className="text-xs font-bold text-muted">
+          <label className="type-kr-heading text-s text-foreground">
             {t("performanceInfo.pastPerformancesLabel", "대관사 최근 3년간 공연 실적")}
           </label>
           <button
@@ -655,7 +622,7 @@ function ApplicantDetailsFields({
         )}
         <div className="space-y-2">
           {info.pastPerformances.map((row, i) => (
-            <div key={i} className="grid grid-cols-5 gap-1.5 border-b border-border/15 py-2">
+            <div key={i} className="grid grid-cols-5 gap-1.5 py-2">
               <input
                 value={row.eventName}
                 placeholder={tStr("performanceInfo.pastEventNamePlaceholder", "공연명")}
@@ -691,9 +658,9 @@ function ApplicantDetailsFields({
                   type="button"
                   onClick={() => removePastPerformance(i)}
                   aria-label={tStr("performanceInfo.removeRowAriaLabel", "삭제")}
-                  className={`${toggleClass(false)} shrink-0`}
+                  className={ROW_REMOVE_BTN}
                 >
-                  {t("performanceInfo.removeRowButton", "삭제")}
+                  ✕
                 </button>
               </div>
             </div>
@@ -844,7 +811,7 @@ function EventBasicsFields({
   }
 
   return (
-    <div className="border-t-2 border-foreground pt-5">
+    <div className="mt-6 bg-panel p-5">
       <h3 className="type-kr-heading text-h6-m">{t("performanceInfo.eventBasicsSectionHeading", "공연 기본정보")}</h3>
       <p className="mt-1 text-xs text-muted">
         {t("performanceInfo.eventBasicsSectionHint", "입력한 내용은 대관심의 및 계약서 작성에 활용됩니다")}
@@ -871,7 +838,7 @@ function EventBasicsFields({
                 관리자 화면과의 하위호환을 유지한다(deriveOrganizerSummary). */}
             <div>
               <div className="mb-2.5 flex items-center justify-between">
-                <label className="text-xs font-bold text-muted">
+                <label className="type-kr-heading text-s text-foreground">
                   {t("performanceInfo.organizerLabel", "주최 · 주관 · 기획")}
                 </label>
                 <button type="button" onClick={addOrganizer} className={toggleClass(false)}>
@@ -880,7 +847,7 @@ function EventBasicsFields({
               </div>
               <div className="space-y-2">
                 {organizers.map((row, i) => (
-                  <div key={i} className="flex items-center gap-1.5 border-b border-border/15 py-2">
+                  <div key={i} className="flex items-center gap-1.5 py-2">
                     <select
                       value={row.role}
                       onChange={(e) => updateOrganizer(i, { role: e.target.value as OrganizerRole })}
@@ -908,9 +875,9 @@ function EventBasicsFields({
                       type="button"
                       onClick={() => removeOrganizer(i)}
                       aria-label={tStr("performanceInfo.removeRowAriaLabel", "삭제")}
-                      className={`${toggleClass(false)} shrink-0`}
+                      className={ROW_REMOVE_BTN}
                     >
-                      {t("performanceInfo.removeRowButton", "삭제")}
+                      ✕
                     </button>
                   </div>
                 ))}
@@ -923,14 +890,14 @@ function EventBasicsFields({
             이력을 받는다. 기본으로 한 행씩 열려 있고(INITIAL_PERFORMANCE_INFO),
             무엇을 적어야 하는지 예시 문구를 각 표 위에 안내한다(관리자가 문구
             수정 가능 — t()). */}
-        <div className="border-t border-border/15 pt-6">
+        <div className="border-t border-border/25 pt-6">
           <div className="mb-3 text-xs font-bold tracking-wide text-muted uppercase">
             {t("performanceInfo.artistHistoryGroupLabel", "아티스트 이력")}
           </div>
 
           <div>
             <div className="mb-2.5 flex items-center justify-between">
-              <label className="text-xs font-bold text-muted">
+              <label className="type-kr-heading text-s text-foreground">
                 {t("performanceInfo.artistMainHistoryLabel", "① 아티스트 주요 이력")}
               </label>
               <button type="button" onClick={addArtistMainHistory} className={toggleClass(false)}>
@@ -945,7 +912,7 @@ function EventBasicsFields({
             </p>
             <div className="space-y-2">
               {artistMainHistory.map((row, i) => (
-                <div key={i} className="grid grid-cols-5 gap-1.5 border-b border-border/15 py-2">
+                <div key={i} className="grid grid-cols-5 gap-1.5 py-2">
                   <input
                     value={row.artistName}
                     placeholder={tStr("performanceInfo.artistNamePlaceholder", "아티스트명")}
@@ -975,9 +942,9 @@ function EventBasicsFields({
                       type="button"
                       onClick={() => removeArtistMainHistory(i)}
                       aria-label={tStr("performanceInfo.removeRowAriaLabel", "삭제")}
-                      className={`${toggleClass(false)} shrink-0`}
+                      className={ROW_REMOVE_BTN}
                     >
-                      {t("performanceInfo.removeRowButton", "삭제")}
+                      ✕
                     </button>
                   </div>
                 </div>
@@ -987,7 +954,7 @@ function EventBasicsFields({
 
           <div className="mt-5">
             <div className="mb-2.5 flex items-center justify-between">
-              <label className="text-xs font-bold text-muted">
+              <label className="type-kr-heading text-s text-foreground">
                 {t("performanceInfo.artistRecentPerformancesLabel", "② 최근 공연 이력 — 최대 3~5건")}
               </label>
               <button type="button" onClick={addArtistRecentPerformance} className={toggleClass(false)}>
@@ -1002,7 +969,7 @@ function EventBasicsFields({
             </p>
             <div className="space-y-2">
               {artistRecentPerformances.map((row, i) => (
-                <div key={i} className="space-y-1.5 border-b border-border/15 py-2">
+                <div key={i} className="space-y-1.5 py-2">
                   <div className="grid grid-cols-4 gap-1.5">
                     <input
                       value={row.eventName}
@@ -1059,9 +1026,9 @@ function EventBasicsFields({
                         type="button"
                         onClick={() => removeArtistRecentPerformance(i)}
                         aria-label={tStr("performanceInfo.removeRowAriaLabel", "삭제")}
-                        className={`${toggleClass(false)} shrink-0`}
+                        className={ROW_REMOVE_BTN}
                       >
-                        {t("performanceInfo.removeRowButton", "삭제")}
+                        ✕
                       </button>
                     </div>
                   </div>
@@ -1071,7 +1038,7 @@ function EventBasicsFields({
           </div>
         </div>
 
-        <div className="border-t border-border/15 pt-6">
+        <div className="border-t border-border/25 pt-6">
           <div className="mb-3 text-xs font-bold tracking-wide text-muted uppercase">
             {t("performanceInfo.classificationGroupLabel", "분류")}
           </div>
@@ -1126,7 +1093,7 @@ function EventBasicsFields({
           </div>
         </div>
 
-        <div className="border-t border-border/15 pt-6">
+        <div className="border-t border-border/25 pt-6">
           <div className="mb-3 text-xs font-bold tracking-wide text-muted uppercase">
             {t("performanceInfo.scheduleGroupLabel", "일정")}
           </div>
@@ -1206,7 +1173,7 @@ function EventBasicsFields({
           </div>
         </div>
 
-        <div className="border-t border-border/15 pt-6">
+        <div className="border-t border-border/25 pt-6">
           <div className="mb-3 text-xs font-bold tracking-wide text-muted uppercase">
             {t("performanceInfo.spaceConfigGroupLabel", "공간 구성")}
           </div>
@@ -1286,7 +1253,7 @@ function CredibilityFields({
   }
 
   return (
-    <div className="border-t-2 border-foreground pt-5">
+    <div className="mt-6 bg-panel p-5">
       <h3 className="type-kr-heading text-h6-m">
         {t("performanceInfo.credibilitySectionHeading", "개최 신뢰도 및 이력 확인")}
       </h3>
@@ -1639,7 +1606,8 @@ export function StepAttachments({
   }
 
   return (
-    <section className="mt-10 border-t-2 border-foreground pt-5">
+    // 위에 선을 두지 않는다 — 첨부 목록이 파일 줄로 이미 경계를 만든다
+    <section className="mt-10">
       {/* [수정 2026-09-09] "이상한" 표기 점검 — 이 제목 밑에 STEP7 두 번째 슬롯인
           "안전관리 서약서 첨부"(필수, 빨간 별표)가 함께 있어 "(선택)"이 그 필수
           항목까지 선택인 것처럼 읽혔다. 위 공연 관련 자료 자체는 여전히 선택이지만,
@@ -1660,41 +1628,19 @@ export function StepAttachments({
           ` ${t("attachments.simultaneousHint", "동시 대관은 두 공간의 자료를 각각 첨부합니다.")}`}
       </p>
 
-      {files.length > 0 && (
-        <ul className="mt-5 border-t border-border/25">
-          {files.map((file, i) => (
-            <li
-              key={`${file.name}-${i}`}
-              className="flex items-center justify-between gap-4 border-b border-border/25 py-4"
-            >
-              <span className="min-w-0 truncate text-s font-bold">{file.name}</span>
-              <div className="flex shrink-0 items-center gap-4 text-xs text-muted tabular-nums">
-                <span>{formatSize(file.size)}</span>
-                <button
-                  type="button"
-                  onClick={() => removeFile(i)}
-                  className="cursor-pointer transition-colors hover:text-danger"
-                >
-                  {t("attachments.removeButton", "삭제")}
-                </button>
-              </div>
-            </li>
-          ))}
-        </ul>
-      )}
-
       {/* [신규 2026-09-08] "자료 첨부 탭에 파일을 꼭 등록해야 넘어가게"(nora) — 필수. 비어 있으면
-          WizardShell 이 「다음」을 막고 이 칸을 빨갛게 표시한다(data-field-key). */}
-      <div data-field-key="attachments.files" className="mt-5 inline-block">
-        <input
-          type="file"
+          WizardShell 이 「다음」을 막고 이 칸을 빨갛게 표시한다(data-field-key).
+          [개정 2026-09-10] 고른 파일을 헤어라인으로 갈라 위에 늘어놓던 것을 FilePicker 안으로
+          넣었다 — 흰 컨테이너 하나 안에서 파일이 위쪽에 쌓이고 버튼이 그 아래에 남는다. */}
+      <div data-field-key="attachments.files" className="mt-5">
+        <FilePicker
           multiple
-          required
+          files={files.map((f) => ({ name: f.name, size: f.size }))}
+          onRemove={removeFile}
           onChange={(e) => {
             addFiles(e.target.files);
             e.target.value = "";
           }}
-          className={`${FILE_INPUT} text-muted`}
         />
       </div>
 

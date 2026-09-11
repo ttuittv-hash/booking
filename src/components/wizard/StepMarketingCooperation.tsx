@@ -65,10 +65,9 @@ export function PromotionChannelsFields({
   }
 
   return (
-    // [수정 2026-09-08] "프로모션 채널 위에 줄 굵은줄로" — StepAudience(신청자 정보 및
-    // 규모) 하위로 옮긴 뒤 얇은 선(border/25)만 남아 위 슬롯과 경계가 약했다. 다른
-    // 슬롯 경계와 같은 굵은 줄(border-t-2 border-foreground)로 맞춘다.
-    <div className="border-t-2 border-foreground pt-5">
+    // [개정 2026-09-09] StepAudience(신청자 정보 및 규모) 하위로 옮긴 뒤 얇은 선만
+    // 남아 위 슬롯과 경계가 약했다 — 다른 슬롯과 같은 흰 컨테이너로 맞춘다(§신청 위저드).
+    <div className="mt-6 bg-panel p-5">
       <div className="mb-2.5 flex items-center justify-between">
         <h3 className="type-kr-heading text-h6-m">{t("marketing.channelsHeading", "프로모션 채널(선택)")}</h3>
         <button type="button" onClick={addChannel} className={toggleClass(false)}>
@@ -85,7 +84,8 @@ export function PromotionChannelsFields({
         {info.channels.map((row, i) => (
           <div
             key={i}
-            className="grid grid-cols-1 gap-1.5 border-b border-border/15 py-2 sm:grid-cols-[1fr_2fr_1fr_auto]"
+            /* 항목 사이에 선을 긋지 않는다(§1) — 한 줄이 곧 한 항목이고 입력칸이 이미 경계다 */
+            className="grid grid-cols-1 gap-1.5 py-2 sm:grid-cols-[1fr_2fr_1fr_auto]"
           >
             <input
               value={row.platform}
@@ -159,7 +159,7 @@ export function StepMarketingCooperation({
       <StepForm>
         {/* [이동 2026-09-08] "프로모션 채널(선택)" 슬롯은 StepAudience(신청자 정보 및
             규모)로 옮겼다 — PromotionChannelsFields, 이 파일 위쪽에서 export. */}
-        <div className="border-t border-border/25 pt-5">
+        <div className="bg-panel p-5">
           <h3 className="type-kr-heading text-h6-m">
             {t("marketing.serviceLinkHeading", "공동 콘텐츠·프로모션 및 서비스 협업")}
           </h3>
@@ -244,7 +244,7 @@ export function StepMarketingCooperation({
         {/* 2026-08-25, "세일즈·실적 데이터 제공 협조 이거 박스형태로 있던거 그대로
             유지해야지.. 이 슬롯 기존대로 복구" — 위 "협조 동의 항목"에 합쳤던 걸
             되돌리고, 원래대로 독립 슬롯 + 2단 박스 레이아웃을 유지한다. */}
-        <div className="mt-8 border-t border-border/25 pt-5">
+        <div className="mt-8 bg-panel p-5">
           <h3 className="type-kr-heading text-h6-m">
             {t("marketing.dataConsentHeading", "공연 관련 데이터 제공 협조")}
           </h3>
@@ -269,7 +269,7 @@ export function StepMarketingCooperation({
                       pollstarConsent: checked ? info.pollstarConsent : false,
                     });
                   }}
-                  className="h-4 w-4 accent-[var(--accent)]"
+                  className="h-4 w-4"
                 />
                 {t("marketing.salesDataConsentLabel", "공연 실적 데이터 제공")}
               </label>
@@ -289,7 +289,7 @@ export function StepMarketingCooperation({
                   checked={info.pollstarConsent}
                   disabled={!info.ticketSalesDataConsent}
                   onChange={(e) => set("pollstarConsent", e.target.checked)}
-                  className="h-4 w-4 accent-[var(--accent)]"
+                  className="h-4 w-4"
                 />
                 {t("marketing.pollstarConsentLabel", "공연 데이터 외부 제공 동의 (Pollstar 등)")}
               </label>

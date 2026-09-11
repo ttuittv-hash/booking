@@ -256,6 +256,69 @@ html {
      레이아웃 전체가 좌우로 미세하게 흔들리는 것을 방지 */
   scrollbar-gutter: stable;
 }
+
+/*
+  1024~1440 에서 지면을 **비례 축소**한다.
+
+  이 지면의 크기는 글자도 마진(3rem)도 거터(2rem)도 전부 `rem` 이다. 그래서 루트
+  글자 크기 하나만 화면 폭에 매달면 지면 전체가 같은 비율로 줄고, **한 줄에 들어가는
+  글자 수가 그대로라 줄바꿈이 유지된다.** 글자만 그대로 두면 1440 에서 두 줄이던 제목이
+  1200 에서 세 줄이 되며 화면이 통째로 달라 보였다.
+
+  기준은 1440 에서 16px(=1440/90). 아래로는 그 비율을 따라 내려가고, 1440 위로는 키우지
+  않는다 — `min` 이 그 몫이다. 1칼럼으로 떨어지는 1024 미만은 레이아웃 자체가 바뀌는
+  자리라 손대지 않는다. `--header-h` 는 `px` 라 상단바 높이는 줄지 않는다.
+
+  브라우저 글자 크기 설정과의 관계 — `min()` 은 작은 값을 고르므로 축소 구간에서는
+  사용자가 키운 기본 크기가 가려진다. 다만 **하한이 `rem` 이라 그 설정에 비례한다**:
+  기본을 20 으로 키워 두면 하한도 17.5 가 되어 그만큼 되돌아온다. 축소가 `lg` 이상으로
+  한정되는 것과 함께 받아들인 트레이드오프다.
+*/
+@media (min-width: 1024px) {
+  html {
+    /*
+      **하한 0.875rem(=14) 을 둔다.** 하한 없이 `100vw / 90` 만 쓰면 1024 폭에서 루트가
+      11.4 까지 내려가 본문(`text-s` = 0.875rem)이 **10px** 이 됐다 — 읽기 부담스럽다.
+      14 에서 멈추면 본문이 12.25 에서 멈춘다. 대신 1024~1260 구간에서는 축소가 걸리지
+      않으므로, 그 구간에서도 함께 줄어야 하는 큰 제목은 `vw` 로 따로 잇는다
+      (`text-d2-fluid`).
+    */
+    font-size: max(0.875rem, min(1rem, 100vw / 90));
+  }
+}
+
+/*
+  상단바는 위 축소에서 **뺀다.**
+
+  메뉴는 읽는 글이 아니라 누르는 도구다. 폭이 좁아진다고 함께 작아지면 글자도 누를 자리도
+  줄어 쓰기 어려워진다. 지면이 줄어드는 구간에서도 접히기 전까지 원래 크기를 지킨다.
+
+  간격은 이 변수 하나로 잠긴다 — 간격 유틸리티가 `calc(var(--spacing) * n)` 으로
+  컴파일되므로 여기서 다시 정의하면 상단바 안의 `h-11`·`gap-2`·`px-4` 가 전부 따라온다.
+
+  **글자 크기는 이 방법으로 잠기지 않는다.** 크기 토큰은 `@theme inline` 에 있어서
+  `.text-s` 가 `font-size: var(--text-s)` 가 아니라 `font-size: .875rem` 로 **값이
+  인라인**된다 — 변수를 다시 정의해도 유틸리티가 그것을 보지 않는다(예전 구현이 이
+  방식이었고, 그래서 조용히 아무 일도 하지 않았다). 그래서 상단바가 쓰는 세 단만
+  `px` 고정 유틸리티로 따로 둔다. 임의값이 아니라 이름 있는 단이고, 쓰는 곳은 상단바뿐이다.
+*/
+.header-scale-lock {
+  --spacing: 4px;
+}
+
+/* 상단바 전용 글자 단 — 지면 축소를 따르지 않는다. 값은 `text-xs`·`text-s`·`text-h6-m` 와 같다 */
+@utility text-nav-xs {
+  font-size: 12px;
+  line-height: 1.5;
+}
+@utility text-nav {
+  font-size: 14px;
+  line-height: 1.5;
+}
+@utility text-nav-lg {
+  font-size: 18px;
+  line-height: 1.4;
+}
 body {
   background: var(--background);
   color: var(--foreground);
@@ -368,6 +431,23 @@ input[type="number"]::-webkit-inner-spin-button {
 }
 
 /*
+  d2 를 **지면 폭에 유동시킨다** — 40 에서 96 까지 600~1440 사이를 잇는다.
+
+  `text-h1-m sm:text-d2` 처럼 단을 둘만 두면 640 에서 40 → 96 으로 점프해, 좁은
+  데스크톱에서 제목 한 글자가 지면의 6분의 1을 먹는다. 루트 축소(§반응형)는 `lg`
+  이상에서만 걸리므로 640~1024 구간을 메우지 못하고, 하한(14)이 붙은 뒤로는
+  1024~1260 도 메우지 못한다. 그 구간을 `vw` 로 잇는다.
+
+  계수 6.6667vw = 96 / 1440 — 정본 폭에서 원래 크기와 정확히 같다.
+  **`rem` 을 쓰지 않는다**: 루트 축소와 겹쳐 이중으로 줄어든다.
+*/
+@utility text-d2-fluid {
+  font-size: clamp(40px, 6.6667vw, 96px);
+  line-height: 0.9;
+  letter-spacing: -0.03em;
+}
+
+/*
   푸터 워드마크 — 컨테이너 폭에 비례해 크기만 커진다.
   글자를 늘려서(textLength / scaleX) 폭을 채우지 않는다. 자폭 비율은 항상 원본 그대로.
   계수는 실측값이다 — Archivo 800 / letter-spacing −0.02em 에서 "SEOUL ARENA" 의 자폭은
@@ -405,7 +485,10 @@ input[type="number"]::-webkit-inner-spin-button {
   font-size: var(--text-s);
   line-height: 1.5;
   color: var(--foreground);
-  transition: border-color 150ms;
+  /* 초점이 오면 테두리와 면이 함께 바뀐다 — 둘을 같은 시간으로 묶어 한 동작으로 보이게 */
+  transition:
+    border-color 150ms,
+    background-color 150ms;
 
   /*
     한 줄 입력은 버튼과 같은 단(40)으로 못 박는다 — 패딩으로만 두면 43px 이 나와
@@ -417,16 +500,68 @@ input[type="number"]::-webkit-inner-spin-button {
     height: 2.5rem;
     padding-block: 0;
   }
-}
-@utility field-base {
+
+  /*
+    고르는 칸의 화살표는 **직접 그린다.** 브라우저 기본 화살표는 패딩 바깥, 테두리 안쪽
+    끝에 붙어서 오른쪽 여백을 아무리 키워도 벽에 닿은 채로 남는다. 배경으로 깔면 위치를
+    우리가 정할 수 있어 **왼쪽 글자 여백과 같은 14** 만큼 오른쪽에서 띄울 수 있다.
+
+    색은 검정 고정이다 — `data:` URI 안에서는 토큰도 `currentColor` 도 쓸 수 없고,
+    지금 이 지면에는 **검정 면 위 select 가 없다**(2026-09-09 확인). 검정 면에 select 를
+    두게 되면 화살표가 사라지므로 그때 변형을 따로 만든다.
+  */
+  &:where(select) {
+    appearance: none;
+    padding-inline-end: 2.25rem;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 12' fill='none' stroke='%23000' stroke-width='1.4' stroke-linecap='square'%3E%3Cpath d='M2.5 4.5 6 8l3.5-3.5'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 0.875rem center;
+    background-size: 0.75rem 0.75rem;
+  }
+
   &::placeholder {
     color: var(--muted);
   }
+
+  /*
+    포커스는 **테두리 + 면**으로 준다. 링(아웃라인)을 두지 않는다.
+
+    글을 넣는 칸이 열렸다는 신호를 **지면에서 떠오르는 흰 면**으로 준다 — 평소에는
+    지면과 같은 오프화이트가 비치고(`transparent`), 초점이 오면 흰 면(`--panel`)이 된다.
+    같이 테두리가 `border-soft`(#CCC) 에서 검정으로 바뀐다.
+
+    **초점 표시를 맡는 것은 테두리다**(#CCC → 검정, 21:1). 면 변화(오프화이트 → 흰색)는
+    1.05:1 이라 그것만으로는 초점을 알 수 없으므로 보조 신호로만 둔다. 아웃라인을
+    지웠어도 테두리 대비가 WCAG 가 요구하는 3:1 을 넘는다.
+
+    옐로 아웃라인을 쓰던 자리인데 `#FFCD00` 은 오프화이트 지면에서 1.5:1 이라
+    초점이 어디인지 보이지 않았다. 옐로는 밑줄 강조에만 쓰고 초점에는 쓰지 않는다.
+  */
   &:focus {
     border-color: var(--foreground);
-    outline: 2px solid var(--accent);
-    outline-offset: 1px;
+    background-color: var(--panel);
+    outline: none;
   }
+}
+
+/*
+  체크박스·라디오 — 규칙은 **지면과 반대색**이다.
+
+    지면 위에 혼자 있으면      검정 채움
+    선택된 칩(검정 면) 안이면   흰 채움 — 버튼 자체가 검정 면이 되므로
+
+  설정이 아예 없어서 브라우저 기본색(사파리 파랑)이 그대로 나오고 있었다.
+  검정으로 뒤집히는 칩 안에서는 검정 채움이 배경에 묻혀 사라지므로 두 경로로 잡는다 —
+  ① 선택된 칩이 `CHOICE_SELECTED_VARS` 로 넘기는 `--check-fill`
+  ② 토큰을 넘기지 않고 `bg-inverse-bg` 만 쓰는 자리
+*/
+input[type="checkbox"],
+input[type="radio"] {
+  accent-color: var(--check-fill, var(--foreground));
+}
+.bg-inverse-bg input[type="checkbox"],
+.bg-inverse-bg input[type="radio"] {
+  accent-color: var(--n-white);
 }
 
 @media print {

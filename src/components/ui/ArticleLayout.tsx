@@ -42,8 +42,8 @@ export interface ArticleSection {
   articles?: ArticleItem[];
 }
 
-/** 스크롤·앵커 판정선 — 상단바 아래 첫 줄 (본문 `scroll-mt` 와 같은 값) */
-function anchorLine(): number {
+/** lg 미만(목차가 본문 위로 올라간 배치)의 판정선 — 상단바 아래 첫 줄 */
+function narrowAnchorLine(): number {
   const headerH =
     parseFloat(getComputedStyle(document.documentElement).getPropertyValue("--header-h")) || 64;
   return headerH + 96;
@@ -196,6 +196,59 @@ export function ArticleLayout({
   const [cursor, setCursor] = useState(0);
   const inputRef = useRef<HTMLInputElement>(null);
 
+  /*
+    [신규 2026-09-10] **본문의 첫 줄은 목차 제목(TABLE OF CONTENTS) 줄에서 시작한다.**
+    왼쪽 기둥은 검색 블록이 목차 위에 있어서, 두 칼럼을 그냥 나란히 두면 본문이 검색
+    라벨 높이에서 시작해 목차 제목보다 한 블록 위에 떠 있었다.
+
+    그 어긋난 만큼(검색 블록 높이)을 `--toc-offset` 으로 재서 본문 칼럼을 내리고,
+    앵커(목차 클릭)의 착지선에도 같은 값을 더한다 — 스크롤 뒤에는 기둥이 붙박이므로
+    「기둥의 붙박이 상단 + 오프셋」이 곧 목차 제목이 서 있는 줄이다.
+
+    값을 상수로 적어 두지 않고 재는 이유: 라벨·입력 크기가 바뀌면 바로 어긋나고,
+    지면 비례 축소(1024~1440) 때문에 폭마다 값이 다르다.
+    재는 대상은 **라벨 + 입력까지**다 — 그 아래 검색 결과 카운터까지 포함하면 검색을
+    시작하는 순간 본문이 통째로 내려앉는다.
+  */
+  const gridRef = useRef<HTMLDivElement>(null);
+  const stickyRef = useRef<HTMLDivElement>(null);
+  const searchBoxRef = useRef<HTMLDivElement>(null);
+  const tocOffsetRef = useRef(0);
+
+  useEffect(() => {
+    const grid = gridRef.current;
+    if (!grid) return;
+    const box = searchBoxRef.current;
+    const measure = () => {
+      let off = 0;
+      if (box) {
+        const outer = box.parentElement;
+        const gap = outer ? parseFloat(getComputedStyle(outer).marginBottom) || 0 : 0;
+        off = box.getBoundingClientRect().height + gap;
+      }
+      tocOffsetRef.current = off;
+      grid.style.setProperty("--toc-offset", `${off}px`);
+    };
+    measure();
+    if (!box) return;
+    const ro = new ResizeObserver(measure);
+    ro.observe(box);
+    return () => ro.disconnect();
+  }, [searchLabel]);
+
+  /**
+   * 스크롤·앵커 판정선 = 목차 제목이 서 있는 줄.
+   * 붙박이 기둥의 `top`(계산된 px)에 검색 블록 높이를 더한다 — 두 값을 각각 상수로
+   * 적어 두면 한쪽만 고쳤을 때 조용히 어긋나므로, 실제 스타일에서 읽는다.
+   */
+  const anchorLine = useCallback((): number => {
+    const sticky = stickyRef.current;
+    const top = sticky ? parseFloat(getComputedStyle(sticky).top) : NaN;
+    // lg 미만에서는 붙박이가 걸리지 않아 top 이 auto 다 (목차가 본문 위로 올라간 배치)
+    if (Number.isNaN(top)) return narrowAnchorLine();
+    return top + tocOffsetRef.current;
+  }, []);
+
   // 입력을 잠깐 모아서 반영한다. 한 글자마다 본문을 다시 그리고 화면을 옮기면
   // 조합 중인 한글이 끊기고 스크롤이 요동친다.
   useEffect(() => {
@@ -219,7 +272,7 @@ export function ArticleLayout({
     if (!el) return;
     const top = el.getBoundingClientRect().top + window.scrollY - anchorLine();
     window.scrollTo({ top: Math.max(0, top), behavior: "smooth" });
-  }, []);
+  }, [anchorLine]);
 
   // 검색어가 바뀌면 첫 번째 표시로 옮긴다. 표시가 DOM 에 붙은 뒤라야 좌표가 나온다.
   useEffect(() => {
@@ -276,65 +329,71 @@ export function ArticleLayout({
       window.removeEventListener("scroll", onScroll);
       window.removeEventListener("resize", onScroll);
     };
-  }, [sections]);
+  }, [sections, anchorLine]);
 
   const searching = query.length > 0;
 
   return (
-    <div className="grid-site">
+    <div className="grid-site" ref={gridRef}>
       {/* 검색 + 목차 */}
       <nav aria-label="목차" className="lg:col-span-3">
         {/* [수정 2026-09-02] 목차 자체에 max-h-[50vh] 를 걸어 두어, 장이 열댓 개인 규약에서
             화면이 남아도는데도 좁은 상자 안에서만 스크롤됐다. 스티키 기둥 전체를 화면
             높이에 맞추고(검색 + 목차가 한 덩어리로 스크롤) 목차의 자체 상한은 없앤다. */}
-        <div className="lg:sticky lg:top-[calc(var(--header-h)+2.5rem)] lg:max-h-[calc(100vh-var(--header-h)-4rem)] lg:overflow-y-auto lg:pr-1">
+        <div
+          ref={stickyRef}
+          className="lg:sticky lg:top-[calc(var(--header-h)+2.5rem)] lg:max-h-[calc(100vh-var(--header-h)-4rem)] lg:overflow-y-auto lg:pr-1"
+        >
           {searchLabel !== undefined && (
             <div className="mb-6 print:hidden">
-              <label htmlFor="article-search" className="text-xs font-bold text-muted">
-                {searchLabel}
-              </label>
-              <div className="relative mt-2">
-                {/*
-                  `type="search"` 를 쓰지 않는다 — 브라우저가 제 나름의 작은 × 를 그려
-                  넣는데 디자인이 어긋나고 누르기도 어렵다. 지우기 버튼을 직접 둔다.
-                */}
-                <input
-                  ref={inputRef}
-                  id="article-search"
-                  type="text"
-                  value={input}
-                  onChange={(e) => setInput(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter") {
-                      e.preventDefault();
-                      step(e.shiftKey ? -1 : 1);
-                    }
-                    if (e.key === "Escape" && input) {
-                      e.preventDefault();
-                      clear();
-                    }
-                  }}
-                  placeholder={searchPlaceholder}
-                  autoComplete="off"
-                  className="field-base w-full pr-10 text-s"
-                />
-                {input ? (
-                  <button
-                    type="button"
-                    onClick={clear}
-                    aria-label="검색어 지우기"
-                    className="absolute right-0 top-0 flex h-10 w-10 items-center justify-center text-muted transition-colors hover:text-foreground"
-                  >
-                    <ClearIcon />
-                  </button>
-                ) : (
-                  <span
-                    aria-hidden
-                    className="pointer-events-none absolute right-0 top-0 flex h-10 w-10 items-center justify-center text-muted"
-                  >
-                    <SearchIcon />
-                  </span>
-                )}
+              {/* 본문 칼럼을 내리는 기준이 되는 덩어리 — 라벨 + 입력까지만이다 */}
+              <div ref={searchBoxRef}>
+                <label htmlFor="article-search" className="text-xs font-bold text-muted">
+                  {searchLabel}
+                </label>
+                <div className="relative mt-2">
+                  {/*
+                    `type="search"` 를 쓰지 않는다 — 브라우저가 제 나름의 작은 × 를 그려
+                    넣는데 디자인이 어긋나고 누르기도 어렵다. 지우기 버튼을 직접 둔다.
+                  */}
+                  <input
+                    ref={inputRef}
+                    id="article-search"
+                    type="text"
+                    value={input}
+                    onChange={(e) => setInput(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") {
+                        e.preventDefault();
+                        step(e.shiftKey ? -1 : 1);
+                      }
+                      if (e.key === "Escape" && input) {
+                        e.preventDefault();
+                        clear();
+                      }
+                    }}
+                    placeholder={searchPlaceholder}
+                    autoComplete="off"
+                    className="field-base w-full pr-10 text-s"
+                  />
+                  {input ? (
+                    <button
+                      type="button"
+                      onClick={clear}
+                      aria-label="검색어 지우기"
+                      className="absolute right-0 top-0 flex h-10 w-10 items-center justify-center text-muted transition-colors hover:text-foreground"
+                    >
+                      <ClearIcon />
+                    </button>
+                  ) : (
+                    <span
+                      aria-hidden
+                      className="pointer-events-none absolute right-0 top-0 flex h-10 w-10 items-center justify-center text-muted"
+                    >
+                      <SearchIcon />
+                    </span>
+                  )}
+                </div>
               </div>
 
               {searching && (
@@ -414,13 +473,20 @@ export function ArticleLayout({
         </div>
       </nav>
 
-      {/* 본문 — 검색 중에도 조를 걷어내지 않는다 */}
-      <div className="min-w-0 lg:col-span-9">
+      {/* 본문 — 검색 중에도 조를 걷어내지 않는다.
+          `--toc-offset` 만큼 내려 첫 장 제목이 목차 제목(TABLE OF CONTENTS) 줄에서
+          시작한다. 인쇄에서는 검색 블록이 빠지므로 오프셋도 없앤다. */}
+      <div className="min-w-0 lg:col-span-9 lg:mt-[var(--toc-offset,0px)] print:mt-0">
         {searching && total === 0 && (
           <p className="mb-8 text-s text-muted">「{query}」 이(가) 들어간 조문이 없습니다.</p>
         )}
         {sections.map((s, si) => (
-          <section key={s.id} id={s.id} className="scroll-mt-[calc(var(--header-h)+6rem)] pb-12">
+          <section
+            key={s.id}
+            id={s.id}
+            /* 목차를 눌러 내려앉는 줄 = 붙박이 기둥의 목차 제목 줄 (판정선과 같은 값) */
+            className="scroll-mt-[calc(var(--header-h)+6rem)] pb-12 lg:scroll-mt-[calc(var(--header-h)+2.5rem+var(--toc-offset,0px))]"
+          >
             <h4 className="type-kr-heading text-h5-m sm:text-h5">{s.title}</h4>
             <div className="mt-6 space-y-8">
               {s.articles

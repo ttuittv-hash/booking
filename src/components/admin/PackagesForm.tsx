@@ -655,7 +655,7 @@ export function PackagesForm({
   return (
     <div className="mt-8">
       {/* 1뎁스: 공간 — 패키지가 늘어 한 줄에 다 못 들어간다(그쪽 개편). */}
-      <div className="flex gap-1 border-b border-border/20">
+      <div className="flex gap-1 border-b border-border/25">
         {VENUES.map((v) => (
           <button
             key={v.id}
@@ -870,7 +870,7 @@ export function PackagesForm({
               <div className="flex items-center gap-2">
                 <input
                   type="checkbox"
-                  className="accent-accent"
+
                   checked={active.secondShowSurchargeRatio > 0}
                   onChange={(e) => update({ secondShowSurchargeRatio: e.target.checked ? 0.5 : 0 })}
                 />
@@ -894,7 +894,7 @@ export function PackagesForm({
               <div className="flex items-center gap-2">
                 <input
                   type="checkbox"
-                  className="accent-accent"
+
                   checked={active.discountRatio > 0}
                   onChange={(e) => update({ discountRatio: e.target.checked ? 0.1 : 0 })}
                 />
@@ -920,7 +920,7 @@ export function PackagesForm({
               <div className="flex items-center gap-2">
                 <input
                   type="checkbox"
-                  className="accent-accent"
+
                   checked={active.extraDayDiscountRatio > 0}
                   onChange={(e) => update({ extraDayDiscountRatio: e.target.checked ? 0.1 : 0 })}
                 />
@@ -942,7 +942,7 @@ export function PackagesForm({
               <div className="flex items-center gap-2">
                 <input
                   type="checkbox"
-                  className="accent-accent"
+
                   checked={active.restDayDiscountRatio > 0}
                   onChange={(e) => update({ restDayDiscountRatio: e.target.checked ? 0.5 : 0 })}
                 />
@@ -1001,7 +1001,7 @@ export function PackagesForm({
             <label className="flex items-center gap-2 pt-6">
               <input
                 type="checkbox"
-                className="accent-accent"
+
                 checked={active.outdoorPlazaIncluded}
                 onChange={(e) => update({ outdoorPlazaIncluded: e.target.checked })}
               />
@@ -1398,7 +1398,7 @@ export function PackagesForm({
                         />
                       </div>
                     </div>
-                    <div className="ml-2.5 space-y-1.5 border-l border-border/40 pl-3.5">
+                    <div className="ml-2.5 space-y-1.5 border-l border-border/25 pl-3.5">
                       {items.map((addon) => {
                         const qty = includedQty(addon.id);
                         const checked = qty > 0;
@@ -1406,7 +1406,7 @@ export function PackagesForm({
                         return (
                           <div
                             key={addon.id}
-                            className="flex flex-col gap-2 border-b border-border/50 pb-1.5 sm:flex-row sm:items-center sm:justify-between"
+                            className="flex flex-col gap-2 border-b border-border/25 pb-1.5 sm:flex-row sm:items-center sm:justify-between"
                           >
                             <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-s">
                               <label className="flex shrink-0 items-center gap-1.5">
@@ -1668,7 +1668,7 @@ export function PackagesForm({
                     </div>
                   </div>
                   {/* 항목 행 — 카테고리보다 한 단계 더 들여써서 소속을 눈으로 바로 알 수 있게 한다. */}
-                  <div className="ml-2.5 space-y-1.5 border-l border-border/40 pl-3.5">
+                  <div className="ml-2.5 space-y-1.5 border-l border-border/25 pl-3.5">
                     {items.map((addon) => {
                       const qty = includedQty(addon.id);
                       const checked = qty > 0;
@@ -1677,7 +1677,7 @@ export function PackagesForm({
                       return (
                         <div
                           key={addon.id}
-                          className="flex flex-col gap-2 border-b border-border/50 pb-1.5 sm:flex-row sm:items-center sm:justify-between"
+                          className="flex flex-col gap-2 border-b border-border/25 pb-1.5 sm:flex-row sm:items-center sm:justify-between"
                         >
                           <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-s">
                             {isVisibleOption && (
@@ -1842,7 +1842,7 @@ export function PackagesForm({
         )}
       </div>
 
-      <div className="mt-8 flex flex-wrap items-center gap-4 border-t border-border/20 pt-6">
+      <div className="mt-8 flex flex-wrap items-center gap-4 border-t border-border/25 pt-6">
         <button
           type="button"
           disabled={saving}

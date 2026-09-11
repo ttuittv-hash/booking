@@ -140,7 +140,7 @@ export function NotificationBell({ role }: { role: "ADMIN" | "APPLICANT" }) {
       </button>
 
       {open && (
-        <div className="absolute right-0 z-40 mt-2 w-[22rem] animate-[dropdown-in_0.16s_ease-out] border border-border/30 bg-surface shadow-lg sm:w-[26rem]">
+        <div className="absolute right-0 z-40 mt-2 w-[22rem] animate-[dropdown-in_0.16s_ease-out] border border-border-soft bg-surface shadow-lg sm:w-[26rem]">
           <div className="flex items-center justify-between border-b border-border/25 px-5 py-3.5">
             <span className="text-s font-bold">
               알림
@@ -172,7 +172,7 @@ export function NotificationBell({ role }: { role: "ADMIN" | "APPLICANT" }) {
                     key={n.id}
                     href={hrefOf(n)}
                     onClick={() => openNotification(n)}
-                    className={`flex gap-3 border-b border-border/15 px-5 py-4 transition-colors last:border-b-0 hover:bg-foreground/[0.04] ${
+                    className={`flex gap-3 border-b border-border/25 px-5 py-4 transition-colors last:border-b-0 hover:bg-foreground/[0.04] ${
                       n.isRead ? "" : "bg-accent/[0.06]"
                     }`}
                   >

@@ -27,7 +27,7 @@ function InlineLinks({ text }: { text: string }) {
           <Link
             key={i}
             href={part.href}
-            className="underline decoration-border-soft underline-offset-4 transition-colors hover:decoration-accent"
+            className="underline decoration-border-soft underline-offset-4 transition-colors hover:decoration-foreground"
           >
             {part.text}
           </Link>
@@ -291,9 +291,11 @@ const BTN_VARIANT: Record<BtnVariant, string> = {
 // 모바일에서는 어떤 크기든 44px 을 확보한다 — h-8(32px)·h-10(40px)은 손가락으로
 // 누르기에 작다. sm 브레이크포인트부터는 원래 높이로 돌아가 촘촘한 표가 유지된다.
 const BTN_SIZE: Record<BtnSize, string> = {
-  sm: "h-11 px-4 text-xs sm:h-8",
-  md: "h-11 px-5 text-s sm:h-10",
-  lg: "h-12 px-6 text-s",
+  // 좌우 패딩은 12 / 16 / 20 이다(2026-09-10). 16·20·24 로 두던 동안 글자보다 여백이
+  // 넓어 버튼이 실제 크기보다 커 보였고, 같은 줄에 버튼이 둘 이상 서면 줄이 넘쳤다.
+  sm: "h-11 px-3 text-xs sm:h-8",
+  md: "h-11 px-4 text-s sm:h-10",
+  lg: "h-12 px-5 text-s",
 };
 
 export function btnClass(variant: BtnVariant = "secondary", size: BtnSize = "md") {
@@ -406,12 +408,23 @@ export function PageHeading({
   actions,
   as: As = "h1",
   size = "lg",
+  width = "measure",
 }: {
   title: ReactNode;
   lead?: ReactNode;
   actions?: ReactNode;
   as?: "h1" | "h2";
   size?: "lg" | "md";
+  /**
+   * 머리 블록의 폭. 기본값 `measure` 는 읽기 좋은 폭(48rem)으로 묶는다 — 리드가
+   * 여러 줄 문장일 때 줄이 너무 길어지지 않게 하는 상한이다.
+   *
+   * [신규 2026-09-10] `full` 은 그 상한을 풀어 **바깥 칼럼 폭을 그대로** 쓴다.
+   * 공지 상세처럼 이미 칼럼(본문 3/4)으로 폭이 정해진 자리에서는 상한이 한 겹 더
+   * 걸려 제목과 그 아래 가로선이 본문보다 짧게 끝났다 — 머리와 본문이 같은 축에
+   * 서지 않으면 지면이 두 폭으로 갈려 보인다.
+   */
+  width?: "measure" | "full";
 }) {
   const cls =
     size === "lg"
@@ -419,7 +432,7 @@ export function PageHeading({
       : "type-kr-heading text-h3-m sm:text-h3";
   return (
     <div className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
-      <div className="max-w-3xl">
+      <div className={width === "full" ? "min-w-0 flex-1" : "max-w-3xl"}>
         <As className={cls}>{title}</As>
         {lead && <div className="mt-6 text-m text-muted">{lead}</div>}
       </div>
@@ -444,11 +457,17 @@ export function choiceClass(
     "block w-full border text-left outline-none transition-colors",
     dense ? "px-4 py-3" : "px-5 py-5",
     "focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-foreground",
+    /*
+      [개정 2026-09-09] **고르지 않은 카드는 흰 면 + 검정 테두리**다(전에는 옅은 테두리에
+      배경이 없어 지면과 붙어 보였다). 고른 카드는 검정 면 — 「선택 = 검정 채움」 그대로다.
+      흰 면과 검정 면이 마주 서므로 무엇을 골랐는지가 카드 줄에서 바로 짚힌다.
+      호버는 면을 한 단 눌러 준다(테두리가 이미 검정이라 테두리로는 신호를 줄 수 없다).
+    */
     disabled
       ? "cursor-not-allowed border-border-soft opacity-45"
       : selected
         ? "cursor-pointer border-foreground bg-inverse-bg text-inverse-fg"
-        : "cursor-pointer border-border-soft hover:border-foreground",
+        : "cursor-pointer border-foreground bg-panel hover:bg-panel-strong",
   ].join(" ");
 }
 export function toggleClass(selected: boolean, disabled = false) {
@@ -475,6 +494,18 @@ export const FILE_INPUT =
   "field-base file:mr-3 file:my-[3px] file:inline-flex file:h-8 file:items-center file:border file:border-foreground file:bg-transparent file:px-4 file:text-xs file:font-bold file:text-foreground";
 
 /** 아이콘 버튼(±, ‹ ›) — 토글과 같은 32 높이의 정사각형 */
+/**
+ * 반복 행의 삭제 — 오른쪽 끝의 **✕** 하나다.
+ *
+ * 「삭제」 텍스트 버튼으로 두던 동안 행마다 네모 버튼이 하나씩 서서, 목록이 입력 줄이
+ * 아니라 **버튼 줄**처럼 읽혔다. 네모는 실행이고 이 자리는 한 줄을 걷어내는 보조 동작이라
+ * 아이콘이 맞다. 스크린리더용 이름은 `aria-label` 로 남긴다.
+ */
+export const ROW_REMOVE_BTN =
+  // 32×32 — 입력칸의 밀도 높은 단(`h-8`)과 같은 높이다. 40 으로 두던 동안 같은 칸에 든
+  // 입력칸을 그만큼 밀어내, 마지막 칸(주최·주관 역할 등)이 눌려 줄이 깨져 보였다.
+  "flex h-8 w-8 shrink-0 cursor-pointer items-center justify-center text-muted transition-colors hover:text-danger";
+
 export const ICON_BTN_SM =
   "inline-flex h-8 w-8 shrink-0 items-center justify-center border border-border-soft text-s text-muted transition-colors hover:border-foreground hover:text-foreground disabled:cursor-not-allowed disabled:opacity-40";
 
@@ -482,7 +513,47 @@ export const ICON_BTN_SM =
 export const CHOICE_SELECTED_VARS: React.CSSProperties = {
   ["--muted" as string]: "var(--inverse-muted)",
   ["--border" as string]: "var(--inverse-fg)",
+  /*
+    선택된 칩은 검정 면이 된다 — 그 안의 체크박스·라디오는 흰 채움이어야 보인다.
+    기본값(검정 채움)을 그대로 두면 면에 묻혀 사라진다. 규칙은 「지면과 반대색」이다.
+  */
+  ["--check-fill" as string]: "var(--n-white)",
 };
+
+/**
+ * 인라인 체크 칩 — 무대형태·객석형태·부대사업 계획처럼 짧은 항목을 여러 개 고르는 자리.
+ *
+ * [통합 2026-09-10] 규모 단계와 공연 정보 단계가 **각자 만들어 쓰던** 칩을 하나로 합쳤다.
+ * 두 벌이 서로 달라 같은 위저드 안에서 고르지 않은 칩의 면(흰 / 오프화이트)과 높이
+ * (40 / 43)가 갈렸다. 남긴 값은 각각 시스템 규칙에 맞는 쪽이다.
+ *   · 높이 40 — 컨트롤은 세 단(48 / 40 / 32)만 쓴다. px/py 조합으로 43 을 만들지 않는다
+ *   · 고르지 않은 칩은 **오프화이트 면** — 흰 컨테이너 안에서 면이 없으면 칩이 사라진다
+ *   · 고른 칩은 검정 면. 체크 표시는 전역 규칙(`--check-fill`)이 흰색으로 뒤집는다
+ */
+export function CheckboxChip({
+  checked,
+  label,
+  onChange,
+}: {
+  checked: boolean;
+  label: ReactNode;
+  onChange: () => void;
+}) {
+  return (
+    <label
+      style={checked ? CHOICE_SELECTED_VARS : undefined}
+      className={[
+        "flex h-10 cursor-pointer items-center gap-2 border px-4 text-s transition-colors",
+        checked
+          ? "border-foreground bg-inverse-bg text-inverse-fg"
+          : "border-border-soft bg-surface text-foreground hover:border-foreground",
+      ].join(" ")}
+    >
+      <input type="checkbox" checked={checked} onChange={onChange} className="h-4 w-4" />
+      {label}
+    </label>
+  );
+}
 
 /** 보조 고지문 — 색면·좌측 바를 쓰지 않고 헤어라인 위 작은 글씨로만 */
 export function Note({ children, className = "" }: { children: ReactNode; className?: string }) {
@@ -723,7 +794,7 @@ export function Row({
 }) {
   const inner = (
     // 좁은 화면에서는 좌측 블록 아래로 메타·액션이 내려간다 (Stacked List 모바일)
-    <div className="flex flex-col gap-3 py-5 sm:flex-row sm:items-center sm:gap-8 sm:py-6">
+    <div className="flex flex-col gap-3 px-4 py-5 sm:flex-row sm:items-center sm:gap-8 sm:py-6">
       <div className="flex min-w-0 flex-1 flex-col gap-1 sm:flex-row sm:items-center sm:gap-8">
         {lead && (
           <span className="shrink-0 text-xs tabular-nums text-muted sm:w-24">{lead}</span>
@@ -741,6 +812,12 @@ export function Row({
       )}
     </div>
   );
+  /*
+    [개정 2026-09-10] 행 호버는 **옅은 색면**이고, 행 내용에 **좌우 패딩 16** 을 둔다.
+    패딩 없이 색면만 깔던 동안 하이라이트 경계가 날짜·태그 글자 끝과 맞닿아 겹쳐 보였다.
+    FAQ 아코디언과 같은 처리다 — 색면을 쓰는 목록은 내용을 그만큼 안으로 들인다.
+    (헤어라인은 li 에 있어 패딩과 무관하게 목록 전체 폭을 지킨다.)
+  */
   return (
     <li className="border-b border-border">
       {href ? (
