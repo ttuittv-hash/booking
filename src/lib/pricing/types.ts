@@ -1000,7 +1000,12 @@ export type CompanyStatus = "PENDING" | "APPROVED" | "REJECTED" | "SUSPENDED";
 
 // 신청자(대관사) 계정은 일반인이 자유 가입할 수 없도록 운영자 승인이 필요하다.
 // 운영자(ADMIN) 계정은 항상 APPROVED로 생성된다.
-export type ApprovalStatus = "PENDING" | "APPROVED" | "REJECTED";
+// HOLD(보류) 추가(2026-09-15, "관리자가 보류 버튼을 누를 수 있게, 상태값에 보류를
+// 추가해주고, 신청 리스트에서 보류만 따로 볼수 있게") — 승인/반려를 뒤로 미루는
+// 중간 상태다. 접근 제어(auth.ts canActOnQuotes/isPendingApplicant,
+// accessPolicy.ts accountStateOf)는 "APPROVED가 아니면 전부 대기 취급"이라
+// 이 값을 몰라도 안전하게 막힌다 — 화면 쪽(표·라벨·/pending 안내)만 새로 잡아 준다.
+export type ApprovalStatus = "PENDING" | "APPROVED" | "REJECTED" | "HOLD";
 
 // 운영자(ADMIN) 계정의 등급. role이 ADMIN인 계정에만 의미가 있다.
 // BASIC(일반관리자) — 가입 시 기본으로 부여되는 등급, 일상적인 운영 화면 접근 가능

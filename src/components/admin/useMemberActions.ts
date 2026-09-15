@@ -28,7 +28,7 @@ export function useMemberActions(options?: {
 
   async function decide(
     id: string,
-    action: "approve" | "reject",
+    action: "approve" | "reject" | "hold",
     /** 승인이 곧 대표 지정이 되는 경우, 그 사실을 먼저 확인받기 위한 값. */
     master?: { willBecomeMaster: boolean; name: string; companyName: string | null },
   ) {
@@ -49,6 +49,14 @@ export function useMemberActions(options?: {
         title: "가입 승인",
         okLabel: "승인",
       });
+      if (!ok) return;
+    } else if (action === "hold") {
+      // 보류(2026-09-15) — 승인·반려를 뒤로 미룬다. 승인 대기 표에서 "보류" 탭으로
+      // 옮겨질 뿐 계정에는 영향이 없어(회사·대표 지정 등) 반려처럼 사유를 받지 않는다.
+      const ok = await dialog.confirm(
+        `${master?.name ?? "이 신청자"}님을 보류할까요?\n"보류" 탭으로 옮겨지며, 언제든 다시 승인·반려할 수 있습니다.`,
+        { title: "가입 보류", okLabel: "보류" },
+      );
       if (!ok) return;
     }
 

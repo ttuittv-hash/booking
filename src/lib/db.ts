@@ -3053,7 +3053,8 @@ export async function listUsersPaged(
   filter: {
     role?: UserRole;
     approvalStatus?: ApprovalStatus;
-    excludeApprovalStatus?: ApprovalStatus;
+    /** 처리 완료 표처럼 "승인 대기·보류 둘 다 빼고" 볼 때는 배열로 넘긴다. */
+    excludeApprovalStatus?: ApprovalStatus | ApprovalStatus[];
     /**
      * "company" 는 같은 회사 신청자를 붙여 놓고 회사 안에서는 가입 순으로 세운다
      * (승인 대기 화면 — 대표는 첫 승인이 정하므로 순서를 보고 판단해야 한다).
@@ -3075,8 +3076,11 @@ export async function listUsersPaged(
     conditions.push(`approval_status = $${params.length}`);
   }
   if (filter.excludeApprovalStatus) {
-    params.push(filter.excludeApprovalStatus);
-    conditions.push(`approval_status <> $${params.length}`);
+    const excluded = Array.isArray(filter.excludeApprovalStatus)
+      ? filter.excludeApprovalStatus
+      : [filter.excludeApprovalStatus];
+    params.push(excluded);
+    conditions.push(`approval_status <> ALL($${params.length})`);
   }
   const where = conditions.length ? `WHERE ${conditions.join(" AND ")}` : "";
 

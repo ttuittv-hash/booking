@@ -19,14 +19,15 @@ import { PAGE_LEAD, PAGE_TITLE, TAB_BAR, tabCls } from "@/components/admin/admin
 
 // 회원 관리 (기획서 A9·A10 운영자 시야).
 //
-// 탭을 셋으로 나눈다:
+// 탭을 넷으로 나눈다:
 //   승인 대기  지금 처리해야 할 것. 기본으로 열린다.
+//   보류      승인·반려를 뒤로 미룬 것(2026-09-15) — 승인 대기 표에서 [보류]를 누르면 옮겨진다.
 //   처리 완료  이미 판단한 것 — 되짚어보는 용도.
 //   회사별     회사 단위로 소속 담당자를 보고 대표를 바꾼다.
 //
 // 승인 대기도 페이지로 끊는다. 예전에는 전부 한 화면에 뿌렸는데 50건만 넘어도
 // 스크롤이 끝없이 길어지고 어디까지 봤는지 알 수 없었다.
-type Tab = "pending" | "decided" | "companies";
+type Tab = "pending" | "hold" | "decided" | "companies";
 
 export default async function AdminApplicantsPage({
   searchParams,
@@ -37,7 +38,13 @@ export default async function AdminApplicantsPage({
 
   const params = await searchParams;
   const tab: Tab =
-    params.tab === "decided" ? "decided" : params.tab === "companies" ? "companies" : "pending";
+    params.tab === "hold"
+      ? "hold"
+      : params.tab === "decided"
+        ? "decided"
+        : params.tab === "companies"
+          ? "companies"
+          : "pending";
   const page = normalizePage(params.page);
   const keyword = (params.q ?? "").trim();
   const status = params.status ?? "";
@@ -54,9 +61,11 @@ export default async function AdminApplicantsPage({
   // 탭 라벨에 건수를 달아준다 — 열어보지 않아도 밀린 일이 있는지 보인다.
   const pendingCount = (await listUsersPaged({ role: "APPLICANT", approvalStatus: "PENDING" }, 1, 1))
     .total;
+  const holdCount = (await listUsersPaged({ role: "APPLICANT", approvalStatus: "HOLD" }, 1, 1)).total;
 
   const tabs: { key: Tab; label: string; badge?: number; href: string }[] = [
     { key: "pending", label: "승인 대기", badge: pendingCount, href: "/admin/applicants" },
+    { key: "hold", label: "보류", badge: holdCount, href: "/admin/applicants?tab=hold" },
     { key: "decided", label: "처리 완료", href: "/admin/applicants?tab=decided" },
     { key: "companies", label: "회사별 담당자", href: "/admin/applicants?tab=companies" },
   ];
@@ -93,6 +102,8 @@ export default async function AdminApplicantsPage({
 
         {tab === "pending" ? (
           <PendingTab page={page} brns={businessRegistrationNumbers} />
+        ) : tab === "hold" ? (
+          <HoldTab page={page} brns={businessRegistrationNumbers} />
         ) : tab === "decided" ? (
           <DecidedTab page={page} brns={businessRegistrationNumbers} badgeHidden={masterBadgeHiddenMap} />
         ) : (
@@ -132,6 +143,32 @@ async function PendingTab({ page, brns }: { page: number; brns: Record<string, s
   );
 }
 
+async function HoldTab({ page, brns }: { page: number; brns: Record<string, string | null> }) {
+  // 보류도 아직 심사가 끝나지 않은 건이다 — 승인 대기와 같은 표(승인·거절 버튼 포함)를
+  // 재사용하고 제목만 바꾼다. [보류]는 다시 누를 이유가 없어 숨긴다(showHoldButton=false).
+  const { items, total, totalPages } = await listUsersPaged(
+    { role: "APPLICANT", approvalStatus: "HOLD", orderBy: "company" },
+    page,
+  );
+  const joinContexts = Object.fromEntries(await getCompanyJoinContexts(items.map((u) => u.id)));
+  return (
+    <>
+      <div className="mt-8">
+        <ApplicantApprovalTable
+          applicants={items}
+          pending
+          title="보류"
+          description="승인·반려를 뒤로 미룬 신청입니다. 승인하거나 반려하면 이 목록에서 빠집니다."
+          showHoldButton={false}
+          businessRegistrationNumbers={brns}
+          joinContexts={joinContexts}
+        />
+      </div>
+      <Pagination page={page} totalPages={totalPages} total={total} basePath="/admin/applicants?tab=hold" />
+    </>
+  );
+}
+
 async function DecidedTab({
   page,
   brns,
@@ -142,7 +179,7 @@ async function DecidedTab({
   badgeHidden: Record<string, boolean>;
 }) {
   const { items, total, totalPages } = await listUsersPaged(
-    { role: "APPLICANT", excludeApprovalStatus: "PENDING" },
+    { role: "APPLICANT", excludeApprovalStatus: ["PENDING", "HOLD"] },
     page,
   );
   // 처리자 이름은 한 번에 읽어 Map 으로 만든다 — 행마다 findUserById 면 N+1 이다.

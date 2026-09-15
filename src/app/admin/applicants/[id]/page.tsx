@@ -60,12 +60,14 @@ const APPROVAL_LABEL = {
   PENDING: "일반인 (승인 대기)",
   APPROVED: "기본 (승인됨)",
   REJECTED: "거절됨",
+  HOLD: "보류 중",
 } as const;
 
 const APPROVAL_TONE: Record<AppUser["approvalStatus"], "warn" | "good" | "neutral"> = {
   PENDING: "warn",
   APPROVED: "good",
   REJECTED: "neutral",
+  HOLD: "neutral",
 };
 
 export default async function AdminApplicantDetailPage({
