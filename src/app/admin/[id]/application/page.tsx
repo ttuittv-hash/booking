@@ -264,7 +264,7 @@ export default async function AdminQuoteApplicationPage({
                 rel="noreferrer"
                 className={btnClass("secondary", "md")}
               >
-                위저드로 보기
+                신청 상세보기
               </a>
             )}
             {/* 심사 회의에 종이로 들고 가는 일이 있어 인쇄본을 함께 둔다. */}
