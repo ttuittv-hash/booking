@@ -313,7 +313,7 @@ export function WizardShell({
     const [y, m] = clamped.split("-").map(Number);
     return { ...INITIAL_SELECTION.week, year: y, month: m };
   })();
-  const [selection, setSelection] = useState<QuoteSelection>(
+  const [selection, setSelectionRaw] = useState<QuoteSelection>(
     initialSelection
       ? {
           ...INITIAL_SELECTION,
@@ -340,6 +340,14 @@ export function WizardShell({
           performanceInfo: initialPerformanceInfo,
         },
   );
+  // [신규 2026-09-17] "관리자가 신청자와 동일하게 다 볼 수 있어야 해" — readOnly 보기에서
+  // 스텝 본문은 <fieldset disabled>로 클릭·타이핑만 막는데, Step1Calendar의 화/일 자동
+  // 제외 이펙트처럼 "사용자 입력 없이 마운트만 해도 도는" 자동 보정 로직은 그걸로
+  // 안 막힌다 — 그대로 두면 이펙트가 setSelection을 불러 실제 제출값과 화면이 슬쩍
+  // 달라진다(예: dayTags가 비어 있는 기본 구성 신청서를 열면 화/일이 저절로 빠져
+  // 보인다). setSelection 자체를 여기 한 곳에서 no-op으로 바꿔 어떤 경로로 불려도
+  // selection이 절대 안 바뀌게 한다 — 실제 제출값을 그대로 유지하는 가장 확실한 방법.
+  const setSelection = readOnly ? (() => {}) : setSelectionRaw;
   // 동시 대관 캘린더 탭 + 중형 캘린더 월 이동은 신청서 selection과 별개의 화면 상태다.
   const [venueTab, setVenueTab] = useState<"arena" | "medium-hall">("arena");
   const [midHallMonth, setMidHallMonth] = useState(() => {
@@ -1383,6 +1391,7 @@ export function WizardShell({
                       }
                       monthBounds={calendarMonthBounds}
                       allowDayExclusion={!isSpecialSchedule}
+                      showEffectiveTags={readOnly}
                     />
                   ) : (
                     <MidHallCalendar

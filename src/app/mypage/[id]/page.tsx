@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { canAccessQuote, getCurrentUser } from "@/lib/auth";
-import { canApplicantEditQuote } from "@/lib/quoteStatus";
+import { applicantQuoteStatusLabel, canApplicantEditQuote } from "@/lib/quoteStatus";
 import {
   getContractSignatureByQuoteId,
   getDepositByQuoteId,
@@ -47,12 +47,6 @@ function midHallSummaryLine(selection: QuoteSelection): string | null {
   );
   return `총 ${dates.length}일 (셋업 ${setup} · 공연 ${performanceDates.length} · 회차 ${shows}) · 관객 ${selection.secondaryAudience.toLocaleString()}명`;
 }
-
-const STAGE_LABEL: Record<string, string> = {
-  ESTIMATE: "신청 접수 (예상 견적)",
-  CONTRACTED: "계약 확정",
-  SETTLED: "정산 확정",
-};
 
 export default async function MyQuoteDetailPage({
   params,
@@ -160,7 +154,7 @@ export default async function MyQuoteDetailPage({
             인쇄 / PDF 저장
           </Link>
           <span className="text-xs text-muted">
-            {STAGE_LABEL[quote.status]}
+            {applicantQuoteStatusLabel(quote)}
           </span>
         </div>
       }

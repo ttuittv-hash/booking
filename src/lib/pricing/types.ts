@@ -269,7 +269,14 @@ export type BookingMode = "SINGLE" | "SIMULTANEOUS";
 // 아레나(Step1Calendar)와 동일하게 셋업/공연/철수 3가지 상태를 둔다 — 철수는 아레나와
 // 마찬가지로 가격 반영 방식이 아직 미정이라 당분간 셋업과 동일하게 취급한다(DayTag 주석
 // 참고, 2026-08-19).
-export type MidHallDayRole = "SETUP" | "PERFORMANCE" | "LOAD_OUT";
+// [신규 2026-09-17] "중형공연장 캘린더에서도 휴무일 지정 가능하게" — 셋업·공연 사이에
+// 낀 하루를 명시적으로 "이 날은 안 쓴다"고 표시할 길이 없었다(그냥 날짜를 안 고르면
+// 되지만, 여러 날짜 사이에 낀 휴무일은 표시가 없으면 빠뜨린 것처럼 보인다). REST는
+// calculateMidHallQuote.ts의 role 필터(SETUP/PERFORMANCE/LOAD_OUT) 어디에도 안 걸려
+// 과금되지 않는다 — 아레나 DayTag의 REST(추가일 반값 할인)와는 다른, 순수 표시용 역할.
+// 날짜 자체는 그대로 midHallDays에 남으므로 다른 신청서가 그 날짜를 다시 못 잡는 것은
+// 셋업/공연과 같다(approvedBlocks.ts는 role을 보지 않고 키만 본다).
+export type MidHallDayRole = "SETUP" | "PERFORMANCE" | "LOAD_OUT" | "REST";
 
 export interface MidHallDaySelection {
   role: MidHallDayRole;

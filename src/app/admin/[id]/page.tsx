@@ -90,7 +90,12 @@ function formatDateShort(iso: string): string {
 }
 
 const DAY_TAG_LABEL: Record<DayTag, string> = { PREP: "셋업", PERFORMANCE: "공연", LOAD_OUT: "철수", REST: "휴무일" };
-const MID_HALL_ROLE_LABEL: Record<MidHallDayRole, string> = { SETUP: "셋업", PERFORMANCE: "공연", LOAD_OUT: "철수" };
+const MID_HALL_ROLE_LABEL: Record<MidHallDayRole, string> = {
+  SETUP: "셋업",
+  PERFORMANCE: "공연",
+  LOAD_OUT: "철수",
+  REST: "휴무",
+};
 
 // 신청 상세에서 "언제 어떤 용도로 예약했는지" 날짜별로 풀어서 보여준다("공연정보 슬롯에서
 // 대관 부킹한 기간을 상세히 노출해달라" 요청, 2026-08-22) — 헤더의 "총 6일" 요약만으로는

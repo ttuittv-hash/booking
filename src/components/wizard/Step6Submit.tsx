@@ -100,29 +100,32 @@ interface TaggedDates {
   prep: string[];
   performance: string[];
   loadOut: string[];
+  rest: string[];
 }
 
 function arenaTaggedDates(selection: QuoteSelection, defaultPerformanceDays: number): TaggedDates {
   const dates = resolveSelectedDates(selection);
   // [2026-09-17] 추가일 기본값 = 준비일(rateTableUtils.defaultDayTags 참고) — 견적 엔진과 같은 판정
   const defaults = defaultDayTags(dates, defaultPerformanceDays, selection.extraDays);
-  const acc: TaggedDates = { prep: [], performance: [], loadOut: [] };
+  const acc: TaggedDates = { prep: [], performance: [], loadOut: [], rest: [] };
   for (const d of dates) {
     const tag = effectiveDayTag(d, selection.dayTags, defaults);
     if (tag === "PREP") acc.prep.push(d);
     else if (tag === "PERFORMANCE") acc.performance.push(d);
     else if (tag === "LOAD_OUT") acc.loadOut.push(d);
+    else if (tag === "REST") acc.rest.push(d);
   }
   return acc;
 }
 
 function midHallTaggedDates(selection: QuoteSelection): TaggedDates {
-  const acc: TaggedDates = { prep: [], performance: [], loadOut: [] };
+  const acc: TaggedDates = { prep: [], performance: [], loadOut: [], rest: [] };
   for (const d of Object.keys(selection.midHallDays).sort()) {
     const role = selection.midHallDays[d].role;
     if (role === "SETUP") acc.prep.push(d);
     else if (role === "PERFORMANCE") acc.performance.push(d);
     else if (role === "LOAD_OUT") acc.loadOut.push(d);
+    else if (role === "REST") acc.rest.push(d);
   }
   return acc;
 }
@@ -411,6 +414,12 @@ export function Step6Submit({
                     label={t("submit.setupTeardownLabel", "설치·철거 (예상) 일정")}
                     value={setupTeardownLabel(midHallTagged.prep, midHallTagged.loadOut)}
                   />
+                  {midHallTagged.rest.length > 0 && (
+                    <ReviewField
+                      label={t("submit.midHallRestLabel", "휴무일")}
+                      value={midHallTagged.rest.map(fmtMD).join(" · ")}
+                    />
+                  )}
                 </div>
               </div>
             )}

@@ -61,6 +61,7 @@ const MID_HALL_ROLE_LABEL: Record<MidHallDayRole, string> = {
   SETUP: "셋업",
   PERFORMANCE: "공연",
   LOAD_OUT: "철수",
+  REST: "휴무",
 };
 
 const DAY_TAG_LABEL: Record<DayTag, string> = {

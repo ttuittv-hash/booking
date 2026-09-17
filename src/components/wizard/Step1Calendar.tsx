@@ -126,6 +126,7 @@ export function Step1Calendar({
   onChangeMidHallDays,
   monthBounds,
   allowDayExclusion = true,
+  showEffectiveTags = false,
 }: {
   week: QuoteSelection["week"];
   excludedDays: WeekDay[];
@@ -164,6 +165,16 @@ export function Step1Calendar({
    * 그대로 뗄 수 있다.
    */
   allowDayExclusion?: boolean;
+  /**
+   * [신규 2026-09-17] "관리자가 신청자와 동일하게 다 볼 수 있어야 해" — 운영자 읽기전용
+   * 리뷰 화면(admin/[id]/wizard)용. 평소엔 사용자가 실제로 고른 날짜(dayTags에 명시된
+   * 값)에만 배지를 붙이고 나머지는 노란 배경만 남기는데(2026-09-08, 신청 중에는 "이게
+   * 내가 정한 값"과 "패키지 기본값"을 구분해 보여줘야 하므로), 이미 끝난 신청서를
+   * 훑어볼 때는 그 구분이 필요 없고 오히려 패키지 기본값으로만 채워진 날짜가 통째로
+   * 빈칸처럼 보이는 문제가 된다. true면 배지를 effectiveDayTag(명시값 우선, 없으면
+   * 패키지 기본값)로 채운다 — 요금 계산이 항상 봐온 값과 같다.
+   */
+  showEffectiveTags?: boolean;
 }) {
   // [화면 뼈대 2026-08-18, 화면시나리오 SCREEN 02/12 · INTERACTION] 역할 지정은 팝업이 아니라
   // 클릭한 날짜 아래에 바로 펼쳐지는 드롭다운으로 처리한다 — 이전의 "사용 요일 토글 행" +
@@ -528,7 +539,9 @@ export function Step1Calendar({
                   // 실제로 고른 날짜(dayTags에 명시된 값)에만 붙이고, 나머지는 노란
                   // 배경만 남긴다 — 요금 계산(effectiveDayTag 기반)은 그대로 기본값을
                   // 쓴다, 화면 배지 노출 조건만 바뀐 것이다.
-                  const explicitTag = isActive ? dayTags[iso] : undefined;
+                  const explicitTag = isActive
+                    ? (showEffectiveTags ? effectiveDayTag(iso, dayTags, dayTagDefaults) : dayTags[iso])
+                    : undefined;
                   const tag = explicitTag ?? null;
                   const dayKind = dayKindForDate(iso);
                   const isExtendable = dayKind?.kind === "extend";
@@ -598,7 +611,9 @@ export function Step1Calendar({
                             ? `공연${(midHall[iso].shows ?? 1) > 1 ? `×${midHall[iso].shows}` : ""}`
                             : midHall[iso].role === "LOAD_OUT"
                               ? "철수"
-                              : "준비"}
+                              : midHall[iso].role === "REST"
+                                ? "휴무"
+                                : "준비"}
                         </span>
                       )}
                       {!tag && isExtendable && (

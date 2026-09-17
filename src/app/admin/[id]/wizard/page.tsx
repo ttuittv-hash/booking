@@ -9,8 +9,6 @@ import {
   getRatesContent,
   getNoticeCalendarWindow,
   listAttachments,
-  listDateBlocks,
-  listWeekDemand,
 } from "@/lib/db";
 import { noticeCalendarMonthBounds } from "@/lib/content/noticeCalendarWindow";
 import { AdminNav } from "@/components/admin/AdminNav";
@@ -45,16 +43,13 @@ export default async function AdminQuoteWizardPage({
   const quote = await getQuoteById(id);
   if (!quote) notFound();
 
-  const [rateTable, weekDemand, dateBlocks, ratesContent, screenText, calendarWindow, existingAttachments] =
-    await Promise.all([
-      getRateTableByVersion(quote.rateTableVersion),
-      listWeekDemand(),
-      listDateBlocks(),
-      getRatesContent(),
-      getScreenTextContent(),
-      getNoticeCalendarWindow(),
-      listAttachments(id),
-    ]);
+  const [rateTable, ratesContent, screenText, calendarWindow, existingAttachments] = await Promise.all([
+    getRateTableByVersion(quote.rateTableVersion),
+    getRatesContent(),
+    getScreenTextContent(),
+    getNoticeCalendarWindow(),
+    listAttachments(id),
+  ]);
   const calendarMonthBounds = noticeCalendarMonthBounds(calendarWindow);
 
   return (
@@ -73,8 +68,14 @@ export default async function AdminQuoteWizardPage({
             readOnly
             rateTable={rateTable}
             currentUser={admin}
-            weekDemand={weekDemand}
-            dateBlocks={dateBlocks}
+            // [수정 2026-09-17] "캘린더는 표기가 안되어있어" — 실시간 대관 가능 여부
+            // (dateBlocks·weekDemand)를 넣으면, 제출 이후 그 날짜가 새로 막히거나(다른
+            // 신청 승인 등) 경합이 붙었을 때 캘린더가 "대관 불가"로 회색 처리되면서
+            // 실제 제출된 준비/공연 배지가 안 보이는 것처럼 묻혀 버렸다. 이 화면은 지금
+            // 예약 가능한지를 보는 화면이 아니라 그때 뭘 제출했는지를 보는 화면이라
+            // 항상 빈 값을 넘긴다 — 그러면 캘린더가 제출값만으로 그려진다.
+            weekDemand={[]}
+            dateBlocks={[]}
             editingQuoteId={quote.id}
             initialSelection={quote.selection}
             liveHallRateContent={ratesContent.liveHall}
