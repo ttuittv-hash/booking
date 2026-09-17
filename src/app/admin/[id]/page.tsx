@@ -17,7 +17,9 @@ import {
   listCompetingQuotesForWeek,
   listContractAddendums,
   listUsersByIds,
+  getScreenTextContent,
 } from "@/lib/db";
+import { resolveWizardFieldLabel } from "@/lib/content/pageContent";
 import { num, won } from "@/lib/format";
 import { resolveSelectedDates } from "@/lib/pricing/dateRange";
 import { defaultDayTags, effectiveDayTag, findPackage, totalRentalDays } from "@/lib/pricing/rateTableUtils";
@@ -79,7 +81,12 @@ function midHallSummaryLine(selection: QuoteSelection): string | null {
   const setup = dates.filter((d) => selection.midHallDays[d].role === "SETUP").length;
   const performanceDates = dates.filter((d) => selection.midHallDays[d].role === "PERFORMANCE");
   const shows = performanceDates.reduce((sum, d) => sum + selection.midHallDays[d].shows, 0);
-  return `총 ${dates.length}일 (셋업 ${setup} · 공연 ${performanceDates.length} · 회차 ${shows}) · 관객 ${selection.secondaryAudience.toLocaleString()}명`;
+  // [2026-09-17] REST(휴무일)도 날짜 수에 포함되므로 셋업/공연 합계만으로는 "총 N일"과
+  // 어긋나 보인다 — 0보다 클 때만 괄호 안에 같이 표기한다.
+  const rest = dates.filter((d) => selection.midHallDays[d].role === "REST").length;
+  return `총 ${dates.length}일 (셋업 ${setup} · 공연 ${performanceDates.length} · 회차 ${shows}${
+    rest > 0 ? ` · 휴무 ${rest}` : ""
+  }) · 관객 ${selection.secondaryAudience.toLocaleString()}명`;
 }
 
 const WEEKDAY_SHORT_KO = ["일", "월", "화", "수", "목", "금", "토"];
@@ -122,7 +129,7 @@ function groupMidHallDatesByRole(selection: QuoteSelection): { role: MidHallDayR
   for (const [date, day] of Object.entries(selection.midHallDays).sort(([a], [b]) => a.localeCompare(b))) {
     (buckets.get(day.role) ?? buckets.set(day.role, []).get(day.role)!).push(date);
   }
-  return (["SETUP", "PERFORMANCE", "LOAD_OUT"] as MidHallDayRole[])
+  return (["SETUP", "PERFORMANCE", "LOAD_OUT", "REST"] as MidHallDayRole[])
     .filter((role) => buckets.has(role))
     .map((role) => ({ role, dates: buckets.get(role)! }));
 }
@@ -184,6 +191,7 @@ export default async function AdminQuoteDetailPage({
     ticketOpenMaterials,
     facilityMeetingMaterials,
     rateTable,
+    screenText,
   ] = await Promise.all([
     findUserById(quote.applicantId),
     listAuditLogsForQuote(id),
@@ -205,6 +213,10 @@ export default async function AdminQuoteDetailPage({
     listAttachments(id, "FACILITY_MEETING"),
     // 정산 폼의 "요금표에서 선택" 기능에도 쓰이므로 공간 종류와 무관하게 항상 가져온다.
     getRateTableByVersion(quote.rateTableVersion),
+    // [2026-09-17] 관리자가 만든 커스텀 체크박스 항목(행사유형·무대형태 등)의 라벨은
+    // 위저드처럼 wizardStrings에서 찾는다 — 안 그러면 LABEL 맵에 없는 커스텀 key가
+    // 그대로(또는 undefined로) 찍힌다.
+    getScreenTextContent(),
   ]);
   // 마케팅 실행 계획서는 분류가 붙어 별도 조회로 읽어 왔다. 화면에서는 한 목록으로 본다 —
   // 신청서에 딸린 서류라는 점이 같고, 분류별로 상자를 나누면 찾기만 번거로워진다.
@@ -371,7 +383,7 @@ export default async function AdminQuoteDetailPage({
                     "행사유형",
                     quote.selection.performanceInfo.eventTypes.length
                       ? quote.selection.performanceInfo.eventTypes
-                          .map((t) => EVENT_TYPE_LABEL[t])
+                          .map((t) => resolveWizardFieldLabel(screenText.wizardStrings, "eventTypes", t, EVENT_TYPE_LABEL))
                           .join(", ")
                       : NONE,
                   ],
@@ -379,7 +391,7 @@ export default async function AdminQuoteDetailPage({
                     "무대형태",
                     quote.selection.performanceInfo.stageTypes.length
                       ? quote.selection.performanceInfo.stageTypes
-                          .map((t) => STAGE_TYPE_LABEL[t])
+                          .map((t) => resolveWizardFieldLabel(screenText.wizardStrings, "stageTypes", t, STAGE_TYPE_LABEL))
                           .join(", ")
                       : NONE,
                   ],
@@ -387,7 +399,7 @@ export default async function AdminQuoteDetailPage({
                     "객석형태",
                     quote.selection.performanceInfo.seatingTypes.length
                       ? quote.selection.performanceInfo.seatingTypes
-                          .map((t) => SEATING_TYPE_LABEL[t])
+                          .map((t) => resolveWizardFieldLabel(screenText.wizardStrings, "seatingTypes", t, SEATING_TYPE_LABEL))
                           .join(", ")
                       : NONE,
                   ],

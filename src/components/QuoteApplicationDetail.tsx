@@ -1,4 +1,6 @@
 import { findPackage } from "@/lib/pricing/rateTableUtils";
+import { isSafetyPledgeComplete } from "@/lib/scoring/scoreQuote";
+import { resolveWizardFieldLabel } from "@/lib/content/pageContent";
 import { EYEBROW } from "@/components/ui/kit";
 import {
   AGE_RATING_LABEL,
@@ -66,7 +68,7 @@ function Section({
   );
 }
 
-function performanceInfoFields(info: PerformanceInfo) {
+function performanceInfoFields(info: PerformanceInfo, wizardStrings: Record<string, string>, pledgeComplete: boolean) {
   return (
     <div className="space-y-5">
       <div>
@@ -75,7 +77,16 @@ function performanceInfoFields(info: PerformanceInfo) {
           <Row label="대관신청사명" value={info.applicantCompanyName || "-"} />
           <Row
             label="신청 기업 유형"
-            value={info.applicantCompanyType ? APPLICANT_COMPANY_TYPE_LABEL[info.applicantCompanyType] : "-"}
+            value={
+              info.applicantCompanyType
+                ? resolveWizardFieldLabel(
+                    wizardStrings,
+                    "applicantCompanyType",
+                    info.applicantCompanyType,
+                    APPLICANT_COMPANY_TYPE_LABEL,
+                  )
+                : "-"
+            }
           />
           <Row label="사업자등록번호" value={info.applicantBusinessRegistrationNumber || "-"} />
         </dl>
@@ -161,23 +172,41 @@ function performanceInfoFields(info: PerformanceInfo) {
           <Row label="행사규모" value={info.eventScale || "-"} />
           <Row
             label="행사유형"
-            value={info.eventTypes.length ? info.eventTypes.map((t) => EVENT_TYPE_LABEL[t]).join(", ") : "-"}
+            value={
+              info.eventTypes.length
+                ? info.eventTypes
+                    .map((t) => resolveWizardFieldLabel(wizardStrings, "eventTypes", t, EVENT_TYPE_LABEL))
+                    .join(", ")
+                : "-"
+            }
           />
           <Row
             label="공연등급"
             value={
               info.ageRating
-                ? `${AGE_RATING_LABEL[info.ageRating]}${info.ageRating === "AGE_LIMIT" && info.ageLimitDetail ? ` (${info.ageLimitDetail})` : ""}`
+                ? `${resolveWizardFieldLabel(wizardStrings, "ageRating", info.ageRating, AGE_RATING_LABEL)}${info.ageRating === "AGE_LIMIT" && info.ageLimitDetail ? ` (${info.ageLimitDetail})` : ""}`
                 : "-"
             }
           />
           <Row
             label="무대형태"
-            value={info.stageTypes.length ? info.stageTypes.map((t) => STAGE_TYPE_LABEL[t]).join(", ") : "-"}
+            value={
+              info.stageTypes.length
+                ? info.stageTypes
+                    .map((t) => resolveWizardFieldLabel(wizardStrings, "stageTypes", t, STAGE_TYPE_LABEL))
+                    .join(", ")
+                : "-"
+            }
           />
           <Row
             label="객석형태"
-            value={info.seatingTypes.length ? info.seatingTypes.map((t) => SEATING_TYPE_LABEL[t]).join(", ") : "-"}
+            value={
+              info.seatingTypes.length
+                ? info.seatingTypes
+                    .map((t) => resolveWizardFieldLabel(wizardStrings, "seatingTypes", t, SEATING_TYPE_LABEL))
+                    .join(", ")
+                : "-"
+            }
           />
           <Row
             label="수납식 객석 사용여부"
@@ -203,7 +232,10 @@ function performanceInfoFields(info: PerformanceInfo) {
             label="민감정보 마스킹 제출 허용"
             value={info.sensitiveInfoMaskingAcknowledged ? "확인함" : "미확인"}
           />
-          <Row label="안전규정 준수 확약서" value={info.safetyPledgeSigned ? "작성함" : "미작성"} />
+          {/* [2026-09-17] info.safetyPledgeSigned는 실제로 아무도 set하지 않는 죽은 필드다 —
+              서약은 이 스텝이 아니라 selection.safetyPledge(StepSafetyPledge.tsx)에 저장된다.
+              그 필드로 항상 "미작성"만 찍혀 ScoringPanel(A-SAF-02)의 실제 판정과 모순됐다. */}
+          <Row label="안전규정 준수 확약서" value={pledgeComplete ? "작성함" : "미작성"} />
         </dl>
       </div>
     </div>
@@ -213,13 +245,17 @@ function performanceInfoFields(info: PerformanceInfo) {
 export function QuoteApplicationDetail({
   selection,
   rateTable,
+  wizardStrings = {},
 }: {
   selection: QuoteSelection;
   rateTable: RateTable;
+  wizardStrings?: Record<string, string>;
 }) {
   const isSimultaneous = selection.bookingMode === "SIMULTANEOUS";
   const hasArena = isSimultaneous || selection.venueId !== "medium-hall";
   const hasMidHall = isSimultaneous || selection.venueId === "medium-hall";
+
+  const pledgeComplete = isSafetyPledgeComplete(selection.safetyPledge);
 
   const venueLabel = isSimultaneous
     ? "아레나 + 중형공연장 (동시 대관)"
@@ -339,13 +375,13 @@ export function QuoteApplicationDetail({
       </Section>
 
       <Section title="신청자 정보">
-        {performanceInfoFields(selection.performanceInfo)}
+        {performanceInfoFields(selection.performanceInfo, wizardStrings, pledgeComplete)}
         {isSimultaneous && selection.midHallPerformanceInfo && (
           <div className="mt-6 border-t border-dashed border-border pt-5">
             <p className="mb-3 text-xs font-bold text-accent">
               중형공연장 — 아레나와 다르게 입력한 정보
             </p>
-            {performanceInfoFields(selection.midHallPerformanceInfo)}
+            {performanceInfoFields(selection.midHallPerformanceInfo, wizardStrings, pledgeComplete)}
           </div>
         )}
       </Section>
@@ -371,7 +407,7 @@ export function QuoteApplicationDetail({
             value={
               selection.performanceInfo.ancillaryBusinessPlans.length
                 ? selection.performanceInfo.ancillaryBusinessPlans
-                    .map((p) => ANCILLARY_BUSINESS_PLAN_LABEL[p])
+                    .map((p) => resolveWizardFieldLabel(wizardStrings, "ancillaryBusinessPlans", p, ANCILLARY_BUSINESS_PLAN_LABEL))
                     .join(", ")
                 : "-"
             }

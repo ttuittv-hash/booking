@@ -651,6 +651,21 @@ export interface ScreenTextContent {
   wizardCustomOptions: Record<string, string[]>;
 }
 
+/**
+ * 위저드가 `t(\`fieldLabel.<그룹>.<key>\`, LABEL[key] ?? key)`로 라벨을 읽는 것과
+ * 정확히 같은 우선순위를 서버 컴포넌트(관리자 심사 화면 등, useWizardText 훅을 못 쓰는
+ * 곳)에서 재현한다 — 관리자가 만든 커스텀 항목(key 형식 "custom-<timestamp>")은
+ * LABEL 맵에 없어 그냥 인덱싱하면 undefined가 찍힌다(2026-09-17 감사에서 발견).
+ */
+export function resolveWizardFieldLabel(
+  wizardStrings: Record<string, string>,
+  group: string,
+  key: string,
+  fallbackLabels: Record<string, string>,
+): string {
+  return wizardStrings[`fieldLabel.${group}.${key}`] ?? fallbackLabels[key] ?? key;
+}
+
 export const DEFAULT_SCREEN_TEXT_CONTENT: ScreenTextContent = {
   noticesLead: "대관 접수 일정과 변경 사항, 시설·요금 안내를 확인하세요.",
   noticesEmptyDesc: "대관 공고와 운영 안내가 등록되면 이곳에 표시됩니다.",

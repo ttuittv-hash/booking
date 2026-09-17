@@ -2,7 +2,9 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import {notFound} from "next/navigation";
 import { requireProAdminPage } from "@/lib/auth";
-import { findUserById, getQuoteById, getRateTableByVersion, listAttachments } from "@/lib/db";
+import { findUserById, getQuoteById, getRateTableByVersion, listAttachments, getScreenTextContent } from "@/lib/db";
+import { resolveWizardFieldLabel } from "@/lib/content/pageContent";
+import { isSafetyPledgeComplete } from "@/lib/scoring/scoreQuote";
 import { won } from "@/lib/format";
 import { resolveSelectedDates } from "@/lib/pricing/dateRange";
 import {
@@ -189,17 +191,21 @@ export default async function AdminQuoteApplicationPage({
   const quote = await getQuoteById(id);
   if (!quote) notFound();
 
-  const [applicant, attachments, rateTable] = await Promise.all([
+  const [applicant, attachments, rateTable, screenText] = await Promise.all([
     findUserById(quote.applicantId),
     // 분류를 주지 않으면 전부 가져온다 — 신청 서류·공공/공익 자료·마케팅 계획·
     // 티켓오픈/시설회의 자료를 한 자리에서 본다.
     listAttachments(id),
     getRateTableByVersion(quote.rateTableVersion),
+    getScreenTextContent(),
   ]);
 
   const s = quote.selection;
   const info = s.performanceInfo;
   const marketing = s.marketingCooperation;
+  // [2026-09-17] info.safetyPledgeSigned는 아무도 set하지 않는 죽은 필드다(항상 false) —
+  // 서약은 이 스텝이 아니라 selection.safetyPledge(StepSafetyPledge.tsx)에 저장된다.
+  const pledgeComplete = isSafetyPledgeComplete(s.safetyPledge);
 
   // 일정 — 상세 화면과 같은 방식으로 날짜를 태그별로 묶는다.
   const dates = resolveSelectedDates(s);
@@ -290,7 +296,7 @@ export default async function AdminQuoteApplicationPage({
                 label="기업 유형"
                 value={
                   info.applicantCompanyType
-                    ? `${APPLICANT_COMPANY_TYPE_LABEL[info.applicantCompanyType]}${info.applicantCompanyTypeOtherDetail ? ` — ${info.applicantCompanyTypeOtherDetail}` : ""}`
+                    ? `${resolveWizardFieldLabel(screenText.wizardStrings, "applicantCompanyType", info.applicantCompanyType, APPLICANT_COMPANY_TYPE_LABEL)}${info.applicantCompanyTypeOtherDetail ? ` — ${info.applicantCompanyTypeOtherDetail}` : ""}`
                     : NONE
                 }
               />
@@ -388,7 +394,9 @@ export default async function AdminQuoteApplicationPage({
                 label="행사유형"
                 value={
                   info.eventTypes.length
-                    ? info.eventTypes.map((t) => EVENT_TYPE_LABEL[t]).join(", ")
+                    ? info.eventTypes
+                        .map((t) => resolveWizardFieldLabel(screenText.wizardStrings, "eventTypes", t, EVENT_TYPE_LABEL))
+                        .join(", ")
                     : NONE
                 }
               />
@@ -396,7 +404,7 @@ export default async function AdminQuoteApplicationPage({
                 label="공연등급"
                 value={
                   info.ageRating
-                    ? `${AGE_RATING_LABEL[info.ageRating]}${info.ageLimitDetail ? ` (${info.ageLimitDetail})` : ""}`
+                    ? `${resolveWizardFieldLabel(screenText.wizardStrings, "ageRating", info.ageRating, AGE_RATING_LABEL)}${info.ageLimitDetail ? ` (${info.ageLimitDetail})` : ""}`
                     : NONE
                 }
               />
@@ -404,7 +412,7 @@ export default async function AdminQuoteApplicationPage({
                 label="무대형태"
                 value={
                   info.stageTypes.length
-                    ? `${info.stageTypes.map((t) => STAGE_TYPE_LABEL[t]).join(", ")}${info.stageTypeOtherDetail ? ` — ${info.stageTypeOtherDetail}` : ""}`
+                    ? `${info.stageTypes.map((t) => resolveWizardFieldLabel(screenText.wizardStrings, "stageTypes", t, STAGE_TYPE_LABEL)).join(", ")}${info.stageTypeOtherDetail ? ` — ${info.stageTypeOtherDetail}` : ""}`
                     : NONE
                 }
               />
@@ -412,7 +420,7 @@ export default async function AdminQuoteApplicationPage({
                 label="객석형태"
                 value={
                   info.seatingTypes.length
-                    ? `${info.seatingTypes.map((t) => SEATING_TYPE_LABEL[t]).join(", ")}${info.seatingTypeOtherDetail ? ` — ${info.seatingTypeOtherDetail}` : ""}`
+                    ? `${info.seatingTypes.map((t) => resolveWizardFieldLabel(screenText.wizardStrings, "seatingTypes", t, SEATING_TYPE_LABEL)).join(", ")}${info.seatingTypeOtherDetail ? ` — ${info.seatingTypeOtherDetail}` : ""}`
                     : NONE
                 }
               />
@@ -523,7 +531,7 @@ export default async function AdminQuoteApplicationPage({
                 label="부대사업 계획"
                 value={
                   info.ancillaryBusinessPlans?.length
-                    ? `${info.ancillaryBusinessPlans.map((p) => ANCILLARY_BUSINESS_PLAN_LABEL[p]).join(", ")}${info.ancillaryBusinessPlanOtherDetail ? ` — ${info.ancillaryBusinessPlanOtherDetail}` : ""}`
+                    ? `${info.ancillaryBusinessPlans.map((p) => resolveWizardFieldLabel(screenText.wizardStrings, "ancillaryBusinessPlans", p, ANCILLARY_BUSINESS_PLAN_LABEL)).join(", ")}${info.ancillaryBusinessPlanOtherDetail ? ` — ${info.ancillaryBusinessPlanOtherDetail}` : ""}`
                     : NONE
                 }
               />
@@ -557,7 +565,7 @@ export default async function AdminQuoteApplicationPage({
               />
               <Row
                 label="안전규정 준수 확약서"
-                value={info.safetyPledgeSigned ? "작성 완료" : "미작성"}
+                value={pledgeComplete ? "작성 완료" : "미작성"}
               />
             </Section>
           </>
