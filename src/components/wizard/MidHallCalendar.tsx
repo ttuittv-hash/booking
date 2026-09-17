@@ -50,6 +50,7 @@ function buildMonthGrid(year: number, month: number): Date[][] {
 function roleTag(role: MidHallDayRole, shows: number): string {
   if (role === "SETUP") return "준비";
   if (role === "LOAD_OUT") return "철수";
+  if (role === "REST") return "휴무";
   return `공연${shows > 1 ? `×${shows}` : ""}`;
 }
 
@@ -110,6 +111,9 @@ export function MidHallCalendar({
   ).length;
   const loadOutDayCount = selectedDates.filter(
     (d) => days[d].role === "LOAD_OUT",
+  ).length;
+  const restDayCount = selectedDates.filter(
+    (d) => days[d].role === "REST",
   ).length;
   const performanceDates = selectedDates.filter(
     (d) => days[d].role === "PERFORMANCE",
@@ -337,6 +341,22 @@ export function MidHallCalendar({
                       >
                         철수
                       </button>
+                      {/* [신규 2026-09-17] "중형공연장 캘린더에서도 휴무일 지정 가능하게" —
+                          셋업·공연 사이에 낀 날을 "안 쓴다"고 명시할 수 있게 한다. 과금은
+                          안 된다(calculateMidHallQuote.ts가 role별로만 과금 줄을 만들고
+                          REST는 그 필터 어디에도 안 걸린다). */}
+                      <button
+                        type="button"
+                        onClick={() => setRole(openDate, "REST")}
+                        className={[
+                          "inline-flex h-8 items-center border px-3 text-xs font-bold transition-colors",
+                          days[openDate]?.role === "REST"
+                            ? "border-foreground bg-inverse-bg text-inverse-fg"
+                            : "border border-border/25 text-muted hover:border-foreground hover:text-foreground",
+                        ].join(" ")}
+                      >
+                        휴무일
+                      </button>
                       <button
                         type="button"
                         onClick={() => removeDate(openDate)}
@@ -416,6 +436,7 @@ export function MidHallCalendar({
           선택 일자 {selectedDates.length}일(비연속 가능) · 준비 {setupCount}일
           · 공연 {performanceDates.length}일 · 회차 합계 {showCount}
           {loadOutDayCount > 0 && ` · 철수 ${loadOutDayCount}일`}
+          {restDayCount > 0 && ` · 휴무 ${restDayCount}일`}
           {extraSetupHours > 0 && ` · 준비연장 ${extraSetupHours}시간`}
           {extraLoadOutHours > 0 && ` · 철수연장 ${extraLoadOutHours}시간`}
         </div>

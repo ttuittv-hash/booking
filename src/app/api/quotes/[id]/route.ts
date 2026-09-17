@@ -4,6 +4,7 @@ import { canAccessQuote, canActOnQuotes, getCurrentUser } from "@/lib/auth";
 import { canApplicantEditQuote } from "@/lib/quoteStatus";
 import {
   addAuditLog,
+  clearQuoteReview,
   findBlockedDatesAmong,
   listApprovedQuoteBlocks,
   getCurrentRateTable,
@@ -50,11 +51,13 @@ export async function PUT(request: Request, ctx: { params: Promise<{ id: string 
   if (quote.status !== "ESTIMATE") {
     return NextResponse.json({ error: "심사가 시작된 신청서는 수정할 수 없습니다." }, { status: 409 });
   }
-  // 접수 후·검토 전까지만 신청자가 직접 수정할 수 있다 — 심사 결과(승인/보류/거절)가
+  // 접수 후·검토 전까지만 신청자가 직접 수정할 수 있다 — 심사 결과(승인/거절)가
   // 한 번이라도 기록되면(quote.review) 공간/일정·규모 등 심사에 영향을 준 핵심 조건이
   // 바뀌어 사실상 다른 신청이 되는 걸 막는다(2026-08-22). 이후 변경이 필요하면
   // 운영자를 통해서만 반영한다.
-  if (quote.review) {
+  // [수정 2026-09-17] "보류 누르면 수정 가능해야" — 보류(HOLD)는 반대로 "보완해서 다시
+  // 내라"는 뜻이라 여기서는 막지 않는다(canApplicantEditQuote와 같은 예외).
+  if (quote.review && quote.review.decision !== "HOLD") {
     return NextResponse.json(
       { error: "이미 심사가 진행된 신청서는 직접 수정할 수 없습니다. 변경이 필요하면 운영자에게 문의해 주세요." },
       { status: 409 },
@@ -112,7 +115,7 @@ export async function PUT(request: Request, ctx: { params: Promise<{ id: string 
     return NextResponse.json({ error: computed.blockingIssues.join(" ") }, { status: 400 });
   }
 
-  const updated = await updateQuoteSelection(id, {
+  let updated = await updateQuoteSelection(id, {
     rateTableVersion: computed.rateTableVersion,
     selection: computed.selection,
     lineItems: computed.lineItems,
@@ -120,6 +123,13 @@ export async function PUT(request: Request, ctx: { params: Promise<{ id: string 
     vat: computed.vat,
     total: computed.total,
   });
+
+  // [신규 2026-09-17] 보류를 보완해 다시 냈으니 "보류" 딱지를 지우고 심사 대기열로
+  // 되돌린다 — 안 지우면 방금 고친 뒤에도 화면·목록에 계속 "보류"로 남아 운영자가
+  // 재제출을 모르고 지나간다.
+  if (quote.review?.decision === "HOLD") {
+    updated = await clearQuoteReview(id);
+  }
 
   await addAuditLog({
     id: crypto.randomUUID(),

@@ -25,13 +25,41 @@ export const QUOTE_STATUS_TONE: Record<Quote["status"], "warn" | "accent" | "goo
   SETTLED: "good",
 };
 
+// [신규 2026-09-17] "보류 누르면 마이페이지 리스트에서 상태값이 보류로 노출돼야" — status
+// 컬럼(ESTIMATE/CONTRACTED/SETTLED)만으로는 보류를 구분 못 한다(위 Notion 10단 코멘트
+// 참고). review.decision === HOLD 인 동안만 별도 라벨/톤으로 덮어써 신청자 화면에
+// 보여준다. 목록·상세 화면이 이 두 함수 하나씩만 쓰도록(QUOTE_STATUS_LABEL 직접
+// 참조 금지) 한다 — 안 그러면 "보류인데 심사 대기로 보인다" 류의 불일치가 다시 생긴다.
+export function applicantQuoteStatusLabel(quote: Pick<Quote, "status" | "review">): string {
+  if (quote.status === "ESTIMATE" && quote.review?.decision === "HOLD") {
+    return "보류 (보완 요청)";
+  }
+  return QUOTE_STATUS_LABEL[quote.status];
+}
+
+export function applicantQuoteStatusTone(
+  quote: Pick<Quote, "status" | "review">,
+): "warn" | "accent" | "good" | "danger" {
+  if (quote.status === "ESTIMATE" && quote.review?.decision === "HOLD") {
+    return "danger";
+  }
+  return QUOTE_STATUS_TONE[quote.status];
+}
+
 // [신규 2026-09-08] "대관 접수 후 24시간 동안은 수정 버튼 노출, 그 이후로는 삭제" —
 // 접수 직후 짧은 오탈자 정정 창구는 열어 두되, 시간이 지나면 심사 시작 여부와 무관하게
 // 신청자가 직접 못 고치게 한다(운영자를 통해서만). 기존 "심사 시작 전(ESTIMATE)·review
 // 기록 없음" 조건에 시간 조건을 더한다 — 셋 다 만족해야 한다.
+//
+// [수정 2026-09-17] "보류 누르면 수정 버튼이 노출돼야" — 보류(HOLD)는 "이대로는 승인 못
+// 하니 보완해서 다시 내라"는 뜻이라, 승인·거절과 달리 신청자가 고칠 길이 있어야
+// 의미가 있다. 24시간 창과 별개로(심사가 그 창을 넘겨 끝나는 게 보통이라) 보류인 동안은
+// 항상 수정을 허용한다 — 승인/거절처럼 심사가 "끝난" 상태와 구분해서 본다.
 export const APPLICANT_EDIT_WINDOW_MS = 24 * 60 * 60 * 1000;
 
 export function canApplicantEditQuote(quote: Pick<Quote, "status" | "review" | "createdAt">): boolean {
-  if (quote.status !== "ESTIMATE" || quote.review) return false;
+  if (quote.status !== "ESTIMATE") return false;
+  if (quote.review?.decision === "HOLD") return true;
+  if (quote.review) return false;
   return Date.now() - new Date(quote.createdAt).getTime() < APPLICANT_EDIT_WINDOW_MS;
 }

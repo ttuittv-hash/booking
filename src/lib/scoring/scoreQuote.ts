@@ -236,6 +236,25 @@ function scoreMarketing(mkt: MarketingCooperation | undefined): ScoreCategory {
   return { key: "MARKETING", label: "마케팅 계획·협업", nominalMax: 20, items };
 }
 
+// PerformanceInfo.safetyPledgeSigned는 아무도 set하지 않는 죽은 필드다(항상 false로
+// 초기화만 됨, performanceInfoDefaults.ts 참고) — 실제 서약은 StepSafetyPledge.tsx가
+// 별개 필드인 selection.safetyPledge에 쓴다. 심사 채점뿐 아니라 관리자 심사 화면들
+// (QuoteApplicationDetail.tsx, admin/[id]/application/page.tsx)도 "완료 여부"를 보여줄 때
+// 이 함수로 통일한다 — 세 곳이 각자 판정하면 기준이 갈릴 수 있다(2026-09-17 감사에서 발견).
+export function isSafetyPledgeComplete(pledge: SafetyPledge | undefined): boolean {
+  return (
+    !!pledge &&
+    pledge.safetyStructure &&
+    pledge.legalInspection &&
+    pledge.staffSafetyTraining &&
+    pledge.followVenueGuidance &&
+    pledge.audienceSafetyMeasures &&
+    pledge.insuranceCoverage &&
+    pledge.consequenceAcknowledged &&
+    pledge.signature.trim().length > 0
+  );
+}
+
 function scoreSafety(info: PerformanceInfo, pledge: SafetyPledge | undefined): ScoreCategory {
   const items: ScoreItem[] = [];
 
@@ -253,16 +272,7 @@ function scoreSafety(info: PerformanceInfo, pledge: SafetyPledge | undefined): S
     note: "실적 기간(period)이 자유 서술이라 '최근 3년 이내' 여부를 자동 판별할 수 없습니다 — 등록된 전체 실적 기준 잠정치입니다.",
   });
 
-  const pledgeComplete =
-    !!pledge &&
-    pledge.safetyStructure &&
-    pledge.legalInspection &&
-    pledge.staffSafetyTraining &&
-    pledge.followVenueGuidance &&
-    pledge.audienceSafetyMeasures &&
-    pledge.insuranceCoverage &&
-    pledge.consequenceAcknowledged &&
-    pledge.signature.trim().length > 0;
+  const pledgeComplete = isSafetyPledgeComplete(pledge);
   items.push({
     code: "A-SAF-02",
     label: "안전 관리 계획 적정성 및 규정 준수",

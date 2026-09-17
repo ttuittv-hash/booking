@@ -6,7 +6,7 @@ import { listQuotesPaged, normalizePage } from "@/lib/db";
 import { Pagination } from "@/components/Pagination";
 import { won } from "@/lib/format";
 import type { Quote } from "@/lib/pricing/types";
-import { canApplicantEditQuote, QUOTE_STATUS_LABEL, QUOTE_STATUS_TONE } from "@/lib/quoteStatus";
+import { applicantQuoteStatusLabel, applicantQuoteStatusTone, canApplicantEditQuote } from "@/lib/quoteStatus";
 import { MyPageIdentity, MyPageShell } from "@/components/mypage/MyPageShell";
 import { DataTable, type Column } from "@/components/mypage/DataTable";
 import { ArrowRight, Badge, ButtonLink } from "@/components/ui/kit";
@@ -106,7 +106,7 @@ export default async function MyPage({
             estimate: won(q.total),
             contract: q.contract ? won(q.contract.contractTotal) : "—",
             settlement: q.settlement ? won(q.settlement.finalTotal) : "—",
-            status: <Badge tone={QUOTE_STATUS_TONE[q.status]}>{QUOTE_STATUS_LABEL[q.status]}</Badge>,
+            status: <Badge tone={applicantQuoteStatusTone(q)}>{applicantQuoteStatusLabel(q)}</Badge>,
             detail: (
               <span className="whitespace-nowrap text-s font-bold">
                 <Link href={`/mypage/${q.id}`} className="underline underline-offset-4 hover:text-accent">

@@ -4128,6 +4128,15 @@ export async function setQuoteReview(id: string, review: Review): Promise<Quote>
   return (await getQuoteById(id))!;
 }
 
+// [신규 2026-09-17] 보류(HOLD)된 신청서를 신청자가 보완해 다시 제출하면 review 기록을
+// 지운다 — 그대로 두면 화면 상태가 계속 "보류"로 보여 운영자가 재제출을 못 알아채고,
+// 신청자도 자기가 방금 고친 게 반영됐는지 알 수 없다. 지우면 다시 "심사 대기"로
+// 돌아가 정상적인 심사 대기열에 자연히 섞인다(PUT /api/quotes/[id] 에서만 호출).
+export async function clearQuoteReview(id: string): Promise<Quote> {
+  await q("UPDATE quotes SET review_json = NULL WHERE id = $1", [id]);
+  return (await getQuoteById(id))!;
+}
+
 export async function setQuoteContract(id: string, contract: ContractAdjustment): Promise<Quote> {
   await q("UPDATE quotes SET status = 'CONTRACTED', contract_json = $1 WHERE id = $2", [
     JSON.stringify(contract),

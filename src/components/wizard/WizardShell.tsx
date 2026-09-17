@@ -209,6 +209,7 @@ export function WizardShell({
   wizardCustomOptions,
   calendarMonthBounds,
   existingAttachments = [],
+  readOnly = false,
 }: {
   rateTable: RateTable;
   currentUser: AppUser | null;
@@ -217,6 +218,15 @@ export function WizardShell({
   editingQuoteId?: string;
   initialSelection?: QuoteSelection;
   startFresh?: boolean;
+  /**
+   * [신규 2026-09-17] "관리자가 신청자와 동일하게 다 볼 수 있어야 해. 미리보기 위저드
+   * 레벨이 아니라" — 운영자가 신청자가 실제로 밟은 화면(달력 포함, mock 아닌 진짜
+   * initialSelection)을 그대로 훑어볼 수 있게 한다. 입력 자체는 막아야 하므로 스텝
+   * 본문 전체를 <fieldset disabled>로 감싼다(스텝 이동 버튼(navButtons)·StepNav는
+   * 그 밖에 있어 계속 눌린다). WizardTextPreview.tsx의 mock 데이터 + 캘린더 생략
+   * 방식과 달리 이쪽은 실제 데이터·실제 컴포넌트를 전부 그대로 쓴다.
+   */
+  readOnly?: boolean;
   applicantPrefill?: {
     companyName: string;
     businessRegistrationNumber: string;
@@ -303,7 +313,7 @@ export function WizardShell({
     const [y, m] = clamped.split("-").map(Number);
     return { ...INITIAL_SELECTION.week, year: y, month: m };
   })();
-  const [selection, setSelection] = useState<QuoteSelection>(
+  const [selection, setSelectionRaw] = useState<QuoteSelection>(
     initialSelection
       ? {
           ...INITIAL_SELECTION,
@@ -330,6 +340,14 @@ export function WizardShell({
           performanceInfo: initialPerformanceInfo,
         },
   );
+  // [신규 2026-09-17] "관리자가 신청자와 동일하게 다 볼 수 있어야 해" — readOnly 보기에서
+  // 스텝 본문은 <fieldset disabled>로 클릭·타이핑만 막는데, Step1Calendar의 화/일 자동
+  // 제외 이펙트처럼 "사용자 입력 없이 마운트만 해도 도는" 자동 보정 로직은 그걸로
+  // 안 막힌다 — 그대로 두면 이펙트가 setSelection을 불러 실제 제출값과 화면이 슬쩍
+  // 달라진다(예: dayTags가 비어 있는 기본 구성 신청서를 열면 화/일이 저절로 빠져
+  // 보인다). setSelection 자체를 여기 한 곳에서 no-op으로 바꿔 어떤 경로로 불려도
+  // selection이 절대 안 바뀌게 한다 — 실제 제출값을 그대로 유지하는 가장 확실한 방법.
+  const setSelection = readOnly ? (() => {}) : setSelectionRaw;
   // 동시 대관 캘린더 탭 + 중형 캘린더 월 이동은 신청서 selection과 별개의 화면 상태다.
   const [venueTab, setVenueTab] = useState<"arena" | "medium-hall">("arena");
   const [midHallMonth, setMidHallMonth] = useState(() => {
@@ -641,19 +659,24 @@ export function WizardShell({
   // 제출 전에 다시 올리게 한다(submit()에서 한 번 더 검사). 수정 화면은 서버에 이미 있는
   // 첨부(existingAttachmentCount)로 통과한다.
   const step7Blocked = pendingFiles.length === 0 && existingAttachments.length === 0;
-  const maxUnlockedStep = !selection.venueId
-    ? 1
-    : midHallOnly && !hasMidHallSelection
+  // [신규 2026-09-17] readOnly 보기는 이미 제출이 끝난 완결된 값을 훑어보는 화면이라
+  // "이 단계를 마쳐야 다음 단계 탭이 열린다"는 잠금이 의미가 없다 — 운영자가 자료
+  // 첨부 탭부터 바로 보고 싶을 수도 있다. 항상 전부 열어 둔다.
+  const maxUnlockedStep = readOnly
+    ? TOTAL_STEPS
+    : !selection.venueId
       ? 1
-      : needsPackage && !selection.packageId
-        ? 2
-        : step3Blocked
-          ? 3
-          : step6Blocked
-            ? 6
-            : step7Blocked
-              ? 7
-              : TOTAL_STEPS;
+      : midHallOnly && !hasMidHallSelection
+        ? 1
+        : needsPackage && !selection.packageId
+          ? 2
+          : step3Blocked
+            ? 3
+            : step6Blocked
+              ? 6
+              : step7Blocked
+                ? 7
+                : TOTAL_STEPS;
   // 패키지 선택 전에도 기본 공연일수를 보여줘야 하므로, 모든 패키지가 공유하는 기본값(2일)을 임시로 사용한다.
   const effectivePkg = findPackage(rateTable, effectivePackageId);
   const defaultPerformanceDays = effectivePkg?.defaultPerformanceDays ?? BASE_PERFORMANCE_DAYS;
@@ -845,6 +868,7 @@ export function WizardShell({
   }
 
   async function submit() {
+    if (readOnly) return;
     if (!currentUser) return;
     // 새로고침으로 첨부가 비었을 수 있다 — 제출 직전에도 필수 첨부를 확인하고 STEP7로 돌려보낸다.
     if (step7Blocked) {
@@ -1214,6 +1238,14 @@ export function WizardShell({
       <div className="min-w-0 lg:col-span-9">
         <StepNav navRef={stepNavRef} step={step} maxUnlockedStep={maxUnlockedStep} onJump={goTo} />
 
+        {readOnly && (
+          <p className="mt-6 border border-dashed border-border-soft bg-panel/60 px-4 py-2.5 text-xs font-bold text-muted">
+            읽기 전용 — 신청자가 실제로 제출한 내용입니다. 이 화면에서는 아무것도
+            바꿀 수 없습니다.
+          </p>
+        )}
+
+        <fieldset disabled={readOnly} className={`m-0 min-w-0 border-0 p-0 ${readOnly ? "pointer-events-none" : ""}`}>
         {step === 1 && (
           <section>
             <StepHeading
@@ -1359,6 +1391,7 @@ export function WizardShell({
                       }
                       monthBounds={calendarMonthBounds}
                       allowDayExclusion={!isSpecialSchedule}
+                      showEffectiveTags={readOnly}
                     />
                   ) : (
                     <MidHallCalendar
@@ -1542,6 +1575,7 @@ export function WizardShell({
             disabledFields={wizardDisabledFields}
           />
         )}
+        </fieldset>
 
         <div className="mt-6">{navButtons}</div>
       </div>

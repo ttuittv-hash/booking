@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { canAccessQuote, getCurrentUser } from "@/lib/auth";
-import { canApplicantEditQuote } from "@/lib/quoteStatus";
+import { applicantQuoteStatusLabel, canApplicantEditQuote } from "@/lib/quoteStatus";
 import {
   getContractSignatureByQuoteId,
   getDepositByQuoteId,
@@ -12,6 +12,7 @@ import {
   getTicketOpenByQuoteId,
   listAttachments,
   listContractAddendums,
+  getScreenTextContent,
 } from "@/lib/db";
 import { won } from "@/lib/format";
 import { totalRentalDays } from "@/lib/pricing/rateTableUtils";
@@ -45,14 +46,11 @@ function midHallSummaryLine(selection: QuoteSelection): string | null {
     (sum, d) => sum + selection.midHallDays[d].shows,
     0,
   );
-  return `총 ${dates.length}일 (셋업 ${setup} · 공연 ${performanceDates.length} · 회차 ${shows}) · 관객 ${selection.secondaryAudience.toLocaleString()}명`;
+  const rest = dates.filter((d) => selection.midHallDays[d].role === "REST").length;
+  return `총 ${dates.length}일 (셋업 ${setup} · 공연 ${performanceDates.length} · 회차 ${shows}${
+    rest > 0 ? ` · 휴무 ${rest}` : ""
+  }) · 관객 ${selection.secondaryAudience.toLocaleString()}명`;
 }
-
-const STAGE_LABEL: Record<string, string> = {
-  ESTIMATE: "신청 접수 (예상 견적)",
-  CONTRACTED: "계약 확정",
-  SETTLED: "정산 확정",
-};
 
 export default async function MyQuoteDetailPage({
   params,
@@ -81,6 +79,7 @@ export default async function MyQuoteDetailPage({
     facilityMeetingMaterials,
     rateTable,
     addendumsRaw,
+    screenText,
   ] = await Promise.all([
     getDepositByQuoteId(id),
     // 마케팅 실행 계획서는 MARKETING_PLAN 분류로 올라가 category IS NULL 목록에
@@ -97,6 +96,7 @@ export default async function MyQuoteDetailPage({
     listAttachments(id, "FACILITY_MEETING"),
     getRateTableByVersion(quote.rateTableVersion),
     quote.contract ? listContractAddendums(id) : Promise.resolve([]),
+    getScreenTextContent(),
   ]);
   // 마케팅 실행 계획서는 분류가 붙어 별도 조회로 읽어 왔다. 화면에서는 한 목록으로 본다 —
   // 신청서에 딸린 서류라는 점이 같고, 분류별로 상자를 나누면 찾기만 번거로워진다.
@@ -160,7 +160,7 @@ export default async function MyQuoteDetailPage({
             인쇄 / PDF 저장
           </Link>
           <span className="text-xs text-muted">
-            {STAGE_LABEL[quote.status]}
+            {applicantQuoteStatusLabel(quote)}
           </span>
         </div>
       }
@@ -174,6 +174,7 @@ export default async function MyQuoteDetailPage({
           <QuoteApplicationDetail
             selection={quote.selection}
             rateTable={rateTable}
+            wizardStrings={screenText.wizardStrings}
           />
         </div>
       </div>

@@ -40,6 +40,11 @@ function subscribePref(onChange: () => void): () => void {
 
 export function ApplicationViewToggle({ quoteId }: { quoteId: string }) {
   const href = `/admin/${quoteId}/application`;
+  // [신규 2026-09-17] "신청 상세보기 하면 위저드별로 다 볼 수 있게" — 신청자가 실제로
+  // 밟은 위저드 화면(달력·체크박스·자료 첨부까지) 그대로, 실제 제출값으로 보여주는
+  // 화면(/admin/[id]/wizard, WizardShell readOnly 모드)으로 보낸다. 요약 표(신청 내역
+  // 보기)와 별개 화면이라 새 탭으로 연다.
+  const wizardHref = `/admin/${quoteId}/wizard`;
   /*
     저장된 선택은 브라우저에만 둔다 — 운영자 개인의 보기 습관이라 서버에 남길 것이 없다.
     서버 렌더에는 저장소가 없으므로 기본값(페이지)으로 그리고, 브라우저에서 읽은 값으로
@@ -90,6 +95,9 @@ export function ApplicationViewToggle({ quoteId }: { quoteId: string }) {
             <Link href={href} onClick={() => remember("page")} className={SECONDARY}>
               페이지로 열기
             </Link>
+            <Link href={wizardHref} target="_blank" rel="noreferrer" className={SECONDARY}>
+              신청 상세보기
+            </Link>
           </>
         ) : (
           <>
@@ -111,6 +119,9 @@ export function ApplicationViewToggle({ quoteId }: { quoteId: string }) {
             >
               레이어로 열기
             </button>
+            <Link href={wizardHref} target="_blank" rel="noreferrer" className={SECONDARY}>
+              신청 상세보기
+            </Link>
           </>
         )}
       </div>
@@ -136,6 +147,14 @@ export function ApplicationViewToggle({ quoteId }: { quoteId: string }) {
                   className="text-xs text-muted hover:text-foreground"
                 >
                   페이지로 열기 ↗
+                </Link>
+                <Link
+                  href={wizardHref}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="text-xs text-muted hover:text-foreground"
+                >
+                  신청 상세보기 ↗
                 </Link>
                 <button
                   type="button"

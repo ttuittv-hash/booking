@@ -2,7 +2,9 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { requireProAdminPage } from "@/lib/auth";
-import { findUserById, getQuoteById, getRateTableByVersion, listAttachments } from "@/lib/db";
+import { findUserById, getQuoteById, getRateTableByVersion, listAttachments, getScreenTextContent } from "@/lib/db";
+import { resolveWizardFieldLabel } from "@/lib/content/pageContent";
+import { isSafetyPledgeComplete } from "@/lib/scoring/scoreQuote";
 import { won } from "@/lib/format";
 import { resolveSelectedDates } from "@/lib/pricing/dateRange";
 import {
@@ -61,6 +63,7 @@ const MID_HALL_ROLE_LABEL: Record<MidHallDayRole, string> = {
   SETUP: "셋업",
   PERFORMANCE: "공연",
   LOAD_OUT: "철수",
+  REST: "휴무",
 };
 
 const DAY_TAG_LABEL: Record<DayTag, string> = {
@@ -209,17 +212,21 @@ export default async function AdminQuoteApplicationPage({
     );
   }
 
-  const [applicant, attachments, rateTable] = await Promise.all([
+  const [applicant, attachments, rateTable, screenText] = await Promise.all([
     findUserById(quote.applicantId),
     // 분류를 주지 않으면 전부 가져온다 — 신청 서류·공공/공익 자료·마케팅 계획·
     // 티켓오픈/시설회의 자료를 한 자리에서 본다.
     listAttachments(id),
     getRateTableByVersion(quote.rateTableVersion),
+    getScreenTextContent(),
   ]);
 
   const s = quote.selection;
   const info = s.performanceInfo;
   const marketing = s.marketingCooperation;
+  // [2026-09-17] info.safetyPledgeSigned는 아무도 set하지 않는 죽은 필드다(항상 false) —
+  // 서약은 이 스텝이 아니라 selection.safetyPledge(StepSafetyPledge.tsx)에 저장된다.
+  const pledgeComplete = isSafetyPledgeComplete(s.safetyPledge);
 
   // 일정 — 상세 화면과 같은 방식으로 날짜를 태그별로 묶는다.
   const dates = resolveSelectedDates(s);
@@ -235,8 +242,17 @@ export default async function AdminQuoteApplicationPage({
     const tag = effectiveDayTag(date, s.dayTags ?? {}, defaults);
     byTag.set(tag, [...(byTag.get(tag) ?? []), date]);
   }
-  const venueName =
-    VENUES.find((v) => v.id === (s.venueId ?? DEFAULT_VENUE_ID))?.name ?? NONE;
+  // [버그 수정 2026-09-17] "실제 입력값이랑 최종 신청 내역 보기 컬럼값이 일치해야 하는데
+  // 다르다" — 동시 대관·중형 단독 신청에서 "공간"·"총 대관일수"·"예상 관객"이 항상
+  // 아레나 기준(venueName·totalRentalDays·expectedAudience)으로만 나와, 중형 단독
+  // 신청은 엉뚱한 값(0명·의미 없는 일수)이, 동시 대관은 중형 쪽 숫자가 통째로 빠져
+  // 보였다. print/[id]/page.tsx·Step6Submit.tsx가 이미 하던 분기를 그대로 가져온다.
+  const isSimultaneous = s.bookingMode === "SIMULTANEOUS";
+  const showsArena = isSimultaneous || s.venueId !== "medium-hall";
+  const showsMidHall = isSimultaneous || s.venueId === "medium-hall";
+  const venueName = isSimultaneous
+    ? "아레나 + 중형공연장 (동시 대관)"
+    : (VENUES.find((v) => v.id === (s.venueId ?? DEFAULT_VENUE_ID))?.name ?? NONE);
 
   return (
     <div className="flex flex-1 flex-col">
@@ -265,10 +281,25 @@ export default async function AdminQuoteApplicationPage({
               {STATUS_LABEL[quote.status]}
             </p>
           </div>
-          {/* 심사 회의에 종이로 들고 가는 일이 있어 인쇄본을 함께 둔다. */}
-          <a href={`/print/${quote.id}`} className={btnClass("secondary", "md")}>
-            인쇄
-          </a>
+          <div className="flex shrink-0 flex-wrap items-center gap-2">
+            {/* [신규 2026-09-17] "관리자가 신청자와 동일하게 다 볼 수 있어야 해. 미리보기
+                위저드 레벨이 아니라" — 여기(요약 표)와 별개로, 신청자가 실제로 밟은
+                위저드 화면 그대로(달력 포함, 진짜 제출값) 훑어보는 화면을 새 탭에서 연다. */}
+            {!embed && (
+              <a
+                href={`/admin/${quote.id}/wizard`}
+                target="_blank"
+                rel="noreferrer"
+                className={btnClass("secondary", "md")}
+              >
+                신청 상세보기
+              </a>
+            )}
+            {/* 심사 회의에 종이로 들고 가는 일이 있어 인쇄본을 함께 둔다. */}
+            <a href={`/print/${quote.id}`} className={btnClass("secondary", "md")}>
+              인쇄
+            </a>
+          </div>
         </header>
 
         <Section title="접수 정보">
@@ -286,7 +317,7 @@ export default async function AdminQuoteApplicationPage({
                 label="기업 유형"
                 value={
                   info.applicantCompanyType
-                    ? `${APPLICANT_COMPANY_TYPE_LABEL[info.applicantCompanyType]}${info.applicantCompanyTypeOtherDetail ? ` — ${info.applicantCompanyTypeOtherDetail}` : ""}`
+                    ? `${resolveWizardFieldLabel(screenText.wizardStrings, "applicantCompanyType", info.applicantCompanyType, APPLICANT_COMPANY_TYPE_LABEL)}${info.applicantCompanyTypeOtherDetail ? ` — ${info.applicantCompanyTypeOtherDetail}` : ""}`
                     : NONE
                 }
               />
@@ -334,9 +365,34 @@ export default async function AdminQuoteApplicationPage({
                 value={list.map(formatDateShort).join(", ")}
               />
             ))}
-          <Row label="총 대관일수" value={`${totalRentalDays(s)}일`} />
-          <Row label="주차" value={`${s.week.year}.${s.week.month} ${s.week.weekOfMonth}주차`} />
-          <Row label="예상 관객" value={`${s.expectedAudience.toLocaleString("ko-KR")}명`} />
+          {showsArena && (
+            <>
+              <Row
+                label={isSimultaneous ? "총 대관일수 (아레나)" : "총 대관일수"}
+                value={`${totalRentalDays(s)}일`}
+              />
+              <Row
+                label={isSimultaneous ? "주차 (아레나)" : "주차"}
+                value={`${s.week.year}.${s.week.month} ${s.week.weekOfMonth}주차`}
+              />
+              <Row
+                label={isSimultaneous ? "예상 관객 (아레나)" : "예상 관객"}
+                value={`${s.expectedAudience.toLocaleString("ko-KR")}명`}
+              />
+            </>
+          )}
+          {showsMidHall && (
+            <>
+              <Row
+                label={isSimultaneous ? "대관일수 (중형)" : "대관일수"}
+                value={`${Object.keys(s.midHallDays ?? {}).length}일`}
+              />
+              <Row
+                label={isSimultaneous ? "예상 관객 (중형)" : "예상 관객"}
+                value={`${s.secondaryAudience.toLocaleString("ko-KR")}명`}
+              />
+            </>
+          )}
         </Section>
 
         {info ? (
@@ -359,7 +415,9 @@ export default async function AdminQuoteApplicationPage({
                 label="행사유형"
                 value={
                   info.eventTypes.length
-                    ? info.eventTypes.map((t) => EVENT_TYPE_LABEL[t]).join(", ")
+                    ? info.eventTypes
+                        .map((t) => resolveWizardFieldLabel(screenText.wizardStrings, "eventTypes", t, EVENT_TYPE_LABEL))
+                        .join(", ")
                     : NONE
                 }
               />
@@ -367,7 +425,7 @@ export default async function AdminQuoteApplicationPage({
                 label="공연등급"
                 value={
                   info.ageRating
-                    ? `${AGE_RATING_LABEL[info.ageRating]}${info.ageLimitDetail ? ` (${info.ageLimitDetail})` : ""}`
+                    ? `${resolveWizardFieldLabel(screenText.wizardStrings, "ageRating", info.ageRating, AGE_RATING_LABEL)}${info.ageLimitDetail ? ` (${info.ageLimitDetail})` : ""}`
                     : NONE
                 }
               />
@@ -375,7 +433,7 @@ export default async function AdminQuoteApplicationPage({
                 label="무대형태"
                 value={
                   info.stageTypes.length
-                    ? `${info.stageTypes.map((t) => STAGE_TYPE_LABEL[t]).join(", ")}${info.stageTypeOtherDetail ? ` — ${info.stageTypeOtherDetail}` : ""}`
+                    ? `${info.stageTypes.map((t) => resolveWizardFieldLabel(screenText.wizardStrings, "stageTypes", t, STAGE_TYPE_LABEL)).join(", ")}${info.stageTypeOtherDetail ? ` — ${info.stageTypeOtherDetail}` : ""}`
                     : NONE
                 }
               />
@@ -383,7 +441,7 @@ export default async function AdminQuoteApplicationPage({
                 label="객석형태"
                 value={
                   info.seatingTypes.length
-                    ? `${info.seatingTypes.map((t) => SEATING_TYPE_LABEL[t]).join(", ")}${info.seatingTypeOtherDetail ? ` — ${info.seatingTypeOtherDetail}` : ""}`
+                    ? `${info.seatingTypes.map((t) => resolveWizardFieldLabel(screenText.wizardStrings, "seatingTypes", t, SEATING_TYPE_LABEL)).join(", ")}${info.seatingTypeOtherDetail ? ` — ${info.seatingTypeOtherDetail}` : ""}`
                     : NONE
                 }
               />
@@ -494,7 +552,7 @@ export default async function AdminQuoteApplicationPage({
                 label="부대사업 계획"
                 value={
                   info.ancillaryBusinessPlans?.length
-                    ? `${info.ancillaryBusinessPlans.map((p) => ANCILLARY_BUSINESS_PLAN_LABEL[p]).join(", ")}${info.ancillaryBusinessPlanOtherDetail ? ` — ${info.ancillaryBusinessPlanOtherDetail}` : ""}`
+                    ? `${info.ancillaryBusinessPlans.map((p) => resolveWizardFieldLabel(screenText.wizardStrings, "ancillaryBusinessPlans", p, ANCILLARY_BUSINESS_PLAN_LABEL)).join(", ")}${info.ancillaryBusinessPlanOtherDetail ? ` — ${info.ancillaryBusinessPlanOtherDetail}` : ""}`
                     : NONE
                 }
               />
@@ -528,7 +586,7 @@ export default async function AdminQuoteApplicationPage({
               />
               <Row
                 label="안전규정 준수 확약서"
-                value={info.safetyPledgeSigned ? "작성 완료" : "미작성"}
+                value={pledgeComplete ? "작성 완료" : "미작성"}
               />
             </Section>
           </>
