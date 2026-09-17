@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import {notFound} from "next/navigation";
+import { redirect } from "next/navigation";
 import { requireProAdminPage } from "@/lib/auth";
 import { findUserById, getQuoteById, getRateTableByVersion, listAttachments } from "@/lib/db";
 import { won } from "@/lib/format";
@@ -186,7 +186,28 @@ export default async function AdminQuoteApplicationPage({
   const embed = ((await searchParams) ?? {}).embed === "1";
   const { id } = await params;
   const quote = await getQuoteById(id);
-  if (!quote) notFound();
+  // [버그 수정 2026-09-17] "신청 내역 보기를 누르면 404" — 신청자 계정을 지우면
+  // deleteUserCascade 가 그 계정의 신청서까지 함께 지운다(테스트 계정 정리 때 실제로 발생).
+  // 삭제 전에 열어 둔 심사 화면에서 이 레이어를 열면 이미 없는 신청서를 부르게 된다.
+  // 상세 화면(../page.tsx)은 2026-09-03에 같은 신고("알림 클릭하면 404")로 목록
+  // 리다이렉트로 바꿨는데 이 하위 화면이 빠져 있었다. 레이어(embed) 안에서 목록을
+  // 통째로 띄우면 이상하므로 여기서는 안내문만 내고, 페이지로 열었을 때는 상세와 똑같이
+  // 신청 현황으로 보낸다. (권한 부족은 requireProAdminPage 가 전부 redirect 로 처리하므로
+  // 이 분기까지 오지 않는다 — 여기 도달했다면 원인은 언제나 "신청서가 없음"이다.)
+  if (!quote) {
+    if (!embed) redirect("/admin");
+    return (
+      <div className="flex flex-1 flex-col">
+        <main className="mx-auto flex w-full max-w-4xl flex-1 flex-col items-center justify-center gap-2 px-6 py-16 text-center">
+          <p className={PAGE_TITLE}>삭제된 신청서입니다</p>
+          <p className="break-keep text-s text-muted">
+            신청자 계정이 삭제되면 그 계정의 신청서도 함께 삭제됩니다.
+            「신청 현황」 목록에서 다시 확인해 주세요.
+          </p>
+        </main>
+      </div>
+    );
+  }
 
   const [applicant, attachments, rateTable] = await Promise.all([
     findUserById(quote.applicantId),
