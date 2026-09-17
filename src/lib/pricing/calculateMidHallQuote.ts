@@ -61,6 +61,26 @@ export function calculateMidHallLineItems(selection: QuoteSelection, rateTable: 
     );
   }
 
+  // 휴무(REST) — 예약 점유는 되지만 실사용은 없는 날이라, 준비/철수와 같은 단가(cfg.setupDayFee)의
+  // 50%로 과금한다(2026-09-17, "중형 휴무일의 경우 중형 준비/철수 금액의 50% 과금으로 로직 반영").
+  const restDayCount = entries.filter(([, d]) => d.role === "REST").length;
+  if (restDayCount > 0) {
+    const restUnitPrice = Math.round(cfg.setupDayFee * 0.5);
+    items.push(
+      makeLine(
+        "midhall_rest_day",
+        `휴무 ${restDayCount}일 (준비/철수 단가 50%)`,
+        "PER_DAY",
+        restDayCount,
+        0,
+        restDayCount,
+        restUnitPrice,
+        restDayCount * restUnitPrice,
+        "VISIBLE",
+      ),
+    );
+  }
+
   // 공연일 — 평일/주말 × 1회/2회 조합별로 묶어서 과금한다.
   // [수정 2026-09-08] "셋업 Load-In -> 준비 N일 / 철수 -> 철수 N일 / 공연 Show — 평일
   // -> 공연일 N일, 1일 2회 공연 할증 표기가 눈에 안 띈다" — 라벨을 우측 실시간 패널의

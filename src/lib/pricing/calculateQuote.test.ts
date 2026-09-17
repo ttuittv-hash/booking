@@ -857,6 +857,22 @@ describe("calculateQuote — 중형공연장(DAILY) 요금 엔진", () => {
     }
   });
 
+  // [신규 2026-09-17] "중형 휴무일의 경우 중형 준비/철수 금액의 50% 과금으로 로직 반영"
+  it("휴무일(REST) — 준비/철수 단가의 50%로 과금된다", () => {
+    const quote = calculateQuote(
+      midHallOnlySelection({
+        midHallDays: { "2027-08-03": { role: "REST", shows: 1 } },
+      }),
+      RATE_TABLE,
+    );
+    const restLine = quote.lineItems.find(
+      (i) => i.addonId === "midhall_rest_day",
+    )!;
+    expect(restLine).toBeDefined();
+    expect(restLine.unitPrice).toBe(Math.round(cfg.setupDayFee * 0.5));
+    expect(restLine.amount).toBe(Math.round(cfg.setupDayFee * 0.5));
+  });
+
   it("중형 일정이 없으면 중형 라인아이템이 생기지 않는다", () => {
     const quote = calculateQuote(
       midHallOnlySelection({ midHallDays: {} }),
