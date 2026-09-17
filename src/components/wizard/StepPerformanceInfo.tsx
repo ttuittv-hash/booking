@@ -275,7 +275,8 @@ function formatDateLabel(iso: string): string {
 function arenaSummary(selection: QuoteSelection): string | null {
   const dates = resolveSelectedDates(selection);
   if (dates.length === 0) return null;
-  const defaults = defaultDayTags(dates, 2); // 정확한 defaultPerformanceDays는 패키지에서 오지만 요약 표시엔 실질 영향 없음
+  // [2026-09-17] 추가일 기본값 = 준비일(rateTableUtils.defaultDayTags 참고) — 견적 엔진과 같은 판정
+  const defaults = defaultDayTags(dates, 2, selection.extraDays); // 정확한 defaultPerformanceDays는 패키지에서 오지만 요약 표시엔 실질 영향 없음
   let setup = 0;
   let performance = 0;
   let loadOut = 0;
@@ -301,7 +302,7 @@ function midHallSummary(selection: QuoteSelection): string | null {
 
 function totalShowCount(selection: QuoteSelection): number {
   const arenaDates = resolveSelectedDates(selection);
-  const defaults = defaultDayTags(arenaDates, 2);
+  const defaults = defaultDayTags(arenaDates, 2, selection.extraDays); // [2026-09-17] 추가일 기본값 = 준비일
   const arenaShows = arenaDates.reduce((sum, d) => {
     const tag = effectiveDayTag(d, selection.dayTags, defaults);
     return tag === "PERFORMANCE" ? sum + (selection.dayShowCounts[d] ?? 1) : sum;

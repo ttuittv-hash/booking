@@ -203,7 +203,8 @@ export default async function AdminQuoteApplicationPage({
   // 일정 — 상세 화면과 같은 방식으로 날짜를 태그별로 묶는다.
   const dates = resolveSelectedDates(s);
   const pkg = findPackage(rateTable, s.packageId);
-  const defaults = defaultDayTags(dates, pkg?.defaultPerformanceDays ?? 1);
+  // [2026-09-17] 추가일 기본값 = 준비일(rateTableUtils.defaultDayTags 참고) — 견적 엔진과 같은 판정
+  const defaults = defaultDayTags(dates, pkg?.defaultPerformanceDays ?? 1, s.extraDays);
   const midHallByRole = new Map<MidHallDayRole, string[]>();
   for (const [date, day] of Object.entries(s.midHallDays ?? {})) {
     midHallByRole.set(day.role, [...(midHallByRole.get(day.role) ?? []), date].sort());

@@ -75,7 +75,8 @@ export function validateAudienceStep(
 // Step6Submit(최종 제출 요약)도 "공연 횟수" 표시에 같은 계산을 쓴다.
 export function venueShowCounts(selection: QuoteSelection): { arenaShows: number; midHallShows: number } {
   const arenaDates = resolveSelectedDates(selection);
-  const defaults = defaultDayTags(arenaDates, 2);
+  // [2026-09-17] 추가일 기본값 = 준비일(rateTableUtils.defaultDayTags 참고) — 견적 엔진과 같은 판정
+  const defaults = defaultDayTags(arenaDates, 2, selection.extraDays);
   const arenaShows = arenaDates.reduce((sum, d) => {
     const tag = effectiveDayTag(d, selection.dayTags, defaults);
     return tag === "PERFORMANCE" ? sum + (selection.dayShowCounts[d] ?? 1) : sum;

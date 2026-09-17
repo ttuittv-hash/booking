@@ -366,7 +366,8 @@ function arenaSummaryLine(
 ): string {
   const dates = resolveSelectedDates(selection);
   if (dates.length === 0) return "";
-  const defaults = defaultDayTags(dates, defaultPerformanceDays);
+  // [2026-09-17] 추가일 기본값 = 준비일(rateTableUtils.defaultDayTags 참고) — 견적 엔진과 같은 판정
+  const defaults = defaultDayTags(dates, defaultPerformanceDays, selection.extraDays);
   let setup = 0;
   let performance = 0;
   let loadOut = 0;

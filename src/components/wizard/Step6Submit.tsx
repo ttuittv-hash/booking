@@ -104,7 +104,8 @@ interface TaggedDates {
 
 function arenaTaggedDates(selection: QuoteSelection, defaultPerformanceDays: number): TaggedDates {
   const dates = resolveSelectedDates(selection);
-  const defaults = defaultDayTags(dates, defaultPerformanceDays);
+  // [2026-09-17] 추가일 기본값 = 준비일(rateTableUtils.defaultDayTags 참고) — 견적 엔진과 같은 판정
+  const defaults = defaultDayTags(dates, defaultPerformanceDays, selection.extraDays);
   const acc: TaggedDates = { prep: [], performance: [], loadOut: [] };
   for (const d of dates) {
     const tag = effectiveDayTag(d, selection.dayTags, defaults);
