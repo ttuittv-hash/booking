@@ -213,8 +213,17 @@ export default async function AdminQuoteApplicationPage({
     const tag = effectiveDayTag(date, s.dayTags ?? {}, defaults);
     byTag.set(tag, [...(byTag.get(tag) ?? []), date]);
   }
-  const venueName =
-    VENUES.find((v) => v.id === (s.venueId ?? DEFAULT_VENUE_ID))?.name ?? NONE;
+  // [버그 수정 2026-09-17] "실제 입력값이랑 최종 신청 내역 보기 컬럼값이 일치해야 하는데
+  // 다르다" — 동시 대관·중형 단독 신청에서 "공간"·"총 대관일수"·"예상 관객"이 항상
+  // 아레나 기준(venueName·totalRentalDays·expectedAudience)으로만 나와, 중형 단독
+  // 신청은 엉뚱한 값(0명·의미 없는 일수)이, 동시 대관은 중형 쪽 숫자가 통째로 빠져
+  // 보였다. print/[id]/page.tsx·Step6Submit.tsx가 이미 하던 분기를 그대로 가져온다.
+  const isSimultaneous = s.bookingMode === "SIMULTANEOUS";
+  const showsArena = isSimultaneous || s.venueId !== "medium-hall";
+  const showsMidHall = isSimultaneous || s.venueId === "medium-hall";
+  const venueName = isSimultaneous
+    ? "아레나 + 중형공연장 (동시 대관)"
+    : (VENUES.find((v) => v.id === (s.venueId ?? DEFAULT_VENUE_ID))?.name ?? NONE);
 
   return (
     <div className="flex flex-1 flex-col">
@@ -312,9 +321,34 @@ export default async function AdminQuoteApplicationPage({
                 value={list.map(formatDateShort).join(", ")}
               />
             ))}
-          <Row label="총 대관일수" value={`${totalRentalDays(s)}일`} />
-          <Row label="주차" value={`${s.week.year}.${s.week.month} ${s.week.weekOfMonth}주차`} />
-          <Row label="예상 관객" value={`${s.expectedAudience.toLocaleString("ko-KR")}명`} />
+          {showsArena && (
+            <>
+              <Row
+                label={isSimultaneous ? "총 대관일수 (아레나)" : "총 대관일수"}
+                value={`${totalRentalDays(s)}일`}
+              />
+              <Row
+                label={isSimultaneous ? "주차 (아레나)" : "주차"}
+                value={`${s.week.year}.${s.week.month} ${s.week.weekOfMonth}주차`}
+              />
+              <Row
+                label={isSimultaneous ? "예상 관객 (아레나)" : "예상 관객"}
+                value={`${s.expectedAudience.toLocaleString("ko-KR")}명`}
+              />
+            </>
+          )}
+          {showsMidHall && (
+            <>
+              <Row
+                label={isSimultaneous ? "대관일수 (중형)" : "대관일수"}
+                value={`${Object.keys(s.midHallDays ?? {}).length}일`}
+              />
+              <Row
+                label={isSimultaneous ? "예상 관객 (중형)" : "예상 관객"}
+                value={`${s.secondaryAudience.toLocaleString("ko-KR")}명`}
+              />
+            </>
+          )}
         </Section>
 
         {info ? (
