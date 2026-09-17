@@ -102,9 +102,19 @@ export function totalRentalDays(selection: QuoteSelection): number {
 }
 
 // 준비일/공연일 기본값 — 패키지 기본 공연일수(dayBreakdown)만큼 날짜 뒤쪽(화요일에서 먼 날짜)을 공연일로 본다.
-export function defaultDayTags(dates: string[], defaultPerformanceDays: number): Record<string, DayTag> {
-  const performanceCount = Math.max(0, Math.min(defaultPerformanceDays, dates.length));
-  const performanceSet = new Set(dates.slice(dates.length - performanceCount));
+// [수정 2026-09-17] 기본 공연일은 **기본 6일(화~일) 안에서** 뒤쪽 N일이다 — 추가일(extraDays,
+// resolveSelectedDates가 목록 끝에 붙인다)의 기본값은 언제나 준비일. 전엔 목록 전체의 뒤쪽 N일을
+// 잡아서, 추가일을 붙이면 기본 공연일 자리가 추가일 쪽으로 밀려가고(토·일이 준비일로 강등) 견적
+// (2-2)가 그 추가일을 공연일로 세어 (2-1)의 준비일 과금과 겹쳤다. 호출처가 extraDays를 안 넘기면
+// (기본 0) 예전과 같은 동작이라 기존 호출은 그대로 컴파일된다.
+export function defaultDayTags(
+  dates: string[],
+  defaultPerformanceDays: number,
+  extraDays = 0,
+): Record<string, DayTag> {
+  const baseCount = Math.max(0, dates.length - Math.max(0, extraDays));
+  const performanceCount = Math.max(0, Math.min(defaultPerformanceDays, baseCount));
+  const performanceSet = new Set(dates.slice(baseCount - performanceCount, baseCount));
   const tags: Record<string, DayTag> = {};
   for (const date of dates) tags[date] = performanceSet.has(date) ? "PERFORMANCE" : "PREP";
   return tags;
@@ -119,9 +129,4 @@ export function effectiveDayTag(
   return dayTags?.[date] ?? defaults[date] ?? "PREP";
 }
 
-// 실제 공연일로 지정된 날짜 수 (기본값 미지정분은 패키지 기본값 적용)
-export function countPerformanceDays(dates: string[], dayTags: Record<string, DayTag>, defaultPerformanceDays: number): number {
-  const defaults = defaultDayTags(dates, defaultPerformanceDays);
-  return dates.filter((date) => effectiveDayTag(date, dayTags, defaults) === "PERFORMANCE").length;
-}
 

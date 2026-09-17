@@ -14,7 +14,7 @@ import {
 } from "./rateTableUtils";
 import { buildSeedRateTable } from "./seed";
 import { SPECIAL_VENUE_ID } from "./types";
-import type { AddonItem, QuoteSelection, RateTable } from "./types";
+import type { AddonItem, DayTag, QuoteSelection, RateTable } from "./types";
 
 const RATE_TABLE = buildSeedRateTable();
 
@@ -242,6 +242,61 @@ describe("calculateQuote — 명세서 7장 검증 케이스", () => {
     )!;
     expect(restLine.billable).toBe(2);
     expect(restLine.amount).toBe(2 * restPrice);
+  });
+
+  it("버그 수정: 추가일을 공연일로 바꾸면 준비일 단가로 또 매기지 않는다 — 준비 4·공연 6·휴무 3 (2026-09-17)", () => {
+    // 달력 「기본 6일 + 추가 7일」(추가 = 공연 4 + 휴무 3)인데 견적에 추가일(준비일 4일)이
+    // 같이 떠서 같은 4일이 준비일·공연일로 두 번 매겨졌다.
+    const selection = baseSelection({ extraDays: 7 });
+    const dates = resolveSelectedDates(selection);
+    const extras = dates.slice(6);
+    const dayTags: Record<string, DayTag> = {
+      ...defaultDayTags(dates.slice(0, 6), pkg2.defaultPerformanceDays), // 위저드 자동 채움: 준비 4 + 공연 2
+      [extras[0]]: "PERFORMANCE",
+      [extras[1]]: "REST",
+      [extras[2]]: "REST",
+      [extras[3]]: "REST",
+      [extras[4]]: "PERFORMANCE",
+      [extras[5]]: "PERFORMANCE",
+      [extras[6]]: "PERFORMANCE",
+    };
+    const quote = calculateQuote({ ...selection, dayTags }, RATE_TABLE);
+
+    // 준비일로 남은 추가일이 없으니 전액 준비일 줄은 아예 없어야 한다
+    expect(quote.lineItems.find((i) => i.addonId === "extra_days")).toBeUndefined();
+    const restLine = quote.lineItems.find((i) => i.addonId === "extra_days_rest")!;
+    expect(restLine.billable).toBe(3);
+    const perfLine = quote.lineItems.find(
+      (i) => i.addonId === "performance_day_adjustment",
+    )!;
+    expect(perfLine.billable).toBe(4);
+    expect(perfLine.amount).toBe(4 * Math.round(pkg2.performanceExtraDayFee * 0.9));
+  });
+
+  it("추가일이 준비·공연·휴무로 섞이면 각각 제 줄에만 한 번씩 잡힌다", () => {
+    const selection = baseSelection({ extraDays: 3 });
+    const dates = resolveSelectedDates(selection);
+    const [prepExtra, perfExtra, restExtra] = dates.slice(6);
+    const dayTags: Record<string, DayTag> = {
+      ...defaultDayTags(dates.slice(0, 6), pkg2.defaultPerformanceDays),
+      [prepExtra]: "PREP",
+      [perfExtra]: "PERFORMANCE",
+      [restExtra]: "REST",
+    };
+    const quote = calculateQuote({ ...selection, dayTags }, RATE_TABLE);
+    const discountedPrep = Math.round(pkg2.setupExtraDayFee * 0.9);
+
+    const prepLine = quote.lineItems.find((i) => i.addonId === "extra_days")!;
+    expect(prepLine.billable).toBe(1);
+    expect(prepLine.amount).toBe(discountedPrep);
+    const restLine = quote.lineItems.find((i) => i.addonId === "extra_days_rest")!;
+    expect(restLine.billable).toBe(1);
+    expect(restLine.amount).toBe(Math.round(discountedPrep * 0.5));
+    const perfLine = quote.lineItems.find(
+      (i) => i.addonId === "performance_day_adjustment",
+    )!;
+    expect(perfLine.billable).toBe(1);
+    expect(perfLine.amount).toBe(Math.round(pkg2.performanceExtraDayFee * 0.9));
   });
 
   it("제외 요일 할인: 준비일 요일을 제외하면 준비일 추가 단가의 할인가로 정액 차감된다 (2026-09-08 개정 — 추가와 대칭)", () => {

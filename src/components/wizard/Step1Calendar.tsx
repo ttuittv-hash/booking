@@ -203,7 +203,9 @@ export function Step1Calendar({
   const usedDayCount = 6 - excludedDays.length;
   const totalDays = usedDayCount + extraDays;
   const selectedDates = resolveSelectedDates({ week, excludedDays, extraDays });
-  const dayTagDefaults = defaultDayTags(selectedDates, defaultPerformanceDays);
+  // [수정 2026-09-17] extraDays를 넘겨 기본 공연일이 기본 6일 안에만 잡히게 — 견적 엔진
+  // (calculateQuote)과 같은 판정이어야 달력 배지·요약 줄과 실시간 내역이 같은 날을 같게 본다.
+  const dayTagDefaults = defaultDayTags(selectedDates, defaultPerformanceDays, extraDays);
 
   const selectedTuesday =
     calendarWeeks.find((w) => w.weekOfMonth === week.weekOfMonth)?.days[1] ??
@@ -380,7 +382,13 @@ export function Step1Calendar({
 
     if (dayKind.kind === "extra") {
       if (alreadySet) {
-        onChangeDayTags(omit(dayTags, iso));
+        // [버그 수정 2026-09-17] "준비일/공연일 선택했다가 해제했는데도 신청내역에 해제 전
+        // 내역이 반영" — 추가일은 「추가+」에서 역할을 고르는 순간 생기므로(아래 extend 분기)
+        // 역할이 없는 추가일이란 상태가 없다. 그런데 여기서 태그만 지우면 날짜는 노란
+        // 선택 상태로 남고(extraDays 그대로) 요약·견적이 기본값으로 계산해 버렸다 —
+        // 예전 기본값 규칙(목록 뒤쪽 N일 = 공연)이 그 날을 공연일로 잡아 준비일·공연일이
+        // 이중 과금됐다. 추가일의 역할 해제 = 그 추가일 삭제(「삭제」 버튼과 동일).
+        removeExtraDay(iso);
         return;
       }
       onChangeDayTags({ ...dayTags, [iso]: role });

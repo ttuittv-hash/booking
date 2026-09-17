@@ -3,7 +3,6 @@ import { resolveSelectedDates } from "./dateRange";
 import { makeLine } from "./lineItem";
 import {
   clampAddonQuantity,
-  countPerformanceDays,
   defaultDayTags,
   effectiveDayTag,
   findAddon,
@@ -153,6 +152,24 @@ export function calculateQuote(
 
     const selectedDates = resolveSelectedDates(selection);
 
+    // [버그 수정 2026-09-08 밤] 기본 공연일수 중 요일 제외로 이미 (2)에서 할인된 만큼은
+    // (2-2)에서 다시 세지 않는다 — selectedDates에 그 요일이 애초에 없어 performanceDayCount에도
+    // 안 잡히는데, 비교 기준(pkg.defaultPerformanceDays)은 그대로 2였던 게 원인. 이 신청서
+    // 기준 "실질 기본 공연일수"는 패키지 기본값에서 요일 제외로 뺀 공연일만큼을 뺀 값이다.
+    // [이동 2026-09-17] (2-2) 앞에 있던 걸 (2-1)보다 위로 끌어올렸다 — 아래 (2-1)이 "어느
+    // 추가일이 공연일인지"를 (2-2)와 똑같은 기본값으로 판정해야 두 줄이 같은 날을 겹쳐
+    // 매기지 않는다.
+    const adjustedDefaultPerformanceDays = Math.max(
+      0,
+      pkg.defaultPerformanceDays - excludedPerformanceCount,
+    );
+    // extraDays를 넘겨 기본 공연일이 기본 6일 안에만 잡히게 한다(추가일 기본값 = 준비일).
+    const dayTagDefaults = defaultDayTags(
+      selectedDates,
+      adjustedDefaultPerformanceDays,
+      selection.extraDays,
+    );
+
     // (2-1) 추가 일수 — 일요일 이후로 연장하는 일수를 일 단위로 과금.
     // [확정 2026-08-14, 기능정의서 2-38] 연장일은 준비일 성격의 추가 접근일로 보고
     // 셋업(준비일) 추가 단가를 적용한다(전 패키지 동일 46,790,000원/일).
@@ -168,6 +185,13 @@ export function calculateQuote(
     // REST 할인을 정가(setupExtraDayFee)가 아니라 이미 10% 할인된 준비일 단가 위에
     // 50%를 추가로 적용하도록 뒤집는다(2026-09-06 ③ 결정 — "10%와 중복 적용하지
     // 않는다" — 은 폐기). 두 할인이 곱으로 누적된다: 정가 × (1-10%) × (1-50%).
+    // [버그 수정 2026-09-17] "공연 4일 추가 + 휴무 3일 추가를 했을 때, 자동 생성된 추가일
+    // (준비일 4일)은 빠져야 하는데 다시 생성되고 있습니다" — 달력은 「기본 6일 + 추가 7일」
+    // 인데 견적은 추가일(준비일 4)·(휴무일 3)·(공연일 4) = 11일을 매겼다. 여기(2-1)가 REST만
+    // 빼고 나머지 추가일 전부를 준비일 단가로 치고, 아래 (2-2)가 같은 날을 공연일로 또
+    // 셌던 것 — 추가일을 공연일로 바꾸면 준비일 단가와 공연일 단가가 한 날에 겹쳐 붙었다.
+    // 추가일은 태그별로 한 곳에서만 매긴다: 준비일 → 여기 전액 줄, 휴무일 → 여기 REST 줄,
+    // 공연일 → (2-2) 공연 일수 조정. 판정은 (2-2)와 같은 기본값(dayTagDefaults)으로 한다.
     if (selection.extraDays > 0) {
       const price = pkg.setupExtraDayFee;
       const discountedPrice = Math.round(
@@ -176,13 +200,22 @@ export function calculateQuote(
       const restPrice = Math.round(
         discountedPrice * (1 - pkg.restDayDiscountRatio),
       );
-      // 방어적으로 extraDays를 넘지 않게 자른다 — REST는 추가일에만 쓰는 태그라
-      // 기본 6일 쪽에 잘못 남은 값이 있어도 추가 일수 계산에 영향을 주지 않는다.
-      const restCount = Math.min(
-        selectedDates.filter((d) => selection.dayTags[d] === "REST").length,
-        selection.extraDays,
+      // resolveSelectedDates는 기본 6일 뒤에 추가일을 순서대로 붙이므로 뒤에서 extraDays개가
+      // 추가일이다 — 기본 6일 쪽에 잘못 남은 REST 값이 있어도 여기엔 안 잡힌다.
+      const extraDates = selectedDates.slice(
+        selectedDates.length - selection.extraDays,
       );
-      const fullPriceCount = selection.extraDays - restCount;
+      const restCount = extraDates.filter(
+        (d) => selection.dayTags[d] === "REST",
+      ).length;
+      const performanceExtraCount = extraDates.filter(
+        (d) =>
+          effectiveDayTag(d, selection.dayTags, dayTagDefaults) === "PERFORMANCE",
+      ).length;
+      const fullPriceCount = Math.max(
+        0,
+        selection.extraDays - restCount - performanceExtraCount,
+      );
       if (fullPriceCount > 0) {
         items.push(
           makeLine(
@@ -225,23 +258,18 @@ export function calculateQuote(
     // (delta<0)는 할인 없이 원래 단가로 차감하던 걸(2026-09-06 결정) 뒤집는다. /rates
     // 페이지의 Rate 카드가 "공연일 추가·삭제"를 방향 구분 없이 같은 할인가 하나로
     // 보여주므로, 계산도 늘어나든 줄어든든 같은 할인 단가를 쓴다.
-    // [버그 수정 2026-09-08 밤] 기본 공연일수 중 요일 제외로 이미 (2)에서 할인된 만큼은
-    // 여기서 다시 세지 않는다 — selectedDates에 그 요일이 애초에 없어 performanceDayCount에도
-    // 안 잡히는데, 비교 기준(pkg.defaultPerformanceDays)은 그대로 2였던 게 원인. 이 신청서
-    // 기준 "실질 기본 공연일수"는 패키지 기본값에서 요일 제외로 뺀 공연일만큼을 뺀 값이다.
-    const adjustedDefaultPerformanceDays = Math.max(
-      0,
-      pkg.defaultPerformanceDays - excludedPerformanceCount,
-    );
+    // 비교 기준 adjustedDefaultPerformanceDays는 (2-1) 위에서 계산한다(요일 제외 이중 차감
+    // 수정, 2026-09-08 밤 — 사유는 그쪽 주석).
     // adjustedDefaultPerformanceDays를 dayTags 미지정분의 기본값 산정(defaultDayTags)에도
     // 그대로 넘긴다 — 안 그러면 요일 제외로 남은 날짜 수가 줄어든 만큼 "남은 날짜 중
     // 뒤에서 N일"이 다시 계산되며 다른 날짜가 대신 기본 공연일로 밀려 올라온다(예: SAT
     // 제외 시 원래 없던 FRI가 기본 공연일로 재배정).
-    const performanceDayCount = countPerformanceDays(
-      selectedDates,
-      selection.dayTags,
-      adjustedDefaultPerformanceDays,
-    );
+    // [수정 2026-09-17] countPerformanceDays(내부에서 기본값을 따로 만들던 것) 대신 (2-1)과
+    // 같은 dayTagDefaults로 센다 — 두 줄이 같은 판정을 써야 한 날이 두 곳에 걸치지 않는다.
+    const performanceDayCount = selectedDates.filter(
+      (d) =>
+        effectiveDayTag(d, selection.dayTags, dayTagDefaults) === "PERFORMANCE",
+    ).length;
     const performanceDelta = performanceDayCount - adjustedDefaultPerformanceDays;
     if (!isSpecialVenuePackage && performanceDelta !== 0) {
       const unitPrice = Math.round(
@@ -279,6 +307,7 @@ export function calculateQuote(
       const defaults = defaultDayTags(
         selectedDates,
         pkg.defaultPerformanceDays,
+        selection.extraDays,
       );
       const extraShowCount = selectedDates.reduce((sum, date) => {
         if (effectiveDayTag(date, selection.dayTags, defaults) !== "PERFORMANCE") return sum;
