@@ -11,7 +11,7 @@ export const metadata: Metadata = {
   title: "가입 승인 대기",
 };
 
-const NOTICE: Record<"PENDING" | "REJECTED", { title: string; desc: string }> = {
+const NOTICE: Record<"PENDING" | "REJECTED" | "HOLD", { title: string; desc: string }> = {
   PENDING: {
     title: "가입 승인 대기 중입니다",
     desc: "일반인은 자유 가입할 수 없으며, 운영자 승인이 완료되어야 대관 패키지 안내와 견적 산출·신청을 이용하실 수 있습니다. 승인 결과는 알림으로 안내해 드립니다.",
@@ -19,6 +19,12 @@ const NOTICE: Record<"PENDING" | "REJECTED", { title: string; desc: string }> = 
   REJECTED: {
     title: "가입이 승인되지 않았습니다",
     desc: "아래 사유를 확인하시고, 회원정보를 수정한 뒤 재심사를 요청하실 수 있습니다.",
+  },
+  // 보류(2026-09-15) — 승인·반려를 뒤로 미룬 상태다. 반려처럼 사유를 받지 않으므로
+  // 승인 대기와 같은 안내 화면(재심사·탈퇴 버튼 없이 대기만)을 그대로 쓴다.
+  HOLD: {
+    title: "가입 심사가 보류되었습니다",
+    desc: "추가 확인이 필요해 심사가 잠시 보류되었습니다. 확인이 끝나면 알림으로 안내해 드립니다.",
   },
 };
 
@@ -38,6 +44,7 @@ export default async function PendingPage() {
 
   const notice = NOTICE[currentUser.approvalStatus];
   const isRejected = currentUser.approvalStatus === "REJECTED";
+  const isHold = currentUser.approvalStatus === "HOLD";
 
   return (
     <div className="flex flex-1 flex-col">
@@ -55,8 +62,8 @@ export default async function PendingPage() {
         <div className="w-full max-w-md">
           <div className="border border-border p-8 sm:p-10">
             <div className="flex justify-center">
-              <Badge tone={isRejected ? "danger" : "warn"}>
-                {isRejected ? "승인 거절" : "승인 대기"}
+              <Badge tone={isRejected ? "danger" : isHold ? "neutral" : "warn"}>
+                {isRejected ? "승인 거절" : isHold ? "보류" : "승인 대기"}
               </Badge>
             </div>
             <h1 className="type-kr-heading mt-5 break-keep text-center text-h3-m sm:text-h3">

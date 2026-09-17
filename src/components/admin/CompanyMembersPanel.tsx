@@ -32,6 +32,7 @@ const APPROVAL_LABEL: Record<string, string> = {
   PENDING: "승인 대기",
   APPROVED: "정상",
   REJECTED: "비활성",
+  HOLD: "보류",
 };
 
 export function CompanyMembersPanel({

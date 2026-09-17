@@ -32,7 +32,14 @@ export async function POST(request: Request) {
 
   const body = await request.json().catch(() => null);
   const id = typeof body?.id === "string" ? body.id : "";
-  const action = body?.action === "approve" ? "approve" : body?.action === "reject" ? "reject" : null;
+  const action =
+    body?.action === "approve"
+      ? "approve"
+      : body?.action === "reject"
+        ? "reject"
+        : body?.action === "hold"
+          ? "hold"
+          : null;
   // MB-03 의 필수 변수. 사유 없이 반려하면 빈 값이 그대로 발송되므로 여기서 막는다(기획서 B2).
   const rejectReason = typeof body?.reason === "string" ? body.reason.trim() : "";
   if (!id || !action) {
@@ -73,17 +80,28 @@ export async function POST(request: Request) {
   }
 
   // 이미 다른 쪽에서 처리한 건이면 되돌린다(운영자·마스터 동시 처리 방지).
-  if (target.approvalStatus !== "PENDING") {
+  // 보류는 PENDING 에서만 걸 수 있지만, 승인·반려는 보류된 건도 대상이다 —
+  // 보류는 심사를 뒤로 미루는 것뿐이라 나중에 승인·반려로 마무리할 수 있어야 한다.
+  const decidableFrom: (typeof target.approvalStatus)[] =
+    action === "hold" ? ["PENDING"] : ["PENDING", "HOLD"];
+  if (!decidableFrom.includes(target.approvalStatus)) {
+    const label =
+      target.approvalStatus === "APPROVED"
+        ? "승인"
+        : target.approvalStatus === "REJECTED"
+          ? "미승인"
+          : "보류";
     return NextResponse.json(
-      {
-        error:
-          target.approvalStatus === "APPROVED"
-            ? "이미 승인 처리된 신청입니다."
-            : "이미 미승인 처리된 신청입니다.",
-        approvalStatus: target.approvalStatus,
-      },
+      { error: `이미 ${label} 처리된 신청입니다.`, approvalStatus: target.approvalStatus },
       { status: 409 },
     );
+  }
+
+  // 보류는 회사·대표 지정에 영향이 없다 — 상태만 옮기고 끝난다.
+  if (action === "hold") {
+    const updated = await setUserApprovalStatus(id, "HOLD", actor.id, null);
+    revalidateMemberViews();
+    return NextResponse.json({ user: updated, processedBy: isAdmin ? "ADMIN" : "MASTER" });
   }
 
   if (action === "reject" && !rejectReason) {

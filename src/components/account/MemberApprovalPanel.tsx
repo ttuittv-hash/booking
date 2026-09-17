@@ -17,6 +17,7 @@ const APPROVAL_LABEL: Record<string, string> = {
   APPROVED: "승인 완료",
   PENDING: "승인 대기",
   REJECTED: "미승인",
+  HOLD: "보류",
 };
 
 export interface MemberDetail {

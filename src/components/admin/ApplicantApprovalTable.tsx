@@ -29,6 +29,7 @@ const STATUS_LABEL: Record<AppUser["approvalStatus"], string> = {
   PENDING: "일반인 (승인 대기)",
   APPROVED: "기본 (승인됨)",
   REJECTED: "거절됨",
+  HOLD: "보류 중",
 };
 
 /** 상태 색은 kit 의 Badge tone 만 쓴다 (임의 색 금지) */
@@ -36,11 +37,15 @@ const STATUS_TONE: Record<AppUser["approvalStatus"], "warn" | "good" | "neutral"
   PENDING: "warn",
   APPROVED: "good",
   REJECTED: "neutral",
+  HOLD: "neutral",
 };
 
 export function ApplicantApprovalTable({
   applicants,
   pending,
+  title,
+  description,
+  showHoldButton = true,
   businessRegistrationNumbers = {},
   joinContexts = {},
   deciders = {},
@@ -48,6 +53,12 @@ export function ApplicantApprovalTable({
 }: {
   applicants: AppUser[];
   pending: boolean;
+  /** 기본 제목("승인 대기"/"처리 완료") 대신 쓴다 — 보류 탭이 승인·거절 버튼을 그대로
+   *  쓰려고 pending=true 로 렌더하면서 제목만 "보류"로 바꿔야 하는 경우. */
+  title?: string;
+  description?: string;
+  /** 승인 대기 표에서만 [보류] 버튼을 보여준다 — 보류 탭 자체에서는 다시 보류할 이유가 없다. */
+  showHoldButton?: boolean;
   businessRegistrationNumbers?: Record<string, string | null>;
   /** 승인 대기 표에서만 쓴다 — 회사 안 가입 순서와, 이미 승인된 사람이 있는지. */
   joinContexts?: Record<string, { joinOrder: number; companyHasApproved: boolean }>;
@@ -64,12 +75,13 @@ export function ApplicantApprovalTable({
       <div className={TABLE_HEAD}>
         <div>
           <p className={TABLE_HEAD_TITLE}>
-            {pending ? "승인 대기" : "처리 완료"} ({applicants.length})
+            {title ?? (pending ? "승인 대기" : "처리 완료")} ({applicants.length})
           </p>
           <p className={TABLE_HEAD_DESC}>
-            {pending
-              ? "승인해야 대관 패키지 안내와 견적 산출을 이용할 수 있습니다."
-              : "이미 승인하거나 거절한 신청자 계정입니다."}
+            {description ??
+              (pending
+                ? "승인해야 대관 패키지 안내와 견적 산출을 이용할 수 있습니다."
+                : "이미 승인하거나 거절한 신청자 계정입니다.")}
           </p>
         </div>
       </div>
@@ -194,6 +206,22 @@ export function ApplicantApprovalTable({
                           >
                             거절
                           </button>
+                          {showHoldButton && (
+                            <button
+                              type="button"
+                              disabled={busyId === a.id}
+                              onClick={() =>
+                                decide(a.id, "hold", {
+                                  willBecomeMaster: false,
+                                  name: a.name,
+                                  companyName: null,
+                                })
+                              }
+                              className={btnClass("secondary", "sm")}
+                            >
+                              보류
+                            </button>
+                          )}
                           <button
                             type="button"
                             disabled={busyId === a.id}
