@@ -253,10 +253,25 @@ export default async function AdminQuoteApplicationPage({
               {STATUS_LABEL[quote.status]}
             </p>
           </div>
-          {/* 심사 회의에 종이로 들고 가는 일이 있어 인쇄본을 함께 둔다. */}
-          <a href={`/print/${quote.id}`} className={btnClass("secondary", "md")}>
-            인쇄
-          </a>
+          <div className="flex shrink-0 flex-wrap items-center gap-2">
+            {/* [신규 2026-09-17] "관리자가 신청자와 동일하게 다 볼 수 있어야 해. 미리보기
+                위저드 레벨이 아니라" — 여기(요약 표)와 별개로, 신청자가 실제로 밟은
+                위저드 화면 그대로(달력 포함, 진짜 제출값) 훑어보는 화면을 새 탭에서 연다. */}
+            {!embed && (
+              <a
+                href={`/admin/${quote.id}/wizard`}
+                target="_blank"
+                rel="noreferrer"
+                className={btnClass("secondary", "md")}
+              >
+                위저드로 보기
+              </a>
+            )}
+            {/* 심사 회의에 종이로 들고 가는 일이 있어 인쇄본을 함께 둔다. */}
+            <a href={`/print/${quote.id}`} className={btnClass("secondary", "md")}>
+              인쇄
+            </a>
+          </div>
         </header>
 
         <Section title="접수 정보">
