@@ -17,6 +17,7 @@ import type { PerformanceInfo, PublicInterestItem, QuoteSelection, SafetyPledge 
 import type {
   BonusItem,
   DisqualifierCheck,
+  PenaltyItem,
   QuoteScoreBreakdown,
   ScoreCategory,
   ScoreConfidence,
@@ -137,7 +138,16 @@ function scoreRevenue(venueId: "arena" | "medium-hall", selection: QuoteSelectio
   return { key: "REVENUE", label: "수익성·흥행성", nominalMax: 40, items };
 }
 
-function scorePublic(info: PerformanceInfo): ScoreCategory {
+// [수정 2026-09-18, 심사표 1:1 대조] 중형 평가표(배점표 2p)를 보는 위원 화면에 아레나
+// 접두(A-)가 찍혀 있어 심사표와 1:1로 안 읽혔다 — 수익성만 M-REV 로 갈라져 있고 공공성·
+// 마케팅·안전은 전부 A- 였다. 배점·구간은 두 평가표가 같으므로 점수는 그대로 두고 코드
+// 접두만 공간에 맞춘다.
+function codePrefix(venueId: "arena" | "medium-hall"): "A" | "M" {
+  return venueId === "medium-hall" ? "M" : "A";
+}
+
+function scorePublic(info: PerformanceInfo, venueId: "arena" | "medium-hall"): ScoreCategory {
+  const P = codePrefix(venueId);
   const items: ScoreItem[] = [];
   const selected = info.publicInterestItems ?? [];
   const distinctMapped = new Set<number>();
@@ -148,7 +158,7 @@ function scorePublic(info: PerformanceInfo): ScoreCategory {
   const n = distinctMapped.size;
   const pubScore = n === 5 ? 15 : n === 4 ? 12 : n === 3 ? 9 : n === 2 ? 6 : n === 1 ? 3 : 0;
   items.push({
-    code: "A-PUB-01",
+    code: `${P}-PUB-01`,
     label: "공공성·공익성 이행 계획",
     maxScore: 15,
     score: pubScore,
@@ -160,7 +170,7 @@ function scorePublic(info: PerformanceInfo): ScoreCategory {
 
   const hasAgencyEvent = selected.includes("PUBLIC_AGENCY_LINKED_EVENT");
   items.push({
-    code: "A-PUB-02",
+    code: `${P}-PUB-02`,
     label: "공공 부문 연계 행사",
     maxScore: 5,
     score: hasAgencyEvent ? 5 : 0,
@@ -173,7 +183,8 @@ function scorePublic(info: PerformanceInfo): ScoreCategory {
   return { key: "PUBLIC", label: "공공성·공익성", nominalMax: 20, items };
 }
 
-function scoreMarketing(): ScoreCategory {
+function scoreMarketing(venueId: "arena" | "medium-hall"): ScoreCategory {
+  const P = codePrefix(venueId);
   const items: ScoreItem[] = [];
   // [2026-09-02, 감사 2026-09-18] "타겟 정의·집행 예산·타임라인은 제외" 요청 이후
   // mediaMixOnline/mediaMixOffline 자유 서술 입력칸 자체가 위저드에서 없어지고
@@ -183,19 +194,24 @@ function scoreMarketing(): ScoreCategory {
   // 찍힌다. 텍스트가 아니라 파일로 받는 값이라 selection만으로는 판정할 신호가 없다 —
   // UNAVAILABLE로 내려 위원이 첨부된 마케팅 실행 계획서 파일을 직접 열어 판단하게 한다.
   items.push({
-    code: "A-MKT-01",
+    code: `${P}-MKT-01`,
     label: "마케팅 실행 계획",
     maxScore: 5,
     score: null,
     confidence: "UNAVAILABLE",
-    rule: "온라인/오프라인 마케팅 계획 중 수치·금액·일자 포함 개수 — 2개 5·1개 2·0개 0",
+    // [수정 2026-09-18, 심사표 1:1 대조] 배점표는 **4구간**이다(전부 구체 5 · 3개 구체 3 ·
+    // 2개 구체 1 · 미구체 0), 평가 대상은 「타깃 정의·매체 믹스·집행 예산·타임라인 4요소」.
+    // 이 문구가 옛 2구간("2개 5·1개 2·0개 0")으로 남아 있어 위원이 심사표와 맞춰 읽을 수
+    // 없었다. 점수는 어차피 UNAVAILABLE(첨부파일로 받는 값이라 자동 산정 불가)이지만,
+    // 화면에 뜨는 기준 문구만은 배점표와 같아야 한다.
+    rule: "타깃 정의·매체 믹스·집행 예산·타임라인 4요소 중 구체적으로 제시한 개수 — 전부 5 · 3개 3 · 2개 1 · 미구체 0",
     note: "2026-09-02부터 마케팅 실행 계획은 텍스트 입력이 아니라 첨부파일(마케팅 실행 계획서)로 제출됩니다 — 신청 상세의 첨부 서류에서 직접 확인해 위원이 판단하세요.",
   });
 
   // 13-16/13-17 — 협조 동의 항목은 대관계약 별지 동의서 「심사 중립성」 조항과
   // 충돌 소지가 있어 법무 확정 전까지 (가)안(심사 화면 제외)을 기본값으로 적용한다.
   items.push({
-    code: "A-MKT-02",
+    code: `${P}-MKT-02`,
     label: "공동 프로모션 협조",
     maxScore: 5,
     score: null,
@@ -212,7 +228,7 @@ function scoreMarketing(): ScoreCategory {
   // 내려 "협업 동의 여부"(contentCooperationConsent, 신청 상세에 노출됨)를 참고해
   // 위원이 직접 판단하게 한다.
   items.push({
-    code: "A-MKT-03",
+    code: `${P}-MKT-03`,
     label: "공동 스폰서십·브랜딩·캠페인 협업",
     maxScore: 5,
     score: null,
@@ -222,13 +238,15 @@ function scoreMarketing(): ScoreCategory {
   });
 
   items.push({
-    code: "A-MKT-04",
+    code: `${P}-MKT-04`,
     label: "공연 실적 데이터 제공 협조",
     maxScore: 5,
     score: null,
     confidence: "EXCLUDED",
     rule: "세일즈 데이터 제공 + Pollstar 등록 2종 동의 개수 — 2개 5·1개 3·0개 0",
-    note: "A-MKT-02와 같은 이유로 법무 확정 전까지 심사 화면에서 제외합니다.",
+    // 코드 접두를 박아 두면 중형 화면에서 「A-MKT-02」를 찾게 되는데 거기엔 M-MKT-02 가
+    // 보인다 — 같은 화면 안에서 가리키는 이름이 어긋나면 안 된다.
+    note: `${P}-MKT-02와 같은 이유로 법무 확정 전까지 심사 화면에서 제외합니다.`,
   });
 
   return { key: "MARKETING", label: "마케팅 계획·협업", nominalMax: 20, items };
@@ -253,14 +271,19 @@ export function isSafetyPledgeComplete(pledge: SafetyPledge | undefined): boolea
   );
 }
 
-function scoreSafety(info: PerformanceInfo, pledge: SafetyPledge | undefined): ScoreCategory {
+function scoreSafety(
+  info: PerformanceInfo,
+  pledge: SafetyPledge | undefined,
+  venueId: "arena" | "medium-hall",
+): ScoreCategory {
+  const P = codePrefix(venueId);
   const items: ScoreItem[] = [];
 
   const bigRecords = info.pastPerformances.filter((r) => parseAudienceNumber(r.audience) >= 10000);
   const n = bigRecords.length;
   const perfScore = n >= 10 ? 5 : n >= 5 ? 3 : n >= 1 ? 1 : 0;
   items.push({
-    code: "A-SAF-01",
+    code: `${P}-SAF-01`,
     label: "주최사 수행 실적",
     maxScore: 5,
     score: perfScore,
@@ -272,7 +295,7 @@ function scoreSafety(info: PerformanceInfo, pledge: SafetyPledge | undefined): S
 
   const pledgeComplete = isSafetyPledgeComplete(pledge);
   items.push({
-    code: "A-SAF-02",
+    code: `${P}-SAF-02`,
     label: "안전 관리 계획 적정성 및 규정 준수",
     maxScore: 10,
     score: pledgeComplete ? 10 : 0,
@@ -283,7 +306,7 @@ function scoreSafety(info: PerformanceInfo, pledge: SafetyPledge | undefined): S
 
   const contractDone = info.castContractStatus === "COMPLETED";
   items.push({
-    code: "A-SAF-03",
+    code: `${P}-SAF-03`,
     label: "개최 신뢰도",
     maxScore: 5,
     score: contractDone ? 5 : 0,
@@ -389,6 +412,32 @@ function scoreBonuses(info: PerformanceInfo, venueId: "arena" | "medium-hall"): 
   ];
 }
 
+/**
+ * [신규 2026-09-18, 심사표 1:1 대조] 배점표 3) 감점 항목 — "심사표와 심사 평가 항목이
+ * 매칭이 안 된다"(niki).
+ *
+ * 배점표에는 감점이 다섯 줄로 명시돼 있는데 화면에는 그 줄이 하나도 없고, 하단에 "이력
+ * 조회 기능이 없어 0으로 취급한다"는 문구만 있었다 — 위원이 심사표를 들고 화면을 봐도
+ * 「3년 내 대관 계약 해지 −5」를 적용할 자리가 없었다.
+ *
+ * 자동 판정은 여전히 불가하다(신청사 이력 조회 테이블이 없다). 그래도 배점표와 같은 줄을
+ * 같은 순서·같은 감점 폭으로 보여주고 「위원 판단」으로 표시한다 — 부적격 게이트
+ * (scoreDisqualifiers)가 이미 쓰는 방식과 같다. 아레나·중형 배점표(1p·2p)의 감점 항목은
+ * 다섯 줄이 완전히 동일해서 공간별로 가르지 않는다.
+ */
+function scorePenalties(venueId: "arena" | "medium-hall"): PenaltyItem[] {
+  const P = codePrefix(venueId);
+  const NOTE =
+    "신청사 이력 조회 기능이 아직 없어 자동 판정할 수 없습니다 — 위원이 직접 확인해 적용하세요. 동일 사건이면 사유별 최대값 1개만 적용합니다(배점표 3 단서).";
+  return [
+    { code: `${P}-PEN-01`, label: "3년 내 대관 계약 해지 이력", penalty: -5, auto: false, triggered: null, note: NOTE },
+    { code: `${P}-PEN-02`, label: "대관 승인 이후 취소 이력", penalty: -3, auto: false, triggered: null, note: NOTE },
+    { code: `${P}-PEN-03`, label: "정산 분쟁 이력", penalty: -5, auto: false, triggered: null, note: NOTE },
+    { code: `${P}-PEN-04`, label: "공연장 정책 위반 이력", penalty: -3, auto: false, triggered: null, note: NOTE },
+    { code: `${P}-PEN-05`, label: "중대 안전사고/법규 위반 이력", penalty: -10, auto: false, triggered: null, note: NOTE },
+  ];
+}
+
 function scoreDisqualifiers(pledge: SafetyPledge | undefined): DisqualifierCheck[] {
   return [
     { code: "DQ-01", label: "안전 규정 준수 서약서 미제출", auto: true, triggered: !isSafetyPledgeComplete(pledge) },
@@ -401,9 +450,9 @@ function computeVenueScore(venueId: "arena" | "medium-hall", selection: QuoteSel
   const info = selection.performanceInfo;
   const categories: ScoreCategory[] = [
     scoreRevenue(venueId, selection),
-    scorePublic(info),
-    scoreMarketing(),
-    scoreSafety(info, selection.safetyPledge),
+    scorePublic(info, venueId),
+    scoreMarketing(venueId),
+    scoreSafety(info, selection.safetyPledge, venueId),
   ];
 
   const isCounted = (c: ScoreConfidence) => c === "AUTO" || c === "PROVISIONAL";
@@ -429,6 +478,7 @@ function computeVenueScore(venueId: "arena" | "medium-hall", selection: QuoteSel
     venueLabel: VENUE_LABEL[venueId],
     categories,
     bonuses,
+    penalties: scorePenalties(venueId),
     disqualifiers,
     computedSubtotal,
     unresolvedMax,

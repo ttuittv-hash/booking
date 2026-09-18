@@ -49,16 +49,42 @@ export interface DisqualifierCheck {
   triggered: boolean | null; // auto=false면 항상 null(위원 판단 필요)
 }
 
+/**
+ * [신규 2026-09-18] 감점 항목(배점표 3) — "심사표와 심사 평가 항목이 매칭이 안 된다"(niki).
+ *
+ * 배점표에는 감점이 다섯 줄(계약 해지 −5 · 승인 후 취소 −3 · 정산 분쟁 −5 · 정책 위반 −3 ·
+ * 중대 안전사고 −10)로 명시돼 있는데, 화면에는 그 줄이 하나도 없고 하단에 "이력 조회
+ * 기능이 없어 0으로 취급한다"는 문구만 있었다 — 위원이 심사표를 들고 화면을 봐도 감점을
+ * 적용할 자리가 없었다.
+ *
+ * 자동 판정은 여전히 불가하다(신청사 이력 조회 테이블이 없다). 그래도 **배점표와 같은
+ * 줄을 같은 순서로 보여주고 「위원 판단」으로 표시**해야 1:1로 읽힌다 — 부적격 게이트
+ * (DisqualifierCheck)가 이미 쓰는 방식과 같다.
+ */
+export interface PenaltyItem {
+  code: string; // "A-PEN-01" 등
+  label: string;
+  /** 배점표상 감점 폭(음수, 예: -5) */
+  penalty: number;
+  /** 시스템이 자동 판정 가능한가 — 지금은 전부 false(이력 조회 미구현) */
+  auto: boolean;
+  /** auto=false면 항상 null(위원 판단 필요) */
+  triggered: boolean | null;
+  note?: string;
+}
+
 export interface VenueScoreResult {
   venueId: "arena" | "medium-hall";
   venueLabel: string;
   categories: ScoreCategory[];
   bonuses: BonusItem[];
+  /** 배점표 3) 감점 항목 — 자동 판정은 못 하지만 심사표와 같은 줄을 같은 순서로 보여준다 */
+  penalties: PenaltyItem[];
   disqualifiers: DisqualifierCheck[];
   computedSubtotal: number; // 산정된(EXCLUDED/UNAVAILABLE 제외) 항목 점수 합
   unresolvedMax: number; // EXCLUDED/UNAVAILABLE 항목의 배점 합 — "아직 안 정해진 점수"
   bonusTotal: number;
-  penaltyTotal: number; // 이력 조회 기능 미구현 — 항상 0
+  penaltyTotal: number; // 이력 조회 기능 미구현 — 항상 0(감점 항목은 penalties 로 노출만 한다)
   provisionalFinal: number; // computedSubtotal + bonusTotal - penaltyTotal
   provisionalEligible: boolean; // provisionalFinal >= 60 (참고용 — unresolvedMax > 0이면 확정 판정 아님)
 }

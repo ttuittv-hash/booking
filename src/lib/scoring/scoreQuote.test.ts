@@ -249,6 +249,106 @@ describe("scoreQuote — 중형공연장 가점 항목은 아레나와 다르다
   });
 });
 
+// [신규 2026-09-18, 심사표 1:1 대조] 배점표 3) 감점 항목 — "심사표와 심사 평가 항목이
+// 매칭이 안 된다"(niki). 배점표에는 감점이 다섯 줄로 명시돼 있는데 화면에는 그 줄이
+// 하나도 없어 위원이 적용할 자리가 없었다. 자동 판정은 여전히 불가하므로(이력 조회
+// 테이블 없음) **노출만 하고 점수는 깎지 않는다** — 그 둘을 함께 못 박는다.
+// [신규 2026-09-18, 심사표 1:1 대조] 중형 평가표(배점표 2p)를 보는 위원 화면에 아레나
+// 접두(A-)가 찍혀 있어 심사표와 1:1로 안 읽혔다 — 수익성만 M-REV 로 갈라져 있었다.
+// 배점·구간은 두 평가표가 같으므로 점수는 그대로 두고 코드 접두만 공간에 맞춘다.
+describe("scoreQuote — 항목 코드 접두가 공간에 맞는다", () => {
+  const codesOf = (r: ReturnType<typeof scoreQuote>["results"][number]) => [
+    ...r.categories.flatMap((c) => c.items.map((i) => i.code)),
+    ...r.penalties.map((p) => p.code),
+  ];
+
+  it("아레나는 전부 A- 접두다", () => {
+    const r = scoreQuote(baseSelection()).results[0];
+    expect(codesOf(r).every((c) => c.startsWith("A-"))).toBe(true);
+    expect(codesOf(r)).toContain("A-PUB-01");
+    expect(codesOf(r)).toContain("A-MKT-01");
+    expect(codesOf(r)).toContain("A-SAF-01");
+    expect(codesOf(r)).toContain("A-PEN-01");
+  });
+
+  it("중형은 전부 M- 접두다 — 수익성뿐 아니라 공공성·마케팅·안전·감점까지", () => {
+    const r = scoreQuote(baseSelection({ venueId: "medium-hall" })).results[0];
+    expect(codesOf(r).every((c) => c.startsWith("M-"))).toBe(true);
+    expect(codesOf(r)).toContain("M-PUB-01");
+    expect(codesOf(r)).toContain("M-MKT-01");
+    expect(codesOf(r)).toContain("M-SAF-01");
+    expect(codesOf(r)).toContain("M-PEN-01");
+  });
+
+  it("동시 대관은 아레나 블록은 A-, 중형 블록은 M- 로 갈린다", () => {
+    const [arena, mid] = scoreQuote(baseSelection({ bookingMode: "SIMULTANEOUS" })).results;
+    expect(codesOf(arena).every((c) => c.startsWith("A-"))).toBe(true);
+    expect(codesOf(mid).every((c) => c.startsWith("M-"))).toBe(true);
+  });
+
+  it("접두만 바뀌고 배점은 두 평가표가 같다", () => {
+    const a = scoreQuote(baseSelection()).results[0];
+    const m = scoreQuote(baseSelection({ venueId: "medium-hall" })).results[0];
+    const maxOf = (r: typeof a, key: string) =>
+      r.categories.find((c) => c.key === key)?.items.map((i) => i.maxScore);
+    for (const key of ["PUBLIC", "MARKETING", "SAFETY"]) {
+      expect(maxOf(m, key)).toEqual(maxOf(a, key));
+    }
+  });
+});
+
+describe("scoreQuote — 감점 항목이 배점표(3)와 1:1로 노출된다", () => {
+  const EXPECTED = [
+    ["A-PEN-01", "3년 내 대관 계약 해지 이력", -5],
+    ["A-PEN-02", "대관 승인 이후 취소 이력", -3],
+    ["A-PEN-03", "정산 분쟁 이력", -5],
+    ["A-PEN-04", "공연장 정책 위반 이력", -3],
+    ["A-PEN-05", "중대 안전사고/법규 위반 이력", -10],
+  ] as const;
+
+  it("다섯 줄이 배점표와 같은 순서·같은 감점 폭으로 나온다", () => {
+    const r = scoreQuote(baseSelection()).results[0];
+    expect(r.penalties.map((p) => [p.code, p.label, p.penalty])).toEqual(
+      EXPECTED.map((e) => [...e]),
+    );
+  });
+
+  it("전부 위원 판단 항목이다 — 시스템이 자동으로 발동시키지 않는다", () => {
+    const r = scoreQuote(baseSelection()).results[0];
+    expect(r.penalties.every((p) => p.auto === false && p.triggered === null)).toBe(true);
+  });
+
+  it("노출만 하고 점수는 깎지 않는다 — penaltyTotal 은 0이고 최종 점수에 영향이 없다", () => {
+    const r = scoreQuote(baseSelection({ safetyPledge: COMPLETE_PLEDGE })).results[0];
+    expect(r.penaltyTotal).toBe(0);
+    expect(r.provisionalFinal).toBe(r.computedSubtotal + r.bonusTotal);
+  });
+
+  // 배점표가 요구하는 것은 "같은 다섯 줄"이지 "같은 코드"가 아니다 — 항목명·감점 폭은
+  // 아레나·중형이 동일하고, 코드 접두만 공간을 따른다(중형 평가표를 보는 위원이 M- 로
+  // 맞춰 읽어야 하므로). 이 둘을 한 자리에서 못 박아 두 요구가 서로 어긋나지 않게 한다.
+  it("아레나·중형의 감점 항목명·감점 폭은 동일하고, 코드 접두만 공간을 따른다", () => {
+    const arena = scoreQuote(baseSelection()).results[0];
+    const mid = scoreQuote(baseSelection({ venueId: "medium-hall" })).results[0];
+    const content = (r: typeof arena) => r.penalties.map((p) => [p.label, p.penalty, p.auto, p.triggered]);
+    expect(content(mid)).toEqual(content(arena));
+    expect(arena.penalties.map((p) => p.code)).toEqual([
+      "A-PEN-01",
+      "A-PEN-02",
+      "A-PEN-03",
+      "A-PEN-04",
+      "A-PEN-05",
+    ]);
+    expect(mid.penalties.map((p) => p.code)).toEqual([
+      "M-PEN-01",
+      "M-PEN-02",
+      "M-PEN-03",
+      "M-PEN-04",
+      "M-PEN-05",
+    ]);
+  });
+});
+
 describe("scoreQuote — M-REV-01 중형 회차 가중", () => {
   it("공연 3회면 관객수 구간 점수에 +2가 더해진다", () => {
     const selection = baseSelection({

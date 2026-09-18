@@ -362,6 +362,14 @@ export function StepAudience({
 
   const isSimultaneous = selection.bookingMode === "SIMULTANEOUS";
   const isMidHallInvolved = isSimultaneous || selection.venueId === "medium-hall";
+  // [버그 수정 2026-09-18] "중형공연장만 신청했을 때인데 1회당 예상 관객 수, 1회당 예상
+  // 관객 수 — 중형 이렇게 두 개가 들어가 있습니다"(niki) — 아래 COMMON 탭이 midHall 에만
+  // 가드를 두고 arena 는 조건 없이 넘기고 있어, 중형 단독인데 아레나 관객 입력까지 떴다.
+  // 2026-09-18 오전에 고친 「중형 단독에 아레나 일정이 섞임」(venueShowCounts)과 같은
+  // 계열이다 — 그때는 회차 계산만 막고 입력칸은 놓쳤다. 대칭으로 가드를 둔다.
+  // (총 예상 관객 수는 손대지 않아도 된다 — venueShowCounts 가 중형 단독일 때 이미
+  //  arenaShows 를 0 으로 돌려줘서 arenaAudienceTotal 이 0 이다.)
+  const isArenaInvolved = isSimultaneous || selection.venueId !== "medium-hall";
   const { arenaShows, midHallShows } = venueShowCounts(selection);
   const arenaAudienceTotal = selection.expectedAudience * arenaShows;
   const midHallAudienceTotal = selection.secondaryAudience * midHallShows;
@@ -406,7 +414,9 @@ export function StepAudience({
             info={info}
             onChange={onChange}
             audienceSummary={{
-              arena: { value: selection.expectedAudience, onChange: onChangeExpectedAudience },
+              arena: isArenaInvolved
+                ? { value: selection.expectedAudience, onChange: onChangeExpectedAudience }
+                : null,
               midHall: isMidHallInvolved
                 ? { value: selection.secondaryAudience, onChange: onChangeSecondaryAudience }
                 : null,

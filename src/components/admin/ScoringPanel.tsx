@@ -250,9 +250,28 @@ function VenueScoreBlock({ result }: { result: VenueScoreResult }) {
             </tbody>
           </table>
         </div>
+      </div>
+
+      {/* [신규 2026-09-18] "심사표와 심사 평가 항목이 매칭이 안 된다"(niki) — 배점표 3)에는
+          감점이 다섯 줄로 명시돼 있는데 화면에는 "이력 조회가 없어 0으로 취급한다"는 문구
+          한 줄뿐이라, 위원이 심사표를 들고도 「3년 내 대관 계약 해지 −5」를 적용할 자리가
+          없었다. 자동 판정은 여전히 불가하지만 배점표와 같은 줄을 같은 순서로 보여준다 —
+          바로 아래 부적격 게이트가 이미 쓰는 방식과 같다. */}
+      <div className="p-4 pt-0">
+        <h4 className={`${SUB_TITLE} mb-2`}>감점 (배점표 3)</h4>
+        <ul className="space-y-1 text-xs">
+          {result.penalties.map((p) => (
+            <li key={p.code} className="flex items-center gap-2">
+              <span className="font-mono text-muted">{p.code}</span>
+              <span>{p.label}</span>
+              <span className="font-bold tabular-nums text-danger">{p.penalty}</span>
+              <span className="text-muted">{p.auto ? (p.triggered ? "발동" : "정상") : "위원 판단"}</span>
+            </li>
+          ))}
+        </ul>
         <p className="mt-2 text-xs text-muted">
-          감점(A-PEN-01~05)은 대관 취소·정산 분쟁·정책 위반 등 신청사 이력 조회 기능이 아직 없어 항상 0으로 취급합니다 — &ldquo;이력 없음&rdquo;이 아니라
-          &ldquo;조회 불가&rdquo;로 이해해 주세요.
+          신청사 이력 조회 기능이 아직 없어 자동 판정하지 않습니다 — &ldquo;이력 없음&rdquo;이 아니라 &ldquo;조회 불가&rdquo;입니다. 해당 사항이 있으면
+          위원이 아래 심사 폼의 최종 점수에 직접 반영해 주세요. 동일 사건이면 사유별 최대값 1개만 적용합니다.
         </p>
       </div>
 
@@ -289,8 +308,15 @@ export function ScoringPanel({ breakdown }: { breakdown: QuoteScoreBreakdown }) 
         </p>
       </div>
       <div className={`${WARN_NOTE}`}>
-        경합 시 순위·동점 tie-break·이력 기반 감점·시뮬레이션은 아직 반영되지 않았습니다. 협조 동의 항목(공동 프로모션·실적 데이터 제공, 10점)은
+        경합 시 순위·동점 tie-break·이력 기반 감점·시뮬레이션은 아직 자동 반영되지 않았습니다. 협조 동의 항목(공동 프로모션·실적 데이터 제공, 10점)은
         대관계약 동의서와의 충돌 소지로 법무 확정 전까지 제외했습니다.
+        {/* [신규 2026-09-18] 배점표 4)의 판단 순서를 적어 둔다 — "아직 반영되지 않았습니다"
+            라고만 하면 위원이 무엇을 어떤 순서로 봐야 하는지 알 수 없다. */}
+        <span className="mt-1.5 block">
+          동일 일정에 2건 이상이면 <b>적격 판정을 받은 건 중 최종 점수 최고 득점자</b>를 우선 선정하고, 점수가 같으면 ① 대관 수익성(20점) → ② 예상 관객
+          규모(20점) → ③ 마케팅 협조(공동 프로모션 + 공연 실적 데이터 협조) 합산 → ④ 마케팅 파급력(출연 IP 공식 채널 구독자·팔로워 합산, 활용 가능한 외부
+          채널 수) 순으로 판단합니다.
+        </span>
       </div>
       {breakdown.results.map((result) => (
         <VenueScoreBlock key={result.venueId} result={result} />
