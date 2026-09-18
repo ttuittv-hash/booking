@@ -29,7 +29,22 @@ export async function PUT(request: Request) {
   const body = await request.json().catch(() => null);
   const name = typeof body?.name === "string" ? body.name.trim() : "";
   const phone = typeof body?.phone === "string" ? body.phone.trim() : "";
-  const username = typeof body?.username === "string" ? body.username.trim().toLowerCase() : "";
+  /*
+    [수정 2026-09-18] 아이디는 **실제로 바꿀 때만** 손댄다.
+
+    전에는 받은 값을 무조건 toLowerCase() 한 뒤 규칙을 검사했다. 두 가지가 잘못됐다:
+      · 대문자가 든 아이디(정본 규칙은 대문자를 허용한다)를 가진 사람이 아이디를 건드리지
+        않고 이메일만 고쳐도, 소문자로 바뀐 값이 아래 116행에서 "바뀌었다"로 판정돼
+        그대로 저장됐다 — 로그인 아이디가 조용히 바뀐다.
+      · 규칙을 정본으로 조이면(2026-09-18), 그 전에 느슨한 규칙으로 만들어진 아이디를 가진
+        사람은 아이디를 손대지 않아도 검사에 걸려 **아무것도 저장할 수 없게 된다.**
+
+    안 바꿨으면 저장된 값을 그대로 쓴다. 바꿀 때만 기존대로 소문자화하고 검사한다
+    (소문자화 자체는 가입 경로와 맞춰야 하므로 여기서 바꾸지 않는다).
+  */
+  const usernameInput = typeof body?.username === "string" ? body.username.trim() : "";
+  const usernameChanged = usernameInput !== "" && usernameInput !== user.username;
+  const username = usernameChanged ? usernameInput.toLowerCase() : user.username;
   const email = typeof body?.email === "string" ? body.email.trim() : "";
   const officePhone = typeof body?.officePhone === "string" ? body.officePhone.trim() : "";
   const faxNumber = typeof body?.faxNumber === "string" ? body.faxNumber.trim() : "";
@@ -83,7 +98,8 @@ export async function PUT(request: Request) {
   if (!phone) {
     return NextResponse.json({ error: "휴대폰 번호를 입력하세요." }, { status: 400 });
   }
-  if (!USERNAME_RE.test(username)) {
+  // 바꿀 때만 검사한다 — 기존 아이디를 그대로 둔 저장은 규칙과 무관하게 통과해야 한다.
+  if (usernameChanged && !USERNAME_RE.test(username)) {
     return NextResponse.json({ error: `아이디는 ${USERNAME_HINT}이어야 합니다.` }, { status: 400 });
   }
   if (!EMAIL_RE.test(email)) {
