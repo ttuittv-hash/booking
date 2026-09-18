@@ -59,6 +59,8 @@ export interface AdminQuoteRow {
   createdAtLabel: string;
   applicantName: string;
   companyName: string;
+  venueLabel: string;
+  packageLabel: string;
   weekLabel: string;
   audienceLabel: string;
   totalLabel: string;
@@ -171,6 +173,8 @@ export function AdminQuoteTable({
               <th className={TH_NUM}>신청일시</th>
               <th className={TH}>신청자</th>
               <th className={TH}>회사</th>
+              <th className={TH}>공간</th>
+              <th className={TH}>패키지</th>
               <th className={TH}>주차</th>
               <th className={TH_NUM}>관객 (명)</th>
               <th className={TH_NUM}>신청 예상금액 (₩)</th>
@@ -181,7 +185,7 @@ export function AdminQuoteTable({
           <tbody>
             {rows.length === 0 ? (
               <tr>
-                <td colSpan={10} className={TD_EMPTY}>
+                <td colSpan={12} className={TD_EMPTY}>
                   아직 접수된 신청서가 없습니다.
                 </td>
               </tr>
@@ -205,6 +209,8 @@ export function AdminQuoteTable({
                     <td className={`${TD_NUM} text-muted`}>{row.createdAtLabel}</td>
                     <td className={TD}>{row.applicantName}</td>
                     <td className={TD_MUTED}>{row.companyName}</td>
+                    <td className={TD}>{row.venueLabel}</td>
+                    <td className={TD}>{row.packageLabel}</td>
                     <td className={`${TD} tabular-nums`}>{row.weekLabel}</td>
                     <td className={TD_NUM}>{row.audienceLabel}</td>
                     <td className={`${TD_NUM} font-bold`}>{row.totalLabel}</td>

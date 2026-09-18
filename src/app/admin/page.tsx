@@ -1,7 +1,9 @@
 import Link from "next/link";
 import { requireProAdminPage, isProAdminOrAbove } from "@/lib/auth";
-import { listCompanies, listQuotesPaged, listUsersByIds, normalizePage } from "@/lib/db";
+import { getRateTableByVersion, listCompanies, listQuotesPaged, listUsersByIds, normalizePage } from "@/lib/db";
 import { num } from "@/lib/format";
+import { findPackage } from "@/lib/pricing/rateTableUtils";
+import { VENUES, type RateTable } from "@/lib/pricing/types";
 import { Pagination } from "@/components/Pagination";
 import { btnClass } from "@/components/ui/kit";
 import { AdminNav } from "@/components/admin/AdminNav";
@@ -24,15 +26,40 @@ export default async function AdminPage({
   const companies = await listCompanies();
   const applicantIds = [...new Set(quotes.map((q) => q.applicantId))];
   const applicantById = new Map((await listUsersByIds(applicantIds)).map((u) => [u.id, u]));
+  // [신규 2026-09-19] "신청 목록에서 어떤 공간·패키지를 신청했는지 표기해달라" — 패키지명은
+  // 요금표(rateTable)에서 찾아야 하는데, 행마다 getRateTableByVersion 을 부르면 N+1이 된다
+  // (listUsersByIds 를 쓰는 것과 같은 이유). 페이지 안의 서로 다른 버전만 한 번씩 읽는다 —
+  // 실제로는 대부분 같은 버전이라 쿼리 1~2개로 끝난다.
+  const rateTableVersions = [...new Set(quotes.map((q) => q.rateTableVersion))];
+  const rateTableByVersion = new Map<string, RateTable>(
+    await Promise.all(
+      rateTableVersions.map(async (v) => [v, await getRateTableByVersion(v)] as const),
+    ),
+  );
   // 날짜/통화 포맷은 로케일에 따라 서버·브라우저 렌더링 결과가 달라져 하이드레이션 불일치를
   // 일으킬 수 있으므로, 클라이언트 컴포넌트로 넘기기 전에 서버에서 미리 문자열로 포맷한다.
   const rows = quotes.map((q) => {
     const applicant = applicantById.get(q.applicantId);
+    const s = q.selection;
+    // 동시 대관은 venueId 가 "arena"로 고정돼 있어("아레나 전용" 패키지가 그 값을 쓴다)
+    // venueId만으로는 구분이 안 된다 — bookingMode를 먼저 본다.
+    const venueLabel =
+      s.bookingMode === "SIMULTANEOUS"
+        ? "동시 대관"
+        : (VENUES.find((v) => v.id === s.venueId)?.name ?? NONE);
+    // 중형공연장 단독 신청은 패키지 개념이 없다(시간 단가 모델) — packageId는 아레나
+    // 전용이라 이때는 항상 null이다(types.ts 주석 참고).
+    const packageLabel =
+      s.venueId === "medium-hall" && s.bookingMode !== "SIMULTANEOUS"
+        ? NONE
+        : (findPackage(rateTableByVersion.get(q.rateTableVersion)!, s.packageId)?.name ?? NONE);
     return {
       id: q.id,
       createdAtLabel: new Date(q.createdAt).toLocaleString("ko-KR"),
       applicantName: applicant?.name ?? NONE,
       companyName: applicant?.companyName ?? NONE,
+      venueLabel,
+      packageLabel,
       weekLabel: `${q.selection.week.year}.${q.selection.week.month} ${q.selection.week.weekOfMonth}주차`,
       audienceLabel: q.selection.expectedAudience.toLocaleString("ko-KR"),
       totalLabel: num(q.total),
