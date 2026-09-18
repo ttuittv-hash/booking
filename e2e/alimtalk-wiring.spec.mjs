@@ -7,10 +7,12 @@
 // (→ 비회원이므로 ARENA-0016, 버튼 변수 1:1문의링크). 이력 조회는 aws-infra/db-sql.sh dev 로 한다.
 import { chromium } from "@playwright/test";
 import { execFileSync } from "node:child_process";
+import { env } from "./qa/_lib.mjs";
 
 const BASE = process.env.E2E_BASE || "https://partner.dev.seoularena.net";
 const BO = process.env.E2E_BO || "https://bo.dev.seoularena.net";
-const ADMIN = process.env.E2E_ADMIN || "admin", APW = process.env.E2E_ADMIN_PASSWORD || "Dkfpsk123!";
+// [보안 2026-09-18] 비밀번호 기본값을 두지 않는다 — 저장소에 평문으로 남아 있었다.
+const ADMIN = process.env.E2E_ADMIN || "admin", APW = env("E2E_ADMIN_PASSWORD");
 const PHONE = process.env.PHONE || "01027866732";
 const DBSQL = new URL("../../aws-infra/db-sql.sh", import.meta.url).pathname;
 

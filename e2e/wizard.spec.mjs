@@ -2,13 +2,15 @@
 // 접수 개시(2026-09-01) 전이라 SEOUL_ARENA_APPLY_OPEN=true 인 환경에서만 열린다.
 //
 // 로그인 계정은 환경변수로 받는다 — 승인 완료된 신청자 계정이어야 한다.
-//   E2E_USER (기본 testuser) · E2E_PASSWORD (기본 Test1234!)
+//   E2E_USER (기본 testuser) · E2E_PASSWORD (기본값 없음 — 2026-09-18, 없으면 그 자리에서 멈춘다)
 // 계정이 없으면 /register 로 가입한 뒤 bo 의 회원 관리에서 승인하거나,
 // full-flow.spec.mjs 를 한 번 돌리면 승인된 계정이 하나 만들어진다.
 import { chromium } from "@playwright/test";
+import { env } from "./qa/_lib.mjs";
 
 const USER = process.env.E2E_USER || "testuser";
-const PW = process.env.E2E_PASSWORD || "Test1234!";
+// [보안 2026-09-18] 비밀번호 기본값을 두지 않는다 — 저장소에 평문으로 남아 있었다.
+const PW = env("E2E_PASSWORD");
 const B="https://partner.dev.seoularena.net";
 const out=[]; const say=(ok,l,d="")=>{out.push(ok);console.log(`${ok?"OK  ":"NG  "} ${l}${d?"  — "+d:""}`)};
 const b=await chromium.launch();

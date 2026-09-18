@@ -3,9 +3,11 @@
 // dev 는 BIZTALK_RECIPIENT_ALLOWLIST 로 허용된 번호에만 외부 발송이 나간다. 이 스크립트는
 // 우회 인증에 PHONE(허용 번호)을 실어 그 번호로 가입 → 운영자 승인까지 화면으로 진행한다.
 //
-//   PHONE=01027866732 node e2e/alimtalk.spec.mjs
+//   PHONE=01027866732 ADMIN_PW=… node e2e/alimtalk.spec.mjs
+//   ADMIN_PW 는 기본값이 없다(2026-09-18) — 없으면 그 자리에서 멈춘다.
 import { chromium } from "@playwright/test";
 import fs from "node:fs";
+import { env } from "./qa/_lib.mjs";
 
 const BASE = process.env.E2E_BASE || "https://partner.dev.seoularena.net";
 const BO = process.env.E2E_BO || "https://bo.dev.seoularena.net";
@@ -74,7 +76,8 @@ try {
   await bo.goto(`${BO}/login`, { waitUntil: "domcontentloaded" });
   const inputs = bo.locator("input");
   await inputs.nth(0).fill("admin");
-  await inputs.nth(1).fill(process.env.ADMIN_PW || "Dkfpsk123!");
+  // [보안 2026-09-18] 비밀번호 기본값을 두지 않는다 — 저장소에 평문으로 남아 있었다.
+  await inputs.nth(1).fill(env("ADMIN_PW"));
   await bo.locator('button[type="submit"]').first().click();
   await bo.waitForURL(/\/admin/, { timeout: 20000 });
   await bo.goto(`${BO}/admin/applicants`, { waitUntil: "domcontentloaded" });

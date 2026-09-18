@@ -1,12 +1,16 @@
 // 백오피스 레이아웃·이동 점검 — 뷰포트 2종 × 관리자 화면 전체.
 // 가로 넘침·터치 타깃·콘솔 오류를 보고, 회원 관리 탭이 실제로 갈리는지 확인한다.
 //
-// 운영자 계정은 환경변수로 받는다. E2E_ADMIN (기본 admin) · E2E_ADMIN_PASSWORD (기본 Dkfpsk123!)
+// 운영자 계정은 환경변수로 받는다. E2E_ADMIN (기본 admin) ·
+// E2E_ADMIN_PASSWORD (기본값 없음 — 2026-09-18, 없으면 그 자리에서 멈춘다)
 import { chromium } from "@playwright/test";
+
+import { env } from "./qa/_lib.mjs";
 
 const BO = process.env.E2E_BO || "https://bo.dev.seoularena.net";
 const ADMIN = process.env.E2E_ADMIN || "admin";
-const ADMIN_PW = process.env.E2E_ADMIN_PASSWORD || "Dkfpsk123!";
+// [보안 2026-09-18] 비밀번호 기본값을 두지 않는다 — 저장소에 평문으로 남아 있었다.
+const ADMIN_PW = env("E2E_ADMIN_PASSWORD");
 
 // 경로는 화면에 그려진 메뉴에서 뽑는다. 손으로 적으면 메뉴가 바뀔 때 조용히 어긋난다
 // — 처음에 /admin/quotes·notices·faqs 를 적었는데 셋 다 없는 주소였고, 404 를 "점검했다"고

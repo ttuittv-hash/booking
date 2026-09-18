@@ -1,10 +1,13 @@
 // 2026-09-03 팀 고도화 요청 — dev 화면 1:1 검증. 설정을 바꾸는 검사는 끝나면 원상복구한다.
-//   node e2e/enhancements.spec.mjs            (E2E_USER/E2E_PASSWORD, E2E_ADMIN/E2E_ADMIN_PASSWORD 기본값 사용)
+//   E2E_PASSWORD=… E2E_ADMIN_PASSWORD=… node e2e/enhancements.spec.mjs
+//   비밀번호는 기본값이 없다(2026-09-18) — 없으면 그 자리에서 멈춘다. 아이디는 기본값이 있다.
 import { chromium } from "@playwright/test";
+import { env } from "./qa/_lib.mjs";
 const P = process.env.E2E_BASE || "https://partner.dev.seoularena.net";
 const BO = process.env.E2E_BO || "https://bo.dev.seoularena.net";
-const USER = process.env.E2E_USER || "testuser", PW = process.env.E2E_PASSWORD || "Test1234!";
-const ADMIN = process.env.E2E_ADMIN || "admin", APW = process.env.E2E_ADMIN_PASSWORD || "Dkfpsk123!";
+// [보안 2026-09-18] 비밀번호 기본값을 두지 않는다 — 저장소에 평문으로 남아 있었다.
+const USER = process.env.E2E_USER || "testuser", PW = env("E2E_PASSWORD");
+const ADMIN = process.env.E2E_ADMIN || "admin", APW = env("E2E_ADMIN_PASSWORD");
 const out = []; const say = (id, label, ok, detail = "") => { out.push(ok); console.log(`${ok ? "PASS" : "FAIL"}  ${id.padEnd(5)} ${label}${detail ? "  — " + detail : ""}`); };
 
 const b = await chromium.launch();

@@ -1,7 +1,10 @@
 // 신기능 인터랙션 — 서명패드 · 공지 에디터(접기/캘린더) · 알림 규칙 CRUD · 권한 이관 화면.
 // dev 전용: 공지·알림 규칙은 만들었다가 지운다.
 import { chromium } from "@playwright/test";
+import { env } from "./qa/_lib.mjs";
 const B="https://partner.dev.seoularena.net", BO="https://bo.dev.seoularena.net";
+// [보안 2026-09-18] 운영자 비밀번호가 본문에 평문으로 박혀 있었다 — 기본값을 두지 않는다.
+const ADMIN=process.env.E2E_ADMIN||"admin", APW=env("E2E_ADMIN_PASSWORD");
 const out=[]; const say=(ok,l,d="")=>{out.push(ok);console.log(`${ok?"OK  ":"NG  "} ${l}${d?"  — "+d:""}`)};
 const b=await chromium.launch();
 const p=await (await b.newContext({viewport:{width:1440,height:1100}})).newPage();
@@ -11,7 +14,7 @@ const t=String(Date.now()).slice(-6);
 try{
 // ── bo 로그인
 await p.goto(`${BO}/login`,{waitUntil:"networkidle"});
-const i=p.locator("input"); await i.nth(0).fill("admin"); await i.nth(1).fill("Dkfpsk123!");
+const i=p.locator("input"); await i.nth(0).fill(ADMIN); await i.nth(1).fill(APW);
 await Promise.all([p.waitForURL(/\/admin(?!\/login)/,{timeout:25000}), p.locator('button[type="submit"]').first().click()]);
 say(true,"bo 로그인");
 

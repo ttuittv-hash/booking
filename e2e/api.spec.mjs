@@ -1,7 +1,10 @@
 // API 상태 점검 — 인증 경계(401)와 정상 응답(200)을 확인한다. 데이터 변경 없음.
 import { chromium } from "@playwright/test";
+import { env } from "./qa/_lib.mjs";
 const B="https://partner.dev.seoularena.net", BO="https://bo.dev.seoularena.net";
-const USER=process.env.E2E_USER||"testuser", PW=process.env.E2E_PASSWORD||"Test1234!";
+// [보안 2026-09-18] 비밀번호 기본값을 두지 않는다 — 저장소에 평문으로 남아 있었다.
+const USER=process.env.E2E_USER||"testuser", PW=env("E2E_PASSWORD");
+const ADMIN=process.env.E2E_ADMIN||"admin", APW=env("E2E_ADMIN_PASSWORD");
 const out=[]; const say=(ok,l,d="")=>{out.push(ok);console.log(`${ok?"OK  ":"NG  "} ${l}${d?"  — "+d:""}`)};
 const b=await chromium.launch();
 
@@ -39,7 +42,7 @@ await guest.close();
 // 운영자
 const adm=await b.newContext(); const ap=await adm.newPage();
 await ap.goto(`${BO}/login`,{waitUntil:"networkidle"});
-const j=ap.locator("input"); await j.nth(0).fill("admin"); await j.nth(1).fill("Dkfpsk123!");
+const j=ap.locator("input"); await j.nth(0).fill(ADMIN); await j.nth(1).fill(APW);
 await Promise.all([ap.waitForURL(/\/admin(?!\/login)/,{timeout:25000}), ap.locator('button[type="submit"]').first().click()]);
 for (const [path, expect, label] of [
   ["/api/admin/notification-rules", 200, "알림 규칙 목록"],

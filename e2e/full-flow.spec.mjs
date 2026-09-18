@@ -8,9 +8,13 @@
 //   ./e2e/reset-dev.sh
 import { chromium } from "@playwright/test";
 import fs from "node:fs";
+import { env } from "./qa/_lib.mjs";
 
 const BASE = process.env.E2E_BASE || "https://partner.dev.seoularena.net";
 const BO = process.env.E2E_BO || "https://bo.dev.seoularena.net";
+// [보안 2026-09-18] 운영자 비밀번호가 본문에 평문으로 박혀 있었다 — 기본값을 두지 않는다.
+const ADMIN = process.env.E2E_ADMIN || "admin";
+const APW = env("E2E_ADMIN_PASSWORD");
 const STUB = fs.readFileSync("/tmp/arena-dev-stub.env", "utf8").trim().split("=")[1];
 
 const results = [];
@@ -145,10 +149,10 @@ try {
   const boCtx = await newCtx();
   const bo = await boCtx.newPage();
   await bo.goto(`${BO}/login`, { waitUntil: "domcontentloaded" });
-  await bo.fill('input[name="username"], input:below(:text("아이디"))>>nth=0', "admin").catch(() => {});
+  await bo.fill('input[name="username"], input:below(:text("아이디"))>>nth=0', ADMIN).catch(() => {});
   const inputs = bo.locator("input");
-  await inputs.nth(0).fill("admin");
-  await inputs.nth(1).fill("Dkfpsk123!");
+  await inputs.nth(0).fill(ADMIN);
+  await inputs.nth(1).fill(APW);
   await bo.locator('button[type="submit"]').first().click();
   await bo.waitForURL(/\/admin/, { timeout: 20000 });
   check("A9-1", "운영자가 백오피스에 로그인한다", true);
