@@ -3,7 +3,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { requireProAdminPage } from "@/lib/auth";
 import { findUserById, getQuoteById, getRateTableByVersion, listAttachments, getScreenTextContent } from "@/lib/db";
-import { resolveWizardFieldLabel } from "@/lib/content/pageContent";
+import { resolveWizardFieldLabel, showChoiceRow } from "@/lib/content/pageContent";
 import { isSafetyPledgeComplete } from "@/lib/scoring/scoreQuote";
 import { won } from "@/lib/format";
 import { resolveSelectedDates } from "@/lib/pricing/dateRange";
@@ -490,40 +490,72 @@ export default async function AdminQuoteApplicationPage({
               {text(info.eventScale) !== NONE ? (
                 <Row label="행사규모 (구)" value={text(info.eventScale)} />
               ) : null}
-              <Row
-                label="행사유형"
-                value={
-                  info.eventTypes.length
-                    ? info.eventTypes
-                        .map((t) => resolveWizardFieldLabel(screenText.wizardStrings, "eventTypes", t, EVENT_TYPE_LABEL))
-                        .join(", ")
-                    : NONE
-                }
-              />
-              <Row
-                label="공연등급"
-                value={
-                  info.ageRating
-                    ? `${resolveWizardFieldLabel(screenText.wizardStrings, "ageRating", info.ageRating, AGE_RATING_LABEL)}${info.ageLimitDetail ? ` (${info.ageLimitDetail})` : ""}`
-                    : NONE
-                }
-              />
-              <Row
-                label="무대형태"
-                value={
-                  info.stageTypes.length
-                    ? `${info.stageTypes.map((t) => resolveWizardFieldLabel(screenText.wizardStrings, "stageTypes", t, STAGE_TYPE_LABEL)).join(", ")}${info.stageTypeOtherDetail ? ` — ${info.stageTypeOtherDetail}` : ""}`
-                    : NONE
-                }
-              />
-              <Row
-                label="객석형태"
-                value={
-                  info.seatingTypes.length
-                    ? `${info.seatingTypes.map((t) => resolveWizardFieldLabel(screenText.wizardStrings, "seatingTypes", t, SEATING_TYPE_LABEL)).join(", ")}${info.seatingTypeOtherDetail ? ` — ${info.seatingTypeOtherDetail}` : ""}`
-                    : NONE
-                }
-              />
+              {showChoiceRow(
+                info.eventTypes.length > 0,
+                "performanceInfo.eventTypes",
+                Object.keys(EVENT_TYPE_LABEL),
+                screenText.wizardDisabledFields ?? [],
+                screenText.wizardCustomOptions,
+              ) && (
+                <Row
+                  label="행사유형"
+                  value={
+                    info.eventTypes.length
+                      ? info.eventTypes
+                          .map((t) => resolveWizardFieldLabel(screenText.wizardStrings, "eventTypes", t, EVENT_TYPE_LABEL))
+                          .join(", ")
+                      : NONE
+                  }
+                />
+              )}
+              {showChoiceRow(
+                !!info.ageRating,
+                "performanceInfo.ageRating",
+                Object.keys(AGE_RATING_LABEL),
+                screenText.wizardDisabledFields ?? [],
+                screenText.wizardCustomOptions,
+              ) && (
+                <Row
+                  label="공연등급"
+                  value={
+                    info.ageRating
+                      ? `${resolveWizardFieldLabel(screenText.wizardStrings, "ageRating", info.ageRating, AGE_RATING_LABEL)}${info.ageLimitDetail ? ` (${info.ageLimitDetail})` : ""}`
+                      : NONE
+                  }
+                />
+              )}
+              {showChoiceRow(
+                info.stageTypes.length > 0,
+                "performanceInfo.stageTypes",
+                Object.keys(STAGE_TYPE_LABEL),
+                screenText.wizardDisabledFields ?? [],
+                screenText.wizardCustomOptions,
+              ) && (
+                <Row
+                  label="무대형태"
+                  value={
+                    info.stageTypes.length
+                      ? `${info.stageTypes.map((t) => resolveWizardFieldLabel(screenText.wizardStrings, "stageTypes", t, STAGE_TYPE_LABEL)).join(", ")}${info.stageTypeOtherDetail ? ` — ${info.stageTypeOtherDetail}` : ""}`
+                      : NONE
+                  }
+                />
+              )}
+              {showChoiceRow(
+                info.seatingTypes.length > 0,
+                "performanceInfo.seatingTypes",
+                Object.keys(SEATING_TYPE_LABEL),
+                screenText.wizardDisabledFields ?? [],
+                screenText.wizardCustomOptions,
+              ) && (
+                <Row
+                  label="객석형태"
+                  value={
+                    info.seatingTypes.length
+                      ? `${info.seatingTypes.map((t) => resolveWizardFieldLabel(screenText.wizardStrings, "seatingTypes", t, SEATING_TYPE_LABEL)).join(", ")}${info.seatingTypeOtherDetail ? ` — ${info.seatingTypeOtherDetail}` : ""}`
+                      : NONE
+                  }
+                />
+              )}
               <Row label="셋업 추가 요청시간" value={text(info.setupRequestTime)} />
               <Row label="철수 완료 예정시간" value={text(info.teardownCompletionTime)} />
               <Row label="티켓 오픈 예정일" value={text(info.ticketOpenExpectedDate)} />

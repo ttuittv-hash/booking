@@ -666,6 +666,32 @@ export function resolveWizardFieldLabel(
   return wizardStrings[`fieldLabel.${group}.${key}`] ?? fallbackLabels[key] ?? key;
 }
 
+/**
+ * [신규 2026-09-18] "없어진 컬럼값들이 내역서에 노출되는 것"(niki) — 운영진이 화면 문구
+ * 관리에서 선택지 그룹을 꺼 버리면 신청자는 그 항목을 **아예 고를 수 없는데**, 관리자
+ * 「신청 내역」은 그 행을 계속 그려 「—」만 남겼다(행사유형·공연등급·무대형태·객석형태가
+ * 전부 그랬다 — 운영 위저드가 실제로 그 넷을 묻지 않는 것을 화면으로 확인했다).
+ *
+ * 판정은 위저드(StepPerformanceInfo 의 visibleInGroup)와 같은 규칙이다: 그룹 자체가
+ * 꺼졌거나 선택지가 하나도 안 남았으면 신청자에게 보이지 않는 그룹이다.
+ *
+ * 다만 **값이 남아 있으면 그대로 보여준다** — 끄기 전에 접수된 신청서의 값은 심의에
+ * 필요하고, 그걸 감추면 심의 자료가 조용히 사라진다. 이 화면(useWizardText 훅을 못 쓰는
+ * 서버 컴포넌트)에서 같은 판정을 재현하려고 위 resolveWizardFieldLabel 옆에 둔다.
+ */
+export function showChoiceRow(
+  hasValue: boolean,
+  groupId: string,
+  optionKeys: string[],
+  disabledFields: string[],
+  customOptions?: Record<string, string[]>,
+): boolean {
+  if (hasValue) return true;
+  if (disabledFields.includes(groupId)) return false;
+  const keys = [...optionKeys, ...(customOptions?.[groupId] ?? [])];
+  return !(keys.length > 0 && keys.every((k) => disabledFields.includes(`${groupId}.${k}`)));
+}
+
 export const DEFAULT_SCREEN_TEXT_CONTENT: ScreenTextContent = {
   noticesLead: "대관 접수 일정과 변경 사항, 시설·요금 안내를 확인하세요.",
   noticesEmptyDesc: "대관 공고와 운영 안내가 등록되면 이곳에 표시됩니다.",
