@@ -1320,17 +1320,35 @@ export function WizardShell({
                       selection.venueId === tab ||
                       (isSpecialSchedule && tab === "arena");
                     return (
-                      <button
+                      // [버그 수정 2026-09-19] 관리자 「신청 상세보기」(읽기 전용)에서 동시
+                      // 대관 신청서를 열면 이 탭이 항상 아레나에 멈춰 있어 중형 일정을 볼
+                      // 방법이 없었다("중형 탭이 안 열린다" 신고) — <button>은 상위
+                      // <fieldset disabled>의 네이티브 disabled 상속을 받아 클릭 이벤트
+                      // 자체가 발생하지 않는다(스타일만 "활성"처럼 보이고 실제로는 안
+                      // 눌림). StepNav처럼 화면에 어느 공간을 보여줄지만 바꾸는 순수 뷰
+                      // 상태라 실제 제출값과 무관하다 — 폼 연관 요소가 아닌 div로 바꿔
+                      // fieldset의 disabled 상속에서 빠지고, pointer-events-auto로 그
+                      // fieldset의 pointer-events-none도 되돌린다.
+                      <div
                         key={tab}
-                        type="button"
-                        disabled={!enabled}
+                        role="tab"
+                        aria-selected={venueTab === tab}
+                        aria-disabled={!enabled}
+                        tabIndex={enabled ? 0 : -1}
                         onClick={() => enabled && setVenueTab(tab)}
+                        onKeyDown={(e) => {
+                          if (!enabled) return;
+                          if (e.key === "Enter" || e.key === " ") {
+                            e.preventDefault();
+                            setVenueTab(tab);
+                          }
+                        }}
                         className={[
-                          "flex h-10 items-center border-b-2 px-4 text-s font-bold transition-colors",
+                          "pointer-events-auto flex h-10 items-center border-b-2 px-4 text-s font-bold outline-none transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-foreground",
                           venueTab === tab && enabled
-                            ? "border-foreground text-foreground"
+                            ? "cursor-pointer border-foreground text-foreground"
                             : enabled
-                              ? "border-transparent text-muted hover:text-foreground"
+                              ? "cursor-pointer border-transparent text-muted hover:text-foreground"
                               : "cursor-not-allowed border-transparent text-muted/40",
                         ].join(" ")}
                       >
@@ -1341,7 +1359,7 @@ export function WizardShell({
                               `${specialVenueName} 일정`
                             : t("wizardShell.arenaTabLabel", "아레나 일정")
                           : t("wizardShell.mediumHallTabLabel", "중형 일정")}
-                      </button>
+                      </div>
                     );
                   })}
                 </div>

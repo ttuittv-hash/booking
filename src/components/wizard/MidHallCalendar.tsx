@@ -172,27 +172,49 @@ export function MidHallCalendar({
       {title && <h3 className="type-kr-heading text-h6-m">{title}</h3>}
 
       <div className="mt-5 flex items-center justify-between">
-        <button
-          type="button"
-          onClick={() => goToMonth(-1)}
-          disabled={!canGoToMonth(-1)}
+        {/* [버그 수정 2026-09-19] 관리자 「신청 상세보기」(읽기 전용)의 <fieldset disabled>
+            안에서는 <button>이 네이티브 disabled를 상속해 클릭이 아예 안 먹었다 — 월
+            이동은 setSelection이 아니라 순수 화면 상태(WizardShell의 setMidHallMonth)라
+            읽기 전용에서도 동작해야 한다. 폼 연관 요소가 아닌 div로 바꿔 fieldset의
+            disabled 상속을 피하고, pointer-events-auto로 fieldset의 pointer-events-none도
+            되돌린다(WizardShell.tsx 아레나/중형 탭과 같은 패턴). */}
+        <div
+          role="button"
           aria-label="이전 달"
-          className={`${toggleClass(false)} disabled:cursor-not-allowed disabled:opacity-40`}
+          aria-disabled={!canGoToMonth(-1)}
+          tabIndex={canGoToMonth(-1) ? 0 : -1}
+          onClick={() => goToMonth(-1)}
+          onKeyDown={(e) => {
+            if (!canGoToMonth(-1)) return;
+            if (e.key === "Enter" || e.key === " ") {
+              e.preventDefault();
+              goToMonth(-1);
+            }
+          }}
+          className={`pointer-events-auto ${toggleClass(false, !canGoToMonth(-1))}`}
         >
           ‹
-        </button>
+        </div>
         <div className="type-kr-heading text-h6-m">
           {year}년 {month}월
         </div>
-        <button
-          type="button"
-          onClick={() => goToMonth(1)}
-          disabled={!canGoToMonth(1)}
+        <div
+          role="button"
           aria-label="다음 달"
-          className={`${toggleClass(false)} disabled:cursor-not-allowed disabled:opacity-40`}
+          aria-disabled={!canGoToMonth(1)}
+          tabIndex={canGoToMonth(1) ? 0 : -1}
+          onClick={() => goToMonth(1)}
+          onKeyDown={(e) => {
+            if (!canGoToMonth(1)) return;
+            if (e.key === "Enter" || e.key === " ") {
+              e.preventDefault();
+              goToMonth(1);
+            }
+          }}
+          className={`pointer-events-auto ${toggleClass(false, !canGoToMonth(1))}`}
         >
           ›
-        </button>
+        </div>
       </div>
 
       <div className="mt-4 grid grid-cols-7 gap-1 text-center text-xs font-bold text-muted sm:gap-1.5">
