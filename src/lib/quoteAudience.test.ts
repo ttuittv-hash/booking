@@ -1,6 +1,35 @@
 import { describe, expect, it } from "vitest";
 
-import { rowAudience } from "./quoteAudience";
+import { audienceForPackage, rowAudience } from "./quoteAudience";
+
+// 운영 요금표의 Rate A~D 「객석 규모 최대」가 전부 0 이라, 패키지를 고르는 순간
+// Math.min(0, 상한) = 0 으로 관객수가 덮였다. 신청자가 직접 채우지 않은 3건이 0 으로
+// 접수돼 심사표 「예상 관객 규모」(20점)에서 3점으로 채점됐다(2026-09-18 확인).
+describe("audienceForPackage — 등급 숫자가 없으면 기존 값을 덮지 않는다", () => {
+  const CAP = 22_500;
+
+  it("등급 최대값이 있으면 그 값으로 채운다", () => {
+    expect(audienceForPackage(12_000, CAP, 8_000)).toBe(12_000);
+  });
+
+  it("등급 최대값이 상한을 넘으면 상한으로 갈음한다", () => {
+    expect(audienceForPackage(99_999, CAP, 8_000)).toBe(CAP);
+  });
+
+  // 실제로 났던 증상 — 요금표에 라벨만 있고 숫자가 0 인 경우.
+  it("등급 최대값이 0 이면 신청자가 적은 값을 그대로 둔다", () => {
+    expect(audienceForPackage(0, CAP, 12_000)).toBe(12_000);
+  });
+
+  it("등급 최대값이 0 이고 기존 값도 0 이면 0 그대로다 — 없는 값을 지어내지 않는다", () => {
+    expect(audienceForPackage(0, CAP, 0)).toBe(0);
+  });
+
+  it("등급 최대값이 음수·NaN 이어도 기존 값을 지키다", () => {
+    expect(audienceForPackage(-1, CAP, 15_000)).toBe(15_000);
+    expect(audienceForPackage(Number.NaN, CAP, 15_000)).toBe(15_000);
+  });
+});
 
 // 「신청현황 탭 관객수 필드에 동기화가 안 되는 이슈」(niki 2026-09-18) — 목록이 공간과
 // 무관하게 expectedAudience(아레나 몫)만 읽어, 중형 단독 신청은 신청자가 값을 제대로

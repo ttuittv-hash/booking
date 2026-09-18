@@ -3,6 +3,7 @@
 import { Fragment, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { calculateQuote } from "@/lib/pricing/calculateQuote";
 import { ARENA_MAX_AUDIENCE } from "@/lib/content/rateFacts";
+import { audienceForPackage } from "@/lib/quoteAudience";
 import type {
   VenueRateContent,
   WizardStepTexts,
@@ -846,8 +847,14 @@ export function WizardShell({
         : {
             ...prev,
             packageId,
+            // [수정 2026-09-18] max 가 0 이면 Math.min(0, 상한) = 0 이라, 패키지를 고르는
+            // 순간 신청자가 적은 관객수가 0 으로 덮였다. 운영 요금표의 Rate A~D 「객석 규모
+            // 최대」가 실제로 전부 0 이었고(운영진이 사람이 읽는 라벨만 채우고 숫자 칸은
+            // 비워 둠), 그 탓에 3건이 관객수 0 으로 접수돼 심사표 「예상 관객 규모」 20점
+            // 항목에서 1만 미만 구간(3점)으로 채점됐다. 등급 숫자가 없으면 자동으로 채울
+            // 근거가 없다는 뜻이므로 기존 값을 그대로 둔다 — audienceForPackage 참고.
             expectedAudience: pkg
-              ? Math.min(pkg.audienceTier.max, ARENA_MAX_AUDIENCE)
+              ? audienceForPackage(pkg.audienceTier.max, ARENA_MAX_AUDIENCE, prev.expectedAudience)
               : prev.expectedAudience,
           },
     );

@@ -38,3 +38,22 @@ export function rowAudience(selection: AudienceFields): RowAudience {
   }
   return { main: selection.expectedAudience, sub: null };
 }
+
+/**
+ * [신규 2026-09-18] 패키지를 고를 때 관객수를 그 패키지의 객석 등급으로 자동으로 채운다.
+ *
+ * 운영 요금표에서 Rate A~D 의 「객석 규모 최소/최대」가 전부 0 이었다 — 운영진은 사람이
+ * 읽는 「규모 표기 라벨」("over 18,000")만 채우고 숫자 칸은 비워 두었고, 화면상으로는
+ * 라벨이 보여 멀쩡해 보였다. 그런데 자동 채움은 라벨이 아니라 숫자 max 를 쓴다:
+ * Math.min(0, 상한) = 0 이라, 패키지를 고르는 순간 관객수가 0 으로 덮였다. 신청자가
+ * STEP 3 에서 직접 채우면 정상이지만, 안 채운 3건은 0 인 채로 접수됐고 심사표
+ * 「예상 관객 규모」(20점)에서 1만 미만 구간(3점)으로 채점됐다.
+ *
+ * 요금표를 채우는 것만으로는 부족하다 — 숫자 칸을 비워 두는 건 언제든 다시 있을 수 있고,
+ * 그때마다 신청자가 적은 값이 0 으로 밀리면 안 된다. 등급 숫자가 없으면(0 이하·비정상)
+ * **자동으로 채울 근거가 없다는 뜻**이므로 기존 값을 그대로 둔다.
+ */
+export function audienceForPackage(tierMax: number, cap: number, current: number): number {
+  if (!Number.isFinite(tierMax) || tierMax <= 0) return current;
+  return Math.min(tierMax, cap);
+}
