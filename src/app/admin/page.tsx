@@ -60,7 +60,17 @@ export default async function AdminPage({
     const [contractAmount, additionalAmount] = contractSectionAmounts(q).sections;
     return {
       id: q.id,
-      createdAtLabel: new Date(q.createdAt).toLocaleString("ko-KR"),
+      // [개정 2026-09-18] "가로 사이즈를 확장해야 할 것 같아요 / 스크롤이 생겼군요"(niki) —
+      // "2026. 9. 18. 오후 5:10:30" 이 좁은 열 안에서 세 줄로 접혀 표를 크게 벌리고 있었다.
+      // 연도는 신청번호(2026-00051)가 이미 말해 주므로 월·일·시각만 남긴다.
+      // 24시간제로 둔다 — "오후 05:11"은 「오후」 두 글자가 붙어 좁은 열에서 다시 접힌다.
+      createdAtLabel: new Date(q.createdAt).toLocaleString("ko-KR", {
+        month: "2-digit",
+        day: "2-digit",
+        hour: "2-digit",
+        minute: "2-digit",
+        hour12: false,
+      }),
       applicantName: applicant?.name ?? NONE,
       companyName: applicant?.companyName ?? NONE,
       venueLabel,
@@ -69,6 +79,9 @@ export default async function AdminPage({
       audienceLabel: q.selection.expectedAudience.toLocaleString("ko-KR"),
       contractLabel: num(contractAmount.total),
       additionalLabel: num(additionalAmount.total),
+      // 정산이 0이면 계약금액 = 총액이라 보조줄이 같은 숫자를 두 번 말하게 된다 —
+      // 그런 행에서는 줄을 빼서 금액 열 폭을 돌려받는다(실제 목록의 대부분이 0이다).
+      hasAdditional: additionalAmount.total > 0,
       totalLabel: num(q.total),
       status: q.status,
       // [신규 2026-09-02] 승인해도 목록은 "예상견적(심사 대기)" 그대로였다 —
@@ -81,7 +94,11 @@ export default async function AdminPage({
     <div className="flex flex-1 flex-col">
       <AdminNav active="/admin" user={user} />
 
-      <main className="mx-auto w-full max-w-6xl flex-1 px-6 py-8 sm:py-10">
+      {/* [개정 2026-09-18] "가로 폭을 좀 더 늘려야 하나봐요 .. 짤리네욤"(niki) — 신청 현황은
+          열이 14개(공간·패키지·계약금액·추후정산·총액까지)라 다른 관리자 화면과 같은
+          max-w-6xl(1152px)에 넣으면 표가 잘린다. 실측으로 표가 요구하는 폭은 약 1545px다.
+          이 화면만 넓힌다 — AdminNav 는 관리자 화면 25곳이 공용으로 쓰므로 건드리지 않았다. */}
+      <main className="mx-auto w-full max-w-[1600px] flex-1 px-6 py-8 sm:py-10">
         <header className="border-b border-border/25 pb-6">
           <h1 className={PAGE_TITLE}>신청 현황</h1>
           <p className={PAGE_LEAD}>
@@ -118,7 +135,7 @@ export default async function AdminPage({
         </form>
 
         <div className="mt-6">
-          <AdminQuoteTable rows={rows} canDelete={isProAdminOrAbove(user)} />
+          <AdminQuoteTable rows={rows} total={total} canDelete={isProAdminOrAbove(user)} />
           <Pagination
             page={page}
             totalPages={totalPages}

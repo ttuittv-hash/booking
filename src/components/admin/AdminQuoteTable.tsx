@@ -4,10 +4,10 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import type { QuoteStatus, ReviewDecision } from "@/lib/pricing/types";
-import { ArrowRight, Badge, btnClass } from "@/components/ui/kit";
+import { Badge, btnClass } from "@/components/ui/kit";
 import { useDialog } from "@/components/ui/Dialog";
 import {
-  ROW_LINK,
+  NONE,
   TABLE,
   TABLE_CARD,
   TABLE_HEAD,
@@ -67,6 +67,8 @@ export interface AdminQuoteRow {
   contractLabel: string;
   /** 행사 후 정산에서 확정되는 금액(선택 옵션, VAT 포함) */
   additionalLabel: string;
+  /** 정산 금액이 0보다 큰가 — 0이면 계약금액 = 총액이라 보조줄을 그리지 않는다 */
+  hasAdditional: boolean;
   totalLabel: string;
   status: QuoteStatus;
   /** 심사 결과(없으면 아직 심사 전) */
@@ -75,9 +77,16 @@ export interface AdminQuoteRow {
 
 export function AdminQuoteTable({
   rows,
+  total,
   canDelete = false,
 }: {
   rows: AdminQuoteRow[];
+  /**
+   * [신규 2026-09-18] 전체 접수 건수. "개수 카운트가 페이지별로 되어 있습니다. 총 31개인가
+   * 접수된 것 같은데 페이지별로 20개, 10개 이런 식으로 되어 있네요"(niki) — 제목이
+   * rows.length(현재 페이지의 행 수)를 세고 있었다. 안 넘기면 예전처럼 동작한다.
+   */
+  total?: number;
   /** 삭제는 되돌릴 수 없어 PRO 등급 이상에게만 보인다(서버도 같은 선에서 막는다) */
   canDelete?: boolean;
 }) {
@@ -141,11 +150,13 @@ export function AdminQuoteTable({
       {/* Table / 1 헤더 행 — 좌: 제목 + 한 줄 설명 / 우: secondary + primary */}
       <div className={TABLE_HEAD}>
         <div>
-          <p className={TABLE_HEAD_TITLE}>신청 목록 ({rows.length})</p>
+          <p className={TABLE_HEAD_TITLE}>신청 목록 ({total ?? rows.length})</p>
           <p className={TABLE_HEAD_DESC}>
             {selected.size > 0
               ? `${selected.size}건 선택됨 — 같은 주차를 두고 경합 중인 신청서를 나란히 비교하세요.`
-              : "행을 선택하면 신청서를 나란히 비교할 수 있습니다."}
+              : total !== undefined && total > rows.length
+                ? `이 페이지 ${rows.length}건 · 전체 ${total}건 — 행을 누르면 상세로, 선택하면 나란히 비교할 수 있습니다.`
+                : "행을 누르면 상세로, 선택하면 신청서를 나란히 비교할 수 있습니다."}
           </p>
         </div>
         <div className={TABLE_HEAD_ACTIONS}>
@@ -181,7 +192,11 @@ export function AdminQuoteTable({
               <th className={TH}>패키지</th>
               <th className={TH}>주차</th>
               <th className={TH_NUM}>관객 (명)</th>
-              <th className={TH_NUM}>신청 예상금액 (₩)</th>
+              {/* [개정 2026-09-18] "계약 ㅇㅇ원 / 추후 정산 금액 / 총 금액 이렇게 3열로"(niki)
+                  — 한 칸에 총액 + 보조줄로 쌓아 두었더니 세 금액의 성격이 눈에 안 들어왔다. */}
+              <th className={TH_NUM}>계약금액 (₩)</th>
+              <th className={TH_NUM}>추후 정산 (₩)</th>
+              <th className={TH_NUM}>총 예상금액 (₩)</th>
               <th className={TH}>상태</th>
               <th className={TH} />
             </tr>
@@ -189,7 +204,7 @@ export function AdminQuoteTable({
           <tbody>
             {rows.length === 0 ? (
               <tr>
-                <td colSpan={12} className={TD_EMPTY}>
+                <td colSpan={14} className={TD_EMPTY}>
                   아직 접수된 신청서가 없습니다.
                 </td>
               </tr>
@@ -197,39 +212,71 @@ export function AdminQuoteTable({
               rows.map((row) => {
                 const isSelected = selected.has(row.id);
                 return (
+                  /* [신규 2026-09-18] "클릭이 안 되네요.. 상세화면으로 안 들어가져요"(niki)
+                     — hover 효과(TR_HOVER)로 "눌린다"고 약속해 놓고 <tr>에 onClick 이 없어
+                     아무 일도 일어나지 않았다. 상세로 가는 유일한 길이 가로 스크롤 너머의
+                     「상세 →」 링크였다. 회사 목록(CompanyDirectory)과 같은 방식으로 행
+                     전체를 누를 수 있게 한다 — 행 안의 조작(체크박스·링크·삭제)은 각자
+                     stopPropagation 으로 이동을 막는다. */
                   <tr
                     key={row.id}
-                    className={isSelected ? `${TR} bg-accent/15` : TR_HOVER}
+                    onClick={() => router.push(`/admin/${row.id}`)}
+                    className={`cursor-pointer ${isSelected ? `${TR} bg-accent/15` : TR_HOVER}`}
                   >
                     <td className={TD}>
                       <input
                         type="checkbox"
                         checked={isSelected}
                         onChange={() => toggle(row.id)}
+                        onClick={(e) => e.stopPropagation()}
                         aria-label={`${row.id} 비교 선택`}
                       />
                     </td>
-                    <td className={`${TD_ID} tabular-nums`}>{row.id}</td>
-                    <td className={`${TD_NUM} text-muted`}>{row.createdAtLabel}</td>
-                    <td className={TD}>{row.applicantName}</td>
-                    <td className={TD_MUTED}>{row.companyName}</td>
-                    <td className={TD}>{row.venueLabel}</td>
-                    <td className={TD}>{row.packageLabel}</td>
-                    <td className={`${TD} tabular-nums`}>{row.weekLabel}</td>
-                    <td className={TD_NUM}>{row.audienceLabel}</td>
-                    {/* [개정 2026-09-18] 열을 더 늘리면(이미 12열) 가로 스크롤 없이는 못 본다 —
-                        총액을 굵게 두고 그 아래 계약·정산을 작게 쌓아, 열 수는 그대로 두고
-                        신청자가 본 화면과 같은 구분을 준다(nora). */}
-                    <td className={TD_NUM}>
-                      <span className="font-bold">{row.totalLabel}</span>
-                      <span className="mt-0.5 block text-xs font-normal whitespace-nowrap text-muted">
-                        계약 {row.contractLabel} · 정산 {row.additionalLabel}
-                      </span>
+                    {/* 신청번호 자체를 링크로 둔다 — 표가 넓어 「상세 →」가 가로 스크롤
+                        너머로 밀려도 왼쪽 끝의 이 링크는 언제나 닿는다. */}
+                    {/* [2026-09-18] 열이 12개로 늘면서 브라우저가 폭을 맞추려고 텍스트를
+                        마구 접었다 — 신청번호가 「2026-」/「00006」 두 줄로 쪼개졌다. 식별자·
+                        날짜·주차처럼 접히면 안 되는 열은 nowrap 으로 고정해 표가 "필요한
+                        최소 폭"을 정직하게 요구하게 하고, 남는 폭은 회사명·신청자가 흡수한다. */}
+                    <td className={`${TD_ID} tabular-nums whitespace-nowrap`}>
+                      <Link
+                        href={`/admin/${row.id}`}
+                        onClick={(e) => e.stopPropagation()}
+                        className="underline decoration-border-soft underline-offset-4 transition-colors hover:decoration-foreground"
+                      >
+                        {row.id}
+                      </Link>
                     </td>
+                    <td className={`${TD_NUM} whitespace-nowrap text-muted`}>{row.createdAtLabel}</td>
+                    {/* [2026-09-18] 신청자·회사는 길이에 상한이 없어 표 폭이 데이터에 따라
+                        무한정 커졌다 — 운영의 「에이이지프레젠츠엘엘씨 (AEG PRESENTS LLC)」
+                        같은 이름 하나가 가로 스크롤을 만든다. 상한을 두고 넘치면 말줄임하되
+                        전체 이름은 title 로 띄운다. 이래야 내일 더 긴 회사가 들어와도 안 깨진다. */}
+                    <td className={TD} title={row.applicantName}>
+                      <span className="block max-w-[120px] truncate">{row.applicantName}</span>
+                    </td>
+                    {/* 상한은 <td> 가 아니라 안쪽 블록에 건다 — 표 레이아웃은 셀의
+                        max-width 를 무시하고 내용대로 열을 넓힌다(실측으로 확인). */}
+                    <td className={TD_MUTED} title={row.companyName}>
+                      <span className="block max-w-[160px] truncate">{row.companyName}</span>
+                    </td>
+                    <td className={`${TD} whitespace-nowrap`}>{row.venueLabel}</td>
+                    <td className={`${TD} whitespace-nowrap`}>{row.packageLabel}</td>
+                    <td className={`${TD} tabular-nums whitespace-nowrap`}>{row.weekLabel}</td>
+                    <td className={TD_NUM}>{row.audienceLabel}</td>
+                    {/* [재개정 2026-09-18] 세 금액을 각자의 열로 나눈다(niki) — 계약 시 내는
+                        돈과 행사 후 정산할 돈은 성격이 다른데, 한 칸에 쌓아 두니 구분이
+                        읽히지 않았다. 정산이 없으면 0 대신 「—」로 둬서 실제로 정산이 붙는
+                        건이 눈에 띄게 한다. */}
+                    <td className={`${TD_NUM} whitespace-nowrap text-muted`}>{row.contractLabel}</td>
+                    <td className={`${TD_NUM} whitespace-nowrap text-muted`}>
+                      {row.hasAdditional ? row.additionalLabel : NONE}
+                    </td>
+                    <td className={`${TD_NUM} font-bold whitespace-nowrap`}>{row.totalLabel}</td>
                     <td className={TD}>
                       {/* 심사 결과가 있으면 그것을 먼저 보여 준다 — 운영자가 목록에서
                           찾는 것은 "이 건을 심사했는가" 다. 진행 단계는 그 아래 줄. */}
-                      <span className="flex flex-col items-start gap-1">
+                      <span className="flex flex-col items-start gap-1 whitespace-nowrap">
                         {row.reviewDecision && (
                           <Badge tone={REVIEW_TONE[row.reviewDecision]}>
                             {REVIEW_LABEL[row.reviewDecision]}
@@ -244,16 +291,18 @@ export function AdminQuoteTable({
                       </span>
                     </td>
                     <td className={TD_LINK}>
+                      {/* [삭제 2026-09-18] 「상세 →」 링크를 뺐다 — 행 전체 클릭과 왼쪽 끝
+                          신청번호 링크가 이미 상세 진입로를 둘 제공하고, 이 열이 표를 넓혀
+                          가로 스크롤을 만들고 있었다(운영 조건 실측 269px 초과). */}
                       <span className="flex items-center justify-end gap-3">
-                        <Link href={`/admin/${row.id}`} className={ROW_LINK}>
-                          상세
-                          <ArrowRight />
-                        </Link>
                         {canDelete && (
                         <button
                           type="button"
                           disabled={busyId === row.id}
-                          onClick={() => void remove(row)}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            void remove(row);
+                          }}
                           className={REMOVE_BTN}
                         >
                           {busyId === row.id ? "삭제 중..." : "삭제"}
