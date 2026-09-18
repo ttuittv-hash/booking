@@ -5,6 +5,7 @@ import { num } from "@/lib/format";
 import { contractSectionAmounts } from "@/lib/pricing/lineItemGroups";
 import { findPackage } from "@/lib/pricing/rateTableUtils";
 import { VENUES, type RateTable } from "@/lib/pricing/types";
+import { rowAudience } from "@/lib/quoteAudience";
 import { Pagination } from "@/components/Pagination";
 import { btnClass } from "@/components/ui/kit";
 import { AdminNav } from "@/components/admin/AdminNav";
@@ -58,6 +59,11 @@ export default async function AdminPage({
     // 신청자가 마지막에 본 화면은 둘로 나뉘어 있는데 목록은 총액 한 칸뿐이라 "추후 정산
     // 금액이 없다"는 물음이 반복됐다(nora).
     const [contractAmount, additionalAmount] = contractSectionAmounts(q).sections;
+    // [신규 2026-09-18] 관객 열은 공간과 무관하게 expectedAudience(아레나 몫)만 읽고
+    // 있었다 — 중형 단독 신청은 관객수가 secondaryAudience 에 들어가므로 신청자가 값을
+    // 제대로 적어 내도 목록에 항상 0 으로 떴다("관객수 필드에 동기화가 안 된다", niki).
+    // 바로 위 venueLabel 과 같은 기준(bookingMode → venueId)으로 값도 고른다.
+    const audience = rowAudience(s);
     return {
       id: q.id,
       // [개정 2026-09-18] "가로 사이즈를 확장해야 할 것 같아요 / 스크롤이 생겼군요"(niki) —
@@ -76,7 +82,9 @@ export default async function AdminPage({
       venueLabel,
       packageLabel,
       weekLabel: `${q.selection.week.year}.${q.selection.week.month} ${q.selection.week.weekOfMonth}주차`,
-      audienceLabel: q.selection.expectedAudience.toLocaleString("ko-KR"),
+      audienceLabel: audience.main.toLocaleString("ko-KR"),
+      // 동시 대관은 두 공간의 1회당 관객수가 따로 있다 — 아레나만 찍으면 중형 몫이 사라진다.
+      audienceSubLabel: audience.sub === null ? null : `중형 ${audience.sub.toLocaleString("ko-KR")}`,
       contractLabel: num(contractAmount.total),
       additionalLabel: num(additionalAmount.total),
       // 정산이 0이면 계약금액 = 총액이라 보조줄이 같은 숫자를 두 번 말하게 된다 —

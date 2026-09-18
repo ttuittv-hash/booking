@@ -62,7 +62,10 @@ export interface AdminQuoteRow {
   venueLabel: string;
   packageLabel: string;
   weekLabel: string;
+  /** 주 공간의 1회당 예상 관객 수 (중형 단독이면 중형 값) */
   audienceLabel: string;
+  /** 동시 대관에서만 붙는 중형 몫 보조줄 — 단독 신청이면 null */
+  audienceSubLabel?: string | null;
   /** 계약 시 확정되는 금액(대관료, VAT 포함) */
   contractLabel: string;
   /** 행사 후 정산에서 확정되는 금액(선택 옵션, VAT 포함) */
@@ -191,7 +194,10 @@ export function AdminQuoteTable({
               <th className={TH}>공간</th>
               <th className={TH}>패키지</th>
               <th className={TH}>주차</th>
-              <th className={TH_NUM}>관객 (명)</th>
+              {/* [개정 2026-09-18] 값은 **1회당** 관객 수인데 제목이 그걸 안 밝혀, 3일
+                  공연을 12,000명으로 읽을 수 있었다 — 심사표 「예상 관객 규모」도 1회당
+                  기준이라 여기서 어긋나면 심사 판단이 틀어진다. */}
+              <th className={TH_NUM}>1회당 관객 (명)</th>
               {/* [개정 2026-09-18] "계약 ㅇㅇ원 / 추후 정산 금액 / 총 금액 이렇게 3열로"(niki)
                   — 한 칸에 총액 + 보조줄로 쌓아 두었더니 세 금액의 성격이 눈에 안 들어왔다. */}
               <th className={TH_NUM}>계약금액 (₩)</th>
@@ -263,7 +269,12 @@ export function AdminQuoteTable({
                     <td className={`${TD} whitespace-nowrap`}>{row.venueLabel}</td>
                     <td className={`${TD} whitespace-nowrap`}>{row.packageLabel}</td>
                     <td className={`${TD} tabular-nums whitespace-nowrap`}>{row.weekLabel}</td>
-                    <td className={TD_NUM}>{row.audienceLabel}</td>
+                    <td className={TD_NUM}>
+                      {row.audienceLabel}
+                      {row.audienceSubLabel && (
+                        <div className="text-xs text-muted">{row.audienceSubLabel}</div>
+                      )}
+                    </td>
                     {/* [재개정 2026-09-18] 세 금액을 각자의 열로 나눈다(niki) — 계약 시 내는
                         돈과 행사 후 정산할 돈은 성격이 다른데, 한 칸에 쌓아 두니 구분이
                         읽히지 않았다. 정산이 없으면 0 대신 「—」로 둬서 실제로 정산이 붙는
