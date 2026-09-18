@@ -10,7 +10,7 @@
 //   · 배점표 DB 버전관리(ScoringRubric 엔티티) — 지금은 이 파일의 상수가 정본
 //   · 경합 시 순위 기반 A-REV-02 산정 — 항상 패키지 등급/공연일수 기준 잠정치
 //   · 이력 기반 감점(A-PEN-01~05) — 이력 조회 테이블 없음, 항상 0
-//   · 가점 A-BON-03(경합 추가 대관료) — 신청서에 입력란 없음
+//   · 가점 M-BON-03(중형 신진 아티스트 기용) — 신청서에 입력란 없음
 //   · A-SAF-03 계약 증빙 첨부 — 신청서에 항목 없음, 계약 상태만으로 판정
 //   · 동점 tie-break 자동 판정, 위원별 봉인 채점, 시뮬레이션 — 전부 별도 단계(S1 이후)
 import type { PerformanceInfo, PublicInterestItem, QuoteSelection, SafetyPledge } from "@/lib/pricing/types";
@@ -296,14 +296,75 @@ function scoreSafety(info: PerformanceInfo, pledge: SafetyPledge | undefined): S
   return { key: "SAFETY", label: "안전관리·수행역량", nominalMax: 20, items };
 }
 
-function scoreBonuses(info: PerformanceInfo): BonusItem[] {
+// [수정 2026-09-18, 심사표 원본(Ver.26-08-22) 재대조] 두 가지가 배점표와 어긋나 있었다.
+//
+// 1) 가점 항목은 아레나·중형이 서로 다르다(배점표 1p·2p) — 아레나는 지역상생 5·공익객석
+//    5·경합 추가 대관료 4~10(3항목), 중형은 지역상생 3·공익객석 3·신진 아티스트 기용
+//    16(세 번째 항목 자체가 다름)인데, 이 함수는 venueId를 받지 않고 항상 같은 4항목·
+//    같은 배점을 냈다 — 중형 신청서에 아레나 배점(5/5/경합대관료)이 그대로 찍히고
+//    있었다.
+// 2) "지역상생 프로그램 참여"는 배점표에 한 줄뿐인데, 위저드에는 같은 취지의 체크박스가
+//    둘(LOCAL_COMMUNITY_PROGRAM · REGIONAL_VENUE_ACTIVATION_PROGRAM, 둘 다 "지역상생 ·
+//    공연장 활성화" 그룹) 있어 옛 코드가 각각을 A-BON-01·A-BON-04로 따로 채점했다 — 두
+//    체크박스를 모두 선택하면 배점표에 없는 10점(5+5)이 나오는 이중 채점이었다. 어느
+//    쪽을 체크해도 같은 한 줄로 합산한다.
+function scoreBonuses(info: PerformanceInfo, venueId: "arena" | "medium-hall"): BonusItem[] {
   const selected = info.publicInterestItems ?? [];
-  const bonuses: BonusItem[] = [
+  const localSolidarity =
+    selected.includes("LOCAL_COMMUNITY_PROGRAM") || selected.includes("REGIONAL_VENUE_ACTIVATION_PROGRAM");
+
+  if (venueId === "medium-hall") {
+    return [
+      {
+        code: "M-BON-01",
+        label: "지역상생 프로그램 참여 (제안 혹은 협업)",
+        maxScore: 3,
+        score: localSolidarity ? 3 : 0,
+        confidence: "AUTO",
+      },
+      {
+        code: "M-BON-02",
+        label: "공익 목적의 객석 수량 추가 제공",
+        maxScore: 3,
+        score: selected.includes("PUBLIC_INTEREST_SEATS") ? 3 : 0,
+        confidence: "PROVISIONAL",
+        note: "제공 좌석 수를 입력받는 필드가 없어 체크 여부로만 판정합니다. 문화소외계층 초청석(A-PUB-01①)과 같은 좌석을 중복 신고했는지 위원이 확인하세요(13-N #39-d).",
+      },
+      {
+        code: "M-BON-03",
+        label: "신진 아티스트 기용 (데뷔 1년 이내 또는 첫 단독 공연)",
+        maxScore: 16,
+        score: null,
+        confidence: "UNAVAILABLE",
+        note:
+          (info.artistMainHistory ?? []).length > 0
+            ? `등록된 아티스트 이력의 데뷔연도: ${(info.artistMainHistory ?? []).map((r) => r.debutYear || "미입력").join(", ")}. '첫 단독 공연' 여부는 입력받는 필드가 없어 위원이 위 이력을 참고해 직접 판단하세요.`
+            : "등록된 아티스트 이력이 없고, '데뷔 1년 이내·첫 단독 공연' 여부를 입력받는 필드도 없어 자동 산정할 수 없습니다. 위원이 직접 확인하세요.",
+      },
+    ];
+  }
+
+  // [신규 2026-08-26] 경합 시 추가 제안 대관료는 배점표상 "티켓 매출 X%" 구간별
+  // 점수다(0.5%↑ 4·1%↑ 6·1.5%↑ 8·2%↑ 10) — ticketRevenueShareRate가 그 %값이다.
+  // competitionFeeOptionMin/Max(정액 범위, 원 단위)는 배점표에 정량 기준이 없는
+  // 별도 자유 제안이라 점수에는 반영하지 않고 참고용으로만 note에 남긴다.
+  const rsRate = info.ticketRevenueShareRate;
+  const rsScore =
+    typeof rsRate === "number"
+      ? bandScore(rsRate, [{ min: 2, score: 10 }, { min: 1.5, score: 8 }, { min: 1, score: 6 }, { min: 0.5, score: 4 }], 0)
+      : 0;
+  const hasFeeRange =
+    typeof info.competitionFeeOptionMax === "number" && info.competitionFeeOptionMax > 0;
+  const feeRangeNote = hasFeeRange
+    ? ` (별도 제안: 대관료 옵션 ${info.competitionFeeOptionMin?.toLocaleString() ?? 0}~${info.competitionFeeOptionMax?.toLocaleString()}원 — 배점표에 정량 기준이 없어 점수에는 반영하지 않았습니다.)`
+    : "";
+
+  return [
     {
       code: "A-BON-01",
-      label: "지역상생 프로그램 참여",
+      label: "지역상생 프로그램 참여 (제안 혹은 협업)",
       maxScore: 5,
-      score: selected.includes("LOCAL_COMMUNITY_PROGRAM") ? 5 : 0,
+      score: localSolidarity ? 5 : 0,
       confidence: "AUTO",
     },
     {
@@ -314,44 +375,18 @@ function scoreBonuses(info: PerformanceInfo): BonusItem[] {
       confidence: "PROVISIONAL",
       note: "제공 좌석 수를 입력받는 필드가 없어 체크 여부로만 판정합니다. 문화소외계층 초청석(A-PUB-01①)과 같은 좌석을 중복 신고했는지 위원이 확인하세요(13-N #39-d).",
     },
-    // [신규 2026-08-26] 신청서에 경합 시 추가 제안 대관료 범위(competitionFeeOptionMin/
-    // Max)와 티켓 매출 RS 요율(ticketRevenueShareRate) 입력란이 생겨, 더 이상
-    // UNAVAILABLE이 아니다 — 둘 중 하나라도 제시했으면 만점, 아니면 0으로 잠정 산정한다.
-    (() => {
-      const hasFeeRange =
-        typeof info.competitionFeeOptionMax === "number" && info.competitionFeeOptionMax > 0;
-      const hasRsRate =
-        typeof info.ticketRevenueShareRate === "number" && info.ticketRevenueShareRate > 0;
-      const offered = hasFeeRange || hasRsRate;
-      const parts: string[] = [];
-      if (hasFeeRange) {
-        parts.push(
-          `대관료 옵션 ${info.competitionFeeOptionMin?.toLocaleString() ?? 0}~${info.competitionFeeOptionMax?.toLocaleString()}원`,
-        );
-      }
-      if (hasRsRate) parts.push(`티켓 매출 RS ${info.ticketRevenueShareRate}%`);
-      const bonus: BonusItem = {
-        code: "A-BON-03",
-        label: "경합 추가 대관료 제안",
-        maxScore: 10,
-        score: offered ? 10 : 0,
-        confidence: "PROVISIONAL",
-        note:
-          (parts.length > 0 ? `제안 내용: ${parts.join(" · ")}. ` : "제안 없음. ") +
-          "자유 입력값이라 실제 이행 가능성·적정성은 위원이 직접 검토해야 합니다.",
-      };
-      return bonus;
-    })(),
     {
-      code: "A-BON-04",
-      label: "지역 상생 및 공연장 활성화 특화 프로그램",
-      maxScore: 5,
-      score: selected.includes("REGIONAL_VENUE_ACTIVATION_PROGRAM") ? 5 : 0,
+      code: "A-BON-03",
+      label: "경합 추가 대관료 제안 (티켓 매출 0.5%↑ 4 · 1%↑ 6 · 1.5%↑ 8 · 2%↑ 10)",
+      maxScore: 10,
+      score: rsScore,
       confidence: "PROVISIONAL",
-      note: "프로그램 구체성·이행 가능성은 위원이 직접 검토해야 합니다.",
+      note:
+        `티켓 매출 RS 제안 요율 ${typeof rsRate === "number" ? `${rsRate}%` : "미입력"}.` +
+        feeRangeNote +
+        " 자유 입력값이라 실제 이행 가능성·적정성은 위원이 직접 검토해야 합니다.",
     },
   ];
-  return bonuses;
 }
 
 function scoreDisqualifiers(pledge: SafetyPledge | undefined): DisqualifierCheck[] {
@@ -381,7 +416,7 @@ function computeVenueScore(venueId: "arena" | "medium-hall", selection: QuoteSel
     }
   }
 
-  const bonuses = scoreBonuses(info);
+  const bonuses = scoreBonuses(info, venueId);
   const bonusTotal = bonuses.reduce((sum, b) => (isCounted(b.confidence) && b.score !== null ? sum + b.score : sum), 0);
   const penaltyTotal = 0; // 이력 조회 기능 미구현 — 항상 0(신규 취급)
 

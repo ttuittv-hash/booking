@@ -192,6 +192,63 @@ describe("scoreQuote — 동시 대관은 아레나·중형 독립 심사(13-C-5
   });
 });
 
+// [신규 2026-09-18, 심사표 원본 재대조] 지역상생 프로그램 참여는 배점표에 한 줄뿐인데
+// (아레나 5점), 위저드 체크박스가 두 개(LOCAL_COMMUNITY_PROGRAM ·
+// REGIONAL_VENUE_ACTIVATION_PROGRAM)라 옛 코드는 둘을 A-BON-01·A-BON-04로 따로 채점해
+// 둘 다 체크하면 10점이 나오는 이중 채점이었다.
+describe("scoreQuote — A-BON-01 지역상생 프로그램 이중 채점 방지", () => {
+  it("두 체크박스를 모두 선택해도 한 줄(5점)로만 합산된다", () => {
+    const selection = baseSelection({
+      performanceInfo: basePerformanceInfo({
+        publicInterestItems: ["LOCAL_COMMUNITY_PROGRAM", "REGIONAL_VENUE_ACTIVATION_PROGRAM"],
+      }),
+    });
+    const r = scoreQuote(selection).results[0];
+    expect(r.bonuses.map((b) => b.code)).not.toContain("A-BON-04");
+    const bon01 = r.bonuses.find((b) => b.code === "A-BON-01")!;
+    expect(bon01.score).toBe(5);
+    expect(r.bonusTotal).toBe(5);
+  });
+});
+
+// [신규 2026-09-18] A-BON-03 경합 추가 대관료 제안은 배점표상 티켓 매출 %구간별
+// 점수(0.5%↑4·1%↑6·1.5%↑8·2%↑10)인데, 옛 코드는 값이 있으면 무조건 10점을 줬다.
+describe("scoreQuote — A-BON-03 티켓 매출 RS 요율 구간 점수", () => {
+  it("1.2%면 6점, 2.5%면 10점, 0.3%면 0점", () => {
+    const at = (rate: number) =>
+      scoreQuote(
+        baseSelection({ performanceInfo: basePerformanceInfo({ ticketRevenueShareRate: rate }) }),
+      ).results[0].bonuses.find((b) => b.code === "A-BON-03")!.score;
+    expect(at(1.2)).toBe(6);
+    expect(at(2.5)).toBe(10);
+    expect(at(0.3)).toBe(0);
+  });
+});
+
+// [신규 2026-09-18] 중형공연장은 가점 항목 자체가 아레나와 다르다(배점표 2p) — 지역상생
+// 3점·공익객석 3점·신진 아티스트 기용 16점(아레나의 "경합 추가 대관료"가 아니다). 옛
+// 코드는 venueId를 받지 않아 중형 신청서에도 아레나 배점(5/5/경합대관료)이 찍혔다.
+describe("scoreQuote — 중형공연장 가점 항목은 아레나와 다르다", () => {
+  it("지역상생 3점·공익객석 3점, A-BON 코드가 아니라 M-BON 코드를 쓴다", () => {
+    const selection = baseSelection({
+      venueId: "medium-hall",
+      performanceInfo: basePerformanceInfo({
+        publicInterestItems: ["LOCAL_COMMUNITY_PROGRAM", "PUBLIC_INTEREST_SEATS"],
+      }),
+    });
+    const r = scoreQuote(selection).results[0];
+    expect(r.bonuses.map((b) => b.code)).toEqual(["M-BON-01", "M-BON-02", "M-BON-03"]);
+    expect(r.bonuses.find((b) => b.code === "M-BON-01")?.score).toBe(3);
+    expect(r.bonuses.find((b) => b.code === "M-BON-02")?.score).toBe(3);
+  });
+
+  it("신진 아티스트 기용은 판정할 필드가 없어 산정 불가로 표시된다", () => {
+    const r = scoreQuote(baseSelection({ venueId: "medium-hall" })).results[0];
+    const bon03 = r.bonuses.find((b) => b.code === "M-BON-03")!;
+    expect(bon03).toMatchObject({ score: null, confidence: "UNAVAILABLE", maxScore: 16 });
+  });
+});
+
 describe("scoreQuote — M-REV-01 중형 회차 가중", () => {
   it("공연 3회면 관객수 구간 점수에 +2가 더해진다", () => {
     const selection = baseSelection({
