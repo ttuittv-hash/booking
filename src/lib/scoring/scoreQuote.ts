@@ -351,7 +351,9 @@ function scoreBonuses(info: PerformanceInfo, venueId: "arena" | "medium-hall"): 
         maxScore: 3,
         score: selected.includes("PUBLIC_INTEREST_SEATS") ? 3 : 0,
         confidence: "PROVISIONAL",
-        note: "제공 좌석 수를 입력받는 필드가 없어 체크 여부로만 판정합니다. 문화소외계층 초청석(A-PUB-01①)과 같은 좌석을 중복 신고했는지 위원이 확인하세요(13-N #39-d).",
+        // 중형 화면에서 「A-PUB-01」을 가리키면 위원이 못 찾는다 — 그 화면에는 M-PUB-01 이
+        // 보인다. 코드 접두를 공간에 맞춘 뒤에도 note 안에 박힌 참조가 남아 있었다.
+        note: "제공 좌석 수를 입력받는 필드가 없어 체크 여부로만 판정합니다. 문화소외계층 초청석(M-PUB-01①)과 같은 좌석을 중복 신고했는지 위원이 확인하세요(13-N #39-d).",
       },
       {
         code: "M-BON-03",

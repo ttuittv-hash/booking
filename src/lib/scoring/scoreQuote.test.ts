@@ -286,6 +286,25 @@ describe("scoreQuote — 항목 코드 접두가 공간에 맞는다", () => {
     expect(codesOf(mid).every((c) => c.startsWith("M-"))).toBe(true);
   });
 
+  // [신규 2026-09-18] 위 검사들은 `code` 필드만 본다 — note 본문에 박힌 참조는 못 본다.
+  // 실제로 중형 M-BON-02 의 note 가 "문화소외계층 초청석(A-PUB-01①)"을 가리켜, 접두를
+  // 다 바꾼 뒤에도 중형 화면에 A- 코드가 하나 떴다(운영 확인에서 잡혔다). ScoringPanel 은
+  // note 도 그대로 그리므로, 결과 전체(코드·라벨·note·가점)를 훑어 반대 공간 접두가 한
+  // 개도 없어야 한다. 중형 평가표를 든 위원이 화면에서 못 찾는 코드를 읽으면 안 된다.
+  const foreignCodes = (r: unknown, mine: "A" | "M") =>
+    (JSON.stringify(r).match(/[AM]-(?:REV|PUB|MKT|SAF|BON|PEN)-\d\d/g) ?? []).filter(
+      (c) => !c.startsWith(`${mine}-`),
+    );
+
+  it("note 본문까지 훑어도 아레나 결과에 M- 코드가 없다", () => {
+    expect(foreignCodes(scoreQuote(baseSelection()).results[0], "A")).toEqual([]);
+  });
+
+  it("note 본문까지 훑어도 중형 결과에 A- 코드가 없다", () => {
+    const r = scoreQuote(baseSelection({ venueId: "medium-hall" })).results[0];
+    expect(foreignCodes(r, "M")).toEqual([]);
+  });
+
   it("접두만 바뀌고 배점은 두 평가표가 같다", () => {
     const a = scoreQuote(baseSelection()).results[0];
     const m = scoreQuote(baseSelection({ venueId: "medium-hall" })).results[0];
