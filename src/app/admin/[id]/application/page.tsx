@@ -433,7 +433,13 @@ export default async function AdminQuoteApplicationPage({
                     : text(info.organizer)
                 }
               />
-              <Row label="행사규모" value={text(info.eventScale)} />
+              {/* [2026-09-18] 행사규모 입력칸은 2026-08-22(1fa7ddb)에 위저드에서 빠졌다
+                  — 관객 규모 탭이 같은 걸 더 정확히 받는다. 그 뒤 신청서는 항상 비어
+                  있으므로 값이 남아 있는 옛 신청서에만 보여 준다(niki "중간에 삭제된
+                  필드값들은 안 보이도록"). 지우지 않는 이유: 옛 신청서에는 실제 값이 있다. */}
+              {text(info.eventScale) !== NONE ? (
+                <Row label="행사규모 (구)" value={text(info.eventScale)} />
+              ) : null}
               <Row
                 label="행사유형"
                 value={
@@ -540,15 +546,20 @@ export default async function AdminQuoteApplicationPage({
                   rows={(info.ticketTypes ?? []).map((r) => [r.label, won(r.price)])}
                 />
               </div>
-              <Row label="예상 유료 판매율" value={`${info.expectedPaidSalesRate}%`} />
-              <Row
-                label="경합 시 추가 대관료"
-                value={
-                  info.competitionFeeOptionMin || info.competitionFeeOptionMax
-                    ? `${won(info.competitionFeeOptionMin ?? 0)} ~ ${won(info.competitionFeeOptionMax ?? 0)}`
-                    : NONE
-                }
-              />
+              {/* [2026-09-18] 예상 판매율(예상 BEP) 입력은 2026-09-08(eb583f2)에 운영진
+                  요청으로 위저드에서 빠졌다 — 그 뒤 신청서는 항상 0% 라, 심의자에게
+                  "판매율 0%"라는 잘못된 신호를 준다. 값이 있는 옛 신청서에만 보여 준다. */}
+              {info.expectedPaidSalesRate ? (
+                <Row label="예상 유료 판매율 (구)" value={`${info.expectedPaidSalesRate}%`} />
+              ) : null}
+              {/* [2026-09-18] 경합 시 추가 대관료 레인지 입력은 2026-09-07(13b4c2a)에
+                  빠지고 아래 「티켓 매출 RS 요율」만 남았다. 값이 있는 옛 신청서에만. */}
+              {info.competitionFeeOptionMin || info.competitionFeeOptionMax ? (
+                <Row
+                  label="경합 시 추가 대관료 (구)"
+                  value={`${won(info.competitionFeeOptionMin ?? 0)} ~ ${won(info.competitionFeeOptionMax ?? 0)}`}
+                />
+              ) : null}
               <Row
                 label="티켓 매출 RS 요율"
                 value={info.ticketRevenueShareRate ? `${info.ticketRevenueShareRate}%` : NONE}
@@ -565,11 +576,19 @@ export default async function AdminQuoteApplicationPage({
 
             <Section title="공공 · 공익 참여">
               {info.publicInterestItems?.length ? (
+                /* [2026-09-18] 항목을 켰을 때 펼쳐지던 상세 입력칸은 2026-09-08(eb583f2)에
+                   빠졌다 — 그 뒤 신청서는 상세가 항상 비어 "—"만 찍혀, 체크를 했는데도
+                   아무것도 안 낸 것처럼 보였다. 행 자체는 지우지 않는다: 체크한 항목은
+                   살아 있는 입력이고 심의에 꼭 필요하다. 상세가 없으면 「선택함」으로 말한다. */
                 info.publicInterestItems.map((item) => (
                   <Row
                     key={item}
                     label={PUBLIC_INTEREST_ITEM_LABEL[item]}
-                    value={text(info.publicInterestDetails?.[item])}
+                    value={
+                      text(info.publicInterestDetails?.[item]) !== NONE
+                        ? text(info.publicInterestDetails?.[item])
+                        : "선택함"
+                    }
                   />
                 ))
               ) : (
@@ -585,10 +604,13 @@ export default async function AdminQuoteApplicationPage({
                 }
               />
               <Row label="해외 아티스트 사항" value={text(info.foreignArtistNotes)} />
-              <Row
-                label="민감정보 마스킹 고지"
-                value={info.sensitiveInfoMaskingAcknowledged ? "확인함" : "미확인"}
-              />
+              {/* [2026-09-18] 이 체크박스는 2026-09-07(1f88816)에 위저드에서 빠졌다 —
+                  아무도 true 로 만들 수 없어 모든 신규 신청서가 「미확인」으로 찍힌다.
+                  심의자에게 "고지를 안 받았다"는 잘못된 신호라, 실제로 확인된 옛
+                  신청서에만 보여 준다. */}
+              {info.sensitiveInfoMaskingAcknowledged ? (
+                <Row label="민감정보 마스킹 고지 (구)" value="확인함" />
+              ) : null}
               <Row
                 label="안전규정 준수 확약서"
                 value={pledgeComplete ? "작성 완료" : "미작성"}
@@ -615,9 +637,18 @@ export default async function AdminQuoteApplicationPage({
             {marketing.executionPlan?.mediaMix ? (
               <Row label="마케팅 실행 계획 (구)" value={marketing.executionPlan.mediaMix} />
             ) : null}
-            <Row label="타깃 정의" value={text(marketing.executionPlan?.targetDefinition)} />
-            <Row label="예산" value={text(marketing.executionPlan?.budget)} />
-            <Row label="일정" value={text(marketing.executionPlan?.timeline)} />
+            {/* [2026-09-18] 타깃 정의·집행 예산·타임라인 입력은 2026-08-26(26b35b0)에
+                빠졌다 — 바로 위 mediaMix 와 같은 처지인데 이 세 줄만 조건 없이 그려져
+                항상 "—" 로 남아 있었다. 같은 규칙(값 있을 때만 · 「(구)」)으로 맞춘다. */}
+            {marketing.executionPlan?.targetDefinition ? (
+              <Row label="타깃 정의 (구)" value={marketing.executionPlan.targetDefinition} />
+            ) : null}
+            {marketing.executionPlan?.budget ? (
+              <Row label="예산 (구)" value={marketing.executionPlan.budget} />
+            ) : null}
+            {marketing.executionPlan?.timeline ? (
+              <Row label="일정 (구)" value={marketing.executionPlan.timeline} />
+            ) : null}
           </Section>
         ) : null}
 
