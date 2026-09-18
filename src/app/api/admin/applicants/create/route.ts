@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { EMAIL_RE } from "@/lib/validation";
+import { EMAIL_RE, USERNAME_HINT, USERNAME_RE } from "@/lib/validation";
 import crypto from "node:crypto";
 import { getCurrentUser, isProAdminOrAbove, hashPassword } from "@/lib/auth";
 import {
@@ -16,7 +16,10 @@ import { dispatchMessage } from "@/lib/message/dispatch";
 import { sha256Hex } from "@/lib/passwordScheme";
 import { revalidateMemberViews } from "@/lib/revalidateAdmin";
 
-const USERNAME_RE = /^[a-z0-9][a-z0-9_]{3,19}$/;
+// [수정 2026-09-18] 여기에 로컬 USERNAME_RE 를 따로 두고 있었다(/^[a-z0-9][a-z0-9_]{3,19}$/
+// — 밑줄과 4자를 허용해 정본보다 느슨하다). validation.ts 헤더가 기록한 그 사고
+// ("중복확인은 통과하는데 가입에서 거부된다")의 수정이 이 라우트에는 닿지 않았다.
+// 정본 하나만 쓴다.
 
 export async function POST(request: Request) {
   const admin = await getCurrentUser();
@@ -36,7 +39,7 @@ export async function POST(request: Request) {
 
   if (!USERNAME_RE.test(username)) {
     return NextResponse.json(
-      { error: "아이디는 영문 소문자/숫자로 시작하는 4~20자여야 합니다." },
+      { error: `아이디는 ${USERNAME_HINT}이어야 합니다.` },
       { status: 400 },
     );
   }

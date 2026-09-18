@@ -47,7 +47,7 @@ export function AddAdminForm() {
       <div className="mt-5 grid grid-cols-1 gap-3 sm:grid-cols-5">
         <input
           type="text"
-          placeholder="아이디 (영문 소문자/숫자, 4~20자)"
+          placeholder="아이디 (5~20자의 영문·숫자)"
           value={form.username}
           onChange={(e) => setForm({ ...form, username: e.target.value })}
           className={FIELD}

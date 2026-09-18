@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { EMAIL_RE } from "@/lib/validation";
+import { EMAIL_RE, USERNAME_HINT, USERNAME_RE } from "@/lib/validation";
 import { getCurrentUser, verifyPassword } from "@/lib/auth";
 import {
   attachUserToCompany,
@@ -19,7 +19,8 @@ import {
 import { SHA256_HEX_RE, sha256Hex } from "@/lib/passwordScheme";
 import { checkCompanyNumber, isBlockedCompanyStatus, isNiceConfigured } from "@/lib/nice";
 
-const USERNAME_RE = /^[a-z0-9][a-z0-9_]{3,19}$/;
+// [수정 2026-09-18] 로컬 USERNAME_RE 를 지우고 정본(validation.ts)을 쓴다 — 옛 패턴은
+// 밑줄과 4자를 허용해, 본인이 바꾼 아이디가 다른 화면에서는 거부될 수 있었다.
 
 export async function PUT(request: Request) {
   const user = await getCurrentUser();
@@ -83,7 +84,7 @@ export async function PUT(request: Request) {
     return NextResponse.json({ error: "휴대폰 번호를 입력하세요." }, { status: 400 });
   }
   if (!USERNAME_RE.test(username)) {
-    return NextResponse.json({ error: "아이디는 영문 소문자/숫자로 시작하는 4~20자여야 합니다." }, { status: 400 });
+    return NextResponse.json({ error: `아이디는 ${USERNAME_HINT}이어야 합니다.` }, { status: 400 });
   }
   if (!EMAIL_RE.test(email)) {
     return NextResponse.json({ error: "올바른 이메일을 입력하세요." }, { status: 400 });

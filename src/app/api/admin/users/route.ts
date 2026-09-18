@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { EMAIL_RE } from "@/lib/validation";
+import { EMAIL_RE, USERNAME_HINT, USERNAME_RE } from "@/lib/validation";
 import crypto from "node:crypto";
 import { getCurrentUser, hashPassword, isMasterAdmin } from "@/lib/auth";
 import { createUser, findUserByEmailWithPasswordHash, findUserByUsername, listUsers } from "@/lib/db";
@@ -7,7 +7,8 @@ import { sha256Hex } from "@/lib/passwordScheme";
 
 /** 하이픈 있는 형태만 받는다 — 저장 형식을 하나로 두어야 발송 쪽에서 갈리지 않는다 */
 const PHONE_RE = /^01[016789]-\d{3,4}-\d{4}$/;
-const USERNAME_RE = /^[a-z0-9][a-z0-9_]{3,19}$/;
+// [수정 2026-09-18] 로컬 USERNAME_RE 를 지우고 정본(validation.ts)을 쓴다 — 옛 패턴은
+// 밑줄과 4자를 허용해, 여기서 만든 계정이 다른 화면에서는 거부되는 아이디를 가졌다.
 
 export async function GET() {
   const user = await getCurrentUser();
@@ -38,7 +39,7 @@ export async function POST(request: Request) {
 
   if (!USERNAME_RE.test(username)) {
     return NextResponse.json(
-      { error: "아이디는 영문 소문자/숫자로 시작하는 4~20자여야 합니다." },
+      { error: `아이디는 ${USERNAME_HINT}이어야 합니다.` },
       { status: 400 },
     );
   }
