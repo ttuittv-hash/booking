@@ -15,15 +15,21 @@
 //   2. **값을 못 읽으면 실패다.** 통과로 세지 않는다(_lib.mjs 의 CANNOT_READ 참고).
 //   3. **자격증명은 환경변수로만.** 기본값을 두지 않는다.
 //
+//   QA_BASIC_USER, QA_BASIC_PW   일반관리자(BASIC) 계정 — 권한 경계 검증용.
+//                                2026-09-18 에 qabasic01 을 만들었다(운영자 계정 관리 화면).
+//
 // 아직 못 덮는 것(정직하게 남긴다):
-//   · 일반관리자(BASIC)가 계약·정산 API 를 못 쓰는지 — 검증하려면 BASIC 등급 테스트 계정이
-//     필요하다. 운영의 일반관리자는 실계정이고, 계정을 새로 만드는 건 운영 DB 에 쓰는
-//     일이라 임의로 하지 않았다. 계정을 받으면 security 모듈로 덮는다.
+//   · invoice · signature 라우트의 등급 차단 — 구조상 신청서 조회가 등급 검사보다 앞이라,
+//     "없는 신청번호" 안전장치를 쓰면 404 만 나와 판별이 안 된다(security.mjs 주석 참고).
+//   · 요금표 PUT 의 등급 차단 — 신청번호가 없어 안전장치를 걸 수 없다. 막힘이 풀려 있으면
+//     요금표가 실제로 바뀌므로 아예 호출하지 않는다.
+//   · 신청자(APPLICANT) 관점의 경계 — 승인된 신청자 테스트 계정이 운영에 없다.
 import { chromium } from "@playwright/test";
 import { env } from "./qa/_lib.mjs";
 import * as regression from "./qa/regression.mjs";
+import * as security from "./qa/security.mjs";
 
-const MODULES = [regression];
+const MODULES = [security, regression];
 
 const cfg = {
   bo: process.env.QA_BO || "https://bo.seoularena.net",
@@ -32,6 +38,10 @@ const cfg = {
   adminPw: env("QA_ADMIN_PW"),
   arenaQuote: process.env.QA_ARENA_QUOTE || "2026-00051",
   midQuote: process.env.QA_MID_QUOTE || "2026-00030",
+  // 권한 경계 검증용 일반관리자(BASIC) 계정. 없으면 security 모듈이 "검증 못 했다"로
+  // 표시한다 — 조용히 건너뛰지 않는다(건너뛴 검사를 통과로 세면 안 된다).
+  basicUser: process.env.QA_BASIC_USER || null,
+  basicPw: process.env.QA_BASIC_PW || null,
 };
 
 console.log(`\n대상: ${cfg.bo}  (읽기 전용)\n`);
