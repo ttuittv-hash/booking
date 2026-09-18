@@ -74,7 +74,12 @@ export async function POST(request: Request, ctx: { params: Promise<{ id: string
   // [신규 2026-09-18] 접수 마감 게이트. 화면에서 업로드 칸을 감추는 것만으로는 API 직접
   // 호출을 못 막는다 — 마감을 화면에만 걸었다가 뚫린 게 오늘만 세 번째다.
   // 운영자는 통과시킨다: 마감 뒤 운영진이 대리로 서류를 다뤄야 하는 일이 있다.
-  if ((await isBookingClosed()) && user.role !== "ADMIN") {
+  //
+  // **보류(HOLD)는 예외다.** 보류는 "보완해서 다시 내라"는 뜻이라 새 자료를 받아야 한다
+  // (nora). 삭제 라우트에는 이 예외를 두지 않는다 — 이미 낸 자료는 심의 근거라 보완 중에도
+  // 지우지 못한다.
+  const supplementing = quote.review?.decision === "HOLD";
+  if ((await isBookingClosed()) && user.role !== "ADMIN" && !supplementing) {
     return NextResponse.json(
       { error: "접수가 마감되어 서류를 추가할 수 없습니다. 변경이 필요하면 운영자에게 문의해 주세요." },
       { status: 409 },

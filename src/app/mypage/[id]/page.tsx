@@ -333,11 +333,19 @@ export default async function MyQuoteDetailPage({
           viewerRole="APPLICANT"
         />
         {/* [신규 2026-09-18] 마감 뒤에도 신청자가 첨부를 올리고 지울 수 있었다(nora).
+            다만 **보류(보완 요청)** 중이면 새 자료는 받아야 한다 — 그게 보류의 뜻이다.
+            기존 자료는 심의 근거라 그때도 지우지 못하게 둔다.
             운영자는 잠그지 않는다 — 마감 뒤 대리로 손봐야 하는 일이 있다. */}
         <AttachmentsPanel
           quoteId={quote.id}
           attachments={attachments}
-          locked={bookingClosed && user.role !== "ADMIN"}
+          mode={
+            !bookingClosed || user.role === "ADMIN"
+              ? "open"
+              : quote.review?.decision === "HOLD"
+                ? "supplement"
+                : "locked"
+          }
         />
       </div>
     </MyPageShell>
