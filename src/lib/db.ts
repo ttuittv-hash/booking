@@ -3085,16 +3085,19 @@ export async function listUsersPaged(
   }
   const where = conditions.length ? `WHERE ${conditions.join(" AND ")}` : "";
 
-  const countRow = await one<{ n: number }>(`SELECT COUNT(*)::int AS n FROM users ${where}`, params);
-  const rows = await q<UserRow>(
-    `SELECT * FROM users ${where} ORDER BY ${
-      // 값은 고정 문자열 두 개뿐이라 사용자 입력이 SQL 에 닿지 않는다.
-      filter.orderBy === "company"
-        ? "company_name ASC NULLS LAST, company_id ASC, created_at ASC"
-        : "created_at ASC"
-    } LIMIT $${params.length + 1} OFFSET $${params.length + 2}`,
-    [...params, pageSize, (page - 1) * pageSize],
-  );
+  // 건수와 페이지 행은 서로 독립이라 함께 친다(listQuotesPaged 와 같은 이유).
+  const [countRow, rows] = await Promise.all([
+    one<{ n: number }>(`SELECT COUNT(*)::int AS n FROM users ${where}`, params),
+    q<UserRow>(
+      `SELECT * FROM users ${where} ORDER BY ${
+        // 값은 고정 문자열 두 개뿐이라 사용자 입력이 SQL 에 닿지 않는다.
+        filter.orderBy === "company"
+          ? "company_name ASC NULLS LAST, company_id ASC, created_at ASC"
+          : "created_at ASC"
+      } LIMIT $${params.length + 1} OFFSET $${params.length + 2}`,
+      [...params, pageSize, (page - 1) * pageSize],
+    ),
+  ]);
   return toPaged(rows.map(toAppUser), countRow?.n ?? 0, page, pageSize);
 }
 
@@ -3423,7 +3426,10 @@ export async function listCompaniesPaged(
   }
   const where = conditions.length ? `WHERE ${conditions.join(" AND ")}` : "";
 
-  const countRow = await one<{ n: number }>(
+  // 건수와 페이지 행은 서로 독립이다 — 먼저 띄워 두고 아래 페이지 쿼리와 함께 기다린다
+  // (차례로 await 하면 왕복이 두 번이다). 아래 쿼리가 길어 Promise.all 로 감싸는 대신
+  // 프라미스를 미리 만들어 두는 형태를 쓴다.
+  const countPromise = one<{ n: number }>(
     `SELECT COUNT(*)::int AS n FROM companies c ${where}`,
     params,
   );
@@ -3459,6 +3465,8 @@ export async function listCompaniesPaged(
       LIMIT $${params.length + 1} OFFSET $${params.length + 2}`,
     [...params, pageSize, (page - 1) * pageSize],
   );
+  // 위 페이지 쿼리가 도는 동안 함께 돌던 건수를 여기서 받는다.
+  const countRow = await countPromise;
   return toPaged(
     rows.map((r) => ({
       id: r.id,
@@ -3780,14 +3788,16 @@ export async function listQuotesPaged(
   }
   const where = conditions.length ? `WHERE ${conditions.join(" AND ")}` : "";
 
-  const countRow = await one<{ n: number }>(`SELECT COUNT(*)::int AS n FROM ${from} ${where}`, params);
-  const total = countRow?.n ?? 0;
-
-  const rows = await q<QuoteRow>(
-    `SELECT q.* FROM ${from} ${where} ORDER BY q.created_at DESC LIMIT $${params.length + 1} OFFSET $${params.length + 2}`,
-    [...params, pageSize, (page - 1) * pageSize],
-  );
-  return toPaged(rows.map(toQuote), total, page, pageSize);
+  // 건수와 페이지 행은 서로의 입력이 아니다 — 차례로 기다리면 왕복이 두 번이다.
+  // 풀에서 커넥션을 각각 빌려 동시에 친다(트랜잭션 안이 아니라 안전하다).
+  const [countRow, rows] = await Promise.all([
+    one<{ n: number }>(`SELECT COUNT(*)::int AS n FROM ${from} ${where}`, params),
+    q<QuoteRow>(
+      `SELECT q.* FROM ${from} ${where} ORDER BY q.created_at DESC LIMIT $${params.length + 1} OFFSET $${params.length + 2}`,
+      [...params, pageSize, (page - 1) * pageSize],
+    ),
+  ]);
+  return toPaged(rows.map(toQuote), countRow?.n ?? 0, page, pageSize);
 }
 
 // 같은 주차에 이미 심사 승인된 "다른 회사"의 신청서가 있는지 확인한다.
@@ -5551,11 +5561,14 @@ export async function listInquiriesPaged(
     params.push(filter.userId);
     where = `WHERE user_id = $${params.length}`;
   }
-  const countRow = await one<{ n: number }>(`SELECT COUNT(*)::int AS n FROM inquiries ${where}`, params);
-  const rows = await q<InquiryRow>(
-    `SELECT * FROM inquiries ${where} ORDER BY created_at DESC LIMIT $${params.length + 1} OFFSET $${params.length + 2}`,
-    [...params, pageSize, (page - 1) * pageSize],
-  );
+  // 건수와 페이지 행은 서로 독립이라 함께 친다(listQuotesPaged 와 같은 이유).
+  const [countRow, rows] = await Promise.all([
+    one<{ n: number }>(`SELECT COUNT(*)::int AS n FROM inquiries ${where}`, params),
+    q<InquiryRow>(
+      `SELECT * FROM inquiries ${where} ORDER BY created_at DESC LIMIT $${params.length + 1} OFFSET $${params.length + 2}`,
+      [...params, pageSize, (page - 1) * pageSize],
+    ),
+  ]);
   return toPaged(rows.map(toInquiry), countRow?.n ?? 0, page, pageSize);
 }
 
@@ -5610,11 +5623,14 @@ export async function listNotices(): Promise<Notice[]> {
 }
 
 export async function listNoticesPaged(page = 1, pageSize = DEFAULT_PAGE_SIZE): Promise<Paged<Notice>> {
-  const countRow = await one<{ n: number }>("SELECT COUNT(*)::int AS n FROM notices");
-  const rows = await q<NoticeRow>(
-    "SELECT * FROM notices ORDER BY created_at DESC LIMIT $1 OFFSET $2",
-    [pageSize, (page - 1) * pageSize],
-  );
+  // 건수와 페이지 행은 서로 독립이라 함께 친다(listQuotesPaged 와 같은 이유).
+  const [countRow, rows] = await Promise.all([
+    one<{ n: number }>("SELECT COUNT(*)::int AS n FROM notices"),
+    q<NoticeRow>("SELECT * FROM notices ORDER BY created_at DESC LIMIT $1 OFFSET $2", [
+      pageSize,
+      (page - 1) * pageSize,
+    ]),
+  ]);
   return toPaged(rows.map(toNotice), countRow?.n ?? 0, page, pageSize);
 }
 
