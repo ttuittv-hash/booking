@@ -7,7 +7,6 @@ import { totalRentalDays } from "@/lib/pricing/rateTableUtils";
 import {
   DEFAULT_VENUE_ID,
   EVENT_TYPE_LABEL,
-  RETRACTABLE_SEAT_USE_LABEL,
   SEATING_TYPE_LABEL,
   STAGE_TYPE_LABEL,
   VENUES,
@@ -175,16 +174,6 @@ export default async function PrintQuotePage({
                     ? quote.selection.performanceInfo.seatingTypes
                         .map((t) => SEATING_TYPE_LABEL[t])
                         .join(", ")
-                    : "-"
-                }
-              />
-              <Row
-                label="수납식 객석 사용여부"
-                value={
-                  quote.selection.performanceInfo.retractableSeatUse
-                    ? RETRACTABLE_SEAT_USE_LABEL[
-                        quote.selection.performanceInfo.retractableSeatUse
-                      ]
                     : "-"
                 }
               />

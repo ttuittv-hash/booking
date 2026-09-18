@@ -9,7 +9,6 @@ import {
   CAST_CONTRACT_STATUS_LABEL,
   DEFAULT_VENUE_ID,
   EVENT_TYPE_LABEL,
-  RETRACTABLE_SEAT_USE_LABEL,
   SEATING_TYPE_LABEL,
   STAGE_TYPE_LABEL,
   VENUES,
@@ -207,10 +206,6 @@ function performanceInfoFields(info: PerformanceInfo, wizardStrings: Record<stri
                     .join(", ")
                 : "-"
             }
-          />
-          <Row
-            label="수납식 객석 사용여부"
-            value={info.retractableSeatUse ? RETRACTABLE_SEAT_USE_LABEL[info.retractableSeatUse] : "-"}
           />
           <Row label="셋업 추가 요청시간" value={info.setupRequestTime || "-"} />
           <Row label="철수 완료 예정시간" value={info.teardownCompletionTime || "-"} />

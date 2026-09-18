@@ -22,8 +22,6 @@ import {
   EVENT_TYPE_LABEL,
   ORGANIZER_ROLE_LABEL,
   PUBLIC_INTEREST_ITEM_LABEL,
-  RETRACTABLE_SEAT_FLOOR_LABEL,
-  RETRACTABLE_SEAT_USE_LABEL,
   SEATING_TYPE_LABEL,
   STAGE_TYPE_LABEL,
   VENUES,
@@ -31,7 +29,6 @@ import {
   type DayTag,
   type MidHallDayRole,
   type QuoteStatus,
-  type RetractableSeatFloor,
 } from "@/lib/pricing/types";
 import { AdminNav } from "@/components/admin/AdminNav";
 import { SaveDocumentButton } from "@/components/SaveDocumentButton";
@@ -446,24 +443,6 @@ export default async function AdminQuoteApplicationPage({
                 value={
                   info.seatingTypes.length
                     ? `${info.seatingTypes.map((t) => resolveWizardFieldLabel(screenText.wizardStrings, "seatingTypes", t, SEATING_TYPE_LABEL)).join(", ")}${info.seatingTypeOtherDetail ? ` — ${info.seatingTypeOtherDetail}` : ""}`
-                    : NONE
-                }
-              />
-              <Row
-                label="수납식 객석"
-                value={
-                  info.retractableSeatUse
-                    ? `${RETRACTABLE_SEAT_USE_LABEL[info.retractableSeatUse]}${
-                        info.retractableSeatFloorUse
-                          ? ` (${(Object.keys(RETRACTABLE_SEAT_FLOOR_LABEL) as RetractableSeatFloor[])
-                              .filter((f) => info.retractableSeatFloorUse?.[f])
-                              .map(
-                                (f) =>
-                                  `${RETRACTABLE_SEAT_FLOOR_LABEL[f]} ${RETRACTABLE_SEAT_USE_LABEL[info.retractableSeatFloorUse![f]!]}`,
-                              )
-                              .join(" · ")})`
-                          : ""
-                      }`
                     : NONE
                 }
               />

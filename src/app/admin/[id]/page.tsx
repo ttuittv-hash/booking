@@ -26,7 +26,6 @@ import { defaultDayTags, effectiveDayTag, findPackage, totalRentalDays } from "@
 import {
   DEFAULT_VENUE_ID,
   EVENT_TYPE_LABEL,
-  RETRACTABLE_SEAT_USE_LABEL,
   SEATING_TYPE_LABEL,
   STAGE_TYPE_LABEL,
   VENUES,
@@ -401,12 +400,6 @@ export default async function AdminQuoteDetailPage({
                       ? quote.selection.performanceInfo.seatingTypes
                           .map((t) => resolveWizardFieldLabel(screenText.wizardStrings, "seatingTypes", t, SEATING_TYPE_LABEL))
                           .join(", ")
-                      : NONE,
-                  ],
-                  [
-                    "수납식 객석 사용여부",
-                    quote.selection.performanceInfo.retractableSeatUse
-                      ? RETRACTABLE_SEAT_USE_LABEL[quote.selection.performanceInfo.retractableSeatUse]
                       : NONE,
                   ],
                 ]}
