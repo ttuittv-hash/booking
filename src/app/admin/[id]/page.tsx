@@ -21,7 +21,7 @@ import {
   getScreenTextContent,
 } from "@/lib/db";
 import { resolveWizardFieldLabel } from "@/lib/content/pageContent";
-import { num, won } from "@/lib/format";
+import { formatDateTime, num, won } from "@/lib/format";
 import { resolveSelectedDates } from "@/lib/pricing/dateRange";
 import {
   SECTION_LABEL,
@@ -505,6 +505,18 @@ export default async function AdminQuoteDetailPage({
           )}
 
           {quote.status === "ESTIMATE" && <AiReviewBox quoteId={quote.id} />}
+
+          {/* [신규 2026-09-18] 보완 제출됨 표시. 이게 없으면 아래 일반 안내("심사를 승인해야
+              계약 단계로 진행할 수 있습니다")에 묻혀, 신청자가 보완 자료를 내고 절차를 닫았다는
+              사실이 화면에 전혀 안 보인다 — 인앱 알림은 지나가면 그만이다. */}
+          {quote.status === "ESTIMATE" &&
+            quote.review?.decision === "HOLD" &&
+            quote.review.supplementSubmittedAt && (
+              <p className={INFO_NOTE}>
+                보완 자료가 제출되었습니다 — {formatDateTime(quote.review.supplementSubmittedAt)}.
+                첨부서류를 확인한 뒤 심사를 다시 진행하세요.
+              </p>
+            )}
 
           {quote.status === "ESTIMATE" && (
             <ReviewForm

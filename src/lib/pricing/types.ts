@@ -833,6 +833,17 @@ export interface Review {
   rationale: string; // 심사 근거/코멘트
   decidedAt: string;
   decidedBy: string;
+  /**
+   * [신규 2026-09-18] 보류(보완 요청)를 받은 신청자가 「보완 제출」을 누른 시각.
+   *
+   * 누르기 전에는 없다(optional — 이 필드가 생기기 전에 저장된 심사 기록도 그대로 읽힌다).
+   * 이 값이 생기면 보완 업로드 창이 닫히고 운영자에게 알림이 간다. 운영자가 **다시** 보류를
+   * 걸면 새 심사 기록에는 이 값이 없으므로 자연스럽게 다시 열린다.
+   *
+   * 보류 상태(decision) 자체는 건드리지 않는다 — 지우면 보류 사유와 심사 이력이 함께
+   * 사라진다. 운영자는 「보완 제출됨」을 보고 다시 심사한다.
+   */
+  supplementSubmittedAt?: string | null;
 }
 
 export interface ContractAdjustment {

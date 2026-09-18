@@ -24,6 +24,7 @@ import {
 } from "@/lib/pricing/types";
 import { DepositPanel } from "@/components/DepositPanel";
 import { AttachmentsPanel } from "@/components/AttachmentsPanel";
+import { SupplementPanel } from "@/components/SupplementPanel";
 import { ContractSignaturePanel } from "@/components/ContractSignaturePanel";
 import { ContractAddendumsPanel } from "@/components/ContractAddendumsPanel";
 import { TaxInvoicePanel } from "@/components/TaxInvoicePanel";
@@ -342,11 +343,20 @@ export default async function MyQuoteDetailPage({
           mode={
             !bookingClosed || user.role === "ADMIN"
               ? "open"
-              : quote.review?.decision === "HOLD"
+              : quote.review?.decision === "HOLD" && !quote.review.supplementSubmittedAt
                 ? "supplement"
                 : "locked"
           }
         />
+        {/* [신규 2026-09-18] 보완 자료를 올린 뒤 절차를 닫는 버튼(nora). 보류 중일 때만
+            보인다 — 제출하고 나면 같은 자리에 「보완 제출 완료 · 일시」가 남는다. */}
+        {quote.review?.decision === "HOLD" && user.role !== "ADMIN" && (
+          <SupplementPanel
+            quoteId={quote.id}
+            submittedAt={quote.review.supplementSubmittedAt ?? null}
+            attachmentCount={attachments.length}
+          />
+        )}
       </div>
     </MyPageShell>
   );
