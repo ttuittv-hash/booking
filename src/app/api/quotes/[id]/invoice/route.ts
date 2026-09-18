@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { notifyQuoteApplicant } from "@/lib/message/quoteEvents";
 import crypto from "node:crypto";
-import { canAccessQuote, canActOnQuotes, getCurrentUser } from "@/lib/auth";
+import { canAccessQuote, canActOnQuotes, getCurrentUser, isProAdminOrAbove } from "@/lib/auth";
 import {
   addAuditLog,
   confirmTaxInvoicePayment,
@@ -47,8 +47,10 @@ export async function POST(request: Request, ctx: { params: Promise<{ id: string
   // 않는다 — 계약금:잔금 비율·청구 시점이 아직 확정되지 않아, 운영자가 필요할 때
   // 직접 금액을 정해 청구서를 만든다(2026-08-22 대관료 정산프로세스 반영).
   if (purpose === "CONTRACT_BALANCE" && body.action === "create") {
-    if (user.role !== "ADMIN") {
-      return NextResponse.json({ error: "운영자만 잔금 청구서를 만들 수 있습니다." }, { status: 403 });
+    // [보안 2026-09-18] role 만 보던 것을 등급까지 본다 — 일반관리자(BASIC)가 API 를 직접
+    // 호출해 남의 계약 청구서를 만들 수 있었다.
+    if (!isProAdminOrAbove(user)) {
+      return NextResponse.json({ error: "프로 관리자 이상만 잔금 청구서를 만들 수 있습니다." }, { status: 403 });
     }
     if (!quote.contract) {
       return NextResponse.json({ error: "계약이 확정된 신청서만 잔금을 청구할 수 있습니다." }, { status: 409 });
@@ -72,8 +74,9 @@ export async function POST(request: Request, ctx: { params: Promise<{ id: string
   }
 
   if (body.action === "issue") {
-    if (user.role !== "ADMIN") {
-      return NextResponse.json({ error: "운영자만 발행할 수 있습니다." }, { status: 403 });
+    // [보안 2026-09-18] role 만 보던 것을 등급까지 본다.
+    if (!isProAdminOrAbove(user)) {
+      return NextResponse.json({ error: "프로 관리자 이상만 발행할 수 있습니다." }, { status: 403 });
     }
     if (invoice.status !== "PENDING") {
       return NextResponse.json({ error: "이미 발행된 세금계산서입니다." }, { status: 409 });
@@ -126,8 +129,9 @@ export async function POST(request: Request, ctx: { params: Promise<{ id: string
   }
 
   if (body.action === "confirm") {
-    if (user.role !== "ADMIN") {
-      return NextResponse.json({ error: "운영자만 확인할 수 있습니다." }, { status: 403 });
+    // [보안 2026-09-18] role 만 보던 것을 등급까지 본다.
+    if (!isProAdminOrAbove(user)) {
+      return NextResponse.json({ error: "프로 관리자 이상만 확인할 수 있습니다." }, { status: 403 });
     }
     if (invoice.status !== "REPORTED") {
       return NextResponse.json({ error: "입금신청된 건만 확인할 수 있습니다." }, { status: 409 });

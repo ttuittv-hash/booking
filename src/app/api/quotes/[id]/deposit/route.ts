@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { notifyQuoteApplicant } from "@/lib/message/quoteEvents";
 import crypto from "node:crypto";
-import { canAccessQuote, canActOnQuotes, getCurrentUser } from "@/lib/auth";
+import { canAccessQuote, canActOnQuotes, getCurrentUser, isProAdminOrAbove } from "@/lib/auth";
 import {
   addAuditLog,
   confirmDeposit,
@@ -62,6 +62,10 @@ export async function POST(request: Request, ctx: { params: Promise<{ id: string
   if (action === "confirm") {
     if (user.role !== "ADMIN") {
       return NextResponse.json({ error: "운영자 로그인이 필요합니다." }, { status: 401 });
+    }
+    // [보안 2026-09-18] 등급까지 본다 — 입금 확인은 대관 자료다.
+    if (!isProAdminOrAbove(user)) {
+      return NextResponse.json({ error: "프로 관리자 이상만 입금을 확인할 수 있습니다." }, { status: 403 });
     }
 
     const quote = await getQuoteById(id);

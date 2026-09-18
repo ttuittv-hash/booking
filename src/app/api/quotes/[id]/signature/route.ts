@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { notifyQuoteApplicant } from "@/lib/message/quoteEvents";
 import crypto from "node:crypto";
-import { canAccessQuote, canActOnQuotes, getCurrentUser } from "@/lib/auth";
+import { canAccessQuote, canActOnQuotes, getCurrentUser, isProAdminOrAbove } from "@/lib/auth";
 import {
   addAuditLog,
   createNotification,
@@ -31,6 +31,14 @@ export async function POST(request: Request, ctx: { params: Promise<{ id: string
   }
 
   const now = new Date().toISOString();
+
+  // [보안 2026-09-18] 여기는 아래 분기 조건을 isProAdminOrAbove 로 바꾸면 **안 된다**.
+  // 그러면 일반관리자(BASIC)가 조건을 빠져나가 아래 signContractAsApplicant 로 떨어져
+  // 신청자 날인을 하게 된다 — 막으려던 것보다 나쁜 결과다. 등급이 모자라면 분기에
+  // 닿기 전에 끊는다.
+  if (user.role === "ADMIN" && !isProAdminOrAbove(user)) {
+    return NextResponse.json({ error: "프로 관리자 이상만 계약에 날인할 수 있습니다." }, { status: 403 });
+  }
 
   if (user.role === "ADMIN") {
     const signature = await signContractAsVenue(id, user.id, now);

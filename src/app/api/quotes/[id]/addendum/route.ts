@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { formatAmount, notifyQuoteApplicant } from "@/lib/message/quoteEvents";
 import crypto from "node:crypto";
-import { getCurrentUser } from "@/lib/auth";
+import { getCurrentUser, isProAdminOrAbove } from "@/lib/auth";
 import { addAuditLog, createContractAddendum, createNotification, getQuoteById } from "@/lib/db";
 
 // 부속합의(계약 변경 이력) 등록 — 계약 확정 이후에만 가능하다. 계약금액(contractTotal)
@@ -10,6 +10,11 @@ export async function POST(request: Request, ctx: { params: Promise<{ id: string
   const user = await getCurrentUser();
   if (!user || user.role !== "ADMIN") {
     return NextResponse.json({ error: "운영자 로그인이 필요합니다." }, { status: 401 });
+  }
+  // [보안 2026-09-18] 등급까지 본다 — 화면은 requireProAdminPage() 로 일반관리자(BASIC)를
+  // 막는데 이 API 는 role 만 봐서, 콘텐츠 권한만 있는 운영자가 직접 호출할 수 있었다.
+  if (!isProAdminOrAbove(user)) {
+    return NextResponse.json({ error: "프로 관리자 이상만 변경계약을 남길 수 있습니다." }, { status: 403 });
   }
 
   const { id } = await ctx.params;

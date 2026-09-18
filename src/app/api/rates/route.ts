@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { getCurrentUser } from "@/lib/auth";
+import { getCurrentUser, isProAdminOrAbove } from "@/lib/auth";
 import { accountStateOf, canAccess } from "@/lib/accessPolicy";
 import { getCurrentRateTable, getRatesContent, saveNewRateTableVersion, saveRatesContent } from "@/lib/db";
 import type { AddonCategory, AddonItem, MidHallFeeBreakdown, RateTable } from "@/lib/pricing/types";
@@ -49,6 +49,12 @@ export async function PUT(request: Request) {
   const user = await getCurrentUser();
   if (!user || user.role !== "ADMIN") {
     return NextResponse.json({ error: "운영자 로그인이 필요합니다." }, { status: 401 });
+  }
+  // [보안 2026-09-18] 등급까지 본다 — 화면(/admin/rates)은 requireProAdminPage() 로
+  // 일반관리자(BASIC)를 막는데 이 API 는 role 만 봐서 직접 호출할 수 있었다. 요금표는
+  // 모든 신청서의 금액 산정 근거라 영향이 넓다.
+  if (!isProAdminOrAbove(user)) {
+    return NextResponse.json({ error: "프로 관리자 이상만 요금표를 변경할 수 있습니다." }, { status: 403 });
   }
 
   const body = await request.json().catch(() => null);
