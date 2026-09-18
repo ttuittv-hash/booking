@@ -144,6 +144,30 @@ describe("scoreQuote — 협조 동의 항목(A-MKT-02/04)은 정책상 제외",
   });
 });
 
+// [신규 2026-09-18, 감사] A-MKT-01(mediaMixOnline/Offline)·A-MKT-03(coSponsorshipConsent)은
+// 위저드에서 입력 UI가 없어진 죽은 필드다 — 레거시 값이 남아있어도(옛 신청서 등)
+// 자동으로 점수를 매기지 말고 UNAVAILABLE(위원 직접 판단)로 내려가야 한다.
+describe("scoreQuote — A-MKT-01/03은 입력 UI가 없어진 죽은 필드라 산정 불가로 내려간다", () => {
+  it("레거시 값이 남아있어도 UNAVAILABLE·score null이고 집계에서 빠진다", () => {
+    const marketingCooperation: MarketingCooperation = {
+      channels: [],
+      seoulArenaPromotionConsent: true,
+      sponsorships: [],
+      coPromotionConsent: true,
+      coSponsorshipConsent: true,
+      ticketSalesDataConsent: true,
+      pollstarConsent: true,
+      executionPlan: { targetDefinition: "", mediaMix: "", budget: "", timeline: "" },
+      contentCooperationConsent: null,
+    };
+    const r = scoreQuote(baseSelection({ marketingCooperation })).results[0];
+    const mkt01 = r.categories[2].items.find((i) => i.code === "A-MKT-01")!;
+    const mkt03 = r.categories[2].items.find((i) => i.code === "A-MKT-03")!;
+    expect(mkt01).toMatchObject({ score: null, confidence: "UNAVAILABLE" });
+    expect(mkt03).toMatchObject({ score: null, confidence: "UNAVAILABLE" });
+  });
+});
+
 describe("scoreQuote — A-SAF-02 서약서 및 DQ-01 부적격 게이트", () => {
   it("서약 7항목 + 서명이 모두 있으면 10점, 부적격 게이트는 정상", () => {
     const r = scoreQuote(baseSelection({ safetyPledge: COMPLETE_PLEDGE })).results[0];

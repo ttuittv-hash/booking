@@ -13,7 +13,7 @@
 //   · 가점 A-BON-03(경합 추가 대관료) — 신청서에 입력란 없음
 //   · A-SAF-03 계약 증빙 첨부 — 신청서에 항목 없음, 계약 상태만으로 판정
 //   · 동점 tie-break 자동 판정, 위원별 봉인 채점, 시뮬레이션 — 전부 별도 단계(S1 이후)
-import type { MarketingCooperation, PerformanceInfo, PublicInterestItem, QuoteSelection, SafetyPledge } from "@/lib/pricing/types";
+import type { PerformanceInfo, PublicInterestItem, QuoteSelection, SafetyPledge } from "@/lib/pricing/types";
 import type {
   BonusItem,
   DisqualifierCheck,
@@ -47,12 +47,6 @@ function bandScore(n: number, bands: { min: number; score: number }[], fallback:
     if (n >= b.min) return b.score;
   }
   return fallback;
-}
-
-// 자유서술 필드에 수치·금액·일자 중 하나라도 들어있는지 — 숫자 하나로 셋을 근사한다
-// (A-MKT-01 "concrete()" 판정, 13-C-4).
-function hasConcreteContent(text: string): boolean {
-  return text.trim().length > 0 && /\d/.test(text);
 }
 
 function parseAudienceNumber(raw: string): number {
@@ -179,24 +173,23 @@ function scorePublic(info: PerformanceInfo): ScoreCategory {
   return { key: "PUBLIC", label: "공공성·공익성", nominalMax: 20, items };
 }
 
-function scoreMarketing(mkt: MarketingCooperation | undefined): ScoreCategory {
+function scoreMarketing(): ScoreCategory {
   const items: ScoreItem[] = [];
-  const plan = mkt?.executionPlan;
-  // [개정 2026-08-26] "타겟 정의·집행 예산·타임라인은 제외" 요청으로 마케팅 실행
-  // 계획 입력을 온라인/오프라인 계획 2가지로 줄였다 — 채점 요소도 그에 맞춘다.
-  const concreteCount = plan
-    ? [plan.mediaMixOnline ?? "", plan.mediaMixOffline ?? ""].filter(hasConcreteContent).length
-    : 0;
-  const mktScore = concreteCount === 2 ? 5 : concreteCount === 1 ? 2 : 0;
+  // [2026-09-02, 감사 2026-09-18] "타겟 정의·집행 예산·타임라인은 제외" 요청 이후
+  // mediaMixOnline/mediaMixOffline 자유 서술 입력칸 자체가 위저드에서 없어지고
+  // 첨부파일(MARKETING_PLAN 분류) 업로드로 바뀌었다(StepMarketingCooperation.tsx
+  // 참고) — 그날 이후 제출된 모든 신청서는 이 필드가 항상 빈 문자열이라 PROVISIONAL로
+  // 두면 "구체적 서술 0/2요소 → 0점"이 실제 신청자가 무엇을 냈는지와 무관하게 항상
+  // 찍힌다. 텍스트가 아니라 파일로 받는 값이라 selection만으로는 판정할 신호가 없다 —
+  // UNAVAILABLE로 내려 위원이 첨부된 마케팅 실행 계획서 파일을 직접 열어 판단하게 한다.
   items.push({
     code: "A-MKT-01",
     label: "마케팅 실행 계획",
     maxScore: 5,
-    score: mktScore,
-    confidence: "PROVISIONAL",
+    score: null,
+    confidence: "UNAVAILABLE",
     rule: "온라인/오프라인 마케팅 계획 중 수치·금액·일자 포함 개수 — 2개 5·1개 2·0개 0",
-    evidence: `구체적 서술 ${concreteCount}/2요소`,
-    note: "자유 서술 텍스트에 숫자가 포함되어 있는지로만 '구체성'을 근사합니다 — 실제 내용 타당성은 위원이 읽고 판단해야 합니다.",
+    note: "2026-09-02부터 마케팅 실행 계획은 텍스트 입력이 아니라 첨부파일(마케팅 실행 계획서)로 제출됩니다 — 신청 상세의 첨부 서류에서 직접 확인해 위원이 판단하세요.",
   });
 
   // 13-16/13-17 — 협조 동의 항목은 대관계약 별지 동의서 「심사 중립성」 조항과
@@ -211,16 +204,21 @@ function scoreMarketing(mkt: MarketingCooperation | undefined): ScoreCategory {
     note: "대관계약 별지 동의서의 「심사 중립성」 조항과 충돌 소지가 있어 법무 확정 전까지 심사 화면에서 제외합니다(기능정의서 13-16/13-71, 오픈 전 필수 결정사항 #38).",
   });
 
-  const sponsorConsent = mkt?.coSponsorshipConsent === true;
+  // [2026-09-07, 감사 2026-09-18] "동의 구하는거 그 두줄 자체가 없어야해" 요청으로
+  // coSponsorshipConsent를 묻던 화면이 신청 단계에서 빠졌다(StepMarketingCooperation.tsx
+  // 참고) — 필드는 남아있지만 그 날 이후로는 아무 위저드 경로도 이 값을 true로 만들지
+  // 않는다. PROVISIONAL로 두면 모든 신규 신청서가 항상 "비동의 또는 미선택 → 0점"으로
+  // 찍혀 실제로는 판단할 방법이 없는 걸 "협업 의사 없음"처럼 보여준다. UNAVAILABLE로
+  // 내려 "협업 동의 여부"(contentCooperationConsent, 신청 상세에 노출됨)를 참고해
+  // 위원이 직접 판단하게 한다.
   items.push({
     code: "A-MKT-03",
     label: "공동 스폰서십·브랜딩·캠페인 협업",
     maxScore: 5,
-    score: sponsorConsent ? 3 : 0,
-    confidence: "PROVISIONAL",
+    score: null,
+    confidence: "UNAVAILABLE",
     rule: "명시 개수 2개↑ 5 · 1개↑ 3 · 없음 0",
-    evidence: sponsorConsent ? "동의함" : "비동의 또는 미선택",
-    note: "화면이 동의/비동의 이분으로만 받고 있어(스폰서명·개수 입력란 없음) 5점과 3점을 구분할 수 없습니다 — 동의 시 '1개 이상' 기준 3점 잠정 산정입니다.",
+    note: "2026-09-07부터 이 항목을 직접 묻는 화면이 없습니다 — 신청 상세의 '협업 동의 여부'와 첨부 자료를 참고해 위원이 직접 판단하세요.",
   });
 
   items.push({
@@ -357,18 +355,8 @@ function scoreBonuses(info: PerformanceInfo): BonusItem[] {
 }
 
 function scoreDisqualifiers(pledge: SafetyPledge | undefined): DisqualifierCheck[] {
-  const pledgeComplete =
-    !!pledge &&
-    pledge.safetyStructure &&
-    pledge.legalInspection &&
-    pledge.staffSafetyTraining &&
-    pledge.followVenueGuidance &&
-    pledge.audienceSafetyMeasures &&
-    pledge.insuranceCoverage &&
-    pledge.consequenceAcknowledged &&
-    pledge.signature.trim().length > 0;
   return [
-    { code: "DQ-01", label: "안전 규정 준수 서약서 미제출", auto: true, triggered: !pledgeComplete },
+    { code: "DQ-01", label: "안전 규정 준수 서약서 미제출", auto: true, triggered: !isSafetyPledgeComplete(pledge) },
     { code: "DQ-02", label: "신청 서류 허위 기재·중대 누락", auto: false, triggered: null },
     { code: "DQ-03", label: "제출 서류 미비로 평가 불가", auto: false, triggered: null },
   ];
@@ -379,7 +367,7 @@ function computeVenueScore(venueId: "arena" | "medium-hall", selection: QuoteSel
   const categories: ScoreCategory[] = [
     scoreRevenue(venueId, selection),
     scorePublic(info),
-    scoreMarketing(selection.marketingCooperation),
+    scoreMarketing(),
     scoreSafety(info, selection.safetyPledge),
   ];
 
