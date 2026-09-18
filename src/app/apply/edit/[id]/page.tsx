@@ -19,6 +19,7 @@ import { PublicHeader } from "@/components/PublicHeader";
 import { Breadcrumb } from "@/components/ui/Breadcrumb";
 import { SiteFooter } from "@/components/ui/SiteFooter";
 import { Band, PageHeading } from "@/components/ui/kit";
+import { NAV_ACTION_HIDDEN } from "@/components/ui/nav-items";
 import { WizardShell } from "@/components/wizard/WizardShell";
 import { WizardTextProvider } from "@/lib/content/wizardText";
 
@@ -41,6 +42,22 @@ export default async function EditQuotePage({
   // 심사가 시작됐거나(review 기록) 접수 후 24시간이 지난 신청서는 신청자가 직접
   // 수정할 수 없다 — PUT /api/quotes/[id]와 같은 기준(2026-08-22, 2026-09-08 24시간 추가).
   if (!canApplicantEditQuote(quote)) redirect(`/mypage/${id}`);
+
+  /*
+    [신규 2026-09-18 18:00 접수 마감] "북잇 막으면, my > 임시저장하기 수정하기 기능도
+    막혀야 합니다"(niki) / "아직, 아직.. 들어가집니다"(nora).
+
+    접수 마감 스위치(백오피스 > 콘텐츠 관리 > 화면 문구 > BOOK IT 안내 체크박스)는
+    /apply 한 곳만 닫고 있었다 — 이미 접수한 사람은 마이페이지 「수정하기」로 이 화면에
+    그대로 들어와 마감 후에도 신청서를 고칠 수 있었다. 같은 스위치로 여기도 닫는다.
+
+    운영자는 통과시킨다 — 마감 뒤 운영진이 대리로 확인·수정해야 하는 일이 있다.
+    막힌 사람은 마이페이지 상세로 보낸다: 상단바 BOOK IT 이 이미 마감 안내로 바뀌어
+    있어 왜 막혔는지가 전달되고, 자기 신청 내용은 계속 볼 수 있다.
+  */
+  const bookItNotice = NAV_ACTION_HIDDEN ? null : (await getScreenTextContent()).bookItNotice;
+  const bookingClosed = NAV_ACTION_HIDDEN || !!bookItNotice?.enabled;
+  if (bookingClosed && currentUser.role !== "ADMIN") redirect(`/mypage/${id}`);
 
   const [rateTable, weekDemand, midHallWeekDemand, adminBlocks, approvedBlocks, ratesContent, screenText, calendarWindow, existingAttachments] =
     await Promise.all([

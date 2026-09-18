@@ -375,12 +375,20 @@ export default async function AdminQuoteDetailPage({
           {quote.selection.performanceInfo && (
             <div className="mt-4 grid gap-x-10 border-t border-border-soft pt-4 lg:grid-cols-2">
               <SpecTable
-                rows={[
-                  ["공연(행사)명", quote.selection.performanceInfo.eventName || NONE],
-                  ["아티스트", quote.selection.performanceInfo.artist || NONE],
-                  ["주최·주관·기획", quote.selection.performanceInfo.organizer || NONE],
-                  ["행사규모", quote.selection.performanceInfo.eventScale || NONE],
-                ]}
+                rows={
+                  [
+                    ["공연(행사)명", quote.selection.performanceInfo.eventName || NONE],
+                    ["아티스트", quote.selection.performanceInfo.artist || NONE],
+                    ["주최·주관·기획", quote.selection.performanceInfo.organizer || NONE],
+                    // [2026-09-18] 행사규모 입력칸은 2026-08-22(1fa7ddb)에 위저드에서 빠졌다 —
+                    // 그 뒤 신청서는 항상 비어 「—」만 찍힌다. 값이 남은 옛 신청서에만
+                    // 보여준다(신청 내역 화면과 같은 규칙). 신청 내역만 고치고 이 화면을
+                    // 빠뜨려 두 화면이 또 어긋나 있었다.
+                    ...(quote.selection.performanceInfo.eventScale
+                      ? [["행사규모 (구)", quote.selection.performanceInfo.eventScale]]
+                      : []),
+                  ] as [string, string][]
+                }
               />
               <SpecTable
                 rows={[

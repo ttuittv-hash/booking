@@ -12,10 +12,12 @@ import {
   SECTION_SUBTOTAL_CAPTION,
   SECTION_TAG,
   contractSectionAmounts,
+  feeGroupOf,
 } from "@/lib/pricing/lineItemGroups";
 import {
   defaultDayTags,
   effectiveDayTag,
+  findAddon,
   findPackage,
   totalRentalDays,
 } from "@/lib/pricing/rateTableUtils";
@@ -371,6 +373,18 @@ export default async function AdminQuoteApplicationPage({
 
         <Section title="일정 · 규모">
           <Row label="공간" value={venueName} />
+          {/* [신규 2026-09-18] "어느 패키지를 신청했는지 화면 어디에도 이름으로 나오지
+              않습니다"(niki 시안) — 맨 아래 가격표에 「기본 대관료(Rate B)」로 섞여 있을
+              뿐이라 심사자가 한눈에 읽을 자리가 없었다. 신청자 화면
+              (QuoteApplicationDetail 의 「구성 · 옵션」)은 이미 이 줄을 갖고 있어, 두 화면이
+              서로 다른 상태였던 것 자체가 이번에 맞추려는 불일치다.
+              중형 단독은 패키지 개념이 없어(시간·일 단가제) 줄 자체를 넣지 않는다. */}
+          {showsArena && pkg && (
+            <Row
+              label="패키지"
+              value={pkg.tagline ? `${pkg.name} — ${pkg.tagline}` : pkg.name}
+            />
+          )}
           {[...byTag.entries()].map(([tag, list]) => (
             <Row
               key={tag}
@@ -417,6 +431,42 @@ export default async function AdminQuoteApplicationPage({
             </>
           )}
         </Section>
+
+        {/* [신규 2026-09-18] "어떤 부대시설·옵션을 얼마나 신청했는지는 화면 어디에도
+            이름으로 나오지 않습니다 — 맨 아래 가격표에 항목명이 섞여 있을 뿐"(niki 시안).
+            가격표(신청 예상금액)는 그대로 두고, "무엇을 신청했는가"만 모아 보여주는 자리를
+            따로 둔다. 기본 대관료·할인·추가일·공연 일수 조정처럼 수량 개념이 없는 금액
+            항목은 빼고, 실제로 고르거나(대기실·스카이박스) 자동 산출된(청소비) 것만 남긴다. */}
+        {(() => {
+          const configItems = quote.lineItems.filter(
+            (item) =>
+              item.addonId !== "BASE_FEE" &&
+              feeGroupOf(item) !== "EXCLUSIVE" &&
+              item.amount >= 0 &&
+              item.requested > 0,
+          );
+          if (configItems.length === 0) return null;
+          return (
+            <Section title="구성 · 옵션">
+              <div className="py-2">
+                <MiniTable
+                  head={["구성 항목", "신청 수량", "기본 포함"]}
+                  rows={configItems.map((item) => {
+                    // 단위(실·식·인…)는 LineItem 에 없다 — 요금표의 unitLabel("원/실")에서 뗀다.
+                    const unit = findAddon(rateTable, item.addonId)?.unitLabel.split("/")[1] ?? "";
+                    return [
+                      item.label,
+                      `${item.requested.toLocaleString("ko-KR")}${unit}`,
+                      item.included > 0
+                        ? `${item.included.toLocaleString("ko-KR")}${unit} 포함`
+                        : NONE,
+                    ];
+                  })}
+                />
+              </div>
+            </Section>
+          );
+        })()}
 
         {info ? (
           <>
