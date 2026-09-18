@@ -66,6 +66,7 @@ export function MidHallCalendar({
   onChangeDays,
   monthBounds,
   outOfRangeDates = [],
+  weekDemand = {},
 }: {
   title?: string;
   year: number;
@@ -88,6 +89,13 @@ export function MidHallCalendar({
    * 빈 배열이 넘어온다.
    */
   outOfRangeDates?: string[];
+  /**
+   * [신규 2026-09-18] "아레나 캘린더에는 몇 개사 신청했고 경합 중인지 알 수 있는데
+   * 중형공연장 캘린더에서도 똑같이 확인이 필요하다"(niki) — 주 행 화요일 ISO → 그 주에
+   * 중형 일정을 잡은 회사 수. 아레나(Step1Calendar 의 weekDemand)와 같은 자리·같은 문구로
+   * 낸다. 키가 주차 번호가 아니라 화요일 날짜인 이유는 dateRange.weekTuesdayOf 주석 참고.
+   */
+  weekDemand?: Record<string, number>;
 }) {
   // [화면 뼈대 2026-08-19, 아레나 STEP 2(Step1Calendar)와 동일 구조] 역할 지정은 날짜 아래에
   // 바로 펼쳐지는 인라인 드롭다운으로 처리한다 — 클릭 즉시 기본값(공연일)으로 토글하고 별도
@@ -426,6 +434,23 @@ export function MidHallCalendar({
                   </div>
                 </div>
               )}
+
+              {/* [신규 2026-09-18] 경합 표시 — 아레나 달력(Step1Calendar)과 같은 자리(주 행
+                  우측)·같은 문구로 낸다. 2개사 이상이면 「검토 중」을 앞에 붙여 겨루는
+                  중임을 알린다. 이 행의 기준일인 화요일(weekDays[1]) 로 조회한다. */}
+              {(() => {
+                const count = weekDemand[isoDate(weekDays[1])] ?? 0;
+                if (count === 0) return null;
+                return (
+                  <div className="px-0.5 pt-0.5 text-right text-xs text-muted">
+                    {count > 1 && (
+                      <span className="font-bold text-warn">검토 중 · </span>
+                    )}
+                    <span className="font-bold text-foreground">{count}</span>
+                    <span>개사 신청</span>
+                  </div>
+                );
+              })()}
             </div>
           );
         })}

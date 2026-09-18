@@ -194,6 +194,7 @@ export function WizardShell({
   rateTable,
   currentUser,
   weekDemand,
+  midHallWeekDemand = {},
   dateBlocks,
   editingQuoteId,
   initialSelection,
@@ -214,6 +215,12 @@ export function WizardShell({
   rateTable: RateTable;
   currentUser: AppUser | null;
   weekDemand: WeekDemand[];
+  /**
+   * [신규 2026-09-18] 중형 달력의 경합 표시 — 주 행 화요일 ISO → 그 주에 중형 일정을 잡은
+   * 회사 수. 아레나의 weekDemand 와 짝이고, 없으면(관리자 「신청 상세보기」 등) 표시하지
+   * 않는다. 키가 주차 번호가 아닌 이유는 dateRange.weekTuesdayOf 주석 참고.
+   */
+  midHallWeekDemand?: Record<string, number>;
   dateBlocks: DateBlock[];
   editingQuoteId?: string;
   initialSelection?: QuoteSelection;
@@ -1433,6 +1440,7 @@ export function WizardShell({
                       onChangeDays={(midHallDays) =>
                         setSelection((prev) => ({ ...prev, midHallDays }))
                       }
+                      weekDemand={midHallWeekDemand}
                       outOfRangeDates={
                         selection.bookingMode === "SIMULTANEOUS"
                           ? midHallDatesOutsideArenaRange(
