@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { notFound } from "next/navigation";
+import { redirect } from "next/navigation";
 import { requireProAdminPage } from "@/lib/auth";
 import {
   getQuoteById,
@@ -41,7 +41,14 @@ export default async function AdminQuoteWizardPage({
 
   const { id } = await params;
   const quote = await getQuoteById(id);
-  if (!quote) notFound();
+  // [버그 수정 2026-09-18] "「신청 상세보기」를 누르면 404" — 신청자 계정을 지우면
+  // deleteUserCascade 가 그 계정의 신청서도 함께 지운다(테스트 계정 정리 때 실제로 발생).
+  // 신청서 상세(../page.tsx)는 2026-09-03에, 「신청 내역」(../application/page.tsx)은
+  // 2026-09-17에 같은 신고로 목록 리다이렉트·안내문으로 바꿨는데, 이 화면이 그 뒤에 새로
+  // 생기면서 notFound() 를 그대로 물려받았다 — 형제 화면들과 동작을 맞춘다.
+  // (권한 부족은 requireProAdminPage 가 전부 redirect 로 처리하므로 이 분기에 도달했다면
+  //  원인은 언제나 "신청서가 없음"이다.)
+  if (!quote) redirect("/admin");
 
   const [rateTable, ratesContent, screenText, calendarWindow, existingAttachments] = await Promise.all([
     getRateTableByVersion(quote.rateTableVersion),
