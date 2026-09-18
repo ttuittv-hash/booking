@@ -8,6 +8,7 @@ import {
   getScreenTextContent,
   listApprovedQuoteBlocks,
   listDateBlocks,
+  listMidHallWeekDemand,
   listWeekDemand,
 } from "@/lib/db";
 import { noticeCalendarMonthBounds } from "@/lib/content/noticeCalendarWindow";
@@ -98,6 +99,7 @@ export default async function ApplyPage({
   const [
     rateTable,
     weekDemand,
+    midHallWeekDemand,
     adminBlocks,
     approvedBlocks,
     company,
@@ -108,6 +110,8 @@ export default async function ApplyPage({
     await Promise.all([
       getCurrentRateTable(),
       listWeekDemand(),
+      // [신규 2026-09-18] 중형 달력도 아레나처럼 경합(몇 개사 신청)을 보여준다(niki).
+      listMidHallWeekDemand(),
       listDateBlocks(),
       // 승인된 신청서가 잡은 날짜도 대관 불가로 본다 — 대관사가 확정된 날을
       // 다른 회사가 계속 신청할 수 있으면 안 된다(2026-09-02).
@@ -159,6 +163,7 @@ export default async function ApplyPage({
             rateTable={rateTable}
             currentUser={currentUser}
             weekDemand={weekDemand}
+            midHallWeekDemand={midHallWeekDemand}
             dateBlocks={dateBlocks}
             startFresh={!!startFreshParam}
             applicantPrefill={applicantPrefill}

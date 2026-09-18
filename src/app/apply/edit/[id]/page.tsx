@@ -11,6 +11,7 @@ import {
   listApprovedQuoteBlocks,
   listAttachments,
   listDateBlocks,
+  listMidHallWeekDemand,
   listWeekDemand,
 } from "@/lib/db";
 import { noticeCalendarMonthBounds } from "@/lib/content/noticeCalendarWindow";
@@ -41,10 +42,12 @@ export default async function EditQuotePage({
   // 수정할 수 없다 — PUT /api/quotes/[id]와 같은 기준(2026-08-22, 2026-09-08 24시간 추가).
   if (!canApplicantEditQuote(quote)) redirect(`/mypage/${id}`);
 
-  const [rateTable, weekDemand, adminBlocks, approvedBlocks, ratesContent, screenText, calendarWindow, existingAttachments] =
+  const [rateTable, weekDemand, midHallWeekDemand, adminBlocks, approvedBlocks, ratesContent, screenText, calendarWindow, existingAttachments] =
     await Promise.all([
       getCurrentRateTable(),
       listWeekDemand(),
+      // [신규 2026-09-18] 중형 달력도 아레나처럼 경합(몇 개사 신청)을 보여준다(niki).
+      listMidHallWeekDemand(),
       listDateBlocks(),
       // 승인된 신청서가 잡은 날짜도 막는다. 자기 자신은 뺀다 — 자기가 잡은 날짜에
       // 막혀 수정이 안 되면 안 된다(2026-09-02).
@@ -82,6 +85,7 @@ export default async function EditQuotePage({
             rateTable={rateTable}
             currentUser={currentUser}
             weekDemand={weekDemand}
+            midHallWeekDemand={midHallWeekDemand}
             dateBlocks={dateBlocks}
             editingQuoteId={quote.id}
             initialSelection={quote.selection}

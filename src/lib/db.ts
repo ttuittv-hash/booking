@@ -4,6 +4,7 @@ import { AsyncLocalStorage } from "node:async_hooks";
 import { hash as bcryptHash } from "@node-rs/bcrypt";
 import crypto from "node:crypto";
 import { buildSeedRateTable, SEED_MID_HALL_RATE_CONFIG, SEED_PACKAGES } from "./pricing/seed";
+import { weekTuesdayOf } from "./pricing/dateRange";
 import { SEED_PAGES } from "./pricing/pageSeed";
 import {
   DEFAULT_HOME_CONTENT,
@@ -3877,6 +3878,53 @@ export async function listWeekDemand(): Promise<WeekDemand[]> {
     weekOfMonth: row.week_of_month,
     companyCount: row.company_count,
   }));
+}
+
+/**
+ * [신규 2026-09-18] 중형공연장 달력의 경합 표시 — "부킹에서 아레나 캘린더에는 몇 개사
+ * 신청했고 경합 중인지 알 수 있는데 중형공연장 캘린더에서도 똑같이 확인이 필요하다"(niki).
+ *
+ * 아레나(listWeekDemand)는 quotes 의 week_year/week_month/week_of_month 컬럼으로 DB 에서
+ * 집계한다. 중형 날짜는 그런 컬럼이 없고 selection_json(TEXT) 안에만 있어 같은 방식이
+ * 안 된다 — 스키마 주석대로 "JSON 문자열은 DB 가 검색하지 못한다". 캐스팅해서 풀 수도
+ * 있지만 인덱스를 못 타고, 주차 환산을 아레나와 똑같이 맞추려면 TS 쪽이 안전해서 앱에서
+ * 센다(신청서가 수십 건 규모라 부담이 없다).
+ *
+ * 집계 규칙은 아레나와 맞춘다 — 회사 단위로 중복을 없애고(회사명이 없으면 사용자 id),
+ * 심사 결과와 무관하게 신청이 걸린 주를 모두 센다. 두 달력이 나란히 보이는데 서로 다른
+ * 기준으로 세면 같은 사실을 다르게 말하게 된다. (공지 캘린더의 /api/schedule 은 거절 건을
+ * 빼지만 그건 다른 화면이고, 여기 짝은 listWeekDemand 다.)
+ *
+ * 키는 그 주 행의 화요일 ISO — 같은 주가 달에 따라 두 이름을 갖는 문제를 피한다
+ * (dateRange.weekTuesdayOf 주석 참고).
+ */
+export async function listMidHallWeekDemand(): Promise<Record<string, number>> {
+  const rows = await q<{ selection_json: string; company_key: string }>(
+    `SELECT q.selection_json, COALESCE(NULLIF(u.company_name, ''), u.id) AS company_key
+       FROM quotes q JOIN users u ON u.id = q.applicant_id`,
+  );
+  const companiesByTuesday = new Map<string, Set<string>>();
+  for (const row of rows) {
+    let midHallDays: Record<string, unknown> | undefined;
+    try {
+      midHallDays = (JSON.parse(row.selection_json) as QuoteSelection).midHallDays;
+    } catch {
+      // 신청서 한 건이 깨졌다고 달력 전체가 죽으면 안 된다 — 그 건만 빼고 계속 센다.
+      continue;
+    }
+    for (const date of Object.keys(midHallDays ?? {})) {
+      const tuesday = weekTuesdayOf(date);
+      let companies = companiesByTuesday.get(tuesday);
+      if (!companies) {
+        companies = new Set();
+        companiesByTuesday.set(tuesday, companies);
+      }
+      companies.add(row.company_key);
+    }
+  }
+  return Object.fromEntries(
+    [...companiesByTuesday].map(([tuesday, companies]) => [tuesday, companies.size]),
+  );
 }
 
 // ---------------------------------------------------------------------------

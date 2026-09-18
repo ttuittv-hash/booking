@@ -23,8 +23,17 @@ export function proxy(request: NextRequest) {
   // 루트에서만 이 두 파일을 읽으므로, bo 를 차단하려면 bo 루트에서 robots.txt 가 나와야 한다.
   const isSeoFile = pathname === "/robots.txt" || pathname === "/sitemap.xml";
 
+  // [버그 수정 2026-09-18] 백오피스의 「인쇄」 버튼이 **모든** 신청서에서 404 였다 —
+  // /print/{id} 는 /admin 아래가 아니라 최상위 라우트인데, bo 호스트에서는 아래 rewrite 가
+  // /admin/print/{id} 로 바꿔 버려 그런 라우트가 없으니 404 가 났다(신청자 화면인 partner
+  // 호스트에서는 정상). 운영자 화면 두 곳(신청서 상세·신청 내역)의 인쇄가 그래서 안 열렸고,
+  // Next 가 링크를 미리 당겨오는 프리페치(?_rsc=)까지 404 로 콘솔에 찍혔다.
+  // 인쇄 화면은 운영자·신청자가 같이 쓰는 최상위 라우트라 robots.txt 처럼 접두사를 붙이지
+  // 않는다 — 접근 권한은 그 페이지가 직접 검사한다(여기는 보안 경계가 아니다).
+  const isSharedRoute = pathname.startsWith("/print/");
+
   if (host.startsWith(ADMIN_HOST_PREFIX)) {
-    if (!isSeoFile && !pathname.startsWith("/admin")) {
+    if (!isSeoFile && !isSharedRoute && !pathname.startsWith("/admin")) {
       const url = request.nextUrl.clone();
       url.pathname = pathname === "/" ? "/admin" : `/admin${pathname}`;
       return NextResponse.rewrite(url);

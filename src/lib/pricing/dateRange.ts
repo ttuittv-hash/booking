@@ -54,6 +54,24 @@ function findWeekTuesday(week: QuoteSelection["week"]): Date | null {
   return null;
 }
 
+// [신규 2026-09-18] 중형 달력의 경합 표시("검토 중 · N개사 신청")용 — 어떤 날짜가 속한
+// "주"를 그 행의 화요일 ISO 하나로 나타낸다.
+//
+// 아레나는 주를 {year, month, weekOfMonth} 로 저장하는데, 같은 주가 달에 따라 두 이름을
+// 가질 수 있다 — 6월 마지막 행이 7월 그리드에서는 0주차("첫 주")다(findWeekTuesday 위 주석).
+// 중형은 날짜를 따로따로 고르므로 신청서에 주차 이름이 없고, 서버가 임의로 한쪽 이름을
+// 고르면 다른 달 화면에서 그 줄이 안 뜬다. 행의 기준일인 화요일 날짜 자체를 키로 쓰면
+// 그 애매함이 사라진다 — buildCalendarWeeks(아레나)·buildMonthGrid(중형)가 만드는 행의
+// days[1] 과 같은 값이라 어느 달 그리드에서 보든 화면과 정확히 맞는다.
+//
+// 날짜 파싱에 `${iso}T00:00:00` 을 붙이는 이유: new Date("2027-07-06") 는 UTC 자정으로
+// 읽혀 KST 에서는 전날 09:00 이 된다 — 요일이 하루 밀려 엉뚱한 행으로 잡힌다.
+export function weekTuesdayOf(iso: string): string {
+  const date = new Date(`${iso}T00:00:00`);
+  const monday = addDays(date, -toColumnIndex(date.getDay()));
+  return isoDate(addDays(monday, 1));
+}
+
 // [재개정 2026-09-08] "동시대관은 동일 기간에만 세팅 가능하다는 안내가 들어가야함
 // 14일 기준이 아니라" — 예전엔 두 시작일 간격이 14일 이내면 통과였는데(2주 윈도우),
 // 그 규칙을 버리고 "중형 일정은 아레나가 실제로 잡은 날짜 범위(최소~최대) 안에서만
