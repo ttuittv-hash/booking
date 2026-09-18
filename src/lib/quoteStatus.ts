@@ -30,9 +30,17 @@ export const QUOTE_STATUS_TONE: Record<Quote["status"], "warn" | "accent" | "goo
 // 참고). review.decision === HOLD 인 동안만 별도 라벨/톤으로 덮어써 신청자 화면에
 // 보여준다. 목록·상세 화면이 이 두 함수 하나씩만 쓰도록(QUOTE_STATUS_LABEL 직접
 // 참조 금지) 한다 — 안 그러면 "보류인데 심사 대기로 보인다" 류의 불일치가 다시 생긴다.
+//
+// [수정 2026-09-18] 거절(REJECTED)도 같은 문제였다 — 관리자 목록에는 "심사 거절"
+// 뱃지가 뜨는데 신청자 화면은 여기서 HOLD만 갈라 보여서 거절된 신청서도 계속
+// "신청 접수 (심사 대기)"로 보였다. 거절은 보류와 달리 신청자가 더 손댈 수 없는
+// 상태라(canApplicantEditQuote) "거절됨"만 알리고 끝 — 재신청은 새 신청서로 한다.
 export function applicantQuoteStatusLabel(quote: Pick<Quote, "status" | "review">): string {
   if (quote.status === "ESTIMATE" && quote.review?.decision === "HOLD") {
     return "보류 (보완 요청)";
+  }
+  if (quote.status === "ESTIMATE" && quote.review?.decision === "REJECTED") {
+    return "거절됨";
   }
   return QUOTE_STATUS_LABEL[quote.status];
 }
@@ -41,6 +49,9 @@ export function applicantQuoteStatusTone(
   quote: Pick<Quote, "status" | "review">,
 ): "warn" | "accent" | "good" | "danger" {
   if (quote.status === "ESTIMATE" && quote.review?.decision === "HOLD") {
+    return "danger";
+  }
+  if (quote.status === "ESTIMATE" && quote.review?.decision === "REJECTED") {
     return "danger";
   }
   return QUOTE_STATUS_TONE[quote.status];
