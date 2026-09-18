@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import crypto from "node:crypto";
 import { canAccessQuote, canActOnQuotes, getCurrentUser } from "@/lib/auth";
+import { isBookingClosed } from "@/lib/bookingClosed";
 import { canApplicantEditQuote } from "@/lib/quoteStatus";
 import {
   addAuditLog,
@@ -70,6 +71,18 @@ export async function PUT(request: Request, ctx: { params: Promise<{ id: string 
   if (!canApplicantEditQuote(quote)) {
     return NextResponse.json(
       { error: "접수 후 24시간이 지난 신청서는 직접 수정할 수 없습니다. 변경이 필요하면 운영자에게 문의해 주세요." },
+      { status: 409 },
+    );
+  }
+  // [신규 2026-09-18] 접수 마감 게이트. 화면(/apply/edit/[id])에만 걸려 있어 이 API 는
+  // 그대로 통과했다 — 바로 위 24시간 검사를 여기 둔 이유("버튼을 감춰도 API 직접 호출을
+  // 막는다")가 마감에도 똑같이 적용되는데 같이 넣지 못했다. 마감 직전에 접수한 사람은
+  // 접수 후 24시간 동안 API 로 신청서를 고칠 수 있었다.
+  // 운영자는 화면과 같은 기준으로 통과시킨다 — 마감 뒤 운영진이 대리로 확인·수정해야
+  // 하는 일이 있다.
+  if ((await isBookingClosed()) && user.role !== "ADMIN") {
+    return NextResponse.json(
+      { error: "접수가 마감되어 신청서를 수정할 수 없습니다. 변경이 필요하면 운영자에게 문의해 주세요." },
       { status: 409 },
     );
   }

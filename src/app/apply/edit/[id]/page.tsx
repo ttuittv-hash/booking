@@ -19,7 +19,7 @@ import { PublicHeader } from "@/components/PublicHeader";
 import { Breadcrumb } from "@/components/ui/Breadcrumb";
 import { SiteFooter } from "@/components/ui/SiteFooter";
 import { Band, PageHeading } from "@/components/ui/kit";
-import { NAV_ACTION_HIDDEN } from "@/components/ui/nav-items";
+import { isBookingClosed } from "@/lib/bookingClosed";
 import { WizardShell } from "@/components/wizard/WizardShell";
 import { WizardTextProvider } from "@/lib/content/wizardText";
 
@@ -55,9 +55,10 @@ export default async function EditQuotePage({
     막힌 사람은 마이페이지 상세로 보낸다: 상단바 BOOK IT 이 이미 마감 안내로 바뀌어
     있어 왜 막혔는지가 전달되고, 자기 신청 내용은 계속 볼 수 있다.
   */
-  const bookItNotice = NAV_ACTION_HIDDEN ? null : (await getScreenTextContent()).bookItNotice;
-  const bookingClosed = NAV_ACTION_HIDDEN || !!bookItNotice?.enabled;
-  if (bookingClosed && currentUser.role !== "ADMIN") redirect(`/mypage/${id}`);
+  // [수정 2026-09-18] 판정을 직접 하지 않고 isBookingClosed() 한 곳에서 받는다 — 같은
+  // 판정이 /apply·이 화면·PUT /api/quotes/[id] 세 곳에 흩어져 있었고, 그래서 API 를
+  // 빠뜨려 마감 후에도 API 직접 호출로 수정이 됐다.
+  if ((await isBookingClosed()) && currentUser.role !== "ADMIN") redirect(`/mypage/${id}`);
 
   const [rateTable, weekDemand, midHallWeekDemand, adminBlocks, approvedBlocks, ratesContent, screenText, calendarWindow, existingAttachments] =
     await Promise.all([

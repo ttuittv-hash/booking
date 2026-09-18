@@ -16,6 +16,7 @@ import { PublicHeader } from "@/components/PublicHeader";
 import { SiteFooter } from "@/components/ui/SiteFooter";
 import { Band, ButtonLink, PageHead, Prose } from "@/components/ui/kit";
 import { NAV_ACTION_HIDDEN, NOTICE_LINK } from "@/components/ui/nav-items";
+import { isBookingClosed } from "@/lib/bookingClosed";
 import { WizardShell } from "@/components/wizard/WizardShell";
 import { WizardTextProvider } from "@/lib/content/wizardText";
 
@@ -54,8 +55,13 @@ export default async function ApplyPage({
     보여준다. 운영자는 그 화면의 '운영자 확인용' 링크로 흐름을 열어볼 수 있다.
   */
   const { new: startFreshParam, operator } = await searchParams;
+  // 마감 안내의 제목·본문은 이 화면이 직접 그리므로 따로 읽는다. getScreenTextContent 는
+  // React.cache 라, 같은 요청에서 isBookingClosed() 가 또 불러도 조회는 한 번이다.
   const gateText = NAV_ACTION_HIDDEN ? null : (await getScreenTextContent()).bookItNotice;
-  const gated = NAV_ACTION_HIDDEN || !!gateText?.enabled;
+  // [수정 2026-09-18] 열림/닫힘 판정은 isBookingClosed() 한 곳에서 받는다 — 같은 판정이
+  // 이 화면·/apply/edit/[id]·PUT /api/quotes/[id] 세 곳에 흩어져 있었고, 그래서 API 를
+  // 빠뜨려 마감 후에도 API 직접 호출로 신청서를 고칠 수 있었다.
+  const gated = await isBookingClosed();
   const operatorPass = currentUser.role === "ADMIN" && operator === "1";
   if (gated && !operatorPass) {
     return (
