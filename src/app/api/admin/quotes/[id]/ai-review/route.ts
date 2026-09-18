@@ -10,6 +10,7 @@ import {
 } from "@/lib/db";
 import { generateQuoteAiReview, isAiReviewConfigured } from "@/lib/aiReview";
 import { totalRentalDays } from "@/lib/pricing/rateTableUtils";
+import { rowAudience } from "@/lib/quoteAudience";
 import { DEFAULT_VENUE_ID, VENUES } from "@/lib/pricing/types";
 import { buildVerificationBadges, overallVerdict } from "@/lib/verificationBadges";
 
@@ -52,7 +53,9 @@ export async function POST(_request: Request, ctx: { params: Promise<{ id: strin
       subtotal: quote.subtotal,
       vat: quote.vat,
       venueLabel,
-      expectedAudience: quote.selection.expectedAudience,
+      // [수정 2026-09-18] 바로 위 venueLabel 은 공간을 구분하는데 이 줄만 안 했다 —
+      // 중형 단독 신청이 AI 요약에 「중형공연장 / 0명」으로 들어가고 있었다.
+      expectedAudience: rowAudience(quote.selection).main,
       rentalDays: totalRentalDays(quote.selection),
       verdict: overallVerdict(badges),
       badges: badges.map((b) => ({ label: b.label, state: b.state, detail: b.detail })),

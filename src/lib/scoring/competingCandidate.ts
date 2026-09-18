@@ -3,6 +3,7 @@
 // api/admin/quotes/[id]/ai-compare/route.ts(AI 프롬프트)가 이 함수를 공유한다.
 import type { AppUser, Quote } from "@/lib/pricing/types";
 import { DEFAULT_VENUE_ID, VENUES } from "@/lib/pricing/types";
+import { rowAudience } from "@/lib/quoteAudience";
 import { scoreQuote } from "./scoreQuote";
 
 export interface CompetingCandidateFacts {
@@ -49,7 +50,11 @@ export function buildCandidateFacts(
     provisionalScore,
     eligible,
     unresolvedMax,
-    expectedAudience: quote.selection.expectedAudience,
+    // [수정 2026-09-18] expectedAudience 는 아레나 몫이다 — 공간별로 맞는 값을 쓴다.
+    // 이 값은 경합 비교 패널과 AI 심사 프롬프트로 함께 나가, 틀리면 중형 신청자가
+    // 「관객 0명」으로 심의된다. venueLabel 은 바로 위에서 공간을 구분하는데 이 줄만
+    // 안 하고 있었다.
+    expectedAudience: rowAudience(quote.selection).main,
     total: quote.total,
   };
 }

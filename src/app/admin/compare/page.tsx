@@ -3,6 +3,7 @@ import { requireProAdminPage } from "@/lib/auth";
 import { getQuoteById, listUsersByIds } from "@/lib/db";
 import { won } from "@/lib/format";
 import { totalRentalDays } from "@/lib/pricing/rateTableUtils";
+import { rowAudience } from "@/lib/quoteAudience";
 import type { Quote } from "@/lib/pricing/types";
 import { AdminNav } from "@/components/admin/AdminNav";
 import {
@@ -110,9 +111,12 @@ export default async function AdminComparePage({
                     label="총 대관일수"
                     values={quotes.map((q) => `${totalRentalDays(q.selection)}일`)}
                   />
+                  {/* [수정 2026-09-18] expectedAudience 는 아레나 몫이라 중형 단독 신청은
+                      여기서 0 명으로 보였다 — 신청 목록은 공간별로 맞는 값을 쓰는데 이
+                      비교표만 안 맞아, 경합 비교에서 중형 신청자가 「관객 없음」이 된다. */}
                   <CompareRow
                     label="관객"
-                    values={quotes.map((q) => `${q.selection.expectedAudience.toLocaleString()}명`)}
+                    values={quotes.map((q) => `${rowAudience(q.selection).main.toLocaleString()}명`)}
                   />
                   <CompareRow label="신청일시" values={quotes.map((q) => new Date(q.createdAt).toLocaleString("ko-KR"))} />
                   <CompareRow label="상태" values={quotes.map((q) => STATUS_LABEL[q.status])} />
