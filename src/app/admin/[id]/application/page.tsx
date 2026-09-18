@@ -34,6 +34,7 @@ import {
   type RetractableSeatFloor,
 } from "@/lib/pricing/types";
 import { AdminNav } from "@/components/admin/AdminNav";
+import { SaveDocumentButton } from "@/components/SaveDocumentButton";
 import { LINK_BTN, NONE, PAGE_TITLE } from "@/components/admin/adminUi";
 import { btnClass } from "@/components/ui/kit";
 
@@ -295,10 +296,13 @@ export default async function AdminQuoteApplicationPage({
                 신청 상세보기
               </a>
             )}
-            {/* 심사 회의에 종이로 들고 가는 일이 있어 인쇄본을 함께 둔다. */}
+            {/* [신규 2026-09-19] "pdf 저장, 문서 저장 둘 다 있어야 해" — 심사 회의에
+                종이로 들고 가는 일도 있고(PDF 저장 = 인쇄 대화상자에서 PDF로), 파일
+                자체를 이메일 첨부·보관해야 할 때도 있다(문서 저장 = 즉시 HTML 다운로드). */}
             <a href={`/print/${quote.id}`} className={btnClass("secondary", "md")}>
-              인쇄
+              PDF 저장
             </a>
+            <SaveDocumentButton quoteId={quote.id} />
           </div>
         </header>
 
