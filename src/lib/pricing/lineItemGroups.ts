@@ -127,6 +127,55 @@ export const SECTION_GROUPS: Record<ContractSection, FeeGroup[]> = {
   ADDITIONAL: ["OPTION"],
 };
 
+export const SECTION_ORDER: ContractSection[] = ["CONTRACT", "ADDITIONAL"];
+
+export interface SectionAmount {
+  section: ContractSection;
+  items: LineItem[];
+  subtotal: number;
+  vat: number;
+  total: number;
+}
+
+/**
+ * [신규 2026-09-18] "계약금액 / 예상금액(추가옵션) / 총 예상금액 이렇게 구분이 되어
+ * 있는데요… 신청목록·신청내역보기 금액계산서에는 반영이 안 되어 있더라고요"(nora·niki).
+ *
+ * 위저드 마지막 화면과 SummaryPanel 은 sectionOf 로 두 묶음을 갈라 보여주는데, 운영자
+ * 화면 세 곳(신청 현황 목록 · 신청서 상세 산출내역 · 신청 내역)은 lineItems 를 평평하게
+ * 늘어놓고 소계·부가세·합계를 한 번만 냈다. **금액 자체는 처음부터 같았고 묶음만 없었다** —
+ * 그 묶음을 운영자 화면에도 주려고 계산만 떼어낸 공용 함수다.
+ *
+ * 세율은 요금표가 아니라 저장된 subtotal·vat 에서 역산한다(SummaryPanel 의
+ * quoteSectionBoxes 와 같은 규칙) — 나중에 운영자가 세율을 고쳐도 이미 접수된 신청서의
+ * 표시 금액이 흔들리지 않는다.
+ *
+ * 신청자 화면과 달리 감춤 항목(청소비·유틸리티)을 걸러내지 않는다 — 운영자는 언제나
+ * 전체 내역을 본다(기능정의서 2-71).
+ */
+export function contractSectionAmounts(quote: {
+  lineItems: LineItem[];
+  subtotal: number;
+  vat: number;
+}): { sections: SectionAmount[]; vatPct: number } {
+  const effectiveVatRate = quote.subtotal > 0 ? quote.vat / quote.subtotal : 0.1;
+  let assignedVat = 0;
+  const sections = SECTION_ORDER.map((section, index) => {
+    const items = quote.lineItems.filter((item) => sectionOf(item) === section);
+    const subtotal = items.reduce((sum, item) => sum + item.amount, 0);
+    // 마지막 묶음의 부가세는 남은 잔액으로 확정한다 — 묶음마다 따로 반올림하면 둘의 합이
+    // 저장된 quote.vat 과 1원 어긋날 수 있는데, 운영자 화면은 "계약금액 + 추후 정산 =
+    // 총 예상금액"이 눈으로 떨어져야 한다.
+    const vat =
+      index === SECTION_ORDER.length - 1
+        ? quote.vat - assignedVat
+        : Math.round(subtotal * effectiveVatRate);
+    assignedVat += vat;
+    return { section, items, subtotal, vat, total: subtotal + vat };
+  });
+  return { sections, vatPct: Math.round(effectiveVatRate * 100) };
+}
+
 // [삭제 2026-09-08] "너무 다 감추니까 뭐가뭔지 안보이고.. 할인율 보여줘" — SummaryPanel
 // (오른쪽 실시간 패널) 전용으로 할인율(%)까지 지우던 applicantLineLabel을 없앴다.
 // 이제 SummaryPanel도 estimateLineLabel(할증 %만 감추고 할인 %는 보여준다)을 그대로

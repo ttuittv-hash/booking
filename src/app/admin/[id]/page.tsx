@@ -1,3 +1,4 @@
+import { Fragment } from "react";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { requireProAdminPage, isProAdminOrAbove } from "@/lib/auth";
@@ -22,6 +23,11 @@ import {
 import { resolveWizardFieldLabel } from "@/lib/content/pageContent";
 import { num, won } from "@/lib/format";
 import { resolveSelectedDates } from "@/lib/pricing/dateRange";
+import {
+  SECTION_LABEL,
+  SECTION_SUBTOTAL_CAPTION,
+  contractSectionAmounts,
+} from "@/lib/pricing/lineItemGroups";
 import { defaultDayTags, effectiveDayTag, findPackage, totalRentalDays } from "@/lib/pricing/rateTableUtils";
 import {
   DEFAULT_VENUE_ID,
@@ -430,23 +436,54 @@ export default async function AdminQuoteDetailPage({
                 </tr>
               </thead>
               <tbody>
-                {quote.lineItems.map((item) => (
-                  <tr key={item.addonId} className={TR}>
-                    <td className={TD_ID}>{item.label}</td>
-                    <td className={TD_NUM}>{item.requested.toLocaleString("ko-KR")}</td>
-                    <td className={TD_NUM}>{item.included || NONE}</td>
-                    <td className={TD_NUM}>{item.billable.toLocaleString("ko-KR")}</td>
-                    <td className={TD_NUM}>{num(item.unitPrice)}</td>
-                    <td className={`${TD_NUM} font-bold`}>{num(item.amount)}</td>
-                  </tr>
+                {/* [개정 2026-09-18] 신청자가 마지막에 본 화면과 같은 두 묶음(대관료=계약금액 /
+                    추후 정산 예정 금액)으로 나눈다 — 예전에는 전 항목을 한 덩어리로 늘어놓고
+                    소계·합계를 한 번만 내서, 계약금액이 얼마인지 운영자가 항목을 직접 골라
+                    더해야 했다(nora·niki). */}
+                {contractSectionAmounts(quote).sections.map(({ section, items, subtotal }) => (
+                  <Fragment key={section}>
+                    <tr className={TR}>
+                      <td colSpan={6} className="bg-background px-3 py-2 text-xs font-bold text-muted">
+                        {SECTION_LABEL[section]}
+                      </td>
+                    </tr>
+                    {items.length === 0 ? (
+                      <tr className={TR}>
+                        <td colSpan={6} className="px-3 py-2.5 text-s text-muted">
+                          {NONE}
+                        </td>
+                      </tr>
+                    ) : (
+                      items.map((item) => (
+                        <tr key={item.addonId} className={TR}>
+                          <td className={TD_ID}>{item.label}</td>
+                          <td className={TD_NUM}>{item.requested.toLocaleString("ko-KR")}</td>
+                          <td className={TD_NUM}>{item.included || NONE}</td>
+                          <td className={TD_NUM}>{item.billable.toLocaleString("ko-KR")}</td>
+                          <td className={TD_NUM}>{num(item.unitPrice)}</td>
+                          <td className={`${TD_NUM} font-bold`}>{num(item.amount)}</td>
+                        </tr>
+                      ))
+                    )}
+                    <tr className={TR}>
+                      <td colSpan={5} className="px-3 py-2.5 text-right text-xs text-muted">
+                        {SECTION_LABEL[section]} 소계 (VAT 별도)
+                      </td>
+                      <td className={`${TD_NUM} font-bold`}>{num(subtotal)}</td>
+                    </tr>
+                  </Fragment>
                 ))}
               </tbody>
             </table>
           </div>
-          <div className="flex flex-wrap justify-end gap-x-8 gap-y-2 border-t border-border-soft px-4 py-3 text-s tabular-nums">
-            <span className="text-muted">소계 {won(quote.subtotal)}</span>
-            <span className="text-muted">VAT {won(quote.vat)}</span>
-            <span className="font-bold">합계 {won(quote.total)}</span>
+          <div className="flex flex-wrap items-baseline justify-end gap-x-8 gap-y-2 border-t border-border-soft px-4 py-3 text-s tabular-nums">
+            {contractSectionAmounts(quote).sections.map(({ section, total }) => (
+              <span key={section} className="text-muted">
+                {SECTION_SUBTOTAL_CAPTION[section]}{" "}
+                <b className="text-foreground">{won(total)}</b>
+              </span>
+            ))}
+            <span className="font-bold">총 예상금액 {won(quote.total)}</span>
           </div>
         </section>
 

@@ -8,6 +8,12 @@ import { isSafetyPledgeComplete } from "@/lib/scoring/scoreQuote";
 import { won } from "@/lib/format";
 import { resolveSelectedDates } from "@/lib/pricing/dateRange";
 import {
+  SECTION_LABEL,
+  SECTION_SUBTOTAL_CAPTION,
+  SECTION_TAG,
+  contractSectionAmounts,
+} from "@/lib/pricing/lineItemGroups";
+import {
   defaultDayTags,
   effectiveDayTag,
   findPackage,
@@ -609,23 +615,55 @@ export default async function AdminQuoteApplicationPage({
           )}
         </Section>
 
-        <Section title="신청 예상금액">
-          <div className="py-2">
-            <MiniTable
-              head={["항목", "신청", "기본포함", "과금수량", "금액"]}
-              rows={quote.lineItems.map((item) => [
-                item.label,
-                item.requested.toLocaleString("ko-KR"),
-                item.included || NONE,
-                item.billable.toLocaleString("ko-KR"),
-                won(item.amount),
-              ])}
-            />
+        {/* [개정 2026-09-18] "계약금액 / 예상금액(추가옵션) / 총 예상금액 이렇게 구분이
+            되어 있는데 신청내역보기 금액계산서에는 반영이 안 되어 있다"(nora·niki) —
+            신청자가 마지막에 본 화면과 같은 두 묶음으로 나눈다. 다만 운영자에게는
+            신청·기본포함·과금수량이 심사·정산 근거라, 위저드용 표(QuoteLineItemsReport,
+            항목/세부내역/금액)로 갈아끼우지 않고 지금 열 구성을 그대로 둔 채 묶음만 씌운다. */}
+        <section className="mt-8 border-t-2 border-foreground pt-4">
+          <h2 className="text-s font-bold">신청 예상금액</h2>
+          {(() => {
+            const { sections, vatPct } = contractSectionAmounts(quote);
+            return sections.map(({ section, items, subtotal, vat, total }) => (
+              <div key={section} className="mt-4 border border-border/25 p-4">
+                <div className="flex flex-wrap items-baseline justify-between gap-2">
+                  <h3 className="text-s font-bold">{SECTION_LABEL[section]}</h3>
+                  <span className="text-xs text-muted">{SECTION_TAG[section]}</span>
+                </div>
+                <div className="py-2">
+                  <MiniTable
+                    head={["항목", "신청", "기본포함", "과금수량", "금액"]}
+                    rows={items.map((item) => [
+                      item.label,
+                      item.requested.toLocaleString("ko-KR"),
+                      item.included || NONE,
+                      item.billable.toLocaleString("ko-KR"),
+                      won(item.amount),
+                    ])}
+                  />
+                </div>
+                <dl>
+                  <Row label="소계 (VAT 별도)" value={won(subtotal)} />
+                  <Row label={`부가세 ${vatPct}%`} value={won(vat)} />
+                </dl>
+                <div
+                  className={`mt-3 flex justify-between px-3 py-2.5 text-s font-bold tabular-nums ${
+                    section === "CONTRACT"
+                      ? "bg-accent text-on-accent"
+                      : "bg-inverse-bg text-inverse-fg"
+                  }`}
+                >
+                  <span>{SECTION_SUBTOTAL_CAPTION[section]}</span>
+                  <span>{won(total)}</span>
+                </div>
+              </div>
+            ));
+          })()}
+          <div className="mt-4 flex items-baseline justify-between bg-inverse-bg px-3 py-3 text-inverse-fg">
+            <span className="text-s font-bold">총 예상금액</span>
+            <span className="text-h6-m font-bold tabular-nums sm:text-h6">{won(quote.total)}</span>
           </div>
-          <Row label="소계" value={won(quote.subtotal)} />
-          <Row label="부가세" value={won(quote.vat)} />
-          <Row label="합계" value={<b>{won(quote.total)}</b>} />
-        </Section>
+        </section>
 
         <div className="mt-10 border-t border-border/25 pt-6">
           <Link href={`/admin/${quote.id}`} className={btnClass("primary", "md")}>

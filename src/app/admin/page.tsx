@@ -2,6 +2,7 @@ import Link from "next/link";
 import { requireProAdminPage, isProAdminOrAbove } from "@/lib/auth";
 import { getRateTableByVersion, listCompanies, listQuotesPaged, listUsersByIds, normalizePage } from "@/lib/db";
 import { num } from "@/lib/format";
+import { contractSectionAmounts } from "@/lib/pricing/lineItemGroups";
 import { findPackage } from "@/lib/pricing/rateTableUtils";
 import { VENUES, type RateTable } from "@/lib/pricing/types";
 import { Pagination } from "@/components/Pagination";
@@ -53,6 +54,10 @@ export default async function AdminPage({
       s.venueId === "medium-hall" && s.bookingMode !== "SIMULTANEOUS"
         ? NONE
         : (findPackage(rateTableByVersion.get(q.rateTableVersion)!, s.packageId)?.name ?? NONE);
+    // [신규 2026-09-18] 목록에서도 계약금액과 추후 정산 예정 금액을 갈라 보여준다 —
+    // 신청자가 마지막에 본 화면은 둘로 나뉘어 있는데 목록은 총액 한 칸뿐이라 "추후 정산
+    // 금액이 없다"는 물음이 반복됐다(nora).
+    const [contractAmount, additionalAmount] = contractSectionAmounts(q).sections;
     return {
       id: q.id,
       createdAtLabel: new Date(q.createdAt).toLocaleString("ko-KR"),
@@ -62,6 +67,8 @@ export default async function AdminPage({
       packageLabel,
       weekLabel: `${q.selection.week.year}.${q.selection.week.month} ${q.selection.week.weekOfMonth}주차`,
       audienceLabel: q.selection.expectedAudience.toLocaleString("ko-KR"),
+      contractLabel: num(contractAmount.total),
+      additionalLabel: num(additionalAmount.total),
       totalLabel: num(q.total),
       status: q.status,
       // [신규 2026-09-02] 승인해도 목록은 "예상견적(심사 대기)" 그대로였다 —

@@ -63,6 +63,10 @@ export interface AdminQuoteRow {
   packageLabel: string;
   weekLabel: string;
   audienceLabel: string;
+  /** 계약 시 확정되는 금액(대관료, VAT 포함) */
+  contractLabel: string;
+  /** 행사 후 정산에서 확정되는 금액(선택 옵션, VAT 포함) */
+  additionalLabel: string;
   totalLabel: string;
   status: QuoteStatus;
   /** 심사 결과(없으면 아직 심사 전) */
@@ -213,7 +217,15 @@ export function AdminQuoteTable({
                     <td className={TD}>{row.packageLabel}</td>
                     <td className={`${TD} tabular-nums`}>{row.weekLabel}</td>
                     <td className={TD_NUM}>{row.audienceLabel}</td>
-                    <td className={`${TD_NUM} font-bold`}>{row.totalLabel}</td>
+                    {/* [개정 2026-09-18] 열을 더 늘리면(이미 12열) 가로 스크롤 없이는 못 본다 —
+                        총액을 굵게 두고 그 아래 계약·정산을 작게 쌓아, 열 수는 그대로 두고
+                        신청자가 본 화면과 같은 구분을 준다(nora). */}
+                    <td className={TD_NUM}>
+                      <span className="font-bold">{row.totalLabel}</span>
+                      <span className="mt-0.5 block text-xs font-normal whitespace-nowrap text-muted">
+                        계약 {row.contractLabel} · 정산 {row.additionalLabel}
+                      </span>
+                    </td>
                     <td className={TD}>
                       {/* 심사 결과가 있으면 그것을 먼저 보여 준다 — 운영자가 목록에서
                           찾는 것은 "이 건을 심사했는가" 다. 진행 단계는 그 아래 줄. */}
