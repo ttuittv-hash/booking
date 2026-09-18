@@ -316,6 +316,36 @@ describe("scoreQuote — 항목 코드 접두가 공간에 맞는다", () => {
   });
 });
 
+// [신규 2026-09-18] 배점표가 26-08-22 → 26-09-13 으로 개정됐다(운영진 재전달). 화면은
+// rubricVersion 을 그대로 찍어 "위원이 손에 든 심사표와 같은 버전인가"를 확인하는 근거로
+// 쓰므로, 기준 문구를 고치면서 상수를 안 올리면 화면이 옛 버전을 주장하게 된다. 둘을 함께
+// 못 박아 다음 개정 때 한쪽만 바뀌는 걸 막는다.
+describe("scoreQuote — 배점표 Ver.26-09-13 개정분", () => {
+  it("rubricVersion 이 26-09-13 이다", () => {
+    expect(scoreQuote(baseSelection()).rubricVersion).toBe("26-09-13");
+  });
+
+  it("마케팅 실행 계획은 3구간이다 — 옛 4구간 문구가 남아 있으면 안 된다", () => {
+    for (const venueId of ["arena", "medium-hall"] as const) {
+      const r = scoreQuote(baseSelection({ venueId })).results[0];
+      const mkt01 = r.categories
+        .find((c) => c.key === "MARKETING")!
+        .items.find((i) => i.code.endsWith("-MKT-01"))!;
+      expect(mkt01.rule).toBe("구체화 5 · 중간 3 · 미흡 0");
+    }
+  });
+
+  it("부적격 DQ-01 은 '계획 적정성 부족'까지 포함한 배점표 문구다", () => {
+    const dq01 = scoreQuote(baseSelection()).results[0].disqualifiers.find((d) => d.code === "DQ-01")!;
+    expect(dq01.label).toContain("계획 적정성 부족");
+  });
+
+  it("적격 기준선은 60점이다 (배점표 3-3)", () => {
+    const r = scoreQuote(baseSelection()).results[0];
+    expect(r.provisionalEligible).toBe(r.provisionalFinal >= 60 && !r.disqualifiers.some((d) => d.auto && d.triggered));
+  });
+});
+
 describe("scoreQuote — 감점 항목이 배점표(3)와 1:1로 노출된다", () => {
   const EXPECTED = [
     ["A-PEN-01", "3년 내 대관 계약 해지 이력", -5],

@@ -1,5 +1,10 @@
 // [신규 2026-08-25] 대관 심사 채점 엔진 — 「서울아레나 대관 심의 평가 세부 기준」
-// Ver. 26-08-22(부록 F)를 신청 위저드의 실제 필드에 물린 자동 산정 로직.
+// Ver. 26-09-13(부록 F)을 신청 위저드의 실제 필드에 물린 자동 산정 로직.
+//
+// 배점표는 자주 개정된다(26-08-22 → 26-09-13). 개정본을 받으면 SCORING_RUBRIC_VERSION
+// 부터 올릴 것 — 그 값이 위원 화면(ScoringPanel)에 그대로 찍혀, 위원이 손에 든 심사표와
+// 같은 버전인지 확인하는 유일한 근거다. 상수를 안 올리면 화면은 옛 버전을 주장하면서
+// 새 기준으로 채점하는 상태가 된다.
 // 상세 규칙은 `대관시스템_기능정의서.md` 13-C-4를 그대로 옮긴 것이다.
 //
 // 이 파일은 "13-3 시스템은 100점 초안을 내되 확정하지 않는다" 원칙에 따라
@@ -25,7 +30,7 @@ import type {
   VenueScoreResult,
 } from "./types";
 
-const SCORING_RUBRIC_VERSION = "26-08-22";
+const SCORING_RUBRIC_VERSION = "26-09-13";
 
 const VENUE_LABEL: Record<"arena" | "medium-hall", string> = {
   arena: "아레나",
@@ -199,12 +204,12 @@ function scoreMarketing(venueId: "arena" | "medium-hall"): ScoreCategory {
     maxScore: 5,
     score: null,
     confidence: "UNAVAILABLE",
-    // [수정 2026-09-18, 심사표 1:1 대조] 배점표는 **4구간**이다(전부 구체 5 · 3개 구체 3 ·
-    // 2개 구체 1 · 미구체 0), 평가 대상은 「타깃 정의·매체 믹스·집행 예산·타임라인 4요소」.
-    // 이 문구가 옛 2구간("2개 5·1개 2·0개 0")으로 남아 있어 위원이 심사표와 맞춰 읽을 수
-    // 없었다. 점수는 어차피 UNAVAILABLE(첨부파일로 받는 값이라 자동 산정 불가)이지만,
-    // 화면에 뜨는 기준 문구만은 배점표와 같아야 한다.
-    rule: "타깃 정의·매체 믹스·집행 예산·타임라인 4요소 중 구체적으로 제시한 개수 — 전부 5 · 3개 3 · 2개 1 · 미구체 0",
+    // [수정 2026-09-18 재개정, Ver.26-09-13] 이 한 줄은 개정 때마다 구간이 바뀐다 —
+    // 옛 2구간("2개 5·1개 2·0개 0") → 26-08-22 의 4구간("전부 5·3개 3·2개 1·미구체 0")
+    // → 26-09-13 의 3구간. 26-09-13 배점표는 4요소 나열 없이 「구체화 5 · 중간 3 · 미흡 0」
+    // 만 쓴다. 점수는 어차피 UNAVAILABLE(첨부파일로 받는 값이라 자동 산정 불가)이지만,
+    // 화면에 뜨는 기준 문구만은 위원이 손에 든 배점표와 글자 그대로 같아야 한다.
+    rule: "구체화 5 · 중간 3 · 미흡 0",
     note: "2026-09-02부터 마케팅 실행 계획은 텍스트 입력이 아니라 첨부파일(마케팅 실행 계획서)로 제출됩니다 — 신청 상세의 첨부 서류에서 직접 확인해 위원이 판단하세요.",
   });
 
@@ -442,7 +447,15 @@ function scorePenalties(venueId: "arena" | "medium-hall"): PenaltyItem[] {
 
 function scoreDisqualifiers(pledge: SafetyPledge | undefined): DisqualifierCheck[] {
   return [
-    { code: "DQ-01", label: "안전 규정 준수 서약서 미제출", auto: true, triggered: !isSafetyPledgeComplete(pledge) },
+    // 배점표 3) 대관 적격 판정은 「안전 규정 준수 서약서(체크리스트) 미제출 **및 계획
+    // 적정성 부족**」을 한 줄로 묶는다 — 앞부분만 적어 두면 위원이 심사표의 그 줄을 화면
+    // 에서 찾지 못한다. 자동 판정은 서약서 제출 여부만 본다(계획 적정성은 위원 판단).
+    {
+      code: "DQ-01",
+      label: "안전 규정 준수 서약서(체크리스트) 미제출 및 계획 적정성 부족",
+      auto: true,
+      triggered: !isSafetyPledgeComplete(pledge),
+    },
     { code: "DQ-02", label: "신청 서류 허위 기재·중대 누락", auto: false, triggered: null },
     { code: "DQ-03", label: "제출 서류 미비로 평가 불가", auto: false, triggered: null },
   ];
