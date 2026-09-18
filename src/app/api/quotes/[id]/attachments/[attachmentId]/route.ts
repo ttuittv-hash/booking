@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import fs from "node:fs/promises";
 import path from "node:path";
 import { canAccessQuote, canActOnQuotes, getCurrentUser } from "@/lib/auth";
+import { isBookingClosed } from "@/lib/bookingClosed";
 import { deleteAttachment, getAttachmentById, getQuoteById } from "@/lib/db";
 import { DATA_DIR } from "@/lib/dataDir";
 
@@ -63,6 +64,15 @@ export async function DELETE(
   const actor = await getCurrentUser();
   if (!actor || !canActOnQuotes(actor)) {
     return NextResponse.json({ error: "승인 완료 후 이용할 수 있습니다." }, { status: 403 });
+  }
+  // [신규 2026-09-18] 접수 마감 게이트. 삭제 버튼을 화면에서 감춰도 API 는 그대로 열려
+  // 있다 — 마감을 화면에만 걸었다가 뚫린 게 오늘만 세 번째다. 내려받기(GET)는 막지
+  // 않는다: 자기가 낸 서류를 다시 못 보는 건 과하다. 운영자는 통과시킨다.
+  if ((await isBookingClosed()) && actor.role !== "ADMIN") {
+    return NextResponse.json(
+      { error: "접수가 마감되어 서류를 지울 수 없습니다. 변경이 필요하면 운영자에게 문의해 주세요." },
+      { status: 409 },
+    );
   }
 
   const filePath = path.join(UPLOAD_ROOT, id, result.attachment.storedName);

@@ -3,6 +3,7 @@ import crypto from "node:crypto";
 import fs from "node:fs/promises";
 import path from "node:path";
 import { canAccessQuote, canActOnQuotes, getCurrentUser } from "@/lib/auth";
+import { isBookingClosed } from "@/lib/bookingClosed";
 import { DATA_DIR } from "@/lib/dataDir";
 import {
   createAttachment,
@@ -69,6 +70,15 @@ export async function POST(request: Request, ctx: { params: Promise<{ id: string
   }
   if (!canActOnQuotes(user)) {
     return NextResponse.json({ error: "승인 완료 후 이용할 수 있습니다." }, { status: 403 });
+  }
+  // [신규 2026-09-18] 접수 마감 게이트. 화면에서 업로드 칸을 감추는 것만으로는 API 직접
+  // 호출을 못 막는다 — 마감을 화면에만 걸었다가 뚫린 게 오늘만 세 번째다.
+  // 운영자는 통과시킨다: 마감 뒤 운영진이 대리로 서류를 다뤄야 하는 일이 있다.
+  if ((await isBookingClosed()) && user.role !== "ADMIN") {
+    return NextResponse.json(
+      { error: "접수가 마감되어 서류를 추가할 수 없습니다. 변경이 필요하면 운영자에게 문의해 주세요." },
+      { status: 409 },
+    );
   }
 
   const formData = await request.formData().catch(() => null);

@@ -332,7 +332,13 @@ export default async function MyQuoteDetailPage({
           deposit={deposit}
           viewerRole="APPLICANT"
         />
-        <AttachmentsPanel quoteId={quote.id} attachments={attachments} />
+        {/* [신규 2026-09-18] 마감 뒤에도 신청자가 첨부를 올리고 지울 수 있었다(nora).
+            운영자는 잠그지 않는다 — 마감 뒤 대리로 손봐야 하는 일이 있다. */}
+        <AttachmentsPanel
+          quoteId={quote.id}
+          attachments={attachments}
+          locked={bookingClosed && user.role !== "ADMIN"}
+        />
       </div>
     </MyPageShell>
   );
