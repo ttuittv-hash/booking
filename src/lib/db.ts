@@ -3632,7 +3632,17 @@ function normalizeStoredSelection(raw: string): Quote["selection"] {
     midHallDays: s.midHallDays ?? {},
     addons: Array.isArray(s.addons) ? s.addons : [],
     excludedDays: Array.isArray(s.excludedDays) ? s.excludedDays : [],
-    extraDays: Array.isArray(s.extraDays) ? s.extraDays : [],
+    // [버그 수정 2026-09-18] extraDays 는 **숫자**(일요일 이후 연장 일수)인데 배열로
+    // 검사하고 있어, 저장된 값이 숫자면 무조건 [] 로 덮어썼다 — 이 함수는 저장된
+    // 신청서를 읽는 모든 경로가 거치는 경계라 **모든 신청서**가 영향을 받았다.
+    //   · `[] > 0` 이 false 라 달력·요약에서 추가일이 통째로 사라졌다
+    //   · resolveSelectedDates 의 추가일 루프가 한 번도 안 돌아 기본 6일만 그려졌다
+    //   · 그런데 dayTags 에는 추가일 태그가 남아 있어 화면과 데이터가 어긋났다
+    //   · `6 - 0 + []` 는 문자열 "6" 이라 「총 6일」로 멀쩡해 보였다
+    // 2026-00040(싸이, 12/21~12/27)이 달력엔 6일인데 산출내역엔 추가 일수 1일로 잡혀
+    // "준비일이 하루만 추가 계산됐다"는 신고가 됐다(nora) — 과금이 아니라 표시가 틀렸다.
+    // 위 excludedDays 는 실제로 배열이라 그대로 둔다.
+    extraDays: typeof s.extraDays === "number" ? s.extraDays : 0,
     secondaryAudience: s.secondaryAudience ?? 0,
     performanceInfo: { ...INITIAL_PERFORMANCE_INFO, ...(s.performanceInfo ?? {}) },
     safetyPledge: {
