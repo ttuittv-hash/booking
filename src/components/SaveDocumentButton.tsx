@@ -62,6 +62,11 @@ export function SaveDocumentButton({
         // CSS 에 기대지 말고 아예 덜어낸다. HTML 저장본은 브라우저로 여니 CSS 로 충분하다.
         const parsed = new DOMParser().parseFromString(body, "text/html");
         parsed.querySelectorAll("[data-doc-hide]").forEach((el) => el.remove());
+        // 서버 렌더 HTML 에는 RSC 직렬화 payload 가 <script> 로 함께 실린다 — 화면 버튼의
+        // props("PDF 저장" 같은 문자열)까지 그 안에 문자열로 들어 있어, DOM 에서 버튼을
+        // 지워도 파일에는 남는다. 워드가 script 를 그리지는 않아 문서에 보이지는 않지만
+        // 파일의 절반 넘게 차지하므로(실측 99KB) 통째로 덜어낸다.
+        parsed.querySelectorAll("script").forEach((el) => el.remove());
         body = `<!doctype html>${parsed.documentElement.outerHTML}`;
       }
       const blob =
