@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { canAccessQuote, getCurrentUser } from "@/lib/auth";
 import { applicantQuoteStatusLabel, canApplicantEditQuote } from "@/lib/quoteStatus";
+import { isBookingClosed } from "@/lib/bookingClosed";
 import {
   getContractSignatureByQuoteId,
   getDepositByQuoteId,
@@ -64,6 +65,11 @@ export default async function MyQuoteDetailPage({
   const quote = await getQuoteById(id);
   if (!quote) notFound();
   if (!(await canAccessQuote(user, quote))) notFound();
+
+  // [수정 2026-09-18] 수정 권한은 24시간·심사 상태(canApplicantEditQuote)와 접수 마감
+  // (isBookingClosed)이 **함께** 성립해야 한다. 여기는 앞의 것만 봐서 마감 후에도
+  // 「신청 내용 수정」 링크가 보였고, 누르면 목적지가 되돌려보냈다.
+  const bookingClosed = await isBookingClosed();
 
   const [
     depositRaw,
@@ -144,7 +150,7 @@ export default async function MyQuoteDetailPage({
       lead={summaryLine}
       actions={
         <div className="flex flex-wrap items-center gap-x-5 gap-y-2">
-          {canApplicantEditQuote(quote) && user.role !== "ADMIN" && (
+          {canApplicantEditQuote(quote) && !bookingClosed && user.role !== "ADMIN" && (
             <Link
               href={`/apply/edit/${quote.id}`}
               className="text-s font-bold underline underline-offset-4 hover:text-foreground"

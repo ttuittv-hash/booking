@@ -7,6 +7,7 @@ import { Pagination } from "@/components/Pagination";
 import { won } from "@/lib/format";
 import type { Quote } from "@/lib/pricing/types";
 import { applicantQuoteStatusLabel, applicantQuoteStatusTone, canApplicantEditQuote } from "@/lib/quoteStatus";
+import { isBookingClosed } from "@/lib/bookingClosed";
 import { MyPageIdentity, MyPageShell } from "@/components/mypage/MyPageShell";
 import { DataTable, type Column } from "@/components/mypage/DataTable";
 import { ArrowRight, Badge, ButtonLink } from "@/components/ui/kit";
@@ -64,6 +65,11 @@ export default async function MyPage({
     user.companyId ? { companyId: user.companyId } : { applicantId: user.id },
     page,
   );
+  // [수정 2026-09-18] 수정 권한은 두 조건이 **함께** 성립해야 한다 — 24시간·심사 상태
+  // (canApplicantEditQuote)와 접수 마감(isBookingClosed). 여기는 앞의 것만 보고 있어
+  // 마감 후에도 「수정」 링크가 보였고, 누르면 목적지에서 되돌려보냈다. 목록은 map 안에서
+  // await 할 수 없으므로 여기서 한 번 구해 조건에 함께 건다.
+  const bookingClosed = await isBookingClosed();
 
   return (
     <MyPageShell
@@ -115,7 +121,7 @@ export default async function MyPage({
                 {/* 심사가 시작되면(review 기록 생김) 또는 접수 후 24시간이 지나면 신청자가
                     직접 수정할 수 없다 — 상세 화면과 같은 조건("신청 내용 수정" 링크,
                     canApplicantEditQuote)을 목록에서도 바로 눌러 들어갈 수 있게 한다. */}
-                {canApplicantEditQuote(q) && (
+                {canApplicantEditQuote(q) && !bookingClosed && (
                   <>
                     {" · "}
                     <Link href={`/apply/edit/${q.id}`} className="underline underline-offset-4 hover:text-accent">
