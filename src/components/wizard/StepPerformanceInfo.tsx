@@ -273,6 +273,16 @@ function formatDateLabel(iso: string): string {
 // [화면 뼈대 2026-08-18, 화면시나리오 SCREEN 06/12 #1] 대관기간은 STEP1 캘린더 결과를
 // 읽기 전용으로 요약해서 보여준다 — 여기서 직접 수정하지 않고 STEP 1에서 고친다.
 function arenaSummary(selection: QuoteSelection): string | null {
+  // [버그 수정 2026-09-18] "중형공연장만 신청했는데 아레나 일정도 자동선택되어 표기된다"(niki)
+  // — resolveSelectedDates 는 week 만 있으면 화~일 6일을 돌려주고(공간을 보지 않는다)
+  // defaultDayTags 가 거기에 패키지 기본값(준비4+공연2)을 얹는다. 그래서 중형 단독
+  // 신청서에도 「대관기간 — 아레나 07.06~07.11 · 준비4 · 공연2」가, 고른 적도 없는
+  // 일정으로 찍혔다. 짝인 midHallSummary 쪽은 호출부가 isMidHallInvolved 로 거르고
+  // 있었는데 아레나만 조건이 빠져 대칭이 깨져 있었다 — 호출부 3곳을 각각 고치는 대신
+  // 여기서 한 번에 막는다(동시 대관은 아레나도 실제로 쓰므로 그대로 둔다).
+  if (selection.venueId === "medium-hall" && selection.bookingMode !== "SIMULTANEOUS") {
+    return null;
+  }
   const dates = resolveSelectedDates(selection);
   if (dates.length === 0) return null;
   // [2026-09-17] 추가일 기본값 = 준비일(rateTableUtils.defaultDayTags 참고) — 견적 엔진과 같은 판정
@@ -301,7 +311,12 @@ function midHallSummary(selection: QuoteSelection): string | null {
 }
 
 function totalShowCount(selection: QuoteSelection): number {
-  const arenaDates = resolveSelectedDates(selection);
+  // [버그 수정 2026-09-18] 중형 단독(공연 1일)인데 「총 공연 횟수」가 3회로 나왔다 —
+  // arenaDates 는 week 만 있으면 화~일 6일이 잡히고 defaultDayTags 가 그중 2일을 공연일로
+  // 기본 배정하므로, 고르지도 않은 아레나 공연 2회가 얹혔다. arenaSummary 와 같은 가드.
+  const isMidHallOnly =
+    selection.venueId === "medium-hall" && selection.bookingMode !== "SIMULTANEOUS";
+  const arenaDates = isMidHallOnly ? [] : resolveSelectedDates(selection);
   const defaults = defaultDayTags(arenaDates, 2, selection.extraDays); // [2026-09-17] 추가일 기본값 = 준비일
   const arenaShows = arenaDates.reduce((sum, d) => {
     const tag = effectiveDayTag(d, selection.dayTags, defaults);

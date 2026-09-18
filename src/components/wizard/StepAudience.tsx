@@ -74,7 +74,15 @@ export function validateAudienceStep(
 // 공간별 총 공연 횟수 — 1회당 예상 관객수 × 총 공연 횟수 합산에 쓰인다.
 // Step6Submit(최종 제출 요약)도 "공연 횟수" 표시에 같은 계산을 쓴다.
 export function venueShowCounts(selection: QuoteSelection): { arenaShows: number; midHallShows: number } {
-  const arenaDates = resolveSelectedDates(selection);
+  // [버그 수정 2026-09-18] 중형 단독인데 아레나 몫이 섞여 「총 관객수(자동)」가 부풀었다 —
+  // resolveSelectedDates 는 week 만 있으면 화~일 6일을 돌려주고(공간을 보지 않는다)
+  // defaultDayTags 가 그중 2일을 공연일로 기본 배정해, 고르지도 않은 아레나 공연 2회가
+  // expectedAudience 에 곱해졌다. arenaSummary·totalShowCount 와 같은 가드다.
+  // (견적 엔진은 dayShowCounts·expectedAudience 를 직접 읽으므로 금액에는 영향이 없다 —
+  //  화면 표시만 바로잡는다.)
+  const isMidHallOnly =
+    selection.venueId === "medium-hall" && selection.bookingMode !== "SIMULTANEOUS";
+  const arenaDates = isMidHallOnly ? [] : resolveSelectedDates(selection);
   // [2026-09-17] 추가일 기본값 = 준비일(rateTableUtils.defaultDayTags 참고) — 견적 엔진과 같은 판정
   const defaults = defaultDayTags(arenaDates, 2, selection.extraDays);
   const arenaShows = arenaDates.reduce((sum, d) => {

@@ -349,7 +349,32 @@ export function WizardShell({
   // selection이 절대 안 바뀌게 한다 — 실제 제출값을 그대로 유지하는 가장 확실한 방법.
   const setSelection = readOnly ? (() => {}) : setSelectionRaw;
   // 동시 대관 캘린더 탭 + 중형 캘린더 월 이동은 신청서 selection과 별개의 화면 상태다.
-  const [venueTab, setVenueTab] = useState<"arena" | "medium-hall">("arena");
+  // [버그 수정 2026-09-18] "중형공연장만 신청했는데 아레나 일정도 자동선택되어 표기된다"(niki)
+  // — 초기값이 "arena" 로 고정돼 있었다. 신청자 위저드는 공간을 고를 때 selectVenue 가
+  // setVenueTab 을 불러 중형으로 넘겨주지만, ① 관리자 「신청 상세보기」(읽기 전용)처럼
+  // initialSelection 을 주입만 하는 화면과 ② 임시저장본 복원은 selectVenue 를 거치지
+  // 않는다 — 중형 단독 신청서를 열어도 아레나 탭에 머물러 아레나 달력(기본 준비4+공연2)이
+  // 그려졌다. 게다가 그때 아레나 탭은 enabled=false 라 하이라이트가 안 붙어, 중형 탭이
+  // 선택된 것처럼 보이면서 내용만 아레나인 상태가 된다. 처음부터 고른 공간에 맞춰 연다.
+  // [버그 수정 2026-09-18] "중형공연장만 신청했는데 아레나 일정도 자동선택되어 표기된다"(niki)
+  // — 예전엔 이 값이 useState 초기값 "arena" 로 굳어 있었다. 신청자 위저드는 공간을 고를 때
+  // selectVenue 가 setVenueTab 을 불러 주지만, ① 관리자 「신청 상세보기」(읽기 전용)처럼
+  // initialSelection 을 주입만 하는 화면과 ② 임시저장본 복원(아래 초안 복원 이펙트 안에서
+  // setSelection)은 그 경로를 거치지 않는다 — 중형 단독 신청서를 열어도 탭이 아레나에 남아
+  // 아레나 달력(기본 준비4+공연2)이 그려졌다. 게다가 그때 아레나 탭은 enabled=false 라
+  // 하이라이트가 안 붙어, 중형 탭이 선택된 것처럼 보이면서 내용만 아레나인 상태가 된다.
+  //
+  // 단일 공간(아레나·중형·패키지)은 열 수 있는 탭이 하나뿐이라 고른 공간에서 곧바로
+  // 유도한다 — effect 로 state 를 맞추면 렌더가 연쇄되고(react-hooks/set-state-in-effect)
+  // 복원 경로마다 타이밍을 또 신경 써야 한다. 두 탭이 모두 열리는 동시 대관에서만
+  // 운영자가 직접 고른 값을 쓴다.
+  const [venueTabPicked, setVenueTab] = useState<"arena" | "medium-hall">("arena");
+  const venueTab: "arena" | "medium-hall" =
+    selection.bookingMode === "SIMULTANEOUS"
+      ? venueTabPicked
+      : selection.venueId === "medium-hall"
+        ? "medium-hall"
+        : "arena";
   const [midHallMonth, setMidHallMonth] = useState(() => {
     const w = defaultWeek();
     if (!calendarMonthBounds) return { year: w.year, month: w.month };
