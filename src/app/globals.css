@@ -564,9 +564,34 @@ input[type="radio"] {
   accent-color: var(--n-white);
 }
 
+/* [확장 2026-09-18] "신청 내역을 PDF로 저장해야 하는데 요약본만 되고, 요약본도 정보가
+   부족하다 / 신청내역 전체 저장 기능도 추가해달라"(nora, 대관심의 자료 취합). 인쇄 대상이
+   요약본(/print/[id], 5개 항목)뿐이라, 12개 항목이 다 있는 「신청 내역」 화면은 백오피스
+   네비·버튼까지 같이 찍혀 심의 자료로 쓸 수 없었다. 이제 그 화면을 그대로 인쇄한다. */
 @media print {
   @page {
     margin: 1.5cm;
+  }
+  /* 강조 바(계약금액 노랑 · 추후 정산/총액 검정)는 배경색 자체가 정보다 — 브라우저는
+     기본적으로 배경을 빼고 찍어서 흰 바탕에 흰 글씨가 된다. */
+  *,
+  *::before,
+  *::after {
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+  /* 종이에는 스크롤이 없다 — 가로 스크롤 컨테이너가 표 오른쪽을 잘라먹지 않게 푼다. */
+  .overflow-x-auto {
+    overflow-x: visible !important;
+  }
+  /* 표의 한 줄이 페이지 경계에서 반 잘리거나, 제목만 남고 내용이 다음 장으로 넘어가지 않게. */
+  tr {
+    break-inside: avoid;
+  }
+  h1,
+  h2,
+  h3 {
+    break-after: avoid;
   }
 }
 

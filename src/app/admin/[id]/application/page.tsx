@@ -37,6 +37,7 @@ import {
   type QuoteStatus,
 } from "@/lib/pricing/types";
 import { AdminNav } from "@/components/admin/AdminNav";
+import { PrintButton } from "@/components/PrintButton";
 import { SaveDocumentButton } from "@/components/SaveDocumentButton";
 import { LINK_BTN, NONE, PAGE_TITLE } from "@/components/admin/adminUi";
 import { btnClass } from "@/components/ui/kit";
@@ -260,7 +261,13 @@ export default async function AdminQuoteApplicationPage({
 
   return (
     <div className="flex flex-1 flex-col">
-      {!embed && <AdminNav active="/admin" user={admin} />}
+      {/* [2026-09-18] 이 화면 자체가 대관심의 자료로 인쇄·저장된다(nora) — 백오피스
+          네비는 종이에도 저장본에도 남으면 안 된다. */}
+      {!embed && (
+        <div className="print:hidden" data-doc-hide>
+          <AdminNav active="/admin" user={admin} />
+        </div>
+      )}
 
       <main
         className={
@@ -270,7 +277,7 @@ export default async function AdminQuoteApplicationPage({
         }
       >
         {!embed && (
-          <Link href={`/admin/${quote.id}`} className={LINK_BTN}>
+          <Link href={`/admin/${quote.id}`} className={`${LINK_BTN} print:hidden`} data-doc-hide>
             ← 신청서 상세
           </Link>
         )}
@@ -285,7 +292,10 @@ export default async function AdminQuoteApplicationPage({
               {STATUS_LABEL[quote.status]}
             </p>
           </div>
-          <div className="flex shrink-0 flex-wrap items-center gap-2">
+          {/* 버튼 줄 전체가 인쇄물·저장본에서 빠진다 — 개별 버튼에 하나씩 표시하면
+              새 버튼이 늘 때 빠뜨린다(실제로 「신청 상세보기」·「문서 저장」이 그렇게
+              인쇄물에 남았다). 줄 단위로 거는 편이 안전하다. */}
+          <div className="flex shrink-0 flex-wrap items-center gap-2 print:hidden" data-doc-hide>
             {/* [신규 2026-09-17] "관리자가 신청자와 동일하게 다 볼 수 있어야 해. 미리보기
                 위저드 레벨이 아니라" — 여기(요약 표)와 별개로, 신청자가 실제로 밟은
                 위저드 화면 그대로(달력 포함, 진짜 제출값) 훑어보는 화면을 새 탭에서 연다. */}
@@ -301,11 +311,17 @@ export default async function AdminQuoteApplicationPage({
             )}
             {/* [신규 2026-09-19] "pdf 저장, 문서 저장 둘 다 있어야 해" — 심사 회의에
                 종이로 들고 가는 일도 있고(PDF 저장 = 인쇄 대화상자에서 PDF로), 파일
-                자체를 이메일 첨부·보관해야 할 때도 있다(문서 저장 = 즉시 HTML 다운로드). */}
-            <a href={`/print/${quote.id}`} className={btnClass("secondary", "md")}>
-              PDF 저장
-            </a>
-            <SaveDocumentButton quoteId={quote.id} />
+                자체를 이메일 첨부·보관해야 할 때도 있다(문서 저장 = 즉시 HTML 다운로드).
+                [개정 2026-09-18] "현재 요약본만 저장이 가능하며 (요약본도, 들어가있는 정보가
+                부족한것 같습니다) 신청 내역 전체 저장이 안 됩니다"(nora, 대관심의 자료 취합) —
+                두 버튼 모두 요약본(/print/[id], 5개 항목)을 가리키고 있었다. 이 화면이 이미
+                12개 항목을 다 갖고 있으므로, 요약본을 키우는 대신 이 화면을 그대로 인쇄·저장
+                대상으로 삼는다(요약본 라우트는 신청자용으로 그대로 둔다). */}
+            <PrintButton label="PDF 저장" variant="secondary" />
+            <SaveDocumentButton
+              quoteId={quote.id}
+              path={`/admin/${quote.id}/application`}
+            />
           </div>
         </header>
 
@@ -665,7 +681,7 @@ export default async function AdminQuoteApplicationPage({
           </div>
         </section>
 
-        <div className="mt-10 border-t border-border/25 pt-6">
+        <div className="mt-10 border-t border-border/25 pt-6 print:hidden" data-doc-hide>
           <Link href={`/admin/${quote.id}`} className={btnClass("primary", "md")}>
             신청서 상세로 돌아가기
           </Link>

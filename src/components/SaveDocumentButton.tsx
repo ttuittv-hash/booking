@@ -14,18 +14,28 @@ import { btnClass } from "@/components/ui/kit";
  * 깨진 링크가 되어 스타일 없는 맨 텍스트만 보인다. base 태그가 있으면 나중에 열 때도
  * (네트워크가 있는 한) 실제 서버에서 리소스를 다시 받아와 화면 그대로 보인다.
  */
-export function SaveDocumentButton({ quoteId }: { quoteId: string }) {
+export function SaveDocumentButton({
+  quoteId,
+  // [추가 2026-09-18] 기본값은 그대로 요약본이지만, 「신청 내역」에서는 그 화면 자체를
+  // 저장한다(nora "요약본도 정보가 부족하다 / 신청내역 전체 저장이 안 된다").
+  path,
+}: {
+  quoteId: string;
+  path?: string;
+}) {
   const [busy, setBusy] = useState(false);
 
   async function save() {
     setBusy(true);
     try {
-      const res = await fetch(`/print/${quoteId}`);
+      const res = await fetch(path ?? `/print/${quoteId}`);
       if (!res.ok) throw new Error(`요청 실패 (${res.status})`);
       const html = await res.text();
+      // 화면에서만 의미가 있는 것(백오피스 네비·버튼)은 저장본에서 뺀다 — 인쇄에서는
+      // print:hidden 이 하는 일을, 파일로 열 때는 이 규칙이 한다(같은 요소에 표시해 둔다).
       const withBase = html.replace(
         /<head>/i,
-        `<head><base href="${window.location.origin}/">`,
+        `<head><base href="${window.location.origin}/"><style>[data-doc-hide]{display:none !important}</style>`,
       );
       const blob = new Blob([withBase], { type: "text/html;charset=utf-8" });
       const url = URL.createObjectURL(blob);
