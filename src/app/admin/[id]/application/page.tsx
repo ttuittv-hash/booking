@@ -324,6 +324,16 @@ export default async function AdminQuoteApplicationPage({
               quoteId={quote.id}
               path={`/admin/${quote.id}/application`}
             />
+            {/* [신규 2026-09-18] "문서로 다운받기 버튼 눌렀을 때 워드나 엑셀 등으로 받을 수
+                있도록" — 심의 자료를 그대로 쓰지 않고 발췌·주석해 회의록에 옮기는 일이 있어
+                편집 가능한 형식이 필요하다. 워드는 HTML 로 된 .doc 를 그대로 열므로 같은
+                화면을 MIME·확장자만 바꿔 내보낸다(변환 서버도, 라이브러리도 쓰지 않는다).
+                스타일 일부는 빠지고 제목·표·본문 구조는 남는데, 편집이 목적이라 그 편이 낫다. */}
+            <SaveDocumentButton
+              quoteId={quote.id}
+              path={`/admin/${quote.id}/application`}
+              format="doc"
+            />
           </div>
         </header>
 

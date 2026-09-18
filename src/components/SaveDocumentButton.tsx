@@ -14,14 +14,32 @@ import { btnClass } from "@/components/ui/kit";
  * 깨진 링크가 되어 스타일 없는 맨 텍스트만 보인다. base 태그가 있으면 나중에 열 때도
  * (네트워크가 있는 한) 실제 서버에서 리소스를 다시 받아와 화면 그대로 보인다.
  */
+/**
+ * [추가 2026-09-18] "문서로 다운받기 버튼 눌렀을 때 워드나 엑셀 등으로 받을 수 있게" 요청.
+ *
+ * 워드는 HTML 로 된 .doc 파일을 그대로 연다 — 별도 라이브러리도, 서버 변환도 필요 없고
+ * 같은 HTML 을 MIME 과 확장자만 바꿔 내보내면 된다. 대신 두 가지를 워드에 맞춰 준다:
+ *
+ *  · <base href> 를 넣지 않는다. 워드는 외부 스타일시트를 어차피 못 가져오는데, base 가
+ *    있으면 이미지 경로까지 원격으로 잡아 열 때마다 네트워크를 타고 실패하면 깨진 그림이
+ *    남는다. 스타일은 빠지지만 제목·표·본문 구조는 그대로 살아 워드에서 편집할 수 있다.
+ *  · 앞에 BOM(﻿)을 붙인다. 워드는 charset 메타보다 BOM 을 먼저 믿어서, 없으면 한글이
+ *    깨진 채 열리는 일이 있다.
+ */
+type DocFormat = "html" | "doc";
+
+const FORMAT_LABEL: Record<DocFormat, string> = { html: "문서 저장", doc: "워드 저장" };
+
 export function SaveDocumentButton({
   quoteId,
   // [추가 2026-09-18] 기본값은 그대로 요약본이지만, 「신청 내역」에서는 그 화면 자체를
   // 저장한다(nora "요약본도 정보가 부족하다 / 신청내역 전체 저장이 안 된다").
   path,
+  format = "html",
 }: {
   quoteId: string;
   path?: string;
+  format?: DocFormat;
 }) {
   const [busy, setBusy] = useState(false);
 
@@ -33,15 +51,27 @@ export function SaveDocumentButton({
       const html = await res.text();
       // 화면에서만 의미가 있는 것(백오피스 네비·버튼)은 저장본에서 뺀다 — 인쇄에서는
       // print:hidden 이 하는 일을, 파일로 열 때는 이 규칙이 한다(같은 요소에 표시해 둔다).
-      const withBase = html.replace(
-        /<head>/i,
-        `<head><base href="${window.location.origin}/"><style>[data-doc-hide]{display:none !important}</style>`,
-      );
-      const blob = new Blob([withBase], { type: "text/html;charset=utf-8" });
+      const head =
+        format === "doc"
+          ? `<head><meta charset="utf-8"><style>[data-doc-hide]{display:none !important}</style>`
+          : `<head><base href="${window.location.origin}/"><style>[data-doc-hide]{display:none !important}</style>`;
+      let body = html.replace(/<head>/i, head);
+      if (format === "doc") {
+        // 워드는 [data-doc-hide] 같은 속성 선택자의 display:none 을 믿을 수 없게 적용한다 —
+        // 화면용 버튼(「PDF 저장」·「신청 상세보기」)과 백오피스 네비가 문서에 그대로 찍힌다.
+        // CSS 에 기대지 말고 아예 덜어낸다. HTML 저장본은 브라우저로 여니 CSS 로 충분하다.
+        const parsed = new DOMParser().parseFromString(body, "text/html");
+        parsed.querySelectorAll("[data-doc-hide]").forEach((el) => el.remove());
+        body = `<!doctype html>${parsed.documentElement.outerHTML}`;
+      }
+      const blob =
+        format === "doc"
+          ? new Blob(["﻿", body], { type: "application/msword;charset=utf-8" })
+          : new Blob([body], { type: "text/html;charset=utf-8" });
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
-      a.download = `대관신청서_${quoteId}.html`;
+      a.download = `대관신청서_${quoteId}.${format}`;
       document.body.appendChild(a);
       a.click();
       a.remove();
@@ -60,7 +90,7 @@ export function SaveDocumentButton({
       disabled={busy}
       className={btnClass("secondary", "md")}
     >
-      {busy ? "저장 중..." : "문서 저장"}
+      {busy ? "저장 중..." : FORMAT_LABEL[format]}
     </button>
   );
 }
