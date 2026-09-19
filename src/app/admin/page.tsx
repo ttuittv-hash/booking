@@ -1,6 +1,13 @@
 import Link from "next/link";
 import { requireProAdminPage, isProAdminOrAbove } from "@/lib/auth";
-import { getRateTableByVersion, listCompanies, listQuotesPaged, listUsersByIds, normalizePage } from "@/lib/db";
+import {
+  countQuotesByVenue,
+  getRateTableByVersion,
+  listCompanies,
+  listQuotesPaged,
+  listUsersByIds,
+  normalizePage,
+} from "@/lib/db";
 import { num } from "@/lib/format";
 import { contractSectionAmounts } from "@/lib/pricing/lineItemGroups";
 import { findPackage } from "@/lib/pricing/rateTableUtils";
@@ -10,21 +17,45 @@ import { Pagination } from "@/components/Pagination";
 import { btnClass } from "@/components/ui/kit";
 import { AdminNav } from "@/components/admin/AdminNav";
 import { AdminQuoteTable } from "@/components/admin/AdminQuoteTable";
-import { FIELD, NONE, PAGE_LEAD, PAGE_TITLE, QUIET_BTN } from "@/components/admin/adminUi";
+import { FIELD, NONE, PAGE_LEAD, PAGE_TITLE, QUIET_BTN, tabCls } from "@/components/admin/adminUi";
+
+// [신규 2026-09-19] "신청 리스트에 아레나·중형 소팅 기능, 각각 카운팅도" — 리포트
+// 화면의 공간 탭(reportStats.ts quoteMatchesVenue)과 같은 규칙: 동시 대관은 두 탭
+// 모두에 잡힌다(한쪽에서만 세면 그 공간에 걸린 신청이 빠져 보인다).
+type VenueTabKey = "all" | "arena" | "medium-hall";
+const VENUE_TABS: { key: VenueTabKey; label: string }[] = [
+  { key: "all", label: "전체" },
+  { key: "arena", label: "아레나" },
+  { key: "medium-hall", label: "중형공연장" },
+];
+
+function resolveVenueTab(raw: string | undefined): VenueTabKey {
+  return VENUE_TABS.some((t) => t.key === raw) ? (raw as VenueTabKey) : "all";
+}
 
 export default async function AdminPage({
   searchParams,
 }: {
-  searchParams: Promise<{ companyId?: string; page?: string }>;
+  searchParams: Promise<{ companyId?: string; page?: string; venue?: string }>;
 }) {
   const user = await requireProAdminPage();
 
-  const { companyId, page: pageParam } = await searchParams;
+  const { companyId, page: pageParam, venue: venueParam } = await searchParams;
   const page = normalizePage(pageParam);
-  const { items: quotes, total, totalPages } = await listQuotesPaged(
-    companyId ? { companyId } : {},
-    page,
-  );
+  const venueTab = resolveVenueTab(venueParam);
+  const baseFilter = companyId ? { companyId } : {};
+  const [{ items: quotes, total, totalPages }, venueCounts] = await Promise.all([
+    listQuotesPaged(
+      venueTab === "all" ? baseFilter : { ...baseFilter, venue: venueTab },
+      page,
+    ),
+    countQuotesByVenue(baseFilter),
+  ]);
+  const venueCountByTab: Record<VenueTabKey, number> = {
+    all: venueCounts.all,
+    arena: venueCounts.arena,
+    "medium-hall": venueCounts.mediumHall,
+  };
   const companies = await listCompanies();
   const applicantIds = [...new Set(quotes.map((q) => q.applicantId))];
   const applicantById = new Map((await listUsersByIds(applicantIds)).map((u) => [u.id, u]));
@@ -115,7 +146,36 @@ export default async function AdminPage({
           </p>
         </header>
 
+        {/* 공간 탭 — 리포트 화면의 공간 탭과 같은 규칙·모양(tabCls)을 쓴다. 회사 필터는
+            탭을 눌러도 유지된다(URL에서 companyId를 같이 넘긴다). */}
+        <nav
+          className="mt-6 flex h-12 items-center gap-1 overflow-x-auto whitespace-nowrap border-b border-border/25 [contain:paint]"
+          aria-label="공간 탭"
+        >
+          {VENUE_TABS.map((t) => (
+            <Link
+              key={t.key}
+              href={{
+                pathname: "/admin",
+                query: {
+                  ...(companyId ? { companyId } : {}),
+                  ...(t.key === "all" ? {} : { venue: t.key }),
+                },
+              }}
+              className={tabCls(t.key === venueTab)}
+            >
+              {t.label} ({venueCountByTab[t.key].toLocaleString("ko-KR")})
+            </Link>
+          ))}
+        </nav>
+        {venueTab !== "all" && (
+          <p className="mt-2 text-xs text-muted">
+            동시 대관(아레나+중형) 건은 두 탭 모두에 잡히므로, 탭별 건수의 합은 전체보다 클 수 있습니다.
+          </p>
+        )}
+
         <form method="GET" className="mt-6 flex flex-wrap items-center gap-3">
+          {venueTab !== "all" && <input type="hidden" name="venue" value={venueTab} />}
           <label className="text-xs font-bold text-muted" htmlFor="companyId">
             회사별 보기
           </label>
@@ -136,7 +196,7 @@ export default async function AdminPage({
             적용
           </button>
           {companyId && (
-            <Link href="/admin" className={QUIET_BTN}>
+            <Link href={venueTab === "all" ? "/admin" : `/admin?venue=${venueTab}`} className={QUIET_BTN}>
               필터 해제
             </Link>
           )}
@@ -149,7 +209,7 @@ export default async function AdminPage({
             totalPages={totalPages}
             total={total}
             basePath="/admin"
-            params={{ companyId }}
+            params={{ companyId, venue: venueTab === "all" ? undefined : venueTab }}
           />
         </div>
       </main>

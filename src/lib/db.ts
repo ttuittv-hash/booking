@@ -3766,8 +3766,26 @@ export async function listQuotes(filter?: {
 }
 
 // 화면용 신청서 목록 — 전체를 한 번에 읽지 않고 페이지 단위로 끊어 온다.
+// [신규 2026-09-19] "신청 리스트에 아레나·중형 소팅 기능" — venueId/bookingMode는
+// selection_json(텍스트) 안에 있어 컬럼이 아니다. 리포트 화면(reportStats.ts
+// quoteMatchesVenue)과 같은 규칙을 SQL로 옮긴다: 동시 대관은 두 공간 모두로 친다
+// (한쪽에서만 세면 그 공간에 걸린 신청이 빠져 보인다).
+function venueTabCondition(venue: "arena" | "medium-hall", params: unknown[]): string {
+  params.push(venue);
+  const idx = params.length;
+  return (
+    `((q.selection_json::jsonb->>'bookingMode') = 'SIMULTANEOUS'` +
+    ` OR COALESCE(q.selection_json::jsonb->>'venueId', 'arena') = $${idx})`
+  );
+}
+
 export async function listQuotesPaged(
-  filter: { applicantId?: string; companyId?: string; status?: Quote["status"][] } = {},
+  filter: {
+    applicantId?: string;
+    companyId?: string;
+    status?: Quote["status"][];
+    venue?: "arena" | "medium-hall";
+  } = {},
   page = 1,
   pageSize = DEFAULT_PAGE_SIZE,
 ): Promise<Paged<Quote>> {
@@ -3786,6 +3804,9 @@ export async function listQuotesPaged(
     params.push(filter.status);
     conditions.push(`q.status = ANY($${params.length})`);
   }
+  if (filter.venue) {
+    conditions.push(venueTabCondition(filter.venue, params));
+  }
   const where = conditions.length ? `WHERE ${conditions.join(" AND ")}` : "";
 
   // 건수와 페이지 행은 서로의 입력이 아니다 — 차례로 기다리면 왕복이 두 번이다.
@@ -3798,6 +3819,36 @@ export async function listQuotesPaged(
     ),
   ]);
   return toPaged(rows.map(toQuote), countRow?.n ?? 0, page, pageSize);
+}
+
+// [신규 2026-09-19] 신청 현황 목록의 "전체/아레나/중형" 탭 카운트 — 조건별로 따로
+// COUNT 쿼리를 세 번 보내지 않고 FILTER 로 한 번에 묶는다. 회사 필터(companyId)가
+// 걸려 있으면 그 안에서의 탭별 건수를 낸다(탭을 눌러도 회사 필터는 유지되므로).
+export async function countQuotesByVenue(
+  filter: { applicantId?: string; companyId?: string } = {},
+): Promise<{ all: number; arena: number; mediumHall: number }> {
+  const conditions: string[] = [];
+  const params: unknown[] = [];
+  let from = "quotes q";
+  if (filter.companyId) {
+    from = "quotes q JOIN users u ON u.id = q.applicant_id";
+    params.push(filter.companyId);
+    conditions.push(`u.company_id = $${params.length}`);
+  } else if (filter.applicantId) {
+    params.push(filter.applicantId);
+    conditions.push(`q.applicant_id = $${params.length}`);
+  }
+  const where = conditions.length ? `WHERE ${conditions.join(" AND ")}` : "";
+  const arenaCond = venueTabCondition("arena", params);
+  const midHallCond = venueTabCondition("medium-hall", params);
+  const row = await one<{ total: number; arena: number; mid_hall: number }>(
+    `SELECT COUNT(*)::int AS total,
+            COUNT(*) FILTER (WHERE ${arenaCond})::int AS arena,
+            COUNT(*) FILTER (WHERE ${midHallCond})::int AS mid_hall
+       FROM ${from} ${where}`,
+    params,
+  );
+  return { all: row?.total ?? 0, arena: row?.arena ?? 0, mediumHall: row?.mid_hall ?? 0 };
 }
 
 // 같은 주차에 이미 심사 승인된 "다른 회사"의 신청서가 있는지 확인한다.
