@@ -353,6 +353,7 @@ export default async function MyQuoteDetailPage({
         {quote.review?.decision === "HOLD" && user.role !== "ADMIN" && (
           <SupplementPanel
             quoteId={quote.id}
+            rationale={quote.review.rationale || null}
             submittedAt={quote.review.supplementSubmittedAt ?? null}
             attachmentCount={attachments.length}
           />

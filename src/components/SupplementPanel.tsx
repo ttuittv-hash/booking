@@ -15,10 +15,17 @@ import { formatDateTime } from "@/lib/format";
  */
 export function SupplementPanel({
   quoteId,
+  rationale,
   submittedAt,
   attachmentCount,
 }: {
   quoteId: string;
+  /**
+   * [수정 2026-09-19] 운영자가 보류 처리하며 남긴 심사 근거/코멘트(review.rationale) —
+   * 화면에 안 보이면 신청자는 "보류됐다"만 알 뿐 무엇을 보완해야 하는지 알 길이 없었다
+   * (알림톡 BK-04 본문에만 있고, 마이페이지에 다시 안 떠 있었다). 비어 있을 수 있다.
+   */
+  rationale: string | null;
   /** 이미 제출했으면 그 시각. 아직이면 null */
   submittedAt: string | null;
   /** 한 건도 없이 제출하는 걸 막기 위해 받는다 */
@@ -53,6 +60,14 @@ export function SupplementPanel({
         보완 자료 제출
       </h3>
 
+      {rationale && (
+        <p className="mt-3 border-l-2 border-foreground px-3 py-2 text-s whitespace-pre-wrap">
+          <b>보완 요청 사유</b>
+          <br />
+          {rationale}
+        </p>
+      )}
+
       {submittedAt ? (
         <p className="mt-6 border-l-2 border-foreground px-3 py-2 text-s">
           <b>보완 제출 완료</b>
@@ -64,8 +79,8 @@ export function SupplementPanel({
       ) : (
         <>
           <p className="mt-3 text-xs text-muted">
-            위 첨부서류에 보완 자료를 모두 올린 뒤 제출해 주세요. 제출하면 추가 업로드가 닫히고
-            운영자에게 전달됩니다.
+            자료 보완이 필요한 경우 위 첨부서류에 업로드해 주세요. 다 올리셨으면 아래 버튼으로
+            제출해 주세요 — 제출하면 추가 업로드가 닫히고 운영자에게 전달됩니다.
           </p>
           <div className="mt-6">
             <button
