@@ -5,7 +5,7 @@ import { useRef, useState } from "react";
 import { PUBLIC_INTEREST_ITEM_LABEL, type Attachment } from "@/lib/pricing/types";
 import { FilePicker } from "@/components/ui/FilePicker";
 import { btnClass } from "@/components/ui/kit";
-import { formatDate } from "@/lib/format";
+import { formatDateTime } from "@/lib/format";
 
 function formatSize(bytes: number): string {
   if (bytes < 1024) return `${bytes}B`;
@@ -108,7 +108,9 @@ export function AttachmentsPanel({
               )}
               <div className="flex shrink-0 items-center gap-4 text-xs text-muted tabular-nums">
                 <span>{formatSize(file.size)}</span>
-                <span>{formatDate(file.createdAt)}</span>
+                {/* [수정 2026-09-19] 날짜만 찍던 것을 시각까지 보여준다(nora) — 같은 날 여러 번
+                    올린 자료의 선후를 날짜만으로는 가릴 수 없다. 24시간제인 이유는 format.ts 참고. */}
+                <span>{formatDateTime(file.createdAt)}</span>
                 {canDelete && (
                   <button
                     type="button"

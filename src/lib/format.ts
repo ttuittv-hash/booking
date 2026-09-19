@@ -48,7 +48,13 @@ export function formatDate(iso: string | number | Date): string {
   return KST_DATE.format(new Date(iso));
 }
 
-/** "2026. 8. 21. 오후 2:30" */
+/**
+ * "2026. 8. 21. 14:30" — 24시간제다(hourCycle: "h23").
+ *
+ * [정정 2026-09-19] 주석이 "오후 2:30" 으로 적혀 있었는데 실제 출력과 다르다. 아래 설명대로
+ * dayPeriod("오전"/"오후")가 서버·브라우저에서 다른 문자열로 나와 하이드레이션이 깨진 적이
+ * 있어 24시간제로 고정한 것이다 — 예시를 믿고 "오후"가 나온다고 여기면 안 된다.
+ */
 export function formatDateTime(iso: string | number | Date): string {
   return KST_DATETIME.format(new Date(iso));
 }
