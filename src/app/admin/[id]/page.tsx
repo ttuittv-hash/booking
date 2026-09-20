@@ -20,7 +20,7 @@ import {
   listUsersByIds,
   getScreenTextContent,
 } from "@/lib/db";
-import { resolveWizardFieldLabel } from "@/lib/content/pageContent";
+import { resolveWizardFieldLabel, showChoiceRow } from "@/lib/content/pageContent";
 import { formatDateTime, num, won } from "@/lib/format";
 import { resolveSelectedDates } from "@/lib/pricing/dateRange";
 import {
@@ -391,32 +391,67 @@ export default async function AdminQuoteDetailPage({
                 }
               />
               <SpecTable
-                rows={[
+                rows={
                   [
-                    "행사유형",
-                    quote.selection.performanceInfo.eventTypes.length
-                      ? quote.selection.performanceInfo.eventTypes
-                          .map((t) => resolveWizardFieldLabel(screenText.wizardStrings, "eventTypes", t, EVENT_TYPE_LABEL))
-                          .join(", ")
-                      : NONE,
-                  ],
-                  [
-                    "무대형태",
-                    quote.selection.performanceInfo.stageTypes.length
-                      ? quote.selection.performanceInfo.stageTypes
-                          .map((t) => resolveWizardFieldLabel(screenText.wizardStrings, "stageTypes", t, STAGE_TYPE_LABEL))
-                          .join(", ")
-                      : NONE,
-                  ],
-                  [
-                    "객석형태",
-                    quote.selection.performanceInfo.seatingTypes.length
-                      ? quote.selection.performanceInfo.seatingTypes
-                          .map((t) => resolveWizardFieldLabel(screenText.wizardStrings, "seatingTypes", t, SEATING_TYPE_LABEL))
-                          .join(", ")
-                      : NONE,
-                  ],
-                ]}
+                    // [2026-09-20] "이미 없어진 필드 항목들 제거" — 위저드에서 그룹을 꺼도
+                    // 이 화면은 행을 계속 그려 「—」만 남겼다(신청 내역/신청 상세보기
+                    // 화면은 2026-09-18에 같은 규칙으로 고쳤는데 이 화면만 빠져 있었다).
+                    ...(showChoiceRow(
+                      quote.selection.performanceInfo.eventTypes.length > 0,
+                      "performanceInfo.eventTypes",
+                      Object.keys(EVENT_TYPE_LABEL),
+                      screenText.wizardDisabledFields ?? [],
+                      screenText.wizardCustomOptions,
+                    )
+                      ? [
+                          [
+                            "행사유형",
+                            quote.selection.performanceInfo.eventTypes.length
+                              ? quote.selection.performanceInfo.eventTypes
+                                  .map((t) => resolveWizardFieldLabel(screenText.wizardStrings, "eventTypes", t, EVENT_TYPE_LABEL))
+                                  .join(", ")
+                              : NONE,
+                          ],
+                        ]
+                      : []),
+                    ...(showChoiceRow(
+                      quote.selection.performanceInfo.stageTypes.length > 0,
+                      "performanceInfo.stageTypes",
+                      Object.keys(STAGE_TYPE_LABEL),
+                      screenText.wizardDisabledFields ?? [],
+                      screenText.wizardCustomOptions,
+                    )
+                      ? [
+                          [
+                            "무대형태",
+                            quote.selection.performanceInfo.stageTypes.length
+                              ? quote.selection.performanceInfo.stageTypes
+                                  .map((t) => resolveWizardFieldLabel(screenText.wizardStrings, "stageTypes", t, STAGE_TYPE_LABEL))
+                                  .join(", ")
+                              : NONE,
+                          ],
+                        ]
+                      : []),
+                    ...(showChoiceRow(
+                      quote.selection.performanceInfo.seatingTypes.length > 0,
+                      "performanceInfo.seatingTypes",
+                      Object.keys(SEATING_TYPE_LABEL),
+                      screenText.wizardDisabledFields ?? [],
+                      screenText.wizardCustomOptions,
+                    )
+                      ? [
+                          [
+                            "객석형태",
+                            quote.selection.performanceInfo.seatingTypes.length
+                              ? quote.selection.performanceInfo.seatingTypes
+                                  .map((t) => resolveWizardFieldLabel(screenText.wizardStrings, "seatingTypes", t, SEATING_TYPE_LABEL))
+                                  .join(", ")
+                              : NONE,
+                          ],
+                        ]
+                      : []),
+                  ] as [string, string][]
+                }
               />
             </div>
           )}
