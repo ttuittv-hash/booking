@@ -315,11 +315,15 @@ function VenueScoreBlock({ result }: { result: VenueScoreResult }) {
         </div>
       )}
 
-      {/* ---- 카테고리별 상세 (접이식, 기본 펼침) ------------------------- */}
+      {/* [수정 2026-09-23] "심사 내역 각 슬롯별로 접기 펼치기 되어야지 .. 최종 점수
+          슬롯은 열려있고 각 세부 심사 슬롯들은 점수만 노출 상세 내역은 접혀있어야지" —
+          최종 점수(히어로)는 항상 보이고, 카테고리별 세부 항목은 기본 접힘 · 점수만
+          요약으로 보이게 한다. 펼치면 항목별 기준 사다리·근거까지 볼 수 있다. */}
       {result.categories.map((cat, i) => (
-        <details key={cat.key} className="border-b border-border-soft last:border-b-0" open>
+        <details key={cat.key} className="group border-b border-border-soft last:border-b-0">
           <summary className="flex cursor-pointer list-none items-center justify-between gap-3 px-5 py-4 [&::-webkit-details-marker]:hidden">
-            <div className="flex flex-wrap items-baseline gap-x-2.5">
+            <div className="flex flex-wrap items-center gap-x-2.5">
+              <span className="text-muted transition-transform group-open:rotate-90">▸</span>
               <h4 className={SUB_TITLE}>{cat.label}</h4>
               <span className="text-xs text-muted">
                 코드 {cat.items[0]?.code.split("-").slice(0, 2).join("-")} · 배점 {cat.nominalMax}점
