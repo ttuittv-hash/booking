@@ -1,297 +1,400 @@
-import type { BonusItem, QuoteScoreBreakdown, ScoreConfidence, ScoreItem, VenueScoreResult } from "@/lib/scoring/types";
-import {
-  ERROR_NOTE,
-  NONE,
-  SECTION_TITLE,
-  SUB_TITLE,
-  TABLE,
-  TABLE_CARD,
-  TABLE_HEAD,
-  TABLE_HEAD_DESC,
-  TABLE_HEAD_TITLE,
-  HELP,
-  TABLE_SCROLL,
-  TD,
-  TD_ID,
-  TD_NUM,
-  TH,
-  TH_NUM,
-  THEAD_ROW,
-  TR,
-  WARN_NOTE,
-} from "@/components/admin/adminUi";
+import type {
+  BonusItem,
+  QuoteScoreBreakdown,
+  ScoreBand,
+  ScoreCategory,
+  ScoreConfidence,
+  ScoreItem,
+  VenueScoreResult,
+} from "@/lib/scoring/types";
+import { ERROR_NOTE, NONE, SECTION_TITLE, SUB_TITLE, HELP } from "@/components/admin/adminUi";
+
+/* ============================================================================
+   심사 채점 화면 재설계 (2026-09-23)
+
+   기존 화면은 표 다섯 장에 숫자만 나와서, 운영자가 "몇 점인지 · 왜 그 점수인지"를
+   rule 문장을 직접 읽어 항목마다 다시 계산해야 알 수 있었다. 실제 화면을 보고 나온
+   요청("직관적이면서 잘보이고, 왜 그런 점수가 도출되었는지도 명확하게 인식되는")에
+   맞춰 시안(대관 심사 스코어보드)을 먼저 만들어 승인받은 뒤 그 구조로 다시 짰다.
+
+   핵심은 세 가지:
+   1) 항목마다 "기준 사다리"(ScoreItem.bands)로 값 → 구간 → 점수를 직접 보여준다.
+      rule 문장을 안 읽어도 어느 구간이 적중했는지 바로 보인다(하단 참고).
+   2) 신뢰도(AUTO/PROVISIONAL/UNAVAILABLE/EXCLUDED)를 색·모양으로 구분한다.
+   3) 카테고리 막대·전체 구성 막대가 실제 배점 구성과 항상 일치하게 한다 — 기존
+      categoryStats()는 EXCLUDED 항목을 막대에서 통째로 빼버려서, computeVenueScore()가
+      계산하는 unresolvedMax(EXCLUDED 포함)와 화면의 막대가 서로 다른 숫자를 말하고
+      있었다(예: 마케팅 카테고리 20점 중 10점이 "정책상 제외"인데 막대에는 안 보였다).
+      아래 categoryStats3()는 항목을 언제나 산정(earned) · 보류(unresolved, 위원 판단
+      필요) · 제외(excluded, 정책상) 셋으로 나누고, 셋의 합이 항상 nominalMax와 같다.
+   ========================================================================= */
 
 const CONFIDENCE_LABEL: Record<ScoreConfidence, string> = {
-  AUTO: "자동 확정",
-  PROVISIONAL: "잠정치",
+  AUTO: "자동확정",
+  PROVISIONAL: "확인 필요",
   EXCLUDED: "정책상 제외",
-  UNAVAILABLE: "산정 불가",
+  UNAVAILABLE: "판단 보류",
 };
 
-const CONFIDENCE_CLASS: Record<ScoreConfidence, string> = {
-  AUTO: "text-foreground",
-  PROVISIONAL: "text-muted-strong",
-  EXCLUDED: "text-muted line-through decoration-muted",
-  UNAVAILABLE: "text-muted",
-};
+function ConfidenceBadge({ c }: { c: ScoreConfidence }) {
+  const cls: Record<ScoreConfidence, string> = {
+    AUTO: "border-foreground bg-foreground text-panel",
+    PROVISIONAL: "border-accent-hover bg-accent-soft text-muted-strong",
+    UNAVAILABLE: "border-dashed border-border-soft text-muted",
+    EXCLUDED: "border-border-soft text-muted line-through decoration-muted",
+  };
+  return (
+    <span className={`inline-flex items-center border px-2 py-0.5 text-xs font-bold ${cls[c]}`}>
+      {CONFIDENCE_LABEL[c]}
+    </span>
+  );
+}
 
-function confidenceBadge(c: ScoreConfidence) {
-  return <span className={`text-2xs font-bold uppercase tracking-wide ${CONFIDENCE_CLASS[c]}`}>{CONFIDENCE_LABEL[c]}</span>;
+/** 값 → 구간 → 점수를 직접 보여주는 "기준 사다리". score 가 어느 구간과 같은 값이면 그 구간을 적중으로 강조한다. */
+function BandLadder({ bands, score }: { bands: ScoreBand[]; score: number | null }) {
+  return (
+    <div className="mt-2.5 flex flex-wrap gap-1">
+      {bands.map((b) => {
+        const hit = score !== null && b.score === score;
+        return (
+          <span
+            key={b.label}
+            className={`inline-flex items-center gap-1.5 border px-2 py-1 text-xs ${
+              hit ? "border-foreground bg-foreground font-bold text-panel" : "border-border-soft text-muted"
+            }`}
+          >
+            {b.label}
+            <b className="tabular-nums">{b.score}</b>
+          </span>
+        );
+      })}
+    </div>
+  );
+}
+
+interface Bucket {
+  earned: number;
+  unresolved: number; // 위원 판단 필요 (UNAVAILABLE 등, score===null 이지만 정책상 제외는 아님)
+  excluded: number; // 정책상 제외 (EXCLUDED)
+  max: number;
+}
+
+/** ScoreItem[] 을 산정·보류·제외 세 값으로 나눈다 — 셋의 합은 항상 항목 maxScore 합과 같다. */
+function bucketize(items: { score: number | null; maxScore: number; confidence: ScoreConfidence }[]): Bucket {
+  let earned = 0;
+  let unresolved = 0;
+  let excluded = 0;
+  let max = 0;
+  for (const item of items) {
+    max += item.maxScore;
+    if (item.score !== null) earned += item.score;
+    else if (item.confidence === "EXCLUDED") excluded += item.maxScore;
+    else unresolved += item.maxScore;
+  }
+  return { earned, unresolved, excluded, max };
+}
+
+/** earned/unresolved/excluded 세 구간을 쌓은 얇은 막대 — 카테고리 미니바 · 구성 막대 세그먼트가 공유한다. */
+function StackedBar({ bucket, tone = "foreground" }: { bucket: Bucket; tone?: "foreground" | "accent" }) {
+  const span = Math.max(bucket.max, 1);
+  const pct = (v: number) => `${Math.max(0, Math.min(100, (v / span) * 100))}%`;
+  const fillClass = tone === "accent" ? "bg-accent-hover" : "bg-foreground";
+  return (
+    <div className="relative flex h-full w-full overflow-hidden bg-panel-strong">
+      <div className={`h-full ${fillClass}`} style={{ width: pct(bucket.earned) }} />
+      {bucket.unresolved > 0 && (
+        <div
+          className="h-full"
+          style={{
+            width: pct(bucket.unresolved),
+            backgroundImage:
+              "repeating-linear-gradient(135deg, var(--n-light) 0, var(--n-light) 1px, transparent 1px, transparent 6px)",
+          }}
+        />
+      )}
+      {bucket.excluded > 0 && (
+        <div
+          className="h-full"
+          style={{
+            width: pct(bucket.excluded),
+            backgroundImage:
+              "repeating-linear-gradient(135deg, var(--border-soft) 0, var(--border-soft) 3px, var(--panel) 3px, var(--panel) 6px)",
+          }}
+        />
+      )}
+    </div>
+  );
 }
 
 function ItemRow({ item }: { item: ScoreItem }) {
   return (
-    <tr className={TR}>
-      <td className={`${TD_ID} font-mono text-xs`}>{item.code}</td>
-      <td className={TD}>
-        <div className="font-bold">{item.label}</div>
-        <div className="mt-0.5 text-xs text-muted">{item.rule}</div>
-        {item.evidence && <div className="mt-0.5 text-xs text-muted">근거: {item.evidence}</div>}
-        {item.note && <div className="mt-1 text-xs text-muted-strong">⚠ {item.note}</div>}
-      </td>
-      <td className={TD}>{confidenceBadge(item.confidence)}</td>
-      <td className={TD_NUM}>
-        {item.score === null ? NONE : <span className="font-bold tabular-nums">{item.score}</span>}
-        <span className="text-muted"> / {item.maxScore}</span>
-      </td>
-    </tr>
+    <div className="grid grid-cols-[1fr_auto] items-start gap-x-4 gap-y-1 border-t border-border-soft p-4">
+      <div className="min-w-0">
+        <div className="font-mono text-xs text-muted">{item.code}</div>
+        <div className="mt-0.5 text-s font-bold">{item.label}</div>
+        <div className="mt-1.5">
+          <ConfidenceBadge c={item.confidence} />
+        </div>
+        {item.bands ? (
+          <BandLadder bands={item.bands} score={item.score} />
+        ) : (
+          <p className="mt-2 text-xs text-muted">기준: {item.rule}</p>
+        )}
+        {item.evidence && (
+          <p className="mt-2 text-xs text-muted-strong">
+            근거: <b className="font-bold text-foreground">{item.evidence}</b>
+          </p>
+        )}
+        {item.note && <p className="mt-1.5 border-l-2 border-border-soft pl-2.5 text-xs leading-relaxed text-muted">{item.note}</p>}
+      </div>
+      <div className="text-right">
+        {item.score === null ? (
+          <div className="text-s font-bold text-muted">{NONE}</div>
+        ) : (
+          <div className="text-h6-m font-bold tabular-nums">{item.score}</div>
+        )}
+        <div className="text-xs text-muted">/ {item.maxScore}</div>
+      </div>
+    </div>
   );
 }
 
 function BonusRow({ item }: { item: BonusItem }) {
   return (
-    <tr className={TR}>
-      <td className={`${TD_ID} font-mono text-xs`}>{item.code}</td>
-      <td className={TD}>
-        <div className="font-bold">{item.label}</div>
-        {item.note && <div className="mt-1 text-xs text-muted-strong">⚠ {item.note}</div>}
-      </td>
-      <td className={TD}>{confidenceBadge(item.confidence)}</td>
-      <td className={TD_NUM}>
-        {item.score === null ? NONE : <span className="font-bold tabular-nums">+{item.score}</span>}
-        <span className="text-muted"> / {item.maxScore}</span>
-      </td>
-    </tr>
-  );
-}
-
-
-/* ============================================================================
-   채점 요약 도식 (2026-09-02)
-
-   자동 산정 결과가 표 다섯 장으로만 나와서, 운영자가 "몇 점인지 · 어디서 깎였는지"를
-   숫자를 훑어 더해야 알 수 있었다. 맨 위에 총점 하나와 항목별 막대를 둔다.
-
-   형태: 크기(magnitude) 비교 한 종류뿐이라 색으로 계열을 나누지 않는다 — 지면과 같은
-   단색에 농도만 셋으로 쓴다(산정 / 보류 / 남은 배점). 값은 모두 막대 옆에 직접 적으므로
-   범례 대신 이 세 마디를 위쪽 한 줄에 적어 둔다.
-   ========================================================================= */
-
-interface CategoryStat {
-  key: string;
-  label: string;
-  earned: number;
-  pending: number;
-  max: number;
-}
-
-/** 카테고리별 [산정 점수 / 보류 배점 / 만점]. 표에 이미 있는 값을 그대로 더한다. */
-function categoryStats(result: VenueScoreResult): CategoryStat[] {
-  return result.categories.map((cat) => {
-    let earned = 0;
-    let pending = 0;
-    for (const item of cat.items) {
-      if (item.score !== null) earned += item.score;
-      else if (item.confidence !== "EXCLUDED") pending += item.maxScore;
-    }
-    return { key: cat.key, label: cat.label, earned, pending, max: cat.nominalMax };
-  });
-}
-
-/** 한 줄짜리 막대 — 산정분·보류분·남은 배점. 사이는 2px 씩 띄워 경계를 만든다. */
-function ScoreBar({ earned, pending, max }: { earned: number; pending: number; max: number }) {
-  const span = Math.max(max, earned + pending, 1);
-  const pct = (v: number) => `${Math.max(0, Math.min(100, (v / span) * 100))}%`;
-  return (
-    <div className="flex h-2.5 w-full gap-0.5 bg-border-soft" aria-hidden>
-      <div className="bg-foreground" style={{ width: pct(earned) }} />
-      {pending > 0 && <div className="bg-muted/45" style={{ width: pct(pending) }} />}
-    </div>
-  );
-}
-
-function ScoreSummary({ result }: { result: VenueScoreResult }) {
-  const stats = categoryStats(result);
-  const nominalTotal = stats.reduce((sum, c) => sum + c.max, 0);
-
-  return (
-    <div className="border-b border-border-soft p-4 sm:p-5">
-      <div className="flex flex-wrap items-end justify-between gap-4">
-        <div>
-          <p className={HELP}>잠정 총점</p>
-          <p className="type-display mt-1 text-h4-m tabular-nums sm:text-h4">
-            {result.provisionalFinal}
-            <span className="text-h6-m text-muted"> / {nominalTotal}점</span>
-          </p>
+    <div className="flex items-center justify-between gap-3 border-t border-border-soft py-2.5 first:border-t-0">
+      <div className="min-w-0">
+        <div className="flex flex-wrap items-baseline gap-x-2">
+          <span className="font-mono text-xs text-muted">{item.code}</span>
+          <span className="text-s font-bold">{item.label}</span>
         </div>
-        <p className={HELP}>
-          산정 {result.computedSubtotal} · 보류 {result.unresolvedMax} · 가점 +{result.bonusTotal} ·
-          감점 −{result.penaltyTotal}
-        </p>
+        {item.bands && <BandLadder bands={item.bands} score={item.score} />}
+        {item.note && <p className="mt-1.5 border-l-2 border-border-soft pl-2.5 text-xs leading-relaxed text-muted">{item.note}</p>}
       </div>
-
-      <div className="mt-3">
-        <ScoreBar
-          earned={result.computedSubtotal}
-          pending={result.unresolvedMax}
-          max={nominalTotal}
-        />
+      <div className={`shrink-0 text-s font-bold tabular-nums ${item.score ? "text-good" : "text-muted"}`}>
+        {item.score === null ? NONE : `+${item.score}`}
+        <span className="font-normal text-muted"> / {item.maxScore}</span>
       </div>
-
-      {/* 항목별 — 어디서 깎였는지는 결국 이 줄들에서 읽힌다 */}
-      <dl className="mt-5 space-y-2.5">
-        {stats.map((c) => (
-          <div key={c.key} className="grid grid-cols-[8.5rem_1fr_5.5rem] items-center gap-3">
-            <dt className="truncate text-xs text-muted-strong">{c.label}</dt>
-            <dd>
-              <ScoreBar earned={c.earned} pending={c.pending} max={c.max} />
-            </dd>
-            <dd className="text-right text-xs tabular-nums">
-              <span className="font-bold">{c.earned}</span>
-              <span className="text-muted"> / {c.max}점</span>
-              {c.pending > 0 && <span className="block text-2xs text-muted">보류 {c.pending}</span>}
-            </dd>
-          </div>
-        ))}
-      </dl>
     </div>
   );
+}
+
+function categoryLadderLabel(cat: ScoreCategory, bucket: Bucket) {
+  return `${cat.label} ${bucket.earned}/${cat.nominalMax}`;
 }
 
 function VenueScoreBlock({ result }: { result: VenueScoreResult }) {
   const autoDq = result.disqualifiers.find((d) => d.auto && d.triggered);
+  const catBuckets = result.categories.map((cat) => bucketize(cat.items));
+  const bonusBucket = bucketize(result.bonuses);
+  const nominalTotal = result.categories.reduce((sum, c) => sum + c.nominalMax, 0);
+  const bonusMax = result.bonuses.reduce((sum, b) => sum + b.maxScore, 0);
+  const axisMax = Math.max(nominalTotal + bonusMax, 1);
+  const passLinePct = Math.min(100, (60 / axisMax) * 100);
+  // 위원 판단으로 지금 당장 더 오를 수 있는 여지 — 정책상 제외(excluded)는 법무 확정
+  // 전까지는 어차피 0으로 고정이라 "당장의 headroom" 에 넣지 않는다.
+  const resolvable = catBuckets.reduce((sum, b) => sum + b.unresolved, 0) + bonusBucket.unresolved;
+  const totalUnresolved = catBuckets.reduce((sum, b) => sum + b.unresolved, 0);
+  const totalExcluded = catBuckets.reduce((sum, b) => sum + b.excluded, 0);
+
   return (
-    <div className={TABLE_CARD}>
-      <div className={TABLE_HEAD}>
+    <div className="border border-border-soft bg-panel">
+      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border-soft px-5 py-3.5">
         <div>
-          <div className={TABLE_HEAD_TITLE}>{result.venueLabel} 채점 초안</div>
-          <div className={TABLE_HEAD_DESC}>
-            산정: {result.computedSubtotal}점 · 보류(미반영/산정불가): {result.unresolvedMax}점 · 가점 +{result.bonusTotal} · 감점 −{result.penaltyTotal}
-          </div>
+          <div className="text-s font-bold">{result.venueLabel} 채점 초안</div>
         </div>
-        <div className="text-right">
-          <div className="text-h6-m font-bold tabular-nums">{result.provisionalFinal}점</div>
-          <div className={`text-xs font-bold ${result.provisionalEligible ? "text-good" : "text-danger"}`}>
-            {result.provisionalEligible ? "잠정 적격(60점↑)" : "잠정 미달"}
+      </div>
+
+      {/* ---- 히어로: 총점 + 구성 --------------------------------------- */}
+      <div className="border-b border-border-soft p-4 sm:p-5">
+        <div className="flex flex-wrap items-end justify-between gap-4">
+          <div>
+            <p className="type-display text-h4-m tabular-nums sm:text-h4">
+              {result.provisionalFinal}
+              <span className="text-h6-m text-muted"> / {nominalTotal}점</span>
+            </p>
+          </div>
+          <span
+            className={`border px-3 py-1.5 text-xs font-bold ${
+              result.provisionalEligible
+                ? "border-good bg-good-soft text-good"
+                : "border-danger bg-danger-soft text-danger"
+            }`}
+          >
+            {result.provisionalEligible ? "잠정 적격" : "잠정 미달"} · 합격선(60점) 대비{" "}
+            {result.provisionalFinal - 60 >= 0 ? "+" : ""}
+            {result.provisionalFinal - 60}
+          </span>
+        </div>
+
+        <p className={`mt-3 ${HELP}`}>
+          산정 <b className="font-bold text-foreground">{result.computedSubtotal}</b> · 보류(위원 판단 필요){" "}
+          <b className="font-bold text-foreground">{totalUnresolved}</b> · 제외(정책상){" "}
+          <b className="font-bold text-foreground">{totalExcluded}</b> · 가점{" "}
+          <b className="font-bold text-foreground">+{result.bonusTotal}</b> · 감점{" "}
+          <b className="font-bold text-foreground">−{result.penaltyTotal}</b>
+        </p>
+
+        {resolvable > 0 && (
+          <p className="mt-3 border border-dashed border-accent-hover bg-accent-soft px-3 py-2 text-xs text-muted-strong">
+            보류된 <b className="font-bold text-foreground">{resolvable}점</b>이 위원 판단으로 최고 구간까지 확정되면
+            최대 <b className="font-bold text-foreground">{result.provisionalFinal + resolvable}점</b>까지 오를 수
+            있습니다.
+          </p>
+        )}
+
+        {/* 구성 막대 — 카테고리별 산정/보류/제외 + 가점, 합격선(60점) 표시 */}
+        <div className="mt-5">
+          <div className="mb-1.5 flex justify-between text-xs font-bold text-muted">
+            <span>0</span>
+            <span>
+              점수 구성 (배점 {nominalTotal} + 가점 최대 {bonusMax})
+            </span>
+            <span>{axisMax}</span>
+          </div>
+          <div className="relative flex h-8 border border-border-soft">
+            {result.categories.map((cat, i) => (
+              <div
+                key={cat.key}
+                className="h-full border-r-2 border-background last:border-r-0"
+                style={{ width: `${(cat.nominalMax / axisMax) * 100}%` }}
+              >
+                <StackedBar bucket={catBuckets[i]} />
+              </div>
+            ))}
+            {bonusMax > 0 && (
+              <div className="h-full" style={{ width: `${(bonusMax / axisMax) * 100}%` }}>
+                <StackedBar bucket={bonusBucket} tone="accent" />
+              </div>
+            )}
+            <div className="pointer-events-none absolute inset-y-0 border-l-2 border-dashed border-danger" style={{ left: `${passLinePct}%` }}>
+              <span className="absolute -bottom-5 left-1 whitespace-nowrap text-xs font-bold text-danger">합격선 60</span>
+            </div>
+          </div>
+          <div className="mt-7 flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted">
+            {result.categories.map((cat, i) => (
+              <span key={cat.key}>{categoryLadderLabel(cat, catBuckets[i])}</span>
+            ))}
+            {bonusMax > 0 && <span>가점 +{bonusBucket.earned}/{bonusMax}</span>}
+          </div>
+          <div className="mt-4 flex flex-wrap gap-x-4 gap-y-1.5 text-xs text-muted-strong">
+            <span>
+              <i className="mr-1.5 inline-block h-2.5 w-2.5 border border-foreground bg-foreground align-[-1px]" />
+              자동확정
+            </span>
+            <span>
+              <i className="mr-1.5 inline-block h-2.5 w-2.5 border border-accent-hover bg-accent-soft align-[-1px]" />
+              위원 확인 필요(잠정치)
+            </span>
+            <span>
+              <i
+                className="mr-1.5 inline-block h-2.5 w-2.5 border border-border-soft align-[-1px]"
+                style={{
+                  backgroundImage:
+                    "repeating-linear-gradient(135deg, var(--n-light) 0, var(--n-light) 1px, transparent 1px, transparent 4px)",
+                }}
+              />
+              판단 보류(산정 불가)
+            </span>
+            <span>
+              <i
+                className="mr-1.5 inline-block h-2.5 w-2.5 border border-border-soft align-[-1px]"
+                style={{
+                  backgroundImage:
+                    "repeating-linear-gradient(135deg, var(--border-soft) 0, var(--border-soft) 2px, var(--panel) 2px, var(--panel) 4px)",
+                }}
+              />
+              정책상 제외
+            </span>
           </div>
         </div>
       </div>
 
-      <ScoreSummary result={result} />
-
-      {autoDq && <div className={`${ERROR_NOTE} m-4`}>부적격 게이트 자동 발동 — {autoDq.label}. 점수와 무관하게 대관 불가입니다.</div>}
-
-      {result.categories.map((cat) => (
-        <div key={cat.key} className="border-b border-border-soft p-4 last:border-b-0">
-          <div className="mb-2 flex items-baseline justify-between">
-            <h4 className={SUB_TITLE}>{cat.label}</h4>
-            <span className="text-xs text-muted">배점 {cat.nominalMax}점</span>
-          </div>
-          <div className={TABLE_SCROLL}>
-            <table className={TABLE}>
-              <thead className={THEAD_ROW}>
-                <tr>
-                  <th className={TH} style={{ width: "10%" }}>
-                    코드
-                  </th>
-                  <th className={TH}>항목 · 산정 근거</th>
-                  <th className={TH} style={{ width: "12%" }}>
-                    신뢰도
-                  </th>
-                  <th className={TH_NUM} style={{ width: "12%" }}>
-                    점수
-                  </th>
-                </tr>
-              </thead>
-              <tbody>
-                {cat.items.map((item) => (
-                  <ItemRow key={item.code} item={item} />
-                ))}
-              </tbody>
-            </table>
-          </div>
+      {autoDq && (
+        <div className={`${ERROR_NOTE} m-4`}>
+          부적격 게이트 자동 발동 — {autoDq.label}. 점수와 무관하게 대관 불가입니다.
         </div>
+      )}
+
+      {/* ---- 카테고리별 상세 (접이식, 기본 펼침) ------------------------- */}
+      {result.categories.map((cat, i) => (
+        <details key={cat.key} className="border-b border-border-soft last:border-b-0" open>
+          <summary className="flex cursor-pointer list-none items-center justify-between gap-3 px-5 py-4 [&::-webkit-details-marker]:hidden">
+            <div className="flex flex-wrap items-baseline gap-x-2.5">
+              <h4 className={SUB_TITLE}>{cat.label}</h4>
+              <span className="text-xs text-muted">
+                코드 {cat.items[0]?.code.split("-").slice(0, 2).join("-")} · 배점 {cat.nominalMax}점
+              </span>
+            </div>
+            <span className="text-s font-bold tabular-nums">
+              {catBuckets[i].earned}
+              <span className="text-xs font-normal text-muted"> / {cat.nominalMax}</span>
+            </span>
+          </summary>
+          <div className="h-1.5 border-t border-border-soft">
+            <StackedBar bucket={catBuckets[i]} />
+          </div>
+          {cat.items.map((item) => (
+            <ItemRow key={item.code} item={item} />
+          ))}
+        </details>
       ))}
 
-      <div className="p-4">
-        <div className="mb-2 flex items-baseline justify-between">
+      {/* ---- 조정 항목: 가점 · 감점 · 부적격 게이트 --------------------- */}
+      <div className="grid gap-4 p-4 sm:p-5 lg:grid-cols-2">
+        <div className="border border-border-soft p-4">
           <h4 className={SUB_TITLE}>가점</h4>
+          <p className={`mt-0.5 ${HELP}`}>배점 {nominalTotal}점과 별개로 최종 점수에 더해집니다.</p>
+          <div className="mt-2">
+            {result.bonuses.map((b) => (
+              <BonusRow key={b.code} item={b} />
+            ))}
+          </div>
         </div>
-        <div className={TABLE_SCROLL}>
-          <table className={TABLE}>
-            <thead className={THEAD_ROW}>
-              <tr>
-                <th className={TH} style={{ width: "10%" }}>
-                  코드
-                </th>
-                <th className={TH}>항목</th>
-                <th className={TH} style={{ width: "12%" }}>
-                  신뢰도
-                </th>
-                <th className={TH_NUM} style={{ width: "12%" }}>
-                  점수
-                </th>
-              </tr>
-            </thead>
-            <tbody>
-              {result.bonuses.map((b) => (
-                <BonusRow key={b.code} item={b} />
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </div>
 
-      {/* [신규 2026-09-18] "심사표와 심사 평가 항목이 매칭이 안 된다"(niki) — 배점표 3)에는
-          감점이 다섯 줄로 명시돼 있는데 화면에는 "이력 조회가 없어 0으로 취급한다"는 문구
-          한 줄뿐이라, 위원이 심사표를 들고도 「3년 내 대관 계약 해지 −5」를 적용할 자리가
-          없었다. 자동 판정은 여전히 불가하지만 배점표와 같은 줄을 같은 순서로 보여준다 —
-          바로 아래 부적격 게이트가 이미 쓰는 방식과 같다. */}
-      <div className="p-4 pt-0">
-        <h4 className={`${SUB_TITLE} mb-2`}>감점 (배점표 3)</h4>
-        <ul className="space-y-1 text-xs">
-          {result.penalties.map((p) => (
-            <li key={p.code} className="flex items-center gap-2">
-              <span className="font-mono text-muted">{p.code}</span>
-              <span>{p.label}</span>
-              <span className="font-bold tabular-nums text-danger">{p.penalty}</span>
-              <span className="text-muted">{p.auto ? (p.triggered ? "발동" : "정상") : "위원 판단"}</span>
-            </li>
-          ))}
-        </ul>
-        <p className="mt-2 text-xs text-muted">
-          신청사 이력 조회 기능이 아직 없어 자동 판정하지 않습니다 — &ldquo;이력 없음&rdquo;이 아니라 &ldquo;조회 불가&rdquo;입니다. 해당 사항이 있으면
-          위원이 아래 심사 폼의 최종 점수에 직접 반영해 주세요. 동일 사건이면 사유별 최대값 1개만 적용합니다.
-        </p>
-      </div>
-
-      <div className="p-4 pt-0">
-        <h4 className={`${SUB_TITLE} mb-2`}>부적격 게이트</h4>
-        <ul className="space-y-1 text-xs">
-          {result.disqualifiers.map((d) => (
-            <li key={d.code} className="flex items-center gap-2">
-              <span className="font-mono text-muted">{d.code}</span>
-              <span>{d.label}</span>
-              {d.auto ? (
-                <span className={`font-bold ${d.triggered ? "text-danger" : "text-good"}`}>
-                  {d.triggered ? "발동" : "정상"}
+        <div className="border border-border-soft p-4">
+          <h4 className={SUB_TITLE}>감점 (배점표 3)</h4>
+          <p className={`mt-0.5 ${HELP}`}>
+            신청사 이력 조회 기능이 없어 자동 판정할 수 없습니다 — 전부 위원 판단입니다. 동일 사건이면 사유별 최대값
+            1개만 적용합니다.
+          </p>
+          <ul className="mt-2">
+            {result.penalties.map((p) => (
+              <li key={p.code} className="flex items-center justify-between gap-2 border-t border-border-soft py-2 first:border-t-0 text-xs">
+                <span className="flex min-w-0 items-baseline gap-2">
+                  <span className="font-mono text-muted">{p.code}</span>
+                  <span className="truncate">{p.label}</span>
                 </span>
-              ) : (
-                <span className="text-muted">위원 확인 필요</span>
-              )}
-            </li>
-          ))}
-        </ul>
+                <span className="shrink-0 font-bold text-muted-strong">
+                  위원 판단 · <span className="tabular-nums text-danger">{p.penalty}</span>
+                </span>
+              </li>
+            ))}
+          </ul>
+        </div>
+
+        <div className="border border-border-soft p-4 lg:col-span-2">
+          <h4 className={SUB_TITLE}>부적격 게이트</h4>
+          <p className={`mt-0.5 ${HELP}`}>발동되면 점수와 무관하게 대관이 불가합니다.</p>
+          <ul className="mt-2">
+            {result.disqualifiers.map((d) => (
+              <li key={d.code} className="flex items-center justify-between gap-2 border-t border-border-soft py-2 first:border-t-0 text-xs">
+                <span className="flex min-w-0 items-baseline gap-2">
+                  <span className="font-mono text-muted">{d.code}</span>
+                  <span className="truncate">{d.label}</span>
+                </span>
+                <span className="shrink-0 font-bold">
+                  {d.auto ? (
+                    <span className={d.triggered ? "text-danger" : "text-good"}>
+                      자동 판정 · {d.triggered ? "발동" : "정상"}
+                    </span>
+                  ) : (
+                    <span className="text-muted-strong">위원 확인 필요</span>
+                  )}
+                </span>
+              </li>
+            ))}
+          </ul>
+        </div>
       </div>
     </div>
   );
@@ -303,24 +406,33 @@ export function ScoringPanel({ breakdown }: { breakdown: QuoteScoreBreakdown }) 
       <div>
         <h3 className={SECTION_TITLE}>심사 채점 초안 (자동 산정)</h3>
         <p className="mt-1 text-xs text-muted">
-          「서울아레나 대관 심의 평가 세부 기준」 Ver. {breakdown.rubricVersion} 기준 자동 산정 초안입니다. 참고용이며 저장되지 않습니다 — 최종
-          점수·판정은 아래 심사 폼에서 직접 입력해 주세요.
+          「서울아레나 대관 심의 평가 세부 기준」 Ver. {breakdown.rubricVersion} 기준 자동 산정 초안입니다. 참고용이며
+          저장되지 않습니다 — 최종 점수·판정은 아래 심사 폼에서 직접 입력해 주세요.
         </p>
       </div>
-      <div className={`${WARN_NOTE}`}>
-        경합 시 순위·동점 tie-break·이력 기반 감점·시뮬레이션은 아직 자동 반영되지 않았습니다. 협조 동의 항목(공동 프로모션·실적 데이터 제공, 10점)은
-        대관계약 동의서와의 충돌 소지로 법무 확정 전까지 제외했습니다.
-        {/* [신규 2026-09-18] 배점표 4)의 판단 순서를 적어 둔다 — "아직 반영되지 않았습니다"
-            라고만 하면 위원이 무엇을 어떤 순서로 봐야 하는지 알 수 없다. */}
-        <span className="mt-1.5 block">
-          동일 일정에 2건 이상이면 <b>적격 판정을 받은 건 중 최종 점수 최고 득점자</b>를 우선 선정하고, 점수가 같으면 ① 대관 수익성(20점) → ② 예상 관객
-          규모(20점) → ③ 마케팅 협조(공동 프로모션 + 공연 실적 데이터 협조) 합산 → ④ 마케팅 파급력(출연 IP 공식 채널 구독자·팔로워 합산, 활용 가능한 외부
-          채널 수) 순으로 판단합니다.
-        </span>
-      </div>
+
       {breakdown.results.map((result) => (
         <VenueScoreBlock key={result.venueId} result={result} />
       ))}
+
+      <details className="border border-border-soft bg-panel">
+        <summary className="flex cursor-pointer list-none items-center justify-between gap-3 px-5 py-3.5 text-s font-bold [&::-webkit-details-marker]:hidden">
+          유의사항 · 동점 시 판단 순서
+        </summary>
+        <div className="space-y-2.5 border-t border-border-soft px-5 py-4 text-xs leading-relaxed text-muted-strong">
+          <p>
+            경합 시 순위·동점 tie-break·이력 기반 감점·시뮬레이션은 아직 자동 반영되지 않았습니다. 협조 동의
+            항목(공동 프로모션·실적 데이터 제공, 10점)은 대관계약 동의서와의 충돌 소지로 법무 확정 전까지
+            제외했습니다.
+          </p>
+          <p>
+            동일 일정에 2건 이상이면 <b className="text-foreground">적격 판정을 받은 건 중 최종 점수 최고 득점자</b>
+            를 우선 선정하고, 점수가 같으면 ① 대관 수익성(20점) → ② 예상 관객 규모(20점) → ③ 마케팅 협조(공동
+            프로모션 + 공연 실적 데이터 협조) 합산 → ④ 마케팅 파급력(출연 IP 공식 채널 구독자·팔로워 합산, 활용
+            가능한 외부 채널 수) 순으로 판단합니다.
+          </p>
+        </div>
+      </details>
     </div>
   );
 }

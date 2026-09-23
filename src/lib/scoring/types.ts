@@ -13,6 +13,20 @@
 //   UNAVAILABLE — 신청서에 입력 통로 자체가 없어 산정 불가
 export type ScoreConfidence = "AUTO" | "PROVISIONAL" | "EXCLUDED" | "UNAVAILABLE";
 
+/**
+ * [신규 2026-09-23] 심사 화면 재설계 — "왜 이 점수가 나왔는지" 를 rule 원문(사람이
+ * 읽는 문장)과 별개로 화면이 직접 그릴 수 있는 형태로도 들고 있는다. 단일 구간표로
+ * 표현되는 항목(대부분의 배점표 줄)에만 채운다 — 여러 값을 합산하는 항목(M-REV-01
+ * 등)은 사다리 하나로 못 그리므로 비워 두고 rule·evidence 문장만 보여준다.
+ *
+ * `score`는 배점표의 해당 구간 점수 그대로다 — ScoreItem.score 와 값이 같은 구간이
+ * "적중"으로 강조된다(별도 hit 플래그를 안 둔다 — 값이 둘로 갈리면 나중에 어긋난다).
+ */
+export interface ScoreBand {
+  label: string;
+  score: number;
+}
+
 export interface ScoreItem {
   code: string; // "A-REV-01" 등 — 13-C-1 코드 그대로
   label: string;
@@ -22,6 +36,7 @@ export interface ScoreItem {
   rule: string; // 배점 기준 원문 요약(글래스박스 — 13-4)
   evidence?: string; // 이번 신청서의 어느 값이 이 점수를 만들었는지
   note?: string; // 캐비어트 · 확정 필요 사항
+  bands?: ScoreBand[]; // 화면에 "기준 사다리"로 그릴 구간표(있는 항목만)
 }
 
 type ScoreCategoryKey = "REVENUE" | "PUBLIC" | "MARKETING" | "SAFETY";
@@ -40,6 +55,7 @@ export interface BonusItem {
   score: number | null;
   confidence: ScoreConfidence;
   note?: string;
+  bands?: ScoreBand[]; // ScoreItem.bands 와 같은 용도
 }
 
 export interface DisqualifierCheck {

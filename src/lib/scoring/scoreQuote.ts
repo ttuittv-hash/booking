@@ -84,6 +84,13 @@ function scoreRevenue(venueId: "arena" | "medium-hall", selection: QuoteSelectio
       confidence: "AUTO",
       rule: "2만↑ 20 · 1.5만↑ 15 · 1.2만↑ 10 · 1만↑ 5 · 1만 미만 3",
       evidence: `1회당 예상 관객 수 ${n.toLocaleString()}명`,
+      bands: [
+        { label: "1만 미만", score: 3 },
+        { label: "1만↑", score: 5 },
+        { label: "1.2만↑", score: 10 },
+        { label: "1.5만↑", score: 15 },
+        { label: "2만↑", score: 20 },
+      ],
     });
 
     const pkg = selection.packageId;
@@ -97,6 +104,12 @@ function scoreRevenue(venueId: "arena" | "medium-hall", selection: QuoteSelectio
       rule: "경합 시 순위(1위 20·2위 15·3위 10·4위↓ 5) / 비경합 시 패키지4=20·3=15·2=10·1=5",
       evidence: pkg ? `선택 패키지 ${pkg}` : "패키지 미확정(Custom 등)",
       note: "경합 시 순위 기반 산정은 구현되지 않아 항상 패키지 등급 기준 잠정치입니다. 같은 주차 경합 여부는 관리자가 별도로 확인하세요.",
+      bands: [
+        { label: "패키지1", score: 5 },
+        { label: "패키지2", score: 10 },
+        { label: "패키지3", score: 15 },
+        { label: "패키지4", score: 20 },
+      ],
     });
   } else {
     const n = selection.secondaryAudience;
@@ -133,6 +146,11 @@ function scoreRevenue(venueId: "arena" | "medium-hall", selection: QuoteSelectio
       confidence: dayScore === null ? "UNAVAILABLE" : "PROVISIONAL",
       rule: "비경합 시 공연 일수 기준 — 4일 20·3일 15·2일 10 (1일 이하는 평가표에 규정 없음)",
       evidence: `공연일 ${perfDayCount}일`,
+      bands: [
+        { label: "2일", score: 10 },
+        { label: "3일", score: 15 },
+        { label: "4일↑", score: 20 },
+      ],
       note:
         perfDayCount <= 1
           ? "평가표 원문에 1일 이하 구간 배점이 없습니다(13-C-4 ⚠). 위원 확인 필요."
@@ -171,6 +189,14 @@ function scorePublic(info: PerformanceInfo, venueId: "arena" | "medium-hall"): S
     rule: "체크리스트 5개(할인·접근성·연계사업·민원저감·소비자보호[암표방지 병합]) 중 충족 개수 — 5개 15·4개 12·3개 9·2개 6·1개 3·0개 0",
     evidence: `체크리스트 충족 ${n}/5개`,
     note: "'검토 중'으로 표시한 항목도 체크 자체는 충족으로 셉니다(13-N #39-c 임시 규칙). 위원 확인 시 반영 여부 조정하세요.",
+    bands: [
+      { label: "0개", score: 0 },
+      { label: "1개", score: 3 },
+      { label: "2개", score: 6 },
+      { label: "3개", score: 9 },
+      { label: "4개", score: 12 },
+      { label: "5개", score: 15 },
+    ],
   });
 
   const hasAgencyEvent = selected.includes("PUBLIC_AGENCY_LINKED_EVENT");
@@ -183,6 +209,10 @@ function scorePublic(info: PerformanceInfo, venueId: "arena" | "medium-hall"): S
     rule: "공적 주체 주최·주관·공식위탁 + 증빙 서류 → 5 / 없음 0",
     evidence: hasAgencyEvent ? "'공공기관·지자체 연계 행사' 체크됨" : "체크 안 됨",
     note: "기관명·관계(주최/주관/공식위탁 vs 후원)·증빙 첨부를 구분하는 필드가 없습니다 — 체크 여부만으로 잠정 산정, 위원이 증빙을 직접 확인해야 합니다.",
+    bands: [
+      { label: "체크 안 됨", score: 0 },
+      { label: "공적 주체 연계 + 증빙", score: 5 },
+    ],
   });
 
   return { key: "PUBLIC", label: "공공성·공익성", nominalMax: 20, items };
@@ -211,6 +241,11 @@ function scoreMarketing(venueId: "arena" | "medium-hall"): ScoreCategory {
     // 화면에 뜨는 기준 문구만은 위원이 손에 든 배점표와 글자 그대로 같아야 한다.
     rule: "구체화 5 · 중간 3 · 미흡 0",
     note: "2026-09-02부터 마케팅 실행 계획은 텍스트 입력이 아니라 첨부파일(마케팅 실행 계획서)로 제출됩니다 — 신청 상세의 첨부 서류에서 직접 확인해 위원이 판단하세요.",
+    bands: [
+      { label: "미흡", score: 0 },
+      { label: "중간", score: 3 },
+      { label: "구체화", score: 5 },
+    ],
   });
 
   // 13-16/13-17 — 협조 동의 항목은 대관계약 별지 동의서 「심사 중립성」 조항과
@@ -240,6 +275,11 @@ function scoreMarketing(venueId: "arena" | "medium-hall"): ScoreCategory {
     confidence: "UNAVAILABLE",
     rule: "명시 개수 2개↑ 5 · 1개↑ 3 · 없음 0",
     note: "2026-09-07부터 이 항목을 직접 묻는 화면이 없습니다 — 신청 상세의 '협업 동의 여부'와 첨부 자료를 참고해 위원이 직접 판단하세요.",
+    bands: [
+      { label: "없음", score: 0 },
+      { label: "1개↑", score: 3 },
+      { label: "2개↑", score: 5 },
+    ],
   });
 
   items.push({
@@ -296,6 +336,12 @@ function scoreSafety(
     rule: "최근 3년 내 1만 이상 공연 건수 — 10건↑ 5·5건↑ 3·1건↑ 1·0건 0",
     evidence: `등록된 1만↑ 실적 ${n}건 (전체 ${info.pastPerformances.length}건)`,
     note: "실적 기간(period)이 자유 서술이라 '최근 3년 이내' 여부를 자동 판별할 수 없습니다 — 등록된 전체 실적 기준 잠정치입니다.",
+    bands: [
+      { label: "0건", score: 0 },
+      { label: "1건↑", score: 1 },
+      { label: "5건↑", score: 3 },
+      { label: "10건↑", score: 5 },
+    ],
   });
 
   const pledgeComplete = isSafetyPledgeComplete(pledge);
@@ -307,6 +353,10 @@ function scoreSafety(
     confidence: "AUTO",
     rule: "서약서(7항목) 전체 동의 + 서명 제출 → 10 / 미제출 0",
     evidence: pledgeComplete ? "서약 7항목 전체 동의 + 서명 확인됨" : "서약 미완료 또는 서명 없음",
+    bands: [
+      { label: "미제출", score: 0 },
+      { label: "서약 7항목 전체 동의 + 서명", score: 10 },
+    ],
   });
 
   const contractDone = info.castContractStatus === "COMPLETED";
@@ -319,6 +369,10 @@ function scoreSafety(
     rule: "출연자 계약서 제출 → 5 / 미제출 0",
     evidence: `주요 출연진 계약 상태: ${info.castContractStatus ?? "미입력"}`,
     note: "계약서 증빙 첨부 필드가 없어 계약 상태값만으로 판정합니다. '협의 중'은 미제출로 잠정 처리했습니다(기능정의서 13-N #39-g 미확정).",
+    bands: [
+      { label: "미제출", score: 0 },
+      { label: "출연자 계약서 제출", score: 5 },
+    ],
   });
 
   return { key: "SAFETY", label: "안전관리·수행역량", nominalMax: 20, items };
@@ -349,6 +403,10 @@ function scoreBonuses(info: PerformanceInfo, venueId: "arena" | "medium-hall"): 
         maxScore: 3,
         score: localSolidarity ? 3 : 0,
         confidence: "AUTO",
+        bands: [
+          { label: "미참여", score: 0 },
+          { label: "제안/협업", score: 3 },
+        ],
       },
       {
         code: "M-BON-02",
@@ -359,6 +417,10 @@ function scoreBonuses(info: PerformanceInfo, venueId: "arena" | "medium-hall"): 
         // 중형 화면에서 「A-PUB-01」을 가리키면 위원이 못 찾는다 — 그 화면에는 M-PUB-01 이
         // 보인다. 코드 접두를 공간에 맞춘 뒤에도 note 안에 박힌 참조가 남아 있었다.
         note: "제공 좌석 수를 입력받는 필드가 없어 체크 여부로만 판정합니다. 문화소외계층 초청석(M-PUB-01①)과 같은 좌석을 중복 신고했는지 위원이 확인하세요(13-N #39-d).",
+        bands: [
+          { label: "미제공", score: 0 },
+          { label: "제공", score: 3 },
+        ],
       },
       {
         code: "M-BON-03",
@@ -370,6 +432,10 @@ function scoreBonuses(info: PerformanceInfo, venueId: "arena" | "medium-hall"): 
           (info.artistMainHistory ?? []).length > 0
             ? `등록된 아티스트 이력의 데뷔연도: ${(info.artistMainHistory ?? []).map((r) => r.debutYear || "미입력").join(", ")}. '첫 단독 공연' 여부는 입력받는 필드가 없어 위원이 위 이력을 참고해 직접 판단하세요.`
             : "등록된 아티스트 이력이 없고, '데뷔 1년 이내·첫 단독 공연' 여부를 입력받는 필드도 없어 자동 산정할 수 없습니다. 위원이 직접 확인하세요.",
+        bands: [
+          { label: "해당없음", score: 0 },
+          { label: "데뷔 1년 이내 또는 첫 단독", score: 16 },
+        ],
       },
     ];
   }
@@ -396,6 +462,10 @@ function scoreBonuses(info: PerformanceInfo, venueId: "arena" | "medium-hall"): 
       maxScore: 5,
       score: localSolidarity ? 5 : 0,
       confidence: "AUTO",
+      bands: [
+        { label: "미참여", score: 0 },
+        { label: "제안/협업", score: 5 },
+      ],
     },
     {
       code: "A-BON-02",
@@ -404,6 +474,10 @@ function scoreBonuses(info: PerformanceInfo, venueId: "arena" | "medium-hall"): 
       score: selected.includes("PUBLIC_INTEREST_SEATS") ? 5 : 0,
       confidence: "PROVISIONAL",
       note: "제공 좌석 수를 입력받는 필드가 없어 체크 여부로만 판정합니다. 문화소외계층 초청석(A-PUB-01①)과 같은 좌석을 중복 신고했는지 위원이 확인하세요(13-N #39-d).",
+      bands: [
+        { label: "미제공", score: 0 },
+        { label: "제공", score: 5 },
+      ],
     },
     {
       code: "A-BON-03",
@@ -415,6 +489,13 @@ function scoreBonuses(info: PerformanceInfo, venueId: "arena" | "medium-hall"): 
         `티켓 매출 RS 제안 요율 ${typeof rsRate === "number" ? `${rsRate}%` : "미입력"}.` +
         feeRangeNote +
         " 자유 입력값이라 실제 이행 가능성·적정성은 위원이 직접 검토해야 합니다.",
+      bands: [
+        { label: "0.5% 미만", score: 0 },
+        { label: "0.5%↑", score: 4 },
+        { label: "1%↑", score: 6 },
+        { label: "1.5%↑", score: 8 },
+        { label: "2%↑", score: 10 },
+      ],
     },
   ];
 }
