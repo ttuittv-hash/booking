@@ -2,7 +2,6 @@ import type {
   BonusItem,
   QuoteScoreBreakdown,
   ScoreBand,
-  ScoreCategory,
   ScoreConfidence,
   ScoreItem,
   VenueScoreResult,
@@ -178,10 +177,6 @@ function BonusRow({ item }: { item: BonusItem }) {
   );
 }
 
-function categoryLadderLabel(cat: ScoreCategory, bucket: Bucket) {
-  return `${cat.label} ${bucket.earned}/${cat.nominalMax}`;
-}
-
 function VenueScoreBlock({ result }: { result: VenueScoreResult }) {
   const autoDq = result.disqualifiers.find((d) => d.auto && d.triggered);
   const catBuckets = result.categories.map((cat) => bucketize(cat.items));
@@ -242,69 +237,64 @@ function VenueScoreBlock({ result }: { result: VenueScoreResult }) {
           </p>
         )}
 
-        {/* 구성 막대 — 카테고리별 산정/보류/제외 + 가점, 합격선(60점) 표시 */}
+        {/* [수정 2026-09-23] "채점 그래프도 무슨 뜻인지 모르겠어" — 카테고리 5개를
+            한 막대에 이어붙이고 빗금·해칭 4종을 범례로 풀어야 했던 이전 "점수 구성"
+            막대를 지웠다. 카테고리별 내역은 바로 아래 각 카테고리 요약 줄·접으면
+            나오는 미니바로 이미 보이므로, 맨 위는 "지금 몇 점이고 얼마나 더 갈 수
+            있는지, 합격선은 어딘지" 딱 하나만 답하는 막대 하나로 단순화한다. */}
         <div className="mt-5">
-          <div className="mb-1.5 flex justify-between text-xs font-bold text-muted">
-            <span>0</span>
-            <span>
-              점수 구성 (배점 {nominalTotal} + 가점 최대 {bonusMax})
-            </span>
-            <span>{axisMax}</span>
-          </div>
-          <div className="relative flex h-8 border border-border-soft">
-            {result.categories.map((cat, i) => (
+          <div className="relative h-7 border border-border-soft bg-panel-strong">
+            <div className="h-full bg-foreground" style={{ width: `${(result.provisionalFinal / axisMax) * 100}%` }} />
+            {resolvable > 0 && (
               <div
-                key={cat.key}
-                className="h-full border-r-2 border-background last:border-r-0"
-                style={{ width: `${(cat.nominalMax / axisMax) * 100}%` }}
-              >
-                <StackedBar bucket={catBuckets[i]} />
-              </div>
-            ))}
-            {bonusMax > 0 && (
-              <div className="h-full" style={{ width: `${(bonusMax / axisMax) * 100}%` }}>
-                <StackedBar bucket={bonusBucket} tone="accent" />
-              </div>
+                className="absolute inset-y-0"
+                style={{
+                  left: `${(result.provisionalFinal / axisMax) * 100}%`,
+                  width: `${(resolvable / axisMax) * 100}%`,
+                  backgroundImage:
+                    "repeating-linear-gradient(135deg, var(--n-light) 0, var(--n-light) 1px, transparent 1px, transparent 6px)",
+                }}
+              />
             )}
-            <div className="pointer-events-none absolute inset-y-0 border-l-2 border-dashed border-danger" style={{ left: `${passLinePct}%` }}>
-              <span className="absolute -bottom-5 left-1 whitespace-nowrap text-xs font-bold text-danger">합격선 60</span>
-            </div>
+            {/* 정규 배점(100점) 끝을 가는 눈금으로만 표시 — 그 너머는 가점 구간이다.
+                텍스트 라벨을 넣으면 오른쪽 끝 라벨과 겹쳐 아래 범례로 뜻을 옮겼다. */}
+            {bonusMax > 0 && (
+              <div
+                className="pointer-events-none absolute inset-y-0 border-l border-border-soft"
+                style={{ left: `${(nominalTotal / axisMax) * 100}%` }}
+              />
+            )}
+            <div className="pointer-events-none absolute inset-y-0 border-l-2 border-dashed border-danger" style={{ left: `${passLinePct}%` }} />
           </div>
-          <div className="mt-7 flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted">
-            {result.categories.map((cat, i) => (
-              <span key={cat.key}>{categoryLadderLabel(cat, catBuckets[i])}</span>
-            ))}
-            {bonusMax > 0 && <span>가점 +{bonusBucket.earned}/{bonusMax}</span>}
+          <div className="relative mt-1 h-4 text-xs text-muted">
+            <span className="absolute left-0">0점</span>
+            <span className="absolute font-bold text-danger" style={{ left: `${passLinePct}%` }}>
+              합격선 60
+            </span>
+            <span className="absolute right-0">{axisMax}점</span>
           </div>
+          {bonusMax > 0 && (
+            <p className="mt-1 text-xs text-muted">
+              가는 눈금 = 정규 배점({nominalTotal}점) 끝 — 그 오른쪽은 가점 구간(최대 +{bonusMax}점)입니다.
+            </p>
+          )}
           <div className="mt-4 flex flex-wrap gap-x-4 gap-y-1.5 text-xs text-muted-strong">
             <span>
               <i className="mr-1.5 inline-block h-2.5 w-2.5 border border-foreground bg-foreground align-[-1px]" />
-              자동확정
+              지금 점수 (가점 포함 {result.provisionalFinal}점)
             </span>
-            <span>
-              <i className="mr-1.5 inline-block h-2.5 w-2.5 border border-accent-hover bg-accent-soft align-[-1px]" />
-              위원 확인 필요(잠정치)
-            </span>
-            <span>
-              <i
-                className="mr-1.5 inline-block h-2.5 w-2.5 border border-border-soft align-[-1px]"
-                style={{
-                  backgroundImage:
-                    "repeating-linear-gradient(135deg, var(--n-light) 0, var(--n-light) 1px, transparent 1px, transparent 4px)",
-                }}
-              />
-              판단 보류(산정 불가)
-            </span>
-            <span>
-              <i
-                className="mr-1.5 inline-block h-2.5 w-2.5 border border-border-soft align-[-1px]"
-                style={{
-                  backgroundImage:
-                    "repeating-linear-gradient(135deg, var(--border-soft) 0, var(--border-soft) 2px, var(--panel) 2px, var(--panel) 4px)",
-                }}
-              />
-              정책상 제외
-            </span>
+            {resolvable > 0 && (
+              <span>
+                <i
+                  className="mr-1.5 inline-block h-2.5 w-2.5 border border-border-soft align-[-1px]"
+                  style={{
+                    backgroundImage:
+                      "repeating-linear-gradient(135deg, var(--n-light) 0, var(--n-light) 1px, transparent 1px, transparent 4px)",
+                  }}
+                />
+                위원 판단으로 더 오를 수 있는 점수 (+{resolvable}점)
+              </span>
+            )}
           </div>
         </div>
       </div>
