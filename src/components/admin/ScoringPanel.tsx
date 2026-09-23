@@ -242,8 +242,21 @@ function VenueScoreBlock({ result }: { result: VenueScoreResult }) {
             막대를 지웠다. 카테고리별 내역은 바로 아래 각 카테고리 요약 줄·접으면
             나오는 미니바로 이미 보이므로, 맨 위는 "지금 몇 점이고 얼마나 더 갈 수
             있는지, 합격선은 어딘지" 딱 하나만 답하는 막대 하나로 단순화한다. */}
-        <div className="mt-5">
+        <div className="mt-8">
           <div className="relative h-7 border border-border-soft bg-panel-strong">
+            {/* [수정 2026-09-23] "최종 몇 점인지 심사 점수가 그래프에도 표기되어야지 ..
+                지금은 합격선 숫자만 그래프에 표기되어있음" — 합격선(아래쪽 라벨)과
+                겹치지 않게, 지금 점수는 막대 채워진 끝 지점 위쪽에 라벨로 단다. */}
+            <div
+              className="pointer-events-none absolute -top-5 -translate-x-1/2 whitespace-nowrap text-xs font-bold text-foreground"
+              style={{ left: `${(result.provisionalFinal / axisMax) * 100}%` }}
+            >
+              {result.provisionalFinal}점
+            </div>
+            <div
+              className="pointer-events-none absolute -top-1 h-1 w-px -translate-x-1/2 bg-foreground"
+              style={{ left: `${(result.provisionalFinal / axisMax) * 100}%` }}
+            />
             <div className="h-full bg-foreground" style={{ width: `${(result.provisionalFinal / axisMax) * 100}%` }} />
             {resolvable > 0 && (
               <div
