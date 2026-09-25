@@ -73,8 +73,11 @@ export default function RootLayout({
         {/* eslint-disable-next-line @next/next/no-page-custom-font */}
         <link
           rel="stylesheet"
-          href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700;800&family=Gothic+A1:wght@300;400;500;700;800;900&display=swap"
+          href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700;800&family=Gothic+A1:wght@300;400;500;700;800;900&family=Inter:wght@400;500;600;700;800&display=swap"
         />
+        {/* Inter는 심사 채점 화면(ScoringPanel)의 애플 스타일 재설계 전용이다 — 다른
+            화면은 여전히 위 두 서체(브랜드 가이드)만 쓴다. 이 화면만 톤을 바꿔보자는
+            요청(2026-09-24)으로, ScoringPanel.tsx 안에서만 font-family 로 지정한다. */}
       </head>
       <body className="min-h-full flex flex-col bg-background text-foreground">
         {/* 리포트의 페이지뷰·UV·대관신청 클릭수를 모으는 비콘. 아무것도 그리지 않는다. */}
