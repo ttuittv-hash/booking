@@ -67,6 +67,11 @@ export async function run(browser, cfg) {
   ]) {
     await page.goto(`${cfg.bo}/admin/${id}`, { waitUntil: "domcontentloaded" });
     await page.waitForTimeout(3500);
+    // [2026-09-28] 심사 화면 재설계(d889656)로 카테고리 카드가 기본 접힘(<details>)이 됐다.
+    // innerText 는 접힌 내용을 읽지 못한다 — 위원이 펼쳐서 보는 것과 같은 상태로 만든 뒤
+    // 읽는다. 브라우저 안에서 open 만 켜는 것이라 서버에는 아무 요청도 가지 않는다.
+    await page.evaluate(() => document.querySelectorAll("details").forEach((d) => (d.open = true)));
+    await page.waitForTimeout(400);
     const body = await flatText(page);
 
     if (!/심사 채점 초안|평가 세부 기준/.test(body)) {
@@ -76,11 +81,14 @@ export async function run(browser, cfg) {
 
     rep.check(`[${tag}] 배점표 버전 26-09-13`, body, (b) => /Ver\. ?26-09-13/.test(b), () => "");
     rep.check(`[${tag}] 옛 버전 26-08-22 안 보임`, body, (b) => !/Ver\. ?26-08-22/.test(b), () => "");
+    // 재설계 뒤로는 구간표(bands)가 있는 항목을 문장 대신 알약으로 그린다 — "미흡 0 중간 3
+    // 구체화 5". 담긴 배점은 같다. 두 표기 중 하나면 통과로 본다(표시 방식이 또 바뀌어도
+    // 배점이 맞는지는 계속 본다).
     rep.check(
       `[${tag}] 마케팅 실행 계획 3구간`,
       body,
-      (b) => /구체화 5 · 중간 3 · 미흡 0/.test(b),
-      () => "구체화 5 · 중간 3 · 미흡 0",
+      (b) => /구체화 5 · 중간 3 · 미흡 0/.test(b) || /미흡 0 중간 3 구체화 5/.test(b),
+      (b) => (/미흡 0 중간 3 구체화 5/.test(b) ? "알약: 미흡 0 · 중간 3 · 구체화 5" : "구체화 5 · 중간 3 · 미흡 0"),
     );
     rep.check(`[${tag}] 옛 4구간 문구 사라짐`, body, (b) => !/전부 5 · 3개 3/.test(b), () => "");
     rep.check(`[${tag}] DQ-01 「계획 적정성 부족」 포함`, body, (b) => /계획 적정성 부족/.test(b), () => "");
@@ -101,17 +109,24 @@ export async function run(browser, cfg) {
       ["공연장 정책 위반 이력", "-3"],
       ["중대 안전사고/법규 위반 이력", "-10"],
     ];
+    // 재설계 뒤로는 라벨과 감점 폭 사이에 안내 문장("해당 사유가 있는지 위원이 직접
+    // 확인해요.")이 낀다 — 라벨 바로 뒤만 보면 멀쩡한 화면을 ❌ 로 읽는다. 라벨 뒤 60자
+    // 안에서 그 폭을 찾는다(다음 줄의 폭까지 넘어가지 않을 만큼만).
+    const esc = (s) => s.replace(/[.*+?^${}()|[\]\\/]/g, "\\$&");
     rep.check(
       `[${tag}] 감점 5줄이 배점표 순서·폭대로`,
       body,
-      (b) => pens.every(([l, p]) => new RegExp(`${l.replace(/[/]/g, "\\/")} ?${p}`).test(b)),
+      (b) => pens.every(([l, p]) => new RegExp(`${esc(l)}.{0,60}?${esc(p)}(?!\\d)`).test(b)),
       () => "-5 · -3 · -5 · -3 · -10",
     );
+    // 재설계 뒤로는 감점 칩이 0보다 클 때만 뜨고, 0이면 "0점 — 아무 것도 깎이지 않았어요"
+    // 라고 쓴다. 어느 표기든 "깎인 감점이 없다"가 드러나야 하고, 1점 이상 깎인 칩이 보이면
+    // 실패다(이력 조회가 없어 감점은 항상 0 이어야 한다).
     rep.check(
       `[${tag}] 감점은 노출만 하고 점수를 깎지 않는다`,
       body,
-      (b) => /감점 −0/.test(b),
-      () => "감점 −0",
+      (b) => (/감점 −0/.test(b) || /아무 것도 깎이지 않았어요/.test(b)) && !/감점 −\s*[1-9]/.test(b),
+      (b) => (/감점 −\s*[1-9]/.test(b) ? "감점이 적용돼 있다 — 확인 필요" : "감점 0점"),
     );
   }
 
