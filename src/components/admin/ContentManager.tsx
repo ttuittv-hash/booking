@@ -212,6 +212,45 @@ export function ContentManager({
   );
 }
 
+/**
+ * on/off 스위치 (2026-09-30, "온오프 토글 아이콘을 넣어주는게 좋은데" → "노출이 뭐야?
+ * 직관적으로 모르겠어.. on off 토글로 해줘") — 색·손잡이 위치만으로는 상태가 바로 안
+ * 읽힌다는 지적. 손잡이 배지에 ON/OFF 글자를 그대로 박아 넣어 애매함을 없앤다.
+ * adminUi 원칙대로 샤프 코너 · 시맨틱 토큰만 쓴다(둥근 iOS풍 알약 대신 각진 트랙).
+ */
+function PinnedSwitch({
+  checked,
+  disabled,
+  onToggle,
+}: {
+  checked: boolean;
+  disabled?: boolean;
+  onToggle: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      role="switch"
+      aria-checked={checked}
+      aria-label={checked ? "진행 중인 대관 공고에서 내리기 (현재 ON)" : "진행 중인 대관 공고로 올리기 (현재 OFF)"}
+      onClick={onToggle}
+      disabled={disabled}
+      className="relative inline-flex h-7 w-16 shrink-0 items-center border border-border-soft bg-panel disabled:opacity-40 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-foreground"
+    >
+      <span
+        aria-hidden
+        className={`absolute inset-y-0 flex w-1/2 items-center justify-center border text-[10px] font-extrabold tracking-wide transition-all ${
+          checked
+            ? "left-1/2 border-good bg-good text-background"
+            : "left-0 border-foreground bg-foreground text-background"
+        }`}
+      >
+        {checked ? "ON" : "OFF"}
+      </span>
+    </button>
+  );
+}
+
 function NoticesTab({
   notices,
   setNotices,
@@ -229,6 +268,7 @@ function NoticesTab({
   const [attachmentUrl, setAttachmentUrl] = useState<string | null>(null);
   const [attachmentName, setAttachmentName] = useState<string | null>(null);
   const [showBookingCalendar, setShowBookingCalendar] = useState(false);
+  const [pinned, setPinned] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
@@ -244,6 +284,7 @@ function NoticesTab({
     setAttachmentUrl(null);
     setAttachmentName(null);
     setShowBookingCalendar(false);
+    setPinned(false);
     setError(null);
   }
 
@@ -264,6 +305,7 @@ function NoticesTab({
     setAttachmentUrl(notice.attachmentUrl);
     setAttachmentName(notice.attachmentName);
     setShowBookingCalendar(notice.showBookingCalendar);
+    setPinned(notice.pinned);
   }
 
   function resetForm() {
@@ -275,6 +317,7 @@ function NoticesTab({
     setAttachmentUrl(null);
     setAttachmentName(null);
     setShowBookingCalendar(false);
+    setPinned(false);
     setError(null);
   }
 
@@ -354,7 +397,7 @@ function NoticesTab({
       const res = await fetch(isNew ? "/api/admin/notices" : `/api/admin/notices/${editingId}`, {
         method: isNew ? "POST" : "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ tag, title, body: bodyToSave, imageUrl, attachmentUrl, attachmentName, showBookingCalendar }),
+        body: JSON.stringify({ tag, title, body: bodyToSave, imageUrl, attachmentUrl, attachmentName, showBookingCalendar, pinned }),
       });
       /*
         [수정 2026-09-02] 응답이 JSON 이 아닐 수 있다.
@@ -390,6 +433,37 @@ function NoticesTab({
       setError("저장하지 못했습니다. 연결 상태를 확인한 뒤 다시 시도해 주세요.");
     } finally {
       setSaving(false);
+    }
+  }
+
+  // [신규 2026-09-30] "공지 리스트에서도 하이라이트 on/off 토글 주면 편할듯" — 켜고 끄자고
+  // 매번 수정 폼을 열 필요는 없다. 다른 필드는 그대로 두고 pinned만 뒤집어 보낸다.
+  const [togglingId, setTogglingId] = useState<string | null>(null);
+  async function togglePinned(notice: Notice) {
+    setTogglingId(notice.id);
+    try {
+      const res = await fetch(`/api/admin/notices/${notice.id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          tag: notice.tag,
+          title: notice.title,
+          body: notice.body,
+          imageUrl: notice.imageUrl,
+          attachmentUrl: notice.attachmentUrl,
+          attachmentName: notice.attachmentName,
+          showBookingCalendar: notice.showBookingCalendar,
+          pinned: !notice.pinned,
+        }),
+      });
+      const data = await res.json().catch(() => null);
+      if (data?.notice) {
+        setNotices(notices.map((n) => (n.id === notice.id ? data.notice : n)));
+        if (editingId === notice.id) setPinned(data.notice.pinned);
+        router.refresh();
+      }
+    } finally {
+      setTogglingId(null);
     }
   }
 
@@ -432,6 +506,11 @@ function NoticesTab({
                     <div className="flex items-center text-s font-bold">
                       <TagBadge tag={notice.tag} />
                       {notice.title}
+                      {notice.pinned && (
+                        <span className="ml-2 inline-flex items-center border border-good/40 bg-good-soft px-2 py-0.5 text-xs font-extrabold text-good">
+                          상단 고정
+                        </span>
+                      )}
                     </div>
                     <p className={`mt-1.5 ${HELP}`}>{stripHtml(notice.body)}</p>
                     <div className="mt-2 flex items-center gap-2 text-xs tabular-nums text-muted">
@@ -440,7 +519,15 @@ function NoticesTab({
                     </div>
                   </div>
                 </button>
-                <div className="flex shrink-0 gap-4">
+                <div className="flex shrink-0 items-center gap-4">
+                  <div className="flex items-center gap-2 text-xs text-muted">
+                    <span>상단 고정</span>
+                    <PinnedSwitch
+                      checked={notice.pinned}
+                      disabled={togglingId === notice.id}
+                      onToggle={() => togglePinned(notice)}
+                    />
+                  </div>
                   <button
                     type="button"
                     onClick={() => startEdit(notice)}
@@ -563,6 +650,17 @@ function NoticesTab({
                 className="h-4 w-4 accent-[var(--accent)]"
               />
               공지 상세에 &ldquo;대관 현황 캘린더&rdquo; 아이콘 표시(아레나·중형 예약 가능일 조회)
+            </label>
+
+            <label className="flex cursor-pointer items-center gap-2 text-s">
+              <input
+                type="checkbox"
+                checked={pinned}
+                onChange={(e) => setPinned(e.target.checked)}
+                className="h-4 w-4 accent-[var(--accent)]"
+              />
+              공지사항 목록 상단 &ldquo;진행 중인 대관 공고&rdquo;에 노출(말머리와 별개 — 끄면 글을
+              지우지 않고 &ldquo;전체 공지&rdquo;로 내려간다)
             </label>
 
             {error && <p className={ERROR_NOTE}>{error}</p>}

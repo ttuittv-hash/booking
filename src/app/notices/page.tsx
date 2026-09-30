@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { getCurrentUser, requireAccess } from "@/lib/auth";
 import { getScreenTextContent, listNoticesPaged, normalizePage } from "@/lib/db";
 import { PublicHeader } from "@/components/PublicHeader";
-import { TagBadge, isPinnedTag } from "@/components/TagBadge";
+import { TagBadge } from "@/components/TagBadge";
 import { Breadcrumb } from "@/components/ui/Breadcrumb";
 import { SiteFooter } from "@/components/ui/SiteFooter";
 import {
@@ -64,10 +64,12 @@ export default async function NoticesPage({
     getScreenTextContent(),
   ]);
 
-  // 표시 레벨 정렬만 한다 — 데이터(정렬: 최신순)는 그대로 두고 대관 공고 계열 태그를
+  // 표시 레벨 정렬만 한다 — 데이터(정렬: 최신순)는 그대로 두고 `pinned` 켜진 글만
   // 상단 고정 그룹으로 끌어올린다. Notion 기획 › 공지사항 "진행 중 대관 공고 우선 노출".
-  const pinned = notices.filter((n) => isPinnedTag(n.tag));
-  const rest = notices.filter((n) => !isPinnedTag(n.tag));
+  // [수정 2026-09-30] 말머리(대관공지) 일치 여부 대신 별도 pinned 스위치를 본다 —
+  // 운영자가 말머리는 그대로 두고 노출만 끌 수 있어야 한다는 요청.
+  const pinned = notices.filter((n) => n.pinned);
+  const rest = notices.filter((n) => !n.pinned);
 
   return (
     <div className="flex flex-1 flex-col">

@@ -965,8 +965,8 @@ export function PageHead({
 }: {
   /** H1 — 영문 슬로건 (ABOUT SEOUL ARENA · ARENA RATES …) */
   en: string;
-  /** H3 — 국문 제목 (시설 개요 · 아레나 대관료 …) */
-  ko?: string;
+  /** H3 — 국문 제목 (시설 개요 · 아레나 대관료 …). 상태 뱃지 등을 옆에 붙일 때는 ReactNode로 조합해서 넘긴다. */
+  ko?: ReactNode;
   lead?: ReactNode;
   actions?: ReactNode;
   as?: "h1" | "h2";
