@@ -40,15 +40,19 @@ export const QUOTE_STATUS_TONE: Record<Quote["status"], "warn" | "accent" | "goo
 // 전까지(계약은 별도 단계, setQuoteContract) 계속 "신청 접수 (심사 대기)"로
 // 보였다. 관리자 목록(AdminQuoteTable)은 이미 "심사 승인" 뱃지를 따로 보여주고
 // 있었는데 신청자 쪽만 이 구분이 빠져 있었다.
+// [수정 2026-09-30 후속] "승인/거절됨 워딩이 너무 무식해보여" — 심사는 대관 "선정" 절차에
+// 가까우니 신청자 화면 문구를 선정 어휘로 바꾼다("거절됨" → "미선정", "승인됨" →
+// "선정"). 관리자 화면(AdminQuoteTable 등)의 "심사 승인/거절" 용어와 review.decision
+// 값(APPROVED/REJECTED) 자체는 그대로 둔다 — 신청자에게 보이는 문구만 바뀐다.
 export function applicantQuoteStatusLabel(quote: Pick<Quote, "status" | "review">): string {
   if (quote.status === "ESTIMATE" && quote.review?.decision === "HOLD") {
     return "보류 (보완 요청)";
   }
   if (quote.status === "ESTIMATE" && quote.review?.decision === "REJECTED") {
-    return "거절됨";
+    return "미선정";
   }
   if (quote.status === "ESTIMATE" && quote.review?.decision === "APPROVED") {
-    return "승인됨 (계약 대기)";
+    return "선정 (계약 대기)";
   }
   return QUOTE_STATUS_LABEL[quote.status];
 }
