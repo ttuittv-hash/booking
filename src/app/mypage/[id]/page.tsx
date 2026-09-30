@@ -1,8 +1,9 @@
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { canAccessQuote, getCurrentUser } from "@/lib/auth";
-import { applicantQuoteStatusLabel, canApplicantEditQuote } from "@/lib/quoteStatus";
+import { applicantQuoteStatusLabel, applicantQuoteStatusTone, canApplicantEditQuote } from "@/lib/quoteStatus";
 import { isBookingClosed } from "@/lib/bookingClosed";
+import { Badge } from "@/components/ui/kit";
 import {
   getContractSignatureByQuoteId,
   getDepositByQuoteId,
@@ -166,9 +167,7 @@ export default async function MyQuoteDetailPage({
           >
             인쇄 / PDF 저장
           </Link>
-          <span className="text-xs text-muted">
-            {applicantQuoteStatusLabel(quote)}
-          </span>
+          <Badge tone={applicantQuoteStatusTone(quote)}>{applicantQuoteStatusLabel(quote)}</Badge>
         </div>
       }
     >
