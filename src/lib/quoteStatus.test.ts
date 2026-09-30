@@ -56,9 +56,10 @@ function reviewOf(decision: Review["decision"]): Review {
 }
 
 describe("applicantQuoteStatusLabel/Tone — 거절은 보류와 별개로 표시된다", () => {
-  it("거절되면 '거절됨'으로 표시하고 danger 톤을 쓴다", () => {
+  // [수정 2026-09-30] "승인/거절됨 워딩이 너무 무식해보여" — 선정 어휘로 교체.
+  it("거절되면 '미선정'으로 표시하고 danger 톤을 쓴다", () => {
     const q = { status: "ESTIMATE" as const, review: reviewOf("REJECTED") };
-    expect(applicantQuoteStatusLabel(q)).toBe("거절됨");
+    expect(applicantQuoteStatusLabel(q)).toBe("미선정");
     expect(applicantQuoteStatusTone(q)).toBe("danger");
   });
 
@@ -67,9 +68,9 @@ describe("applicantQuoteStatusLabel/Tone — 거절은 보류와 별개로 표�
     expect(applicantQuoteStatusLabel(q)).toBe("보류 (보완 요청)");
   });
 
-  it("승인되면 '승인됨 (계약 대기)'으로 표시하고 good 톤을 쓴다", () => {
+  it("승인되면 '선정 (계약 대기)'으로 표시하고 good 톤을 쓴다", () => {
     const q = { status: "ESTIMATE" as const, review: reviewOf("APPROVED") };
-    expect(applicantQuoteStatusLabel(q)).toBe("승인됨 (계약 대기)");
+    expect(applicantQuoteStatusLabel(q)).toBe("선정 (계약 대기)");
     expect(applicantQuoteStatusTone(q)).toBe("good");
   });
 
