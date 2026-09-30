@@ -213,9 +213,10 @@ export function ContentManager({
 }
 
 /**
- * on/off 스위치 (2026-09-30, "온오프 토글 아이콘을 넣어주는게 좋은데") — 텍스트 링크
- * "진행중 노출 켜기/끄기" 대신 상태가 한눈에 보이는 스위치 아이콘으로. adminUi 원칙대로
- * 샤프 코너 · 시맨틱 토큰만 쓴다(둥근 iOS풍 알약 대신 각진 트랙 + 각진 손잡이).
+ * on/off 스위치 (2026-09-30, "온오프 토글 아이콘을 넣어주는게 좋은데" → "노출이 뭐야?
+ * 직관적으로 모르겠어.. on off 토글로 해줘") — 색·손잡이 위치만으로는 상태가 바로 안
+ * 읽힌다는 지적. 손잡이 배지에 ON/OFF 글자를 그대로 박아 넣어 애매함을 없앤다.
+ * adminUi 원칙대로 샤프 코너 · 시맨틱 토큰만 쓴다(둥근 iOS풍 알약 대신 각진 트랙).
  */
 function PinnedSwitch({
   checked,
@@ -231,19 +232,21 @@ function PinnedSwitch({
       type="button"
       role="switch"
       aria-checked={checked}
-      aria-label={checked ? "진행 중인 대관 공고 노출 끄기" : "진행 중인 대관 공고 노출 켜기"}
+      aria-label={checked ? "진행 중인 대관 공고에서 내리기 (현재 ON)" : "진행 중인 대관 공고로 올리기 (현재 OFF)"}
       onClick={onToggle}
       disabled={disabled}
-      className={`relative inline-flex h-5 w-9 shrink-0 items-center border transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-foreground disabled:opacity-40 ${
-        checked ? "border-good bg-good" : "border-border bg-panel"
-      }`}
+      className="relative inline-flex h-7 w-16 shrink-0 items-center border border-border-soft bg-panel disabled:opacity-40 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-foreground"
     >
       <span
         aria-hidden
-        className={`block h-3.5 w-3.5 border border-foreground bg-background transition-transform ${
-          checked ? "translate-x-4" : "translate-x-0.5"
+        className={`absolute inset-y-0 flex w-1/2 items-center justify-center border text-[10px] font-extrabold tracking-wide transition-all ${
+          checked
+            ? "left-1/2 border-good bg-good text-background"
+            : "left-0 border-foreground bg-foreground text-background"
         }`}
-      />
+      >
+        {checked ? "ON" : "OFF"}
+      </span>
     </button>
   );
 }
@@ -505,7 +508,7 @@ function NoticesTab({
                       {notice.title}
                       {notice.pinned && (
                         <span className="ml-2 inline-flex items-center border border-good/40 bg-good-soft px-2 py-0.5 text-xs font-extrabold text-good">
-                          진행중 노출
+                          상단 고정
                         </span>
                       )}
                     </div>
@@ -518,7 +521,7 @@ function NoticesTab({
                 </button>
                 <div className="flex shrink-0 items-center gap-4">
                   <div className="flex items-center gap-2 text-xs text-muted">
-                    <span>진행중 노출</span>
+                    <span>상단 고정</span>
                     <PinnedSwitch
                       checked={notice.pinned}
                       disabled={togglingId === notice.id}
