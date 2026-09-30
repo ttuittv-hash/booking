@@ -3,7 +3,6 @@ import { notFound, redirect } from "next/navigation";
 import { canAccessQuote, getCurrentUser } from "@/lib/auth";
 import { applicantQuoteStatusLabel, applicantQuoteStatusTone, canApplicantEditQuote } from "@/lib/quoteStatus";
 import { isBookingClosed } from "@/lib/bookingClosed";
-import { Badge } from "@/components/ui/kit";
 import {
   getContractSignatureByQuoteId,
   getDepositByQuoteId,
@@ -32,7 +31,7 @@ import { TaxInvoicePanel } from "@/components/TaxInvoicePanel";
 import { TicketOpenPanel } from "@/components/TicketOpenPanel";
 import { FacilityMeetingPanel } from "@/components/FacilityMeetingPanel";
 import { SettlementMutualConfirm } from "@/components/SettlementMutualConfirm";
-import { MyPageShell } from "@/components/mypage/MyPageShell";
+import { MyPageShell, QuoteStatusChip } from "@/components/mypage/MyPageShell";
 import { QuoteApplicationDetail } from "@/components/QuoteApplicationDetail";
 import { QuoteLineItemsReport } from "@/components/QuoteLineItemsReport";
 
@@ -151,7 +150,9 @@ export default async function MyQuoteDetailPage({
       ko={
         <span className="inline-flex flex-wrap items-center gap-3">
           {quote.id}
-          <Badge tone={applicantQuoteStatusTone(quote)}>{applicantQuoteStatusLabel(quote)}</Badge>
+          <QuoteStatusChip tone={applicantQuoteStatusTone(quote)}>
+            {applicantQuoteStatusLabel(quote)}
+          </QuoteStatusChip>
         </span>
       }
       lead={summaryLine}
@@ -175,6 +176,19 @@ export default async function MyQuoteDetailPage({
         </div>
       }
     >
+      {quote.status === "ESTIMATE" && quote.review?.decision === "APPROVED" && (
+        // [신규 2026-09-30] "선정되면 축하합니다 문구도 어딘가에 들어갔으면" — 계약 확정
+        // 전, 선정 직후 짧은 기간에만 보이는 환영 메시지. 계약이 확정되면(CONTRACTED)
+        // 상태 자체가 "대관 확정"으로 넘어가므로 이 조건에서 자연히 사라진다.
+        <div className="mb-6 border border-good/40 bg-good-soft p-6">
+          <p className="type-kr-heading text-h5-m sm:text-h5 text-good">
+            축하합니다{user.companyName ? `, ${user.companyName}` : ""}!
+          </p>
+          <p className="mt-2 text-s text-good">
+            서울아레나의 대관사로 선정되셨습니다. 서울아레나에서 멋진 무대를 펼쳐주시길 기대하겠습니다.
+          </p>
+        </div>
+      )}
       <div>
         <h2 className="type-kr-heading text-h5-m sm:text-h5">신청 내역 상세</h2>
         <p className="mt-1 text-xs text-muted">

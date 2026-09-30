@@ -8,9 +8,9 @@ import { won } from "@/lib/format";
 import type { Quote } from "@/lib/pricing/types";
 import { applicantQuoteStatusLabel, applicantQuoteStatusTone, canApplicantEditQuote } from "@/lib/quoteStatus";
 import { isBookingClosed } from "@/lib/bookingClosed";
-import { MyPageIdentity, MyPageShell } from "@/components/mypage/MyPageShell";
+import { MyPageIdentity, MyPageShell, QuoteStatusChip } from "@/components/mypage/MyPageShell";
 import { DataTable, type Column } from "@/components/mypage/DataTable";
-import { ArrowRight, Badge, ButtonLink } from "@/components/ui/kit";
+import { ArrowRight, ButtonLink } from "@/components/ui/kit";
 
 export const metadata: Metadata = {
   title: "대관 진행 내역",
@@ -112,7 +112,11 @@ export default async function MyPage({
             estimate: won(q.total),
             contract: q.contract ? won(q.contract.contractTotal) : "—",
             settlement: q.settlement ? won(q.settlement.finalTotal) : "—",
-            status: <Badge tone={applicantQuoteStatusTone(q)}>{applicantQuoteStatusLabel(q)}</Badge>,
+            status: (
+              <QuoteStatusChip tone={applicantQuoteStatusTone(q)}>
+                {applicantQuoteStatusLabel(q)}
+              </QuoteStatusChip>
+            ),
             detail: (
               <span className="whitespace-nowrap text-s font-bold">
                 <Link href={`/mypage/${q.id}`} className="underline underline-offset-4 hover:text-accent">

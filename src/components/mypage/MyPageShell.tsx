@@ -16,6 +16,43 @@ import { Band, PageHead } from "@/components/ui/kit";
    다시 짜지 않는다.
    ========================================================================= */
 
+/**
+ * 신청 상태 뱃지 (2026-09-30, "선정/미선정 뱃지 사이즈 더 크고 이쁘게, 세련되게") —
+ * 공용 Badge(대문자·타이트 트래킹의 작은 라벨/스탬프 느낌)를 목록·상세 양쪽에서 그대로
+ * 쓰던 걸, 이 화면 전용으로 더 크게(문의목록 등 다른 화면은 그대로 작은 Badge를 씀)
+ * 점 표시 + 일반 대소문자로 다듬는다. 각진 모서리 원칙은 유지 — 점 표시도 원이 아니라
+ * 정사각형(공지사항 "진행 중" 표시와 같은 모티프).
+ */
+const STATUS_CHIP_TONE: Record<"warn" | "accent" | "good" | "danger", string> = {
+  warn: "border-border bg-warn-soft text-warn",
+  accent: "border-foreground bg-accent text-on-accent",
+  good: "border-good/40 bg-good-soft text-good",
+  danger: "border-danger/40 bg-danger-soft text-danger",
+};
+const STATUS_CHIP_DOT: Record<"warn" | "accent" | "good" | "danger", string> = {
+  warn: "bg-warn",
+  accent: "bg-on-accent",
+  good: "bg-good",
+  danger: "bg-danger",
+};
+
+export function QuoteStatusChip({
+  tone,
+  children,
+}: {
+  tone: "warn" | "accent" | "good" | "danger";
+  children: ReactNode;
+}) {
+  return (
+    <span
+      className={`inline-flex h-9 items-center gap-2.5 border px-4 text-s font-bold ${STATUS_CHIP_TONE[tone]}`}
+    >
+      <span aria-hidden className={`h-2 w-2 shrink-0 ${STATUS_CHIP_DOT[tone]}`} />
+      {children}
+    </span>
+  );
+}
+
 export type MyPageSection =
   | "/mypage"
   | "/mypage/drafts"
