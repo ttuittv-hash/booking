@@ -397,6 +397,37 @@ function NoticesTab({
     }
   }
 
+  // [신규 2026-09-30] "공지 리스트에서도 하이라이트 on/off 토글 주면 편할듯" — 켜고 끄자고
+  // 매번 수정 폼을 열 필요는 없다. 다른 필드는 그대로 두고 pinned만 뒤집어 보낸다.
+  const [togglingId, setTogglingId] = useState<string | null>(null);
+  async function togglePinned(notice: Notice) {
+    setTogglingId(notice.id);
+    try {
+      const res = await fetch(`/api/admin/notices/${notice.id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          tag: notice.tag,
+          title: notice.title,
+          body: notice.body,
+          imageUrl: notice.imageUrl,
+          attachmentUrl: notice.attachmentUrl,
+          attachmentName: notice.attachmentName,
+          showBookingCalendar: notice.showBookingCalendar,
+          pinned: !notice.pinned,
+        }),
+      });
+      const data = await res.json().catch(() => null);
+      if (data?.notice) {
+        setNotices(notices.map((n) => (n.id === notice.id ? data.notice : n)));
+        if (editingId === notice.id) setPinned(data.notice.pinned);
+        router.refresh();
+      }
+    } finally {
+      setTogglingId(null);
+    }
+  }
+
   // [신규 2026-09-04] 삭제는 되돌릴 수 없으니 디자인 다이얼로그로 한 번 더 묻는다(브라우저 confirm 대신).
   async function remove(id: string, title: string) {
     const ok = await dialog.confirm(
@@ -449,7 +480,15 @@ function NoticesTab({
                     </div>
                   </div>
                 </button>
-                <div className="flex shrink-0 gap-4">
+                <div className="flex shrink-0 items-center gap-4">
+                  <button
+                    type="button"
+                    onClick={() => togglePinned(notice)}
+                    disabled={togglingId === notice.id}
+                    className={`${LINK_BTN} disabled:opacity-50`}
+                  >
+                    {togglingId === notice.id ? "변경 중..." : notice.pinned ? "진행중 노출 끄기" : "진행중 노출 켜기"}
+                  </button>
                   <button
                     type="button"
                     onClick={() => startEdit(notice)}
