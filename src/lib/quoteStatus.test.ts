@@ -67,8 +67,14 @@ describe("applicantQuoteStatusLabel/Tone — 거절은 보류와 별개로 표�
     expect(applicantQuoteStatusLabel(q)).toBe("보류 (보완 요청)");
   });
 
-  it("승인되면 원래 status 라벨(신청 접수)을 그대로 쓴다", () => {
+  it("승인되면 '승인됨 (계약 대기)'으로 표시하고 good 톤을 쓴다", () => {
     const q = { status: "ESTIMATE" as const, review: reviewOf("APPROVED") };
-    expect(applicantQuoteStatusLabel(q)).toBe("신청 접수 (심사 대기)");
+    expect(applicantQuoteStatusLabel(q)).toBe("승인됨 (계약 대기)");
+    expect(applicantQuoteStatusTone(q)).toBe("good");
+  });
+
+  it("승인 후 계약이 확정되면(CONTRACTED) '대관 확정' 라벨을 그대로 쓴다", () => {
+    const q = { status: "CONTRACTED" as const, review: reviewOf("APPROVED") };
+    expect(applicantQuoteStatusLabel(q)).toBe("대관 확정");
   });
 });

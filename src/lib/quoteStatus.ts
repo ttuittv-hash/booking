@@ -35,12 +35,20 @@ export const QUOTE_STATUS_TONE: Record<Quote["status"], "warn" | "accent" | "goo
 // 뱃지가 뜨는데 신청자 화면은 여기서 HOLD만 갈라 보여서 거절된 신청서도 계속
 // "신청 접수 (심사 대기)"로 보였다. 거절은 보류와 달리 신청자가 더 손댈 수 없는
 // 상태라(canApplicantEditQuote) "거절됨"만 알리고 끝 — 재신청은 새 신청서로 한다.
+// [수정 2026-09-30] "관리자가 승인해도 신청자 마이페이지에는 승인 표기가 없어" —
+// HOLD·REJECTED만 갈라 보여주고 APPROVED는 분기가 없어서, 승인 직후~계약 확정
+// 전까지(계약은 별도 단계, setQuoteContract) 계속 "신청 접수 (심사 대기)"로
+// 보였다. 관리자 목록(AdminQuoteTable)은 이미 "심사 승인" 뱃지를 따로 보여주고
+// 있었는데 신청자 쪽만 이 구분이 빠져 있었다.
 export function applicantQuoteStatusLabel(quote: Pick<Quote, "status" | "review">): string {
   if (quote.status === "ESTIMATE" && quote.review?.decision === "HOLD") {
     return "보류 (보완 요청)";
   }
   if (quote.status === "ESTIMATE" && quote.review?.decision === "REJECTED") {
     return "거절됨";
+  }
+  if (quote.status === "ESTIMATE" && quote.review?.decision === "APPROVED") {
+    return "승인됨 (계약 대기)";
   }
   return QUOTE_STATUS_LABEL[quote.status];
 }
@@ -53,6 +61,9 @@ export function applicantQuoteStatusTone(
   }
   if (quote.status === "ESTIMATE" && quote.review?.decision === "REJECTED") {
     return "danger";
+  }
+  if (quote.status === "ESTIMATE" && quote.review?.decision === "APPROVED") {
+    return "good";
   }
   return QUOTE_STATUS_TONE[quote.status];
 }
