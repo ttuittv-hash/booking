@@ -148,7 +148,12 @@ export default async function MyQuoteDetailPage({
       user={user}
       active="/mypage"
       en="BOOKING DETAIL"
-      ko={quote.id}
+      ko={
+        <span className="inline-flex flex-wrap items-center gap-3">
+          {quote.id}
+          <Badge tone={applicantQuoteStatusTone(quote)}>{applicantQuoteStatusLabel(quote)}</Badge>
+        </span>
+      }
       lead={summaryLine}
       actions={
         <div className="flex flex-wrap items-center gap-x-5 gap-y-2">
@@ -167,7 +172,6 @@ export default async function MyQuoteDetailPage({
           >
             인쇄 / PDF 저장
           </Link>
-          <Badge tone={applicantQuoteStatusTone(quote)}>{applicantQuoteStatusLabel(quote)}</Badge>
         </div>
       }
     >

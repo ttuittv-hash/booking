@@ -131,8 +131,8 @@ export function MyPageShell({
   active: MyPageSection;
   /** H1 영문 슬로건 */
   en: string;
-  /** H3 국문 제목 */
-  ko: string;
+  /** H3 국문 제목. 상태 뱃지 등을 옆에 붙일 때는 ReactNode로 조합해서 넘긴다. */
+  ko: ReactNode;
   lead?: ReactNode;
   actions?: ReactNode;
   children: ReactNode;
