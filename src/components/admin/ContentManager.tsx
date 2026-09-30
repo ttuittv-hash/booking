@@ -212,6 +212,42 @@ export function ContentManager({
   );
 }
 
+/**
+ * on/off 스위치 (2026-09-30, "온오프 토글 아이콘을 넣어주는게 좋은데") — 텍스트 링크
+ * "진행중 노출 켜기/끄기" 대신 상태가 한눈에 보이는 스위치 아이콘으로. adminUi 원칙대로
+ * 샤프 코너 · 시맨틱 토큰만 쓴다(둥근 iOS풍 알약 대신 각진 트랙 + 각진 손잡이).
+ */
+function PinnedSwitch({
+  checked,
+  disabled,
+  onToggle,
+}: {
+  checked: boolean;
+  disabled?: boolean;
+  onToggle: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      role="switch"
+      aria-checked={checked}
+      aria-label={checked ? "진행 중인 대관 공고 노출 끄기" : "진행 중인 대관 공고 노출 켜기"}
+      onClick={onToggle}
+      disabled={disabled}
+      className={`relative inline-flex h-5 w-9 shrink-0 items-center border transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-foreground disabled:opacity-40 ${
+        checked ? "border-good bg-good" : "border-border bg-panel"
+      }`}
+    >
+      <span
+        aria-hidden
+        className={`block h-3.5 w-3.5 border border-foreground bg-background transition-transform ${
+          checked ? "translate-x-4" : "translate-x-0.5"
+        }`}
+      />
+    </button>
+  );
+}
+
 function NoticesTab({
   notices,
   setNotices,
@@ -481,14 +517,14 @@ function NoticesTab({
                   </div>
                 </button>
                 <div className="flex shrink-0 items-center gap-4">
-                  <button
-                    type="button"
-                    onClick={() => togglePinned(notice)}
-                    disabled={togglingId === notice.id}
-                    className={`${LINK_BTN} disabled:opacity-50`}
-                  >
-                    {togglingId === notice.id ? "변경 중..." : notice.pinned ? "진행중 노출 끄기" : "진행중 노출 켜기"}
-                  </button>
+                  <div className="flex items-center gap-2 text-xs text-muted">
+                    <span>진행중 노출</span>
+                    <PinnedSwitch
+                      checked={notice.pinned}
+                      disabled={togglingId === notice.id}
+                      onToggle={() => togglePinned(notice)}
+                    />
+                  </div>
                   <button
                     type="button"
                     onClick={() => startEdit(notice)}
