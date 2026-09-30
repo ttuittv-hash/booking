@@ -685,6 +685,12 @@ async function initSchema(pool: Pool) {
 
     -- 공지 상세에 "대관 현황 캘린더" 아이콘을 붙일지 여부(2026-08-23).
     ALTER TABLE notices ADD COLUMN IF NOT EXISTS show_booking_calendar INTEGER NOT NULL DEFAULT 0;
+    -- "진행 중인 대관 공고" 상단 고정 노출 여부(2026-09-30). 예전에는 말머리가
+    -- '대관공지'인지(isPinnedTag)로만 판정해서, 노출을 끄려면 말머리 자체를 다른 값으로
+    -- 바꿔야 했다(그러다 "공고"가 들어간 말머리를 다시 쓰면 의도치 않게 재승격됐다).
+    -- 노출 여부를 말머리와 분리된 스위치로 둔다 — 말머리는 라벨색만 결정한다.
+    -- NULL 허용으로 두고 아래에서 기존 데이터를 1회 채운다(이미 값이 있는 행은 두 번 안 건드림).
+    ALTER TABLE notices ADD COLUMN IF NOT EXISTS pinned INTEGER;
 
     -- 회사의 유일 키는 회사명이 아니라 사업자등록번호다.
     -- 동명 회사가 실제로 있어서 name UNIQUE 는 오히려 정상 가입을 막는다.
@@ -827,6 +833,17 @@ async function initSchema(pool: Pool) {
       week_month    = (selection_json::json -> 'week' ->> 'month')::int,
       week_of_month = (selection_json::json -> 'week' ->> 'weekOfMonth')::int
     WHERE week_year IS NULL
+  `);
+
+  // pinned 컬럼 도입 이전에 등록된 공지는 예전 판정 로직(TagBadge.isPinnedTag)이 쓰던
+  // 말머리 목록으로 한 번만 채운다 — 이후로는 이 값이 진실이고 말머리와 무관하다.
+  await pool.query(`
+    UPDATE notices SET pinned = CASE
+      WHEN regexp_replace(COALESCE(tag, ''), '\\s', '', 'g')
+           IN ('대관공고', '대관공모', '대관모집', '모집공고', '공고', '대관공지') THEN 1
+      ELSE 0
+    END
+    WHERE pinned IS NULL
   `);
 }
 
@@ -5649,6 +5666,7 @@ interface NoticeRow {
   attachment_url: string | null;
   attachment_name: string | null;
   show_booking_calendar: number;
+  pinned: number | null;
   created_at: string;
   updated_at: string;
 }
@@ -5663,6 +5681,7 @@ function toNotice(row: NoticeRow): Notice {
     attachmentUrl: row.attachment_url,
     attachmentName: row.attachment_name,
     showBookingCalendar: row.show_booking_calendar === 1,
+    pinned: row.pinned === 1,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
   };
@@ -5699,10 +5718,11 @@ export async function createNotice(input: {
   attachmentUrl?: string | null;
   attachmentName?: string | null;
   showBookingCalendar?: boolean;
+  pinned?: boolean;
   createdAt: string;
 }): Promise<Notice> {
   await q(
-    "INSERT INTO notices (id, tag, title, body, image_url, attachment_url, attachment_name, show_booking_calendar, created_at, updated_at) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)",
+    "INSERT INTO notices (id, tag, title, body, image_url, attachment_url, attachment_name, show_booking_calendar, pinned, created_at, updated_at) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)",
     [
       input.id,
       input.tag ?? null,
@@ -5712,6 +5732,7 @@ export async function createNotice(input: {
       input.attachmentUrl ?? null,
       input.attachmentName ?? null,
       input.showBookingCalendar ? 1 : 0,
+      input.pinned ? 1 : 0,
       input.createdAt,
       input.createdAt,
     ],
@@ -5729,11 +5750,12 @@ export async function updateNotice(
     attachmentUrl?: string | null;
     attachmentName?: string | null;
     showBookingCalendar?: boolean;
+    pinned?: boolean;
     updatedAt: string;
   },
 ): Promise<Notice | undefined> {
   await q(
-    "UPDATE notices SET tag = $1, title = $2, body = $3, image_url = $4, attachment_url = $5, attachment_name = $6, show_booking_calendar = $7, updated_at = $8 WHERE id = $9",
+    "UPDATE notices SET tag = $1, title = $2, body = $3, image_url = $4, attachment_url = $5, attachment_name = $6, show_booking_calendar = $7, pinned = $8, updated_at = $9 WHERE id = $10",
     [
       input.tag ?? null,
       input.title,
@@ -5742,6 +5764,7 @@ export async function updateNotice(
       input.attachmentUrl ?? null,
       input.attachmentName ?? null,
       input.showBookingCalendar ? 1 : 0,
+      input.pinned ? 1 : 0,
       input.updatedAt,
       id,
     ],

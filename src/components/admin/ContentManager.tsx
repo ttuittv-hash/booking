@@ -229,6 +229,7 @@ function NoticesTab({
   const [attachmentUrl, setAttachmentUrl] = useState<string | null>(null);
   const [attachmentName, setAttachmentName] = useState<string | null>(null);
   const [showBookingCalendar, setShowBookingCalendar] = useState(false);
+  const [pinned, setPinned] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
@@ -244,6 +245,7 @@ function NoticesTab({
     setAttachmentUrl(null);
     setAttachmentName(null);
     setShowBookingCalendar(false);
+    setPinned(false);
     setError(null);
   }
 
@@ -264,6 +266,7 @@ function NoticesTab({
     setAttachmentUrl(notice.attachmentUrl);
     setAttachmentName(notice.attachmentName);
     setShowBookingCalendar(notice.showBookingCalendar);
+    setPinned(notice.pinned);
   }
 
   function resetForm() {
@@ -275,6 +278,7 @@ function NoticesTab({
     setAttachmentUrl(null);
     setAttachmentName(null);
     setShowBookingCalendar(false);
+    setPinned(false);
     setError(null);
   }
 
@@ -354,7 +358,7 @@ function NoticesTab({
       const res = await fetch(isNew ? "/api/admin/notices" : `/api/admin/notices/${editingId}`, {
         method: isNew ? "POST" : "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ tag, title, body: bodyToSave, imageUrl, attachmentUrl, attachmentName, showBookingCalendar }),
+        body: JSON.stringify({ tag, title, body: bodyToSave, imageUrl, attachmentUrl, attachmentName, showBookingCalendar, pinned }),
       });
       /*
         [수정 2026-09-02] 응답이 JSON 이 아닐 수 있다.
@@ -432,6 +436,11 @@ function NoticesTab({
                     <div className="flex items-center text-s font-bold">
                       <TagBadge tag={notice.tag} />
                       {notice.title}
+                      {notice.pinned && (
+                        <span className="ml-2 inline-flex items-center border border-good/40 bg-good-soft px-2 py-0.5 text-xs font-extrabold text-good">
+                          진행중 노출
+                        </span>
+                      )}
                     </div>
                     <p className={`mt-1.5 ${HELP}`}>{stripHtml(notice.body)}</p>
                     <div className="mt-2 flex items-center gap-2 text-xs tabular-nums text-muted">
@@ -563,6 +572,17 @@ function NoticesTab({
                 className="h-4 w-4 accent-[var(--accent)]"
               />
               공지 상세에 &ldquo;대관 현황 캘린더&rdquo; 아이콘 표시(아레나·중형 예약 가능일 조회)
+            </label>
+
+            <label className="flex cursor-pointer items-center gap-2 text-s">
+              <input
+                type="checkbox"
+                checked={pinned}
+                onChange={(e) => setPinned(e.target.checked)}
+                className="h-4 w-4 accent-[var(--accent)]"
+              />
+              공지사항 목록 상단 &ldquo;진행 중인 대관 공고&rdquo;에 노출(말머리와 별개 — 끄면 글을
+              지우지 않고 &ldquo;전체 공지&rdquo;로 내려간다)
             </label>
 
             {error && <p className={ERROR_NOTE}>{error}</p>}

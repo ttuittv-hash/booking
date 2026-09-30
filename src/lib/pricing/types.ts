@@ -1249,6 +1249,10 @@ export interface Notice {
   // 중형 예약 현황(가능/불가만, 회사명·quoteId 등 기업 정보는 노출하지 않음)을 레이어로
   // 보여준다. 티켓오픈 공지처럼 캘린더를 같이 보여줘야 하는 공지에만 켠다.
   showBookingCalendar: boolean;
+  // [신규 2026-09-30] "진행 중인 대관 공고"로 상단 고정 노출할지 — 예전에는 말머리가
+  // `대관공지`인지(TagBadge.isPinnedTag)로만 판정해서, 노출을 끄려면 말머리 자체를
+  // 바꿔야 했다. 노출 여부를 운영자가 직접 켜고 끄는 별도 스위치로 둔다.
+  pinned: boolean;
   createdAt: string;
   updatedAt: string;
 }
