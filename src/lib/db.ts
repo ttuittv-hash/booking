@@ -837,9 +837,13 @@ async function initSchema(pool: Pool) {
 
   // pinned 컬럼 도입 이전에 등록된 공지는 예전 판정 로직(TagBadge.isPinnedTag)이 쓰던
   // 말머리 목록으로 한 번만 채운다 — 이후로는 이 값이 진실이고 말머리와 무관하다.
+  // [수정 2026-09-30] 공백 제거는 JS `\s`(normalizeNoticeTag)와 같은 문자 집합으로 한다.
+  // PostgreSQL 의 `\s` 는 NBSP(U+00A0) 등 유니코드 공백을 못 지워서, 워드·노션에서 붙여 넣은
+  // "대관 공지"가 예전엔 상단 고정이었는데 백필에서 0 으로 떨어졌다(로컬 재현). 백필은
+  // 한 번만 도니 배포 뒤엔 되돌릴 수 없다.
   await pool.query(`
     UPDATE notices SET pinned = CASE
-      WHEN regexp_replace(COALESCE(tag, ''), '\\s', '', 'g')
+      WHEN regexp_replace(COALESCE(tag, ''), '[\\s\\u00a0\\u1680\\u2000-\\u200a\\u2028\\u2029\\u202f\\u205f\\u3000\\ufeff]', '', 'g')
            IN ('대관공고', '대관공모', '대관모집', '모집공고', '공고', '대관공지') THEN 1
       ELSE 0
     END
