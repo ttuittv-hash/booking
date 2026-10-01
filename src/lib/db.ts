@@ -4,7 +4,7 @@ import { AsyncLocalStorage } from "node:async_hooks";
 import { hash as bcryptHash } from "@node-rs/bcrypt";
 import crypto from "node:crypto";
 import { buildSeedRateTable, SEED_MID_HALL_RATE_CONFIG, SEED_PACKAGES } from "./pricing/seed";
-import { weekTuesdayOf } from "./pricing/dateRange";
+import { arenaWeekKey, weekTuesdayOf } from "./pricing/dateRange";
 import { SEED_PAGES } from "./pricing/pageSeed";
 import {
   DEFAULT_HOME_CONTENT,
@@ -3872,92 +3872,107 @@ export async function countQuotesByVenue(
   return { all: row?.total ?? 0, arena: row?.arena ?? 0, mediumHall: row?.mid_hall ?? 0 };
 }
 
-// 같은 주차에 이미 심사 승인된 "다른 회사"의 신청서가 있는지 확인한다.
-// 한 주차의 한 공간은 하나의 대관사만 사용할 수 있으므로, 이미 승인된 건이 있으면 같은 주차·
-// 같은 공간의 다른 회사 신청서는 승인할 수 없다 (같은 회사 소속 신청서끼리는 충돌로 보지 않는다).
-// [수정 2026-10-01] 공간을 보지 않아 아레나 승인 건 때문에 같은 주차 중형공연장 신청서를 승인하지
-// 못했다(운영 신고). 아래 listCompetingQuotesForWeek 와 같은 규칙으로 공간이 겹칠 때만 충돌이다 —
-// 아레나↔중형은 별개, 동시 대관은 두 공간 모두와 겹친다.
-export async function findApprovedWeekConflict(
-  quote: Quote,
-): Promise<{ quote: Quote; companyName: string | null } | undefined> {
-  const week = quote.selection?.week;
-  if (!week) return undefined;
+// 같은 기간·같은 공간에 이미 심사 승인된 "다른 회사"의 신청서가 있는지 확인한다.
+// 한 공간의 같은 기간은 하나의 대관사만 쓸 수 있으므로, 이미 승인된 건과 겹치는 다른 회사
+// 신청서는 승인할 수 없다 (같은 회사 소속 신청서끼리는 충돌로 보지 않는다).
+// [수정 2026-10-01] 운영 신고 두 건을 함께 고쳤다.
+//  ① 공간을 보지 않아 아레나 승인 건 때문에 같은 주차 중형공연장 신청서를 승인하지 못했다.
+//  ② 중형끼리도 selection.week(주차 이름)로 비교했는데, 중형 단독 신청서의 week 는 위저드의
+//     아레나 기본값이 그대로 남은 값이라(WizardShell checkSimultaneousWindow 주석) 실제 날짜와
+//     무관하다 — 6월 말 중형 승인 건 때문에 7월 1주차 중형 신청서가 "같은 주차"로 막혔다.
+// 그래서 공간별로 실제로 쓰는 기간을 비교한다 — 아레나는 그 주 화요일(이름이 둘인 주도 같은
+// 주로 잡힌다), 중형은 고른 날짜(midHallDays) 교집합. 일정 달력의 승인 차단(approvedBlocks)이
+// 중형을 날짜로 보는 것과 같은 기준이다. 동시 대관은 두 공간 모두 해당한다.
+type ConflictOverlap = { arenaWeekTuesday: string | null; midHallDates: string[] };
 
-  // 같은 주차 신청서만 DB에서 골라 온다. 예전에는 전체 신청서를 읽어 앱에서 비교했는데,
-  // 심사 1회마다 전체 건수를 훑는 구조라 신청이 쌓일수록 급격히 느려졌다.
-  const rows = await q<QuoteRow & { applicant_company_id: string | null; applicant_company_name: string | null }>(
+function usesArena(sel: QuoteSelection): boolean {
+  return sel.bookingMode === "SIMULTANEOUS" || sel.venueId !== "medium-hall";
+}
+function usesMidHall(sel: QuoteSelection): boolean {
+  return sel.bookingMode === "SIMULTANEOUS" || sel.venueId === "medium-hall";
+}
+
+/** 두 신청서가 실제로 겹치는 부분 — 없으면 null. 승인 충돌·경합 비교가 함께 쓰는 단일 규칙. */
+export function selectionsOverlap(a: QuoteSelection, b: QuoteSelection): ConflictOverlap | null {
+  let arenaWeekTuesday: string | null = null;
+  if (usesArena(a) && usesArena(b)) {
+    const ka = arenaWeekKey(a.week);
+    if (ka && ka === arenaWeekKey(b.week)) arenaWeekTuesday = ka;
+  }
+  let midHallDates: string[] = [];
+  if (usesMidHall(a) && usesMidHall(b)) {
+    const theirs = new Set(Object.keys(b.midHallDays ?? {}));
+    midHallDates = Object.keys(a.midHallDays ?? {}).filter((d) => theirs.has(d)).sort();
+  }
+  return arenaWeekTuesday || midHallDates.length ? { arenaWeekTuesday, midHallDates } : null;
+}
+
+/** 겹친 기간을 사람이 읽는 문구로 — 승인 API 오류와 심사 화면 경고가 같은 말을 쓴다. */
+export function describeConflictOverlap(selection: QuoteSelection, overlap: ConflictOverlap): string {
+  const what: string[] = [];
+  if (overlap.arenaWeekTuesday) {
+    const { year, month, weekOfMonth } = selection.week;
+    what.push(`아레나 ${year}년 ${month}월 ${weekOfMonth}주차`);
+  }
+  if (overlap.midHallDates.length) {
+    const shown = overlap.midHallDates.slice(0, 5).map((d) => d.slice(5).replace("-", "/")).join(", ");
+    const more = overlap.midHallDates.length > 5 ? ` 외 ${overlap.midHallDates.length - 5}일` : "";
+    what.push(`중형공연장 ${shown}${more}`);
+  }
+  return what.join(" · ");
+}
+
+type QuoteWithCompanyRow = QuoteRow & { applicant_company_id: string | null; applicant_company_name: string | null };
+
+async function otherCompanyRows(quote: Quote, approvedOnly: boolean): Promise<QuoteWithCompanyRow[]> {
+  // 중형은 주차 컬럼(week_*)이 실제 날짜와 무관해 그걸로 미리 거를 수 없다. 대신 승인 건만
+  // (승인 검사) 또는 전체(경합 비교)를 읽어 앱에서 겹침을 본다 — 신청서는 수십~수백 건 규모다.
+  // 승인 여부는 LIKE 로 대강만 거르고 정확한 판정은 앱에서 한다 — ::jsonb 캐스트는 깨진 행이
+  // 하나라도 있으면 쿼리 전체가 실패해 모든 승인이 막힌다.
+  const rows = await q<QuoteWithCompanyRow>(
     `SELECT q.*, u.company_id AS applicant_company_id, u.company_name AS applicant_company_name
        FROM quotes q JOIN users u ON u.id = q.applicant_id
-      WHERE q.week_year = $1 AND q.week_month = $2 AND q.week_of_month = $3 AND q.id <> $4
+      WHERE q.id <> $1 ${approvedOnly ? "AND q.review_json LIKE '%\"APPROVED\"%'" : ""}
       ORDER BY q.created_at ASC`,
-    [week.year, week.month, week.weekOfMonth, quote.id],
+    [quote.id],
   );
-  if (rows.length === 0) return undefined;
-
+  if (rows.length === 0) return [];
   const applicant = await findUserById(quote.applicantId);
   const companyId = applicant?.companyId ?? null;
-
-  for (const row of rows) {
-    const other = toQuote(row);
-    // 승인 여부는 review_json 안에 있어 SQL 로 거르지 않는다 — 같은 주차 건만 남은 뒤라 양이 적다.
-    if (other.review?.decision !== "APPROVED") continue;
-
+  return rows.filter((row) => {
     const otherCompanyId = row.applicant_company_id;
     const sameCompany =
-      companyId && otherCompanyId ? companyId === otherCompanyId : quote.applicantId === other.applicantId;
-    if (sameCompany) continue;
+      companyId && otherCompanyId ? companyId === otherCompanyId : quote.applicantId === row.applicant_id;
+    return !sameCompany;
+  });
+}
 
-    if (!selectionsShareVenue(quote.selection, other.selection)) continue;
-
-    return { quote: other, companyName: row.applicant_company_name };
+export async function findApprovedWeekConflict(
+  quote: Quote,
+): Promise<{ quote: Quote; companyName: string | null; overlap: ConflictOverlap } | undefined> {
+  if (!quote.selection) return undefined;
+  for (const row of await otherCompanyRows(quote, true)) {
+    const other = toQuote(row);
+    if (other.review?.decision !== "APPROVED") continue;
+    const overlap = selectionsOverlap(quote.selection, other.selection);
+    if (overlap) return { quote: other, companyName: row.applicant_company_name, overlap };
   }
   return undefined;
 }
 
-// [신규 2026-08-26] 어드민 심사 슬롯 "동일 기간 내 다른 대관사 비교" — findApprovedWeekConflict와
-// 같은 인덱스(week_year/month/week_of_month)로 같은 주차 신청서를 골라오되, 승인 건 1개만
-// 찾고 멈추지 않고 "다른 회사"의 전체 신청서를 상태 무관하게 반환한다. 아레나/중형공연장은
-// 서로 다른 공간이라 겹치는 신청서만 남긴다(동시 대관은 두 공간 모두와 겹친다고 본다).
-function effectiveVenuesForCompetition(selection: QuoteSelection): ("arena" | "medium-hall")[] {
-  if (selection.bookingMode === "SIMULTANEOUS") return ["arena", "medium-hall"];
-  return selection.venueId === "medium-hall" ? ["medium-hall"] : ["arena"];
-}
-
-/** 두 신청서가 같은 공간을 쓰는가 — 승인 충돌·경합 비교가 함께 쓰는 단일 규칙. */
-export function selectionsShareVenue(a: QuoteSelection, b: QuoteSelection): boolean {
-  const mine = effectiveVenuesForCompetition(a);
-  return effectiveVenuesForCompetition(b).some((v) => mine.includes(v));
-}
-
+// [신규 2026-08-26] 어드민 심사 슬롯 "동일 기간 내 다른 대관사 비교" — 승인 건 1개만 찾고
+// 멈추지 않고 겹치는 "다른 회사"의 전체 신청서를 상태 무관하게 반환한다. 겹침 규칙은
+// selectionsOverlap 하나로 승인 검사와 같다([수정 2026-10-01] 예전엔 주차 이름으로 골랐다).
 export async function listCompetingQuotesForWeek(
   quote: Quote,
 ): Promise<{ quote: Quote; companyName: string | null }[]> {
-  const week = quote.selection?.week;
-  if (!week) return [];
-
-  const rows = await q<QuoteRow & { applicant_company_id: string | null; applicant_company_name: string | null }>(
-    `SELECT q.*, u.company_id AS applicant_company_id, u.company_name AS applicant_company_name
-       FROM quotes q JOIN users u ON u.id = q.applicant_id
-      WHERE q.week_year = $1 AND q.week_month = $2 AND q.week_of_month = $3 AND q.id <> $4
-      ORDER BY q.created_at ASC`,
-    [week.year, week.month, week.weekOfMonth, quote.id],
-  );
-  if (rows.length === 0) return [];
-
-  const applicant = await findUserById(quote.applicantId);
-  const companyId = applicant?.companyId ?? null;
+  if (!quote.selection) return [];
   const result: { quote: Quote; companyName: string | null }[] = [];
-  for (const row of rows) {
+  for (const row of await otherCompanyRows(quote, false)) {
     const other = toQuote(row);
-    const otherCompanyId = row.applicant_company_id;
-    const sameCompany =
-      companyId && otherCompanyId ? companyId === otherCompanyId : quote.applicantId === other.applicantId;
-    if (sameCompany) continue;
-
-    if (!selectionsShareVenue(quote.selection, other.selection)) continue;
-
-    result.push({ quote: other, companyName: row.applicant_company_name });
+    if (selectionsOverlap(quote.selection, other.selection)) {
+      result.push({ quote: other, companyName: row.applicant_company_name });
+    }
   }
   return result;
 }

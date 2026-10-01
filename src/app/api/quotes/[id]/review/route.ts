@@ -5,6 +5,7 @@ import { getCurrentUser, isProAdminOrAbove } from "@/lib/auth";
 import {
   addAuditLog,
   createNotification,
+  describeConflictOverlap,
   findApprovedWeekConflict,
   getQuoteById,
   setQuoteReview,
@@ -47,10 +48,11 @@ export async function POST(request: Request, ctx: { params: Promise<{ id: string
   if (decision === "APPROVED") {
     const conflict = await findApprovedWeekConflict(quote);
     if (conflict) {
-      const { year, month, weekOfMonth } = quote.selection.week;
+      // [수정 2026-10-01] 중형은 주차가 아니라 날짜로 겹치므로, 무엇이 겹쳤는지 그대로 알린다.
+      const what = describeConflictOverlap(quote.selection, conflict.overlap);
       return NextResponse.json(
         {
-          error: `같은 주차(${year}년 ${month}월 ${weekOfMonth}주차)에 이미 승인된 다른 업체(${conflict.companyName ?? "알 수 없음"})가 있어 승인할 수 없습니다.`,
+          error: `같은 일정(${what})에 이미 승인된 다른 업체(${conflict.companyName ?? "알 수 없음"})가 있어 승인할 수 없습니다.`,
         },
         { status: 409 },
       );

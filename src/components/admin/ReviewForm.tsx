@@ -57,7 +57,7 @@ export function ReviewForm({
 }: {
   quoteId: string;
   review: Review | null;
-  conflict?: { companyName: string | null } | null;
+  conflict?: { companyName: string | null; detail?: string } | null;
   /** 프로 관리자 이상만 심사할 수 있다(2026-08-22 정정) — 일반관리자는 열람만. */
   canReview: boolean;
   /**
@@ -175,7 +175,7 @@ export function ReviewForm({
 
       {conflict && review?.decision !== "APPROVED" && (
         <p className={`mt-4 ${ERROR_NOTE}`}>
-          같은 주차에 이미 승인된 다른 업체(
+          같은 일정{conflict.detail ? `(${conflict.detail})` : ""}에 이미 승인된 다른 업체(
           {conflict.companyName ?? "알 수 없음"})가 있어 승인할 수 없습니다. 먼저 기존 승인 건을 보류/거절로 변경해주세요.
         </p>
       )}

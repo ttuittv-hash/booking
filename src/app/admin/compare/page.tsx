@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { scheduleLabel } from "@/lib/scheduleLabel";
 import { requireProAdminPage } from "@/lib/auth";
 import { getQuoteById, listUsersByIds } from "@/lib/db";
 import { won } from "@/lib/format";
@@ -102,10 +103,8 @@ export default async function AdminComparePage({
                     values={quotes.map((q) => applicantById.get(q.applicantId)?.companyName ?? NONE)}
                   />
                   <CompareRow
-                    label="주차"
-                    values={quotes.map(
-                      (q) => `${q.selection.week.year}.${q.selection.week.month} ${q.selection.week.weekOfMonth}주차`,
-                    )}
+                    label="일정"
+                    values={quotes.map((q) => scheduleLabel(q.selection))}
                   />
                   <CompareRow
                     label="총 대관일수"

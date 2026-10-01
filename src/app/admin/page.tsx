@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { scheduleLabel } from "@/lib/scheduleLabel";
 import { requireProAdminPage, isProAdminOrAbove } from "@/lib/auth";
 import {
   countQuotesByVenue,
@@ -112,7 +113,8 @@ export default async function AdminPage({
       companyName: applicant?.companyName ?? NONE,
       venueLabel,
       packageLabel,
-      weekLabel: `${q.selection.week.year}.${q.selection.week.month} ${q.selection.week.weekOfMonth}주차`,
+      // [수정 2026-10-01] 중형은 week 가 의미 없는 기본값이라 실제 날짜 범위로(scheduleLabel).
+      weekLabel: scheduleLabel(q.selection),
       audienceLabel: audience.main.toLocaleString("ko-KR"),
       // 동시 대관은 두 공간의 1회당 관객수가 따로 있다 — 아레나만 찍으면 중형 몫이 사라진다.
       audienceSubLabel: audience.sub === null ? null : `중형 ${audience.sub.toLocaleString("ko-KR")}`,

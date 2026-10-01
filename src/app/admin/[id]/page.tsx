@@ -3,6 +3,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { requireProAdminPage, isProAdminOrAbove } from "@/lib/auth";
 import {
+  describeConflictOverlap,
   findApprovedWeekConflict,
   findCompanyById,
   findUserById,
@@ -557,7 +558,14 @@ export default async function AdminQuoteDetailPage({
             <ReviewForm
               quoteId={quote.id}
               review={quote.review}
-              conflict={weekConflict ? { companyName: weekConflict.companyName } : null}
+              conflict={
+                weekConflict
+                  ? {
+                      companyName: weekConflict.companyName,
+                      detail: describeConflictOverlap(quote.selection, weekConflict.overlap),
+                    }
+                  : null
+              }
               canReview={isProAdminOrAbove(user)}
               // 같은 계산 결과를 위 자동 심사 표와 심사 점수 칸이 함께 쓴다.
               autoScores={autoScore.results.map((r) => ({

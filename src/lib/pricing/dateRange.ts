@@ -54,6 +54,15 @@ function findWeekTuesday(week: QuoteSelection["week"]): Date | null {
   return null;
 }
 
+// [신규 2026-10-01] 아레나 주를 이름({year, month, weekOfMonth})이 아니라 그 주 화요일 ISO 로 —
+// 같은 주가 "6월 마지막 주"와 "7월 0주차" 두 이름을 가질 수 있어서(위 0주차 주석), 이름끼리
+// 비교하면 같은 주를 다른 주로 본다. 승인 충돌 검사(db.selectionsConflict)가 쓴다.
+export function arenaWeekKey(week: QuoteSelection["week"] | undefined | null): string | null {
+  if (!week) return null;
+  const tuesday = findWeekTuesday(week);
+  return tuesday ? isoDate(tuesday) : null;
+}
+
 // [신규 2026-09-18] 중형 달력의 경합 표시("검토 중 · N개사 신청")용 — 어떤 날짜가 속한
 // "주"를 그 행의 화요일 ISO 하나로 나타낸다.
 //
