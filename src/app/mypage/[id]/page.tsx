@@ -176,19 +176,8 @@ export default async function MyQuoteDetailPage({
         </div>
       }
     >
-      {quote.status === "ESTIMATE" && quote.review?.decision === "APPROVED" && (
-        // [신규 2026-09-30] "선정되면 축하합니다 문구도 어딘가에 들어갔으면" — 계약 확정
-        // 전, 선정 직후 짧은 기간에만 보이는 환영 메시지. 계약이 확정되면(CONTRACTED)
-        // 상태 자체가 "대관 확정"으로 넘어가므로 이 조건에서 자연히 사라진다.
-        <div className="mb-6 border border-good/40 bg-good-soft p-6">
-          <p className="type-kr-heading text-h5-m sm:text-h5 text-good">
-            축하합니다{user.companyName ? `, ${user.companyName}` : ""}!
-          </p>
-          <p className="mt-2 text-s text-good">
-            서울아레나의 대관사로 선정되셨습니다. 서울아레나에서 멋진 무대를 펼쳐주시길 기대하겠습니다.
-          </p>
-        </div>
-      )}
+      {/* [삭제 2026-10-01] 선정 시 「축하합니다」 초록 박스(f0c54ec) — 운영 요청(nora)으로 뺐다.
+          선정 여부는 제목 옆 상태 뱃지(「선정 (계약 대기)」)로만 알린다. */}
       <div>
         <h2 className="type-kr-heading text-h5-m sm:text-h5">신청 내역 상세</h2>
         <p className="mt-1 text-xs text-muted">
