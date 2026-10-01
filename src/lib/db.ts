@@ -3873,8 +3873,11 @@ export async function countQuotesByVenue(
 }
 
 // 같은 주차에 이미 심사 승인된 "다른 회사"의 신청서가 있는지 확인한다.
-// 한 주차는 하나의 대관사만 사용할 수 있으므로, 이미 승인된 건이 있으면 같은 주차의
-// 다른 회사 신청서는 승인할 수 없다 (같은 회사 소속 신청서끼리는 충돌로 보지 않는다).
+// 한 주차의 한 공간은 하나의 대관사만 사용할 수 있으므로, 이미 승인된 건이 있으면 같은 주차·
+// 같은 공간의 다른 회사 신청서는 승인할 수 없다 (같은 회사 소속 신청서끼리는 충돌로 보지 않는다).
+// [수정 2026-10-01] 공간을 보지 않아 아레나 승인 건 때문에 같은 주차 중형공연장 신청서를 승인하지
+// 못했다(운영 신고). 아래 listCompetingQuotesForWeek 와 같은 규칙으로 공간이 겹칠 때만 충돌이다 —
+// 아레나↔중형은 별개, 동시 대관은 두 공간 모두와 겹친다.
 export async function findApprovedWeekConflict(
   quote: Quote,
 ): Promise<{ quote: Quote; companyName: string | null } | undefined> {
@@ -3905,6 +3908,8 @@ export async function findApprovedWeekConflict(
       companyId && otherCompanyId ? companyId === otherCompanyId : quote.applicantId === other.applicantId;
     if (sameCompany) continue;
 
+    if (!selectionsShareVenue(quote.selection, other.selection)) continue;
+
     return { quote: other, companyName: row.applicant_company_name };
   }
   return undefined;
@@ -3917,6 +3922,12 @@ export async function findApprovedWeekConflict(
 function effectiveVenuesForCompetition(selection: QuoteSelection): ("arena" | "medium-hall")[] {
   if (selection.bookingMode === "SIMULTANEOUS") return ["arena", "medium-hall"];
   return selection.venueId === "medium-hall" ? ["medium-hall"] : ["arena"];
+}
+
+/** 두 신청서가 같은 공간을 쓰는가 — 승인 충돌·경합 비교가 함께 쓰는 단일 규칙. */
+export function selectionsShareVenue(a: QuoteSelection, b: QuoteSelection): boolean {
+  const mine = effectiveVenuesForCompetition(a);
+  return effectiveVenuesForCompetition(b).some((v) => mine.includes(v));
 }
 
 export async function listCompetingQuotesForWeek(
@@ -3936,8 +3947,6 @@ export async function listCompetingQuotesForWeek(
 
   const applicant = await findUserById(quote.applicantId);
   const companyId = applicant?.companyId ?? null;
-  const myVenues = effectiveVenuesForCompetition(quote.selection);
-
   const result: { quote: Quote; companyName: string | null }[] = [];
   for (const row of rows) {
     const other = toQuote(row);
@@ -3946,8 +3955,7 @@ export async function listCompetingQuotesForWeek(
       companyId && otherCompanyId ? companyId === otherCompanyId : quote.applicantId === other.applicantId;
     if (sameCompany) continue;
 
-    const otherVenues = effectiveVenuesForCompetition(other.selection);
-    if (!otherVenues.some((v) => myVenues.includes(v))) continue;
+    if (!selectionsShareVenue(quote.selection, other.selection)) continue;
 
     result.push({ quote: other, companyName: row.applicant_company_name });
   }
