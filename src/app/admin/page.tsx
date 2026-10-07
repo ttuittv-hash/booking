@@ -151,7 +151,7 @@ export default async function AdminPage({
         {/* 공간 탭 — 리포트 화면의 공간 탭과 같은 규칙·모양(tabCls)을 쓴다. 회사 필터는
             탭을 눌러도 유지된다(URL에서 companyId를 같이 넘긴다). */}
         <nav
-          className="mt-6 flex h-12 items-center gap-1 overflow-x-auto whitespace-nowrap border-b border-border/25 [contain:paint]"
+          className="admin-tab-bar admin-venue-tabs"
           aria-label="공간 탭"
         >
           {VENUE_TABS.map((t) => (

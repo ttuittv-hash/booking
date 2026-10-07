@@ -54,3 +54,8 @@
 .admin-reports .admin-report-section>h2,.admin-reports .admin-report-breakdowns h2 { margin-bottom:20px; }
 .admin-reports .admin-report-section>.admin-table-card { margin-top:0; background:transparent; }
 .admin-reports .admin-report-section>.admin-table-card>div:first-child { padding:0; border:0; }
+
+/* Venue tabs must not constrain 56px links inside the old 48px scroll box. */
+.admin-page .admin-venue-tabs { display:flex; flex:none; align-items:stretch; flex-wrap:wrap; height:auto; min-height:56px; gap:0 28px; overflow:visible; contain:none; }
+.admin-page .admin-venue-tabs>.admin-tab { display:flex; align-items:center; flex:none; height:auto; min-height:56px; line-height:20px; padding:16px 0; white-space:nowrap; }
+@media(max-width:760px) { .admin-page .admin-venue-tabs { gap:0 20px; } }
