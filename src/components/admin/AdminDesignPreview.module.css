@@ -28,7 +28,6 @@
 .tabs { display:flex; gap:28px; padding:0; border-bottom:1px solid var(--border-soft); }
 .tabs button { display:flex; align-items:center; gap:10px; height:57px; border-bottom:3px solid transparent; cursor:pointer; color:var(--muted); }
 .tabs button[aria-pressed="true"] { color:var(--foreground); border-bottom-color:var(--foreground); font-weight:700; }
-.tabs button span { font-size:11px; background:var(--background); padding:2px 6px; }
 .filters { display:flex; align-items:center; gap:10px; padding:24px 0 12px; }
 .filters label { margin-right:12px; font-size:12px; font-weight:600; }
 .search { position:relative; width:320px; }

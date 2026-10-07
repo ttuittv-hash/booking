@@ -152,9 +152,9 @@ const round = (n: number | null, digits = 1) =>
   n === null ? null : Math.round(n * 10 ** digits) / 10 ** digits;
 
 /** 기간(from~to, KST 날짜)의 서버·차단 지표를 한 번에 읽는다. */
-export async function getAwsMonitoring(opts: { from: string; to: string }): Promise<AwsMonitoring> {
-  const start = new Date(`${opts.from}T00:00:00+09:00`);
-  const end = new Date(`${opts.to}T23:59:59+09:00`);
+export async function getAwsMonitoring(opts: { from: string; to: string; hourly?:boolean }): Promise<AwsMonitoring> {
+  const start = opts.hourly ? new Date(Date.now()-86400000) : new Date(`${opts.from}T00:00:00+09:00`);
+  const end = opts.hourly ? new Date() : new Date(`${opts.to}T23:59:59+09:00`);
   const now = new Date();
   const endTime = end > now ? now : end;
   // 기간이 길면 구간을 넓혀 데이터 포인트 수를 줄인다(CloudWatch 응답 상한 회피).

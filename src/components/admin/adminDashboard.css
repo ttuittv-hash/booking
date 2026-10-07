@@ -47,3 +47,10 @@
 .admin-period-presets { display:flex; align-items:center; gap:16px; flex-wrap:wrap; }
 .admin-period-presets>select { width:160px; flex-shrink:0; }
 .admin-page .admin-segmented .admin-tab { height:36px; padding:8px 16px; line-height:20px; border:0; }
+
+.admin-page .admin-lead { white-space:normal; overflow-wrap:anywhere; width:100%; max-width:100%; }
+.admin-page>main>header { min-width:0; max-width:100%; }
+
+.admin-reports .admin-report-section>h2,.admin-reports .admin-report-breakdowns h2 { margin-bottom:20px; }
+.admin-reports .admin-report-section>.admin-table-card { margin-top:0; background:transparent; }
+.admin-reports .admin-report-section>.admin-table-card>div:first-child { padding:0; border:0; }

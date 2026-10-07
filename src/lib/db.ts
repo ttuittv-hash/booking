@@ -5295,7 +5295,9 @@ export interface OpsStats {
   rateLimitedKeys: number;
 }
 
-export async function getOpsStats(opts: { from: string; to: string }): Promise<OpsStats> {
+export async function getOpsStats(opts: { from: string; to: string; hourly?:boolean }): Promise<OpsStats> {
+  const end=opts.hourly ? new Date().toISOString() : `${opts.to}T23:59:59.999+09:00`;
+  const start=opts.hourly ? new Date(new Date(end).getTime()-86400000).toISOString() : `${opts.from}T00:00:00+09:00`;
   const [row, topRows] = await Promise.all([
     one<{
       sent: string; failed: string; open_inq: string; oldest_days: string | null;
@@ -5304,10 +5306,10 @@ export async function getOpsStats(opts: { from: string; to: string }): Promise<O
       `SELECT
          (SELECT COUNT(*) FROM message_sends
            WHERE status IN ('SENT','FALLBACK')
-             AND (created_at::timestamptz AT TIME ZONE 'Asia/Seoul')::date BETWEEN $1::date AND $2::date) AS sent,
+             AND created_at::timestamptz BETWEEN $1::timestamptz AND $2::timestamptz) AS sent,
          (SELECT COUNT(*) FROM message_sends
            WHERE status = 'FAILED'
-             AND (created_at::timestamptz AT TIME ZONE 'Asia/Seoul')::date BETWEEN $1::date AND $2::date) AS failed,
+             AND created_at::timestamptz BETWEEN $1::timestamptz AND $2::timestamptz) AS failed,
          (SELECT COUNT(*) FROM inquiries WHERE status = 'OPEN')                                          AS open_inq,
          (SELECT MAX(EXTRACT(DAY FROM (now() - created_at::timestamptz)))::int FROM inquiries
            WHERE status = 'OPEN')                                                                        AS oldest_days,
@@ -5317,7 +5319,7 @@ export async function getOpsStats(opts: { from: string; to: string }): Promise<O
            WHERE role = 'ADMIN' AND withdrawn_at IS NULL
              AND (phone IS NULL OR phone = ''))                                                          AS admins_no_phone,
          (SELECT COUNT(*) FROM rate_limits)                                                              AS rl`,
-      [opts.from, opts.to],
+      [start,end],
     ),
     q<{ template_code: string; reason: string; n: string }>(
       `SELECT template_code,
@@ -5325,11 +5327,11 @@ export async function getOpsStats(opts: { from: string; to: string }): Promise<O
               COUNT(*) AS n
          FROM message_sends
         WHERE status = 'FAILED'
-          AND (created_at::timestamptz AT TIME ZONE 'Asia/Seoul')::date BETWEEN $1::date AND $2::date
+          AND created_at::timestamptz BETWEEN $1::timestamptz AND $2::timestamptz
         GROUP BY 1, 2
         ORDER BY COUNT(*) DESC
         LIMIT 8`,
-      [opts.from, opts.to],
+      [start,end],
     ),
   ]);
   return {
@@ -5347,6 +5349,27 @@ export async function getOpsStats(opts: { from: string; to: string }): Promise<O
     adminsWithoutPhone: Number(row?.admins_no_phone ?? 0),
     rateLimitedKeys: Number(row?.rl ?? 0),
   };
+}
+
+/** Message delivery history, with exact rolling 24-hour bounds for hourly monitoring. */
+export async function getMessageTrend(opts: {from:string;to:string;hourly?:boolean;granularity:TrafficGranularity}) {
+  const trunc=opts.hourly ? "hour" : TRAFFIC_TRUNC[opts.granularity];
+  const end=opts.hourly ? new Date().toISOString() : `${opts.to}T23:59:59.999+09:00`;
+  const start=opts.hourly ? new Date(new Date(end).getTime()-86400000).toISOString() : `${opts.from}T00:00:00+09:00`;
+  const rows=await q<{bucket:string;sent:string;failed:string}>(
+    `SELECT to_char(date_trunc('${trunc}',created_at::timestamptz AT TIME ZONE 'Asia/Seoul'),'YYYY-MM-DD HH24:00') AS bucket,
+    COUNT(*) FILTER (WHERE status IN ('SENT','FALLBACK')) AS sent,
+    COUNT(*) FILTER (WHERE status='FAILED') AS failed
+    FROM message_sends WHERE created_at::timestamptz >= $1::timestamptz AND created_at::timestamptz <= $2::timestamptz
+    GROUP BY 1 ORDER BY 1`,[start,end]);
+  const values=new Map(rows.map(r=>[r.bucket,{bucket:r.bucket,sent:Number(r.sent),failed:Number(r.failed)}]));
+  const first=new Date(start);const last=new Date(end);const keys=new Set<string>();
+  const step=opts.hourly?3600000:86400000;
+  for(let time=first.getTime();time<=last.getTime();time+=step){
+    const local=new Date(time+9*3600000);if(!opts.hourly){local.setUTCHours(0,0,0,0);if(trunc==='week')local.setUTCDate(local.getUTCDate()-((local.getUTCDay()+6)%7));if(trunc==='month')local.setUTCDate(1);}
+    keys.add(local.toISOString().slice(0,13).replace('T',' ')+':00');
+  }
+  return [...keys].map(bucket=>values.get(bucket)??{bucket,sent:0,failed:0});
 }
 
 export interface SignupStats {

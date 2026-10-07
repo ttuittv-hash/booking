@@ -1,7 +1,15 @@
+import { ReportBars } from "@/components/admin/ReportBars";
+import { ReportTimeTabs } from "@/components/admin/ReportTimeTabs";
+import { reportPeriod, completeBuckets } from "@/lib/reportPeriod";
+import { ReportTrendChart } from "@/components/admin/ReportTrendChart";
 import Link from "next/link";
 import { requireProAdminPage } from "@/lib/auth";
 import {
   getSignupStats,
+  getSignupTrend,
+  getTrafficByPath,
+  getMessageTrend,
+  listUsers,
   getTrafficStats,
   listCompanies,
   listQuotes,
@@ -13,33 +21,22 @@ import {
 } from "@/lib/db";
 import { buildReportStats, type ReportVenueTab } from "@/lib/reportStats";
 import { buildRevenueStats } from "@/lib/revenueStats";
-import { bucketLabel, parseGranularity, resolveRange } from "@/lib/trafficRange";
+import { bucketLabel } from "@/lib/trafficRange";
 import { num } from "@/lib/format";
 import { VENUES } from "@/lib/pricing/types";
 import { AdminNav } from "@/components/admin/AdminNav";
 import { getAwsMonitoring } from "@/lib/monitoringAws";
-import { TrafficControls, trafficHref, type TrafficQuery } from "@/components/admin/TrafficControls";
+import { type TrafficQuery } from "@/components/admin/TrafficControls";
 import {
   CARD,
   PAGE_LEAD,
   PAGE_TITLE,
   SECTION_TITLE,
   TAB_BAR,
-  TABLE,
   TABLE_CARD,
   TABLE_HEAD,
   TABLE_HEAD_DESC,
-  TABLE_HEAD_TITLE,
-  TABLE_SCROLL,
   tabCls,
-  TD,
-  TD_ID,
-  TD_MUTED,
-  TD_NUM,
-  TH,
-  TH_NUM,
-  THEAD_ROW,
-  TR,
 } from "@/components/admin/adminUi";
 
 const GRANULARITY_LABEL: Record<string, string> = { day: "일간", week: "주간", month: "월간" };
@@ -84,7 +81,7 @@ function resolveReportTab(raw: string | undefined): ReportTab {
 function reportTabHref(tab: ReportTab, sp: Record<string, string | undefined>): string {
   const params = new URLSearchParams();
   if (tab !== "traffic") params.set("tab", tab);
-  for (const key of ["venue", "g", "days", "from", "to"] as const) {
+  for (const key of ["venue", "g", "days", "from", "to", "period"] as const) {
     if (sp[key]) params.set(key, sp[key]!);
   }
   const qs = params.toString();
@@ -96,12 +93,10 @@ function StatCard({
   label,
   value,
   sub,
-  href,
 }: {
   label: string;
   value: string;
   sub?: string;
-  href?: string;
 }) {
   const body = (
     <>
@@ -110,16 +105,7 @@ function StatCard({
       {sub && <p className="mt-1 text-xs text-muted">{sub}</p>}
     </>
   );
-  if (!href) return <div className={`${CARD} admin-stat-card`}>{body}</div>;
-  return (
-    <Link
-      href={href}
-      className={`${CARD} admin-stat-card block transition-colors hover:border-foreground focus-visible:border-foreground`}
-    >
-      {body}
-      <p className="admin-stat-detail mt-2 text-xs font-bold text-foreground">자세히 보기 →</p>
-    </Link>
-  );
+  return <div className={`${CARD} admin-stat-card`}>{body}</div>;
 }
 
 function BreakdownTable({
@@ -131,46 +117,14 @@ function BreakdownTable({
   rows: { key: string; label: string; count: number; total: number }[];
   showTotal?: boolean;
 }) {
-  return (
-    <div className={TABLE_CARD}>
-      <div className="border-b border-border-soft px-4 py-3.5">
-        <p className="text-s font-bold">{title}</p>
-      </div>
-      <div className={TABLE_SCROLL}>
-        <table className={TABLE}>
-          <thead>
-            <tr className={THEAD_ROW}>
-              <th className={TH}>구분</th>
-              <th className={TH_NUM}>건수</th>
-              {showTotal && <th className={TH_NUM}>대관료 합계</th>}
-            </tr>
-          </thead>
-          <tbody>
-            {rows.map((row) => (
-              <tr key={row.key} className={TR}>
-                <td className={TD}>{row.label}</td>
-                <td className={TD_NUM}>{row.count.toLocaleString("ko-KR")}건</td>
-                {showTotal && <td className={TD_NUM}>{num(row.total)}원</td>}
-              </tr>
-            ))}
-            {rows.length === 0 && (
-              <tr className={TR}>
-                <td className={`${TD_MUTED} text-center`} colSpan={showTotal ? 3 : 2}>
-                  데이터가 없습니다.
-                </td>
-              </tr>
-            )}
-          </tbody>
-        </table>
-      </div>
-    </div>
-  );
+  return <section className={TABLE_CARD}><h2 className={SECTION_TITLE}>{title}</h2><ReportBars rows={rows.map(r=>({label:r.label,value:r.count,detail:showTotal?`대관료 합계 ${num(r.total)}원`:undefined}))}/></section>;
 }
 
 export default async function AdminReportsPage({
   searchParams,
 }: {
   searchParams: Promise<{
+    period?: string;
     tab?: string;
     venue?: string;
     g?: string;
@@ -184,10 +138,9 @@ export default async function AdminReportsPage({
   const sp = await searchParams;
   const reportTab = resolveReportTab(sp.tab);
   const venueTab = resolveVenueTab(sp.venue);
-  const granularity = parseGranularity(sp.g);
-  const range = resolveRange({ from: sp.from, to: sp.to, days: sp.days, today: await todayInSeoul() });
+  const {mode,granularity,range} = reportPeriod({...sp,period:sp.period==="hour"&&reportTab!=="ops"?"day":sp.period}, await todayInSeoul());
 
-  const [quotes, companies, traffic, signups, addendumByQuote, funnel, stalled, ops, aws] = await Promise.all([
+  const [quotes, companies, traffic, signups, addendumByQuote, funnel, stalled, ops, aws, signupTrend, paths, messageTrend, applicants] = await Promise.all([
     listQuotes(),
     listCompanies(),
     getTrafficStats({ from: range.from, to: range.to, granularity }),
@@ -195,8 +148,12 @@ export default async function AdminReportsPage({
     sumContractAddendumsByQuote(),
     getFunnelStats({ from: range.from, to: range.to }),
     listStalledCompanies(50),
-    getOpsStats({ from: range.from, to: range.to }),
-    getAwsMonitoring({ from: range.from, to: range.to }),
+    getOpsStats({ from: range.from, to: range.to, hourly: mode === "hour" }),
+    getAwsMonitoring({ from: range.from, to: range.to, hourly: mode === "hour" }),
+    getSignupTrend({from:range.from,to:range.to,granularity}),
+    getTrafficByPath(range),
+    getMessageTrend({...range,granularity,hourly:mode === "hour"}),
+    listUsers({role:"APPLICANT"}),
   ]);
   const stats = buildReportStats(quotes, companies, new Date(), 6, venueTab);
   const revenue = buildRevenueStats(quotes, addendumByQuote, new Date(), 6, venueTab);
@@ -213,8 +170,7 @@ export default async function AdminReportsPage({
       tab: reportTab === "traffic" ? undefined : reportTab,
     },
   };
-  const trafficDetailHref = trafficHref("/admin/reports/traffic", { granularity, range }, {});
-  const signupDetailHref = trafficHref("/admin/reports/signups", { granularity, range }, {});
+
 
   return (
     <div className="admin-page admin-reports flex flex-1 flex-col">
@@ -241,7 +197,7 @@ export default async function AdminReportsPage({
             그래서 공간 탭은 매출 탭 안에만 둔다. */}
         {reportTab === "traffic" ? (
         <>
-        <TrafficControls basePath="/admin/reports" query={query} />
+        <ReportTimeTabs from={range.from} to={range.to} mode={mode} extra={query.extra} />
         <section className="admin-report-section mt-2">
           <h2 className={SECTION_TITLE}>유입</h2>
           <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3">
@@ -249,21 +205,33 @@ export default async function AdminReportsPage({
               label="페이지뷰"
               value={`${traffic.pageViews.toLocaleString("ko-KR")}회`}
               sub="화면 전환마다 1회"
-              href={trafficDetailHref}
             />
             <StatCard
               label="순방문자(UV)"
               value={`${traffic.uniqueVisitors.toLocaleString("ko-KR")}명`}
               sub="브라우저 기준 · 기간 전체 중복 제거"
-              href={trafficDetailHref}
             />
             <StatCard
               label="대관신청 버튼 클릭"
               value={`${traffic.applyClicks.toLocaleString("ko-KR")}회`}
               sub="/apply 로 가는 모든 버튼"
-              href={trafficDetailHref}
             />
           </div>
+        </section>
+
+
+
+        <section className="admin-report-section mt-8">
+          <h2 className={SECTION_TITLE}>
+            {GRANULARITY_LABEL[granularity]} 유입 추이
+          </h2>
+          <ReportTrendChart points={completeBuckets(traffic.buckets,range.from,range.to,granularity,bucket=>({bucket,pageViews:0,uniqueVisitors:0,applyClicks:0})).map(b => ({label:bucketLabel(b.bucket,granularity),values:[b.pageViews,b.uniqueVisitors,b.applyClicks]}))} series={[{label:"페이지뷰",unit:"회",color:"#222222"},{label:"순방문자",unit:"명",color:"#337a9a"},{label:"대관신청 클릭",unit:"회",color:"#b78317"}]}/>
+          {/* 구간별 UV 를 세로로 더해도 위 카드의 순방문자와 맞지 않는다 — 같은 사람이
+              여러 구간에 오면 각 구간에서 1로 세기 때문이다. 미리 적어 둔다. */}
+          <p className="mt-2 text-xs text-muted">
+            구간별 순방문자를 더한 값은 위 순방문자 합계와 다릅니다 — 같은 방문자가 여러 구간에
+            나타나면 각 구간에서 한 번씩 세기 때문입니다.
+          </p>
         </section>
 
         <section className="admin-report-section mt-8">
@@ -273,70 +241,25 @@ export default async function AdminReportsPage({
               label="가입자 수"
               value={`${signups.totalUsers.toLocaleString("ko-KR")}명`}
               sub="탈퇴 계정 제외"
-              href={signupDetailHref}
             />
             <StatCard
               label="이번 달 신규 가입자"
               value={`${signups.newUsersThisMonth.toLocaleString("ko-KR")}명`}
-              href={signupDetailHref}
             />
             <StatCard
               label="가입 회사 수"
               value={`${signups.totalCompanies.toLocaleString("ko-KR")}곳`}
               sub="승인 여부 무관"
-              href={signupDetailHref}
             />
             <StatCard
               label="이번 달 신규 회사"
               value={`${signups.newCompaniesThisMonth.toLocaleString("ko-KR")}곳`}
-              href={signupDetailHref}
             />
           </div>
         </section>
 
-        <section className="admin-report-section mt-8">
-          <h2 className={SECTION_TITLE}>
-            {GRANULARITY_LABEL[granularity]} 유입 추이
-          </h2>
-          <div className={`mt-3 ${TABLE_CARD}`}>
-            <div className={TABLE_SCROLL}>
-              <table className={TABLE}>
-                <thead>
-                  <tr className={THEAD_ROW}>
-                    <th className={TH}>구간</th>
-                    <th className={TH_NUM}>페이지뷰</th>
-                    <th className={TH_NUM}>순방문자</th>
-                    <th className={TH_NUM}>대관신청 클릭</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {traffic.buckets.map((b) => (
-                    <tr key={b.bucket} className={TR}>
-                      <td className={TD_ID}>{bucketLabel(b.bucket, granularity)}</td>
-                      <td className={TD_NUM}>{b.pageViews.toLocaleString("ko-KR")}</td>
-                      <td className={TD_NUM}>{b.uniqueVisitors.toLocaleString("ko-KR")}</td>
-                      <td className={TD_NUM}>{b.applyClicks.toLocaleString("ko-KR")}</td>
-                    </tr>
-                  ))}
-                  {traffic.buckets.length === 0 && (
-                    <tr className={TR}>
-                      <td className={`${TD_MUTED} text-center`} colSpan={4}>
-                        이 기간에 수집된 방문 기록이 없습니다.
-                      </td>
-                    </tr>
-                  )}
-                </tbody>
-              </table>
-            </div>
-          </div>
-          {/* 구간별 UV 를 세로로 더해도 위 카드의 순방문자와 맞지 않는다 — 같은 사람이
-              여러 구간에 오면 각 구간에서 1로 세기 때문이다. 미리 적어 둔다. */}
-          <p className="mt-2 text-xs text-muted">
-            구간별 순방문자를 더한 값은 위 순방문자 합계와 다릅니다 — 같은 방문자가 여러 구간에
-            나타나면 각 구간에서 한 번씩 세기 때문입니다.
-          </p>
-        </section>
-
+        <section className="admin-report-section"><h2 className={SECTION_TITLE}>가입 추이</h2><p className="text-xs text-muted">선택 기간 내 가입자·회사. 그래프에서 구간별 수치를 확인할 수 있습니다.</p><ReportTrendChart points={completeBuckets(signupTrend,range.from,range.to,granularity,bucket=>({bucket,users:0,companies:0})).map(b=>({label:bucketLabel(b.bucket,granularity),values:[b.users,b.companies]}))} series={[{label:"신규 가입자",unit:"명",color:"#337a9a"},{label:"신규 회사",unit:"곳",color:"#222222"}]}/><details className="mt-4"><summary>최근 가입자·회사 각 20건 (기간과 무관)</summary><div className="grid gap-4 sm:grid-cols-2 mt-4"><ul>{[...applicants].reverse().slice(0,20).map(u=><li key={u.id} className="text-xs py-2">{u.name} · {u.companyName??'—'} · {{APPROVED:'승인 완료',PENDING:'승인 대기',REJECTED:'미승인',HOLD:'보류'}[u.approvalStatus]??u.approvalStatus}</li>)}</ul><ul>{[...companies].sort((a,b)=>b.createdAt.localeCompare(a.createdAt)).slice(0,20).map(c=><li className="text-xs py-2" key={c.id}>{c.name} · {{PENDING:'승인 대기',APPROVED:'승인 완료',REJECTED:'미승인',SUSPENDED:'정지'}[c.status]??c.status}</li>)}</ul></div></details></section>
+        <section className="admin-report-section"><h2 className={SECTION_TITLE}>화면별 조회 (상위 50)</h2><ReportBars rows={paths.map(p=>({label:p.path,value:p.pageViews,unit:"회",detail:`순방문자 ${p.uniqueVisitors}명`}))}/></section>
         </>
         ) : reportTab === "funnel" ? (
         <>
@@ -345,38 +268,10 @@ export default async function AdminReportsPage({
             익명 방문 집계보다 단계별 이탈과 **멈춘 회사 목록**이 실제 운영에 쓰인다.
             숫자는 별도 추적 코드 없이 지금 있는 데이터(analytics_events · users ·
             companies · quotes)만으로 낸다. */}
-        <TrafficControls basePath="/admin/reports" query={query} />
+        <ReportTimeTabs from={range.from} to={range.to} mode={mode} extra={query.extra} />
         <section className="admin-report-section mt-2">
           <h2 className={SECTION_TITLE}>신청 퍼널</h2>
-          <div className={`mt-4 ${TABLE_CARD}`}>
-            <div className={TABLE_SCROLL}>
-              <table className={TABLE}>
-                <thead>
-                  <tr className={THEAD_ROW}>
-                    <th className={TH}>단계</th>
-                    <th className={TH_NUM}>도달</th>
-                    <th className={TH_NUM}>직전 대비</th>
-                    <th className={TH}>세는 기준</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {funnel.map((step) => (
-                    <tr key={step.key} className={TR}>
-                      <td className={TD_ID}>{step.label}</td>
-                      <td className={TD_NUM}>
-                        {step.count.toLocaleString("ko-KR")}
-                        {step.unit}
-                      </td>
-                      <td className={TD_NUM}>
-                        {step.rate === null ? "—" : `${step.rate}%`}
-                      </td>
-                      <td className={TD}>{step.hint}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </div>
+          <ReportBars rows={funnel.map(step=>({label:step.label,value:step.count,unit:step.unit,detail:`직전 대비 ${step.rate===null?'—':`${step.rate}%`} · ${step.hint}`}))}/>
           <p className="mt-2.5 text-xs leading-5 text-muted">
             방문·가입 화면·대관신청 클릭·위저드 진입은 위 기간 안의 접속 기록 기준이고,
             가입 완료·회사 승인·신청서 제출은 그 기간에 실제로 만들어진 건수입니다.
@@ -390,44 +285,7 @@ export default async function AdminReportsPage({
             운영자 승인을 받았지만 신청서가 없는 회사입니다. 오래 멈춘 순으로 정렬했습니다 —
             연락이 필요한 곳을 여기서 고르시면 됩니다.
           </p>
-          <div className={`mt-3 ${TABLE_CARD}`}>
-            <div className={TABLE_SCROLL}>
-              <table className={TABLE}>
-                <thead>
-                  <tr className={THEAD_ROW}>
-                    <th className={TH}>회사</th>
-                    <th className={TH_NUM}>담당자</th>
-                    <th className={TH}>도달 단계</th>
-                    <th className={TH}>마지막 접속</th>
-                    <th className={TH_NUM}>정체</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {stalled.length === 0 ? (
-                    <tr className={TR}>
-                      <td className={TD} colSpan={5}>
-                        멈춘 회사가 없습니다.
-                      </td>
-                    </tr>
-                  ) : (
-                    stalled.map((c) => (
-                      <tr key={c.companyId} className={TR}>
-                        <td className={TD_ID}>{c.companyName}</td>
-                        <td className={TD_NUM}>{c.memberCount}명</td>
-                        <td className={TD}>{c.reached}</td>
-                        <td className={TD}>
-                          {c.lastSeenAt
-                            ? new Date(c.lastSeenAt).toLocaleDateString("ko-KR", { timeZone: "Asia/Seoul" })
-                            : "—"}
-                        </td>
-                        <td className={TD_NUM}>{c.idleDays}일</td>
-                      </tr>
-                    ))
-                  )}
-                </tbody>
-              </table>
-            </div>
-          </div>
+          <ReportBars rows={stalled.map(c=>({label:c.companyName,value:c.idleDays,unit:"일",detail:`담당자 ${c.memberCount}명 · ${c.reached} · 마지막 접속 ${c.lastSeenAt ? new Date(c.lastSeenAt).toLocaleDateString('ko-KR',{timeZone:'Asia/Seoul'}):'없음'}`}))}/>
         </section>
         </>
         ) : reportTab === "ops" ? (
@@ -436,6 +294,7 @@ export default async function AdminReportsPage({
             [신규 2026-09-10] 시스템이 잘 돌고 있나. 위쪽(처리 대기·발송)은 DB 에서,
             아래쪽(서버·차단)은 CloudWatch 에서 읽는다. AWS 조회가 실패해도 위쪽은 그대로
             나오도록 분리해 두었다 — 지표 하나 때문에 화면 전체가 막히면 안 된다. */}
+        <ReportTimeTabs from={range.from} to={range.to} mode={mode} extra={query.extra} hourly />
         <section className="admin-report-section mt-2">
           <h2 className={SECTION_TITLE}>지금 처리해야 할 것</h2>
           <p className="mt-1.5 text-xs leading-5 text-muted">
@@ -467,7 +326,7 @@ export default async function AdminReportsPage({
 
         <section className="admin-report-section mt-8">
           <h2 className={SECTION_TITLE}>알림톡·문자 발송</h2>
-          <TrafficControls basePath="/admin/reports" query={query} />
+
           <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3">
             <StatCard label="성공" value={`${ops.messagesSent.toLocaleString("ko-KR")}건`} sub="기간 내 발송 성공" />
             <StatCard label="실패" value={`${ops.messagesFailed.toLocaleString("ko-KR")}건`} sub="카카오·통신사가 거절" />
@@ -480,30 +339,8 @@ export default async function AdminReportsPage({
               }
             />
           </div>
-          {ops.messageFailureTop.length > 0 && (
-            <div className={`mt-4 ${TABLE_CARD}`}>
-              <div className={TABLE_SCROLL}>
-                <table className={TABLE}>
-                  <thead>
-                    <tr className={THEAD_ROW}>
-                      <th className={TH}>템플릿</th>
-                      <th className={TH}>실패 사유</th>
-                      <th className={TH_NUM}>건수</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {ops.messageFailureTop.map((r) => (
-                      <tr key={`${r.templateCode}-${r.reason}`} className={TR}>
-                        <td className={TD_ID}>{r.templateCode}</td>
-                        <td className={TD}>{r.reason}</td>
-                        <td className={TD_NUM}>{r.count.toLocaleString("ko-KR")}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          )}
+          <ReportTrendChart points={messageTrend.map(m=>({label:m.bucket,values:[m.sent,m.failed]}))} series={[{label:"성공",unit:"건",color:"#337a9a"},{label:"실패",unit:"건",color:"#bf4e49"}]}/>
+          <h3 className="mt-6 font-bold text-s">실패 사유</h3><ReportBars rows={ops.messageFailureTop.map(r=>({label:r.templateCode,value:r.count,detail:r.reason}))}/>
         </section>
 
         <section className="admin-report-section mt-8">
@@ -551,6 +388,8 @@ export default async function AdminReportsPage({
                   sub="최대 420개"
                 />
               </div>
+              <ReportBars rows={[{label:"서버 CPU",value:aws.cpuAvg,unit:"%"},{label:"DB CPU",value:aws.dbCpu,unit:"%"},{label:"메모리",value:aws.memoryAvg,unit:"%"}].filter((r):r is {label:string;value:number;unit:string}=>r.value!==null)}/>
+              <ReportBars rows={[{label:"방화벽 차단",value:aws.blockedRequests},{label:"정상 통과",value:aws.allowedRequests},{label:"서버 오류(5xx)",value:aws.serverErrors},{label:"요청 오류(4xx)",value:aws.clientErrors}].filter((r):r is {label:string;value:number}=>r.value!==null)}/>
               <p className="mt-2.5 text-xs leading-5 text-muted">
                 위 기간의 AWS 지표입니다. 차단 건수가 갑자기 늘면 공격일 수 있고, 서버 오류(5xx)가
                 0이 아니면 확인이 필요합니다. 경보는 슬랙으로도 갑니다.
@@ -608,7 +447,7 @@ export default async function AdminReportsPage({
           <BreakdownTable title="공간별 신청 현황" rows={stats.venueBreakdown} showTotal />
           <BreakdownTable title="법인회원 승인 현황" rows={stats.companyBreakdown} />
           <div className={CARD}>
-            <p className="text-s font-bold">정산 완료</p>
+            <h2 className={SECTION_TITLE}>정산 완료</h2>
             <p className="admin-stat-value mt-1.5 type-kr-heading text-h5-m tabular-nums">
               {stats.settledCount.toLocaleString("ko-KR")}건
             </p>
@@ -661,66 +500,20 @@ export default async function AdminReportsPage({
           <div className={`mt-4 ${TABLE_CARD}`}>
             <div className={TABLE_HEAD}>
               <div>
-                <p className={TABLE_HEAD_TITLE}>월별 매출 추이 (최근 6개월)</p>
+                <h2 className={SECTION_TITLE}>월별 매출 추이 (최근 6개월)</h2>
                 <p className={TABLE_HEAD_DESC}>
                   단계마다 잡히는 날짜가 다릅니다 — 접수는 신청일, 계약은 계약금액 확정일, 확정
                   매출은 정산 확정일 기준입니다. 그래서 한 건이 서로 다른 달에 나타날 수 있습니다.
                 </p>
               </div>
             </div>
-            <div className={TABLE_SCROLL}>
-              <table className={`${TABLE} min-w-[640px]`}>
-                <thead>
-                  <tr className={THEAD_ROW}>
-                    <th className={TH}>월</th>
-                    <th className={TH_NUM}>접수</th>
-                    <th className={TH_NUM}>견적 금액</th>
-                    <th className={TH_NUM}>계약</th>
-                    <th className={TH_NUM}>계약금액</th>
-                    <th className={TH_NUM}>확정 매출</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {revenue.monthly.map((m) => (
-                    <tr key={m.key} className={TR}>
-                      <td className={TD_ID}>{m.label}</td>
-                      <td className={TD_NUM}>{m.submittedCount.toLocaleString("ko-KR")}건</td>
-                      <td className={TD_NUM}>{num(m.submittedTotal)}원</td>
-                      <td className={TD_NUM}>{m.contractedCount.toLocaleString("ko-KR")}건</td>
-                      <td className={TD_NUM}>{num(m.contractedTotal)}원</td>
-                      <td className={TD_NUM}>{num(m.settledTotal)}원</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+            <ReportTrendChart points={revenue.monthly.map(m=>({label:m.label,values:[m.submittedTotal,m.contractedTotal,m.settledTotal],detail:`접수 ${m.submittedCount}건 · 계약 ${m.contractedCount}건`}))} series={[{label:"견적 금액",unit:"원",color:"#999999"},{label:"계약금액",unit:"원",color:"#337a9a"},{label:"확정 매출",unit:"원",color:"#222222"}]}/>
           </div>
         </section>
 
         <section className="admin-report-section mt-8">
           <h2 className={SECTION_TITLE}>월별 신청 추이 (최근 6개월)</h2>
-          <div className={`mt-3 ${TABLE_CARD}`}>
-            <div className={TABLE_SCROLL}>
-              <table className={TABLE}>
-                <thead>
-                  <tr className={THEAD_ROW}>
-                    <th className={TH}>월</th>
-                    <th className={TH_NUM}>신청 건수</th>
-                    <th className={TH_NUM}>대관료 합계</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {stats.monthly.map((m) => (
-                    <tr key={m.key} className={TR}>
-                      <td className={TD_ID}>{m.label}</td>
-                      <td className={TD_NUM}>{m.count.toLocaleString("ko-KR")}건</td>
-                      <td className={TD_NUM}>{num(m.total)}원</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </div>
+          <ReportTrendChart points={stats.monthly.map(m=>({label:m.label,values:[m.count],detail:`대관료 합계 ${num(m.total)}원`}))} series={[{label:"신청 건수",unit:"건",color:"#337a9a"}]}/>
         </section>
         </>
         )}

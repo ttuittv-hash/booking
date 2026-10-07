@@ -36,3 +36,10 @@
 @media(max-width:760px) { .preview>div>div:first-child { gap:20px; }.preview>div>div:first-child>button { font-size:13px; flex-shrink:0; } }
 .preview>div>div:first-child>button { border-bottom-style:solid; border-bottom-color:transparent; color:var(--muted); }
 .preview>div>div:first-child>button[aria-pressed=true] { border-bottom-color:var(--foreground); color:var(--foreground); }
+
+/* Keep long copy and editor controls inside the available content width. */
+.preview { width:100%; overflow-wrap:anywhere; }
+.preview>div { min-width:0; max-width:100%; }
+.preview [data-content-subtabs] { overflow:visible; }
+.preview li { min-width:0; }
+.preview li:only-child { padding:24px; background:var(--panel); }

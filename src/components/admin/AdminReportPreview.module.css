@@ -88,3 +88,13 @@
 .monitoringGroup .card { background:var(--background); }
 .monitoringGroup .trafficFilters { margin-top:20px; flex-wrap:wrap; }
 @media(max-width:760px) { .monitoringGroup { padding:18px; } }
+
+/* Report sections follow the same hierarchy as the approved admin panels. */
+.funnelSection>h2,.card>h2,.revenueGroup>h2,.monitoringGroup>h2 { font-family:inherit; font-size:18px; font-weight:700; line-height:1.5; margin:0 0 20px; }
+.funnelSection .metrics,.funnelSection .signupMetrics { margin-top:20px; }
+.funnelSection .metrics>.card,.funnelSection .signupMetrics>.card { background:var(--background); }
+.originalContent>.segmented { width:fit-content; max-width:100%; flex-wrap:wrap; }
+.funnelSection>h3 { font-size:14px; font-weight:700; margin-top:24px; }
+
+.report>[data-report-time-controls] { margin:0; }
+.originalContent>[data-report-time-controls] { margin:0 0 24px; }

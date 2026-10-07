@@ -91,11 +91,7 @@ export default async function AdminApplicantsPage({
           {tabs.map((t) => (
             <Link key={t.key} href={t.href} className={tabCls(t.key === tab)}>
               {t.label}
-              {t.badge ? (
-                <span className="ml-1.5 inline-block border border-accent bg-accent px-1.5 text-xs leading-4 text-on-accent tabular-nums">
-                  {t.badge}
-                </span>
-              ) : null}
+              {t.badge !== undefined ? ` (${t.badge.toLocaleString("ko-KR")})` : null}
             </Link>
           ))}
         </nav>

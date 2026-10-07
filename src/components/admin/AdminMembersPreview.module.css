@@ -8,7 +8,6 @@
 .tabs { display:flex; gap:28px; border-bottom:1px solid var(--border-soft); overflow:auto; }
 .tabs button { display:flex; gap:8px; white-space:nowrap; padding:18px 0; border-bottom:3px solid transparent; color:var(--muted); cursor:pointer; font-size:14px; }
 .tabs button[aria-pressed=true] { color:var(--foreground); font-weight:700; border-bottom-color:var(--foreground); }
-.tabs span { background:var(--panel-strong); font-size:12px; padding:0 5px; }
 .scroll { overflow:auto; margin-top:24px; }
 .scroll table { width:100%; border-collapse:collapse; text-align:left; font-size:13px; white-space:nowrap; }
 .scroll th { background:var(--background); color:var(--muted); font-size:12px; font-weight:600; }

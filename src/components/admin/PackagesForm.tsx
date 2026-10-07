@@ -19,20 +19,20 @@ import {
   LINK_BTN,
   NONE,
   SUB_TITLE,
+  SECTION_TITLE,
   TABLE,
   TABLE_CARD,
   TABLE_HEAD,
-  TABLE_HEAD_ACTIONS,
   TABLE_HEAD_DESC,
   TABLE_HEAD_TITLE,
   TABLE_SCROLL,
+  TD,
   TD_ID,
   TD_NUM,
   TH,
   TH_NUM,
   THEAD_ROW,
   TR,
-  TR_HOVER,
   TAB_BAR,
   tabCls,
   REMOVE_BTN,
@@ -659,8 +659,23 @@ export function PackagesForm({
 
   return (
     <div className="mt-8">
+      <section data-package-summary className={TABLE_CARD}>
+        <div className={TABLE_HEAD}>
+          <div><h2 className={TABLE_HEAD_TITLE}>패키지 요약 ({packages.length})</h2>
+          <p className={TABLE_HEAD_DESC}>전체 공간의 패키지 현황입니다. 아래에서 공간과 패키지를 선택해 편집하세요.</p></div>
+        </div>
+        <div className={TABLE_SCROLL}>
+          <table className={`${TABLE} min-w-[560px]`}>
+            <thead><tr className={THEAD_ROW}><th className={TH}>공간</th><th className={TH}>패키지</th><th className={TH_NUM}>기본 대관료 (₩)</th><th className={TH_NUM}>총 패키지 가격 (₩)</th><th className={TH_NUM}>할인 적용가 (₩)</th></tr></thead>
+            <tbody>{packages.map(p => { const t = computeTotals(p); return <tr key={p.id} className={TR}>
+              <td className={TD}>{venueLabel(p.venueId ?? DEFAULT_VENUE_ID, wizardStrings)}</td><td className={TD_ID}>{p.name}</td><td className={TD_NUM}>{num(p.baseFeePerWeek)}</td><td className={TD_NUM}>{num(t.total)}</td><td className={TD_NUM}>{p.discountRatio > 0 ? num(t.discountedTotal) : NONE}</td>
+            </tr>; })}</tbody>
+          </table>
+        </div>
+      </section>
+
       {/* 1뎁스: 공간 — 패키지가 늘어 한 줄에 다 못 들어간다(그쪽 개편). */}
-      <div className="flex gap-1 border-b border-border/25">
+      <div data-package-venues className="flex gap-1 border-b border-border/25">
         {VENUES.map((v) => (
           <button
             key={v.id}
@@ -675,7 +690,7 @@ export function PackagesForm({
       </div>
 
       {/* 2뎁스: 그 공간의 패키지 */}
-      <div className={TAB_BAR}>
+      <div data-package-picker className={TAB_BAR}>
         <div data-package-segments className={undefined}>
         {venuePackages.map((p) => (
           <button
@@ -698,116 +713,16 @@ export function PackagesForm({
         </button>
       </div>
 
-      <div className={`mt-6 ${TABLE_CARD}`}>
-        <div className={TABLE_HEAD}>
-          <div>
-            <p className={TABLE_HEAD_TITLE}>패키지 요약 ({packages.length})</p>
-            <p className={TABLE_HEAD_DESC}>
-              행을 누르면 아래에서 해당 패키지를 편집합니다.
-            </p>
-          </div>
-          <div className={TABLE_HEAD_ACTIONS}>
-            <button type="button" onClick={addPackage} className={btnClass("secondary", "sm")}>
-              새 패키지
-            </button>
+      <div data-package-editor className="mt-6 space-y-8">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <h2 className={SECTION_TITLE}>{active.name} 편집</h2>
+          <div className="flex flex-wrap items-center gap-4">
+            <button type="button" className={LINK_BTN} disabled={venuePackages[0]?.id === activeId} onClick={() => movePackage(activeId, -1)}>앞으로 이동</button>
+            <button type="button" className={LINK_BTN} disabled={venuePackages.at(-1)?.id === activeId} onClick={() => movePackage(activeId, 1)}>뒤로 이동</button>
+            <button type="button" className={LINK_BTN} onClick={() => duplicatePackage(activeId)}>복제</button>
+            <button type="button" className={REMOVE_BTN} onClick={() => removePackage(activeId)}>삭제</button>
           </div>
         </div>
-        <div className={TABLE_SCROLL}>
-          <table className={`${TABLE} min-w-[560px]`}>
-            <thead>
-              <tr className={THEAD_ROW}>
-                <th className={TH}>패키지</th>
-                <th className={TH_NUM}>기본 대관료 (₩)</th>
-                <th className={TH_NUM}>총 패키지 가격 (₩)</th>
-                <th className={TH_NUM}>할인 적용가 (₩)</th>
-                <th className={TH}>
-                  <span className="sr-only">작업</span>
-                </th>
-              </tr>
-            </thead>
-            <tbody>
-              {packages.map((p) => {
-                const t = computeTotals(p);
-                const group = packages.filter((g) => (g.venueId ?? DEFAULT_VENUE_ID) === (p.venueId ?? DEFAULT_VENUE_ID));
-                const idxInGroup = group.findIndex((g) => g.id === p.id);
-                const isFirst = idxInGroup <= 0;
-                const isLast = idxInGroup === group.length - 1;
-                return (
-                  <tr
-                    key={p.id}
-                    className={`cursor-pointer ${p.id === activeId ? `${TR} bg-accent/15` : TR_HOVER}`}
-                    onClick={() => setActiveId(p.id)}
-            aria-pressed={p.id === activeId}
-                  >
-                    <td className={TD_ID}>{p.name}</td>
-                    <td className={TD_NUM}>{num(p.baseFeePerWeek)}</td>
-                    <td className={TD_NUM}>{num(t.total)}</td>
-                    <td className={TD_NUM}>
-                      {p.discountRatio > 0 ? (
-                        <span className="font-bold">{num(t.discountedTotal)}</span>
-                      ) : (
-                        <span className="text-muted">{NONE}</span>
-                      )}
-                    </td>
-                    <td className="px-4 py-3 text-right">
-                      <span className="inline-flex items-center gap-3">
-                        <span className="inline-flex flex-col leading-none">
-                          <button
-                            type="button"
-                            disabled={isFirst}
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              movePackage(p.id, -1);
-                            }}
-                            aria-label="위로 이동"
-                            className="px-1 text-xs text-muted hover:text-foreground disabled:cursor-not-allowed disabled:opacity-30"
-                          >
-                            ▲
-                          </button>
-                          <button
-                            type="button"
-                            disabled={isLast}
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              movePackage(p.id, 1);
-                            }}
-                            aria-label="아래로 이동"
-                            className="px-1 text-xs text-muted hover:text-foreground disabled:cursor-not-allowed disabled:opacity-30"
-                          >
-                            ▼
-                          </button>
-                        </span>
-                        <button
-                          type="button"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            duplicatePackage(p.id);
-                          }}
-                          className="inline-flex min-h-11 items-center text-xs font-bold text-foreground hover:underline sm:min-h-0"
-                        >
-                          복제
-                        </button>
-                        <button
-                          type="button"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            removePackage(p.id);
-                          }}
-                          className={REMOVE_BTN}
-                        >
-                          삭제
-                        </button>
-                      </span>
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
-      </div>
-
-      <div className="mt-6 space-y-8">
         <section>
           <h2 className={SUB_TITLE}>기본 정보</h2>
           <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2">
