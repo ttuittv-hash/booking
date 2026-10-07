@@ -1,4 +1,5 @@
 "use client";
+import contentStyles from "./ContentTabs.module.css";
 import { useContentTransport } from "./ContentTransport";
 
 import { useRef, useState } from "react";
@@ -51,8 +52,6 @@ import {
   QUIET_BTN,
   REMOVE_BTN,
   SUB_TITLE,
-  TAB_BAR,
-  tabCls,
 } from "./adminUi";
 
 /** 파일 선택 input — 샤프 코너 · border-soft */
@@ -148,7 +147,7 @@ export function ContentManager({
   return (
     <div className="mt-8">
       {<div aria-label="콘텐츠 카테고리">{categories.map(item=><button key={item.label} type="button" aria-pressed={category===item} onClick={()=>{if(category===item)return;if(!confirmDiscardUnsaved())return;setTab(item.tabs[0]);}}>{item.label}</button>)}</div>}
-      <div className={TAB_BAR} data-content-subtabs aria-label="콘텐츠 세부 메뉴">
+      <div className={contentStyles.subtabs} data-content-subtabs aria-label="콘텐츠 세부 메뉴">
         {(
           [
             ["notices", `공지사항 (${notices.length})`],
@@ -175,7 +174,7 @@ export function ContentManager({
               setTab(key);
             }}
             aria-pressed={tab === key}
-            className={tabCls(tab === key)}
+            className={contentStyles.tab}
           >
             {label}
           </button>

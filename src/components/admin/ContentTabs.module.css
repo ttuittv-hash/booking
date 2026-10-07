@@ -1,0 +1,13 @@
+.subtabs {
+ display:flex; flex-wrap:wrap; align-items:center; width:fit-content; max-width:100%;
+ gap:4px; margin:24px 0; padding:4px; background:var(--foreground); border:0;
+}
+.tab {
+ display:flex; flex:0 0 auto; align-items:center; justify-content:center;
+ min-height:36px; padding:8px 16px; margin:0; border:0; border-radius:0;
+ background:transparent; color:var(--panel); font-size:13px; line-height:20px;
+ font-weight:400; white-space:nowrap; cursor:pointer;
+}
+.tab[aria-pressed=true] { background:var(--panel); color:var(--foreground); font-weight:700; }
+.tab:focus-visible { outline:2px solid var(--panel); outline-offset:2px; }
+@media(max-width:760px) { .tab { padding-inline:12px; } }
