@@ -1,3 +1,4 @@
+import s from "@/components/admin/AdminPackagesPreview.module.css";
 import { requireProAdminPage } from "@/lib/auth";
 import { getCurrentRateTable, getRatesContent, getScreenTextContent } from "@/lib/db";
 import { AdminNav } from "@/components/admin/AdminNav";
@@ -15,7 +16,7 @@ export default async function AdminPackagesPage() {
   ]);
 
   return (
-    <div className="flex flex-1 flex-col">
+    <div className="admin-page flex flex-1 flex-col">
       <AdminNav active="/admin/packages" user={user} />
 
       <main className="mx-auto w-full max-w-6xl flex-1 px-6 py-8 sm:py-10">
@@ -28,11 +29,13 @@ export default async function AdminPackagesPage() {
           </p>
         </header>
 
+        <div className={s.preview}>
         <PackagesForm
           rateTable={rateTable}
           ratesContent={ratesContent}
           wizardStrings={screenText.wizardStrings}
         />
+        </div>
       </main>
     </div>
   );

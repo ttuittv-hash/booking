@@ -1,3 +1,4 @@
+import { ReportPresetSelect } from "./ReportPresetSelect";
 import Link from "next/link";
 import { btnClass } from "@/components/ui/kit";
 import { FIELD_SM, tabCls } from "@/components/admin/adminUi";
@@ -8,7 +9,7 @@ import { GRANULARITIES, RANGE_PRESETS, type ResolvedRange } from "@/lib/trafficR
   유입 지표의 기간·단위 조작부 (2026-08-28).
 
   리포트 요약 화면과 유입 상세 화면이 같은 조작부를 쓴다. 상태는 전부 URL 쿼리에 있고
-  자바스크립트가 없어도 동작한다 — 프리셋·단위는 링크, 직접 지정은 평범한 GET 폼이다.
+  단위는 링크, 프리셋은 드롭다운, 직접 지정은 GET 폼으로 이동한다.
   덕분에 운영자가 특정 기간 화면을 그대로 복사해 공유할 수 있다.
 */
 
@@ -61,16 +62,17 @@ export function TrafficControls({
   const { range, granularity } = query;
 
   return (
-    <div className="mt-3 flex flex-col gap-3">
-      <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
+    <div className="admin-period">
+      <div className="admin-period-presets">
         <nav
-          className="flex items-center gap-1 border-b border-border/25"
+          className="admin-segmented"
           aria-label="집계 단위"
         >
           {GRANULARITIES.map((g) => (
             <Link
               key={g.key}
               href={trafficHref(basePath, query, { g: g.key })}
+              aria-current={g.key === granularity ? "true" : undefined}
               className={tabCls(g.key === granularity)}
             >
               {g.label}
@@ -78,30 +80,22 @@ export function TrafficControls({
           ))}
         </nav>
 
-        <div className="flex flex-wrap items-center gap-1.5">
-          {RANGE_PRESETS.map((p) => (
-            <Link
-              key={p.days}
-              href={trafficHref(basePath, query, { days: p.days })}
-              className={btnClass(range.presetDays === p.days ? "primary" : "secondary", "sm")}
-            >
-              {p.label}
-            </Link>
-          ))}
-        </div>
+        <ReportPresetSelect value={range.presetDays === null ? "custom" : String(range.presetDays)} options={RANGE_PRESETS.map(p=>({value:String(p.days),label:p.label,href:trafficHref(basePath,query,{days:p.days})}))}/>
+
       </div>
 
       {/* 직접 지정 — 평범한 GET 폼이라 자바스크립트 없이도 동작한다. 함께 들고 다녀야 하는
           파라미터는 hidden 으로 실어 보낸다. */}
-      <form method="get" action={basePath} className="flex flex-wrap items-end gap-2">
+      <form key={`${range.from}:${range.to}`} method="get" action={basePath} className="flex flex-wrap items-end gap-2">
         {Object.entries(query.extra ?? {}).map(([key, value]) =>
           value ? <input key={key} type="hidden" name={key} value={value} /> : null,
         )}
         {granularity !== "day" && <input type="hidden" name="g" value={granularity} />}
         <label className="flex flex-col gap-1">
           <span className="text-xs text-muted">시작일</span>
-          <input type="date" name="from" defaultValue={range.from} max={range.to} className={FIELD_SM} />
+          <input type="date" name="from" defaultValue={range.from} className={FIELD_SM} />
         </label>
+        <span className="admin-date-separator" aria-hidden="true">~</span>
         <label className="flex flex-col gap-1">
           <span className="text-xs text-muted">종료일</span>
           <input type="date" name="to" defaultValue={range.to} className={FIELD_SM} />
@@ -111,10 +105,8 @@ export function TrafficControls({
         </button>
       </form>
 
-      <p className="text-xs text-muted">
-        {range.from} ~ {range.to}
-        {range.notice ? <span className="ml-2 text-danger">{range.notice}</span> : null}
-      </p>
+      {range.notice && <p className="text-xs text-danger" role="status">{range.notice}</p>}
+
     </div>
   );
 }

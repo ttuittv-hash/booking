@@ -68,7 +68,7 @@ export default async function SignupDetailPage({
   const rangeCompanies = trend.reduce((sum, b) => sum + b.companies, 0);
 
   return (
-    <div className="flex flex-1 flex-col">
+    <div className="admin-page flex flex-1 flex-col">
       <AdminNav active="/admin/reports" user={user} />
       <main className="mx-auto w-full max-w-5xl flex-1 px-6 py-8 sm:py-10">
         <header className="pb-5">

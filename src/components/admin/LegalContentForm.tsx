@@ -1,4 +1,5 @@
 "use client";
+import { useContentTransport } from "./ContentTransport";
 
 import { useRouter } from "next/navigation";
 import { useState } from "react";
@@ -21,6 +22,8 @@ export function LegalContentForm({
   content: LegalContent;
   publicHref: string;
 }) {
+  const { request, isPreview } = useContentTransport();
+
   const router = useRouter();
   const [content, setContent] = useState<LegalContent>(initial);
   const [saving, setSaving] = useState(false);
@@ -31,7 +34,7 @@ export function LegalContentForm({
     setSaving(true);
     setMessage(null);
     try {
-      const res = await fetch("/api/admin/content/legal", {
+      const res = await request("/api/admin/content/legal", {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ kind, content }),
@@ -42,8 +45,8 @@ export function LegalContentForm({
         return;
       }
       setContent(data.content);
-      setMessage(`저장되었습니다. '${label}' 페이지에 바로 반영됩니다.`);
-      router.refresh();
+      setMessage(isPreview ? "예시 화면에 저장했습니다. 실제 공개 콘텐츠에는 반영되지 않습니다." : `저장되었습니다. '${label}' 페이지에 바로 반영됩니다.`);
+      if (!isPreview) router.refresh();
     } finally {
       setSaving(false);
     }

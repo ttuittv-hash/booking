@@ -1,4 +1,5 @@
 "use client";
+import { useContentTransport } from "./ContentTransport";
 
 import { useRef, useState } from "react";
 import { uploadInlineImages } from "@/lib/content/inlineImages";
@@ -134,12 +135,20 @@ export function ContentManager({
     ],
     "notices",
   );
+  const categories: {label:string;tabs:Tab[]}[] = [
+    {label:"게시물",tabs:["notices","faq"]},
+    {label:"페이지",tabs:["home","seoularena","features","guide","rates","rules","documents"]},
+    {label:"신청·화면 문구",tabs:["wizardPreview","screenText"]},
+    {label:"약관·정책",tabs:["legal"]},
+  ];
+  const category = categories.find(item=>item.tabs.includes(tab))!;
   const [notices, setNotices] = useState(initialNotices);
   const [faqs, setFaqs] = useState(initialFaqs);
 
   return (
     <div className="mt-8">
-      <div className={TAB_BAR}>
+      {<div aria-label="콘텐츠 카테고리">{categories.map(item=><button key={item.label} type="button" aria-pressed={category===item} onClick={()=>{if(category===item)return;if(!confirmDiscardUnsaved())return;setTab(item.tabs[0]);}}>{item.label}</button>)}</div>}
+      <div className={TAB_BAR} data-content-subtabs aria-label="콘텐츠 세부 메뉴">
         {(
           [
             ["notices", `공지사항 (${notices.length})`],
@@ -155,7 +164,7 @@ export function ContentManager({
             ["wizardPreview", "위저드 미리보기 · 수정"],
             ["legal", "약관 · 정책"],
           ] as const
-        ).map(([key, label]) => (
+        ).filter(([key])=>category.tabs.includes(key)).map(([key, label]) => (
           <button
             key={key}
             type="button"
@@ -165,6 +174,7 @@ export function ContentManager({
               if (key !== tab && !confirmDiscardUnsaved()) return;
               setTab(key);
             }}
+            aria-pressed={tab === key}
             className={tabCls(tab === key)}
           >
             {label}
@@ -260,6 +270,8 @@ function NoticesTab({
   setNotices: (n: Notice[]) => void;
   router: ReturnType<typeof useRouter>;
 }) {
+  const { request, isPreview } = useContentTransport();
+
   const dialog = useDialog();
   const [tag, setTag] = useState("");
   const [title, setTitle] = useState("");
@@ -327,7 +339,7 @@ function NoticesTab({
     try {
       const formData = new FormData();
       formData.append("file", file);
-      const res = await fetch("/api/admin/notices/upload", { method: "POST", body: formData });
+      const res = await request("/api/admin/notices/upload", { method: "POST", body: formData });
       const data = await res.json();
       if (!res.ok) {
         setError(data.error || "이미지 업로드에 실패했습니다.");
@@ -345,7 +357,7 @@ function NoticesTab({
     try {
       const formData = new FormData();
       formData.append("file", file);
-      const res = await fetch("/api/admin/notices/attachment", { method: "POST", body: formData });
+      const res = await request("/api/admin/notices/attachment", { method: "POST", body: formData });
       const data = await res.json();
       if (!res.ok) {
         setError(data.error || "파일 업로드에 실패했습니다.");
@@ -378,7 +390,7 @@ function NoticesTab({
       const converted = await uploadInlineImages(body, async (blob, filename) => {
         const fd = new FormData();
         fd.append("file", blob, filename);
-        const r = await fetch("/api/admin/notices/upload", { method: "POST", body: fd });
+        const r = await request("/api/admin/notices/upload", { method: "POST", body: fd });
         const j = await r.json().catch(() => null);
         return r.ok && j?.url ? (j.url as string) : null;
       });
@@ -394,7 +406,7 @@ function NoticesTab({
       setBody(bodyToSave);
     }
     try {
-      const res = await fetch(isNew ? "/api/admin/notices" : `/api/admin/notices/${editingId}`, {
+      const res = await request(isNew ? "/api/admin/notices" : `/api/admin/notices/${editingId}`, {
         method: isNew ? "POST" : "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ tag, title, body: bodyToSave, imageUrl, attachmentUrl, attachmentName, showBookingCalendar, pinned }),
@@ -428,7 +440,7 @@ function NoticesTab({
         setNotices(notices.map((n) => (n.id === editingId ? data.notice : n)));
       }
       resetForm();
-      router.refresh();
+      if (!isPreview) router.refresh();
     } catch {
       setError("저장하지 못했습니다. 연결 상태를 확인한 뒤 다시 시도해 주세요.");
     } finally {
@@ -442,7 +454,7 @@ function NoticesTab({
   async function togglePinned(notice: Notice) {
     setTogglingId(notice.id);
     try {
-      const res = await fetch(`/api/admin/notices/${notice.id}`, {
+      const res = await request(`/api/admin/notices/${notice.id}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -460,7 +472,7 @@ function NoticesTab({
       if (data?.notice) {
         setNotices(notices.map((n) => (n.id === notice.id ? data.notice : n)));
         if (editingId === notice.id) setPinned(data.notice.pinned);
-        router.refresh();
+        if (!isPreview) router.refresh();
       }
     } finally {
       setTogglingId(null);
@@ -474,10 +486,10 @@ function NoticesTab({
       { okLabel: "삭제", cancelLabel: "취소", tone: "danger" },
     );
     if (!ok) return;
-    await fetch(`/api/admin/notices/${id}`, { method: "DELETE" });
+    await request(`/api/admin/notices/${id}`, { method: "DELETE" });
     setNotices(notices.filter((n) => n.id !== id));
     if (editingId === id) resetForm();
-    router.refresh();
+    if (!isPreview) router.refresh();
   }
 
   return (
@@ -697,6 +709,8 @@ function FaqTab({
   setFaqs: (f: Faq[]) => void;
   router: ReturnType<typeof useRouter>;
 }) {
+  const { request, isPreview } = useContentTransport();
+
   const dialog = useDialog();
   const [tag, setTag] = useState("");
   const [question, setQuestion] = useState("");
@@ -739,7 +753,7 @@ function FaqTab({
     setSaving(true);
     setError(null);
     try {
-      const res = await fetch(isNew ? "/api/admin/faq" : `/api/admin/faq/${editingId}`, {
+      const res = await request(isNew ? "/api/admin/faq" : `/api/admin/faq/${editingId}`, {
         method: isNew ? "POST" : "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ tag, question, answer }),
@@ -755,7 +769,7 @@ function FaqTab({
         setFaqs(faqs.map((f) => (f.id === editingId ? data.faq : f)));
       }
       resetForm();
-      router.refresh();
+      if (!isPreview) router.refresh();
     } finally {
       setSaving(false);
     }
@@ -767,10 +781,10 @@ function FaqTab({
       { okLabel: "삭제", cancelLabel: "취소", tone: "danger" },
     );
     if (!ok) return;
-    await fetch(`/api/admin/faq/${id}`, { method: "DELETE" });
+    await request(`/api/admin/faq/${id}`, { method: "DELETE" });
     setFaqs(faqs.filter((f) => f.id !== id));
     if (editingId === id) resetForm();
-    router.refresh();
+    if (!isPreview) router.refresh();
   }
 
   return (

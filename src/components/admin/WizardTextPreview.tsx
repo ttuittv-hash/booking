@@ -1,4 +1,5 @@
 "use client";
+import { useContentTransport } from "./ContentTransport";
 
 import { useMemo, useState, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
@@ -621,6 +622,8 @@ function FieldOrderPanel({
  * 패키지 하나만 바꾸고 나머지는 rateTable.packages를 그대로 다시 보낸다.
  */
 function PackageCardRowsEditor({ rateTable }: { rateTable: RateTable }) {
+  const { request, isPreview } = useContentTransport();
+
   const router = useRouter();
   // Rate 카드(패키지 박스)로 렌더되는 패키지만 대상으로 한다 — 아레나 A~D + 패키지(동시
   // 대관 전용, SPECIAL_VENUE_ID). 중형공연장은 다른 카드 디자인(MidHallRateCard)이라
@@ -666,7 +669,7 @@ function PackageCardRowsEditor({ rateTable }: { rateTable: RateTable }) {
             }
           : p,
       );
-      const res = await fetch("/api/admin/packages", {
+      const res = await request("/api/admin/packages", {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ packages: nextPackages }),
@@ -676,8 +679,8 @@ function PackageCardRowsEditor({ rateTable }: { rateTable: RateTable }) {
         setMessage(data.error || "저장에 실패했습니다.");
         return;
       }
-      setMessage("저장되었습니다.");
-      router.refresh();
+      setMessage(isPreview ? "예시 화면에 저장했습니다. 실제 공개 콘텐츠에는 반영되지 않습니다." : "저장되었습니다.");
+      if (!isPreview) router.refresh();
     } finally {
       setSaving(false);
     }

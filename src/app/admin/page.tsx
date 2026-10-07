@@ -132,7 +132,7 @@ export default async function AdminPage({
   });
 
   return (
-    <div className="flex flex-1 flex-col">
+    <div className="admin-page flex flex-1 flex-col">
       <AdminNav active="/admin" user={user} />
 
       {/* [개정 2026-09-18] "가로 폭을 좀 더 늘려야 하나봐요 .. 짤리네욤"(niki) — 신청 현황은
@@ -176,7 +176,7 @@ export default async function AdminPage({
           </p>
         )}
 
-        <form method="GET" className="mt-6 flex flex-wrap items-center gap-3">
+        <form method="GET" className="admin-company-filter mt-6 flex flex-wrap items-center gap-3">
           {venueTab !== "all" && <input type="hidden" name="venue" value={venueTab} />}
           <label className="text-xs font-bold text-muted" htmlFor="companyId">
             회사별 보기

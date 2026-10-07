@@ -1,5 +1,6 @@
 "use client";
 
+import { useContentTransport } from "@/components/admin/ContentTransport";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { btnClass } from "@/components/ui/kit";
@@ -7,6 +8,7 @@ import { ERROR_NOTE, FIELD, HELP, PANEL, SECTION_TITLE } from "@/components/admi
 
 export function AnswerInquiryForm({ inquiryId }: { inquiryId: string }) {
   const router = useRouter();
+  const { request, isPreview } = useContentTransport();
   const [answer, setAnswer] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -15,7 +17,7 @@ export function AnswerInquiryForm({ inquiryId }: { inquiryId: string }) {
     setBusy(true);
     setError(null);
     try {
-      const res = await fetch(`/api/inquiries/${inquiryId}/answer`, {
+      const res = await request(`/api/inquiries/${inquiryId}/answer`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ answer }),
@@ -25,7 +27,7 @@ export function AnswerInquiryForm({ inquiryId }: { inquiryId: string }) {
         setError(data.error || "답변 등록에 실패했습니다.");
         return;
       }
-      router.refresh();
+      if (!isPreview) router.refresh();
     } finally {
       setBusy(false);
     }

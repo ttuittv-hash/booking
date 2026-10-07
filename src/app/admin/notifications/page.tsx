@@ -13,7 +13,7 @@ export default async function AdminNotificationsPage() {
 
   const notifications = await listNotifications(user.id, 100);
   return (
-    <div className="flex flex-1 flex-col">
+    <div className="admin-page flex flex-1 flex-col">
       {/* 알림은 상단 메뉴에 없는 화면이라 어느 탭도 켜지 않는다. */}
       <AdminNav active="/admin/notifications" user={user} />
       <main className="mx-auto w-full max-w-4xl flex-1 px-6 py-8 sm:py-10">

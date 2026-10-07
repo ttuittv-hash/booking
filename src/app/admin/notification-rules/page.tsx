@@ -1,3 +1,4 @@
+import s from "@/components/admin/AdminNotificationsPreview.module.css";
 import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/lib/auth";
 import { listNotificationRules } from "@/lib/db";
@@ -13,7 +14,7 @@ export default async function AdminNotificationRulesPage() {
   const rules = await listNotificationRules();
 
   return (
-    <div className="flex flex-1 flex-col">
+    <div className="admin-page flex flex-1 flex-col">
       <AdminNav active="/admin/notification-rules" user={user} />
       <main className="mx-auto w-full max-w-4xl flex-1 px-6 py-8 sm:py-10">
         <header className="border-b border-border/25 pb-6">
@@ -24,7 +25,9 @@ export default async function AdminNotificationRulesPage() {
           </p>
         </header>
 
+        <div className={s.preview}>
         <NotificationRulesManager initialRules={rules} />
+        </div>
       </main>
     </div>
   );

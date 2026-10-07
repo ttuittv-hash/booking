@@ -60,7 +60,7 @@ export default async function AdminQuoteWizardPage({
   const calendarMonthBounds = noticeCalendarMonthBounds(calendarWindow);
 
   return (
-    <div className="flex flex-1 flex-col">
+    <div className="admin-page flex flex-1 flex-col">
       <AdminNav active="/admin" user={admin} />
 
       <main className="flex flex-1 flex-col">

@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { PackageCategory } from "./PackageCategory";
 import { useDialog } from "@/components/ui/Dialog";
 import { useRouter } from "next/navigation";
 import { venueLabel } from "@/lib/content/venueLabels";
@@ -233,10 +234,12 @@ export function PackagesForm({
   ratesContent,
   /** 운영자가 문구 관리에서 바꾼 공간 이름 — 탭 라벨을 위저드와 같은 말로 쓴다 */
   wizardStrings = {},
+  preview = false,
 }: {
   rateTable: RateTable;
   ratesContent: RatesContent;
   wizardStrings?: Record<string, string>;
+  preview?: boolean;
 }) {
   const router = useRouter();
   const dialog = useDialog();
@@ -585,6 +588,7 @@ export function PackagesForm({
   }
 
   async function save() {
+    if (preview) { setMessage("예시 변경사항을 적용했습니다. 실제 패키지·요금표에는 반영되지 않습니다."); setRemovedAddonIds([]); setRemovedPackageIds([]); return; }
     setSaving(true);
     setMessage(null);
     try {
@@ -628,6 +632,7 @@ export function PackagesForm({
   }
 
   async function saveMidHallRates() {
+    if (preview) { setMidHallMessage("예시 변경사항을 적용했습니다. 실제 공개 페이지에는 반영되지 않습니다."); return; }
     setMidHallSaving(true);
     setMidHallMessage(null);
     try {
@@ -661,6 +666,7 @@ export function PackagesForm({
             key={v.id}
             type="button"
             onClick={() => selectVenueTab(v.id)}
+            aria-pressed={venueTab === v.id}
             className={tabCls(venueTab === v.id)}
           >
             {venueLabel(v.id, wizardStrings)}
@@ -670,16 +676,19 @@ export function PackagesForm({
 
       {/* 2뎁스: 그 공간의 패키지 */}
       <div className={TAB_BAR}>
+        <div data-package-segments className={undefined}>
         {venuePackages.map((p) => (
           <button
             key={p.id}
             type="button"
             onClick={() => setActiveId(p.id)}
+            aria-pressed={p.id === activeId}
             className={tabCls(p.id === activeId)}
           >
             {p.name}
           </button>
         ))}
+        </div>
         <button
           type="button"
           onClick={addPackage}
@@ -728,6 +737,7 @@ export function PackagesForm({
                     key={p.id}
                     className={`cursor-pointer ${p.id === activeId ? `${TR} bg-accent/15` : TR_HOVER}`}
                     onClick={() => setActiveId(p.id)}
+            aria-pressed={p.id === activeId}
                   >
                     <td className={TD_ID}>{p.name}</td>
                     <td className={TD_NUM}>{num(p.baseFeePerWeek)}</td>
@@ -1378,7 +1388,7 @@ export function PackagesForm({
                   <p className="text-xs text-muted">아직 없습니다 — 위에서 추가하세요.</p>
                 )}
                 {[...midHallGroupedOptions.entries()].map(([category, items]) => (
-                  <div key={category} className="pl-1">
+                  <PackageCategory key={category} preview={true} title={ADDON_CATEGORY_LABEL[category as keyof typeof ADDON_CATEGORY_LABEL] ?? category}>
                     <div className="mb-2 flex items-center justify-between border-l-2 border-border pl-2.5">
                       <span className="text-s font-bold text-foreground">
                         {ADDON_CATEGORY_LABEL[category as keyof typeof ADDON_CATEGORY_LABEL] ?? category}
@@ -1406,16 +1416,18 @@ export function PackagesForm({
                         return (
                           <div
                             key={addon.id}
+                          data-addon-editor={true}
                             className="flex flex-col gap-2 border-b border-border/25 pb-1.5 sm:flex-row sm:items-center sm:justify-between"
                           >
                             <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-s">
+<div data-addon-identity={true} className={undefined}>
                               <label className="flex shrink-0 items-center gap-1.5">
                                 <input
                                   type="checkbox"
                                   checked={exposed}
                                   onChange={(e) => setExposedForActive(addon, e.target.checked)}
                                 />
-                                <span className="text-xs font-bold text-foreground">노출</span>
+                                <span className="text-xs font-bold text-foreground">{"신청자에게 노출"}</span>
                               </label>
                               <label className="flex items-center gap-2">
                                 <input
@@ -1425,8 +1437,9 @@ export function PackagesForm({
                                 />
                                 {addon.name}
                               </label>
-                              <label className="flex items-center gap-1">
-                                <span className="text-xs text-muted">(</span>
+                              </div>
+<label className="flex items-center gap-1">
+                                <span className="text-xs text-muted">{"단위"}</span>
                                 <input
                                   type="text"
                                   value={addon.unitLabel}
@@ -1435,15 +1448,15 @@ export function PackagesForm({
                                   className={`w-16 ${FIELD}`}
                                   title="단위 표시 (예: 원/일, 원/회, 원)"
                                 />
-                                <span className="text-xs text-muted">)</span>
+
                               </label>
-                              <input
+                              <label data-addon-spec={true}>{true && <span className="text-xs text-muted">스펙 (선택)</span>}<input
                                 type="text"
                                 value={addon.spec ?? ""}
                                 placeholder="스펙 (선택)"
                                 onChange={(e) => updateAddonSpec(addon.id, e.target.value)}
                                 className={`w-32 ${FIELD}`}
-                              />
+                              /></label>
                             </div>
                             <div className="flex items-center gap-3">
                               <label className="flex items-center gap-1.5">
@@ -1487,7 +1500,7 @@ export function PackagesForm({
                                   className={`w-32 ${FIELD_NUM}`}
                                 />
                               </label>
-                              <select
+                              <label data-addon-classification={true}>{true && <span className="text-xs text-muted">분류</span>}<select
                                 value={addon.visibility}
                                 onChange={(e) => updateAddonVisibility(addon.id, e.target.value as LineItemVisibility)}
                                 className={FIELD}
@@ -1495,7 +1508,7 @@ export function PackagesForm({
                                 <option value="ITEM_ONLY">기본 내역</option>
                                 <option value="HIDDEN">비노출</option>
                                 <option value="VISIBLE">선택 옵션</option>
-                              </select>
+                              </select></label>
                               <button
                                 type="button"
                                 onClick={() => void removeAddon(addon.id)}
@@ -1508,7 +1521,7 @@ export function PackagesForm({
                         );
                       })}
                     </div>
-                  </div>
+                  </PackageCategory>
                 ))}
               </div>
 
@@ -1645,7 +1658,7 @@ export function PackagesForm({
 
             <div className="mt-4 space-y-5">
               {[...groupedByVisibility.entries()].map(([category, items]) => (
-                <div key={category} className="pl-1">
+                <PackageCategory key={category} preview={true} title={ADDON_CATEGORY_LABEL[category as keyof typeof ADDON_CATEGORY_LABEL] ?? category}>
                   {/* 카테고리 레이블 — 슬롯 제목보다 한 단계 작고, 왼쪽에 짧은 눈금으로
                       "슬롯 > 카테고리 > 항목" 순서임을 표시한다. */}
                   <div className="mb-2 flex items-center justify-between border-l-2 border-border pl-2.5">
@@ -1677,9 +1690,11 @@ export function PackagesForm({
                       return (
                         <div
                           key={addon.id}
+                          data-addon-editor={true}
                           className="flex flex-col gap-2 border-b border-border/25 pb-1.5 sm:flex-row sm:items-center sm:justify-between"
                         >
                           <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-s">
+<div data-addon-identity={true} className={undefined}>
                             {isVisibleOption && (
                               <label className="flex shrink-0 items-center gap-1.5">
                                 <input
@@ -1687,7 +1702,7 @@ export function PackagesForm({
                                   checked={exposed}
                                   onChange={(e) => setExposedForActive(addon, e.target.checked)}
                                 />
-                                <span className="text-xs font-bold text-foreground">노출</span>
+                                <span className="text-xs font-bold text-foreground">{"신청자에게 노출"}</span>
                               </label>
                             )}
                             <label className="flex items-center gap-2">
@@ -1700,8 +1715,9 @@ export function PackagesForm({
                             </label>
                             {/* [개정 2026-09-08] 단위(원/일 등)를 읽기 전용 표시에서 입력칸으로 —
                                 label 밖에 둬야 입력칸 클릭이 체크박스를 건드리지 않는다. */}
-                            <label className="flex items-center gap-1">
-                              <span className="text-xs text-muted">(</span>
+                            </div>
+<label className="flex items-center gap-1">
+                              <span className="text-xs text-muted">{"단위"}</span>
                               <input
                                 type="text"
                                 value={addon.unitLabel}
@@ -1710,16 +1726,16 @@ export function PackagesForm({
                                 className={`w-16 ${FIELD}`}
                                 title="단위 표시 (예: 원/일, 원/회, 원)"
                               />
-                              <span className="text-xs text-muted">)</span>
+
                             </label>
                             {/* [신규 2026-08-26] 항목 스펙(규격·사양) — 과금과 무관한 참고용 텍스트. */}
-                            <input
+                            <label data-addon-spec={true}>{true && <span className="text-xs text-muted">스펙 (선택)</span>}<input
                               type="text"
                               value={addon.spec ?? ""}
                               placeholder="스펙 (선택)"
                               onChange={(e) => updateAddonSpec(addon.id, e.target.value)}
                               className={`w-32 ${FIELD}`}
-                            />
+                            /></label>
                           </div>
                           <div className="flex items-center gap-3">
                             {isVisibleOption && (
@@ -1765,7 +1781,7 @@ export function PackagesForm({
                                 className={`w-32 ${FIELD_NUM}`}
                               />
                             </label>
-                            <select
+                            <label data-addon-classification={true}>{true && <span className="text-xs text-muted">분류</span>}<select
                               value={addon.visibility}
                               onChange={(e) => updateAddonVisibility(addon.id, e.target.value as LineItemVisibility)}
                               className={FIELD}
@@ -1773,7 +1789,7 @@ export function PackagesForm({
                               <option value="ITEM_ONLY">기본 내역</option>
                               <option value="HIDDEN">비노출</option>
                               <option value="VISIBLE">선택 옵션</option>
-                            </select>
+                            </select></label>
                             <button
                               type="button"
                               onClick={() => removeAddon(addon.id)}
@@ -1828,7 +1844,7 @@ export function PackagesForm({
                       </div>
                     </div>
                   )}
-                </div>
+                </PackageCategory>
               ))}
               {groupedByVisibility.size === 0 && (
                 <p className="text-xs text-muted">

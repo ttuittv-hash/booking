@@ -1,0 +1,23 @@
+.preview { min-width:0; }
+.lead { font-size:13px; color:var(--muted); line-height:1.8; }
+.note { font-size:11px; color:var(--muted); line-height:1.8; margin-top:8px; }
+.preview section { background:var(--panel); border:0; padding:24px; margin-top:24px; }
+.preview h2 { font-family:inherit; font-size:18px; font-weight:700; line-height:1.5; }
+.preview input:not([type=checkbox]),.preview select { min-height:44px; font-size:13px; min-width:0; }
+.preview button { border-radius:0; }
+.rates>div>div:first-child { gap:28px; border-bottom:1px solid var(--border-soft); }
+.rates>div>div:first-child>button { padding:16px 0; background:transparent; border-bottom-color:transparent; }
+.rates>div>div:first-child>button[class*="border-accent"] { border-bottom-color:var(--foreground); }
+.rates section>div[class*="border-t"] { border:0; background:var(--background); padding:16px; }
+.rates section>div>div>div[class*="divide-y"] { display:grid; gap:8px; }
+.rates section>div>div>div[class*="divide-y"]>div { border:0; padding:12px; background:var(--background); }
+.rates section>div>div>div[class*="divide-y"] input { background:var(--panel); }
+.rates button[class*="decoration-accent"] { text-decoration:none; }.rates button[class*="decoration-accent"]:hover { text-decoration:underline; text-decoration-color:currentColor; text-decoration-thickness:1px; }
+.schedule>section>div { padding-left:0; padding-right:0; border:0; }
+.schedule>section>div:first-child p:first-child { font-size:18px; font-weight:700; }
+.calendar { background:var(--panel); padding:24px; margin-top:24px; overflow:auto; }
+.calendar>div { margin-top:0; min-width:640px; }
+.calendar button[class*="border-accent"] { border-color:var(--foreground); }
+@media(max-width:760px) { .preview section,.calendar { padding:18px; }.rates input { max-width:100%; }.rates section>div>div>div[class*="divide-y"]>div { position:relative; padding-right:52px; }.rates section>div>div>div[class*="divide-y"]>div>button { position:absolute; right:12px; top:12px; }.rates section>div>div>div[class*="divide-y"]>div>span { flex-wrap:wrap; } }
+.rates>div>div:first-child>button { font-size:14px; min-height:56px; }
+.rates section input { background:var(--panel); }

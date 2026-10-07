@@ -16,6 +16,7 @@
   "dependencies": {
     "@anthropic-ai/sdk": "^0.122.0",
     "@node-rs/bcrypt": "^1.10.7",
+    "@tabler/icons-react": "^3.48.0",
     "@tiptap/extension-color": "3.31.2",
     "@tiptap/extension-details": "3.31.2",
     "@tiptap/extension-image": "3.31.2",

@@ -1,4 +1,5 @@
 "use client";
+import { useContentTransport } from "./ContentTransport";
 
 import { useRouter } from "next/navigation";
 import { useState } from "react";
@@ -27,6 +28,8 @@ const addBtnCls = ADD_BTN;
 const removeBtnCls = REMOVE_BTN;
 
 export function HomeContentForm({ content: initial }: { content: HomeContent }) {
+  const { request, isPreview } = useContentTransport();
+
   const router = useRouter();
   const [content, setContent] = useState<HomeContent>(initial);
   const [saving, setSaving] = useState(false);
@@ -44,7 +47,7 @@ export function HomeContentForm({ content: initial }: { content: HomeContent }) 
     try {
       const formData = new FormData();
       formData.append("file", file);
-      const res = await fetch("/api/admin/notices/upload", { method: "POST", body: formData });
+      const res = await request("/api/admin/notices/upload", { method: "POST", body: formData });
       const data = await res.json();
       if (res.ok) patch({ heroImage: data.url });
     } finally {
@@ -95,7 +98,7 @@ export function HomeContentForm({ content: initial }: { content: HomeContent }) 
     setSaving(true);
     setMessage(null);
     try {
-      const res = await fetch("/api/admin/content/home", {
+      const res = await request("/api/admin/content/home", {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ content }),
@@ -105,8 +108,8 @@ export function HomeContentForm({ content: initial }: { content: HomeContent }) 
         setMessage(data.error || "저장에 실패했습니다.");
         return;
       }
-      setMessage("저장되었습니다. 홈 화면에 바로 반영됩니다.");
-      router.refresh();
+      setMessage(isPreview ? "예시 화면에 저장했습니다. 실제 공개 콘텐츠에는 반영되지 않습니다." : "저장되었습니다. 홈 화면에 바로 반영됩니다.");
+      if (!isPreview) router.refresh();
     } finally {
       setSaving(false);
     }

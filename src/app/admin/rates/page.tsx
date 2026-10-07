@@ -1,3 +1,4 @@
+import s from "@/components/admin/AdminOperationsPreview.module.css";
 import { requireProAdminPage } from "@/lib/auth";
 import { getCurrentRateTable, getRatesContent } from "@/lib/db";
 import { RatesForm } from "@/components/admin/RatesForm";
@@ -38,7 +39,7 @@ export default async function AdminRatesPage() {
   >;
 
   return (
-    <div className="flex flex-1 flex-col">
+    <div className="admin-page flex flex-1 flex-col">
       <AdminNav active="/admin/rates" user={user} />
 
       <main className="mx-auto w-full max-w-4xl flex-1 px-6 py-8 sm:py-10">
@@ -53,7 +54,9 @@ export default async function AdminRatesPage() {
           </p>
         </header>
 
+        <div className={`${s.preview} ${s.rates}`}>
         <RatesForm rateTable={rateTable} publicMidHall={publicMidHall} />
+        </div>
       </main>
     </div>
   );

@@ -1,4 +1,5 @@
 "use client";
+import { useContentTransport } from "./ContentTransport";
 
 import { useEditor, EditorContent } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
@@ -236,6 +237,8 @@ export function NoticeEditor({
   onChange: (html: string) => void;
   uploadUrl?: string;
 }) {
+  const { request } = useContentTransport();
+
   const fileInput = useRef<HTMLInputElement>(null);
   // [신규 2026-09-05] HTML 소스 모드의 textarea — 커서 위치에 마커를 끼워 넣으려면 필요하다.
   const htmlTextareaRef = useRef<HTMLTextAreaElement>(null);
@@ -346,7 +349,7 @@ export function NoticeEditor({
     try {
       const formData = new FormData();
       formData.append("file", file);
-      const res = await fetch(uploadUrl, { method: "POST", body: formData });
+      const res = await request(uploadUrl, { method: "POST", body: formData });
       const data = await res.json();
       if (res.ok && editor) {
         editor.chain().focus().setImage({ src: data.url }).run();
@@ -471,7 +474,7 @@ export function NoticeEditor({
         const converted = await uploadInlineImages(html, async (blob, filename) => {
           const formData = new FormData();
           formData.append("file", blob, filename);
-          const res = await fetch(uploadUrl, { method: "POST", body: formData });
+          const res = await request(uploadUrl, { method: "POST", body: formData });
           const data = await res.json().catch(() => null);
           return res.ok && data?.url ? (data.url as string) : null;
         });

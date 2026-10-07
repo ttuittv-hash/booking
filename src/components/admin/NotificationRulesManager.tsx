@@ -1,5 +1,6 @@
 "use client";
 
+import { useContentTransport } from "./ContentTransport";
 import { useState } from "react";
 import { useDialog } from "@/components/ui/Dialog";
 import type { NotificationRule } from "@/lib/pricing/types";
@@ -138,6 +139,7 @@ function RuleCard({
   onSaved: (rule: NotificationRule) => void;
   onDeleted: (id: string) => void;
 }) {
+  const { request } = useContentTransport();
   const [draft, setDraft] = useState<Draft>(toDraft(rule));
   const dialog = useDialog();
   const [saving, setSaving] = useState(false);
@@ -149,7 +151,7 @@ function RuleCard({
     setSaving(true);
     setError(null);
     try {
-      const res = await fetch(`/api/admin/notification-rules/${rule.id}`, {
+      const res = await request(`/api/admin/notification-rules/${rule.id}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -177,7 +179,7 @@ function RuleCard({
     setDeleting(true);
     setError(null);
     try {
-      const res = await fetch(`/api/admin/notification-rules/${rule.id}`, { method: "DELETE" });
+      const res = await request(`/api/admin/notification-rules/${rule.id}`, { method: "DELETE" });
       const data = await res.json();
       if (!res.ok) {
         setError(data.error || "삭제에 실패했습니다.");
@@ -237,6 +239,7 @@ function RuleCard({
 }
 
 function NewRuleCard({ onCreated }: { onCreated: (rule: NotificationRule) => void }) {
+  const { request } = useContentTransport();
   const [open, setOpen] = useState(false);
   const [draft, setDraft] = useState<Draft>(BLANK_DRAFT);
   const [saving, setSaving] = useState(false);
@@ -254,7 +257,7 @@ function NewRuleCard({ onCreated }: { onCreated: (rule: NotificationRule) => voi
     setSaving(true);
     setError(null);
     try {
-      const res = await fetch("/api/admin/notification-rules", {
+      const res = await request("/api/admin/notification-rules", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({

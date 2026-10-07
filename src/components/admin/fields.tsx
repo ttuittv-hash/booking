@@ -1,4 +1,5 @@
 "use client";
+import { useContentTransport } from "./ContentTransport";
 
 import { useEffect, useId, useRef, useState, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
@@ -140,6 +141,8 @@ export function ImageField({
   onChange: (url: string | null) => void;
   help?: string;
 }) {
+  const { request } = useContentTransport();
+
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -151,7 +154,7 @@ export function ImageField({
     try {
       const body = new FormData();
       body.append("file", file);
-      const res = await fetch("/api/admin/pages/upload", { method: "POST", body });
+      const res = await request("/api/admin/pages/upload", { method: "POST", body });
       const data = await res.json();
       if (!res.ok) setError(data.error || "업로드하지 못했습니다.");
       else onChange(data.url);
@@ -338,6 +341,8 @@ export function ContentFormShell<T>({
   initial: T;
   children: (value: T, patch: (p: Partial<T>) => void) => ReactNode;
 }) {
+  const { request, isPreview } = useContentTransport();
+
   const router = useRouter();
   const [value, setValue] = useState<T>(initial);
   const [saving, setSaving] = useState(false);
@@ -381,7 +386,7 @@ export function ContentFormShell<T>({
     // 운영자가 더 고쳤다면 그건 아직 저장되지 않은 편집이 맞다.
     const sending = JSON.stringify(value);
     try {
-      const res = await fetch(`/api/admin/content/${page}`, {
+      const res = await request(`/api/admin/content/${page}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ content: value }),
@@ -392,10 +397,10 @@ export function ContentFormShell<T>({
         return;
       }
       setSavedSnapshot(sending);
-      setMessage("저장했습니다. 해당 화면에 바로 반영됩니다.");
+      setMessage(isPreview ? "예시 화면에 저장했습니다. 실제 공개 콘텐츠에는 반영되지 않습니다." : "저장했습니다. 해당 화면에 바로 반영됩니다.");
       // 서버가 들고 있는 값(이 화면을 다시 그릴 때 쓰는 초기값)도 새로 읽어 온다.
       // 이걸 빼먹으면 탭을 옮겼다 오는 순간 방금 저장한 내용이 옛 값으로 되돌아 보인다.
-      router.refresh();
+      if (!isPreview) router.refresh();
     } finally {
       setSaving(false);
     }
@@ -447,6 +452,8 @@ export function DocumentField({
   name: string;
   onChange: (next: { url: string; name: string }) => void;
 }) {
+  const { request } = useContentTransport();
+
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   /*
@@ -464,7 +471,7 @@ export function DocumentField({
     try {
       const body = new FormData();
       body.append("file", file);
-      const res = await fetch("/api/admin/content/document-upload", { method: "POST", body });
+      const res = await request("/api/admin/content/document-upload", { method: "POST", body });
       const data = await res.json().catch(() => null);
       // 파일이 크면 앞단(프록시·인그레스)이 본문을 잘라 우리 라우트까지 오지도 않는다 —
       // 그때는 JSON 이 아니라 413 이 온다. 상태 코드를 그대로 알려 줘야 원인을 찾는다.

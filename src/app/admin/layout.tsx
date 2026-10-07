@@ -1,3 +1,4 @@
+import "@/components/admin/adminDashboard.css";
 import type { Metadata } from "next";
 
 // [신규 2026-09-09] 백오피스는 검색에 잡히면 안 된다 — /admin/* 전체에 noindex 를 건다.

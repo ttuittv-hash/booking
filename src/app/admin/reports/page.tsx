@@ -106,18 +106,18 @@ function StatCard({
   const body = (
     <>
       <p className="text-xs text-muted">{label}</p>
-      <p className="mt-1.5 type-kr-heading text-h5-m tabular-nums">{value}</p>
+      <p className="admin-stat-value mt-1.5 type-kr-heading text-h5-m tabular-nums">{value}</p>
       {sub && <p className="mt-1 text-xs text-muted">{sub}</p>}
     </>
   );
-  if (!href) return <div className={CARD}>{body}</div>;
+  if (!href) return <div className={`${CARD} admin-stat-card`}>{body}</div>;
   return (
     <Link
       href={href}
-      className={`${CARD} block transition-colors hover:border-foreground focus-visible:border-foreground`}
+      className={`${CARD} admin-stat-card block transition-colors hover:border-foreground focus-visible:border-foreground`}
     >
       {body}
-      <p className="mt-2 text-xs font-bold text-foreground">자세히 보기 →</p>
+      <p className="admin-stat-detail mt-2 text-xs font-bold text-foreground">자세히 보기 →</p>
     </Link>
   );
 }
@@ -217,7 +217,7 @@ export default async function AdminReportsPage({
   const signupDetailHref = trafficHref("/admin/reports/signups", { granularity, range }, {});
 
   return (
-    <div className="flex flex-1 flex-col">
+    <div className="admin-page admin-reports flex flex-1 flex-col">
       <AdminNav active="/admin/reports" user={user} />
       <main className="mx-auto w-full max-w-6xl flex-1 px-6 py-8 sm:py-10">
         <header className="pb-5">
@@ -241,9 +241,9 @@ export default async function AdminReportsPage({
             그래서 공간 탭은 매출 탭 안에만 둔다. */}
         {reportTab === "traffic" ? (
         <>
-        <section className="mt-2">
+        <TrafficControls basePath="/admin/reports" query={query} />
+        <section className="admin-report-section mt-2">
           <h2 className={SECTION_TITLE}>유입</h2>
-          <TrafficControls basePath="/admin/reports" query={query} />
           <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3">
             <StatCard
               label="페이지뷰"
@@ -266,7 +266,7 @@ export default async function AdminReportsPage({
           </div>
         </section>
 
-        <section className="mt-8">
+        <section className="admin-report-section mt-8">
           <h2 className={SECTION_TITLE}>가입</h2>
           <div className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-4">
             <StatCard
@@ -294,7 +294,7 @@ export default async function AdminReportsPage({
           </div>
         </section>
 
-        <section className="mt-8">
+        <section className="admin-report-section mt-8">
           <h2 className={SECTION_TITLE}>
             {GRANULARITY_LABEL[granularity]} 유입 추이
           </h2>
@@ -345,9 +345,9 @@ export default async function AdminReportsPage({
             익명 방문 집계보다 단계별 이탈과 **멈춘 회사 목록**이 실제 운영에 쓰인다.
             숫자는 별도 추적 코드 없이 지금 있는 데이터(analytics_events · users ·
             companies · quotes)만으로 낸다. */}
-        <section className="mt-2">
+        <TrafficControls basePath="/admin/reports" query={query} />
+        <section className="admin-report-section mt-2">
           <h2 className={SECTION_TITLE}>신청 퍼널</h2>
-          <TrafficControls basePath="/admin/reports" query={query} />
           <div className={`mt-4 ${TABLE_CARD}`}>
             <div className={TABLE_SCROLL}>
               <table className={TABLE}>
@@ -384,7 +384,7 @@ export default async function AdminReportsPage({
           </p>
         </section>
 
-        <section className="mt-8">
+        <section className="admin-report-section mt-8">
           <h2 className={SECTION_TITLE}>승인 후 아직 신청서를 내지 않은 회사</h2>
           <p className="mt-1.5 text-xs leading-5 text-muted">
             운영자 승인을 받았지만 신청서가 없는 회사입니다. 오래 멈춘 순으로 정렬했습니다 —
@@ -436,7 +436,7 @@ export default async function AdminReportsPage({
             [신규 2026-09-10] 시스템이 잘 돌고 있나. 위쪽(처리 대기·발송)은 DB 에서,
             아래쪽(서버·차단)은 CloudWatch 에서 읽는다. AWS 조회가 실패해도 위쪽은 그대로
             나오도록 분리해 두었다 — 지표 하나 때문에 화면 전체가 막히면 안 된다. */}
-        <section className="mt-2">
+        <section className="admin-report-section mt-2">
           <h2 className={SECTION_TITLE}>지금 처리해야 할 것</h2>
           <p className="mt-1.5 text-xs leading-5 text-muted">
             운영진 손이 필요한 대기 항목입니다. 기간과 무관하게 현재 상태를 보여줍니다.
@@ -465,7 +465,7 @@ export default async function AdminReportsPage({
           </div>
         </section>
 
-        <section className="mt-8">
+        <section className="admin-report-section mt-8">
           <h2 className={SECTION_TITLE}>알림톡·문자 발송</h2>
           <TrafficControls basePath="/admin/reports" query={query} />
           <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3">
@@ -506,7 +506,7 @@ export default async function AdminReportsPage({
           )}
         </section>
 
-        <section className="mt-8">
+        <section className="admin-report-section mt-8">
           <h2 className={SECTION_TITLE}>서버 · 차단</h2>
           {aws.available ? (
             <>
@@ -566,32 +566,32 @@ export default async function AdminReportsPage({
         {/* ── 매출 탭 ─────────────────────────────────────────────────────
             아래 지표는 전부 신청서에 걸려 있어 공간(아레나/중형)으로 나뉜다.
             공간 탭 상태는 URL(?venue=)에 남긴다 — 다른 운영 화면의 탭 규칙과 같다. */}
-        <section className="mt-2">
-          <h2 className={SECTION_TITLE}>공간별 신청 현황</h2>
-          {/* 페이지 상단 탭(TAB_BAR)이 아니라 섹션 안의 하위 탭이다 — sticky·full-bleed
+                  {/* 페이지 상단 탭(TAB_BAR)이 아니라 섹션 안의 하위 탭이다 — sticky·full-bleed
               없이 탭 모양(tabCls)만 같이 쓴다. */}
           <nav
-            className="mt-2 flex h-12 items-center gap-1 overflow-x-auto whitespace-nowrap border-b border-border/25 [contain:paint]"
+            className="admin-segmented mt-6"
             aria-label="공간 탭"
           >
             {VENUE_TABS.map((t) => (
               <Link
                 key={t.key}
                 href={reportTabHref(reportTab, { ...sp, venue: t.key === "all" ? undefined : t.key })}
+                aria-current={t.key === venueTab ? "true" : undefined}
                 className={tabCls(t.key === venueTab)}
               >
                 {t.label}
               </Link>
             ))}
           </nav>
+
+        <section className="admin-report-section mt-2">
+          <h2 className={SECTION_TITLE}>공간별 신청 현황</h2>
           <p className="mt-3 text-xs text-muted">
             {venueTab === "all"
               ? "모든 공간의 신청서를 함께 집계합니다."
               : `${venueLabel}에 걸린 신청서만 집계합니다. 동시 대관(아레나+중형) 건은 두 공간 탭에 모두 잡히므로, 탭별 건수의 합은 전체보다 클 수 있습니다.`}
           </p>
-        </section>
-
-        <section className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-4">
+          <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-4">
           <StatCard label="누적 신청 건수" value={`${stats.totalQuotes.toLocaleString("ko-KR")}건`} />
           <StatCard label="이번 달 신규 신청" value={`${stats.newThisMonth.toLocaleString("ko-KR")}건`} />
           <StatCard label="심사 대기" value={`${stats.pendingReview.toLocaleString("ko-KR")}건`} />
@@ -600,15 +600,16 @@ export default async function AdminReportsPage({
             value={`${stats.contractedCount.toLocaleString("ko-KR")}건`}
             sub={`계약금액 합계 ${num(stats.contractedTotal)}원`}
           />
+          </div>
         </section>
 
-        <section className="mt-8 grid grid-cols-1 gap-4 lg:grid-cols-2">
+        <section className="admin-report-breakdowns mt-8 grid grid-cols-1 gap-4 lg:grid-cols-2">
           <BreakdownTable title="심사 결과 분포" rows={stats.reviewBreakdown} />
           <BreakdownTable title="공간별 신청 현황" rows={stats.venueBreakdown} showTotal />
           <BreakdownTable title="법인회원 승인 현황" rows={stats.companyBreakdown} />
           <div className={CARD}>
             <p className="text-s font-bold">정산 완료</p>
-            <p className="mt-1.5 type-kr-heading text-h5-m tabular-nums">
+            <p className="admin-stat-value mt-1.5 type-kr-heading text-h5-m tabular-nums">
               {stats.settledCount.toLocaleString("ko-KR")}건
             </p>
             <p className="mt-1 text-xs text-muted">
@@ -620,7 +621,7 @@ export default async function AdminReportsPage({
         {/* ── 매출 ───────────────────────────────────────────────────────
             금액은 접수 → 계약 → 확정 세 단계를 지난다. 한 숫자로 뭉치면
             "얼마를 벌었나"에 답할 수 없다. 공간 탭이 그대로 적용된다. */}
-        <section className="mt-10 border-t border-border/25 pt-6">
+        <section className="admin-report-section mt-10">
           <h2 className={SECTION_TITLE}>매출 · {venueLabel}</h2>
           <p className="mt-2 text-xs leading-6 text-muted">
             <b>접수</b>는 신청 시점의 견적, <b>계약</b>은 계약금액(부속합의 반영),{" "}
@@ -655,6 +656,8 @@ export default async function AdminReportsPage({
             </p>
           )}
 
+        </section>
+        <section className="admin-report-section">
           <div className={`mt-4 ${TABLE_CARD}`}>
             <div className={TABLE_HEAD}>
               <div>
@@ -694,7 +697,7 @@ export default async function AdminReportsPage({
           </div>
         </section>
 
-        <section className="mt-8">
+        <section className="admin-report-section mt-8">
           <h2 className={SECTION_TITLE}>월별 신청 추이 (최근 6개월)</h2>
           <div className={`mt-3 ${TABLE_CARD}`}>
             <div className={TABLE_SCROLL}>

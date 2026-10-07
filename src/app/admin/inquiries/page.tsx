@@ -1,9 +1,10 @@
+import { formatDateTime } from "@/lib/format";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/lib/auth";
 import { listInquiriesPaged, listUsersByIds, normalizePage } from "@/lib/db";
 import { Pagination } from "@/components/Pagination";
-import { ArrowRight, Badge } from "@/components/ui/kit";
+import { ArrowRight } from "@/components/ui/kit";
 import { AdminNav } from "@/components/admin/AdminNav";
 import {
   NONE,
@@ -33,12 +34,6 @@ const STATUS_LABEL: Record<string, string> = {
   ANSWERED: "답변 완료",
 };
 
-/** 상태 색은 kit 의 tone 만 쓴다 (임의 색 금지) */
-const STATUS_TONE: Record<string, "warn" | "good"> = {
-  OPEN: "warn",
-  ANSWERED: "good",
-};
-
 export default async function AdminInquiriesPage({
   searchParams,
 }: {
@@ -57,7 +52,7 @@ export default async function AdminInquiriesPage({
   const openCount = inquiries.filter((i) => i.status === "OPEN").length;
 
   return (
-    <div className="flex flex-1 flex-col">
+    <div className="admin-page flex flex-1 flex-col">
       <AdminNav active="/admin/inquiries" user={user} />
 
       <main className="mx-auto w-full max-w-4xl flex-1 px-6 py-8 sm:py-10">
@@ -110,12 +105,12 @@ export default async function AdminInquiriesPage({
                           {author?.name ?? NONE} ({author?.companyName ?? NONE})
                         </td>
                         <td className={`${TD_NUM} text-muted`}>
-                          {new Date(inquiry.createdAt).toLocaleString("ko-KR")}
+                          {formatDateTime(inquiry.createdAt)}
                         </td>
                         <td className={TD}>
-                          <Badge tone={STATUS_TONE[inquiry.status] ?? "neutral"}>
+                          <span className="admin-tag" data-tone={inquiry.status === "ANSWERED" ? "approved" : "pending"}>
                             {STATUS_LABEL[inquiry.status]}
-                          </Badge>
+                          </span>
                         </td>
                         <td className={TD_LINK}>
                           <Link href={`/admin/inquiries/${inquiry.id}`} className={ROW_LINK}>

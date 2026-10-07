@@ -19,7 +19,6 @@ import {
   TD_EMPTY,
   TD_ID,
   TD_LINK,
-  TD_MUTED,
   TD_NUM,
   REMOVE_BTN,
   TH,
@@ -183,34 +182,17 @@ export function AdminQuoteTable({
       </div>
 
       <div className={TABLE_SCROLL}>
-        <table className={`${TABLE} min-w-[960px]`}>
+        <table className={`${TABLE} admin-quote-table min-w-[1040px]`}>
           <thead>
             <tr className={THEAD_ROW}>
-              <th className={`${TH} w-10`} />
-              <th className={TH}>신청번호</th>
-              <th className={TH_NUM}>신청일시</th>
-              <th className={TH}>신청자</th>
-              <th className={TH}>회사</th>
-              <th className={TH}>공간</th>
-              <th className={TH}>패키지</th>
-              <th className={TH}>주차</th>
-              {/* [개정 2026-09-18] 값은 **1회당** 관객 수인데 제목이 그걸 안 밝혀, 3일
-                  공연을 12,000명으로 읽을 수 있었다 — 심사표 「예상 관객 규모」도 1회당
-                  기준이라 여기서 어긋나면 심사 판단이 틀어진다. */}
-              <th className={TH_NUM}>1회당 관객 (명)</th>
-              {/* [개정 2026-09-18] "계약 ㅇㅇ원 / 추후 정산 금액 / 총 금액 이렇게 3열로"(niki)
-                  — 한 칸에 총액 + 보조줄로 쌓아 두었더니 세 금액의 성격이 눈에 안 들어왔다. */}
-              <th className={TH_NUM}>계약금액 (₩)</th>
-              <th className={TH_NUM}>추후 정산 (₩)</th>
-              <th className={TH_NUM}>총 예상금액 (₩)</th>
-              <th className={TH}>상태</th>
-              <th className={TH} />
+              <th className={`${TH} w-10`}><input type="checkbox" aria-label="신청 전체 선택" checked={rows.length>0 && rows.every(row=>selected.has(row.id))} disabled={rows.length===0} onChange={e=>setSelected(e.target.checked ? new Set(rows.map(row=>row.id)) : new Set())}/></th>
+              <th className={TH}>신청번호 / 접수일</th><th className={TH}>회사 / 신청자</th><th className={TH}>공간 / 패키지</th><th className={TH}>대관 일정</th><th className={TH_NUM}>계약금액 / 정산</th><th className={TH}>상태</th><th className={TH}/>
             </tr>
           </thead>
           <tbody>
             {rows.length === 0 ? (
               <tr>
-                <td colSpan={14} className={TD_EMPTY}>
+                <td colSpan={8} className={TD_EMPTY}>
                   아직 접수된 신청서가 없습니다.
                 </td>
               </tr>
@@ -238,52 +220,11 @@ export function AdminQuoteTable({
                         aria-label={`${row.id} 비교 선택`}
                       />
                     </td>
-                    {/* 신청번호 자체를 링크로 둔다 — 표가 넓어 「상세 →」가 가로 스크롤
-                        너머로 밀려도 왼쪽 끝의 이 링크는 언제나 닿는다. */}
-                    {/* [2026-09-18] 열이 12개로 늘면서 브라우저가 폭을 맞추려고 텍스트를
-                        마구 접었다 — 신청번호가 「2026-」/「00006」 두 줄로 쪼개졌다. 식별자·
-                        날짜·주차처럼 접히면 안 되는 열은 nowrap 으로 고정해 표가 "필요한
-                        최소 폭"을 정직하게 요구하게 하고, 남는 폭은 회사명·신청자가 흡수한다. */}
-                    <td className={`${TD_ID} tabular-nums whitespace-nowrap`}>
-                      <Link
-                        href={`/admin/${row.id}`}
-                        onClick={(e) => e.stopPropagation()}
-                        className="underline decoration-border-soft underline-offset-4 transition-colors hover:decoration-foreground"
-                      >
-                        {row.id}
-                      </Link>
-                    </td>
-                    <td className={`${TD_NUM} whitespace-nowrap text-muted`}>{row.createdAtLabel}</td>
-                    {/* [2026-09-18] 신청자·회사는 길이에 상한이 없어 표 폭이 데이터에 따라
-                        무한정 커졌다 — 운영의 「에이이지프레젠츠엘엘씨 (AEG PRESENTS LLC)」
-                        같은 이름 하나가 가로 스크롤을 만든다. 상한을 두고 넘치면 말줄임하되
-                        전체 이름은 title 로 띄운다. 이래야 내일 더 긴 회사가 들어와도 안 깨진다. */}
-                    <td className={TD} title={row.applicantName}>
-                      <span className="block max-w-[120px] truncate">{row.applicantName}</span>
-                    </td>
-                    {/* 상한은 <td> 가 아니라 안쪽 블록에 건다 — 표 레이아웃은 셀의
-                        max-width 를 무시하고 내용대로 열을 넓힌다(실측으로 확인). */}
-                    <td className={TD_MUTED} title={row.companyName}>
-                      <span className="block max-w-[160px] truncate">{row.companyName}</span>
-                    </td>
-                    <td className={`${TD} whitespace-nowrap`}>{row.venueLabel}</td>
-                    <td className={`${TD} whitespace-nowrap`}>{row.packageLabel}</td>
-                    <td className={`${TD} tabular-nums whitespace-nowrap`}>{row.weekLabel}</td>
-                    <td className={TD_NUM}>
-                      {row.audienceLabel}
-                      {row.audienceSubLabel && (
-                        <div className="text-xs text-muted">{row.audienceSubLabel}</div>
-                      )}
-                    </td>
-                    {/* [재개정 2026-09-18] 세 금액을 각자의 열로 나눈다(niki) — 계약 시 내는
-                        돈과 행사 후 정산할 돈은 성격이 다른데, 한 칸에 쌓아 두니 구분이
-                        읽히지 않았다. 정산이 없으면 0 대신 「—」로 둬서 실제로 정산이 붙는
-                        건이 눈에 띄게 한다. */}
-                    <td className={`${TD_NUM} whitespace-nowrap text-muted`}>{row.contractLabel}</td>
-                    <td className={`${TD_NUM} whitespace-nowrap text-muted`}>
-                      {row.hasAdditional ? row.additionalLabel : NONE}
-                    </td>
-                    <td className={`${TD_NUM} font-bold whitespace-nowrap`}>{row.totalLabel}</td>
+                    <td className={`${TD_ID} tabular-nums whitespace-nowrap`}><Link href={`/admin/${row.id}`} onClick={e=>e.stopPropagation()} className="underline underline-offset-4">{row.id} ↗</Link><small>{row.createdAtLabel}</small></td>
+                    <td className={TD}><strong className="block max-w-[180px] truncate" title={row.companyName}>{row.companyName}</strong><small title={row.applicantName}>{row.applicantName}</small></td>
+                    <td className={TD}><strong>{row.venueLabel}</strong><small>{row.packageLabel}</small><small>관객 {row.audienceLabel}명 / 회</small>{row.audienceSubLabel&&<small>{row.audienceSubLabel}</small>}</td>
+                    <td className={`${TD} whitespace-nowrap`}>{row.weekLabel}</td>
+                    <td className={`${TD_NUM} whitespace-nowrap`}><strong>₩{row.contractLabel}</strong><small>추후 정산 {row.hasAdditional ? `₩${row.additionalLabel}` : NONE}</small><small>총액 ₩{row.totalLabel}</small></td>
                     <td className={TD}>
                       {/* 심사 결과가 있으면 그것을 먼저 보여 준다 — 운영자가 목록에서
                           찾는 것은 "이 건을 심사했는가" 다. 진행 단계는 그 아래 줄. */}

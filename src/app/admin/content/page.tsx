@@ -1,3 +1,4 @@
+import s from "@/components/admin/AdminContentPreview.module.css";
 import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/lib/auth";
 import {
@@ -58,7 +59,7 @@ export default async function AdminContentPage() {
   ]);
 
   return (
-    <div className="flex flex-1 flex-col">
+    <div className="admin-page flex flex-1 flex-col">
       <AdminNav active="/admin/content" user={user} />
 
       <main className="mx-auto w-full max-w-4xl flex-1 px-6 py-8 sm:py-10">
@@ -73,6 +74,7 @@ export default async function AdminContentPage() {
           </p>
         </header>
 
+        <div className={s.preview}>
         <ContentManager
           notices={notices}
           faqs={faqs}
@@ -90,6 +92,7 @@ export default async function AdminContentPage() {
           rateTable={rateTable}
           liveHallRateContent={ratesContent.liveHall}
         />
+        </div>
       </main>
     </div>
   );

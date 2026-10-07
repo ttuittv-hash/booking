@@ -26,7 +26,7 @@
    `w-32 ${FIELD}` 처럼 폭·정렬을 뒤에 붙여 덮어쓸 수 있다. */
 
 /** 입력 필드 기본 */
-export const FIELD = "field-base disabled:opacity-40";
+export const FIELD = "admin-field field-base disabled:opacity-40";
 
 /** 밀도 높은 인라인 입력 (툴바·수량) — 버튼 sm 과 같은 32 */
 export const FIELD_SM = "field-base h-8 px-2 text-xs disabled:opacity-40";
@@ -40,10 +40,10 @@ export const FIELD_LABEL = "mb-1.5 block text-xs text-muted";
 /* ------------------------------------------------------------- 지면 ------ */
 
 /** 흰 패널 (지면이 background 이므로 구획은 패널 면 + 헤어라인으로) */
-export const PANEL = "border border-border-soft bg-panel p-4 sm:p-5";
+export const PANEL = "admin-panel border border-border-soft bg-panel p-4 sm:p-5";
 
 /** 반복 항목 카드 */
-export const CARD = "border border-border-soft bg-panel p-4";
+export const CARD = "admin-card border border-border-soft bg-panel p-4";
 
 /* ------------------------------------------------------------- 버튼 ------ */
 /* 버튼은 kit 의 btnClass(primary | secondary | tertiary | danger) 만 쓴다.
@@ -85,13 +85,13 @@ export const QUIET_BTN = "text-xs text-muted transition-colors hover:text-foregr
  * 헤더 밑으로 파고들어 가려진다.
  */
 export const TAB_BAR =
-  "sticky top-[6.25rem] z-10 -mx-6 flex h-12 items-center gap-1 overflow-x-auto whitespace-nowrap border-b border-border/25 bg-background px-6 [contain:paint] sm:top-[6.75rem] lg:top-16";
+  "admin-tab-bar sticky top-[6.25rem] z-10 -mx-6 flex h-12 items-center gap-1 overflow-x-auto whitespace-nowrap border-b border-border/25 bg-background px-6 [contain:paint] sm:top-[6.75rem] lg:top-16";
 
 /** 활성 탭은 옐로 하단 바 + 검정 텍스트. 높이는 버튼과 같은 단(40)으로 고정한다 */
 export function tabCls(active: boolean) {
   return [
-    "flex h-10 shrink-0 items-center border-b-2 px-3 text-xs font-bold transition-colors",
-    active ? "border-accent text-foreground" : "border-transparent text-muted hover:text-foreground",
+    "admin-tab flex h-10 shrink-0 items-center border-b-2 px-3 text-xs font-bold transition-colors",
+    active ? "admin-tab-active border-accent text-foreground" : "border-transparent text-muted hover:text-foreground",
   ].join(" ");
 }
 
@@ -110,12 +110,12 @@ export function tabCls(active: boolean) {
    ========================================================================= */
 
 /** 바깥 컨테이너 — 1px 보더, 샤프 코너 */
-export const TABLE_CARD = "border border-border-soft bg-panel";
+export const TABLE_CARD = "admin-table-card border border-border-soft bg-panel";
 
 /** 상단 헤더 행 — 좌: 제목 + 한 줄 설명 / 우: 액션 버튼 */
 export const TABLE_HEAD =
-  "flex flex-col gap-3 border-b border-border-soft px-4 py-3.5 sm:flex-row sm:items-center sm:justify-between";
-export const TABLE_HEAD_TITLE = "text-s font-bold";
+  "admin-table-head flex flex-col gap-3 border-b border-border-soft px-4 py-3.5 sm:flex-row sm:items-center sm:justify-between";
+export const TABLE_HEAD_TITLE = "admin-table-title text-s font-bold";
 export const TABLE_HEAD_DESC = "mt-1 text-xs text-muted";
 /** 액션 슬롯 — secondary + primary 순서로 둔다 */
 export const TABLE_HEAD_ACTIONS = "flex shrink-0 flex-wrap items-center gap-2";
@@ -123,7 +123,7 @@ export const TABLE_HEAD_ACTIONS = "flex shrink-0 flex-wrap items-center gap-2";
 /** 표 본문만 가로 스크롤 (헤더·페이저는 고정) */
 /* `contain: paint` 없이 두면 넘치는 표 폭이 문서 전체 가로 스크롤로 새어 나간다(크로미움) */
 export const TABLE_SCROLL = "overflow-x-auto [contain:paint]";
-export const TABLE = "w-full border-collapse text-s";
+export const TABLE = "admin-table w-full border-collapse text-s";
 
 /** 테이블 헤더 행 — 컬럼명은 작고 muted */
 export const THEAD_ROW = "border-b border-border-soft bg-background text-left";
@@ -154,9 +154,9 @@ export const NONE = "—";
 /** 화면 타이틀 */
 export const PAGE_TITLE = "type-kr-heading text-h5-m sm:text-h5";
 /** 화면 설명 — 아이브로 없이 제목 바로 아래 한 줄 */
-export const PAGE_LEAD = "mt-3 max-w-3xl text-s text-muted";
+export const PAGE_LEAD = "admin-lead mt-3 max-w-3xl text-s text-muted";
 /** 섹션 제목 */
-export const SECTION_TITLE = "type-kr-heading text-h6-m";
+export const SECTION_TITLE = "admin-section-title type-kr-heading text-h6-m";
 /** 하위 제목 */
 export const SUB_TITLE = "text-s font-bold";
 /** 보조 설명 */

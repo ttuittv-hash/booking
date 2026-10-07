@@ -142,7 +142,7 @@ function DialogBox({ pending, onFinish }: { pending: Pending; onFinish: (r: bool
         aria-modal="true"
         aria-labelledby="dialog-title"
         data-testid="dialog"
-        className="w-full max-w-md border-2 border-foreground bg-background p-6 shadow-[8px_8px_0_0_var(--color-foreground)] animate-[toast-in_180ms_ease-out]"
+        className="w-full max-w-md border border-foreground bg-background p-6 animate-[toast-in_180ms_ease-out]"
       >
         <p id="dialog-title" className="text-m font-bold text-foreground">
           {pending.options.title ?? (pending.kind === "alert" ? "안내" : "확인")}

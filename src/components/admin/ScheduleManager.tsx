@@ -1,5 +1,7 @@
 "use client";
 
+import { useContentTransport } from "./ContentTransport";
+
 import { scheduleLegend, type ScheduleLegend } from "@/lib/content/scheduleLegend";
 import { canStepMonth, formatMonth, toMonthKey } from "@/lib/content/noticeCalendarWindow";
 import Link from "next/link";
@@ -103,6 +105,7 @@ export function ScheduleManager({
   monthBounds?: { start: string | null; end: string | null };
   legend?: ScheduleLegend | null;
 }) {
+  const { request } = useContentTransport();
   const legend = legendProp ?? scheduleLegend(null);
   const [year, setYear] = useState(initialYear);
   const [month, setMonth] = useState(initialMonth);
@@ -116,7 +119,7 @@ export function ScheduleManager({
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect -- 월 이동 시 새 데이터를 받기 전까지 로딩 표시
     setLoading(true);
-    fetch(`/api/admin/schedule?year=${year}&month=${month}`)
+    request(`/api/admin/schedule?year=${year}&month=${month}`)
       .then((res) => res.json())
       .then((data) => {
         setBlocks(data.blocks ?? []);
@@ -127,7 +130,7 @@ export function ScheduleManager({
         setOccupancy({});
       })
       .finally(() => setLoading(false));
-  }, [year, month]);
+  }, [year, month, request]);
 
   function canGoToMonth(delta: -1 | 1): boolean {
     if (!monthBounds) return true;
@@ -173,7 +176,7 @@ export function ScheduleManager({
 
   async function blockOpenDate() {
     if (!openDate) return;
-    const res = await fetch("/api/admin/schedule", {
+    const res = await request("/api/admin/schedule", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ date: openDate, venueId: venueTab, reason: reasonDraft.trim() || null }),
@@ -188,7 +191,7 @@ export function ScheduleManager({
 
   async function unblockOpenDate() {
     if (!openDate) return;
-    const res = await fetch("/api/admin/schedule", {
+    const res = await request("/api/admin/schedule", {
       method: "DELETE",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ date: openDate, venueId: venueTab }),

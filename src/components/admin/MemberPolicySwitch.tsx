@@ -44,7 +44,7 @@ export function MemberPolicySwitch({ policy: initial }: { policy: MemberPolicy }
   }
 
   return (
-    <div className="mt-6 border border-border-soft p-5">
+    <div className="admin-policy mt-6 border border-border-soft p-5">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="min-w-0">
           <h2 className="text-s font-bold">초대 담당자도 서울아레나가 승인</h2>

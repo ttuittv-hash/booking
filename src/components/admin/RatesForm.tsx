@@ -1,5 +1,7 @@
 "use client";
 
+import { useContentTransport } from "./ContentTransport";
+
 import { useRouter } from "next/navigation";
 import { useDialog } from "@/components/ui/Dialog";
 import { useState } from "react";
@@ -49,6 +51,7 @@ export function RatesForm({
 }) {
   const dialog = useDialog();
   const router = useRouter();
+  const { request, isPreview } = useContentTransport();
   const [addons, setAddons] = useState(
     rateTable.addons.map((a) => ({
       id: a.id,
@@ -139,7 +142,7 @@ export function RatesForm({
       const newAddons = addons
         .filter((a) => !originalIds.has(a.id))
         .map((a) => ({ id: a.id, name: a.name, category: a.category, unitLabel: a.unitLabel, unitPrice: a.unitPrice }));
-      const res = await fetch("/api/rates", {
+      const res = await request("/api/rates", {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -156,9 +159,9 @@ export function RatesForm({
         setMessage(data.error || "저장에 실패했습니다.");
         return;
       }
-      setMessage(`저장되었습니다. 새 버전: ${data.rateTable.version}`);
+      setMessage(isPreview ? `시안에 저장했습니다. 예시 버전: ${data.rateTable.version}` : `저장되었습니다. 새 버전: ${data.rateTable.version}`);
       setRemovedAddonIds([]);
-      router.refresh();
+      if (!isPreview) router.refresh();
     } finally {
       setSaving(false);
     }

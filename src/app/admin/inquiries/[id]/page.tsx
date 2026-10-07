@@ -1,8 +1,8 @@
+import { formatDateTime } from "@/lib/format";
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { getCurrentUser } from "@/lib/auth";
 import { findUserById, getInquiryById } from "@/lib/db";
-import { Badge } from "@/components/ui/kit";
 import { AdminNav } from "@/components/admin/AdminNav";
 import { AnswerInquiryForm } from "@/components/AnswerInquiryForm";
 import { HELP, LINK_BTN, NONE, PANEL, SECTION_TITLE } from "@/components/admin/adminUi";
@@ -24,7 +24,7 @@ export default async function AdminInquiryDetailPage({
   const answered = inquiry.status === "ANSWERED";
 
   return (
-    <div className="flex flex-1 flex-col">
+    <div className="admin-page flex flex-1 flex-col">
       <AdminNav active="/admin/inquiries" user={user} />
 
       <main className="mx-auto w-full max-w-3xl flex-1 px-6 py-8 sm:py-10">
@@ -35,14 +35,14 @@ export default async function AdminInquiryDetailPage({
         <header className="mt-5 border-b border-border/25 pb-6">
           <div className="flex flex-wrap items-start justify-between gap-4">
             <h1 className="type-kr-heading text-h5-m sm:text-h5">{inquiry.title}</h1>
-            <Badge tone={answered ? "good" : "warn"}>
+            <span className="admin-tag" data-tone={answered ? "approved" : "pending"}>
               {answered ? "답변 완료" : "답변 대기"}
-            </Badge>
+            </span>
           </div>
           <p className="mt-2 text-s text-muted">
             {author?.name ?? NONE} ({author?.companyName ?? NONE}, {author?.email ?? NONE}) ·{" "}
             <span className="tabular-nums">
-              {new Date(inquiry.createdAt).toLocaleString("ko-KR")}
+              {formatDateTime(inquiry.createdAt)}
             </span>
           </p>
         </header>
@@ -76,11 +76,11 @@ export default async function AdminInquiryDetailPage({
         <div className="mt-6">
           {inquiry.answer ? (
             <div className={PANEL}>
-              <div className="flex flex-wrap items-baseline justify-between gap-3 border-l-2 border-accent pl-3">
+              <div className="flex flex-wrap items-baseline justify-between gap-3 ">
                 <h2 className={SECTION_TITLE}>등록된 답변</h2>
                 {inquiry.answeredAt && (
                   <p className={`tabular-nums ${HELP}`}>
-                    {new Date(inquiry.answeredAt).toLocaleString("ko-KR")}
+                    {formatDateTime(inquiry.answeredAt)}
                   </p>
                 )}
               </div>

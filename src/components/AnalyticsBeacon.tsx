@@ -17,6 +17,7 @@ import { usePathname } from "next/navigation";
 */
 
 function send(type: "PAGE_VIEW" | "APPLY_CLICK", path: string) {
+  if (process.env.NODE_ENV === "development" && path === "/admin/design-preview") return;
   void fetch("/api/analytics/event", {
     method: "POST",
     headers: { "Content-Type": "application/json" },

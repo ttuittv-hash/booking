@@ -1,5 +1,7 @@
 "use client";
 
+import { useContentTransport } from "./ContentTransport";
+
 /*
   공지 캘린더 노출 월 (2026-09-02).
 
@@ -39,6 +41,7 @@ export function NoticeCalendarWindowForm({
   nowMonth: string;
 }) {
   const router = useRouter();
+  const { request, isPreview } = useContentTransport();
   const [value, setValue] = useState(initial);
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
@@ -65,7 +68,7 @@ export function NoticeCalendarWindowForm({
     setMessage(null);
     setError(null);
     try {
-      const res = await fetch("/api/admin/notice-calendar-window", {
+      const res = await request("/api/admin/notice-calendar-window", {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(value),
@@ -77,7 +80,7 @@ export function NoticeCalendarWindowForm({
       }
       setValue(data.window);
       setMessage("저장했습니다.");
-      router.refresh();
+      if (!isPreview) router.refresh();
     } catch {
       setError("저장하지 못했습니다. 잠시 후 다시 시도해 주세요.");
     } finally {

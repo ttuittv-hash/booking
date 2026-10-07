@@ -1,4 +1,5 @@
 "use client";
+import { useContentTransport } from "./ContentTransport";
 
 import { useRouter } from "next/navigation";
 import { useState } from "react";
@@ -15,6 +16,8 @@ import type { RegisterTermsContent } from "@/lib/terms";
  * 자동으로 올라간다 — 이전에 동의한 사람이 무엇에 동의했는지 남겨야 하기 때문이다.
  */
 export function RegisterTermsForm({ content: initial }: { content: RegisterTermsContent }) {
+  const { request, isPreview } = useContentTransport();
+
   const router = useRouter();
   const [content, setContent] = useState<RegisterTermsContent>(initial);
   const [saving, setSaving] = useState(false);
@@ -32,7 +35,7 @@ export function RegisterTermsForm({ content: initial }: { content: RegisterTerms
     setMessage(null);
     setError(null);
     try {
-      const res = await fetch("/api/admin/content/registerTerms", {
+      const res = await request("/api/admin/content/registerTerms", {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ content }),
@@ -43,8 +46,8 @@ export function RegisterTermsForm({ content: initial }: { content: RegisterTerms
         return;
       }
       setContent(data.content);
-      setMessage("저장되었습니다. 회원가입 화면에 바로 반영됩니다.");
-      router.refresh();
+      setMessage(isPreview ? "예시 화면에 저장했습니다. 실제 공개 콘텐츠에는 반영되지 않습니다." : "저장되었습니다. 회원가입 화면에 바로 반영됩니다.");
+      if (!isPreview) router.refresh();
     } catch {
       setError("저장하지 못했습니다. 연결 상태를 확인한 뒤 다시 시도해 주세요.");
     } finally {

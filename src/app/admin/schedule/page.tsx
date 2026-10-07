@@ -1,3 +1,4 @@
+import s from "@/components/admin/AdminOperationsPreview.module.css";
 import { requireProAdminPage } from "@/lib/auth";
 import { getNoticeCalendarWindow, getScreenTextContent } from "@/lib/db";
 import { scheduleLegend } from "@/lib/content/scheduleLegend";
@@ -27,7 +28,7 @@ export default async function AdminSchedulePage() {
   const [openingYear, openingMonthNo] = openingMonth.split("-").map(Number);
 
   return (
-    <div className="flex flex-1 flex-col">
+    <div className="admin-page flex flex-1 flex-col">
       <AdminNav active="/admin/schedule" user={user} />
 
       <main className="mx-auto w-full max-w-6xl flex-1 px-6 py-8 sm:py-10">
@@ -41,8 +42,10 @@ export default async function AdminSchedulePage() {
 
         {/* [수정 2026-09-02] 달력보다 위에 둔다. 달력 + 날짜별 설정이 길어 아래에 두면
             화면 밖이라, 기능이 없는 것으로 읽혔다. */}
+        <div className={`${s.preview} ${s.schedule}`}>
         <NoticeCalendarWindowForm initial={calendarWindow} nowMonth={kstNowMonth(now)} />
 
+        <div className={s.calendar}>
         <ScheduleManager
           key={`${monthBounds.start ?? ""}~${monthBounds.end ?? ""}`}
           initialYear={openingYear}
@@ -50,6 +53,8 @@ export default async function AdminSchedulePage() {
           monthBounds={monthBounds}
           legend={scheduleLegend(screenText.wizardStrings)}
         />
+        </div>
+        </div>
       </main>
     </div>
   );

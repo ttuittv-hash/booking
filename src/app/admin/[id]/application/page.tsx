@@ -266,7 +266,7 @@ export default async function AdminQuoteApplicationPage({
       {/* [2026-09-18] 이 화면 자체가 대관심의 자료로 인쇄·저장된다(nora) — 백오피스
           네비는 종이에도 저장본에도 남으면 안 된다. */}
       {!embed && (
-        <div className="print:hidden" data-doc-hide>
+        <div className="admin-page print:hidden" data-doc-hide>
           <AdminNav active="/admin" user={admin} />
         </div>
       )}
