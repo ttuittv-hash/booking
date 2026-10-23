@@ -1,10 +1,13 @@
 "use client";
 
+import { SortHeading } from "./SortHeading";
+import type { AdminQuoteSort, AdminQuoteSortKey } from "@/lib/adminQuoteQuery";
+
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useState } from "react";
 import type { QuoteStatus, ReviewDecision } from "@/lib/pricing/types";
-import { Badge, btnClass } from "@/components/ui/kit";
+import { btnClass } from "@/components/admin/adminButton";
 import { useDialog } from "@/components/ui/Dialog";
 import {
   NONE,
@@ -34,11 +37,11 @@ const STATUS_LABEL: Record<QuoteStatus, string> = {
   SETTLED: "정산 완료",
 };
 
-/** 상태 색은 kit 의 Badge tone 만 쓴다 (임의 색 금지) */
-const STATUS_TONE: Record<QuoteStatus, "warn" | "accent" | "good"> = {
-  ESTIMATE: "warn",
-  CONTRACTED: "accent",
-  SETTLED: "good",
+/** 상태 색은 공통 admin-tag 톤을 사용한다. */
+const STATUS_TONE: Record<QuoteStatus, string> = {
+  ESTIMATE: "neutral",
+  CONTRACTED: "representative",
+  SETTLED: "complete",
 };
 
 /** 심사 결과 — 진행 단계(status)와 별개다. 승인해도 계약 전까지는 ESTIMATE 다. */
@@ -47,10 +50,10 @@ const REVIEW_LABEL: Record<ReviewDecision, string> = {
   HOLD: "심사 보류",
   REJECTED: "심사 거절",
 };
-const REVIEW_TONE: Record<ReviewDecision, "good" | "warn" | "danger"> = {
-  APPROVED: "good",
-  HOLD: "warn",
-  REJECTED: "danger",
+const REVIEW_TONE: Record<ReviewDecision, string> = {
+  APPROVED: "approved",
+  HOLD: "hold",
+  REJECTED: "rejected",
 };
 
 export interface AdminQuoteRow {
@@ -81,8 +84,10 @@ export function AdminQuoteTable({
   rows,
   total,
   canDelete = false,
+  sort = { key: "id", direction: "desc" },
 }: {
   rows: AdminQuoteRow[];
+  sort?: AdminQuoteSort;
   /**
    * [신규 2026-09-18] 전체 접수 건수. "개수 카운트가 페이지별로 되어 있습니다. 총 31개인가
    * 접수된 것 같은데 페이지별로 20개, 10개 이런 식으로 되어 있네요"(niki) — 제목이
@@ -93,6 +98,15 @@ export function AdminQuoteTable({
   canDelete?: boolean;
 }) {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  function changeSort(key: AdminQuoteSortKey) {
+    const params = new URLSearchParams(searchParams.toString());
+    params.set("sort", key);
+    params.set("direction", sort.key === key && sort.direction === "asc" ? "desc" : "asc");
+    params.delete("page");
+    setSelected(new Set());
+    router.push(`/admin?${params.toString()}`);
+  }
   const dialog = useDialog();
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [busyId, setBusyId] = useState<string | null>(null);
@@ -186,7 +200,11 @@ export function AdminQuoteTable({
           <thead>
             <tr className={THEAD_ROW}>
               <th className={`${TH} w-10`}><input type="checkbox" aria-label="신청 전체 선택" checked={rows.length>0 && rows.every(row=>selected.has(row.id))} disabled={rows.length===0} onChange={e=>setSelected(e.target.checked ? new Set(rows.map(row=>row.id)) : new Set())}/></th>
-              <th className={TH}>신청번호 / 접수일</th><th className={TH}>회사 / 신청자</th><th className={TH}>공간 / 패키지</th><th className={TH}>대관 일정</th><th className={TH_NUM}>계약금액 / 정산</th><th className={TH}>상태</th><th className={TH}/>
+              {([["id", "신청번호 / 접수일"], ["company", "회사 / 신청자"], ["venue", "공간 / 패키지"], ["dates", "대관 일정"], ["amount", "계약금액 / 정산"], ["status", "상태"]] as const).map(([key, label]) => (
+                <th key={key} className={key === "amount" ? TH_NUM : TH} aria-sort={sort.key === key ? (sort.direction === "asc" ? "ascending" : "descending") : "none"}>
+                  <SortHeading label={label} active={sort.key === key} direction={sort.direction} onClick={() => changeSort(key)} />
+                </th>
+              ))}<th className={TH}/>
             </tr>
           </thead>
           <tbody>
@@ -230,16 +248,16 @@ export function AdminQuoteTable({
                           찾는 것은 "이 건을 심사했는가" 다. 진행 단계는 그 아래 줄. */}
                       <span className="flex flex-col items-start gap-1 whitespace-nowrap">
                         {row.reviewDecision && (
-                          <Badge tone={REVIEW_TONE[row.reviewDecision]}>
+                          <span className="admin-tag" data-tone={REVIEW_TONE[row.reviewDecision]}>
                             {REVIEW_LABEL[row.reviewDecision]}
-                          </Badge>
+                          </span>
                         )}
-                        <Badge tone={STATUS_TONE[row.status]}>
+                        <span className="admin-tag" data-tone={row.status === "ESTIMATE" && !row.reviewDecision ? "neutral" : STATUS_TONE[row.status]}>
                           {/* 심사를 마친 건에 "심사 대기" 가 같이 뜨면 서로 어긋나 보인다 */}
                           {row.status === "ESTIMATE" && row.reviewDecision
                             ? "계약 대기"
                             : STATUS_LABEL[row.status]}
-                        </Badge>
+                        </span>
                       </span>
                     </td>
                     <td className={TD_LINK}>

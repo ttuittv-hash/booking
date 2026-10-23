@@ -1,4 +1,5 @@
 "use client";
+import { PreviewRepeatRow } from "./BookingPreviewForms";
 
 import type { ReactNode } from "react";
 import { toggleClass } from "@/components/ui/kit";
@@ -82,7 +83,7 @@ export function PromotionChannelsFields({
       )}
       <div className="space-y-2">
         {info.channels.map((row, i) => (
-          <div
+          <PreviewRepeatRow
             key={i}
             /* 항목 사이에 선을 긋지 않는다(§1) — 한 줄이 곧 한 항목이고 입력칸이 이미 경계다 */
             className="grid grid-cols-1 gap-1.5 py-2 sm:grid-cols-[1fr_2fr_1fr_auto]"
@@ -111,9 +112,9 @@ export function PromotionChannelsFields({
               aria-label={tStr("marketing.removeChannelAriaLabel", "채널 삭제")}
               className="flex h-10 w-10 shrink-0 items-center justify-center text-muted transition-colors hover:text-danger"
             >
-              ✕
+              삭제
             </button>
-          </div>
+          </PreviewRepeatRow>
         ))}
       </div>
     </div>
@@ -181,7 +182,7 @@ export function StepMarketingCooperation({
           {/* [수정 2026-09-09] "여백이 너무 많은.. 이상한" 것 점검 — 그리드 기본값
               (align-items: stretch)이 두 박스 높이를 서로 맞춰, 내용이 짧은 쪽(협업
               내용)에 큰 빈 공간이 생겼다. items-start로 각자 내용만큼만 높이를 갖게 한다. */}
-          <div className="mt-4 grid grid-cols-1 items-start gap-3 sm:grid-cols-2">
+          <div data-cooperation-grid className="mt-4 grid grid-cols-1 items-start gap-3 sm:grid-cols-2">
             <div className="rounded-lg border border-border/25 bg-surface p-4">
               <p className="text-xs font-bold text-foreground">
                 {t("marketing.cooperationContentHeading", "협업 내용")}

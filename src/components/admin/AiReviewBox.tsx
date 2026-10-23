@@ -2,7 +2,8 @@
 
 import { useEffect, useState } from "react";
 import { formatDateTime } from "@/lib/format";
-import { btnClass, FILE_INPUT } from "@/components/ui/kit";
+import { FILE_INPUT } from "@/components/ui/kit";
+import { btnClass } from "@/components/admin/adminButton";
 import { ERROR_NOTE, HELP, INFO_NOTE, PANEL, SECTION_TITLE } from "./adminUi";
 
 type State =

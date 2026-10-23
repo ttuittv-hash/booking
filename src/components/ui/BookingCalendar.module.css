@@ -1,0 +1,15 @@
+/* 신청 위저드와 관리자 일정에서 공유하는 달력 시각 규칙. 동작은 각 화면이 소유한다. */
+.calendar { min-width:0; }
+.calendar [data-calendar-header] { display:flex; align-items:center; justify-content:space-between; gap:12px; }
+.calendar [data-calendar-header] > button,.calendar [data-calendar-header] > [role=button] { display:flex; align-items:center; justify-content:center; width:40px; height:40px; min-width:40px; padding:0; border:1px solid var(--border-soft); border-radius:6px; background:var(--panel); }
+.calendar [data-calendar-day] { height:60px; font-size:13px; border-radius:6px; }
+.calendar [data-calendar-day][data-day-role] { background:#fff0ad; color:#171717; }
+.calendar [data-calendar-day][data-day-role=PERFORMANCE] { background:#ffcd00; color:#171717; }
+.calendar [data-calendar-day][data-day-role=LOAD_OUT],.calendar [data-calendar-day][data-day-role=REST] { background:#fff6d2; }
+.calendar [data-calendar-day]:disabled { background:#eee; color:#aaa; opacity:1; text-decoration:none; }
+.calendar [data-calendar-day][aria-pressed=true] { outline:1px solid var(--foreground); outline-offset:-1px; }
+.calendar [data-calendar-day][data-blocked=true] { background:#fce8e6; color:#a33029; }
+.calendar [data-calendar-day]:not(:disabled):hover { box-shadow:inset 0 0 0 1px var(--foreground); }
+@media(max-width:720px) { .calendar [data-calendar-day] { height:52px; font-size:12px; } .calendar [data-calendar-day] span+span { font-size:9px; } }
+
+.blockedKey { display:inline-flex; align-items:center; justify-content:center; width:28px; height:24px; border-radius:6px; background:#fce8e6; color:#a33029; text-decoration:line-through; }

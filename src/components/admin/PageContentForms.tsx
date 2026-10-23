@@ -1,6 +1,8 @@
 "use client";
 
+import contentStyles from "./ContentEditor.module.css";
 import Link from "next/link";
+import { useContentTransport } from "./ContentTransport";
 import type {
   DocumentsContent,
   FeaturesContent,
@@ -61,7 +63,6 @@ const blankPair = (): Pair => ({ label: "", value: "" });
  * 제목·라벨을 뺀 모든 문구는 여러 줄 입력칸이고, 줄바꿈과 굵게를 운영자가 정한다.
  * 굵게 표기는 홈 선언문이 쓰던 `**…**` 를 사이트 전체로 넓힌 것이다(`kit` 의 `RichText`).
  */
-const COPY_FIELD_HELP = "줄바꿈은 그대로 나갑니다. **굵게** 로 감싸면 굵게 나옵니다.";
 
 function PairList({
   label,
@@ -245,7 +246,7 @@ function VenueFacilityFields({
             <Area
               label="카드 부제"
               rows={2}
-              help={COPY_FIELD_HELP}
+
               value={it.desc ?? ""}
               onChange={(desc) => patch({ desc })}
             />
@@ -305,7 +306,7 @@ function VenueFacilityFields({
                   <Area
                     label="설명"
                     rows={2}
-                    help={COPY_FIELD_HELP}
+
                     value={card.desc}
                     onChange={(desc) => cardPatch({ desc })}
                   />
@@ -489,7 +490,7 @@ function RateTableFields({
                 「요금표 행 이름」 목록에서만 바꿀 수 있어, 값을 보면서 이름을 못 고쳤다.
                 이름은 모든 열이 함께 쓰는 값이라 한 곳만 고쳐도 전부 바뀐다. */}
             {value.rowLabels.map((rl, ri) => (
-              <div key={ri} className="border-l-2 border-border-soft pl-3">
+              <div key={ri} className={contentStyles.editableItem}>
                 <Text
                   label={`항목 ${ri + 1} 이름 (모든 열 공통)`}
                   value={rl}
@@ -627,7 +628,7 @@ function RateTableFields({
             <Area
               label="비고"
               rows={2}
-              help={COPY_FIELD_HELP}
+
               value={it.note}
               onChange={(note) => patch({ note })}
             />
@@ -652,7 +653,7 @@ function RateTableFields({
             <Area
               label="부연"
               rows={2}
-              help={COPY_FIELD_HELP}
+
               value={it.note ?? ""}
               onChange={(note) => patch({ note })}
             />
@@ -787,6 +788,7 @@ export function DocumentsForm({ content }: { content: DocumentsContent }) {
 /* ------------------------------------------------------- 화면 문구 ------- */
 
 export function ScreenTextForm({ content }: { content: ScreenTextContent }) {
+  const {isPreview}=useContentTransport();
   return (
     <ContentFormShell page="screenText" initial={content}>
       {(v, patch) => (
@@ -801,7 +803,7 @@ export function ScreenTextForm({ content }: { content: ScreenTextContent }) {
             {VENUES.map((venue) => (
               <Text
                 key={venue.id}
-                label={`${defaultVenueName(venue.id)} (${venue.id})`}
+                label={defaultVenueName(venue.id)}
                 value={v.wizardStrings[venueLabelKey(venue.id)] ?? ""}
                 onChange={(name) =>
                   patch({
@@ -815,7 +817,7 @@ export function ScreenTextForm({ content }: { content: ScreenTextContent }) {
                 끼지 못했다 — 여기서도 안 보여서 "공연장 선택 박스 워딩 수정 불가"로
                 이어졌다. 같은 자리에 나란히 둔다. */}
             <Text
-              label="동시 대관 (venuePicker.simultaneousOption)"
+              label="동시 대관"
               value={v.wizardStrings["venuePicker.simultaneousOption"] ?? ""}
               onChange={(name) =>
                 patch({
@@ -837,21 +839,21 @@ export function ScreenTextForm({ content }: { content: ScreenTextContent }) {
             help="이용 시설 버튼 아래 붙는 일정 선택 구획의 제목과 탭 이름입니다. 비워 두면 기본 문구입니다."
           >
             <Text
-              label="구획 제목 (wizardShell.scheduleHeading)"
+              label="구획 제목"
               value={v.wizardStrings["wizardShell.scheduleHeading"] ?? ""}
               onChange={(text) =>
                 patch({ wizardStrings: { ...v.wizardStrings, "wizardShell.scheduleHeading": text } })
               }
             />
             <Text
-              label="아레나 탭 (wizardShell.arenaTabLabel)"
+              label="아레나 탭"
               value={v.wizardStrings["wizardShell.arenaTabLabel"] ?? ""}
               onChange={(text) =>
                 patch({ wizardStrings: { ...v.wizardStrings, "wizardShell.arenaTabLabel": text } })
               }
             />
             <Text
-              label="중형공연장 탭 (wizardShell.mediumHallTabLabel)"
+              label="중형공연장 탭"
               value={v.wizardStrings["wizardShell.mediumHallTabLabel"] ?? ""}
               onChange={(text) =>
                 patch({ wizardStrings: { ...v.wizardStrings, "wizardShell.mediumHallTabLabel": text } })
@@ -867,7 +869,7 @@ export function ScreenTextForm({ content }: { content: ScreenTextContent }) {
             title="위저드 단계 메뉴 이름"
             help="위저드(/apply) 맨 위 진행 단계 표시입니다. 1뎁스는 4개 큰 그룹 제목, 2뎁스는 그 아래 하위 단계(현재 「03 기본 정보」에만 4개) 이름입니다. 비워 두면 기본 문구입니다."
           >
-            <p className="text-2xs font-bold uppercase tracking-wide text-muted">1뎁스 (그룹)</p>
+            <p className="text-2xs font-bold uppercase tracking-wide text-muted">주요 단계</p>
             {(
               [
                 ["stepNav.group.spaceSchedule", "01 공간/일정"],
@@ -878,12 +880,12 @@ export function ScreenTextForm({ content }: { content: ScreenTextContent }) {
             ).map(([key, fallback]) => (
               <Text
                 key={key}
-                label={`${fallback} (${key})`}
+                label={fallback}
                 value={v.wizardStrings[key] ?? ""}
                 onChange={(text) => patch({ wizardStrings: { ...v.wizardStrings, [key]: text } })}
               />
             ))}
-            <p className="mt-4 text-2xs font-bold uppercase tracking-wide text-muted">2뎁스 (하위 단계)</p>
+            <p className="mt-4 text-2xs font-bold uppercase tracking-wide text-muted">세부 단계</p>
             {(
               [
                 ["stepNav.step.spaceSchedule", "공간/일정"],
@@ -898,7 +900,7 @@ export function ScreenTextForm({ content }: { content: ScreenTextContent }) {
             ).map(([key, fallback]) => (
               <Text
                 key={key}
-                label={`${fallback} (${key})`}
+                label={fallback}
                 value={v.wizardStrings[key] ?? ""}
                 onChange={(text) => patch({ wizardStrings: { ...v.wizardStrings, [key]: text } })}
               />
@@ -1032,7 +1034,7 @@ export function ScreenTextForm({ content }: { content: ScreenTextContent }) {
             {VENUES.map((venue) => (
               <Text
                 key={venue.id}
-                label={`${defaultVenueName(venue.id)} 탭 (${venue.id})`}
+                label={`${defaultVenueName(venue.id)} 탭`}
                 placeholder={defaultVenueRateTab(venue.id)}
                 value={v.wizardStrings[venueRateTabKey(venue.id)] ?? ""}
                 onChange={(name) =>
@@ -1161,7 +1163,7 @@ export function ScreenTextForm({ content }: { content: ScreenTextContent }) {
                 화면(WizardTextPreview)으로 옮겼다. 입력칸만 있으면 어느 화면인지
                 가늠이 안 되던 문제를 컴포넌트 재사용으로 없앤다. */}
             <Link
-              href="/admin/content?tab=wizardPreview"
+              href={isPreview ? "?tab=wizardPreview" : "/admin/content?tab=wizardPreview"}
               className="inline-flex items-center gap-1.5 border border-border bg-panel px-4 py-2.5 text-s font-bold text-foreground hover:border-foreground"
             >
               실제 위저드 화면처럼 보면서 수정하기 →
@@ -1180,28 +1182,15 @@ export function RulesForm({ content }: { content: RulesContent }) {
     <ContentFormShell page="rules" initial={content}>
       {(v, patch) => (
         <>
-          <Section title="리드 문단" help="페이지 상단 제목 아래에 나오는 소개 문장입니다.">
-            <Area label="" rows={3} value={v.intro} onChange={(intro) => patch({ intro })} />
-          </Section>
-
-          <Section title="개정 안내 박스" help="판본 아래 회색 박스 문구입니다. 비우면 박스가 나오지 않습니다.">
-            <Area
-              label=""
-              rows={3}
-              value={v.revisionNote}
-              onChange={(revisionNote) => patch({ revisionNote })}
-            />
-          </Section>
-
-          <Section title="판본">
-            <div className="grid gap-2 sm:grid-cols-3">
-              <Text label="문서명" value={v.title} onChange={(title) => patch({ title })} />
-              <Text label="버전" value={v.version} onChange={(version) => patch({ version })} />
-              <Text
-                label="시행일"
-                value={v.effectiveDate}
-                onChange={(effectiveDate) => patch({ effectiveDate })}
-              />
+          <Section title="규약 소개 · 개정 안내 · 판본" help="규약 페이지 상단에 표시되는 세 가지 정보를 함께 수정합니다.">
+            <div className="space-y-4">
+              <Area label="리드 문단" rows={3} value={v.intro} onChange={(intro) => patch({ intro })} />
+              <Area label="개정 안내 박스" help="비우면 안내 박스를 표시하지 않습니다." rows={3} value={v.revisionNote} onChange={(revisionNote) => patch({ revisionNote })} />
+              <div className="grid gap-3 sm:grid-cols-3">
+                <Text label="문서명" value={v.title} onChange={(title) => patch({ title })} />
+                <Text label="버전" value={v.version} onChange={(version) => patch({ version })} />
+                <Text label="시행일" value={v.effectiveDate} onChange={(effectiveDate) => patch({ effectiveDate })} />
+              </div>
             </div>
           </Section>
 

@@ -1,4 +1,5 @@
 "use client";
+import calendarStyles from "@/components/ui/BookingCalendar.module.css";
 
 import { btnClass, ICON_BTN_SM, toggleClass } from "@/components/ui/kit";
 import { MAX_SHOWS_PER_DAY } from "./Step1Calendar";
@@ -176,10 +177,10 @@ export function MidHallCalendar({
   }
 
   return (
-    <div>
+    <div className={calendarStyles.calendar}>
       {title && <h3 className="type-kr-heading text-h6-m">{title}</h3>}
 
-      <div className="mt-5 flex items-center justify-between">
+      <div data-calendar-header className="mt-5 flex items-center justify-between">
         {/* [버그 수정 2026-09-19] 관리자 「신청 상세보기」(읽기 전용)의 <fieldset disabled>
             안에서는 <button>이 네이티브 disabled를 상속해 클릭이 아예 안 먹었다 — 월
             이동은 setSelection이 아니라 순수 화면 상태(WizardShell의 setMidHallMonth)라
@@ -256,6 +257,10 @@ export function MidHallCalendar({
                   return (
                     <button
                       key={iso}
+                      data-calendar-day={iso}
+                      data-day-role={selection?.role}
+                      aria-label={`${iso}${selection ? ` ${roleTag(selection.role, selection.shows)}` : ""}`}
+                      aria-pressed={!!selection}
                       type="button"
                       disabled={!interactable}
                       onClick={() => setOpenDate(openDate === iso ? null : iso)}
@@ -391,7 +396,8 @@ export function MidHallCalendar({
                         type="button"
                         onClick={() => removeDate(openDate)}
                         disabled={!days[openDate]}
-                        className={btnClass("danger", "sm")}
+                        data-delete-action
+                            className={btnClass("danger", "sm")}
                       >
                         삭제
                       </button>

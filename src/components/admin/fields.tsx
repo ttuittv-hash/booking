@@ -1,15 +1,17 @@
 "use client";
+import { ContentPageLayout } from "./ContentPageLayout";
+import contentStyles from "./ContentEditor.module.css";
 import { useContentTransport } from "./ContentTransport";
 
-import { useEffect, useId, useRef, useState, type ReactNode } from "react";
+import { createContext, useContext, useEffect, useId, useState, type InputHTMLAttributes, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
-import { btnClass } from "@/components/ui/kit";
+import { btnClass } from "@/components/admin/adminButton";
 import { setUnsaved } from "./unsavedChanges";
-import { ADD_BTN, CARD, ERROR_NOTE, FIELD, FIELD_LABEL, HELP, OK_NOTE, REMOVE_BTN, SUB_TITLE } from "./adminUi";
+import { ADD_BTN, ERROR_NOTE, FIELD, FIELD_LABEL, HELP, OK_NOTE, REMOVE_BTN, SUB_TITLE } from "./adminUi";
 
-/** 파일 선택 input — 샤프 코너 · border-soft */
-const FILE_INPUT =
-  "text-xs text-muted file:mr-3 file:border file:border-border-soft file:bg-panel file:px-3 file:py-1.5 file:text-xs file:font-bold file:text-foreground";
+export function FileUpload({disabled,...props}:InputHTMLAttributes<HTMLInputElement>) {
+  return <label className={contentStyles.uploadButton} aria-disabled={disabled}><span>파일 업로드</span><input {...props} type="file" disabled={disabled} aria-label={props["aria-label"] ?? "파일 업로드"} /></label>;
+}
 
 /* ============================================================================
    페이지 콘텐츠 편집기의 공용 조각.
@@ -41,7 +43,7 @@ export function Text({
         onChange={(e) => onChange(e.target.value)}
         className={FIELD}
       />
-      {help && <span className={`mt-1 block ${HELP}`}>{help}</span>}
+      {help && <span className={contentStyles.fieldHint}>{help}</span>}
     </label>
   );
 }
@@ -73,54 +75,23 @@ export function Area({
   help?: string;
   /** 문단 안내를 붙일지 — 줄 단위로 파싱하는 칸(규약 전문 등)에서는 끈다 */
   paragraph?: boolean;
+  bold?: boolean;
 }) {
-  const note = [help, paragraph ? PARAGRAPH_HINT : null].filter(Boolean).join(" ");
-  const areaRef = useRef<HTMLTextAreaElement>(null);
-
-  /*
-    [신규 2026-09-04] 굵게 버튼.
-
-    이 칸의 글은 화면에서 **굵게** 표기를 알아본다(kit 의 RichText). 그런데 그 규칙이
-    안내에 없어 운영자는 굵게 만들 방법이 없다고 여겼다. 고른 글자를 ** 로 감싸 주고,
-    이미 감싸져 있으면 벗긴다. 아무것도 고르지 않았으면 자리만 만들어 커서를 그 안에 둔다.
-  */
-  function toggleBold() {
-    const el = areaRef.current;
-    if (!el) return;
-    const start = el.selectionStart;
-    const end = el.selectionEnd;
-    const picked = value.slice(start, end);
-    const wrapped = picked.startsWith("**") && picked.endsWith("**") && picked.length > 4;
-    const next = wrapped ? picked.slice(2, -2) : `**${picked}**`;
-    onChange(value.slice(0, start) + next + value.slice(end));
-    // 값이 바뀐 뒤에 커서를 다시 잡아야 한다 — 감싼 글자를 그대로 고른 상태로 둔다.
-    requestAnimationFrame(() => {
-      el.focus();
-      el.setSelectionRange(start + (wrapped ? 0 : 2), start + next.length - (wrapped ? 0 : 2));
-    });
-  }
-
+  const note = help;
   return (
     <div className="block">
       <div className="flex items-center justify-between gap-2">
         <span className={FIELD_LABEL}>{label}</span>
-        <button
-          type="button"
-          onClick={toggleBold}
-          title="고른 글자를 굵게 만듭니다. 화면에는 굵은 글씨로 나갑니다."
-          className="shrink-0 border border-border-soft px-2 py-0.5 text-xs font-bold text-muted hover:text-foreground"
-        >
-          <b>B</b> 굵게
-        </button>
+
       </div>
       <textarea
-        ref={areaRef}
+        aria-label={label || (paragraph ? "본문" : "문구")}
         rows={rows}
         value={value}
         onChange={(e) => onChange(e.target.value)}
         className={FIELD}
       />
-      {note && <span className={`mt-1 block ${HELP}`}>{note} 굵게 할 부분은 [B 굵게] 버튼을 쓰거나 **굵게** 처럼 감싸면 됩니다.</span>}
+      {note && <span className={contentStyles.fieldHint}>{note}</span>}
     </div>
   );
 }
@@ -178,7 +149,7 @@ export function ImageField({
         />
       )}
       <div className="flex flex-wrap items-center gap-2">
-        <input type="file" accept="image/*" onChange={upload} className={FILE_INPUT} />
+        <FileUpload accept="image/*" onChange={upload} disabled={uploading} />
         {value && (
           <button type="button" onClick={() => onChange(null)} className={REMOVE_BTN}>
             사진 삭제
@@ -249,6 +220,8 @@ export function StringList({
  * 객체 목록 — 항목마다 여러 칸이 있을 때. 추가·삭제·순서 이동을 제공한다.
  * `render` 는 항목 하나를 그리는 함수이며, `patch` 로 일부 필드만 바꾼다.
  */
+const ListDepth = createContext(0);
+
 export function ListEditor<T>({
   label,
   help,
@@ -269,6 +242,8 @@ export function ListEditor<T>({
   /** 접힘 상태에서 보여줄 요약. 없으면 순번만 나온다 */
   titleOf?: (item: T, index: number) => string;
 }) {
+  const depth = useContext(ListDepth);
+  const [expanded, setExpanded] = useState<number | null>(null);
   function patchAt(i: number, p: Partial<T>) {
     onChange(items.map((v, j) => (j === i ? { ...v, ...p } : v)));
   }
@@ -281,16 +256,14 @@ export function ListEditor<T>({
   }
 
   return (
-    <div>
+    <div className={contentStyles.itemGroup}>
       {label && <span className={FIELD_LABEL}>{label}</span>}
       {help && <p className={`mb-2 ${HELP}`}>{help}</p>}
       <div className="space-y-3">
         {items.map((item, i) => (
-          <div key={i} className={CARD}>
-            <div className="mb-3 flex items-center justify-between gap-2">
-              <span className="text-xs font-bold text-muted">
-                {titleOf ? titleOf(item, i) : `${i + 1}`}
-              </span>
+          <div key={i} className={contentStyles.editableItem}>
+            <div className={contentStyles.itemHeader}>
+              {depth > 0 ? <strong className={contentStyles.itemToggle}>{titleOf ? titleOf(item, i) : `항목 ${i+1}`}</strong> : <button type="button" className={contentStyles.itemToggle} aria-expanded={expanded === i} onClick={() => setExpanded(expanded === i ? null : i)}>{titleOf ? titleOf(item, i) : `항목 ${i + 1}`}<span>{expanded === i ? "접기" : "편집"}</span></button>}
               <span className="flex items-center gap-1">
                 <button
                   type="button"
@@ -319,10 +292,10 @@ export function ListEditor<T>({
                 </button>
               </span>
             </div>
-            {render(item, (p) => patchAt(i, p), i)}
+            <div className={contentStyles.itemBody} hidden={depth === 0 && expanded !== i}><ListDepth.Provider value={depth+1}>{render(item, (p) => patchAt(i, p), i)}</ListDepth.Provider></div>
           </div>
         ))}
-        <button type="button" onClick={() => onChange([...items, blank()])} className={ADD_BTN}>
+        <button type="button" onClick={() => { onChange([...items, blank()]); setExpanded(items.length); }} className={ADD_BTN}>
           {addLabel}
         </button>
       </div>
@@ -408,12 +381,13 @@ export function ContentFormShell<T>({
 
   return (
     <div className="space-y-8">
-      {children(value, patch)}
+      <p className={contentStyles.editingGuide}>텍스트 편집 안내: Enter는 줄바꿈, 빈 줄은 새 문단입니다. 굵게를 지원하는 본문은 **강조할 글자**처럼 별표 두 개로 감싸세요.</p>
+      <ContentPageLayout page={page}>{children(value, patch)}</ContentPageLayout>
 
       {message && <p className={OK_NOTE}>{message}</p>}
       {error && <p className={ERROR_NOTE}>{error}</p>}
 
-      <div className="sticky bottom-0 -mx-6 flex flex-wrap items-center gap-3 border-t border-border/25 bg-background px-6 py-3">
+      <div className="sticky bottom-0 -mx-4 flex flex-wrap items-center gap-3 border-t border-border/25 bg-background px-4 py-3 sm:-mx-6 sm:px-6">
         <button
           type="button"
           disabled={saving}
@@ -520,15 +494,13 @@ export function DocumentField({
           올렸습니다. 아래 [저장]을 눌러야 공개 화면의 파일이 바뀝니다.
         </p>
       )}
-      <input
-        type="file"
+      <FileUpload
         disabled={busy}
         onChange={(e) => {
           const file = e.target.files?.[0];
           e.target.value = "";
           if (file) void upload(file);
         }}
-        className={FILE_INPUT}
       />
       {busy && <p className={`mt-2 ${HELP}`}>올리는 중…</p>}
       {error && <p className="mt-2 text-xs text-danger">{error}</p>}
@@ -538,7 +510,7 @@ export function DocumentField({
 
 export function Section({ title, help, children }: { title: string; help?: string; children: ReactNode }) {
   return (
-    <section className="border-t border-border/25 pt-7 first:border-t-0 first:pt-0">
+    <section className={contentStyles.contentSection}>
       <h3 className={SUB_TITLE}>{title}</h3>
       {help && <p className={`mt-2 ${HELP}`}>{help}</p>}
       <div className="mt-3 space-y-4">{children}</div>

@@ -1,4 +1,7 @@
 "use client";
+import { useContentTransport } from "./ContentTransport";
+import { TableSizePicker } from "./TableSizePicker";
+import editorStyles from "./NoticeEditor.module.css";
 
 /*
   규약 전문 편집기 (2026-09-02).
@@ -22,7 +25,7 @@ import {
   splitRuleBody,
   type RuleBodyBlock,
 } from "@/lib/content/ruleBodyBlocks";
-import { HELP, LINK_BTN, REMOVE_BTN } from "@/components/admin/adminUi";
+import { HELP, REMOVE_BTN } from "@/components/admin/adminUi";
 
 const CELL =
   "w-full min-w-28 border border-border-soft bg-background px-2 py-1.5 text-xs outline-none focus:border-foreground";
@@ -45,9 +48,8 @@ export function RuleBodyEditor({
 }) {
   // 저장 문자열이 정본이다 — 블록은 그걸 편집하기 좋게 편 모양일 뿐이라 매번 다시 편다.
   // (블록을 상태로 들고 있으면 바깥에서 값이 바뀌었을 때 두 벌이 어긋난다.)
+  const {request}=useContentTransport();
   const blocks = useMemo(() => splitRuleBody(value), [value]);
-  const [rows, setRows] = useState(2);
-  const [cols, setCols] = useState(3);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   /** 마지막으로 손댄 글 상자 — [표 넣기]·[파일 첨부] 가 그 뒤/그 자리에 들어간다 */
@@ -77,7 +79,7 @@ export function RuleBodyEditor({
    * 긴 본문에서는 화면 밖이라 "표가 안 들어간다"로 보였다. 커서 위치에서 글을 둘로
    * 쪼개고 그 사이에 표를 넣는다.
    */
-  function insertTable() {
+  function insertTable(rows: number, cols: number) {
     const at = Math.min(focused, blocks.length - 1);
     const target = blocks[at];
     const table = blankTable(rows, cols);
@@ -163,7 +165,7 @@ export function RuleBodyEditor({
     try {
       const body = new FormData();
       body.append("file", file);
-      const res = await fetch("/api/admin/content/document-upload", { method: "POST", body });
+      const res = await request("/api/admin/content/document-upload", { method: "POST", body });
       const data = await res.json().catch(() => null);
       if (!res.ok) {
         setError(data?.error ?? "파일을 올리지 못했습니다.");
@@ -192,35 +194,10 @@ export function RuleBodyEditor({
   }
 
   return (
-    <div className="space-y-3">
-      <div className="flex flex-wrap items-center gap-2">
-        <button type="button" onClick={insertTable} className={LINK_BTN}>
-          + 표 넣기
-        </button>
-        <label className="flex items-center gap-1 text-xs text-muted">
-          행
-          <input
-            type="number"
-            min={1}
-            max={30}
-            value={rows}
-            onChange={(e) => setRows(Math.min(30, Math.max(1, Number(e.target.value) || 1)))}
-            className="h-7 w-14 border border-border-soft bg-background px-2 text-right text-xs tabular-nums"
-          />
-        </label>
-        <label className="flex items-center gap-1 text-xs text-muted">
-          열
-          <input
-            type="number"
-            min={1}
-            max={10}
-            value={cols}
-            onChange={(e) => setCols(Math.min(10, Math.max(1, Number(e.target.value) || 1)))}
-            className="h-7 w-14 border border-border-soft bg-background px-2 text-right text-xs tabular-nums"
-          />
-        </label>
-
-        <label className={`${LINK_BTN} cursor-pointer`}>
+    <div className={editorStyles.editor}>
+      <div className={`${editorStyles.stickyTools} ${editorStyles.toolbar}`}>
+        <TableSizePicker onSelect={insertTable} />
+        <label className={editorStyles.fileTool}>
           {busy ? "올리는 중..." : "+ 파일 첨부"}
           <input
             type="file"
@@ -247,7 +224,7 @@ export function RuleBodyEditor({
               onChange(defaultBody);
             }
           }}
-          className={LINK_BTN}
+          className={editorStyles.documentTool}
         >
           기본 전문으로 되돌리기
         </button>
@@ -267,7 +244,7 @@ export function RuleBodyEditor({
       {/* 글과 표를 한 상자 안에 이어 붙인다 — 문서 한 장처럼 보여야 표가 규약 "안에"
           들어간 것으로 읽힌다. 블록마다 테두리를 두르면 표가 본문에서 떨어져 나온
           조각처럼 보인다(2026-09-02). */}
-      <div className="border border-border-soft bg-background py-2">
+      <div className={editorStyles.ruleBody}>
         {blocks.map((block, i) =>
           block.kind === "text" ? (
             <textarea
@@ -337,27 +314,15 @@ function TableBlock({
       head: [...block.head, block.head.length > 0 ? `항목 ${colCount + 1}` : ""],
       rows: block.rows.map((row) => [...row, ""]),
     });
-  const removeCol = () =>
+  const removeCol = (column: number) =>
     colCount > 1 &&
-    patch({ head: block.head.slice(0, -1), rows: block.rows.map((row) => row.slice(0, -1)) });
+    patch({ head: block.head.filter((_, c) => c !== column), rows: block.rows.map((row) => row.filter((_, c) => c !== column)) });
 
   return (
     // 본문 흐름 안의 표 — 좌우 여백을 글과 맞추고 위아래 헤어라인으로만 구분한다.
-    <div className="my-2 border-y border-border-soft bg-panel px-4 py-3" onFocus={onFocus}>
+    <div className={editorStyles.tableBlock} onFocus={onFocus}>
       <div className="mb-2 flex flex-wrap items-center gap-2">
         <span className="text-xs font-bold">표</span>
-        <button type="button" onClick={addRow} className={MINI_BTN}>
-          행 +
-        </button>
-        <button type="button" onClick={() => removeRow(block.rows.length - 1)} className={MINI_BTN}>
-          행 −
-        </button>
-        <button type="button" onClick={addCol} className={MINI_BTN}>
-          열 +
-        </button>
-        <button type="button" onClick={removeCol} className={MINI_BTN}>
-          열 −
-        </button>
         <span className="flex-1" />
         <button type="button" onClick={() => onMove(-1)} className={MINI_BTN} aria-label="위로">
           ↑
@@ -370,14 +335,17 @@ function TableBlock({
         </button>
       </div>
 
-      <div className="overflow-x-auto">
+      <div className={editorStyles.tableScroll}>
         <table className="w-full border-collapse">
+          <caption className="sr-only">규약 표 — 각 셀을 눌러 수정</caption>
+          <thead><tr>{Array.from({length:colCount},(_,c)=><th key={c}><button type="button" className={MINI_BTN} aria-label={`${c+1}번째 열 삭제`} disabled={colCount<=1} onClick={()=>removeCol(c)}>×</button></th>)}<th><button type="button" className={MINI_BTN} onClick={addCol} aria-label="오른쪽에 열 추가">+</button></th></tr>
           {block.head.length > 0 && (
-            <thead>
+            <>
               <tr>
                 {Array.from({ length: colCount }, (_, c) => (
                   <th key={c} className="p-0.5">
                     <input
+                      aria-label={`${c + 1}열 제목`}
                       value={block.head[c] ?? ""}
                       onChange={(e) => setHead(c, e.target.value)}
                       className={`${CELL} font-bold`}
@@ -387,14 +355,16 @@ function TableBlock({
                 ))}
                 <th className="w-8" />
               </tr>
-            </thead>
+            </>
           )}
+          </thead>
           <tbody>
             {block.rows.map((row, r) => (
               <tr key={r}>
                 {Array.from({ length: colCount }, (_, c) => (
                   <td key={c} className="p-0.5">
                     <input
+                      aria-label={`${r + 1}행 ${c + 1}열`}
                       value={row[c] ?? ""}
                       onChange={(e) => setCell(r, c, e.target.value)}
                       className={CELL}
@@ -417,6 +387,7 @@ function TableBlock({
               </tr>
             ))}
           </tbody>
+          <tfoot><tr><td colSpan={colCount + 1}><button type="button" className={editorStyles.addRow} onClick={addRow}>+ 행 추가</button></td></tr></tfoot>
         </table>
       </div>
     </div>

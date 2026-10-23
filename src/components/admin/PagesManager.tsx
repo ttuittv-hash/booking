@@ -3,7 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import type { PageGroup, StaticPage } from "@/lib/pricing/types";
-import { btnClass } from "@/components/ui/kit";
+import { btnClass } from "@/components/admin/adminButton";
 import { NoticeEditor } from "./NoticeEditor";
 import {
   ADD_BTN_LG,

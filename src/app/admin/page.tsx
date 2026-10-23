@@ -1,4 +1,6 @@
+import { adminQuoteSort } from "@/lib/adminQuoteQuery";
 import Link from "next/link";
+import editor from "@/components/admin/AdminEditor.module.css";
 import { scheduleLabel } from "@/lib/scheduleLabel";
 import { requireProAdminPage, isProAdminOrAbove } from "@/lib/auth";
 import {
@@ -15,7 +17,7 @@ import { findPackage } from "@/lib/pricing/rateTableUtils";
 import { VENUES, type RateTable } from "@/lib/pricing/types";
 import { rowAudience } from "@/lib/quoteAudience";
 import { Pagination } from "@/components/Pagination";
-import { btnClass } from "@/components/ui/kit";
+import { btnClass } from "@/components/admin/adminButton";
 import { AdminNav } from "@/components/admin/AdminNav";
 import { AdminQuoteTable } from "@/components/admin/AdminQuoteTable";
 import { FIELD, NONE, PAGE_LEAD, PAGE_TITLE, QUIET_BTN, tabCls } from "@/components/admin/adminUi";
@@ -37,18 +39,22 @@ function resolveVenueTab(raw: string | undefined): VenueTabKey {
 export default async function AdminPage({
   searchParams,
 }: {
-  searchParams: Promise<{ companyId?: string; page?: string; venue?: string }>;
+  searchParams: Promise<{ companyId?: string; page?: string; venue?: string; companySearch?: string; sort?: string; direction?: string }>;
 }) {
   const user = await requireProAdminPage();
 
-  const { companyId, page: pageParam, venue: venueParam } = await searchParams;
+  const { companyId, page: pageParam, venue: venueParam, companySearch: rawSearch, sort: sortParam, direction } = await searchParams;
+  const companySearch = rawSearch?.trim().slice(0, 200) || undefined;
+  const sort = adminQuoteSort(sortParam, direction);
   const page = normalizePage(pageParam);
   const venueTab = resolveVenueTab(venueParam);
-  const baseFilter = companyId ? { companyId } : {};
+  const baseFilter = { companyId, companySearch };
   const [{ items: quotes, total, totalPages }, venueCounts] = await Promise.all([
     listQuotesPaged(
       venueTab === "all" ? baseFilter : { ...baseFilter, venue: venueTab },
       page,
+      undefined,
+      sort,
     ),
     countQuotesByVenue(baseFilter),
   ]);
@@ -57,7 +63,7 @@ export default async function AdminPage({
     arena: venueCounts.arena,
     "medium-hall": venueCounts.mediumHall,
   };
-  const companies = await listCompanies();
+  const companies = (await listCompanies()).sort((a,b)=>a.name.localeCompare(b.name,"ko"));
   const applicantIds = [...new Set(quotes.map((q) => q.applicantId))];
   const applicantById = new Map((await listUsersByIds(applicantIds)).map((u) => [u.id, u]));
   // [신규 2026-09-19] "신청 목록에서 어떤 공간·패키지를 신청했는지 표기해달라" — 패키지명은
@@ -108,6 +114,7 @@ export default async function AdminPage({
         hour: "2-digit",
         minute: "2-digit",
         hour12: false,
+        timeZone: "Asia/Seoul",
       }),
       applicantName: applicant?.name ?? NONE,
       companyName: applicant?.companyName ?? NONE,
@@ -161,6 +168,8 @@ export default async function AdminPage({
                 pathname: "/admin",
                 query: {
                   ...(companyId ? { companyId } : {}),
+                  ...(companySearch ? { companySearch } : {}),
+                  sort: sort.key, direction: sort.direction,
                   ...(t.key === "all" ? {} : { venue: t.key }),
                 },
               }}
@@ -178,9 +187,12 @@ export default async function AdminPage({
 
         <form method="GET" className="admin-company-filter mt-6 flex flex-wrap items-center gap-3">
           {venueTab !== "all" && <input type="hidden" name="venue" value={venueTab} />}
+          <input type="hidden" name="sort" value={sort.key} />
+          <input type="hidden" name="direction" value={sort.direction} />
           <label className="text-xs font-bold text-muted" htmlFor="companyId">
             회사별 보기
           </label>
+          <input type="search" name="companySearch" aria-label="회사명 검색" placeholder="회사명 검색" defaultValue={companySearch ?? ""} className={`w-56 ${FIELD}`} />
           <select
             id="companyId"
             name="companyId"
@@ -194,10 +206,10 @@ export default async function AdminPage({
               </option>
             ))}
           </select>
-          <button type="submit" className={btnClass("secondary", "sm")}>
+          <button type="submit" className={`${btnClass("primary", "md")} ${editor.actionButton}`}>
             적용
           </button>
-          {companyId && (
+          {(companyId || companySearch) && (
             <Link href={venueTab === "all" ? "/admin" : `/admin?venue=${venueTab}`} className={QUIET_BTN}>
               필터 해제
             </Link>
@@ -205,13 +217,13 @@ export default async function AdminPage({
         </form>
 
         <div className="mt-6">
-          <AdminQuoteTable rows={rows} total={total} canDelete={isProAdminOrAbove(user)} />
+          <AdminQuoteTable key={`${companyId ?? ""}:${companySearch ?? ""}:${venueTab}:${sort.key}:${sort.direction}:${page}`} rows={rows} total={total} canDelete={isProAdminOrAbove(user)} sort={sort} />
           <Pagination
             page={page}
             totalPages={totalPages}
             total={total}
             basePath="/admin"
-            params={{ companyId, venue: venueTab === "all" ? undefined : venueTab }}
+            params={{ companyId, companySearch, sort: sort.key, direction: sort.direction, venue: venueTab === "all" ? undefined : venueTab }}
           />
         </div>
       </main>

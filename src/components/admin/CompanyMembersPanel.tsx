@@ -13,7 +13,7 @@ import { useDialog } from "@/components/ui/Dialog";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { INFO_NOTE, LINK_BTN } from "@/components/admin/adminUi";
-import { btnClass } from "@/components/ui/kit";
+import { btnClass } from "@/components/admin/adminButton";
 import { displayEmail } from "@/lib/format";
 import { useMemberActions } from "./useMemberActions";
 

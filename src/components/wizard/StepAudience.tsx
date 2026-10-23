@@ -269,7 +269,7 @@ function AudienceFields({
                     aria-label={tStr("audience.removeTicketTypeAriaLabel", "삭제")}
                     className={ROW_REMOVE_BTN}
                   >
-                    ✕
+                    삭제
                   </button>
                 </div>
               </div>

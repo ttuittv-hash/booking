@@ -1,5 +1,7 @@
 "use client";
 
+import { AdminCategoryPicker } from "./AdminCategoryPicker";
+import editorStyles from "./AdminEditor.module.css";
 import { useContentTransport } from "./ContentTransport";
 
 import { useRouter } from "next/navigation";
@@ -7,14 +9,12 @@ import { useDialog } from "@/components/ui/Dialog";
 import { useState } from "react";
 import { useQueryTab } from "@/components/admin/useQueryTab";
 import { ADDON_CATEGORY_LABEL, VENUES, type AddonCategory, type RateTable } from "@/lib/pricing/types";
-import { btnClass } from "@/components/ui/kit";
+import { btnClass } from "@/components/admin/adminButton";
 import { MoneyInput } from "@/components/ui/MoneyInput";
 import {
   FIELD,
   FIELD_NUM,
   HELP,
-  LINK_BTN,
-  PANEL,
   REMOVE_BTN,
   SECTION_TITLE,
   SUB_TITLE,
@@ -96,12 +96,25 @@ export function RatesForm({
   const [newItemUnitLabel, setNewItemUnitLabel] = useState("");
   const [newItemPrice, setNewItemPrice] = useState(0);
 
+  const [rateView, setRateView] = useState<"addons" | "ratios">("addons");
+  const [extraCategories, setExtraCategories] = useState<AddonCategory[]>([]);
+  const [categoryFilter, setCategoryFilter] = useState("all");
+  const [search, setSearch] = useState("");
+  const [priceFilter, setPriceFilter] = useState("all");
+  const filteredAddons = addons.filter((a) =>
+    (categoryFilter === "all" || a.category === categoryFilter) &&
+    `${a.name} ${a.unitLabel}`.toLowerCase().includes(search.trim().toLowerCase()) &&
+    (priceFilter === "all" || (priceFilter === "editable" ? a.editable : !a.editable)),
+  );
+
   const grouped = new Map<string, typeof addons>();
   for (const addon of addons) {
     const list = grouped.get(addon.category) ?? [];
     list.push(addon);
     grouped.set(addon.category, list);
   }
+
+  for (const category of extraCategories) { if (!grouped.has(category)) grouped.set(category, []); }
 
   function openNewItemForm(category: AddonCategory) {
     setNewItemCategory(category);
@@ -168,26 +181,30 @@ export function RatesForm({
   }
 
   return (
-    <div className="mt-8 space-y-8">
+    <div className={`mt-8 space-y-8 ${editorStyles.workspace}`}>
       {/* 1뎁스: 공간 — 아레나와 중형공연장은 요율 체계가 달라 화면을 나눈다(그쪽 개편). */}
-      <div className="flex gap-1 border-b border-border/25">
+      <div className={editorStyles.venueTabs}>
         {(["arena", "medium-hall"] as const).map((v) => (
-          <button key={v} type="button" onClick={() => setVenueUrl(VENUE_TO_URL[v])} className={tabCls(venueTab === v)}>
+          <button key={v} type="button" onClick={() => setVenueUrl(VENUE_TO_URL[v])} aria-pressed={venueTab === v} className={tabCls(venueTab === v)}>
             {VENUES.find((venue) => venue.id === v)?.name ?? v}
           </button>
         ))}
       </div>
 
-      {venueTab === "arena" && (
+      {venueTab === "arena" && <nav className={editorStyles.workTabs} aria-label="요금표 편집 영역">
+        <button type="button" aria-pressed={rateView === "addons"} onClick={() => setRateView("addons")}><strong>부대시설 단가</strong><span>카테고리별 항목 이름과 공통 단가 편집</span></button>
+        <button type="button" aria-pressed={rateView === "ratios"} onClick={() => setRateView("ratios")}><strong>공통 요율</strong><span>추가 일수와 제외 요일의 계산 비율</span></button>
+      </nav>}
+      {venueTab === "arena" && rateView === "ratios" && (
       <>
-      <section className={PANEL}>
+      <section className={editorStyles.optionPanel}>
         <h2 className={SECTION_TITLE}>공통 요율</h2>
         <p className={`mt-2 ${HELP}`}>
           패키지별 기본 대관료는 &ldquo;패키지 관리&rdquo;에서 함께 편집합니다. 여기서는 모든
           패키지에 공통 적용되는 비율과 부대시설 단가만 관리합니다.
         </p>
 
-        <div className="mt-5 grid grid-cols-1 items-center gap-2 border-t border-border/25 pt-5 sm:grid-cols-[1fr_200px] sm:gap-3">
+        <div className={editorStyles.settingRow}>
           <div>
             <div className="text-s font-bold">추가 일수 단가 비율</div>
             <div className={HELP}>
@@ -200,11 +217,11 @@ export function RatesForm({
             step={0.05}
             value={extraWeekRatio}
             onChange={(e) => setExtraWeekRatio(Number(e.target.value) || 0)}
-            className={`${FIELD} text-right tabular-nums`}
+            aria-label="추가 일수 단가 비율" className={`${FIELD} text-right tabular-nums`}
           />
         </div>
 
-        <div className="mt-5 grid grid-cols-1 items-center gap-2 border-t border-border/25 pt-5 sm:grid-cols-[1fr_200px] sm:gap-3">
+        <div className={editorStyles.settingRow}>
           <div>
             <div className="text-s font-bold">제외 요일 할인 비율</div>
             <div className={HELP}>
@@ -215,6 +232,7 @@ export function RatesForm({
             type="number"
             min={0}
             step={0.01}
+            aria-label="제외 요일 할인 비율"
             value={dayExclusionDiscountRatio}
             onChange={(e) => setDayExclusionDiscountRatio(Number(e.target.value) || 0)}
             className={`${FIELD} text-right tabular-nums`}
@@ -225,10 +243,10 @@ export function RatesForm({
       )}
 
       {venueTab === "medium-hall" && (
-      <section className={PANEL}>
+      <section className={editorStyles.optionPanel}>
         <h2 className={SECTION_TITLE}>중형공연장 요금 (DAILY)</h2>
         <p className={`mt-1 ${HELP}`}>
-          중형공연장은 패키지가 없는 일 단위 요금제입니다. 1일 3회 이상 공연은 자동 계산하지
+          중형공연장 일 단위 요금의 전용 사용료와 시설 사용료를 관리합니다. 1일 3회 이상 공연은 자동 계산하지
           않고 운영자 확인이 필요한 항목으로 남습니다.
         </p>
 
@@ -253,7 +271,7 @@ export function RatesForm({
             });
           };
           return (
-            <div key={key} className="mt-4 border-t border-border-soft pt-4">
+            <div key={key} className={editorStyles.rateGroup}>
               <div className="flex flex-wrap items-baseline justify-between gap-2">
                 <div className={SUB_TITLE}>{label}</div>
                 <div className="text-s font-bold tabular-nums">
@@ -291,7 +309,7 @@ export function RatesForm({
         ).map(([key, label]) => (
           <div
             key={key}
-            className="mt-4 grid grid-cols-1 items-center gap-2 border-t border-border-soft pt-4 sm:grid-cols-[1fr_200px] sm:gap-3"
+            className={editorStyles.settingRow}
           >
             <div className={SUB_TITLE}>{label}</div>
             <MoneyInput
@@ -302,7 +320,7 @@ export function RatesForm({
           </div>
         ))}
 
-        <div className="mt-4 grid grid-cols-1 items-center gap-2 border-t border-border-soft pt-4 sm:grid-cols-[1fr_200px] sm:gap-3">
+        <div className={editorStyles.settingRow}>
           <div>
             <div className={SUB_TITLE}>1일 2회 공연 할증 비율</div>
             <div className={HELP}>해당 일 공연 요금 × 이 비율만큼 할증 (0.5 = 50%)</div>
@@ -311,6 +329,7 @@ export function RatesForm({
             type="number"
             min={0}
             step={0.05}
+            aria-label="1일 2회 공연 할증 비율"
             value={midHall.secondShowSurchargeRatio}
             onChange={(e) =>
               setMidHall((prev) => ({ ...prev, secondShowSurchargeRatio: Math.max(0, Number(e.target.value) || 0) }))
@@ -321,84 +340,58 @@ export function RatesForm({
       </section>
       )}
 
-      {venueTab === "arena" && (
-      <>
-      <section className={PANEL}>
+      {venueTab === "arena" && rateView === "addons" && (
+      <section className={editorStyles.optionPanel}>
         <h2 className={SECTION_TITLE}>부대시설 단가</h2>
-        <div className="mt-4 space-y-6">
-          {[...grouped.entries()].map(([category, items]) => (
-            <div key={category}>
-              <div className="mb-2 flex items-center justify-between gap-3 border-b border-border/25 pb-1.5">
-                <p className={SUB_TITLE}>
-                  {ADDON_CATEGORY_LABEL[category as keyof typeof ADDON_CATEGORY_LABEL] ?? category}
-                </p>
-                <button
-                  type="button"
-                  onClick={() => openNewItemForm(category as AddonCategory)}
-                  className={LINK_BTN}
-                >
-                  + 항목 추가
-                </button>
-              </div>
-              <div className="divide-y divide-border-soft">
-                {items.map((addon) => {
-                  const globalIndex = addons.findIndex((a) => a.id === addon.id);
-                  return (
-                    <div
-                      key={addon.id}
-                      className="grid grid-cols-1 items-center gap-2 py-2 sm:grid-cols-[1fr_160px_auto] sm:gap-3"
-                    >
-                      <span className="flex items-center gap-1.5">
-                        <input
-                          type="text"
-                          value={addon.name}
-                          onChange={(e) =>
-                            setAddons((prev) =>
-                              prev.map((a, idx) => (idx === globalIndex ? { ...a, name: e.target.value } : a)),
-                            )
-                          }
-                          className={`${FIELD} flex-1`}
-                        />
-                        <span className="shrink-0 text-xs text-muted">({addon.unitLabel})</span>
-                      </span>
-                      {addon.editable ? (
-                        <MoneyInput
-                          value={addon.unitPrice}
-                          onChange={(value) =>
-                            setAddons((prev) =>
-                              prev.map((a, idx) => (idx === globalIndex ? { ...a, unitPrice: value } : a)),
-                            )
-                          }
-                          className={`${FIELD} text-right tabular-nums`}
-                        />
-                      ) : (
-                        <span className="text-right text-xs text-muted">실사용 정산 (편집 불가)</span>
-                      )}
-                      <button
-                        type="button"
-                        onClick={() => removeAddon(addon.id, addon.name)}
-                        className={REMOVE_BTN}
-                      >
-                        삭제
-                      </button>
-                    </div>
-                  );
-                })}
-              </div>
+        <p className={`mt-2 ${HELP}`}>모든 패키지에 공통으로 적용되는 항목입니다. 카테고리나 검색으로 찾은 뒤 이름과 단가를 수정하세요.</p>
+        <div className={editorStyles.catalog}>
+          <nav className={editorStyles.chips} aria-label="요금 항목 카테고리">
+            <button type="button" aria-pressed={categoryFilter === "all"} onClick={() => setCategoryFilter("all")}>전체 <span>{addons.length}</span></button>
+            {[...grouped.entries()].map(([category, items]) => <button type="button" key={category} aria-pressed={categoryFilter === category} onClick={() => setCategoryFilter(category)}>{ADDON_CATEGORY_LABEL[category as AddonCategory] ?? category} <span>{items.length}</span></button>)}
 
-              {newItemCategory === category && (
-                <div className="mt-3 flex flex-col gap-2 border-l-2 border-accent bg-background p-3 sm:flex-row sm:items-center">
+            <AdminCategoryPicker present={[...grouped.keys()]} onSelect={key => { setExtraCategories(prev => [...prev, key]); setCategoryFilter(key); setSearch(""); setPriceFilter("all"); }} />
+          </nav>
+
+          <div className={editorStyles.catalogTools}>
+            <label>항목 검색<input type="search" className={FIELD} value={search} onChange={e => setSearch(e.target.value)} placeholder="항목명 또는 단위 검색" /></label>
+            <label>정산 방식<select className={FIELD} value={priceFilter} onChange={e => setPriceFilter(e.target.value)}><option value="all">전체 항목</option><option value="editable">단가 편집 가능</option><option value="metered">실사용 정산</option></select></label>
+            <span aria-live="polite">{filteredAddons.length}개 항목</span>
+          </div>
+          <div className={editorStyles.catalogTableWrap}>
+            <table className={`${editorStyles.catalogTable} ${editorStyles.rateTable}`}>
+              <colgroup><col className={editorStyles.itemColumn} /><col className={editorStyles.priceColumn} /><col className={editorStyles.actionColumn} /></colgroup>
+              <thead><tr><th scope="col">항목 / 단위</th><th scope="col">공통 단가</th><th scope="col">관리</th></tr></thead>
+              <tbody>{filteredAddons.map(addon => <tr key={addon.id}>
+                <td><input aria-label={`${addon.name} 항목명`} value={addon.name} className={FIELD} onChange={e => setAddons(prev => prev.map(a => a.id === addon.id ? {...a, name:e.target.value} : a))} /><small>{ADDON_CATEGORY_LABEL[addon.category]} · {addon.unitLabel}</small></td>
+                <td>{addon.editable ? <MoneyInput aria-label={`${addon.name} 단가`} value={addon.unitPrice} className={FIELD_NUM} onChange={value => setAddons(prev => prev.map(a => a.id === addon.id ? {...a, unitPrice:value} : a))} /> : <span className={HELP}>실사용 정산 · 단가 편집 불가</span>}</td>
+                <td><button type="button" className={REMOVE_BTN} onClick={() => removeAddon(addon.id, addon.name)} aria-label={`${addon.name} 삭제`}>삭제</button></td>
+              </tr>)}</tbody>
+            </table>
+            {filteredAddons.length === 0 && <p className={editorStyles.empty}>조건에 맞는 항목이 없습니다. 검색어나 필터를 변경해 주세요.</p>}
+          </div>
+          <div className={editorStyles.tableAdd}>
+            <button type="button" className={editorStyles.addChip} aria-expanded={newItemCategory !== null} onClick={() => newItemCategory ? setNewItemCategory(null) : openNewItemForm((categoryFilter === "all" ? addons[0]?.category ?? "SPACE" : categoryFilter) as AddonCategory)}>+ 항목 추가</button>
+          </div>
+          {newItemCategory && <div className={editorStyles.addPanel}>
+            <h3 className={SUB_TITLE}>새 요금 항목</h3>
+            <p>추가할 카테고리와 이름, 단위, 단가를 입력하세요. 요금표 저장 시 함께 반영됩니다.</p>
+            <label className={`mb-3 block ${HELP}`}>카테고리
+              <select className={FIELD} value={newItemCategory} onChange={e => setNewItemCategory(e.target.value as AddonCategory)}>
+                {Object.entries(ADDON_CATEGORY_LABEL).map(([key, label]) => <option key={key} value={key}>{label}</option>)}
+              </select>
+            </label>
+                <div className={editorStyles.addTools}>
                   <input
                     type="text"
                     autoFocus
-                    placeholder="항목 이름"
+                    aria-label="새 항목 이름" placeholder="항목 이름"
                     value={newItemName}
                     onChange={(e) => setNewItemName(e.target.value)}
                     className={`flex-1 ${FIELD}`}
                   />
                   <input
                     type="text"
-                    placeholder="단위 (예: 원/일)"
+                    aria-label="새 항목 단위" placeholder="단위 (예: 원/일)"
                     value={newItemUnitLabel}
                     onChange={(e) => setNewItemUnitLabel(e.target.value)}
                     className={`w-32 ${FIELD}`}
@@ -426,20 +419,17 @@ export function RatesForm({
                     </button>
                   </div>
                 </div>
-              )}
-            </div>
-          ))}
+          </div>}
         </div>
       </section>
-      </>
       )}
 
-      <div className="flex flex-wrap items-center gap-4 border-t border-border/25 pt-6">
+      <div className={editorStyles.saveBar}>
         <button
           type="button"
           disabled={saving}
           onClick={save}
-          className={btnClass("primary", "lg")}
+          className={editorStyles.saveButton}
         >
           {saving ? "저장 중..." : "요금표 저장 (새 버전 생성)"}
         </button>

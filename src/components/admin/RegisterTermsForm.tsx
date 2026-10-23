@@ -3,7 +3,9 @@ import { useContentTransport } from "./ContentTransport";
 
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-import { btnClass } from "@/components/ui/kit";
+import { btnClass } from "@/components/admin/adminButton";
+import { FIELD } from "./adminUi";
+import s from "./LegalContentForm.module.css";
 import type { RegisterTermsContent } from "@/lib/terms";
 
 /**
@@ -45,7 +47,7 @@ export function RegisterTermsForm({ content: initial }: { content: RegisterTerms
         setError(data?.error ?? `저장에 실패했습니다. (오류 ${res.status})`);
         return;
       }
-      setContent(data.content);
+      setContent(data.content ?? content);
       setMessage(isPreview ? "예시 화면에 저장했습니다. 실제 공개 콘텐츠에는 반영되지 않습니다." : "저장되었습니다. 회원가입 화면에 바로 반영됩니다.");
       if (!isPreview) router.refresh();
     } catch {
@@ -56,84 +58,16 @@ export function RegisterTermsForm({ content: initial }: { content: RegisterTerms
   }
 
   return (
-    <div className="space-y-6">
-      <div>
-        <h2 className="text-h6-m font-bold">가입 약관 (회원가입 동의 항목)</h2>
-        <p className="mt-1 text-xs text-muted">
-          회원가입 첫 단계에 보이는 동의 항목입니다. 공개 페이지(이용약관 · 개인정보처리방침)와는 별개의 문서입니다.
-        </p>
-        <a
-          href="/register"
-          target="_blank"
-          className="mt-2 inline-block text-xs text-accent hover:underline"
-        >
-          현재 가입 화면 보기 →
-        </a>
-      </div>
-
-      {content.documents.map((doc) => (
-        <section key={doc.kind} className="border border-border p-5">
-          <div className="flex flex-wrap items-center gap-3">
-            <span className="bg-panel-strong px-2 py-1 font-mono text-xs text-muted">{doc.kind}</span>
-            <span className={`text-xs ${doc.required ? "text-accent" : "text-muted"}`}>
-              {doc.required ? "필수 동의" : "선택 동의"}
-            </span>
-            {/* 선택 동의만 감출 수 있다 — 필수 동의를 감추면 동의 없이 가입하게 된다(2026-09-04). */}
-            {!doc.required && (
-              <label className="ml-auto flex items-center gap-2 text-xs text-muted">
-                <input
-                  type="checkbox"
-                  checked={!doc.hidden}
-                  onChange={(e) => update(doc.kind, { hidden: !e.target.checked })}
-                  className="h-4 w-4"
-                />
-                가입 화면에 표시
-              </label>
-            )}
-          </div>
-
-          <div className="mt-4 grid gap-4 sm:grid-cols-[1fr_200px]">
-            <label className="block">
-              <span className="text-s font-bold">제목</span>
-              <input
-                type="text"
-                value={doc.title}
-                onChange={(e) => update(doc.kind, { title: e.target.value })}
-                className="mt-2 w-full border border-border bg-background px-3 py-2 text-s outline-none focus:border-accent"
-              />
-            </label>
-            <label className="block">
-              <span className="text-s font-bold">버전</span>
-              <input
-                type="text"
-                value={doc.version}
-                onChange={(e) => update(doc.kind, { version: e.target.value })}
-                placeholder="예: 2026-09-04"
-                className="mt-2 w-full border border-border bg-background px-3 py-2 text-s outline-none focus:border-accent"
-              />
-            </label>
-          </div>
-
-          <label className="mt-4 block">
-            <span className="text-s font-bold">본문</span>
-            <textarea
-              value={doc.body}
-              onChange={(e) => update(doc.kind, { body: e.target.value })}
-              rows={16}
-              className="mt-2 w-full whitespace-pre-wrap border border-border bg-background px-3 py-2 font-mono text-xs leading-6 outline-none focus:border-accent"
-            />
-          </label>
-          <p className="mt-2 text-xs text-muted">
-            {doc.body.length.toLocaleString("ko-KR")}자 · 본문을 고치고 버전을 그대로 두면 저장할 때 오늘 날짜로 올라갑니다.
-          </p>
-        </section>
-      ))}
-
-      {error && <p className="text-s text-danger">{error}</p>}
-      {message && <p className="text-s text-good">{message}</p>}
-      <button type="button" disabled={saving} onClick={save} className={btnClass("primary", "md")}>
-        {saving ? "저장 중..." : "저장"}
-      </button>
-    </div>
+    <article className={s.document} aria-label="가입 동의 항목 편집">
+      <header className={s.header}><div><span className={s.eyebrow}>회원가입 문서</span><h2>가입 동의 항목</h2><p>회원가입 첫 단계에서 확인하는 동의 문서입니다. 공개 이용약관·개인정보처리방침과 별도로 관리합니다.</p></div></header>
+      <div className={s.notice}>필수 동의 항목은 항상 표시됩니다. 선택 동의 항목은 노출 여부를 변경할 수 있습니다.</div>
+      <div className={s.consentList}>{content.documents.map(doc=><div key={doc.kind} className={s.consentCard}>
+        <div className={s.consentHeading}><div><span className={s.badge}>{doc.required?"필수 동의":"선택 동의"}</span><h3>{doc.title || "제목 없는 동의 항목"}</h3></div>{!doc.required && <label className={s.toggle}><input type="checkbox" checked={!doc.hidden} onChange={e=>update(doc.kind,{hidden:!e.target.checked})}/>가입 화면에 표시</label>}</div>
+        <div className={s.metadata}><label>동의 항목 제목<input className={FIELD} value={doc.title} onChange={e=>update(doc.kind,{title:e.target.value})}/></label><label>문서 버전<input className={FIELD} value={doc.version} onChange={e=>update(doc.kind,{version:e.target.value})} placeholder="예: 2026-09-04"/></label></div>
+        <label className={s.consentBody}>동의 문서 본문<textarea className={FIELD} value={doc.body} onChange={e=>update(doc.kind,{body:e.target.value})} rows={10}/></label>
+        <p className={s.help}>{doc.body.length.toLocaleString("ko-KR")}자 · 본문을 수정하고 버전을 유지하면 저장 시 오늘 날짜로 자동 변경됩니다.</p>
+      </div>)}</div>
+      <footer className={s.footer}><button type="button" disabled={saving} onClick={save} className={btnClass("primary","md")}>{saving?"저장 중...":"가입 동의 항목 저장"}</button>{message&&<p role="status">{message}</p>}{error&&<p role="alert" className={s.error}>{error}</p>}</footer>
+    </article>
   );
 }

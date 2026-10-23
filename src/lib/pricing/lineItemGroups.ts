@@ -6,7 +6,7 @@ export function isMidHallLineItem(item: LineItem): boolean {
   return item.addonId.startsWith("midhall");
 }
 
-const CORE_LINE_IDS = new Set([
+export const CORE_LINE_IDS = new Set([
   "BASE_FEE",
   "package_discount",
   "day_exclusion_discount_prep",

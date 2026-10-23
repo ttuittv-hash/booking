@@ -1,3 +1,4 @@
+import { InquiryRow } from "@/components/admin/InquiryRow";
 import { formatDateTime } from "@/lib/format";
 import Link from "next/link";
 import { redirect } from "next/navigation";
@@ -92,7 +93,7 @@ export default async function AdminInquiriesPage({
                   inquiries.map((inquiry) => {
                     const author = inquiry.userId ? authorById.get(inquiry.userId) : undefined;
                     return (
-                      <tr key={inquiry.id} className={TR_HOVER}>
+                      <InquiryRow key={inquiry.id} href={`/admin/inquiries/${inquiry.id}`} className={TR_HOVER}>
                         <td className={TD_ID}>
                           <Link
                             href={`/admin/inquiries/${inquiry.id}`}
@@ -118,7 +119,7 @@ export default async function AdminInquiriesPage({
                             <ArrowRight />
                           </Link>
                         </td>
-                      </tr>
+                      </InquiryRow>
                     );
                   })
                 )}

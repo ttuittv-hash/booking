@@ -6,7 +6,7 @@
 // 회사만·마스킹)와 같은 오버레이 모양을 쓰되, 운영자 전용 검색(/api/admin/companies/search)
 // 이라 승인 여부와 무관하게 전체 회사를 마스킹 없이 보여준다.
 import { useState } from "react";
-import { btnClass } from "@/components/ui/kit";
+import { btnClass } from "@/components/admin/adminButton";
 import { useToast } from "@/components/ui/Toast";
 
 interface CompanyHit {

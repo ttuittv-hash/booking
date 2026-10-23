@@ -1,5 +1,6 @@
 "use client";
 
+import editorStyles from "./AdminEditor.module.css";
 import { useContentTransport } from "./ContentTransport";
 
 /*
@@ -19,13 +20,12 @@ import {
   noticeCalendarMonthBounds,
   type NoticeCalendarWindow,
 } from "@/lib/content/noticeCalendarWindow";
-import { btnClass } from "@/components/ui/kit";
+import { btnClass } from "@/components/admin/adminButton";
 import {
   FIELD,
   FIELD_LABEL,
   HELP,
   INFO_NOTE,
-  TABLE_CARD,
   TABLE_HEAD,
   TABLE_HEAD_DESC,
   TABLE_HEAD_TITLE,
@@ -89,7 +89,7 @@ export function NoticeCalendarWindowForm({
   }
 
   return (
-    <section className={`mt-10 ${TABLE_CARD}`}>
+    <section className={`mt-8 ${editorStyles.workspace} ${editorStyles.optionPanel}`}>
       <div className={TABLE_HEAD}>
         <div>
           <p className={TABLE_HEAD_TITLE}>캘린더 노출월</p>
@@ -102,7 +102,7 @@ export function NoticeCalendarWindowForm({
         </div>
       </div>
 
-      <div className="space-y-5 px-4 py-4">
+      <div className="mt-5 space-y-5">
         <label className="flex cursor-pointer items-start gap-3">
           <input
             type="checkbox"
@@ -188,7 +188,7 @@ export function NoticeCalendarWindowForm({
             type="button"
             onClick={() => void save()}
             disabled={saving || invalidRange}
-            className={btnClass("primary", "md")}
+            className={`${editorStyles.actionButton} ${btnClass("primary", "md")}`}
           >
             {saving ? "저장 중..." : "저장"}
           </button>

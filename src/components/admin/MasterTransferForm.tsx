@@ -1,10 +1,11 @@
 "use client";
 
+import editor from "./AdminEditor.module.css";
 import { useRouter } from "next/navigation";
 import { useDialog } from "@/components/ui/Dialog";
 import { useState } from "react";
-import { btnClass } from "@/components/ui/kit";
-import { FIELD, FIELD_LABEL, INFO_NOTE, PANEL, SECTION_TITLE } from "@/components/admin/adminUi";
+import { btnClass } from "./adminButton";
+import { FIELD, FIELD_LABEL, SECTION_TITLE } from "@/components/admin/adminUi";
 
 // 마스터 관리자 권한 이관 — 나 자신을 제외한 전체 운영자가 이관 후보다. 이미
 // 마스터인 계정을 골라도 동작한다(그 경우 이관 결과는 "나만 프로로 내려가고
@@ -52,7 +53,7 @@ export function MasterTransferForm({
   }
 
   return (
-    <div className={PANEL}>
+    <div className={`${editor.workspace} ${editor.section} ${editor.paddedSection}`}>
       <h2 className={SECTION_TITLE}>마스터 권한 이관</h2>
       <p className="mt-2 max-w-2xl text-s text-muted">
         마스터 관리자 권한을 다른 운영자 계정으로 넘깁니다. 대상 계정이 마스터가 되는 동시에
@@ -60,7 +61,7 @@ export function MasterTransferForm({
         합니다.
       </p>
 
-      <div className={`mt-4 max-w-2xl ${INFO_NOTE}`}>
+      <div className={editor.infoBox}>
         승격과 강등을 하나로 묶어 처리하므로, 이관 도중 마스터가 둘이거나 아무도 없는 상태는
         생기지 않습니다.
       </div>
@@ -83,16 +84,16 @@ export function MasterTransferForm({
         </label>
       </div>
 
-      <button
+      <div className={editor.saveBar}><button
         type="button"
         disabled={submitting || !targetId}
         onClick={transfer}
-        className={`${btnClass("danger", "md")} mt-5`}
+        className={`${btnClass("primary", "md")} ${editor.actionButton}`}
       >
         {submitting ? "이관 중..." : "마스터 권한 이관"}
-      </button>
+      </button></div>
 
-      {error && <p className="mt-3 border-l-2 border-danger pl-4 text-s text-danger">{error}</p>}
+      {error && <p className="mt-3 text-s text-danger">{error}</p>}
     </div>
   );
 }

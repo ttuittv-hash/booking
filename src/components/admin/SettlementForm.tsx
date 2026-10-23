@@ -4,7 +4,7 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { won } from "@/lib/format";
 import type { AddonItem, LineItem } from "@/lib/pricing/types";
-import { btnClass } from "@/components/ui/kit";
+import { btnClass } from "@/components/admin/adminButton";
 import {
   ADD_BTN,
   ERROR_NOTE,

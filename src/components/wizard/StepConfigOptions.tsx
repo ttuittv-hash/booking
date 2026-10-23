@@ -480,7 +480,7 @@ function PackagePicker({
   return (
     <div className="mb-6 border-b border-border pb-6">
       <label className="block text-s font-bold text-foreground">
-        {t("configOptions.pickerFieldLabel", "구성 선택")} *
+        {t("configOptions.pickerFieldLabel", "구성 선택")} <span className="text-danger">*</span>
       </label>
       <div className={`mt-3 grid gap-3 ${cardCols}`}>
         {packages.map((p) => {

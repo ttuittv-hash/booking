@@ -1,10 +1,11 @@
 "use client";
 
+import editor from "./AdminEditor.module.css";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import type { AdminTier } from "@/lib/pricing/types";
-import { btnClass } from "@/components/ui/kit";
-import { FIELD, FIELD_LABEL, INFO_NOTE, PANEL, SECTION_TITLE } from "@/components/admin/adminUi";
+import { btnClass } from "./adminButton";
+import { FIELD, FIELD_LABEL, SECTION_TITLE } from "@/components/admin/adminUi";
 
 const TIER_LABEL: Record<AdminTier, string> = {
   BASIC: "일반관리자",
@@ -49,7 +50,7 @@ export function PromoteUserForm() {
   }
 
   return (
-    <div className={PANEL}>
+    <div className={`${editor.workspace} ${editor.section} ${editor.paddedSection}`}>
       <h2 className={SECTION_TITLE}>기존 회원을 운영자로 승급</h2>
       <p className="mt-2 max-w-2xl text-s text-muted">
         이미 가입된 계정(신청자로 가입했던 계정 포함)을 이메일로 찾아 운영자로 전환합니다.
@@ -63,7 +64,7 @@ export function PromoteUserForm() {
           화면 자체에 들어가지 못한다(열람만 허용하던 이전 방식에서 더 좁혔다). 콘텐츠
           관리·알림 관리·1:1 문의만 접근할 수 있다(src/lib/auth.ts 의 requireProAdminPage,
           각 admin 페이지에서 강제). */}
-      <div className={`mt-4 max-w-2xl ${INFO_NOTE}`}>
+      <div className={editor.infoBox}>
         <p className="font-bold">등급별로 실제로 무엇이 갈리나요</p>
         <ul className="mt-1.5 list-disc space-y-1 pl-4">
           <li>
@@ -124,16 +125,16 @@ export function PromoteUserForm() {
         </label>
       </div>
 
-      <button
+      <div className={editor.saveBar}><button
         type="button"
         disabled={submitting || !email}
         onClick={submit}
-        className={`${btnClass("primary", "md")} mt-5`}
+        className={`${btnClass("primary", "md")} ${editor.actionButton}`}
       >
         {submitting ? "처리 중..." : "운영자로 승급"}
-      </button>
+      </button></div>
 
-      {error && <p className="mt-3 border-l-2 border-danger pl-4 text-s text-danger">{error}</p>}
+      {error && <p className="mt-3 text-s text-danger">{error}</p>}
       {success && <p className="mt-3 text-s text-foreground">{success}</p>}
     </div>
   );

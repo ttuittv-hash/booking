@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useState } from "react";
 import { won } from "@/lib/format";
-import { btnClass } from "@/components/ui/kit";
+import { btnClass } from "@/components/admin/adminButton";
 import type { CompetingCandidateFacts } from "@/lib/scoring/competingCandidate";
 import {
   ERROR_NOTE,

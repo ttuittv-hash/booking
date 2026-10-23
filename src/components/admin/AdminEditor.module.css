@@ -1,0 +1,171 @@
+.workspace {
+  /* 관리자 편집 화면 전용 기준. 위저드의 그룹화 패턴을 사용하되 토큰은 독립적이다. */
+  --admin-editor-radius:var(--admin-panel-radius,12px);
+  --admin-editor-control-radius:var(--admin-control-radius,6px);
+  --admin-editor-padding:var(--admin-panel-padding,24px);
+  --admin-editor-gap:16px;
+  --admin-editor-control-height:var(--admin-field-height,44px);
+  --admin-editor-quantity-width:100px;
+  --admin-editor-price-width:150px;
+  --admin-editor-action-width:84px;
+  min-width:0;
+}
+.section { border:var(--admin-panel-border,1px solid var(--border-soft)); border-radius:var(--admin-editor-radius); background:var(--panel); overflow:hidden; }
+.summary { display:flex; align-items:center; justify-content:space-between; gap:16px; padding:var(--admin-editor-padding); cursor:pointer; list-style:none; }
+.summary::-webkit-details-marker { display:none; }
+.summary:focus-visible { outline:2px solid var(--foreground); outline-offset:-3px; }
+.title { display:block; font-size:var(--admin-section-size,18px); font-weight:700; line-height:1.5; }
+.description { display:block; margin-top:6px; font-size:var(--admin-body-size,13px); color:var(--muted); line-height:1.7; }
+.chevron { flex-shrink:0; color:var(--muted); transition:transform 150ms; }
+.section[open]>.summary .chevron { transform:rotate(180deg); }
+.body { padding:0 var(--admin-editor-padding) var(--admin-editor-padding); }
+/* 공통 편집 카드의 표 제목과 본문 사이 간격. 실제 화면과 미리보기 모두 적용. */
+.workspace .body > :global(.admin-table-head) { padding-bottom:var(--admin-editor-gap); }
+.orientation { margin-bottom:24px; padding:var(--admin-editor-padding); border-radius:var(--admin-editor-radius); background:var(--panel); border:1px solid var(--border-soft); }
+.orientation strong { display:block; font-size:var(--admin-section-size,18px); }
+.orientation p { margin-top:8px; color:var(--muted); font-size:var(--admin-body-size,13px); line-height:1.8; }
+.workspace [data-package-editor] { display:flex; flex-direction:column; gap:var(--admin-editor-gap); }
+.workspace [data-package-editor]>* { margin-block:0; }
+@media(max-width:760px) { .workspace { --admin-editor-padding:18px; } .title { font-size:16px; } }
+
+/* 탐색과 비교: 패키지·요금표에서 재사용할 관리자 목록 규칙 */
+.catalog { margin-top:20px; min-width:0; }
+.chips { display:flex; flex-wrap:wrap; gap:8px; margin-bottom:20px; }
+.chips button { display:inline-flex; align-items:center; gap:8px; min-height:40px; padding:8px 16px; border-radius:999px; background:var(--background); border:1px solid transparent; font-size:var(--admin-body-size,13px); cursor:pointer; }
+.chips button[aria-pressed=true] { background:var(--foreground); color:var(--panel); }
+.chips span { opacity:.65; font-size:var(--admin-label-size,12px); }
+.catalogTools { display:flex; flex-wrap:wrap; align-items:end; gap:12px; margin-bottom:16px; }
+.catalogTools label { display:grid; gap:6px; font-size:var(--admin-label-size,12px); color:var(--muted); }
+.catalogTools label:first-child { flex:1; min-width:180px; }
+.catalogTools>span { padding-bottom:12px; font-size:var(--admin-label-size,12px); color:var(--muted); }
+.catalogLayout { display:grid; gap:16px; min-width:0; align-items:start; }
+.catalogTableWrap { overflow-x:auto; border:1px solid var(--border-soft); border-radius:var(--admin-editor-radius); background:var(--panel); min-width:0; }
+.catalogTable { table-layout:fixed; width:100%; min-width:540px; border-collapse:collapse; font-size:var(--admin-body-size,13px); }
+.catalogTable th { text-align:left; color:var(--muted); font-size:var(--admin-label-size,12px); background:var(--background); padding:12px; }
+.catalogTable td { padding:12px; border-top:1px solid var(--border-soft); vertical-align:middle; }
+.itemColumn { width:clamp(206px, 38%, 360px); }
+.quantityColumn { width:var(--admin-editor-quantity-width); }
+.priceColumn { width:auto; }
+.actionColumn { width:var(--admin-editor-action-width); }
+.catalogTable td:first-child { overflow-wrap:anywhere; }
+.catalogTable td:nth-child(3) input { width:calc(var(--admin-editor-price-width) - 24px); max-width:100%; }
+.catalogTable th:last-child, .catalogTable td:last-child { text-align:right; }
+.catalogTable strong { display:block; font-weight:600; }
+.catalogTable small { display:block; margin-top:6px; color:var(--muted); font-size:11px; }
+.catalogTable tr[data-selected=true] { background:var(--background); }
+.catalogTable input { width:100%; min-width:64px; }
+.catalogTable button,.detail header button { min-height:40px; padding:8px 12px; border:1px solid var(--border-soft); border-radius:var(--admin-editor-control-radius); background:var(--panel); white-space:nowrap; }
+.detail { padding:var(--admin-editor-padding); border:1px solid var(--border-soft); border-radius:var(--admin-editor-radius); background:var(--panel); min-width:0; }
+.detail header { display:flex; align-items:center; justify-content:space-between; gap:12px; }
+.detail header small,.detail>p { color:var(--muted); font-size:var(--admin-label-size,12px); line-height:1.7; }
+.detail h3 { font-size:var(--admin-section-size,18px); font-weight:700; }
+.detail>p { margin:12px 0 20px; }
+.detail [data-catalog-detail],.detail [data-catalog-detail]>div { display:flex; flex-direction:column; align-items:stretch; gap:14px; }
+.detail [data-addon-identity] { display:flex; flex-direction:column; gap:12px; }
+.detail label { display:flex; flex-wrap:wrap; gap:6px; align-items:center; }
+.detail label:has(input:not([type=checkbox])),.detail label:has(select) { flex-direction:column; align-items:stretch; }
+.detail input:not([type=checkbox]),.detail select { width:100%; }
+.empty { padding:28px; color:var(--muted); font-size:var(--admin-body-size,13px); }
+@media(min-width:1100px) { .catalogLayout[data-detail-open=true] { grid-template-columns:minmax(0,1fr) 280px; } .detail { position:sticky; top:24px; } }
+
+.optionPanel { padding:var(--admin-editor-padding); border:1px solid var(--border-soft); border-radius:var(--admin-editor-radius); background:var(--panel); }
+
+/* 탐색 단계: 패키지 선택 → 작업 영역 → 항목 유형 → 카테고리 필터 */
+.packageSelector { margin-top:20px; padding:20px; border:1px solid var(--border-soft); border-radius:var(--admin-editor-radius); background:var(--panel); }
+.selectorHeading { display:flex; flex-wrap:wrap; align-items:start; justify-content:space-between; gap:12px; font-size:var(--admin-body-size,13px); }
+.packageChoices { display:flex; flex-wrap:wrap; gap:8px; margin-top:16px; }
+.packageChoices button { min-height:44px; padding:8px 22px; border:1px solid var(--border-soft); border-radius:var(--admin-editor-control-radius); background:var(--panel); }
+.packageChoices button[aria-pressed=true] { background:var(--foreground); color:var(--panel); border-color:var(--foreground); }
+.packageManager { max-width:100%; }
+.packageManager summary { cursor:pointer; text-decoration:underline; text-underline-offset:4px; padding:4px; }
+.packageManager[open] { width:100%; padding:16px; border:1px solid var(--border-soft); border-radius:var(--admin-editor-control-radius); }
+.packageManager p,.addPanel p { font-size:var(--admin-label-size,12px); color:var(--muted); line-height:1.7; margin:8px 0 12px; }
+.managementRow { display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:12px; padding:12px 0; border-bottom:1px solid var(--border-soft); }
+.managementRow>div { display:flex; flex-wrap:wrap; gap:12px; }
+.packageManager button { min-height:36px; padding:4px 8px; }
+.packageManager button:disabled { opacity:.35; }
+.workTabs { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); border-bottom:1px solid var(--border-soft); gap:16px; }
+.workTabs button { text-align:left; padding:16px 12px; border-bottom:3px solid transparent; color:var(--muted); }
+.workTabs button[aria-pressed=true] { border-color:var(--foreground); color:var(--foreground); }
+.workTabs strong { display:block; font-size:16px; }
+.workTabs span { display:block; font-size:var(--admin-label-size,12px); margin-top:6px; line-height:1.6; }
+.subnavLabel { margin:20px 0 8px; font-size:var(--admin-label-size,12px); color:var(--muted); }
+.typeTabs { display:flex; flex-wrap:wrap; gap:4px; padding:4px; background:var(--panel); border:1px solid var(--border-soft); border-radius:var(--admin-editor-control-radius); width:fit-content; margin-bottom:16px; }
+.typeTabs button { padding:10px 14px; font-size:var(--admin-body-size,13px); border-radius:4px; }
+.typeTabs button[aria-pressed=true] { background:var(--background); font-weight:700; }
+.chips .addChip { border:1px dashed var(--border-soft); background:var(--panel); }
+.addPanel { padding:16px; background:var(--background); border-radius:var(--admin-editor-control-radius); margin-bottom:16px; }
+.addTools { display:flex; flex-wrap:wrap; align-items:center; gap:12px; }
+.addTools select { max-width:240px; }
+@media(max-width:600px) { .workTabs { gap:4px; } .workTabs button { padding-inline:6px; } .workTabs strong { font-size:var(--admin-control-text-size,14px); } }
+
+.openDescription { display:none; }
+.section[open] > .summary .closedDescription { display:none; }
+.section[open] > .summary .openDescription { display:block; }
+
+/* 요금 편집 표: 이름과 단가를 왼쪽에 묶고 관리 동작은 오른쪽 끝에 둔다. */
+.rateTable td:nth-child(2) input { width:calc(var(--admin-editor-price-width) - 24px); max-width:100%; }
+.rateTable td:first-child input { max-width:320px; }
+.rateTable td:last-child button { color:var(--danger); background:transparent; border-color:transparent; }
+
+.workspace :global(.admin-field) { min-height:var(--admin-editor-control-height); border-radius:var(--admin-editor-control-radius); font-size:var(--admin-body-size,13px); }
+
+.tableAdd { margin-block:16px; }
+.tableAdd button { box-sizing:border-box; width:100%; padding:0 16px; height:44px; min-height:44px; line-height:20px; border:1px dashed var(--border-soft); border-radius:var(--admin-editor-control-radius); background:var(--panel); font-size:var(--admin-body-size,13px); text-align:center; }
+
+.categoryPicker { position:relative; }
+.categoryPickerPanel { position:relative; margin-top:8px; z-index:5; width:280px; max-width:calc(100vw - 48px); padding:16px; border:1px solid var(--border-soft); border-radius:var(--admin-editor-radius); background:var(--panel); box-shadow:0 8px 24px rgb(0 0 0 / .08); }
+.categoryPickerPanel strong { font-size:var(--admin-body-size,13px); }
+.categoryPickerPanel p { margin:8px 0 12px; color:var(--muted); font-size:var(--admin-label-size,12px); line-height:1.7; }
+.categoryPickerPanel button { margin:4px; }
+
+.venueTabs { display:flex; flex-wrap:wrap; gap:0 28px; border-bottom:1px solid var(--border-soft); }
+.workspace .venueTabs button { display:flex; align-items:center; min-height:56px; padding:16px 0; border:0; border-bottom:3px solid transparent; border-radius:0; background:transparent; color:var(--muted); font-size:var(--admin-control-text-size,14px); line-height:20px; font-weight:400; }
+.workspace .venueTabs button:is([aria-pressed=true],[aria-selected=true]) { border-bottom-color:var(--foreground); color:var(--foreground); font-weight:700; }
+
+/* 보조 설명 유무와 관계없이 요금표 입력창의 시작선을 맞춘다. */
+.rateTable td { vertical-align:top; }
+.rateTable td:last-child button { min-height:var(--admin-editor-control-height); }
+
+.settingGroup { padding:12px; border:1px solid var(--border-soft); border-radius:var(--admin-editor-control-radius); background:var(--background); }
+.settingGroup label { font-size:var(--admin-body-size,13px); font-weight:600; }
+.settingGroup p { margin:8px 0 0; color:var(--muted); font-size:var(--admin-label-size,12px); line-height:1.7; }
+.detail [data-addon-identity] { width:100%; align-items:stretch; }
+.detail .settingGroup label { display:grid; grid-template-columns:16px minmax(0,1fr); align-items:start; gap:8px; }
+.detail .settingGroup input[type=checkbox] { margin-top:3px; width:14px; }
+
+/* 설명은 보조 아이콘으로 제공하고 체크 설정은 한 줄 구조를 유지한다. */
+.settingGroup { display:flex; align-items:flex-start; gap:8px; padding:6px 0; border:0; background:transparent; }
+.settingGroup label { flex:1; min-width:0; }
+.helpTooltip { position:relative; display:inline-flex; flex-shrink:0; }
+.detail .helpTooltip button,.helpTooltip button { display:inline-flex; align-items:center; justify-content:center; width:20px; height:20px; min-height:20px; padding:0; border:1px solid var(--muted); border-radius:50%; background:var(--panel); color:var(--muted); font-size:var(--admin-label-size,12px); }
+.helpTooltip [role=tooltip] { display:none; position:absolute; right:0; top:28px; width:220px; max-width:70vw; padding:12px; border:1px solid var(--border-soft); border-radius:var(--admin-editor-control-radius); background:var(--foreground); color:var(--panel); font-size:var(--admin-label-size,12px); line-height:1.7; z-index:10; box-shadow:0 6px 20px rgb(0 0 0 / .12); }
+.helpTooltip:hover [role=tooltip],.helpTooltip:focus-within [role=tooltip] { display:block; }
+.textEditorTable { min-width:640px; }
+.textEditorTable td:nth-child(3) input { width:100%; }
+.textEditorTable td:last-child button { color:var(--danger); border-color:transparent; background:transparent; }
+
+.toggleField > label { display:flex; align-items:flex-start; gap:8px; margin-bottom:6px; font-size:var(--admin-label-size,12px); color:var(--muted); }
+.toggleField > label input { flex-shrink:0; margin-top:2px; }
+.toggleField > input { width:100%; }
+
+.actionButton { border-radius:var(--admin-editor-control-radius,var(--admin-control-radius,6px)); }
+
+/* 저장 범위는 구역 끝에 배치하고 모든 편집기에서 같은 크기로 표시한다. */
+.saveBar { display:flex; align-items:center; justify-content:flex-end; flex-wrap:wrap; gap:16px; padding-top:20px; margin-top:24px; border-top:1px solid var(--border-soft); }
+.saveBar[hidden] { display:none; }
+.saveBar > :not(button) { margin-right:auto; font-size:var(--admin-body-size,13px); color:var(--muted); }
+.saveButton { composes: button medium from "./AdminButton.module.css"; display:inline-flex; align-items:center; justify-content:center; border:1px solid var(--foreground); background:var(--foreground); color:var(--panel); cursor:pointer; }
+.workspace .saveButton:hover { opacity:.85; }
+.workspace .saveButton:disabled { opacity:.4; cursor:wait; }
+.workspace .saveButton:focus-visible { outline:1px solid var(--foreground); outline-offset:3px; }
+.settingRow { display:grid; grid-template-columns:minmax(0,1fr) 180px; align-items:center; gap:24px; padding:20px; margin-top:16px; border:1px solid var(--border-soft); border-radius:var(--admin-editor-radius); background:var(--background); }
+.settingRow input { background:var(--panel); }
+.rateGroup { margin-top:20px; padding:20px; border:1px solid var(--border-soft); border-radius:var(--admin-editor-radius); background:var(--background); }
+.rateGroup input { background:var(--panel); }
+@media(max-width:600px) { .settingRow { grid-template-columns:1fr; gap:12px; padding:16px; }.rateGroup { padding:16px; }.saveBar .saveButton { width:100%; } }
+
+.paddedSection { padding:var(--admin-editor-padding); }
+
+/* 설명문과 구분되는 보조 안내. 좌측 강조선이나 그림자를 사용하지 않는다. */
+.infoBox { margin-top:16px; padding:16px 20px; background:var(--background); border:0; border-radius:var(--admin-editor-control-radius,var(--admin-control-radius,6px)); color:var(--muted); font-size:var(--admin-body-size,13px); line-height:1.8; box-shadow:none; }

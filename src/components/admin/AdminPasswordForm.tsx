@@ -1,8 +1,9 @@
 "use client";
 
 import { useState } from "react";
-import { btnClass } from "@/components/ui/kit";
-import { FIELD } from "./adminUi";
+import { btnClass } from "./adminButton";
+import editor from "./AdminEditor.module.css";
+import { FIELD, SECTION_TITLE } from "./adminUi";
 import { PasswordInput } from "@/components/ui/PasswordInput";
 
 export function AdminPasswordForm() {
@@ -36,8 +37,8 @@ export function AdminPasswordForm() {
   }
 
   return (
-    <section className="border border-border bg-background p-5">
-      <h2 className="type-kr-heading text-h6-m">비밀번호 변경</h2>
+    <section className={`${editor.workspace} ${editor.section} ${editor.paddedSection}`}>
+      <h2 className={SECTION_TITLE}>비밀번호 변경</h2>
       <div className="mt-4 max-w-sm space-y-3">
         <label className="block">
           <span className="mb-1.5 block text-xs font-bold text-muted">현재 비밀번호</span>
@@ -61,14 +62,14 @@ export function AdminPasswordForm() {
       </div>
       {error && <p className="mt-3 text-s text-danger">{error}</p>}
       {message && <p className="mt-3 text-s text-good">{message}</p>}
-      <button
+      <div className={editor.saveBar}><button
         type="button"
         disabled={saving || !currentPassword || newPassword.length < 8}
         onClick={save}
-        className={`mt-4 ${btnClass("primary", "md")}`}
+        className={`${btnClass("primary", "md")} ${editor.actionButton}`}
       >
         {saving ? "변경 중..." : "비밀번호 변경"}
-      </button>
+      </button></div>
     </section>
   );
 }

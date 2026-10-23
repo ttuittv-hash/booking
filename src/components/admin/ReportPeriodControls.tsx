@@ -1,6 +1,6 @@
 "use client";
 import { useState } from "react";
-import { btnClass } from "@/components/ui/kit";
+import { btnClass } from "@/components/admin/adminButton";
 import { FIELD } from "./adminUi";
 import s from "./AdminReportPreview.module.css";
 export function ReportPeriodControls({onChange,inline=false}:{onChange:(range:string[])=>void;inline?:boolean}){

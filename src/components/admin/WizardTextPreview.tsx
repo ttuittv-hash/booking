@@ -1,18 +1,15 @@
 "use client";
 import { useContentTransport } from "./ContentTransport";
+import { WizardPreviewWorkspace } from "./WizardPreviewWorkspace";
 
-import { useMemo, useState, type ReactNode } from "react";
-import { useRouter } from "next/navigation";
-import { useQueryTab } from "./useQueryTab";
+import { Children, isValidElement, useMemo, useState, type ReactNode } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import type {
   ScreenTextContent,
   VenueRateContent,
   WizardStepTexts,
 } from "@/lib/content/pageContent";
-import {
-  WizardTextContext,
-  type WizardTextApi,
-} from "@/lib/content/wizardText";
+
 import { calculateQuote } from "@/lib/pricing/calculateQuote";
 import { packagesForVenue } from "@/lib/pricing/rateTableUtils";
 import { resolveSelectedDates } from "@/lib/pricing/dateRange";
@@ -48,7 +45,7 @@ import { StepSafetyPledge } from "@/components/wizard/StepSafetyPledge";
 import { Step5Estimate } from "@/components/wizard/Step5Estimate";
 import { Step6Submit } from "@/components/wizard/Step6Submit";
 import { ContentFormShell } from "./fields";
-import { HELP } from "./adminUi";
+
 import {
   STEP3_DEFAULT_SLOT_ORDER,
   STEP3_SLOT_LABELS,
@@ -226,82 +223,6 @@ function LivePreview({ children }: { children: ReactNode }) {
   return <div className="pointer-events-none select-none">{children}</div>;
 }
 
-/** t()가 편집 모드에서 반환하는 값 — 실제로 보이는 텍스트 노드 그 자리를 그대로
- * 편집 입력으로 바꿔치기한다. contentEditable + onBlur 커밋을 쓰는 이유: 값을 매
- * 타이핑마다 state로 올리면(controlled input) 리렌더 때 커서 위치가 튄다 — 여기서는
- * blur(포커스 아웃)할 때만 한 번 커밋해서 그 문제를 피한다. pointer-events-auto를
- * 직접 달아서 LivePreview의 pointer-events-none을 이 노드에서만 되살린다.
- *
- * onClick에서 preventDefault를 거는 이유: 안전관리 서약서 체크박스 항목처럼 이
- * 텍스트가 <label>(체크박스와 함께) 안에 있는 경우, "라벨 클릭 = 연결된 입력
- * 활성화"는 그 click 이벤트가 label까지 버블링됐을 때 브라우저가 처리하는
- * **기본 동작**이다 — stopPropagation(리스너 전파 차단)으로도, mousedown에
- * preventDefault를 거는 것으로도 안 막혔고(둘 다 실제로 시도해서 체크박스가
- * 계속 포커스를 가져가는 걸 확인함), click 이벤트 자체에 preventDefault를 걸어야
- * 막혔다 — 같은 이벤트가 버블링되는 동안 어느 시점에서든 preventDefault를 부르면
- * 그 이벤트가 나중에 label에 도달했을 때의 기본 동작이 취소된다.
- * contentEditable의 포커스·캐럿 배치는 mousedown 시점에 이미 끝나 있어(클릭은
- * mousedown 다음에 온다) 이 preventDefault와 무관하게 정상 동작한다. */
-function InlineEditText({
-  value,
-  onChange,
-}: {
-  value: string;
-  onChange: (v: string) => void;
-}) {
-  return (
-    <span
-      contentEditable
-      suppressContentEditableWarning
-      onClick={(e) => e.preventDefault()}
-      onBlur={(e) => {
-        const next = e.currentTarget.textContent ?? "";
-        if (next !== value) onChange(next);
-      }}
-      className="inline whitespace-pre-wrap break-words border-b border-dashed border-border-soft pointer-events-auto outline-none focus:border-accent"
-    >
-      {value}
-    </span>
-  );
-}
-
-/** t()를 통하지 않고 tStr()로만 노출되는 문구(placeholder·aria-label 등 DOM
- * 속성값 — 화면에 상시 보이는 자리가 없어 그 위치에 편집 입력을 끼워 넣을 수 없다)를
- * 모아 보여주는 보충 패널. 컴포넌트 트리를 하나하나 손으로 나열하지 않고, 렌더링
- * 중 tStr() 호출 자체가 자기 key·fallback을 이 Map에 등록하게 해서 자동으로
- * 모은다 — 나중에 어떤 컴포넌트가 새 tStr()을 추가해도 이 목록에 자동으로 잡힌다. */
-function AttrFieldsPanel({
-  fields,
-  overrides,
-  onChangeString,
-}: {
-  fields: Map<string, string>;
-  overrides: Record<string, string>;
-  onChangeString: (key: string, value: string) => void;
-}) {
-  if (fields.size === 0) return null;
-  return (
-    <div className="mt-6 border border-dashed border-border-soft bg-panel/60 p-3">
-      <p className="mb-2 text-2xs font-bold uppercase tracking-wide text-muted">
-        ✎ 속성 문구(placeholder 등) — 화면에 항상 보이는 자리가 없어 여기 따로
-        모았습니다
-      </p>
-      <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
-        {[...fields.entries()].map(([key, fallback]) => (
-          <label key={key} className="block">
-            <input
-              type="text"
-              value={overrides[key] || fallback}
-              onChange={(e) => onChangeString(key, e.target.value)}
-              className={`${EDITABLE_INPUT} border-border-soft px-2 py-1`}
-            />
-          </label>
-        ))}
-      </div>
-    </div>
-  );
-}
-
 /** [신규 2026-09-07] "그 영역을 잡고 없애줘" — 각 STEP 제목 아래 리드 한 줄을
  * 통째로 켜고 끄는 작은 체크박스. disabledFields 관례를 그대로 따른다(단일 필드
  * 키 하나만 다루므로 FieldOrderPanel처럼 순서까지 다루는 큰 패널은 필요 없다). */
@@ -316,7 +237,7 @@ function LeadToggle({
 }) {
   const disabled = ctx.disabledFields.includes(fieldId);
   return (
-    <label className="flex w-fit items-center gap-1.5 text-2xs font-bold whitespace-nowrap text-muted">
+    <label data-editor-key={fieldId} className="flex w-fit items-center gap-1.5 text-2xs font-bold whitespace-nowrap text-muted">
       <input
         type="checkbox"
         checked={!disabled}
@@ -334,9 +255,37 @@ function LeadToggle({
  * 같이 둔다. validatePerformanceInfoStep 등은 컴포넌트가 아니라 렌더 중에 호출되지
  * 않으므로(버튼 클릭 시점에만 평가) AttrFieldsPanel처럼 자동 수집이 안 된다 —
  * 검증 함수의 return문과 하나씩 맞춘 고정 목록을 수동으로 들고 있는다. */
+const validationFieldLabels: Record<string,string> = {
+  "validationMessage.performanceInfo.applicantCompanyType": "신청 기업 유형",
+  "validationMessage.performanceInfo.applicantCompanyType.other": "신청 기업 유형 · 기타 상세",
+  "validationMessage.performanceInfo.applicantContact": "담당자 정보 · 최소 인원",
+  "validationMessage.performanceInfo.applicantContact.role": "담당자 · 역할",
+  "validationMessage.performanceInfo.applicantContact.name": "담당자 · 성명",
+  "validationMessage.performanceInfo.applicantContact.phone": "담당자 · 연락처",
+  "validationMessage.performanceInfo.eventBasics.eventName": "공연·행사명",
+  "validationMessage.performanceInfo.eventBasics.artist": "아티스트·출연진",
+  "validationMessage.performanceInfo.eventBasics.organizer": "주최·주관·기획",
+  "validationMessage.performanceInfo.eventTypes": "행사 유형",
+  "validationMessage.performanceInfo.ageRating": "공연 등급",
+  "validationMessage.performanceInfo.ageRating.limitDetail": "연령 제한 상세",
+  "validationMessage.performanceInfo.eventBasics.ticketOpenExpectedDate": "티켓 오픈 예정일",
+  "validationMessage.performanceInfo.seatingTypes": "객석 형태",
+  "validationMessage.performanceInfo.seatingTypes.other": "객석 형태 · 기타 상세",
+  "validationMessage.performanceInfo.retractableSeatUse": "수납식 객석 사용 여부",
+  "validationMessage.performanceInfo.retractableSeatUse.floors": "수납식 객석 · 층별 사용 여부",
+  "validationMessage.performanceInfo.stageTypes": "무대 형태",
+  "validationMessage.performanceInfo.stageTypes.other": "무대 형태 · 기타 상세",
+  "validationMessage.performanceInfo.credibility.castContractStatus": "출연진 계약 상태",
+  "validationMessage.performanceInfo.credibility.masking": "출연 계약 증빙 · 마스킹 동의",
+  "validationMessage.performanceInfo.credibility.safetyPledgeSigned": "안전규정 준수 확약서",
+  "validationMessage.audience.ancillaryBusinessPlans": "부대사업 계획",
+  "validationMessage.audience.ancillaryBusinessPlans.other": "부대사업 계획 · 기타 상세",
+  "validationMessage.safetyPledge.items": "안전관리 서약 항목",
+  "validationMessage.safetyPledge.signature": "서명"
+};
+
 function ValidationMessagesPanel({
   ctx,
-  title,
   entries,
 }: {
   ctx: RenderCtx;
@@ -346,16 +295,18 @@ function ValidationMessagesPanel({
   return (
     <div className="border border-border-soft bg-panel/60 p-3">
       <p className="mb-2 text-2xs font-bold uppercase tracking-wide text-muted">
-        ✎ {title} — 미입력 안내 문구
+        미입력 안내 문구
       </p>
       <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
         {entries.map(({ key, fallback }) => (
-          <label key={key} className="block">
+          <label key={key} className="block" data-editor-key={key}>
+            <span>{validationFieldLabels[key] ?? fallback}</span>
             <input
               type="text"
-              value={ctx.wizardStrings[key] || fallback}
+              aria-label={fallback}
+              value={ctx.wizardStrings[key] ?? fallback}
               onChange={(e) => ctx.setString(key, e.target.value)}
-              className={`${EDITABLE_INPUT} border-border-soft px-2 py-1`}
+              className="field-base"
             />
           </label>
         ))}
@@ -371,40 +322,6 @@ function ValidationMessagesPanel({
  * tStr() 등록이 AttrFieldsPanel에서 보이는 이유: children이 먼저 렌더되며
  * fields Map을 채우고, Provider의 다음 형제인 AttrFieldsPanel은 React가 트리 순서대로
  * 렌더링하므로 같은 렌더 패스 안에서 이미 채워진 Map을 그대로 읽는다. */
-function EditableSubtree({
-  overrides,
-  onChangeString,
-  children,
-}: {
-  overrides: Record<string, string>;
-  onChangeString: (key: string, value: string) => void;
-  children: ReactNode;
-}) {
-  const fields = new Map<string, string>();
-  const api: WizardTextApi = {
-    t: (key, fallback) => (
-      <InlineEditText
-        key={key}
-        value={overrides[key] || fallback}
-        onChange={(v) => onChangeString(key, v)}
-      />
-    ),
-    tStr: (key, fallback) => {
-      fields.set(key, fallback);
-      return overrides[key] || fallback;
-    },
-  };
-  return (
-    <WizardTextContext.Provider value={api}>
-      {children}
-      <AttrFieldsPanel
-        fields={fields}
-        overrides={overrides}
-        onChangeString={onChangeString}
-      />
-    </WizardTextContext.Provider>
-  );
-}
 
 interface RenderCtx {
   wizardSteps: WizardStepTexts;
@@ -520,10 +437,10 @@ function FieldOrderPanel({
   // `disabledFields?.includes(groupId)`를 먼저 확인해 그룹째 숨긴다.
   const groupDisabled = ctx.disabledFields.includes(groupId);
   return (
-    <div className="border border-border-soft bg-panel/60 p-3">
+    <div data-editor-key={groupId} className="border border-border-soft bg-panel/60 p-3">
       <div className="mb-2 flex items-center justify-between gap-3">
         <p className="text-2xs font-bold uppercase tracking-wide text-muted">
-          ✎ {title} — 순서 · 노출
+          {groupId === "configOptions.packageCard" ? "패키지 카드" : title}
         </p>
         <label className="flex shrink-0 items-center gap-1.5 text-2xs font-bold whitespace-nowrap text-muted">
           <input
@@ -531,7 +448,7 @@ function FieldOrderPanel({
             checked={!groupDisabled}
             onChange={(e) => ctx.setFieldDisabled(groupId, !e.target.checked)}
           />
-          그룹 전체 노출
+          전체 표시
         </label>
       </div>
       <ul className="flex flex-col gap-1.5">
@@ -542,6 +459,7 @@ function FieldOrderPanel({
           return (
             <li
               key={key}
+              data-editor-key={fieldId}
               className="flex items-center justify-between gap-3 bg-background px-2.5 py-1.5 text-s"
             >
               <label className="flex items-center gap-2">
@@ -552,7 +470,7 @@ function FieldOrderPanel({
                     ctx.setFieldDisabled(fieldId, !e.target.checked)
                   }
                 />
-                {fieldLabels[key] ?? key}
+                {isCustom ? <input aria-label="추가 선택지 이름" value={ctx.wizardStrings[`fieldLabel.${groupId.split(".").at(-1)}.${key}`] ?? ""} placeholder="선택지 이름" onChange={event=>ctx.setString(`fieldLabel.${groupId.split(".").at(-1)}.${key}`,event.target.value)} /> : (fieldLabels[key] ?? key)}
                 {/* 라벨은 아래 실제 화면(LivePreview)에서 클릭해 바로 고친다 — 여기선
                     새로 추가된 항목임을 표시만 한다. */}
                 {isCustom && (
@@ -687,10 +605,10 @@ function PackageCardRowsEditor({ rateTable }: { rateTable: RateTable }) {
   }
 
   return (
-    <div className="border border-border-soft bg-panel/60 p-3">
+    <div data-editor-key="configOptions.packageCard" className="border border-border-soft bg-panel/60 p-3">
       <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
         <p className="text-2xs font-bold uppercase tracking-wide text-muted">
-          ✎ Rate 카드 추가 항목 (라벨 · 값)
+          Rate 카드 추가 항목 (라벨 · 값)
         </p>
         <div className="flex flex-wrap gap-1">
           {editablePackages.map((p) => (
@@ -781,7 +699,6 @@ function SlotOrderPanel({
   slotsKey,
   defaultOrder,
   slotLabels,
-  title,
 }: {
   ctx: RenderCtx;
   slotsKey: string;
@@ -805,9 +722,9 @@ function SlotOrderPanel({
     ctx.setSlotOrder(slotsKey, next);
   };
   return (
-    <div className="border border-border-soft bg-panel/60 p-3">
+    <div data-editor-key={`slot.${slotsKey}`} className="border border-border-soft bg-panel/60 p-3">
       <p className="mb-2 text-2xs font-bold uppercase tracking-wide text-muted">
-        ✎ {title} — 슬롯 순서 · 노출
+        섹션 순서 · 표시
       </p>
       <ul className="flex flex-col gap-1.5">
         {order.map((key, index) => {
@@ -821,6 +738,7 @@ function SlotOrderPanel({
           return (
             <li
               key={key}
+              data-editor-key={slotFieldId}
               className="flex items-center justify-between gap-3 bg-background px-2.5 py-1.5 text-s"
             >
               <label className="flex items-center gap-2">
@@ -831,7 +749,7 @@ function SlotOrderPanel({
                     ctx.setFieldDisabled(slotFieldId, !e.target.checked)
                   }
                 />
-                {slotLabels[key] ?? key}
+                {({credibility:"개최 이력",audience:"관객·사업 규모"} as Record<string,string>)[key] ?? slotLabels[key] ?? key}
               </label>
               <div className="flex shrink-0 gap-1">
                 <button
@@ -1080,12 +998,12 @@ const STAGE_GROUPS: StageGroup[] = [
               />
               <PackageCardRowsEditor rateTable={ctx.rateTable} />
               {/* [신규 2026-09-07] "저 부분(예상 관객·셋업·공연 요약 줄) 삭제하고 싶은데
-                  안 됨" — 아래 「✎ 속성 문구」 칸은 줄 안의 단어만 바꿀 수 있고 줄 자체를
+                  안 됨" — 아래 「속성 문구」 칸은 줄 안의 단어만 바꿀 수 있고 줄 자체를
                   끌 수는 없었다. 다른 슬롯과 같은 노출 On/off 패턴을 그대로 써서 줄 전체를
                   껐다 켰다 할 수 있게 한다(위저드 미리보기·실제 신청 화면 모두 반영). */}
               <div className="flex items-center justify-between gap-3 border border-border-soft bg-panel/60 p-3">
                 <p className="text-2xs font-bold uppercase tracking-wide text-muted">
-                  ✎ &ldquo;아레나&rdquo; 제목 아래 요약 줄(패키지·예상
+                  &ldquo;아레나&rdquo; 제목 아래 요약 줄(패키지·예상
                   관객·셋업·공연)
                 </p>
                 <label className="flex shrink-0 items-center gap-1.5 text-2xs font-bold whitespace-nowrap text-muted">
@@ -1343,7 +1261,7 @@ const STAGE_GROUPS: StageGroup[] = [
                   eventName: "공연(행사)명",
                   artist: "아티스트 / 출연진",
                 }}
-                title="공연 기본정보 — 공연명·아티스트"
+                title="공연 기본정보"
               />
               <FieldOrderPanel
                 ctx={ctx}
@@ -1385,12 +1303,12 @@ const STAGE_GROUPS: StageGroup[] = [
                 groupId="audience.ancillaryBusinessPlans"
                 defaultOrder={Object.keys(ANCILLARY_BUSINESS_PLAN_LABEL)}
                 fieldLabels={ANCILLARY_BUSINESS_PLAN_LABEL}
-                title="예상 부대행사(부대사업 계획)"
+                title="부대사업 계획"
                 allowCustomOptions
               />
               <div className="border border-border-soft bg-panel/60 p-3">
                 <p className="mb-2 text-2xs font-bold uppercase tracking-wide text-muted">
-                  ✎ &ldquo;규모&rdquo; 블록 제목·리드 — 현재 실제 화면에서는
+                  &ldquo;규모&rdquo; 블록 제목·리드 — 현재 실제 화면에서는
                   신청자 정보와 한 화면으로 합쳐져 이 제목이 표시되지
                   않습니다(계속 저장은 됩니다)
                 </p>
@@ -1633,7 +1551,7 @@ const STAGE_GROUPS: StageGroup[] = [
 
 const STEP_VALUES = ["1", "2", "3", "4"] as const;
 
-export function WizardTextPreview({
+function WizardTextEditor({
   content,
   rateTable,
   liveHallRateContent,
@@ -1643,9 +1561,14 @@ export function WizardTextPreview({
   liveHallRateContent: VenueRateContent;
 }) {
   // STEP 탭은 다른 운영 화면과 같이 URL(?step=1~4)에 싣는다 — 새로고침·링크 공유 유지.
-  const [stepParam, setStepParam] = useQueryTab("step", STEP_VALUES, "1");
+  const search=useSearchParams();
+  const stepParam=STEP_VALUES.includes(search.get("step") as typeof STEP_VALUES[number]) ? search.get("step")! : "1";
   const groupIdx = Math.min(Number(stepParam) - 1, STAGE_GROUPS.length - 1);
-  const setGroupIdx = (i: number) => setStepParam(STEP_VALUES[i] ?? "1");
+  const setGroupIdx = (i: number) => {
+    const url=new URL(window.location.href);
+    url.searchParams.set("step",STEP_VALUES[i] ?? "1");
+    window.history.replaceState(null,"",url.pathname+url.search);
+  };
   const [subIdx, setSubIdx] = useState(0);
   const mocks = useMockSelections(rateTable);
   // [신규 2026-09-06] 02 구성·옵션 미리보기 전용 로컬 상태 — DB에 저장하지 않는다.
@@ -1738,74 +1661,22 @@ export function WizardTextPreview({
           previewExpectedRevenue,
           setPreviewExpectedRevenue,
         };
-        return (
-          <div>
-            <p className={HELP}>
-              대관 위저드(/apply)와 같은 탭 구조입니다. 탭을 누르면 그 STEP의
-              실제 화면이 그대로 나오고(화면은 클릭·입력이 안 됩니다), 점선
-              밑줄이 있는 문구는 그 자리에서 바로 고칠 수 있습니다 — 고치는 즉시
-              같은 자리에 반영됩니다. placeholder처럼 화면에 상시 보이지 않는
-              문구는 화면 아래 별도 칸에 모아 둡니다.
-            </p>
-
-            <nav className="mt-5 border-b border-border/25">
-              <ol className="flex w-full min-w-0 items-center gap-1 overflow-x-auto">
-                {STAGE_GROUPS.map((g, i) => (
-                  <li key={g.label} className="shrink-0">
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setGroupIdx(i);
-                        setSubIdx(0);
-                      }}
-                      aria-current={i === groupIdx ? "step" : undefined}
-                      className={[
-                        "flex h-11 items-center whitespace-nowrap border-b-2 px-3 text-s font-bold transition-colors",
-                        i === groupIdx
-                          ? "border-foreground text-foreground"
-                          : "border-transparent text-muted hover:text-foreground",
-                      ].join(" ")}
-                    >
-                      {g.label}
-                    </button>
-                  </li>
-                ))}
-              </ol>
-            </nav>
-
-            {group.subTabs.length > 1 && (
-              <ol className="mt-3 flex w-full min-w-0 items-center gap-1.5 overflow-x-auto pb-1">
-                {group.subTabs.map((s, i) => (
-                  <li key={s.label} className="shrink-0">
-                    <button
-                      type="button"
-                      onClick={() => setSubIdx(i)}
-                      aria-current={i === subIdx ? "step" : undefined}
-                      className={[
-                        "flex h-9 items-center rounded-full border px-4 text-xs font-bold transition-colors",
-                        i === subIdx
-                          ? "border-foreground bg-inverse-bg text-inverse-fg"
-                          : "border-border-soft text-muted hover:text-foreground",
-                      ].join(" ")}
-                    >
-                      {s.label}
-                    </button>
-                  </li>
-                ))}
-              </ol>
-            )}
-
-            <div className="mt-8 border border-dashed border-border-soft bg-panel/40 p-5">
-              <EditableSubtree
-                overrides={ctx.wizardStrings}
-                onChangeString={ctx.setString}
-              >
-                {subTab.render(ctx)}
-              </EditableSubtree>
-            </div>
-          </div>
-        );
+        return <WizardPreviewWorkspace content={v} patch={patch} rateTable={rateTable} liveHallRateContent={liveHallRateContent}
+          section={groupIdx} onSectionChange={(index)=>{setGroupIdx(index);setSubIdx(0);}} subIndex={Math.min(subIdx,group.subTabs.length-1)} onSubChange={setSubIdx}
+          subLabels={group.subTabs.map(tab=>tab.label)} controls={inspectorControls(subTab.render(ctx))} />;
       }}
     </ContentFormShell>
   );
+}
+
+export function WizardTextPreview(props: Parameters<typeof WizardTextEditor>[0]) {
+  return <WizardTextEditor {...props} />;
+}
+
+function inspectorControls(nodes: ReactNode): ReactNode {
+  return Children.toArray(nodes).flatMap((node): ReactNode[] => {
+    if (!isValidElement<{children?: ReactNode}>(node)) return [];
+    if ([FieldOrderPanel, SlotOrderPanel, PackageCardRowsEditor, ValidationMessagesPanel, LeadToggle].some(type=>node.type===type)) return [node];
+    return node.props.children ? [inspectorControls(node.props.children)] : [];
+  });
 }

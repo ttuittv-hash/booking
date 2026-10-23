@@ -2,7 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-import { btnClass } from "@/components/ui/kit";
+import { btnClass } from "@/components/admin/adminButton";
 import { ERROR_NOTE, FIELD, HELP, OK_NOTE, PANEL, SECTION_TITLE } from "./adminUi";
 
 export function AddApplicantForm() {

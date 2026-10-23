@@ -1,11 +1,12 @@
 "use client";
+import editor from "./ContentEditor.module.css";
 import { useContentTransport } from "./ContentTransport";
 
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import type { HomeContent } from "@/lib/content/types";
 import { DEFAULT_HOME_CONTENT } from "@/lib/content/seed";
-import { btnClass } from "@/components/ui/kit";
+import { btnClass } from "@/components/admin/adminButton";
 import {
   ADD_BTN,
   CARD,
@@ -16,13 +17,12 @@ import {
   REMOVE_BTN,
   SUB_TITLE,
 } from "./adminUi";
-import { LINE_HINT, PARAGRAPH_HINT } from "./fields";
+import { Area, FileUpload } from "./fields";
 
 /* 필드 구조는 브랜드 내러티브 스키마 그대로 두고 시각 토큰만 교체한다 */
 const inputCls = FIELD;
 const labelCls = FIELD_LABEL;
 /** 입력칸 아래 안내 — 백오피스 전체가 같은 문구·같은 자리를 쓴다 */
-const hintCls = "mt-1 block text-xs text-muted";
 const cardCls = CARD;
 const addBtnCls = ADD_BTN;
 const removeBtnCls = REMOVE_BTN;
@@ -30,6 +30,7 @@ const removeBtnCls = REMOVE_BTN;
 export function HomeContentForm({ content: initial }: { content: HomeContent }) {
   const { request, isPreview } = useContentTransport();
 
+  const [area, setArea] = useState<"hero" | "narrative" | "other">("hero");
   const router = useRouter();
   const [content, setContent] = useState<HomeContent>(initial);
   const [saving, setSaving] = useState(false);
@@ -116,19 +117,40 @@ export function HomeContentForm({ content: initial }: { content: HomeContent }) 
   }
 
   return (
-    <div className="space-y-8">
-      <section>
+    <div className={editor.workspace}>
+      <p className={editor.editingGuide}>텍스트 편집 안내: Enter는 줄바꿈, 빈 줄은 새 문단입니다. 굵게를 지원하는 본문은 **강조할 글자**처럼 별표 두 개로 감싸세요.</p>
+      <header className={editor.header}>
+        <div><h2>홈 페이지 편집</h2><p>왼쪽 구성도에서 영역을 선택하고, 오른쪽에서 내용을 수정하세요.</p></div>
+        <a href="/" target="_blank" rel="noreferrer">공개 페이지 보기 ↗</a>
+      </header>
+
+      <div className={editor.layout}>
+        <aside className={editor.map} aria-label="홈 페이지 구성도">
+          <div className={editor.mapHeading}><strong>페이지 구성</strong><span>문구는 입력 즉시 반영 · 배치는 요약 표시</span></div>
+          <button type="button" className={editor.previewBlock} aria-pressed={area === "hero"} onClick={() => setArea("hero")}>
+            <span className={editor.location}>01 · 페이지 최상단</span>
+            <strong className={editor.display}>{content.heroTitle || "영문 제목"}</strong>
+            <span>{content.heroSubtitle || "국문 소개 문구"}</span>
+            <span className={editor.previewActions}><b>{content.heroPrimaryLabel || "기본 버튼"}</b><b>{content.heroSecondaryLabel || "보조 버튼"}</b></span>
+            <span className={editor.imagePlaceholder}>{content.heroImage ? "등록된 메인 이미지" : "메인 이미지 영역"}</span>
+          </button>
+          <button type="button" className={`${editor.previewBlock} ${editor.darkBlock}`} aria-pressed={area === "narrative"} onClick={() => setArea("narrative")}>
+            <span className={editor.location}>02 · 메인 이미지 아래 / 브랜드 선언문</span>
+            <strong className={editor.display}>{content.narrativeTitle || "브랜드 선언문 제목"}</strong>
+            <span className={editor.excerpt}>{content.narrativeLead}</span>
+            <span className={editor.statementCount}>선언문 {content.narrativeStatements.length}개 · 클릭하여 편집</span>
+          </button>
+          <button type="button" className={editor.previewBlock} aria-pressed={area === "other"} onClick={() => setArea("other")}>
+            <span className={editor.location}>03 · 하단 안내 / 공통 영역</span>
+            <strong>대관 안내 · 회원 상태별 버튼</strong><span>현재 편집 대상과 별도로 관리되는 영역</span>
+          </button>
+        </aside>
+        <div className={editor.inspector}>
+          <div className={editor.inspectorHeading}><span>홈 / {area === "hero" ? "01 상단 소개" : area === "narrative" ? "02 브랜드 선언문" : "03 기타 영역"}</span><strong>{area === "hero" ? "상단 소개 편집" : area === "narrative" ? "브랜드 선언문 편집" : "다른 영역의 관리 위치"}</strong></div>
+      <section hidden={area !== "hero"}>
         <h3 className={SUB_TITLE}>히어로 (상단 이미지 + 카피 + 버튼)</h3>
-        <label className="mt-3 block">
-          <span className={labelCls}>영문 디스플레이</span>
-          <textarea rows={2} value={content.heroTitle} onChange={(e) => patch({ heroTitle: e.target.value })} className={inputCls} />
-          <span className={hintCls}>{LINE_HINT}</span>
-        </label>
-        <label className="mt-3 block">
-          <span className={labelCls}>국문 리드</span>
-          <textarea rows={3} value={content.heroSubtitle} onChange={(e) => patch({ heroSubtitle: e.target.value })} className={inputCls} />
-          <span className={hintCls}>{LINE_HINT}</span>
-        </label>
+        <Area label="영문 디스플레이" rows={2} value={content.heroTitle} onChange={(heroTitle) => patch({ heroTitle })} bold={false} paragraph={false} />
+        <Area label="국문 리드" rows={3} value={content.heroSubtitle} onChange={(heroSubtitle) => patch({ heroSubtitle })} bold={false} paragraph={false} />
         <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2">
           <label>
             <span className={labelCls}>기본 버튼 텍스트</span>
@@ -150,7 +172,7 @@ export function HomeContentForm({ content: initial }: { content: HomeContent }) 
 
         <div className="mt-4">
           <span className={labelCls}>배경 이미지 (카피·버튼 아래에 표시, 선택)</span>
-          {content.heroImage ? (
+          {content.heroImage && (
             <div className="flex items-center gap-3">
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
@@ -162,22 +184,12 @@ export function HomeContentForm({ content: initial }: { content: HomeContent }) 
                 이미지 삭제
               </button>
             </div>
-          ) : (
-            <label className="inline-block">
-              <span className={addBtnCls}>{uploading ? "업로드 중..." : "+ 이미지 업로드"}</span>
-              <input
-                type="file"
-                accept="image/*"
-                disabled={uploading}
-                onChange={uploadHeroImage}
-                className="hidden"
-              />
-            </label>
           )}
+            <FileUpload accept="image/*" disabled={uploading} onChange={uploadHeroImage} aria-label="배경 이미지 업로드" />
         </div>
       </section>
 
-      <section className="border-t border-border/25 pt-7">
+      <section hidden={area !== "narrative"}>
         <div className="flex flex-wrap items-center justify-between gap-2">
           <h3 className={SUB_TITLE}>브랜드 내러티브 (HOST IT. 선언문)</h3>
           <button type="button" onClick={loadDefaults} className={addBtnCls}>
@@ -191,26 +203,16 @@ export function HomeContentForm({ content: initial }: { content: HomeContent }) 
 
         <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2">
           <label>
-            <span className={labelCls}>상단 라벨 (예: Manifesto)</span>
+            <span className={labelCls}>상단 라벨 (저장 가능 · 현재 홈에는 미표시)</span>
             <input value={content.narrativeLabel} onChange={(e) => patch({ narrativeLabel: e.target.value })} className={inputCls} />
           </label>
           <label>
-            <span className={labelCls}>마무리 문구 (예: LIVE MOMENTS, LIVE PLATFORM)</span>
+            <span className={labelCls}>마무리 문구 (저장 가능 · 현재 홈에는 미표시)</span>
             <input value={content.narrativeClosing} onChange={(e) => patch({ narrativeClosing: e.target.value })} className={inputCls} />
           </label>
         </div>
-        <label className="mt-3 block">
-          <span className={labelCls}>제목</span>
-          <textarea rows={2} value={content.narrativeTitle} onChange={(e) => patch({ narrativeTitle: e.target.value })} className={inputCls} />
-          <span className={hintCls}>{LINE_HINT}</span>
-        </label>
-        <label className="mt-3 block">
-          <span className={labelCls}>리드 문구</span>
-          <textarea rows={5} value={content.narrativeLead} onChange={(e) => patch({ narrativeLead: e.target.value })} className={inputCls} />
-          <span className={hintCls}>
-            {PARAGRAPH_HINT} <b className="text-foreground">**감싼 부분**</b> 은 굵게 나옵니다.
-          </span>
-        </label>
+        <Area label="제목" rows={2} value={content.narrativeTitle} onChange={(narrativeTitle) => patch({ narrativeTitle })} bold={false} paragraph={false} />
+        <Area label="리드 문구" rows={5} value={content.narrativeLead} onChange={(narrativeLead) => patch({ narrativeLead })} bold={true} paragraph={true} />
 
         <div className="mt-4 space-y-3">
           {content.narrativeStatements.map((s, i) => (
@@ -221,13 +223,7 @@ export function HomeContentForm({ content: initial }: { content: HomeContent }) 
                     <span className={labelCls}>제목</span>
                     <input value={s.title} onChange={(e) => updateStatement(i, { title: e.target.value })} className={inputCls} />
                   </label>
-                  <label className="sm:col-span-2">
-                    <span className={labelCls}>본문</span>
-                    <textarea rows={4} value={s.desc} onChange={(e) => updateStatement(i, { desc: e.target.value })} className={inputCls} />
-                    <span className="mt-1 block text-xs text-muted">
-                      <b className="text-foreground">**감싼 부분**</b> 은 굵게 — 마무리 문장에 씁니다.
-                    </span>
-                  </label>
+                  <div className="sm:col-span-2"><Area label="본문" rows={4} value={s.desc} onChange={(desc) => updateStatement(i, { desc })} /></div>
                 </div>
                 <button type="button" onClick={() => removeStatement(i)} className={removeBtnCls}>
                   삭제
@@ -241,7 +237,7 @@ export function HomeContentForm({ content: initial }: { content: HomeContent }) 
         </div>
       </section>
 
-      <section className="border-t border-border/25 pt-7">
+      <section hidden={area !== "other"}>
         <h3 className={SUB_TITLE}>신청 절차</h3>
         <p className={`mt-3 ${HELP}`}>
           2026-08 정보구조 재구성으로 홈에서 신청 절차 섹션이 빠졌습니다. 절차의 정본은 대관
@@ -250,6 +246,9 @@ export function HomeContentForm({ content: initial }: { content: HomeContent }) 
         </p>
       </section>
 
+        </div>
+      </div>
+      <div className={editor.saveBar}><span>변경한 내용은 저장 후 공개 페이지에 반영됩니다.</span>
       {message && <p className={OK_NOTE}>{message}</p>}
       <button
         type="button"
@@ -259,6 +258,7 @@ export function HomeContentForm({ content: initial }: { content: HomeContent }) 
       >
         {saving ? "저장 중..." : "저장"}
       </button>
+      </div>
     </div>
   );
 }

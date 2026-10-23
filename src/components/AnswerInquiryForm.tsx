@@ -3,8 +3,8 @@
 import { useContentTransport } from "@/components/admin/ContentTransport";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-import { btnClass } from "@/components/ui/kit";
-import { ERROR_NOTE, FIELD, HELP, PANEL, SECTION_TITLE } from "@/components/admin/adminUi";
+import editor from "@/components/admin/AdminEditor.module.css";
+import { ERROR_NOTE, FIELD, PANEL } from "@/components/admin/adminUi";
 
 export function AnswerInquiryForm({ inquiryId }: { inquiryId: string }) {
   const router = useRouter();
@@ -27,18 +27,22 @@ export function AnswerInquiryForm({ inquiryId }: { inquiryId: string }) {
         setError(data.error || "답변 등록에 실패했습니다.");
         return;
       }
-      if (!isPreview) router.refresh();
+      if (!isPreview) {
+        window.dispatchEvent(new Event("admin-inquiry-answered"));
+        router.refresh();
+      }
     } finally {
       setBusy(false);
     }
   }
 
   return (
-    <div className={PANEL}>
-      <h2 className={SECTION_TITLE}>답변 등록</h2>
-      <p className={`mt-2 ${HELP}`}>등록한 답변은 신청자의 1:1 문의 화면에 즉시 표시됩니다.</p>
+    <div className={`${editor.workspace} ${PANEL}`}>
+      <h2 className={editor.title}>답변 등록</h2>
+      <p className={editor.description}>등록한 답변은 신청자의 1:1 문의 화면에 즉시 표시됩니다.</p>
 
       <textarea
+        aria-label="답변 내용"
         value={answer}
         onChange={(e) => setAnswer(e.target.value)}
         rows={6}
@@ -48,14 +52,16 @@ export function AnswerInquiryForm({ inquiryId }: { inquiryId: string }) {
 
       {error && <p className={`mt-3 ${ERROR_NOTE}`}>{error}</p>}
 
+      <div className={editor.saveBar}>
       <button
         type="button"
         disabled={busy || !answer.trim()}
         onClick={submit}
-        className={`mt-4 ${btnClass("primary", "md")}`}
+        className={editor.saveButton}
       >
         {busy ? "등록 중..." : "답변 등록"}
       </button>
+      </div>
     </div>
   );
 }

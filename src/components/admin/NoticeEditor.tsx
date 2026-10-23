@@ -1,4 +1,6 @@
 "use client";
+import { TableSizePicker } from "./TableSizePicker";
+import styles from "./NoticeEditor.module.css";
 import { useContentTransport } from "./ContentTransport";
 
 import { useEditor, EditorContent } from "@tiptap/react";
@@ -18,7 +20,7 @@ import { useRef, useState } from "react";
 import { NOTICE_CALENDAR_MARKER_HTML } from "@/lib/content/noticeCalendarMarker";
 import { uploadInlineImages } from "@/lib/content/inlineImages";
 import { useDialog } from "@/components/ui/Dialog";
-import { FIELD_SM } from "./adminUi";
+
 
 /**
  * 공지 본문의 편집기 안 문단 간격 — 공개 화면(notices/[id]/page.tsx의 PROSE)과 똑같이
@@ -172,7 +174,7 @@ const NoticeLink = Link.extend({
   inclusive: () => false,
 });
 
-const DEFAULT_FONT_SIZE = 14;
+
 
 // HTML 소스 모드에서 문자열을 직접 이어붙일 때(링크 삽입) 쓰는 최소 이스케이프.
 function escapeHtmlText(s: string): string {
@@ -243,7 +245,7 @@ export function NoticeEditor({
   // [신규 2026-09-05] HTML 소스 모드의 textarea — 커서 위치에 마커를 끼워 넣으려면 필요하다.
   const htmlTextareaRef = useRef<HTMLTextAreaElement>(null);
   const [uploading, setUploading] = useState(false);
-  const [fontSizeInput, setFontSizeInput] = useState(String(DEFAULT_FONT_SIZE));
+
   /**
    * HTML 소스 모드 — 일반 에디터가 모르는 태그(`<details>` 접기/펼치기 등)를 쓸 때를 위한 탈출구.
    * 소스 모드에서 일반 모드로 되돌아가면 에디터가 이해하는 태그만 남는다(스키마 밖 태그는 풀린다) —
@@ -496,12 +498,12 @@ export function NoticeEditor({
 
   if (!editor) return null;
 
-  /** 툴바 버튼 — 활성 상태는 옐로 면 + 검정 텍스트 (옐로 위 텍스트는 항상 검정) */
+  /** 툴바 버튼 — 활성 상태는 관리자 공통 배경과 전경색 */
   function toolBtn(active: boolean) {
     return [
       "border px-2 py-1 text-xs font-bold transition-colors disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:border-transparent disabled:hover:text-muted",
       active
-        ? "border-foreground bg-accent text-on-accent"
+        ? "border-foreground bg-panel-strong text-foreground"
         : "border-transparent text-muted hover:border-border-soft hover:text-foreground",
     ].join(" ");
   }
@@ -514,6 +516,20 @@ export function NoticeEditor({
 
   return (
     <div>
+      <div className={styles.modeTools}>        <button
+          type="button"
+          disabled={convertingImages}
+          onClick={async () => {
+            if (mode === "html") {
+              await switchToVisualMode();
+            }
+            setMode(mode === "visual" ? "html" : "visual");
+          }}
+          className={toolBtn(mode === "html")}
+        >
+          {convertingImages ? "이미지 변환 중..." : mode === "html" ? "일반 편집" : "HTML 소스"}
+        </button></div>
+    <div className={styles.editor}>
       {/*
         [수정 2026-09-05] "수정 툴을 고정해놓고 내용 창만 스크롤" 요청 — 편집 영역
         자체에 max-h+overflow-y-auto 를 줘서 내용이 그 안에서만 스크롤되게 했지만
@@ -523,8 +539,14 @@ export function NoticeEditor({
         묶어 화면(뷰포트) 기준으로 붙박는다. top-14/sm:top-16 은 AdminNav 헤더 높이와
         같다(LegalContentForm.tsx 의 기존 패턴과 동일 값) — 그 아래 바로 붙게.
       */}
-      <div className="sticky top-14 z-10 bg-background sm:top-16">
-      <div className="flex flex-wrap items-center gap-1 border border-border-soft bg-background px-2 py-1.5">
+      <div className={styles.stickyTools}>
+      <div className={styles.toolbar}>
+        <button type="button" disabled={disabledInHtmlMode} onClick={() => editor.chain().focus().setParagraph().run()} className={toolBtn(editor.isActive("paragraph"))}>본문</button>
+        {([1,2,3] as const).map(level=><button key={level} type="button" disabled={disabledInHtmlMode} onClick={()=>editor.chain().focus().toggleHeading({level}).run()} className={toolBtn(editor.isActive("heading",{level}))}>제목 {level}</button>)}
+        <button type="button" disabled={disabledInHtmlMode} onClick={()=>editor.chain().focus().toggleBulletList().run()} className={toolBtn(editor.isActive("bulletList"))}>불릿</button>
+        <button type="button" disabled={disabledInHtmlMode} onClick={()=>editor.chain().focus().toggleOrderedList().run()} className={toolBtn(editor.isActive("orderedList"))}>번호</button>
+        <button type="button" disabled={disabledInHtmlMode} onClick={()=>editor.chain().focus().toggleBlockquote().run()} className={toolBtn(editor.isActive("blockquote"))}>인용</button>
+
         <button
           type="button"
           disabled={disabledInHtmlMode}
@@ -542,46 +564,9 @@ export function NoticeEditor({
           <i>I</i>
         </button>
 
-        <span className="mx-1 h-4 w-px bg-border/30" />
 
-        <input
-          type="number"
-          min={8}
-          max={72}
-          disabled={disabledInHtmlMode}
-          value={fontSizeInput}
-          onChange={(e) => setFontSizeInput(e.target.value)}
-          onBlur={() => {
-            const size = Math.round(Number(fontSizeInput));
-            if (Number.isFinite(size) && size > 0) {
-              editor.chain().focus().setMark("textStyle", { fontSize: `${size}px` }).run();
-            }
-          }}
-          onKeyDown={(e) => {
-            if (e.key !== "Enter") return;
-            e.preventDefault();
-            const size = Math.round(Number(fontSizeInput));
-            if (Number.isFinite(size) && size > 0) {
-              editor.chain().focus().setMark("textStyle", { fontSize: `${size}px` }).run();
-            }
-          }}
-          className={`w-14 ${FIELD_SM} text-right tabular-nums disabled:cursor-not-allowed disabled:opacity-40`}
-        />
-        <span className="text-xs text-muted">px</span>
-        <button
-          type="button"
-          disabled={disabledInHtmlMode}
-          onClick={() => {
-            editor.chain().focus().unsetMark("textStyle").run();
-            setFontSizeInput(String(DEFAULT_FONT_SIZE));
-          }}
-          className={toolBtn(false)}
-        >
-          기본
-        </button>
 
-        <span className="mx-1 h-4 w-px bg-border/30" />
-
+        <div className={styles.menu}><button type="button" className={toolBtn(false)} aria-label="글자 색상">색상 ▾</button><div className={`${styles.menuPanel} ${styles.textOptions}`}>
         {COLORS.map((c) => (
           <button
             key={c.value}
@@ -595,15 +580,16 @@ export function NoticeEditor({
           />
         ))}
 
-        <span className="mx-1 h-4 w-px bg-border/30" />
 
-        <button
+
+        </div></div>
+        <div className={styles.menu}><button type="button" aria-label="문단 정렬" title="문단 정렬" className={toolBtn(false)}><svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M3 4h14M3 8h9M3 12h14M3 16h9"/></svg></button><div className={styles.menuPanel}>        <button
           type="button"
           disabled={disabledInHtmlMode}
           onClick={() => editor.chain().focus().setTextAlign("left").run()}
           className={toolBtn(editor.isActive({ textAlign: "left" }))}
         >
-          왼쪽
+          <svg aria-label="왼쪽 정렬" role="img" width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M3 4h14M3 8h9M3 12h14M3 16h9"/></svg>
         </button>
         <button
           type="button"
@@ -611,7 +597,7 @@ export function NoticeEditor({
           onClick={() => editor.chain().focus().setTextAlign("center").run()}
           className={toolBtn(editor.isActive({ textAlign: "center" }))}
         >
-          가운데
+          <svg aria-label="가운데 정렬" role="img" width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M3 4h14M5.5 8h9M3 12h14M5.5 16h9"/></svg>
         </button>
         <button
           type="button"
@@ -619,11 +605,12 @@ export function NoticeEditor({
           onClick={() => editor.chain().focus().setTextAlign("right").run()}
           className={toolBtn(editor.isActive({ textAlign: "right" }))}
         >
-          오른쪽
+          <svg aria-label="오른쪽 정렬" role="img" width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M3 4h14M8 8h9M3 12h14M8 16h9"/></svg>
         </button>
 
-        <span className="mx-1 h-4 w-px bg-border/30" />
 
+
+</div></div>
         {/* [신규 2026-09-05] 선택한 글자를 다른 페이지(대관 신청·요금표·규약 등)로
             연결한다. 이미 링크가 걸린 자리에서 누르면 해제한다.
             [수정 2026-09-05] 소스 모드에서도 동작한다(toggleLink 가 모드별로 분기,
@@ -639,16 +626,9 @@ export function NoticeEditor({
           {mode === "visual" && editor.isActive("link") ? "링크 해제" : "+ 링크"}
         </button>
 
-        <span className="mx-1 h-4 w-px bg-border/30" />
 
-        <button
-          type="button"
-          disabled={disabledInHtmlMode}
-          onClick={() => editor.chain().focus().insertTable({ rows: 3, cols: 3, withHeaderRow: true }).run()}
-          className={toolBtn(false)}
-        >
-          + 표 삽입
-        </button>
+
+        <TableSizePicker disabled={disabledInHtmlMode} onSelect={(rows,cols)=>editor.chain().focus().insertTable({rows,cols,withHeaderRow:true}).run()} />
 
         {/* [신규 2026-09-05] 구분선 — 문단 사이에 가로줄을 그어 절을 나눈다. */}
         <button
@@ -661,7 +641,7 @@ export function NoticeEditor({
           + 구분선
         </button>
 
-        <span className="mx-1 h-4 w-px bg-border/30" />
+
 
         <button
           type="button"
@@ -681,7 +661,7 @@ export function NoticeEditor({
           {editor.isActive("details") ? "접기/펼치기 해제" : "+ 접기/펼치기"}
         </button>
 
-        <span className="mx-1 h-4 w-px bg-border/30" />
+
 
         {/* 소스 모드에서도 동작한다(insertCalendarMarker 가 모드별로 분기) — 다른 서식
             버튼과 달리 이 버튼만 비활성화하지 않는다. */}
@@ -694,7 +674,7 @@ export function NoticeEditor({
           + 대관 캘린더
         </button>
 
-        <span className="mx-1 h-4 w-px bg-border/30" />
+
 
         <button
           type="button"
@@ -716,21 +696,9 @@ export function NoticeEditor({
           }}
         />
 
-        <span className="mx-1 h-4 w-px bg-border/30" />
 
-        <button
-          type="button"
-          disabled={convertingImages}
-          onClick={async () => {
-            if (mode === "html") {
-              await switchToVisualMode();
-            }
-            setMode(mode === "visual" ? "html" : "visual");
-          }}
-          className={toolBtn(mode === "html")}
-        >
-          {convertingImages ? "이미지 변환 중..." : mode === "html" ? "일반 편집" : "HTML 소스"}
-        </button>
+
+
       </div>
 
       {isTableActive && mode === "visual" && (
@@ -754,7 +722,7 @@ export function NoticeEditor({
               {label}
             </button>
           ))}
-          <span className="mx-1 h-4 w-px bg-border/30" />
+
           {/* [신규 2026-09-03] 칸 배경색 — 커서가 있는 칸(또는 선택한 칸들)에 면을 깐다. */}
           <span className="text-xs text-muted">칸 배경</span>
           {CELL_FILLS.map((f) => (
@@ -820,6 +788,7 @@ export function NoticeEditor({
       ) : (
         <EditorContent editor={editor} />
       )}
+    </div>
     </div>
   );
 }

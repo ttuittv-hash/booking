@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import previewStyles from "./BookingPreview.module.css";
 import { won } from "@/lib/format";
 import { VENUES } from "@/lib/pricing/types";
 import type { EstimatedQuote, LineItem } from "@/lib/pricing/types";
@@ -59,8 +60,10 @@ const SECTION_ORDER: ContractSection[] = ["CONTRACT", "ADDITIONAL"];
  */
 export function SummaryPanel({
   quote,
+  designPreview = false,
 }: {
   quote: EstimatedQuote;
+  designPreview?: boolean;
 }) {
   // Bowl 사용료·유틸리티(HIDDEN)와 청소비는 합계에는 포함하되 신청자 화면에는 항목·금액을
   // 노출하지 않는다 — quote.subtotal/total 은 전체 lineItems 기준으로 이미 계산돼 있어
@@ -133,6 +136,18 @@ export function SummaryPanel({
     groups.length > 1
       ? `총금액(예상) · ${groups.map((g) => VENUE_NAME[g.venue!] ?? g.venue).join("+")}`
       : "총금액(예상)";
+
+  if (designPreview) return <aside className={previewStyles.quoteCard} aria-label="예상 견적">
+    <h3>예상 견적</h3>
+    {visibleItems.length === 0 ? <p>공간과 기본 구성을 선택하면 금액이 표시됩니다.</p> : <>
+      <div className={previewStyles.quoteTotal}><span>총 예상 금액</span><strong>{won(grandTotal)}</strong><small>부가세 포함</small></div>
+      {sectionBoxes.map((box, index) => <details key={index} className={previewStyles.quoteBreakdown}>
+        <summary><span>{box.venue && `${VENUE_NAME[box.venue]} · `}{box.section === "CONTRACT" ? "계약 기준 금액" : "추후 정산 예상"}</span><b>{won(box.total)}</b><span aria-hidden="true">⌄</span></summary>
+        <dl>{box.sectionItems.map((item, i) => <div key={i}><dt>{summaryPanelLineLabel(item)}</dt><dd>{won(item.amount)}</dd></div>)}<div><dt>소계</dt><dd>{won(box.subtotal)}</dd></div><div><dt>부가세</dt><dd>{won(box.vat)}</dd></div></dl>
+      </details>)}
+      <p>추후 정산 항목은 실제 이용 내역에 따라 달라집니다.</p>
+    </>}
+  </aside>;
 
   /*
     윗변을 단계 바 아래 선에 맞춘다 — 흐름 위치(mt)와 붙박이 위치(top)가 **같은 값**

@@ -1,0 +1,10 @@
+.workspace { margin-top:24px; }
+.workspace [role=tabpanel] { padding-top:24px; }
+.workspace [role=tabpanel][hidden] { display:none; }
+.count { margin-left:8px; color:var(--muted); font-size:var(--admin-label-size,12px); }
+.cards { display:grid; gap:20px; margin-top:20px; }
+.card { padding:var(--admin-editor-padding); min-width:0; }
+.card > div:first-child { padding-bottom:16px; margin-bottom:8px; border-bottom:1px solid var(--border-soft); }
+.card > div:first-child > div > div { flex-wrap:wrap; }
+.card input[type=checkbox] { width:16px; height:16px; flex-shrink:0; accent-color:var(--foreground); }
+.card textarea { resize:vertical; }

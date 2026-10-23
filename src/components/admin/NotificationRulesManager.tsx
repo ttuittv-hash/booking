@@ -4,8 +4,11 @@ import { useContentTransport } from "./ContentTransport";
 import { useState } from "react";
 import { useDialog } from "@/components/ui/Dialog";
 import type { NotificationRule } from "@/lib/pricing/types";
-import { btnClass } from "@/components/ui/kit";
-import { ADD_BTN_LG, CARD, FIELD, FIELD_LABEL, HELP, INFO_NOTE, REMOVE_BTN, SECTION_TITLE } from "./adminUi";
+import { btnClass } from "@/components/admin/adminButton";
+import { FIELD, FIELD_LABEL, HELP, REMOVE_BTN } from "./adminUi";
+
+import s from "./NotificationRulesManager.module.css";
+import editor from "./AdminEditor.module.css";
 
 interface Draft {
   label: string;
@@ -60,11 +63,13 @@ function RuleFields({
   onChange,
   placeholderHelp,
   thresholdLabel,
+  automatic = false,
 }: {
   draft: Draft;
   onChange: (draft: Draft) => void;
   placeholderHelp?: string;
   thresholdLabel: string;
+  automatic?: boolean;
 }) {
   return (
     <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2">
@@ -83,7 +88,7 @@ function RuleFields({
           checked={draft.enabled}
           onChange={(e) => onChange({ ...draft, enabled: e.target.checked })}
         />
-        <span className="text-s">사용함(자동 발송)</span>
+        <span className="text-s">{automatic ? "자동 발송 사용" : "안내용 항목 사용"}</span>
       </label>
       <label className="block sm:col-span-2">
         <span className={FIELD_LABEL}>안내 문구 (운영자용 설명)</span>
@@ -192,11 +197,11 @@ function RuleCard({
   }
 
   return (
-    <div className={CARD}>
+    <div className={`${editor.section} ${s.card}`}>
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <div className="flex items-center gap-2">
-            <span className="text-s font-bold">{rule.label}</span>
+            <h3 className={editor.title}>{rule.label}</h3>
             {rule.isSystem ? (
               <span className="border border-border-soft px-1.5 py-0.5 text-xs text-muted">
                 자동 발송 연동됨
@@ -218,17 +223,18 @@ function RuleCard({
 
       <RuleFields
         draft={draft}
+        automatic={rule.isSystem}
         onChange={setDraft}
         placeholderHelp={PLACEHOLDER_HELP[rule.typeCode]}
         thresholdLabel={rule.isSystem ? "며칠 전부터 발송(D-n, 간격형은 비워둠)" : "며칠 전부터 발송(D-n)"}
       />
 
-      <div className="mt-3 flex items-center gap-3">
+      <div className={editor.saveBar}>
         <button
           type="button"
           onClick={save}
           disabled={saving || !dirty || !draft.label || !draft.description || !draft.messageTemplate}
-          className={btnClass("secondary", "sm")}
+          className={editor.saveButton}
         >
           {saving ? "저장 중…" : "저장"}
         </button>
@@ -247,9 +253,11 @@ function NewRuleCard({ onCreated }: { onCreated: (rule: NotificationRule) => voi
 
   if (!open) {
     return (
-      <button type="button" onClick={() => setOpen(true)} className={`${ADD_BTN_LG} w-full justify-center`}>
-        + 알림 트리거 추가 (안내용 — 자동 발송에는 연동되지 않습니다)
+      <div className={editor.tableAdd}>
+      <button type="button" onClick={() => setOpen(true)}>
+        + 안내용 트리거 추가
       </button>
+      </div>
     );
   }
 
@@ -283,24 +291,22 @@ function NewRuleCard({ onCreated }: { onCreated: (rule: NotificationRule) => voi
   }
 
   return (
-    <div className={CARD}>
+    <div className={`${editor.section} ${s.card}`}>
       <p className="text-s font-bold">새 알림 트리거</p>
       <p className={`mt-1 ${HELP}`}>
         여기서 추가하는 항목은 카탈로그 성격의 안내용 항목입니다 — 조건 판정 로직을 새로 만들어야
         실제 자동 발송에 연동되므로, 개발 필요 사항으로 남겨두는 용도로 씁니다.
       </p>
       <RuleFields draft={draft} onChange={setDraft} thresholdLabel="며칠 전부터 발송(D-n, 해당 없으면 비워둠)" />
-      <div className="mt-3 flex items-center gap-3">
+      <div className={editor.saveBar}>
+        <button type="button" onClick={() => setOpen(false)} className={btnClass("tertiary", "md")}>취소</button>
         <button
           type="button"
           onClick={create}
           disabled={saving || !draft.label || !draft.description || !draft.messageTemplate}
-          className={btnClass("primary", "sm")}
+          className={editor.saveButton}
         >
           {saving ? "추가 중…" : "추가"}
-        </button>
-        <button type="button" onClick={() => setOpen(false)} className="text-xs text-muted hover:text-foreground">
-          취소
         </button>
         {error && <span className="text-xs text-danger">{error}</span>}
       </div>
@@ -310,16 +316,17 @@ function NewRuleCard({ onCreated }: { onCreated: (rule: NotificationRule) => voi
 
 export function NotificationRulesManager({ initialRules }: { initialRules: NotificationRule[] }) {
   const [rules, setRules] = useState(initialRules);
+  const [active,setActive]=useState("automatic");
 
   return (
-    <div className="mt-6 flex flex-col gap-6">
-      <div>
-        <h2 className={SECTION_TITLE}>자동 발송 트리거</h2>
-        <p className={`mt-1 ${HELP}`}>
-          매일 09:00(KST) 스케줄러가 아래 조건을 훑어 신청자·운영자 모두에게 알림을 보냅니다. 이름·문구·간격을
-          바꾸면 다음 스윕부터 바로 반영되고, 코드 배포가 필요 없습니다.
+    <div className={`${editor.workspace} ${s.workspace}`}>
+      <div className={editor.venueTabs} role="tablist" aria-label="알림 트리거 분류">{[["automatic","자동 발송 트리거"],["reference","안내용 트리거"]].map(([key,label])=><button key={key} type="button" role="tab" id={`notification-tab-${key}`} aria-controls={`notification-panel-${key}`} aria-selected={active===key} onClick={()=>setActive(key)}>{label}<span className={s.count}>{rules.filter(rule=>key==="automatic"?rule.isSystem:!rule.isSystem).length}</span></button>)}</div>
+      <div role="tabpanel" id="notification-panel-automatic" aria-labelledby="notification-tab-automatic" hidden={active!=="automatic"}>
+        <h2 className={editor.title}>자동 발송 트리거</h2>
+        <p className={editor.description}>
+          매일 오전 9시 아래 조건에 따라 신청자와 운영자에게 알림을 보냅니다. 변경한 설정은 저장 후 다음 자동 발송부터 적용됩니다.
         </p>
-        <div className="mt-3 flex flex-col gap-3">
+        <div className={s.cards}>
           {rules
             .filter((r) => r.isSystem)
             .map((rule) => (
@@ -333,13 +340,12 @@ export function NotificationRulesManager({ initialRules }: { initialRules: Notif
         </div>
       </div>
 
-      <div>
-        <h2 className={SECTION_TITLE}>안내용 트리거 (자동 발송 미연동)</h2>
-        <p className={`mt-1 ${INFO_NOTE}`}>
-          여기 있는 항목은 화면에 문서화만 될 뿐, 실제로 알림을 보내지는 않습니다. 위 3종(세금계산서·티켓오픈·
-          시설회의)만 스케줄러가 실제로 평가합니다 — 새 조건을 자동 발송에 연동하려면 개발 작업이 필요합니다.
+      <div role="tabpanel" id="notification-panel-reference" aria-labelledby="notification-tab-reference" hidden={active!=="reference"}>
+        <h2 className={editor.title}>안내용 트리거</h2>
+        <p className={editor.description}>
+          발송 조건과 문구를 기록해 두는 항목입니다. 저장하거나 사용으로 설정해도 실제 알림은 발송되지 않습니다.
         </p>
-        <div className="mt-3 flex flex-col gap-3">
+        <div className={s.cards}>
           {rules
             .filter((r) => !r.isSystem)
             .map((rule) => (

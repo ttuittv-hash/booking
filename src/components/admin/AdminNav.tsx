@@ -13,6 +13,30 @@ const icons = {reports:IconChartBar,applications:IconClipboardList,members:IconU
 /** Navigation only presents permitted routes; page and API authorization remain server-side. */
 export function AdminNav({active,user}:{active:string;user?:AppUser|null}) {
   const tier:AdminTier = user?.role === "ADMIN" ? user.adminTier ?? "BASIC" : "BASIC";
+  const [pendingMembers, setPendingMembers] = useState(0);
+  useEffect(() => {
+    if (tier === "BASIC") return;
+    let disposed = false;
+    async function refresh() { try { const r = await fetch("/api/admin/applicants/count", {cache:"no-store"}); if (!r.ok) return; const data = await r.json(); if (!disposed && Number.isInteger(data.count) && data.count >= 0) setPendingMembers(data.count); } catch {} }
+    void refresh(); window.addEventListener("focus",refresh); window.addEventListener("admin-members-changed",refresh);
+    return () => { disposed=true; window.removeEventListener("focus",refresh); window.removeEventListener("admin-members-changed",refresh); };
+  },[active,tier]);
+  const [pendingInquiries, setPendingInquiries] = useState(0);
+  useEffect(() => {
+    let disposed = false;
+    async function refreshCount() {
+      try {
+        const response = await fetch("/api/admin/inquiries/count", { cache: "no-store" });
+        if (!response.ok) return;
+        const data = await response.json();
+        if (!disposed && Number.isInteger(data.count) && data.count >= 0) setPendingInquiries(data.count);
+      } catch { /* Keep the last known count on a temporary network failure. */ }
+    }
+    void refreshCount();
+    window.addEventListener("focus", refreshCount);
+    window.addEventListener("admin-inquiry-answered", refreshCount);
+    return () => { disposed = true; window.removeEventListener("focus", refreshCount); window.removeEventListener("admin-inquiry-answered", refreshCount); };
+  }, [active]);
   const [collapsed,setCollapsed]=useState(false);
   const [open,setOpen]=useState(false);
   const [settings,setSettings]=useState(active==="/admin/account" || active==="/admin/users");
@@ -37,7 +61,7 @@ export function AdminNav({active,user}:{active:string;user?:AppUser|null}) {
       <div className="admin-brand-row"><Link href={tier==="BASIC"?"/admin/content":"/admin/reports"} className="admin-brand">SEOUL ARENA<span>ADMIN</span></Link><button type="button" className="admin-collapse" aria-label={collapsed?"사이드바 펼치기":"사이드바 접기"} aria-expanded={!collapsed} onClick={()=>setCollapsed(!collapsed)}>{collapsed?<IconLayoutSidebarLeftExpand size={20}/>:<IconLayoutSidebarLeftCollapse size={20}/>}</button><button type="button" className="admin-mobile-close" aria-label="메뉴 닫기" onClick={()=>setOpen(false)}><IconX size={20}/></button></div>
       <nav aria-label="백오피스 메뉴">{["", "업무", "대관 정보", "운영"].map(group=>{
         const items=links.filter(link=>link.group===group);
-        return items.length ? <div className="admin-nav-group" key={group}>{group&&<h2>{group}</h2>}{items.map(link=>{const Icon=icons[link.icon];return <Link key={link.href} href={link.href} title={link.label} aria-label={link.label} aria-current={link.href===active?"page":undefined} onClick={()=>setOpen(false)}><Icon size={20}/><span className="admin-nav-label">{link.label}</span></Link>;})}</div>:null;
+        return items.length ? <div className="admin-nav-group" key={group}>{group&&<h2>{group}</h2>}{items.map(link=>{const Icon=icons[link.icon];return <Link key={link.href} href={link.href} title={link.label} aria-label={link.label} aria-current={link.href===active?"page":undefined} onClick={()=>setOpen(false)}><Icon size={20}/><span className="admin-nav-label">{link.label}</span>{link.icon === "members" && pendingMembers > 0 && <span className="admin-nav-count" aria-label={`가입 승인 대기 ${pendingMembers}명`}>{pendingMembers}</span>}{link.icon === "inquiries" && pendingInquiries > 0 && <span className="admin-nav-count" aria-label={`답변 대기 ${pendingInquiries}건`}>{pendingInquiries}</span>}</Link>;})}</div>:null;
       })}</nav>
       <div className="admin-sidebar-bottom"><button type="button" className="admin-settings" title="설정" aria-expanded={settings} onClick={()=>{setSettings(!settings);if(collapsed)setCollapsed(false);}}><IconSettings size={20}/><span className="admin-nav-label">설정</span></button>
       {settings && <nav className="admin-settings-links" aria-label="계정 관리">{tier==="MASTER"&&<Link href="/admin/users" aria-current={active==="/admin/users"?"page":undefined}>운영자 계정</Link>}<Link href="/admin/account" aria-current={active==="/admin/account"?"page":undefined}>계정 설정</Link></nav>}

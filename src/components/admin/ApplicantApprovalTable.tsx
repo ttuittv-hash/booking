@@ -1,4 +1,5 @@
 "use client";
+import editor from "./AdminEditor.module.css";
 
 import Link from "next/link";
 import { useMemberActions } from "./useMemberActions";
@@ -11,7 +12,6 @@ import {
   FIELD,
   NONE,
   TABLE,
-  TABLE_CARD,
   TABLE_HEAD,
   TABLE_HEAD_DESC,
   TABLE_HEAD_TITLE,
@@ -65,7 +65,7 @@ export function ApplicantApprovalTable({
   const { busyId, decide, remove } = useMemberActions();
 
   return (
-    <div className={TABLE_CARD}>
+    <div className={`${editor.workspace} ${editor.section} ${editor.paddedSection}`}>
       <div className={TABLE_HEAD}>
         <div>
           <p className={TABLE_HEAD_TITLE}>

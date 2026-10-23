@@ -3,7 +3,7 @@ import { ReportTimeTabs } from "@/components/admin/ReportTimeTabs";
 import { reportPeriod, completeBuckets } from "@/lib/reportPeriod";
 import { ReportTrendChart } from "@/components/admin/ReportTrendChart";
 import Link from "next/link";
-import { requireProAdminPage } from "@/lib/auth";
+import { requireProAdminPage, isMasterAdmin } from "@/lib/auth";
 import {
   getSignupStats,
   getSignupTrend,
@@ -93,10 +93,12 @@ function StatCard({
   label,
   value,
   sub,
+  href,
 }: {
   label: string;
   value: string;
   sub?: string;
+  href?: string;
 }) {
   const body = (
     <>
@@ -105,7 +107,7 @@ function StatCard({
       {sub && <p className="mt-1 text-xs text-muted">{sub}</p>}
     </>
   );
-  return <div className={`${CARD} admin-stat-card`}>{body}</div>;
+  return <div className={`${CARD} admin-stat-card`}>{body}{href&&<Link href={href} className="admin-stat-detail">바로가기 <span aria-hidden="true">→</span></Link>}</div>;
 }
 
 function BreakdownTable({
@@ -117,7 +119,7 @@ function BreakdownTable({
   rows: { key: string; label: string; count: number; total: number }[];
   showTotal?: boolean;
 }) {
-  return <section className={TABLE_CARD}><h2 className={SECTION_TITLE}>{title}</h2><ReportBars rows={rows.map(r=>({label:r.label,value:r.count,detail:showTotal?`대관료 합계 ${num(r.total)}원`:undefined}))}/></section>;
+  return <section className={TABLE_CARD}><h2 className={SECTION_TITLE}>{title}</h2><ReportBars variant="donut" rows={rows.map(r=>({label:r.label,value:r.count,detail:showTotal?`대관료 합계 ${num(r.total)}원`:undefined}))}/></section>;
 }
 
 export default async function AdminReportsPage({
@@ -236,7 +238,7 @@ export default async function AdminReportsPage({
 
         <section className="admin-report-section mt-8">
           <h2 className={SECTION_TITLE}>가입</h2>
-          <div className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-4">
+          <div className="mt-3 admin-metric-grid gap-3">
             <StatCard
               label="가입자 수"
               value={`${signups.totalUsers.toLocaleString("ko-KR")}명`}
@@ -271,7 +273,7 @@ export default async function AdminReportsPage({
         <ReportTimeTabs from={range.from} to={range.to} mode={mode} extra={query.extra} />
         <section className="admin-report-section mt-2">
           <h2 className={SECTION_TITLE}>신청 퍼널</h2>
-          <ReportBars rows={funnel.map(step=>({label:step.label,value:step.count,unit:step.unit,detail:`직전 대비 ${step.rate===null?'—':`${step.rate}%`} · ${step.hint}`}))}/>
+          <ReportBars variant="steps" rows={funnel.map(step=>({label:step.label,value:step.count,unit:step.unit,detail:step.hint,rate:step.rate}))}/>
           <p className="mt-2.5 text-xs leading-5 text-muted">
             방문·가입 화면·대관신청 클릭·위저드 진입은 위 기간 안의 접속 기록 기준이고,
             가입 완료·회사 승인·신청서 제출은 그 기간에 실제로 만들어진 건수입니다.
@@ -300,26 +302,26 @@ export default async function AdminReportsPage({
           <p className="mt-1.5 text-xs leading-5 text-muted">
             운영진 손이 필요한 대기 항목입니다. 기간과 무관하게 현재 상태를 보여줍니다.
           </p>
-          <div className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-4">
+          <div className="mt-3 admin-metric-grid gap-3">
             <StatCard
-              label="심사 대기 신청서"
+              href="/admin" label="심사 대기 신청서"
               value={`${ops.pendingReviews.toLocaleString("ko-KR")}건`}
               sub="접수됐지만 승인·보류·거절 미결정"
             />
             <StatCard
-              label="가입 승인 대기"
+              href="/admin/applicants" label="가입 승인 대기"
               value={`${ops.pendingCompanies.toLocaleString("ko-KR")}곳`}
               sub="회사 심사 대기"
             />
             <StatCard
-              label="미답변 문의"
+              href="/admin/inquiries" label="미답변 문의"
               value={`${ops.openInquiries.toLocaleString("ko-KR")}건`}
               sub={ops.oldestInquiryDays === null ? "없음" : `가장 오래된 건 ${ops.oldestInquiryDays}일 경과`}
             />
             <StatCard
-              label="휴대폰 없는 운영자"
+              href={isMasterAdmin(user) ? "/admin/users" : undefined} label="휴대폰 번호 미등록 운영자"
               value={`${ops.adminsWithoutPhone.toLocaleString("ko-KR")}명`}
-              sub="알림톡이 발송되지 않는 계정"
+              sub={isMasterAdmin(user) ? "알림톡이 발송되지 않는 계정" : "알림톡이 발송되지 않는 계정 · 마스터 관리자에게 등록 요청"}
             />
           </div>
         </section>
@@ -347,7 +349,7 @@ export default async function AdminReportsPage({
           <h2 className={SECTION_TITLE}>서버 · 차단</h2>
           {aws.available ? (
             <>
-              <div className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-4">
+              <div className="mt-3 admin-metric-grid gap-3">
                 <StatCard
                   label="가동 중인 서버"
                   value={aws.runningTasks === null ? "—" : `${aws.runningTasks}대`}
@@ -368,7 +370,7 @@ export default async function AdminReportsPage({
                   sub={aws.clientErrors === null ? undefined : `요청 오류(4xx) ${aws.clientErrors.toLocaleString("ko-KR")}건`}
                 />
               </div>
-              <div className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-4">
+              <div className="mt-3 admin-metric-grid gap-3">
                 <StatCard
                   label="방화벽 차단"
                   value={aws.blockedRequests === null ? "—" : `${aws.blockedRequests.toLocaleString("ko-KR")}건`}
@@ -388,7 +390,7 @@ export default async function AdminReportsPage({
                   sub="최대 420개"
                 />
               </div>
-              <ReportBars rows={[{label:"서버 CPU",value:aws.cpuAvg,unit:"%"},{label:"DB CPU",value:aws.dbCpu,unit:"%"},{label:"메모리",value:aws.memoryAvg,unit:"%"}].filter((r):r is {label:string;value:number;unit:string}=>r.value!==null)}/>
+              <ReportBars variant="gauges" rows={[{label:"서버 CPU",value:aws.cpuAvg,unit:"%"},{label:"DB CPU",value:aws.dbCpu,unit:"%"},{label:"메모리",value:aws.memoryAvg,unit:"%"}].filter((r):r is {label:string;value:number;unit:string}=>r.value!==null)}/>
               <ReportBars rows={[{label:"방화벽 차단",value:aws.blockedRequests},{label:"정상 통과",value:aws.allowedRequests},{label:"서버 오류(5xx)",value:aws.serverErrors},{label:"요청 오류(4xx)",value:aws.clientErrors}].filter((r):r is {label:string;value:number}=>r.value!==null)}/>
               <p className="mt-2.5 text-xs leading-5 text-muted">
                 위 기간의 AWS 지표입니다. 차단 건수가 갑자기 늘면 공격일 수 있고, 서버 오류(5xx)가
@@ -430,7 +432,7 @@ export default async function AdminReportsPage({
               ? "모든 공간의 신청서를 함께 집계합니다."
               : `${venueLabel}에 걸린 신청서만 집계합니다. 동시 대관(아레나+중형) 건은 두 공간 탭에 모두 잡히므로, 탭별 건수의 합은 전체보다 클 수 있습니다.`}
           </p>
-          <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-4">
+          <div className="mt-4 admin-metric-grid gap-3">
           <StatCard label="누적 신청 건수" value={`${stats.totalQuotes.toLocaleString("ko-KR")}건`} />
           <StatCard label="이번 달 신규 신청" value={`${stats.newThisMonth.toLocaleString("ko-KR")}건`} />
           <StatCard label="심사 대기" value={`${stats.pendingReview.toLocaleString("ko-KR")}건`} />
@@ -467,7 +469,7 @@ export default async function AdminReportsPage({
             <b>확정 매출</b>은 정산까지 끝난 최종 금액입니다. 계약만 되고 정산 전인 건은 금액이 더
             움직일 수 있어 확정 매출에 넣지 않고 따로 셉니다.
           </p>
-          <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-4">
+          <div className="mt-4 admin-metric-grid gap-3">
             <StatCard
               label="접수 건수"
               value={`${revenue.submittedCount.toLocaleString("ko-KR")}건`}

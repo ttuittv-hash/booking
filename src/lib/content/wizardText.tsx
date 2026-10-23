@@ -44,7 +44,11 @@ export function useWizardText(): WizardTextApi {
 export function WizardTextProvider({
   overrides,
   children,
+  onLookup,
+  selectable = false,
 }: {
+  selectable?: boolean;
+  onLookup?: (key: string, fallback: string) => void;
   overrides: WizardTextOverrides;
   children: ReactNode;
 }) {
@@ -56,8 +60,8 @@ export function WizardTextProvider({
   // 화면이 깨지는 형태(라벨이 없어져 보이는 등)로 나타날 수 있다는 걸 알고 내린
   // 결정이다 — 되돌리기 전에 다시 확인할 것.
   const api: WizardTextApi = {
-    t: (key, fallback) => overrides[key] ?? fallback,
-    tStr: (key, fallback) => overrides[key] ?? fallback,
+    t: (key, fallback) => { onLookup?.(key, fallback); return selectable ? <span data-wizard-text={key}>{overrides[key] ?? fallback}</span> : overrides[key] ?? fallback; },
+    tStr: (key, fallback) => { onLookup?.(key, fallback); return overrides[key] ?? fallback; },
   };
   return <WizardTextContext.Provider value={api}>{children}</WizardTextContext.Provider>;
 }

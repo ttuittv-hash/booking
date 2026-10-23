@@ -111,8 +111,7 @@ export default async function AdminApplicantsPage({
 }
 
 async function PendingTab({ page, brns }: { page: number; brns: Record<string, string | null> }) {
-  // 회사끼리 붙여 놓고 회사 안에서는 가입 순으로 세운다 — 누가 먼저 신청했는지 보고
-  // 승인해야 대표가 엉뚱하게 정해지지 않는다.
+  // 회사명 → 담당자명 가나다순. 가입 순서는 별도 열로 확인한다.
   const { items, total, totalPages } = await listUsersPaged(
     { role: "APPLICANT", approvalStatus: "PENDING", orderBy: "company" },
     page,
@@ -175,7 +174,7 @@ async function DecidedTab({
   badgeHidden: Record<string, boolean>;
 }) {
   const { items, total, totalPages } = await listUsersPaged(
-    { role: "APPLICANT", excludeApprovalStatus: ["PENDING", "HOLD"] },
+    { role: "APPLICANT", excludeApprovalStatus: ["PENDING", "HOLD"], orderBy: "company" },
     page,
   );
   // 처리자 이름은 한 번에 읽어 Map 으로 만든다 — 행마다 findUserById 면 N+1 이다.

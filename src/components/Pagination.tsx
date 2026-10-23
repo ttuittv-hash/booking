@@ -1,12 +1,15 @@
-import { ButtonLink } from "@/components/ui/kit";
+import Link from "next/link";
+import { btnClass as publicButtonClass } from "@/components/ui/kit";
+import { btnClass as adminButtonClass } from "@/components/admin/adminButton";
+import styles from "./Pagination.module.css";
 
 /**
  * 목록 하단 페이지 이동 — 사이트 공용 컨트롤.
  *
  * 디자인 규칙(`docs/design-system.md`)
  * - 버튼 크기는 배치로 정한다. 목록 안 인라인 컨트롤이므로 `sm`(32px).
- * - 현재 페이지는 시스템의 단일 선택 언어(검정 채움)로만 표시한다. 강조색 금지.
- * - 색면 박스 대신 헤어라인으로 목록과 분리한다.
+ * - 페이지 번호는 박스 없는 텍스트, 현재 페이지는 굵기로 표시한다.
+ * - 목록과는 여백으로 구분한다.
  *
  * 현재 쿼리스트링은 유지한 채 page 만 바꾼다.
  */
@@ -25,6 +28,7 @@ export function Pagination({
   params?: Record<string, string | undefined>;
   className?: string;
 }) {
+  const btnClass = /^\/admin(?:\/|$)/.test(basePath.split("?")[0]) ? adminButtonClass : publicButtonClass;
   const count = <span className="tabular-nums">{total.toLocaleString("ko-KR")}</span>;
 
   if (totalPages <= 1) {
@@ -53,43 +57,41 @@ export function Pagination({
 
   return (
     <div
-      className={`mt-8 flex flex-col gap-4 border-t border-border/25 pt-6 sm:flex-row sm:items-center sm:justify-between ${className}`}
+      className={`mt-8 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between ${className}`}
     >
       <p className="text-xs text-muted">
         전체 {count}건 · <span className="tabular-nums">{page}</span>/
         <span className="tabular-nums">{totalPages}</span> 페이지
       </p>
-      <nav aria-label="페이지 이동" className="flex flex-wrap items-center gap-2">
+      <nav aria-label="페이지 이동" className="flex flex-wrap items-center gap-1">
         {page > 1 && (
-          <ButtonLink href={href(page - 1)} variant="secondary" size="sm">
+          <Link href={href(page - 1)} className={`${btnClass("secondary", "sm")} ${styles.direction}`}>
             이전
-          </ButtonLink>
+          </Link>
         )}
         {pages.map((target) =>
           target === page ? (
             <span
               key={target}
               aria-current="page"
-              className="inline-flex h-8 min-w-8 items-center justify-center border border-foreground bg-inverse-bg px-3 text-xs font-bold tabular-nums text-inverse-fg"
+              className={`${styles.number} ${styles.current}`}
             >
               {target}
             </span>
           ) : (
-            <ButtonLink
+            <Link
               key={target}
               href={href(target)}
-              variant="secondary"
-              size="sm"
-              className="min-w-8 tabular-nums"
+              className={styles.number}
             >
               {target}
-            </ButtonLink>
+            </Link>
           ),
         )}
         {page < totalPages && (
-          <ButtonLink href={href(page + 1)} variant="secondary" size="sm">
+          <Link href={href(page + 1)} className={`${btnClass("secondary", "sm")} ${styles.direction}`}>
             다음
-          </ButtonLink>
+          </Link>
         )}
       </nav>
     </div>

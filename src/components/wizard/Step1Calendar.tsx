@@ -1,4 +1,5 @@
 "use client";
+import calendarStyles from "@/components/ui/BookingCalendar.module.css";
 
 import { btnClass, ICON_BTN_SM, toggleClass } from "@/components/ui/kit";
 
@@ -464,12 +465,12 @@ export function Step1Calendar({
     selectedDates.length - setupCount - loadOutCount - restCount;
 
   return (
-    <div>
+    <div className={calendarStyles.calendar}>
       {heading && (
         <h2 className="type-kr-heading text-h5-m sm:text-h5">{heading}</h2>
       )}
 
-      <div
+      <div data-calendar-header
         className={
           heading
             ? "mt-6 flex items-center justify-between"
@@ -556,6 +557,10 @@ export function Step1Calendar({
                   return (
                     <button
                       key={di}
+                      data-calendar-day={iso}
+                      data-day-role={isActive ? (tag ?? "SELECTED") : undefined}
+                      aria-label={`${iso}${tag ? ` ${tag === "PERFORMANCE" ? "공연" : tag === "LOAD_OUT" ? "철수" : tag === "REST" ? "휴무" : "준비"}` : ""}`}
+                      aria-pressed={isActive}
                       type="button"
                       disabled={cellDisabled}
                       onClick={() => {
@@ -753,7 +758,8 @@ export function Step1Calendar({
                         <button
                           type="button"
                           onClick={() => removeExtraDay(openDate)}
-                          className={btnClass("danger", "sm")}
+                          data-delete-action
+                            className={btnClass("danger", "sm")}
                         >
                           삭제
                         </button>
@@ -795,6 +801,7 @@ export function Step1Calendar({
                                 ),
                               );
                             }}
+                            data-delete-action
                             className={btnClass("danger", "sm")}
                           >
                             삭제
@@ -911,7 +918,8 @@ export function Step1Calendar({
                               onClick={() =>
                                 onChangeMidHallDays?.(omit(midHall, openDate))
                               }
-                              className={btnClass("danger", "sm")}
+                              data-delete-action
+                            className={btnClass("danger", "sm")}
                             >
                               삭제
                             </button>

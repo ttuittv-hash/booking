@@ -1,9 +1,10 @@
 "use client";
 
+import editor from "./AdminEditor.module.css";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-import { btnClass } from "@/components/ui/kit";
-import { ERROR_NOTE, FIELD, HELP, OK_NOTE, PANEL, SECTION_TITLE } from "./adminUi";
+import { btnClass } from "./adminButton";
+import { ERROR_NOTE, FIELD, HELP, OK_NOTE, SECTION_TITLE } from "./adminUi";
 
 export function AddAdminForm() {
   const router = useRouter();
@@ -36,7 +37,7 @@ export function AddAdminForm() {
   }
 
   return (
-    <div className={PANEL}>
+    <div className={`${editor.workspace} ${editor.section} ${editor.paddedSection}`}>
       <h2 className={SECTION_TITLE}>운영자 계정 추가</h2>
       <p className={`mt-2 ${HELP}`}>
         이메일/임시 비밀번호를 직접 전달해 새 운영자를 등록하세요. (이메일 발송 기능은
@@ -44,55 +45,55 @@ export function AddAdminForm() {
         그 계정은 알림톡을 받지 못합니다.
       </p>
 
-      <div className="mt-5 grid grid-cols-1 gap-3 sm:grid-cols-5">
-        <input
+      <div className="mt-5 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+        <label className="block"><span className="mb-1.5 block text-xs text-muted">아이디</span><input
           type="text"
           placeholder="아이디 (5~20자의 영문·숫자)"
           value={form.username}
           onChange={(e) => setForm({ ...form, username: e.target.value })}
           className={FIELD}
-        />
-        <input
+        /></label>
+        <label className="block"><span className="mb-1.5 block text-xs text-muted">이메일</span><input
           type="email"
           placeholder="이메일"
           value={form.email}
           onChange={(e) => setForm({ ...form, email: e.target.value })}
           className={FIELD}
-        />
-        <input
+        /></label>
+        <label className="block"><span className="mb-1.5 block text-xs text-muted">이름</span><input
           type="text"
           placeholder="이름"
           value={form.name}
           onChange={(e) => setForm({ ...form, name: e.target.value })}
           className={FIELD}
-        />
+        /></label>
         {/* [신규 2026-09-02] 운영자 앞 알림톡 수신번호. 목록에는 컬럼이 있는데 채울
             자리가 없어 늘 "미등록"이었다. 필수는 아니지만 비우면 그 계정은
             알림톡을 못 받는다. */}
-        <input
+        <label className="block"><span className="mb-1.5 block text-xs text-muted">휴대폰 번호 (선택)</span><input
           type="tel"
           placeholder="휴대폰 번호 (010-1234-5678)"
           value={form.phone}
           onChange={(e) => setForm({ ...form, phone: e.target.value })}
           className={FIELD}
-        />
-        <input
+        /></label>
+        <label className="block"><span className="mb-1.5 block text-xs text-muted">임시 비밀번호</span><input
           type="text"
           placeholder="임시 비밀번호 (8자 이상)"
           value={form.password}
           onChange={(e) => setForm({ ...form, password: e.target.value })}
           className={FIELD}
-        />
+        /></label>
       </div>
 
-      <button
+      <div className={editor.saveBar}><button
         type="button"
         disabled={submitting}
         onClick={submit}
-        className={`mt-5 ${btnClass("primary", "md")}`}
+        className={`${btnClass("primary", "md")} ${editor.actionButton}`}
       >
         {submitting ? "처리 중..." : "운영자 계정 생성"}
-      </button>
+      </button></div>
       {error && <p className={`mt-3 ${ERROR_NOTE}`}>{error}</p>}
       {success && <p className={`mt-3 ${OK_NOTE}`}>{success}</p>}
     </div>

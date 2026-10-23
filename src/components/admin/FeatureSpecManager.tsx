@@ -7,7 +7,8 @@ import {
   type FeatureSpecRow,
   type FeatureSpecSheetKey,
 } from "@/lib/pricing/types";
-import { btnClass, ICON_BTN_SM } from "@/components/ui/kit";
+import { ICON_BTN_SM } from "@/components/ui/kit";
+import { btnClass } from "@/components/admin/adminButton";
 import {
   ADD_BTN_LG,
   FIELD_SM,

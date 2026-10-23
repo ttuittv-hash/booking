@@ -39,7 +39,7 @@ export function Step5Estimate({
 
   if (!pkg && !hasMidHall) {
     return (
-      <section>
+      <section data-estimate-page>
         <p className="text-s text-muted">
           {t("estimate.pickPackageOrScheduleFirst", "먼저 1단계에서 패키지를 선택하거나 중형공연장 일정을 선택하세요.")}
         </p>
@@ -115,7 +115,7 @@ export function Step5Estimate({
   const grandTotal = boxes.reduce((sum, box) => sum + box.total, 0);
 
   return (
-    <section>
+    <section data-estimate-page>
       <h2 className="type-kr-heading text-h5-m sm:text-h5">{title}</h2>
 
       {/* 1. 대관료 → 총계약 금액(공간 둘 이상일 때만) */}

@@ -1,0 +1,33 @@
+.document { border:1px solid var(--border-soft); border-radius:var(--admin-editor-radius,12px); background:var(--panel); overflow:hidden; min-width:0; }
+.header { display:flex; justify-content:space-between; align-items:flex-start; gap:20px; padding:var(--admin-editor-padding,24px); }
+.eyebrow { font-size:11px; color:var(--muted); }
+.header h2 { font-size:var(--admin-document-title-size,20px); font-weight:700; margin-top:8px; }
+.header p { font-size:var(--admin-body-size,13px); color:var(--muted); margin-top:8px; line-height:1.7; }
+.notice { margin:0 var(--admin-editor-padding,24px); padding:12px 16px; background:var(--background); border-radius:var(--admin-editor-control-radius,6px); color:var(--muted); font-size:var(--admin-label-size,12px); line-height:1.7; }
+.single { padding:0 24px 24px; }
+.editPane { min-width:0; }
+.dateField { display:grid; gap:8px; font-size:var(--admin-label-size,12px); font-weight:600; margin-bottom:24px; }
+.dateField input { max-width:320px; font-weight:400; }
+.bodyLabel { font-size:var(--admin-label-size,12px); font-weight:600; margin-bottom:8px; }
+.editPane :global([class*="stickyTools"]) { position:static; }
+.footer { display:flex; flex-wrap:wrap; align-items:center; gap:16px; padding:20px 24px; border-top:1px solid var(--border-soft); }
+.footer p { color:var(--muted); font-size:var(--admin-label-size,12px); }
+.footer .error { color:var(--danger); }
+@media(max-width:600px) { .header { flex-direction:column; } .single { padding:0 18px 18px; gap:18px; } .footer { padding:18px; } }
+.editPane :global(.tiptap),.editPane textarea { max-height:560px; overflow-y:auto; }
+
+.single { padding-top:24px; }
+.consentList { display:grid; gap:20px; padding:24px; }
+.consentCard { padding:24px; border:1px solid var(--border-soft); border-radius:var(--admin-editor-radius,12px); background:var(--background); min-width:0; }
+.consentHeading { display:flex; flex-wrap:wrap; justify-content:space-between; align-items:center; gap:16px; margin-bottom:24px; }
+.consentHeading h3 { font-size:16px; font-weight:700; margin-top:8px; }
+.badge { display:inline-block; padding:4px 8px; border-radius:4px; background:var(--panel); color:var(--muted); font-size:11px; }
+.toggle { display:inline-flex; align-items:center; gap:8px; font-size:var(--admin-label-size,12px); }
+.toggle input { width:16px; height:16px; accent-color:var(--foreground); }
+.metadata { display:grid; grid-template-columns:minmax(0,1fr) 220px; gap:16px; }
+.metadata label,.consentBody { display:grid; gap:8px; font-size:var(--admin-label-size,12px); font-weight:600; }
+.metadata input,.consentBody textarea { background:var(--panel); font-weight:400; }
+.consentBody { margin-top:20px; }
+.consentBody textarea { resize:vertical; line-height:1.8; font-family:inherit; }
+.help { margin-top:10px; font-size:11px; color:var(--muted); line-height:1.7; }
+@media(max-width:600px) { .consentList,.consentCard { padding:18px; } .metadata { grid-template-columns:1fr; } }

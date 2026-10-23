@@ -36,7 +36,20 @@ export function AdminSchedulePreview() {
       setWindow(next);
       return Response.json({window:next});
     }
-    if (!init?.method || init.method === "GET") return Response.json({blocks:blocks.current,occupancy:{}});
+    if (!init?.method || init.method === "GET") {
+      const query = new URL(url, "http://localhost").searchParams;
+      const monthKey = `${query.get("year") ?? "2026"}-${String(query.get("month") ?? "10").padStart(2,"0")}`;
+      const entry = (id: string, venueId: "arena" | "medium-hall", companyName: string, status: string, reviewDecision: string | null, role = "PERFORMANCE") => ({quoteId:`PREVIEW-${id}`,venueId,companyName,status,reviewDecision,role});
+      const occupancy = {
+        [`${monthKey}-08`]: [entry("01","arena","예시 공연기획사 A","CONTRACTED","APPROVED","PREP")],
+        [`${monthKey}-09`]: [entry("01","arena","예시 공연기획사 A","CONTRACTED","APPROVED")],
+        [`${monthKey}-10`]: [entry("02","arena","예시 공연기획사 B","SUBMITTED",null),entry("03","arena","예시 공연기획사 C","SUBMITTED",null)],
+        [`${monthKey}-23`]: [entry("04","arena","예시 공연기획사 D","CONTRACTED","APPROVED"),entry("05","arena","예시 공연기획사 E","SUBMITTED",null)],
+        [`${monthKey}-12`]: [entry("06","medium-hall","예시 중형공연 기획사","CONTRACTED","APPROVED")],
+        [`${monthKey}-24`]: [entry("07","medium-hall","예시 중형공연 기획사 B","SUBMITTED",null)],
+      };
+      return Response.json({blocks:blocks.current,occupancy});
+    }
     const body=JSON.parse(String(init.body ?? "{}"));
     blocks.current=blocks.current.filter(item=>!(item.date===body.date && (item.venueId===body.venueId || item.venueId==="ALL")));
     if(init.method==="POST") blocks.current.push(body);
@@ -48,7 +61,7 @@ export function AdminSchedulePreview() {
   const [year,month]=opening.split("-").map(Number);
   return <div className={`${styles.preview} ${styles.schedule}`}>
     <p className={styles.lead}>한 달씩 달력을 보면서 아레나·중형공연장 예약 현황을 확인하고, 날짜별로 대관 신청 가능/불가를 설정합니다.</p>
-    <p className={styles.note}>예시 일정 시안입니다. 예약 데이터는 연결하지 않았으며, 노출 기간과 대관 불가 설정은 이 화면에만 반영됩니다.</p>
+    <p className={styles.note}>예시 일정입니다. 8~9일 확정, 10일 심사 2건, 23일 확정·심사 혼합 상태를 확인하세요. 실제 예약과 무관하며 변경은 이 화면에만 반영됩니다.</p>
     <ContentTransport.Provider value={{request,isPreview:true}}>
       <NoticeCalendarWindowForm initial={window} nowMonth="2026-10"/>
       <div className={styles.calendar}><ScheduleManager key={`${bounds.start}~${bounds.end}`} initialYear={year} initialMonth={month} monthBounds={bounds}/></div>

@@ -1,5 +1,7 @@
 "use client";
 
+import calendarStyles from "@/components/ui/BookingCalendar.module.css";
+import editorStyles from "./AdminEditor.module.css";
 import { useContentTransport } from "./ContentTransport";
 
 import { scheduleLegend, type ScheduleLegend } from "@/lib/content/scheduleLegend";
@@ -8,7 +10,7 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { isoDate } from "@/lib/pricing/dateRange";
 import type { DateBlock } from "@/lib/pricing/types";
-import { btnClass } from "@/components/ui/kit";
+import { btnClass } from "@/components/admin/adminButton";
 import { FIELD_SM } from "./adminUi";
 
 interface ScheduleOccupancyEntry {
@@ -105,7 +107,7 @@ export function ScheduleManager({
   monthBounds?: { start: string | null; end: string | null };
   legend?: ScheduleLegend | null;
 }) {
-  const { request } = useContentTransport();
+  const { request, isPreview } = useContentTransport();
   const legend = legendProp ?? scheduleLegend(null);
   const [year, setYear] = useState(initialYear);
   const [month, setMonth] = useState(initialMonth);
@@ -158,7 +160,6 @@ export function ScheduleManager({
     blocks.filter((b) => b.venueId === venueTab || b.venueId === "ALL").map((b) => [b.date, b]),
   );
   const calendarWeeks = buildCalendarWeeks(year, month);
-  const today = new Date();
 
   const hasBounds = !!(monthBounds?.start || monthBounds?.end);
   const currentMonthKey = toMonthKey(year, month);
@@ -169,10 +170,6 @@ export function ScheduleManager({
   const boundsLabel = hasBounds
     ? `${formatMonth(monthBounds?.start ?? null) ?? "제한 없음"} ~ ${formatMonth(monthBounds?.end ?? null) ?? "제한 없음"}`
     : null;
-
-  function isSameDate(a: Date, b: Date) {
-    return a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate();
-  }
 
   async function blockOpenDate() {
     if (!openDate) return;
@@ -201,15 +198,17 @@ export function ScheduleManager({
   }
 
   return (
-    <div className="mt-8">
-      <div className="flex items-center justify-between gap-3">
+    <div className={`${editorStyles.workspace} ${calendarStyles.calendar}`}>
+      <h2 className="admin-section-title mb-4">공간별 대관 일정</h2>
+      <div data-calendar-header className="flex items-center justify-between gap-3">
         <button
           type="button"
+          aria-label="이전 달"
           onClick={() => goToMonth(-1)}
           disabled={!canGoToMonth(-1)}
-          className={btnClass("secondary", "sm")}
+          className={`${editorStyles.actionButton} ${btnClass("secondary", "sm")}`}
         >
-          ‹ 이전 달
+          ‹
         </button>
         <div className="flex flex-col items-center gap-0.5">
           <div className="flex items-center gap-2">
@@ -228,11 +227,12 @@ export function ScheduleManager({
         </div>
         <button
           type="button"
+          aria-label="다음 달"
           onClick={() => goToMonth(1)}
           disabled={!canGoToMonth(1)}
-          className={btnClass("secondary", "sm")}
+          className={`${editorStyles.actionButton} ${btnClass("secondary", "sm")}`}
         >
-          다음 달 ›
+          ›
         </button>
       </div>
 
@@ -244,39 +244,27 @@ export function ScheduleManager({
         해당 날짜만 선택할 수 없습니다.
       </p>
 
-      <div className="mt-4 flex gap-1 border-b border-border-soft">
+      <div className={`mt-4 ${editorStyles.venueTabs}`}>
         {(["arena", "medium-hall"] as const).map((tab) => (
           <button
             key={tab}
             type="button"
             onClick={() => setVenueTab(tab)}
-            className={[
-              "flex h-10 items-center border-b-2 px-4 text-s font-bold transition-colors",
-              venueTab === tab
-                ? "border-accent text-foreground"
-                : "border-transparent text-muted hover:text-foreground",
-            ].join(" ")}
+            aria-pressed={venueTab === tab}
           >
             {tab === "arena" ? "아레나" : "중형공연장"}
           </button>
         ))}
       </div>
 
-      <div className="mt-3 flex flex-wrap items-center gap-4 text-xs text-muted">
-        <span className="flex items-center gap-1.5">
-          <span className={["h-2 w-2 rounded-full", legend.confirmed.dot].join(" ")} /> {legend.confirmed.label}(승인 · 계약 · 정산)
-        </span>
-        <span className="flex items-center gap-1.5">
-          <span className={["h-2 w-2 rounded-full", legend.reviewing.dot ?? (venueTab === "arena" ? "bg-accent" : "bg-good")].join(" ")} />
-          {legend.reviewing.label}({venueLabel(venueTab)} 신청)
-        </span>
-        <span className="flex items-center gap-1.5">
-          <span className={["h-2 w-2 rounded-full", legend.blocked.dot].join(" ")} /> {legend.blocked.label}(관리자 지정 · {venueLabel(venueTab)} 전용)
-        </span>
+      <div className="mt-3 flex flex-wrap items-center gap-4 text-xs text-muted" aria-label="일정 상태 범례">
+        <span className="flex items-center gap-1.5"><span aria-hidden="true" className={`h-2.5 w-2.5 shrink-0 rounded-full ${legend.confirmed.dot}`} />{legend.confirmed.label}(승인 · 계약 · 정산)</span>
+        <span className="flex items-center gap-1.5"><span aria-hidden="true" className={`h-2.5 w-2.5 shrink-0 rounded-full ${legend.reviewing.dot ?? (venueTab === "arena" ? "bg-accent" : "bg-good")}`} />{legend.reviewing.label}({venueLabel(venueTab)} 신청)</span>
+        <span className="flex items-center gap-1.5"><span aria-hidden="true" className={`h-2.5 w-2.5 shrink-0 rounded-full ${legend.blocked.dot}`} />{legend.blocked.label}(관리자 지정)</span>
       </div>
 
-      <div className="mt-5 border border-border-soft bg-panel/60 p-4">
-        <div className="grid grid-cols-7 gap-1 text-center text-xs font-bold text-muted">
+      <div className="mt-5">
+        <div className="grid grid-cols-7 gap-1 sm:gap-1.5 text-center text-xs font-bold text-muted">
           {DOW_LABELS.map((label, i) => (
             <div key={label} className={i === 6 ? "opacity-50" : ""}>
               {label}
@@ -284,12 +272,12 @@ export function ScheduleManager({
           ))}
         </div>
 
-        <div className="mt-1 space-y-1">
+        <div className="mt-1.5 space-y-1 sm:space-y-1.5">
           {calendarWeeks.map((week, wi) => {
             const openInThisRow = openDate && week.some((d) => isoDate(d) === openDate);
             return (
               <div key={wi}>
-                <div className="grid grid-cols-7 gap-1">
+                <div className="grid grid-cols-7 gap-1 sm:gap-1.5">
                   {week.map((date) => {
                     const inMonth = date.getMonth() === month - 1;
                     const dateStr = isoDate(date);
@@ -298,10 +286,13 @@ export function ScheduleManager({
                     const entries = (occupancy[dateStr] ?? []).filter((e) => e.venueId === venueTab);
                     const confirmedCount = entries.filter((e) => dayGroupOf(e) === "CONFIRMED").length;
                     const reviewingCount = entries.length - confirmedCount;
-                    const isToday = isSameDate(date, today);
                     return (
                       <button
                         key={dateStr}
+                        data-calendar-day={dateStr}
+                        data-blocked={isBlocked}
+                        aria-label={`${formatDateLabel(dateStr)} ${isBlocked ? "대관 불가" : "예약 현황"}`}
+                        aria-pressed={openDate === dateStr}
                         type="button"
                         disabled={!inMonth}
                         onClick={() => {
@@ -314,37 +305,20 @@ export function ScheduleManager({
                             ? "cursor-default text-muted/30"
                             : isBlocked
                               ? "cursor-pointer bg-danger-soft font-bold text-danger hover:bg-danger-soft"
-                              : "cursor-pointer text-foreground hover:bg-panel-strong",
-                          isToday ? "underline decoration-2 underline-offset-4" : "",
-                          openDate === dateStr ? "ring-2 ring-accent" : "",
+                              : confirmedCount > 0
+                                ? `cursor-pointer ${legend.confirmed.badge}`
+                                : reviewingCount > 0
+                                  ? `cursor-pointer ${legend.reviewing.badge ?? (venueTab === "arena" ? "bg-accent-soft text-[#856300]" : "bg-good-soft text-good")}`
+                                  : "cursor-pointer text-foreground hover:bg-panel-strong",
+
                         ].join(" ")}
                       >
                         <span className={isBlocked ? "line-through" : ""}>{date.getDate()}</span>
-                        {/* [개정 2026-09-02] "N건" 한 덩어리로는 잡힌 날인지 겨루는
-                            날인지 알 수 없었다. 확정과 심사 중을 갈라 놓는다. */}
                         {inMonth && entries.length > 0 && (
-                          <span className="flex items-center gap-0.5">
-                            {confirmedCount > 0 && (
-                              <span
-                                className={[legend.confirmed.badge, "px-1 text-xs font-bold"].join(" ")}
-                                title={legend.confirmed.label}
-                              >
-                                확정 {confirmedCount}
-                              </span>
-                            )}
-                            {reviewingCount > 0 && (
-                              <span
-                                className={[
-                                  "px-1 text-xs font-bold",
-                                  venueTab === "arena"
-                                    ? "bg-accent-soft text-foreground"
-                                    : "bg-good-soft text-good",
-                                ].join(" ")}
-                                title="심사 중"
-                              >
-                                심사 {reviewingCount}
-                              </span>
-                            )}
+                          <span className="text-center text-xs font-bold leading-tight">
+                            {confirmedCount > 0 && <span>확정 {confirmedCount}</span>}
+                            {confirmedCount > 0 && reviewingCount > 0 && " · "}
+                            {reviewingCount > 0 && <span>심사 {reviewingCount}</span>}
                           </span>
                         )}
                       </button>
@@ -353,7 +327,7 @@ export function ScheduleManager({
                 </div>
 
                 {openInThisRow && openDate && (
-                  <div className="mt-1.5 border border-accent bg-accent-soft/40 px-3.5 py-3">
+                  <div className={`mt-3 ${editorStyles.optionPanel}`}>
                     <div className="flex items-center justify-between">
                       <div className="text-s font-bold text-foreground">{formatDateLabel(openDate)}</div>
                       <button
@@ -362,11 +336,11 @@ export function ScheduleManager({
                         aria-label="닫기"
                         className="text-xs text-muted hover:text-foreground"
                       >
-                        닫기 ✕
+                        닫기
                       </button>
                     </div>
 
-                    <div className="mt-2.5 grid grid-cols-1 gap-3 border-t border-accent/20 pt-3 sm:grid-cols-2 sm:divide-x sm:divide-accent/20">
+                    <div className="mt-2.5 grid grid-cols-1 gap-3 pt-3 sm:grid-cols-2">
                       <div className="sm:pr-3">
                         <div className="mb-1.5 text-xs font-bold text-muted">
                           상태
@@ -411,12 +385,12 @@ export function ScheduleManager({
                                           className="flex flex-wrap items-center gap-x-2 gap-y-1 bg-background px-2.5 py-1.5 text-xs"
                                         >
                                           <span className="text-muted">{roleLabel(entry.role)}</span>
-                                          <Link
+                                          {isPreview ? <span className="font-bold">{entry.companyName}</span> : (<Link
                                             href={`/admin/${entry.quoteId}`}
                                             className="font-bold text-foreground hover:text-foreground hover:underline"
                                           >
                                             {entry.companyName}
-                                          </Link>
+                                          </Link>)}
                                           <span className="text-xs text-muted">
                                             · {statusLabel(entry.status, entry.reviewDecision)}
                                           </span>
@@ -465,7 +439,7 @@ export function ScheduleManager({
                             <button
                               type="button"
                               onClick={unblockOpenDate}
-                              className={btnClass("secondary", "sm")}
+                              className={`${editorStyles.actionButton} ${btnClass("secondary", "sm")}`}
                             >
                               신청 가능으로 되돌리기
                             </button>
@@ -482,7 +456,7 @@ export function ScheduleManager({
                             <button
                               type="button"
                               onClick={blockOpenDate}
-                              className={`shrink-0 ${btnClass("danger", "sm")}`}
+                              className={`shrink-0 ${editorStyles.actionButton} ${btnClass("danger", "sm")}`}
                             >
                               {venueLabel(venueTab)} 대관 불가로 설정
                             </button>

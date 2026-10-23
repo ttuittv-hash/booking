@@ -80,6 +80,7 @@ export function useMemberActions(options?: {
         body: JSON.stringify({ id, action, reason }),
       });
       if (res.ok) {
+        window.dispatchEvent(new Event("admin-members-changed"));
         router.refresh();
       } else {
         const data = await res.json().catch(() => null);
@@ -120,7 +121,8 @@ export function useMemberActions(options?: {
         );
         // 회사가 통째로 사라졌으면 회사 상세에 머물 수 없다 — 새로고침하면 404 다.
         if (data?.deletedCompany && options?.onCompanyDeleted) options.onCompanyDeleted();
-        else router.refresh();
+        else window.dispatchEvent(new Event("admin-members-changed"));
+        router.refresh();
       } else {
         await dialog.alert(data?.error ?? "삭제하지 못했습니다.");
       }

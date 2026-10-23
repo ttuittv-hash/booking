@@ -1,3 +1,4 @@
+import { adminQuoteOrder, companySearchPattern, type AdminQuoteSort } from "./adminQuoteQuery";
 import { cache } from "react";
 import { Pool, type PoolClient } from "pg";
 import { AsyncLocalStorage } from "node:async_hooks";
@@ -3078,8 +3079,7 @@ export async function listUsersPaged(
     /** 처리 완료 표처럼 "승인 대기·보류 둘 다 빼고" 볼 때는 배열로 넘긴다. */
     excludeApprovalStatus?: ApprovalStatus | ApprovalStatus[];
     /**
-     * "company" 는 같은 회사 신청자를 붙여 놓고 회사 안에서는 가입 순으로 세운다
-     * (승인 대기 화면 — 대표는 첫 승인이 정하므로 순서를 보고 판단해야 한다).
+     * "company" 는 회사명 가나다순, 같은 회사명 안에서는 담당자명 가나다순이다.
      * 기본값은 가입 순이다.
      */
     orderBy?: "createdAt" | "company";
@@ -3113,7 +3113,7 @@ export async function listUsersPaged(
       `SELECT * FROM users ${where} ORDER BY ${
         // 값은 고정 문자열 두 개뿐이라 사용자 입력이 SQL 에 닿지 않는다.
         filter.orderBy === "company"
-          ? "company_name ASC NULLS LAST, company_id ASC, created_at ASC"
+          ? "company_name ASC NULLS LAST, name ASC NULLS LAST, id ASC"
           : "created_at ASC"
       } LIMIT $${params.length + 1} OFFSET $${params.length + 2}`,
       [...params, pageSize, (page - 1) * pageSize],
@@ -3482,7 +3482,7 @@ export async function listCompaniesPaged(
           GROUP BY company_id
        ) u ON u.company_id = c.id
        ${where}
-      ORDER BY (COALESCE(u.pending_count, 0) > 0) DESC, c.created_at DESC
+      ORDER BY c.name ASC, c.id ASC
       LIMIT $${params.length + 1} OFFSET $${params.length + 2}`,
     [...params, pageSize, (page - 1) * pageSize],
   );
@@ -3804,15 +3804,17 @@ export async function listQuotesPaged(
   filter: {
     applicantId?: string;
     companyId?: string;
+    companySearch?: string;
     status?: Quote["status"][];
     venue?: "arena" | "medium-hall";
   } = {},
   page = 1,
   pageSize = DEFAULT_PAGE_SIZE,
+  sort?: AdminQuoteSort,
 ): Promise<Paged<Quote>> {
   const conditions: string[] = [];
   const params: unknown[] = [];
-  let from = "quotes q";
+  let from = sort || filter.companySearch ? "quotes q LEFT JOIN users u ON u.id = q.applicant_id" : "quotes q";
   if (filter.companyId) {
     from = "quotes q JOIN users u ON u.id = q.applicant_id";
     params.push(filter.companyId);
@@ -3820,6 +3822,10 @@ export async function listQuotesPaged(
   } else if (filter.applicantId) {
     params.push(filter.applicantId);
     conditions.push(`q.applicant_id = $${params.length}`);
+  }
+  if (filter.companySearch?.trim()) {
+    params.push(companySearchPattern(filter.companySearch));
+    conditions.push(`u.company_name ILIKE $${params.length}`);
   }
   if (filter.status && filter.status.length > 0) {
     params.push(filter.status);
@@ -3835,7 +3841,7 @@ export async function listQuotesPaged(
   const [countRow, rows] = await Promise.all([
     one<{ n: number }>(`SELECT COUNT(*)::int AS n FROM ${from} ${where}`, params),
     q<QuoteRow>(
-      `SELECT q.* FROM ${from} ${where} ORDER BY q.created_at DESC LIMIT $${params.length + 1} OFFSET $${params.length + 2}`,
+      `SELECT q.* FROM ${from} ${where} ORDER BY ${sort ? adminQuoteOrder(sort) : "q.created_at DESC"} LIMIT $${params.length + 1} OFFSET $${params.length + 2}`,
       [...params, pageSize, (page - 1) * pageSize],
     ),
   ]);
@@ -3846,11 +3852,11 @@ export async function listQuotesPaged(
 // COUNT 쿼리를 세 번 보내지 않고 FILTER 로 한 번에 묶는다. 회사 필터(companyId)가
 // 걸려 있으면 그 안에서의 탭별 건수를 낸다(탭을 눌러도 회사 필터는 유지되므로).
 export async function countQuotesByVenue(
-  filter: { applicantId?: string; companyId?: string } = {},
+  filter: { applicantId?: string; companyId?: string; companySearch?: string } = {},
 ): Promise<{ all: number; arena: number; mediumHall: number }> {
   const conditions: string[] = [];
   const params: unknown[] = [];
-  let from = "quotes q";
+  let from = filter.companySearch ? "quotes q LEFT JOIN users u ON u.id = q.applicant_id" : "quotes q";
   if (filter.companyId) {
     from = "quotes q JOIN users u ON u.id = q.applicant_id";
     params.push(filter.companyId);
@@ -3858,6 +3864,10 @@ export async function countQuotesByVenue(
   } else if (filter.applicantId) {
     params.push(filter.applicantId);
     conditions.push(`q.applicant_id = $${params.length}`);
+  }
+  if (filter.companySearch?.trim()) {
+    params.push(companySearchPattern(filter.companySearch));
+    conditions.push(`u.company_name ILIKE $${params.length}`);
   }
   const where = conditions.length ? `WHERE ${conditions.join(" AND ")}` : "";
   const arenaCond = venueTabCondition("arena", params);
@@ -5668,6 +5678,11 @@ export async function listInquiries(filter?: { userId?: string }): Promise<Inqui
   return rows.map(toInquiry);
 }
 
+export async function countOpenInquiries(): Promise<number> {
+  const row = await one<{ n: number }>("SELECT COUNT(*)::int AS n FROM inquiries WHERE status = 'OPEN'", []);
+  return row?.n ?? 0;
+}
+
 export async function listInquiriesPaged(
   filter: { userId?: string } = {},
   page = 1,
@@ -6367,4 +6382,9 @@ export async function saveFeatureSpecSheet(
     [key, JSON.stringify(rows), new Date().toISOString()],
   );
   return rows;
+}
+
+export async function countPendingApplicants(): Promise<number> {
+ const row = await one<{ n: number }>("SELECT COUNT(*)::int AS n FROM users WHERE role = 'APPLICANT' AND approval_status = 'PENDING' AND withdrawn_at IS NULL", []);
+ return row?.n ?? 0;
 }

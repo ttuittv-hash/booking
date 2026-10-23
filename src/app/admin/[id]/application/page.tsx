@@ -42,7 +42,7 @@ import { AdminNav } from "@/components/admin/AdminNav";
 import { PrintButton } from "@/components/PrintButton";
 import { SaveDocumentButton } from "@/components/SaveDocumentButton";
 import { LINK_BTN, NONE, PAGE_TITLE } from "@/components/admin/adminUi";
-import { btnClass } from "@/components/ui/kit";
+import { btnClass } from "@/components/admin/adminButton";
 
 export const metadata: Metadata = {
   title: "신청 내역",

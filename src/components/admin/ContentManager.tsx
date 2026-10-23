@@ -1,4 +1,7 @@
 "use client";
+import { FileUpload } from "./fields";
+import editorStyles from "./AdminEditor.module.css";
+import postStyles from "./ContentPosts.module.css";
 import contentStyles from "./ContentTabs.module.css";
 import { useContentTransport } from "./ContentTransport";
 
@@ -19,7 +22,8 @@ import type {
 } from "@/lib/content/pageContent";
 import { NOTICE_TAGS, TagBadge } from "@/components/TagBadge";
 import { FAQ_TAGS } from "@/lib/content/faqSeed";
-import { Badge, btnClass } from "@/components/ui/kit";
+import { Badge } from "@/components/ui/kit";
+import { btnClass } from "@/components/admin/adminButton";
 import { NoticeEditor } from "./NoticeEditor";
 import { HomeContentForm } from "./HomeContentForm";
 import { formatDateTime } from "@/lib/format";
@@ -41,7 +45,6 @@ import { WizardTextPreview } from "./WizardTextPreview";
 import type { RateTable } from "@/lib/pricing/types";
 import type { VenueRateContent } from "@/lib/content/pageContent";
 import {
-  ADD_BTN_LG,
   CARD,
   ERROR_NOTE,
   FIELD,
@@ -55,8 +58,6 @@ import {
 } from "./adminUi";
 
 /** 파일 선택 input — 샤프 코너 · border-soft */
-const FILE_INPUT =
-  "w-full text-xs text-muted file:mr-3 file:border file:border-border-soft file:bg-panel file:px-3 file:py-1.5 file:text-xs file:font-bold file:text-foreground";
 
 type Tab =
   | "notices"
@@ -143,11 +144,12 @@ export function ContentManager({
   const category = categories.find(item=>item.tabs.includes(tab))!;
   const [notices, setNotices] = useState(initialNotices);
   const [faqs, setFaqs] = useState(initialFaqs);
+  const [legalTab,setLegalTab]=useState("terms");
 
   return (
-    <div className="mt-8">
-      {<div aria-label="콘텐츠 카테고리">{categories.map(item=><button key={item.label} type="button" aria-pressed={category===item} onClick={()=>{if(category===item)return;if(!confirmDiscardUnsaved())return;setTab(item.tabs[0]);}}>{item.label}</button>)}</div>}
-      <div className={contentStyles.subtabs} data-content-subtabs aria-label="콘텐츠 세부 메뉴">
+    <div className={`mt-8 ${editorStyles.workspace}`}>
+      {<div className={editorStyles.venueTabs} aria-label="콘텐츠 카테고리">{categories.map(item=><button key={item.label} type="button" aria-pressed={category===item} onClick={()=>{if(category===item)return;if(!confirmDiscardUnsaved())return;setTab(item.tabs[0]);}}>{item.label}</button>)}</div>}
+      {category.tabs.length > 1 && <div className={contentStyles.subtabs} data-content-subtabs aria-label="콘텐츠 세부 메뉴">
         {(
           [
             ["notices", `공지사항 (${notices.length})`],
@@ -179,7 +181,7 @@ export function ContentManager({
             {label}
           </button>
         ))}
-      </div>
+      </div>}
 
       <div className="mt-6">
         {tab === "notices" && <NoticesTab notices={notices} setNotices={setNotices} router={router} />}
@@ -200,20 +202,13 @@ export function ContentManager({
           />
         )}
         {tab === "legal" && (
-          <div className="space-y-10">
-            <LegalContentForm
-              kind="terms"
-              label="이용약관"
-              content={termsContent}
-              publicHref="/terms"
-            />
-            <LegalContentForm
-              kind="privacy"
-              label="개인정보처리방침"
-              content={privacyContent}
-              publicHref="/privacy"
-            />
-            <RegisterTermsForm content={registerTermsContent} />
+          <div>
+            <div className={contentStyles.subtabs} role="tablist" aria-label="약관·정책 문서">
+              {([["terms","이용약관"],["privacy","개인정보처리방침"],["register","가입 동의 항목"]] as const).map(([key,label])=><button key={key} id={`legal-tab-${key}`} type="button" role="tab" aria-selected={legalTab===key} aria-controls={`legal-panel-${key}`} className={contentStyles.tab} onClick={()=>setLegalTab(key)}>{label}</button>)}
+            </div>
+            <div id="legal-panel-terms" role="tabpanel" aria-labelledby="legal-tab-terms" hidden={legalTab!=="terms"}><LegalContentForm kind="terms" label="이용약관" content={termsContent}/></div>
+            <div id="legal-panel-privacy" role="tabpanel" aria-labelledby="legal-tab-privacy" hidden={legalTab!=="privacy"}><LegalContentForm kind="privacy" label="개인정보처리방침" content={privacyContent}/></div>
+            <div id="legal-panel-register" role="tabpanel" aria-labelledby="legal-tab-register" hidden={legalTab!=="register"}><RegisterTermsForm content={registerTermsContent}/></div>
           </div>
         )}
       </div>
@@ -244,7 +239,7 @@ function PinnedSwitch({
       aria-label={checked ? "진행 중인 대관 공고에서 내리기 (현재 ON)" : "진행 중인 대관 공고로 올리기 (현재 OFF)"}
       onClick={onToggle}
       disabled={disabled}
-      className="relative inline-flex h-7 w-16 shrink-0 items-center border border-border-soft bg-panel disabled:opacity-40 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-foreground"
+      className="admin-split-switch relative inline-flex h-7 w-16 shrink-0 items-center border border-border-soft bg-panel disabled:opacity-40 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-foreground"
     >
       <span
         aria-hidden
@@ -271,6 +266,8 @@ function NoticesTab({
 }) {
   const { request, isPreview } = useContentTransport();
 
+  const [query, setQuery] = useState("");
+  const [filterTag, setFilterTag] = useState("");
   const dialog = useDialog();
   const [tag, setTag] = useState("");
   const [title, setTitle] = useState("");
@@ -492,12 +489,15 @@ function NoticesTab({
   }
 
   return (
-    <div>
-      <ul className="space-y-2">
+    <div className={postStyles.posts}>
+      <header className={postStyles.header}><div><h2>공지사항 관리</h2><p>{editingId ? "내용을 수정한 뒤 저장하세요. 취소하면 목록으로 돌아갑니다." : "제목·본문을 검색하거나 분류로 좁혀 편집할 게시물을 찾으세요."}</p></div>
+      {editingId ? <button type="button" onClick={resetForm} className={btnClass("secondary","md")}>목록으로 돌아가기</button> : <button type="button" onClick={startCreate} className={btnClass("primary","md")}>+ 새 공지사항 등록</button>}</header>
+      {!editingId && <div className={postStyles.tools}><label>게시물 검색<input type="search" value={query} onChange={e=>setQuery(e.target.value)} placeholder="제목 또는 본문 검색" className={FIELD} /></label><label>분류<select value={filterTag} onChange={e=>setFilterTag(e.target.value)} className={FIELD}><option value="">전체 분류</option>{[...new Set(notices.map(item=>item.tag).filter(Boolean))].map(tag=><option key={tag} value={tag!}>{tag}</option>)}</select></label></div>}
+      <ul hidden={!!editingId} className={postStyles.list}>
         {notices.length === 0 ? (
           <li className="text-s text-muted">등록된 공지사항이 없습니다.</li>
         ) : (
-          notices.map((notice) => (
+          notices.filter(notice => (!filterTag || notice.tag === filterTag) && (notice.title + " " + stripHtml(notice.body)).toLocaleLowerCase().includes(query.toLocaleLowerCase())).map((notice) => (
             <li key={notice.id} className={CARD}>
               <div className="flex items-start justify-between gap-4">
                 <button
@@ -554,6 +554,7 @@ function NoticesTab({
             </li>
           ))
         )}
+        {notices.length > 0 && !notices.some(notice => (!filterTag || notice.tag === filterTag) && (notice.title + " " + stripHtml(notice.body)).toLocaleLowerCase().includes(query.toLocaleLowerCase())) && <li>검색 결과가 없습니다. 검색어나 분류를 변경해 주세요.</li>}
       </ul>
 
       {editingId ? (
@@ -567,19 +568,7 @@ function NoticesTab({
             <div className="flex gap-2">
               {/* 말머리는 닫힌 목록이다 — 자유 입력이면 같은 성격의 공지가 제각각 분류된다.
                   '대관공지' 만 목록 상단으로 승격되고 노란 딱지로 보인다(2026-09-04). */}
-              <input
-                type="text"
-                list="notice-tag-options"
-                placeholder="말머리 (예: 대관공지)"
-                value={tag}
-                onChange={(e) => setTag(e.target.value)}
-                className={`w-32 shrink-0 ${FIELD}`}
-              />
-              <datalist id="notice-tag-options">
-                {NOTICE_TAGS.map((t) => (
-                  <option key={t} value={t} />
-                ))}
-              </datalist>
+              <select aria-label="공지 분류" value={tag} onChange={e=>setTag(e.target.value)} className={`w-32 shrink-0 ${FIELD}`}><option value="">분류 선택</option>{NOTICE_TAGS.map(t=><option key={t} value={t}>{t}</option>)}{tag && !NOTICE_TAGS.includes(tag as typeof NOTICE_TAGS[number]) && <option value={tag}>{tag}</option>}</select>
               <input
                 type="text"
                 placeholder="제목"
@@ -604,15 +593,13 @@ function NoticesTab({
                   </button>
                 </div>
               ) : (
-                <input
-                  type="file"
+                <FileUpload
                   accept="image/png,image/jpeg,image/webp,image/gif"
                   disabled={uploading}
                   onChange={(e) => {
                     const file = e.target.files?.[0];
                     if (file) uploadImage(file);
                   }}
-                  className={FILE_INPUT}
                 />
               )}
               {uploading && <p className={`mt-1 ${HELP}`}>업로드 중...</p>}
@@ -639,15 +626,13 @@ function NoticesTab({
                   </button>
                 </div>
               ) : (
-                <input
-                  type="file"
+                <FileUpload
                   accept=".pdf,.doc,.docx,.hwp,.hwpx,.xls,.xlsx,.ppt,.pptx,.zip"
                   disabled={uploadingAttachment}
                   onChange={(e) => {
                     const file = e.target.files?.[0];
                     if (file) uploadAttachment(file);
                   }}
-                  className={FILE_INPUT}
                 />
               )}
               {uploadingAttachment && <p className={`mt-1 ${HELP}`}>업로드 중...</p>}
@@ -690,11 +675,7 @@ function NoticesTab({
             </div>
           </div>
         </div>
-      ) : (
-        <button type="button" onClick={startCreate} className={`mt-6 ${ADD_BTN_LG}`}>
-          + 새 공지사항 등록
-        </button>
-      )}
+      ) : null}
     </div>
   );
 }
@@ -710,6 +691,8 @@ function FaqTab({
 }) {
   const { request, isPreview } = useContentTransport();
 
+  const [query, setQuery] = useState("");
+  const [filterTag, setFilterTag] = useState("");
   const dialog = useDialog();
   const [tag, setTag] = useState("");
   const [question, setQuestion] = useState("");
@@ -787,12 +770,15 @@ function FaqTab({
   }
 
   return (
-    <div>
-      <ul className="space-y-2">
+    <div className={postStyles.posts}>
+      <header className={postStyles.header}><div><h2>FAQ 관리</h2><p>{editingId ? "내용을 수정한 뒤 저장하세요. 취소하면 목록으로 돌아갑니다." : "제목·본문을 검색하거나 분류로 좁혀 편집할 게시물을 찾으세요."}</p></div>
+      {editingId ? <button type="button" onClick={resetForm} className={btnClass("secondary","md")}>목록으로 돌아가기</button> : <button type="button" onClick={startCreate} className={btnClass("primary","md")}>+ 새 FAQ 등록</button>}</header>
+      {!editingId && <div className={postStyles.tools}><label>게시물 검색<input type="search" value={query} onChange={e=>setQuery(e.target.value)} placeholder="제목 또는 본문 검색" className={FIELD} /></label><label>분류<select value={filterTag} onChange={e=>setFilterTag(e.target.value)} className={FIELD}><option value="">전체 분류</option>{[...new Set(faqs.map(item=>item.tag).filter(Boolean))].map(tag=><option key={tag} value={tag!}>{tag}</option>)}</select></label></div>}
+      <ul hidden={!!editingId} className={postStyles.list}>
         {faqs.length === 0 ? (
           <li className="text-s text-muted">등록된 FAQ가 없습니다.</li>
         ) : (
-          faqs.map((faq) => (
+          faqs.filter(faq => (!filterTag || faq.tag === filterTag) && (faq.question + " " + faq.answer).toLocaleLowerCase().includes(query.toLocaleLowerCase())).map((faq) => (
             <li key={faq.id} className={CARD}>
               <div className="flex items-start justify-between gap-4">
                 <button type="button" onClick={() => startEdit(faq)} className="min-w-0 flex-1 text-left">
@@ -822,6 +808,7 @@ function FaqTab({
             </li>
           ))
         )}
+        {faqs.length > 0 && !faqs.some(faq => (!filterTag || faq.tag === filterTag) && (faq.question + " " + faq.answer).toLocaleLowerCase().includes(query.toLocaleLowerCase())) && <li>검색 결과가 없습니다. 검색어나 분류를 변경해 주세요.</li>}
       </ul>
 
       {editingId ? (
@@ -874,11 +861,7 @@ function FaqTab({
             </div>
           </div>
         </div>
-      ) : (
-        <button type="button" onClick={startCreate} className={`mt-6 ${ADD_BTN_LG}`}>
-          + 새 FAQ 등록
-        </button>
-      )}
+      ) : null}
     </div>
   );
 }

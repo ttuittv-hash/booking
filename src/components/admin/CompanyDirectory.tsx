@@ -1,4 +1,5 @@
 "use client";
+import editor from "./AdminEditor.module.css";
 
 import Link from "next/link";
 import { useCallback, useState } from "react";
@@ -9,14 +10,13 @@ import {
   LINK_BTN,
   QUIET_BTN,
   TABLE,
-  TABLE_CARD,
   TABLE_HEAD,
   TABLE_HEAD_ACTIONS,
   TABLE_HEAD_DESC,
   TABLE_HEAD_TITLE,
   TABLE_SCROLL,
 } from "@/components/admin/adminUi";
-import { btnClass } from "@/components/ui/kit";
+import { btnClass } from "@/components/admin/adminButton";
 import { Pagination } from "@/components/Pagination";
 import { MasterBadgeVisibilityDialog } from "./MasterBadgeVisibilityDialog";
 
@@ -109,7 +109,7 @@ export function CompanyDirectory({
         ) : null}
       </div>
 
-      <div className={`${TABLE_CARD} mt-5`}>
+      <div className={`${editor.workspace} ${editor.section} ${editor.paddedSection} mt-5`}>
         <div className={TABLE_HEAD}>
           <div>
             <p className={TABLE_HEAD_TITLE}>회사 목록 ({num(total)})</p>

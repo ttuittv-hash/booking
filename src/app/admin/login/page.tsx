@@ -5,7 +5,8 @@ import { useMainSiteHref } from "@/components/ui/hostLinks";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { hashPasswordForTransport } from "@/lib/clientPassword";
-import { ArrowRight, btnClass } from "@/components/ui/kit";
+import { ArrowRight } from "@/components/ui/kit";
+import { btnClass } from "@/components/admin/adminButton";
 import { ERROR_NOTE, FIELD, FIELD_LABEL } from "@/components/admin/adminUi";
 import { PasswordInput } from "@/components/ui/PasswordInput";
 

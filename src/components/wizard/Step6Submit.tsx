@@ -195,8 +195,10 @@ export function Step6Submit({
   onJumpToStep,
   stepText,
   headingOverride,
+  preview = false,
   disabledFields,
 }: {
+  preview?: boolean;
   rateTable: RateTable;
   quote: EstimatedQuote;
   selection: QuoteSelection;
@@ -263,7 +265,7 @@ export function Step6Submit({
     : (VENUES.find((v) => v.id === (selection.venueId ?? DEFAULT_VENUE_ID))?.name ?? "-");
   if ((needsPackage && !pkg) || (needsMidHall && !hasMidHall)) {
     return (
-      <section>
+      <section data-review-page>
         <p className="text-s text-muted">
           {needsPackage && !pkg
             ? t("submit.pickPackageFirst", "구성 · 옵션에서 패키지를 먼저 선택하세요.")
@@ -334,7 +336,7 @@ export function Step6Submit({
   const fileCount = files.length + existingAttachments.length;
 
   return (
-    <section>
+    <section data-review-page>
       <StepHeading
         title={headingOverride?.title ?? (isEditing ? stepText.submitEditingTitle : stepText.submitNewTitle)}
         lead={
@@ -431,9 +433,7 @@ export function Step6Submit({
           <div className="mt-6 border border-border/25 p-5">
             <div className="flex items-center gap-2">
               <span className="text-s font-bold">{t("submit.altScheduleHeading", "대체 일정 제안 수신 여부")}</span>
-              <span className="border border-danger/40 bg-danger-soft px-1.5 py-0.5 text-xs font-bold text-danger">
-                {t("submit.requiredBadge", "필수")}
-              </span>
+              <span className="text-danger" aria-label={tStr("submit.requiredBadge", "필수")}>*</span>
             </div>
             <p className="mt-1.5 text-xs leading-5 text-muted">
               {t(
@@ -587,12 +587,13 @@ export function Step6Submit({
                 )}
               </p>
               <div className="mt-3 flex gap-4">
+                {preview ? <p role="status">미리보기 완료 — 실제 신청서 접수·파일 업로드·알림 발송은 이루어지지 않았습니다.</p> : <>
                 <Link href={`/mypage/${submittedId}`} className="font-bold underline">
                   {t("submit.viewApplicationLink", "신청 내역 확인")}
                 </Link>
                 <Link href={`/print/${submittedId}`} target="_blank" className="font-bold underline">
                   {t("submit.printPdfLink", "인쇄 / PDF 저장")}
-                </Link>
+                </Link></>}
               </div>
               {attachmentError && (
                 <p className="mt-3 border-t border-border/25 pt-3 text-xs text-muted">{attachmentError}</p>

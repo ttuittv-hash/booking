@@ -822,3 +822,8 @@ Figma MARKETING COMPONENTS › Multi-step Forms › **Multi Form / 5** 규격.
   파운데이션이다. 페이지 작업 중 임의로 고치지 않는다
 - **`container-site` 에 max-width 를 되붙이지 않는다.** 그리드가 stretch 라 넓은 화면에서
   가운데 좁게 갇히면 Figma 와 어긋난다
+
+
+## 관리자 화면 공통 기준
+
+관리자 전용 크기·패널·탭 기준은 [관리자 디자인 시스템](./admin-design-system.md)을 따른다. 실제 스타일은 `adminDashboard.css`, 클래스 연결은 `adminUi.ts`에서 관리한다. 공개 페이지와 위저드에 관리자 규칙을 적용하지 않는다.

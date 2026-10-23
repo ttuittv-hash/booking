@@ -1,0 +1,6 @@
+.number { display:inline-flex; align-items:center; justify-content:center; min-width:24px; height:32px; padding:0 4px; font-size:12px; font-variant-numeric:tabular-nums; color:var(--muted); background:transparent; border:0; }
+.number:hover,.current { color:var(--foreground); }
+.current { font-weight:700; }
+.direction { border-radius:var(--admin-control-radius,6px); }
+.number:focus-visible { outline:2px solid var(--foreground); outline-offset:3px; }
+@media(max-width:639px) { .number { height:44px; } }

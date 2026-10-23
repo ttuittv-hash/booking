@@ -88,7 +88,7 @@ export function VenuePicker({
 
   return (
     <div className="grid grid-cols-1 gap-x-8 gap-y-3 sm:grid-cols-[7rem_1fr] sm:items-center">
-      <label className="text-s font-bold text-foreground">{t("venuePicker.fieldLabel", "이용 시설")} *</label>
+      <label className="text-s font-bold text-foreground">{t("venuePicker.fieldLabel", "이용 시설")} <span className="text-danger">*</span></label>
       <div>
         <div className="flex flex-wrap gap-2">
           {topOptions.map((opt) => (

@@ -42,6 +42,11 @@ import {
 import { useToast } from "@/components/ui/Toast";
 import { ArrowRight, btnClass } from "@/components/ui/kit";
 import { StepNav } from "./StepNav";
+import { PreviewDesignContext, PreviewApplicantSections } from "./BookingPreviewForms";
+import { BookingPreviewOptions } from "./BookingPreviewOptions";
+import { BookingPreviewNav, BookingPreviewSubnav } from "./BookingPreviewNav";
+import previewStyle from "./BookingPreview.module.css";
+import { previewDraftStore } from "./bookingPreviewStore";
 import { StepHeading } from "./StepHeading";
 import { SummaryPanel } from "./SummaryPanel";
 import { STEP_NAV_HEIGHT_VAR } from "./StepNav";
@@ -70,6 +75,7 @@ import { Step6Submit } from "./Step6Submit";
 // [개정 2026-09-07] "안전관리 서약서 뒤에 자료 첨부 탭 신규 생성" — 자료 첨부가
 // 안전관리 서약서 탭의 두 번째 슬롯에서 독립 STEP 7로 승격되며 8→9로 늘었다.
 const TOTAL_STEPS = 9;
+const productionDraftStore = { save: saveWizardDraft, load: loadWizardDraft, clear: clearWizardDraft };
 
 const DEFAULT_SAFETY_PLEDGE: SafetyPledge = {
   safetyStructure: false,
@@ -212,6 +218,8 @@ export function WizardShell({
   calendarMonthBounds,
   existingAttachments = [],
   readOnly = false,
+  designPreview = false,
+  editorPreview = false,
 }: {
   rateTable: RateTable;
   currentUser: AppUser | null;
@@ -235,6 +243,9 @@ export function WizardShell({
    * 방식과 달리 이쪽은 실제 데이터·실제 컴포넌트를 전부 그대로 쓴다.
    */
   readOnly?: boolean;
+  /** Local-only presentation; isolates drafts and simulates submission without network writes. */
+  designPreview?: boolean;
+  editorPreview?: boolean;
   applicantPrefill?: {
     companyName: string;
     businessRegistrationNumber: string;
@@ -281,6 +292,7 @@ export function WizardShell({
    *  건수(count)만으로는 부족해 전체 목록을 받는다. */
   existingAttachments?: Attachment[];
 }) {
+  const draftStore = designPreview ? previewDraftStore : productionDraftStore;
   const isEditing = !!editingQuoteId;
   const { t, tStr } = useWizardText();
   const toast = useToast();
@@ -428,12 +440,12 @@ export function WizardShell({
       return;
     }
     if (startFresh) {
-      clearWizardDraft();
+      if (!editorPreview) draftStore.clear();
       setRestored(true);
       return;
     }
     // localStorage는 리액트 외부 저장소이므로 마운트 시 1회만 복원한다.
-    const draft = loadWizardDraft();
+    const draft = draftStore.load();
     if (draft) {
       // [버그 수정 2026-09-08] "대관 신청은 그냥 26년 9월부터 보여버림" — 노출월(일정 관리 >
       // 캘린더 노출월)을 잡기 전에 저장된 임시저장본은 옛 달을 들고 있다. 새 시작은 범위
@@ -562,10 +574,33 @@ export function WizardShell({
   }, []);
 
   useEffect(() => {
-    if (!restored) return;
+    if (!restored || editorPreview) return;
     if (isEditing || submittedId) return;
-    saveWizardDraft({ step, selection });
-  }, [restored, step, selection, submittedId, isEditing]);
+    draftStore.save({ step, selection });
+  }, [restored, step, selection, submittedId, isEditing, draftStore, editorPreview]);
+
+  useEffect(() => {
+    if (!designPreview || !editorPreview) return;
+    function receive(event:MessageEvent) {
+      if(event.origin!==window.location.origin || event.source!==window.parent || event.data?.type!=="admin-wizard-navigate") return;
+      const command=event.data;
+      if(!Number.isInteger(command.step) || command.step<1 || command.step>9)return;
+      setStep(command.step);
+      if (["arena","medium-hall","simultaneous"].includes(command.venue)) {
+        const venueId=command.venue === "simultaneous" ? "arena" : command.venue;
+        const bookingMode=command.venue === "simultaneous" ? "SIMULTANEOUS" : "SINGLE";
+        setSelection(prev=>prev.venueId===venueId && prev.bookingMode===bookingMode ? prev : {...prev,venueId,bookingMode,packageId:null,addons:[],midHallDays:{}});
+        setVenueTab(venueId === "medium-hall" ? "medium-hall" : "arena");
+      }
+    }
+    window.addEventListener("message",receive);
+    return()=>window.removeEventListener("message",receive);
+    // setSelection is the stable wrapper around setSelectionRaw for field updates.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [designPreview, editorPreview]);
+  useEffect(() => {
+    if (designPreview && editorPreview && window.parent !== window) window.parent.postMessage({type:"wizard-preview-step",step,venue:selection.bookingMode === "SIMULTANEOUS" ? "simultaneous" : selection.venueId},window.location.origin);
+  },[designPreview,editorPreview,step,selection.venueId,selection.bookingMode]);
 
   const midHallOnly = isMidHallOnly(selection);
   // [개정 2026-08-20] 패키지는 이제 관객 규모로 자동 결정하지 않고, 구성·옵션 화면에서
@@ -695,7 +730,7 @@ export function WizardShell({
   // [신규 2026-09-17] readOnly 보기는 이미 제출이 끝난 완결된 값을 훑어보는 화면이라
   // "이 단계를 마쳐야 다음 단계 탭이 열린다"는 잠금이 의미가 없다 — 운영자가 자료
   // 첨부 탭부터 바로 보고 싶을 수도 있다. 항상 전부 열어 둔다.
-  const maxUnlockedStep = readOnly
+  const maxUnlockedStep = readOnly || (designPreview && editorPreview)
     ? TOTAL_STEPS
     : !selection.venueId
       ? 1
@@ -768,6 +803,7 @@ export function WizardShell({
       `[data-field-key="${fieldKey}"]`,
     );
     if (els.length === 0) return;
+    els.forEach(el => { let node = el.parentElement; while (node) { if (node instanceof HTMLDetailsElement) node.open = true; node = node.parentElement; } });
     els[0].scrollIntoView({ behavior: "smooth", block: "center" });
     els.forEach((el) => {
       el.style.transition = "outline-color 0.2s ease";
@@ -908,7 +944,7 @@ export function WizardShell({
 
   async function submit() {
     if (readOnly) return;
-    if (!currentUser) return;
+    if (!currentUser && !designPreview) return;
     // 새로고침으로 첨부가 비었을 수 있다 — 제출 직전에도 필수 첨부를 확인하고 STEP7로 돌려보낸다.
     if (step7Blocked) {
       toast.error(
@@ -918,6 +954,14 @@ export function WizardShell({
         ),
       );
       setStep(7);
+      return;
+    }
+    if (designPreview) {
+      setSubmittedId("PREVIEW-LOCAL");
+      setLastActionWasEdit(!!submittedId);
+      setEditUnlocked(false);
+      setSubmitError(null);
+      draftStore.clear();
       return;
     }
     // 이번 세션에서 이미 한 번 제출해 신청서가 생성돼 있으면("수정하기"로 되돌아와
@@ -961,7 +1005,7 @@ export function WizardShell({
       setLastActionWasEdit(isUpdate);
       setEditUnlocked(false);
       await uploadPendingFiles(data.quote.id);
-      if (!isEditing) clearWizardDraft();
+      if (!isEditing) draftStore.clear();
     } catch {
       setSubmitError(
         tStr(
@@ -991,7 +1035,7 @@ export function WizardShell({
   // 더한다. 이미 제출된 신청서(수정 화면·이번 세션 제출 완료)는 애초에 이 draft
   // 저장소를 쓰지 않으므로(위 restored effect의 같은 조건) 버튼도 그때는 보이지 않는다.
   function saveDraftNow() {
-    saveWizardDraft({ step, selection });
+    draftStore.save({ step, selection });
     toast.success(tStr("wizardShell.draftSavedToast", "임시 저장되었습니다."));
   }
   const showSaveDraftButton = !isEditing && !submittedId;
@@ -1236,6 +1280,7 @@ export function WizardShell({
       : [...STEP3_DEFAULT_SLOT_ORDER]
   ).filter((key) => !wizardDisabledFields?.includes(`slot.3.${key}`));
 
+  const OptionsComponent = designPreview ? BookingPreviewOptions : StepConfigOptions;
   const gridRef = useRef<HTMLDivElement>(null);
   const stepNavRef = useRef<HTMLElement>(null);
 
@@ -1265,7 +1310,8 @@ export function WizardShell({
       6칼럼 그리드와 어긋나 같은 화면 안에 축이 두 개가 됐다(정본 §7.4 = 4col + 2col).
       콘텐츠 트랙은 min-w-0 로 묶어 스텝 전환 시 폭이 변하지 않게 한다.
     */
-    <div ref={gridRef} className="container-site grid-site w-full gap-y-10 py-10 sm:py-12">
+    <PreviewDesignContext.Provider value={designPreview}><div ref={gridRef} className={designPreview ? previewStyle.fullLayout : "container-site grid-site w-full gap-y-10 py-10 sm:py-12"}>
+      {designPreview && <BookingPreviewNav step={step} maxUnlockedStep={maxUnlockedStep} locked={submissionLocked} onJump={goTo} />}
       {/* [수정 2026-09-08] "예상 대관료 나올 때는 이미 내용이 다 반영된거니까 오른쪽
           플로팅 박스는 안보이는게 낫지 않나" — STEP5(예상 대관료)는 이제 대관료·
           추가옵션·소계·총금액을 오른쪽 패널과 같은 박스로 이미 전부 보여주므로, 이
@@ -1274,8 +1320,8 @@ export function WizardShell({
           얘긴 아니야 — 그 자리는 그대로 비우고" — 본문 폭은 다른 스텝과 똑같이
           9칼럼으로 두고, 패널이 있던 3칼럼 자리는 그냥 비워 둔다(12칼럼으로 늘리지
           않는다). */}
-      <div className="min-w-0 lg:col-span-9">
-        <StepNav navRef={stepNavRef} step={step} maxUnlockedStep={maxUnlockedStep} onJump={goTo} />
+      <div className={designPreview ? previewStyle.fullMain : "min-w-0 lg:col-span-9"}>
+        {designPreview ? <BookingPreviewSubnav step={step} maxUnlockedStep={maxUnlockedStep} locked={submissionLocked} onJump={goTo} /> : <StepNav navRef={stepNavRef} step={step} maxUnlockedStep={maxUnlockedStep} onJump={goTo} />}
 
         {readOnly && (
           <p className="mt-6 border border-dashed border-border-soft bg-panel/60 px-4 py-2.5 text-xs font-bold text-muted">
@@ -1482,7 +1528,7 @@ export function WizardShell({
           </section>
         )}
         {step === 2 && (
-          <StepConfigOptions
+          <OptionsComponent
             rateTable={rateTable}
             liveHallRateContent={liveHallRateContent}
             stepText={wizardStepText}
@@ -1499,7 +1545,8 @@ export function WizardShell({
             disabledFields={wizardDisabledFields}
           />
         )}
-        {step === 3 &&
+        {step === 3 && designPreview && <PreviewApplicantSections order={step3SlotOrder} renderers={step3SlotRenderers}/>}
+        {step === 3 && !designPreview &&
           // [버그 수정 2026-09-06] "슬롯 순서 변경 기능이 들어가면서, 슬롯 순서를 바꾸면
           // 굵은선이 슬롯이랑 맞닿아버리는 오류" — 각 STEP3 슬롯 컴포넌트는 자기 맨
           // 위에 border-t-2 pt-5 만 두고 있어서(그 슬롯 앞에 항상 특정 슬롯이 온다고
@@ -1611,7 +1658,8 @@ export function WizardShell({
             rateTable={rateTable}
             quote={quote}
             selection={resolvedSelection}
-            isLoggedIn={!!currentUser && !sessionExpired}
+            isLoggedIn={designPreview || (!!currentUser && !sessionExpired)}
+            preview={designPreview}
             isEditing={isEditing || !!submittedId}
             stepText={wizardStepText}
             confirmationVisible={submissionLocked}
@@ -1640,6 +1688,7 @@ export function WizardShell({
 
       {step !== 8 && (
         <SummaryPanel
+          designPreview={designPreview}
           quote={summaryQuote}
           /*
             요약 패널은 **실시간 대관신청 내역**이다(2026-08-26 개칭) — 대관료·항목·합계를 함께 보여준다.
@@ -1652,6 +1701,6 @@ export function WizardShell({
           */
         />
       )}
-    </div>
+    </div></PreviewDesignContext.Provider>
   );
 }

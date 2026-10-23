@@ -3,7 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import type { Review, ReviewDecision } from "@/lib/pricing/types";
-import { Badge, btnClass } from "@/components/ui/kit";
+import { btnClass } from "@/components/admin/adminButton";
 import { formatDateTime } from "@/lib/format";
 import {
   ERROR_NOTE,
@@ -20,23 +20,9 @@ const DECISION_LABEL: Record<ReviewDecision, string> = {
   REJECTED: "거절",
 };
 
-/**
- * 파괴적 결정(거절) 버튼 — kit 의 btnClass 와 같은 형태(1px 보더·샤프 코너·투명 배경)를
- * 유지하고 색만 danger 로 바꾼다. btnClass 결과에 border/text 유틸을 덧붙이면
- * 어느 쪽이 이길지 CSS 순서에 좌우되므로 클래스를 직접 조립한다.
- */
-const DANGER_BTN = [
-  "inline-flex h-10 items-center justify-center gap-2 whitespace-nowrap border px-6 text-s font-bold",
-  "border-danger text-danger transition-colors duration-150 hover:bg-danger hover:text-inverse-fg",
-  "focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-danger",
-  "disabled:cursor-not-allowed disabled:opacity-40",
-].join(" ");
-
-/** 상태 색은 kit 의 Badge tone 만 쓴다 (임의 색 금지) */
-const DECISION_TONE: Record<ReviewDecision, "good" | "warn" | "danger"> = {
-  APPROVED: "good",
-  HOLD: "warn",
-  REJECTED: "danger",
+const DANGER_BTN = btnClass("danger", "md");
+const DECISION_TONE: Record<ReviewDecision, string> = {
+  APPROVED: "approved", HOLD: "hold", REJECTED: "rejected",
 };
 
 /** 자동 채점 결과 중 화면에 필요한 만큼만 — 상세 내역은 위 ScoringPanel 이 이미 보여 준다. */
@@ -96,7 +82,7 @@ export function ReviewForm({
     <div className={PANEL}>
       <div className="flex items-center justify-between gap-3">
         <h3 className={SECTION_TITLE}>심사</h3>
-        {review && <Badge tone={DECISION_TONE[review.decision]}>{DECISION_LABEL[review.decision]}</Badge>}
+        {review && <span className="admin-tag" data-tone={DECISION_TONE[review.decision]}>{DECISION_LABEL[review.decision]}</span>}
       </div>
       <p className={`mt-2 ${HELP}`}>
         {canReview

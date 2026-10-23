@@ -15,7 +15,7 @@ type PledgeCheckKey = keyof Omit<SafetyPledge, "signature">;
 // defaultLabel은 관리자가 아직 문구를 고치지 않았을 때 쓰는 기본값이다 — 실제로
 // 렌더할 때는 useWizardText()의 t()로 override를 먼저 찾는다(모듈 스코프 상수라
 // 여기서 훅을 쓸 수 없다).
-const PLEDGE_ITEMS: { key: PledgeCheckKey; defaultLabel: string; emphasize?: boolean }[] = [
+export const PLEDGE_ITEMS: { key: PledgeCheckKey; defaultLabel: string; emphasize?: boolean }[] = [
   {
     key: "safetyStructure",
     defaultLabel:

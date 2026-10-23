@@ -1,6 +1,6 @@
 import { ReportPresetSelect } from "./ReportPresetSelect";
 import Link from "next/link";
-import { btnClass } from "@/components/ui/kit";
+import { btnClass } from "@/components/admin/adminButton";
 import { FIELD_SM, tabCls } from "@/components/admin/adminUi";
 import type { TrafficGranularity } from "@/lib/db";
 import { GRANULARITIES, RANGE_PRESETS, type ResolvedRange } from "@/lib/trafficRange";

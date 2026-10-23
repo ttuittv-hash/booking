@@ -3,24 +3,19 @@ import { useContentTransport } from "./ContentTransport";
 
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-import { btnClass } from "@/components/ui/kit";
+import { btnClass } from "@/components/admin/adminButton";
 import type { LegalContent } from "@/lib/content/types";
 import { NoticeEditor } from "./NoticeEditor";
-import { sanitizeRichText } from "@/lib/sanitizeHtml";
-
-const RICH_TEXT_PREVIEW_CLS =
-  "[&_h2]:mt-6 [&_h2]:text-h6-m [&_h2]:font-bold [&_h2]:text-foreground [&_h2]:first:mt-0 [&_p]:my-2 [&_ul]:list-disc [&_ul]:pl-5 [&_li]:mt-1 [&_table]:mt-3 [&_table]:w-full [&_table]:border-collapse [&_td]:border [&_td]:border-border [&_td]:px-2.5 [&_td]:py-1.5 [&_th]:border [&_th]:border-border [&_th]:bg-panel-strong [&_th]:px-2.5 [&_th]:py-1.5 [&_th]:text-left";
-
+import { FIELD } from "./adminUi";
+import s from "./LegalContentForm.module.css";
 export function LegalContentForm({
   kind,
   label,
   content: initial,
-  publicHref,
 }: {
   kind: "terms" | "privacy";
   label: string;
   content: LegalContent;
-  publicHref: string;
 }) {
   const { request, isPreview } = useContentTransport();
 
@@ -28,11 +23,12 @@ export function LegalContentForm({
   const [content, setContent] = useState<LegalContent>(initial);
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
-  const [previewOpen, setPreviewOpen] = useState(false);
+  const [error,setError]=useState<string|null>(null);
 
   async function save() {
     setSaving(true);
     setMessage(null);
+    setError(null);
     try {
       const res = await request("/api/admin/content/legal", {
         method: "PUT",
@@ -41,79 +37,35 @@ export function LegalContentForm({
       });
       const data = await res.json();
       if (!res.ok) {
-        setMessage(data.error || "저장에 실패했습니다.");
+        setError(data.error || "저장에 실패했습니다.");
         return;
       }
-      setContent(data.content);
+      setContent(data.content ?? content);
       setMessage(isPreview ? "예시 화면에 저장했습니다. 실제 공개 콘텐츠에는 반영되지 않습니다." : `저장되었습니다. '${label}' 페이지에 바로 반영됩니다.`);
       if (!isPreview) router.refresh();
+    } catch {
+      setError("저장하지 못했습니다. 연결 상태를 확인한 뒤 다시 시도해 주세요.");
     } finally {
       setSaving(false);
     }
   }
 
   return (
-    <div className="space-y-6">
-      <div className="sticky top-14 z-10 -mx-6 flex items-center justify-between border-b border-border bg-background px-6 py-3 sm:top-16">
-        <span className="text-xs text-muted">수정 중인 내용은 저장 전까지 실제 페이지에 반영되지 않습니다.</span>
-        <button
-          type="button"
-          onClick={() => setPreviewOpen((v) => !v)}
-          className={`shrink-0 ${btnClass("secondary", "sm")}`}
-        >
-          {previewOpen ? "미리보기 닫기" : "미리보기"}
-        </button>
+    <article className={s.document} aria-label={`${label} 편집`}>
+      <header className={s.header}>
+        <div><span className={s.eyebrow}>공개 문서</span><h2>{label}</h2><p>{kind === "terms" ? "서비스 이용 조건과 회원의 권리·의무를 안내하는 문서입니다." : "개인정보의 수집·이용·보관 및 보호 기준을 안내하는 문서입니다."}</p></div>
+
+      </header>
+      <div className={s.notice}>수정한 내용은 아래 ‘{label} 저장’을 눌러야 공개 페이지에 반영됩니다.</div>
+      <div className={s.single}>
+        <div className={s.editPane}>
+          <label className={s.dateField}>시행일<input type="text" className={FIELD} value={content.effectiveDate} onChange={e=>setContent(prev=>({...prev,effectiveDate:e.target.value}))} placeholder="예: 2026년 8월 1일" /></label>
+          <div className={s.bodyLabel}>{label} 본문</div>
+          <NoticeEditor value={content.bodyHtml} onChange={bodyHtml=>setContent(prev=>({...prev,bodyHtml}))}/>
+        </div>
+
       </div>
-
-      {previewOpen && (
-        <div className="border border-border">
-          <div className="border-b border-border bg-panel px-4 py-2 text-xs font-bold text-muted">
-            미리보기 — 현재 입력값 기준 (저장되지 않음)
-          </div>
-          <div className="max-h-[70vh] overflow-y-auto bg-background px-5 py-4">
-            <p className="text-xs text-muted">시행일: {content.effectiveDate}</p>
-            <div
-              className={`mt-4 text-s leading-7 text-muted ${RICH_TEXT_PREVIEW_CLS}`}
-              dangerouslySetInnerHTML={{ __html: sanitizeRichText(content.bodyHtml) }}
-            />
-          </div>
-        </div>
-      )}
-
-      <a href={publicHref} target="_blank" className="inline-block text-xs text-accent hover:underline">
-        현재 공개된 페이지 보기 →
-      </a>
-
-      <section>
-        <h3 className="text-s font-bold">시행일</h3>
-        <input
-          type="text"
-          value={content.effectiveDate}
-          onChange={(e) => setContent((prev) => ({ ...prev, effectiveDate: e.target.value }))}
-          placeholder="예: 2026년 8월 1일"
-          className="mt-2 w-full max-w-xs border border-border bg-background px-3 py-2 text-s outline-none focus:border-accent"
-        />
-      </section>
-
-      <section>
-        <h3 className="text-s font-bold">본문</h3>
-        <div className="mt-2">
-          <NoticeEditor
-            value={content.bodyHtml}
-            onChange={(bodyHtml) => setContent((prev) => ({ ...prev, bodyHtml }))}
-          />
-        </div>
-      </section>
-
-      {message && <p className="text-s text-good">{message}</p>}
-      <button
-        type="button"
-        disabled={saving}
-        onClick={save}
-        className={btnClass("primary", "md")}
-      >
-        {saving ? "저장 중..." : "저장"}
-      </button>
-    </div>
+      <footer className={s.footer}><button type="button" disabled={saving} onClick={save} className={btnClass("primary","md")}>{saving?"저장 중...":`${label} 저장`}</button>{message&&<p role="status">{message}</p>}{error&&<p role="alert" className={s.error}>{error}</p>}</footer>
+    </article>
   );
 }

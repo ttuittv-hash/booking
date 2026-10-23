@@ -1,4 +1,5 @@
 "use client";
+import { PreviewRepeatRow } from "./BookingPreviewForms";
 
 import { CheckboxChip, toggleClass, ROW_REMOVE_BTN } from "@/components/ui/kit";
 import { useDialog } from "@/components/ui/Dialog";
@@ -366,7 +367,7 @@ function ReadOnlyRow({ label, value, note }: { label: ReactNode; value: string; 
     <div>
       <label className="mb-1.5 block text-xs font-bold text-muted">{label}</label>
       {/* h-10 로 옆에 나란히 놓이는 입력 필드(field-base)와 높이를 맞춘다(2026-08-22) */}
-      <div className="flex h-10 items-center border border-border/25 bg-panel/60 px-4 text-s text-foreground">
+      <div data-auto-value className="flex h-10 items-center border border-border/25 bg-panel/60 px-4 text-s text-foreground">
         {value}
       </div>
       {note && <p className="mt-1 text-xs text-muted">{note}</p>}
@@ -587,7 +588,7 @@ function ApplicantDetailsFields({
           )}
           <div className="space-y-2">
             {contactPersons.map((row, i) => (
-              <div key={i} className="flex items-center gap-1.5 py-2">
+              <PreviewRepeatRow key={i} className="flex items-center gap-1.5 py-2">
                 <div
                   className="grid flex-1 gap-1.5"
                   style={{ gridTemplateColumns: `repeat(${visibleContactColumns.length}, 1fr)` }}
@@ -610,9 +611,9 @@ function ApplicantDetailsFields({
                   aria-label={tStr("performanceInfo.removeRowAriaLabel", "삭제")}
                   className={ROW_REMOVE_BTN}
                 >
-                  ✕
+                  삭제
                 </button>
-              </div>
+              </PreviewRepeatRow>
             ))}
           </div>
         </div>
@@ -638,7 +639,7 @@ function ApplicantDetailsFields({
         )}
         <div className="space-y-2">
           {info.pastPerformances.map((row, i) => (
-            <div key={i} className="grid grid-cols-5 gap-1.5 py-2">
+            <PreviewRepeatRow key={i} className="grid grid-cols-5 gap-1.5 py-2">
               <input
                 value={row.eventName}
                 placeholder={tStr("performanceInfo.pastEventNamePlaceholder", "공연명")}
@@ -676,10 +677,10 @@ function ApplicantDetailsFields({
                   aria-label={tStr("performanceInfo.removeRowAriaLabel", "삭제")}
                   className={ROW_REMOVE_BTN}
                 >
-                  ✕
+                  삭제
                 </button>
               </div>
-            </div>
+            </PreviewRepeatRow>
           ))}
         </div>
       </div>
@@ -863,7 +864,7 @@ function EventBasicsFields({
               </div>
               <div className="space-y-2">
                 {organizers.map((row, i) => (
-                  <div key={i} className="flex items-center gap-1.5 py-2">
+                  <PreviewRepeatRow key={i} className="flex items-center gap-1.5 py-2">
                     <select
                       value={row.role}
                       onChange={(e) => updateOrganizer(i, { role: e.target.value as OrganizerRole })}
@@ -893,9 +894,9 @@ function EventBasicsFields({
                       aria-label={tStr("performanceInfo.removeRowAriaLabel", "삭제")}
                       className={ROW_REMOVE_BTN}
                     >
-                      ✕
+                      삭제
                     </button>
-                  </div>
+                  </PreviewRepeatRow>
                 ))}
               </div>
             </div>
@@ -928,7 +929,7 @@ function EventBasicsFields({
             </p>
             <div className="space-y-2">
               {artistMainHistory.map((row, i) => (
-                <div key={i} className="grid grid-cols-5 gap-1.5 py-2">
+                <PreviewRepeatRow key={i} className="grid grid-cols-5 gap-1.5 py-2">
                   <input
                     value={row.artistName}
                     placeholder={tStr("performanceInfo.artistNamePlaceholder", "아티스트명")}
@@ -960,10 +961,10 @@ function EventBasicsFields({
                       aria-label={tStr("performanceInfo.removeRowAriaLabel", "삭제")}
                       className={ROW_REMOVE_BTN}
                     >
-                      ✕
+                      삭제
                     </button>
                   </div>
-                </div>
+                </PreviewRepeatRow>
               ))}
             </div>
           </div>
@@ -985,7 +986,7 @@ function EventBasicsFields({
             </p>
             <div className="space-y-2">
               {artistRecentPerformances.map((row, i) => (
-                <div key={i} className="space-y-1.5 py-2">
+                <PreviewRepeatRow key={i} className="space-y-1.5 py-2">
                   <div className="grid grid-cols-4 gap-1.5">
                     <input
                       value={row.eventName}
@@ -1044,11 +1045,11 @@ function EventBasicsFields({
                         aria-label={tStr("performanceInfo.removeRowAriaLabel", "삭제")}
                         className={ROW_REMOVE_BTN}
                       >
-                        ✕
+                        삭제
                       </button>
                     </div>
                   </div>
-                </div>
+                </PreviewRepeatRow>
               ))}
             </div>
           </div>
@@ -1373,12 +1374,12 @@ export function StepApplicantDetails({
   return (
     <section>
       <h2 className="type-kr-heading text-h5-m sm:text-h5">{title}</h2>
-      <p className="mt-3 text-s text-muted">
+{isSimultaneous && (      <p className="mt-3 text-s text-muted">
         {t(
           "performanceInfo.twoVenuesOneApplicationHint",
           "신청서는 두 공간을 합쳐 1건입니다. 대관기간만 공간별로 나눠 표기합니다.",
         )}
-      </p>
+      </p>)}
 
       {isSimultaneous && (
         <VenueSplitTabBar

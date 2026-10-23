@@ -1,0 +1,17 @@
+/* Admin-only controls. No element selectors or public kit overrides. */
+.button.button {
+  box-sizing:border-box;
+  height:var(--admin-button-height);
+  min-height:var(--admin-button-height);
+  padding:0 var(--admin-button-padding);
+  border-radius:var(--admin-control-radius,6px);
+  font-size:var(--admin-button-font-size);
+  line-height:20px;
+  font-weight:600;
+}
+.small { --admin-button-height:32px; --admin-button-padding:12px; --admin-button-font-size:12px; }
+.medium { --admin-button-height:44px; --admin-button-padding:20px; --admin-button-font-size:13px; }
+.large { --admin-button-height:48px; --admin-button-padding:20px; --admin-button-font-size:14px; }
+@media(max-width:639px) {
+  .small { --admin-button-height:44px; }
+}
