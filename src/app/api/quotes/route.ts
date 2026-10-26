@@ -18,7 +18,7 @@ import {
   notifyAdmins,
 } from "@/lib/db";
 import { calculateQuote } from "@/lib/pricing/calculateQuote";
-import { resolveSelectedDates } from "@/lib/pricing/dateRange";
+import { midHallDatesOutsideArenaRange, resolveSelectedDates } from "@/lib/pricing/dateRange";
 import type { QuoteSelection } from "@/lib/pricing/types";
 
 function formatBlockedDatesError(blocked: { date: string; reason: string | null }[]): string {
@@ -65,6 +65,10 @@ export async function POST(request: Request) {
   }
   if (needsMidHall && Object.keys(selection.midHallDays ?? {}).length === 0) {
     return NextResponse.json({ error: "중형공연장 일정을 선택해주세요." }, { status: 400 });
+  }
+
+  if (selection.bookingMode === "SIMULTANEOUS" && midHallDatesOutsideArenaRange(selection, selection.midHallDays ?? {}).length > 0) {
+    return NextResponse.json({ error: "중형공연장 일정은 아레나 대관기간 안에서 선택해주세요." }, { status: 400 });
   }
 
   const arenaDates = needsPackage ? resolveSelectedDates(selection) : [];

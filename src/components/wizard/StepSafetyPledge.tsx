@@ -121,7 +121,8 @@ export function StepSafetyPledge({
     <section>
       <StepHeading title={title} lead={lead} />
 
-      <label className="mt-6 flex cursor-pointer items-center gap-2.5 border border-border bg-panel px-5 py-3.5">
+      <div data-pledge-list>
+      <label data-pledge-all className="mt-6 flex cursor-pointer items-center gap-2.5 border border-border bg-panel px-5 py-3.5">
         <input
           type="checkbox"
           checked={allChecked}
@@ -153,10 +154,13 @@ export function StepSafetyPledge({
         ))}
       </div>
 
+      </div>
+
       {/* [신규 2026-08-26, 2026-08-26 위치 조정] "대관 규약 보기는 항목들 밑에 넣는게
           나을듯" — 서약 항목을 다 읽은 다음 근거 원문을 확인하도록 체크리스트 바로
           아래로 옮겼다(서약 항목이 대관규약을 근거로 한다, consequenceAcknowledged 참고). */}
       <Link
+        data-wizard-button
         href="/rules"
         target="_blank"
         rel="noopener noreferrer"

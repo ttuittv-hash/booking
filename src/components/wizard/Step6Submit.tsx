@@ -221,7 +221,7 @@ export function Step6Submit({
   quoteId?: string | null;
   /** 대체 일정 제안 수신 동의 — 신청 일정으로 대관이 어려울 때 다른 일정을 제안받을지(필수). */
   altScheduleConsent?: "AGREE" | "DISAGREE" | null;
-  onChangeAltScheduleConsent?: (value: "AGREE" | "DISAGREE") => void;
+  onChangeAltScheduleConsent?: (value: "AGREE" | "DISAGREE" | null) => void;
   onSubmit: () => void;
   /** 제출 완료 배너 옆의 "수정하기" 버튼 — 누르면 1단계로 돌아가 다시 수정할 수 있다. */
   onRequestEdit?: () => void;
@@ -444,20 +444,20 @@ export function Step6Submit({
             <div className="mt-3 flex flex-wrap gap-x-6 gap-y-2">
               <label className="flex cursor-pointer items-center gap-2 text-s">
                 <input
-                  type="radio"
+                  type={preview ? "checkbox" : "radio"}
                   name="altScheduleConsent"
                   checked={altScheduleConsent === "AGREE"}
-                  onChange={() => onChangeAltScheduleConsent?.("AGREE")}
+                  onChange={(e) => onChangeAltScheduleConsent?.(preview && !e.target.checked ? null : "AGREE")}
                 />
                 <span className="font-bold">{t("submit.altScheduleAgree", "동의")}</span>
                 <span className="text-muted">{t("submit.altScheduleAgreeDesc", "— 다른 일정에 대한 조건부 승인 제안을 받겠습니다.")}</span>
               </label>
               <label className="flex cursor-pointer items-center gap-2 text-s">
                 <input
-                  type="radio"
+                  type={preview ? "checkbox" : "radio"}
                   name="altScheduleConsent"
                   checked={altScheduleConsent === "DISAGREE"}
-                  onChange={() => onChangeAltScheduleConsent?.("DISAGREE")}
+                  onChange={(e) => onChangeAltScheduleConsent?.(preview && !e.target.checked ? null : "DISAGREE")}
                 />
                 <span className="font-bold">{t("submit.altScheduleDisagree", "미동의")}</span>
                 <span className="text-muted">{t("submit.altScheduleDisagreeDesc", "— 최초 신청 일정에 대해서만 심의를 진행해 주세요.")}</span>
@@ -503,7 +503,7 @@ export function Step6Submit({
             </span>
           </div>
           {fileCount > 0 ? (
-            <ul className="mt-4 border-t border-border/25">
+            <ul data-review-attachments className="mt-4 border-t border-border/25">
               {existingAttachments.map((a) => (
                 <li
                   key={a.id}

@@ -1,0 +1,25 @@
+/* BOOK IT theme contract. See docs/wizard-design.md before changing a role. */
+.theme {
+  --wizard-surface: var(--n-white);
+  --wizard-group: var(--n-lightest);
+  --wizard-border: var(--n-lighter);
+  --wizard-muted: var(--n-mid);
+  --wizard-ink: var(--n-darker);
+  --wizard-black: var(--n-darkest);
+  --wizard-readonly: var(--n-lighter);
+  --wizard-radius-control: 6px;
+  --wizard-radius-group: 8px;
+  --wizard-radius-panel: 12px;
+  --wizard-group-padding: 16px;
+  --wizard-record-gap: 12px;
+  --wizard-heading-size: 23px;
+  --wizard-heading-line: 1.45;
+  --wizard-heading-tracking: -.5px;
+  --wizard-lead-gap: 12px;
+}
+@media (max-width: 720px) {
+  .theme {
+    --wizard-group-padding: 12px;
+    --wizard-heading-size: 21px;
+  }
+}

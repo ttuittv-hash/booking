@@ -22,8 +22,9 @@ import { PromotionChannelsFields } from "./StepMarketingCooperation";
 
 const ANCILLARY_PLANS = Object.keys(ANCILLARY_BUSINESS_PLAN_LABEL) as AncillaryBusinessPlan[];
 
-function toggleInArray<T>(list: T[], value: T): T[] {
-  return list.includes(value) ? list.filter((v) => v !== value) : [...list, value];
+export function toggleAncillaryPlan(list: AncillaryBusinessPlan[], value: AncillaryBusinessPlan): AncillaryBusinessPlan[] {
+  if (list.includes(value)) return list.filter(v => v !== value);
+  return value === "NONE" ? [value] : [...list.filter(v => v !== "NONE"), value];
 }
 
 // 규모 단계(STEP 4)의 필수값 검증 — 예상 유료 판매율만 선택이고 부대사업 계획은 필수다
@@ -186,13 +187,13 @@ function AudienceFields({
         {/* 아레나/중형/총 예상 관객 수를 세 칸씩 쌓지 않고 한 줄로 — 눈이 세로로 오르내리지
             않게 한다(2026-08-22, 한 줄 배치 요청). 셋 중 화면에 없는 값은 그 칸만 빠진다. */}
         {hasSummaryRow && (
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+          <div data-input-group data-field-row className="grid grid-cols-1 gap-4 sm:grid-cols-3">
             {/* [수정 2026-09-08] "1회당 예상 관객 수 - 수정기능 필요(현재 수정 불가)" —
                 패키지 관객 등급에서 자동으로 채우던 읽기전용 표시를 직접 고칠 수 있는
                 입력으로 되돌린다. 값은 청소비 등 계산에 그대로 쓰인다. */}
             {audienceSummary.arena && (
-              <div>
-                <label className="mb-1.5 block text-xs font-bold text-muted">
+              <div data-field-size="medium">
+                <label data-field-label className="mb-1.5 block text-xs font-bold text-muted">
                   {t("audience.expectedAudiencePerShowArenaLabel", "1회당 예상 관객 수 — 아레나")}
                 </label>
                 <input
@@ -205,8 +206,8 @@ function AudienceFields({
               </div>
             )}
             {audienceSummary.midHall && (
-              <div>
-                <label className="mb-1.5 block text-xs font-bold text-muted">
+              <div data-field-size="medium">
+                <label data-field-label className="mb-1.5 block text-xs font-bold text-muted">
                   {t("audience.expectedAudiencePerShowMidHallLabel", "1회당 예상 관객 수 — 중형")}
                 </label>
                 <input
@@ -219,11 +220,11 @@ function AudienceFields({
               </div>
             )}
             {audienceSummary.totalLine && (
-              <div>
-                <label className="mb-1.5 block text-xs font-bold text-muted">
+              <div data-field-size="long">
+                <label data-field-label className="mb-1.5 block text-xs font-bold text-muted">
                   {t("audience.totalExpectedAudienceLabel", "총 예상 관객 수")}
                 </label>
-                <div className="flex h-10 items-center border border-border-soft px-3.5 text-s text-foreground">
+                <div data-auto-value className="flex h-10 items-center border border-border-soft px-3.5 text-s text-foreground">
                   {audienceSummary.totalLine}
                 </div>
               </div>
@@ -235,23 +236,21 @@ function AudienceFields({
             티켓가는 입력할 수 있게" — 유형·가격 반복 행은 유지하고, 예상 판매율은
             유형별 컬럼에서 빼서 바로 아래 전체 티켓 기준 단일 입력으로 보여준다
             ("예상 판매율은 티켓등급별이 아니라 전체 티켓 예상 판매율 기입란으로"). */}
-        <div>
+        <div data-input-group>
           <div className="mb-2.5 flex items-center justify-between">
             <label className="type-kr-heading text-s text-foreground">{t("audience.ticketTypesLabel", "티켓 유형별 가격")}</label>
-            <button type="button" onClick={addTicketType} className={toggleClass(false)}>
-              {t("audience.addTicketTypeButton", "＋ 행 추가")}
-            </button>
+
           </div>
           <div className="space-y-2">
             {ticketTypes.map((row, i) => (
-              <div key={i} className="grid grid-cols-3 gap-1.5 py-2">
-                <input
+              <div key={i} data-ticket-record data-field-row className="grid grid-cols-3 gap-1.5 py-2">
+                <label data-field-size="medium" data-ticket-label><span data-field-label>티켓 상품명</span><input
                   value={row.label}
                   placeholder={tStr("audience.ticketTypeLabelPlaceholder", "예: R석, VIP석")}
                   onChange={(e) => updateTicketType(i, { label: e.target.value })}
                   className="field-base h-8"
-                />
-                <div className="flex items-center gap-1.5">
+                /></label>
+                <label data-field-size="medium" data-ticket-price><span data-field-label>티켓 가격</span><span data-price-control>
                   <input
                     type="number"
                     min={0}
@@ -261,8 +260,8 @@ function AudienceFields({
                     className="field-base h-8 w-full"
                   />
                   <span className="text-xs text-muted">{t("audience.wonUnit", "원")}</span>
-                </div>
-                <div className="flex items-center justify-end">
+                </span></label>
+                <div data-field-action className="flex items-center justify-end">
                   <button
                     type="button"
                     onClick={() => removeTicketType(i)}
@@ -274,6 +273,11 @@ function AudienceFields({
                 </div>
               </div>
             ))}
+          </div>
+          <div className="mt-3">
+            <button type="button" onClick={addTicketType} className={toggleClass(false)}>
+              {t("audience.addTicketTypeButton", "＋ 행 추가")}
+            </button>
           </div>
         </div>
 
@@ -288,7 +292,7 @@ function AudienceFields({
         {/* [버그 수정 2026-09-06] "언체크해도 라벨명은 노출되잖아 — 항목 전체에 대한
             온오프가 필요" — 항목을 전부 꺼도 제목만 남지 않도록 함께 숨긴다. */}
         {visibleAncillaryPlans.length > 0 && (
-          <div data-field-key={ANCILLARY_PLANS_GROUP_ID}>
+          <div data-input-group data-field-key={ANCILLARY_PLANS_GROUP_ID}>
             <div className="mb-2 text-xs font-bold text-muted">{t("audience.ancillaryPlansLabel", "부대사업 계획")}</div>
             <div className="flex flex-wrap gap-2">
               {visibleAncillaryPlans.map((plan) => (
@@ -296,7 +300,7 @@ function AudienceFields({
                   key={plan}
                   label={t(`fieldLabel.ancillaryBusinessPlans.${plan}`, ANCILLARY_BUSINESS_PLAN_LABEL[plan] ?? plan)}
                   checked={info.ancillaryBusinessPlans.includes(plan)}
-                  onChange={() => set("ancillaryBusinessPlans", toggleInArray(info.ancillaryBusinessPlans, plan))}
+                  onChange={() => set("ancillaryBusinessPlans", toggleAncillaryPlan(info.ancillaryBusinessPlans, plan))}
                 />
               ))}
             </div>
@@ -304,6 +308,7 @@ function AudienceFields({
                 무대형태·객석형태(StepPerformanceInfo.tsx)와 같은 패턴. */}
             {info.ancillaryBusinessPlans.includes("OTHER") && (
               <input
+                data-field-size="long"
                 value={info.ancillaryBusinessPlanOtherDetail ?? ""}
                 placeholder={tStr("audience.ancillaryPlanOtherDetailPlaceholder", "기타 부대사업 계획 설명")}
                 onChange={(e) => set("ancillaryBusinessPlanOtherDetail", e.target.value)}
@@ -522,6 +527,7 @@ export function StepCompetitionOption({
         </div>
         <div className="flex shrink-0 items-center gap-1.5">
           <input
+            data-field-size="short"
             type="number"
             min={0}
             max={RS_MAX_PERCENT}

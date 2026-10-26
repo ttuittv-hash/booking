@@ -1,10 +1,12 @@
 "use client";
 
-import type { ReactNode } from "react";
+import { useContext, type ReactNode } from "react";
+import { PreviewDesignContext } from "./BookingPreviewForms";
+import previewStyles from "./BookingPreview.module.css";
 import { won } from "@/lib/format";
 import { findPackage } from "@/lib/pricing/rateTableUtils";
 import type { EstimatedQuote, QuoteSelection, RateTable } from "@/lib/pricing/types";
-import type { ContractSection } from "@/lib/pricing/lineItemGroups";
+import { summaryPanelLineLabel, type ContractSection } from "@/lib/pricing/lineItemGroups";
 import { useWizardText } from "@/lib/content/wizardText";
 import { defaultVenueName, venueLabelKey } from "@/lib/content/venueLabels";
 import { QuoteSectionBox, quoteSectionBoxes } from "./SummaryPanel";
@@ -34,6 +36,7 @@ export function Step5Estimate({
   beforeTotals?: ReactNode;
 }) {
   const { t, tStr } = useWizardText();
+  const preview = useContext(PreviewDesignContext);
   const pkg = findPackage(rateTable, selection.packageId);
   const hasMidHall = Object.keys(selection.midHallDays).length > 0;
 
@@ -114,20 +117,66 @@ export function Step5Estimate({
   // 오른쪽 실시간 패널과 같은 "총금액(예상)" 한 줄로 대신한다.
   const grandTotal = boxes.reduce((sum, box) => sum + box.total, 0);
 
+  if (preview) return (
+    <section className={previewStyles.estimatePage}>
+      <h2 className="type-kr-heading text-h5-m sm:text-h5">{title}</h2>
+      <p className={previewStyles.estimateLead}>계약 기준 금액과 이용 후 정산할 예상 금액을 확인하세요.</p>
+      {(["CONTRACT", "ADDITIONAL"] as const).map((section) => {
+        const sectionBoxes = boxes.filter((box) => box.section === section);
+        const sectionTotal = sectionBoxes.reduce((sum, box) => sum + box.total, 0);
+        return (
+          <article className={previewStyles.estimateCard} key={section}>
+            <header>
+              <div>
+                <h3>{section === "CONTRACT" ? "계약 기준 금액" : "추후 정산 예상 금액"}</h3>
+                <p>{section === "CONTRACT" ? "선택한 공간과 기본 구성에 따른 금액입니다." : "실제 이용 내역에 따라 최종 정산 금액이 달라집니다."}</p>
+              </div>
+              <strong>{won(sectionTotal)}</strong>
+            </header>
+            {sectionBoxes.map((box) => (
+              <div className={previewStyles.estimateVenue} key={box.venue ?? "single"}>
+                <h4>{multi ? box.venueName : singleVenueName ?? box.venueName}</h4>
+                <dl>
+                  {box.sectionItems.map((item, index) => (
+                    <div key={`${item.addonId}-${index}`}>
+                      <dt>{summaryPanelLineLabel(item)}{item.addonId !== "performance_day_adjustment" && item.billable > 0 && item.included > 0 && <span> (초과 {item.billable.toLocaleString()})</span>}</dt><dd>{won(item.amount)}</dd>
+                    </div>
+                  ))}
+                  <div><dt>{t("estimate.subtotalLabel", "소계 (VAT 별도)")}</dt><dd>{won(box.subtotal)}</dd></div>
+                  <div><dt>{t("estimate.vatLabel", "부가세")} {vatPct}%</dt><dd>{won(box.vat)}</dd></div>
+                  {multi && <div className={previewStyles.estimateVenueTotal}><dt>공간별 합계</dt><dd>{won(box.total)}</dd></div>}
+                </dl>
+              </div>
+            ))}
+          </article>
+        );
+      })}
+      <div className={previewStyles.estimateGrandTotal}>
+        <div><span>{t("estimate.grandTotalLabel", "총금액(예상)")}</span><small>부가세 포함</small></div>
+        <strong>{won(grandTotal)}</strong>
+      </div>
+      {beforeTotals && <div className={previewStyles.estimateSupplement}>{beforeTotals}</div>}
+      {quote.blockingIssues.length > 0 && <div className={previewStyles.estimateIssues}>
+        <p>{t("estimate.blockingIssuesHeading", "운영자 확인이 필요해 아직 신청서를 제출할 수 없습니다.")}</p>
+        <ul>{quote.blockingIssues.map((issue) => <li key={issue}>{issue}</li>)}</ul>
+      </div>}
+    </section>
+  );
+
   return (
     <section data-estimate-page>
       <h2 className="type-kr-heading text-h5-m sm:text-h5">{title}</h2>
 
       {/* 1. 대관료 → 총계약 금액(공간 둘 이상일 때만) */}
-      <div className="mt-6">{renderSection("CONTRACT", true)}</div>
+      <div data-estimate-breakdown className="mt-6">{renderSection("CONTRACT", true)}</div>
       {multi && renderTotal("CONTRACT", t("estimate.contractTotalLabel", "총계약 금액"))}
 
       {/* 2. 추후 정산 예정 금액 → 합계(공간 둘 이상일 때만) */}
-      <div className="mt-8">{renderSection("ADDITIONAL", false)}</div>
+      <div data-estimate-breakdown className="mt-8">{renderSection("ADDITIONAL", false)}</div>
       {multi && renderTotal("ADDITIONAL", t("estimate.settlementTotalLabel", "추후 정산 예정 금액 합계"))}
 
       {!multi && (
-        <div className="mt-6 flex flex-wrap items-baseline justify-between gap-3 bg-foreground px-4 py-3.5 text-background">
+        <div data-estimate-total className="mt-6 flex flex-wrap items-baseline justify-between gap-3 bg-foreground px-4 py-3.5 text-background">
           <span className="text-s font-bold">{t("estimate.grandTotalLabel", "총금액(예상)")}</span>
           <span className="type-display text-h5-m tabular-nums sm:text-h5">{won(grandTotal)}</span>
         </div>

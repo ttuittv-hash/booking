@@ -492,7 +492,7 @@ export function calculateQuote(
     selection.venueId === "medium-hall" ||
     selection.bookingMode === "SIMULTANEOUS"
   ) {
-    if (selection.midHallPerformanceInfo) {
+    if (selection.bookingMode === "SIMULTANEOUS" && selection.midHallPerformanceInfo) {
       pushCompetitionFeeLine(
         selection.midHallPerformanceInfo.competitionFeeOptionMax,
         "medium-hall",

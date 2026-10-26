@@ -9,9 +9,9 @@ import type { ReactNode } from "react";
  *
  *   제목 H5 (24 / 모바일 20) · 리드 Body/S 14 muted, 읽기 폭(measure) 안쪽
  */
-export function StepHeading({ title, lead }: { title: ReactNode; lead?: ReactNode }) {
+export function StepHeading({ title, lead, className }: { title: ReactNode; lead?: ReactNode; className?: string }) {
   return (
-    <div>
+    <div data-step-heading className={className}>
       <h2 className="type-kr-heading text-h5-m sm:text-h5">{title}</h2>
       {lead && <p className="measure mt-3 break-keep text-s text-muted">{lead}</p>}
     </div>

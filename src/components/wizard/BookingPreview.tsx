@@ -8,6 +8,7 @@ import { buildBookingPreviewRates, previewScreenText, previewLiveHallContent } f
 import type { ScreenTextContent, VenueRateContent } from "@/lib/content/pageContent";
 
 import s from "./BookingPreview.module.css";
+import design from "./WizardDesign.module.css";
 
 /** Uses the production forms, pricing and validation. Only storage/submission are isolated. */
 export function BookingPreview({editorMode = false}: {editorMode?: boolean}) {
@@ -90,7 +91,7 @@ export function BookingPreview({editorMode = false}: {editorMode?: boolean}) {
     const node=root.current;node?.addEventListener("click",select,true);
     return()=>node?.removeEventListener("click",select,true);
   },[editorMode,selectMode,text]);
-  return <div ref={root} data-editor-select-mode={selectMode || undefined} className={`${s.shell} ${s.complete}`}>
+  return <div ref={root} data-editor-select-mode={selectMode || undefined} className={`${s.shell} ${s.complete} ${design.theme}`}>
     <header className={s.header}><Link href="/" prefetch={false}>SEOUL ARENA<span>대관 신청</span></Link><span className={s.preview}>디자인 미리보기</span></header>
     <div className={s.previewNotice}>로컬 미리보기 · 원본 코드의 전체 신청 흐름과 기본 콘텐츠를 사용합니다. 일정·요금은 검토용이며, 제출과 첨부는 서버로 전송되지 않습니다.</div>
     <WizardTextProvider selectable={editorMode} overrides={text.wizardStrings} onLookup={editorMode ? lookup : undefined}>

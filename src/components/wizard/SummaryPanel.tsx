@@ -1,4 +1,5 @@
 "use client";
+import { PreviewChevron } from "./PreviewChevron";
 
 import { useState } from "react";
 import previewStyles from "./BookingPreview.module.css";
@@ -140,9 +141,9 @@ export function SummaryPanel({
   if (designPreview) return <aside className={previewStyles.quoteCard} aria-label="예상 견적">
     <h3>예상 견적</h3>
     {visibleItems.length === 0 ? <p>공간과 기본 구성을 선택하면 금액이 표시됩니다.</p> : <>
-      <div className={previewStyles.quoteTotal}><span>총 예상 금액</span><strong>{won(grandTotal)}</strong><small>부가세 포함</small></div>
+      <div className={previewStyles.quoteTotal}><span>총 예상 금액 <small>부가세 포함</small></span><strong>{won(grandTotal)}</strong></div>
       {sectionBoxes.map((box, index) => <details key={index} className={previewStyles.quoteBreakdown}>
-        <summary><span>{box.venue && `${VENUE_NAME[box.venue]} · `}{box.section === "CONTRACT" ? "계약 기준 금액" : "추후 정산 예상"}</span><b>{won(box.total)}</b><span aria-hidden="true">⌄</span></summary>
+        <summary><span>{box.venue && `${VENUE_NAME[box.venue]} · `}{box.section === "CONTRACT" ? "계약 기준 금액" : "추후 정산 예상"}</span><b>{won(box.total)}</b><PreviewChevron/></summary>
         <dl>{box.sectionItems.map((item, i) => <div key={i}><dt>{summaryPanelLineLabel(item)}</dt><dd>{won(item.amount)}</dd></div>)}<div><dt>소계</dt><dd>{won(box.subtotal)}</dd></div><div><dt>부가세</dt><dd>{won(box.vat)}</dd></div></dl>
       </details>)}
       <p>추후 정산 항목은 실제 이용 내역에 따라 달라집니다.</p>

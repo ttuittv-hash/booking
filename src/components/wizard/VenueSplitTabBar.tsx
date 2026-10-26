@@ -23,7 +23,7 @@ export function VenueSplitTabBar({
   onMerge: () => void;
 }) {
   return (
-    <div className="mt-5 flex flex-wrap items-center justify-between gap-2 border-b border-border/25">
+    <div data-venue-split-tabs className="mt-5 flex flex-wrap items-center justify-between gap-2 border-b border-border/25">
       <div className="flex gap-1">
         {!midHallDifferent && (
           <span className="flex h-10 items-center border-b-2 border-foreground px-4 text-s font-bold text-foreground">공통</span>
@@ -32,6 +32,7 @@ export function VenueSplitTabBar({
           <>
             <button
               type="button"
+              aria-pressed={activeTab === "ARENA"}
               onClick={() => onSelectTab("ARENA")}
               className={[
                 "flex h-10 items-center border-b-2 px-4 text-s font-bold transition-colors",
@@ -44,6 +45,7 @@ export function VenueSplitTabBar({
             </button>
             <button
               type="button"
+              aria-pressed={activeTab === "MIDHALL"}
               onClick={() => onSelectTab("MIDHALL")}
               className={[
                 "flex h-10 items-center border-b-2 px-4 text-s font-bold transition-colors",

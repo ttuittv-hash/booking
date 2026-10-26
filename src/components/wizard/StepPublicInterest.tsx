@@ -103,7 +103,7 @@ export function StepPublicInterest({
     const hint = tStr(`publicInterest.item.${item}.hint`, PUBLIC_INTEREST_ITEM_HINT[item]);
 
     return (
-      <div key={item} className={`border-b border-border/25 ${checked ? "bg-panel" : ""}`}>
+      <div key={item} data-public-interest-row data-selected={checked} className={`border-b border-border/25 ${checked ? "bg-panel" : ""}`}>
         <label className="flex cursor-pointer items-center justify-between gap-4 px-3 py-3.5">
           <span className="min-w-0">
             <span className="block text-s font-bold">{label}</span>
@@ -149,7 +149,7 @@ export function StepPublicInterest({
       {/* [수정 2026-09-08] "공익참여 프로그램이 두번 반복되잖아? 공통바 밑에 공익
           참여 프로그램 글자는 제거해" — 위 STEP 제목(title prop)과 문구가 거의
           같아 아래 소제목을 없앴다. 위 제목은 그대로 둔다. */}
-      <div className="mt-10 bg-panel p-5">
+      <div data-public-interest-body className="mt-10 bg-panel p-5">
         <p className="text-xs leading-5 text-muted">
           {t(
             "publicInterest.itemsSectionHint",
@@ -167,7 +167,7 @@ export function StepPublicInterest({
             const visibleItems = group.items.filter(isItemEnabled);
             if (visibleItems.length === 0) return null;
             return (
-              <div key={group.key} className="border border-border/25 bg-surface p-4">
+              <div data-choice-table key={group.key} className="border border-border/25 bg-surface p-4">
                 <h4 className="border-b border-foreground pb-2 text-xs font-bold tracking-wide text-foreground">
                   {t(`publicInterest.group.${group.key}`, group.label)}
                 </h4>

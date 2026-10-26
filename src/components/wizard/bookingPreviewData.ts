@@ -48,7 +48,7 @@ export const previewLiveHallContent = {
 export const previewScreenText={
  ...DEFAULT_SCREEN_TEXT_CONTENT,
  wizardDisabledFields:['performanceInfo.applicantCompanyType','performanceInfo.eventTypes','performanceInfo.ageRating','performanceInfo.seatingTypes','performanceInfo.stageTypes','audience.ancillaryPlans','configOptions.packageCard.recommendedSeating'],
- wizardSteps:{...DEFAULT_SCREEN_TEXT_CONTENT.wizardSteps,performanceInfoTitle:'대관 신청 정보',marketingTitle:'마케팅 및 프로모션 계획'},
+ wizardSteps:{...DEFAULT_SCREEN_TEXT_CONTENT.wizardSteps,performanceInfoTitle:'신청할 공연을 알려주세요',marketingTitle:'마케팅 및 프로모션 계획'},
  wizardStrings:{
  'venue.arena.name':'아레나','venue.medium-hall.name':'중형공연장','venue.special-hall.name':'All in One',
  'stepNav.step.applicantInfo':'대관사 및 행사 정보','stepNav.step.marketing':'마케팅 및 프로모션 계획',

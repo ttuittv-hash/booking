@@ -14,7 +14,7 @@ import {
   updateQuoteSelection,
 } from "@/lib/db";
 import { calculateQuote } from "@/lib/pricing/calculateQuote";
-import { resolveSelectedDates } from "@/lib/pricing/dateRange";
+import { midHallDatesOutsideArenaRange, resolveSelectedDates } from "@/lib/pricing/dateRange";
 import type { QuoteSelection } from "@/lib/pricing/types";
 
 export async function GET(_request: Request, ctx: { params: Promise<{ id: string }> }) {
@@ -92,6 +92,7 @@ export async function PUT(request: Request, ctx: { params: Promise<{ id: string 
   if (!selection) {
     return NextResponse.json({ error: "잘못된 요청입니다." }, { status: 400 });
   }
+  if (!selection) return NextResponse.json({ error: "잘못된 요청입니다." }, { status: 400 });
   const needsPackage = selection.venueId !== "medium-hall" || selection.bookingMode === "SIMULTANEOUS";
   const needsMidHall = selection.venueId === "medium-hall" || selection.bookingMode === "SIMULTANEOUS";
   if (needsPackage && typeof selection.packageId !== "number") {
@@ -101,8 +102,12 @@ export async function PUT(request: Request, ctx: { params: Promise<{ id: string 
     return NextResponse.json({ error: "중형공연장 일정을 선택해주세요." }, { status: 400 });
   }
 
+  if (selection.bookingMode === "SIMULTANEOUS" && midHallDatesOutsideArenaRange(selection, selection.midHallDays ?? {}).length > 0) {
+    return NextResponse.json({ error: "중형공연장 일정은 아레나 대관기간 안에서 선택해주세요." }, { status: 400 });
+  }
+
   const arenaDates = needsPackage ? resolveSelectedDates(selection) : [];
-  const midHallDates = needsMidHall ? Object.keys(selection.midHallDays ?? {}) : [];
+  const midHallDates = Object.keys(selection.midHallDays ?? {});
   // 운영자가 막아 둔 날짜 + 승인된 신청서가 잡은 날짜(2026-09-02). 승인은 곧 그 날짜를
   // 내준다는 뜻이라, 화면에서 막는 것으로 끝내지 않고 저장 직전에 서버가 다시 본다.
   const approvedBlocks = await listApprovedQuoteBlocks(id);

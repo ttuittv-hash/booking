@@ -68,12 +68,10 @@ export function PromotionChannelsFields({
   return (
     // [개정 2026-09-09] StepAudience(신청자 정보 및 규모) 하위로 옮긴 뒤 얇은 선만
     // 남아 위 슬롯과 경계가 약했다 — 다른 슬롯과 같은 흰 컨테이너로 맞춘다(§신청 위저드).
-    <div className="mt-6 bg-panel p-5">
+    <div data-input-group data-promotion-group className="mt-6 bg-panel p-5">
       <div className="mb-2.5 flex items-center justify-between">
         <h3 className="type-kr-heading text-h6-m">{t("marketing.channelsHeading", "프로모션 채널(선택)")}</h3>
-        <button type="button" onClick={addChannel} className={toggleClass(false)}>
-          {t("marketing.addChannelButton", "＋ 채널 추가")}
-        </button>
+
       </div>
       <p className="mt-1 mb-3 break-keep text-xs leading-6 text-muted">
         {t("marketing.channelsHint", "공연 운영 채널이 있다면 입력해주세요. 서울아레나와 연계하여 홍보 가능합니다.")}
@@ -85,6 +83,7 @@ export function PromotionChannelsFields({
         {info.channels.map((row, i) => (
           <PreviewRepeatRow
             key={i}
+            fieldSizes={["short", "long", "short"]}
             /* 항목 사이에 선을 긋지 않는다(§1) — 한 줄이 곧 한 항목이고 입력칸이 이미 경계다 */
             className="grid grid-cols-1 gap-1.5 py-2 sm:grid-cols-[1fr_2fr_1fr_auto]"
           >
@@ -116,6 +115,11 @@ export function PromotionChannelsFields({
             </button>
           </PreviewRepeatRow>
         ))}
+      </div>
+      <div className="mt-3">
+        <button type="button" onClick={addChannel} className={toggleClass(false)}>
+          {t("marketing.addChannelButton", "＋ 채널 추가")}
+        </button>
       </div>
     </div>
   );

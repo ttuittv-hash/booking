@@ -336,6 +336,7 @@ function TextField({
   placeholder,
   onChange,
   type = "text",
+  size = "long",
   fieldKey,
 }: {
   label: ReactNode;
@@ -343,13 +344,14 @@ function TextField({
   placeholder?: string;
   onChange: (value: string) => void;
   type?: string;
+  size?: "short" | "medium" | "long";
   /** [신규 2026-09-07] "미입력 필수항목 빨간색 표시 + 자동 스크롤"용 DOM 표식 —
    *  validatePerformanceInfoStep이 돌려주는 fieldKey와 매칭된다. */
   fieldKey?: string;
 }) {
   return (
-    <div>
-      <label className="mb-1.5 block text-xs font-bold text-muted">{label}</label>
+    <div data-field-size={size}>
+      <label data-field-label className="mb-1.5 block text-xs font-bold text-muted">{label}</label>
       <input
         type={type}
         value={value}
@@ -364,8 +366,8 @@ function TextField({
 
 function ReadOnlyRow({ label, value, note }: { label: ReactNode; value: string; note?: ReactNode }) {
   return (
-    <div>
-      <label className="mb-1.5 block text-xs font-bold text-muted">{label}</label>
+    <div data-field-size="long">
+      <label data-field-label className="mb-1.5 block text-xs font-bold text-muted">{label}</label>
       {/* h-10 로 옆에 나란히 놓이는 입력 필드(field-base)와 높이를 맞춘다(2026-08-22) */}
       <div data-auto-value className="flex h-10 items-center border border-border/25 bg-panel/60 px-4 text-s text-foreground">
         {value}
@@ -511,7 +513,7 @@ function ApplicantDetailsFields({
             계약 주체가 계정 회사와 다른 경우가 있다. 입력칸으로 열되 값은 이 신청서
             (quotes.selection.performanceInfo)에만 저장한다 — 가입 때 진위확인한 회사
             기록은 그대로 두고, 운영자 심사 화면에서 계정 회사와 다르면 뱃지로 알린다. */}
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+        <div data-input-group data-field-row className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <TextField
             label={t("performanceInfo.applicantCompanyNameLabel", "대관신청사명")}
             value={info.applicantCompanyName}
@@ -520,6 +522,7 @@ function ApplicantDetailsFields({
             fieldKey="performanceInfo.applicantCompanyName"
           />
           <TextField
+            size="medium"
             label={t("performanceInfo.applicantBrnLabel", "사업자등록번호")}
             value={info.applicantBusinessRegistrationNumber}
             placeholder={tStr("performanceInfo.applicantBrnPlaceholder", "000-00-00000")}
@@ -527,6 +530,7 @@ function ApplicantDetailsFields({
             fieldKey="performanceInfo.applicantBusinessRegistrationNumber"
           />
           <TextField
+            size="short"
             label={t("performanceInfo.applicantRepresentativeNameLabel", "대표자명")}
             value={info.applicantRepresentativeName ?? ""}
             placeholder={tStr("performanceInfo.applicantRepresentativeNamePlaceholder", "대표자 성명")}
@@ -540,7 +544,7 @@ function ApplicantDetailsFields({
             보여줄 항목이 하나도 없으면 제목까지 통째로 숨긴다(공공/공익 참여의
             그룹 렌더링과 같은 규칙, PUBLIC_INTEREST_GROUPS 참고). */}
         {visibleCompanyTypes.length > 0 && (
-          <div data-field-key="performanceInfo.applicantCompanyType">
+          <div data-input-group data-field-key="performanceInfo.applicantCompanyType">
             <div className="mb-2.5 text-xs font-bold text-muted">
               {t("performanceInfo.applicantCompanyTypeLabel", "신청 기업 유형")}
             </div>
@@ -558,7 +562,8 @@ function ApplicantDetailsFields({
                 무대형태·객석형태와 같은 패턴을 "모든 항목의 기타"로 일반화한다. */}
             {info.applicantCompanyType === "OTHER" && (
               <input
-                value={info.applicantCompanyTypeOtherDetail ?? ""}
+                data-field-size="long"
+                    value={info.applicantCompanyTypeOtherDetail ?? ""}
                 placeholder={tStr("performanceInfo.applicantCompanyTypeOtherDetailPlaceholder", "기타 신청 기업 유형 설명")}
                 onChange={(e) => set("applicantCompanyTypeOtherDetail", e.target.value)}
                 className="field-base mt-2 w-full max-w-xs"
@@ -567,14 +572,11 @@ function ApplicantDetailsFields({
           </div>
         )}
 
-        <div data-field-key="performanceInfo.applicantContact">
+        <div data-input-group data-field-key="performanceInfo.applicantContact">
           <div className="mb-2.5 flex items-center justify-between">
             <label className="type-kr-heading text-s text-foreground">
               {t("performanceInfo.contactPersonsLabel", "담당자 정보")}
             </label>
-            <button type="button" onClick={addContactPerson} className={toggleClass(false)}>
-              {t("performanceInfo.addRowButton", "＋ 행 추가")}
-            </button>
           </div>
           {visibleContactColumns.length > 0 && (
             <div
@@ -596,6 +598,7 @@ function ApplicantDetailsFields({
                   {visibleContactColumns.map((key) => (
                     <input
                       key={key}
+                      data-field-size={key === "email" ? "long" : key === "name" ? "short" : "medium"}
                       value={row[key as keyof ContactPersonRecord]}
                       placeholder={CONTACT_COLUMN_LABELS[key]}
                       onChange={(e) =>
@@ -616,21 +619,19 @@ function ApplicantDetailsFields({
               </PreviewRepeatRow>
             ))}
           </div>
+          <div className="mt-3">
+            <button type="button" onClick={addContactPerson} className={toggleClass(false)}>
+              {t("performanceInfo.addRowButton", "＋ 행 추가")}
+            </button>
+          </div>
         </div>
       </div>
 
-      <div className="mt-6">
+      <div data-input-group data-performance-records className="mt-6">
         <div className="mb-2.5 flex items-center justify-between">
           <label className="type-kr-heading text-s text-foreground">
             {t("performanceInfo.pastPerformancesLabel", "대관사 최근 3년간 공연 실적")}
           </label>
-          <button
-            type="button"
-            onClick={addPastPerformance}
-            className={toggleClass(false)}
-          >
-            {t("performanceInfo.addRowButton", "＋ 행 추가")}
-          </button>
         </div>
         {info.pastPerformances.length === 0 && (
           <p className="text-xs text-muted">
@@ -641,24 +642,28 @@ function ApplicantDetailsFields({
           {info.pastPerformances.map((row, i) => (
             <PreviewRepeatRow key={i} className="grid grid-cols-5 gap-1.5 py-2">
               <input
+                data-field-size="long"
                 value={row.eventName}
                 placeholder={tStr("performanceInfo.pastEventNamePlaceholder", "공연명")}
                 onChange={(e) => updatePastPerformance(i, { eventName: e.target.value })}
                 className="field-base h-8"
               />
               <input
+                data-field-size="medium"
                 value={row.venue}
                 placeholder={tStr("performanceInfo.pastVenuePlaceholder", "장소")}
                 onChange={(e) => updatePastPerformance(i, { venue: e.target.value })}
                 className="field-base h-8"
               />
               <input
+                data-field-size="medium"
                 value={row.period}
                 placeholder={tStr("performanceInfo.pastPeriodPlaceholder", "기간")}
                 onChange={(e) => updatePastPerformance(i, { period: e.target.value })}
                 className="field-base h-8"
               />
               <input
+                data-field-size="short"
                 value={row.audience}
                 placeholder={tStr("performanceInfo.pastAudiencePlaceholder", "관객 수")}
                 onChange={(e) => updatePastPerformance(i, { audience: e.target.value })}
@@ -666,7 +671,8 @@ function ApplicantDetailsFields({
               />
               <div className="flex items-center gap-1">
                 <input
-                  value={row.role}
+                  data-field-size="short"
+                value={row.role}
                   placeholder={tStr("performanceInfo.pastRolePlaceholder", "주최·주관 역할")}
                   onChange={(e) => updatePastPerformance(i, { role: e.target.value })}
                   className="field-base h-8 w-full"
@@ -682,6 +688,15 @@ function ApplicantDetailsFields({
               </div>
             </PreviewRepeatRow>
           ))}
+        </div>
+        <div className="mt-3">
+          <button
+            type="button"
+            onClick={addPastPerformance}
+            className={toggleClass(false)}
+          >
+            {t("performanceInfo.addRowButton", "＋ 행 추가")}
+          </button>
         </div>
       </div>
     </div>
@@ -843,7 +858,7 @@ function EventBasicsFields({
             필드 자체는 그대로 남는다. */}
         <div>
           <div className="space-y-4">
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <div data-input-group data-field-row className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               {visibleEventBasicsFields.map((key) => (
                 <Fragment key={key}>{eventBasicsFieldRenderers[key]?.()}</Fragment>
               ))}
@@ -853,20 +868,18 @@ function EventBasicsFields({
                 행으로 추가할수 있게" — 단일 텍스트 입력을 역할별 반복 행으로
                 바꾼다. organizer(단일 텍스트)는 이 배열에서 자동 합성돼 인쇄본·
                 관리자 화면과의 하위호환을 유지한다(deriveOrganizerSummary). */}
-            <div>
+            <div data-input-group>
               <div className="mb-2.5 flex items-center justify-between">
                 <label className="type-kr-heading text-s text-foreground">
                   {t("performanceInfo.organizerLabel", "주최 · 주관 · 기획")}
                 </label>
-                <button type="button" onClick={addOrganizer} className={toggleClass(false)}>
-                  {t("performanceInfo.addRowButton", "＋ 행 추가")}
-                </button>
               </div>
               <div className="space-y-2">
                 {organizers.map((row, i) => (
                   <PreviewRepeatRow key={i} className="flex items-center gap-1.5 py-2">
                     <select
-                      value={row.role}
+                      data-field-size="short"
+                value={row.role}
                       onChange={(e) => updateOrganizer(i, { role: e.target.value as OrganizerRole })}
                       className="field-base h-8 w-28 shrink-0"
                     >
@@ -882,7 +895,8 @@ function EventBasicsFields({
                         (검증 조건 "하나라도 입력" 그대로, row.name 이 채워지면 이
                         속성이 사라지므로 채워진 칸은 하이라이트되지 않는다). */}
                     <input
-                      value={row.name}
+                      data-field-size="long"
+                value={row.name}
                       placeholder={tStr("performanceInfo.organizerNamePlaceholder", "업체명 · 단체명")}
                       onChange={(e) => updateOrganizer(i, { name: e.target.value })}
                       data-field-key={row.name.trim() ? undefined : "performanceInfo.eventBasics.organizer"}
@@ -899,6 +913,11 @@ function EventBasicsFields({
                   </PreviewRepeatRow>
                 ))}
               </div>
+              <div className="mt-3">
+                <button type="button" onClick={addOrganizer} className={toggleClass(false)}>
+                  {t("performanceInfo.addRowButton", "＋ 행 추가")}
+                </button>
+              </div>
             </div>
           </div>
         </div>
@@ -908,18 +927,15 @@ function EventBasicsFields({
             무엇을 적어야 하는지 예시 문구를 각 표 위에 안내한다(관리자가 문구
             수정 가능 — t()). */}
         <div className="border-t border-border/25 pt-6">
-          <div className="mb-3 text-xs font-bold tracking-wide text-muted uppercase">
+          <div className="mb-3 type-kr-heading text-s text-foreground">
             {t("performanceInfo.artistHistoryGroupLabel", "아티스트 이력")}
           </div>
 
-          <div>
+          <div data-input-group>
             <div className="mb-2.5 flex items-center justify-between">
               <label className="type-kr-heading text-s text-foreground">
                 {t("performanceInfo.artistMainHistoryLabel", "① 아티스트 주요 이력")}
               </label>
-              <button type="button" onClick={addArtistMainHistory} className={toggleClass(false)}>
-                {t("performanceInfo.addRowButton", "＋ 행 추가")}
-              </button>
             </div>
             <p className="mb-2 text-xs text-muted">
               {t(
@@ -931,26 +947,30 @@ function EventBasicsFields({
               {artistMainHistory.map((row, i) => (
                 <PreviewRepeatRow key={i} className="grid grid-cols-5 gap-1.5 py-2">
                   <input
-                    value={row.artistName}
+                    data-field-size="medium"
+                value={row.artistName}
                     placeholder={tStr("performanceInfo.artistNamePlaceholder", "아티스트명")}
                     onChange={(e) => updateArtistMainHistory(i, { artistName: e.target.value })}
                     className="field-base h-8"
                   />
                   <input
-                    value={row.agency}
+                    data-field-size="medium"
+                value={row.agency}
                     placeholder={tStr("performanceInfo.agencyPlaceholder", "소속사")}
                     onChange={(e) => updateArtistMainHistory(i, { agency: e.target.value })}
                     className="field-base h-8"
                   />
                   <input
-                    value={row.debutYear}
+                    data-field-size="short"
+                value={row.debutYear}
                     placeholder={tStr("performanceInfo.debutYearPlaceholder", "데뷔연도")}
                     onChange={(e) => updateArtistMainHistory(i, { debutYear: e.target.value })}
                     className="field-base h-8"
                   />
                   <div className="col-span-2 flex items-center gap-1">
                     <input
-                      value={row.achievements}
+                      data-field-size="long"
+                value={row.achievements}
                       placeholder={tStr("performanceInfo.achievementsPlaceholder", "주요 활동 및 수상·성과")}
                       onChange={(e) => updateArtistMainHistory(i, { achievements: e.target.value })}
                       className="field-base h-8 w-full"
@@ -967,16 +987,18 @@ function EventBasicsFields({
                 </PreviewRepeatRow>
               ))}
             </div>
+            <div className="mt-3">
+              <button type="button" onClick={addArtistMainHistory} className={toggleClass(false)}>
+                {t("performanceInfo.addRowButton", "＋ 행 추가")}
+              </button>
+            </div>
           </div>
 
-          <div className="mt-5">
+          <div data-input-group className="mt-5">
             <div className="mb-2.5 flex items-center justify-between">
               <label className="type-kr-heading text-s text-foreground">
                 {t("performanceInfo.artistRecentPerformancesLabel", "② 최근 공연 이력 — 최대 3~5건")}
               </label>
-              <button type="button" onClick={addArtistRecentPerformance} className={toggleClass(false)}>
-                {t("performanceInfo.addRowButton", "＋ 행 추가")}
-              </button>
             </div>
             <p className="mb-2 text-xs text-muted">
               {t(
@@ -989,25 +1011,29 @@ function EventBasicsFields({
                 <PreviewRepeatRow key={i} className="space-y-1.5 py-2">
                   <div className="grid grid-cols-4 gap-1.5">
                     <input
-                      value={row.eventName}
+                      data-field-size="long"
+                value={row.eventName}
                       placeholder={tStr("performanceInfo.artistPastEventNamePlaceholder", "공연명")}
                       onChange={(e) => updateArtistRecentPerformance(i, { eventName: e.target.value })}
                       className="field-base h-8"
                     />
                     <input
-                      value={row.eventDate}
+                      data-field-size="medium"
+                value={row.eventDate}
                       placeholder={tStr("performanceInfo.artistPastEventDatePlaceholder", "공연일")}
                       onChange={(e) => updateArtistRecentPerformance(i, { eventDate: e.target.value })}
                       className="field-base h-8"
                     />
                     <input
-                      value={row.venue}
+                      data-field-size="medium"
+                value={row.venue}
                       placeholder={tStr("performanceInfo.artistPastVenuePlaceholder", "공연장")}
                       onChange={(e) => updateArtistRecentPerformance(i, { venue: e.target.value })}
                       className="field-base h-8"
                     />
                     <input
-                      value={row.cityCountry}
+                      data-field-size="medium"
+                value={row.cityCountry}
                       placeholder={tStr("performanceInfo.artistPastCityCountryPlaceholder", "도시 · 국가")}
                       onChange={(e) => updateArtistRecentPerformance(i, { cityCountry: e.target.value })}
                       className="field-base h-8"
@@ -1015,25 +1041,29 @@ function EventBasicsFields({
                   </div>
                   <div className="grid grid-cols-4 gap-1.5">
                     <input
+                      data-field-size="short"
                       value={row.showCount}
                       placeholder={tStr("performanceInfo.artistPastShowCountPlaceholder", "공연 횟수")}
                       onChange={(e) => updateArtistRecentPerformance(i, { showCount: e.target.value })}
                       className="field-base h-8"
                     />
                     <input
-                      value={row.seatsPerShow}
+                      data-field-size="short"
+                value={row.seatsPerShow}
                       placeholder={tStr("performanceInfo.artistPastSeatsPerShowPlaceholder", "회당 객석 규모")}
                       onChange={(e) => updateArtistRecentPerformance(i, { seatsPerShow: e.target.value })}
                       className="field-base h-8"
                     />
                     <input
-                      value={row.audience}
+                      data-field-size="short"
+                value={row.audience}
                       placeholder={tStr("performanceInfo.artistPastAudiencePlaceholder", "관객 수")}
                       onChange={(e) => updateArtistRecentPerformance(i, { audience: e.target.value })}
                       className="field-base h-8"
                     />
                     <div className="flex items-center gap-1">
                       <input
+                        data-field-size="short"
                         value={row.sellRate}
                         placeholder={tStr("performanceInfo.artistPastSellRatePlaceholder", "티켓 판매율")}
                         onChange={(e) => updateArtistRecentPerformance(i, { sellRate: e.target.value })}
@@ -1052,11 +1082,17 @@ function EventBasicsFields({
                 </PreviewRepeatRow>
               ))}
             </div>
+            <div className="mt-3">
+              <button type="button" onClick={addArtistRecentPerformance} className={toggleClass(false)}>
+                {t("performanceInfo.addRowButton", "＋ 행 추가")}
+              </button>
+            </div>
           </div>
         </div>
 
+        {(visibleEventTypes.length > 0 || visibleAgeRatings.length > 0) && (
         <div className="border-t border-border/25 pt-6">
-          <div className="mb-3 text-xs font-bold tracking-wide text-muted uppercase">
+          <div className="mb-3 type-kr-heading text-s text-foreground">
             {t("performanceInfo.classificationGroupLabel", "분류")}
           </div>
           <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
@@ -1064,7 +1100,7 @@ function EventBasicsFields({
                 온오프가 필요" — 항목을 전부 꺼도 제목만 남지 않도록, 보여줄 항목이 하나도
                 없으면 제목까지 통째로 숨긴다. */}
             {visibleEventTypes.length > 0 && (
-              <div data-field-key="performanceInfo.eventTypes">
+              <div data-input-group data-field-key="performanceInfo.eventTypes">
                 <div className="mb-2.5 text-xs font-bold text-muted">
                   {t("performanceInfo.eventTypesLabel", "행사유형")}
                 </div>
@@ -1082,7 +1118,7 @@ function EventBasicsFields({
             )}
 
             {visibleAgeRatings.length > 0 && (
-              <div data-field-key="performanceInfo.ageRating">
+              <div data-input-group data-field-key="performanceInfo.ageRating">
                 <div className="mb-2.5 text-xs font-bold text-muted">
                   {t("performanceInfo.ageRatingLabel", "공연등급")}
                 </div>
@@ -1109,16 +1145,15 @@ function EventBasicsFields({
             )}
           </div>
         </div>
+        )}
 
-        <div className="border-t border-border/25 pt-6">
-          <div className="mb-3 text-xs font-bold tracking-wide text-muted uppercase">
+        <div data-input-group className="border-t border-border/25 pt-6">
+          <div className="mb-3 type-kr-heading text-s text-foreground">
             {t("performanceInfo.scheduleGroupLabel", "일정")}
           </div>
           <div className="space-y-4">
-            {/* [신규 2026-09-09] 「셋업 추가 요청시간(선택)」 — 대관기간 줄 오른쪽 빈 칸에 넣어
-                달라는 요청(팀). 아레나 단독이면 그 자리에, 동시 대관이면 중형 기간이 그 칸을
-                쓰므로 다음 줄로 흐른다. 철수 완료 예정시간과 같은 자유 입력이다. */}
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            {/* 자동 반영 정보는 위쪽, 수정 가능한 일정 항목은 아래쪽에 묶는다. */}
+            <div data-schedule-fixed data-field-row className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               {scheduleSummary?.arenaLine && (
                 <ReadOnlyRow
                   label={t("performanceInfo.arenaPeriodLabel", "대관기간 — 아레나")}
@@ -1133,32 +1168,33 @@ function EventBasicsFields({
                   note={t("performanceInfo.editAtScheduleNote", "수정은 일정 선택에서")}
                 />
               )}
-              <TextField
-                label={t("performanceInfo.setupRequestTimeLabel", "셋업 추가 요청시간(선택)")}
-                value={info.setupRequestTime ?? ""}
-                placeholder={tStr("performanceInfo.setupRequestTimePlaceholder", "예: 전일 09:00부터")}
-                onChange={(v) => set("setupRequestTime", v)}
-              />
-            </div>
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               {scheduleSummary?.showsTotal != null && (
                 <ReadOnlyRow
                   label={t("performanceInfo.totalShowsLabel", "총 공연 횟수")}
                   value={`${scheduleSummary.showsTotal}${tStr("performanceInfo.showsUnitAutoCalc", "회 (자동 계산)")}`}
                 />
               )}
+            </div>
+            <div data-schedule-editable data-field-row>
               <TextField
-                label={t("performanceInfo.teardownCompletionTimeLabel", "철수 완료 예정시간(선택)")}
+                size="medium"
+            label={t("performanceInfo.setupRequestTimeLabel", "셋업 추가 요청시간(선택)")}
+                value={info.setupRequestTime ?? ""}
+                placeholder={tStr("performanceInfo.setupRequestTimePlaceholder", "예: 전일 09:00부터")}
+                onChange={(v) => set("setupRequestTime", v)}
+              />
+              <TextField
+                size="medium"
+            label={t("performanceInfo.teardownCompletionTimeLabel", "철수 완료 예정시간(선택)")}
                 value={info.teardownCompletionTime}
                 placeholder={tStr("performanceInfo.teardownCompletionTimePlaceholder", "예: 당일 24:00")}
                 onChange={(v) => set("teardownCompletionTime", v)}
               />
-            </div>
             {/* 네이티브 date input을 다른 필드처럼 w-full로 늘리면 브라우저마다
                 내부 세그먼트 사이가 벌어져 이상하게 보인다 — 앱 전역의 날짜 입력
                 관례(TicketOpenPanel 등)와 같이 폭을 좁게 고정한다. */}
-            <div data-field-key="performanceInfo.eventBasics.ticketOpenExpectedDate">
-              <label className="mb-1.5 block text-xs font-bold text-muted">
+            <div data-field-size="long" data-field-key="performanceInfo.eventBasics.ticketOpenExpectedDate">
+              <label data-field-label className="mb-1.5 block text-xs font-bold text-muted">
                 {t("performanceInfo.ticketOpenExpectedDateLabel", "티켓 오픈 예정일")}
               </label>
               <div className="flex items-center gap-2">
@@ -1187,17 +1223,19 @@ function EventBasicsFields({
                     남겨둔다(이 값으로 이미 저장된 옛 신청서가 깨지지 않게). */}
               </div>
             </div>
+            </div>
           </div>
         </div>
 
+        {(visibleSeatingTypes.length > 0 || visibleStageTypes.length > 0) && (
         <div className="border-t border-border/25 pt-6">
-          <div className="mb-3 text-xs font-bold tracking-wide text-muted uppercase">
+          <div className="mb-3 type-kr-heading text-s text-foreground">
             {t("performanceInfo.spaceConfigGroupLabel", "공간 구성")}
           </div>
           <div className="space-y-4">
             <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
               {visibleSeatingTypes.length > 0 && (
-                <div data-field-key="performanceInfo.seatingTypes">
+                <div data-input-group data-field-key="performanceInfo.seatingTypes">
                   <div className="mb-2.5 text-xs font-bold text-muted">
                     {t("performanceInfo.seatingTypesLabel", "객석형태")}
                   </div>
@@ -1213,7 +1251,8 @@ function EventBasicsFields({
                   </div>
                   {info.seatingTypes.includes("OTHER") && (
                     <input
-                      value={info.seatingTypeOtherDetail ?? ""}
+                      data-field-size="long"
+                    value={info.seatingTypeOtherDetail ?? ""}
                       placeholder={tStr("performanceInfo.seatingTypeOtherDetailPlaceholder", "기타 객석형태 설명")}
                       onChange={(e) => set("seatingTypeOtherDetail", e.target.value)}
                       className="field-base mt-2 w-full max-w-xs"
@@ -1221,11 +1260,10 @@ function EventBasicsFields({
                   )}
                 </div>
               )}
-
             </div>
 
             {visibleStageTypes.length > 0 && (
-              <div data-field-key="performanceInfo.stageTypes">
+              <div data-input-group data-field-key="performanceInfo.stageTypes">
                 <div className="mb-2.5 text-xs font-bold text-muted">
                   {t("performanceInfo.stageTypesLabel", "무대형태")}
                 </div>
@@ -1241,6 +1279,7 @@ function EventBasicsFields({
                 </div>
                 {info.stageTypes.includes("OTHER") && (
                   <input
+                    data-field-size="long"
                     value={info.stageTypeOtherDetail ?? ""}
                     placeholder={tStr("performanceInfo.stageTypeOtherDetailPlaceholder", "기타 무대형태 설명")}
                     onChange={(e) => set("stageTypeOtherDetail", e.target.value)}
@@ -1251,6 +1290,8 @@ function EventBasicsFields({
             )}
           </div>
         </div>
+        )}
+
       </div>
     </div>
   );
@@ -1281,7 +1322,7 @@ function CredibilityFields({
         )}
       </p>
 
-      <div className="mt-4" data-field-key="performanceInfo.credibility.castContractStatus">
+      <div data-input-group className="mt-4" data-field-key="performanceInfo.credibility.castContractStatus">
         <div className="mb-2.5 text-xs font-bold text-muted">
           {t("performanceInfo.castContractStatusLabel", "주요 출연진 계약 상태")}
         </div>
@@ -1297,7 +1338,7 @@ function CredibilityFields({
         </div>
       </div>
 
-      <div className="mt-5">
+      <div data-input-group className="mt-5">
         <TextField
           label={t("performanceInfo.foreignArtistNotesLabel", "해외 아티스트 추가사항(선택)")}
           value={info.foreignArtistNotes}
@@ -1624,7 +1665,7 @@ export function StepAttachments({
 
   return (
     // 위에 선을 두지 않는다 — 첨부 목록이 파일 줄로 이미 경계를 만든다
-    <section className="mt-10">
+    <section data-attachment-step className="mt-10">
       {/* [수정 2026-09-09] "이상한" 표기 점검 — 이 제목 밑에 STEP7 두 번째 슬롯인
           "안전관리 서약서 첨부"(필수, 빨간 별표)가 함께 있어 "(선택)"이 그 필수
           항목까지 선택인 것처럼 읽혔다. 위 공연 관련 자료 자체는 여전히 선택이지만,

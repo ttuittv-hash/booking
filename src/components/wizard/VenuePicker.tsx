@@ -1,5 +1,7 @@
 "use client";
 
+import { useContext, useState } from "react";
+import { PreviewDesignContext } from "./BookingPreviewForms";
 import { MID_HALL_VENUE_ID, SPECIAL_VENUE_ID, type BookingMode } from "@/lib/pricing/types";
 import { defaultVenueName, venueLabelKey } from "@/lib/content/venueLabels";
 import { useWizardText } from "@/lib/content/wizardText";
@@ -37,6 +39,8 @@ export function VenuePicker({
   onSelectVenue: (venueId: string, bookingMode: BookingMode) => void;
 }) {
   const { t, tStr } = useWizardText();
+  const preview = useContext(PreviewDesignContext);
+  const [subOpen, setSubOpen] = useState(false);
   const isSimultaneous = bookingMode === "SIMULTANEOUS";
   const isAllInOne = venueId === SPECIAL_VENUE_ID && bookingMode === "SINGLE";
   const isSimultaneousGroupActive = isSimultaneous || isAllInOne;
@@ -86,15 +90,35 @@ export function VenuePicker({
     },
   ] as const;
 
+  if (preview) return (
+    <div data-venue-picker className="grid grid-cols-1 gap-x-8 gap-y-3 sm:grid-cols-[7rem_1fr] sm:items-center">
+      <label className="text-s font-bold">{t("venuePicker.fieldLabel", "이용 시설")} <span className="text-danger">*</span></label>
+      <div data-venue-options>
+        {topOptions.map(opt => opt.key === "simultaneous" ? (
+          <div key={opt.key} data-venue-family data-expanded={subOpen}
+            onPointerEnter={e => {if (e.pointerType === "mouse") setSubOpen(true);}}
+            onPointerLeave={e => {if (e.pointerType === "mouse") setSubOpen(false);}}
+            onFocus={() => setSubOpen(true)}
+            onBlur={e => {if (!e.currentTarget.contains(e.relatedTarget)) setSubOpen(false);}}
+            onKeyDown={e => {if (e.key === "Escape") setSubOpen(false);}}>
+            <button type="button" aria-expanded={subOpen} aria-pressed={opt.active} onClick={() => setSubOpen(true)}>{opt.label}</button>
+            {subOpen && <div data-venue-suboptions>{subOptions.map(sub => <button type="button" key={sub.key} aria-pressed={sub.active} onClick={sub.onClick}>{sub.label}</button>)}</div>}
+          </div>
+        ) : <button type="button" key={opt.key} aria-pressed={opt.active} onClick={() => {setSubOpen(false);opt.onClick();}}>{opt.label}</button>)}
+      </div>
+    </div>
+  );
+
   return (
-    <div className="grid grid-cols-1 gap-x-8 gap-y-3 sm:grid-cols-[7rem_1fr] sm:items-center">
+    <div data-venue-picker className="grid grid-cols-1 gap-x-8 gap-y-3 sm:grid-cols-[7rem_1fr] sm:items-center">
       <label className="text-s font-bold text-foreground">{t("venuePicker.fieldLabel", "이용 시설")} <span className="text-danger">*</span></label>
       <div>
-        <div className="flex flex-wrap gap-2">
+        <div data-venue-options className="flex flex-wrap gap-2">
           {topOptions.map((opt) => (
             <button
               key={opt.key}
               type="button"
+              aria-pressed={opt.active}
               onClick={opt.onClick}
               className={[
                 "flex h-10 items-center border px-4 text-s font-bold transition-colors",
@@ -112,11 +136,12 @@ export function VenuePicker({
             느낌으로" — StepNav.tsx 하위 단계와 같은 규칙: 위와의 간격을 넉넉히(mt-2→
             mt-5) 띄우고, 알약(rounded-full·테두리)이 아니라 밑줄 텍스트로 바꾼다. */}
         {isSimultaneousGroupActive && (
-          <div className="mt-5 flex flex-wrap items-center gap-4 border-l-2 border-border-soft pl-3">
+          <div data-venue-suboptions className="mt-5 flex flex-wrap items-center gap-4 border-l-2 border-border-soft pl-3">
             {subOptions.map((opt) => (
               <button
                 key={opt.key}
                 type="button"
+                aria-pressed={opt.active}
                 onClick={opt.onClick}
                 className={[
                   "flex h-8 items-center whitespace-nowrap text-xs font-bold outline-none underline-offset-4 transition-colors",

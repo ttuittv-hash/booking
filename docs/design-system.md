@@ -827,3 +827,7 @@ Figma MARKETING COMPONENTS › Multi-step Forms › **Multi Form / 5** 규격.
 ## 관리자 화면 공통 기준
 
 관리자 전용 크기·패널·탭 기준은 [관리자 디자인 시스템](./admin-design-system.md)을 따른다. 실제 스타일은 `adminDashboard.css`, 클래스 연결은 `adminUi.ts`에서 관리한다. 공개 페이지와 위저드에 관리자 규칙을 적용하지 않는다.
+
+### BOOK IT 위저드 미리보기
+
+BOOK IT의 공통 토큰, 컴포넌트, 입력 묶음, 선택 상태 및 반응형 기준은 [위저드 디자인 기준](./wizard-design.md)을 정본으로 사용한다. 사용자 승인에 따른 미리보기 전용 규칙이며 기존 운영 신청 화면의 디자인은 유지한다. 이전 날짜별 누적 메모는 이 문서로 통합했다.

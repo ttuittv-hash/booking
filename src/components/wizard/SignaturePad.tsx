@@ -99,7 +99,7 @@ export function SignaturePad({
           </span>
         )}
       </div>
-      <button type="button" onClick={clear} className={`${btnClass("secondary", "sm")} mt-2`}>
+      <button data-delete-action type="button" onClick={clear} className={`${btnClass("secondary", "sm")} mt-2`}>
         지우기
       </button>
     </div>
