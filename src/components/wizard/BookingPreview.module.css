@@ -1068,7 +1068,7 @@
   border-top: 0;
 }
 .fullMain button[data-delete-action],
-.fullMain button[aria-label*="삭제"] {
+.fullMain button[aria-label*="삭제"]:not(.loadOutCard) {
   color: var(--danger);
   background: transparent;
   border: 0;
@@ -1079,7 +1079,7 @@
   font-size: 12px;
 }
 .fullMain button[data-delete-action]:hover,
-.fullMain button[aria-label*="삭제"]:hover {
+.fullMain button[aria-label*="삭제"]:not(.loadOutCard):hover {
   text-decoration: underline;
   background: transparent;
 }
@@ -1716,6 +1716,8 @@
   border: 1px solid transparent;
 }
 .weekList>button:hover:not(:disabled) {
+  background: var(--wizard-ink);
+  color: var(--wizard-surface);
   border-color: var(--wizard-ink);
 }
 .weekList [data-excluded=true] {
@@ -1728,8 +1730,7 @@
   margin: 24px 0 16px;
   font-size: 13px;
 }
-.scheduleRange button,
-.loadOutRow button {
+.scheduleRange button {
   border: 1px solid var(--wizard-border);
   padding: 8px 12px;
   background: white;
@@ -1740,7 +1741,7 @@
   grid-template-columns: repeat(6,minmax(0,1fr));
   gap: 8px;
 }
-.performanceDates button {
+.performanceDates .dateChoice {
   display: grid;
   gap: 6px;
   justify-items: center;
@@ -1749,40 +1750,9 @@
   font-size: 13px;
   border: 1px solid transparent;
 }
-.performanceDates button[aria-pressed=true] {
+.performanceDates .dateChoice[aria-pressed=true] {
   background: var(--wizard-ink);
   color: var(--wizard-surface);
-}
-.showCounts {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 16px;
-  margin-top: 20px;
-}
-.showCounts label {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  font-size: 12px;
-}
-.showCounts select {
-  width: 80px;
-}
-.loadOutRow {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 12px;
-  border-top: 1px solid var(--wizard-border);
-  font-size: 13px;
-}
-.loadOutRow>div {
-  flex: 1 1 200px;
-}
-.loadOutRow p {
-  font-size: 12px;
-  color: var(--wizard-muted);
-  margin-top: 6px;
 }
 @media (max-width:900px) {
   .fullLayout {
@@ -1943,14 +1913,14 @@
   margin: 0;
   border: 0;
 }
-.performanceDates button {
+.performanceDates .dateChoice {
   transition: background .15s ease,transform .15s ease;
 }
-.performanceDates button:hover {
+.performanceDates .dateChoice:hover {
   background: var(--wizard-border);
   transform: translateY(-2px);
 }
-.performanceDates button[aria-pressed=true]:hover {
+.performanceDates .dateChoice[aria-pressed=true]:hover {
   background: var(--n-dark);
 }
 .fullMain select,
@@ -2071,10 +2041,10 @@
 }
 @media (prefers-reduced-motion:reduce) {
   .chevron,
-.performanceDates button {
+.performanceDates .dateChoice {
     transition: none;
   }
-  .performanceDates button:hover {
+  .performanceDates .dateChoice:hover {
     transform: none;
   }
 }
@@ -2082,20 +2052,25 @@
 .fullMain [data-venue-family],
 .fullMain [data-venue-family][data-expanded=true] {
   padding: 0;
-  background: transparent;
+  background: var(--wizard-surface);
+  border: 1px solid var(--wizard-border);
   gap: 0;
+  overflow: hidden;
+}
+.fullMain [data-venue-family]>button {
+  border: 0;
 }
 .fullMain [data-venue-family] [data-venue-suboptions] {
   padding: 5px 8px;
-  margin-left: 6px;
-  background: var(--wizard-group);
+  margin-left: 0;
+  background: transparent;
   border-radius: var(--wizard-radius-group);
   gap: 4px;
 }
 .fullMain [data-venue-family] [data-venue-suboptions]>button {
   height: 30px;
   padding: 0 10px;
-  border: 0;
+  border: 1px solid var(--wizard-border);
   background: transparent;
   font-size: 12px;
 }
@@ -2113,24 +2088,101 @@
   gap: 8px;
   margin-top: 8px;
 }
-.loadOutDates>div {
+/* Date bodies share a fixed height; auxiliary actions never shift their labels. */
+.scheduleDay {
+  position: relative;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 8px;
+}
+.performanceDates .dateChoice,
+.loadOutCard,
+.addLoadOut {
+  height: 82px;
+  flex: none;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
   gap: 6px;
-  padding: 14px 4px;
-  background: var(--wizard-group);
   border-radius: var(--wizard-radius-control);
   font-size: 13px;
 }
-.loadOutDates button {
-  font-size: 12px;
+.loadOutCard {
+  position: relative;
+  border: 1px solid transparent;
+  cursor: pointer;
+  color: inherit;
+  background: var(--wizard-group);
 }
-.loadOutRow {
+.dateChoice [data-count-placeholder=true] {
+  visibility: hidden;
+}
+.showCountTrigger {
+  position: absolute;
+  top: 43px;
+  left: 0;
+  width: 100%;
+  padding: 0;
   border: 0;
-  margin-top: 16px;
-  padding-top: 0;
+  background: transparent;
+  color: var(--wizard-surface, #fff);
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+}
+.showCountField {
+  position: absolute;
+  bottom: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 152px;
+  padding: 12px;
+  z-index: 5;
+  background: var(--wizard-surface, #fff);
+  border: 1px solid var(--wizard-border);
+  border-radius: var(--wizard-radius-control);
+  box-shadow: 0 4px 16px rgb(0 0 0 / 12%);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.showCountLabel {
+  color: var(--wizard-muted);
+  font-size: 12px;
+  line-height: 1.5;
+  text-align: center;
+}
+.showCountControl {
+  display: grid;
+  grid-template-columns: 32px minmax(0,1fr) 32px;
+  align-items: center;
+  height: 34px;
+  border: 1px solid var(--wizard-border);
+  border-radius: var(--wizard-radius-control);
+  font-size: 12px;
+  text-align: center;
+}
+.showCountControl button {
+  height: 32px;
+  min-width: 0;
+  border: 0;
+  background: transparent;
+  border-radius: var(--wizard-radius-control);
+}
+.showCountControl button:hover:not(:disabled) {
+  background: var(--wizard-group);
+}
+.addLoadOut {
+  border: 1px dashed var(--wizard-border);
+  color: var(--wizard-muted);
+  background: transparent;
+}
+.addLoadOut:hover:not(:disabled) {
+  border-color: var(--wizard-ink);
+  color: var(--wizard-ink);
 }
 .includes {
   border-top: 1px solid var(--wizard-border);
@@ -2379,4 +2431,62 @@
   color: var(--wizard-muted);
   font-size: 11px;
   text-align: right;
+}
+
+.loadOutCard:hover {
+  border-color: var(--wizard-ink);
+}
+
+.performanceDates.scheduleCalendar {
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+}
+@media (max-width: 720px) {
+  .scheduleCalendar .dateChoice,
+  .scheduleCalendar .loadOutCard,
+  .scheduleCalendar .addLoadOut {
+    font-size: 10px;
+    padding-inline: 1px;
+  }
+  .scheduleCalendar .showCountTrigger {
+    font-size: 10px;
+  }
+  .scheduleCalendar .showCountField {
+    width: 128px;
+  }
+  .scheduleCalendar .scheduleDay:nth-child(7n) .showCountField {
+    left: auto;
+    right: 0;
+    transform: none;
+  }
+  .scheduleCalendar .scheduleDay:nth-child(7n + 1) .showCountField {
+    left: 0;
+    transform: none;
+  }
+}
+
+.loadOutDeleteLabel {
+  position: absolute;
+  top: 4px;
+  right: 6px;
+  color: var(--danger);
+  font-size: 20px;
+  line-height: 1;
+}
+.fullMain [data-venue-family] [data-venue-suboptions]>button:hover {
+  border-color: var(--wizard-ink);
+}
+.fullMain [data-venue-family] [data-venue-suboptions]>button[aria-pressed=true] {
+  background: var(--wizard-ink);
+  color: var(--wizard-surface);
+  border-color: var(--wizard-ink);
+}
+
+.fullMain [data-venue-family]>button[aria-pressed=true] {
+  background: transparent;
+  color: var(--wizard-ink);
+  border-color: transparent;
+}
+.weekList>button:hover:not(:disabled) [data-excluded=true] {
+  color: var(--wizard-surface);
+  opacity: .55;
 }

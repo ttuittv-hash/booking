@@ -15,6 +15,7 @@ type Props = {
         end: string | null;
     };
 };
+const displayDate = (date: string) => `${Number(date.slice(5, 7))}/${Number(date.slice(8))} (${["일", "월", "화", "수", "목", "금", "토"][new Date(`${date}T12:00:00`).getDay()]})`;
 const addDays = (date: string, n: number) => {
     const value = new Date(`${date}T12:00:00`);
     value.setDate(value.getDate() + n);
@@ -28,6 +29,7 @@ export function BookingPreviewSchedule({ selection, onChange, dateBlocks, monthB
     const mid = tab === "medium-hall";
     const [month, setMonth] = useState({ year: selection.week.year, month: selection.week.month });
     const [editingWeek, setEditingWeek] = useState(false);
+    const [countPopover, setCountPopover] = useState<string | null>(null);
     const arenaDates = Object.keys(selection.dayTags).sort();
     const midDates = Object.keys(selection.midHallDays).sort();
     const selected = mid ? midDates : arenaDates;
@@ -71,6 +73,18 @@ export function BookingPreviewSchedule({ selection, onChange, dateBlocks, monthB
             return { ...prev, dayTags: { ...prev.dayTags, [date]: role }, dayShowCounts: { ...prev.dayShowCounts, [date]: 1 }, ...(allInOne ? { midHallDays: { ...prev.midHallDays, [date]: { role: role === "PREP" ? "SETUP" : role, shows: 1 } } } : {}) };
         });
     }
+    function changeShows(date: string, shows: number) {
+        if (shows === 0) {
+            setCountPopover(null);
+            togglePerformance(date);
+            return;
+        }
+        if (shows < 1 || shows > 3) return;
+        onChange(prev => mid
+            ? { ...prev, midHallDays: { ...prev.midHallDays, [date]: { role: "PERFORMANCE", shows } } }
+            : { ...prev, dayShowCounts: { ...prev.dayShowCounts, [date]: shows },
+                ...(allInOne ? { midHallDays: { ...prev.midHallDays, [date]: { role: "PERFORMANCE", shows } } } : {}) });
+    }
     const loadOutDates = selected.filter(d => mid ? selection.midHallDays[d].role === "LOAD_OUT" : selection.dayTags[d] === "LOAD_OUT");
     const last = selected.at(-1);
     const next = last ? addDays(last, 1) : "";
@@ -80,7 +94,9 @@ export function BookingPreviewSchedule({ selection, onChange, dateBlocks, monthB
             return;
         onChange(prev => mid ? { ...prev, midHallDays: { ...prev.midHallDays, [next]: { role: "LOAD_OUT", shows: 1 } } } : { ...prev, extraDays: prev.extraDays + 1, dayTags: { ...prev.dayTags, [next]: "LOAD_OUT" }, ...(allInOne ? { midHallDays: { ...prev.midHallDays, [next]: { role: "LOAD_OUT", shows: 1 } } } : {}) });
     }
-    function removeLast() {
+    // Load-out dates are consecutive and carry no per-date input; shortening the tail
+    // compacts the remaining dates regardless of which load-out block was clicked.
+    function removeLoadOut() {
         if (!last)
             return;
         onChange(prev => {
@@ -110,10 +126,34 @@ export function BookingPreviewSchedule({ selection, onChange, dateBlocks, monthB
       <p className={s.scheduleHint}>대관 불가일이 포함된 주는 선택할 수 없습니다.{mid && simultaneous && " 중형공연장은 아레나 대관기간 안에서 선택하세요."}</p>
     </> : <>
       <div className={s.scheduleRange}><button type="button" onClick={() => setEditingWeek(true)} aria-label="이전: 주 선택으로">← 이전</button><strong>{baseDates[0]} ~ {baseDates.at(-1)}</strong></div>
-      <div className={s.performanceDates}>{baseDates.map(date => <button type="button" key={date} aria-pressed={performances.includes(date)} onClick={() => togglePerformance(date)}><span>{Number(date.slice(5, 7))}/{Number(date.slice(8))}</span><b>{performances.includes(date) ? "공연" : "준비"}</b></button>)}</div>
-      {loadOutDates.length > 0 && <div className={s.loadOutDates} aria-label="추가 철수일">{loadOutDates.map(date => <div key={date}><span>{Number(date.slice(5, 7))}/{Number(date.slice(8))}</span><b>철수</b>{date === last && <button type="button" data-delete-action aria-label={`${date} 철수일 삭제`} onClick={removeLast}>삭제</button>}</div>)}</div>}
-      {!!performances.length && <div className={s.showCounts}>{performances.map(date => <label key={date}>{date.slice(5)} 공연 횟수<select aria-label={`${date} 공연 횟수`} value={mid ? selection.midHallDays[date].shows : selection.dayShowCounts[date] ?? 1} onChange={e => { const shows = Number(e.target.value); onChange(prev => mid ? { ...prev, midHallDays: { ...prev.midHallDays, [date]: { role: "PERFORMANCE", shows } } } : { ...prev, dayShowCounts: { ...prev.dayShowCounts, [date]: shows }, ...(allInOne ? { midHallDays: { ...prev.midHallDays, [date]: { role: "PERFORMANCE", shows } } } : {}) }); }}>{[1, 2, 3].map(n => <option key={n} value={n}>{n}회</option>)}</select></label>)}</div>}
-      <div className={s.loadOutRow}><button type="button" disabled={!performances.length || !canExtend} onClick={extend}>＋ 철수일 추가</button></div>
+      <div className={s.weekdayGrid}>{["월", "화", "수", "목", "금", "토", "일"].map(day => <span key={day}>{day}</span>)}</div>
+      <div className={`${s.performanceDates} ${s.scheduleCalendar}`}>
+        {Array.from({ length: baseDates[0] ? (new Date(`${baseDates[0]}T12:00:00`).getDay() + 6) % 7 : 0 }, (_, index) => <div key={`empty-${index}`} aria-hidden="true" />)}
+        {baseDates.map(date => {
+        const performance = performances.includes(date);
+        const shows = mid ? selection.midHallDays[date]?.shows ?? 1 : selection.dayShowCounts[date] ?? 1;
+        return <div className={s.scheduleDay} key={date}
+          onPointerEnter={event => { if (performance && event.pointerType === "mouse") setCountPopover(date); }}
+          onPointerLeave={event => { if (event.pointerType === "mouse") setCountPopover(null); }}
+          onBlur={event => { if (!event.currentTarget.contains(event.relatedTarget)) setCountPopover(null); }}
+          onKeyDown={event => { if (event.key === "Escape") setCountPopover(null); }}>
+          <button className={s.dateChoice} type="button" aria-pressed={performance} aria-label={`${date} ${performance ? "공연" : "준비"}`} onClick={() => { setCountPopover(null); togglePerformance(date); }}>
+            <span>{Number(date.slice(5, 7))}/{Number(date.slice(8))}</span><b aria-hidden={performance} data-count-placeholder={performance}>{performance ? `공연 · ${shows}회` : "준비"}</b>
+          </button>
+          {performance && <button className={s.showCountTrigger} type="button" aria-label={`${date} 공연 횟수 ${shows}회 조절`} aria-expanded={countPopover === date} aria-controls={`shows-popover-${tab}-${date}`} onClick={() => setCountPopover(date)}>공연 · {shows}회</button>}
+          {performance && countPopover === date && <div className={s.showCountField} id={`shows-popover-${tab}-${date}`}>
+            <span className={s.showCountLabel} id={`shows-label-${tab}-${date}`}>{displayDate(date)}<br />공연 횟수</span>
+            <div className={s.showCountControl} role="group" aria-labelledby={`shows-label-${tab}-${date}`}>
+            <button type="button" aria-label={`${date} 공연 횟수 줄이기`} onClick={() => changeShows(date, shows - 1)}>−</button>
+            <output aria-live="polite" aria-label={`${date} 공연 횟수`}>{shows}회</output>
+            <button type="button" aria-label={`${date} 공연 횟수 늘리기`} disabled={shows >= 3} onClick={() => changeShows(date, shows + 1)}>＋</button>
+            </div>
+          </div>}
+        </div>;
+      })}
+        {loadOutDates.map(date => <button className={s.loadOutCard} type="button" key={date} aria-label={`${date} 철수일 삭제`} title="클릭하여 철수일 삭제" onClick={removeLoadOut}><span>{Number(date.slice(5, 7))}/{Number(date.slice(8))}</span><b>철수</b><span className={s.loadOutDeleteLabel} aria-hidden="true">×</span></button>)}
+        <button className={s.addLoadOut} type="button" disabled={!performances.length || !canExtend} onClick={extend}><span aria-hidden="true">＋</span><span>철수일 추가</span></button>
+      </div>
     </>}
   </section>;
 }

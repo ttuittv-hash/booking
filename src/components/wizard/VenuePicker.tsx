@@ -45,6 +45,7 @@ export function VenuePicker({
   const isAllInOne = venueId === SPECIAL_VENUE_ID && bookingMode === "SINGLE";
   const isSimultaneousGroupActive = isSimultaneous || isAllInOne;
   const primaryVenue = primaryVenueOf(venueId, bookingMode);
+  const showSubOptions = subOpen || isSimultaneousGroupActive;
 
   const topOptions = [
     {
@@ -95,14 +96,14 @@ export function VenuePicker({
       <label className="text-s font-bold">{t("venuePicker.fieldLabel", "이용 시설")} <span className="text-danger">*</span></label>
       <div data-venue-options>
         {topOptions.map(opt => opt.key === "simultaneous" ? (
-          <div key={opt.key} data-venue-family data-expanded={subOpen}
+          <div key={opt.key} data-venue-family data-expanded={showSubOptions}
             onPointerEnter={e => {if (e.pointerType === "mouse") setSubOpen(true);}}
             onPointerLeave={e => {if (e.pointerType === "mouse") setSubOpen(false);}}
             onFocus={() => setSubOpen(true)}
             onBlur={e => {if (!e.currentTarget.contains(e.relatedTarget)) setSubOpen(false);}}
             onKeyDown={e => {if (e.key === "Escape") setSubOpen(false);}}>
-            <button type="button" aria-expanded={subOpen} aria-pressed={opt.active} onClick={() => setSubOpen(true)}>{opt.label}</button>
-            {subOpen && <div data-venue-suboptions>{subOptions.map(sub => <button type="button" key={sub.key} aria-pressed={sub.active} onClick={sub.onClick}>{sub.label}</button>)}</div>}
+            <button type="button" aria-expanded={showSubOptions} aria-pressed={opt.active} onClick={() => setSubOpen(true)}>{opt.label}</button>
+            {showSubOptions && <div data-venue-suboptions>{subOptions.map(sub => <button type="button" key={sub.key} aria-pressed={sub.active} onClick={sub.onClick}>{sub.label}</button>)}</div>}
           </div>
         ) : <button type="button" key={opt.key} aria-pressed={opt.active} onClick={() => {setSubOpen(false);opt.onClick();}}>{opt.label}</button>)}
       </div>
