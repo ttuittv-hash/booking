@@ -2,12 +2,14 @@
 import { useState } from "react";
 import { selectPreviewWeek } from "./bookingPreviewScheduleState";
 import { isoDate, resolveSelectedDates } from "@/lib/pricing/dateRange";
-import { SPECIAL_VENUE_ID, type DateBlock, type QuoteSelection } from "@/lib/pricing/types";
+import { SPECIAL_VENUE_ID, type DateBlock, type QuoteSelection, type WeekDemand } from "@/lib/pricing/types";
 import s from "./BookingPreview.module.css";
 type Props = {
     selection: QuoteSelection;
     onChange: (update: (previous: QuoteSelection) => QuoteSelection) => void;
     dateBlocks: DateBlock[];
+    weekDemand?: WeekDemand[];
+    midHallWeekDemand?: Record<string, number>;
     monthBounds?: {
         start: string | null;
         end: string | null;
@@ -18,8 +20,8 @@ const addDays = (date: string, n: number) => {
     value.setDate(value.getDate() + n);
     return isoDate(value);
 };
-/** Preview interaction only; writes the same schedule fields as the production calendars. */
-export function BookingPreviewSchedule({ selection, onChange, dateBlocks, monthBounds }: Props) {
+/** Shared redesigned calendar; uses live availability and the canonical schedule fields. */
+export function BookingPreviewSchedule({ selection, onChange, dateBlocks, monthBounds, weekDemand = [], midHallWeekDemand = {} }: Props) {
     const simultaneous = selection.bookingMode === "SIMULTANEOUS";
     const allInOne = selection.venueId === SPECIAL_VENUE_ID;
     const [tab, setTab] = useState<"arena" | "medium-hall">(selection.venueId === "medium-hall" ? "medium-hall" : "arena");
@@ -42,6 +44,10 @@ export function BookingPreviewSchedule({ selection, onChange, dateBlocks, monthB
             count++;
         return { days, week: { year: month.year, month: month.month, weekOfMonth: inMonth ? count : 0 }, available: inMonth || (row === 0 && days.some(d => Number(d.slice(5, 7)) === month.month)) };
     });
+    function demandFor(week: QuoteSelection["week"], tuesday: string) {
+        return mid ? (midHallWeekDemand[tuesday] ?? 0) :
+            (weekDemand.find(item => item.year === week.year && item.month === week.month && item.weekOfMonth === week.weekOfMonth)?.companyCount ?? 0);
+    }
     const today = isoDate(new Date());
     function blocked(date: string) {
         return date < today || dateBlocks.some(b => b.date === date && (b.venueId === "ALL" || b.venueId === tab || (allInOne && b.venueId === "medium-hall")));
@@ -100,7 +106,7 @@ export function BookingPreviewSchedule({ selection, onChange, dateBlocks, monthB
     {!hasWeek ? <>
       <div className={s.calendarHead}><button type="button" aria-label="이전 달" disabled={!!monthBounds?.start && monthKey(-1) < monthBounds.start} onClick={() => move(-1)}>‹</button><h4>{month.year}년 {month.month}월</h4><button type="button" aria-label="다음 달" disabled={!!monthBounds?.end && monthKey(1) > monthBounds.end} onClick={() => move(1)}>›</button></div>
       <div className={s.weekdayGrid}>{["월", "화", "수", "목", "금", "토", "일"].map(day => <span key={day}>{day}</span>)}</div>
-      <div className={s.weekList}>{weeks.filter(w => w.available).map(w => <button type="button" key={w.days[0]} disabled={weekBlocked(w.days.slice(1))} onClick={() => chooseWeek(w.week, w.days.slice(1))} aria-label={`${w.days[1]}부터 ${w.days[6]}까지 주 선택`}>{w.days.map((d, i) => <span key={d} data-excluded={i === 0}>{Number(d.slice(-2))}</span>)}</button>)}</div>
+      <div className={s.weekList}>{weeks.filter(w => w.available).map(w => <button type="button" key={w.days[0]} disabled={weekBlocked(w.days.slice(1))} onClick={() => chooseWeek(w.week, w.days.slice(1))} aria-label={`${w.days[1]}부터 ${w.days[6]}까지 주 선택`}>{w.days.map((d, i) => <span key={d} data-excluded={i === 0}>{Number(d.slice(-2))}</span>)}{demandFor(w.week, w.days[1]) > 0 && <small className={s.weekDemand}>신청 {demandFor(w.week, w.days[1])}개사</small>}</button>)}</div>
       <p className={s.scheduleHint}>대관 불가일이 포함된 주는 선택할 수 없습니다.{mid && simultaneous && " 중형공연장은 아레나 대관기간 안에서 선택하세요."}</p>
     </> : <>
       <div className={s.scheduleRange}><button type="button" onClick={() => setEditingWeek(true)} aria-label="이전: 주 선택으로">← 이전</button><strong>{baseDates[0]} ~ {baseDates.at(-1)}</strong></div>

@@ -1,3 +1,4 @@
+import { BookingWizardFrame } from "@/components/wizard/BookingWizardFrame";
 import type { Metadata } from "next";
 import { notFound, redirect } from "next/navigation";
 import { canAccessQuote, requireAccessedUser } from "@/lib/auth";
@@ -15,9 +16,7 @@ import {
   listWeekDemand,
 } from "@/lib/db";
 import { noticeCalendarMonthBounds } from "@/lib/content/noticeCalendarWindow";
-import { PublicHeader } from "@/components/PublicHeader";
 import { Breadcrumb } from "@/components/ui/Breadcrumb";
-import { SiteFooter } from "@/components/ui/SiteFooter";
 import { Band, PageHeading } from "@/components/ui/kit";
 import { isBookingClosed } from "@/lib/bookingClosed";
 import { WizardShell } from "@/components/wizard/WizardShell";
@@ -80,8 +79,7 @@ export default async function EditQuotePage({
   const calendarMonthBounds = noticeCalendarMonthBounds(calendarWindow);
 
   return (
-    <div className="flex flex-1 flex-col">
-      <PublicHeader active="/apply" currentUser={currentUser} />
+    <BookingWizardFrame>
       <Breadcrumb
         items={[
           { label: "대관 진행 내역", href: "/mypage" },
@@ -89,7 +87,7 @@ export default async function EditQuotePage({
         ]}
       />
 
-      <main className="flex flex-1 flex-col">
+      <div className="flex flex-1 flex-col">
         <Band tone="light" size="sm">
           <PageHeading
             size="md"
@@ -100,6 +98,7 @@ export default async function EditQuotePage({
 
         <WizardTextProvider overrides={screenText.wizardStrings}>
           <WizardShell
+            redesigned
             rateTable={rateTable}
             currentUser={currentUser}
             weekDemand={weekDemand}
@@ -114,13 +113,13 @@ export default async function EditQuotePage({
             publicInterestDisabledGroups={screenText.publicInterestDisabledGroups}
             wizardFieldOrders={screenText.wizardFieldOrders}
             wizardDisabledFields={screenText.wizardDisabledFields}
+            wizardCustomOptions={screenText.wizardCustomOptions}
             calendarMonthBounds={calendarMonthBounds}
             existingAttachments={existingAttachments}
           />
         </WizardTextProvider>
-      </main>
+      </div>
 
-      <SiteFooter />
-    </div>
+    </BookingWizardFrame>
   );
 }

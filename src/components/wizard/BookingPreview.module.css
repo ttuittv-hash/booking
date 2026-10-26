@@ -2372,3 +2372,11 @@
  margin:var(--wizard-lead-gap) 0 0; font-size:13px; line-height:1.7;
 }
 .fullMain>fieldset>[data-attachment-step] { margin-top:0; }
+
+/* Live demand belongs to the selected week, separate from date cells. */
+.weekDemand {
+  grid-column: 1 / -1;
+  color: var(--wizard-muted);
+  font-size: 11px;
+  text-align: right;
+}

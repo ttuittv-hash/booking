@@ -1,3 +1,4 @@
+import { BookingWizardFrame } from "@/components/wizard/BookingWizardFrame";
 import type { Metadata } from "next";
 import { requireAccessedUser } from "@/lib/auth";
 import {
@@ -151,21 +152,10 @@ export default async function ApplyPage({
   };
 
   return (
-    <div className="flex flex-1 flex-col">
-      <PublicHeader active="/apply" currentUser={currentUser} />
-
-      <main className="flex flex-1 flex-col">
-        <Band tone="light" size="sm">
-          <PageHead
-            as="h2"
-            en="APPLY"
-            ko="대관 신청"
-            lead={<Prose text={screenText.applyLead} />}
-          />
-        </Band>
-
+    <BookingWizardFrame>
         <WizardTextProvider overrides={screenText.wizardStrings}>
           <WizardShell
+            redesigned
             rateTable={rateTable}
             currentUser={currentUser}
             weekDemand={weekDemand}
@@ -184,9 +174,6 @@ export default async function ApplyPage({
             calendarMonthBounds={calendarMonthBounds}
           />
         </WizardTextProvider>
-      </main>
-
-      <SiteFooter />
-    </div>
+    </BookingWizardFrame>
   );
 }

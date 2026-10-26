@@ -221,6 +221,7 @@ export function WizardShell({
   existingAttachments = [],
   readOnly = false,
   designPreview = false,
+  redesigned = designPreview,
   editorPreview = false,
 }: {
   rateTable: RateTable;
@@ -245,8 +246,10 @@ export function WizardShell({
    * 방식과 달리 이쪽은 실제 데이터·실제 컴포넌트를 전부 그대로 쓴다.
    */
   readOnly?: boolean;
-  /** Local-only presentation; isolates drafts and simulates submission without network writes. */
+  /** Isolated local demo: never persists or submits to the server. */
   designPreview?: boolean;
+  /** Presentation only. Real application routes keep production storage and submission. */
+  redesigned?: boolean;
   editorPreview?: boolean;
   applicantPrefill?: {
     companyName: string;
@@ -353,10 +356,10 @@ export function WizardShell({
       : // 이미 값이 있는 기존 신청서(수정 화면)는 건드리지 않는다.
         {
           ...INITIAL_SELECTION,
-          venueId: designPreview ? null : INITIAL_SELECTION.venueId,
+          venueId: redesigned ? null : INITIAL_SELECTION.venueId,
           week: openingWeek,
           // 아레나 단독으로 시작하므로 기본 일정(준비 4 + 공연 2)이 채워진 채 달력이 열린다.
-          dayTags: designPreview ? {} : initialDayTagsFor(INITIAL_SELECTION.venueId, INITIAL_SELECTION.bookingMode, {
+          dayTags: redesigned ? {} : initialDayTagsFor(INITIAL_SELECTION.venueId, INITIAL_SELECTION.bookingMode, {
             week: openingWeek,
             excludedDays: INITIAL_SELECTION.excludedDays,
           }),
@@ -469,7 +472,7 @@ export function WizardShell({
             week: openingWeek,
             excludedDays: INITIAL_SELECTION.excludedDays,
             extraDays: INITIAL_SELECTION.extraDays,
-            dayTags: designPreview ? {} : initialDayTagsFor(draftVenueId, draftBookingMode, {
+            dayTags: redesigned ? {} : initialDayTagsFor(draftVenueId, draftBookingMode, {
               week: openingWeek,
               excludedDays: INITIAL_SELECTION.excludedDays,
             }),
@@ -481,7 +484,7 @@ export function WizardShell({
         ...INITIAL_SELECTION,
         ...draft.selection,
         // 이 기능 전에 저장된 임시저장본(태그 없음)도 기본 일정이 채워진 채 열리게 한다.
-        dayTags: designPreview ? (draft.selection.dayTags ?? {}) :
+        dayTags: redesigned ? (draft.selection.dayTags ?? {}) :
           draft.selection.dayTags && Object.keys(draft.selection.dayTags).length > 0
             ? draft.selection.dayTags
             : initialDayTagsFor(draftVenueId, draftBookingMode, {
@@ -670,7 +673,7 @@ export function WizardShell({
   // 두 공간 모두 동일하게 "공간과 일정을 선택하면 예상 금액이 표시됩니다" 자리표시자만
   // 보이게 맞춘다 — 실제 계산(quote)은 그대로 두고 요약 패널에 넘기는 표시용 값만 비운다.
   const summaryQuote =
-    step === 1 && !designPreview
+    step === 1 && !redesigned
       ? { ...quote, lineItems: [], subtotal: 0, vat: 0, total: 0 }
       : quote;
 
@@ -734,8 +737,8 @@ export function WizardShell({
   // [신규 2026-09-17] readOnly 보기는 이미 제출이 끝난 완결된 값을 훑어보는 화면이라
   // "이 단계를 마쳐야 다음 단계 탭이 열린다"는 잠금이 의미가 없다 — 운영자가 자료
   // 첨부 탭부터 바로 보고 싶을 수도 있다. 항상 전부 열어 둔다.
-  const previewScheduleIncomplete = designPreview && previewScheduleIsIncomplete(selection);
-  const maxUnlockedStep = readOnly || (designPreview && editorPreview)
+  const previewScheduleIncomplete = redesigned && previewScheduleIsIncomplete(selection);
+  const maxUnlockedStep = readOnly || (redesigned && editorPreview)
     ? TOTAL_STEPS
     : previewScheduleIncomplete || !selection.venueId
       ? 1
@@ -781,7 +784,7 @@ export function WizardShell({
     // 있으면 4로 보낸다.
     const target = rawTarget === 5 ? (rawTarget > step ? 6 : 4) : rawTarget;
     if (target < 1 || target > TOTAL_STEPS) return;
-    if (designPreview && !editorPreview && !readOnly && target > step && target > maxUnlockedStep) return;
+    if (redesigned && !editorPreview && !readOnly && target > step && target > maxUnlockedStep) return;
     // [버그 수정 2026-09-08 밤] "이전 버튼 동작 안 해" — 최종 제출(9)에서 새로고침하면 첨부
     // 파일(File 객체, 임시저장에 안 남음)이 비어 maxUnlockedStep이 7로 내려가고, 「이전」(→8)
     // 이 "잠긴 단계로 점프"로 오인돼 막혔다. 뒤로 가는 이동(target < step)은 항상 허용한다 —
@@ -857,7 +860,7 @@ export function WizardShell({
                 : prev.excludedDays,
             // [신규 2026-09-08] 공간을 바꾸면 날짜 태그도 그 유형의 초기 상태로 — 올인원은
             // 빈 태그(노란색만), 그 외는 기본 일정이 채워진다(nora). 회차도 함께 비운다.
-            dayTags: designPreview ? {} : initialDayTagsFor(id, bookingMode, {
+            dayTags: redesigned ? {} : initialDayTagsFor(id, bookingMode, {
               week: prev.week,
               excludedDays:
                 id === SPECIAL_VENUE_ID && bookingMode !== "SIMULTANEOUS"
@@ -1072,7 +1075,7 @@ export function WizardShell({
             type="button"
             onClick={() => {
               // 버튼을 잠그지 않는다 — 눌러도 반응이 없으면 고장으로 보인다(고객 신고 패턴).
-              if (designPreview && step === 1 && previewScheduleIncomplete) {
+              if (redesigned && step === 1 && previewScheduleIncomplete) {
                 toast.error("이용 시설과 대관할 주를 고른 다음 공연일을 선택해 주세요. 동시대관은 두 공간의 일정을 모두 선택해 주세요.");
                 return;
               }
@@ -1290,7 +1293,7 @@ export function WizardShell({
       : [...STEP3_DEFAULT_SLOT_ORDER]
   ).filter((key) => !wizardDisabledFields?.includes(`slot.3.${key}`));
 
-  const OptionsComponent = designPreview ? BookingPreviewOptions : StepConfigOptions;
+  const OptionsComponent = redesigned ? BookingPreviewOptions : StepConfigOptions;
   const gridRef = useRef<HTMLDivElement>(null);
   const stepNavRef = useRef<HTMLElement>(null);
 
@@ -1320,8 +1323,8 @@ export function WizardShell({
       6칼럼 그리드와 어긋나 같은 화면 안에 축이 두 개가 됐다(정본 §7.4 = 4col + 2col).
       콘텐츠 트랙은 min-w-0 로 묶어 스텝 전환 시 폭이 변하지 않게 한다.
     */
-    <PreviewDesignContext.Provider value={designPreview}><div ref={gridRef} className={designPreview ? previewStyle.fullLayout : "container-site grid-site w-full gap-y-10 py-10 sm:py-12"}>
-      {designPreview && <div className={previewStyle.leftRail}><BookingPreviewNav step={step} maxUnlockedStep={maxUnlockedStep} locked={submissionLocked} onJump={goTo} /><SummaryPanel designPreview quote={summaryQuote}/></div>}
+    <PreviewDesignContext.Provider value={redesigned}><div ref={gridRef} className={redesigned ? previewStyle.fullLayout : "container-site grid-site w-full gap-y-10 py-10 sm:py-12"}>
+      {redesigned && <div className={previewStyle.leftRail}><BookingPreviewNav step={step} maxUnlockedStep={maxUnlockedStep} locked={submissionLocked} onJump={goTo} /><SummaryPanel designPreview quote={summaryQuote}/></div>}
       {/* [수정 2026-09-08] "예상 대관료 나올 때는 이미 내용이 다 반영된거니까 오른쪽
           플로팅 박스는 안보이는게 낫지 않나" — STEP5(예상 대관료)는 이제 대관료·
           추가옵션·소계·총금액을 오른쪽 패널과 같은 박스로 이미 전부 보여주므로, 이
@@ -1330,8 +1333,8 @@ export function WizardShell({
           얘긴 아니야 — 그 자리는 그대로 비우고" — 본문 폭은 다른 스텝과 똑같이
           9칼럼으로 두고, 패널이 있던 3칼럼 자리는 그냥 비워 둔다(12칼럼으로 늘리지
           않는다). */}
-      <div data-document-form={designPreview && step >= 3 && step <= 7 ? true : undefined} className={designPreview ? previewStyle.fullMain : "min-w-0 lg:col-span-9"}>
-        {designPreview ? <BookingPreviewSubnav step={step} maxUnlockedStep={maxUnlockedStep} locked={submissionLocked} onJump={goTo} /> : <StepNav navRef={stepNavRef} step={step} maxUnlockedStep={maxUnlockedStep} onJump={goTo} />}
+      <div data-document-form={redesigned && step >= 3 && step <= 7 ? true : undefined} className={redesigned ? previewStyle.fullMain : "min-w-0 lg:col-span-9"}>
+        {redesigned ? <BookingPreviewSubnav step={step} maxUnlockedStep={maxUnlockedStep} locked={submissionLocked} onJump={goTo} /> : <StepNav navRef={stepNavRef} step={step} maxUnlockedStep={maxUnlockedStep} onJump={goTo} />}
 
         {readOnly && (
           <p className="mt-6 border border-dashed border-border-soft bg-panel/60 px-4 py-2.5 text-xs font-bold text-muted">
@@ -1355,8 +1358,8 @@ export function WizardShell({
               />
             </div>
 
-            {selection.venueId && designPreview && <BookingPreviewSchedule key={`${selection.venueId}-${selection.bookingMode}`} selection={selection} onChange={setSelection} dateBlocks={dateBlocks} monthBounds={calendarMonthBounds}/>}
-            {selection.venueId && !designPreview && (
+            {selection.venueId && redesigned && <BookingPreviewSchedule key={`${selection.venueId}-${selection.bookingMode}`} selection={selection} onChange={setSelection} dateBlocks={dateBlocks} monthBounds={calendarMonthBounds} weekDemand={weekDemand} midHallWeekDemand={midHallWeekDemand}/>}
+            {selection.venueId && !redesigned && (
               /* 한 단계 안의 두 번째 블록 — 흰 면으로 나눈다(§신청 위저드).
                  위의 「공간 선택」은 고르는 카드 자체가 흰 면이라 지면 위에 두어야 하고,
                  여기는 안쪽이 달력(오프화이트 칸)이라 흰 컨테이너가 맞다. */
@@ -1556,8 +1559,8 @@ export function WizardShell({
             disabledFields={wizardDisabledFields}
           />
         )}
-        {step === 3 && designPreview && <PreviewApplicantSections title={wizardStepText.performanceInfoTitle} order={step3SlotOrder} renderers={step3SlotRenderers}/>}
-        {step === 3 && !designPreview &&
+        {step === 3 && redesigned && <PreviewApplicantSections title={wizardStepText.performanceInfoTitle} order={step3SlotOrder} renderers={step3SlotRenderers}/>}
+        {step === 3 && !redesigned &&
           // [버그 수정 2026-09-06] "슬롯 순서 변경 기능이 들어가면서, 슬롯 순서를 바꾸면
           // 굵은선이 슬롯이랑 맞닿아버리는 오류" — 각 STEP3 슬롯 컴포넌트는 자기 맨
           // 위에 border-t-2 pt-5 만 두고 있어서(그 슬롯 앞에 항상 특정 슬롯이 온다고
@@ -1697,9 +1700,9 @@ export function WizardShell({
         <div className="mt-6">{navButtons}</div>
       </div>
 
-      {!designPreview && step !== 8 && (
+      {!redesigned && step !== 8 && (
         <SummaryPanel
-          designPreview={designPreview}
+          designPreview={redesigned}
           quote={summaryQuote}
           /*
             요약 패널은 **실시간 대관신청 내역**이다(2026-08-26 개칭) — 대관료·항목·합계를 함께 보여준다.
