@@ -79,7 +79,7 @@ export default async function EditQuotePage({
   const calendarMonthBounds = noticeCalendarMonthBounds(calendarWindow);
 
   return (
-    <BookingWizardFrame>
+    <BookingWizardFrame currentUser={currentUser} bookItNotice={screenText.bookItNotice}>
       <Breadcrumb
         items={[
           { label: "대관 진행 내역", href: "/mypage" },

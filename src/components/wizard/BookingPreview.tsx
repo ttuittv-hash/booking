@@ -1,5 +1,5 @@
 "use client";
-import Link from "next/link";
+import { PublicHeaderNav } from "@/components/PublicHeaderNav";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { WizardShell } from "./WizardShell";
 import { WizardTextProvider } from "@/lib/content/wizardText";
@@ -91,8 +91,9 @@ export function BookingPreview({editorMode = false}: {editorMode?: boolean}) {
     const node=root.current;node?.addEventListener("click",select,true);
     return()=>node?.removeEventListener("click",select,true);
   },[editorMode,selectMode,text]);
-  return <div ref={root} data-editor-select-mode={selectMode || undefined} className={`${s.shell} ${s.complete} ${design.theme}`}>
-    <header className={s.header}><Link href="/" prefetch={false}>SEOUL ARENA<span>대관 신청</span></Link><span className={s.preview}>디자인 미리보기</span></header>
+  return <>
+    <PublicHeaderNav active="/apply" currentUser={null} bookItNotice={text.bookItNotice} />
+    <div ref={root} data-editor-select-mode={selectMode || undefined} className={`${s.shell} ${s.complete} ${design.theme}`}>
     <div className={s.previewNotice}>로컬 미리보기 · 원본 코드의 전체 신청 흐름과 기본 콘텐츠를 사용합니다. 일정·요금은 검토용이며, 제출과 첨부는 서버로 전송되지 않습니다.</div>
     <WizardTextProvider selectable={editorMode} overrides={text.wizardStrings} onLookup={editorMode ? lookup : undefined}>
       <WizardShell editorPreview={editorMode} startFresh={editorMode} designPreview rateTable={rateTable} currentUser={null}
@@ -104,5 +105,6 @@ export function BookingPreview({editorMode = false}: {editorMode?: boolean}) {
         wizardDisabledFields={text.wizardDisabledFields} wizardCustomOptions={text.wizardCustomOptions}
         calendarMonthBounds={{start:"2027-07",end:"2027-12"}} />
     </WizardTextProvider>
-  </div>;
+  </div>
+  </>;
 }

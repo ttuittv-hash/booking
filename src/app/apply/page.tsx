@@ -152,7 +152,7 @@ export default async function ApplyPage({
   };
 
   return (
-    <BookingWizardFrame>
+    <BookingWizardFrame currentUser={currentUser} bookItNotice={screenText.bookItNotice}>
         <WizardTextProvider overrides={screenText.wizardStrings}>
           <WizardShell
             redesigned

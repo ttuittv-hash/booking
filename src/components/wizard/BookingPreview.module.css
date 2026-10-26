@@ -340,7 +340,6 @@
   --field-gap: 8px;
   --accent: #ffcd00;
   --accent-soft: #fff0ad;
-  --header-h: 0px;
   font-size: 14px;
   line-height: 1.65;
 }
@@ -1515,8 +1514,8 @@
 }
 .leftRail {
   position: sticky;
-  top: 20px;
-  max-height: calc(100dvh - 40px);
+  top: calc(var(--header-h) + 20px);
+  max-height: calc(100dvh - var(--header-h) - 40px);
   overflow-y: auto;
   align-self: start;
 }
