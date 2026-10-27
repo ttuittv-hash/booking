@@ -11,7 +11,7 @@ import s from "./BookingPreview.module.css";
 import design from "./WizardDesign.module.css";
 
 /** Uses the production forms, pricing and validation. Only storage/submission are isolated. */
-export function BookingPreview({editorMode = false}: {editorMode?: boolean}) {
+export function BookingPreview({editorMode = false, reviewMode = false}: {editorMode?: boolean; reviewMode?: boolean}) {
   const [selectMode,setSelectMode]=useState(editorMode);
   const root=useRef<HTMLDivElement>(null);
   const [rateTable, setRateTable] = useState(buildBookingPreviewRates);
@@ -96,7 +96,7 @@ export function BookingPreview({editorMode = false}: {editorMode?: boolean}) {
     <div ref={root} data-editor-select-mode={selectMode || undefined} className={`${s.shell} ${s.complete} ${design.theme}`}>
     <div className={s.previewNotice}>로컬 미리보기 · 원본 코드의 전체 신청 흐름과 기본 콘텐츠를 사용합니다. 일정·요금은 검토용이며, 제출과 첨부는 서버로 전송되지 않습니다.</div>
     <WizardTextProvider selectable={editorMode} overrides={text.wizardStrings} onLookup={editorMode ? lookup : undefined}>
-      <WizardShell editorPreview={editorMode} startFresh={editorMode} designPreview rateTable={rateTable} currentUser={null}
+      <WizardShell editorPreview={editorMode || reviewMode} startFresh={editorMode || reviewMode} designPreview rateTable={rateTable} currentUser={null}
         weekDemand={[]} dateBlocks={[{date:"2027-07-20",venueId:"arena",reason:"선택 불가 예시"},{date:"2027-07-15",venueId:"medium-hall",reason:"선택 불가 예시"}]}
         applicantPrefill={{companyName:"미리보기 기획사",businessRegistrationNumber:"000-00-00000",representativeName:"예시 대표",contactName:"",contactPhone:"",contactEmail:""}}
         liveHallRateContent={liveHall} wizardStepText={text.wizardSteps}

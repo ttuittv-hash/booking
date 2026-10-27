@@ -12,6 +12,13 @@
   --wizard-radius-panel: 12px;
   --wizard-group-padding: 16px;
   --wizard-record-gap: 12px;
+  --wizard-label-width: 150px;
+  --wizard-label-gap: 24px;
+  --wizard-panel-padding: 24px;
+  --wizard-section-gap: 28px;
+  --wizard-field-gap: 8px;
+  --wizard-field-height: 40px;
+  --wizard-container-inset: 12px;
   --wizard-heading-size: 23px;
   --wizard-heading-line: 1.45;
   --wizard-heading-tracking: -.5px;

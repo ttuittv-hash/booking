@@ -130,6 +130,7 @@
   "marketing.addChannelButton": "＋ 채널 추가",
   "marketing.channelsHint": "공연 운영 채널이 있다면 입력해주세요. 서울아레나와 연계하여 홍보 가능합니다.",
   "marketing.channelsEmpty": "등록된 채널이 없습니다.",
+  "marketing.channelPlatformLabel": "채널",
   "marketing.channelPlatformPlaceholder": "채널 (예: 인스타그램)",
   "marketing.channelHandlePlaceholder": "계정 / URL",
   "marketing.channelFollowersPlaceholder": "구독자·팔로워 수",

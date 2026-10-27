@@ -1035,26 +1035,6 @@
   accent-color: var(--wizard-surface);
   color-scheme: light;
 }
-.fullMain [data-auto-value] {
-  min-height: 40px;
-  height: auto;
-  padding: 8px 10px;
-  border: 1px solid var(--wizard-border);
-  border-radius: var(--wizard-radius-control);
-  background: var(--wizard-tint);
-  color: var(--wizard-muted);
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  flex-wrap: wrap;
-}
-.fullMain [data-auto-value]::after {
-  content: "자동 반영";
-  font-size: 10px;
-  color: var(--wizard-muted);
-  margin-left: auto;
-  white-space: nowrap;
-}
 .fullMain [data-cooperation-grid] {
   align-items: stretch;
 }
@@ -1632,22 +1612,17 @@
 }
 .fullMain[data-document-form] input:not([type=checkbox]):not([type=radio]):not([type=file]),
 .fullMain[data-document-form] textarea {
-  background: transparent;
-  border: 0;
-  border-bottom: 1px solid var(--wizard-border);
-  border-radius: 0;
+  background: var(--wizard-surface);
+  border: 1px solid var(--wizard-border);
+  border-radius: var(--wizard-radius-control);
   box-shadow: none;
-  padding: 8px 2px;
+  padding: 8px 10px;
 }
 .fullMain[data-document-form] input:not([type=checkbox]):not([type=radio]):focus,
 .fullMain[data-document-form] textarea:focus {
   background: var(--wizard-group);
   border-bottom: 1px solid var(--wizard-ink);
   outline: none;
-}
-.fullMain[data-document-form] [data-auto-value] {
-  border-bottom: 1px solid var(--wizard-border);
-  padding-inline: 2px;
 }
 .fullMain[data-document-form] .recordFields {
   gap: 16px;
@@ -1975,14 +1950,6 @@
 }
 .fullMain[data-document-form] [data-field-key="performanceInfo.applicantContact"] .recordFields>label:last-child {
   flex-basis: 190px;
-}
-.fullMain[data-document-form] [data-auto-value] {
-  background: var(--wizard-group);
-  border: 0;
-  border-radius: var(--wizard-radius-control);
-  padding: 10px 12px;
-  color: var(--wizard-muted);
-  cursor: default;
 }
 .fullMain[data-document-form] label:has(>input[type=checkbox]):global(.h-10) {
   border: 1px solid var(--wizard-border);
@@ -2374,13 +2341,6 @@
   border-color: var(--wizard-black);
   background: var(--wizard-black);
 }
-.fullMain[data-document-form] [data-input-group] [data-auto-value] {
-  background: var(--wizard-readonly);
-  border: 1px solid var(--wizard-border);
-  border-radius: var(--wizard-radius-control);
-  color: var(--wizard-muted);
-  cursor: default;
-}
 .fullMain [data-schedule-fixed],
 .fullMain [data-schedule-editable] {
   display: grid;
@@ -2489,3 +2449,333 @@
   color: var(--wizard-surface);
   opacity: .55;
 }
+
+/* Document layout: shared columns, not wrapping record cards. */
+.fullMain .optionTableScroll,
+.fullMain .documentTableScroll { overflow-x: auto; max-width: 100%; }
+.fullMain .optionTableHeader,
+.fullMain .optionCard {
+  display: grid;
+  grid-template-columns: minmax(120px, 1fr) minmax(200px, 2fr) minmax(180px, 1.4fr) 128px;
+  gap: 16px;
+  min-width: 740px;
+  align-items: center;
+}
+.fullMain .optionTableHeader {
+  padding: 10px 12px;
+  background: var(--wizard-group);
+  border-block: 1px solid var(--wizard-border);
+  font-size: 12px;
+  font-weight: 600;
+}
+.fullMain .optionCard { padding: 10px 12px; min-height: 58px; }
+.fullMain .optionCard h3 { margin: 0; font-size: 13px; }
+.fullMain .optionCard .optionDescription,
+.fullMain .optionCard .optionPrice { margin: 0; font-size: 12px; line-height: 1.5; color: var(--wizard-muted); }
+.fullMain .documentTable { width: 100%; min-width: 760px; table-layout: fixed; border-collapse: collapse; font-size: 12px; }
+.documentTable caption { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
+.fullMain .documentTable th,
+.fullMain .documentTable td { border: 1px solid var(--wizard-border); padding: 0; text-align: left; vertical-align: middle; }
+.fullMain .documentTable th { background: var(--wizard-group); padding: 10px; font-weight: 600; }
+.fullMain .documentTable .documentAction { width: 56px; text-align: center; }
+.fullMain[data-document-form] .documentTable input:not([type=checkbox]):not([type=radio]):not([type=file]),
+.fullMain[data-document-form] .documentTable select,
+.fullMain[data-document-form] .documentTable textarea {
+  display: block; width: 100%; max-width: none; min-height: 44px; margin: 0;
+  border: 0; border-radius: 0; padding: 10px; background-color: var(--wizard-surface);
+}
+.fullMain[data-document-form] .documentTable :is(input, select, textarea):focus { outline: none; }
+.fullMain[data-document-form] [data-input-group]:has(>.documentTableScroll) {
+  padding: 0; background: transparent; border-radius: 0;
+}
+.fullMain[data-document-form] [data-field-key="performanceInfo.applicantContact"]>.documentTableScroll { margin-top: 8px; }
+@media print {
+  .documentAction { display: none; }
+  .fullMain .documentTableScroll { overflow: visible; }
+  .fullMain .documentTable { min-width: 0; }
+}
+
+.fullMain[data-document-form] .sectionStack { background: transparent; padding: 0; gap: var(--wizard-group-padding); }
+.fullMain[data-document-form] .sectionStack .formAccordion { background: var(--wizard-surface); border-radius: var(--wizard-radius-panel); border: 0; overflow: hidden; }
+.fullMain[data-document-form] .sectionStack .formAccordion>summary { padding-inline: 24px; border-bottom: 0; }
+.fullMain[data-document-form] .sectionStack .accordionBody { padding-inline: 24px; }
+.fullMain .formAccordion summary h2 { margin: 0; font-size: 17px; font-weight: 700; }
+.fullMain .heading h1 { font-size: var(--wizard-heading-size); font-weight: 700; line-height: var(--wizard-heading-line); letter-spacing: var(--wizard-heading-tracking); margin: 0; }
+
+/* Label-led document rows: one shared label column and underline controls. */
+.fullMain .optionCard { min-height: 48px; padding-block: 5px; }
+.fullMain[data-document-form] .accordionBody [data-input-group],
+.fullMain[data-document-form] .accordionBody [data-input-group]:global(.bg-panel.p-5) {
+  background: transparent; border-radius: 0; padding: 20px 0;
+}
+.fullMain[data-document-form] [data-input-group]:not([data-field-row]):has(> :is(div,label,h3):first-child),
+.fullMain[data-document-form] [data-document-row] {
+  display: grid; grid-template-columns: var(--wizard-label-width) minmax(0,1fr); column-gap: 24px; row-gap: 10px;
+  border-top: 0; padding: 20px 0; margin-top: 0;
+}
+.fullMain[data-document-form] [data-input-group]:not([data-field-row])>* ,
+.fullMain[data-document-form] [data-document-row]>* { grid-column: 2; margin-top: 0; min-width: 0; }
+.fullMain[data-document-form] [data-input-group]:not([data-field-row])>:first-child,
+.fullMain[data-document-form] [data-document-row]>h3 {
+  grid-column: 1; grid-row: 1; font-size: 13px; font-weight: 600; line-height: 1.6; align-self: start;
+}
+.fullMain[data-document-form] [data-input-group]:not([data-field-row])>:first-child :is(label,h3),
+.fullMain[data-document-form] [data-input-group]:not([data-field-row])>:first-child { font-size: 13px; }
+.fullMain[data-document-form] [data-input-group] .recordCard,
+.fullMain[data-document-form] [data-input-group] [data-ticket-record] { background: transparent; border-radius: 0; padding: 0 0 12px; border-bottom: 1px solid var(--wizard-border); }
+.fullMain[data-document-form] input:not([type=checkbox]):not([type=radio]):not([type=file]),
+.fullMain[data-document-form] .documentTable input:not([type=checkbox]):not([type=radio]):not([type=file]),
+.fullMain[data-document-form] select,
+.fullMain[data-document-form] textarea {
+  border: 0; border-bottom: 1px solid var(--wizard-border); border-radius: 0;
+  background-color: transparent; box-shadow: none; padding: 8px 10px;
+}
+.fullMain[data-document-form] input:not([type=checkbox]):not([type=radio]):not([type=file])[value=""],
+.fullMain[data-document-form] .documentTable input:not([type=checkbox]):not([type=radio]):not([type=file])[value=""],
+.fullMain[data-document-form] textarea:placeholder-shown,
+.fullMain[data-document-form] select:has(option:checked[value=""]) { background-color: var(--wizard-group); }
+.fullMain[data-document-form] input:not([type=checkbox]):not([type=radio]):focus,
+.fullMain[data-document-form] select:focus,
+.fullMain[data-document-form] textarea:focus { border-bottom-color: var(--wizard-ink); outline: none; }
+.fullMain[data-document-form] .documentTable { min-width: 620px; }
+.fullMain .documentTable :is(th,td) { border: 0; border-bottom: 1px solid var(--wizard-border); }
+.fullMain .documentTable th { background: transparent; font-weight: 400; color: var(--wizard-muted); }
+.fullMain[data-document-form] .documentTable td { padding-right: 8px; }
+@media (max-width:720px) {
+  .fullMain[data-document-form] [data-input-group]:not([data-field-row]):has(> :is(div,label,h3):first-child),
+  .fullMain[data-document-form] [data-document-row] { grid-template-columns: minmax(0,1fr); gap: 12px; }
+  .fullMain[data-document-form] [data-input-group]:not([data-field-row])>*,
+  .fullMain[data-document-form] [data-document-row]>*,
+  .fullMain[data-document-form] [data-input-group]:not([data-field-row])>:first-child,
+  .fullMain[data-document-form] [data-document-row]>h3 { grid-column: 1; grid-row: auto; }
+}
+
+.fullMain[data-document-form] [data-document-redundant] { display: none; }
+.fullMain[data-document-form] .accordionBody [data-input-group]:not([data-field-row]) { border-top: 0; }
+.fullMain[data-document-form] [data-input-group]:not([data-field-row])>:first-child,
+.fullMain[data-document-form] [data-input-group]:not([data-field-row])>:first-child :is(label,h3) { color: var(--wizard-ink); font-weight: 600; }
+.fullMain[data-document-form] [data-input-group]>:global(.space-y-2)>[data-ticket-record],
+.fullMain[data-document-form] [data-input-group]>:global(.space-y-2)>.recordCard { padding-inline: 0; background: transparent; border-radius: 0; }
+.fullMain[data-document-form] [data-input-group]:has(>[data-field-size]:only-child) { display: block; }
+.fullMain[data-document-form] [data-input-group]>[data-field-size]:only-child { display: grid; grid-template-columns: var(--wizard-label-width) minmax(0,1fr); gap: 24px; width: 100%; max-width: none; }
+.fullMain[data-document-form] [data-input-group]>[data-field-size]:only-child>label { font-size: 13px; color: var(--wizard-ink); font-weight: 600; }
+@media(max-width:720px) {
+ .fullMain[data-document-form] [data-input-group]>[data-field-size]:only-child { grid-template-columns: 1fr; gap: 12px; }
+}
+
+/* Section boundaries use spacing and shared panel radii, never divider rules. */
+.fullMain[data-document-form] .accordionBody :global(.border-t) { border-top: 0; }
+.fullMain[data-document-form] .accordionBody .recordCard,
+.fullMain[data-document-form] .accordionBody [data-ticket-record] { border-bottom: 0; }
+.fullMain[data-document-form] .accordionBody .recordCard+.recordCard,
+.fullMain[data-document-form] .accordionBody [data-ticket-record]+[data-ticket-record] { border-top: 1px solid var(--wizard-border); padding-top: 16px; }
+.fullMain .documentTable :is(th,td) { border: 0; }
+.fullMain .documentTable tbody tr+tr td { border-top: 0; }
+.fullMain[data-document-form] select:focus,
+.fullMain[data-document-form] select:focus-visible { border: 0; border-bottom: 1px solid var(--wizard-ink); outline: none; box-shadow: none; }
+.fullMain[data-document-form] select:focus-visible { border-bottom-width: 2px; }
+/* Shared document group: title and helper copy stay in one left column. */
+.fullMain[data-document-form] .documentGroup {
+  display: grid; grid-template-columns: var(--wizard-label-width) minmax(0,1fr); gap: 24px;
+  padding-block: var(--wizard-section-gap); margin: 0;
+}
+.documentGroupHeading h3 { font-size: 13px; line-height: 1.6; font-weight: 600; margin: 0; }
+.documentGroupDescription { margin-top: 8px; font-size: 11px; line-height: 1.7; color: var(--wizard-muted); }
+.documentGroupContent { min-width: 0; }
+.fullMain[data-document-form] .documentGroupContent>[data-input-group] { padding: 0; }
+.fullMain[data-document-form] .accordionBody [data-input-group]:not([data-field-row]),
+.fullMain[data-document-form] [data-document-row] { padding-block: var(--wizard-section-gap); }
+.fullMain[data-document-form] [data-input-group]:not([data-field-row])>:first-child:has(p) { display: flex; flex-direction: column; align-items: flex-start; gap: 8px; }
+.fullMain[data-document-form] [data-input-group]:not([data-field-row])>:first-child p { font-weight: 400; font-size: 11px; line-height: 1.7; color: var(--wizard-muted); margin: 0; }
+.fullMain .documentTable thead th { border-bottom: 0; padding: 0 8px 8px 0; }
+.fullMain .documentTable tbody td { padding: 8px 8px 8px 0; }
+.fullMain .documentTable .documentAction { padding: 8px 0; vertical-align: middle; }
+.fullMain .documentTable .documentAction button { margin-inline: auto; }
+.fullMain .documentTable[data-columns="2"],
+.fullMain .documentTable[data-columns="3"] { min-width: 420px; }
+.fullMain .documentTable[data-columns="8"] { min-width: 1000px; }
+.fullMain[data-document-form] input:not([type=checkbox]):not([type=radio]):not([type=file]),
+.fullMain[data-document-form] .documentTable input:not([type=checkbox]):not([type=radio]):not([type=file]),
+.fullMain[data-document-form] textarea,
+.fullMain[data-document-form] select { background-color: var(--wizard-surface); }
+.fullMain[data-document-form] input:not([type=checkbox]):not([type=radio]):not([type=file])[value=""],
+.fullMain[data-document-form] .documentTable input:not([type=checkbox]):not([type=radio]):not([type=file])[value=""],
+.fullMain[data-document-form] textarea:placeholder-shown,
+.fullMain[data-document-form] select:has(option:checked[value=""]) { background-color: var(--wizard-group); }
+@media(max-width:720px) {
+ .fullMain[data-document-form] .documentGroup { grid-template-columns: minmax(0,1fr); gap: 12px; }
+}
+.fullMain .documentTableScroll { position: relative; }
+.fullMain[data-document-form] [data-input-group]:not([data-field-row]),
+.fullMain[data-document-form] [data-document-row],
+.fullMain[data-document-form] .documentGroup { align-items: start; }
+
+/* Shared underline controls retain their lower edge in every state. */
+.fullMain[data-document-form] .documentTable select,
+.fullMain[data-document-form] .documentTable select:focus,
+.fullMain[data-document-form] .documentTable select:focus-visible {
+  border: 0; border-bottom: 1px solid var(--wizard-border); outline: none; box-shadow: none;
+}
+.fullMain[data-document-form] .documentTable select:focus { border-bottom-color: var(--wizard-ink); }
+.fullMain .categoryTabs button { border-radius: var(--wizard-radius-control); }
+.fullMain .includes>ul { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); column-gap: 32px; row-gap: 0; }
+.fullMain .includes>ul>li { display: flex; flex-direction: row; justify-content: space-between; align-items: baseline; gap: 16px; background: transparent; border-radius: 0; border-bottom: 1px solid var(--wizard-border); padding: 12px 0; }
+.fullMain .includes>ul>li>b { flex-shrink: 0; text-align: left; }
+.fullMain .includes>ul>li>span { text-align: right; margin: 0; }
+@media(max-width:720px) { .fullMain .includes>ul { grid-template-columns: 1fr; } }
+
+/* Accordion spacing is owned by the body, not nested legacy wrappers. */
+.fullMain[data-document-form] .accordionBody > :is(section, div) > div:first-child,
+.fullMain[data-document-form] .accordionBody :global(.bg-panel),
+.fullMain[data-document-form] .accordionBody :global(.bg-panel) > div:first-child {
+  margin-top: 0;
+}
+.fullMain[data-document-form] .accordionBody :global(.bg-panel) > div:first-child > .documentGroup:first-child {
+  padding-top: 0;
+}
+.fullMain[data-document-form] .accordionBody > section { margin-top: 0; }
+.fullMain[data-document-form] [data-preview-slot="slot.3.applicantDetails"] .documentGroup { padding-top: 0; }
+.fullMain[data-document-form] [data-field-key="performanceInfo.applicantContact"] { padding-bottom: 28px; }
+.fullMain[data-document-form] [data-performance-records] { padding-top: 28px; }
+.fullMain[data-document-form] .accordionBody > * > :global(.mt-6) { margin-top: 0; }
+
+/* Six shared content columns, plus a consistent row-action rail. */
+.fullMain[data-document-form] { --document-action-width: 48px; }
+.fullMain[data-document-form] [data-field-row] {
+  display: grid; grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: 16px 0; padding-right: var(--document-action-width);
+}
+.fullMain[data-document-form] [data-field-row] > * {
+  grid-column: span 2; width: 100%; max-width: none; min-width: 0; padding-right: 8px;
+}
+.fullMain[data-document-form] [data-field-row]:has(> :last-child:nth-child(2)) > * { grid-column: span 3; }
+.fullMain[data-document-form] [data-field-row]:has(> :only-child) > * { grid-column: span 6; }
+.fullMain[data-document-form] [data-field-row] :is(input, select, textarea) { max-width: none; }
+.fullMain[data-document-form] .documentTable { min-width: 620px; }
+.fullMain[data-document-form] .documentTable[data-columns="8"] { min-width: 1000px; }
+.fullMain[data-document-form] .documentTable .documentAction { width: var(--document-action-width); }
+.fullMain[data-document-form] [data-choice-chip] { border-radius: var(--wizard-radius-control); }
+@media(max-width:720px) {
+ .fullMain[data-document-form] [data-field-row] { grid-template-columns: repeat(2,minmax(0,1fr)); padding-right: 0; }
+ .fullMain[data-document-form] [data-field-row] > *,
+ .fullMain[data-document-form] [data-field-row]:has(> :last-child:nth-child(2)) > *,
+ .fullMain[data-document-form] [data-field-row]:has(> :only-child) > * { grid-column: span 2; }
+}
+
+.fullMain[data-document-form] [data-field-row],
+.fullMain[data-document-form] .documentGroupContent > [data-input-group][data-field-row] { padding-right: calc(100% / 7); }
+.fullMain[data-document-form] .documentTable:not([data-columns="8"]) .documentAction { width: auto; }
+@media(max-width:720px) {
+ .fullMain[data-document-form] [data-field-row],
+ .fullMain[data-document-form] .documentGroupContent > [data-input-group][data-field-row] { padding-right: 0; }
+}
+
+/* Field values and placeholders share their label's left edge. */
+.fullMain[data-document-form] input:not([type=checkbox]):not([type=radio]):not([type=file]),
+.fullMain[data-document-form] textarea,
+.fullMain[data-document-form] select,
+.fullMain[data-document-form] .documentTable input:not([type=checkbox]):not([type=radio]):not([type=file]),
+.fullMain[data-document-form] .documentTable textarea,
+.fullMain[data-document-form] .documentTable select {
+  padding-left: 0;
+  text-align: left;
+}
+
+/* Container values retain their shared fill and inset. */
+@media(min-width:721px) {
+ .fullMain[data-document-form] [data-schedule-fixed][data-field-row]:has(> :last-child:nth-child(2)) > :first-child { grid-column: span 4; }
+ .fullMain[data-document-form] [data-schedule-fixed][data-field-row]:has(> :last-child:nth-child(2)) > :last-child { grid-column: span 2; }
+}
+
+.fullMain[data-document-form] [data-section-description] { margin: 0 0 20px; line-height: 1.7; }
+@media(min-width:721px) {
+ .fullMain[data-document-form] [data-preview-slot="slot.3.applicantDetails"] .documentGroup [data-field-row] > :nth-child(1) { grid-column: span 3; }
+ .fullMain[data-document-form] [data-preview-slot="slot.3.applicantDetails"] .documentGroup [data-field-row] > :nth-child(2) { grid-column: span 2; }
+ .fullMain[data-document-form] [data-preview-slot="slot.3.applicantDetails"] .documentGroup [data-field-row] > :nth-child(3) { grid-column: span 1; }
+ .fullMain[data-document-form] [data-preview-slot="slot.3.eventBasics"] .documentGroup [data-field-row] > :first-child { grid-column: span 4; }
+ .fullMain[data-document-form] [data-preview-slot="slot.3.eventBasics"] .documentGroup [data-field-row] > :last-child { grid-column: span 2; }
+}
+
+.fullMain[data-document-form] select,
+.fullMain[data-document-form] .documentTable select { padding-left: 0; padding-right: 28px; }
+/* Keep option-menu insets separate from the closed field alignment. */
+.fullMain[data-document-form] select option { padding-inline: 12px; }
+@media(min-width:721px) {
+ .fullMain[data-document-form] [data-ticket-date-control] { position: relative; }
+ .fullMain[data-document-form] [data-ticket-date-control] > input { flex: 1; width: 100%; }
+ .fullMain[data-document-form] [data-ticket-date-control] > button { position: absolute; left: calc(100% + 8px); }
+}
+
+/* Standalone document sections consume the same design contract. */
+.fullMain[data-document-form] [data-document-panel],
+.fullMain[data-document-form] [data-public-interest-wrapper] {
+  background: var(--wizard-surface);
+  border: 0;
+  border-radius: var(--wizard-radius-panel);
+  padding: var(--wizard-panel-padding);
+  margin-top: var(--wizard-group-padding);
+}
+.fullMain[data-document-form] [data-document-panel] > h3 { margin: 0; font-size: 17px; font-weight: 700; }
+.fullMain[data-document-form] [data-document-panel] > p { line-height: 1.7; }
+.fullMain[data-document-form] [data-cooperation-grid] {
+  grid-template-columns: minmax(0,1fr); gap: 0; margin-top: var(--wizard-section-gap);
+}
+.fullMain[data-document-form] [data-cooperation-grid] > div {
+  display: grid; grid-template-columns: var(--wizard-label-width) minmax(0,1fr);
+  column-gap: var(--wizard-label-gap); row-gap: 12px;
+  background: transparent; border: 0; border-radius: 0; padding: var(--wizard-section-gap) 0;
+}
+.fullMain[data-document-form] [data-cooperation-grid] > div > * { grid-column: 2; margin-top: 0; }
+.fullMain[data-document-form] [data-cooperation-grid] > div > :first-child { grid-column: 1; grid-row: 1; }
+.fullMain[data-document-form] [data-consent-grid] { gap: var(--wizard-label-gap); }
+@media(max-width:720px) {
+ .fullMain[data-document-form] [data-document-panel],
+ .fullMain[data-document-form] [data-public-interest-wrapper] { padding: var(--wizard-group-padding); }
+ .fullMain[data-document-form] [data-cooperation-grid] > div { grid-template-columns: minmax(0,1fr); padding-block: 20px; }
+ .fullMain[data-document-form] [data-cooperation-grid] > div > *,
+ .fullMain[data-document-form] [data-cooperation-grid] > div > :first-child { grid-column: 1; grid-row: auto; }
+ .fullMain[data-document-form] [data-consent-grid] { grid-template-columns: minmax(0,1fr); }
+}
+/* Single source for calculated container values across wizard pages. */
+.fullMain [data-auto-value] {
+ display:flex; align-items:center; flex-wrap:nowrap; gap:10px;
+ min-height:var(--wizard-field-height); height:auto;
+ padding:10px var(--wizard-container-inset);
+ background:var(--wizard-readonly); color:var(--wizard-muted);
+ border:1px solid var(--wizard-border); border-radius:var(--wizard-radius-control);
+ white-space:nowrap; overflow-x:auto; cursor:default;
+}
+.fullMain [data-auto-value]::after {
+ content:"자동 반영"; margin-left:auto; flex-shrink:0;
+ font-size:10px; color:var(--wizard-muted); white-space:nowrap;
+}
+
+/* Discount amounts include the leading sign and currency symbol in red. */
+.estimateVenue dd.estimateDiscount { color: var(--danger); }
+
+/* Final review uses the same secondary controls and inset group surface. */
+.fullMain [data-review-attachments] a {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 32px;
+  padding: 6px 12px;
+  border: 1px solid var(--wizard-border);
+  border-radius: var(--wizard-radius-control);
+  background: var(--wizard-surface);
+  color: var(--wizard-ink);
+  font-size: 12px;
+  line-height: 1.5;
+  text-decoration: none;
+  white-space: nowrap;
+}
+.fullMain [data-review-attachments] a:hover { border-color: var(--wizard-ink); }
+.fullMain [data-review-attachments] a:focus-visible { outline: 2px solid var(--wizard-ink); outline-offset: 3px; }
+.fullMain [data-review-attachments] > li > div { flex-wrap: wrap; gap: 8px; }
+.fullMain [data-alternative-schedule] {
+  padding: var(--wizard-group-padding);
+  border: 0;
+  border-radius: var(--wizard-radius-group);
+  background: var(--wizard-group);
+}
+.fullMain [data-alternative-schedule] > p:last-child { border-color: var(--wizard-border); }

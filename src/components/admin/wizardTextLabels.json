@@ -130,6 +130,7 @@
   "marketing.addChannelButton": "홍보·협업 · 채널 추가 버튼 문구",
   "marketing.channelsHint": "프로모션 채널 · 입력 안내",
   "marketing.channelsEmpty": "홍보·협업 · 등록된 채널이 없습니다. 빈 상태 안내",
+  "marketing.channelPlatformLabel": "홍보·협업 · 채널 레이블",
   "marketing.channelPlatformPlaceholder": "홍보·협업 · 채널 (예: 인스타그램) 입력 예시",
   "marketing.channelHandlePlaceholder": "홍보·협업 · 계정 / URL 입력 예시",
   "marketing.channelFollowersPlaceholder": "홍보·협업 · 구독자·팔로워 수 입력 예시",

@@ -1,8 +1,8 @@
 "use client";
-import { StepHeading } from "./StepHeading";
 import { PreviewChevron } from "./PreviewChevron";
 import { Children, cloneElement, createContext, isValidElement, useContext, useId, type HTMLAttributes, type ReactElement, type ReactNode } from "react";
 import s from "./BookingPreview.module.css";
+import { recordLayout, type RecordLayout } from "./bookingFormRules";
 export const PreviewDesignContext = createContext(false);
 /** Recompose repeated form records as labelled cards; callbacks and validation keys stay intact. */
 type FieldSize = "short" | "medium" | "long";
@@ -33,6 +33,51 @@ export function PreviewRepeatRow({ children, fieldSizes, ...legacy }: HTMLAttrib
             return <label key={i} data-field-size={fieldSizes?.[i] ?? control.props["data-field-size"] ?? "medium"} htmlFor={`${id}-${i}`}><span>{label}</span>{cloneElement(control, { id: `${id}-${i}`, 'aria-label': label })}</label>;
         })}</div></div>;
 }
+/** Shared title/description column; content retains its own field layout. */
+export function DocumentGroup({ title, description, children }: { title: ReactNode; description?: ReactNode; children: ReactNode }) {
+    return <div data-document-group className={s.documentGroup}>
+        <div className={s.documentGroupHeading}><h3>{title}</h3>{description && <div className={s.documentGroupDescription}>{description}</div>}</div>
+        <div className={s.documentGroupContent}>{children}</div>
+    </div>;
+}
+/** Standalone sections share the same panel surface as accordion sections. */
+export function DocumentPanel({ children, ...props }: HTMLAttributes<HTMLDivElement>) {
+    return <div {...props} data-document-panel>{children}</div>;
+}
+/** A shared document table keeps each repeated record on one aligned row. */
+export function PreviewRecordTable({ children, label, layout }: { children: ReactNode; label: string; layout?: RecordLayout }) {
+    const preview = useContext(PreviewDesignContext);
+    const id = useId();
+    if (!preview) return <div className="space-y-2">{children}</div>;
+    const rows = Children.toArray(children).filter(isValidElement).map(row => {
+        const controls: ReactElement<Record<string, unknown>>[] = [];
+        const actions: ReactNode[] = [];
+        function visit(nodes: ReactNode) {
+            Children.forEach(nodes, child => {
+                if (!isValidElement<Record<string, unknown>>(child)) return;
+                if (child.type === 'input' || child.type === 'select' || child.type === 'textarea') controls.push(child);
+                else if (child.type === 'button') actions.push(child);
+                else if (child.props.children) visit(child.props.children as ReactNode);
+            });
+        }
+        visit((row.props as { children: ReactNode }).children);
+        return { key: row.key, controls, actions };
+    });
+    if (!rows.length) return null;
+    const labels = rows[0].controls.map(control => String(control.props['aria-label'] || control.props.placeholder || (control.type === 'select' ? '역할' : '입력 항목')));
+    const { spans, columns: totalColumns, minWidth } = recordLayout(layout);
+    return <div className={s.documentTableScroll} role="region" aria-label={label} tabIndex={0}>
+        <table className={s.documentTable} data-columns={labels.length} style={minWidth ? { minWidth } : undefined}>
+            <caption>{label}</caption>
+            <colgroup>{labels.map((_, i) => <col key={i} style={spans ? { width: `${spans[i] / totalColumns * 100}%` } : undefined} />)}<col style={{ width: spans ? `${100 / totalColumns}%` : 48 }} /></colgroup>
+            <thead><tr>{labels.map((label, i) => <th key={i} scope="col" id={`${id}-col-${i}`}>{label}</th>)}<th scope="col" className={s.documentAction}><span className="sr-only">행 삭제</span></th></tr></thead>
+            <tbody>{rows.map((row, rowIndex) => <tr key={row.key ?? rowIndex}>
+                {row.controls.map((control, i) => <td key={i}>{cloneElement(control, { 'aria-label': `${labels[i]} ${rowIndex + 1}행` })}</td>)}
+                <td className={s.documentAction}>{row.actions}</td>
+            </tr>)}</tbody>
+        </table>
+    </div>;
+}
 const titles: Record<string, [
     string,
     string
@@ -47,5 +92,12 @@ export function PreviewApplicantSections({ order, renderers, title }: {
     renderers: Record<string, () => ReactNode>;
     title: ReactNode;
 }) {
-    return <section><StepHeading className={s.heading} title={title} lead="내용을 확인하고 필요한 항목을 눌러 작성하세요. 입력 내용은 이 브라우저에 자동으로 보관됩니다."/><div className={s.sectionStack}>{order.map((key, i) => <details key={key} data-preview-slot={`slot.3.${key}`} data-preview-group={({ applicantDetails: "performanceInfo.applicantContact", eventBasics: "performanceInfo.eventBasics", audience: "audience.ancillaryBusinessPlans" } as Record<string, string>)[key] ?? "slot.3"} className={s.formAccordion} open><summary><span className={s.sectionNumber}>{String(i + 1).padStart(2, '0')}</span><span><b>{titles[key]?.[0] || key}</b><small>{titles[key]?.[1]}</small></span><PreviewChevron /></summary><div className={s.accordionBody}>{renderers[key]?.()}</div></details>)}</div></section>;
+    const accordionName = useId();
+    const displayOrder = [...order];
+    const audienceIndex = displayOrder.indexOf('audience');
+    const credibilityIndex = displayOrder.indexOf('credibility');
+    if (audienceIndex > credibilityIndex && credibilityIndex >= 0) {
+        [displayOrder[audienceIndex], displayOrder[credibilityIndex]] = [displayOrder[credibilityIndex], displayOrder[audienceIndex]];
+    }
+    return <section><div className={s.heading}><h1>대관사 및 행사 정보</h1><p>{title} · 입력 내용은 이 브라우저에 자동으로 보관됩니다.</p></div><div className={s.sectionStack}>{displayOrder.map((key, i) => <details key={key} data-preview-slot={`slot.3.${key}`} data-preview-group={({ applicantDetails: "performanceInfo.applicantContact", eventBasics: "performanceInfo.eventBasics", audience: "audience.ancillaryBusinessPlans" } as Record<string, string>)[key] ?? "slot.3"} className={s.formAccordion} name={accordionName} open={i === 0}><summary><span className={s.sectionNumber}>{String(i + 1).padStart(2, '0')}</span><span><h2>{titles[key]?.[0] || key}</h2><small>{titles[key]?.[1]}</small></span><PreviewChevron /></summary><div className={s.accordionBody}>{renderers[key]?.()}</div></details>)}</div></section>;
 }

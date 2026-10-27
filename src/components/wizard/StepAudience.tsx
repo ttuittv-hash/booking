@@ -1,4 +1,5 @@
 "use client";
+import { PreviewRecordTable } from "./BookingPreviewForms";
 
 import { CheckboxChip, toggleClass, ROW_REMOVE_BTN } from "@/components/ui/kit";
 
@@ -181,13 +182,13 @@ function AudienceFields({
     /* 단계 안의 블록은 박스로 싸지 않는다 — 굵은 헤어라인 + H6 으로만 나눈다
        (신청자 정보·공공성과 같은 규칙) */
     <div className="mt-6 bg-panel p-5">
-      <h3 className="type-kr-heading text-h6-m">{t("audience.sectionHeading", "예상 관객 및 사업규모")}</h3>
+      <h3 data-document-redundant className="type-kr-heading text-h6-m">{t("audience.sectionHeading", "예상 관객 및 사업규모")}</h3>
 
       <div className="mt-4 space-y-4">
         {/* 아레나/중형/총 예상 관객 수를 세 칸씩 쌓지 않고 한 줄로 — 눈이 세로로 오르내리지
             않게 한다(2026-08-22, 한 줄 배치 요청). 셋 중 화면에 없는 값은 그 칸만 빠진다. */}
         {hasSummaryRow && (
-          <div data-input-group data-field-row className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+          <div data-document-row><h3>예상 관객</h3><div data-field-row className="grid grid-cols-1 gap-4 sm:grid-cols-3">
             {/* [수정 2026-09-08] "1회당 예상 관객 수 - 수정기능 필요(현재 수정 불가)" —
                 패키지 관객 등급에서 자동으로 채우던 읽기전용 표시를 직접 고칠 수 있는
                 입력으로 되돌린다. 값은 청소비 등 계산에 그대로 쓰인다. */}
@@ -229,7 +230,7 @@ function AudienceFields({
                 </div>
               </div>
             )}
-          </div>
+          </div></div>
         )}
 
         {/* [개정 2026-08-26, 2026-09-06] "티켓 유형별로 행 추가(R석, VIP석 등),
@@ -241,10 +242,11 @@ function AudienceFields({
             <label className="type-kr-heading text-s text-foreground">{t("audience.ticketTypesLabel", "티켓 유형별 가격")}</label>
 
           </div>
-          <div className="space-y-2">
+          <PreviewRecordTable layout="tickets" label="티켓 상품 예상 구성">
             {ticketTypes.map((row, i) => (
               <div key={i} data-ticket-record data-field-row className="grid grid-cols-3 gap-1.5 py-2">
                 <label data-field-size="medium" data-ticket-label><span data-field-label>티켓 상품명</span><input
+                  aria-label="티켓 상품명"
                   value={row.label}
                   placeholder={tStr("audience.ticketTypeLabelPlaceholder", "예: R석, VIP석")}
                   onChange={(e) => updateTicketType(i, { label: e.target.value })}
@@ -254,6 +256,7 @@ function AudienceFields({
                   <input
                     type="number"
                     min={0}
+                    aria-label="티켓 가격 (원)"
                     value={row.price || ""}
                     placeholder={tStr("audience.ticketPricePlaceholder", "티켓가")}
                     onChange={(e) => updateTicketType(i, { price: Math.max(0, Number(e.target.value) || 0) })}
@@ -272,8 +275,7 @@ function AudienceFields({
                   </button>
                 </div>
               </div>
-            ))}
-          </div>
+            ))}</PreviewRecordTable>
           <div className="mt-3">
             <button type="button" onClick={addTicketType} className={toggleClass(false)}>
               {t("audience.addTicketTypeButton", "＋ 행 추가")}

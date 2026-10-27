@@ -1,5 +1,5 @@
 "use client";
-import { PreviewRepeatRow } from "./BookingPreviewForms";
+import { DocumentPanel, PreviewRecordTable, PreviewRepeatRow } from "./BookingPreviewForms";
 
 import type { ReactNode } from "react";
 import { toggleClass } from "@/components/ui/kit";
@@ -72,14 +72,14 @@ export function PromotionChannelsFields({
       <div className="mb-2.5 flex items-center justify-between">
         <h3 className="type-kr-heading text-h6-m">{t("marketing.channelsHeading", "프로모션 채널(선택)")}</h3>
 
-      </div>
       <p className="mt-1 mb-3 break-keep text-xs leading-6 text-muted">
         {t("marketing.channelsHint", "공연 운영 채널이 있다면 입력해주세요. 서울아레나와 연계하여 홍보 가능합니다.")}
-      </p>
+      </p></div>
+
       {info.channels.length === 0 && (
         <p className="text-xs text-muted">{t("marketing.channelsEmpty", "등록된 채널이 없습니다.")}</p>
       )}
-      <div className="space-y-2">
+      <PreviewRecordTable layout="promotionChannels" label="공연·행사 프로모션">
         {info.channels.map((row, i) => (
           <PreviewRepeatRow
             key={i}
@@ -89,6 +89,7 @@ export function PromotionChannelsFields({
           >
             <input
               value={row.platform}
+              aria-label={tStr("marketing.channelPlatformLabel", "채널")}
               placeholder={tStr("marketing.channelPlatformPlaceholder", "채널 (예: 인스타그램)")}
               onChange={(e) => updateChannel(i, { platform: e.target.value })}
               className="field-base"
@@ -115,7 +116,7 @@ export function PromotionChannelsFields({
             </button>
           </PreviewRepeatRow>
         ))}
-      </div>
+      </PreviewRecordTable>
       <div className="mt-3">
         <button type="button" onClick={addChannel} className={toggleClass(false)}>
           {t("marketing.addChannelButton", "＋ 채널 추가")}
@@ -164,7 +165,7 @@ export function StepMarketingCooperation({
       <StepForm>
         {/* [이동 2026-09-08] "프로모션 채널(선택)" 슬롯은 StepAudience(신청자 정보 및
             규모)로 옮겼다 — PromotionChannelsFields, 이 파일 위쪽에서 export. */}
-        <div className="bg-panel p-5">
+        <DocumentPanel className="bg-panel p-5">
           <h3 className="type-kr-heading text-h6-m">
             {t("marketing.serviceLinkHeading", "공동 콘텐츠·프로모션 및 서비스 협업")}
           </h3>
@@ -217,6 +218,7 @@ export function StepMarketingCooperation({
                   type="button"
                   onClick={() => set("contentCooperationConsent", true)}
                   className={toggleClass(info.contentCooperationConsent === true)}
+                  aria-pressed={info.contentCooperationConsent === true}
                 >
                   {t("marketing.cooperationConsentYes", "협업 동의")}
                 </button>
@@ -224,6 +226,7 @@ export function StepMarketingCooperation({
                   type="button"
                   onClick={() => set("contentCooperationConsent", false)}
                   className={toggleClass(info.contentCooperationConsent === false)}
+                  aria-pressed={info.contentCooperationConsent === false}
                 >
                   {t("marketing.cooperationConsentNo", "협업 미동의")}
                 </button>
@@ -239,7 +242,7 @@ export function StepMarketingCooperation({
               </p>
             </div>
           </div>
-        </div>
+        </DocumentPanel>
 
         {/* [삭제 2026-09-07] "동의 구하는거 그 두줄 자체가 없어야해" — 위 "공동
             프로모션 협조"/"공동 스폰서십·브랜딩 협업" 동의 여부를 묻던 두 줄을
@@ -249,7 +252,7 @@ export function StepMarketingCooperation({
         {/* 2026-08-25, "세일즈·실적 데이터 제공 협조 이거 박스형태로 있던거 그대로
             유지해야지.. 이 슬롯 기존대로 복구" — 위 "협조 동의 항목"에 합쳤던 걸
             되돌리고, 원래대로 독립 슬롯 + 2단 박스 레이아웃을 유지한다. */}
-        <div className="mt-8 bg-panel p-5">
+        <DocumentPanel className="mt-8 bg-panel p-5">
           <h3 className="type-kr-heading text-h6-m">
             {t("marketing.dataConsentHeading", "공연 관련 데이터 제공 협조")}
           </h3>
@@ -257,7 +260,7 @@ export function StepMarketingCooperation({
             {t("marketing.dataConsentHint", "제공된 데이터는 서울아레나의 공연장 운영 통계에 활용됩니다.")}
           </p>
 
-          <div className="mt-4 grid grid-cols-1 gap-x-6 gap-y-5 sm:grid-cols-2">
+          <div data-consent-grid className="mt-4 grid grid-cols-1 gap-x-6 gap-y-5 sm:grid-cols-2">
             <div>
               <label className="flex cursor-pointer items-center gap-2 text-s">
                 <input
@@ -316,7 +319,7 @@ export function StepMarketingCooperation({
               </p>
             </div>
           </div>
-        </div>
+        </DocumentPanel>
       </StepForm>
     </section>
   );

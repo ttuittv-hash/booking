@@ -540,18 +540,11 @@ export function CheckboxChip({
   onChange: () => void;
 }) {
   return (
-    <label
+    <button type="button" data-choice-chip aria-pressed={checked}
       style={checked ? CHOICE_SELECTED_VARS : undefined}
-      className={[
-        "flex h-10 cursor-pointer items-center gap-2 border px-4 text-s transition-colors",
-        checked
-          ? "border-foreground bg-inverse-bg text-inverse-fg"
-          : "border-border-soft bg-surface text-foreground hover:border-foreground",
-      ].join(" ")}
-    >
-      <input type="checkbox" checked={checked} onChange={onChange} className="h-4 w-4" />
+      className={toggleClass(checked)} onClick={onChange}>
       {label}
-    </label>
+    </button>
   );
 }
 

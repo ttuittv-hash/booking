@@ -430,7 +430,7 @@ export function Step6Submit({
           {/* [신규 2026-09-11] "대체 일정 제안 수신 여부" — 신청 일정으로 대관이 어려울 때
               심의 결과에 따라 다른 일정을 제안받을지 묻는다. 필수 — 제출 검증(blockedReason)이
               값이 없으면 막는다. */}
-          <div className="mt-6 border border-border/25 p-5">
+          <div data-alternative-schedule className="mt-6 border border-border/25 p-5">
             <div className="flex items-center gap-2">
               <span className="text-s font-bold">{t("submit.altScheduleHeading", "대체 일정 제안 수신 여부")}</span>
               <span className="text-danger" aria-label={tStr("submit.requiredBadge", "필수")}>*</span>

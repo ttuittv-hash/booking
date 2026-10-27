@@ -139,7 +139,7 @@ export function Step5Estimate({
                 <dl>
                   {box.sectionItems.map((item, index) => (
                     <div key={`${item.addonId}-${index}`}>
-                      <dt>{summaryPanelLineLabel(item)}{item.addonId !== "performance_day_adjustment" && item.billable > 0 && item.included > 0 && <span> (초과 {item.billable.toLocaleString()})</span>}</dt><dd>{won(item.amount)}</dd>
+                      <dt>{summaryPanelLineLabel(item)}{item.addonId !== "performance_day_adjustment" && item.billable > 0 && item.included > 0 && <span> (초과 {item.billable.toLocaleString()})</span>}</dt><dd className={item.amount < 0 ? previewStyles.estimateDiscount : undefined}>{item.amount < 0 && "-"}{won(Math.abs(item.amount))}</dd>
                     </div>
                   ))}
                   <div><dt>{t("estimate.subtotalLabel", "소계 (VAT 별도)")}</dt><dd>{won(box.subtotal)}</dd></div>
